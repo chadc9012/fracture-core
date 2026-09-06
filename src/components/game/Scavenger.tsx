@@ -9,7 +9,6 @@ import * as THREE from "three";
 const CLOTH = "#6d6a4a";
 const ARMOR = "#3a3d3c";
 const METAL = "#54514a";
-const TAN = "#a08köp";
 
 function Rifle({ position, rotation }: { position: [number, number, number]; rotation: [number, number, number] }) {
   return (
