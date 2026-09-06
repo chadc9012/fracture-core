@@ -66,6 +66,21 @@ export type Truck = {
   speed: number;
   /** seconds spent stopped — used to break rare standoffs */
   stalled: number;
+  /** seconds holding at a depot gate, waiting for the player */
+  wait: number;
+};
+
+export type Turret = {
+  x: number;
+  z: number;
+  y: number;
+  /** region the turret defends */
+  zone: string;
+  cool: number;
+  /** >0 while the muzzle flash / tracer is drawn */
+  flash: number;
+  rot: number;
+  range: number;
 };
 
 export type Bullet = {
@@ -86,6 +101,7 @@ export type WorldSim = {
   lanes: Lane[];
   machines: Machine[];
   trucks: Truck[];
+  turrets: Turret[];
   bullets: Bullet[];
   credits: number;
   cargo: number;
@@ -153,7 +169,28 @@ export function createSim(): WorldSim {
     cargo: 1 + (i % 3),
     speed: 0.035,
     stalled: 0,
+    wait: 0,
   }));
+
+  // automated defence grid on the safe-zone perimeters
+  const turrets: Turret[] = REGIONS.filter((r) => r.kind === "safe" || r.kind === "starter").flatMap((r) => {
+    const count = r.kind === "safe" ? 8 : 5;
+    return Array.from({ length: count }, (_, i) => {
+      const a = (i / count) * Math.PI * 2;
+      const x = r.x + Math.cos(a) * r.radius * 0.92;
+      const z = r.z + Math.sin(a) * r.radius * 0.92;
+      return {
+        x,
+        z,
+        y: walkHeight(x, z),
+        zone: r.id,
+        cool: Math.random(),
+        flash: 0,
+        rot: a,
+        range: r.kind === "safe" ? 62 : 44,
+      };
+    });
+  });
 
   const bullets: Bullet[] = Array.from({ length: BULLET_POOL }, () => ({
     alive: false,
@@ -170,6 +207,7 @@ export function createSim(): WorldSim {
     lanes: LANES,
     machines,
     trucks,
+    turrets,
     bullets,
     credits: 0,
     cargo: 0,
@@ -476,6 +514,67 @@ export function stepSim(sim: WorldSim, input: SimInput) {
     m.y = walkHeight(m.x, m.z) + 2.2 * m.scale;
   }
 
+  // ---------- safe-zone stability field ----------
+  // enemies can never enter a friendly safe zone: the field shoves them back
+  // out across the boundary and burns their armour while they touch it.
+  for (const z of sim.zones) {
+    const r = z.region;
+    if ((r.kind !== "safe" && r.kind !== "starter") || z.owner !== "vanguard") continue;
+    for (const m of sim.machines) {
+      if (!m.alive) continue;
+      const dx = m.x - r.x;
+      const dz = m.z - r.z;
+      const d = Math.hypot(dx, dz) || 0.001;
+      if (d >= r.radius) continue;
+      const push = r.radius - d + 0.5;
+      m.x += (dx / d) * push;
+      m.z += (dz / d) * push;
+      m.kx += (dx / d) * 14;
+      m.kz += (dz / d) * 14;
+      m.hp -= dt * 6;
+      if (m.hp <= 0) {
+        m.alive = false;
+        sim.kills++;
+        sim.credits += 15;
+        alert(sim, `${r.name} stability field vaporised a war machine`);
+      }
+    }
+  }
+
+  // ---------- perimeter defence turrets ----------
+  for (const tur of sim.turrets) {
+    tur.flash = Math.max(0, tur.flash - dt * 3);
+    tur.cool -= dt;
+    let best: Machine | null = null;
+    let bestD = tur.range;
+    for (const m of sim.machines) {
+      if (!m.alive) continue;
+      const d = Math.hypot(m.x - tur.x, m.z - tur.z);
+      if (d < bestD) {
+        bestD = d;
+        best = m;
+      }
+    }
+    if (!best) continue;
+    tur.rot = Math.atan2(best.x - tur.x, best.z - tur.z);
+    if (tur.cool > 0) continue;
+    tur.cool = 0.9;
+    tur.flash = 1;
+    best.hp -= 2;
+    // knock the attacker away from the perimeter
+    const dx = best.x - tur.x;
+    const dz = best.z - tur.z;
+    const d = Math.hypot(dx, dz) || 1;
+    best.kx += (dx / d) * 8;
+    best.kz += (dz / d) * 8;
+    if (best.hp <= 0) {
+      best.alive = false;
+      sim.kills++;
+      sim.credits += 20;
+      alert(sim, "Safe-zone turret destroyed an ambusher");
+    }
+  }
+
   // ---------- convoys: lane following with headway control ----------
   for (const tr of sim.trucks) {
     if (!tr.alive) continue;
@@ -510,6 +609,15 @@ export function stepSim(sim: WorldSim, input: SimInput) {
       headway = Math.max(headway, 0.35);
     }
 
+    // holding at a depot gate: convoys wait for the player before rolling out,
+    // and while parked inside the safe zone the defences cover them
+    if (tr.wait > 0) {
+      tr.wait -= dt;
+      const playerNear = Math.hypot(px - tr.x, pz - tr.z) < 26;
+      if (playerNear) tr.wait = Math.max(tr.wait, 0.6);
+      headway = 0;
+    }
+
     // ease toward the target lane speed so trucks brake smoothly
     const target = 0.035 * headway;
     tr.speed += (target - tr.speed) * (1 - Math.exp(-3 * dt));
@@ -518,8 +626,14 @@ export function stepSim(sim: WorldSim, input: SimInput) {
     const prev = laneLanePoint(lane, tr.t, side);
     tr.t += dt * tr.speed * tr.dir;
     // loop between the depot gates, staying clear of the hub centres
-    if (tr.t > 0.9) tr.t = 0.1;
-    if (tr.t < 0.1) tr.t = 0.9;
+    if (tr.t > 0.9) {
+      tr.t = 0.1;
+      tr.wait = 6;
+    }
+    if (tr.t < 0.1) {
+      tr.t = 0.9;
+      tr.wait = 6;
+    }
     const now = laneLanePoint(lane, tr.t, side);
     tr.x = now.x;
     tr.z = now.z;
@@ -564,6 +678,7 @@ export function stepSim(sim: WorldSim, input: SimInput) {
     tr.hp = 3;
     tr.t = tr.dir > 0 ? 0.1 : 0.9;
     tr.speed = 0.01;
+    tr.wait = 4;
     tr.cargo = 1 + Math.floor(Math.random() * 3);
   }
 
