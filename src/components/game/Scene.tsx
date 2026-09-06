@@ -76,7 +76,7 @@ export function Scene({ onHud }: { onHud: (s: HudState) => void }) {
   const player = useRef<THREE.Group>(null!);
   const sun = useRef<THREE.DirectionalLight>(null!);
   const moon = useRef<THREE.DirectionalLight>(null!);
-  const time = useRef(0.22);
+  const time = useRef(0.28);
   const report = useRef(0);
   const velocity = useMemo(() => new THREE.Vector3(), []);
   const tmp = useMemo(() => new THREE.Vector3(), []);
@@ -143,7 +143,7 @@ export function Scene({ onHud }: { onHud: (s: HudState) => void }) {
     p.position.y = 1.2 + Math.sin(performance.now() * 0.008) * 0.06;
 
     // ---- follow camera ----
-    camTarget.set(p.position.x, p.position.y + 18, p.position.z + 26);
+    camTarget.set(p.position.x, p.position.y + 30, p.position.z + 38);
     camera.position.lerp(camTarget, 1 - Math.exp(-4 * dt));
     look.copy(p.position);
     look.y += 2;

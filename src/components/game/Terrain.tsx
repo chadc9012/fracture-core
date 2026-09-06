@@ -59,7 +59,7 @@ export function Terrain() {
   const cacti = useMemo(() => scatter(solara, 45, 16), [solara]);
   const pools = useMemo(() => scatter(swamp, 26, 17), [swamp]);
   const wrecks = useMemo(() => scatter(waste, 34, 18), [waste]);
-  const towers = useMemo(() => scatter(nexus, 40, 19, 3), [nexus]);
+  const towers = useMemo(() => scatter(nexus, 34, 19, 11), [nexus]);
   const flowers = useMemo(() => scatter(forest, 60, 20), [forest]);
   const emberRocks = useMemo(() => scatter(ember, 45, 21, 9), [ember]);
 
@@ -181,7 +181,7 @@ export function Terrain() {
       {/* nexus city towers */}
       <Instances limit={towers.length} castShadow>
         <boxGeometry args={[3.4, 1, 3.4]} />
-        <meshStandardMaterial color="#1d2836" metalness={0.6} roughness={0.35} />
+        <meshStandardMaterial color="#4a5b70" metalness={0.55} roughness={0.4} />
         {towers.map((t, i) => (
           <Instance key={i} position={[t.x, (10 + t.s * 16) / 2, t.z]} scale={[1, 10 + t.s * 16, 1]} rotation-y={t.r} />
         ))}

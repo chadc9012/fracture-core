@@ -27,7 +27,7 @@ export function GameCanvas() {
       <Canvas
         shadows
         dpr={[1, 1.75]}
-        camera={{ position: [START.x, 26, START.z + 40], fov: 55, far: 900 }}
+        camera={{ position: [START.x, 34, START.z + 46], fov: 55, far: 900 }}
       >
         <color attach="background" args={["#bfe4f2"]} />
         <Suspense fallback={null}>
