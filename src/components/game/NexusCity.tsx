@@ -1,8 +1,7 @@
-import { useGLTF } from "@react-three/drei";
 import { useFrame } from "@react-three/fiber";
 import { useMemo, useRef } from "react";
 import * as THREE from "three";
-import { clone as skeletonClone } from "three/examples/jsm/utils/SkeletonUtils.js";
+
 
 import { MODELS, type ModelKey } from "@/game/models";
 import { REGIONS } from "@/game/world";
@@ -25,16 +24,20 @@ function cityBlocks(): Placed[] {
     return seed / 2147483648;
   };
   const rings = [
-    { r: 7, count: 5, keys: ["tower_a", "tower_b"] as ModelKey[], scale: [7, 10] },
-    { r: 14, count: 10, keys: ["tower_b", "block_a"] as ModelKey[], scale: [5, 8] },
-    { r: 20.5, count: 14, keys: ["block_a", "block_b"] as ModelKey[], scale: [4, 6] },
+    { r: 13, count: 6, keys: ["tower_a", "tower_b"] as ModelKey[], scale: [3.4, 4.6] },
+    { r: 19.5, count: 9, keys: ["tower_b", "block_a"] as ModelKey[], scale: [2.8, 3.8] },
+    { r: 25, count: 12, keys: ["block_a", "block_b"] as ModelKey[], scale: [2.4, 3.2] },
   ];
+  const spawnX = NEXUS.x;
+  const spawnZ = NEXUS.z + 22;
   for (const ring of rings) {
     for (let i = 0; i < ring.count; i++) {
       const a = (i / ring.count) * Math.PI * 2 + rnd() * 0.2;
       const x = NEXUS.x + Math.cos(a) * ring.r;
       const z = NEXUS.z + Math.sin(a) * ring.r;
       const scale = ring.scale[0]! + rnd() * (ring.scale[1]! - ring.scale[0]!);
+      // keep the spawn pad and its exit lane clear of geometry
+      if (Math.hypot(x - spawnX, z - spawnZ) < 10) continue;
       out.push({
         key: ring.keys[Math.floor(rnd() * ring.keys.length)]!,
         x,
@@ -47,6 +50,7 @@ function cityBlocks(): Placed[] {
   }
   return out;
 }
+
 
 function CityBuildings() {
   const placed = useMemo(() => {
@@ -80,57 +84,80 @@ function CityBuildings() {
   );
 }
 
-/* ---------------- pedestrians ---------------- */
+/* ---------------- pedestrians (procedural low-poly walkers) ---------------- */
 
-type Ped = { x: number; z: number; a: number; r: number; speed: number; key: ModelKey };
+type Ped = { a: number; r: number; speed: number; tint: string; height: number };
 
 function Pedestrian({ ped }: { ped: Ped }) {
-  const gltf = useGLTF(MODELS[ped.key]);
-  const object = useMemo(() => skeletonClone(gltf.scene), [gltf.scene]);
-  const mixer = useMemo(() => new THREE.AnimationMixer(object), [object]);
   const group = useRef<THREE.Group>(null!);
+  const legL = useRef<THREE.Mesh>(null!);
+  const legR = useRef<THREE.Mesh>(null!);
+  const armL = useRef<THREE.Mesh>(null!);
+  const armR = useRef<THREE.Mesh>(null!);
   const angle = useRef(ped.a);
-
-  useMemo(() => {
-    const clip =
-      gltf.animations.find((c) => /walk/i.test(c.name)) ??
-      gltf.animations.find((c) => /run/i.test(c.name)) ??
-      gltf.animations[0];
-    if (clip) mixer.clipAction(clip).play();
-    object.traverse((o) => {
-      if ((o as THREE.Mesh).isMesh) o.castShadow = true;
-    });
-  }, [gltf.animations, mixer, object]);
+  const gait = useRef(Math.random() * 6);
 
   useFrame((_, raw) => {
     const dt = Math.min(raw, 0.05);
-    mixer.update(dt);
     angle.current += (ped.speed / ped.r) * dt;
+    gait.current += dt * 7.5;
     const x = NEXUS.x + Math.cos(angle.current) * ped.r;
     const z = NEXUS.z + Math.sin(angle.current) * ped.r;
     const g = group.current;
     if (!g) return;
     g.position.set(x, walkHeight(x, z), z);
     g.rotation.y = Math.atan2(-Math.sin(angle.current), Math.cos(angle.current)) + Math.PI / 2;
+    const s = Math.sin(gait.current) * 0.55;
+    if (legL.current) legL.current.rotation.x = s;
+    if (legR.current) legR.current.rotation.x = -s;
+    if (armL.current) armL.current.rotation.x = -s * 0.8;
+    if (armR.current) armR.current.rotation.x = s * 0.8;
   });
 
+  const h = ped.height;
   return (
-    <group ref={group} scale={2.1}>
-      <primitive object={object} />
+    <group ref={group} scale={h}>
+      {/* legs */}
+      <mesh ref={legL} position={[-0.13, 0.45, 0]} castShadow>
+        <capsuleGeometry args={[0.09, 0.42, 3, 6]} />
+        <meshStandardMaterial color="#2a3140" roughness={0.85} />
+      </mesh>
+      <mesh ref={legR} position={[0.13, 0.45, 0]} castShadow>
+        <capsuleGeometry args={[0.09, 0.42, 3, 6]} />
+        <meshStandardMaterial color="#2a3140" roughness={0.85} />
+      </mesh>
+      {/* torso */}
+      <mesh position={[0, 1.0, 0]} castShadow>
+        <capsuleGeometry args={[0.19, 0.42, 3, 8]} />
+        <meshStandardMaterial color={ped.tint} roughness={0.65} />
+      </mesh>
+      {/* arms */}
+      <mesh ref={armL} position={[-0.28, 1.02, 0]} castShadow>
+        <capsuleGeometry args={[0.065, 0.38, 3, 6]} />
+        <meshStandardMaterial color={ped.tint} roughness={0.7} />
+      </mesh>
+      <mesh ref={armR} position={[0.28, 1.02, 0]} castShadow>
+        <capsuleGeometry args={[0.065, 0.38, 3, 6]} />
+        <meshStandardMaterial color={ped.tint} roughness={0.7} />
+      </mesh>
+      {/* head */}
+      <mesh position={[0, 1.42, 0]} castShadow>
+        <sphereGeometry args={[0.16, 10, 8]} />
+        <meshStandardMaterial color="#c8a381" roughness={0.7} />
+      </mesh>
     </group>
   );
 }
 
 function Pedestrians() {
   const peds = useMemo<Ped[]>(() => {
-    const keys: ModelKey[] = ["npc_a", "npc_b", "npc_c"];
-    return Array.from({ length: 10 }, (_, i) => ({
-      x: 0,
-      z: 0,
-      a: (i / 10) * Math.PI * 2,
+    const tints = ["#4d6b8a", "#7a5a4a", "#3f6d5c", "#8a7a4a", "#5c4a6d"];
+    return Array.from({ length: 14 }, (_, i) => ({
+      a: (i / 14) * Math.PI * 2,
       r: 10 + (i % 4) * 3.4,
       speed: (i % 2 ? 1 : -1) * (1.6 + (i % 3) * 0.5),
-      key: keys[i % keys.length]!,
+      tint: tints[i % tints.length]!,
+      height: 1.05 + (i % 3) * 0.08,
     }));
   }, []);
   return (
@@ -141,6 +168,7 @@ function Pedestrians() {
     </group>
   );
 }
+
 
 /* ---------------- traffic (city cars on a loop) ---------------- */
 

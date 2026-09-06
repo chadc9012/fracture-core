@@ -47,7 +47,7 @@ export type HudState = {
 };
 
 const SPAWN_REGION = REGIONS.find((r) => r.id === "nexus")!;
-export const SPAWN = new THREE.Vector3(SPAWN_REGION.x, 0, SPAWN_REGION.z + 20);
+export const SPAWN = new THREE.Vector3(SPAWN_REGION.x, 0, SPAWN_REGION.z + 22);
 
 const stops: { t: number; key: keyof typeof SKY }[] = [
   { t: 0, key: "Dawn" },
@@ -324,7 +324,7 @@ export function Scene({ onHud }: { onHud: (s: HudState) => void }) {
         s.z - Math.cos(s.yaw) * 30,
       );
     } else {
-      camTarget.set(s.x, s.y + 32, s.z + 44);
+      camTarget.set(s.x, s.y + 26, s.z + 38);
     }
     camTarget.y = Math.max(camTarget.y, walkHeight(camTarget.x, camTarget.z) + 6);
     camera.position.lerp(camTarget, 1 - Math.exp(-4.5 * dt));

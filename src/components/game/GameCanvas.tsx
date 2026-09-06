@@ -1,5 +1,4 @@
 import { Canvas } from "@react-three/fiber";
-import { Bloom, EffectComposer, SMAA, Vignette } from "@react-three/postprocessing";
 import * as THREE from "three";
 import { Suspense, useState } from "react";
 
@@ -64,11 +63,7 @@ export function GameCanvas() {
         <Suspense fallback={null}>
           <Scene onHud={setHud} />
         </Suspense>
-        <EffectComposer enableNormalPass={false}>
-          <Bloom intensity={0.5} luminanceThreshold={0.72} luminanceSmoothing={0.25} mipmapBlur />
-          <Vignette offset={0.28} darkness={0.55} />
-          <SMAA />
-        </EffectComposer>
+
       </Canvas>
       <HUD hud={hud} />
     </div>
