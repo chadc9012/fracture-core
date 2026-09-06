@@ -1,5 +1,4 @@
 import { Canvas } from "@react-three/fiber";
-import { Bloom, EffectComposer, SMAA, Vignette } from "@react-three/postprocessing";
 import * as THREE from "three";
 import { Suspense, useState } from "react";
 
