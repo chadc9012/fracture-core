@@ -2,7 +2,8 @@ import { useFrame } from "@react-three/fiber";
 import { useMemo, useRef } from "react";
 import * as THREE from "three";
 
-import { Car } from "./Vehicle";
+
+
 
 import { FACTIONS, laneSamples, type WorldSim } from "@/game/sim";
 import { walkHeight } from "@/game/terrain";
