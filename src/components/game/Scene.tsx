@@ -13,6 +13,7 @@ import { Bullets, Convoys, SupplyLanes, WarMachines, ZoneBeacons } from "./Actor
 import { Car } from "./Vehicle";
 import { NexusCity } from "./NexusCity";
 import { Water } from "./Water";
+import { Scavenger } from "./Scavenger";
 
 export type HudState = {
   region: string;
