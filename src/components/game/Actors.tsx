@@ -155,7 +155,6 @@ export function WarMachines({ sim }: { sim: WorldSim }) {
             <boxGeometry args={[0.8, 1.4, 4.4]} />
             <meshStandardMaterial color="#191420" roughness={0.9} />
           </mesh>
-          <pointLight color="#ff4d4d" intensity={8} distance={18} decay={2} position={[0, 2, 2]} />
         </group>
       ))}
     </group>

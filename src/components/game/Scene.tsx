@@ -384,7 +384,6 @@ export function Scene({ onHud }: { onHud: (s: HudState) => void }) {
           <boxGeometry args={[0.9, 0.5, 0.25]} />
           <meshStandardMaterial color="#66e0ff" emissive="#66e0ff" emissiveIntensity={2.5} toneMapped={false} />
         </mesh>
-        <pointLight position={[0, 1.6, 0]} color="#8fe6ff" intensity={14} distance={26} decay={2} />
       </group>
 
       {/* drivable assault buggy */}
