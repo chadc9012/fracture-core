@@ -6,7 +6,7 @@ import { REGIONS, WORLD_RADIUS, type Region } from "@/game/world";
 import { mulberry32 } from "@/game/useKeyboard";
 import { WATER_LEVEL, colorAt, heightAt, slopeAt } from "@/game/terrain";
 
-const SEG = 190;
+const SEG = 160;
 const SIZE = WORLD_RADIUS * 2.1;
 
 type Prop = { x: number; z: number; y: number; s: number; r: number };

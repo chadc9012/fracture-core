@@ -77,13 +77,14 @@ export function ZoneBeacons({ sim }: { sim: WorldSim }) {
         return (
           <group key={z.region.id} position={[z.region.x, y, z.region.z]}>
             <mesh position-y={20}>
-              <cylinderGeometry args={[0.7, 1.4, 40, 8, 1, true]} />
+              <cylinderGeometry args={[0.4, 0.9, 46, 6, 1, true]} />
               <meshStandardMaterial
                 color={FACTIONS[z.owner].color}
                 emissive={FACTIONS[z.owner].color}
                 emissiveIntensity={1.6}
                 transparent
-                opacity={0.35}
+                depthWrite={false}
+                opacity={0.18}
                 side={THREE.DoubleSide}
                 toneMapped={false}
               />

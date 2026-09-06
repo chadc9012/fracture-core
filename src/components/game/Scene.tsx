@@ -188,13 +188,13 @@ export function Scene({ onHud }: { onHud: (s: HudState) => void }) {
     const traction = Math.max(0.18, biomeGrip * (1 - slope * 0.75) * (submerged ? 0.45 : 1));
 
     if (s.inVehicle) {
-      const maxSpeed = 46 * biomeGrip * (boost ? 1.5 : 1);
-      const accel = 34 * traction;
+      const maxSpeed = 62 * biomeGrip * (boost ? 1.5 : 1);
+      const accel = 52 * traction;
       if (throttleF) s.vSpeed += accel * dt;
       else if (throttleB) s.vSpeed -= accel * 0.8 * dt;
       else s.vSpeed *= Math.exp(-1.4 * dt);
       // drag + grade resistance climbing hills
-      s.vSpeed *= Math.exp(-(0.35 + slope * 1.8) * dt);
+      s.vSpeed *= Math.exp(-(0.22 + slope * 1.6) * dt);
       s.vSpeed = THREE.MathUtils.clamp(s.vSpeed, -18, maxSpeed);
 
       const steerRate = 1.5 * traction * THREE.MathUtils.clamp(Math.abs(s.vSpeed) / 14, 0.15, 1);
