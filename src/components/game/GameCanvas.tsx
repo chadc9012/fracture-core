@@ -61,9 +61,14 @@ export function GameCanvas() {
         }}
       >
         <color attach="background" args={["#bfe4f2"]} />
+        <mesh position={[START.x, walkHeight(START.x, START.z) + 20, START.z]}>
+          <boxGeometry args={[20, 20, 20]} />
+          <meshBasicMaterial color="#ff0000" />
+        </mesh>
         <Suspense fallback={null}>
           <Scene onHud={setHud} />
         </Suspense>
+
         <EffectComposer enableNormalPass={false}>
           <Bloom intensity={0.5} luminanceThreshold={0.72} luminanceSmoothing={0.25} mipmapBlur />
           <Vignette offset={0.28} darkness={0.55} />
