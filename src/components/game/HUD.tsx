@@ -72,6 +72,60 @@ export function HUD({ hud }: { hud: HudState }) {
         </div>
       </div>
 
+      {/* right: AI mission director */}
+      <div className="absolute right-4 top-64 w-60 rounded-lg border border-border/60 bg-card/70 p-4 backdrop-blur-md">
+        <div className="flex items-baseline justify-between">
+          <span className="text-[10px] tracking-[0.3em] text-muted-foreground">AI DIRECTOR</span>
+          <span className="text-[10px]" style={{ color: hud.threat > 80 ? "#ff4d4d" : "var(--accent-glow)" }}>
+            THREAT {hud.threat}
+          </span>
+        </div>
+        <div className="mt-1 h-1 w-full overflow-hidden rounded bg-muted">
+          <div
+            className="h-full"
+            style={{
+              width: `${Math.min(100, hud.threat)}%`,
+              backgroundColor: hud.threat > 80 ? "#ff4d4d" : "#ff9f1c",
+            }}
+          />
+        </div>
+        <p className="mt-1 text-[10px] uppercase tracking-widest text-muted-foreground">
+          HEAT {hud.heat} · CORE {hud.coreHp}%
+        </p>
+        <p className="text-[10px] italic text-muted-foreground">{hud.trend}</p>
+
+        <div className="mt-3 space-y-2">
+          {hud.missions.length === 0 && (
+            <p className="text-[10px] uppercase tracking-widest text-muted-foreground">No active contracts</p>
+          )}
+          {hud.missions.map((m) => (
+            <div key={m.id} className="rounded border border-border/60 px-2 py-1.5">
+              <div className="flex items-center justify-between gap-1">
+                <span className="text-[10px] font-bold leading-tight">{m.name}</span>
+                <span
+                  className="text-[9px] uppercase"
+                  style={{ color: m.intensity === "HIGH" ? "#ff4d4d" : "#ff9f1c" }}
+                >
+                  {m.intensity}
+                </span>
+              </div>
+              <ul className="mt-1 space-y-0.5 text-[10px] text-muted-foreground">
+                {m.objectives.map((o, i) => (
+                  <li key={i} className="flex items-center justify-between gap-2">
+                    <span className={o.done ? "line-through opacity-60" : ""}>{o.label}</span>
+                    <span>
+                      {Math.floor(o.progress)}/{o.amount}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
+      </div>
+
+
+
       {/* alerts */}
       <div className="absolute left-1/2 top-4 w-72 -translate-x-1/2 space-y-1 text-center text-[11px]">
         {hud.alerts.map((a, i) => (
