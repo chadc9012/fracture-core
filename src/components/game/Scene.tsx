@@ -56,8 +56,8 @@ function RegionLabels() {
       {REGIONS.map((r) => (
         <Text
           key={r.id}
-          position={[r.x, 14, r.z]}
-          fontSize={5}
+          position={[r.x, 46, r.z]}
+          fontSize={7}
           color={ZONE_COLOR[r.kind]}
           anchorX="center"
           anchorY="middle"
@@ -169,7 +169,7 @@ export function Scene({ onHud }: { onHud: (s: HudState) => void }) {
   return (
     <>
       <fog attach="fog" args={["#c6e2ee", 90, 420]} />
-      <hemisphereLight args={["#9ec8e8", "#3b3326", 0.5]} />
+      <hemisphereLight args={["#9ec8e8", "#3b3326", 0.9]} />
       <directionalLight
         ref={sun}
         position={[80, 120, 60]}
