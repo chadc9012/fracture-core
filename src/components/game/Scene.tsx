@@ -424,15 +424,9 @@ export function Scene({ onHud }: { onHud: (s: HudState) => void }) {
 
       {/* player on foot */}
       <group ref={player} position={SPAWN.toArray()}>
-        <mesh castShadow>
-          <capsuleGeometry args={[0.8, 1.5, 6, 14]} />
-          <meshStandardMaterial color="#e9f3ff" roughness={0.5} metalness={0.2} />
-        </mesh>
-        <mesh position={[0, 0.4, -0.75]}>
-          <boxGeometry args={[0.9, 0.5, 0.25]} />
-          <meshStandardMaterial color="#66e0ff" emissive="#66e0ff" emissiveIntensity={2.5} toneMapped={false} />
-        </mesh>
+        <Scavenger />
       </group>
+
 
       {/* drivable wasteland raider — armour plate, ram spikes, roof gun */}
       <group ref={vehicle}>
