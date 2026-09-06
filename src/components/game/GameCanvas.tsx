@@ -44,7 +44,7 @@ export function GameCanvas() {
   return (
     <div className="fixed inset-0 bg-background">
       <Canvas
-        shadows
+        shadows={false}
         dpr={[1, 1.75]}
         camera={{
           position: [START.x, walkHeight(START.x, START.z) + 30, START.z + 46],
