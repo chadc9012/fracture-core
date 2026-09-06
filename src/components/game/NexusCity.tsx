@@ -8,7 +8,7 @@ import { MODELS, type ModelKey } from "@/game/models";
 import { REGIONS } from "@/game/world";
 import { walkHeight } from "@/game/terrain";
 import type { WorldSim } from "@/game/sim";
-import { registerObstacle } from "@/game/obstacles";
+import { addObstacle } from "@/game/obstacles";
 import { Model } from "./Vehicle";
 
 const NEXUS = REGIONS.find((r) => r.id === "nexus")!;
@@ -51,7 +51,7 @@ function cityBlocks(): Placed[] {
 function CityBuildings() {
   const placed = useMemo(() => {
     const list = cityBlocks();
-    for (const b of list) registerObstacle({ kind: "tower", x: b.x, z: b.z, radius: b.scale * 0.7, hp: 400, solidity: 2 });
+    for (const b of list) addObstacle("tower", b.x, b.z, b.scale * 0.7, 400, 2);
     return list;
   }, []);
 

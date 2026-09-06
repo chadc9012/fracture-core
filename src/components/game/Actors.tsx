@@ -2,6 +2,8 @@ import { useFrame } from "@react-three/fiber";
 import { useMemo, useRef } from "react";
 import * as THREE from "three";
 
+import { Car } from "./Vehicle";
+
 import { FACTIONS, laneSamples, type WorldSim } from "@/game/sim";
 import { walkHeight } from "@/game/terrain";
 
@@ -183,16 +185,9 @@ export function Convoys({ sim }: { sim: WorldSim }) {
     <group ref={group}>
       {sim.trucks.map((_, i) => (
         <group key={i} visible={false}>
-          <mesh castShadow>
-            <boxGeometry args={[3, 2, 7]} />
-            <meshStandardMaterial color="#6b6250" metalness={0.4} roughness={0.6} />
-          </mesh>
-          <mesh position={[0, 1.6, -1]} castShadow>
-            <boxGeometry args={[3.2, 1.6, 4]} />
-            <meshStandardMaterial color="#8a7c5f" roughness={0.8} />
-          </mesh>
-          <mesh position={[0, 0.6, 3.6]}>
-            <boxGeometry args={[2, 0.5, 0.4]} />
+          <Car body="truck" scale={2.5} lights={false} />
+          <mesh position={[0, 1.6, 3.4]}>
+            <boxGeometry args={[2, 0.4, 0.3]} />
             <meshStandardMaterial color="#ffe6a8" emissive="#ffd27a" emissiveIntensity={2.2} toneMapped={false} />
           </mesh>
         </group>
