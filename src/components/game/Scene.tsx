@@ -47,7 +47,7 @@ export type HudState = {
 };
 
 const SPAWN_REGION = REGIONS.find((r) => r.id === "nexus")!;
-export const SPAWN = new THREE.Vector3(SPAWN_REGION.x, 0, SPAWN_REGION.z + 40);
+export const SPAWN = new THREE.Vector3(SPAWN_REGION.x, 0, SPAWN_REGION.z + 22);
 
 const stops: { t: number; key: keyof typeof SKY }[] = [
   { t: 0, key: "Dawn" },
