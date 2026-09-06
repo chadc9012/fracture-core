@@ -18,7 +18,8 @@ export type HudState = {
   speed: number;
 };
 
-const SPAWN = new THREE.Vector3(REGIONS[0].x, 0, REGIONS[0].z + 8);
+const SPAWN_REGION = REGIONS.find((r) => r.id === "nexus")!;
+export const SPAWN = new THREE.Vector3(SPAWN_REGION.x, 0, SPAWN_REGION.z + 8);
 
 const stops: { t: number; key: keyof typeof SKY }[] = [
   { t: 0, key: "Dawn" },
@@ -32,9 +33,9 @@ const stops: { t: number; key: keyof typeof SKY }[] = [
 function blend(t: number, field: "top" | "bottom" | "fog" | "light", out: THREE.Color) {
   const h = ((t % 1) + 1) % 1;
   let i = 0;
-  while (i < stops.length - 1 && h > stops[i + 1].t) i++;
-  const a = stops[i];
-  const b = stops[i + 1] ?? stops[stops.length - 1];
+  while (i < stops.length - 1 && h > stops[i + 1]!.t) i++;
+  const a = stops[i]!;
+  const b = stops[i + 1] ?? a;
   const k = (h - a.t) / Math.max(0.0001, b.t - a.t);
   return out.set(SKY[a.key][field]).lerp(new THREE.Color(SKY[b.key][field]), k);
 }
@@ -42,9 +43,9 @@ function blend(t: number, field: "top" | "bottom" | "fog" | "light", out: THREE.
 function intensityAt(t: number) {
   const h = ((t % 1) + 1) % 1;
   let i = 0;
-  while (i < stops.length - 1 && h > stops[i + 1].t) i++;
-  const a = stops[i];
-  const b = stops[i + 1] ?? stops[stops.length - 1];
+  while (i < stops.length - 1 && h > stops[i + 1]!.t) i++;
+  const a = stops[i]!;
+  const b = stops[i + 1] ?? a;
   const k = (h - a.t) / Math.max(0.0001, b.t - a.t);
   return THREE.MathUtils.lerp(SKY[a.key].intensity, SKY[b.key].intensity, k);
 }
