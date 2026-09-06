@@ -318,9 +318,7 @@ export function Convoys({ sim }: { sim: WorldSim }) {
   );
 }
 
-    </group>
-  );
-}
+
 
 /* ---------------- projectiles ---------------- */
 
