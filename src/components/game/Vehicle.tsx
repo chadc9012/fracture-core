@@ -20,9 +20,19 @@ export function useModel(key: ModelKey) {
   }, [scene]);
 }
 
-export function Model({ modelKey, ...props }: { modelKey: ModelKey } & React.ComponentProps<"primitive">) {
+export function Model({
+  modelKey,
+  position,
+  rotation,
+  scale,
+}: {
+  modelKey: ModelKey;
+  position?: [number, number, number];
+  rotation?: [number, number, number];
+  scale?: number | [number, number, number];
+}) {
   const object = useModel(modelKey);
-  return <primitive object={object} {...props} />;
+  return <primitive object={object} position={position} rotation={rotation} scale={scale} />;
 }
 
 const WHEEL_OFFSETS: [number, number, number][] = [
