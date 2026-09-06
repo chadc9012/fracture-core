@@ -1,8 +1,7 @@
-import { useGLTF } from "@react-three/drei";
 import { useFrame } from "@react-three/fiber";
 import { useMemo, useRef } from "react";
 import * as THREE from "three";
-import { clone as skeletonClone } from "three/examples/jsm/utils/SkeletonUtils.js";
+
 
 import { MODELS, type ModelKey } from "@/game/models";
 import { REGIONS } from "@/game/world";
