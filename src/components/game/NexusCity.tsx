@@ -29,7 +29,7 @@ function cityBlocks(): Placed[] {
     { r: 25, count: 12, keys: ["block_a", "block_b"] as ModelKey[], scale: [2.4, 3.2] },
   ];
   const spawnX = NEXUS.x;
-  const spawnZ = NEXUS.z + 20;
+  const spawnZ = NEXUS.z + 40;
   for (const ring of rings) {
     for (let i = 0; i < ring.count; i++) {
       const a = (i / ring.count) * Math.PI * 2 + rnd() * 0.2;
