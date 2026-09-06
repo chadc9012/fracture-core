@@ -6,7 +6,8 @@ import * as THREE from "three";
 import { REGIONS, SKY, ZONE_COLOR, clockLabel, phaseFor, regionAt, WORLD_RADIUS } from "@/game/world";
 import { useKeyboard } from "@/game/useKeyboard";
 import { walkHeight, slopeAt, heightAt, WATER_LEVEL } from "@/game/terrain";
-import { createSim, fireBullet, stepSim, type Faction, type WorldSim } from "@/game/sim";
+import { collidePlayer, createSim, fireBullet, stepSim, type Faction, type WorldSim } from "@/game/sim";
+import { directorTrend, type Mission } from "@/game/director";
 import { Terrain } from "./Terrain";
 import { Bullets, Convoys, SupplyLanes, WarMachines, ZoneBeacons } from "./Actors";
 
@@ -34,6 +35,11 @@ export type HudState = {
   elevation: number;
   traction: number;
   alerts: string[];
+  threat: number;
+  heat: number;
+  coreHp: number;
+  trend: string;
+  missions: Mission[];
   ownership: { id: string; name: string; owner: Faction }[];
 };
 
@@ -229,6 +235,13 @@ export function Scene({ onHud }: { onHud: (s: HudState) => void }) {
       s.vSpeed *= 0.3;
     }
 
+    /* ---------------- collisions (physics before sim) ---------------- */
+    const body = { x: s.x, z: s.z, yaw: s.yaw, vSpeed: s.vSpeed, inVehicle: s.inVehicle };
+    collidePlayer(sim, body);
+    s.x = body.x;
+    s.z = body.z;
+    s.vSpeed = body.vSpeed;
+
     /* ---------------- simulation step ---------------- */
     const { playerInstability } = stepSim(sim, {
       dt,
@@ -278,7 +291,7 @@ export function Scene({ onHud }: { onHud: (s: HudState) => void }) {
         v.rotation.x = -slopeAt(s.x, s.z) * 0.25;
       } else {
         // parked at the spawn pad when on foot
-        v.position.set(SPAWN.x + 6, walkHeight(SPAWN.x + 6, SPAWN.z) + 1.9, SPAWN.z);
+        v.position.set(SPAWN.x + 8, walkHeight(SPAWN.x + 8, SPAWN.z + 6) + 1.9, SPAWN.z + 6);
         v.rotation.set(0, 0.6, 0);
         v.visible = true;
       }
@@ -327,6 +340,11 @@ export function Scene({ onHud }: { onHud: (s: HudState) => void }) {
         elevation: Math.round(heightAt(s.x, s.z)),
         traction,
         alerts: sim.alerts.map((a) => a.text),
+        threat: Math.round(sim.director.threat),
+        heat: Math.round(sim.combatHeat),
+        coreHp: Math.round(sim.coreHp),
+        trend: directorTrend(sim.director),
+        missions: sim.director.missions.filter((m) => m.state === "ACTIVE").slice(0, 3),
         ownership: sim.zones.map((z) => ({ id: z.region.id, name: z.region.name, owner: z.owner })),
       });
     }

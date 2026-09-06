@@ -31,6 +31,11 @@ const initial: HudState = {
   elevation: 0,
   traction: 1,
   alerts: [],
+  threat: 20,
+  heat: 0,
+  coreHp: 100,
+  trend: "reading the world",
+  missions: [],
   ownership: REGIONS.map((r) => ({
     id: r.id,
     name: r.name,
@@ -44,7 +49,7 @@ export function GameCanvas() {
   return (
     <div className="fixed inset-0 bg-background">
       <Canvas
-        shadows={false}
+        shadows
         dpr={[1, 1.75]}
         camera={{
           position: [START.x, walkHeight(START.x, START.z) + 30, START.z + 46],
