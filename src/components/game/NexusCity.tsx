@@ -24,16 +24,20 @@ function cityBlocks(): Placed[] {
     return seed / 2147483648;
   };
   const rings = [
-    { r: 7, count: 5, keys: ["tower_a", "tower_b"] as ModelKey[], scale: [7, 10] },
-    { r: 14, count: 10, keys: ["tower_b", "block_a"] as ModelKey[], scale: [5, 8] },
-    { r: 20.5, count: 14, keys: ["block_a", "block_b"] as ModelKey[], scale: [4, 6] },
+    { r: 13, count: 6, keys: ["tower_a", "tower_b"] as ModelKey[], scale: [3.4, 4.6] },
+    { r: 19.5, count: 9, keys: ["tower_b", "block_a"] as ModelKey[], scale: [2.8, 3.8] },
+    { r: 25, count: 12, keys: ["block_a", "block_b"] as ModelKey[], scale: [2.4, 3.2] },
   ];
+  const spawnX = NEXUS.x;
+  const spawnZ = NEXUS.z + 20;
   for (const ring of rings) {
     for (let i = 0; i < ring.count; i++) {
       const a = (i / ring.count) * Math.PI * 2 + rnd() * 0.2;
       const x = NEXUS.x + Math.cos(a) * ring.r;
       const z = NEXUS.z + Math.sin(a) * ring.r;
       const scale = ring.scale[0]! + rnd() * (ring.scale[1]! - ring.scale[0]!);
+      // keep the spawn pad and its exit lane clear of geometry
+      if (Math.hypot(x - spawnX, z - spawnZ) < 10) continue;
       out.push({
         key: ring.keys[Math.floor(rnd() * ring.keys.length)]!,
         x,
@@ -46,6 +50,7 @@ function cityBlocks(): Placed[] {
   }
   return out;
 }
+
 
 function CityBuildings() {
   const placed = useMemo(() => {
