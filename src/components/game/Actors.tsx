@@ -109,21 +109,107 @@ export function ZoneBeacons({ sim }: { sim: WorldSim }) {
   );
 }
 
-/* ---------------- AI war machines ---------------- */
+/* ---------------- AI war machines — quad "walking tank" (concept-art reference) ---------------- */
+
+/** Sand-and-gunmetal palette taken from the reference sheets. */
+const HULL = "#b9a67c";
+const HULL_DARK = "#8d7c58";
+const STEEL = "#3c4149";
+const STEEL_DARK = "#22262b";
+
+function Leg({ side, front }: { side: 1 | -1; front: 1 | -1 }) {
+  return (
+    <group position={[1.6 * side, -0.4, 1.5 * front]} rotation={[0, side > 0 ? 0.25 : -0.25, 0]}>
+      {/* hip */}
+      <mesh castShadow>
+        <boxGeometry args={[0.9, 0.9, 0.9]} />
+        <meshStandardMaterial color={STEEL} metalness={0.55} roughness={0.5} />
+      </mesh>
+      {/* thigh angled outward */}
+      <mesh position={[0.8 * side, -0.7, 0.5 * front]} rotation={[0.5 * front, 0, -0.6 * side]} castShadow>
+        <boxGeometry args={[0.55, 2.2, 0.7]} />
+        <meshStandardMaterial color={HULL_DARK} metalness={0.3} roughness={0.7} />
+      </mesh>
+      {/* shin down to the foot */}
+      <mesh position={[1.5 * side, -2.1, 1.0 * front]} rotation={[0.25 * front, 0, 0.15 * side]} castShadow>
+        <boxGeometry args={[0.42, 2.4, 0.5]} />
+        <meshStandardMaterial color={STEEL} metalness={0.5} roughness={0.55} />
+      </mesh>
+      {/* foot pad */}
+      <mesh position={[1.7 * side, -3.2, 1.2 * front]} castShadow>
+        <boxGeometry args={[1, 0.3, 1.5]} />
+        <meshStandardMaterial color={STEEL_DARK} roughness={0.9} />
+      </mesh>
+    </group>
+  );
+}
+
+function WalkingTank() {
+  return (
+    <group>
+      {/* lower chassis */}
+      <mesh castShadow>
+        <boxGeometry args={[3.2, 1.5, 4.6]} />
+        <meshStandardMaterial color={HULL} metalness={0.25} roughness={0.75} />
+      </mesh>
+      {/* sloped armour deck */}
+      <mesh position={[0, 1.1, -0.2]} rotation={[0.08, 0, 0]} castShadow>
+        <boxGeometry args={[2.9, 0.7, 3.6]} />
+        <meshStandardMaterial color={HULL_DARK} metalness={0.25} roughness={0.7} />
+      </mesh>
+      {/* side skirts */}
+      <mesh position={[-1.75, 0.1, 0]} castShadow>
+        <boxGeometry args={[0.3, 1.3, 4.2]} />
+        <meshStandardMaterial color={STEEL} metalness={0.5} roughness={0.6} />
+      </mesh>
+      <mesh position={[1.75, 0.1, 0]} castShadow>
+        <boxGeometry args={[0.3, 1.3, 4.2]} />
+        <meshStandardMaterial color={STEEL} metalness={0.5} roughness={0.6} />
+      </mesh>
+      {/* turret */}
+      <mesh position={[0, 2.05, -0.1]} castShadow>
+        <boxGeometry args={[2.1, 1, 2.4]} />
+        <meshStandardMaterial color={HULL} metalness={0.3} roughness={0.65} />
+      </mesh>
+      {/* rail gun barrel */}
+      <mesh position={[0.25, 2.1, 2.4]} castShadow>
+        <boxGeometry args={[0.42, 0.42, 4.2]} />
+        <meshStandardMaterial color={STEEL_DARK} metalness={0.8} roughness={0.3} />
+      </mesh>
+      {/* close-quarters cannon pod */}
+      <mesh position={[-1.1, 2.4, 1.1]} rotation={[0, 0.12, 0]} castShadow>
+        <boxGeometry args={[0.7, 0.6, 1.8]} />
+        <meshStandardMaterial color={STEEL} metalness={0.7} roughness={0.35} />
+      </mesh>
+      {/* sensor strip */}
+      <mesh position={[0, 2.5, 1.15]}>
+        <boxGeometry args={[1.3, 0.16, 0.1]} />
+        <meshStandardMaterial color="#ff5a3c" emissive="#ff3a20" emissiveIntensity={3} toneMapped={false} />
+      </mesh>
+      <Leg side={1} front={1} />
+      <Leg side={-1} front={1} />
+      <Leg side={1} front={-1} />
+      <Leg side={-1} front={-1} />
+    </group>
+  );
+}
 
 export function WarMachines({ sim }: { sim: WorldSim }) {
   const group = useRef<THREE.Group>(null!);
 
-  useFrame(() => {
+  useFrame((state) => {
     const g = group.current;
     if (!g) return;
+    const t = state.clock.elapsedTime;
     sim.machines.forEach((m, i) => {
       const node = g.children[i] as THREE.Group | undefined;
       if (!node) return;
       node.visible = m.alive;
       if (!m.alive) return;
-      node.position.set(m.x, m.y, m.z);
-      node.rotation.y = m.rot;
+      // walking gait: subtle body bob + roll so the legs read as striding
+      const gait = t * 3 + i;
+      node.position.set(m.x, m.y + Math.abs(Math.sin(gait)) * 0.28, m.z);
+      node.rotation.set(Math.sin(gait) * 0.03, m.rot, Math.sin(gait * 0.5) * 0.05);
       node.scale.setScalar(m.scale);
     });
   });
@@ -132,36 +218,13 @@ export function WarMachines({ sim }: { sim: WorldSim }) {
     <group ref={group}>
       {sim.machines.map((_, i) => (
         <group key={i} visible={false}>
-          <mesh castShadow>
-            <boxGeometry args={[3.4, 2.4, 4.2]} />
-            <meshStandardMaterial color="#2a2230" metalness={0.7} roughness={0.35} />
-          </mesh>
-          <mesh position={[0, 1.8, 0]} castShadow>
-            <boxGeometry args={[2, 1.2, 2]} />
-            <meshStandardMaterial color="#3a2f45" metalness={0.6} roughness={0.4} />
-          </mesh>
-          <mesh position={[0, 1.8, 2.4]}>
-            <boxGeometry args={[0.6, 0.5, 1.6]} />
-            <meshStandardMaterial
-              color="#ff4d4d"
-              emissive="#ff2d2d"
-              emissiveIntensity={3}
-              toneMapped={false}
-            />
-          </mesh>
-          <mesh position={[-1.9, -0.6, 0]} castShadow>
-            <boxGeometry args={[0.8, 1.4, 4.4]} />
-            <meshStandardMaterial color="#191420" roughness={0.9} />
-          </mesh>
-          <mesh position={[1.9, -0.6, 0]} castShadow>
-            <boxGeometry args={[0.8, 1.4, 4.4]} />
-            <meshStandardMaterial color="#191420" roughness={0.9} />
-          </mesh>
+          <WalkingTank />
         </group>
       ))}
     </group>
   );
 }
+
 
 /* ---------------- NPC convoy trucks ---------------- */
 
