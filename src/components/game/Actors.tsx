@@ -2,7 +2,8 @@ import { useFrame } from "@react-three/fiber";
 import { useMemo, useRef } from "react";
 import * as THREE from "three";
 
-import { Car } from "./Vehicle";
+
+
 
 import { FACTIONS, laneSamples, type WorldSim } from "@/game/sim";
 import { walkHeight } from "@/game/terrain";
@@ -226,7 +227,68 @@ export function WarMachines({ sim }: { sim: WorldSim }) {
 }
 
 
-/* ---------------- NPC convoy trucks ---------------- */
+/* ---------------- NPC convoy trucks — armoured 6x6 hauler (concept-art reference) ---------------- */
+
+function ArmoredHauler() {
+  const wheelZ = [3.1, -0.6, -2.2];
+  return (
+    <group>
+      <mesh position={[0, 1.05, 0]} castShadow>
+        <boxGeometry args={[3.1, 0.5, 10.4]} />
+        <meshStandardMaterial color={STEEL_DARK} metalness={0.6} roughness={0.6} />
+      </mesh>
+      {/* armoured cab + sloped windscreen plate */}
+      <mesh position={[0, 2.1, 3.2]} castShadow>
+        <boxGeometry args={[3.3, 2.1, 3]} />
+        <meshStandardMaterial color="#6d7176" metalness={0.4} roughness={0.6} />
+      </mesh>
+      <mesh position={[0, 2.75, 4.6]} rotation={[-0.32, 0, 0]} castShadow>
+        <boxGeometry args={[3, 1.2, 0.22]} />
+        <meshStandardMaterial color="#2b3238" metalness={0.75} roughness={0.25} />
+      </mesh>
+      {/* grille guard + headlights */}
+      <mesh position={[0, 1.6, 5]} castShadow>
+        <boxGeometry args={[3.1, 1.1, 0.3]} />
+        <meshStandardMaterial color={STEEL_DARK} metalness={0.7} roughness={0.5} />
+      </mesh>
+      {[-1.2, 1.2].map((x) => (
+        <mesh key={x} position={[x, 1.75, 5.2]}>
+          <boxGeometry args={[0.5, 0.3, 0.14]} />
+          <meshStandardMaterial color="#fff3cf" emissive="#ffd889" emissiveIntensity={2.6} toneMapped={false} />
+        </mesh>
+      ))}
+      {/* roof rack */}
+      <mesh position={[0, 3.25, 3.2]} castShadow>
+        <boxGeometry args={[3.1, 0.16, 2.4]} />
+        <meshStandardMaterial color={STEEL} metalness={0.5} roughness={0.7} />
+      </mesh>
+      {/* ribbed cargo bed with tarp cap */}
+      <mesh position={[0, 2.35, -1.6]} castShadow>
+        <boxGeometry args={[3.4, 2, 6.2]} />
+        <meshStandardMaterial color="#8b8f93" metalness={0.35} roughness={0.65} />
+      </mesh>
+      {[-3.6, -2.2, -0.8, 0.6].map((z) => (
+        <mesh key={z} position={[0, 2.35, z]} castShadow>
+          <boxGeometry args={[3.55, 1.9, 0.14]} />
+          <meshStandardMaterial color="#5f6367" metalness={0.5} roughness={0.55} />
+        </mesh>
+      ))}
+      <mesh position={[0, 3.45, -1.6]} castShadow>
+        <boxGeometry args={[3.5, 0.22, 6.3]} />
+        <meshStandardMaterial color={HULL_DARK} roughness={0.9} />
+      </mesh>
+      {/* six heavy wheels */}
+      {wheelZ.map((z) =>
+        [-1.75, 1.75].map((x) => (
+          <mesh key={`${x}:${z}`} position={[x, 0.95, z]} rotation={[0, 0, Math.PI / 2]} castShadow>
+            <cylinderGeometry args={[0.95, 0.95, 0.72, 14]} />
+            <meshStandardMaterial color="#191b1d" roughness={0.95} />
+          </mesh>
+        )),
+      )}
+    </group>
+  );
+}
 
 export function Convoys({ sim }: { sim: WorldSim }) {
   const group = useRef<THREE.Group>(null!);
@@ -248,16 +310,15 @@ export function Convoys({ sim }: { sim: WorldSim }) {
     <group ref={group}>
       {sim.trucks.map((_, i) => (
         <group key={i} visible={false}>
-          <Car body="truck" scale={2.5} lights={false} />
-          <mesh position={[0, 1.6, 3.4]}>
-            <boxGeometry args={[2, 0.4, 0.3]} />
-            <meshStandardMaterial color="#ffe6a8" emissive="#ffd27a" emissiveIntensity={2.2} toneMapped={false} />
-          </mesh>
+          <ArmoredHauler />
+          <pointLight position={[0, 1.8, 6]} color="#ffe2b0" intensity={10} distance={30} decay={2} />
         </group>
       ))}
     </group>
   );
 }
+
+
 
 /* ---------------- projectiles ---------------- */
 
