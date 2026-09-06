@@ -1,4 +1,4 @@
-import { Environment, Lightformer, Stars, Text } from "@react-three/drei";
+import { Environment, Lightformer, Sky, Stars, Text } from "@react-three/drei";
 import { useFrame, useThree } from "@react-three/fiber";
 import { useMemo, useRef } from "react";
 import * as THREE from "three";
@@ -10,6 +10,9 @@ import { collidePlayer, createSim, fireBullet, stepSim, type Faction, type World
 import { directorTrend, type Mission } from "@/game/director";
 import { Terrain } from "./Terrain";
 import { Bullets, Convoys, SupplyLanes, WarMachines, ZoneBeacons } from "./Actors";
+import { Car } from "./Vehicle";
+import { NexusCity } from "./NexusCity";
+import { Water } from "./Water";
 
 export type HudState = {
   region: string;
@@ -110,6 +113,10 @@ export function Scene({ onHud }: { onHud: (s: HudState) => void }) {
   const moon = useRef<THREE.DirectionalLight>(null!);
   const moonMesh = useRef<THREE.Mesh>(null!);
   const time = useRef(0.28);
+  const sunDir = useRef(new THREE.Vector3(0.4, 0.9, 0.3));
+  const carSpeed = useRef(0);
+  const carSteer = useRef(0);
+  const sky = useRef<THREE.Object3D>(null!);
   const report = useRef(0);
 
   const state = useRef({
@@ -156,6 +163,15 @@ export function Scene({ onHud }: { onHud: (s: HudState) => void }) {
       sun.current.position.set(Math.cos(theta) * 140, Math.sin(theta) * 150 + 8, 70);
       sun.current.intensity = Math.max(0, intensityAt(time.current));
       sun.current.color.copy(lightColor);
+    }
+    sunDir.current.set(Math.cos(theta), Math.max(-0.2, Math.sin(theta)), 0.42).normalize();
+    if (sky.current) {
+      const m = (sky.current as unknown as { material?: THREE.ShaderMaterial }).material;
+      if (m?.uniforms?.["sunPosition"]) {
+        (m.uniforms["sunPosition"].value as THREE.Vector3)
+          .copy(sunDir.current)
+          .multiplyScalar(400);
+      }
     }
     if (moon.current) moon.current.intensity = 0.15 + night * 0.55;
     if (moonMesh.current) {
@@ -275,6 +291,9 @@ export function Scene({ onHud }: { onHud: (s: HudState) => void }) {
     }
     void ground;
 
+    carSpeed.current = s.inVehicle ? s.vSpeed : 0;
+    carSteer.current = s.inVehicle ? (left ? 0.4 : right ? -0.4 : 0) : 0;
+
     /* ---------------- transforms ---------------- */
     const p = player.current;
     const v = vehicle.current;
@@ -372,6 +391,15 @@ export function Scene({ onHud }: { onHud: (s: HudState) => void }) {
         <sphereGeometry args={[14, 24, 24]} />
         <meshBasicMaterial color="#eaf2ff" toneMapped={false} />
       </mesh>
+      <Sky
+        ref={sky as unknown as React.Ref<never>}
+        distance={4000}
+        sunPosition={[120, 90, 60]}
+        turbidity={5}
+        rayleigh={2.4}
+        mieCoefficient={0.006}
+        mieDirectionalG={0.82}
+      />
       <Stars radius={420} depth={90} count={1800} factor={7} fade speed={0.6} />
       <Environment>
         <Lightformer intensity={1.3} position={[0, 60, 0]} scale={[80, 80, 1]} />
@@ -385,6 +413,8 @@ export function Scene({ onHud }: { onHud: (s: HudState) => void }) {
       </Environment>
 
       <Terrain />
+      <Water size={WORLD_RADIUS * 4} sunRef={sunDir} />
+      <NexusCity sim={sim} />
       <SupplyLanes sim={sim} />
       <ZoneBeacons sim={sim} />
       <Convoys sim={sim} />
@@ -404,38 +434,14 @@ export function Scene({ onHud }: { onHud: (s: HudState) => void }) {
         </mesh>
       </group>
 
-      {/* drivable assault buggy */}
+      {/* drivable assault buggy — CC0 shell with rolling wheels */}
       <group ref={vehicle}>
-        <mesh castShadow>
-          <boxGeometry args={[3.4, 1.4, 6.4]} />
-          <meshStandardMaterial color="#3c4a5c" metalness={0.65} roughness={0.35} />
+        <Car body="race_future" scale={2.6} speedRef={carSpeed} steerRef={carSteer} />
+        <mesh position={[0, 2.4, 0.6]} castShadow>
+          <boxGeometry args={[0.45, 0.45, 3.2]} />
+          <meshStandardMaterial color="#1b2129" metalness={0.85} roughness={0.25} />
         </mesh>
-        <mesh position={[0, 1.1, -0.6]} castShadow>
-          <boxGeometry args={[2.6, 1.1, 2.6]} />
-          <meshStandardMaterial color="#28313d" metalness={0.5} roughness={0.4} />
-        </mesh>
-        {/* turret */}
-        <mesh position={[0, 1.8, 1.4]} castShadow>
-          <boxGeometry args={[0.5, 0.5, 3.4]} />
-          <meshStandardMaterial color="#1b2129" metalness={0.8} roughness={0.3} />
-        </mesh>
-        {/* head lamps */}
-        <mesh position={[0, 0.2, 3.3]}>
-          <boxGeometry args={[2.4, 0.4, 0.3]} />
-          <meshStandardMaterial color="#dff6ff" emissive="#9fe8ff" emissiveIntensity={3} toneMapped={false} />
-        </mesh>
-        {[
-          [-1.9, -0.6, 2.1],
-          [1.9, -0.6, 2.1],
-          [-1.9, -0.6, -2.1],
-          [1.9, -0.6, -2.1],
-        ].map(([x, y, z], i) => (
-          <mesh key={i} position={[x!, y!, z!]} rotation-z={Math.PI / 2} castShadow>
-            <cylinderGeometry args={[1.05, 1.05, 0.8, 12]} />
-            <meshStandardMaterial color="#14181e" roughness={0.95} />
-          </mesh>
-        ))}
-        <pointLight position={[0, 1, 4]} color="#bfeaff" intensity={20} distance={40} decay={2} />
+        <pointLight position={[0, 1.2, 4]} color="#bfeaff" intensity={18} distance={44} decay={2} />
       </group>
     </>
   );

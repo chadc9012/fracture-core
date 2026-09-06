@@ -146,18 +146,6 @@ export function Terrain() {
     <group>
       <Ground />
 
-      {/* ocean / lake surface at water level */}
-      <mesh rotation-x={-Math.PI / 2} position-y={WATER_LEVEL}>
-        <planeGeometry args={[SIZE * 1.6, SIZE * 1.6]} />
-        <meshStandardMaterial
-          color="#12628c"
-          transparent
-          opacity={0.78}
-          roughness={0.08}
-          metalness={0.7}
-        />
-      </mesh>
-
       {/* forest */}
       <Instances limit={liveTrees.length} castShadow>
         <cylinderGeometry args={[0.35, 0.55, 4]} />
