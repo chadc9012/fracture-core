@@ -52,15 +52,15 @@ export function Terrain() {
   const swamp = byId("swamps");
   const nexus = byId("nexus");
 
-  const trees = useMemo(() => scatter(forest, 150, 11), [forest]);
+  const trees = useMemo(() => scatter(forest, 90, 11), [forest]);
   const swampTrees = useMemo(() => scatter(swamp, 60, 12), [swamp]);
   const peaks = useMemo(() => scatter(frost, 26, 13), [frost]);
-  const rocks = useMemo(() => [...scatter(waste, 60, 14), ...scatter(solara, 40, 15)], [waste, solara]);
+  const rocks = useMemo(() => [...scatter(waste, 40, 14), ...scatter(solara, 40, 15)], [waste, solara]);
   const cacti = useMemo(() => scatter(solara, 45, 16), [solara]);
   const pools = useMemo(() => scatter(swamp, 26, 17), [swamp]);
   const wrecks = useMemo(() => scatter(waste, 34, 18), [waste]);
   const towers = useMemo(() => scatter(nexus, 40, 19, 3), [nexus]);
-  const flowers = useMemo(() => scatter(forest, 90, 20), [forest]);
+  const flowers = useMemo(() => scatter(forest, 60, 20), [forest]);
   const emberRocks = useMemo(() => scatter(ember, 45, 21, 9), [ember]);
 
   return (

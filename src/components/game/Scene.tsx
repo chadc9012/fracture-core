@@ -175,12 +175,12 @@ export function Scene({ onHud }: { onHud: (s: HudState) => void }) {
         position={[80, 120, 60]}
         intensity={1.6}
         castShadow
-        shadow-mapSize-width={2048}
-        shadow-mapSize-height={2048}
-        shadow-camera-left={-160}
-        shadow-camera-right={160}
-        shadow-camera-top={160}
-        shadow-camera-bottom={-160}
+        shadow-mapSize-width={1024}
+        shadow-mapSize-height={1024}
+        shadow-camera-left={-110}
+        shadow-camera-right={110}
+        shadow-camera-top={110}
+        shadow-camera-bottom={-110}
         shadow-camera-far={400}
       />
       <directionalLight ref={moon} position={[-90, 90, -60]} color="#9fc4ff" intensity={0.3} />
