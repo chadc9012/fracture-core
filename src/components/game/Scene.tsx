@@ -434,15 +434,47 @@ export function Scene({ onHud }: { onHud: (s: HudState) => void }) {
         </mesh>
       </group>
 
-      {/* drivable assault buggy — CC0 shell with rolling wheels */}
+      {/* drivable wasteland raider — armour plate, ram spikes, roof gun */}
       <group ref={vehicle}>
-        <Car body="race_future" scale={2.6} speedRef={carSpeed} steerRef={carSteer} />
-        <mesh position={[0, 2.4, 0.6]} castShadow>
-          <boxGeometry args={[0.45, 0.45, 3.2]} />
-          <meshStandardMaterial color="#1b2129" metalness={0.85} roughness={0.25} />
+        <Car body="suv" scale={2.4} speedRef={carSpeed} steerRef={carSteer} />
+        {/* front ram spikes */}
+        {[-1.1, -0.55, 0, 0.55, 1.1].map((x) => (
+          <mesh key={x} position={[x, 0.8, 3.5]} rotation={[Math.PI / 2, 0, 0]} castShadow>
+            <coneGeometry args={[0.16, 1.5, 6]} />
+            <meshStandardMaterial color="#6b5b45" metalness={0.65} roughness={0.7} />
+          </mesh>
+        ))}
+        {/* bull bar */}
+        <mesh position={[0, 1, 3.1]} castShadow>
+          <boxGeometry args={[2.9, 0.35, 0.3]} />
+          <meshStandardMaterial color="#4a4238" metalness={0.55} roughness={0.75} />
         </mesh>
-        <pointLight position={[0, 1.2, 4]} color="#bfeaff" intensity={18} distance={44} decay={2} />
+        {/* side armour skirts */}
+        <mesh position={[-1.5, 1, 0]} castShadow>
+          <boxGeometry args={[0.22, 0.9, 4.4]} />
+          <meshStandardMaterial color="#8d7c58" metalness={0.3} roughness={0.8} />
+        </mesh>
+        <mesh position={[1.5, 1, 0]} castShadow>
+          <boxGeometry args={[0.22, 0.9, 4.4]} />
+          <meshStandardMaterial color="#8d7c58" metalness={0.3} roughness={0.8} />
+        </mesh>
+        {/* roof cargo rack */}
+        <mesh position={[0, 2.7, -0.6]} castShadow>
+          <boxGeometry args={[2.4, 0.18, 2.6]} />
+          <meshStandardMaterial color="#5a5040" metalness={0.4} roughness={0.85} />
+        </mesh>
+        {/* pintle-mounted gun */}
+        <mesh position={[0, 3, 0.4]} castShadow>
+          <cylinderGeometry args={[0.22, 0.28, 0.5, 8]} />
+          <meshStandardMaterial color="#2a2e33" metalness={0.8} roughness={0.35} />
+        </mesh>
+        <mesh position={[0, 3.2, 1.6]} rotation={[Math.PI / 2, 0, 0]} castShadow>
+          <cylinderGeometry args={[0.11, 0.11, 2.6, 8]} />
+          <meshStandardMaterial color="#1d2226" metalness={0.85} roughness={0.3} />
+        </mesh>
+        <pointLight position={[0, 1.2, 4]} color="#ffe2b0" intensity={16} distance={44} decay={2} />
       </group>
+
     </>
   );
 }
