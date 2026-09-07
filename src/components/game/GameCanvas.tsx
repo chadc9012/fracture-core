@@ -37,6 +37,15 @@ const initial: HudState = {
   coreHp: 100,
   trend: "reading the world",
   missions: [],
+  evo: {
+    identity: "Unproven Survivor",
+    cycle: 0,
+    nextIn: 24,
+    playstyle: { combat: 0.2, logistics: 0.2, vehicles: 0.2, stealth: 0.2, support: 0.2 },
+    skills: [],
+    log: [],
+  },
+  inspector: null,
   ownership: REGIONS.map((r) => ({
     id: r.id,
     name: r.name,
