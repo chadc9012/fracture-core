@@ -1,6 +1,8 @@
 import { FACTIONS } from "@/game/sim";
 import { ZONE_COLOR, ZONE_LABEL } from "@/game/world";
 import type { HudState } from "./Scene";
+import { EvolutionPanel } from "./EvolutionPanel";
+import { Inspector } from "./Inspector";
 
 export function HUD({ hud }: { hud: HudState }) {
   const color = ZONE_COLOR[hud.kind];
@@ -126,6 +128,12 @@ export function HUD({ hud }: { hud: HudState }) {
 
 
 
+      {/* adaptive build evolution */}
+      <EvolutionPanel evo={hud.evo} />
+
+      {/* dev engine inspector */}
+      {hud.inspector && <Inspector view={hud.inspector} />}
+
       {/* alerts */}
       <div className="absolute left-1/2 top-4 w-72 -translate-x-1/2 space-y-1 text-center text-[11px]">
         {hud.alerts.map((a, i) => (
@@ -149,7 +157,7 @@ export function HUD({ hud }: { hud: HudState }) {
         </p>
         <p className="mt-1">
           <span className="text-foreground">C</span> jump · <span className="text-foreground">T</span> fast-forward the
-          day cycle
+          day cycle · <span className="text-foreground">I</span> engine inspector
         </p>
         <p className="mt-1">Ambush convoys on the lanes, then extract at Nexus City for credits.</p>
       </div>

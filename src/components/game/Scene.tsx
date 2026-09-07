@@ -16,7 +16,7 @@ import { Water } from "./Water";
 import { Scavenger } from "./Scavenger";
 import type { EvoView } from "./EvolutionPanel";
 import type { InspectorView } from "./Inspector";
-import { BRANCHES, EVOLUTION_INTERVAL } from "@/game/evolution";
+import { BRANCHES } from "@/game/evolution";
 import { TIER_RADII } from "@/game/lod";
 
 export type HudState = {
