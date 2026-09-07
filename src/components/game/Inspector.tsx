@@ -31,7 +31,7 @@ export type InspectorView = {
   missions: { name: string; state: string }[];
 };
 
-function Row({ label, value, tone }: { label: string; value: string | number; tone?: string }) {
+function Row({ label, value, tone }: { label: string; value: string | number; tone?: string | undefined }) {
   return (
     <div className="flex items-center justify-between gap-3">
       <span className="text-muted-foreground">{label}</span>

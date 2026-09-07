@@ -164,6 +164,11 @@ export function dominantBehavior(playstyle: Record<BehaviorKey, number>): Behavi
 
 /* ---------------- 3 + 4. evolution & mutation ---------------- */
 
+function pushLog(evo: Evolution, text: string) {
+  evo.log.unshift({ text, life: 8 });
+  if (evo.log.length > 4) evo.log.pop();
+}
+
 function evolveNode(evo: Evolution, node: SkillNode, amount: number) {
   const def = BRANCHES.find((b) => b.id === node.id)!;
   node.xp += amount * node.growth;
