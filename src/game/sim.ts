@@ -16,6 +16,7 @@ import {
   createStats,
   endStats,
   getSimulationTier,
+  predictPosition,
   shouldTick,
   tierDt,
   type SimStats,
@@ -404,6 +405,20 @@ export type SimInput = {
 
 export function stepSim(sim: WorldSim, input: SimInput) {
   const { dt, px, pz, night } = input;
+  const t0 = performance.now();
+  beginStats(sim.stats);
+
+  // ---------- adaptive evolution loop ----------
+  // passive behaviour: time spent driving, sneaking past hostiles, holding the line
+  if (input.inVehicle) logBehavior(sim.evo, "vehicles", dt * 0.6);
+  let escorting = 0;
+  for (const tr of sim.trucks) {
+    if (tr.alive && Math.hypot(px - tr.x, pz - tr.z) < 40) escorting++;
+  }
+  if (escorting > 0) logBehavior(sim.evo, "support", dt * 0.5 * escorting);
+  stepEvolution(sim.evo, dt);
+  sim.mods = evolutionMods(sim.evo);
+  if (sim.mods.regen > 0 && sim.hp < 100) sim.hp = Math.min(100, sim.hp + sim.mods.regen * dt);
 
   // ---------- alerts ----------
   for (const a of sim.alerts) a.life -= dt;
@@ -484,6 +499,28 @@ export function stepSim(sim: WorldSim, input: SimInput) {
   for (let i = 0; i < sim.machines.length; i++) {
     const m = sim.machines[i]!;
     if (!m.alive) continue;
+
+    // --- simulation LOD: only nearby machines get full AI + physics ---
+    const simTier: SimTier = getSimulationTier(m.x, m.z, px, pz);
+    const simTick = shouldTick(simTier, sim.stats.frame);
+    countEntity(sim.stats, simTier, simTick, m.zone);
+    if (simTier >= 2) {
+      // dormant: abstract drift, no collisions, no combat resolution
+      if (!simTick) {
+        sim.stats.dormant++;
+        continue;
+      }
+      const sdt = tierDt(simTier, dt);
+      m.rot += sdt * 0.2;
+      const pred = predictPosition(m, 4, sdt);
+      m.x = pred.x;
+      m.z = pred.z;
+      m.y = walkHeight(m.x, m.z) + 2.2 * m.scale;
+      if (Math.hypot(px - m.x, pz - m.z) > 340) m.alive = false;
+      sim.stats.dormant++;
+      continue;
+    }
+
     const dx = px - m.x;
     const dz = pz - m.z;
     const d = Math.hypot(dx, dz) || 1;
@@ -614,6 +651,32 @@ export function stepSim(sim: WorldSim, input: SimInput) {
     if (!tr.alive) continue;
     const lane = sim.lanes[tr.lane]!;
 
+    // --- simulation LOD for logistics: distant convoys move abstractly ---
+    const convoyTier: SimTier = getSimulationTier(tr.x, tr.z, px, pz);
+    const convoyTick = shouldTick(convoyTier, sim.stats.frame);
+    countEntity(sim.stats, convoyTier, convoyTick);
+    if (convoyTier >= 2) {
+      if (!convoyTick) continue;
+      const sdt = tierDt(convoyTier, dt);
+      tr.speed = 0.035 * sim.evo.influence.logisticsEfficiency;
+      tr.wait = Math.max(0, tr.wait - sdt);
+      if (tr.wait <= 0) tr.t += sdt * tr.speed * tr.dir;
+      if (tr.t > 0.9) {
+        tr.t = 0.1;
+        tr.wait = 6;
+      }
+      if (tr.t < 0.1) {
+        tr.t = 0.9;
+        tr.wait = 6;
+      }
+      const abstract = laneLanePoint(lane, tr.t, tr.dir > 0 ? 3.2 : -3.2);
+      tr.rot = Math.atan2(abstract.x - tr.x, abstract.z - tr.z) || tr.rot;
+      tr.x = abstract.x;
+      tr.z = abstract.z;
+      tr.y = walkHeight(abstract.x, abstract.z) + 1.6;
+      continue;
+    }
+
     // keep a safe gap to the truck ahead on the same lane and heading
     let headway = 1;
     for (const other of sim.trucks) {
@@ -653,7 +716,7 @@ export function stepSim(sim: WorldSim, input: SimInput) {
     }
 
     // ease toward the target lane speed so trucks brake smoothly
-    const target = 0.035 * headway;
+    const target = 0.035 * headway * sim.evo.influence.logisticsEfficiency;
     tr.speed += (target - tr.speed) * (1 - Math.exp(-3 * dt));
 
     const side = tr.dir > 0 ? 3.2 : -3.2;
@@ -811,6 +874,8 @@ export function stepSim(sim: WorldSim, input: SimInput) {
     const paid = sim.director.missions.find((m) => m.state === "COMPLETED")?.reward ?? 0;
     sim.credits += paid;
   }
+
+  endStats(sim.stats, performance.now() - t0);
 
   return { playerInstability };
 }
