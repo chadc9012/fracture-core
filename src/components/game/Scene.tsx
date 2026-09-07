@@ -20,6 +20,9 @@ import { BRANCHES } from "@/game/evolution";
 import { TIER_RADII } from "@/game/lod";
 import { RARITY_COLOR, type Rarity } from "@/game/loot";
 
+import type { GameSettings } from "./SettingsWindow";
+import type { ClassId } from "./StartMenu";
+
 export type LootView = { name: string; rarity: Rarity; power: number; mods: string[]; color: string };
 
 export type HudState = {
@@ -121,7 +124,15 @@ function RegionLabels() {
   );
 }
 
-export function Scene({ onHud }: { onHud: (s: HudState) => void }) {
+export function Scene({
+  onHud,
+  settings = { aimAssist: true, firstPersonDefault: false, zoneLabels: true, hudDensity: "full" },
+  playerClass = "VANGUARD",
+}: {
+  onHud: (s: HudState) => void;
+  settings?: GameSettings;
+  playerClass?: ClassId;
+}) {
   const keys = useKeyboard();
   const sim = useMemo<WorldSim>(() => createSim(), []);
   const player = useRef<THREE.Group>(null!);
@@ -152,7 +163,7 @@ export function Scene({ onHud }: { onHud: (s: HudState) => void }) {
     showInspector: false,
     fps: 60,
     viewCool: 0,
-    firstPerson: false,
+    firstPerson: settings.firstPersonDefault,
     aimLocked: false,
     reported: { hp: 100 },
   });
@@ -307,7 +318,7 @@ export function Scene({ onHud }: { onHud: (s: HudState) => void }) {
 
     /* ------- predictive aim assist: cone → lead → soft magnetism ------- */
     s.aimLocked = false;
-    {
+    if (settings.aimAssist) {
       const CONE = 0.12; // ~7 degrees
       let best: { yaw: number; score: number } | null = null;
       for (const m of sim.machines) {
@@ -605,7 +616,7 @@ export function Scene({ onHud }: { onHud: (s: HudState) => void }) {
       <Convoys sim={sim} />
       <WarMachines sim={sim} />
       <Bullets sim={sim} />
-      <RegionLabels />
+      {settings.zoneLabels && <RegionLabels />}
 
       {/* player on foot */}
       <group ref={player} position={SPAWN.toArray()}>
