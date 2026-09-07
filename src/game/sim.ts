@@ -291,6 +291,7 @@ export function fireBullet(sim: WorldSim, x: number, y: number, z: number, yaw: 
   b.vx = Math.sin(yaw) * 130;
   b.vz = Math.cos(yaw) * 130;
   b.life = 1.4;
+  logBehavior(sim.evo, "combat", 0.35);
   return true;
 }
 
@@ -494,6 +495,11 @@ export function stepSim(sim: WorldSim, input: SimInput) {
   }
 
   sim.gravity = 26 * (1 - playerInstability * 0.66);
+
+  // stealth: surviving close to hostiles without opening fire
+  if (!input.inVehicle && hostileNear > 0 && sim.combatHeat < 2) {
+    logBehavior(sim.evo, "stealth", dt * 0.8 * hostileNear);
+  }
 
   // ---------- war machines ----------
   for (let i = 0; i < sim.machines.length; i++) {
