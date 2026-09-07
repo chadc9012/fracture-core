@@ -175,7 +175,7 @@ export function Scavenger() {
       </mesh>
 
       <Rifle position={[0.62, -0.05, 0.5]} rotation={[0, 0, 0]} />
-      <EnergyBlade />
+      <SawCleaver />
     </group>
   );
 }
