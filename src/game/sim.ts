@@ -4,6 +4,7 @@ import { LANES, laneLanePoint, laneSamples, type Lane } from "./lanes";
 import { collideBody } from "./obstacles";
 import {
   createEvolution,
+  dominantBehavior,
   evolutionMods,
   logBehavior,
   stepEvolution,
@@ -22,6 +23,7 @@ import {
   type SimStats,
   type SimTier,
 } from "./lod";
+import { generateLoot, type LootContext, type LootItem } from "./loot";
 import {
   createDirector,
   directorEvent,
@@ -143,7 +145,36 @@ export type WorldSim = {
   mods: EvolutionMods;
   /** simulation optimisation telemetry */
   stats: SimStats;
+  /** weapon heat 0..100 — sustained fire overheats the gun */
+  weaponHeat: number;
+  /** true while the weapon vents and cannot fire */
+  overheated: boolean;
+  /** most recent AI-generated drops (newest first) */
+  loot: LootItem[];
+  /** everything picked up this session */
+  vault: LootItem[];
 };
+
+export const HEAT_PER_SHOT_FOOT = 7;
+export const HEAT_PER_SHOT_VEHICLE = 11;
+
+/** roll an AI-generated drop from the live world state */
+function dropLoot(sim: WorldSim, zone: ZoneState | undefined, enemyType: string) {
+  const ctx: LootContext = {
+    enemyType,
+    zoneState: zone?.contested ? "Contested" : (zone?.instability ?? 0) > 0.5 ? "Fractured" : "Stable",
+    difficulty: zone?.region.difficulty ?? 3,
+    isRaid: (zone?.region.kind ?? "war") === "core",
+    corruption: Math.round((zone?.instability ?? 0.2) * 100),
+    playstyle: dominantBehavior(sim.evo),
+  };
+  const item = generateLoot(ctx);
+  sim.loot.unshift(item);
+  if (sim.loot.length > 5) sim.loot.pop();
+  sim.vault.push(item);
+  sim.credits += Math.round(item.power * 0.12);
+  alert(sim, `${item.rarity} drop — ${item.name}`);
+}
 
 const byId = (id: string) => REGIONS.find((r) => r.id === id)!;
 
@@ -251,6 +282,10 @@ export function createSim(): WorldSim {
     evo,
     mods: evolutionMods(evo),
     stats: createStats(),
+    weaponHeat: 0,
+    overheated: false,
+    loot: [],
+    vault: [],
   };
 }
 
@@ -281,9 +316,22 @@ function spawnMachine(sim: WorldSim, zone: ZoneState, elite = false) {
   m.kz = 0;
 }
 
-export function fireBullet(sim: WorldSim, x: number, y: number, z: number, yaw: number) {
+export function fireBullet(
+  sim: WorldSim,
+  x: number,
+  y: number,
+  z: number,
+  yaw: number,
+  inVehicle = false,
+) {
+  if (sim.overheated) return false;
   const b = sim.bullets.find((v) => !v.alive);
   if (!b) return false;
+  sim.weaponHeat = Math.min(100, sim.weaponHeat + (inVehicle ? HEAT_PER_SHOT_VEHICLE : HEAT_PER_SHOT_FOOT));
+  if (sim.weaponHeat >= 100) {
+    sim.overheated = true;
+    alert(sim, "WEAPON OVERHEAT — venting");
+  }
   b.alive = true;
   b.x = x;
   b.y = y;
@@ -355,6 +403,7 @@ export function collidePlayer(sim: WorldSim, body: PlayerBody) {
         sim.credits += 45;
         directorEvent(sim.director, { type: "KILL" });
         alert(sim, "Rammed a war machine  +45 cr");
+        dropLoot(sim, zoneOf(sim, m.zone), m.elite ? "ELITE" : "FRACTURE_MACHINE");
       }
       hurtPlayer(sim, (force * 0.12) / sim.mods.hullDurability, "vehicle collision");
     } else {
@@ -425,6 +474,12 @@ export function stepSim(sim: WorldSim, input: SimInput) {
   for (const a of sim.alerts) a.life -= dt;
   sim.alerts = sim.alerts.filter((a) => a.life > 0);
   sim.combatHeat = Math.max(0, sim.combatHeat - dt * 6);
+  // weapon cooling: venting from an overheat is slower than a normal cooldown
+  sim.weaponHeat = Math.max(0, sim.weaponHeat - dt * (sim.overheated ? 22 : 34));
+  if (sim.overheated && sim.weaponHeat <= 6) {
+    sim.overheated = false;
+    alert(sim, "Weapon cooled — ready");
+  }
   sim.impactCool = Math.max(0, sim.impactCool - dt);
 
   const t = performance.now() / 1000;
@@ -818,6 +873,7 @@ export function stepSim(sim: WorldSim, input: SimInput) {
           sim.credits += 45;
           directorEvent(sim.director, { type: "KILL" });
           alert(sim, "War machine destroyed  +45 cr");
+          dropLoot(sim, zoneOf(sim, m.zone), m.elite ? "ELITE" : "FRACTURE_MACHINE");
         }
         break;
       }
@@ -835,11 +891,15 @@ export function stepSim(sim: WorldSim, input: SimInput) {
           logBehavior(sim.evo, "logistics", tr.cargo * 2);
           directorEvent(sim.director, { type: "CARGO", amount: tr.cargo });
           alert(sim, `Convoy ambushed — ${tr.cargo} crate${tr.cargo > 1 ? "s" : ""} seized`);
+          dropLoot(sim, sim.zones.find((z) => Math.hypot(tr.x - z.region.x, tr.z - z.region.z) < z.region.radius), "CONVOY");
         }
         break;
       }
     }
   }
+
+  for (const it of sim.loot) it.life -= dt;
+  sim.loot = sim.loot.filter((it) => it.life > 0);
 
   // ---------- extraction ----------
   const nexus = byId("nexus");

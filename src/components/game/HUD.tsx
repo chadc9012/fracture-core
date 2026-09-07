@@ -4,7 +4,7 @@ import type { HudState } from "./Scene";
 import { EvolutionPanel } from "./EvolutionPanel";
 import { Inspector } from "./Inspector";
 
-export function HUD({ hud }: { hud: HudState }) {
+export function HUD({ hud, onMenu }: { hud: HudState; onMenu: () => void }) {
   const color = ZONE_COLOR[hud.kind];
   const owner = FACTIONS[hud.owner];
   const challenger = FACTIONS[hud.challenger];
@@ -147,6 +147,71 @@ export function HUD({ hud }: { hud: HudState }) {
         ))}
       </div>
 
+      {/* menu button */}
+      <button
+        onClick={onMenu}
+        className="pointer-events-auto absolute left-1/2 top-4 -translate-x-1/2 rounded-md border border-border/60 bg-card/80 px-4 py-2 text-[10px] uppercase tracking-[0.3em] text-foreground backdrop-blur-md hover:border-primary"
+      >
+        menu
+      </button>
+
+      {/* crosshair + weapon heat */}
+      <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
+        <div
+          className="h-4 w-4 rounded-full border"
+          style={{
+            borderColor: hud.overheated ? "#ff4d4d" : hud.aimLocked ? "#7dffca" : "#ffffff88",
+            boxShadow: hud.aimLocked ? "0 0 10px #7dffca" : "none",
+          }}
+        />
+      </div>
+      <div className="absolute bottom-28 left-1/2 w-56 -translate-x-1/2 rounded-lg border border-border/60 bg-card/70 px-3 py-2 backdrop-blur-md">
+        <div className="flex items-center justify-between text-[10px] uppercase tracking-[0.25em]">
+          <span className="text-muted-foreground">weapon heat</span>
+          <span style={{ color: hud.overheated ? "#ff4d4d" : hud.weaponHeat > 70 ? "#ff9f1c" : "#8fe3ff" }}>
+            {hud.overheated ? "venting" : `${hud.weaponHeat}%`}
+          </span>
+        </div>
+        <div className="mt-1 h-1.5 w-full overflow-hidden rounded bg-muted">
+          <div
+            className="h-full transition-[width] duration-150"
+            style={{
+              width: `${hud.weaponHeat}%`,
+              backgroundColor: hud.overheated ? "#ff4d4d" : hud.weaponHeat > 70 ? "#ff9f1c" : "#5bb8ff",
+            }}
+          />
+        </div>
+        <p className="mt-1 text-[9px] uppercase tracking-[0.25em] text-muted-foreground">
+          {hud.view === "first" ? "first person" : "third person"} · F to swap
+        </p>
+      </div>
+
+      {/* generated loot feed */}
+      {hud.loot.length > 0 && (
+        <div className="absolute right-4 top-1/2 w-64 -translate-y-1/2 space-y-2">
+          {hud.loot.map((it, i) => (
+            <div
+              key={`${it.name}-${i}`}
+              className="rounded-lg border bg-card/80 px-3 py-2 backdrop-blur-md"
+              style={{ borderColor: `${it.color}66` }}
+            >
+              <div className="flex items-baseline justify-between">
+                <span className="text-[10px] uppercase tracking-[0.25em]" style={{ color: it.color }}>
+                  {it.rarity}
+                </span>
+                <span className="text-[10px] text-muted-foreground">PWR {it.power}</span>
+              </div>
+              <p className="text-[12px] leading-tight text-foreground">{it.name}</p>
+              <ul className="mt-1 space-y-0.5 text-[10px] text-muted-foreground">
+                {it.mods.map((m) => (
+                  <li key={m}>+ {m}</li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
+      )}
+
       {/* bottom left: controls */}
       <div className="absolute bottom-4 left-4 rounded-lg border border-border/60 bg-card/70 px-4 py-3 text-[11px] text-muted-foreground backdrop-blur-md">
         <p>
@@ -157,7 +222,8 @@ export function HUD({ hud }: { hud: HudState }) {
         </p>
         <p className="mt-1">
           <span className="text-foreground">C</span> jump · <span className="text-foreground">T</span> fast-forward the
-          day cycle · <span className="text-foreground">I</span> engine inspector
+          day cycle · <span className="text-foreground">F</span> camera view ·{" "}
+          <span className="text-foreground">I</span> engine inspector
         </p>
         <p className="mt-1">Ambush convoys on the lanes, then extract at Nexus City for credits.</p>
       </div>

@@ -6,6 +6,8 @@ import { REGIONS } from "@/game/world";
 import { walkHeight } from "@/game/terrain";
 import { HUD } from "./HUD";
 import { Scene, type HudState } from "./Scene";
+import { StartMenu, type ClassId } from "./StartMenu";
+import { SettingsWindow, DEFAULT_SETTINGS, type GameSettings } from "./SettingsWindow";
 
 const START = REGIONS.find((r) => r.id === "nexus")!;
 
@@ -55,6 +57,39 @@ const initial: HudState = {
 
 export function GameCanvas() {
   const [hud, setHud] = useState<HudState>(initial);
+  const [phase, setPhase] = useState<"orbit" | "world">("orbit");
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [settings, setSettings] = useState<GameSettings>(DEFAULT_SETTINGS);
+  const [cls, setCls] = useState<ClassId>("VANGUARD");
+  const [last, setLast] = useState<{ credits: number; kills: number } | null>(null);
+
+  const deploy = (picked: ClassId) => {
+    setCls(picked);
+    setMenuOpen(false);
+    setPhase("world");
+  };
+
+  const toOrbit = () => {
+    setLast({ credits: hud.credits, kills: hud.kills });
+    setMenuOpen(false);
+    setPhase("orbit");
+  };
+
+  if (phase === "orbit") {
+    return (
+      <>
+        <StartMenu onDeploy={deploy} onSettings={() => setMenuOpen(true)} best={last} />
+        {menuOpen && (
+          <SettingsWindow
+            settings={settings}
+            onChange={setSettings}
+            onClose={() => setMenuOpen(false)}
+            onOrbit={() => setMenuOpen(false)}
+          />
+        )}
+      </>
+    );
+  }
 
   return (
     <div className="fixed inset-0 bg-background">
@@ -70,11 +105,19 @@ export function GameCanvas() {
       >
         <color attach="background" args={["#bfe4f2"]} />
         <Suspense fallback={null}>
-          <Scene onHud={setHud} />
+          <Scene onHud={setHud} settings={settings} playerClass={cls} />
         </Suspense>
 
       </Canvas>
-      <HUD hud={hud} />
+      <HUD hud={hud} onMenu={() => setMenuOpen(true)} />
+      {menuOpen && (
+        <SettingsWindow
+          settings={settings}
+          onChange={setSettings}
+          onClose={() => setMenuOpen(false)}
+          onOrbit={toOrbit}
+        />
+      )}
     </div>
   );
 }
