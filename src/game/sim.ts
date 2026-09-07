@@ -3,6 +3,26 @@ import { heightAt, smoothstep, walkHeight } from "./terrain";
 import { LANES, laneLanePoint, laneSamples, type Lane } from "./lanes";
 import { collideBody } from "./obstacles";
 import {
+  createEvolution,
+  evolutionMods,
+  logBehavior,
+  stepEvolution,
+  type Evolution,
+  type EvolutionMods,
+} from "./evolution";
+import {
+  beginStats,
+  countEntity,
+  createStats,
+  endStats,
+  getSimulationTier,
+  predictPosition,
+  shouldTick,
+  tierDt,
+  type SimStats,
+  type SimTier,
+} from "./lod";
+import {
   createDirector,
   directorEvent,
   directorTick,
@@ -117,6 +137,12 @@ export type WorldSim = {
   impactCool: number;
   /** rolling combat activity used for pacing */
   combatHeat: number;
+  /** adaptive skill evolution driven by observed behaviour */
+  evo: Evolution;
+  /** derived gameplay modifiers from the evolved build */
+  mods: EvolutionMods;
+  /** simulation optimisation telemetry */
+  stats: SimStats;
 };
 
 const byId = (id: string) => REGIONS.find((r) => r.id === id)!;
@@ -202,6 +228,8 @@ export function createSim(): WorldSim {
     life: 0,
   }));
 
+  const evo = createEvolution();
+
   return {
     zones,
     lanes: LANES,
@@ -220,6 +248,9 @@ export function createSim(): WorldSim {
     director: createDirector(),
     impactCool: 0,
     combatHeat: 0,
+    evo,
+    mods: evolutionMods(evo),
+    stats: createStats(),
   };
 }
 
@@ -260,6 +291,7 @@ export function fireBullet(sim: WorldSim, x: number, y: number, z: number, yaw: 
   b.vx = Math.sin(yaw) * 130;
   b.vz = Math.cos(yaw) * 130;
   b.life = 1.4;
+  logBehavior(sim.evo, "combat", 0.35);
   return true;
 }
 
@@ -313,7 +345,8 @@ export function collidePlayer(sim: WorldSim, body: PlayerBody) {
     const force = Math.abs(speed) * mass;
     if (force > 30 && sim.impactCool <= 0) {
       sim.impactCool = 0.6;
-      m.hp -= Math.round(force / 30);
+      m.hp -= Math.round((force / 30) * sim.mods.ramDamage);
+      logBehavior(sim.evo, body.inVehicle ? "vehicles" : "combat", 2);
       body.vSpeed *= 0.4;
       sim.combatHeat += 4;
       if (m.hp <= 0) {
@@ -323,9 +356,9 @@ export function collidePlayer(sim: WorldSim, body: PlayerBody) {
         directorEvent(sim.director, { type: "KILL" });
         alert(sim, "Rammed a war machine  +45 cr");
       }
-      hurtPlayer(sim, force * 0.12, "vehicle collision");
+      hurtPlayer(sim, (force * 0.12) / sim.mods.hullDurability, "vehicle collision");
     } else {
-      hurtPlayer(sim, force * 0.02, "vehicle collision");
+      hurtPlayer(sim, (force * 0.02) / sim.mods.hullDurability, "vehicle collision");
     }
   }
 
@@ -344,13 +377,15 @@ export function collidePlayer(sim: WorldSim, body: PlayerBody) {
     const force = Math.abs(speed) * mass;
     if (force > 40 && sim.impactCool <= 0) {
       sim.impactCool = 0.6;
-      tr.hp -= 1;
+      tr.hp -= Math.max(1, Math.round(sim.mods.ramDamage));
       body.vSpeed *= 0.3;
-      hurtPlayer(sim, force * 0.1, "convoy ram");
+      hurtPlayer(sim, (force * 0.1) / sim.mods.hullDurability, "convoy ram");
+      logBehavior(sim.evo, "vehicles", 2);
       sim.combatHeat += 4;
       if (tr.hp <= 0) {
         tr.alive = false;
         sim.cargo += tr.cargo;
+        logBehavior(sim.evo, "logistics", tr.cargo * 2);
         directorEvent(sim.director, { type: "CARGO", amount: tr.cargo });
         alert(sim, `Convoy rammed — ${tr.cargo} crate${tr.cargo > 1 ? "s" : ""} seized`);
       }
@@ -371,6 +406,20 @@ export type SimInput = {
 
 export function stepSim(sim: WorldSim, input: SimInput) {
   const { dt, px, pz, night } = input;
+  const t0 = performance.now();
+  beginStats(sim.stats);
+
+  // ---------- adaptive evolution loop ----------
+  // passive behaviour: time spent driving, sneaking past hostiles, holding the line
+  if (input.inVehicle) logBehavior(sim.evo, "vehicles", dt * 0.6);
+  let escorting = 0;
+  for (const tr of sim.trucks) {
+    if (tr.alive && Math.hypot(px - tr.x, pz - tr.z) < 40) escorting++;
+  }
+  if (escorting > 0) logBehavior(sim.evo, "support", dt * 0.5 * escorting);
+  stepEvolution(sim.evo, dt);
+  sim.mods = evolutionMods(sim.evo);
+  if (sim.mods.regen > 0 && sim.hp < 100) sim.hp = Math.min(100, sim.hp + sim.mods.regen * dt);
 
   // ---------- alerts ----------
   for (const a of sim.alerts) a.life -= dt;
@@ -451,10 +500,33 @@ export function stepSim(sim: WorldSim, input: SimInput) {
   for (let i = 0; i < sim.machines.length; i++) {
     const m = sim.machines[i]!;
     if (!m.alive) continue;
+
+    // --- simulation LOD: only nearby machines get full AI + physics ---
+    const simTier: SimTier = getSimulationTier(m.x, m.z, px, pz);
+    const simTick = shouldTick(simTier, sim.stats.frame);
+    countEntity(sim.stats, simTier, simTick, m.zone);
+    if (simTier >= 2) {
+      // dormant: abstract drift, no collisions, no combat resolution
+      if (!simTick) {
+        sim.stats.dormant++;
+        continue;
+      }
+      const sdt = tierDt(simTier, dt);
+      m.rot += sdt * 0.2;
+      const pred = predictPosition(m, 4, sdt);
+      m.x = pred.x;
+      m.z = pred.z;
+      m.y = walkHeight(m.x, m.z) + 2.2 * m.scale;
+      if (Math.hypot(px - m.x, pz - m.z) > 340) m.alive = false;
+      sim.stats.dormant++;
+      continue;
+    }
+
     const dx = px - m.x;
     const dz = pz - m.z;
     const d = Math.hypot(dx, dz) || 1;
-    const aggro = (70 + night * 60) * (m.elite ? 1.6 : 1);
+    const aggro =
+      (70 + night * 60) * (m.elite ? 1.6 : 1) * sim.mods.aggroRadius * sim.evo.influence.aiAggression;
     const speed = (10 + night * 6) * (m.elite ? 1.15 : 1);
     if (d < 120) hostileNear++;
 
@@ -466,7 +538,7 @@ export function stepSim(sim: WorldSim, input: SimInput) {
       if (d < 6 && m.cool <= 0) {
         m.cool = 1.1;
         sim.combatHeat += 2;
-        hurtPlayer(sim, m.elite ? 12 : 7, "war machine");
+        hurtPlayer(sim, (m.elite ? 12 : 7) / sim.mods.hullDurability, "war machine");
         // machines besieging Nexus chew the city core
         if (Math.hypot(m.x - byId("nexus").x, m.z - byId("nexus").z) < byId("nexus").radius) {
           sim.coreHp = Math.max(0, sim.coreHp - 2);
@@ -512,6 +584,11 @@ export function stepSim(sim: WorldSim, input: SimInput) {
       continue;
     }
     m.y = walkHeight(m.x, m.z) + 2.2 * m.scale;
+  }
+
+// stealth: surviving close to hostiles without opening fire
+  if (!input.inVehicle && hostileNear > 0 && sim.combatHeat < 2) {
+    logBehavior(sim.evo, "stealth", dt * 0.8 * hostileNear);
   }
 
   // ---------- safe-zone stability field ----------
@@ -580,6 +657,32 @@ export function stepSim(sim: WorldSim, input: SimInput) {
     if (!tr.alive) continue;
     const lane = sim.lanes[tr.lane]!;
 
+    // --- simulation LOD for logistics: distant convoys move abstractly ---
+    const convoyTier: SimTier = getSimulationTier(tr.x, tr.z, px, pz);
+    const convoyTick = shouldTick(convoyTier, sim.stats.frame);
+    countEntity(sim.stats, convoyTier, convoyTick);
+    if (convoyTier >= 2) {
+      if (!convoyTick) continue;
+      const sdt = tierDt(convoyTier, dt);
+      tr.speed = 0.035 * sim.evo.influence.logisticsEfficiency;
+      tr.wait = Math.max(0, tr.wait - sdt);
+      if (tr.wait <= 0) tr.t += sdt * tr.speed * tr.dir;
+      if (tr.t > 0.9) {
+        tr.t = 0.1;
+        tr.wait = 6;
+      }
+      if (tr.t < 0.1) {
+        tr.t = 0.9;
+        tr.wait = 6;
+      }
+      const abstract = laneLanePoint(lane, tr.t, tr.dir > 0 ? 3.2 : -3.2);
+      tr.rot = Math.atan2(abstract.x - tr.x, abstract.z - tr.z) || tr.rot;
+      tr.x = abstract.x;
+      tr.z = abstract.z;
+      tr.y = walkHeight(abstract.x, abstract.z) + 1.6;
+      continue;
+    }
+
     // keep a safe gap to the truck ahead on the same lane and heading
     let headway = 1;
     for (const other of sim.trucks) {
@@ -619,7 +722,7 @@ export function stepSim(sim: WorldSim, input: SimInput) {
     }
 
     // ease toward the target lane speed so trucks brake smoothly
-    const target = 0.035 * headway;
+    const target = 0.035 * headway * sim.evo.influence.logisticsEfficiency;
     tr.speed += (target - tr.speed) * (1 - Math.exp(-3 * dt));
 
     const side = tr.dir > 0 ? 3.2 : -3.2;
@@ -703,7 +806,8 @@ export function stepSim(sim: WorldSim, input: SimInput) {
       if (!m.alive) continue;
       if (Math.hypot(m.x - b.x, m.z - b.z) < 3.4 * m.scale) {
         b.alive = false;
-        m.hp -= 1;
+        m.hp -= sim.mods.bulletDamage;
+        logBehavior(sim.evo, "combat", 1);
         // knockback impulse from the hit direction
         m.kx += b.vx * 0.06;
         m.kz += b.vz * 0.06;
@@ -723,10 +827,12 @@ export function stepSim(sim: WorldSim, input: SimInput) {
       if (!tr.alive) continue;
       if (Math.hypot(tr.x - b.x, tr.z - b.z) < 3.6) {
         b.alive = false;
-        tr.hp -= 1;
+        tr.hp -= sim.mods.bulletDamage;
+        logBehavior(sim.evo, "combat", 1);
         if (tr.hp <= 0) {
           tr.alive = false;
           sim.cargo += tr.cargo;
+          logBehavior(sim.evo, "logistics", tr.cargo * 2);
           directorEvent(sim.director, { type: "CARGO", amount: tr.cargo });
           alert(sim, `Convoy ambushed — ${tr.cargo} crate${tr.cargo > 1 ? "s" : ""} seized`);
         }
@@ -738,9 +844,10 @@ export function stepSim(sim: WorldSim, input: SimInput) {
   // ---------- extraction ----------
   const nexus = byId("nexus");
   if (sim.cargo > 0 && Math.hypot(px - nexus.x, pz - nexus.z) < nexus.radius * 0.55) {
-    const paid = sim.cargo * 120;
+    const paid = Math.round(sim.cargo * 120 * sim.mods.cargoValue * sim.evo.influence.logisticsEfficiency);
     sim.credits += paid;
     sim.extractions += sim.cargo;
+    logBehavior(sim.evo, "logistics", sim.cargo * 3);
     sim.cargo = 0;
     sim.hp = Math.min(100, sim.hp + 35);
     alert(sim, `Extraction complete  +${paid} cr`);
@@ -773,6 +880,8 @@ export function stepSim(sim: WorldSim, input: SimInput) {
     const paid = sim.director.missions.find((m) => m.state === "COMPLETED")?.reward ?? 0;
     sim.credits += paid;
   }
+
+  endStats(sim.stats, performance.now() - t0);
 
   return { playerInstability };
 }
