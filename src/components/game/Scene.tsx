@@ -18,6 +18,9 @@ import type { EvoView } from "./EvolutionPanel";
 import type { InspectorView } from "./Inspector";
 import { BRANCHES } from "@/game/evolution";
 import { TIER_RADII } from "@/game/lod";
+import { RARITY_COLOR, type Rarity } from "@/game/loot";
+
+export type LootView = { name: string; rarity: Rarity; power: number; mods: string[]; color: string };
 
 export type HudState = {
   region: string;
@@ -49,6 +52,12 @@ export type HudState = {
   trend: string;
   missions: Mission[];
   ownership: { id: string; name: string; owner: Faction }[];
+  /* gunnery + gear */
+  weaponHeat: number;
+  overheated: boolean;
+  loot: LootView[];
+  view: "third" | "first";
+  aimLocked: boolean;
   /* adaptive evolution + dev inspector */
   evo: EvoView;
   inspector: InspectorView | null;
@@ -142,6 +151,9 @@ export function Scene({ onHud }: { onHud: (s: HudState) => void }) {
     inspectorCool: 0,
     showInspector: false,
     fps: 60,
+    viewCool: 0,
+    firstPerson: false,
+    aimLocked: false,
     reported: { hp: 100 },
   });
 
@@ -287,9 +299,43 @@ export function Scene({ onHud }: { onHud: (s: HudState) => void }) {
     const ground = walkHeight(s.x, s.z);
     const submerged = heightAt(s.x, s.z) < WATER_LEVEL - 0.2;
 
-    if (held.has("Space") && s.fireCool <= 0) {
+    s.viewCool -= dt;
+    if (held.has("KeyF") && s.viewCool <= 0) {
+      s.viewCool = 0.35;
+      s.firstPerson = !s.firstPerson;
+    }
+
+    /* ------- predictive aim assist: cone → lead → soft magnetism ------- */
+    s.aimLocked = false;
+    {
+      const CONE = 0.12; // ~7 degrees
+      let best: { yaw: number; score: number } | null = null;
+      for (const m of sim.machines) {
+        if (!m.alive) continue;
+        const dx = m.x - s.x;
+        const dz = m.z - s.z;
+        const dist = Math.hypot(dx, dz);
+        if (dist > 120 || dist < 2) continue;
+        // lead the target using its knockback drift so shots land ahead of it
+        const lead = dist / 130;
+        const want = Math.atan2(dx + m.kx * lead, dz + m.kz * lead);
+        const off = Math.abs(Math.atan2(Math.sin(want - s.yaw), Math.cos(want - s.yaw)));
+        if (off > CONE) continue;
+        const score = off + dist * 0.002;
+        if (!best || score < best.score) best = { yaw: want, score };
+      }
+      if (best) {
+        // soft snap only — strength grows as the crosshair closes on the target
+        const strength = best.score < 0.03 ? 0.35 : best.score < 0.07 ? 0.2 : 0.1;
+        const delta = Math.atan2(Math.sin(best.yaw - s.yaw), Math.cos(best.yaw - s.yaw));
+        s.yaw += delta * strength * Math.min(1, dt * 12);
+        s.aimLocked = true;
+      }
+    }
+
+    if (held.has("Space") && s.fireCool <= 0 && !sim.overheated) {
       s.fireCool = (s.inVehicle ? 0.16 : 0.28) / sim.mods.fireRate;
-      fireBullet(sim, s.x, s.y + 1.2, s.z, s.yaw);
+      fireBullet(sim, s.x, s.y + 1.2, s.z, s.yaw, s.inVehicle);
     }
 
     const throttleF = held.has("KeyW") || held.has("ArrowUp");
@@ -411,19 +457,32 @@ export function Scene({ onHud }: { onHud: (s: HudState) => void }) {
     }
 
     /* ---------------- camera ---------------- */
-    if (s.inVehicle) {
+    if (s.firstPerson) {
+      // cockpit / eye view: sit inside the body and look down the barrel
+      const fwd = s.inVehicle ? 1.4 : 0.5;
       camTarget.set(
-        s.x - Math.sin(s.yaw) * 30,
-        s.y + 20 + Math.abs(s.vSpeed) * 0.08,
-        s.z - Math.cos(s.yaw) * 30,
+        s.x + Math.sin(s.yaw) * fwd,
+        s.y + (s.inVehicle ? 1.5 : 1.0),
+        s.z + Math.cos(s.yaw) * fwd,
       );
+      camera.position.lerp(camTarget, 1 - Math.exp(-18 * dt));
+      look.set(s.x + Math.sin(s.yaw) * 60, s.y + (s.inVehicle ? 1.5 : 1.2), s.z + Math.cos(s.yaw) * 60);
+      camera.lookAt(look);
     } else {
-      camTarget.set(s.x, s.y + 26, s.z + 38);
+      if (s.inVehicle) {
+        camTarget.set(
+          s.x - Math.sin(s.yaw) * 30,
+          s.y + 20 + Math.abs(s.vSpeed) * 0.08,
+          s.z - Math.cos(s.yaw) * 30,
+        );
+      } else {
+        camTarget.set(s.x, s.y + 26, s.z + 38);
+      }
+      camTarget.y = Math.max(camTarget.y, walkHeight(camTarget.x, camTarget.z) + 6);
+      camera.position.lerp(camTarget, 1 - Math.exp(-4.5 * dt));
+      look.set(s.x, s.y + 2.5, s.z);
+      camera.lookAt(look);
     }
-    camTarget.y = Math.max(camTarget.y, walkHeight(camTarget.x, camTarget.z) + 6);
-    camera.position.lerp(camTarget, 1 - Math.exp(-4.5 * dt));
-    look.set(s.x, s.y + 2.5, s.z);
-    camera.lookAt(look);
 
     /* ---------------- HUD ---------------- */
     report.current += dt;
@@ -459,6 +518,17 @@ export function Scene({ onHud }: { onHud: (s: HudState) => void }) {
         trend: directorTrend(sim.director),
         missions: sim.director.missions.filter((m) => m.state === "ACTIVE").slice(0, 3),
         ownership: sim.zones.map((z) => ({ id: z.region.id, name: z.region.name, owner: z.owner })),
+        weaponHeat: Math.round(sim.weaponHeat),
+        overheated: sim.overheated,
+        view: s.firstPerson ? "first" : "third",
+        aimLocked: s.aimLocked,
+        loot: sim.loot.map((it) => ({
+          name: it.name,
+          rarity: it.rarity,
+          power: it.power,
+          mods: it.mods.map((m) => `${m.name} +${m.value}${m.effect === "Utility" ? "" : "%"}`),
+          color: RARITY_COLOR[it.rarity],
+        })),
         evo: {
           identity: sim.evo.identity,
           cycle: sim.evo.cycle,

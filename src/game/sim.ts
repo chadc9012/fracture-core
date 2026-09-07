@@ -403,6 +403,7 @@ export function collidePlayer(sim: WorldSim, body: PlayerBody) {
         sim.credits += 45;
         directorEvent(sim.director, { type: "KILL" });
         alert(sim, "Rammed a war machine  +45 cr");
+        dropLoot(sim, zoneOf(sim, m.zone), m.elite ? "ELITE" : "FRACTURE_MACHINE");
       }
       hurtPlayer(sim, (force * 0.12) / sim.mods.hullDurability, "vehicle collision");
     } else {
