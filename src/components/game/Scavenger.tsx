@@ -18,20 +18,40 @@ function Rifle({ position, rotation }: { position: [number, number, number]; rot
         <boxGeometry args={[0.18, 0.22, 1.25]} />
         <meshStandardMaterial color="#a08a5f" metalness={0.35} roughness={0.6} />
       </mesh>
-      {/* barrel shroud */}
+      {/* vented handguard */}
       <mesh position={[0, 0.02, 0.95]} castShadow>
-        <boxGeometry args={[0.14, 0.15, 0.7]} />
+        <boxGeometry args={[0.16, 0.16, 0.7]} />
         <meshStandardMaterial color="#8e7a53" metalness={0.4} roughness={0.55} />
       </mesh>
-      {/* suppressor */}
-      <mesh position={[0, 0.02, 1.45]} rotation={[Math.PI / 2, 0, 0]} castShadow>
-        <cylinderGeometry args={[0.075, 0.075, 0.42, 10]} />
-        <meshStandardMaterial color="#22252a" metalness={0.5} roughness={0.5} />
+      {/* handguard vent slots */}
+      {[-0.9, -1.05, -1.2].map((z) => (
+        <mesh key={z} position={[0, 0.11, -z]}>
+          <boxGeometry args={[0.12, 0.04, 0.07]} />
+          <meshStandardMaterial color="#1d2024" roughness={0.6} />
+        </mesh>
+      ))}
+      {/* barrel + muzzle brake */}
+      <mesh position={[0, 0.02, 1.42]} rotation={[Math.PI / 2, 0, 0]} castShadow>
+        <cylinderGeometry args={[0.055, 0.055, 0.5, 10]} />
+        <meshStandardMaterial color="#22252a" metalness={0.55} roughness={0.45} />
       </mesh>
-      {/* optic */}
-      <mesh position={[0, 0.2, 0.25]} castShadow>
-        <boxGeometry args={[0.1, 0.12, 0.34]} />
+      <mesh position={[0, 0.02, 1.66]} rotation={[Math.PI / 2, 0, 0]} castShadow>
+        <cylinderGeometry args={[0.08, 0.06, 0.14, 8]} />
+        <meshStandardMaterial color="#1a1d21" metalness={0.6} roughness={0.4} />
+      </mesh>
+      {/* top rail */}
+      <mesh position={[0, 0.15, 0.3]} castShadow>
+        <boxGeometry args={[0.06, 0.04, 0.9]} />
+        <meshStandardMaterial color="#26282b" metalness={0.5} roughness={0.5} />
+      </mesh>
+      {/* scoped optic with glowing lens */}
+      <mesh position={[0, 0.24, 0.3]} rotation={[Math.PI / 2, 0, 0]} castShadow>
+        <cylinderGeometry args={[0.07, 0.07, 0.4, 10]} />
         <meshStandardMaterial color="#1d2024" metalness={0.5} roughness={0.4} />
+      </mesh>
+      <mesh position={[0, 0.24, 0.51]} rotation={[Math.PI / 2, 0, 0]}>
+        <cylinderGeometry args={[0.055, 0.055, 0.02, 10]} />
+        <meshStandardMaterial color="#7fe8ff" emissive="#4fd8ff" emissiveIntensity={2} toneMapped={false} />
       </mesh>
       {/* drum magazine */}
       <mesh position={[0, -0.22, 0.05]} castShadow>
@@ -52,28 +72,44 @@ function Rifle({ position, rotation }: { position: [number, number, number]; rot
   );
 }
 
-function EnergyBlade() {
+/**
+ * Sawblade cleaver — post-apocalyptic melee from the references:
+ * a salvaged circular saw blade welded to a wrapped pipe handle.
+ */
+function SawCleaver() {
   return (
     <group position={[0, 0.35, -0.55]} rotation={[0, 0, Math.PI / 3.4]}>
-      {/* hilt */}
+      {/* pipe handle */}
       <mesh castShadow>
-        <cylinderGeometry args={[0.07, 0.07, 0.45, 8]} />
-        <meshStandardMaterial color="#1b1f24" metalness={0.7} roughness={0.35} />
+        <cylinderGeometry args={[0.06, 0.06, 0.9, 8]} />
+        <meshStandardMaterial color="#4a4238" metalness={0.5} roughness={0.7} />
       </mesh>
-      {/* guard */}
-      <mesh position={[0, 0.3, 0]} castShadow>
-        <boxGeometry args={[0.32, 0.16, 0.14]} />
-        <meshStandardMaterial color="#2a3138" metalness={0.75} roughness={0.3} />
+      {/* cloth wrap bands */}
+      {[-0.3, -0.1, 0.1].map((y) => (
+        <mesh key={y} position={[0, y, 0]}>
+          <cylinderGeometry args={[0.075, 0.075, 0.1, 8]} />
+          <meshStandardMaterial color="#6d5f4a" roughness={0.95} />
+        </mesh>
+      ))}
+      {/* welded joint */}
+      <mesh position={[0, 0.5, 0]} castShadow>
+        <boxGeometry args={[0.2, 0.18, 0.12]} />
+        <meshStandardMaterial color="#33373b" metalness={0.6} roughness={0.55} />
       </mesh>
-      {/* glowing blade */}
-      <mesh position={[0, 1.15, 0]}>
-        <boxGeometry args={[0.16, 1.6, 0.05]} />
-        <meshStandardMaterial
-          color="#8fe9ff"
-          emissive="#4fd8ff"
-          emissiveIntensity={2.4}
-          toneMapped={false}
-        />
+      {/* rusted saw disc */}
+      <mesh position={[0, 0.95, 0]} rotation={[Math.PI / 2, 0, 0]} castShadow>
+        <cylinderGeometry args={[0.55, 0.55, 0.05, 18]} />
+        <meshStandardMaterial color="#6b4a35" metalness={0.45} roughness={0.75} />
+      </mesh>
+      {/* steel cutting edge */}
+      <mesh position={[0, 0.95, 0]} rotation={[Math.PI / 2, 0, 0]}>
+        <cylinderGeometry args={[0.58, 0.58, 0.03, 18]} />
+        <meshStandardMaterial color="#9aa0a6" metalness={0.8} roughness={0.35} />
+      </mesh>
+      {/* hub bolt */}
+      <mesh position={[0, 0.95, 0]} rotation={[Math.PI / 2, 0, 0]}>
+        <cylinderGeometry args={[0.09, 0.09, 0.09, 6]} />
+        <meshStandardMaterial color="#22252a" metalness={0.6} roughness={0.5} />
       </mesh>
     </group>
   );
@@ -139,7 +175,7 @@ export function Scavenger() {
       </mesh>
 
       <Rifle position={[0.62, -0.05, 0.5]} rotation={[0, 0, 0]} />
-      <EnergyBlade />
+      <SawCleaver />
     </group>
   );
 }
