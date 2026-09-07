@@ -9,6 +9,7 @@ import * as THREE from "three";
 const CLOTH = "#6d6a4a";
 const ARMOR = "#3a3d3c";
 const METAL = "#54514a";
+const EXO = "#b7ab93";
 
 function Rifle({ position, rotation }: { position: [number, number, number]; rotation: [number, number, number] }) {
   return (
@@ -78,7 +79,7 @@ function Rifle({ position, rotation }: { position: [number, number, number]; rot
  */
 function SawCleaver() {
   return (
-    <group position={[0, 0.35, -0.55]} rotation={[0, 0, Math.PI / 3.4]}>
+    <group position={[-0.15, 0.35, -0.78]} rotation={[0, 0, Math.PI / 3.4]}>
       {/* pipe handle */}
       <mesh castShadow>
         <cylinderGeometry args={[0.06, 0.06, 0.9, 8]} />
