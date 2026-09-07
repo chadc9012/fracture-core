@@ -496,11 +496,6 @@ export function stepSim(sim: WorldSim, input: SimInput) {
 
   sim.gravity = 26 * (1 - playerInstability * 0.66);
 
-  // stealth: surviving close to hostiles without opening fire
-  if (!input.inVehicle && hostileNear > 0 && sim.combatHeat < 2) {
-    logBehavior(sim.evo, "stealth", dt * 0.8 * hostileNear);
-  }
-
   // ---------- war machines ----------
   for (let i = 0; i < sim.machines.length; i++) {
     const m = sim.machines[i]!;
@@ -589,6 +584,11 @@ export function stepSim(sim: WorldSim, input: SimInput) {
       continue;
     }
     m.y = walkHeight(m.x, m.z) + 2.2 * m.scale;
+  }
+
+// stealth: surviving close to hostiles without opening fire
+  if (!input.inVehicle && hostileNear > 0 && sim.combatHeat < 2) {
+    logBehavior(sim.evo, "stealth", dt * 0.8 * hostileNear);
   }
 
   // ---------- safe-zone stability field ----------
