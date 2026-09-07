@@ -14,6 +14,10 @@ import { Car } from "./Vehicle";
 import { NexusCity } from "./NexusCity";
 import { Water } from "./Water";
 import { Scavenger } from "./Scavenger";
+import type { EvoView } from "./EvolutionPanel";
+import type { InspectorView } from "./Inspector";
+import { BRANCHES, EVOLUTION_INTERVAL } from "@/game/evolution";
+import { TIER_RADII } from "@/game/lod";
 
 export type HudState = {
   region: string;
@@ -45,6 +49,9 @@ export type HudState = {
   trend: string;
   missions: Mission[];
   ownership: { id: string; name: string; owner: Faction }[];
+  /* adaptive evolution + dev inspector */
+  evo: EvoView;
+  inspector: InspectorView | null;
 };
 
 const SPAWN_REGION = REGIONS.find((r) => r.id === "nexus")!;
@@ -132,8 +139,87 @@ export function Scene({ onHud }: { onHud: (s: HudState) => void }) {
     grounded: true,
     toggleCool: 0,
     fireCool: 0,
+    inspectorCool: 0,
+    showInspector: false,
+    fps: 60,
     reported: { hp: 100 },
   });
+
+  /** snapshot of every live engine system for the dev inspector */
+  const buildInspector = (): InspectorView => {
+    const s = state.current;
+    const st = sim.stats;
+    let alive = 0;
+    let elite = 0;
+    let engaging = 0;
+    for (const m of sim.machines) {
+      if (!m.alive) continue;
+      alive++;
+      if (m.elite) elite++;
+      if (Math.hypot(m.x - s.x, m.z - s.z) < TIER_RADII.full) engaging++;
+    }
+    return {
+      clock: clockLabel(time.current),
+      phase: phaseFor(time.current),
+      tick: st.frame,
+      fps: Math.round(s.fps),
+      stepMs: st.stepMs,
+      avgMs: st.avgMs,
+      warIntensity: Math.round(sim.director.threat),
+      coreHp: Math.round(sim.coreHp),
+      tiers: [...st.tiers] as [number, number, number, number],
+      ticked: st.ticked,
+      skipped: st.skipped,
+      dormant: st.dormant,
+      relevant: st.relevant,
+      offloaded: st.offloaded,
+      regionLoad: Object.entries(st.regionLoad)
+        .map(([id, load]) => ({ id, load }))
+        .sort((a, b) => b.load - a.load)
+        .slice(0, 5),
+      machines: { alive, elite, engaging },
+      convoys: sim.trucks
+        .filter((tr) => tr.alive)
+        .slice(0, 6)
+        .map((tr, i) => {
+          const dist = Math.hypot(tr.x - s.x, tr.z - s.z);
+          const tierNote = dist < TIER_RADII.full ? "T0" : dist < TIER_RADII.high ? "T1" : "T2";
+          return {
+            id: i,
+            lane: tr.lane,
+            state: tr.wait > 0 ? "HOLD" : tr.speed < 0.006 ? "BRAKING" : "ROLLING",
+            speed: tr.speed,
+            cargo: tr.cargo,
+            hp: tr.hp,
+            tierNote,
+          };
+        }),
+      regions: sim.zones.map((z) => ({
+        id: z.region.id,
+        name: z.region.name,
+        owner: z.owner,
+        progress: z.progress,
+        instability: z.instability,
+      })),
+      shards: sim.zones.slice(0, 4).map((z) => {
+        const load = sim.stats.regionLoad[z.region.id] ?? 0;
+        const latency = Math.round(28 + load * 6 + z.instability * 40);
+        return {
+          region: z.region.name.split(" ")[0]!,
+          latency,
+          sync: latency > 120 ? "DEGRADED" : latency > 70 ? "SYNCING" : "STABLE",
+        };
+      }),
+      identity: sim.evo.identity,
+      mutations: BRANCHES.filter((b) => sim.evo.skills[b.id].form === "ELITE_MUTATION").map(
+        (b) => sim.evo.skills[b.id].name,
+      ),
+      missions: sim.director.missions
+        .filter((m) => m.state === "ACTIVE")
+        .slice(0, 3)
+        .map((m) => ({ name: m.name, state: m.state })),
+    };
+  };
 
   const velocity = useMemo(() => new THREE.Vector3(), []);
   const wish = useMemo(() => new THREE.Vector3(), []);
@@ -189,13 +275,20 @@ export function Scene({ onHud }: { onHud: (s: HudState) => void }) {
       s.vSpeed = 0;
       velocity.set(0, 0, 0);
     }
+    s.inspectorCool -= dt;
+    if (held.has("KeyI") && s.inspectorCool <= 0) {
+      s.inspectorCool = 0.35;
+      s.showInspector = !s.showInspector;
+    }
+    s.fps = s.fps * 0.9 + (1 / Math.max(0.001, raw)) * 0.1;
+
     const here = regionAt(s.x, s.z);
     const slope = slopeAt(s.x, s.z);
     const ground = walkHeight(s.x, s.z);
     const submerged = heightAt(s.x, s.z) < WATER_LEVEL - 0.2;
 
     if (held.has("Space") && s.fireCool <= 0) {
-      s.fireCool = s.inVehicle ? 0.16 : 0.28;
+      s.fireCool = (s.inVehicle ? 0.16 : 0.28) / sim.mods.fireRate;
       fireBullet(sim, s.x, s.y + 1.2, s.z, s.yaw);
     }
 
@@ -211,7 +304,7 @@ export function Scene({ onHud }: { onHud: (s: HudState) => void }) {
     const traction = Math.max(0.18, biomeGrip * (1 - slope * 0.75) * (submerged ? 0.45 : 1));
 
     if (s.inVehicle) {
-      const maxSpeed = 62 * biomeGrip * (boost ? 1.5 : 1);
+      const maxSpeed = 62 * biomeGrip * (boost ? 1.5 : 1) * sim.mods.vehicleSpeed;
       const accel = 52 * traction;
       if (throttleF) s.vSpeed += accel * dt;
       else if (throttleB) s.vSpeed -= accel * 0.8 * dt;
@@ -233,7 +326,7 @@ export function Scene({ onHud }: { onHud: (s: HudState) => void }) {
       if (throttleB) wish.z += 1;
       if (left) wish.x -= 1;
       if (right) wish.x += 1;
-      const walk = 26 * traction * (boost ? 1.9 : 1);
+      const walk = 26 * traction * (boost ? 1.9 : 1) * sim.mods.footSpeed;
       if (wish.lengthSq() > 0) wish.normalize().multiplyScalar(walk);
       velocity.lerp(wish, 1 - Math.exp(-9 * dt));
       s.x += velocity.x * dt;
@@ -366,6 +459,27 @@ export function Scene({ onHud }: { onHud: (s: HudState) => void }) {
         trend: directorTrend(sim.director),
         missions: sim.director.missions.filter((m) => m.state === "ACTIVE").slice(0, 3),
         ownership: sim.zones.map((z) => ({ id: z.region.id, name: z.region.name, owner: z.owner })),
+        evo: {
+          identity: sim.evo.identity,
+          cycle: sim.evo.cycle,
+          nextIn: sim.evo.timer,
+          playstyle: { ...sim.evo.playstyle },
+          skills: BRANCHES.map((b) => {
+            const n = sim.evo.skills[b.id];
+            return {
+              id: n.id,
+              name: n.name,
+              level: n.level,
+              xp: n.xp,
+              form: n.form,
+              driver: n.driver,
+              counterplay: n.counterplay,
+              fresh: n.mutatedAt < 6,
+            };
+          }),
+          log: sim.evo.log.map((l) => l.text),
+        },
+        inspector: s.showInspector ? buildInspector() : null,
       });
     }
   });
