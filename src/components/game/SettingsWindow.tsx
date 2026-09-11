@@ -43,7 +43,7 @@ export function SettingsWindow({
   const set = (patch: Partial<GameSettings>) => onChange({ ...settings, ...patch });
 
   return (
-    <div className="pointer-events-auto fixed inset-0 z-40 flex items-center justify-center bg-background/60 backdrop-blur-sm">
+    <div className="pointer-events-auto fixed inset-0 z-[60] flex items-center justify-center bg-background/60 backdrop-blur-sm">
       <div className="w-[22rem] rounded-lg border border-border bg-card/95 p-4 shadow-xl">
         <div className="mb-3 flex items-center justify-between">
           <p className="font-mono text-[11px] uppercase tracking-[0.3em] text-muted-foreground">Menu</p>
