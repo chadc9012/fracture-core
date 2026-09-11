@@ -5,7 +5,6 @@ import { collideBody } from "./obstacles";
 import {
   createEvolution,
   dominantBehavior,
-  getPlaystyle,
   evolutionMods,
   logBehavior,
   stepEvolution,
@@ -167,7 +166,7 @@ function dropLoot(sim: WorldSim, zone: ZoneState | undefined, enemyType: string)
     difficulty: zone?.region.difficulty ?? 3,
     isRaid: (zone?.region.kind ?? "war") === "core",
     corruption: Math.round((zone?.instability ?? 0.2) * 100),
-    playstyle: dominantBehavior(getPlaystyle(sim.evo)),
+    playstyle: dominantBehavior(sim.evo.playstyle),
   };
   const item = generateLoot(ctx);
   sim.loot.unshift(item);
