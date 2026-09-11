@@ -165,7 +165,7 @@ export function HUD({ hud, onMenu }: { hud: HudState; onMenu: () => void }) {
           }}
         />
       </div>
-      <div className="absolute bottom-28 left-1/2 w-56 -translate-x-1/2 rounded-lg border border-border/60 bg-card/70 px-3 py-2 backdrop-blur-md">
+      <div className="absolute left-1/2 top-16 w-56 -translate-x-1/2 rounded-lg border border-border/60 bg-card/70 px-3 py-2 backdrop-blur-md">
         <div className="flex items-center justify-between text-[10px] uppercase tracking-[0.25em]">
           <span className="text-muted-foreground">weapon heat</span>
           <span style={{ color: hud.overheated ? "#ff4d4d" : hud.weaponHeat > 70 ? "#ff9f1c" : "#8fe3ff" }}>

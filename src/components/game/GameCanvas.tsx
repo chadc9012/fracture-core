@@ -48,6 +48,11 @@ const initial: HudState = {
     log: [],
   },
   inspector: null,
+  weaponHeat: 0,
+  overheated: false,
+  loot: [],
+  view: "third",
+  aimLocked: false,
   ownership: REGIONS.map((r) => ({
     id: r.id,
     name: r.name,
@@ -78,7 +83,7 @@ export function GameCanvas() {
   if (phase === "orbit") {
     return (
       <>
-        <StartMenu onDeploy={deploy} onSettings={() => setMenuOpen(true)} best={last} />
+        {!menuOpen && <StartMenu onDeploy={deploy} onSettings={() => setMenuOpen(true)} best={last} />}
         {menuOpen && (
           <SettingsWindow
             settings={settings}
