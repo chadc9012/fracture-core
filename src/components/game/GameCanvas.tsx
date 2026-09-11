@@ -48,6 +48,11 @@ const initial: HudState = {
     log: [],
   },
   inspector: null,
+  weaponHeat: 0,
+  overheated: false,
+  loot: [],
+  view: "third",
+  aimLocked: false,
   ownership: REGIONS.map((r) => ({
     id: r.id,
     name: r.name,

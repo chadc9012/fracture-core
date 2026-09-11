@@ -5,6 +5,7 @@ import { collideBody } from "./obstacles";
 import {
   createEvolution,
   dominantBehavior,
+  getPlaystyle,
   evolutionMods,
   logBehavior,
   stepEvolution,
