@@ -83,7 +83,7 @@ export function GameCanvas() {
   if (phase === "orbit") {
     return (
       <>
-        <StartMenu onDeploy={deploy} onSettings={() => setMenuOpen(true)} best={last} />
+        {!menuOpen && <StartMenu onDeploy={deploy} onSettings={() => setMenuOpen(true)} best={last} />}
         {menuOpen && (
           <SettingsWindow
             settings={settings}
