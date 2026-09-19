@@ -1,7 +1,7 @@
-# EVOLIO Vehicle Roster and Deployment Flow
+# WORLD FRACTURE Vehicle Roster and Deployment Flow
 
 ## Goal
-Add the supplied land, air, water, and enemy vehicles to EVOLIO’s game data and turn the orbit screen into a clear deployment sequence inspired by the references, without embedding the screenshots themselves.
+Add the supplied land, air, water, and enemy vehicles to WORLD FRACTURE’s game data and turn the orbit screen into a clear deployment sequence inspired by the references, without embedding the screenshots themselves.
 
 ## What will change
 - Create one vehicle roster containing all 14 concepts, with rarity, allegiance, movement type, seats, hull, speed, handling, weapon, terrain role, lore, and unlock status.
@@ -16,6 +16,7 @@ Add the supplied land, air, water, and enemy vehicles to EVOLIO’s game data an
 - Dark military sci-fi interface with narrow panels, technical dividers, restrained cyan/amber status colors, tall selection cards, and a large active choice.
 - Character configuration uses armor finish, visor glow, and field marking presets that visibly recolor the existing Resonant model.
 - References guide hierarchy and atmosphere only; their image files will not ship in the game.
+- Remove all EVOLIO and EVO names from the interface, story, code-facing labels, and metadata; WORLD FRACTURE becomes the sole game identity.
 
 ## Technical details
 - New typed roster module under the game layer; existing simulation remains pure TypeScript.
