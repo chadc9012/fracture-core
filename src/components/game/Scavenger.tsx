@@ -6,10 +6,7 @@ import * as THREE from "three";
  * sci-fi rifle in hand and an energy blade slung across the back.
  */
 
-const CLOTH = "#6d6a4a";
-const ARMOR = "#3a3d3c";
 const METAL = "#54514a";
-const EXO = "#b7ab93";
 
 function Rifle({ position, rotation }: { position: [number, number, number]; rotation: [number, number, number] }) {
   return (
@@ -153,14 +150,15 @@ function FieldPack() {
   );
 }
 
-export function Scavenger() {
+export function Scavenger({ armor = "#b7ab93", cloth = "#6d6a4a", visor = "#66e0ff" }: { armor?: string; cloth?: string; visor?: string }) {
+  const baseArmor = "#3a3d3c";
   return (
     <group>
       {/* legs */}
       {[-0.28, 0.28].map((x) => (
         <mesh key={x} position={[x, -0.95, 0]} castShadow>
           <boxGeometry args={[0.34, 1.0, 0.36]} />
-          <meshStandardMaterial color={ARMOR} roughness={0.85} />
+          <meshStandardMaterial color={baseArmor} roughness={0.85} />
         </mesh>
       ))}
       {/* exo-frame leg struts + knee plates (powered-suit reference) */}
@@ -168,11 +166,11 @@ export function Scavenger() {
         <group key={`exo${x}`}>
           <mesh position={[x * 1.42, -0.95, -0.02]} castShadow>
             <boxGeometry args={[0.09, 1.05, 0.13]} />
-            <meshStandardMaterial color={EXO} metalness={0.45} roughness={0.55} />
+            <meshStandardMaterial color={armor} metalness={0.45} roughness={0.55} />
           </mesh>
           <mesh position={[x, -0.86, 0.22]} castShadow>
             <boxGeometry args={[0.32, 0.3, 0.12]} />
-            <meshStandardMaterial color={EXO} metalness={0.4} roughness={0.6} />
+            <meshStandardMaterial color={armor} metalness={0.4} roughness={0.6} />
           </mesh>
           <mesh position={[x, -1.42, 0.06]} castShadow>
             <boxGeometry args={[0.4, 0.22, 0.56]} />
@@ -183,12 +181,12 @@ export function Scavenger() {
       {/* torso — layered coat */}
       <mesh position={[0, 0.05, 0]} castShadow>
         <boxGeometry args={[0.95, 1.15, 0.6]} />
-        <meshStandardMaterial color={CLOTH} roughness={0.9} />
+        <meshStandardMaterial color={cloth} roughness={0.9} />
       </mesh>
       {/* chest plate */}
       <mesh position={[0, 0.2, 0.32]} castShadow>
         <boxGeometry args={[0.66, 0.6, 0.12]} />
-        <meshStandardMaterial color={EXO} metalness={0.45} roughness={0.6} />
+        <meshStandardMaterial color={armor} metalness={0.45} roughness={0.6} />
       </mesh>
       {/* chest status light */}
       <mesh position={[0, 0.3, 0.39]}>
@@ -232,14 +230,14 @@ export function Scavenger() {
       {[-0.62, 0.62].map((x) => (
         <mesh key={x} position={[x, -0.05, 0.12]} castShadow>
           <boxGeometry args={[0.26, 0.85, 0.28]} />
-          <meshStandardMaterial color={ARMOR} roughness={0.85} />
+          <meshStandardMaterial color={baseArmor} roughness={0.85} />
         </mesh>
       ))}
       {/* forearm exo bracers */}
       {[-0.62, 0.62].map((x) => (
         <mesh key={`br${x}`} position={[x, -0.28, 0.14]} castShadow>
           <boxGeometry args={[0.3, 0.3, 0.32]} />
-          <meshStandardMaterial color={EXO} metalness={0.45} roughness={0.55} />
+          <meshStandardMaterial color={armor} metalness={0.45} roughness={0.55} />
         </mesh>
       ))}
       {/* head + rebreather mask */}
@@ -261,17 +259,17 @@ export function Scavenger() {
       {/* hood */}
       <mesh position={[0, 1.0, -0.06]} castShadow>
         <sphereGeometry args={[0.38, 14, 12, 0, Math.PI * 2, 0, Math.PI / 1.7]} />
-        <meshStandardMaterial color={CLOTH} roughness={0.95} side={THREE.DoubleSide} />
+        <meshStandardMaterial color={cloth} roughness={0.95} side={THREE.DoubleSide} />
       </mesh>
       {/* helmet crown plate */}
       <mesh position={[0, 1.08, 0.02]} castShadow>
         <sphereGeometry args={[0.3, 14, 10, 0, Math.PI * 2, 0, Math.PI / 2.4]} />
-        <meshStandardMaterial color={EXO} metalness={0.45} roughness={0.55} />
+        <meshStandardMaterial color={armor} metalness={0.45} roughness={0.55} />
       </mesh>
       {/* visor glow */}
       <mesh position={[0, 0.98, 0.26]}>
         <boxGeometry args={[0.26, 0.07, 0.05]} />
-        <meshStandardMaterial color="#66e0ff" emissive="#66e0ff" emissiveIntensity={2.5} toneMapped={false} />
+        <meshStandardMaterial color={visor} emissive={visor} emissiveIntensity={2.5} toneMapped={false} />
       </mesh>
 
       <FieldPack />

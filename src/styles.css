@@ -145,3 +145,15 @@
     color: var(--color-foreground);
   }
 }
+
+@utility fracture-grid {
+  background-image:
+    linear-gradient(var(--border) 1px, transparent 1px),
+    linear-gradient(90deg, var(--border) 1px, transparent 1px);
+  background-size: 42px 42px;
+  mask-image: linear-gradient(to bottom, black, transparent 85%);
+}
+
+@utility fracture-scan {
+  background-image: repeating-linear-gradient(to bottom, transparent 0, transparent 5px, color-mix(in oklch, var(--primary) 8%, transparent) 6px);
+}
