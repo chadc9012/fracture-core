@@ -108,7 +108,7 @@ export function Inspector({ view }: { view: InspectorView }) {
         ))}
       </Section>
 
-      <Section title="PLAYER EVOLUTION">
+      <Section title="PLAYER LOADOUT">
         <Row label="identity" value={view.identity} />
         {view.mutations.length === 0 && <Row label="mutations" value="none" />}
         {view.mutations.map((m) => (

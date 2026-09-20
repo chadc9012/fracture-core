@@ -77,14 +77,13 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Lovable App" },
-      { name: "description", content: "Lovable Generated Project" },
-      { name: "author", content: "Lovable" },
-      { property: "og:title", content: "Lovable App" },
-      { property: "og:description", content: "Lovable Generated Project" },
+      { title: "WORLD FRACTURE" },
+      { name: "description", content: "WORLD FRACTURE is an open-world action game set across overlapping realities." },
+      { name: "author", content: "WORLD FRACTURE" },
+      { property: "og:title", content: "WORLD FRACTURE" },
+      { property: "og:description", content: "Enter an unstable world of faction warfare, adaptive combat, and armed vehicles." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
-      { name: "twitter:site", content: "@Lovable" },
     ],
     links: [
       {
