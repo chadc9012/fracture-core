@@ -19,9 +19,10 @@ import type { InspectorView } from "./Inspector";
 import { BRANCHES } from "@/game/evolution";
 import { TIER_RADII } from "@/game/lod";
 import { RARITY_COLOR, type Rarity } from "@/game/loot";
+import { appearanceById, type AppearanceId, type ClassId } from "@/game/loadout";
+import { vehicleById, type VehicleId } from "@/game/vehicles";
 
 import type { GameSettings } from "./SettingsWindow";
-import type { ClassId } from "./StartMenu";
 
 export type LootView = { name: string; rarity: Rarity; power: number; mods: string[]; color: string };
 
@@ -61,8 +62,12 @@ export type HudState = {
   loot: LootView[];
   view: "third" | "first";
   aimLocked: boolean;
-  /* adaptive evolution + dev inspector */
-  evo: EvoView;
+  playerClass: ClassId;
+  vehicleName: string;
+  vehicleDomain: string;
+  vehicleWeapon: string;
+  vehicleSeats: number;
+  /* dev inspector */
   inspector: InspectorView | null;
 };
 
@@ -128,13 +133,19 @@ export function Scene({
   onHud,
   settings = { aimAssist: true, firstPersonDefault: false, zoneLabels: true, hudDensity: "full" },
   playerClass = "VANGUARD",
+  appearanceId = "RANGER",
+  vehicleId = "scrap-interceptor",
 }: {
   onHud: (s: HudState) => void;
   settings?: GameSettings;
   playerClass?: ClassId;
+  appearanceId?: AppearanceId;
+  vehicleId?: VehicleId;
 }) {
   const keys = useKeyboard();
   const sim = useMemo<WorldSim>(() => createSim(), []);
+  const appearance = appearanceById(appearanceId);
+  const selectedVehicle = vehicleById(vehicleId);
   const player = useRef<THREE.Group>(null!);
   const vehicle = useRef<THREE.Group>(null!);
   const sun = useRef<THREE.DirectionalLight>(null!);
@@ -233,10 +244,8 @@ export function Scene({
           sync: latency > 120 ? "DEGRADED" : latency > 70 ? "SYNCING" : "STABLE",
         };
       }),
-      identity: sim.evo.identity,
-      mutations: BRANCHES.filter((b) => sim.evo.skills[b.id].form === "ELITE_MUTATION").map(
-        (b) => sim.evo.skills[b.id].name,
-      ),
+      identity: `${playerClass} · ${selectedVehicle.name}`,
+      mutations: [],
       missions: sim.director.missions
         .filter((m) => m.state === "ACTIVE")
         .slice(0, 3)
@@ -361,8 +370,8 @@ export function Scene({
     const traction = Math.max(0.18, biomeGrip * (1 - slope * 0.75) * (submerged ? 0.45 : 1));
 
     if (s.inVehicle) {
-      const maxSpeed = 62 * biomeGrip * (boost ? 1.5 : 1) * sim.mods.vehicleSpeed;
-      const accel = 52 * traction;
+      const maxSpeed = 62 * biomeGrip * (boost ? 1.5 : 1) * sim.mods.vehicleSpeed * selectedVehicle.speed;
+      const accel = 52 * traction * selectedVehicle.speed;
       if (throttleF) s.vSpeed += accel * dt;
       else if (throttleB) s.vSpeed -= accel * 0.8 * dt;
       else s.vSpeed *= Math.exp(-1.4 * dt);
@@ -370,7 +379,7 @@ export function Scene({
       s.vSpeed *= Math.exp(-(0.22 + slope * 1.6) * dt);
       s.vSpeed = THREE.MathUtils.clamp(s.vSpeed, -18, maxSpeed);
 
-      const steerRate = 1.5 * traction * THREE.MathUtils.clamp(Math.abs(s.vSpeed) / 14, 0.15, 1);
+      const steerRate = 1.5 * traction * selectedVehicle.handling * THREE.MathUtils.clamp(Math.abs(s.vSpeed) / 14, 0.15, 1);
       if (left) s.yaw += steerRate * dt * Math.sign(s.vSpeed || 1);
       if (right) s.yaw -= steerRate * dt * Math.sign(s.vSpeed || 1);
 
@@ -533,33 +542,18 @@ export function Scene({
         overheated: sim.overheated,
         view: s.firstPerson ? "first" : "third",
         aimLocked: s.aimLocked,
-        loot: sim.loot.map((it) => ({
+        playerClass,
+        vehicleName: selectedVehicle.name,
+        vehicleDomain: selectedVehicle.domain,
+        vehicleWeapon: selectedVehicle.weapon,
+        vehicleSeats: selectedVehicle.seats,
+        loot: (sim.loot ?? []).map((it) => ({
           name: it.name,
           rarity: it.rarity,
           power: it.power,
           mods: it.mods.map((m) => `${m.name} +${m.value}${m.effect === "Utility" ? "" : "%"}`),
           color: RARITY_COLOR[it.rarity],
         })),
-        evo: {
-          identity: sim.evo.identity,
-          cycle: sim.evo.cycle,
-          nextIn: sim.evo.timer,
-          playstyle: { ...sim.evo.playstyle },
-          skills: BRANCHES.map((b) => {
-            const n = sim.evo.skills[b.id];
-            return {
-              id: n.id,
-              name: n.name,
-              level: n.level,
-              xp: n.xp,
-              form: n.form,
-              driver: n.driver,
-              counterplay: n.counterplay,
-              fresh: n.mutatedAt < 6,
-            };
-          }),
-          log: sim.evo.log.map((l) => l.text),
-        },
         inspector: s.showInspector ? buildInspector() : null,
       });
     }
@@ -620,13 +614,13 @@ export function Scene({
 
       {/* player on foot */}
       <group ref={player} position={SPAWN.toArray()}>
-        <Scavenger />
+        <Scavenger armor={appearance.armor} cloth={appearance.cloth} visor={appearance.visor} />
       </group>
 
 
       {/* drivable wasteland raider — armour plate, ram spikes, roof gun */}
       <group ref={vehicle}>
-        <Car body="suv" scale={2.4} speedRef={carSpeed} steerRef={carSteer} />
+        <Car body={selectedVehicle.model} scale={selectedVehicle.modelScale} speedRef={carSpeed} steerRef={carSteer} />
         {/* front ram spikes */}
         {[-1.1, -0.55, 0, 0.55, 1.1].map((x) => (
           <mesh key={x} position={[x, 0.8, 3.5]} rotation={[Math.PI / 2, 0, 0]} castShadow>

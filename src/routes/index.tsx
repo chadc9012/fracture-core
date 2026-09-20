@@ -6,17 +6,17 @@ export const Route = createFileRoute("/")({
   ssr: false,
   head: () => ({
     meta: [
-      { title: "Fractured Earth — Playable World Map" },
+      { title: "WORLD FRACTURE — Open World Action Game" },
       {
         name: "description",
         content:
-          "Walk the Fractured Earth: safe hubs, the central war belt, fracture zones and the northern core, with a live day/night cycle.",
+          "Enter WORLD FRACTURE, choose a Resonant class and vehicle, and fight across an unstable open world.",
       },
-      { property: "og:title", content: "Fractured Earth — Playable World Map" },
+      { property: "og:title", content: "WORLD FRACTURE — Open World Action Game" },
       {
         property: "og:description",
         content:
-          "Explore seven regions with their own movement, hazard and risk rules across a living day/night cycle.",
+          "Choose your class, customize your operator, deploy a combat vehicle, and shape a fractured living world.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },

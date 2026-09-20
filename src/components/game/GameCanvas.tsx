@@ -2,12 +2,15 @@ import { Canvas } from "@react-three/fiber";
 import * as THREE from "three";
 import { Suspense, useState } from "react";
 
+import type { AppearanceId, ClassId } from "@/game/loadout";
 import { REGIONS } from "@/game/world";
 import { walkHeight } from "@/game/terrain";
+import type { VehicleId } from "@/game/vehicles";
 import { HUD } from "./HUD";
 import { Scene, type HudState } from "./Scene";
-import { StartMenu, type ClassId } from "./StartMenu";
+import { StartMenu, type Deployment } from "./StartMenu";
 import { SettingsWindow, DEFAULT_SETTINGS, type GameSettings } from "./SettingsWindow";
+import { TitleScreen } from "./TitleScreen";
 
 const START = REGIONS.find((r) => r.id === "nexus")!;
 
@@ -39,20 +42,17 @@ const initial: HudState = {
   coreHp: 100,
   trend: "reading the world",
   missions: [],
-  evo: {
-    identity: "Unproven Survivor",
-    cycle: 0,
-    nextIn: 24,
-    playstyle: { combat: 0.2, logistics: 0.2, vehicles: 0.2, stealth: 0.2, support: 0.2 },
-    skills: [],
-    log: [],
-  },
   inspector: null,
   weaponHeat: 0,
   overheated: false,
   loot: [],
   view: "third",
   aimLocked: false,
+  playerClass: "VANGUARD",
+  vehicleName: "Scrap-Built Interceptor",
+  vehicleDomain: "LAND",
+  vehicleWeapon: "Ram bar + roof repeater",
+  vehicleSeats: 2,
   ownership: REGIONS.map((r) => ({
     id: r.id,
     name: r.name,
@@ -62,14 +62,18 @@ const initial: HudState = {
 
 export function GameCanvas() {
   const [hud, setHud] = useState<HudState>(initial);
-  const [phase, setPhase] = useState<"orbit" | "world">("orbit");
+  const [phase, setPhase] = useState<"title" | "loadout" | "world">("title");
   const [menuOpen, setMenuOpen] = useState(false);
   const [settings, setSettings] = useState<GameSettings>(DEFAULT_SETTINGS);
   const [cls, setCls] = useState<ClassId>("VANGUARD");
+  const [appearance, setAppearance] = useState<AppearanceId>("RANGER");
+  const [vehicleId, setVehicleId] = useState<VehicleId>("scrap-interceptor");
   const [last, setLast] = useState<{ credits: number; kills: number } | null>(null);
 
-  const deploy = (picked: ClassId) => {
-    setCls(picked);
+  const deploy = (deployment: Deployment) => {
+    setCls(deployment.classId);
+    setAppearance(deployment.appearanceId);
+    setVehicleId(deployment.vehicleId);
     setMenuOpen(false);
     setPhase("world");
   };
@@ -77,10 +81,27 @@ export function GameCanvas() {
   const toOrbit = () => {
     setLast({ credits: hud.credits, kills: hud.kills });
     setMenuOpen(false);
-    setPhase("orbit");
+    setPhase("title");
   };
 
-  if (phase === "orbit") {
+  if (phase === "title") {
+    return (
+      <>
+        {!menuOpen && (
+          <TitleScreen
+            canContinue={last !== null}
+            onContinue={() => setPhase(last ? "world" : "loadout")}
+            onNewGame={() => setPhase("loadout")}
+            onLoadout={() => setPhase("loadout")}
+            onSettings={() => setMenuOpen(true)}
+          />
+        )}
+        {menuOpen && <SettingsWindow settings={settings} onChange={setSettings} onClose={() => setMenuOpen(false)} onOrbit={() => setMenuOpen(false)} />}
+      </>
+    );
+  }
+
+  if (phase === "loadout") {
     return (
       <>
         {!menuOpen && <StartMenu onDeploy={deploy} onSettings={() => setMenuOpen(true)} best={last} />}
@@ -110,7 +131,7 @@ export function GameCanvas() {
       >
         <color attach="background" args={["#bfe4f2"]} />
         <Suspense fallback={null}>
-          <Scene onHud={setHud} settings={settings} playerClass={cls} />
+          <Scene onHud={setHud} settings={settings} playerClass={cls} appearanceId={appearance} vehicleId={vehicleId} />
         </Suspense>
 
       </Canvas>

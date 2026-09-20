@@ -1,7 +1,6 @@
 import { FACTIONS } from "@/game/sim";
 import { ZONE_COLOR, ZONE_LABEL } from "@/game/world";
 import type { HudState } from "./Scene";
-import { EvolutionPanel } from "./EvolutionPanel";
 import { Inspector } from "./Inspector";
 
 export function HUD({ hud, onMenu }: { hud: HudState; onMenu: () => void }) {
@@ -128,9 +127,6 @@ export function HUD({ hud, onMenu }: { hud: HudState; onMenu: () => void }) {
 
 
 
-      {/* adaptive build evolution */}
-      <EvolutionPanel evo={hud.evo} />
-
       {/* dev engine inspector */}
       {hud.inspector && <Inspector view={hud.inspector} />}
 
@@ -187,9 +183,9 @@ export function HUD({ hud, onMenu }: { hud: HudState; onMenu: () => void }) {
       </div>
 
       {/* generated loot feed */}
-      {hud.loot.length > 0 && (
+      {(hud.loot?.length ?? 0) > 0 && (
         <div className="absolute right-4 top-1/2 w-64 -translate-y-1/2 space-y-2">
-          {hud.loot.map((it, i) => (
+          {(hud.loot ?? []).map((it, i) => (
             <div
               key={`${it.name}-${i}`}
               className="rounded-lg border bg-card/80 px-3 py-2 backdrop-blur-md"
@@ -230,6 +226,7 @@ export function HUD({ hud, onMenu }: { hud: HudState; onMenu: () => void }) {
 
       {/* bottom right: status */}
       <div className="absolute bottom-4 right-4 w-52 rounded-lg border border-border/60 bg-card/70 px-4 py-3 text-right backdrop-blur-md">
+        <p className="mb-2 text-left font-mono text-[9px] uppercase tracking-[0.18em] text-primary">{hud.vehicleName}</p>
         <div className="flex items-baseline justify-between">
           <span className="text-[10px] tracking-[0.3em] text-muted-foreground">
             {hud.mode === "vehicle" ? "KM/H" : "SPEED"}
@@ -255,7 +252,12 @@ export function HUD({ hud, onMenu }: { hud: HudState; onMenu: () => void }) {
           <span>{hud.elevation}m</span>
           <span className="text-left">TRACTION</span>
           <span>{Math.round(hud.traction * 100)}%</span>
+          <span className="text-left">FRAME</span>
+          <span>{hud.vehicleDomain}</span>
+          <span className="text-left">CREW</span>
+          <span>{hud.vehicleSeats}</span>
         </div>
+        <p className="mt-2 text-left text-[9px] text-muted-foreground">{hud.vehicleWeapon}</p>
       </div>
     </div>
   );
