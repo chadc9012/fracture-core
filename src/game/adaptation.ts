@@ -1,5 +1,5 @@
 /* ------------------------------------------------------------------
- * EVOLUTIONARY BUILD SYSTEM (adaptive skills)
+ * ADAPTIVE BUILD SYSTEM
  *
  * The player never picks a build. Every meaningful action feeds a
  * behaviour vector; the vector is normalised into a playstyle profile;
@@ -85,15 +85,15 @@ export type SkillNode = {
   mutatedAt: number;
 };
 
-export type Evolution = {
-  /** rolling behaviour window — reset every evolution cycle */
+export type Adaptation = {
+  /** rolling behaviour window — reset every adaptation cycle */
   window: Record<BehaviorKey, number>;
   /** lifetime totals, used for the identity title */
   lifetime: Record<BehaviorKey, number>;
   /** last normalised playstyle profile */
   playstyle: Record<BehaviorKey, number>;
   skills: Record<BranchId, SkillNode>;
-  /** seconds until the next evolution pass */
+  /** seconds until the next adaptation pass */
   timer: number;
   cycle: number;
   identity: string;
@@ -110,7 +110,7 @@ const zeroVector = (): Record<BehaviorKey, number> => ({
   support: 0,
 });
 
-export function createEvolution(): Evolution {
+export function createAdaptation(): Adaptation {
   const skills = {} as Record<BranchId, SkillNode>;
   for (const b of BRANCHES) {
     skills[b.id] = {
@@ -130,7 +130,7 @@ export function createEvolution(): Evolution {
     lifetime: zeroVector(),
     playstyle: { combat: 0.2, logistics: 0.2, vehicles: 0.2, stealth: 0.2, support: 0.2 },
     skills,
-    timer: EVOLUTION_INTERVAL,
+    timer: ADAPTATION_INTERVAL,
     cycle: 0,
     identity: "Unproven Survivor",
     log: [],
@@ -139,13 +139,13 @@ export function createEvolution(): Evolution {
 }
 
 /** how often the adaptive loop re-reads behaviour, in seconds */
-export const EVOLUTION_INTERVAL = 24;
+export const ADAPTATION_INTERVAL = 24;
 
 /* ---------------- 1. behaviour tracking ---------------- */
 
-export function logBehavior(evo: Evolution, key: BehaviorKey, value = 1) {
-  evo.window[key] += value;
-  evo.lifetime[key] += value;
+export function logBehavior(adaptation: Adaptation, key: BehaviorKey, value = 1) {
+  adaptation.window[key] += value;
+  adaptation.lifetime[key] += value;
 }
 
 /* ---------------- 2. profile generation ---------------- */
@@ -162,20 +162,20 @@ export function dominantBehavior(playstyle: Record<BehaviorKey, number>): Behavi
   return BEHAVIOR_KEYS.reduce((best, k) => (playstyle[k] > playstyle[best] ? k : best), "combat");
 }
 
-/* ---------------- 3 + 4. evolution & mutation ---------------- */
+/* ---------------- 3 + 4. adaptation & mutation ---------------- */
 
-function pushLog(evo: Evolution, text: string) {
-  evo.log.unshift({ text, life: 8 });
-  if (evo.log.length > 4) evo.log.pop();
+function pushLog(adaptation: Adaptation, text: string) {
+  adaptation.log.unshift({ text, life: 8 });
+  if (adaptation.log.length > 4) adaptation.log.pop();
 }
 
-function evolveNode(evo: Evolution, node: SkillNode, amount: number) {
+function adaptNode(adaptation: Adaptation, node: SkillNode, amount: number) {
   const def = BRANCHES.find((b) => b.id === node.id)!;
   node.xp += amount * node.growth;
   while (node.xp >= 1) {
     node.xp -= 1;
     node.level++;
-    balanceEvolution(node);
+    balanceAdaptation(node);
 
     const nextForm: SkillForm = node.level >= 5 ? "ELITE_MUTATION" : node.level >= 3 ? "SPECIALIZED" : "BASE";
     if (nextForm !== node.form) {
@@ -184,12 +184,12 @@ function evolveNode(evo: Evolution, node: SkillNode, amount: number) {
       node.mutatedAt = 0;
       if (nextForm === "ELITE_MUTATION") {
         node.counterplay = COUNTERPLAY[node.id];
-        pushLog(evo, `MUTATION — ${def.forms[2]} (${node.counterplay})`);
+        pushLog(adaptation, `MUTATION — ${def.forms[2]} (${node.counterplay})`);
       } else {
-        pushLog(evo, `${def.forms[1]} emerged from how you fight`);
+        pushLog(adaptation, `${def.forms[1]} emerged from how you fight`);
       }
     } else {
-      pushLog(evo, `${node.name} deepened to L${node.level}`);
+      pushLog(adaptation, `${node.name} deepened to L${node.level}`);
     }
   }
 }
@@ -204,58 +204,58 @@ const COUNTERPLAY: Record<BranchId, string> = {
 
 /* ---------------- 9. balance control ---------------- */
 
-export function balanceEvolution(node: SkillNode) {
+export function balanceAdaptation(node: SkillNode) {
   if (node.level > 10) node.growth = Math.max(0.15, node.growth * 0.82);
 }
 
 /* ---------------- 6. adaptive feedback loop ---------------- */
 
-export function stepEvolution(evo: Evolution, dt: number) {
-  for (const l of evo.log) l.life -= dt;
-  while (evo.log.length && evo.log[evo.log.length - 1]!.life <= 0) evo.log.pop();
-  for (const id of Object.keys(evo.skills) as BranchId[]) evo.skills[id].mutatedAt += dt;
+export function stepAdaptation(adaptation: Adaptation, dt: number) {
+  for (const l of adaptation.log) l.life -= dt;
+  while (adaptation.log.length && adaptation.log[adaptation.log.length - 1]!.life <= 0) adaptation.log.pop();
+  for (const id of Object.keys(adaptation.skills) as BranchId[]) adaptation.skills[id].mutatedAt += dt;
 
-  evo.timer -= dt;
-  if (evo.timer > 0) return;
-  evo.timer = EVOLUTION_INTERVAL;
+  adaptation.timer -= dt;
+  if (adaptation.timer > 0) return;
+  adaptation.timer = ADAPTATION_INTERVAL;
 
-  const activity = BEHAVIOR_KEYS.reduce((a, k) => a + evo.window[k], 0);
+  const activity = BEHAVIOR_KEYS.reduce((a, k) => a + adaptation.window[k], 0);
   if (activity < 3) return; // idle session: nothing to learn from
 
-  evo.cycle++;
-  const playstyle = getPlaystyle(evo.window);
-  evo.playstyle = playstyle;
+  adaptation.cycle++;
+  const playstyle = getPlaystyle(adaptation.window);
+  adaptation.playstyle = playstyle;
 
   for (const def of BRANCHES) {
     const share = playstyle[def.driver];
     if (share < def.threshold) continue;
-    // stronger dominance evolves faster, capped so nothing runs away
+    // stronger dominance adapts faster, capped so nothing runs away
     const amount = Math.min(1.4, 0.45 + (share - def.threshold) * 2.2);
-    evolveNode(evo, evo.skills[def.id], amount);
+    adaptNode(adaptation, adaptation.skills[def.id], amount);
   }
 
-  evo.identity = identityOf(evo);
-  applyWorldInfluence(evo);
-  evo.window = zeroVector(); // reset the behaviour window
+  adaptation.identity = identityOf(adaptation);
+  applyWorldInfluence(adaptation);
+  adaptation.window = zeroVector(); // reset the behaviour window
 }
 
 /* ---------------- 8. emergent build identity ---------------- */
 
-export function identityOf(evo: Evolution): string {
-  const lifetime = getPlaystyle(evo.lifetime);
+export function identityOf(adaptation: Adaptation): string {
+  const lifetime = getPlaystyle(adaptation.lifetime);
   const ranked = [...BRANCHES].sort((a, b) => lifetime[b.driver] - lifetime[a.driver]);
-  const top = evo.skills[ranked[0]!.id];
-  const second = evo.skills[ranked[1]!.id];
+  const top = adaptation.skills[ranked[0]!.id];
+  const second = adaptation.skills[ranked[1]!.id];
   if (top.level === 0) return "Unproven Survivor";
   if (second.level >= 3) return `${top.name} / ${second.name}`;
   return top.name;
 }
 
-/* ---------------- 7. world impact of evolution ---------------- */
+/* ---------------- 7. world impact of adaptation ---------------- */
 
-export function applyWorldInfluence(evo: Evolution) {
-  const s = evo.skills;
-  const inf = evo.influence;
+export function applyWorldInfluence(adaptation: Adaptation) {
+  const s = adaptation.skills;
+  const inf = adaptation.influence;
   inf.logisticsEfficiency = 1 + (s.LOGISTICS_BRANCH.form === "ELITE_MUTATION" ? 0.2 : 0) + s.LOGISTICS_BRANCH.level * 0.02;
   inf.aiAggression =
     1 + (s.COMBAT_BRANCH.form === "ELITE_MUTATION" ? 0.3 : 0) + s.COMBAT_BRANCH.level * 0.025 -
@@ -264,13 +264,13 @@ export function applyWorldInfluence(evo: Evolution) {
   inf.convoyDiscipline = 1 + s.SUPPORT_BRANCH.level * 0.05;
 }
 
-export function hasSkill(evo: Evolution, id: BranchId, minLevel = 1) {
-  return evo.skills[id].level >= minLevel;
+export function hasSkill(adaptation: Adaptation, id: BranchId, minLevel = 1) {
+  return adaptation.skills[id].level >= minLevel;
 }
 
 /* ---------------- derived gameplay modifiers ---------------- */
 
-export type EvolutionMods = {
+export type AdaptationMods = {
   bulletDamage: number;
   fireRate: number;
   cargoValue: number;
@@ -282,8 +282,8 @@ export type EvolutionMods = {
   vehicleSpeed: number;
 };
 
-export function evolutionMods(evo: Evolution): EvolutionMods {
-  const s = evo.skills;
+export function adaptationMods(adaptation: Adaptation): AdaptationMods {
+  const s = adaptation.skills;
   const elite = (id: BranchId) => (s[id].form === "ELITE_MUTATION" ? 1 : 0);
   return {
     bulletDamage: 1 + s.COMBAT_BRANCH.level * 0.12 + elite("COMBAT_BRANCH") * 0.4 - elite("SUPPORT_BRANCH") * 0.15,
