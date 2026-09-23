@@ -16,12 +16,12 @@ Add the supplied land, air, water, and enemy vehicles to WORLD FRACTURE’s game
 - Dark military sci-fi interface with narrow panels, technical dividers, restrained cyan/amber status colors, tall selection cards, and a large active choice.
 - Character configuration uses armor finish, visor glow, and field marking presets that visibly recolor the existing Resonant model.
 - References guide hierarchy and atmosphere only; their image files will not ship in the game.
-- Remove all EVOLIO and EVO names from the interface, story, code-facing labels, and metadata; WORLD FRACTURE becomes the sole game identity.
+- WORLD FRACTURE is the sole game identity across interface, story, code-facing labels, and metadata.
 
 ## Technical details
 - New typed roster module under the game layer; existing simulation remains pure TypeScript.
 - Startup selections flow through `GameCanvas` into `Scene`, vehicle rendering, collisions, movement tuning, avatar materials, and `HudState`.
-- Existing adaptive evolution bonuses remain multiplicative with vehicle base stats.
+- Existing adaptive build bonuses remain multiplicative with vehicle base stats.
 - No unsupported Unreal/RAGE/Tiger runtime integration; the browser-compatible Three.js game remains the engine.
 
 ## Verification

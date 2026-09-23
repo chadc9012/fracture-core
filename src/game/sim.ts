@@ -3,14 +3,14 @@ import { heightAt, smoothstep, walkHeight } from "./terrain";
 import { LANES, laneLanePoint, laneSamples, type Lane } from "./lanes";
 import { collideBody } from "./obstacles";
 import {
-  createEvolution,
+  createAdaptation,
   dominantBehavior,
-  evolutionMods,
+  adaptationMods,
   logBehavior,
-  stepEvolution,
-  type Evolution,
-  type EvolutionMods,
-} from "./evolution";
+  stepAdaptation,
+  type Adaptation,
+  type AdaptationMods,
+} from "./adaptation";
 import {
   beginStats,
   countEntity,
@@ -41,9 +41,9 @@ import {
 export type Faction = "vanguard" | "syndicate" | "overseer";
 
 export const FACTIONS: Record<Faction, { name: string; short: string; color: string }> = {
-  vanguard: { name: "Vanguard (you)", short: "VGD", color: "#66e0ff" },
-  syndicate: { name: "Iron Syndicate", short: "SYN", color: "#ff4d4d" },
-  overseer: { name: "The Overseer", short: "OVR", color: "#c86bff" },
+  vanguard: { name: "Resonants (you)", short: "RSN", color: "#66e0ff" },
+  syndicate: { name: "Breakers", short: "BRK", color: "#ff4d4d" },
+  overseer: { name: "Controllers", short: "CTL", color: "#c86bff" },
 };
 
 export type ZoneState = {
@@ -139,10 +139,10 @@ export type WorldSim = {
   impactCool: number;
   /** rolling combat activity used for pacing */
   combatHeat: number;
-  /** adaptive skill evolution driven by observed behaviour */
-  evo: Evolution;
-  /** derived gameplay modifiers from the evolved build */
-  mods: EvolutionMods;
+  /** adaptive skill profile driven by observed behaviour */
+  adaptation: Adaptation;
+  /** derived gameplay modifiers from the adaptive build */
+  mods: AdaptationMods;
   /** simulation optimisation telemetry */
   stats: SimStats;
   /** weapon heat 0..100 — sustained fire overheats the gun */
@@ -166,7 +166,7 @@ function dropLoot(sim: WorldSim, zone: ZoneState | undefined, enemyType: string)
     difficulty: zone?.region.difficulty ?? 3,
     isRaid: (zone?.region.kind ?? "war") === "core",
     corruption: Math.round((zone?.instability ?? 0.2) * 100),
-    playstyle: dominantBehavior(sim.evo.playstyle),
+    playstyle: dominantBehavior(sim.adaptation.playstyle),
   };
   const item = generateLoot(ctx);
   sim.loot.unshift(item);
@@ -259,7 +259,7 @@ export function createSim(): WorldSim {
     life: 0,
   }));
 
-  const evo = createEvolution();
+  const adaptation = createAdaptation();
 
   return {
     zones,
@@ -279,8 +279,8 @@ export function createSim(): WorldSim {
     director: createDirector(),
     impactCool: 0,
     combatHeat: 0,
-    evo,
-    mods: evolutionMods(evo),
+    adaptation,
+    mods: adaptationMods(adaptation),
     stats: createStats(),
     weaponHeat: 0,
     overheated: false,
@@ -339,7 +339,7 @@ export function fireBullet(
   b.vx = Math.sin(yaw) * 130;
   b.vz = Math.cos(yaw) * 130;
   b.life = 1.4;
-  logBehavior(sim.evo, "combat", 0.35);
+  logBehavior(sim.adaptation, "combat", 0.35);
   return true;
 }
 
@@ -394,7 +394,7 @@ export function collidePlayer(sim: WorldSim, body: PlayerBody) {
     if (force > 30 && sim.impactCool <= 0) {
       sim.impactCool = 0.6;
       m.hp -= Math.round((force / 30) * sim.mods.ramDamage);
-      logBehavior(sim.evo, body.inVehicle ? "vehicles" : "combat", 2);
+      logBehavior(sim.adaptation, body.inVehicle ? "vehicles" : "combat", 2);
       body.vSpeed *= 0.4;
       sim.combatHeat += 4;
       if (m.hp <= 0) {
@@ -429,12 +429,12 @@ export function collidePlayer(sim: WorldSim, body: PlayerBody) {
       tr.hp -= Math.max(1, Math.round(sim.mods.ramDamage));
       body.vSpeed *= 0.3;
       hurtPlayer(sim, (force * 0.1) / sim.mods.hullDurability, "convoy ram");
-      logBehavior(sim.evo, "vehicles", 2);
+      logBehavior(sim.adaptation, "vehicles", 2);
       sim.combatHeat += 4;
       if (tr.hp <= 0) {
         tr.alive = false;
         sim.cargo += tr.cargo;
-        logBehavior(sim.evo, "logistics", tr.cargo * 2);
+        logBehavior(sim.adaptation, "logistics", tr.cargo * 2);
         directorEvent(sim.director, { type: "CARGO", amount: tr.cargo });
         alert(sim, `Convoy rammed — ${tr.cargo} crate${tr.cargo > 1 ? "s" : ""} seized`);
       }
@@ -458,16 +458,16 @@ export function stepSim(sim: WorldSim, input: SimInput) {
   const t0 = performance.now();
   beginStats(sim.stats);
 
-  // ---------- adaptive evolution loop ----------
+  // ---------- adaptive build loop ----------
   // passive behaviour: time spent driving, sneaking past hostiles, holding the line
-  if (input.inVehicle) logBehavior(sim.evo, "vehicles", dt * 0.6);
+  if (input.inVehicle) logBehavior(sim.adaptation, "vehicles", dt * 0.6);
   let escorting = 0;
   for (const tr of sim.trucks) {
     if (tr.alive && Math.hypot(px - tr.x, pz - tr.z) < 40) escorting++;
   }
-  if (escorting > 0) logBehavior(sim.evo, "support", dt * 0.5 * escorting);
-  stepEvolution(sim.evo, dt);
-  sim.mods = evolutionMods(sim.evo);
+  if (escorting > 0) logBehavior(sim.adaptation, "support", dt * 0.5 * escorting);
+  stepAdaptation(sim.adaptation, dt);
+  sim.mods = adaptationMods(sim.adaptation);
   if (sim.mods.regen > 0 && sim.hp < 100) sim.hp = Math.min(100, sim.hp + sim.mods.regen * dt);
 
   // ---------- alerts ----------
@@ -581,7 +581,7 @@ export function stepSim(sim: WorldSim, input: SimInput) {
     const dz = pz - m.z;
     const d = Math.hypot(dx, dz) || 1;
     const aggro =
-      (70 + night * 60) * (m.elite ? 1.6 : 1) * sim.mods.aggroRadius * sim.evo.influence.aiAggression;
+      (70 + night * 60) * (m.elite ? 1.6 : 1) * sim.mods.aggroRadius * sim.adaptation.influence.aiAggression;
     const speed = (10 + night * 6) * (m.elite ? 1.15 : 1);
     if (d < 120) hostileNear++;
 
@@ -643,7 +643,7 @@ export function stepSim(sim: WorldSim, input: SimInput) {
 
 // stealth: surviving close to hostiles without opening fire
   if (!input.inVehicle && hostileNear > 0 && sim.combatHeat < 2) {
-    logBehavior(sim.evo, "stealth", dt * 0.8 * hostileNear);
+    logBehavior(sim.adaptation, "stealth", dt * 0.8 * hostileNear);
   }
 
   // ---------- safe-zone stability field ----------
@@ -719,7 +719,7 @@ export function stepSim(sim: WorldSim, input: SimInput) {
     if (convoyTier >= 2) {
       if (!convoyTick) continue;
       const sdt = tierDt(convoyTier, dt);
-      tr.speed = 0.035 * sim.evo.influence.logisticsEfficiency;
+      tr.speed = 0.035 * sim.adaptation.influence.logisticsEfficiency;
       tr.wait = Math.max(0, tr.wait - sdt);
       if (tr.wait <= 0) tr.t += sdt * tr.speed * tr.dir;
       if (tr.t > 0.9) {
@@ -777,7 +777,7 @@ export function stepSim(sim: WorldSim, input: SimInput) {
     }
 
     // ease toward the target lane speed so trucks brake smoothly
-    const target = 0.035 * headway * sim.evo.influence.logisticsEfficiency;
+    const target = 0.035 * headway * sim.adaptation.influence.logisticsEfficiency;
     tr.speed += (target - tr.speed) * (1 - Math.exp(-3 * dt));
 
     const side = tr.dir > 0 ? 3.2 : -3.2;
@@ -862,7 +862,7 @@ export function stepSim(sim: WorldSim, input: SimInput) {
       if (Math.hypot(m.x - b.x, m.z - b.z) < 3.4 * m.scale) {
         b.alive = false;
         m.hp -= sim.mods.bulletDamage;
-        logBehavior(sim.evo, "combat", 1);
+        logBehavior(sim.adaptation, "combat", 1);
         // knockback impulse from the hit direction
         m.kx += b.vx * 0.06;
         m.kz += b.vz * 0.06;
@@ -884,11 +884,11 @@ export function stepSim(sim: WorldSim, input: SimInput) {
       if (Math.hypot(tr.x - b.x, tr.z - b.z) < 3.6) {
         b.alive = false;
         tr.hp -= sim.mods.bulletDamage;
-        logBehavior(sim.evo, "combat", 1);
+        logBehavior(sim.adaptation, "combat", 1);
         if (tr.hp <= 0) {
           tr.alive = false;
           sim.cargo += tr.cargo;
-          logBehavior(sim.evo, "logistics", tr.cargo * 2);
+          logBehavior(sim.adaptation, "logistics", tr.cargo * 2);
           directorEvent(sim.director, { type: "CARGO", amount: tr.cargo });
           alert(sim, `Convoy ambushed — ${tr.cargo} crate${tr.cargo > 1 ? "s" : ""} seized`);
           dropLoot(sim, sim.zones.find((z) => Math.hypot(tr.x - z.region.x, tr.z - z.region.z) < z.region.radius), "CONVOY");
@@ -904,10 +904,10 @@ export function stepSim(sim: WorldSim, input: SimInput) {
   // ---------- extraction ----------
   const nexus = byId("nexus");
   if (sim.cargo > 0 && Math.hypot(px - nexus.x, pz - nexus.z) < nexus.radius * 0.55) {
-    const paid = Math.round(sim.cargo * 120 * sim.mods.cargoValue * sim.evo.influence.logisticsEfficiency);
+    const paid = Math.round(sim.cargo * 120 * sim.mods.cargoValue * sim.adaptation.influence.logisticsEfficiency);
     sim.credits += paid;
     sim.extractions += sim.cargo;
-    logBehavior(sim.evo, "logistics", sim.cargo * 3);
+    logBehavior(sim.adaptation, "logistics", sim.cargo * 3);
     sim.cargo = 0;
     sim.hp = Math.min(100, sim.hp + 35);
     alert(sim, `Extraction complete  +${paid} cr`);
