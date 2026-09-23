@@ -19,6 +19,7 @@ export type VehicleId =
 export type VehicleRarity = "COMMON" | "RARE" | "EPIC" | "LEGENDARY" | "EXOTIC" | "BOSS";
 export type VehicleDomain = "LAND" | "AIR" | "WATER" | "AMPHIBIOUS" | "SPACE";
 export type VehicleAllegiance = "RESONANT" | "TECH" | "RAIDER" | "FRACTURE";
+export type VehicleAcquisition = "FIRST_MISSION" | "STORE" | "PARTS" | "FACTION" | "BOSS";
 
 export type VehicleDefinition = {
   id: VehicleId;
@@ -40,6 +41,7 @@ export type VehicleDefinition = {
   model: ModelKey;
   modelScale: number;
   starter: boolean;
+  acquisition?: VehicleAcquisition;
 };
 
 export const VEHICLES: readonly VehicleDefinition[] = [
@@ -144,6 +146,14 @@ export const VEHICLES: readonly VehicleDefinition[] = [
 ] as const;
 
 export const STARTER_VEHICLES = VEHICLES.filter((vehicle) => vehicle.starter);
+
+export function vehicleAcquisition(vehicle: VehicleDefinition): VehicleAcquisition {
+  if (vehicle.starter) return "FIRST_MISSION";
+  if (vehicle.rarity === "BOSS") return "BOSS";
+  if (vehicle.allegiance === "TECH" || vehicle.allegiance === "RAIDER") return "FACTION";
+  if (vehicle.rarity === "COMMON" || vehicle.rarity === "RARE") return "PARTS";
+  return "STORE";
+}
 
 export function vehicleById(id: VehicleId): VehicleDefinition {
   const found = VEHICLES.find((vehicle) => vehicle.id === id);
