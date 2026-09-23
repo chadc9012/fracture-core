@@ -146,5 +146,7 @@ export const VEHICLES: readonly VehicleDefinition[] = [
 export const STARTER_VEHICLES = VEHICLES.filter((vehicle) => vehicle.starter);
 
 export function vehicleById(id: VehicleId): VehicleDefinition {
-  return VEHICLES.find((vehicle) => vehicle.id === id) ?? VEHICLES[0];
+  const found = VEHICLES.find((vehicle) => vehicle.id === id);
+  if (found) return found;
+  return { ...VEHICLES[0] } as VehicleDefinition;
 }

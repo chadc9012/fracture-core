@@ -65,11 +65,13 @@ export function TitleScreen({
 
   return (
     <div className="fixed inset-0 overflow-hidden bg-background">
-      <Canvas className="absolute inset-0" dpr={[1, 1.4]} camera={{ position: [0, 0, 15], fov: 48 }}>
-        <FractureField />
-      </Canvas>
+      <div className="absolute inset-0">
+        <Canvas dpr={[1, 1.4]} camera={{ position: [0, 0, 15], fov: 48 }}>
+          <FractureField />
+        </Canvas>
+      </div>
       <div className="pointer-events-none absolute inset-0 title-vignette" />
-      <main className="pointer-events-none relative z-10 flex min-h-full flex-col justify-between px-6 py-7 sm:px-12 sm:py-10">
+      <main className="pointer-events-none relative z-10 flex h-full flex-col justify-between overflow-y-auto px-6 py-7 sm:px-12 sm:py-10">
         <header>
           <p className="font-mono text-[9px] uppercase tracking-[0.42em] text-primary">Signal recovered · Nexus orbit</p>
           <div className="mt-4 h-px w-24 bg-primary/70" />

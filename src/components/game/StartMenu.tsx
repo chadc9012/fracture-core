@@ -58,7 +58,7 @@ export function StartMenu({
   const [vehicleId, setVehicleId] = useState<VehicleId>("scrap-interceptor");
   const [stage, setStage] = useState<Stage>("CLASS");
   const stageIndex = STAGES.indexOf(stage);
-  const selectedClass = CLASSES.find((item) => item.id === classId) ?? CLASSES[0];
+  const selectedClass = CLASSES.find((item) => item.id === classId);
   const appearance = appearanceById(appearanceId);
   const vehicle = vehicleById(vehicleId);
 
@@ -109,7 +109,7 @@ export function StartMenu({
                   </button>
                 ))}
               </div>
-              <p className="mt-4 border-l-2 border-primary pl-3 text-xs text-muted-foreground">Selected: <span className="text-foreground">{selectedClass.name}</span></p>
+              <p className="mt-4 border-l-2 border-primary pl-3 text-xs text-muted-foreground">Selected: <span className="text-foreground">{selectedClass?.name ?? "Vanguard"}</span></p>
             </section>
           )}
 
