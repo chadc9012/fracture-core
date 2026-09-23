@@ -75,8 +75,8 @@ export type HudState = {
   inspector: InspectorView | null;
 };
 
-const SPAWN_REGION = REGIONS.find((r) => r.id === "veridan") ?? REGIONS[0];
-export const SPAWN = new THREE.Vector3(SPAWN_REGION.x, 0, SPAWN_REGION.z + 12);
+const SPAWN_REGION = REGIONS.find((r) => r.id === "veridan");
+export const SPAWN = new THREE.Vector3(SPAWN_REGION?.x ?? -58, 0, (SPAWN_REGION?.z ?? -34) + 12);
 
 const stops: { t: number; key: keyof typeof SKY }[] = [
   { t: 0, key: "Dawn" },

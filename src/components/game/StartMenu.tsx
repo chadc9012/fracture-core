@@ -1,7 +1,7 @@
 import { ChevronLeft, ChevronRight, Settings, Shield } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { APPEARANCES, CLASSES, DEFAULT_SUBCLASS, SUBCLASSES, appearanceById, type AppearanceId, type ClassId, type SubclassId } from "@/game/loadout";
+import { APPEARANCES, CLASSES, DEFAULT_SUBCLASS, SUBCLASSES, appearanceById, classById, type AppearanceId, type ClassId, type SubclassId } from "@/game/loadout";
 import { OperatorPreview } from "./OperatorPreview";
 
 export type { ClassId } from "@/game/loadout";
@@ -15,7 +15,7 @@ export function StartMenu({ onDeploy, onSettings, best }: { onDeploy: (deploymen
   const [appearanceId, setAppearanceId] = useState<AppearanceId>("RANGER");
   const [stage, setStage] = useState<Stage>("CLASS");
   const stageIndex = STAGES.indexOf(stage);
-  const selectedClass = CLASSES.find((item) => item.id === classId) ?? CLASSES[0];
+  const selectedClass = CLASSES.find((item) => item.id === classId) ?? classById(classId);
   const appearance = appearanceById(appearanceId);
   const subclasses = SUBCLASSES.filter((item) => item.classId === classId);
   const selectClass = (id: ClassId) => { setClassId(id); setSubclassId(DEFAULT_SUBCLASS[id]); };

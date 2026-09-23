@@ -72,5 +72,11 @@ export const APPEARANCES: readonly AppearanceDefinition[] = [
 ];
 export const DEFAULT_SUBCLASS: Record<ClassId, SubclassId> = { TITAN: "SHIELD_TITAN", HUNTER: "SHADOW_HUNTER", WARLOCK: "CODE_WARLOCK" };
 export function appearanceById(id: AppearanceId) { return APPEARANCES.find((item) => item.id === id) ?? DEFAULT_APPEARANCE; }
-export function classById(id: ClassId) { return CLASSES.find((item) => item.id === id) ?? CLASSES[0]; }
-export function subclassById(id: SubclassId) { return SUBCLASSES.find((item) => item.id === id) ?? SUBCLASSES[0]; }
+export function classById(id: ClassId): ClassDefinition {
+  const found = CLASSES.find((item) => item.id === id);
+  return found ?? { id: "TITAN", name: "Titan", title: "Wardens of the Fracture", role: "Protection · Space Control", fantasy: "Hold reality together under pressure.", color: "#66e0ff", evolution: "Defensive adaptation", abilities: [] };
+}
+export function subclassById(id: SubclassId): SubclassDefinition {
+  const found = SUBCLASSES.find((item) => item.id === id);
+  return found ?? { id: "SHIELD_TITAN", classId: "TITAN", name: "Shield Titan", role: "Mobile Guard", description: "Carry the line forward under fire." };
+}
