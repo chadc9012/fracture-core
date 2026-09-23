@@ -17,7 +17,7 @@ import { Scavenger } from "./Scavenger";
 import type { InspectorView } from "./Inspector";
 import { TIER_RADII } from "@/game/lod";
 import { RARITY_COLOR, type Rarity } from "@/game/loot";
-import { appearanceById, type AppearanceId, type ClassId } from "@/game/loadout";
+import { appearanceById, classById, subclassById, type AppearanceId, type ClassId, type SubclassId } from "@/game/loadout";
 import { vehicleById, type VehicleId } from "@/game/vehicles";
 
 import type { GameSettings } from "./SettingsWindow";
@@ -61,6 +61,12 @@ export type HudState = {
   view: "third" | "first";
   aimLocked: boolean;
   playerClass: ClassId;
+  subclassName: string;
+  abilities: { slot: string; name: string; ready: boolean }[];
+  firstMissionComplete: boolean;
+  weather: string;
+  streamTier: string;
+  vehicleUnlocked: boolean;
   vehicleName: string;
   vehicleDomain: string;
   vehicleWeapon: string;
@@ -69,8 +75,8 @@ export type HudState = {
   inspector: InspectorView | null;
 };
 
-const SPAWN_REGION = REGIONS.find((r) => r.id === "nexus")!;
-export const SPAWN = new THREE.Vector3(SPAWN_REGION.x, 0, SPAWN_REGION.z + 22);
+const SPAWN_REGION = REGIONS.find((r) => r.id === "veridan") ?? REGIONS[0];
+export const SPAWN = new THREE.Vector3(SPAWN_REGION.x, 0, SPAWN_REGION.z + 12);
 
 const stops: { t: number; key: keyof typeof SKY }[] = [
   { t: 0, key: "Dawn" },
@@ -130,19 +136,25 @@ function RegionLabels() {
 export function Scene({
   onHud,
   settings = { aimAssist: true, firstPersonDefault: false, zoneLabels: true, hudDensity: "full" },
-  playerClass = "VANGUARD",
+  playerClass = "TITAN",
+  subclassId = "SHIELD_TITAN",
   appearanceId = "RANGER",
   vehicleId = "scrap-interceptor",
+  vehicleUnlocked = false,
 }: {
   onHud: (s: HudState) => void;
   settings?: GameSettings;
   playerClass?: ClassId;
+  subclassId?: SubclassId;
   appearanceId?: AppearanceId;
   vehicleId?: VehicleId;
+  vehicleUnlocked?: boolean;
 }) {
   const keys = useKeyboard();
   const sim = useMemo<WorldSim>(() => createSim(), []);
   const appearance = appearanceById(appearanceId);
+  const selectedClass = classById(playerClass);
+  const selectedSubclass = subclassById(subclassId);
   const selectedVehicle = vehicleById(vehicleId);
   const player = useRef<THREE.Group>(null!);
   const vehicle = useRef<THREE.Group>(null!);
@@ -242,7 +254,7 @@ export function Scene({
           sync: latency > 120 ? "DEGRADED" : latency > 70 ? "SYNCING" : "STABLE",
         };
       }),
-      identity: `${playerClass} · ${selectedVehicle.name}`,
+      identity: `${selectedClass.name} · ${selectedSubclass.name}`,
       mutations: [],
       missions: sim.director.missions
         .filter((m) => m.state === "ACTIVE")
@@ -299,7 +311,7 @@ export function Scene({
     /* ---------------- input ---------------- */
     s.toggleCool -= dt;
     s.fireCool -= dt;
-    if (held.has("KeyV") && s.toggleCool <= 0) {
+    if (vehicleUnlocked && held.has("KeyV") && s.toggleCool <= 0) {
       s.toggleCool = 0.4;
       s.inVehicle = !s.inVehicle;
       s.vSpeed = 0;
@@ -313,6 +325,7 @@ export function Scene({
     s.fps = s.fps * 0.9 + (1 / Math.max(0.001, raw)) * 0.1;
 
     const here = regionAt(s.x, s.z);
+    const weather = here?.id === "veridan" ? "Rain mist" : here?.id === "ember" ? "Ashfall" : here?.id === "frostspire" ? "Snow haze" : here?.id === "nexus" ? "Clear shield" : "Dust front";
     const slope = slopeAt(s.x, s.z);
     const ground = walkHeight(s.x, s.z);
     const submerged = heightAt(s.x, s.z) < WATER_LEVEL - 0.2;
@@ -541,6 +554,12 @@ export function Scene({
         view: s.firstPerson ? "first" : "third",
         aimLocked: s.aimLocked,
         playerClass,
+        subclassName: selectedSubclass.name,
+        abilities: selectedClass.abilities.map((ability) => ({ slot: ability.slot, name: ability.name, ready: true })),
+        firstMissionComplete: sim.director.missions.some((mission) => mission.kind === "FIRST_RESONANCE" && mission.state === "COMPLETED"),
+        weather,
+        streamTier: "ACTIVE · neighbors reduced · distant dormant",
+        vehicleUnlocked,
         vehicleName: selectedVehicle.name,
         vehicleDomain: selectedVehicle.domain,
         vehicleWeapon: selectedVehicle.weapon,
@@ -617,7 +636,7 @@ export function Scene({
 
 
       {/* drivable wasteland raider — armour plate, ram spikes, roof gun */}
-      <group ref={vehicle}>
+      <group ref={vehicle} visible={vehicleUnlocked}>
         <Car body={selectedVehicle.model} scale={selectedVehicle.modelScale} speedRef={carSpeed} steerRef={carSteer} />
         {/* front ram spikes */}
         {[-1.1, -0.55, 0, 0.55, 1.1].map((x) => (
