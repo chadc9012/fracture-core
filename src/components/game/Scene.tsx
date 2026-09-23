@@ -326,6 +326,12 @@ export function Scene({
 
     const here = regionAt(s.x, s.z);
     const weather = here?.id === "veridan" ? "Rain mist" : here?.id === "ember" ? "Ashfall" : here?.id === "frostspire" ? "Snow haze" : here?.id === "nexus" ? "Clear shield" : "Dust front";
+    const visibility = here?.id === "nexus" ? 1 : here?.id === "veridan" ? 0.66 : here?.id === "ember" ? 0.55 : here?.id === "frostspire" ? 0.48 : 0.62;
+    if (scene.fog instanceof THREE.Fog) {
+      scene.fog.near = 55 + visibility * 65;
+      scene.fog.far = 220 + visibility * 300;
+    }
+    if (sun.current) sun.current.intensity *= 0.7 + visibility * 0.3;
     const slope = slopeAt(s.x, s.z);
     const ground = walkHeight(s.x, s.z);
     const submerged = heightAt(s.x, s.z) < WATER_LEVEL - 0.2;
@@ -474,7 +480,7 @@ export function Scene({
       p.rotation.y = s.yaw;
     }
     if (v) {
-      v.visible = s.inVehicle;
+        v.visible = vehicleUnlocked && s.inVehicle;
       if (s.inVehicle) {
         v.position.set(s.x, s.y, s.z);
         v.rotation.y = s.yaw;
@@ -483,7 +489,7 @@ export function Scene({
         // parked at the spawn pad when on foot
         v.position.set(SPAWN.x + 8, walkHeight(SPAWN.x + 8, SPAWN.z + 6) + 1.9, SPAWN.z + 6);
         v.rotation.set(0, 0.6, 0);
-        v.visible = true;
+        v.visible = vehicleUnlocked;
       }
     }
 

@@ -16,14 +16,14 @@ export type ClassDefinition = {
   role: string;
   fantasy: string;
   color: string;
-  evolution: string;
+  adaptation: string;
   abilities: readonly AbilityDefinition[];
 };
 
 export const CLASSES: readonly ClassDefinition[] = [
   {
     id: "TITAN", name: "Titan", title: "Wardens of the Fracture", role: "Protection · Space Control",
-    fantasy: "Grounded defenders who hold reality together under pressure.", color: "#66e0ff", evolution: "Defensive adaptation",
+    fantasy: "Grounded defenders who hold reality together under pressure.", color: "#66e0ff", adaptation: "Defensive specialization",
     abilities: [
       { slot: "PRIMARY", name: "Fracture Shield", description: "Place or carry a barrier that blocks incoming fire." },
       { slot: "TACTICAL", name: "Ground Breaker", description: "Interrupt enemies and fracture nearby cover." },
@@ -32,7 +32,7 @@ export const CLASSES: readonly ClassDefinition[] = [
   },
   {
     id: "HUNTER", name: "Hunter", title: "Fracture Rogues", role: "Mobility · Precision",
-    fantasy: "Fast operators whose momentum sharpens every strike.", color: "#ff6f61", evolution: "Adaptive evolution",
+    fantasy: "Fast operators whose momentum sharpens every strike.", color: "#ff6f61", adaptation: "Momentum specialization",
     abilities: [
       { slot: "PRIMARY", name: "Phase Dash", description: "Pass through danger; perfect timing boosts damage." },
       { slot: "TACTICAL", name: "Mark Target", description: "Reveal movement patterns and shared critical zones." },
@@ -41,7 +41,7 @@ export const CLASSES: readonly ClassDefinition[] = [
   },
   {
     id: "WARLOCK", name: "Warlock", title: "Oracles of the System", role: "Control · Support DPS",
-    fantasy: "Strategists who expose and temporarily rewrite world rules.", color: "#c86bff", evolution: "System evolution",
+    fantasy: "Strategists who expose and temporarily rewrite world rules.", color: "#c86bff", adaptation: "System specialization",
     abilities: [
       { slot: "PRIMARY", name: "Code Pulse", description: "Reveal hidden systems and disable hostile abilities." },
       { slot: "TACTICAL", name: "Reality Tweak", description: "Create a slow, gravity, or suppression field." },
@@ -74,7 +74,7 @@ export const DEFAULT_SUBCLASS: Record<ClassId, SubclassId> = { TITAN: "SHIELD_TI
 export function appearanceById(id: AppearanceId) { return APPEARANCES.find((item) => item.id === id) ?? DEFAULT_APPEARANCE; }
 export function classById(id: ClassId): ClassDefinition {
   const found = CLASSES.find((item) => item.id === id);
-  return found ?? { id: "TITAN", name: "Titan", title: "Wardens of the Fracture", role: "Protection · Space Control", fantasy: "Hold reality together under pressure.", color: "#66e0ff", evolution: "Defensive adaptation", abilities: [] };
+  return found ?? { id: "TITAN", name: "Titan", title: "Wardens of the Fracture", role: "Protection · Space Control", fantasy: "Hold reality together under pressure.", color: "#66e0ff", adaptation: "Defensive specialization", abilities: [] };
 }
 export function subclassById(id: SubclassId): SubclassDefinition {
   const found = SUBCLASSES.find((item) => item.id === id);

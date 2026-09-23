@@ -10,13 +10,13 @@ export const Route = createFileRoute("/")({
       {
         name: "description",
         content:
-          "Enter WORLD FRACTURE, choose a Resonant class and vehicle, and fight across an unstable open world.",
+          "Enter WORLD FRACTURE, shape a flex-class operator, and fight across an unstable living open world.",
       },
       { property: "og:title", content: "WORLD FRACTURE — Open World Action Game" },
       {
         property: "og:description",
         content:
-          "Choose your class, customize your operator, deploy a combat vehicle, and shape a fractured living world.",
+          "Choose a class and subclass, customize a live operator, survive the first mission, and earn your first vehicle.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },

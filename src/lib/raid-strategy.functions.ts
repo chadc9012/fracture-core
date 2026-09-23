@@ -8,7 +8,7 @@ const inputSchema = z.object({
 });
 
 export const getRaidStrategy = createServerFn({ method: "POST" })
-  .inputValidator((input) => inputSchema.parse(input))
+  .validator((input) => inputSchema.parse(input))
   .handler(async ({ data }) => {
     const key = process.env['LOVABLE_API_KEY'];
     if (!key) return { recommendation: "", error: "Strategy uplink is temporarily unavailable." };
