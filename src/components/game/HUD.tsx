@@ -3,9 +3,9 @@ import { ZONE_COLOR, ZONE_LABEL } from "@/game/world";
 import type { HudState } from "./Scene";
 import { Inspector } from "./Inspector";
 import { Button } from "@/components/ui/button";
-import { Anvil, BrainCircuit, CarFront, Castle, Menu, Network } from "lucide-react";
+import { Anvil, BrainCircuit, CarFront, Castle, ImageUp, Menu, Network } from "lucide-react";
 
-export function HUD({ hud, onMenu, onStrategy, onGarage, onOperations }: { hud: HudState; onMenu: () => void; onStrategy: () => void; onGarage: () => void; onOperations: (view: "DUNGEONS" | "ARSENAL" | "ABILITIES") => void }) {
+export function HUD({ hud, onMenu, onStrategy, onGarage, onAnalyze, onOperations }: { hud: HudState; onMenu: () => void; onStrategy: () => void; onGarage: () => void; onAnalyze: () => void; onOperations: (view: "DUNGEONS" | "ARSENAL" | "ABILITIES") => void }) {
   const color = ZONE_COLOR[hud.kind];
   const owner = FACTIONS[hud.owner];
   const challenger = FACTIONS[hud.challenger];
@@ -154,7 +154,10 @@ export function HUD({ hud, onMenu, onStrategy, onGarage, onOperations }: { hud: 
         <Button title="Ability Network" size="icon" variant="outline" onClick={() => onOperations("ABILITIES")} aria-label="Ability Network"><Network /></Button>
         <Button title="Raid Strategy" size="icon" variant="outline" onClick={onStrategy} aria-label="Raid Strategy"><BrainCircuit /></Button>
         <Button title="Garage" size="icon" variant="outline" onClick={onGarage} aria-label="Garage"><CarFront /></Button>
+        <Button title="Zone Analysis" size="icon" variant="outline" onClick={onAnalyze} aria-label="Zone Analysis"><ImageUp /></Button>
       </div>
+
+      {hud.playerClass === "TITAN" && <div className="absolute bottom-3 left-1/2 w-[min(30rem,calc(100%-1rem))] -translate-x-1/2 border border-border bg-card/80 p-3 backdrop-blur-md"><div className="grid grid-cols-4 gap-2 text-[8px] uppercase tracking-[0.16em]">{[["HP",hud.hp,"bg-destructive"],["SHIELD",hud.shield,"bg-titan"],["ENERGY",hud.energy,"bg-primary"],["STABILITY",hud.stability,"bg-warning"]].map(([label,value,tone]) => <div key={String(label)}><div className="flex justify-between"><span>{label}</span><span>{value}%</span></div><div className="mt-1 h-1 bg-muted"><div className={`h-full ${tone}`} style={{width:`${value}%`}} /></div></div>)}</div><div className="mt-2 flex items-center justify-between text-[9px] uppercase"><span className="text-primary">Q Block · E Shield Bash · R Dome</span><span>{hud.blocking ? "SHIELD ACTIVE" : hud.domeTime > 0 ? `DOME ${hud.domeTime.toFixed(1)}s` : hud.titanFeedback}</span></div></div>}
 
       {/* crosshair + weapon heat */}
       <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">

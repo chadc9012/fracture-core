@@ -19,6 +19,8 @@ import { TIER_RADII } from "@/game/lod";
 import { RARITY_COLOR, type Rarity } from "@/game/loot";
 import { appearanceById, classById, subclassById, type AppearanceId, type ClassId, type SubclassId } from "@/game/loadout";
 import { vehicleById, type VehicleId } from "@/game/vehicles";
+import { projectDome, shieldBash } from "@/game/titan";
+import { RENDER_PRESETS } from "@/game/performance";
 
 import type { GameSettings } from "./SettingsWindow";
 import type { ArmorVisualState } from "./Scavenger";
@@ -72,6 +74,12 @@ export type HudState = {
   vehicleDomain: string;
   vehicleWeapon: string;
   vehicleSeats: number;
+  shield: number;
+  energy: number;
+  stability: number;
+  blocking: boolean;
+  domeTime: number;
+  titanFeedback: string;
   /* dev inspector */
   inspector: InspectorView | null;
 };
@@ -136,7 +144,7 @@ function RegionLabels() {
 
 export function Scene({
   onHud,
-  settings = { aimAssist: true, firstPersonDefault: false, zoneLabels: true, hudDensity: "full" },
+  settings = { aimAssist: true, firstPersonDefault: false, zoneLabels: true, hudDensity: "full", renderTier: "HIGH" },
   playerClass = "TITAN",
   subclassId = "SHIELD_TITAN",
   appearanceId = "RANGER",
@@ -187,6 +195,8 @@ export function Scene({
     showInspector: false,
     fps: 60,
     viewCool: 0,
+    bashCool: 0,
+    domeCool: 0,
     firstPerson: settings.firstPersonDefault,
     aimLocked: false,
     reported: { hp: 100 },
@@ -279,6 +289,7 @@ export function Scene({
     const dt = Math.min(raw, 0.05);
     const held = keys.current;
     const s = state.current;
+    sim.titanActive = playerClass === "TITAN" && !s.inVehicle;
 
     /* ---------------- day / night ---------------- */
     time.current += dt * (held.has("KeyT") ? 0.06 : 0.008);
@@ -314,6 +325,29 @@ export function Scene({
     /* ---------------- input ---------------- */
     s.toggleCool -= dt;
     s.fireCool -= dt;
+    s.bashCool -= dt;
+    s.domeCool -= dt;
+    const wantsBlock = sim.titanActive && held.has("KeyQ") && sim.titan.shieldBroken <= 0;
+    if (wantsBlock && !sim.titan.blocking) sim.titan.blockStartedAt = performance.now() / 1000;
+    sim.titan.blocking = wantsBlock;
+    if (sim.titanActive && held.has("KeyE") && s.bashCool <= 0) {
+      s.bashCool = 0.35;
+      const damage = shieldBash(sim.titan);
+      if (damage > 0) {
+        for (const machine of sim.machines) {
+          if (!machine.alive || Math.hypot(machine.x - s.x, machine.z - s.z) > 10) continue;
+          machine.hp -= damage;
+          const distance = Math.hypot(machine.x - s.x, machine.z - s.z) || 1;
+          machine.kx += ((machine.x - s.x) / distance) * 24;
+          machine.kz += ((machine.z - s.z) / distance) * 24;
+          machine.cool = Math.max(machine.cool, 2.2);
+        }
+      }
+    }
+    if (sim.titanActive && held.has("KeyR") && s.domeCool <= 0) {
+      s.domeCool = 0.35;
+      projectDome(sim.titan);
+    }
     if (vehicleUnlocked && held.has("KeyV") && s.toggleCool <= 0) {
       s.toggleCool = 0.4;
       s.inVehicle = !s.inVehicle;
@@ -573,6 +607,12 @@ export function Scene({
         vehicleDomain: selectedVehicle.domain,
         vehicleWeapon: selectedVehicle.weapon,
         vehicleSeats: selectedVehicle.seats,
+        shield: Math.round(sim.titan.shield),
+        energy: Math.round(sim.titan.energy),
+        stability: Math.round(sim.titan.stability),
+        blocking: sim.titan.blocking,
+        domeTime: sim.titan.domeTime,
+        titanFeedback: sim.titan.feedback,
         loot: (sim.loot ?? []).map((it) => ({
           name: it.name,
           rarity: it.rarity,
@@ -593,7 +633,7 @@ export function Scene({
         ref={sun}
         position={[80, 140, 70]}
         intensity={1.6}
-        castShadow
+        castShadow={RENDER_PRESETS[settings.renderTier].shadows}
         shadow-mapSize-width={1024}
         shadow-mapSize-height={1024}
         shadow-camera-left={-130}
@@ -641,7 +681,12 @@ export function Scene({
       {/* player on foot */}
       <group ref={player} position={SPAWN.toArray()}>
         <Scavenger armor={appearance.armor} cloth={appearance.cloth} visor={appearance.visor} classId={playerClass} visualState={armorState} />
+        {playerClass === "TITAN" && sim.titan.blocking && <mesh position={[0, 1.8, 1.4]} rotation={[0, 0, 0]}><boxGeometry args={[3.4, 4.5, 0.16]} /><meshStandardMaterial color="#74dfff" emissive="#3daec7" emissiveIntensity={2.8} transparent opacity={0.45} /></mesh>}
+        {playerClass === "TITAN" && sim.titan.domeTime > 0 && <mesh position={[0, 0.5, 0]}><sphereGeometry args={[8, 20, 12, 0, Math.PI * 2, 0, Math.PI / 2]} /><meshStandardMaterial color="#74dfff" emissive="#2e9ab6" emissiveIntensity={1.5} transparent opacity={0.24} side={THREE.DoubleSide} /></mesh>}
       </group>
+
+      {/* Titan training arena: three readable cover anchors and one hazardous fracture pool. */}
+      {playerClass === "TITAN" && <group position={[SPAWN.x, walkHeight(SPAWN.x, SPAWN.z), SPAWN.z]}>{[[-9, 0], [8, 5], [6, -8]].map(([x, z], index) => <mesh key={index} position={[x, 1.5, z]} castShadow><boxGeometry args={[4.5, 3, 1.3]} /><meshStandardMaterial color="#46515a" metalness={0.65} roughness={0.55} /></mesh>)}<mesh position={[-8, 0.12, -10]} rotation-x={-Math.PI / 2}><circleGeometry args={[4, 32]} /><meshStandardMaterial color="#dc7042" emissive="#b84327" emissiveIntensity={2.2} /></mesh></group>}
 
 
       {/* drivable wasteland raider — armour plate, ram spikes, roof gun */}
