@@ -88,6 +88,32 @@ export function GameCanvas() {
     setSubclass(deployment.subclassId);
     setAppearance(deployment.appearanceId);
     setVehicleUnlocked(false);
+    setHud((current) => ({
+      ...current,
+      region: "Veridan Forest",
+      sub: "Starter Zone / Resources",
+      kind: "starter",
+      difficulty: 1,
+      weather: "Rain mist",
+      playerClass: deployment.classId,
+      subclassName: subclassById(deployment.subclassId).name,
+      abilities: classById(deployment.classId).abilities.map((ability) => ({ slot: ability.slot, name: ability.name, ready: true })),
+      missions: [{
+        id: "mission-01",
+        name: "Mission 01 — First Resonance",
+        kind: "FIRST_RESONANCE",
+        regionId: "veridan",
+        intensity: "LOW",
+        state: "ACTIVE",
+        objectives: [
+          { type: "SURVIVE", label: "Stabilize after insertion (s)", amount: 20, progress: 0, done: false },
+          { type: "KILL", label: "Clear the forest patrol", amount: 2, progress: 0, done: false },
+        ],
+        reward: 500,
+        age: 0,
+        stage: 0,
+      }],
+    }));
     setMenuOpen(false);
     setPhase("world");
   };

@@ -13,7 +13,7 @@ export function HUD({ hud, onMenu, onStrategy, onGarage }: { hud: HudState; onMe
   return (
     <div className="pointer-events-none fixed inset-0 z-10 select-none font-mono text-foreground">
       {/* top left: zone + capture */}
-      <div className="absolute left-4 top-4 max-w-xs rounded-lg border border-border/60 bg-card/70 p-4 backdrop-blur-md">
+      <div className="absolute left-4 top-4 hidden max-w-xs rounded-lg border border-border/60 bg-card/70 p-4 backdrop-blur-md md:block">
         <p className="text-[10px] tracking-[0.35em] text-muted-foreground">THE FRACTURED EARTH</p>
         <h1 className="mt-1 text-xl font-bold tracking-wide" style={{ color }}>
           {hud.region}
@@ -57,7 +57,7 @@ export function HUD({ hud, onMenu, onStrategy, onGarage }: { hud: HudState; onMe
       </div>
 
       {/* top right: cycle + world control */}
-      <div className="absolute right-4 top-4 w-60 rounded-lg border border-border/60 bg-card/70 p-4 backdrop-blur-md">
+      <div className="absolute right-4 top-4 hidden w-60 rounded-lg border border-border/60 bg-card/70 p-4 backdrop-blur-md xl:block">
         <div className="flex items-baseline justify-between">
           <span className="text-[10px] tracking-[0.3em] text-muted-foreground">CYCLE</span>
           <span className="text-sm font-bold">{hud.clock}</span>
@@ -77,7 +77,7 @@ export function HUD({ hud, onMenu, onStrategy, onGarage }: { hud: HudState; onMe
       </div>
 
       {/* right: AI mission director */}
-      <div className="absolute right-4 top-64 w-60 rounded-lg border border-border/60 bg-card/70 p-4 backdrop-blur-md">
+      <div className="absolute right-2 top-16 w-56 rounded-lg border border-border/60 bg-card/70 p-3 backdrop-blur-md xl:right-4 xl:top-64 xl:w-60 xl:p-4">
         <div className="flex items-baseline justify-between">
           <span className="text-[10px] tracking-[0.3em] text-muted-foreground">AI DIRECTOR</span>
           <span className="text-[10px]" style={{ color: hud.threat > 80 ? "#ff4d4d" : "var(--accent-glow)" }}>
@@ -147,10 +147,10 @@ export function HUD({ hud, onMenu, onStrategy, onGarage }: { hud: HudState; onMe
       </div>
 
       {/* global actions */}
-      <div className="pointer-events-auto absolute left-1/2 top-4 flex -translate-x-1/2 gap-1">
-        <Button size="sm" variant="outline" onClick={onMenu} aria-label="Open menu"><Menu /> Menu</Button>
-        <Button size="sm" variant="outline" onClick={onStrategy}><BrainCircuit /> Strategy</Button>
-        <Button size="sm" variant="outline" onClick={onGarage}><CarFront /> Garage</Button>
+      <div className="pointer-events-auto absolute left-2 top-2 flex gap-1 md:left-1/2 md:top-4 md:-translate-x-1/2">
+        <Button size="icon" variant="outline" onClick={onMenu} aria-label="Open menu"><Menu /></Button>
+        <Button size="sm" variant="outline" onClick={onStrategy} aria-label="Strategy"><BrainCircuit /><span className="hidden sm:inline">Strategy</span></Button>
+        <Button size="sm" variant="outline" onClick={onGarage} aria-label="Garage"><CarFront /><span className="hidden sm:inline">Garage</span></Button>
       </div>
 
       {/* crosshair + weapon heat */}
@@ -186,7 +186,7 @@ export function HUD({ hud, onMenu, onStrategy, onGarage }: { hud: HudState; onMe
 
       {/* generated loot feed */}
       {(hud.loot?.length ?? 0) > 0 && (
-        <div className="absolute right-4 top-1/2 w-64 -translate-y-1/2 space-y-2">
+        <div className="absolute right-4 top-1/2 hidden w-64 -translate-y-1/2 space-y-2 xl:block">
           {(hud.loot ?? []).map((it, i) => (
             <div
               key={`${it.name}-${i}`}
@@ -211,7 +211,7 @@ export function HUD({ hud, onMenu, onStrategy, onGarage }: { hud: HudState; onMe
       )}
 
       {/* bottom left: controls */}
-      <div className="absolute bottom-4 left-4 rounded-lg border border-border/60 bg-card/70 px-4 py-3 text-[11px] text-muted-foreground backdrop-blur-md">
+      <div className="absolute bottom-4 left-4 hidden rounded-lg border border-border/60 bg-card/70 px-4 py-3 text-[11px] text-muted-foreground backdrop-blur-md lg:block">
         <p className="mb-2 font-mono text-[10px] uppercase tracking-[0.2em] text-primary">{hud.playerClass} · {hud.subclassName}</p>
         <div className="mb-2 flex flex-wrap gap-1">{hud.abilities.map((ability) => <span key={ability.slot} className="border border-border px-2 py-1 text-[9px]"><b className="text-foreground">{ability.slot}</b> {ability.name} · {ability.ready ? "READY" : "COOLDOWN"}</span>)}</div>
         <p>
@@ -229,7 +229,7 @@ export function HUD({ hud, onMenu, onStrategy, onGarage }: { hud: HudState; onMe
       </div>
 
       {/* bottom right: status */}
-      <div className="absolute bottom-4 right-4 w-52 rounded-lg border border-border/60 bg-card/70 px-4 py-3 text-right backdrop-blur-md">
+      <div className="absolute bottom-4 right-4 hidden w-52 rounded-lg border border-border/60 bg-card/70 px-4 py-3 text-right backdrop-blur-md md:block">
         <p className="mb-2 text-left font-mono text-[9px] uppercase tracking-[0.18em] text-primary">{hud.vehicleUnlocked ? hud.vehicleName : "On foot · vehicle reward pending"}</p>
         <div className="flex items-baseline justify-between">
           <span className="text-[10px] tracking-[0.3em] text-muted-foreground">
