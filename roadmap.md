@@ -6,12 +6,12 @@
 - [ ] Present The Core Breach raid and deterministic adaptive Overseer Core in the game interface/lore.
 - [x] Use the newest uploaded character, environment, and interface references as visual direction only.
 - [x] Add the full typed vehicle roster and starter deployment choices.
-- [ ] Replace vehicle selection during onboarding with class, subclass, and live appearance selection.
-- [ ] Launch every new player directly into the first mission after onboarding.
-- [ ] Unlock one starter vehicle choice after the first mission; reserve other vehicles for store purchase or part-based building.
-- [ ] Add garage ownership, vehicle summoning, and a garage assistant flow.
-- [ ] Add the Titan, Hunter, and Warlock flex-class definitions, signature abilities, subclasses, playstyle modes, and no-lock progression foundations without old-name references.
-- [ ] Add an in-app raid combat-log strategy advisor powered by AI Gateway.
-- [ ] Strengthen biome-specific streaming, weather, interaction, and AI patrol behavior across Veridan, Wastelands, Ember, Frostspire, and Nexus.
+- [x] Replace vehicle selection during onboarding with class, subclass, and live appearance selection.
+- [x] Launch every new player directly into the first mission after onboarding.
+- [x] Unlock one starter vehicle choice after the first mission; reserve other vehicles for store purchase or part-based building.
+- [x] Add garage ownership, vehicle summoning, and a garage assistant flow.
+- [x] Add the Titan, Hunter, and Warlock flex-class definitions, signature abilities, subclasses, playstyle modes, and no-lock progression foundations without old-name references.
+- [x] Add an in-app raid combat-log strategy advisor powered by AI Gateway.
+- [x] Strengthen biome-specific streaming, weather, interaction, and AI patrol behavior across Veridan, Wastelands, Ember, Frostspire, and Nexus.
 - [x] Prevent partial HUD state from crashing loot rendering.
 - [ ] Run full TypeScript, production build, desktop/mobile, and live 3D verification.
