@@ -15,3 +15,10 @@
 - [x] Strengthen biome-specific streaming, weather, interaction, and AI patrol behavior across Veridan, Wastelands, Ember, Frostspire, and Nexus.
 - [x] Prevent partial HUD state from crashing loot rendering.
 - [x] Run full TypeScript, production build, desktop/mobile, and live 3D verification.
+- [ ] Build the shared raid/dungeon stage engine and three regional dungeons.
+- [ ] Add exact 122-weapon and 92-armor manifests with fixed dungeon exotics.
+- [ ] Add crafting recipes, currencies, Nexus vendors, and a functional Arsenal.
+- [ ] Add the mixed-class Ability Network with saved Solo/Hybrid/Team builds.
+- [ ] Redesign onboarding around the supplied equipment and character references.
+- [ ] Add modular cosmetics and live Stable/Active/Fracture/Ascendant armor states.
+- [ ] Verify counts, dungeon flow, progression interactions, responsive layouts, and production health.
