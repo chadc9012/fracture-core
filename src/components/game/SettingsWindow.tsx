@@ -3,6 +3,7 @@ export type GameSettings = {
   firstPersonDefault: boolean;
   zoneLabels: boolean;
   hudDensity: "full" | "lean";
+  renderTier: "LOW" | "MEDIUM" | "HIGH" | "ULTRA";
 };
 
 export const DEFAULT_SETTINGS: GameSettings = {
@@ -10,11 +11,13 @@ export const DEFAULT_SETTINGS: GameSettings = {
   firstPersonDefault: false,
   zoneLabels: true,
   hudDensity: "full",
+  renderTier: "HIGH",
 };
 
 function Toggle({ label, on, onChange }: { label: string; on: boolean; onChange: (v: boolean) => void }) {
   return (
-    <button
+    <Button
+      variant="outline"
       onClick={() => onChange(!on)}
       className="flex w-full items-center justify-between rounded border border-border bg-card/60 px-3 py-2 text-left hover:border-primary/60"
     >
@@ -24,9 +27,11 @@ function Toggle({ label, on, onChange }: { label: string; on: boolean; onChange:
       >
         {on ? "on" : "off"}
       </span>
-    </button>
+    </Button>
   );
 }
+
+import { Button } from "@/components/ui/button";
 
 /** Small in-game window: settings, back to orbit, and a back button to close. */
 export function SettingsWindow({
@@ -62,6 +67,7 @@ export function SettingsWindow({
             on={settings.firstPersonDefault}
             onChange={(v) => set({ firstPersonDefault: v })}
           />
+          <div className="pt-2"><p className="mb-2 font-mono text-[9px] uppercase tracking-[0.2em] text-muted-foreground">Rendering quality</p><div className="grid grid-cols-4 gap-1">{(["LOW", "MEDIUM", "HIGH", "ULTRA"] as const).map((tier) => <Button key={tier} size="sm" variant={settings.renderTier === tier ? "default" : "outline"} onClick={() => set({ renderTier: tier })} className="px-1 text-[9px]">{tier}</Button>)}</div><p className="mt-2 text-[10px] text-muted-foreground">Gameplay, damage, and enemy decisions remain identical at every quality.</p></div>
           <Toggle label="Zone name markers" on={settings.zoneLabels} onChange={(v) => set({ zoneLabels: v })} />
           <Toggle
             label="Full HUD panels"
@@ -71,18 +77,19 @@ export function SettingsWindow({
         </div>
 
         <div className="mt-4 grid grid-cols-2 gap-2">
-          <button
+          <Button
+            variant="outline"
             onClick={onOrbit}
             className="rounded border border-border px-3 py-2 font-mono text-[11px] uppercase tracking-[0.2em] text-foreground hover:border-primary"
           >
             Back to orbit
-          </button>
-          <button
+          </Button>
+          <Button
             onClick={onClose}
             className="rounded bg-primary px-3 py-2 font-mono text-[11px] uppercase tracking-[0.2em] text-primary-foreground hover:opacity-90"
           >
             Resume
-          </button>
+          </Button>
         </div>
       </div>
     </div>

@@ -50,3 +50,20 @@ export function absorbTitanDamage(titan: TitanState, damage: number, nowSeconds:
   if (titan.shield <= 0) { titan.shieldBroken = 2.5; titan.blocking = false; titan.feedback = "SHIELD OVERLOAD"; titan.feedbackTime = 1.6; }
   return Math.max(0, damage - absorbed);
 }
+
+export function shieldBash(titan: TitanState) {
+  if (titan.bashCooldown > 0 || titan.energy < 20) return 0;
+  titan.energy -= 20;
+  titan.bashCooldown = 4;
+  const damage = 2 + titan.storedDamage * 0.12 + titan.stability * 0.02;
+  titan.storedDamage = 0;
+  return damage;
+}
+
+export function projectDome(titan: TitanState) {
+  if (titan.domeCooldown > 0 || titan.energy < 45) return false;
+  titan.energy -= 45;
+  titan.domeTime = 8;
+  titan.domeCooldown = 18;
+  return true;
+}
