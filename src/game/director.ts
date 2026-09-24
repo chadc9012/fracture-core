@@ -6,6 +6,7 @@
 import { REGIONS } from "./world";
 
 export type MissionKind =
+  | "FIRST_RESONANCE"
   | "EMERGENCY_DEFENSE"
   | "FACTION_SKIRMISH"
   | "CONVOY_RAID"
@@ -66,7 +67,7 @@ let seq = 1;
 const id = () => `m${seq++}`;
 
 export function createDirector(): Director {
-  return {
+  const director: Director = {
     threat: 20,
     heat: 0,
     escalation: 0,
@@ -76,6 +77,8 @@ export function createDirector(): Director {
     failed: 0,
     cooldown: 6,
   };
+  director.missions.push(define("FIRST_RESONANCE", "veridan", "LOW"));
+  return director;
 }
 
 const regionName = (rid: string) => REGIONS.find((r) => r.id === rid)?.name ?? "the Wilds";
@@ -94,6 +97,16 @@ function define(kind: MissionKind, regionId: string, intensity: Mission["intensi
   };
 
   switch (kind) {
+    case "FIRST_RESONANCE":
+      return {
+        ...base,
+        name: "Mission 01 — First Resonance",
+        reward: 500,
+        objectives: [
+          { type: "SURVIVE", label: "Stabilize after insertion (s)", amount: 20, progress: 0, done: false },
+          { type: "KILL", label: "Clear the forest patrol", amount: 2, progress: 0, done: false },
+        ],
+      };
     case "EMERGENCY_DEFENSE":
       return {
         ...base,
@@ -259,7 +272,7 @@ export function directorTick(dir: Director, ctx: DirectorContext, api: DirectorA
       remember(dir, "COMPLETED");
       api.alert(`Mission complete — ${m.name}  +${m.reward} cr`);
       // event chaining: strong performance pulls a bigger fight in
-      if (m.intensity === "HIGH" || dir.completed % 2 === 0) {
+      if (m.kind !== "FIRST_RESONANCE" && (m.intensity === "HIGH" || dir.completed % 2 === 0)) {
         dir.escalation = Math.min(4, dir.escalation + 1);
         spawnMission(dir, api, "ESCALATION", m.regionId, "HIGH", m.id);
       }
@@ -267,6 +280,7 @@ export function directorTick(dir: Director, ctx: DirectorContext, api: DirectorA
   }
 
   /* ---- 4. generation ---- */
+  if (dir.missions.some((mission) => mission.kind === "FIRST_RESONANCE" && mission.state === "ACTIVE")) return;
   dir.cooldown -= dt;
   if (dir.cooldown > 0) return;
   dir.cooldown = 14;
