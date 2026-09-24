@@ -6,7 +6,7 @@ export type Wallet = Record<CurrencyId | MaterialId, number>;
 export type UpgradeRecipe = { from: WeaponTier; to: WeaponTier; label: string; costs: Partial<Wallet>; tax: number; source: string };
 
 export const STARTING_WALLET: Wallet = {
-  credits: 1800, dataShards: 34, spatialCores: 4, scrapMetal: 420, polymerResin: 160, outpostCurrency: 14,
+  credits: 2400, dataShards: 34, spatialCores: 4, scrapMetal: 420, polymerResin: 160, outpostCurrency: 14,
   reinforcedAlloy: 330, thermalShards: 100, biomeElements: 22, factionCores: 430, microCircuits: 118,
   singularityCatalysts: 10, spatialFragments: 620, anomalyCarbon: 210, apexCores: 3,
 };
