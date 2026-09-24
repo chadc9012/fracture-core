@@ -21,4 +21,4 @@
 - [x] Add the mixed-class Ability Network with saved Solo/Hybrid/Team builds.
 - [x] Redesign onboarding around the supplied equipment and character references.
 - [x] Add modular cosmetics and live Stable/Active/Fracture/Ascendant armor states.
-- [ ] Verify counts, dungeon flow, progression interactions, responsive layouts, and production health.
+- [x] Verify counts, dungeon flow, progression interactions, responsive layouts, and production health.
