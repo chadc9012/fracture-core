@@ -7,12 +7,13 @@ import { DUNGEONS } from "@/game/dungeons";
 import { ARMOR_MANIFEST, EQUIPMENT_COUNTS, WEAPON_MANIFEST, type WeaponTier } from "@/game/equipment";
 import { STARTING_WALLET, UPGRADE_RECIPES, VENDORS, canAfford, spend, type Wallet } from "@/game/economy";
 import { advanceEncounter, createEncounterRun, loseEncounterLife } from "@/game/raid-stages";
+import type { PlayerProgression } from "@/game/progression";
 
 type HubView = "DUNGEONS" | "ARSENAL" | "ABILITIES";
 
 const currencyLabel = { credits: "Credits", dataShards: "Data Shards", spatialCores: "Spatial Cores" } as const;
 
-export function OperationsHub({ initialView = "DUNGEONS", onClose }: { initialView?: HubView; onClose: () => void }) {
+export function OperationsHub({ initialView = "DUNGEONS", progression, onProgression, onClose }: { initialView?: HubView; progression: PlayerProgression; onProgression: (next: PlayerProgression) => void; onClose: () => void }) {
   const [view, setView] = useState<HubView>(initialView);
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto bg-background/95 backdrop-blur-xl">
@@ -26,7 +27,7 @@ export function OperationsHub({ initialView = "DUNGEONS", onClose }: { initialVi
         </nav>
         {view === "DUNGEONS" && <DungeonOperations />}
         {view === "ARSENAL" && <Arsenal />}
-        {view === "ABILITIES" && <AbilityNetwork />}
+        {view === "ABILITIES" && <AbilityNetwork progression={progression} onProgression={onProgression} />}
       </div>
     </div>
   );
@@ -86,20 +87,20 @@ function Arsenal() {
   </main>;
 }
 
-function AbilityNetwork() {
-  const [build, setBuild] = useState<ActiveBuild>(DEFAULT_BUILD);
+function AbilityNetwork({ progression, onProgression }: { progression: PlayerProgression; onProgression: (next: PlayerProgression) => void }) {
+  const [build, setBuild] = useState<ActiveBuild>(progression.activeBuild ?? DEFAULT_BUILD);
   const [selected, setSelected] = useState(ABILITY_NODES[0]?.id ?? "fracture-shield");
   const [saved, setSaved] = useState(false);
   const synergy = useMemo(() => buildSynergy(build), [build]);
   const selectedNode = nodeById(selected);
   const mastery = { COMBAT: 34, SYSTEMS: 34, EXPLORATION: 31 } as const;
-  const selectedUnlocked = selectedNode ? mastery[selectedNode.stream] >= selectedNode.cost : false;
+  const selectedUnlocked = selectedNode ? progression.unlockedAbilities.includes(selectedNode.id) || mastery[selectedNode.stream] >= selectedNode.cost : false;
   const equip = () => { if (!selectedNode || !selectedUnlocked) return; setBuild({ ...build, slots: { ...build.slots, [selectedNode.slot]: selectedNode.id } }); setSaved(false); };
   return <main className="py-6"><div className="flex flex-wrap items-end justify-between gap-4"><div><p className="font-mono text-[9px] uppercase tracking-[0.3em] text-primary">Fracture Core station</p><h3 className="mt-1 text-2xl font-semibold">Ability Network</h3><p className="mt-1 text-xs text-muted-foreground">Cross-class paths unlock through combat, systems, and exploration mastery.</p></div><div className="flex gap-1">{(["SOLO", "HYBRID", "TEAM"] as const).map((mode) => <Button key={mode} size="sm" variant={build.mode === mode ? "default" : "outline"} onClick={() => setBuild({ ...build, mode })}>{mode}</Button>)}</div></div>
     <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_0.8fr]">
        <section className="relative min-h-[420px] overflow-hidden border border-border bg-card/20 p-4 fracture-grid"><div className="relative z-10 grid grid-cols-3 gap-x-4 gap-y-12">{ABILITY_NODES.map((node) => { const active = Object.values(build.slots).includes(node.id); const unlocked = mastery[node.stream] >= node.cost; return <Button key={node.id} variant="ghost" onClick={() => setSelected(node.id)} className={`h-auto min-h-24 rounded-none border p-3 text-left whitespace-normal ${selected === node.id ? "border-primary bg-primary/15" : active ? "border-primary/60 bg-card" : "border-border bg-background/70"}`}><span><span className="flex items-center justify-between gap-2"><span className="font-mono text-[9px] text-primary">{node.classId}</span>{active ? <Check className="size-3 text-primary" /> : !unlocked ? <LockKeyhole className="size-3 text-muted-foreground" /> : null}</span><span className="mt-2 block text-xs font-medium">{node.name}</span><span className="mt-1 block text-[9px] text-muted-foreground">{node.slot} · {node.stream} {node.cost}</span></span></Button>; })}</div></section>
       <section><div className="border border-border p-4"><p className="font-mono text-[9px] uppercase tracking-[0.25em] text-primary">Selected node</p><h4 className="mt-2 text-xl">{selectedNode?.name}</h4><p className="mt-1 text-xs text-muted-foreground">{selectedNode?.description}</p><div className="mt-4 flex items-center justify-between border-t border-border pt-3 text-[10px]"><span>{selectedNode?.classId} · {selectedNode?.slot}</span><Button size="sm" onClick={equip} disabled={!selectedUnlocked}>{selectedUnlocked ? "Equip node" : `Requires ${selectedNode?.cost} ${selectedNode?.stream}`}</Button></div></div>
-        <div className="mt-4 border border-border p-4"><p className="font-mono text-[9px] uppercase tracking-[0.25em] text-muted-foreground">Active loadout</p>{(["PRIMARY", "TACTICAL", "ULTIMATE"] as const).map((slot) => { const node = nodeById(build.slots[slot]); return <div key={slot} className="mt-3 flex items-center justify-between border-b border-border pb-2"><span className="text-[10px] text-muted-foreground">{slot}</span><span className="text-sm">{node?.name} <b className="ml-2 font-mono text-[9px] text-primary">{node?.classId}</b></span></div>; })}<div className="mt-4 flex items-center justify-between"><div><p className="text-sm font-semibold">{synergy.archetype}</p><p className="font-mono text-[9px] text-primary">+{synergy.bonus}% RESONANCE SYNERGY</p></div><Button variant="outline" onClick={() => setSaved(true)}>{saved ? <Check /> : <Network />}{saved ? "Saved" : "Save build"}</Button></div></div>
+        <div className="mt-4 border border-border p-4"><p className="font-mono text-[9px] uppercase tracking-[0.25em] text-muted-foreground">Active loadout</p>{(["PRIMARY", "TACTICAL", "ULTIMATE"] as const).map((slot) => { const node = nodeById(build.slots[slot]); return <div key={slot} className="mt-3 flex items-center justify-between border-b border-border pb-2"><span className="text-[10px] text-muted-foreground">{slot}</span><span className="text-sm">{node?.name} <b className="ml-2 font-mono text-[9px] text-primary">{node?.classId}</b></span></div>; })}<div className="mt-4 flex items-center justify-between"><div><p className="text-sm font-semibold">{synergy.archetype}</p><p className="font-mono text-[9px] text-primary">+{synergy.bonus}% RESONANCE SYNERGY</p></div><Button variant="outline" onClick={() => { setSaved(true); onProgression({ ...progression, activeBuild: build, unlockedAbilities: Array.from(new Set([...progression.unlockedAbilities, ...Object.values(build.slots)])) }); }}>{saved ? <Check /> : <Network />}{saved ? "Saved" : "Save build"}</Button></div></div>
         <div className="mt-4 grid grid-cols-3 gap-2 text-center font-mono text-[9px]"><div className="border border-border p-3"><Activity className="mx-auto mb-1 size-4 text-primary" />COMBAT {mastery.COMBAT}</div><div className="border border-border p-3"><Network className="mx-auto mb-1 size-4 text-primary" />SYSTEMS {mastery.SYSTEMS}</div><div className="border border-border p-3"><Snowflake className="mx-auto mb-1 size-4 text-primary" />EXPLORE {mastery.EXPLORATION}</div></div>
       </section>
     </div>
