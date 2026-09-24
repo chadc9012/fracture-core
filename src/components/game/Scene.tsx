@@ -686,7 +686,7 @@ export function Scene({
       </group>
 
       {/* Titan training arena: three readable cover anchors and one hazardous fracture pool. */}
-      {playerClass === "TITAN" && <group position={[SPAWN.x, walkHeight(SPAWN.x, SPAWN.z), SPAWN.z]}>{[[-9, 0], [8, 5], [6, -8]].map(([x, z], index) => <mesh key={index} position={[x, 1.5, z]} castShadow><boxGeometry args={[4.5, 3, 1.3]} /><meshStandardMaterial color="#46515a" metalness={0.65} roughness={0.55} /></mesh>)}<mesh position={[-8, 0.12, -10]} rotation-x={-Math.PI / 2}><circleGeometry args={[4, 32]} /><meshStandardMaterial color="#dc7042" emissive="#b84327" emissiveIntensity={2.2} /></mesh></group>}
+      {playerClass === "TITAN" && <group position={[SPAWN.x, walkHeight(SPAWN.x, SPAWN.z), SPAWN.z]}>{([[-9, 0], [8, 5], [6, -8]] as const).map(([x, z], index) => <mesh key={index} position={[x, 1.5, z]} castShadow><boxGeometry args={[4.5, 3, 1.3]} /><meshStandardMaterial color="#46515a" metalness={0.65} roughness={0.55} /></mesh>)}<mesh position={[-8, 0.12, -10]} rotation-x={-Math.PI / 2}><circleGeometry args={[4, 32]} /><meshStandardMaterial color="#dc7042" emissive="#b84327" emissiveIntensity={2.2} /></mesh></group>}
 
 
       {/* drivable wasteland raider — armour plate, ram spikes, roof gun */}
