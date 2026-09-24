@@ -4,6 +4,7 @@
  * generated from world state, enemy type, zone corruption, player
  * build and raid difficulty.
  * ------------------------------------------------------------------ */
+import { ARMOR_MANIFEST, WEAPON_MANIFEST } from "./equipment";
 
 export type Rarity = "COMMON" | "RARE" | "EPIC" | "LEGENDARY" | "EXOTIC";
 
@@ -98,6 +99,18 @@ function generateMod(ctx: LootContext): GearMod {
 }
 
 function generateName(ctx: LootContext, slot: LootItem["slot"]): string {
+  if (slot === "WEAPON") {
+    const maxTier = Math.min(5, Math.max(0, Math.floor(ctx.difficulty / 2) + (ctx.isRaid ? 2 : 0)));
+    const tiers = ["T1", "T2", "T3", "T4", "T5", "S"];
+    const eligible = WEAPON_MANIFEST.filter((item) => item.tier === tiers[maxTier]);
+    const selected = eligible[Math.floor(Math.random() * eligible.length)];
+    if (selected) return selected.name;
+  }
+  if (slot === "ARMOR") {
+    const eligible = ARMOR_MANIFEST.filter((item) => ctx.isRaid ? item.tier === "T5" || item.tier === "S" : item.tier !== "S");
+    const selected = eligible[Math.floor(Math.random() * eligible.length)];
+    if (selected) return selected.name;
+  }
   const base = slot === "WEAPON" ? pick(WEAPONS) : slot === "ARMOR" ? pick(ARMORS) : pick(CORES);
   const prefix = ctx.corruption > 60 ? "Corrupted" : pick(PREFIX);
   return Math.random() < 0.35 ? `${prefix} ${base} ${pick(SUFFIX)}` : `${prefix} ${base}`;

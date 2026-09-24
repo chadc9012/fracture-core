@@ -88,7 +88,7 @@ export const VEHICLES: readonly VehicleDefinition[] = [
     model: "race_future", modelScale: 2.7, starter: false,
   },
   {
-    id: "vanguard-jet", name: "Vanguard Strike Jet", type: "Supersonic Fighter", rarity: "EPIC",
+    id: "vanguard-jet", name: "Resonant Strike Jet", type: "Supersonic Fighter", rarity: "EPIC",
     domain: "AIR", allegiance: "RESONANT", lore: "A high-altitude interceptor guarding the volatile northern boundary.",
     role: "Extreme speed, wide turns and devastating strafing runs.", weapon: "Arc cannon + missiles", seats: 1,
     speed: 1.8, hull: 0.95, handling: 0.72, ram: 0.5, collisionRadius: 4.6, terrainGrip: 1,

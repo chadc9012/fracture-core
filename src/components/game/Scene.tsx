@@ -21,6 +21,7 @@ import { appearanceById, classById, subclassById, type AppearanceId, type ClassI
 import { vehicleById, type VehicleId } from "@/game/vehicles";
 
 import type { GameSettings } from "./SettingsWindow";
+import type { ArmorVisualState } from "./Scavenger";
 
 export type LootView = { name: string; rarity: Rarity; power: number; mods: string[]; color: string };
 
@@ -141,6 +142,7 @@ export function Scene({
   appearanceId = "RANGER",
   vehicleId = "scrap-interceptor",
   vehicleUnlocked = false,
+  armorState = "STABLE",
 }: {
   onHud: (s: HudState) => void;
   settings?: GameSettings;
@@ -149,6 +151,7 @@ export function Scene({
   appearanceId?: AppearanceId;
   vehicleId?: VehicleId;
   vehicleUnlocked?: boolean;
+  armorState?: ArmorVisualState;
 }) {
   const keys = useKeyboard();
   const sim = useMemo<WorldSim>(() => createSim(), []);
@@ -637,7 +640,7 @@ export function Scene({
 
       {/* player on foot */}
       <group ref={player} position={SPAWN.toArray()}>
-        <Scavenger armor={appearance.armor} cloth={appearance.cloth} visor={appearance.visor} />
+        <Scavenger armor={appearance.armor} cloth={appearance.cloth} visor={appearance.visor} classId={playerClass} visualState={armorState} />
       </group>
 
 

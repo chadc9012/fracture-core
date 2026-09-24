@@ -1,4 +1,7 @@
 import * as THREE from "three";
+import { useFrame } from "@react-three/fiber";
+import { useRef } from "react";
+import type { ClassId } from "@/game/loadout";
 
 /**
  * Player avatar built from the reference art:
@@ -150,10 +153,20 @@ function FieldPack() {
   );
 }
 
-export function Scavenger({ armor = "#b7ab93", cloth = "#6d6a4a", visor = "#66e0ff" }: { armor?: string; cloth?: string; visor?: string }) {
+export type ArmorVisualState = "STABLE" | "ACTIVE" | "FRACTURE" | "ASCENDANT";
+
+export function Scavenger({ armor = "#b7ab93", cloth = "#6d6a4a", visor = "#66e0ff", classId = "TITAN", visualState = "STABLE" }: { armor?: string; cloth?: string; visor?: string; classId?: ClassId; visualState?: ArmorVisualState }) {
+  const core = useRef<THREE.MeshStandardMaterial>(null);
+  const orbit = useRef<THREE.Group>(null);
+  useFrame(({ clock }, delta) => {
+    const intensity = visualState === "ASCENDANT" ? 4.8 : visualState === "FRACTURE" ? 3.8 : visualState === "ACTIVE" ? 2.8 : 1.6;
+    if (core.current) core.current.emissiveIntensity = intensity + Math.sin(clock.elapsedTime * 4) * 0.45;
+    if (orbit.current) orbit.current.rotation.y += delta * (classId === "HUNTER" ? 1.8 : classId === "WARLOCK" ? 0.9 : 0.45);
+  });
   const baseArmor = "#3a3d3c";
+  const width = classId === "TITAN" ? 1.12 : classId === "HUNTER" ? 0.88 : 0.98;
   return (
-    <group>
+    <group scale={[width, classId === "WARLOCK" ? 1.04 : 1, width]}>
       {/* legs */}
       {[-0.28, 0.28].map((x) => (
         <mesh key={x} position={[x, -0.95, 0]} castShadow>
@@ -186,12 +199,12 @@ export function Scavenger({ armor = "#b7ab93", cloth = "#6d6a4a", visor = "#66e0
       {/* chest plate */}
       <mesh position={[0, 0.2, 0.32]} castShadow>
         <boxGeometry args={[0.66, 0.6, 0.12]} />
-        <meshStandardMaterial color={armor} metalness={0.45} roughness={0.6} />
+          <meshStandardMaterial color={armor} metalness={0.45} roughness={0.6} emissive={visualState === "STABLE" ? "#000000" : visor} emissiveIntensity={visualState === "STABLE" ? 0 : 0.16} />
       </mesh>
       {/* chest status light */}
       <mesh position={[0, 0.3, 0.39]}>
         <cylinderGeometry args={[0.06, 0.06, 0.03, 12]} />
-        <meshStandardMaterial color="#ffb057" emissive="#ff9a2e" emissiveIntensity={1.8} toneMapped={false} />
+        <meshStandardMaterial ref={core} color={visor} emissive={visor} emissiveIntensity={1.8} toneMapped={false} />
       </mesh>
       {/* ammo pouch rack */}
       {[-0.2, 0.2].map((x) => (
@@ -273,6 +286,10 @@ export function Scavenger({ armor = "#b7ab93", cloth = "#6d6a4a", visor = "#66e0
       </mesh>
 
       <FieldPack />
+      <group ref={orbit} visible={visualState === "FRACTURE" || visualState === "ASCENDANT"}>
+        {[-1, 0, 1].map((index) => <mesh key={index} position={[Math.cos(index * 2.1) * 0.8, 0.2 + index * 0.28, Math.sin(index * 2.1) * 0.8]}><tetrahedronGeometry args={[0.1]} /><meshStandardMaterial color={visor} emissive={visor} emissiveIntensity={2.4} toneMapped={false} /></mesh>)}
+      </group>
+      {classId === "WARLOCK" && <group position={[0, 0.4, -0.2]}>{[-1, 1].map((side) => <mesh key={side} position={[side * 0.55, 0.45, 0]} rotation={[0.4, 0.2, side * 0.3]}><octahedronGeometry args={[0.12]} /><meshStandardMaterial color={visor} emissive={visor} emissiveIntensity={2} toneMapped={false} /></mesh>)}</group>}
       <Rifle position={[0.62, -0.05, 0.5]} rotation={[0, 0, 0]} />
       <SawCleaver />
     </group>

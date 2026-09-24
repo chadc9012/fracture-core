@@ -3,9 +3,9 @@ import { ZONE_COLOR, ZONE_LABEL } from "@/game/world";
 import type { HudState } from "./Scene";
 import { Inspector } from "./Inspector";
 import { Button } from "@/components/ui/button";
-import { BrainCircuit, CarFront, Menu } from "lucide-react";
+import { Anvil, BrainCircuit, CarFront, Castle, Menu, Network } from "lucide-react";
 
-export function HUD({ hud, onMenu, onStrategy, onGarage }: { hud: HudState; onMenu: () => void; onStrategy: () => void; onGarage: () => void }) {
+export function HUD({ hud, onMenu, onStrategy, onGarage, onOperations }: { hud: HudState; onMenu: () => void; onStrategy: () => void; onGarage: () => void; onOperations: (view: "DUNGEONS" | "ARSENAL" | "ABILITIES") => void }) {
   const color = ZONE_COLOR[hud.kind];
   const owner = FACTIONS[hud.owner];
   const challenger = FACTIONS[hud.challenger];
@@ -147,10 +147,13 @@ export function HUD({ hud, onMenu, onStrategy, onGarage }: { hud: HudState; onMe
       </div>
 
       {/* global actions */}
-      <div className="pointer-events-auto absolute left-2 top-2 flex gap-1 md:left-1/2 md:top-4 md:-translate-x-1/2">
-        <Button size="icon" variant="outline" onClick={onMenu} aria-label="Open menu"><Menu /></Button>
-        <Button size="sm" variant="outline" onClick={onStrategy} aria-label="Strategy"><BrainCircuit /><span className="hidden sm:inline">Strategy</span></Button>
-        <Button size="sm" variant="outline" onClick={onGarage} aria-label="Garage"><CarFront /><span className="hidden sm:inline">Garage</span></Button>
+      <div className="pointer-events-auto absolute left-2 top-2 flex max-w-[calc(100%-1rem)] gap-1 overflow-x-auto md:left-1/2 md:top-4 md:-translate-x-1/2">
+        <Button title="Menu" size="icon" variant="outline" onClick={onMenu} aria-label="Open menu"><Menu /></Button>
+        <Button title="Dungeons" size="icon" variant="outline" onClick={() => onOperations("DUNGEONS")} aria-label="Dungeons"><Castle /></Button>
+        <Button title="Arsenal" size="icon" variant="outline" onClick={() => onOperations("ARSENAL")} aria-label="Arsenal"><Anvil /></Button>
+        <Button title="Ability Network" size="icon" variant="outline" onClick={() => onOperations("ABILITIES")} aria-label="Ability Network"><Network /></Button>
+        <Button title="Raid Strategy" size="icon" variant="outline" onClick={onStrategy} aria-label="Raid Strategy"><BrainCircuit /></Button>
+        <Button title="Garage" size="icon" variant="outline" onClick={onGarage} aria-label="Garage"><CarFront /></Button>
       </div>
 
       {/* crosshair + weapon heat */}

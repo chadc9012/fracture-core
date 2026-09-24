@@ -36,7 +36,7 @@ export const BRANCHES: BranchDef[] = [
     id: "COMBAT_BRANCH",
     driver: "combat",
     threshold: 0.34,
-    forms: ["Rifle Mastery", "Precision Executioner", "Time-Locked Assassin"],
+    forms: ["Rifle Mastery", "Precision Executioner", "Time-Locked Duelist"],
     blurb: "You solve problems with the trigger.",
   },
   {

@@ -1,9 +1,9 @@
 import { Canvas } from "@react-three/fiber";
-import { ContactShadows, Environment, OrbitControls } from "@react-three/drei";
+import { ContactShadows, Environment, Lightformer, OrbitControls } from "@react-three/drei";
 import { Scavenger } from "./Scavenger";
-import type { AppearanceDefinition } from "@/game/loadout";
+import type { AppearanceDefinition, ClassId } from "@/game/loadout";
 
-export function OperatorPreview({ appearance }: { appearance: AppearanceDefinition }) {
+export function OperatorPreview({ appearance, classId = "TITAN" }: { appearance: AppearanceDefinition; classId?: ClassId }) {
   return <div className="relative min-h-80 overflow-hidden border border-border bg-card/40 fracture-scan" aria-label={`Live 3D preview of ${appearance.name}`}>
     <Canvas dpr={[1, 1.5]} camera={{ position: [5.5, 4.2, 9], fov: 32 }}>
       <color attach="background" args={["#0b1117"]} />
@@ -11,10 +11,10 @@ export function OperatorPreview({ appearance }: { appearance: AppearanceDefiniti
       <directionalLight position={[4, 8, 5]} intensity={2.8} color="#d8efff" />
       <pointLight position={[-4, 3, 2]} intensity={20} color={appearance.visor} />
       <group position={[0, -2.15, 0]} scale={1.18} rotation={[0, -0.25, 0]}>
-        <Scavenger armor={appearance.armor} cloth={appearance.cloth} visor={appearance.visor} />
+        <Scavenger armor={appearance.armor} cloth={appearance.cloth} visor={appearance.visor} classId={classId} visualState="ACTIVE" />
       </group>
       <ContactShadows position={[0, -2.18, 0]} opacity={0.65} scale={8} blur={2.5} />
-      <Environment preset="warehouse" />
+      <Environment><Lightformer intensity={2.4} position={[0, 5, 2]} scale={[8, 8, 1]} /><Lightformer intensity={1.2} color={appearance.visor} position={[-4, 1, 0]} rotation-y={Math.PI / 2} scale={[7, 2, 1]} /></Environment>
       <OrbitControls enablePan={false} enableZoom={false} minPolarAngle={Math.PI / 2.7} maxPolarAngle={Math.PI / 1.75} autoRotate autoRotateSpeed={0.7} target={[0, 0.1, 0]} />
     </Canvas>
     <div className="pointer-events-none absolute bottom-4 left-4">
