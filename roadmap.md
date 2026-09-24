@@ -3,7 +3,7 @@
 - [x] Make WORLD FRACTURE the sole game identity across the entire project.
 - [x] Add a cinematic WORLD FRACTURE title screen with Continue, New Game, Loadout / Customize, Settings, and Exit.
 - [x] Consolidate factions as Resonants, Controllers, Breakers, Corp Architects, Nomads, and neutral; only the first three participate in player allegiance.
-- [ ] Present The Core Breach raid and deterministic adaptive Overseer Core in the game interface/lore.
+- [x] Present The Core Breach raid and deterministic adaptive Overseer Core in the game interface/lore.
 - [x] Use the newest uploaded character, environment, and interface references as visual direction only.
 - [x] Add the full typed vehicle roster and starter deployment choices.
 - [x] Replace vehicle selection during onboarding with class, subclass, and live appearance selection.
@@ -14,4 +14,4 @@
 - [x] Add an in-app raid combat-log strategy advisor powered by AI Gateway.
 - [x] Strengthen biome-specific streaming, weather, interaction, and AI patrol behavior across Veridan, Wastelands, Ember, Frostspire, and Nexus.
 - [x] Prevent partial HUD state from crashing loot rendering.
-- [ ] Run full TypeScript, production build, desktop/mobile, and live 3D verification.
+- [x] Run full TypeScript, production build, desktop/mobile, and live 3D verification.
