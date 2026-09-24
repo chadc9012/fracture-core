@@ -14,6 +14,7 @@ import { StartMenu, type Deployment } from "./StartMenu";
 import { SettingsWindow, DEFAULT_SETTINGS, type GameSettings } from "./SettingsWindow";
 import { TitleScreen } from "./TitleScreen";
 import { RaidStrategyPanel } from "./RaidStrategyPanel";
+import { OperationsHub } from "./OperationsHub";
 
 const START = REGIONS.find((r) => r.id === "nexus")!;
 
@@ -81,6 +82,7 @@ export function GameCanvas() {
   const [vehicleUnlocked, setVehicleUnlocked] = useState(false);
   const [garageOpen, setGarageOpen] = useState(false);
   const [strategyOpen, setStrategyOpen] = useState(false);
+  const [operationsView, setOperationsView] = useState<"DUNGEONS" | "ARSENAL" | "ABILITIES" | null>(null);
   const [last, setLast] = useState<{ credits: number; kills: number } | null>(null);
 
   const deploy = (deployment: Deployment) => {
@@ -171,12 +173,13 @@ export function GameCanvas() {
       >
         <color attach="background" args={["#bfe4f2"]} />
         <Suspense fallback={null}>
-          <Scene onHud={setHud} settings={settings} playerClass={cls} subclassId={subclass} appearanceId={appearance} vehicleId={vehicleId} vehicleUnlocked={vehicleUnlocked} />
+          <Scene onHud={setHud} settings={settings} playerClass={cls} subclassId={subclass} appearanceId={appearance} vehicleId={vehicleId} vehicleUnlocked={vehicleUnlocked} armorState={hud.hp < 35 ? "FRACTURE" : hud.heat > 65 ? "ASCENDANT" : hud.heat > 15 ? "ACTIVE" : "STABLE"} />
         </Suspense>
 
       </Canvas>
-      <HUD hud={hud} onMenu={() => setMenuOpen(true)} onStrategy={() => setStrategyOpen(true)} onGarage={() => setGarageOpen(true)} />
+      <HUD hud={hud} onMenu={() => setMenuOpen(true)} onStrategy={() => setStrategyOpen(true)} onGarage={() => setGarageOpen(true)} onOperations={setOperationsView} />
       {strategyOpen && <RaidStrategyPanel onClose={() => setStrategyOpen(false)} />}
+      {operationsView && <OperationsHub initialView={operationsView} onClose={() => setOperationsView(null)} />}
       {hud.firstMissionComplete && !vehicleUnlocked && <div className="fixed inset-0 z-40 grid place-items-center bg-background/80 p-4 backdrop-blur-md"><section className="w-full max-w-3xl border border-primary bg-card p-6"><p className="font-mono text-[10px] uppercase tracking-[0.3em] text-primary">Mission 01 complete · Garage assistant online</p><h2 className="mt-2 text-2xl font-semibold">Choose your first vehicle</h2><p className="mt-2 text-sm text-muted-foreground">This frame becomes your permanent world-travel unlock.</p><div className="mt-5 grid gap-3 sm:grid-cols-2">{STARTER_VEHICLES.map((vehicle) => <Button key={vehicle.id} variant="outline" onClick={() => { setVehicleId(vehicle.id); setVehicleUnlocked(true); }} className="h-auto min-h-36 items-start justify-start rounded-none p-4 text-left whitespace-normal"><span><span className="font-mono text-base">{vehicle.name}</span><span className="mt-2 block text-xs text-muted-foreground">{vehicle.role}</span></span></Button>)}</div></section></div>}
       {garageOpen && <div className="fixed inset-0 z-40 grid place-items-center bg-background/80 p-4 backdrop-blur-md"><section className="max-h-[85vh] w-full max-w-4xl overflow-y-auto border border-border bg-card p-6"><div className="flex items-start justify-between"><div><p className="font-mono text-[10px] uppercase tracking-[0.3em] text-primary">Garage assistant</p><h2 className="mt-2 text-2xl">Vehicle registry</h2></div><Button variant="outline" onClick={() => setGarageOpen(false)}>Back</Button></div><div className="mt-5 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">{VEHICLES.map((vehicle) => { const unlocked = vehicleUnlocked && vehicle.id === vehicleId; return <div key={vehicle.id} className={`border p-3 ${unlocked ? "border-primary" : "border-border"}`}><p className="font-mono text-sm">{vehicle.name}</p><p className="mt-1 text-[10px] uppercase text-muted-foreground">{unlocked ? "Unlocked · summon with V" : vehicleAcquisition(vehicle).replace("_", " ")}</p></div>; })}</div></section></div>}
       {menuOpen && (
