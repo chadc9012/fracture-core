@@ -9,7 +9,7 @@ export type ArmorManifestItem = { id: string; name: string; tier: ArmorTier; slo
 const WEAPON_COUNTS: ReadonlyArray<[WeaponTier, number]> = [["T1", 25], ["T2", 30], ["T3", 28], ["T4", 22], ["T5", 12], ["S", 5]];
 const WEAPON_NAMES: Record<WeaponTier, readonly string[]> = {
   T1: ["Scrap-Slugger", "Pipe-Rail Pistol", "Rebar Crossbow", "Makeshift Sub-Carbine"],
-  T2: ["Vanguard MK-IV Assault Rifle", "Enforcer SMG", "Kinetic DMR", "Standard-Issue Sidearm"],
+  T2: ["Resonant MK-IV Assault Rifle", "Enforcer SMG", "Kinetic DMR", "Standard-Issue Sidearm"],
   T3: ["Magma-Core Heavy Repeater", "Cryo-Pulse Carbine", "Bio-Luminescent Arc-Caster"],
   T4: ["West Frontline MG", "Overclocked Phase-Disruptor", "Ash-Born Thermal-Blade Sword", "Ash-Born Thermal-Slade Maul", "Heavy Mag-Cannon"],
   T5: ["The Event Horizon", "Singularity-Core Minigun", "Void-Shard Blade"],
