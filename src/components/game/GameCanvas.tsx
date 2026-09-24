@@ -1,6 +1,6 @@
 import { Canvas } from "@react-three/fiber";
 import * as THREE from "three";
-import { Suspense, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 
 import { classById, subclassById, type AppearanceId, type ClassId, type SubclassId } from "@/game/loadout";
 import { REGIONS } from "@/game/world";
@@ -15,6 +15,9 @@ import { SettingsWindow, DEFAULT_SETTINGS, type GameSettings } from "./SettingsW
 import { TitleScreen } from "./TitleScreen";
 import { RaidStrategyPanel } from "./RaidStrategyPanel";
 import { OperationsHub } from "./OperationsHub";
+import { ZoneAnalysisPanel } from "./ZoneAnalysisPanel";
+import { completeMission, loadProgression, rewardVehicle, saveProgression, type PlayerProgression } from "@/game/progression";
+import { RENDER_PRESETS } from "@/game/performance";
 
 const START = REGIONS.find((r) => r.id === "nexus")!;
 
@@ -63,6 +66,12 @@ const initial: HudState = {
   vehicleDomain: "LAND",
   vehicleWeapon: "Ram bar + roof repeater",
   vehicleSeats: 2,
+  shield: 100,
+  energy: 0,
+  stability: 55,
+  blocking: false,
+  domeTime: 0,
+  titanFeedback: "",
   ownership: REGIONS.map((r) => ({
     id: r.id,
     name: r.name,
@@ -82,14 +91,22 @@ export function GameCanvas() {
   const [vehicleUnlocked, setVehicleUnlocked] = useState(false);
   const [garageOpen, setGarageOpen] = useState(false);
   const [strategyOpen, setStrategyOpen] = useState(false);
+  const [analysisOpen, setAnalysisOpen] = useState(false);
   const [operationsView, setOperationsView] = useState<"DUNGEONS" | "ARSENAL" | "ABILITIES" | null>(null);
   const [last, setLast] = useState<{ credits: number; kills: number } | null>(null);
+  const [progression, setProgression] = useState<PlayerProgression>(() => loadProgression());
+
+  useEffect(() => saveProgression(progression), [progression]);
+  useEffect(() => {
+    if (hud.firstMissionComplete && !progression.completedMissions.includes("mission-01")) setProgression((current) => completeMission(current, "mission-01"));
+  }, [hud.firstMissionComplete, progression.completedMissions]);
 
   const deploy = (deployment: Deployment) => {
     setCls(deployment.classId);
     setSubclass(deployment.subclassId);
     setAppearance(deployment.appearanceId);
-    setVehicleUnlocked(false);
+    setVehicleUnlocked(Boolean(progression.selectedVehicle));
+    if (progression.selectedVehicle) setVehicleId(progression.selectedVehicle);
     setHud((current) => ({
       ...current,
       region: "Veridan Forest",
@@ -131,8 +148,8 @@ export function GameCanvas() {
       <>
         {!menuOpen && (
           <TitleScreen
-            canContinue={last !== null}
-            onContinue={() => setPhase(last ? "world" : "loadout")}
+            canContinue={last !== null || progression.completedMissions.length > 0}
+            onContinue={() => setPhase(last || progression.completedMissions.length > 0 ? "world" : "loadout")}
             onNewGame={() => setPhase("loadout")}
             onLoadout={() => setPhase("loadout")}
             onSettings={() => setMenuOpen(true)}
@@ -162,8 +179,8 @@ export function GameCanvas() {
   return (
     <div className="fixed inset-0 bg-background">
       <Canvas
-        shadows
-        dpr={[1, 1.75]}
+        shadows={RENDER_PRESETS[settings.renderTier].shadows}
+        dpr={[1, RENDER_PRESETS[settings.renderTier].dpr]}
         gl={{ antialias: true, toneMapping: THREE.ACESFilmicToneMapping }}
         camera={{
           position: [START.x, walkHeight(START.x, START.z) + 30, START.z + 46],
@@ -177,11 +194,12 @@ export function GameCanvas() {
         </Suspense>
 
       </Canvas>
-      <HUD hud={hud} onMenu={() => setMenuOpen(true)} onStrategy={() => setStrategyOpen(true)} onGarage={() => setGarageOpen(true)} onOperations={setOperationsView} />
+      <HUD hud={hud} onMenu={() => setMenuOpen(true)} onStrategy={() => setStrategyOpen(true)} onGarage={() => setGarageOpen(true)} onAnalyze={() => setAnalysisOpen(true)} onOperations={setOperationsView} />
       {strategyOpen && <RaidStrategyPanel onClose={() => setStrategyOpen(false)} />}
-      {operationsView && <OperationsHub initialView={operationsView} onClose={() => setOperationsView(null)} />}
-      {hud.firstMissionComplete && !vehicleUnlocked && <div className="fixed inset-0 z-40 grid place-items-center bg-background/80 p-4 backdrop-blur-md"><section className="w-full max-w-3xl border border-primary bg-card p-6"><p className="font-mono text-[10px] uppercase tracking-[0.3em] text-primary">Mission 01 complete · Garage assistant online</p><h2 className="mt-2 text-2xl font-semibold">Choose your first vehicle</h2><p className="mt-2 text-sm text-muted-foreground">This frame becomes your permanent world-travel unlock.</p><div className="mt-5 grid gap-3 sm:grid-cols-2">{STARTER_VEHICLES.map((vehicle) => <Button key={vehicle.id} variant="outline" onClick={() => { setVehicleId(vehicle.id); setVehicleUnlocked(true); }} className="h-auto min-h-36 items-start justify-start rounded-none p-4 text-left whitespace-normal"><span><span className="font-mono text-base">{vehicle.name}</span><span className="mt-2 block text-xs text-muted-foreground">{vehicle.role}</span></span></Button>)}</div></section></div>}
-      {garageOpen && <div className="fixed inset-0 z-40 grid place-items-center bg-background/80 p-4 backdrop-blur-md"><section className="max-h-[85vh] w-full max-w-4xl overflow-y-auto border border-border bg-card p-6"><div className="flex items-start justify-between"><div><p className="font-mono text-[10px] uppercase tracking-[0.3em] text-primary">Garage assistant</p><h2 className="mt-2 text-2xl">Vehicle registry</h2></div><Button variant="outline" onClick={() => setGarageOpen(false)}>Back</Button></div><div className="mt-5 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">{VEHICLES.map((vehicle) => { const unlocked = vehicleUnlocked && vehicle.id === vehicleId; return <div key={vehicle.id} className={`border p-3 ${unlocked ? "border-primary" : "border-border"}`}><p className="font-mono text-sm">{vehicle.name}</p><p className="mt-1 text-[10px] uppercase text-muted-foreground">{unlocked ? "Unlocked · summon with V" : vehicleAcquisition(vehicle).replace("_", " ")}</p></div>; })}</div></section></div>}
+      {analysisOpen && <ZoneAnalysisPanel zoneName={hud.region} onClose={() => setAnalysisOpen(false)} />}
+      {operationsView && <OperationsHub initialView={operationsView} progression={progression} onProgression={setProgression} onClose={() => setOperationsView(null)} />}
+      {hud.firstMissionComplete && !vehicleUnlocked && <div className="fixed inset-0 z-40 grid place-items-center bg-background/80 p-4 backdrop-blur-md"><section className="w-full max-w-3xl border border-primary bg-card p-6"><p className="font-mono text-[10px] uppercase tracking-[0.3em] text-primary">Mission 01 complete · Garage assistant online</p><h2 className="mt-2 text-2xl font-semibold">Choose your first vehicle</h2><p className="mt-2 text-sm text-muted-foreground">This frame becomes your permanent world-travel unlock.</p><div className="mt-5 grid gap-3 sm:grid-cols-2">{STARTER_VEHICLES.map((vehicle) => <Button key={vehicle.id} variant="outline" onClick={() => { setVehicleId(vehicle.id); setVehicleUnlocked(true); setProgression((current) => rewardVehicle(current, vehicle.id)); }} className="h-auto min-h-36 items-start justify-start rounded-none p-4 text-left whitespace-normal"><span><span className="font-mono text-base">{vehicle.name}</span><span className="mt-2 block text-xs text-muted-foreground">{vehicle.role}</span></span></Button>)}</div></section></div>}
+      {garageOpen && <div className="fixed inset-0 z-40 grid place-items-center bg-background/80 p-4 backdrop-blur-md"><section className="max-h-[85vh] w-full max-w-4xl overflow-y-auto border border-border bg-card p-6"><div className="flex items-start justify-between"><div><p className="font-mono text-[10px] uppercase tracking-[0.3em] text-primary">Garage assistant</p><h2 className="mt-2 text-2xl">Vehicle registry</h2><p className="mt-1 text-xs text-muted-foreground">Garage loadout {progression.garageLoadout.length}/3</p></div><Button variant="outline" onClick={() => setGarageOpen(false)}>Back</Button></div><div className="mt-5 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">{VEHICLES.map((vehicle) => { const owned = progression.ownedVehicles.includes(vehicle.id); const selected = progression.selectedVehicle === vehicle.id; return <div key={vehicle.id} className={`border p-3 ${selected ? "border-primary" : "border-border"}`}><p className="font-mono text-sm">{vehicle.name}</p><p className="mt-1 text-[10px] uppercase text-muted-foreground">{selected ? "Active · summon with V" : owned ? "Owned" : vehicleAcquisition(vehicle).replace("_", " ")}</p>{owned && !selected && <Button size="sm" variant="outline" className="mt-3" onClick={() => { setVehicleId(vehicle.id); setVehicleUnlocked(true); setProgression((current) => ({ ...current, selectedVehicle: vehicle.id })); }}>Equip</Button>}</div>; })}</div></section></div>}
       {menuOpen && (
         <SettingsWindow
           settings={settings}

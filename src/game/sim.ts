@@ -30,6 +30,7 @@ import {
   directorTick,
   type Director,
 } from "./director";
+import { absorbTitanDamage, createTitanState, tickTitan, type TitanState } from "./titan";
 
 /* ------------------------------------------------------------------
  * World simulation: faction capture, fracture instability,
@@ -153,6 +154,8 @@ export type WorldSim = {
   loot: LootItem[];
   /** everything picked up this session */
   vault: LootItem[];
+  titan: TitanState;
+  titanActive: boolean;
 };
 
 export const HEAT_PER_SHOT_FOOT = 7;
@@ -286,6 +289,8 @@ export function createSim(): WorldSim {
     overheated: false,
     loot: [],
     vault: [],
+    titan: createTitanState(),
+    titanActive: false,
   };
 }
 
@@ -344,8 +349,9 @@ export function fireBullet(
 }
 
 /** hurt the player and respawn at Nexus when the hull is gone */
-function hurtPlayer(sim: WorldSim, dmg: number, cause: string) {
-  sim.hp = Math.max(0, sim.hp - dmg);
+export function hurtPlayer(sim: WorldSim, dmg: number, cause: string) {
+  const resolvedDamage = sim.titanActive ? absorbTitanDamage(sim.titan, dmg, performance.now() / 1000) : dmg;
+  sim.hp = Math.max(0, sim.hp - resolvedDamage);
   if (sim.hp === 0) {
     sim.hp = 100;
     sim.cargo = 0;
@@ -457,6 +463,7 @@ export function stepSim(sim: WorldSim, input: SimInput) {
   const { dt, px, pz, night } = input;
   const t0 = performance.now();
   beginStats(sim.stats);
+  if (sim.titanActive) tickTitan(sim.titan, dt);
 
   // ---------- adaptive build loop ----------
   // passive behaviour: time spent driving, sneaking past hostiles, holding the line

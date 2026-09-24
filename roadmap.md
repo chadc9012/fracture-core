@@ -22,3 +22,9 @@
 - [x] Redesign onboarding around the supplied equipment and character references.
 - [x] Add modular cosmetics and live Stable/Active/Fracture/Ascendant armor states.
 - [x] Verify counts, dungeon flow, progression interactions, responsive layouts, and production health.
+- [x] Persist mission, ability, reward vehicle, and garage-loadout progression across sessions.
+- [x] Add AI screenshot hazard analysis with upload validation and traversal recommendations.
+- [x] Add independent gameplay/simulation/visual/network/optimization contracts and render presets.
+- [x] Add the Titan shield timing vertical slice, arena cover, hazard, and combat HUD feedback.
+- [x] Apply supplied launch and operator artwork to the title and onboarding flow.
+- [x] Verify TypeScript, production health, responsive interaction, AI request, and legacy-name audit.
