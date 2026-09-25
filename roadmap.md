@@ -28,9 +28,9 @@
 - [x] Add the Titan shield timing vertical slice, arena cover, hazard, and combat HUD feedback.
 - [x] Apply supplied launch and operator artwork to the title and onboarding flow.
 - [x] Verify TypeScript, production health, responsive interaction, AI request, and legacy-name audit.
-- [ ] Add the five-stage Sunken Arcology Vaults runtime and deterministic sand-pressure rules.
-- [ ] Add playable Burial Gates, Velocity Protocol, and Synthesis Fracture vertical slices.
-- [ ] Add shared enemy perception, threat, archetype, and fair fight-memory adaptation.
-- [ ] Add a unified data-driven combat ability/effect/state/synergy engine.
-- [ ] Add ability mastery, branch evolution, modifiers, and premium progression UI.
+- [x] Add the five-stage Sunken Arcology Vaults runtime and deterministic sand-pressure rules.
+- [x] Add playable Burial Gates, Velocity Protocol, and Synthesis Fracture vertical slices.
+- [x] Add shared enemy perception, threat, archetype, and fair fight-memory adaptation.
+- [x] Add a unified data-driven combat ability/effect/state/synergy engine.
+- [x] Add ability mastery, branch evolution, modifiers, and premium progression UI.
 - [ ] Verify TypeScript, production health, runtime flows, responsive UI, and legacy-name audit.
