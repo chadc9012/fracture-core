@@ -6,7 +6,7 @@ import * as THREE from "three";
 import { REGIONS, SKY, ZONE_COLOR, clockLabel, phaseFor, regionAt, WORLD_RADIUS } from "@/game/world";
 import { useKeyboard } from "@/game/useKeyboard";
 import { walkHeight, slopeAt, heightAt, WATER_LEVEL } from "@/game/terrain";
-import { alert, collidePlayer, createSim, fireBullet, stepSim, type Faction, type WorldSim } from "@/game/sim";
+import { alert, collidePlayer, createSim, defeatMachine, fireBullet, stepSim, summonBoss, type Faction, type WorldSim } from "@/game/sim";
 import { directorTrend, type Mission } from "@/game/director";
 import { Terrain } from "./Terrain";
 import { Bullets, Convoys, SupplyLanes, WarMachines, ZoneBeacons } from "./Actors";
@@ -28,6 +28,7 @@ import type { TutorialEvent, TutorialState } from "@/game/onboarding";
 import type { GameSettings } from "./SettingsWindow";
 import { WEAPONS, WEAPON_ORDER, decay, type WeaponId } from "@/game/weapons";
 import type { ArmorVisualState } from "./Scavenger";
+import type { PlayerProgression } from "@/game/progression";
 
 export type LootView = { name: string; rarity: Rarity; power: number; mods: string[]; color: string };
 
@@ -170,6 +171,8 @@ export function Scene({
   abilityBranches = {},
   tutorial,
   onTutorialEvent,
+  onDrops,
+  gear,
 }: {
   onHud: (s: HudState) => void;
   settings?: GameSettings;
@@ -184,6 +187,8 @@ export function Scene({
   abilityBranches?: Record<string, string>;
   tutorial?: TutorialState | null;
   onTutorialEvent?: (event: TutorialEvent) => void;
+  onDrops?: (drops: WorldSim["drops"]) => void;
+  gear?: Pick<PlayerProgression, "inventory" | "equippedGear">;
 }) {
   const keys = useKeyboard();
   const sim = useMemo<WorldSim>(() => createSim(), []);
@@ -205,6 +210,7 @@ export function Scene({
   const live = useRef(createLiveBuild(activeBuild, abilityBranches));
   const abilityHeld = useRef<Record<string, boolean>>({});
   const cameraToggleHeld = useRef(false);
+  const bossHeld = useRef(false);
   const tutorialClock = useRef(0);
   const lastGate = useRef(0);
   const tutorialEnemyHealth = useRef(2);
@@ -263,7 +269,7 @@ export function Scene({
           if (!machine) continue;
           machine.alive = true; machine.x = s.x + (i - (count - 1) / 2) * 8; machine.z = s.z - 28;
           machine.y = walkHeight(machine.x, machine.z); machine.hp = tutorial.step === "SENTINEL" ? 14 : 3;
-          machine.scale = tutorial.step === "SENTINEL" ? 2 : 1; machine.zone = "veridan"; machine.cool = 2; machine.elite = tutorial.step === "SENTINEL"; machine.kx = 0; machine.kz = 0;
+           machine.scale = tutorial.step === "SENTINEL" ? 2 : 1; machine.zone = "veridan"; machine.cool = 2; machine.elite = tutorial.step === "SENTINEL"; machine.boss = tutorial.step === "SENTINEL"; machine.profile = tutorial.step === "SENTINEL" ? "Adaptive Sentinel" : "Cyber-Corrupted Drone"; machine.kind = "OVERCLOCKED"; machine.drop = "microCircuits"; machine.kx = 0; machine.kz = 0;
           if (tutorial.step === "SENTINEL") sentinel.current = machine;
         }
         tutorialKills.current = sim.kills;
@@ -470,6 +476,10 @@ export function Scene({
     s.fps = s.fps * 0.9 + (1 / Math.max(0.001, raw)) * 0.1;
 
     const here = regionAt(s.x, s.z);
+    if (held.has("KeyB") && !bossHeld.current && here && here.kind !== "safe" && !tutorial && !sim.machines.some((m) => m.alive && m.boss && m.zone === here.id)) {
+      summonBoss(sim, here.id, s.x + Math.sin(s.yaw) * 24, s.z + Math.cos(s.yaw) * 24);
+    }
+    bossHeld.current = held.has("KeyB");
     for (const [key, slot] of [["KeyQ", "PRIMARY"], ["KeyE", "TACTICAL"], ["KeyR", "ULTIMATE"]] as const) {
       if (held.has(key) && !abilityHeld.current[key] && !s.inVehicle) {
         const ability = activateLiveAbility(live.current, slot, here?.kind ?? "war");
@@ -522,7 +532,7 @@ export function Scene({
         if (Math.hypot(dx, dz) > 7 || dx * Math.sin(s.yaw) + dz * Math.cos(s.yaw) < 0) continue;
         enemy.hp -= 2.4;
         enemy.cool = Math.max(enemy.cool, 0.5);
-        if (enemy.hp <= 0) { enemy.alive = false; sim.kills++; sim.credits += 45; alert(sim, "Close-quarters takedown +45 cr"); }
+         defeatMachine(sim, enemy);
       }
     }
 
@@ -557,6 +567,9 @@ export function Scene({
     /* ------- weapon system: guns = rhythm, sword = close-quarters, feel springs back ------- */
     WEAPON_ORDER.forEach((id, i) => { if (held.has(`Digit${i + 1}`) && s.weapon !== id) { s.weapon = id; s.burstLeft = 0; s.fireCool = Math.max(s.fireCool, 0.25); alert(sim, `${WEAPONS[id].name} equipped`); } });
     const wpn = s.inVehicle ? WEAPONS.AUTO : WEAPONS[s.weapon];
+    const equippedWeapon = gear?.inventory.find((item) => item.id === gear.equippedGear[s.inVehicle ? "vehicle" : s.weapon === "HEAVY" ? "heavy" : s.weapon === "PULSE" ? "secondary" : "primary"]);
+    const gearPower = equippedWeapon ? 1 + Math.max(0, equippedWeapon.power - 100) / 500 : 1;
+    sim.equippedElement = equippedWeapon?.element ?? "KINETIC";
     s.recoil = decay(s.recoil, 9, dt);
     s.punch = decay(s.punch, 14, dt);
     s.bloom = decay(s.bloom, 6, dt);
@@ -568,7 +581,7 @@ export function Scene({
       const spread = (wpn.spread + s.bloom * 0.04) * (mouse.current.aim ? wpn.adsSpread : 1);
       const yawJ = (Math.random() - 0.5) * 2 * spread;
       const pitchJ = (Math.random() - 0.5) * 2 * spread;
-      if (fireBullet(sim, s.x, s.y + (s.inVehicle ? 1.5 : 0.95), s.z, s.yaw + yawJ, s.inVehicle, s.pitch + s.recoil + pitchJ, wpn.damage, wpn.knock, wpn.heat)) {
+       if (fireBullet(sim, s.x, s.y + (s.inVehicle ? 1.5 : 0.95), s.z, s.yaw + yawJ, s.inVehicle, s.pitch + s.recoil + pitchJ, wpn.damage * gearPower, wpn.knock, wpn.heat)) {
         s.recoil += wpn.recoil;
         s.punch += wpn.punch;
         s.bloom = Math.min(1, s.bloom + 0.18 * wpn.punch);
@@ -595,7 +608,7 @@ export function Scene({
           enemy.kz += (dz / Math.max(d, 0.1)) * wpn.knock * 8;
           enemy.cool = Math.max(enemy.cool, 0.6);
           sim.lastHit = performance.now();
-          if (enemy.hp <= 0) { enemy.alive = false; sim.kills++; sim.credits += 45; alert(sim, s.combo === 3 ? "Finisher +45 cr" : "Blade takedown +45 cr"); }
+           defeatMachine(sim, enemy);
         }
       }
     } else if (!sim.overheated) {
@@ -622,7 +635,8 @@ export function Scene({
     const traction = Math.max(0.18, biomeGrip * (1 - slope * 0.75) * (submerged ? 0.45 : 1));
 
     if (s.inVehicle) {
-      const maxSpeed = 62 * biomeGrip * (boost ? 1.5 : 1) * sim.mods.vehicleSpeed * selectedVehicle.speed;
+       const vehicleGear = gear?.inventory.find((item) => item.id === gear.equippedGear.vehicle);
+       const maxSpeed = 62 * biomeGrip * (boost ? 1.5 : 1) * sim.mods.vehicleSpeed * selectedVehicle.speed * (vehicleGear ? 1 + vehicleGear.level * 0.04 : 1);
       const accel = 52 * traction * selectedVehicle.speed;
       if (throttleF) s.vSpeed += accel * dt;
       else if (throttleB) s.vSpeed -= accel * 0.8 * dt;
@@ -769,6 +783,7 @@ export function Scene({
     report.current += dt;
     if (report.current > 0.18) {
       report.current = 0;
+      if (sim.drops.length) onDrops?.(sim.drops.splice(0));
       const zone = sim.zones.find((z) => z.region.id === here?.id);
       onHud({
         region: here?.name ?? "Open Wilds",

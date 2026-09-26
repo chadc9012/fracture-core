@@ -3,9 +3,9 @@ import { ZONE_COLOR, ZONE_LABEL } from "@/game/world";
 import type { HudState } from "./Scene";
 import { Inspector } from "./Inspector";
 import { Button } from "@/components/ui/button";
-import { Anvil, BrainCircuit, CarFront, Castle, ImageUp, Menu, Network } from "lucide-react";
+import { Anvil, BrainCircuit, CarFront, Castle, ImageUp, Menu, Network, Backpack, Map } from "lucide-react";
 
-export function HUD({ hud, tutorialActive = false, onMenu, onStrategy, onGarage, onAnalyze, onOperations }: { hud: HudState; tutorialActive?: boolean; onMenu: () => void; onStrategy: () => void; onGarage: () => void; onAnalyze: () => void; onOperations: (view: "DUNGEONS" | "ARSENAL" | "ABILITIES") => void }) {
+export function HUD({ hud, tutorialActive = false, onMenu, onStrategy, onGarage, onAnalyze, onOperations, onInventory, onAtlas }: { hud: HudState; tutorialActive?: boolean; onMenu: () => void; onStrategy: () => void; onGarage: () => void; onAnalyze: () => void; onInventory: () => void; onAtlas: () => void; onOperations: (view: "DUNGEONS" | "ARSENAL" | "ABILITIES") => void }) {
   const color = ZONE_COLOR[hud.kind];
   const owner = FACTIONS[hud.owner];
   const challenger = FACTIONS[hud.challenger];
@@ -150,6 +150,8 @@ export function HUD({ hud, tutorialActive = false, onMenu, onStrategy, onGarage,
       <div className="pointer-events-auto absolute left-2 top-2 flex max-w-[calc(100%-1rem)] gap-1 overflow-x-auto md:left-1/2 md:top-4 md:-translate-x-1/2">
         <Button title="Menu" size="icon" variant="outline" onClick={onMenu} aria-label="Open menu"><Menu /></Button>
          {!tutorialActive && <><Button title="Dungeons" size="icon" variant="outline" onClick={() => onOperations("DUNGEONS")} aria-label="Dungeons"><Castle /></Button>
+         <Button title="Inventory" size="icon" variant="outline" onClick={onInventory} aria-label="Inventory"><Backpack /></Button>
+         <Button title="World map" size="icon" variant="outline" onClick={onAtlas} aria-label="World map"><Map /></Button>
         <Button title="Arsenal" size="icon" variant="outline" onClick={() => onOperations("ARSENAL")} aria-label="Arsenal"><Anvil /></Button>
         <Button title="Ability Network" size="icon" variant="outline" onClick={() => onOperations("ABILITIES")} aria-label="Ability Network"><Network /></Button>
         <Button title="Raid Strategy" size="icon" variant="outline" onClick={onStrategy} aria-label="Raid Strategy"><BrainCircuit /></Button>

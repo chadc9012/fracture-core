@@ -31,6 +31,9 @@ import {
   type Director,
 } from "./director";
 import { absorbTitanDamage, createTitanState, tickTitan, type TitanState } from "./titan";
+import { encounterFor, troopFor } from "./encounters";
+import type { MaterialId } from "./inventory";
+import type { GearItem } from "./inventory";
 
 /* ------------------------------------------------------------------
  * World simulation: faction capture, fracture instability,
@@ -69,6 +72,10 @@ export type Machine = {
   zone: string;
   cool: number;
   elite: boolean;
+  profile: string;
+  kind: "RAIDER" | "OVERCLOCKED" | "ABERRATION" | "VANGUARD";
+  drop: MaterialId;
+  boss: boolean;
   /** knockback velocity from impacts */
   kx: number;
   kz: number;
@@ -160,6 +167,10 @@ export type WorldSim = {
   vault: LootItem[];
   titan: TitanState;
   titanActive: boolean;
+  equippedElement: GearItem["element"];
+  materials: Partial<Record<MaterialId, number>>;
+  drops: { id: number; material: MaterialId; amount: number; enemy: string }[];
+  nextDropId: number;
 };
 
 export const HEAT_PER_SHOT_FOOT = 7;
@@ -181,6 +192,20 @@ function dropLoot(sim: WorldSim, zone: ZoneState | undefined, enemyType: string)
   sim.vault.push(item);
   sim.credits += Math.round(item.power * 0.12);
   alert(sim, `${item.rarity} drop — ${item.name}`);
+}
+
+export function defeatMachine(sim: WorldSim, m: Machine) {
+  if (!m.alive || m.hp > 0) return;
+  m.alive = false;
+  sim.kills++;
+  sim.credits += m.boss ? 250 : m.elite ? 75 : 45;
+  directorEvent(sim.director, { type: "KILL" });
+  const material = m.drop;
+  const amount = m.boss ? 3 : m.elite ? 2 : 1;
+  sim.materials[material] = (sim.materials[material] ?? 0) + amount;
+  sim.drops.push({ id: sim.nextDropId++, material, amount, enemy: m.profile });
+  dropLoot(sim, zoneOf(sim, m.zone), m.boss ? "ELITE" : m.profile);
+  alert(sim, `${m.profile} defeated · ${material.replace(/([A-Z])/g, " $1")} +${amount}`);
 }
 
 const byId = (id: string) => REGIONS.find((r) => r.id === id)!;
@@ -215,6 +240,7 @@ export function createSim(): WorldSim {
     zone: "",
     cool: 0,
     elite: false,
+    profile: "Wasteland Grunt", kind: "RAIDER", drop: "scrapMetal", boss: false,
     kx: 0,
     kz: 0,
   }));
@@ -299,6 +325,8 @@ export function createSim(): WorldSim {
     vault: [],
     titan: createTitanState(),
     titanActive: false,
+    equippedElement: "KINETIC",
+    materials: {}, drops: [], nextDropId: 0,
   };
 }
 
@@ -319,6 +347,9 @@ function spawnMachine(sim: WorldSim, zone: ZoneState, elite = false) {
   m.alive = true;
   m.x = zone.region.x + Math.cos(a) * d;
   m.z = zone.region.z + Math.sin(a) * d;
+  const profile = troopFor(zone.region.id, Math.floor(Math.random() * 3));
+  if (!profile) return;
+  m.profile = profile.name; m.kind = profile.kind; m.drop = profile.drop as MaterialId; m.boss = false;
   m.hp = (elite ? 7 : 3) + Math.round(zone.region.difficulty * 0.8);
   m.rot = 0;
   m.scale = (elite ? 1.5 : 0.9) + Math.random() * 0.7;
@@ -327,6 +358,15 @@ function spawnMachine(sim: WorldSim, zone: ZoneState, elite = false) {
   m.elite = elite;
   m.kx = 0;
   m.kz = 0;
+}
+
+export function summonBoss(sim: WorldSim, regionId: string, x: number, z: number): boolean {
+  const boss = encounterFor(regionId)?.boss;
+  const m = sim.machines.find((candidate) => !candidate.alive);
+  if (!boss || !m) return false;
+  Object.assign(m, { alive: true, x, z, y: walkHeight(x, z) + 5, hp: 28, rot: 0, scale: 2.3, zone: regionId, cool: 2, elite: true, boss: true, profile: boss.name, kind: "OVERCLOCKED", drop: boss.drop, kx: 0, kz: 0 });
+  alert(sim, `${boss.name} · ${boss.tell}`);
+  return true;
 }
 
 export function fireBullet(
@@ -418,14 +458,7 @@ export function collidePlayer(sim: WorldSim, body: PlayerBody) {
       logBehavior(sim.adaptation, body.inVehicle ? "vehicles" : "combat", 2);
       body.vSpeed *= 0.4;
       sim.combatHeat += 4;
-      if (m.hp <= 0) {
-        m.alive = false;
-        sim.kills++;
-        sim.credits += 45;
-        directorEvent(sim.director, { type: "KILL" });
-        alert(sim, "Rammed a war machine  +45 cr");
-        dropLoot(sim, zoneOf(sim, m.zone), m.elite ? "ELITE" : "FRACTURE_MACHINE");
-      }
+       defeatMachine(sim, m);
       hurtPlayer(sim, (force * 0.12) / sim.mods.hullDurability, "vehicle collision");
     } else {
       hurtPlayer(sim, (force * 0.02) / sim.mods.hullDurability, "vehicle collision");
@@ -615,7 +648,7 @@ export function stepSim(sim: WorldSim, input: SimInput) {
       if (d < 6 && m.cool <= 0) {
         m.cool = 1.1;
         sim.combatHeat += 2;
-        hurtPlayer(sim, (m.elite ? 12 : 7) / sim.mods.hullDurability, "war machine");
+         hurtPlayer(sim, (m.boss ? 17 : m.elite ? 12 : 7) / sim.mods.hullDurability, m.profile);
         // machines besieging Nexus chew the city core
         if (Math.hypot(m.x - byId("nexus").x, m.z - byId("nexus").z) < byId("nexus").radius) {
           sim.coreHp = Math.max(0, sim.coreHp - 2);
@@ -652,12 +685,8 @@ export function stepSim(sim: WorldSim, input: SimInput) {
         o.z -= (sz / dist) * push;
       }
     }
-    if (m.hp <= 0) {
-      m.alive = false;
-      sim.kills++;
-      sim.credits += 30;
-      directorEvent(sim.director, { type: "KILL" });
-      alert(sim, "War machine wrecked on the terrain");
+     if (m.hp <= 0) {
+       defeatMachine(sim, m);
       continue;
     }
     m.y = walkHeight(m.x, m.z) + 2.2 * m.scale;
@@ -687,9 +716,7 @@ export function stepSim(sim: WorldSim, input: SimInput) {
       m.kz += (dz / d) * 14;
       m.hp -= dt * 6;
       if (m.hp <= 0) {
-        m.alive = false;
-        sim.kills++;
-        sim.credits += 15;
+         defeatMachine(sim, m);
         alert(sim, `${r.name} stability field vaporised a war machine`);
       }
     }
@@ -722,9 +749,7 @@ export function stepSim(sim: WorldSim, input: SimInput) {
     best.kx += (dx / d) * 8;
     best.kz += (dz / d) * 8;
     if (best.hp <= 0) {
-      best.alive = false;
-      sim.kills++;
-      sim.credits += 20;
+       defeatMachine(sim, best);
       alert(sim, "Safe-zone turret destroyed an ambusher");
     }
   }
@@ -888,20 +913,17 @@ export function stepSim(sim: WorldSim, input: SimInput) {
       if (Math.hypot(m.x - b.x, m.z - b.z) < 3.4 * m.scale) {
         b.alive = false;
         m.hp -= sim.mods.bulletDamage * b.dmg;
+        if (sim.equippedElement !== "KINETIC") {
+          m.hp -= 0.35;
+          if (sim.equippedElement === "CRYO" || sim.equippedElement === "ARC") m.cool = Math.max(m.cool, sim.equippedElement === "CRYO" ? 0.9 : 0.6);
+        }
         sim.lastHit = performance.now();
         logBehavior(sim.adaptation, "combat", 1);
         // knockback impulse from the hit direction
         m.kx += b.vx * 0.06 * b.knock;
         m.kz += b.vz * 0.06 * b.knock;
         sim.combatHeat += 1.5;
-        if (m.hp <= 0) {
-          m.alive = false;
-          sim.kills++;
-          sim.credits += 45;
-          directorEvent(sim.director, { type: "KILL" });
-          alert(sim, "War machine destroyed  +45 cr");
-          dropLoot(sim, zoneOf(sim, m.zone), m.elite ? "ELITE" : "FRACTURE_MACHINE");
-        }
+         defeatMachine(sim, m);
         break;
       }
     }

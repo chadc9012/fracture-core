@@ -45,3 +45,5 @@
 - [x] Make first-person shooting the default, retain a saved third-person preference, and blend to third-person for melee and special-skill actions with aligned aim and controls.
 - [x] Weapon system: auto/pulse/heavy/sword, recoil, spread, camera punch, crosshair bloom, hit markers
 - [x] Cloud saves: sign-in, save migration, cross-device merge with undo
+- [x] Add seven-region atlas using supplied map art, regional enemy and dungeon boss references, and zone intelligence.
+- [x] Add regional enemy appearances, named boss encounters, farmable materials, inventory loadout, upgrades, and elemental infusion.
