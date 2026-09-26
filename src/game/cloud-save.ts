@@ -39,6 +39,14 @@ export function mergeProgression(local: PlayerProgression, cloud: PlayerProgress
     completedMissions: union(local.completedMissions, cloud.completedMissions),
     unlockedAbilities: union(local.unlockedAbilities, cloud.unlockedAbilities),
     earnedRewards: union(local.earnedRewards, cloud.earnedRewards),
+    inventory: [...new Map([...cloud.inventory, ...local.inventory].map((item) => [item.id, item])).values()].map((item) => {
+      const other = cloud.inventory.find((entry) => entry.id === item.id);
+      const localItem = local.inventory.find((entry) => entry.id === item.id);
+      const best = other && localItem ? (localItem.level >= other.level ? localItem : other) : item;
+      return { ...best, favorite: Boolean(other?.favorite || localItem?.favorite) };
+    }),
+    equippedGear: newer.equippedGear,
+    materials: maxRecord(local.materials, cloud.materials, Math.max),
     ownedVehicles,
     garageLoadout: garage.length ? garage : ownedVehicles.slice(-3),
     selectedVehicle: newer.selectedVehicle && ownedVehicles.includes(newer.selectedVehicle) ? newer.selectedVehicle : ownedVehicles.at(-1) ?? null,

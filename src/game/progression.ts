@@ -1,8 +1,9 @@
 import { DEFAULT_BUILD, type ActiveBuild } from "./ability-network";
 import type { VehicleId } from "./vehicles";
+import { STARTER_GEAR, STARTER_SLOTS, type GearItem, type GearSlot, type MaterialId } from "./inventory";
 
 export type PlayerProgression = {
-  version: 3;
+  version: 4;
   completedMissions: string[];
   unlockedAbilities: string[];
   ownedVehicles: VehicleId[];
@@ -17,12 +18,15 @@ export type PlayerProgression = {
   tutorialComplete: boolean;
   dungeonClears: Record<string, number>;
   earnedRewards: string[];
+  inventory: GearItem[];
+  equippedGear: Partial<Record<GearSlot, string>>;
+  materials: Partial<Record<MaterialId, number>>;
 };
 
 const STORAGE_KEY = "world-fracture.progression.v1";
 
 export const DEFAULT_PROGRESSION: PlayerProgression = {
-  version: 3,
+  version: 4,
   completedMissions: [],
   unlockedAbilities: ["fracture-shield", "phase-dash", "code-pulse"],
   ownedVehicles: [],
@@ -37,6 +41,9 @@ export const DEFAULT_PROGRESSION: PlayerProgression = {
   tutorialComplete: false,
   dungeonClears: {},
   earnedRewards: [],
+  inventory: STARTER_GEAR,
+  equippedGear: STARTER_SLOTS,
+  materials: {},
 };
 
 export function loadProgression(): PlayerProgression {
@@ -52,7 +59,7 @@ export function loadProgression(): PlayerProgression {
 export function normalizeProgression(raw: unknown): PlayerProgression {
   try {
     const parsed = raw as (Partial<Omit<PlayerProgression, "version">> & { version?: number }) | null;
-    if (!parsed || (parsed.version !== 1 && parsed.version !== 2 && parsed.version !== 3)) return DEFAULT_PROGRESSION;
+     if (!parsed || (parsed.version !== 1 && parsed.version !== 2 && parsed.version !== 3 && parsed.version !== 4)) return DEFAULT_PROGRESSION;
     return {
       ...DEFAULT_PROGRESSION,
       ...parsed,
@@ -60,7 +67,10 @@ export function normalizeProgression(raw: unknown): PlayerProgression {
       unlockedAbilities: Array.isArray(parsed.unlockedAbilities) ? parsed.unlockedAbilities : DEFAULT_PROGRESSION.unlockedAbilities,
       ownedVehicles: Array.isArray(parsed.ownedVehicles) ? parsed.ownedVehicles : [],
       garageLoadout: Array.isArray(parsed.garageLoadout) ? parsed.garageLoadout : [],
-      version: 3,
+       version: 4,
+       inventory: Array.isArray(parsed.inventory) ? parsed.inventory : STARTER_GEAR,
+       equippedGear: parsed.equippedGear && typeof parsed.equippedGear === "object" ? parsed.equippedGear : STARTER_SLOTS,
+       materials: parsed.materials && typeof parsed.materials === "object" ? parsed.materials : {},
       identityClass: parsed.identityClass === "TITAN" || parsed.identityClass === "HUNTER" || parsed.identityClass === "WARLOCK" ? parsed.identityClass : null,
       tutorialComplete: parsed.tutorialComplete === true,
       dungeonClears: parsed.dungeonClears && typeof parsed.dungeonClears === "object" ? parsed.dungeonClears : {},
