@@ -213,7 +213,7 @@ export function Scene({
     z: SPAWN.z,
     y: walkHeight(SPAWN.x, SPAWN.z) + 1.6,
     vy: 0,
-    yaw: 0,
+    yaw: Math.PI,
     inVehicle: false,
     /** vehicle forward speed */
     vSpeed: 0,
