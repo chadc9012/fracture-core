@@ -5,7 +5,7 @@ import { Inspector } from "./Inspector";
 import { Button } from "@/components/ui/button";
 import { Anvil, BrainCircuit, CarFront, Castle, ImageUp, Menu, Network } from "lucide-react";
 
-export function HUD({ hud, onMenu, onStrategy, onGarage, onAnalyze, onOperations }: { hud: HudState; onMenu: () => void; onStrategy: () => void; onGarage: () => void; onAnalyze: () => void; onOperations: (view: "DUNGEONS" | "ARSENAL" | "ABILITIES") => void }) {
+export function HUD({ hud, tutorialActive = false, onMenu, onStrategy, onGarage, onAnalyze, onOperations }: { hud: HudState; tutorialActive?: boolean; onMenu: () => void; onStrategy: () => void; onGarage: () => void; onAnalyze: () => void; onOperations: (view: "DUNGEONS" | "ARSENAL" | "ABILITIES") => void }) {
   const color = ZONE_COLOR[hud.kind];
   const owner = FACTIONS[hud.owner];
   const challenger = FACTIONS[hud.challenger];
@@ -77,7 +77,7 @@ export function HUD({ hud, onMenu, onStrategy, onGarage, onAnalyze, onOperations
       </div>
 
       {/* right: AI mission director */}
-      <div className="absolute right-2 top-16 w-56 rounded-lg border border-border/60 bg-card/70 p-3 backdrop-blur-md xl:right-4 xl:top-64 xl:w-60 xl:p-4">
+      {!tutorialActive && <div className="absolute right-2 top-16 w-56 rounded-lg border border-border/60 bg-card/70 p-3 backdrop-blur-md xl:right-4 xl:top-64 xl:w-60 xl:p-4">
         <div className="flex items-baseline justify-between">
           <span className="text-[10px] tracking-[0.3em] text-muted-foreground">AI DIRECTOR</span>
           <span className="text-[10px]" style={{ color: hud.threat > 80 ? "#ff4d4d" : "var(--accent-glow)" }}>
@@ -126,7 +126,7 @@ export function HUD({ hud, onMenu, onStrategy, onGarage, onAnalyze, onOperations
             </div>
           ))}
         </div>
-      </div>
+      </div>}
 
 
 
@@ -149,13 +149,14 @@ export function HUD({ hud, onMenu, onStrategy, onGarage, onAnalyze, onOperations
       {/* global actions */}
       <div className="pointer-events-auto absolute left-2 top-2 flex max-w-[calc(100%-1rem)] gap-1 overflow-x-auto md:left-1/2 md:top-4 md:-translate-x-1/2">
         <Button title="Menu" size="icon" variant="outline" onClick={onMenu} aria-label="Open menu"><Menu /></Button>
-        <Button title="Dungeons" size="icon" variant="outline" onClick={() => onOperations("DUNGEONS")} aria-label="Dungeons"><Castle /></Button>
+         {!tutorialActive && <><Button title="Dungeons" size="icon" variant="outline" onClick={() => onOperations("DUNGEONS")} aria-label="Dungeons"><Castle /></Button>
         <Button title="Arsenal" size="icon" variant="outline" onClick={() => onOperations("ARSENAL")} aria-label="Arsenal"><Anvil /></Button>
         <Button title="Ability Network" size="icon" variant="outline" onClick={() => onOperations("ABILITIES")} aria-label="Ability Network"><Network /></Button>
         <Button title="Raid Strategy" size="icon" variant="outline" onClick={onStrategy} aria-label="Raid Strategy"><BrainCircuit /></Button>
         <Button title="Garage" size="icon" variant="outline" onClick={onGarage} aria-label="Garage"><CarFront /></Button>
-        <Button title="Zone Analysis" size="icon" variant="outline" onClick={onAnalyze} aria-label="Zone Analysis"><ImageUp /></Button>
+         <Button title="Zone Analysis" size="icon" variant="outline" onClick={onAnalyze} aria-label="Zone Analysis"><ImageUp /></Button></>}
       </div>
+      {!tutorialActive && <div className="absolute right-2 top-16 max-w-60 border-l-2 border-primary bg-card/80 p-3 font-mono text-[10px] backdrop-blur-md"><p className="text-primary">LIVE COMBAT FEED</p><p className="mt-1">ENERGY {hud.liveEnergy}% · MOMENTUM {hud.momentum}%</p><p className="mt-1 text-muted-foreground">{hud.enemyResponse}</p>{hud.liveEffect && <p className="mt-2 text-primary">{hud.liveEffect}</p>}</div>}
 
       {hud.playerClass === "TITAN" && <div className="absolute bottom-3 left-1/2 w-[min(30rem,calc(100%-1rem))] -translate-x-1/2 border border-border bg-card/80 p-3 backdrop-blur-md"><div className="grid grid-cols-4 gap-2 text-[8px] uppercase tracking-[0.16em]">{[["HP",hud.hp,"bg-destructive"],["SHIELD",hud.shield,"bg-titan"],["ENERGY",hud.energy,"bg-primary"],["STABILITY",hud.stability,"bg-warning"]].map(([label,value,tone]) => <div key={String(label)}><div className="flex justify-between"><span>{label}</span><span>{value}%</span></div><div className="mt-1 h-1 bg-muted"><div className={`h-full ${tone}`} style={{width:`${value}%`}} /></div></div>)}</div><div className="mt-2 flex items-center justify-between text-[9px] uppercase"><span className="text-primary">Q Block · E Shield Bash · R Dome</span><span>{hud.blocking ? "SHIELD ACTIVE" : hud.domeTime > 0 ? `DOME ${hud.domeTime.toFixed(1)}s` : hud.titanFeedback}</span></div></div>}
 
