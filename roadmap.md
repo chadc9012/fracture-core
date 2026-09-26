@@ -43,3 +43,4 @@
 - [ ] Remove Loadout / Customize from the startup menu and animate the title landscape, light, and shadows with reduced-motion support.
 - [ ] Verify type safety, production health, onboarding and dungeon flows, desktop/mobile layout, AI behavior, and retired-name removal.
 - [x] Make first-person shooting the default, retain a saved third-person preference, and blend to third-person for melee and special-skill actions with aligned aim and controls.
+- [x] Weapon system: auto/pulse/heavy/sword, recoil, spread, camera punch, crosshair bloom, hit markers

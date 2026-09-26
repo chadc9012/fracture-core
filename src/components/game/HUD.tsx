@@ -166,7 +166,7 @@ export function HUD({ hud, tutorialActive = false, onMenu, onStrategy, onGarage,
           const gap = 5 + hud.bloom * 18 - (hud.aiming ? 3 : 0);
           const c = hud.overheated ? "#ff4d4d" : hud.aimLocked ? "#7dffca" : "#ffffffcc";
           return <div className="relative h-0 w-0">
-            {[[0, -1], [0, 1], [-1, 0], [1, 0]].map(([x, y], i) => <span key={i} className="absolute block" style={{ width: x ? 8 : 2, height: y ? 8 : 2, background: c, left: x * gap - (x ? (x > 0 ? 0 : 8) : 1), top: y * gap - (y ? (y > 0 ? 0 : 8) : 1) }} />)}
+            {([[0, -1], [0, 1], [-1, 0], [1, 0]] as const).map(([x, y], i) => <span key={i} className="absolute block" style={{ width: x ? 8 : 2, height: y ? 8 : 2, background: c, left: x * gap - (x ? (x > 0 ? 0 : 8) : 1), top: y * gap - (y ? (y > 0 ? 0 : 8) : 1) }} />)}
             {hud.hitMarker && <span className="absolute -left-3 -top-3 block h-6 w-6 text-center text-lg leading-6" style={{ color: "#ff5a5a" }}>✕</span>}
           </div>;
         })()}
