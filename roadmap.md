@@ -34,3 +34,11 @@
 - [x] Add a unified data-driven combat ability/effect/state/synergy engine.
 - [x] Add ability mastery, branch evolution, modifiers, and premium progression UI.
 - [x] Verify TypeScript, production health, runtime flows, responsive UI, and legacy-name audit.
+- [ ] Replace the current launch-to-world jump with a staged ten-minute identity onboarding and first victory report.
+- [ ] Connect equipped ability branches to live combat, enemy threat decisions, dungeon rules, environment responses, and HUD state.
+- [ ] Add private 2–3 player dungeon lobby UX, invite links, ready checks, class visibility, launch gating, and completion summaries.
+- [ ] Add build-aware dungeon modifiers, behavior-shaped loot, transformation crafting, repeat-clear perks, and reward persistence.
+- [ ] Replace the old raid advisor call with the WORLD FRACTURE loadout strategy planner on the current AI Gateway contract.
+- [ ] Add playable data foundations and operations views for cosmetics, fair economy/blueprints, guilds, PvP, Fracture Core raid, world layers, environment cycles, and AI Director decisions.
+- [ ] Remove Loadout / Customize from the startup menu and animate the title landscape, light, and shadows with reduced-motion support.
+- [ ] Verify type safety, production health, onboarding and dungeon flows, desktop/mobile layout, AI behavior, and retired-name removal.
