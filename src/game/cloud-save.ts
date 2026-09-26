@@ -129,7 +129,7 @@ export const localSavedAt = () => (typeof window === "undefined" ? null : localS
 
 export type RestorePoint = { id: string; revision: number; created_at: string; device_id: string; summary: string };
 
-const summarize = (p: PlayerProgression) => `${p.completedMissions.length} missions · ${p.rewardVehicles?.length ?? 0} vehicles`;
+const summarize = (p: PlayerProgression) => `${p.completedMissions.length} missions · ${p.ownedVehicles.length} vehicles · garage ${p.garageLoadout.length}`;
 
 /** Earlier cloud versions, captured automatically by the backend whenever the save changes. */
 export async function listRestorePoints(userId: string): Promise<RestorePoint[]> {
@@ -142,5 +142,5 @@ export async function listRestorePoints(userId: string): Promise<RestorePoint[]>
 export async function loadRestorePoint(id: string): Promise<PlayerProgression> {
   const { data, error } = await supabase.from("player_save_snapshots").select("data").eq("id", id).single();
   if (error) throw error;
-  return { ...normalizeProgression(data.data), savedAt: new Date().toISOString() } as PlayerProgression;
+  return normalizeProgression(data.data);
 }
