@@ -33,4 +33,4 @@
 - [x] Add shared enemy perception, threat, archetype, and fair fight-memory adaptation.
 - [x] Add a unified data-driven combat ability/effect/state/synergy engine.
 - [x] Add ability mastery, branch evolution, modifiers, and premium progression UI.
-- [ ] Verify TypeScript, production health, runtime flows, responsive UI, and legacy-name audit.
+- [x] Verify TypeScript, production health, runtime flows, responsive UI, and legacy-name audit.
