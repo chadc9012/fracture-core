@@ -42,7 +42,16 @@ export const DEFAULT_PROGRESSION: PlayerProgression = {
 export function loadProgression(): PlayerProgression {
   if (typeof window === "undefined") return DEFAULT_PROGRESSION;
   try {
-    const parsed = JSON.parse(window.localStorage.getItem(STORAGE_KEY) ?? "null") as (Partial<Omit<PlayerProgression, "version">> & { version?: number }) | null;
+    return normalizeProgression(JSON.parse(window.localStorage.getItem(STORAGE_KEY) ?? "null"));
+  } catch {
+    return DEFAULT_PROGRESSION;
+  }
+}
+
+/** Migrates any stored save (v1–v3, local or cloud) into the current shape. */
+export function normalizeProgression(raw: unknown): PlayerProgression {
+  try {
+    const parsed = raw as (Partial<Omit<PlayerProgression, "version">> & { version?: number }) | null;
     if (!parsed || (parsed.version !== 1 && parsed.version !== 2 && parsed.version !== 3)) return DEFAULT_PROGRESSION;
     return {
       ...DEFAULT_PROGRESSION,
@@ -78,7 +87,7 @@ export function grantAbilityMastery(progression: PlayerProgression, abilityId: s
 }
 
 export function saveProgression(progression: PlayerProgression) {
-  if (typeof window !== "undefined") window.localStorage.setItem(STORAGE_KEY, JSON.stringify(progression));
+  if (typeof window !== "undefined") { window.localStorage.setItem(STORAGE_KEY, JSON.stringify(progression)); window.localStorage.setItem("world-fracture.progression.savedAt", new Date().toISOString()); }
 }
 
 export function completeMission(progression: PlayerProgression, missionId: string): PlayerProgression {
