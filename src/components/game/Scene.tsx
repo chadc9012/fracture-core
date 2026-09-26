@@ -29,6 +29,7 @@ import type { TutorialEvent, TutorialState } from "@/game/onboarding";
 import type { GameSettings } from "./SettingsWindow";
 import { WEAPONS, WEAPON_ORDER, decay, freshAmmo, type WeaponId } from "@/game/weapons";
 import { DEFAULT_BINDINGS } from "@/game/bindings";
+import * as sfx from "@/game/audio";
 import type { ArmorVisualState } from "./Scavenger";
 import type { PlayerProgression } from "@/game/progression";
 
@@ -375,6 +376,14 @@ export function Scene({
   const padPrev = useRef<boolean[]>([]);
   const keyPrev = useRef<Set<string>>(new Set());
   const padState = useRef({ fire: false, aim: false, connected: false });
+  const audioSeen = useRef({ hit: 0, kills: 0, hp: 100, hurtAt: 0 });
+  useEffect(() => {
+    const unlock = () => sfx.unlockAudio();
+    window.addEventListener("pointerdown", unlock);
+    window.addEventListener("keydown", unlock);
+    return () => { window.removeEventListener("pointerdown", unlock); window.removeEventListener("keydown", unlock); };
+  }, []);
+  useEffect(() => sfx.setVolume(settings.volume ?? 0.7), [settings.volume]);
   const skyColor = useMemo(() => new THREE.Color(), []);
   const fogColor = useMemo(() => new THREE.Color(), []);
   const lightColor = useMemo(() => new THREE.Color(), []);
@@ -506,6 +515,7 @@ export function Scene({
         if (ability) {
           s.specialTime = Math.max(s.specialTime, slot === "ULTIMATE" ? 1.5 : 0.8);
           const effect = ability.effects[0];
+          sfx.playAbility(effect?.kind ?? "ABILITY");
           if (effect?.kind === "DASH") { s.x += Math.sin(s.yaw) * effect.value; s.z += Math.cos(s.yaw) * effect.value; alert(sim, "PHASE DASH · incoming damage avoided"); }
           if (effect?.kind === "SILENCE" || effect?.kind === "FIELD" || effect?.kind === "COOLDOWN_SHIFT") {
             for (const enemy of sim.machines) if (enemy.alive && Math.hypot(enemy.x - s.x, enemy.z - s.z) < (effect.radius ?? 12)) enemy.cool = Math.max(enemy.cool, effect.duration ?? 3);
@@ -596,6 +606,7 @@ export function Scene({
       if (s.weapon === id) return;
       s.weapon = id; s.burstLeft = 0; s.reload = 0; s.switchedAt = performance.now();
       s.fireCool = Math.max(s.fireCool, 0.25);
+      sfx.playSwitch();
       alert(sim, `${WEAPONS[id].name} equipped`);
     };
     const step = (dir: number) => equip(WEAPON_ORDER[(WEAPON_ORDER.indexOf(s.weapon) + dir + WEAPON_ORDER.length) % WEAPON_ORDER.length]!);
@@ -610,11 +621,11 @@ export function Scene({
     }
     const def = WEAPONS[s.weapon];
     const clip = s.ammo[s.weapon];
-    const startReload = () => { if (def.mag > 0 && s.reload <= 0 && clip.mag < def.mag && clip.reserve > 0) { s.reload = def.reload; s.burstLeft = 0; alert(sim, `Reloading ${def.name}`); } };
+    const startReload = () => { if (def.mag > 0 && s.reload <= 0 && clip.mag < def.mag && clip.reserve > 0) { s.reload = def.reload; s.burstLeft = 0; sfx.playReload("start"); alert(sim, `Reloading ${def.name}`); } };
     if (!s.inVehicle && (keyTap(binds.keyboard.reload) || padTap(binds.gamepad.reload))) startReload();
     if (s.reload > 0) {
       s.reload -= dt;
-      if (s.reload <= 0) { const take = Math.min(def.mag - clip.mag, clip.reserve); clip.mag += take; clip.reserve -= take; s.reload = 0; }
+      if (s.reload <= 0) { const take = Math.min(def.mag - clip.mag, clip.reserve); clip.mag += take; clip.reserve -= take; s.reload = 0; sfx.playReload("end"); }
     }
     padPrev.current = padNow;
     keyPrev.current = new Set(held);
@@ -632,12 +643,13 @@ export function Scene({
     const shoot = () => {
       if (!s.inVehicle && wpn.mag > 0) {
         if (s.reload > 0) return;
-        if (clip.mag <= 0) { s.burstLeft = 0; startReload(); return; }
+        if (clip.mag <= 0) { s.burstLeft = 0; if (clip.reserve <= 0) sfx.playDryFire(); startReload(); return; }
       }
       const spread = (wpn.spread + s.bloom * 0.04) * ((mouse.current.aim || padState.current.aim) ? wpn.adsSpread : 1);
       const yawJ = (Math.random() - 0.5) * 2 * spread;
       const pitchJ = (Math.random() - 0.5) * 2 * spread;
        if (fireBullet(sim, s.x, s.y + (s.inVehicle ? 1.5 : 0.95), s.z, s.yaw + yawJ, s.inVehicle, s.pitch + s.recoil + pitchJ, wpn.damage * gearPower, wpn.knock, wpn.heat)) {
+        sfx.playShot(s.inVehicle ? "VEHICLE" : s.weapon);
         s.recoil += wpn.recoil;
         s.punch += wpn.punch;
         s.bloom = Math.min(1, s.bloom + 0.18 * wpn.punch);
@@ -650,6 +662,7 @@ export function Scene({
         s.combo = (s.combo % 3) + 1;
         s.comboTime = 0.9;
         s.swing = 0.3;
+        sfx.playSwing(s.combo === 3);
         s.meleeTime = Math.max(s.meleeTime, 0.6);
         s.punch += wpn.punch * (s.combo === 3 ? 1.6 : 1);
         const reach = s.combo === 3 ? 8 : 6;
@@ -737,6 +750,23 @@ export function Scene({
     s.x = body.x;
     s.z = body.z;
     s.vSpeed = body.vSpeed;
+
+    /* ---------------- combat audio: impacts, kills, damage taken, intensity mix ---------------- */
+    {
+      const a = audioSeen.current;
+      if (sim.lastHit !== a.hit) {
+        a.hit = sim.lastHit;
+        let near: (typeof sim.machines)[number] | undefined; let best = Infinity;
+        for (const m of sim.machines) { if (!m.alive) continue; const d = Math.hypot(m.x - s.x, m.z - s.z); if (d < best) { best = d; near = m; } }
+        sfx.playImpact(near?.kind === "ABERRATION" ? "ORGANIC" : near?.kind === "OVERCLOCKED" ? "TECH" : "METAL", near ? sfx.where(s.x, s.z, s.yaw, near.x, near.z) : {});
+      }
+      if (sim.kills > a.kills) sfx.playKill(false, {});
+      a.kills = sim.kills;
+      const now = performance.now();
+      if (sim.hp < a.hp - 0.5 && now - a.hurtAt > 250) { sfx.playHurt(); a.hurtAt = now; }
+      a.hp = sim.hp;
+      sfx.updateCombatAudio(Math.min(1, sim.combatHeat / 100));
+    }
 
     /* ---------------- Mission 01 · Broken Signal world triggers ---------------- */
     if (mission && onMissionEvent) {

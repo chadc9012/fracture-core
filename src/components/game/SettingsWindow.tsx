@@ -5,6 +5,7 @@ export type GameSettings = {
   hudDensity: "full" | "lean";
   renderTier: "LOW" | "MEDIUM" | "HIGH" | "ULTRA";
   bindings?: Bindings;
+  volume?: number;
 };
 
 export const DEFAULT_SETTINGS: GameSettings = {
@@ -14,6 +15,7 @@ export const DEFAULT_SETTINGS: GameSettings = {
   hudDensity: "full",
   renderTier: "HIGH",
   bindings: DEFAULT_BINDINGS,
+  volume: 0.7,
 };
 
 function Toggle({ label, on, onChange }: { label: string; on: boolean; onChange: (v: boolean) => void }) {
@@ -78,6 +80,7 @@ export function SettingsWindow({
             on={settings.hudDensity === "full"}
             onChange={(v) => set({ hudDensity: v ? "full" : "lean" })}
           />
+          <label className="block pt-2"><span className="flex justify-between font-mono text-[9px] uppercase tracking-[0.2em] text-muted-foreground"><span>Sound volume</span><span>{Math.round((settings.volume ?? 0.7) * 100)}%</span></span><input type="range" min={0} max={1} step={0.05} value={settings.volume ?? 0.7} onChange={(e) => set({ volume: Number(e.target.value) })} className="mt-1 w-full accent-primary" /></label>
           <ControlsPanel bindings={settings.bindings ?? DEFAULT_BINDINGS} onChange={(bindings) => set({ bindings })} />
         </div>
 
