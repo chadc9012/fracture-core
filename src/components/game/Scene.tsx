@@ -199,6 +199,7 @@ export function Scene({
   const report = useRef(0);
   const live = useRef(createLiveBuild(activeBuild, abilityBranches));
   const abilityHeld = useRef<Record<string, boolean>>({});
+  const cameraToggleHeld = useRef(false);
   const tutorialClock = useRef(0);
   const lastGate = useRef(0);
   const tutorialEnemyHealth = useRef(2);
@@ -489,11 +490,11 @@ export function Scene({
     const submerged = heightAt(s.x, s.z) < WATER_LEVEL - 0.2;
 
     s.viewCool -= dt;
-    if (held.has("KeyF") && s.viewCool <= 0) {
-      s.viewCool = 0.35;
+    if (held.has("KeyF") && !cameraToggleHeld.current) {
       s.firstPerson = !s.firstPerson;
       onCameraPreference?.(s.firstPerson);
     }
+    cameraToggleHeld.current = held.has("KeyF");
 
     if (held.has("KeyX") && s.meleeCool <= 0 && !s.inVehicle) {
       s.meleeCool = 0.7;
