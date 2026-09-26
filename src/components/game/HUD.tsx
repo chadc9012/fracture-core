@@ -187,7 +187,7 @@ export function HUD({ hud, tutorialActive = false, onMenu, onStrategy, onGarage,
           />
         </div>
         <p className="mt-1 text-[9px] uppercase tracking-[0.25em] text-muted-foreground">
-          {hud.view === "first" ? "first person" : "third person"} · F to swap
+          {hud.aiming ? "aiming" : hud.meleeTime > 0 ? "melee camera" : hud.view === "first" ? "first person" : "third person"} · F to swap
         </p>
       </div>
 
@@ -224,12 +224,12 @@ export function HUD({ hud, tutorialActive = false, onMenu, onStrategy, onGarage,
         <p>
           <span className="text-foreground">WASD</span> {hud.mode === "vehicle" ? "drive / steer" : "move"} ·{" "}
           <span className="text-foreground">SHIFT</span> boost ·{" "}
-          <span className="text-foreground">SPACE</span> fire ·{" "}
+          <span className="text-foreground">LMB / SPACE</span> fire · <span className="text-foreground">RMB</span> aim · <span className="text-foreground">X</span> melee ·{" "}
           {hud.vehicleUnlocked ? <><span className="text-foreground">V</span> {hud.mode === "vehicle" ? "exit vehicle" : "enter vehicle"}</> : <span>Vehicle locked until Mission 01</span>}
         </p>
         <p className="mt-1">
           <span className="text-foreground">C</span> jump · <span className="text-foreground">T</span> fast-forward the
-          day cycle · <span className="text-foreground">F</span> camera view ·{" "}
+          day cycle · <span className="text-foreground">F</span> persistent camera ·{" "}
           <span className="text-foreground">I</span> engine inspector
         </p>
         <p className="mt-1">Ambush convoys on the lanes, then extract at Nexus City for credits.</p>

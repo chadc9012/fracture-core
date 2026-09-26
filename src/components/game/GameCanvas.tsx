@@ -58,6 +58,8 @@ const initial: HudState = {
   loot: [],
   view: "first",
   aimLocked: false,
+  aiming: false,
+  meleeTime: 0,
   playerClass: "TITAN",
   subclassName: "Shield Titan",
   abilities: classById("TITAN").abilities.map((ability) => ({ slot: ability.slot, name: ability.name, ready: true })),

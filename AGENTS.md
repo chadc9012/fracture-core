@@ -8,3 +8,5 @@
 > Commits you push to the connected branch sync back to Lovable and show up in
 > the editor, so keep the branch in a working state.
 <!-- LOVABLE:END -->
+
+- Keep camera preference client-local: FPS is default, F persists FPS/TPP, and melee or special actions temporarily override to TPP; camera choice is presentation, not shared combat state.
