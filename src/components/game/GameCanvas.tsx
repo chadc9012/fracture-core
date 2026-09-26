@@ -26,6 +26,7 @@ import { claimDrops } from "@/game/inventory";
 import { InventoryWindow } from "./InventoryWindow";
 import { WorldAtlas } from "./WorldAtlas";
 import { BrokenSignalOverlay } from "./BrokenSignalOverlay";
+import { normalizeBindings } from "@/game/bindings";
 import { advanceMission, BROKEN_SIGNAL, type MissionEvent, type MissionRun } from "@/game/missions/broken-signal";
 
 const START = REGIONS.find((r) => r.id === "nexus")!;
@@ -106,9 +107,11 @@ export function GameCanvas() {
   useEffect(() => {
     const saved = window.localStorage.getItem("world-fracture-camera");
     if (saved === "third") setSettings((current) => ({ ...current, firstPersonDefault: false }));
+    try { const b = window.localStorage.getItem("world-fracture-bindings"); if (b) setSettings((current) => ({ ...current, bindings: normalizeBindings(JSON.parse(b)) })); } catch { /* keep defaults */ }
   }, []);
   const updateSettings = (next: GameSettings) => {
     if (next.firstPersonDefault !== settings.firstPersonDefault) window.localStorage.setItem("world-fracture-camera", next.firstPersonDefault ? "first" : "third");
+    if (next.bindings !== settings.bindings) window.localStorage.setItem("world-fracture-bindings", JSON.stringify(next.bindings));
     setSettings(next);
   };
   const [cls, setCls] = useState<ClassId>("TITAN");
@@ -246,13 +249,14 @@ export function GameCanvas() {
       >
         <color attach="background" args={["#bfe4f2"]} />
         <Suspense fallback={null}>
-            <Scene onHud={setHud} onDrops={(drops) => setProgression((current) => claimDrops(current, drops))} gear={progression} settings={settings} onCameraPreference={(firstPerson) => { window.localStorage.setItem("world-fracture-camera", firstPerson ? "first" : "third"); setSettings((current) => ({ ...current, firstPersonDefault: firstPerson })); }} playerClass={cls} subclassId={subclass} appearanceId={appearance} vehicleId={vehicleId} vehicleUnlocked={vehicleUnlocked} activeBuild={progression.activeBuild} abilityBranches={progression.abilityBranches} tutorial={tutorial} onTutorialEvent={recordTutorial} armorState={hud.hp < 35 ? "FRACTURE" : hud.heat > 65 ? "ASCENDANT" : hud.heat > 15 ? "ACTIVE" : "STABLE"} />
+            <Scene onHud={setHud} onDrops={(drops) => setProgression((current) => claimDrops(current, drops))} gear={progression} settings={settings} onCameraPreference={(firstPerson) => { window.localStorage.setItem("world-fracture-camera", firstPerson ? "first" : "third"); setSettings((current) => ({ ...current, firstPersonDefault: firstPerson })); }} playerClass={cls} subclassId={subclass} appearanceId={appearance} vehicleId={vehicleId} vehicleUnlocked={vehicleUnlocked} activeBuild={progression.activeBuild} abilityBranches={progression.abilityBranches} tutorial={tutorial} onTutorialEvent={recordTutorial} mission={mission} onMissionEvent={recordMission} armorState={hud.hp < 35 ? "FRACTURE" : hud.heat > 65 ? "ASCENDANT" : hud.heat > 15 ? "ACTIVE" : "STABLE"} />
         </Suspense>
 
       </Canvas>
        <HUD hud={hud} tutorialActive={Boolean(tutorial && tutorial.step !== "VICTORY")} onMenu={() => setMenuOpen(true)} onStrategy={() => setStrategyOpen(true)} onGarage={() => setGarageOpen(true)} onAnalyze={() => setAnalysisOpen(true)} onOperations={setOperationsView} onInventory={() => setInventoryOpen(true)} onAtlas={() => setAtlasOpen(true)} />
        {inventoryOpen && <InventoryWindow progression={progression} onProgression={setProgression} onClose={() => setInventoryOpen(false)} />}
        {atlasOpen && <WorldAtlas currentRegion={hud.region} phase={hud.phase} onClose={() => setAtlasOpen(false)} />}
+      {mission && <BrokenSignalOverlay mission={mission} onEvent={recordMission} />}
       {tutorial && <OnboardingSignal tutorial={tutorial} classId={cls} onOpenHub={() => { setTutorial(null); setOperationsView("ABILITIES"); }} />}
       {strategyOpen && <RaidStrategyPanel onClose={() => setStrategyOpen(false)} />}
       {analysisOpen && <ZoneAnalysisPanel zoneName={hud.region} onClose={() => setAnalysisOpen(false)} />}
