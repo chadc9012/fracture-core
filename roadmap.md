@@ -59,3 +59,8 @@
 - [ ] Vendors & marketplace
 - [ ] Seasons
 - [ ] Remaining uploaded design notes (UI animation, inventory UI, cinematic onboarding, progression, performance)
+- [x] Map markers + HUD tracking (missions, resources, bosses)
+- [x] Operator model matches class reference art
+- [x] Destructible interior (single building near spawn)
+- [ ] Multiplayer destruction sync (needs multiplayer first)
+- [ ] Replace boxy world props with higher-detail models

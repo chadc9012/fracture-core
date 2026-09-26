@@ -34,7 +34,7 @@ export const RESOURCE_SITES: ResourceSite[] = REGIONS.flatMap((region, index) =>
 export const BOSS_LAIRS: Marker[] = ENCOUNTERS.flatMap((entry) => {
   const region = REGIONS.find((r) => r.id === entry.regionId);
   if (!entry.boss || !region || region.kind === "safe") return [];
-  return [{ id: `boss-${region.id}`, kind: "BOSS" as const, label: entry.boss.name, x: region.x - region.radius * 0.35, z: region.z + region.radius * 0.3, regionId: region.id }];
+  return [{ id: `boss-${region.id}`, kind: "BOSS" as const, label: entry.boss.name, x: region.x + region.radius * 0.6, z: region.z - region.radius * 0.55, regionId: region.id }];
 });
 
 export const GATHER_RADIUS = 4.5;

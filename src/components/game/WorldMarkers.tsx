@@ -28,7 +28,7 @@ export function WorldMarkers({ depleted }: { depleted: React.MutableRefObject<Re
       {BOSS_LAIRS.map((lair) => (
         <group key={lair.id} position={[lair.x, heightAt(lair.x, lair.z), lair.z]}>
           <mesh rotation-x={-Math.PI / 2} position={[0, 0.15, 0]}><ringGeometry args={[8.5, 10, 48]} /><meshBasicMaterial color={MARKER_COLOR.BOSS} transparent opacity={0.6} side={THREE.DoubleSide} /></mesh>
-          <mesh position={[0, 25, 0]}><cylinderGeometry args={[0.25, 0.25, 50, 6]} /><meshBasicMaterial color={MARKER_COLOR.BOSS} transparent opacity={0.4} /></mesh>
+          <mesh position={[0, 25, 0]}><cylinderGeometry args={[0.15, 0.15, 50, 6]} /><meshBasicMaterial color={MARKER_COLOR.BOSS} transparent opacity={0.3} depthWrite={false} /></mesh>
         </group>
       ))}
     </group>
