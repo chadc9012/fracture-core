@@ -153,6 +153,7 @@ export type WorldSim = {
   weaponHeat: number;
   /** true while the weapon vents and cannot fire */
   overheated: boolean;
+  lastHit: number;
   /** most recent AI-generated drops (newest first) */
   loot: LootItem[];
   /** everything picked up this session */
@@ -293,6 +294,7 @@ export function createSim(): WorldSim {
     stats: createStats(),
     weaponHeat: 0,
     overheated: false,
+    lastHit: 0,
     loot: [],
     vault: [],
     titan: createTitanState(),
