@@ -25,6 +25,8 @@ import { OnboardingSignal } from "./OnboardingSignal";
 import { claimDrops } from "@/game/inventory";
 import { InventoryWindow } from "./InventoryWindow";
 import { WorldAtlas } from "./WorldAtlas";
+import { BrokenSignalOverlay } from "./BrokenSignalOverlay";
+import { advanceMission, BROKEN_SIGNAL, type MissionEvent, type MissionRun } from "@/game/missions/broken-signal";
 
 const START = REGIONS.find((r) => r.id === "nexus")!;
 
@@ -131,6 +133,21 @@ export function GameCanvas() {
     if (tutorial?.step === "VICTORY" && !progression.completedMissions.includes("mission-01")) setProgression((current) => ({ ...completeMission(current, "mission-01"), tutorialComplete: true, unlockedAbilities: Array.from(new Set([...current.unlockedAbilities, classBuild(cls).slots.TACTICAL])), calibrationTokens: current.calibrationTokens + 1 }));
   }, [tutorial?.step, progression.completedMissions, cls]);
 
+  /* Mission 01 · Broken Signal starts as a world event once the player is free-roaming. */
+  const [mission, setMission] = useState<MissionRun | null>(null);
+  const missionReady = phase === "world" && !tutorial && vehicleUnlocked && !progression.completedMissions.includes("broken-signal");
+  useEffect(() => {
+    if (!missionReady || mission) return;
+    const timer = window.setTimeout(() => setMission(advanceMission(BROKEN_SIGNAL, { type: "START" })), 6000);
+    return () => window.clearTimeout(timer);
+  }, [missionReady, mission]);
+  useEffect(() => {
+    if (mission?.state !== "WORLD_UPDATE" || progression.completedMissions.includes("broken-signal")) return;
+    setProgression((current) => { const next = completeMission(current, "broken-signal"); return { ...next, materials: { ...next.materials, dataShards: (next.materials.dataShards ?? 0) + 3 } }; });
+    const timer = window.setTimeout(() => setMission(null), 9000);
+    return () => window.clearTimeout(timer);
+  }, [mission?.state, progression.completedMissions]);
+
   const deploy = (deployment: Deployment) => {
     setCls(deployment.classId);
     setSubclass(deployment.subclassId);
@@ -169,6 +186,7 @@ export function GameCanvas() {
     setPhase("world");
   };
   const recordTutorial = (event: TutorialEvent) => setTutorial((current) => current ? advanceTutorial(current, event) : current);
+  const recordMission = (event: MissionEvent) => setMission((current) => current ? advanceMission(current, event) : current);
 
   const toOrbit = () => {
     setLast({ credits: hud.credits, kills: hud.kills });

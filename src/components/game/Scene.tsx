@@ -6,7 +6,8 @@ import * as THREE from "three";
 import { REGIONS, SKY, ZONE_COLOR, clockLabel, phaseFor, regionAt, WORLD_RADIUS } from "@/game/world";
 import { useKeyboard } from "@/game/useKeyboard";
 import { walkHeight, slopeAt, heightAt, WATER_LEVEL } from "@/game/terrain";
-import { alert, collidePlayer, createSim, defeatMachine, fireBullet, stepSim, summonBoss, type Faction, type WorldSim } from "@/game/sim";
+import { alert, collidePlayer, createSim, defeatMachine, fireBullet, spawnMissionDrones, stepSim, summonBoss, type Faction, type WorldSim } from "@/game/sim";
+import type { MissionEvent, MissionRun } from "@/game/missions/broken-signal";
 import { directorTrend, type Mission } from "@/game/director";
 import { Terrain } from "./Terrain";
 import { Bullets, Convoys, SupplyLanes, WarMachines, ZoneBeacons } from "./Actors";
@@ -173,6 +174,8 @@ export function Scene({
   onTutorialEvent,
   onDrops,
   gear,
+  mission,
+  onMissionEvent,
 }: {
   onHud: (s: HudState) => void;
   settings?: GameSettings;
@@ -189,9 +192,12 @@ export function Scene({
   onTutorialEvent?: (event: TutorialEvent) => void;
   onDrops?: (drops: WorldSim["drops"]) => void;
   gear?: Pick<PlayerProgression, "inventory" | "equippedGear">;
+  mission?: MissionRun | null;
+  onMissionEvent?: (event: MissionEvent) => void;
 }) {
   const keys = useKeyboard();
   const sim = useMemo<WorldSim>(() => createSim(), []);
+  const missionSpawned = useRef("");
   const appearance = appearanceById(appearanceId);
   const selectedClass = classById(playerClass);
   const selectedSubclass = subclassById(subclassId);
@@ -681,6 +687,18 @@ export function Scene({
     s.z = body.z;
     s.vSpeed = body.vSpeed;
 
+    /* ---------------- Mission 01 · Broken Signal world triggers ---------------- */
+    if (mission && onMissionEvent) {
+      if (mission.state === "TRIGGERED" && !mission.target) onMissionEvent({ type: "ANCHOR", x: s.x + Math.sin(s.yaw) * 40, z: s.z + Math.cos(s.yaw) * 40 });
+      if ((mission.state === "DISCOVERY" || mission.state === "TRAVERSAL") && mission.target && Math.hypot(mission.target.x - s.x, mission.target.z - s.z) < 8) onMissionEvent({ type: "ARRIVED" });
+      const combat = mission.state === "COMBAT_1" || mission.state === "COMBAT_2";
+      if (combat && missionSpawned.current !== mission.state && missionSpawned.current !== `${mission.state}-done`) {
+        missionSpawned.current = mission.state;
+        spawnMissionDrones(sim, s.x, s.z, mission.state === "COMBAT_1" ? 3 : 5, mission.state === "COMBAT_2");
+      }
+      if (combat && missionSpawned.current === mission.state && !sim.machines.some((m) => m.alive && m.mission)) { missionSpawned.current = `${mission.state}-done`; onMissionEvent({ type: "CLEAR" }); }
+    }
+
     /* ---------------- simulation step ---------------- */
     const { playerInstability } = stepSim(sim, {
       dt,
@@ -907,6 +925,13 @@ export function Scene({
       <ZoneBeacons sim={sim} />
       <Convoys sim={sim} />
       <WarMachines sim={sim} />
+      {mission?.target && (mission.state === "DISCOVERY" || mission.state === "TRAVERSAL") && (
+        <group position={[mission.target.x, heightAt(mission.target.x, mission.target.z) + 3, mission.target.z]}>
+          <mesh><octahedronGeometry args={[0.9, 0]} /><meshStandardMaterial color="#39e6ff" emissive="#39e6ff" emissiveIntensity={3} /></mesh>
+          <mesh position={[0, 30, 0]}><cylinderGeometry args={[0.15, 0.15, 60, 6]} /><meshBasicMaterial color={mission.state === "TRAVERSAL" ? "#ff6a3d" : "#39e6ff"} transparent opacity={0.45} /></mesh>
+          <pointLight color={mission.state === "TRAVERSAL" ? "#ff6a3d" : "#39e6ff"} intensity={30} distance={40} />
+        </group>
+      )}
       <Bullets sim={sim} />
       {settings.zoneLabels && <RegionLabels />}
 

@@ -76,6 +76,8 @@ export type Machine = {
   kind: "RAIDER" | "OVERCLOCKED" | "ABERRATION" | "VANGUARD";
   drop: MaterialId;
   boss: boolean;
+  /** spawned by an authored mission (Broken Signal) */
+  mission?: boolean;
   /** knockback velocity from impacts */
   kx: number;
   kz: number;
@@ -349,7 +351,7 @@ function spawnMachine(sim: WorldSim, zone: ZoneState, elite = false) {
   m.z = zone.region.z + Math.sin(a) * d;
   const profile = troopFor(zone.region.id, Math.floor(Math.random() * 3));
   if (!profile) return;
-  m.profile = profile.name; m.kind = profile.kind; m.drop = profile.drop as MaterialId; m.boss = false;
+  m.profile = profile.name; m.kind = profile.kind; m.drop = profile.drop as MaterialId; m.boss = false; m.mission = false;
   m.hp = (elite ? 7 : 3) + Math.round(zone.region.difficulty * 0.8);
   m.rot = 0;
   m.scale = (elite ? 1.5 : 0.9) + Math.random() * 0.7;
@@ -359,6 +361,17 @@ function spawnMachine(sim: WorldSim, zone: ZoneState, elite = false) {
   m.kx = 0;
   m.kz = 0;
 }
+
+/** Spawn Broken Signal data drones around a point; tagged so the mission can count them. */
+export function spawnMissionDrones(sim: WorldSim, x: number, z: number, count: number, elite: boolean) {
+  for (let i = 0; i < count; i++) {
+    const m = sim.machines.find((e) => !e.alive);
+    if (!m) return;
+    const a = (i / count) * Math.PI * 2;
+    Object.assign(m, { alive: true, x: x + Math.cos(a) * 16, z: z + Math.sin(a) * 16, hp: elite ? 6 : 3, rot: 0, scale: elite ? 1.1 : 0.8, zone: "nexus", cool: elite ? 1.2 : 2.5, elite, profile: elite ? "Data Drone Elite" : "Data Drone Scout", kind: "OVERCLOCKED" as const, drop: "dataShards" as MaterialId, boss: false, kx: 0, kz: 0, mission: true });
+  }
+}
+
 
 export function summonBoss(sim: WorldSim, regionId: string, x: number, z: number): boolean {
   const boss = encounterFor(regionId)?.boss;
