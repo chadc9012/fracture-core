@@ -9,7 +9,7 @@ export function BrokenSignalOverlay({ mission, onEvent }: { mission: MissionRun;
   const [glitch, setGlitch] = useState(mission.state === "TRIGGERED");
   const [route, setRoute] = useState<number[]>([]);
   const order = useMemo(() => [...NODES].sort(() => Math.random() - 0.5), []);
-  useEffect(() => { if (mission.state === "TRIGGERED") { setGlitch(true); const t = setTimeout(() => setGlitch(false), 2600); return () => clearTimeout(t); } }, [mission.state]);
+  useEffect(() => { if (mission.state === "TRIGGERED") { setGlitch(true); const t = setTimeout(() => setGlitch(false), 2600); return () => clearTimeout(t); } return undefined; }, [mission.state]);
 
   const pick = (n: number) => {
     const expected = order[route.length];
@@ -37,7 +37,7 @@ export function BrokenSignalOverlay({ mission, onEvent }: { mission: MissionRun;
     {hacking && <div className="fixed inset-0 z-30 grid place-items-center bg-background/40 backdrop-blur-sm">
       <section className="w-[min(26rem,calc(100%-2rem))] border border-primary bg-card/90 p-5">
         <p className="font-mono text-[10px] uppercase tracking-[0.25em] text-primary">Neon terminal · route clean data</p>
-        <p className="mt-1 text-xs text-muted-foreground">Connect the nodes in signal order. Next: <b className="text-foreground">NODE {order[route.length] + 1}</b></p>
+        <p className="mt-1 text-xs text-muted-foreground">Connect the nodes in signal order. Next: <b className="text-foreground">NODE {(order[route.length] ?? 0) + 1}</b></p>
         <div className="mt-4 grid grid-cols-4 gap-2">{NODES.map((n) => <Button key={n} variant={route.includes(n) ? "default" : "outline"} onClick={() => pick(n)} className="h-14 rounded-none font-mono">{n + 1}</Button>)}</div>
       </section>
     </div>}
