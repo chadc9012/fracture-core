@@ -297,7 +297,7 @@ function AmmoPanel({ hud }: { hud: HudState }) {
         <div className="mt-2 flex gap-[2px]">{Array.from({ length: Math.min(cur.magSize, 32) }, (_, i) => <span key={i} className={`h-2 flex-1 ${i < Math.round((cur.mag / cur.magSize) * Math.min(cur.magSize, 32)) ? (low ? "bg-warning" : "bg-primary") : "bg-muted"}`} />)}</div>
         {hud.reloading > 0
           ? <div className="mt-2"><p className="text-[9px] uppercase text-primary">Reloading</p><div className="mt-1 h-1 bg-muted"><div className="h-full bg-primary" style={{ width: `${Math.round(hud.reloading * 100)}%` }} /></div></div>
-          : <p className={`mt-2 text-[9px] uppercase ${empty ? "text-destructive" : low ? "text-warning" : "text-muted-foreground"}`}>{empty ? "Out of ammo · switch weapon" : low ? `Low ammo · ${hud.controller ? "X" : "T"} to reload` : `${hud.controller ? "X" : "T"} reload`}</p>}
+          : <p className={`mt-2 text-[9px] uppercase ${empty ? "text-destructive" : low ? "text-warning" : "text-muted-foreground"}`}>{empty ? "Out of ammo · switch weapon" : low ? `Low ammo · ${hud.controller ? "X" : "G"} to reload` : `${hud.controller ? "X" : "G"} reload`}</p>}
       </>}
     </div>
   );

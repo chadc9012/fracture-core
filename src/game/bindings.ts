@@ -3,7 +3,7 @@ export type Action = "reload" | "nextWeapon" | "prevWeapon" | "weaponWheel" | "s
 export type Bindings = { keyboard: Record<"reload" | "nextWeapon" | "prevWeapon" | "weaponWheel", string>; gamepad: Record<Action, number> };
 
 export const DEFAULT_BINDINGS: Bindings = {
-  keyboard: { reload: "KeyT", nextWeapon: "BracketRight", prevWeapon: "BracketLeft", weaponWheel: "KeyC" },
+  keyboard: { reload: "KeyG", nextWeapon: "BracketRight", prevWeapon: "BracketLeft", weaponWheel: "KeyZ" },
   gamepad: { reload: 2, nextWeapon: 5, prevWeapon: 4, weaponWheel: 3, slot1: 12, slot2: 15, slot3: 13, slot4: 14, fire: 7, aim: 6 },
 };
 
