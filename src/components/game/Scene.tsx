@@ -399,12 +399,12 @@ export function Scene({
   const padPrev = useRef<boolean[]>([]);
   const keyPrev = useRef<Set<string>>(new Set());
   const padState = useRef({ fire: false, aim: false, connected: false });
-  const audioSeen = useRef({ hit: 0, kills: 0, hp: 100, hurtAt: 0 });
+  const audioSeen = useRef({ hit: 0, kills: 0, hp: 100, hurtAt: 0, stepT: 1 });
   useEffect(() => {
     const unlock = () => sfx.unlockAudio();
     window.addEventListener("pointerdown", unlock);
     window.addEventListener("keydown", unlock);
-    return () => { window.removeEventListener("pointerdown", unlock); window.removeEventListener("keydown", unlock); };
+    return () => { window.removeEventListener("pointerdown", unlock); window.removeEventListener("keydown", unlock); sfx.updateEngine(false, "", 0, 0, false); };
   }, []);
   useEffect(() => sfx.setVolume(settings.volume ?? 0.7), [settings.volume]);
   const skyColor = useMemo(() => new THREE.Color(), []);
@@ -832,6 +832,14 @@ export function Scene({
       if (sim.hp < a.hp - 0.5 && now - a.hurtAt > 250) { sfx.playHurt(); a.hurtAt = now; }
       a.hp = sim.hp;
       sfx.updateCombatAudio(Math.min(1, sim.combatHeat / 100));
+      for (const shot of sim.enemyShots.splice(0)) sfx.playEnemyShot(shot.kind, shot.boss || shot.elite, sfx.where(s.x, s.z, s.yaw, shot.x, shot.z));
+      const speedNow = velocity.length();
+      if (!s.inVehicle && speedNow > 3 && s.y - walkHeight(s.x, s.z) < 1.9) {
+        a.stepT -= dt * (speedNow / 30) * 2.4;
+        if (a.stepT <= 0) { a.stepT = 1; const rid = here?.id; sfx.playFootstep(rid === "frostspire" ? "SNOW" : rid === "solara" ? "SAND" : rid === "nexus" ? "HARD" : "GRASS", held.has("ShiftLeft") || held.has("ShiftRight")); }
+      }
+      const fwd = held.has("KeyW") || held.has("ArrowUp"), rev = held.has("KeyS") || held.has("ArrowDown");
+      sfx.updateEngine(s.inVehicle, vehicleId, Math.min(1, Math.abs(s.vSpeed) / 45), fwd || rev ? 1 : 0, rev && s.vSpeed > 2);
     }
 
     /* ---------------- Mission 01 · Broken Signal world triggers ---------------- */
@@ -1032,7 +1040,9 @@ export function Scene({
 
   return (
     <>
-      <fog attach="fog" args={["#c6e2ee", 110, 520]} />
+      <fog attach="fog" args={["#5f9aa3", 70, 430]} />
+      <FracturePortal />
+      <Motes />
       <hemisphereLight args={["#9ec8e8", "#3b3326", 0.85]} />
       <directionalLight
         ref={sun}
@@ -1178,4 +1188,29 @@ export function Scene({
 
     </>
   );
+}
+
+/** Swirling fracture rift hanging in the sky with orbiting shards — the reference art's signature. */
+function FracturePortal() {
+  const g = useRef<THREE.Group>(null);
+  const rings = useMemo(() => [0, 1, 2, 3].map((i) => ({ r: 34 + i * 13, c: i % 2 ? "#8e7dff" : "#5ff2ff", o: 0.5 - i * 0.09 })), []);
+  const shards = useMemo(() => Array.from({ length: 18 }, (_, i) => ({ a: (i / 18) * Math.PI * 2, r: 50 + (i % 4) * 14, s: 3 + (i % 3) * 2.5, y: (i % 5) * 6 - 12 })), []);
+  useFrame((st, dt) => {
+    if (!g.current) return;
+    g.current.position.set(st.camera.position.x, 190, st.camera.position.z - 420);
+    g.current.children.forEach((c, i) => { c.rotation.z += dt * (i < rings.length ? 0.12 + i * 0.05 : 0.05) * (i % 2 ? -1 : 1); });
+  });
+  return <group ref={g}>
+    {rings.map((r, i) => <mesh key={i}><torusGeometry args={[r.r, 3.5 + i, 8, 96]} /><meshBasicMaterial color={r.c} transparent opacity={r.o} fog={false} blending={THREE.AdditiveBlending} depthWrite={false} toneMapped={false} /></mesh>)}
+    <group>{shards.map((sh, i) => <mesh key={i} position={[Math.cos(sh.a) * sh.r, Math.sin(sh.a) * sh.r + sh.y, 6]} rotation={[sh.a, sh.a * 2, sh.a]}><tetrahedronGeometry args={[sh.s]} /><meshBasicMaterial color="#1a2330" fog={false} /></mesh>)}</group>
+    <mesh position={[0, 0, -4]}><circleGeometry args={[30, 48]} /><meshBasicMaterial color="#bff8ff" transparent opacity={0.35} fog={false} blending={THREE.AdditiveBlending} depthWrite={false} toneMapped={false} /></mesh>
+  </group>;
+}
+
+/** Drifting violet/cyan energy motes around the player. */
+function Motes() {
+  const ref = useRef<THREE.Points>(null);
+  const geo = useMemo(() => { const g = new THREE.BufferGeometry(); const p = new Float32Array(600 * 3); for (let i = 0; i < p.length; i++) p[i] = (Math.random() - 0.5) * (i % 3 === 1 ? 30 : 120); g.setAttribute("position", new THREE.BufferAttribute(p, 3)); return g; }, []);
+  useFrame((st) => { if (!ref.current) return; const c = st.camera.position; ref.current.position.set(c.x, c.y + Math.sin(st.clock.elapsedTime * 0.3) * 1.5, c.z); ref.current.rotation.y = st.clock.elapsedTime * 0.02; });
+  return <points ref={ref} geometry={geo}><pointsMaterial color="#9fe9ff" size={0.35} transparent opacity={0.75} blending={THREE.AdditiveBlending} depthWrite={false} toneMapped={false} /></points>;
 }
