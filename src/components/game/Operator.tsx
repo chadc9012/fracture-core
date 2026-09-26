@@ -20,10 +20,12 @@ export function Operator({ armor = "#1b1f26", cloth = "#0e1014", visor = "#48d8f
     if (drone.current) { const t = clock.elapsedTime; drone.current.position.set(Math.cos(t * 0.9) * 0.9, 1.45 + Math.sin(t * 2) * 0.08, Math.sin(t * 0.9) * 0.9 - 0.2); drone.current.rotation.y = -t * 0.9; }
     if (orbit.current) orbit.current.rotation.y += delta * 1.2;
   });
+  const plateColor = new THREE.Color("#12151a").lerp(new THREE.Color(armor), 0.28).getStyle();
+  const suitColor = new THREE.Color("#07080a").lerp(new THREE.Color(cloth), 0.2).getStyle();
   const titan = classId === "TITAN", hunter = classId === "HUNTER", warlock = classId === "WARLOCK";
   const bulk = titan ? 1.14 : hunter ? 0.92 : 1;
-  const plate = <meshPhysicalMaterial color={armor} metalness={0.75} roughness={0.28} clearcoat={0.8} clearcoatRoughness={0.25} />;
-  const suit = <meshStandardMaterial color={cloth} metalness={0.2} roughness={0.75} />;
+  const plate = <meshPhysicalMaterial color={plateColor} metalness={0.75} roughness={0.28} clearcoat={0.8} clearcoatRoughness={0.25} />;
+  const suit = <meshStandardMaterial color={suitColor} metalness={0.2} roughness={0.75} />;
   const line = <meshStandardMaterial ref={glow} color={visor} emissive={visor} emissiveIntensity={2.2} toneMapped={false} />;
   const seam = (key: string, p: [number, number, number], s: [number, number, number], r: [number, number, number] = [0, 0, 0]) =>
     <mesh key={key} position={p} rotation={r}><boxGeometry args={s} /><meshStandardMaterial color={visor} emissive={visor} emissiveIntensity={2.4} toneMapped={false} /></mesh>;
