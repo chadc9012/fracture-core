@@ -56,7 +56,7 @@ const initial: HudState = {
   weaponHeat: 0,
   overheated: false,
   loot: [],
-  view: "third",
+  view: "first",
   aimLocked: false,
   playerClass: "TITAN",
   subclassName: "Shield Titan",
@@ -91,6 +91,14 @@ export function GameCanvas() {
   const [phase, setPhase] = useState<"title" | "loadout" | "world">("title");
   const [menuOpen, setMenuOpen] = useState(false);
   const [settings, setSettings] = useState<GameSettings>(DEFAULT_SETTINGS);
+  useEffect(() => {
+    const saved = window.localStorage.getItem("world-fracture-camera");
+    if (saved === "third") setSettings((current) => ({ ...current, firstPersonDefault: false }));
+  }, []);
+  const updateSettings = (next: GameSettings) => {
+    if (next.firstPersonDefault !== settings.firstPersonDefault) window.localStorage.setItem("world-fracture-camera", next.firstPersonDefault ? "first" : "third");
+    setSettings(next);
+  };
   const [cls, setCls] = useState<ClassId>("TITAN");
   const [subclass, setSubclass] = useState<SubclassId>("SHIELD_TITAN");
   const [appearance, setAppearance] = useState<AppearanceId>("RANGER");
@@ -169,7 +177,7 @@ export function GameCanvas() {
             onSettings={() => setMenuOpen(true)}
           />
         )}
-        {menuOpen && <SettingsWindow settings={settings} onChange={setSettings} onClose={() => setMenuOpen(false)} onOrbit={() => setMenuOpen(false)} />}
+        {menuOpen && <SettingsWindow settings={settings} onChange={updateSettings} onClose={() => setMenuOpen(false)} onOrbit={() => setMenuOpen(false)} />}
       </>
     );
   }
@@ -181,7 +189,7 @@ export function GameCanvas() {
         {menuOpen && (
           <SettingsWindow
             settings={settings}
-            onChange={setSettings}
+            onChange={updateSettings}
             onClose={() => setMenuOpen(false)}
             onOrbit={() => setMenuOpen(false)}
           />
@@ -193,6 +201,10 @@ export function GameCanvas() {
   return (
     <div className="fixed inset-0 bg-background">
       <Canvas
+        onPointerDown={(event) => {
+          if (event.button === 0 || event.button === 2) event.currentTarget.requestPointerLock?.();
+        }}
+        onContextMenu={(event) => event.preventDefault()}
         shadows={RENDER_PRESETS[settings.renderTier].shadows}
         dpr={[1, RENDER_PRESETS[settings.renderTier].dpr]}
         gl={{ antialias: true, toneMapping: THREE.ACESFilmicToneMapping }}
@@ -204,7 +216,7 @@ export function GameCanvas() {
       >
         <color attach="background" args={["#bfe4f2"]} />
         <Suspense fallback={null}>
-          <Scene onHud={setHud} settings={settings} playerClass={cls} subclassId={subclass} appearanceId={appearance} vehicleId={vehicleId} vehicleUnlocked={vehicleUnlocked} activeBuild={progression.activeBuild} abilityBranches={progression.abilityBranches} tutorial={tutorial} onTutorialEvent={recordTutorial} armorState={hud.hp < 35 ? "FRACTURE" : hud.heat > 65 ? "ASCENDANT" : hud.heat > 15 ? "ACTIVE" : "STABLE"} />
+           <Scene onHud={setHud} settings={settings} onCameraPreference={(firstPerson) => { window.localStorage.setItem("world-fracture-camera", firstPerson ? "first" : "third"); setSettings((current) => ({ ...current, firstPersonDefault: firstPerson })); }} playerClass={cls} subclassId={subclass} appearanceId={appearance} vehicleId={vehicleId} vehicleUnlocked={vehicleUnlocked} activeBuild={progression.activeBuild} abilityBranches={progression.abilityBranches} tutorial={tutorial} onTutorialEvent={recordTutorial} armorState={hud.hp < 35 ? "FRACTURE" : hud.heat > 65 ? "ASCENDANT" : hud.heat > 15 ? "ACTIVE" : "STABLE"} />
         </Suspense>
 
       </Canvas>
@@ -218,7 +230,7 @@ export function GameCanvas() {
       {menuOpen && (
         <SettingsWindow
           settings={settings}
-          onChange={setSettings}
+          onChange={updateSettings}
           onClose={() => setMenuOpen(false)}
           onOrbit={toOrbit}
         />

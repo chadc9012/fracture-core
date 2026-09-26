@@ -8,7 +8,7 @@ export type GameSettings = {
 
 export const DEFAULT_SETTINGS: GameSettings = {
   aimAssist: true,
-  firstPersonDefault: false,
+  firstPersonDefault: true,
   zoneLabels: true,
   hudDensity: "full",
   renderTier: "HIGH",
@@ -63,7 +63,7 @@ export function SettingsWindow({
         <div className="space-y-2">
           <Toggle label="Predictive aim assist" on={settings.aimAssist} onChange={(v) => set({ aimAssist: v })} />
           <Toggle
-            label="Start in first person"
+            label="First-person camera"
             on={settings.firstPersonDefault}
             onChange={(v) => set({ firstPersonDefault: v })}
           />
