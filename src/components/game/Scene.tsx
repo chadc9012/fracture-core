@@ -532,7 +532,7 @@ export function Scene({
       night,
       inVehicle: s.inVehicle,
     });
-    sim.mods.bulletDamage *= live.current.damageMultiplier * (1 + live.current.momentum * 0.25);
+    sim.mods.bulletDamage = Math.max(0.5, 1.2 * live.current.damageMultiplier * (1 + live.current.momentum * 0.25));
     if (live.current.fieldTime > 0) sim.gravity *= 0.55;
     if (live.current.dashTime > 0) sim.hp = Math.min(100, sim.hp + dt * 15);
     if (live.current.hackTime > 0) for (const enemy of sim.machines) if (enemy.alive && Math.hypot(enemy.x - s.x, enemy.z - s.z) < 12) enemy.cool = Math.max(enemy.cool, 0.3);
