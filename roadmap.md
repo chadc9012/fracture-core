@@ -64,3 +64,5 @@
 - [x] Destructible interior (single building near spawn)
 - [ ] Multiplayer destruction sync (needs multiplayer first)
 - [ ] Replace boxy world props with higher-detail models
+- [x] Replace tabbed character creation with the spatial Identity Forge chamber and cinematic armor handoff.
+- [x] Replace the dashboard-like in-game overlay with a clean combat HUD.

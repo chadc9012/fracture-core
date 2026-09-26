@@ -1,327 +1,37 @@
-import { FACTIONS } from "@/game/sim";
-import { ZONE_COLOR, ZONE_LABEL } from "@/game/world";
-import type { HudState } from "./Scene";
-import { Inspector } from "./Inspector";
-import { Compass, TrackedObjectives } from "./Tracker";
+import { Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Anvil, BrainCircuit, CarFront, Castle, ImageUp, Menu, Network, Backpack, Map } from "lucide-react";
+import type { HudState } from "./Scene";
+import { Compass, TrackedObjectives } from "./Tracker";
 
-export function HUD({ hud, tutorialActive = false, onMenu, onStrategy, onGarage, onAnalyze, onOperations, onInventory, onAtlas }: { hud: HudState; tutorialActive?: boolean; onMenu: () => void; onStrategy: () => void; onGarage: () => void; onAnalyze: () => void; onInventory: () => void; onAtlas: () => void; onOperations: (view: "DUNGEONS" | "ARSENAL" | "ABILITIES") => void }) {
-  const color = ZONE_COLOR[hud.kind];
-  const owner = FACTIONS[hud.owner];
-  const challenger = FACTIONS[hud.challenger];
-
-  return (
-    <div className="pointer-events-none fixed inset-0 z-10 select-none font-mono text-foreground">
-      {!tutorialActive && <><Compass markers={hud.markers ?? []} yaw={hud.yaw ?? 0} /><TrackedObjectives markers={hud.markers ?? []} /></>}
-      {/* top left: zone + capture */}
-      <div className="absolute left-4 top-4 hidden max-w-xs rounded-lg border border-border/60 bg-card/70 p-4 backdrop-blur-md md:block">
-        <p className="text-[10px] tracking-[0.35em] text-muted-foreground">THE FRACTURED EARTH</p>
-        <h1 className="mt-1 text-xl font-bold tracking-wide" style={{ color }}>
-          {hud.region}
-        </h1>
-        <p className="text-xs text-muted-foreground">{hud.sub}</p>
-        <p className="mt-2 font-mono text-[9px] uppercase tracking-[0.18em] text-primary">{hud.weather} · {hud.streamTier}</p>
-
-        <div className="mt-3 flex items-center gap-2 text-[10px] uppercase tracking-widest">
-          <span className="rounded px-2 py-0.5" style={{ backgroundColor: `${color}22`, color }}>
-            {ZONE_LABEL[hud.kind]}
-          </span>
-          <span className="text-muted-foreground">RISK {"▮".repeat(Math.max(1, hud.difficulty))}</span>
-        </div>
-
-        {/* faction control */}
-        <div className="mt-3">
-          <div className="flex items-center justify-between text-[10px] uppercase tracking-widest">
-            <span style={{ color: owner.color }}>HELD BY {owner.short}</span>
-            {hud.contested && <span style={{ color: challenger.color }}>{challenger.short} PUSHING</span>}
-          </div>
-          <div className="mt-1 h-1.5 w-full overflow-hidden rounded bg-muted">
-            <div
-              className="h-full transition-[width] duration-200"
-              style={{ width: `${Math.round(hud.progress * 100)}%`, backgroundColor: challenger.color }}
-            />
-          </div>
-        </div>
-
-        {hud.instability > 0.05 && (
-          <div className="mt-3 rounded border border-border/60 px-2 py-1 text-[10px] uppercase tracking-widest">
-            <span style={{ color: "#ff9f1c" }}>INSTABILITY {Math.round(hud.instability * 100)}%</span>
-            <span className="ml-2 text-muted-foreground">GRAVITY {hud.gravity.toFixed(1)}</span>
-          </div>
-        )}
-
-        <ul className="mt-3 space-y-1 text-[11px] leading-snug text-muted-foreground">
-          {hud.rules.map((r) => (
-            <li key={r}>— {r}</li>
-          ))}
-        </ul>
-      </div>
-
-      {/* top right: cycle + world control */}
-      <div className="absolute right-4 top-4 hidden w-60 rounded-lg border border-border/60 bg-card/70 p-4 backdrop-blur-md xl:block">
-        <div className="flex items-baseline justify-between">
-          <span className="text-[10px] tracking-[0.3em] text-muted-foreground">CYCLE</span>
-          <span className="text-sm font-bold">{hud.clock}</span>
-        </div>
-        <p className="text-xs" style={{ color: "var(--accent-glow)" }}>
-          {hud.phase}
-        </p>
-        <p className="mt-3 text-[10px] tracking-[0.3em] text-muted-foreground">ZONE CONTROL</p>
-        <div className="mt-1.5 space-y-1 text-[10px] uppercase tracking-widest">
-          {hud.ownership.map((z) => (
-            <div key={z.id} className="flex items-center justify-between gap-2">
-              <span className={z.name === hud.region ? "text-foreground" : "text-muted-foreground"}>{z.name}</span>
-              <span style={{ color: FACTIONS[z.owner].color }}>{FACTIONS[z.owner].short}</span>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* right: AI mission director */}
-      {!tutorialActive && <div className="absolute right-2 top-16 w-56 rounded-lg border border-border/60 bg-card/70 p-3 backdrop-blur-md xl:right-4 xl:top-64 xl:w-60 xl:p-4">
-        <div className="flex items-baseline justify-between">
-          <span className="text-[10px] tracking-[0.3em] text-muted-foreground">AI DIRECTOR</span>
-          <span className="text-[10px]" style={{ color: hud.threat > 80 ? "#ff4d4d" : "var(--accent-glow)" }}>
-            THREAT {hud.threat}
-          </span>
-        </div>
-        <div className="mt-1 h-1 w-full overflow-hidden rounded bg-muted">
-          <div
-            className="h-full"
-            style={{
-              width: `${Math.min(100, hud.threat)}%`,
-              backgroundColor: hud.threat > 80 ? "#ff4d4d" : "#ff9f1c",
-            }}
-          />
-        </div>
-        <p className="mt-1 text-[10px] uppercase tracking-widest text-muted-foreground">
-          HEAT {hud.heat} · CORE {hud.coreHp}%
-        </p>
-        <p className="text-[10px] italic text-muted-foreground">{hud.trend}</p>
-
-        <div className="mt-3 space-y-2">
-          {hud.missions.length === 0 && (
-            <p className="text-[10px] uppercase tracking-widest text-muted-foreground">No active contracts</p>
-          )}
-          {hud.missions.map((m) => (
-            <div key={m.id} className="rounded border border-border/60 px-2 py-1.5">
-              <div className="flex items-center justify-between gap-1">
-                <span className="text-[10px] font-bold leading-tight">{m.name}</span>
-                <span
-                  className="text-[9px] uppercase"
-                  style={{ color: m.intensity === "HIGH" ? "#ff4d4d" : "#ff9f1c" }}
-                >
-                  {m.intensity}
-                </span>
-              </div>
-              <ul className="mt-1 space-y-0.5 text-[10px] text-muted-foreground">
-                {m.objectives.map((o, i) => (
-                  <li key={i} className="flex items-center justify-between gap-2">
-                    <span className={o.done ? "line-through opacity-60" : ""}>{o.label}</span>
-                    <span>
-                      {Math.floor(o.progress)}/{o.amount}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ))}
-        </div>
-      </div>}
-
-
-
-      {/* dev engine inspector */}
-      {hud.inspector && <Inspector view={hud.inspector} />}
-
-      {/* alerts */}
-      <div className="absolute left-1/2 top-4 w-72 -translate-x-1/2 space-y-1 text-center text-[11px]">
-        {hud.alerts.map((a, i) => (
-          <p
-            key={`${a}-${i}`}
-            className="rounded border border-border/60 bg-card/70 px-3 py-1 backdrop-blur-md"
-            style={{ opacity: 1 - i * 0.22 }}
-          >
-            {a}
-          </p>
-        ))}
-      </div>
-
-      {/* global actions */}
-      <div className="pointer-events-auto absolute left-2 top-2 flex max-w-[calc(100%-1rem)] gap-1 overflow-x-auto md:left-1/2 md:top-4 md:-translate-x-1/2">
-        <Button title="Menu" size="icon" variant="outline" onClick={onMenu} aria-label="Open menu"><Menu /></Button>
-         {!tutorialActive && <><Button title="Dungeons" size="icon" variant="outline" onClick={() => onOperations("DUNGEONS")} aria-label="Dungeons"><Castle /></Button>
-         <Button title="Inventory" size="icon" variant="outline" onClick={onInventory} aria-label="Inventory"><Backpack /></Button>
-         <Button title="World map" size="icon" variant="outline" onClick={onAtlas} aria-label="World map"><Map /></Button>
-        <Button title="Arsenal" size="icon" variant="outline" onClick={() => onOperations("ARSENAL")} aria-label="Arsenal"><Anvil /></Button>
-        <Button title="Ability Network" size="icon" variant="outline" onClick={() => onOperations("ABILITIES")} aria-label="Ability Network"><Network /></Button>
-        <Button title="Raid Strategy" size="icon" variant="outline" onClick={onStrategy} aria-label="Raid Strategy"><BrainCircuit /></Button>
-        <Button title="Garage" size="icon" variant="outline" onClick={onGarage} aria-label="Garage"><CarFront /></Button>
-         <Button title="Zone Analysis" size="icon" variant="outline" onClick={onAnalyze} aria-label="Zone Analysis"><ImageUp /></Button></>}
-      </div>
-      {!tutorialActive && <div className="absolute right-2 top-16 max-w-60 border-l-2 border-primary bg-card/80 p-3 font-mono text-[10px] backdrop-blur-md"><p className="text-primary">LIVE COMBAT FEED</p><p className="mt-1">ENERGY {hud.liveEnergy}% · MOMENTUM {hud.momentum}%</p><p className="mt-1 text-muted-foreground">{hud.enemyResponse}</p>{hud.liveEffect && <p className="mt-2 text-primary">{hud.liveEffect}</p>}</div>}
-
-      {hud.playerClass === "TITAN" && <div className="absolute bottom-3 left-1/2 w-[min(30rem,calc(100%-1rem))] -translate-x-1/2 border border-border bg-card/80 p-3 backdrop-blur-md"><div className="grid grid-cols-4 gap-2 text-[8px] uppercase tracking-[0.16em]">{[["HP",hud.hp,"bg-destructive"],["SHIELD",hud.shield,"bg-titan"],["ENERGY",hud.energy,"bg-primary"],["STABILITY",hud.stability,"bg-warning"]].map(([label,value,tone]) => <div key={String(label)}><div className="flex justify-between"><span>{label}</span><span>{value}%</span></div><div className="mt-1 h-1 bg-muted"><div className={`h-full ${tone}`} style={{width:`${value}%`}} /></div></div>)}</div><div className="mt-2 flex items-center justify-between text-[9px] uppercase"><span className="text-primary">Q Block · E Shield Bash · R Dome</span><span>{hud.blocking ? "SHIELD ACTIVE" : hud.domeTime > 0 ? `DOME ${hud.domeTime.toFixed(1)}s` : hud.titanFeedback}</span></div></div>}
-
-      {/* crosshair + weapon heat */}
-      <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
-        {(() => {
-          const gap = 5 + hud.bloom * 18 - (hud.aiming ? 3 : 0);
-          const c = hud.overheated ? "#ff4d4d" : hud.aimLocked ? "#7dffca" : "#ffffffcc";
-          return <div className="relative h-0 w-0">
-            {([[0, -1], [0, 1], [-1, 0], [1, 0]] as const).map(([x, y], i) => <span key={i} className="absolute block" style={{ width: x ? 8 : 2, height: y ? 8 : 2, background: c, left: x * gap - (x ? (x > 0 ? 0 : 8) : 1), top: y * gap - (y ? (y > 0 ? 0 : 8) : 1) }} />)}
-            {hud.hitMarker && <span className="absolute -left-3 -top-3 block h-6 w-6 text-center text-lg leading-6" style={{ color: "#ff5a5a" }}>✕</span>}
-          </div>;
-        })()}
-      </div>
-      <div className="absolute left-1/2 top-16 w-56 -translate-x-1/2 rounded-lg border border-border/60 bg-card/70 px-3 py-2 backdrop-blur-md">
-        <div className="flex items-center justify-between text-[10px] uppercase tracking-[0.25em]">
-          <span className="text-muted-foreground">weapon heat</span>
-          <span style={{ color: hud.overheated ? "#ff4d4d" : hud.weaponHeat > 70 ? "#ff9f1c" : "#8fe3ff" }}>
-            {hud.overheated ? "venting" : `${hud.weaponHeat}%`}
-          </span>
-        </div>
-        <div className="mt-1 h-1.5 w-full overflow-hidden rounded bg-muted">
-          <div
-            className="h-full transition-[width] duration-150"
-            style={{
-              width: `${hud.weaponHeat}%`,
-              backgroundColor: hud.overheated ? "#ff4d4d" : hud.weaponHeat > 70 ? "#ff9f1c" : "#5bb8ff",
-            }}
-          />
-        </div>
-        <p className="mt-1 text-[9px] uppercase tracking-[0.25em] text-muted-foreground">
-          {hud.weaponSlot} · {hud.weaponName} · {hud.controller ? "LB/RB swap" : "1–4 swap"} · {hud.aiming ? "aiming" : hud.meleeTime > 0 ? "melee camera" : hud.view === "first" ? "first person" : "third person"} · F to swap
-        </p>
-      </div>
-
-      <AmmoPanel hud={hud} />
-      <WeaponSelector hud={hud} />
-
-      {/* generated loot feed */}
-      {(hud.loot?.length ?? 0) > 0 && (
-        <div className="absolute right-4 top-1/2 hidden w-64 -translate-y-1/2 space-y-2 xl:block">
-          {(hud.loot ?? []).map((it, i) => (
-            <div
-              key={`${it.name}-${i}`}
-              className="rounded-lg border bg-card/80 px-3 py-2 backdrop-blur-md"
-              style={{ borderColor: `${it.color}66` }}
-            >
-              <div className="flex items-baseline justify-between">
-                <span className="text-[10px] uppercase tracking-[0.25em]" style={{ color: it.color }}>
-                  {it.rarity}
-                </span>
-                <span className="text-[10px] text-muted-foreground">PWR {it.power}</span>
-              </div>
-              <p className="text-[12px] leading-tight text-foreground">{it.name}</p>
-              <ul className="mt-1 space-y-0.5 text-[10px] text-muted-foreground">
-                {it.mods.map((m) => (
-                  <li key={m}>+ {m}</li>
-                ))}
-              </ul>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* bottom left: controls */}
-      <div className="absolute bottom-4 left-4 hidden rounded-lg border border-border/60 bg-card/70 px-4 py-3 text-[11px] text-muted-foreground backdrop-blur-md lg:block">
-        <p className="mb-2 font-mono text-[10px] uppercase tracking-[0.2em] text-primary">{hud.playerClass} · {hud.subclassName}</p>
-        <div className="mb-2 flex flex-wrap gap-1">{hud.abilities.map((ability) => <span key={ability.slot} className="border border-border px-2 py-1 text-[9px]"><b className="text-foreground">{ability.slot}</b> {ability.name} · {ability.ready ? "READY" : "COOLDOWN"}</span>)}</div>
-        <p>
-          <span className="text-foreground">WASD</span> {hud.mode === "vehicle" ? "drive / steer" : "move"} ·{" "}
-          <span className="text-foreground">SHIFT</span> boost ·{" "}
-          <span className="text-foreground">LMB / SPACE</span> fire · <span className="text-foreground">RMB</span> aim · <span className="text-foreground">X</span> melee ·{" "}
-          {hud.vehicleUnlocked ? <><span className="text-foreground">V</span> {hud.mode === "vehicle" ? "exit vehicle" : "enter vehicle"}</> : <span>Vehicle locked until Mission 01</span>}
-        </p>
-        <p className="mt-1">
-          <span className="text-foreground">C</span> jump · <span className="text-foreground">T</span> fast-forward the
-          day cycle · <span className="text-foreground">F</span> persistent camera ·{" "}
-          <span className="text-foreground">I</span> engine inspector
-        </p>
-        <p className="mt-1">Ambush convoys on the lanes, then extract at Nexus City for credits.</p>
-      </div>
-
-      {/* bottom right: status */}
-      <div className="absolute bottom-4 right-4 hidden w-52 rounded-lg border border-border/60 bg-card/70 px-4 py-3 text-right backdrop-blur-md md:block">
-        <p className="mb-2 text-left font-mono text-[9px] uppercase tracking-[0.18em] text-primary">{hud.vehicleUnlocked ? hud.vehicleName : "On foot · vehicle reward pending"}</p>
-        <div className="flex items-baseline justify-between">
-          <span className="text-[10px] tracking-[0.3em] text-muted-foreground">
-            {hud.mode === "vehicle" ? "KM/H" : "SPEED"}
-          </span>
-          <span className="text-2xl font-bold leading-none">{hud.speed}</span>
-        </div>
-        <div className="mt-2 h-1.5 w-full overflow-hidden rounded bg-muted">
-          <div
-            className="h-full"
-            style={{ width: `${hud.hp}%`, backgroundColor: hud.hp > 40 ? "#3ddc97" : "#ff4d4d" }}
-          />
-        </div>
-        <div className="mt-2 grid grid-cols-2 gap-x-2 gap-y-0.5 text-[10px] uppercase tracking-widest text-muted-foreground">
-          <span className="text-left">HULL</span>
-          <span>{hud.hp}%</span>
-          <span className="text-left">CARGO</span>
-          <span>{hud.cargo}</span>
-          <span className="text-left">CREDITS</span>
-          <span>{hud.credits}</span>
-          <span className="text-left">KILLS</span>
-          <span>{hud.kills}</span>
-          <span className="text-left">ELEV</span>
-          <span>{hud.elevation}m</span>
-          <span className="text-left">TRACTION</span>
-          <span>{Math.round(hud.traction * 100)}%</span>
-          <span className="text-left">FRAME</span>
-          <span>{hud.vehicleDomain}</span>
-          <span className="text-left">CREW</span>
-          <span>{hud.vehicleSeats}</span>
-        </div>
-        <p className="mt-2 text-left text-[9px] text-muted-foreground">{hud.vehicleWeapon}</p>
-      </div>
+export function HUD({ hud, tutorialActive = false, onMenu }: { hud: HudState; tutorialActive?: boolean; onMenu: () => void; onStrategy: () => void; onGarage: () => void; onAnalyze: () => void; onInventory: () => void; onAtlas: () => void; onOperations: (view: "DUNGEONS" | "ARSENAL" | "ABILITIES") => void }) {
+  const ammo = hud.ammo?.[hud.weaponSlot - 1];
+  const melee = ammo?.magSize === 0;
+  const lowAmmo = Boolean(ammo && !melee && ammo.mag <= Math.ceil(ammo.magSize * 0.25));
+  return <div className="pointer-events-none fixed inset-0 z-10 select-none font-mono text-foreground">
+    <div className="pointer-events-auto absolute left-3 top-3"><Button title="Menu" size="icon" variant="outline" className="border-border/60 bg-background/45 backdrop-blur-md" onClick={onMenu} aria-label="Open menu"><Menu /></Button></div>
+    {!tutorialActive && <><Compass markers={hud.markers ?? []} yaw={hud.yaw ?? 0} /><TrackedObjectives markers={hud.markers ?? []} /></>}
+    <div className="absolute left-1/2 top-4 w-[min(26rem,calc(100%-7rem))] -translate-x-1/2 space-y-1 text-center text-[10px]">{hud.alerts.slice(0, 2).map((alert, index) => <p key={`${alert}-${index}`} className="border-x border-primary/40 bg-background/45 px-3 py-1 text-foreground/90 backdrop-blur-sm" style={{ opacity: 1 - index * 0.28 }}>{alert}</p>)}</div>
+    <Crosshair hud={hud} />
+    <div className="absolute bottom-4 left-4 w-[min(24rem,calc(100%-8rem))]">
+      <div className="flex items-end gap-2"><div className="h-2 flex-1 skew-x-[-18deg] overflow-hidden border border-foreground/30 bg-background/50"><div className={`h-full ${hud.hp > 40 ? "bg-primary" : "bg-destructive"}`} style={{ width: `${hud.hp}%` }} /></div><span className="text-[10px] font-bold">{hud.hp}</span></div>
+      <div className="mt-1 flex items-center gap-3 text-[8px] uppercase tracking-[0.18em] text-muted-foreground"><span>{hud.playerClass}</span><span>{hud.subclassName}</span>{hud.playerClass === "TITAN" && <span>Shield {hud.shield}%</span>}</div>
+      <div className="mt-2 flex gap-1">{hud.abilities.map((ability) => <div key={ability.slot} className={`min-w-0 flex-1 border-t px-1 pt-1 ${ability.ready ? "border-primary text-foreground" : "border-border text-muted-foreground"}`}><p className="truncate text-[8px] uppercase">{ability.slot.slice(0, 1)} · {ability.name}</p></div>)}</div>
     </div>
-  );
+    {ammo && <div className="absolute bottom-4 right-4 w-32 text-right"><p className="truncate text-[8px] uppercase tracking-[0.18em] text-muted-foreground">{ammo.name}</p><p className={`text-3xl font-semibold leading-none ${lowAmmo ? "text-warning" : "text-foreground"}`}>{melee ? "∞" : ammo.mag}<span className="text-xs text-muted-foreground">{melee ? "" : ` / ${ammo.reserve}`}</span></p><div className="mt-1 h-1 overflow-hidden bg-background/60">{hud.reloading > 0 ? <div className="h-full bg-primary" style={{ width: `${hud.reloading * 100}%` }} /> : <div className={`h-full ${lowAmmo ? "bg-warning" : "bg-primary"}`} style={{ width: `${melee ? 100 : (ammo.mag / Math.max(1, ammo.magSize)) * 100}%` }} />}</div><p className="mt-1 text-[8px] uppercase tracking-[0.12em] text-muted-foreground">{hud.reloading > 0 ? "Reloading" : hud.overheated ? "Venting" : `Heat ${hud.weaponHeat}%`}</p></div>}
+    <WeaponSelector hud={hud} />
+  </div>;
 }
 
-/** Magazine / reserve counter with low-ammo + reload states, bottom-right like a shooter HUD. */
-function AmmoPanel({ hud }: { hud: HudState }) {
-  const cur = hud.ammo?.[hud.weaponSlot - 1];
-  if (!cur) return null;
-  const melee = cur.magSize === 0;
-  const low = !melee && cur.mag <= Math.ceil(cur.magSize * 0.25);
-  const empty = !melee && cur.mag === 0 && cur.reserve === 0;
-  return (
-    <div className="absolute bottom-24 right-4 w-48 border border-border bg-card/80 p-3 font-mono backdrop-blur-md">
-      <p className="text-[9px] uppercase tracking-[0.2em] text-muted-foreground">{cur.name}</p>
-      {melee ? <p className="mt-1 text-xl text-primary">∞ <span className="text-[10px] text-muted-foreground">melee</span></p> : <>
-        <p className={`mt-1 text-3xl leading-none ${empty ? "text-destructive" : low ? "text-warning" : "text-foreground"}`}>
-          {cur.mag}<span className="text-sm text-muted-foreground"> / {cur.reserve}</span>
-        </p>
-        <div className="mt-2 flex gap-[2px]">{Array.from({ length: Math.min(cur.magSize, 32) }, (_, i) => <span key={i} className={`h-2 flex-1 ${i < Math.round((cur.mag / cur.magSize) * Math.min(cur.magSize, 32)) ? (low ? "bg-warning" : "bg-primary") : "bg-muted"}`} />)}</div>
-        {hud.reloading > 0
-          ? <div className="mt-2"><p className="text-[9px] uppercase text-primary">Reloading</p><div className="mt-1 h-1 bg-muted"><div className="h-full bg-primary" style={{ width: `${Math.round(hud.reloading * 100)}%` }} /></div></div>
-          : <p className={`mt-2 text-[9px] uppercase ${empty ? "text-destructive" : low ? "text-warning" : "text-muted-foreground"}`}>{empty ? "Out of ammo · switch weapon" : low ? `Low ammo · ${hud.controller ? "X" : "G"} to reload` : `${hud.controller ? "X" : "G"} reload`}</p>}
-      </>}
-    </div>
-  );
+function Crosshair({ hud }: { hud: HudState }) {
+  const gap = 5 + hud.bloom * 18 - (hud.aiming ? 3 : 0);
+  const color = hud.overheated ? "var(--destructive)" : hud.aimLocked ? "var(--primary)" : "var(--foreground)";
+  return <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"><div className="relative h-0 w-0">{([[0, -1], [0, 1], [-1, 0], [1, 0]] as const).map(([x, y], index) => <span key={index} className="absolute block" style={{ width: x ? 8 : 2, height: y ? 8 : 2, background: color, left: x * gap - (x ? (x > 0 ? 0 : 8) : 1), top: y * gap - (y ? (y > 0 ? 0 : 8) : 1), opacity: 0.78 }} />)}{hud.hitMarker && <span className="absolute -left-3 -top-3 size-6 text-center text-lg leading-6 text-destructive">✕</span>}</div></div>;
 }
 
-/** Four-slot selector: flashes on every switch, stays open (as a wheel) while the wheel binding is held. */
 function WeaponSelector({ hud }: { hud: HudState }) {
-  const recent = performance.now() - (hud.weaponSwitched ?? 0) < 1400;
-  if (!hud.ammo?.length || (!recent && !hud.weaponWheel)) return null;
-  const pos = ["left-1/2 top-0 -translate-x-1/2", "right-0 top-1/2 -translate-y-1/2", "left-1/2 bottom-0 -translate-x-1/2", "left-0 top-1/2 -translate-y-1/2"];
-  const cell = (w: HudState["ammo"][number], i: number) => (
-    <div key={w.id} className={`w-28 border px-2 py-1.5 text-center font-mono ${i + 1 === hud.weaponSlot ? "border-primary bg-primary/20 text-primary" : "border-border bg-card/80 text-muted-foreground"}`}>
-      <p className="text-[9px] uppercase">{hud.controller ? ["D-Up", "D-Right", "D-Down", "D-Left"][i] : i + 1}</p>
-      <p className="text-[10px] uppercase text-foreground">{w.name}</p>
-      <p className="text-[9px]">{w.magSize ? `${w.mag}/${w.reserve}` : "melee"}</p>
-    </div>
-  );
-  if (hud.weaponWheel) return (
-    <div className="absolute left-1/2 top-1/2 h-64 w-72 -translate-x-1/2 -translate-y-1/2">
-      {hud.ammo.map((w, i) => <div key={w.id} className={`absolute ${pos[i]}`}>{cell(w, i)}</div>)}
-      <p className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 font-mono text-[9px] uppercase text-muted-foreground">{hud.controller ? "Right stick" : "1–4"}</p>
-    </div>
-  );
-  return <div className="absolute bottom-44 left-1/2 flex -translate-x-1/2 gap-1">{hud.ammo.map(cell)}</div>;
+  if (!hud.ammo?.length) return null;
+  const recent = performance.now() - (hud.weaponSwitched ?? 0) < 1100;
+  if (!recent && !hud.weaponWheel) return null;
+  if (hud.weaponWheel) return <div className="absolute left-1/2 top-1/2 grid size-64 -translate-x-1/2 -translate-y-1/2 grid-cols-2 gap-20">{hud.ammo.map((weapon, index) => <div key={weapon.id} className={`grid place-items-center border bg-background/65 p-2 text-center backdrop-blur-sm ${index + 1 === hud.weaponSlot ? "border-primary text-primary" : "border-border text-muted-foreground"}`}><span className="text-[9px] uppercase">{weapon.name}<br />{weapon.magSize ? `${weapon.mag}/${weapon.reserve}` : "melee"}</span></div>)}</div>;
+  return <div className="absolute bottom-24 left-1/2 flex -translate-x-1/2 gap-1">{hud.ammo.map((weapon, index) => <div key={weapon.id} className={`h-1 w-10 ${index + 1 === hud.weaponSlot ? "bg-primary" : "bg-foreground/20"}`} />)}</div>;
 }

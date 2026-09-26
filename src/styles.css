@@ -196,6 +196,8 @@
 @keyframes sunlight-sweep { from { transform: translateX(-18%); opacity: .45; } to { transform: translateX(22%); opacity: .85; } }
 @keyframes shadow-sweep { from { transform: translateX(10%); opacity: .4; } to { transform: translateX(-15%); opacity: .7; } }
 
+@keyframes forge-progress { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+
 @media (prefers-reduced-motion: reduce) {
   .title-glow, .title-landscape, .title-sunlight, .title-shadows { animation: none; }
 }
