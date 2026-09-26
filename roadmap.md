@@ -47,3 +47,6 @@
 - [x] Cloud saves: sign-in, save migration, cross-device merge with undo
 - [x] Add seven-region atlas using supplied map art, regional enemy and dungeon boss references, and zone intelligence.
 - [x] Add regional enemy appearances, named boss encounters, farmable materials, inventory loadout, upgrades, and elemental infusion.
+- [x] Mission 01 Broken Signal (NOVA guide)
+- [ ] Mission 02 Blackout Protocol
+- [ ] Stitched Neon Core first session
