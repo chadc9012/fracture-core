@@ -351,7 +351,7 @@ function spawnMachine(sim: WorldSim, zone: ZoneState, elite = false) {
   m.z = zone.region.z + Math.sin(a) * d;
   const profile = troopFor(zone.region.id, Math.floor(Math.random() * 3));
   if (!profile) return;
-  m.profile = profile.name; m.kind = profile.kind; m.drop = profile.drop as MaterialId; m.boss = false;
+  m.profile = profile.name; m.kind = profile.kind; m.drop = profile.drop as MaterialId; m.boss = false; m.mission = false;
   m.hp = (elite ? 7 : 3) + Math.round(zone.region.difficulty * 0.8);
   m.rot = 0;
   m.scale = (elite ? 1.5 : 0.9) + Math.random() * 0.7;
