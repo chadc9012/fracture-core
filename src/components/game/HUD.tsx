@@ -162,13 +162,14 @@ export function HUD({ hud, tutorialActive = false, onMenu, onStrategy, onGarage,
 
       {/* crosshair + weapon heat */}
       <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
-        <div
-          className="h-4 w-4 rounded-full border"
-          style={{
-            borderColor: hud.overheated ? "#ff4d4d" : hud.aimLocked ? "#7dffca" : "#ffffff88",
-            boxShadow: hud.aimLocked ? "0 0 10px #7dffca" : "none",
-          }}
-        />
+        {(() => {
+          const gap = 5 + hud.bloom * 18 - (hud.aiming ? 3 : 0);
+          const c = hud.overheated ? "#ff4d4d" : hud.aimLocked ? "#7dffca" : "#ffffffcc";
+          return <div className="relative h-0 w-0">
+            {([[0, -1], [0, 1], [-1, 0], [1, 0]] as const).map(([x, y], i) => <span key={i} className="absolute block" style={{ width: x ? 8 : 2, height: y ? 8 : 2, background: c, left: x * gap - (x ? (x > 0 ? 0 : 8) : 1), top: y * gap - (y ? (y > 0 ? 0 : 8) : 1) }} />)}
+            {hud.hitMarker && <span className="absolute -left-3 -top-3 block h-6 w-6 text-center text-lg leading-6" style={{ color: "#ff5a5a" }}>✕</span>}
+          </div>;
+        })()}
       </div>
       <div className="absolute left-1/2 top-16 w-56 -translate-x-1/2 rounded-lg border border-border/60 bg-card/70 px-3 py-2 backdrop-blur-md">
         <div className="flex items-center justify-between text-[10px] uppercase tracking-[0.25em]">
@@ -187,7 +188,7 @@ export function HUD({ hud, tutorialActive = false, onMenu, onStrategy, onGarage,
           />
         </div>
         <p className="mt-1 text-[9px] uppercase tracking-[0.25em] text-muted-foreground">
-          {hud.aiming ? "aiming" : hud.meleeTime > 0 ? "melee camera" : hud.view === "first" ? "first person" : "third person"} · F to swap
+          {hud.weaponSlot} · {hud.weaponName} · 1–4 swap · {hud.aiming ? "aiming" : hud.meleeTime > 0 ? "melee camera" : hud.view === "first" ? "first person" : "third person"} · F to swap
         </p>
       </div>
 

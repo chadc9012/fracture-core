@@ -26,6 +26,7 @@ import type { ActiveBuild } from "@/game/ability-network";
 import type { TutorialEvent, TutorialState } from "@/game/onboarding";
 
 import type { GameSettings } from "./SettingsWindow";
+import { WEAPONS, WEAPON_ORDER, decay, type WeaponId } from "@/game/weapons";
 import type { ArmorVisualState } from "./Scavenger";
 
 export type LootView = { name: string; rarity: Rarity; power: number; mods: string[]; color: string };
@@ -68,6 +69,10 @@ export type HudState = {
   aimLocked: boolean;
   aiming: boolean;
   meleeTime: number;
+  weaponName: string;
+  weaponSlot: number;
+  bloom: number;
+  hitMarker: boolean;
   playerClass: ClassId;
   subclassName: string;
   abilities: { slot: string; name: string; ready: boolean }[];
@@ -229,6 +234,15 @@ export function Scene({
     domeCool: 0,
     meleeCool: 0,
     meleeTime: 0,
+    weapon: "AUTO" as WeaponId,
+    burstLeft: 0,
+    burstCool: 0,
+    recoil: 0,
+    punch: 0,
+    bloom: 0,
+    combo: 0,
+    comboTime: 0,
+    swing: 0,
     specialTime: 0,
     pitch: 0,
     cameraBlend: settings.firstPersonDefault ? 0 : 1,
@@ -331,6 +345,8 @@ export function Scene({
   const camTarget = useMemo(() => new THREE.Vector3(), []);
   const look = useMemo(() => new THREE.Vector3(), []);
   const cameraDirection = useMemo(() => new THREE.Vector3(), []);
+  const gunModel = useRef<THREE.Group>(null);
+  const swordModel = useRef<THREE.Group>(null);
   const viewmodel = useRef<THREE.Group>(null);
   const mouse = useRef({ fire: false, aim: false });
   const skyColor = useMemo(() => new THREE.Color(), []);
@@ -538,9 +554,60 @@ export function Scene({
       }
     }
 
-    if ((held.has("Space") || mouse.current.fire) && s.fireCool <= 0 && !sim.overheated) {
-      s.fireCool = (s.inVehicle ? 0.16 : 0.28) / sim.mods.fireRate;
-      fireBullet(sim, s.x, s.y + (s.inVehicle ? 1.5 : 0.95), s.z, s.yaw, s.inVehicle, s.pitch);
+    /* ------- weapon system: guns = rhythm, sword = close-quarters, feel springs back ------- */
+    WEAPON_ORDER.forEach((id, i) => { if (held.has(`Digit${i + 1}`) && s.weapon !== id) { s.weapon = id; s.burstLeft = 0; s.fireCool = Math.max(s.fireCool, 0.25); alert(sim, `${WEAPONS[id].name} equipped`); } });
+    const wpn = s.inVehicle ? WEAPONS.AUTO : WEAPONS[s.weapon];
+    s.recoil = decay(s.recoil, 9, dt);
+    s.punch = decay(s.punch, 14, dt);
+    s.bloom = decay(s.bloom, 6, dt);
+    s.swing = Math.max(0, s.swing - dt);
+    s.comboTime = Math.max(0, s.comboTime - dt);
+    if (s.comboTime <= 0) s.combo = 0;
+    const trigger = held.has("Space") || mouse.current.fire;
+    const shoot = () => {
+      const spread = (wpn.spread + s.bloom * 0.04) * (mouse.current.aim ? wpn.adsSpread : 1);
+      const yawJ = (Math.random() - 0.5) * 2 * spread;
+      const pitchJ = (Math.random() - 0.5) * 2 * spread;
+      if (fireBullet(sim, s.x, s.y + (s.inVehicle ? 1.5 : 0.95), s.z, s.yaw + yawJ, s.inVehicle, s.pitch + s.recoil + pitchJ, wpn.damage, wpn.knock, wpn.heat)) {
+        s.recoil += wpn.recoil;
+        s.punch += wpn.punch;
+        s.bloom = Math.min(1, s.bloom + 0.18 * wpn.punch);
+      }
+    };
+    if (wpn.kind === "sword") {
+      if (trigger && s.fireCool <= 0) {
+        s.fireCool = wpn.fireRate;
+        s.combo = (s.combo % 3) + 1;
+        s.comboTime = 0.9;
+        s.swing = 0.3;
+        s.meleeTime = Math.max(s.meleeTime, 0.6);
+        s.punch += wpn.punch * (s.combo === 3 ? 1.6 : 1);
+        const reach = s.combo === 3 ? 8 : 6;
+        const dmg = wpn.damage * (s.combo === 3 ? 1.8 : 1);
+        for (const enemy of sim.machines) {
+          if (!enemy.alive) continue;
+          const dx = enemy.x - s.x;
+          const dz = enemy.z - s.z;
+          const d = Math.hypot(dx, dz);
+          if (d > reach * enemy.scale + 1 || dx * Math.sin(s.yaw) + dz * Math.cos(s.yaw) < 0) continue;
+          enemy.hp -= dmg;
+          enemy.kx += (dx / Math.max(d, 0.1)) * wpn.knock * 8;
+          enemy.kz += (dz / Math.max(d, 0.1)) * wpn.knock * 8;
+          enemy.cool = Math.max(enemy.cool, 0.6);
+          sim.lastHit = performance.now();
+          if (enemy.hp <= 0) { enemy.alive = false; sim.kills++; sim.credits += 45; alert(sim, s.combo === 3 ? "Finisher +45 cr" : "Blade takedown +45 cr"); }
+        }
+      }
+    } else if (!sim.overheated) {
+      if (s.burstLeft > 0) {
+        s.burstCool -= dt;
+        if (s.burstCool <= 0) { s.burstLeft--; s.burstCool = wpn.burstGap; shoot(); }
+      } else if (trigger && s.fireCool <= 0) {
+        s.fireCool = (s.inVehicle ? 0.16 : wpn.fireRate) / sim.mods.fireRate;
+        shoot();
+        s.burstLeft = wpn.burst - 1;
+        s.burstCool = wpn.burstGap;
+      }
     }
 
     const throttleF = held.has("KeyW") || held.has("ArrowUp");
@@ -678,7 +745,11 @@ export function Scene({
     );
     camTarget.y = Math.max(camTarget.y, walkHeight(camTarget.x, camTarget.z) + 1.35);
     camera.position.lerp(camTarget, 1 - Math.exp(-18 * dt));
-    cameraDirection.set(Math.sin(s.yaw) * Math.cos(s.pitch), Math.sin(s.pitch), Math.cos(s.yaw) * Math.cos(s.pitch));
+    const kickPitch = s.pitch + s.recoil;
+    const shakeAmt = Math.min(0.08, s.punch * 0.012);
+    camera.position.x += (Math.random() - 0.5) * shakeAmt;
+    camera.position.y += (Math.random() - 0.5) * shakeAmt;
+    cameraDirection.set(Math.sin(s.yaw) * Math.cos(kickPitch), Math.sin(kickPitch), Math.cos(s.yaw) * Math.cos(kickPitch));
     look.copy(camera.position).addScaledVector(cameraDirection, 60);
     camera.lookAt(look);
     if (camera instanceof THREE.PerspectiveCamera) {
@@ -690,6 +761,8 @@ export function Scene({
       viewmodel.current.visible = !s.inVehicle && s.cameraBlend < 0.22;
       viewmodel.current.position.copy(camera.position);
       viewmodel.current.quaternion.copy(camera.quaternion);
+      if (gunModel.current) { gunModel.current.visible = WEAPONS[s.weapon].kind === "gun"; gunModel.current.position.z = Math.min(0.35, s.punch * 0.06); gunModel.current.rotation.x = s.recoil * 3; }
+      if (swordModel.current) { swordModel.current.visible = WEAPONS[s.weapon].kind === "sword"; const t = s.swing / 0.3; swordModel.current.rotation.z = (s.combo % 2 ? 1 : -1) * (t > 0 ? (1 - t) * 2.4 - 1.2 : -0.35); }
     }
 
     /* ---------------- HUD ---------------- */
@@ -732,6 +805,10 @@ export function Scene({
         aimLocked: s.aimLocked,
         aiming: mouse.current.aim,
         meleeTime: s.meleeTime,
+        weaponName: WEAPONS[s.weapon].name,
+        weaponSlot: WEAPON_ORDER.indexOf(s.weapon) + 1,
+        bloom: Math.round(s.bloom * 100) / 100,
+        hitMarker: performance.now() - sim.lastHit < 180,
         playerClass,
         subclassName: selectedSubclass.name,
         abilities: selectedClass.abilities.map((ability) => ({ slot: ability.slot, name: ability.name, ready: live.current.runtime[ability.slot]?.cooldown <= 0 })),
@@ -835,6 +912,7 @@ export function Scene({
           <boxGeometry args={[0.25, 0.27, 0.7]} />
           <meshStandardMaterial color={appearance.cloth} roughness={0.8} depthTest={false} />
         </mesh>
+        <group ref={gunModel}>
         <mesh position={[0.32, -0.39, -1.45]}>
           <boxGeometry args={[0.3, 0.23, 1.55]} />
           <meshStandardMaterial color={appearance.armor} metalness={0.75} roughness={0.32} depthTest={false} />
@@ -843,6 +921,17 @@ export function Scene({
           <boxGeometry args={[0.11, 0.11, 0.55]} />
           <meshStandardMaterial color={appearance.visor} emissive={appearance.visor} emissiveIntensity={0.3} depthTest={false} />
         </mesh>
+        </group>
+        <group ref={swordModel} position={[0.45, -0.45, -1.2]} visible={false}>
+          <mesh position={[0, 0.9, -0.2]} rotation-x={-0.5}>
+            <boxGeometry args={[0.07, 1.8, 0.16]} />
+            <meshStandardMaterial color={appearance.visor} emissive={appearance.visor} emissiveIntensity={0.8} metalness={0.9} roughness={0.2} depthTest={false} />
+          </mesh>
+          <mesh>
+            <boxGeometry args={[0.36, 0.08, 0.12]} />
+            <meshStandardMaterial color={appearance.armor} metalness={0.7} roughness={0.4} depthTest={false} />
+          </mesh>
+        </group>
       </group>
 
       {/* Titan training arena: three readable cover anchors and one hazardous fracture pool. */}
