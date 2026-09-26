@@ -399,12 +399,12 @@ export function Scene({
   const padPrev = useRef<boolean[]>([]);
   const keyPrev = useRef<Set<string>>(new Set());
   const padState = useRef({ fire: false, aim: false, connected: false });
-  const audioSeen = useRef({ hit: 0, kills: 0, hp: 100, hurtAt: 0 });
+  const audioSeen = useRef({ hit: 0, kills: 0, hp: 100, hurtAt: 0, stepT: 1 });
   useEffect(() => {
     const unlock = () => sfx.unlockAudio();
     window.addEventListener("pointerdown", unlock);
     window.addEventListener("keydown", unlock);
-    return () => { window.removeEventListener("pointerdown", unlock); window.removeEventListener("keydown", unlock); };
+    return () => { window.removeEventListener("pointerdown", unlock); window.removeEventListener("keydown", unlock); sfx.updateEngine(false, "", 0, 0, false); };
   }, []);
   useEffect(() => sfx.setVolume(settings.volume ?? 0.7), [settings.volume]);
   const skyColor = useMemo(() => new THREE.Color(), []);
@@ -832,6 +832,14 @@ export function Scene({
       if (sim.hp < a.hp - 0.5 && now - a.hurtAt > 250) { sfx.playHurt(); a.hurtAt = now; }
       a.hp = sim.hp;
       sfx.updateCombatAudio(Math.min(1, sim.combatHeat / 100));
+      for (const shot of sim.enemyShots.splice(0)) sfx.playEnemyShot(shot.kind, shot.boss || shot.elite, sfx.where(s.x, s.z, s.yaw, shot.x, shot.z));
+      const speedNow = velocity.length();
+      if (!s.inVehicle && speedNow > 3 && s.y - walkHeight(s.x, s.z) < 1.9) {
+        a.stepT -= dt * (speedNow / 30) * 2.4;
+        if (a.stepT <= 0) { a.stepT = 1; const rid = here?.id; sfx.playFootstep(rid === "frostspire" ? "SNOW" : rid === "solara" ? "SAND" : rid === "nexus" ? "HARD" : "GRASS", held.has("ShiftLeft") || held.has("ShiftRight")); }
+      }
+      const fwd = held.has("KeyW") || held.has("ArrowUp"), rev = held.has("KeyS") || held.has("ArrowDown");
+      sfx.updateEngine(s.inVehicle, vehicleId, Math.min(1, Math.abs(s.vSpeed) / 45), fwd || rev ? 1 : 0, rev && s.vSpeed > 2);
     }
 
     /* ---------------- Mission 01 · Broken Signal world triggers ---------------- */
