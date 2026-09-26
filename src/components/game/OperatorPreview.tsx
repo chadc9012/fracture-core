@@ -5,7 +5,7 @@ import type { AppearanceDefinition, ClassId } from "@/game/loadout";
 
 export function OperatorPreview({ appearance, classId = "TITAN" }: { appearance: AppearanceDefinition; classId?: ClassId }) {
   return <div className="relative min-h-80 overflow-hidden border border-border bg-card/40 fracture-scan" aria-label={`Live 3D preview of ${appearance.name}`}>
-    <Canvas dpr={[1, 1.5]} camera={{ position: [0, 0.6, 7.2], fov: 32 }}>
+    <Canvas dpr={[1, 1.5]} camera={{ position: [0, 0.4, 10.5], fov: 32 }}>
       <color attach="background" args={["#070b10"]} />
       <fog attach="fog" args={["#070b10", 8, 16]} />
       <ambientLight intensity={0.5} />

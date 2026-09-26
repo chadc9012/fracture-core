@@ -33,22 +33,22 @@ export function Operator({ armor = "#1b1f26", cloth = "#0e1014", visor = "#48d8f
   return (
     <group scale={[bulk, 1, bulk]}>
       {/* legs: suit capsule + thigh/shin plates + knee caps + boots */}
-      {[-0.24, 0.24].map((x) => (
+      {[-0.19, 0.19].map((x) => (
         <group key={x} position={[x, 0, 0]}>
-          <mesh position={[0, -0.95, 0]} castShadow><capsuleGeometry args={[0.15, 0.95, 6, 12]} />{suit}</mesh>
-          <RoundedBox args={[0.3, 0.42, 0.3]} radius={0.08} position={[0, -0.62, 0.02]} castShadow>{plate}</RoundedBox>
-          <RoundedBox args={[0.26, 0.44, 0.28]} radius={0.08} position={[0, -1.16, 0.03]} castShadow>{plate}</RoundedBox>
+          <mesh position={[0, -0.95, 0]} castShadow><capsuleGeometry args={[0.12, 0.95, 6, 12]} />{suit}</mesh>
+          <RoundedBox args={[0.24, 0.42, 0.25]} radius={0.07} position={[0, -0.62, 0.02]} castShadow>{plate}</RoundedBox>
+          <RoundedBox args={[0.21, 0.44, 0.23]} radius={0.07} position={[0, -1.16, 0.03]} castShadow>{plate}</RoundedBox>
           <mesh position={[0, -0.88, 0.16]} castShadow><sphereGeometry args={[0.11, 12, 10]} />{plate}</mesh>
           <RoundedBox args={[0.26, 0.16, 0.44]} radius={0.05} position={[0, -1.47, 0.07]} castShadow><meshStandardMaterial color="#0b0d10" roughness={0.6} /></RoundedBox>
-          {seam(`shin${x}`, [x > 0 ? 0.13 : -0.13, -1.14, 0.1], [0.02, 0.34, 0.02])}
+          {seam(`shin${x}`, [x > 0 ? 0.1 : -0.1, -1.14, 0.12], [0.02, 0.34, 0.02])}
         </group>
       ))}
       {/* hips + belt */}
-      <RoundedBox args={[0.72, 0.26, 0.42]} radius={0.08} position={[0, -0.4, 0]} castShadow>{suit}</RoundedBox>
-      <mesh position={[0, -0.34, 0]} castShadow><boxGeometry args={[0.76, 0.08, 0.46]} /><meshStandardMaterial color="#07080a" metalness={0.6} roughness={0.4} /></mesh>
+      <RoundedBox args={[0.56, 0.24, 0.34]} radius={0.08} position={[0, -0.4, 0]} castShadow>{suit}</RoundedBox>
+      <mesh position={[0, -0.34, 0]} castShadow><boxGeometry args={[0.6, 0.07, 0.38]} /><meshStandardMaterial color="#07080a" metalness={0.6} roughness={0.4} /></mesh>
       {/* torso: tapered suit + layered chest cuirass + abdomen segments */}
-      <mesh position={[0, 0.1, 0]} castShadow><capsuleGeometry args={[0.34, 0.55, 8, 16]} />{suit}</mesh>
-      <RoundedBox args={[0.78, 0.5, 0.5]} radius={0.14} position={[0, 0.32, 0.03]} castShadow>{plate}</RoundedBox>
+      <mesh position={[0, 0.1, 0]} castShadow><capsuleGeometry args={[0.26, 0.6, 8, 16]} />{suit}</mesh>
+      <RoundedBox args={[0.66, 0.46, 0.4]} radius={0.12} position={[0, 0.32, 0.03]} castShadow>{plate}</RoundedBox>
       {[-0.05, -0.18].map((y, i) => <RoundedBox key={y} args={[0.52 - i * 0.06, 0.1, 0.44]} radius={0.04} position={[0, y, 0.02]} castShadow>{plate}</RoundedBox>)}
       {/* chest circuit sigil */}
       {seam("c1", [0, 0.44, 0.285], [0.24, 0.025, 0.02])}
@@ -59,11 +59,11 @@ export function Operator({ armor = "#1b1f26", cloth = "#0e1014", visor = "#48d8f
       <mesh position={[0, 0.3, 0.29]}><circleGeometry args={[0.045, 16]} />{line}</mesh>
       {/* shoulders + arms */}
       {[-1, 1].map((side) => (
-        <group key={side} position={[side * 0.5, 0, 0]}>
-          <RoundedBox args={[titan ? 0.4 : 0.32, 0.26, 0.42]} radius={0.1} position={[side * 0.04, 0.55, 0]} rotation={[0, 0, side * -0.25]} castShadow>{plate}</RoundedBox>
+        <group key={side} position={[side * 0.42, 0, 0]}>
+          <RoundedBox args={[titan ? 0.36 : 0.26, 0.22, 0.34]} radius={0.1} position={[side * 0.04, 0.55, 0]} rotation={[0, 0, side * -0.25]} castShadow>{plate}</RoundedBox>
           {seam(`sh${side}`, [side * 0.1, 0.6, 0.2], [0.14, 0.02, 0.02], [0, 0, side * -0.25])}
-          <mesh position={[side * 0.06, 0.18, 0]} castShadow><capsuleGeometry args={[0.1, 0.42, 6, 10]} />{suit}</mesh>
-          <RoundedBox args={[0.22, 0.36, 0.22]} radius={0.07} position={[side * 0.07, -0.2, 0.02]} castShadow>{plate}</RoundedBox>
+          <mesh position={[side * 0.06, 0.18, 0]} castShadow><capsuleGeometry args={[0.075, 0.46, 6, 10]} />{suit}</mesh>
+          <RoundedBox args={[0.17, 0.34, 0.18]} radius={0.06} position={[side * 0.07, -0.2, 0.02]} castShadow>{plate}</RoundedBox>
           {seam(`fa${side}`, [side * 0.07, -0.2, 0.13], [0.02, 0.26, 0.02])}
           <mesh position={[side * 0.07, -0.44, 0.02]} castShadow><sphereGeometry args={[0.09, 10, 8]} /><meshStandardMaterial color="#0b0d10" roughness={0.6} /></mesh>
         </group>
@@ -77,7 +77,7 @@ export function Operator({ armor = "#1b1f26", cloth = "#0e1014", visor = "#48d8f
         {warlock ? (
           [-0.08, 0.08].map((x) => <group key={x} position={[x, 0.02, 0.22]}><mesh rotation={[Math.PI / 2, 0, 0]}><cylinderGeometry args={[0.055, 0.06, 0.1, 14]} /><meshStandardMaterial color="#1a1c20" metalness={0.8} roughness={0.3} /></mesh><mesh position={[0, 0, 0.051]}><circleGeometry args={[0.042, 16]} /><meshStandardMaterial color="#ffb347" emissive="#ffa033" emissiveIntensity={3} toneMapped={false} /></mesh></group>)
         ) : (
-          <mesh position={[0, 0.02, 0.2]} rotation={[0, 0, 0]}><boxGeometry args={[0.34, 0.04, 0.1]} /><meshStandardMaterial color={hunter ? "#ff3348" : visor} emissive={hunter ? "#ff2a40" : visor} emissiveIntensity={3.2} toneMapped={false} /></mesh>
+          <mesh position={[0, 0.02, 0.2]} rotation={[0, 0, 0]}><boxGeometry args={[0.3, 0.035, 0.08]} /><meshStandardMaterial color={hunter ? "#ff3348" : visor} emissive={hunter ? "#ff2a40" : visor} emissiveIntensity={3.2} toneMapped={false} /></mesh>
         )}
       </group>
       {/* class signatures */}
