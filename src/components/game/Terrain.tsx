@@ -38,6 +38,8 @@ function scatter(
     const y = heightAt(x, z);
     if (y < min || y > max) continue;
     if (slopeAt(x, z) > maxSlope) continue;
+    // Keep the first insertion and immediate aiming lanes free of giant canopies.
+    if (region.id === "veridan" && count === 120 && Math.hypot(x - region.x, z - (region.z + 12)) < 16) continue;
     // keep supply roads clear so convoys have a crash-free corridor
     if (distanceToRoad(x, z) < LANE_HALF_WIDTH) continue;
     out.push({ x, z, y, s: 0.7 + rnd() * 0.9, r: rnd() * Math.PI * 2 });
