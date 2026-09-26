@@ -21,6 +21,16 @@ export type SyncEvent =
   | { type: "BOSS_PHASE"; bossId: string; phase: number; at: number }
   | { type: "PLAYER_STATE"; playerId: string; state: "ALIVE" | "DEAD" | "TELEPORT"; at: number }
   | { type: "ENVIRONMENT_TRIGGER"; triggerId: string; active: boolean; at: number };
+  | { type: "ENCOUNTER_STAGE"; encounterId: string; stageIndex: number; progress: number; hazard: number; at: number }
+  | { type: "ABILITY_BRANCH"; playerId: string; abilityId: string; branchId: string; at: number };
+
+export const INSTANCE_BUDGETS = {
+  dungeonPlayers: 3,
+  activeEnemyBrains: 12,
+  fullFidelityRooms: 2,
+  dormantRoomTickHz: 2,
+  encounterSyncHz: 10,
+} as const;
 
 export function playerCountPreset(players: number) {
   if (players >= 12) return { fullRadius: 40, activeRooms: 1, farAi: "SIMPLIFIED" as const };

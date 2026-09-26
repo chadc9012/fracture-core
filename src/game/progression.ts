@@ -34,7 +34,7 @@ export const DEFAULT_PROGRESSION: PlayerProgression = {
 export function loadProgression(): PlayerProgression {
   if (typeof window === "undefined") return DEFAULT_PROGRESSION;
   try {
-    const parsed = JSON.parse(window.localStorage.getItem(STORAGE_KEY) ?? "null") as Partial<PlayerProgression> | null;
+    const parsed = JSON.parse(window.localStorage.getItem(STORAGE_KEY) ?? "null") as (Partial<Omit<PlayerProgression, "version">> & { version?: number }) | null;
     if (!parsed || (parsed.version !== 1 && parsed.version !== 2)) return DEFAULT_PROGRESSION;
     return {
       ...DEFAULT_PROGRESSION,
