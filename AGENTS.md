@@ -13,3 +13,5 @@
 - Player progression syncs to the player_saves table via optimistic revision checks; conflicts merge additively (unions/maxes), newer copy wins choices. Why: progress is only gained, so merging never loses unlocks.
 - Keep regional enemy and boss identities in a shared encounter catalog, with material drops granted into progression on confirmed kills. Why: map intelligence, combat rewards, and inventory must agree.
 - Authored missions are pure state machines in src/game/missions/* advanced by world events emitted from Scene (ANCHOR/ARRIVED/CLEAR) and UI (HACK/ACK). Why: deterministic, testable, no menu-driven quest flow.
+- Input bindings live in src/game/bindings.ts and persist client-side (localStorage "world-fracture-bindings"); Scene reads them each frame for keyboard + standard-mapping gamepads. Why: controls are per-device presentation, not progression.
+- Cloud restore points are captured by a database trigger on player_saves updates (max 1 per 10 min, keep 30); restoring replaces rather than merges. Why: the backend guarantees history even if a client misbehaves.

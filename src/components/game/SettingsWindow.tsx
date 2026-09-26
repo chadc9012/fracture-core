@@ -4,6 +4,7 @@ export type GameSettings = {
   zoneLabels: boolean;
   hudDensity: "full" | "lean";
   renderTier: "LOW" | "MEDIUM" | "HIGH" | "ULTRA";
+  bindings?: Bindings;
 };
 
 export const DEFAULT_SETTINGS: GameSettings = {
@@ -12,6 +13,7 @@ export const DEFAULT_SETTINGS: GameSettings = {
   zoneLabels: true,
   hudDensity: "full",
   renderTier: "HIGH",
+  bindings: DEFAULT_BINDINGS,
 };
 
 function Toggle({ label, on, onChange }: { label: string; on: boolean; onChange: (v: boolean) => void }) {
@@ -32,6 +34,8 @@ function Toggle({ label, on, onChange }: { label: string; on: boolean; onChange:
 }
 
 import { Button } from "@/components/ui/button";
+import { DEFAULT_BINDINGS, type Bindings } from "@/game/bindings";
+import { ControlsPanel } from "./ControlsPanel";
 
 /** Small in-game window: settings, back to orbit, and a back button to close. */
 export function SettingsWindow({
@@ -49,7 +53,7 @@ export function SettingsWindow({
 
   return (
     <div className="pointer-events-auto fixed inset-0 z-[60] flex items-center justify-center bg-background/60 backdrop-blur-sm">
-      <div className="w-[22rem] rounded-lg border border-border bg-card/95 p-4 shadow-xl">
+      <div className="max-h-[90vh] w-[22rem] overflow-y-auto rounded-lg border border-border bg-card/95 p-4 shadow-xl">
         <div className="mb-3 flex items-center justify-between">
           <p className="font-mono text-[11px] uppercase tracking-[0.3em] text-muted-foreground">Menu</p>
           <button
@@ -74,6 +78,7 @@ export function SettingsWindow({
             on={settings.hudDensity === "full"}
             onChange={(v) => set({ hudDensity: v ? "full" : "lean" })}
           />
+          <ControlsPanel bindings={settings.bindings ?? DEFAULT_BINDINGS} onChange={(bindings) => set({ bindings })} />
         </div>
 
         <div className="mt-4 grid grid-cols-2 gap-2">

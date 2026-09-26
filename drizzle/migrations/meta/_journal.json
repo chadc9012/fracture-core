@@ -8,6 +8,13 @@
       "when": 1790428161320,
       "tag": "0000_player_saves",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1790433124679,
+      "tag": "0001_save_restore_points",
+      "breakpoints": true
     }
   ]
 }

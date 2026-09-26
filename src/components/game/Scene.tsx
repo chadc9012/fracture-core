@@ -27,7 +27,8 @@ import type { ActiveBuild } from "@/game/ability-network";
 import type { TutorialEvent, TutorialState } from "@/game/onboarding";
 
 import type { GameSettings } from "./SettingsWindow";
-import { WEAPONS, WEAPON_ORDER, decay, type WeaponId } from "@/game/weapons";
+import { WEAPONS, WEAPON_ORDER, decay, freshAmmo, type WeaponId } from "@/game/weapons";
+import { DEFAULT_BINDINGS } from "@/game/bindings";
 import type { ArmorVisualState } from "./Scavenger";
 import type { PlayerProgression } from "@/game/progression";
 
@@ -73,6 +74,12 @@ export type HudState = {
   meleeTime: number;
   weaponName: string;
   weaponSlot: number;
+  /* ammo + weapon selection */
+  ammo: { id: WeaponId; name: string; mag: number; magSize: number; reserve: number }[];
+  reloading: number;
+  weaponWheel: boolean;
+  weaponSwitched: number;
+  controller: boolean;
   bloom: number;
   hitMarker: boolean;
   playerClass: ClassId;
@@ -247,6 +254,10 @@ export function Scene({
     meleeCool: 0,
     meleeTime: 0,
     weapon: "AUTO" as WeaponId,
+    ammo: freshAmmo(),
+    reload: 0,
+    switchedAt: 0,
+    wheel: false,
     burstLeft: 0,
     burstCool: 0,
     recoil: 0,
@@ -361,6 +372,9 @@ export function Scene({
   const swordModel = useRef<THREE.Group>(null);
   const viewmodel = useRef<THREE.Group>(null);
   const mouse = useRef({ fire: false, aim: false });
+  const padPrev = useRef<boolean[]>([]);
+  const keyPrev = useRef<Set<string>>(new Set());
+  const padState = useRef({ fire: false, aim: false, connected: false });
   const skyColor = useMemo(() => new THREE.Color(), []);
   const fogColor = useMemo(() => new THREE.Color(), []);
   const lightColor = useMemo(() => new THREE.Color(), []);
@@ -571,7 +585,39 @@ export function Scene({
     }
 
     /* ------- weapon system: guns = rhythm, sword = close-quarters, feel springs back ------- */
-    WEAPON_ORDER.forEach((id, i) => { if (held.has(`Digit${i + 1}`) && s.weapon !== id) { s.weapon = id; s.burstLeft = 0; s.fireCool = Math.max(s.fireCool, 0.25); alert(sim, `${WEAPONS[id].name} equipped`); } });
+    /* ------- input: keyboard + controller weapon selection (configurable bindings) ------- */
+    const binds = settings.bindings ?? DEFAULT_BINDINGS;
+    const pad = typeof navigator !== "undefined" && navigator.getGamepads ? Array.from(navigator.getGamepads()).find(Boolean) ?? null : null;
+    const padNow = pad ? pad.buttons.map((b) => b.pressed) : [];
+    const padTap = (i: number) => !!padNow[i] && !padPrev.current[i];
+    const keyTap = (code: string) => held.has(code) && !keyPrev.current.has(code);
+    padState.current = { fire: !!padNow[binds.gamepad.fire], aim: !!padNow[binds.gamepad.aim], connected: !!pad };
+    const equip = (id: WeaponId) => {
+      if (s.weapon === id) return;
+      s.weapon = id; s.burstLeft = 0; s.reload = 0; s.switchedAt = performance.now();
+      s.fireCool = Math.max(s.fireCool, 0.25);
+      alert(sim, `${WEAPONS[id].name} equipped`);
+    };
+    const step = (dir: number) => equip(WEAPON_ORDER[(WEAPON_ORDER.indexOf(s.weapon) + dir + WEAPON_ORDER.length) % WEAPON_ORDER.length]!);
+    WEAPON_ORDER.forEach((id, i) => { if (held.has(`Digit${i + 1}`) || padTap(binds.gamepad[`slot${i + 1}` as "slot1"])) equip(id); });
+    if (keyTap(binds.keyboard.nextWeapon) || padTap(binds.gamepad.nextWeapon)) step(1);
+    if (keyTap(binds.keyboard.prevWeapon) || padTap(binds.gamepad.prevWeapon)) step(-1);
+    s.wheel = held.has(binds.keyboard.weaponWheel) || !!padNow[binds.gamepad.weaponWheel];
+    if (s.wheel && pad) {
+      // flick the right stick toward a slot: up=1, right=2, down=3, left=4
+      const [rx = 0, ry = 0] = [pad.axes[2], pad.axes[3]];
+      if (Math.hypot(rx, ry) > 0.6) equip(Math.abs(rx) > Math.abs(ry) ? (rx > 0 ? WEAPON_ORDER[1]! : WEAPON_ORDER[3]!) : (ry < 0 ? WEAPON_ORDER[0]! : WEAPON_ORDER[2]!));
+    }
+    const def = WEAPONS[s.weapon];
+    const clip = s.ammo[s.weapon];
+    const startReload = () => { if (def.mag > 0 && s.reload <= 0 && clip.mag < def.mag && clip.reserve > 0) { s.reload = def.reload; s.burstLeft = 0; alert(sim, `Reloading ${def.name}`); } };
+    if (!s.inVehicle && (keyTap(binds.keyboard.reload) || padTap(binds.gamepad.reload))) startReload();
+    if (s.reload > 0) {
+      s.reload -= dt;
+      if (s.reload <= 0) { const take = Math.min(def.mag - clip.mag, clip.reserve); clip.mag += take; clip.reserve -= take; s.reload = 0; }
+    }
+    padPrev.current = padNow;
+    keyPrev.current = new Set(held);
     const wpn = s.inVehicle ? WEAPONS.AUTO : WEAPONS[s.weapon];
     const equippedWeapon = gear?.inventory.find((item) => item.id === gear.equippedGear[s.inVehicle ? "vehicle" : s.weapon === "HEAVY" ? "heavy" : s.weapon === "PULSE" ? "secondary" : "primary"]);
     const gearPower = equippedWeapon ? 1 + Math.max(0, equippedWeapon.power - 100) / 500 : 1;
@@ -582,15 +628,20 @@ export function Scene({
     s.swing = Math.max(0, s.swing - dt);
     s.comboTime = Math.max(0, s.comboTime - dt);
     if (s.comboTime <= 0) s.combo = 0;
-    const trigger = held.has("Space") || mouse.current.fire;
+    const trigger = held.has("Space") || mouse.current.fire || padState.current.fire;
     const shoot = () => {
-      const spread = (wpn.spread + s.bloom * 0.04) * (mouse.current.aim ? wpn.adsSpread : 1);
+      if (!s.inVehicle && wpn.mag > 0) {
+        if (s.reload > 0) return;
+        if (clip.mag <= 0) { s.burstLeft = 0; startReload(); return; }
+      }
+      const spread = (wpn.spread + s.bloom * 0.04) * ((mouse.current.aim || padState.current.aim) ? wpn.adsSpread : 1);
       const yawJ = (Math.random() - 0.5) * 2 * spread;
       const pitchJ = (Math.random() - 0.5) * 2 * spread;
        if (fireBullet(sim, s.x, s.y + (s.inVehicle ? 1.5 : 0.95), s.z, s.yaw + yawJ, s.inVehicle, s.pitch + s.recoil + pitchJ, wpn.damage * gearPower, wpn.knock, wpn.heat)) {
         s.recoil += wpn.recoil;
         s.punch += wpn.punch;
         s.bloom = Math.min(1, s.bloom + 0.18 * wpn.punch);
+        if (!s.inVehicle && wpn.mag > 0) { clip.mag--; if (clip.mag <= 0) startReload(); }
       }
     };
     if (wpn.kind === "sword") {
@@ -785,7 +836,7 @@ export function Scene({
     look.copy(camera.position).addScaledVector(cameraDirection, 60);
     camera.lookAt(look);
     if (camera instanceof THREE.PerspectiveCamera) {
-      const desiredFov = mouse.current.aim ? 42 : 65;
+      const desiredFov = (mouse.current.aim || padState.current.aim) ? 42 : 65;
       camera.fov += (desiredFov - camera.fov) * (1 - Math.exp(-12 * dt));
       camera.updateProjectionMatrix();
     }
@@ -836,10 +887,15 @@ export function Scene({
         overheated: sim.overheated,
         view: s.cameraBlend > 0.5 ? "third" : "first",
         aimLocked: s.aimLocked,
-        aiming: mouse.current.aim,
+        aiming: (mouse.current.aim || padState.current.aim),
         meleeTime: s.meleeTime,
         weaponName: WEAPONS[s.weapon].name,
         weaponSlot: WEAPON_ORDER.indexOf(s.weapon) + 1,
+        ammo: WEAPON_ORDER.map((id) => ({ id, name: WEAPONS[id].name, mag: s.ammo[id].mag, magSize: WEAPONS[id].mag, reserve: s.ammo[id].reserve })),
+        reloading: s.reload > 0 ? 1 - s.reload / WEAPONS[s.weapon].reload : 0,
+        weaponWheel: s.wheel,
+        weaponSwitched: s.switchedAt,
+        controller: padState.current.connected,
         bloom: Math.round(s.bloom * 100) / 100,
         hitMarker: performance.now() - sim.lastHit < 180,
         playerClass,

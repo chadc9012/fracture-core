@@ -50,3 +50,7 @@
 - [x] Mission 01 Broken Signal (NOVA guide)
 - [ ] Mission 02 Blackout Protocol
 - [ ] Stitched Neon Core first session
+- [x] Per-weapon ammo, reload, ammo HUD
+- [x] Controller weapon switching, selector/wheel, configurable bindings
+- [x] Password reset for cloud saves
+- [x] Cloud save restore points
