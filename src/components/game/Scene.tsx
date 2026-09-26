@@ -907,6 +907,13 @@ export function Scene({
       <ZoneBeacons sim={sim} />
       <Convoys sim={sim} />
       <WarMachines sim={sim} />
+      {mission?.target && (mission.state === "DISCOVERY" || mission.state === "TRAVERSAL") && (
+        <group position={[mission.target.x, heightAt(mission.target.x, mission.target.z) + 3, mission.target.z]}>
+          <mesh><octahedronGeometry args={[0.9, 0]} /><meshStandardMaterial color="#39e6ff" emissive="#39e6ff" emissiveIntensity={3} /></mesh>
+          <mesh position={[0, 30, 0]}><cylinderGeometry args={[0.15, 0.15, 60, 6]} /><meshBasicMaterial color={mission.state === "TRAVERSAL" ? "#ff6a3d" : "#39e6ff"} transparent opacity={0.45} /></mesh>
+          <pointLight color={mission.state === "TRAVERSAL" ? "#ff6a3d" : "#39e6ff"} intensity={30} distance={40} />
+        </group>
+      )}
       <Bullets sim={sim} />
       {settings.zoneLabels && <RegionLabels />}
 
