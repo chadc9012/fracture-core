@@ -200,6 +200,9 @@ export function Scene({
   const tutorialEnemyHealth = useRef(2);
   const sentinelHealth = useRef(5);
   const chamberActions = useRef(new Set<string>());
+  const tutorialStage = useRef<TutorialState["step"] | null>(null);
+  const tutorialKills = useRef(0);
+  const sentinel = useRef<WorldSim["machines"][number] | null>(null);
 
   const state = useRef({
     x: SPAWN.x,
@@ -227,6 +230,21 @@ export function Scene({
   /** snapshot of every live engine system for the dev inspector */
   const buildInspector = (): InspectorView => {
     const s = state.current;
+    if (tutorial && tutorial.step !== tutorialStage.current) {
+      tutorialStage.current = tutorial.step;
+      if (tutorial.step === "CONTACT" || tutorial.step === "SENTINEL") {
+        const count = tutorial.step === "CONTACT" ? 3 : 1;
+        for (let i = 0; i < count; i++) {
+          const machine = sim.machines.find((candidate) => !candidate.alive);
+          if (!machine) continue;
+          machine.alive = true; machine.x = s.x + (i - (count - 1) / 2) * 8; machine.z = s.z - 28;
+          machine.y = walkHeight(machine.x, machine.z); machine.hp = tutorial.step === "SENTINEL" ? 14 : 3;
+          machine.scale = tutorial.step === "SENTINEL" ? 2 : 1; machine.zone = "veridan"; machine.cool = 2; machine.elite = tutorial.step === "SENTINEL"; machine.kx = 0; machine.kz = 0;
+          if (tutorial.step === "SENTINEL") sentinel.current = machine;
+        }
+        tutorialKills.current = sim.kills;
+      }
+    }
     const st = sim.stats;
     let alive = 0;
     let elite = 0;
@@ -406,7 +424,7 @@ export function Scene({
           else if (tutorial?.step === "REINFORCE" && slot === "PRIMARY") onTutorialEvent?.("MASTERY");
           else if (tutorial?.step === "CHAMBER") { chamberActions.current.add(slot); if (chamberActions.current.size >= 2) onTutorialEvent?.("CHAMBER"); }
           else if (tutorial?.step === "POWER" && slot !== "PRIMARY") onTutorialEvent?.("CHAIN");
-          else if (tutorial?.step === "SENTINEL") { sentinelHealth.current = Math.max(0, sentinelHealth.current - 1); if (sentinelHealth.current <= 0) onTutorialEvent?.("BOSS"); }
+          else if (tutorial?.step === "SENTINEL" && sentinel.current && effect?.kind !== "BLOCK") { sentinel.current.hp -= 2; }
         }
       }
       abilityHeld.current[key] = held.has(key);
@@ -459,8 +477,6 @@ export function Scene({
     if (held.has("Space") && s.fireCool <= 0 && !sim.overheated) {
       s.fireCool = (s.inVehicle ? 0.16 : 0.28) / sim.mods.fireRate;
       fireBullet(sim, s.x, s.y + 1.2, s.z, s.yaw, s.inVehicle);
-      if (tutorial?.step === "CONTACT") { tutorialEnemyHealth.current--; if (tutorialEnemyHealth.current <= 0) { tutorialEnemyHealth.current = 2; onTutorialEvent?.("KILL"); } }
-      if (tutorial?.step === "SENTINEL" && live.current.effectTime > 0) { sentinelHealth.current--; if (sentinelHealth.current <= 0) onTutorialEvent?.("BOSS"); }
     }
 
     const throttleF = held.has("KeyW") || held.has("ArrowUp");
@@ -532,6 +548,8 @@ export function Scene({
       night,
       inVehicle: s.inVehicle,
     });
+    if (tutorial?.step === "CONTACT" && sim.kills > tutorialKills.current) { tutorialKills.current++; onTutorialEvent?.("KILL"); }
+    if (tutorial?.step === "SENTINEL" && sentinel.current && !sentinel.current.alive) { sentinel.current = null; onTutorialEvent?.("BOSS"); }
     sim.mods.bulletDamage = Math.max(0.5, 1.2 * live.current.damageMultiplier * (1 + live.current.momentum * 0.25));
     if (live.current.fieldTime > 0) sim.gravity *= 0.55;
     if (live.current.dashTime > 0) sim.hp = Math.min(100, sim.hp + dt * 15);
