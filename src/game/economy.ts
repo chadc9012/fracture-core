@@ -1,4 +1,5 @@
 import type { WeaponTier } from "./equipment";
+import { validate, type LootItem } from "./loot";
 
 export type CurrencyId = "credits" | "dataShards" | "spatialCores";
 export type MaterialId = "scrapMetal" | "polymerResin" | "outpostCurrency" | "reinforcedAlloy" | "thermalShards" | "biomeElements" | "factionCores" | "microCircuits" | "singularityCatalysts" | "spatialFragments" | "anomalyCarbon" | "apexCores";
@@ -34,4 +35,14 @@ export function spend(wallet: Wallet, costs: Partial<Wallet>, tax = 0): Wallet {
   const next = { ...wallet, credits: wallet.credits - tax };
   for (const [key, value] of Object.entries(costs)) next[key as keyof Wallet] -= value ?? 0;
   return next;
+}
+
+export type ForgeMode = "PRECISION" | "CONTROL" | "GUARD";
+export function transformGear(item: LootItem, mode: ForgeMode, wallet: Wallet): { item: LootItem; wallet: Wallet } | null {
+  const costs = { dataShards: 8, scrapMetal: 40 };
+  const tax = 150;
+  if (!canAfford(wallet, costs, tax)) return null;
+  const mod = mode === "PRECISION" ? { name: "Kinetic Precision", effect: "Crit" as const, value: 18 } : mode === "CONTROL" ? { name: "Signal Interference", effect: "Utility" as const, value: 16 } : { name: "Barrier Feedback", effect: "Utility" as const, value: 20 };
+  const next: LootItem = { ...item, mods: [...item.mods.slice(0, 4), mod], power: Math.min(1000, item.power + 20), transformation: mode === "PRECISION" ? "Movement builds a charged precision strike" : mode === "CONTROL" ? "System disruption interrupts hostile casts" : "Blocked pressure releases a shockwave" };
+  return validate(next) ? { item: next, wallet: spend(wallet, costs, tax) } : null;
 }

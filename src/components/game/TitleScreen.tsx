@@ -1,4 +1,4 @@
-import { Crosshair, LogOut, Settings, SlidersHorizontal } from "lucide-react";
+import { Crosshair, LogOut, Settings } from "lucide-react";
 import { useState } from "react";
 
 import horizon from "@/assets/world-fracture-horizon.png.asset.json";
@@ -8,13 +8,11 @@ export function TitleScreen({
   canContinue,
   onContinue,
   onNewGame,
-  onLoadout,
   onSettings,
 }: {
   canContinue: boolean;
   onContinue: () => void;
   onNewGame: () => void;
-  onLoadout: () => void;
   onSettings: () => void;
 }) {
   const [notice, setNotice] = useState("");
@@ -22,8 +20,10 @@ export function TitleScreen({
   return (
     <div className="fixed inset-0 overflow-hidden bg-background">
       <div className="absolute inset-0">
-        <img src={horizon.url} alt="A fractured world rejoining at sunrise" className="h-full w-full object-cover object-center" />
+        <img src={horizon.url} alt="A fractured world rejoining at sunrise" className="title-landscape h-full w-full object-cover object-center" />
       </div>
+      <div className="pointer-events-none absolute inset-0 title-sunlight" />
+      <div className="pointer-events-none absolute inset-0 title-shadows" />
       <div className="pointer-events-none absolute inset-0 title-vignette" />
       <main className="pointer-events-none relative z-10 flex h-full flex-col justify-between overflow-y-auto px-6 py-7 sm:px-12 sm:py-10">
         <header>
@@ -39,7 +39,6 @@ export function TitleScreen({
           <div className="pointer-events-auto mt-8 flex w-full max-w-sm flex-col items-stretch gap-1" aria-label="Main menu">
             <Button className="h-11 justify-start rounded-none border-l-2 pl-4 font-mono uppercase tracking-[0.2em]" onClick={onNewGame}><Crosshair /> New Game</Button>
             <Button variant="ghost" disabled={!canContinue} className="h-10 justify-start rounded-none pl-4 font-mono uppercase tracking-[0.2em]" onClick={onContinue}>Continue</Button>
-            <Button variant="ghost" className="h-10 justify-start rounded-none pl-4 font-mono uppercase tracking-[0.2em]" onClick={onLoadout}><SlidersHorizontal /> Loadout / Customize</Button>
             <Button variant="ghost" className="h-10 justify-start rounded-none pl-4 font-mono uppercase tracking-[0.2em]" onClick={onSettings}><Settings /> Settings</Button>
             <Button variant="ghost" className="h-10 justify-start rounded-none pl-4 font-mono uppercase tracking-[0.2em]" onClick={() => setNotice("Exit is available in the installed game build.")}><LogOut /> Exit</Button>
           </div>

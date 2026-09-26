@@ -189,6 +189,13 @@
   50% { opacity: 1; }
 }
 
+.title-landscape { animation: landscape-drift 26s ease-in-out infinite alternate; transform-origin: 60% 60%; }
+.title-sunlight { background: linear-gradient(110deg, transparent 25%, color-mix(in oklch, var(--warning) 15%, transparent) 53%, transparent 80%); mix-blend-mode: screen; animation: sunlight-sweep 18s ease-in-out infinite alternate; }
+.title-shadows { background: linear-gradient(130deg, transparent 20%, color-mix(in oklch, var(--background) 25%, transparent) 60%, transparent 84%); animation: shadow-sweep 22s ease-in-out infinite alternate; }
+@keyframes landscape-drift { from { transform: scale(1.04) translate3d(-0.5%, 0.25%, 0); } to { transform: scale(1.13) translate3d(2%, -1.4%, 0); } }
+@keyframes sunlight-sweep { from { transform: translateX(-18%); opacity: .45; } to { transform: translateX(22%); opacity: .85; } }
+@keyframes shadow-sweep { from { transform: translateX(10%); opacity: .4; } to { transform: translateX(-15%); opacity: .7; } }
+
 @media (prefers-reduced-motion: reduce) {
-  .title-glow { animation: none; }
+  .title-glow, .title-landscape, .title-sunlight, .title-shadows { animation: none; }
 }

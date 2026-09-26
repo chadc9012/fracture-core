@@ -6,7 +6,7 @@ import * as THREE from "three";
 import { REGIONS, SKY, ZONE_COLOR, clockLabel, phaseFor, regionAt, WORLD_RADIUS } from "@/game/world";
 import { useKeyboard } from "@/game/useKeyboard";
 import { walkHeight, slopeAt, heightAt, WATER_LEVEL } from "@/game/terrain";
-import { collidePlayer, createSim, fireBullet, stepSim, type Faction, type WorldSim } from "@/game/sim";
+import { alert, collidePlayer, createSim, fireBullet, stepSim, type Faction, type WorldSim } from "@/game/sim";
 import { directorTrend, type Mission } from "@/game/director";
 import { Terrain } from "./Terrain";
 import { Bullets, Convoys, SupplyLanes, WarMachines, ZoneBeacons } from "./Actors";
@@ -21,6 +21,9 @@ import { appearanceById, classById, subclassById, type AppearanceId, type ClassI
 import { vehicleById, type VehicleId } from "@/game/vehicles";
 import { projectDome, shieldBash } from "@/game/titan";
 import { RENDER_PRESETS } from "@/game/performance";
+import { activateLiveAbility, createLiveBuild, rebindLiveBuild, tickLiveBuild } from "@/game/live-build";
+import type { ActiveBuild } from "@/game/ability-network";
+import type { TutorialEvent, TutorialState } from "@/game/onboarding";
 
 import type { GameSettings } from "./SettingsWindow";
 import type { ArmorVisualState } from "./Scavenger";
@@ -80,6 +83,10 @@ export type HudState = {
   blocking: boolean;
   domeTime: number;
   titanFeedback: string;
+  liveEnergy: number;
+  liveEffect: string;
+  enemyResponse: string;
+  momentum: number;
   /* dev inspector */
   inspector: InspectorView | null;
 };
@@ -151,6 +158,10 @@ export function Scene({
   vehicleId = "scrap-interceptor",
   vehicleUnlocked = false,
   armorState = "STABLE",
+  activeBuild,
+  abilityBranches = {},
+  tutorial,
+  onTutorialEvent,
 }: {
   onHud: (s: HudState) => void;
   settings?: GameSettings;
@@ -160,6 +171,10 @@ export function Scene({
   vehicleId?: VehicleId;
   vehicleUnlocked?: boolean;
   armorState?: ArmorVisualState;
+  activeBuild: ActiveBuild;
+  abilityBranches?: Record<string, string>;
+  tutorial?: TutorialState | null;
+  onTutorialEvent?: (event: TutorialEvent) => void;
 }) {
   const keys = useKeyboard();
   const sim = useMemo<WorldSim>(() => createSim(), []);
@@ -178,6 +193,16 @@ export function Scene({
   const carSteer = useRef(0);
   const sky = useRef<THREE.Object3D>(null!);
   const report = useRef(0);
+  const live = useRef(createLiveBuild(activeBuild, abilityBranches));
+  const abilityHeld = useRef<Record<string, boolean>>({});
+  const tutorialClock = useRef(0);
+  const lastGate = useRef(0);
+  const tutorialEnemyHealth = useRef(2);
+  const sentinelHealth = useRef(5);
+  const chamberActions = useRef(new Set<string>());
+  const tutorialStage = useRef<TutorialState["step"] | null>(null);
+  const tutorialKills = useRef(0);
+  const sentinel = useRef<WorldSim["machines"][number] | null>(null);
 
   const state = useRef({
     x: SPAWN.x,
@@ -205,6 +230,21 @@ export function Scene({
   /** snapshot of every live engine system for the dev inspector */
   const buildInspector = (): InspectorView => {
     const s = state.current;
+    if (tutorial && tutorial.step !== tutorialStage.current) {
+      tutorialStage.current = tutorial.step;
+      if (tutorial.step === "CONTACT" || tutorial.step === "SENTINEL") {
+        const count = tutorial.step === "CONTACT" ? 3 : 1;
+        for (let i = 0; i < count; i++) {
+          const machine = sim.machines.find((candidate) => !candidate.alive);
+          if (!machine) continue;
+          machine.alive = true; machine.x = s.x + (i - (count - 1) / 2) * 8; machine.z = s.z - 28;
+          machine.y = walkHeight(machine.x, machine.z); machine.hp = tutorial.step === "SENTINEL" ? 14 : 3;
+          machine.scale = tutorial.step === "SENTINEL" ? 2 : 1; machine.zone = "veridan"; machine.cool = 2; machine.elite = tutorial.step === "SENTINEL"; machine.kx = 0; machine.kz = 0;
+          if (tutorial.step === "SENTINEL") sentinel.current = machine;
+        }
+        tutorialKills.current = sim.kills;
+      }
+    }
     const st = sim.stats;
     let alive = 0;
     let elite = 0;
@@ -289,6 +329,10 @@ export function Scene({
     const dt = Math.min(raw, 0.05);
     const held = keys.current;
     const s = state.current;
+    live.current = rebindLiveBuild(live.current, activeBuild, abilityBranches);
+    tickLiveBuild(live.current, dt);
+    tutorialClock.current += dt;
+    if (tutorial?.step === "MATERIALIZE" && tutorialClock.current > 2) onTutorialEvent?.("READY");
     sim.titanActive = playerClass === "TITAN" && !s.inVehicle;
 
     /* ---------------- day / night ---------------- */
@@ -362,6 +406,29 @@ export function Scene({
     s.fps = s.fps * 0.9 + (1 / Math.max(0.001, raw)) * 0.1;
 
     const here = regionAt(s.x, s.z);
+    for (const [key, slot] of [["KeyQ", "PRIMARY"], ["KeyE", "TACTICAL"], ["KeyR", "ULTIMATE"]] as const) {
+      if (held.has(key) && !abilityHeld.current[key] && !s.inVehicle) {
+        const ability = activateLiveAbility(live.current, slot, here?.kind ?? "war");
+        if (ability) {
+          const effect = ability.effects[0];
+          if (effect?.kind === "DASH") { s.x += Math.sin(s.yaw) * effect.value; s.z += Math.cos(s.yaw) * effect.value; alert(sim, "PHASE DASH · incoming damage avoided"); }
+          if (effect?.kind === "SILENCE" || effect?.kind === "FIELD" || effect?.kind === "COOLDOWN_SHIFT") {
+            for (const enemy of sim.machines) if (enemy.alive && Math.hypot(enemy.x - s.x, enemy.z - s.z) < (effect.radius ?? 12)) enemy.cool = Math.max(enemy.cool, effect.duration ?? 3);
+            if (effect.kind === "FIELD") live.current.fieldTime = effect.duration ?? 8;
+            alert(sim, "Hostile systems disrupted · environment recalibrated");
+          }
+          if (effect?.kind === "DAMAGE") for (const enemy of sim.machines) if (enemy.alive && Math.hypot(enemy.x - s.x, enemy.z - s.z) < (effect.radius ?? 6) * 2) enemy.hp -= effect.value / 20;
+          if (effect?.kind === "DOME") { sim.titan.domeTime = Math.max(sim.titan.domeTime, effect.duration ?? 5); alert(sim, "Barrier projected"); }
+          if (effect?.kind === "MARK") { live.current.damageMultiplier = 1.25; alert(sim, "Target exposed · damage amplified"); }
+          if (tutorial?.step === "ABILITY") onTutorialEvent?.("ABILITY");
+          else if (tutorial?.step === "REINFORCE" && slot === "PRIMARY") onTutorialEvent?.("MASTERY");
+          else if (tutorial?.step === "CHAMBER") { chamberActions.current.add(slot); if (chamberActions.current.size >= 2) onTutorialEvent?.("CHAMBER"); }
+          else if (tutorial?.step === "POWER" && slot !== "PRIMARY") onTutorialEvent?.("CHAIN");
+          else if (tutorial?.step === "SENTINEL" && sentinel.current && effect?.kind !== "BLOCK") { sentinel.current.hp -= 2; }
+        }
+      }
+      abilityHeld.current[key] = held.has(key);
+    }
     const weather = here?.id === "veridan" ? "Rain mist" : here?.id === "ember" ? "Ashfall" : here?.id === "frostspire" ? "Snow haze" : here?.id === "nexus" ? "Clear shield" : "Dust front";
     const visibility = here?.id === "nexus" ? 1 : here?.id === "veridan" ? 0.66 : here?.id === "ember" ? 0.55 : here?.id === "frostspire" ? 0.48 : 0.62;
     if (scene.fog instanceof THREE.Fog) {
@@ -446,11 +513,12 @@ export function Scene({
       if (throttleB) wish.z += 1;
       if (left) wish.x -= 1;
       if (right) wish.x += 1;
-      const walk = 26 * traction * (boost ? 1.9 : 1) * sim.mods.footSpeed;
+      const walk = 26 * traction * (boost ? 1.9 : 1) * sim.mods.footSpeed * (live.current.dashTime > 0 ? 1.4 : 1);
       if (wish.lengthSq() > 0) wish.normalize().multiplyScalar(walk);
       velocity.lerp(wish, 1 - Math.exp(-9 * dt));
       s.x += velocity.x * dt;
       s.z += velocity.z * dt;
+      if (tutorial?.step === "MOVEMENT") { const travel = Math.hypot(s.x - SPAWN.x, s.z - SPAWN.z); if (travel >= (lastGate.current + 1) * 10 && lastGate.current < 3) { lastGate.current++; onTutorialEvent?.("GATE"); } }
       if (velocity.lengthSq() > 0.6) {
         const target = Math.atan2(velocity.x, velocity.z);
         s.yaw += Math.atan2(Math.sin(target - s.yaw), Math.cos(target - s.yaw)) * (1 - Math.exp(-8 * dt));
@@ -480,12 +548,19 @@ export function Scene({
       night,
       inVehicle: s.inVehicle,
     });
+    if (tutorial?.step === "CONTACT" && sim.kills > tutorialKills.current) { tutorialKills.current++; onTutorialEvent?.("KILL"); }
+    if (tutorial?.step === "SENTINEL" && sentinel.current && !sentinel.current.alive) { sentinel.current = null; onTutorialEvent?.("BOSS"); }
+    sim.mods.bulletDamage = Math.max(0.5, 1.2 * live.current.damageMultiplier * (1 + live.current.momentum * 0.25));
+    if (live.current.fieldTime > 0) sim.gravity *= 0.55;
+    if (live.current.dashTime > 0) sim.hp = Math.min(100, sim.hp + dt * 15);
+    if (live.current.hackTime > 0) for (const enemy of sim.machines) if (enemy.alive && Math.hypot(enemy.x - s.x, enemy.z - s.z) < 12) enemy.cool = Math.max(enemy.cool, 0.3);
 
     /* ---------------- vertical: gravity + terrain follow ---------------- */
     const standY = walkHeight(s.x, s.z) + (s.inVehicle ? 1.9 : 1.6);
     if (!s.inVehicle && held.has("KeyC") && s.grounded) {
       s.vy = Math.sqrt(2 * sim.gravity * 6.5);
       s.grounded = false;
+      if (tutorial?.step === "MOVEMENT") onTutorialEvent?.("JUMP");
     }
     if (s.grounded) {
       s.y = THREE.MathUtils.lerp(s.y, standY, 1 - Math.exp(-14 * dt));
@@ -598,7 +673,7 @@ export function Scene({
         aimLocked: s.aimLocked,
         playerClass,
         subclassName: selectedSubclass.name,
-        abilities: selectedClass.abilities.map((ability) => ({ slot: ability.slot, name: ability.name, ready: true })),
+        abilities: selectedClass.abilities.map((ability) => ({ slot: ability.slot, name: ability.name, ready: live.current.runtime[ability.slot]?.cooldown <= 0 })),
         firstMissionComplete: sim.director.missions.some((mission) => mission.kind === "FIRST_RESONANCE" && mission.state === "COMPLETED"),
         weather,
         streamTier: "ACTIVE · neighbors reduced · distant dormant",
@@ -613,6 +688,10 @@ export function Scene({
         blocking: sim.titan.blocking,
         domeTime: sim.titan.domeTime,
         titanFeedback: sim.titan.feedback,
+        liveEnergy: Math.round(live.current.energy),
+        liveEffect: live.current.effectTime > 0 ? live.current.effect : "",
+        enemyResponse: live.current.threat,
+        momentum: Math.round(live.current.momentum * 100),
         loot: (sim.loot ?? []).map((it) => ({
           name: it.name,
           rarity: it.rarity,

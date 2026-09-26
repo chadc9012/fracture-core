@@ -1,40 +1,43 @@
+import { createOpenAI } from "@ai-sdk/openai";
 import { createServerFn } from "@tanstack/react-start";
+import { streamText } from "ai";
 import { z } from "zod";
+import { createLovableAiGatewayRunIdFetch } from "./ai-gateway.server";
 
 const inputSchema = z.object({
-  encounter: z.string().trim().min(2).max(120),
+  dungeon: z.string().trim().min(2).max(120),
+  playerClass: z.string().trim().min(2).max(60),
+  weapons: z.string().trim().min(2).max(600),
   fireteam: z.string().trim().min(2).max(600),
-  combatLog: z.string().trim().min(20).max(12000),
 });
 
 export const getRaidStrategy = createServerFn({ method: "POST" })
-  .validator((input) => inputSchema.parse(input))
+  .inputValidator((input: unknown) => inputSchema.parse(input))
   .handler(async ({ data }) => {
     const key = process.env['LOVABLE_API_KEY'];
-    if (!key) return { recommendation: "", error: "Strategy uplink is temporarily unavailable." };
+    if (!key) return { recommendation: "", error: "Strategy uplink is unavailable." };
     try {
-      const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-        method: "POST",
-        headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
-        body: JSON.stringify({
-          model: "google/gemini-3.1-flash-lite",
-          messages: [
-            { role: "system", content: "You are the WORLD FRACTURE raid tactician. Analyze only the supplied combat evidence. Return concise plain text with exactly these headings: FAILURE PATTERNS, POSITIONING, ROLE ASSIGNMENTS, PHASE PLAN, PRIORITY ADJUSTMENTS. Under PRIORITY ADJUSTMENTS give exactly three numbered actions. Never invent player statistics." },
-            { role: "user", content: `Encounter: ${data.encounter}\nFireteam: ${data.fireteam}\nCombat log:\n${data.combatLog}` },
-          ],
-          temperature: 0.35,
-          max_tokens: 900,
-        }),
+      const runIdFetch = createLovableAiGatewayRunIdFetch();
+      const lovable = createOpenAI({
+        baseURL: "https://ai.gateway.lovable.dev/v1",
+        apiKey: key,
+        headers: { "Lovable-API-Key": key, "X-Lovable-AIG-SDK": "vercel-ai-sdk" },
+        fetch: runIdFetch.fetch,
       });
-      if (!response.ok) {
-        console.error("Raid strategy gateway failed", response.status, await response.text());
-        return { recommendation: "", error: "The strategy uplink could not analyze this log. Try again." };
-      }
-      const payload = await response.json() as { choices?: { message?: { content?: string } }[] };
-      const recommendation = payload.choices?.[0]?.message?.content?.trim();
-      return recommendation ? { recommendation, error: "" } : { recommendation: "", error: "No strategy was returned. Try a more detailed combat log." };
+      const result = streamText({
+        model: lovable.responses("openai/gpt-6-astra"),
+        messages: [
+          { role: "system", content: "You are WORLD FRACTURE's field tactician. Give an actionable and concise strategy grounded only in the provided loadout. Use exactly these headings: ROLE ASSIGNMENTS, EXPECTED THREATS, ROUTE PLAN, ABILITY CHAINS, LOOT PRIORITY. Clearly label uncertainty; never invent statistics or assert the party has abilities not specified." },
+          { role: "user", content: `Dungeon: ${data.dungeon}\nPlayer class: ${data.playerClass}\nEquipped weapons: ${data.weapons}\nTeam composition: ${data.fireteam}` },
+        ],
+        providerOptions: { openai: { forceReasoning: true, reasoningEffort: "low", reasoningSummary: "auto", store: false, include: ["reasoning.encrypted_content"] } },
+        maxRetries: 0,
+      });
+      const recommendation = (await result.text).trim();
+      return recommendation ? { recommendation, error: "" } : { recommendation: "", error: "No strategy was returned. Try again later." };
     } catch (error) {
-      console.error("Raid strategy request failed", error);
-      return { recommendation: "", error: "The strategy uplink is offline. Try again shortly." };
+      const message = error instanceof Error ? error.message : "Strategy analysis failed.";
+      console.error("Strategy request failed", message);
+      return { recommendation: "", error: message };
     }
   });

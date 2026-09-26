@@ -2,7 +2,7 @@ import { DEFAULT_BUILD, type ActiveBuild } from "./ability-network";
 import type { VehicleId } from "./vehicles";
 
 export type PlayerProgression = {
-  version: 2;
+  version: 3;
   completedMissions: string[];
   unlockedAbilities: string[];
   ownedVehicles: VehicleId[];
@@ -13,12 +13,16 @@ export type PlayerProgression = {
   abilityBranches: Record<string, string>;
   calibrationTokens: number;
   fractureShards: number;
+  identityClass: "TITAN" | "HUNTER" | "WARLOCK" | null;
+  tutorialComplete: boolean;
+  dungeonClears: Record<string, number>;
+  earnedRewards: string[];
 };
 
 const STORAGE_KEY = "world-fracture.progression.v1";
 
 export const DEFAULT_PROGRESSION: PlayerProgression = {
-  version: 2,
+  version: 3,
   completedMissions: [],
   unlockedAbilities: ["fracture-shield", "phase-dash", "code-pulse"],
   ownedVehicles: [],
@@ -29,13 +33,17 @@ export const DEFAULT_PROGRESSION: PlayerProgression = {
   abilityBranches: {},
   calibrationTokens: 3,
   fractureShards: 120,
+  identityClass: null,
+  tutorialComplete: false,
+  dungeonClears: {},
+  earnedRewards: [],
 };
 
 export function loadProgression(): PlayerProgression {
   if (typeof window === "undefined") return DEFAULT_PROGRESSION;
   try {
     const parsed = JSON.parse(window.localStorage.getItem(STORAGE_KEY) ?? "null") as (Partial<Omit<PlayerProgression, "version">> & { version?: number }) | null;
-    if (!parsed || (parsed.version !== 1 && parsed.version !== 2)) return DEFAULT_PROGRESSION;
+    if (!parsed || (parsed.version !== 1 && parsed.version !== 2 && parsed.version !== 3)) return DEFAULT_PROGRESSION;
     return {
       ...DEFAULT_PROGRESSION,
       ...parsed,
@@ -43,7 +51,11 @@ export function loadProgression(): PlayerProgression {
       unlockedAbilities: Array.isArray(parsed.unlockedAbilities) ? parsed.unlockedAbilities : DEFAULT_PROGRESSION.unlockedAbilities,
       ownedVehicles: Array.isArray(parsed.ownedVehicles) ? parsed.ownedVehicles : [],
       garageLoadout: Array.isArray(parsed.garageLoadout) ? parsed.garageLoadout : [],
-      version: 2,
+      version: 3,
+      identityClass: parsed.identityClass === "TITAN" || parsed.identityClass === "HUNTER" || parsed.identityClass === "WARLOCK" ? parsed.identityClass : null,
+      tutorialComplete: parsed.tutorialComplete === true,
+      dungeonClears: parsed.dungeonClears && typeof parsed.dungeonClears === "object" ? parsed.dungeonClears : {},
+      earnedRewards: Array.isArray(parsed.earnedRewards) ? parsed.earnedRewards : [],
       abilityMastery: parsed.abilityMastery && typeof parsed.abilityMastery === "object" ? parsed.abilityMastery : {},
       abilityBranches: parsed.abilityBranches && typeof parsed.abilityBranches === "object" ? parsed.abilityBranches : {},
       calibrationTokens: typeof parsed.calibrationTokens === "number" ? parsed.calibrationTokens : 3,

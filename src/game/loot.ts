@@ -32,7 +32,15 @@ export type LootItem = {
   power: number;
   mods: GearMod[];
   life: number;
+  trait?: "DEFENSE" | "MOBILITY" | "SYSTEM" | "BURST" | "STABILITY" | "CONTROL";
+  transformation?: string;
 };
+
+export function shapeLoot(item: LootItem, behavior: { blocks: number; dashes: number; hacks: number; combos: number }): LootItem {
+  const trait = behavior.blocks >= Math.max(behavior.dashes, behavior.hacks) ? "DEFENSE" : behavior.dashes >= behavior.hacks ? "MOBILITY" : "SYSTEM";
+  const transformation = trait === "DEFENSE" ? "Absorbed pressure primes a shockwave" : trait === "MOBILITY" ? "Dodges charge a precision burst" : "Disruptions extend system interference";
+  return { ...item, trait, transformation, power: Math.min(1000, item.power + Math.min(25, behavior.combos * 5)) };
+}
 
 export const RARITY_COLOR: Record<Rarity, string> = {
   COMMON: "#9aa3ad",
