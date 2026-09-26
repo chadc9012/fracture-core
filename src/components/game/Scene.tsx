@@ -634,7 +634,7 @@ export function Scene({
         if (s.reload > 0) return;
         if (clip.mag <= 0) { s.burstLeft = 0; startReload(); return; }
       }
-      const spread = (wpn.spread + s.bloom * 0.04) * (mouse.current.aim ? wpn.adsSpread : 1);
+      const spread = (wpn.spread + s.bloom * 0.04) * ((mouse.current.aim || padState.current.aim) ? wpn.adsSpread : 1);
       const yawJ = (Math.random() - 0.5) * 2 * spread;
       const pitchJ = (Math.random() - 0.5) * 2 * spread;
        if (fireBullet(sim, s.x, s.y + (s.inVehicle ? 1.5 : 0.95), s.z, s.yaw + yawJ, s.inVehicle, s.pitch + s.recoil + pitchJ, wpn.damage * gearPower, wpn.knock, wpn.heat)) {
@@ -836,7 +836,7 @@ export function Scene({
     look.copy(camera.position).addScaledVector(cameraDirection, 60);
     camera.lookAt(look);
     if (camera instanceof THREE.PerspectiveCamera) {
-      const desiredFov = mouse.current.aim ? 42 : 65;
+      const desiredFov = (mouse.current.aim || padState.current.aim) ? 42 : 65;
       camera.fov += (desiredFov - camera.fov) * (1 - Math.exp(-12 * dt));
       camera.updateProjectionMatrix();
     }
@@ -887,7 +887,7 @@ export function Scene({
         overheated: sim.overheated,
         view: s.cameraBlend > 0.5 ? "third" : "first",
         aimLocked: s.aimLocked,
-        aiming: mouse.current.aim,
+        aiming: (mouse.current.aim || padState.current.aim),
         meleeTime: s.meleeTime,
         weaponName: WEAPONS[s.weapon].name,
         weaponSlot: WEAPON_ORDER.indexOf(s.weapon) + 1,

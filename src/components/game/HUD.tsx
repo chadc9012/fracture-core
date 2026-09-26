@@ -190,9 +190,12 @@ export function HUD({ hud, tutorialActive = false, onMenu, onStrategy, onGarage,
           />
         </div>
         <p className="mt-1 text-[9px] uppercase tracking-[0.25em] text-muted-foreground">
-          {hud.weaponSlot} · {hud.weaponName} · 1–4 swap · {hud.aiming ? "aiming" : hud.meleeTime > 0 ? "melee camera" : hud.view === "first" ? "first person" : "third person"} · F to swap
+          {hud.weaponSlot} · {hud.weaponName} · {hud.controller ? "LB/RB swap" : "1–4 swap"} · {hud.aiming ? "aiming" : hud.meleeTime > 0 ? "melee camera" : hud.view === "first" ? "first person" : "third person"} · F to swap
         </p>
       </div>
+
+      <AmmoPanel hud={hud} />
+      <WeaponSelector hud={hud} />
 
       {/* generated loot feed */}
       {(hud.loot?.length ?? 0) > 0 && (
@@ -275,4 +278,48 @@ export function HUD({ hud, tutorialActive = false, onMenu, onStrategy, onGarage,
       </div>
     </div>
   );
+}
+
+/** Magazine / reserve counter with low-ammo + reload states, bottom-right like a shooter HUD. */
+function AmmoPanel({ hud }: { hud: HudState }) {
+  const cur = hud.ammo?.[hud.weaponSlot - 1];
+  if (!cur) return null;
+  const melee = cur.magSize === 0;
+  const low = !melee && cur.mag <= Math.ceil(cur.magSize * 0.25);
+  const empty = !melee && cur.mag === 0 && cur.reserve === 0;
+  return (
+    <div className="absolute bottom-24 right-4 w-48 border border-border bg-card/80 p-3 font-mono backdrop-blur-md">
+      <p className="text-[9px] uppercase tracking-[0.2em] text-muted-foreground">{cur.name}</p>
+      {melee ? <p className="mt-1 text-xl text-primary">∞ <span className="text-[10px] text-muted-foreground">melee</span></p> : <>
+        <p className={`mt-1 text-3xl leading-none ${empty ? "text-destructive" : low ? "text-warning" : "text-foreground"}`}>
+          {cur.mag}<span className="text-sm text-muted-foreground"> / {cur.reserve}</span>
+        </p>
+        <div className="mt-2 flex gap-[2px]">{Array.from({ length: Math.min(cur.magSize, 32) }, (_, i) => <span key={i} className={`h-2 flex-1 ${i < Math.round((cur.mag / cur.magSize) * Math.min(cur.magSize, 32)) ? (low ? "bg-warning" : "bg-primary") : "bg-muted"}`} />)}</div>
+        {hud.reloading > 0
+          ? <div className="mt-2"><p className="text-[9px] uppercase text-primary">Reloading</p><div className="mt-1 h-1 bg-muted"><div className="h-full bg-primary" style={{ width: `${Math.round(hud.reloading * 100)}%` }} /></div></div>
+          : <p className={`mt-2 text-[9px] uppercase ${empty ? "text-destructive" : low ? "text-warning" : "text-muted-foreground"}`}>{empty ? "Out of ammo · switch weapon" : low ? `Low ammo · ${hud.controller ? "X" : "T"} to reload` : `${hud.controller ? "X" : "T"} reload`}</p>}
+      </>}
+    </div>
+  );
+}
+
+/** Four-slot selector: flashes on every switch, stays open (as a wheel) while the wheel binding is held. */
+function WeaponSelector({ hud }: { hud: HudState }) {
+  const recent = performance.now() - (hud.weaponSwitched ?? 0) < 1400;
+  if (!hud.ammo?.length || (!recent && !hud.weaponWheel)) return null;
+  const pos = ["left-1/2 top-0 -translate-x-1/2", "right-0 top-1/2 -translate-y-1/2", "left-1/2 bottom-0 -translate-x-1/2", "left-0 top-1/2 -translate-y-1/2"];
+  const cell = (w: HudState["ammo"][number], i: number) => (
+    <div key={w.id} className={`w-28 border px-2 py-1.5 text-center font-mono ${i + 1 === hud.weaponSlot ? "border-primary bg-primary/20 text-primary" : "border-border bg-card/80 text-muted-foreground"}`}>
+      <p className="text-[9px] uppercase">{hud.controller ? ["D-Up", "D-Right", "D-Down", "D-Left"][i] : i + 1}</p>
+      <p className="text-[10px] uppercase text-foreground">{w.name}</p>
+      <p className="text-[9px]">{w.magSize ? `${w.mag}/${w.reserve}` : "melee"}</p>
+    </div>
+  );
+  if (hud.weaponWheel) return (
+    <div className="absolute left-1/2 top-1/2 h-64 w-72 -translate-x-1/2 -translate-y-1/2">
+      {hud.ammo.map((w, i) => <div key={w.id} className={`absolute ${pos[i]}`}>{cell(w, i)}</div>)}
+      <p className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 font-mono text-[9px] uppercase text-muted-foreground">{hud.controller ? "Right stick" : "1–4"}</p>
+    </div>
+  );
+  return <div className="absolute bottom-44 left-1/2 flex -translate-x-1/2 gap-1">{hud.ammo.map(cell)}</div>;
 }
