@@ -3,7 +3,7 @@ import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import { nodeState, type Structure } from "@/game/destruction";
 
-const BASE: Record<string, string> = { CONCRETE: "#8d877d", METAL: "#4f5660", GLASS: "#9fdcff" };
+const BASE: Record<"CONCRETE" | "METAL" | "GLASS", string> = { CONCRETE: "#8d877d", METAL: "#4f5660", GLASS: "#9fdcff" };
 const STATE_EMISSIVE = { INTACT: "#000000", CRACKED: "#3a2a00", UNSTABLE: "#ff7a1a", CRITICAL: "#ff2020" } as const;
 
 /** Renders a structural graph; visibility and damage tint update imperatively from the node state. */

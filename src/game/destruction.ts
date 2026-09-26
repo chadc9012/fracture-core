@@ -12,7 +12,7 @@ export type StructuralNode = {
   supports: string[];
   x: number; y: number; z: number; w: number; h: number; d: number;
 };
-export type DestructionEvent = { id: number; chunkId: string; nodeId: string; type: "DAMAGE" | "DESTROY" | "COLLAPSE"; damage?: number; timestamp: number };
+export type DestructionEvent = { id: number; chunkId: string; nodeId: string; type: "DAMAGE" | "DESTROY" | "COLLAPSE"; damage?: number | undefined; timestamp: number };
 export type Debris = { alive: boolean; x: number; y: number; z: number; vx: number; vy: number; vz: number; spin: number; life: number; size: number; color: string };
 export type Structure = { chunkId: string; nodes: Map<string, StructuralNode>; events: DestructionEvent[]; nextEvent: number; debris: Debris[]; cover: { x: number; z: number }[]; version: number; lastCollapse: { x: number; z: number; t: number } | null };
 
@@ -56,7 +56,7 @@ function record(s: Structure, nodeId: string, type: DestructionEvent["type"], da
 function spawnDebris(s: Structure, n: StructuralNode, count: number) {
   const color = n.material === "GLASS" ? "#9fdcff" : n.material === "METAL" ? "#6b7179" : "#8c8579";
   for (let i = 0; i < count; i++) {
-    const d = s.debris.find((p) => !p.alive) ?? s.debris[i % s.debris.length];
+    const d = s.debris.find((p) => !p.alive) ?? s.debris[i % s.debris.length]!;
     const r = seeded(`${n.id}${i}`);
     Object.assign(d, { alive: true, x: n.x + (r - 0.5) * n.w, y: n.y + (seeded(`${i}${n.id}`) - 0.3) * n.h, z: n.z + (r - 0.5) * n.d, vx: (r - 0.5) * 8, vy: 2 + r * 5, vz: (seeded(n.id + i * 3) - 0.5) * 8, spin: r * 9, life: 3 + r * 2, size: n.material === "GLASS" ? 0.15 : 0.3 + r * 0.4, color });
   }
