@@ -16,5 +16,5 @@
 - Input bindings live in src/game/bindings.ts and persist client-side (localStorage "world-fracture-bindings"); Scene reads them each frame for keyboard + standard-mapping gamepads. Why: controls are per-device presentation, not progression.
 - Cloud restore points are captured by a database trigger on player_saves updates (max 1 per 10 min, keep 30); restoring replaces rather than merges. Why: the backend guarantees history even if a client misbehaves.
 - Combat audio is procedural Web Audio in src/game/audio.ts (no sound files), unlocked on first user input; Scene triggers it from weapon/ability/sim state changes. Why: zero asset downloads, sounds react to live combat values.
-- Map/HUD markers come from src/game/waypoints.ts (missions, resource sites, boss lairs) and are tracked by bearing/distance each HUD tick. Why: compass, tracker, tactical map and world beacons must agree.
+- Map/HUD markers share src/game/waypoints.ts so compass, map and beacons agree; creation stays a spatial Identity Forge while preserving saved identity contracts.
 - Destructible interiors use the structural graph in src/game/destruction.ts; every change is logged as a DestructionEvent. Why: future multiplayer replicates events, not physics.
