@@ -2,6 +2,7 @@ import { FACTIONS } from "@/game/sim";
 import { ZONE_COLOR, ZONE_LABEL } from "@/game/world";
 import type { HudState } from "./Scene";
 import { Inspector } from "./Inspector";
+import { Compass, TrackedObjectives } from "./Tracker";
 import { Button } from "@/components/ui/button";
 import { Anvil, BrainCircuit, CarFront, Castle, ImageUp, Menu, Network, Backpack, Map } from "lucide-react";
 
@@ -12,6 +13,7 @@ export function HUD({ hud, tutorialActive = false, onMenu, onStrategy, onGarage,
 
   return (
     <div className="pointer-events-none fixed inset-0 z-10 select-none font-mono text-foreground">
+      {!tutorialActive && <><Compass markers={hud.markers ?? []} yaw={hud.yaw ?? 0} /><TrackedObjectives markers={hud.markers ?? []} /></>}
       {/* top left: zone + capture */}
       <div className="absolute left-4 top-4 hidden max-w-xs rounded-lg border border-border/60 bg-card/70 p-4 backdrop-blur-md md:block">
         <p className="text-[10px] tracking-[0.35em] text-muted-foreground">THE FRACTURED EARTH</p>

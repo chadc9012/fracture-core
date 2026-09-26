@@ -14,7 +14,11 @@ import { Bullets, Convoys, SupplyLanes, WarMachines, ZoneBeacons } from "./Actor
 import { Car } from "./Vehicle";
 import { NexusCity } from "./NexusCity";
 import { Water } from "./Water";
-import { Scavenger } from "./Scavenger";
+import { Operator } from "./Operator";
+import { Interior } from "./Interior";
+import { WorldMarkers } from "./WorldMarkers";
+import { buildInterior, applyDamage, hitTest, stepDebris, STRUCTURE_MULT } from "@/game/destruction";
+import { BOSS_LAIRS, GATHER_RADIUS, LAIR_RADIUS, RESOURCE_SITES, RESPAWN_SECONDS, regionCenter, track, type Marker, type TrackedMarker } from "@/game/waypoints";
 import type { InspectorView } from "./Inspector";
 import { TIER_RADII } from "@/game/lod";
 import { RARITY_COLOR, type Rarity } from "@/game/loot";
@@ -106,6 +110,12 @@ export type HudState = {
   momentum: number;
   /* dev inspector */
   inspector: InspectorView | null;
+  /* tracking */
+  markers: TrackedMarker[];
+  px: number;
+  pz: number;
+  yaw: number;
+  structure: { standing: number; total: number; lastEvent: string };
 };
 
 const SPAWN_REGION = REGIONS.find((r) => r.id === "veridan");
@@ -206,6 +216,9 @@ export function Scene({
   const keys = useKeyboard();
   const sim = useMemo<WorldSim>(() => createSim(), []);
   const missionSpawned = useRef("");
+  const structure = useMemo(() => buildInterior("veridan-ruin", SPAWN.x + 28, walkHeight(SPAWN.x + 28, SPAWN.z + 20), SPAWN.z + 20), []);
+  const depleted = useRef<Record<string, number>>({});
+  const lairsTriggered = useRef<Record<string, boolean>>({});
   const appearance = appearanceById(appearanceId);
   const selectedClass = classById(playerClass);
   const selectedSubclass = subclassById(subclassId);
@@ -213,6 +226,16 @@ export function Scene({
   const player = useRef<THREE.Group>(null!);
   const vehicle = useRef<THREE.Group>(null!);
   const sun = useRef<THREE.DirectionalLight>(null!);
+  const markerList = (): Marker[] => {
+    const now = performance.now();
+    const list: Marker[] = [];
+    if (mission?.target && mission.state !== "COMPLETE" && mission.state !== "WORLD_UPDATE") list.push({ id: "m-broken-signal", kind: "MISSION", label: "Broken Signal", x: mission.target.x, z: mission.target.z, regionId: "nexus" });
+    for (const m of sim.director.missions) { if (m.state !== "ACTIVE") continue; const c = regionCenter(m.regionId); if (c) list.push({ id: `m-${m.id}`, kind: "MISSION", label: m.name, x: c.x, z: c.z, regionId: m.regionId }); }
+    for (const site of RESOURCE_SITES) list.push({ ...site, ready: (depleted.current[site.id] ?? 0) <= now });
+    for (const lair of BOSS_LAIRS) list.push(lair);
+    for (const m of sim.machines) if (m.alive && m.boss) list.push({ id: `live-${m.profile}`, kind: "BOSS", label: `${m.profile} (engaged)`, x: m.x, z: m.z, regionId: m.zone });
+    return list;
+  };
   const moon = useRef<THREE.DirectionalLight>(null!);
   const moonMesh = useRef<THREE.Mesh>(null!);
   const time = useRef(0.28);
@@ -728,9 +751,9 @@ export function Scene({
       if (throttleB) { wish.x -= Math.sin(s.yaw); wish.z -= Math.cos(s.yaw); }
       if (left) { wish.x += Math.sin(s.yaw - Math.PI / 2); wish.z += Math.cos(s.yaw - Math.PI / 2); }
       if (right) { wish.x += Math.sin(s.yaw + Math.PI / 2); wish.z += Math.cos(s.yaw + Math.PI / 2); }
-      const walk = 26 * traction * (boost ? 1.9 : 1) * sim.mods.footSpeed * (live.current.dashTime > 0 ? 1.4 : 1);
+      const walk = 30 * traction * (boost ? 2.1 : 1) * sim.mods.footSpeed * (live.current.dashTime > 0 ? 1.4 : 1);
       if (wish.lengthSq() > 0) wish.normalize().multiplyScalar(walk);
-      velocity.lerp(wish, 1 - Math.exp(-9 * dt));
+      velocity.lerp(wish, 1 - Math.exp(-14 * dt));
       s.x += velocity.x * dt;
       s.z += velocity.z * dt;
       if (tutorial?.step === "MOVEMENT") { const travel = Math.hypot(s.x - SPAWN.x, s.z - SPAWN.z); if (travel >= (lastGate.current + 1) * 10 && lastGate.current < 3) { lastGate.current++; onTutorialEvent?.("GATE"); } }
@@ -750,6 +773,49 @@ export function Scene({
     s.x = body.x;
     s.z = body.z;
     s.vSpeed = body.vSpeed;
+
+    /* ---------------- destructible interior: bullets vs structural graph, debris, player/enemy reaction ---------------- */
+    for (const b of sim.bullets) {
+      if (!b.alive) continue;
+      const node = hitTest(structure, b.x, b.y, b.z);
+      if (node) { b.alive = false; applyDamage(structure, node.id, b.dmg * (STRUCTURE_MULT[s.inVehicle ? "VEHICLE" : s.weapon] ?? 1)); sfx.playImpact(node.material === "GLASS" ? "TECH" : node.material === "METAL" ? "METAL" : "ORGANIC", sfx.where(s.x, s.z, s.yaw, node.x, node.z)); }
+    }
+    if (s.swing > 0.25 && !s.inVehicle) {
+      const node = hitTest(structure, s.x + Math.sin(s.yaw) * 1.8, s.y + 0.4, s.z + Math.cos(s.yaw) * 1.8);
+      if (node) applyDamage(structure, node.id, 6 * dt * 60 * 0.05);
+    }
+    stepDebris(structure, dt, structure.nodes.get("crate-a")!.y - 0.6);
+    if (!s.inVehicle) for (const n of structure.nodes.values()) {
+      if (n.isDestroyed || n.type === "CEILING" || n.type === "FLOOR" || s.y > n.y + n.h / 2 + 0.5) continue;
+      const hx = n.w / 2 + 0.5, hz = n.d / 2 + 0.5, dx = s.x - n.x, dz = s.z - n.z;
+      if (Math.abs(dx) < hx && Math.abs(dz) < hz) { const px = hx - Math.abs(dx), pz = hz - Math.abs(dz); if (px < pz) s.x = n.x + Math.sign(dx || 1) * hx; else s.z = n.z + Math.sign(dz || 1) * hz; }
+    }
+    if (structure.lastCollapse && performance.now() - structure.lastCollapse.t < 50) {
+      alert(sim, "STRUCTURE COLLAPSE — cover lost");
+      sfx.playKill(true, sfx.where(s.x, s.z, s.yaw, structure.lastCollapse.x, structure.lastCollapse.z));
+      for (const m of sim.machines) { if (!m.alive) continue; const d = Math.hypot(m.x - structure.lastCollapse.x, m.z - structure.lastCollapse.z); if (d < 14) { m.hp -= 4; m.kx += (m.x - structure.lastCollapse.x) / Math.max(1, d) * 18; m.kz += (m.z - structure.lastCollapse.z) / Math.max(1, d) * 18; m.cool = Math.max(m.cool, 1.2); } }
+      if (Math.hypot(s.x - structure.lastCollapse.x, s.z - structure.lastCollapse.z) < 6) sim.hp = Math.max(1, sim.hp - 12);
+      structure.lastCollapse = { ...structure.lastCollapse, t: 0 };
+    }
+
+    /* ---------------- resource gathering + boss lairs ---------------- */
+    if (!s.inVehicle && !tutorial) {
+      const now = performance.now();
+      for (const site of RESOURCE_SITES) {
+        if ((depleted.current[site.id] ?? 0) > now) continue;
+        if (Math.hypot(site.x - s.x, site.z - s.z) < GATHER_RADIUS) {
+          depleted.current[site.id] = now + RESPAWN_SECONDS * 1000;
+          sim.drops.push({ id: sim.nextDropId++, material: site.material, amount: site.amount, enemy: site.label });
+          alert(sim, `Gathered ${site.label} · +${site.amount}`);
+          sfx.playReload("end");
+        }
+      }
+      for (const lair of BOSS_LAIRS) {
+        const inside = Math.hypot(lair.x - s.x, lair.z - s.z) < LAIR_RADIUS;
+        if (inside && !lairsTriggered.current[lair.id] && !sim.machines.some((m) => m.alive && m.boss)) { lairsTriggered.current[lair.id] = true; summonBoss(sim, lair.regionId, lair.x, lair.z); }
+        if (!inside && Math.hypot(lair.x - s.x, lair.z - s.z) > LAIR_RADIUS * 4) lairsTriggered.current[lair.id] = false;
+      }
+    }
 
     /* ---------------- combat audio: impacts, kills, damage taken, intensity mix ---------------- */
     {
@@ -866,7 +932,7 @@ export function Scene({
     look.copy(camera.position).addScaledVector(cameraDirection, 60);
     camera.lookAt(look);
     if (camera instanceof THREE.PerspectiveCamera) {
-      const desiredFov = (mouse.current.aim || padState.current.aim) ? 42 : 65;
+      const desiredFov = (mouse.current.aim || padState.current.aim) ? 48 : 78;
       camera.fov += (desiredFov - camera.fov) * (1 - Math.exp(-12 * dt));
       camera.updateProjectionMatrix();
     }
@@ -957,6 +1023,9 @@ export function Scene({
           color: RARITY_COLOR[it.rarity],
         })),
         inspector: s.showInspector ? buildInspector() : null,
+        markers: track(markerList(), s.x, s.z, s.yaw),
+        px: s.x, pz: s.z, yaw: s.yaw,
+        structure: (() => { const all = [...structure.nodes.values()]; const e = structure.events[structure.events.length - 1]; return { standing: all.filter((n) => !n.isDestroyed).length, total: all.length, lastEvent: e ? `${e.type} ${e.nodeId}` : "" }; })(),
       });
     }
   });
@@ -1019,11 +1088,13 @@ export function Scene({
         </group>
       )}
       <Bullets sim={sim} />
+      <WorldMarkers depleted={depleted} />
+      <Interior structure={structure} />
       {settings.zoneLabels && <RegionLabels />}
 
       {/* player on foot */}
       <group ref={player} position={SPAWN.toArray()}>
-        <Scavenger armor={appearance.armor} cloth={appearance.cloth} visor={appearance.visor} classId={playerClass} visualState={armorState} />
+        <Operator armor={appearance.armor} cloth={appearance.cloth} visor={appearance.visor} classId={playerClass} visualState={armorState} />
         {playerClass === "TITAN" && sim.titan.blocking && <mesh position={[0, 1.8, 1.4]} rotation={[0, 0, 0]}><boxGeometry args={[3.4, 4.5, 0.16]} /><meshStandardMaterial color="#74dfff" emissive="#3daec7" emissiveIntensity={2.8} transparent opacity={0.45} /></mesh>}
         {playerClass === "TITAN" && sim.titan.domeTime > 0 && <mesh position={[0, 0.5, 0]}><sphereGeometry args={[8, 20, 12, 0, Math.PI * 2, 0, Math.PI / 2]} /><meshStandardMaterial color="#74dfff" emissive="#2e9ab6" emissiveIntensity={1.5} transparent opacity={0.24} side={THREE.DoubleSide} /></mesh>}
       </group>
