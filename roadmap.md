@@ -42,3 +42,4 @@
 - [ ] Add playable data foundations and operations views for cosmetics, fair economy/blueprints, guilds, PvP, Fracture Core raid, world layers, environment cycles, and AI Director decisions.
 - [ ] Remove Loadout / Customize from the startup menu and animate the title landscape, light, and shadows with reduced-motion support.
 - [ ] Verify type safety, production health, onboarding and dungeon flows, desktop/mobile layout, AI behavior, and retired-name removal.
+- [x] Make first-person shooting the default, retain a saved third-person preference, and blend to third-person for melee and special-skill actions with aligned aim and controls.

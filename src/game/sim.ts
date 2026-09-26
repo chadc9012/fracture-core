@@ -112,6 +112,7 @@ export type Bullet = {
   y: number;
   z: number;
   vx: number;
+  vy: number;
   vz: number;
   life: number;
 };
@@ -258,6 +259,7 @@ export function createSim(): WorldSim {
     y: 0,
     z: 0,
     vx: 0,
+    vy: 0,
     vz: 0,
     life: 0,
   }));
@@ -328,6 +330,7 @@ export function fireBullet(
   z: number,
   yaw: number,
   inVehicle = false,
+  pitch = 0,
 ) {
   if (sim.overheated) return false;
   const b = sim.bullets.find((v) => !v.alive);
@@ -341,8 +344,9 @@ export function fireBullet(
   b.x = x;
   b.y = y;
   b.z = z;
-  b.vx = Math.sin(yaw) * 130;
-  b.vz = Math.cos(yaw) * 130;
+  b.vx = Math.sin(yaw) * Math.cos(pitch) * 130;
+  b.vy = Math.sin(pitch) * 130;
+  b.vz = Math.cos(yaw) * Math.cos(pitch) * 130;
   b.life = 1.4;
   logBehavior(sim.adaptation, "combat", 0.35);
   return true;
@@ -851,9 +855,13 @@ export function stepSim(sim: WorldSim, input: SimInput) {
   for (const b of sim.bullets) {
     if (!b.alive) continue;
     b.x += b.vx * dt;
+    b.y += b.vy * dt;
     b.z += b.vz * dt;
     b.life -= dt;
-    b.y = Math.max(b.y, heightAt(b.x, b.z) + 1.2);
+    if (b.y < heightAt(b.x, b.z) + 0.35) {
+      b.alive = false;
+      continue;
+    }
     if (b.life <= 0) {
       b.alive = false;
       continue;

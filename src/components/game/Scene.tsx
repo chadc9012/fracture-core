@@ -1,6 +1,6 @@
 import { Environment, Lightformer, Sky, Stars, Text } from "@react-three/drei";
 import { useFrame, useThree } from "@react-three/fiber";
-import { useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
 
 import { REGIONS, SKY, ZONE_COLOR, clockLabel, phaseFor, regionAt, WORLD_RADIUS } from "@/game/world";
@@ -66,6 +66,8 @@ export type HudState = {
   loot: LootView[];
   view: "third" | "first";
   aimLocked: boolean;
+  aiming: boolean;
+  meleeTime: number;
   playerClass: ClassId;
   subclassName: string;
   abilities: { slot: string; name: string; ready: boolean }[];
@@ -151,7 +153,8 @@ function RegionLabels() {
 
 export function Scene({
   onHud,
-  settings = { aimAssist: true, firstPersonDefault: false, zoneLabels: true, hudDensity: "full", renderTier: "HIGH" },
+  settings = { aimAssist: true, firstPersonDefault: true, zoneLabels: true, hudDensity: "full", renderTier: "HIGH" },
+  onCameraPreference,
   playerClass = "TITAN",
   subclassId = "SHIELD_TITAN",
   appearanceId = "RANGER",
@@ -165,6 +168,7 @@ export function Scene({
 }: {
   onHud: (s: HudState) => void;
   settings?: GameSettings;
+  onCameraPreference?: (firstPerson: boolean) => void;
   playerClass?: ClassId;
   subclassId?: SubclassId;
   appearanceId?: AppearanceId;
@@ -195,6 +199,7 @@ export function Scene({
   const report = useRef(0);
   const live = useRef(createLiveBuild(activeBuild, abilityBranches));
   const abilityHeld = useRef<Record<string, boolean>>({});
+  const cameraToggleHeld = useRef(false);
   const tutorialClock = useRef(0);
   const lastGate = useRef(0);
   const tutorialEnemyHealth = useRef(2);
@@ -209,7 +214,7 @@ export function Scene({
     z: SPAWN.z,
     y: walkHeight(SPAWN.x, SPAWN.z) + 1.6,
     vy: 0,
-    yaw: 0,
+    yaw: Math.PI,
     inVehicle: false,
     /** vehicle forward speed */
     vSpeed: 0,
@@ -222,6 +227,11 @@ export function Scene({
     viewCool: 0,
     bashCool: 0,
     domeCool: 0,
+    meleeCool: 0,
+    meleeTime: 0,
+    specialTime: 0,
+    pitch: 0,
+    cameraBlend: settings.firstPersonDefault ? 0 : 1,
     firstPerson: settings.firstPersonDefault,
     aimLocked: false,
     reported: { hp: 100 },
@@ -320,10 +330,44 @@ export function Scene({
   const wish = useMemo(() => new THREE.Vector3(), []);
   const camTarget = useMemo(() => new THREE.Vector3(), []);
   const look = useMemo(() => new THREE.Vector3(), []);
+  const cameraDirection = useMemo(() => new THREE.Vector3(), []);
+  const viewmodel = useRef<THREE.Group>(null);
+  const mouse = useRef({ fire: false, aim: false });
   const skyColor = useMemo(() => new THREE.Color(), []);
   const fogColor = useMemo(() => new THREE.Color(), []);
   const lightColor = useMemo(() => new THREE.Color(), []);
-  const { scene } = useThree();
+  const { scene, gl } = useThree();
+
+  useEffect(() => { state.current.firstPerson = settings.firstPersonDefault; }, [settings.firstPersonDefault]);
+  useEffect(() => {
+    const canvas = gl.domElement;
+    const down = (event: MouseEvent) => {
+      if (event.target !== canvas) return;
+      if (event.button === 0) mouse.current.fire = true;
+      if (event.button === 2) mouse.current.aim = true;
+    };
+    const up = (event: MouseEvent) => {
+      if (event.button === 0) mouse.current.fire = false;
+      if (event.button === 2) mouse.current.aim = false;
+    };
+    const move = (event: MouseEvent) => {
+      if (document.pointerLockElement !== canvas) return;
+      state.current.yaw -= event.movementX * 0.0022;
+      state.current.pitch = THREE.MathUtils.clamp(state.current.pitch - event.movementY * 0.0022, -1.2, 1.2);
+    };
+    const blur = () => { mouse.current.fire = false; mouse.current.aim = false; };
+    window.addEventListener("mousedown", down);
+    window.addEventListener("mouseup", up);
+    window.addEventListener("mousemove", move);
+    window.addEventListener("blur", blur);
+    return () => {
+      window.removeEventListener("mousedown", down);
+      window.removeEventListener("mouseup", up);
+      window.removeEventListener("mousemove", move);
+      window.removeEventListener("blur", blur);
+      if (document.pointerLockElement === canvas) document.exitPointerLock();
+    };
+  }, [gl]);
 
   useFrame(({ camera }, raw) => {
     const dt = Math.min(raw, 0.05);
@@ -371,6 +415,9 @@ export function Scene({
     s.fireCool -= dt;
     s.bashCool -= dt;
     s.domeCool -= dt;
+    s.meleeCool -= dt;
+    s.meleeTime = Math.max(0, s.meleeTime - dt);
+    s.specialTime = Math.max(0, s.specialTime - dt);
     const wantsBlock = sim.titanActive && held.has("KeyQ") && sim.titan.shieldBroken <= 0;
     if (wantsBlock && !sim.titan.blocking) sim.titan.blockStartedAt = performance.now() / 1000;
     sim.titan.blocking = wantsBlock;
@@ -378,6 +425,7 @@ export function Scene({
       s.bashCool = 0.35;
       const damage = shieldBash(sim.titan);
       if (damage > 0) {
+        s.specialTime = Math.max(s.specialTime, 0.75);
         for (const machine of sim.machines) {
           if (!machine.alive || Math.hypot(machine.x - s.x, machine.z - s.z) > 10) continue;
           machine.hp -= damage;
@@ -390,7 +438,7 @@ export function Scene({
     }
     if (sim.titanActive && held.has("KeyR") && s.domeCool <= 0) {
       s.domeCool = 0.35;
-      projectDome(sim.titan);
+      if (projectDome(sim.titan)) s.specialTime = Math.max(s.specialTime, 1.1);
     }
     if (vehicleUnlocked && held.has("KeyV") && s.toggleCool <= 0) {
       s.toggleCool = 0.4;
@@ -410,6 +458,7 @@ export function Scene({
       if (held.has(key) && !abilityHeld.current[key] && !s.inVehicle) {
         const ability = activateLiveAbility(live.current, slot, here?.kind ?? "war");
         if (ability) {
+          s.specialTime = Math.max(s.specialTime, slot === "ULTIMATE" ? 1.5 : 0.8);
           const effect = ability.effects[0];
           if (effect?.kind === "DASH") { s.x += Math.sin(s.yaw) * effect.value; s.z += Math.cos(s.yaw) * effect.value; alert(sim, "PHASE DASH · incoming damage avoided"); }
           if (effect?.kind === "SILENCE" || effect?.kind === "FIELD" || effect?.kind === "COOLDOWN_SHIFT") {
@@ -441,9 +490,24 @@ export function Scene({
     const submerged = heightAt(s.x, s.z) < WATER_LEVEL - 0.2;
 
     s.viewCool -= dt;
-    if (held.has("KeyF") && s.viewCool <= 0) {
-      s.viewCool = 0.35;
+    if (held.has("KeyF") && !cameraToggleHeld.current) {
       s.firstPerson = !s.firstPerson;
+      onCameraPreference?.(s.firstPerson);
+    }
+    cameraToggleHeld.current = held.has("KeyF");
+
+    if (held.has("KeyX") && s.meleeCool <= 0 && !s.inVehicle) {
+      s.meleeCool = 0.7;
+      s.meleeTime = 0.72;
+      for (const enemy of sim.machines) {
+        if (!enemy.alive) continue;
+        const dx = enemy.x - s.x;
+        const dz = enemy.z - s.z;
+        if (Math.hypot(dx, dz) > 7 || dx * Math.sin(s.yaw) + dz * Math.cos(s.yaw) < 0) continue;
+        enemy.hp -= 2.4;
+        enemy.cool = Math.max(enemy.cool, 0.5);
+        if (enemy.hp <= 0) { enemy.alive = false; sim.kills++; sim.credits += 45; alert(sim, "Close-quarters takedown +45 cr"); }
+      }
     }
 
     /* ------- predictive aim assist: cone → lead → soft magnetism ------- */
@@ -474,9 +538,9 @@ export function Scene({
       }
     }
 
-    if (held.has("Space") && s.fireCool <= 0 && !sim.overheated) {
+    if ((held.has("Space") || mouse.current.fire) && s.fireCool <= 0 && !sim.overheated) {
       s.fireCool = (s.inVehicle ? 0.16 : 0.28) / sim.mods.fireRate;
-      fireBullet(sim, s.x, s.y + 1.2, s.z, s.yaw, s.inVehicle);
+      fireBullet(sim, s.x, s.y + (s.inVehicle ? 1.5 : 0.95), s.z, s.yaw, s.inVehicle, s.pitch);
     }
 
     const throttleF = held.has("KeyW") || held.has("ArrowUp");
@@ -507,22 +571,18 @@ export function Scene({
       s.x += Math.sin(s.yaw) * s.vSpeed * dt;
       s.z += Math.cos(s.yaw) * s.vSpeed * dt;
     } else {
-      // camera-relative walking (camera is axis aligned on foot)
+      // Mouse-look sets the facing direction; WASD stays relative to it.
       wish.set(0, 0, 0);
-      if (throttleF) wish.z -= 1;
-      if (throttleB) wish.z += 1;
-      if (left) wish.x -= 1;
-      if (right) wish.x += 1;
+      if (throttleF) { wish.x += Math.sin(s.yaw); wish.z += Math.cos(s.yaw); }
+      if (throttleB) { wish.x -= Math.sin(s.yaw); wish.z -= Math.cos(s.yaw); }
+      if (left) { wish.x += Math.sin(s.yaw - Math.PI / 2); wish.z += Math.cos(s.yaw - Math.PI / 2); }
+      if (right) { wish.x += Math.sin(s.yaw + Math.PI / 2); wish.z += Math.cos(s.yaw + Math.PI / 2); }
       const walk = 26 * traction * (boost ? 1.9 : 1) * sim.mods.footSpeed * (live.current.dashTime > 0 ? 1.4 : 1);
       if (wish.lengthSq() > 0) wish.normalize().multiplyScalar(walk);
       velocity.lerp(wish, 1 - Math.exp(-9 * dt));
       s.x += velocity.x * dt;
       s.z += velocity.z * dt;
       if (tutorial?.step === "MOVEMENT") { const travel = Math.hypot(s.x - SPAWN.x, s.z - SPAWN.z); if (travel >= (lastGate.current + 1) * 10 && lastGate.current < 3) { lastGate.current++; onTutorialEvent?.("GATE"); } }
-      if (velocity.lengthSq() > 0.6) {
-        const target = Math.atan2(velocity.x, velocity.z);
-        s.yaw += Math.atan2(Math.sin(target - s.yaw), Math.cos(target - s.yaw)) * (1 - Math.exp(-8 * dt));
-      }
     }
 
     // world bounds
@@ -587,7 +647,7 @@ export function Scene({
     const p = player.current;
     const v = vehicle.current;
     if (p) {
-      p.visible = !s.inVehicle;
+      p.visible = !s.inVehicle && s.cameraBlend > 0.3;
       p.position.set(s.x, s.y, s.z);
       p.rotation.y = s.yaw;
     }
@@ -606,31 +666,30 @@ export function Scene({
     }
 
     /* ---------------- camera ---------------- */
-    if (s.firstPerson) {
-      // cockpit / eye view: sit inside the body and look down the barrel
-      const fwd = s.inVehicle ? 1.4 : 0.5;
-      camTarget.set(
-        s.x + Math.sin(s.yaw) * fwd,
-        s.y + (s.inVehicle ? 1.5 : 1.0),
-        s.z + Math.cos(s.yaw) * fwd,
-      );
-      camera.position.lerp(camTarget, 1 - Math.exp(-18 * dt));
-      look.set(s.x + Math.sin(s.yaw) * 60, s.y + (s.inVehicle ? 1.5 : 1.2), s.z + Math.cos(s.yaw) * 60);
-      camera.lookAt(look);
-    } else {
-      if (s.inVehicle) {
-        camTarget.set(
-          s.x - Math.sin(s.yaw) * 30,
-          s.y + 20 + Math.abs(s.vSpeed) * 0.08,
-          s.z - Math.cos(s.yaw) * 30,
-        );
-      } else {
-        camTarget.set(s.x, s.y + 26, s.z + 38);
-      }
-      camTarget.y = Math.max(camTarget.y, walkHeight(camTarget.x, camTarget.z) + 6);
-      camera.position.lerp(camTarget, 1 - Math.exp(-4.5 * dt));
-      look.set(s.x, s.y + 2.5, s.z);
-      camera.lookAt(look);
+    const override = !s.inVehicle && (s.meleeTime > 0 || s.specialTime > 0);
+    const targetBlend = override || !s.firstPerson ? 1 : 0;
+    s.cameraBlend += (targetBlend - s.cameraBlend) * (1 - Math.exp(-15 * dt));
+    const shoulder = s.inVehicle ? 0 : 1.3;
+    const distance = s.inVehicle ? 14 : 5.8;
+    camTarget.set(
+      s.x + Math.sin(s.yaw) * (s.inVehicle ? 1 : 0.15) + (Math.cos(s.yaw) * shoulder - Math.sin(s.yaw) * distance) * s.cameraBlend,
+      s.y + (s.inVehicle ? 1.5 : 0.95) + (s.inVehicle ? 5 : 2.2) * s.cameraBlend,
+      s.z + Math.cos(s.yaw) * (s.inVehicle ? 1 : 0.15) + (-Math.sin(s.yaw) * shoulder - Math.cos(s.yaw) * distance) * s.cameraBlend,
+    );
+    camTarget.y = Math.max(camTarget.y, walkHeight(camTarget.x, camTarget.z) + 1.35);
+    camera.position.lerp(camTarget, 1 - Math.exp(-18 * dt));
+    cameraDirection.set(Math.sin(s.yaw) * Math.cos(s.pitch), Math.sin(s.pitch), Math.cos(s.yaw) * Math.cos(s.pitch));
+    look.copy(camera.position).addScaledVector(cameraDirection, 60);
+    camera.lookAt(look);
+    if (camera instanceof THREE.PerspectiveCamera) {
+      const desiredFov = mouse.current.aim ? 42 : 65;
+      camera.fov += (desiredFov - camera.fov) * (1 - Math.exp(-12 * dt));
+      camera.updateProjectionMatrix();
+    }
+    if (viewmodel.current) {
+      viewmodel.current.visible = !s.inVehicle && s.cameraBlend < 0.22;
+      viewmodel.current.position.copy(camera.position);
+      viewmodel.current.quaternion.copy(camera.quaternion);
     }
 
     /* ---------------- HUD ---------------- */
@@ -669,8 +728,10 @@ export function Scene({
         ownership: sim.zones.map((z) => ({ id: z.region.id, name: z.region.name, owner: z.owner })),
         weaponHeat: Math.round(sim.weaponHeat),
         overheated: sim.overheated,
-        view: s.firstPerson ? "first" : "third",
+        view: s.cameraBlend > 0.5 ? "third" : "first",
         aimLocked: s.aimLocked,
+        aiming: mouse.current.aim,
+        meleeTime: s.meleeTime,
         playerClass,
         subclassName: selectedSubclass.name,
         abilities: selectedClass.abilities.map((ability) => ({ slot: ability.slot, name: ability.name, ready: live.current.runtime[ability.slot]?.cooldown <= 0 })),
@@ -762,6 +823,26 @@ export function Scene({
         <Scavenger armor={appearance.armor} cloth={appearance.cloth} visor={appearance.visor} classId={playerClass} visualState={armorState} />
         {playerClass === "TITAN" && sim.titan.blocking && <mesh position={[0, 1.8, 1.4]} rotation={[0, 0, 0]}><boxGeometry args={[3.4, 4.5, 0.16]} /><meshStandardMaterial color="#74dfff" emissive="#3daec7" emissiveIntensity={2.8} transparent opacity={0.45} /></mesh>}
         {playerClass === "TITAN" && sim.titan.domeTime > 0 && <mesh position={[0, 0.5, 0]}><sphereGeometry args={[8, 20, 12, 0, Math.PI * 2, 0, Math.PI / 2]} /><meshStandardMaterial color="#74dfff" emissive="#2e9ab6" emissiveIntensity={1.5} transparent opacity={0.24} side={THREE.DoubleSide} /></mesh>}
+      </group>
+
+      {/* Local first-person arms and rifle; the world avatar remains available for external views. */}
+      <group ref={viewmodel} visible={false}>
+        <mesh position={[0.52, -0.54, -1.05]} rotation={[0.25, -0.16, 0.2]}>
+          <boxGeometry args={[0.27, 0.3, 0.85]} />
+          <meshStandardMaterial color={appearance.armor} metalness={0.6} roughness={0.45} depthTest={false} />
+        </mesh>
+        <mesh position={[-0.36, -0.62, -1.02]} rotation={[0.2, 0.15, -0.25]}>
+          <boxGeometry args={[0.25, 0.27, 0.7]} />
+          <meshStandardMaterial color={appearance.cloth} roughness={0.8} depthTest={false} />
+        </mesh>
+        <mesh position={[0.32, -0.39, -1.45]}>
+          <boxGeometry args={[0.3, 0.23, 1.55]} />
+          <meshStandardMaterial color={appearance.armor} metalness={0.75} roughness={0.32} depthTest={false} />
+        </mesh>
+        <mesh position={[0.32, -0.37, -2.38]}>
+          <boxGeometry args={[0.11, 0.11, 0.55]} />
+          <meshStandardMaterial color={appearance.visor} emissive={appearance.visor} emissiveIntensity={0.3} depthTest={false} />
+        </mesh>
       </group>
 
       {/* Titan training arena: three readable cover anchors and one hazardous fracture pool. */}
