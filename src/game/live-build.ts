@@ -28,7 +28,7 @@ export function createLiveBuild(equipped: ActiveBuild, branches: Record<string, 
 }
 
 export function rebindLiveBuild(live: LiveBuild, equipped: ActiveBuild, branches: Record<string, string>): LiveBuild {
-  const changed = Object.values(equipped.slots).some((id, i) => id !== Object.values(live.equipped.slots)[i]) || Object.keys(branches).some((id) => branches[id] !== live.branches[id]);
+  const changed = Object.values(equipped.slots).some((id, i) => id !== Object.values(live.equipped.slots)[i]) || Object.keys(branches).some((id) => branches[id] !== live.branches[id]) || Object.keys(live.branches).some((id) => !(id in branches));
   if (!changed) return live;
   const synergy = resolveSynergyEffects(Object.values(equipped.slots));
   const shieldReflect = branches["fracture-shield"] === "reflector" || branches["reality-bulwark"] === "mirror" ? 0.4 : 0;

@@ -66,7 +66,8 @@ export function advanceEncounter(definition: EncounterDefinition, run: Encounter
   if (nextStage >= definition.stages.length) {
     return { ...run, ...contributions, stagePerformance, status: "COMPLETE", progress: nextProgress, hazard: nextHazard, message: "Final threat neutralized. Signature cache secured." };
   }
-  return { ...run, ...contributions, stagePerformance, status: "ACTIVE", stageIndex: nextStage, progress: 0, bossPhase: 0, selectedRoute: undefined, hazard: Math.max(0, nextHazard - (stage.checkpoint ? 35 : 18)), message: `Checkpoint secured · ${definition.stages[nextStage]?.name ?? "Next stage"}` };
+  const { selectedRoute: _previousRoute, ...remaining } = run;
+  return { ...remaining, ...contributions, stagePerformance, status: "ACTIVE", stageIndex: nextStage, progress: 0, bossPhase: 0, hazard: Math.max(0, nextHazard - (stage.checkpoint ? 35 : 18)), message: `Checkpoint secured · ${definition.stages[nextStage]?.name ?? "Next stage"}` };
 }
 
 export function chooseEncounterRoute(run: EncounterRun, routeId: string): EncounterRun {

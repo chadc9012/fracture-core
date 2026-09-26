@@ -17,7 +17,7 @@ export function tutorialText(step: TutorialStep, classId: ClassId) {
     POWER: ["07 · POWER MOMENT", "Chain two different abilities (Q / E / R) to overload the target."],
     SENTINEL: ["08 · ADAPTIVE SENTINEL", "Break the Sentinel. Watch its telegraphed counter; use your class ability to expose it."],
     VICTORY: ["IDENTITY STABILIZED", "First victory secured. Ability pathways and Nexus operations are now available."],
-  }[step] as readonly [string, string];
+  }[step];
 }
 
 export function advanceTutorial(state: TutorialState, event: TutorialEvent): TutorialState {

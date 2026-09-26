@@ -22,4 +22,4 @@ export const PVP_RANKS = ["Bronze", "Silver", "Gold", "Platinum", "Ascendant"] a
 export type BuildBlueprint = { name: string; classId: ClassId; build: ActiveBuild; branchIds: Record<string, string>; modules: string[]; playstyle: string; bonded: boolean };
 export function bondBlueprint(blueprint: BuildBlueprint): BuildBlueprint { return { ...blueprint, bonded: true, modules: blueprint.modules.slice(0, 3) }; }
 export function guildLevel(xp: number) { return Math.max(1, Math.floor(Math.sqrt(Math.max(0, xp) / 100)) + 1); }
-export function guildUnlocks(level: number) { return ["Shared stash", "Guild buffs", "Shared builds", "Raid access", "Territory control"].filter((_, i) => level >= [1, 3, 5, 10, 15][i]); }
+export function guildUnlocks(level: number) { return ["Shared stash", "Guild buffs", "Shared builds", "Raid access", "Territory control"].filter((_, i) => level >= ([1, 3, 5, 10, 15][i] ?? 999)); }

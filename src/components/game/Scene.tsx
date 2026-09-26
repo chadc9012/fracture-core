@@ -396,7 +396,7 @@ export function Scene({
           if (effect?.kind === "DASH") { s.x += Math.sin(s.yaw) * effect.value; s.z += Math.cos(s.yaw) * effect.value; alert(sim, "PHASE DASH · incoming damage avoided"); }
           if (effect?.kind === "SILENCE" || effect?.kind === "FIELD" || effect?.kind === "COOLDOWN_SHIFT") {
             for (const enemy of sim.machines) if (enemy.alive && Math.hypot(enemy.x - s.x, enemy.z - s.z) < (effect.radius ?? 12)) enemy.cool = Math.max(enemy.cool, effect.duration ?? 3);
-            if (effect.kind === "FIELD") sim.gravity = 18;
+            if (effect.kind === "FIELD") live.current.fieldTime = effect.duration ?? 8;
             alert(sim, "Hostile systems disrupted · environment recalibrated");
           }
           if (effect?.kind === "DAMAGE") for (const enemy of sim.machines) if (enemy.alive && Math.hypot(enemy.x - s.x, enemy.z - s.z) < (effect.radius ?? 6) * 2) enemy.hp -= effect.value / 20;
@@ -411,7 +411,6 @@ export function Scene({
       }
       abilityHeld.current[key] = held.has(key);
     }
-    if (live.current.fieldTime <= 0 && sim.gravity === 18) sim.gravity = 26;
     const weather = here?.id === "veridan" ? "Rain mist" : here?.id === "ember" ? "Ashfall" : here?.id === "frostspire" ? "Snow haze" : here?.id === "nexus" ? "Clear shield" : "Dust front";
     const visibility = here?.id === "nexus" ? 1 : here?.id === "veridan" ? 0.66 : here?.id === "ember" ? 0.55 : here?.id === "frostspire" ? 0.48 : 0.62;
     if (scene.fog instanceof THREE.Fog) {
@@ -533,7 +532,8 @@ export function Scene({
       night,
       inVehicle: s.inVehicle,
     });
-    sim.mods.bulletDamage = Math.max(sim.mods.bulletDamage, live.current.damageMultiplier * (1 + live.current.momentum * 0.25));
+    sim.mods.bulletDamage *= live.current.damageMultiplier * (1 + live.current.momentum * 0.25);
+    if (live.current.fieldTime > 0) sim.gravity *= 0.55;
     if (live.current.dashTime > 0) sim.hp = Math.min(100, sim.hp + dt * 15);
     if (live.current.hackTime > 0) for (const enemy of sim.machines) if (enemy.alive && Math.hypot(enemy.x - s.x, enemy.z - s.z) < 12) enemy.cool = Math.max(enemy.cool, 0.3);
 
