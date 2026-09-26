@@ -8,6 +8,7 @@ import type { WeaponId } from "./weapons";
 type Ctx = { ac: AudioContext; master: GainNode; sfx: GainNode; music: GainNode; noise: AudioBuffer; layers: { ambient: GainNode; tension: GainNode; drums: GainNode } | null; beat: number };
 let ctx: Ctx | null = null;
 let volume = 0.7;
+export const VOLUME_KEY = "world-fracture-volume";
 
 export function unlockAudio() {
   if (typeof window === "undefined") return;
@@ -106,7 +107,58 @@ export function playAbility(kind: string) {
 }
 export function playHurt() { const c = ctx; if (!c) return; const o = out(c); tone(c, o, { f0: 180, f1: 60, dur: 0.2, type: "square", gain: 0.12 }); burst(c, o, { dur: 0.12, freq: 800, type: "lowpass", gain: 0.4 }); }
 /** Enemy telegraph: shot from a hostile, positioned in space. */
-export function playEnemyShot(w: Where) { const c = ctx; if (!c) return; const o = out(c, w); burst(c, o, { dur: 0.12, freq: 1100, q: 1, gain: 0.5 }); tone(c, o, { f0: 600, f1: 200, dur: 0.1, type: "square", gain: 0.06 }); }
+export function playEnemyShot(kind: string, heavy: boolean, w: Where) {
+  const c = ctx; if (!c) return; const o = out(c, w);
+  const v = 0.9 + Math.random() * 0.2; // per-shot pitch variation
+  if (kind === "OVERCLOCKED") { tone(c, o, { f0: 1600 * v, f1: 400, dur: 0.12, type: "sawtooth", gain: 0.08 }); burst(c, o, { dur: 0.06, freq: 5000, type: "highpass", gain: 0.2 }); }
+  else if (kind === "ABERRATION") { burst(c, o, { dur: 0.25, freq: 500 * v, q: 3, gain: 0.45 }); tone(c, o, { f0: 220 * v, f1: 90, dur: 0.25, type: "triangle", gain: 0.15 }); }
+  else if (kind === "VANGUARD") { tone(c, o, { f0: 900 * v, f1: 250, dur: 0.14, type: "square", gain: 0.08 }); burst(c, o, { dur: 0.08, freq: 2200, q: 1, gain: 0.35 }); }
+  else { burst(c, o, { dur: 0.1, freq: 1400 * v, q: 0.8, gain: 0.5 }); tone(c, o, { f0: 130, f1: 50, dur: 0.08, gain: 0.25 }); } // raider ballistic
+  if (heavy) { tone(c, o, { f0: 80, f1: 30, dur: 0.35, gain: 0.5 }); burst(c, o, { dur: 0.5, freq: 350, type: "lowpass", gain: 0.2, at: 0.08 }); }
+}
+
+let lastStep = 0;
+/** Footstep: surface-tinted thump + scuff, alternating pitch. */
+export function playFootstep(surface: "GRASS" | "HARD" | "SNOW" | "SAND", sprint: boolean) {
+  const c = ctx; if (!c) return; const o = out(c); lastStep ^= 1;
+  const g = sprint ? 0.5 : 0.35, f = lastStep ? 1 : 0.9;
+  if (surface === "HARD") { burst(c, o, { dur: 0.05, freq: 2400 * f, q: 2, gain: g }); tone(c, o, { f0: 110 * f, f1: 60, dur: 0.06, gain: g * 0.6 }); }
+  else if (surface === "SNOW") burst(c, o, { dur: 0.14, freq: 3000 * f, q: 0.6, gain: g * 0.7 });
+  else if (surface === "SAND") burst(c, o, { dur: 0.12, freq: 1800 * f, q: 0.5, gain: g * 0.6 });
+  else { burst(c, o, { dur: 0.09, freq: 700 * f, q: 0.8, gain: g }); tone(c, o, { f0: 80, f1: 45, dur: 0.07, gain: g * 0.5 }); }
+}
+
+/** Continuous vehicle engine: per-vehicle voice, rpm follows speed + throttle, brake squeal on hard decel. */
+type Engine = { id: string; osc: OscillatorNode; sub: OscillatorNode; filter: BiquadFilterNode; gain: GainNode; brake: GainNode; brakeSrc: AudioBufferSourceNode };
+let engine: Engine | null = null;
+const ENGINE_VOICE: Record<string, { base: number; type: OscillatorType; cutoff: number }> = {};
+function voiceFor(id: string) {
+  if (!ENGINE_VOICE[id]) { let h = 0; for (const ch of id) h = (h * 31 + ch.charCodeAt(0)) >>> 0; const types: OscillatorType[] = ["sawtooth", "square", "triangle"]; ENGINE_VOICE[id] = { base: 38 + (h % 50), type: types[h % 3]!, cutoff: 500 + (h % 900) }; }
+  return ENGINE_VOICE[id]!;
+}
+export function updateEngine(active: boolean, vehicleId: string, speed01: number, throttle: number, braking: boolean) {
+  const c = ctx; if (!c) return;
+  if (!active) { if (engine) { engine.gain.gain.setTargetAtTime(0, c.ac.currentTime, 0.15); const e = engine; setTimeout(() => { e.osc.stop(); e.sub.stop(); e.brakeSrc.stop(); }, 800); engine = null; } return; }
+  if (!engine || engine.id !== vehicleId) {
+    updateEngine(false, vehicleId, 0, 0, false);
+    const v = voiceFor(vehicleId);
+    const osc = c.ac.createOscillator(); osc.type = v.type; const sub = c.ac.createOscillator(); sub.type = "sine";
+    const filter = c.ac.createBiquadFilter(); filter.type = "lowpass"; filter.frequency.value = v.cutoff; filter.Q.value = 4;
+    const gain = c.ac.createGain(); gain.gain.value = 0;
+    const brake = c.ac.createGain(); brake.gain.value = 0; const bf = c.ac.createBiquadFilter(); bf.type = "bandpass"; bf.frequency.value = 3200; bf.Q.value = 8;
+    const brakeSrc = c.ac.createBufferSource(); brakeSrc.buffer = c.noise; brakeSrc.loop = true;
+    osc.connect(filter); sub.connect(filter); filter.connect(gain).connect(c.sfx); brakeSrc.connect(bf).connect(brake).connect(c.sfx);
+    osc.start(); sub.start(); brakeSrc.start();
+    engine = { id: vehicleId, osc, sub, filter, gain, brake, brakeSrc };
+  }
+  const v = voiceFor(vehicleId), t = c.ac.currentTime;
+  const rpm = v.base * (1 + speed01 * 2.4 + throttle * 0.5);
+  engine.osc.frequency.setTargetAtTime(rpm, t, 0.08);
+  engine.sub.frequency.setTargetAtTime(rpm / 2, t, 0.08);
+  engine.filter.frequency.setTargetAtTime(v.cutoff * (1 + throttle * 1.5 + speed01), t, 0.1);
+  engine.gain.gain.setTargetAtTime(0.06 + throttle * 0.08 + speed01 * 0.05, t, 0.1);
+  engine.brake.gain.setTargetAtTime(braking && speed01 > 0.15 ? 0.12 * speed01 : 0, t, 0.05);
+}
 
 /** Music: ambient pad always; tension pulse and combat drums fade in with intensity (0–1). */
 function startMusic(c: Ctx) {

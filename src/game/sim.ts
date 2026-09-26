@@ -172,6 +172,8 @@ export type WorldSim = {
   equippedElement: GearItem["element"];
   materials: Partial<Record<MaterialId, number>>;
   drops: { id: number; material: MaterialId; amount: number; enemy: string }[];
+  /** enemy gunfire this frame, consumed by the audio layer */
+  enemyShots: { x: number; z: number; kind: string; boss: boolean; elite: boolean }[];
   nextDropId: number;
 };
 
@@ -328,7 +330,7 @@ export function createSim(): WorldSim {
     titan: createTitanState(),
     titanActive: false,
     equippedElement: "KINETIC",
-    materials: {}, drops: [], nextDropId: 0,
+    materials: {}, drops: [], enemyShots: [], nextDropId: 0,
   };
 }
 
@@ -666,6 +668,12 @@ export function stepSim(sim: WorldSim, input: SimInput) {
         if (Math.hypot(m.x - byId("nexus").x, m.z - byId("nexus").z) < byId("nexus").radius) {
           sim.coreHp = Math.max(0, sim.coreHp - 2);
         }
+      } else if (d < 55 && m.cool <= 0) {
+        // ranged suppressing fire: telegraphed by sound, lands occasionally
+        m.cool = m.boss ? 1.2 : m.elite ? 1.5 : 2.1;
+        sim.enemyShots.push({ x: m.x, z: m.z, kind: m.kind, boss: m.boss, elite: m.elite });
+        if (sim.enemyShots.length > 24) sim.enemyShots.shift();
+        if (Math.random() < 0.25) hurtPlayer(sim, (m.boss ? 6 : m.elite ? 4 : 2) / sim.mods.hullDurability, m.profile);
       }
     } else {
       m.rot += dt * 0.4;
