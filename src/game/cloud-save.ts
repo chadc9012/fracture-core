@@ -126,3 +126,21 @@ export function restoreBackup(): PlayerProgression | null {
 }
 export const hasBackup = () => typeof window !== "undefined" && !!localStorage.getItem(BACKUP_KEY);
 export const localSavedAt = () => (typeof window === "undefined" ? null : localStorage.getItem("world-fracture.progression.savedAt"));
+
+export type RestorePoint = { id: string; revision: number; created_at: string; device_id: string; summary: string };
+
+const summarize = (p: PlayerProgression) => `${p.completedMissions.length} missions · ${p.rewardVehicles?.length ?? 0} vehicles`;
+
+/** Earlier cloud versions, captured automatically by the backend whenever the save changes. */
+export async function listRestorePoints(userId: string): Promise<RestorePoint[]> {
+  const { data, error } = await supabase.from("player_save_snapshots").select("id, revision, created_at, device_id, data").eq("user_id", userId).order("created_at", { ascending: false }).limit(30);
+  if (error) throw error;
+  return (data ?? []).map((r) => ({ id: r.id, revision: r.revision, created_at: r.created_at, device_id: r.device_id, summary: summarize(normalizeProgression(r.data)) }));
+}
+
+/** Restore replaces (not merges) — the current version is itself kept as a restore point by the next save. */
+export async function loadRestorePoint(id: string): Promise<PlayerProgression> {
+  const { data, error } = await supabase.from("player_save_snapshots").select("data").eq("id", id).single();
+  if (error) throw error;
+  return { ...normalizeProgression(data.data), savedAt: new Date().toISOString() } as PlayerProgression;
+}
