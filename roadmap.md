@@ -54,3 +54,8 @@
 - [x] Controller weapon switching, selector/wheel, configurable bindings
 - [x] Password reset for cloud saves
 - [x] Cloud save restore points
+- [x] Combat audio
+- [ ] Ability VFX
+- [ ] Vendors & marketplace
+- [ ] Seasons
+- [ ] Remaining uploaded design notes (UI animation, inventory UI, cinematic onboarding, progression, performance)
