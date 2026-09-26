@@ -6,7 +6,8 @@ import { ABILITY_NODES, DEFAULT_BUILD, buildSynergy, nodeById, type ActiveBuild 
 import { DUNGEONS } from "@/game/dungeons";
 import { CLASS_MISSIONS } from "@/game/class-missions";
 import { ARMOR_MANIFEST, EQUIPMENT_COUNTS, WEAPON_MANIFEST, type WeaponTier } from "@/game/equipment";
-import { STARTING_WALLET, UPGRADE_RECIPES, VENDORS, canAfford, spend, type Wallet } from "@/game/economy";
+import { STARTING_WALLET, UPGRADE_RECIPES, VENDORS, canAfford, spend, transformGear, type ForgeMode, type Wallet } from "@/game/economy";
+import { shapeLoot, type LootItem } from "@/game/loot";
 import { advanceEncounter, chooseEncounterRoute, createEncounterRun, loseEncounterLife } from "@/game/raid-stages";
 import { grantAbilityMastery, selectAbilityBranch, type PlayerProgression } from "@/game/progression";
 import { dungeonModifiers } from "@/game/dungeon-build";
@@ -30,7 +31,7 @@ export function OperationsHub({ initialView = "DUNGEONS", progression, onProgres
           {(["DUNGEONS", "ARSENAL", "ABILITIES", "WORLD", "SOCIAL"] as const).map((item) => <Button key={item} variant="ghost" onClick={() => setView(item)} className={`h-12 min-w-24 rounded-none border-b-2 font-mono text-[9px] uppercase tracking-[0.18em] ${view === item ? "border-primary text-primary" : "border-transparent text-muted-foreground"}`}>{item}</Button>)}
         </nav>
         {view === "DUNGEONS" && <DungeonOperations progression={progression} onProgression={onProgression} />}
-        {view === "ARSENAL" && <Arsenal />}
+        {view === "ARSENAL" && <Arsenal progression={progression} />}
         {view === "ABILITIES" && <AbilityNetwork progression={progression} onProgression={onProgression} />}
         {view === "WORLD" && <WorldSystems />}
         {view === "SOCIAL" && <SocialSystems />}
@@ -91,11 +92,13 @@ function SocialSystems() {
   return <main className="py-6"><div className="grid gap-5 lg:grid-cols-2"><section><p className="font-mono text-[9px] uppercase text-primary">Private simulations · services not connected</p><h3 className="mt-1 text-2xl">Guild, Market & PvP</h3><div className="mt-4 border border-border p-4"><p className="font-mono text-xs">FRACTURE WARDENS · LEVEL {level}</p><p className="mt-2 text-xs text-muted-foreground">Shared identity: Stability / Control</p><div className="mt-3 flex flex-wrap gap-2">{guildUnlocks(level).map((item) => <span key={item} className="border border-border px-2 py-1 text-[10px]">{item}</span>)}</div></div><div className="mt-3 grid grid-cols-3 gap-2">{PVP_MODES.map((mode) => <div key={mode} className="border border-border p-3 text-center text-[10px]"><Swords className="mx-auto mb-2 size-4 text-primary" />{mode}</div>)}</div><p className="mt-3 font-mono text-[9px] text-muted-foreground">RANKS · {PVP_RANKS.join(" / ")}</p></section><section><p className="font-mono text-[9px] uppercase text-primary">Foundation raid · {FRACTURE_RAID.players.min}–{FRACTURE_RAID.players.max} players</p><h3 className="mt-1 text-2xl">{FRACTURE_RAID.name}</h3><p className="mt-2 text-sm text-muted-foreground">A system failure event that adapts to team composition while preserving readable counterplay.</p><div className="mt-4 space-y-2">{FRACTURE_RAID.phases.map((phase, index) => <div key={phase} className="border-l-2 border-primary bg-card/30 p-3"><span className="font-mono text-[9px] text-muted-foreground">PHASE 0{index + 1}</span><p className="text-sm">{phase}</p></div>)}</div><div className="mt-4 border border-border p-3"><p className="font-mono text-[9px] uppercase text-primary">Cosmetic-only identity</p><p className="mt-2 text-xs text-muted-foreground">{COSMETIC_CATEGORIES.join(" · ")}</p></div></section></div></main>;
 }
 
-function Arsenal() {
+function Arsenal({ progression }: { progression: PlayerProgression }) {
   const [wallet, setWallet] = useState<Wallet>(STARTING_WALLET);
   const [tier, setTier] = useState<WeaponTier>("T1");
   const [condition, setCondition] = useState(73);
   const [notice, setNotice] = useState("Select a forge operation or vendor offer.");
+  const [mode, setMode] = useState<ForgeMode>("GUARD");
+  const [gear, setGear] = useState<LootItem>(() => shapeLoot({ name: "Resonant Field Frame", slot: "ARMOR", rarity: "RARE", power: 280, mods: [{ name: "Anchor Field", effect: "Utility", value: 18 }], life: 9 }, { blocks: 5, dashes: 2, hacks: 1, combos: 3 }));
   const recipe = UPGRADE_RECIPES.find((entry) => entry.from === tier);
   const samples = WEAPON_MANIFEST.filter((item) => item.tier === tier).slice(0, 6);
   const craft = () => { if (!recipe || !canAfford(wallet, recipe.costs, recipe.tax)) { setNotice("Insufficient resources for this upgrade."); return; } setWallet(spend(wallet, recipe.costs, recipe.tax)); setTier(recipe.to); setNotice(`${recipe.label} complete. Frame advanced to ${recipe.to}.`); };
@@ -108,6 +111,7 @@ function Arsenal() {
       </section>
       <section><p className="font-mono text-[9px] uppercase tracking-[0.3em] text-muted-foreground">Vendor districts</p><div className="mt-3 space-y-2">{VENDORS.map((vendor) => { const affordable = wallet[vendor.currency] >= vendor.price; return <div key={vendor.id} className="border border-border p-3"><div className="flex items-center justify-between gap-3"><div><p className="font-mono text-sm">{vendor.name}</p><p className="text-[10px] text-muted-foreground">{vendor.district} · {vendor.offer}</p></div><Button size="sm" variant="outline" disabled={!affordable} onClick={() => { setWallet({ ...wallet, [vendor.currency]: wallet[vendor.currency] - vendor.price }); setNotice(`${vendor.name} purchase secured.`); }}><PackageOpen /> {vendor.price} {currencyLabel[vendor.currency]}</Button></div></div>; })}</div>
         <div className="mt-5 border-l-2 border-primary bg-card/30 p-4"><p className="font-mono text-[9px] uppercase text-primary">Terminal report</p><p className="mt-1 text-xs text-muted-foreground">{notice}</p></div>
+         <div className="mt-5 border border-border p-4"><p className="font-mono text-[9px] uppercase text-primary">Adaptive forge · {gear.power} POWER</p><p className="mt-2 text-sm">{gear.name} · {gear.trait ?? "CONTROL"}</p><p className="mt-1 text-xs text-muted-foreground">{gear.transformation}</p><div className="mt-3 flex flex-wrap gap-2">{(["GUARD", "PRECISION", "CONTROL"] as const).map((choice) => <Button size="sm" key={choice} variant={choice === mode ? "default" : "outline"} onClick={() => setMode(choice)}>{choice}</Button>)}</div><Button className="mt-3" size="sm" disabled={!canAfford(wallet, { dataShards: 8, scrapMetal: 40 }, 150)} onClick={() => { const crafted = transformGear(gear, mode, wallet); if (!crafted) return; setGear(crafted.item); setWallet(crafted.wallet); setNotice(`${gear.name}: ${mode.toLowerCase()} behavior bonded. 8 data shards, 40 scrap, 150 credits spent.`); }}><Anvil /> Bond transformation</Button><p className="mt-2 text-[10px] text-muted-foreground">Cost · 8 Data Shards · 40 Scrap Metal · 150 Credits</p>{progression.earnedRewards.length > 0 && <p className="mt-3 text-[10px]">Earned signatures · {progression.earnedRewards.join(" · ")}</p>}</div>
         <div className="mt-5"><p className="font-mono text-[9px] uppercase tracking-[0.3em] text-muted-foreground">Armor registry sample</p><div className="mt-2 grid grid-cols-2 gap-2">{ARMOR_MANIFEST.slice(80, 86).map((item) => <div key={item.id} className="border border-border p-2"><p className="text-[11px]">{item.name}</p><p className="mt-1 text-[9px] text-primary">{item.classId} · {item.slot}</p></div>)}</div></div>
       </section>
     </div>
