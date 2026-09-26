@@ -1,6 +1,5 @@
 import { useRef } from "react";
 import { useFrame } from "@react-three/fiber";
-import { Billboard, Text } from "@react-three/drei";
 import * as THREE from "three";
 import { heightAt } from "@/game/terrain";
 import { BOSS_LAIRS, MARKER_COLOR, RESOURCE_SITES } from "@/game/waypoints";
@@ -30,7 +29,6 @@ export function WorldMarkers({ depleted }: { depleted: React.MutableRefObject<Re
         <group key={lair.id} position={[lair.x, heightAt(lair.x, lair.z), lair.z]}>
           <mesh rotation-x={-Math.PI / 2} position={[0, 0.15, 0]}><ringGeometry args={[8.5, 10, 48]} /><meshBasicMaterial color={MARKER_COLOR.BOSS} transparent opacity={0.6} side={THREE.DoubleSide} /></mesh>
           <mesh position={[0, 25, 0]}><cylinderGeometry args={[0.25, 0.25, 50, 6]} /><meshBasicMaterial color={MARKER_COLOR.BOSS} transparent opacity={0.4} /></mesh>
-          <Billboard position={[0, 6, 0]}><Text fontSize={1.4} color={MARKER_COLOR.BOSS} outlineWidth={0.06} outlineColor="#000000">{`☠ ${lair.label}`}</Text></Billboard>
         </group>
       ))}
     </group>
