@@ -368,7 +368,7 @@ export function spawnMissionDrones(sim: WorldSim, x: number, z: number, count: n
     const m = sim.machines.find((e) => !e.alive);
     if (!m) return;
     const a = (i / count) * Math.PI * 2;
-    Object.assign(m, { alive: true, x: x + Math.cos(a) * 16, z: z + Math.sin(a) * 16, hp: elite ? 6 : 3, rot: 0, scale: elite ? 1.1 : 0.8, zone: "nexus", cool: elite ? 1.2 : 2.5, elite, profile: elite ? "Data Drone Elite" : "Data Drone Scout", kind: "OVERCLOCKED" as const, drop: "circuits" as MaterialId, boss: false, kx: 0, kz: 0, mission: true });
+    Object.assign(m, { alive: true, x: x + Math.cos(a) * 16, z: z + Math.sin(a) * 16, hp: elite ? 6 : 3, rot: 0, scale: elite ? 1.1 : 0.8, zone: "nexus", cool: elite ? 1.2 : 2.5, elite, profile: elite ? "Data Drone Elite" : "Data Drone Scout", kind: "OVERCLOCKED" as const, drop: "dataShards" as MaterialId, boss: false, kx: 0, kz: 0, mission: true });
   }
 }
 
