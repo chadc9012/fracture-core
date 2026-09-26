@@ -10,3 +10,4 @@
 <!-- LOVABLE:END -->
 
 - Keep camera preference client-local: FPS is default, F persists FPS/TPP, and melee or special actions temporarily override to TPP; camera choice is presentation, not shared combat state.
+- Player progression syncs to the player_saves table via optimistic revision checks; conflicts merge additively (unions/maxes), newer copy wins choices. Why: progress is only gained, so merging never loses unlocks.
