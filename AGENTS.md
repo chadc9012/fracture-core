@@ -15,3 +15,4 @@
 - Authored missions are pure state machines in src/game/missions/* advanced by world events emitted from Scene (ANCHOR/ARRIVED/CLEAR) and UI (HACK/ACK). Why: deterministic, testable, no menu-driven quest flow.
 - Input bindings live in src/game/bindings.ts and persist client-side (localStorage "world-fracture-bindings"); Scene reads them each frame for keyboard + standard-mapping gamepads. Why: controls are per-device presentation, not progression.
 - Cloud restore points are captured by a database trigger on player_saves updates (max 1 per 10 min, keep 30); restoring replaces rather than merges. Why: the backend guarantees history even if a client misbehaves.
+- Combat audio is procedural Web Audio in src/game/audio.ts (no sound files), unlocked on first user input; Scene triggers it from weapon/ability/sim state changes. Why: zero asset downloads, sounds react to live combat values.
