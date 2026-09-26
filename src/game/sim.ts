@@ -115,6 +115,8 @@ export type Bullet = {
   vy: number;
   vz: number;
   life: number;
+  dmg: number;
+  knock: number;
 };
 
 export type { Lane };
@@ -262,6 +264,8 @@ export function createSim(): WorldSim {
     vy: 0,
     vz: 0,
     life: 0,
+    dmg: 1,
+    knock: 1,
   }));
 
   const adaptation = createAdaptation();
@@ -331,11 +335,14 @@ export function fireBullet(
   yaw: number,
   inVehicle = false,
   pitch = 0,
+  dmg = 1,
+  knock = 1,
+  heat = 1,
 ) {
   if (sim.overheated) return false;
   const b = sim.bullets.find((v) => !v.alive);
   if (!b) return false;
-  sim.weaponHeat = Math.min(100, sim.weaponHeat + (inVehicle ? HEAT_PER_SHOT_VEHICLE : HEAT_PER_SHOT_FOOT));
+  sim.weaponHeat = Math.min(100, sim.weaponHeat + (inVehicle ? HEAT_PER_SHOT_VEHICLE : HEAT_PER_SHOT_FOOT) * heat);
   if (sim.weaponHeat >= 100) {
     sim.overheated = true;
     alert(sim, "WEAPON OVERHEAT — venting");
@@ -348,6 +355,8 @@ export function fireBullet(
   b.vy = Math.sin(pitch) * 130;
   b.vz = Math.cos(yaw) * Math.cos(pitch) * 130;
   b.life = 1.4;
+  b.dmg = dmg;
+  b.knock = knock;
   logBehavior(sim.adaptation, "combat", 0.35);
   return true;
 }
@@ -876,11 +885,12 @@ export function stepSim(sim: WorldSim, input: SimInput) {
       if (!m.alive) continue;
       if (Math.hypot(m.x - b.x, m.z - b.z) < 3.4 * m.scale) {
         b.alive = false;
-        m.hp -= sim.mods.bulletDamage;
+        m.hp -= sim.mods.bulletDamage * b.dmg;
+        sim.lastHit = performance.now();
         logBehavior(sim.adaptation, "combat", 1);
         // knockback impulse from the hit direction
-        m.kx += b.vx * 0.06;
-        m.kz += b.vz * 0.06;
+        m.kx += b.vx * 0.06 * b.knock;
+        m.kz += b.vz * 0.06 * b.knock;
         sim.combatHeat += 1.5;
         if (m.hp <= 0) {
           m.alive = false;
