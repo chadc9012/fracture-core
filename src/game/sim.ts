@@ -135,7 +135,7 @@ export { laneSamples };
 
 export type WorldSim = {
   /** active boss fight performance tracker (raid drops) */
-  raidFight?: { start: number; hurt: number; region: string };
+  raidFight?: { start: number; hurt: number; region: string } | undefined;
   zones: ZoneState[];
   lanes: Lane[];
   machines: Machine[];
