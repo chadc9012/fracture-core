@@ -248,7 +248,7 @@ export function gameTick(progression: PlayerProgression, event: QuestEvent): Pla
     if (updated.some((value, i) => value !== (prior[i] ?? 0))) {
       next = { ...next, questObjectiveProgress: { ...next.questObjectiveProgress, [quest.id]: updated } };
     }
-    const complete = quest.objectives.every((objective, i) => updated[i] >= objective.amount);
+    const complete = quest.objectives.every((objective, i) => (updated[i] ?? 0) >= objective.amount);
     if (complete && !next.completedMissions.includes(quest.id)) {
       next = {
         ...next,

@@ -22,6 +22,7 @@ export function QuestTracker({ progression }: { progression: PlayerProgression }
       const t = setTimeout(() => setShowLine(false), 6000);
       return () => clearTimeout(t);
     }
+    return undefined;
   }, [quest]);
 
   if (!quest) return null;

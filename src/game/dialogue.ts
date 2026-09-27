@@ -176,5 +176,5 @@ export function revisitDialogueFor(
   }
   const idle = IDLE_LINES[interiorId];
   if (!idle || idle.length === 0) return null;
-  return [{ speaker, text: idle[ctx.visitCount % idle.length] }];
+  return [{ speaker, text: idle[ctx.visitCount % idle.length]! }];
 }
