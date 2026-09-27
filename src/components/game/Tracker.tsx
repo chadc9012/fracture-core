@@ -32,7 +32,7 @@ export function TrackedObjectives({ markers }: { markers: TrackedMarker[] }) {
   const rows = (["MISSION", "RESOURCE", "BOSS"] as const).map((k) => [k, pick(k)] as const).filter(([, m]) => m);
   if (!rows.length) return null;
   return (
-    <div className="pointer-events-none absolute right-4 top-20 hidden w-56 space-y-1.5 md:block" aria-label="Tracked objectives">
+    <div className="pointer-events-none absolute right-4 top-40 hidden w-56 space-y-1.5 md:block" aria-label="Tracked objectives">
       {rows.map(([kind, m]) => m && (
         <div key={kind} className="flex items-center gap-2 border-l-2 bg-card/60 px-2 py-1.5 backdrop-blur" style={{ borderColor: MARKER_COLOR[kind] }}>
           <span className="inline-block text-sm" style={{ color: MARKER_COLOR[kind], transform: `rotate(${(m.bearing * 180) / Math.PI}deg)` }}>▲</span>

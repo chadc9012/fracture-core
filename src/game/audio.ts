@@ -5,7 +5,7 @@
  */
 import type { WeaponId } from "./weapons";
 
-type Ctx = { ac: AudioContext; master: GainNode; sfx: GainNode; music: GainNode; noise: AudioBuffer; layers: { ambient: GainNode; tension: GainNode; drums: GainNode } | null; beat: number };
+type Ctx = { ac: AudioContext; master: GainNode; sfx: GainNode; music: GainNode; noise: AudioBuffer; layers: { ambient: GainNode; tension: GainNode; drums: GainNode; motif: GainNode } | null; ambientOscs: OscillatorNode[]; musicRegion: string; beat: number };
 let ctx: Ctx | null = null;
 let volume = 0.7;
 export const VOLUME_KEY = "world-fracture-volume";
@@ -22,7 +22,7 @@ export function unlockAudio() {
   const music = ac.createGain(); music.gain.value = 0.35; music.connect(comp);
   const noise = ac.createBuffer(1, ac.sampleRate, ac.sampleRate);
   const d = noise.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
-  ctx = { ac, master, sfx, music, noise, layers: null, beat: 0 };
+  ctx = { ac, master, sfx, music, noise, layers: null, ambientOscs: [], musicRegion: "", beat: 0 };
   startMusic(ctx);
 }
 
@@ -119,13 +119,92 @@ export function playEnemyShot(kind: string, heavy: boolean, w: Where) {
 
 let lastStep = 0;
 /** Footstep: surface-tinted thump + scuff, alternating pitch. */
-export function playFootstep(surface: "GRASS" | "HARD" | "SNOW" | "SAND", sprint: boolean) {
+export function playFootstep(surface: "GRASS" | "HARD" | "SNOW" | "SAND" | "WATER", sprint: boolean) {
   const c = ctx; if (!c) return; const o = out(c); lastStep ^= 1;
   const g = sprint ? 0.5 : 0.35, f = lastStep ? 1 : 0.9;
   if (surface === "HARD") { burst(c, o, { dur: 0.05, freq: 2400 * f, q: 2, gain: g }); tone(c, o, { f0: 110 * f, f1: 60, dur: 0.06, gain: g * 0.6 }); }
   else if (surface === "SNOW") burst(c, o, { dur: 0.14, freq: 3000 * f, q: 0.6, gain: g * 0.7 });
   else if (surface === "SAND") burst(c, o, { dur: 0.12, freq: 1800 * f, q: 0.5, gain: g * 0.6 });
+  else if (surface === "WATER") { burst(c, o, { dur: 0.12, freq: 1200 * f, q: 1, gain: g * 0.7 }); tone(c, o, { f0: 260 * f, f1: 120, dur: 0.08, gain: g * 0.4 }); }
   else { burst(c, o, { dur: 0.09, freq: 700 * f, q: 0.8, gain: g }); tone(c, o, { f0: 80, f1: 45, dur: 0.07, gain: g * 0.5 }); }
+}
+
+/** A body breaking the surface: filtered noise slap + a falling-pitch "plunk", scaled by entry speed. */
+export function playSplash(intensity: number, w: Where = {}) {
+  const c = ctx; if (!c) return; const o = out(c, w);
+  burst(c, o, { dur: 0.28, freq: 1100, q: 0.8, gain: Math.min(1, 0.35 + intensity * 0.65) });
+  tone(c, o, { f0: 320, f1: 90, dur: 0.22, gain: Math.min(0.6, 0.15 + intensity * 0.45) });
+}
+
+/* ---------------- ambient beds: biome + weather (procedural, no files, loops until swapped) ---------------- */
+
+/** Looping filtered noise, the shared basis for wind/rain/dust/rumble beds — a bare tone-generator would sound too clean for weather. */
+function noiseBed(c: Ctx, dest: AudioNode, { cutoff, type = "lowpass", gain = 0.08, q = 0.5 }: { cutoff: number; type?: BiquadFilterType; gain?: number; q?: number }) {
+  const src = c.ac.createBufferSource(); src.buffer = c.noise; src.loop = true;
+  const f = c.ac.createBiquadFilter(); f.type = type; f.frequency.value = cutoff; f.Q.value = q;
+  const g = c.ac.createGain(); g.gain.value = 0;
+  src.connect(f).connect(g).connect(dest);
+  src.start();
+  g.gain.setTargetAtTime(gain, c.ac.currentTime, 1.2);
+  return { stop: () => { g.gain.setTargetAtTime(0, c.ac.currentTime, 0.6); setTimeout(() => src.stop(), 1500); } };
+}
+/** Fires `spawn` on a randomized interval — birds, insects, embers — until stopped. */
+function periodicTexture(spawn: () => void, everyMs: readonly [number, number]) {
+  let alive = true;
+  const tick = () => { if (!alive) return; spawn(); timer = setTimeout(tick, everyMs[0] + Math.random() * (everyMs[1] - everyMs[0])); };
+  let timer = setTimeout(tick, 200 + Math.random() * 400);
+  return () => { alive = false; clearTimeout(timer); };
+}
+
+type AmbientVoice = { key: string; stop: () => void };
+let biomeVoice: AmbientVoice | null = null;
+let weatherVoice: AmbientVoice | null = null;
+
+type BiomeAmbientDef = { bedCutoff: number; bedGain: number; bedType?: BiquadFilterType; hum?: number; textureEvery?: readonly [number, number]; texture?: (c: Ctx, dest: AudioNode) => void };
+/** One bed + optional texture per region — Nexus hums low and electronic, the wilds get wind, Ember rumbles and cracks. */
+const BIOME_AMBIENT: Record<string, BiomeAmbientDef> = {
+  veridan: { bedCutoff: 900, bedGain: 0.05, textureEvery: [900, 2400], texture: (c, dest) => burst(c, dest, { dur: 0.12, freq: 2200 + Math.random() * 1400, q: 7, gain: 0.06 }) },
+  swamps: { bedCutoff: 450, bedGain: 0.07, textureEvery: [400, 1300], texture: (c, dest) => burst(c, dest, { dur: 0.06, freq: 3200 + Math.random() * 900, q: 10, gain: 0.04 }) },
+  nexus: { bedCutoff: 260, bedGain: 0.03, hum: 118 },
+  frostspire: { bedCutoff: 1500, bedGain: 0.11 },
+  solara: { bedCutoff: 1300, bedGain: 0.09 },
+  wastelands: { bedCutoff: 800, bedGain: 0.06 },
+  ember: { bedCutoff: 220, bedGain: 0.1, textureEvery: [1300, 2600], texture: (c, dest) => burst(c, dest, { dur: 0.25, freq: 500, type: "lowpass", gain: 0.1 }) },
+};
+
+/** Called once per HUD tick with the current region id; only rebuilds voices when the region actually changes. */
+export function updateBiomeAmbient(regionId: string) {
+  const c = ctx; if (!c) return;
+  if (biomeVoice?.key === regionId) return;
+  biomeVoice?.stop(); biomeVoice = null;
+  const def = BIOME_AMBIENT[regionId];
+  if (!def) return;
+  const dest = c.sfx;
+  const stops: (() => void)[] = [noiseBed(c, dest, { cutoff: def.bedCutoff, gain: def.bedGain, type: def.bedType }).stop];
+  if (def.hum) {
+    const o = c.ac.createOscillator(); o.type = "sine"; o.frequency.value = def.hum;
+    const g = c.ac.createGain(); g.gain.value = 0; o.connect(g).connect(dest); o.start();
+    g.gain.setTargetAtTime(0.05, c.ac.currentTime, 1);
+    stops.push(() => { g.gain.setTargetAtTime(0, c.ac.currentTime, 0.4); setTimeout(() => o.stop(), 800); });
+  }
+  if (def.texture && def.textureEvery) stops.push(periodicTexture(() => def.texture!(c, dest), def.textureEvery));
+  biomeVoice = { key: regionId, stop: () => stops.forEach((fn) => fn()) };
+}
+
+const WEATHER_AMBIENT: Record<string, { cutoff: number; gain: number; type?: BiquadFilterType }> = {
+  "Rain mist": { cutoff: 4200, gain: 0.1, type: "highpass" },
+  Ashfall: { cutoff: 300, gain: 0.06 },
+  "Snow haze": { cutoff: 1100, gain: 0.04 },
+  "Dust front": { cutoff: 1900, gain: 0.08 },
+};
+/** Same swap-only-on-change pattern as updateBiomeAmbient, keyed on the HUD's existing `weather` label ("Clear shield" gets no bed). */
+export function updateWeatherAmbient(weather: string) {
+  const c = ctx; if (!c) return;
+  if (weatherVoice?.key === weather) return;
+  weatherVoice?.stop(); weatherVoice = null;
+  const def = WEATHER_AMBIENT[weather];
+  if (!def) return;
+  weatherVoice = { key: weather, stop: noiseBed(c, c.sfx, { cutoff: def.cutoff, gain: def.gain, type: def.type ?? "lowpass" }).stop };
 }
 
 /** Continuous vehicle engine: per-vehicle voice, rpm follows speed + throttle, brake squeal on hard decel. */
@@ -163,13 +242,19 @@ export function updateEngine(active: boolean, vehicleId: string, speed01: number
 /** Music: ambient pad always; tension pulse and combat drums fade in with intensity (0–1). */
 function startMusic(c: Ctx) {
   const mk = () => { const g = c.ac.createGain(); g.gain.value = 0; g.connect(c.music); return g; };
-  const ambient = mk(), tension = mk(), drums = mk();
+  const ambient = mk(), tension = mk(), drums = mk(), motif = mk();
   ambient.gain.value = 0.5;
-  for (const f of [55, 82.4, 110.2]) { const o = c.ac.createOscillator(); o.type = "sine"; o.frequency.value = f; const lfo = c.ac.createOscillator(); lfo.frequency.value = 0.07 + f / 5000; const lg = c.ac.createGain(); lg.gain.value = 0.8; lfo.connect(lg).connect(o.detune); o.connect(ambient); o.start(); lfo.start(); }
+  motif.gain.value = 1;
+  for (const f of [55, 82.4, 110.2]) {
+    const o = c.ac.createOscillator(); o.type = "sine"; o.frequency.value = f;
+    const lfo = c.ac.createOscillator(); lfo.frequency.value = 0.07 + f / 5000; const lg = c.ac.createGain(); lg.gain.value = 0.8; lfo.connect(lg).connect(o.detune);
+    o.connect(ambient); o.start(); lfo.start();
+    c.ambientOscs.push(o);
+  }
   const t = c.ac.createOscillator(); t.type = "sawtooth"; t.frequency.value = 110; const tf = c.ac.createBiquadFilter(); tf.type = "lowpass"; tf.frequency.value = 500;
   const trem = c.ac.createGain(); trem.gain.value = 0.3; const tl = c.ac.createOscillator(); tl.frequency.value = 4; const tlg = c.ac.createGain(); tlg.gain.value = 0.3; tl.connect(tlg).connect(trem.gain);
   t.connect(tf).connect(trem).connect(tension); t.start(); tl.start();
-  c.layers = { ambient, tension, drums };
+  c.layers = { ambient, tension, drums, motif };
 }
 
 /** Called every frame; schedules drum hits on a 120bpm grid while in combat. */
@@ -186,6 +271,73 @@ export function updateCombatAudio(intensity: number) {
     if (step % 4 === 2) burst(c, c.layers.drums, { dur: 0.15, freq: 1800, q: 0.8, gain: 0.35 });
     burst(c, c.layers.drums, { dur: 0.03, freq: 8000, type: "highpass", gain: intensity > 0.85 ? 0.15 : 0.06 });
   }
+}
+
+/** Root note + a handful of scale-degree ratios (above the root) each region's music leans on for its sparse motif layer. */
+const MUSIC_REGION: Record<string, { root: number; ratios: readonly number[] }> = {
+  veridan: { root: 220, ratios: [1, 1.125, 1.25, 1.5, 1.6667] }, // A, pastoral major-ish
+  swamps: { root: 196, ratios: [1, 1.0595, 1.2, 1.5, 1.5874] }, // G, murky/dissonant
+  nexus: { root: 261.6, ratios: [1, 1.125, 1.3333, 1.5, 1.6875] }, // C, clean and sparse
+  frostspire: { root: 293.7, ratios: [1, 1.2, 1.5, 1.8, 2] }, // D, open fifths, icy
+  solara: { root: 246.9, ratios: [1, 1.25, 1.5, 1.6667, 2] }, // B, warm major
+  wastelands: { root: 174.6, ratios: [1, 1.1892, 1.3333, 1.5, 1.7818] }, // F, gritty/tritone-tinged
+  ember: { root: 146.8, ratios: [1, 1.0595, 1.3333, 1.4142, 1.6818] }, // D, low and tense
+};
+let motifStop: (() => void) | null = null;
+/** Called once per HUD tick with the current region id (interiors keep their home region's music, not silence — see Scene.tsx). Retunes the always-on ambient drone to the region's root and swaps a sparse melodic motif layer, only when the region actually changes. */
+export function updateMusicRegion(regionId: string) {
+  const c = ctx; if (!c || !c.layers) return;
+  if (c.musicRegion === regionId) return;
+  c.musicRegion = regionId;
+  const def = MUSIC_REGION[regionId];
+  const root = def?.root ?? 220;
+  const bases = [root / 2, root * 0.75, root];
+  c.ambientOscs.forEach((o, i) => o.frequency.setTargetAtTime(bases[i] ?? root, c.ac.currentTime, 3));
+  motifStop?.(); motifStop = null;
+  if (def) {
+    const motif = c.layers.motif;
+    motifStop = periodicTexture(() => {
+      const ratio = def.ratios[Math.floor(Math.random() * def.ratios.length)]!;
+      const f = root * 2 * ratio;
+      tone(c, motif, { f0: f, f1: f, dur: 1.6, type: "sine", gain: 0.045 + Math.random() * 0.03 });
+    }, [2400, 5200]);
+  }
+}
+
+/** The Fracture Descent's closing sting — one of three short procedural fanfares matching the
+ * Control/Chaos/Resonant(Balance) endings, played once when fd-18 completes (see EndingOverlay.tsx). */
+export function playEnding(tier: "CONTROL" | "CHAOS" | "BALANCE") {
+  const c = ctx; if (!c) return; const o = out(c);
+  if (tier === "CONTROL") {
+    tone(c, o, { f0: 220, f1: 440, dur: 1.2, type: "sine", gain: 0.3 });
+    tone(c, o, { f0: 330, f1: 660, dur: 1.4, type: "triangle", gain: 0.15, at: 0.15 });
+  } else if (tier === "CHAOS") {
+    burst(c, o, { dur: 1.6, freq: 900, q: 0.6, gain: 0.5 });
+    tone(c, o, { f0: 80, f1: 30, dur: 1.8, type: "sawtooth", gain: 0.35 });
+    burst(c, o, { dur: 0.8, freq: 4000, type: "highpass", gain: 0.2, at: 0.3 });
+  } else {
+    tone(c, o, { f0: 220, f1: 220, dur: 2, type: "sine", gain: 0.25 });
+    tone(c, o, { f0: 330, f1: 330, dur: 2, type: "sine", gain: 0.2, at: 0.3 });
+    tone(c, o, { f0: 440, f1: 440, dur: 2, type: "sine", gain: 0.18, at: 0.6 });
+  }
+}
+
+/** Hull-destroyed sting — heavier and longer than playHurt()'s per-tick flinch, marking the actual respawn-at-Nexus event. */
+export function playDeath() {
+  const c = ctx; if (!c) return; const o = out(c);
+  burst(c, o, { dur: 1.1, freq: 220, type: "lowpass", gain: 0.6 });
+  tone(c, o, { f0: 160, f1: 20, dur: 1.4, type: "sawtooth", gain: 0.4 });
+  tone(c, o, { f0: 90, f1: 18, dur: 1.6, type: "sine", gain: 0.5, at: 0.1 });
+  burst(c, o, { dur: 0.5, freq: 3200, type: "highpass", gain: 0.15, at: 0.05 });
+}
+
+/** A single spoken-line "blip" for the dialogue system — pitch is stable per speaker (hashed from their name) so each character reads as a consistent voice, like classic text-blip games rather than TTS (no files, no network in this sandbox). */
+export function playDialogueBlip(speaker: string) {
+  const c = ctx; if (!c) return;
+  let h = 0; for (const ch of speaker) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+  const base = 260 + (h % 220);
+  const jitter = (Math.random() - 0.5) * 40;
+  tone(c, out(c), { f0: base + jitter, f1: base * 0.88, dur: 0.045, type: "square", gain: 0.1 });
 }
 
 /** Pan/distance of a world point relative to the listener (x,z,yaw). */

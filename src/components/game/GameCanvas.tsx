@@ -1,7 +1,7 @@
 import { Canvas } from "@react-three/fiber";
 import { Bloom, EffectComposer, Vignette } from "@react-three/postprocessing";
 import * as THREE from "three";
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 
 import { classById, subclassById, type AppearanceId, type ClassId, type SubclassId } from "@/game/loadout";
 import { REGIONS } from "@/game/world";
@@ -31,11 +31,20 @@ import { AwakeningOverlay } from "./AwakeningOverlay";
 import { advanceAwakening, AWAKENING, type AwakeningEvent, type AwakeningRun } from "@/game/missions/awakening";
 import { normalizeBindings } from "@/game/bindings";
 import { advanceMission, BROKEN_SIGNAL, type MissionEvent, type MissionRun } from "@/game/missions/broken-signal";
+import { gameTick, QUESTS } from "@/game/quests";
+import { QuestTracker } from "./QuestTracker";
+import { dialogueFor, revisitDialogueFor, type DialogueLine } from "@/game/dialogue";
+import { DialogueOverlay } from "./DialogueOverlay";
+import { EndingOverlay, endingTierFor } from "./EndingOverlay";
+import { DeathOverlay } from "./DeathOverlay";
+import { playEnding } from "@/game/audio";
+import { Minimap } from "./Minimap";
 
 const START = REGIONS.find((r) => r.id === "nexus")!;
 
 const initial: HudState = {
   region: START.name,
+  regionId: START.id,
   sub: START.sub,
   kind: START.kind,
   difficulty: START.difficulty,
@@ -68,6 +77,29 @@ const initial: HudState = {
   pz: 0,
   yaw: 0,
   structure: { standing: 0, total: 0, lastEvent: "" },
+  diving: false,
+  oxygen: 100,
+  depth: 0,
+  underwaterState: "SURFACE",
+  heatLevel: 1,
+  heatLabel: "MONITORED",
+  heatResponse: "Patrol units aware of your position",
+  vehicleStage: "NOMINAL",
+  parkourChain: 0,
+  nexusDetection: "GREEN",
+  nexusLockdownTier: "MONITORING",
+  nexusLockdownLabel: "MONITORING",
+  nexusLockdownResponse: "Passive surveillance sweep",
+  hacking: false,
+  hackProgress: 0,
+  insideInterior: null,
+  interiorName: "",
+  interiorOpen: true,
+  zoneTier: "STABLE",
+  justDied: 0,
+  deathCause: "",
+  deathCargoLost: 0,
+  deaths: 0,
   weaponHeat: 0,
   overheated: false,
   loot: [],
@@ -164,7 +196,7 @@ export function GameCanvas() {
   useEffect(() => {
     if (awakening?.state === "LOOT") return; // loot granted on ACK
     if (awakening?.state !== "COMPLETE" || awakeningDone) return;
-    setProgression((current) => { const next = completeMission(current, "awakening"); return { ...next, materials: { ...next.materials, dataShards: (next.materials.dataShards ?? 0) + 2 } }; });
+    setProgression((current) => { const next = completeMission(current, "awakening"); return gameTick({ ...next, materials: { ...next.materials, dataShards: (next.materials.dataShards ?? 0) + 2 } }, { type: "MISSION_COMPLETE", missionId: "awakening" }); });
     const timer = window.setTimeout(() => setAwakening(null), 7000);
     return () => window.clearTimeout(timer);
   }, [awakening?.state, awakeningDone]);
@@ -182,10 +214,97 @@ export function GameCanvas() {
   }, [missionReady, mission]);
   useEffect(() => {
     if (mission?.state !== "WORLD_UPDATE" || progression.completedMissions.includes("broken-signal")) return;
-    setProgression((current) => { const next = completeMission(current, "broken-signal"); return { ...next, materials: { ...next.materials, dataShards: (next.materials.dataShards ?? 0) + 3 } }; });
+    setProgression((current) => { const next = completeMission(current, "broken-signal"); return gameTick({ ...next, materials: { ...next.materials, dataShards: (next.materials.dataShards ?? 0) + 3 } }, { type: "MISSION_COMPLETE", missionId: "broken-signal" }); });
     const timer = window.setTimeout(() => setMission(null), 9000);
     return () => window.clearTimeout(timer);
   }, [mission?.state, progression.completedMissions]);
+
+  /* Cross-world quest engine: HUD already reports region/heat/lockdown/hack/dive state every ~0.18s
+   * (see Scene.tsx's onHud), so that cadence — not Scene's 60fps loop — is what drives gameTick here. */
+  const questSignals = useRef({ region: "", heatLevel: 1, lockdownTier: "MONITORING" as HudState["nexusLockdownTier"], hackDone: false });
+  useEffect(() => {
+    if (phase !== "world") return;
+    let p = progression;
+    let changed = false;
+    if (hud.regionId && hud.regionId !== questSignals.current.region) {
+      questSignals.current.region = hud.regionId;
+      p = gameTick(p, { type: "ENTER_WORLD", world: hud.regionId });
+      changed = true;
+    }
+    if (hud.heatLevel > questSignals.current.heatLevel) {
+      questSignals.current.heatLevel = hud.heatLevel;
+      p = gameTick(p, { type: "HEAT_LEVEL", level: hud.heatLevel });
+      changed = true;
+    }
+    if (hud.nexusLockdownTier !== questSignals.current.lockdownTier) {
+      questSignals.current.lockdownTier = hud.nexusLockdownTier;
+      p = gameTick(p, { type: "LOCKDOWN_TIER", tier: hud.nexusLockdownTier });
+      changed = true;
+    }
+    if (hud.hackProgress >= 100 && !questSignals.current.hackDone) {
+      questSignals.current.hackDone = true;
+      p = gameTick(p, { type: "HACK_COMPLETE" });
+      changed = true;
+    } else if (hud.hackProgress < 50) {
+      questSignals.current.hackDone = false;
+    }
+    if (hud.diving) {
+      p = gameTick(p, { type: "SURVIVED", world: "thalassia-dive", seconds: 0.18 });
+      changed = true;
+    }
+    if (changed) setProgression(p);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hud, phase]);
+
+  /* Interior NPC dialogue: a canned greeting the first time, then real revisit content after that —
+   * reacting to the zone's live instability tier and territory-control owner (sim.ts, the same data
+   * RegionLabels/Minimap already surface) and whichever Fracture Descent quest is active, so an NPC
+   * you've already met has something new to say rather than going silent forever. */
+  const visitCounts = useRef(new Map<string, number>());
+  const [activeDialogue, setActiveDialogue] = useState<DialogueLine[] | null>(null);
+  useEffect(() => {
+    if (!hud.insideInterior) return;
+    const visits = visitCounts.current.get(hud.insideInterior) ?? 0;
+    const lines =
+      visits === 0
+        ? dialogueFor(hud.insideInterior)
+        : revisitDialogueFor(hud.insideInterior, {
+            questTitle: progression.activeQuestId ? QUESTS[progression.activeQuestId]?.title ?? null : null,
+            zoneTier: hud.zoneTier,
+            owner: hud.owner,
+            regionId: hud.regionId,
+            visitCount: visits,
+          });
+    if (!lines) return;
+    visitCounts.current.set(hud.insideInterior, visits + 1);
+    setActiveDialogue(lines);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hud.insideInterior]);
+
+  /* Hull-destroyed feedback: hud.justDied mirrors sim.lastDeath (Scene.tsx already teleports the
+   * player back to Nexus the instant it changes), so this only has to notice a new timestamp and
+   * show the flash — unlike the ending above, this fires every time, not once ever. */
+  const [deathInfo, setDeathInfo] = useState<{ cause: string; cargoLost: number; deaths: number } | null>(null);
+  const seenDeathAt = useRef(0);
+  useEffect(() => {
+    if (!hud.justDied || hud.justDied === seenDeathAt.current) return;
+    seenDeathAt.current = hud.justDied;
+    setDeathInfo({ cause: hud.deathCause, cargoLost: hud.deathCargoLost, deaths: hud.deaths });
+  }, [hud.justDied, hud.deathCause, hud.deathCargoLost, hud.deaths]);
+
+  /* The Fracture Descent's ending: fires once ever, the moment fd-18 lands in completedMissions —
+   * gated on the persisted progression.endingSeen flag (not just a session ref) so a returning
+   * player who already finished the campaign doesn't get the screen replayed on next launch. */
+  const [showEnding, setShowEnding] = useState(false);
+  const triggeringEnding = useRef(false);
+  useEffect(() => {
+    if (triggeringEnding.current || progression.endingSeen || !progression.completedMissions.includes("fd-18")) return;
+    triggeringEnding.current = true;
+    playEnding(endingTierFor(progression));
+    setShowEnding(true);
+    setProgression((current) => ({ ...current, endingSeen: true }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [progression]);
 
   const deploy = (deployment: Deployment) => {
     setCls(deployment.classId);
@@ -198,6 +317,7 @@ export function GameCanvas() {
     setHud((current) => ({
       ...current,
       region: "Veridan Forest",
+      regionId: "veridan",
       sub: "Starter Zone / Resources",
       kind: "starter",
       difficulty: 1,
@@ -274,7 +394,7 @@ export function GameCanvas() {
           if (event.button === 0 || event.button === 2) event.currentTarget.requestPointerLock?.();
         }}
         onContextMenu={(event) => event.preventDefault()}
-        shadows={RENDER_PRESETS[settings.renderTier].shadows}
+        shadows={RENDER_PRESETS[settings.renderTier].shadows ? { type: THREE.PCFSoftShadowMap } : false}
         dpr={[1, RENDER_PRESETS[settings.renderTier].dpr]}
         gl={{ antialias: true, toneMapping: THREE.ACESFilmicToneMapping }}
         camera={{
@@ -290,6 +410,20 @@ export function GameCanvas() {
         {RENDER_PRESETS[settings.renderTier].distortion && <EffectComposer multisampling={0}><Bloom intensity={0.55} luminanceThreshold={0.85} luminanceSmoothing={0.2} mipmapBlur /><Vignette offset={0.3} darkness={0.55} /></EffectComposer>}
       </Canvas>
        <HUD hud={hud} tutorialActive={Boolean(tutorial && tutorial.step !== "VICTORY")} onMenu={() => setMenuOpen(true)} onStrategy={() => setStrategyOpen(true)} onGarage={() => setGarageOpen(true)} onAnalyze={() => setAnalysisOpen(true)} onOperations={setOperationsView} onInventory={() => setInventoryOpen(true)} onAtlas={() => setAtlasOpen(true)} />
+       {!tutorial && !hud.insideInterior && <Minimap hud={hud} />}
+       {!tutorial && <QuestTracker progression={progression} />}
+       {activeDialogue && <DialogueOverlay lines={activeDialogue} onDone={() => setActiveDialogue(null)} />}
+       {deathInfo && <DeathOverlay cause={deathInfo.cause} cargoLost={deathInfo.cargoLost} deaths={deathInfo.deaths} onDone={() => setDeathInfo(null)} />}
+       {showEnding && <EndingOverlay progression={progression} onClose={() => setShowEnding(false)} />}
+       {hud.insideInterior && hud.interiorName && hud.sub.startsWith("Shop") && (
+         <div className="pointer-events-none absolute bottom-24 left-1/2 -translate-x-1/2 text-center">
+           {hud.interiorOpen ? (
+             <Button className="pointer-events-auto" variant="outline" onClick={() => setOperationsView("ARSENAL")}>Browse {hud.interiorName}</Button>
+           ) : (
+             <p className="border border-border/60 bg-background/60 px-3 py-1 font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground backdrop-blur-md">{hud.interiorName} is closed for the night</p>
+           )}
+         </div>
+       )}
        {inventoryOpen && <InventoryWindow progression={progression} onProgression={setProgression} onClose={() => setInventoryOpen(false)} />}
        {atlasOpen && <WorldAtlas markers={hud.markers} px={hud.px} pz={hud.pz} currentRegion={hud.region} phase={hud.phase} onClose={() => setAtlasOpen(false)} />}
       {awakening && <AwakeningOverlay run={awakening} onEvent={recordAwakening} />}

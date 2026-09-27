@@ -6,7 +6,7 @@ import * as THREE from "three";
 import { REGIONS, SKY, ZONE_COLOR, clockLabel, phaseFor, regionAt, WORLD_RADIUS } from "@/game/world";
 import { useKeyboard } from "@/game/useKeyboard";
 import { walkHeight, slopeAt, heightAt, WATER_LEVEL } from "@/game/terrain";
-import { alert, collidePlayer, createSim, defeatMachine, fireBullet, spawnMissionDrones, stepSim, summonBoss, type Faction, type WorldSim } from "@/game/sim";
+import { alert, collidePlayer, createSim, defeatMachine, FACTIONS, fireBullet, instabilityTier, spawnMissionDrones, stepSim, summonBoss, type Faction, type InstabilityTier, type WorldSim, type ZoneState } from "@/game/sim";
 import type { MissionEvent, MissionRun } from "@/game/missions/broken-signal";
 import type { AwakeningEvent, AwakeningRun } from "@/game/missions/awakening";
 import { directorTrend, type Mission } from "@/game/director";
@@ -30,6 +30,14 @@ import { RENDER_PRESETS } from "@/game/performance";
 import { activateLiveAbility, createLiveBuild, rebindLiveBuild, tickLiveBuild } from "@/game/live-build";
 import type { ActiveBuild } from "@/game/ability-network";
 import type { TutorialEvent, TutorialState } from "@/game/onboarding";
+import { OXYGEN_MAX, WATER_DRAG, applyWaterDrag, classifyUnderwaterState, lowOxygenPenalty, oxygenStep, pressureSpeedMultiplier, stepBuoyancy } from "@/game/underwater";
+import { underwaterSpread } from "@/game/underwater-combat";
+import { heatStatus, stepHeatMeter } from "@/game/heat";
+import { shouldForceFootTransition, vehicleDamageStage, VEHICLE_DAMAGE_EFFECT, type VehicleDamageStage } from "@/game/chase-ai";
+import { exitVehicleMomentum, parkourChainBonus, vaultLunge } from "@/game/parkour";
+import { anySensorSees, detectionStateFor, lockdownStatus, nexusSensors, stepDetectionMeter, stepHackProgress, type DetectionState, type LockdownTier } from "@/game/stealth";
+import { INTERIORS, INTERIOR_ALTITUDE, doorAt, atExitMarker, interiorById, isInteriorOpen } from "@/game/interiors";
+import { Interiors } from "./Interiors";
 
 import type { GameSettings } from "./SettingsWindow";
 import { WEAPONS, WEAPON_ORDER, decay, freshAmmo, type WeaponId } from "@/game/weapons";
@@ -42,6 +50,8 @@ export type LootView = { name: string; rarity: Rarity; power: number; mods: stri
 
 export type HudState = {
   region: string;
+  /** stable region id (world.ts REGIONS[].id), unlike the display-name `region` field — for systems (like the quest engine) that key off it */
+  regionId: string;
   sub: string;
   kind: keyof typeof ZONE_COLOR;
   difficulty: number;
@@ -117,10 +127,40 @@ export type HudState = {
   pz: number;
   yaw: number;
   structure: { standing: number; total: number; lastEvent: string };
+  /* Thalassia-style underwater state — populated any time the player is submerged, not just in Thalassia */
+  diving: boolean;
+  oxygen: number;
+  underwaterState: string;
+  depth: number;
+  /* Neon City chase system — heat is derived from sim.combatHeat, vehicle stage from sim.hp while in a vehicle */
+  heatLevel: number;
+  heatLabel: string;
+  heatResponse: string;
+  vehicleStage: VehicleDamageStage;
+  parkourChain: number;
+  /* Nexus City stealth/surveillance — only meaningful while inside the Nexus zone, but always populated */
+  nexusDetection: DetectionState;
+  nexusLockdownTier: LockdownTier;
+  nexusLockdownLabel: string;
+  nexusLockdownResponse: string;
+  hacking: boolean;
+  hackProgress: number;
+  /* Interior Building system — populated only while insideInterior is set */
+  insideInterior: string | null;
+  interiorName: string;
+  interiorOpen: boolean;
+  /** current zone's live instability tier — see sim.ts's instabilityTier(); STABLE unless the zone's own fracture-pulse is actually elevated */
+  zoneTier: InstabilityTier;
+  /** timestamp of the most recent hull-destroyed respawn (mirrors sim.lastDeath) — GameCanvas watches this to trigger the death screen */
+  justDied: number;
+  deathCause: string;
+  deathCargoLost: number;
+  deaths: number;
 };
 
 const SPAWN_REGION = REGIONS.find((r) => r.id === "veridan");
 export const SPAWN = new THREE.Vector3(SPAWN_REGION?.x ?? -58, 0, (SPAWN_REGION?.z ?? -34) + 12);
+const NEXUS_REGION = REGIONS.find((r) => r.id === "nexus")!;
 
 const stops: { t: number; key: keyof typeof SKY }[] = [
   { t: 0, key: "Dawn" },
@@ -156,23 +196,34 @@ function nightFactor(t: number) {
   return Math.min(1, Math.max(0, -Math.sin(theta) * 1.2 + 0.15));
 }
 
-function RegionLabels() {
+/** Labels tint by the zone's live faction owner (FACTIONS[...].color) instead of a static zone-kind
+ * color, and append the instability tier when it's above STABLE — the territory-control sim
+ * (sim.ts's zones: owner/challenger/contested/instability) already runs every frame, it just never
+ * showed up anywhere the player could see it before this. */
+function RegionLabels({ zones }: { zones: readonly ZoneState[] }) {
   return (
     <group>
-      {REGIONS.map((r) => (
-        <Text
-          key={r.id}
-          position={[r.x, walkHeight(r.x, r.z) + 52, r.z]}
-          fontSize={7}
-          color={ZONE_COLOR[r.kind]}
-          anchorX="center"
-          anchorY="middle"
-          outlineWidth={0.25}
-          outlineColor="#04070d"
-        >
-          {r.name.toUpperCase()}
-        </Text>
-      ))}
+      {REGIONS.map((r) => {
+        const zone = zones.find((z) => z.region.id === r.id);
+        const tier = instabilityTier(zone?.instability ?? 0);
+        const color = zone ? FACTIONS[zone.owner].color : ZONE_COLOR[r.kind];
+        return (
+          <Text
+            key={r.id}
+            position={[r.x, walkHeight(r.x, r.z) + 52, r.z]}
+            fontSize={7}
+            color={color}
+            anchorX="center"
+            anchorY="middle"
+            outlineWidth={0.25}
+            outlineColor="#04070d"
+          >
+            {r.name.toUpperCase()}
+            {zone?.contested ? " · CONTESTED" : ""}
+            {tier !== "STABLE" ? ` · ${tier}` : ""}
+          </Text>
+        );
+      })}
     </group>
   );
 }
@@ -264,6 +315,7 @@ export function Scene({
   const tutorialStage = useRef<TutorialState["step"] | null>(null);
   const tutorialKills = useRef(0);
   const sentinel = useRef<WorldSim["machines"][number] | null>(null);
+  const lastLockdownTier = useRef<LockdownTier>("MONITORING");
 
   const state = useRef({
     x: SPAWN.x,
@@ -304,6 +356,21 @@ export function Scene({
     firstPerson: settings.firstPersonDefault,
     aimLocked: false,
     reported: { hp: 100 },
+    /* Thalassia-style underwater state — active any time `submerged` is true, not just in Thalassia */
+    diving: false,
+    oxygen: OXYGEN_MAX,
+    wasSubmerged: false,
+    /* Neon City chase system — heat meter, vault chain tracking */
+    heatMeter: 0,
+    chainCount: 0,
+    lastVaultAt: -10,
+    /* Nexus City stealth/surveillance */
+    detectionMeter: 0,
+    hacking: false,
+    hackProgress: 0,
+    /* Interior Building system — which interior (if any) the player is currently inside, and where to return to */
+    insideInterior: null as string | null,
+    interiorReturnPos: null as { x: number; y: number; z: number } | null,
   });
 
   /** snapshot of every live engine system for the dev inspector */
@@ -408,6 +475,8 @@ export function Scene({
   const keyPrev = useRef<Set<string>>(new Set());
   const padState = useRef({ fire: false, aim: false, connected: false });
   const audioSeen = useRef({ hit: 0, kills: 0, hp: 100, hurtAt: 0, stepT: 1 });
+  /** last sim.lastDeath timestamp this component has already reacted to — mirrors the audioSeen pattern above */
+  const deathSeen = useRef(0);
   useEffect(() => {
     const unlock = () => sfx.unlockAudio();
     window.addEventListener("pointerdown", unlock);
@@ -417,6 +486,7 @@ export function Scene({
   useEffect(() => sfx.setVolume(settings.volume ?? 0.7), [settings.volume]);
   const skyColor = useMemo(() => new THREE.Color(), []);
   const fogColor = useMemo(() => new THREE.Color(), []);
+  const instabilityColor = useMemo(() => new THREE.Color("#ff2d55"), []);
   const lightColor = useMemo(() => new THREE.Color(), []);
   const { scene, gl } = useThree();
 
@@ -455,6 +525,8 @@ export function Scene({
     const dt = Math.min(raw, 0.05);
     const held = keys.current;
     const s = state.current;
+    /* Interior Building system — non-null while the player is inside a pocket-dimension room (see @/game/interiors) */
+    let interior = interiorById(s.insideInterior);
     live.current = rebindLiveBuild(live.current, activeBuild, abilityBranches);
     tickLiveBuild(live.current, dt);
     tutorialClock.current += dt;
@@ -522,11 +594,14 @@ export function Scene({
       s.domeCool = 0.35;
       if (projectDome(sim.titan)) s.specialTime = Math.max(s.specialTime, 1.1);
     }
-    if (vehicleUnlocked && held.has("KeyV") && s.toggleCool <= 0) {
+    if (vehicleUnlocked && held.has("KeyV") && s.toggleCool <= 0 && !interior) {
       s.toggleCool = 0.4;
+      const wasInVehicle = s.inVehicle;
       s.inVehicle = !s.inVehicle;
+      // Neon City parkour: hopping out mid-drive keeps a fraction of the car's speed as foot-chase momentum.
+      if (wasInVehicle) velocity.set(Math.sin(s.yaw), 0, Math.cos(s.yaw)).multiplyScalar(exitVehicleMomentum(s.vSpeed));
+      else velocity.set(0, 0, 0);
       s.vSpeed = 0;
-      velocity.set(0, 0, 0);
     }
     s.inspectorCool -= dt;
     if (held.has("KeyI") && s.inspectorCool <= 0) {
@@ -535,7 +610,30 @@ export function Scene({
     }
     s.fps = s.fps * 0.9 + (1 / Math.max(0.001, raw)) * 0.1;
 
+    // Neon City chase system: heat climbs off the same combatHeat signal sim.ts already tracks, decays when disengaged.
+    s.heatMeter = stepHeatMeter(s.heatMeter, sim.combatHeat, dt);
+    // No separate vehicle-HP pool exists in this codebase — the car's condition is read straight off the shared sim.hp while riding it.
+    const vehicleStage = s.inVehicle ? vehicleDamageStage(sim.hp) : "NOMINAL";
+    const vehicleEffect = VEHICLE_DAMAGE_EFFECT[vehicleStage];
+
     const here = regionAt(s.x, s.z);
+
+    // Nexus City stealth/surveillance: the safe-zone perimeter turrets double as vision-cone sensors while you're in Nexus.
+    const inNexus = here?.id === "nexus";
+    const seenByNexus = inNexus && anySensorSees(nexusSensors(sim.turrets), s.x, s.z);
+    s.hacking = inNexus && !s.inVehicle && held.has("KeyH");
+    s.detectionMeter = inNexus ? stepDetectionMeter(s.detectionMeter, dt, seenByNexus, s.hacking) : Math.max(0, s.detectionMeter - dt * 30);
+    const nexusDetection = detectionStateFor(s.detectionMeter);
+    if (s.hacking) s.hackProgress = stepHackProgress(s.hackProgress, dt, nexusDetection);
+    else if (inNexus) s.hackProgress = Math.max(0, s.hackProgress - dt * 6); // an abandoned hack slowly drops off, doesn't hard-reset
+    const nexusLockdown = lockdownStatus(s.detectionMeter);
+    if (inNexus && nexusLockdown.tier !== lastLockdownTier.current) {
+      if (nexusLockdown.tier !== "MONITORING") alert(sim, `Nexus City: ${nexusLockdown.response}`);
+      lastLockdownTier.current = nexusLockdown.tier;
+    } else if (!inNexus) {
+      lastLockdownTier.current = "MONITORING";
+    }
+
     if (held.has("KeyB") && !bossHeld.current && here && here.kind !== "safe" && !tutorial && !sim.machines.some((m) => m.alive && m.boss && m.zone === here.id)) {
       summonBoss(sim, here.id, s.x + Math.sin(s.yaw) * 24, s.z + Math.cos(s.yaw) * 24);
     }
@@ -565,16 +663,25 @@ export function Scene({
       }
       abilityHeld.current[key] = held.has(key);
     }
-    const weather = here?.id === "veridan" ? "Rain mist" : here?.id === "ember" ? "Ashfall" : here?.id === "frostspire" ? "Snow haze" : here?.id === "nexus" ? "Clear shield" : "Dust front";
-    const visibility = here?.id === "nexus" ? 1 : here?.id === "veridan" ? 0.66 : here?.id === "ember" ? 0.55 : here?.id === "frostspire" ? 0.48 : 0.62;
+    const weather = interior ? "Indoor" : here?.id === "veridan" ? "Rain mist" : here?.id === "ember" ? "Ashfall" : here?.id === "frostspire" ? "Snow haze" : here?.id === "nexus" ? "Clear shield" : "Dust front";
+    const visibility = interior ? 1 : here?.id === "nexus" ? 1 : here?.id === "veridan" ? 0.66 : here?.id === "ember" ? 0.55 : here?.id === "frostspire" ? 0.48 : 0.62;
     if (scene.fog instanceof THREE.Fog) {
       scene.fog.near = 55 + visibility * 65;
       scene.fog.far = 220 + visibility * 300;
     }
     if (sun.current) sun.current.intensity *= 0.7 + visibility * 0.3;
-    const slope = slopeAt(s.x, s.z);
-    const ground = walkHeight(s.x, s.z);
-    const submerged = heightAt(s.x, s.z) < WATER_LEVEL - 0.2;
+    // Interiors are flat pocket rooms far outside the terrain's authored bounds, so slope/height/water sampling there would just be noise — treat them as dry, flat, and out of the water entirely.
+    const slope = interior ? 0 : slopeAt(s.x, s.z);
+    const ground = interior ? INTERIOR_ALTITUDE : walkHeight(s.x, s.z);
+    const submerged = interior ? false : heightAt(s.x, s.z) < WATER_LEVEL - 0.2;
+    if (submerged && !s.wasSubmerged) sfx.playSplash(Math.min(1, (s.inVehicle ? Math.abs(s.vSpeed) : velocity.length()) / 20));
+    s.wasSubmerged = submerged;
+    if (!submerged) s.diving = false;
+    /* ---------------- oxygen: depletes while diving below the surface, regenerates everywhere else ---------------- */
+    s.oxygen = oxygenStep(s.oxygen, dt, s.diving);
+    const depth = s.diving ? Math.max(0, WATER_LEVEL - s.y) : 0;
+    const oxygenPenalty = lowOxygenPenalty(s.oxygen);
+    if (s.diving && s.oxygen <= 0 && Math.random() < dt * 0.6) sim.hp = Math.max(1, sim.hp - 4); // drowning trickle damage, never a hard kill on its own
 
     s.viewCool -= dt;
     if (held.has("KeyF") && !cameraToggleHeld.current) {
@@ -676,7 +783,7 @@ export function Scene({
         if (s.reload > 0) return;
         if (clip.mag <= 0) { s.burstLeft = 0; if (clip.reserve <= 0) sfx.playDryFire(); startReload(); return; }
       }
-      const spread = (wpn.spread + s.bloom * 0.04) * ((mouse.current.aim || padState.current.aim) ? wpn.adsSpread : 1);
+      const spread = underwaterSpread((wpn.spread + s.bloom * 0.04) * ((mouse.current.aim || padState.current.aim) ? wpn.adsSpread : 1), s.diving ? depth : 0);
       const yawJ = (Math.random() - 0.5) * 2 * spread;
       const pitchJ = (Math.random() - 0.5) * 2 * spread;
        if (fireBullet(sim, s.x, s.y + (s.inVehicle ? 1.5 : 0.95), s.z, s.yaw + yawJ, s.inVehicle, s.pitch + s.recoil + pitchJ, wpn.damage * gearPower, wpn.knock, wpn.heat)) {
@@ -712,7 +819,7 @@ export function Scene({
            defeatMachine(sim, enemy);
         }
       }
-    } else if (!sim.overheated) {
+    } else if (!sim.overheated && !(s.inVehicle && vehicleEffect.weaponsDisabled)) {
       if (s.burstLeft > 0) {
         s.burstCool -= dt;
         if (s.burstCool <= 0) { s.burstLeft--; s.burstCool = wpn.burstGap; shoot(); }
@@ -733,12 +840,13 @@ export function Scene({
     /* ---------------- movement ---------------- */
     // traction: biome speed rating, penalised by slope and water
     const biomeGrip = here?.speed ?? 0.9;
-    const traction = Math.max(0.18, biomeGrip * (1 - slope * 0.75) * (submerged ? 0.45 : 1));
+    const traction = Math.max(0.18, biomeGrip * (1 - slope * 0.75) * (s.diving ? pressureSpeedMultiplier(depth) * oxygenPenalty.speedMultiplier : submerged ? 0.45 : 1));
 
     if (s.inVehicle) {
        const vehicleGear = gear?.inventory.find((item) => item.id === gear.equippedGear.vehicle);
-       const maxSpeed = 62 * biomeGrip * (boost ? 1.5 : 1) * sim.mods.vehicleSpeed * selectedVehicle.speed * (vehicleGear ? 1 + vehicleGear.level * 0.04 : 1);
-      const accel = 52 * traction * selectedVehicle.speed;
+       // Neon City vehicle-combat: a damaged car tops out slower and steers worse, per VEHICLE_DAMAGE_EFFECT.
+       const maxSpeed = 62 * biomeGrip * (boost ? 1.5 : 1) * sim.mods.vehicleSpeed * selectedVehicle.speed * (vehicleGear ? 1 + vehicleGear.level * 0.04 : 1) * vehicleEffect.speedMult;
+      const accel = 52 * traction * selectedVehicle.speed * vehicleEffect.speedMult;
       if (throttleF) s.vSpeed += accel * dt;
       else if (throttleB) s.vSpeed -= accel * 0.8 * dt;
       else s.vSpeed *= Math.exp(-1.4 * dt);
@@ -746,7 +854,7 @@ export function Scene({
       s.vSpeed *= Math.exp(-(0.22 + slope * 1.6) * dt);
       s.vSpeed = THREE.MathUtils.clamp(s.vSpeed, -18, maxSpeed);
 
-      const steerRate = 1.5 * traction * selectedVehicle.handling * THREE.MathUtils.clamp(Math.abs(s.vSpeed) / 14, 0.15, 1);
+      const steerRate = 1.5 * traction * selectedVehicle.handling * vehicleEffect.handlingMult * THREE.MathUtils.clamp(Math.abs(s.vSpeed) / 14, 0.15, 1);
       if (left) s.yaw += steerRate * dt * Math.sign(s.vSpeed || 1);
       if (right) s.yaw -= steerRate * dt * Math.sign(s.vSpeed || 1);
 
@@ -759,28 +867,80 @@ export function Scene({
       if (throttleB) { wish.x -= Math.sin(s.yaw); wish.z -= Math.cos(s.yaw); }
       if (left) { wish.x += Math.sin(s.yaw - Math.PI / 2); wish.z += Math.cos(s.yaw - Math.PI / 2); }
       if (right) { wish.x += Math.sin(s.yaw + Math.PI / 2); wish.z += Math.cos(s.yaw + Math.PI / 2); }
-      const walk = 30 * traction * (boost ? 2.1 : 1) * sim.mods.footSpeed * (live.current.dashTime > 0 ? 1.4 : 1);
+      // Neon City parkour: chaining vaults within the window nets a small, capped speed bonus.
+      const chainBonus = parkourChainBonus(s.chainCount, performance.now() / 1000 - s.lastVaultAt);
+      const walk = 30 * traction * (boost ? 2.1 : 1) * sim.mods.footSpeed * (live.current.dashTime > 0 ? 1.4 : 1) * (1 + chainBonus);
       if (wish.lengthSq() > 0) wish.normalize().multiplyScalar(walk);
-      velocity.lerp(wish, 1 - Math.exp(-14 * dt));
+      if (s.diving) {
+        // swimming toward where you're looking: pitch steers you up/down, and the response is floatier than land movement
+        const swimPitch = (throttleF ? 1 : throttleB ? -1 : 0) * Math.sin(s.pitch);
+        s.vy = THREE.MathUtils.clamp(s.vy + swimPitch * walk * 0.18 * dt, -4.5, 4.5);
+        velocity.lerp(wish, 1 - Math.exp(-6 * dt));
+      } else {
+        velocity.lerp(wish, 1 - Math.exp(-14 * dt));
+      }
       s.x += velocity.x * dt;
       s.z += velocity.z * dt;
       if (tutorial?.step === "MOVEMENT") { const travel = Math.hypot(s.x - SPAWN.x, s.z - SPAWN.z); if (travel >= (lastGate.current + 1) * 10 && lastGate.current < 3) { lastGate.current++; onTutorialEvent?.("GATE"); } }
     }
 
-    // world bounds
-    const d = Math.hypot(s.x, s.z);
-    if (d > WORLD_RADIUS - 6) {
-      s.x *= (WORLD_RADIUS - 6) / d;
-      s.z *= (WORLD_RADIUS - 6) / d;
-      s.vSpeed *= 0.3;
+    /* ---------------- interiors: walk up to a door to go in, walk up to the exit marker to come back out ---------------- */
+    if (!interior && !s.inVehicle) {
+      const door = doorAt(s.x, s.z);
+      if (door) {
+        s.interiorReturnPos = { x: s.x, y: s.y, z: s.z };
+        s.insideInterior = door.id;
+        interior = door;
+        s.x = door.origin.x + door.spawnOffset.x;
+        s.z = door.origin.z + door.spawnOffset.z;
+        s.y = INTERIOR_ALTITUDE + 1.6;
+        s.vy = 0;
+        s.grounded = true;
+        s.diving = false;
+        velocity.set(0, 0, 0);
+      }
+    } else if (interior) {
+      const localX = s.x - interior.origin.x;
+      const localZ = s.z - interior.origin.z;
+      if (atExitMarker(interior, localX, localZ)) {
+        const back = s.interiorReturnPos;
+        s.insideInterior = null;
+        interior = null;
+        if (back) { s.x = back.x; s.y = back.y; s.z = back.z; }
+        s.interiorReturnPos = null;
+        s.vy = 0;
+        s.grounded = true;
+        velocity.set(0, 0, 0);
+      }
+    }
+
+    // world bounds — skipped inside a pocket-dimension interior, which lives far outside WORLD_RADIUS by design
+    if (!interior) {
+      const d = Math.hypot(s.x, s.z);
+      if (d > WORLD_RADIUS - 6) {
+        s.x *= (WORLD_RADIUS - 6) / d;
+        s.z *= (WORLD_RADIUS - 6) / d;
+        s.vSpeed *= 0.3;
+      }
     }
 
     /* ---------------- collisions (physics before sim) ---------------- */
+    const preCollideSpeed = s.vSpeed;
     const body = { x: s.x, z: s.z, yaw: s.yaw, vSpeed: s.vSpeed, inVehicle: s.inVehicle };
     collidePlayer(sim, body);
     s.x = body.x;
     s.z = body.z;
     s.vSpeed = body.vSpeed;
+
+    // Neon City vehicle-combat: a wreck-level car forces you out on foot; a heavily damaged one only does when the collision actually stopped it.
+    if (s.inVehicle) {
+      const blocked = Math.abs(preCollideSpeed) > 4 && Math.abs(s.vSpeed) < Math.abs(preCollideSpeed) * 0.4;
+      if (shouldForceFootTransition(vehicleStage, blocked)) {
+        s.inVehicle = false;
+        velocity.set(Math.sin(s.yaw), 0, Math.cos(s.yaw)).multiplyScalar(exitVehicleMomentum(s.vSpeed));
+        s.vSpeed = 0;
+      }
+    }
 
     /* ---------------- destructible interior: bullets vs structural graph, debris, player/enemy reaction ---------------- */
     for (const b of sim.bullets) {
@@ -840,11 +1000,15 @@ export function Scene({
       if (sim.hp < a.hp - 0.5 && now - a.hurtAt > 250) { sfx.playHurt(); a.hurtAt = now; }
       a.hp = sim.hp;
       sfx.updateCombatAudio(Math.min(1, sim.combatHeat / 100));
+      sfx.updateBiomeAmbient(here?.id ?? "");
+      sfx.updateWeatherAmbient(weather);
+      // interiors keep their home region's music (a pocket room isn't its own "place"), so the score doesn't drop to silence indoors
+      sfx.updateMusicRegion(interior ? interior.regionId : here?.id ?? "");
       for (const shot of sim.enemyShots.splice(0)) sfx.playEnemyShot(shot.kind, shot.boss || shot.elite, sfx.where(s.x, s.z, s.yaw, shot.x, shot.z));
       const speedNow = velocity.length();
       if (!s.inVehicle && speedNow > 3 && s.y - walkHeight(s.x, s.z) < 1.9) {
         a.stepT -= dt * (speedNow / 30) * 2.4;
-        if (a.stepT <= 0) { a.stepT = 1; const rid = here?.id; sfx.playFootstep(rid === "frostspire" ? "SNOW" : rid === "solara" ? "SAND" : rid === "nexus" ? "HARD" : "GRASS", held.has("ShiftLeft") || held.has("ShiftRight")); }
+        if (a.stepT <= 0) { a.stepT = 1; const rid = here?.id; sfx.playFootstep(interior ? "HARD" : submerged ? "WATER" : rid === "frostspire" ? "SNOW" : rid === "solara" ? "SAND" : rid === "nexus" ? "HARD" : "GRASS", held.has("ShiftLeft") || held.has("ShiftRight")); }
       }
       const fwd = held.has("KeyW") || held.has("ArrowUp"), rev = held.has("KeyS") || held.has("ArrowDown");
       sfx.updateEngine(s.inVehicle, vehicleId, Math.min(1, Math.abs(s.vSpeed) / 45), fwd || rev ? 1 : 0, rev && s.vSpeed > 2);
@@ -889,6 +1053,37 @@ export function Scene({
       night,
       inVehicle: s.inVehicle,
     });
+    // Hull-destroyed respawn: hurtPlayer() (sim.ts) already resets hp/cargo and stamps sim.lastDeath, but
+    // it can't touch the player's world position — that lives here in Scene's own state, not in WorldSim.
+    // Detect the new timestamp and do the part sim.ts's alert text always claimed but never performed:
+    // teleport back to Nexus City, bail out of any vehicle/interior, and zero out momentum.
+    if (sim.lastDeath !== deathSeen.current) {
+      deathSeen.current = sim.lastDeath;
+      s.x = NEXUS_REGION.x;
+      s.z = NEXUS_REGION.z + 10;
+      s.y = walkHeight(s.x, s.z) + 1.6;
+      s.vy = 0;
+      s.vSpeed = 0;
+      s.grounded = true;
+      s.diving = false;
+      s.inVehicle = false;
+      s.insideInterior = null;
+      s.interiorReturnPos = null;
+      interior = null;
+      velocity.set(0, 0, 0);
+      sfx.playDeath();
+    }
+    // Zones already toss the player around above 0.6 instability (below); this is the visual half of
+    // that same signal — the fog bleeds toward red and the sun flickers as a fracturing zone gets worse,
+    // instead of the instability being felt only through physics with no on-screen cue at all.
+    if (scene.fog instanceof THREE.Fog && playerInstability > 0.2) {
+      const bleed = Math.min(1, (playerInstability - 0.2) / 0.6);
+      scene.fog.color.lerp(instabilityColor, bleed * 0.35);
+    }
+    if (sun.current && playerInstability > 0.4) {
+      const flicker = Math.min(1, (playerInstability - 0.4) / 0.4);
+      sun.current.intensity *= 1 - Math.abs(Math.sin(performance.now() * 0.012 + s.x)) * 0.2 * flicker;
+    }
     if (tutorial?.step === "CONTACT" && sim.kills > tutorialKills.current) { tutorialKills.current++; onTutorialEvent?.("KILL"); }
     if (tutorial?.step === "SENTINEL" && sentinel.current && !sentinel.current.alive) { sentinel.current = null; onTutorialEvent?.("BOSS"); }
     sim.mods.bulletDamage = Math.max(0.5, 1.2 * live.current.damageMultiplier * (1 + live.current.momentum * 0.25));
@@ -896,15 +1091,35 @@ export function Scene({
     if (live.current.dashTime > 0) sim.hp = Math.min(100, sim.hp + dt * 15);
     if (live.current.hackTime > 0) for (const enemy of sim.machines) if (enemy.alive && Math.hypot(enemy.x - s.x, enemy.z - s.z) < 12) enemy.cool = Math.max(enemy.cool, 0.3);
 
-    /* ---------------- vertical: gravity + terrain follow ---------------- */
-    const standY = walkHeight(s.x, s.z) + (s.inVehicle ? 1.9 : 1.6);
-    if (!s.inVehicle && held.has("KeyC") && s.grounded) {
-      s.vy = Math.sqrt(2 * sim.gravity * 6.5);
-      s.grounded = false;
-      if (tutorial?.step === "MOVEMENT") onTutorialEvent?.("JUMP");
-    }
-    if (s.grounded) {
-      s.y = THREE.MathUtils.lerp(s.y, standY, 1 - Math.exp(-14 * dt));
+    /* ---------------- vertical: gravity + terrain follow, or buoyancy + pressure diving ---------------- */
+    const standY = (interior ? INTERIOR_ALTITUDE : walkHeight(s.x, s.z)) + (s.inVehicle ? 1.9 : 1.6);
+    if (!s.inVehicle && submerged && (s.diving || held.has("KeyZ"))) {
+      // Thalassia-style underwater vertical control: KeyC kicks up, KeyZ dives down, otherwise buoyancy carries you toward the surface.
+      s.diving = true;
+      const descend = held.has("KeyZ");
+      const ascend = held.has("KeyC");
+      if (ascend) s.vy = Math.min(4.5, s.vy + 9 * dt);
+      if (descend) s.vy = Math.max(-4.5, s.vy - 9 * dt);
+      s.vy = applyWaterDrag(stepBuoyancy(s.vy, dt, descend), WATER_DRAG.vertical, dt);
+      s.y += s.vy * dt;
+      const floor = walkHeight(s.x, s.z) + 1.1;
+      if (s.y < floor) { s.y = floor; s.vy = 0; }
+      if (s.y > WATER_LEVEL + 1.5) { s.diving = false; s.grounded = false; s.vy = 0; }
+    } else if (s.grounded || (submerged && !s.diving)) {
+      if (!s.inVehicle && held.has("KeyC") && s.grounded && !submerged) {
+        // Neon City parkour: a running jump vaults further and a little higher — momentum-based since the world's collision is radius-based, not mesh-accurate.
+        const lunge = vaultLunge(velocity.length(), Math.sqrt(2 * sim.gravity * 6.5));
+        s.vy = lunge.verticalBoost;
+        if (lunge.forwardBoost > 0 && velocity.lengthSq() > 0.01) velocity.addScaledVector(velocity.clone().normalize(), lunge.forwardBoost);
+        const nowSec = performance.now() / 1000;
+        s.chainCount = nowSec - s.lastVaultAt < 1.4 ? s.chainCount + 1 : 1;
+        s.lastVaultAt = nowSec;
+        s.grounded = false;
+        if (tutorial?.step === "MOVEMENT") onTutorialEvent?.("JUMP");
+      } else {
+        s.y = THREE.MathUtils.lerp(s.y, standY, 1 - Math.exp(-14 * dt));
+        s.grounded = true;
+      }
     } else {
       s.vy -= sim.gravity * dt;
       s.y += s.vy * dt;
@@ -915,7 +1130,7 @@ export function Scene({
       }
     }
     // fracture instability tosses loose objects (and you) around
-    if (playerInstability > 0.6 && s.grounded && Math.random() < playerInstability * dt * 1.2) {
+    if (playerInstability > 0.6 && s.grounded && !s.diving && Math.random() < playerInstability * dt * 1.2) {
       s.vy = 6 + playerInstability * 10;
       s.grounded = false;
     }
@@ -957,7 +1172,7 @@ export function Scene({
       s.y + (s.inVehicle ? 1.5 : 0.95) + (s.inVehicle ? 5 : 2.2) * s.cameraBlend,
       s.z + Math.cos(s.yaw) * (s.inVehicle ? 1 : 0.15) + (-Math.sin(s.yaw) * shoulder - Math.cos(s.yaw) * distance) * s.cameraBlend,
     );
-    camTarget.y = Math.max(camTarget.y, walkHeight(camTarget.x, camTarget.z) + 1.35);
+    camTarget.y = Math.max(camTarget.y, (interior ? INTERIOR_ALTITUDE : walkHeight(camTarget.x, camTarget.z)) + 1.35);
     camera.position.lerp(camTarget, 1 - Math.exp(-18 * dt));
     const kickPitch = s.pitch + s.recoil;
     const shakeAmt = Math.min(0.08, s.punch * 0.012);
@@ -984,13 +1199,16 @@ export function Scene({
     if (report.current > 0.18) {
       report.current = 0;
       if (sim.drops.length) onDrops?.(sim.drops.splice(0));
-      const zone = sim.zones.find((z) => z.region.id === here?.id);
+      // While indoors here is null (interiors sit far outside WORLD_RADIUS), so read the zone through
+      // the interior's own regionId — the same substitution updateMusicRegion/regionId already use —
+      // rather than silently falling back to defaults for owner/contested/zoneTier while inside.
+      const zone = sim.zones.find((z) => z.region.id === (interior ? interior.regionId : here?.id));
       onHud({
-        region: here?.name ?? "Open Wilds",
-        sub: here?.sub ?? "Unclaimed / no cover",
-        kind: here?.kind ?? "war",
-        difficulty: here?.difficulty ?? 2,
-        rules: here?.rules ?? ["No stability field", "AI patrols roam freely"],
+        region: interior ? interior.name : here?.name ?? "Open Wilds",
+        sub: interior ? (interior.kind === "SHOP" ? (isInteriorOpen(interior, time.current) ? "Shop — open" : "Shop — closed for the night") : "Private residence") : here?.sub ?? "Unclaimed / no cover",
+        kind: interior ? "safe" : here?.kind ?? "war",
+        difficulty: interior ? 0 : here?.difficulty ?? 2,
+        rules: interior ? ["Indoors — hostiles can't follow", "Walk to the door to head back out"] : here?.rules ?? ["No stability field", "AI patrols roam freely"],
         phase: phaseFor(time.current),
         clock: clockLabel(time.current),
         speed: Math.round(s.inVehicle ? Math.abs(s.vSpeed) * 2.4 : velocity.length() * 2.4),
@@ -1005,7 +1223,7 @@ export function Scene({
         credits: sim.credits,
         cargo: sim.cargo,
         kills: sim.kills,
-        elevation: Math.round(heightAt(s.x, s.z)),
+        elevation: interior ? 0 : Math.round(heightAt(s.x, s.z)),
         traction,
         alerts: sim.alerts.map((a) => a.text),
         threat: Math.round(sim.director.threat),
@@ -1060,7 +1278,31 @@ export function Scene({
         inspector: s.showInspector ? buildInspector() : null,
         markers: track(markerList(), s.x, s.z, s.yaw),
         px: s.x, pz: s.z, yaw: s.yaw,
+        diving: s.diving,
+        oxygen: Math.round(s.oxygen),
+        depth: Math.round(depth),
+        underwaterState: classifyUnderwaterState({ submerged, depth, oxygen: s.oxygen, boosting: boost }),
         structure: (() => { const all = [...structure.nodes.values()]; const e = structure.events[structure.events.length - 1]; return { standing: all.filter((n) => !n.isDestroyed).length, total: all.length, lastEvent: e ? `${e.type} ${e.nodeId}` : "" }; })(),
+        heatLevel: heatStatus(s.heatMeter).level,
+        heatLabel: heatStatus(s.heatMeter).label,
+        heatResponse: heatStatus(s.heatMeter).response,
+        vehicleStage,
+        parkourChain: s.chainCount,
+        nexusDetection,
+        nexusLockdownTier: nexusLockdown.tier,
+        nexusLockdownLabel: nexusLockdown.label,
+        nexusLockdownResponse: nexusLockdown.response,
+        hacking: s.hacking,
+        hackProgress: Math.round(s.hackProgress),
+        regionId: interior ? interior.regionId : here?.id ?? "",
+        insideInterior: s.insideInterior,
+        interiorName: interior?.name ?? "",
+        interiorOpen: interior ? isInteriorOpen(interior, time.current) : true,
+        zoneTier: instabilityTier(zone?.instability ?? 0),
+        justDied: sim.lastDeath,
+        deathCause: sim.lastDeathCause,
+        deathCargoLost: sim.lastDeathCargo,
+        deaths: sim.deaths,
       });
     }
   });
@@ -1076,8 +1318,9 @@ export function Scene({
         position={[80, 140, 70]}
         intensity={1.6}
         castShadow={RENDER_PRESETS[settings.renderTier].shadows}
-        shadow-mapSize-width={1024}
-        shadow-mapSize-height={1024}
+        shadow-mapSize-width={settings.renderTier === "ULTRA" ? 4096 : settings.renderTier === "HIGH" ? 2048 : 1024}
+        shadow-mapSize-height={settings.renderTier === "ULTRA" ? 4096 : settings.renderTier === "HIGH" ? 2048 : 1024}
+        shadow-bias={-0.0018}
         shadow-camera-left={-130}
         shadow-camera-right={130}
         shadow-camera-top={130}
@@ -1133,7 +1376,8 @@ export function Scene({
       <Bullets sim={sim} />
       <WorldMarkers depleted={depleted} />
       <Interior structure={structure} />
-      {settings.zoneLabels && <RegionLabels />}
+      <Interiors />
+      {settings.zoneLabels && <RegionLabels zones={sim.zones} />}
 
       {/* player on foot */}
       <group ref={player} position={SPAWN.toArray()}>

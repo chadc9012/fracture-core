@@ -167,6 +167,12 @@ export type WorldSim = {
   /** true while the weapon vents and cannot fire */
   overheated: boolean;
   lastHit: number;
+  /** timestamp of the most recent hull-destroyed respawn — Scene watches this to trigger the death screen and teleport home */
+  lastDeath: number;
+  /** cause text + cargo lost on the most recent death, for the death screen's stakes readout */
+  lastDeathCause: string;
+  lastDeathCargo: number;
+  deaths: number;
   /** most recent AI-generated drops (newest first) */
   loot: LootItem[];
   /** everything picked up this session */
@@ -336,6 +342,10 @@ export function createSim(): WorldSim {
     weaponHeat: 0,
     overheated: false,
     lastHit: 0,
+    lastDeath: 0,
+    lastDeathCause: "",
+    lastDeathCargo: 0,
+    deaths: 0,
     loot: [],
     vault: [],
     titan: createTitanState(),
@@ -352,6 +362,19 @@ export function alert(sim: WorldSim, text: string) {
 
 export function zoneOf(sim: WorldSim, id: string) {
   return sim.zones.find((z) => z.region.id === id);
+}
+
+/** Reads the zone's own live `instability` (already driven every frame by the fracture-pulse formula
+ * below, and already fed into spawn rate + the player-toss physics) as a 5-tier label the player can
+ * actually see — the tiering a pasted "world corruption" spec asked for, applied to the real per-zone
+ * value this sim already computes, instead of a second corruption number ticking up in the background. */
+export type InstabilityTier = "STABLE" | "STRAINED" | "FRACTURED" | "COLLAPSING" | "VOID";
+export function instabilityTier(instability: number): InstabilityTier {
+  if (instability < 0.2) return "STABLE";
+  if (instability < 0.4) return "STRAINED";
+  if (instability < 0.6) return "FRACTURED";
+  if (instability < 0.8) return "COLLAPSING";
+  return "VOID";
 }
 
 function spawnMachine(sim: WorldSim, zone: ZoneState, elite = false) {
@@ -436,6 +459,10 @@ export function hurtPlayer(sim: WorldSim, dmg: number, cause: string) {
   sim.hp = Math.max(0, sim.hp - resolvedDamage);
   if (sim.raidFight) sim.raidFight.hurt += resolvedDamage;
   if (sim.hp === 0) {
+    sim.lastDeath = performance.now();
+    sim.lastDeathCause = cause;
+    sim.lastDeathCargo = sim.cargo;
+    sim.deaths++;
     sim.hp = 100;
     sim.cargo = 0;
     alert(sim, `Hull destroyed (${cause}) — respawned at Nexus City, cargo lost`);
