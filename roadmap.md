@@ -67,4 +67,4 @@
 - [x] Replace tabbed character creation with the spatial Identity Forge chamber and cinematic armor handoff.
 - [x] Replace the dashboard-like in-game overlay with a clean combat HUD.
 
-- [ ] Export all current game code as a ZIP download
+- [x] Export all current game code as a ZIP download
