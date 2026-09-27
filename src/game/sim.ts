@@ -1,3 +1,5 @@
+import { familyFor, rollRaidDrop } from "./raid-loot";
+import { squadMove, squadRole } from "./enemy-intelligence";
 import { REGIONS, type Region } from "./world";
 import { heightAt, smoothstep, walkHeight } from "./terrain";
 import { LANES, laneLanePoint, laneSamples, type Lane } from "./lanes";
@@ -132,6 +134,8 @@ export type { Lane };
 export { laneSamples };
 
 export type WorldSim = {
+  /** active boss fight performance tracker (raid drops) */
+  raidFight?: { start: number; hurt: number; region: string };
   zones: ZoneState[];
   lanes: Lane[];
   machines: Machine[];
@@ -209,6 +213,13 @@ export function defeatMachine(sim: WorldSim, m: Machine) {
   sim.materials[material] = (sim.materials[material] ?? 0) + amount;
   sim.drops.push({ id: sim.nextDropId++, material, amount, enemy: m.profile });
   dropLoot(sim, zoneOf(sim, m.zone), m.boss ? "ELITE" : m.profile);
+  if (m.boss) {
+    const fight = sim.raidFight ?? { start: performance.now() / 1000, hurt: 50, region: m.zone };
+    const drops = rollRaidDrop(familyFor(fight.region), { phasesCleared: 3, damageTaken: fight.hurt, seconds: performance.now() / 1000 - fight.start });
+    for (const item of drops) { sim.vault.push(item); sim.loot.unshift(item); alert(sim, `${item.rarity} raid drop — ${item.name}`); }
+    if (sim.loot.length > 5) sim.loot.length = 5;
+    sim.raidFight = undefined;
+  }
   alert(sim, `${m.profile} defeated · ${material.replace(/([A-Z])/g, " $1")} +${amount}`);
 }
 
@@ -380,6 +391,7 @@ export function summonBoss(sim: WorldSim, regionId: string, x: number, z: number
   const m = sim.machines.find((candidate) => !candidate.alive);
   if (!boss || !m) return false;
   Object.assign(m, { alive: true, x, z, y: walkHeight(x, z) + 5, hp: 28, rot: 0, scale: 2.3, zone: regionId, cool: 2, elite: true, boss: true, profile: boss.name, kind: "OVERCLOCKED", drop: boss.drop, kx: 0, kz: 0 });
+  sim.raidFight = { start: performance.now() / 1000, hurt: 0, region: regionId };
   alert(sim, `${boss.name} · ${boss.tell}`);
   return true;
 }
@@ -422,6 +434,7 @@ export function fireBullet(
 export function hurtPlayer(sim: WorldSim, dmg: number, cause: string) {
   const resolvedDamage = sim.titanActive ? absorbTitanDamage(sim.titan, dmg, performance.now() / 1000) : dmg;
   sim.hp = Math.max(0, sim.hp - resolvedDamage);
+  if (sim.raidFight) sim.raidFight.hurt += resolvedDamage;
   if (sim.hp === 0) {
     sim.hp = 100;
     sim.cargo = 0;
@@ -656,8 +669,12 @@ export function stepSim(sim: WorldSim, input: SimInput) {
     if (d < 120) hostileNear++;
 
     if (d < aggro) {
-      m.x += (dx / d) * speed * dt;
-      m.z += (dz / d) * speed * dt;
+      // squad role + threat drive positioning instead of a straight chase
+      const i = sim.machines.indexOf(m);
+      const move = squadMove(squadRole(i, m.elite, m.boss), d, sim.hp / 100, sim.combatHeat, performance.now() / 1000 + i);
+      const nx = dx / d, nz = dz / d;
+      m.x += (nx * move.forward + -nz * move.strafe) * speed * dt;
+      m.z += (nz * move.forward + nx * move.strafe) * speed * dt;
       m.rot = Math.atan2(dx, dz);
       m.cool -= dt;
       if (d < 6 && m.cool <= 0) {

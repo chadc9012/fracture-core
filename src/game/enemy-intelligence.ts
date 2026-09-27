@@ -26,3 +26,22 @@ export function chooseEnemyDecision(archetype: EnemyArchetype, threat: ThreatPro
   if (archetype === "SUPPRESSOR") return { action: "SUPPRESS", tell: "Suppression cone projected", escapeLane: true };
   return { action: threat.priority === "HIGH" ? "DISENGAGE" : "ADVANCE", tell: threat.priority === "HIGH" ? "Armor vents opening" : "Heavy steps approaching", escapeLane: true };
 }
+/* SQUAD AI — enemies act as coordinated squads with roles. Pure functions so
+ * the sim stays deterministic per frame. */
+export type SquadRole = "ASSAULT" | "RANGED" | "FLANKER" | "LEADER";
+export function squadRole(index: number, elite: boolean, boss: boolean): SquadRole {
+  if (boss || elite) return "LEADER";
+  return (["ASSAULT", "RANGED", "FLANKER"] as const)[index % 3]!;
+}
+/** forward (+toward player) and strafe (sideways) intent in -1..1. */
+export function squadMove(role: SquadRole, distance: number, playerHp: number, playerThreat: number, t: number): { forward: number; strafe: number } {
+  const hold = (range: number) => Math.max(-1, Math.min(1, (distance - range) / 8));
+  if (playerHp < 0.35) return { forward: 1, strafe: 0 }; // weak player → everyone rushes
+  const spread = playerThreat > 40 ? 0.5 : 0; // strong player → spread out
+  switch (role) {
+    case "ASSAULT": return { forward: 1, strafe: spread * Math.sin(t) };
+    case "RANGED": return { forward: hold(28), strafe: 0.6 * Math.sin(t * 0.7) + spread };
+    case "FLANKER": return { forward: hold(12) * 0.5, strafe: distance > 10 ? 1 : 0.3 }; // circle behind
+    case "LEADER": return { forward: hold(18), strafe: 0.4 * Math.sin(t * 0.5) };
+  }
+}
