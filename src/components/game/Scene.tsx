@@ -8,6 +8,7 @@ import { useKeyboard } from "@/game/useKeyboard";
 import { walkHeight, slopeAt, heightAt, WATER_LEVEL } from "@/game/terrain";
 import { alert, collidePlayer, createSim, defeatMachine, fireBullet, spawnMissionDrones, stepSim, summonBoss, type Faction, type WorldSim } from "@/game/sim";
 import type { MissionEvent, MissionRun } from "@/game/missions/broken-signal";
+import type { AwakeningEvent, AwakeningRun } from "@/game/missions/awakening";
 import { directorTrend, type Mission } from "@/game/director";
 import { Terrain } from "./Terrain";
 import { Bullets, Convoys, SupplyLanes, WarMachines, ZoneBeacons } from "./Actors";
@@ -194,6 +195,8 @@ export function Scene({
   gear,
   mission,
   onMissionEvent,
+  awakening,
+  onAwakeningEvent,
 }: {
   onHud: (s: HudState) => void;
   settings?: GameSettings;
@@ -212,10 +215,14 @@ export function Scene({
   gear?: Pick<PlayerProgression, "inventory" | "equippedGear">;
   mission?: MissionRun | null;
   onMissionEvent?: (event: MissionEvent) => void;
+  awakening?: AwakeningRun | null;
+  onAwakeningEvent?: (event: AwakeningEvent) => void;
 }) {
   const keys = useKeyboard();
   const sim = useMemo<WorldSim>(() => createSim(), []);
   const missionSpawned = useRef("");
+  const awakeSpawned = useRef("");
+  const holdRef = useRef(0);
   const structure = useMemo(() => buildInterior("veridan-ruin", SPAWN.x + 28, walkHeight(SPAWN.x + 28, SPAWN.z + 20), SPAWN.z + 20), []);
   const depleted = useRef<Record<string, number>>({});
   const lairsTriggered = useRef<Record<string, boolean>>({});
@@ -229,6 +236,7 @@ export function Scene({
   const markerList = (): Marker[] => {
     const now = performance.now();
     const list: Marker[] = [];
+    if (awakening?.target) list.push({ id: "m-awakening", kind: "MISSION", label: "Awakening", x: awakening.target.x, z: awakening.target.z, regionId: "nexus" });
     if (mission?.target && mission.state !== "COMPLETE" && mission.state !== "WORLD_UPDATE") list.push({ id: "m-broken-signal", kind: "MISSION", label: "Broken Signal", x: mission.target.x, z: mission.target.z, regionId: "nexus" });
     for (const m of sim.director.missions) { if (m.state !== "ACTIVE") continue; const c = regionCenter(m.regionId); if (c) list.push({ id: `m-${m.id}`, kind: "MISSION", label: m.name, x: c.x, z: c.z, regionId: m.regionId }); }
     for (const site of RESOURCE_SITES) list.push({ ...site, ready: (depleted.current[site.id] ?? 0) <= now });
@@ -854,6 +862,25 @@ export function Scene({
       if (combat && missionSpawned.current === mission.state && !sim.machines.some((m) => m.alive && m.mission)) { missionSpawned.current = `${mission.state}-done`; onMissionEvent({ type: "CLEAR" }); }
     }
 
+    /* ---------------- Neon Core · Awakening micro-objectives ---------------- */
+    if (awakening && onAwakeningEvent) {
+      const a = awakening;
+      if (a.state === "DROP") onAwakeningEvent({ type: "ANCHOR", x: s.x, z: s.z });
+      const wave = a.state === "PATROL" ? 4 : a.state === "ESCALATION" ? 1 : a.state === "HOLD" ? 5 : 0;
+      if (wave && awakeSpawned.current !== a.state && awakeSpawned.current !== `${a.state}-done`) {
+        awakeSpawned.current = a.state;
+        spawnMissionDrones(sim, s.x, s.z, wave, a.state === "ESCALATION");
+        if (a.state === "ESCALATION") alert(sim, "NEON CORE DISTRICT ALERT: Faction activity detected");
+      }
+      if ((a.state === "PATROL" || a.state === "ESCALATION") && awakeSpawned.current === a.state && !sim.machines.some((m) => m.alive && m.mission)) { awakeSpawned.current = `${a.state}-done`; onAwakeningEvent({ type: "CLEAR" }); }
+      if ((a.state === "CAPTURE" || a.state === "EXTRACT") && a.target && Math.hypot(a.target.x - s.x, a.target.z - s.z) < 9) onAwakeningEvent({ type: "ARRIVED" });
+      if (a.state === "HOLD" && a.target) {
+        if (Math.hypot(a.target.x - s.x, a.target.z - s.z) < 12) holdRef.current = Math.min(100, holdRef.current + dt * 8);
+        const step = Math.floor(holdRef.current / 5) * 5;
+        if (step !== a.hold) onAwakeningEvent({ type: "HOLD", progress: step });
+      } else holdRef.current = 0;
+    }
+
     /* ---------------- simulation step ---------------- */
     const { playerInstability } = stepSim(sim, {
       dt,
@@ -1090,6 +1117,12 @@ export function Scene({
       <ZoneBeacons sim={sim} />
       <Convoys sim={sim} />
       <WarMachines sim={sim} />
+      {awakening?.target && (awakening.state === "CAPTURE" || awakening.state === "HOLD" || awakening.state === "EXTRACT") && (
+        <group position={[awakening.target.x, heightAt(awakening.target.x, awakening.target.z) + 0.2, awakening.target.z]}>
+          <mesh rotation-x={-Math.PI / 2}><ringGeometry args={[10, 12, 48]} /><meshBasicMaterial color={awakening.state === "EXTRACT" ? "#7dffca" : "#ff3df2"} transparent opacity={0.6} /></mesh>
+          <mesh position={[0, 30, 0]}><cylinderGeometry args={[0.2, 0.2, 60, 6]} /><meshBasicMaterial color={awakening.state === "EXTRACT" ? "#7dffca" : "#ff3df2"} transparent opacity={0.4} /></mesh>
+        </group>
+      )}
       {mission?.target && (mission.state === "DISCOVERY" || mission.state === "TRAVERSAL") && (
         <group position={[mission.target.x, heightAt(mission.target.x, mission.target.z) + 3, mission.target.z]}>
           <mesh><octahedronGeometry args={[0.9, 0]} /><meshStandardMaterial color="#39e6ff" emissive="#39e6ff" emissiveIntensity={3} /></mesh>
