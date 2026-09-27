@@ -27,6 +27,8 @@ import { claimDrops } from "@/game/inventory";
 import { InventoryWindow } from "./InventoryWindow";
 import { WorldAtlas } from "./WorldAtlas";
 import { BrokenSignalOverlay } from "./BrokenSignalOverlay";
+import { AwakeningOverlay } from "./AwakeningOverlay";
+import { advanceAwakening, AWAKENING, type AwakeningEvent, type AwakeningRun } from "@/game/missions/awakening";
 import { normalizeBindings } from "@/game/bindings";
 import { advanceMission, BROKEN_SIGNAL, type MissionEvent, type MissionRun } from "@/game/missions/broken-signal";
 
@@ -152,7 +154,27 @@ export function GameCanvas() {
 
   /* Mission 01 · Broken Signal starts as a world event once the player is free-roaming. */
   const [mission, setMission] = useState<MissionRun | null>(null);
-  const missionReady = phase === "world" && !tutorial && vehicleUnlocked && !progression.completedMissions.includes("broken-signal");
+  const [awakening, setAwakening] = useState<AwakeningRun | null>(null);
+  const awakeningDone = progression.completedMissions.includes("awakening");
+  useEffect(() => {
+    if (phase !== "world" || tutorial || awakening || awakeningDone) return;
+    const timer = window.setTimeout(() => setAwakening(advanceAwakening(AWAKENING, { type: "START" })), 2500);
+    return () => window.clearTimeout(timer);
+  }, [phase, tutorial, awakening, awakeningDone]);
+  useEffect(() => {
+    if (awakening?.state === "LOOT") return; // loot granted on ACK
+    if (awakening?.state !== "COMPLETE" || awakeningDone) return;
+    setProgression((current) => { const next = completeMission(current, "awakening"); return { ...next, materials: { ...next.materials, dataShards: (next.materials.dataShards ?? 0) + 2 } }; });
+    const timer = window.setTimeout(() => setAwakening(null), 7000);
+    return () => window.clearTimeout(timer);
+  }, [awakening?.state, awakeningDone]);
+  const recordAwakening = (event: AwakeningEvent) => setAwakening((current) => {
+    if (!current) return current;
+    const next = advanceAwakening(current, event);
+    if (current.state === "LOOT" && next.state === "CAPTURE") setProgression((p) => ({ ...p, materials: { ...p.materials, scrapMetal: (p.materials.scrapMetal ?? 0) + 4 } }));
+    return next;
+  });
+  const missionReady = phase === "world" && !tutorial && vehicleUnlocked && awakeningDone && !progression.completedMissions.includes("broken-signal");
   useEffect(() => {
     if (!missionReady || mission) return;
     const timer = window.setTimeout(() => setMission(advanceMission(BROKEN_SIGNAL, { type: "START" })), 6000);
@@ -263,13 +285,14 @@ export function GameCanvas() {
       >
         <color attach="background" args={["#bfe4f2"]} />
         <Suspense fallback={null}>
-            <Scene onHud={setHud} onDrops={(drops) => setProgression((current) => claimDrops(current, drops))} gear={progression} settings={settings} onCameraPreference={(firstPerson) => { window.localStorage.setItem("world-fracture-camera", firstPerson ? "first" : "third"); setSettings((current) => ({ ...current, firstPersonDefault: firstPerson })); }} playerClass={cls} subclassId={subclass} appearanceId={appearance} vehicleId={vehicleId} vehicleUnlocked={vehicleUnlocked} activeBuild={progression.activeBuild} abilityBranches={progression.abilityBranches} tutorial={tutorial} onTutorialEvent={recordTutorial} mission={mission} onMissionEvent={recordMission} armorState={hud.hp < 35 ? "FRACTURE" : hud.heat > 65 ? "ASCENDANT" : hud.heat > 15 ? "ACTIVE" : "STABLE"} />
+            <Scene onHud={setHud} onDrops={(drops) => setProgression((current) => claimDrops(current, drops))} gear={progression} settings={settings} onCameraPreference={(firstPerson) => { window.localStorage.setItem("world-fracture-camera", firstPerson ? "first" : "third"); setSettings((current) => ({ ...current, firstPersonDefault: firstPerson })); }} playerClass={cls} subclassId={subclass} appearanceId={appearance} vehicleId={vehicleId} vehicleUnlocked={vehicleUnlocked} activeBuild={progression.activeBuild} abilityBranches={progression.abilityBranches} tutorial={tutorial} onTutorialEvent={recordTutorial} mission={mission} onMissionEvent={recordMission} awakening={awakening} onAwakeningEvent={recordAwakening} armorState={hud.hp < 35 ? "FRACTURE" : hud.heat > 65 ? "ASCENDANT" : hud.heat > 15 ? "ACTIVE" : "STABLE"} />
         </Suspense>
         {RENDER_PRESETS[settings.renderTier].distortion && <EffectComposer multisampling={0}><Bloom intensity={0.55} luminanceThreshold={0.85} luminanceSmoothing={0.2} mipmapBlur /><Vignette offset={0.3} darkness={0.55} /></EffectComposer>}
       </Canvas>
        <HUD hud={hud} tutorialActive={Boolean(tutorial && tutorial.step !== "VICTORY")} onMenu={() => setMenuOpen(true)} onStrategy={() => setStrategyOpen(true)} onGarage={() => setGarageOpen(true)} onAnalyze={() => setAnalysisOpen(true)} onOperations={setOperationsView} onInventory={() => setInventoryOpen(true)} onAtlas={() => setAtlasOpen(true)} />
        {inventoryOpen && <InventoryWindow progression={progression} onProgression={setProgression} onClose={() => setInventoryOpen(false)} />}
        {atlasOpen && <WorldAtlas markers={hud.markers} px={hud.px} pz={hud.pz} currentRegion={hud.region} phase={hud.phase} onClose={() => setAtlasOpen(false)} />}
+      {awakening && <AwakeningOverlay run={awakening} onEvent={recordAwakening} />}
       {mission && <BrokenSignalOverlay mission={mission} onEvent={recordMission} />}
       {tutorial && <OnboardingSignal tutorial={tutorial} classId={cls} onOpenHub={() => { setTutorial(null); setOperationsView("ABILITIES"); }} />}
       {strategyOpen && <RaidStrategyPanel onClose={() => setStrategyOpen(false)} />}
