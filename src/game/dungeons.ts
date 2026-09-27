@@ -48,4 +48,21 @@ export const DUNGEONS: readonly DungeonDefinition[] = [
       { id: "antiphon", name: "Before and After", type: "BOSS_FIGHT", objective: "Damage the Antiphon during synchronization", target: 5, checkpoint: false, hazardLabel: "DESYNC" },
     ],
   },
+  {
+    id: "wasteland-fuel-king", name: "The Fuel King", activity: "RAID", region: "The Wastelands", privateInstance: true,
+    squad: { min: 1, max: 3 }, duration: "35–50 min", maxLives: 3,
+    identity: "A convoy raid down through the Wasteland's Underground City and into a sealed Northwest vault, ending on the armored warlord who controls the region's entire fuel supply. The gate only opens once the fireteam has proven it can hold the surface routes and clear the vault dungeons beneath it.",
+    hazard: "Fuel-control siege", boss: "The Fuel King",
+    signature: { name: "King's Ransom", type: "WEAPON", perk: "Kills refund a fraction of spent fuel as bonus reserve ammo.", repeatTraits: ["Convoy Tithe", "Scrap Momentum", "Last Reserve"] },
+    stages: [
+      { id: "surface-convoy-raid", name: "Convoy Raid", room: "Grid-Iron Highway", type: "TRAVERSAL_COMBAT", objective: "Raid three fuel convoys and break Raider control of the highway", target: 3, checkpoint: true, hazardLabel: "FUEL CONTROL", enemies: ["Raider buggies", "Convoy gunners"], triggers: ["Convoy ambush", "Roadblock", "Tanker breach"], reward: "Fuel ×120 · Scrap ×80" },
+      { id: "underground-access", name: "Underground City Access", room: "Fuel Depot Checkpoint", type: "PUZZLE_COMBAT", objective: "Trade proof of convoy kills for depot clearance into the sealed vaults", target: 2, checkpoint: true, hazardLabel: "CLEARANCE", enemies: ["Depot sentries"], triggers: ["Safe-zone handshake", "Vault seal cycling"], reward: "Vault access token" },
+      { id: "northwest-vaults", name: "Northwest Vault Dungeons", room: "Sealed Reserve Wing", type: "COMBAT", objective: "Clear the vault dungeons guarding the Northwest boss gate", target: 3, checkpoint: true, hazardLabel: "VAULT LOCKDOWN", enemies: ["Vault constructs", "Fuel King loyalists"], triggers: ["Gate seal break", "Reserve flood"], reward: "Reinforced Alloy ×150" },
+      { id: "fuel-king-boss", name: "The Fuel King", room: "Northwest Boss Gate", type: "BOSS_FIGHT", objective: "Break the Fuel King across all three of his forms", target: 9, checkpoint: false, hazardLabel: "SIEGE", enemies: ["The Fuel King"], triggers: ["Gate opens", "Rig disabled", "Core exposed"], bossPhases: [
+        { name: "Phase I · Vehicle War", threshold: 100, mechanic: "The Fuel King fights from a massive armored rig across the open desert arena, alternating projectile volleys with turret sweeps.", counter: "Use terrain cover and disable the rig's turret mounts before it can lock on." },
+        { name: "Phase II · Mech Form", threshold: 60, mechanic: "The rig is abandoned; he fights on foot in a scrap-limbed mech, firing fuel cannons as the arena floor destabilizes.", counter: "Bait fuel-cannon overheats, then punish the vented cooldown window." },
+        { name: "Phase III · Core Entity", threshold: 25, mechanic: "The fight drops into the underground arena; his energy core is exposed and its weak points open and close on a rotating cycle.", counter: "Track the weak-point rotation and commit damage only when it's exposed." },
+      ], reward: "King's Ransom" },
+    ],
+  },
 ];

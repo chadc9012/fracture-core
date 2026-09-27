@@ -154,8 +154,13 @@ export function regionAt(x: number, z: number): Region | null {
 
 export type Phase = "Dawn" | "Day" | "Sunset" | "Night" | "Moonlight";
 
+/** The day cycle's `time` ref (a 0-1 fraction, ~0.008/frame) expressed as a 0-24 hour — the one place this conversion lives; phaseFor, clockLabel and the interior system's shop hours all read it from here. */
+export function hourOf(t: number): number {
+  return (((t % 1) + 1) % 1) * 24;
+}
+
 export function phaseFor(t: number): Phase {
-  const h = ((t % 1) + 1) % 1;
+  const h = hourOf(t) / 24;
   if (h < 0.12) return "Dawn";
   if (h < 0.42) return "Day";
   if (h < 0.55) return "Sunset";
@@ -172,7 +177,7 @@ export const SKY: Record<Phase, { top: string; bottom: string; fog: string; ligh
 };
 
 export function clockLabel(t: number) {
-  const h = (((t % 1) + 1) % 1) * 24;
+  const h = hourOf(t);
   const hh = Math.floor(h);
   const mm = Math.floor((h - hh) * 60);
   return `${String(hh).padStart(2, "0")}:${String(mm).padStart(2, "0")}`;

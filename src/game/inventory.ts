@@ -1,7 +1,7 @@
 import type { PlayerProgression } from "./progression";
 import type { WorldSim } from "./sim";
 
-export type MaterialId = "scrapMetal" | "reinforcedAlloy" | "microCircuits" | "thermalShards" | "cryoCrystal" | "sporeFiber" | "bioCatalyst" | "vehicleParts" | "anomalyCarbon" | "dataShards" | "magmaCore" | "zeroCore" | "abyssCore" | "aegisCore";
+export type MaterialId = "scrapMetal" | "reinforcedAlloy" | "microCircuits" | "thermalShards" | "cryoCrystal" | "sporeFiber" | "bioCatalyst" | "vehicleParts" | "anomalyCarbon" | "dataShards" | "magmaCore" | "zeroCore" | "abyssCore" | "aegisCore" | "fuel" | "fuelKingCore";
 export type GearSlot = "primary" | "secondary" | "heavy" | "helmet" | "chest" | "gauntlets" | "classItem" | "legs" | "vehicle";
 export type GearItem = { id: string; name: string; slot: GearSlot; power: number; level: number; element: "KINETIC" | "THERMAL" | "CRYO" | "ARC" | "BIO"; favorite?: boolean; source: string };
 
@@ -20,6 +20,8 @@ export const MATERIALS: Record<MaterialId, { name: string; source: string }> = {
   zeroCore: { name: "Zero Core", source: "Subject Zero" },
   abyssCore: { name: "Abyss Core", source: "Kraken-Vanguard" },
   aegisCore: { name: "Aegis Core", source: "Aegis-Prime" },
+  fuel: { name: "Fuel", source: "Wasteland convoy raids and the Underground City Fuel Depot" },
+  fuelKingCore: { name: "Fuel King Core", source: "The Fuel King" },
 };
 
 export const STARTER_GEAR: GearItem[] = [

@@ -2,6 +2,7 @@ import { Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { HudState } from "./Scene";
 import { Compass, TrackedObjectives } from "./Tracker";
+import { FACTIONS } from "@/game/sim";
 
 export function HUD({ hud, tutorialActive = false, onMenu }: { hud: HudState; tutorialActive?: boolean; onMenu: () => void; onStrategy: () => void; onGarage: () => void; onAnalyze: () => void; onInventory: () => void; onAtlas: () => void; onOperations: (view: "DUNGEONS" | "ARSENAL" | "ABILITIES") => void }) {
   const ammo = hud.ammo?.[hud.weaponSlot - 1];
@@ -9,6 +10,12 @@ export function HUD({ hud, tutorialActive = false, onMenu }: { hud: HudState; tu
   const lowAmmo = Boolean(ammo && !melee && ammo.mag <= Math.ceil(ammo.magSize * 0.25));
   return <div className="pointer-events-none fixed inset-0 z-10 select-none font-mono text-foreground">
     <div className="pointer-events-auto absolute left-3 top-3"><Button title="Menu" size="icon" variant="outline" className="border-border/60 bg-background/45 backdrop-blur-md" onClick={onMenu} aria-label="Open menu"><Menu /></Button></div>
+    {!hud.insideInterior && (
+      <div className="absolute left-14 top-3.5 text-[9px] uppercase tracking-[0.16em]">
+        <p style={{ color: FACTIONS[hud.owner]?.color }}>{hud.region} · {FACTIONS[hud.owner]?.short}{hud.contested ? " · CONTESTED" : ""}</p>
+        {hud.zoneTier !== "STABLE" && <p className="text-destructive">{hud.zoneTier}</p>}
+      </div>
+    )}
     {!tutorialActive && <><Compass markers={hud.markers ?? []} yaw={hud.yaw ?? 0} /><TrackedObjectives markers={hud.markers ?? []} /></>}
     <div className="absolute left-1/2 top-4 w-[min(26rem,calc(100%-7rem))] -translate-x-1/2 space-y-1 text-center text-[10px]">{hud.alerts.slice(0, 2).map((alert, index) => <p key={`${alert}-${index}`} className="border-x border-primary/40 bg-background/45 px-3 py-1 text-foreground/90 backdrop-blur-sm" style={{ opacity: 1 - index * 0.28 }}>{alert}</p>)}</div>
     <Crosshair hud={hud} />

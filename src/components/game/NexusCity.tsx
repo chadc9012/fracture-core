@@ -8,7 +8,7 @@ import { REGIONS } from "@/game/world";
 import { walkHeight } from "@/game/terrain";
 import type { WorldSim } from "@/game/sim";
 import { addObstacle } from "@/game/obstacles";
-import { Model } from "./Vehicle";
+import { Model, useModel } from "./Vehicle";
 
 const NEXUS = REGIONS.find((r) => r.id === "nexus")!;
 
@@ -84,80 +84,55 @@ function CityBuildings() {
   );
 }
 
-/* ---------------- pedestrians (procedural low-poly walkers) ---------------- */
+/* ---------------- pedestrians (real low-poly NPC models, not primitives) ---------------- */
 
-type Ped = { a: number; r: number; speed: number; tint: string; height: number };
+const NPC_KEYS: ModelKey[] = ["npc_a", "npc_b", "npc_c"];
+
+type Ped = { a: number; r: number; speed: number; key: ModelKey; height: number; phase: number };
 
 function Pedestrian({ ped }: { ped: Ped }) {
   const group = useRef<THREE.Group>(null!);
-  const legL = useRef<THREE.Mesh>(null!);
-  const legR = useRef<THREE.Mesh>(null!);
-  const armL = useRef<THREE.Mesh>(null!);
-  const armR = useRef<THREE.Mesh>(null!);
+  const body = useRef<THREE.Group>(null!);
+  const model = useModel(ped.key);
   const angle = useRef(ped.a);
-  const gait = useRef(Math.random() * 6);
+  const gait = useRef(ped.phase);
 
   useFrame((_, raw) => {
     const dt = Math.min(raw, 0.05);
     angle.current += (ped.speed / ped.r) * dt;
-    gait.current += dt * 7.5;
+    gait.current += dt * 6.2 * (0.6 + Math.abs(ped.speed) * 0.15);
     const x = NEXUS.x + Math.cos(angle.current) * ped.r;
     const z = NEXUS.z + Math.sin(angle.current) * ped.r;
     const g = group.current;
     if (!g) return;
     g.position.set(x, walkHeight(x, z), z);
-    g.rotation.y = Math.atan2(-Math.sin(angle.current), Math.cos(angle.current)) + Math.PI / 2;
-    const s = Math.sin(gait.current) * 0.55;
-    if (legL.current) legL.current.rotation.x = s;
-    if (legR.current) legR.current.rotation.x = -s;
-    if (armL.current) armL.current.rotation.x = -s * 0.8;
-    if (armR.current) armR.current.rotation.x = s * 0.8;
+    // face the direction of travel; +90deg because the model's forward axis is +Z
+    g.rotation.y = Math.atan2(-Math.sin(angle.current), Math.cos(angle.current)) + Math.PI / 2 + (ped.speed < 0 ? Math.PI : 0);
+    // small procedural bob + sway stands in for a walk cycle since the glb has no rig baked in
+    if (body.current) {
+      body.current.position.y = Math.abs(Math.sin(gait.current)) * 0.05;
+      body.current.rotation.z = Math.sin(gait.current) * 0.035;
+    }
   });
 
-  const h = ped.height;
   return (
-    <group ref={group} scale={h}>
-      {/* legs */}
-      <mesh ref={legL} position={[-0.13, 0.45, 0]} castShadow>
-        <capsuleGeometry args={[0.09, 0.42, 3, 6]} />
-        <meshStandardMaterial color="#2a3140" roughness={0.85} />
-      </mesh>
-      <mesh ref={legR} position={[0.13, 0.45, 0]} castShadow>
-        <capsuleGeometry args={[0.09, 0.42, 3, 6]} />
-        <meshStandardMaterial color="#2a3140" roughness={0.85} />
-      </mesh>
-      {/* torso */}
-      <mesh position={[0, 1.0, 0]} castShadow>
-        <capsuleGeometry args={[0.19, 0.42, 3, 8]} />
-        <meshStandardMaterial color={ped.tint} roughness={0.65} />
-      </mesh>
-      {/* arms */}
-      <mesh ref={armL} position={[-0.28, 1.02, 0]} castShadow>
-        <capsuleGeometry args={[0.065, 0.38, 3, 6]} />
-        <meshStandardMaterial color={ped.tint} roughness={0.7} />
-      </mesh>
-      <mesh ref={armR} position={[0.28, 1.02, 0]} castShadow>
-        <capsuleGeometry args={[0.065, 0.38, 3, 6]} />
-        <meshStandardMaterial color={ped.tint} roughness={0.7} />
-      </mesh>
-      {/* head */}
-      <mesh position={[0, 1.42, 0]} castShadow>
-        <sphereGeometry args={[0.16, 10, 8]} />
-        <meshStandardMaterial color="#c8a381" roughness={0.7} />
-      </mesh>
+    <group ref={group} scale={ped.height}>
+      <group ref={body}>
+        <primitive object={model} />
+      </group>
     </group>
   );
 }
 
 function Pedestrians() {
   const peds = useMemo<Ped[]>(() => {
-    const tints = ["#4d6b8a", "#7a5a4a", "#3f6d5c", "#8a7a4a", "#5c4a6d"];
     return Array.from({ length: 14 }, (_, i) => ({
       a: (i / 14) * Math.PI * 2,
       r: 10 + (i % 4) * 3.4,
       speed: (i % 2 ? 1 : -1) * (1.6 + (i % 3) * 0.5),
-      tint: tints[i % tints.length]!,
-      height: 1.05 + (i % 3) * 0.08,
+      key: NPC_KEYS[i % NPC_KEYS.length]!,
+      height: 0.95 + (i % 3) * 0.07,
+      phase: Math.random() * 6,
     }));
   }, []);
   return (

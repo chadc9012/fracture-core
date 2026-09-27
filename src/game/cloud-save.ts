@@ -53,7 +53,16 @@ export function mergeProgression(local: PlayerProgression, cloud: PlayerProgress
     abilityMastery: maxRecord(local.abilityMastery, cloud.abilityMastery, (x, y) => (x.xp >= y.xp ? x : y)),
     dungeonClears: maxRecord(local.dungeonClears, cloud.dungeonClears, Math.max),
     tutorialComplete: local.tutorialComplete || cloud.tutorialComplete,
+    endingSeen: local.endingSeen || cloud.endingSeen,
     identityClass: newer.identityClass ?? local.identityClass ?? cloud.identityClass,
+    // Quest engine: unlocks and corruption are only ever gained, so union/max them like everything else above;
+    // the active quest and its live objective progress are a choice, so they come from the newer copy.
+    unlockedWorlds: union(local.unlockedWorlds, cloud.unlockedWorlds),
+    worldFlags: maxRecord(local.worldFlags as Record<string, boolean>, cloud.worldFlags as Record<string, boolean>, (a, b) => a || b),
+    corruptionLevel: Math.max(local.corruptionLevel, cloud.corruptionLevel),
+    activeQuestId: newer.activeQuestId,
+    currentWorld: newer.currentWorld,
+    questObjectiveProgress: maxRecord(local.questObjectiveProgress, cloud.questObjectiveProgress, (a, b) => a.map((v, i) => Math.max(v, b[i] ?? 0))),
   };
 }
 
