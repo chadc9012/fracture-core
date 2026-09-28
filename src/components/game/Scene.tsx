@@ -17,6 +17,8 @@ import { Civilians } from "./Civilians";
 import { Bullets, Convoys, SupplyLanes, WarMachines, ZoneBeacons } from "./Actors";
 import { Car } from "./Vehicle";
 import { NexusCity } from "./NexusCity";
+import { NeonCity, NEON_CITY_CENTER } from "./NeonCity";
+import { Thalassia, THALASSIA_CENTER } from "./Thalassia";
 import { Water } from "./Water";
 import { Operator } from "./Operator";
 import { Interior } from "./Interior";
@@ -297,6 +299,8 @@ export function Scene({
     for (const site of RESOURCE_SITES) list.push({ ...site, ready: (depleted.current[site.id] ?? 0) <= now });
     for (const lair of BOSS_LAIRS) list.push(lair);
     for (const m of sim.machines) if (m.alive && m.boss) list.push({ id: `live-${m.profile}`, kind: "BOSS", label: `${m.profile} (engaged)`, x: m.x, z: m.z, regionId: m.zone });
+    list.push({ id: "neon-city", kind: "MISSION", label: "Neon City", x: NEON_CITY_CENTER.x, z: NEON_CITY_CENTER.z, regionId: "nexus" });
+    list.push({ id: "thalassia", kind: "MISSION", label: "Thalassia (deep dive)", x: THALASSIA_CENTER.x, z: THALASSIA_CENTER.z, regionId: "swamps" });
     return list;
   };
   const moon = useRef<THREE.DirectionalLight>(null!);
@@ -1364,6 +1368,8 @@ export function Scene({
       <Civilians playerRef={player} />
       <Water size={WORLD_RADIUS * 4} sunRef={sunDir} />
       <NexusCity sim={sim} />
+      <NeonCity />
+      <Thalassia />
       <SupplyLanes sim={sim} />
       <ZoneBeacons sim={sim} />
       <Convoys sim={sim} />
