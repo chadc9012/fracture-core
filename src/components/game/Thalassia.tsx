@@ -4,6 +4,7 @@ import { useMemo, useRef } from "react";
 import * as THREE from "three";
 import { WATER_LEVEL } from "@/game/terrain";
 import { addObstacle } from "@/game/obstacles";
+import { ElevatedTrain, LightBar, ShopSign } from "./DistrictStreet";
 
 /**
  * Thalassia — the Deepmind's sunken ark-city (per the "Thalassia" region-map reference sheet:
@@ -24,6 +25,65 @@ import { addObstacle } from "@/game/obstacles";
 export const THALASSIA_CENTER = { x: -97, z: -208 };
 const SEA_FLOOR_Y = -16;
 const CORE_Y = SEA_FLOOR_Y + 26;
+
+/** Dry, enclosed street at the seabed. Its long axis points toward the central spire. */
+export const THALASSIA_STREET = { x: THALASSIA_CENTER.x + 17, z: THALASSIA_CENTER.z + 34, halfWidth: 6, halfLength: 27, floor: SEA_FLOOR_Y + 0.28 };
+
+function UnderwaterStreet() {
+  const { x, z, floor } = THALASSIA_STREET;
+  return (
+    <group position={[x, floor, z]}>
+      {/* The sea-facing side stays transparent: the exterior domes, defense ring and seabed remain visible. */}
+      <mesh receiveShadow position-y={-0.15}><boxGeometry args={[17.5, 0.42, 62]} /><meshStandardMaterial color="#263b43" roughness={0.67} metalness={0.25} /></mesh>
+      <mesh receiveShadow position={[0, 0.06, 0]}><boxGeometry args={[9.8, 0.1, 61]} /><meshStandardMaterial color="#3d5058" metalness={0.45} roughness={0.42} /></mesh>
+      {Array.from({ length: 15 }, (_, i) => {
+        const zz = -28 + i * 4;
+        return <group key={i} position-z={zz}>
+          <LightBar position={[-4.55, 0.16, 0]} size={[0.12, 0.035, 3.3]} color="#ffb866" />
+          <LightBar position={[4.55, 0.16, 0]} size={[0.12, 0.035, 3.3]} color="#ffb866" />
+          <LightBar position={[0, 0.13, 0]} size={[1.3, 0.015, 0.06]} color="#7c9caa" />
+        </group>;
+      })}
+      {/* Ribbed glass vault. A largely open arch on the right frames the ocean rather than hiding it. */}
+      {Array.from({ length: 12 }, (_, i) => {
+        const zz = -29 + i * 5.3;
+        return <group key={i} position-z={zz}>
+          <mesh position={[-5.25, 4, 0]}><boxGeometry args={[0.26, 8, 0.3]} /><meshStandardMaterial color="#78929b" metalness={0.8} roughness={0.23} /></mesh>
+          <mesh position={[5.25, 4, 0]}><boxGeometry args={[0.26, 8, 0.3]} /><meshStandardMaterial color="#78929b" metalness={0.8} roughness={0.23} /></mesh>
+          <mesh position={[0, 8.1, 0]}><boxGeometry args={[10.7, 0.23, 0.35]} /><meshStandardMaterial color="#78929b" metalness={0.8} roughness={0.23} /></mesh>
+          <LightBar position={[-5.13, 3.8, 0.22]} size={[0.07, 6.8, 0.08]} color="#ffc17b" />
+          <LightBar position={[0, 7.92, 0.22]} size={[10, 0.08, 0.1]} color="#ffb86a" />
+        </group>;
+      })}
+      {[-5.25, 5.25].map((xx) => <mesh key={xx} position={[xx, 4, 0]}>
+        <boxGeometry args={[0.045, 7.8, 59]} />
+        <meshPhysicalMaterial color="#94d3e5" transparent opacity={0.13} metalness={0.08} roughness={0.06} depthWrite={false} side={THREE.DoubleSide} />
+      </mesh>)}
+      <mesh position={[0, 8.12, 0]}><boxGeometry args={[10.4, 0.06, 59]} /><meshPhysicalMaterial color="#a2ddec" transparent opacity={0.12} roughness={0.06} depthWrite={false} side={THREE.DoubleSide} /></mesh>
+      {/* Two raised market tiers, inset behind the left glazing. The center remains traversable. */}
+      {[2.25, 4.8].map((level, i) => <group key={level} position={[-6.9, level, 0]}>
+        <mesh receiveShadow><boxGeometry args={[4.8, 0.28, 54]} /><meshStandardMaterial color={i ? "#273c46" : "#364b51"} metalness={0.5} roughness={0.49} /></mesh>
+        <mesh position={[2.3, 0.65, 0]}><boxGeometry args={[0.12, 1.2, 54]} /><meshStandardMaterial color="#628a96" metalness={0.8} roughness={0.25} /></mesh>
+        {[-20, -5, 10, 24].map((zz, j) => <group key={zz} position={[-1.1, 0.9, zz]}>
+          <mesh><boxGeometry args={[2.6, 1.65, 5.1]} /><meshStandardMaterial color="#182e38" roughness={0.5} metalness={0.45} /></mesh>
+          <LightBar position={[0, 0.88, 2.6]} size={[2.4, 0.09, 0.08]} color={j % 2 ? "#7edee6" : "#ffc17b"} />
+        </group>)}
+        <LightBar position={[2.42, -0.13, 0]} size={[0.08, 0.09, 54]} color="#ffb968" />
+      </group>)}
+      <ShopSign label="KAIZEN" color="#ffbb70" position={[-4.6, 3.8, -19]} />
+      <ShopSign label="AURA-SYS" color="#67e6e9" position={[-4.6, 6.1, 0]} />
+      <ShopSign label="NEO-FISHERY" color="#ffbb70" position={[-4.6, 3.8, 19]} />
+      <ElevatedTrain length={59} height={10.6} accent="#ffb86a" />
+      <pointLight position={[-3, 5, -10]} color="#ffc085" intensity={22} distance={31} />
+      <pointLight position={[2, 5, 15]} color="#7acddd" intensity={17} distance={29} />
+      {/* Deep-sea silhouettes and distant beacons beyond the glazing. */}
+      {[[-10, 3], [8, 8], [23, 12], [-24, 18]].map(([zz, xx], i) => <group key={i} position={[xx ?? 10, 0, zz ?? 0]}>
+        <mesh position-y={2.7}><cylinderGeometry args={[0.2, 0.6, 5.5, 7]} /><meshStandardMaterial color="#173a49" roughness={0.75} /></mesh>
+        <mesh position-y={5.2}><sphereGeometry args={[0.46, 8, 6]} /><meshBasicMaterial color="#4a9cba" transparent opacity={0.56} /></mesh>
+      </group>)}
+    </group>
+  );
+}
 
 function ResidentialDome({ x, z, radius, glow }: { x: number; z: number; radius: number; glow: string }) {
   return (
@@ -135,6 +195,7 @@ export function Thalassia() {
   return (
     <group>
       <CoreSpire />
+      <UnderwaterStreet />
       <DefenseRing />
       {domes.map((d, i) => (
         <ResidentialDome key={i} x={d.x} z={d.z} radius={d.radius} glow={d.glow} />
