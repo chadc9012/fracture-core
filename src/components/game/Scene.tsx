@@ -34,6 +34,8 @@ import { projectDome, shieldBash } from "@/game/titan";
 import { RENDER_PRESETS } from "@/game/performance";
 import { activateLiveAbility, createLiveBuild, rebindLiveBuild, tickLiveBuild } from "@/game/live-build";
 import type { ActiveBuild } from "@/game/ability-network";
+import { buildSynergy } from "@/game/ability-network";
+import type { SquadArchetype } from "@/game/adaptation";
 import type { TutorialEvent, TutorialState } from "@/game/onboarding";
 import { OXYGEN_MAX, WATER_DRAG, applyWaterDrag, classifyUnderwaterState, lowOxygenPenalty, oxygenStep, pressureSpeedMultiplier, stepBuoyancy } from "@/game/underwater";
 import { underwaterSpread } from "@/game/underwater-combat";
@@ -1097,6 +1099,11 @@ export function Scene({
     if (tutorial?.step === "CONTACT" && sim.kills > tutorialKills.current) { tutorialKills.current++; onTutorialEvent?.("KILL"); }
     if (tutorial?.step === "SENTINEL" && sentinel.current && !sentinel.current.alive) { sentinel.current = null; onTutorialEvent?.("BOSS"); }
     sim.mods.bulletDamage = Math.max(0.5, 1.2 * live.current.damageMultiplier * (1 + live.current.momentum * 0.25));
+    // the equipped ability build's archetype and active shield/reflect state actually change how enemy
+    // squads move and hold fire (see squadMove in enemy-intelligence.ts), not just the HUD threat line
+    const synergyArchetype = buildSynergy(live.current.equipped).archetype;
+    sim.mods.squadArchetype = (synergyArchetype === "Defender" ? "DEFENSIVE" : synergyArchetype === "Striker" ? "STRIKER" : synergyArchetype === "Strategist" ? "STRATEGIST" : "BALANCED") as SquadArchetype;
+    sim.mods.rangedHoldFire = live.current.shieldReflect > 0;
     if (live.current.fieldTime > 0) sim.gravity *= 0.55;
     if (live.current.dashTime > 0) sim.hp = Math.min(100, sim.hp + dt * 15);
     if (live.current.hackTime > 0) for (const enemy of sim.machines) if (enemy.alive && Math.hypot(enemy.x - s.x, enemy.z - s.z) < 12) enemy.cool = Math.max(enemy.cool, 0.3);

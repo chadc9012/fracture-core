@@ -270,6 +270,8 @@ export function hasSkill(adaptation: Adaptation, id: BranchId, minLevel = 1) {
 
 /* ---------------- derived gameplay modifiers ---------------- */
 
+export type SquadArchetype = "BALANCED" | "DEFENSIVE" | "STRIKER" | "STRATEGIST";
+
 export type AdaptationMods = {
   bulletDamage: number;
   fireRate: number;
@@ -280,6 +282,12 @@ export type AdaptationMods = {
   aggroRadius: number;
   footSpeed: number;
   vehicleSpeed: number;
+  /** Set each frame from the equipped ability build's synergy archetype (see buildSynergy() in
+   * ability-network.ts) so squad AI actually reacts to loadout, not just adaptation branches. */
+  squadArchetype: SquadArchetype;
+  /** True while a reflective/bulwark ability is active — ranged squad roles hold fire instead of
+   * suppressing, matching the "Ranged units holding fire" threat text live-build.ts already shows. */
+  rangedHoldFire: boolean;
 };
 
 export function adaptationMods(adaptation: Adaptation): AdaptationMods {
@@ -295,5 +303,7 @@ export function adaptationMods(adaptation: Adaptation): AdaptationMods {
     aggroRadius: 1 + elite("COMBAT_BRANCH") * 0.25 - s.STEALTH_BRANCH.level * 0.05,
     footSpeed: 1 + s.STEALTH_BRANCH.level * 0.04 - elite("VEHICLE_MASTERY") * 0.08,
     vehicleSpeed: 1 + s.VEHICLE_MASTERY.level * 0.03,
+    squadArchetype: "BALANCED",
+    rangedHoldFire: false,
   };
 }

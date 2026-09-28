@@ -721,7 +721,7 @@ export function stepSim(sim: WorldSim, input: SimInput) {
     if (d < aggro) {
       // squad role + threat drive positioning instead of a straight chase
       const i = sim.machines.indexOf(m);
-      const move = squadMove(squadRole(i, m.elite, m.boss), d, sim.hp / 100, sim.combatHeat, performance.now() / 1000 + i);
+      const move = squadMove(squadRole(i, m.elite, m.boss), d, sim.hp / 100, sim.combatHeat, performance.now() / 1000 + i, sim.mods.squadArchetype, sim.mods.rangedHoldFire);
       const nx = dx / d, nz = dz / d;
       m.x += (nx * move.forward + -nz * move.strafe) * speed * dt;
       m.z += (nz * move.forward + nx * move.strafe) * speed * dt;

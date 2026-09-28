@@ -1,3 +1,5 @@
+import type { SquadArchetype } from "./adaptation";
+
 export type EnemyArchetype = "BRUTE" | "TRACKER" | "SUPPRESSOR" | "ADAPTIVE_ELITE";
 export type PerceptionSignal = { distance: number; visible: boolean; sound: number; damageReceived: number; playerVelocity: number; coverScore: number };
 export type ThreatProfile = { score: number; priority: "LOW" | "MEDIUM" | "HIGH"; reason: string };
@@ -33,15 +35,40 @@ export function squadRole(index: number, elite: boolean, boss: boolean): SquadRo
   if (boss || elite) return "LEADER";
   return (["ASSAULT", "RANGED", "FLANKER"] as const)[index % 3]!;
 }
-/** forward (+toward player) and strafe (sideways) intent in -1..1. */
-export function squadMove(role: SquadRole, distance: number, playerHp: number, playerThreat: number, t: number): { forward: number; strafe: number } {
+/** forward (+toward player) and strafe (sideways) intent in -1..1.
+ *
+ * `archetype` and `rangedHoldFire` come from the player's equipped ability build (see
+ * AdaptationMods.squadArchetype/rangedHoldFire in adaptation.ts, set each frame in Scene.tsx from
+ * live-build.ts) — this is what makes the HUD's threat-response line ("Ranged units holding fire",
+ * "Trackers predicting movement lanes", "Defenders guarding system nodes") an actual behavior
+ * change instead of flavor text. */
+export function squadMove(
+  role: SquadRole,
+  distance: number,
+  playerHp: number,
+  playerThreat: number,
+  t: number,
+  archetype: SquadArchetype = "BALANCED",
+  rangedHoldFire = false,
+): { forward: number; strafe: number } {
   const hold = (range: number) => Math.max(-1, Math.min(1, (distance - range) / 8));
   if (playerHp < 0.35) return { forward: 1, strafe: 0 }; // weak player → everyone rushes
   const spread = playerThreat > 40 ? 0.5 : 0; // strong player → spread out
   switch (role) {
-    case "ASSAULT": return { forward: 1, strafe: spread * Math.sin(t) };
-    case "RANGED": return { forward: hold(28), strafe: 0.6 * Math.sin(t * 0.7) + spread };
-    case "FLANKER": return { forward: hold(12) * 0.5, strafe: distance > 10 ? 1 : 0.3 }; // circle behind
-    case "LEADER": return { forward: hold(18), strafe: 0.4 * Math.sin(t * 0.5) };
+    case "ASSAULT":
+      // DEFENSIVE build (shield/bulwark up): melee pressure presses harder while ranged backs off
+      return { forward: archetype === "DEFENSIVE" ? 1.3 : 1, strafe: spread * Math.sin(t) };
+    case "RANGED":
+      if (rangedHoldFire) return { forward: Math.min(0, hold(38)), strafe: 0.2 * Math.sin(t * 0.7) }; // hold back, don't press the reflecting shield
+      return { forward: archetype === "STRATEGIST" ? hold(20) : hold(28), strafe: 0.6 * Math.sin(t * 0.7) + spread };
+    case "FLANKER": {
+      // STRIKER build (phase-dash equipped): trackers close faster and commit to the circle instead of hanging back
+      const closeRange = archetype === "STRIKER" ? 18 : 12;
+      const commit = archetype === "STRIKER" ? 1 : distance > 10 ? 1 : 0.3;
+      return { forward: hold(closeRange) * (archetype === "STRIKER" ? 0.85 : 0.5), strafe: commit };
+    }
+    case "LEADER":
+      // STRATEGIST build (system-override/code-pulse): the squad leader holds tighter formation near its node
+      return { forward: archetype === "STRATEGIST" ? hold(13) : hold(18), strafe: 0.4 * Math.sin(t * 0.5) };
   }
 }
