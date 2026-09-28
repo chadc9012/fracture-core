@@ -36,6 +36,7 @@ import { activateLiveAbility, createLiveBuild, rebindLiveBuild, tickLiveBuild } 
 import type { ActiveBuild } from "@/game/ability-network";
 import { buildSynergy } from "@/game/ability-network";
 import type { SquadArchetype } from "@/game/adaptation";
+import { ADAPTIVE_TUTORIAL_INIT, maybeReteach, recordStruggle } from "@/game/adaptive-tutorial";
 import type { TutorialEvent, TutorialState } from "@/game/onboarding";
 import { OXYGEN_MAX, WATER_DRAG, applyWaterDrag, classifyUnderwaterState, lowOxygenPenalty, oxygenStep, pressureSpeedMultiplier, stepBuoyancy } from "@/game/underwater";
 import { underwaterSpread } from "@/game/underwater-combat";
@@ -279,6 +280,10 @@ export function Scene({
   const keys = useKeyboard();
   const sim = useMemo<WorldSim>(() => createSim(), []);
   const missionSpawned = useRef("");
+  const adaptiveTutorial = useRef(ADAPTIVE_TUTORIAL_INIT);
+  const lastHpForAdaptive = useRef(100);
+  const lastDodgeStruggleAt = useRef(0);
+  const lastAbilityStruggleAt = useRef(0);
   const awakeSpawned = useRef("");
   const holdRef = useRef(0);
   const structure = useMemo(() => buildInterior("veridan-ruin", SPAWN.x + 28, walkHeight(SPAWN.x + 28, SPAWN.z + 20), SPAWN.z + 20), []);
@@ -1036,6 +1041,30 @@ export function Scene({
         spawnMissionDrones(sim, s.x, s.z, mission.state === "COMBAT_1" ? 3 : 5, mission.state === "COMBAT_2");
       }
       if (combat && missionSpawned.current === mission.state && !sim.machines.some((m) => m.alive && m.mission)) { missionSpawned.current = `${mission.state}-done`; onMissionEvent({ type: "CLEAR" }); }
+
+      // Adaptive re-teaching: a debounced (max once per 2s) struggle signal during the mission's
+      // combat beats — repeated big hits with no defensive ability up, or staying low-hp without
+      // activating one at all — builds toward a re-taught hint instead of firing on one bad frame.
+      if (combat) {
+        const now = performance.now() / 1000;
+        const hpDrop = lastHpForAdaptive.current - sim.hp;
+        const usingAbility = live.current.dashTime > 0 || live.current.hackTime > 0 || live.current.fieldTime > 0;
+        if (hpDrop > 12 && !usingAbility && now - lastDodgeStruggleAt.current > 2) {
+          lastDodgeStruggleAt.current = now;
+          const struggled = recordStruggle(adaptiveTutorial.current, "DODGE");
+          const result = maybeReteach(struggled, "DODGE", now);
+          adaptiveTutorial.current = result.state;
+          if (result.hint) alert(sim, `NOVA · ${result.hint}`);
+        }
+        if (sim.hp < 40 && !usingAbility && now - lastAbilityStruggleAt.current > 2) {
+          lastAbilityStruggleAt.current = now;
+          const struggled = recordStruggle(adaptiveTutorial.current, "ABILITY_USE");
+          const result = maybeReteach(struggled, "ABILITY_USE", now);
+          adaptiveTutorial.current = result.state;
+          if (result.hint) alert(sim, `NOVA · ${result.hint}`);
+        }
+      }
+      lastHpForAdaptive.current = sim.hp;
     }
 
     /* ---------------- Neon Core · Awakening micro-objectives ---------------- */

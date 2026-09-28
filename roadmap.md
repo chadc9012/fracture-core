@@ -58,6 +58,7 @@
 - [ ] Ability VFX
 - [x] Vendors & marketplace
 - [ ] Seasons
+- [x] Extend the tutorial's control call-outs into Mission 01 (Broken Signal), and add an adaptive re-teaching system for repeated struggle (hack routing, taking hits without dodging, sitting low-hp without using an ability).
 - [ ] Remaining uploaded design notes (UI animation, inventory UI, progression, performance)
 - [x] Map markers + HUD tracking (missions, resources, bosses)
 - [x] Operator model matches class reference art
