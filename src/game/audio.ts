@@ -322,6 +322,15 @@ export function playEnding(tier: "CONTROL" | "CHAOS" | "BALANCE") {
   }
 }
 
+/** Boss phase-change sting — escalates with phase index so OVERLOADED (phase 2) hits harder/lower than OVERDRIVEN (phase 1). */
+export function playBossPhaseChange(phase: 0 | 1 | 2) {
+  const c = ctx; if (!c) return; const o = out(c);
+  const base = 200 - phase * 40;
+  burst(c, o, { dur: 0.5 + phase * 0.2, freq: 1200 - phase * 200, q: 0.7, gain: 0.35 + phase * 0.1 });
+  tone(c, o, { f0: base, f1: base * 0.4, dur: 0.8, type: "sawtooth", gain: 0.3 });
+  tone(c, o, { f0: base * 2.5, f1: base * 1.6, dur: 0.5, type: "square", gain: 0.15, at: 0.05 });
+}
+
 /** Hull-destroyed sting — heavier and longer than playHurt()'s per-tick flinch, marking the actual respawn-at-Nexus event. */
 export function playDeath() {
   const c = ctx; if (!c) return; const o = out(c);

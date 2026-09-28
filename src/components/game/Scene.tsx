@@ -1014,6 +1014,7 @@ export function Scene({
       // interiors keep their home region's music (a pocket room isn't its own "place"), so the score doesn't drop to silence indoors
       sfx.updateMusicRegion(interior ? interior.regionId : here?.id ?? "");
       for (const shot of sim.enemyShots.splice(0)) sfx.playEnemyShot(shot.kind, shot.boss || shot.elite, sfx.where(s.x, s.z, s.yaw, shot.x, shot.z));
+      for (const flare of sim.bossPhaseFlares.splice(0)) { sfx.playBossPhaseChange(flare.phase); s.punch += 1.4 + flare.phase * 0.6; }
       const speedNow = velocity.length();
       if (!s.inVehicle && speedNow > 3 && s.y - walkHeight(s.x, s.z) < 1.9) {
         a.stepT -= dt * (speedNow / 30) * 2.4;

@@ -36,6 +36,7 @@ import { absorbTitanDamage, createTitanState, tickTitan, type TitanState } from 
 import { encounterFor, troopFor } from "./encounters";
 import type { MaterialId } from "./inventory";
 import type { GearItem } from "./inventory";
+import { phaseForHpFraction, tuningFor, type BossPhaseIndex } from "./boss-phases";
 
 /* ------------------------------------------------------------------
  * World simulation: faction capture, fracture instability,
@@ -83,6 +84,9 @@ export type Machine = {
   /** knockback velocity from impacts */
   kx: number;
   kz: number;
+  /** boss-only: hp at full health, and which of BOSS_PHASES it's currently in (see boss-phases.ts) */
+  maxHp?: number;
+  phase?: BossPhaseIndex;
 };
 
 export type Truck = {
@@ -184,6 +188,8 @@ export type WorldSim = {
   drops: { id: number; material: MaterialId; amount: number; enemy: string }[];
   /** enemy gunfire this frame, consumed by the audio layer */
   enemyShots: { x: number; z: number; kind: string; boss: boolean; elite: boolean }[];
+  /** boss phase transitions this frame, consumed by the audio/camera layer (see boss-phases.ts) */
+  bossPhaseFlares: { x: number; z: number; name: string; phase: BossPhaseIndex; label: string }[];
   nextDropId: number;
 };
 
@@ -351,7 +357,7 @@ export function createSim(): WorldSim {
     titan: createTitanState(),
     titanActive: false,
     equippedElement: "KINETIC",
-    materials: {}, drops: [], enemyShots: [], nextDropId: 0,
+    materials: {}, drops: [], enemyShots: [], bossPhaseFlares: [], nextDropId: 0,
   };
 }
 
@@ -413,7 +419,7 @@ export function summonBoss(sim: WorldSim, regionId: string, x: number, z: number
   const boss = encounterFor(regionId)?.boss;
   const m = sim.machines.find((candidate) => !candidate.alive);
   if (!boss || !m) return false;
-  Object.assign(m, { alive: true, x, z, y: walkHeight(x, z) + 5, hp: 28, rot: 0, scale: 2.3, zone: regionId, cool: 2, elite: true, boss: true, profile: boss.name, kind: "OVERCLOCKED", drop: boss.drop, kx: 0, kz: 0 });
+  Object.assign(m, { alive: true, x, z, y: walkHeight(x, z) + 5, hp: 28, maxHp: 28, phase: 0 as BossPhaseIndex, rot: 0, scale: 2.3, zone: regionId, cool: 2, elite: true, boss: true, profile: boss.name, kind: "OVERCLOCKED", drop: boss.drop, kx: 0, kz: 0 });
   sim.raidFight = { start: performance.now() / 1000, hurt: 0, region: regionId };
   alert(sim, `${boss.name} · ${boss.tell}`);
   return true;
@@ -690,9 +696,26 @@ export function stepSim(sim: WorldSim, input: SimInput) {
     const dx = px - m.x;
     const dz = pz - m.z;
     const d = Math.hypot(dx, dz) || 1;
+
+    // multi-phase boss combat: re-derive the phase from current hp fraction every frame, and flare
+    // once when it changes, so named bosses escalate instead of fighting as one flat health bar
+    let bossTuning: ReturnType<typeof tuningFor> | null = null;
+    if (m.boss && m.maxHp) {
+      const nextPhase = phaseForHpFraction(Math.max(0, m.hp) / m.maxHp);
+      if (m.phase === undefined) m.phase = 0;
+      if (nextPhase !== m.phase) {
+        m.phase = nextPhase;
+        const t = tuningFor(nextPhase);
+        sim.bossPhaseFlares.push({ x: m.x, z: m.z, name: m.profile, phase: nextPhase, label: t.label });
+        if (sim.bossPhaseFlares.length > 6) sim.bossPhaseFlares.shift();
+        alert(sim, `${m.profile} · ${t.label} — ${t.telegraph}`);
+      }
+      bossTuning = tuningFor(m.phase);
+    }
+
     const aggro =
       (70 + night * 60) * (m.elite ? 1.6 : 1) * sim.mods.aggroRadius * sim.adaptation.influence.aiAggression;
-    const speed = (10 + night * 6) * (m.elite ? 1.15 : 1);
+    const speed = (10 + night * 6) * (m.elite ? 1.15 : 1) * (bossTuning?.speedMult ?? 1);
     if (d < 120) hostileNear++;
 
     if (d < aggro) {
@@ -705,19 +728,19 @@ export function stepSim(sim: WorldSim, input: SimInput) {
       m.rot = Math.atan2(dx, dz);
       m.cool -= dt;
       if (d < 6 && m.cool <= 0) {
-        m.cool = 1.1;
+        m.cool = 1.1 * (bossTuning?.cooldownMult ?? 1);
         sim.combatHeat += 2;
-         hurtPlayer(sim, (m.boss ? 17 : m.elite ? 12 : 7) / sim.mods.hullDurability, m.profile);
+         hurtPlayer(sim, ((m.boss ? 17 : m.elite ? 12 : 7) * (bossTuning?.damageMult ?? 1)) / sim.mods.hullDurability, m.profile);
         // machines besieging Nexus chew the city core
         if (Math.hypot(m.x - byId("nexus").x, m.z - byId("nexus").z) < byId("nexus").radius) {
           sim.coreHp = Math.max(0, sim.coreHp - 2);
         }
       } else if (d < 55 && m.cool <= 0) {
         // ranged suppressing fire: telegraphed by sound, lands occasionally
-        m.cool = m.boss ? 1.2 : m.elite ? 1.5 : 2.1;
+        m.cool = (m.boss ? 1.2 : m.elite ? 1.5 : 2.1) * (bossTuning?.cooldownMult ?? 1);
         sim.enemyShots.push({ x: m.x, z: m.z, kind: m.kind, boss: m.boss, elite: m.elite });
         if (sim.enemyShots.length > 24) sim.enemyShots.shift();
-        if (Math.random() < 0.25) hurtPlayer(sim, (m.boss ? 6 : m.elite ? 4 : 2) / sim.mods.hullDurability, m.profile);
+        if (Math.random() < 0.25) hurtPlayer(sim, ((m.boss ? 6 : m.elite ? 4 : 2) * (bossTuning?.damageMult ?? 1)) / sim.mods.hullDurability, m.profile);
       }
     } else {
       m.rot += dt * 0.4;
