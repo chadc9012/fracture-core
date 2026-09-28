@@ -158,10 +158,12 @@ export function GameCanvas() {
     if (saved === "third") setSettings((current) => ({ ...current, firstPersonDefault: false }));
     const vol = Number(window.localStorage.getItem("world-fracture-volume"));
     if (window.localStorage.getItem("world-fracture-volume") !== null && Number.isFinite(vol)) setSettings((current) => ({ ...current, volume: Math.min(1, Math.max(0, vol)) }));
+    try { const m = window.localStorage.getItem("world-fracture-mix"); if (m) { const p = JSON.parse(m) as { music?: number; sfx?: number }; const c = (n: unknown) => (typeof n === "number" && Number.isFinite(n) ? Math.min(1, Math.max(0, n)) : 1); setSettings((current) => ({ ...current, musicVolume: c(p.music), sfxVolume: c(p.sfx) })); } } catch { /* keep defaults */ }
     try { const b = window.localStorage.getItem("world-fracture-bindings"); if (b) setSettings((current) => ({ ...current, bindings: normalizeBindings(JSON.parse(b)) })); } catch { /* keep defaults */ }
   }, []);
   const updateSettings = (next: GameSettings) => {
     if (next.volume !== settings.volume && next.volume !== undefined) window.localStorage.setItem("world-fracture-volume", String(next.volume));
+    if (next.musicVolume !== settings.musicVolume || next.sfxVolume !== settings.sfxVolume) window.localStorage.setItem("world-fracture-mix", JSON.stringify({ music: next.musicVolume ?? 1, sfx: next.sfxVolume ?? 1 }));
     if (next.firstPersonDefault !== settings.firstPersonDefault) window.localStorage.setItem("world-fracture-camera", next.firstPersonDefault ? "first" : "third");
     if (next.bindings !== settings.bindings) window.localStorage.setItem("world-fracture-bindings", JSON.stringify(next.bindings));
     setSettings(next);
@@ -440,7 +442,7 @@ export function GameCanvas() {
       {tutorial?.step === "VICTORY" && (
         <VictoryReport
           classId={cls}
-          abilityName={nodeById(classBuild(cls).slots.TACTICAL).name}
+          abilityName={nodeById(classBuild(cls).slots.TACTICAL)?.name ?? ""}
           onContinue={() => { setTutorial(null); setOperationsView("ABILITIES"); }}
         />
       )}

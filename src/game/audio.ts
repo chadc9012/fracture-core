@@ -23,10 +23,18 @@ export function unlockAudio() {
   const noise = ac.createBuffer(1, ac.sampleRate, ac.sampleRate);
   const d = noise.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
   ctx = { ac, master, sfx, music, noise, layers: null, ambientOscs: [], musicRegion: "", beat: 0 };
+  applyMix();
   startMusic(ctx);
 }
 
 export function setVolume(v: number) { volume = v; if (ctx) ctx.master.gain.setTargetAtTime(v, ctx.ac.currentTime, 0.05); }
+let musicVol = 1; let sfxVol = 1;
+/** Separate channel levels (0..1) on top of master. Music bus keeps its 0.35 base mix. */
+export function setMixVolumes(music: number, effects: number) {
+  musicVol = music; sfxVol = effects;
+  if (ctx) { ctx.music.gain.setTargetAtTime(0.35 * music, ctx.ac.currentTime, 0.05); ctx.sfx.gain.setTargetAtTime(effects, ctx.ac.currentTime, 0.05); }
+}
+function applyMix() { if (ctx) { ctx.music.gain.value = 0.35 * musicVol; ctx.sfx.gain.value = sfxVol; } }
 
 /** Spatial send: distance attenuation, stereo pan from listener yaw, lowpass muffling beyond 20m. */
 type Where = { dist?: number; pan?: number };
@@ -180,7 +188,7 @@ export function updateBiomeAmbient(regionId: string) {
   const def = BIOME_AMBIENT[regionId];
   if (!def) return;
   const dest = c.sfx;
-  const stops: (() => void)[] = [noiseBed(c, dest, { cutoff: def.bedCutoff, gain: def.bedGain, type: def.bedType }).stop];
+  const stops: (() => void)[] = [noiseBed(c, dest, { cutoff: def.bedCutoff, gain: def.bedGain, ...(def.bedType ? { type: def.bedType } : {}) }).stop];
   if (def.hum) {
     const o = c.ac.createOscillator(); o.type = "sine"; o.frequency.value = def.hum;
     const g = c.ac.createGain(); g.gain.value = 0; o.connect(g).connect(dest); o.start();

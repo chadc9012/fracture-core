@@ -210,7 +210,7 @@ export function Terrain() {
         <meshStandardMaterial color="#e8639c" roughness={0.8} />
         {flowers.map((f, i) => {
           const palette = ["#e8639c", "#f0d24a", "#f4f4f4", "#b478e0"];
-          return <Instance key={i} position={[f.x, f.y + 0.4, f.z]} scale={f.s * 0.7} color={palette[i % palette.length]} />;
+          return <Instance key={i} position={[f.x, f.y + 0.4, f.z]} scale={f.s * 0.7} color={palette[i % palette.length] ?? "#f4f4f4"} />;
         })}
       </Instances>
 
