@@ -56,7 +56,7 @@
 - [x] Cloud save restore points
 - [x] Combat audio
 - [ ] Ability VFX
-- [ ] Vendors & marketplace
+- [x] Vendors & marketplace
 - [ ] Seasons
 - [ ] Remaining uploaded design notes (UI animation, inventory UI, progression, performance)
 - [x] Map markers + HUD tracking (missions, resources, bosses)
