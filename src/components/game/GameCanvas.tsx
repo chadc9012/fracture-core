@@ -442,7 +442,7 @@ export function GameCanvas() {
       {tutorial?.step === "VICTORY" && (
         <VictoryReport
           classId={cls}
-          abilityName={nodeById(classBuild(cls).slots.TACTICAL).name}
+          abilityName={nodeById(classBuild(cls).slots.TACTICAL)?.name ?? ""}
           onContinue={() => { setTutorial(null); setOperationsView("ABILITIES"); }}
         />
       )}

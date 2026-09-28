@@ -188,7 +188,7 @@ export function updateBiomeAmbient(regionId: string) {
   const def = BIOME_AMBIENT[regionId];
   if (!def) return;
   const dest = c.sfx;
-  const stops: (() => void)[] = [noiseBed(c, dest, { cutoff: def.bedCutoff, gain: def.bedGain, type: def.bedType }).stop];
+  const stops: (() => void)[] = [noiseBed(c, dest, { cutoff: def.bedCutoff, gain: def.bedGain, ...(def.bedType ? { type: def.bedType } : {}) }).stop];
   if (def.hum) {
     const o = c.ac.createOscillator(); o.type = "sine"; o.frequency.value = def.hum;
     const g = c.ac.createGain(); g.gain.value = 0; o.connect(g).connect(dest); o.start();

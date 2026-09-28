@@ -6,14 +6,14 @@ import { Button } from "@/components/ui/button";
  * during render itself). Progress is saved continuously elsewhere, so a reload recovers from the
  * last save rather than losing the session outright. */
 export class WorldErrorBoundary extends Component<{ children: ReactNode }, { crashed: boolean }> {
-  state: { crashed: boolean } = { crashed: false };
+  override state: { crashed: boolean } = { crashed: false };
   static getDerivedStateFromError() {
     return { crashed: true };
   }
-  componentDidCatch(error: unknown) {
+  override componentDidCatch(error: unknown) {
     console.warn("[world-fracture] world render crashed, offering recovery:", error);
   }
-  render() {
+  override render() {
     if (this.state.crashed) {
       return (
         <div className="fixed inset-0 z-[200] grid place-items-center bg-background/95 backdrop-blur">
