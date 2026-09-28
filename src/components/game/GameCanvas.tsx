@@ -11,6 +11,7 @@ import { STARTER_VEHICLES, VEHICLES, vehicleAcquisition } from "@/game/vehicles"
 import { Button } from "@/components/ui/button";
 import { HUD } from "./HUD";
 import { Scene, type HudState } from "./Scene";
+import { WorldErrorBoundary } from "./WorldErrorBoundary";
 import { StartMenu, type Deployment } from "./StartMenu";
 import { SettingsWindow, DEFAULT_SETTINGS, type GameSettings } from "./SettingsWindow";
 import { TitleScreen } from "./TitleScreen";
@@ -394,6 +395,7 @@ export function GameCanvas() {
 
   return (
     <div className="fixed inset-0 bg-background">
+      <WorldErrorBoundary>
       <Canvas
         onPointerDown={(event) => {
           if (event.button === 0 || event.button === 2) event.currentTarget.requestPointerLock?.();
@@ -414,6 +416,7 @@ export function GameCanvas() {
         </Suspense>
         {RENDER_PRESETS[settings.renderTier].distortion && <EffectComposer multisampling={0}><Bloom intensity={0.55} luminanceThreshold={0.85} luminanceSmoothing={0.2} mipmapBlur /><Vignette offset={0.3} darkness={0.55} /></EffectComposer>}
       </Canvas>
+      </WorldErrorBoundary>
        <HUD hud={hud} tutorialActive={Boolean(tutorial && tutorial.step !== "VICTORY")} onMenu={() => setMenuOpen(true)} onStrategy={() => setStrategyOpen(true)} onGarage={() => setGarageOpen(true)} onAnalyze={() => setAnalysisOpen(true)} onOperations={setOperationsView} onInventory={() => setInventoryOpen(true)} onAtlas={() => setAtlasOpen(true)} />
        {!tutorial && !hud.insideInterior && <Minimap hud={hud} />}
        {!tutorial && <QuestTracker progression={progression} />}

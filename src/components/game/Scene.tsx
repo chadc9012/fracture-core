@@ -37,6 +37,7 @@ import type { ActiveBuild } from "@/game/ability-network";
 import { buildSynergy } from "@/game/ability-network";
 import type { SquadArchetype } from "@/game/adaptation";
 import { ADAPTIVE_TUTORIAL_INIT, maybeReteach, recordStruggle } from "@/game/adaptive-tutorial";
+import { isValidPlayerState, resetFrameFailureCount, sanitizePlayerState, softFrameFailure } from "@/game/safe-state";
 import type { TutorialEvent, TutorialState } from "@/game/onboarding";
 import { OXYGEN_MAX, WATER_DRAG, applyWaterDrag, classifyUnderwaterState, lowOxygenPenalty, oxygenStep, pressureSpeedMultiplier, stepBuoyancy } from "@/game/underwater";
 import { underwaterSpread } from "@/game/underwater-combat";
@@ -540,6 +541,11 @@ export function Scene({
     const dt = Math.min(raw, 0.05);
     const held = keys.current;
     const s = state.current;
+    // Safe-state guard: a null/invalid player or world ref (bad hot-reload, a race during a scene
+    // transition) skips this frame instead of throwing into React Three Fiber's render loop.
+    if (!s || !sim) return;
+    if (!isValidPlayerState(s)) { Object.assign(s, sanitizePlayerState(s)); }
+    try {
     /* Interior Building system — non-null while the player is inside a pocket-dimension room (see @/game/interiors) */
     let interior = interiorById(s.insideInterior);
     live.current = rebindLiveBuild(live.current, activeBuild, abilityBranches);
@@ -1349,6 +1355,21 @@ export function Scene({
         deathCause: sim.lastDeathCause,
         deathCargoLost: sim.lastDeathCargo,
         deaths: sim.deaths,
+      });
+    }
+    resetFrameFailureCount();
+    } catch (err) {
+      softFrameFailure(err, () => {
+        // Escalated soft-fail rollback: a genuine run of broken frames, not one freak error — snap
+        // back to the same safe respawn-at-Nexus state hurtPlayer()'s death flow already uses.
+        s.x = NEXUS_REGION.x;
+        s.z = NEXUS_REGION.z + 10;
+        s.y = walkHeight(s.x, s.z) + 1.6;
+        s.vy = 0;
+        s.vSpeed = 0;
+        s.grounded = true;
+        sim.hp = 100;
+        alert(sim, "World state recovered — respawned at Nexus City");
       });
     }
   });

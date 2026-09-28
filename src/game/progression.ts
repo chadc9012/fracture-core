@@ -2,6 +2,7 @@ import { DEFAULT_BUILD, type ActiveBuild } from "./ability-network";
 import type { VehicleId } from "./vehicles";
 import { STARTER_GEAR, STARTER_SLOTS, type GearItem, type GearSlot, type MaterialId } from "./inventory";
 import { FIRST_QUEST_ID } from "./quests";
+import { safeStorageRead, safeStorageWrite } from "./safe-state";
 
 export type PlayerProgression = {
   version: 5;
@@ -70,7 +71,7 @@ export const DEFAULT_PROGRESSION: PlayerProgression = {
 export function loadProgression(): PlayerProgression {
   if (typeof window === "undefined") return DEFAULT_PROGRESSION;
   try {
-    return normalizeProgression(JSON.parse(window.localStorage.getItem(STORAGE_KEY) ?? "null"));
+    return normalizeProgression(JSON.parse(safeStorageRead(STORAGE_KEY) ?? "null"));
   } catch {
     return DEFAULT_PROGRESSION;
   }
@@ -125,7 +126,11 @@ export function grantAbilityMastery(progression: PlayerProgression, abilityId: s
 }
 
 export function saveProgression(progression: PlayerProgression) {
-  if (typeof window !== "undefined") { window.localStorage.setItem(STORAGE_KEY, JSON.stringify(progression)); window.localStorage.setItem("world-fracture.progression.savedAt", new Date().toISOString()); }
+  if (typeof window === "undefined") return;
+  // Soft-fail: a full quota or a blocked storage API (private-browsing Safari) should mean
+  // "this session's progress isn't persisted," never an uncaught throw wherever saveProgression
+  // happened to be called from mid-gameplay.
+  if (safeStorageWrite(STORAGE_KEY, JSON.stringify(progression))) safeStorageWrite("world-fracture.progression.savedAt", new Date().toISOString());
 }
 
 export function completeMission(progression: PlayerProgression, missionId: string): PlayerProgression {
