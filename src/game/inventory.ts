@@ -1,7 +1,7 @@
 import type { PlayerProgression } from "./progression";
 import type { WorldSim } from "./sim";
 
-export type MaterialId = "scrapMetal" | "reinforcedAlloy" | "microCircuits" | "thermalShards" | "cryoCrystal" | "sporeFiber" | "bioCatalyst" | "vehicleParts" | "anomalyCarbon" | "dataShards" | "magmaCore" | "zeroCore" | "abyssCore" | "aegisCore" | "fuel" | "fuelKingCore";
+export type MaterialId = "scrapMetal" | "reinforcedAlloy" | "microCircuits" | "thermalShards" | "cryoCrystal" | "sporeFiber" | "bioCatalyst" | "vehicleParts" | "anomalyCarbon" | "dataShards" | "magmaCore" | "zeroCore" | "abyssCore" | "aegisCore" | "anomalyCore" | "fuel" | "fuelKingCore";
 export type GearSlot = "primary" | "secondary" | "heavy" | "helmet" | "chest" | "gauntlets" | "classItem" | "legs" | "vehicle";
 export type GearItem = { id: string; name: string; slot: GearSlot; power: number; level: number; element: "KINETIC" | "THERMAL" | "CRYO" | "ARC" | "BIO"; favorite?: boolean; source: string };
 
@@ -20,6 +20,7 @@ export const MATERIALS: Record<MaterialId, { name: string; source: string }> = {
   zeroCore: { name: "Zero Core", source: "Subject Zero" },
   abyssCore: { name: "Abyss Core", source: "Kraken-Vanguard" },
   aegisCore: { name: "Aegis Core", source: "Aegis-Prime" },
+  anomalyCore: { name: "Anomaly Core", source: "The Anomaly Prime" },
   fuel: { name: "Fuel", source: "Wasteland convoy raids and the Underground City Fuel Depot" },
   fuelKingCore: { name: "Fuel King Core", source: "The Fuel King" },
 };
@@ -62,10 +63,10 @@ export function claimDrops(progress: PlayerProgression, drops: WorldSim["drops"]
   let next = progress;
   for (const drop of drops) {
     next = collectDrop(next, drop.material, drop.amount);
-    if (["magmaCore", "zeroCore", "abyssCore", "aegisCore", "vehicleParts"].includes(drop.material) && drop.amount >= 3) {
+    if (["magmaCore", "zeroCore", "abyssCore", "aegisCore", "anomalyCore", "vehicleParts"].includes(drop.material) && drop.amount >= 3) {
       const id = `boss-${drop.material}`;
       if (!next.inventory.some((item) => item.id === id)) {
-        const slot: GearSlot = drop.material === "vehicleParts" ? "vehicle" : drop.material === "aegisCore" ? "chest" : "heavy";
+        const slot: GearSlot = drop.material === "vehicleParts" ? "vehicle" : drop.material === "aegisCore" ? "chest" : drop.material === "anomalyCore" ? "classItem" : "heavy";
         const element = drop.material === "magmaCore" ? "THERMAL" : drop.material === "zeroCore" ? "CRYO" : "ARC";
         next = { ...next, inventory: [...next.inventory, { id, name: `${drop.enemy} Relic`, slot, power: 260, level: 1, element, source: drop.enemy }] };
       }

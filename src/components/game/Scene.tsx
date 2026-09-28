@@ -13,6 +13,7 @@ import { directorTrend, type Mission } from "@/game/director";
 import { Terrain } from "./Terrain";
 import { Weather } from "./Weather";
 import { Wildlife } from "./Wildlife";
+import { Civilians } from "./Civilians";
 import { Bullets, Convoys, SupplyLanes, WarMachines, ZoneBeacons } from "./Actors";
 import { Car } from "./Vehicle";
 import { NexusCity } from "./NexusCity";
@@ -1360,6 +1361,7 @@ export function Scene({
       <Terrain />
       <Weather playerRef={player} weatherRef={weatherKind} />
       <Wildlife playerRef={player} />
+      <Civilians playerRef={player} />
       <Water size={WORLD_RADIUS * 4} sunRef={sunDir} />
       <NexusCity sim={sim} />
       <SupplyLanes sim={sim} />

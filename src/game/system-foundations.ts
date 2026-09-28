@@ -1,7 +1,7 @@
 import type { ClassId } from "./loadout";
 import type { ActiveBuild } from "./ability-network";
 
-export const FRACTURE_RAID = { id: "fracture-core", name: "The Fracture Core", players: { min: 6, max: 12 }, phases: ["System Entry Collapse", "AI Defense Reaction", "Fracture Puzzle Core", "Core Sentinel"], roles: { TITAN: "Anchor unstable nodes", HUNTER: "Disrupt spawn pressure", WARLOCK: "Stabilize system logic" }, reward: "Class-aligned system core", privateInstance: true } as const;
+export const FRACTURE_RAID = { id: "fracture-core", name: "The Fracture Core", players: { min: 6, max: 12 }, phases: ["System Entry Collapse", "AI Defense Reaction", "Fracture Puzzle Core", "Core Sentinel"], roles: { TITAN: "Anchor unstable nodes", HUNTER: "Disrupt spawn pressure", WARLOCK: "Stabilize system logic" }, reward: "Class-aligned system core", privateInstance: true, finalBoss: { name: "The Anomaly Prime", lair: "The Fracture — between the Nexus City perimeter gate and the Solara desert border", tell: "Reality fractures outward before the collapse", drop: "anomalyCore" } } as const;
 export const WORLD_LAYERS = ["SURFACE", "ACTIVE", "FRACTURE"] as const;
 export const BIOMES = [
   { id: "solara", name: "Solara Arc", layer: "ACTIVE", weather: "Sandstorm", mechanic: "Visibility and heat pressure", content: "Sunken Arcology Vaults", loot: "Mobility / precision" },
