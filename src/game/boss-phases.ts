@@ -39,5 +39,5 @@ export function phaseForHpFraction(fraction: number): BossPhaseIndex {
 }
 
 export function tuningFor(phase: BossPhaseIndex): BossPhaseTuning {
-  return BOSS_PHASES[phase];
+  return BOSS_PHASES[phase] ?? BOSS_PHASES[0]!;
 }
