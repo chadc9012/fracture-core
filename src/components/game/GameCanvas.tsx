@@ -21,8 +21,11 @@ import { CloudSavePanel } from "./CloudSavePanel";
 import { completeMission, loadProgression, rewardVehicle, saveProgression, type PlayerProgression } from "@/game/progression";
 import { RENDER_PRESETS } from "@/game/performance";
 import { classBuild } from "@/game/live-build";
+import { nodeById } from "@/game/ability-network";
 import { advanceTutorial, FIRST_TUTORIAL, type TutorialEvent, type TutorialState } from "@/game/onboarding";
 import { OnboardingSignal } from "./OnboardingSignal";
+import { IntroCinematic } from "./IntroCinematic";
+import { VictoryReport } from "./VictoryReport";
 import { claimDrops } from "@/game/inventory";
 import { InventoryWindow } from "./InventoryWindow";
 import { WorldAtlas } from "./WorldAtlas";
@@ -176,6 +179,7 @@ export function GameCanvas() {
   const [last, setLast] = useState<{ credits: number; kills: number } | null>(null);
   const [progression, setProgression] = useState<PlayerProgression>(() => loadProgression());
   const [tutorial, setTutorial] = useState<TutorialState | null>(null);
+  const [showIntro, setShowIntro] = useState(false);
   const [boot, setBoot] = useState(true);
   useEffect(() => { const timer = window.setTimeout(() => setBoot(false), 1700); return () => window.clearTimeout(timer); }, []);
 
@@ -343,6 +347,7 @@ export function GameCanvas() {
     }));
     setMenuOpen(false);
     setPhase("world");
+    setShowIntro(true);
   };
   const recordTutorial = (event: TutorialEvent) => setTutorial((current) => current ? advanceTutorial(current, event) : current);
   const recordMission = (event: MissionEvent) => setMission((current) => current ? advanceMission(current, event) : current);
@@ -429,6 +434,14 @@ export function GameCanvas() {
       {awakening && <AwakeningOverlay run={awakening} onEvent={recordAwakening} />}
       {mission && <BrokenSignalOverlay mission={mission} onEvent={recordMission} />}
       {tutorial && <OnboardingSignal tutorial={tutorial} classId={cls} onOpenHub={() => { setTutorial(null); setOperationsView("ABILITIES"); }} />}
+      {tutorial?.step === "VICTORY" && (
+        <VictoryReport
+          classId={cls}
+          abilityName={nodeById(classBuild(cls).slots.TACTICAL).name}
+          onContinue={() => { setTutorial(null); setOperationsView("ABILITIES"); }}
+        />
+      )}
+      {showIntro && <IntroCinematic onComplete={() => setShowIntro(false)} />}
       {strategyOpen && <RaidStrategyPanel onClose={() => setStrategyOpen(false)} />}
       {analysisOpen && <ZoneAnalysisPanel zoneName={hud.region} onClose={() => setAnalysisOpen(false)} />}
       {operationsView && <OperationsHub initialView={operationsView} progression={progression} onProgression={setProgression} onClose={() => setOperationsView(null)} />}

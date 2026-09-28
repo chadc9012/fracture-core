@@ -180,7 +180,7 @@ export function updateBiomeAmbient(regionId: string) {
   const def = BIOME_AMBIENT[regionId];
   if (!def) return;
   const dest = c.sfx;
-  const stops: (() => void)[] = [noiseBed(c, dest, { cutoff: def.bedCutoff, gain: def.bedGain, ...(def.bedType ? { type: def.bedType } : {}) }).stop];
+  const stops: (() => void)[] = [noiseBed(c, dest, { cutoff: def.bedCutoff, gain: def.bedGain, type: def.bedType }).stop];
   if (def.hum) {
     const o = c.ac.createOscillator(); o.type = "sine"; o.frequency.value = def.hum;
     const g = c.ac.createGain(); g.gain.value = 0; o.connect(g).connect(dest); o.start();
@@ -338,6 +338,22 @@ export function playDialogueBlip(speaker: string) {
   const base = 260 + (h % 220);
   const jitter = (Math.random() - 0.5) * 40;
   tone(c, out(c), { f0: base + jitter, f1: base * 0.88, dur: 0.045, type: "square", gain: 0.1 });
+}
+
+/** Low rising drone for the opening cinematic's "world already broken" beats — same synth building
+ * blocks as playEnding(), just inverted (rising instead of resolving) so it reads as tension, not release. */
+export function playIntroSwell() {
+  const c = ctx; if (!c) return; const o = out(c);
+  tone(c, o, { f0: 55, f1: 90, dur: 3.4, type: "sawtooth", gain: 0.18 });
+  tone(c, o, { f0: 110, f1: 165, dur: 3, type: "sine", gain: 0.12, at: 0.4 });
+  burst(c, o, { dur: 2.2, freq: 240, type: "lowpass", gain: 0.14, at: 0.2 });
+}
+
+/** Short synth chime for the NOVA-activation beat — brighter and shorter than playIntroSwell(). */
+export function playNovaActivation() {
+  const c = ctx; if (!c) return; const o = out(c);
+  tone(c, o, { f0: 660, f1: 880, dur: 0.5, type: "sine", gain: 0.16 });
+  tone(c, o, { f0: 990, f1: 1320, dur: 0.4, type: "triangle", gain: 0.1, at: 0.08 });
 }
 
 /** Pan/distance of a world point relative to the listener (x,z,yaw). */
