@@ -288,6 +288,12 @@ export type AdaptationMods = {
   /** True while a reflective/bulwark ability is active — ranged squad roles hold fire instead of
    * suppressing, matching the "Ranged units holding fire" threat text live-build.ts already shows. */
   rangedHoldFire: boolean;
+  /** Global Balance Controller (see balance.ts) — set each frame from the player's own power score,
+   * not from any skill branch. incomingDamageScale multiplies all damage dealt to the player
+   * (hurtPlayer in sim.ts); outgoingDamageScale folds into the player's own bulletDamage in
+   * Scene.tsx. Both default to 1 so nothing changes until Scene.tsx starts setting them. */
+  incomingDamageScale: number;
+  outgoingDamageScale: number;
 };
 
 export function adaptationMods(adaptation: Adaptation): AdaptationMods {
@@ -305,5 +311,7 @@ export function adaptationMods(adaptation: Adaptation): AdaptationMods {
     vehicleSpeed: 1 + s.VEHICLE_MASTERY.level * 0.03,
     squadArchetype: "BALANCED",
     rangedHoldFire: false,
+    incomingDamageScale: 1,
+    outgoingDamageScale: 1,
   };
 }

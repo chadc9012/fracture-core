@@ -461,7 +461,10 @@ export function fireBullet(
 
 /** hurt the player and respawn at Nexus when the hull is gone */
 export function hurtPlayer(sim: WorldSim, dmg: number, cause: string) {
-  const resolvedDamage = sim.titanActive ? absorbTitanDamage(sim.titan, dmg, performance.now() / 1000) : dmg;
+  // Global Balance Controller (balance.ts): scales every hit the player takes by their own power
+  // score before anything else runs — the one place all incoming damage already funnels through.
+  const scaled = dmg * sim.mods.incomingDamageScale;
+  const resolvedDamage = sim.titanActive ? absorbTitanDamage(sim.titan, scaled, performance.now() / 1000) : scaled;
   sim.hp = Math.max(0, sim.hp - resolvedDamage);
   if (sim.raidFight) sim.raidFight.hurt += resolvedDamage;
   if (sim.hp === 0) {

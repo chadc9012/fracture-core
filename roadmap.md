@@ -76,5 +76,6 @@
 - [x] Add a skippable opening cinematic (THE FRACTURE / factions / signal / NOVA first contact) between Identity Forge and the tutorial chamber.
 - [x] Give named regional bosses three real combat phases (speed/damage/cooldown escalation + phase-change cue) instead of one flat health bar.
 - [x] Add a safe-state layer (frame-loop error recovery, soft-fail save/load, world-crash recovery screen) so a bad frame or save never hard-crashes gameplay.
+- [x] Add a Global Balance Controller — damage scaling and reward pacing tied to a player-power score, so progression doesn't trivialize early or turn unfair late.
 
 - [ ] Export all current game code as a ZIP download

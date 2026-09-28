@@ -38,6 +38,7 @@ import { buildSynergy } from "@/game/ability-network";
 import type { SquadArchetype } from "@/game/adaptation";
 import { ADAPTIVE_TUTORIAL_INIT, maybeReteach, recordStruggle } from "@/game/adaptive-tutorial";
 import { isValidPlayerState, resetFrameFailureCount, sanitizePlayerState, softFrameFailure } from "@/game/safe-state";
+import { difficultyCurve, playerPowerScore } from "@/game/balance";
 import type { TutorialEvent, TutorialState } from "@/game/onboarding";
 import { OXYGEN_MAX, WATER_DRAG, applyWaterDrag, classifyUnderwaterState, lowOxygenPenalty, oxygenStep, pressureSpeedMultiplier, stepBuoyancy } from "@/game/underwater";
 import { underwaterSpread } from "@/game/underwater-combat";
@@ -272,7 +273,7 @@ export function Scene({
   tutorial?: TutorialState | null;
   onTutorialEvent?: (event: TutorialEvent) => void;
   onDrops?: (drops: WorldSim["drops"]) => void;
-  gear?: Pick<PlayerProgression, "inventory" | "equippedGear">;
+  gear?: Pick<PlayerProgression, "inventory" | "equippedGear" | "dungeonClears" | "completedMissions">;
   mission?: MissionRun | null;
   onMissionEvent?: (event: MissionEvent) => void;
   awakening?: AwakeningRun | null;
@@ -280,6 +281,9 @@ export function Scene({
 }) {
   const keys = useKeyboard();
   const sim = useMemo<WorldSim>(() => createSim(), []);
+  // Global Balance Controller: recomputed only when equipped gear/clears/missions actually change,
+  // not every frame — the frame loop just assigns the (already-cheap) result into sim.mods below.
+  const balance = useMemo(() => difficultyCurve(playerPowerScore({ inventory: gear?.inventory ?? [], equippedGear: gear?.equippedGear ?? {}, dungeonClears: gear?.dungeonClears ?? {}, completedMissions: gear?.completedMissions ?? [] } as Parameters<typeof playerPowerScore>[0])), [gear?.inventory, gear?.equippedGear, gear?.dungeonClears, gear?.completedMissions]);
   const missionSpawned = useRef("");
   const adaptiveTutorial = useRef(ADAPTIVE_TUTORIAL_INIT);
   const lastHpForAdaptive = useRef(100);
@@ -1133,7 +1137,8 @@ export function Scene({
     }
     if (tutorial?.step === "CONTACT" && sim.kills > tutorialKills.current) { tutorialKills.current++; onTutorialEvent?.("KILL"); }
     if (tutorial?.step === "SENTINEL" && sentinel.current && !sentinel.current.alive) { sentinel.current = null; onTutorialEvent?.("BOSS"); }
-    sim.mods.bulletDamage = Math.max(0.5, 1.2 * live.current.damageMultiplier * (1 + live.current.momentum * 0.25));
+    sim.mods.incomingDamageScale = balance.incomingDamageScale;
+    sim.mods.bulletDamage = Math.max(0.5, 1.2 * live.current.damageMultiplier * (1 + live.current.momentum * 0.25) * balance.outgoingDamageScale);
     // the equipped ability build's archetype and active shield/reflect state actually change how enemy
     // squads move and hold fire (see squadMove in enemy-intelligence.ts), not just the HUD threat line
     const synergyArchetype = buildSynergy(live.current.equipped).archetype;

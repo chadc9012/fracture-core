@@ -1,5 +1,6 @@
 import type { PlayerProgression } from "./progression";
 import type { WorldSim } from "./sim";
+import { playerPowerScore, rewardPacing } from "./balance";
 
 export type MaterialId = "scrapMetal" | "reinforcedAlloy" | "microCircuits" | "thermalShards" | "cryoCrystal" | "sporeFiber" | "bioCatalyst" | "vehicleParts" | "anomalyCarbon" | "dataShards" | "magmaCore" | "zeroCore" | "abyssCore" | "aegisCore" | "anomalyCore" | "fuel" | "fuelKingCore";
 export type GearSlot = "primary" | "secondary" | "heavy" | "helmet" | "chest" | "gauntlets" | "classItem" | "legs" | "vehicle";
@@ -61,8 +62,12 @@ export function infuseGear(progress: PlayerProgression, id: string, element: Gea
 
 export function claimDrops(progress: PlayerProgression, drops: WorldSim["drops"]): PlayerProgression {
   let next = progress;
+  // Global Balance Controller (balance.ts): paces material income against the player's own power —
+  // a boost while under-geared, tapering toward and then below 1x late-game so income doesn't
+  // outrun what upgrade/vendor costs already assume.
+  const pacing = rewardPacing(playerPowerScore(progress));
   for (const drop of drops) {
-    next = collectDrop(next, drop.material, drop.amount);
+    next = collectDrop(next, drop.material, Math.max(1, Math.round(drop.amount * pacing)));
     if (["magmaCore", "zeroCore", "abyssCore", "aegisCore", "anomalyCore", "vehicleParts"].includes(drop.material) && drop.amount >= 3) {
       const id = `boss-${drop.material}`;
       if (!next.inventory.some((item) => item.id === id)) {
