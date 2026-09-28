@@ -1,5 +1,8 @@
 # Roadmap
 
+- [ ] Build explorable Thalassia District B1 street with glass ocean promenade, elevated markets, luminous signs, and a moving overhead train.
+- [ ] Build a matching street-level Neon City market with walkable lanes, layered storefronts, signage, and moving elevated transit.
+
 - [x] Make WORLD FRACTURE the sole game identity across the entire project.
 - [x] Add a cinematic WORLD FRACTURE title screen with Continue, New Game, Loadout / Customize, Settings, and Exit.
 - [x] Consolidate factions as Resonants, Controllers, Breakers, Corp Architects, Nomads, and neutral; only the first three participate in player allegiance.
