@@ -16,6 +16,10 @@ import { addObstacle } from "@/game/obstacles";
  * already sunk the seabed to its deepest point, so the whole structure sits fully submerged
  * under real water depth. Purely hand-built set-dressing (same category as NexusCity.tsx /
  * NeonCity.tsx) — no new region entry; reachable by simply swimming out and down.
+ *
+ * Visual target for the interior "street view" (District B1): src/assets/thalassia-street-reference.jpg
+ * — glass-vault promenade with ocean on one side, amber strip lights, monorail overhead, tiered
+ * market decks with holo signs (KAIZEN, AURA-SYS, NEO-FISHERY), steam vents and crowds.
  */
 export const THALASSIA_CENTER = { x: -97, z: -208 };
 const SEA_FLOOR_Y = -16;

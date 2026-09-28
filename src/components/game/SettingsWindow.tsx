@@ -6,6 +6,8 @@ export type GameSettings = {
   renderTier: "LOW" | "MEDIUM" | "HIGH" | "ULTRA";
   bindings?: Bindings;
   volume?: number;
+  musicVolume?: number;
+  sfxVolume?: number;
 };
 
 export const DEFAULT_SETTINGS: GameSettings = {
@@ -80,7 +82,9 @@ export function SettingsWindow({
             on={settings.hudDensity === "full"}
             onChange={(v) => set({ hudDensity: v ? "full" : "lean" })}
           />
-          <label className="block pt-2"><span className="flex justify-between font-mono text-[9px] uppercase tracking-[0.2em] text-muted-foreground"><span>Sound volume</span><span>{Math.round((settings.volume ?? 0.7) * 100)}%</span></span><input type="range" min={0} max={1} step={0.05} value={settings.volume ?? 0.7} onChange={(e) => set({ volume: Number(e.target.value) })} className="mt-1 w-full accent-primary" /></label>
+          {([["Master volume", "volume", 0.7], ["Music volume", "musicVolume", 1], ["Sound effects volume", "sfxVolume", 1]] as const).map(([label, key, def]) => (
+            <label key={key} className="block pt-2"><span className="flex justify-between font-mono text-[9px] uppercase tracking-[0.2em] text-muted-foreground"><span>{label}</span><span>{Math.round((settings[key] ?? def) * 100)}%</span></span><input type="range" min={0} max={1} step={0.05} value={settings[key] ?? def} onChange={(e) => set({ [key]: Number(e.target.value) })} className="mt-1 w-full accent-primary" /></label>
+          ))}
           <ControlsPanel bindings={settings.bindings ?? DEFAULT_BINDINGS} onChange={(bindings) => set({ bindings })} />
         </div>
 

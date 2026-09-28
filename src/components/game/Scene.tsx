@@ -504,6 +504,7 @@ export function Scene({
     return () => { window.removeEventListener("pointerdown", unlock); window.removeEventListener("keydown", unlock); sfx.updateEngine(false, "", 0, 0, false); };
   }, []);
   useEffect(() => sfx.setVolume(settings.volume ?? 0.7), [settings.volume]);
+  useEffect(() => sfx.setMixVolumes(settings.musicVolume ?? 1, settings.sfxVolume ?? 1), [settings.musicVolume, settings.sfxVolume]);
   const skyColor = useMemo(() => new THREE.Color(), []);
   const fogColor = useMemo(() => new THREE.Color(), []);
   const instabilityColor = useMemo(() => new THREE.Color("#ff2d55"), []);
