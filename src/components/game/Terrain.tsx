@@ -5,7 +5,8 @@ import * as THREE from "three";
 import { REGIONS, WORLD_RADIUS, type Region } from "@/game/world";
 import { mulberry32 } from "@/game/useKeyboard";
 import { WATER_LEVEL, colorAt, heightAt, slopeAt } from "@/game/terrain";
-import { groundDetailTextures, propDetailTextures } from "@/game/detail-texture";
+import { groundDetailTextures } from "@/game/detail-texture";
+import { useInstancedModel } from "@/game/nature-models";
 import { LANE_HALF_WIDTH, distanceToRoad } from "@/game/lanes";
 import {
   addObstacle,
@@ -17,6 +18,19 @@ import {
 
 const SEG = 160;
 const SIZE = WORLD_RADIUS * 2.1;
+
+// First-pass scale multipliers for the real GLB nature-kit models, tuned against the primitive
+// geometry they replace (trees vs. the old ~3-unit cone canopies, rocks/boulders vs. the old
+// 2.2-2.6 radius icosahedra/dodecahedra). These models' native size in the source file is unknown
+// from this sandbox (no way to render/inspect the GLB visually here) — if trees or rocks come out
+// too small/huge in the live preview, these are the numbers to tune.
+const NATURE_MODEL_SCALE = {
+  tree: 1.8,
+  rockLarge: 2.4,
+  rockMedium: 1.9,
+  boulder: 2.6,
+  deadTree: 1.6,
+};
 
 type Prop = { x: number; z: number; y: number; s: number; r: number; o?: Obstacle };
 
@@ -164,47 +178,43 @@ export function Terrain() {
   const liveWrecks = alive(wrecks);
 
   const craterY = useMemo(() => heightAt(ember.x, ember.z), [ember]);
-  const rockDetail = useMemo(() => propDetailTextures(3), []);
+
+  // Real low-poly nature models (nature-models.ts) replacing bare primitive geometry — same
+  // <Instances> pipeline, so a whole forest/rockfield is still one draw call per species.
+  const pineModel = useInstancedModel("tree_pine");
+  const oakModel = useInstancedModel("tree_oak");
+  const birchModel = useInstancedModel("tree_birch");
+  const deadTreeModel = useInstancedModel("tree_dead");
+  const rockLargeModel = useInstancedModel("rock_large");
+  const rockMediumModel = useInstancedModel("rock_medium");
+  const boulderClusterModel = useInstancedModel("boulder_cluster");
 
   return (
     <group>
       <Ground />
 
-      {/* forest: trunk + two staggered canopy layers, hue-jittered per instance so the
-          treeline reads as a forest instead of one stamped-out cone repeated 120 times */}
-      <Instances limit={liveTrees.length} castShadow>
-        <cylinderGeometry args={[0.32, 0.55, 4, 7]} />
-        <meshStandardMaterial color="#4a3524" roughness={0.95} />
-        {liveTrees.map((t, i) => (
-          <Instance key={i} position={[t.x, t.y + 2 * t.s, t.z]} scale={[1, t.s, 1]} color={jitter("#4a3524", i, 0.02, 0.1)} />
-        ))}
-      </Instances>
-      <Instances limit={liveTrees.length} castShadow>
-        <coneGeometry args={[2.7, 5, 8]} />
-        <meshStandardMaterial color="#2c7a41" roughness={0.9} />
-        {liveTrees.map((t, i) => (
-          <Instance
-            key={i}
-            position={[t.x, t.y + 3.6 * t.s + 1.1, t.z]}
-            scale={[t.s * (0.94 + (i % 5) * 0.02), t.s * 1.05, t.s * (0.94 + (i % 3) * 0.03)]}
-            rotation-y={t.r}
-            color={jitter("#2c7a41", i, 0.035, 0.12)}
-          />
-        ))}
-      </Instances>
-      <Instances limit={liveTrees.length} castShadow>
-        <coneGeometry args={[1.7, 4.2, 7]} />
-        <meshStandardMaterial color="#3a8f4d" roughness={0.9} />
-        {liveTrees.map((t, i) => (
-          <Instance
-            key={i}
-            position={[t.x, t.y + 5.9 * t.s + 1.6, t.z]}
-            scale={[t.s * (0.9 + (i % 4) * 0.03), t.s * 0.95, t.s * (0.9 + (i % 6) * 0.02)]}
-            rotation-y={t.r + 0.6}
-            color={jitter("#3a8f4d", i + 41, 0.035, 0.12)}
-          />
-        ))}
-      </Instances>
+      {/* forest: real low-poly tree models (Pine/Oak/Birch), split by index so the treeline reads as
+          a mixed forest instead of one repeated shape. NATURE_MODEL_SCALE below is a first-pass
+          estimate of these models' native size vs. the old cone trees — if trees come out too
+          small/huge in the live preview, that's the one number to tune. */}
+      {[
+        { model: pineModel, species: 0 },
+        { model: oakModel, species: 1 },
+        { model: birchModel, species: 2 },
+      ].map(({ model, species }) =>
+        model && (
+          <Instances key={species} limit={liveTrees.length} castShadow geometry={model.geometry} material={model.material}>
+            {liveTrees.filter((_, i) => i % 3 === species).map((t, i) => (
+              <Instance
+                key={i}
+                position={[t.x, t.y, t.z]}
+                scale={t.s * NATURE_MODEL_SCALE.tree}
+                rotation-y={t.r}
+              />
+            ))}
+          </Instances>
+        ),
+      )}
       <Instances limit={flowers.length}>
         <sphereGeometry args={[0.4, 6, 5]} />
         <meshStandardMaterial color="#e8639c" roughness={0.8} />
@@ -214,37 +224,36 @@ export function Terrain() {
         })}
       </Instances>
 
-      {/* frostspire boulders on the high slopes — mixed silhouettes + per-instance grey jitter */}
-      <Instances limit={liveBoulders.length} castShadow>
-        <icosahedronGeometry args={[2.6, 0]} />
-        <meshStandardMaterial color="#c3d4e6" roughness={0.7} map={rockDetail.map} normalMap={rockDetail.normalMap} normalScale={new THREE.Vector2(0.5, 0.5)} />
-        {liveBoulders.map((b, i) =>
-          i % 2 === 0 ? (
-            <Instance
-              key={i}
-              position={[b.x, b.y + 1.3 * b.s, b.z]}
-              scale={[b.s * 0.95, b.s * (0.85 + (i % 3) * 0.1), b.s]}
-              rotation-y={b.r}
-              color={jitter("#c3d4e6", i, 0.02, 0.1)}
-            />
-          ) : null,
-        )}
-      </Instances>
-      <Instances limit={liveBoulders.length} castShadow>
-        <dodecahedronGeometry args={[2.6, 0]} />
-        <meshStandardMaterial color="#c3d4e6" roughness={0.75} map={rockDetail.map} normalMap={rockDetail.normalMap} normalScale={new THREE.Vector2(0.5, 0.5)} />
-        {liveBoulders.map((b, i) =>
-          i % 2 === 1 ? (
-            <Instance
-              key={i}
-              position={[b.x, b.y + 1.4 * b.s, b.z]}
-              scale={[b.s, b.s * (0.85 + (i % 4) * 0.08), b.s * 0.92]}
-              rotation-y={b.r}
-              color={jitter("#c3d4e6", i, 0.02, 0.1)}
-            />
-          ) : null,
-        )}
-      </Instances>
+      {/* frostspire boulders on the high slopes — real rock/boulder GLB models, split by index so
+          the field doesn't read as one repeated shape */}
+      {rockLargeModel && (
+        <Instances limit={liveBoulders.length} castShadow geometry={rockLargeModel.geometry} material={rockLargeModel.material}>
+          {liveBoulders.map((b, i) =>
+            i % 2 === 0 ? (
+              <Instance
+                key={i}
+                position={[b.x, b.y, b.z]}
+                scale={b.s * NATURE_MODEL_SCALE.rockLarge}
+                rotation-y={b.r}
+              />
+            ) : null,
+          )}
+        </Instances>
+      )}
+      {boulderClusterModel && (
+        <Instances limit={liveBoulders.length} castShadow geometry={boulderClusterModel.geometry} material={boulderClusterModel.material}>
+          {liveBoulders.map((b, i) =>
+            i % 2 === 1 ? (
+              <Instance
+                key={i}
+                position={[b.x, b.y, b.z]}
+                scale={b.s * NATURE_MODEL_SCALE.boulder}
+                rotation-y={b.r}
+              />
+            ) : null,
+          )}
+        </Instances>
+      )}
 
       {/* volcano crater glow */}
       <group position={[ember.x, 0, ember.z]}>
@@ -268,37 +277,35 @@ export function Terrain() {
         ))}
       </Instances>
 
-      {/* rocks across the war belt and desert — split silhouettes + jittered grey/tan tones */}
-      <Instances limit={liveRocks.length} castShadow>
-        <icosahedronGeometry args={[2.2, 0]} />
-        <meshStandardMaterial color="#7c6a52" roughness={0.95} map={rockDetail.map} normalMap={rockDetail.normalMap} normalScale={new THREE.Vector2(0.5, 0.5)} />
-        {liveRocks.map((r, i) =>
-          i % 2 === 0 ? (
-            <Instance
-              key={i}
-              position={[r.x, r.y + 1.1 * r.s, r.z]}
-              scale={[r.s * 0.9, r.s * (0.8 + (i % 3) * 0.12), r.s]}
-              rotation-y={r.r}
-              color={jitter("#7c6a52", i, 0.03, 0.14)}
-            />
-          ) : null,
-        )}
-      </Instances>
-      <Instances limit={liveRocks.length} castShadow>
-        <dodecahedronGeometry args={[2.2, 0]} />
-        <meshStandardMaterial color="#7c6a52" roughness={1} map={rockDetail.map} normalMap={rockDetail.normalMap} normalScale={new THREE.Vector2(0.5, 0.5)} />
-        {liveRocks.map((r, i) =>
-          i % 2 === 1 ? (
-            <Instance
-              key={i}
-              position={[r.x, r.y + 1.2 * r.s, r.z]}
-              scale={[r.s, r.s * (0.8 + (i % 4) * 0.1), r.s * 0.9]}
-              rotation-y={r.r}
-              color={jitter("#7c6a52", i, 0.03, 0.14)}
-            />
-          ) : null,
-        )}
-      </Instances>
+      {/* rocks across the war belt and desert — real rock GLB models, split silhouettes */}
+      {rockMediumModel && (
+        <Instances limit={liveRocks.length} castShadow geometry={rockMediumModel.geometry} material={rockMediumModel.material}>
+          {liveRocks.map((r, i) =>
+            i % 2 === 0 ? (
+              <Instance
+                key={i}
+                position={[r.x, r.y, r.z]}
+                scale={r.s * NATURE_MODEL_SCALE.rockMedium}
+                rotation-y={r.r}
+              />
+            ) : null,
+          )}
+        </Instances>
+      )}
+      {rockLargeModel && (
+        <Instances limit={liveRocks.length} castShadow geometry={rockLargeModel.geometry} material={rockLargeModel.material}>
+          {liveRocks.map((r, i) =>
+            i % 2 === 1 ? (
+              <Instance
+                key={i}
+                position={[r.x, r.y, r.z]}
+                scale={r.s * NATURE_MODEL_SCALE.rockLarge}
+                rotation-y={r.r}
+              />
+            ) : null,
+          )}
+        </Instances>
+      )}
       <Instances limit={liveWrecks.length} castShadow>
         <boxGeometry args={[5, 2.2, 2.6]} />
         <meshStandardMaterial color="#5b4a3f" metalness={0.4} roughness={0.65} />
@@ -316,14 +323,19 @@ export function Terrain() {
         ))}
       </Instances>
 
-      {/* swamp dead trees */}
-      <Instances limit={liveSwamp.length} castShadow>
-        <cylinderGeometry args={[0.15, 0.5, 8, 6]} />
-        <meshStandardMaterial color="#1d2b22" roughness={1} />
-        {liveSwamp.map((t, i) => (
-          <Instance key={i} position={[t.x, t.y + 4 * t.s, t.z]} scale={[1, t.s, 1]} rotation-z={(t.r - 3) * 0.03} />
-        ))}
-      </Instances>
+      {/* swamp dead trees — real dead-tree GLB model */}
+      {deadTreeModel && (
+        <Instances limit={liveSwamp.length} castShadow geometry={deadTreeModel.geometry} material={deadTreeModel.material}>
+          {liveSwamp.map((t, i) => (
+            <Instance
+              key={i}
+              position={[t.x, t.y, t.z]}
+              scale={t.s * NATURE_MODEL_SCALE.deadTree}
+              rotation-y={t.r}
+            />
+          ))}
+        </Instances>
+      )}
 
     </group>
   );

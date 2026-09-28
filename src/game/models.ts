@@ -13,6 +13,17 @@ export const MODELS = {
   truck: "/__l5e/assets-v1/6c088128-5442-434b-b5ed-3ccbc6d52326/truck.glb",
   van: "/__l5e/assets-v1/c0075348-1bc6-4e67-81dd-990ce9905412/van.glb",
   wheel: "/__l5e/assets-v1/95ab0f27-e0d2-453c-8486-229d401f5cc0/wheel.glb",
+  // Real CC0 low-poly nature models (Meshy.ai-generated "nature-kit" pack, mirrored via jsdelivr's
+  // GitHub CDN — free, CORS-enabled, no asset-manager upload needed) replacing bare cone/icosahedron
+  // primitives for world dressing. See useInstancedModel in nature-models.ts for how these feed into
+  // the existing instanced-rendering pipeline in Terrain.tsx.
+  tree_pine: "https://cdn.jsdelivr.net/gh/theprototype-app/packs@main/nature-kit/Pine/glTF-Binary/Pine.glb",
+  tree_oak: "https://cdn.jsdelivr.net/gh/theprototype-app/packs@main/nature-kit/Oak/glTF-Binary/Oak.glb",
+  tree_birch: "https://cdn.jsdelivr.net/gh/theprototype-app/packs@main/nature-kit/Birch/glTF-Binary/Birch.glb",
+  tree_dead: "https://cdn.jsdelivr.net/gh/theprototype-app/packs@main/nature-kit/DeadTree/glTF-Binary/DeadTree.glb",
+  rock_large: "https://cdn.jsdelivr.net/gh/theprototype-app/packs@main/nature-kit/RockLarge/glTF-Binary/RockLarge.glb",
+  rock_medium: "https://cdn.jsdelivr.net/gh/theprototype-app/packs@main/nature-kit/RockMedium/glTF-Binary/RockMedium.glb",
+  boulder_cluster: "https://cdn.jsdelivr.net/gh/theprototype-app/packs@main/nature-kit/BoulderCluster/glTF-Binary/BoulderCluster.glb",
 } as const;
 
 export type ModelKey = keyof typeof MODELS;
