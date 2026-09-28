@@ -34,7 +34,7 @@
 - [x] Add a unified data-driven combat ability/effect/state/synergy engine.
 - [x] Add ability mastery, branch evolution, modifiers, and premium progression UI.
 - [x] Verify TypeScript, production health, runtime flows, responsive UI, and legacy-name audit.
-- [ ] Replace the current launch-to-world jump with a staged ten-minute identity onboarding and first victory report.
+- [x] Replace the current launch-to-world jump with a staged ten-minute identity onboarding and first victory report.
 - [ ] Connect equipped ability branches to live combat, enemy threat decisions, dungeon rules, environment responses, and HUD state.
 - [ ] Add private 2–3 player dungeon lobby UX, invite links, ready checks, class visibility, launch gating, and completion summaries.
 - [ ] Add build-aware dungeon modifiers, behavior-shaped loot, transformation crafting, repeat-clear perks, and reward persistence.
@@ -58,7 +58,7 @@
 - [ ] Ability VFX
 - [ ] Vendors & marketplace
 - [ ] Seasons
-- [ ] Remaining uploaded design notes (UI animation, inventory UI, cinematic onboarding, progression, performance)
+- [ ] Remaining uploaded design notes (UI animation, inventory UI, progression, performance)
 - [x] Map markers + HUD tracking (missions, resources, bosses)
 - [x] Operator model matches class reference art
 - [x] Destructible interior (single building near spawn)
@@ -66,5 +66,13 @@
 - [ ] Replace boxy world props with higher-detail models
 - [x] Replace tabbed character creation with the spatial Identity Forge chamber and cinematic armor handoff.
 - [x] Replace the dashboard-like in-game overlay with a clean combat HUD.
+- [x] Add a holographic HUD chrome restyle (HUD, tracker, minimap, inventory, start menu) matching Destiny-style reference art.
+- [x] Add procedural weather particles (rain/snow/ashfall/dust) and procedural ground/rock detail textures.
+- [x] Add ambient wildlife (deer, birds, fish, dogs, cats, snakes) with wander/flee AI.
+- [x] Add ambient civilian NPCs (Nexus techs/vendors/medic, Veridan scavenger/observer) with wander/greet AI.
+- [x] Add The Anomaly Prime as the named final boss of The Fracture Core raid.
+- [x] Add Neon City (Nexus-adjacent market/cybernetics district) and Thalassia (sunken ark-city) as explorable locations.
+- [x] Add a skippable opening cinematic (THE FRACTURE / factions / signal / NOVA first contact) between Identity Forge and the tutorial chamber.
+- [x] Give named regional bosses three real combat phases (speed/damage/cooldown escalation + phase-change cue) instead of one flat health bar.
 
 - [ ] Export all current game code as a ZIP download
