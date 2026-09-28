@@ -258,6 +258,7 @@ export function Scene({
   onMissionEvent,
   awakening,
   onAwakeningEvent,
+  onXP,
 }: {
   onHud: (s: HudState) => void;
   settings?: GameSettings;
@@ -278,6 +279,7 @@ export function Scene({
   onMissionEvent?: (event: MissionEvent) => void;
   awakening?: AwakeningRun | null;
   onAwakeningEvent?: (event: AwakeningEvent) => void;
+  onXP?: (event: WorldSim["xpEvents"][number]) => void;
 }) {
   const keys = useKeyboard();
   const sim = useMemo<WorldSim>(() => createSim(), []);
@@ -1033,6 +1035,7 @@ export function Scene({
       sfx.updateMusicRegion(interior ? interior.regionId : here?.id ?? "");
       for (const shot of sim.enemyShots.splice(0)) sfx.playEnemyShot(shot.kind, shot.boss || shot.elite, sfx.where(s.x, s.z, s.yaw, shot.x, shot.z));
       for (const flare of sim.bossPhaseFlares.splice(0)) { sfx.playBossPhaseChange(flare.phase); s.punch += 1.4 + flare.phase * 0.6; }
+      for (const event of sim.xpEvents.splice(0)) onXP?.(event);
       const speedNow = velocity.length();
       if (!s.inVehicle && speedNow > 3 && s.y - walkHeight(s.x, s.z) < 1.9) {
         a.stepT -= dt * (speedNow / 30) * 2.4;

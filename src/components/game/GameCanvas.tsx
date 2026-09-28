@@ -41,8 +41,11 @@ import { dialogueFor, revisitDialogueFor, type DialogueLine } from "@/game/dialo
 import { DialogueOverlay } from "./DialogueOverlay";
 import { EndingOverlay, endingTierFor } from "./EndingOverlay";
 import { DeathOverlay } from "./DeathOverlay";
-import { playEnding } from "@/game/audio";
+import { playEnding, playLevelUp, playNovaUnlock } from "@/game/audio";
 import { Minimap } from "./Minimap";
+import { grantXP } from "@/game/xp";
+import type { WorldSim } from "@/game/sim";
+import { LevelUpOverlay } from "./LevelUpOverlay";
 
 const START = REGIONS.find((r) => r.id === "nexus")!;
 
@@ -354,6 +357,18 @@ export function GameCanvas() {
   };
   const recordTutorial = (event: TutorialEvent) => setTutorial((current) => current ? advanceTutorial(current, event) : current);
   const recordMission = (event: MissionEvent) => setMission((current) => current ? advanceMission(current, event) : current);
+  const [levelUpFlash, setLevelUpFlash] = useState<{ level: number; novaUnlocked: string[] } | null>(null);
+  const recordXP = (event: WorldSim["xpEvents"][number]) => {
+    setProgression((current) => {
+      const result = grantXP(current, event.type, { enemyLevel: event.enemyLevel, combatHeat: event.combatHeat });
+      if (result.leveledUp) {
+        playLevelUp();
+        if (result.novaUnlocked.length) playNovaUnlock();
+        setLevelUpFlash({ level: result.newLevel, novaUnlocked: result.novaUnlocked });
+      }
+      return result.progression;
+    });
+  };
 
   const toOrbit = () => {
     setLast({ credits: hud.credits, kills: hud.kills });
@@ -414,7 +429,7 @@ export function GameCanvas() {
       >
         <color attach="background" args={["#bfe4f2"]} />
         <Suspense fallback={null}>
-            <Scene onHud={setHud} onDrops={(drops) => setProgression((current) => claimDrops(current, drops))} gear={progression} settings={settings} onCameraPreference={(firstPerson) => { window.localStorage.setItem("world-fracture-camera", firstPerson ? "first" : "third"); setSettings((current) => ({ ...current, firstPersonDefault: firstPerson })); }} playerClass={cls} subclassId={subclass} appearanceId={appearance} vehicleId={vehicleId} vehicleUnlocked={vehicleUnlocked} activeBuild={progression.activeBuild} abilityBranches={progression.abilityBranches} tutorial={tutorial} onTutorialEvent={recordTutorial} mission={mission} onMissionEvent={recordMission} awakening={awakening} onAwakeningEvent={recordAwakening} armorState={hud.hp < 35 ? "FRACTURE" : hud.heat > 65 ? "ASCENDANT" : hud.heat > 15 ? "ACTIVE" : "STABLE"} />
+            <Scene onHud={setHud} onDrops={(drops) => setProgression((current) => claimDrops(current, drops))} gear={progression} settings={settings} onCameraPreference={(firstPerson) => { window.localStorage.setItem("world-fracture-camera", firstPerson ? "first" : "third"); setSettings((current) => ({ ...current, firstPersonDefault: firstPerson })); }} playerClass={cls} subclassId={subclass} appearanceId={appearance} vehicleId={vehicleId} vehicleUnlocked={vehicleUnlocked} activeBuild={progression.activeBuild} abilityBranches={progression.abilityBranches} tutorial={tutorial} onTutorialEvent={recordTutorial} mission={mission} onMissionEvent={recordMission} awakening={awakening} onAwakeningEvent={recordAwakening} onXP={recordXP} armorState={hud.hp < 35 ? "FRACTURE" : hud.heat > 65 ? "ASCENDANT" : hud.heat > 15 ? "ACTIVE" : "STABLE"} />
         </Suspense>
         {RENDER_PRESETS[settings.renderTier].distortion && <EffectComposer multisampling={0}><Bloom intensity={0.55} luminanceThreshold={0.85} luminanceSmoothing={0.2} mipmapBlur /><Vignette offset={0.3} darkness={0.55} /></EffectComposer>}
       </Canvas>
@@ -424,6 +439,7 @@ export function GameCanvas() {
        {!tutorial && <QuestTracker progression={progression} />}
        {activeDialogue && <DialogueOverlay lines={activeDialogue} onDone={() => setActiveDialogue(null)} />}
        {deathInfo && <DeathOverlay cause={deathInfo.cause} cargoLost={deathInfo.cargoLost} deaths={deathInfo.deaths} onDone={() => setDeathInfo(null)} />}
+       {levelUpFlash && <LevelUpOverlay level={levelUpFlash.level} novaUnlocked={levelUpFlash.novaUnlocked} onDone={() => setLevelUpFlash(null)} />}
        {showEnding && <EndingOverlay progression={progression} onClose={() => setShowEnding(false)} />}
        {hud.insideInterior && hud.interiorName && hud.sub.startsWith("Shop") && (
          <div className="pointer-events-none absolute bottom-24 left-1/2 -translate-x-1/2 text-center">

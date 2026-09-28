@@ -330,6 +330,22 @@ export function playEnding(tier: "CONTROL" | "CHAOS" | "BALANCE") {
   }
 }
 
+/** The "dopamine hit" cue for a player level-up (Loot + XP System v1) — a short bright ascending arpeggio. */
+export function playLevelUp() {
+  const c = ctx; if (!c) return; const o = out(c);
+  const notes = [440, 554, 659, 880];
+  notes.forEach((f, i) => tone(c, o, { f0: f, f1: f, dur: 0.22, type: "triangle", gain: 0.28, at: i * 0.07 }));
+  burst(c, o, { dur: 0.4, freq: 2200, q: 0.5, gain: 0.2, at: 0.24 });
+}
+
+/** A weightier cue for a NOVA meta-progression unlock — distinct from an ordinary level-up. */
+export function playNovaUnlock() {
+  const c = ctx; if (!c) return; const o = out(c);
+  tone(c, o, { f0: 220, f1: 660, dur: 1.1, type: "sawtooth", gain: 0.22 });
+  tone(c, o, { f0: 880, f1: 1320, dur: 0.6, type: "sine", gain: 0.18, at: 0.15 });
+  burst(c, o, { dur: 0.8, freq: 1600, q: 0.4, gain: 0.25, at: 0.1 });
+}
+
 /** Boss phase-change sting — escalates with phase index so OVERLOADED (phase 2) hits harder/lower than OVERDRIVEN (phase 1). */
 export function playBossPhaseChange(phase: 0 | 1 | 2) {
   const c = ctx; if (!c) return; const o = out(c);

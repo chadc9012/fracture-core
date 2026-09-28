@@ -77,5 +77,6 @@
 - [x] Give named regional bosses three real combat phases (speed/damage/cooldown escalation + phase-change cue) instead of one flat health bar.
 - [x] Add a safe-state layer (frame-loop error recovery, soft-fail save/load, world-crash recovery screen) so a bad frame or save never hard-crashes gameplay.
 - [x] Add a Global Balance Controller — damage scaling and reward pacing tied to a player-power score, so progression doesn't trivialize early or turn unfair late.
+- [x] Add Loot + XP System v1 — an overall player level/XP engine (kills, elites, bosses, missions), a level-up moment, and NOVA meta-progression unlocks, connected to the existing AI loot generator.
 
 - [ ] Export all current game code as a ZIP download

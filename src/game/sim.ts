@@ -190,6 +190,8 @@ export type WorldSim = {
   enemyShots: { x: number; z: number; kind: string; boss: boolean; elite: boolean }[];
   /** boss phase transitions this frame, consumed by the audio/camera layer (see boss-phases.ts) */
   bossPhaseFlares: { x: number; z: number; name: string; phase: BossPhaseIndex; label: string }[];
+  /** Loot + XP System v1 (xp.ts) — Scene.tsx drains this each frame and applies it to PlayerProgression. */
+  xpEvents: { type: "KILL" | "ELITE_KILL" | "BOSS_KILL"; enemyLevel: number; combatHeat: number }[];
   nextDropId: number;
 };
 
@@ -224,6 +226,7 @@ export function defeatMachine(sim: WorldSim, m: Machine) {
   const amount = m.boss ? 3 : m.elite ? 2 : 1;
   sim.materials[material] = (sim.materials[material] ?? 0) + amount;
   sim.drops.push({ id: sim.nextDropId++, material, amount, enemy: m.profile });
+  sim.xpEvents.push({ type: m.boss ? "BOSS_KILL" : m.elite ? "ELITE_KILL" : "KILL", enemyLevel: 1 + Math.floor(sim.combatHeat / 25), combatHeat: sim.combatHeat });
   dropLoot(sim, zoneOf(sim, m.zone), m.boss ? "ELITE" : m.profile);
   if (m.boss) {
     const fight = sim.raidFight ?? { start: performance.now() / 1000, hurt: 50, region: m.zone };
@@ -357,7 +360,7 @@ export function createSim(): WorldSim {
     titan: createTitanState(),
     titanActive: false,
     equippedElement: "KINETIC",
-    materials: {}, drops: [], enemyShots: [], bossPhaseFlares: [], nextDropId: 0,
+    materials: {}, drops: [], enemyShots: [], bossPhaseFlares: [], xpEvents: [], nextDropId: 0,
   };
 }
 

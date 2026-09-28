@@ -3,6 +3,7 @@ import type { VehicleId } from "./vehicles";
 import { STARTER_GEAR, STARTER_SLOTS, type GearItem, type GearSlot, type MaterialId } from "./inventory";
 import { FIRST_QUEST_ID } from "./quests";
 import { safeStorageRead, safeStorageWrite } from "./safe-state";
+import { grantXP } from "./xp";
 
 export type PlayerProgression = {
   version: 5;
@@ -33,6 +34,13 @@ export type PlayerProgression = {
   /** has the fd-18 ending screen (EndingOverlay.tsx) already played once? Distinct from completedMissions
    * so a returning player who already finished the campaign never gets it replayed on load. */
   endingSeen: boolean;
+  /** Loot + XP System v1 (xp.ts) — overall player level/XP, distinct from per-ability mastery
+   * (abilityMastery above). Level-ups fund calibrationTokens directly rather than a separate
+   * currency. novaLevel/novaUnlocks track the NOVA meta-progression layer. */
+  level: number;
+  xp: number;
+  novaLevel: number;
+  novaUnlocks: string[];
 };
 
 const STORAGE_KEY = "world-fracture.progression.v1";
@@ -66,6 +74,10 @@ export const DEFAULT_PROGRESSION: PlayerProgression = {
   currentWorld: "veridan",
   corruptionLevel: 0,
   endingSeen: false,
+  level: 1,
+  xp: 0,
+  novaLevel: 0,
+  novaUnlocks: [],
 };
 
 export function loadProgression(): PlayerProgression {
@@ -108,6 +120,10 @@ export function normalizeProgression(raw: unknown): PlayerProgression {
       currentWorld: typeof parsed.currentWorld === "string" ? parsed.currentWorld : "veridan",
       corruptionLevel: typeof parsed.corruptionLevel === "number" ? parsed.corruptionLevel : 0,
       endingSeen: parsed.endingSeen === true,
+      level: typeof parsed.level === "number" && parsed.level >= 1 ? parsed.level : 1,
+      xp: typeof parsed.xp === "number" && parsed.xp >= 0 ? parsed.xp : 0,
+      novaLevel: typeof parsed.novaLevel === "number" && parsed.novaLevel >= 0 ? parsed.novaLevel : 0,
+      novaUnlocks: Array.isArray(parsed.novaUnlocks) ? parsed.novaUnlocks : [],
     };
   } catch {
     return DEFAULT_PROGRESSION;
@@ -135,7 +151,8 @@ export function saveProgression(progression: PlayerProgression) {
 
 export function completeMission(progression: PlayerProgression, missionId: string): PlayerProgression {
   if (progression.completedMissions.includes(missionId)) return progression;
-  return { ...progression, completedMissions: [...progression.completedMissions, missionId] };
+  const { progression: withXp } = grantXP({ ...progression, completedMissions: [...progression.completedMissions, missionId] }, "MISSION");
+  return withXp;
 }
 
 export function rewardVehicle(progression: PlayerProgression, vehicleId: VehicleId): PlayerProgression {
