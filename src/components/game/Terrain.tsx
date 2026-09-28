@@ -5,6 +5,7 @@ import * as THREE from "three";
 import { REGIONS, WORLD_RADIUS, type Region } from "@/game/world";
 import { mulberry32 } from "@/game/useKeyboard";
 import { WATER_LEVEL, colorAt, heightAt, slopeAt } from "@/game/terrain";
+import { groundDetailTextures, propDetailTextures } from "@/game/detail-texture";
 import { LANE_HALF_WIDTH, distanceToRoad } from "@/game/lanes";
 import {
   addObstacle,
@@ -86,9 +87,18 @@ function Ground() {
     return geo;
   }, []);
 
+  const { map, normalMap } = useMemo(() => groundDetailTextures(), []);
+
   return (
     <mesh geometry={geometry} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
-      <meshStandardMaterial vertexColors roughness={0.95} metalness={0.02} />
+      <meshStandardMaterial
+        vertexColors
+        roughness={0.95}
+        metalness={0.02}
+        map={map}
+        normalMap={normalMap}
+        normalScale={new THREE.Vector2(0.35, 0.35)}
+      />
     </mesh>
   );
 }
@@ -154,6 +164,7 @@ export function Terrain() {
   const liveWrecks = alive(wrecks);
 
   const craterY = useMemo(() => heightAt(ember.x, ember.z), [ember]);
+  const rockDetail = useMemo(() => propDetailTextures(3), []);
 
   return (
     <group>
@@ -199,14 +210,14 @@ export function Terrain() {
         <meshStandardMaterial color="#e8639c" roughness={0.8} />
         {flowers.map((f, i) => {
           const palette = ["#e8639c", "#f0d24a", "#f4f4f4", "#b478e0"];
-          return <Instance key={i} position={[f.x, f.y + 0.4, f.z]} scale={f.s * 0.7} color={palette[i % palette.length]!} />;
+          return <Instance key={i} position={[f.x, f.y + 0.4, f.z]} scale={f.s * 0.7} color={palette[i % palette.length]} />;
         })}
       </Instances>
 
       {/* frostspire boulders on the high slopes — mixed silhouettes + per-instance grey jitter */}
       <Instances limit={liveBoulders.length} castShadow>
         <icosahedronGeometry args={[2.6, 0]} />
-        <meshStandardMaterial color="#c3d4e6" roughness={0.7} />
+        <meshStandardMaterial color="#c3d4e6" roughness={0.7} map={rockDetail.map} normalMap={rockDetail.normalMap} normalScale={new THREE.Vector2(0.5, 0.5)} />
         {liveBoulders.map((b, i) =>
           i % 2 === 0 ? (
             <Instance
@@ -221,7 +232,7 @@ export function Terrain() {
       </Instances>
       <Instances limit={liveBoulders.length} castShadow>
         <dodecahedronGeometry args={[2.6, 0]} />
-        <meshStandardMaterial color="#c3d4e6" roughness={0.75} />
+        <meshStandardMaterial color="#c3d4e6" roughness={0.75} map={rockDetail.map} normalMap={rockDetail.normalMap} normalScale={new THREE.Vector2(0.5, 0.5)} />
         {liveBoulders.map((b, i) =>
           i % 2 === 1 ? (
             <Instance
@@ -260,7 +271,7 @@ export function Terrain() {
       {/* rocks across the war belt and desert — split silhouettes + jittered grey/tan tones */}
       <Instances limit={liveRocks.length} castShadow>
         <icosahedronGeometry args={[2.2, 0]} />
-        <meshStandardMaterial color="#7c6a52" roughness={0.95} />
+        <meshStandardMaterial color="#7c6a52" roughness={0.95} map={rockDetail.map} normalMap={rockDetail.normalMap} normalScale={new THREE.Vector2(0.5, 0.5)} />
         {liveRocks.map((r, i) =>
           i % 2 === 0 ? (
             <Instance
@@ -275,7 +286,7 @@ export function Terrain() {
       </Instances>
       <Instances limit={liveRocks.length} castShadow>
         <dodecahedronGeometry args={[2.2, 0]} />
-        <meshStandardMaterial color="#7c6a52" roughness={1} />
+        <meshStandardMaterial color="#7c6a52" roughness={1} map={rockDetail.map} normalMap={rockDetail.normalMap} normalScale={new THREE.Vector2(0.5, 0.5)} />
         {liveRocks.map((r, i) =>
           i % 2 === 1 ? (
             <Instance

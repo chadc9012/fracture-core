@@ -11,6 +11,7 @@ import type { MissionEvent, MissionRun } from "@/game/missions/broken-signal";
 import type { AwakeningEvent, AwakeningRun } from "@/game/missions/awakening";
 import { directorTrend, type Mission } from "@/game/director";
 import { Terrain } from "./Terrain";
+import { Weather } from "./Weather";
 import { Bullets, Convoys, SupplyLanes, WarMachines, ZoneBeacons } from "./Actors";
 import { Car } from "./Vehicle";
 import { NexusCity } from "./NexusCity";
@@ -284,6 +285,7 @@ export function Scene({
   const player = useRef<THREE.Group>(null!);
   const vehicle = useRef<THREE.Group>(null!);
   const sun = useRef<THREE.DirectionalLight>(null!);
+  const weatherKind = useRef<string>("Clear shield");
   const markerList = (): Marker[] => {
     const now = performance.now();
     const list: Marker[] = [];
@@ -664,6 +666,7 @@ export function Scene({
       abilityHeld.current[key] = held.has(key);
     }
     const weather = interior ? "Indoor" : here?.id === "veridan" ? "Rain mist" : here?.id === "ember" ? "Ashfall" : here?.id === "frostspire" ? "Snow haze" : here?.id === "nexus" ? "Clear shield" : "Dust front";
+    weatherKind.current = weather;
     const visibility = interior ? 1 : here?.id === "nexus" ? 1 : here?.id === "veridan" ? 0.66 : here?.id === "ember" ? 0.55 : here?.id === "frostspire" ? 0.48 : 0.62;
     if (scene.fog instanceof THREE.Fog) {
       scene.fog.near = 55 + visibility * 65;
@@ -1354,6 +1357,7 @@ export function Scene({
       </Environment>
 
       <Terrain />
+      <Weather playerRef={player} weatherRef={weatherKind} />
       <Water size={WORLD_RADIUS * 4} sunRef={sunDir} />
       <NexusCity sim={sim} />
       <SupplyLanes sim={sim} />

@@ -173,6 +173,53 @@
   box-shadow: inset 0 1px color-mix(in oklch, var(--foreground) 10%, transparent);
 }
 
+/* Holographic tactical HUD chrome — angular clipped panels, glow, segmented bars and a scanline
+ * texture, reused across HUD.tsx/Tracker.tsx/Minimap.tsx so every readout shares one frame language
+ * instead of each panel drawing its own plain border. Built from the existing --primary/--destructive/
+ * --warning tokens (already a cyan-family hue) rather than a new palette. */
+@utility hud-panel {
+  clip-path: polygon(9px 0, 100% 0, 100% calc(100% - 9px), calc(100% - 9px) 100%, 0 100%, 0 9px);
+  background: color-mix(in oklch, var(--background) 74%, transparent);
+  border: 1px solid color-mix(in oklch, var(--primary) 42%, transparent);
+  backdrop-filter: blur(6px);
+}
+
+@utility hud-glow {
+  box-shadow:
+    0 0 0 1px color-mix(in oklch, var(--primary) 55%, transparent),
+    0 0 16px color-mix(in oklch, var(--primary) 32%, transparent),
+    inset 0 0 10px color-mix(in oklch, var(--primary) 12%, transparent);
+}
+
+@utility hud-glow-destructive {
+  box-shadow:
+    0 0 0 1px color-mix(in oklch, var(--destructive) 60%, transparent),
+    0 0 16px color-mix(in oklch, var(--destructive) 34%, transparent);
+}
+
+@utility hud-scanline {
+  background-image: repeating-linear-gradient(to bottom, transparent 0, transparent 2px, color-mix(in oklch, var(--primary) 5%, transparent) 3px);
+}
+
+/* A segmented/ticked bar: an evenly-spaced overlay of thin background-colored dividers on top of a
+ * solid fill, giving the blocky "hull integrity" bar look instead of one smooth gradient rectangle. */
+@utility hud-ticks {
+  background-image: repeating-linear-gradient(
+    to right,
+    transparent 0,
+    transparent 7px,
+    color-mix(in oklch, var(--background) 88%, transparent) 7px,
+    color-mix(in oklch, var(--background) 88%, transparent) 8px
+  );
+}
+
+@utility hud-label {
+  font-size: 9px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: color-mix(in oklch, var(--primary) 80%, var(--foreground) 20%);
+}
+
 @utility title-vignette {
   background:
     linear-gradient(90deg, color-mix(in oklch, var(--background) 96%, transparent) 0%, color-mix(in oklch, var(--background) 65%, transparent) 48%, transparent 78%),
