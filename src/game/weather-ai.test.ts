@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "bun:test";
 import { sampleWeather } from "./weather-cycle";
 import { createAi, sightRange, stepAwareness, ALERT_AT } from "./enemy-perception";
 
