@@ -1,6 +1,5 @@
 import { Text } from "@react-three/drei";
 import { useMemo } from "react";
-import * as THREE from "three";
 import { REGIONS } from "@/game/world";
 import { walkHeight } from "@/game/terrain";
 import { addObstacle } from "@/game/obstacles";

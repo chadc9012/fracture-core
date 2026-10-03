@@ -18,3 +18,4 @@
 - Combat audio is procedural Web Audio in src/game/audio.ts (no sound files), unlocked on first user input; Scene triggers it from weapon/ability/sim state changes. Why: zero asset downloads, sounds react to live combat values.
 - Map/HUD markers share src/game/waypoints.ts so compass, map and beacons agree; creation stays a spatial Identity Forge while preserving saved identity contracts.
 - Destructible interiors use the structural graph in src/game/destruction.ts; every change is logged as a DestructionEvent. Why: future multiplayer replicates events, not physics.
+- Dense authored districts share street furniture and animated transit from DistrictStreet.tsx; district files own their local architecture. Why: Thalassia and Neon City stay visually related without coupling their layouts.
