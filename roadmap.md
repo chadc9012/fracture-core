@@ -53,7 +53,7 @@
 - [x] Add regional enemy appearances, named boss encounters, farmable materials, inventory loadout, upgrades, and elemental infusion.
 - [x] Mission 01 Broken Signal (NOVA guide)
 - [x] Mission 02 Blackout Protocol
-- [ ] Stitched Neon Core first session (hooked narratively at the end of Blackout Protocol; no physical layer/session yet)
+- [x] Mission 03 Stitched Neon Core (the dungeon Blackout Protocol's ending hooked; ends in the game's first scripted boss fight against Aegis-Prime, and hooks fd-16/fd-17's Thalassia descent)
 - [x] Per-weapon ammo, reload, ammo HUD
 - [x] Controller weapon switching, selector/wheel, configurable bindings
 - [x] Password reset for cloud saves

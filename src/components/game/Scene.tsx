@@ -9,6 +9,7 @@ import { walkHeight, slopeAt, heightAt, WATER_LEVEL } from "@/game/terrain";
 import { alert, collidePlayer, createSim, defeatMachine, FACTIONS, fireBullet, instabilityTier, spawnMissionDrones, stepSim, summonBoss, type Faction, type InstabilityTier, type WorldSim, type ZoneState } from "@/game/sim";
 import type { MissionEvent, MissionRun } from "@/game/missions/broken-signal";
 import type { MissionEvent as BlackoutEvent, MissionRun as BlackoutRun } from "@/game/missions/blackout-protocol";
+import type { MissionEvent as NeonCoreEvent, MissionRun as NeonCoreRun } from "@/game/missions/stitched-neon-core";
 import type { AwakeningEvent, AwakeningRun } from "@/game/missions/awakening";
 import { directorTrend, type Mission } from "@/game/director";
 import { isStaggered, isWeakPointOpen, POISE_MAX } from "@/game/boss-poise";
@@ -275,6 +276,8 @@ export function Scene({
   onMissionEvent,
   blackout,
   onBlackoutEvent,
+  neonCore,
+  onNeonCoreEvent,
   awakening,
   onAwakeningEvent,
   onXP,
@@ -298,6 +301,8 @@ export function Scene({
   onMissionEvent?: (event: MissionEvent) => void;
   blackout?: BlackoutRun | null;
   onBlackoutEvent?: (event: BlackoutEvent) => void;
+  neonCore?: NeonCoreRun | null;
+  onNeonCoreEvent?: (event: NeonCoreEvent) => void;
   awakening?: AwakeningRun | null;
   onAwakeningEvent?: (event: AwakeningEvent) => void;
   onXP?: (event: WorldSim["xpEvents"][number]) => void;
@@ -309,6 +314,7 @@ export function Scene({
   const balance = useMemo(() => difficultyCurve(playerPowerScore({ inventory: gear?.inventory ?? [], equippedGear: gear?.equippedGear ?? {}, dungeonClears: gear?.dungeonClears ?? {}, completedMissions: gear?.completedMissions ?? [] } as Parameters<typeof playerPowerScore>[0])), [gear?.inventory, gear?.equippedGear, gear?.dungeonClears, gear?.completedMissions]);
   const missionSpawned = useRef("");
   const blackoutSpawned = useRef("");
+  const neonCoreSpawned = useRef("");
   const bossActionLog = useRef<ActionLogEntry[]>([]);
   const bossAdaptedPattern = useRef<PlayerAction | null>(null);
   const adaptiveTutorial = useRef(ADAPTIVE_TUTORIAL_INIT);
@@ -334,6 +340,7 @@ export function Scene({
     if (awakening?.target) list.push({ id: "m-awakening", kind: "MISSION", label: "Awakening", x: awakening.target.x, z: awakening.target.z, regionId: "nexus" });
     if (mission?.target && mission.state !== "COMPLETE" && mission.state !== "WORLD_UPDATE") list.push({ id: "m-broken-signal", kind: "MISSION", label: "Broken Signal", x: mission.target.x, z: mission.target.z, regionId: "nexus" });
     if (blackout?.target && blackout.state !== "COMPLETE" && blackout.state !== "WORLD_UPDATE") list.push({ id: "m-blackout-protocol", kind: "MISSION", label: "Blackout Protocol", x: blackout.target.x, z: blackout.target.z, regionId: "nexus" });
+    if (neonCore?.target && neonCore.state !== "COMPLETE" && neonCore.state !== "WORLD_UPDATE") list.push({ id: "m-stitched-neon-core", kind: "MISSION", label: "Stitched Neon Core", x: neonCore.target.x, z: neonCore.target.z, regionId: "nexus" });
     for (const m of sim.director.missions) { if (m.state !== "ACTIVE") continue; const c = regionCenter(m.regionId); if (c) list.push({ id: `m-${m.id}`, kind: "MISSION", label: m.name, x: c.x, z: c.z, regionId: m.regionId }); }
     for (const site of RESOURCE_SITES) list.push({ ...site, ready: (depleted.current[site.id] ?? 0) <= now });
     for (const lair of BOSS_LAIRS) list.push(lair);
@@ -1123,6 +1130,22 @@ export function Scene({
       if (blackoutCombat && blackoutSpawned.current === blackout.state && !sim.machines.some((m) => m.alive && m.mission)) { blackoutSpawned.current = `${blackout.state}-done`; onBlackoutEvent({ type: "CLEAR" }); }
     }
 
+    /* ---------------- Mission 03 · Stitched Neon Core world triggers ---------------- */
+    if (neonCore && onNeonCoreEvent) {
+      if (neonCore.state === "TRIGGERED" && !neonCore.target) onNeonCoreEvent({ type: "ANCHOR", x: NEON_CITY_CENTER.x, z: NEON_CITY_CENTER.z });
+      if (neonCore.state === "DESCENT" && neonCore.target && Math.hypot(neonCore.target.x - s.x, neonCore.target.z - s.z) < 14) onNeonCoreEvent({ type: "ARRIVED" });
+      if (neonCore.state === "COMBAT_1" && neonCoreSpawned.current !== "COMBAT_1" && neonCoreSpawned.current !== "COMBAT_1-done") {
+        neonCoreSpawned.current = "COMBAT_1";
+        spawnMissionDrones(sim, s.x, s.z, 5, true);
+      }
+      if (neonCore.state === "COMBAT_1" && neonCoreSpawned.current === "COMBAT_1" && !sim.machines.some((m) => m.alive && m.mission)) { neonCoreSpawned.current = "COMBAT_1-done"; onNeonCoreEvent({ type: "CLEAR" }); }
+      if (neonCore.state === "BOSS" && neonCoreSpawned.current !== "BOSS" && neonCoreSpawned.current !== "BOSS-done") {
+        neonCoreSpawned.current = "BOSS";
+        summonBoss(sim, "nexus", s.x, s.z - 18, { mission: true });
+      }
+      if (neonCore.state === "BOSS" && neonCoreSpawned.current === "BOSS" && !sim.machines.some((m) => m.alive && m.mission)) { neonCoreSpawned.current = "BOSS-done"; onNeonCoreEvent({ type: "CLEAR" }); }
+    }
+
     /* ---------------- Neon Core · Awakening micro-objectives ---------------- */
     if (awakening && onAwakeningEvent) {
       const a = awakening;
@@ -1543,6 +1566,13 @@ export function Scene({
           <mesh><octahedronGeometry args={[0.9, 0]} /><meshStandardMaterial color="#38e8ff" emissive="#38e8ff" emissiveIntensity={3} /></mesh>
           <mesh position={[0, 30, 0]}><cylinderGeometry args={[0.15, 0.15, 60, 6]} /><meshBasicMaterial color="#38e8ff" transparent opacity={0.45} /></mesh>
           <pointLight color="#38e8ff" intensity={30} distance={40} />
+        </group>
+      )}
+      {neonCore?.target && neonCore.state === "DESCENT" && (
+        <group position={[neonCore.target.x, heightAt(neonCore.target.x, neonCore.target.z) + 3, neonCore.target.z]}>
+          <mesh><octahedronGeometry args={[0.9, 0]} /><meshStandardMaterial color="#ff3df2" emissive="#ff3df2" emissiveIntensity={3} /></mesh>
+          <mesh position={[0, 30, 0]}><cylinderGeometry args={[0.15, 0.15, 60, 6]} /><meshBasicMaterial color="#ff3df2" transparent opacity={0.45} /></mesh>
+          <pointLight color="#ff3df2" intensity={30} distance={40} />
         </group>
       )}
       <Bullets sim={sim} />

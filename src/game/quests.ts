@@ -117,7 +117,10 @@ export const QUESTS: Record<string, Quest> = {
   "fd-07": {
     id: "fd-07", title: "Full Lockdown", world: "neon",
     line: "Full lockdown. Every drone in the district is hunting one signature — a Resonant Carrier. You.",
-    objectives: [{ type: "HEAT_LEVEL", label: "Force the city into full lockdown", key: "5", amount: 1 }],
+    objectives: [
+      { type: "MISSION_COMPLETE", label: "Breach the Stitched Neon Core", key: "stitched-neon-core", amount: 1 },
+      { type: "HEAT_LEVEL", label: "Force the city into full lockdown", key: "5", amount: 1 },
+    ],
     rewardShards: 320, rewardMaterials: { microCircuits: 6 }, unlocksWorld: "neon", nextQuestId: "fd-08", corruption: 3,
   },
   "fd-08": {

@@ -38,6 +38,8 @@ import { normalizeBindings } from "@/game/bindings";
 import { advanceMission, BROKEN_SIGNAL, type MissionEvent, type MissionRun } from "@/game/missions/broken-signal";
 import { advanceMission as advanceBlackout, BLACKOUT_PROTOCOL, type MissionEvent as BlackoutEvent, type MissionRun as BlackoutRun } from "@/game/missions/blackout-protocol";
 import { BlackoutProtocolOverlay } from "./BlackoutProtocolOverlay";
+import { advanceMission as advanceNeonCore, STITCHED_NEON_CORE, type MissionEvent as NeonCoreEvent, type MissionRun as NeonCoreRun } from "@/game/missions/stitched-neon-core";
+import { StitchedNeonCoreOverlay } from "./StitchedNeonCoreOverlay";
 import { gameTick, QUESTS } from "@/game/quests";
 import { QuestTracker } from "./QuestTracker";
 import { dialogueFor, revisitDialogueFor, type DialogueLine } from "@/game/dialogue";
@@ -252,6 +254,24 @@ export function GameCanvas() {
     const timer = window.setTimeout(() => setBlackout(null), 9000);
     return () => window.clearTimeout(timer);
   }, [blackout?.state, progression.completedMissions]);
+
+  /* Mission 03 · Stitched Neon Core — the dungeon Blackout Protocol's ending hooked but never
+   * built a physical layer for; same ANCHOR/ARRIVED/CLEAR/HACK/ACK shape, ending in the game's
+   * first scripted boss fight (Aegis-Prime, summoned through the normal summonBoss() path). */
+  const [neonCore, setNeonCore] = useState<NeonCoreRun | null>(null);
+  const neonCoreReady = phase === "world" && !tutorial && progression.completedMissions.includes("blackout-protocol") && !progression.completedMissions.includes("stitched-neon-core");
+  useEffect(() => {
+    if (!neonCoreReady || neonCore) return;
+    const timer = window.setTimeout(() => setNeonCore(advanceNeonCore(STITCHED_NEON_CORE, { type: "START" })), 8000);
+    return () => window.clearTimeout(timer);
+  }, [neonCoreReady, neonCore]);
+  const recordNeonCore = (event: NeonCoreEvent) => setNeonCore((current) => current ? advanceNeonCore(current, event) : current);
+  useEffect(() => {
+    if (neonCore?.state !== "WORLD_UPDATE" || progression.completedMissions.includes("stitched-neon-core")) return;
+    setProgression((current) => { const next = completeMission(current, "stitched-neon-core"); return gameTick({ ...next, materials: { ...next.materials, aegisCore: (next.materials.aegisCore ?? 0) + 1 } }, { type: "MISSION_COMPLETE", missionId: "stitched-neon-core" }); });
+    const timer = window.setTimeout(() => setNeonCore(null), 9000);
+    return () => window.clearTimeout(timer);
+  }, [neonCore?.state, progression.completedMissions]);
 
   /* Cross-world quest engine: HUD already reports region/heat/lockdown/hack/dive state every ~0.18s
    * (see Scene.tsx's onHud), so that cadence — not Scene's 60fps loop — is what drives gameTick here. */
@@ -473,7 +493,7 @@ export function GameCanvas() {
       >
         <color attach="background" args={["#bfe4f2"]} />
         <Suspense fallback={null}>
-            <Scene onHud={setHud} onDrops={(drops) => setProgression((current) => claimDrops(current, drops))} gear={progression} settings={settings} onCameraPreference={(firstPerson) => { window.localStorage.setItem("world-fracture-camera", firstPerson ? "first" : "third"); setSettings((current) => ({ ...current, firstPersonDefault: firstPerson })); }} playerClass={cls} subclassId={subclass} appearanceId={appearance} vehicleId={vehicleId} vehicleUnlocked={vehicleUnlocked} activeBuild={progression.activeBuild} abilityBranches={progression.abilityBranches} tutorial={tutorial} onTutorialEvent={recordTutorial} mission={mission} onMissionEvent={recordMission} blackout={blackout} onBlackoutEvent={recordBlackout} awakening={awakening} onAwakeningEvent={recordAwakening} onXP={recordXP} armorState={hud.hp < 35 ? "FRACTURE" : hud.heat > 65 ? "ASCENDANT" : hud.heat > 15 ? "ACTIVE" : "STABLE"} />
+            <Scene onHud={setHud} onDrops={(drops) => setProgression((current) => claimDrops(current, drops))} gear={progression} settings={settings} onCameraPreference={(firstPerson) => { window.localStorage.setItem("world-fracture-camera", firstPerson ? "first" : "third"); setSettings((current) => ({ ...current, firstPersonDefault: firstPerson })); }} playerClass={cls} subclassId={subclass} appearanceId={appearance} vehicleId={vehicleId} vehicleUnlocked={vehicleUnlocked} activeBuild={progression.activeBuild} abilityBranches={progression.abilityBranches} tutorial={tutorial} onTutorialEvent={recordTutorial} mission={mission} onMissionEvent={recordMission} blackout={blackout} onBlackoutEvent={recordBlackout} neonCore={neonCore} onNeonCoreEvent={recordNeonCore} awakening={awakening} onAwakeningEvent={recordAwakening} onXP={recordXP} armorState={hud.hp < 35 ? "FRACTURE" : hud.heat > 65 ? "ASCENDANT" : hud.heat > 15 ? "ACTIVE" : "STABLE"} />
         </Suspense>
         {post && (
           // cinematic grade: cool-leaning teal shadows, a touch more punch, so the HUD's cyan
@@ -518,6 +538,7 @@ export function GameCanvas() {
       {awakening && <AwakeningOverlay run={awakening} onEvent={recordAwakening} />}
       {mission && <BrokenSignalOverlay mission={mission} onEvent={recordMission} />}
       {blackout && <BlackoutProtocolOverlay mission={blackout} onEvent={recordBlackout} />}
+      {neonCore && <StitchedNeonCoreOverlay mission={neonCore} onEvent={recordNeonCore} />}
       {tutorial && <OnboardingSignal tutorial={tutorial} classId={cls} onOpenHub={() => { setTutorial(null); setOperationsView("ABILITIES"); }} />}
       {tutorial?.step === "VICTORY" && (
         <VictoryReport
