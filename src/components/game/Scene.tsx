@@ -10,6 +10,7 @@ import { alert, collidePlayer, createSim, defeatMachine, FACTIONS, fireBullet, i
 import type { MissionEvent, MissionRun } from "@/game/missions/broken-signal";
 import type { MissionEvent as BlackoutEvent, MissionRun as BlackoutRun } from "@/game/missions/blackout-protocol";
 import type { MissionEvent as NeonCoreEvent, MissionRun as NeonCoreRun } from "@/game/missions/stitched-neon-core";
+import type { MissionEvent as DescentEvent, MissionRun as DescentRun } from "@/game/missions/descent-protocol";
 import type { AwakeningEvent, AwakeningRun } from "@/game/missions/awakening";
 import { directorTrend, type Mission } from "@/game/director";
 import { isStaggered, isWeakPointOpen, POISE_MAX } from "@/game/boss-poise";
@@ -278,6 +279,8 @@ export function Scene({
   onBlackoutEvent,
   neonCore,
   onNeonCoreEvent,
+  descent,
+  onDescentEvent,
   awakening,
   onAwakeningEvent,
   onXP,
@@ -303,6 +306,8 @@ export function Scene({
   onBlackoutEvent?: (event: BlackoutEvent) => void;
   neonCore?: NeonCoreRun | null;
   onNeonCoreEvent?: (event: NeonCoreEvent) => void;
+  descent?: DescentRun | null;
+  onDescentEvent?: (event: DescentEvent) => void;
   awakening?: AwakeningRun | null;
   onAwakeningEvent?: (event: AwakeningEvent) => void;
   onXP?: (event: WorldSim["xpEvents"][number]) => void;
@@ -315,6 +320,7 @@ export function Scene({
   const missionSpawned = useRef("");
   const blackoutSpawned = useRef("");
   const neonCoreSpawned = useRef("");
+  const descentSpawned = useRef("");
   const bossActionLog = useRef<ActionLogEntry[]>([]);
   const bossAdaptedPattern = useRef<PlayerAction | null>(null);
   const adaptiveTutorial = useRef(ADAPTIVE_TUTORIAL_INIT);
@@ -341,6 +347,7 @@ export function Scene({
     if (mission?.target && mission.state !== "COMPLETE" && mission.state !== "WORLD_UPDATE") list.push({ id: "m-broken-signal", kind: "MISSION", label: "Broken Signal", x: mission.target.x, z: mission.target.z, regionId: "nexus" });
     if (blackout?.target && blackout.state !== "COMPLETE" && blackout.state !== "WORLD_UPDATE") list.push({ id: "m-blackout-protocol", kind: "MISSION", label: "Blackout Protocol", x: blackout.target.x, z: blackout.target.z, regionId: "nexus" });
     if (neonCore?.target && neonCore.state !== "COMPLETE" && neonCore.state !== "WORLD_UPDATE") list.push({ id: "m-stitched-neon-core", kind: "MISSION", label: "Stitched Neon Core", x: neonCore.target.x, z: neonCore.target.z, regionId: "nexus" });
+    if (descent?.target && descent.state !== "COMPLETE" && descent.state !== "WORLD_UPDATE") list.push({ id: "m-descent-protocol", kind: "MISSION", label: "Descent Protocol", x: descent.target.x, z: descent.target.z, regionId: "swamps" });
     for (const m of sim.director.missions) { if (m.state !== "ACTIVE") continue; const c = regionCenter(m.regionId); if (c) list.push({ id: `m-${m.id}`, kind: "MISSION", label: m.name, x: c.x, z: c.z, regionId: m.regionId }); }
     for (const site of RESOURCE_SITES) list.push({ ...site, ready: (depleted.current[site.id] ?? 0) <= now });
     for (const lair of BOSS_LAIRS) list.push(lair);
@@ -1146,6 +1153,17 @@ export function Scene({
       if (neonCore.state === "BOSS" && neonCoreSpawned.current === "BOSS" && !sim.machines.some((m) => m.alive && m.mission)) { neonCoreSpawned.current = "BOSS-done"; onNeonCoreEvent({ type: "CLEAR" }); }
     }
 
+    /* ---------------- Mission 04 · Descent Protocol world triggers ---------------- */
+    if (descent && onDescentEvent) {
+      if (descent.state === "TRIGGERED" && !descent.target) onDescentEvent({ type: "ANCHOR", x: THALASSIA_CENTER.x, z: THALASSIA_CENTER.z });
+      if (descent.state === "DIVE" && descent.target && Math.hypot(descent.target.x - s.x, descent.target.z - s.z) < 18) onDescentEvent({ type: "ARRIVED" });
+      if (descent.state === "COMBAT_1" && descentSpawned.current !== "COMBAT_1" && descentSpawned.current !== "COMBAT_1-done") {
+        descentSpawned.current = "COMBAT_1";
+        spawnMissionDrones(sim, s.x, s.z, 4, false);
+      }
+      if (descent.state === "COMBAT_1" && descentSpawned.current === "COMBAT_1" && !sim.machines.some((m) => m.alive && m.mission)) { descentSpawned.current = "COMBAT_1-done"; onDescentEvent({ type: "CLEAR" }); }
+    }
+
     /* ---------------- Neon Core · Awakening micro-objectives ---------------- */
     if (awakening && onAwakeningEvent) {
       const a = awakening;
@@ -1573,6 +1591,13 @@ export function Scene({
           <mesh><octahedronGeometry args={[0.9, 0]} /><meshStandardMaterial color="#ff3df2" emissive="#ff3df2" emissiveIntensity={3} /></mesh>
           <mesh position={[0, 30, 0]}><cylinderGeometry args={[0.15, 0.15, 60, 6]} /><meshBasicMaterial color="#ff3df2" transparent opacity={0.45} /></mesh>
           <pointLight color="#ff3df2" intensity={30} distance={40} />
+        </group>
+      )}
+      {descent?.target && descent.state === "DIVE" && (
+        <group position={[descent.target.x, heightAt(descent.target.x, descent.target.z) + 3, descent.target.z]}>
+          <mesh><octahedronGeometry args={[0.9, 0]} /><meshStandardMaterial color="#5fd8ff" emissive="#5fd8ff" emissiveIntensity={3} /></mesh>
+          <mesh position={[0, 30, 0]}><cylinderGeometry args={[0.15, 0.15, 60, 6]} /><meshBasicMaterial color="#5fd8ff" transparent opacity={0.45} /></mesh>
+          <pointLight color="#5fd8ff" intensity={30} distance={40} />
         </group>
       )}
       <Bullets sim={sim} />

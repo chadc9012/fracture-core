@@ -40,6 +40,8 @@ import { advanceMission as advanceBlackout, BLACKOUT_PROTOCOL, type MissionEvent
 import { BlackoutProtocolOverlay } from "./BlackoutProtocolOverlay";
 import { advanceMission as advanceNeonCore, STITCHED_NEON_CORE, type MissionEvent as NeonCoreEvent, type MissionRun as NeonCoreRun } from "@/game/missions/stitched-neon-core";
 import { StitchedNeonCoreOverlay } from "./StitchedNeonCoreOverlay";
+import { advanceMission as advanceDescent, DESCENT_PROTOCOL, type MissionEvent as DescentEvent, type MissionRun as DescentRun } from "@/game/missions/descent-protocol";
+import { DescentProtocolOverlay } from "./DescentProtocolOverlay";
 import { gameTick, QUESTS } from "@/game/quests";
 import { QuestTracker } from "./QuestTracker";
 import { dialogueFor, revisitDialogueFor, type DialogueLine } from "@/game/dialogue";
@@ -273,6 +275,24 @@ export function GameCanvas() {
     return () => window.clearTimeout(timer);
   }, [neonCore?.state, progression.completedMissions]);
 
+  /* Mission 04 · Descent Protocol — continues straight from Stitched Neon Core's ending; gives
+   * fd-16's dive-to-Thalassia (previously just a bare survive-underwater timer) an actual
+   * destination and story beat in the already-built sunken city. Same shape as Missions 01-03. */
+  const [descent, setDescent] = useState<DescentRun | null>(null);
+  const descentReady = phase === "world" && !tutorial && progression.completedMissions.includes("stitched-neon-core") && !progression.completedMissions.includes("descent-protocol");
+  useEffect(() => {
+    if (!descentReady || descent) return;
+    const timer = window.setTimeout(() => setDescent(advanceDescent(DESCENT_PROTOCOL, { type: "START" })), 8000);
+    return () => window.clearTimeout(timer);
+  }, [descentReady, descent]);
+  const recordDescent = (event: DescentEvent) => setDescent((current) => current ? advanceDescent(current, event) : current);
+  useEffect(() => {
+    if (descent?.state !== "WORLD_UPDATE" || progression.completedMissions.includes("descent-protocol")) return;
+    setProgression((current) => { const next = completeMission(current, "descent-protocol"); return gameTick({ ...next, materials: { ...next.materials, dataShards: (next.materials.dataShards ?? 0) + 5 } }, { type: "MISSION_COMPLETE", missionId: "descent-protocol" }); });
+    const timer = window.setTimeout(() => setDescent(null), 9000);
+    return () => window.clearTimeout(timer);
+  }, [descent?.state, progression.completedMissions]);
+
   /* Cross-world quest engine: HUD already reports region/heat/lockdown/hack/dive state every ~0.18s
    * (see Scene.tsx's onHud), so that cadence — not Scene's 60fps loop — is what drives gameTick here. */
   const questSignals = useRef({ region: "", heatLevel: 1, lockdownTier: "MONITORING" as HudState["nexusLockdownTier"], hackDone: false });
@@ -493,7 +513,7 @@ export function GameCanvas() {
       >
         <color attach="background" args={["#bfe4f2"]} />
         <Suspense fallback={null}>
-            <Scene onHud={setHud} onDrops={(drops) => setProgression((current) => claimDrops(current, drops))} gear={progression} settings={settings} onCameraPreference={(firstPerson) => { window.localStorage.setItem("world-fracture-camera", firstPerson ? "first" : "third"); setSettings((current) => ({ ...current, firstPersonDefault: firstPerson })); }} playerClass={cls} subclassId={subclass} appearanceId={appearance} vehicleId={vehicleId} vehicleUnlocked={vehicleUnlocked} activeBuild={progression.activeBuild} abilityBranches={progression.abilityBranches} tutorial={tutorial} onTutorialEvent={recordTutorial} mission={mission} onMissionEvent={recordMission} blackout={blackout} onBlackoutEvent={recordBlackout} neonCore={neonCore} onNeonCoreEvent={recordNeonCore} awakening={awakening} onAwakeningEvent={recordAwakening} onXP={recordXP} armorState={hud.hp < 35 ? "FRACTURE" : hud.heat > 65 ? "ASCENDANT" : hud.heat > 15 ? "ACTIVE" : "STABLE"} />
+            <Scene onHud={setHud} onDrops={(drops) => setProgression((current) => claimDrops(current, drops))} gear={progression} settings={settings} onCameraPreference={(firstPerson) => { window.localStorage.setItem("world-fracture-camera", firstPerson ? "first" : "third"); setSettings((current) => ({ ...current, firstPersonDefault: firstPerson })); }} playerClass={cls} subclassId={subclass} appearanceId={appearance} vehicleId={vehicleId} vehicleUnlocked={vehicleUnlocked} activeBuild={progression.activeBuild} abilityBranches={progression.abilityBranches} tutorial={tutorial} onTutorialEvent={recordTutorial} mission={mission} onMissionEvent={recordMission} blackout={blackout} onBlackoutEvent={recordBlackout} neonCore={neonCore} onNeonCoreEvent={recordNeonCore} descent={descent} onDescentEvent={recordDescent} awakening={awakening} onAwakeningEvent={recordAwakening} onXP={recordXP} armorState={hud.hp < 35 ? "FRACTURE" : hud.heat > 65 ? "ASCENDANT" : hud.heat > 15 ? "ACTIVE" : "STABLE"} />
         </Suspense>
         {post && (
           // cinematic grade: cool-leaning teal shadows, a touch more punch, so the HUD's cyan
@@ -539,6 +559,7 @@ export function GameCanvas() {
       {mission && <BrokenSignalOverlay mission={mission} onEvent={recordMission} />}
       {blackout && <BlackoutProtocolOverlay mission={blackout} onEvent={recordBlackout} />}
       {neonCore && <StitchedNeonCoreOverlay mission={neonCore} onEvent={recordNeonCore} />}
+      {descent && <DescentProtocolOverlay mission={descent} onEvent={recordDescent} />}
       {tutorial && <OnboardingSignal tutorial={tutorial} classId={cls} onOpenHub={() => { setTutorial(null); setOperationsView("ABILITIES"); }} />}
       {tutorial?.step === "VICTORY" && (
         <VictoryReport
