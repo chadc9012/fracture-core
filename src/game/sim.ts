@@ -503,6 +503,7 @@ export function fireBullet(
   const b = sim.bullets.find((v) => !v.alive);
   if (!b) return false;
   sim.weaponHeat = Math.min(100, sim.weaponHeat + (inVehicle ? HEAT_PER_SHOT_VEHICLE : HEAT_PER_SHOT_FOOT) * heat);
+  sim.playerNoise = 1; // gunfire is loud: enemies within hearing range turn toward it
   if (sim.weaponHeat >= 100) {
     sim.overheated = true;
     alert(sim, "WEAPON OVERHEAT — venting");
