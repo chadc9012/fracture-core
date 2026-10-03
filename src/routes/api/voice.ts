@@ -37,9 +37,28 @@ export const Route = createFileRoute("/api/voice")({
             "Cache-Control": "no-cache",
           });
           for (const [key, value] of upstream.headers) if (key.toLowerCase().startsWith("x-lovable-aig-")) headers.set(key, value);
-          return new Response(upstream.body, { status: upstream.status, headers });
+          const source = upstream.body;
+          if (!source) return new Response(null, { status: upstream.status, headers });
+          const reader = source.getReader();
+          // Forward the stream but swallow aborts when the player skips or cancels a line.
+          const body = new ReadableStream<Uint8Array>({
+            async pull(controller) {
+              try {
+                const { done, value } = await reader.read();
+                if (done) controller.close();
+                else controller.enqueue(value);
+              } catch {
+                try { controller.close(); } catch { /* already closed */ }
+              }
+            },
+            cancel() {
+              reader.cancel().catch(() => undefined);
+            },
+          });
+          return new Response(body, { status: upstream.status, headers });
         } catch (error) {
-          if (request.signal.aborted || (error instanceof DOMException && error.name === "AbortError")) return new Response(null, { status: 499 });
+          const name = (error as { name?: string } | null)?.name;
+          if (request.signal.aborted || name === "AbortError") return new Response(null, { status: 499 });
           return Response.json({ message: "Spoken dialogue is temporarily unavailable. Captions remain active." }, { status: 502 });
         }
       },
