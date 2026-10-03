@@ -15,7 +15,7 @@ export const DEFAULT_SETTINGS: GameSettings = {
   firstPersonDefault: true,
   zoneLabels: true,
   hudDensity: "full",
-  renderTier: "HIGH",
+  renderTier: "MEDIUM",
   bindings: DEFAULT_BINDINGS,
   volume: 0.7,
 };

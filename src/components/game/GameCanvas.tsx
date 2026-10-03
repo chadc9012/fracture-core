@@ -56,6 +56,7 @@ import type { WorldSim } from "@/game/sim";
 import { LevelUpOverlay } from "./LevelUpOverlay";
 import { PerfOverlay, PerfSampler } from "./PerfOverlay";
 
+const CA_OFFSET = new THREE.Vector2(0.0006, 0.0006);
 const START = REGIONS.find((r) => r.id === "nexus")!;
 
 const initial: HudState = {
@@ -167,6 +168,8 @@ export function GameCanvas() {
   const [phase, setPhase] = useState<"title" | "loadout" | "world">("title");
   const [menuOpen, setMenuOpen] = useState(false);
   const [settings, setSettings] = useState<GameSettings>(DEFAULT_SETTINGS);
+  const [adaptiveDpr, setAdaptiveDpr] = useState(1.5);
+  const [lowPerf, setLowPerf] = useState(false);
   useEffect(() => {
     const saved = window.localStorage.getItem("world-fracture-camera");
     if (saved === "third") setSettings((current) => ({ ...current, firstPersonDefault: false }));
