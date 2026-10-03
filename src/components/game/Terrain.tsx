@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import * as THREE from "three";
 
 import { REGIONS, WORLD_RADIUS, type Region } from "@/game/world";
+import type { RenderTier } from "@/game/performance";
 import { mulberry32 } from "@/game/useKeyboard";
 import { WATER_LEVEL, colorAt, heightAt, slopeAt } from "@/game/terrain";
 import { groundDetailTextures, propDetailTextures } from "@/game/detail-texture";
@@ -26,9 +27,9 @@ function scatter(
   region: Region,
   count: number,
   seed: number,
-  opts: { min?: number; max?: number; maxSlope?: number; inner?: number } = {},
+  opts: { min?: number; max?: number; maxSlope?: number; inner?: number; keepSpawnLaneClear?: boolean } = {},
 ): Prop[] {
-  const { min = WATER_LEVEL + 0.4, max = 999, maxSlope = 1, inner = 0 } = opts;
+  const { min = WATER_LEVEL + 0.4, max = 999, maxSlope = 1, inner = 0, keepSpawnLaneClear = false } = opts;
   const rnd = mulberry32(seed);
   const out: Prop[] = [];
   let guard = count * 12;
@@ -41,7 +42,7 @@ function scatter(
     if (y < min || y > max) continue;
     if (slopeAt(x, z) > maxSlope) continue;
     // Keep the first insertion and immediate aiming lanes free of giant canopies.
-    if (region.id === "veridan" && count === 120 && Math.hypot(x - region.x, z - (region.z + 12)) < 16) continue;
+    if (keepSpawnLaneClear && Math.hypot(x - region.x, z - (region.z + 12)) < 16) continue;
     // keep supply roads clear so convoys have a crash-free corridor
     if (distanceToRoad(x, z) < LANE_HALF_WIDTH) continue;
     out.push({ x, z, y, s: 0.7 + rnd() * 0.9, r: rnd() * Math.PI * 2 });
@@ -104,7 +105,7 @@ function Ground() {
   );
 }
 
-export function Terrain() {
+export function Terrain({ renderTier = "HIGH" }: { renderTier?: RenderTier } = {}) {
   const forest = byId("veridan");
   const frost = byId("frostspire");
   const ember = byId("ember");
@@ -112,23 +113,30 @@ export function Terrain() {
   const solara = byId("solara");
   const swamp = byId("swamps");
 
-  const trees = useMemo(() => scatter(forest, 120, 11, { min: 1.5, max: 26, maxSlope: 0.55 }), [forest]);
-  const flowers = useMemo(() => scatter(forest, 70, 20, { min: 1.5, max: 20, maxSlope: 0.4 }), [forest]);
-  const swampTrees = useMemo(() => scatter(swamp, 70, 12, { min: -2.5, max: 6 }), [swamp]);
+  // Prop density and shadow detail both scale down on the lighter tiers — fewer instanced
+  // trees/rocks to submit and fewer small shadow casters to run through the depth pass, on top
+  // of the dpr/shadow/post-processing scaling RENDER_PRESETS already does at the Canvas level.
+  const density = renderTier === "LOW" ? 0.5 : renderTier === "MEDIUM" ? 0.75 : 1;
+  const fineShadows = renderTier === "HIGH" || renderTier === "ULTRA";
+  const d = (n: number) => Math.max(1, Math.round(n * density));
+
+  const trees = useMemo(() => scatter(forest, d(120), 11, { min: 1.5, max: 26, maxSlope: 0.55, keepSpawnLaneClear: true }), [forest, density]);
+  const flowers = useMemo(() => scatter(forest, d(70), 20, { min: 1.5, max: 20, maxSlope: 0.4 }), [forest, density]);
+  const swampTrees = useMemo(() => scatter(swamp, d(70), 12, { min: -2.5, max: 6 }), [swamp, density]);
   const boulders = useMemo(
-    () => scatter(frost, 40, 13, { min: 18, maxSlope: 0.85 }),
-    [frost],
+    () => scatter(frost, d(40), 13, { min: 18, maxSlope: 0.85 }),
+    [frost, density],
   );
   const rocks = useMemo(
     () => [
-      ...scatter(waste, 46, 14, { maxSlope: 0.7 }),
-      ...scatter(solara, 40, 15, { maxSlope: 0.7 }),
+      ...scatter(waste, d(46), 14, { maxSlope: 0.7 }),
+      ...scatter(solara, d(40), 15, { maxSlope: 0.7 }),
     ],
-    [waste, solara],
+    [waste, solara, density],
   );
-  const cacti = useMemo(() => scatter(solara, 55, 16, { min: 2, maxSlope: 0.45 }), [solara]);
-  const wrecks = useMemo(() => scatter(waste, 30, 18, { maxSlope: 0.4 }), [waste]);
-  const emberRocks = useMemo(() => scatter(ember, 55, 21, { inner: 9, maxSlope: 0.95 }), [ember]);
+  const cacti = useMemo(() => scatter(solara, d(55), 16, { min: 2, maxSlope: 0.45 }), [solara, density]);
+  const wrecks = useMemo(() => scatter(waste, d(30), 18, { maxSlope: 0.4 }), [waste, density]);
+  const emberRocks = useMemo(() => scatter(ember, d(55), 21, { inner: 9, maxSlope: 0.95 }), [ember, density]);
   const [, bump] = useState(0);
   useEffect(() => {
     const off = subscribeObstacles(() => bump((n) => n + 1));
@@ -193,7 +201,7 @@ export function Terrain() {
           <Instance key={i} position={[t.x, t.y + 2 * t.s, t.z]} scale={[1, t.s, 1]} color={jitter("#4a3524", i, 0.02, 0.1)} />
         ))}
       </Instances>
-      <Instances limit={liveTrees.length} castShadow receiveShadow geometry={canopyLow}>
+      <Instances limit={liveTrees.length} castShadow={fineShadows} receiveShadow geometry={canopyLow}>
         <meshStandardMaterial color="#2c7a41" roughness={0.9} map={leafDetail.map} normalMap={leafDetail.normalMap} normalScale={new THREE.Vector2(0.4, 0.4)} />
         {liveTrees.map((t, i) => (
           <Instance
@@ -205,7 +213,7 @@ export function Terrain() {
           />
         ))}
       </Instances>
-      <Instances limit={liveTrees.length} castShadow receiveShadow geometry={canopyHigh}>
+      <Instances limit={liveTrees.length} castShadow={fineShadows} receiveShadow geometry={canopyHigh}>
         <meshStandardMaterial color="#3a8f4d" roughness={0.9} map={leafDetail.map} normalMap={leafDetail.normalMap} normalScale={new THREE.Vector2(0.4, 0.4)} />
         {liveTrees.map((t, i) => (
           <Instance

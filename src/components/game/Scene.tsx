@@ -1600,7 +1600,7 @@ export function Scene({
         />
       </Environment>
 
-      <Terrain />
+      <Terrain renderTier={settings.renderTier} />
       <Weather playerRef={player} weatherRef={weatherKind} fxRef={weatherFx} />
       <Wildlife playerRef={player} />
       <Civilians playerRef={player} />
