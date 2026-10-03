@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button";
 import { CornerBrackets } from "./HudChrome";
 import type { ClassId } from "@/game/loadout";
 import { CLASS_LABEL } from "./IdentityForge";
+import { useVoiceLine } from "./useVoiceLine";
 
 /**
  * "First victory report" — the debrief screen the roadmap calls out by name (the staged-onboarding
@@ -11,6 +12,7 @@ import { CLASS_LABEL } from "./IdentityForge";
  * that follows it, so the player's first taste of "mission complete" sets the pattern early.
  */
 export function VictoryReport({ classId, abilityName, onContinue }: { classId: ClassId; abilityName: string; onContinue: () => void }) {
+  useVoiceLine("identity-victory", "NOVA", `Identity stabilized. First victory secured. Your ${CLASS_LABEL[classId]} resonance is calibrated and ready for the field.`, "critical");
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/90 p-4 backdrop-blur-md">
       <section className="hud-panel hud-glow relative w-full max-w-lg p-6">

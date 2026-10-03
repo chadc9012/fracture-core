@@ -108,6 +108,6 @@
 - [ ] Replace remaining boxy placeholder characters, enemies, vehicles, weapons, and props with safe bundled or verified assets.
 - [ ] Polish all 2D surfaces and overlays to the supplied tactical holographic visual language without cluttering combat.
 - [ ] Playtest the complete first-session flow and representative regions on desktop, compact screens, Chrome, and Safari-safe settings.
-- [ ] Add centralized cinematic voice playback and saved voice controls.
-- [ ] Voice startup, onboarding, cinematics, missions, NPCs, bosses, victory, and ending.
-- [ ] Verify spoken flow, interruption, muting, Safari-safe fallback, and build health.
+- [x] Add centralized cinematic voice playback and saved voice controls.
+- [x] Voice startup, onboarding, cinematics, missions, NPCs, bosses, victory, and ending.
+- [x] Verify spoken flow, interruption, muting, Safari-safe fallback, and build health.

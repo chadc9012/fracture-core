@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { APPEARANCES, CLASSES, DEFAULT_SUBCLASS, SUBCLASSES, appearanceById, classById, type AppearanceId, type ClassId, type SubclassId } from "@/game/loadout";
 import { CLASS_LABEL, IdentityForge } from "./IdentityForge";
 import { CornerBrackets } from "./HudChrome";
+import { useVoiceLine } from "./useVoiceLine";
 
 export type { ClassId } from "@/game/loadout";
 type Stage = "CLASS" | "SUBCLASS" | "APPEARANCE" | "ASSEMBLING";
@@ -26,6 +27,7 @@ export function StartMenu({ onDeploy, onSettings }: { onDeploy: (deployment: Dep
   const selectedClass = classById(classId);
   const subclasses = SUBCLASSES.filter((item) => item.classId === classId);
   const stageIndex = STAGES.indexOf(stage);
+  useVoiceLine(`forge-${stage}`, "NOVA", GUIDE[stage], "story");
 
   const selectClass = (id: ClassId) => { setClassId(id); setSubclassId(DEFAULT_SUBCLASS[id]); };
   const next = () => {

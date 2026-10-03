@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useVoiceLine } from "./useVoiceLine";
 
 /**
  * Hull-destroyed feedback. hurtPlayer() (sim.ts) resets hp/cargo and stamps sim.lastDeath the instant
@@ -19,6 +20,7 @@ export function DeathOverlay({
   onDone: () => void;
 }) {
   const [fading, setFading] = useState(false);
+  useVoiceLine(`death-${deaths}`, "NOVA", `Operator signal lost. Reconstructing at Nexus City.`, "critical");
 
   useEffect(() => {
     setFading(false);

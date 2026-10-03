@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { OBJECTIVE, type MissionEvent, type MissionRun } from "@/game/missions/descent-protocol";
-import { playDialogueBlip } from "@/game/audio";
+import { useVoiceLine } from "./useVoiceLine";
 
 const NODES = [0, 1, 2, 3];
 const ACCENT = "#5fd8ff"; // Thalassia's own glow color (see Thalassia.tsx's dome lights)
@@ -10,7 +10,7 @@ const ACCENT = "#5fd8ff"; // Thalassia's own glow color (see Thalassia.tsx's dom
  * minigame (same connect-in-order shape as the earlier missions' hack puzzles, re-themed as
  * "tracing" rather than "hacking" since there's nothing to break into here). */
 export function DescentProtocolOverlay({ mission, onEvent }: { mission: MissionRun; onEvent: (e: MissionEvent) => void }) {
-  useEffect(() => { if (mission.nova) playDialogueBlip("NOVA"); }, [mission.nova]);
+  useVoiceLine(`descent-${mission.state}`, "NOVA", mission.nova, "critical");
   const [route, setRoute] = useState<number[]>([]);
   const order = useMemo(() => [...NODES].sort(() => Math.random() - 0.5), []);
   const tracing = mission.state === "TRACING";

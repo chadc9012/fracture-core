@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
 import type { PlayerProgression } from "@/game/progression";
+import { useVoiceLine } from "./useVoiceLine";
 
 /**
  * The Fracture Descent's closing screen — fires once, when fd-18 (The System Core) completes.
@@ -33,6 +34,7 @@ export function endingTierFor(progression: PlayerProgression): keyof typeof ENDI
 export function EndingOverlay({ progression, onClose }: { progression: PlayerProgression; onClose: () => void }) {
   const tier = endingTierFor(progression);
   const ending = ENDINGS[tier];
+  useVoiceLine(`ending-${tier}`, "NARRATOR", ending.line, "critical");
   return (
     <div className="fixed inset-0 z-50 grid place-items-center bg-background/95 p-6 backdrop-blur-md">
       <section className="w-full max-w-2xl text-center">

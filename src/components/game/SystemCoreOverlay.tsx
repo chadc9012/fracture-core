@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { OBJECTIVE, type MissionEvent, type MissionRun } from "@/game/missions/system-core";
-import { playDialogueBlip } from "@/game/audio";
+import { useVoiceLine } from "./useVoiceLine";
 
 const NODES = [0, 1, 2];
 const ACCENT = "#ff2e4e"; // distinct from Descent Protocol's cyan — this is the thing underneath Thalassia itself
@@ -12,7 +12,7 @@ const ACCENT = "#ff2e4e"; // distinct from Descent Protocol's cyan — this is t
  * the same BossHealthBar-style readout HUD.tsx already shows for any engaged boss, since the
  * System Core is summoned through the normal summonBoss() path (via unique-scenarios.ts). */
 export function SystemCoreOverlay({ mission, onEvent }: { mission: MissionRun; onEvent: (e: MissionEvent) => void }) {
-  useEffect(() => { if (mission.nova) playDialogueBlip("NOVA"); }, [mission.nova]);
+  useVoiceLine(`system-core-${mission.state}`, "NOVA", mission.nova, "critical");
   const [route, setRoute] = useState<number[]>([]);
   const order = useMemo(() => [...NODES].sort(() => Math.random() - 0.5), []);
   const stabilizing = mission.state === "STABILIZING";
