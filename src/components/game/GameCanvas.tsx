@@ -25,7 +25,7 @@ import { CloudSavePanel } from "./CloudSavePanel";
 import { StarMap } from "./StarMap";
 import { ArsenalLoadouts } from "./ArsenalLoadouts";
 import { SaveManager } from "./SaveManager";
-import { activeLoadout, rewardMission, loadProgression, rewardVehicle, saveProgression, type ClassArsenal, type ClassId, type PlayerProgression } from "@/game/progression";
+import { activeLoadout, rewardMission, loadProgression, rewardVehicle, saveProgression, type PlayerProgression } from "@/game/progression";
 import { RENDER_PRESETS } from "@/game/performance";
 import { classBuild } from "@/game/live-build";
 import { nodeById } from "@/game/ability-network";
@@ -222,7 +222,6 @@ export function GameCanvas() {
   const [hubView, setHubView] = useState<"starmap" | "arsenal" | "saves" | null>(null);
   const [travelTo, setTravelTo] = useState<{ x: number; z: number; nonce: number } | null>(null);
   const [savedFlash, setSavedFlash] = useState(0);
-  useEffect(() => { if (phase !== "world") return; const t = window.setTimeout(() => setSavedFlash(Date.now()), 1200); return () => window.clearTimeout(t); }, [progression, phase]);
   useEffect(() => { if (!savedFlash) return; const t = window.setTimeout(() => setSavedFlash(0), 1800); return () => window.clearTimeout(t); }, [savedFlash]);
   const [strategyOpen, setStrategyOpen] = useState(false);
   const [analysisOpen, setAnalysisOpen] = useState(false);
@@ -244,6 +243,7 @@ export function GameCanvas() {
   useEffect(() => { const timer = window.setTimeout(() => setBoot(false), 1700); return () => window.clearTimeout(timer); }, []);
 
   useEffect(() => saveProgression(progression), [progression]);
+  useEffect(() => { if (phase !== "world") return; const t = window.setTimeout(() => setSavedFlash(Date.now()), 1200); return () => window.clearTimeout(t); }, [progression, phase]);
   useEffect(() => {
     if (tutorial?.step === "VICTORY" && !progression.completedMissions.includes("mission-01")) setProgression((current) => ({ ...rewardMission(current, "mission-01", { dataShards: 1 }), tutorialComplete: true, unlockedAbilities: Array.from(new Set([...current.unlockedAbilities, classBuild(cls).slots.TACTICAL])), calibrationTokens: current.calibrationTokens + 1 }));
   }, [tutorial?.step, progression.completedMissions, cls]);
@@ -621,7 +621,7 @@ export function GameCanvas() {
       >
         <color attach="background" args={["#bfe4f2"]} />
         <Suspense fallback={null}>
-            <Scene onHud={setHud} onDrops={(drops) => setProgression((current) => claimDrops(current, drops))} gear={progression} settings={settings} onCameraPreference={(firstPerson) => { window.localStorage.setItem("world-fracture-camera", firstPerson ? "first" : "third"); setSettings((current) => ({ ...current, firstPersonDefault: firstPerson })); }} playerClass={cls} subclassId={subclass} appearanceId={appearance} vehicleId={vehicleId} vehicleUnlocked={vehicleUnlocked} activeBuild={progression.activeBuild} abilityBranches={progression.abilityBranches} tutorial={tutorial} onTutorialEvent={recordTutorial} mission={mission} onMissionEvent={recordMission} blackout={blackout} onBlackoutEvent={recordBlackout} neonCore={neonCore} onNeonCoreEvent={recordNeonCore} descent={descent} onDescentEvent={recordDescent} systemCore={systemCore} onSystemCoreEvent={recordSystemCore} awakening={awakening} onAwakeningEvent={recordAwakening} onXP={recordXP} weaponOrder={activeLoadout(progression, (progression.identityClass ?? cls) as ClassId).slots} travelTo={travelTo} armorState={hud.hp < 35 ? "FRACTURE" : hud.heat > 65 ? "ASCENDANT" : hud.heat > 15 ? "ACTIVE" : "STABLE"} />
+            <Scene onHud={setHud} onDrops={(drops) => setProgression((current) => claimDrops(current, drops))} gear={progression} settings={settings} onCameraPreference={(firstPerson) => { window.localStorage.setItem("world-fracture-camera", firstPerson ? "first" : "third"); setSettings((current) => ({ ...current, firstPersonDefault: firstPerson })); }} playerClass={cls} subclassId={subclass} appearanceId={appearance} vehicleId={vehicleId} vehicleUnlocked={vehicleUnlocked} activeBuild={progression.activeBuild} abilityBranches={progression.abilityBranches} tutorial={tutorial} onTutorialEvent={recordTutorial} mission={mission} onMissionEvent={recordMission} blackout={blackout} onBlackoutEvent={recordBlackout} neonCore={neonCore} onNeonCoreEvent={recordNeonCore} descent={descent} onDescentEvent={recordDescent} systemCore={systemCore} onSystemCoreEvent={recordSystemCore} awakening={awakening} onAwakeningEvent={recordAwakening} onXP={recordXP} weaponOrder={activeLoadout(progression, progression.identityClass ?? cls).slots} travelTo={travelTo} armorState={hud.hp < 35 ? "FRACTURE" : hud.heat > 65 ? "ASCENDANT" : hud.heat > 15 ? "ACTIVE" : "STABLE"} />
         </Suspense>
         {post && (
           // cinematic grade: cool-leaning teal shadows, a touch more punch, so the HUD's cyan
