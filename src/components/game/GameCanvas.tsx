@@ -1,4 +1,5 @@
 import { Canvas } from "@react-three/fiber";
+import { PerformanceMonitor } from "@react-three/drei";
 import { Bloom, BrightnessContrast, ChromaticAberration, DepthOfField, EffectComposer, HueSaturation, Noise, SSAO, Vignette } from "@react-three/postprocessing";
 import * as THREE from "three";
 import { Suspense, useEffect, useRef, useState } from "react";
@@ -55,6 +56,7 @@ import type { WorldSim } from "@/game/sim";
 import { LevelUpOverlay } from "./LevelUpOverlay";
 import { PerfOverlay, PerfSampler } from "./PerfOverlay";
 
+const CA_OFFSET = new THREE.Vector2(0.0006, 0.0006);
 const START = REGIONS.find((r) => r.id === "nexus")!;
 
 const initial: HudState = {
@@ -166,6 +168,8 @@ export function GameCanvas() {
   const [phase, setPhase] = useState<"title" | "loadout" | "world">("title");
   const [menuOpen, setMenuOpen] = useState(false);
   const [settings, setSettings] = useState<GameSettings>(DEFAULT_SETTINGS);
+  const [adaptiveDpr, setAdaptiveDpr] = useState(1.5);
+  const [lowPerf, setLowPerf] = useState(false);
   useEffect(() => {
     const saved = window.localStorage.getItem("world-fracture-camera");
     if (saved === "third") setSettings((current) => ({ ...current, firstPersonDefault: false }));
@@ -490,7 +494,7 @@ export function GameCanvas() {
         // Safari: cap pixel ratio, use hard-edged shadows and skip the post-processing pass, which
         // are the usual causes of a blank or lost context there.
         const maxDpr = caps.safari ? Math.min(preset.dpr, 1.5) : preset.dpr;
-        const post = preset.distortion && !caps.safari && caps.webgl2;
+        const post = preset.distortion && !caps.safari && caps.webgl2 && !lowPerf;
         // SSAO and depth-of-field are the two costliest passes in the stack — reserve them for
         // the top render tier so MEDIUM/HIGH still get the cheap color-grade + bloom + vignette
         // look without paying for contact-shadow and bokeh sampling every frame.
@@ -503,7 +507,7 @@ export function GameCanvas() {
         }}
         onContextMenu={(event) => event.preventDefault()}
         shadows={preset.shadows ? { type: caps.safari ? THREE.PCFShadowMap : THREE.PCFSoftShadowMap } : false}
-        dpr={[1, maxDpr]}
+        dpr={Math.min(maxDpr, adaptiveDpr)}
         gl={{ antialias: !caps.safari, toneMapping: THREE.ACESFilmicToneMapping, powerPreference: "high-performance", failIfMajorPerformanceCaveat: false }}
         camera={{
           position: [START.x, walkHeight(START.x, START.z) + 30, START.z + 46],
@@ -526,12 +530,20 @@ export function GameCanvas() {
             <Bloom intensity={0.65} luminanceThreshold={0.82} luminanceSmoothing={0.25} mipmapBlur />
             {premium && <SSAO intensity={18} radius={0.18} luminanceInfluence={0.4} bias={0.025} />}
             {premium && <DepthOfField focusDistance={0.012} focalLength={0.045} bokehScale={2.2} />}
-            <ChromaticAberration offset={new THREE.Vector2(0.0006, 0.0006)} />
+            <ChromaticAberration offset={CA_OFFSET} />
             <Vignette offset={0.3} darkness={0.55} />
             <Noise opacity={0.025} premultiply />
           </EffectComposer>
         )}
         <PerfSampler />
+        {/* Adaptive quality: when frames drop, lower resolution first, then turn off the
+            post-processing stack; recovers when the frame rate is healthy again. */}
+        <PerformanceMonitor
+          bounds={() => [45, 58]}
+          flipflops={6}
+          onDecline={() => setAdaptiveDpr((d) => { const next = Math.max(0.75, Math.round((d - 0.25) * 100) / 100); if (next <= 1) setLowPerf(true); return next; })}
+          onIncline={() => setAdaptiveDpr((d) => { const next = Math.min(2, d + 0.25); if (next > 1.25) setLowPerf(false); return next; })}
+        />
       </Canvas>
         );
       }}</GraphicsGuard>
