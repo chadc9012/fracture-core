@@ -3,8 +3,8 @@ import type { DialogueLine } from "@/game/dialogue";
 import { useVoiceLine } from "./useVoiceLine";
 
 /**
- * Typewriter dialogue box — one line at a time, a per-character audio blip while it reveals
- * (see @/game/audio's playDialogueBlip), advance/skip on the same interact key the rest of the
+ * Typewriter dialogue box — one line at a time, with centralized spoken playback while it reveals;
+ * advance/skip on the same interact key the rest of the
  * game already uses for a one-shot prompt (E / Enter), matching AwakeningOverlay's pattern.
  */
 export function DialogueOverlay({ lines, onDone }: { lines: DialogueLine[]; onDone: () => void }) {

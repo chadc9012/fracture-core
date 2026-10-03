@@ -19,7 +19,7 @@ const emit = (status: VoiceStatus) => listeners.forEach((listener) => listener(s
 export function subscribeVoice(listener: (status: VoiceStatus) => void) {
   listeners.add(listener);
   listener({ state: "idle" });
-  return () => listeners.delete(listener);
+  return () => { listeners.delete(listener); };
 }
 
 export function configureVoice(next: { enabled: boolean; volume: number }) {
