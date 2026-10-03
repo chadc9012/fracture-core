@@ -346,33 +346,79 @@ export function Convoys({ sim }: { sim: WorldSim }) {
 
 /* ---------------- projectiles ---------------- */
 
+/** Bullets were a bare glowing sphere at each live bullet's position — readable but flat next to
+ * the tracer/muzzle-flash combat feedback in the reference art. Adds, per pooled bullet: a thin
+ * stretched cylinder oriented along its velocity (a tracer streak instead of a dot) and a brief
+ * additive flash disc for its first ~0.2s of life (a stand-in muzzle flash, since it spawns right
+ * at the gun tip). Still one fixed-size instance per BULLET_POOL slot, just three meshes instead
+ * of one — no new allocation per frame, same pooled-visibility pattern as before. */
 export function Bullets({ sim }: { sim: WorldSim }) {
-  const group = useRef<THREE.Group>(null!);
+  const core = useRef<THREE.Group>(null!);
+  const tracer = useRef<THREE.Group>(null!);
+  const flash = useRef<THREE.Group>(null!);
+  const dir = useMemo(() => new THREE.Vector3(), []);
+  const quat = useMemo(() => new THREE.Quaternion(), []);
+  const up = useMemo(() => new THREE.Vector3(0, 1, 0), []);
 
   useFrame(() => {
-    const g = group.current;
-    if (!g) return;
+    const cg = core.current, tg = tracer.current, fg = flash.current;
+    if (!cg || !tg || !fg) return;
     sim.bullets.forEach((b, i) => {
-      const node = g.children[i] as THREE.Mesh | undefined;
-      if (!node) return;
-      node.visible = b.alive;
-      if (b.alive) node.position.set(b.x, b.y, b.z);
+      const coreMesh = cg.children[i] as THREE.Mesh | undefined;
+      const tracerMesh = tg.children[i] as THREE.Mesh | undefined;
+      const flashMesh = fg.children[i] as THREE.Mesh | undefined;
+      if (!coreMesh || !tracerMesh || !flashMesh) return;
+      coreMesh.visible = b.alive;
+      tracerMesh.visible = b.alive;
+      const justFired = b.alive && b.life > 1.2; // life starts at 1.4 and counts down
+      flashMesh.visible = justFired;
+      if (!b.alive) return;
+
+      coreMesh.position.set(b.x, b.y, b.z);
+      tracerMesh.position.set(b.x, b.y, b.z);
+      const speed = Math.hypot(b.vx, b.vy, b.vz) || 1;
+      dir.set(b.vx, b.vy, b.vz).normalize();
+      quat.setFromUnitVectors(up, dir);
+      tracerMesh.quaternion.copy(quat);
+      tracerMesh.scale.set(1, THREE.MathUtils.clamp(speed * 0.035, 0.6, 2.4), 1);
+      (coreMesh.material as THREE.MeshStandardMaterial).opacity = THREE.MathUtils.clamp(b.life / 1.4, 0.35, 1);
+      (tracerMesh.material as THREE.MeshStandardMaterial).opacity = THREE.MathUtils.clamp(b.life / 1.4, 0.25, 0.9);
+
+      if (justFired) {
+        flashMesh.position.set(b.x, b.y, b.z);
+        const t = (b.life - 1.2) / 0.2; // 1 right at the muzzle, fading to 0 over ~0.2s
+        flashMesh.scale.setScalar(0.35 + t * 0.85);
+        (flashMesh.material as THREE.MeshBasicMaterial).opacity = Math.max(0, t) * 0.8;
+      }
     });
   });
 
   return (
-    <group ref={group}>
-      {sim.bullets.map((_, i) => (
-        <mesh key={i} visible={false}>
-          <sphereGeometry args={[0.42, 8, 8]} />
-          <meshStandardMaterial
-            color="#a8f0ff"
-            emissive="#66e0ff"
-            emissiveIntensity={4}
-            toneMapped={false}
-          />
-        </mesh>
-      ))}
-    </group>
+    <>
+      <group ref={tracer}>
+        {sim.bullets.map((_, i) => (
+          <mesh key={i} visible={false}>
+            <cylinderGeometry args={[0.07, 0.07, 1, 6]} />
+            <meshStandardMaterial color="#a8f0ff" emissive="#66e0ff" emissiveIntensity={4} transparent toneMapped={false} depthWrite={false} />
+          </mesh>
+        ))}
+      </group>
+      <group ref={core}>
+        {sim.bullets.map((_, i) => (
+          <mesh key={i} visible={false}>
+            <sphereGeometry args={[0.17, 8, 8]} />
+            <meshStandardMaterial color="#d8faff" emissive="#8af0ff" emissiveIntensity={5} transparent toneMapped={false} />
+          </mesh>
+        ))}
+      </group>
+      <group ref={flash}>
+        {sim.bullets.map((_, i) => (
+          <mesh key={i} visible={false}>
+            <circleGeometry args={[0.5, 10]} />
+            <meshBasicMaterial color="#eaffff" transparent opacity={0} toneMapped={false} depthWrite={false} blending={THREE.AdditiveBlending} />
+          </mesh>
+        ))}
+      </group>
+    </>
   );
 }

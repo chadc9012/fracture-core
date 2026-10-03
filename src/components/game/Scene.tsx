@@ -1554,7 +1554,24 @@ export function Scene({
       {/* player on foot */}
       <group ref={player} position={SPAWN.toArray()}>
         <Operator armor={appearance.armor} cloth={appearance.cloth} visor={appearance.visor} classId={playerClass} visualState={armorState} />
-        {playerClass === "TITAN" && sim.titan.blocking && <mesh position={[0, 1.8, 1.4]} rotation={[0, 0, 0]}><boxGeometry args={[3.4, 4.5, 0.16]} /><meshStandardMaterial color="#74dfff" emissive="#3daec7" emissiveIntensity={2.8} transparent opacity={0.45} /></mesh>}
+        {playerClass === "TITAN" && sim.titan.blocking && (
+          // Chevron-angled holographic panels + a glowing rim edge instead of one flat box —
+          // reads as a projected energy shield rather than a translucent slab.
+          <group position={[0, 1.8, 1.4]}>
+            {[-1, 1].map((side) => (
+              <mesh key={side} position={[side * 0.85, 0, -0.35]} rotation={[0, side * -0.42, 0]}>
+                <boxGeometry args={[1.9, 4.5, 0.12]} />
+                <meshStandardMaterial color="#74dfff" emissive="#3daec7" emissiveIntensity={2.8} transparent opacity={0.45} />
+              </mesh>
+            ))}
+            {[-1, 1].map((side) => (
+              <mesh key={`edge${side}`} position={[side * 1.7, 0, -0.7]} rotation={[0, side * -0.42, 0]}>
+                <boxGeometry args={[0.05, 4.5, 0.14]} />
+                <meshStandardMaterial color="#c7f6ff" emissive="#c7f6ff" emissiveIntensity={4} toneMapped={false} />
+              </mesh>
+            ))}
+          </group>
+        )}
         {playerClass === "TITAN" && sim.titan.domeTime > 0 && <mesh position={[0, 0.5, 0]}><sphereGeometry args={[8, 20, 12, 0, Math.PI * 2, 0, Math.PI / 2]} /><meshStandardMaterial color="#74dfff" emissive="#2e9ab6" emissiveIntensity={1.5} transparent opacity={0.24} side={THREE.DoubleSide} /></mesh>}
       </group>
 
