@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import type { DialogueLine } from "@/game/dialogue";
-import * as sfx from "@/game/audio";
+import { useVoiceLine } from "./useVoiceLine";
 
 /**
  * Typewriter dialogue box — one line at a time, a per-character audio blip while it reveals
@@ -11,14 +11,13 @@ export function DialogueOverlay({ lines, onDone }: { lines: DialogueLine[]; onDo
   const [lineIndex, setLineIndex] = useState(0);
   const [shown, setShown] = useState(0);
   const line = lines[lineIndex];
+  useVoiceLine(`npc-dialogue-${lineIndex}`, line?.speaker ?? "NPC", line?.text, "story");
 
   useEffect(() => { setShown(0); }, [lineIndex]);
 
   useEffect(() => {
     if (!line || shown >= line.text.length) return;
     const t = setTimeout(() => {
-      const ch = line.text[shown];
-      if (ch && ch !== " ") sfx.playDialogueBlip(line.speaker);
       setShown((s) => s + 1);
     }, 22);
     return () => clearTimeout(t);

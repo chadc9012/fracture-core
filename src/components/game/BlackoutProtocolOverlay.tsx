@@ -1,13 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { OBJECTIVE, type MissionEvent, type MissionRun } from "@/game/missions/blackout-protocol";
-import { playDialogueBlip } from "@/game/audio";
+import { useVoiceLine } from "./useVoiceLine";
 
 const NODES = [0, 1, 2, 3];
 
 /** Mission 02 presentation layer: NOVA line, in-world objective, and the relay-cut hack minigame. */
 export function BlackoutProtocolOverlay({ mission, onEvent }: { mission: MissionRun; onEvent: (e: MissionEvent) => void }) {
-  useEffect(() => { if (mission.nova) playDialogueBlip("NOVA"); }, [mission.nova]);
+  useVoiceLine(`blackout-${mission.state}`, "NOVA", mission.nova, "critical");
   const [route, setRoute] = useState<number[]>([]);
   const order = useMemo(() => [...NODES].sort(() => Math.random() - 0.5), []);
   const hacking = mission.state === "HACKING";

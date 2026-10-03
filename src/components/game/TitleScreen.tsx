@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import horizon from "@/assets/world-fracture-horizon.png.asset.json";
 import { Button } from "@/components/ui/button";
 import { playIntroSwell, unlockAudio } from "@/game/audio";
+import { speakVoice } from "@/game/voice-director";
 import { TitleBackdrop } from "./TitleBackdrop";
 
 export function TitleScreen({
@@ -29,6 +30,7 @@ export function TitleScreen({
       swelled.current = true;
       unlockAudio();
       playIntroSwell();
+      speakVoice({ id: "title-first-contact", scope: "title", speaker: "NARRATOR", text: "Reality is unstable. Territory remembers every battle. Enter as a Resonant, and choose who controls what remains.", priority: "story" });
     };
     window.addEventListener("pointerdown", greet);
     window.addEventListener("keydown", greet);

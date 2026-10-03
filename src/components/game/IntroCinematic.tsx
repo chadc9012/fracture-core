@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { introStageAt, introTotalSeconds } from "@/game/intro";
-import { playDialogueBlip, playIntroSwell, playNovaActivation } from "@/game/audio";
+import { playIntroSwell, playNovaActivation } from "@/game/audio";
+import { speakVoice, stopVoice } from "@/game/voice-director";
 
 /**
  * Full-screen opening cinematic — dark, text-driven beats in the Destiny-style "the world is
@@ -26,15 +27,16 @@ export function IntroCinematic({ onComplete }: { onComplete: () => void }) {
     if (!position || position.index === stageSeen.current) return;
     stageSeen.current = position.index;
     if (position.stage.id === "nova") playNovaActivation();
-    else playDialogueBlip(position.stage.id);
+    const speaker = position.stage.id === "nova" ? "NOVA" : "NARRATOR";
+    speakVoice({ id: `intro-${position.stage.id}`, scope: "intro", speaker, text: position.stage.lines.map((line) => line.replace(/^NOVA:\s*/, "")).join(" "), priority: "critical" });
   }, [position]);
 
   useEffect(() => {
-    if (!position) onComplete();
+    if (!position) { stopVoice("intro"); onComplete(); }
   }, [position, onComplete]);
 
   useEffect(() => {
-    const skip = (e: KeyboardEvent) => { if (["Enter", "Space", "Escape"].includes(e.code)) onComplete(); };
+    const skip = (e: KeyboardEvent) => { if (["Enter", "Space", "Escape"].includes(e.code)) { stopVoice("intro"); onComplete(); } };
     window.addEventListener("keydown", skip);
     return () => window.removeEventListener("keydown", skip);
   }, [onComplete]);
@@ -49,7 +51,7 @@ export function IntroCinematic({ onComplete }: { onComplete: () => void }) {
   return (
     <div
       className="fixed inset-0 z-[100] flex cursor-pointer flex-col items-center justify-center bg-black"
-      onClick={onComplete}
+      onClick={() => { stopVoice("intro"); onComplete(); }}
     >
       <div className="hud-scanline pointer-events-none absolute inset-0 opacity-20" />
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0%,rgba(0,0,0,0.85)_78%)]" />

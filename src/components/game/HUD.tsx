@@ -4,11 +4,14 @@ import type { HudState } from "./Scene";
 import { Compass, TrackedObjectives } from "./Tracker";
 import { FACTIONS } from "@/game/sim";
 import { CornerBrackets, HudPanel } from "./HudChrome";
+import { useVoiceLine } from "./useVoiceLine";
 
 export function HUD({ hud, tutorialActive = false, onMenu }: { hud: HudState; tutorialActive?: boolean; onMenu: () => void; onStrategy: () => void; onGarage: () => void; onAnalyze: () => void; onInventory: () => void; onAtlas: () => void; onOperations: (view: "DUNGEONS" | "ARSENAL" | "ABILITIES") => void }) {
   const ammo = hud.ammo?.[hud.weaponSlot - 1];
   const melee = ammo?.magSize === 0;
   const lowAmmo = Boolean(ammo && !melee && ammo.mag <= Math.ceil(ammo.magSize * 0.25));
+  useVoiceLine(`boss-${hud.bossHud?.name ?? "none"}-${hud.bossHud?.adaptedTell ?? "idle"}`, hud.bossHud?.name ?? "ENEMY", hud.bossHud?.adaptedTell, "critical");
+  useVoiceLine(`emergency-${hud.emergencyQuest?.state ?? "none"}-${hud.emergencyQuest?.bossName ?? "none"}`, "NOVA", hud.emergencyQuest ? `${hud.emergencyQuest.state === "WARNING" ? "Emergency quest inbound" : hud.emergencyQuest.state === "ACTIVE" ? "Emergency quest active" : hud.emergencyQuest.state === "COMPLETE" ? "Emergency quest cleared" : "Emergency quest failed"}. ${hud.emergencyQuest.bossName}.` : null, "critical");
   return <div className="pointer-events-none fixed inset-0 z-10 hud-scanline select-none font-mono text-foreground">
     <div className="pointer-events-auto absolute left-3 top-3"><Button title="Menu" size="icon" variant="outline" className="border-border/60 bg-background/45 backdrop-blur-md" onClick={onMenu} aria-label="Open menu"><Menu /></Button></div>
     {!hud.insideInterior && (

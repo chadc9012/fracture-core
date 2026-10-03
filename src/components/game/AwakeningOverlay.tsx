@@ -1,10 +1,10 @@
 import { useEffect } from "react";
 import { AWAKENING_OBJECTIVE, type AwakeningEvent, type AwakeningRun } from "@/game/missions/awakening";
 import { Button } from "@/components/ui/button";
-import { playDialogueBlip } from "@/game/audio";
+import { useVoiceLine } from "./useVoiceLine";
 
 export function AwakeningOverlay({ run, onEvent }: { run: AwakeningRun; onEvent: (e: AwakeningEvent) => void }) {
-  useEffect(() => { if (run.line) playDialogueBlip("NOVA"); }, [run.line]);
+  useVoiceLine(`awakening-${run.state}`, "NOVA", run.line, "critical");
   useEffect(() => {
     if (run.state !== "LOOT") return;
     const onKey = (e: KeyboardEvent) => { if (e.code === "KeyE" || e.code === "Enter") onEvent({ type: "ACK" }); };
