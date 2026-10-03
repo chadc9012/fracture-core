@@ -514,7 +514,7 @@ export function GameCanvas() {
             onSettings={() => setMenuOpen(true)}
           />
         )}
-        {menuOpen && <SettingsWindow settings={settings} onChange={updateSettings} onClose={() => setMenuOpen(false)} onOrbit={() => setMenuOpen(false)} />}
+        {menuOpen && <SettingsWindow completedMissions={progression.completedMissions} settings={settings} onChange={updateSettings} onClose={() => setMenuOpen(false)} onOrbit={() => setMenuOpen(false)} />}
       </>
     );
   }
@@ -525,6 +525,7 @@ export function GameCanvas() {
         {!menuOpen && <StartMenu onDeploy={prepareDeployment} onSettings={() => setMenuOpen(true)} best={last} />}
         {menuOpen && (
           <SettingsWindow
+            completedMissions={progression.completedMissions}
             settings={settings}
             onChange={updateSettings}
             onClose={() => setMenuOpen(false)}
@@ -650,6 +651,7 @@ export function GameCanvas() {
       {garageOpen && <div className="fixed inset-0 z-40 grid place-items-center bg-background/80 p-4 backdrop-blur-md"><section className="max-h-[85vh] w-full max-w-4xl overflow-y-auto border border-border bg-card p-6"><div className="flex items-start justify-between"><div><p className="font-mono text-[10px] uppercase tracking-[0.3em] text-primary">Garage assistant</p><h2 className="mt-2 text-2xl">Vehicle registry</h2><p className="mt-1 text-xs text-muted-foreground">Garage loadout {progression.garageLoadout.length}/3</p></div><Button variant="outline" onClick={() => setGarageOpen(false)}>Back</Button></div><div className="mt-5 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">{VEHICLES.map((vehicle) => { const owned = progression.ownedVehicles.includes(vehicle.id); const selected = progression.selectedVehicle === vehicle.id; return <div key={vehicle.id} className={`border p-3 ${selected ? "border-primary" : "border-border"}`}><p className="font-mono text-sm">{vehicle.name}</p><p className="mt-1 text-[10px] uppercase text-muted-foreground">{selected ? "Active · summon with V" : owned ? "Owned" : vehicleAcquisition(vehicle).replace("_", " ")}</p>{owned && !selected && <Button size="sm" variant="outline" className="mt-3" onClick={() => { setVehicleId(vehicle.id); setVehicleUnlocked(true); setProgression((current) => ({ ...current, selectedVehicle: vehicle.id })); }}>Equip</Button>}</div>; })}</div></section></div>}
       {menuOpen && (
         <SettingsWindow
+            completedMissions={progression.completedMissions}
           settings={settings}
           onChange={updateSettings}
           onClose={() => setMenuOpen(false)}
