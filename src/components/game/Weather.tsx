@@ -36,7 +36,7 @@ function useField(count: number, seed: number) {
 
 export type WeatherFx = { precipitation: number; windX: number; windZ: number };
 
-function Rain({ playerRef, weatherRef, fxRef }: { playerRef: React.RefObject<THREE.Object3D>; weatherRef: React.RefObject<string>; fxRef?: React.RefObject<WeatherFx> }) {
+function Rain({ playerRef, weatherRef, fxRef }: { playerRef: React.RefObject<THREE.Object3D>; weatherRef: React.RefObject<string>; fxRef?: React.RefObject<WeatherFx> | undefined }) {
   const mesh = useRef<THREE.InstancedMesh>(null!);
   const field = useField(420, 71);
   const spread = 60;
@@ -183,7 +183,7 @@ function Dust({ playerRef, weatherRef }: { playerRef: React.RefObject<THREE.Obje
   );
 }
 
-export function Weather({ playerRef, weatherRef, fxRef }: { playerRef: React.RefObject<THREE.Object3D>; weatherRef: React.RefObject<string>; fxRef?: React.RefObject<WeatherFx> }) {
+export function Weather({ playerRef, weatherRef, fxRef }: { playerRef: React.RefObject<THREE.Object3D>; weatherRef: React.RefObject<string>; fxRef?: React.RefObject<WeatherFx> | undefined }) {
   return (
     <group>
       <Rain playerRef={playerRef} weatherRef={weatherRef} fxRef={fxRef} />
