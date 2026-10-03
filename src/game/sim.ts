@@ -381,6 +381,8 @@ export function createSim(): WorldSim {
     director: createDirector(),
     impactCool: 0,
     combatHeat: 0,
+    envVisibility: 1,
+    playerNoise: 0,
     adaptation,
     mods: adaptationMods(adaptation),
     stats: createStats(),
