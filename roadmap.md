@@ -43,7 +43,8 @@
 - [ ] Add build-aware dungeon modifiers, behavior-shaped loot, transformation crafting, repeat-clear perks, and reward persistence.
 - [ ] Replace the old raid advisor call with the WORLD FRACTURE loadout strategy planner on the current AI Gateway contract.
 - [ ] Add playable data foundations and operations views for cosmetics, fair economy/blueprints, guilds, PvP, Fracture Core raid, world layers, environment cycles, and AI Director decisions.
-- [ ] Remove Loadout / Customize from the startup menu and animate the title landscape, light, and shadows with reduced-motion support.
+- [x] Remove Loadout / Customize from the startup menu and animate the title landscape, light, and shadows with reduced-motion support.
+- [x] Give the title screen a live 3D skyline backdrop (camera drift, fog, neon lighting) crossfading in over the static art, a WORLD FRACTURE–branded loading screen, a procedural ambient swell on first input, and staggered menu fade-in — all reduced-motion aware, with the 3D layer sandboxed behind its own error boundary so a render failure there can never block New Game.
 - [ ] Verify type safety, production health, onboarding and dungeon flows, desktop/mobile layout, AI behavior, and retired-name removal.
 - [x] Make first-person shooting the default, retain a saved third-person preference, and blend to third-person for melee and special-skill actions with aligned aim and controls.
 - [x] Weapon system: auto/pulse/heavy/sword, recoil, spread, camera punch, crosshair bloom, hit markers
@@ -81,7 +82,7 @@
 - [x] Add a safe-state layer (frame-loop error recovery, soft-fail save/load, world-crash recovery screen) so a bad frame or save never hard-crashes gameplay.
 - [x] Add a Global Balance Controller — damage scaling and reward pacing tied to a player-power score, so progression doesn't trivialize early or turn unfair late.
 - [x] Add Loot + XP System v1 — an overall player level/XP engine (kills, elites, bosses, missions), a level-up moment, and NOVA meta-progression unlocks, connected to the existing AI loot generator.
-- [x] World dressing pass: replace primitive-shape trees/rocks/boulders (cone/icosahedron/dodecahedron geometry) across Veridan Forest, Frostspire, Wastelands, Solara, and the Swamps with real low-poly CC0 GLB models (pine/oak/birch/dead trees, large/medium rocks, boulder clusters), fed into the same GPU-instancing pipeline so a whole forest or rockfield still renders as one draw call per species.
-- [x] Upgrade Frostspire/Wastelands/Solara rocks and boulders to real-world-scanned PBR models (Poly Haven, CC0), with automatic fallback to the stylized nature-kit rock if that CDN doesn't load for a given player.
+- [ ] World dressing pass: replace primitive-shape trees/rocks/boulders (cone/icosahedron/dodecahedron geometry) across Veridan Forest, Frostspire, Wastelands, Solara, and the Swamps with real low-poly CC0 GLB models (pine/oak/birch/dead trees, large/medium rocks, boulder clusters), fed into the same GPU-instancing pipeline so a whole forest or rockfield still renders as one draw call per species. Attempted and rolled back after a black-screen regression in the live preview; Terrain.tsx is back to primitive geometry until the regression is confirmed fixed and GLB models are reintroduced one source at a time.
+- [ ] Upgrade Frostspire/Wastelands/Solara rocks and boulders to real-world-scanned PBR models (Poly Haven, CC0), with automatic fallback to the stylized nature-kit rock if that CDN doesn't load for a given player. Rolled back along with the above.
 
 - [ ] Export all current game code as a ZIP download

@@ -376,7 +376,15 @@ export function GameCanvas() {
     setPhase("title");
   };
 
-  if (boot) return <div className="fixed inset-0 grid place-items-center bg-background"><div className="text-center"><div className="mx-auto mb-7 size-16 animate-pulse rounded-full border border-primary shadow-[0_0_55px_var(--primary)]" /><p className="font-mono text-[10px] uppercase tracking-[0.3em] text-primary">Initializing Adaptive Combat System…</p></div></div>;
+  if (boot) return (
+    <div className="fixed inset-0 grid place-items-center bg-background">
+      <div className="text-center">
+        <div className="mx-auto mb-7 size-16 animate-pulse rounded-full border border-primary shadow-[0_0_55px_var(--primary)]" />
+        <h1 className="font-mono text-2xl font-bold tracking-[0.2em] text-foreground sm:text-3xl">WORLD<span className="text-primary"> FRACTURE</span></h1>
+        <p className="mt-3 font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground">Initializing Adaptive Combat System…</p>
+      </div>
+    </div>
+  );
 
   if (phase === "title") {
     return (

@@ -245,6 +245,18 @@
 
 @keyframes forge-progress { from { transform: scaleX(0); } to { transform: scaleX(1); } }
 
+/* Title screen boot-in: the live 3D skyline (TitleBackdrop.tsx) crossfades in over the static
+ * horizon image already painted beneath it, then the menu content rises in behind it — the
+ * "camera fades in, UI slides in" cinematic beat, done with plain CSS (no animation library). */
+.title-backdrop-canvas { opacity: 0; animation: backdrop-fade-in 1.6s ease-out 0.2s forwards; }
+@keyframes backdrop-fade-in { from { opacity: 0; } to { opacity: 1; } }
+
+.title-intro-rise { animation: title-rise 0.9s cubic-bezier(.16, .84, .44, 1) 0.5s both; }
+.title-intro-fade { animation: title-fade 1.1s ease-out 0.15s both; }
+@keyframes title-rise { from { opacity: 0; transform: translateY(28px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes title-fade { from { opacity: 0; } to { opacity: 1; } }
+
 @media (prefers-reduced-motion: reduce) {
   .title-glow, .title-landscape, .title-sunlight, .title-shadows { animation: none; }
+  .title-backdrop-canvas, .title-intro-rise, .title-intro-fade { animation: none; opacity: 1; transform: none; }
 }
