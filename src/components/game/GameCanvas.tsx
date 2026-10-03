@@ -22,7 +22,7 @@ import { RaidStrategyPanel } from "./RaidStrategyPanel";
 import { OperationsHub } from "./OperationsHub";
 import { ZoneAnalysisPanel } from "./ZoneAnalysisPanel";
 import { CloudSavePanel } from "./CloudSavePanel";
-import { completeMission, loadProgression, rewardVehicle, saveProgression, type PlayerProgression } from "@/game/progression";
+import { activeLoadout, rewardMission, loadProgression, rewardVehicle, saveProgression, type ClassArsenal, type ClassId, type PlayerProgression } from "@/game/progression";
 import { RENDER_PRESETS } from "@/game/performance";
 import { classBuild } from "@/game/live-build";
 import { nodeById } from "@/game/ability-network";
