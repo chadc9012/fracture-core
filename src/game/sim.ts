@@ -37,6 +37,10 @@ import { encounterFor, troopFor } from "./encounters";
 import type { MaterialId } from "./inventory";
 import type { GearItem } from "./inventory";
 import { phaseForHpFraction, tuningFor, type BossPhaseIndex } from "./boss-phases";
+import { decayPoise, hitPoise, INITIAL_POISE, openWeakPoint, type PoiseState } from "./boss-poise";
+import { counterTuningFor, type CounterTuning } from "./boss-adaptive-ai";
+import { completeEmergencyQuest, EMERGENCY_QUEST_INIT, stepEmergencyQuest, type EmergencyQuest } from "./emergency-quest";
+import { scenarioById, scenarioFor, type UniqueScenario } from "./unique-scenarios";
 
 /* ------------------------------------------------------------------
  * World simulation: faction capture, fracture instability,
@@ -87,6 +91,12 @@ export type Machine = {
   /** boss-only: hp at full health, and which of BOSS_PHASES it's currently in (see boss-phases.ts) */
   maxHp?: number;
   phase?: BossPhaseIndex;
+  /** boss-only: poise/stagger/weak-point meter (see boss-poise.ts) */
+  poiseState?: PoiseState;
+  /** true when this boss was spawned by the Emergency Quest system (see emergency-quest.ts) */
+  eq?: boolean;
+  /** set when this boss is a Unique Scenario encounter (see unique-scenarios.ts) instead of a regular catalog boss */
+  scenarioId?: string;
 };
 
 export type Truck = {
@@ -193,6 +203,13 @@ export type WorldSim = {
   /** Loot + XP System v1 (xp.ts) — Scene.tsx drains this each frame and applies it to PlayerProgression. */
   xpEvents: { type: "KILL" | "ELITE_KILL" | "BOSS_KILL"; enemyLevel: number; combatHeat: number }[];
   nextDropId: number;
+  /** Emergency Quest world event — a rare, countdown-warned world-boss spawn (see emergency-quest.ts) */
+  emergencyQuest: EmergencyQuest;
+  /** adaptive boss AI counter tuning, set by Scene.tsx each frame from the player's recent action
+   * log before stepSim() runs (see boss-adaptive-ai.ts) and folded into the engaged boss's phase
+   * tuning below — kept as its own field rather than routing through `mods` since `mods` is
+   * recomputed fresh from `adaptation` every frame and would just overwrite it. */
+  bossCounter: CounterTuning;
 };
 
 export const HEAT_PER_SHOT_FOOT = 7;
@@ -234,6 +251,18 @@ export function defeatMachine(sim: WorldSim, m: Machine) {
     for (const item of drops) { sim.vault.push(item); sim.loot.unshift(item); alert(sim, `${item.rarity} raid drop — ${item.name}`); }
     if (sim.loot.length > 5) sim.loot.length = 5;
     sim.raidFight = undefined;
+  }
+  if (m.eq) {
+    sim.emergencyQuest = completeEmergencyQuest(sim.emergencyQuest);
+    sim.credits += 400;
+    alert(sim, "Emergency Quest cleared — bonus payout secured");
+  }
+  if (m.scenarioId) {
+    const scenario = scenarioById(m.scenarioId);
+    if (scenario) {
+      sim.credits += scenario.rewardCredits;
+      alert(sim, `${scenario.name} cleared · bonus payout secured`);
+    }
   }
   alert(sim, `${m.profile} defeated · ${material.replace(/([A-Z])/g, " $1")} +${amount}`);
 }
@@ -361,6 +390,8 @@ export function createSim(): WorldSim {
     titanActive: false,
     equippedElement: "KINETIC",
     materials: {}, drops: [], enemyShots: [], bossPhaseFlares: [], xpEvents: [], nextDropId: 0,
+    emergencyQuest: EMERGENCY_QUEST_INIT,
+    bossCounter: counterTuningFor(null),
   };
 }
 
@@ -418,13 +449,32 @@ export function spawnMissionDrones(sim: WorldSim, x: number, z: number, count: n
 }
 
 
-export function summonBoss(sim: WorldSim, regionId: string, x: number, z: number): boolean {
+/** Spawns the regional catalog boss (encounters.ts) at (x,z). `extra` merges additional Machine
+ * fields in afterward — used to tag an Emergency Quest spawn (`{ eq: true }`). Falls back to that
+ * region's Unique Scenario (unique-scenarios.ts) when it has no catalog boss, so the same call
+ * site (the "B" debug summon, a boss lair, or the Emergency Quest spawner) works for both. */
+export function summonBoss(sim: WorldSim, regionId: string, x: number, z: number, extra?: Partial<Machine>): boolean {
   const boss = encounterFor(regionId)?.boss;
+  if (!boss) {
+    const scenario = scenarioFor(regionId);
+    return scenario ? summonScenarioBoss(sim, scenario, x, z, extra) : false;
+  }
   const m = sim.machines.find((candidate) => !candidate.alive);
-  if (!boss || !m) return false;
-  Object.assign(m, { alive: true, x, z, y: walkHeight(x, z) + 5, hp: 28, maxHp: 28, phase: 0 as BossPhaseIndex, rot: 0, scale: 2.3, zone: regionId, cool: 2, elite: true, boss: true, profile: boss.name, kind: "OVERCLOCKED", drop: boss.drop, kx: 0, kz: 0 });
+  if (!m) return false;
+  Object.assign(m, { alive: true, x, z, y: walkHeight(x, z) + 5, hp: 28, maxHp: 28, phase: 0 as BossPhaseIndex, rot: 0, scale: 2.3, zone: regionId, cool: 2, elite: true, boss: true, profile: boss.name, kind: "OVERCLOCKED", drop: boss.drop, kx: 0, kz: 0, poiseState: INITIAL_POISE, ...extra });
   sim.raidFight = { start: performance.now() / 1000, hurt: 0, region: regionId };
   alert(sim, `${boss.name} · ${boss.tell}`);
+  return true;
+}
+
+/** Spawns a Unique Scenario encounter (unique-scenarios.ts) — a one-off boss with a real gimmick
+ * instead of just reskinned stats; see that file for what `scenarioId` changes about combat. */
+export function summonScenarioBoss(sim: WorldSim, scenario: UniqueScenario, x: number, z: number, extra?: Partial<Machine>): boolean {
+  const m = sim.machines.find((candidate) => !candidate.alive);
+  if (!m) return false;
+  Object.assign(m, { alive: true, x, z, y: walkHeight(x, z) + 5, hp: 34, maxHp: 34, phase: 0 as BossPhaseIndex, rot: 0, scale: 2.5, zone: scenario.regionId, cool: 2, elite: true, boss: true, profile: scenario.bossName, kind: "ABERRATION", drop: scenario.drop as MaterialId, kx: 0, kz: 0, poiseState: INITIAL_POISE, scenarioId: scenario.id, ...extra });
+  sim.raidFight = { start: performance.now() / 1000, hurt: 0, region: scenario.regionId };
+  alert(sim, `${scenario.name} · ${scenario.briefing}`);
   return true;
 }
 
@@ -592,6 +642,21 @@ export function stepSim(sim: WorldSim, input: SimInput) {
   sim.mods = adaptationMods(sim.adaptation);
   if (sim.mods.regen > 0 && sim.hp < 100) sim.hp = Math.min(100, sim.hp + sim.mods.regen * dt);
 
+  // ---------- Emergency Quest world event ----------
+  const eqWasWarning = sim.emergencyQuest.state === "WARNING";
+  sim.emergencyQuest = stepEmergencyQuest(sim.emergencyQuest, dt, (regionId) => {
+    const r = REGIONS.find((rr) => rr.id === regionId);
+    return r ? { x: r.x + (Math.random() - 0.5) * 30, z: r.z + (Math.random() - 0.5) * 30 } : null;
+  });
+  if (sim.emergencyQuest.state === "WARNING" && !eqWasWarning) {
+    alert(sim, `EMERGENCY QUEST · ${sim.emergencyQuest.bossName} inbound — ${sim.emergencyQuest.regionId}`);
+  }
+  if (eqWasWarning && sim.emergencyQuest.state === "ACTIVE") {
+    const eq = sim.emergencyQuest;
+    if (!summonBoss(sim, eq.regionId, eq.x, eq.z, { eq: true })) sim.emergencyQuest = { ...sim.emergencyQuest, state: "FAILED", timer: 10 };
+    else alert(sim, `EMERGENCY QUEST ACTIVE · ${eq.bossName} has arrived`);
+  }
+
   // ---------- alerts ----------
   for (const a of sim.alerts) a.life -= dt;
   sim.alerts = sim.alerts.filter((a) => a.life > 0);
@@ -707,16 +772,29 @@ export function stepSim(sim: WorldSim, input: SimInput) {
     // once when it changes, so named bosses escalate instead of fighting as one flat health bar
     let bossTuning: ReturnType<typeof tuningFor> | null = null;
     if (m.boss && m.maxHp) {
+      const nowSec = performance.now() / 1000;
+      if (!m.poiseState) m.poiseState = INITIAL_POISE;
+      m.poiseState = decayPoise(m.poiseState, dt, nowSec);
       const nextPhase = phaseForHpFraction(Math.max(0, m.hp) / m.maxHp);
       if (m.phase === undefined) m.phase = 0;
       if (nextPhase !== m.phase) {
         m.phase = nextPhase;
+        // the phase shift doubles as the weak-point telegraph: its core destabilizes right as it escalates
+        m.poiseState = openWeakPoint(m.poiseState, nowSec);
         const t = tuningFor(nextPhase);
         sim.bossPhaseFlares.push({ x: m.x, z: m.z, name: m.profile, phase: nextPhase, label: t.label });
         if (sim.bossPhaseFlares.length > 6) sim.bossPhaseFlares.shift();
         alert(sim, `${m.profile} · ${t.label} — ${t.telegraph}`);
       }
-      bossTuning = tuningFor(m.phase);
+      const base = tuningFor(m.phase);
+      const counter = sim.bossCounter;
+      bossTuning = {
+        label: base.label,
+        telegraph: base.telegraph,
+        speedMult: base.speedMult * counter.speedMult,
+        damageMult: base.damageMult * counter.damageMult,
+        cooldownMult: base.cooldownMult * counter.cooldownMult,
+      };
     }
 
     const aggro =
@@ -1006,11 +1084,20 @@ export function stepSim(sim: WorldSim, input: SimInput) {
       if (!m.alive) continue;
       if (Math.hypot(m.x - b.x, m.z - b.z) < 3.4 * m.scale) {
         b.alive = false;
-        m.hp -= sim.mods.bulletDamage * b.dmg;
-        if (sim.equippedElement !== "KINETIC") {
-          m.hp -= 0.35;
-          if (sim.equippedElement === "CRYO" || sim.equippedElement === "ARC") m.cool = Math.max(m.cool, sim.equippedElement === "CRYO" ? 0.9 : 0.6);
+        let dmg = sim.mods.bulletDamage * b.dmg;
+        if (sim.equippedElement !== "KINETIC") dmg += 0.35;
+        if (m.boss) {
+          const nowSec = performance.now() / 1000;
+          if (!m.poiseState) m.poiseState = INITIAL_POISE;
+          const result = hitPoise(m.poiseState, dmg * 9, nowSec);
+          m.poiseState = result.state;
+          let mult = result.damageMult;
+          // Unique Scenario gimmick: near-immune outside the weak-point/stagger window it just got
+          if (m.scenarioId && mult === 1) mult = scenarioById(m.scenarioId)?.outsideWindowMult ?? 1;
+          dmg *= mult;
         }
+        m.hp -= dmg;
+        if (sim.equippedElement === "CRYO" || sim.equippedElement === "ARC") m.cool = Math.max(m.cool, sim.equippedElement === "CRYO" ? 0.9 : 0.6);
         sim.lastHit = performance.now();
         logBehavior(sim.adaptation, "combat", 1);
         // knockback impulse from the hit direction

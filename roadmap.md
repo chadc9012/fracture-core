@@ -85,4 +85,9 @@
 - [ ] World dressing pass: replace primitive-shape trees/rocks/boulders (cone/icosahedron/dodecahedron geometry) across Veridan Forest, Frostspire, Wastelands, Solara, and the Swamps with real low-poly CC0 GLB models (pine/oak/birch/dead trees, large/medium rocks, boulder clusters), fed into the same GPU-instancing pipeline so a whole forest or rockfield still renders as one draw call per species. Attempted and rolled back after a black-screen regression in the live preview; Terrain.tsx is back to primitive geometry until the regression is confirmed fixed and GLB models are reintroduced one source at a time.
 - [ ] Upgrade Frostspire/Wastelands/Solara rocks and boulders to real-world-scanned PBR models (Poly Haven, CC0), with automatic fallback to the stylized nature-kit rock if that CDN doesn't load for a given player. Rolled back along with the above.
 
+- [x] Add a Shangri-La Frontier-inspired boss weak-point/poise system — sustained damage breaks a boss's poise and staggers it into a high-damage punish window, and a weak-point core flashes open on every phase change; shown as a dedicated boss HP/poise bar in the HUD.
+- [x] Add Emergency Quest world events — a rare, countdown-warned world-boss spawn that pulls in whoever's nearby, with its own HUD banner and bonus payout on a clear.
+- [x] Add adaptive boss AI — an engaged boss reads the player's recent melee/ranged/dash/ability pattern and counters it mid-fight (speed, damage, or attack tempo), with a one-time "it's reading me" alert when the counter locks in.
+- [x] Add the first Unique Scenario encounter ("Anomaly: The Unbroken Glass" in Solara, which otherwise has no catalog boss) — a boss that's near-immune to damage outside its weak-point/stagger window, so it can't be brute-forced.
+
 - [ ] Export all current game code as a ZIP download

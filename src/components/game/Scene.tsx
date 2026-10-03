@@ -11,6 +11,9 @@ import type { MissionEvent, MissionRun } from "@/game/missions/broken-signal";
 import type { MissionEvent as BlackoutEvent, MissionRun as BlackoutRun } from "@/game/missions/blackout-protocol";
 import type { AwakeningEvent, AwakeningRun } from "@/game/missions/awakening";
 import { directorTrend, type Mission } from "@/game/director";
+import { isStaggered, isWeakPointOpen, POISE_MAX } from "@/game/boss-poise";
+import { tuningFor } from "@/game/boss-phases";
+import { counterTuningFor, dominantPattern, logAction, type ActionLogEntry, type PlayerAction } from "@/game/boss-adaptive-ai";
 import { Terrain } from "./Terrain";
 import { Weather } from "./Weather";
 import { Wildlife } from "./Wildlife";
@@ -167,6 +170,19 @@ export type HudState = {
   deathCause: string;
   deathCargoLost: number;
   deaths: number;
+  /** the currently-engaged boss (regional, Emergency Quest, or Unique Scenario), or null when none is alive */
+  bossHud: {
+    name: string;
+    hpPct: number;
+    phaseLabel: string;
+    poisePct: number;
+    weakPointOpen: boolean;
+    staggered: boolean;
+    adaptedTell: string;
+    scenario: boolean;
+  } | null;
+  /** Emergency Quest world event — see emergency-quest.ts; null while fully dormant */
+  emergencyQuest: { state: "WARNING" | "ACTIVE" | "COMPLETE" | "FAILED"; bossName: string; regionId: string; timer: number } | null;
 };
 
 const SPAWN_REGION = REGIONS.find((r) => r.id === "veridan");
@@ -293,6 +309,8 @@ export function Scene({
   const balance = useMemo(() => difficultyCurve(playerPowerScore({ inventory: gear?.inventory ?? [], equippedGear: gear?.equippedGear ?? {}, dungeonClears: gear?.dungeonClears ?? {}, completedMissions: gear?.completedMissions ?? [] } as Parameters<typeof playerPowerScore>[0])), [gear?.inventory, gear?.equippedGear, gear?.dungeonClears, gear?.completedMissions]);
   const missionSpawned = useRef("");
   const blackoutSpawned = useRef("");
+  const bossActionLog = useRef<ActionLogEntry[]>([]);
+  const bossAdaptedPattern = useRef<PlayerAction | null>(null);
   const adaptiveTutorial = useRef(ADAPTIVE_TUTORIAL_INIT);
   const lastHpForAdaptive = useRef(100);
   const lastDodgeStruggleAt = useRef(0);
@@ -320,6 +338,7 @@ export function Scene({
     for (const site of RESOURCE_SITES) list.push({ ...site, ready: (depleted.current[site.id] ?? 0) <= now });
     for (const lair of BOSS_LAIRS) list.push(lair);
     for (const m of sim.machines) if (m.alive && m.boss) list.push({ id: `live-${m.profile}`, kind: "BOSS", label: `${m.profile} (engaged)`, x: m.x, z: m.z, regionId: m.zone });
+    if (sim.emergencyQuest.state === "WARNING" || sim.emergencyQuest.state === "ACTIVE") list.push({ id: "eq-boss", kind: "BOSS", label: `EQ · ${sim.emergencyQuest.bossName}`, x: sim.emergencyQuest.x, z: sim.emergencyQuest.z, regionId: sim.emergencyQuest.regionId });
     list.push({ id: "neon-city", kind: "MISSION", label: "Neon City", x: NEON_CITY_CENTER.x, z: NEON_CITY_CENTER.z, regionId: "nexus" });
     list.push({ id: "thalassia", kind: "MISSION", label: "Thalassia (deep dive)", x: THALASSIA_CENTER.x, z: THALASSIA_CENTER.z, regionId: "swamps" });
     return list;
@@ -680,7 +699,8 @@ export function Scene({
           s.specialTime = Math.max(s.specialTime, slot === "ULTIMATE" ? 1.5 : 0.8);
           const effect = ability.effects[0];
           sfx.playAbility(effect?.kind ?? "ABILITY");
-          if (effect?.kind === "DASH") { s.x += Math.sin(s.yaw) * effect.value; s.z += Math.cos(s.yaw) * effect.value; alert(sim, "PHASE DASH · incoming damage avoided"); }
+          if (effect?.kind === "DASH") { s.x += Math.sin(s.yaw) * effect.value; s.z += Math.cos(s.yaw) * effect.value; alert(sim, "PHASE DASH · incoming damage avoided"); bossActionLog.current = logAction(bossActionLog.current, "DASH", performance.now() / 1000); }
+          else bossActionLog.current = logAction(bossActionLog.current, "ABILITY", performance.now() / 1000);
           if (effect?.kind === "SILENCE" || effect?.kind === "FIELD" || effect?.kind === "COOLDOWN_SHIFT") {
             for (const enemy of sim.machines) if (enemy.alive && Math.hypot(enemy.x - s.x, enemy.z - s.z) < (effect.radius ?? 12)) enemy.cool = Math.max(enemy.cool, effect.duration ?? 3);
             if (effect.kind === "FIELD") live.current.fieldTime = effect.duration ?? 8;
@@ -729,6 +749,7 @@ export function Scene({
     if (held.has("KeyX") && s.meleeCool <= 0 && !s.inVehicle) {
       s.meleeCool = 0.7;
       s.meleeTime = 0.72;
+      bossActionLog.current = logAction(bossActionLog.current, "MELEE", performance.now() / 1000);
       for (const enemy of sim.machines) {
         if (!enemy.alive) continue;
         const dx = enemy.x - s.x;
@@ -823,6 +844,7 @@ export function Scene({
       const yawJ = (Math.random() - 0.5) * 2 * spread;
       const pitchJ = (Math.random() - 0.5) * 2 * spread;
        if (fireBullet(sim, s.x, s.y + (s.inVehicle ? 1.5 : 0.95), s.z, s.yaw + yawJ, s.inVehicle, s.pitch + s.recoil + pitchJ, wpn.damage * gearPower, wpn.knock, wpn.heat)) {
+        bossActionLog.current = logAction(bossActionLog.current, "RANGED", performance.now() / 1000);
         sfx.playShot(s.inVehicle ? "VEHICLE" : s.weapon);
         s.recoil += wpn.recoil;
         s.punch += wpn.punch;
@@ -838,6 +860,7 @@ export function Scene({
         s.swing = 0.3;
         sfx.playSwing(s.combo === 3);
         s.meleeTime = Math.max(s.meleeTime, 0.6);
+        bossActionLog.current = logAction(bossActionLog.current, "MELEE", performance.now() / 1000);
         s.punch += wpn.punch * (s.combo === 3 ? 1.6 : 1);
         const reach = s.combo === 3 ? 8 : 6;
         const dmg = wpn.damage * (s.combo === 3 ? 1.8 : 1);
@@ -1119,6 +1142,25 @@ export function Scene({
       } else holdRef.current = 0;
     }
 
+    /* ---------------- Adaptive boss AI: read the player's recent pattern, feed it to sim.ts ---------------- */
+    {
+      const engagedBoss = sim.machines.find((e) => e.alive && e.boss);
+      if (!engagedBoss) {
+        bossActionLog.current = [];
+        bossAdaptedPattern.current = null;
+        sim.bossCounter = counterTuningFor(null);
+      } else {
+        const pattern = dominantPattern(bossActionLog.current, performance.now() / 1000);
+        sim.bossCounter = counterTuningFor(pattern);
+        if (pattern && pattern !== bossAdaptedPattern.current) {
+          bossAdaptedPattern.current = pattern;
+          alert(sim, `${engagedBoss.profile} is ${sim.bossCounter.tell}`);
+        } else if (!pattern) {
+          bossAdaptedPattern.current = null;
+        }
+      }
+    }
+
     /* ---------------- simulation step ---------------- */
     const { playerInstability } = stepSim(sim, {
       dt,
@@ -1384,6 +1426,28 @@ export function Scene({
         deathCause: sim.lastDeathCause,
         deathCargoLost: sim.lastDeathCargo,
         deaths: sim.deaths,
+        bossHud: (() => {
+          const b = sim.machines.find((e) => e.alive && e.boss && e.maxHp);
+          if (!b || !b.maxHp) return null;
+          const nowSec = performance.now() / 1000;
+          const poise = b.poiseState;
+          return {
+            name: b.profile,
+            hpPct: Math.max(0, Math.round((b.hp / b.maxHp) * 100)),
+            phaseLabel: tuningFor(b.phase ?? 0).label,
+            poisePct: Math.round(((poise?.poise ?? 0) / POISE_MAX) * 100),
+            weakPointOpen: poise ? isWeakPointOpen(poise, nowSec) : false,
+            staggered: poise ? isStaggered(poise, nowSec) : false,
+            adaptedTell: bossAdaptedPattern.current ? sim.bossCounter.tell : "",
+            scenario: Boolean(b.scenarioId),
+          };
+        })(),
+        emergencyQuest: sim.emergencyQuest.state === "DORMANT" ? null : {
+          state: sim.emergencyQuest.state,
+          bossName: sim.emergencyQuest.bossName,
+          regionId: sim.emergencyQuest.regionId,
+          timer: Math.ceil(sim.emergencyQuest.timer),
+        },
       });
     }
     resetFrameFailureCount();

@@ -19,6 +19,8 @@ export function HUD({ hud, tutorialActive = false, onMenu }: { hud: HudState; tu
     )}
     {!tutorialActive && <><Compass markers={hud.markers ?? []} yaw={hud.yaw ?? 0} /><TrackedObjectives markers={hud.markers ?? []} /></>}
     <div className="absolute left-1/2 top-4 w-[min(26rem,calc(100%-7rem))] -translate-x-1/2 space-y-1 text-center text-[10px]">{hud.alerts.slice(0, 2).map((alert, index) => <p key={`${alert}-${index}`} className="hud-panel border-x border-primary/40 bg-background/45 px-3 py-1 text-foreground/90 backdrop-blur-sm" style={{ opacity: 1 - index * 0.28 }}>{alert}</p>)}</div>
+    <EmergencyQuestBanner eq={hud.emergencyQuest} />
+    <BossHealthBar boss={hud.bossHud} />
     <Crosshair hud={hud} />
     <div className="absolute bottom-4 left-4 w-[min(24rem,calc(100%-8rem))]">
       <HudPanel className={`px-3 py-2 ${hud.hp <= 40 ? "hud-glow-destructive" : "hud-glow"}`}>
@@ -46,6 +48,51 @@ function Crosshair({ hud }: { hud: HudState }) {
   const gap = 5 + hud.bloom * 18 - (hud.aiming ? 3 : 0);
   const color = hud.overheated ? "var(--destructive)" : hud.aimLocked ? "var(--primary)" : "var(--foreground)";
   return <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"><div className="relative h-0 w-0">{([[0, -1], [0, 1], [-1, 0], [1, 0]] as const).map(([x, y], index) => <span key={index} className="absolute block" style={{ width: x ? 8 : 2, height: y ? 8 : 2, background: color, boxShadow: `0 0 6px ${color}`, left: x * gap - (x ? (x > 0 ? 0 : 8) : 1), top: y * gap - (y ? (y > 0 ? 0 : 8) : 1), opacity: 0.85 }} />)}{hud.hitMarker && <span className="absolute -left-3 -top-3 size-6 text-center text-lg leading-6 text-destructive" style={{ textShadow: "0 0 8px var(--destructive)" }}>✕</span>}</div></div>;
+}
+
+/** Shangri-La Frontier-style boss readout: hp bar, a poise/stagger bar underneath that flashes
+ * gold when the weak point is open and red when it's broken, and the adaptive-AI "tell" line the
+ * instant it locks onto a pattern. Top-center, under the alert stack so it doesn't collide with it. */
+function BossHealthBar({ boss }: { boss: HudState["bossHud"] }) {
+  if (!boss) return null;
+  const poiseColor = boss.staggered ? "bg-destructive" : boss.weakPointOpen ? "bg-warning" : "bg-primary";
+  return (
+    <div className="pointer-events-none absolute left-1/2 top-[4.6rem] w-[min(30rem,calc(100%-4rem))] -translate-x-1/2">
+      <HudPanel className={`px-3 py-2 ${boss.staggered ? "hud-glow-destructive" : "hud-glow"}`}>
+        <div className="flex items-center justify-between text-[10px] uppercase tracking-[0.2em]">
+          <span className="truncate text-destructive">{boss.name}{boss.scenario ? " · ANOMALY" : ""}</span>
+          <span className="text-muted-foreground">{boss.phaseLabel}</span>
+        </div>
+        <div className="mt-1 h-2 overflow-hidden border border-foreground/20 bg-background/60">
+          <div className="h-full bg-destructive hud-ticks" style={{ width: `${boss.hpPct}%`, transition: "width 150ms linear" }} />
+        </div>
+        <div className="mt-1 h-1.5 overflow-hidden border border-foreground/10 bg-background/60">
+          <div className={`h-full hud-ticks ${poiseColor}`} style={{ width: `${boss.staggered ? 100 : boss.poisePct}%`, transition: "width 150ms linear" }} />
+        </div>
+        <div className="mt-1 flex items-center justify-between text-[8px] uppercase tracking-[0.18em] text-muted-foreground">
+          <span>{boss.staggered ? "STAGGERED · CRITICAL WINDOW OPEN" : boss.weakPointOpen ? "WEAK POINT EXPOSED" : "Poise"}</span>
+          {boss.adaptedTell && <span className="text-warning">Adapting · {boss.adaptedTell}</span>}
+        </div>
+      </HudPanel>
+    </div>
+  );
+}
+
+/** Emergency Quest countdown banner — Shangri-La Frontier's server-wide "EQ" warning. */
+function EmergencyQuestBanner({ eq }: { eq: HudState["emergencyQuest"] }) {
+  if (!eq) return null;
+  const tone = eq.state === "COMPLETE" ? "text-primary" : eq.state === "FAILED" ? "text-muted-foreground" : "text-destructive";
+  const label =
+    eq.state === "WARNING" ? `EMERGENCY QUEST INBOUND · ${eq.bossName} · ${eq.regionId}` :
+    eq.state === "ACTIVE" ? `EMERGENCY QUEST ACTIVE · ${eq.bossName} · ${eq.regionId}` :
+    eq.state === "COMPLETE" ? "EMERGENCY QUEST CLEARED" : "EMERGENCY QUEST FAILED";
+  return (
+    <div className="pointer-events-none absolute left-1/2 top-2 w-[min(28rem,calc(100%-6rem))] -translate-x-1/2 text-center">
+      <div className={`hud-panel animate-pulse border-x border-destructive/50 bg-background/55 px-3 py-1 text-[9px] uppercase tracking-[0.22em] backdrop-blur-sm ${tone}`}>
+        {label}{(eq.state === "WARNING" || eq.state === "ACTIVE") && ` · ${eq.timer}s`}
+      </div>
+    </div>
+  );
 }
 
 function WeaponSelector({ hud }: { hud: HudState }) {
