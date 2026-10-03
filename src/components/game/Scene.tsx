@@ -59,6 +59,7 @@ import { INTERIORS, INTERIOR_ALTITUDE, doorAt, atExitMarker, interiorById, isInt
 import { Interiors } from "./Interiors";
 
 import type { GameSettings } from "./SettingsWindow";
+import { CHECKPOINT_INTERVAL_S, chooseRespawn, isCheckpointSafe } from "@/game/respawn";
 import { WEAPONS, WEAPON_ORDER, decay, freshAmmo, type WeaponId } from "@/game/weapons";
 import { DEFAULT_BINDINGS } from "@/game/bindings";
 import * as sfx from "@/game/audio";
@@ -291,6 +292,9 @@ export function Scene({
   awakening,
   onAwakeningEvent,
   onXP,
+  weaponOrder = WEAPON_ORDER,
+  travelTo = null,
+  onCheckpoint,
 }: {
   onHud: (s: HudState) => void;
   settings?: GameSettings;
@@ -320,7 +324,16 @@ export function Scene({
   awakening?: AwakeningRun | null;
   onAwakeningEvent?: (event: AwakeningEvent) => void;
   onXP?: (event: WorldSim["xpEvents"][number]) => void;
+  /** active class loadout: weapon slot order for keys 1-3, cycling and HUD */
+  weaponOrder?: WeaponId[];
+  /** star map deployment target; nonce changes trigger the drop */
+  travelTo?: { x: number; z: number; nonce: number } | null;
+  onCheckpoint?: (p: { x: number; z: number }) => void;
 }) {
+  const orderRef = useRef(weaponOrder); orderRef.current = weaponOrder;
+  const travelSeen = useRef(0);
+  const checkpoint = useRef<{ x: number; z: number } | null>(null);
+  const checkpointClock = useRef(0);
   const keys = useKeyboard();
   const sim = useMemo<WorldSim>(() => createSim(), []);
   // Global Balance Controller: recomputed only when equipped gear/clears/missions actually change,
@@ -867,15 +880,17 @@ export function Scene({
       sfx.playSwitch();
       alert(sim, `${WEAPONS[id].name} equipped`);
     };
-    const step = (dir: number) => equip(WEAPON_ORDER[(WEAPON_ORDER.indexOf(s.weapon) + dir + WEAPON_ORDER.length) % WEAPON_ORDER.length]!);
-    WEAPON_ORDER.forEach((id, i) => { if (held.has(`Digit${i + 1}`) || padTap(binds.gamepad[`slot${i + 1}` as "slot1"])) equip(id); });
+    const order = orderRef.current;
+    if (!order.includes(s.weapon)) equip(order[0]!);
+    const step = (dir: number) => equip(order[(Math.max(0, order.indexOf(s.weapon)) + dir + order.length) % order.length]!);
+    order.forEach((id, i) => { if (held.has(`Digit${i + 1}`) || padTap(binds.gamepad[`slot${i + 1}` as "slot1"])) equip(id); });
     if (keyTap(binds.keyboard.nextWeapon) || padTap(binds.gamepad.nextWeapon)) step(1);
     if (keyTap(binds.keyboard.prevWeapon) || padTap(binds.gamepad.prevWeapon)) step(-1);
     s.wheel = held.has(binds.keyboard.weaponWheel) || !!padNow[binds.gamepad.weaponWheel];
     if (s.wheel && pad) {
       // flick the right stick toward a slot: up=1, right=2, down=3, left=4
       const [rx = 0, ry = 0] = [pad.axes[2], pad.axes[3]];
-      if (Math.hypot(rx, ry) > 0.6) equip(Math.abs(rx) > Math.abs(ry) ? (rx > 0 ? WEAPON_ORDER[1]! : WEAPON_ORDER[3]!) : (ry < 0 ? WEAPON_ORDER[0]! : WEAPON_ORDER[2]!));
+      if (Math.hypot(rx, ry) > 0.6) equip(Math.abs(rx) > Math.abs(ry) ? (rx > 0 ? order[1 % order.length]! : order[order.length - 1]!) : (ry < 0 ? order[0]! : order[2 % order.length]!));
     }
     const def = WEAPONS[s.weapon];
     const clip = s.ammo[s.weapon];
@@ -1285,10 +1300,23 @@ export function Scene({
     // it can't touch the player's world position — that lives here in Scene's own state, not in WorldSim.
     // Detect the new timestamp and do the part sim.ts's alert text always claimed but never performed:
     // teleport back to Nexus City, bail out of any vehicle/interior, and zero out momentum.
+    const hostiles = sim.machines.filter((m) => m.alive);
+    checkpointClock.current += dt;
+    if (checkpointClock.current >= CHECKPOINT_INTERVAL_S) {
+      checkpointClock.current = 0;
+      const here = { x: s.x, z: s.z };
+      if (!s.insideInterior && isCheckpointSafe(here, hostiles, performance.now() - sim.lastHit < 6000)) { checkpoint.current = here; onCheckpoint?.(here); }
+    }
+    if (travelTo && travelTo.nonce !== travelSeen.current) {
+      travelSeen.current = travelTo.nonce;
+      s.x = travelTo.x; s.z = travelTo.z; s.y = walkHeight(s.x, s.z) + 1.6; s.vy = 0; s.vSpeed = 0; s.inVehicle = false; s.insideInterior = null; interior = null; velocity.set(0, 0, 0);
+    }
     if (sim.lastDeath !== deathSeen.current) {
       deathSeen.current = sim.lastDeath;
-      s.x = NEXUS_REGION.x;
-      s.z = NEXUS_REGION.z + 10;
+      const spot = chooseRespawn({ x: s.x, z: s.z }, checkpoint.current, hostiles);
+      alert(sim, `Respawned at ${spot.label} — away from active combat`);
+      s.x = spot.x;
+      s.z = spot.z;
       s.y = walkHeight(s.x, s.z) + 1.6;
       s.vy = 0;
       s.vSpeed = 0;
@@ -1474,8 +1502,8 @@ export function Scene({
         aiming: (mouse.current.aim || padState.current.aim),
         meleeTime: s.meleeTime,
         weaponName: WEAPONS[s.weapon].name,
-        weaponSlot: WEAPON_ORDER.indexOf(s.weapon) + 1,
-        ammo: WEAPON_ORDER.map((id) => ({ id, name: WEAPONS[id].name, mag: s.ammo[id].mag, magSize: WEAPONS[id].mag, reserve: s.ammo[id].reserve })),
+        weaponSlot: orderRef.current.indexOf(s.weapon) + 1,
+        ammo: orderRef.current.map((id) => ({ id, name: WEAPONS[id].name, mag: s.ammo[id].mag, magSize: WEAPONS[id].mag, reserve: s.ammo[id].reserve })),
         reloading: s.reload > 0 ? 1 - s.reload / WEAPONS[s.weapon].reload : 0,
         weaponWheel: s.wheel,
         weaponSwitched: s.switchedAt,
