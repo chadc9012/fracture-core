@@ -114,3 +114,4 @@
 - [x] Voice startup, onboarding, cinematics, missions, NPCs, bosses, victory, and ending.
 - [x] Verify spoken flow, interruption, muting, Safari-safe fallback, and build health.
 - [x] Apply the linked Destiny UI reference to startup, identity onboarding, deployment briefing, restrained HUD, categorized settings, and destination-first world navigation without copying proprietary assets.
+- [x] Rewrote the in-game Roadmap screen (retention.ts ROADMAP, settings "Roadmap" tab) as real storyline missions instead of engineering feature flags: entries now read as story beats continuing past "The System Core" (a traced signal, the Silent Array raid, a fireteam-capable mission format, archived-never-removed seasons) in the same voice as the Chronicle, while keeping the existing {label, status} shape so no other code needed to change.
