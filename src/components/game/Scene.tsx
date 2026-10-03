@@ -1163,7 +1163,8 @@ export function Scene({
       if (descend) s.vy = Math.max(-4.5, s.vy - 9 * dt);
       s.vy = applyWaterDrag(stepBuoyancy(s.vy, dt, descend), WATER_DRAG.vertical, dt);
       s.y += s.vy * dt;
-      const floor = walkHeight(s.x, s.z) + 1.1;
+      // Diving follows the true seabed; walkHeight is surface-clamped for ordinary walkers.
+      const floor = heightAt(s.x, s.z) + 1.1;
       if (s.y < floor) { s.y = floor; s.vy = 0; }
       if (s.y > WATER_LEVEL + 1.5) { s.diving = false; s.grounded = false; s.vy = 0; }
     } else if (s.grounded || (submerged && !s.diving)) {

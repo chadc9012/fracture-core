@@ -1,11 +1,11 @@
 import { Text } from "@react-three/drei";
 import { useMemo } from "react";
-import * as THREE from "three";
 import { REGIONS } from "@/game/world";
 import { walkHeight } from "@/game/terrain";
 import { addObstacle } from "@/game/obstacles";
 import { Model } from "./Vehicle";
 import type { ModelKey } from "@/game/models";
+import { ElevatedTrain, LightBar, ShopSign } from "./DistrictStreet";
 
 /**
  * Neon City — the Syndicate's market/cybernetics district bordering Nexus City (per the
@@ -105,24 +105,47 @@ function DistrictBuildings() {
   );
 }
 
-/** overhead glowing transit line — a nod to the reference art's monorail sweeping through the skyline */
-function OverheadTransit() {
-  const points = useMemo(() => {
-    const pts: THREE.Vector3[] = [];
-    for (let i = 0; i <= 24; i++) {
-      const t = i / 24;
-      const x = NEON_CITY_CENTER.x - 40 + t * 80;
-      const z = NEON_CITY_CENTER.z + Math.sin(t * Math.PI * 1.4) * 18;
-      pts.push(new THREE.Vector3(x, walkHeight(x, z) + 14, z));
-    }
-    return pts;
-  }, []);
-  const curve = useMemo(() => new THREE.CatmullRomCurve3(points), [points]);
-  const geometry = useMemo(() => new THREE.TubeGeometry(curve, 60, 0.35, 8, false), [curve]);
+function NeonMarketStreet({ y }: { y: number }) {
+  const shopColors = ["#38e8ff", "#ff2ea6", "#ffcf3a", "#39ff7a"];
   return (
-    <mesh geometry={geometry}>
-      <meshStandardMaterial color="#38e8ff" emissive="#38e8ff" emissiveIntensity={2.2} toneMapped={false} />
-    </mesh>
+    <group position={[NEON_CITY_CENTER.x, y, NEON_CITY_CENTER.z]}>
+      {/* Broad traversable avenue, rain channels and inset guidance strips. */}
+      <mesh position-y={0.08} receiveShadow><boxGeometry args={[19, 0.34, 66]} /><meshStandardMaterial color="#13171d" metalness={0.55} roughness={0.4} /></mesh>
+      <mesh position-y={0.27} receiveShadow><boxGeometry args={[9.5, 0.08, 64]} /><meshStandardMaterial color="#26313a" metalness={0.45} roughness={0.48} /></mesh>
+      {[-4.3, 4.3].map((x) => <LightBar key={x} position={[x, 0.34, 0]} size={[0.13, 0.04, 62]} color={x < 0 ? "#ff2ea6" : "#38e8ff"} />)}
+      {Array.from({ length: 11 }, (_, i) => <group key={i} position-z={-29 + i * 5.8}>
+        <LightBar position={[0, 0.34, 0]} size={[1.3, 0.025, 0.08]} color="#576977" />
+        <mesh position={[-7.4, 1.7, 0]}><cylinderGeometry args={[0.12, 0.18, 3.4, 7]} /><meshStandardMaterial color="#3a4650" metalness={0.8} roughness={0.3} /></mesh>
+        <pointLight position={[-7.4, 3.3, 0]} color={i % 2 ? "#ff2ea6" : "#38e8ff"} intensity={3.5} distance={9} />
+      </group>)}
+      {/* Two levels of stalls and balconies on both sides, with the center kept open for combat and vehicles. */}
+      {[-1, 1].map((side) => <group key={side} position-x={side * 8.1}>
+        {[0.7, 4.4].map((level, levelIndex) => <group key={level} position-y={level}>
+          <mesh receiveShadow><boxGeometry args={[5.5, 0.38, 62]} /><meshStandardMaterial color={levelIndex ? "#222832" : "#292630"} metalness={0.56} roughness={0.42} /></mesh>
+          <mesh position={[-side * 2.55, 0.75, 0]}><boxGeometry args={[0.15, 1.35, 62]} /><meshStandardMaterial color="#53616d" metalness={0.75} roughness={0.27} /></mesh>
+          <LightBar position={[-side * 2.66, -0.05, 0]} size={[0.1, 0.1, 61]} color={side < 0 ? "#ff2ea6" : "#38e8ff"} />
+          {[-24, -12, 0, 12, 24].map((z, stallIndex) => {
+            const stallColor = shopColors[stallIndex % shopColors.length] ?? "#38e8ff";
+            return <group key={z} position={[side * 0.1, 1.15, z]}>
+            <mesh><boxGeometry args={[4.5, 2.15, 9.5]} /><meshStandardMaterial color="#151b22" roughness={0.48} metalness={0.5} /></mesh>
+            <mesh position={[-side * 2.28, 0.05, 0]}><boxGeometry args={[0.06, 1.55, 7.5]} /><meshPhysicalMaterial color={stallColor} transparent opacity={0.25} roughness={0.1} depthWrite={false} /></mesh>
+            <LightBar position={[-side * 2.36, 1.05, 0]} size={[0.08, 0.11, 8.5]} color={stallColor} />
+          </group>})}
+        </group>)}
+      </group>)}
+      <ShopSign label="SYNTH-COFFEE" color="#ffcf3a" position={[-5.25, 3.3, -20]} />
+      <ShopSign label="CYBERNETICS" color="#ff2ea6" position={[5.25, 7.05, -4]} face={-1} />
+      <ShopSign label="DATA SHARDS" color="#38e8ff" position={[-5.25, 6.9, 13]} />
+      <ShopSign label="NEON CORE" color="#39ff7a" position={[5.25, 3.35, 24]} face={-1} />
+      <ElevatedTrain length={68} height={11.8} accent="#38e8ff" dark="#222631" />
+      {/* Suspended crosswalks make the stacked market read as one connected public space. */}
+      {[-17, 16].map((z, i) => <group key={z} position={[0, 7.2, z]}>
+        <mesh receiveShadow><boxGeometry args={[13.5, 0.28, 2.2]} /><meshStandardMaterial color="#353b47" metalness={0.65} roughness={0.32} /></mesh>
+        <LightBar position={[0, -0.08, 1.05]} size={[13, 0.07, 0.07]} color={i ? "#ff2ea6" : "#38e8ff"} />
+      </group>)}
+      <pointLight position={[0, 5, -13]} color="#ff2ea6" intensity={19} distance={34} decay={2} />
+      <pointLight position={[0, 7, 19]} color="#38e8ff" intensity={18} distance={36} decay={2} />
+    </group>
   );
 }
 
@@ -131,7 +154,7 @@ export function NeonCity() {
   return (
     <group>
       <DistrictBuildings />
-      <OverheadTransit />
+      <NeonMarketStreet y={y} />
       {/* street-level glow */}
       <mesh position={[NEON_CITY_CENTER.x, y + 0.03, NEON_CITY_CENTER.z]} rotation-x={-Math.PI / 2}>
         <planeGeometry args={[70, 56]} />
