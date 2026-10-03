@@ -2,7 +2,7 @@ import { ChevronLeft, ChevronRight, Circle, Cpu, Settings, Shield } from "lucide
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { CLASSES, CUSTOMIZATION_PALETTE, DEFAULT_SUBCLASS, SUBCLASSES, appearanceById, classById, operatorBySubclass, type AppearanceDefinition, type ClassId, type SubclassId } from "@/game/loadout";
+import { CLASSES, CUSTOMIZATION_PALETTE, DEFAULT_SUBCLASS, SUBCLASSES, appearanceById, operatorByClass, type AppearanceDefinition, type ClassId, type SubclassId } from "@/game/loadout";
 import { CLASS_LABEL, IdentityForge } from "./IdentityForge";
 import { CornerBrackets } from "./HudChrome";
 import { useVoiceLine } from "./useVoiceLine";
@@ -21,10 +21,11 @@ const CHANNELS: { key: "armor" | "cloth" | "visor" | "trim"; label: string }[] =
   { key: "trim", label: "Trim accent" },
 ];
 
-/** Default field colors + callsign for a freshly-picked subclass: that subclass's named
- * Operator's signature preset, with their callsign pre-filled (the player can still edit both). */
-function APPEARANCE_FOR(subclassId: SubclassId): AppearanceDefinition {
-  const op = operatorBySubclass(subclassId);
+/** Default field colors + callsign for a freshly-picked class: that class's one named Operator's
+ * signature preset, with their callsign pre-filled (the player can still edit both). Subclass
+ * doesn't factor in here — all 3 of an Operator's subclasses are the same character. */
+function APPEARANCE_FOR(classId: ClassId): AppearanceDefinition {
+  const op = operatorByClass(classId);
   return { ...appearanceById(op.appearanceId), callsign: op.callsign };
 }
 
@@ -38,16 +39,17 @@ const GUIDE: Record<Stage, string> = {
 export function StartMenu({ onDeploy, onSettings }: { onDeploy: (deployment: Deployment) => void; onSettings: () => void; best: { credits: number; kills: number } | null }) {
   const [classId, setClassId] = useState<ClassId>("TITAN");
   const [subclassId, setSubclassId] = useState<SubclassId>("SHIELD_TITAN");
-  const [appearance, setAppearance] = useState<AppearanceDefinition>(() => APPEARANCE_FOR("SHIELD_TITAN"));
+  const [appearance, setAppearance] = useState<AppearanceDefinition>(() => APPEARANCE_FOR("TITAN"));
   const [stage, setStage] = useState<Stage>("CLASS");
-  const operator = operatorBySubclass(subclassId);
-  const selectedClass = classById(classId);
+  const operator = operatorByClass(classId);
   const subclasses = SUBCLASSES.filter((item) => item.classId === classId);
   const stageIndex = STAGES.indexOf(stage);
   useVoiceLine(`forge-${stage}`, "NOVA", GUIDE[stage], "story");
 
-  const applySubclass = (id: SubclassId) => { setSubclassId(id); setAppearance(APPEARANCE_FOR(id)); };
-  const selectClass = (id: ClassId) => { setClassId(id); applySubclass(DEFAULT_SUBCLASS[id]); };
+  // Subclass is a respec of the same Operator, so it never touches appearance; only switching
+  // Operator (class) resets colors/callsign back to that Operator's signature.
+  const applySubclass = (id: SubclassId) => { setSubclassId(id); };
+  const selectClass = (id: ClassId) => { setClassId(id); applySubclass(DEFAULT_SUBCLASS[id]); setAppearance(APPEARANCE_FOR(id)); };
   const next = () => {
     if (stage === "APPEARANCE") {
       setStage("ASSEMBLING");
@@ -88,17 +90,25 @@ export function StartMenu({ onDeploy, onSettings }: { onDeploy: (deployment: Dep
       {CLASSES.map((item, index) => <Button key={item.id} variant="ghost" className={`relative pointer-events-auto mx-auto h-auto w-fit rounded-none border-b-2 bg-transparent px-4 py-3 font-mono transition ${classId === item.id ? "border-primary text-foreground" : "border-transparent text-muted-foreground hover:text-foreground"}`} onClick={() => selectClass(item.id)}><span><span className="block text-[9px] tracking-[0.3em] text-primary">0{index + 1}</span><span className="text-xs font-bold sm:text-lg">{CLASS_LABEL[item.id]}</span><span className="mt-1 hidden text-[8px] uppercase sm:block">{item.id === "TITAN" ? "Control space" : item.id === "HUNTER" ? "Control movement" : "Control systems"}</span></span></Button>)}
     </div>}
 
-    {stage === "SUBCLASS" && <div className="pointer-events-auto absolute bottom-24 left-1/2 z-10 grid w-[min(62rem,calc(100%-2rem))] -translate-x-1/2 gap-2 sm:grid-cols-3">
-      {subclasses.map((item) => { const op = operatorBySubclass(item.id); return (
-        <Button key={item.id} variant="ghost" onClick={() => applySubclass(item.id)} className={`hud-panel relative h-auto min-h-20 justify-start px-4 py-3 text-left whitespace-normal ${subclassId === item.id ? "hud-glow text-foreground" : "text-muted-foreground"}`}>
-          <CornerBrackets />
-          <span>
-            <span className="flex items-baseline justify-between gap-2"><span className="font-mono text-xs uppercase tracking-[0.12em]">{item.name}</span><span className="font-mono text-[9px] uppercase text-primary">{op.callsign}</span></span>
-            <span className="mt-1 block text-[10px] leading-relaxed">{item.description}</span>
-            <span className="mt-1 block text-[9px] italic leading-relaxed text-muted-foreground/80">{op.name} — {op.bio}</span>
-          </span>
-        </Button>
-      ); })}
+    {stage === "SUBCLASS" && <div className="pointer-events-auto absolute bottom-24 left-1/2 z-10 w-[min(62rem,calc(100%-2rem))] -translate-x-1/2">
+      <div className="hud-panel relative mb-2 p-3">
+        <CornerBrackets size={6} />
+        <div className="flex items-baseline justify-between gap-3"><span className="font-mono text-xs uppercase tracking-[0.12em] text-foreground">{operator.name}</span><span className="font-mono text-[9px] uppercase text-primary">{operator.callsign}</span></div>
+        <p className="mt-1 text-[10px] italic leading-relaxed text-muted-foreground">{operator.bio}</p>
+      </div>
+      <div className="grid gap-2 sm:grid-cols-3">
+        {subclasses.map((item) => (
+          <Button key={item.id} variant="ghost" onClick={() => applySubclass(item.id)} className={`hud-panel relative h-auto min-h-24 justify-start px-4 py-3 text-left whitespace-normal ${subclassId === item.id ? "hud-glow text-foreground" : "text-muted-foreground"}`}>
+            <CornerBrackets />
+            <span>
+              <span className="block font-mono text-xs uppercase tracking-[0.12em]">{item.name}</span>
+              <span className="mt-1 block text-[10px] leading-relaxed">{item.description}</span>
+              <span className="mt-2 block text-[9px] uppercase tracking-[0.1em] text-primary">Special ability</span>
+              <span className="mt-0.5 block text-[10px] leading-relaxed text-muted-foreground">{item.specialAbility}</span>
+            </span>
+          </Button>
+        ))}
+      </div>
     </div>}
 
     {stage === "APPEARANCE" && <div className="pointer-events-auto absolute bottom-20 left-1/2 z-10 w-[min(48rem,calc(100%-2rem))] -translate-x-1/2">
@@ -106,7 +116,7 @@ export function StartMenu({ onDeploy, onSettings }: { onDeploy: (deployment: Dep
         <CornerBrackets size={6} />
         <div className="flex items-baseline justify-between gap-3">
           <span className="font-mono text-xs uppercase tracking-[0.12em] text-foreground">{operator.name}</span>
-          <span className="font-mono text-[9px] uppercase text-muted-foreground">{operator.classId} / {operator.subclassId.replaceAll("_", " ")}</span>
+          <span className="font-mono text-[9px] uppercase text-muted-foreground">{operator.classId} / {subclasses.find((item) => item.id === subclassId)?.name ?? ""}</span>
         </div>
         <p className="mt-1 text-[10px] italic leading-relaxed text-muted-foreground">{operator.bio}</p>
 
@@ -133,7 +143,7 @@ export function StartMenu({ onDeploy, onSettings }: { onDeploy: (deployment: Dep
 
     {stage !== "ASSEMBLING" && <footer className="pointer-events-none absolute inset-x-0 bottom-4 z-20 flex items-center justify-center gap-2">
       {stageIndex > 0 && <Button className="hud-panel pointer-events-auto border-0" variant="outline" onClick={back}><ChevronLeft />Back</Button>}
-      <Button className="hud-glow pointer-events-auto min-w-44" onClick={next}>{stage === "APPEARANCE" ? <Shield /> : null}{stage === "CLASS" ? `Imprint ${selectedClass.name}` : stage === "SUBCLASS" ? "Approach armor forge" : "Confirm identity"}<ChevronRight /></Button>
+      <Button className="hud-glow pointer-events-auto min-w-44" onClick={next}>{stage === "APPEARANCE" ? <Shield /> : null}{stage === "CLASS" ? `Imprint ${operatorByClass(classId).name}` : stage === "SUBCLASS" ? "Approach armor forge" : "Confirm identity"}<ChevronRight /></Button>
     </footer>}
     {stage === "ASSEMBLING" && <div className="absolute inset-x-0 bottom-12 z-20 text-center"><p className="animate-pulse font-mono text-xs uppercase tracking-[0.35em] text-primary" style={{ textShadow: "0 0 12px color-mix(in oklch, var(--primary) 60%, transparent)" }}>Armor lattice assembling</p><div className="mx-auto mt-3 h-px w-64 overflow-hidden bg-muted"><div className="h-full w-full origin-left animate-[forge-progress_2.1s_ease-in-out] bg-primary" style={{ boxShadow: "0 0 8px var(--primary)" }} /></div></div>}
   </div>;
