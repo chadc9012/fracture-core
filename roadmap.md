@@ -91,3 +91,14 @@
 - [x] Add the first Unique Scenario encounter ("Anomaly: The Unbroken Glass" in Solara, which otherwise has no catalog boss) — a boss that's near-immune to damage outside its weak-point/stagger window, so it can't be brute-forced.
 
 - [ ] Export all current game code as a ZIP download
+
+## Whole-game cinematic polish
+
+- [ ] Stabilize graphics startup and Safari capability handling before adding visual load.
+- [ ] Establish one grounded cinematic sci-fi render language across world, menus, HUD, map, and character creation.
+- [ ] Upgrade traversal and combat feel: locomotion, camera response, animation feedback, enemy readability, impacts, and encounters.
+- [ ] Upgrade biome terrain and dressing for forest, desert, wasteland, volcanic, alpine, swamp, city, ocean, and underwater districts.
+- [ ] Deepen environmental simulation: wind, rain, storms, sun/moon cycle, water, lakes, ocean, lava, underwater atmosphere, and flying life/traffic.
+- [ ] Replace remaining boxy placeholder characters, enemies, vehicles, weapons, and props with safe bundled or verified assets.
+- [ ] Polish all 2D surfaces and overlays to the supplied tactical holographic visual language without cluttering combat.
+- [ ] Playtest the complete first-session flow and representative regions on desktop, compact screens, Chrome, and Safari-safe settings.
