@@ -52,8 +52,8 @@
 - [x] Add seven-region atlas using supplied map art, regional enemy and dungeon boss references, and zone intelligence.
 - [x] Add regional enemy appearances, named boss encounters, farmable materials, inventory loadout, upgrades, and elemental infusion.
 - [x] Mission 01 Broken Signal (NOVA guide)
-- [ ] Mission 02 Blackout Protocol
-- [ ] Stitched Neon Core first session
+- [x] Mission 02 Blackout Protocol
+- [ ] Stitched Neon Core first session (hooked narratively at the end of Blackout Protocol; no physical layer/session yet)
 - [x] Per-weapon ammo, reload, ammo HUD
 - [x] Controller weapon switching, selector/wheel, configurable bindings
 - [x] Password reset for cloud saves

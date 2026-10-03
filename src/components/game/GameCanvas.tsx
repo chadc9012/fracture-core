@@ -35,6 +35,8 @@ import { AwakeningOverlay } from "./AwakeningOverlay";
 import { advanceAwakening, AWAKENING, type AwakeningEvent, type AwakeningRun } from "@/game/missions/awakening";
 import { normalizeBindings } from "@/game/bindings";
 import { advanceMission, BROKEN_SIGNAL, type MissionEvent, type MissionRun } from "@/game/missions/broken-signal";
+import { advanceMission as advanceBlackout, BLACKOUT_PROTOCOL, type MissionEvent as BlackoutEvent, type MissionRun as BlackoutRun } from "@/game/missions/blackout-protocol";
+import { BlackoutProtocolOverlay } from "./BlackoutProtocolOverlay";
 import { gameTick, QUESTS } from "@/game/quests";
 import { QuestTracker } from "./QuestTracker";
 import { dialogueFor, revisitDialogueFor, type DialogueLine } from "@/game/dialogue";
@@ -229,6 +231,24 @@ export function GameCanvas() {
     const timer = window.setTimeout(() => setMission(null), 9000);
     return () => window.clearTimeout(timer);
   }, [mission?.state, progression.completedMissions]);
+
+  /* Mission 02 · Blackout Protocol — picks up once Broken Signal is behind you; NOVA's line
+   * sends you into the real Neon City street, same ANCHOR/ARRIVED/CLEAR/HACK/ACK shape as
+   * Mission 01 so Scene.tsx wires it the identical way. */
+  const [blackout, setBlackout] = useState<BlackoutRun | null>(null);
+  const blackoutReady = phase === "world" && !tutorial && progression.completedMissions.includes("broken-signal") && !progression.completedMissions.includes("blackout-protocol");
+  useEffect(() => {
+    if (!blackoutReady || blackout) return;
+    const timer = window.setTimeout(() => setBlackout(advanceBlackout(BLACKOUT_PROTOCOL, { type: "START" })), 8000);
+    return () => window.clearTimeout(timer);
+  }, [blackoutReady, blackout]);
+  const recordBlackout = (event: BlackoutEvent) => setBlackout((current) => current ? advanceBlackout(current, event) : current);
+  useEffect(() => {
+    if (blackout?.state !== "WORLD_UPDATE" || progression.completedMissions.includes("blackout-protocol")) return;
+    setProgression((current) => { const next = completeMission(current, "blackout-protocol"); return gameTick({ ...next, materials: { ...next.materials, microCircuits: (next.materials.microCircuits ?? 0) + 4 } }, { type: "MISSION_COMPLETE", missionId: "blackout-protocol" }); });
+    const timer = window.setTimeout(() => setBlackout(null), 9000);
+    return () => window.clearTimeout(timer);
+  }, [blackout?.state, progression.completedMissions]);
 
   /* Cross-world quest engine: HUD already reports region/heat/lockdown/hack/dive state every ~0.18s
    * (see Scene.tsx's onHud), so that cadence — not Scene's 60fps loop — is what drives gameTick here. */
@@ -438,7 +458,7 @@ export function GameCanvas() {
       >
         <color attach="background" args={["#bfe4f2"]} />
         <Suspense fallback={null}>
-            <Scene onHud={setHud} onDrops={(drops) => setProgression((current) => claimDrops(current, drops))} gear={progression} settings={settings} onCameraPreference={(firstPerson) => { window.localStorage.setItem("world-fracture-camera", firstPerson ? "first" : "third"); setSettings((current) => ({ ...current, firstPersonDefault: firstPerson })); }} playerClass={cls} subclassId={subclass} appearanceId={appearance} vehicleId={vehicleId} vehicleUnlocked={vehicleUnlocked} activeBuild={progression.activeBuild} abilityBranches={progression.abilityBranches} tutorial={tutorial} onTutorialEvent={recordTutorial} mission={mission} onMissionEvent={recordMission} awakening={awakening} onAwakeningEvent={recordAwakening} onXP={recordXP} armorState={hud.hp < 35 ? "FRACTURE" : hud.heat > 65 ? "ASCENDANT" : hud.heat > 15 ? "ACTIVE" : "STABLE"} />
+            <Scene onHud={setHud} onDrops={(drops) => setProgression((current) => claimDrops(current, drops))} gear={progression} settings={settings} onCameraPreference={(firstPerson) => { window.localStorage.setItem("world-fracture-camera", firstPerson ? "first" : "third"); setSettings((current) => ({ ...current, firstPersonDefault: firstPerson })); }} playerClass={cls} subclassId={subclass} appearanceId={appearance} vehicleId={vehicleId} vehicleUnlocked={vehicleUnlocked} activeBuild={progression.activeBuild} abilityBranches={progression.abilityBranches} tutorial={tutorial} onTutorialEvent={recordTutorial} mission={mission} onMissionEvent={recordMission} blackout={blackout} onBlackoutEvent={recordBlackout} awakening={awakening} onAwakeningEvent={recordAwakening} onXP={recordXP} armorState={hud.hp < 35 ? "FRACTURE" : hud.heat > 65 ? "ASCENDANT" : hud.heat > 15 ? "ACTIVE" : "STABLE"} />
         </Suspense>
         {RENDER_PRESETS[settings.renderTier].distortion && <EffectComposer multisampling={0}><Bloom intensity={0.55} luminanceThreshold={0.85} luminanceSmoothing={0.2} mipmapBlur /><Vignette offset={0.3} darkness={0.55} /></EffectComposer>}
         <PerfSampler />
@@ -465,6 +485,7 @@ export function GameCanvas() {
        {atlasOpen && <WorldAtlas markers={hud.markers} px={hud.px} pz={hud.pz} currentRegion={hud.region} phase={hud.phase} onClose={() => setAtlasOpen(false)} />}
       {awakening && <AwakeningOverlay run={awakening} onEvent={recordAwakening} />}
       {mission && <BrokenSignalOverlay mission={mission} onEvent={recordMission} />}
+      {blackout && <BlackoutProtocolOverlay mission={blackout} onEvent={recordBlackout} />}
       {tutorial && <OnboardingSignal tutorial={tutorial} classId={cls} onOpenHub={() => { setTutorial(null); setOperationsView("ABILITIES"); }} />}
       {tutorial?.step === "VICTORY" && (
         <VictoryReport

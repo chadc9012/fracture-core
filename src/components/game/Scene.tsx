@@ -8,6 +8,7 @@ import { useKeyboard } from "@/game/useKeyboard";
 import { walkHeight, slopeAt, heightAt, WATER_LEVEL } from "@/game/terrain";
 import { alert, collidePlayer, createSim, defeatMachine, FACTIONS, fireBullet, instabilityTier, spawnMissionDrones, stepSim, summonBoss, type Faction, type InstabilityTier, type WorldSim, type ZoneState } from "@/game/sim";
 import type { MissionEvent, MissionRun } from "@/game/missions/broken-signal";
+import type { MissionEvent as BlackoutEvent, MissionRun as BlackoutRun } from "@/game/missions/blackout-protocol";
 import type { AwakeningEvent, AwakeningRun } from "@/game/missions/awakening";
 import { directorTrend, type Mission } from "@/game/director";
 import { Terrain } from "./Terrain";
@@ -256,6 +257,8 @@ export function Scene({
   gear,
   mission,
   onMissionEvent,
+  blackout,
+  onBlackoutEvent,
   awakening,
   onAwakeningEvent,
   onXP,
@@ -277,6 +280,8 @@ export function Scene({
   gear?: Pick<PlayerProgression, "inventory" | "equippedGear" | "dungeonClears" | "completedMissions">;
   mission?: MissionRun | null;
   onMissionEvent?: (event: MissionEvent) => void;
+  blackout?: BlackoutRun | null;
+  onBlackoutEvent?: (event: BlackoutEvent) => void;
   awakening?: AwakeningRun | null;
   onAwakeningEvent?: (event: AwakeningEvent) => void;
   onXP?: (event: WorldSim["xpEvents"][number]) => void;
@@ -287,6 +292,7 @@ export function Scene({
   // not every frame — the frame loop just assigns the (already-cheap) result into sim.mods below.
   const balance = useMemo(() => difficultyCurve(playerPowerScore({ inventory: gear?.inventory ?? [], equippedGear: gear?.equippedGear ?? {}, dungeonClears: gear?.dungeonClears ?? {}, completedMissions: gear?.completedMissions ?? [] } as Parameters<typeof playerPowerScore>[0])), [gear?.inventory, gear?.equippedGear, gear?.dungeonClears, gear?.completedMissions]);
   const missionSpawned = useRef("");
+  const blackoutSpawned = useRef("");
   const adaptiveTutorial = useRef(ADAPTIVE_TUTORIAL_INIT);
   const lastHpForAdaptive = useRef(100);
   const lastDodgeStruggleAt = useRef(0);
@@ -309,6 +315,7 @@ export function Scene({
     const list: Marker[] = [];
     if (awakening?.target) list.push({ id: "m-awakening", kind: "MISSION", label: "Awakening", x: awakening.target.x, z: awakening.target.z, regionId: "nexus" });
     if (mission?.target && mission.state !== "COMPLETE" && mission.state !== "WORLD_UPDATE") list.push({ id: "m-broken-signal", kind: "MISSION", label: "Broken Signal", x: mission.target.x, z: mission.target.z, regionId: "nexus" });
+    if (blackout?.target && blackout.state !== "COMPLETE" && blackout.state !== "WORLD_UPDATE") list.push({ id: "m-blackout-protocol", kind: "MISSION", label: "Blackout Protocol", x: blackout.target.x, z: blackout.target.z, regionId: "nexus" });
     for (const m of sim.director.missions) { if (m.state !== "ACTIVE") continue; const c = regionCenter(m.regionId); if (c) list.push({ id: `m-${m.id}`, kind: "MISSION", label: m.name, x: c.x, z: c.z, regionId: m.regionId }); }
     for (const site of RESOURCE_SITES) list.push({ ...site, ready: (depleted.current[site.id] ?? 0) <= now });
     for (const lair of BOSS_LAIRS) list.push(lair);
@@ -1081,6 +1088,18 @@ export function Scene({
       lastHpForAdaptive.current = sim.hp;
     }
 
+    /* ---------------- Mission 02 · Blackout Protocol world triggers ---------------- */
+    if (blackout && onBlackoutEvent) {
+      if (blackout.state === "TRIGGERED" && !blackout.target) onBlackoutEvent({ type: "ANCHOR", x: NEON_CITY_CENTER.x, z: NEON_CITY_CENTER.z });
+      if (blackout.state === "INFILTRATION" && blackout.target && Math.hypot(blackout.target.x - s.x, blackout.target.z - s.z) < 14) onBlackoutEvent({ type: "ARRIVED" });
+      const blackoutCombat = blackout.state === "COMBAT_1" || blackout.state === "COMBAT_2";
+      if (blackoutCombat && blackoutSpawned.current !== blackout.state && blackoutSpawned.current !== `${blackout.state}-done`) {
+        blackoutSpawned.current = blackout.state;
+        spawnMissionDrones(sim, s.x, s.z, blackout.state === "COMBAT_1" ? 4 : 6, blackout.state === "COMBAT_2");
+      }
+      if (blackoutCombat && blackoutSpawned.current === blackout.state && !sim.machines.some((m) => m.alive && m.mission)) { blackoutSpawned.current = `${blackout.state}-done`; onBlackoutEvent({ type: "CLEAR" }); }
+    }
+
     /* ---------------- Neon Core · Awakening micro-objectives ---------------- */
     if (awakening && onAwakeningEvent) {
       const a = awakening;
@@ -1453,6 +1472,13 @@ export function Scene({
           <mesh><octahedronGeometry args={[0.9, 0]} /><meshStandardMaterial color="#39e6ff" emissive="#39e6ff" emissiveIntensity={3} /></mesh>
           <mesh position={[0, 30, 0]}><cylinderGeometry args={[0.15, 0.15, 60, 6]} /><meshBasicMaterial color={mission.state === "TRAVERSAL" ? "#ff6a3d" : "#39e6ff"} transparent opacity={0.45} /></mesh>
           <pointLight color={mission.state === "TRAVERSAL" ? "#ff6a3d" : "#39e6ff"} intensity={30} distance={40} />
+        </group>
+      )}
+      {blackout?.target && blackout.state === "INFILTRATION" && (
+        <group position={[blackout.target.x, heightAt(blackout.target.x, blackout.target.z) + 3, blackout.target.z]}>
+          <mesh><octahedronGeometry args={[0.9, 0]} /><meshStandardMaterial color="#38e8ff" emissive="#38e8ff" emissiveIntensity={3} /></mesh>
+          <mesh position={[0, 30, 0]}><cylinderGeometry args={[0.15, 0.15, 60, 6]} /><meshBasicMaterial color="#38e8ff" transparent opacity={0.45} /></mesh>
+          <pointLight color="#38e8ff" intensity={30} distance={40} />
         </group>
       )}
       <Bullets sim={sim} />

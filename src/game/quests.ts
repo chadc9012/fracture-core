@@ -108,7 +108,10 @@ export const QUESTS: Record<string, Quest> = {
   "fd-06": {
     id: "fd-06", title: "Signals in the Static", world: "neon",
     line: "Neon City: the Syndicate's corporate war-machine, sold as civilization. You just tripped a wire.",
-    objectives: [{ type: "HEAT_LEVEL", label: "Draw real heat for the first time", key: "3", amount: 1 }],
+    objectives: [
+      { type: "MISSION_COMPLETE", label: "Pull off the Blackout Protocol", key: "blackout-protocol", amount: 1 },
+      { type: "HEAT_LEVEL", label: "Draw real heat for the first time", key: "3", amount: 1 },
+    ],
     rewardShards: 220, rewardMaterials: { microCircuits: 4 }, unlocksWorld: null, nextQuestId: "fd-07", corruption: 2,
   },
   "fd-07": {
