@@ -237,7 +237,7 @@ export function GameCanvas() {
 
   useEffect(() => saveProgression(progression), [progression]);
   useEffect(() => {
-    if (tutorial?.step === "VICTORY" && !progression.completedMissions.includes("mission-01")) setProgression((current) => ({ ...completeMission(current, "mission-01"), tutorialComplete: true, unlockedAbilities: Array.from(new Set([...current.unlockedAbilities, classBuild(cls).slots.TACTICAL])), calibrationTokens: current.calibrationTokens + 1 }));
+    if (tutorial?.step === "VICTORY" && !progression.completedMissions.includes("mission-01")) setProgression((current) => ({ ...rewardMission(current, "mission-01", { dataShards: 1 }), tutorialComplete: true, unlockedAbilities: Array.from(new Set([...current.unlockedAbilities, classBuild(cls).slots.TACTICAL])), calibrationTokens: current.calibrationTokens + 1 }));
   }, [tutorial?.step, progression.completedMissions, cls]);
 
   /* Mission 01 · Broken Signal starts as a world event once the player is free-roaming. */
@@ -252,7 +252,7 @@ export function GameCanvas() {
   useEffect(() => {
     if (awakening?.state === "LOOT") return; // loot granted on ACK
     if (awakening?.state !== "COMPLETE" || awakeningDone) return;
-    setProgression((current) => { const next = completeMission(current, "awakening"); return gameTick({ ...next, materials: { ...next.materials, dataShards: (next.materials.dataShards ?? 0) + 2 } }, { type: "MISSION_COMPLETE", missionId: "awakening" }); });
+    setProgression((current) => { return gameTick(rewardMission(current, "awakening", { dataShards: 2 }), { type: "MISSION_COMPLETE", missionId: "awakening" }); });
     const timer = window.setTimeout(() => setAwakening(null), 7000);
     return () => window.clearTimeout(timer);
   }, [awakening?.state, awakeningDone]);
@@ -270,7 +270,7 @@ export function GameCanvas() {
   }, [missionReady, mission]);
   useEffect(() => {
     if (mission?.state !== "WORLD_UPDATE" || progression.completedMissions.includes("broken-signal")) return;
-    setProgression((current) => { const next = completeMission(current, "broken-signal"); return gameTick({ ...next, materials: { ...next.materials, dataShards: (next.materials.dataShards ?? 0) + 3 } }, { type: "MISSION_COMPLETE", missionId: "broken-signal" }); });
+    setProgression((current) => { return gameTick(rewardMission(current, "broken-signal", { dataShards: 3 }), { type: "MISSION_COMPLETE", missionId: "broken-signal" }); });
     const timer = window.setTimeout(() => setMission(null), 9000);
     return () => window.clearTimeout(timer);
   }, [mission?.state, progression.completedMissions]);
@@ -288,7 +288,7 @@ export function GameCanvas() {
   const recordBlackout = (event: BlackoutEvent) => setBlackout((current) => current ? advanceBlackout(current, event) : current);
   useEffect(() => {
     if (blackout?.state !== "WORLD_UPDATE" || progression.completedMissions.includes("blackout-protocol")) return;
-    setProgression((current) => { const next = completeMission(current, "blackout-protocol"); return gameTick({ ...next, materials: { ...next.materials, microCircuits: (next.materials.microCircuits ?? 0) + 4 } }, { type: "MISSION_COMPLETE", missionId: "blackout-protocol" }); });
+    setProgression((current) => { return gameTick(rewardMission(current, "blackout-protocol", { microCircuits: 4 }), { type: "MISSION_COMPLETE", missionId: "blackout-protocol" }); });
     const timer = window.setTimeout(() => setBlackout(null), 9000);
     return () => window.clearTimeout(timer);
   }, [blackout?.state, progression.completedMissions]);
@@ -306,7 +306,7 @@ export function GameCanvas() {
   const recordNeonCore = (event: NeonCoreEvent) => setNeonCore((current) => current ? advanceNeonCore(current, event) : current);
   useEffect(() => {
     if (neonCore?.state !== "WORLD_UPDATE" || progression.completedMissions.includes("stitched-neon-core")) return;
-    setProgression((current) => { const next = completeMission(current, "stitched-neon-core"); return gameTick({ ...next, materials: { ...next.materials, aegisCore: (next.materials.aegisCore ?? 0) + 1 } }, { type: "MISSION_COMPLETE", missionId: "stitched-neon-core" }); });
+    setProgression((current) => { return gameTick(rewardMission(current, "stitched-neon-core", { aegisCore: 1 }), { type: "MISSION_COMPLETE", missionId: "stitched-neon-core" }); });
     const timer = window.setTimeout(() => setNeonCore(null), 9000);
     return () => window.clearTimeout(timer);
   }, [neonCore?.state, progression.completedMissions]);
@@ -324,7 +324,7 @@ export function GameCanvas() {
   const recordDescent = (event: DescentEvent) => setDescent((current) => current ? advanceDescent(current, event) : current);
   useEffect(() => {
     if (descent?.state !== "WORLD_UPDATE" || progression.completedMissions.includes("descent-protocol")) return;
-    setProgression((current) => { const next = completeMission(current, "descent-protocol"); return gameTick({ ...next, materials: { ...next.materials, dataShards: (next.materials.dataShards ?? 0) + 5 } }, { type: "MISSION_COMPLETE", missionId: "descent-protocol" }); });
+    setProgression((current) => { return gameTick(rewardMission(current, "descent-protocol", { dataShards: 5 }), { type: "MISSION_COMPLETE", missionId: "descent-protocol" }); });
     const timer = window.setTimeout(() => setDescent(null), 9000);
     return () => window.clearTimeout(timer);
   }, [descent?.state, progression.completedMissions]);
@@ -345,8 +345,7 @@ export function GameCanvas() {
   useEffect(() => {
     if (systemCore?.state !== "WORLD_UPDATE" || progression.completedMissions.includes("system-core")) return;
     setProgression((current) => {
-      const next = completeMission(current, "system-core");
-      return gameTick({ ...next, materials: { ...next.materials, fractureCore: (next.materials.fractureCore ?? 0) + 1 } }, { type: "BOSS_DEFEATED", encounterId: "system-core" });
+      return gameTick(rewardMission(current, "system-core", { fractureCore: 1 }), { type: "BOSS_DEFEATED", encounterId: "system-core" });
     });
     const timer = window.setTimeout(() => setSystemCore(null), 9000);
     return () => window.clearTimeout(timer);
