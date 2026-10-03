@@ -1,5 +1,5 @@
 import { Canvas } from "@react-three/fiber";
-import { Bloom, EffectComposer, Vignette } from "@react-three/postprocessing";
+import { Bloom, BrightnessContrast, ChromaticAberration, DepthOfField, EffectComposer, HueSaturation, Noise, SSAO, Vignette } from "@react-three/postprocessing";
 import * as THREE from "three";
 import { Suspense, useEffect, useRef, useState } from "react";
 
@@ -451,6 +451,10 @@ export function GameCanvas() {
         // are the usual causes of a blank or lost context there.
         const maxDpr = caps.safari ? Math.min(preset.dpr, 1.5) : preset.dpr;
         const post = preset.distortion && !caps.safari && caps.webgl2;
+        // SSAO and depth-of-field are the two costliest passes in the stack — reserve them for
+        // the top render tier so MEDIUM/HIGH still get the cheap color-grade + bloom + vignette
+        // look without paying for contact-shadow and bokeh sampling every frame.
+        const premium = post && settings.renderTier === "ULTRA";
         return (
       <Canvas
         onCreated={onCreated}
@@ -471,7 +475,22 @@ export function GameCanvas() {
         <Suspense fallback={null}>
             <Scene onHud={setHud} onDrops={(drops) => setProgression((current) => claimDrops(current, drops))} gear={progression} settings={settings} onCameraPreference={(firstPerson) => { window.localStorage.setItem("world-fracture-camera", firstPerson ? "first" : "third"); setSettings((current) => ({ ...current, firstPersonDefault: firstPerson })); }} playerClass={cls} subclassId={subclass} appearanceId={appearance} vehicleId={vehicleId} vehicleUnlocked={vehicleUnlocked} activeBuild={progression.activeBuild} abilityBranches={progression.abilityBranches} tutorial={tutorial} onTutorialEvent={recordTutorial} mission={mission} onMissionEvent={recordMission} blackout={blackout} onBlackoutEvent={recordBlackout} awakening={awakening} onAwakeningEvent={recordAwakening} onXP={recordXP} armorState={hud.hp < 35 ? "FRACTURE" : hud.heat > 65 ? "ASCENDANT" : hud.heat > 15 ? "ACTIVE" : "STABLE"} />
         </Suspense>
-        {post && <EffectComposer multisampling={0}><Bloom intensity={0.55} luminanceThreshold={0.85} luminanceSmoothing={0.2} mipmapBlur /><Vignette offset={0.3} darkness={0.55} /></EffectComposer>}
+        {post && (
+          // cinematic grade: cool-leaning teal shadows, a touch more punch, so the HUD's cyan
+          // reads against the world the way it does in the reference concept art. SSAO and
+          // depth-of-field (the costly passes) only mount on `premium` so this stays a flat
+          // cost increase, not a new tier of budget risk, on MEDIUM/HIGH.
+          <EffectComposer multisampling={0}>
+            <HueSaturation hue={-0.02} saturation={0.08} />
+            <BrightnessContrast brightness={-0.02} contrast={0.12} />
+            <Bloom intensity={0.65} luminanceThreshold={0.82} luminanceSmoothing={0.25} mipmapBlur />
+            {premium && <SSAO intensity={18} radius={0.18} luminanceInfluence={0.4} bias={0.025} />}
+            {premium && <DepthOfField focusDistance={0.012} focalLength={0.045} bokehScale={2.2} />}
+            <ChromaticAberration offset={new THREE.Vector2(0.0006, 0.0006)} />
+            <Vignette offset={0.3} darkness={0.55} />
+            <Noise opacity={0.025} premultiply />
+          </EffectComposer>
+        )}
         <PerfSampler />
       </Canvas>
         );
