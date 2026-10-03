@@ -7,6 +7,8 @@ import type { RenderTier } from "@/game/performance";
 import { mulberry32 } from "@/game/useKeyboard";
 import { WATER_LEVEL, colorAt, heightAt, slopeAt } from "@/game/terrain";
 import { groundDetailTextures, propDetailTextures } from "@/game/detail-texture";
+import { applySurfaceBlend, loadGroundSurfaces, surfaceWeights } from "@/game/region-materials";
+import { RegionModels } from "./RegionModels";
 import { organicCanopy, organicRock } from "@/game/organic-geometry";
 import { LANE_HALF_WIDTH, distanceToRoad } from "@/game/lanes";
 import {
@@ -73,6 +75,8 @@ function Ground() {
     const geo = new THREE.PlaneGeometry(SIZE, SIZE, SEG, SEG);
     const pos = geo.attributes["position"] as THREE.BufferAttribute;
     const colors = new Float32Array(pos.count * 3);
+    const wA = new Float32Array(pos.count * 3);
+    const wB = new Float32Array(pos.count * 3);
     for (let i = 0; i < pos.count; i++) {
       const x = pos.getX(i);
       // plane is built in XY then rotated, so its local Y maps to world -Z
@@ -193,6 +197,7 @@ export function Terrain({ renderTier = "HIGH" }: { renderTier?: RenderTier } = {
   return (
     <group>
       <Ground />
+      {renderTier !== "LOW" && <RegionModels />}
 
       {/* forest: trunk + two staggered canopy layers, hue-jittered per instance so the
           treeline reads as a forest instead of one stamped-out cone repeated 120 times */}
