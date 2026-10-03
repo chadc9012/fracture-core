@@ -47,14 +47,19 @@ function Toggle({ label, on, onChange }: { label: string; on: boolean; onChange:
   );
 }
 
-import { Accessibility, ChevronLeft, Gamepad2, Monitor, SlidersHorizontal, Speaker, X } from "lucide-react";
+import { Accessibility, BookOpen, ChevronLeft, Compass, Gamepad2, Map as MapIcon, Monitor, Play, SlidersHorizontal, Speaker, X } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { DEFAULT_BINDINGS, type Bindings } from "@/game/bindings";
+import { CHRONICLE, ROADMAP, nextActivity } from "@/game/retention";
+import { speakVoice } from "@/game/voice-director";
 import { ControlsPanel } from "./ControlsPanel";
 
-type SettingsSection = "GAMEPLAY" | "DISPLAY" | "AUDIO" | "INTERFACE" | "CONTROLS" | "ACCESSIBILITY";
+type SettingsSection = "NEXT" | "CHRONICLE" | "ROADMAP" | "GAMEPLAY" | "DISPLAY" | "AUDIO" | "INTERFACE" | "CONTROLS" | "ACCESSIBILITY";
 const SECTIONS: { id: SettingsSection; label: string; icon: typeof Gamepad2 }[] = [
+  { id: "NEXT", label: "What next", icon: Compass },
+  { id: "CHRONICLE", label: "Chronicle", icon: BookOpen },
+  { id: "ROADMAP", label: "Roadmap", icon: MapIcon },
   { id: "GAMEPLAY", label: "Gameplay", icon: Gamepad2 },
   { id: "DISPLAY", label: "Display", icon: Monitor },
   { id: "AUDIO", label: "Audio", icon: Speaker },
@@ -63,20 +68,23 @@ const SECTIONS: { id: SettingsSection; label: string; icon: typeof Gamepad2 }[] 
   { id: "ACCESSIBILITY", label: "Accessibility", icon: Accessibility },
 ];
 
-/** Small in-game window: settings, back to orbit, and a back button to close. */
+/** Full-screen game menu: direction, story chronicle, roadmap, and settings. */
 export function SettingsWindow({
   settings,
   onChange,
   onClose,
   onOrbit,
+  completedMissions = [],
 }: {
   settings: GameSettings;
   onChange: (s: GameSettings) => void;
   onClose: () => void;
   onOrbit: () => void;
+  completedMissions?: string[];
 }) {
   const set = (patch: Partial<GameSettings>) => onChange({ ...settings, ...patch });
-  const [section, setSection] = useState<SettingsSection>("GAMEPLAY");
+  const [section, setSection] = useState<SettingsSection>("NEXT");
+  const next = nextActivity({ completedMissions });
 
   return (
     <div className="pointer-events-auto fixed inset-0 z-[60] overflow-y-auto bg-background/92 backdrop-blur-xl" role="dialog" aria-modal="true" aria-label="Game settings">
