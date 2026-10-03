@@ -1,5 +1,6 @@
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
-import { Environment, Float, Lightformer, Sparkles, useTexture } from "@react-three/drei";
+import { Environment, Float, Lightformer, Sparkles } from "@react-three/drei";
+import { preloadTexture, readTexture } from "@/game/asset-loader";
 import { useEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
 import vanguard from "@/assets/forge-vanguard.png";
@@ -8,6 +9,7 @@ import tech from "@/assets/forge-tech.png";
 import type { AppearanceDefinition, ClassId } from "@/game/loadout";
 
 const CLASS_ART: Record<ClassId, string> = { TITAN: vanguard, HUNTER: assassin, WARLOCK: tech };
+if (typeof window !== "undefined") Object.values(CLASS_ART).forEach((u) => void preloadTexture(u));
 const CLASS_LABEL: Record<ClassId, string> = { TITAN: "VANGUARD", HUNTER: "ASSASSIN", WARLOCK: "TECH" };
 const CLASS_X: Record<ClassId, number> = { TITAN: -4.6, HUNTER: 0, WARLOCK: 4.6 };
 
@@ -55,7 +57,7 @@ function ChamberShell({ activeColor }: { activeColor: string }) {
 }
 
 function Projection({ id, selected, mode, onSelect }: { id: ClassId; selected: boolean; mode: ForgeMode; onSelect: (id: ClassId) => void }) {
-  const texture = useTexture(CLASS_ART[id]);
+  const texture = readTexture(CLASS_ART[id]);
   const group = useRef<THREE.Group>(null);
   const pulse = useRef<THREE.MeshBasicMaterial>(null);
   const x = CLASS_X[id];
@@ -100,7 +102,6 @@ function ForgeTable({ appearance, visible }: { appearance: AppearanceDefinition;
 }
 
 export function IdentityForge({ classId, appearance, mode, onSelectClass }: { classId: ClassId; appearance: AppearanceDefinition; mode: ForgeMode; onSelectClass: (id: ClassId) => void }) {
-  useEffect(() => { useTexture.preload(vanguard); useTexture.preload(assassin); useTexture.preload(tech); }, []);
   return <Canvas shadows dpr={[1, 1.5]} camera={{ position: [0, 2.7, 12], fov: 42 }} gl={{ antialias: true, toneMapping: THREE.ACESFilmicToneMapping }}>
     <ChamberShell activeColor={appearance.visor} />
     <CameraRig selected={classId} mode={mode} />
