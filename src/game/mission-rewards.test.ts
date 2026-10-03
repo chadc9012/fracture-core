@@ -13,7 +13,7 @@ describe("mission rewards", () => {
   });
   test("repeats pay full for 10 runs a day, then taper to 25%", () => {
     let p = rewardMission(DEFAULT_PROGRESSION, "awakening", { dataShards: 4 }, NOW);
-    for (let i = 0; i < 10; i++) p = rewardMission(p, "awakening", { dataShards: 4 }, NOW);
+    for (let i = 0; i < 9; i++) p = rewardMission(p, "awakening", { dataShards: 4 }, NOW);
     expect(p.lastMissionReward?.factor).toBe(1);
     p = rewardMission(p, "awakening", { dataShards: 4 }, NOW);
     expect(p.lastMissionReward?.factor).toBeCloseTo(0.85);
