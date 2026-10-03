@@ -110,6 +110,8 @@ const initial: HudState = {
   deathCause: "",
   deathCargoLost: 0,
   deaths: 0,
+  bossHud: null,
+  emergencyQuest: null,
   weaponHeat: 0,
   overheated: false,
   loot: [],
