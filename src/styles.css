@@ -220,6 +220,53 @@
   color: color-mix(in oklch, var(--primary) 80%, var(--foreground) 20%);
 }
 
+@utility ui-kicker {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 9px;
+  letter-spacing: 0;
+  text-transform: uppercase;
+  color: color-mix(in oklch, var(--primary) 76%, var(--foreground) 24%);
+}
+
+@utility hud-status {
+  border-left: 1px solid color-mix(in oklch, var(--primary) 65%, transparent);
+  background: linear-gradient(90deg, color-mix(in oklch, var(--background) 72%, transparent), transparent);
+  backdrop-filter: blur(3px);
+}
+
+@utility ui-focus {
+  box-shadow: inset 3px 0 var(--primary), 0 0 18px color-mix(in oklch, var(--primary) 16%, transparent);
+}
+
+@utility forge-veil {
+  background: linear-gradient(to bottom, color-mix(in oklch, var(--background) 50%, transparent), transparent 30%, color-mix(in oklch, var(--background) 92%, transparent));
+}
+
+@utility deployment-field {
+  background:
+    radial-gradient(circle at 74% 42%, color-mix(in oklch, var(--primary) 16%, transparent), transparent 27%),
+    linear-gradient(112deg, var(--background) 12%, color-mix(in oklch, var(--background) 82%, transparent) 54%, color-mix(in oklch, var(--accent) 30%, var(--background)) 100%);
+}
+
+@utility ui-enter {
+  animation: ui-enter 280ms cubic-bezier(.2,.8,.2,1) both;
+}
+
+@keyframes ui-enter { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+.reduce-game-motion *, .reduce-game-motion *::before, .reduce-game-motion *::after {
+  scroll-behavior: auto !important;
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+}
+
+.high-contrast-hud .hud-status,
+.high-contrast-hud .hud-panel {
+  background-color: color-mix(in oklch, var(--background) 94%, transparent);
+  border-color: color-mix(in oklch, var(--foreground) 72%, transparent);
+}
+
 @utility title-vignette {
   background:
     linear-gradient(90deg, color-mix(in oklch, var(--background) 96%, transparent) 0%, color-mix(in oklch, var(--background) 65%, transparent) 48%, transparent 78%),
@@ -259,4 +306,5 @@
 @media (prefers-reduced-motion: reduce) {
   .title-glow, .title-landscape, .title-sunlight, .title-shadows { animation: none; }
   .title-backdrop-canvas, .title-intro-rise, .title-intro-fade { animation: none; opacity: 1; transform: none; }
+  .ui-enter { animation: none; }
 }

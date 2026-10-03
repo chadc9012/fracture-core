@@ -23,3 +23,4 @@
 - The world Canvas is wrapped in GraphicsGuard (src/game/webgl-support.ts probe): no WebGL, context loss, or no frames shows GraphicsError; Safari gets capped DPR, hard shadows, no post-processing. Why: Safari failures otherwise leave a black canvas.
 - Weather is a deterministic per-region front cycle in src/game/weather-cycle.ts sampled from the day clock; Scene applies it to light/fog/particles. Why: every client agrees on weather without syncing.
 - Enemy awareness (patrol/suspicious/alert/search, cover) is a pure state machine in src/game/enemy-perception.ts driven by sim.ts. Why: detection rules stay testable apart from movement.
+- Major player-facing transitions use explicit full-screen phases, while in-world utility surfaces remain mutually exclusive overlays. Why: onboarding, deployment, and navigation stay legible without stacked interfaces.

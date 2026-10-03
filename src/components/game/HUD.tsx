@@ -13,12 +13,12 @@ export function HUD({ hud, tutorialActive = false, onMenu }: { hud: HudState; tu
   useVoiceLine(`boss-${hud.bossHud?.name ?? "none"}-${hud.bossHud?.adaptedTell ?? "idle"}`, hud.bossHud?.name ?? "ENEMY", hud.bossHud?.adaptedTell, "critical");
   useVoiceLine(`emergency-${hud.emergencyQuest?.state ?? "none"}-${hud.emergencyQuest?.bossName ?? "none"}`, "NOVA", hud.emergencyQuest ? `${hud.emergencyQuest.state === "WARNING" ? "Emergency quest inbound" : hud.emergencyQuest.state === "ACTIVE" ? "Emergency quest active" : hud.emergencyQuest.state === "COMPLETE" ? "Emergency quest cleared" : "Emergency quest failed"}. ${hud.emergencyQuest.bossName}.` : null, "critical");
   return <div className="pointer-events-none fixed inset-0 z-10 hud-scanline select-none font-mono text-foreground">
-    <div className="pointer-events-auto absolute left-3 top-3"><Button title="Menu" size="icon" variant="outline" className="border-border/60 bg-background/45 backdrop-blur-md" onClick={onMenu} aria-label="Open menu"><Menu /></Button></div>
+    <div className="pointer-events-auto absolute left-3 top-3"><Button title="Menu" size="icon" variant="ghost" className="bg-background/25 backdrop-blur-sm" onClick={onMenu} aria-label="Open menu"><Menu /></Button></div>
     {!hud.insideInterior && (
-      <HudPanel className="absolute left-14 top-2.5 px-2.5 py-1 text-[9px] uppercase tracking-[0.16em]" glow={false}>
+      <div className="absolute left-14 top-3 border-l border-primary/60 px-2.5 py-0.5 text-[9px] uppercase">
         <p style={{ color: FACTIONS[hud.owner]?.color }}>{hud.region} · {FACTIONS[hud.owner]?.short}{hud.contested ? " · CONTESTED" : ""}</p>
         {hud.zoneTier !== "STABLE" && <p className="text-destructive">{hud.zoneTier}</p>}
-      </HudPanel>
+      </div>
     )}
     {!tutorialActive && <><Compass markers={hud.markers ?? []} yaw={hud.yaw ?? 0} /><TrackedObjectives markers={hud.markers ?? []} /></>}
     <div className="absolute left-1/2 top-4 w-[min(26rem,calc(100%-7rem))] -translate-x-1/2 space-y-1 text-center text-[10px]">{hud.alerts.slice(0, 2).map((alert, index) => <p key={`${alert}-${index}`} className="hud-panel border-x border-primary/40 bg-background/45 px-3 py-1 text-foreground/90 backdrop-blur-sm" style={{ opacity: 1 - index * 0.28 }}>{alert}</p>)}</div>
@@ -26,22 +26,22 @@ export function HUD({ hud, tutorialActive = false, onMenu }: { hud: HudState; tu
     <BossHealthBar boss={hud.bossHud} />
     <Crosshair hud={hud} />
     <div className="absolute bottom-4 left-4 w-[min(24rem,calc(100%-8rem))]">
-      <HudPanel className={`px-3 py-2 ${hud.hp <= 40 ? "hud-glow-destructive" : "hud-glow"}`}>
+      <div className={`hud-status px-3 py-2 ${hud.hp <= 40 ? "hud-glow-destructive" : ""}`}>
         <div className="flex items-center justify-between"><span className="hud-label">Hull Integrity</span><span className={`text-xs font-bold ${hud.hp > 40 ? "text-primary" : "text-destructive"}`}>{hud.hp}%</span></div>
         <div className="mt-1 h-2.5 overflow-hidden border border-foreground/20 bg-background/60">
           <div className={`relative h-full hud-ticks ${hud.hp > 40 ? "bg-primary" : "bg-destructive"}`} style={{ width: `${hud.hp}%`, transition: "width 200ms linear" }} />
         </div>
         <div className="mt-1.5 flex items-center gap-3 text-[8px] uppercase tracking-[0.18em] text-muted-foreground"><span>{hud.playerClass}</span><span>{hud.subclassName}</span>{hud.playerClass === "TITAN" && <span className="text-primary">Shield {hud.shield}%</span>}</div>
         <div className="mt-2 flex gap-1">{hud.abilities.map((ability) => <div key={ability.slot} className={`min-w-0 flex-1 border-t px-1 pt-1 ${ability.ready ? "border-primary text-foreground" : "border-border text-muted-foreground"}`}><p className="truncate text-[8px] uppercase">{ability.slot.slice(0, 1)} · {ability.name}</p></div>)}</div>
-      </HudPanel>
+      </div>
     </div>
     {ammo && (
-      <HudPanel className={`absolute bottom-4 right-4 w-36 px-3 py-2 text-right ${hud.overheated ? "hud-glow-destructive" : "hud-glow"}`}>
+      <div className={`hud-status absolute bottom-4 right-4 w-36 px-3 py-2 text-right ${hud.overheated ? "hud-glow-destructive" : ""}`}>
         <p className="hud-label truncate">{ammo.name}</p>
         <p className={`text-3xl font-semibold leading-none ${lowAmmo ? "text-warning" : "text-foreground"}`}>{melee ? "∞" : ammo.mag}<span className="text-xs text-muted-foreground">{melee ? "" : ` / ${ammo.reserve}`}</span></p>
         <div className="mt-1.5 h-1.5 overflow-hidden border border-foreground/20 bg-background/60">{hud.reloading > 0 ? <div className="h-full hud-ticks bg-primary" style={{ width: `${hud.reloading * 100}%` }} /> : <div className={`h-full hud-ticks ${lowAmmo ? "bg-warning" : "bg-primary"}`} style={{ width: `${melee ? 100 : (ammo.mag / Math.max(1, ammo.magSize)) * 100}%` }} />}</div>
         <p className="mt-1 hud-label text-[8px]">{hud.reloading > 0 ? "Reloading" : hud.overheated ? "Venting" : `Weapon Heat ${hud.weaponHeat}%`}</p>
-      </HudPanel>
+      </div>
     )}
     <WeaponSelector hud={hud} />
   </div>;

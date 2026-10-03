@@ -17,6 +17,7 @@ import { GraphicsGuard } from "./GraphicsGuard";
 import { StartMenu, type Deployment } from "./StartMenu";
 import { SettingsWindow, DEFAULT_SETTINGS, type GameSettings } from "./SettingsWindow";
 import { TitleScreen } from "./TitleScreen";
+import { DeploymentBriefing, type DeploymentBriefingData } from "./DeploymentBriefing";
 import { RaidStrategyPanel } from "./RaidStrategyPanel";
 import { OperationsHub } from "./OperationsHub";
 import { ZoneAnalysisPanel } from "./ZoneAnalysisPanel";
@@ -169,12 +170,17 @@ const initial: HudState = {
 
 export function GameCanvas() {
   const [hud, setHud] = useState<HudState>(initial);
-  const [phase, setPhase] = useState<"title" | "loadout" | "world">("title");
+  const [phase, setPhase] = useState<"title" | "loadout" | "briefing" | "world">("title");
+  const [pendingDeployment, setPendingDeployment] = useState<DeploymentBriefingData | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const [settings, setSettings] = useState<GameSettings>(DEFAULT_SETTINGS);
   const [adaptiveDpr, setAdaptiveDpr] = useState(1.5);
   const [lowPerf, setLowPerf] = useState(false);
   useEffect(() => {
+    try {
+      const savedSettings = window.localStorage.getItem("world-fracture-settings");
+      if (savedSettings) setSettings((current) => ({ ...current, ...(JSON.parse(savedSettings) as Partial<GameSettings>) }));
+    } catch { /* keep safe defaults */ }
     const saved = window.localStorage.getItem("world-fracture-camera");
     if (saved === "third") setSettings((current) => ({ ...current, firstPersonDefault: false }));
     const vol = Number(window.localStorage.getItem("world-fracture-volume"));
@@ -183,6 +189,7 @@ export function GameCanvas() {
     try { const b = window.localStorage.getItem("world-fracture-bindings"); if (b) setSettings((current) => ({ ...current, bindings: normalizeBindings(JSON.parse(b)) })); } catch { /* keep defaults */ }
   }, []);
   const updateSettings = (next: GameSettings) => {
+    window.localStorage.setItem("world-fracture-settings", JSON.stringify(next));
     if (next.volume !== settings.volume && next.volume !== undefined) window.localStorage.setItem("world-fracture-volume", String(next.volume));
     if (next.musicVolume !== settings.musicVolume || next.sfxVolume !== settings.sfxVolume || next.voiceVolume !== settings.voiceVolume || next.spokenDialogue !== settings.spokenDialogue) window.localStorage.setItem("world-fracture-mix", JSON.stringify({ music: next.musicVolume ?? 1, sfx: next.sfxVolume ?? 1, voice: next.voiceVolume ?? 0.85, spoken: next.spokenDialogue ?? true }));
     if (next.firstPersonDefault !== settings.firstPersonDefault) window.localStorage.setItem("world-fracture-camera", next.firstPersonDefault ? "first" : "third");
@@ -190,6 +197,13 @@ export function GameCanvas() {
     setSettings(next);
   };
   useEffect(() => configureVoice({ enabled: settings.spokenDialogue ?? true, volume: (settings.volume ?? 0.7) * (settings.voiceVolume ?? 0.85) }), [settings.spokenDialogue, settings.voiceVolume, settings.volume]);
+  useEffect(() => {
+    document.documentElement.classList.toggle("reduce-game-motion", settings.reducedMotion ?? false);
+    document.documentElement.classList.toggle("high-contrast-hud", settings.highContrastHud ?? false);
+    return () => {
+      document.documentElement.classList.remove("reduce-game-motion", "high-contrast-hud");
+    };
+  }, [settings.reducedMotion, settings.highContrastHud]);
   useEffect(() => { if (menuOpen) stopVoice(); }, [menuOpen]);
   const [cls, setCls] = useState<ClassId>("TITAN");
   const [subclass, setSubclass] = useState<SubclassId>("SHIELD_TITAN");
@@ -413,6 +427,11 @@ export function GameCanvas() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [progression]);
 
+  const prepareDeployment = (deployment: Deployment) => {
+    setPendingDeployment(deployment);
+    setPhase("briefing");
+  };
+
   const deploy = (deployment: Deployment) => {
     setCls(deployment.classId);
     setSubclass(deployment.subclassId);
@@ -503,7 +522,7 @@ export function GameCanvas() {
   if (phase === "loadout") {
     return (
       <>
-        {!menuOpen && <StartMenu onDeploy={deploy} onSettings={() => setMenuOpen(true)} best={last} />}
+        {!menuOpen && <StartMenu onDeploy={prepareDeployment} onSettings={() => setMenuOpen(true)} best={last} />}
         {menuOpen && (
           <SettingsWindow
             settings={settings}
@@ -513,6 +532,16 @@ export function GameCanvas() {
           />
         )}
       </>
+    );
+  }
+
+  if (phase === "briefing" && pendingDeployment) {
+    return (
+      <DeploymentBriefing
+        deployment={pendingDeployment}
+        onBack={() => setPhase("loadout")}
+        onLaunch={() => deploy(pendingDeployment)}
+      />
     );
   }
 
@@ -580,7 +609,7 @@ export function GameCanvas() {
       </WorldErrorBoundary>
        <PerfOverlay />
        <VoiceSubtitle />
-       <HUD hud={hud} tutorialActive={Boolean(tutorial && tutorial.step !== "VICTORY")} onMenu={() => setMenuOpen(true)} onStrategy={() => setStrategyOpen(true)} onGarage={() => setGarageOpen(true)} onAnalyze={() => setAnalysisOpen(true)} onOperations={setOperationsView} onInventory={() => setInventoryOpen(true)} onAtlas={() => setAtlasOpen(true)} />
+       <HUD hud={hud} tutorialActive={Boolean(tutorial && tutorial.step !== "VICTORY")} onMenu={() => { setInventoryOpen(false); setAtlasOpen(false); setOperationsView(null); setMenuOpen(true); }} onStrategy={() => setStrategyOpen(true)} onGarage={() => setGarageOpen(true)} onAnalyze={() => setAnalysisOpen(true)} onOperations={(view) => { setInventoryOpen(false); setAtlasOpen(false); setOperationsView(view); }} onInventory={() => { setAtlasOpen(false); setOperationsView(null); setInventoryOpen(true); }} onAtlas={() => { setInventoryOpen(false); setOperationsView(null); setAtlasOpen(true); }} />
        {!tutorial && !hud.insideInterior && <Minimap hud={hud} />}
        {!tutorial && <QuestTracker progression={progression} />}
        {activeDialogue && <DialogueOverlay lines={activeDialogue} onDone={() => setActiveDialogue(null)} />}

@@ -1,4 +1,4 @@
-import { ChevronLeft, ChevronRight, Cpu, Settings, Shield } from "lucide-react";
+import { ChevronLeft, ChevronRight, Circle, Cpu, Settings, Shield } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { APPEARANCES, CLASSES, DEFAULT_SUBCLASS, SUBCLASSES, appearanceById, classById, type AppearanceId, type ClassId, type SubclassId } from "@/game/loadout";
@@ -53,20 +53,21 @@ export function StartMenu({ onDeploy, onSettings }: { onDeploy: (deployment: Dep
 
   return <div className="fixed inset-0 z-50 overflow-hidden bg-background">
     <div className="absolute inset-0"><IdentityForge classId={classId} appearance={appearance} mode={stage} onSelectClass={selectClass} /></div>
-    <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_bottom,color-mix(in_oklch,var(--background)_45%,transparent),transparent_30%,color-mix(in_oklch,var(--background)_92%,transparent))]" />
+    <div className="pointer-events-none absolute inset-0 forge-veil" />
 
     <header className="pointer-events-none absolute inset-x-0 top-0 z-10 flex items-start justify-between p-4 sm:p-7">
       <div><p className="hud-label">Identity Forge // Chamber 01</p><h1 className="mt-1 font-mono text-xl font-bold tracking-[0.16em] sm:text-3xl" style={{ textShadow: "0 0 20px color-mix(in oklch, var(--primary) 35%, transparent)" }}>WORLD FRACTURE</h1></div>
       <Button className="hud-panel pointer-events-auto border-0" variant="ghost" size="icon" onClick={onSettings} aria-label="Open settings"><Settings /></Button>
     </header>
 
-    <div className="pointer-events-none absolute inset-x-0 top-20 z-10 text-center">
-      <p className="hud-label">NOVA // {stage === "ASSEMBLING" ? "FINALIZATION" : `PHASE 0${Math.max(1, stageIndex + 1)}`}</p>
+    <div className="pointer-events-none absolute inset-x-0 top-20 z-10 text-center ui-enter">
+      <div className="flex items-center justify-center gap-3">{STAGES.map((item, index) => <span key={item} className={`flex items-center gap-3 ${stageIndex >= index ? "text-primary" : "text-muted-foreground/40"}`}><Circle className={`size-2 ${stage === item ? "fill-current" : ""}`} />{index < STAGES.length - 1 && <i className="h-px w-8 bg-current" />}</span>)}</div>
+      <p className="mt-3 hud-label">NOVA // {stage === "ASSEMBLING" ? "FINALIZATION" : `PHASE 0${Math.max(1, stageIndex + 1)}`}</p>
       <p className="mt-2 text-sm text-foreground/80">{GUIDE[stage]}</p>
     </div>
 
     {stage === "CLASS" && <div className="pointer-events-none absolute inset-x-0 bottom-28 z-10 grid grid-cols-3 px-[4vw] text-center sm:px-[14vw]">
-      {CLASSES.map((item, index) => <button key={item.id} className={`hud-panel relative pointer-events-auto mx-auto w-fit px-4 py-3 font-mono transition ${classId === item.id ? "hud-glow text-foreground" : "text-muted-foreground hover:text-foreground"}`} onClick={() => selectClass(item.id)}><CornerBrackets /><span className="block text-[9px] tracking-[0.3em] text-primary">0{index + 1}</span><span className="text-xs font-bold tracking-[0.16em] sm:text-lg">{CLASS_LABEL[item.id]}</span><span className="mt-1 hidden text-[8px] uppercase tracking-[0.15em] sm:block">{item.id === "TITAN" ? "Control space" : item.id === "HUNTER" ? "Control movement" : "Control systems"}</span></button>)}
+      {CLASSES.map((item, index) => <Button key={item.id} variant="ghost" className={`relative pointer-events-auto mx-auto h-auto w-fit rounded-none border-b-2 bg-transparent px-4 py-3 font-mono transition ${classId === item.id ? "border-primary text-foreground" : "border-transparent text-muted-foreground hover:text-foreground"}`} onClick={() => selectClass(item.id)}><span><span className="block text-[9px] tracking-[0.3em] text-primary">0{index + 1}</span><span className="text-xs font-bold sm:text-lg">{CLASS_LABEL[item.id]}</span><span className="mt-1 hidden text-[8px] uppercase sm:block">{item.id === "TITAN" ? "Control space" : item.id === "HUNTER" ? "Control movement" : "Control systems"}</span></span></Button>)}
     </div>}
 
     {stage === "SUBCLASS" && <div className="pointer-events-auto absolute bottom-24 left-1/2 z-10 grid w-[min(62rem,calc(100%-2rem))] -translate-x-1/2 gap-2 sm:grid-cols-3">
