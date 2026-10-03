@@ -1,5 +1,6 @@
 import { familyFor, rollRaidDrop } from "./raid-loot";
 import { squadMove, squadRole } from "./enemy-intelligence";
+import { createAi, pickCover, shouldTakeCover, sightRange, stepAwareness, type EnemyAi } from "./enemy-perception";
 import { REGIONS, type Region } from "./world";
 import { heightAt, smoothstep, walkHeight } from "./terrain";
 import { LANES, laneLanePoint, laneSamples, type Lane } from "./lanes";
@@ -97,6 +98,8 @@ export type Machine = {
   eq?: boolean;
   /** set when this boss is a Unique Scenario encounter (see unique-scenarios.ts) instead of a regular catalog boss */
   scenarioId?: string;
+  /** patrol/detection/cover state (see enemy-perception.ts); reset when a pooled slot respawns */
+  ai?: EnemyAi;
 };
 
 export type Truck = {
@@ -170,6 +173,10 @@ export type WorldSim = {
   impactCool: number;
   /** rolling combat activity used for pacing */
   combatHeat: number;
+  /** 0..1 weather visibility set by Scene each frame; shrinks enemy sight */
+  envVisibility: number;
+  /** latest player gunfire noise 0..1, decays each frame */
+  playerNoise: number;
   /** adaptive skill profile driven by observed behaviour */
   adaptation: Adaptation;
   /** derived gameplay modifiers from the adaptive build */
@@ -661,6 +668,7 @@ export function stepSim(sim: WorldSim, input: SimInput) {
   for (const a of sim.alerts) a.life -= dt;
   sim.alerts = sim.alerts.filter((a) => a.life > 0);
   sim.combatHeat = Math.max(0, sim.combatHeat - dt * 6);
+  sim.playerNoise = Math.max(0, (sim.playerNoise ?? 0) - dt * 1.5);
   // weapon cooling: venting from an overheat is slower than a normal cooldown
   sim.weaponHeat = Math.max(0, sim.weaponHeat - dt * (sim.overheated ? 22 : 34));
   if (sim.overheated && sim.weaponHeat <= 6) {
@@ -802,7 +810,29 @@ export function stepSim(sim: WorldSim, input: SimInput) {
     const speed = (10 + night * 6) * (m.elite ? 1.15 : 1) * (bossTuning?.speedMult ?? 1);
     if (d < 120) hostileNear++;
 
-    if (d < aggro) {
+    // ---- awareness: patrol → suspicious → alert → search (enemy-perception.ts) ----
+    if (!m.ai || m.hp > m.ai.lastHp + 0.01) m.ai = createAi(m.x, m.z, m.hp);
+    const ai = m.ai;
+    const damaged = m.hp < ai.lastHp - 0.001;
+    ai.lastHp = m.hp;
+    const facingDot = (Math.sin(m.rot) * dx + Math.cos(m.rot) * dz) / d;
+    const sight = sightRange(night, sim.envVisibility ?? 1, m.elite) * (aggro / 70 > 1 ? Math.min(1.6, aggro / 70) : 1);
+    const forced = m.boss || m.mission || sim.hp < 35 && d < 40;
+    const aiState = forced && d < aggro ? (ai.state = "ALERT", ai.awareness = 1, ai.lastX = px, ai.lastZ = pz, "ALERT")
+      : stepAwareness(ai, { distance: d, sight, noise: Math.min(1, (sim.playerNoise ?? 0) + sim.combatHeat / 120), damaged, facing: facingDot > 0.3 }, px, pz, dt);
+    if (aiState === "ALERT" && ai.coverTime <= 0 && shouldTakeCover(m.hp / Math.max(1, m.maxHp ?? (m.elite ? 6 : 3)), ai.coverTime, m.boss) && d < 45 && damaged) {
+      const c = pickCover(m.x, m.z, px, pz, i % 2 ? 1 : -1);
+      ai.coverX = c.x; ai.coverZ = c.z; ai.coverTime = 3.5;
+    }
+    ai.coverTime -= dt;
+
+    if (aiState === "ALERT" && ai.coverTime > 1.2) {
+      // break line of fire: sprint to cover, no shooting while relocating
+      const cx = ai.coverX - m.x, cz = ai.coverZ - m.z, cd = Math.hypot(cx, cz);
+      if (cd > 1.5) { m.x += (cx / cd) * speed * 1.25 * dt; m.z += (cz / cd) * speed * 1.25 * dt; m.rot = Math.atan2(cx, cz); }
+      else m.rot = Math.atan2(dx, dz);
+      m.cool = Math.max(m.cool, 0.4);
+    } else if (aiState === "ALERT") {
       // squad role + threat drive positioning instead of a straight chase
       const i = sim.machines.indexOf(m);
       const move = squadMove(squadRole(i, m.elite, m.boss), d, sim.hp / 100, sim.combatHeat, performance.now() / 1000 + i, sim.mods.squadArchetype, sim.mods.rangedHoldFire);
@@ -826,352 +856,26 @@ export function stepSim(sim: WorldSim, input: SimInput) {
         if (sim.enemyShots.length > 24) sim.enemyShots.shift();
         if (Math.random() < 0.25) hurtPlayer(sim, ((m.boss ? 6 : m.elite ? 4 : 2) * (bossTuning?.damageMult ?? 1)) / sim.mods.hullDurability, m.profile);
       }
+    } else if (aiState === "SUSPICIOUS" || aiState === "SEARCH") {
+      // investigate last known position; turn to face it, move cautiously
+      const lx = ai.lastX - m.x, lz = ai.lastZ - m.z, ld = Math.hypot(lx, lz);
+      const pace = aiState === "SEARCH" ? 0.7 : 0.45;
+      if (ld > 3) { m.x += (lx / ld) * speed * pace * dt; m.z += (lz / ld) * speed * pace * dt; m.rot = Math.atan2(lx, lz); }
+      else m.rot += dt * 1.6; // sweep around
     } else {
-      m.rot += dt * 0.4;
-      m.x += Math.sin(m.rot) * 6 * dt;
-      m.z += Math.cos(m.rot) * 6 * dt;
+      // patrol between waypoints around the spawn anchor
+      const wx = ai.wpX - m.x, wz = ai.wpZ - m.z, wd = Math.hypot(wx, wz);
+      if (wd < 2.5) {
+        ai.timer -= dt;
+        m.rot += dt * 0.6;
+        if (ai.timer <= 0) {
+          const a = Math.random() * Math.PI * 2, r = 10 + Math.random() * 22;
+          ai.wpX = ai.homeX + Math.cos(a) * r; ai.wpZ = ai.homeZ + Math.sin(a) * r; ai.timer = 1.5 + Math.random() * 2;
+        }
+      } else {
+        m.x += (wx / wd) * 5 * dt; m.z += (wz / wd) * 5 * dt;
+        m.rot = Math.atan2(wx, wz);
+      }
       if (d > 260) m.alive = false;
     }
 
-    // knockback from impacts, damped frame-rate independently
-    m.x += m.kx * dt;
-    m.z += m.kz * dt;
-    m.kx *= Math.exp(-3 * dt);
-    m.kz *= Math.exp(-3 * dt);
-
-    // machines collide with world props and with each other
-    const hit = collideBody(m, 2.6 * m.scale, speed + Math.hypot(m.kx, m.kz), 1.6);
-    if (hit.hit && hit.damage > 6) m.hp -= 1;
-    for (let j = i + 1; j < sim.machines.length; j++) {
-      const o = sim.machines[j]!;
-      if (!o.alive) continue;
-      const sx = m.x - o.x;
-      const sz = m.z - o.z;
-      const dist = Math.hypot(sx, sz) || 0.001;
-      const min = 2.8 * m.scale + 2.8 * o.scale;
-      if (dist < min) {
-        const push = (min - dist) * 0.5;
-        m.x += (sx / dist) * push;
-        m.z += (sz / dist) * push;
-        o.x -= (sx / dist) * push;
-        o.z -= (sz / dist) * push;
-      }
-    }
-     if (m.hp <= 0) {
-       defeatMachine(sim, m);
-      continue;
-    }
-    m.y = walkHeight(m.x, m.z) + 2.2 * m.scale;
-  }
-
-// stealth: surviving close to hostiles without opening fire
-  if (!input.inVehicle && hostileNear > 0 && sim.combatHeat < 2) {
-    logBehavior(sim.adaptation, "stealth", dt * 0.8 * hostileNear);
-  }
-
-  // ---------- safe-zone stability field ----------
-  // enemies can never enter a friendly safe zone: the field shoves them back
-  // out across the boundary and burns their armour while they touch it.
-  for (const z of sim.zones) {
-    const r = z.region;
-    if ((r.kind !== "safe" && r.kind !== "starter") || z.owner !== "vanguard") continue;
-    for (const m of sim.machines) {
-      if (!m.alive) continue;
-      const dx = m.x - r.x;
-      const dz = m.z - r.z;
-      const d = Math.hypot(dx, dz) || 0.001;
-      if (d >= r.radius) continue;
-      const push = r.radius - d + 0.5;
-      m.x += (dx / d) * push;
-      m.z += (dz / d) * push;
-      m.kx += (dx / d) * 14;
-      m.kz += (dz / d) * 14;
-      m.hp -= dt * 6;
-      if (m.hp <= 0) {
-         defeatMachine(sim, m);
-        alert(sim, `${r.name} stability field vaporised a war machine`);
-      }
-    }
-  }
-
-  // ---------- perimeter defence turrets ----------
-  for (const tur of sim.turrets) {
-    tur.flash = Math.max(0, tur.flash - dt * 3);
-    tur.cool -= dt;
-    let best: Machine | null = null;
-    let bestD = tur.range;
-    for (const m of sim.machines) {
-      if (!m.alive) continue;
-      const d = Math.hypot(m.x - tur.x, m.z - tur.z);
-      if (d < bestD) {
-        bestD = d;
-        best = m;
-      }
-    }
-    if (!best) continue;
-    tur.rot = Math.atan2(best.x - tur.x, best.z - tur.z);
-    if (tur.cool > 0) continue;
-    tur.cool = 0.9;
-    tur.flash = 1;
-    best.hp -= 2;
-    // knock the attacker away from the perimeter
-    const dx = best.x - tur.x;
-    const dz = best.z - tur.z;
-    const d = Math.hypot(dx, dz) || 1;
-    best.kx += (dx / d) * 8;
-    best.kz += (dz / d) * 8;
-    if (best.hp <= 0) {
-       defeatMachine(sim, best);
-      alert(sim, "Safe-zone turret destroyed an ambusher");
-    }
-  }
-
-  // ---------- convoys: lane following with headway control ----------
-  for (const tr of sim.trucks) {
-    if (!tr.alive) continue;
-    const lane = sim.lanes[tr.lane]!;
-
-    // --- simulation LOD for logistics: distant convoys move abstractly ---
-    const convoyTier: SimTier = getSimulationTier(tr.x, tr.z, px, pz);
-    const convoyTick = shouldTick(convoyTier, sim.stats.frame);
-    countEntity(sim.stats, convoyTier, convoyTick);
-    if (convoyTier >= 2) {
-      if (!convoyTick) continue;
-      const sdt = tierDt(convoyTier, dt);
-      tr.speed = 0.035 * sim.adaptation.influence.logisticsEfficiency;
-      tr.wait = Math.max(0, tr.wait - sdt);
-      if (tr.wait <= 0) tr.t += sdt * tr.speed * tr.dir;
-      if (tr.t > 0.9) {
-        tr.t = 0.1;
-        tr.wait = 6;
-      }
-      if (tr.t < 0.1) {
-        tr.t = 0.9;
-        tr.wait = 6;
-      }
-      const abstract = laneLanePoint(lane, tr.t, tr.dir > 0 ? 3.2 : -3.2);
-      tr.rot = Math.atan2(abstract.x - tr.x, abstract.z - tr.z) || tr.rot;
-      tr.x = abstract.x;
-      tr.z = abstract.z;
-      tr.y = walkHeight(abstract.x, abstract.z) + 1.6;
-      continue;
-    }
-
-    // keep a safe gap to the truck ahead on the same lane and heading
-    let headway = 1;
-    for (const other of sim.trucks) {
-      if (other === tr || !other.alive || other.lane !== tr.lane || other.dir !== tr.dir) continue;
-      let gap = (other.t - tr.t) * tr.dir;
-      if (gap < 0) gap += 1;
-      if (gap < 0.07) headway = Math.min(headway, Math.max(0, (gap - 0.025) / 0.045));
-    }
-    // junction yield: brake for any truck crossing close ahead, whatever lane
-    for (const other of sim.trucks) {
-      if (other === tr || !other.alive) continue;
-      const dx = other.x - tr.x;
-      const dz = other.z - tr.z;
-      const dist = Math.hypot(dx, dz);
-      if (dist > 16) continue;
-      const ahead = dx * Math.sin(tr.rot) + dz * Math.cos(tr.rot);
-      if (ahead <= 0) continue;
-      // both brake, but the higher-index truck keeps more distance so the
-      // pair never deadlocks: the lower-index truck clears the junction first
-      const keep = sim.trucks.indexOf(tr) > sim.trucks.indexOf(other) ? 10 : 6;
-      headway = Math.min(headway, Math.max(0, (dist - keep) / 6));
-    }
-
-    // break a rare standoff: only the highest-priority stalled truck rolls on
-    tr.stalled = tr.speed < 0.004 ? tr.stalled + dt : 0;
-    if (tr.stalled > 4 && !sim.trucks.some((o) => o.alive && o !== tr && o.stalled > tr.stalled)) {
-      headway = Math.max(headway, 0.35);
-    }
-
-    // holding at a depot gate: convoys wait for the player before rolling out,
-    // and while parked inside the safe zone the defences cover them
-    if (tr.wait > 0) {
-      tr.wait -= dt;
-      const playerNear = Math.hypot(px - tr.x, pz - tr.z) < 26;
-      if (playerNear) tr.wait = Math.max(tr.wait, 0.6);
-      headway = 0;
-    }
-
-    // ease toward the target lane speed so trucks brake smoothly
-    const target = 0.035 * headway * sim.adaptation.influence.logisticsEfficiency;
-    tr.speed += (target - tr.speed) * (1 - Math.exp(-3 * dt));
-
-    const side = tr.dir > 0 ? 3.2 : -3.2;
-    const prev = laneLanePoint(lane, tr.t, side);
-    tr.t += dt * tr.speed * tr.dir;
-    // loop between the depot gates, staying clear of the hub centres
-    if (tr.t > 0.9) {
-      tr.t = 0.1;
-      tr.wait = 6;
-    }
-    if (tr.t < 0.1) {
-      tr.t = 0.9;
-      tr.wait = 6;
-    }
-    const now = laneLanePoint(lane, tr.t, side);
-    tr.x = now.x;
-    tr.z = now.z;
-    tr.y = walkHeight(now.x, now.z) + 1.6;
-    if (Math.hypot(now.x - prev.x, now.z - prev.z) > 0.0001) {
-      tr.rot = Math.atan2(now.x - prev.x, now.z - prev.z);
-    }
-  }
-
-  // only revive a truck when its lane+direction corridor is free
-  // hard non-penetration: back the lower-priority truck off its route
-  for (let i = 0; i < sim.trucks.length; i++) {
-    const a = sim.trucks[i]!;
-    if (!a.alive) continue;
-    for (let j = i + 1; j < sim.trucks.length; j++) {
-      const b = sim.trucks[j]!;
-      if (!b.alive) continue;
-      if (Math.hypot(a.x - b.x, a.z - b.z) >= 7) continue;
-      const lane = sim.lanes[b.lane]!;
-      const side = b.dir > 0 ? 3.2 : -3.2;
-      for (let k = 0; k < 6; k++) {
-        b.t -= b.dir * 0.003;
-        if (b.t > 1) b.t -= 1;
-        if (b.t < 0) b.t += 1;
-        const p = laneLanePoint(lane, b.t, side);
-        b.x = p.x;
-        b.z = p.z;
-        b.y = walkHeight(p.x, p.z) + 1.6;
-        if (Math.hypot(a.x - b.x, a.z - b.z) >= 7) break;
-      }
-      b.speed = 0;
-      b.stalled += 0.2;
-    }
-  }
-
-  const dead = sim.trucks.filter(
-    (x) => !x.alive && !sim.trucks.some((o) => o.alive && o.lane === x.lane && o.dir === x.dir),
-  );
-  if (dead.length && Math.random() < 0.08 * dt * dead.length) {
-    const tr = dead[0]!;
-    tr.alive = true;
-    tr.hp = 3;
-    tr.t = tr.dir > 0 ? 0.1 : 0.9;
-    tr.speed = 0.01;
-    tr.wait = 4;
-    tr.cargo = 1 + Math.floor(Math.random() * 3);
-  }
-
-  // ---------- bullets ----------
-  for (const b of sim.bullets) {
-    if (!b.alive) continue;
-    b.x += b.vx * dt;
-    b.y += b.vy * dt;
-    b.z += b.vz * dt;
-    b.life -= dt;
-    if (b.y < heightAt(b.x, b.z) + 0.35) {
-      b.alive = false;
-      continue;
-    }
-    if (b.life <= 0) {
-      b.alive = false;
-      continue;
-    }
-    // bullets chip world cover too
-    const cover = collideBody(b, 0.4, 130, 0.25);
-    if (cover.hit) {
-      b.alive = false;
-      continue;
-    }
-    for (const m of sim.machines) {
-      if (!m.alive) continue;
-      if (Math.hypot(m.x - b.x, m.z - b.z) < 3.4 * m.scale) {
-        b.alive = false;
-        let dmg = sim.mods.bulletDamage * b.dmg;
-        if (sim.equippedElement !== "KINETIC") dmg += 0.35;
-        if (m.boss) {
-          const nowSec = performance.now() / 1000;
-          if (!m.poiseState) m.poiseState = INITIAL_POISE;
-          const result = hitPoise(m.poiseState, dmg * 9, nowSec);
-          m.poiseState = result.state;
-          let mult = result.damageMult;
-          // Unique Scenario gimmick: near-immune outside the weak-point/stagger window it just got
-          if (m.scenarioId && mult === 1) mult = scenarioById(m.scenarioId)?.outsideWindowMult ?? 1;
-          dmg *= mult;
-        }
-        m.hp -= dmg;
-        if (sim.equippedElement === "CRYO" || sim.equippedElement === "ARC") m.cool = Math.max(m.cool, sim.equippedElement === "CRYO" ? 0.9 : 0.6);
-        sim.lastHit = performance.now();
-        logBehavior(sim.adaptation, "combat", 1);
-        // knockback impulse from the hit direction
-        m.kx += b.vx * 0.06 * b.knock;
-        m.kz += b.vz * 0.06 * b.knock;
-        sim.combatHeat += 1.5;
-         defeatMachine(sim, m);
-        break;
-      }
-    }
-    if (!b.alive) continue;
-    for (const tr of sim.trucks) {
-      if (!tr.alive) continue;
-      if (Math.hypot(tr.x - b.x, tr.z - b.z) < 3.6) {
-        b.alive = false;
-        tr.hp -= sim.mods.bulletDamage;
-        logBehavior(sim.adaptation, "combat", 1);
-        if (tr.hp <= 0) {
-          tr.alive = false;
-          sim.cargo += tr.cargo;
-          logBehavior(sim.adaptation, "logistics", tr.cargo * 2);
-          directorEvent(sim.director, { type: "CARGO", amount: tr.cargo });
-          alert(sim, `Convoy ambushed — ${tr.cargo} crate${tr.cargo > 1 ? "s" : ""} seized`);
-          dropLoot(sim, sim.zones.find((z) => Math.hypot(tr.x - z.region.x, tr.z - z.region.z) < z.region.radius), "CONVOY");
-        }
-        break;
-      }
-    }
-  }
-
-  for (const it of sim.loot) it.life -= dt;
-  sim.loot = sim.loot.filter((it) => it.life > 0);
-
-  // ---------- extraction ----------
-  const nexus = byId("nexus");
-  if (sim.cargo > 0 && Math.hypot(px - nexus.x, pz - nexus.z) < nexus.radius * 0.55) {
-    const paid = Math.round(sim.cargo * 120 * sim.mods.cargoValue * sim.adaptation.influence.logisticsEfficiency);
-    sim.credits += paid;
-    sim.extractions += sim.cargo;
-    logBehavior(sim.adaptation, "logistics", sim.cargo * 3);
-    sim.cargo = 0;
-    sim.hp = Math.min(100, sim.hp + 35);
-    alert(sim, `Extraction complete  +${paid} cr`);
-  }
-
-  // ---------- AI mission director ----------
-  const playerZone = sim.zones.find((z) => Math.hypot(px - z.region.x, pz - z.region.z) < z.region.radius);
-  const before = sim.director.completed;
-  directorTick(
-    sim.director,
-    {
-      dt,
-      combatHeat: sim.combatHeat,
-      playerRegionId: playerZone?.region.id ?? "wastelands",
-      contestedZones,
-      instability: playerInstability,
-      night,
-      coreHp: sim.coreHp,
-      hostileNear,
-    },
-    {
-      alert: (text) => alert(sim, text),
-      spawnWave: (regionId, count, elite) => {
-        const zone = sim.zones.find((z) => z.region.id === regionId) ?? sim.zones[0]!;
-        for (let i = 0; i < count; i++) spawnMachine(sim, zone, elite);
-      },
-    },
-  );
-  if (sim.director.completed > before) {
-    const paid = sim.director.missions.find((m) => m.state === "COMPLETED")?.reward ?? 0;
-    sim.credits += paid;
-  }
-
-  endStats(sim.stats, performance.now() - t0);
-
-  return { playerInstability };
-}
