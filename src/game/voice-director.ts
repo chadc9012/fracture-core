@@ -117,6 +117,7 @@ async function play(line: QueuedLine, signal: AbortSignal) {
 async function processQueue() {
   if (processing) return;
   processing = true;
+  let failed = false;
   while (queue.length && enabled && volume > 0) {
     const line = queue.shift();
     if (!line) break;
@@ -124,9 +125,12 @@ async function processQueue() {
     active = { line, controller };
     try { await play(line, controller.signal); spoken.add(line.id); }
     catch (error) {
-      if (!controller.signal.aborted) emit({ state: "unavailable", speaker: line.speaker, text: line.text, message: error instanceof Error ? error.message : "Spoken dialogue is unavailable." });
+      if (!controller.signal.aborted) {
+        failed = true;
+        emit({ state: "unavailable", speaker: line.speaker, text: line.text, message: error instanceof Error ? error.message : "Spoken dialogue is unavailable." });
+      }
     } finally { if (active?.line.id === line.id) active = null; }
   }
   processing = false;
-  if (!active) emit({ state: "idle" });
+  if (!active && !failed) emit({ state: "idle" });
 }
