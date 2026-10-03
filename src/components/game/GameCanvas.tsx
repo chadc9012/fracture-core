@@ -59,6 +59,7 @@ import type { WorldSim } from "@/game/sim";
 import { LevelUpOverlay } from "./LevelUpOverlay";
 import { PerfOverlay, PerfSampler } from "./PerfOverlay";
 import { VoiceSubtitle } from "./VoiceSubtitle";
+import { MainMenuHub } from "./MainMenuHub";
 import { configureVoice, speakVoice, stopVoice } from "@/game/voice-director";
 import { recapDue, recapLine } from "@/game/retention";
 import { localSavedAt } from "@/game/cloud-save";
@@ -172,7 +173,7 @@ const initial: HudState = {
 
 export function GameCanvas() {
   const [hud, setHud] = useState<HudState>(initial);
-  const [phase, setPhase] = useState<"title" | "loadout" | "briefing" | "world">("title");
+  const [phase, setPhase] = useState<"title" | "hub" | "loadout" | "briefing" | "world">("title");
   const [pendingDeployment, setPendingDeployment] = useState<DeploymentBriefingData | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const [settings, setSettings] = useState<GameSettings>(DEFAULT_SETTINGS);
@@ -520,12 +521,34 @@ export function GameCanvas() {
         {!menuOpen && (
           <TitleScreen
             canContinue={last !== null || progression.completedMissions.length > 0}
-            onContinue={() => setPhase(last || progression.completedMissions.length > 0 ? "world" : "loadout")}
+            onContinue={() => setPhase(last || progression.completedMissions.length > 0 ? "hub" : "loadout")}
             onNewGame={() => setPhase("loadout")}
             onSettings={() => setMenuOpen(true)}
           />
         )}
         {menuOpen && <SettingsWindow completedMissions={progression.completedMissions} settings={settings} onChange={updateSettings} onClose={() => setMenuOpen(false)} onOrbit={() => setMenuOpen(false)} />}
+      </>
+    );
+  }
+
+  if (phase === "hub") {
+    return (
+      <>
+        {!menuOpen && (
+          <MainMenuHub
+            className={classById(progression.identityClass ?? cls).name}
+            level={progression.level}
+            shards={progression.materials.dataShards ?? 0}
+            completedMissions={progression.completedMissions}
+            onNavigate={(target) => {
+              if (target === "system") { setMenuOpen(true); return; }
+              setPhase("world");
+              if (target === "starmap") setAtlasOpen(true);
+              if (target === "arsenal") setInventoryOpen(true);
+            }}
+          />
+        )}
+        {menuOpen && <SettingsWindow completedMissions={progression.completedMissions} settings={settings} onChange={updateSettings} onClose={() => setMenuOpen(false)} onOrbit={() => { setMenuOpen(false); setPhase("title"); }} />}
       </>
     );
   }
