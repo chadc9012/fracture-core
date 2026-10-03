@@ -59,7 +59,9 @@ import type { WorldSim } from "@/game/sim";
 import { LevelUpOverlay } from "./LevelUpOverlay";
 import { PerfOverlay, PerfSampler } from "./PerfOverlay";
 import { VoiceSubtitle } from "./VoiceSubtitle";
-import { configureVoice, stopVoice } from "@/game/voice-director";
+import { configureVoice, speakVoice, stopVoice } from "@/game/voice-director";
+import { recapDue, recapLine } from "@/game/retention";
+import { localSavedAt } from "@/game/cloud-save";
 
 const CA_OFFSET = new THREE.Vector2(0.0006, 0.0006);
 const START = REGIONS.find((r) => r.id === "nexus")!;
@@ -220,6 +222,15 @@ export function GameCanvas() {
   const [progression, setProgression] = useState<PlayerProgression>(() => loadProgression());
   const [tutorial, setTutorial] = useState<TutorialState | null>(null);
   const [showIntro, setShowIntro] = useState(false);
+  const lastPlayed = useRef<string | null>(null);
+  const recapped = useRef(false);
+  useEffect(() => { lastPlayed.current = localSavedAt(); }, []);
+  useEffect(() => {
+    if (phase !== "world" || recapped.current) return;
+    recapped.current = true;
+    const line = recapDue(lastPlayed.current, Date.now()) ? recapLine(progression) : null;
+    if (line) speakVoice({ id: "return-recap", scope: "recap", speaker: "NOVA", text: line, priority: "story" });
+  }, [phase, progression]);
   const [boot, setBoot] = useState(true);
   useEffect(() => { const timer = window.setTimeout(() => setBoot(false), 1700); return () => window.clearTimeout(timer); }, []);
 
