@@ -111,3 +111,4 @@
 - [x] Add centralized cinematic voice playback and saved voice controls.
 - [x] Voice startup, onboarding, cinematics, missions, NPCs, bosses, victory, and ending.
 - [x] Verify spoken flow, interruption, muting, Safari-safe fallback, and build health.
+- [x] Apply the linked Destiny UI reference to startup, identity onboarding, deployment briefing, restrained HUD, categorized settings, and destination-first world navigation without copying proprietary assets.
