@@ -34,9 +34,11 @@ function useField(count: number, seed: number) {
   }, [count, seed]);
 }
 
-function Rain({ playerRef, weatherRef }: { playerRef: React.RefObject<THREE.Object3D>; weatherRef: React.RefObject<string> }) {
+export type WeatherFx = { precipitation: number; windX: number; windZ: number };
+
+function Rain({ playerRef, weatherRef, fxRef }: { playerRef: React.RefObject<THREE.Object3D>; weatherRef: React.RefObject<string>; fxRef?: React.RefObject<WeatherFx> | undefined }) {
   const mesh = useRef<THREE.InstancedMesh>(null!);
-  const field = useField(300, 71);
+  const field = useField(420, 71);
   const spread = 60;
   const top = 42;
   useFrame((_, dt) => {
@@ -44,16 +46,27 @@ function Rain({ playerRef, weatherRef }: { playerRef: React.RefObject<THREE.Obje
     if (mesh.current) mesh.current.visible = active;
     if (!active || !mesh.current || !playerRef.current) return;
     const p = playerRef.current.position;
-    for (let i = 0; i < field.length; i++) {
+    const fx = fxRef?.current;
+    const precip = fx ? Math.max(0.2, fx.precipitation) : 0.6;
+    const wX = fx?.windX ?? 0, wZ = fx?.windZ ?? 0;
+    const fall = 34 + precip * 16;
+    // tilt streaks along the wind; storms draw more drops
+    const tiltX = Math.atan2(wZ, fall) , tiltZ = -Math.atan2(wX, fall);
+    const shown = Math.floor(field.length * precip);
+    mesh.current.count = shown;
+    for (let i = 0; i < shown; i++) {
       const pt = field[i]!;
-      pt.y -= (dt * 34 * pt.speed) / top;
+      pt.y -= (dt * fall * pt.speed) / top;
+      pt.x += (wX * dt) / spread; pt.z += (wZ * dt) / spread;
+      if (pt.x > 1) pt.x -= 2; else if (pt.x < -1) pt.x += 2;
+      if (pt.z > 1) pt.z -= 2; else if (pt.z < -1) pt.z += 2;
       if (pt.y < 0) {
         pt.y = 1;
         pt.x = Math.random() * 2 - 1;
         pt.z = Math.random() * 2 - 1;
       }
       dummy.position.set(p.x + pt.x * spread, p.y + pt.y * top, p.z + pt.z * spread);
-      dummy.rotation.set(0.22, 0, 0.05);
+      dummy.rotation.set(tiltX, 0, tiltZ);
       dummy.scale.set(1, 1, 1);
       dummy.updateMatrix();
       mesh.current.setMatrixAt(i, dummy.matrix);
@@ -170,10 +183,10 @@ function Dust({ playerRef, weatherRef }: { playerRef: React.RefObject<THREE.Obje
   );
 }
 
-export function Weather({ playerRef, weatherRef }: { playerRef: React.RefObject<THREE.Object3D>; weatherRef: React.RefObject<string> }) {
+export function Weather({ playerRef, weatherRef, fxRef }: { playerRef: React.RefObject<THREE.Object3D>; weatherRef: React.RefObject<string>; fxRef?: React.RefObject<WeatherFx> | undefined }) {
   return (
     <group>
-      <Rain playerRef={playerRef} weatherRef={weatherRef} />
+      <Rain playerRef={playerRef} weatherRef={weatherRef} fxRef={fxRef} />
       <Snow playerRef={playerRef} weatherRef={weatherRef} />
       <Ashfall playerRef={playerRef} weatherRef={weatherRef} />
       <Dust playerRef={playerRef} weatherRef={weatherRef} />

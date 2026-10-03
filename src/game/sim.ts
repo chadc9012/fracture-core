@@ -1,5 +1,6 @@
 import { familyFor, rollRaidDrop } from "./raid-loot";
 import { squadMove, squadRole } from "./enemy-intelligence";
+import { createAi, pickCover, shouldTakeCover, sightRange, stepAwareness, type EnemyAi } from "./enemy-perception";
 import { REGIONS, type Region } from "./world";
 import { heightAt, smoothstep, walkHeight } from "./terrain";
 import { LANES, laneLanePoint, laneSamples, type Lane } from "./lanes";
@@ -97,6 +98,8 @@ export type Machine = {
   eq?: boolean;
   /** set when this boss is a Unique Scenario encounter (see unique-scenarios.ts) instead of a regular catalog boss */
   scenarioId?: string;
+  /** patrol/detection/cover state (see enemy-perception.ts); reset when a pooled slot respawns */
+  ai?: EnemyAi;
 };
 
 export type Truck = {
@@ -170,6 +173,10 @@ export type WorldSim = {
   impactCool: number;
   /** rolling combat activity used for pacing */
   combatHeat: number;
+  /** 0..1 weather visibility set by Scene each frame; shrinks enemy sight */
+  envVisibility: number;
+  /** latest player gunfire noise 0..1, decays each frame */
+  playerNoise: number;
   /** adaptive skill profile driven by observed behaviour */
   adaptation: Adaptation;
   /** derived gameplay modifiers from the adaptive build */
@@ -374,6 +381,8 @@ export function createSim(): WorldSim {
     director: createDirector(),
     impactCool: 0,
     combatHeat: 0,
+    envVisibility: 1,
+    playerNoise: 0,
     adaptation,
     mods: adaptationMods(adaptation),
     stats: createStats(),
@@ -494,6 +503,7 @@ export function fireBullet(
   const b = sim.bullets.find((v) => !v.alive);
   if (!b) return false;
   sim.weaponHeat = Math.min(100, sim.weaponHeat + (inVehicle ? HEAT_PER_SHOT_VEHICLE : HEAT_PER_SHOT_FOOT) * heat);
+  sim.playerNoise = 1; // gunfire is loud: enemies within hearing range turn toward it
   if (sim.weaponHeat >= 100) {
     sim.overheated = true;
     alert(sim, "WEAPON OVERHEAT — venting");
@@ -661,6 +671,7 @@ export function stepSim(sim: WorldSim, input: SimInput) {
   for (const a of sim.alerts) a.life -= dt;
   sim.alerts = sim.alerts.filter((a) => a.life > 0);
   sim.combatHeat = Math.max(0, sim.combatHeat - dt * 6);
+  sim.playerNoise = Math.max(0, (sim.playerNoise ?? 0) - dt * 1.5);
   // weapon cooling: venting from an overheat is slower than a normal cooldown
   sim.weaponHeat = Math.max(0, sim.weaponHeat - dt * (sim.overheated ? 22 : 34));
   if (sim.overheated && sim.weaponHeat <= 6) {
@@ -802,7 +813,29 @@ export function stepSim(sim: WorldSim, input: SimInput) {
     const speed = (10 + night * 6) * (m.elite ? 1.15 : 1) * (bossTuning?.speedMult ?? 1);
     if (d < 120) hostileNear++;
 
-    if (d < aggro) {
+    // ---- awareness: patrol → suspicious → alert → search (enemy-perception.ts) ----
+    if (!m.ai || m.hp > m.ai.lastHp + 0.01) m.ai = createAi(m.x, m.z, m.hp);
+    const ai = m.ai;
+    const damaged = m.hp < ai.lastHp - 0.001;
+    ai.lastHp = m.hp;
+    const facingDot = (Math.sin(m.rot) * dx + Math.cos(m.rot) * dz) / d;
+    const sight = sightRange(night, sim.envVisibility ?? 1, m.elite) * (aggro / 70 > 1 ? Math.min(1.6, aggro / 70) : 1);
+    const forced = m.boss || m.mission || sim.hp < 35 && d < 40;
+    const aiState = forced && d < aggro ? (ai.state = "ALERT", ai.awareness = 1, ai.lastX = px, ai.lastZ = pz, "ALERT")
+      : stepAwareness(ai, { distance: d, sight, noise: Math.min(1, (sim.playerNoise ?? 0) + sim.combatHeat / 120), damaged, facing: facingDot > 0.3 }, px, pz, dt);
+    if (aiState === "ALERT" && ai.coverTime <= 0 && shouldTakeCover(m.hp / Math.max(1, m.maxHp ?? (m.elite ? 6 : 3)), ai.coverTime, m.boss) && d < 45 && damaged) {
+      const c = pickCover(m.x, m.z, px, pz, i % 2 ? 1 : -1);
+      ai.coverX = c.x; ai.coverZ = c.z; ai.coverTime = 3.5;
+    }
+    ai.coverTime -= dt;
+
+    if (aiState === "ALERT" && ai.coverTime > 1.2) {
+      // break line of fire: sprint to cover, no shooting while relocating
+      const cx = ai.coverX - m.x, cz = ai.coverZ - m.z, cd = Math.hypot(cx, cz);
+      if (cd > 1.5) { m.x += (cx / cd) * speed * 1.25 * dt; m.z += (cz / cd) * speed * 1.25 * dt; m.rot = Math.atan2(cx, cz); }
+      else m.rot = Math.atan2(dx, dz);
+      m.cool = Math.max(m.cool, 0.4);
+    } else if (aiState === "ALERT") {
       // squad role + threat drive positioning instead of a straight chase
       const i = sim.machines.indexOf(m);
       const move = squadMove(squadRole(i, m.elite, m.boss), d, sim.hp / 100, sim.combatHeat, performance.now() / 1000 + i, sim.mods.squadArchetype, sim.mods.rangedHoldFire);
@@ -826,13 +859,28 @@ export function stepSim(sim: WorldSim, input: SimInput) {
         if (sim.enemyShots.length > 24) sim.enemyShots.shift();
         if (Math.random() < 0.25) hurtPlayer(sim, ((m.boss ? 6 : m.elite ? 4 : 2) * (bossTuning?.damageMult ?? 1)) / sim.mods.hullDurability, m.profile);
       }
+    } else if (aiState === "SUSPICIOUS" || aiState === "SEARCH") {
+      // investigate last known position; turn to face it, move cautiously
+      const lx = ai.lastX - m.x, lz = ai.lastZ - m.z, ld = Math.hypot(lx, lz);
+      const pace = aiState === "SEARCH" ? 0.7 : 0.45;
+      if (ld > 3) { m.x += (lx / ld) * speed * pace * dt; m.z += (lz / ld) * speed * pace * dt; m.rot = Math.atan2(lx, lz); }
+      else m.rot += dt * 1.6; // sweep around
     } else {
-      m.rot += dt * 0.4;
-      m.x += Math.sin(m.rot) * 6 * dt;
-      m.z += Math.cos(m.rot) * 6 * dt;
+      // patrol between waypoints around the spawn anchor
+      const wx = ai.wpX - m.x, wz = ai.wpZ - m.z, wd = Math.hypot(wx, wz);
+      if (wd < 2.5) {
+        ai.timer -= dt;
+        m.rot += dt * 0.6;
+        if (ai.timer <= 0) {
+          const a = Math.random() * Math.PI * 2, r = 10 + Math.random() * 22;
+          ai.wpX = ai.homeX + Math.cos(a) * r; ai.wpZ = ai.homeZ + Math.sin(a) * r; ai.timer = 1.5 + Math.random() * 2;
+        }
+      } else {
+        m.x += (wx / wd) * 5 * dt; m.z += (wz / wd) * 5 * dt;
+        m.rot = Math.atan2(wx, wz);
+      }
       if (d > 260) m.alive = false;
     }
-
     // knockback from impacts, damped frame-rate independently
     m.x += m.kx * dt;
     m.z += m.kz * dt;

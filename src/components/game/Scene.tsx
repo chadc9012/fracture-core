@@ -18,6 +18,7 @@ import { tuningFor } from "@/game/boss-phases";
 import { counterTuningFor, dominantPattern, logAction, type ActionLogEntry, type PlayerAction } from "@/game/boss-adaptive-ai";
 import { Terrain } from "./Terrain";
 import { Weather } from "./Weather";
+import { sampleWeather, weatherName as weatherLabel } from "@/game/weather-cycle";
 import { Wildlife } from "./Wildlife";
 import { Civilians } from "./Civilians";
 import { Bullets, Convoys, SupplyLanes, WarMachines, ZoneBeacons } from "./Actors";
@@ -340,6 +341,9 @@ export function Scene({
   const vehicle = useRef<THREE.Group>(null!);
   const sun = useRef<THREE.DirectionalLight>(null!);
   const weatherKind = useRef<string>("Clear shield");
+  const weatherFx = useRef({ precipitation: 0, windX: 0, windZ: 0 });
+  const weatherName = useRef("Clear");
+  const lightning = useRef(0);
   const markerList = (): Marker[] => {
     const now = performance.now();
     const list: Marker[] = [];
@@ -732,14 +736,30 @@ export function Scene({
       }
       abilityHeld.current[key] = held.has(key);
     }
-    const weather = interior ? "Indoor" : here?.id === "veridan" ? "Rain mist" : here?.id === "ember" ? "Ashfall" : here?.id === "frostspire" ? "Snow haze" : here?.id === "nexus" ? "Clear shield" : "Dust front";
+    /* ---------------- weather cycle (deterministic fronts per region, see weather-cycle.ts) ---------------- */
+    const wx = interior ? null : sampleWeather(here?.id, time.current);
+    const weather = interior ? "Indoor" : wx!.label;
     weatherKind.current = weather;
-    const visibility = interior ? 1 : here?.id === "nexus" ? 1 : here?.id === "veridan" ? 0.66 : here?.id === "ember" ? 0.55 : here?.id === "frostspire" ? 0.48 : 0.62;
+    weatherFx.current.precipitation = wx?.precipitation ?? 0;
+    weatherFx.current.windX = wx?.windX ?? 0;
+    weatherFx.current.windZ = wx?.windZ ?? 0;
+    weatherName.current = interior ? "Indoor" : weatherLabel(wx!, here?.id);
+    const visibility = interior ? 1 : wx!.visibility;
+    sim.envVisibility = visibility;
     if (scene.fog instanceof THREE.Fog) {
-      scene.fog.near = 55 + visibility * 65;
-      scene.fog.far = 220 + visibility * 300;
+      const fogK = 1 - Math.exp(-3 * dt);
+      scene.fog.near += (25 + visibility * 95 - scene.fog.near) * fogK;
+      scene.fog.far += (120 + visibility * 400 - scene.fog.far) * fogK;
     }
-    if (sun.current) sun.current.intensity *= 0.7 + visibility * 0.3;
+    const cloud = wx?.cloud ?? 0;
+    if (sun.current) sun.current.intensity *= 1 - cloud * 0.6;
+    if (moon.current) moon.current.intensity *= 1 - cloud * 0.5;
+    // storm lightning: brief sky-wide flashes
+    if (wx?.state === "STORM") {
+      lightning.current -= dt;
+      if (lightning.current < -2 - Math.random() * 6) lightning.current = 0.18;
+      if (lightning.current > 0 && sun.current) { sun.current.intensity += 3.5; sun.current.color.set("#cfe0ff"); }
+    }
     // Interiors are flat pocket rooms far outside the terrain's authored bounds, so slope/height/water sampling there would just be noise — treat them as dry, flat, and out of the water entirely.
     const slope = interior ? 0 : slopeAt(s.x, s.z);
     const ground = interior ? INTERIOR_ALTITUDE : walkHeight(s.x, s.z);
@@ -1421,7 +1441,7 @@ export function Scene({
         subclassName: selectedSubclass.name,
         abilities: selectedClass.abilities.map((ability) => ({ slot: ability.slot, name: ability.name, ready: live.current.runtime[ability.slot]?.cooldown <= 0 })),
         firstMissionComplete: sim.director.missions.some((mission) => mission.kind === "FIRST_RESONANCE" && mission.state === "COMPLETED"),
-        weather,
+        weather: weatherName.current,
         streamTier: "ACTIVE · neighbors reduced · distant dormant",
         vehicleUnlocked,
         vehicleName: selectedVehicle.name,
@@ -1561,7 +1581,7 @@ export function Scene({
       </Environment>
 
       <Terrain />
-      <Weather playerRef={player} weatherRef={weatherKind} />
+      <Weather playerRef={player} weatherRef={weatherKind} fxRef={weatherFx} />
       <Wildlife playerRef={player} />
       <Civilians playerRef={player} />
       <Water size={WORLD_RADIUS * 4} sunRef={sunDir} />
