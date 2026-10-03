@@ -17,6 +17,7 @@ import { isStaggered, isWeakPointOpen, POISE_MAX } from "@/game/boss-poise";
 import { tuningFor } from "@/game/boss-phases";
 import { counterTuningFor, dominantPattern, logAction, type ActionLogEntry, type PlayerAction } from "@/game/boss-adaptive-ai";
 import { Terrain } from "./Terrain";
+import { CloudLayer, type SkyEnv } from "./CloudLayer";
 import { Weather } from "./Weather";
 import { sampleWeather, weatherName as weatherLabel } from "@/game/weather-cycle";
 import { Wildlife } from "./Wildlife";
@@ -555,6 +556,7 @@ export function Scene({
   const fogColor = useMemo(() => new THREE.Color(), []);
   const instabilityColor = useMemo(() => new THREE.Color("#ff2d55"), []);
   const lightColor = useMemo(() => new THREE.Color(), []);
+  const skyEnv = useRef<SkyEnv>({ cloud: 0, tint: new THREE.Color("#ffffff") });
   const { scene, gl } = useThree();
 
   useEffect(() => { state.current.firstPerson = settings.firstPersonDefault; }, [settings.firstPersonDefault]);
@@ -754,6 +756,23 @@ export function Scene({
     const cloud = wx?.cloud ?? 0;
     if (sun.current) sun.current.intensity *= 1 - cloud * 0.6;
     if (moon.current) moon.current.intensity *= 1 - cloud * 0.5;
+
+    /* ---------------- sky atmosphere + cloud layer (reacts to day phase + live regional weather) ---------------- */
+    skyEnv.current.cloud = cloud;
+    skyEnv.current.tint.copy(lightColor).multiplyScalar(1 - cloud * 0.3);
+    if (sky.current) {
+      const m = (sky.current as unknown as { material?: THREE.ShaderMaterial }).material;
+      const u = m?.uniforms;
+      if (u) {
+        // low sun angle and poor visibility both thicken the haze near the horizon; cloud cover
+        // scatters more light too, so an overcast/stormy sky reads hazier and less saturated
+        const horizonBoost = Math.max(0, 1 - Math.abs(Math.sin(theta)));
+        if (u["turbidity"]) u["turbidity"].value = 3.5 + horizonBoost * 6 + cloud * 5 + (1 - visibility) * 7;
+        if (u["rayleigh"]) u["rayleigh"].value = 1.4 + horizonBoost * 1.4 + night * 0.4;
+        if (u["mieCoefficient"]) u["mieCoefficient"].value = 0.004 + cloud * 0.01 + (1 - visibility) * 0.01;
+        if (u["mieDirectionalG"]) u["mieDirectionalG"].value = 0.8;
+      }
+    }
     // storm lightning: brief sky-wide flashes
     if (wx?.state === "STORM") {
       lightning.current -= dt;
@@ -1569,6 +1588,7 @@ export function Scene({
         mieDirectionalG={0.82}
       />
       <Stars radius={420} depth={90} count={1800} factor={7} fade speed={0.6} />
+      <CloudLayer envRef={skyEnv} />
       <Environment>
         <Lightformer intensity={1.3} position={[0, 60, 0]} scale={[80, 80, 1]} />
         <Lightformer
