@@ -124,11 +124,13 @@ function NeonMarketStreet({ y }: { y: number }) {
           <mesh receiveShadow><boxGeometry args={[5.5, 0.38, 62]} /><meshStandardMaterial color={levelIndex ? "#222832" : "#292630"} metalness={0.56} roughness={0.42} /></mesh>
           <mesh position={[-side * 2.55, 0.75, 0]}><boxGeometry args={[0.15, 1.35, 62]} /><meshStandardMaterial color="#53616d" metalness={0.75} roughness={0.27} /></mesh>
           <LightBar position={[-side * 2.66, -0.05, 0]} size={[0.1, 0.1, 61]} color={side < 0 ? "#ff2ea6" : "#38e8ff"} />
-          {[-24, -12, 0, 12, 24].map((z, stallIndex) => <group key={z} position={[side * 0.1, 1.15, z]}>
+          {[-24, -12, 0, 12, 24].map((z, stallIndex) => {
+            const stallColor = shopColors[stallIndex % shopColors.length] ?? "#38e8ff";
+            return <group key={z} position={[side * 0.1, 1.15, z]}>
             <mesh><boxGeometry args={[4.5, 2.15, 9.5]} /><meshStandardMaterial color="#151b22" roughness={0.48} metalness={0.5} /></mesh>
-            <mesh position={[-side * 2.28, 0.05, 0]}><boxGeometry args={[0.06, 1.55, 7.5]} /><meshPhysicalMaterial color={shopColors[stallIndex % shopColors.length]} transparent opacity={0.25} roughness={0.1} depthWrite={false} /></mesh>
-            <LightBar position={[-side * 2.36, 1.05, 0]} size={[0.08, 0.11, 8.5]} color={shopColors[stallIndex % shopColors.length] ?? "#38e8ff"} />
-          </group>)}
+            <mesh position={[-side * 2.28, 0.05, 0]}><boxGeometry args={[0.06, 1.55, 7.5]} /><meshPhysicalMaterial color={stallColor} transparent opacity={0.25} roughness={0.1} depthWrite={false} /></mesh>
+            <LightBar position={[-side * 2.36, 1.05, 0]} size={[0.08, 0.11, 8.5]} color={stallColor} />
+          </group>})}
         </group>)}
       </group>)}
       <ShopSign label="SYNTH-COFFEE" color="#ffcf3a" position={[-5.25, 3.3, -20]} />

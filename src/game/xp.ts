@@ -50,7 +50,8 @@ export type GrantXPResult = { progression: PlayerProgression; gained: number; le
 export function grantXP(progression: PlayerProgression, type: XPEventType, opts: { enemyLevel?: number; combatHeat?: number; rareEvent?: string } = {}): GrantXPResult {
   let amount = baseXPFor(type, opts.enemyLevel) * (TYPE_MULTIPLIER[type] ?? 1);
   if (opts.combatHeat !== undefined) amount *= comboMultiplier(opts.combatHeat);
-  if (opts.rareEvent && RARE_EVENT_MULTIPLIER[opts.rareEvent]) amount *= RARE_EVENT_MULTIPLIER[opts.rareEvent];
+  const rareMultiplier = opts.rareEvent ? RARE_EVENT_MULTIPLIER[opts.rareEvent] : undefined;
+  if (rareMultiplier !== undefined) amount *= rareMultiplier;
   amount = Math.round(amount);
 
   let xp = progression.xp + amount;
