@@ -24,3 +24,7 @@
 - Weather is a deterministic per-region front cycle in src/game/weather-cycle.ts sampled from the day clock; Scene applies it to light/fog/particles. Why: every client agrees on weather without syncing.
 - Enemy awareness (patrol/suspicious/alert/search, cover) is a pure state machine in src/game/enemy-perception.ts driven by sim.ts. Why: detection rules stay testable apart from movement.
 - Major player-facing transitions use explicit full-screen phases, while in-world utility surfaces remain mutually exclusive overlays. Why: onboarding, deployment, and navigation stay legible without stacked interfaces.
+
+- Speech-driven faces/gestures read a shared live envelope from src/game/voice-animation.ts; the voice director owns one audio graph + LRU line cache. Why: no per-line contexts, no frame stalls.
+- Retention rules (chronicle, next activity, recap, repeat reward taper) live in src/game/retention.ts. Why: testable, no content is ever removed.
+- Region image-based lighting uses verified Poly Haven HDRIs via RegionLighting with a Lightformer fallback. Why: a dead asset must never suspend the scene.

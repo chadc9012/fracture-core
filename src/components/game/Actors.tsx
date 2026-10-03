@@ -7,6 +7,7 @@ import * as THREE from "three";
 
 
 import { FACTIONS, laneSamples, type WorldSim } from "@/game/sim";
+import { getVoicePose, isBossSpeaker } from "@/game/voice-animation";
 import { walkHeight } from "@/game/terrain";
 
 /* ---------------- supply lanes (roads) ---------------- */
@@ -199,10 +200,21 @@ function WalkingTank() {
 function RegionalEnemy({ kind, boss }: { kind: "RAIDER" | "OVERCLOCKED" | "ABERRATION" | "VANGUARD"; boss: boolean }) {
   const metal = kind === "RAIDER" ? "#765949" : kind === "ABERRATION" ? "#375c43" : kind === "VANGUARD" ? "#5b7481" : "#636c85";
   const glow = kind === "RAIDER" ? "#f36b33" : kind === "ABERRATION" ? "#83dc89" : "#58d8ef";
+  const head = useRef<THREE.Group>(null!);
+  const visor = useRef<THREE.MeshStandardMaterial>(null!);
+  useFrame((state) => {
+    // bosses react to their own spoken lines: visor flicker with loudness, menacing lean
+    if (!boss) return;
+    const pose = getVoicePose(isBossSpeaker, state.clock.elapsedTime);
+    if (visor.current) visor.current.emissiveIntensity = 2 * pose.glow * (pose.talking ? 0.8 + Math.random() * 0.4 : 1);
+    if (head.current) head.current.rotation.x = pose.lean + pose.jaw * 0.2;
+  });
   return <group>
     <RoundedBox args={[1.4, 2.2, 0.8]} radius={0.16} smoothness={4} position-y={2.1} castShadow><meshStandardMaterial color={metal} roughness={0.55} metalness={kind === "ABERRATION" ? 0.1 : 0.65} /></RoundedBox>
-    <mesh position-y={3.65} castShadow><icosahedronGeometry args={[0.68, 2]} /><meshStandardMaterial color={metal} metalness={0.5} roughness={0.4} /></mesh>
-    <RoundedBox args={[0.9, 0.2, 0.16]} radius={0.04} smoothness={2} position={[0, 3.65, 0.59]}><meshStandardMaterial color={glow} emissive={glow} emissiveIntensity={2} /></RoundedBox>
+    <group ref={head} position-y={3.65}>
+      <mesh castShadow><icosahedronGeometry args={[0.68, 2]} /><meshStandardMaterial color={metal} metalness={0.5} roughness={0.4} /></mesh>
+      <RoundedBox args={[0.9, 0.2, 0.16]} radius={0.04} smoothness={2} position={[0, 0, 0.59]}><meshStandardMaterial ref={visor} color={glow} emissive={glow} emissiveIntensity={2} /></RoundedBox>
+    </group>
     {[-1, 1].map((side) => <group key={side}>
       <mesh position={[side * 1.04, 2, 0]} rotation-z={side * 0.25} castShadow><capsuleGeometry args={[0.25, 1.15, 4, 6]} /><meshStandardMaterial color={metal} metalness={0.5} /></mesh>
       <mesh position={[side * 0.45, 0.58, 0]} castShadow><capsuleGeometry args={[0.3, 1.2, 4, 6]} /><meshStandardMaterial color={metal} metalness={0.35} /></mesh>

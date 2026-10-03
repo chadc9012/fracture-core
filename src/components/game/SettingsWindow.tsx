@@ -47,14 +47,19 @@ function Toggle({ label, on, onChange }: { label: string; on: boolean; onChange:
   );
 }
 
-import { Accessibility, ChevronLeft, Gamepad2, Monitor, SlidersHorizontal, Speaker, X } from "lucide-react";
+import { Accessibility, BookOpen, ChevronLeft, Compass, Gamepad2, Map as MapIcon, Monitor, Play, SlidersHorizontal, Speaker, X } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { DEFAULT_BINDINGS, type Bindings } from "@/game/bindings";
+import { CHRONICLE, ROADMAP, nextActivity } from "@/game/retention";
+import { speakVoice } from "@/game/voice-director";
 import { ControlsPanel } from "./ControlsPanel";
 
-type SettingsSection = "GAMEPLAY" | "DISPLAY" | "AUDIO" | "INTERFACE" | "CONTROLS" | "ACCESSIBILITY";
+type SettingsSection = "NEXT" | "CHRONICLE" | "ROADMAP" | "GAMEPLAY" | "DISPLAY" | "AUDIO" | "INTERFACE" | "CONTROLS" | "ACCESSIBILITY";
 const SECTIONS: { id: SettingsSection; label: string; icon: typeof Gamepad2 }[] = [
+  { id: "NEXT", label: "What next", icon: Compass },
+  { id: "CHRONICLE", label: "Chronicle", icon: BookOpen },
+  { id: "ROADMAP", label: "Roadmap", icon: MapIcon },
   { id: "GAMEPLAY", label: "Gameplay", icon: Gamepad2 },
   { id: "DISPLAY", label: "Display", icon: Monitor },
   { id: "AUDIO", label: "Audio", icon: Speaker },
@@ -63,20 +68,23 @@ const SECTIONS: { id: SettingsSection; label: string; icon: typeof Gamepad2 }[] 
   { id: "ACCESSIBILITY", label: "Accessibility", icon: Accessibility },
 ];
 
-/** Small in-game window: settings, back to orbit, and a back button to close. */
+/** Full-screen game menu: direction, story chronicle, roadmap, and settings. */
 export function SettingsWindow({
   settings,
   onChange,
   onClose,
   onOrbit,
+  completedMissions = [],
 }: {
   settings: GameSettings;
   onChange: (s: GameSettings) => void;
   onClose: () => void;
   onOrbit: () => void;
+  completedMissions?: string[];
 }) {
   const set = (patch: Partial<GameSettings>) => onChange({ ...settings, ...patch });
-  const [section, setSection] = useState<SettingsSection>("GAMEPLAY");
+  const [section, setSection] = useState<SettingsSection>("NEXT");
+  const next = nextActivity({ completedMissions });
 
   return (
     <div className="pointer-events-auto fixed inset-0 z-[60] overflow-y-auto bg-background/92 backdrop-blur-xl" role="dialog" aria-modal="true" aria-label="Game settings">
@@ -95,6 +103,9 @@ export function SettingsWindow({
             <p className="ui-kicker">{section}</p>
             <h3 className="mt-2 text-2xl font-light">{SECTIONS.find((item) => item.id === section)?.label}</h3>
             <div className="mt-7 space-y-3 border-t border-foreground/15 pt-5">
+              {section === "NEXT" && <div className="border-l-2 border-primary bg-primary/5 p-5"><p className="ui-kicker">Recommended</p><p className="mt-2 text-2xl font-light">{next.title}</p><p className="mt-1 font-mono text-xs uppercase text-muted-foreground">{next.region}</p><p className="mt-4 text-sm">{next.why}</p><p className="mt-1 text-xs text-muted-foreground">Reward: {next.reward}</p></div>}
+              {section === "CHRONICLE" && <><p className="text-xs text-muted-foreground">Every chapter stays here forever. Replay any story you have finished.</p>{CHRONICLE.map((c) => { const done = completedMissions.includes(c.id); return <div key={c.id} className="flex items-start justify-between gap-4 border-b border-foreground/10 py-3"><div><p className="font-mono text-xs uppercase">{c.title} <span className="text-muted-foreground">/ {c.region}</span></p><p className="mt-1 text-sm text-muted-foreground">{done ? c.summary : "Locked until played."}</p></div>{done && <Button size="sm" variant="ghost" onClick={() => speakVoice({ id: `chronicle-${c.id}-${Date.now()}`, scope: "chronicle", speaker: "NOVA", text: c.summary, priority: "story" })}><Play />Replay</Button>}</div>; })}</>}
+              {section === "ROADMAP" && <>{ROADMAP.map((r) => <div key={r.label} className="flex justify-between border-b border-foreground/10 py-3"><span className="text-sm">{r.label}</span><span className={`font-mono text-[10px] ${r.status === "LIVE" ? "text-primary" : "text-muted-foreground"}`}>{r.status}</span></div>)}<p className="text-xs text-muted-foreground">No content is ever removed. Progress never resets.</p></>}
               {section === "GAMEPLAY" && <><Toggle label="Predictive aim assist" on={settings.aimAssist} onChange={(v) => set({ aimAssist: v })} /><Toggle label="First-person camera" on={settings.firstPersonDefault} onChange={(v) => set({ firstPersonDefault: v })} /></>}
               {section === "DISPLAY" && <><p className="ui-kicker">Rendering quality</p><div className="grid grid-cols-2 gap-2 sm:grid-cols-4">{(["LOW", "MEDIUM", "HIGH", "ULTRA"] as const).map((tier) => <Button key={tier} variant={settings.renderTier === tier ? "default" : "outline"} onClick={() => set({ renderTier: tier })} className="rounded-none">{tier}</Button>)}</div><p className="text-xs text-muted-foreground">Simulation and combat remain identical at every quality.</p></>}
               {section === "AUDIO" && <>{([["Master volume", "volume", 0.7], ["Music volume", "musicVolume", 1], ["Sound effects", "sfxVolume", 1], ["Voice volume", "voiceVolume", 0.85]] as const).map(([label, key, def]) => <Volume key={key} label={label} value={settings[key] ?? def} onChange={(value) => set({ [key]: value })} />)}<Toggle label="Spoken dialogue" on={settings.spokenDialogue ?? true} onChange={(v) => set({ spokenDialogue: v })} /></>}

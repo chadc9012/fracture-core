@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import { INTERIOR_ALTITUDE, INTERIORS } from "@/game/interiors";
+import { SpeakingFigure } from "./SpeakingFigure";
 
 const ROOM_HALF = 5;
 const WALL_HEIGHT = 4;
@@ -61,14 +62,7 @@ export function Interiors() {
           {/* the NPC standee — a simple readable figure, not a full character model */}
           {interior.npcName && (
             <group position={[0, 0, interior.kind === "SHOP" ? -1.5 : -2]}>
-              <mesh position={[0, 0.9, 0]} castShadow>
-                <capsuleGeometry args={[0.32, 1.1, 4, 8]} />
-                <meshStandardMaterial color={interior.kind === "SHOP" ? "#c98a4a" : "#6d8fc9"} roughness={0.6} />
-              </mesh>
-              <mesh position={[0, 1.75, 0]} castShadow>
-                <sphereGeometry args={[0.24, 12, 12]} />
-                <meshStandardMaterial color="#e8c9a8" roughness={0.7} />
-              </mesh>
+              <SpeakingFigure name={interior.npcName} color={interior.kind === "SHOP" ? "#c98a4a" : "#6d8fc9"} />
             </group>
           )}
 

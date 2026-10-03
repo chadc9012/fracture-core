@@ -62,6 +62,8 @@ import type { GameSettings } from "./SettingsWindow";
 import { WEAPONS, WEAPON_ORDER, decay, freshAmmo, type WeaponId } from "@/game/weapons";
 import { DEFAULT_BINDINGS } from "@/game/bindings";
 import * as sfx from "@/game/audio";
+import { setVoiceLoad } from "@/game/voice-director";
+import { RegionLighting } from "./RegionLighting";
 import type { ArmorVisualState } from "./Scavenger";
 import type { PlayerProgression } from "@/game/progression";
 
@@ -598,6 +600,7 @@ export function Scene({
   }, [gl]);
 
   useFrame(({ camera }, raw) => {
+    setVoiceLoad(raw > 1 / 40);
     const dt = Math.min(raw, 0.05);
     const held = keys.current;
     const s = state.current;
@@ -1612,16 +1615,7 @@ export function Scene({
       />
       <Stars radius={420} depth={90} count={1800} factor={7} fade speed={0.6} />
       <CloudLayer envRef={skyEnv} />
-      <Environment>
-        <Lightformer intensity={1.3} position={[0, 60, 0]} scale={[80, 80, 1]} />
-        <Lightformer
-          intensity={0.6}
-          color="#7fb6d9"
-          position={[-80, 20, -30]}
-          rotation-y={Math.PI / 2}
-          scale={[90, 10, 1]}
-        />
-      </Environment>
+      <RegionLighting playerRef={player} tier={settings.renderTier} />
 
       <Terrain renderTier={settings.renderTier} />
       <Weather playerRef={player} weatherRef={weatherKind} fxRef={weatherFx} />

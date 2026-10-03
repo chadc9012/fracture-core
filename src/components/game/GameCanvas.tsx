@@ -59,7 +59,9 @@ import type { WorldSim } from "@/game/sim";
 import { LevelUpOverlay } from "./LevelUpOverlay";
 import { PerfOverlay, PerfSampler } from "./PerfOverlay";
 import { VoiceSubtitle } from "./VoiceSubtitle";
-import { configureVoice, stopVoice } from "@/game/voice-director";
+import { configureVoice, speakVoice, stopVoice } from "@/game/voice-director";
+import { recapDue, recapLine } from "@/game/retention";
+import { localSavedAt } from "@/game/cloud-save";
 
 const CA_OFFSET = new THREE.Vector2(0.0006, 0.0006);
 const START = REGIONS.find((r) => r.id === "nexus")!;
@@ -220,6 +222,15 @@ export function GameCanvas() {
   const [progression, setProgression] = useState<PlayerProgression>(() => loadProgression());
   const [tutorial, setTutorial] = useState<TutorialState | null>(null);
   const [showIntro, setShowIntro] = useState(false);
+  const lastPlayed = useRef<string | null>(null);
+  const recapped = useRef(false);
+  useEffect(() => { lastPlayed.current = localSavedAt(); }, []);
+  useEffect(() => {
+    if (phase !== "world" || recapped.current) return;
+    recapped.current = true;
+    const line = recapDue(lastPlayed.current, Date.now()) ? recapLine(progression) : null;
+    if (line) speakVoice({ id: "return-recap", scope: "recap", speaker: "NOVA", text: line, priority: "story" });
+  }, [phase, progression]);
   const [boot, setBoot] = useState(true);
   useEffect(() => { const timer = window.setTimeout(() => setBoot(false), 1700); return () => window.clearTimeout(timer); }, []);
 
@@ -514,7 +525,7 @@ export function GameCanvas() {
             onSettings={() => setMenuOpen(true)}
           />
         )}
-        {menuOpen && <SettingsWindow settings={settings} onChange={updateSettings} onClose={() => setMenuOpen(false)} onOrbit={() => setMenuOpen(false)} />}
+        {menuOpen && <SettingsWindow completedMissions={progression.completedMissions} settings={settings} onChange={updateSettings} onClose={() => setMenuOpen(false)} onOrbit={() => setMenuOpen(false)} />}
       </>
     );
   }
@@ -525,6 +536,7 @@ export function GameCanvas() {
         {!menuOpen && <StartMenu onDeploy={prepareDeployment} onSettings={() => setMenuOpen(true)} best={last} />}
         {menuOpen && (
           <SettingsWindow
+            completedMissions={progression.completedMissions}
             settings={settings}
             onChange={updateSettings}
             onClose={() => setMenuOpen(false)}
@@ -650,6 +662,7 @@ export function GameCanvas() {
       {garageOpen && <div className="fixed inset-0 z-40 grid place-items-center bg-background/80 p-4 backdrop-blur-md"><section className="max-h-[85vh] w-full max-w-4xl overflow-y-auto border border-border bg-card p-6"><div className="flex items-start justify-between"><div><p className="font-mono text-[10px] uppercase tracking-[0.3em] text-primary">Garage assistant</p><h2 className="mt-2 text-2xl">Vehicle registry</h2><p className="mt-1 text-xs text-muted-foreground">Garage loadout {progression.garageLoadout.length}/3</p></div><Button variant="outline" onClick={() => setGarageOpen(false)}>Back</Button></div><div className="mt-5 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">{VEHICLES.map((vehicle) => { const owned = progression.ownedVehicles.includes(vehicle.id); const selected = progression.selectedVehicle === vehicle.id; return <div key={vehicle.id} className={`border p-3 ${selected ? "border-primary" : "border-border"}`}><p className="font-mono text-sm">{vehicle.name}</p><p className="mt-1 text-[10px] uppercase text-muted-foreground">{selected ? "Active · summon with V" : owned ? "Owned" : vehicleAcquisition(vehicle).replace("_", " ")}</p>{owned && !selected && <Button size="sm" variant="outline" className="mt-3" onClick={() => { setVehicleId(vehicle.id); setVehicleUnlocked(true); setProgression((current) => ({ ...current, selectedVehicle: vehicle.id })); }}>Equip</Button>}</div>; })}</div></section></div>}
       {menuOpen && (
         <SettingsWindow
+            completedMissions={progression.completedMissions}
           settings={settings}
           onChange={updateSettings}
           onClose={() => setMenuOpen(false)}
