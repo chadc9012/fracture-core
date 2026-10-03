@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { OBJECTIVE, type MissionEvent, type MissionRun } from "@/game/missions/broken-signal";
 import { ADAPTIVE_TUTORIAL_INIT, maybeReteach, recordStruggle, recordSuccess } from "@/game/adaptive-tutorial";
+import { playDialogueBlip } from "@/game/audio";
 
 const NODES = [0, 1, 2, 3];
 
@@ -22,6 +23,7 @@ export function BrokenSignalOverlay({ mission, onEvent }: { mission: MissionRun;
   const [adaptive, setAdaptive] = useState(ADAPTIVE_TUTORIAL_INIT);
   const [reteachHint, setReteachHint] = useState<string | null>(null);
   useEffect(() => { if (mission.state === "TRIGGERED") { setGlitch(true); const t = setTimeout(() => setGlitch(false), 2600); return () => clearTimeout(t); } return undefined; }, [mission.state]);
+  useEffect(() => { if (mission.nova) playDialogueBlip("NOVA"); }, [mission.nova]);
 
   const pick = (n: number) => {
     const expected = order[route.length];

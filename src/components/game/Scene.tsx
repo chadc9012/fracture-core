@@ -536,7 +536,7 @@ export function Scene({
   const padPrev = useRef<boolean[]>([]);
   const keyPrev = useRef<Set<string>>(new Set());
   const padState = useRef({ fire: false, aim: false, connected: false });
-  const audioSeen = useRef({ hit: 0, kills: 0, hp: 100, hurtAt: 0, stepT: 1 });
+  const audioSeen = useRef({ hit: 0, kills: 0, hp: 100, hurtAt: 0, stepT: 1, bossAlive: false, bossX: 0, bossZ: 0 });
   /** last sim.lastDeath timestamp this component has already reacted to — mirrors the audioSeen pattern above */
   const deathSeen = useRef(0);
   useEffect(() => {
@@ -1033,7 +1033,7 @@ export function Scene({
     }
     if (structure.lastCollapse && performance.now() - structure.lastCollapse.t < 50) {
       alert(sim, "STRUCTURE COLLAPSE — cover lost");
-      sfx.playKill(true, sfx.where(s.x, s.z, s.yaw, structure.lastCollapse.x, structure.lastCollapse.z));
+      sfx.playExplosion(true, sfx.where(s.x, s.z, s.yaw, structure.lastCollapse.x, structure.lastCollapse.z));
       for (const m of sim.machines) { if (!m.alive) continue; const d = Math.hypot(m.x - structure.lastCollapse.x, m.z - structure.lastCollapse.z); if (d < 14) { m.hp -= 4; m.kx += (m.x - structure.lastCollapse.x) / Math.max(1, d) * 18; m.kz += (m.z - structure.lastCollapse.z) / Math.max(1, d) * 18; m.cool = Math.max(m.cool, 1.2); } }
       if (Math.hypot(s.x - structure.lastCollapse.x, s.z - structure.lastCollapse.z) < 6) sim.hp = Math.max(1, sim.hp - 12);
       structure.lastCollapse = { ...structure.lastCollapse, t: 0 };
@@ -1072,7 +1072,13 @@ export function Scene({
       const now = performance.now();
       if (sim.hp < a.hp - 0.5 && now - a.hurtAt > 250) { sfx.playHurt(); a.hurtAt = now; }
       a.hp = sim.hp;
-      sfx.updateCombatAudio(Math.min(1, sim.combatHeat / 100));
+      // Boss-fight audio: track the engaged boss's last known position so a sudden "alive -> not
+      // alive" edge (it just died) can play a real explosion there instead of the ordinary kill
+      // chime, and so the combat mix knows to run its distinct boss-fight pattern while one's up.
+      const liveBoss = sim.machines.find((m) => m.alive && m.boss);
+      if (liveBoss) { a.bossAlive = true; a.bossX = liveBoss.x; a.bossZ = liveBoss.z; }
+      else if (a.bossAlive) { a.bossAlive = false; sfx.playExplosion(true, sfx.where(s.x, s.z, s.yaw, a.bossX, a.bossZ)); }
+      sfx.updateCombatAudio(Math.min(1, sim.combatHeat / 100), Boolean(liveBoss));
       sfx.updateBiomeAmbient(here?.id ?? "");
       sfx.updateWeatherAmbient(weather);
       // interiors keep their home region's music (a pocket room isn't its own "place"), so the score doesn't drop to silence indoors

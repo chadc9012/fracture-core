@@ -61,6 +61,7 @@
 - [x] Password reset for cloud saves
 - [x] Cloud save restore points
 - [x] Combat audio
+- [x] Explosions (structure collapse, boss death), a distinct faster/heavier boss-fight music pattern (updateCombatAudio's boss param), and a dialogue blip on every mission's NOVA line (Missions 01-04 + Awakening) — all procedural Web Audio, no files.
 - [ ] Ability VFX
 - [x] Vendors & marketplace
 - [ ] Seasons

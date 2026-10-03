@@ -100,6 +100,17 @@ export function playImpact(material: "METAL" | "ORGANIC" | "TECH", w: Where) {
   else { burst(c, o, { dur: 0.1, freq: 300, type: "lowpass", gain: 0.5 }); }
   tone(c, out(c), { f0: 2600, f1: 2600, dur: 0.04, type: "sine", gain: 0.1 }); // hit-marker tick, always centered
 }
+/** A real explosion — sub-bass thump, a sawtooth blast layer, a high-passed crack of debris, and
+ * a rolling lowpass aftershock tail. Distinct from playKill()'s short "confirm" chime: this is
+ * for structure collapses and boss deaths, where the scene should actually read as something
+ * blowing up rather than just a kill being logged. */
+export function playExplosion(big: boolean, w: Where = {}) {
+  const c = ctx; if (!c) return; const o = out(c, w);
+  burst(c, o, { dur: big ? 1.6 : 0.8, freq: big ? 220 : 400, type: "lowpass", gain: big ? 1 : 0.7 });
+  tone(c, o, { f0: big ? 70 : 100, f1: 20, dur: big ? 1.4 : 0.8, type: "sawtooth", gain: big ? 0.9 : 0.55 });
+  burst(c, o, { dur: 0.3, freq: 5500, type: "highpass", gain: big ? 0.35 : 0.2, at: 0.02 });
+  burst(c, o, { dur: big ? 1.2 : 0.6, freq: 300, type: "lowpass", gain: big ? 0.4 : 0.2, at: 0.15 });
+}
 export function playKill(boss: boolean, w: Where) {
   const c = ctx; if (!c) return; const o = out(c, w);
   burst(c, o, { dur: boss ? 1.4 : 0.6, freq: 500, type: "lowpass", gain: boss ? 1 : 0.6 });
@@ -265,19 +276,25 @@ function startMusic(c: Ctx) {
   c.layers = { ambient, tension, drums, motif };
 }
 
-/** Called every frame; schedules drum hits on a 120bpm grid while in combat. */
-export function updateCombatAudio(intensity: number) {
+/** Called every frame; schedules drum hits on a 120bpm grid while in combat. With `boss` true
+ * (an engaged boss nearby), the grid runs faster (150bpm) with an extra off-beat hit and never
+ * drops below a driving floor, so a boss fight reads as a distinct, more frantic piece rather
+ * than just "regular combat but louder" — the "different fights get different music" ask. */
+export function updateCombatAudio(intensity: number, boss = false) {
   const c = ctx; if (!c || !c.layers) return;
   const now = c.ac.currentTime;
-  c.layers.ambient.gain.setTargetAtTime(intensity < 0.3 ? 0.5 : 0.25, now, 0.8);
-  c.layers.tension.gain.setTargetAtTime(intensity > 0.4 ? 0.12 * Math.min(1, (intensity - 0.4) * 3) : 0, now, 0.8);
-  c.layers.drums.gain.setTargetAtTime(intensity > 0.65 ? 0.9 : 0, now, 0.5);
-  if (intensity > 0.65 && now >= c.beat) {
-    c.beat = Math.max(now, c.beat) + 0.25;
-    const step = Math.round(c.beat / 0.25) % 8;
-    if (step % 4 === 0) tone(c, c.layers.drums, { f0: 120, f1: 40, dur: 0.3, gain: 0.8 });
+  const eff = boss ? Math.max(intensity, 0.72) : intensity;
+  const grid = boss ? 0.2 : 0.25;
+  c.layers.ambient.gain.setTargetAtTime(eff < 0.3 ? 0.5 : 0.25, now, 0.8);
+  c.layers.tension.gain.setTargetAtTime(eff > 0.4 ? (boss ? 0.2 : 0.12) * Math.min(1, (eff - 0.4) * 3) : 0, now, 0.8);
+  c.layers.drums.gain.setTargetAtTime(eff > 0.65 ? (boss ? 1.1 : 0.9) : 0, now, 0.5);
+  if (eff > 0.65 && now >= c.beat) {
+    c.beat = Math.max(now, c.beat) + grid;
+    const step = Math.round(c.beat / grid) % 8;
+    if (step % 4 === 0) tone(c, c.layers.drums, { f0: boss ? 150 : 120, f1: boss ? 45 : 40, dur: 0.3, gain: boss ? 1 : 0.8 });
     if (step % 4 === 2) burst(c, c.layers.drums, { dur: 0.15, freq: 1800, q: 0.8, gain: 0.35 });
-    burst(c, c.layers.drums, { dur: 0.03, freq: 8000, type: "highpass", gain: intensity > 0.85 ? 0.15 : 0.06 });
+    if (boss && step % 2 === 1) burst(c, c.layers.drums, { dur: 0.08, freq: 2600, q: 1.5, gain: 0.3 });
+    burst(c, c.layers.drums, { dur: 0.03, freq: 8000, type: "highpass", gain: eff > 0.85 ? 0.15 : 0.06 });
   }
 }
 
