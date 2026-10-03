@@ -17,6 +17,7 @@ import { GraphicsGuard } from "./GraphicsGuard";
 import { StartMenu, type Deployment } from "./StartMenu";
 import { SettingsWindow, DEFAULT_SETTINGS, type GameSettings } from "./SettingsWindow";
 import { TitleScreen } from "./TitleScreen";
+import { DeploymentBriefing, type DeploymentBriefingData } from "./DeploymentBriefing";
 import { RaidStrategyPanel } from "./RaidStrategyPanel";
 import { OperationsHub } from "./OperationsHub";
 import { ZoneAnalysisPanel } from "./ZoneAnalysisPanel";
@@ -169,7 +170,8 @@ const initial: HudState = {
 
 export function GameCanvas() {
   const [hud, setHud] = useState<HudState>(initial);
-  const [phase, setPhase] = useState<"title" | "loadout" | "world">("title");
+  const [phase, setPhase] = useState<"title" | "loadout" | "briefing" | "world">("title");
+  const [pendingDeployment, setPendingDeployment] = useState<DeploymentBriefingData | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const [settings, setSettings] = useState<GameSettings>(DEFAULT_SETTINGS);
   const [adaptiveDpr, setAdaptiveDpr] = useState(1.5);
@@ -413,6 +415,11 @@ export function GameCanvas() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [progression]);
 
+  const prepareDeployment = (deployment: Deployment) => {
+    setPendingDeployment(deployment);
+    setPhase("briefing");
+  };
+
   const deploy = (deployment: Deployment) => {
     setCls(deployment.classId);
     setSubclass(deployment.subclassId);
@@ -503,7 +510,7 @@ export function GameCanvas() {
   if (phase === "loadout") {
     return (
       <>
-        {!menuOpen && <StartMenu onDeploy={deploy} onSettings={() => setMenuOpen(true)} best={last} />}
+        {!menuOpen && <StartMenu onDeploy={prepareDeployment} onSettings={() => setMenuOpen(true)} best={last} />}
         {menuOpen && (
           <SettingsWindow
             settings={settings}
@@ -513,6 +520,16 @@ export function GameCanvas() {
           />
         )}
       </>
+    );
+  }
+
+  if (phase === "briefing" && pendingDeployment) {
+    return (
+      <DeploymentBriefing
+        deployment={pendingDeployment}
+        onBack={() => setPhase("loadout")}
+        onLaunch={() => deploy(pendingDeployment)}
+      />
     );
   }
 
@@ -580,7 +597,7 @@ export function GameCanvas() {
       </WorldErrorBoundary>
        <PerfOverlay />
        <VoiceSubtitle />
-       <HUD hud={hud} tutorialActive={Boolean(tutorial && tutorial.step !== "VICTORY")} onMenu={() => setMenuOpen(true)} onStrategy={() => setStrategyOpen(true)} onGarage={() => setGarageOpen(true)} onAnalyze={() => setAnalysisOpen(true)} onOperations={setOperationsView} onInventory={() => setInventoryOpen(true)} onAtlas={() => setAtlasOpen(true)} />
+       <HUD hud={hud} tutorialActive={Boolean(tutorial && tutorial.step !== "VICTORY")} onMenu={() => { setInventoryOpen(false); setAtlasOpen(false); setOperationsView(null); setMenuOpen(true); }} onStrategy={() => setStrategyOpen(true)} onGarage={() => setGarageOpen(true)} onAnalyze={() => setAnalysisOpen(true)} onOperations={(view) => { setInventoryOpen(false); setAtlasOpen(false); setOperationsView(view); }} onInventory={() => { setAtlasOpen(false); setOperationsView(null); setInventoryOpen(true); }} onAtlas={() => { setInventoryOpen(false); setOperationsView(null); setAtlasOpen(true); }} />
        {!tutorial && !hud.insideInterior && <Minimap hud={hud} />}
        {!tutorial && <QuestTracker progression={progression} />}
        {activeDialogue && <DialogueOverlay lines={activeDialogue} onDone={() => setActiveDialogue(null)} />}
