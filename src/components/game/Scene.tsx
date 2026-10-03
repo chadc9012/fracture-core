@@ -6,7 +6,7 @@ import * as THREE from "three";
 import { REGIONS, SKY, ZONE_COLOR, clockLabel, phaseFor, regionAt, WORLD_RADIUS } from "@/game/world";
 import { useKeyboard } from "@/game/useKeyboard";
 import { walkHeight, slopeAt, heightAt, WATER_LEVEL } from "@/game/terrain";
-import { alert, collidePlayer, createSim, defeatMachine, FACTIONS, fireBullet, instabilityTier, spawnMissionDrones, stepSim, summonBoss, type Faction, type InstabilityTier, type WorldSim, type ZoneState } from "@/game/sim";
+import { alert, applySuppressPulse, applyVulnPulse, collidePlayer, createSim, defeatMachine, FACTIONS, fireBullet, instabilityTier, spawnMissionDrones, spawnVolatileZone, stepSim, summonBoss, type Faction, type InstabilityTier, type WorldSim, type ZoneState } from "@/game/sim";
 import type { MissionEvent, MissionRun } from "@/game/missions/broken-signal";
 import type { MissionEvent as BlackoutEvent, MissionRun as BlackoutRun } from "@/game/missions/blackout-protocol";
 import type { MissionEvent as NeonCoreEvent, MissionRun as NeonCoreRun } from "@/game/missions/stitched-neon-core";
@@ -43,6 +43,7 @@ import { vehicleById, type VehicleId } from "@/game/vehicles";
 import { projectDome, shieldBash } from "@/game/titan";
 import { RENDER_PRESETS } from "@/game/performance";
 import { activateLiveAbility, createLiveBuild, rebindLiveBuild, tickLiveBuild } from "@/game/live-build";
+import { VERB_LABEL } from "@/game/subclass-verbs";
 import type { ActiveBuild } from "@/game/ability-network";
 import { buildSynergy } from "@/game/ability-network";
 import type { SquadArchetype } from "@/game/adaptation";
@@ -753,8 +754,16 @@ export function Scene({
     bossHeld.current = held.has("KeyB");
     for (const [key, slot] of [["KeyQ", "PRIMARY"], ["KeyE", "TACTICAL"], ["KeyR", "ULTIMATE"]] as const) {
       if (held.has(key) && !abilityHeld.current[key] && !s.inVehicle) {
-        const ability = activateLiveAbility(live.current, slot, here?.kind ?? "war");
+        const ability = activateLiveAbility(live.current, slot, here?.kind ?? "war", subclassId);
         if (ability) {
+          const verb = live.current.pendingVerb;
+          if (verb) {
+            if (verb.verb === "VOLATILE") spawnVolatileZone(sim, s.x, s.z, verb.radius, verb.magnitude, verb.duration);
+            else if (verb.verb === "SUPPRESS") applySuppressPulse(sim, s.x, s.z, verb.radius, verb.magnitude);
+            else applyVulnPulse(sim, s.x, s.z, verb.radius, verb.magnitude, verb.duration); // WEAKEN / MARKED
+            live.current.pendingVerb = null;
+            alert(sim, `${VERB_LABEL[verb.verb]} applied to nearby hostiles`);
+          }
           s.specialTime = Math.max(s.specialTime, slot === "ULTIMATE" ? 1.5 : 0.8);
           const effect = ability.effects[0];
           sfx.playAbility(effect?.kind ?? "ABILITY");
@@ -922,6 +931,10 @@ export function Scene({
     const equippedWeapon = gear?.inventory.find((item) => item.id === gear.equippedGear[s.inVehicle ? "vehicle" : s.weapon === "HEAVY" ? "heavy" : s.weapon === "PULSE" ? "secondary" : "primary"]);
     const gearPower = equippedWeapon ? 1 + Math.max(0, equippedWeapon.power - 100) / 500 : 1;
     sim.equippedElement = equippedWeapon?.element ?? "KINETIC";
+    // self-targeted subclass verbs (RAGE/OVERSHIELD, see subclass-verbs.ts) live on LiveBuild, which
+    // has no reference to WorldSim — bridge them in every frame rather than one-shot at cast time.
+    sim.verbDamageMult = live.current.verbKind === "RAGE" && live.current.verbTime > 0 ? live.current.verbMagnitude : 1;
+    sim.verbIncomingMult = live.current.verbKind === "OVERSHIELD" && live.current.verbTime > 0 ? 1 - live.current.verbMagnitude : 1;
     s.recoil = decay(s.recoil, 9, dt);
     s.punch = decay(s.punch, 14, dt);
     s.bloom = decay(s.bloom, 6, dt);
