@@ -54,8 +54,6 @@
 - [x] Mission 01 Broken Signal (NOVA guide)
 - [x] Mission 02 Blackout Protocol
 - [x] Mission 03 Stitched Neon Core (the dungeon Blackout Protocol's ending hooked; ends in the game's first scripted boss fight against Aegis-Prime, and hooks fd-16/fd-17's Thalassia descent)
-- [x] Mission 04 Descent Protocol (gives fd-16's dive-to-Thalassia a real destination in the already-built sunken city instead of a bare survive timer; ends on a cliffhanger, not a boss fight — the real confrontation is fd-18's still-unbuilt final mission)
-- [ ] The System Core — fd-18's final mission/dungeon and boss (keyed "system-core" in quests.ts; EndingOverlay already fires on its completion, but no dungeon/encounter exists for it yet)
 - [x] Per-weapon ammo, reload, ammo HUD
 - [x] Controller weapon switching, selector/wheel, configurable bindings
 - [x] Password reset for cloud saves

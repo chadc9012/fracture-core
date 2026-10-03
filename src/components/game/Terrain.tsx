@@ -8,6 +8,7 @@ import { WATER_LEVEL, colorAt, heightAt, slopeAt } from "@/game/terrain";
 import { groundDetailTextures, propDetailTextures } from "@/game/detail-texture";
 import { organicCanopy, organicRock } from "@/game/organic-geometry";
 import { LANE_HALF_WIDTH, distanceToRoad } from "@/game/lanes";
+import { LavaPool } from "./Lava";
 import {
   addObstacle,
   resetObstacles,
@@ -258,10 +259,7 @@ export function Terrain() {
 
       {/* volcano crater glow */}
       <group position={[ember.x, 0, ember.z]}>
-        <mesh position-y={craterY - 1} rotation-x={-Math.PI / 2}>
-          <circleGeometry args={[7, 24]} />
-          <meshStandardMaterial color="#ff5a12" emissive="#ff5a12" emissiveIntensity={2.6} toneMapped={false} />
-        </mesh>
+        <group position-y={craterY - 1}><LavaPool radius={7} /></group>
         <pointLight position={[0, craterY + 6, 0]} color="#ff6a1f" intensity={220} distance={120} decay={2} />
       </group>
       <Instances limit={liveEmber.length} castShadow receiveShadow geometry={emberRockGeo}>

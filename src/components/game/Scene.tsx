@@ -10,7 +10,6 @@ import { alert, collidePlayer, createSim, defeatMachine, FACTIONS, fireBullet, i
 import type { MissionEvent, MissionRun } from "@/game/missions/broken-signal";
 import type { MissionEvent as BlackoutEvent, MissionRun as BlackoutRun } from "@/game/missions/blackout-protocol";
 import type { MissionEvent as NeonCoreEvent, MissionRun as NeonCoreRun } from "@/game/missions/stitched-neon-core";
-import type { MissionEvent as DescentEvent, MissionRun as DescentRun } from "@/game/missions/descent-protocol";
 import type { AwakeningEvent, AwakeningRun } from "@/game/missions/awakening";
 import { directorTrend, type Mission } from "@/game/director";
 import { isStaggered, isWeakPointOpen, POISE_MAX } from "@/game/boss-poise";
@@ -54,6 +53,7 @@ import { exitVehicleMomentum, parkourChainBonus, vaultLunge } from "@/game/parko
 import { anySensorSees, detectionStateFor, lockdownStatus, nexusSensors, stepDetectionMeter, stepHackProgress, type DetectionState, type LockdownTier } from "@/game/stealth";
 import { INTERIORS, INTERIOR_ALTITUDE, doorAt, atExitMarker, interiorById, isInteriorOpen } from "@/game/interiors";
 import { Interiors } from "./Interiors";
+import { UnderwaterAtmosphere } from "./UnderwaterAtmosphere";
 
 import type { GameSettings } from "./SettingsWindow";
 import { WEAPONS, WEAPON_ORDER, decay, freshAmmo, type WeaponId } from "@/game/weapons";
@@ -279,11 +279,10 @@ export function Scene({
   onBlackoutEvent,
   neonCore,
   onNeonCoreEvent,
-  descent,
-  onDescentEvent,
   awakening,
   onAwakeningEvent,
   onXP,
+  paused = false,
 }: {
   onHud: (s: HudState) => void;
   settings?: GameSettings;
@@ -306,11 +305,10 @@ export function Scene({
   onBlackoutEvent?: (event: BlackoutEvent) => void;
   neonCore?: NeonCoreRun | null;
   onNeonCoreEvent?: (event: NeonCoreEvent) => void;
-  descent?: DescentRun | null;
-  onDescentEvent?: (event: DescentEvent) => void;
   awakening?: AwakeningRun | null;
   onAwakeningEvent?: (event: AwakeningEvent) => void;
   onXP?: (event: WorldSim["xpEvents"][number]) => void;
+  paused?: boolean;
 }) {
   const keys = useKeyboard();
   const sim = useMemo<WorldSim>(() => createSim(), []);
@@ -320,7 +318,6 @@ export function Scene({
   const missionSpawned = useRef("");
   const blackoutSpawned = useRef("");
   const neonCoreSpawned = useRef("");
-  const descentSpawned = useRef("");
   const bossActionLog = useRef<ActionLogEntry[]>([]);
   const bossAdaptedPattern = useRef<PlayerAction | null>(null);
   const adaptiveTutorial = useRef(ADAPTIVE_TUTORIAL_INIT);
@@ -347,7 +344,6 @@ export function Scene({
     if (mission?.target && mission.state !== "COMPLETE" && mission.state !== "WORLD_UPDATE") list.push({ id: "m-broken-signal", kind: "MISSION", label: "Broken Signal", x: mission.target.x, z: mission.target.z, regionId: "nexus" });
     if (blackout?.target && blackout.state !== "COMPLETE" && blackout.state !== "WORLD_UPDATE") list.push({ id: "m-blackout-protocol", kind: "MISSION", label: "Blackout Protocol", x: blackout.target.x, z: blackout.target.z, regionId: "nexus" });
     if (neonCore?.target && neonCore.state !== "COMPLETE" && neonCore.state !== "WORLD_UPDATE") list.push({ id: "m-stitched-neon-core", kind: "MISSION", label: "Stitched Neon Core", x: neonCore.target.x, z: neonCore.target.z, regionId: "nexus" });
-    if (descent?.target && descent.state !== "COMPLETE" && descent.state !== "WORLD_UPDATE") list.push({ id: "m-descent-protocol", kind: "MISSION", label: "Descent Protocol", x: descent.target.x, z: descent.target.z, regionId: "swamps" });
     for (const m of sim.director.missions) { if (m.state !== "ACTIVE") continue; const c = regionCenter(m.regionId); if (c) list.push({ id: `m-${m.id}`, kind: "MISSION", label: m.name, x: c.x, z: c.z, regionId: m.regionId }); }
     for (const site of RESOURCE_SITES) list.push({ ...site, ready: (depleted.current[site.id] ?? 0) <= now });
     for (const lair of BOSS_LAIRS) list.push(lair);
@@ -359,6 +355,7 @@ export function Scene({
   };
   const moon = useRef<THREE.DirectionalLight>(null!);
   const moonMesh = useRef<THREE.Mesh>(null!);
+  const sunTarget = useRef<THREE.Object3D>(null!);
   const time = useRef(0.28);
   const sunDir = useRef(new THREE.Vector3(0.4, 0.9, 0.3));
   const carSpeed = useRef(0);
@@ -532,6 +529,8 @@ export function Scene({
   const gunModel = useRef<THREE.Group>(null);
   const swordModel = useRef<THREE.Group>(null);
   const viewmodel = useRef<THREE.Group>(null);
+  const divingVisual = useRef(false);
+  const locomotionClock = useRef(0);
   const mouse = useRef({ fire: false, aim: false });
   const padPrev = useRef<boolean[]>([]);
   const keyPrev = useRef<Set<string>>(new Set());
@@ -549,6 +548,8 @@ export function Scene({
   useEffect(() => sfx.setMixVolumes(settings.musicVolume ?? 1, settings.sfxVolume ?? 1), [settings.musicVolume, settings.sfxVolume]);
   const skyColor = useMemo(() => new THREE.Color(), []);
   const fogColor = useMemo(() => new THREE.Color(), []);
+  const underwaterColor = useMemo(() => new THREE.Color("#031b2a"), []);
+  const underwaterFogColor = useMemo(() => new THREE.Color("#06394b"), []);
   const instabilityColor = useMemo(() => new THREE.Color("#ff2d55"), []);
   const lightColor = useMemo(() => new THREE.Color(), []);
   const { scene, gl } = useThree();
@@ -592,6 +593,11 @@ export function Scene({
     // transition) skips this frame instead of throwing into React Three Fiber's render loop.
     if (!s || !sim) return;
     if (!isValidPlayerState(s)) { Object.assign(s, sanitizePlayerState(s)); }
+    if (paused) {
+      mouse.current.fire = false;
+      mouse.current.aim = false;
+      return;
+    }
     try {
     /* Interior Building system — non-null while the player is inside a pocket-dimension room (see @/game/interiors) */
     let interior = interiorById(s.insideInterior);
@@ -613,9 +619,14 @@ export function Scene({
 
     const theta = (((time.current % 1) + 1) % 1) * Math.PI * 2 - Math.PI / 2;
     if (sun.current) {
-      sun.current.position.set(Math.cos(theta) * 140, Math.sin(theta) * 150 + 8, 70);
+      sun.current.position.set(s.x + Math.cos(theta) * 115, Math.sin(theta) * 130 + 42, s.z + 68);
       sun.current.intensity = Math.max(0, intensityAt(time.current));
       sun.current.color.copy(lightColor);
+      if (sunTarget.current) {
+        sunTarget.current.position.set(s.x, walkHeight(s.x, s.z), s.z);
+        sunTarget.current.updateMatrixWorld();
+        sun.current.target = sunTarget.current;
+      }
     }
     sunDir.current.set(Math.cos(theta), Math.max(-0.2, Math.sin(theta)), 0.42).normalize();
     if (sky.current) {
@@ -750,6 +761,16 @@ export function Scene({
     /* ---------------- oxygen: depletes while diving below the surface, regenerates everywhere else ---------------- */
     s.oxygen = oxygenStep(s.oxygen, dt, s.diving);
     const depth = s.diving ? Math.max(0, WATER_LEVEL - s.y) : 0;
+    divingVisual.current = s.diving;
+    if (s.diving) {
+      scene.background = underwaterColor;
+      if (scene.fog instanceof THREE.Fog) {
+        scene.fog.color.copy(underwaterFogColor);
+        scene.fog.near = 8;
+        scene.fog.far = Math.max(48, 105 - depth * 2.2);
+      }
+      if (sun.current) sun.current.intensity *= 0.34;
+    }
     const oxygenPenalty = lowOxygenPenalty(s.oxygen);
     if (s.diving && s.oxygen <= 0 && Math.random() < dt * 0.6) sim.hp = Math.max(1, sim.hp - 4); // drowning trickle damage, never a hard kill on its own
 
@@ -954,6 +975,7 @@ export function Scene({
       }
       s.x += velocity.x * dt;
       s.z += velocity.z * dt;
+      locomotionClock.current += velocity.length() * dt * 0.32;
       if (tutorial?.step === "MOVEMENT") { const travel = Math.hypot(s.x - SPAWN.x, s.z - SPAWN.z); if (travel >= (lastGate.current + 1) * 10 && lastGate.current < 3) { lastGate.current++; onTutorialEvent?.("GATE"); } }
     }
 
@@ -1153,17 +1175,6 @@ export function Scene({
       if (neonCore.state === "BOSS" && neonCoreSpawned.current === "BOSS" && !sim.machines.some((m) => m.alive && m.mission)) { neonCoreSpawned.current = "BOSS-done"; onNeonCoreEvent({ type: "CLEAR" }); }
     }
 
-    /* ---------------- Mission 04 · Descent Protocol world triggers ---------------- */
-    if (descent && onDescentEvent) {
-      if (descent.state === "TRIGGERED" && !descent.target) onDescentEvent({ type: "ANCHOR", x: THALASSIA_CENTER.x, z: THALASSIA_CENTER.z });
-      if (descent.state === "DIVE" && descent.target && Math.hypot(descent.target.x - s.x, descent.target.z - s.z) < 18) onDescentEvent({ type: "ARRIVED" });
-      if (descent.state === "COMBAT_1" && descentSpawned.current !== "COMBAT_1" && descentSpawned.current !== "COMBAT_1-done") {
-        descentSpawned.current = "COMBAT_1";
-        spawnMissionDrones(sim, s.x, s.z, 4, false);
-      }
-      if (descent.state === "COMBAT_1" && descentSpawned.current === "COMBAT_1" && !sim.machines.some((m) => m.alive && m.mission)) { descentSpawned.current = "COMBAT_1-done"; onDescentEvent({ type: "CLEAR" }); }
-    }
-
     /* ---------------- Neon Core · Awakening micro-objectives ---------------- */
     if (awakening && onAwakeningEvent) {
       const a = awakening;
@@ -1338,6 +1349,11 @@ export function Scene({
     );
     camTarget.y = Math.max(camTarget.y, (interior ? INTERIOR_ALTITUDE : walkHeight(camTarget.x, camTarget.z)) + 1.35);
     camera.position.lerp(camTarget, 1 - Math.exp(-18 * dt));
+    if (!s.inVehicle && s.grounded && velocity.length() > 1 && s.cameraBlend < 0.4) {
+      const motion = Math.min(1, velocity.length() / 42);
+      camera.position.y += Math.abs(Math.sin(locomotionClock.current * 2)) * 0.045 * motion;
+      camera.position.x += Math.sin(locomotionClock.current) * 0.025 * motion;
+    }
     const kickPitch = s.pitch + s.recoil;
     const shakeAmt = Math.min(0.08, s.punch * 0.012);
     camera.position.x += (Math.random() - 0.5) * shakeAmt;
@@ -1528,6 +1544,7 @@ export function Scene({
         shadow-camera-bottom={-130}
         shadow-camera-far={520}
       />
+      <object3D ref={sunTarget} />
       <directionalLight ref={moon} position={[-90, 110, -70]} color="#9fc4ff" intensity={0.3} />
       <mesh ref={moonMesh} position={[-200, 200, -140]}>
         <sphereGeometry args={[14, 24, 24]} />
@@ -1556,6 +1573,7 @@ export function Scene({
 
       <Terrain />
       <Weather playerRef={player} weatherRef={weatherKind} />
+      <UnderwaterAtmosphere playerRef={player} divingRef={divingVisual} />
       <Wildlife playerRef={player} />
       <Civilians playerRef={player} />
       <Water size={WORLD_RADIUS * 4} sunRef={sunDir} />
@@ -1591,13 +1609,6 @@ export function Scene({
           <mesh><octahedronGeometry args={[0.9, 0]} /><meshStandardMaterial color="#ff3df2" emissive="#ff3df2" emissiveIntensity={3} /></mesh>
           <mesh position={[0, 30, 0]}><cylinderGeometry args={[0.15, 0.15, 60, 6]} /><meshBasicMaterial color="#ff3df2" transparent opacity={0.45} /></mesh>
           <pointLight color="#ff3df2" intensity={30} distance={40} />
-        </group>
-      )}
-      {descent?.target && descent.state === "DIVE" && (
-        <group position={[descent.target.x, heightAt(descent.target.x, descent.target.z) + 3, descent.target.z]}>
-          <mesh><octahedronGeometry args={[0.9, 0]} /><meshStandardMaterial color="#5fd8ff" emissive="#5fd8ff" emissiveIntensity={3} /></mesh>
-          <mesh position={[0, 30, 0]}><cylinderGeometry args={[0.15, 0.15, 60, 6]} /><meshBasicMaterial color="#5fd8ff" transparent opacity={0.45} /></mesh>
-          <pointLight color="#5fd8ff" intensity={30} distance={40} />
         </group>
       )}
       <Bullets sim={sim} />

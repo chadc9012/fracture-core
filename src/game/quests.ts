@@ -174,10 +174,7 @@ export const QUESTS: Record<string, Quest> = {
   "fd-16": {
     id: "fd-16", title: "Descent Protocol", world: "thalassia",
     line: "Beneath the waves: Thalassia, the Deepmind's ark-city, sealed since before the Fracture had a name.",
-    objectives: [
-      { type: "MISSION_COMPLETE", label: "Trace the signal to the control core", key: "descent-protocol", amount: 1 },
-      { type: "SURVIVE", label: "Time spent diving (s)", key: "thalassia-dive", amount: 60 },
-    ],
+    objectives: [{ type: "SURVIVE", label: "Time spent diving (s)", key: "thalassia-dive", amount: 60 }],
     rewardShards: 320, rewardMaterials: {}, unlocksWorld: "thalassia", nextQuestId: "fd-17", corruption: 4,
   },
   "fd-17": {
