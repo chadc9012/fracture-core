@@ -142,7 +142,7 @@ function InstancedRockSet({
   const model = useInstancedModel(modelKey);
   if (!model) return null;
   return (
-    <Instances limit={items.length} castShadow geometry={model.geometry} material={model.material}>
+    <Instances limit={items.length} castShadow receiveShadow geometry={model.geometry} material={model.material}>
       {items.map((p, i) =>
         i % 2 === parity ? <Instance key={i} position={[p.x, p.y, p.z]} scale={p.s * scale} rotation-y={p.r} /> : null,
       )}
@@ -278,7 +278,7 @@ export function Terrain() {
         { model: birchModel, species: 2 },
       ].map(({ model, species }) =>
         model && (
-          <Instances key={species} limit={liveTrees.length} castShadow geometry={model.geometry} material={model.material}>
+          <Instances key={species} limit={liveTrees.length} castShadow receiveShadow geometry={model.geometry} material={model.material}>
             {liveTrees.filter((_, i) => i % 3 === species).map((t, i) => (
               <Instance
                 key={i}
@@ -327,7 +327,7 @@ export function Terrain() {
         </mesh>
         <pointLight position={[0, craterY + 6, 0]} color="#ff6a1f" intensity={220} distance={120} decay={2} />
       </group>
-      <Instances limit={liveEmber.length} castShadow>
+      <Instances limit={liveEmber.length} castShadow receiveShadow>
         <dodecahedronGeometry args={[1.6, 0]} />
         <meshStandardMaterial color="#3b2622" emissive="#ff3d00" emissiveIntensity={0.35} roughness={1} />
         {liveEmber.map((r, i) => (
@@ -359,7 +359,7 @@ export function Terrain() {
         items={liveRocks}
         parity={1}
       />
-      <Instances limit={liveWrecks.length} castShadow>
+      <Instances limit={liveWrecks.length} castShadow receiveShadow>
         <boxGeometry args={[5, 2.2, 2.6]} />
         <meshStandardMaterial color="#5b4a3f" metalness={0.4} roughness={0.65} />
         {liveWrecks.map((w, i) => (
@@ -368,7 +368,7 @@ export function Terrain() {
       </Instances>
 
       {/* desert cacti */}
-      <Instances limit={liveCacti.length} castShadow>
+      <Instances limit={liveCacti.length} castShadow receiveShadow>
         <capsuleGeometry args={[0.7, 3.4, 4, 8]} />
         <meshStandardMaterial color="#4f7a45" roughness={0.9} />
         {liveCacti.map((c, i) => (
@@ -378,7 +378,7 @@ export function Terrain() {
 
       {/* swamp dead trees — real dead-tree GLB model */}
       {deadTreeModel && (
-        <Instances limit={liveSwamp.length} castShadow geometry={deadTreeModel.geometry} material={deadTreeModel.material}>
+        <Instances limit={liveSwamp.length} castShadow receiveShadow geometry={deadTreeModel.geometry} material={deadTreeModel.material}>
           {liveSwamp.map((t, i) => (
             <Instance
               key={i}
