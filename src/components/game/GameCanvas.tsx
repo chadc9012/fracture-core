@@ -57,6 +57,8 @@ import { grantXP } from "@/game/xp";
 import type { WorldSim } from "@/game/sim";
 import { LevelUpOverlay } from "./LevelUpOverlay";
 import { PerfOverlay, PerfSampler } from "./PerfOverlay";
+import { VoiceSubtitle } from "./VoiceSubtitle";
+import { configureVoice, stopVoice } from "@/game/voice-director";
 
 const CA_OFFSET = new THREE.Vector2(0.0006, 0.0006);
 const START = REGIONS.find((r) => r.id === "nexus")!;
@@ -177,16 +179,18 @@ export function GameCanvas() {
     if (saved === "third") setSettings((current) => ({ ...current, firstPersonDefault: false }));
     const vol = Number(window.localStorage.getItem("world-fracture-volume"));
     if (window.localStorage.getItem("world-fracture-volume") !== null && Number.isFinite(vol)) setSettings((current) => ({ ...current, volume: Math.min(1, Math.max(0, vol)) }));
-    try { const m = window.localStorage.getItem("world-fracture-mix"); if (m) { const p = JSON.parse(m) as { music?: number; sfx?: number }; const c = (n: unknown) => (typeof n === "number" && Number.isFinite(n) ? Math.min(1, Math.max(0, n)) : 1); setSettings((current) => ({ ...current, musicVolume: c(p.music), sfxVolume: c(p.sfx) })); } } catch { /* keep defaults */ }
+    try { const m = window.localStorage.getItem("world-fracture-mix"); if (m) { const p = JSON.parse(m) as { music?: number; sfx?: number; voice?: number; spoken?: boolean }; const c = (n: unknown, fallback = 1) => (typeof n === "number" && Number.isFinite(n) ? Math.min(1, Math.max(0, n)) : fallback); setSettings((current) => ({ ...current, musicVolume: c(p.music), sfxVolume: c(p.sfx), voiceVolume: c(p.voice, 0.85), spokenDialogue: p.spoken ?? true })); } } catch { /* keep defaults */ }
     try { const b = window.localStorage.getItem("world-fracture-bindings"); if (b) setSettings((current) => ({ ...current, bindings: normalizeBindings(JSON.parse(b)) })); } catch { /* keep defaults */ }
   }, []);
   const updateSettings = (next: GameSettings) => {
     if (next.volume !== settings.volume && next.volume !== undefined) window.localStorage.setItem("world-fracture-volume", String(next.volume));
-    if (next.musicVolume !== settings.musicVolume || next.sfxVolume !== settings.sfxVolume) window.localStorage.setItem("world-fracture-mix", JSON.stringify({ music: next.musicVolume ?? 1, sfx: next.sfxVolume ?? 1 }));
+    if (next.musicVolume !== settings.musicVolume || next.sfxVolume !== settings.sfxVolume || next.voiceVolume !== settings.voiceVolume || next.spokenDialogue !== settings.spokenDialogue) window.localStorage.setItem("world-fracture-mix", JSON.stringify({ music: next.musicVolume ?? 1, sfx: next.sfxVolume ?? 1, voice: next.voiceVolume ?? 0.85, spoken: next.spokenDialogue ?? true }));
     if (next.firstPersonDefault !== settings.firstPersonDefault) window.localStorage.setItem("world-fracture-camera", next.firstPersonDefault ? "first" : "third");
     if (next.bindings !== settings.bindings) window.localStorage.setItem("world-fracture-bindings", JSON.stringify(next.bindings));
     setSettings(next);
   };
+  useEffect(() => configureVoice({ enabled: settings.spokenDialogue ?? true, volume: (settings.volume ?? 0.7) * (settings.voiceVolume ?? 0.85) }), [settings.spokenDialogue, settings.voiceVolume, settings.volume]);
+  useEffect(() => { if (menuOpen) stopVoice(); }, [menuOpen]);
   const [cls, setCls] = useState<ClassId>("TITAN");
   const [subclass, setSubclass] = useState<SubclassId>("SHIELD_TITAN");
   const [appearance, setAppearance] = useState<AppearanceId>("RANGER");
@@ -464,6 +468,7 @@ export function GameCanvas() {
   };
 
   const toOrbit = () => {
+    stopVoice();
     setLast({ credits: hud.credits, kills: hud.kills });
     setMenuOpen(false);
     setPhase("title");
@@ -574,6 +579,7 @@ export function GameCanvas() {
       }}</GraphicsGuard>
       </WorldErrorBoundary>
        <PerfOverlay />
+       <VoiceSubtitle />
        <HUD hud={hud} tutorialActive={Boolean(tutorial && tutorial.step !== "VICTORY")} onMenu={() => setMenuOpen(true)} onStrategy={() => setStrategyOpen(true)} onGarage={() => setGarageOpen(true)} onAnalyze={() => setAnalysisOpen(true)} onOperations={setOperationsView} onInventory={() => setInventoryOpen(true)} onAtlas={() => setAtlasOpen(true)} />
        {!tutorial && !hud.insideInterior && <Minimap hud={hud} />}
        {!tutorial && <QuestTracker progression={progression} />}
