@@ -1,13 +1,10 @@
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
-import { Environment, Float, Lightformer, Sparkles, useTexture } from "@react-three/drei";
-import { useEffect, useMemo, useRef } from "react";
+import { ContactShadows, Environment, Lightformer, Sparkles } from "@react-three/drei";
+import { useMemo, useRef } from "react";
 import * as THREE from "three";
-import vanguard from "@/assets/forge-vanguard.png";
-import assassin from "@/assets/forge-assassin.png";
-import tech from "@/assets/forge-tech.png";
 import type { AppearanceDefinition, ClassId } from "@/game/loadout";
+import { Operator } from "./Operator";
 
-const CLASS_ART: Record<ClassId, string> = { TITAN: vanguard, HUNTER: assassin, WARLOCK: tech };
 const CLASS_LABEL: Record<ClassId, string> = { TITAN: "VANGUARD", HUNTER: "ASSASSIN", WARLOCK: "TECH" };
 const CLASS_X: Record<ClassId, number> = { TITAN: -4.6, HUNTER: 0, WARLOCK: 4.6 };
 
@@ -54,58 +51,59 @@ function ChamberShell({ activeColor }: { activeColor: string }) {
   </>;
 }
 
-function Projection({ id, selected, mode, onSelect }: { id: ClassId; selected: boolean; mode: ForgeMode; onSelect: (id: ClassId) => void }) {
-  const texture = useTexture(CLASS_ART[id]);
+/** A real operator standing on the ring, slowly turning like a showcase pedestal — Operator.tsx's
+ * own feet-at-(-1.55)/head-at-1.2 footprint means it just needs to sit 1.55 above the ring. */
+function Showcase({ classId, appearance, selected, hidden, mode, onSelect }: {
+  classId: ClassId;
+  appearance: AppearanceDefinition;
+  selected: boolean;
+  hidden: boolean;
+  mode: ForgeMode;
+  onSelect: (id: ClassId) => void;
+}) {
+  const x = CLASS_X[classId];
   const group = useRef<THREE.Group>(null);
+  const turntable = useRef<THREE.Group>(null);
   const pulse = useRef<THREE.MeshBasicMaterial>(null);
-  const x = CLASS_X[id];
-  const hidden = mode !== "CLASS" && !selected;
-  useFrame(({ clock }, delta) => {
-    if (!group.current) return;
-    const targetScale = hidden ? 0.001 : selected ? (mode === "ASSEMBLING" ? 1.3 : 1.08) : 0.86;
-    const s = THREE.MathUtils.lerp(group.current.scale.x, targetScale, 1 - Math.exp(-8 * delta));
-    group.current.scale.setScalar(s);
-    group.current.position.y = Math.sin(clock.elapsedTime * 1.25 + x) * 0.035;
+  const accent = classId === "HUNTER" ? "#ff334d" : "#5de7ff";
+  useFrame(({ clock }, rawDelta) => {
+    const delta = Math.min(rawDelta, 0.05);
+    if (group.current) {
+      const targetScale = hidden ? 0.001 : selected ? (mode === "ASSEMBLING" ? 1.12 : 1.04) : 0.82;
+      const s = THREE.MathUtils.lerp(group.current.scale.x, targetScale, 1 - Math.exp(-8 * delta));
+      group.current.scale.setScalar(s);
+    }
+    if (turntable.current) turntable.current.rotation.y += delta * (selected ? 0.5 : 0.22);
     if (pulse.current) pulse.current.opacity = selected ? 0.45 + Math.sin(clock.elapsedTime * 3) * 0.12 : 0.16;
   });
-  return <group ref={group} position={[x, 0, 0]} onClick={(event) => { event.stopPropagation(); if (mode === "CLASS") onSelect(id); }}>
-    <Float speed={selected ? 1.2 : 0.6} rotationIntensity={0.015} floatIntensity={0.08}>
-      <mesh position={[0, 3.15, 0]} renderOrder={2}>
-        <planeGeometry args={[3.7, 5.55]} />
-        <meshBasicMaterial map={texture} transparent alphaTest={0.08} depthWrite={false} toneMapped={false} />
-      </mesh>
-    </Float>
+  return <group ref={group} position={[x, 0, 0]} onClick={(event) => { event.stopPropagation(); if (mode === "CLASS") onSelect(classId); }}>
+    <group ref={turntable} position-y={1.55}>
+      <Operator armor={appearance.armor} cloth={appearance.cloth} visor={appearance.visor} classId={classId} visualState="ACTIVE" />
+    </group>
     <mesh rotation-x={-Math.PI / 2} position-y={0.04}>
       <ringGeometry args={[1.25, 1.55, 64]} />
-      <meshBasicMaterial ref={pulse} color={id === "HUNTER" ? "#ff334d" : "#5de7ff"} transparent opacity={0.25} toneMapped={false} />
+      <meshBasicMaterial ref={pulse} color={accent} transparent opacity={0.25} toneMapped={false} />
     </mesh>
-    <pointLight position={[0, 1.6, 1]} intensity={selected ? 20 : 7} distance={7} color={id === "HUNTER" ? "#ff334d" : "#5de7ff"} />
-  </group>;
-}
-
-function ForgeTable({ appearance, visible }: { appearance: AppearanceDefinition; visible: boolean }) {
-  const orbit = useRef<THREE.Group>(null);
-  useFrame((_, delta) => { if (orbit.current) orbit.current.rotation.y += delta * 0.35; });
-  if (!visible) return null;
-  return <group position={[0, 0.15, 2.1]}>
-    <mesh castShadow><cylinderGeometry args={[2.1, 2.45, 0.5, 8]} /><meshStandardMaterial color="#101a22" metalness={0.9} roughness={0.25} /></mesh>
-    <mesh position-y={0.27}><cylinderGeometry args={[1.8, 1.8, 0.03, 48]} /><meshBasicMaterial color={appearance.visor} transparent opacity={0.7} toneMapped={false} /></mesh>
-    <group ref={orbit} position-y={1.25}>
-      {[0, 1, 2, 3].map((i) => <mesh key={i} position={[Math.cos(i * Math.PI / 2) * 1.35, 0.25 + (i % 2) * 0.5, Math.sin(i * Math.PI / 2) * 1.35]} rotation={[0.3, i, 0]}>
-        {i === 0 ? <sphereGeometry args={[0.28, 16, 12]} /> : <octahedronGeometry args={[0.3]} />}
-        <meshPhysicalMaterial color={appearance.armor} emissive={appearance.visor} emissiveIntensity={0.6} metalness={0.85} roughness={0.25} transparent opacity={0.82} />
-      </mesh>)}
-    </group>
+    <ContactShadows position={[0, 0.03, 0]} opacity={0.55} scale={5} blur={2.2} color={accent} />
+    <pointLight position={[0, 1.6, 1]} intensity={selected ? 22 : 7} distance={7} color={accent} />
   </group>;
 }
 
 export function IdentityForge({ classId, appearance, mode, onSelectClass }: { classId: ClassId; appearance: AppearanceDefinition; mode: ForgeMode; onSelectClass: (id: ClassId) => void }) {
-  useEffect(() => { useTexture.preload(vanguard); useTexture.preload(assassin); useTexture.preload(tech); }, []);
   return <Canvas shadows dpr={[1, 1.5]} camera={{ position: [0, 2.7, 12], fov: 42 }} gl={{ antialias: true, toneMapping: THREE.ACESFilmicToneMapping }}>
     <ChamberShell activeColor={appearance.visor} />
     <CameraRig selected={classId} mode={mode} />
-    {(["TITAN", "HUNTER", "WARLOCK"] as ClassId[]).map((id) => <Projection key={id} id={id} selected={id === classId} mode={mode} onSelect={onSelectClass} />)}
-    <ForgeTable appearance={appearance} visible={mode === "APPEARANCE" || mode === "ASSEMBLING"} />
+    {(["TITAN", "HUNTER", "WARLOCK"] as ClassId[]).map((id) => (
+      <Showcase
+        key={id}
+        classId={id}
+        appearance={appearance}
+        selected={id === classId}
+        hidden={mode !== "CLASS" && id !== classId}
+        mode={mode}
+        onSelect={onSelectClass}
+      />
+    ))}
     <mesh position={[0, 3.5, -4]} visible={mode === "ASSEMBLING"}><planeGeometry args={[8, 7]} /><meshBasicMaterial color={appearance.visor} transparent opacity={0.08} blending={THREE.AdditiveBlending} /></mesh>
   </Canvas>;
 }
