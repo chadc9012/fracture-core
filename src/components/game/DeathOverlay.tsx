@@ -20,7 +20,7 @@ export function DeathOverlay({
   onDone: () => void;
 }) {
   const [fading, setFading] = useState(false);
-  useVoiceLine(`death-${deaths}`, "NOVA", `Operator signal lost. Reconstructing at Nexus City.`, "critical");
+  useVoiceLine(`death-${deaths}`, "NOVA", `Operator signal lost. Reconstructing at the nearest safe point.`, "critical");
 
   useEffect(() => {
     setFading(false);
@@ -42,7 +42,7 @@ export function DeathOverlay({
         <p className="font-mono text-[10px] uppercase tracking-[0.35em] text-destructive">Hull Destroyed</p>
         <h1 className="mt-2 text-3xl font-semibold uppercase tracking-wide text-foreground">{cause || "Unknown cause"}</h1>
         <p className="mt-3 text-sm text-muted-foreground">
-          {cargoLost > 0 ? `Cargo lost: ${cargoLost} · ` : ""}Respawned at Nexus City
+          {cargoLost > 0 ? `Cargo lost: ${cargoLost} · ` : ""}Respawned at a safe checkpoint, away from the fighting
         </p>
         <p className="mt-1 font-mono text-[9px] uppercase tracking-[0.2em] text-muted-foreground">Deaths this run: {deaths}</p>
       </div>
