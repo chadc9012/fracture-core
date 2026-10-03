@@ -24,6 +24,15 @@ export const MODELS = {
   rock_large: "https://cdn.jsdelivr.net/gh/theprototype-app/packs@main/nature-kit/RockLarge/glTF-Binary/RockLarge.glb",
   rock_medium: "https://cdn.jsdelivr.net/gh/theprototype-app/packs@main/nature-kit/RockMedium/glTF-Binary/RockMedium.glb",
   boulder_cluster: "https://cdn.jsdelivr.net/gh/theprototype-app/packs@main/nature-kit/BoulderCluster/glTF-Binary/BoulderCluster.glb",
+  // Real-world-scanned PBR rocks (Poly Haven, CC0, 1k textures: albedo + GL normal + packed
+  // AO/roughness/metalness) — hosted on Poly Haven's own download CDN as loose .gltf + .bin +
+  // textures rather than a single .glb, which useGLTF/GLTFLoader can still load directly (it
+  // resolves the relative buffer/texture URIs against the .gltf's own folder). Used as the
+  // preferred rock look in Terrain.tsx, with the stylized nature-kit rocks above kept as an
+  // automatic fallback if this CDN is ever unreachable for a given player.
+  rock_large_pbr: "https://dl.polyhaven.org/file/ph-assets/Models/gltf/1k/rock_07/rock_07_1k.gltf",
+  rock_medium_pbr: "https://dl.polyhaven.org/file/ph-assets/Models/gltf/1k/namaqualand_boulder_03/namaqualand_boulder_03_1k.gltf",
+  boulder_cluster_pbr: "https://dl.polyhaven.org/file/ph-assets/Models/gltf/1k/boulder_01/boulder_01_1k.gltf",
 } as const;
 
 export type ModelKey = keyof typeof MODELS;

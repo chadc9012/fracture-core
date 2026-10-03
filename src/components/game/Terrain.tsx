@@ -1,5 +1,5 @@
 import { Instance, Instances } from "@react-three/drei";
-import { useEffect, useMemo, useState } from "react";
+import { Component, Suspense, useEffect, useMemo, useState, type ReactNode } from "react";
 import * as THREE from "three";
 
 import { REGIONS, WORLD_RADIUS, type Region } from "@/game/world";
@@ -7,6 +7,7 @@ import { mulberry32 } from "@/game/useKeyboard";
 import { WATER_LEVEL, colorAt, heightAt, slopeAt } from "@/game/terrain";
 import { groundDetailTextures } from "@/game/detail-texture";
 import { useInstancedModel } from "@/game/nature-models";
+import type { ModelKey } from "@/game/models";
 import { LANE_HALF_WIDTH, distanceToRoad } from "@/game/lanes";
 import {
   addObstacle,
@@ -30,6 +31,12 @@ const NATURE_MODEL_SCALE = {
   rockMedium: 1.9,
   boulder: 2.6,
   deadTree: 1.6,
+  // Poly Haven's rocks are real-world photogrammetry scans (reported in meters), a different
+  // native scale than the stylized nature-kit pack above — these are a separate first-pass
+  // estimate for the same reason: no way to render/measure the mesh from this sandbox.
+  rockLargePbr: 2.1,
+  rockMediumPbr: 1.7,
+  boulderPbr: 2.3,
 };
 
 type Prop = { x: number; z: number; y: number; s: number; r: number; o?: Obstacle };
@@ -117,6 +124,74 @@ function Ground() {
   );
 }
 
+/** Renders one species/parity-slice of an instanced rock/tree model. A null return from
+ * useInstancedModel (e.g. the GLTF had no meshes) is a soft no-op; a genuine load failure
+ * (network error, CORS block) throws, which is caught by the RockErrorBoundary below rather
+ * than crashing the whole world via the top-level WorldErrorBoundary. */
+function InstancedRockSet({
+  modelKey,
+  scale,
+  items,
+  parity,
+}: {
+  modelKey: ModelKey;
+  scale: number;
+  items: Prop[];
+  parity: 0 | 1;
+}) {
+  const model = useInstancedModel(modelKey);
+  if (!model) return null;
+  return (
+    <Instances limit={items.length} castShadow geometry={model.geometry} material={model.material}>
+      {items.map((p, i) =>
+        i % 2 === parity ? <Instance key={i} position={[p.x, p.y, p.z]} scale={p.s * scale} rotation-y={p.r} /> : null,
+      )}
+    </Instances>
+  );
+}
+
+class RockErrorBoundary extends Component<{ fallback: ReactNode; children: ReactNode }, { failed: boolean }> {
+  override state: { failed: boolean } = { failed: false };
+  static getDerivedStateFromError() {
+    return { failed: true };
+  }
+  override componentDidCatch(err: unknown) {
+    console.warn("[world-fracture] realistic PBR rock model failed to load — falling back to the stylized rock:", err);
+  }
+  override render() {
+    return this.state.failed ? this.props.fallback : this.props.children;
+  }
+}
+
+/** A real-world-scanned PBR rock (Poly Haven) is the preferred look; if that CDN is ever
+ * unreachable for a given player the error boundary swaps in the already-proven stylized
+ * nature-kit rock instead of crashing or going blank. */
+function RockField({
+  pbrKey,
+  fallbackKey,
+  pbrScale,
+  fallbackScale,
+  items,
+  parity,
+}: {
+  pbrKey: ModelKey;
+  fallbackKey: ModelKey;
+  pbrScale: number;
+  fallbackScale: number;
+  items: Prop[];
+  parity: 0 | 1;
+}) {
+  return (
+    <Suspense fallback={null}>
+      <RockErrorBoundary
+        fallback={<InstancedRockSet modelKey={fallbackKey} scale={fallbackScale} items={items} parity={parity} />}
+      >
+        <InstancedRockSet modelKey={pbrKey} scale={pbrScale} items={items} parity={parity} />
+      </RockErrorBoundary>
+    </Suspense>
+  );
+}
+
 export function Terrain() {
   const forest = byId("veridan");
   const frost = byId("frostspire");
@@ -185,9 +260,9 @@ export function Terrain() {
   const oakModel = useInstancedModel("tree_oak");
   const birchModel = useInstancedModel("tree_birch");
   const deadTreeModel = useInstancedModel("tree_dead");
-  const rockLargeModel = useInstancedModel("rock_large");
-  const rockMediumModel = useInstancedModel("rock_medium");
-  const boulderClusterModel = useInstancedModel("boulder_cluster");
+
+  // Rocks are rendered further down via <RockField> — each one tries a real-world-scanned PBR
+  // model (Poly Haven) first and falls back to the stylized nature-kit rock on a load failure.
 
   return (
     <group>
@@ -224,36 +299,25 @@ export function Terrain() {
         })}
       </Instances>
 
-      {/* frostspire boulders on the high slopes — real rock/boulder GLB models, split by index so
+      {/* frostspire boulders on the high slopes — real-world-scanned PBR rock models (Poly Haven),
+          falling back to the stylized nature-kit rock if that CDN doesn't load; split by index so
           the field doesn't read as one repeated shape */}
-      {rockLargeModel && (
-        <Instances limit={liveBoulders.length} castShadow geometry={rockLargeModel.geometry} material={rockLargeModel.material}>
-          {liveBoulders.map((b, i) =>
-            i % 2 === 0 ? (
-              <Instance
-                key={i}
-                position={[b.x, b.y, b.z]}
-                scale={b.s * NATURE_MODEL_SCALE.rockLarge}
-                rotation-y={b.r}
-              />
-            ) : null,
-          )}
-        </Instances>
-      )}
-      {boulderClusterModel && (
-        <Instances limit={liveBoulders.length} castShadow geometry={boulderClusterModel.geometry} material={boulderClusterModel.material}>
-          {liveBoulders.map((b, i) =>
-            i % 2 === 1 ? (
-              <Instance
-                key={i}
-                position={[b.x, b.y, b.z]}
-                scale={b.s * NATURE_MODEL_SCALE.boulder}
-                rotation-y={b.r}
-              />
-            ) : null,
-          )}
-        </Instances>
-      )}
+      <RockField
+        pbrKey="rock_large_pbr"
+        fallbackKey="rock_large"
+        pbrScale={NATURE_MODEL_SCALE.rockLargePbr}
+        fallbackScale={NATURE_MODEL_SCALE.rockLarge}
+        items={liveBoulders}
+        parity={0}
+      />
+      <RockField
+        pbrKey="boulder_cluster_pbr"
+        fallbackKey="boulder_cluster"
+        pbrScale={NATURE_MODEL_SCALE.boulderPbr}
+        fallbackScale={NATURE_MODEL_SCALE.boulder}
+        items={liveBoulders}
+        parity={1}
+      />
 
       {/* volcano crater glow */}
       <group position={[ember.x, 0, ember.z]}>
@@ -277,35 +341,24 @@ export function Terrain() {
         ))}
       </Instances>
 
-      {/* rocks across the war belt and desert — real rock GLB models, split silhouettes */}
-      {rockMediumModel && (
-        <Instances limit={liveRocks.length} castShadow geometry={rockMediumModel.geometry} material={rockMediumModel.material}>
-          {liveRocks.map((r, i) =>
-            i % 2 === 0 ? (
-              <Instance
-                key={i}
-                position={[r.x, r.y, r.z]}
-                scale={r.s * NATURE_MODEL_SCALE.rockMedium}
-                rotation-y={r.r}
-              />
-            ) : null,
-          )}
-        </Instances>
-      )}
-      {rockLargeModel && (
-        <Instances limit={liveRocks.length} castShadow geometry={rockLargeModel.geometry} material={rockLargeModel.material}>
-          {liveRocks.map((r, i) =>
-            i % 2 === 1 ? (
-              <Instance
-                key={i}
-                position={[r.x, r.y, r.z]}
-                scale={r.s * NATURE_MODEL_SCALE.rockLarge}
-                rotation-y={r.r}
-              />
-            ) : null,
-          )}
-        </Instances>
-      )}
+      {/* rocks across the war belt and desert — real-world-scanned PBR rock models, same
+          fallback-to-stylized behavior as the frostspire boulders above */}
+      <RockField
+        pbrKey="rock_medium_pbr"
+        fallbackKey="rock_medium"
+        pbrScale={NATURE_MODEL_SCALE.rockMediumPbr}
+        fallbackScale={NATURE_MODEL_SCALE.rockMedium}
+        items={liveRocks}
+        parity={0}
+      />
+      <RockField
+        pbrKey="rock_large_pbr"
+        fallbackKey="rock_large"
+        pbrScale={NATURE_MODEL_SCALE.rockLargePbr}
+        fallbackScale={NATURE_MODEL_SCALE.rockLarge}
+        items={liveRocks}
+        parity={1}
+      />
       <Instances limit={liveWrecks.length} castShadow>
         <boxGeometry args={[5, 2.2, 2.6]} />
         <meshStandardMaterial color="#5b4a3f" metalness={0.4} roughness={0.65} />
