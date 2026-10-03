@@ -20,3 +20,4 @@
 - Destructible interiors use the structural graph in src/game/destruction.ts; every change is logged as a DestructionEvent. Why: future multiplayer replicates events, not physics.
 - Dense authored districts share street furniture and animated transit from DistrictStreet.tsx; district files own their local architecture. Why: Thalassia and Neon City stay visually related without coupling their layouts.
 - World model URLs must resolve all dependent textures; repaired NPC GLBs bundle without missing external maps, and unreachable rock models are excluded from preloading. Why: a failed model can suspend the entire 3D scene and leave only the HUD visible.
+- The world Canvas is wrapped in GraphicsGuard (src/game/webgl-support.ts probe): no WebGL, context loss, or no frames shows GraphicsError; Safari gets capped DPR, hard shadows, no post-processing. Why: Safari failures otherwise leave a black canvas.
