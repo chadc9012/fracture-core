@@ -3,6 +3,7 @@ import { Canvas, useFrame } from "@react-three/fiber";
 
 import type { ModelKey } from "@/game/models";
 import { Model } from "./Vehicle";
+import "@/game/webgl-support";
 
 /**
  * Live 3D skyline behind the title screen, replacing the old static horizon image with a slow
