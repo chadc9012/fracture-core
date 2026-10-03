@@ -166,6 +166,8 @@ export function Terrain() {
 
   const craterY = useMemo(() => heightAt(ember.x, ember.z), [ember]);
   const rockDetail = useMemo(() => propDetailTextures(3), []);
+  const barkDetail = useMemo(() => propDetailTextures(2), []);
+  const leafDetail = useMemo(() => propDetailTextures(5), []);
 
   // Organic, noise-deformed shared geometries — one lumpy variant per shape family, instanced
   // many times with the existing per-instance scale/rotation/color jitter so no two props read
@@ -186,13 +188,13 @@ export function Terrain() {
           treeline reads as a forest instead of one stamped-out cone repeated 120 times */}
       <Instances limit={liveTrees.length} castShadow receiveShadow>
         <cylinderGeometry args={[0.32, 0.55, 4, 7]} />
-        <meshStandardMaterial color="#4a3524" roughness={0.95} />
+        <meshStandardMaterial color="#4a3524" roughness={0.95} map={barkDetail.map} normalMap={barkDetail.normalMap} normalScale={new THREE.Vector2(0.6, 0.6)} />
         {liveTrees.map((t, i) => (
           <Instance key={i} position={[t.x, t.y + 2 * t.s, t.z]} scale={[1, t.s, 1]} color={jitter("#4a3524", i, 0.02, 0.1)} />
         ))}
       </Instances>
       <Instances limit={liveTrees.length} castShadow receiveShadow geometry={canopyLow}>
-        <meshStandardMaterial color="#2c7a41" roughness={0.9} />
+        <meshStandardMaterial color="#2c7a41" roughness={0.9} map={leafDetail.map} normalMap={leafDetail.normalMap} normalScale={new THREE.Vector2(0.4, 0.4)} />
         {liveTrees.map((t, i) => (
           <Instance
             key={i}
@@ -204,7 +206,7 @@ export function Terrain() {
         ))}
       </Instances>
       <Instances limit={liveTrees.length} castShadow receiveShadow geometry={canopyHigh}>
-        <meshStandardMaterial color="#3a8f4d" roughness={0.9} />
+        <meshStandardMaterial color="#3a8f4d" roughness={0.9} map={leafDetail.map} normalMap={leafDetail.normalMap} normalScale={new THREE.Vector2(0.4, 0.4)} />
         {liveTrees.map((t, i) => (
           <Instance
             key={i}
@@ -263,7 +265,7 @@ export function Terrain() {
         <pointLight position={[0, craterY + 6, 0]} color="#ff6a1f" intensity={220} distance={120} decay={2} />
       </group>
       <Instances limit={liveEmber.length} castShadow receiveShadow geometry={emberRockGeo}>
-        <meshStandardMaterial color="#3b2622" emissive="#ff3d00" emissiveIntensity={0.35} roughness={1} />
+        <meshStandardMaterial color="#3b2622" emissive="#ff3d00" emissiveIntensity={0.35} roughness={1} map={rockDetail.map} normalMap={rockDetail.normalMap} normalScale={new THREE.Vector2(0.4, 0.4)} />
         {liveEmber.map((r, i) => (
           <Instance
             key={i}
@@ -306,7 +308,7 @@ export function Terrain() {
       </Instances>
       <Instances limit={liveWrecks.length} castShadow receiveShadow>
         <boxGeometry args={[5, 2.2, 2.6]} />
-        <meshStandardMaterial color="#5b4a3f" metalness={0.4} roughness={0.65} />
+        <meshStandardMaterial color="#5b4a3f" metalness={0.4} roughness={0.65} map={rockDetail.map} normalMap={rockDetail.normalMap} normalScale={new THREE.Vector2(0.5, 0.5)} />
         {liveWrecks.map((w, i) => (
           <Instance key={i} position={[w.x, w.y + 1.1, w.z]} rotation-y={w.r} color={jitter("#5b4a3f", i, 0.02, 0.12)} />
         ))}
@@ -315,7 +317,7 @@ export function Terrain() {
       {/* desert cacti */}
       <Instances limit={liveCacti.length} castShadow receiveShadow>
         <capsuleGeometry args={[0.7, 3.4, 4, 8]} />
-        <meshStandardMaterial color="#4f7a45" roughness={0.9} />
+        <meshStandardMaterial color="#4f7a45" roughness={0.9} map={leafDetail.map} normalMap={leafDetail.normalMap} normalScale={new THREE.Vector2(0.5, 0.5)} />
         {liveCacti.map((c, i) => (
           <Instance key={i} position={[c.x, c.y + 2.4 * c.s, c.z]} scale={c.s} />
         ))}
@@ -324,7 +326,7 @@ export function Terrain() {
       {/* swamp dead trees */}
       <Instances limit={liveSwamp.length} castShadow receiveShadow>
         <cylinderGeometry args={[0.15, 0.5, 8, 6]} />
-        <meshStandardMaterial color="#1d2b22" roughness={1} />
+        <meshStandardMaterial color="#1d2b22" roughness={1} map={barkDetail.map} normalMap={barkDetail.normalMap} normalScale={new THREE.Vector2(0.6, 0.6)} />
         {liveSwamp.map((t, i) => (
           <Instance key={i} position={[t.x, t.y + 4 * t.s, t.z]} scale={[1, t.s, 1]} rotation-z={(t.r - 3) * 0.03} />
         ))}
