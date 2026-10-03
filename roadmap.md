@@ -55,7 +55,7 @@
 - [x] Mission 02 Blackout Protocol
 - [x] Mission 03 Stitched Neon Core (the dungeon Blackout Protocol's ending hooked; ends in the game's first scripted boss fight against Aegis-Prime, and hooks fd-16/fd-17's Thalassia descent)
 - [x] Mission 04 Descent Protocol (gives fd-16's dive-to-Thalassia a real destination in the already-built sunken city instead of a bare survive timer; ends on a cliffhanger, not a boss fight — the real confrontation is fd-18's still-unbuilt final mission)
-- [ ] The System Core — fd-18's final mission/dungeon and boss (keyed "system-core" in quests.ts; EndingOverlay already fires on its completion, but no dungeon/encounter exists for it yet)
+- [x] Mission 05 The System Core — fd-18's final mission and boss (same ANCHOR/ARRIVED/CLEAR/HACK/ACK shape as Missions 01-04, picking up from Descent Protocol's cliffhanger: dive back into Thalassia, break its perimeter, collapse three containment locks, then fight the System Core itself). Thalassia has no catalog boss in encounters.ts, so the boss is wired through unique-scenarios.ts instead — the mechanism already built for exactly this case (Solara's Unbroken Glass) — with a new "system-core" scenario entry and a new fractureCore material for its drop. On completion, GameCanvas dispatches the BOSS_DEFEATED event keyed "system-core" that fd-18 is listening for, which completes fd-18 and fires the already-wired EndingOverlay.
 - [x] Per-weapon ammo, reload, ammo HUD
 - [x] Controller weapon switching, selector/wheel, configurable bindings
 - [x] Password reset for cloud saves

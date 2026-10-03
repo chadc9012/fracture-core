@@ -43,6 +43,8 @@ import { advanceMission as advanceNeonCore, STITCHED_NEON_CORE, type MissionEven
 import { StitchedNeonCoreOverlay } from "./StitchedNeonCoreOverlay";
 import { advanceMission as advanceDescent, DESCENT_PROTOCOL, type MissionEvent as DescentEvent, type MissionRun as DescentRun } from "@/game/missions/descent-protocol";
 import { DescentProtocolOverlay } from "./DescentProtocolOverlay";
+import { advanceMission as advanceSystemCore, SYSTEM_CORE, type MissionEvent as SystemCoreEvent, type MissionRun as SystemCoreRun } from "@/game/missions/system-core";
+import { SystemCoreOverlay } from "./SystemCoreOverlay";
 import { gameTick, QUESTS } from "@/game/quests";
 import { QuestTracker } from "./QuestTracker";
 import { dialogueFor, revisitDialogueFor, type DialogueLine } from "@/game/dialogue";
@@ -297,6 +299,29 @@ export function GameCanvas() {
     return () => window.clearTimeout(timer);
   }, [descent?.state, progression.completedMissions]);
 
+  /* Mission 05 · The System Core — fd-18's final mission, picking up from Descent Protocol's
+   * cliffhanger. Gated on fd-18 actually being the active quest (not just descent-protocol being
+   * done) so it doesn't fire while fd-17's own deep-pressure dive timer is still running. Its
+   * WORLD_UPDATE dispatches the BOSS_DEFEATED event fd-18 is listening for (key "system-core"),
+   * which completes fd-18 and — via the ending effect below — triggers EndingOverlay. */
+  const [systemCore, setSystemCore] = useState<SystemCoreRun | null>(null);
+  const systemCoreReady = phase === "world" && !tutorial && progression.completedMissions.includes("descent-protocol") && progression.activeQuestId === "fd-18" && !progression.completedMissions.includes("system-core");
+  useEffect(() => {
+    if (!systemCoreReady || systemCore) return;
+    const timer = window.setTimeout(() => setSystemCore(advanceSystemCore(SYSTEM_CORE, { type: "START" })), 8000);
+    return () => window.clearTimeout(timer);
+  }, [systemCoreReady, systemCore]);
+  const recordSystemCore = (event: SystemCoreEvent) => setSystemCore((current) => current ? advanceSystemCore(current, event) : current);
+  useEffect(() => {
+    if (systemCore?.state !== "WORLD_UPDATE" || progression.completedMissions.includes("system-core")) return;
+    setProgression((current) => {
+      const next = completeMission(current, "system-core");
+      return gameTick({ ...next, materials: { ...next.materials, fractureCore: (next.materials.fractureCore ?? 0) + 1 } }, { type: "BOSS_DEFEATED", encounterId: "system-core" });
+    });
+    const timer = window.setTimeout(() => setSystemCore(null), 9000);
+    return () => window.clearTimeout(timer);
+  }, [systemCore?.state, progression.completedMissions]);
+
   /* Cross-world quest engine: HUD already reports region/heat/lockdown/hack/dive state every ~0.18s
    * (see Scene.tsx's onHud), so that cadence — not Scene's 60fps loop — is what drives gameTick here. */
   const questSignals = useRef({ region: "", heatLevel: 1, lockdownTier: "MONITORING" as HudState["nexusLockdownTier"], hackDone: false });
@@ -517,7 +542,7 @@ export function GameCanvas() {
       >
         <color attach="background" args={["#bfe4f2"]} />
         <Suspense fallback={null}>
-            <Scene onHud={setHud} onDrops={(drops) => setProgression((current) => claimDrops(current, drops))} gear={progression} settings={settings} onCameraPreference={(firstPerson) => { window.localStorage.setItem("world-fracture-camera", firstPerson ? "first" : "third"); setSettings((current) => ({ ...current, firstPersonDefault: firstPerson })); }} playerClass={cls} subclassId={subclass} appearanceId={appearance} vehicleId={vehicleId} vehicleUnlocked={vehicleUnlocked} activeBuild={progression.activeBuild} abilityBranches={progression.abilityBranches} tutorial={tutorial} onTutorialEvent={recordTutorial} mission={mission} onMissionEvent={recordMission} blackout={blackout} onBlackoutEvent={recordBlackout} neonCore={neonCore} onNeonCoreEvent={recordNeonCore} descent={descent} onDescentEvent={recordDescent} awakening={awakening} onAwakeningEvent={recordAwakening} onXP={recordXP} armorState={hud.hp < 35 ? "FRACTURE" : hud.heat > 65 ? "ASCENDANT" : hud.heat > 15 ? "ACTIVE" : "STABLE"} />
+            <Scene onHud={setHud} onDrops={(drops) => setProgression((current) => claimDrops(current, drops))} gear={progression} settings={settings} onCameraPreference={(firstPerson) => { window.localStorage.setItem("world-fracture-camera", firstPerson ? "first" : "third"); setSettings((current) => ({ ...current, firstPersonDefault: firstPerson })); }} playerClass={cls} subclassId={subclass} appearanceId={appearance} vehicleId={vehicleId} vehicleUnlocked={vehicleUnlocked} activeBuild={progression.activeBuild} abilityBranches={progression.abilityBranches} tutorial={tutorial} onTutorialEvent={recordTutorial} mission={mission} onMissionEvent={recordMission} blackout={blackout} onBlackoutEvent={recordBlackout} neonCore={neonCore} onNeonCoreEvent={recordNeonCore} descent={descent} onDescentEvent={recordDescent} systemCore={systemCore} onSystemCoreEvent={recordSystemCore} awakening={awakening} onAwakeningEvent={recordAwakening} onXP={recordXP} armorState={hud.hp < 35 ? "FRACTURE" : hud.heat > 65 ? "ASCENDANT" : hud.heat > 15 ? "ACTIVE" : "STABLE"} />
         </Suspense>
         {post && (
           // cinematic grade: cool-leaning teal shadows, a touch more punch, so the HUD's cyan
@@ -572,6 +597,7 @@ export function GameCanvas() {
       {blackout && <BlackoutProtocolOverlay mission={blackout} onEvent={recordBlackout} />}
       {neonCore && <StitchedNeonCoreOverlay mission={neonCore} onEvent={recordNeonCore} />}
       {descent && <DescentProtocolOverlay mission={descent} onEvent={recordDescent} />}
+      {systemCore && <SystemCoreOverlay mission={systemCore} onEvent={recordSystemCore} />}
       {tutorial && <OnboardingSignal tutorial={tutorial} classId={cls} onOpenHub={() => { setTutorial(null); setOperationsView("ABILITIES"); }} />}
       {tutorial?.step === "VICTORY" && (
         <VictoryReport

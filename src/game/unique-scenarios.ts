@@ -37,6 +37,17 @@ export const UNIQUE_SCENARIOS: readonly UniqueScenario[] = [
     outsideWindowMult: 0.08,
     rewardCredits: 600,
   },
+  {
+    id: "system-core",
+    name: "The System Core",
+    regionId: "thalassia",
+    bossName: "The System Core",
+    drop: "fractureCore",
+    briefing: "Thalassia has no catalog boss of its own — this is the Deepmind's real core, and it's not a health bar you can just grind down. It only opens up the instant its own containment locks force a stagger.",
+    tell: "Its shell splits along three seams right before the stagger window opens.",
+    outsideWindowMult: 0.06,
+    rewardCredits: 1200,
+  },
 ];
 
 export function scenarioFor(regionId: string): UniqueScenario | undefined {
