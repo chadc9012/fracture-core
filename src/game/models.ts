@@ -17,14 +17,13 @@ export const MODELS = {
   truck: "/__l5e/assets-v1/6c088128-5442-434b-b5ed-3ccbc6d52326/truck.glb",
   van: "/__l5e/assets-v1/c0075348-1bc6-4e67-81dd-990ce9905412/van.glb",
   wheel: "/__l5e/assets-v1/95ab0f27-e0d2-453c-8486-229d401f5cc0/wheel.glb",
-  // Optional CC0 nature-kit models; keep entries loadable so preloading cannot block the world.
-  tree_pine: "https://cdn.jsdelivr.net/gh/theprototype-app/packs@main/nature-kit/Pine/glTF-Binary/Pine.glb",
-  tree_oak: "https://cdn.jsdelivr.net/gh/theprototype-app/packs@main/nature-kit/Oak/glTF-Binary/Oak.glb",
-  tree_birch: "https://cdn.jsdelivr.net/gh/theprototype-app/packs@main/nature-kit/Birch/glTF-Binary/Birch.glb",
-  tree_dead: "https://cdn.jsdelivr.net/gh/theprototype-app/packs@main/nature-kit/DeadTree/glTF-Binary/DeadTree.glb",
-  rock_large: "https://cdn.jsdelivr.net/gh/theprototype-app/packs@main/nature-kit/RockLarge/glTF-Binary/RockLarge.glb",
-  rock_medium: "https://cdn.jsdelivr.net/gh/theprototype-app/packs@main/nature-kit/RockMedium/glTF-Binary/RockMedium.glb",
-  boulder_cluster: "https://cdn.jsdelivr.net/gh/theprototype-app/packs@main/nature-kit/BoulderCluster/glTF-Binary/BoulderCluster.glb",
 } as const;
+// Note: an earlier "nature-kit" tree/rock GLB pack (hosted off a third-party GitHub repo via
+// jsdelivr) was removed from here — the repo never actually contained a nature-kit directory,
+// so every one of those seven URLs 404'd. They weren't wired into Terrain.tsx, but Vehicle.tsx
+// preloads every entry in MODELS unconditionally, so they were still a live black-screen risk
+// identical to the Poly Haven rock URLs that already took the world down once. World props are
+// now built as noise-deformed procedural geometry instead (see src/game/organic-geometry.ts),
+// which carries no load-time failure mode at all.
 
 export type ModelKey = keyof typeof MODELS;

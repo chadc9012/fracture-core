@@ -6,6 +6,7 @@ import { REGIONS, WORLD_RADIUS, type Region } from "@/game/world";
 import { mulberry32 } from "@/game/useKeyboard";
 import { WATER_LEVEL, colorAt, heightAt, slopeAt } from "@/game/terrain";
 import { groundDetailTextures, propDetailTextures } from "@/game/detail-texture";
+import { organicCanopy, organicRock } from "@/game/organic-geometry";
 import { LANE_HALF_WIDTH, distanceToRoad } from "@/game/lanes";
 import {
   addObstacle,
@@ -166,6 +167,17 @@ export function Terrain() {
   const craterY = useMemo(() => heightAt(ember.x, ember.z), [ember]);
   const rockDetail = useMemo(() => propDetailTextures(3), []);
 
+  // Organic, noise-deformed shared geometries — one lumpy variant per shape family, instanced
+  // many times with the existing per-instance scale/rotation/color jitter so no two props read
+  // identically, without the faceted "boxy" look of a bare icosahedron/dodecahedron/cone.
+  const canopyLow = useMemo(() => organicCanopy(2.7, 1.3, 7), []);
+  const canopyHigh = useMemo(() => organicCanopy(1.9, 1.5, 19), []);
+  const boulderA = useMemo(() => organicRock(2.6, 3, 1, 0.75), []);
+  const boulderB = useMemo(() => organicRock(2.6, 8, 1, 0.75), []);
+  const rockA = useMemo(() => organicRock(2.2, 23, 1, 0.65), []);
+  const rockB = useMemo(() => organicRock(2.2, 31, 1, 0.65), []);
+  const emberRockGeo = useMemo(() => organicRock(1.6, 44, 1, 0.5), []);
+
   return (
     <group>
       <Ground />
@@ -179,8 +191,7 @@ export function Terrain() {
           <Instance key={i} position={[t.x, t.y + 2 * t.s, t.z]} scale={[1, t.s, 1]} color={jitter("#4a3524", i, 0.02, 0.1)} />
         ))}
       </Instances>
-      <Instances limit={liveTrees.length} castShadow receiveShadow>
-        <coneGeometry args={[2.7, 5, 8]} />
+      <Instances limit={liveTrees.length} castShadow receiveShadow geometry={canopyLow}>
         <meshStandardMaterial color="#2c7a41" roughness={0.9} />
         {liveTrees.map((t, i) => (
           <Instance
@@ -192,8 +203,7 @@ export function Terrain() {
           />
         ))}
       </Instances>
-      <Instances limit={liveTrees.length} castShadow receiveShadow>
-        <coneGeometry args={[1.7, 4.2, 7]} />
+      <Instances limit={liveTrees.length} castShadow receiveShadow geometry={canopyHigh}>
         <meshStandardMaterial color="#3a8f4d" roughness={0.9} />
         {liveTrees.map((t, i) => (
           <Instance
@@ -215,8 +225,7 @@ export function Terrain() {
       </Instances>
 
       {/* frostspire boulders on the high slopes — mixed silhouettes + per-instance grey jitter */}
-      <Instances limit={liveBoulders.length} castShadow receiveShadow>
-        <icosahedronGeometry args={[2.6, 0]} />
+      <Instances limit={liveBoulders.length} castShadow receiveShadow geometry={boulderA}>
         <meshStandardMaterial color="#c3d4e6" roughness={0.7} map={rockDetail.map} normalMap={rockDetail.normalMap} normalScale={new THREE.Vector2(0.5, 0.5)} />
         {liveBoulders.map((b, i) =>
           i % 2 === 0 ? (
@@ -230,8 +239,7 @@ export function Terrain() {
           ) : null,
         )}
       </Instances>
-      <Instances limit={liveBoulders.length} castShadow receiveShadow>
-        <dodecahedronGeometry args={[2.6, 0]} />
+      <Instances limit={liveBoulders.length} castShadow receiveShadow geometry={boulderB}>
         <meshStandardMaterial color="#c3d4e6" roughness={0.75} map={rockDetail.map} normalMap={rockDetail.normalMap} normalScale={new THREE.Vector2(0.5, 0.5)} />
         {liveBoulders.map((b, i) =>
           i % 2 === 1 ? (
@@ -254,8 +262,7 @@ export function Terrain() {
         </mesh>
         <pointLight position={[0, craterY + 6, 0]} color="#ff6a1f" intensity={220} distance={120} decay={2} />
       </group>
-      <Instances limit={liveEmber.length} castShadow receiveShadow>
-        <dodecahedronGeometry args={[1.6, 0]} />
+      <Instances limit={liveEmber.length} castShadow receiveShadow geometry={emberRockGeo}>
         <meshStandardMaterial color="#3b2622" emissive="#ff3d00" emissiveIntensity={0.35} roughness={1} />
         {liveEmber.map((r, i) => (
           <Instance
@@ -269,8 +276,7 @@ export function Terrain() {
       </Instances>
 
       {/* rocks across the war belt and desert — split silhouettes + jittered grey/tan tones */}
-      <Instances limit={liveRocks.length} castShadow receiveShadow>
-        <icosahedronGeometry args={[2.2, 0]} />
+      <Instances limit={liveRocks.length} castShadow receiveShadow geometry={rockA}>
         <meshStandardMaterial color="#7c6a52" roughness={0.95} map={rockDetail.map} normalMap={rockDetail.normalMap} normalScale={new THREE.Vector2(0.5, 0.5)} />
         {liveRocks.map((r, i) =>
           i % 2 === 0 ? (
@@ -284,8 +290,7 @@ export function Terrain() {
           ) : null,
         )}
       </Instances>
-      <Instances limit={liveRocks.length} castShadow receiveShadow>
-        <dodecahedronGeometry args={[2.2, 0]} />
+      <Instances limit={liveRocks.length} castShadow receiveShadow geometry={rockB}>
         <meshStandardMaterial color="#7c6a52" roughness={1} map={rockDetail.map} normalMap={rockDetail.normalMap} normalScale={new THREE.Vector2(0.5, 0.5)} />
         {liveRocks.map((r, i) =>
           i % 2 === 1 ? (
