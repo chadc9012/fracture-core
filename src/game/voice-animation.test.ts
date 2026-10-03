@@ -1,4 +1,5 @@
-import { describe, expect, it } from "vitest";
+// @ts-ignore bun test runner types are not installed
+import { describe, expect, it } from "bun:test";
 import { captionEnvelope, classifyMood, poseFor } from "./voice-animation";
 
 describe("voice animation", () => {
