@@ -1,15 +1,32 @@
 import { ChevronLeft, ChevronRight, Circle, Cpu, Settings, Shield } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { APPEARANCES, CLASSES, DEFAULT_SUBCLASS, SUBCLASSES, appearanceById, classById, type AppearanceId, type ClassId, type SubclassId } from "@/game/loadout";
+import { Input } from "@/components/ui/input";
+import { CLASSES, CUSTOMIZATION_PALETTE, DEFAULT_SUBCLASS, SUBCLASSES, appearanceById, classById, operatorBySubclass, type AppearanceDefinition, type ClassId, type SubclassId } from "@/game/loadout";
 import { CLASS_LABEL, IdentityForge } from "./IdentityForge";
 import { CornerBrackets } from "./HudChrome";
 import { useVoiceLine } from "./useVoiceLine";
 
 export type { ClassId } from "@/game/loadout";
 type Stage = "CLASS" | "SUBCLASS" | "APPEARANCE" | "ASSEMBLING";
-export type Deployment = { classId: ClassId; subclassId: SubclassId; appearanceId: AppearanceId };
+/** `appearance` is the fully-resolved, possibly-customized identity — a signature preset by
+ * default, or edited colors/callsign from the forge's customize panel. Session-local only, same
+ * as the rest of deployment (never synced to player_saves). */
+export type Deployment = { classId: ClassId; subclassId: SubclassId; appearance: AppearanceDefinition };
 const STAGES: Stage[] = ["CLASS", "SUBCLASS", "APPEARANCE"];
+const CHANNELS: { key: "armor" | "cloth" | "visor" | "trim"; label: string }[] = [
+  { key: "armor", label: "Armor plate" },
+  { key: "cloth", label: "Undersuit" },
+  { key: "visor", label: "Visor line" },
+  { key: "trim", label: "Trim accent" },
+];
+
+/** Default field colors + callsign for a freshly-picked subclass: that subclass's named
+ * Operator's signature preset, with their callsign pre-filled (the player can still edit both). */
+function APPEARANCE_FOR(subclassId: SubclassId): AppearanceDefinition {
+  const op = operatorBySubclass(subclassId);
+  return { ...appearanceById(op.appearanceId), callsign: op.callsign };
+}
 
 const GUIDE: Record<Stage, string> = {
   CLASS: "Select your combat identity.",
@@ -21,19 +38,20 @@ const GUIDE: Record<Stage, string> = {
 export function StartMenu({ onDeploy, onSettings }: { onDeploy: (deployment: Deployment) => void; onSettings: () => void; best: { credits: number; kills: number } | null }) {
   const [classId, setClassId] = useState<ClassId>("TITAN");
   const [subclassId, setSubclassId] = useState<SubclassId>("SHIELD_TITAN");
-  const [appearanceId, setAppearanceId] = useState<AppearanceId>("RANGER");
+  const [appearance, setAppearance] = useState<AppearanceDefinition>(() => APPEARANCE_FOR("SHIELD_TITAN"));
   const [stage, setStage] = useState<Stage>("CLASS");
-  const appearance = appearanceById(appearanceId);
+  const operator = operatorBySubclass(subclassId);
   const selectedClass = classById(classId);
   const subclasses = SUBCLASSES.filter((item) => item.classId === classId);
   const stageIndex = STAGES.indexOf(stage);
   useVoiceLine(`forge-${stage}`, "NOVA", GUIDE[stage], "story");
 
-  const selectClass = (id: ClassId) => { setClassId(id); setSubclassId(DEFAULT_SUBCLASS[id]); };
+  const applySubclass = (id: SubclassId) => { setSubclassId(id); setAppearance(APPEARANCE_FOR(id)); };
+  const selectClass = (id: ClassId) => { setClassId(id); applySubclass(DEFAULT_SUBCLASS[id]); };
   const next = () => {
     if (stage === "APPEARANCE") {
       setStage("ASSEMBLING");
-      window.setTimeout(() => onDeploy({ classId, subclassId, appearanceId }), 2200);
+      window.setTimeout(() => onDeploy({ classId, subclassId, appearance }), 2200);
       return;
     }
     const nextStage = STAGES[stageIndex + 1];
@@ -71,11 +89,45 @@ export function StartMenu({ onDeploy, onSettings }: { onDeploy: (deployment: Dep
     </div>}
 
     {stage === "SUBCLASS" && <div className="pointer-events-auto absolute bottom-24 left-1/2 z-10 grid w-[min(62rem,calc(100%-2rem))] -translate-x-1/2 gap-2 sm:grid-cols-3">
-      {subclasses.map((item) => <Button key={item.id} variant="ghost" onClick={() => setSubclassId(item.id)} className={`hud-panel relative h-auto min-h-20 justify-start px-4 py-3 text-left whitespace-normal ${subclassId === item.id ? "hud-glow text-foreground" : "text-muted-foreground"}`}><CornerBrackets /><span><span className="block font-mono text-xs uppercase tracking-[0.12em]">{item.name}</span><span className="mt-1 block text-[10px] leading-relaxed">{item.description}</span></span></Button>)}
+      {subclasses.map((item) => { const op = operatorBySubclass(item.id); return (
+        <Button key={item.id} variant="ghost" onClick={() => applySubclass(item.id)} className={`hud-panel relative h-auto min-h-20 justify-start px-4 py-3 text-left whitespace-normal ${subclassId === item.id ? "hud-glow text-foreground" : "text-muted-foreground"}`}>
+          <CornerBrackets />
+          <span>
+            <span className="flex items-baseline justify-between gap-2"><span className="font-mono text-xs uppercase tracking-[0.12em]">{item.name}</span><span className="font-mono text-[9px] uppercase text-primary">{op.callsign}</span></span>
+            <span className="mt-1 block text-[10px] leading-relaxed">{item.description}</span>
+            <span className="mt-1 block text-[9px] italic leading-relaxed text-muted-foreground/80">{op.name} — {op.bio}</span>
+          </span>
+        </Button>
+      ); })}
     </div>}
 
-    {stage === "APPEARANCE" && <div className="pointer-events-auto absolute bottom-24 left-1/2 z-10 w-[min(48rem,calc(100%-2rem))] -translate-x-1/2">
-      <div className="grid grid-cols-4 gap-2">{APPEARANCES.map((item) => <Button key={item.id} variant="ghost" onClick={() => setAppearanceId(item.id)} className={`hud-panel relative h-auto min-h-20 p-2 ${appearanceId === item.id ? "hud-glow" : ""}`}><CornerBrackets size={6} /><span><span className="mx-auto flex justify-center gap-1">{[item.armor, item.cloth, item.visor].map((color) => <i key={color} className="size-3 border border-primary/30" style={{ backgroundColor: color, boxShadow: `0 0 4px ${color}` }} />)}</span><span className="mt-2 block font-mono text-[9px] uppercase">{item.name}</span></span></Button>)}</div>
+    {stage === "APPEARANCE" && <div className="pointer-events-auto absolute bottom-20 left-1/2 z-10 w-[min(48rem,calc(100%-2rem))] -translate-x-1/2">
+      <div className="hud-panel relative p-3">
+        <CornerBrackets size={6} />
+        <div className="flex items-baseline justify-between gap-3">
+          <span className="font-mono text-xs uppercase tracking-[0.12em] text-foreground">{operator.name}</span>
+          <span className="font-mono text-[9px] uppercase text-muted-foreground">{operator.classId} / {operator.subclassId.replaceAll("_", " ")}</span>
+        </div>
+        <p className="mt-1 text-[10px] italic leading-relaxed text-muted-foreground">{operator.bio}</p>
+
+        <label className="mt-3 block">
+          <span className="hud-label">Callsign</span>
+          <Input value={appearance.callsign} maxLength={24} onChange={(event) => setAppearance((current) => ({ ...current, callsign: event.target.value.toUpperCase() }))} className="mt-1 h-8 rounded-none border-primary/30 bg-background/60 font-mono text-xs uppercase tracking-[0.12em]" />
+        </label>
+
+        <div className="mt-3 grid gap-2 sm:grid-cols-2">
+          {CHANNELS.map(({ key, label }) => (
+            <div key={key}>
+              <span className="hud-label">{label}</span>
+              <div className="mt-1 flex flex-wrap gap-1">
+                {CUSTOMIZATION_PALETTE.map((color) => (
+                  <button key={color} type="button" aria-label={`${label} ${color}`} onClick={() => setAppearance((current) => ({ ...current, [key]: color }))} className="size-5 border transition" style={{ backgroundColor: color, borderColor: appearance[key] === color ? "var(--primary)" : "color-mix(in oklch, var(--primary) 30%, transparent)", boxShadow: appearance[key] === color ? `0 0 6px ${color}` : "none" }} />
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
       <p className="mt-2 text-center hud-label"><Cpu className="mr-1 inline size-3" style={{ filter: "drop-shadow(0 0 3px var(--primary))" }} />Live material projection · changes apply instantly</p>
     </div>}
 

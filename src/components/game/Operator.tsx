@@ -29,6 +29,7 @@ export function Operator({
   armor = "#1b1f26",
   cloth = "#0e1014",
   visor = "#48d8ff",
+  trim: trimColor = "#1a1c20",
   classId = "TITAN",
   visualState = "STABLE",
   chestLevel = 1,
@@ -38,6 +39,9 @@ export function Operator({
   armor?: string;
   cloth?: string;
   visor?: string;
+  /** Greeble/plate-trim accent color (collar plates, ridges, shin guards, brow ridge, antennae).
+   * Was a hardcoded dark gunmetal; now a 4th customizable channel alongside armor/cloth/visor. */
+  trim?: string;
   classId?: ClassId;
   visualState?: ArmorVisualState;
   /** Upgrade level of the equipped chest/helmet/legs gear (PlayerProgression.inventory's
@@ -51,7 +55,7 @@ export function Operator({
   const chestTier = tierOf(chestLevel);
   const helmetTier = tierOf(helmetLevel);
   const legsTier = tierOf(legsLevel);
-  const trim = <meshStandardMaterial color="#1a1c20" metalness={0.85} roughness={0.25} />;
+  const trim = <meshStandardMaterial color={trimColor} metalness={0.85} roughness={0.25} />;
   const glow = useRef<THREE.MeshStandardMaterial>(null);
   const drone = useRef<THREE.Group>(null);
   const orbit = useRef<THREE.Group>(null);

@@ -78,7 +78,7 @@ function Showcase({ classId, appearance, selected, hidden, mode, onSelect }: {
   });
   return <group ref={group} position={[x, 0, 0]} onClick={(event) => { event.stopPropagation(); if (mode === "CLASS") onSelect(classId); }}>
     <group ref={turntable} position-y={1.55}>
-      <Operator armor={appearance.armor} cloth={appearance.cloth} visor={appearance.visor} classId={classId} visualState="ACTIVE" />
+      <Operator armor={appearance.armor} cloth={appearance.cloth} visor={appearance.visor} trim={appearance.trim} classId={classId} visualState="ACTIVE" />
     </group>
     <mesh rotation-x={-Math.PI / 2} position-y={0.04}>
       <ringGeometry args={[1.25, 1.55, 64]} />

@@ -3,12 +3,12 @@ import { Activity, ChevronRight, CloudRain, MapPin, Radio } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { PlayerProgression } from "@/game/progression";
 import { NextActivityCard } from "./NextActivityCard";
-import { classById, subclassById, type AppearanceId, type ClassId, type SubclassId } from "@/game/loadout";
+import { classById, subclassById, type AppearanceDefinition, type ClassId, type SubclassId } from "@/game/loadout";
 
 export type DeploymentBriefingData = {
   classId: ClassId;
   subclassId: SubclassId;
-  appearanceId: AppearanceId;
+  appearance: AppearanceDefinition;
 };
 
 export function DeploymentBriefing({ deployment, progression, onLaunch, onBack }: { deployment: DeploymentBriefingData; progression: PlayerProgression; onLaunch: () => void; onBack: () => void }) {
@@ -45,7 +45,7 @@ export function DeploymentBriefing({ deployment, progression, onLaunch, onBack }
             <div className="mt-7 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
               <div>
                 <p className="ui-kicker">Operator imprint</p>
-                <p className="mt-1 font-mono text-sm uppercase">{operatorClass.name} / {subclass.name}</p>
+                <p className="mt-1 font-mono text-sm uppercase">{deployment.appearance.callsign} · {operatorClass.name} / {subclass.name}</p>
                 <p className="mt-1 text-xs text-muted-foreground">Vehicle access locked until Mission 01 is complete.</p>
               </div>
               <Button size="lg" className="ui-focus min-w-52 justify-between rounded-none" onClick={onLaunch}>Launch mission <ChevronRight /></Button>

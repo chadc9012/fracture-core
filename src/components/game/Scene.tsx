@@ -38,7 +38,7 @@ import { BOSS_LAIRS, GATHER_RADIUS, LAIR_RADIUS, RESOURCE_SITES, RESPAWN_SECONDS
 import type { InspectorView } from "./Inspector";
 import { TIER_RADII } from "@/game/lod";
 import { RARITY_COLOR, type Rarity } from "@/game/loot";
-import { appearanceById, classById, subclassById, type AppearanceId, type ClassId, type SubclassId } from "@/game/loadout";
+import { appearanceById, classById, subclassById, type AppearanceDefinition, type ClassId, type SubclassId } from "@/game/loadout";
 import { vehicleById, type VehicleId } from "@/game/vehicles";
 import { projectDome, shieldBash } from "@/game/titan";
 import { RENDER_PRESETS } from "@/game/performance";
@@ -123,6 +123,7 @@ export type HudState = {
   hitMarker: boolean;
   playerClass: ClassId;
   subclassName: string;
+  callsign: string;
   abilities: { slot: string; name: string; ready: boolean }[];
   firstMissionComplete: boolean;
   weather: string;
@@ -270,7 +271,7 @@ export function Scene({
   onCameraPreference,
   playerClass = "TITAN",
   subclassId = "SHIELD_TITAN",
-  appearanceId = "RANGER",
+  appearance: appearanceProp,
   vehicleId = "scrap-interceptor",
   vehicleUnlocked = false,
   armorState = "STABLE",
@@ -303,7 +304,9 @@ export function Scene({
   onCameraPreference?: (firstPerson: boolean) => void;
   playerClass?: ClassId;
   subclassId?: SubclassId;
-  appearanceId?: AppearanceId;
+  /** Fully-resolved field colors + callsign (preset or freely customized in the Identity Forge) —
+   * session-local only, never synced to player_saves. */
+  appearance?: AppearanceDefinition;
   vehicleId?: VehicleId;
   vehicleUnlocked?: boolean;
   armorState?: ArmorVisualState;
@@ -368,7 +371,7 @@ export function Scene({
   const structure = useMemo(() => buildInterior("veridan-ruin", SPAWN.x + 28, walkHeight(SPAWN.x + 28, SPAWN.z + 20), SPAWN.z + 20), []);
   const depleted = useRef<Record<string, number>>({});
   const lairsTriggered = useRef<Record<string, boolean>>({});
-  const appearance = appearanceById(appearanceId);
+  const appearance = appearanceProp ?? appearanceById("BASTION");
   const selectedClass = classById(playerClass);
   const selectedSubclass = subclassById(subclassId);
   const selectedVehicle = vehicleById(vehicleId);
@@ -1536,6 +1539,7 @@ export function Scene({
         hitMarker: performance.now() - sim.lastHit < 180,
         playerClass,
         subclassName: selectedSubclass.name,
+        callsign: appearance.callsign,
         abilities: selectedClass.abilities.map((ability) => ({ slot: ability.slot, name: ability.name, ready: live.current.runtime[ability.slot]?.cooldown <= 0 })),
         firstMissionComplete: sim.director.missions.some((mission) => mission.kind === "FIRST_RESONANCE" && mission.state === "COMPLETED"),
         weather: weatherName.current,
@@ -1730,7 +1734,7 @@ export function Scene({
 
       {/* player on foot */}
       <group ref={player} position={SPAWN.toArray()}>
-        <Operator armor={appearance.armor} cloth={appearance.cloth} visor={appearance.visor} classId={playerClass} visualState={armorState} chestLevel={armorLevels.chest} helmetLevel={armorLevels.helmet} legsLevel={armorLevels.legs} />
+        <Operator armor={appearance.armor} cloth={appearance.cloth} visor={appearance.visor} trim={appearance.trim} classId={playerClass} visualState={armorState} chestLevel={armorLevels.chest} helmetLevel={armorLevels.helmet} legsLevel={armorLevels.legs} />
         {playerClass === "TITAN" && sim.titan.blocking && (
           // Chevron-angled holographic panels + a glowing rim edge instead of one flat box —
           // reads as a projected energy shield rather than a translucent slab.
