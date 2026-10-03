@@ -47,8 +47,8 @@ export type GrantXPResult = { progression: PlayerProgression; gained: number; le
  * and combo/rare-event multipliers, resolves any number of level-ups in one grant (a huge XP dump
  * can cross several thresholds at once), advances NOVA meta-progression, and reports what changed
  * so the caller can trigger the level-up moment and announce any new NOVA unlock. */
-export function grantXP(progression: PlayerProgression, type: XPEventType, opts: { enemyLevel?: number; combatHeat?: number; rareEvent?: string } = {}): GrantXPResult {
-  let amount = baseXPFor(type, opts.enemyLevel) * (TYPE_MULTIPLIER[type] ?? 1);
+export function grantXP(progression: PlayerProgression, type: XPEventType, opts: { enemyLevel?: number; combatHeat?: number; rareEvent?: string; scale?: number } = {}): GrantXPResult {
+  let amount = baseXPFor(type, opts.enemyLevel) * (TYPE_MULTIPLIER[type] ?? 1) * (opts.scale ?? 1);
   if (opts.combatHeat !== undefined) amount *= comboMultiplier(opts.combatHeat);
   const rareMultiplier = opts.rareEvent ? RARE_EVENT_MULTIPLIER[opts.rareEvent] : undefined;
   if (rareMultiplier !== undefined) amount *= rareMultiplier;

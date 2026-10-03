@@ -4,6 +4,18 @@ import { STARTER_GEAR, STARTER_SLOTS, type GearItem, type GearSlot, type Materia
 import { FIRST_QUEST_ID } from "./quests";
 import { safeStorageRead, safeStorageWrite } from "./safe-state";
 import { grantXP } from "./xp";
+import { repeatRewardFactor } from "./retention";
+import type { WeaponId } from "./weapons";
+
+export type ClassId = "TITAN" | "HUNTER" | "WARLOCK";
+export type WeaponLoadout = { name: string; slots: [WeaponId, WeaponId, WeaponId] };
+export type ClassArsenal = { loadouts: WeaponLoadout[]; active: number };
+export const DEFAULT_ARSENAL: Record<ClassId, ClassArsenal> = {
+  TITAN: { active: 0, loadouts: [{ name: "Breach", slots: ["AUTO", "HEAVY", "SWORD"] }, { name: "Bulwark", slots: ["PULSE", "AUTO", "HEAVY"] }] },
+  HUNTER: { active: 0, loadouts: [{ name: "Skirmish", slots: ["PULSE", "SWORD", "AUTO"] }, { name: "Overwatch", slots: ["PULSE", "HEAVY", "SWORD"] }] },
+  WARLOCK: { active: 0, loadouts: [{ name: "Resonance", slots: ["AUTO", "PULSE", "HEAVY"] }, { name: "Conduit", slots: ["PULSE", "AUTO", "SWORD"] }] },
+};
+export type MissionReward = { missionId: string; factor: number; firstClear: boolean; xp: number; materials: Partial<Record<MaterialId, number>> };
 
 export type PlayerProgression = {
   version: 5;
@@ -41,6 +53,10 @@ export type PlayerProgression = {
   xp: number;
   novaLevel: number;
   novaUnlocks: string[];
+  /** per-mission clears today (repeat taper) */
+  missionRuns: Record<string, { day: string; count: number }>;
+  lastMissionReward: MissionReward | null;
+  arsenal: Record<ClassId, ClassArsenal>;
 };
 
 const STORAGE_KEY = "world-fracture.progression.v1";
@@ -78,6 +94,9 @@ export const DEFAULT_PROGRESSION: PlayerProgression = {
   xp: 0,
   novaLevel: 0,
   novaUnlocks: [],
+  missionRuns: {},
+  lastMissionReward: null,
+  arsenal: DEFAULT_ARSENAL,
 };
 
 export function loadProgression(): PlayerProgression {
@@ -124,6 +143,9 @@ export function normalizeProgression(raw: unknown): PlayerProgression {
       xp: typeof parsed.xp === "number" && parsed.xp >= 0 ? parsed.xp : 0,
       novaLevel: typeof parsed.novaLevel === "number" && parsed.novaLevel >= 0 ? parsed.novaLevel : 0,
       novaUnlocks: Array.isArray(parsed.novaUnlocks) ? parsed.novaUnlocks : [],
+      missionRuns: parsed.missionRuns && typeof parsed.missionRuns === "object" ? parsed.missionRuns : {},
+      lastMissionReward: parsed.lastMissionReward ?? null,
+      arsenal: parsed.arsenal && typeof parsed.arsenal === "object" ? { ...DEFAULT_ARSENAL, ...parsed.arsenal } : DEFAULT_ARSENAL,
     };
   } catch {
     return DEFAULT_PROGRESSION;
@@ -159,4 +181,35 @@ export function rewardVehicle(progression: PlayerProgression, vehicleId: Vehicle
   const ownedVehicles = progression.ownedVehicles.includes(vehicleId) ? progression.ownedVehicles : [...progression.ownedVehicles, vehicleId];
   const garageLoadout = progression.garageLoadout.includes(vehicleId) ? progression.garageLoadout : [...progression.garageLoadout, vehicleId].slice(-3);
   return { ...progression, ownedVehicles, garageLoadout, selectedVehicle: vehicleId };
+}
+
+const dayKey = (now: number) => new Date(now).toISOString().slice(0, 10);
+
+/** Mission payout: first-ever clear pays 1.5x, repeats pay full for 10 runs a day then taper to 25%. */
+export function rewardMission(progression: PlayerProgression, missionId: string, materials: Partial<Record<MaterialId, number>>, now = Date.now()): PlayerProgression {
+  const firstClear = !progression.completedMissions.includes(missionId);
+  const day = dayKey(now);
+  const prev = progression.missionRuns[missionId];
+  const runsToday = prev && prev.day === day ? prev.count : 0;
+  const factor = repeatRewardFactor(runsToday, firstClear);
+  const { progression: withXp, gained } = grantXP(progression, "MISSION", { scale: factor });
+  const paid: Partial<Record<MaterialId, number>> = {};
+  const nextMaterials = { ...withXp.materials };
+  for (const [id, n] of Object.entries(materials) as [MaterialId, number][]) {
+    const amount = Math.max(1, Math.round(n * factor));
+    paid[id] = amount;
+    nextMaterials[id] = (nextMaterials[id] ?? 0) + amount;
+  }
+  return {
+    ...withXp,
+    completedMissions: firstClear ? [...withXp.completedMissions, missionId] : withXp.completedMissions,
+    materials: nextMaterials,
+    missionRuns: { ...withXp.missionRuns, [missionId]: { day, count: runsToday + 1 } },
+    lastMissionReward: { missionId, factor, firstClear, xp: gained, materials: paid },
+  };
+}
+
+export function activeLoadout(progression: PlayerProgression, cls: ClassId | null): WeaponLoadout {
+  const a = progression.arsenal[cls ?? "TITAN"] ?? DEFAULT_ARSENAL.TITAN;
+  return a.loadouts[a.active] ?? a.loadouts[0]!;
 }
