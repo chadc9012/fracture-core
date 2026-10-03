@@ -83,26 +83,28 @@ function Ground() {
       colors[i * 3] = r;
       colors[i * 3 + 1] = g;
       colors[i * 3 + 2] = b;
+      const w = surfaceWeights(x, z);
+      wA[i * 3] = w[0]!; wA[i * 3 + 1] = w[1]!; wA[i * 3 + 2] = w[2]!;
+      wB[i * 3] = w[3]!; wB[i * 3 + 1] = w[4]!; wB[i * 3 + 2] = w[5]!;
     }
     geo.setAttribute("color", new THREE.BufferAttribute(colors, 3));
+    geo.setAttribute("wA", new THREE.BufferAttribute(wA, 3));
+    geo.setAttribute("wB", new THREE.BufferAttribute(wB, 3));
     geo.computeVertexNormals();
     return geo;
   }, []);
 
   const { map, normalMap } = useMemo(() => groundDetailTextures(), []);
+  // Poly Haven region surfaces; procedural grain stays if any texture fails to load.
+  const [surfaces, setSurfaces] = useState<THREE.Texture[] | null>(null);
+  useEffect(() => { let live = true; void loadGroundSurfaces().then((t) => { if (live) setSurfaces(t); }); return () => { live = false; }; }, []);
+  const material = useMemo(() => {
+    const m = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.95, metalness: 0.02, map: surfaces ? null : map, normalMap, normalScale: new THREE.Vector2(0.35, 0.35) });
+    if (surfaces) applySurfaceBlend(m, surfaces);
+    return m;
+  }, [surfaces, map, normalMap]);
 
-  return (
-    <mesh geometry={geometry} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
-      <meshStandardMaterial
-        vertexColors
-        roughness={0.95}
-        metalness={0.02}
-        map={map}
-        normalMap={normalMap}
-        normalScale={new THREE.Vector2(0.35, 0.35)}
-      />
-    </mesh>
-  );
+  return <mesh geometry={geometry} material={material} rotation={[-Math.PI / 2, 0, 0]} receiveShadow />;
 }
 
 export function Terrain({ renderTier = "HIGH" }: { renderTier?: RenderTier } = {}) {
