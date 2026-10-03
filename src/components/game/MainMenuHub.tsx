@@ -1,8 +1,8 @@
-import { ArrowRight, Crosshair, Map as MapIcon, Settings2, Shield } from "lucide-react";
+import { ArrowRight, Crosshair, Save, Map as MapIcon, Settings2, Shield } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { nextActivity } from "@/game/retention";
 
-type HubTarget = "starmap" | "arsenal" | "quick" | "system";
+type HubTarget = "starmap" | "arsenal" | "quick" | "saves" | "system";
 type Props = {
   className: string;
   level: number;
@@ -13,9 +13,10 @@ type Props = {
 
 const MODULES: { id: HubTarget; code: string; title: string; body: string; action: string; icon: LucideIcon }[] = [
   { id: "starmap", code: "01", title: "Star Map", body: "Choose a destination across the seven fractured regions and track your next activity.", action: "Open destinations", icon: MapIcon },
-  { id: "arsenal", code: "02", title: "Arsenal", body: "Review weapons, gear and materials, and manage your Titan, Hunter or Warlock build.", action: "Manage gear", icon: Shield },
+  { id: "arsenal", code: "02", title: "Arsenal", body: "Build and switch weapon loadouts for your Titan, Hunter and Warlock.", action: "Manage gear", icon: Shield },
   { id: "quick", code: "03", title: "Quick Combat", body: "Skip the map and drop straight back into the world where you left off.", action: "Instant drop", icon: Crosshair },
-  { id: "system", code: "04", title: "System", body: "Controls, display, audio, accessibility, plus the Chronicle and Roadmap.", action: "Preferences", icon: Settings2 },
+  { id: "saves", code: "04", title: "Saves", body: "Switch between save slots. Every slot auto-saves and syncs with your cloud save.", action: "Manage slots", icon: Save },
+  { id: "system", code: "05", title: "System", body: "Controls, display, audio, accessibility, plus the Chronicle and Roadmap.", action: "Preferences", icon: Settings2 },
 ];
 
 /** Returning-player hub between the title and the world (layout adapted from the uploaded MainMenuHub). */
@@ -36,7 +37,7 @@ export function MainMenuHub({ className, level, shards, completedMissions, onNav
         </div>
       </header>
 
-      <main className="relative mx-auto my-auto grid w-full max-w-6xl grid-cols-1 gap-3 py-8 sm:grid-cols-2 lg:grid-cols-4">
+      <main className="relative mx-auto my-auto grid w-full max-w-6xl grid-cols-1 gap-3 py-8 sm:grid-cols-2 lg:grid-cols-5">
         {MODULES.map(({ id, code, title, body, action, icon: Icon }) => (
           <button key={id} onClick={() => onNavigate(id)} className="ui-focus ui-enter group flex min-h-56 flex-col justify-between border border-foreground/15 bg-background/60 p-5 text-left backdrop-blur-sm transition-colors hover:border-primary/60 hover:bg-primary/5">
             <div>

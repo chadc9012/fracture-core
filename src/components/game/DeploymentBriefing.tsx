@@ -1,6 +1,8 @@
 import { Activity, ChevronRight, CloudRain, MapPin, Radio } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import type { PlayerProgression } from "@/game/progression";
+import { NextActivityCard } from "./NextActivityCard";
 import { classById, subclassById, type AppearanceId, type ClassId, type SubclassId } from "@/game/loadout";
 
 export type DeploymentBriefingData = {
@@ -9,7 +11,7 @@ export type DeploymentBriefingData = {
   appearanceId: AppearanceId;
 };
 
-export function DeploymentBriefing({ deployment, onLaunch, onBack }: { deployment: DeploymentBriefingData; onLaunch: () => void; onBack: () => void }) {
+export function DeploymentBriefing({ deployment, progression, onLaunch, onBack }: { deployment: DeploymentBriefingData; progression: PlayerProgression; onLaunch: () => void; onBack: () => void }) {
   const operatorClass = classById(deployment.classId);
   const subclass = subclassById(deployment.subclassId);
 
@@ -39,6 +41,7 @@ export function DeploymentBriefing({ deployment, onLaunch, onBack }: { deploymen
               <BriefStat icon={Radio} label="Guide" value="NOVA" />
             </div>
 
+            <div className="mt-5 max-w-md"><NextActivityCard progression={progression} /></div>
             <div className="mt-7 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
               <div>
                 <p className="ui-kicker">Operator imprint</p>

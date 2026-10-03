@@ -22,6 +22,9 @@ import { RaidStrategyPanel } from "./RaidStrategyPanel";
 import { OperationsHub } from "./OperationsHub";
 import { ZoneAnalysisPanel } from "./ZoneAnalysisPanel";
 import { CloudSavePanel } from "./CloudSavePanel";
+import { StarMap } from "./StarMap";
+import { ArsenalLoadouts } from "./ArsenalLoadouts";
+import { SaveManager } from "./SaveManager";
 import { activeLoadout, rewardMission, loadProgression, rewardVehicle, saveProgression, type ClassArsenal, type ClassId, type PlayerProgression } from "@/game/progression";
 import { RENDER_PRESETS } from "@/game/performance";
 import { classBuild } from "@/game/live-build";
@@ -216,6 +219,11 @@ export function GameCanvas() {
   const [garageOpen, setGarageOpen] = useState(false);
   const [inventoryOpen, setInventoryOpen] = useState(false);
   const [atlasOpen, setAtlasOpen] = useState(false);
+  const [hubView, setHubView] = useState<"starmap" | "arsenal" | "saves" | null>(null);
+  const [travelTo, setTravelTo] = useState<{ x: number; z: number; nonce: number } | null>(null);
+  const [savedFlash, setSavedFlash] = useState(0);
+  useEffect(() => { if (phase !== "world") return; const t = window.setTimeout(() => setSavedFlash(Date.now()), 1200); return () => window.clearTimeout(t); }, [progression, phase]);
+  useEffect(() => { if (!savedFlash) return; const t = window.setTimeout(() => setSavedFlash(0), 1800); return () => window.clearTimeout(t); }, [savedFlash]);
   const [strategyOpen, setStrategyOpen] = useState(false);
   const [analysisOpen, setAnalysisOpen] = useState(false);
   const [operationsView, setOperationsView] = useState<"DUNGEONS" | "ARSENAL" | "ABILITIES" | null>(null);
@@ -533,7 +541,10 @@ export function GameCanvas() {
   if (phase === "hub") {
     return (
       <>
-        {!menuOpen && (
+        {hubView === "starmap" && <StarMap progression={progression} onBack={() => setHubView(null)} onDeploy={(id) => { const r = REGIONS.find((x) => x.id === id)!; setHubView(null); setTravelTo({ x: r.x, z: r.z + 6, nonce: Date.now() }); setPhase("world"); }} />}
+        {hubView === "arsenal" && <ArsenalLoadouts progression={progression} onProgression={setProgression} onBack={() => setHubView(null)} />}
+        {hubView === "saves" && <SaveManager progression={progression} onProgression={setProgression} onBack={() => setHubView(null)} />}
+        {!menuOpen && !hubView && (
           <MainMenuHub
             className={classById(progression.identityClass ?? cls).name}
             level={progression.level}
@@ -541,9 +552,8 @@ export function GameCanvas() {
             completedMissions={progression.completedMissions}
             onNavigate={(target) => {
               if (target === "system") { setMenuOpen(true); return; }
+              if (target === "starmap" || target === "arsenal" || target === "saves") { setHubView(target); return; }
               setPhase("world");
-              if (target === "starmap") setAtlasOpen(true);
-              if (target === "arsenal") setInventoryOpen(true);
             }}
           />
         )}
@@ -573,6 +583,7 @@ export function GameCanvas() {
     return (
       <DeploymentBriefing
         deployment={pendingDeployment}
+        progression={progression}
         onBack={() => setPhase("loadout")}
         onLaunch={() => deploy(pendingDeployment)}
       />
@@ -610,7 +621,7 @@ export function GameCanvas() {
       >
         <color attach="background" args={["#bfe4f2"]} />
         <Suspense fallback={null}>
-            <Scene onHud={setHud} onDrops={(drops) => setProgression((current) => claimDrops(current, drops))} gear={progression} settings={settings} onCameraPreference={(firstPerson) => { window.localStorage.setItem("world-fracture-camera", firstPerson ? "first" : "third"); setSettings((current) => ({ ...current, firstPersonDefault: firstPerson })); }} playerClass={cls} subclassId={subclass} appearanceId={appearance} vehicleId={vehicleId} vehicleUnlocked={vehicleUnlocked} activeBuild={progression.activeBuild} abilityBranches={progression.abilityBranches} tutorial={tutorial} onTutorialEvent={recordTutorial} mission={mission} onMissionEvent={recordMission} blackout={blackout} onBlackoutEvent={recordBlackout} neonCore={neonCore} onNeonCoreEvent={recordNeonCore} descent={descent} onDescentEvent={recordDescent} systemCore={systemCore} onSystemCoreEvent={recordSystemCore} awakening={awakening} onAwakeningEvent={recordAwakening} onXP={recordXP} armorState={hud.hp < 35 ? "FRACTURE" : hud.heat > 65 ? "ASCENDANT" : hud.heat > 15 ? "ACTIVE" : "STABLE"} />
+            <Scene onHud={setHud} onDrops={(drops) => setProgression((current) => claimDrops(current, drops))} gear={progression} settings={settings} onCameraPreference={(firstPerson) => { window.localStorage.setItem("world-fracture-camera", firstPerson ? "first" : "third"); setSettings((current) => ({ ...current, firstPersonDefault: firstPerson })); }} playerClass={cls} subclassId={subclass} appearanceId={appearance} vehicleId={vehicleId} vehicleUnlocked={vehicleUnlocked} activeBuild={progression.activeBuild} abilityBranches={progression.abilityBranches} tutorial={tutorial} onTutorialEvent={recordTutorial} mission={mission} onMissionEvent={recordMission} blackout={blackout} onBlackoutEvent={recordBlackout} neonCore={neonCore} onNeonCoreEvent={recordNeonCore} descent={descent} onDescentEvent={recordDescent} systemCore={systemCore} onSystemCoreEvent={recordSystemCore} awakening={awakening} onAwakeningEvent={recordAwakening} onXP={recordXP} weaponOrder={activeLoadout(progression, (progression.identityClass ?? cls) as ClassId).slots} travelTo={travelTo} armorState={hud.hp < 35 ? "FRACTURE" : hud.heat > 65 ? "ASCENDANT" : hud.heat > 15 ? "ACTIVE" : "STABLE"} />
         </Suspense>
         {post && (
           // cinematic grade: cool-leaning teal shadows, a touch more punch, so the HUD's cyan
@@ -642,6 +653,7 @@ export function GameCanvas() {
       }}</GraphicsGuard>
       </WorldErrorBoundary>
        <PerfOverlay />
+       {savedFlash > 0 && <p className="pointer-events-none fixed right-4 top-4 z-30 font-mono text-[10px] uppercase tracking-[0.25em] text-primary" role="status">◌ Auto-saved</p>}
        <VoiceSubtitle />
        <HUD hud={hud} tutorialActive={Boolean(tutorial && tutorial.step !== "VICTORY")} onMenu={() => { setInventoryOpen(false); setAtlasOpen(false); setOperationsView(null); setMenuOpen(true); }} onStrategy={() => setStrategyOpen(true)} onGarage={() => setGarageOpen(true)} onAnalyze={() => setAnalysisOpen(true)} onOperations={(view) => { setInventoryOpen(false); setAtlasOpen(false); setOperationsView(view); }} onInventory={() => { setAtlasOpen(false); setOperationsView(null); setInventoryOpen(true); }} onAtlas={() => { setInventoryOpen(false); setOperationsView(null); setAtlasOpen(true); }} />
        {!tutorial && !hud.insideInterior && <Minimap hud={hud} />}
@@ -660,7 +672,7 @@ export function GameCanvas() {
          </div>
        )}
        {inventoryOpen && <InventoryWindow progression={progression} onProgression={setProgression} onClose={() => setInventoryOpen(false)} />}
-       {atlasOpen && <WorldAtlas markers={hud.markers} px={hud.px} pz={hud.pz} currentRegion={hud.region} phase={hud.phase} onClose={() => setAtlasOpen(false)} />}
+       {atlasOpen && <WorldAtlas progression={progression} markers={hud.markers} px={hud.px} pz={hud.pz} currentRegion={hud.region} phase={hud.phase} onClose={() => setAtlasOpen(false)} />}
       {awakening && <AwakeningOverlay run={awakening} onEvent={recordAwakening} />}
       {mission && <BrokenSignalOverlay mission={mission} onEvent={recordMission} />}
       {blackout && <BlackoutProtocolOverlay mission={blackout} onEvent={recordBlackout} />}

@@ -62,6 +62,7 @@ export function mergeProgression(local: PlayerProgression, cloud: PlayerProgress
     corruptionLevel: Math.max(local.corruptionLevel, cloud.corruptionLevel),
     activeQuestId: newer.activeQuestId,
     currentWorld: newer.currentWorld,
+    missionRuns: maxRecord(local.missionRuns, cloud.missionRuns, (a, b) => (a.day > b.day ? a : b.day > a.day ? b : a.count >= b.count ? a : b)),
     questObjectiveProgress: maxRecord(local.questObjectiveProgress, cloud.questObjectiveProgress, (a, b) => a.map((v, i) => Math.max(v, b[i] ?? 0))),
   };
 }
