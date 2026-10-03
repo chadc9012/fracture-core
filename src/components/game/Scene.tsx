@@ -1441,7 +1441,7 @@ export function Scene({
         subclassName: selectedSubclass.name,
         abilities: selectedClass.abilities.map((ability) => ({ slot: ability.slot, name: ability.name, ready: live.current.runtime[ability.slot]?.cooldown <= 0 })),
         firstMissionComplete: sim.director.missions.some((mission) => mission.kind === "FIRST_RESONANCE" && mission.state === "COMPLETED"),
-        weather,
+        weather: weatherName.current,
         streamTier: "ACTIVE · neighbors reduced · distant dormant",
         vehicleUnlocked,
         vehicleName: selectedVehicle.name,
