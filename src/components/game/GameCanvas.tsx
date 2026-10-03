@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { HUD } from "./HUD";
 import { Scene, type HudState } from "./Scene";
 import { WorldErrorBoundary } from "./WorldErrorBoundary";
+import { GraphicsGuard } from "./GraphicsGuard";
 import { StartMenu, type Deployment } from "./StartMenu";
 import { SettingsWindow, DEFAULT_SETTINGS, type GameSettings } from "./SettingsWindow";
 import { TitleScreen } from "./TitleScreen";
@@ -444,14 +445,22 @@ export function GameCanvas() {
   return (
     <div className="fixed inset-0 bg-background">
       <WorldErrorBoundary>
+      <GraphicsGuard>{(caps, onCreated) => {
+        const preset = RENDER_PRESETS[settings.renderTier];
+        // Safari: cap pixel ratio, use hard-edged shadows and skip the post-processing pass, which
+        // are the usual causes of a blank or lost context there.
+        const maxDpr = caps.safari ? Math.min(preset.dpr, 1.5) : preset.dpr;
+        const post = preset.distortion && !caps.safari && caps.webgl2;
+        return (
       <Canvas
+        onCreated={onCreated}
         onPointerDown={(event) => {
           if (event.button === 0 || event.button === 2) event.currentTarget.requestPointerLock?.();
         }}
         onContextMenu={(event) => event.preventDefault()}
-        shadows={RENDER_PRESETS[settings.renderTier].shadows ? { type: THREE.PCFSoftShadowMap } : false}
-        dpr={[1, RENDER_PRESETS[settings.renderTier].dpr]}
-        gl={{ antialias: true, toneMapping: THREE.ACESFilmicToneMapping }}
+        shadows={preset.shadows ? { type: caps.safari ? THREE.PCFShadowMap : THREE.PCFSoftShadowMap } : false}
+        dpr={[1, maxDpr]}
+        gl={{ antialias: !caps.safari, toneMapping: THREE.ACESFilmicToneMapping, powerPreference: "high-performance", failIfMajorPerformanceCaveat: false }}
         camera={{
           position: [START.x, walkHeight(START.x, START.z) + 30, START.z + 46],
           fov: 55,
@@ -462,9 +471,11 @@ export function GameCanvas() {
         <Suspense fallback={null}>
             <Scene onHud={setHud} onDrops={(drops) => setProgression((current) => claimDrops(current, drops))} gear={progression} settings={settings} onCameraPreference={(firstPerson) => { window.localStorage.setItem("world-fracture-camera", firstPerson ? "first" : "third"); setSettings((current) => ({ ...current, firstPersonDefault: firstPerson })); }} playerClass={cls} subclassId={subclass} appearanceId={appearance} vehicleId={vehicleId} vehicleUnlocked={vehicleUnlocked} activeBuild={progression.activeBuild} abilityBranches={progression.abilityBranches} tutorial={tutorial} onTutorialEvent={recordTutorial} mission={mission} onMissionEvent={recordMission} blackout={blackout} onBlackoutEvent={recordBlackout} awakening={awakening} onAwakeningEvent={recordAwakening} onXP={recordXP} armorState={hud.hp < 35 ? "FRACTURE" : hud.heat > 65 ? "ASCENDANT" : hud.heat > 15 ? "ACTIVE" : "STABLE"} />
         </Suspense>
-        {RENDER_PRESETS[settings.renderTier].distortion && <EffectComposer multisampling={0}><Bloom intensity={0.55} luminanceThreshold={0.85} luminanceSmoothing={0.2} mipmapBlur /><Vignette offset={0.3} darkness={0.55} /></EffectComposer>}
+        {post && <EffectComposer multisampling={0}><Bloom intensity={0.55} luminanceThreshold={0.85} luminanceSmoothing={0.2} mipmapBlur /><Vignette offset={0.3} darkness={0.55} /></EffectComposer>}
         <PerfSampler />
       </Canvas>
+        );
+      }}</GraphicsGuard>
       </WorldErrorBoundary>
        <PerfOverlay />
        <HUD hud={hud} tutorialActive={Boolean(tutorial && tutorial.step !== "VICTORY")} onMenu={() => setMenuOpen(true)} onStrategy={() => setStrategyOpen(true)} onGarage={() => setGarageOpen(true)} onAnalyze={() => setAnalysisOpen(true)} onOperations={setOperationsView} onInventory={() => setInventoryOpen(true)} onAtlas={() => setAtlasOpen(true)} />
