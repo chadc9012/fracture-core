@@ -24,9 +24,9 @@ const Fallback = () => (
 );
 
 class Guard extends Component<{ children: ReactNode }, { failed: boolean }> {
-  state = { failed: false };
+  override state = { failed: false };
   static getDerivedStateFromError() { return { failed: true }; }
-  render() { return this.state.failed ? <Fallback /> : this.props.children; }
+  override render() { return this.state.failed ? <Fallback /> : this.props.children; }
 }
 
 const verified = new Map<string, boolean>();
