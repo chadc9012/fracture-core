@@ -24,6 +24,7 @@
 - [x] Add the mixed-class Ability Network with saved Solo/Hybrid/Team builds.
 - [x] Redesign onboarding around the supplied equipment and character references.
 - [x] Add modular cosmetics and live Stable/Active/Fracture/Ascendant armor states.
+- [x] Equipped chest/helmet/legs gear now changes the Operator model's real geometry, not just a color/glow tint: Operator.tsx reads each slot's upgrade level (gearCost/upgradeGear's level 1/2/3+ tiers) and adds actual plates/collar/pauldron trim at tier 2 and ridges/crest/antenna/knee-spike at tier 3, on top of the existing procedural (no-GLB) model. Scene.tsx derives the three levels live from PlayerProgression.inventory/equippedGear, so gearing up visibly changes the character in-world, not just its stats.
 - [x] Verify counts, dungeon flow, progression interactions, responsive layouts, and production health.
 - [x] Persist mission, ability, reward vehicle, and garage-loadout progression across sessions.
 - [x] Add AI screenshot hazard analysis with upload validation and traversal recommendations.

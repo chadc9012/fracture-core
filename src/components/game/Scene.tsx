@@ -345,6 +345,13 @@ export function Scene({
   // Global Balance Controller: recomputed only when equipped gear/clears/missions actually change,
   // not every frame — the frame loop just assigns the (already-cheap) result into sim.mods below.
   const balance = useMemo(() => difficultyCurve(playerPowerScore({ inventory: gear?.inventory ?? [], equippedGear: gear?.equippedGear ?? {}, dungeonClears: gear?.dungeonClears ?? {}, completedMissions: gear?.completedMissions ?? [] } as Parameters<typeof playerPowerScore>[0])), [gear?.inventory, gear?.equippedGear, gear?.dungeonClears, gear?.completedMissions]);
+  // Equipped chest/helmet/legs upgrade levels -> Operator's real armor-geometry tiers (tierOf()
+  // in Operator.tsx), so gearing up actually changes the model, not just its tint.
+  const armorLevels = useMemo(() => ({
+    chest: gear?.inventory.find((item) => item.id === gear.equippedGear.chest)?.level ?? 1,
+    helmet: gear?.inventory.find((item) => item.id === gear.equippedGear.helmet)?.level ?? 1,
+    legs: gear?.inventory.find((item) => item.id === gear.equippedGear.legs)?.level ?? 1,
+  }), [gear?.inventory, gear?.equippedGear]);
   const missionSpawned = useRef("");
   const blackoutSpawned = useRef("");
   const neonCoreSpawned = useRef("");
@@ -1723,7 +1730,7 @@ export function Scene({
 
       {/* player on foot */}
       <group ref={player} position={SPAWN.toArray()}>
-        <Operator armor={appearance.armor} cloth={appearance.cloth} visor={appearance.visor} classId={playerClass} visualState={armorState} />
+        <Operator armor={appearance.armor} cloth={appearance.cloth} visor={appearance.visor} classId={playerClass} visualState={armorState} chestLevel={armorLevels.chest} helmetLevel={armorLevels.helmet} legsLevel={armorLevels.legs} />
         {playerClass === "TITAN" && sim.titan.blocking && (
           // Chevron-angled holographic panels + a glowing rim edge instead of one flat box —
           // reads as a projected energy shield rather than a translucent slab.
