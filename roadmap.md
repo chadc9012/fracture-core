@@ -110,4 +110,4 @@
 - [ ] Playtest the complete first-session flow and representative regions on desktop, compact screens, Chrome, and Safari-safe settings.
 - [x] Add centralized cinematic voice playback and saved voice controls.
 - [x] Voice startup, onboarding, cinematics, missions, NPCs, bosses, victory, and ending.
-- [ ] Verify spoken flow, interruption, muting, Safari-safe fallback, and build health.
+- [x] Verify spoken flow, interruption, muting, Safari-safe fallback, and build health.
