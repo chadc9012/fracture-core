@@ -46,6 +46,7 @@ import { Minimap } from "./Minimap";
 import { grantXP } from "@/game/xp";
 import type { WorldSim } from "@/game/sim";
 import { LevelUpOverlay } from "./LevelUpOverlay";
+import { PerfOverlay, PerfSampler } from "./PerfOverlay";
 
 const START = REGIONS.find((r) => r.id === "nexus")!;
 
@@ -440,8 +441,10 @@ export function GameCanvas() {
             <Scene onHud={setHud} onDrops={(drops) => setProgression((current) => claimDrops(current, drops))} gear={progression} settings={settings} onCameraPreference={(firstPerson) => { window.localStorage.setItem("world-fracture-camera", firstPerson ? "first" : "third"); setSettings((current) => ({ ...current, firstPersonDefault: firstPerson })); }} playerClass={cls} subclassId={subclass} appearanceId={appearance} vehicleId={vehicleId} vehicleUnlocked={vehicleUnlocked} activeBuild={progression.activeBuild} abilityBranches={progression.abilityBranches} tutorial={tutorial} onTutorialEvent={recordTutorial} mission={mission} onMissionEvent={recordMission} awakening={awakening} onAwakeningEvent={recordAwakening} onXP={recordXP} armorState={hud.hp < 35 ? "FRACTURE" : hud.heat > 65 ? "ASCENDANT" : hud.heat > 15 ? "ACTIVE" : "STABLE"} />
         </Suspense>
         {RENDER_PRESETS[settings.renderTier].distortion && <EffectComposer multisampling={0}><Bloom intensity={0.55} luminanceThreshold={0.85} luminanceSmoothing={0.2} mipmapBlur /><Vignette offset={0.3} darkness={0.55} /></EffectComposer>}
+        <PerfSampler />
       </Canvas>
       </WorldErrorBoundary>
+       <PerfOverlay />
        <HUD hud={hud} tutorialActive={Boolean(tutorial && tutorial.step !== "VICTORY")} onMenu={() => setMenuOpen(true)} onStrategy={() => setStrategyOpen(true)} onGarage={() => setGarageOpen(true)} onAnalyze={() => setAnalysisOpen(true)} onOperations={setOperationsView} onInventory={() => setInventoryOpen(true)} onAtlas={() => setAtlasOpen(true)} />
        {!tutorial && !hud.insideInterior && <Minimap hud={hud} />}
        {!tutorial && <QuestTracker progression={progression} />}
