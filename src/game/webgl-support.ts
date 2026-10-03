@@ -34,8 +34,15 @@ export function detectGraphicsSupport(): GraphicsSupport {
           : "This browser could not start 3D graphics (WebGL). It may be disabled or unsupported on this device.",
       };
     }
+    const vertexPrecision = gl.getShaderPrecisionFormat(gl.VERTEX_SHADER, gl.HIGH_FLOAT);
+    const fragmentPrecision = gl.getShaderPrecisionFormat(gl.FRAGMENT_SHADER, gl.HIGH_FLOAT);
+    if (!vertexPrecision || !fragmentPrecision || vertexPrecision.precision <= 0 || fragmentPrecision.precision <= 0) {
+      return {
+        ok: false, webgl2: Boolean(gl2), safari, maxTextureSize: 0,
+        reason: "This browser opened 3D graphics but did not provide the shader precision the world needs.",
+      };
+    }
     const maxTextureSize = Number(gl.getParameter(gl.MAX_TEXTURE_SIZE)) || 0;
-    gl.getExtension("WEBGL_lose_context")?.loseContext();
     return { ok: true, webgl2: Boolean(gl2), safari, maxTextureSize, reason: null };
   } catch (error) {
     return { ok: false, webgl2: false, safari, maxTextureSize: 0, reason: `3D graphics failed to start: ${String(error)}` };

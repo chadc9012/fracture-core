@@ -91,4 +91,7 @@ export function Car({
   );
 }
 
-Object.values(MODELS).forEach((url) => useGLTF.preload(url));
+// Only prime assets required at spawn. District and NPC models load with their owning scene,
+// avoiding the all-model startup burst that can exhaust Safari's WebGL resource budget.
+useGLTF.preload(MODELS.wheel);
+useGLTF.preload(MODELS.race_future);
