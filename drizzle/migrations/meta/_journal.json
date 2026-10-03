@@ -15,6 +15,13 @@
       "when": 1790433124679,
       "tag": "0001_save_restore_points",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1791051098711,
+      "tag": "0002_player_save_slots",
+      "breakpoints": true
     }
   ]
 }

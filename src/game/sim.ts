@@ -537,7 +537,7 @@ export function hurtPlayer(sim: WorldSim, dmg: number, cause: string) {
     sim.deaths++;
     sim.hp = 100;
     sim.cargo = 0;
-    alert(sim, `Hull destroyed (${cause}) — respawned at Nexus City, cargo lost`);
+    alert(sim, `Hull destroyed (${cause}) — cargo lost`);
   }
 }
 

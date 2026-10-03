@@ -22,7 +22,10 @@ import { RaidStrategyPanel } from "./RaidStrategyPanel";
 import { OperationsHub } from "./OperationsHub";
 import { ZoneAnalysisPanel } from "./ZoneAnalysisPanel";
 import { CloudSavePanel } from "./CloudSavePanel";
-import { completeMission, loadProgression, rewardVehicle, saveProgression, type PlayerProgression } from "@/game/progression";
+import { StarMap } from "./StarMap";
+import { ArsenalLoadouts } from "./ArsenalLoadouts";
+import { SaveManager } from "./SaveManager";
+import { activeLoadout, rewardMission, loadProgression, rewardVehicle, saveProgression, type PlayerProgression } from "@/game/progression";
 import { RENDER_PRESETS } from "@/game/performance";
 import { classBuild } from "@/game/live-build";
 import { nodeById } from "@/game/ability-network";
@@ -216,6 +219,10 @@ export function GameCanvas() {
   const [garageOpen, setGarageOpen] = useState(false);
   const [inventoryOpen, setInventoryOpen] = useState(false);
   const [atlasOpen, setAtlasOpen] = useState(false);
+  const [hubView, setHubView] = useState<"starmap" | "arsenal" | "saves" | null>(null);
+  const [travelTo, setTravelTo] = useState<{ x: number; z: number; nonce: number } | null>(null);
+  const [savedFlash, setSavedFlash] = useState(0);
+  useEffect(() => { if (!savedFlash) return; const t = window.setTimeout(() => setSavedFlash(0), 1800); return () => window.clearTimeout(t); }, [savedFlash]);
   const [strategyOpen, setStrategyOpen] = useState(false);
   const [analysisOpen, setAnalysisOpen] = useState(false);
   const [operationsView, setOperationsView] = useState<"DUNGEONS" | "ARSENAL" | "ABILITIES" | null>(null);
@@ -236,8 +243,9 @@ export function GameCanvas() {
   useEffect(() => { const timer = window.setTimeout(() => setBoot(false), 1700); return () => window.clearTimeout(timer); }, []);
 
   useEffect(() => saveProgression(progression), [progression]);
+  useEffect(() => { if (phase !== "world") return; const t = window.setTimeout(() => setSavedFlash(Date.now()), 1200); return () => window.clearTimeout(t); }, [progression, phase]);
   useEffect(() => {
-    if (tutorial?.step === "VICTORY" && !progression.completedMissions.includes("mission-01")) setProgression((current) => ({ ...completeMission(current, "mission-01"), tutorialComplete: true, unlockedAbilities: Array.from(new Set([...current.unlockedAbilities, classBuild(cls).slots.TACTICAL])), calibrationTokens: current.calibrationTokens + 1 }));
+    if (tutorial?.step === "VICTORY" && !progression.completedMissions.includes("mission-01")) setProgression((current) => ({ ...rewardMission(current, "mission-01", { dataShards: 1 }), tutorialComplete: true, unlockedAbilities: Array.from(new Set([...current.unlockedAbilities, classBuild(cls).slots.TACTICAL])), calibrationTokens: current.calibrationTokens + 1 }));
   }, [tutorial?.step, progression.completedMissions, cls]);
 
   /* Mission 01 · Broken Signal starts as a world event once the player is free-roaming. */
@@ -252,7 +260,7 @@ export function GameCanvas() {
   useEffect(() => {
     if (awakening?.state === "LOOT") return; // loot granted on ACK
     if (awakening?.state !== "COMPLETE" || awakeningDone) return;
-    setProgression((current) => { const next = completeMission(current, "awakening"); return gameTick({ ...next, materials: { ...next.materials, dataShards: (next.materials.dataShards ?? 0) + 2 } }, { type: "MISSION_COMPLETE", missionId: "awakening" }); });
+    setProgression((current) => { return gameTick(rewardMission(current, "awakening", { dataShards: 2 }), { type: "MISSION_COMPLETE", missionId: "awakening" }); });
     const timer = window.setTimeout(() => setAwakening(null), 7000);
     return () => window.clearTimeout(timer);
   }, [awakening?.state, awakeningDone]);
@@ -270,7 +278,7 @@ export function GameCanvas() {
   }, [missionReady, mission]);
   useEffect(() => {
     if (mission?.state !== "WORLD_UPDATE" || progression.completedMissions.includes("broken-signal")) return;
-    setProgression((current) => { const next = completeMission(current, "broken-signal"); return gameTick({ ...next, materials: { ...next.materials, dataShards: (next.materials.dataShards ?? 0) + 3 } }, { type: "MISSION_COMPLETE", missionId: "broken-signal" }); });
+    setProgression((current) => { return gameTick(rewardMission(current, "broken-signal", { dataShards: 3 }), { type: "MISSION_COMPLETE", missionId: "broken-signal" }); });
     const timer = window.setTimeout(() => setMission(null), 9000);
     return () => window.clearTimeout(timer);
   }, [mission?.state, progression.completedMissions]);
@@ -288,7 +296,7 @@ export function GameCanvas() {
   const recordBlackout = (event: BlackoutEvent) => setBlackout((current) => current ? advanceBlackout(current, event) : current);
   useEffect(() => {
     if (blackout?.state !== "WORLD_UPDATE" || progression.completedMissions.includes("blackout-protocol")) return;
-    setProgression((current) => { const next = completeMission(current, "blackout-protocol"); return gameTick({ ...next, materials: { ...next.materials, microCircuits: (next.materials.microCircuits ?? 0) + 4 } }, { type: "MISSION_COMPLETE", missionId: "blackout-protocol" }); });
+    setProgression((current) => { return gameTick(rewardMission(current, "blackout-protocol", { microCircuits: 4 }), { type: "MISSION_COMPLETE", missionId: "blackout-protocol" }); });
     const timer = window.setTimeout(() => setBlackout(null), 9000);
     return () => window.clearTimeout(timer);
   }, [blackout?.state, progression.completedMissions]);
@@ -306,7 +314,7 @@ export function GameCanvas() {
   const recordNeonCore = (event: NeonCoreEvent) => setNeonCore((current) => current ? advanceNeonCore(current, event) : current);
   useEffect(() => {
     if (neonCore?.state !== "WORLD_UPDATE" || progression.completedMissions.includes("stitched-neon-core")) return;
-    setProgression((current) => { const next = completeMission(current, "stitched-neon-core"); return gameTick({ ...next, materials: { ...next.materials, aegisCore: (next.materials.aegisCore ?? 0) + 1 } }, { type: "MISSION_COMPLETE", missionId: "stitched-neon-core" }); });
+    setProgression((current) => { return gameTick(rewardMission(current, "stitched-neon-core", { aegisCore: 1 }), { type: "MISSION_COMPLETE", missionId: "stitched-neon-core" }); });
     const timer = window.setTimeout(() => setNeonCore(null), 9000);
     return () => window.clearTimeout(timer);
   }, [neonCore?.state, progression.completedMissions]);
@@ -324,7 +332,7 @@ export function GameCanvas() {
   const recordDescent = (event: DescentEvent) => setDescent((current) => current ? advanceDescent(current, event) : current);
   useEffect(() => {
     if (descent?.state !== "WORLD_UPDATE" || progression.completedMissions.includes("descent-protocol")) return;
-    setProgression((current) => { const next = completeMission(current, "descent-protocol"); return gameTick({ ...next, materials: { ...next.materials, dataShards: (next.materials.dataShards ?? 0) + 5 } }, { type: "MISSION_COMPLETE", missionId: "descent-protocol" }); });
+    setProgression((current) => { return gameTick(rewardMission(current, "descent-protocol", { dataShards: 5 }), { type: "MISSION_COMPLETE", missionId: "descent-protocol" }); });
     const timer = window.setTimeout(() => setDescent(null), 9000);
     return () => window.clearTimeout(timer);
   }, [descent?.state, progression.completedMissions]);
@@ -345,8 +353,7 @@ export function GameCanvas() {
   useEffect(() => {
     if (systemCore?.state !== "WORLD_UPDATE" || progression.completedMissions.includes("system-core")) return;
     setProgression((current) => {
-      const next = completeMission(current, "system-core");
-      return gameTick({ ...next, materials: { ...next.materials, fractureCore: (next.materials.fractureCore ?? 0) + 1 } }, { type: "BOSS_DEFEATED", encounterId: "system-core" });
+      return gameTick(rewardMission(current, "system-core", { fractureCore: 1 }), { type: "BOSS_DEFEATED", encounterId: "system-core" });
     });
     const timer = window.setTimeout(() => setSystemCore(null), 9000);
     return () => window.clearTimeout(timer);
@@ -534,7 +541,10 @@ export function GameCanvas() {
   if (phase === "hub") {
     return (
       <>
-        {!menuOpen && (
+        {hubView === "starmap" && <StarMap progression={progression} onBack={() => setHubView(null)} onDeploy={(id) => { const r = REGIONS.find((x) => x.id === id)!; setHubView(null); setTravelTo({ x: r.x, z: r.z + 6, nonce: Date.now() }); setPhase("world"); }} />}
+        {hubView === "arsenal" && <ArsenalLoadouts progression={progression} onProgression={setProgression} onBack={() => setHubView(null)} />}
+        {hubView === "saves" && <SaveManager progression={progression} onProgression={setProgression} onBack={() => setHubView(null)} />}
+        {!menuOpen && !hubView && (
           <MainMenuHub
             className={classById(progression.identityClass ?? cls).name}
             level={progression.level}
@@ -542,9 +552,8 @@ export function GameCanvas() {
             completedMissions={progression.completedMissions}
             onNavigate={(target) => {
               if (target === "system") { setMenuOpen(true); return; }
+              if (target === "starmap" || target === "arsenal" || target === "saves") { setHubView(target); return; }
               setPhase("world");
-              if (target === "starmap") setAtlasOpen(true);
-              if (target === "arsenal") setInventoryOpen(true);
             }}
           />
         )}
@@ -574,6 +583,7 @@ export function GameCanvas() {
     return (
       <DeploymentBriefing
         deployment={pendingDeployment}
+        progression={progression}
         onBack={() => setPhase("loadout")}
         onLaunch={() => deploy(pendingDeployment)}
       />
@@ -611,7 +621,7 @@ export function GameCanvas() {
       >
         <color attach="background" args={["#bfe4f2"]} />
         <Suspense fallback={null}>
-            <Scene onHud={setHud} onDrops={(drops) => setProgression((current) => claimDrops(current, drops))} gear={progression} settings={settings} onCameraPreference={(firstPerson) => { window.localStorage.setItem("world-fracture-camera", firstPerson ? "first" : "third"); setSettings((current) => ({ ...current, firstPersonDefault: firstPerson })); }} playerClass={cls} subclassId={subclass} appearanceId={appearance} vehicleId={vehicleId} vehicleUnlocked={vehicleUnlocked} activeBuild={progression.activeBuild} abilityBranches={progression.abilityBranches} tutorial={tutorial} onTutorialEvent={recordTutorial} mission={mission} onMissionEvent={recordMission} blackout={blackout} onBlackoutEvent={recordBlackout} neonCore={neonCore} onNeonCoreEvent={recordNeonCore} descent={descent} onDescentEvent={recordDescent} systemCore={systemCore} onSystemCoreEvent={recordSystemCore} awakening={awakening} onAwakeningEvent={recordAwakening} onXP={recordXP} armorState={hud.hp < 35 ? "FRACTURE" : hud.heat > 65 ? "ASCENDANT" : hud.heat > 15 ? "ACTIVE" : "STABLE"} />
+            <Scene onHud={setHud} onDrops={(drops) => setProgression((current) => claimDrops(current, drops))} gear={progression} settings={settings} onCameraPreference={(firstPerson) => { window.localStorage.setItem("world-fracture-camera", firstPerson ? "first" : "third"); setSettings((current) => ({ ...current, firstPersonDefault: firstPerson })); }} playerClass={cls} subclassId={subclass} appearanceId={appearance} vehicleId={vehicleId} vehicleUnlocked={vehicleUnlocked} activeBuild={progression.activeBuild} abilityBranches={progression.abilityBranches} tutorial={tutorial} onTutorialEvent={recordTutorial} mission={mission} onMissionEvent={recordMission} blackout={blackout} onBlackoutEvent={recordBlackout} neonCore={neonCore} onNeonCoreEvent={recordNeonCore} descent={descent} onDescentEvent={recordDescent} systemCore={systemCore} onSystemCoreEvent={recordSystemCore} awakening={awakening} onAwakeningEvent={recordAwakening} onXP={recordXP} weaponOrder={activeLoadout(progression, progression.identityClass ?? cls).slots} travelTo={travelTo} armorState={hud.hp < 35 ? "FRACTURE" : hud.heat > 65 ? "ASCENDANT" : hud.heat > 15 ? "ACTIVE" : "STABLE"} />
         </Suspense>
         {post && (
           // cinematic grade: cool-leaning teal shadows, a touch more punch, so the HUD's cyan
@@ -643,6 +653,7 @@ export function GameCanvas() {
       }}</GraphicsGuard>
       </WorldErrorBoundary>
        <PerfOverlay />
+       {savedFlash > 0 && <p className="pointer-events-none fixed right-4 top-4 z-30 font-mono text-[10px] uppercase tracking-[0.25em] text-primary" role="status">◌ Auto-saved</p>}
        <VoiceSubtitle />
        <HUD hud={hud} tutorialActive={Boolean(tutorial && tutorial.step !== "VICTORY")} onMenu={() => { setInventoryOpen(false); setAtlasOpen(false); setOperationsView(null); setMenuOpen(true); }} onStrategy={() => setStrategyOpen(true)} onGarage={() => setGarageOpen(true)} onAnalyze={() => setAnalysisOpen(true)} onOperations={(view) => { setInventoryOpen(false); setAtlasOpen(false); setOperationsView(view); }} onInventory={() => { setAtlasOpen(false); setOperationsView(null); setInventoryOpen(true); }} onAtlas={() => { setInventoryOpen(false); setOperationsView(null); setAtlasOpen(true); }} />
        {!tutorial && !hud.insideInterior && <Minimap hud={hud} />}
@@ -661,7 +672,7 @@ export function GameCanvas() {
          </div>
        )}
        {inventoryOpen && <InventoryWindow progression={progression} onProgression={setProgression} onClose={() => setInventoryOpen(false)} />}
-       {atlasOpen && <WorldAtlas markers={hud.markers} px={hud.px} pz={hud.pz} currentRegion={hud.region} phase={hud.phase} onClose={() => setAtlasOpen(false)} />}
+       {atlasOpen && <WorldAtlas progression={progression} markers={hud.markers} px={hud.px} pz={hud.pz} currentRegion={hud.region} phase={hud.phase} onClose={() => setAtlasOpen(false)} />}
       {awakening && <AwakeningOverlay run={awakening} onEvent={recordAwakening} />}
       {mission && <BrokenSignalOverlay mission={mission} onEvent={recordMission} />}
       {blackout && <BlackoutProtocolOverlay mission={blackout} onEvent={recordBlackout} />}

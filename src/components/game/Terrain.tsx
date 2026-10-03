@@ -7,6 +7,8 @@ import type { RenderTier } from "@/game/performance";
 import { mulberry32 } from "@/game/useKeyboard";
 import { WATER_LEVEL, colorAt, heightAt, slopeAt } from "@/game/terrain";
 import { groundDetailTextures, propDetailTextures } from "@/game/detail-texture";
+import { applySurfaceBlend, loadGroundSurfaces, surfaceWeights } from "@/game/region-materials";
+import { RegionModels } from "./RegionModels";
 import { organicCanopy, organicRock } from "@/game/organic-geometry";
 import { LANE_HALF_WIDTH, distanceToRoad } from "@/game/lanes";
 import {
@@ -73,6 +75,8 @@ function Ground() {
     const geo = new THREE.PlaneGeometry(SIZE, SIZE, SEG, SEG);
     const pos = geo.attributes["position"] as THREE.BufferAttribute;
     const colors = new Float32Array(pos.count * 3);
+    const wA = new Float32Array(pos.count * 3);
+    const wB = new Float32Array(pos.count * 3);
     for (let i = 0; i < pos.count; i++) {
       const x = pos.getX(i);
       // plane is built in XY then rotated, so its local Y maps to world -Z
@@ -83,26 +87,28 @@ function Ground() {
       colors[i * 3] = r;
       colors[i * 3 + 1] = g;
       colors[i * 3 + 2] = b;
+      const w = surfaceWeights(x, z);
+      wA[i * 3] = w[0]!; wA[i * 3 + 1] = w[1]!; wA[i * 3 + 2] = w[2]!;
+      wB[i * 3] = w[3]!; wB[i * 3 + 1] = w[4]!; wB[i * 3 + 2] = w[5]!;
     }
     geo.setAttribute("color", new THREE.BufferAttribute(colors, 3));
+    geo.setAttribute("wA", new THREE.BufferAttribute(wA, 3));
+    geo.setAttribute("wB", new THREE.BufferAttribute(wB, 3));
     geo.computeVertexNormals();
     return geo;
   }, []);
 
   const { map, normalMap } = useMemo(() => groundDetailTextures(), []);
+  // Poly Haven region surfaces; procedural grain stays if any texture fails to load.
+  const [surfaces, setSurfaces] = useState<THREE.Texture[] | null>(null);
+  useEffect(() => { let live = true; void loadGroundSurfaces().then((t) => { if (live) setSurfaces(t); }); return () => { live = false; }; }, []);
+  const material = useMemo(() => {
+    const m = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.95, metalness: 0.02, map: surfaces ? null : map, normalMap, normalScale: new THREE.Vector2(0.35, 0.35) });
+    if (surfaces) applySurfaceBlend(m, surfaces);
+    return m;
+  }, [surfaces, map, normalMap]);
 
-  return (
-    <mesh geometry={geometry} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
-      <meshStandardMaterial
-        vertexColors
-        roughness={0.95}
-        metalness={0.02}
-        map={map}
-        normalMap={normalMap}
-        normalScale={new THREE.Vector2(0.35, 0.35)}
-      />
-    </mesh>
-  );
+  return <mesh geometry={geometry} material={material} rotation={[-Math.PI / 2, 0, 0]} receiveShadow />;
 }
 
 export function Terrain({ renderTier = "HIGH" }: { renderTier?: RenderTier } = {}) {
@@ -191,6 +197,7 @@ export function Terrain({ renderTier = "HIGH" }: { renderTier?: RenderTier } = {
   return (
     <group>
       <Ground />
+      {renderTier !== "LOW" && <RegionModels />}
 
       {/* forest: trunk + two staggered canopy layers, hue-jittered per instance so the
           treeline reads as a forest instead of one stamped-out cone repeated 120 times */}
