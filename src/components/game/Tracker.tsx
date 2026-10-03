@@ -10,7 +10,7 @@ export function Compass({ markers, yaw }: { markers: TrackedMarker[]; yaw: numbe
   const heading = ((-yaw * 180) / Math.PI + 360 * 4) % 360;
   const dirs = [["N", 0], ["E", 90], ["S", 180], ["W", 270]] as const;
   return (
-    <div className="pointer-events-none absolute left-1/2 top-3 h-12 w-[min(34rem,70vw)] -translate-x-1/2 overflow-hidden hud-panel hud-scanline bg-gradient-to-b from-background/70 to-transparent" aria-label="Compass">
+    <div className="pointer-events-none absolute left-1/2 top-3 h-12 w-[min(34rem,70vw)] -translate-x-1/2 overflow-hidden border-t border-foreground/20 bg-gradient-to-b from-background/35 to-transparent" aria-label="Compass">
       {dirs.map(([label, deg]) => {
         let rel = deg - heading; rel = ((rel + 540) % 360) - 180;
         if (Math.abs(rel) > 90) return null;
