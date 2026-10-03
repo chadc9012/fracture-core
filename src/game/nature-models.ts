@@ -5,14 +5,14 @@
  * correctly with a single draw call per species. */
 import { useMemo } from "react";
 import * as THREE from "three";
-import { useGLTF } from "@react-three/drei";
+import { readModel } from "./asset-loader";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import { MODELS, type ModelKey } from "./models";
 
 export type InstancedModel = { geometry: THREE.BufferGeometry; material: THREE.Material };
 
 export function useInstancedModel(key: ModelKey): InstancedModel | null {
-  const gltf = useGLTF(MODELS[key]) as unknown as { scene: THREE.Object3D };
+  const gltf = { scene: readModel(MODELS[key]) };
   return useMemo(() => {
     gltf.scene.updateMatrixWorld(true);
     const meshes: THREE.Mesh[] = [];
@@ -37,5 +37,5 @@ export function useInstancedModel(key: ModelKey): InstancedModel | null {
     if ("vertexColors" in material) (material as THREE.MeshStandardMaterial).vertexColors = geometry.hasAttribute("color");
 
     return { geometry, material };
-  }, [gltf]);
+  }, [gltf.scene]);
 }

@@ -1,4 +1,4 @@
-import { useGLTF } from "@react-three/drei";
+import { preloadModel, readModel } from "@/game/asset-loader";
 import { useFrame } from "@react-three/fiber";
 import { useMemo, useRef } from "react";
 import * as THREE from "three";
@@ -7,7 +7,7 @@ import { MODELS, type ModelKey } from "@/game/models";
 
 /** deep clone of a loaded GLB so the same asset can appear many times */
 export function useModel(key: ModelKey) {
-  const { scene } = useGLTF(MODELS[key]);
+  const scene = readModel(MODELS[key]);
   return useMemo(() => {
     const root = scene.clone(true);
     root.traverse((o) => {
@@ -91,4 +91,4 @@ export function Car({
   );
 }
 
-Object.values(MODELS).forEach((url) => useGLTF.preload(url));
+if (typeof window !== "undefined") Object.values(MODELS).forEach((url) => void preloadModel(url));
