@@ -1,3 +1,4 @@
+import { RoundedBox } from "@react-three/drei";
 import { useFrame } from "@react-three/fiber";
 import { useMemo, useRef } from "react";
 import * as THREE from "three";
@@ -199,9 +200,9 @@ function RegionalEnemy({ kind, boss }: { kind: "RAIDER" | "OVERCLOCKED" | "ABERR
   const metal = kind === "RAIDER" ? "#765949" : kind === "ABERRATION" ? "#375c43" : kind === "VANGUARD" ? "#5b7481" : "#636c85";
   const glow = kind === "RAIDER" ? "#f36b33" : kind === "ABERRATION" ? "#83dc89" : "#58d8ef";
   return <group>
-    <mesh position-y={2.1} castShadow><boxGeometry args={[1.4, 2.2, 0.8]} /><meshStandardMaterial color={metal} roughness={0.55} metalness={kind === "ABERRATION" ? 0.1 : 0.65} /></mesh>
-    <mesh position-y={3.65} castShadow><icosahedronGeometry args={[0.68, 1]} /><meshStandardMaterial color={metal} metalness={0.5} roughness={0.4} /></mesh>
-    <mesh position={[0, 3.65, 0.59]}><boxGeometry args={[0.9, 0.2, 0.16]} /><meshStandardMaterial color={glow} emissive={glow} emissiveIntensity={2} /></mesh>
+    <RoundedBox args={[1.4, 2.2, 0.8]} radius={0.16} smoothness={4} position-y={2.1} castShadow><meshStandardMaterial color={metal} roughness={0.55} metalness={kind === "ABERRATION" ? 0.1 : 0.65} /></RoundedBox>
+    <mesh position-y={3.65} castShadow><icosahedronGeometry args={[0.68, 2]} /><meshStandardMaterial color={metal} metalness={0.5} roughness={0.4} /></mesh>
+    <RoundedBox args={[0.9, 0.2, 0.16]} radius={0.04} smoothness={2} position={[0, 3.65, 0.59]}><meshStandardMaterial color={glow} emissive={glow} emissiveIntensity={2} /></RoundedBox>
     {[-1, 1].map((side) => <group key={side}>
       <mesh position={[side * 1.04, 2, 0]} rotation-z={side * 0.25} castShadow><capsuleGeometry args={[0.25, 1.15, 4, 6]} /><meshStandardMaterial color={metal} metalness={0.5} /></mesh>
       <mesh position={[side * 0.45, 0.58, 0]} castShadow><capsuleGeometry args={[0.3, 1.2, 4, 6]} /><meshStandardMaterial color={metal} metalness={0.35} /></mesh>

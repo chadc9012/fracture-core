@@ -1,3 +1,4 @@
+import { RoundedBox } from "@react-three/drei";
 import { useFrame } from "@react-three/fiber";
 import { useMemo, useRef } from "react";
 import * as THREE from "three";
@@ -63,15 +64,15 @@ function Deer({ phase, fleeing }: { phase: number; fleeing: boolean }) {
   });
   return (
     <group scale={1.1}>
-      <mesh position={[0, 0.95, 0]} castShadow><boxGeometry args={[0.55, 0.55, 1.15]} /><meshStandardMaterial color="#8a6141" roughness={0.9} /></mesh>
-      <mesh position={[0, 1.15, 0.75]} rotation-x={0.35} castShadow><boxGeometry args={[0.32, 0.32, 0.5]} /><meshStandardMaterial color="#8a6141" roughness={0.9} /></mesh>
-      <mesh position={[0, 1.4, 0.98]} castShadow><boxGeometry args={[0.24, 0.26, 0.3]} /><meshStandardMaterial color="#9a7452" roughness={0.9} /></mesh>
+      <RoundedBox args={[0.55, 0.55, 1.15]} radius={0.12} smoothness={4} position={[0, 0.95, 0]} castShadow><meshStandardMaterial color="#8a6141" roughness={0.9} /></RoundedBox>
+      <RoundedBox args={[0.32, 0.32, 0.5]} radius={0.08} smoothness={4} position={[0, 1.15, 0.75]} rotation-x={0.35} castShadow><meshStandardMaterial color="#8a6141" roughness={0.9} /></RoundedBox>
+      <RoundedBox args={[0.24, 0.26, 0.3]} radius={0.06} smoothness={4} position={[0, 1.4, 0.98]} castShadow><meshStandardMaterial color="#9a7452" roughness={0.9} /></RoundedBox>
       {[[-0.09, 1.62, 1.02], [0.09, 1.62, 1.02]].map((p, i) => (
-        <mesh key={i} position={p as [number, number, number]} rotation-x={-0.3}><coneGeometry args={[0.03, 0.28, 4]} /><meshStandardMaterial color="#4a3a2a" roughness={0.8} /></mesh>
+        <mesh key={i} position={p as [number, number, number]} rotation-x={-0.3}><coneGeometry args={[0.03, 0.28, 8]} /><meshStandardMaterial color="#4a3a2a" roughness={0.8} /></mesh>
       ))}
       <group ref={legRef} position={[0, 0.68, 0]}>
         {[[-0.2, 0, 0.42], [0.2, 0, 0.42], [-0.2, 0, -0.42], [0.2, 0, -0.42]].map((p, i) => (
-          <mesh key={i} position={p as [number, number, number]} castShadow><cylinderGeometry args={[0.06, 0.05, 0.68, 5]} /><meshStandardMaterial color="#5c4028" roughness={0.9} /></mesh>
+          <mesh key={i} position={p as [number, number, number]} castShadow><cylinderGeometry args={[0.06, 0.05, 0.68, 8]} /><meshStandardMaterial color="#5c4028" roughness={0.9} /></mesh>
         ))}
       </group>
     </group>
@@ -88,10 +89,10 @@ function Bird({ phase }: { phase: number }) {
   });
   return (
     <group scale={0.6}>
-      <mesh castShadow><sphereGeometry args={[0.16, 8, 6]} /><meshStandardMaterial color="#d8d3c4" roughness={0.85} /></mesh>
+      <mesh castShadow><sphereGeometry args={[0.16, 12, 8]} /><meshStandardMaterial color="#d8d3c4" roughness={0.85} /></mesh>
       <mesh ref={left} position={[-0.12, 0, 0]}><planeGeometry args={[0.5, 0.14]} /><meshStandardMaterial color="#8f887a" side={THREE.DoubleSide} roughness={0.9} /></mesh>
       <mesh ref={right} position={[0.12, 0, 0]}><planeGeometry args={[0.5, 0.14]} /><meshStandardMaterial color="#8f887a" side={THREE.DoubleSide} roughness={0.9} /></mesh>
-      <mesh position={[0, 0, -0.16]} rotation-x={Math.PI / 2}><coneGeometry args={[0.05, 0.16, 4]} /><meshStandardMaterial color="#e0b23a" roughness={0.7} /></mesh>
+      <mesh position={[0, 0, -0.16]} rotation-x={Math.PI / 2}><coneGeometry args={[0.05, 0.16, 8]} /><meshStandardMaterial color="#e0b23a" roughness={0.7} /></mesh>
     </group>
   );
 }
@@ -101,8 +102,8 @@ function Fish({ phase }: { phase: number }) {
   useFrame(() => { if (tail.current) tail.current.rotation.y = Math.sin(phase * 4) * 0.5; });
   return (
     <group scale={0.5} rotation-x={0} >
-      <mesh rotation-z={Math.PI / 2} castShadow><capsuleGeometry args={[0.12, 0.4, 4, 8]} /><meshStandardMaterial color="#5aa3c9" metalness={0.3} roughness={0.5} /></mesh>
-      <mesh ref={tail} position={[0, 0, -0.32]}><coneGeometry args={[0.16, 0.24, 4]} /><meshStandardMaterial color="#3d7fa3" metalness={0.3} roughness={0.5} /></mesh>
+      <mesh rotation-z={Math.PI / 2} castShadow><capsuleGeometry args={[0.12, 0.4, 6, 10]} /><meshStandardMaterial color="#5aa3c9" metalness={0.3} roughness={0.5} /></mesh>
+      <mesh ref={tail} position={[0, 0, -0.32]}><coneGeometry args={[0.16, 0.24, 8]} /><meshStandardMaterial color="#3d7fa3" metalness={0.3} roughness={0.5} /></mesh>
     </group>
   );
 }
@@ -117,15 +118,15 @@ function Quadruped({ phase, fleeing, body, ear }: { phase: number; fleeing: bool
   });
   return (
     <group scale={0.55}>
-      <mesh position={[0, 0.5, 0]} castShadow><boxGeometry args={[0.4, 0.36, 0.75]} /><meshStandardMaterial color={body} roughness={0.85} /></mesh>
-      <mesh position={[0, 0.62, 0.5]} castShadow><boxGeometry args={[0.28, 0.28, 0.3]} /><meshStandardMaterial color={body} roughness={0.85} /></mesh>
+      <RoundedBox args={[0.4, 0.36, 0.75]} radius={0.1} smoothness={4} position={[0, 0.5, 0]} castShadow><meshStandardMaterial color={body} roughness={0.85} /></RoundedBox>
+      <RoundedBox args={[0.28, 0.28, 0.3]} radius={0.07} smoothness={4} position={[0, 0.62, 0.5]} castShadow><meshStandardMaterial color={body} roughness={0.85} /></RoundedBox>
       {[[-0.1, 0.82, 0.58], [0.1, 0.82, 0.58]].map((p, i) => (
-        <mesh key={i} position={p as [number, number, number]}><coneGeometry args={[0.06, 0.14, 4]} /><meshStandardMaterial color={ear} roughness={0.8} /></mesh>
+        <mesh key={i} position={p as [number, number, number]}><coneGeometry args={[0.06, 0.14, 8]} /><meshStandardMaterial color={ear} roughness={0.8} /></mesh>
       ))}
-      <mesh ref={tail} position={[0, 0.6, -0.45]} rotation-x={0.6}><coneGeometry args={[0.05, 0.32, 4]} /><meshStandardMaterial color={body} roughness={0.85} /></mesh>
+      <mesh ref={tail} position={[0, 0.6, -0.45]} rotation-x={0.6}><coneGeometry args={[0.05, 0.32, 8]} /><meshStandardMaterial color={body} roughness={0.85} /></mesh>
       <group ref={legRef} position={[0, 0.28, 0]}>
         {[[-0.14, 0, 0.28], [0.14, 0, 0.28], [-0.14, 0, -0.28], [0.14, 0, -0.28]].map((p, i) => (
-          <mesh key={i} position={p as [number, number, number]}><cylinderGeometry args={[0.045, 0.04, 0.44, 5]} /><meshStandardMaterial color={body} roughness={0.85} /></mesh>
+          <mesh key={i} position={p as [number, number, number]}><cylinderGeometry args={[0.045, 0.04, 0.44, 8]} /><meshStandardMaterial color={body} roughness={0.85} /></mesh>
         ))}
       </group>
     </group>
