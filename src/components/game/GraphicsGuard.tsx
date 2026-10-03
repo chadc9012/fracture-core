@@ -19,7 +19,7 @@ export function GraphicsGuard({ children }: { children: (caps: GraphicsSupport, 
     let drew = false;
     const check = () => { drew = true; };
     requestAnimationFrame(() => requestAnimationFrame(check));
-    window.setTimeout(() => { if (!drew || state.gl.getContext().isContextLost()) setStalled(true); }, 15000);
+    window.setTimeout(() => { if (document.visibilityState === "visible" && (!drew || state.gl.getContext().isContextLost())) setStalled(true); }, 15000);
   }, []);
 
   if (!caps) return null;
