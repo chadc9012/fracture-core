@@ -1,3 +1,4 @@
+// @ts-ignore bun test runner types are not installed
 import { describe, expect, it } from "bun:test";
 import { sampleWeather } from "./weather-cycle";
 import { createAi, sightRange, stepAwareness, ALERT_AT } from "./enemy-perception";
