@@ -12,6 +12,7 @@ import type { MissionEvent as BlackoutEvent, MissionRun as BlackoutRun } from "@
 import type { MissionEvent as NeonCoreEvent, MissionRun as NeonCoreRun } from "@/game/missions/stitched-neon-core";
 import type { MissionEvent as DescentEvent, MissionRun as DescentRun } from "@/game/missions/descent-protocol";
 import type { MissionEvent as SystemCoreEvent, MissionRun as SystemCoreRun } from "@/game/missions/system-core";
+import { introCameraAt } from "@/game/intro-camera";
 import type { AwakeningEvent, AwakeningRun } from "@/game/missions/awakening";
 import { directorTrend, type Mission } from "@/game/director";
 import { isStaggered, isWeakPointOpen, POISE_MAX } from "@/game/boss-poise";
@@ -295,6 +296,7 @@ export function Scene({
   weaponOrder = WEAPON_ORDER,
   travelTo = null,
   onCheckpoint,
+  introPlayback,
 }: {
   onHud: (s: HudState) => void;
   settings?: GameSettings;
@@ -329,6 +331,10 @@ export function Scene({
   /** star map deployment target; nonce changes trigger the drop */
   travelTo?: { x: number; z: number; nonce: number } | null;
   onCheckpoint?: (p: { x: number; z: number }) => void;
+  /** Opening cinematic: while set, the camera follows intro-camera.ts's scripted flythrough
+   * instead of the normal player follow-cam — IntroCinematic.tsx's overlay fades out over this
+   * same window, so this is the literal "world reveal" the player sees underneath it. */
+  introPlayback?: { elapsed: number; totalSeconds: number } | null;
 }) {
   const orderRef = useRef(weaponOrder); orderRef.current = weaponOrder;
   const travelSeen = useRef(0);
@@ -1425,36 +1431,47 @@ export function Scene({
     }
 
     /* ---------------- camera ---------------- */
-    const override = !s.inVehicle && (s.meleeTime > 0 || s.specialTime > 0);
-    const targetBlend = override || !s.firstPerson ? 1 : 0;
-    s.cameraBlend += (targetBlend - s.cameraBlend) * (1 - Math.exp(-15 * dt));
-    const shoulder = s.inVehicle ? 0 : 1.3;
-    const distance = s.inVehicle ? 14 : 5.8;
-    camTarget.set(
-      s.x + Math.sin(s.yaw) * (s.inVehicle ? 1 : 0.15) + (Math.cos(s.yaw) * shoulder - Math.sin(s.yaw) * distance) * s.cameraBlend,
-      s.y + (s.inVehicle ? 1.5 : 0.95) + (s.inVehicle ? 5 : 2.2) * s.cameraBlend,
-      s.z + Math.cos(s.yaw) * (s.inVehicle ? 1 : 0.15) + (-Math.sin(s.yaw) * shoulder - Math.cos(s.yaw) * distance) * s.cameraBlend,
-    );
-    camTarget.y = Math.max(camTarget.y, (interior ? INTERIOR_ALTITUDE : walkHeight(camTarget.x, camTarget.z)) + 1.35);
-    camera.position.lerp(camTarget, 1 - Math.exp(-18 * dt));
-    const kickPitch = s.pitch + s.recoil;
-    const shakeAmt = Math.min(0.08, s.punch * 0.012);
-    camera.position.x += (Math.random() - 0.5) * shakeAmt;
-    camera.position.y += (Math.random() - 0.5) * shakeAmt;
-    cameraDirection.set(Math.sin(s.yaw) * Math.cos(kickPitch), Math.sin(kickPitch), Math.cos(s.yaw) * Math.cos(kickPitch));
-    look.copy(camera.position).addScaledVector(cameraDirection, 60);
-    camera.lookAt(look);
-    if (camera instanceof THREE.PerspectiveCamera) {
-      const desiredFov = (mouse.current.aim || padState.current.aim) ? 48 : 78;
-      camera.fov += (desiredFov - camera.fov) * (1 - Math.exp(-12 * dt));
-      camera.updateProjectionMatrix();
-    }
-    if (viewmodel.current) {
-      viewmodel.current.visible = !s.inVehicle && s.cameraBlend < 0.22;
-      viewmodel.current.position.copy(camera.position);
-      viewmodel.current.quaternion.copy(camera.quaternion);
-      if (gunModel.current) { gunModel.current.visible = WEAPONS[s.weapon].kind === "gun"; gunModel.current.position.z = Math.min(0.35, s.punch * 0.06); gunModel.current.rotation.x = s.recoil * 3; }
-      if (swordModel.current) { swordModel.current.visible = WEAPONS[s.weapon].kind === "sword"; const t = s.swing / 0.3; swordModel.current.rotation.z = (s.combo % 2 ? 1 : -1) * (t > 0 ? (1 - t) * 2.4 - 1.2 : -0.35); }
+    if (introPlayback) {
+      // Opening cinematic: the scripted flythrough owns the camera outright — no follow-cam
+      // lerp, no shake/recoil/FOV kick, no viewmodel (there's no weapon drawn yet at this point
+      // in onboarding). Normal control resumes the instant IntroCinematic.tsx unmounts and this
+      // prop goes away, at which point the follow-cam picks up from exactly where this leaves it.
+      const pose = introCameraAt(introPlayback.elapsed, introPlayback.totalSeconds);
+      camera.position.set(pose.position[0], pose.position[1], pose.position[2]);
+      camera.lookAt(pose.lookAt[0], pose.lookAt[1], pose.lookAt[2]);
+      if (viewmodel.current) viewmodel.current.visible = false;
+    } else {
+      const override = !s.inVehicle && (s.meleeTime > 0 || s.specialTime > 0);
+      const targetBlend = override || !s.firstPerson ? 1 : 0;
+      s.cameraBlend += (targetBlend - s.cameraBlend) * (1 - Math.exp(-15 * dt));
+      const shoulder = s.inVehicle ? 0 : 1.3;
+      const distance = s.inVehicle ? 14 : 5.8;
+      camTarget.set(
+        s.x + Math.sin(s.yaw) * (s.inVehicle ? 1 : 0.15) + (Math.cos(s.yaw) * shoulder - Math.sin(s.yaw) * distance) * s.cameraBlend,
+        s.y + (s.inVehicle ? 1.5 : 0.95) + (s.inVehicle ? 5 : 2.2) * s.cameraBlend,
+        s.z + Math.cos(s.yaw) * (s.inVehicle ? 1 : 0.15) + (-Math.sin(s.yaw) * shoulder - Math.cos(s.yaw) * distance) * s.cameraBlend,
+      );
+      camTarget.y = Math.max(camTarget.y, (interior ? INTERIOR_ALTITUDE : walkHeight(camTarget.x, camTarget.z)) + 1.35);
+      camera.position.lerp(camTarget, 1 - Math.exp(-18 * dt));
+      const kickPitch = s.pitch + s.recoil;
+      const shakeAmt = Math.min(0.08, s.punch * 0.012);
+      camera.position.x += (Math.random() - 0.5) * shakeAmt;
+      camera.position.y += (Math.random() - 0.5) * shakeAmt;
+      cameraDirection.set(Math.sin(s.yaw) * Math.cos(kickPitch), Math.sin(kickPitch), Math.cos(s.yaw) * Math.cos(kickPitch));
+      look.copy(camera.position).addScaledVector(cameraDirection, 60);
+      camera.lookAt(look);
+      if (camera instanceof THREE.PerspectiveCamera) {
+        const desiredFov = (mouse.current.aim || padState.current.aim) ? 48 : 78;
+        camera.fov += (desiredFov - camera.fov) * (1 - Math.exp(-12 * dt));
+        camera.updateProjectionMatrix();
+      }
+      if (viewmodel.current) {
+        viewmodel.current.visible = !s.inVehicle && s.cameraBlend < 0.22;
+        viewmodel.current.position.copy(camera.position);
+        viewmodel.current.quaternion.copy(camera.quaternion);
+        if (gunModel.current) { gunModel.current.visible = WEAPONS[s.weapon].kind === "gun"; gunModel.current.position.z = Math.min(0.35, s.punch * 0.06); gunModel.current.rotation.x = s.recoil * 3; }
+        if (swordModel.current) { swordModel.current.visible = WEAPONS[s.weapon].kind === "sword"; const t = s.swing / 0.3; swordModel.current.rotation.z = (s.combo % 2 ? 1 : -1) * (t > 0 ? (1 - t) * 2.4 - 1.2 : -0.35); }
+      }
     }
 
     /* ---------------- HUD ---------------- */

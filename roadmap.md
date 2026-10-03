@@ -81,6 +81,7 @@
 - [x] Add The Anomaly Prime as the named final boss of The Fracture Core raid.
 - [x] Add Neon City (Nexus-adjacent market/cybernetics district) and Thalassia (sunken ark-city) as explorable locations.
 - [x] Add a skippable opening cinematic (THE FRACTURE / factions / signal / NOVA first contact) between Identity Forge and the tutorial chamber.
+- [x] Give the opening cinematic an actual camera flythrough + NOVA voice beats + world reveal, instead of text on a flat black screen: Scene.tsx's real camera (not a separate render) now flies a scripted path (src/game/intro-camera.ts — wide orbit over the shattered regions, a lateral pass, then a descent into spawn) while IntroCinematic.tsx's black veil clears across the SIGNAL/NOVA beats and closes in with letterbox bars, so the "reveal" is the actual live world the player is about to drop into. NOVA's lines now land as a timed run of blips per word instead of one flat chime, closer to a paced voice line. The flythrough's last frame matches Scene's resting third-person camera exactly, so control hands back to the player as a clean cut, not a pop.
 - [x] Give named regional bosses three real combat phases (speed/damage/cooldown escalation + phase-change cue) instead of one flat health bar.
 - [x] Add a safe-state layer (frame-loop error recovery, soft-fail save/load, world-crash recovery screen) so a bad frame or save never hard-crashes gameplay.
 - [x] Add a Global Balance Controller — damage scaling and reward pacing tied to a player-power score, so progression doesn't trivialize early or turn unfair late.

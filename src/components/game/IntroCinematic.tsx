@@ -4,21 +4,33 @@ import { playIntroSwell, playNovaActivation } from "@/game/audio";
 import { speakVoice, stopVoice } from "@/game/voice-director";
 
 /**
- * Full-screen opening cinematic — dark, text-driven beats in the Destiny-style "the world is
- * already broken when you arrive" register, played once right after Identity Forge and before
- * the tutorial trial chamber takes over. Purely a presentation layer over intro.ts's stage data;
- * skippable at any time (click, Enter/Space, or Escape) since nothing here gates progression —
- * the tutorial chamber underneath is already running and will pick up the moment this unmounts.
+ * Full-screen opening cinematic — intro.ts's text beats playing over the real, running world
+ * (GameCanvas.tsx mounts this directly on top of the live <Scene>, which Scene.tsx is already
+ * flying through on a scripted path per intro-camera.ts/the `introPlayback` prop). This component
+ * owns the "world reveal": a black veil that starts near-opaque for the first two beats (so the
+ * THE FRACTURE / A WORLD AT WAR text reads clearly against whatever's moving underneath) and
+ * clears through SIGNAL/NOVA as the flythrough descends toward spawn, so by the final beat the
+ * player is looking at the actual game world, not a title card. Letterbox bars sell the cut away
+ * from "cinematic" framing to the HUD's normal 16:9-ish gameplay view the instant this unmounts.
+ * Skippable at any time (click, Enter/Space, or Escape) since nothing here gates progression —
+ * Scene.tsx's `introPlayback` prop goes away the moment onComplete fires, handing the camera back
+ * to the normal follow-cam exactly where the flythrough left it.
  */
-export function IntroCinematic({ onComplete }: { onComplete: () => void }) {
+export function IntroCinematic({ onComplete, onTick }: { onComplete: () => void; onTick?: (elapsed: number) => void }) {
   const [elapsed, setElapsed] = useState(0);
   const stageSeen = useRef(-1);
   const start = useRef(performance.now());
+  const total = introTotalSeconds();
 
   useEffect(() => {
     playIntroSwell();
-    const id = window.setInterval(() => setElapsed((performance.now() - start.current) / 1000), 80);
+    const id = window.setInterval(() => {
+      const next = (performance.now() - start.current) / 1000;
+      setElapsed(next);
+      onTick?.(next);
+    }, 80);
     return () => window.clearInterval(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const position = introStageAt(elapsed);
@@ -30,6 +42,13 @@ export function IntroCinematic({ onComplete }: { onComplete: () => void }) {
     const speaker = position.stage.id === "nova" ? "NOVA" : "NARRATOR";
     speakVoice({ id: `intro-${position.stage.id}`, scope: "intro", speaker, text: position.stage.lines.map((line) => line.replace(/^NOVA:\s*/, "")).join(" "), priority: "critical" });
   }, [position]);
+
+  // World-reveal veil: opaque through the first two beats, clears across SIGNAL -> NOVA as the
+  // flythrough (intro-camera.ts) descends toward spawn, landing near-transparent by the final
+  // frame so the cut to live gameplay reads as a reveal, not a pop.
+  const revealFrom = total * 0.52;
+  const veilT = total > revealFrom ? Math.max(0, Math.min(1, (elapsed - revealFrom) / (total - revealFrom))) : 0;
+  const veilAlpha = 0.94 - veilT * veilT * 0.8;
 
   useEffect(() => {
     if (!position) { stopVoice("intro"); onComplete(); }
@@ -46,15 +65,20 @@ export function IntroCinematic({ onComplete }: { onComplete: () => void }) {
   const fadeIn = Math.min(1, stageElapsed / 0.6);
   const fadeOut = Math.min(1, (stage.holdSeconds - stageElapsed) / 0.6);
   const opacity = Math.min(fadeIn, fadeOut);
-  const total = introTotalSeconds();
+  // Letterbox bars close in as the veil clears, selling "cinematic" framing right up to the cut —
+  // widest once the world is actually visible behind the text, gone the instant this unmounts.
+  const letterbox = 2 + veilT * 9;
 
   return (
     <div
-      className="fixed inset-0 z-[100] flex cursor-pointer flex-col items-center justify-center bg-black"
+      className="fixed inset-0 z-[100] flex cursor-pointer flex-col items-center justify-center"
+      style={{ backgroundColor: `rgba(0,0,0,${veilAlpha})` }}
       onClick={() => { stopVoice("intro"); onComplete(); }}
     >
       <div className="hud-scanline pointer-events-none absolute inset-0 opacity-20" />
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0%,rgba(0,0,0,0.85)_78%)]" />
+      <div className="pointer-events-none absolute inset-x-0 top-0 bg-black transition-[height] duration-300" style={{ height: `${letterbox}vh` }} />
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-black transition-[height] duration-300" style={{ height: `${letterbox}vh` }} />
       <div className="relative w-[min(90vw,44rem)] text-center" style={{ opacity }}>
         <p className="font-mono text-[11px] uppercase tracking-[0.45em] text-primary" style={{ textShadow: "0 0 16px color-mix(in oklch, var(--primary) 60%, transparent)" }}>
           {stage.kicker}
