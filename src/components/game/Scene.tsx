@@ -53,6 +53,7 @@ import { exitVehicleMomentum, parkourChainBonus, vaultLunge } from "@/game/parko
 import { anySensorSees, detectionStateFor, lockdownStatus, nexusSensors, stepDetectionMeter, stepHackProgress, type DetectionState, type LockdownTier } from "@/game/stealth";
 import { INTERIORS, INTERIOR_ALTITUDE, doorAt, atExitMarker, interiorById, isInteriorOpen } from "@/game/interiors";
 import { Interiors } from "./Interiors";
+import { UnderwaterAtmosphere } from "./UnderwaterAtmosphere";
 
 import type { GameSettings } from "./SettingsWindow";
 import { WEAPONS, WEAPON_ORDER, decay, freshAmmo, type WeaponId } from "@/game/weapons";
@@ -281,6 +282,7 @@ export function Scene({
   awakening,
   onAwakeningEvent,
   onXP,
+  paused = false,
 }: {
   onHud: (s: HudState) => void;
   settings?: GameSettings;
@@ -306,6 +308,7 @@ export function Scene({
   awakening?: AwakeningRun | null;
   onAwakeningEvent?: (event: AwakeningEvent) => void;
   onXP?: (event: WorldSim["xpEvents"][number]) => void;
+  paused?: boolean;
 }) {
   const keys = useKeyboard();
   const sim = useMemo<WorldSim>(() => createSim(), []);
@@ -352,6 +355,7 @@ export function Scene({
   };
   const moon = useRef<THREE.DirectionalLight>(null!);
   const moonMesh = useRef<THREE.Mesh>(null!);
+  const sunTarget = useRef<THREE.Object3D>(null!);
   const time = useRef(0.28);
   const sunDir = useRef(new THREE.Vector3(0.4, 0.9, 0.3));
   const carSpeed = useRef(0);
@@ -525,6 +529,8 @@ export function Scene({
   const gunModel = useRef<THREE.Group>(null);
   const swordModel = useRef<THREE.Group>(null);
   const viewmodel = useRef<THREE.Group>(null);
+  const divingVisual = useRef(false);
+  const locomotionClock = useRef(0);
   const mouse = useRef({ fire: false, aim: false });
   const padPrev = useRef<boolean[]>([]);
   const keyPrev = useRef<Set<string>>(new Set());
@@ -542,6 +548,8 @@ export function Scene({
   useEffect(() => sfx.setMixVolumes(settings.musicVolume ?? 1, settings.sfxVolume ?? 1), [settings.musicVolume, settings.sfxVolume]);
   const skyColor = useMemo(() => new THREE.Color(), []);
   const fogColor = useMemo(() => new THREE.Color(), []);
+  const underwaterColor = useMemo(() => new THREE.Color("#031b2a"), []);
+  const underwaterFogColor = useMemo(() => new THREE.Color("#06394b"), []);
   const instabilityColor = useMemo(() => new THREE.Color("#ff2d55"), []);
   const lightColor = useMemo(() => new THREE.Color(), []);
   const { scene, gl } = useThree();
@@ -585,6 +593,11 @@ export function Scene({
     // transition) skips this frame instead of throwing into React Three Fiber's render loop.
     if (!s || !sim) return;
     if (!isValidPlayerState(s)) { Object.assign(s, sanitizePlayerState(s)); }
+    if (paused) {
+      mouse.current.fire = false;
+      mouse.current.aim = false;
+      return;
+    }
     try {
     /* Interior Building system — non-null while the player is inside a pocket-dimension room (see @/game/interiors) */
     let interior = interiorById(s.insideInterior);
@@ -606,9 +619,14 @@ export function Scene({
 
     const theta = (((time.current % 1) + 1) % 1) * Math.PI * 2 - Math.PI / 2;
     if (sun.current) {
-      sun.current.position.set(Math.cos(theta) * 140, Math.sin(theta) * 150 + 8, 70);
+      sun.current.position.set(s.x + Math.cos(theta) * 115, Math.sin(theta) * 130 + 42, s.z + 68);
       sun.current.intensity = Math.max(0, intensityAt(time.current));
       sun.current.color.copy(lightColor);
+      if (sunTarget.current) {
+        sunTarget.current.position.set(s.x, walkHeight(s.x, s.z), s.z);
+        sunTarget.current.updateMatrixWorld();
+        sun.current.target = sunTarget.current;
+      }
     }
     sunDir.current.set(Math.cos(theta), Math.max(-0.2, Math.sin(theta)), 0.42).normalize();
     if (sky.current) {
@@ -743,6 +761,16 @@ export function Scene({
     /* ---------------- oxygen: depletes while diving below the surface, regenerates everywhere else ---------------- */
     s.oxygen = oxygenStep(s.oxygen, dt, s.diving);
     const depth = s.diving ? Math.max(0, WATER_LEVEL - s.y) : 0;
+    divingVisual.current = s.diving;
+    if (s.diving) {
+      scene.background = underwaterColor;
+      if (scene.fog instanceof THREE.Fog) {
+        scene.fog.color.copy(underwaterFogColor);
+        scene.fog.near = 8;
+        scene.fog.far = Math.max(48, 105 - depth * 2.2);
+      }
+      if (sun.current) sun.current.intensity *= 0.34;
+    }
     const oxygenPenalty = lowOxygenPenalty(s.oxygen);
     if (s.diving && s.oxygen <= 0 && Math.random() < dt * 0.6) sim.hp = Math.max(1, sim.hp - 4); // drowning trickle damage, never a hard kill on its own
 
@@ -947,6 +975,7 @@ export function Scene({
       }
       s.x += velocity.x * dt;
       s.z += velocity.z * dt;
+      locomotionClock.current += velocity.length() * dt * 0.32;
       if (tutorial?.step === "MOVEMENT") { const travel = Math.hypot(s.x - SPAWN.x, s.z - SPAWN.z); if (travel >= (lastGate.current + 1) * 10 && lastGate.current < 3) { lastGate.current++; onTutorialEvent?.("GATE"); } }
     }
 
@@ -1320,6 +1349,11 @@ export function Scene({
     );
     camTarget.y = Math.max(camTarget.y, (interior ? INTERIOR_ALTITUDE : walkHeight(camTarget.x, camTarget.z)) + 1.35);
     camera.position.lerp(camTarget, 1 - Math.exp(-18 * dt));
+    if (!s.inVehicle && s.grounded && velocity.length() > 1 && s.cameraBlend < 0.4) {
+      const motion = Math.min(1, velocity.length() / 42);
+      camera.position.y += Math.abs(Math.sin(locomotionClock.current * 2)) * 0.045 * motion;
+      camera.position.x += Math.sin(locomotionClock.current) * 0.025 * motion;
+    }
     const kickPitch = s.pitch + s.recoil;
     const shakeAmt = Math.min(0.08, s.punch * 0.012);
     camera.position.x += (Math.random() - 0.5) * shakeAmt;
@@ -1510,6 +1544,7 @@ export function Scene({
         shadow-camera-bottom={-130}
         shadow-camera-far={520}
       />
+      <object3D ref={sunTarget} />
       <directionalLight ref={moon} position={[-90, 110, -70]} color="#9fc4ff" intensity={0.3} />
       <mesh ref={moonMesh} position={[-200, 200, -140]}>
         <sphereGeometry args={[14, 24, 24]} />
@@ -1538,6 +1573,7 @@ export function Scene({
 
       <Terrain />
       <Weather playerRef={player} weatherRef={weatherKind} />
+      <UnderwaterAtmosphere playerRef={player} divingRef={divingVisual} />
       <Wildlife playerRef={player} />
       <Civilians playerRef={player} />
       <Water size={WORLD_RADIUS * 4} sunRef={sunDir} />
