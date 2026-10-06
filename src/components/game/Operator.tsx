@@ -151,7 +151,7 @@ export function Operator({
         </>}
       </group>
       {/* class signatures */}
-      {titan && <group position={[0, 0.2, -0.36]} rotation={[0.08, 0, 0]}>
+      {titan && <group position={[0, 0.2, -0.56]} rotation={[0.08, 0, 0]}>
         <RoundedBox args={[0.9, 1.5, 0.1]} radius={0.06} smoothness={BEVEL} castShadow><meshPhysicalMaterial color="#141a20" metalness={0.8} roughness={0.3} clearcoat={0.6} /></RoundedBox>
         {seam("tsh1", [0, 0, -0.06], [0.7, 0.025, 0.02])}{seam("tsh2", [-0.4, 0, -0.06], [0.025, 1.3, 0.02])}{seam("tsh3", [0.4, 0, -0.06], [0.025, 1.3, 0.02])}
       </group>}
@@ -168,6 +168,23 @@ export function Operator({
       <group ref={orbit} visible={visualState === "FRACTURE" || visualState === "ASCENDANT"}>
         {[0, 1, 2].map((i) => <mesh key={i} position={[Math.cos(i * 2.1) * 0.85, 0.2 + i * 0.3, Math.sin(i * 2.1) * 0.85]}><octahedronGeometry args={[0.07]} />{line}</mesh>)}
       </group>
+      {/* class backpack (backpacks.ts): Bastion = armored reservoir, Slipstream = capacitor fins, Relay = antenna array */}
+      {titan && <group position={[0, 0.22, -0.3]}>
+        <RoundedBox args={[0.5, 0.52, 0.2]} radius={0.05} smoothness={BEVEL} castShadow>{plate}</RoundedBox>
+        {[-0.14, 0.14].map((x) => <mesh key={x} position={[x, -0.34, -0.02]} rotation={[0, 0, Math.PI]} castShadow><cylinderGeometry args={[0.07, 0.09, 0.2, 12]} />{trim}</mesh>)}
+        {seam("bp1", [0, 0.05, -0.105], [0.3, 0.025, 0.02])}{seam("bp2", [0, -0.08, -0.105], [0.3, 0.025, 0.02])}
+      </group>}
+      {hunter && <group position={[0, 0.3, -0.26]}>
+        <RoundedBox args={[0.36, 0.34, 0.14]} radius={0.04} smoothness={BEVEL} castShadow>{plate}</RoundedBox>
+        {[-1, 1].map((side) => <mesh key={side} position={[side * 0.24, 0.08, -0.04]} rotation={[0, 0, side * -0.5]} castShadow><boxGeometry args={[0.04, 0.34, 0.14]} />{trim}</mesh>)}
+        {seam("bp3", [0, 0, -0.075], [0.2, 0.025, 0.02])}
+      </group>}
+      {warlock && <group position={[0, 0.28, -0.26]}>
+        <RoundedBox args={[0.34, 0.4, 0.14]} radius={0.04} smoothness={BEVEL} castShadow>{plate}</RoundedBox>
+        {[-0.11, 0.11].map((x, i) => <mesh key={x} position={[x, 0.36 + i * 0.1, 0]} castShadow><cylinderGeometry args={[0.008, 0.012, 0.5 + i * 0.2, 6]} />{trim}</mesh>)}
+        <mesh position={[0.11, 0.7, 0]}><sphereGeometry args={[0.03, 10, 8]} />{line}</mesh>
+        {seam("bp4", [0, -0.05, -0.075], [0.18, 0.025, 0.02])}
+      </group>}
       {/* rifle */}
       <group position={[0.46, -0.1, 0.42]}>
         <RoundedBox args={[0.12, 0.16, 0.9]} radius={0.03} smoothness={BEVEL}><meshStandardMaterial color="#15181c" metalness={0.7} roughness={0.35} /></RoundedBox>

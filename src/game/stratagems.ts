@@ -87,12 +87,12 @@ export function tickStratagems(state: StratagemState, now: number): boolean {
 }
 
 /** Release the call-in key: returns the armed stratagem to throw (and starts its cooldown), or null. */
-export function releaseStratagems(state: StratagemState, now: number): StratagemId | null {
+export function releaseStratagems(state: StratagemState, now: number, cooldownMult = 1): StratagemId | null {
   const armed = state.armed;
   state.open = false;
   state.seq = [];
   state.armed = null;
-  if (armed) state.readyAt[armed] = now + stratagemById(armed).cooldown;
+  if (armed) state.readyAt[armed] = now + stratagemById(armed).cooldown * cooldownMult;
   return armed;
 }
 
@@ -105,17 +105,20 @@ export type StratagemHud = {
   open: boolean;
   seq: Dir[];
   armedName: string;
+  /** name of the equipped class backpack, shown in the panel header */
+  pack: string;
   failing: boolean;
   rows: { id: StratagemId; name: string; code: readonly Dir[]; cooldown: number }[];
 };
-export const EMPTY_STRATAGEM_HUD: StratagemHud = { open: false, seq: [], armedName: "", failing: false, rows: [] };
+export const EMPTY_STRATAGEM_HUD: StratagemHud = { open: false, seq: [], armedName: "", pack: "", failing: false, rows: [] };
 
-export function stratagemHud(state: StratagemState, now: number): StratagemHud {
+export function stratagemHud(state: StratagemState, now: number, pack = ""): StratagemHud {
   if (!state.open && !state.armed) return EMPTY_STRATAGEM_HUD;
   return {
     open: state.open,
     seq: [...state.seq],
     armedName: state.armed ? stratagemById(state.armed).name : "",
+    pack,
     failing: now < state.failUntil,
     rows: STRATAGEMS.map((item) => ({ id: item.id, name: item.name, code: item.code, cooldown: cooldownRemaining(state, item.id, now) })),
   };

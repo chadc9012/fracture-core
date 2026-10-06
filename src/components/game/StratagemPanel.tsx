@@ -7,7 +7,7 @@ const ICON: Record<Dir, typeof ArrowUp> = { U: ArrowUp, D: ArrowDown, L: ArrowLe
 export function StratagemPanel({ hud }: { hud: StratagemHud }) {
   if (!hud.open && !hud.armedName) return null;
   return <div className="pointer-events-none absolute bottom-40 left-4 z-20 w-[min(20rem,calc(100%-2rem))] ui-enter">
-    <p className="hud-label">{hud.open ? "Call-in // enter code with arrow keys" : "Call-in // beacon armed"}</p>
+    <p className="hud-label">{hud.open ? "Call-in // enter code with arrow keys" : "Call-in // beacon armed"}{hud.pack ? ` · ${hud.pack}` : ""}</p>
     {hud.armedName ? <p className="mt-2 border-l border-primary bg-background/60 px-3 py-2 font-mono text-xs uppercase text-primary">{hud.armedName} ready · release N to throw</p> : <div className="mt-2 space-y-1">
       {hud.rows.map((row) => {
         const matched = hud.seq.length > 0 && isPartialMatch(hud.seq, row.code) ? hud.seq.length : 0;

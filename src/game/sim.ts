@@ -1,4 +1,5 @@
 import { stratagemById, type StratagemId } from "./stratagems";
+import { NO_BACKPACK, type BackpackDef } from "./backpacks";
 import { createEnvState, STRIKE_MACHINE_DAMAGE, STRIKE_PLAYER_DAMAGE, type EnvState, type Strike } from "./environment";
 import { familyFor, rollRaidDrop } from "./raid-loot";
 import { squadMove, squadRole } from "./enemy-intelligence";
@@ -252,6 +253,8 @@ export type WorldSim = {
   env: EnvState;
   /** thrown stratagem beacons and the detonations Scene drains each frame (ammo refill, sfx, camera punch) */
   beacons: Beacon[];
+  /** equipped class backpack (backpacks.ts) — modifies beacon radius and detonation effects */
+  backpack: BackpackDef;
   stratagemEvents: StratagemEvent[];
 };
 
@@ -446,6 +449,7 @@ export function createSim(): WorldSim {
     verbDamageMult: 1,
     verbIncomingMult: 1,
     env: createEnvState(),
+    backpack: NO_BACKPACK,
     beacons: Array.from({ length: BEACON_POOL }, () => ({ alive: false, kind: "RESUPPLY" as StratagemId, state: "FLIGHT" as const, x: 0, y: 0, z: 0, vx: 0, vy: 0, vz: 0, timer: 0, radius: 0 })),
     stratagemEvents: [],
   };
@@ -603,7 +607,7 @@ export function throwBeacon(sim: WorldSim, kind: StratagemId, x: number, y: numb
     alive: true, kind, state: "FLIGHT" as const,
     x: x + Math.sin(yaw) * 0.8, y, z: z + Math.cos(yaw) * 0.8,
     vx: Math.sin(yaw) * Math.cos(pitch) * speed, vy: Math.sin(pitch) * speed + 7, vz: Math.cos(yaw) * Math.cos(pitch) * speed,
-    timer: 6, radius: stratagemById(kind).radius,
+    timer: 6, radius: stratagemById(kind).radius * (kind === "RECON_PULSE" ? sim.backpack.reconRadiusMult : 1),
   });
   return true;
 }
@@ -617,11 +621,11 @@ function detonateBeacon(sim: WorldSim, b: Beacon, px: number, pz: number) {
       if (m.hp <= 0) defeatMachine(sim, m);
     }
     // friendly fire: the strike does not care who is standing in it
-    if (inRange(px, pz)) hurtPlayer(sim, 35, "Orbital strike (friendly fire)");
+    if (inRange(px, pz)) hurtPlayer(sim, 35 * sim.backpack.friendlyFireMult, "Orbital strike (friendly fire)");
   } else if (b.kind === "RECON_PULSE") {
-    applyVulnPulse(sim, b.x, b.z, b.radius, 1.3, 8);
+    applyVulnPulse(sim, b.x, b.z, b.radius, sim.backpack.reconVuln, 8);
   } else if (inRange(px, pz)) {
-    sim.hp = Math.min(100, sim.hp + 40);
+    sim.hp = Math.min(100, sim.hp + 40 * sim.backpack.supplyHealMult);
   }
   sim.stratagemEvents.push({ kind: b.kind, x: b.x, z: b.z, radius: b.radius });
   if (sim.stratagemEvents.length > 12) sim.stratagemEvents.shift();

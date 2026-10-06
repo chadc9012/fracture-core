@@ -23,6 +23,7 @@ import { CloudLayer, type SkyEnv } from "./CloudLayer";
 import { Weather } from "./Weather";
 import { weatherName as weatherLabel } from "@/game/weather-cycle";
 import { environmentAt, stepEnvironment } from "@/game/environment";
+import { backpackFor } from "@/game/backpacks";
 import { closeStratagems, createStratagemState, inputDirection, openStratagems, releaseStratagems, stratagemById, stratagemHud, tickStratagems, type StratagemHud } from "@/game/stratagems";
 import { Wildlife } from "./Wildlife";
 import { Civilians } from "./Civilians";
@@ -659,6 +660,7 @@ export function Scene({
     tutorialClock.current += dt;
     if (tutorial?.step === "MATERIALIZE" && tutorialClock.current > 2) onTutorialEvent?.("READY");
     sim.titanActive = playerClass === "TITAN" && !s.inVehicle;
+    sim.backpack = backpackFor(playerClass);
 
     /* ---------------- day / night ---------------- */
     time.current += dt * (held.has("KeyT") ? 0.06 : 0.008);
@@ -968,7 +970,7 @@ export function Scene({
         tickStratagems(st, nowS);
       }
       if (!held.has("KeyN") && keyPrev.current.has("KeyN")) {
-        const thrown = releaseStratagems(st, nowS);
+        const thrown = releaseStratagems(st, nowS, sim.backpack.cooldownMult);
         if (thrown && !throwBeacon(sim, thrown, s.x, s.y + 1.4, s.z, s.yaw, s.pitch)) alert(sim, "Too many beacons in the field");
       }
     }
@@ -1620,7 +1622,7 @@ export function Scene({
         weather: weatherName.current,
         environment: environmentSummary.current,
         hazardWarning: hazardWarning.current,
-        stratagem: stratagemHud(stratagem.current, performance.now() / 1000),
+        stratagem: stratagemHud(stratagem.current, performance.now() / 1000, backpackFor(playerClass).name),
         streamTier: "ACTIVE · neighbors reduced · distant dormant",
         vehicleUnlocked,
         vehicleName: selectedVehicle.name,
