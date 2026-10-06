@@ -141,3 +141,5 @@
 - Looks pass 4: wind-swayed canopies/undergrowth/dead trees plus grass tufts (Veridan) and reeds (Swamps), driven by live weather wind.
 
 - Dynamic crosshair: spread ring widens with sprint/air/fire, barrel index lags camera look, X hit marker (amber on kills).
+
+- Movement kit: Titan lift, Hunter double air-jump, Warlock air-jump + glide (hold C), slide from sprint (Ctrl or J), sprint/slide FOV and camera drop.

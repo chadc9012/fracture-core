@@ -25,6 +25,7 @@ import { weatherName as weatherLabel } from "@/game/weather-cycle";
 import { environmentAt, stepEnvironment } from "@/game/environment";
 import { backpackFor } from "@/game/backpacks";
 import { createReticle, markHit, stepReticle, type Motion, type ReticleView, EMPTY_RETICLE } from "@/game/crosshair";
+import { airJump, cancelSlide, createMoveState, glideVy, GLIDE_THRUST, land, movementFov, startSlide, stepSlide, AIR_PROFILE } from "@/game/movement";
 import { updateWind } from "@/game/wind-sway";
 import { atmosphereAt, NEUTRAL_ATMOSPHERE, type Atmosphere } from "@/game/atmosphere";
 import { closeStratagems, createStratagemState, inputDirection, openStratagems, releaseStratagems, stratagemById, stratagemHud, tickStratagems, type StratagemHud } from "@/game/stratagems";
@@ -426,6 +427,8 @@ export function Scene({
   const carSteer = useRef(0);
   const sky = useRef<THREE.Object3D>(null!);
   const hemi = useRef<THREE.HemisphereLight>(null!);
+  /** class movement kit (movement.ts): air jumps, glide, slide + previous-frame jump/slide key state for edge detection */
+  const move = useRef({ state: createMoveState(), jumpHeld: false, slideHeld: false });
   const reticle = useRef({ state: createReticle(), view: EMPTY_RETICLE, yaw: 0, pitch: 0, hit: 0, kills: 0, ready: false });
   /** eased regional atmosphere (atmosphere.ts) + scratch colours, so crossing a border blends rather than pops */
   const atmo = useRef({ fogMix: 0, fogScale: 1, lightMix: 0, fogTint: new THREE.Color("#ffffff"), lightTint: new THREE.Color("#ffffff"), hemiBase: new THREE.Color("#9ec8e8") });
@@ -1146,6 +1149,16 @@ export function Scene({
       const chainBonus = parkourChainBonus(s.chainCount, performance.now() / 1000 - s.lastVaultAt);
       const walk = 30 * traction * (boost ? 2.1 : 1) * sim.mods.footSpeed * (live.current.dashTime > 0 ? 1.4 : 1) * (1 + chainBonus);
       if (wish.lengthSq() > 0) wish.normalize().multiplyScalar(walk);
+      {
+        // slide: out of a sprint, commit to the heading with a speed burst that bleeds off (movement.ts)
+        const mv = move.current;
+        const slideKey = held.has("ControlLeft") || held.has("KeyJ");
+        if (slideKey && !mv.slideHeld && s.grounded && !s.diving && !submerged) startSlide(mv.state, velocity.x, velocity.z);
+        mv.slideHeld = slideKey;
+        if (mv.state.slideLeft > 0 && (!s.grounded || held.has("KeyC"))) cancelSlide(mv.state);
+        const slideSpeed = stepSlide(mv.state, dt);
+        if (slideSpeed > 0) wish.set(mv.state.slideDirX * slideSpeed, 0, mv.state.slideDirZ * slideSpeed);
+      }
       if (s.diving) {
         // swimming toward where you're looking: pitch steers you up/down, and the response is floatier than land movement
         const swimPitch = (throttleF ? 1 : throttleB ? -1 : 0) * Math.sin(s.pitch);
@@ -1530,14 +1543,30 @@ export function Scene({
       } else {
         s.y = THREE.MathUtils.lerp(s.y, standY, 1 - Math.exp(-14 * dt));
         s.grounded = true;
+        land(move.current.state, playerClass);
+        move.current.jumpHeld = held.has("KeyC");
       }
     } else {
+      if (!s.inVehicle && !submerged && !interior) {
+        // class air mobility: tap jump again for an air jump; Warlocks hold jump to glide (movement.ts)
+        const mv = move.current;
+        const jumpHeld = held.has("KeyC");
+        if (jumpHeld && !mv.jumpHeld) {
+          const mult = airJump(mv.state, playerClass);
+          if (mult !== null) { s.vy = Math.sqrt(2 * sim.gravity * 6.5) * mult; s.punch += 0.15; sfx.playReload("end"); }
+        }
+        mv.jumpHeld = jumpHeld;
+        const before = s.vy;
+        s.vy = glideVy(s.vy, playerClass, jumpHeld);
+        if (AIR_PROFILE[playerClass].glide && jumpHeld && s.vy !== before) { velocity.x += Math.sin(s.yaw) * GLIDE_THRUST * dt; velocity.z += Math.cos(s.yaw) * GLIDE_THRUST * dt; }
+      }
       s.vy -= sim.gravity * dt;
       s.y += s.vy * dt;
       if (s.y <= standY) {
         s.y = standY;
         s.vy = 0;
         s.grounded = true;
+        land(move.current.state, playerClass);
       }
     }
     // fracture instability tosses loose objects (and you) around
@@ -1593,7 +1622,7 @@ export function Scene({
         s.y + (s.inVehicle ? 1.5 : 0.95) + (s.inVehicle ? 5 : 2.2) * s.cameraBlend,
         s.z + Math.cos(s.yaw) * (s.inVehicle ? 1 : 0.15) + (-Math.sin(s.yaw) * shoulder - Math.cos(s.yaw) * distance) * s.cameraBlend,
       );
-      camTarget.y = Math.max(camTarget.y, (interior ? INTERIOR_ALTITUDE : walkHeight(camTarget.x, camTarget.z)) + 1.35);
+      camTarget.y = Math.max(camTarget.y, (interior ? INTERIOR_ALTITUDE : walkHeight(camTarget.x, camTarget.z)) + 1.35) - move.current.state.drop * 0.55;
       camera.position.lerp(camTarget, 1 - Math.exp(-18 * dt));
       const kickPitch = s.pitch + s.recoil;
       const shakeAmt = Math.min(0.08, s.punch * 0.012);
@@ -1603,7 +1632,7 @@ export function Scene({
       look.copy(camera.position).addScaledVector(cameraDirection, 60);
       camera.lookAt(look);
       if (camera instanceof THREE.PerspectiveCamera) {
-        const desiredFov = (mouse.current.aim || padState.current.aim) ? 48 : 78;
+        const desiredFov = movementFov(Boolean(mouse.current.aim || padState.current.aim), !s.inVehicle && s.grounded && boost && Math.hypot(velocity.x, velocity.z) > 2, move.current.state.slideLeft > 0);
         camera.fov += (desiredFov - camera.fov) * (1 - Math.exp(-12 * dt));
         camera.updateProjectionMatrix();
       }
