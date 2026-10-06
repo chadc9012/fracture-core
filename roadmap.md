@@ -127,3 +127,4 @@
 - [x] Star Map rebuilt from uploaded layout using real destination data, with deploy-to-region.
 - [x] Per-class Arsenal weapon loadouts that drive in-world weapon slots.
 - [x] Three-slot save manager on top of the cloud save.
+- [x] Added in-game environmental systems (src/game/environment.ts, with tests): four 6-day seasons driven by the same deterministic day clock as weather, a per-region thermal index (cold rain falls as snow in winter, Frostspire stays cold, Ember and Solara run hot, Nexus is shielded), and telegraphed hazards — heat stress, cold exposure and spore fog build a visible exposure meter with a HUD warning before they hurt (relieved by interiors, safe zones and the Nexus shield), and storm lightning shows a pulsing ground ring for 1.6 s before landing, damaging both the player and any machines under it so storms are a tactical tool. HUD shows season, weather and temperature plus the active hazard line.

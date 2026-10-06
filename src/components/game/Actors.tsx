@@ -438,3 +438,52 @@ export function Bullets({ sim }: { sim: WorldSim }) {
     </>
   );
 }
+
+const HAZARD_SLOTS = 6;
+
+/** Environmental hazard markers (environment.ts): a pulsing ring on the ground during a lightning
+ * strike's warning window, then a brief bright column when it lands. Pooled meshes, no allocation. */
+export function HazardMarkers({ sim }: { sim: WorldSim }) {
+  const rings = useRef<(THREE.Mesh | null)[]>([]);
+  const bolts = useRef<(THREE.Mesh | null)[]>([]);
+
+  useFrame((state) => {
+    const t = state.clock.elapsedTime;
+    for (let i = 0; i < HAZARD_SLOTS; i++) {
+      const ring = rings.current[i];
+      const strike = sim.env.strikes[i];
+      if (ring) {
+        ring.visible = Boolean(strike);
+        if (strike) {
+          ring.position.set(strike.x, walkHeight(strike.x, strike.z) + 0.25, strike.z);
+          // pulse faster as the strike nears so the countdown reads without text
+          const pulse = 0.75 + 0.25 * Math.sin(t * (10 + (1.6 - strike.warn) * 14));
+          ring.scale.setScalar(strike.radius * pulse);
+        }
+      }
+      const bolt = bolts.current[i];
+      const flash = sim.env.flashes[i];
+      if (bolt) {
+        bolt.visible = Boolean(flash);
+        if (flash) { bolt.position.set(flash.x, walkHeight(flash.x, flash.z) + 30, flash.z); bolt.scale.set(1, 1, 1); (bolt.material as THREE.MeshBasicMaterial).opacity = Math.min(1, flash.t / 0.3); }
+      }
+    }
+  });
+
+  return (
+    <group>
+      {Array.from({ length: HAZARD_SLOTS }, (_, i) => (
+        <group key={i}>
+          <mesh ref={(node) => { rings.current[i] = node; }} rotation={[-Math.PI / 2, 0, 0]} visible={false}>
+            <ringGeometry args={[0.82, 1, 48]} />
+            <meshBasicMaterial color="#9fd8ff" transparent opacity={0.9} depthWrite={false} side={THREE.DoubleSide} />
+          </mesh>
+          <mesh ref={(node) => { bolts.current[i] = node; }} visible={false}>
+            <cylinderGeometry args={[0.35, 0.9, 60, 8, 1, true]} />
+            <meshBasicMaterial color="#e8f4ff" transparent opacity={1} depthWrite={false} />
+          </mesh>
+        </group>
+      ))}
+    </group>
+  );
+}

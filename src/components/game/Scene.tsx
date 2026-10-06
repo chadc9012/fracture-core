@@ -6,7 +6,7 @@ import * as THREE from "three";
 import { REGIONS, SKY, ZONE_COLOR, clockLabel, phaseFor, regionAt, WORLD_RADIUS } from "@/game/world";
 import { useKeyboard } from "@/game/useKeyboard";
 import { walkHeight, slopeAt, heightAt, WATER_LEVEL } from "@/game/terrain";
-import { alert, applySuppressPulse, applyVulnPulse, collidePlayer, createSim, defeatMachine, FACTIONS, fireBullet, instabilityTier, spawnMissionDrones, spawnVolatileZone, stepSim, summonBoss, type Faction, type InstabilityTier, type WorldSim, type ZoneState } from "@/game/sim";
+import { alert, applyLightning, applySuppressPulse, applyVulnPulse, collidePlayer, createSim, defeatMachine, FACTIONS, fireBullet, hurtPlayer, instabilityTier, spawnMissionDrones, spawnVolatileZone, stepSim, summonBoss, type Faction, type InstabilityTier, type WorldSim, type ZoneState } from "@/game/sim";
 import type { MissionEvent, MissionRun } from "@/game/missions/broken-signal";
 import type { MissionEvent as BlackoutEvent, MissionRun as BlackoutRun } from "@/game/missions/blackout-protocol";
 import type { MissionEvent as NeonCoreEvent, MissionRun as NeonCoreRun } from "@/game/missions/stitched-neon-core";
@@ -21,10 +21,11 @@ import { counterTuningFor, dominantPattern, logAction, type ActionLogEntry, type
 import { Terrain } from "./Terrain";
 import { CloudLayer, type SkyEnv } from "./CloudLayer";
 import { Weather } from "./Weather";
-import { sampleWeather, weatherName as weatherLabel } from "@/game/weather-cycle";
+import { weatherName as weatherLabel } from "@/game/weather-cycle";
+import { environmentAt, stepEnvironment } from "@/game/environment";
 import { Wildlife } from "./Wildlife";
 import { Civilians } from "./Civilians";
-import { Bullets, Convoys, SupplyLanes, WarMachines, ZoneBeacons } from "./Actors";
+import { Bullets, Convoys, HazardMarkers, SupplyLanes, WarMachines, ZoneBeacons } from "./Actors";
 import { Car } from "./Vehicle";
 import { NexusCity } from "./NexusCity";
 import { NeonCity, NEON_CITY_CENTER } from "./NeonCity";
@@ -128,6 +129,10 @@ export type HudState = {
   abilities: { slot: string; name: string; ready: boolean }[];
   firstMissionComplete: boolean;
   weather: string;
+  /** "Autumn · Dense fog · 14°C" */
+  environment: string;
+  /** active hazard line (exposure / lightning), "" when none */
+  hazardWarning: string;
   streamTier: string;
   vehicleUnlocked: boolean;
   vehicleName: string;
@@ -382,6 +387,8 @@ export function Scene({
   const weatherKind = useRef<string>("Clear shield");
   const weatherFx = useRef({ precipitation: 0, windX: 0, windZ: 0 });
   const weatherName = useRef("Clear");
+  const environmentSummary = useRef("");
+  const hazardWarning = useRef("");
   const lightning = useRef(0);
   const markerList = (): Marker[] => {
     const now = performance.now();
@@ -789,7 +796,9 @@ export function Scene({
       abilityHeld.current[key] = held.has(key);
     }
     /* ---------------- weather cycle (deterministic fronts per region, see weather-cycle.ts) ---------------- */
-    const wx = interior ? null : sampleWeather(here?.id, time.current);
+    // seasons layer on top of the fronts (environment.ts): same deterministic clock, seasonally-adjusted weather
+    const envSample = environmentAt(here?.id, time.current, night);
+    const wx = interior ? null : envSample.weather;
     const weather = interior ? "Indoor" : wx!.label;
     weatherKind.current = weather;
     weatherFx.current.precipitation = wx?.precipitation ?? 0;
@@ -798,6 +807,19 @@ export function Scene({
     weatherName.current = interior ? "Indoor" : weatherLabel(wx!, here?.id);
     const visibility = interior ? 1 : wx!.visibility;
     sim.envVisibility = visibility;
+    // environmental hazards: exposure, lightning, with shelter in interiors / safe zones / the Nexus shield
+    {
+      const sheltered = Boolean(interior) || here?.kind === "safe" || here?.id === "nexus";
+      const hazard = stepEnvironment(sim.env, { dt, regionId: here?.id, env: envSample, sheltered, px: s.x, pz: s.z, rand: Math.random });
+      if (hazard.damage > 0) hurtPlayer(sim, hazard.damage, hazard.cause);
+      for (const strike of hazard.detonated) {
+        applyLightning(sim, strike, s.x, s.z);
+        sfx.playExplosion(false, sfx.where(s.x, s.z, s.yaw, strike.x, strike.z));
+        s.punch += Math.hypot(s.x - strike.x, s.z - strike.z) < 25 ? 1.2 : 0.4;
+      }
+      environmentSummary.current = interior ? "Indoor" : envSample.summary;
+      hazardWarning.current = hazard.warning;
+    }
     if (scene.fog instanceof THREE.Fog) {
       const fogK = 1 - Math.exp(-3 * dt);
       scene.fog.near += (25 + visibility * 95 - scene.fog.near) * fogK;
@@ -1559,6 +1581,8 @@ export function Scene({
         abilities: selectedClass.abilities.map((ability) => ({ slot: ability.slot, name: ability.name, ready: live.current.runtime[ability.slot]?.cooldown <= 0 })),
         firstMissionComplete: sim.director.missions.some((mission) => mission.kind === "FIRST_RESONANCE" && mission.state === "COMPLETED"),
         weather: weatherName.current,
+        environment: environmentSummary.current,
+        hazardWarning: hazardWarning.current,
         streamTier: "ACTIVE · neighbors reduced · distant dormant",
         vehicleUnlocked,
         vehicleName: selectedVehicle.name,
@@ -1701,6 +1725,7 @@ export function Scene({
       <ZoneBeacons sim={sim} />
       <Convoys sim={sim} />
       <WarMachines sim={sim} />
+      <HazardMarkers sim={sim} />
       {awakening?.target && (awakening.state === "CAPTURE" || awakening.state === "HOLD" || awakening.state === "EXTRACT") && (
         <group position={[awakening.target.x, heightAt(awakening.target.x, awakening.target.z) + 0.2, awakening.target.z]}>
           <mesh rotation-x={-Math.PI / 2}><ringGeometry args={[10, 12, 48]} /><meshBasicMaterial color={awakening.state === "EXTRACT" ? "#7dffca" : "#ff3df2"} transparent opacity={0.6} /></mesh>

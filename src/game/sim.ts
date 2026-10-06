@@ -1,3 +1,4 @@
+import { createEnvState, STRIKE_MACHINE_DAMAGE, STRIKE_PLAYER_DAMAGE, type EnvState, type Strike } from "./environment";
 import { familyFor, rollRaidDrop } from "./raid-loot";
 import { squadMove, squadRole } from "./enemy-intelligence";
 import { createAi, pickCover, shouldTakeCover, sightRange, stepAwareness, type EnemyAi } from "./enemy-perception";
@@ -231,6 +232,8 @@ export type WorldSim = {
   volatileZones: { x: number; z: number; radius: number; dps: number; until: number }[];
   verbDamageMult: number;
   verbIncomingMult: number;
+  /** seasons/hazards state (see environment.ts): exposure meters, pending lightning, strike flashes */
+  env: EnvState;
 };
 
 /** max ranged machines winding up a shot at the same moment (bosses bypass the cap) */
@@ -423,6 +426,7 @@ export function createSim(): WorldSim {
     volatileZones: [],
     verbDamageMult: 1,
     verbIncomingMult: 1,
+    env: createEnvState(),
   };
 }
 
@@ -567,6 +571,19 @@ export function applySuppressPulse(sim: WorldSim, x: number, z: number, radius: 
 
 export function spawnVolatileZone(sim: WorldSim, x: number, z: number, radius: number, dps: number, duration: number) {
   sim.volatileZones.push({ x, z, radius, dps, until: performance.now() / 1000 + duration });
+}
+
+/** A lightning strike (environment.ts) just landed: hurts the player and any machines in its blast.
+ * Storms are therefore a tactical tool — luring a squad under a marked strike thins it. */
+export function applyLightning(sim: WorldSim, strike: Strike, px: number, pz: number) {
+  for (const m of sim.machines) {
+    if (!m.alive) continue;
+    if (Math.hypot(m.x - strike.x, m.z - strike.z) <= strike.radius + m.scale) {
+      m.hp -= STRIKE_MACHINE_DAMAGE;
+      if (m.hp <= 0) defeatMachine(sim, m);
+    }
+  }
+  if (Math.hypot(px - strike.x, pz - strike.z) <= strike.radius) hurtPlayer(sim, STRIKE_PLAYER_DAMAGE, "Lightning strike");
 }
 
 /** hurt the player and respawn at Nexus when the hull is gone */

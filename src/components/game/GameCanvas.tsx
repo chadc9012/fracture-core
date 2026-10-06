@@ -153,6 +153,8 @@ const initial: HudState = {
   abilities: classById("TITAN").abilities.map((ability) => ({ slot: ability.slot, name: ability.name, ready: true })),
   firstMissionComplete: false,
   weather: "Rain mist",
+  environment: "",
+  hazardWarning: "",
   streamTier: "ACTIVE · neighbors reduced · distant dormant",
   vehicleUnlocked: false,
   vehicleName: "No vehicle unlocked",
