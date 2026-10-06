@@ -155,7 +155,17 @@ function mix(a: readonly number[], b: readonly number[], t: number): [number, nu
   ];
 }
 
-/** colour by elevation, then tinted by the dominant biome */
+/**
+ * Slope masking (auto-material): flats keep their biome colour, mid slopes break into exposed
+ * dirt, steep faces become cliff rock — no hand painting, and any deformed terrain re-masks itself.
+ * `slope` is slopeAt()'s 0..1 steepness. Returns blend weights (each 0..1, rock wins over dirt).
+ * Thresholds are tuned to this heightmap (slopeAt saturates near 42 degrees), not raw 30/45 degrees.
+ */
+export function slopeMask(slope: number): { dirt: number; rock: number } {
+  return { dirt: smoothstep(0.22, 0.5, slope), rock: smoothstep(0.5, 0.85, slope) };
+}
+
+/** colour by elevation, then tinted by the dominant biome, then cliff-masked by slope */
 export function colorAt(x: number, z: number, h: number): [number, number, number] {
   let c: [number, number, number];
   if (h < -6) c = [...PALETTE.deep];
@@ -180,6 +190,15 @@ export function colorAt(x: number, z: number, h: number): [number, number, numbe
     } else if (r.id === "frostspire") c = mix(c, PALETTE.snow, w * smoothstep(24, 48, h));
     else if (r.id === "wastelands") c = mix(c, [0.55, 0.44, 0.28], w * 0.8);
     else if (r.id === "nexus") c = mix(c, [0.2, 0.24, 0.3], w);
+  }
+
+  // slope mask: steep ground sheds its grass/snow for dirt then bare rock; underwater and the
+  // shoreline keep their colour so beaches and sea floors do not turn to cliff
+  if (h > 1.6) {
+    const { dirt, rock } = slopeMask(slopeAt(x, z));
+    const cliff = (fbm(x * 0.12, z * 0.12, 2) - 0.5) * 0.1; // strata variation
+    c = mix(c, [PALETTE.dirt[0] + cliff, PALETTE.dirt[1] + cliff, PALETTE.dirt[2] + cliff], dirt * 0.75);
+    c = mix(c, [PALETTE.rock[0] + cliff, PALETTE.rock[1] + cliff, PALETTE.rock[2] + cliff], rock * 0.9);
   }
 
   // a little noise so large surfaces never read as flat colour
