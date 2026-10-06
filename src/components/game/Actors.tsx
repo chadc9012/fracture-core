@@ -95,13 +95,14 @@ export function ZoneBeacons({ sim }: { sim: WorldSim }) {
               />
             </mesh>
             <mesh position-y={0.6} rotation-x={-Math.PI / 2}>
-              <ringGeometry args={[8, 10, 40]} />
+              <ringGeometry args={[9.6, 10, 64]} />
               <meshStandardMaterial
                 color={FACTIONS[z.owner].color}
                 emissive={FACTIONS[z.owner].color}
-                emissiveIntensity={1.4}
+                emissiveIntensity={0.9}
                 transparent
-                opacity={0.6}
+                depthWrite={false}
+                opacity={0.3}
                 toneMapped={false}
               />
             </mesh>
