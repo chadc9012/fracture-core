@@ -580,6 +580,8 @@ export function Scene({
   const padPrev = useRef<boolean[]>([]);
   const keyPrev = useRef<Set<string>>(new Set());
   const padState = useRef({ fire: false, aim: false, connected: false });
+  /** hit stop: a ~40-80ms near-freeze on kills and on hits against elites/bosses (weight, not on every auto-fire hit) */
+  const hitStopUntil = useRef(0);
   const audioSeen = useRef({ hit: 0, kills: 0, hp: 100, hurtAt: 0, stepT: 1, bossAlive: false, bossX: 0, bossZ: 0 });
   /** last sim.lastDeath timestamp this component has already reacted to — mirrors the audioSeen pattern above */
   const deathSeen = useRef(0);
@@ -631,7 +633,7 @@ export function Scene({
 
   useFrame(({ camera }, raw) => {
     setVoiceLoad(raw > 1 / 40);
-    const dt = Math.min(raw, 0.05);
+    const dt = Math.min(raw, 0.05) * (performance.now() < hitStopUntil.current ? 0.08 : 1);
     const held = keys.current;
     const s = state.current;
     // Safe-state guard: a null/invalid player or world ref (bad hot-reload, a race during a scene
@@ -1159,8 +1161,9 @@ export function Scene({
         let near: (typeof sim.machines)[number] | undefined; let best = Infinity;
         for (const m of sim.machines) { if (!m.alive) continue; const d = Math.hypot(m.x - s.x, m.z - s.z); if (d < best) { best = d; near = m; } }
         sfx.playImpact(near?.kind === "ABERRATION" ? "ORGANIC" : near?.kind === "OVERCLOCKED" ? "TECH" : "METAL", near ? sfx.where(s.x, s.z, s.yaw, near.x, near.z) : {});
+        if (near && (near.elite || near.boss) && best < 40) hitStopUntil.current = Math.max(hitStopUntil.current, performance.now() + 45);
       }
-      if (sim.kills > a.kills) sfx.playKill(false, {});
+      if (sim.kills > a.kills) { sfx.playKill(false, {}); hitStopUntil.current = Math.max(hitStopUntil.current, performance.now() + 70); s.punch += 0.6; }
       a.kills = sim.kills;
       const now = performance.now();
       if (sim.hp < a.hp - 0.5 && now - a.hurtAt > 250) { sfx.playHurt(); a.hurtAt = now; }

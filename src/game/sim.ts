@@ -105,6 +105,8 @@ export type Machine = {
    * every (re)spawn so a pooled slot never inherits a stale debuff from its previous occupant. */
   vulnUntil: number;
   vulnMult: number;
+  /** seconds left in a ranged shot's wind-up telegraph; >0 means this machine holds an attack ticket */
+  aim?: number;
 };
 
 export type Truck = {
@@ -230,6 +232,9 @@ export type WorldSim = {
   verbDamageMult: number;
   verbIncomingMult: number;
 };
+
+/** max ranged machines winding up a shot at the same moment (bosses bypass the cap) */
+const MAX_AIMING = 3;
 
 export const HEAT_PER_SHOT_FOOT = 7;
 export const HEAT_PER_SHOT_VEHICLE = 11;
@@ -464,6 +469,7 @@ function spawnMachine(sim: WorldSim, zone: ZoneState, elite = false) {
   m.kz = 0;
   m.vulnUntil = 0;
   m.vulnMult = 1;
+  m.aim = 0;
 }
 
 /** Spawn Broken Signal data drones around a point; tagged so the mission can count them. */
@@ -793,6 +799,10 @@ export function stepSim(sim: WorldSim, input: SimInput) {
   sim.gravity = 26 * (1 - playerInstability * 0.66);
 
   // ---------- war machines ----------
+  // Attack tickets: at most MAX_AIMING ranged machines may be winding up a shot at once, so a big
+  // squad reads as coordinated pressure with readable tells instead of one unreadable volley.
+  let aimTickets = 0;
+  for (const m of sim.machines) if (m.alive && (m.aim ?? 0) > 0) aimTickets++;
   for (let i = 0; i < sim.machines.length; i++) {
     const m = sim.machines[i]!;
     if (!m.alive) continue;
@@ -895,12 +905,20 @@ export function stepSim(sim: WorldSim, input: SimInput) {
         if (Math.hypot(m.x - byId("nexus").x, m.z - byId("nexus").z) < byId("nexus").radius) {
           sim.coreHp = Math.max(0, sim.coreHp - 2);
         }
-      } else if (d < 55 && m.cool <= 0) {
-        // ranged suppressing fire: telegraphed by sound, lands occasionally
-        m.cool = (m.boss ? 1.2 : m.elite ? 1.5 : 2.1) * (bossTuning?.cooldownMult ?? 1);
-        sim.enemyShots.push({ x: m.x, z: m.z, kind: m.kind, boss: m.boss, elite: m.elite });
-        if (sim.enemyShots.length > 24) sim.enemyShots.shift();
-        if (Math.random() < 0.25) hurtPlayer(sim, ((m.boss ? 6 : m.elite ? 4 : 2) * (bossTuning?.damageMult ?? 1)) / sim.mods.hullDurability, m.profile);
+      } else if ((m.aim ?? 0) > 0) {
+        // wind-up telegraph (Actors.tsx pulses the machine while aim > 0), then the shot lands
+        m.aim = (m.aim ?? 0) - dt;
+        if ((m.aim ?? 0) <= 0) {
+          m.aim = 0;
+          m.cool = (m.boss ? 1.2 : m.elite ? 1.5 : 2.1) * (bossTuning?.cooldownMult ?? 1);
+          sim.enemyShots.push({ x: m.x, z: m.z, kind: m.kind, boss: m.boss, elite: m.elite });
+          if (sim.enemyShots.length > 24) sim.enemyShots.shift();
+          if (Math.random() < 0.25) hurtPlayer(sim, ((m.boss ? 6 : m.elite ? 4 : 2) * (bossTuning?.damageMult ?? 1)) / sim.mods.hullDurability, m.profile);
+        }
+      } else if (d < 55 && m.cool <= 0 && (m.boss || aimTickets < MAX_AIMING)) {
+        // ranged suppressing fire: take a ticket and start the telegraph; elites/bosses wind up faster
+        m.aim = m.boss ? 0.2 : m.elite ? 0.28 : 0.4;
+        aimTickets++;
       }
     } else if (aiState === "SUSPICIOUS" || aiState === "SEARCH") {
       // investigate last known position; turn to face it, move cautiously

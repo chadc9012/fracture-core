@@ -239,12 +239,13 @@ export function WarMachines({ sim }: { sim: WorldSim }) {
       node.visible = m.alive;
       if (!m.alive) return;
       const modelName = m.boss ? "boss-model" : m.kind === "OVERCLOCKED" ? "overclocked-model" : m.kind === "ABERRATION" ? "aberration-model" : m.kind === "VANGUARD" ? "vanguard-model" : "regional-model";
-      for (const child of node.children) child.visible = child.name === modelName;
+      for (const child of node.children) child.visible = child.name === "elite-ring" ? m.elite && !m.boss : child.name === modelName;
       // walking gait: subtle body bob + roll so the legs read as striding
       const gait = t * 3 + i;
       node.position.set(m.x, m.y - 2.2 * m.scale + Math.abs(Math.sin(gait)) * 0.28, m.z);
       node.rotation.set(Math.sin(gait) * 0.03, m.rot, Math.sin(gait * 0.5) * 0.05);
-      node.scale.setScalar(m.scale);
+      // attack telegraph: a fast pulse while the machine winds up a ranged shot
+      node.scale.setScalar(m.scale * ((m.aim ?? 0) > 0 ? 1 + Math.abs(Math.sin(t * 28)) * 0.1 : 1));
     });
   });
 
@@ -257,6 +258,8 @@ export function WarMachines({ sim }: { sim: WorldSim }) {
           <group name="aberration-model" visible={false}><RegionalEnemy kind="ABERRATION" boss={false} /></group>
           <group name="vanguard-model" visible={false}><RegionalEnemy kind="VANGUARD" boss={false} /></group>
           <group name="boss-model" visible={false}><RegionalEnemy kind="OVERCLOCKED" boss /></group>
+          {/* loot cue: elites (better drops) wear a glowing amber ring at their feet, like Diablo's elite tell */}
+          <mesh name="elite-ring" visible={false} rotation={[-Math.PI / 2, 0, 0]} position={[0, -1.9, 0]}><ringGeometry args={[2.6, 3.1, 40]} /><meshBasicMaterial color="#ffb357" transparent opacity={0.85} depthWrite={false} /></mesh>
         </group>
       ))}
     </group>
