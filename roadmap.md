@@ -137,3 +137,5 @@
 - Looks pass 2: graded supply roads (smoother along-lane, ~5-10x on flat routes) and saplings/brush clustered around Veridan trees.
 
 - Looks pass 3: regional atmosphere (fog tint/thickness, light tint per region + weather) and an underwater look (teal murk, caustic visor overlay).
+
+- Looks pass 4: wind-swayed canopies/undergrowth/dead trees plus grass tufts (Veridan) and reeds (Swamps), driven by live weather wind.

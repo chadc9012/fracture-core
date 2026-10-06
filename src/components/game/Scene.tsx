@@ -24,6 +24,7 @@ import { Weather } from "./Weather";
 import { weatherName as weatherLabel } from "@/game/weather-cycle";
 import { environmentAt, stepEnvironment } from "@/game/environment";
 import { backpackFor } from "@/game/backpacks";
+import { updateWind } from "@/game/wind-sway";
 import { atmosphereAt, NEUTRAL_ATMOSPHERE, type Atmosphere } from "@/game/atmosphere";
 import { closeStratagems, createStratagemState, inputDirection, openStratagems, releaseStratagems, stratagemById, stratagemHud, tickStratagems, type StratagemHud } from "@/game/stratagems";
 import { Wildlife } from "./Wildlife";
@@ -817,6 +818,7 @@ export function Scene({
     weatherFx.current.precipitation = wx?.precipitation ?? 0;
     weatherFx.current.windX = wx?.windX ?? 0;
     weatherFx.current.windZ = wx?.windZ ?? 0;
+    updateWind(dt, wx?.windX ?? 0, wx?.windZ ?? 0);
     weatherName.current = interior ? "Indoor" : weatherLabel(wx!, here?.id);
     const visibility = interior ? 1 : wx!.visibility;
     sim.envVisibility = visibility;

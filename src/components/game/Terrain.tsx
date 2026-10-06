@@ -6,6 +6,7 @@ import { REGIONS, WORLD_RADIUS, type Region } from "@/game/world";
 import type { RenderTier } from "@/game/performance";
 import { mulberry32 } from "@/game/useKeyboard";
 import { clusterAround } from "@/game/foliage";
+import { windSway } from "@/game/wind-sway";
 import { WATER_LEVEL, colorAt, heightAt, slopeAt } from "@/game/terrain";
 import { groundDetailTextures, propDetailTextures } from "@/game/detail-texture";
 import { applySurfaceBlend, loadGroundSurfaces, surfaceWeights } from "@/game/region-materials";
@@ -198,6 +199,18 @@ export function Terrain({ renderTier = "HIGH" }: { renderTier?: RenderTier } = {
   const boulderB = useMemo(() => organicRock(2.6, 8, 1, 0.75), []);
   const rockA = useMemo(() => organicRock(2.2, 23, 1, 0.65), []);
   const rockB = useMemo(() => organicRock(2.2, 31, 1, 0.65), []);
+  const trunkGeo = useMemo(() => new THREE.CylinderGeometry(0.32, 0.55, 4, 7), []);
+  const deadTrunkGeo = useMemo(() => new THREE.CylinderGeometry(0.15, 0.5, 8, 6), []);
+  const grassGeo = useMemo(() => new THREE.ConeGeometry(0.28, 1.1, 5, 1, true).translate(0, 0.55, 0), []);
+  const reedGeo = useMemo(() => new THREE.CylinderGeometry(0.03, 0.07, 2.2, 4, 1, true).translate(0, 1.1, 0), []);
+  const swayTrunk = useMemo(() => windSway(trunkGeo, 0.18), [trunkGeo]);
+  const swayDeadTrunk = useMemo(() => windSway(deadTrunkGeo, 0.1), [deadTrunkGeo]);
+  const swayCanopyLow = useMemo(() => windSway(canopyLow, 0.55), [canopyLow]);
+  const swayCanopyHigh = useMemo(() => windSway(canopyHigh, 0.8), [canopyHigh]);
+  const swayGrass = useMemo(() => windSway(grassGeo, 0.7), [grassGeo]);
+  const swayReed = useMemo(() => windSway(reedGeo, 0.5), [reedGeo]);
+  const grass = useMemo(() => scatter(forest, d(420), 31, { min: 1.8, max: 20, maxSlope: 0.45, keepSpawnLaneClear: true }), [forest, density]);
+  const reeds = useMemo(() => scatter(swamp, d(240), 33, { min: -2.2, max: 3.5, maxSlope: 0.5 }), [swamp, density]);
   const emberRockGeo = useMemo(() => organicRock(1.6, 44, 1, 0.5), []);
 
   return (
@@ -208,14 +221,14 @@ export function Terrain({ renderTier = "HIGH" }: { renderTier?: RenderTier } = {
       {/* forest: trunk + two staggered canopy layers, hue-jittered per instance so the
           treeline reads as a forest instead of one stamped-out cone repeated 120 times */}
       <Instances limit={liveTrees.length} castShadow receiveShadow>
-        <cylinderGeometry args={[0.32, 0.55, 4, 7]} />
-        <meshStandardMaterial color="#4a3524" roughness={0.95} map={barkDetail.map} normalMap={barkDetail.normalMap} normalScale={new THREE.Vector2(0.6, 0.6)} />
+        <primitive object={trunkGeo} attach="geometry" />
+        <meshStandardMaterial onBeforeCompile={swayTrunk} color="#4a3524" roughness={0.95} map={barkDetail.map} normalMap={barkDetail.normalMap} normalScale={new THREE.Vector2(0.6, 0.6)} />
         {liveTrees.map((t, i) => (
           <Instance key={i} position={[t.x, t.y + 2 * t.s, t.z]} scale={[1, t.s, 1]} color={jitter("#4a3524", i, 0.02, 0.1)} />
         ))}
       </Instances>
       <Instances limit={liveTrees.length} castShadow={fineShadows} receiveShadow geometry={canopyLow}>
-        <meshStandardMaterial color="#2c7a41" roughness={0.9} map={leafDetail.map} normalMap={leafDetail.normalMap} normalScale={new THREE.Vector2(0.4, 0.4)} />
+        <meshStandardMaterial onBeforeCompile={swayCanopyLow} color="#2c7a41" roughness={0.9} map={leafDetail.map} normalMap={leafDetail.normalMap} normalScale={new THREE.Vector2(0.4, 0.4)} />
         {liveTrees.map((t, i) => (
           <Instance
             key={i}
@@ -227,7 +240,7 @@ export function Terrain({ renderTier = "HIGH" }: { renderTier?: RenderTier } = {
         ))}
       </Instances>
       <Instances limit={liveTrees.length} castShadow={fineShadows} receiveShadow geometry={canopyHigh}>
-        <meshStandardMaterial color="#3a8f4d" roughness={0.9} map={leafDetail.map} normalMap={leafDetail.normalMap} normalScale={new THREE.Vector2(0.4, 0.4)} />
+        <meshStandardMaterial onBeforeCompile={swayCanopyHigh} color="#3a8f4d" roughness={0.9} map={leafDetail.map} normalMap={leafDetail.normalMap} normalScale={new THREE.Vector2(0.4, 0.4)} />
         {liveTrees.map((t, i) => (
           <Instance
             key={i}
@@ -240,7 +253,7 @@ export function Terrain({ renderTier = "HIGH" }: { renderTier?: RenderTier } = {
       </Instances>
       {/* undergrowth: saplings (tall) and brush (low, wide) clustered around the parent trees */}
       <Instances limit={Math.max(1, undergrowth.length)} castShadow={false} receiveShadow geometry={canopyHigh}>
-        <meshStandardMaterial color="#3f9a4f" roughness={0.9} map={leafDetail.map} normalMap={leafDetail.normalMap} normalScale={new THREE.Vector2(0.4, 0.4)} />
+        <meshStandardMaterial onBeforeCompile={swayCanopyHigh} color="#3f9a4f" roughness={0.9} map={leafDetail.map} normalMap={leafDetail.normalMap} normalScale={new THREE.Vector2(0.4, 0.4)} />
         {undergrowth.map((u, i) => {
           const sapling = i % 3 !== 0;
           const y = heightAt(u.x, u.z);
@@ -355,13 +368,22 @@ export function Terrain({ renderTier = "HIGH" }: { renderTier?: RenderTier } = {
 
       {/* swamp dead trees */}
       <Instances limit={liveSwamp.length} castShadow receiveShadow>
-        <cylinderGeometry args={[0.15, 0.5, 8, 6]} />
-        <meshStandardMaterial color="#1d2b22" roughness={1} map={barkDetail.map} normalMap={barkDetail.normalMap} normalScale={new THREE.Vector2(0.6, 0.6)} />
+        <primitive object={deadTrunkGeo} attach="geometry" />
+        <meshStandardMaterial onBeforeCompile={swayDeadTrunk} color="#1d2b22" roughness={1} map={barkDetail.map} normalMap={barkDetail.normalMap} normalScale={new THREE.Vector2(0.6, 0.6)} />
         {liveSwamp.map((t, i) => (
           <Instance key={i} position={[t.x, t.y + 4 * t.s, t.z]} scale={[1, t.s, 1]} rotation-z={(t.r - 3) * 0.03} />
         ))}
       </Instances>
 
+      {/* grass tufts and swamp reeds: thin open cones/stalks that bend hardest at the tip */}
+      <Instances limit={Math.max(1, grass.length)} receiveShadow geometry={grassGeo}>
+        <meshStandardMaterial onBeforeCompile={swayGrass} color="#5fae4f" roughness={1} side={THREE.DoubleSide} />
+        {grass.map((g, i) => <Instance key={i} position={[g.x, g.y, g.z]} scale={[0.8 + (i % 4) * 0.2, 0.7 + g.s * 0.7, 0.8 + (i % 3) * 0.25]} rotation-y={g.r} color={jitter("#5fae4f", i + 90, 0.05, 0.16)} />)}
+      </Instances>
+      <Instances limit={Math.max(1, reeds.length)} receiveShadow geometry={reedGeo}>
+        <meshStandardMaterial onBeforeCompile={swayReed} color="#5e7a4a" roughness={1} side={THREE.DoubleSide} />
+        {reeds.map((g, i) => <Instance key={i} position={[g.x, Math.max(g.y, WATER_LEVEL + 0.1), g.z]} scale={[1, 0.6 + g.s * 0.8, 1]} rotation-y={g.r} color={jitter("#5e7a4a", i + 120, 0.04, 0.14)} />)}
+      </Instances>
     </group>
   );
 }
