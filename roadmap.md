@@ -133,3 +133,5 @@
 - Class backpacks: Bastion (Titan: orbital friendly fire -70%, Supply Drop +50% repair), Slipstream (Hunter: call-in cooldowns -30%), Relay (Warlock: Recon Pulse +40% reach, 1.45x mark). Packs drawn on each Operator.
 
 - Looks pass: slope-masked terrain coloring (dirt on mid slopes, cliff rock on steep faces, ~9% / ~7% of land).
+
+- Looks pass 2: graded supply roads (smoother along-lane, ~5-10x on flat routes) and saplings/brush clustered around Veridan trees.

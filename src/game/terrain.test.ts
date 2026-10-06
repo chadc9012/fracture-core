@@ -19,3 +19,18 @@ describe("slope masking", () => {
     }
   });
 });
+
+describe("road grading", () => {
+  it("keeps terrain continuous across the verge and smoother along the road", async () => {
+    const { LANES, laneSamples } = await import("./lanes");
+    const pts = laneSamples(LANES[0]!, 60);
+    let worstStep = 0, roughness = 0;
+    for (let i = 1; i < pts.length - 1; i++) {
+      const a = pts[i - 1]!, b = pts[i]!, c = pts[i + 1]!;
+      roughness += Math.abs(heightAt(a.x, a.z) - 2 * heightAt(b.x, b.z) + heightAt(c.x, c.z));
+      for (let o = -16; o < 16; o += 0.5) worstStep = Math.max(worstStep, Math.abs(heightAt(b.x + o, b.z) - heightAt(b.x + o + 0.5, b.z)));
+    }
+    expect(worstStep).toBeLessThan(2.5);
+    expect(roughness / pts.length).toBeLessThan(0.1);
+  });
+});

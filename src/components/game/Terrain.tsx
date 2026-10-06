@@ -5,6 +5,7 @@ import * as THREE from "three";
 import { REGIONS, WORLD_RADIUS, type Region } from "@/game/world";
 import type { RenderTier } from "@/game/performance";
 import { mulberry32 } from "@/game/useKeyboard";
+import { clusterAround } from "@/game/foliage";
 import { WATER_LEVEL, colorAt, heightAt, slopeAt } from "@/game/terrain";
 import { groundDetailTextures, propDetailTextures } from "@/game/detail-texture";
 import { applySurfaceBlend, loadGroundSurfaces, surfaceWeights } from "@/game/region-materials";
@@ -127,6 +128,11 @@ export function Terrain({ renderTier = "HIGH" }: { renderTier?: RenderTier } = {
   const d = (n: number) => Math.max(1, Math.round(n * density));
 
   const trees = useMemo(() => scatter(forest, d(120), 11, { min: 1.5, max: 26, maxSlope: 0.55, keepSpawnLaneClear: true }), [forest, density]);
+  // undergrowth clusters around each tree: saplings and low brush, kept off roads, water and steep ground
+  const undergrowth = useMemo(() => clusterAround(trees, d(3), mulberry32(61), (x, z) => {
+    const y = heightAt(x, z);
+    return y > 1.8 && y < 24 && slopeAt(x, z) < 0.5 && distanceToRoad(x, z) > LANE_HALF_WIDTH + 1 && Math.hypot(x - forest.x, z - (forest.z + 12)) > 12;
+  }, { minScale: 0.45, maxScale: 1 }), [trees, density]);
   const flowers = useMemo(() => scatter(forest, d(70), 20, { min: 1.5, max: 20, maxSlope: 0.4 }), [forest, density]);
   const swampTrees = useMemo(() => scatter(swamp, d(70), 12, { min: -2.5, max: 6 }), [swamp, density]);
   const boulders = useMemo(
@@ -231,6 +237,15 @@ export function Terrain({ renderTier = "HIGH" }: { renderTier?: RenderTier } = {
             color={jitter("#3a8f4d", i + 41, 0.035, 0.12)}
           />
         ))}
+      </Instances>
+      {/* undergrowth: saplings (tall) and brush (low, wide) clustered around the parent trees */}
+      <Instances limit={Math.max(1, undergrowth.length)} castShadow={false} receiveShadow geometry={canopyHigh}>
+        <meshStandardMaterial color="#3f9a4f" roughness={0.9} map={leafDetail.map} normalMap={leafDetail.normalMap} normalScale={new THREE.Vector2(0.4, 0.4)} />
+        {undergrowth.map((u, i) => {
+          const sapling = i % 3 !== 0;
+          const y = heightAt(u.x, u.z);
+          return <Instance key={i} position={[u.x, y + (sapling ? 0.9 : 0.35) * u.s, u.z]} scale={sapling ? [0.3 * u.s, 0.42 * u.s, 0.3 * u.s] : [0.38 * u.s, 0.2 * u.s, 0.38 * u.s]} rotation-y={u.r} color={jitter(sapling ? "#3f9a4f" : "#2a6b3a", i + 7, 0.04, 0.14)} />;
+        })}
       </Instances>
       <Instances limit={flowers.length}>
         <sphereGeometry args={[0.4, 6, 5]} />

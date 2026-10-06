@@ -1,4 +1,5 @@
 import { REGIONS, WORLD_RADIUS } from "./world";
+import { LANES, laneSamples } from "./lanes";
 
 /* ------------------------------------------------------------------
  * Heightmap: seeded value noise (fbm) + per-region biome profiles.
@@ -58,7 +59,7 @@ function weight(d: number, radius: number) {
   return 1 - smoothstep(0.15, 1.05, d / radius);
 }
 
-export function heightAt(x: number, z: number): number {
+function rawHeightAt(x: number, z: number): number {
   // rolling base terrain
   let h = fbm(x * 0.011, z * 0.011, 4) * 16 - 2;
   h += (fbm(x * 0.05 + 40, z * 0.05 - 20, 2) - 0.5) * 3;
@@ -117,6 +118,63 @@ export function heightAt(x: number, z: number): number {
   const coast = 1 - smoothstep(WORLD_RADIUS * 0.78, WORLD_RADIUS * 1.02, d);
   h = h * coast - (1 - coast) * 16;
   return h;
+}
+
+/* ---------------- road grading ---------------- */
+
+type GradePoint = { x: number; z: number; h: number };
+const GRADE_CELL = 8;
+const GRADE_RANGE = Math.ceil(WORLD_RADIUS * 1.2 / GRADE_CELL);
+const GRADE_CORE = 5;
+const GRADE_FADE = 14;
+let gradePoints: GradePoint[] | null = null;
+let gradeSegments: { a: GradePoint; b: GradePoint }[] | null = null;
+let gradeNear: Uint8Array | null = null;
+
+/** Smooth each supply route's centre-line height (moving average along the lane) so convoys and
+ * players travel a graded road instead of every hillock; heightAt blends the verge toward it. */
+function buildGrade() {
+  const pts: GradePoint[] = [];
+  const segs: { a: GradePoint; b: GradePoint }[] = [];
+  for (const lane of LANES) {
+    const start = pts.length;
+    const raw = laneSamples(lane, 40).map((p) => ({ ...p, h: rawHeightAt(p.x, p.z) }));
+    raw.forEach((p, i) => {
+      let sum = 0, n = 0;
+      for (let k = -5; k <= 5; k++) { const q = raw[i + k]; if (q) { sum += q.h; n++; } }
+      pts.push({ x: p.x, z: p.z, h: sum / n });
+    });
+    for (let i = start; i < pts.length - 1; i++) segs.push({ a: pts[i]!, b: pts[i + 1]! });
+  }
+  const size = GRADE_RANGE * 2;
+  const near = new Uint8Array(size * size);
+  const reach = GRADE_FADE + GRADE_CELL;
+  for (let cx = 0; cx < size; cx++) for (let cz = 0; cz < size; cz++) {
+    const x = (cx - GRADE_RANGE + 0.5) * GRADE_CELL, z = (cz - GRADE_RANGE + 0.5) * GRADE_CELL;
+    if (pts.some((p) => Math.hypot(p.x - x, p.z - z) < reach)) near[cx * size + cz] = 1;
+  }
+  gradePoints = pts; gradeSegments = segs; gradeNear = near;
+}
+
+/** terrain height: the natural heightmap with supply-road corridors graded smooth */
+export function heightAt(x: number, z: number): number {
+  const raw = rawHeightAt(x, z);
+  if (raw <= WATER_LEVEL) return raw;
+  if (!gradePoints) buildGrade();
+  const size = GRADE_RANGE * 2;
+  const cx = Math.floor(x / GRADE_CELL) + GRADE_RANGE, cz = Math.floor(z / GRADE_CELL) + GRADE_RANGE;
+  if (cx < 0 || cz < 0 || cx >= size || cz >= size || !gradeNear![cx * size + cz]) return raw;
+  // nearest point on the graded centre-line polyline, height interpolated along the segment
+  let best = Infinity, bh = raw;
+  for (const sgm of gradeSegments!) {
+    const ex = sgm.b.x - sgm.a.x, ez = sgm.b.z - sgm.a.z;
+    const len2 = ex * ex + ez * ez || 1;
+    const t = Math.min(1, Math.max(0, ((x - sgm.a.x) * ex + (z - sgm.a.z) * ez) / len2));
+    const d = Math.hypot(sgm.a.x + ex * t - x, sgm.a.z + ez * t - z);
+    if (d < best) { best = d; bh = sgm.a.h + (sgm.b.h - sgm.a.h) * t; }
+  }
+  const w = 1 - smoothstep(GRADE_CORE, GRADE_FADE, best);
+  return w <= 0 ? raw : raw + (Math.max(bh, WATER_LEVEL + 0.4) - raw) * w;
 }
 
 /** ground height a walker stands on (water surface if submerged) */
