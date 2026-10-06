@@ -100,11 +100,6 @@ export type Machine = {
   scenarioId?: string;
   /** patrol/detection/cover state (see enemy-perception.ts); reset when a pooled slot respawns */
   ai?: EnemyAi;
-  /** subclass-verb vulnerability window (see subclass-verbs.ts's WEAKEN/MARKED) — while
-   * performance.now()/1000 < vulnUntil, incoming damage is multiplied by vulnMult. Reset to 0/1 on
-   * every (re)spawn so a pooled slot never inherits a stale debuff from its previous occupant. */
-  vulnUntil: number;
-  vulnMult: number;
 };
 
 export type Truck = {
@@ -222,13 +217,6 @@ export type WorldSim = {
    * tuning below — kept as its own field rather than routing through `mods` since `mods` is
    * recomputed fresh from `adaptation` every frame and would just overwrite it. */
   bossCounter: CounterTuning;
-  /** subclass-verb state (see subclass-verbs.ts). volatileZones are standing DoT pulses dropped by
-   * the Void Warlock's Corrosion Field, ticked in stepSim. verbDamageMult/verbIncomingMult are set
-   * every frame by Scene.tsx from the live LiveBuild's self-targeted verb (RAGE/OVERSHIELD) since
-   * LiveBuild itself has no reference to WorldSim. */
-  volatileZones: { x: number; z: number; radius: number; dps: number; until: number }[];
-  verbDamageMult: number;
-  verbIncomingMult: number;
 };
 
 export const HEAT_PER_SHOT_FOOT = 7;
@@ -321,8 +309,6 @@ export function createSim(): WorldSim {
     profile: "Wasteland Grunt", kind: "RAIDER", drop: "scrapMetal", boss: false,
     kx: 0,
     kz: 0,
-    vulnUntil: 0,
-    vulnMult: 1,
   }));
 
   // one truck per lane+direction slot: two trucks can never share a corridor
@@ -415,9 +401,6 @@ export function createSim(): WorldSim {
     materials: {}, drops: [], enemyShots: [], bossPhaseFlares: [], xpEvents: [], nextDropId: 0,
     emergencyQuest: EMERGENCY_QUEST_INIT,
     bossCounter: counterTuningFor(null),
-    volatileZones: [],
-    verbDamageMult: 1,
-    verbIncomingMult: 1,
   };
 }
 
@@ -462,8 +445,6 @@ function spawnMachine(sim: WorldSim, zone: ZoneState, elite = false) {
   m.elite = elite;
   m.kx = 0;
   m.kz = 0;
-  m.vulnUntil = 0;
-  m.vulnMult = 1;
 }
 
 /** Spawn Broken Signal data drones around a point; tagged so the mission can count them. */
@@ -472,7 +453,7 @@ export function spawnMissionDrones(sim: WorldSim, x: number, z: number, count: n
     const m = sim.machines.find((e) => !e.alive);
     if (!m) return;
     const a = (i / count) * Math.PI * 2;
-    Object.assign(m, { alive: true, x: x + Math.cos(a) * 16, z: z + Math.sin(a) * 16, hp: elite ? 6 : 3, rot: 0, scale: elite ? 1.1 : 0.8, zone: "nexus", cool: elite ? 1.2 : 2.5, elite, profile: elite ? "Data Drone Elite" : "Data Drone Scout", kind: "OVERCLOCKED" as const, drop: "dataShards" as MaterialId, boss: false, kx: 0, kz: 0, mission: true, vulnUntil: 0, vulnMult: 1 });
+    Object.assign(m, { alive: true, x: x + Math.cos(a) * 16, z: z + Math.sin(a) * 16, hp: elite ? 6 : 3, rot: 0, scale: elite ? 1.1 : 0.8, zone: "nexus", cool: elite ? 1.2 : 2.5, elite, profile: elite ? "Data Drone Elite" : "Data Drone Scout", kind: "OVERCLOCKED" as const, drop: "dataShards" as MaterialId, boss: false, kx: 0, kz: 0, mission: true });
   }
 }
 
@@ -489,7 +470,7 @@ export function summonBoss(sim: WorldSim, regionId: string, x: number, z: number
   }
   const m = sim.machines.find((candidate) => !candidate.alive);
   if (!m) return false;
-  Object.assign(m, { alive: true, x, z, y: walkHeight(x, z) + 5, hp: 28, maxHp: 28, phase: 0 as BossPhaseIndex, rot: 0, scale: 2.3, zone: regionId, cool: 2, elite: true, boss: true, profile: boss.name, kind: "OVERCLOCKED", drop: boss.drop, kx: 0, kz: 0, poiseState: INITIAL_POISE, vulnUntil: 0, vulnMult: 1, ...extra });
+  Object.assign(m, { alive: true, x, z, y: walkHeight(x, z) + 5, hp: 28, maxHp: 28, phase: 0 as BossPhaseIndex, rot: 0, scale: 2.3, zone: regionId, cool: 2, elite: true, boss: true, profile: boss.name, kind: "OVERCLOCKED", drop: boss.drop, kx: 0, kz: 0, poiseState: INITIAL_POISE, ...extra });
   sim.raidFight = { start: performance.now() / 1000, hurt: 0, region: regionId };
   alert(sim, `${boss.name} · ${boss.tell}`);
   return true;
@@ -500,7 +481,7 @@ export function summonBoss(sim: WorldSim, regionId: string, x: number, z: number
 export function summonScenarioBoss(sim: WorldSim, scenario: UniqueScenario, x: number, z: number, extra?: Partial<Machine>): boolean {
   const m = sim.machines.find((candidate) => !candidate.alive);
   if (!m) return false;
-  Object.assign(m, { alive: true, x, z, y: walkHeight(x, z) + 5, hp: 34, maxHp: 34, phase: 0 as BossPhaseIndex, rot: 0, scale: 2.5, zone: scenario.regionId, cool: 2, elite: true, boss: true, profile: scenario.bossName, kind: "ABERRATION", drop: scenario.drop as MaterialId, kx: 0, kz: 0, poiseState: INITIAL_POISE, scenarioId: scenario.id, vulnUntil: 0, vulnMult: 1, ...extra });
+  Object.assign(m, { alive: true, x, z, y: walkHeight(x, z) + 5, hp: 34, maxHp: 34, phase: 0 as BossPhaseIndex, rot: 0, scale: 2.5, zone: scenario.regionId, cool: 2, elite: true, boss: true, profile: scenario.bossName, kind: "ABERRATION", drop: scenario.drop as MaterialId, kx: 0, kz: 0, poiseState: INITIAL_POISE, scenarioId: scenario.id, ...extra });
   sim.raidFight = { start: performance.now() / 1000, hurt: 0, region: scenario.regionId };
   alert(sim, `${scenario.name} · ${scenario.briefing}`);
   return true;
@@ -541,35 +522,11 @@ export function fireBullet(
   return true;
 }
 
-/** Subclass-verb pulses (see subclass-verbs.ts). All three are cast from the player's own position
- * at activation time — Scene.tsx calls these right after activateLiveAbility hands back a
- * LiveBuild.pendingVerb, then clears it. */
-export function applyVulnPulse(sim: WorldSim, x: number, z: number, radius: number, mult: number, duration: number) {
-  const until = performance.now() / 1000 + duration;
-  for (const m of sim.machines) {
-    if (!m.alive) continue;
-    if (Math.hypot(m.x - x, m.z - z) <= radius) { m.vulnUntil = until; m.vulnMult = mult; }
-  }
-}
-
-export function applySuppressPulse(sim: WorldSim, x: number, z: number, radius: number, coolAdd: number) {
-  for (const m of sim.machines) {
-    if (!m.alive) continue;
-    if (Math.hypot(m.x - x, m.z - z) <= radius) m.cool = Math.max(m.cool, coolAdd);
-  }
-}
-
-export function spawnVolatileZone(sim: WorldSim, x: number, z: number, radius: number, dps: number, duration: number) {
-  sim.volatileZones.push({ x, z, radius, dps, until: performance.now() / 1000 + duration });
-}
-
 /** hurt the player and respawn at Nexus when the hull is gone */
 export function hurtPlayer(sim: WorldSim, dmg: number, cause: string) {
   // Global Balance Controller (balance.ts): scales every hit the player takes by their own power
   // score before anything else runs — the one place all incoming damage already funnels through.
-  // verbIncomingMult (Bulwark Titan's Safe Ground / OVERSHIELD) is set here too since every source
-  // of incoming damage — bullets, collisions, hazards — already routes through this one function.
-  const scaled = dmg * sim.mods.incomingDamageScale * sim.verbIncomingMult;
+  const scaled = dmg * sim.mods.incomingDamageScale;
   const resolvedDamage = sim.titanActive ? absorbTitanDamage(sim.titan, scaled, performance.now() / 1000) : scaled;
   sim.hp = Math.max(0, sim.hp - resolvedDamage);
   if (sim.raidFight) sim.raidFight.hurt += resolvedDamage;
@@ -955,21 +912,6 @@ export function stepSim(sim: WorldSim, input: SimInput) {
     m.y = walkHeight(m.x, m.z) + 2.2 * m.scale;
   }
 
-  // ---------- subclass-verb volatile zones (Void Warlock's Corrosion Field, see subclass-verbs.ts) ----------
-  if (sim.volatileZones.length) {
-    const nowSec = performance.now() / 1000;
-    sim.volatileZones = sim.volatileZones.filter((zone) => zone.until > nowSec);
-    for (const zone of sim.volatileZones) {
-      for (const m of sim.machines) {
-        if (!m.alive) continue;
-        if (Math.hypot(m.x - zone.x, m.z - zone.z) <= zone.radius) {
-          m.hp -= zone.dps * dt;
-          if (m.hp <= 0) defeatMachine(sim, m);
-        }
-      }
-    }
-  }
-
 // stealth: surviving close to hostiles without opening fire
   if (!input.inVehicle && hostileNear > 0 && sim.combatHeat < 2) {
     logBehavior(sim.adaptation, "stealth", dt * 0.8 * hostileNear);
@@ -1190,9 +1132,8 @@ export function stepSim(sim: WorldSim, input: SimInput) {
       if (!m.alive) continue;
       if (Math.hypot(m.x - b.x, m.z - b.z) < 3.4 * m.scale) {
         b.alive = false;
-        let dmg = sim.mods.bulletDamage * b.dmg * sim.verbDamageMult;
+        let dmg = sim.mods.bulletDamage * b.dmg;
         if (sim.equippedElement !== "KINETIC") dmg += 0.35;
-        if (m.vulnUntil > performance.now() / 1000) dmg *= m.vulnMult;
         if (m.boss) {
           const nowSec = performance.now() / 1000;
           if (!m.poiseState) m.poiseState = INITIAL_POISE;

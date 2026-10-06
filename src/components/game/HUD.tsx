@@ -27,7 +27,7 @@ export function HUD({ hud, tutorialActive = false, onMenu }: { hud: HudState; tu
     <Crosshair hud={hud} />
     <div className="absolute bottom-4 left-4 w-[min(24rem,calc(100%-8rem))]">
       <div className={`hud-status px-3 py-2 ${hud.hp <= 40 ? "hud-glow-destructive" : ""}`}>
-        <div className="flex items-center justify-between"><span className="hud-label">{hud.callsign} // Hull Integrity</span><span className={`text-xs font-bold ${hud.hp > 40 ? "text-primary" : "text-destructive"}`}>{hud.hp}%</span></div>
+        <div className="flex items-center justify-between"><span className="hud-label">Hull Integrity</span><span className={`text-xs font-bold ${hud.hp > 40 ? "text-primary" : "text-destructive"}`}>{hud.hp}%</span></div>
         <div className="mt-1 h-2.5 overflow-hidden border border-foreground/20 bg-background/60">
           <div className={`relative h-full hud-ticks ${hud.hp > 40 ? "bg-primary" : "bg-destructive"}`} style={{ width: `${hud.hp}%`, transition: "width 200ms linear" }} />
         </div>

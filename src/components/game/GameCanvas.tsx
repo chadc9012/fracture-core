@@ -4,7 +4,7 @@ import { Bloom, BrightnessContrast, ChromaticAberration, DepthOfField, EffectCom
 import * as THREE from "three";
 import { Suspense, useEffect, useRef, useState } from "react";
 
-import { appearanceById, classById, subclassById, type AppearanceDefinition, type ClassId, type SubclassId } from "@/game/loadout";
+import { classById, subclassById, type AppearanceId, type ClassId, type SubclassId } from "@/game/loadout";
 import { REGIONS } from "@/game/world";
 import { walkHeight } from "@/game/terrain";
 import type { VehicleId } from "@/game/vehicles";
@@ -32,7 +32,6 @@ import { nodeById } from "@/game/ability-network";
 import { advanceTutorial, FIRST_TUTORIAL, type TutorialEvent, type TutorialState } from "@/game/onboarding";
 import { OnboardingSignal } from "./OnboardingSignal";
 import { IntroCinematic } from "./IntroCinematic";
-import { introTotalSeconds } from "@/game/intro";
 import { VictoryReport } from "./VictoryReport";
 import { claimDrops } from "@/game/inventory";
 import { InventoryWindow } from "./InventoryWindow";
@@ -149,7 +148,6 @@ const initial: HudState = {
   hitMarker: false,
   playerClass: "TITAN",
   subclassName: "Shield Titan",
-  callsign: "BASTION-01",
   abilities: classById("TITAN").abilities.map((ability) => ({ slot: ability.slot, name: ability.name, ready: true })),
   firstMissionComplete: false,
   weather: "Rain mist",
@@ -215,7 +213,7 @@ export function GameCanvas() {
   useEffect(() => { if (menuOpen) stopVoice(); }, [menuOpen]);
   const [cls, setCls] = useState<ClassId>("TITAN");
   const [subclass, setSubclass] = useState<SubclassId>("SHIELD_TITAN");
-  const [appearance, setAppearance] = useState<AppearanceDefinition>(() => appearanceById("BASTION"));
+  const [appearance, setAppearance] = useState<AppearanceId>("RANGER");
   const [vehicleId, setVehicleId] = useState<VehicleId>("scrap-interceptor");
   const [vehicleUnlocked, setVehicleUnlocked] = useState(false);
   const [garageOpen, setGarageOpen] = useState(false);
@@ -241,7 +239,6 @@ export function GameCanvas() {
     const line = recapDue(lastPlayed.current, Date.now()) ? recapLine(progression) : null;
     if (line) speakVoice({ id: "return-recap", scope: "recap", speaker: "NOVA", text: line, priority: "story" });
   }, [phase, progression]);
-  const [introElapsed, setIntroElapsed] = useState(0);
   const [boot, setBoot] = useState(true);
   useEffect(() => { const timer = window.setTimeout(() => setBoot(false), 1700); return () => window.clearTimeout(timer); }, []);
 
@@ -457,7 +454,7 @@ export function GameCanvas() {
   const deploy = (deployment: Deployment) => {
     setCls(deployment.classId);
     setSubclass(deployment.subclassId);
-    setAppearance(deployment.appearance);
+    setAppearance(deployment.appearanceId);
     setTutorial(FIRST_TUTORIAL);
     setProgression((current) => ({ ...current, identityClass: deployment.classId, activeBuild: classBuild(deployment.classId) }));
     setVehicleUnlocked(Boolean(progression.selectedVehicle));
@@ -472,7 +469,6 @@ export function GameCanvas() {
       weather: "Rain mist",
       playerClass: deployment.classId,
       subclassName: subclassById(deployment.subclassId).name,
-      callsign: deployment.appearance.callsign,
       abilities: classById(deployment.classId).abilities.map((ability) => ({ slot: ability.slot, name: ability.name, ready: true })),
       missions: [{
         id: "mission-01",
@@ -492,7 +488,6 @@ export function GameCanvas() {
     }));
     setMenuOpen(false);
     setPhase("world");
-    setIntroElapsed(0);
     setShowIntro(true);
   };
   const recordTutorial = (event: TutorialEvent) => setTutorial((current) => current ? advanceTutorial(current, event) : current);
@@ -626,7 +621,7 @@ export function GameCanvas() {
       >
         <color attach="background" args={["#bfe4f2"]} />
         <Suspense fallback={null}>
-            <Scene onHud={setHud} onDrops={(drops) => setProgression((current) => claimDrops(current, drops))} gear={progression} settings={settings} onCameraPreference={(firstPerson) => { window.localStorage.setItem("world-fracture-camera", firstPerson ? "first" : "third"); setSettings((current) => ({ ...current, firstPersonDefault: firstPerson })); }} playerClass={cls} subclassId={subclass} appearance={appearance} vehicleId={vehicleId} vehicleUnlocked={vehicleUnlocked} activeBuild={progression.activeBuild} abilityBranches={progression.abilityBranches} tutorial={tutorial} onTutorialEvent={recordTutorial} mission={mission} onMissionEvent={recordMission} blackout={blackout} onBlackoutEvent={recordBlackout} neonCore={neonCore} onNeonCoreEvent={recordNeonCore} descent={descent} onDescentEvent={recordDescent} systemCore={systemCore} onSystemCoreEvent={recordSystemCore} awakening={awakening} onAwakeningEvent={recordAwakening} onXP={recordXP} weaponOrder={activeLoadout(progression, progression.identityClass ?? cls).slots} travelTo={travelTo} introPlayback={showIntro ? { elapsed: introElapsed, totalSeconds: introTotalSeconds() } : null} armorState={hud.hp < 35 ? "FRACTURE" : hud.heat > 65 ? "ASCENDANT" : hud.heat > 15 ? "ACTIVE" : "STABLE"} />
+            <Scene onHud={setHud} onDrops={(drops) => setProgression((current) => claimDrops(current, drops))} gear={progression} settings={settings} onCameraPreference={(firstPerson) => { window.localStorage.setItem("world-fracture-camera", firstPerson ? "first" : "third"); setSettings((current) => ({ ...current, firstPersonDefault: firstPerson })); }} playerClass={cls} subclassId={subclass} appearanceId={appearance} vehicleId={vehicleId} vehicleUnlocked={vehicleUnlocked} activeBuild={progression.activeBuild} abilityBranches={progression.abilityBranches} tutorial={tutorial} onTutorialEvent={recordTutorial} mission={mission} onMissionEvent={recordMission} blackout={blackout} onBlackoutEvent={recordBlackout} neonCore={neonCore} onNeonCoreEvent={recordNeonCore} descent={descent} onDescentEvent={recordDescent} systemCore={systemCore} onSystemCoreEvent={recordSystemCore} awakening={awakening} onAwakeningEvent={recordAwakening} onXP={recordXP} weaponOrder={activeLoadout(progression, progression.identityClass ?? cls).slots} travelTo={travelTo} armorState={hud.hp < 35 ? "FRACTURE" : hud.heat > 65 ? "ASCENDANT" : hud.heat > 15 ? "ACTIVE" : "STABLE"} />
         </Suspense>
         {post && (
           // cinematic grade: cool-leaning teal shadows, a touch more punch, so the HUD's cyan
@@ -692,7 +687,7 @@ export function GameCanvas() {
           onContinue={() => { setTutorial(null); setOperationsView("ABILITIES"); }}
         />
       )}
-      {showIntro && <IntroCinematic onComplete={() => setShowIntro(false)} onTick={setIntroElapsed} />}
+      {showIntro && <IntroCinematic onComplete={() => setShowIntro(false)} />}
       {strategyOpen && <RaidStrategyPanel onClose={() => setStrategyOpen(false)} />}
       {analysisOpen && <ZoneAnalysisPanel zoneName={hud.region} onClose={() => setAnalysisOpen(false)} />}
       {operationsView && <OperationsHub initialView={operationsView} progression={progression} onProgression={setProgression} onClose={() => setOperationsView(null)} />}

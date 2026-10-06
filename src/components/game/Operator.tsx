@@ -16,46 +16,7 @@ import type { ArmorVisualState } from "./Scavenger";
  * few extra greebles (elbow pads, a boot sole strip, a split toe cap) to break up flat panel faces.
  */
 const BEVEL = 6; // RoundedBox corner smoothness — up from drei's default 4, for softer edges
-
-/** Equipped-gear tier from an item's upgrade level (gearCost/upgradeGear in inventory.ts step
- * level 1 -> 2 -> 3... at 2x materials per step), used to pick which of three geometry sets a
- * slot renders — not a color swap: T2/T3 add real plates/vents/crests the base model doesn't
- * have, T1 is the bare starter silhouette. 1 = starter, 2 = upgraded, 3 = max-tier. */
-function tierOf(level: number): 1 | 2 | 3 {
-  return level >= 6 ? 3 : level >= 3 ? 2 : 1;
-}
-
-export function Operator({
-  armor = "#1b1f26",
-  cloth = "#0e1014",
-  visor = "#48d8ff",
-  trim: trimColor = "#1a1c20",
-  classId = "TITAN",
-  visualState = "STABLE",
-  chestLevel = 1,
-  helmetLevel = 1,
-  legsLevel = 1,
-}: {
-  armor?: string;
-  cloth?: string;
-  visor?: string;
-  /** Greeble/plate-trim accent color (collar plates, ridges, shin guards, brow ridge, antennae).
-   * Was a hardcoded dark gunmetal; now a 4th customizable channel alongside armor/cloth/visor. */
-  trim?: string;
-  classId?: ClassId;
-  visualState?: ArmorVisualState;
-  /** Upgrade level of the equipped chest/helmet/legs gear (PlayerProgression.inventory's
-   * GearItem.level for whatever's in equippedGear.chest/.helmet/.legs) — drives real geometry,
-   * not a tint: see tierOf(). Defaults to 1 (starter gear / no progression context, e.g. Identity
-   * Forge preview) for every slot. */
-  chestLevel?: number;
-  helmetLevel?: number;
-  legsLevel?: number;
-}) {
-  const chestTier = tierOf(chestLevel);
-  const helmetTier = tierOf(helmetLevel);
-  const legsTier = tierOf(legsLevel);
-  const trim = <meshStandardMaterial color={trimColor} metalness={0.85} roughness={0.25} />;
+export function Operator({ armor = "#1b1f26", cloth = "#0e1014", visor = "#48d8ff", classId = "TITAN", visualState = "STABLE" }: { armor?: string; cloth?: string; visor?: string; classId?: ClassId; visualState?: ArmorVisualState }) {
   const glow = useRef<THREE.MeshStandardMaterial>(null);
   const drone = useRef<THREE.Group>(null);
   const orbit = useRef<THREE.Group>(null);
@@ -82,12 +43,8 @@ export function Operator({
         <group key={x} position={[x, 0, 0]}>
           <mesh position={[0, -0.95, 0]} castShadow><capsuleGeometry args={[0.12, 0.95, 8, 16]} />{suit}</mesh>
           <RoundedBox args={[0.24, 0.42, 0.25]} radius={0.07} smoothness={BEVEL} position={[0, -0.62, 0.02]} castShadow>{plate}</RoundedBox>
-          <RoundedBox args={legsTier >= 3 ? [0.25, 0.46, 0.27] : [0.21, 0.44, 0.23]} radius={0.07} smoothness={BEVEL} position={[0, -1.16, 0.03]} castShadow>{plate}</RoundedBox>
-          <mesh position={[0, -0.88, 0.16]} castShadow><sphereGeometry args={[legsTier >= 2 ? 0.135 : 0.11, 16, 14]} />{plate}</mesh>
-          {/* legs tier 2+: a real shin-guard overlay plate — not on the base shin below upgrade level 3 */}
-          {legsTier >= 2 && <RoundedBox args={[0.14, 0.3, 0.06]} radius={0.025} smoothness={BEVEL} position={[0, -1.1, 0.17]} castShadow>{trim}</RoundedBox>}
-          {/* legs tier 3: a knee spike */}
-          {legsTier >= 3 && <mesh position={[0, -0.86, 0.22]} rotation={[Math.PI / 2, 0, 0]} castShadow><coneGeometry args={[0.035, 0.12, 8]} />{trim}</mesh>}
+          <RoundedBox args={[0.21, 0.44, 0.23]} radius={0.07} smoothness={BEVEL} position={[0, -1.16, 0.03]} castShadow>{plate}</RoundedBox>
+          <mesh position={[0, -0.88, 0.16]} castShadow><sphereGeometry args={[0.11, 16, 14]} />{plate}</mesh>
           <RoundedBox args={[0.26, 0.16, 0.38]} radius={0.05} smoothness={BEVEL} position={[0, -1.47, 0.03]} castShadow><meshStandardMaterial color="#0b0d10" roughness={0.6} /></RoundedBox>
           {/* split toe cap — breaks up the flat single boot-box silhouette */}
           <RoundedBox args={[0.26, 0.1, 0.1]} radius={0.04} smoothness={BEVEL} position={[0, -1.46, 0.27]} castShadow><meshStandardMaterial color="#0b0d10" roughness={0.6} /></RoundedBox>
@@ -100,29 +57,19 @@ export function Operator({
       <mesh position={[0, -0.34, 0]} castShadow><boxGeometry args={[0.6, 0.07, 0.38]} /><meshStandardMaterial color="#07080a" metalness={0.6} roughness={0.4} /></mesh>
       {/* torso: tapered suit + layered chest cuirass + abdomen segments */}
       <mesh position={[0, 0.1, 0]} castShadow><capsuleGeometry args={[0.26, 0.6, 10, 20]} />{suit}</mesh>
-      <RoundedBox args={chestTier >= 3 ? [0.72, 0.52, 0.44] : [0.66, 0.46, 0.4]} radius={0.12} smoothness={BEVEL} position={[0, 0.32, 0.03]} castShadow>{plate}</RoundedBox>
+      <RoundedBox args={[0.66, 0.46, 0.4]} radius={0.12} smoothness={BEVEL} position={[0, 0.32, 0.03]} castShadow>{plate}</RoundedBox>
       {[-0.05, -0.18].map((y, i) => <RoundedBox key={y} args={[0.52 - i * 0.06, 0.1, 0.44]} radius={0.04} smoothness={BEVEL} position={[0, y, 0.02]} castShadow>{plate}</RoundedBox>)}
-      {/* chest tier 2+: a real collar plate — not in the base cuirass at all below upgrade level 3 */}
-      {chestTier >= 2 && <RoundedBox args={[0.5, 0.1, 0.4]} radius={0.04} smoothness={BEVEL} position={[0, 0.56, 0.01]} castShadow>{plate}</RoundedBox>}
-      {/* chest tier 3: flanking ridge plates + a raised power core replacing the flat sigil disc */}
-      {chestTier >= 3 && <>
-        <RoundedBox args={[0.07, 0.42, 0.1]} radius={0.025} smoothness={BEVEL} position={[-0.18, 0.28, 0.23]} castShadow>{trim}</RoundedBox>
-        <RoundedBox args={[0.07, 0.42, 0.1]} radius={0.025} smoothness={BEVEL} position={[0.18, 0.28, 0.23]} castShadow>{trim}</RoundedBox>
-      </>}
       {/* chest circuit sigil */}
       {seam("c1", [0, 0.44, 0.285], [0.24, 0.025, 0.02])}
       {seam("c2", [-0.13, 0.35, 0.285], [0.025, 0.16, 0.02])}
       {seam("c3", [0.13, 0.35, 0.285], [0.025, 0.16, 0.02])}
       {seam("c4", [-0.22, 0.18, 0.27], [0.02, 0.2, 0.02], [0, 0, -0.5])}
       {seam("c5", [0.22, 0.18, 0.27], [0.02, 0.2, 0.02], [0, 0, 0.5])}
-      {chestTier >= 3
-        ? <mesh position={[0, 0.3, 0.32]} castShadow><sphereGeometry args={[0.07, 16, 14]} />{line}</mesh>
-        : <mesh position={[0, 0.3, 0.29]}><circleGeometry args={[0.045, 16]} />{line}</mesh>}
-      {/* shoulders + arms — pauldrons grow a real extra plate past tier 1, not just a bigger tint */}
+      <mesh position={[0, 0.3, 0.29]}><circleGeometry args={[0.045, 16]} />{line}</mesh>
+      {/* shoulders + arms */}
       {[-1, 1].map((side) => (
         <group key={side} position={[side * 0.42, 0, 0]}>
-          <RoundedBox args={[(titan ? 0.36 : 0.26) * (chestTier >= 2 ? 1.18 : 1), 0.22 * (chestTier >= 2 ? 1.15 : 1), 0.34]} radius={0.1} smoothness={BEVEL} position={[side * 0.04, 0.55, 0]} rotation={[0, 0, side * -0.25]} castShadow>{plate}</RoundedBox>
-          {chestTier >= 2 && <RoundedBox args={[0.1, 0.1, 0.36]} radius={0.03} smoothness={BEVEL} position={[side * 0.04, 0.63, 0]} rotation={[0, 0, side * -0.25]} castShadow>{trim}</RoundedBox>}
+          <RoundedBox args={[titan ? 0.36 : 0.26, 0.22, 0.34]} radius={0.1} smoothness={BEVEL} position={[side * 0.04, 0.55, 0]} rotation={[0, 0, side * -0.25]} castShadow>{plate}</RoundedBox>
           {seam(`sh${side}`, [side * 0.1, 0.6, 0.2], [0.14, 0.02, 0.02], [0, 0, side * -0.25])}
           <mesh position={[side * 0.06, 0.18, 0]} castShadow><capsuleGeometry args={[0.075, 0.46, 8, 14]} />{suit}</mesh>
           <mesh position={[side * 0.065, -0.07, 0.03]} castShadow><sphereGeometry args={[0.095, 12, 10]} />{plate}</mesh>
@@ -142,13 +89,6 @@ export function Operator({
         ) : (
           <mesh position={[0, 0.02, 0.2]} rotation={[0, 0, 0]}><boxGeometry args={[0.3, 0.035, 0.08]} /><meshStandardMaterial color={hunter ? "#ff3348" : visor} emissive={hunter ? "#ff2a40" : visor} emissiveIntensity={3.2} toneMapped={false} /></mesh>
         )}
-        {/* helmet tier 2+: a real brow ridge plate, not on the base dome below upgrade level 3 */}
-        {helmetTier >= 2 && <RoundedBox args={[0.32, 0.06, 0.1]} radius={0.02} smoothness={BEVEL} position={[0, 0.1, 0.19]} castShadow>{trim}</RoundedBox>}
-        {/* helmet tier 3: a crest fin + twin antenna prongs */}
-        {helmetTier >= 3 && <>
-          <RoundedBox args={[0.04, 0.16, 0.22]} radius={0.015} smoothness={BEVEL} position={[0, 0.26, -0.02]} rotation={[0.3, 0, 0]} castShadow>{trim}</RoundedBox>
-          {[-0.09, 0.09].map((x) => <mesh key={x} position={[x, 0.24, -0.08]} rotation={[0.4, 0, 0]} castShadow><cylinderGeometry args={[0.008, 0.012, 0.18, 6]} />{trim}</mesh>)}
-        </>}
       </group>
       {/* class signatures */}
       {titan && <group position={[0, 0.2, -0.36]} rotation={[0.08, 0, 0]}>
