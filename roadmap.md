@@ -112,3 +112,10 @@
 - [x] Voice startup, onboarding, cinematics, missions, NPCs, bosses, victory, and ending.
 - [x] Verify spoken flow, interruption, muting, Safari-safe fallback, and build health.
 - [x] Apply the linked Destiny UI reference to startup, identity onboarding, deployment briefing, restrained HUD, categorized settings, and destination-first world navigation without copying proprietary assets.
+- [x] Wire first-clear bonus (1.5×) and daily repeat taper into every mission payout.
+- [x] Poly Haven ground surfaces per region + bundled boulder, moss rock and dead trunk models.
+- [x] Show "What next" on the world map, star map and deployment briefing.
+- [x] Auto-save indicator; checkpoint-based death respawn that avoids war zones and crossfire.
+- [x] Star Map rebuilt from uploaded layout using real destination data, with deploy-to-region.
+- [x] Per-class Arsenal weapon loadouts that drive in-world weapon slots.
+- [x] Three-slot save manager on top of the cloud save.

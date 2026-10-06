@@ -28,3 +28,8 @@
 - Speech-driven faces/gestures read a shared live envelope from src/game/voice-animation.ts; the voice director owns one audio graph + LRU line cache. Why: no per-line contexts, no frame stalls.
 - Retention rules (chronicle, next activity, recap, repeat reward taper) live in src/game/retention.ts. Why: testable, no content is ever removed.
 - Region image-based lighting uses verified Poly Haven HDRIs via RegionLighting with a Lightformer fallback. Why: a dead asset must never suspend the scene.
+- Mission payouts go through rewardMission in src/game/progression.ts (first-clear bonus + daily repeat taper). Why: one place enforces anti-grind rules.
+- Respawn/checkpoint rules live in src/game/respawn.ts; Scene records checkpoints only on calm safe ground. Why: never respawn into active combat.
+- Save slots (src/game/save-slots.ts) park inactive games in player_save_slots; the active slot is the single player_saves row. Why: reuses the existing sync and restore-point pipeline.
+- Per-class weapon loadouts live in progression.arsenal and are passed to Scene as weaponOrder. Why: loadouts are progression, weapon feel stays in weapons.ts.
+- Region ground textures and extra models come from src/game/region-materials.ts and RegionModels.tsx; each asset is verified and isolated so failures fall back silently.
