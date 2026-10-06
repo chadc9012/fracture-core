@@ -19,6 +19,7 @@ import { SettingsWindow, DEFAULT_SETTINGS, type GameSettings } from "./SettingsW
 import { TitleScreen } from "./TitleScreen";
 import { DeploymentBriefing, type DeploymentBriefingData } from "./DeploymentBriefing";
 import { RaidStrategyPanel } from "./RaidStrategyPanel";
+import { EMPTY_STRATAGEM_HUD } from "@/game/stratagems";
 import { OperationsHub } from "./OperationsHub";
 import { ZoneAnalysisPanel } from "./ZoneAnalysisPanel";
 import { CloudSavePanel } from "./CloudSavePanel";
@@ -155,6 +156,7 @@ const initial: HudState = {
   weather: "Rain mist",
   environment: "",
   hazardWarning: "",
+  stratagem: EMPTY_STRATAGEM_HUD,
   streamTier: "ACTIVE · neighbors reduced · distant dormant",
   vehicleUnlocked: false,
   vehicleName: "No vehicle unlocked",

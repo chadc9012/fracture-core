@@ -34,3 +34,4 @@
 - Per-class weapon loadouts live in progression.arsenal and are passed to Scene as weaponOrder. Why: loadouts are progression, weapon feel stays in weapons.ts.
 - Region ground textures and extra models come from src/game/region-materials.ts and RegionModels.tsx; each asset is verified and isolated so failures fall back silently.
 - Seasons and environmental hazards are pure functions in src/game/environment.ts (seasons from the day clock, thermal index, exposure meters, telegraphed lightning), stepped by Scene and applied via sim.ts. Why: every client agrees without syncing, rules stay testable apart from rendering.
+- Stratagems (Helldivers-style call-ins) are a pure code-entry state machine in src/game/stratagems.ts; Scene feeds arrow presses while N is held, sim.ts owns beacon flight/blast and friendly fire. Why: input rules stay testable and deterministic, and strike effects stay server-replicable events, not UI state.

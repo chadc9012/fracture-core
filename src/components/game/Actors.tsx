@@ -487,3 +487,55 @@ export function HazardMarkers({ sim }: { sim: WorldSim }) {
     </group>
   );
 }
+
+const BEACON_COLOR: Record<string, string> = { ORBITAL_STRIKE: "#ff5a4a", RESUPPLY: "#6dffa8", RECON_PULSE: "#6bd0ff" };
+
+/** Thrown stratagem beacons (stratagems.ts): the body in flight, then once planted a vertical beam
+ * and a pulsing radius ring (the strike telegraph, speeding up as it nears), then an expanding blast. */
+export function BeaconMarkers({ sim }: { sim: WorldSim }) {
+  const root = useRef<THREE.Group>(null!);
+
+  useFrame((state) => {
+    const t = state.clock.elapsedTime;
+    sim.beacons.forEach((b, i) => {
+      const node = root.current?.children[i] as THREE.Group | undefined;
+      if (!node) return;
+      node.visible = b.alive;
+      if (!b.alive) return;
+      const color = BEACON_COLOR[b.kind] ?? "#ffffff";
+      node.position.set(b.x, b.y, b.z);
+      const [body, beam, ring, blast] = node.children as THREE.Mesh[];
+      const mat = (mesh?: THREE.Mesh) => mesh?.material as THREE.MeshBasicMaterial;
+      for (const mesh of [body, beam, ring, blast]) mat(mesh)?.color.set(color);
+      const armed = b.state === "ARMED";
+      body!.visible = b.state !== "BLAST";
+      body!.rotation.y = t * 6;
+      beam!.visible = armed;
+      ring!.visible = armed;
+      blast!.visible = b.state === "BLAST";
+      if (armed) {
+        const pulse = 0.8 + 0.2 * Math.sin(t * (6 + (3 - Math.min(3, b.timer)) * 6));
+        ring!.scale.setScalar(b.radius * pulse);
+        mat(beam).opacity = 0.35 + 0.35 * Math.abs(Math.sin(t * 8));
+      }
+      if (b.state === "BLAST") {
+        const k = 1 - b.timer / 0.45;
+        blast!.scale.setScalar(Math.max(0.1, b.radius * (0.4 + k * 0.7)));
+        mat(blast).opacity = 0.7 * (1 - k);
+      }
+    });
+  });
+
+  return (
+    <group ref={root}>
+      {sim.beacons.map((_, i) => (
+        <group key={i} visible={false}>
+          <mesh><boxGeometry args={[0.35, 0.5, 0.35]} /><meshBasicMaterial color="#ffffff" /></mesh>
+          <mesh position={[0, 20, 0]} visible={false}><cylinderGeometry args={[0.12, 0.12, 40, 8, 1, true]} /><meshBasicMaterial color="#ffffff" transparent opacity={0.5} depthWrite={false} /></mesh>
+          <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.1, 0]} visible={false}><ringGeometry args={[0.9, 1, 56]} /><meshBasicMaterial color="#ffffff" transparent opacity={0.85} depthWrite={false} side={THREE.DoubleSide} /></mesh>
+          <mesh visible={false}><sphereGeometry args={[1, 24, 16]} /><meshBasicMaterial color="#ffffff" transparent opacity={0.6} depthWrite={false} /></mesh>
+        </group>
+      ))}
+    </group>
+  );
+}

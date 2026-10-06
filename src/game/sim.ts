@@ -1,3 +1,4 @@
+import { stratagemById, type StratagemId } from "./stratagems";
 import { createEnvState, STRIKE_MACHINE_DAMAGE, STRIKE_PLAYER_DAMAGE, type EnvState, type Strike } from "./environment";
 import { familyFor, rollRaidDrop } from "./raid-loot";
 import { squadMove, squadRole } from "./enemy-intelligence";
@@ -142,6 +143,21 @@ export type Turret = {
   range: number;
 };
 
+/** A thrown stratagem beacon (stratagems.ts): flies, sticks to the ground, counts down, then blasts. */
+export type Beacon = {
+  alive: boolean;
+  kind: StratagemId;
+  state: "FLIGHT" | "ARMED" | "BLAST";
+  x: number; y: number; z: number;
+  vx: number; vy: number; vz: number;
+  /** seconds left in the current state */
+  timer: number;
+  radius: number;
+};
+export type StratagemEvent = { kind: StratagemId; x: number; z: number; radius: number };
+const BEACON_POOL = 4;
+const BEACON_BLAST_S = 0.45;
+
 export type Bullet = {
   alive: boolean;
   x: number;
@@ -234,6 +250,9 @@ export type WorldSim = {
   verbIncomingMult: number;
   /** seasons/hazards state (see environment.ts): exposure meters, pending lightning, strike flashes */
   env: EnvState;
+  /** thrown stratagem beacons and the detonations Scene drains each frame (ammo refill, sfx, camera punch) */
+  beacons: Beacon[];
+  stratagemEvents: StratagemEvent[];
 };
 
 /** max ranged machines winding up a shot at the same moment (bosses bypass the cap) */
@@ -427,6 +446,8 @@ export function createSim(): WorldSim {
     verbDamageMult: 1,
     verbIncomingMult: 1,
     env: createEnvState(),
+    beacons: Array.from({ length: BEACON_POOL }, () => ({ alive: false, kind: "RESUPPLY" as StratagemId, state: "FLIGHT" as const, x: 0, y: 0, z: 0, vx: 0, vy: 0, vz: 0, timer: 0, radius: 0 })),
+    stratagemEvents: [],
   };
 }
 
@@ -571,6 +592,62 @@ export function applySuppressPulse(sim: WorldSim, x: number, z: number, radius: 
 
 export function spawnVolatileZone(sim: WorldSim, x: number, z: number, radius: number, dps: number, duration: number) {
   sim.volatileZones.push({ x, z, radius, dps, until: performance.now() / 1000 + duration });
+}
+
+/** Throw an armed stratagem beacon from the player's hands along their view direction. */
+export function throwBeacon(sim: WorldSim, kind: StratagemId, x: number, y: number, z: number, yaw: number, pitch: number): boolean {
+  const b = sim.beacons.find((v) => !v.alive);
+  if (!b) return false;
+  const speed = 24;
+  Object.assign(b, {
+    alive: true, kind, state: "FLIGHT" as const,
+    x: x + Math.sin(yaw) * 0.8, y, z: z + Math.cos(yaw) * 0.8,
+    vx: Math.sin(yaw) * Math.cos(pitch) * speed, vy: Math.sin(pitch) * speed + 7, vz: Math.cos(yaw) * Math.cos(pitch) * speed,
+    timer: 6, radius: stratagemById(kind).radius,
+  });
+  return true;
+}
+
+function detonateBeacon(sim: WorldSim, b: Beacon, px: number, pz: number) {
+  const inRange = (x: number, z: number, pad = 0) => Math.hypot(x - b.x, z - b.z) <= b.radius + pad;
+  if (b.kind === "ORBITAL_STRIKE") {
+    for (const m of sim.machines) {
+      if (!m.alive || !inRange(m.x, m.z, m.scale)) continue;
+      m.hp -= m.boss ? 8 : 14;
+      if (m.hp <= 0) defeatMachine(sim, m);
+    }
+    // friendly fire: the strike does not care who is standing in it
+    if (inRange(px, pz)) hurtPlayer(sim, 35, "Orbital strike (friendly fire)");
+  } else if (b.kind === "RECON_PULSE") {
+    applyVulnPulse(sim, b.x, b.z, b.radius, 1.3, 8);
+  } else if (inRange(px, pz)) {
+    sim.hp = Math.min(100, sim.hp + 40);
+  }
+  sim.stratagemEvents.push({ kind: b.kind, x: b.x, z: b.z, radius: b.radius });
+  if (sim.stratagemEvents.length > 12) sim.stratagemEvents.shift();
+}
+
+function stepBeacons(sim: WorldSim, dt: number, px: number, pz: number) {
+  for (const b of sim.beacons) {
+    if (!b.alive) continue;
+    if (b.state === "FLIGHT") {
+      b.vy -= sim.gravity * dt;
+      b.x += b.vx * dt; b.y += b.vy * dt; b.z += b.vz * dt;
+      b.timer -= dt;
+      const ground = heightAt(b.x, b.z) + 0.3;
+      if (b.y <= ground) {
+        b.y = ground; b.vx = b.vy = b.vz = 0;
+        b.state = "ARMED"; b.timer = stratagemById(b.kind).delay;
+        alert(sim, `${stratagemById(b.kind).name} beacon down — ${b.timer.toFixed(0)}s`);
+      } else if (b.timer <= 0) b.alive = false; // lost in flight (fell out of the world)
+    } else if (b.state === "ARMED") {
+      b.timer -= dt;
+      if (b.timer <= 0) { detonateBeacon(sim, b, px, pz); b.state = "BLAST"; b.timer = BEACON_BLAST_S; }
+    } else {
+      b.timer -= dt;
+      if (b.timer <= 0) b.alive = false;
+    }
+  }
 }
 
 /** A lightning strike (environment.ts) just landed: hurts the player and any machines in its blast.
@@ -1004,6 +1081,8 @@ export function stepSim(sim: WorldSim, input: SimInput) {
       }
     }
   }
+
+  stepBeacons(sim, dt, px, pz);
 
 // stealth: surviving close to hostiles without opening fire
   if (!input.inVehicle && hostileNear > 0 && sim.combatHeat < 2) {

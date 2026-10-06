@@ -6,7 +6,7 @@ import * as THREE from "three";
 import { REGIONS, SKY, ZONE_COLOR, clockLabel, phaseFor, regionAt, WORLD_RADIUS } from "@/game/world";
 import { useKeyboard } from "@/game/useKeyboard";
 import { walkHeight, slopeAt, heightAt, WATER_LEVEL } from "@/game/terrain";
-import { alert, applyLightning, applySuppressPulse, applyVulnPulse, collidePlayer, createSim, defeatMachine, FACTIONS, fireBullet, hurtPlayer, instabilityTier, spawnMissionDrones, spawnVolatileZone, stepSim, summonBoss, type Faction, type InstabilityTier, type WorldSim, type ZoneState } from "@/game/sim";
+import { alert, applyLightning, applySuppressPulse, applyVulnPulse, collidePlayer, createSim, defeatMachine, FACTIONS, fireBullet, hurtPlayer, throwBeacon, instabilityTier, spawnMissionDrones, spawnVolatileZone, stepSim, summonBoss, type Faction, type InstabilityTier, type WorldSim, type ZoneState } from "@/game/sim";
 import type { MissionEvent, MissionRun } from "@/game/missions/broken-signal";
 import type { MissionEvent as BlackoutEvent, MissionRun as BlackoutRun } from "@/game/missions/blackout-protocol";
 import type { MissionEvent as NeonCoreEvent, MissionRun as NeonCoreRun } from "@/game/missions/stitched-neon-core";
@@ -23,9 +23,10 @@ import { CloudLayer, type SkyEnv } from "./CloudLayer";
 import { Weather } from "./Weather";
 import { weatherName as weatherLabel } from "@/game/weather-cycle";
 import { environmentAt, stepEnvironment } from "@/game/environment";
+import { closeStratagems, createStratagemState, inputDirection, openStratagems, releaseStratagems, stratagemById, stratagemHud, tickStratagems, type StratagemHud } from "@/game/stratagems";
 import { Wildlife } from "./Wildlife";
 import { Civilians } from "./Civilians";
-import { Bullets, Convoys, HazardMarkers, SupplyLanes, WarMachines, ZoneBeacons } from "./Actors";
+import { Bullets, BeaconMarkers, Convoys, HazardMarkers, SupplyLanes, WarMachines, ZoneBeacons } from "./Actors";
 import { Car } from "./Vehicle";
 import { NexusCity } from "./NexusCity";
 import { NeonCity, NEON_CITY_CENTER } from "./NeonCity";
@@ -133,6 +134,8 @@ export type HudState = {
   environment: string;
   /** active hazard line (exposure / lightning), "" when none */
   hazardWarning: string;
+  /** Helldivers-style call-in code entry (stratagems.ts); empty when not in use */
+  stratagem: StratagemHud;
   streamTier: string;
   vehicleUnlocked: boolean;
   vehicleName: string;
@@ -387,6 +390,7 @@ export function Scene({
   const weatherKind = useRef<string>("Clear shield");
   const weatherFx = useRef({ precipitation: 0, windX: 0, windZ: 0 });
   const weatherName = useRef("Clear");
+  const stratagem = useRef(createStratagemState());
   const environmentSummary = useRef("");
   const hazardWarning = useRef("");
   const lightning = useRef(0);
@@ -945,6 +949,29 @@ export function Scene({
     const clip = s.ammo[s.weapon];
     const startReload = () => { if (def.mag > 0 && s.reload <= 0 && clip.mag < def.mag && clip.reserve > 0) { s.reload = def.reload; s.burstLeft = 0; sfx.playReload("start"); alert(sim, `Reloading ${def.name}`); } };
     if (!s.inVehicle && (keyTap(binds.keyboard.reload) || padTap(binds.gamepad.reload))) startReload();
+
+    /* ---------------- stratagems: hold N, enter an arrow code, release N to throw the beacon ---------------- */
+    {
+      const st = stratagem.current;
+      const nowS = performance.now() / 1000;
+      const allowed = !s.inVehicle && !interior && !tutorial;
+      if (!allowed && (st.open || st.armed)) { st.armed = null; closeStratagems(st); }
+      if (allowed && keyTap("KeyN") && !st.armed) openStratagems(st);
+      if (st.open) {
+        for (const [code, dir] of [["ArrowUp", "U"], ["ArrowDown", "D"], ["ArrowLeft", "L"], ["ArrowRight", "R"]] as const) {
+          if (!keyTap(code)) continue;
+          const event = inputDirection(st, dir, nowS);
+          if (event === "match") { sfx.playAbility("MARK"); alert(sim, `${stratagemById(st.armed!).name} ready — release N to throw`); }
+          else if (event === "cooldown") alert(sim, "Stratagem still cooling down");
+          else if (event === "partial") sfx.playReload("end");
+        }
+        tickStratagems(st, nowS);
+      }
+      if (!held.has("KeyN") && keyPrev.current.has("KeyN")) {
+        const thrown = releaseStratagems(st, nowS);
+        if (thrown && !throwBeacon(sim, thrown, s.x, s.y + 1.4, s.z, s.yaw, s.pitch)) alert(sim, "Too many beacons in the field");
+      }
+    }
     if (s.reload > 0) {
       s.reload -= dt;
       if (s.reload <= 0) { const take = Math.min(def.mag - clip.mag, clip.reserve); clip.mag += take; clip.reserve -= take; s.reload = 0; sfx.playReload("end"); }
@@ -1021,10 +1048,11 @@ export function Scene({
       }
     }
 
-    const throttleF = held.has("KeyW") || held.has("ArrowUp");
-    const throttleB = held.has("KeyS") || held.has("ArrowDown");
-    const left = held.has("KeyA") || held.has("ArrowLeft");
-    const right = held.has("KeyD") || held.has("ArrowRight");
+    const arrowsMove = !stratagem.current.open; // arrows enter the call-in code while N is held
+    const throttleF = held.has("KeyW") || (arrowsMove && held.has("ArrowUp"));
+    const throttleB = held.has("KeyS") || (arrowsMove && held.has("ArrowDown"));
+    const left = held.has("KeyA") || (arrowsMove && held.has("ArrowLeft"));
+    const right = held.has("KeyD") || (arrowsMove && held.has("ArrowRight"));
     const boost = held.has("ShiftLeft") || held.has("ShiftRight");
 
     /* ---------------- movement ---------------- */
@@ -1354,6 +1382,15 @@ export function Scene({
     // it can't touch the player's world position — that lives here in Scene's own state, not in WorldSim.
     // Detect the new timestamp and do the part sim.ts's alert text always claimed but never performed:
     // teleport back to Nexus City, bail out of any vehicle/interior, and zero out momentum.
+    for (const ev of sim.stratagemEvents.splice(0)) {
+      const dist = Math.hypot(s.x - ev.x, s.z - ev.z);
+      sfx.playExplosion(ev.kind === "ORBITAL_STRIKE", sfx.where(s.x, s.z, s.yaw, ev.x, ev.z));
+      if (ev.kind === "ORBITAL_STRIKE") s.punch += dist < 40 ? 2 : 0.6;
+      if (ev.kind === "RESUPPLY" && dist <= ev.radius) {
+        for (const id of WEAPON_ORDER) { s.ammo[id].mag = WEAPONS[id].mag; s.ammo[id].reserve = WEAPONS[id].reserve; }
+        alert(sim, "Supply drop collected · ammo restocked, hull repaired");
+      }
+    }
     const hostiles = sim.machines.filter((m) => m.alive);
     checkpointClock.current += dt;
     if (checkpointClock.current >= CHECKPOINT_INTERVAL_S) {
@@ -1583,6 +1620,7 @@ export function Scene({
         weather: weatherName.current,
         environment: environmentSummary.current,
         hazardWarning: hazardWarning.current,
+        stratagem: stratagemHud(stratagem.current, performance.now() / 1000),
         streamTier: "ACTIVE · neighbors reduced · distant dormant",
         vehicleUnlocked,
         vehicleName: selectedVehicle.name,
@@ -1726,6 +1764,7 @@ export function Scene({
       <Convoys sim={sim} />
       <WarMachines sim={sim} />
       <HazardMarkers sim={sim} />
+      <BeaconMarkers sim={sim} />
       {awakening?.target && (awakening.state === "CAPTURE" || awakening.state === "HOLD" || awakening.state === "EXTRACT") && (
         <group position={[awakening.target.x, heightAt(awakening.target.x, awakening.target.z) + 0.2, awakening.target.z]}>
           <mesh rotation-x={-Math.PI / 2}><ringGeometry args={[10, 12, 48]} /><meshBasicMaterial color={awakening.state === "EXTRACT" ? "#7dffca" : "#ff3df2"} transparent opacity={0.6} /></mesh>
