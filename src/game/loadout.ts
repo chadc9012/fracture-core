@@ -69,12 +69,12 @@ export const SUBCLASSES: readonly SubclassDefinition[] = [
  * briefing and HUD — free text, not locked to a preset, same as the color channels. */
 export type AppearanceDefinition = { id: AppearanceId; name: string; armor: string; cloth: string; visor: string; trim: string; callsign: string };
 
-const DEFAULT_APPEARANCE: AppearanceDefinition = { id: "BASTION", name: "Bastion Warden", armor: "#7f97a8", cloth: "#283840", visor: "#5ad0ff", trim: "#1a1c20", callsign: "BASTION-01" };
+const DEFAULT_APPEARANCE: AppearanceDefinition = { id: "BASTION", name: "Bastion Warden", armor: "#4a4036", cloth: "#1c1815", visor: "#ff7a1a", trim: "#2a2420", callsign: "BASTION-01" };
 /** One signature appearance per Operator (see OPERATORS) — a real starting identity to customize
  * from, not an arbitrary color swatch. Stays the same across that Operator's 3 subclasses. */
 export const APPEARANCES: readonly AppearanceDefinition[] = [
   DEFAULT_APPEARANCE,
-  { id: "SHADE", name: "Null Shade", armor: "#3a2f4a", cloth: "#121015", visor: "#b06bff", trim: "#0e0a14", callsign: "SHADE-13" },
+  { id: "SHADE", name: "Null Shade", armor: "#2a2230", cloth: "#0e0b12", visor: "#ff2bd6", trim: "#1a0f22", callsign: "SHADE-13" },
   { id: "CIPHER", name: "Cipher Oracle", armor: "#3d3a5c", cloth: "#121018", visor: "#ffc864", trim: "#15131d", callsign: "CIPHER-02" },
 ];
 /** Swatch rows offered when freely customizing each color channel in the Identity Forge — every
@@ -82,7 +82,7 @@ export const APPEARANCES: readonly AppearanceDefinition[] = [
 export const CUSTOMIZATION_PALETTE: readonly string[] = [
   "#7f97a8", "#8a4a3a", "#5c6660", "#3a2f4a", "#9c7d4e", "#aab4bd", "#3d3a5c", "#5c3a66", "#8a97a6",
   "#ffffff", "#c8cdd2", "#6b7278", "#2a2f34", "#101317", "#000000",
-  "#5ad0ff", "#ffb357", "#8dffb0", "#b06bff", "#ffa033", "#7dfff0", "#ffc864", "#ff6bd6", "#bfe8ff",
+  "#4a4036", "#2a2230", "#ff7a1a", "#ff2bd6", "#5ad0ff", "#ffb357", "#8dffb0", "#b06bff", "#ffa033", "#7dfff0", "#ffc864", "#ff6bd6", "#bfe8ff",
 ];
 export const DEFAULT_SUBCLASS: Record<ClassId, SubclassId> = { TITAN: "SHIELD_TITAN", HUNTER: "SHADOW_HUNTER", WARLOCK: "CODE_WARLOCK" };
 export function appearanceById(id: AppearanceId) { return APPEARANCES.find((item) => item.id === id) ?? DEFAULT_APPEARANCE; }

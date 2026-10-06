@@ -143,3 +143,5 @@
 - Dynamic crosshair: spread ring widens with sprint/air/fire, barrel index lags camera look, X hit marker (amber on kills).
 
 - Movement kit: Titan lift, Hunter double air-jump, Warlock air-jump + glide (hold C), slide from sprint (Ctrl or J), sprint/slide FOV and camera drop.
+
+- Operator look pass: Titan scorched-titanium + orange hazard visor, hazard-striped pauldrons, rotary chain-cannon; Hunter carbon + fuchsia with a translucent glowing phase cloak; Warlock trench-coat skirt, floating rings, amber holo streams, arc-coil carbine. Preset colors updated (saved custom colors are untouched).

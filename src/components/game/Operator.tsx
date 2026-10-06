@@ -59,11 +59,15 @@ export function Operator({
   const glow = useRef<THREE.MeshStandardMaterial>(null);
   const drone = useRef<THREE.Group>(null);
   const orbit = useRef<THREE.Group>(null);
+  const rings = useRef<THREE.Group>(null);
+  const cloak = useRef<THREE.Group>(null);
   useFrame(({ clock }, delta) => {
     const base = visualState === "ASCENDANT" ? 5 : visualState === "FRACTURE" ? 4 : visualState === "ACTIVE" ? 3 : 2.2;
     if (glow.current) glow.current.emissiveIntensity = base + Math.sin(clock.elapsedTime * 3) * 0.5;
     if (drone.current) { const t = clock.elapsedTime; drone.current.position.set(Math.cos(t * 0.9) * 0.9, 1.45 + Math.sin(t * 2) * 0.08, Math.sin(t * 0.9) * 0.9 - 0.2); drone.current.rotation.y = -t * 0.9; }
     if (orbit.current) orbit.current.rotation.y += delta * 1.2;
+    if (rings.current) { rings.current.rotation.y += delta * 0.9; rings.current.rotation.x = Math.sin(clock.elapsedTime * 0.8) * 0.25; }
+    if (cloak.current) cloak.current.rotation.x = 0.1 + Math.sin(clock.elapsedTime * 1.6) * 0.04;
   });
   const plateColor = new THREE.Color("#12151a").lerp(new THREE.Color(armor), 0.28).getStyle();
   const suitColor = new THREE.Color("#07080a").lerp(new THREE.Color(cloth), 0.2).getStyle();
@@ -140,7 +144,7 @@ export function Operator({
         {warlock ? (
           [-0.08, 0.08].map((x) => <group key={x} position={[x, 0.02, 0.22]}><mesh rotation={[Math.PI / 2, 0, 0]}><cylinderGeometry args={[0.055, 0.06, 0.1, 14]} /><meshStandardMaterial color="#1a1c20" metalness={0.8} roughness={0.3} /></mesh><mesh position={[0, 0, 0.051]}><circleGeometry args={[0.042, 16]} /><meshStandardMaterial color="#ffb347" emissive="#ffa033" emissiveIntensity={3} toneMapped={false} /></mesh></group>)
         ) : (
-          <mesh position={[0, 0.02, 0.2]} rotation={[0, 0, 0]}><boxGeometry args={[0.3, 0.035, 0.08]} /><meshStandardMaterial color={hunter ? "#ff3348" : visor} emissive={hunter ? "#ff2a40" : visor} emissiveIntensity={3.2} toneMapped={false} /></mesh>
+          <mesh position={[0, 0.02, 0.2]} rotation={[0, 0, 0]}><boxGeometry args={[0.3, 0.035, 0.08]} /><meshStandardMaterial color={visor} emissive={visor} emissiveIntensity={3.2} toneMapped={false} /></mesh>
         )}
         {/* helmet tier 2+: a real brow ridge plate, not on the base dome below upgrade level 3 */}
         {helmetTier >= 2 && <RoundedBox args={[0.32, 0.06, 0.1]} radius={0.02} smoothness={BEVEL} position={[0, 0.1, 0.19]} castShadow>{trim}</RoundedBox>}
@@ -185,10 +189,35 @@ export function Operator({
         <mesh position={[0.11, 0.7, 0]}><sphereGeometry args={[0.03, 10, 8]} />{line}</mesh>
         {seam("bp4", [0, -0.05, -0.075], [0.18, 0.025, 0.02])}
       </group>}
+      {/* signature silhouettes from the operator reference art */}
+      {titan && <>
+        {/* GOLIATH: hazard-striped pauldrons + a back-mounted ammo drum feeding the chain-cannon */}
+        {[-1, 1].map((side) => <group key={`hz${side}`} position={[side * 0.46, 0.64, 0]} rotation={[0, 0, side * -0.25]}>
+          {[-0.12, 0, 0.12].map((z, i) => <mesh key={i} position={[0, 0.03, z]}><boxGeometry args={[0.2, 0.025, 0.05]} /><meshStandardMaterial color={i % 2 ? "#15110d" : "#ff7a1a"} emissive={i % 2 ? "#000000" : "#ff5a00"} emissiveIntensity={i % 2 ? 0 : 1.2} toneMapped={false} /></mesh>)}
+        </group>)}
+        <mesh position={[0.28, -0.1, -0.3]} rotation={[0, 0, Math.PI / 2]} castShadow><cylinderGeometry args={[0.13, 0.13, 0.22, 14]} />{trim}</mesh>
+      </>}
+      {hunter && <group ref={cloak} position={[0, 0.5, -0.24]} rotation={[0.1, 0, 0]}>
+        {/* NYX: a translucent phase cloak with a glowing hem — reads as bending light rather than cloth */}
+        <mesh position={[0, -0.7, 0]}><planeGeometry args={[0.7, 1.6, 1, 6]} /><meshStandardMaterial color="#1a1226" transparent opacity={0.55} roughness={0.4} metalness={0.3} side={THREE.DoubleSide} depthWrite={false} /></mesh>
+        <mesh position={[0, -1.5, 0.002]}><boxGeometry args={[0.7, 0.02, 0.01]} /><meshStandardMaterial color={visor} emissive={visor} emissiveIntensity={3} toneMapped={false} /></mesh>
+        {[-0.34, 0.34].map((x) => <mesh key={x} position={[x, -0.7, 0.002]}><boxGeometry args={[0.012, 1.6, 0.01]} /><meshStandardMaterial color={visor} emissive={visor} emissiveIntensity={2.2} toneMapped={false} /></mesh>)}
+      </group>}
+      {warlock && <>
+        {/* CIPHER: long trench coat skirt, floating metallic rings, amber holo streams at the wrists */}
+        <mesh position={[0, -0.62, 0]} castShadow><cylinderGeometry args={[0.3, 0.42, 0.95, 18, 1, true]} /><meshStandardMaterial color={suitColor} roughness={0.8} metalness={0.15} side={THREE.DoubleSide} /></mesh>
+        <mesh position={[0, -1.1, 0]} rotation={[Math.PI / 2, 0, 0]}><torusGeometry args={[0.415, 0.012, 6, 28]} /><meshStandardMaterial color="#ffb347" emissive="#ffa033" emissiveIntensity={2.4} toneMapped={false} /></mesh>
+        <group ref={rings} position={[0, 0.55, 0]}>
+          {[0.55, 0.7].map((r, i) => <mesh key={r} rotation={[Math.PI / 2 + i * 0.5, i * 0.4, 0]}><torusGeometry args={[r, 0.012, 6, 40]} /><meshStandardMaterial color="#cfd6de" metalness={0.9} roughness={0.2} emissive="#ffb347" emissiveIntensity={0.7} toneMapped={false} /></mesh>)}
+        </group>
+        {[-1, 1].map((side) => <mesh key={`holo${side}`} position={[side * 0.5, -0.15, 0.1]} rotation={[0.3, 0, side * 0.2]}><boxGeometry args={[0.012, 0.3, 0.12]} /><meshStandardMaterial color="#ffc864" emissive="#ffa033" emissiveIntensity={3} transparent opacity={0.7} toneMapped={false} /></mesh>)}
+      </>}
       {/* rifle */}
       <group position={[0.46, -0.1, 0.42]}>
         <RoundedBox args={[0.12, 0.16, 0.9]} radius={0.03} smoothness={BEVEL}><meshStandardMaterial color="#15181c" metalness={0.7} roughness={0.35} /></RoundedBox>
         {seam("gun", [0.065, 0.02, 0.05], [0.01, 0.03, 0.6])}
+        {titan && [0, 1, 2].map((i) => <mesh key={`bar${i}`} position={[Math.cos(i * 2.094) * 0.07, Math.sin(i * 2.094) * 0.07, 0.62]} rotation={[Math.PI / 2, 0, 0]} castShadow><cylinderGeometry args={[0.03, 0.03, 0.5, 8]} /><meshStandardMaterial color="#2a2622" metalness={0.8} roughness={0.35} /></mesh>)}
+        {warlock && <mesh position={[0, 0.02, 0.5]} rotation={[Math.PI / 2, 0, 0]}><torusGeometry args={[0.07, 0.012, 6, 16]} /><meshStandardMaterial color="#9fe8ff" emissive="#5ad0ff" emissiveIntensity={3.5} toneMapped={false} /></mesh>}
       </group>
     </group>
   );
