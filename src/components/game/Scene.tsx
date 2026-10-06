@@ -24,6 +24,7 @@ import { Weather } from "./Weather";
 import { weatherName as weatherLabel } from "@/game/weather-cycle";
 import { environmentAt, stepEnvironment } from "@/game/environment";
 import { backpackFor } from "@/game/backpacks";
+import { atmosphereAt, NEUTRAL_ATMOSPHERE, type Atmosphere } from "@/game/atmosphere";
 import { closeStratagems, createStratagemState, inputDirection, openStratagems, releaseStratagems, stratagemById, stratagemHud, tickStratagems, type StratagemHud } from "@/game/stratagems";
 import { Wildlife } from "./Wildlife";
 import { Civilians } from "./Civilians";
@@ -420,6 +421,9 @@ export function Scene({
   const carSpeed = useRef(0);
   const carSteer = useRef(0);
   const sky = useRef<THREE.Object3D>(null!);
+  const hemi = useRef<THREE.HemisphereLight>(null!);
+  /** eased regional atmosphere (atmosphere.ts) + scratch colours, so crossing a border blends rather than pops */
+  const atmo = useRef({ fogMix: 0, fogScale: 1, lightMix: 0, fogTint: new THREE.Color("#ffffff"), lightTint: new THREE.Color("#ffffff"), hemiBase: new THREE.Color("#9ec8e8") });
   const report = useRef(0);
   const live = useRef(createLiveBuild(activeBuild, abilityBranches));
   const abilityHeld = useRef<Record<string, boolean>>({});
@@ -607,6 +611,9 @@ export function Scene({
   useEffect(() => sfx.setMixVolumes(settings.musicVolume ?? 1, settings.sfxVolume ?? 1), [settings.musicVolume, settings.sfxVolume]);
   const skyColor = useMemo(() => new THREE.Color(), []);
   const fogColor = useMemo(() => new THREE.Color(), []);
+  const atmoScratch = useMemo(() => new THREE.Color(), []);
+  const deepWater = useMemo(() => new THREE.Color("#0a4f63"), []);
+  const underK = useRef(0);
   const instabilityColor = useMemo(() => new THREE.Color("#ff2d55"), []);
   const lightColor = useMemo(() => new THREE.Color(), []);
   const skyEnv = useRef<SkyEnv>({ cloud: 0, tint: new THREE.Color("#ffffff") });
@@ -826,10 +833,35 @@ export function Scene({
       environmentSummary.current = interior ? "Indoor" : envSample.summary;
       hazardWarning.current = hazard.warning;
     }
+    // regional atmosphere: ease toward this region's air (fog tint/thickness, sun + skylight tint)
+    {
+      const target: Atmosphere = interior ? NEUTRAL_ATMOSPHERE : atmosphereAt(here?.id, wx?.state, night);
+      const a = atmo.current;
+      const k = 1 - Math.exp(-0.9 * dt);
+      a.fogMix += (target.fogMix - a.fogMix) * k;
+      a.fogScale += (target.fogScale - a.fogScale) * k;
+      a.lightMix += (target.lightMix - a.lightMix) * k;
+      a.fogTint.lerp(atmoScratch.set(target.fogTint), k);
+      a.lightTint.lerp(atmoScratch.set(target.lightTint), k);
+      if (scene.fog) (scene.fog as THREE.Fog).color.lerp(a.fogTint, a.fogMix);
+      scene.background instanceof THREE.Color && scene.background.lerp(a.fogTint, a.fogMix * 0.35);
+      if (sun.current) sun.current.color.lerp(a.lightTint, a.lightMix);
+      if (hemi.current) hemi.current.color.copy(a.hemiBase).lerp(a.lightTint, a.lightMix * 0.8);
+    }
     if (scene.fog instanceof THREE.Fog) {
       const fogK = 1 - Math.exp(-3 * dt);
-      scene.fog.near += (25 + visibility * 95 - scene.fog.near) * fogK;
-      scene.fog.far += (120 + visibility * 400 - scene.fog.far) * fogK;
+      // regional air thickness (atmosphere.ts fogScale) scales the weather-driven fog distances
+      scene.fog.near += ((25 + visibility * 95) * atmo.current.fogScale - scene.fog.near) * fogK;
+      scene.fog.far += ((120 + visibility * 400) * atmo.current.fogScale - scene.fog.far) * fogK;
+    }
+    // underwater look: diving swaps the horizon for a close, turbid teal murk (eased in and out)
+    underK.current += ((s.diving && !interior ? 1 : 0) - underK.current) * (1 - Math.exp(-4 * dt));
+    if (underK.current > 0.01 && scene.fog instanceof THREE.Fog) {
+      const u = underK.current;
+      scene.fog.color.lerp(deepWater, u);
+      scene.fog.near += (0.5 - scene.fog.near) * u;
+      scene.fog.far += (45 - scene.fog.far) * u;
+      if (scene.background instanceof THREE.Color) scene.background.lerp(deepWater, u);
     }
     const cloud = wx?.cloud ?? 0;
     if (sun.current) sun.current.intensity *= 1 - cloud * 0.6;
@@ -1720,7 +1752,7 @@ export function Scene({
       <fog attach="fog" args={["#5f9aa3", 70, 430]} />
       <FracturePortal />
       <Motes />
-      <hemisphereLight args={["#9ec8e8", "#3b3326", 0.85]} />
+      <hemisphereLight ref={hemi} args={["#9ec8e8", "#3b3326", 0.85]} />
       <directionalLight
         ref={sun}
         position={[80, 140, 70]}

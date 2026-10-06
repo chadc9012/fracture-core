@@ -135,3 +135,5 @@
 - Looks pass: slope-masked terrain coloring (dirt on mid slopes, cliff rock on steep faces, ~9% / ~7% of land).
 
 - Looks pass 2: graded supply roads (smoother along-lane, ~5-10x on flat routes) and saplings/brush clustered around Veridan trees.
+
+- Looks pass 3: regional atmosphere (fog tint/thickness, light tint per region + weather) and an underwater look (teal murk, caustic visor overlay).

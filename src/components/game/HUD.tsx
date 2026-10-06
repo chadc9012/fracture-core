@@ -27,6 +27,7 @@ export function HUD({ hud, tutorialActive = false, onMenu }: { hud: HudState; tu
       {hud.environment && <p className="text-muted-foreground">{hud.environment}</p>}
       {hud.hazardWarning && <p className="mt-1 text-destructive">{hud.hazardWarning}</p>}
     </div>}
+    {hud.diving && <div className="water-overlay pointer-events-none absolute inset-0 z-10" aria-hidden />}
     {!tutorialActive && <StratagemPanel hud={hud.stratagem} />}
     <EmergencyQuestBanner eq={hud.emergencyQuest} />
     <BossHealthBar boss={hud.bossHud} />
