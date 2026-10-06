@@ -139,3 +139,5 @@
 - Looks pass 3: regional atmosphere (fog tint/thickness, light tint per region + weather) and an underwater look (teal murk, caustic visor overlay).
 
 - Looks pass 4: wind-swayed canopies/undergrowth/dead trees plus grass tufts (Veridan) and reeds (Swamps), driven by live weather wind.
+
+- Dynamic crosshair: spread ring widens with sprint/air/fire, barrel index lags camera look, X hit marker (amber on kills).

@@ -24,6 +24,7 @@ import { Weather } from "./Weather";
 import { weatherName as weatherLabel } from "@/game/weather-cycle";
 import { environmentAt, stepEnvironment } from "@/game/environment";
 import { backpackFor } from "@/game/backpacks";
+import { createReticle, markHit, stepReticle, type Motion, type ReticleView, EMPTY_RETICLE } from "@/game/crosshair";
 import { updateWind } from "@/game/wind-sway";
 import { atmosphereAt, NEUTRAL_ATMOSPHERE, type Atmosphere } from "@/game/atmosphere";
 import { closeStratagems, createStratagemState, inputDirection, openStratagems, releaseStratagems, stratagemById, stratagemHud, tickStratagems, type StratagemHud } from "@/game/stratagems";
@@ -127,6 +128,8 @@ export type HudState = {
   controller: boolean;
   bloom: number;
   hitMarker: boolean;
+  /** dynamic reticle view (crosshair.ts): spread gap, lagging barrel index, hit/kill marker */
+  reticle: ReticleView;
   playerClass: ClassId;
   subclassName: string;
   callsign: string;
@@ -423,6 +426,7 @@ export function Scene({
   const carSteer = useRef(0);
   const sky = useRef<THREE.Object3D>(null!);
   const hemi = useRef<THREE.HemisphereLight>(null!);
+  const reticle = useRef({ state: createReticle(), view: EMPTY_RETICLE, yaw: 0, pitch: 0, hit: 0, kills: 0, ready: false });
   /** eased regional atmosphere (atmosphere.ts) + scratch colours, so crossing a border blends rather than pops */
   const atmo = useRef({ fogMix: 0, fogScale: 1, lightMix: 0, fogTint: new THREE.Color("#ffffff"), lightTint: new THREE.Color("#ffffff"), hemiBase: new THREE.Color("#9ec8e8") });
   const report = useRef(0);
@@ -1025,6 +1029,23 @@ export function Scene({
     s.recoil = decay(s.recoil, 9, dt);
     s.punch = decay(s.punch, 14, dt);
     s.bloom = decay(s.bloom, 6, dt);
+    {
+      // dynamic reticle: spread follows locomotion + bloom, the barrel index lags the camera, hits flash
+      const r = reticle.current;
+      if (!r.ready) { r.yaw = s.yaw; r.pitch = s.pitch; r.hit = sim.lastHit; r.kills = sim.kills; r.ready = true; }
+      const speed = Math.hypot(velocity.x, velocity.z);
+      const motion: Motion = !s.grounded && !s.diving && !s.inVehicle ? "AIR" : speed > 2 && (held.has("ShiftLeft") || held.has("ShiftRight")) ? "SPRINT" : speed > 0.6 ? "WALK" : "IDLE";
+      const safeDt = Math.max(dt, 1e-3);
+      let dYaw = s.yaw - r.yaw;
+      if (dYaw > Math.PI) dYaw -= Math.PI * 2; else if (dYaw < -Math.PI) dYaw += Math.PI * 2;
+      const lookRight = -dYaw / safeDt; // yaw decreases when the camera turns right
+      const lookUp = (s.pitch - r.pitch) / safeDt;
+      r.yaw = s.yaw; r.pitch = s.pitch;
+      if (sim.kills > r.kills) markHit(r.state, "KILL");
+      else if (sim.lastHit !== r.hit) markHit(r.state, "HIT");
+      r.kills = sim.kills; r.hit = sim.lastHit;
+      r.view = stepReticle(r.state, { motion: s.inVehicle ? "IDLE" : motion, bloom: s.bloom, aiming: Boolean(mouse.current.aim || padState.current.aim), lookRight, lookUp }, dt);
+    }
     s.swing = Math.max(0, s.swing - dt);
     s.comboTime = Math.max(0, s.comboTime - dt);
     if (s.comboTime <= 0) s.combo = 0;
@@ -1648,6 +1669,7 @@ export function Scene({
         controller: padState.current.connected,
         bloom: Math.round(s.bloom * 100) / 100,
         hitMarker: performance.now() - sim.lastHit < 180,
+        reticle: reticle.current.view,
         playerClass,
         subclassName: selectedSubclass.name,
         callsign: appearance.callsign,

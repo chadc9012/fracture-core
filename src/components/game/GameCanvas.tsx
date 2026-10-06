@@ -19,6 +19,7 @@ import { SettingsWindow, DEFAULT_SETTINGS, type GameSettings } from "./SettingsW
 import { TitleScreen } from "./TitleScreen";
 import { DeploymentBriefing, type DeploymentBriefingData } from "./DeploymentBriefing";
 import { RaidStrategyPanel } from "./RaidStrategyPanel";
+import { EMPTY_RETICLE } from "@/game/crosshair";
 import { EMPTY_STRATAGEM_HUD } from "@/game/stratagems";
 import { OperationsHub } from "./OperationsHub";
 import { ZoneAnalysisPanel } from "./ZoneAnalysisPanel";
@@ -148,6 +149,7 @@ const initial: HudState = {
   controller: false,
   bloom: 0,
   hitMarker: false,
+  reticle: EMPTY_RETICLE,
   playerClass: "TITAN",
   subclassName: "Shield Titan",
   callsign: "BASTION-01",
