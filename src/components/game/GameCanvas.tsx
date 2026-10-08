@@ -224,7 +224,6 @@ export function GameCanvas() {
   const [cls, setCls] = useState<ClassId>("TITAN");
   const [subclass, setSubclass] = useState<SubclassId>("SHIELD_TITAN");
   const [appearance, setAppearance] = useState<AppearanceDefinition>(() => appearanceById("BASTION"));
-  const [bodyType, setBodyType] = useState<BodyType>(() => bodyTypeOr(progression.character?.bodyType));
   const [vehicleId, setVehicleId] = useState<VehicleId>("scrap-interceptor");
   const [vehicleUnlocked, setVehicleUnlocked] = useState(false);
   const [garageOpen, setGarageOpen] = useState(false);
@@ -239,6 +238,7 @@ export function GameCanvas() {
   const [operationsView, setOperationsView] = useState<"DUNGEONS" | "ARSENAL" | "ABILITIES" | null>(null);
   const [last, setLast] = useState<{ credits: number; kills: number } | null>(null);
   const [progression, setProgression] = useState<PlayerProgression>(() => loadProgression());
+  const [bodyType, setBodyType] = useState<BodyType>(() => bodyTypeOr(progression.character?.bodyType));
   const progressionRef = useRef(progression);
   progressionRef.current = progression;
   const [tutorial, setTutorial] = useState<TutorialState | null>(null);
