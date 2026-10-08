@@ -17,7 +17,7 @@ import { GraphicsGuard } from "./GraphicsGuard";
 import { StartMenu, type Deployment } from "./StartMenu";
 import { SettingsWindow, DEFAULT_SETTINGS, type GameSettings } from "./SettingsWindow";
 import { TitleScreen } from "./TitleScreen";
-import { DeploymentBriefing, type DeploymentBriefingData } from "./DeploymentBriefing";
+import { DeploymentBriefing } from "./DeploymentBriefing";
 import { RaidStrategyPanel } from "./RaidStrategyPanel";
 import { EMPTY_RETICLE } from "@/game/crosshair";
 import { EMPTY_STRATAGEM_HUD } from "@/game/stratagems";
