@@ -1969,7 +1969,7 @@ export function Scene({
 
       {/* player on foot */}
       <group ref={player} position={SPAWN.toArray()}>
-        <Operator bodyType={bodyType} armor={appearance.armor} cloth={appearance.cloth} visor={appearance.visor} trim={appearance.trim} classId={playerClass} motion={feel.current.motion} visualState={armorState} chestLevel={armorLevels.chest} helmetLevel={armorLevels.helmet} legsLevel={armorLevels.legs} />
+        <Operator bodyType={bodyType} armor={appearance.armor} cloth={appearance.cloth} visor={appearance.visor} trim={appearance.trim} classId={playerClass} motion={motionRef} visualState={armorState} chestLevel={armorLevels.chest} helmetLevel={armorLevels.helmet} legsLevel={armorLevels.legs} />
         {playerClass === "TITAN" && sim.titan.blocking && (
           // Chevron-angled holographic panels + a glowing rim edge instead of one flat box —
           // reads as a projected energy shield rather than a translucent slab.
