@@ -51,6 +51,7 @@ import { vehicleById, type VehicleId } from "@/game/vehicles";
 import { projectDome, shieldBash } from "@/game/titan";
 import { RENDER_PRESETS } from "@/game/performance";
 import { activateLiveAbility, createLiveBuild, rebindLiveBuild, tickLiveBuild } from "@/game/live-build";
+import { hazardAt, type HazardEffect } from "@/game/region-hazards";
 import { RiftTurrets } from "./RiftTurrets";
 import { NearOnly } from "./NearOnly";
 import type { BodyType } from "@/game/operators";
@@ -146,6 +147,7 @@ export type HudState = {
   environment: string;
   /** active hazard line (exposure / lightning), "" when none */
   hazardWarning: string;
+  hazard?: { name: string; intensity: number; active: boolean } | undefined;
   /** Helldivers-style call-in code entry (stratagems.ts); empty when not in use */
   stratagem: StratagemHud;
   streamTier: string;
@@ -407,6 +409,7 @@ export function Scene({
   const stratagem = useRef(createStratagemState());
   const environmentSummary = useRef("");
   const hazardWarning = useRef("");
+  const hazardRef = useRef<HazardEffect>(hazardAt({ regionId: null, t: 0, dt: 0, sheltered: true, exposure: 0 }));
   const lightning = useRef(0);
   const markerList = (): Marker[] => {
     const now = performance.now();
@@ -860,6 +863,12 @@ export function Scene({
     weatherName.current = interior ? "Indoor" : weatherLabel(wx!, here?.id);
     const visibility = interior ? 1 : wx!.visibility;
     sim.envVisibility = visibility;
+    {
+      const hz = hazardAt({ regionId: s.insideInterior ? null : regionAt(s.x, s.z)?.id ?? null, t: performance.now() / 1000, dt, sheltered: s.inVehicle || !!s.insideInterior, exposure: hazardRef.current.exposure });
+      if (hz.warning && hz.warning !== hazardRef.current.warning) alert(sim, hz.warning);
+      hazardRef.current = hz;
+      if (hz.damagePerSec > 0) { if (sim.hp - hz.damagePerSec * dt <= 1) hurtPlayer(sim, 5, hz.name); else sim.hp -= hz.damagePerSec * dt; }
+    }
     // environmental hazards: exposure, lightning, with shelter in interiors / safe zones / the Nexus shield
     {
       const sheltered = Boolean(interior) || here?.kind === "safe" || here?.id === "nexus";
@@ -1182,7 +1191,7 @@ export function Scene({
       // Neon City parkour: chaining vaults within the window nets a small, capped speed bonus.
       const chainBonus = parkourChainBonus(s.chainCount, performance.now() / 1000 - s.lastVaultAt);
       const walk = 30 * traction * (boost ? 2.1 : 1) * sim.mods.footSpeed * (live.current.dashTime > 0 ? 1.4 : 1) * siegeMoveMult(live.current.siegeTime) * (1 + chainBonus);
-      if (wish.lengthSq() > 0) wish.normalize().multiplyScalar(walk);
+      if (wish.lengthSq() > 0) wish.normalize().multiplyScalar(walk * hazardRef.current.speedMul);
       {
         // slide: out of a sprint, commit to the heading with a speed burst that bleeds off (movement.ts)
         const mv = move.current;
@@ -1545,6 +1554,7 @@ export function Scene({
     sim.mods.squadArchetype = (synergyArchetype === "Defender" ? "DEFENSIVE" : synergyArchetype === "Striker" ? "STRIKER" : synergyArchetype === "Strategist" ? "STRATEGIST" : "BALANCED") as SquadArchetype;
     sim.mods.rangedHoldFire = live.current.shieldReflect > 0;
     if (live.current.fieldTime > 0) sim.gravity *= 0.55;
+    sim.gravity *= hazardRef.current.gravityMul;
     if (live.current.dashTime > 0) sim.hp = Math.min(100, sim.hp + dt * 15);
     if (live.current.hackTime > 0) for (const enemy of sim.machines) if (enemy.alive && Math.hypot(enemy.x - s.x, enemy.z - s.z) < 12) enemy.cool = Math.max(enemy.cool, 0.3);
 
@@ -1758,6 +1768,7 @@ export function Scene({
         weather: weatherName.current,
         environment: environmentSummary.current,
         hazardWarning: hazardWarning.current,
+        hazard: hazardRef.current.id === "none" ? undefined : { name: hazardRef.current.name, intensity: hazardRef.current.intensity, active: hazardRef.current.damagePerSec > 0 || hazardRef.current.gravityMul !== 1 },
         stratagem: stratagemHud(stratagem.current, performance.now() / 1000, backpackFor(playerClass).name),
         streamTier: "ACTIVE · neighbors reduced · distant dormant",
         vehicleUnlocked,

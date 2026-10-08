@@ -26,6 +26,7 @@ export function HUD({ hud, tutorialActive = false, onMenu }: { hud: HudState; tu
     {!tutorialActive && (hud.environment || hud.hazardWarning) && <div className="pointer-events-none absolute left-1/2 top-24 -translate-x-1/2 text-center font-mono text-[10px] uppercase tracking-[0.18em]">
       {hud.environment && <p className="text-muted-foreground">{hud.environment}</p>}
       {hud.hazardWarning && <p className="mt-1 text-destructive">{hud.hazardWarning}</p>}
+        {hud.hazard && <div className={hud.hazard.active ? "text-destructive" : "text-foreground/70"}><p>⚠ {hud.hazard.name}</p><div className="mt-0.5 h-0.5 w-24 bg-foreground/15"><div className="h-full bg-current" style={{ width: `${Math.round(hud.hazard.intensity * 100)}%` }} /></div></div>}
     </div>}
     {hud.diving && <div className="water-overlay pointer-events-none absolute inset-0 z-10" aria-hidden />}
     {!tutorialActive && <StratagemPanel hud={hud.stratagem} />}
