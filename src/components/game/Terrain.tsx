@@ -9,6 +9,7 @@ import { WATER_LEVEL, colorAt, heightAt, slopeAt } from "@/game/terrain";
 import { groundDetailTextures, propDetailTextures } from "@/game/detail-texture";
 import { applySurfaceBlend, loadGroundSurfaces, surfaceWeights } from "@/game/region-materials";
 import { RegionModels } from "./RegionModels";
+import { PolyFoliage } from "./PolyFoliage";
 import { organicCanopy, organicRock } from "@/game/organic-geometry";
 import { LANE_HALF_WIDTH, distanceToRoad } from "@/game/lanes";
 import {
@@ -144,6 +145,10 @@ export function Terrain({ renderTier = "HIGH" }: { renderTier?: RenderTier } = {
   const wrecks = useMemo(() => scatter(waste, d(30), 18, { maxSlope: 0.4 }), [waste, density]);
   const emberRocks = useMemo(() => scatter(ember, d(55), 21, { inner: 9, maxSlope: 0.95 }), [ember, density]);
   const [, bump] = useState(0);
+  const [treesReady, setTreesReady] = useState(false);
+  const [shrubsReady, setShrubsReady] = useState(false);
+  const markTrees = useMemo(() => () => setTreesReady(true), []);
+  const markShrubs = useMemo(() => () => setShrubsReady(true), []);
   useEffect(() => {
     const off = subscribeObstacles(() => bump((n) => n + 1));
     return () => {
@@ -199,6 +204,14 @@ export function Terrain({ renderTier = "HIGH" }: { renderTier?: RenderTier } = {
       <Ground />
       {renderTier !== "LOW" && <RegionModels />}
 
+      {renderTier !== "LOW" && <>
+        <PolyFoliage kind="broadleaf" items={liveTrees.filter((_, i) => i % 3 !== 0)} scale={1.9} onReady={markTrees} shadows={fineShadows} />
+        <PolyFoliage kind="fir" items={liveTrees.filter((_, i) => i % 3 === 0)} scale={2.6} shadows={fineShadows} />
+        <PolyFoliage kind="shrub" items={flowers.filter((_, i) => i % 2 === 0)} scale={0.9} onReady={markShrubs} shadows={false} />
+        <PolyFoliage kind="fern" items={flowers.filter((_, i) => i % 2 === 1)} scale={1.4} shadows={false} />
+        <PolyFoliage kind="shrub" items={liveSwamp} scale={1.1} shadows={false} />
+      </>}
+      {!treesReady && <>
       {/* forest: trunk + two staggered canopy layers, hue-jittered per instance so the
           treeline reads as a forest instead of one stamped-out cone repeated 120 times */}
       <Instances limit={liveTrees.length} castShadow receiveShadow>
@@ -232,14 +245,15 @@ export function Terrain({ renderTier = "HIGH" }: { renderTier?: RenderTier } = {
           />
         ))}
       </Instances>
-      <Instances limit={flowers.length}>
+      </>}
+      {!shrubsReady && <Instances limit={flowers.length}>
         <sphereGeometry args={[0.4, 6, 5]} />
         <meshStandardMaterial color="#e8639c" roughness={0.8} />
         {flowers.map((f, i) => {
           const palette = ["#e8639c", "#f0d24a", "#f4f4f4", "#b478e0"];
           return <Instance key={i} position={[f.x, f.y + 0.4, f.z]} scale={f.s * 0.7} color={palette[i % palette.length] ?? "#f4f4f4"} />;
         })}
-      </Instances>
+      </Instances>}
 
       {/* frostspire boulders on the high slopes — mixed silhouettes + per-instance grey jitter */}
       <Instances limit={liveBoulders.length} castShadow receiveShadow geometry={boulderA}>
