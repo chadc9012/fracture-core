@@ -17,7 +17,7 @@ import { GraphicsGuard } from "./GraphicsGuard";
 import { StartMenu, type Deployment } from "./StartMenu";
 import { SettingsWindow, DEFAULT_SETTINGS, type GameSettings } from "./SettingsWindow";
 import { TitleScreen } from "./TitleScreen";
-import { DeploymentBriefing, type DeploymentBriefingData } from "./DeploymentBriefing";
+import { DeploymentBriefing } from "./DeploymentBriefing";
 import { RaidStrategyPanel } from "./RaidStrategyPanel";
 import { EMPTY_RETICLE } from "@/game/crosshair";
 import { EMPTY_STRATAGEM_HUD } from "@/game/stratagems";
@@ -187,7 +187,7 @@ const initial: HudState = {
 export function GameCanvas() {
   const [hud, setHud] = useState<HudState>(initial);
   const [phase, setPhase] = useState<"title" | "hub" | "loadout" | "briefing" | "world">("title");
-  const [pendingDeployment, setPendingDeployment] = useState<DeploymentBriefingData | null>(null);
+  const [pendingDeployment, setPendingDeployment] = useState<Deployment | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const [settings, setSettings] = useState<GameSettings>(DEFAULT_SETTINGS);
   const [adaptiveDpr, setAdaptiveDpr] = useState(1.5);

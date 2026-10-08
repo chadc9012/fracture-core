@@ -440,6 +440,9 @@ export function Scene({
   const hemi = useRef<THREE.HemisphereLight>(null!);
   /** stride shared by camera bob, viewmodel sway and the Operator's limbs (movement-feel.ts) */
   const feel = useRef({ stride: createStride(), view: null as FeelView | null, motion: { phase: 0, intensity: 0, swing: 0.35, lean: 0.04, air: false } });
+  // Operator expects a ref-shaped motion prop; the motion object is mutated in place each frame,
+  // so capturing it once in a ref keeps the prop stable.
+  const motionRef = useRef(feel.current.motion);
   /** class movement kit (movement.ts): air jumps, glide, slide + previous-frame jump/slide key state for edge detection */
   const move = useRef({ state: createMoveState(), jumpHeld: false, slideHeld: false });
   const reticle = useRef({ state: createReticle(), view: EMPTY_RETICLE, yaw: 0, pitch: 0, hit: 0, kills: 0, ready: false });
@@ -1966,7 +1969,7 @@ export function Scene({
 
       {/* player on foot */}
       <group ref={player} position={SPAWN.toArray()}>
-        <Operator bodyType={bodyType} armor={appearance.armor} cloth={appearance.cloth} visor={appearance.visor} trim={appearance.trim} classId={playerClass} motion={feel.current.motion} visualState={armorState} chestLevel={armorLevels.chest} helmetLevel={armorLevels.helmet} legsLevel={armorLevels.legs} />
+        <Operator bodyType={bodyType} armor={appearance.armor} cloth={appearance.cloth} visor={appearance.visor} trim={appearance.trim} classId={playerClass} motion={motionRef} visualState={armorState} chestLevel={armorLevels.chest} helmetLevel={armorLevels.helmet} legsLevel={armorLevels.legs} />
         {playerClass === "TITAN" && sim.titan.blocking && (
           // Chevron-angled holographic panels + a glowing rim edge instead of one flat box —
           // reads as a projected energy shield rather than a translucent slab.
