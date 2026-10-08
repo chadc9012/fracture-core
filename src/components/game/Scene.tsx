@@ -6,7 +6,7 @@ import * as THREE from "three";
 import { REGIONS, SKY, ZONE_COLOR, clockLabel, phaseFor, regionAt, WORLD_RADIUS } from "@/game/world";
 import { useKeyboard } from "@/game/useKeyboard";
 import { walkHeight, slopeAt, heightAt, WATER_LEVEL } from "@/game/terrain";
-import { alert, applyLightning, applySuppressPulse, applyVulnPulse, collidePlayer, createSim, defeatMachine, FACTIONS, fireBullet, hurtPlayer, throwBeacon, instabilityTier, spawnMissionDrones, spawnVolatileZone, stepSim, summonBoss, type Faction, type InstabilityTier, type WorldSim, type ZoneState } from "@/game/sim";
+import { alert, applyLightning, applySuppressPulse, applyVulnPulse, collidePlayer, createSim, defeatMachine, FACTIONS, fireBullet, hurtPlayer, throwBeacon, instabilityTier, spawnMissionDrones, placeRiftTurret, spawnVolatileZone, stepSim, summonBoss, type Faction, type InstabilityTier, type WorldSim, type ZoneState } from "@/game/sim";
 import type { MissionEvent, MissionRun } from "@/game/missions/broken-signal";
 import type { MissionEvent as BlackoutEvent, MissionRun as BlackoutRun } from "@/game/missions/blackout-protocol";
 import type { MissionEvent as NeonCoreEvent, MissionRun as NeonCoreRun } from "@/game/missions/stitched-neon-core";
@@ -51,6 +51,9 @@ import { vehicleById, type VehicleId } from "@/game/vehicles";
 import { projectDome, shieldBash } from "@/game/titan";
 import { RENDER_PRESETS } from "@/game/performance";
 import { activateLiveAbility, createLiveBuild, rebindLiveBuild, tickLiveBuild } from "@/game/live-build";
+import { RiftTurrets } from "./RiftTurrets";
+import type { BodyType } from "@/game/operators";
+import { SIEGE_BLOOM_MULT, VEIL_BREAK_TIME, knockbackFrom, siegeDamageMult, siegeMoveMult, strikeDamage, strikeLanding, veilSightMult } from "@/game/operator-abilities";
 import { VERB_LABEL } from "@/game/subclass-verbs";
 import type { ActiveBuild } from "@/game/ability-network";
 import { buildSynergy } from "@/game/ability-network";
@@ -289,6 +292,7 @@ export function Scene({
   playerClass = "TITAN",
   subclassId = "SHIELD_TITAN",
   appearance: appearanceProp,
+  bodyType,
   vehicleId = "scrap-interceptor",
   vehicleUnlocked = false,
   armorState = "STABLE",
@@ -324,6 +328,7 @@ export function Scene({
   /** Fully-resolved field colors + callsign (preset or freely customized in the Identity Forge) —
    * session-local only, never synced to player_saves. */
   appearance?: AppearanceDefinition;
+  bodyType?: BodyType | undefined;
   vehicleId?: VehicleId;
   vehicleUnlocked?: boolean;
   armorState?: ArmorVisualState;
@@ -800,16 +805,38 @@ export function Scene({
           s.specialTime = Math.max(s.specialTime, slot === "ULTIMATE" ? 1.5 : 0.8);
           const effect = ability.effects[0];
           sfx.playAbility(effect?.kind ?? "ABILITY");
-          if (effect?.kind === "DASH") { s.x += Math.sin(s.yaw) * effect.value; s.z += Math.cos(s.yaw) * effect.value; alert(sim, "PHASE DASH · incoming damage avoided"); bossActionLog.current = logAction(bossActionLog.current, "DASH", performance.now() / 1000); }
+          if (effect?.kind === "DASH") { s.x += Math.sin(s.yaw) * effect.value; s.z += Math.cos(s.yaw) * effect.value; alert(sim, "RIFT DASH · incoming damage avoided"); bossActionLog.current = logAction(bossActionLog.current, "DASH", performance.now() / 1000); }
           else bossActionLog.current = logAction(bossActionLog.current, "ABILITY", performance.now() / 1000);
           if (effect?.kind === "SILENCE" || effect?.kind === "FIELD" || effect?.kind === "COOLDOWN_SHIFT") {
             for (const enemy of sim.machines) if (enemy.alive && Math.hypot(enemy.x - s.x, enemy.z - s.z) < (effect.radius ?? 12)) enemy.cool = Math.max(enemy.cool, effect.duration ?? 3);
             if (effect.kind === "FIELD") live.current.fieldTime = effect.duration ?? 8;
             alert(sim, "Hostile systems disrupted · environment recalibrated");
           }
-          if (effect?.kind === "DAMAGE") for (const enemy of sim.machines) if (enemy.alive && Math.hypot(enemy.x - s.x, enemy.z - s.z) < (effect.radius ?? 6) * 2) enemy.hp -= effect.value / 20;
+          if (effect?.kind === "DAMAGE") for (const enemy of sim.machines) if (enemy.alive && Math.hypot(enemy.x - s.x, enemy.z - s.z) < (effect.radius ?? 6) * 2) {
+            enemy.hp -= effect.value / 20;
+            if (effect.tags?.includes("knockback")) { const pushed = knockbackFrom(s.x, s.z, enemy.x, enemy.z, 6); enemy.x = pushed.x; enemy.z = pushed.z; enemy.cool = Math.max(enemy.cool, 1.2); }
+            if (enemy.hp <= 0) defeatMachine(sim, enemy);
+          }
           if (effect?.kind === "DOME") { sim.titan.domeTime = Math.max(sim.titan.domeTime, effect.duration ?? 5); alert(sim, "Barrier projected"); }
-          if (effect?.kind === "MARK") { live.current.damageMultiplier = 1.25; alert(sim, "Target exposed · damage amplified"); }
+          if (effect?.kind === "MARK") { live.current.damageMultiplier = 1.25; applyVulnPulse(sim, s.x, s.z, effect.radius ?? 24, effect.value, effect.duration ?? 8); alert(sim, "Recon swarm deployed · hostiles revealed"); }
+          if (effect?.kind === "SIEGE") alert(sim, "SIEGE MODE · stability and firepower up");
+          if (effect?.kind === "VEIL") alert(sim, "PHASE VEIL · concealed until you attack");
+          if (effect?.kind === "TURRET") { placeRiftTurret(sim, s.x + Math.sin(s.yaw) * 2.5, s.z + Math.cos(s.yaw) * 2.5, effect.duration ?? 20); alert(sim, "Rift Turret deployed"); }
+          if (effect?.kind === "STRIKE") {
+            let target: (typeof sim.machines)[number] | null = null;
+            let best = effect.radius ?? 16;
+            for (const enemy of sim.machines) { if (!enemy.alive) continue; const d = Math.hypot(enemy.x - s.x, enemy.z - s.z); if (d < best) { best = d; target = enemy; } }
+            if (target) {
+              const land = strikeLanding(s.x, s.z, target.x, target.z);
+              s.x = land.x; s.z = land.z;
+              s.yaw = Math.atan2(target.x - land.x, target.z - land.z);
+              target.hp -= strikeDamage(live.current.veilTime);
+              target.cool = Math.max(target.cool, 1.2);
+              live.current.veilTime = 0;
+              if (target.hp <= 0) defeatMachine(sim, target);
+              alert(sim, "SHADOW STRIKE");
+            } else alert(sim, "Shadow Strike · no target in reach");
+          }
           if (tutorial?.step === "ABILITY") onTutorialEvent?.("ABILITY");
           else if (tutorial?.step === "REINFORCE" && slot === "PRIMARY") onTutorialEvent?.("MASTERY");
           else if (tutorial?.step === "CHAMBER") { chamberActions.current.add(slot); if (chamberActions.current.size >= 2) onTutorialEvent?.("CHAMBER"); }
@@ -1030,11 +1057,13 @@ export function Scene({
     sim.equippedElement = equippedWeapon?.element ?? "KINETIC";
     // self-targeted subclass verbs (RAGE/OVERSHIELD, see subclass-verbs.ts) live on LiveBuild, which
     // has no reference to WorldSim — bridge them in every frame rather than one-shot at cast time.
-    sim.verbDamageMult = live.current.verbKind === "RAGE" && live.current.verbTime > 0 ? live.current.verbMagnitude : 1;
+    sim.verbDamageMult = (live.current.verbKind === "RAGE" && live.current.verbTime > 0 ? live.current.verbMagnitude : 1) * siegeDamageMult(live.current.siegeTime);
+    sim.stealthMult = veilSightMult(live.current.veilTime);
     sim.verbIncomingMult = live.current.verbKind === "OVERSHIELD" && live.current.verbTime > 0 ? 1 - live.current.verbMagnitude : 1;
     s.recoil = decay(s.recoil, 9, dt);
     s.punch = decay(s.punch, 14, dt);
     s.bloom = decay(s.bloom, 6, dt);
+    if (live.current.siegeTime > 0) s.bloom *= SIEGE_BLOOM_MULT;
     {
       // dynamic reticle: spread follows locomotion + bloom, the barrel index lags the camera, hits flash
       const r = reticle.current;
@@ -1070,6 +1099,7 @@ export function Scene({
         s.recoil += wpn.recoil;
         s.punch += wpn.punch;
         s.bloom = Math.min(1, s.bloom + 0.18 * wpn.punch);
+        if (live.current.veilTime > VEIL_BREAK_TIME) live.current.veilTime = VEIL_BREAK_TIME;
         if (!s.inVehicle && wpn.mag > 0) { clip.mag--; if (clip.mag <= 0) startReload(); }
       }
     };
@@ -1150,7 +1180,7 @@ export function Scene({
       if (right) { wish.x += Math.sin(s.yaw + Math.PI / 2); wish.z += Math.cos(s.yaw + Math.PI / 2); }
       // Neon City parkour: chaining vaults within the window nets a small, capped speed bonus.
       const chainBonus = parkourChainBonus(s.chainCount, performance.now() / 1000 - s.lastVaultAt);
-      const walk = 30 * traction * (boost ? 2.1 : 1) * sim.mods.footSpeed * (live.current.dashTime > 0 ? 1.4 : 1) * (1 + chainBonus);
+      const walk = 30 * traction * (boost ? 2.1 : 1) * sim.mods.footSpeed * (live.current.dashTime > 0 ? 1.4 : 1) * siegeMoveMult(live.current.siegeTime) * (1 + chainBonus);
       if (wish.lengthSq() > 0) wish.normalize().multiplyScalar(walk);
       {
         // slide: out of a sprint, commit to the heading with a speed burst that bleeds off (movement.ts)
@@ -1859,6 +1889,7 @@ export function Scene({
       <RegionLighting playerRef={player} tier={settings.renderTier} />
 
       <Terrain renderTier={settings.renderTier} />
+      <RiftTurrets sim={sim} />
       <Weather playerRef={player} weatherRef={weatherKind} fxRef={weatherFx} />
       <Wildlife playerRef={player} />
       <Civilians playerRef={player} />
@@ -1921,7 +1952,7 @@ export function Scene({
 
       {/* player on foot */}
       <group ref={player} position={SPAWN.toArray()}>
-        <Operator armor={appearance.armor} cloth={appearance.cloth} visor={appearance.visor} trim={appearance.trim} classId={playerClass} motion={feel.current.motion} visualState={armorState} chestLevel={armorLevels.chest} helmetLevel={armorLevels.helmet} legsLevel={armorLevels.legs} />
+        <Operator bodyType={bodyType} armor={appearance.armor} cloth={appearance.cloth} visor={appearance.visor} trim={appearance.trim} classId={playerClass} motion={feel.current.motion} visualState={armorState} chestLevel={armorLevels.chest} helmetLevel={armorLevels.helmet} legsLevel={armorLevels.legs} />
         {playerClass === "TITAN" && sim.titan.blocking && (
           // Chevron-angled holographic panels + a glowing rim edge instead of one flat box —
           // reads as a projected energy shield rather than a translucent slab.

@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { migrateAbilityIds } from "./operators";
 import { DEFAULT_PROGRESSION, normalizeProgression, type PlayerProgression } from "./progression";
 import type { Json } from "@/integrations/supabase/types";
 
@@ -37,7 +38,7 @@ export function mergeProgression(local: PlayerProgression, cloud: PlayerProgress
   return {
     ...newer,
     completedMissions: union(local.completedMissions, cloud.completedMissions),
-    unlockedAbilities: union(local.unlockedAbilities, cloud.unlockedAbilities),
+    unlockedAbilities: migrateAbilityIds(union(local.unlockedAbilities, cloud.unlockedAbilities)),
     earnedRewards: union(local.earnedRewards, cloud.earnedRewards),
     inventory: [...new Map([...cloud.inventory, ...local.inventory].map((item) => [item.id, item])).values()].map((item) => {
       const other = cloud.inventory.find((entry) => entry.id === item.id);

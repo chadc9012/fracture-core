@@ -147,3 +147,8 @@
 - Operator look pass: Titan scorched-titanium + orange hazard visor, hazard-striped pauldrons, rotary chain-cannon; Hunter carbon + fuchsia with a translucent glowing phase cloak; Warlock trench-coat skirt, floating rings, amber holo streams, arc-coil carbine. Preset colors updated (saved custom colors are untouched).
 
 - Movement feel: head bob, weight shift, strafe roll, landing dip, weapon sway, and a real walk/run limb cycle for the Operator; decorative GLBs deferred 4s after the world appears.
+
+- [x] Operators renamed NYX / GOLIATH / CIPHER with new ability lists, base stats, save migration and rift turrets.
+- [x] Female / Male / Robot body types in the Identity Forge, saved with the character.
+- [x] Save Character & Deploy: validate -> save (local + cloud) -> launch Mission 1, duplicate-click safe.
+- [ ] Server-side mission-run guard (no mission_runs table exists yet; the player_saves revision check only protects the save).

@@ -1,7 +1,7 @@
 import type { AbilitySlot, ClassId } from "./loadout";
 
 export type CombatState = "READY" | "CASTING" | "ACTIVE" | "RECOVERY" | "COOLDOWN";
-export type EffectKind = "BLOCK" | "DAMAGE" | "DASH" | "MARK" | "SILENCE" | "FIELD" | "DOME" | "COOLDOWN_SHIFT";
+export type EffectKind = "BLOCK" | "DAMAGE" | "DASH" | "MARK" | "SILENCE" | "FIELD" | "DOME" | "COOLDOWN_SHIFT" | "SIEGE" | "VEIL" | "STRIKE" | "TURRET";
 export type AbilityEffect = { kind: EffectKind; value: number; duration?: number; radius?: number; tags?: readonly string[] };
 export type AbilityConfig = {
   id: string; classId: ClassId; slot: AbilitySlot; input: "Q" | "E" | "R"; cooldown: number; resourceCost: number;
@@ -10,15 +10,18 @@ export type AbilityConfig = {
 export type AbilityRuntime = { state: CombatState; cooldown: number; activeFor: number };
 
 export const ABILITY_CONFIGS: readonly AbilityConfig[] = [
-  { id: "fracture-shield", classId: "TITAN", slot: "PRIMARY", input: "Q", cooldown: 0, resourceCost: 0, castTime: 0, recovery: 0.15, effects: [{ kind: "BLOCK", value: 0.72, duration: 0.3 }] },
-  { id: "ground-breaker", classId: "TITAN", slot: "TACTICAL", input: "E", cooldown: 4, resourceCost: 20, castTime: 0.2, recovery: 0.45, effects: [{ kind: "DAMAGE", value: 42, radius: 4, tags: ["interrupt", "cover-break"] }] },
-  { id: "reality-bulwark", classId: "TITAN", slot: "ULTIMATE", input: "R", cooldown: 18, resourceCost: 45, castTime: 0.5, recovery: 0.6, effects: [{ kind: "DOME", value: 100, radius: 6, duration: 8 }] },
-  { id: "phase-dash", classId: "HUNTER", slot: "PRIMARY", input: "Q", cooldown: 3.5, resourceCost: 15, castTime: 0, recovery: 0.12, effects: [{ kind: "DASH", value: 8, duration: 0.28, tags: ["invulnerable", "momentum"] }] },
-  { id: "mark-target", classId: "HUNTER", slot: "TACTICAL", input: "E", cooldown: 9, resourceCost: 20, castTime: 0.18, recovery: 0.3, effects: [{ kind: "MARK", value: 1.25, radius: 24, duration: 8 }] },
-  { id: "time-split", classId: "HUNTER", slot: "ULTIMATE", input: "R", cooldown: 24, resourceCost: 50, castTime: 0.35, recovery: 0.4, effects: [{ kind: "DAMAGE", value: 0.65, duration: 6, tags: ["echo-fire", "afterimage"] }] },
-  { id: "code-pulse", classId: "WARLOCK", slot: "PRIMARY", input: "Q", cooldown: 5, resourceCost: 12, castTime: 0.15, recovery: 0.25, effects: [{ kind: "SILENCE", value: 1, radius: 12, duration: 4 }] },
-  { id: "reality-field", classId: "WARLOCK", slot: "TACTICAL", input: "E", cooldown: 11, resourceCost: 24, castTime: 0.35, recovery: 0.4, effects: [{ kind: "FIELD", value: 0.55, radius: 7, duration: 8, tags: ["gravity", "slow"] }] },
-  { id: "system-override", classId: "WARLOCK", slot: "ULTIMATE", input: "R", cooldown: 26, resourceCost: 55, castTime: 0.55, recovery: 0.5, effects: [{ kind: "COOLDOWN_SHIFT", value: 0.45, radius: 14, duration: 10, tags: ["ally-buff", "enemy-disrupt"] }] },
+  // GOLIATH
+  { id: "siege-mode", classId: "TITAN", slot: "PRIMARY", input: "Q", cooldown: 25, resourceCost: 25, castTime: 0.2, recovery: 0.3, effects: [{ kind: "SIEGE", value: 1.3, duration: 8, tags: ["stability", "firepower"] }] },
+  { id: "kinetic-slam", classId: "TITAN", slot: "TACTICAL", input: "E", cooldown: 18, resourceCost: 20, castTime: 0.25, recovery: 0.45, effects: [{ kind: "DAMAGE", value: 60, radius: 7, tags: ["shockwave", "knockback", "interrupt"] }] },
+  { id: "bastion-shield", classId: "TITAN", slot: "ULTIMATE", input: "R", cooldown: 24, resourceCost: 40, castTime: 0.4, recovery: 0.5, effects: [{ kind: "DOME", value: 100, radius: 5, duration: 10 }] },
+  // NYX
+  { id: "phase-veil", classId: "HUNTER", slot: "PRIMARY", input: "Q", cooldown: 18, resourceCost: 15, castTime: 0, recovery: 0.15, effects: [{ kind: "VEIL", value: 0.15, duration: 6, tags: ["stealth"] }] },
+  { id: "rift-dash", classId: "HUNTER", slot: "TACTICAL", input: "E", cooldown: 10, resourceCost: 12, castTime: 0, recovery: 0.12, effects: [{ kind: "DASH", value: 11, duration: 0.28, tags: ["invulnerable", "teleport"] }] },
+  { id: "shadow-strike", classId: "HUNTER", slot: "ULTIMATE", input: "R", cooldown: 22, resourceCost: 35, castTime: 0.15, recovery: 0.4, effects: [{ kind: "STRIKE", value: 4, radius: 16, tags: ["close-range", "veil-bonus"] }] },
+  // CIPHER
+  { id: "recon-swarm", classId: "WARLOCK", slot: "PRIMARY", input: "Q", cooldown: 20, resourceCost: 18, castTime: 0.15, recovery: 0.25, effects: [{ kind: "MARK", value: 1.25, radius: 30, duration: 8, tags: ["reveal", "swarm"] }] },
+  { id: "disruption-pulse", classId: "WARLOCK", slot: "TACTICAL", input: "E", cooldown: 18, resourceCost: 24, castTime: 0.3, recovery: 0.4, effects: [{ kind: "SILENCE", value: 1, radius: 14, duration: 5, tags: ["emp", "disable-tech"] }] },
+  { id: "rift-turret", classId: "WARLOCK", slot: "ULTIMATE", input: "R", cooldown: 30, resourceCost: 45, castTime: 0.4, recovery: 0.5, effects: [{ kind: "TURRET", value: 1, radius: 34, duration: 20, tags: ["deployable"] }] },
 ];
 
 export function createAbilityRuntime(): Record<AbilitySlot, AbilityRuntime> {

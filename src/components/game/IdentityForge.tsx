@@ -3,9 +3,10 @@ import { ContactShadows, Environment, Lightformer, Sparkles } from "@react-three
 import { useMemo, useRef } from "react";
 import * as THREE from "three";
 import type { AppearanceDefinition, ClassId } from "@/game/loadout";
+import type { BodyType } from "@/game/operators";
 import { Operator } from "./Operator";
 
-const CLASS_LABEL: Record<ClassId, string> = { TITAN: "VANGUARD", HUNTER: "ASSASSIN", WARLOCK: "TECH" };
+const CLASS_LABEL: Record<ClassId, string> = { TITAN: "GOLIATH", HUNTER: "NYX", WARLOCK: "CIPHER" };
 const CLASS_X: Record<ClassId, number> = { TITAN: -4.6, HUNTER: 0, WARLOCK: 4.6 };
 
 type ForgeMode = "CLASS" | "SUBCLASS" | "APPEARANCE" | "ASSEMBLING";
@@ -53,9 +54,10 @@ function ChamberShell({ activeColor }: { activeColor: string }) {
 
 /** A real operator standing on the ring, slowly turning like a showcase pedestal — Operator.tsx's
  * own feet-at-(-1.55)/head-at-1.2 footprint means it just needs to sit 1.55 above the ring. */
-function Showcase({ classId, appearance, selected, hidden, mode, onSelect }: {
+function Showcase({ classId, appearance, bodyType, selected, hidden, mode, onSelect }: {
   classId: ClassId;
   appearance: AppearanceDefinition;
+  bodyType: BodyType;
   selected: boolean;
   hidden: boolean;
   mode: ForgeMode;
@@ -78,7 +80,7 @@ function Showcase({ classId, appearance, selected, hidden, mode, onSelect }: {
   });
   return <group ref={group} position={[x, 0, 0]} onClick={(event) => { event.stopPropagation(); if (mode === "CLASS") onSelect(classId); }}>
     <group ref={turntable} position-y={1.55}>
-      <Operator armor={appearance.armor} cloth={appearance.cloth} visor={appearance.visor} trim={appearance.trim} classId={classId} visualState="ACTIVE" />
+      <Operator armor={appearance.armor} cloth={appearance.cloth} visor={appearance.visor} trim={appearance.trim} classId={classId} bodyType={bodyType} visualState="ACTIVE" />
     </group>
     <mesh rotation-x={-Math.PI / 2} position-y={0.04}>
       <ringGeometry args={[1.25, 1.55, 64]} />
@@ -89,7 +91,7 @@ function Showcase({ classId, appearance, selected, hidden, mode, onSelect }: {
   </group>;
 }
 
-export function IdentityForge({ classId, appearance, mode, onSelectClass }: { classId: ClassId; appearance: AppearanceDefinition; mode: ForgeMode; onSelectClass: (id: ClassId) => void }) {
+export function IdentityForge({ classId, appearance, bodyType, mode, onSelectClass }: { classId: ClassId; appearance: AppearanceDefinition; bodyType: BodyType; mode: ForgeMode; onSelectClass: (id: ClassId) => void }) {
   return <Canvas shadows dpr={[1, 1.5]} camera={{ position: [0, 2.7, 12], fov: 42 }} gl={{ antialias: true, toneMapping: THREE.ACESFilmicToneMapping }}>
     <ChamberShell activeColor={appearance.visor} />
     <CameraRig selected={classId} mode={mode} />
@@ -98,6 +100,7 @@ export function IdentityForge({ classId, appearance, mode, onSelectClass }: { cl
         key={id}
         classId={id}
         appearance={appearance}
+        bodyType={bodyType}
         selected={id === classId}
         hidden={mode !== "CLASS" && id !== classId}
         mode={mode}

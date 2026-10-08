@@ -4,6 +4,7 @@ import { createEnvState, STRIKE_MACHINE_DAMAGE, STRIKE_PLAYER_DAMAGE, type EnvSt
 import { familyFor, rollRaidDrop } from "./raid-loot";
 import { squadMove, squadRole } from "./enemy-intelligence";
 import { createAi, pickCover, shouldTakeCover, sightRange, stepAwareness, type EnemyAi } from "./enemy-perception";
+import { RIFT_TURRET_DAMAGE, deployRiftTurret, stepRiftTurret, type RiftTurret } from "./operator-abilities";
 import { REGIONS, type Region } from "./world";
 import { heightAt, smoothstep, walkHeight } from "./terrain";
 import { LANES, laneLanePoint, laneSamples, type Lane } from "./lanes";
@@ -247,6 +248,10 @@ export type WorldSim = {
    * every frame by Scene.tsx from the live LiveBuild's self-targeted verb (RAGE/OVERSHIELD) since
    * LiveBuild itself has no reference to WorldSim. */
   volatileZones: { x: number; z: number; radius: number; dps: number; until: number }[];
+  /** CIPHER Rift Turrets (operator-abilities.ts): temporary deployables, expire on their own */
+  riftTurrets: RiftTurret[];
+  /** NYX Phase Veil: multiplies enemy sight range (1 = visible), set by Scene each frame */
+  stealthMult: number;
   verbDamageMult: number;
   verbIncomingMult: number;
   /** seasons/hazards state (see environment.ts): exposure meters, pending lightning, strike flashes */
@@ -446,6 +451,8 @@ export function createSim(): WorldSim {
     emergencyQuest: EMERGENCY_QUEST_INIT,
     bossCounter: counterTuningFor(null),
     volatileZones: [],
+    riftTurrets: [],
+    stealthMult: 1,
     verbDamageMult: 1,
     verbIncomingMult: 1,
     env: createEnvState(),
@@ -585,6 +592,10 @@ export function applyVulnPulse(sim: WorldSim, x: number, z: number, radius: numb
     if (!m.alive) continue;
     if (Math.hypot(m.x - x, m.z - z) <= radius) { m.vulnUntil = until; m.vulnMult = mult; }
   }
+}
+
+export function placeRiftTurret(sim: WorldSim, x: number, z: number, duration: number) {
+  sim.riftTurrets = deployRiftTurret(sim.riftTurrets, x, z, performance.now() / 1000, duration);
 }
 
 export function applySuppressPulse(sim: WorldSim, x: number, z: number, radius: number, coolAdd: number) {
@@ -970,7 +981,7 @@ export function stepSim(sim: WorldSim, input: SimInput) {
     const damaged = m.hp < ai.lastHp - 0.001;
     ai.lastHp = m.hp;
     const facingDot = (Math.sin(m.rot) * dx + Math.cos(m.rot) * dz) / d;
-    const sight = sightRange(night, sim.envVisibility ?? 1, m.elite) * (aggro / 70 > 1 ? Math.min(1.6, aggro / 70) : 1);
+    const sight = sightRange(night, sim.envVisibility ?? 1, m.elite) * (sim.stealthMult ?? 1) * (aggro / 70 > 1 ? Math.min(1.6, aggro / 70) : 1);
     const forced = m.boss || m.mission || sim.hp < 35 && d < 40;
     const aiState = forced && d < aggro ? (ai.state = "ALERT", ai.awareness = 1, ai.lastX = px, ai.lastZ = pz, "ALERT")
       : stepAwareness(ai, { distance: d, sight, noise: Math.min(1, (sim.playerNoise ?? 0) + sim.combatHeat / 120), damaged, facing: facingDot > 0.3 }, px, pz, dt);
@@ -1114,6 +1125,23 @@ export function stepSim(sim: WorldSim, input: SimInput) {
       if (m.hp <= 0) {
          defeatMachine(sim, m);
         alert(sim, `${r.name} stability field vaporised a war machine`);
+      }
+    }
+  }
+
+  // ---------- CIPHER rift turrets (temporary, see operator-abilities.ts) ----------
+  if (sim.riftTurrets.length) {
+    const nowS = performance.now() / 1000;
+    sim.riftTurrets = sim.riftTurrets.filter((t) => t.until > nowS);
+    for (const rt of sim.riftTurrets) {
+      const hit = stepRiftTurret(rt, sim.machines, dt);
+      const target = hit >= 0 ? sim.machines[hit] : undefined;
+      if (target) {
+        target.hp -= RIFT_TURRET_DAMAGE;
+        const dx = target.x - rt.x, dz = target.z - rt.z, d = Math.hypot(dx, dz) || 1;
+        target.kx += (dx / d) * 2;
+        target.kz += (dz / d) * 2;
+        if (target.hp <= 0) { defeatMachine(sim, target); alert(sim, "Rift Turret neutralized a hostile"); }
       }
     }
   }

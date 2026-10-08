@@ -1,3 +1,4 @@
+import { bodyProfile, type BodyType } from "@/game/operators";
 import { useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import { RoundedBox } from "@react-three/drei";
@@ -36,6 +37,7 @@ export function Operator({
   helmetLevel = 1,
   legsLevel = 1,
   motion,
+  bodyType,
 }: {
   armor?: string;
   cloth?: string;
@@ -54,7 +56,11 @@ export function Operator({
   legsLevel?: number;
   /** live stride from movement-feel.ts (Scene writes it each frame); absent in static previews */
   motion?: { current: { phase: number; intensity: number; swing: number; lean: number; air: boolean } };
+  /** saved body type (operators.ts); absent = default male so old saves/previews are unchanged */
+  bodyType?: BodyType | undefined;
 }) {
+  const bodyP = bodyProfile(bodyType);
+  const robot = bodyP.segmented;
   const chestTier = tierOf(chestLevel);
   const helmetTier = tierOf(helmetLevel);
   const legsTier = tierOf(legsLevel);
@@ -99,13 +105,17 @@ export function Operator({
   const titan = classId === "TITAN", hunter = classId === "HUNTER", warlock = classId === "WARLOCK";
   const bulk = titan ? 1.14 : hunter ? 0.92 : 1;
   const plate = <meshPhysicalMaterial color={plateColor} metalness={0.75} roughness={0.28} clearcoat={0.8} clearcoatRoughness={0.25} />;
-  const suit = <meshStandardMaterial color={suitColor} metalness={0.2} roughness={0.75} />;
+  const suit = <meshStandardMaterial color={suitColor} metalness={robot ? 0.9 : 0.2} roughness={robot ? 0.3 : 0.75} />;
   const line = <meshStandardMaterial ref={glow} color={visor} emissive={visor} emissiveIntensity={2.2} toneMapped={false} />;
   const seam = (key: string, p: [number, number, number], s: [number, number, number], r: [number, number, number] = [0, 0, 0]) =>
     <mesh key={key} position={p} rotation={r}><boxGeometry args={s} /><meshStandardMaterial color={visor} emissive={visor} emissiveIntensity={2.4} toneMapped={false} /></mesh>;
 
   return (
-    <group ref={body} scale={[bulk, 1, bulk]}>
+    <group ref={body} scale={[bulk * bodyP.shoulders, bodyP.height, bulk * bodyP.waist]}>
+      {/* robot chassis: glowing segment rings at the neck, ribs, waist, thighs and knees */}
+      {robot && [[0, 0.62, 0.27], [0, 0.4, 0.3], [0, 0.18, 0.28], [0, -0.05, 0.26], [-0.19, -0.7, 0.14], [0.19, -0.7, 0.14], [-0.19, -1.15, 0.12], [0.19, -1.15, 0.12]].map(([x, y, r], i) => (
+        <mesh key={`seg${i}`} position={[x!, y!, 0]} rotation={[Math.PI / 2, 0, 0]}><torusGeometry args={[r!, 0.014, 8, 28]} /><meshStandardMaterial color={visor} emissive={visor} emissiveIntensity={2.6} toneMapped={false} /></mesh>
+      ))}
       {/* legs: suit capsule + thigh/shin plates + knee caps + boots */}
       {[-0.19, 0.19].map((x) => (
         <group key={x} ref={x < 0 ? legL : legR} position={[x, -0.45, 0]}><group position={[0, 0.45, 0]}>

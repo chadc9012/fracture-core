@@ -1,8 +1,10 @@
 import { ChevronLeft, ChevronRight, Circle, Cpu, Settings, Shield } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { CLASSES, CUSTOMIZATION_PALETTE, DEFAULT_SUBCLASS, SUBCLASSES, appearanceById, operatorByClass, type AppearanceDefinition, type ClassId, type SubclassId } from "@/game/loadout";
+import { CLASSES, CUSTOMIZATION_PALETTE, DEFAULT_SUBCLASS, SUBCLASSES, appearanceById, operatorByClass, type AppearanceDefinition, type ClassId, type OperatorId, type SubclassId } from "@/game/loadout";
+import { BODY_PROFILES, BODY_TYPES, DEFAULT_BODY_TYPE, type BodyType } from "@/game/operators";
+import { createDeployGuard, deployCharacter, newDeploymentId, type PlayerCharacter } from "@/game/deployment/deployCharacter";
 import { CLASS_LABEL, IdentityForge } from "./IdentityForge";
 import { CornerBrackets } from "./HudChrome";
 import { useVoiceLine } from "./useVoiceLine";
@@ -12,7 +14,7 @@ type Stage = "CLASS" | "SUBCLASS" | "APPEARANCE" | "ASSEMBLING";
 /** `appearance` is the fully-resolved, possibly-customized identity — a signature preset by
  * default, or edited colors/callsign from the forge's customize panel. Session-local only, same
  * as the rest of deployment (never synced to player_saves). */
-export type Deployment = { classId: ClassId; subclassId: SubclassId; appearance: AppearanceDefinition };
+export type Deployment = { classId: ClassId; subclassId: SubclassId; appearance: AppearanceDefinition; bodyType: BodyType; deploymentId: string; operatorId: OperatorId };
 const STAGES: Stage[] = ["CLASS", "SUBCLASS", "APPEARANCE"];
 const CHANNELS: { key: "armor" | "cloth" | "visor" | "trim"; label: string }[] = [
   { key: "armor", label: "Armor plate" },
@@ -36,11 +38,15 @@ const GUIDE: Record<Stage, string> = {
   ASSEMBLING: "Identity stabilized. Armor assembly in progress.",
 };
 
-export function StartMenu({ onDeploy, onSettings }: { onDeploy: (deployment: Deployment) => void; onSettings: () => void; best: { credits: number; kills: number } | null }) {
+export function StartMenu({ onDeploy, onSaveCharacter, weaponOrder, onSettings }: { onDeploy: (deployment: Deployment) => void; onSaveCharacter?: (character: PlayerCharacter) => Promise<void>; weaponOrder?: readonly string[]; onSettings: () => void; best: { credits: number; kills: number } | null }) {
   const [classId, setClassId] = useState<ClassId>("TITAN");
   const [subclassId, setSubclassId] = useState<SubclassId>("SHIELD_TITAN");
   const [appearance, setAppearance] = useState<AppearanceDefinition>(() => APPEARANCE_FOR("TITAN"));
   const [stage, setStage] = useState<Stage>("CLASS");
+  const [bodyType, setBodyType] = useState<BodyType>(DEFAULT_BODY_TYPE);
+  const [deployError, setDeployError] = useState("");
+  const [deploying, setDeploying] = useState(false);
+  const guard = useRef(createDeployGuard()).current;
   const operator = operatorByClass(classId);
   const subclasses = SUBCLASSES.filter((item) => item.classId === classId);
   const stageIndex = STAGES.indexOf(stage);
@@ -50,12 +56,32 @@ export function StartMenu({ onDeploy, onSettings }: { onDeploy: (deployment: Dep
   // Operator (class) resets colors/callsign back to that Operator's signature.
   const applySubclass = (id: SubclassId) => { setSubclassId(id); };
   const selectClass = (id: ClassId) => { setClassId(id); applySubclass(DEFAULT_SUBCLASS[id]); setAppearance(APPEARANCE_FOR(id)); };
+  const confirmIdentity = async () => {
+    const deploymentId = newDeploymentId();
+    const character: PlayerCharacter = {
+      deploymentId, operatorId: operator.id, classId, subclassId, bodyType, displayName: appearance.callsign,
+      appearance: { armor: appearance.armor, cloth: appearance.cloth, visor: appearance.visor, trim: appearance.trim, callsign: appearance.callsign },
+      loadout: { weaponOrder: weaponOrder ?? [] },
+    };
+    setDeployError("");
+    setDeploying(true);
+    const ran = await guard.run(async () => {
+      try {
+        await deployCharacter(character, {
+          saveCharacter: async (c) => { await onSaveCharacter?.(c); setStage("ASSEMBLING"); },
+          // the mission only launches after the save above resolved and the assembly beat has played
+          launchMission: () => new Promise<void>((resolve) => window.setTimeout(() => { onDeploy({ classId, subclassId, appearance, bodyType, deploymentId, operatorId: operator.id }); resolve(); }, 2200)),
+        });
+      } catch (err) {
+        setStage("APPEARANCE");
+        setDeployError(err instanceof Error ? err.message : "Unable to save or deploy. Please try again.");
+      }
+    });
+    if (ran !== null) setDeploying(false);
+    return ran;
+  };
   const next = () => {
-    if (stage === "APPEARANCE") {
-      setStage("ASSEMBLING");
-      window.setTimeout(() => onDeploy({ classId, subclassId, appearance }), 2200);
-      return;
-    }
+    if (stage === "APPEARANCE") { void confirmIdentity(); return; }
     const nextStage = STAGES[stageIndex + 1];
     if (nextStage) setStage(nextStage);
   };
@@ -65,14 +91,14 @@ export function StartMenu({ onDeploy, onSettings }: { onDeploy: (deployment: Dep
     const onKey = (event: KeyboardEvent) => {
       if (stage === "ASSEMBLING") return;
       if (stage === "CLASS" && ["Digit1", "Digit2", "Digit3"].includes(event.code)) selectClass(CLASSES[Number(event.code.at(-1)) - 1]?.id ?? "TITAN");
-      if (event.code === "Enter") next();
+      if (event.code === "Enter" && !event.repeat) next();
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   });
 
   return <div className="fixed inset-0 z-50 overflow-hidden bg-background">
-    <div className="absolute inset-0"><IdentityForge classId={classId} appearance={appearance} mode={stage} onSelectClass={selectClass} /></div>
+    <div className="absolute inset-0"><IdentityForge classId={classId} appearance={appearance} bodyType={bodyType} mode={stage} onSelectClass={selectClass} /></div>
     <div className="pointer-events-none absolute inset-0 forge-veil" />
 
     <header className="pointer-events-none absolute inset-x-0 top-0 z-10 flex items-start justify-between p-4 sm:p-7">
@@ -120,6 +146,13 @@ export function StartMenu({ onDeploy, onSettings }: { onDeploy: (deployment: Dep
         </div>
         <p className="mt-1 text-[10px] italic leading-relaxed text-muted-foreground">{operator.bio}</p>
 
+        <div className="mt-3">
+          <span className="hud-label">Body type</span>
+          <div className="mt-1 grid grid-cols-3 gap-2">
+            {BODY_TYPES.map((type) => <Button key={type} type="button" variant="ghost" onClick={() => setBodyType(type)} className={`hud-panel h-auto justify-start px-3 py-2 text-left whitespace-normal ${bodyType === type ? "hud-glow text-foreground" : "text-muted-foreground"}`}><span><span className="block font-mono text-[11px] uppercase tracking-[0.12em]">{BODY_PROFILES[type].label}</span><span className="block text-[9px]">{BODY_PROFILES[type].blurb}</span></span></Button>)}
+          </div>
+        </div>
+
         <label className="mt-3 block">
           <span className="hud-label">Callsign</span>
           <Input value={appearance.callsign} maxLength={24} onChange={(event) => setAppearance((current) => ({ ...current, callsign: event.target.value.toUpperCase() }))} className="mt-1 h-8 rounded-none border-primary/30 bg-background/60 font-mono text-xs uppercase tracking-[0.12em]" />
@@ -138,12 +171,13 @@ export function StartMenu({ onDeploy, onSettings }: { onDeploy: (deployment: Dep
           ))}
         </div>
       </div>
+      {deployError && <p role="alert" className="mt-2 text-center font-mono text-xs text-destructive">{deployError}</p>}
       <p className="mt-2 text-center hud-label"><Cpu className="mr-1 inline size-3" style={{ filter: "drop-shadow(0 0 3px var(--primary))" }} />Live material projection · changes apply instantly</p>
     </div>}
 
     {stage !== "ASSEMBLING" && <footer className="pointer-events-none absolute inset-x-0 bottom-4 z-20 flex items-center justify-center gap-2">
       {stageIndex > 0 && <Button className="hud-panel pointer-events-auto border-0" variant="outline" onClick={back}><ChevronLeft />Back</Button>}
-      <Button className="hud-glow pointer-events-auto min-w-44" onClick={next}>{stage === "APPEARANCE" ? <Shield /> : null}{stage === "CLASS" ? `Imprint ${operatorByClass(classId).name}` : stage === "SUBCLASS" ? "Approach armor forge" : "Confirm identity"}<ChevronRight /></Button>
+      <Button className="hud-glow pointer-events-auto min-w-44" onClick={next} disabled={deploying}>{stage === "APPEARANCE" ? <Shield /> : null}{stage === "CLASS" ? `Imprint ${operatorByClass(classId).name}` : stage === "SUBCLASS" ? "Approach armor forge" : deploying ? "Saving character…" : "Save character & deploy"}<ChevronRight /></Button>
     </footer>}
     {stage === "ASSEMBLING" && <div className="absolute inset-x-0 bottom-12 z-20 text-center"><p className="animate-pulse font-mono text-xs uppercase tracking-[0.35em] text-primary" style={{ textShadow: "0 0 12px color-mix(in oklch, var(--primary) 60%, transparent)" }}>Armor lattice assembling</p><div className="mx-auto mt-3 h-px w-64 overflow-hidden bg-muted"><div className="h-full w-full origin-left animate-[forge-progress_2.1s_ease-in-out] bg-primary" style={{ boxShadow: "0 0 8px var(--primary)" }} /></div></div>}
   </div>;

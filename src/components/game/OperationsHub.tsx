@@ -175,7 +175,7 @@ function Arsenal({ progression, onProgression }: { progression: PlayerProgressio
 
 function AbilityNetwork({ progression, onProgression }: { progression: PlayerProgression; onProgression: (next: PlayerProgression) => void }) {
   const [build, setBuild] = useState<ActiveBuild>(progression.activeBuild ?? DEFAULT_BUILD);
-  const [selected, setSelected] = useState(ABILITY_NODES[0]?.id ?? "fracture-shield");
+  const [selected, setSelected] = useState(ABILITY_NODES[0]?.id ?? "siege-mode");
   const [saved, setSaved] = useState(false);
   const synergy = useMemo(() => buildSynergy(build), [build]);
   const selectedNode = nodeById(selected);

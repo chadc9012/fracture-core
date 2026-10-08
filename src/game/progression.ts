@@ -1,4 +1,6 @@
 import { DEFAULT_BUILD, type ActiveBuild } from "./ability-network";
+import type { PlayerCharacter } from "./deployment/deployCharacter";
+import { bodyTypeOr, migrateAbilityIds, migrateBranches, migrateBuild } from "./operators";
 import type { VehicleId } from "./vehicles";
 import { STARTER_GEAR, STARTER_SLOTS, type GearItem, type GearSlot, type MaterialId } from "./inventory";
 import { FIRST_QUEST_ID } from "./quests";
@@ -30,6 +32,8 @@ export type PlayerProgression = {
   calibrationTokens: number;
   fractureShards: number;
   identityClass: "TITAN" | "HUNTER" | "WARLOCK" | null;
+  /** the last confirmed Identity Forge result (operator, body type, colors, loadout); null on old saves */
+  character: PlayerCharacter | null;
   tutorialComplete: boolean;
   dungeonClears: Record<string, number>;
   earnedRewards: string[];
@@ -67,7 +71,7 @@ const STARTING_UNLOCKED_WORLDS = ["veridan", "nexus", "wastelands", "solara", "s
 export const DEFAULT_PROGRESSION: PlayerProgression = {
   version: 5,
   completedMissions: [],
-  unlockedAbilities: ["fracture-shield", "phase-dash", "code-pulse"],
+  unlockedAbilities: ["siege-mode", "phase-veil", "recon-swarm"],
   ownedVehicles: [],
   selectedVehicle: null,
   garageLoadout: [],
@@ -77,6 +81,7 @@ export const DEFAULT_PROGRESSION: PlayerProgression = {
   calibrationTokens: 3,
   fractureShards: 120,
   identityClass: null,
+  character: null,
   tutorialComplete: false,
   dungeonClears: {},
   earnedRewards: [],
@@ -117,7 +122,8 @@ export function normalizeProgression(raw: unknown): PlayerProgression {
       ...DEFAULT_PROGRESSION,
       ...parsed,
       completedMissions: Array.isArray(parsed.completedMissions) ? parsed.completedMissions : [],
-      unlockedAbilities: Array.isArray(parsed.unlockedAbilities) ? parsed.unlockedAbilities : DEFAULT_PROGRESSION.unlockedAbilities,
+      unlockedAbilities: Array.isArray(parsed.unlockedAbilities) ? migrateAbilityIds(parsed.unlockedAbilities) : DEFAULT_PROGRESSION.unlockedAbilities,
+      activeBuild: parsed.activeBuild && parsed.activeBuild.slots ? migrateBuild(parsed.activeBuild) : DEFAULT_PROGRESSION.activeBuild,
       ownedVehicles: Array.isArray(parsed.ownedVehicles) ? parsed.ownedVehicles : [],
       garageLoadout: Array.isArray(parsed.garageLoadout) ? parsed.garageLoadout : [],
        version: 5,
@@ -125,11 +131,12 @@ export function normalizeProgression(raw: unknown): PlayerProgression {
        equippedGear: parsed.equippedGear && typeof parsed.equippedGear === "object" ? parsed.equippedGear : STARTER_SLOTS,
        materials: parsed.materials && typeof parsed.materials === "object" ? parsed.materials : {},
       identityClass: parsed.identityClass === "TITAN" || parsed.identityClass === "HUNTER" || parsed.identityClass === "WARLOCK" ? parsed.identityClass : null,
+      character: parsed.character && typeof parsed.character === "object" && typeof parsed.character.operatorId === "string" ? { ...parsed.character, bodyType: bodyTypeOr(parsed.character.bodyType) } : null,
       tutorialComplete: parsed.tutorialComplete === true,
       dungeonClears: parsed.dungeonClears && typeof parsed.dungeonClears === "object" ? parsed.dungeonClears : {},
       earnedRewards: Array.isArray(parsed.earnedRewards) ? parsed.earnedRewards : [],
       abilityMastery: parsed.abilityMastery && typeof parsed.abilityMastery === "object" ? parsed.abilityMastery : {},
-      abilityBranches: parsed.abilityBranches && typeof parsed.abilityBranches === "object" ? parsed.abilityBranches : {},
+      abilityBranches: parsed.abilityBranches && typeof parsed.abilityBranches === "object" ? migrateBranches(parsed.abilityBranches) : {},
       calibrationTokens: typeof parsed.calibrationTokens === "number" ? parsed.calibrationTokens : 3,
       fractureShards: typeof parsed.fractureShards === "number" ? parsed.fractureShards : 120,
       activeQuestId: typeof parsed.activeQuestId === "string" || parsed.activeQuestId === null ? parsed.activeQuestId : FIRST_QUEST_ID,
