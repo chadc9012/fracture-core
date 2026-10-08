@@ -54,6 +54,7 @@ import { activateLiveAbility, createLiveBuild, rebindLiveBuild, tickLiveBuild } 
 import { hazardAt, type HazardEffect } from "@/game/region-hazards";
 import { RiftTurrets } from "./RiftTurrets";
 import { NearOnly } from "./NearOnly";
+import { PerfProbe } from "./PerfProbe";
 import type { BodyType } from "@/game/operators";
 import { SIEGE_BLOOM_MULT, VEIL_BREAK_TIME, knockbackFrom, siegeDamageMult, siegeMoveMult, strikeDamage, strikeLanding, veilSightMult } from "@/game/operator-abilities";
 import { VERB_LABEL } from "@/game/subclass-verbs";
@@ -1902,6 +1903,7 @@ export function Scene({
 
       <Terrain renderTier={settings.renderTier} />
       <RiftTurrets sim={sim} />
+      <PerfProbe />
       <Weather playerRef={player} weatherRef={weatherKind} fxRef={weatherFx} />
       <Wildlife playerRef={player} />
       <Civilians playerRef={player} />
