@@ -3,12 +3,16 @@ import { Activity, ChevronRight, CloudRain, MapPin, Radio } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { PlayerProgression } from "@/game/progression";
 import { NextActivityCard } from "./NextActivityCard";
-import { classById, subclassById, type AppearanceDefinition, type ClassId, type SubclassId } from "@/game/loadout";
+import { classById, subclassById, type AppearanceDefinition, type ClassId, type OperatorId, type SubclassId } from "@/game/loadout";
+import type { BodyType } from "@/game/operators";
 
 export type DeploymentBriefingData = {
   classId: ClassId;
   subclassId: SubclassId;
   appearance: AppearanceDefinition;
+  bodyType: BodyType;
+  deploymentId: string;
+  operatorId: OperatorId;
 };
 
 export function DeploymentBriefing({ deployment, progression, onLaunch, onBack }: { deployment: DeploymentBriefingData; progression: PlayerProgression; onLaunch: () => void; onBack: () => void }) {
