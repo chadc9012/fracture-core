@@ -114,6 +114,9 @@ function Ground() {
 }
 
 export function Terrain({ renderTier = "HIGH" }: { renderTier?: RenderTier } = {}) {
+  // ~13 MB of decorative Poly Haven GLBs would compete with the ground textures and first frames, so they join the world a few seconds after it appears
+  const [modelsReady, setModelsReady] = useState(false);
+  useEffect(() => { const t = window.setTimeout(() => setModelsReady(true), 4000); return () => window.clearTimeout(t); }, []);
   const forest = byId("veridan");
   const frost = byId("frostspire");
   const ember = byId("ember");
@@ -216,7 +219,7 @@ export function Terrain({ renderTier = "HIGH" }: { renderTier?: RenderTier } = {
   return (
     <group>
       <Ground />
-      {renderTier !== "LOW" && <RegionModels />}
+      {renderTier !== "LOW" && modelsReady && <RegionModels />}
 
       {/* forest: trunk + two staggered canopy layers, hue-jittered per instance so the
           treeline reads as a forest instead of one stamped-out cone repeated 120 times */}

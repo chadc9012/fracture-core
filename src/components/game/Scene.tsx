@@ -26,6 +26,7 @@ import { environmentAt, stepEnvironment } from "@/game/environment";
 import { backpackFor } from "@/game/backpacks";
 import { createReticle, markHit, stepReticle, type Motion, type ReticleView, EMPTY_RETICLE } from "@/game/crosshair";
 import { airJump, cancelSlide, createMoveState, glideVy, GLIDE_THRUST, land, movementFov, startSlide, stepSlide, AIR_PROFILE } from "@/game/movement";
+import { createStride, stepStride, RUN_SPEED, type FeelView } from "@/game/movement-feel";
 import { updateWind } from "@/game/wind-sway";
 import { atmosphereAt, NEUTRAL_ATMOSPHERE, type Atmosphere } from "@/game/atmosphere";
 import { closeStratagems, createStratagemState, inputDirection, openStratagems, releaseStratagems, stratagemById, stratagemHud, tickStratagems, type StratagemHud } from "@/game/stratagems";
@@ -427,6 +428,8 @@ export function Scene({
   const carSteer = useRef(0);
   const sky = useRef<THREE.Object3D>(null!);
   const hemi = useRef<THREE.HemisphereLight>(null!);
+  /** stride shared by camera bob, viewmodel sway and the Operator's limbs (movement-feel.ts) */
+  const feel = useRef({ stride: createStride(), view: null as FeelView | null, motion: { phase: 0, intensity: 0, swing: 0.35, lean: 0.04, air: false } });
   /** class movement kit (movement.ts): air jumps, glide, slide + previous-frame jump/slide key state for edge detection */
   const move = useRef({ state: createMoveState(), jumpHeld: false, slideHeld: false });
   const reticle = useRef({ state: createReticle(), view: EMPTY_RETICLE, yaw: 0, pitch: 0, hit: 0, kills: 0, ready: false });
@@ -1612,6 +1615,14 @@ export function Scene({
       camera.lookAt(pose.lookAt[0], pose.lookAt[1], pose.lookAt[2]);
       if (viewmodel.current) viewmodel.current.visible = false;
     } else {
+      // stride: walking/running cadence from the real ground speed, shared by camera, weapon and limbs
+      {
+        const f = feel.current;
+        const hSpeed = s.inVehicle ? 0 : Math.hypot(velocity.x, velocity.z);
+        const strafe = (velocity.x * Math.cos(s.yaw) - velocity.z * Math.sin(s.yaw)) / RUN_SPEED;
+        f.view = stepStride(f.stride, { speed: hSpeed, grounded: s.grounded && !s.diving && !s.inVehicle, sliding: move.current.state.slideLeft > 0, vy: s.vy, dt }, strafe);
+        f.motion.phase = f.view.phase; f.motion.intensity = f.view.intensity; f.motion.swing = f.view.swing; f.motion.lean = f.view.lean; f.motion.air = !s.grounded && !s.diving;
+      }
       const override = !s.inVehicle && (s.meleeTime > 0 || s.specialTime > 0);
       const targetBlend = override || !s.firstPerson ? 1 : 0;
       s.cameraBlend += (targetBlend - s.cameraBlend) * (1 - Math.exp(-15 * dt));
@@ -1631,6 +1642,15 @@ export function Scene({
       cameraDirection.set(Math.sin(s.yaw) * Math.cos(kickPitch), Math.sin(kickPitch), Math.cos(s.yaw) * Math.cos(kickPitch));
       look.copy(camera.position).addScaledVector(cameraDirection, 60);
       camera.lookAt(look);
+      if (feel.current.view && !s.inVehicle) {
+        // head bob + weight shift + strafe roll; third person feels it at a reduced strength
+        const fv = feel.current.view;
+        const k = 1 - 0.65 * s.cameraBlend;
+        camera.position.y += fv.bobY * k;
+        camera.position.x += Math.cos(s.yaw) * fv.swayX * k;
+        camera.position.z += -Math.sin(s.yaw) * fv.swayX * k;
+        camera.rotateZ(fv.roll * k);
+      }
       if (camera instanceof THREE.PerspectiveCamera) {
         const desiredFov = movementFov(Boolean(mouse.current.aim || padState.current.aim), !s.inVehicle && s.grounded && boost && Math.hypot(velocity.x, velocity.z) > 2, move.current.state.slideLeft > 0);
         camera.fov += (desiredFov - camera.fov) * (1 - Math.exp(-12 * dt));
@@ -1640,7 +1660,7 @@ export function Scene({
         viewmodel.current.visible = !s.inVehicle && s.cameraBlend < 0.22;
         viewmodel.current.position.copy(camera.position);
         viewmodel.current.quaternion.copy(camera.quaternion);
-        if (gunModel.current) { gunModel.current.visible = WEAPONS[s.weapon].kind === "gun"; gunModel.current.position.z = Math.min(0.35, s.punch * 0.06); gunModel.current.rotation.x = s.recoil * 3; }
+        if (gunModel.current) { gunModel.current.visible = WEAPONS[s.weapon].kind === "gun"; gunModel.current.position.z = Math.min(0.35, s.punch * 0.06); gunModel.current.rotation.x = s.recoil * 3; const fv = feel.current.view; if (fv) { gunModel.current.position.y = fv.bobY * 0.9; gunModel.current.position.x = fv.swayX * 1.4; gunModel.current.rotation.z = Math.sin(fv.phase) * 0.03 * fv.intensity; } }
         if (swordModel.current) { swordModel.current.visible = WEAPONS[s.weapon].kind === "sword"; const t = s.swing / 0.3; swordModel.current.rotation.z = (s.combo % 2 ? 1 : -1) * (t > 0 ? (1 - t) * 2.4 - 1.2 : -0.35); }
       }
     }
@@ -1901,7 +1921,7 @@ export function Scene({
 
       {/* player on foot */}
       <group ref={player} position={SPAWN.toArray()}>
-        <Operator armor={appearance.armor} cloth={appearance.cloth} visor={appearance.visor} trim={appearance.trim} classId={playerClass} visualState={armorState} chestLevel={armorLevels.chest} helmetLevel={armorLevels.helmet} legsLevel={armorLevels.legs} />
+        <Operator armor={appearance.armor} cloth={appearance.cloth} visor={appearance.visor} trim={appearance.trim} classId={playerClass} motion={feel.current.motion} visualState={armorState} chestLevel={armorLevels.chest} helmetLevel={armorLevels.helmet} legsLevel={armorLevels.legs} />
         {playerClass === "TITAN" && sim.titan.blocking && (
           // Chevron-angled holographic panels + a glowing rim edge instead of one flat box —
           // reads as a projected energy shield rather than a translucent slab.

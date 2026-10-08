@@ -35,6 +35,7 @@ export function Operator({
   chestLevel = 1,
   helmetLevel = 1,
   legsLevel = 1,
+  motion,
 }: {
   armor?: string;
   cloth?: string;
@@ -51,6 +52,8 @@ export function Operator({
   chestLevel?: number;
   helmetLevel?: number;
   legsLevel?: number;
+  /** live stride from movement-feel.ts (Scene writes it each frame); absent in static previews */
+  motion?: { current: { phase: number; intensity: number; swing: number; lean: number; air: boolean } };
 }) {
   const chestTier = tierOf(chestLevel);
   const helmetTier = tierOf(helmetLevel);
@@ -60,11 +63,33 @@ export function Operator({
   const drone = useRef<THREE.Group>(null);
   const orbit = useRef<THREE.Group>(null);
   const rings = useRef<THREE.Group>(null);
+  const body = useRef<THREE.Group>(null);
+  const legL = useRef<THREE.Group>(null);
+  const legR = useRef<THREE.Group>(null);
+  const armL = useRef<THREE.Group>(null);
+  const armR = useRef<THREE.Group>(null);
   const cloak = useRef<THREE.Group>(null);
   useFrame(({ clock }, delta) => {
     const base = visualState === "ASCENDANT" ? 5 : visualState === "FRACTURE" ? 4 : visualState === "ACTIVE" ? 3 : 2.2;
     if (glow.current) glow.current.emissiveIntensity = base + Math.sin(clock.elapsedTime * 3) * 0.5;
     if (drone.current) { const t = clock.elapsedTime; drone.current.position.set(Math.cos(t * 0.9) * 0.9, 1.45 + Math.sin(t * 2) * 0.08, Math.sin(t * 0.9) * 0.9 - 0.2); drone.current.rotation.y = -t * 0.9; }
+    // walk/run cycle: legs and arms counter-swing on the shared stride phase, torso leans into speed,
+    // the whole body bobs with each footfall; airborne tucks the legs
+    const m = motion?.current;
+    if (m) {
+      const amp = m.swing * Math.min(1, m.intensity * 3);
+      const ph = m.phase;
+      const air = m.air;
+      if (legL.current) legL.current.rotation.x += ((air ? -0.55 : Math.sin(ph) * amp) - legL.current.rotation.x) * Math.min(1, delta * 18);
+      if (legR.current) legR.current.rotation.x += ((air ? 0.35 : -Math.sin(ph) * amp) - legR.current.rotation.x) * Math.min(1, delta * 18);
+      if (armL.current) armL.current.rotation.x += ((air ? -0.7 : -Math.sin(ph) * amp * 0.8) - armL.current.rotation.x) * Math.min(1, delta * 18);
+      if (armR.current) armR.current.rotation.x += ((air ? -0.4 : Math.sin(ph) * amp * 0.25) - armR.current.rotation.x) * Math.min(1, delta * 18);
+      if (body.current) {
+        body.current.rotation.x += (m.lean - body.current.rotation.x) * Math.min(1, delta * 10);
+        body.current.position.y = Math.abs(Math.sin(ph)) * 0.05 * m.intensity;
+        body.current.rotation.y = Math.sin(ph) * 0.06 * m.intensity;
+      }
+    }
     if (orbit.current) orbit.current.rotation.y += delta * 1.2;
     if (rings.current) { rings.current.rotation.y += delta * 0.9; rings.current.rotation.x = Math.sin(clock.elapsedTime * 0.8) * 0.25; }
     if (cloak.current) cloak.current.rotation.x = 0.1 + Math.sin(clock.elapsedTime * 1.6) * 0.04;
@@ -80,10 +105,10 @@ export function Operator({
     <mesh key={key} position={p} rotation={r}><boxGeometry args={s} /><meshStandardMaterial color={visor} emissive={visor} emissiveIntensity={2.4} toneMapped={false} /></mesh>;
 
   return (
-    <group scale={[bulk, 1, bulk]}>
+    <group ref={body} scale={[bulk, 1, bulk]}>
       {/* legs: suit capsule + thigh/shin plates + knee caps + boots */}
       {[-0.19, 0.19].map((x) => (
-        <group key={x} position={[x, 0, 0]}>
+        <group key={x} ref={x < 0 ? legL : legR} position={[x, -0.45, 0]}><group position={[0, 0.45, 0]}>
           <mesh position={[0, -0.95, 0]} castShadow><capsuleGeometry args={[0.12, 0.95, 8, 16]} />{suit}</mesh>
           <RoundedBox args={[0.24, 0.42, 0.25]} radius={0.07} smoothness={BEVEL} position={[0, -0.62, 0.02]} castShadow>{plate}</RoundedBox>
           <RoundedBox args={legsTier >= 3 ? [0.25, 0.46, 0.27] : [0.21, 0.44, 0.23]} radius={0.07} smoothness={BEVEL} position={[0, -1.16, 0.03]} castShadow>{plate}</RoundedBox>
@@ -97,7 +122,7 @@ export function Operator({
           <RoundedBox args={[0.26, 0.1, 0.1]} radius={0.04} smoothness={BEVEL} position={[0, -1.46, 0.27]} castShadow><meshStandardMaterial color="#0b0d10" roughness={0.6} /></RoundedBox>
           <mesh position={[0, -1.52, 0.1]} castShadow><boxGeometry args={[0.28, 0.025, 0.46]} /><meshStandardMaterial color="#06070a" roughness={0.8} /></mesh>
           {seam(`shin${x}`, [x > 0 ? 0.1 : -0.1, -1.14, 0.12], [0.02, 0.34, 0.02])}
-        </group>
+        </group></group>
       ))}
       {/* hips + belt */}
       <RoundedBox args={[0.56, 0.24, 0.34]} radius={0.08} smoothness={BEVEL} position={[0, -0.4, 0]} castShadow>{suit}</RoundedBox>
@@ -128,11 +153,13 @@ export function Operator({
           <RoundedBox args={[(titan ? 0.36 : 0.26) * (chestTier >= 2 ? 1.18 : 1), 0.22 * (chestTier >= 2 ? 1.15 : 1), 0.34]} radius={0.1} smoothness={BEVEL} position={[side * 0.04, 0.55, 0]} rotation={[0, 0, side * -0.25]} castShadow>{plate}</RoundedBox>
           {chestTier >= 2 && <RoundedBox args={[0.1, 0.1, 0.36]} radius={0.03} smoothness={BEVEL} position={[side * 0.04, 0.63, 0]} rotation={[0, 0, side * -0.25]} castShadow>{trim}</RoundedBox>}
           {seam(`sh${side}`, [side * 0.1, 0.6, 0.2], [0.14, 0.02, 0.02], [0, 0, side * -0.25])}
+          <group ref={side < 0 ? armL : armR} position={[0, 0.5, 0]}><group position={[0, -0.5, 0]}>
           <mesh position={[side * 0.06, 0.18, 0]} castShadow><capsuleGeometry args={[0.075, 0.46, 8, 14]} />{suit}</mesh>
           <mesh position={[side * 0.065, -0.07, 0.03]} castShadow><sphereGeometry args={[0.095, 12, 10]} />{plate}</mesh>
           <RoundedBox args={[0.17, 0.34, 0.18]} radius={0.06} smoothness={BEVEL} position={[side * 0.07, -0.2, 0.02]} castShadow>{plate}</RoundedBox>
           {seam(`fa${side}`, [side * 0.07, -0.2, 0.13], [0.02, 0.26, 0.02])}
           <mesh position={[side * 0.07, -0.44, 0.02]} castShadow><sphereGeometry args={[0.09, 14, 12]} /><meshStandardMaterial color="#0b0d10" roughness={0.6} /></mesh>
+          </group></group>
         </group>
       ))}
       {/* neck + helmet with band visor */}
