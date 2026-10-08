@@ -1,3 +1,4 @@
+import { operatorByClass } from "@/game/loadout";
 import { StratagemPanel } from "./StratagemPanel";
 import { Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -39,7 +40,7 @@ export function HUD({ hud, tutorialActive = false, onMenu }: { hud: HudState; tu
         <div className="mt-1 h-2.5 overflow-hidden border border-foreground/20 bg-background/60">
           <div className={`relative h-full hud-ticks ${hud.hp > 40 ? "bg-primary" : "bg-destructive"}`} style={{ width: `${hud.hp}%`, transition: "width 200ms linear" }} />
         </div>
-        <div className="mt-1.5 flex items-center gap-3 text-[8px] uppercase tracking-[0.18em] text-muted-foreground"><span>{hud.playerClass}</span><span>{hud.subclassName}</span>{hud.playerClass === "TITAN" && <span className="text-primary">Shield {hud.shield}%</span>}</div>
+        <div className="mt-1.5 flex items-center gap-3 text-[8px] uppercase tracking-[0.18em] text-muted-foreground"><span>{operatorByClass(hud.playerClass).name}</span><span>{hud.subclassName}</span>{hud.playerClass === "TITAN" && <span className="text-primary">Shield {hud.shield}%</span>}</div>
         <div className="mt-2 flex gap-1">{hud.abilities.map((ability) => <div key={ability.slot} className={`min-w-0 flex-1 border-t px-1 pt-1 ${ability.ready ? "border-primary text-foreground" : "border-border text-muted-foreground"}`}><p className="truncate text-[8px] uppercase">{ability.slot.slice(0, 1)} · {ability.name}</p></div>)}</div>
       </div>
     </div>
