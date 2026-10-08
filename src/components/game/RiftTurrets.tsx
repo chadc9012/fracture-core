@@ -32,7 +32,6 @@ export function RiftTurrets({ sim }: { sim: WorldSim }) {
         <mesh position={[0, 0, 1.4]} visible={false}><sphereGeometry args={[0.3, 8, 8]} /><meshBasicMaterial color="#ffc864" toneMapped={false} /></mesh>
         <mesh position={[0, 0.35, 0]}><octahedronGeometry args={[0.28]} /><meshBasicMaterial color="#b06bff" toneMapped={false} /></mesh>
       </group>
-      <pointLight position={[0, 1.4, 0]} color="#b06bff" intensity={3} distance={7} />
     </group>)}
   </group>;
 }

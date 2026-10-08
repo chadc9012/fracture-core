@@ -1931,35 +1931,30 @@ export function Scene({
         <group position={[mission.target.x, heightAt(mission.target.x, mission.target.z) + 3, mission.target.z]}>
           <mesh><octahedronGeometry args={[0.9, 0]} /><meshStandardMaterial color="#39e6ff" emissive="#39e6ff" emissiveIntensity={3} /></mesh>
           <mesh position={[0, 30, 0]}><cylinderGeometry args={[0.15, 0.15, 60, 6]} /><meshBasicMaterial color={mission.state === "TRAVERSAL" ? "#ff6a3d" : "#39e6ff"} transparent opacity={0.45} /></mesh>
-          <pointLight color={mission.state === "TRAVERSAL" ? "#ff6a3d" : "#39e6ff"} intensity={30} distance={40} />
         </group>
       )}
       {blackout?.target && blackout.state === "INFILTRATION" && (
         <group position={[blackout.target.x, heightAt(blackout.target.x, blackout.target.z) + 3, blackout.target.z]}>
           <mesh><octahedronGeometry args={[0.9, 0]} /><meshStandardMaterial color="#38e8ff" emissive="#38e8ff" emissiveIntensity={3} /></mesh>
           <mesh position={[0, 30, 0]}><cylinderGeometry args={[0.15, 0.15, 60, 6]} /><meshBasicMaterial color="#38e8ff" transparent opacity={0.45} /></mesh>
-          <pointLight color="#38e8ff" intensity={30} distance={40} />
         </group>
       )}
       {neonCore?.target && neonCore.state === "DESCENT" && (
         <group position={[neonCore.target.x, heightAt(neonCore.target.x, neonCore.target.z) + 3, neonCore.target.z]}>
           <mesh><octahedronGeometry args={[0.9, 0]} /><meshStandardMaterial color="#ff3df2" emissive="#ff3df2" emissiveIntensity={3} /></mesh>
           <mesh position={[0, 30, 0]}><cylinderGeometry args={[0.15, 0.15, 60, 6]} /><meshBasicMaterial color="#ff3df2" transparent opacity={0.45} /></mesh>
-          <pointLight color="#ff3df2" intensity={30} distance={40} />
         </group>
       )}
       {descent?.target && descent.state === "DIVE" && (
         <group position={[descent.target.x, heightAt(descent.target.x, descent.target.z) + 3, descent.target.z]}>
           <mesh><octahedronGeometry args={[0.9, 0]} /><meshStandardMaterial color="#5fd8ff" emissive="#5fd8ff" emissiveIntensity={3} /></mesh>
           <mesh position={[0, 30, 0]}><cylinderGeometry args={[0.15, 0.15, 60, 6]} /><meshBasicMaterial color="#5fd8ff" transparent opacity={0.45} /></mesh>
-          <pointLight color="#5fd8ff" intensity={30} distance={40} />
         </group>
       )}
       {systemCore?.target && systemCore.state === "DIVE" && (
         <group position={[systemCore.target.x, heightAt(systemCore.target.x, systemCore.target.z) + 3, systemCore.target.z]}>
           <mesh><octahedronGeometry args={[0.9, 0]} /><meshStandardMaterial color="#ff2e4e" emissive="#ff2e4e" emissiveIntensity={3} /></mesh>
           <mesh position={[0, 30, 0]}><cylinderGeometry args={[0.15, 0.15, 60, 6]} /><meshBasicMaterial color="#ff2e4e" transparent opacity={0.45} /></mesh>
-          <pointLight color="#ff2e4e" intensity={30} distance={40} />
         </group>
       )}
       <Bullets sim={sim} />

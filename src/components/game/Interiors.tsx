@@ -1,3 +1,5 @@
+import { useFrame } from "@react-three/fiber";
+import { useRef } from "react";
 import * as THREE from "three";
 import { INTERIOR_ALTITUDE, INTERIORS } from "@/game/interiors";
 import { SpeakingFigure } from "./SpeakingFigure";
@@ -13,8 +15,27 @@ const WALL_HEIGHT = 4;
  * cheap enough to always keep mounted and left for the renderer's own frustum culling.
  */
 export function Interiors() {
+  // One shared light instead of one per room: a constant light count never forces a shader
+  // recompile, and it only does work (intensity > 0) while the camera is inside a pocket room.
+  const light = useRef<THREE.PointLight>(null);
+  useFrame(({ camera }) => {
+    const l = light.current;
+    if (!l) return;
+    if (camera.position.y < INTERIOR_ALTITUDE - 50) { l.intensity = 0; return; }
+    let best = INTERIORS[0];
+    let bd = Infinity;
+    for (const it of INTERIORS) {
+      const d = Math.hypot(camera.position.x - it.origin.x, camera.position.z - it.origin.z);
+      if (d < bd) { bd = d; best = it; }
+    }
+    if (!best) return;
+    l.position.set(best.origin.x, INTERIOR_ALTITUDE + WALL_HEIGHT - 0.4, best.origin.z);
+    l.color.set(best.kind === "SHOP" ? "#ffd9a0" : "#cfe6ff");
+    l.intensity = 14;
+  });
   return (
     <group>
+      <pointLight ref={light} intensity={0} distance={14} />
       {INTERIORS.map((interior) => (
         <group key={interior.id} position={[interior.origin.x, INTERIOR_ALTITUDE, interior.origin.z]}>
           {/* floor */}
@@ -49,7 +70,6 @@ export function Interiors() {
             <boxGeometry args={[ROOM_HALF - 1.6, WALL_HEIGHT, 0.3]} />
             <meshStandardMaterial color="#565d68" roughness={0.7} />
           </mesh>
-          <pointLight position={[0, WALL_HEIGHT - 0.4, 0]} intensity={14} distance={14} color={interior.kind === "SHOP" ? "#ffd9a0" : "#cfe6ff"} />
 
           {/* shop counter, present only for SHOP interiors */}
           {interior.kind === "SHOP" && (

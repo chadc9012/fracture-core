@@ -352,7 +352,6 @@ export function Convoys({ sim }: { sim: WorldSim }) {
       {sim.trucks.map((_, i) => (
         <group key={i} visible={false}>
           <ArmoredHauler />
-          <pointLight position={[0, 1.8, 6]} color="#ffe2b0" intensity={10} distance={30} decay={2} />
         </group>
       ))}
     </group>
