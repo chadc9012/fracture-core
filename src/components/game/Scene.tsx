@@ -7,7 +7,7 @@ import { hazardAt, type HazardEffect } from "@/game/region-hazards";
 import { REGIONS, SKY, ZONE_COLOR, clockLabel, phaseFor, regionAt, WORLD_RADIUS } from "@/game/world";
 import { useKeyboard } from "@/game/useKeyboard";
 import { walkHeight, slopeAt, heightAt, WATER_LEVEL } from "@/game/terrain";
-import { alert, collidePlayer, createSim, defeatMachine, FACTIONS, fireBullet, instabilityTier, spawnMissionDrones, stepSim, summonBoss, type Faction, type InstabilityTier, type WorldSim, type ZoneState } from "@/game/sim";
+import { alert, hurtPlayer, collidePlayer, createSim, defeatMachine, FACTIONS, fireBullet, instabilityTier, spawnMissionDrones, stepSim, summonBoss, type Faction, type InstabilityTier, type WorldSim, type ZoneState } from "@/game/sim";
 import type { MissionEvent, MissionRun } from "@/game/missions/broken-signal";
 import type { MissionEvent as BlackoutEvent, MissionRun as BlackoutRun } from "@/game/missions/blackout-protocol";
 import type { MissionEvent as NeonCoreEvent, MissionRun as NeonCoreRun } from "@/game/missions/stitched-neon-core";
@@ -140,6 +140,7 @@ export type HudState = {
   titanFeedback: string;
   liveEnergy: number;
   liveEffect: string;
+  hazard?: { name: string; intensity: number; active: boolean };
   enemyResponse: string;
   momentum: number;
   /* dev inspector */
@@ -335,6 +336,7 @@ export function Scene({
   const travelSeen = useRef(0);
   const checkpoint = useRef<{ x: number; z: number } | null>(null);
   const checkpointClock = useRef(0);
+  const hazardRef = useRef<HazardEffect>(hazardAt({ regionId: null, t: 0, dt: 0, sheltered: true, exposure: 0 }));
   const keys = useKeyboard();
   const sim = useMemo<WorldSim>(() => createSim(), []);
   // Global Balance Controller: recomputed only when equipped gear/clears/missions actually change,
@@ -1536,6 +1538,7 @@ export function Scene({
         domeTime: sim.titan.domeTime,
         titanFeedback: sim.titan.feedback,
         liveEnergy: Math.round(live.current.energy),
+        hazard: hazardRef.current.id === "none" ? undefined : { name: hazardRef.current.name, intensity: hazardRef.current.intensity, active: hazardRef.current.damagePerSec > 0 || hazardRef.current.gravityMul !== 1 },
         liveEffect: live.current.effectTime > 0 ? live.current.effect : "",
         enemyResponse: live.current.threat,
         momentum: Math.round(live.current.momentum * 100),

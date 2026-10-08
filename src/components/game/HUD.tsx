@@ -18,6 +18,7 @@ export function HUD({ hud, tutorialActive = false, onMenu }: { hud: HudState; tu
       <div className="absolute left-14 top-3 border-l border-primary/60 px-2.5 py-0.5 text-[9px] uppercase">
         <p style={{ color: FACTIONS[hud.owner]?.color }}>{hud.region} · {FACTIONS[hud.owner]?.short}{hud.contested ? " · CONTESTED" : ""}</p>
         {hud.zoneTier !== "STABLE" && <p className="text-destructive">{hud.zoneTier}</p>}
+        {hud.hazard && <div className={hud.hazard.active ? "text-destructive" : "text-foreground/70"}><p>⚠ {hud.hazard.name}</p><div className="mt-0.5 h-0.5 w-24 bg-foreground/15"><div className="h-full bg-current" style={{ width: `${Math.round(hud.hazard.intensity * 100)}%` }} /></div></div>}
       </div>
     )}
     {!tutorialActive && <><Compass markers={hud.markers ?? []} yaw={hud.yaw ?? 0} /><TrackedObjectives markers={hud.markers ?? []} /></>}
