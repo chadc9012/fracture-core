@@ -1,3 +1,4 @@
+// @ts-ignore bun:test types
 import { describe, expect, test } from "bun:test";
 import { hazardAt, FLARE_PERIOD } from "./region-hazards";
 
