@@ -140,7 +140,7 @@ export type HudState = {
   titanFeedback: string;
   liveEnergy: number;
   liveEffect: string;
-  hazard?: { name: string; intensity: number; active: boolean };
+  hazard?: { name: string; intensity: number; active: boolean } | undefined;
   enemyResponse: string;
   momentum: number;
   /* dev inspector */

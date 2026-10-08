@@ -42,7 +42,7 @@ export const EXPOSURE_FILL_S = 40;
 export const EXPOSURE_HARM = 0.6;
 
 export function hazardAt(i: HazardInput): HazardEffect {
-  const def = (i.regionId && REGION_HAZARD[i.regionId]) || REGION_HAZARD.nexus!;
+  const def = (i.regionId && REGION_HAZARD[i.regionId]) || REGION_HAZARD["nexus"]!;
   const out: HazardEffect = { id: def.id, name: def.name, gravityMul: 1, speedMul: 1, damagePerSec: 0, exposure: Math.max(0, i.exposure - i.dt / 10), intensity: 0, warning: null };
   switch (def.id) {
     case "overgrowth":
