@@ -1,5 +1,7 @@
+import { useFrame } from "@react-three/fiber";
 import { useGLTF } from "@react-three/drei";
-import { Component, Suspense, useEffect, useMemo, useState, type ReactNode } from "react";
+import { Component, Suspense, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import type * as THREE from "three";
 import { REGIONS } from "@/game/world";
 import { heightAt, slopeAt, WATER_LEVEL } from "@/game/terrain";
 import { mulberry32 } from "@/game/useKeyboard";
@@ -44,13 +46,39 @@ function Placed({ url, regions, count, scale, seed }: (typeof PLACEMENT)[number]
     return out;
   }, [regions, count, scale, seed]);
   useEffect(() => { for (const p of spots) addObstacle("rock", p.x, p.z, 0.9 * p.s, 200, 1.4); }, [spots]);
+  // Poly Haven "sets" ship several variants side by side; one clone must not draw all of them.
+  const variant = useMemo(() => (scene.children.length > 1 ? scene.children[0]! : scene), [scene]);
   const clones = useMemo(() => spots.map(() => {
-    const c = scene.clone(true);
-    c.traverse((o) => { o.castShadow = true; o.receiveShadow = true; });
+    const c = variant.clone(true);
+    c.position.set(0, 0, 0);
+    c.traverse((o) => { o.castShadow = false; o.receiveShadow = true; });
     return c;
-  }), [scene, spots]);
-  return <group>{spots.map((p, i) => <primitive key={i} object={clones[i]!} position={[p.x, p.y - 0.2, p.z]} rotation-y={p.r} scale={p.s} />)}</group>;
+  }), [variant, spots]);
+  // Each model is ~100k triangles, so only the ones near the camera are drawn at all, and only the
+  // closest few cast shadows. Re-checked a few times a second; hysteresis stops edge flicker.
+  const group = useRef<THREE.Group>(null);
+  const clock = useRef(0);
+  useFrame(({ camera }, dt) => {
+    clock.current += dt;
+    if (clock.current < 0.3) return;
+    clock.current = 0;
+    const g = group.current;
+    if (!g) return;
+    g.children.forEach((node, i) => {
+      const p = spots[i];
+      if (!p) return;
+      const d = Math.hypot(camera.position.x - p.x, camera.position.z - p.z);
+      const show = node.visible ? d < SHOW_RADIUS * 1.1 : d < SHOW_RADIUS;
+      if (node.visible !== show) node.visible = show;
+      const cast = d < SHADOW_RADIUS;
+      node.traverse((o) => { if (o.castShadow !== cast) o.castShadow = cast; });
+    });
+  });
+  return <group ref={group}>{spots.map((p, i) => <primitive key={i} object={clones[i]!} position={[p.x, p.y - 0.2, p.z]} rotation-y={p.r} scale={p.s} visible={false} />)}</group>;
 }
+
+const SHOW_RADIUS = 110;
+const SHADOW_RADIUS = 35;
 
 const verified = new Map<string, boolean>();
 

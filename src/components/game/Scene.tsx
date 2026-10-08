@@ -1191,8 +1191,8 @@ export function Scene({
       wish.set(0, 0, 0);
       if (throttleF) { wish.x += Math.sin(s.yaw); wish.z += Math.cos(s.yaw); }
       if (throttleB) { wish.x -= Math.sin(s.yaw); wish.z -= Math.cos(s.yaw); }
-      if (left) { wish.x += Math.sin(s.yaw - Math.PI / 2); wish.z += Math.cos(s.yaw - Math.PI / 2); }
-      if (right) { wish.x += Math.sin(s.yaw + Math.PI / 2); wish.z += Math.cos(s.yaw + Math.PI / 2); }
+      if (left) { wish.x += Math.sin(s.yaw + Math.PI / 2); wish.z += Math.cos(s.yaw + Math.PI / 2); }
+      if (right) { wish.x += Math.sin(s.yaw - Math.PI / 2); wish.z += Math.cos(s.yaw - Math.PI / 2); }
       // Neon City parkour: chaining vaults within the window nets a small, capped speed bonus.
       const chainBonus = parkourChainBonus(s.chainCount, performance.now() / 1000 - s.lastVaultAt);
       const walk = 30 * traction * (boost ? 2.1 : 1) * sim.mods.footSpeed * (live.current.dashTime > 0 ? 1.4 : 1) * siegeMoveMult(live.current.siegeTime) * (1 + chainBonus);
