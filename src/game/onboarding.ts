@@ -6,7 +6,7 @@ export type TutorialState = { step: TutorialStep; gates: number; jumped: boolean
 export const FIRST_TUTORIAL: TutorialState = { step: "MATERIALIZE", gates: 0, jumped: false, kills: 0, chained: 0, abilities: 0, bossHits: 0 };
 
 export function tutorialText(step: TutorialStep, classId: ClassId) {
-  const action = classId === "TITAN" ? "Activate Siege Mode with Q" : classId === "HUNTER" ? "Phase Veil with Q" : "Deploy Recon Swarm with Q";
+  const action = classId === "TITAN" ? "Block an attack with Q" : classId === "HUNTER" ? "Phase Dash with Q" : "Disrupt a system with Q";
   return {
     MATERIALIZE: ["01 · MATERIALIZATION", "Your armor is taking shape. Identity locked. Adaptive systems calibrating."],
     MOVEMENT: ["02 · MOVEMENT TRIAL", "Move through the three signal gates (WASD), then jump (C)."],

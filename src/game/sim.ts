@@ -1,10 +1,6 @@
-import { stratagemById, type StratagemId } from "./stratagems";
-import { NO_BACKPACK, type BackpackDef } from "./backpacks";
-import { createEnvState, STRIKE_MACHINE_DAMAGE, STRIKE_PLAYER_DAMAGE, type EnvState, type Strike } from "./environment";
 import { familyFor, rollRaidDrop } from "./raid-loot";
 import { squadMove, squadRole } from "./enemy-intelligence";
 import { createAi, pickCover, shouldTakeCover, sightRange, stepAwareness, type EnemyAi } from "./enemy-perception";
-import { RIFT_TURRET_DAMAGE, deployRiftTurret, stepRiftTurret, type RiftTurret } from "./operator-abilities";
 import { REGIONS, type Region } from "./world";
 import { heightAt, smoothstep, walkHeight } from "./terrain";
 import { LANES, laneLanePoint, laneSamples, type Lane } from "./lanes";
@@ -104,13 +100,6 @@ export type Machine = {
   scenarioId?: string;
   /** patrol/detection/cover state (see enemy-perception.ts); reset when a pooled slot respawns */
   ai?: EnemyAi;
-  /** subclass-verb vulnerability window (see subclass-verbs.ts's WEAKEN/MARKED) — while
-   * performance.now()/1000 < vulnUntil, incoming damage is multiplied by vulnMult. Reset to 0/1 on
-   * every (re)spawn so a pooled slot never inherits a stale debuff from its previous occupant. */
-  vulnUntil: number;
-  vulnMult: number;
-  /** seconds left in a ranged shot's wind-up telegraph; >0 means this machine holds an attack ticket */
-  aim?: number;
 };
 
 export type Truck = {
@@ -144,21 +133,6 @@ export type Turret = {
   rot: number;
   range: number;
 };
-
-/** A thrown stratagem beacon (stratagems.ts): flies, sticks to the ground, counts down, then blasts. */
-export type Beacon = {
-  alive: boolean;
-  kind: StratagemId;
-  state: "FLIGHT" | "ARMED" | "BLAST";
-  x: number; y: number; z: number;
-  vx: number; vy: number; vz: number;
-  /** seconds left in the current state */
-  timer: number;
-  radius: number;
-};
-export type StratagemEvent = { kind: StratagemId; x: number; z: number; radius: number };
-const BEACON_POOL = 4;
-const BEACON_BLAST_S = 0.45;
 
 export type Bullet = {
   alive: boolean;
@@ -243,28 +217,7 @@ export type WorldSim = {
    * tuning below — kept as its own field rather than routing through `mods` since `mods` is
    * recomputed fresh from `adaptation` every frame and would just overwrite it. */
   bossCounter: CounterTuning;
-  /** subclass-verb state (see subclass-verbs.ts). volatileZones are standing DoT pulses dropped by
-   * the Void Warlock's Corrosion Field, ticked in stepSim. verbDamageMult/verbIncomingMult are set
-   * every frame by Scene.tsx from the live LiveBuild's self-targeted verb (RAGE/OVERSHIELD) since
-   * LiveBuild itself has no reference to WorldSim. */
-  volatileZones: { x: number; z: number; radius: number; dps: number; until: number }[];
-  /** CIPHER Rift Turrets (operator-abilities.ts): temporary deployables, expire on their own */
-  riftTurrets: RiftTurret[];
-  /** NYX Phase Veil: multiplies enemy sight range (1 = visible), set by Scene each frame */
-  stealthMult: number;
-  verbDamageMult: number;
-  verbIncomingMult: number;
-  /** seasons/hazards state (see environment.ts): exposure meters, pending lightning, strike flashes */
-  env: EnvState;
-  /** thrown stratagem beacons and the detonations Scene drains each frame (ammo refill, sfx, camera punch) */
-  beacons: Beacon[];
-  /** equipped class backpack (backpacks.ts) — modifies beacon radius and detonation effects */
-  backpack: BackpackDef;
-  stratagemEvents: StratagemEvent[];
 };
-
-/** max ranged machines winding up a shot at the same moment (bosses bypass the cap) */
-const MAX_AIMING = 3;
 
 export const HEAT_PER_SHOT_FOOT = 7;
 export const HEAT_PER_SHOT_VEHICLE = 11;
@@ -356,8 +309,6 @@ export function createSim(): WorldSim {
     profile: "Wasteland Grunt", kind: "RAIDER", drop: "scrapMetal", boss: false,
     kx: 0,
     kz: 0,
-    vulnUntil: 0,
-    vulnMult: 1,
   }));
 
   // one truck per lane+direction slot: two trucks can never share a corridor
@@ -450,15 +401,6 @@ export function createSim(): WorldSim {
     materials: {}, drops: [], enemyShots: [], bossPhaseFlares: [], xpEvents: [], nextDropId: 0,
     emergencyQuest: EMERGENCY_QUEST_INIT,
     bossCounter: counterTuningFor(null),
-    volatileZones: [],
-    riftTurrets: [],
-    stealthMult: 1,
-    verbDamageMult: 1,
-    verbIncomingMult: 1,
-    env: createEnvState(),
-    backpack: NO_BACKPACK,
-    beacons: Array.from({ length: BEACON_POOL }, () => ({ alive: false, kind: "RESUPPLY" as StratagemId, state: "FLIGHT" as const, x: 0, y: 0, z: 0, vx: 0, vy: 0, vz: 0, timer: 0, radius: 0 })),
-    stratagemEvents: [],
   };
 }
 
@@ -503,9 +445,6 @@ function spawnMachine(sim: WorldSim, zone: ZoneState, elite = false) {
   m.elite = elite;
   m.kx = 0;
   m.kz = 0;
-  m.vulnUntil = 0;
-  m.vulnMult = 1;
-  m.aim = 0;
 }
 
 /** Spawn Broken Signal data drones around a point; tagged so the mission can count them. */
@@ -514,7 +453,7 @@ export function spawnMissionDrones(sim: WorldSim, x: number, z: number, count: n
     const m = sim.machines.find((e) => !e.alive);
     if (!m) return;
     const a = (i / count) * Math.PI * 2;
-    Object.assign(m, { alive: true, x: x + Math.cos(a) * 16, z: z + Math.sin(a) * 16, hp: elite ? 6 : 3, rot: 0, scale: elite ? 1.1 : 0.8, zone: "nexus", cool: elite ? 1.2 : 2.5, elite, profile: elite ? "Data Drone Elite" : "Data Drone Scout", kind: "OVERCLOCKED" as const, drop: "dataShards" as MaterialId, boss: false, kx: 0, kz: 0, mission: true, vulnUntil: 0, vulnMult: 1 });
+    Object.assign(m, { alive: true, x: x + Math.cos(a) * 16, z: z + Math.sin(a) * 16, hp: elite ? 6 : 3, rot: 0, scale: elite ? 1.1 : 0.8, zone: "nexus", cool: elite ? 1.2 : 2.5, elite, profile: elite ? "Data Drone Elite" : "Data Drone Scout", kind: "OVERCLOCKED" as const, drop: "dataShards" as MaterialId, boss: false, kx: 0, kz: 0, mission: true });
   }
 }
 
@@ -531,7 +470,7 @@ export function summonBoss(sim: WorldSim, regionId: string, x: number, z: number
   }
   const m = sim.machines.find((candidate) => !candidate.alive);
   if (!m) return false;
-  Object.assign(m, { alive: true, x, z, y: walkHeight(x, z) + 5, hp: 28, maxHp: 28, phase: 0 as BossPhaseIndex, rot: 0, scale: 2.3, zone: regionId, cool: 2, elite: true, boss: true, profile: boss.name, kind: "OVERCLOCKED", drop: boss.drop, kx: 0, kz: 0, poiseState: INITIAL_POISE, vulnUntil: 0, vulnMult: 1, ...extra });
+  Object.assign(m, { alive: true, x, z, y: walkHeight(x, z) + 5, hp: 28, maxHp: 28, phase: 0 as BossPhaseIndex, rot: 0, scale: 2.3, zone: regionId, cool: 2, elite: true, boss: true, profile: boss.name, kind: "OVERCLOCKED", drop: boss.drop, kx: 0, kz: 0, poiseState: INITIAL_POISE, ...extra });
   sim.raidFight = { start: performance.now() / 1000, hurt: 0, region: regionId };
   alert(sim, `${boss.name} · ${boss.tell}`);
   return true;
@@ -542,7 +481,7 @@ export function summonBoss(sim: WorldSim, regionId: string, x: number, z: number
 export function summonScenarioBoss(sim: WorldSim, scenario: UniqueScenario, x: number, z: number, extra?: Partial<Machine>): boolean {
   const m = sim.machines.find((candidate) => !candidate.alive);
   if (!m) return false;
-  Object.assign(m, { alive: true, x, z, y: walkHeight(x, z) + 5, hp: 34, maxHp: 34, phase: 0 as BossPhaseIndex, rot: 0, scale: 2.5, zone: scenario.regionId, cool: 2, elite: true, boss: true, profile: scenario.bossName, kind: "ABERRATION", drop: scenario.drop as MaterialId, kx: 0, kz: 0, poiseState: INITIAL_POISE, scenarioId: scenario.id, vulnUntil: 0, vulnMult: 1, ...extra });
+  Object.assign(m, { alive: true, x, z, y: walkHeight(x, z) + 5, hp: 34, maxHp: 34, phase: 0 as BossPhaseIndex, rot: 0, scale: 2.5, zone: scenario.regionId, cool: 2, elite: true, boss: true, profile: scenario.bossName, kind: "ABERRATION", drop: scenario.drop as MaterialId, kx: 0, kz: 0, poiseState: INITIAL_POISE, scenarioId: scenario.id, ...extra });
   sim.raidFight = { start: performance.now() / 1000, hurt: 0, region: scenario.regionId };
   alert(sim, `${scenario.name} · ${scenario.briefing}`);
   return true;
@@ -583,108 +522,11 @@ export function fireBullet(
   return true;
 }
 
-/** Subclass-verb pulses (see subclass-verbs.ts). All three are cast from the player's own position
- * at activation time — Scene.tsx calls these right after activateLiveAbility hands back a
- * LiveBuild.pendingVerb, then clears it. */
-export function applyVulnPulse(sim: WorldSim, x: number, z: number, radius: number, mult: number, duration: number) {
-  const until = performance.now() / 1000 + duration;
-  for (const m of sim.machines) {
-    if (!m.alive) continue;
-    if (Math.hypot(m.x - x, m.z - z) <= radius) { m.vulnUntil = until; m.vulnMult = mult; }
-  }
-}
-
-export function placeRiftTurret(sim: WorldSim, x: number, z: number, duration: number) {
-  sim.riftTurrets = deployRiftTurret(sim.riftTurrets, x, z, performance.now() / 1000, duration);
-}
-
-export function applySuppressPulse(sim: WorldSim, x: number, z: number, radius: number, coolAdd: number) {
-  for (const m of sim.machines) {
-    if (!m.alive) continue;
-    if (Math.hypot(m.x - x, m.z - z) <= radius) m.cool = Math.max(m.cool, coolAdd);
-  }
-}
-
-export function spawnVolatileZone(sim: WorldSim, x: number, z: number, radius: number, dps: number, duration: number) {
-  sim.volatileZones.push({ x, z, radius, dps, until: performance.now() / 1000 + duration });
-}
-
-/** Throw an armed stratagem beacon from the player's hands along their view direction. */
-export function throwBeacon(sim: WorldSim, kind: StratagemId, x: number, y: number, z: number, yaw: number, pitch: number): boolean {
-  const b = sim.beacons.find((v) => !v.alive);
-  if (!b) return false;
-  const speed = 24;
-  Object.assign(b, {
-    alive: true, kind, state: "FLIGHT" as const,
-    x: x + Math.sin(yaw) * 0.8, y, z: z + Math.cos(yaw) * 0.8,
-    vx: Math.sin(yaw) * Math.cos(pitch) * speed, vy: Math.sin(pitch) * speed + 7, vz: Math.cos(yaw) * Math.cos(pitch) * speed,
-    timer: 6, radius: stratagemById(kind).radius * (kind === "RECON_PULSE" ? sim.backpack.reconRadiusMult : 1),
-  });
-  return true;
-}
-
-function detonateBeacon(sim: WorldSim, b: Beacon, px: number, pz: number) {
-  const inRange = (x: number, z: number, pad = 0) => Math.hypot(x - b.x, z - b.z) <= b.radius + pad;
-  if (b.kind === "ORBITAL_STRIKE") {
-    for (const m of sim.machines) {
-      if (!m.alive || !inRange(m.x, m.z, m.scale)) continue;
-      m.hp -= m.boss ? 8 : 14;
-      if (m.hp <= 0) defeatMachine(sim, m);
-    }
-    // friendly fire: the strike does not care who is standing in it
-    if (inRange(px, pz)) hurtPlayer(sim, 35 * sim.backpack.friendlyFireMult, "Orbital strike (friendly fire)");
-  } else if (b.kind === "RECON_PULSE") {
-    applyVulnPulse(sim, b.x, b.z, b.radius, sim.backpack.reconVuln, 8);
-  } else if (inRange(px, pz)) {
-    sim.hp = Math.min(100, sim.hp + 40 * sim.backpack.supplyHealMult);
-  }
-  sim.stratagemEvents.push({ kind: b.kind, x: b.x, z: b.z, radius: b.radius });
-  if (sim.stratagemEvents.length > 12) sim.stratagemEvents.shift();
-}
-
-function stepBeacons(sim: WorldSim, dt: number, px: number, pz: number) {
-  for (const b of sim.beacons) {
-    if (!b.alive) continue;
-    if (b.state === "FLIGHT") {
-      b.vy -= sim.gravity * dt;
-      b.x += b.vx * dt; b.y += b.vy * dt; b.z += b.vz * dt;
-      b.timer -= dt;
-      const ground = heightAt(b.x, b.z) + 0.3;
-      if (b.y <= ground) {
-        b.y = ground; b.vx = b.vy = b.vz = 0;
-        b.state = "ARMED"; b.timer = stratagemById(b.kind).delay;
-        alert(sim, `${stratagemById(b.kind).name} beacon down — ${b.timer.toFixed(0)}s`);
-      } else if (b.timer <= 0) b.alive = false; // lost in flight (fell out of the world)
-    } else if (b.state === "ARMED") {
-      b.timer -= dt;
-      if (b.timer <= 0) { detonateBeacon(sim, b, px, pz); b.state = "BLAST"; b.timer = BEACON_BLAST_S; }
-    } else {
-      b.timer -= dt;
-      if (b.timer <= 0) b.alive = false;
-    }
-  }
-}
-
-/** A lightning strike (environment.ts) just landed: hurts the player and any machines in its blast.
- * Storms are therefore a tactical tool — luring a squad under a marked strike thins it. */
-export function applyLightning(sim: WorldSim, strike: Strike, px: number, pz: number) {
-  for (const m of sim.machines) {
-    if (!m.alive) continue;
-    if (Math.hypot(m.x - strike.x, m.z - strike.z) <= strike.radius + m.scale) {
-      m.hp -= STRIKE_MACHINE_DAMAGE;
-      if (m.hp <= 0) defeatMachine(sim, m);
-    }
-  }
-  if (Math.hypot(px - strike.x, pz - strike.z) <= strike.radius) hurtPlayer(sim, STRIKE_PLAYER_DAMAGE, "Lightning strike");
-}
-
 /** hurt the player and respawn at Nexus when the hull is gone */
 export function hurtPlayer(sim: WorldSim, dmg: number, cause: string) {
   // Global Balance Controller (balance.ts): scales every hit the player takes by their own power
   // score before anything else runs — the one place all incoming damage already funnels through.
-  // verbIncomingMult (Bulwark Titan's Safe Ground / OVERSHIELD) is set here too since every source
-  // of incoming damage — bullets, collisions, hazards — already routes through this one function.
-  const scaled = dmg * sim.mods.incomingDamageScale * sim.verbIncomingMult;
+  const scaled = dmg * sim.mods.incomingDamageScale;
   const resolvedDamage = sim.titanActive ? absorbTitanDamage(sim.titan, scaled, performance.now() / 1000) : scaled;
   sim.hp = Math.max(0, sim.hp - resolvedDamage);
   if (sim.raidFight) sim.raidFight.hurt += resolvedDamage;
@@ -908,10 +750,6 @@ export function stepSim(sim: WorldSim, input: SimInput) {
   sim.gravity = 26 * (1 - playerInstability * 0.66);
 
   // ---------- war machines ----------
-  // Attack tickets: at most MAX_AIMING ranged machines may be winding up a shot at once, so a big
-  // squad reads as coordinated pressure with readable tells instead of one unreadable volley.
-  let aimTickets = 0;
-  for (const m of sim.machines) if (m.alive && (m.aim ?? 0) > 0) aimTickets++;
   for (let i = 0; i < sim.machines.length; i++) {
     const m = sim.machines[i]!;
     if (!m.alive) continue;
@@ -981,7 +819,7 @@ export function stepSim(sim: WorldSim, input: SimInput) {
     const damaged = m.hp < ai.lastHp - 0.001;
     ai.lastHp = m.hp;
     const facingDot = (Math.sin(m.rot) * dx + Math.cos(m.rot) * dz) / d;
-    const sight = sightRange(night, sim.envVisibility ?? 1, m.elite) * (sim.stealthMult ?? 1) * (aggro / 70 > 1 ? Math.min(1.6, aggro / 70) : 1);
+    const sight = sightRange(night, sim.envVisibility ?? 1, m.elite) * (aggro / 70 > 1 ? Math.min(1.6, aggro / 70) : 1);
     const forced = m.boss || m.mission || sim.hp < 35 && d < 40;
     const aiState = forced && d < aggro ? (ai.state = "ALERT", ai.awareness = 1, ai.lastX = px, ai.lastZ = pz, "ALERT")
       : stepAwareness(ai, { distance: d, sight, noise: Math.min(1, (sim.playerNoise ?? 0) + sim.combatHeat / 120), damaged, facing: facingDot > 0.3 }, px, pz, dt);
@@ -1014,20 +852,12 @@ export function stepSim(sim: WorldSim, input: SimInput) {
         if (Math.hypot(m.x - byId("nexus").x, m.z - byId("nexus").z) < byId("nexus").radius) {
           sim.coreHp = Math.max(0, sim.coreHp - 2);
         }
-      } else if ((m.aim ?? 0) > 0) {
-        // wind-up telegraph (Actors.tsx pulses the machine while aim > 0), then the shot lands
-        m.aim = (m.aim ?? 0) - dt;
-        if ((m.aim ?? 0) <= 0) {
-          m.aim = 0;
-          m.cool = (m.boss ? 1.2 : m.elite ? 1.5 : 2.1) * (bossTuning?.cooldownMult ?? 1);
-          sim.enemyShots.push({ x: m.x, z: m.z, kind: m.kind, boss: m.boss, elite: m.elite });
-          if (sim.enemyShots.length > 24) sim.enemyShots.shift();
-          if (Math.random() < 0.25) hurtPlayer(sim, ((m.boss ? 6 : m.elite ? 4 : 2) * (bossTuning?.damageMult ?? 1)) / sim.mods.hullDurability, m.profile);
-        }
-      } else if (d < 55 && m.cool <= 0 && (m.boss || aimTickets < MAX_AIMING)) {
-        // ranged suppressing fire: take a ticket and start the telegraph; elites/bosses wind up faster
-        m.aim = m.boss ? 0.2 : m.elite ? 0.28 : 0.4;
-        aimTickets++;
+      } else if (d < 55 && m.cool <= 0) {
+        // ranged suppressing fire: telegraphed by sound, lands occasionally
+        m.cool = (m.boss ? 1.2 : m.elite ? 1.5 : 2.1) * (bossTuning?.cooldownMult ?? 1);
+        sim.enemyShots.push({ x: m.x, z: m.z, kind: m.kind, boss: m.boss, elite: m.elite });
+        if (sim.enemyShots.length > 24) sim.enemyShots.shift();
+        if (Math.random() < 0.25) hurtPlayer(sim, ((m.boss ? 6 : m.elite ? 4 : 2) * (bossTuning?.damageMult ?? 1)) / sim.mods.hullDurability, m.profile);
       }
     } else if (aiState === "SUSPICIOUS" || aiState === "SEARCH") {
       // investigate last known position; turn to face it, move cautiously
@@ -1082,23 +912,6 @@ export function stepSim(sim: WorldSim, input: SimInput) {
     m.y = walkHeight(m.x, m.z) + 2.2 * m.scale;
   }
 
-  // ---------- subclass-verb volatile zones (Void Warlock's Corrosion Field, see subclass-verbs.ts) ----------
-  if (sim.volatileZones.length) {
-    const nowSec = performance.now() / 1000;
-    sim.volatileZones = sim.volatileZones.filter((zone) => zone.until > nowSec);
-    for (const zone of sim.volatileZones) {
-      for (const m of sim.machines) {
-        if (!m.alive) continue;
-        if (Math.hypot(m.x - zone.x, m.z - zone.z) <= zone.radius) {
-          m.hp -= zone.dps * dt;
-          if (m.hp <= 0) defeatMachine(sim, m);
-        }
-      }
-    }
-  }
-
-  stepBeacons(sim, dt, px, pz);
-
 // stealth: surviving close to hostiles without opening fire
   if (!input.inVehicle && hostileNear > 0 && sim.combatHeat < 2) {
     logBehavior(sim.adaptation, "stealth", dt * 0.8 * hostileNear);
@@ -1125,23 +938,6 @@ export function stepSim(sim: WorldSim, input: SimInput) {
       if (m.hp <= 0) {
          defeatMachine(sim, m);
         alert(sim, `${r.name} stability field vaporised a war machine`);
-      }
-    }
-  }
-
-  // ---------- CIPHER rift turrets (temporary, see operator-abilities.ts) ----------
-  if (sim.riftTurrets.length) {
-    const nowS = performance.now() / 1000;
-    sim.riftTurrets = sim.riftTurrets.filter((t) => t.until > nowS);
-    for (const rt of sim.riftTurrets) {
-      const hit = stepRiftTurret(rt, sim.machines, dt);
-      const target = hit >= 0 ? sim.machines[hit] : undefined;
-      if (target) {
-        target.hp -= RIFT_TURRET_DAMAGE;
-        const dx = target.x - rt.x, dz = target.z - rt.z, d = Math.hypot(dx, dz) || 1;
-        target.kx += (dx / d) * 2;
-        target.kz += (dz / d) * 2;
-        if (target.hp <= 0) { defeatMachine(sim, target); alert(sim, "Rift Turret neutralized a hostile"); }
       }
     }
   }
@@ -1336,9 +1132,8 @@ export function stepSim(sim: WorldSim, input: SimInput) {
       if (!m.alive) continue;
       if (Math.hypot(m.x - b.x, m.z - b.z) < 3.4 * m.scale) {
         b.alive = false;
-        let dmg = sim.mods.bulletDamage * b.dmg * sim.verbDamageMult;
+        let dmg = sim.mods.bulletDamage * b.dmg;
         if (sim.equippedElement !== "KINETIC") dmg += 0.35;
-        if (m.vulnUntil > performance.now() / 1000) dmg *= m.vulnMult;
         if (m.boss) {
           const nowSec = performance.now() / 1000;
           if (!m.poiseState) m.poiseState = INITIAL_POISE;

@@ -240,13 +240,12 @@ export function WarMachines({ sim }: { sim: WorldSim }) {
       node.visible = m.alive;
       if (!m.alive) return;
       const modelName = m.boss ? "boss-model" : m.kind === "OVERCLOCKED" ? "overclocked-model" : m.kind === "ABERRATION" ? "aberration-model" : m.kind === "VANGUARD" ? "vanguard-model" : "regional-model";
-      for (const child of node.children) child.visible = child.name === "elite-ring" ? m.elite && !m.boss : child.name === modelName;
+      for (const child of node.children) child.visible = child.name === modelName;
       // walking gait: subtle body bob + roll so the legs read as striding
       const gait = t * 3 + i;
       node.position.set(m.x, m.y - 2.2 * m.scale + Math.abs(Math.sin(gait)) * 0.28, m.z);
       node.rotation.set(Math.sin(gait) * 0.03, m.rot, Math.sin(gait * 0.5) * 0.05);
-      // attack telegraph: a fast pulse while the machine winds up a ranged shot
-      node.scale.setScalar(m.scale * ((m.aim ?? 0) > 0 ? 1 + Math.abs(Math.sin(t * 28)) * 0.1 : 1));
+      node.scale.setScalar(m.scale);
     });
   });
 
@@ -259,8 +258,6 @@ export function WarMachines({ sim }: { sim: WorldSim }) {
           <group name="aberration-model" visible={false}><RegionalEnemy kind="ABERRATION" boss={false} /></group>
           <group name="vanguard-model" visible={false}><RegionalEnemy kind="VANGUARD" boss={false} /></group>
           <group name="boss-model" visible={false}><RegionalEnemy kind="OVERCLOCKED" boss /></group>
-          {/* loot cue: elites (better drops) wear a glowing amber ring at their feet, like Diablo's elite tell */}
-          <mesh name="elite-ring" visible={false} rotation={[-Math.PI / 2, 0, 0]} position={[0, -1.9, 0]}><ringGeometry args={[2.6, 3.1, 40]} /><meshBasicMaterial color="#ffb357" transparent opacity={0.85} depthWrite={false} /></mesh>
         </group>
       ))}
     </group>
@@ -437,106 +434,5 @@ export function Bullets({ sim }: { sim: WorldSim }) {
         ))}
       </group>
     </>
-  );
-}
-
-const HAZARD_SLOTS = 6;
-
-/** Environmental hazard markers (environment.ts): a pulsing ring on the ground during a lightning
- * strike's warning window, then a brief bright column when it lands. Pooled meshes, no allocation. */
-export function HazardMarkers({ sim }: { sim: WorldSim }) {
-  const rings = useRef<(THREE.Mesh | null)[]>([]);
-  const bolts = useRef<(THREE.Mesh | null)[]>([]);
-
-  useFrame((state) => {
-    const t = state.clock.elapsedTime;
-    for (let i = 0; i < HAZARD_SLOTS; i++) {
-      const ring = rings.current[i];
-      const strike = sim.env.strikes[i];
-      if (ring) {
-        ring.visible = Boolean(strike);
-        if (strike) {
-          ring.position.set(strike.x, walkHeight(strike.x, strike.z) + 0.25, strike.z);
-          // pulse faster as the strike nears so the countdown reads without text
-          const pulse = 0.75 + 0.25 * Math.sin(t * (10 + (1.6 - strike.warn) * 14));
-          ring.scale.setScalar(strike.radius * pulse);
-        }
-      }
-      const bolt = bolts.current[i];
-      const flash = sim.env.flashes[i];
-      if (bolt) {
-        bolt.visible = Boolean(flash);
-        if (flash) { bolt.position.set(flash.x, walkHeight(flash.x, flash.z) + 30, flash.z); bolt.scale.set(1, 1, 1); (bolt.material as THREE.MeshBasicMaterial).opacity = Math.min(1, flash.t / 0.3); }
-      }
-    }
-  });
-
-  return (
-    <group>
-      {Array.from({ length: HAZARD_SLOTS }, (_, i) => (
-        <group key={i}>
-          <mesh ref={(node) => { rings.current[i] = node; }} rotation={[-Math.PI / 2, 0, 0]} visible={false}>
-            <ringGeometry args={[0.82, 1, 48]} />
-            <meshBasicMaterial color="#9fd8ff" transparent opacity={0.9} depthWrite={false} side={THREE.DoubleSide} />
-          </mesh>
-          <mesh ref={(node) => { bolts.current[i] = node; }} visible={false}>
-            <cylinderGeometry args={[0.35, 0.9, 60, 8, 1, true]} />
-            <meshBasicMaterial color="#e8f4ff" transparent opacity={1} depthWrite={false} />
-          </mesh>
-        </group>
-      ))}
-    </group>
-  );
-}
-
-const BEACON_COLOR: Record<string, string> = { ORBITAL_STRIKE: "#ff5a4a", RESUPPLY: "#6dffa8", RECON_PULSE: "#6bd0ff" };
-
-/** Thrown stratagem beacons (stratagems.ts): the body in flight, then once planted a vertical beam
- * and a pulsing radius ring (the strike telegraph, speeding up as it nears), then an expanding blast. */
-export function BeaconMarkers({ sim }: { sim: WorldSim }) {
-  const root = useRef<THREE.Group>(null!);
-
-  useFrame((state) => {
-    const t = state.clock.elapsedTime;
-    sim.beacons.forEach((b, i) => {
-      const node = root.current?.children[i] as THREE.Group | undefined;
-      if (!node) return;
-      node.visible = b.alive;
-      if (!b.alive) return;
-      const color = BEACON_COLOR[b.kind] ?? "#ffffff";
-      node.position.set(b.x, b.y, b.z);
-      const [body, beam, ring, blast] = node.children as THREE.Mesh[];
-      const mat = (mesh?: THREE.Mesh) => mesh?.material as THREE.MeshBasicMaterial;
-      for (const mesh of [body, beam, ring, blast]) mat(mesh)?.color.set(color);
-      const armed = b.state === "ARMED";
-      body!.visible = b.state !== "BLAST";
-      body!.rotation.y = t * 6;
-      beam!.visible = armed;
-      ring!.visible = armed;
-      blast!.visible = b.state === "BLAST";
-      if (armed) {
-        const pulse = 0.8 + 0.2 * Math.sin(t * (6 + (3 - Math.min(3, b.timer)) * 6));
-        ring!.scale.setScalar(b.radius * pulse);
-        mat(beam).opacity = 0.35 + 0.35 * Math.abs(Math.sin(t * 8));
-      }
-      if (b.state === "BLAST") {
-        const k = 1 - b.timer / 0.45;
-        blast!.scale.setScalar(Math.max(0.1, b.radius * (0.4 + k * 0.7)));
-        mat(blast).opacity = 0.7 * (1 - k);
-      }
-    });
-  });
-
-  return (
-    <group ref={root}>
-      {sim.beacons.map((_, i) => (
-        <group key={i} visible={false}>
-          <mesh><boxGeometry args={[0.35, 0.5, 0.35]} /><meshBasicMaterial color="#ffffff" /></mesh>
-          <mesh position={[0, 20, 0]} visible={false}><cylinderGeometry args={[0.12, 0.12, 40, 8, 1, true]} /><meshBasicMaterial color="#ffffff" transparent opacity={0.5} depthWrite={false} /></mesh>
-          <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.1, 0]} visible={false}><ringGeometry args={[0.9, 1, 56]} /><meshBasicMaterial color="#ffffff" transparent opacity={0.85} depthWrite={false} side={THREE.DoubleSide} /></mesh>
-          <mesh visible={false}><sphereGeometry args={[1, 24, 16]} /><meshBasicMaterial color="#ffffff" transparent opacity={0.6} depthWrite={false} /></mesh>
-        </group>
-      ))}
-    </group>
   );
 }

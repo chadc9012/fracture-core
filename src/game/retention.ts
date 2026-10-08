@@ -13,14 +13,12 @@ export const CHRONICLE: ChronicleEntry[] = [
   { id: "system-core", title: "The System Core", region: "Swamps", summary: "At the heart of the fracture you faced the system that wrote the war." },
 ];
 
-/** The story's next missions, not feature flags — what's actually coming for your Operator, in-world. */
 export const ROADMAP: { label: string; status: "LIVE" | "NEXT" | "PLANNED" }[] = [
-  { label: "The System Core — the full seven-region campaign, playable start to finish right now", status: "LIVE" },
-  { label: "Chronicle — every chapter you've cleared, replayable anytime, nothing ever archived", status: "LIVE" },
-  { label: "Signal Beyond — NOVA has traced a transmission the System Core should not have been able to send", status: "NEXT" },
-  { label: "The Silent Array — a Frostspire raid built around that signal, for a full fireteam", status: "PLANNED" },
-  { label: "Fireteam Protocol — missions rebuilt so NOVA can run a whole squad through them together", status: "PLANNED" },
-  { label: "Archive Seasons — new chapters added beyond the Array; everything before them stays playable", status: "PLANNED" },
+  { label: "Seven regions, full campaign — always playable", status: "LIVE" },
+  { label: "Chronicle story replays", status: "LIVE" },
+  { label: "Fireteam co-op for missions", status: "NEXT" },
+  { label: "Frostspire raid: The Silent Array", status: "PLANNED" },
+  { label: "Seasonal stories archived, never removed", status: "PLANNED" },
 ];
 
 export function nextActivity(p: Pick<PlayerProgression, "completedMissions">) {

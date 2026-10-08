@@ -13,7 +13,7 @@ type Props = {
 
 const MODULES: { id: HubTarget; code: string; title: string; body: string; action: string; icon: LucideIcon }[] = [
   { id: "starmap", code: "01", title: "Star Map", body: "Choose a destination across the seven fractured regions and track your next activity.", action: "Open destinations", icon: MapIcon },
-  { id: "arsenal", code: "02", title: "Arsenal", body: "Build and switch weapon loadouts for GOLIATH, NYX and CIPHER.", action: "Manage gear", icon: Shield },
+  { id: "arsenal", code: "02", title: "Arsenal", body: "Build and switch weapon loadouts for your Titan, Hunter and Warlock.", action: "Manage gear", icon: Shield },
   { id: "quick", code: "03", title: "Quick Combat", body: "Skip the map and drop straight back into the world where you left off.", action: "Instant drop", icon: Crosshair },
   { id: "saves", code: "04", title: "Saves", body: "Switch between save slots. Every slot auto-saves and syncs with your cloud save.", action: "Manage slots", icon: Save },
   { id: "system", code: "05", title: "System", body: "Controls, display, audio, accessibility, plus the Chronicle and Roadmap.", action: "Preferences", icon: Settings2 },

@@ -1,6 +1,5 @@
 import { useMemo, useState } from "react";
-import { Activity, Anvil, Check, ChevronRight, Coins, Compass, Copy, Crosshair, Gauge, GitBranch, Globe2, LockKeyhole, Network, PackageOpen, Shield, Skull, Snowflake, Sparkles, Swords, Timer, Users, X } from "lucide-react";
-import { hubStopFor, markHubStopSeen, type HubView } from "@/game/hub-tour";
+import { Activity, Anvil, Check, ChevronRight, Coins, Copy, Crosshair, Gauge, GitBranch, Globe2, LockKeyhole, Network, PackageOpen, Shield, Skull, Snowflake, Sparkles, Swords, Timer, Users, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { ABILITY_NODES, DEFAULT_BUILD, buildSynergy, nodeById, type ActiveBuild } from "@/game/ability-network";
@@ -19,13 +18,12 @@ import { gameTick } from "@/game/quests";
 import { BIOMES, COSMETIC_CATEGORIES, FRACTURE_RAID, PVP_MODES, PVP_RANKS, WORLD_LAYERS, directWorld, guildLevel, guildUnlocks } from "@/game/system-foundations";
 import type { ClassId } from "@/game/loadout";
 
+type HubView = "DUNGEONS" | "ARSENAL" | "ABILITIES" | "WORLD" | "SOCIAL";
+
 const currencyLabel = { credits: "Credits", dataShards: "Data Shards", spatialCores: "Spatial Cores" } as const;
 
 export function OperationsHub({ initialView = "DUNGEONS", progression, onProgression, onClose }: { initialView?: HubView; progression: PlayerProgression; onProgression: (next: PlayerProgression) => void; onClose: () => void }) {
   const [view, setView] = useState<HubView>(initialView);
-  const [dismissed, setDismissed] = useState<HubView[]>([]);
-  const stop = dismissed.includes(view) ? null : hubStopFor(view);
-  const dismiss = () => { markHubStopSeen(view); setDismissed((current) => [...current, view]); };
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto bg-background/95 backdrop-blur-xl">
       <div className="mx-auto min-h-full max-w-7xl px-4 py-5 sm:px-7">
@@ -34,19 +32,8 @@ export function OperationsHub({ initialView = "DUNGEONS", progression, onProgres
           <Button size="icon" variant="outline" onClick={onClose} aria-label="Close operations"><X /></Button>
         </header>
         <nav className="grid grid-cols-5 overflow-x-auto border-b border-border" aria-label="Operations sections">
-          {(["DUNGEONS", "ARSENAL", "ABILITIES", "WORLD", "SOCIAL"] as const).map((item) => <Button key={item} variant="ghost" onClick={() => setView(item)} className={`relative h-12 min-w-24 rounded-none border-b-2 font-mono text-[9px] uppercase tracking-[0.18em] ${view === item ? "border-primary text-primary" : "border-transparent text-muted-foreground"}`}>{item}</Button>)}
+          {(["DUNGEONS", "ARSENAL", "ABILITIES", "WORLD", "SOCIAL"] as const).map((item) => <Button key={item} variant="ghost" onClick={() => setView(item)} className={`h-12 min-w-24 rounded-none border-b-2 font-mono text-[9px] uppercase tracking-[0.18em] ${view === item ? "border-primary text-primary" : "border-transparent text-muted-foreground"}`}>{item}</Button>)}
         </nav>
-        {stop && <div className="hud-panel relative mt-4 flex flex-wrap items-start justify-between gap-3 border-primary p-4 ui-enter">
-          <div className="flex items-start gap-3">
-            <Compass className="mt-0.5 size-4 shrink-0 text-primary" />
-            <div>
-              <p className="font-mono text-[9px] uppercase tracking-[0.3em] text-primary">NOVA // First visit</p>
-              <p className="mt-1 text-sm font-semibold">{stop.title}</p>
-              <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{stop.body}</p>
-            </div>
-          </div>
-          <Button size="sm" onClick={dismiss}>Got it <ChevronRight /></Button>
-        </div>}
         {view === "DUNGEONS" && <DungeonOperations progression={progression} onProgression={onProgression} />}
         {view === "ARSENAL" && <Arsenal progression={progression} onProgression={onProgression} />}
         {view === "ABILITIES" && <AbilityNetwork progression={progression} onProgression={onProgression} />}
@@ -175,7 +162,7 @@ function Arsenal({ progression, onProgression }: { progression: PlayerProgressio
 
 function AbilityNetwork({ progression, onProgression }: { progression: PlayerProgression; onProgression: (next: PlayerProgression) => void }) {
   const [build, setBuild] = useState<ActiveBuild>(progression.activeBuild ?? DEFAULT_BUILD);
-  const [selected, setSelected] = useState(ABILITY_NODES[0]?.id ?? "siege-mode");
+  const [selected, setSelected] = useState(ABILITY_NODES[0]?.id ?? "fracture-shield");
   const [saved, setSaved] = useState(false);
   const synergy = useMemo(() => buildSynergy(build), [build]);
   const selectedNode = nodeById(selected);

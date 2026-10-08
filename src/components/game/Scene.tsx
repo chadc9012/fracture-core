@@ -6,13 +6,12 @@ import * as THREE from "three";
 import { REGIONS, SKY, ZONE_COLOR, clockLabel, phaseFor, regionAt, WORLD_RADIUS } from "@/game/world";
 import { useKeyboard } from "@/game/useKeyboard";
 import { walkHeight, slopeAt, heightAt, WATER_LEVEL } from "@/game/terrain";
-import { alert, applyLightning, applySuppressPulse, applyVulnPulse, collidePlayer, createSim, defeatMachine, FACTIONS, fireBullet, hurtPlayer, throwBeacon, instabilityTier, spawnMissionDrones, placeRiftTurret, spawnVolatileZone, stepSim, summonBoss, type Faction, type InstabilityTier, type WorldSim, type ZoneState } from "@/game/sim";
+import { alert, collidePlayer, createSim, defeatMachine, FACTIONS, fireBullet, instabilityTier, spawnMissionDrones, stepSim, summonBoss, type Faction, type InstabilityTier, type WorldSim, type ZoneState } from "@/game/sim";
 import type { MissionEvent, MissionRun } from "@/game/missions/broken-signal";
 import type { MissionEvent as BlackoutEvent, MissionRun as BlackoutRun } from "@/game/missions/blackout-protocol";
 import type { MissionEvent as NeonCoreEvent, MissionRun as NeonCoreRun } from "@/game/missions/stitched-neon-core";
 import type { MissionEvent as DescentEvent, MissionRun as DescentRun } from "@/game/missions/descent-protocol";
 import type { MissionEvent as SystemCoreEvent, MissionRun as SystemCoreRun } from "@/game/missions/system-core";
-import { introCameraAt } from "@/game/intro-camera";
 import type { AwakeningEvent, AwakeningRun } from "@/game/missions/awakening";
 import { directorTrend, type Mission } from "@/game/director";
 import { isStaggered, isWeakPointOpen, POISE_MAX } from "@/game/boss-poise";
@@ -21,18 +20,10 @@ import { counterTuningFor, dominantPattern, logAction, type ActionLogEntry, type
 import { Terrain } from "./Terrain";
 import { CloudLayer, type SkyEnv } from "./CloudLayer";
 import { Weather } from "./Weather";
-import { weatherName as weatherLabel } from "@/game/weather-cycle";
-import { environmentAt, stepEnvironment } from "@/game/environment";
-import { backpackFor } from "@/game/backpacks";
-import { createReticle, markHit, stepReticle, type Motion, type ReticleView, EMPTY_RETICLE } from "@/game/crosshair";
-import { airJump, cancelSlide, createMoveState, glideVy, GLIDE_THRUST, land, movementFov, startSlide, stepSlide, AIR_PROFILE } from "@/game/movement";
-import { createStride, stepStride, RUN_SPEED, type FeelView } from "@/game/movement-feel";
-import { updateWind } from "@/game/wind-sway";
-import { atmosphereAt, NEUTRAL_ATMOSPHERE, type Atmosphere } from "@/game/atmosphere";
-import { closeStratagems, createStratagemState, inputDirection, openStratagems, releaseStratagems, stratagemById, stratagemHud, tickStratagems, type StratagemHud } from "@/game/stratagems";
+import { sampleWeather, weatherName as weatherLabel } from "@/game/weather-cycle";
 import { Wildlife } from "./Wildlife";
 import { Civilians } from "./Civilians";
-import { Bullets, BeaconMarkers, Convoys, HazardMarkers, SupplyLanes, WarMachines, ZoneBeacons } from "./Actors";
+import { Bullets, Convoys, SupplyLanes, WarMachines, ZoneBeacons } from "./Actors";
 import { Car } from "./Vehicle";
 import { NexusCity } from "./NexusCity";
 import { NeonCity, NEON_CITY_CENTER } from "./NeonCity";
@@ -46,15 +37,11 @@ import { BOSS_LAIRS, GATHER_RADIUS, LAIR_RADIUS, RESOURCE_SITES, RESPAWN_SECONDS
 import type { InspectorView } from "./Inspector";
 import { TIER_RADII } from "@/game/lod";
 import { RARITY_COLOR, type Rarity } from "@/game/loot";
-import { appearanceById, classById, subclassById, type AppearanceDefinition, type ClassId, type SubclassId } from "@/game/loadout";
+import { appearanceById, classById, subclassById, type AppearanceId, type ClassId, type SubclassId } from "@/game/loadout";
 import { vehicleById, type VehicleId } from "@/game/vehicles";
 import { projectDome, shieldBash } from "@/game/titan";
 import { RENDER_PRESETS } from "@/game/performance";
 import { activateLiveAbility, createLiveBuild, rebindLiveBuild, tickLiveBuild } from "@/game/live-build";
-import { RiftTurrets } from "./RiftTurrets";
-import type { BodyType } from "@/game/operators";
-import { SIEGE_BLOOM_MULT, VEIL_BREAK_TIME, knockbackFrom, siegeDamageMult, siegeMoveMult, strikeDamage, strikeLanding, veilSightMult } from "@/game/operator-abilities";
-import { VERB_LABEL } from "@/game/subclass-verbs";
 import type { ActiveBuild } from "@/game/ability-network";
 import { buildSynergy } from "@/game/ability-network";
 import type { SquadArchetype } from "@/game/adaptation";
@@ -133,20 +120,11 @@ export type HudState = {
   controller: boolean;
   bloom: number;
   hitMarker: boolean;
-  /** dynamic reticle view (crosshair.ts): spread gap, lagging barrel index, hit/kill marker */
-  reticle: ReticleView;
   playerClass: ClassId;
   subclassName: string;
-  callsign: string;
   abilities: { slot: string; name: string; ready: boolean }[];
   firstMissionComplete: boolean;
   weather: string;
-  /** "Autumn · Dense fog · 14°C" */
-  environment: string;
-  /** active hazard line (exposure / lightning), "" when none */
-  hazardWarning: string;
-  /** Helldivers-style call-in code entry (stratagems.ts); empty when not in use */
-  stratagem: StratagemHud;
   streamTier: string;
   vehicleUnlocked: boolean;
   vehicleName: string;
@@ -291,8 +269,7 @@ export function Scene({
   onCameraPreference,
   playerClass = "TITAN",
   subclassId = "SHIELD_TITAN",
-  appearance: appearanceProp,
-  bodyType,
+  appearanceId = "RANGER",
   vehicleId = "scrap-interceptor",
   vehicleUnlocked = false,
   armorState = "STABLE",
@@ -318,17 +295,13 @@ export function Scene({
   weaponOrder = WEAPON_ORDER,
   travelTo = null,
   onCheckpoint,
-  introPlayback,
 }: {
   onHud: (s: HudState) => void;
   settings?: GameSettings;
   onCameraPreference?: (firstPerson: boolean) => void;
   playerClass?: ClassId;
   subclassId?: SubclassId;
-  /** Fully-resolved field colors + callsign (preset or freely customized in the Identity Forge) —
-   * session-local only, never synced to player_saves. */
-  appearance?: AppearanceDefinition;
-  bodyType?: BodyType | undefined;
+  appearanceId?: AppearanceId;
   vehicleId?: VehicleId;
   vehicleUnlocked?: boolean;
   armorState?: ArmorVisualState;
@@ -356,10 +329,6 @@ export function Scene({
   /** star map deployment target; nonce changes trigger the drop */
   travelTo?: { x: number; z: number; nonce: number } | null;
   onCheckpoint?: (p: { x: number; z: number }) => void;
-  /** Opening cinematic: while set, the camera follows intro-camera.ts's scripted flythrough
-   * instead of the normal player follow-cam — IntroCinematic.tsx's overlay fades out over this
-   * same window, so this is the literal "world reveal" the player sees underneath it. */
-  introPlayback?: { elapsed: number; totalSeconds: number } | null;
 }) {
   const orderRef = useRef(weaponOrder); orderRef.current = weaponOrder;
   const travelSeen = useRef(0);
@@ -370,13 +339,6 @@ export function Scene({
   // Global Balance Controller: recomputed only when equipped gear/clears/missions actually change,
   // not every frame — the frame loop just assigns the (already-cheap) result into sim.mods below.
   const balance = useMemo(() => difficultyCurve(playerPowerScore({ inventory: gear?.inventory ?? [], equippedGear: gear?.equippedGear ?? {}, dungeonClears: gear?.dungeonClears ?? {}, completedMissions: gear?.completedMissions ?? [] } as Parameters<typeof playerPowerScore>[0])), [gear?.inventory, gear?.equippedGear, gear?.dungeonClears, gear?.completedMissions]);
-  // Equipped chest/helmet/legs upgrade levels -> Operator's real armor-geometry tiers (tierOf()
-  // in Operator.tsx), so gearing up actually changes the model, not just its tint.
-  const armorLevels = useMemo(() => ({
-    chest: gear?.inventory.find((item) => item.id === gear.equippedGear.chest)?.level ?? 1,
-    helmet: gear?.inventory.find((item) => item.id === gear.equippedGear.helmet)?.level ?? 1,
-    legs: gear?.inventory.find((item) => item.id === gear.equippedGear.legs)?.level ?? 1,
-  }), [gear?.inventory, gear?.equippedGear]);
   const missionSpawned = useRef("");
   const blackoutSpawned = useRef("");
   const neonCoreSpawned = useRef("");
@@ -393,7 +355,7 @@ export function Scene({
   const structure = useMemo(() => buildInterior("veridan-ruin", SPAWN.x + 28, walkHeight(SPAWN.x + 28, SPAWN.z + 20), SPAWN.z + 20), []);
   const depleted = useRef<Record<string, number>>({});
   const lairsTriggered = useRef<Record<string, boolean>>({});
-  const appearance = appearanceProp ?? appearanceById("BASTION");
+  const appearance = appearanceById(appearanceId);
   const selectedClass = classById(playerClass);
   const selectedSubclass = subclassById(subclassId);
   const selectedVehicle = vehicleById(vehicleId);
@@ -403,9 +365,6 @@ export function Scene({
   const weatherKind = useRef<string>("Clear shield");
   const weatherFx = useRef({ precipitation: 0, windX: 0, windZ: 0 });
   const weatherName = useRef("Clear");
-  const stratagem = useRef(createStratagemState());
-  const environmentSummary = useRef("");
-  const hazardWarning = useRef("");
   const lightning = useRef(0);
   const markerList = (): Marker[] => {
     const now = performance.now();
@@ -432,14 +391,6 @@ export function Scene({
   const carSpeed = useRef(0);
   const carSteer = useRef(0);
   const sky = useRef<THREE.Object3D>(null!);
-  const hemi = useRef<THREE.HemisphereLight>(null!);
-  /** stride shared by camera bob, viewmodel sway and the Operator's limbs (movement-feel.ts) */
-  const feel = useRef({ stride: createStride(), view: null as FeelView | null, motion: { phase: 0, intensity: 0, swing: 0.35, lean: 0.04, air: false } });
-  /** class movement kit (movement.ts): air jumps, glide, slide + previous-frame jump/slide key state for edge detection */
-  const move = useRef({ state: createMoveState(), jumpHeld: false, slideHeld: false });
-  const reticle = useRef({ state: createReticle(), view: EMPTY_RETICLE, yaw: 0, pitch: 0, hit: 0, kills: 0, ready: false });
-  /** eased regional atmosphere (atmosphere.ts) + scratch colours, so crossing a border blends rather than pops */
-  const atmo = useRef({ fogMix: 0, fogScale: 1, lightMix: 0, fogTint: new THREE.Color("#ffffff"), lightTint: new THREE.Color("#ffffff"), hemiBase: new THREE.Color("#9ec8e8") });
   const report = useRef(0);
   const live = useRef(createLiveBuild(activeBuild, abilityBranches));
   const abilityHeld = useRef<Record<string, boolean>>({});
@@ -612,8 +563,6 @@ export function Scene({
   const padPrev = useRef<boolean[]>([]);
   const keyPrev = useRef<Set<string>>(new Set());
   const padState = useRef({ fire: false, aim: false, connected: false });
-  /** hit stop: a ~40-80ms near-freeze on kills and on hits against elites/bosses (weight, not on every auto-fire hit) */
-  const hitStopUntil = useRef(0);
   const audioSeen = useRef({ hit: 0, kills: 0, hp: 100, hurtAt: 0, stepT: 1, bossAlive: false, bossX: 0, bossZ: 0 });
   /** last sim.lastDeath timestamp this component has already reacted to — mirrors the audioSeen pattern above */
   const deathSeen = useRef(0);
@@ -627,9 +576,6 @@ export function Scene({
   useEffect(() => sfx.setMixVolumes(settings.musicVolume ?? 1, settings.sfxVolume ?? 1), [settings.musicVolume, settings.sfxVolume]);
   const skyColor = useMemo(() => new THREE.Color(), []);
   const fogColor = useMemo(() => new THREE.Color(), []);
-  const atmoScratch = useMemo(() => new THREE.Color(), []);
-  const deepWater = useMemo(() => new THREE.Color("#0a4f63"), []);
-  const underK = useRef(0);
   const instabilityColor = useMemo(() => new THREE.Color("#ff2d55"), []);
   const lightColor = useMemo(() => new THREE.Color(), []);
   const skyEnv = useRef<SkyEnv>({ cloud: 0, tint: new THREE.Color("#ffffff") });
@@ -668,7 +614,7 @@ export function Scene({
 
   useFrame(({ camera }, raw) => {
     setVoiceLoad(raw > 1 / 40);
-    const dt = Math.min(raw, 0.05) * (performance.now() < hitStopUntil.current ? 0.08 : 1);
+    const dt = Math.min(raw, 0.05);
     const held = keys.current;
     const s = state.current;
     // Safe-state guard: a null/invalid player or world ref (bad hot-reload, a race during a scene
@@ -683,7 +629,6 @@ export function Scene({
     tutorialClock.current += dt;
     if (tutorial?.step === "MATERIALIZE" && tutorialClock.current > 2) onTutorialEvent?.("READY");
     sim.titanActive = playerClass === "TITAN" && !s.inVehicle;
-    sim.backpack = backpackFor(playerClass);
 
     /* ---------------- day / night ---------------- */
     time.current += dt * (held.has("KeyT") ? 0.06 : 0.008);
@@ -792,51 +737,21 @@ export function Scene({
     bossHeld.current = held.has("KeyB");
     for (const [key, slot] of [["KeyQ", "PRIMARY"], ["KeyE", "TACTICAL"], ["KeyR", "ULTIMATE"]] as const) {
       if (held.has(key) && !abilityHeld.current[key] && !s.inVehicle) {
-        const ability = activateLiveAbility(live.current, slot, here?.kind ?? "war", subclassId);
+        const ability = activateLiveAbility(live.current, slot, here?.kind ?? "war");
         if (ability) {
-          const verb = live.current.pendingVerb;
-          if (verb) {
-            if (verb.verb === "VOLATILE") spawnVolatileZone(sim, s.x, s.z, verb.radius, verb.magnitude, verb.duration);
-            else if (verb.verb === "SUPPRESS") applySuppressPulse(sim, s.x, s.z, verb.radius, verb.magnitude);
-            else applyVulnPulse(sim, s.x, s.z, verb.radius, verb.magnitude, verb.duration); // WEAKEN / MARKED
-            live.current.pendingVerb = null;
-            alert(sim, `${VERB_LABEL[verb.verb]} applied to nearby hostiles`);
-          }
           s.specialTime = Math.max(s.specialTime, slot === "ULTIMATE" ? 1.5 : 0.8);
           const effect = ability.effects[0];
           sfx.playAbility(effect?.kind ?? "ABILITY");
-          if (effect?.kind === "DASH") { s.x += Math.sin(s.yaw) * effect.value; s.z += Math.cos(s.yaw) * effect.value; alert(sim, "RIFT DASH · incoming damage avoided"); bossActionLog.current = logAction(bossActionLog.current, "DASH", performance.now() / 1000); }
+          if (effect?.kind === "DASH") { s.x += Math.sin(s.yaw) * effect.value; s.z += Math.cos(s.yaw) * effect.value; alert(sim, "PHASE DASH · incoming damage avoided"); bossActionLog.current = logAction(bossActionLog.current, "DASH", performance.now() / 1000); }
           else bossActionLog.current = logAction(bossActionLog.current, "ABILITY", performance.now() / 1000);
           if (effect?.kind === "SILENCE" || effect?.kind === "FIELD" || effect?.kind === "COOLDOWN_SHIFT") {
             for (const enemy of sim.machines) if (enemy.alive && Math.hypot(enemy.x - s.x, enemy.z - s.z) < (effect.radius ?? 12)) enemy.cool = Math.max(enemy.cool, effect.duration ?? 3);
             if (effect.kind === "FIELD") live.current.fieldTime = effect.duration ?? 8;
             alert(sim, "Hostile systems disrupted · environment recalibrated");
           }
-          if (effect?.kind === "DAMAGE") for (const enemy of sim.machines) if (enemy.alive && Math.hypot(enemy.x - s.x, enemy.z - s.z) < (effect.radius ?? 6) * 2) {
-            enemy.hp -= effect.value / 20;
-            if (effect.tags?.includes("knockback")) { const pushed = knockbackFrom(s.x, s.z, enemy.x, enemy.z, 6); enemy.x = pushed.x; enemy.z = pushed.z; enemy.cool = Math.max(enemy.cool, 1.2); }
-            if (enemy.hp <= 0) defeatMachine(sim, enemy);
-          }
+          if (effect?.kind === "DAMAGE") for (const enemy of sim.machines) if (enemy.alive && Math.hypot(enemy.x - s.x, enemy.z - s.z) < (effect.radius ?? 6) * 2) enemy.hp -= effect.value / 20;
           if (effect?.kind === "DOME") { sim.titan.domeTime = Math.max(sim.titan.domeTime, effect.duration ?? 5); alert(sim, "Barrier projected"); }
-          if (effect?.kind === "MARK") { live.current.damageMultiplier = 1.25; applyVulnPulse(sim, s.x, s.z, effect.radius ?? 24, effect.value, effect.duration ?? 8); alert(sim, "Recon swarm deployed · hostiles revealed"); }
-          if (effect?.kind === "SIEGE") alert(sim, "SIEGE MODE · stability and firepower up");
-          if (effect?.kind === "VEIL") alert(sim, "PHASE VEIL · concealed until you attack");
-          if (effect?.kind === "TURRET") { placeRiftTurret(sim, s.x + Math.sin(s.yaw) * 2.5, s.z + Math.cos(s.yaw) * 2.5, effect.duration ?? 20); alert(sim, "Rift Turret deployed"); }
-          if (effect?.kind === "STRIKE") {
-            let target: (typeof sim.machines)[number] | null = null;
-            let best = effect.radius ?? 16;
-            for (const enemy of sim.machines) { if (!enemy.alive) continue; const d = Math.hypot(enemy.x - s.x, enemy.z - s.z); if (d < best) { best = d; target = enemy; } }
-            if (target) {
-              const land = strikeLanding(s.x, s.z, target.x, target.z);
-              s.x = land.x; s.z = land.z;
-              s.yaw = Math.atan2(target.x - land.x, target.z - land.z);
-              target.hp -= strikeDamage(live.current.veilTime);
-              target.cool = Math.max(target.cool, 1.2);
-              live.current.veilTime = 0;
-              if (target.hp <= 0) defeatMachine(sim, target);
-              alert(sim, "SHADOW STRIKE");
-            } else alert(sim, "Shadow Strike · no target in reach");
-          }
+          if (effect?.kind === "MARK") { live.current.damageMultiplier = 1.25; alert(sim, "Target exposed · damage amplified"); }
           if (tutorial?.step === "ABILITY") onTutorialEvent?.("ABILITY");
           else if (tutorial?.step === "REINFORCE" && slot === "PRIMARY") onTutorialEvent?.("MASTERY");
           else if (tutorial?.step === "CHAMBER") { chamberActions.current.add(slot); if (chamberActions.current.size >= 2) onTutorialEvent?.("CHAMBER"); }
@@ -847,60 +762,19 @@ export function Scene({
       abilityHeld.current[key] = held.has(key);
     }
     /* ---------------- weather cycle (deterministic fronts per region, see weather-cycle.ts) ---------------- */
-    // seasons layer on top of the fronts (environment.ts): same deterministic clock, seasonally-adjusted weather
-    const envSample = environmentAt(here?.id, time.current, night);
-    const wx = interior ? null : envSample.weather;
+    const wx = interior ? null : sampleWeather(here?.id, time.current);
     const weather = interior ? "Indoor" : wx!.label;
     weatherKind.current = weather;
     weatherFx.current.precipitation = wx?.precipitation ?? 0;
     weatherFx.current.windX = wx?.windX ?? 0;
     weatherFx.current.windZ = wx?.windZ ?? 0;
-    updateWind(dt, wx?.windX ?? 0, wx?.windZ ?? 0);
     weatherName.current = interior ? "Indoor" : weatherLabel(wx!, here?.id);
     const visibility = interior ? 1 : wx!.visibility;
     sim.envVisibility = visibility;
-    // environmental hazards: exposure, lightning, with shelter in interiors / safe zones / the Nexus shield
-    {
-      const sheltered = Boolean(interior) || here?.kind === "safe" || here?.id === "nexus";
-      const hazard = stepEnvironment(sim.env, { dt, regionId: here?.id, env: envSample, sheltered, px: s.x, pz: s.z, rand: Math.random });
-      if (hazard.damage > 0) hurtPlayer(sim, hazard.damage, hazard.cause);
-      for (const strike of hazard.detonated) {
-        applyLightning(sim, strike, s.x, s.z);
-        sfx.playExplosion(false, sfx.where(s.x, s.z, s.yaw, strike.x, strike.z));
-        s.punch += Math.hypot(s.x - strike.x, s.z - strike.z) < 25 ? 1.2 : 0.4;
-      }
-      environmentSummary.current = interior ? "Indoor" : envSample.summary;
-      hazardWarning.current = hazard.warning;
-    }
-    // regional atmosphere: ease toward this region's air (fog tint/thickness, sun + skylight tint)
-    {
-      const target: Atmosphere = interior ? NEUTRAL_ATMOSPHERE : atmosphereAt(here?.id, wx?.state, night);
-      const a = atmo.current;
-      const k = 1 - Math.exp(-0.9 * dt);
-      a.fogMix += (target.fogMix - a.fogMix) * k;
-      a.fogScale += (target.fogScale - a.fogScale) * k;
-      a.lightMix += (target.lightMix - a.lightMix) * k;
-      a.fogTint.lerp(atmoScratch.set(target.fogTint), k);
-      a.lightTint.lerp(atmoScratch.set(target.lightTint), k);
-      if (scene.fog) (scene.fog as THREE.Fog).color.lerp(a.fogTint, a.fogMix);
-      scene.background instanceof THREE.Color && scene.background.lerp(a.fogTint, a.fogMix * 0.35);
-      if (sun.current) sun.current.color.lerp(a.lightTint, a.lightMix);
-      if (hemi.current) hemi.current.color.copy(a.hemiBase).lerp(a.lightTint, a.lightMix * 0.8);
-    }
     if (scene.fog instanceof THREE.Fog) {
       const fogK = 1 - Math.exp(-3 * dt);
-      // regional air thickness (atmosphere.ts fogScale) scales the weather-driven fog distances
-      scene.fog.near += ((25 + visibility * 95) * atmo.current.fogScale - scene.fog.near) * fogK;
-      scene.fog.far += ((120 + visibility * 400) * atmo.current.fogScale - scene.fog.far) * fogK;
-    }
-    // underwater look: diving swaps the horizon for a close, turbid teal murk (eased in and out)
-    underK.current += ((s.diving && !interior ? 1 : 0) - underK.current) * (1 - Math.exp(-4 * dt));
-    if (underK.current > 0.01 && scene.fog instanceof THREE.Fog) {
-      const u = underK.current;
-      scene.fog.color.lerp(deepWater, u);
-      scene.fog.near += (0.5 - scene.fog.near) * u;
-      scene.fog.far += (45 - scene.fog.far) * u;
-      if (scene.background instanceof THREE.Color) scene.background.lerp(deepWater, u);
+      scene.fog.near += (25 + visibility * 95 - scene.fog.near) * fogK;
+      scene.fog.far += (120 + visibility * 400 - scene.fog.far) * fogK;
     }
     const cloud = wx?.cloud ?? 0;
     if (sun.current) sun.current.intensity *= 1 - cloud * 0.6;
@@ -1022,29 +896,6 @@ export function Scene({
     const clip = s.ammo[s.weapon];
     const startReload = () => { if (def.mag > 0 && s.reload <= 0 && clip.mag < def.mag && clip.reserve > 0) { s.reload = def.reload; s.burstLeft = 0; sfx.playReload("start"); alert(sim, `Reloading ${def.name}`); } };
     if (!s.inVehicle && (keyTap(binds.keyboard.reload) || padTap(binds.gamepad.reload))) startReload();
-
-    /* ---------------- stratagems: hold N, enter an arrow code, release N to throw the beacon ---------------- */
-    {
-      const st = stratagem.current;
-      const nowS = performance.now() / 1000;
-      const allowed = !s.inVehicle && !interior && !tutorial;
-      if (!allowed && (st.open || st.armed)) { st.armed = null; closeStratagems(st); }
-      if (allowed && keyTap("KeyN") && !st.armed) openStratagems(st);
-      if (st.open) {
-        for (const [code, dir] of [["ArrowUp", "U"], ["ArrowDown", "D"], ["ArrowLeft", "L"], ["ArrowRight", "R"]] as const) {
-          if (!keyTap(code)) continue;
-          const event = inputDirection(st, dir, nowS);
-          if (event === "match") { sfx.playAbility("MARK"); alert(sim, `${stratagemById(st.armed!).name} ready — release N to throw`); }
-          else if (event === "cooldown") alert(sim, "Stratagem still cooling down");
-          else if (event === "partial") sfx.playReload("end");
-        }
-        tickStratagems(st, nowS);
-      }
-      if (!held.has("KeyN") && keyPrev.current.has("KeyN")) {
-        const thrown = releaseStratagems(st, nowS, sim.backpack.cooldownMult);
-        if (thrown && !throwBeacon(sim, thrown, s.x, s.y + 1.4, s.z, s.yaw, s.pitch)) alert(sim, "Too many beacons in the field");
-      }
-    }
     if (s.reload > 0) {
       s.reload -= dt;
       if (s.reload <= 0) { const take = Math.min(def.mag - clip.mag, clip.reserve); clip.mag += take; clip.reserve -= take; s.reload = 0; sfx.playReload("end"); }
@@ -1055,32 +906,9 @@ export function Scene({
     const equippedWeapon = gear?.inventory.find((item) => item.id === gear.equippedGear[s.inVehicle ? "vehicle" : s.weapon === "HEAVY" ? "heavy" : s.weapon === "PULSE" ? "secondary" : "primary"]);
     const gearPower = equippedWeapon ? 1 + Math.max(0, equippedWeapon.power - 100) / 500 : 1;
     sim.equippedElement = equippedWeapon?.element ?? "KINETIC";
-    // self-targeted subclass verbs (RAGE/OVERSHIELD, see subclass-verbs.ts) live on LiveBuild, which
-    // has no reference to WorldSim — bridge them in every frame rather than one-shot at cast time.
-    sim.verbDamageMult = (live.current.verbKind === "RAGE" && live.current.verbTime > 0 ? live.current.verbMagnitude : 1) * siegeDamageMult(live.current.siegeTime);
-    sim.stealthMult = veilSightMult(live.current.veilTime);
-    sim.verbIncomingMult = live.current.verbKind === "OVERSHIELD" && live.current.verbTime > 0 ? 1 - live.current.verbMagnitude : 1;
     s.recoil = decay(s.recoil, 9, dt);
     s.punch = decay(s.punch, 14, dt);
     s.bloom = decay(s.bloom, 6, dt);
-    if (live.current.siegeTime > 0) s.bloom *= SIEGE_BLOOM_MULT;
-    {
-      // dynamic reticle: spread follows locomotion + bloom, the barrel index lags the camera, hits flash
-      const r = reticle.current;
-      if (!r.ready) { r.yaw = s.yaw; r.pitch = s.pitch; r.hit = sim.lastHit; r.kills = sim.kills; r.ready = true; }
-      const speed = Math.hypot(velocity.x, velocity.z);
-      const motion: Motion = !s.grounded && !s.diving && !s.inVehicle ? "AIR" : speed > 2 && (held.has("ShiftLeft") || held.has("ShiftRight")) ? "SPRINT" : speed > 0.6 ? "WALK" : "IDLE";
-      const safeDt = Math.max(dt, 1e-3);
-      let dYaw = s.yaw - r.yaw;
-      if (dYaw > Math.PI) dYaw -= Math.PI * 2; else if (dYaw < -Math.PI) dYaw += Math.PI * 2;
-      const lookRight = -dYaw / safeDt; // yaw decreases when the camera turns right
-      const lookUp = (s.pitch - r.pitch) / safeDt;
-      r.yaw = s.yaw; r.pitch = s.pitch;
-      if (sim.kills > r.kills) markHit(r.state, "KILL");
-      else if (sim.lastHit !== r.hit) markHit(r.state, "HIT");
-      r.kills = sim.kills; r.hit = sim.lastHit;
-      r.view = stepReticle(r.state, { motion: s.inVehicle ? "IDLE" : motion, bloom: s.bloom, aiming: Boolean(mouse.current.aim || padState.current.aim), lookRight, lookUp }, dt);
-    }
     s.swing = Math.max(0, s.swing - dt);
     s.comboTime = Math.max(0, s.comboTime - dt);
     if (s.comboTime <= 0) s.combo = 0;
@@ -1099,7 +927,6 @@ export function Scene({
         s.recoil += wpn.recoil;
         s.punch += wpn.punch;
         s.bloom = Math.min(1, s.bloom + 0.18 * wpn.punch);
-        if (live.current.veilTime > VEIL_BREAK_TIME) live.current.veilTime = VEIL_BREAK_TIME;
         if (!s.inVehicle && wpn.mag > 0) { clip.mag--; if (clip.mag <= 0) startReload(); }
       }
     };
@@ -1141,11 +968,10 @@ export function Scene({
       }
     }
 
-    const arrowsMove = !stratagem.current.open; // arrows enter the call-in code while N is held
-    const throttleF = held.has("KeyW") || (arrowsMove && held.has("ArrowUp"));
-    const throttleB = held.has("KeyS") || (arrowsMove && held.has("ArrowDown"));
-    const left = held.has("KeyA") || (arrowsMove && held.has("ArrowLeft"));
-    const right = held.has("KeyD") || (arrowsMove && held.has("ArrowRight"));
+    const throttleF = held.has("KeyW") || held.has("ArrowUp");
+    const throttleB = held.has("KeyS") || held.has("ArrowDown");
+    const left = held.has("KeyA") || held.has("ArrowLeft");
+    const right = held.has("KeyD") || held.has("ArrowRight");
     const boost = held.has("ShiftLeft") || held.has("ShiftRight");
 
     /* ---------------- movement ---------------- */
@@ -1180,18 +1006,8 @@ export function Scene({
       if (right) { wish.x += Math.sin(s.yaw + Math.PI / 2); wish.z += Math.cos(s.yaw + Math.PI / 2); }
       // Neon City parkour: chaining vaults within the window nets a small, capped speed bonus.
       const chainBonus = parkourChainBonus(s.chainCount, performance.now() / 1000 - s.lastVaultAt);
-      const walk = 30 * traction * (boost ? 2.1 : 1) * sim.mods.footSpeed * (live.current.dashTime > 0 ? 1.4 : 1) * siegeMoveMult(live.current.siegeTime) * (1 + chainBonus);
+      const walk = 30 * traction * (boost ? 2.1 : 1) * sim.mods.footSpeed * (live.current.dashTime > 0 ? 1.4 : 1) * (1 + chainBonus);
       if (wish.lengthSq() > 0) wish.normalize().multiplyScalar(walk);
-      {
-        // slide: out of a sprint, commit to the heading with a speed burst that bleeds off (movement.ts)
-        const mv = move.current;
-        const slideKey = held.has("ControlLeft") || held.has("KeyJ");
-        if (slideKey && !mv.slideHeld && s.grounded && !s.diving && !submerged) startSlide(mv.state, velocity.x, velocity.z);
-        mv.slideHeld = slideKey;
-        if (mv.state.slideLeft > 0 && (!s.grounded || held.has("KeyC"))) cancelSlide(mv.state);
-        const slideSpeed = stepSlide(mv.state, dt);
-        if (slideSpeed > 0) wish.set(mv.state.slideDirX * slideSpeed, 0, mv.state.slideDirZ * slideSpeed);
-      }
       if (s.diving) {
         // swimming toward where you're looking: pitch steers you up/down, and the response is floatier than land movement
         const swimPitch = (throttleF ? 1 : throttleB ? -1 : 0) * Math.sin(s.pitch);
@@ -1314,9 +1130,8 @@ export function Scene({
         let near: (typeof sim.machines)[number] | undefined; let best = Infinity;
         for (const m of sim.machines) { if (!m.alive) continue; const d = Math.hypot(m.x - s.x, m.z - s.z); if (d < best) { best = d; near = m; } }
         sfx.playImpact(near?.kind === "ABERRATION" ? "ORGANIC" : near?.kind === "OVERCLOCKED" ? "TECH" : "METAL", near ? sfx.where(s.x, s.z, s.yaw, near.x, near.z) : {});
-        if (near && (near.elite || near.boss) && best < 40) hitStopUntil.current = Math.max(hitStopUntil.current, performance.now() + 45);
       }
-      if (sim.kills > a.kills) { sfx.playKill(false, {}); hitStopUntil.current = Math.max(hitStopUntil.current, performance.now() + 70); s.punch += 0.6; }
+      if (sim.kills > a.kills) sfx.playKill(false, {});
       a.kills = sim.kills;
       const now = performance.now();
       if (sim.hp < a.hp - 0.5 && now - a.hurtAt > 250) { sfx.playHurt(); a.hurtAt = now; }
@@ -1485,15 +1300,6 @@ export function Scene({
     // it can't touch the player's world position — that lives here in Scene's own state, not in WorldSim.
     // Detect the new timestamp and do the part sim.ts's alert text always claimed but never performed:
     // teleport back to Nexus City, bail out of any vehicle/interior, and zero out momentum.
-    for (const ev of sim.stratagemEvents.splice(0)) {
-      const dist = Math.hypot(s.x - ev.x, s.z - ev.z);
-      sfx.playExplosion(ev.kind === "ORBITAL_STRIKE", sfx.where(s.x, s.z, s.yaw, ev.x, ev.z));
-      if (ev.kind === "ORBITAL_STRIKE") s.punch += dist < 40 ? 2 : 0.6;
-      if (ev.kind === "RESUPPLY" && dist <= ev.radius) {
-        for (const id of WEAPON_ORDER) { s.ammo[id].mag = WEAPONS[id].mag; s.ammo[id].reserve = WEAPONS[id].reserve; }
-        alert(sim, "Supply drop collected · ammo restocked, hull repaired");
-      }
-    }
     const hostiles = sim.machines.filter((m) => m.alive);
     checkpointClock.current += dt;
     if (checkpointClock.current >= CHECKPOINT_INTERVAL_S) {
@@ -1576,30 +1382,14 @@ export function Scene({
       } else {
         s.y = THREE.MathUtils.lerp(s.y, standY, 1 - Math.exp(-14 * dt));
         s.grounded = true;
-        land(move.current.state, playerClass);
-        move.current.jumpHeld = held.has("KeyC");
       }
     } else {
-      if (!s.inVehicle && !submerged && !interior) {
-        // class air mobility: tap jump again for an air jump; Warlocks hold jump to glide (movement.ts)
-        const mv = move.current;
-        const jumpHeld = held.has("KeyC");
-        if (jumpHeld && !mv.jumpHeld) {
-          const mult = airJump(mv.state, playerClass);
-          if (mult !== null) { s.vy = Math.sqrt(2 * sim.gravity * 6.5) * mult; s.punch += 0.15; sfx.playReload("end"); }
-        }
-        mv.jumpHeld = jumpHeld;
-        const before = s.vy;
-        s.vy = glideVy(s.vy, playerClass, jumpHeld);
-        if (AIR_PROFILE[playerClass].glide && jumpHeld && s.vy !== before) { velocity.x += Math.sin(s.yaw) * GLIDE_THRUST * dt; velocity.z += Math.cos(s.yaw) * GLIDE_THRUST * dt; }
-      }
       s.vy -= sim.gravity * dt;
       s.y += s.vy * dt;
       if (s.y <= standY) {
         s.y = standY;
         s.vy = 0;
         s.grounded = true;
-        land(move.current.state, playerClass);
       }
     }
     // fracture instability tosses loose objects (and you) around
@@ -1635,64 +1425,36 @@ export function Scene({
     }
 
     /* ---------------- camera ---------------- */
-    if (introPlayback) {
-      // Opening cinematic: the scripted flythrough owns the camera outright — no follow-cam
-      // lerp, no shake/recoil/FOV kick, no viewmodel (there's no weapon drawn yet at this point
-      // in onboarding). Normal control resumes the instant IntroCinematic.tsx unmounts and this
-      // prop goes away, at which point the follow-cam picks up from exactly where this leaves it.
-      const pose = introCameraAt(introPlayback.elapsed, introPlayback.totalSeconds);
-      camera.position.set(pose.position[0], pose.position[1], pose.position[2]);
-      camera.lookAt(pose.lookAt[0], pose.lookAt[1], pose.lookAt[2]);
-      if (viewmodel.current) viewmodel.current.visible = false;
-    } else {
-      // stride: walking/running cadence from the real ground speed, shared by camera, weapon and limbs
-      {
-        const f = feel.current;
-        const hSpeed = s.inVehicle ? 0 : Math.hypot(velocity.x, velocity.z);
-        const strafe = (velocity.x * Math.cos(s.yaw) - velocity.z * Math.sin(s.yaw)) / RUN_SPEED;
-        f.view = stepStride(f.stride, { speed: hSpeed, grounded: s.grounded && !s.diving && !s.inVehicle, sliding: move.current.state.slideLeft > 0, vy: s.vy, dt }, strafe);
-        f.motion.phase = f.view.phase; f.motion.intensity = f.view.intensity; f.motion.swing = f.view.swing; f.motion.lean = f.view.lean; f.motion.air = !s.grounded && !s.diving;
-      }
-      const override = !s.inVehicle && (s.meleeTime > 0 || s.specialTime > 0);
-      const targetBlend = override || !s.firstPerson ? 1 : 0;
-      s.cameraBlend += (targetBlend - s.cameraBlend) * (1 - Math.exp(-15 * dt));
-      const shoulder = s.inVehicle ? 0 : 1.3;
-      const distance = s.inVehicle ? 14 : 5.8;
-      camTarget.set(
-        s.x + Math.sin(s.yaw) * (s.inVehicle ? 1 : 0.15) + (Math.cos(s.yaw) * shoulder - Math.sin(s.yaw) * distance) * s.cameraBlend,
-        s.y + (s.inVehicle ? 1.5 : 0.95) + (s.inVehicle ? 5 : 2.2) * s.cameraBlend,
-        s.z + Math.cos(s.yaw) * (s.inVehicle ? 1 : 0.15) + (-Math.sin(s.yaw) * shoulder - Math.cos(s.yaw) * distance) * s.cameraBlend,
-      );
-      camTarget.y = Math.max(camTarget.y, (interior ? INTERIOR_ALTITUDE : walkHeight(camTarget.x, camTarget.z)) + 1.35) - move.current.state.drop * 0.55;
-      camera.position.lerp(camTarget, 1 - Math.exp(-18 * dt));
-      const kickPitch = s.pitch + s.recoil;
-      const shakeAmt = Math.min(0.08, s.punch * 0.012);
-      camera.position.x += (Math.random() - 0.5) * shakeAmt;
-      camera.position.y += (Math.random() - 0.5) * shakeAmt;
-      cameraDirection.set(Math.sin(s.yaw) * Math.cos(kickPitch), Math.sin(kickPitch), Math.cos(s.yaw) * Math.cos(kickPitch));
-      look.copy(camera.position).addScaledVector(cameraDirection, 60);
-      camera.lookAt(look);
-      if (feel.current.view && !s.inVehicle) {
-        // head bob + weight shift + strafe roll; third person feels it at a reduced strength
-        const fv = feel.current.view;
-        const k = 1 - 0.65 * s.cameraBlend;
-        camera.position.y += fv.bobY * k;
-        camera.position.x += Math.cos(s.yaw) * fv.swayX * k;
-        camera.position.z += -Math.sin(s.yaw) * fv.swayX * k;
-        camera.rotateZ(fv.roll * k);
-      }
-      if (camera instanceof THREE.PerspectiveCamera) {
-        const desiredFov = movementFov(Boolean(mouse.current.aim || padState.current.aim), !s.inVehicle && s.grounded && boost && Math.hypot(velocity.x, velocity.z) > 2, move.current.state.slideLeft > 0);
-        camera.fov += (desiredFov - camera.fov) * (1 - Math.exp(-12 * dt));
-        camera.updateProjectionMatrix();
-      }
-      if (viewmodel.current) {
-        viewmodel.current.visible = !s.inVehicle && s.cameraBlend < 0.22;
-        viewmodel.current.position.copy(camera.position);
-        viewmodel.current.quaternion.copy(camera.quaternion);
-        if (gunModel.current) { gunModel.current.visible = WEAPONS[s.weapon].kind === "gun"; gunModel.current.position.z = Math.min(0.35, s.punch * 0.06); gunModel.current.rotation.x = s.recoil * 3; const fv = feel.current.view; if (fv) { gunModel.current.position.y = fv.bobY * 0.9; gunModel.current.position.x = fv.swayX * 1.4; gunModel.current.rotation.z = Math.sin(fv.phase) * 0.03 * fv.intensity; } }
-        if (swordModel.current) { swordModel.current.visible = WEAPONS[s.weapon].kind === "sword"; const t = s.swing / 0.3; swordModel.current.rotation.z = (s.combo % 2 ? 1 : -1) * (t > 0 ? (1 - t) * 2.4 - 1.2 : -0.35); }
-      }
+    const override = !s.inVehicle && (s.meleeTime > 0 || s.specialTime > 0);
+    const targetBlend = override || !s.firstPerson ? 1 : 0;
+    s.cameraBlend += (targetBlend - s.cameraBlend) * (1 - Math.exp(-15 * dt));
+    const shoulder = s.inVehicle ? 0 : 1.3;
+    const distance = s.inVehicle ? 14 : 5.8;
+    camTarget.set(
+      s.x + Math.sin(s.yaw) * (s.inVehicle ? 1 : 0.15) + (Math.cos(s.yaw) * shoulder - Math.sin(s.yaw) * distance) * s.cameraBlend,
+      s.y + (s.inVehicle ? 1.5 : 0.95) + (s.inVehicle ? 5 : 2.2) * s.cameraBlend,
+      s.z + Math.cos(s.yaw) * (s.inVehicle ? 1 : 0.15) + (-Math.sin(s.yaw) * shoulder - Math.cos(s.yaw) * distance) * s.cameraBlend,
+    );
+    camTarget.y = Math.max(camTarget.y, (interior ? INTERIOR_ALTITUDE : walkHeight(camTarget.x, camTarget.z)) + 1.35);
+    camera.position.lerp(camTarget, 1 - Math.exp(-18 * dt));
+    const kickPitch = s.pitch + s.recoil;
+    const shakeAmt = Math.min(0.08, s.punch * 0.012);
+    camera.position.x += (Math.random() - 0.5) * shakeAmt;
+    camera.position.y += (Math.random() - 0.5) * shakeAmt;
+    cameraDirection.set(Math.sin(s.yaw) * Math.cos(kickPitch), Math.sin(kickPitch), Math.cos(s.yaw) * Math.cos(kickPitch));
+    look.copy(camera.position).addScaledVector(cameraDirection, 60);
+    camera.lookAt(look);
+    if (camera instanceof THREE.PerspectiveCamera) {
+      const desiredFov = (mouse.current.aim || padState.current.aim) ? 48 : 78;
+      camera.fov += (desiredFov - camera.fov) * (1 - Math.exp(-12 * dt));
+      camera.updateProjectionMatrix();
+    }
+    if (viewmodel.current) {
+      viewmodel.current.visible = !s.inVehicle && s.cameraBlend < 0.22;
+      viewmodel.current.position.copy(camera.position);
+      viewmodel.current.quaternion.copy(camera.quaternion);
+      if (gunModel.current) { gunModel.current.visible = WEAPONS[s.weapon].kind === "gun"; gunModel.current.position.z = Math.min(0.35, s.punch * 0.06); gunModel.current.rotation.x = s.recoil * 3; }
+      if (swordModel.current) { swordModel.current.visible = WEAPONS[s.weapon].kind === "sword"; const t = s.swing / 0.3; swordModel.current.rotation.z = (s.combo % 2 ? 1 : -1) * (t > 0 ? (1 - t) * 2.4 - 1.2 : -0.35); }
     }
 
     /* ---------------- HUD ---------------- */
@@ -1748,16 +1510,11 @@ export function Scene({
         controller: padState.current.connected,
         bloom: Math.round(s.bloom * 100) / 100,
         hitMarker: performance.now() - sim.lastHit < 180,
-        reticle: reticle.current.view,
         playerClass,
         subclassName: selectedSubclass.name,
-        callsign: appearance.callsign,
         abilities: selectedClass.abilities.map((ability) => ({ slot: ability.slot, name: ability.name, ready: live.current.runtime[ability.slot]?.cooldown <= 0 })),
         firstMissionComplete: sim.director.missions.some((mission) => mission.kind === "FIRST_RESONANCE" && mission.state === "COMPLETED"),
         weather: weatherName.current,
-        environment: environmentSummary.current,
-        hazardWarning: hazardWarning.current,
-        stratagem: stratagemHud(stratagem.current, performance.now() / 1000, backpackFor(playerClass).name),
         streamTier: "ACTIVE · neighbors reduced · distant dormant",
         vehicleUnlocked,
         vehicleName: selectedVehicle.name,
@@ -1855,7 +1612,7 @@ export function Scene({
       <fog attach="fog" args={["#5f9aa3", 70, 430]} />
       <FracturePortal />
       <Motes />
-      <hemisphereLight ref={hemi} args={["#9ec8e8", "#3b3326", 0.85]} />
+      <hemisphereLight args={["#9ec8e8", "#3b3326", 0.85]} />
       <directionalLight
         ref={sun}
         position={[80, 140, 70]}
@@ -1889,7 +1646,6 @@ export function Scene({
       <RegionLighting playerRef={player} tier={settings.renderTier} />
 
       <Terrain renderTier={settings.renderTier} />
-      <RiftTurrets sim={sim} />
       <Weather playerRef={player} weatherRef={weatherKind} fxRef={weatherFx} />
       <Wildlife playerRef={player} />
       <Civilians playerRef={player} />
@@ -1901,8 +1657,6 @@ export function Scene({
       <ZoneBeacons sim={sim} />
       <Convoys sim={sim} />
       <WarMachines sim={sim} />
-      <HazardMarkers sim={sim} />
-      <BeaconMarkers sim={sim} />
       {awakening?.target && (awakening.state === "CAPTURE" || awakening.state === "HOLD" || awakening.state === "EXTRACT") && (
         <group position={[awakening.target.x, heightAt(awakening.target.x, awakening.target.z) + 0.2, awakening.target.z]}>
           <mesh rotation-x={-Math.PI / 2}><ringGeometry args={[10, 12, 48]} /><meshBasicMaterial color={awakening.state === "EXTRACT" ? "#7dffca" : "#ff3df2"} transparent opacity={0.6} /></mesh>
@@ -1952,7 +1706,7 @@ export function Scene({
 
       {/* player on foot */}
       <group ref={player} position={SPAWN.toArray()}>
-        <Operator bodyType={bodyType} armor={appearance.armor} cloth={appearance.cloth} visor={appearance.visor} trim={appearance.trim} classId={playerClass} motion={feel.current.motion} visualState={armorState} chestLevel={armorLevels.chest} helmetLevel={armorLevels.helmet} legsLevel={armorLevels.legs} />
+        <Operator armor={appearance.armor} cloth={appearance.cloth} visor={appearance.visor} classId={playerClass} visualState={armorState} />
         {playerClass === "TITAN" && sim.titan.blocking && (
           // Chevron-angled holographic panels + a glowing rim edge instead of one flat box —
           // reads as a projected energy shield rather than a translucent slab.

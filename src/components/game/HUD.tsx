@@ -1,4 +1,3 @@
-import { StratagemPanel } from "./StratagemPanel";
 import { Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { HudState } from "./Scene";
@@ -23,18 +22,12 @@ export function HUD({ hud, tutorialActive = false, onMenu }: { hud: HudState; tu
     )}
     {!tutorialActive && <><Compass markers={hud.markers ?? []} yaw={hud.yaw ?? 0} /><TrackedObjectives markers={hud.markers ?? []} /></>}
     <div className="absolute left-1/2 top-4 w-[min(26rem,calc(100%-7rem))] -translate-x-1/2 space-y-1 text-center text-[10px]">{hud.alerts.slice(0, 2).map((alert, index) => <p key={`${alert}-${index}`} className="hud-panel border-x border-primary/40 bg-background/45 px-3 py-1 text-foreground/90 backdrop-blur-sm" style={{ opacity: 1 - index * 0.28 }}>{alert}</p>)}</div>
-    {!tutorialActive && (hud.environment || hud.hazardWarning) && <div className="pointer-events-none absolute left-1/2 top-24 -translate-x-1/2 text-center font-mono text-[10px] uppercase tracking-[0.18em]">
-      {hud.environment && <p className="text-muted-foreground">{hud.environment}</p>}
-      {hud.hazardWarning && <p className="mt-1 text-destructive">{hud.hazardWarning}</p>}
-    </div>}
-    {hud.diving && <div className="water-overlay pointer-events-none absolute inset-0 z-10" aria-hidden />}
-    {!tutorialActive && <StratagemPanel hud={hud.stratagem} />}
     <EmergencyQuestBanner eq={hud.emergencyQuest} />
     <BossHealthBar boss={hud.bossHud} />
     <Crosshair hud={hud} />
     <div className="absolute bottom-4 left-4 w-[min(24rem,calc(100%-8rem))]">
       <div className={`hud-status px-3 py-2 ${hud.hp <= 40 ? "hud-glow-destructive" : ""}`}>
-        <div className="flex items-center justify-between"><span className="hud-label">{hud.callsign} // Hull Integrity</span><span className={`text-xs font-bold ${hud.hp > 40 ? "text-primary" : "text-destructive"}`}>{hud.hp}%</span></div>
+        <div className="flex items-center justify-between"><span className="hud-label">Hull Integrity</span><span className={`text-xs font-bold ${hud.hp > 40 ? "text-primary" : "text-destructive"}`}>{hud.hp}%</span></div>
         <div className="mt-1 h-2.5 overflow-hidden border border-foreground/20 bg-background/60">
           <div className={`relative h-full hud-ticks ${hud.hp > 40 ? "bg-primary" : "bg-destructive"}`} style={{ width: `${hud.hp}%`, transition: "width 200ms linear" }} />
         </div>
@@ -55,19 +48,9 @@ export function HUD({ hud, tutorialActive = false, onMenu }: { hud: HudState; tu
 }
 
 function Crosshair({ hud }: { hud: HudState }) {
-  const r = hud.reticle;
-  const gap = r.gap;
+  const gap = 5 + hud.bloom * 18 - (hud.aiming ? 3 : 0);
   const color = hud.overheated ? "var(--destructive)" : hud.aimLocked ? "var(--primary)" : "var(--foreground)";
-  const hitColor = r.hit === "KILL" ? "var(--warning)" : "var(--destructive)";
-  const hitSize = r.hit === "KILL" ? 22 : 14;
-  // four ticks ride the spread ring around the true screen centre; the barrel index drifts behind the camera
-  return <div className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"><div className="relative h-0 w-0">
-    {([[0, -1], [0, 1], [-1, 0], [1, 0]] as const).map(([x, y], index) => <span key={index} className="absolute block" style={{ width: x ? 8 : 2, height: y ? 8 : 2, background: color, boxShadow: `0 0 6px ${color}`, left: x * gap - (x ? (x > 0 ? 0 : 8) : 1), top: y * gap - (y ? (y > 0 ? 0 : 8) : 1), opacity: 0.85 }} />)}
-    <span className="absolute block rounded-full" style={{ width: 4, height: 4, left: r.barrelX - 2, top: r.barrelY - 2, background: color, boxShadow: `0 0 6px ${color}` }} />
-    {r.hit !== "NONE" && <span className="absolute block" style={{ left: r.barrelX - hitSize / 2, top: r.barrelY - hitSize / 2, width: hitSize, height: hitSize, opacity: Math.min(1, r.hitLeft / 0.1) }}>
-      {[45, -45].map((deg) => <span key={deg} className="absolute left-1/2 top-1/2 block" style={{ width: hitSize * 1.35, height: 2, marginLeft: -hitSize * 0.675, background: hitColor, boxShadow: `0 0 8px ${hitColor}`, transform: `rotate(${deg}deg)` }} />)}
-    </span>}
-  </div></div>;
+  return <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"><div className="relative h-0 w-0">{([[0, -1], [0, 1], [-1, 0], [1, 0]] as const).map(([x, y], index) => <span key={index} className="absolute block" style={{ width: x ? 8 : 2, height: y ? 8 : 2, background: color, boxShadow: `0 0 6px ${color}`, left: x * gap - (x ? (x > 0 ? 0 : 8) : 1), top: y * gap - (y ? (y > 0 ? 0 : 8) : 1), opacity: 0.85 }} />)}{hud.hitMarker && <span className="absolute -left-3 -top-3 size-6 text-center text-lg leading-6 text-destructive" style={{ textShadow: "0 0 8px var(--destructive)" }}>✕</span>}</div></div>;
 }
 
 /** Shangri-La Frontier-style boss readout: hp bar, a poise/stagger bar underneath that flashes

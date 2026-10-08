@@ -1,5 +1,4 @@
 import { REGIONS, WORLD_RADIUS } from "./world";
-import { LANES, laneSamples } from "./lanes";
 
 /* ------------------------------------------------------------------
  * Heightmap: seeded value noise (fbm) + per-region biome profiles.
@@ -59,7 +58,7 @@ function weight(d: number, radius: number) {
   return 1 - smoothstep(0.15, 1.05, d / radius);
 }
 
-function rawHeightAt(x: number, z: number): number {
+export function heightAt(x: number, z: number): number {
   // rolling base terrain
   let h = fbm(x * 0.011, z * 0.011, 4) * 16 - 2;
   h += (fbm(x * 0.05 + 40, z * 0.05 - 20, 2) - 0.5) * 3;
@@ -120,63 +119,6 @@ function rawHeightAt(x: number, z: number): number {
   return h;
 }
 
-/* ---------------- road grading ---------------- */
-
-type GradePoint = { x: number; z: number; h: number };
-const GRADE_CELL = 8;
-const GRADE_RANGE = Math.ceil(WORLD_RADIUS * 1.2 / GRADE_CELL);
-const GRADE_CORE = 5;
-const GRADE_FADE = 14;
-let gradePoints: GradePoint[] | null = null;
-let gradeSegments: { a: GradePoint; b: GradePoint }[] | null = null;
-let gradeNear: Uint8Array | null = null;
-
-/** Smooth each supply route's centre-line height (moving average along the lane) so convoys and
- * players travel a graded road instead of every hillock; heightAt blends the verge toward it. */
-function buildGrade() {
-  const pts: GradePoint[] = [];
-  const segs: { a: GradePoint; b: GradePoint }[] = [];
-  for (const lane of LANES) {
-    const start = pts.length;
-    const raw = laneSamples(lane, 40).map((p) => ({ ...p, h: rawHeightAt(p.x, p.z) }));
-    raw.forEach((p, i) => {
-      let sum = 0, n = 0;
-      for (let k = -5; k <= 5; k++) { const q = raw[i + k]; if (q) { sum += q.h; n++; } }
-      pts.push({ x: p.x, z: p.z, h: sum / n });
-    });
-    for (let i = start; i < pts.length - 1; i++) segs.push({ a: pts[i]!, b: pts[i + 1]! });
-  }
-  const size = GRADE_RANGE * 2;
-  const near = new Uint8Array(size * size);
-  const reach = GRADE_FADE + GRADE_CELL;
-  for (let cx = 0; cx < size; cx++) for (let cz = 0; cz < size; cz++) {
-    const x = (cx - GRADE_RANGE + 0.5) * GRADE_CELL, z = (cz - GRADE_RANGE + 0.5) * GRADE_CELL;
-    if (pts.some((p) => Math.hypot(p.x - x, p.z - z) < reach)) near[cx * size + cz] = 1;
-  }
-  gradePoints = pts; gradeSegments = segs; gradeNear = near;
-}
-
-/** terrain height: the natural heightmap with supply-road corridors graded smooth */
-export function heightAt(x: number, z: number): number {
-  const raw = rawHeightAt(x, z);
-  if (raw <= WATER_LEVEL) return raw;
-  if (!gradePoints) buildGrade();
-  const size = GRADE_RANGE * 2;
-  const cx = Math.floor(x / GRADE_CELL) + GRADE_RANGE, cz = Math.floor(z / GRADE_CELL) + GRADE_RANGE;
-  if (cx < 0 || cz < 0 || cx >= size || cz >= size || !gradeNear![cx * size + cz]) return raw;
-  // nearest point on the graded centre-line polyline, height interpolated along the segment
-  let best = Infinity, bh = raw;
-  for (const sgm of gradeSegments!) {
-    const ex = sgm.b.x - sgm.a.x, ez = sgm.b.z - sgm.a.z;
-    const len2 = ex * ex + ez * ez || 1;
-    const t = Math.min(1, Math.max(0, ((x - sgm.a.x) * ex + (z - sgm.a.z) * ez) / len2));
-    const d = Math.hypot(sgm.a.x + ex * t - x, sgm.a.z + ez * t - z);
-    if (d < best) { best = d; bh = sgm.a.h + (sgm.b.h - sgm.a.h) * t; }
-  }
-  const w = 1 - smoothstep(GRADE_CORE, GRADE_FADE, best);
-  return w <= 0 ? raw : raw + (Math.max(bh, WATER_LEVEL + 0.4) - raw) * w;
-}
-
 /** ground height a walker stands on (water surface if submerged) */
 export function walkHeight(x: number, z: number) {
   return Math.max(WATER_LEVEL - 0.6, heightAt(x, z));
@@ -213,17 +155,7 @@ function mix(a: readonly number[], b: readonly number[], t: number): [number, nu
   ];
 }
 
-/**
- * Slope masking (auto-material): flats keep their biome colour, mid slopes break into exposed
- * dirt, steep faces become cliff rock — no hand painting, and any deformed terrain re-masks itself.
- * `slope` is slopeAt()'s 0..1 steepness. Returns blend weights (each 0..1, rock wins over dirt).
- * Thresholds are tuned to this heightmap (slopeAt saturates near 42 degrees), not raw 30/45 degrees.
- */
-export function slopeMask(slope: number): { dirt: number; rock: number } {
-  return { dirt: smoothstep(0.22, 0.5, slope), rock: smoothstep(0.5, 0.85, slope) };
-}
-
-/** colour by elevation, then tinted by the dominant biome, then cliff-masked by slope */
+/** colour by elevation, then tinted by the dominant biome */
 export function colorAt(x: number, z: number, h: number): [number, number, number] {
   let c: [number, number, number];
   if (h < -6) c = [...PALETTE.deep];
@@ -248,15 +180,6 @@ export function colorAt(x: number, z: number, h: number): [number, number, numbe
     } else if (r.id === "frostspire") c = mix(c, PALETTE.snow, w * smoothstep(24, 48, h));
     else if (r.id === "wastelands") c = mix(c, [0.55, 0.44, 0.28], w * 0.8);
     else if (r.id === "nexus") c = mix(c, [0.2, 0.24, 0.3], w);
-  }
-
-  // slope mask: steep ground sheds its grass/snow for dirt then bare rock; underwater and the
-  // shoreline keep their colour so beaches and sea floors do not turn to cliff
-  if (h > 1.6) {
-    const { dirt, rock } = slopeMask(slopeAt(x, z));
-    const cliff = (fbm(x * 0.12, z * 0.12, 2) - 0.5) * 0.1; // strata variation
-    c = mix(c, [PALETTE.dirt[0] + cliff, PALETTE.dirt[1] + cliff, PALETTE.dirt[2] + cliff], dirt * 0.75);
-    c = mix(c, [PALETTE.rock[0] + cliff, PALETTE.rock[1] + cliff, PALETTE.rock[2] + cliff], rock * 0.9);
   }
 
   // a little noise so large surfaces never read as flat colour
