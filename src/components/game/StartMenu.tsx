@@ -31,8 +31,14 @@ function APPEARANCE_FOR(classId: ClassId): AppearanceDefinition {
   return { ...appearanceById(op.appearanceId), callsign: op.callsign };
 }
 
+type Tab = "body" | "armor" | "cloth" | "visor" | "trim" | "callsign";
+const TABS: { key: Tab; label: string }[] = [
+  { key: "body", label: "Body" }, { key: "armor", label: "Armor" }, { key: "cloth", label: "Undersuit" },
+  { key: "visor", label: "Visor" }, { key: "trim", label: "Trim" }, { key: "callsign", label: "Callsign" },
+];
+
 const GUIDE: Record<Stage, string> = {
-  CLASS: "Select your combat identity.",
+  CLASS: "Select your operative: GOLIATH, NYX or CIPHER.",
   SUBCLASS: "Now define how that identity controls the battlefield.",
   APPEARANCE: "The forge is ready. Shape your field armor.",
   ASSEMBLING: "Identity stabilized. Armor assembly in progress.",
@@ -46,6 +52,7 @@ export function StartMenu({ onDeploy, onSaveCharacter, weaponOrder, onSettings }
   const [bodyType, setBodyType] = useState<BodyType>(DEFAULT_BODY_TYPE);
   const [deployError, setDeployError] = useState("");
   const [deploying, setDeploying] = useState(false);
+  const [tab, setTab] = useState<Tab>("body");
   const guard = useRef(createDeployGuard()).current;
   const operator = operatorByClass(classId);
   const subclasses = SUBCLASSES.filter((item) => item.classId === classId);
@@ -112,9 +119,30 @@ export function StartMenu({ onDeploy, onSaveCharacter, weaponOrder, onSettings }
       <p className="mt-2 text-sm text-foreground/80">{GUIDE[stage]}</p>
     </div>
 
-    {stage === "CLASS" && <div className="pointer-events-none absolute inset-x-0 bottom-28 z-10 grid grid-cols-3 px-[4vw] text-center sm:px-[14vw]">
-      {CLASSES.map((item, index) => <Button key={item.id} variant="ghost" className={`relative pointer-events-auto mx-auto h-auto w-fit rounded-none border-b-2 bg-transparent px-4 py-3 font-mono transition ${classId === item.id ? "border-primary text-foreground" : "border-transparent text-muted-foreground hover:text-foreground"}`} onClick={() => selectClass(item.id)}><span><span className="block text-[9px] tracking-[0.3em] text-primary">0{index + 1}</span><span className="text-xs font-bold sm:text-lg">{CLASS_LABEL[item.id]}</span><span className="mt-1 hidden text-[8px] uppercase sm:block">{item.id === "TITAN" ? "Control space" : item.id === "HUNTER" ? "Control movement" : "Control systems"}</span></span></Button>)}
-    </div>}
+    {stage === "CLASS" && <>
+      <div className="pointer-events-none absolute inset-x-0 bottom-20 z-10 grid grid-cols-3 gap-2 px-[2vw] sm:gap-4 sm:px-[8vw]">
+        {CLASSES.map((item, index) => {
+          const op = operatorByClass(item.id);
+          const active = classId === item.id;
+          const stats: [string, number, number][] = [["Health", op.baseStats.health, 160], ["Armor", op.baseStats.armor, 130], ["Mobility", op.baseStats.mobility, 100], ["Tech", op.baseStats.tech, 110]];
+          return <button key={item.id} type="button" onClick={() => selectClass(item.id)} className={`hud-panel pointer-events-auto relative overflow-hidden px-3 pb-3 pt-4 text-center transition ${active ? "hud-glow text-foreground" : "text-muted-foreground opacity-75 hover:opacity-100"}`}>
+            <CornerBrackets size={6} />
+            <span className="block font-mono text-[9px] tracking-[0.3em] text-primary">0{index + 1} // {op.className.toUpperCase()} CLASS</span>
+            <span className="mt-1 block font-mono text-lg font-bold tracking-[0.2em] sm:text-2xl">{op.name}</span>
+            <span className="mt-0.5 hidden text-[10px] sm:block">{item.role}</span>
+            <span className="mt-2 hidden gap-1 sm:grid">
+              {stats.map(([label, value, max]) => <span key={label} className="grid grid-cols-[3.6rem_1fr] items-center gap-2 text-left font-mono text-[8px] uppercase tracking-[0.1em]">
+                <span>{label}</span>
+                <span className="h-1 bg-foreground/15"><span className="block h-full bg-primary" style={{ width: `${Math.min(100, (value / max) * 100)}%`, boxShadow: active ? "0 0 6px var(--primary)" : "none" }} /></span>
+              </span>)}
+            </span>
+            {active && <span className="mt-2 hidden border-t border-primary/30 pt-2 text-left sm:block">
+              {item.abilities.map((ability) => <span key={ability.slot} className="block text-[9px] leading-snug"><b className="text-primary">{ability.name}</b> · {ability.description}</span>)}
+            </span>}
+          </button>;
+        })}
+      </div>
+    </>}
 
     {stage === "SUBCLASS" && <div className="pointer-events-auto absolute bottom-24 left-1/2 z-10 w-[min(62rem,calc(100%-2rem))] -translate-x-1/2">
       <div className="hud-panel relative mb-2 p-3">
@@ -137,38 +165,36 @@ export function StartMenu({ onDeploy, onSaveCharacter, weaponOrder, onSettings }
       </div>
     </div>}
 
-    {stage === "APPEARANCE" && <div className="pointer-events-auto absolute bottom-20 left-1/2 z-10 w-[min(48rem,calc(100%-2rem))] -translate-x-1/2">
-      <div className="hud-panel relative p-3">
+    {stage === "APPEARANCE" && <div className="pointer-events-auto absolute inset-x-0 bottom-20 z-10 mx-auto w-[min(56rem,calc(100%-2rem))] sm:inset-x-auto sm:bottom-auto sm:right-[4vw] sm:top-28 sm:mx-0 sm:w-[min(26rem,44vw)]">
+      <div className="hud-panel relative p-4">
         <CornerBrackets size={6} />
-        <div className="flex items-baseline justify-between gap-3">
-          <span className="font-mono text-xs uppercase tracking-[0.12em] text-foreground">{operator.name}</span>
-          <span className="font-mono text-[9px] uppercase text-muted-foreground">{operator.classId} / {subclasses.find((item) => item.id === subclassId)?.name ?? ""}</span>
+        <h2 className="font-mono text-sm font-bold uppercase tracking-[0.2em] text-foreground">Customize your appearance</h2>
+        <div className="mt-1 flex items-baseline justify-between gap-3 border-b border-primary/25 pb-2">
+          <span className="font-mono text-xs uppercase tracking-[0.12em] text-primary">{operator.name}</span>
+          <span className="font-mono text-[9px] uppercase text-muted-foreground">{operator.className} / {subclasses.find((item) => item.id === subclassId)?.name ?? ""}</span>
         </div>
-        <p className="mt-1 text-[10px] italic leading-relaxed text-muted-foreground">{operator.bio}</p>
-
-        <div className="mt-3">
-          <span className="hud-label">Body type</span>
-          <div className="mt-1 grid grid-cols-3 gap-2">
-            {BODY_TYPES.map((type) => <Button key={type} type="button" variant="ghost" onClick={() => setBodyType(type)} className={`hud-panel h-auto justify-start px-3 py-2 text-left whitespace-normal ${bodyType === type ? "hud-glow text-foreground" : "text-muted-foreground"}`}><span><span className="block font-mono text-[11px] uppercase tracking-[0.12em]">{BODY_PROFILES[type].label}</span><span className="block text-[9px]">{BODY_PROFILES[type].blurb}</span></span></Button>)}
-          </div>
-        </div>
-
-        <label className="mt-3 block">
-          <span className="hud-label">Callsign</span>
-          <Input value={appearance.callsign} maxLength={24} onChange={(event) => setAppearance((current) => ({ ...current, callsign: event.target.value.toUpperCase() }))} className="mt-1 h-8 rounded-none border-primary/30 bg-background/60 font-mono text-xs uppercase tracking-[0.12em]" />
-        </label>
-
-        <div className="mt-3 grid gap-2 sm:grid-cols-2">
-          {CHANNELS.map(({ key, label }) => (
-            <div key={key}>
+        <div className="mt-3 grid grid-cols-[6.5rem_1fr] gap-3">
+          <nav className="grid content-start gap-1" aria-label="Appearance categories">
+            {TABS.map(({ key, label }) => <button key={key} type="button" onClick={() => setTab(key)} className={`border px-2 py-2 text-left font-mono text-[10px] uppercase tracking-[0.14em] transition ${tab === key ? "border-primary bg-primary/15 text-foreground" : "border-transparent text-muted-foreground hover:text-foreground"}`}>{label}</button>)}
+          </nav>
+          <div className="min-h-44">
+            {tab === "body" && <div className="grid gap-2">
+              {BODY_TYPES.map((type) => <button key={type} type="button" onClick={() => setBodyType(type)} className={`border px-3 py-2 text-left transition ${bodyType === type ? "border-primary bg-primary/15 text-foreground" : "border-border text-muted-foreground hover:text-foreground"}`}><span className="block font-mono text-[11px] uppercase tracking-[0.12em]">{BODY_PROFILES[type].label}</span><span className="block text-[9px]">{BODY_PROFILES[type].blurb}</span></button>)}
+            </div>}
+            {tab === "callsign" && <label className="block">
+              <span className="hud-label">Callsign</span>
+              <Input value={appearance.callsign} maxLength={24} onChange={(event) => setAppearance((current) => ({ ...current, callsign: event.target.value.toUpperCase() }))} className="mt-1 h-9 rounded-none border-primary/30 bg-background/60 font-mono text-xs uppercase tracking-[0.12em]" />
+              <p className="mt-2 text-[10px] italic leading-relaxed text-muted-foreground">{operator.bio}</p>
+            </label>}
+            {CHANNELS.filter((c) => c.key === tab).map(({ key, label }) => <div key={key}>
               <span className="hud-label">{label}</span>
-              <div className="mt-1 flex flex-wrap gap-1">
+              <div className="mt-2 grid grid-cols-7 gap-1.5">
                 {CUSTOMIZATION_PALETTE.map((color) => (
-                  <button key={color} type="button" aria-label={`${label} ${color}`} onClick={() => setAppearance((current) => ({ ...current, [key]: color }))} className="size-5 border transition" style={{ backgroundColor: color, borderColor: appearance[key] === color ? "var(--primary)" : "color-mix(in oklch, var(--primary) 30%, transparent)", boxShadow: appearance[key] === color ? `0 0 6px ${color}` : "none" }} />
+                  <button key={color} type="button" aria-label={`${label} ${color}`} onClick={() => setAppearance((current) => ({ ...current, [key]: color }))} className="aspect-square border transition" style={{ backgroundColor: color, borderColor: appearance[key] === color ? "var(--primary)" : "color-mix(in oklch, var(--primary) 30%, transparent)", boxShadow: appearance[key] === color ? `0 0 8px ${color}` : "none" }} />
                 ))}
               </div>
-            </div>
-          ))}
+            </div>)}
+          </div>
         </div>
       </div>
       {deployError && <p role="alert" className="mt-2 text-center font-mono text-xs text-destructive">{deployError}</p>}
