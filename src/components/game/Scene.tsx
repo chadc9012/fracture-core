@@ -52,6 +52,7 @@ import { projectDome, shieldBash } from "@/game/titan";
 import { RENDER_PRESETS } from "@/game/performance";
 import { activateLiveAbility, createLiveBuild, rebindLiveBuild, tickLiveBuild } from "@/game/live-build";
 import { RiftTurrets } from "./RiftTurrets";
+import { NearOnly } from "./NearOnly";
 import type { BodyType } from "@/game/operators";
 import { SIEGE_BLOOM_MULT, VEIL_BREAK_TIME, knockbackFrom, siegeDamageMult, siegeMoveMult, strikeDamage, strikeLanding, veilSightMult } from "@/game/operator-abilities";
 import { VERB_LABEL } from "@/game/subclass-verbs";
@@ -1894,9 +1895,9 @@ export function Scene({
       <Wildlife playerRef={player} />
       <Civilians playerRef={player} />
       <Water size={WORLD_RADIUS * 4} sunRef={sunDir} />
-      <NexusCity sim={sim} />
-      <NeonCity />
-      <Thalassia />
+      <NearOnly playerRef={player} x={NEXUS_REGION.x} z={NEXUS_REGION.z} radius={330}><NexusCity sim={sim} /></NearOnly>
+      <NearOnly playerRef={player} x={NEON_CITY_CENTER.x} z={NEON_CITY_CENTER.z} radius={300}><NeonCity /></NearOnly>
+      <NearOnly playerRef={player} x={THALASSIA_CENTER.x} z={THALASSIA_CENTER.z} radius={260}><Thalassia /></NearOnly>
       <SupplyLanes sim={sim} />
       <ZoneBeacons sim={sim} />
       <Convoys sim={sim} />
