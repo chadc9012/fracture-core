@@ -1,3 +1,4 @@
+import { REGION_HAZARD } from "@/game/region-hazards";
 import { useMemo, useState } from "react";
 import { ArrowLeft, ChevronRight, Skull } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -58,6 +59,7 @@ export function StarMap({ progression, onBack, onDeploy }: { progression: Player
             <p className="ui-kicker">Sector intel / {ZONE_LABEL[region.kind]}</p>
             <h2 className="mt-2 font-mono text-2xl uppercase" style={{ color: ZONE_COLOR[region.kind] }}>{region.name}</h2>
             <p className="mt-1 text-xs text-muted-foreground">{region.sub}</p>
+            {REGION_HAZARD[region.id] && REGION_HAZARD[region.id]!.id !== "none" && <p className="mt-2 text-xs text-destructive">Hazard · {REGION_HAZARD[region.id]!.name} — {REGION_HAZARD[region.id]!.hint}</p>}
             <ul className="mt-3 space-y-1 text-xs text-muted-foreground">{region.rules.map((r) => <li key={r}>· {r}</li>)}</ul>
             <div className="mt-4 grid grid-cols-2 gap-px bg-foreground/10">
               <span className="bg-background/80 p-3"><small className="ui-kicker block">Threat</small><b className="text-xs">{THREAT[Math.min(5, region.difficulty)]}</b></span>

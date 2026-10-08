@@ -3,10 +3,11 @@ import { useFrame, useThree } from "@react-three/fiber";
 import { useEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
 
+import { hazardAt, type HazardEffect } from "@/game/region-hazards";
 import { REGIONS, SKY, ZONE_COLOR, clockLabel, phaseFor, regionAt, WORLD_RADIUS } from "@/game/world";
 import { useKeyboard } from "@/game/useKeyboard";
 import { walkHeight, slopeAt, heightAt, WATER_LEVEL } from "@/game/terrain";
-import { alert, collidePlayer, createSim, defeatMachine, FACTIONS, fireBullet, instabilityTier, spawnMissionDrones, stepSim, summonBoss, type Faction, type InstabilityTier, type WorldSim, type ZoneState } from "@/game/sim";
+import { alert, hurtPlayer, collidePlayer, createSim, defeatMachine, FACTIONS, fireBullet, instabilityTier, spawnMissionDrones, stepSim, summonBoss, type Faction, type InstabilityTier, type WorldSim, type ZoneState } from "@/game/sim";
 import type { MissionEvent, MissionRun } from "@/game/missions/broken-signal";
 import type { MissionEvent as BlackoutEvent, MissionRun as BlackoutRun } from "@/game/missions/blackout-protocol";
 import type { MissionEvent as NeonCoreEvent, MissionRun as NeonCoreRun } from "@/game/missions/stitched-neon-core";
@@ -139,6 +140,7 @@ export type HudState = {
   titanFeedback: string;
   liveEnergy: number;
   liveEffect: string;
+  hazard?: { name: string; intensity: number; active: boolean } | undefined;
   enemyResponse: string;
   momentum: number;
   /* dev inspector */
@@ -334,6 +336,7 @@ export function Scene({
   const travelSeen = useRef(0);
   const checkpoint = useRef<{ x: number; z: number } | null>(null);
   const checkpointClock = useRef(0);
+  const hazardRef = useRef<HazardEffect>(hazardAt({ regionId: null, t: 0, dt: 0, sheltered: true, exposure: 0 }));
   const keys = useKeyboard();
   const sim = useMemo<WorldSim>(() => createSim(), []);
   // Global Balance Controller: recomputed only when equipped gear/clears/missions actually change,
@@ -1007,7 +1010,7 @@ export function Scene({
       // Neon City parkour: chaining vaults within the window nets a small, capped speed bonus.
       const chainBonus = parkourChainBonus(s.chainCount, performance.now() / 1000 - s.lastVaultAt);
       const walk = 30 * traction * (boost ? 2.1 : 1) * sim.mods.footSpeed * (live.current.dashTime > 0 ? 1.4 : 1) * (1 + chainBonus);
-      if (wish.lengthSq() > 0) wish.normalize().multiplyScalar(walk);
+      if (wish.lengthSq() > 0) wish.normalize().multiplyScalar(walk * hazardRef.current.speedMul);
       if (s.diving) {
         // swimming toward where you're looking: pitch steers you up/down, and the response is floatier than land movement
         const swimPitch = (throttleF ? 1 : throttleB ? -1 : 0) * Math.sin(s.pitch);
@@ -1350,6 +1353,13 @@ export function Scene({
     sim.mods.squadArchetype = (synergyArchetype === "Defender" ? "DEFENSIVE" : synergyArchetype === "Striker" ? "STRIKER" : synergyArchetype === "Strategist" ? "STRATEGIST" : "BALANCED") as SquadArchetype;
     sim.mods.rangedHoldFire = live.current.shieldReflect > 0;
     if (live.current.fieldTime > 0) sim.gravity *= 0.55;
+    {
+      const hz = hazardAt({ regionId: s.insideInterior ? null : regionAt(s.x, s.z)?.id ?? null, t: performance.now() / 1000, dt, sheltered: s.inVehicle || !!s.insideInterior, exposure: hazardRef.current.exposure });
+      if (hz.warning && hz.warning !== hazardRef.current.warning) alert(sim, hz.warning);
+      hazardRef.current = hz;
+      sim.gravity *= hz.gravityMul;
+      if (hz.damagePerSec > 0) { if (sim.hp - hz.damagePerSec * dt <= 1) hurtPlayer(sim, 5, hz.name); else sim.hp -= hz.damagePerSec * dt; }
+    }
     if (live.current.dashTime > 0) sim.hp = Math.min(100, sim.hp + dt * 15);
     if (live.current.hackTime > 0) for (const enemy of sim.machines) if (enemy.alive && Math.hypot(enemy.x - s.x, enemy.z - s.z) < 12) enemy.cool = Math.max(enemy.cool, 0.3);
 
@@ -1528,6 +1538,7 @@ export function Scene({
         domeTime: sim.titan.domeTime,
         titanFeedback: sim.titan.feedback,
         liveEnergy: Math.round(live.current.energy),
+        hazard: hazardRef.current.id === "none" ? undefined : { name: hazardRef.current.name, intensity: hazardRef.current.intensity, active: hazardRef.current.damagePerSec > 0 || hazardRef.current.gravityMul !== 1 },
         liveEffect: live.current.effectTime > 0 ? live.current.effect : "",
         enemyResponse: live.current.threat,
         momentum: Math.round(live.current.momentum * 100),
