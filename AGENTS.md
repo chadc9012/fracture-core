@@ -33,3 +33,4 @@
 - Save slots (src/game/save-slots.ts) park inactive games in player_save_slots; the active slot is the single player_saves row. Why: reuses the existing sync and restore-point pipeline.
 - Per-class weapon loadouts live in progression.arsenal and are passed to Scene as weaponOrder. Why: loadouts are progression, weapon feel stays in weapons.ts.
 - Region ground textures and extra models come from src/game/region-materials.ts and RegionModels.tsx; each asset is verified and isolated so failures fall back silently.
+- Regional environmental hazards are pure, clock-sampled rules in src/game/region-hazards.ts; Scene applies gravity/speed/hull effects. Why: deterministic across clients and testable.
