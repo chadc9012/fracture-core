@@ -25,7 +25,8 @@ import { weatherName as weatherLabel } from "@/game/weather-cycle";
 import { environmentAt, stepEnvironment } from "@/game/environment";
 import { backpackFor } from "@/game/backpacks";
 import { createReticle, markHit, stepReticle, type Motion, type ReticleView, EMPTY_RETICLE } from "@/game/crosshair";
-import { airJump, cancelSlide, createMoveState, glideVy, GLIDE_THRUST, land, movementFov, startSlide, stepSlide, AIR_PROFILE } from "@/game/movement";
+import { airJump, cameraDrop, cancelSlide, createMoveState, glideVy, GLIDE_THRUST, land, movementFov, resolveStance, startSlide, stepSlide, stepStance, AIR_PROFILE, STANCE_SPEED } from "@/game/movement";
+import { armorEffects } from "@/game/armor-sets";
 import { createStride, stepStride, RUN_SPEED, type FeelView } from "@/game/movement-feel";
 import { updateWind } from "@/game/wind-sway";
 import { atmosphereAt, NEUTRAL_ATMOSPHERE, type Atmosphere } from "@/game/atmosphere";
@@ -382,6 +383,10 @@ export function Scene({
     helmet: gear?.inventory.find((item) => item.id === gear.equippedGear.helmet)?.level ?? 1,
     legs: gear?.inventory.find((item) => item.id === gear.equippedGear.legs)?.level ?? 1,
   }), [gear?.inventory, gear?.equippedGear]);
+  // Equipped armor-set bonuses (armor-sets.ts): recomputed only when gear changes; the frame loop reads the ref.
+  const armorFx = useMemo(() => armorEffects({ inventory: gear?.inventory ?? [], equippedGear: gear?.equippedGear ?? {} }), [gear?.inventory, gear?.equippedGear]);
+  const armorFxRef = useRef(armorFx);
+  armorFxRef.current = armorFx;
   const missionSpawned = useRef("");
   const blackoutSpawned = useRef("");
   const neonCoreSpawned = useRef("");
@@ -446,7 +451,7 @@ export function Scene({
     return { stride: createStride(), view: null as FeelView | null, motion, motionRef: { current: motion } };
   })());
   /** class movement kit (movement.ts): air jumps, glide, slide + previous-frame jump/slide key state for edge detection */
-  const move = useRef({ state: createMoveState(), jumpHeld: false, slideHeld: false });
+  const move = useRef({ state: createMoveState(), jumpHeld: false, slideHeld: false, proneHeld: false });
   const reticle = useRef({ state: createReticle(), view: EMPTY_RETICLE, yaw: 0, pitch: 0, hit: 0, kills: 0, ready: false });
   /** eased regional atmosphere (atmosphere.ts) + scratch colours, so crossing a border blends rather than pops */
   const atmo = useRef({ fogMix: 0, fogScale: 1, lightMix: 0, fogTint: new THREE.Color("#ffffff"), lightTint: new THREE.Color("#ffffff"), hemiBase: new THREE.Color("#9ec8e8") });
@@ -694,6 +699,8 @@ export function Scene({
     if (tutorial?.step === "MATERIALIZE" && tutorialClock.current > 2) onTutorialEvent?.("READY");
     sim.titanActive = playerClass === "TITAN" && !s.inVehicle;
     sim.backpack = backpackFor(playerClass);
+    sim.armorResist = armorFxRef.current.resist;
+    sim.armorRegen = armorFxRef.current.regen;
 
     /* ---------------- day / night ---------------- */
     time.current += dt * (held.has("KeyT") ? 0.06 : 0.008);
@@ -1109,7 +1116,7 @@ export function Scene({
       const spread = underwaterSpread((wpn.spread + s.bloom * 0.04) * ((mouse.current.aim || padState.current.aim) ? wpn.adsSpread : 1), s.diving ? depth : 0);
       const yawJ = (Math.random() - 0.5) * 2 * spread;
       const pitchJ = (Math.random() - 0.5) * 2 * spread;
-       if (fireBullet(sim, s.x, s.y + (s.inVehicle ? 1.5 : 0.95), s.z, s.yaw + yawJ, s.inVehicle, s.pitch + s.recoil + pitchJ, wpn.damage * gearPower, wpn.knock, wpn.heat)) {
+       if (fireBullet(sim, s.x, s.y + (s.inVehicle ? 1.5 : 0.95), s.z, s.yaw + yawJ, s.inVehicle, s.pitch + s.recoil + pitchJ, wpn.damage * gearPower * (1 + armorFxRef.current.weaponDamage), wpn.knock, wpn.heat)) {
         bossActionLog.current = logAction(bossActionLog.current, "RANGED", performance.now() / 1000);
         sfx.playShot(s.inVehicle ? "VEHICLE" : s.weapon);
         s.recoil += wpn.recoil;
@@ -1196,17 +1203,25 @@ export function Scene({
       if (right) { wish.x += Math.sin(s.yaw - Math.PI / 2); wish.z += Math.cos(s.yaw - Math.PI / 2); }
       // Neon City parkour: chaining vaults within the window nets a small, capped speed bonus.
       const chainBonus = parkourChainBonus(s.chainCount, performance.now() / 1000 - s.lastVaultAt);
-      const walk = 30 * traction * (boost ? 2.1 : 1) * sim.mods.footSpeed * (live.current.dashTime > 0 ? 1.4 : 1) * siegeMoveMult(live.current.siegeTime) * (1 + chainBonus);
+      const mvs = move.current;
+      const crouchKey = held.has("ControlLeft") || held.has("KeyV") || held.has("KeyJ");
+      const proneKey = held.has("KeyX");
+      if (proneKey && !mvs.proneHeld) mvs.state.prone = !mvs.state.prone;
+      mvs.proneHeld = proneKey;
+      const stance = resolveStance(mvs.state, { crouchHeld: crouchKey, sprinting: boost, jumping: held.has("KeyC"), grounded: s.grounded, sliding: mvs.state.slideLeft > 0, swimming: s.diving || submerged });
+      stepStance(mvs.state, dt);
+      const sprint = boost && stance === "STAND";
+      const walk = 30 * traction * (sprint ? 2.1 : 1) * STANCE_SPEED[stance] * (1 + armorFxRef.current.moveSpeed) * sim.mods.footSpeed * (live.current.dashTime > 0 ? 1.4 : 1) * siegeMoveMult(live.current.siegeTime) * (1 + chainBonus);
       if (wish.lengthSq() > 0) wish.normalize().multiplyScalar(walk * hazardRef.current.speedMul);
       {
         // slide: out of a sprint, commit to the heading with a speed burst that bleeds off (movement.ts)
         const mv = move.current;
-        const slideKey = held.has("ControlLeft") || held.has("KeyJ");
+        const slideKey = crouchKey;
         if (slideKey && !mv.slideHeld && s.grounded && !s.diving && !submerged) startSlide(mv.state, velocity.x, velocity.z);
         mv.slideHeld = slideKey;
         if (mv.state.slideLeft > 0 && (!s.grounded || held.has("KeyC"))) cancelSlide(mv.state);
         const slideSpeed = stepSlide(mv.state, dt);
-        if (slideSpeed > 0) wish.set(mv.state.slideDirX * slideSpeed, 0, mv.state.slideDirZ * slideSpeed);
+        if (slideSpeed > 0) { const sb = slideSpeed * (1 + armorFxRef.current.slideBoost); wish.set(mv.state.slideDirX * sb, 0, mv.state.slideDirZ * sb); }
       }
       if (s.diving) {
         // swimming toward where you're looking: pitch steers you up/down, and the response is floatier than land movement
@@ -1680,7 +1695,7 @@ export function Scene({
         s.y + (s.inVehicle ? 1.5 : 0.95) + (s.inVehicle ? 5 : 2.2) * s.cameraBlend,
         s.z + Math.cos(s.yaw) * (s.inVehicle ? 1 : 0.15) + (-Math.sin(s.yaw) * shoulder - Math.cos(s.yaw) * distance) * s.cameraBlend,
       );
-      camTarget.y = Math.max(camTarget.y, (interior ? INTERIOR_ALTITUDE : walkHeight(camTarget.x, camTarget.z)) + 1.35) - move.current.state.drop * 0.55;
+      camTarget.y = Math.max(camTarget.y, (interior ? INTERIOR_ALTITUDE : walkHeight(camTarget.x, camTarget.z)) + 1.35) - cameraDrop(move.current.state);
       camera.position.lerp(camTarget, 1 - Math.exp(-18 * dt));
       const kickPitch = s.pitch + s.recoil;
       const shakeAmt = Math.min(0.08, s.punch * 0.012);
@@ -1699,7 +1714,7 @@ export function Scene({
         camera.rotateZ(fv.roll * k);
       }
       if (camera instanceof THREE.PerspectiveCamera) {
-        const desiredFov = movementFov(Boolean(mouse.current.aim || padState.current.aim), !s.inVehicle && s.grounded && boost && Math.hypot(velocity.x, velocity.z) > 2, move.current.state.slideLeft > 0);
+        const desiredFov = movementFov(Boolean(mouse.current.aim || padState.current.aim), !s.inVehicle && s.grounded && boost && move.current.state.stance === "STAND" && Math.hypot(velocity.x, velocity.z) > 2, move.current.state.slideLeft > 0, move.current.state.stance);
         camera.fov += (desiredFov - camera.fov) * (1 - Math.exp(-12 * dt));
         camera.updateProjectionMatrix();
       }

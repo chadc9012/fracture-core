@@ -1,3 +1,4 @@
+import { rollSetDrop, setById, type SetDrop } from "./armor-sets";
 import { stratagemById, type StratagemId } from "./stratagems";
 import { NO_BACKPACK, type BackpackDef } from "./backpacks";
 import { createEnvState, STRIKE_MACHINE_DAMAGE, STRIKE_PLAYER_DAMAGE, type EnvState, type Strike } from "./environment";
@@ -228,7 +229,10 @@ export type WorldSim = {
   titanActive: boolean;
   equippedElement: GearItem["element"];
   materials: Partial<Record<MaterialId, number>>;
-  drops: { id: number; material: MaterialId; amount: number; enemy: string }[];
+  drops: { id: number; material: MaterialId; amount: number; enemy: string; /** armor-sets.ts: a set piece this kill dropped */ setDrop?: SetDrop }[];
+  /** equipped armor-set bonuses (armor-sets.ts), written by Scene each frame: damage resist 0..0.5 and hull regen/s */
+  armorResist: number;
+  armorRegen: number;
   /** enemy gunfire this frame, consumed by the audio layer */
   enemyShots: { x: number; z: number; kind: string; boss: boolean; elite: boolean }[];
   /** boss phase transitions this frame, consumed by the audio/camera layer (see boss-phases.ts) */
@@ -296,7 +300,9 @@ export function defeatMachine(sim: WorldSim, m: Machine) {
   const material = m.drop;
   const amount = m.boss ? 3 : m.elite ? 2 : 1;
   sim.materials[material] = (sim.materials[material] ?? 0) + amount;
-  sim.drops.push({ id: sim.nextDropId++, material, amount, enemy: m.profile });
+  const setDrop = rollSetDrop(m.zone, m.boss ? "BOSS" : m.elite ? "ELITE" : "NORMAL", Math.random()) ?? undefined;
+  sim.drops.push({ id: sim.nextDropId++, material, amount, enemy: m.profile, ...(setDrop ? { setDrop } : {}) });
+  if (setDrop) alert(sim, `Armor drop — ${setById(setDrop.setId)?.pieces[setDrop.slot] ?? "set piece"}`);
   sim.xpEvents.push({ type: m.boss ? "BOSS_KILL" : m.elite ? "ELITE_KILL" : "KILL", enemyLevel: 1 + Math.floor(sim.combatHeat / 25), combatHeat: sim.combatHeat });
   dropLoot(sim, zoneOf(sim, m.zone), m.boss ? "ELITE" : m.profile);
   if (m.boss) {
@@ -447,7 +453,7 @@ export function createSim(): WorldSim {
     titan: createTitanState(),
     titanActive: false,
     equippedElement: "KINETIC",
-    materials: {}, drops: [], enemyShots: [], bossPhaseFlares: [], xpEvents: [], nextDropId: 0,
+    materials: {}, drops: [], armorResist: 0, armorRegen: 0, enemyShots: [], bossPhaseFlares: [], xpEvents: [], nextDropId: 0,
     emergencyQuest: EMERGENCY_QUEST_INIT,
     bossCounter: counterTuningFor(null),
     volatileZones: [],
@@ -684,7 +690,7 @@ export function hurtPlayer(sim: WorldSim, dmg: number, cause: string) {
   // score before anything else runs — the one place all incoming damage already funnels through.
   // verbIncomingMult (Bulwark Titan's Safe Ground / OVERSHIELD) is set here too since every source
   // of incoming damage — bullets, collisions, hazards — already routes through this one function.
-  const scaled = dmg * sim.mods.incomingDamageScale * sim.verbIncomingMult;
+  const scaled = dmg * sim.mods.incomingDamageScale * sim.verbIncomingMult * (1 - Math.min(0.5, Math.max(0, sim.armorResist)));
   const resolvedDamage = sim.titanActive ? absorbTitanDamage(sim.titan, scaled, performance.now() / 1000) : scaled;
   sim.hp = Math.max(0, sim.hp - resolvedDamage);
   if (sim.raidFight) sim.raidFight.hurt += resolvedDamage;
@@ -808,7 +814,7 @@ export function stepSim(sim: WorldSim, input: SimInput) {
   if (escorting > 0) logBehavior(sim.adaptation, "support", dt * 0.5 * escorting);
   stepAdaptation(sim.adaptation, dt);
   sim.mods = adaptationMods(sim.adaptation);
-  if (sim.mods.regen > 0 && sim.hp < 100) sim.hp = Math.min(100, sim.hp + sim.mods.regen * dt);
+  if (sim.mods.regen + sim.armorRegen > 0 && sim.hp < 100) sim.hp = Math.min(100, sim.hp + (sim.mods.regen + sim.armorRegen) * dt);
 
   // ---------- Emergency Quest world event ----------
   const eqWasWarning = sim.emergencyQuest.state === "WARNING";

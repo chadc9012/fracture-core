@@ -3,6 +3,7 @@ import { Activity, Anvil, Check, ChevronRight, Coins, Compass, Copy, Crosshair, 
 import { hubStopFor, markHubStopSeen, type HubView } from "@/game/hub-tour";
 
 import { Button } from "@/components/ui/button";
+import { ArmorSetsPanel } from "./ArmorSetsPanel";
 import { ABILITY_NODES, DEFAULT_BUILD, buildSynergy, nodeById, type ActiveBuild } from "@/game/ability-network";
 import { DUNGEONS } from "@/game/dungeons";
 import { CLASS_MISSIONS } from "@/game/class-missions";
@@ -48,7 +49,7 @@ export function OperationsHub({ initialView = "DUNGEONS", progression, onProgres
           <Button size="sm" onClick={dismiss}>Got it <ChevronRight /></Button>
         </div>}
         {view === "DUNGEONS" && <DungeonOperations progression={progression} onProgression={onProgression} />}
-        {view === "ARSENAL" && <Arsenal progression={progression} onProgression={onProgression} />}
+        {view === "ARSENAL" && <><Arsenal progression={progression} onProgression={onProgression} /><ArmorSetsPanel progression={progression} onProgression={onProgression} /></>}
         {view === "ABILITIES" && <AbilityNetwork progression={progression} onProgression={onProgression} />}
         {view === "WORLD" && <WorldSystems />}
         {view === "SOCIAL" && <SocialSystems />}

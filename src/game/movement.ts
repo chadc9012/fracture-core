@@ -25,7 +25,18 @@ export const SLIDE_MIN_SPEED = 26;
 export const SLIDE_START_MULT = 1.3;
 export const SLIDE_END_MULT = 0.5;
 
+export type Stance = "STAND" | "CROUCH" | "PRONE";
+/** walk-speed multiplier per stance (sprinting is only possible standing) */
+export const STANCE_SPEED: Record<Stance, number> = { STAND: 1, CROUCH: 0.45, PRONE: 0.22 };
+/** how far the camera sinks per stance, in world units */
+export const STANCE_DROP: Record<Stance, number> = { STAND: 0, CROUCH: 0.32, PRONE: 0.85 };
+
 export type MoveState = {
+  stance: Stance;
+  /** prone is a toggle (X); crouch is held (Ctrl / V) */
+  prone: boolean;
+  /** eased camera sink for the current stance */
+  stanceDrop: number;
   airJumpsLeft: number;
   slideLeft: number;
   slideCool: number;
@@ -36,7 +47,7 @@ export type MoveState = {
   drop: number;
 };
 
-export const createMoveState = (): MoveState => ({ airJumpsLeft: 0, slideLeft: 0, slideCool: 0, slideDirX: 0, slideDirZ: 0, slideSpeed: 0, drop: 0 });
+export const createMoveState = (): MoveState => ({ stance: "STAND", prone: false, stanceDrop: 0, airJumpsLeft: 0, slideLeft: 0, slideCool: 0, slideDirX: 0, slideDirZ: 0, slideSpeed: 0, drop: 0 });
 
 /** Touching the ground refills air jumps. */
 export function land(state: MoveState, classId: ClassId) { state.airJumpsLeft = AIR_PROFILE[classId].airJumps; }
@@ -81,7 +92,30 @@ export function stepSlide(state: MoveState, dt: number): number {
 }
 
 /** Camera FOV for the current movement: wider when sprinting, widest in a slide, tight when aiming. */
-export function movementFov(aiming: boolean, sprinting: boolean, sliding: boolean): number {
+export function movementFov(aiming: boolean, sprinting: boolean, sliding: boolean, stance: Stance = "STAND"): number {
   if (aiming) return 48;
-  return sliding ? 90 : sprinting ? 84 : 78;
+  if (sliding) return 90;
+  if (sprinting) return 84;
+  return stance === "STAND" ? 78 : 74;
 }
+
+/**
+ * Pick the stance for this frame. Crouch is held, prone is toggled; you cannot be either while
+ * sliding, airborne or swimming, and sprinting or jumping stands you back up. After a slide ends with
+ * crouch still held you drop straight into a crouch.
+ */
+export function resolveStance(state: MoveState, input: { crouchHeld: boolean; sprinting: boolean; jumping: boolean; grounded: boolean; sliding: boolean; swimming: boolean }): Stance {
+  if (input.sprinting || input.jumping || !input.grounded || input.swimming) state.prone = false;
+  let next: Stance = "STAND";
+  if (!input.sliding && input.grounded && !input.swimming) next = state.prone ? "PRONE" : input.crouchHeld ? "CROUCH" : "STAND";
+  state.stance = next;
+  return next;
+}
+
+/** Ease the camera toward the stance's height. */
+export function stepStance(state: MoveState, dt: number) {
+  state.stanceDrop += (STANCE_DROP[state.stance] - state.stanceDrop) * (1 - Math.exp(-12 * dt));
+}
+
+/** Total camera sink: slide drop plus stance drop. */
+export const cameraDrop = (state: MoveState): number => state.drop * 0.55 + state.stanceDrop;

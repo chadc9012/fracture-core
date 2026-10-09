@@ -1,6 +1,6 @@
 // @ts-ignore bun:test has no types in this project's tsconfig
 import { describe, expect, it } from "bun:test";
-import { airJump, createMoveState, glideVy, land, movementFov, SLIDE_MIN_SPEED, startSlide, stepSlide } from "./movement";
+import { airJump, cameraDrop, resolveStance, stepStance, STANCE_SPEED, createMoveState, glideVy, land, movementFov, SLIDE_MIN_SPEED, startSlide, stepSlide } from "./movement";
 
 describe("class air mobility", () => {
   it("gives each class its own air jumps and refills on landing", () => {
@@ -41,5 +41,34 @@ describe("slide", () => {
     expect(movementFov(false, true, false)).toBeGreaterThan(movementFov(false, false, false));
     expect(movementFov(false, true, true)).toBeGreaterThan(movementFov(false, true, false));
     expect(movementFov(true, true, true)).toBe(48);
+  });
+});
+
+describe("stances", () => {
+  const input = { crouchHeld: false, sprinting: false, jumping: false, grounded: true, sliding: false, swimming: false };
+  it("crouches while held and stands otherwise", () => {
+    const s = createMoveState();
+    expect(resolveStance(s, { ...input, crouchHeld: true })).toBe("CROUCH");
+    expect(resolveStance(s, input)).toBe("STAND");
+  });
+  it("prone sticks until sprinting, jumping or leaving the ground", () => {
+    const s = createMoveState();
+    s.prone = true;
+    expect(resolveStance(s, input)).toBe("PRONE");
+    expect(resolveStance(s, { ...input, sprinting: true })).toBe("STAND");
+    expect(s.prone).toBe(false);
+  });
+  it("never crouches mid-slide, airborne or swimming", () => {
+    const s = createMoveState();
+    expect(resolveStance(s, { ...input, crouchHeld: true, sliding: true })).toBe("STAND");
+    expect(resolveStance(s, { ...input, crouchHeld: true, grounded: false })).toBe("STAND");
+    expect(resolveStance(s, { ...input, crouchHeld: true, swimming: true })).toBe("STAND");
+  });
+  it("slows movement and sinks the camera deeper the lower you go", () => {
+    expect(STANCE_SPEED.PRONE).toBeLessThan(STANCE_SPEED.CROUCH);
+    const s = createMoveState();
+    s.stance = "PRONE";
+    for (let i = 0; i < 120; i++) stepStance(s, 1 / 60);
+    expect(cameraDrop(s)).toBeGreaterThan(0.7);
   });
 });

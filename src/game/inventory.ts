@@ -1,10 +1,11 @@
 import type { PlayerProgression } from "./progression";
 import type { WorldSim } from "./sim";
 import { playerPowerScore, rewardPacing } from "./balance";
+import { ARMOR_LEVEL_MAX, grantSetPiece } from "./armor-sets";
 
 export type MaterialId = "scrapMetal" | "reinforcedAlloy" | "microCircuits" | "thermalShards" | "cryoCrystal" | "sporeFiber" | "bioCatalyst" | "vehicleParts" | "anomalyCarbon" | "dataShards" | "magmaCore" | "zeroCore" | "abyssCore" | "aegisCore" | "anomalyCore" | "fuel" | "fuelKingCore" | "fractureCore";
 export type GearSlot = "primary" | "secondary" | "heavy" | "helmet" | "chest" | "gauntlets" | "classItem" | "legs" | "vehicle";
-export type GearItem = { id: string; name: string; slot: GearSlot; power: number; level: number; element: "KINETIC" | "THERMAL" | "CRYO" | "ARC" | "BIO"; favorite?: boolean; source: string };
+export type GearItem = { id: string; name: string; slot: GearSlot; power: number; level: number; element: "KINETIC" | "THERMAL" | "CRYO" | "ARC" | "BIO"; favorite?: boolean; source: string; /** armor-sets.ts: which set this piece belongs to */ setId?: string };
 
 export const MATERIALS: Record<MaterialId, { name: string; source: string }> = {
   scrapMetal: { name: "Scrap Metal", source: "Raiders and convoy salvage" },
@@ -49,6 +50,7 @@ export function gearCost(item: GearItem): { material: MaterialId; amount: number
 export function upgradeGear(progress: PlayerProgression, id: string): PlayerProgression {
   const item = progress.inventory.find((entry) => entry.id === id);
   if (!item) return progress;
+  if (item.setId && item.level >= ARMOR_LEVEL_MAX) return progress;
   const { material, amount } = gearCost(item);
   if ((progress.materials[material] ?? 0) < amount) return progress;
   return { ...progress, materials: { ...progress.materials, [material]: (progress.materials[material] ?? 0) - amount }, inventory: progress.inventory.map((entry) => entry.id === id ? { ...entry, level: entry.level + 1, power: entry.power + 15 } : entry) };
@@ -68,6 +70,7 @@ export function claimDrops(progress: PlayerProgression, drops: WorldSim["drops"]
   // outrun what upgrade/vendor costs already assume.
   const pacing = rewardPacing(playerPowerScore(progress));
   for (const drop of drops) {
+    if (drop.setDrop) next = grantSetPiece(next, drop.setDrop)?.progress ?? next;
     next = collectDrop(next, drop.material, Math.max(1, Math.round(drop.amount * pacing)));
     if (["magmaCore", "zeroCore", "abyssCore", "aegisCore", "anomalyCore", "vehicleParts", "fractureCore"].includes(drop.material) && drop.amount >= 3) {
       const id = `boss-${drop.material}`;
