@@ -5,6 +5,7 @@ import * as THREE from "three";
 import type { AppearanceDefinition, ClassId } from "@/game/loadout";
 import type { BodyType } from "@/game/operators";
 import { Operator } from "./Operator";
+import { OperatorModel } from "./OperatorModel";
 
 const CLASS_LABEL: Record<ClassId, string> = { TITAN: "GOLIATH", HUNTER: "NYX", WARLOCK: "CIPHER" };
 const CLASS_X: Record<ClassId, number> = { TITAN: -4.6, HUNTER: 0, WARLOCK: 4.6 };
@@ -80,7 +81,12 @@ function Showcase({ classId, appearance, bodyType, selected, hidden, mode, onSel
   });
   return <group ref={group} position={[x, 0, 0]} onClick={(event) => { event.stopPropagation(); if (mode === "CLASS") onSelect(classId); }}>
     <group ref={turntable} position-y={1.55}>
-      <Operator armor={appearance.armor} cloth={appearance.cloth} visor={appearance.visor} trim={appearance.trim} classId={classId} bodyType={bodyType} visualState="ACTIVE" />
+      <OperatorModel
+        classId={classId}
+        height={2.75}
+        feetY={-1.55}
+        fallback={<Operator armor={appearance.armor} cloth={appearance.cloth} visor={appearance.visor} trim={appearance.trim} classId={classId} bodyType={bodyType} visualState="ACTIVE" />}
+      />
     </group>
     <mesh rotation-x={-Math.PI / 2} position-y={0.04}>
       <ringGeometry args={[1.25, 1.55, 64]} />
