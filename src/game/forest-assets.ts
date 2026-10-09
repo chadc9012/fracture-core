@@ -35,3 +35,15 @@ export function reportAsset(id: string, label: string, status: AssetStatus) {
 export const getAssetSummary = () => snapshot;
 export function subscribeAssets(fn: () => void) { subs.add(fn); return () => { subs.delete(fn); }; }
 export function resetAssetReport() { items.clear(); snapshot = summarize([]); for (const fn of subs) fn(); }
+
+/* Per-model facts gathered once a GLB is on screen, for verifying a build in the browser:
+ * run `__forestAssets()` in the console to see load status plus variants, instances and triangle counts. */
+export type AssetDetail = { variants: number; instances: number; triangles: number; sourceHeight: number };
+const details = new Map<string, AssetDetail>();
+declare global { interface Window { __forestAssets?: () => unknown } }
+
+export function reportDetail(id: string, detail: AssetDetail) {
+  details.set(id, detail);
+  if (typeof window !== "undefined") window.__forestAssets = () => ({ summary: snapshot, models: Object.fromEntries(details) });
+}
+export const assetDetails = () => details;

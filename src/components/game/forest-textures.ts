@@ -115,3 +115,20 @@ export function hullDamageTexture() {
     for (let i = 0; i < 6; i++) { const x = (i + 0.5) * (n / 6); g.beginPath(); g.moveTo(x, 0); g.lineTo(x + (r() - 0.5) * 8, n); g.stroke(); } // panel seams
   }, 59);
 }
+
+/** a clump of grass blades on transparent ground (base dark, tips light), for crossed-card instancing */
+export function grassCardTexture() {
+  return make("grass", 256, (g, r, n) => {
+    for (let i = 0; i < 26; i++) {
+      const bx = n * (0.12 + r() * 0.76), h = n * (0.45 + r() * 0.5), lean = (r() - 0.5) * n * 0.32, w = 4 + r() * 6;
+      const grad = g.createLinearGradient(0, n, 0, n - h);
+      grad.addColorStop(0, "#1c3d18"); grad.addColorStop(0.45, r() < 0.3 ? "#6a8f35" : "#3f7a2b"); grad.addColorStop(1, r() < 0.4 ? "#a9c75a" : "#7fb446");
+      g.fillStyle = grad;
+      g.beginPath();
+      g.moveTo(bx - w, n);
+      g.quadraticCurveTo(bx - w * 0.5 + lean * 0.3, n - h * 0.55, bx + lean, n - h);
+      g.quadraticCurveTo(bx + w * 0.5 + lean * 0.3, n - h * 0.55, bx + w, n);
+      g.closePath(); g.fill();
+    }
+  }, 71);
+}

@@ -8,12 +8,12 @@ import { clusterAround } from "@/game/foliage";
 import { organicRock } from "@/game/organic-geometry";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import {
-  COVER, CRASH_SITE, DEBRIS, FURROW, TRAIL_HALF_WIDTH, aroundScatter, forestScatter, furrowFrame, trailEdgeScatter, trailInfo, vegetationOk,
+  COVER, CRASH_SITE, DEBRIS, ENCOUNTER, FURROW, patchNoise, TRAIL_HALF_WIDTH, aroundScatter, forestScatter, furrowFrame, trailEdgeScatter, trailInfo, vegetationOk,
   type Floor, type Investigation,
 } from "@/game/verdant";
-import { hullDamageTexture, leafLitterTexture, mossTexture, scorchTexture, smokeTexture, soilTexture } from "./forest-textures";
+import { grassCardTexture, hullDamageTexture, leafLitterTexture, mossTexture, scorchTexture, smokeTexture, soilTexture } from "./forest-textures";
 import { REGIONS } from "@/game/world";
-import { windUniforms } from "@/game/wind-sway";
+import { windSway, windUniforms } from "@/game/wind-sway";
 import { DistrictLight } from "./DistrictLight";
 import { PolyFoliage, type Placement } from "./PolyFoliage";
 
@@ -66,6 +66,17 @@ export function VerdantForest({ density, models, investigation }: { density: num
     const aroundFerns = around.slice(0, Math.ceil(around.length * 0.7)).map((f) => place(f, -0.05));
     const aroundShrubs = aroundScatter(d(9), rnd(302), 9.5, 15, plantable).map((f) => place(f, -0.05));
 
+    // Grass: patchy meadows (patchNoise gates every blade, so bare duff shows between them), a short fringe that
+    // feathers the trail edge into the forest floor, and a few tall clumps. Never inside the reserved ground.
+    const grassOk = (x: number, z: number) => plantable(x, z) && patchNoise(x, z) > 0.4;
+    const near = (x: number, z: number) => Math.hypot(x - ENCOUNTER.x, z - ENCOUNTER.z) < ENCOUNTER.radius + 12; // keep sightlines into the ambush clearing low
+    const mk = (f: Floor, lo: number, hi: number, k: number): GrassItem => ({ ...f, w: 0.8 + f.s * 0.5, h: Math.min(near(f.x, f.z) ? 0.45 : 9, (lo + ((f.r * 7.31) % 1) * (hi - lo)) * (0.85 + k * 0.3)) });
+    const meadow = clusterAround(forestScatter(d(34), rnd(701), grassOk, 0.8), 9, rnd(702), grassOk, { minRadius: 0.3, maxRadius: 3.6, minScale: 0.7, maxScale: 1.3 }).map((f) => mk(f, 0.4, 0.85, f.s));
+    const fringe = trailEdgeScatter(d(140), rnd(703), TRAIL_HALF_WIDTH + 0.15, TRAIL_HALF_WIDTH + 2.4, grassOk).map((f) => mk(f, 0.18, 0.42, f.s));
+    const tuft = clusterAround(forestScatter(d(10), rnd(704), grassOk, 2), 6, rnd(705), grassOk, { minRadius: 0.3, maxRadius: 2.4, minScale: 0.8, maxScale: 1.5 }).map((f) => mk(f, 0.8, 1.25, f.s));
+    const grass = [...meadow, ...fringe, ...tuft];
+    // small ground plants: young ferns, low to the floor, scattered through the grassy patches
+    const seedlings = clusterAround(forestScatter(d(16), rnd(711), grassOk, 1.2), 3, rnd(712), plantable, { minRadius: 0.5, maxRadius: 2.6, minScale: 0.5, maxScale: 1 }).map((f) => place(f, -0.04));
     const rockSpots = trailEdgeScatter(d(9), rnd(107), TRAIL_HALF_WIDTH + 1.5, TRAIL_HALF_WIDTH + 8, plantable);
     const coverRocks = COVER.filter((c) => c.kind === "rock").map((c) => ({ x: c.x, z: c.z, s: c.r / 1.3, r: c.yaw }));
     const rocks = [...rockSpots, ...coverRocks].map((f) => place(f));
@@ -89,7 +100,7 @@ export function VerdantForest({ density, models, investigation }: { density: num
       ...DEBRIS.slice(0, 3).map((b): Solid => ({ x: CRASH_SITE.x + b.dx, z: CRASH_SITE.z + b.dz, r: Math.max(b.w, b.d) * 0.45, kind: "wreck", hp: 400, solidity: 1.3 })),
     ];
     return {
-      ferns: [...ferns, ...aroundFerns], lowShrubs, tallShrubs: [...tallShrubs, ...aroundShrubs], saplings, rocks,
+      grass, seedlings, ferns: [...ferns, ...aroundFerns], lowShrubs, tallShrubs: [...tallShrubs, ...aroundShrubs], saplings, rocks,
       logs: logs.map((l) => lying(l.x, l.z, l.yaw, l.s)), solids, logSpots: logs,
     };
   }, [density]);
@@ -131,6 +142,7 @@ export function VerdantForest({ density, models, investigation }: { density: num
       {ready && models && (
         <>
           <PolyFoliage kind="fern" items={layout.ferns} height={0.9} sway={0.12} shadows={false} variants />
+          <PolyFoliage kind="fern" items={layout.seedlings} height={0.42} sway={0.07} shadows={false} variants />
           <PolyFoliage kind="shrub" items={layout.lowShrubs} height={0.75} sway={0.1} shadows={false} variants />
           <PolyFoliage kind="shrub" items={layout.tallShrubs} height={1.5} sway={0.16} shadows={false} variants />
           <PolyFoliage kind="fir" items={layout.saplings} height={2.4} sway={0.28} shadows={false} />
@@ -138,6 +150,7 @@ export function VerdantForest({ density, models, investigation }: { density: num
           <PolyFoliage kind="log" items={layout.logs} height={LOG_LENGTH} shadows />
         </>
       )}
+      <GrassCards items={layout.grass} />
       {ground && (
         <>
           <Decals items={ground.leaves} texture={leafLitterTexture()} lift={0.05} opacity={0.95} tints={LEAF_TINTS} />
@@ -149,6 +162,51 @@ export function VerdantForest({ density, models, investigation }: { density: num
       <CrashSite investigation={investigation} />
       <ForestMotes count={d(90)} />
     </group>
+  );
+}
+
+/* ---------------- grass ---------------- */
+
+type GrassItem = Floor & { w: number; h: number };
+const GRASS_TINTS = ["#ffffff", "#d9e8a6", "#bcd57e", "#e6ecb8", "#a9c870"];
+
+/** Two crossed alpha-tested cards per clump (pivot at the base, normals straight up so lighting matches the ground),
+ * one shared material and one draw call for the whole forest. Blades come from a generated clump texture because the
+ * project ships no grass model; wind phase comes from each clump's position, so neighbours never sway together. */
+function GrassCards({ items }: { items: GrassItem[] }) {
+  const ref = useRef<THREE.InstancedMesh>(null);
+  const tex = useMemo(() => grassCardTexture(), []);
+  const geometry = useMemo(() => {
+    const a = new THREE.PlaneGeometry(1, 1).translate(0, 0.5, 0);
+    const b = new THREE.PlaneGeometry(1, 1).translate(0, 0.5, 0).rotateY(Math.PI / 2);
+    const g = mergeGeometries([a, b])!;
+    const n = g.getAttribute("normal") as THREE.BufferAttribute;
+    for (let i = 0; i < n.count; i++) n.setXYZ(i, 0, 1, 0);
+    return g;
+  }, []);
+  const sway = useMemo(() => windSway(geometry, 0.2), [geometry]);
+  useLayoutEffect(() => {
+    const m = ref.current;
+    if (!m) return;
+    const o = new THREE.Object3D(), col = new THREE.Color();
+    items.forEach((it, i) => {
+      o.position.set(it.x, heightAt(it.x, it.z) - 0.03, it.z);
+      o.rotation.set(0, it.r, 0);
+      o.scale.set(it.w, it.h, it.w);
+      o.updateMatrix();
+      m.setMatrixAt(i, o.matrix);
+      m.setColorAt(i, col.set(GRASS_TINTS[(i * 5) % GRASS_TINTS.length]!));
+    });
+    m.count = items.length;
+    m.instanceMatrix.needsUpdate = true;
+    if (m.instanceColor) m.instanceColor.needsUpdate = true;
+    m.computeBoundingSphere();
+  }, [items]);
+  if (!tex || !items.length) return null;
+  return (
+    <instancedMesh ref={ref} args={[geometry, undefined, items.length]} frustumCulled={false} receiveShadow>
+      <meshStandardMaterial map={tex} alphaTest={0.4} side={THREE.DoubleSide} roughness={1} metalness={0} onBeforeCompile={sway} />
+    </instancedMesh>
   );
 }
 

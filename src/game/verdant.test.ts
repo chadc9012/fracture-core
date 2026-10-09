@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { FURROW, aroundScatter, inFurrow, vegetationOk, COVER, CRASH_SITE, ENCOUNTER, FOREST_SPAWN, NEW_INVESTIGATION, TRAIL, TRAIL_HALF_WIDTH, forestScatter, isReserved, shouldWakePatrol, stepInvestigation, trailEdgeScatter, trailInfo, trailMask } from "./verdant";
+import { patchNoise, FURROW, aroundScatter, inFurrow, vegetationOk, COVER, CRASH_SITE, ENCOUNTER, FOREST_SPAWN, NEW_INVESTIGATION, TRAIL, TRAIL_HALF_WIDTH, forestScatter, isReserved, shouldWakePatrol, stepInvestigation, trailEdgeScatter, trailInfo, trailMask } from "./verdant";
 import { REGIONS } from "./world";
 import { clusterAround } from "./foliage";
 import { heightAt, slopeAt, WATER_LEVEL } from "./terrain";
@@ -113,5 +113,15 @@ describe("crash-site surroundings", () => {
     const kids = clusterAround(parents, 6, mulberry32(9), (x, z) => dry(x, z) && vegetationOk(x, z), { minRadius: 0.4, maxRadius: 3 });
     expect(kids.length).toBeGreaterThan(50);
     for (const k of kids) { expect(isReserved(k.x, k.z)).toBe(false); expect(inFurrow(k.x, k.z)).toBe(false); }
+  });
+});
+
+describe("ground-cover patchiness", () => {
+  test("noise is deterministic, in range, and leaves both bare and grassy ground", () => {
+    expect(patchNoise(12.3, -45.6)).toBe(patchNoise(12.3, -45.6));
+    let above = 0, n = 0;
+    for (let x = -90; x < -30; x += 2) for (let z = -70; z < 0; z += 2) { const v = patchNoise(x, z); expect(v).toBeGreaterThanOrEqual(0); expect(v).toBeLessThanOrEqual(1); n++; if (v > 0.4) above++; }
+    expect(above / n).toBeGreaterThan(0.25);
+    expect(above / n).toBeLessThan(0.9); // a carpet would be ~1
   });
 });

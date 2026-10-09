@@ -8,7 +8,7 @@ import fern from "@/assets/polyhaven/fern_02.glb.asset.json";
 import deadLog from "@/assets/polyhaven/dead_tree_trunk.glb.asset.json";
 import mossRock from "@/assets/polyhaven/rock_moss_set_01.glb.asset.json";
 import { windSway } from "@/game/wind-sway";
-import { reportAsset } from "@/game/forest-assets";
+import { reportAsset, reportDetail } from "@/game/forest-assets";
 
 /** Poly Haven (CC0) foliage, simplified + texture-resized offline, rendered as GPU instances
  * (one draw call per sub-mesh). Each species is verified and isolated: on failure the caller
@@ -71,7 +71,13 @@ function Instanced({ url, items, scale, onReady, shadows, height, sway, variants
   }, [scene, height, sway, variants]);
   // each instance picks its variant from a hash of its index, so neighbours differ without any visible pattern
   const buckets = useMemo(() => built.map((_, vi) => items.filter((_, i) => built.length === 1 || (Math.imul(i + 1, 2654435761) >>> 0) % built.length === vi)), [built, items]);
-  useEffect(() => { onReady(); }, [onReady]);
+  useEffect(() => {
+    let triangles = 0;
+    built.forEach((v, vi) => v.parts.forEach((p) => { triangles += ((p.geometry.index ? p.geometry.index.count : p.geometry.getAttribute("position").count) / 3) * buckets[vi]!.length; }));
+    const first = built[0];
+    reportDetail(`${url.split("/").pop()} h=${height ?? "native"}`, { variants: built.length, instances: items.length, triangles: Math.round(triangles), sourceHeight: first ? Math.round((height ? height / first.norm : 0) * 100) / 100 : 0 });
+    onReady();
+  }, [onReady, built, buckets, items.length, url, height]);
   return <>{built.map((v, vi) => v.parts.map((p, i) => <Mesh key={`${vi}-${i}`} part={p} items={buckets[vi]!} scale={scale * v.norm} shadows={shadows} />))}</>;
 }
 

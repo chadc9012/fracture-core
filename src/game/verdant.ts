@@ -213,3 +213,23 @@ export function aroundScatter(count: number, rnd: () => number, rMin: number, rM
   }
   return out;
 }
+
+/* ---------------- ground-cover patchiness ---------------- */
+
+function lattice(ix: number, iz: number): number {
+  let n = (Math.imul(ix, 374761393) + Math.imul(iz, 668265263)) | 0;
+  n = Math.imul(n ^ (n >>> 13), 1274126177);
+  return ((n ^ (n >>> 16)) >>> 0) / 4294967296;
+}
+
+/** smooth deterministic 0..1 noise (two octaves). Grass and ground cover grow where it is high, so the forest
+ * floor breaks into meadows and bare duff instead of one even carpet. */
+export function patchNoise(x: number, z: number, scale = 0.085): number {
+  const oct = (sx: number, sz: number) => {
+    const fx = Math.floor(sx), fz = Math.floor(sz), tx = sx - fx, tz = sz - fz;
+    const u = tx * tx * (3 - 2 * tx), v = tz * tz * (3 - 2 * tz);
+    const a = lattice(fx, fz), b = lattice(fx + 1, fz), c = lattice(fx, fz + 1), d = lattice(fx + 1, fz + 1);
+    return a + (b - a) * u + (c - a) * v + (a - b - c + d) * u * v;
+  };
+  return oct(x * scale, z * scale) * 0.65 + oct(x * scale * 2.3 + 17, z * scale * 2.3 - 9) * 0.35;
+}

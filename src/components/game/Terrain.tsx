@@ -227,15 +227,12 @@ export function Terrain({ renderTier = "HIGH" }: { renderTier?: RenderTier } = {
   const rockB = useMemo(() => organicRock(2.2, 31, 1, 0.65), []);
   const trunkGeo = useMemo(() => new THREE.CylinderGeometry(0.32, 0.55, 4, 7), []);
   const deadTrunkGeo = useMemo(() => new THREE.CylinderGeometry(0.15, 0.5, 8, 6), []);
-  const grassGeo = useMemo(() => new THREE.ConeGeometry(0.28, 1.1, 5, 1, true).translate(0, 0.55, 0), []);
   const reedGeo = useMemo(() => new THREE.CylinderGeometry(0.03, 0.07, 2.2, 4, 1, true).translate(0, 1.1, 0), []);
   const swayTrunk = useMemo(() => windSway(trunkGeo, 0.18), [trunkGeo]);
   const swayDeadTrunk = useMemo(() => windSway(deadTrunkGeo, 0.1), [deadTrunkGeo]);
   const swayCanopyLow = useMemo(() => windSway(canopyLow, 0.55), [canopyLow]);
   const swayCanopyHigh = useMemo(() => windSway(canopyHigh, 0.8), [canopyHigh]);
-  const swayGrass = useMemo(() => windSway(grassGeo, 0.7), [grassGeo]);
   const swayReed = useMemo(() => windSway(reedGeo, 0.5), [reedGeo]);
-  const grass = useMemo(() => scatter(forest, d(420), 31, { min: 1.8, max: 20, maxSlope: 0.45, keepSpawnLaneClear: true }), [forest, density]);
   const reeds = useMemo(() => scatter(swamp, d(240), 33, { min: -2.2, max: 3.5, maxSlope: 0.5 }), [swamp, density]);
   const emberRockGeo = useMemo(() => organicRock(1.6, 44, 1, 0.5), []);
 
@@ -407,11 +404,7 @@ export function Terrain({ renderTier = "HIGH" }: { renderTier?: RenderTier } = {
         ))}
       </Instances>
 
-      {/* grass tufts and swamp reeds: thin open cones/stalks that bend hardest at the tip */}
-      <Instances limit={Math.max(1, grass.length)} receiveShadow geometry={grassGeo}>
-        <meshStandardMaterial onBeforeCompile={swayGrass} color="#5fae4f" roughness={1} side={THREE.DoubleSide} />
-        {grass.map((g, i) => <Instance key={i} position={[g.x, g.y, g.z]} scale={[0.8 + (i % 4) * 0.2, 0.7 + g.s * 0.7, 0.8 + (i % 3) * 0.25]} rotation-y={g.r} color={jitter("#5fae4f", i + 90, 0.05, 0.16)} />)}
-      </Instances>
+      {/* forest grass now lives in VerdantForest (GrassCards); swamp reeds stay here: thin stalks that bend hardest at the tip */}
       <Instances limit={Math.max(1, reeds.length)} receiveShadow geometry={reedGeo}>
         <meshStandardMaterial onBeforeCompile={swayReed} color="#5e7a4a" roughness={1} side={THREE.DoubleSide} />
         {reeds.map((g, i) => <Instance key={i} position={[g.x, Math.max(g.y, WATER_LEVEL + 0.1), g.z]} scale={[1, 0.6 + g.s * 0.8, 1]} rotation-y={g.r} color={jitter("#5e7a4a", i + 120, 0.04, 0.14)} />)}
