@@ -39,6 +39,7 @@ import { NeonCity, NEON_CITY_CENTER } from "./NeonCity";
 import { Thalassia, THALASSIA_CENTER } from "./Thalassia";
 import { Water } from "./Water";
 import { Operator } from "./Operator";
+import { OperatorModel } from "./OperatorModel";
 import { Interior } from "./Interior";
 import { WorldMarkers } from "./WorldMarkers";
 import { buildInterior, applyDamage, hitTest, stepDebris, STRUCTURE_MULT } from "@/game/destruction";
@@ -1965,7 +1966,9 @@ export function Scene({
 
       {/* player on foot */}
       <group ref={player} position={SPAWN.toArray()}>
-        <Operator bodyType={bodyType} armor={appearance.armor} cloth={appearance.cloth} visor={appearance.visor} trim={appearance.trim} classId={playerClass} motion={feel.current.motionRef} visualState={armorState} chestLevel={armorLevels.chest} helmetLevel={armorLevels.helmet} legsLevel={armorLevels.legs} />
+        <OperatorModel classId={playerClass} height={2.75} feetY={-1.55} color={appearance.armor} pose="locomotion" motion={feel.current.motionRef} fallback={
+  <Operator bodyType={bodyType} armor={appearance.armor} cloth={appearance.cloth} visor={appearance.visor} trim={appearance.trim} classId={playerClass} motion={feel.current.motionRef} visualState={armorState} chestLevel={armorLevels.chest} helmetLevel={armorLevels.helmet} legsLevel={armorLevels.legs} />
+        } />
         {playerClass === "TITAN" && sim.titan.blocking && (
           // Chevron-angled holographic panels + a glowing rim edge instead of one flat box —
           // reads as a projected energy shield rather than a translucent slab.
