@@ -1,3 +1,4 @@
+import { sanitizeActiveMissions, type ActiveMissions } from "./missions/persistence";
 import { DEFAULT_BUILD, type ActiveBuild } from "./ability-network";
 import type { PlayerCharacter } from "./deployment/deployCharacter";
 import { bodyTypeOr, migrateAbilityIds, migrateBranches, migrateBuild } from "./operators";
@@ -35,6 +36,8 @@ export type PlayerProgression = {
   /** the last confirmed Identity Forge result (operator, body type, colors, loadout); null on old saves */
   character: PlayerCharacter | null;
   tutorialComplete: boolean;
+  /** scripted mission state machines in progress (src/game/missions/persistence.ts); absent in legacy saves */
+  activeMissions: ActiveMissions;
   dungeonClears: Record<string, number>;
   earnedRewards: string[];
   inventory: GearItem[];
@@ -83,6 +86,7 @@ export const DEFAULT_PROGRESSION: PlayerProgression = {
   identityClass: null,
   character: null,
   tutorialComplete: false,
+  activeMissions: {},
   dungeonClears: {},
   earnedRewards: [],
   inventory: STARTER_GEAR,
@@ -133,6 +137,7 @@ export function normalizeProgression(raw: unknown): PlayerProgression {
       identityClass: parsed.identityClass === "TITAN" || parsed.identityClass === "HUNTER" || parsed.identityClass === "WARLOCK" ? parsed.identityClass : null,
       character: parsed.character && typeof parsed.character === "object" && typeof parsed.character.operatorId === "string" ? { ...parsed.character, bodyType: bodyTypeOr(parsed.character.bodyType) } : null,
       tutorialComplete: parsed.tutorialComplete === true,
+      activeMissions: sanitizeActiveMissions(parsed.activeMissions),
       dungeonClears: parsed.dungeonClears && typeof parsed.dungeonClears === "object" ? parsed.dungeonClears : {},
       earnedRewards: Array.isArray(parsed.earnedRewards) ? parsed.earnedRewards : [],
       abilityMastery: parsed.abilityMastery && typeof parsed.abilityMastery === "object" ? parsed.abilityMastery : {},

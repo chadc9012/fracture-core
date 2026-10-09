@@ -48,6 +48,7 @@ import { InventoryWindow } from "./InventoryWindow";
 import { WorldAtlas } from "./WorldAtlas";
 import { BrokenSignalOverlay } from "./BrokenSignalOverlay";
 import { AwakeningOverlay } from "./AwakeningOverlay";
+import { applyMissionCompletion, restoreMission, withMissionRun } from "@/game/missions/persistence";
 import { advanceAwakening, AWAKENING, type AwakeningEvent, type AwakeningRun } from "@/game/missions/awakening";
 import { normalizeBindings } from "@/game/bindings";
 import { advanceMission, BROKEN_SIGNAL, type MissionEvent, type MissionRun } from "@/game/missions/broken-signal";
@@ -275,8 +276,10 @@ export function GameCanvas() {
   }, [tutorial?.step, progression.completedMissions, cls]);
 
   /* Mission 01 · Broken Signal starts as a world event once the player is free-roaming. */
-  const [mission, setMission] = useState<MissionRun | null>(null);
-  const [awakening, setAwakening] = useState<AwakeningRun | null>(null);
+  const [mission, setMission] = useState<MissionRun | null>(() => restoreMission<MissionRun>("broken-signal", progression));
+  useEffect(() => setProgression((p) => withMissionRun(p, "broken-signal", mission)), [mission]);
+  const [awakening, setAwakening] = useState<AwakeningRun | null>(() => restoreMission<AwakeningRun>("awakening", progression));
+  useEffect(() => setProgression((p) => withMissionRun(p, "awakening", awakening)), [awakening]);
   const awakeningDone = progression.completedMissions.includes("awakening");
   useEffect(() => {
     if (phase !== "world" || tutorial || awakening || awakeningDone) return;
@@ -286,7 +289,7 @@ export function GameCanvas() {
   useEffect(() => {
     if (awakening?.state === "LOOT") return; // loot granted on ACK
     if (awakening?.state !== "COMPLETE" || awakeningDone) return;
-    setProgression((current) => { return gameTick(rewardMission(current, "awakening", { dataShards: 2 }), { type: "MISSION_COMPLETE", missionId: "awakening" }); });
+    setProgression((current) => { return applyMissionCompletion(current, "awakening"); });
     const timer = window.setTimeout(() => setAwakening(null), 7000);
     return () => window.clearTimeout(timer);
   }, [awakening?.state, awakeningDone]);
@@ -304,7 +307,7 @@ export function GameCanvas() {
   }, [missionReady, mission]);
   useEffect(() => {
     if (mission?.state !== "WORLD_UPDATE" || progression.completedMissions.includes("broken-signal")) return;
-    setProgression((current) => { return gameTick(rewardMission(current, "broken-signal", { dataShards: 3 }), { type: "MISSION_COMPLETE", missionId: "broken-signal" }); });
+    setProgression((current) => { return applyMissionCompletion(current, "broken-signal"); });
     const timer = window.setTimeout(() => setMission(null), 9000);
     return () => window.clearTimeout(timer);
   }, [mission?.state, progression.completedMissions]);
@@ -312,7 +315,8 @@ export function GameCanvas() {
   /* Mission 02 · Blackout Protocol — picks up once Broken Signal is behind you; NOVA's line
    * sends you into the real Neon City street, same ANCHOR/ARRIVED/CLEAR/HACK/ACK shape as
    * Mission 01 so Scene.tsx wires it the identical way. */
-  const [blackout, setBlackout] = useState<BlackoutRun | null>(null);
+  const [blackout, setBlackout] = useState<BlackoutRun | null>(() => restoreMission<BlackoutRun>("blackout-protocol", progression));
+  useEffect(() => setProgression((p) => withMissionRun(p, "blackout-protocol", blackout)), [blackout]);
   const blackoutReady = phase === "world" && !tutorial && progression.completedMissions.includes("broken-signal") && !progression.completedMissions.includes("blackout-protocol");
   useEffect(() => {
     if (!blackoutReady || blackout) return;
@@ -322,7 +326,7 @@ export function GameCanvas() {
   const recordBlackout = (event: BlackoutEvent) => setBlackout((current) => current ? advanceBlackout(current, event) : current);
   useEffect(() => {
     if (blackout?.state !== "WORLD_UPDATE" || progression.completedMissions.includes("blackout-protocol")) return;
-    setProgression((current) => { return gameTick(rewardMission(current, "blackout-protocol", { microCircuits: 4 }), { type: "MISSION_COMPLETE", missionId: "blackout-protocol" }); });
+    setProgression((current) => { return applyMissionCompletion(current, "blackout-protocol"); });
     const timer = window.setTimeout(() => setBlackout(null), 9000);
     return () => window.clearTimeout(timer);
   }, [blackout?.state, progression.completedMissions]);
@@ -330,7 +334,8 @@ export function GameCanvas() {
   /* Mission 03 · Stitched Neon Core — the dungeon Blackout Protocol's ending hooked but never
    * built a physical layer for; same ANCHOR/ARRIVED/CLEAR/HACK/ACK shape, ending in the game's
    * first scripted boss fight (Aegis-Prime, summoned through the normal summonBoss() path). */
-  const [neonCore, setNeonCore] = useState<NeonCoreRun | null>(null);
+  const [neonCore, setNeonCore] = useState<NeonCoreRun | null>(() => restoreMission<NeonCoreRun>("stitched-neon-core", progression));
+  useEffect(() => setProgression((p) => withMissionRun(p, "stitched-neon-core", neonCore)), [neonCore]);
   const neonCoreReady = phase === "world" && !tutorial && progression.completedMissions.includes("blackout-protocol") && !progression.completedMissions.includes("stitched-neon-core");
   useEffect(() => {
     if (!neonCoreReady || neonCore) return;
@@ -340,7 +345,7 @@ export function GameCanvas() {
   const recordNeonCore = (event: NeonCoreEvent) => setNeonCore((current) => current ? advanceNeonCore(current, event) : current);
   useEffect(() => {
     if (neonCore?.state !== "WORLD_UPDATE" || progression.completedMissions.includes("stitched-neon-core")) return;
-    setProgression((current) => { return gameTick(rewardMission(current, "stitched-neon-core", { aegisCore: 1 }), { type: "MISSION_COMPLETE", missionId: "stitched-neon-core" }); });
+    setProgression((current) => { return applyMissionCompletion(current, "stitched-neon-core"); });
     const timer = window.setTimeout(() => setNeonCore(null), 9000);
     return () => window.clearTimeout(timer);
   }, [neonCore?.state, progression.completedMissions]);
@@ -348,7 +353,8 @@ export function GameCanvas() {
   /* Mission 04 · Descent Protocol — continues straight from Stitched Neon Core's ending; gives
    * fd-16's dive-to-Thalassia (previously just a bare survive-underwater timer) an actual
    * destination and story beat in the already-built sunken city. Same shape as Missions 01-03. */
-  const [descent, setDescent] = useState<DescentRun | null>(null);
+  const [descent, setDescent] = useState<DescentRun | null>(() => restoreMission<DescentRun>("descent-protocol", progression));
+  useEffect(() => setProgression((p) => withMissionRun(p, "descent-protocol", descent)), [descent]);
   const descentReady = phase === "world" && !tutorial && progression.completedMissions.includes("stitched-neon-core") && !progression.completedMissions.includes("descent-protocol");
   useEffect(() => {
     if (!descentReady || descent) return;
@@ -358,7 +364,7 @@ export function GameCanvas() {
   const recordDescent = (event: DescentEvent) => setDescent((current) => current ? advanceDescent(current, event) : current);
   useEffect(() => {
     if (descent?.state !== "WORLD_UPDATE" || progression.completedMissions.includes("descent-protocol")) return;
-    setProgression((current) => { return gameTick(rewardMission(current, "descent-protocol", { dataShards: 5 }), { type: "MISSION_COMPLETE", missionId: "descent-protocol" }); });
+    setProgression((current) => { return applyMissionCompletion(current, "descent-protocol"); });
     const timer = window.setTimeout(() => setDescent(null), 9000);
     return () => window.clearTimeout(timer);
   }, [descent?.state, progression.completedMissions]);
@@ -368,7 +374,8 @@ export function GameCanvas() {
    * done) so it doesn't fire while fd-17's own deep-pressure dive timer is still running. Its
    * WORLD_UPDATE dispatches the BOSS_DEFEATED event fd-18 is listening for (key "system-core"),
    * which completes fd-18 and — via the ending effect below — triggers EndingOverlay. */
-  const [systemCore, setSystemCore] = useState<SystemCoreRun | null>(null);
+  const [systemCore, setSystemCore] = useState<SystemCoreRun | null>(() => restoreMission<SystemCoreRun>("system-core", progression));
+  useEffect(() => setProgression((p) => withMissionRun(p, "system-core", systemCore)), [systemCore]);
   const systemCoreReady = phase === "world" && !tutorial && progression.completedMissions.includes("descent-protocol") && progression.activeQuestId === "fd-18" && !progression.completedMissions.includes("system-core");
   useEffect(() => {
     if (!systemCoreReady || systemCore) return;
@@ -379,7 +386,7 @@ export function GameCanvas() {
   useEffect(() => {
     if (systemCore?.state !== "WORLD_UPDATE" || progression.completedMissions.includes("system-core")) return;
     setProgression((current) => {
-      return gameTick(rewardMission(current, "system-core", { fractureCore: 1 }), { type: "BOSS_DEFEATED", encounterId: "system-core" });
+      return applyMissionCompletion(current, "system-core");
     });
     const timer = window.setTimeout(() => setSystemCore(null), 9000);
     return () => window.clearTimeout(timer);

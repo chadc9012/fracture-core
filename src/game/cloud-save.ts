@@ -1,3 +1,4 @@
+import { pruneCompleted } from "./missions/persistence";
 import { supabase } from "@/integrations/supabase/client";
 import { migrateAbilityIds } from "./operators";
 import { DEFAULT_PROGRESSION, normalizeProgression, type PlayerProgression } from "./progression";
@@ -64,6 +65,8 @@ export function mergeProgression(local: PlayerProgression, cloud: PlayerProgress
     activeQuestId: newer.activeQuestId,
     currentWorld: newer.currentWorld,
     missionRuns: maxRecord(local.missionRuns, cloud.missionRuns, (a, b) => (a.day > b.day ? a : b.day > a.day ? b : a.count >= b.count ? a : b)),
+    // in-progress scripted missions are a choice (newer copy), but a mission the other copy finished is never reopened
+    activeMissions: pruneCompleted(newer.activeMissions, union(local.completedMissions, cloud.completedMissions)),
     questObjectiveProgress: maxRecord(local.questObjectiveProgress, cloud.questObjectiveProgress, (a, b) => a.map((v, i) => Math.max(v, b[i] ?? 0))),
   };
 }
