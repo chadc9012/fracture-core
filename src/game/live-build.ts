@@ -1,8 +1,8 @@
 import { ABILITY_CONFIGS, createAbilityRuntime, resolveSynergyEffects, tickAbilityRuntime, type AbilityRuntime } from "./combat-engine";
 import type { ActiveBuild } from "./ability-network";
 import type { AbilitySlot, ClassId, SubclassId } from "./loadout";
-import { nodeById } from "./ability-network";
 import { migrateBuild } from "./operators";
+import { BRANCH_LABEL, branchTier, costMult, durationMult, powerMult, scaleConfig } from "./branch-effects";
 import { verbForActivation, VERB_LABEL, type StatusVerb, type SubclassVerbDef } from "./subclass-verbs";
 
 export type { StatusVerb } from "./subclass-verbs";
@@ -37,6 +37,9 @@ export type LiveBuild = {
   /** enemy-targeted subclass verb (WEAKEN/MARKED/VOLATILE/SUPPRESS) waiting to be applied to the
    * world at the player's position by Scene.tsx right after activation, then cleared. */
   pendingVerb: PendingVerb | null;
+  /** Power-branch multipliers set by the last Shadow Strike / Siege Mode activation (Scene applies them). */
+  strikeBoost: number;
+  siegeBoost: number;
 };
 
 export const classBuild = (classId: ClassId): ActiveBuild => ({ mode: "SOLO", slots: classId === "TITAN"
@@ -46,7 +49,7 @@ export const classBuild = (classId: ClassId): ActiveBuild => ({ mode: "SOLO", sl
 
 export function createLiveBuild(equipped: ActiveBuild, branches: Record<string, string> = {}): LiveBuild {
   equipped = migrateBuild(equipped);
-  return { equipped, branches, runtime: createAbilityRuntime(), energy: 100, effect: "", effectTime: 0, threat: "Scanning loadout", damageMultiplier: 1, shieldReflect: 0, dashTime: 0, hackTime: 0, fieldTime: 0, momentum: 0, siegeTime: 0, veilTime: 0, verbKind: "", verbTime: 0, verbMagnitude: 1, pendingVerb: null };
+  return { equipped, branches, runtime: createAbilityRuntime(), energy: 100, effect: "", effectTime: 0, threat: "Scanning loadout", damageMultiplier: 1, shieldReflect: 0, dashTime: 0, hackTime: 0, fieldTime: 0, momentum: 0, siegeTime: 0, veilTime: 0, verbKind: "", verbTime: 0, verbMagnitude: 1, pendingVerb: null, strikeBoost: 1, siegeBoost: 1 };
 }
 
 export function rebindLiveBuild(live: LiveBuild, equipped: ActiveBuild, branches: Record<string, string>): LiveBuild {
@@ -79,26 +82,35 @@ export function tickLiveBuild(live: LiveBuild, dt: number) {
 /** `subclassId` is optional so callers that haven't wired identity through yet (and existing
  * callers/tests) keep working with plain class abilities and no verb attached. */
 export function activateLiveAbility(live: LiveBuild, slot: AbilitySlot, environment: string, subclassId?: SubclassId) {
-  const config = ABILITY_CONFIGS.find((item) => item.id === live.equipped.slots[slot]);
+  const base = ABILITY_CONFIGS.find((item) => item.id === live.equipped.slots[slot]);
   const runtime = live.runtime[slot];
-  if (!config || !runtime || runtime.cooldown > 0 || live.energy < config.resourceCost) return null;
-  const branch = live.branches[config.id];
-  const utility = Boolean(branch) && branch === nodeById(config.id)?.branches[2]?.id;
+  if (!base || !runtime || runtime.cooldown > 0) return null;
+  const branch = live.branches[base.id];
+  const tier = branchTier(base.id, branch);
+  // Evolution branches: Power scales the effect, Control stretches its duration, Utility cuts its cost.
+  const config = scaleConfig(base, branch);
+  const cost = config.resourceCost * costMult(tier);
+  if (live.energy < cost) return null;
   const synergy = resolveSynergyEffects(Object.values(live.equipped.slots));
-  live.energy -= config.resourceCost * (utility ? 0.85 : 1);
+  live.energy -= cost;
   live.runtime[slot] = { state: "ACTIVE", cooldown: config.cooldown * synergy.cooldownMultiplier, activeFor: Math.max(0.25, config.castTime + config.recovery) };
   const first = config.effects[0];
-  if (config.id === "rift-dash") { live.dashTime = 0.45; live.momentum = Math.min(1, live.momentum + 0.4); }
+  if (config.id === "rift-dash") { live.dashTime = 0.45 * durationMult(tier); live.momentum = Math.min(1, live.momentum + 0.4 * powerMult(tier)); }
   if (config.id === "disruption-pulse") live.hackTime = first?.duration ?? 5;
-  if (config.id === "siege-mode") live.siegeTime = first?.duration ?? 8;
+  if (config.id === "siege-mode") { live.siegeTime = first?.duration ?? 8; live.siegeBoost = powerMult(tier); }
   if (config.id === "phase-veil") live.veilTime = first?.duration ?? 6;
+  if (config.id === "shadow-strike") live.strikeBoost = powerMult(tier);
   if (config.id === "bastion-shield") live.shieldReflect = branch === "mirror-plate" ? 0.4 : 0;
   const verbDef: SubclassVerbDef | null = subclassId ? verbForActivation(subclassId, slot) : null;
   if (verbDef) {
-    if (verbDef.target === "self") { live.verbKind = verbDef.verb; live.verbTime = verbDef.duration; live.verbMagnitude = verbDef.magnitude; }
-    else live.pendingVerb = { verb: verbDef.verb, magnitude: verbDef.magnitude, duration: verbDef.duration, radius: verbDef.radius };
+    const bonusStyle = verbDef.verb === "WEAKEN" || verbDef.verb === "MARKED" || verbDef.verb === "RAGE" || verbDef.verb === "HASTE"; // x-multipliers scale their bonus part
+    const magnitude = bonusStyle ? 1 + (verbDef.magnitude - 1) * powerMult(tier) : verbDef.verb === "OVERSHIELD" ? Math.min(0.9, verbDef.magnitude * powerMult(tier)) : verbDef.magnitude * powerMult(tier);
+    const duration = verbDef.duration * durationMult(tier);
+    if (verbDef.target === "self") { live.verbKind = verbDef.verb; live.verbTime = duration; live.verbMagnitude = magnitude; }
+    else live.pendingVerb = { verb: verbDef.verb, magnitude, duration, radius: verbDef.radius };
   }
-  live.effect = `${config.id.replaceAll("-", " ")} · ${verbDef ? `${VERB_LABEL[verbDef.verb]} applied` : environment === "fracture" && config.classId === "WARLOCK" ? "fracture amplified" : branch ? `${branch.replaceAll("-", " ")} active` : "effect active"}`;
+  const note = tier ? ` · ${BRANCH_LABEL[tier]}` : "";
+  live.effect = `${config.id.replaceAll("-", " ")} · ${verbDef ? `${VERB_LABEL[verbDef.verb]} applied` : environment === "fracture" && config.classId === "WARLOCK" ? "fracture amplified" : branch ? `${branch.replaceAll("-", " ")} active` : "effect active"}${note}`;
   live.effectTime = 3;
   return config;
 }

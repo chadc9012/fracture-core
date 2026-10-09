@@ -847,7 +847,7 @@ export function Scene({
               const land = strikeLanding(s.x, s.z, target.x, target.z);
               s.x = land.x; s.z = land.z;
               s.yaw = Math.atan2(target.x - land.x, target.z - land.z);
-              target.hp -= strikeDamage(live.current.veilTime);
+              target.hp -= strikeDamage(live.current.veilTime) * live.current.strikeBoost;
               target.cool = Math.max(target.cool, 1.2);
               live.current.veilTime = 0;
               if (target.hp <= 0) defeatMachine(sim, target);
@@ -1080,7 +1080,7 @@ export function Scene({
     sim.equippedElement = equippedWeapon?.element ?? "KINETIC";
     // self-targeted subclass verbs (RAGE/OVERSHIELD, see subclass-verbs.ts) live on LiveBuild, which
     // has no reference to WorldSim — bridge them in every frame rather than one-shot at cast time.
-    sim.verbDamageMult = (live.current.verbKind === "RAGE" && live.current.verbTime > 0 ? live.current.verbMagnitude : 1) * siegeDamageMult(live.current.siegeTime);
+    sim.verbDamageMult = (live.current.verbKind === "RAGE" && live.current.verbTime > 0 ? live.current.verbMagnitude : 1) * (live.current.siegeTime > 0 ? live.current.siegeBoost : 1) * siegeDamageMult(live.current.siegeTime);
     sim.stealthMult = veilSightMult(live.current.veilTime);
     sim.verbIncomingMult = live.current.verbKind === "OVERSHIELD" && live.current.verbTime > 0 ? 1 - live.current.verbMagnitude : 1;
     s.recoil = decay(s.recoil, 9, dt);
