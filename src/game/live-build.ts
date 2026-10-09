@@ -64,9 +64,9 @@ export function rebindLiveBuild(live: LiveBuild, equipped: ActiveBuild, branches
     effect: "Loadout synchronized · combat rules updated", effectTime: 3 };
 }
 
-export function tickLiveBuild(live: LiveBuild, dt: number) {
+export function tickLiveBuild(live: LiveBuild, dt: number, recharge = 0) {
   const hasteActive = live.verbKind === "HASTE" && live.verbTime > 0;
-  const hasteRate = hasteActive ? live.verbMagnitude : 1;
+  const hasteRate = (hasteActive ? live.verbMagnitude : 1) * (1 + Math.max(0, recharge)); // armor INTELLECT speeds cooldowns + energy
   live.runtime = tickAbilityRuntime(live.runtime, dt * hasteRate);
   live.energy = Math.min(100, live.energy + dt * 9 * hasteRate);
   live.effectTime = Math.max(0, live.effectTime - dt);

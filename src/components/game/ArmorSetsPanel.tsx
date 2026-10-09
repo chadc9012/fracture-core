@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/button";
+import { ATTRIBUTES, hasFlexibility, loadoutAttributes, loadoutWarnings, SOFT_CAP } from "@/game/armor-attributes";
 import { ARMOR_LEVEL_MAX, SET_SLOTS, equipPiece, setPieceId, setStatuses } from "@/game/armor-sets";
 import { gearCost, upgradeGear } from "@/game/inventory";
 import type { PlayerProgression } from "@/game/progression";
@@ -12,6 +13,7 @@ export function ArmorSetsPanel({ progression, onProgression }: { progression: Pl
       <p className="font-mono text-[9px] uppercase tracking-[0.3em] text-primary">Regional armor sets</p>
       <h3 className="mt-1 text-xl font-semibold">Set loot & armor levels</h3>
       <p className="mt-1 text-xs text-muted-foreground">Region enemies and bosses drop set pieces. Duplicates level a piece (max {ARMOR_LEVEL_MAX}); bonuses scale with the average level of what you wear.</p>
+      <LoadoutAttributes progression={progression} />
       <div className="mt-4 grid gap-3 md:grid-cols-2">
         {statuses.map(({ set, owned, equipped, averageLevel, twoActive, fourActive }) => (
           <div key={set.id} className="border border-border p-3" style={{ borderColor: owned ? set.color : undefined }}>
@@ -42,5 +44,29 @@ export function ArmorSetsPanel({ progression, onProgression }: { progression: Pl
         ))}
       </div>
     </section>
+  );
+}
+
+const ATTRIBUTE_INFO = { intellect: ["INTELLECT", "faster ability recharge"], mobility: ["MOBILITY", "move speed and slides"], defense: ["DEFENSE", "damage resistance"] } as const;
+
+/** Live attribute totals for whatever is worn: any mix of pieces works, a matching set is a bonus, never a requirement. */
+function LoadoutAttributes({ progression }: { progression: PlayerProgression }) {
+  const { raw, effective, worn } = loadoutAttributes(progression);
+  const warnings = loadoutWarnings(progression);
+  const max = SOFT_CAP * 1.5;
+  return (
+    <div className="mt-4 border border-border p-3">
+      <div className="flex items-center justify-between"><b className="text-sm">Your loadout</b><span className="font-mono text-[9px] text-muted-foreground">{worn}/5 armor worn{hasFlexibility(progression) ? " · mixed-gear bonus active" : ""}</span></div>
+      <p className="text-[10px] text-muted-foreground">Mix any pieces. Past {SOFT_CAP} a stat gains less, heavy defense slows you, heavy intellect thins your protection.</p>
+      <div className="mt-2 space-y-1.5">
+        {ATTRIBUTES.map((attr) => (
+          <div key={attr}>
+            <div className="flex justify-between font-mono text-[9px]"><span>{ATTRIBUTE_INFO[attr][0]} <span className="text-muted-foreground">· {ATTRIBUTE_INFO[attr][1]}</span></span><span>{effective[attr].toFixed(0)}{Math.abs(raw[attr] - effective[attr]) >= 1 ? <span className="text-muted-foreground"> ({raw[attr].toFixed(0)} raw)</span> : null}</span></div>
+            <div className="h-1.5 bg-border/60"><div className="h-full bg-primary" style={{ width: `${Math.min(100, (effective[attr] / max) * 100)}%` }} /></div>
+          </div>
+        ))}
+      </div>
+      {warnings.length > 0 && <ul className="mt-2 space-y-0.5 text-[10px] text-amber-300">{warnings.map((w) => <li key={w}>⚠ {w}</li>)}</ul>}
+    </div>
   );
 }

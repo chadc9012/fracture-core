@@ -14,8 +14,8 @@ export const BONUS_PER_LEVEL = 0.08;
 const POWER_PER_LEVEL = 15;
 
 /** Every number is a fraction (0.08 = +8%) except regen, which is hull points per second. */
-export type ArmorEffects = { resist: number; weaponDamage: number; moveSpeed: number; regen: number; slideBoost: number };
-export const NO_EFFECTS: ArmorEffects = { resist: 0, weaponDamage: 0, moveSpeed: 0, regen: 0, slideBoost: 0 };
+export type ArmorEffects = { resist: number; weaponDamage: number; moveSpeed: number; regen: number; slideBoost: number; /** faster ability cooldowns and energy (armor-attributes.ts INTELLECT) */ abilityRecharge: number };
+export const NO_EFFECTS: ArmorEffects = { resist: 0, weaponDamage: 0, moveSpeed: 0, regen: 0, slideBoost: 0, abilityRecharge: 0 };
 export const MAX_RESIST = 0.5;
 
 export type SetBonus = { name: string; description: string; effects: Partial<ArmorEffects> };

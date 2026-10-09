@@ -26,7 +26,7 @@ import { environmentAt, stepEnvironment } from "@/game/environment";
 import { backpackFor } from "@/game/backpacks";
 import { createReticle, markHit, stepReticle, type Motion, type ReticleView, EMPTY_RETICLE } from "@/game/crosshair";
 import { airJump, cameraDrop, cancelSlide, createMoveState, glideVy, GLIDE_THRUST, land, movementFov, resolveStance, startSlide, stepSlide, stepStance, AIR_PROFILE, STANCE_SPEED, SLIDE_SECONDS, type Stance } from "@/game/movement";
-import { armorEffects } from "@/game/armor-sets";
+import { loadoutEffects } from "@/game/armor-attributes";
 import { createStride, stepStride, RUN_SPEED, type FeelView } from "@/game/movement-feel";
 import { updateWind } from "@/game/wind-sway";
 import { atmosphereAt, NEUTRAL_ATMOSPHERE, type Atmosphere } from "@/game/atmosphere";
@@ -385,7 +385,7 @@ export function Scene({
     legs: gear?.inventory.find((item) => item.id === gear.equippedGear.legs)?.level ?? 1,
   }), [gear?.inventory, gear?.equippedGear]);
   // Equipped armor-set bonuses (armor-sets.ts): recomputed only when gear changes; the frame loop reads the ref.
-  const armorFx = useMemo(() => armorEffects({ inventory: gear?.inventory ?? [], equippedGear: gear?.equippedGear ?? {} }), [gear?.inventory, gear?.equippedGear]);
+  const armorFx = useMemo(() => loadoutEffects({ inventory: gear?.inventory ?? [], equippedGear: gear?.equippedGear ?? {} }), [gear?.inventory, gear?.equippedGear]);
   const armorFxRef = useRef(armorFx);
   armorFxRef.current = armorFx;
   const missionSpawned = useRef("");
@@ -695,7 +695,7 @@ export function Scene({
     /* Interior Building system — non-null while the player is inside a pocket-dimension room (see @/game/interiors) */
     let interior = interiorById(s.insideInterior);
     live.current = rebindLiveBuild(live.current, activeBuild, abilityBranches);
-    tickLiveBuild(live.current, dt);
+    tickLiveBuild(live.current, dt, armorFxRef.current.abilityRecharge);
     tutorialClock.current += dt;
     if (tutorial?.step === "MATERIALIZE" && tutorialClock.current > 2) onTutorialEvent?.("READY");
     sim.titanActive = playerClass === "TITAN" && !s.inVehicle;
