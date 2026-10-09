@@ -5,11 +5,11 @@ import * as THREE from "three";
 import { clone as cloneSkinned } from "three/examples/jsm/utils/SkeletonUtils.js";
 import type { ClassId } from "@/game/loadout";
 
-/** Authored (Meshy) operator models, served from /public. GOLIATH is rigged (Mixamo skeleton with
- * walk/run/showcase clips); NYX is a static textured mesh until its rig arrives; CIPHER is procedural
- * until its file does. Anything missing or failing to load falls back to the procedural Operator. */
+/** Authored (Meshy) operator models, served from /public. GOLIATH and CIPHER are rigged (Mixamo skeleton with
+ * walk/run clips, GOLIATH also showcase); NYX is a static textured mesh until its rig arrives; Anything missing or failing to load falls back to the procedural Operator. */
 export const OPERATOR_MODELS: Partial<Record<ClassId, { url: string; tint: boolean; rigged: boolean }>> = {
   TITAN: { url: "/models/operators/goliath.glb", tint: true, rigged: true },
+  WARLOCK: { url: "/models/operators/cipher.glb", tint: true, rigged: true },
   HUNTER: { url: "/models/operators/nyx.glb", tint: false, rigged: false },
 };
 
@@ -71,7 +71,9 @@ function Model({ url, tint, height, feetY, color, pose, motion }: { url: string;
     };
     for (const key of Object.keys(actions)) { const a = actions[key]; if (a) a.weight = 0; }
     if (pose === "showcase") {
-      set("showcase", 1, clock.elapsedTime / (actions.showcase?.getClip().duration ?? 1.9));
+      // no flex clip (CIPHER): hold the walk cycle at mid-stance, which reads as a relaxed standing pose
+      if (actions.showcase) set("showcase", 1, clock.elapsedTime / actions.showcase.getClip().duration);
+      else set("walk", 1, 0.25);
     } else {
       const m = motion?.current;
       const cycle = m ? m.phase / (Math.PI * 2) : 0;
