@@ -1,3 +1,4 @@
+import { useFrame } from "@react-three/fiber";
 import { useGLTF } from "@react-three/drei";
 import { Component, Suspense, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import * as THREE from "three";
@@ -9,6 +10,7 @@ import deadLog from "@/assets/polyhaven/dead_tree_trunk.glb.asset.json";
 import mossRock from "@/assets/polyhaven/rock_moss_set_01.glb.asset.json";
 import { windSway } from "@/game/wind-sway";
 import { reportAsset, reportDetail } from "@/game/forest-assets";
+import { CULL_RADIUS, movedEnough, nearIndices } from "@/game/foliage-cull";
 
 /** Poly Haven (CC0) foliage, simplified + texture-resized offline, rendered as GPU instances
  * (one draw call per sub-mesh). Each species is verified and isolated: on failure the caller
@@ -40,7 +42,7 @@ function looksLikeVariants(kids: THREE.Object3D[]): boolean {
   return true;
 }
 
-function Instanced({ url, items, scale, onReady, shadows, height, sway, variants }: { url: string; items: Placement[]; scale: number; onReady: () => void; shadows: boolean; height?: number | undefined; sway?: number | undefined; variants?: boolean | undefined }) {
+function Instanced({ url, items, scale, onReady, shadows, height, sway, variants, radius }: { radius: number; url: string; items: Placement[]; scale: number; onReady: () => void; shadows: boolean; height?: number | undefined; sway?: number | undefined; variants?: boolean | undefined }) {
   const { scene } = useGLTF(url);
   // Poly Haven files ship several variants side by side. With `variants`, each variant is used (so plants stop
   // repeating one identical model); otherwise, or if the layout doesn't look like variants, the first one is used.
@@ -78,34 +80,57 @@ function Instanced({ url, items, scale, onReady, shadows, height, sway, variants
     reportDetail(`${url.split("/").pop()} h=${height ?? "native"}`, { variants: built.length, instances: items.length, triangles: Math.round(triangles), sourceHeight: first ? Math.round((height ? height / first.norm : 0) * 100) / 100 : 0 });
     onReady();
   }, [onReady, built, buckets, items.length, url, height]);
-  return <>{built.map((v, vi) => v.parts.map((p, i) => <Mesh key={`${vi}-${i}`} part={p} items={buckets[vi]!} scale={scale * v.norm} shadows={shadows} />))}</>;
+  return <>{built.map((v, vi) => v.parts.map((p, i) => <Mesh key={`${vi}-${i}`} part={p} items={buckets[vi]!} scale={scale * v.norm} shadows={shadows} radius={radius} />))}</>;
 }
 
 const tmp = new THREE.Object3D();
 tmp.rotation.order = "YXZ"; // yaw after tilt, so a laid-down log can still be turned to face any way
-function Mesh({ part, items, scale, shadows }: { part: { geometry: THREE.BufferGeometry; material: THREE.Material }; items: Placement[]; scale: number; shadows: boolean }) {
+function Mesh({ part, items, scale, shadows, radius }: { part: { geometry: THREE.BufferGeometry; material: THREE.Material }; items: Placement[]; scale: number; shadows: boolean; radius: number }) {
   const ref = useRef<THREE.InstancedMesh>(null);
+  const all = useRef<Float32Array>(new Float32Array(0));
+  const last = useRef({ x: Infinity, z: Infinity });
+  const clock = useRef(1);
+  // matrices for every instance are computed once; the live buffer then only holds the ones near the camera
+  const select = (cx: number, cz: number) => {
+    const mesh = ref.current;
+    if (!mesh) return;
+    const idx = nearIndices(items, cx, cz, radius);
+    const dst = mesh.instanceMatrix.array as Float32Array;
+    idx.forEach((src, k) => dst.set(all.current.subarray(src * 16, src * 16 + 16), k * 16));
+    mesh.count = idx.length;
+    mesh.instanceMatrix.needsUpdate = true;
+    last.current = { x: cx, z: cz };
+  };
   useLayoutEffect(() => {
     const mesh = ref.current;
     if (!mesh) return;
+    const m = new Float32Array(items.length * 16);
     items.forEach((p, i) => {
       tmp.position.set(p.x, p.y - 0.1, p.z);
       tmp.rotation.set(0, p.r, p.tilt ?? 0);
       tmp.scale.setScalar(p.s * scale);
       tmp.updateMatrix();
-      mesh.setMatrixAt(i, tmp.matrix);
+      tmp.matrix.toArray(m, i * 16);
     });
-    mesh.count = items.length;
-    mesh.instanceMatrix.needsUpdate = true;
-    mesh.computeBoundingSphere();
+    all.current = m;
+    mesh.count = 0; // nothing until the first camera-based selection (next frame)
+    last.current = { x: Infinity, z: Infinity };
+    clock.current = 1; // select on the very next frame
   }, [items, scale]);
+  useFrame(({ camera }, dt) => {
+    clock.current += dt;
+    if (clock.current < 0.25) return;
+    clock.current = 0;
+    const { x, z } = camera.position;
+    if (!Number.isFinite(last.current.x) || movedEnough(last.current.x, last.current.z, x, z)) select(x, z);
+  });
   return <instancedMesh ref={ref} args={[part.geometry, part.material, Math.max(1, items.length)]} castShadow={shadows} receiveShadow frustumCulled={false} />;
 }
 
 const verified = new Map<string, boolean>();
 
 /** Renders `items` as a Poly Haven species; calls onReady once visible so the caller can hide its fallback. */
-export function PolyFoliage({ kind, items, scale = 1, onReady, onFail, shadows = true, height, sway, variants }: { kind: FoliageKind; items: Placement[]; scale?: number; onReady?: () => void; onFail?: () => void; shadows?: boolean; height?: number; sway?: number; variants?: boolean }) {
+export function PolyFoliage({ kind, items, scale = 1, onReady, onFail, shadows = true, height, sway, variants, radius }: { radius?: number; kind: FoliageKind; items: Placement[]; scale?: number; onReady?: () => void; onFail?: () => void; shadows?: boolean; height?: number; sway?: number; variants?: boolean }) {
   const url = FOLIAGE[kind];
   const [ok, setOk] = useState(verified.get(url) ?? false);
   const fail = useMemo(() => () => { reportAsset(`foliage:${kind}`, LABEL[kind], "failed"); onFail?.(); }, [kind, onFail]);
@@ -116,5 +141,5 @@ export function PolyFoliage({ kind, items, scale = 1, onReady, onFail, shadows =
   }, [url, kind, fail]);
   const ready = useMemo(() => () => { reportAsset(`foliage:${kind}`, LABEL[kind], "ok"); onReady?.(); }, [kind, onReady]);
   if (!ok || !items.length) return null;
-  return <Quiet onFail={fail}><Suspense fallback={null}><Instanced url={url} items={items} scale={scale} onReady={ready} shadows={shadows} height={height} sway={sway} variants={variants} /></Suspense></Quiet>;
+  return <Quiet onFail={fail}><Suspense fallback={null}><Instanced url={url} items={items} scale={scale} onReady={ready} shadows={shadows} height={height} sway={sway} variants={variants} radius={radius ?? CULL_RADIUS[kind]} /></Suspense></Quiet>;
 }
