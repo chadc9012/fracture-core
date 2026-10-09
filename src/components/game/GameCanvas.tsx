@@ -36,6 +36,8 @@ import { classBuild } from "@/game/live-build";
 import { persistCharacter } from "@/game/deployment/saveCharacter";
 import { bodyTypeOr, type BodyType } from "@/game/operators";
 import { nodeById } from "@/game/ability-network";
+import { questEventsFromHud, NEW_QUEST_SIGNALS } from "@/game/quest-signals";
+import { brokenSignalReady, hasVehicle } from "@/game/mission-gates";
 import { advanceTutorial, FIRST_TUTORIAL, type TutorialEvent, type TutorialState } from "@/game/onboarding";
 import { OnboardingSignal } from "./OnboardingSignal";
 import { IntroCinematic } from "./IntroCinematic";
@@ -57,7 +59,7 @@ import { advanceMission as advanceDescent, DESCENT_PROTOCOL, type MissionEvent a
 import { DescentProtocolOverlay } from "./DescentProtocolOverlay";
 import { advanceMission as advanceSystemCore, SYSTEM_CORE, type MissionEvent as SystemCoreEvent, type MissionRun as SystemCoreRun } from "@/game/missions/system-core";
 import { SystemCoreOverlay } from "./SystemCoreOverlay";
-import { gameTick, QUESTS } from "@/game/quests";
+import { gameTick, reconcileQuests, QUESTS } from "@/game/quests";
 import { QuestTracker } from "./QuestTracker";
 import { dialogueFor, revisitDialogueFor, type DialogueLine } from "@/game/dialogue";
 import { DialogueOverlay } from "./DialogueOverlay";
@@ -233,7 +235,6 @@ export function GameCanvas() {
   const [subclass, setSubclass] = useState<SubclassId>("SHIELD_TITAN");
   const [appearance, setAppearance] = useState<AppearanceDefinition>(() => appearanceById("BASTION"));
   const [vehicleId, setVehicleId] = useState<VehicleId>("scrap-interceptor");
-  const [vehicleUnlocked, setVehicleUnlocked] = useState(false);
   const [garageOpen, setGarageOpen] = useState(false);
   const [inventoryOpen, setInventoryOpen] = useState(false);
   const [atlasOpen, setAtlasOpen] = useState(false);
@@ -246,6 +247,11 @@ export function GameCanvas() {
   const [operationsView, setOperationsView] = useState<"DUNGEONS" | "ARSENAL" | "ABILITIES" | null>(null);
   const [last, setLast] = useState<{ credits: number; kills: number } | null>(null);
   const [progression, setProgression] = useState<PlayerProgression>(() => loadProgression());
+  // the starter vehicle is saved progression, so Continue never re-asks for it
+  const vehicleUnlocked = hasVehicle(progression);
+  useEffect(() => { if (progression.selectedVehicle) setVehicleId(progression.selectedVehicle); }, [progression.selectedVehicle]);
+  // repair/forward quest progress against what the save already proves (missions finished before their quest was active)
+  useEffect(() => { setProgression((current) => { const next = reconcileQuests(current); return next === current ? current : next; }); }, [progression.completedMissions.length, progression.dungeonClears]);
   const [bodyType, setBodyType] = useState<BodyType>(() => bodyTypeOr(progression.character?.bodyType));
   const progressionRef = useRef(progression);
   progressionRef.current = progression;
@@ -290,7 +296,7 @@ export function GameCanvas() {
     if (current.state === "LOOT" && next.state === "CAPTURE") setProgression((p) => ({ ...p, materials: { ...p.materials, scrapMetal: (p.materials.scrapMetal ?? 0) + 4 } }));
     return next;
   });
-  const missionReady = phase === "world" && !tutorial && vehicleUnlocked && awakeningDone && !progression.completedMissions.includes("broken-signal");
+  const missionReady = brokenSignalReady({ phase, tutorialActive: Boolean(tutorial), progression, missionRunning: false });
   useEffect(() => {
     if (!missionReady || mission) return;
     const timer = window.setTimeout(() => setMission(advanceMission(BROKEN_SIGNAL, { type: "START" })), 6000);
@@ -381,39 +387,17 @@ export function GameCanvas() {
 
   /* Cross-world quest engine: HUD already reports region/heat/lockdown/hack/dive state every ~0.18s
    * (see Scene.tsx's onHud), so that cadence — not Scene's 60fps loop — is what drives gameTick here. */
-  const questSignals = useRef({ region: "", heatLevel: 1, lockdownTier: "MONITORING" as HudState["nexusLockdownTier"], hackDone: false });
+  const questSignals = useRef({ signals: NEW_QUEST_SIGNALS, at: 0 });
   useEffect(() => {
-    if (phase !== "world") return;
-    let p = progression;
-    let changed = false;
-    if (hud.regionId && hud.regionId !== questSignals.current.region) {
-      questSignals.current.region = hud.regionId;
-      p = gameTick(p, { type: "ENTER_WORLD", world: hud.regionId });
-      changed = true;
-    }
-    if (hud.heatLevel > questSignals.current.heatLevel) {
-      questSignals.current.heatLevel = hud.heatLevel;
-      p = gameTick(p, { type: "HEAT_LEVEL", level: hud.heatLevel });
-      changed = true;
-    }
-    if (hud.nexusLockdownTier !== questSignals.current.lockdownTier) {
-      questSignals.current.lockdownTier = hud.nexusLockdownTier;
-      p = gameTick(p, { type: "LOCKDOWN_TIER", tier: hud.nexusLockdownTier });
-      changed = true;
-    }
-    if (hud.hackProgress >= 100 && !questSignals.current.hackDone) {
-      questSignals.current.hackDone = true;
-      p = gameTick(p, { type: "HACK_COMPLETE" });
-      changed = true;
-    } else if (hud.hackProgress < 50) {
-      questSignals.current.hackDone = false;
-    }
-    if (hud.diving) {
-      p = gameTick(p, { type: "SURVIVED", world: "thalassia-dive", seconds: 0.18 });
-      changed = true;
-    }
-    if (changed) setProgression(p);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    if (phase !== "world") { questSignals.current.at = 0; return; }
+    const now = performance.now();
+    const dt = questSignals.current.at ? (now - questSignals.current.at) / 1000 : 0;
+    questSignals.current.at = now;
+    const { events, next } = questEventsFromHud(questSignals.current.signals, hud, dt);
+    questSignals.current.signals = next;
+    if (!events.length) return;
+    // functional update: this fires several times a second and must never overwrite newer progression
+    setProgression((current) => events.reduce((p, event) => gameTick(p, event), current));
   }, [hud, phase]);
 
   /* Interior NPC dialogue: a canned greeting the first time, then real revisit content after that —
@@ -479,7 +463,6 @@ export function GameCanvas() {
     // players who already finished onboarding never replay it when they re-deploy from Character
     setTutorial(progression.tutorialComplete ? null : FIRST_TUTORIAL);
     setProgression((current) => ({ ...current, identityClass: deployment.classId, activeBuild: classBuild(deployment.classId) }));
-    setVehicleUnlocked(Boolean(progression.selectedVehicle));
     if (progression.selectedVehicle) setVehicleId(progression.selectedVehicle);
     setHud((current) => ({
       ...current,
@@ -714,9 +697,9 @@ export function GameCanvas() {
       {strategyOpen && <RaidStrategyPanel onClose={() => setStrategyOpen(false)} />}
       {analysisOpen && <ZoneAnalysisPanel zoneName={hud.region} onClose={() => setAnalysisOpen(false)} />}
       {operationsView && <OperationsHub initialView={operationsView} progression={progression} onProgression={setProgression} onClose={() => setOperationsView(null)} />}
-      {progression.tutorialComplete && !tutorial && !vehicleUnlocked && <div className="fixed inset-0 z-40 grid place-items-center bg-background/80 p-4"><section className="w-full max-w-3xl border border-primary bg-card p-6"><p className="font-mono text-[10px] uppercase tracking-[0.3em] text-primary">Mission 01 complete · Garage assistant online</p><h2 className="mt-2 text-2xl font-semibold">Choose your first vehicle</h2><p className="mt-2 text-sm text-muted-foreground">This frame becomes your permanent world-travel unlock.</p><div className="mt-5 grid gap-3 sm:grid-cols-2">{STARTER_VEHICLES.map((vehicle) => <Button key={vehicle.id} variant="outline" onClick={() => { setVehicleId(vehicle.id); setVehicleUnlocked(true); setProgression((current) => rewardVehicle(current, vehicle.id)); }} className="h-auto min-h-36 items-start justify-start rounded-none p-4 text-left whitespace-normal"><span><span className="font-mono text-base">{vehicle.name}</span><span className="mt-2 block text-xs text-muted-foreground">{vehicle.role}</span></span></Button>)}</div></section></div>}
+      {progression.tutorialComplete && !tutorial && !vehicleUnlocked && <div className="fixed inset-0 z-40 grid place-items-center bg-background/80 p-4"><section className="w-full max-w-3xl border border-primary bg-card p-6"><p className="font-mono text-[10px] uppercase tracking-[0.3em] text-primary">Mission 01 complete · Garage assistant online</p><h2 className="mt-2 text-2xl font-semibold">Choose your first vehicle</h2><p className="mt-2 text-sm text-muted-foreground">This frame becomes your permanent world-travel unlock.</p><div className="mt-5 grid gap-3 sm:grid-cols-2">{STARTER_VEHICLES.map((vehicle) => <Button key={vehicle.id} variant="outline" onClick={() => { setVehicleId(vehicle.id); setProgression((current) => rewardVehicle(current, vehicle.id)); }} className="h-auto min-h-36 items-start justify-start rounded-none p-4 text-left whitespace-normal"><span><span className="font-mono text-base">{vehicle.name}</span><span className="mt-2 block text-xs text-muted-foreground">{vehicle.role}</span></span></Button>)}</div></section></div>}
       <CloudSavePanel progression={progression} onProgression={setProgression} />
-      {garageOpen && <div className="fixed inset-0 z-40 grid place-items-center bg-background/80 p-4"><section className="max-h-[85vh] w-full max-w-4xl overflow-y-auto border border-border bg-card p-6"><div className="flex items-start justify-between"><div><p className="font-mono text-[10px] uppercase tracking-[0.3em] text-primary">Garage assistant</p><h2 className="mt-2 text-2xl">Vehicle registry</h2><p className="mt-1 text-xs text-muted-foreground">Garage loadout {progression.garageLoadout.length}/3</p></div><Button variant="outline" onClick={() => setGarageOpen(false)}>Back</Button></div><div className="mt-5 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">{VEHICLES.map((vehicle) => { const owned = progression.ownedVehicles.includes(vehicle.id); const selected = progression.selectedVehicle === vehicle.id; return <div key={vehicle.id} className={`border p-3 ${selected ? "border-primary" : "border-border"}`}><p className="font-mono text-sm">{vehicle.name}</p><p className="mt-1 text-[10px] uppercase text-muted-foreground">{selected ? "Active · summon with V" : owned ? "Owned" : vehicleAcquisition(vehicle).replace("_", " ")}</p>{owned && !selected && <Button size="sm" variant="outline" className="mt-3" onClick={() => { setVehicleId(vehicle.id); setVehicleUnlocked(true); setProgression((current) => ({ ...current, selectedVehicle: vehicle.id })); }}>Equip</Button>}</div>; })}</div></section></div>}
+      {garageOpen && <div className="fixed inset-0 z-40 grid place-items-center bg-background/80 p-4"><section className="max-h-[85vh] w-full max-w-4xl overflow-y-auto border border-border bg-card p-6"><div className="flex items-start justify-between"><div><p className="font-mono text-[10px] uppercase tracking-[0.3em] text-primary">Garage assistant</p><h2 className="mt-2 text-2xl">Vehicle registry</h2><p className="mt-1 text-xs text-muted-foreground">Garage loadout {progression.garageLoadout.length}/3</p></div><Button variant="outline" onClick={() => setGarageOpen(false)}>Back</Button></div><div className="mt-5 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">{VEHICLES.map((vehicle) => { const owned = progression.ownedVehicles.includes(vehicle.id); const selected = progression.selectedVehicle === vehicle.id; return <div key={vehicle.id} className={`border p-3 ${selected ? "border-primary" : "border-border"}`}><p className="font-mono text-sm">{vehicle.name}</p><p className="mt-1 text-[10px] uppercase text-muted-foreground">{selected ? "Active · summon with V" : owned ? "Owned" : vehicleAcquisition(vehicle).replace("_", " ")}</p>{owned && !selected && <Button size="sm" variant="outline" className="mt-3" onClick={() => { setVehicleId(vehicle.id); setProgression((current) => ({ ...current, selectedVehicle: vehicle.id })); }}>Equip</Button>}</div>; })}</div></section></div>}
       {menuOpen && (
         <SettingsWindow
             completedMissions={progression.completedMissions}

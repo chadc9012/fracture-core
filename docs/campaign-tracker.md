@@ -33,6 +33,18 @@ So the true main-story length today is **18 quests + the tutorial = 19 units**, 
 
 ---
 
+## 2a. Status of the B1/B2 repair (2026-10-09, code + unit tests only; **not browser-verified**)
+
+| Finding | Fix | Where | Tests |
+|---|---|---|---|
+| 2.1 Kill/survive events never emitted | `questEventsFromHud` turns each HUD snapshot into `ENTER_WORLD`, `HEAT_LEVEL`, `LOCKDOWN_TIER`, `HACK_COMPLETE`, **`KILL {region}`** (one per defeated machine, baseline-safe) and **`SURVIVED {region}`** (alive only, capped per snapshot); `GameCanvas` applies them with a functional update | `src/game/quest-signals.ts`, `GameCanvas.tsx` | `quest-progression.test.ts`: per-quest tests for fd-02/05/08/11/12/13/14, wrong-region tests, full fd-01→fd-18 replay |
+| 2.2 Early mission completion dropped | Event ledger `reconcileQuests`: the active quest is credited with missions/raid clears already in `completedMissions`/`dungeonClears`; cascades, idempotent, repairs already-stuck saves; runs inside `gameTick` and once on load | `src/game/quests.ts`, `GameCanvas.tsx` | early completion, later activation, duplicate delivery, raid clear, save/load, stuck-save repair |
+| 2.3 Returning player re-asked for vehicle / `broken-signal` blocked | `vehicleUnlocked` is derived from saved `selectedVehicle` (and `vehicleId` follows it); gate extracted as `brokenSignalReady` | `src/game/mission-gates.ts`, `GameCanvas.tsx` | returning-player and prerequisite tests |
+
+Still open from §2: 2.4 mission state not persisted, 2.5 Awakening not zone-anchored, 2.6 only partial test coverage (now: `gameTick`/ledger/signals covered, the five mission machines still untested). Remaining browser checks: kill 5 enemies in Veridan and watch `fd-02` advance; stand ~90 s in the Swamps at `fd-05`; Continue as a returning player and confirm no vehicle prompt and that Broken Signal starts about 6 s after Awakening is done.
+
+---
+
 ## 2. Critical findings (read these first)
 
 1. **The quest chain cannot get past `fd-02` in the current code** *(static + simulation)*. `fd-02`, `fd-05`, `fd-08`, `fd-11`, `fd-12`, `fd-13` and `fd-14` need `KILL {world}` or `SURVIVED {world}` events (for Veridan, Swamps, Solara, Frostspire, Ember, Wastelands). `grep` finds **no code that dispatches them**: the only `gameTick` call sites are in `GameCanvas.tsx` (six `MISSION_COMPLETE`/`BOSS_DEFEATED`, plus `ENTER_WORLD`, `HEAT_LEVEL`, `LOCKDOWN_TIER`, `HACK_COMPLETE`, and `SURVIVED thalassia-dive`) and `OperationsHub.tsx` (`DUNGEON_CLEARED`, `BOSS_DEFEATED`). A simulation replaying every event the game can emit six times leaves the player at **`active = fd-02`, done = `fd-01`**. Consequences: `fd-03`…`fd-18` never become active through normal play; `QuestTracker` shows `fd-02` forever; and `system-core` cannot start because its gate requires `activeQuestId === "fd-18"` (`GameCanvas.tsx` l.364). **The finale is unreachable**, and `corruptionLevel` never rises from kills (same missing `KILL` event), so the Wastelands auto-unlock via corruption (`updateWorldState`) never fires either.

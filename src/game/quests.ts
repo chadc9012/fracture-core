@@ -244,9 +244,58 @@ export function updateWorldState(progression: PlayerProgression, event: QuestEve
   return next;
 }
 
+/** Rewards a finished quest and advances the chain. Guarded so a quest can never pay out twice. */
+function completeQuest(progression: PlayerProgression, quest: Quest): PlayerProgression {
+  if (progression.completedMissions.includes(quest.id)) return progression;
+  let next: PlayerProgression = {
+    ...progression,
+    completedMissions: [...progression.completedMissions, quest.id],
+    fractureShards: progression.fractureShards + quest.rewardShards,
+    materials: mergeMaterials(progression.materials, quest.rewardMaterials),
+    corruptionLevel: Math.min(100, progression.corruptionLevel + quest.corruption),
+    activeQuestId: quest.nextQuestId,
+    currentWorld: quest.world,
+  };
+  if (quest.unlocksWorld) next = unlockWorld(next, quest.unlocksWorld);
+  return next;
+}
+
+/** Has the game already persisted proof that this objective's one-off event happened? Missions are
+ * recorded in `completedMissions`; dungeon/raid clears in `dungeonClears`. Counters (kills, survive
+ * time) and region entry have no such record and are never back-filled. */
+export function objectiveAlreadyDone(progression: PlayerProgression, objective: QuestObjective): boolean {
+  const key = objective.key;
+  if (!key) return false;
+  switch (objective.type) {
+    case "MISSION_COMPLETE": return progression.completedMissions.includes(key);
+    case "DUNGEON_CLEARED":
+    case "BOSS_DEFEATED": return (progression.dungeonClears?.[key] ?? 0) > 0 || progression.completedMissions.includes(key);
+    default: return false;
+  }
+}
+
+/** Event ledger: credits the active quest with scripted missions / clears the player already finished
+ * before the quest became active (missions are gated by each other, not by the quest chain, so their
+ * one-time completion event can arrive early and used to be dropped). Cascades down the chain, never
+ * pays twice, and repairs saves that are already stuck. */
+export function reconcileQuests(progression: PlayerProgression): PlayerProgression {
+  let next = progression;
+  for (let guard = 0; guard <= Object.keys(QUESTS).length; guard++) {
+    const quest = activeQuest(next);
+    if (!quest) break;
+    const prior = next.questObjectiveProgress[quest.id] ?? quest.objectives.map(() => 0);
+    const updated = quest.objectives.map((o, i) => (objectiveAlreadyDone(next, o) ? o.amount : prior[i] ?? 0));
+    if (updated.some((v, i) => v !== (prior[i] ?? 0))) next = { ...next, questObjectiveProgress: { ...next.questObjectiveProgress, [quest.id]: updated } };
+    if (!quest.objectives.every((o, i) => (updated[i] ?? 0) >= o.amount)) break;
+    next = completeQuest(next, quest);
+  }
+  return next;
+}
+
 /**
  * The single loop: progress the active quest off this event, and on completion reward it,
- * advance to nextQuestId, unlock a world if flagged — then always let updateWorldState run.
+ * advance to nextQuestId, unlock a world if flagged — then reconcile against persisted completions
+ * and always let updateWorldState run.
  */
 export function gameTick(progression: PlayerProgression, event: QuestEvent): PlayerProgression {
   let next = progression;
@@ -257,19 +306,7 @@ export function gameTick(progression: PlayerProgression, event: QuestEvent): Pla
     if (updated.some((value, i) => value !== (prior[i] ?? 0))) {
       next = { ...next, questObjectiveProgress: { ...next.questObjectiveProgress, [quest.id]: updated } };
     }
-    const complete = quest.objectives.every((objective, i) => (updated[i] ?? 0) >= objective.amount);
-    if (complete && !next.completedMissions.includes(quest.id)) {
-      next = {
-        ...next,
-        completedMissions: [...next.completedMissions, quest.id],
-        fractureShards: next.fractureShards + quest.rewardShards,
-        materials: mergeMaterials(next.materials, quest.rewardMaterials),
-        corruptionLevel: Math.min(100, next.corruptionLevel + quest.corruption),
-        activeQuestId: quest.nextQuestId,
-        currentWorld: quest.world,
-      };
-      if (quest.unlocksWorld) next = unlockWorld(next, quest.unlocksWorld);
-    }
+    if (quest.objectives.every((objective, i) => (updated[i] ?? 0) >= objective.amount)) next = completeQuest(next, quest);
   }
-  return updateWorldState(next, event);
+  return updateWorldState(reconcileQuests(next), event);
 }
