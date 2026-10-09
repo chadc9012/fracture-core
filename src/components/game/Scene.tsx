@@ -25,7 +25,7 @@ import { weatherName as weatherLabel } from "@/game/weather-cycle";
 import { environmentAt, stepEnvironment } from "@/game/environment";
 import { backpackFor } from "@/game/backpacks";
 import { createReticle, markHit, stepReticle, type Motion, type ReticleView, EMPTY_RETICLE } from "@/game/crosshair";
-import { airJump, cameraDrop, cancelSlide, createMoveState, glideVy, GLIDE_THRUST, land, movementFov, resolveStance, startSlide, stepSlide, stepStance, AIR_PROFILE, STANCE_SPEED } from "@/game/movement";
+import { airJump, cameraDrop, cancelSlide, createMoveState, glideVy, GLIDE_THRUST, land, movementFov, resolveStance, startSlide, stepSlide, stepStance, AIR_PROFILE, STANCE_SPEED, SLIDE_SECONDS, type Stance } from "@/game/movement";
 import { armorEffects } from "@/game/armor-sets";
 import { createStride, stepStride, RUN_SPEED, type FeelView } from "@/game/movement-feel";
 import { updateWind } from "@/game/wind-sway";
@@ -446,7 +446,7 @@ export function Scene({
   const hemi = useRef<THREE.HemisphereLight>(null!);
   /** stride shared by camera bob, viewmodel sway and the Operator's limbs (movement-feel.ts) */
   const feel = useRef((() => {
-    const motion = { phase: 0, intensity: 0, swing: 0.35, lean: 0.04, air: false };
+    const motion = { phase: 0, intensity: 0, swing: 0.35, lean: 0.04, air: false, stance: "STAND" as Stance, slideT: 0 };
     // Operator reads a ref-shaped `{ current }`, so the same live object is also exposed boxed
     return { stride: createStride(), view: null as FeelView | null, motion, motionRef: { current: motion } };
   })());
@@ -1204,8 +1204,8 @@ export function Scene({
       // Neon City parkour: chaining vaults within the window nets a small, capped speed bonus.
       const chainBonus = parkourChainBonus(s.chainCount, performance.now() / 1000 - s.lastVaultAt);
       const mvs = move.current;
-      const crouchKey = held.has("ControlLeft") || held.has("KeyV") || held.has("KeyJ");
-      const proneKey = held.has("KeyX");
+      const crouchKey = held.has(binds.keyboard.crouch) || !!padNow[binds.gamepad.crouch];
+      const proneKey = held.has(binds.keyboard.prone) || !!padNow[binds.gamepad.prone];
       if (proneKey && !mvs.proneHeld) mvs.state.prone = !mvs.state.prone;
       mvs.proneHeld = proneKey;
       const stance = resolveStance(mvs.state, { crouchHeld: crouchKey, sprinting: boost, jumping: held.has("KeyC"), grounded: s.grounded, sliding: mvs.state.slideLeft > 0, swimming: s.diving || submerged });
@@ -1683,7 +1683,7 @@ export function Scene({
         const hSpeed = s.inVehicle ? 0 : Math.hypot(velocity.x, velocity.z);
         const strafe = (velocity.x * Math.cos(s.yaw) - velocity.z * Math.sin(s.yaw)) / RUN_SPEED;
         f.view = stepStride(f.stride, { speed: hSpeed, grounded: s.grounded && !s.diving && !s.inVehicle, sliding: move.current.state.slideLeft > 0, vy: s.vy, dt }, strafe);
-        f.motion.phase = f.view.phase; f.motion.intensity = f.view.intensity; f.motion.swing = f.view.swing; f.motion.lean = f.view.lean; f.motion.air = !s.grounded && !s.diving;
+        f.motion.phase = f.view.phase; f.motion.intensity = f.view.intensity; f.motion.swing = f.view.swing; f.motion.lean = f.view.lean; f.motion.air = !s.grounded && !s.diving; f.motion.stance = move.current.state.stance; f.motion.slideT = move.current.state.slideLeft > 0 ? 1 - move.current.state.slideLeft / SLIDE_SECONDS : -1;
       }
       const override = !s.inVehicle && (s.meleeTime > 0 || s.specialTime > 0);
       const targetBlend = override || !s.firstPerson ? 1 : 0;

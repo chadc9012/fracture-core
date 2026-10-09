@@ -10,7 +10,7 @@ const NODES = [0, 1, 2, 3];
  * this teaches them again in a real mission so the lesson survives the jump into open combat. */
 const CONTROL_HINT: Partial<Record<MissionRun["state"], string>> = {
   DISCOVERY: "Move with WASD toward the beacon marker on your compass.",
-  TRAVERSAL: "Hold Shift to sprint and close the distance faster.",
+  TRAVERSAL: "Hold Shift to sprint. Press Ctrl while sprinting to slide, hold it to crouch, X for prone (rebind in Settings > Controls).",
   COMBAT_1: "Aim with the mouse, fire with Space.",
   COMBAT_2: "Getting overwhelmed? Your class ability (Q) is up — use it.",
 };

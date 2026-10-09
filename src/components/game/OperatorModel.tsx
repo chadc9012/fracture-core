@@ -1,6 +1,6 @@
 import { useFrame } from "@react-three/fiber";
 import { useGLTF } from "@react-three/drei";
-import { Component, Suspense, useEffect, useMemo, type ReactNode } from "react";
+import { Component, Suspense, useEffect, useMemo, useRef, type ReactNode } from "react";
 import * as THREE from "three";
 import { clone as cloneSkinned } from "three/examples/jsm/utils/SkeletonUtils.js";
 import type { ClassId } from "@/game/loadout";
@@ -12,7 +12,7 @@ export const OPERATOR_MODELS: Partial<Record<ClassId, { url: string; tint: boole
   HUNTER: { url: "/models/operators/nyx.glb", tint: true, rigged: true },
 };
 
-export type ModelMotion = { current: { phase: number; intensity: number; air: boolean } };
+export type ModelMotion = { current: { phase: number; intensity: number; air: boolean; stance?: "STAND" | "CROUCH" | "PRONE"; /** 0..1 progress through a slide, -1 when not sliding */ slideT?: number } };
 
 class Quiet extends Component<{ children: ReactNode; fallback: ReactNode }, { failed: boolean }> {
   override state = { failed: false };
@@ -33,6 +33,8 @@ function pinRootMotion(clip: THREE.AnimationClip) {
   }
   return out;
 }
+
+const actions0 = (a: Record<string, THREE.AnimationAction>, name: string) => Boolean(a[name]);
 
 function Model({ url, tint, height, feetY, color, pose, motion }: { url: string; tint: boolean; height: number; feetY: number; color: string | undefined; pose: "showcase" | "locomotion"; motion: ModelMotion | undefined }) {
   const { scene, animations } = useGLTF(url);
@@ -59,7 +61,22 @@ function Model({ url, tint, height, feetY, color, pose, motion }: { url: string;
   }, [scene, animations, height, feetY, tint, color]);
   useEffect(() => () => { built.material?.dispose(); built.mixer?.stopAllAction(); }, [built]);
 
-  useFrame(({ clock }) => {
+  const rig = useRef<THREE.Group>(null);
+  const body = useRef({ crouch: 0, prone: 0, lean: 0 });
+  useFrame(({ clock }, dt) => {
+    // stance pose: squash toward the ground for a crouch, tip face-down for prone, lean back in a slide (all pivot on the feet)
+    const m0 = pose === "locomotion" ? motion?.current : undefined;
+    const sliding = (m0?.slideT ?? -1) >= 0;
+    const b = body.current;
+    const k = 1 - Math.exp(-12 * dt);
+    b.crouch += (((m0?.stance === "CROUCH" ? 1 : 0) || (sliding ? 0.7 : 0)) - b.crouch) * k;
+    b.prone += ((m0?.stance === "PRONE" ? 1 : 0) - b.prone) * k;
+    b.lean += ((sliding ? 1 : 0) - b.lean) * k;
+    if (rig.current) {
+      rig.current.scale.y = 1 - 0.24 * b.crouch;
+      rig.current.rotation.x = b.prone * 1.25 - b.lean * (actions0(built.actions, "slide") ? 0 : 0.45);
+      rig.current.position.set(0, feetY + b.prone * 0.25, -b.prone * height * 0.4);
+    }
     const { mixer, actions } = built;
     if (!mixer) return;
     const set = (name: string, weight: number, cycle: number) => {
@@ -74,6 +91,9 @@ function Model({ url, tint, height, feetY, color, pose, motion }: { url: string;
       const loop = actions.showcase ?? actions.idle;
       if (loop) set(actions.showcase ? "showcase" : "idle", 1, clock.elapsedTime / loop.getClip().duration);
       else set("walk", 1, 0.25);
+    } else if (sliding && actions.slide) {
+      // authored slide clip (NYX) scrubbed by slide progress
+      set("slide", 1, Math.min(0.999, Math.max(0, m0?.slideT ?? 0)));
     } else {
       const m = motion?.current;
       const cycle = m ? m.phase / (Math.PI * 2) : 0;
@@ -87,7 +107,7 @@ function Model({ url, tint, height, feetY, color, pose, motion }: { url: string;
     }
     mixer.update(0);
   });
-  return <primitive object={built.object} scale={built.scale} position={built.offset} />;
+  return <group ref={rig} position={[0, feetY, 0]}><primitive object={built.object} scale={built.scale} position={[built.offset.x, built.offset.y - feetY, built.offset.z]} /></group>;
 }
 
 /** Draws the authored model for `classId` if one exists, else `fallback` (also while loading or on failure).
