@@ -79,6 +79,7 @@ import { INTERIORS, INTERIOR_ALTITUDE, doorAt, atExitMarker, interiorById, isInt
 import { Interiors } from "./Interiors";
 
 import type { GameSettings } from "./SettingsWindow";
+import { clampPitch, lookDelta } from "@/game/camera-look";
 import { VerdantForest } from "./VerdantForest";
 import { CRASH_SITE, ENCOUNTER, NEW_INVESTIGATION, shouldWakePatrol, stepInvestigation } from "@/game/verdant";
 import { spawnForestPatrol } from "@/game/forest-encounter";
@@ -1173,7 +1174,14 @@ export function Scene({
       }
     }
 
-    const arrowsMove = !stratagem.current.open; // arrows enter the call-in code while N is held
+    /* ---------------- keyboard + gamepad look: arrows / right stick turn the camera on foot (mouse look still works) ---------------- */
+    const codeEntry = stratagem.current.open; // arrows enter the call-in code while N is held
+    if (!s.inVehicle && !codeEntry && !introPlayback) {
+      const stickX = pad && !s.wheel ? pad.axes[2] ?? 0 : 0, stickY = pad && !s.wheel ? pad.axes[3] ?? 0 : 0; // the right stick picks weapons while the wheel is held
+      const look = lookDelta({ left: held.has("ArrowLeft"), right: held.has("ArrowRight"), up: held.has("ArrowUp"), down: held.has("ArrowDown"), stickX, stickY }, dt);
+      if (look.dyaw || look.dpitch) { s.yaw += look.dyaw; s.pitch = clampPitch(s.pitch + look.dpitch); }
+    }
+    const arrowsMove = !codeEntry && s.inVehicle; // arrows still steer a vehicle; on foot they now look
     const throttleF = held.has("KeyW") || (arrowsMove && held.has("ArrowUp"));
     const throttleB = held.has("KeyS") || (arrowsMove && held.has("ArrowDown"));
     const left = held.has("KeyA") || (arrowsMove && held.has("ArrowLeft"));
