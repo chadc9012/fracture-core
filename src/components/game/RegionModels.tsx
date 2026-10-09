@@ -14,9 +14,9 @@ import deadTrunk from "@/assets/polyhaven/dead_tree_trunk.glb.asset.json";
 /** Poly Haven (CC0) self-contained GLBs placed per region. Each model is HEAD-verified and isolated
  * in its own Suspense + error boundary so a failed asset can never suspend the world scene. */
 const PLACEMENT: { url: string; regions: string[]; count: number; scale: [number, number]; seed: number }[] = [
-  { url: boulder.url, regions: ["wastelands", "solara", "ember", "frostspire"], count: 7, scale: [2.2, 4], seed: 71 },
-  { url: mossRocks.url, regions: ["veridan", "swamps", "frostspire"], count: 6, scale: [2.5, 4.5], seed: 83 },
-  { url: deadTrunk.url, regions: ["swamps", "wastelands", "ember", "veridan"], count: 5, scale: [1.4, 2.2], seed: 97 },
+  { url: boulder.url, regions: ["wastelands", "solara", "ember", "frostspire"], count: 3, scale: [2.2, 4], seed: 71 },
+  { url: mossRocks.url, regions: ["veridan", "swamps", "frostspire"], count: 3, scale: [2.5, 4.5], seed: 83 },
+  { url: deadTrunk.url, regions: ["swamps", "wastelands", "ember", "veridan"], count: 3, scale: [1.4, 2.2], seed: 97 },
 ];
 
 class Quiet extends Component<{ children: ReactNode }, { failed: boolean }> {
@@ -77,7 +77,7 @@ function Placed({ url, regions, count, scale, seed }: (typeof PLACEMENT)[number]
   return <group ref={group}>{spots.map((p, i) => <primitive key={i} object={clones[i]!} position={[p.x, p.y - 0.2, p.z]} rotation-y={p.r} scale={p.s} visible={false} />)}</group>;
 }
 
-const SHOW_RADIUS = 110;
+const SHOW_RADIUS = 70;
 const SHADOW_RADIUS = 35;
 
 const verified = new Map<string, boolean>();

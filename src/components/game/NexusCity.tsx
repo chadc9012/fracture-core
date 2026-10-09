@@ -222,7 +222,6 @@ export function Turrets({ sim }: { sim: WorldSim }) {
             <sphereGeometry args={[0.7, 10, 10]} />
             <meshBasicMaterial color="#9fe8ff" toneMapped={false} />
           </mesh>
-          <pointLight position={[0, 3.6, 0]} color="#66e0ff" intensity={4} distance={16} decay={2} />
         </group>
       ))}
     </group>

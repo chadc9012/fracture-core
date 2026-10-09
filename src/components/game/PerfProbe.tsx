@@ -32,7 +32,7 @@ export function PerfProbe() {
       if (a.lightT > 2) {
         a.lightT = 0;
         // Walk only what the renderer would draw (an invisible parent hides its whole subtree).
-        let n = 0; const heavy: { tris: number; label: string }[] = [];
+        let n = 0; let total = 0; const groups = new Map<string, { tris: number; count: number; type: string }>();
         const walk = (o: THREE.Object3D) => {
           if (!o.visible) return;
           if ((o as THREE.Light).isLight) n++;
@@ -41,14 +41,15 @@ export function PerfProbe() {
             const g = m.geometry;
             const per = (g.index ? g.index.count : g.attributes.position?.count ?? 0) / 3;
             const tris = per * ((o as THREE.InstancedMesh).isInstancedMesh ? (o as THREE.InstancedMesh).count : 1);
-            if (tris > 20000) heavy.push({ tris, label: `${g.type}${(o as THREE.InstancedMesh).isInstancedMesh ? " x" + (o as THREE.InstancedMesh).count : ""} @${o.getWorldPosition(v).toArray().map((c) => Math.round(c)).join(",")}` });
+            total += tris;
+            const gk = g.uuid; const gg = groups.get(gk) ?? { tris: 0, count: 0, type: g.type }; gg.tris += tris; gg.count++; groups.set(gk, gg);
           }
           for (const c of o.children) walk(c);
         };
         walk(scene);
         a.lights = n;
-        heavy.sort((x, y) => y.tris - x.tris);
-        a.heavy = heavy.slice(0, 4).map((h) => `  ${(h.tris / 1000).toFixed(0)}k ${h.label}`).join("\n");
+        const top = [...groups.values()].sort((x, y) => y.tris - x.tris).slice(0, 4);
+        a.heavy = `  scene ${(total / 1000).toFixed(0)}k tris\n` + top.map((h) => `  ${(h.tris / 1000).toFixed(0)}k = ${h.count} x ${h.type}`).join("\n");
       }
       const i = gl.info;
       el.current.textContent = `FPS ${(a.frames / a.t).toFixed(0)}   worst ${(a.worst * 1000).toFixed(0)} ms\ncalls ${i.render.calls}   tris ${(i.render.triangles / 1000).toFixed(0)}k\nlights ${a.lights}   geo ${i.memory.geometries}   tex ${i.memory.textures}\ndpr ${gl.getPixelRatio().toFixed(2)}   ${gl.domElement.width}x${gl.domElement.height}${a.heavy ? "\nheaviest meshes:\n" + a.heavy : ""}`;
