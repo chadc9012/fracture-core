@@ -5,7 +5,6 @@ import horizon from "@/assets/world-fracture-horizon.png.asset.json";
 import { Button } from "@/components/ui/button";
 import { playIntroSwell, unlockAudio } from "@/game/audio";
 import { speakVoice } from "@/game/voice-director";
-import { TitleBackdrop } from "./TitleBackdrop";
 
 export function TitleScreen({
   canContinue,
@@ -45,7 +44,6 @@ export function TitleScreen({
       <div className="absolute inset-0">
         <img src={horizon.url} alt="A fractured world rejoining at sunrise" className="title-landscape h-full w-full object-cover object-center" />
       </div>
-      <TitleBackdrop />
       <div className="pointer-events-none absolute inset-0 title-sunlight" />
       <div className="pointer-events-none absolute inset-0 title-shadows" />
       <div className="pointer-events-none absolute inset-0 title-vignette" />

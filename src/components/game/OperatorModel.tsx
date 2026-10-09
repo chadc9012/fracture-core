@@ -43,7 +43,15 @@ function Model({ url, tint, height, feetY, color, pose, motion, bodyType }: { bo
     const object = cloneSkinned(scene);
     let skinned = false;
     const robot = bodyProfile(bodyType).segmented;
-    const material = tint ? new THREE.MeshStandardMaterial({ color: color ?? "#6b6f76", metalness: robot ? 0.9 : 0.55, roughness: robot ? 0.28 : 0.5, emissive: robot ? new THREE.Color("#0a3a4a") : new THREE.Color("#000000"), emissiveIntensity: robot ? 0.6 : 0 }) : null;
+    const material = tint ? new THREE.MeshStandardMaterial({ color: robot ? new THREE.Color(color ?? "#6b6f76").lerp(new THREE.Color("#9aa7b5"), 0.55) : (color ?? "#6b6f76"), metalness: robot ? 1 : 0.55, roughness: robot ? 0.22 : 0.5 }) : null;
+    if (material && robot) {
+      // segmented chassis: glowing cyan seams every quarter metre up the body, in model-relative height
+      material.onBeforeCompile = (shader) => {
+        shader.vertexShader = shader.vertexShader.replace("#include <common>", "#include <common>\nvarying float vSeamY;").replace("#include <worldpos_vertex>", "#include <worldpos_vertex>\nvSeamY = (modelMatrix * vec4(transformed, 1.0)).y - modelMatrix[3].y;");
+        shader.fragmentShader = shader.fragmentShader.replace("#include <common>", "#include <common>\nvarying float vSeamY;").replace("#include <emissivemap_fragment>", "#include <emissivemap_fragment>\nfloat seam = smoothstep(0.86, 0.97, fract(vSeamY * 4.0)) - smoothstep(0.97, 1.0, fract(vSeamY * 4.0));\ntotalEmissiveRadiance += vec3(0.05, 0.85, 1.0) * seam * 1.6;");
+      };
+      material.customProgramCacheKey = () => "operator-robot-seams";
+    }
     object.traverse((o) => {
       const m = o as THREE.SkinnedMesh;
       if (!m.isMesh) return;
