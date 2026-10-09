@@ -26,32 +26,53 @@ class Quiet extends Component<{ children: ReactNode; onFail: () => void }, { fai
   override render() { return this.state.failed ? null : this.props.children; }
 }
 
-function Instanced({ url, items, scale, onReady, shadows, height, sway }: { url: string; items: Placement[]; scale: number; onReady: () => void; shadows: boolean; height?: number | undefined; sway?: number | undefined }) {
+type Part = { geometry: THREE.BufferGeometry; material: THREE.Material };
+
+/** True when a model's top-level children are separate, side-by-side variants rather than parts of one object:
+ * their bounding boxes must not overlap each other and their heights must be comparable. */
+function looksLikeVariants(kids: THREE.Object3D[]): boolean {
+  if (kids.length < 2) return false;
+  const boxes = kids.map((k) => { k.updateMatrixWorld(true); return new THREE.Box3().setFromObject(k); });
+  if (boxes.some((b) => b.isEmpty())) return false;
+  const hs = boxes.map((b) => b.max.y - b.min.y);
+  if (Math.max(...hs) > Math.min(...hs) * 3) return false;
+  for (let i = 0; i < boxes.length; i++) for (let j = i + 1; j < boxes.length; j++) if (boxes[i]!.intersectsBox(boxes[j]!)) return false;
+  return true;
+}
+
+function Instanced({ url, items, scale, onReady, shadows, height, sway, variants }: { url: string; items: Placement[]; scale: number; onReady: () => void; shadows: boolean; height?: number | undefined; sway?: number | undefined; variants?: boolean | undefined }) {
   const { scene } = useGLTF(url);
-  // Poly Haven files ship several variants side by side; use the first one, recentred on its base.
-  const [parts, norm] = useMemo(() => {
-    const variant = scene.children[0] ?? scene;
-    variant.updateMatrixWorld(true);
-    const box = new THREE.Box3().setFromObject(variant);
-    const centre = new THREE.Matrix4().makeTranslation(-(box.min.x + box.max.x) / 2, -box.min.y, -(box.min.z + box.max.z) / 2);
-    const out: { geometry: THREE.BufferGeometry; material: THREE.Material }[] = [];
-    // normalise to a target height in metres, so the model's authored scale can't break the scene
-    const norm = height ? height / Math.max(0.01, box.max.y - box.min.y) : 1;
-    variant.traverse((o) => {
-      const m = o as THREE.Mesh;
-      if (!m.isMesh) return;
-      const g = m.geometry.clone();
-      g.applyMatrix4(new THREE.Matrix4().multiplyMatrices(centre, m.matrixWorld));
-      const mat = (Array.isArray(m.material) ? m.material[0]! : m.material).clone() as THREE.MeshStandardMaterial;
-      if (mat.map && mat.transparent) { mat.transparent = false; mat.alphaTest = 0.5; }
-      mat.side = THREE.DoubleSide;
-      if (sway) mat.onBeforeCompile = windSway(g, sway / Math.max(0.01, norm));
-      out.push({ geometry: g, material: mat });
+  // Poly Haven files ship several variants side by side. With `variants`, each variant is used (so plants stop
+  // repeating one identical model); otherwise, or if the layout doesn't look like variants, the first one is used.
+  // Every variant is recentred on its base and normalised to the same target height.
+  const built = useMemo(() => {
+    const kids = scene.children.filter((c) => { let has = false; c.traverse((o) => { if ((o as THREE.Mesh).isMesh) has = true; }); return has; });
+    const picks = variants && looksLikeVariants(kids) ? kids : [scene.children[0] ?? scene];
+    return picks.map((variant) => {
+      variant.updateMatrixWorld(true);
+      const box = new THREE.Box3().setFromObject(variant);
+      const centre = new THREE.Matrix4().makeTranslation(-(box.min.x + box.max.x) / 2, -box.min.y, -(box.min.z + box.max.z) / 2);
+      // normalise to a target height in metres, so the model's authored scale can't break the scene
+      const norm = height ? height / Math.max(0.01, box.max.y - box.min.y) : 1;
+      const parts: Part[] = [];
+      variant.traverse((o) => {
+        const m = o as THREE.Mesh;
+        if (!m.isMesh) return;
+        const g = m.geometry.clone();
+        g.applyMatrix4(new THREE.Matrix4().multiplyMatrices(centre, m.matrixWorld));
+        const mat = (Array.isArray(m.material) ? m.material[0]! : m.material).clone() as THREE.MeshStandardMaterial;
+        if (mat.map && mat.transparent) { mat.transparent = false; mat.alphaTest = 0.5; }
+        mat.side = THREE.DoubleSide;
+        if (sway) mat.onBeforeCompile = windSway(g, sway / Math.max(0.01, norm));
+        parts.push({ geometry: g, material: mat });
+      });
+      return { parts, norm };
     });
-    return [out, norm] as const;
-  }, [scene, height, sway]);
+  }, [scene, height, sway, variants]);
+  // each instance picks its variant from a hash of its index, so neighbours differ without any visible pattern
+  const buckets = useMemo(() => built.map((_, vi) => items.filter((_, i) => built.length === 1 || (Math.imul(i + 1, 2654435761) >>> 0) % built.length === vi)), [built, items]);
   useEffect(() => { onReady(); }, [onReady]);
-  return <>{parts.map((p, i) => <Mesh key={i} part={p} items={items} scale={scale * norm} shadows={shadows} />)}</>;
+  return <>{built.map((v, vi) => v.parts.map((p, i) => <Mesh key={`${vi}-${i}`} part={p} items={buckets[vi]!} scale={scale * v.norm} shadows={shadows} />))}</>;
 }
 
 const tmp = new THREE.Object3D();
@@ -78,7 +99,7 @@ function Mesh({ part, items, scale, shadows }: { part: { geometry: THREE.BufferG
 const verified = new Map<string, boolean>();
 
 /** Renders `items` as a Poly Haven species; calls onReady once visible so the caller can hide its fallback. */
-export function PolyFoliage({ kind, items, scale = 1, onReady, onFail, shadows = true, height, sway }: { kind: FoliageKind; items: Placement[]; scale?: number; onReady?: () => void; onFail?: () => void; shadows?: boolean; height?: number; sway?: number }) {
+export function PolyFoliage({ kind, items, scale = 1, onReady, onFail, shadows = true, height, sway, variants }: { kind: FoliageKind; items: Placement[]; scale?: number; onReady?: () => void; onFail?: () => void; shadows?: boolean; height?: number; sway?: number; variants?: boolean }) {
   const url = FOLIAGE[kind];
   const [ok, setOk] = useState(verified.get(url) ?? false);
   const fail = useMemo(() => () => { reportAsset(`foliage:${kind}`, LABEL[kind], "failed"); onFail?.(); }, [kind, onFail]);
@@ -89,5 +110,5 @@ export function PolyFoliage({ kind, items, scale = 1, onReady, onFail, shadows =
   }, [url, kind, fail]);
   const ready = useMemo(() => () => { reportAsset(`foliage:${kind}`, LABEL[kind], "ok"); onReady?.(); }, [kind, onReady]);
   if (!ok || !items.length) return null;
-  return <Quiet onFail={fail}><Suspense fallback={null}><Instanced url={url} items={items} scale={scale} onReady={ready} shadows={shadows} height={height} sway={sway} /></Suspense></Quiet>;
+  return <Quiet onFail={fail}><Suspense fallback={null}><Instanced url={url} items={items} scale={scale} onReady={ready} shadows={shadows} height={height} sway={sway} variants={variants} /></Suspense></Quiet>;
 }

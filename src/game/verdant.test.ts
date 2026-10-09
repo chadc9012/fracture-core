@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
-import { COVER, CRASH_SITE, ENCOUNTER, FOREST_SPAWN, NEW_INVESTIGATION, TRAIL, TRAIL_HALF_WIDTH, forestScatter, isReserved, shouldWakePatrol, stepInvestigation, trailEdgeScatter, trailInfo, trailMask } from "./verdant";
+import { FURROW, aroundScatter, inFurrow, vegetationOk, COVER, CRASH_SITE, ENCOUNTER, FOREST_SPAWN, NEW_INVESTIGATION, TRAIL, TRAIL_HALF_WIDTH, forestScatter, isReserved, shouldWakePatrol, stepInvestigation, trailEdgeScatter, trailInfo, trailMask } from "./verdant";
 import { REGIONS } from "./world";
+import { clusterAround } from "./foliage";
 import { heightAt, slopeAt, WATER_LEVEL } from "./terrain";
 const mulberry32 = (a: number) => () => { a |= 0; a = (a + 0x6d2b79f5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
 
@@ -85,5 +86,32 @@ describe("crash-site investigation", () => {
     expect(shouldWakePatrol(ENCOUNTER.triggerRadius - 1, false)).toBe(true);
     expect(shouldWakePatrol(ENCOUNTER.triggerRadius - 1, true)).toBe(false);
     expect(shouldWakePatrol(ENCOUNTER.triggerRadius + 5, false)).toBe(false);
+  });
+});
+
+describe("crash-site surroundings", () => {
+  const dry = (x: number, z: number) => heightAt(x, z) > WATER_LEVEL + 2 && slopeAt(x, z) < 0.6;
+  test("the furrow is dry, gentle and clear of the trail", () => {
+    for (let a = 5; a <= FURROW.length; a += 1.5) { // the first metres are the hull itself, where the trail ends
+      const x = CRASH_SITE.x + FURROW.dx * a, z = CRASH_SITE.z + FURROW.dz * a;
+      expect(dry(x, z)).toBe(true);
+      expect(slopeAt(x, z)).toBeLessThan(0.45);
+      expect(trailInfo(x, z).dist).toBeGreaterThan(TRAIL_HALF_WIDTH + FURROW.width / 2);
+    }
+  });
+  test("plants ringing the wreck stay off the trail, furrow and hull", () => {
+    const pts = aroundScatter(120, mulberry32(3), 8.5, 15, dry);
+    expect(pts.length).toBeGreaterThan(60);
+    for (const p of pts) {
+      expect(Math.hypot(p.x - CRASH_SITE.x, p.z - CRASH_SITE.z)).toBeGreaterThanOrEqual(8.5);
+      expect(trailInfo(p.x, p.z).dist).toBeGreaterThan(TRAIL_HALF_WIDTH);
+      expect(inFurrow(p.x, p.z)).toBe(false);
+    }
+  });
+  test("clustered undergrowth never lands where vegetation is not allowed", () => {
+    const parents = forestScatter(30, mulberry32(8), dry, 1);
+    const kids = clusterAround(parents, 6, mulberry32(9), (x, z) => dry(x, z) && vegetationOk(x, z), { minRadius: 0.4, maxRadius: 3 });
+    expect(kids.length).toBeGreaterThan(50);
+    for (const k of kids) { expect(isReserved(k.x, k.z)).toBe(false); expect(inFurrow(k.x, k.z)).toBe(false); }
   });
 });

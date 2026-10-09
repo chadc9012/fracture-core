@@ -124,7 +124,7 @@ export function trailEdgeScatter(count: number, rnd: () => number, near: number,
     const off = near + rnd() * (far - near);
     const x = cx + (-(b.z - a.z) / len) * off * side, z = cz + ((b.x - a.x) / len) * off * side;
     if (trailInfo(x, z).dist < TRAIL_HALF_WIDTH + 0.5) continue;
-    if (Math.hypot(x - CRASH_SITE.x, z - CRASH_SITE.z) < 5) continue;
+    if (Math.hypot(x - CRASH_SITE.x, z - CRASH_SITE.z) < 8.5) continue; // hull sections reach ~6 m out
     if (!accept(x, z)) continue;
     out.push({ x, z, s: 0.7 + rnd() * 0.7, r: rnd() * Math.PI * 2 });
   }
@@ -177,4 +177,39 @@ export function stepInvestigation(s: Investigation, dt: number, dist: number): {
 /** the patrol wakes once, when the player first enters the trigger radius */
 export function shouldWakePatrol(dist: number, woken: boolean): boolean {
   return !woken && dist < ENCOUNTER.triggerRadius;
+}
+
+/* ---------------- crash-site surroundings ---------------- */
+
+/** the skid the craft cut before it stopped: a strip leaving the hull to the east, away from the trail approach */
+export const FURROW = { dx: 0.97, dz: -0.24, length: 15, width: 3.4 } as const;
+
+/** position relative to the furrow: distance along it (0 at the hull) and across it, or null when outside the strip + margin */
+export function furrowFrame(x: number, z: number): { along: number; across: number } | null {
+  const rx = x - CRASH_SITE.x, rz = z - CRASH_SITE.z;
+  const along = rx * FURROW.dx + rz * FURROW.dz;
+  const across = -rx * FURROW.dz + rz * FURROW.dx;
+  return along >= -2 && along <= FURROW.length ? { along, across } : null;
+}
+export function inFurrow(x: number, z: number, margin = 0): boolean {
+  const f = furrowFrame(x, z);
+  return !!f && Math.abs(f.across) < FURROW.width / 2 + margin;
+}
+
+/** low plants may grow here: off the trail/clearings/crash pad and out of the churned furrow */
+export function vegetationOk(x: number, z: number): boolean {
+  return !isReserved(x, z, 0.2) && !inFurrow(x, z, 1);
+}
+
+/** a ring of plants framing the wreck (rMin..rMax from the site centre) that keeps the trail approach and furrow open */
+export function aroundScatter(count: number, rnd: () => number, rMin: number, rMax: number, accept: (x: number, z: number) => boolean): Floor[] {
+  const out: Floor[] = [];
+  let guard = count * 14;
+  while (out.length < count && guard-- > 0) {
+    const a = rnd() * Math.PI * 2, d = rMin + Math.sqrt(rnd()) * (rMax - rMin);
+    const x = CRASH_SITE.x + Math.cos(a) * d, z = CRASH_SITE.z + Math.sin(a) * d;
+    if (trailInfo(x, z).dist < TRAIL_HALF_WIDTH + 0.9 || inFurrow(x, z, 1.2) || !accept(x, z)) continue;
+    out.push({ x, z, s: 0.7 + rnd() * 0.7, r: rnd() * Math.PI * 2 });
+  }
+  return out;
 }
