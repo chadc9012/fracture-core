@@ -8,6 +8,28 @@ export const RENDER_PRESETS = {
   ULTRA: { dpr: 2, shadows: true, particles: 1.35, distortion: true, armorStages: 4, vfxBudget: 125 },
 } as const satisfies Record<RenderTier, object>;
 
+/** Integrated / software / mobile GPUs: shadows alone cost them ~2.5x frame time (measured on Intel Iris Plus). */
+const WEAK_GPU = /intel|iris|uhd|hd graphics|mali|adreno|powervr|swiftshader|llvmpipe|software/i;
+
+/** First-run render tier from the WebGL renderer string. Players' own choice always wins over this. */
+export function defaultTierForGpu(renderer: string | null | undefined): RenderTier {
+  return renderer && WEAK_GPU.test(renderer) ? "LOW" : "MEDIUM";
+}
+
+export function detectGpuRenderer(): string | null {
+  if (typeof document === "undefined") return null;
+  try {
+    const gl = document.createElement("canvas").getContext("webgl") as WebGLRenderingContext | null;
+    if (!gl) return null;
+    const ext = gl.getExtension("WEBGL_debug_renderer_info");
+    const name = ext ? String(gl.getParameter(ext.UNMASKED_RENDERER_WEBGL)) : null;
+    gl.getExtension("WEBGL_lose_context")?.loseContext();
+    return name;
+  } catch {
+    return null;
+  }
+}
+
 export const VFX_COST = {
   shieldGlow: 10,
   dashTrail: 15,

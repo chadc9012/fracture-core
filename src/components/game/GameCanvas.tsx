@@ -29,7 +29,7 @@ import { StarMap } from "./StarMap";
 import { ArsenalLoadouts } from "./ArsenalLoadouts";
 import { SaveManager } from "./SaveManager";
 import { activeLoadout, rewardMission, loadProgression, rewardVehicle, saveProgression, type PlayerProgression } from "@/game/progression";
-import { RENDER_PRESETS } from "@/game/performance";
+import { RENDER_PRESETS, defaultTierForGpu, detectGpuRenderer } from "@/game/performance";
 import { classBuild } from "@/game/live-build";
 import { persistCharacter } from "@/game/deployment/saveCharacter";
 import { bodyTypeOr, type BodyType } from "@/game/operators";
@@ -197,6 +197,7 @@ export function GameCanvas() {
     try {
       const savedSettings = window.localStorage.getItem("world-fracture-settings");
       if (savedSettings) setSettings((current) => ({ ...current, ...(JSON.parse(savedSettings) as Partial<GameSettings>) }));
+      else { const tier = defaultTierForGpu(detectGpuRenderer()); setSettings((current) => ({ ...current, renderTier: tier })); }
     } catch { /* keep safe defaults */ }
     const saved = window.localStorage.getItem("world-fracture-camera");
     if (saved === "third") setSettings((current) => ({ ...current, firstPersonDefault: false }));
