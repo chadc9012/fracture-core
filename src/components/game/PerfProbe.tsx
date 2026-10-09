@@ -8,7 +8,7 @@ export function PerfProbe() {
   const { gl, scene } = useThree();
   const el = useRef<HTMLDivElement | null>(null);
   const shown = useRef(false);
-  const acc = useRef({ t: 0, frames: 0, worst: 0, lights: 0, lightT: 0, heavy: "", renderMs: 0, gpu: "", busyMs: 0, gpuMs: 0, gpuSamples: 0, lightInfo: "" });
+  const acc = useRef({ t: 0, frames: 0, worst: 0, lights: 0, lightT: 0, heavy: "", renderMs: 0, gpu: "", busyMs: 0, gpuMs: 0, gpuSamples: 0, lightInfo: "", bench: 0, benchTick: 0 });
   const timer = useRef<{ ctx: WebGL2RenderingContext; ext: { TIME_ELAPSED_EXT: number; GPU_DISJOINT_EXT: number }; open: WebGLQuery | null; pending: WebGLQuery[] } | null>(null);
   const frameStart = useRef(0);
   const v = useRef(new THREE.Vector3()).current;
@@ -96,9 +96,12 @@ export function PerfProbe() {
         a.lightInfo = Object.entries(kinds).map(([k, v]) => `${v} ${k.replace("Light", "")}`).join(", ") + (names.length ? "\n  " + names.slice(0, 6).join("\n  ") : "");
         a.heavy = `  scene ${(total / 1000).toFixed(0)}k tris\n` + top.map((h) => `  ${(h.tris / 1000).toFixed(0)}k = ${h.count} x ${h.type}`).join("\n");
       }
+      // Fixed-size CPU benchmark (~constant work): a slow number here means the machine itself is throttled
+      // (Low Power Mode, thermal limits, other apps), not the game.
+      if (++a.benchTick % 4 === 1) { const b0 = performance.now(); let x = 0; for (let k = 0; k < 3e6; k++) x += Math.sqrt(k); a.bench = performance.now() - b0 + (x < 0 ? 1 : 0); }
       const i = gl.info;
       const frameMs = (a.t / a.frames) * 1000; const renderMs = a.renderMs / a.frames;
-      el.current.textContent = `gpu ${a.gpu}\nframe ${frameMs.toFixed(0)} ms = render ${renderMs.toFixed(0)} + other ${Math.max(0, frameMs - renderMs).toFixed(0)}\njs busy ${(a.busyMs / a.frames).toFixed(0)} ms   gpu busy ${a.gpuSamples ? (a.gpuMs / a.gpuSamples).toFixed(0) + " ms" : "n/a"}\nFPS ${(a.frames / a.t).toFixed(0)}   worst ${(a.worst * 1000).toFixed(0)} ms\ncalls ${i.render.calls}   tris ${(i.render.triangles / 1000).toFixed(0)}k\nlights ${a.lights}   geo ${i.memory.geometries}   tex ${i.memory.textures}\ndpr ${gl.getPixelRatio().toFixed(2)}   ${gl.domElement.width}x${gl.domElement.height}${a.lightInfo ? "\nlight types: " + a.lightInfo : ""}${a.heavy ? "\nheaviest meshes:\n" + a.heavy : ""}`;
+      el.current.textContent = `gpu ${a.gpu}\nframe ${frameMs.toFixed(0)} ms = render ${renderMs.toFixed(0)} + other ${Math.max(0, frameMs - renderMs).toFixed(0)}\njs busy ${(a.busyMs / a.frames).toFixed(0)} ms   gpu busy ${a.gpuSamples ? (a.gpuMs / a.gpuSamples).toFixed(0) + " ms" : "n/a"}\nFPS ${(a.frames / a.t).toFixed(0)}   worst ${(a.worst * 1000).toFixed(0)} ms\ncalls ${i.render.calls}   tris ${(i.render.triangles / 1000).toFixed(0)}k\nlights ${a.lights}   geo ${i.memory.geometries}   tex ${i.memory.textures}\ncpu bench ${a.bench.toFixed(0)} ms (3M sqrt)   cores ${navigator.hardwareConcurrency}\ndpr ${gl.getPixelRatio().toFixed(2)}   ${gl.domElement.width}x${gl.domElement.height}${a.lightInfo ? "\nlight types: " + a.lightInfo : ""}${a.heavy ? "\nheaviest meshes:\n" + a.heavy : ""}`;
     }
     a.t = 0; a.frames = 0; a.worst = 0; a.renderMs = 0; a.busyMs = 0; a.gpuMs = 0; a.gpuSamples = 0;
   });
