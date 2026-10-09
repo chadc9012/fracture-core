@@ -15,6 +15,7 @@ import { Scene, type HudState } from "./Scene";
 import { WorldErrorBoundary } from "./WorldErrorBoundary";
 import { GraphicsGuard } from "./GraphicsGuard";
 import { StartMenu, type Deployment } from "./StartMenu";
+import { perfFlags } from "@/game/perf-flags";
 import { SettingsWindow, DEFAULT_SETTINGS, type GameSettings } from "./SettingsWindow";
 import { TitleScreen } from "./TitleScreen";
 import { DeploymentBriefing } from "./DeploymentBriefing";
@@ -615,7 +616,8 @@ export function GameCanvas() {
         // Safari: cap pixel ratio, use hard-edged shadows and skip the post-processing pass, which
         // are the usual causes of a blank or lost context there.
         const maxDpr = caps.safari ? Math.min(preset.dpr, 1.5) : preset.dpr;
-        const post = preset.distortion && !caps.safari && caps.webgl2 && !lowPerf;
+        const flags = perfFlags();
+        const post = preset.distortion && !caps.safari && caps.webgl2 && !lowPerf && flags.post;
         // SSAO and depth-of-field are the two costliest passes in the stack — reserve them for
         // the top render tier so MEDIUM/HIGH still get the cheap color-grade + bloom + vignette
         // look without paying for contact-shadow and bokeh sampling every frame.
@@ -627,8 +629,8 @@ export function GameCanvas() {
           if (event.button === 0 || event.button === 2) event.currentTarget.requestPointerLock?.();
         }}
         onContextMenu={(event) => event.preventDefault()}
-        shadows={preset.shadows ? { type: caps.safari ? THREE.PCFShadowMap : THREE.PCFSoftShadowMap } : false}
-        dpr={Math.min(maxDpr, adaptiveDpr)}
+        shadows={preset.shadows && flags.shadows ? { type: caps.safari ? THREE.PCFShadowMap : THREE.PCFSoftShadowMap } : false}
+        dpr={flags.dpr ?? Math.min(maxDpr, adaptiveDpr)}
         gl={{ antialias: !caps.safari, toneMapping: THREE.ACESFilmicToneMapping, powerPreference: "high-performance", failIfMajorPerformanceCaveat: false }}
         camera={{
           position: [START.x, walkHeight(START.x, START.z) + 30, START.z + 46],

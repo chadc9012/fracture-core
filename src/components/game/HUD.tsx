@@ -1,4 +1,5 @@
 import { operatorByClass } from "@/game/loadout";
+import { perfFlags } from "@/game/perf-flags";
 import { StratagemPanel } from "./StratagemPanel";
 import { Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -14,7 +15,7 @@ export function HUD({ hud, tutorialActive = false, onMenu }: { hud: HudState; tu
   const lowAmmo = Boolean(ammo && !melee && ammo.mag <= Math.ceil(ammo.magSize * 0.25));
   useVoiceLine(`boss-${hud.bossHud?.name ?? "none"}-${hud.bossHud?.adaptedTell ?? "idle"}`, hud.bossHud?.name ?? "ENEMY", hud.bossHud?.adaptedTell, "critical");
   useVoiceLine(`emergency-${hud.emergencyQuest?.state ?? "none"}-${hud.emergencyQuest?.bossName ?? "none"}`, "NOVA", hud.emergencyQuest ? `${hud.emergencyQuest.state === "WARNING" ? "Emergency quest inbound" : hud.emergencyQuest.state === "ACTIVE" ? "Emergency quest active" : hud.emergencyQuest.state === "COMPLETE" ? "Emergency quest cleared" : "Emergency quest failed"}. ${hud.emergencyQuest.bossName}.` : null, "critical");
-  return <div className="pointer-events-none fixed inset-0 z-10 hud-scanline select-none font-mono text-foreground">
+  return <div className="pointer-events-none fixed inset-0 z-10 hud-scanline select-none font-mono text-foreground" style={perfFlags().hud ? undefined : { display: "none" }}>
     <div className="pointer-events-auto absolute left-3 top-3"><Button title="Menu" size="icon" variant="ghost" className="bg-background/25" onClick={onMenu} aria-label="Open menu"><Menu /></Button></div>
     {!hud.insideInterior && (
       <div className="absolute left-14 top-3 border-l border-primary/60 px-2.5 py-0.5 text-[9px] uppercase">
