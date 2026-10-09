@@ -476,7 +476,8 @@ export function GameCanvas() {
     setSubclass(deployment.subclassId);
     setAppearance(deployment.appearance);
     setBodyType(deployment.bodyType);
-    setTutorial(FIRST_TUTORIAL);
+    // players who already finished onboarding never replay it when they re-deploy from Character
+    setTutorial(progression.tutorialComplete ? null : FIRST_TUTORIAL);
     setProgression((current) => ({ ...current, identityClass: deployment.classId, activeBuild: classBuild(deployment.classId) }));
     setVehicleUnlocked(Boolean(progression.selectedVehicle));
     if (progression.selectedVehicle) setVehicleId(progression.selectedVehicle);
@@ -585,7 +586,7 @@ export function GameCanvas() {
   if (phase === "loadout") {
     return (
       <>
-        {!menuOpen && <StartMenu onDeploy={prepareDeployment} weaponOrder={activeLoadout(progression, progression.identityClass ?? cls).slots} onSaveCharacter={async (character) => { const result = await persistCharacter(progressionRef.current, character); progressionRef.current = result.progression; setProgression(result.progression); }} onSettings={() => setMenuOpen(true)} onExit={() => setPhase("title")} best={last} />}
+        <StartMenu paused={menuOpen} saved={progression.character} gear={progression} onDeploy={prepareDeployment} weaponOrder={activeLoadout(progression, progression.identityClass ?? cls).slots} onSaveCharacter={async (character) => { const result = await persistCharacter(progressionRef.current, character); progressionRef.current = result.progression; setProgression(result.progression); }} onSettings={() => setMenuOpen(true)} onExit={() => setPhase("title")} best={last} />
         {menuOpen && (
           <SettingsWindow
             completedMissions={progression.completedMissions}

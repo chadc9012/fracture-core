@@ -4,8 +4,11 @@ import { useMenuInput } from "./useMenuInput";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { CLASSES, CUSTOMIZATION_PALETTE, DEFAULT_SUBCLASS, SUBCLASSES, appearanceById, operatorByClass, type AppearanceDefinition, type ClassId, type OperatorId, type SubclassId } from "@/game/loadout";
-import { BODY_PROFILES, BODY_TYPES, DEFAULT_BODY_TYPE, type BodyType } from "@/game/operators";
+import { BODY_PROFILES, BODY_TYPES, type BodyType } from "@/game/operators";
 import { createDeployGuard, deployCharacter, newDeploymentId, type PlayerCharacter } from "@/game/deployment/deployCharacter";
+import { armorSummary, defaultAppearance, forgeDirty, forgeInitial } from "@/game/deployment/forgeState";
+import type { PlayerProgression } from "@/game/progression";
+import { ConfirmDialog } from "./ConfirmDialog";
 import { CLASS_LABEL, IdentityForge } from "./IdentityForge";
 import { CornerBrackets } from "./HudChrome";
 import { useVoiceLine } from "./useVoiceLine";
@@ -27,10 +30,7 @@ const CHANNELS: { key: "armor" | "cloth" | "visor" | "trim"; label: string }[] =
 /** Default field colors + callsign for a freshly-picked class: that class's one named Operator's
  * signature preset, with their callsign pre-filled (the player can still edit both). Subclass
  * doesn't factor in here — all 3 of an Operator's subclasses are the same character. */
-function APPEARANCE_FOR(classId: ClassId): AppearanceDefinition {
-  const op = operatorByClass(classId);
-  return { ...appearanceById(op.appearanceId), callsign: op.callsign };
-}
+const APPEARANCE_FOR = defaultAppearance;
 
 type Tab = "body" | "armor" | "cloth" | "visor" | "trim" | "callsign";
 const TABS: { key: Tab; label: string }[] = [
@@ -45,12 +45,15 @@ const GUIDE: Record<Stage, string> = {
   ASSEMBLING: "Identity stabilized. Armor assembly in progress.",
 };
 
-export function StartMenu({ onDeploy, onSaveCharacter, weaponOrder, onSettings, onExit }: { onExit?: () => void; onDeploy: (deployment: Deployment) => void; onSaveCharacter?: (character: PlayerCharacter) => Promise<void>; weaponOrder?: readonly string[]; onSettings: () => void; best: { credits: number; kills: number } | null }) {
-  const [classId, setClassId] = useState<ClassId>("TITAN");
-  const [subclassId, setSubclassId] = useState<SubclassId>("SHIELD_TITAN");
-  const [appearance, setAppearance] = useState<AppearanceDefinition>(() => APPEARANCE_FOR("TITAN"));
+export function StartMenu({ onDeploy, onSaveCharacter, weaponOrder, onSettings, onExit, saved, gear, paused }: { saved?: PlayerCharacter | null; gear?: Pick<PlayerProgression, "inventory" | "equippedGear">; paused?: boolean; onExit?: () => void; onDeploy: (deployment: Deployment) => void; onSaveCharacter?: (character: PlayerCharacter) => Promise<void>; weaponOrder?: readonly string[]; onSettings: () => void; best: { credits: number; kills: number } | null }) {
+  // reopening character creation restores the saved operator; `start` is what "unsaved edits" are measured against
+  const start = useRef(forgeInitial(saved)).current;
+  const [classId, setClassId] = useState<ClassId>(start.classId);
+  const [subclassId, setSubclassId] = useState<SubclassId>(start.subclassId);
+  const [appearance, setAppearance] = useState<AppearanceDefinition>(start.appearance);
+  const [confirmLeave, setConfirmLeave] = useState(false);
   const [stage, setStage] = useState<Stage>("CLASS");
-  const [bodyType, setBodyType] = useState<BodyType>(DEFAULT_BODY_TYPE);
+  const [bodyType, setBodyType] = useState<BodyType>(start.bodyType);
   const [deployError, setDeployError] = useState("");
   const [deploying, setDeploying] = useState(false);
   const [tab, setTab] = useState<Tab>("body");
@@ -96,11 +99,14 @@ export function StartMenu({ onDeploy, onSaveCharacter, weaponOrder, onSettings, 
   const back = () => { const previous = STAGES[stageIndex - 1]; if (previous) setStage(previous); };
 
   // Esc / Backspace / controller B-Circle: previous step, or out to the main menu from the first step (never mid-save)
-  useMenuInput(stage !== "ASSEMBLING" && !deploying, () => { if (stageIndex > 0) back(); else onExit?.(); }, ["back"]);
+  const dirty = forgeDirty(start, { classId, subclassId, appearance, bodyType });
+  const leave = () => { if (dirty) setConfirmLeave(true); else onExit?.(); };
+  useMenuInput(stage !== "ASSEMBLING" && !deploying && !paused && !confirmLeave, () => { if (stageIndex > 0) back(); else leave(); }, ["back"]);
+  const summary = gear ? armorSummary(gear) : null;
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
-      if (stage === "ASSEMBLING") return;
+      if (stage === "ASSEMBLING" || paused || confirmLeave) return;
       if (stage === "CLASS" && ["Digit1", "Digit2", "Digit3"].includes(event.code)) selectClass(CLASSES[Number(event.code.at(-1)) - 1]?.id ?? "TITAN");
       if (event.code === "Enter" && !event.repeat) next();
     };
@@ -205,9 +211,22 @@ export function StartMenu({ onDeploy, onSaveCharacter, weaponOrder, onSettings, 
       <p className="mt-2 text-center hud-label"><Cpu className="mr-1 inline size-3" style={{ filter: "drop-shadow(0 0 3px var(--primary))" }} />Live material projection · changes apply instantly</p>
     </div>}
 
+    {summary && stage !== "ASSEMBLING" && <aside className="pointer-events-none absolute right-4 top-24 z-10 hidden w-56 border border-primary/30 bg-background/70 p-3 backdrop-blur-sm md:block" aria-label="Equipped armor and stats">
+      <p className="hud-label">Equipped armor</p>
+      <ul className="mt-2 space-y-1 font-mono text-[10px] uppercase tracking-[0.12em]">
+        {summary.slots.map((slot) => <li key={slot.slot} className="flex justify-between gap-2"><span className="text-muted-foreground">{slot.label}</span><span className={slot.name ? "truncate text-foreground" : "text-muted-foreground/50"}>{slot.name ?? "Empty"}</span></li>)}
+      </ul>
+      <p className="hud-label mt-3">Armor stats</p>
+      <ul className="mt-1 space-y-1 font-mono text-[10px] uppercase tracking-[0.12em]">
+        {(["defense", "mobility", "intellect"] as const).map((k) => <li key={k} className="flex justify-between"><span className="text-muted-foreground">{k}</span><span className="text-foreground">{summary.stats[k].toFixed(1)}</span></li>)}
+      </ul>
+      <p className="mt-3 text-[9px] leading-snug text-muted-foreground">Armor is changed from Inventory / Arsenal in the field; class abilities are separate.</p>
+    </aside>}
+    {confirmLeave && <ConfirmDialog pad={null} title="Discard changes?" body="You changed your operator but haven't saved. Leaving now discards those edits; your saved character is untouched." confirmLabel="Discard & leave" cancelLabel="Keep editing" onCancel={() => setConfirmLeave(false)} onConfirm={() => { setConfirmLeave(false); onExit?.(); }} />}
+
     {stage !== "ASSEMBLING" && <footer className="pointer-events-none absolute inset-x-0 bottom-4 z-20 flex items-center justify-center gap-2">
       {stageIndex > 0 && <Button className="hud-panel pointer-events-auto border-0" variant="outline" onClick={back} disabled={deploying}><ChevronLeft />Back</Button>}
-      {stageIndex === 0 && onExit && <Button className="hud-panel pointer-events-auto border-0" variant="outline" onClick={onExit}><ChevronLeft />Main menu</Button>}
+      {stageIndex === 0 && onExit && <Button className="hud-panel pointer-events-auto border-0" variant="outline" onClick={leave}><ChevronLeft />Main menu</Button>}
       <Button className="hud-glow pointer-events-auto min-w-44" onClick={next} disabled={deploying}>{stage === "APPEARANCE" ? <Shield /> : null}{stage === "CLASS" ? `Imprint ${operatorByClass(classId).name}` : stage === "SUBCLASS" ? "Approach armor forge" : deploying ? "Saving character…" : "Save character & deploy"}<ChevronRight /></Button>
     </footer>}
     {stage === "ASSEMBLING" && <div className="absolute inset-x-0 bottom-12 z-20 text-center"><p className="animate-pulse font-mono text-xs uppercase tracking-[0.35em] text-primary" style={{ textShadow: "0 0 12px color-mix(in oklch, var(--primary) 60%, transparent)" }}>Armor lattice assembling</p><div className="mx-auto mt-3 h-px w-64 overflow-hidden bg-muted"><div className="h-full w-full origin-left animate-[forge-progress_2.1s_ease-in-out] bg-primary" style={{ boxShadow: "0 0 8px var(--primary)" }} /></div></div>}
