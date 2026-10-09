@@ -1,3 +1,4 @@
+import { perkEffects } from "./armor-perks";
 import { NO_EFFECTS, MAX_RESIST, armorEffects, setStatuses, type ArmorEffects, type SetSlot } from "./armor-sets";
 import type { GearItem } from "./inventory";
 import type { PlayerProgression } from "./progression";
@@ -82,6 +83,8 @@ export function loadoutEffects(progress: Pick<PlayerProgression, "inventory" | "
   const total = { ...armorEffects(progress) };
   const fromAttrs = attributeEffects(loadoutAttributes(progress).effective);
   for (const key of Object.keys(fromAttrs) as (keyof ArmorEffects)[]) total[key] += fromAttrs[key];
+  const perks = perkEffects(progress); // per-piece perks work with or without the rest of the set
+  for (const key of Object.keys(perks) as (keyof ArmorEffects)[]) total[key] += perks[key];
   if (hasFlexibility(progress)) for (const key of Object.keys(FLEX_BONUS) as (keyof ArmorEffects)[]) total[key] += FLEX_BONUS[key] ?? 0;
   total.resist = Math.min(MAX_RESIST, total.resist);
   return total;

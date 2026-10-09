@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { ATTRIBUTES, hasFlexibility, loadoutAttributes, loadoutWarnings, SOFT_CAP } from "@/game/armor-attributes";
+import { perkFor, perkScale } from "@/game/armor-perks";
 import { ARMOR_LEVEL_MAX, SET_SLOTS, equipPiece, setPieceId, setStatuses } from "@/game/armor-sets";
 import { gearCost, upgradeGear } from "@/game/inventory";
 import type { PlayerProgression } from "@/game/progression";
@@ -31,7 +32,7 @@ export function ArmorSetsPanel({ progression, onProgression }: { progression: Pl
                 const maxed = item.level >= ARMOR_LEVEL_MAX;
                 return (
                   <div key={slot} className="flex items-center justify-between gap-2 border border-border/60 px-2 py-1">
-                    <span className="text-[10px]">{item.name} <span className="text-muted-foreground">· LV {item.level}</span></span>
+                    <span className="text-[10px]">{item.name} <span className="text-muted-foreground">· LV {item.level}</span>{(() => { const perk = perkFor(item.setId, item.slot); return perk ? <span className="block text-[9px]" style={{ color: set.color }}>{perk.name}: {perk.description}{item.level > 1 ? ` (x${perkScale(item.level).toFixed(2)})` : ""}</span> : null; })()}</span>
                     <span className="flex gap-1">
                       <Button size="sm" variant="ghost" disabled={isWorn} onClick={() => onProgression(equipPiece(progression, item.id))}>{isWorn ? "Worn" : "Wear"}</Button>
                       <Button size="sm" variant="ghost" disabled={maxed || (progression.materials[cost.material] ?? 0) < cost.amount} onClick={() => onProgression(upgradeGear(progression, item.id))}>{maxed ? "Max" : `Lv up · ${cost.amount} ${cost.material}`}</Button>

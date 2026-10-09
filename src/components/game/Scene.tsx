@@ -27,6 +27,7 @@ import { backpackFor } from "@/game/backpacks";
 import { createReticle, markHit, stepReticle, type Motion, type ReticleView, EMPTY_RETICLE } from "@/game/crosshair";
 import { airJump, cameraDrop, cancelSlide, createMoveState, glideVy, GLIDE_THRUST, land, movementFov, resolveStance, startSlide, stepSlide, stepStance, AIR_PROFILE, STANCE_SPEED, SLIDE_SECONDS, type Stance } from "@/game/movement";
 import { loadoutEffects } from "@/game/armor-attributes";
+import { armorLook } from "@/game/armor-look";
 import { createStride, stepStride, RUN_SPEED, type FeelView } from "@/game/movement-feel";
 import { updateWind } from "@/game/wind-sway";
 import { atmosphereAt, NEUTRAL_ATMOSPHERE, type Atmosphere } from "@/game/atmosphere";
@@ -384,6 +385,7 @@ export function Scene({
     helmet: gear?.inventory.find((item) => item.id === gear.equippedGear.helmet)?.level ?? 1,
     legs: gear?.inventory.find((item) => item.id === gear.equippedGear.legs)?.level ?? 1,
   }), [gear?.inventory, gear?.equippedGear]);
+  const worn = useMemo(() => armorLook({ inventory: gear?.inventory ?? [], equippedGear: gear?.equippedGear ?? {} }), [gear?.inventory, gear?.equippedGear]);
   // Equipped armor-set bonuses (armor-sets.ts): recomputed only when gear changes; the frame loop reads the ref.
   const armorFx = useMemo(() => loadoutEffects({ inventory: gear?.inventory ?? [], equippedGear: gear?.equippedGear ?? {} }), [gear?.inventory, gear?.equippedGear]);
   const armorFxRef = useRef(armorFx);
@@ -1984,7 +1986,7 @@ export function Scene({
       {/* player on foot */}
       <group ref={player} position={SPAWN.toArray()}>
         <OperatorModel bodyType={bodyType} classId={playerClass} height={2.75} feetY={-1.55} color={appearance.armor} pose="locomotion" motion={feel.current.motionRef} fallback={
-  <Operator bodyType={bodyType} armor={appearance.armor} cloth={appearance.cloth} visor={appearance.visor} trim={appearance.trim} classId={playerClass} motion={feel.current.motionRef} visualState={armorState} chestLevel={armorLevels.chest} helmetLevel={armorLevels.helmet} legsLevel={armorLevels.legs} />
+  <Operator bodyType={bodyType} armor={appearance.armor} cloth={appearance.cloth} visor={appearance.visor} trim={appearance.trim} classId={playerClass} motion={feel.current.motionRef} visualState={armorState} chestLevel={armorLevels.chest} helmetLevel={armorLevels.helmet} legsLevel={armorLevels.legs} look={worn} />
         } />
         {playerClass === "TITAN" && sim.titan.blocking && (
           // Chevron-angled holographic panels + a glowing rim edge instead of one flat box —

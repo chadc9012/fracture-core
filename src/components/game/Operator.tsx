@@ -1,4 +1,6 @@
 import { bodyProfile, type BodyType } from "@/game/operators";
+import { fitFor, type ArmorLook } from "@/game/armor-look";
+import { ArmorMotif } from "./ArmorMotif";
 import { useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import { RoundedBox } from "@react-three/drei";
@@ -38,6 +40,7 @@ export function Operator({
   legsLevel = 1,
   motion,
   bodyType,
+  look,
 }: {
   armor?: string;
   cloth?: string;
@@ -58,9 +61,13 @@ export function Operator({
   motion?: { current: { phase: number; intensity: number; swing: number; lean: number; air: boolean } };
   /** saved body type (operators.ts); absent = default male so old saves/previews are unchanged */
   bodyType?: BodyType | undefined;
+  /** worn set pieces' signature motifs (armor-look.ts); body-type fit comes from the same module */
+  look?: ArmorLook;
 }) {
   const bodyP = bodyProfile(bodyType);
   const robot = bodyP.segmented;
+  const body0: BodyType = robot ? "robot" : bodyP.shoulders < 1 ? "female" : "male";
+  const fit = { chest: fitFor(body0, "chest"), legs: fitFor(body0, "legs"), arms: fitFor(body0, "gauntlets"), helmet: fitFor(body0, "helmet") };
   const chestTier = tierOf(chestLevel);
   const helmetTier = tierOf(helmetLevel);
   const legsTier = tierOf(legsLevel);
@@ -120,7 +127,8 @@ export function Operator({
       {[-0.19, 0.19].map((x) => (
         <group key={x} ref={x < 0 ? legL : legR} position={[x, -0.45, 0]}><group position={[0, 0.45, 0]}>
           <mesh position={[0, -0.95, 0]} castShadow><capsuleGeometry args={[0.12, 0.95, 8, 16]} />{suit}</mesh>
-          <RoundedBox args={[0.24, 0.42, 0.25]} radius={0.07} smoothness={BEVEL} position={[0, -0.62, 0.02]} castShadow>{plate}</RoundedBox>
+          <RoundedBox args={[0.24 * fit.legs.w, 0.42 * fit.legs.h, 0.25 * fit.legs.d]} radius={0.07} smoothness={BEVEL} position={[0, -0.62, 0.02]} castShadow>{plate}</RoundedBox>
+          <ArmorMotif look={look?.legs} side={x < 0 ? -1 : 1} />
           <RoundedBox args={legsTier >= 3 ? [0.25, 0.46, 0.27] : [0.21, 0.44, 0.23]} radius={0.07} smoothness={BEVEL} position={[0, -1.16, 0.03]} castShadow>{plate}</RoundedBox>
           <mesh position={[0, -0.88, 0.16]} castShadow><sphereGeometry args={[legsTier >= 2 ? 0.135 : 0.11, 16, 14]} />{plate}</mesh>
           {/* legs tier 2+: a real shin-guard overlay plate — not on the base shin below upgrade level 3 */}
@@ -139,7 +147,7 @@ export function Operator({
       <mesh position={[0, -0.34, 0]} castShadow><boxGeometry args={[0.6, 0.07, 0.38]} /><meshStandardMaterial color="#07080a" metalness={0.6} roughness={0.4} /></mesh>
       {/* torso: tapered suit + layered chest cuirass + abdomen segments */}
       <mesh position={[0, 0.1, 0]} castShadow><capsuleGeometry args={[0.26, 0.6, 10, 20]} />{suit}</mesh>
-      <RoundedBox args={chestTier >= 3 ? [0.72, 0.52, 0.44] : [0.66, 0.46, 0.4]} radius={0.12} smoothness={BEVEL} position={[0, 0.32, 0.03]} castShadow>{plate}</RoundedBox>
+      <RoundedBox args={(chestTier >= 3 ? [0.72, 0.52, 0.44] : [0.66, 0.46, 0.4]).map((v, i) => v * [fit.chest.w, fit.chest.h, fit.chest.d][i]!) as [number, number, number]} radius={0.12} smoothness={BEVEL} position={[0, 0.32, 0.03]} castShadow>{plate}</RoundedBox>
       {[-0.05, -0.18].map((y, i) => <RoundedBox key={y} args={[0.52 - i * 0.06, 0.1, 0.44]} radius={0.04} smoothness={BEVEL} position={[0, y, 0.02]} castShadow>{plate}</RoundedBox>)}
       {/* chest tier 2+: a real collar plate — not in the base cuirass at all below upgrade level 3 */}
       {chestTier >= 2 && <RoundedBox args={[0.5, 0.1, 0.4]} radius={0.04} smoothness={BEVEL} position={[0, 0.56, 0.01]} castShadow>{plate}</RoundedBox>}
@@ -166,7 +174,8 @@ export function Operator({
           <group ref={side < 0 ? armL : armR} position={[0, 0.5, 0]}><group position={[0, -0.5, 0]}>
           <mesh position={[side * 0.06, 0.18, 0]} castShadow><capsuleGeometry args={[0.075, 0.46, 8, 14]} />{suit}</mesh>
           <mesh position={[side * 0.065, -0.07, 0.03]} castShadow><sphereGeometry args={[0.095, 12, 10]} />{plate}</mesh>
-          <RoundedBox args={[0.17, 0.34, 0.18]} radius={0.06} smoothness={BEVEL} position={[side * 0.07, -0.2, 0.02]} castShadow>{plate}</RoundedBox>
+          <RoundedBox args={[0.17 * fit.arms.w, 0.34 * fit.arms.h, 0.18 * fit.arms.d]} radius={0.06} smoothness={BEVEL} position={[side * 0.07, -0.2, 0.02]} castShadow>{plate}</RoundedBox>
+          <ArmorMotif look={look?.gauntlets} side={side} />
           {seam(`fa${side}`, [side * 0.07, -0.2, 0.13], [0.02, 0.26, 0.02])}
           <mesh position={[side * 0.07, -0.44, 0.02]} castShadow><sphereGeometry args={[0.09, 14, 12]} /><meshStandardMaterial color="#0b0d10" roughness={0.6} /></mesh>
           </group></group>
@@ -174,7 +183,8 @@ export function Operator({
       ))}
       {/* neck + helmet with band visor */}
       <mesh position={[0, 0.7, 0]}><cylinderGeometry args={[0.12, 0.15, 0.16, 16]} />{suit}</mesh>
-      <group position={[0, 0.95, 0.02]}>
+      <group position={[0, 0.95, 0.02]} scale={[fit.helmet.w, fit.helmet.h, fit.helmet.d]}>
+        <ArmorMotif look={look?.helmet} />
         <mesh castShadow scale={[0.9, 1.08, 1]}><sphereGeometry args={[0.24, 28, 22]} />{plate}</mesh>
         <RoundedBox args={[0.3, 0.18, 0.16]} radius={0.06} smoothness={BEVEL} position={[0, -0.12, 0.14]} castShadow>{plate}</RoundedBox>
         {hunter && <mesh position={[0, 0.2, -0.02]} rotation={[0.2, 0, 0]}><boxGeometry args={[0.05, 0.12, 0.34]} />{plate}</mesh>}
@@ -191,6 +201,8 @@ export function Operator({
           {[-0.09, 0.09].map((x) => <mesh key={x} position={[x, 0.24, -0.08]} rotation={[0.4, 0, 0]} castShadow><cylinderGeometry args={[0.008, 0.012, 0.18, 6]} />{trim}</mesh>)}
         </>}
       </group>
+      <ArmorMotif look={look?.chest} />
+      <ArmorMotif look={look?.classItem} />
       {/* class signatures */}
       {titan && <group position={[0, 0.2, -0.56]} rotation={[0.08, 0, 0]}>
         <RoundedBox args={[0.9, 1.5, 0.1]} radius={0.06} smoothness={BEVEL} castShadow><meshPhysicalMaterial color="#141a20" metalness={0.8} roughness={0.3} clearcoat={0.6} /></RoundedBox>
