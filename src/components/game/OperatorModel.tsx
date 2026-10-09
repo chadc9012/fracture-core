@@ -5,12 +5,11 @@ import * as THREE from "three";
 import { clone as cloneSkinned } from "three/examples/jsm/utils/SkeletonUtils.js";
 import type { ClassId } from "@/game/loadout";
 
-/** Authored (Meshy) operator models, served from /public. GOLIATH and CIPHER are rigged (Mixamo skeleton with
- * walk/run clips, GOLIATH also showcase); NYX is a static textured mesh until its rig arrives; Anything missing or failing to load falls back to the procedural Operator. */
+/** Authored (Meshy) operator models, served from /public. GOLIATH, NYX and CIPHER are rigged (Mixamo skeleton; walk/run for all, plus showcase for GOLIATH and idle for NYX); Anything missing or failing to load falls back to the procedural Operator. */
 export const OPERATOR_MODELS: Partial<Record<ClassId, { url: string; tint: boolean; rigged: boolean }>> = {
   TITAN: { url: "/models/operators/goliath.glb", tint: true, rigged: true },
   WARLOCK: { url: "/models/operators/cipher.glb", tint: true, rigged: true },
-  HUNTER: { url: "/models/operators/nyx.glb", tint: false, rigged: false },
+  HUNTER: { url: "/models/operators/nyx.glb", tint: true, rigged: true },
 };
 
 export type ModelMotion = { current: { phase: number; intensity: number; air: boolean } };
@@ -71,15 +70,20 @@ function Model({ url, tint, height, feetY, color, pose, motion }: { url: string;
     };
     for (const key of Object.keys(actions)) { const a = actions[key]; if (a) a.weight = 0; }
     if (pose === "showcase") {
-      // no flex clip (CIPHER): hold the walk cycle at mid-stance, which reads as a relaxed standing pose
-      if (actions.showcase) set("showcase", 1, clock.elapsedTime / actions.showcase.getClip().duration);
+      // flex clip (GOLIATH) > idle clip (NYX) > walk held at mid-stance (CIPHER), a relaxed standing pose
+      const loop = actions.showcase ?? actions.idle;
+      if (loop) set(actions.showcase ? "showcase" : "idle", 1, clock.elapsedTime / loop.getClip().duration);
       else set("walk", 1, 0.25);
     } else {
       const m = motion?.current;
       const cycle = m ? m.phase / (Math.PI * 2) : 0;
-      const run = smooth(0.4, 0.62, m?.intensity ?? 0);
-      set("walk", 1 - run, cycle);
-      set("run", run, cycle);
+      const i = m?.intensity ?? 0;
+      const run = smooth(0.4, 0.62, i);
+      // with an idle clip, standing still plays it; without one the stride simply freezes mid-step
+      const moving = actions.idle ? Math.min(1, i * 5) : 1;
+      set("walk", moving * (1 - run), cycle);
+      set("run", moving * run, cycle);
+      if (actions.idle) set("idle", 1 - moving, clock.elapsedTime / actions.idle.getClip().duration);
     }
     mixer.update(0);
   });
