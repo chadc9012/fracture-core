@@ -8,7 +8,7 @@ export function PerfProbe() {
   const { gl, scene } = useThree();
   const el = useRef<HTMLDivElement | null>(null);
   const shown = useRef(false);
-  const acc = useRef({ t: 0, frames: 0, worst: 0, lights: 0, lightT: 0, heavy: "" });
+  const acc = useRef({ t: 0, frames: 0, worst: 0, lights: 0, lightT: 0, heavy: "", renderMs: 0, gpu: "" });
   const v = useRef(new THREE.Vector3()).current;
 
   useEffect(() => {
@@ -22,6 +22,16 @@ export function PerfProbe() {
     try { if (new URLSearchParams(window.location.search).get("perf") === "1") toggle(); } catch { /* ignore */ }
     return () => { window.removeEventListener("keydown", onKey); div.remove(); };
   }, []);
+
+  // Time the renderer's CPU-side submit, and name the GPU: a software renderer (SwiftShader/llvmpipe) explains a slow empty scene.
+  useEffect(() => {
+    const ctx = gl.getContext();
+    const info = ctx.getExtension("WEBGL_debug_renderer_info");
+    acc.current.gpu = info ? String(ctx.getParameter(info.UNMASKED_RENDERER_WEBGL)).slice(0, 44) : "unknown (no debug info)";
+    const original = gl.render;
+    gl.render = (s: THREE.Object3D, c: THREE.Camera) => { const t0 = performance.now(); original.call(gl, s, c); acc.current.renderMs += performance.now() - t0; };
+    return () => { gl.render = original; };
+  }, [gl]);
 
   useFrame((_, dt) => {
     const a = acc.current;
@@ -52,9 +62,10 @@ export function PerfProbe() {
         a.heavy = `  scene ${(total / 1000).toFixed(0)}k tris\n` + top.map((h) => `  ${(h.tris / 1000).toFixed(0)}k = ${h.count} x ${h.type}`).join("\n");
       }
       const i = gl.info;
-      el.current.textContent = `FPS ${(a.frames / a.t).toFixed(0)}   worst ${(a.worst * 1000).toFixed(0)} ms\ncalls ${i.render.calls}   tris ${(i.render.triangles / 1000).toFixed(0)}k\nlights ${a.lights}   geo ${i.memory.geometries}   tex ${i.memory.textures}\ndpr ${gl.getPixelRatio().toFixed(2)}   ${gl.domElement.width}x${gl.domElement.height}${a.heavy ? "\nheaviest meshes:\n" + a.heavy : ""}`;
+      const frameMs = (a.t / a.frames) * 1000; const renderMs = a.renderMs / a.frames;
+      el.current.textContent = `gpu ${a.gpu}\nframe ${frameMs.toFixed(0)} ms = render ${renderMs.toFixed(0)} + other ${Math.max(0, frameMs - renderMs).toFixed(0)}\nFPS ${(a.frames / a.t).toFixed(0)}   worst ${(a.worst * 1000).toFixed(0)} ms\ncalls ${i.render.calls}   tris ${(i.render.triangles / 1000).toFixed(0)}k\nlights ${a.lights}   geo ${i.memory.geometries}   tex ${i.memory.textures}\ndpr ${gl.getPixelRatio().toFixed(2)}   ${gl.domElement.width}x${gl.domElement.height}${a.heavy ? "\nheaviest meshes:\n" + a.heavy : ""}`;
     }
-    a.t = 0; a.frames = 0; a.worst = 0;
+    a.t = 0; a.frames = 0; a.worst = 0; a.renderMs = 0;
   });
   return null;
 }
