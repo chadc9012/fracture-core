@@ -39,7 +39,7 @@
 - [x] Add ability mastery, branch evolution, modifiers, and premium progression UI.
 - [x] Verify TypeScript, production health, runtime flows, responsive UI, and legacy-name audit.
 - [x] Replace the current launch-to-world jump with a staged ten-minute identity onboarding and first victory report.
-- [x] Equipped ability branches now change live combat (src/game/branch-effects.ts, with tests): Power scales effect values/damage +18%, Control stretches durations +25% (siege, veil, shield dome, verbs), Utility cuts energy cost 15%; the HUD effect line names the active bonus. Still open: enemy threat decisions, dungeon rules and environment responses reacting to branches.
+- [x] Equipped ability branches now change live combat (src/game/branch-effects.ts, with tests): Power scales effect values/damage +18%, Control stretches durations +25% (siege, veil, shield dome, verbs), Utility cuts energy cost 15%; the HUD effect line names the active bonus. Enemy squads now read a branch posture too (two or more equipped abilities on one tier): Power makes ranged units/leaders keep a longer standoff, Control makes squads spread out, Utility makes flankers commit early; the HUD threat line names it. Fixed stepSim wiping the build-driven squad fields (archetype, hold-fire) every step. Still open: dungeon rules and environment responses reacting to branches.
 - [ ] Add private 2–3 player dungeon lobby UX, invite links, ready checks, class visibility, launch gating, and completion summaries.
 - [ ] Add build-aware dungeon modifiers, behavior-shaped loot, transformation crafting, repeat-clear perks, and reward persistence.
 - [ ] Replace the old raid advisor call with the WORLD FRACTURE loadout strategy planner on the current AI Gateway contract.

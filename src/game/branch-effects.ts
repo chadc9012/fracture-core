@@ -43,3 +43,29 @@ export function scaleConfig(config: AbilityConfig, branchId: string | undefined)
 }
 
 export const BRANCH_LABEL: Record<BranchTier, string> = { POWER: "+18% power", CONTROL: "+25% duration", UTILITY: "−15% energy cost" };
+
+/**
+ * What the equipped branches tell enemy squads about how you fight. Two or more equipped abilities on
+ * the same branch tier set a posture; otherwise enemies read you as unspecialised ("NONE").
+ *   POWER   — burst damage: ranged units keep a longer standoff and leaders hang back out of your reach
+ *   CONTROL — lingering fields: squads spread out instead of bunching inside your zones
+ *   UTILITY — sustained rotation: flankers commit early and close tighter to punish the long game
+ */
+export type BranchPosture = "NONE" | BranchTier;
+
+export function branchPosture(slots: Record<string, string>, branches: Record<string, string>): BranchPosture {
+  const counts: Record<BranchTier, number> = { POWER: 0, CONTROL: 0, UTILITY: 0 };
+  for (const abilityId of Object.values(slots)) {
+    const tier = branchTier(abilityId, branches[abilityId]);
+    if (tier) counts[tier]++;
+  }
+  const best = (Object.keys(counts) as BranchTier[]).sort((a, b) => counts[b] - counts[a])[0]!;
+  return counts[best] >= 2 ? best : "NONE";
+}
+
+export const POSTURE_THREAT: Record<BranchPosture, string> = {
+  NONE: "",
+  POWER: "Ranged units keeping a long standoff from your burst damage",
+  CONTROL: "Squads spreading out to avoid your lingering fields",
+  UTILITY: "Flankers committing early against your sustained rotation",
+};

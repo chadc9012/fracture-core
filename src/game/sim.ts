@@ -813,7 +813,10 @@ export function stepSim(sim: WorldSim, input: SimInput) {
   }
   if (escorting > 0) logBehavior(sim.adaptation, "support", dt * 0.5 * escorting);
   stepAdaptation(sim.adaptation, dt);
-  sim.mods = adaptationMods(sim.adaptation);
+  // Scene sets the build-driven squad fields once per frame (after stepSim); keep them across the rebuild
+  // so enemy squads actually see the equipped archetype / shield / branch posture.
+  const { squadArchetype, rangedHoldFire, branchPosture } = sim.mods;
+  sim.mods = { ...adaptationMods(sim.adaptation), squadArchetype, rangedHoldFire, branchPosture };
   if (sim.mods.regen + sim.armorRegen > 0 && sim.hp < 100) sim.hp = Math.min(100, sim.hp + (sim.mods.regen + sim.armorRegen) * dt);
 
   // ---------- Emergency Quest world event ----------
@@ -1006,7 +1009,7 @@ export function stepSim(sim: WorldSim, input: SimInput) {
     } else if (aiState === "ALERT") {
       // squad role + threat drive positioning instead of a straight chase
       const i = sim.machines.indexOf(m);
-      const move = squadMove(squadRole(i, m.elite, m.boss), d, sim.hp / 100, sim.combatHeat, performance.now() / 1000 + i, sim.mods.squadArchetype, sim.mods.rangedHoldFire);
+      const move = squadMove(squadRole(i, m.elite, m.boss), d, sim.hp / 100, sim.combatHeat, performance.now() / 1000 + i, sim.mods.squadArchetype, sim.mods.rangedHoldFire, sim.mods.branchPosture);
       const nx = dx / d, nz = dz / d;
       m.x += (nx * move.forward + -nz * move.strafe) * speed * dt;
       m.z += (nz * move.forward + nx * move.strafe) * speed * dt;

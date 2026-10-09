@@ -1,4 +1,5 @@
 import type { SquadArchetype } from "./adaptation";
+import type { BranchPosture } from "./branch-effects";
 
 export type EnemyArchetype = "BRUTE" | "TRACKER" | "SUPPRESSOR" | "ADAPTIVE_ELITE";
 export type PerceptionSignal = { distance: number; visible: boolean; sound: number; damageReceived: number; playerVelocity: number; coverScore: number };
@@ -50,25 +51,26 @@ export function squadMove(
   t: number,
   archetype: SquadArchetype = "BALANCED",
   rangedHoldFire = false,
+  posture: BranchPosture = "NONE",
 ): { forward: number; strafe: number } {
   const hold = (range: number) => Math.max(-1, Math.min(1, (distance - range) / 8));
   if (playerHp < 0.35) return { forward: 1, strafe: 0 }; // weak player → everyone rushes
-  const spread = playerThreat > 40 ? 0.5 : 0; // strong player → spread out
+  const spread = playerThreat > 40 || posture === "CONTROL" ? 0.5 : 0; // strong player (or one leaving lingering fields) → spread out
   switch (role) {
     case "ASSAULT":
       // DEFENSIVE build (shield/bulwark up): melee pressure presses harder while ranged backs off
       return { forward: archetype === "DEFENSIVE" ? 1.3 : 1, strafe: spread * Math.sin(t) };
     case "RANGED":
       if (rangedHoldFire) return { forward: Math.min(0, hold(38)), strafe: 0.2 * Math.sin(t * 0.7) }; // hold back, don't press the reflecting shield
-      return { forward: archetype === "STRATEGIST" ? hold(20) : hold(28), strafe: 0.6 * Math.sin(t * 0.7) + spread };
+      return { forward: archetype === "STRATEGIST" ? hold(20) : hold(posture === "POWER" ? 36 : 28), strafe: 0.6 * Math.sin(t * 0.7) + spread };
     case "FLANKER": {
       // STRIKER build (phase-dash equipped): trackers close faster and commit to the circle instead of hanging back
-      const closeRange = archetype === "STRIKER" ? 18 : 12;
-      const commit = archetype === "STRIKER" ? 1 : distance > 10 ? 1 : 0.3;
+      const closeRange = (archetype === "STRIKER" ? 18 : 12) + (posture === "UTILITY" ? 4 : 0);
+      const commit = archetype === "STRIKER" || posture === "UTILITY" ? 1 : distance > 10 ? 1 : 0.3;
       return { forward: hold(closeRange) * (archetype === "STRIKER" ? 0.85 : 0.5), strafe: commit };
     }
     case "LEADER":
       // STRATEGIST build (system-override/code-pulse): the squad leader holds tighter formation near its node
-      return { forward: archetype === "STRATEGIST" ? hold(13) : hold(18), strafe: 0.4 * Math.sin(t * 0.5) };
+      return { forward: archetype === "STRATEGIST" ? hold(13) : hold(posture === "POWER" ? 24 : 18), strafe: 0.4 * Math.sin(t * 0.5) };
   }
 }

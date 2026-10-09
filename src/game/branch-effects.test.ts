@@ -44,3 +44,29 @@ describe("evolution branches in live combat", () => {
     expect(live.strikeBoost).toBeCloseTo(1.18);
   });
 });
+
+import { branchPosture, POSTURE_THREAT } from "./branch-effects";
+import { squadMove } from "./enemy-intelligence";
+
+describe("branch posture and enemy squads", () => {
+  const slots = { PRIMARY: "siege-mode", TACTICAL: "kinetic-slam", ULTIMATE: "bastion-shield" };
+  test("two or more abilities on one tier set the posture", () => {
+    expect(branchPosture(slots, { "siege-mode": "hold-fast", "kinetic-slam": "fault-line" })).toBe("POWER");
+    expect(branchPosture(slots, { "kinetic-slam": "aftershock", "bastion-shield": "sanctuary" })).toBe("NONE");
+    expect(branchPosture(slots, { "siege-mode": "suppressor", "kinetic-slam": "aftershock" })).toBe("CONTROL");
+    expect(branchPosture(slots, {})).toBe("NONE");
+    expect(POSTURE_THREAT.NONE).toBe("");
+  });
+  test("POWER pushes ranged units and leaders back", () => {
+    const base = squadMove("RANGED", 30, 1, 0, 0, "BALANCED", false, "NONE").forward;
+    const power = squadMove("RANGED", 30, 1, 0, 0, "BALANCED", false, "POWER").forward;
+    expect(power).toBeLessThan(base);
+    expect(squadMove("LEADER", 20, 1, 0, 0, "BALANCED", false, "POWER").forward).toBeLessThan(squadMove("LEADER", 20, 1, 0, 0, "BALANCED", false, "NONE").forward);
+  });
+  test("CONTROL spreads assaulters sideways; UTILITY makes flankers commit", () => {
+    expect(Math.abs(squadMove("ASSAULT", 20, 1, 0, 1, "BALANCED", false, "CONTROL").strafe)).toBeGreaterThan(0);
+    expect(squadMove("ASSAULT", 20, 1, 0, 1, "BALANCED", false, "NONE").strafe).toBe(0);
+    expect(squadMove("FLANKER", 5, 1, 0, 0, "BALANCED", false, "UTILITY").strafe).toBe(1);
+    expect(squadMove("FLANKER", 5, 1, 0, 0, "BALANCED", false, "NONE").strafe).toBe(0.3);
+  });
+});

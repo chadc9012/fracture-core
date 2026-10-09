@@ -2,7 +2,7 @@ import { ABILITY_CONFIGS, createAbilityRuntime, resolveSynergyEffects, tickAbili
 import type { ActiveBuild } from "./ability-network";
 import type { AbilitySlot, ClassId, SubclassId } from "./loadout";
 import { migrateBuild } from "./operators";
-import { BRANCH_LABEL, branchTier, costMult, durationMult, powerMult, scaleConfig } from "./branch-effects";
+import { BRANCH_LABEL, POSTURE_THREAT, branchPosture, branchTier, costMult, durationMult, powerMult, scaleConfig } from "./branch-effects";
 import { verbForActivation, VERB_LABEL, type StatusVerb, type SubclassVerbDef } from "./subclass-verbs";
 
 export type { StatusVerb } from "./subclass-verbs";
@@ -58,8 +58,9 @@ export function rebindLiveBuild(live: LiveBuild, equipped: ActiveBuild, branches
   if (!changed) return live;
   const synergy = resolveSynergyEffects(Object.values(equipped.slots));
   const shieldReflect = branches["bastion-shield"] === "mirror-plate" ? 0.4 : 0;
+  const posture = POSTURE_THREAT[branchPosture(equipped.slots, branches)];
   return { ...live, equipped, branches, runtime: createAbilityRuntime(), damageMultiplier: synergy.damageMultiplier, shieldReflect,
-    threat: shieldReflect ? "Ranged units holding fire · melee pressure incoming" : equipped.slots.PRIMARY === "phase-veil" ? "Trackers predicting movement lanes" : equipped.slots.PRIMARY === "recon-swarm" ? "Defenders guarding system nodes" : "Hostiles closing on shield position",
+    threat: shieldReflect ? "Ranged units holding fire · melee pressure incoming" : posture ? posture : equipped.slots.PRIMARY === "phase-veil" ? "Trackers predicting movement lanes" : equipped.slots.PRIMARY === "recon-swarm" ? "Defenders guarding system nodes" : "Hostiles closing on shield position",
     effect: "Loadout synchronized · combat rules updated", effectTime: 3 };
 }
 

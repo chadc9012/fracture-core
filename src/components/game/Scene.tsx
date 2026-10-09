@@ -52,6 +52,7 @@ import { appearanceById, classById, subclassById, type AppearanceDefinition, typ
 import { vehicleById, type VehicleId } from "@/game/vehicles";
 import { projectDome, shieldBash } from "@/game/titan";
 import { RENDER_PRESETS } from "@/game/performance";
+import { branchPosture } from "@/game/branch-effects";
 import { activateLiveAbility, createLiveBuild, rebindLiveBuild, tickLiveBuild } from "@/game/live-build";
 import { hazardAt, type HazardEffect } from "@/game/region-hazards";
 import { RiftTurrets } from "./RiftTurrets";
@@ -1574,6 +1575,7 @@ export function Scene({
     const synergyArchetype = buildSynergy(live.current.equipped).archetype;
     sim.mods.squadArchetype = (synergyArchetype === "Defender" ? "DEFENSIVE" : synergyArchetype === "Striker" ? "STRIKER" : synergyArchetype === "Strategist" ? "STRATEGIST" : "BALANCED") as SquadArchetype;
     sim.mods.rangedHoldFire = live.current.shieldReflect > 0;
+    sim.mods.branchPosture = branchPosture(live.current.equipped.slots, live.current.branches);
     if (live.current.fieldTime > 0) sim.gravity *= 0.55;
     sim.gravity *= hazardRef.current.gravityMul;
     if (live.current.dashTime > 0) sim.hp = Math.min(100, sim.hp + dt * 15);

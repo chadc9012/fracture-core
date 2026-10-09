@@ -270,6 +270,8 @@ export function hasSkill(adaptation: Adaptation, id: BranchId, minLevel = 1) {
 
 /* ---------------- derived gameplay modifiers ---------------- */
 
+import type { BranchPosture } from "./branch-effects";
+
 export type SquadArchetype = "BALANCED" | "DEFENSIVE" | "STRIKER" | "STRATEGIST";
 
 export type AdaptationMods = {
@@ -288,6 +290,8 @@ export type AdaptationMods = {
   /** True while a reflective/bulwark ability is active — ranged squad roles hold fire instead of
    * suppressing, matching the "Ranged units holding fire" threat text live-build.ts already shows. */
   rangedHoldFire: boolean;
+  /** What the equipped evolution branches tell squads about how the player fights (branch-effects.ts). */
+  branchPosture: BranchPosture;
   /** Global Balance Controller (see balance.ts) — set each frame from the player's own power score,
    * not from any skill branch. incomingDamageScale multiplies all damage dealt to the player
    * (hurtPlayer in sim.ts); outgoingDamageScale folds into the player's own bulletDamage in
@@ -311,6 +315,7 @@ export function adaptationMods(adaptation: Adaptation): AdaptationMods {
     vehicleSpeed: 1 + s.VEHICLE_MASTERY.level * 0.03,
     squadArchetype: "BALANCED",
     rangedHoldFire: false,
+    branchPosture: "NONE",
     incomingDamageScale: 1,
     outgoingDamageScale: 1,
   };
