@@ -1,4 +1,5 @@
 import { Text } from "@react-three/drei";
+import { DistrictLight } from "./DistrictLight";
 import { useFrame } from "@react-three/fiber";
 import { useMemo, useRef } from "react";
 import * as THREE from "three";
@@ -74,8 +75,8 @@ function UnderwaterStreet() {
       <ShopSign label="AURA-SYS" color="#67e6e9" position={[-4.6, 6.1, 0]} />
       <ShopSign label="NEO-FISHERY" color="#ffbb70" position={[-4.6, 3.8, 19]} />
       <ElevatedTrain length={59} height={10.6} accent="#ffb86a" />
-      <pointLight position={[-3, 5, -10]} color="#ffc085" intensity={22} distance={31} />
-      <pointLight position={[2, 5, 15]} color="#7acddd" intensity={17} distance={29} />
+      <DistrictLight position={[-3, 5, -10]} color="#ffc085" intensity={22} distance={31} />
+      <DistrictLight position={[2, 5, 15]} color="#7acddd" intensity={17} distance={29} />
       {/* Deep-sea silhouettes and distant beacons beyond the glazing. */}
       {[[-10, 3], [8, 8], [23, 12], [-24, 18]].map(([zz, xx], i) => <group key={i} position={[xx ?? 10, 0, zz ?? 0]}>
         <mesh position-y={2.7}><cylinderGeometry args={[0.2, 0.6, 5.5, 7]} /><meshStandardMaterial color="#173a49" roughness={0.75} /></mesh>
@@ -147,7 +148,7 @@ function CoreSpire() {
         <cylinderGeometry args={[0.4, 1.4, 5, 8]} />
         <meshStandardMaterial color="#7d8894" metalness={0.6} roughness={0.35} />
       </mesh>
-      <pointLight position={[0, 2, 0]} color="#7fd6ff" intensity={26} distance={45} decay={2} />
+      <DistrictLight position={[0, 2, 0]} color="#7fd6ff" intensity={26} distance={45} decay={2} />
     </group>
   );
 }
@@ -212,7 +213,7 @@ export function Thalassia() {
         <meshStandardMaterial color="#0c1a20" roughness={0.9} />
       </mesh>
       {/* faint reminder of the WATER_LEVEL surface far overhead, so depth reads correctly */}
-      <pointLight position={[THALASSIA_CENTER.x, WATER_LEVEL - 1, THALASSIA_CENTER.z]} color="#2a5a70" intensity={4} distance={80} decay={2} />
+      <DistrictLight position={[THALASSIA_CENTER.x, WATER_LEVEL - 1, THALASSIA_CENTER.z]} color="#2a5a70" intensity={4} distance={80} decay={2} />
     </group>
   );
 }

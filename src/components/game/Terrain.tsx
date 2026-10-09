@@ -1,4 +1,5 @@
 import { Instance, Instances } from "@react-three/drei";
+import { DistrictLight } from "./DistrictLight";
 import { useEffect, useMemo, useState } from "react";
 import * as THREE from "three";
 
@@ -308,7 +309,7 @@ export function Terrain({ renderTier = "HIGH" }: { renderTier?: RenderTier } = {
           <circleGeometry args={[7, 24]} />
           <meshStandardMaterial color="#ff5a12" emissive="#ff5a12" emissiveIntensity={2.6} toneMapped={false} />
         </mesh>
-        <pointLight position={[0, craterY + 6, 0]} color="#ff6a1f" intensity={220} distance={120} decay={2} />
+        <DistrictLight range={170} position={[0, craterY + 6, 0]} color="#ff6a1f" intensity={220} distance={120} decay={2} />
       </group>
       <Instances limit={liveEmber.length} castShadow receiveShadow geometry={emberRockGeo}>
         <meshStandardMaterial color="#3b2622" emissive="#ff3d00" emissiveIntensity={0.35} roughness={1} map={rockDetail.map} normalMap={rockDetail.normalMap} normalScale={new THREE.Vector2(0.4, 0.4)} />
