@@ -86,11 +86,11 @@ export function CloudSavePanel({ progression, onProgression }: { progression: Pl
 
   return (
     <>
-      <button onClick={() => setOpen((o) => !o)} className={`fixed left-4 top-[18.5rem] z-30 border border-border bg-card/80 px-3 py-1.5 text-[9px] uppercase tracking-[0.2em] backdrop-blur-md ${tone}`}>
+      <button onClick={() => setOpen((o) => !o)} className={`fixed left-4 top-[18.5rem] z-30 border border-border bg-card/80 px-3 py-1.5 text-[9px] uppercase tracking-[0.2em] ${tone}`}>
         ☁ {user ? LABEL[status] : "Cloud save · sign in"}
       </button>
       {open && (
-        <section className="fixed left-4 top-[21rem] z-40 w-72 border border-border bg-card/95 p-4 text-xs backdrop-blur-md">
+        <section className="fixed left-4 top-[21rem] z-40 w-72 border border-border bg-card/95 p-4 text-xs">
           <h2 className="text-[10px] uppercase tracking-[0.25em] text-primary">Cloud save</h2>
           {user ? (
             <div className="mt-3 space-y-3">

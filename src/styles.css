@@ -179,9 +179,8 @@
  * --warning tokens (already a cyan-family hue) rather than a new palette. */
 @utility hud-panel {
   clip-path: polygon(9px 0, 100% 0, 100% calc(100% - 9px), calc(100% - 9px) 100%, 0 100%, 0 9px);
-  background: color-mix(in oklch, var(--background) 74%, transparent);
+  background: color-mix(in oklch, var(--background) 84%, transparent);
   border: 1px solid color-mix(in oklch, var(--primary) 42%, transparent);
-  backdrop-filter: blur(6px);
 }
 
 @utility hud-glow {
@@ -230,8 +229,7 @@
 
 @utility hud-status {
   border-left: 1px solid color-mix(in oklch, var(--primary) 65%, transparent);
-  background: linear-gradient(90deg, color-mix(in oklch, var(--background) 72%, transparent), transparent);
-  backdrop-filter: blur(3px);
+  background: linear-gradient(90deg, color-mix(in oklch, var(--background) 80%, transparent), transparent);
 }
 
 @utility ui-focus {

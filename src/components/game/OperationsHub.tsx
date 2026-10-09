@@ -28,7 +28,7 @@ export function OperationsHub({ initialView = "DUNGEONS", progression, onProgres
   const stop = dismissed.includes(view) ? null : hubStopFor(view);
   const dismiss = () => { markHubStopSeen(view); setDismissed((current) => [...current, view]); };
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-background/95 backdrop-blur-xl">
+    <div className="fixed inset-0 z-50 overflow-y-auto bg-background/95">
       <div className="mx-auto min-h-full max-w-7xl px-4 py-5 sm:px-7">
         <header className="flex items-start justify-between border-b border-border pb-4">
           <div><p className="font-mono text-[9px] uppercase tracking-[0.38em] text-primary">Nexus operations terminal</p><h2 className="mt-1 font-mono text-2xl font-semibold sm:text-3xl">FIELD SYSTEMS</h2></div>

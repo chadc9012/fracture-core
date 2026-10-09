@@ -36,7 +36,7 @@ export function Minimap({ hud }: { hud: HudState }) {
           style={{ background: "color-mix(in oklch, var(--primary) 60%, transparent)", height: 5, transform: `rotate(${deg}deg) translateY(-63px)` }}
         />
       ))}
-      <div className="absolute inset-0 overflow-hidden rounded-full border border-primary/30 bg-background/70 backdrop-blur-sm hud-scanline">
+      <div className="absolute inset-0 overflow-hidden rounded-full border border-primary/30 bg-background/70 hud-scanline">
       {REGIONS.map((r) => {
         const p = toScreen(r.x, r.z);
         if (Math.hypot(p.x, p.y) > CENTER + 40) return null;

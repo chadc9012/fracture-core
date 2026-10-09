@@ -14,7 +14,7 @@ import { useVoiceLine } from "./useVoiceLine";
 export function VictoryReport({ classId, abilityName, onContinue }: { classId: ClassId; abilityName: string; onContinue: () => void }) {
   useVoiceLine("identity-victory", "NOVA", `Identity stabilized. First victory secured. Your ${CLASS_LABEL[classId]} resonance is calibrated and ready for the field.`, "critical");
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/90 p-4 backdrop-blur-md">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/90 p-4">
       <section className="hud-panel hud-glow relative w-full max-w-lg p-6">
         <CornerBrackets />
         <p className="font-mono text-[10px] uppercase tracking-[0.35em] text-primary">Identity Trial · Complete</p>

@@ -38,7 +38,7 @@ export function StarMap({ progression, onBack, onDeploy }: { progression: Player
       </header>
 
       <div className="relative my-3 grid min-h-0 flex-1 grid-cols-1 gap-4 lg:grid-cols-4">
-        <section className="relative border border-foreground/15 bg-background/50 p-3 backdrop-blur-sm lg:col-span-3">
+        <section className="relative border border-foreground/15 bg-background/50 p-3 lg:col-span-3">
           <svg viewBox={box} className="h-full max-h-[70vh] w-full" role="img" aria-label="Destination map">
             {REGIONS.map((r) => {
               const on = r.id === selected, rec = r.id === recommended;
@@ -54,7 +54,7 @@ export function StarMap({ progression, onBack, onDeploy }: { progression: Player
           </svg>
         </section>
 
-        <aside className="flex flex-col justify-between gap-4 border border-foreground/15 bg-background/70 p-5 backdrop-blur-sm">
+        <aside className="flex flex-col justify-between gap-4 border border-foreground/15 bg-background/70 p-5">
           <div>
             <p className="ui-kicker">Sector intel / {ZONE_LABEL[region.kind]}</p>
             <h2 className="mt-2 font-mono text-2xl uppercase" style={{ color: ZONE_COLOR[region.kind] }}>{region.name}</h2>

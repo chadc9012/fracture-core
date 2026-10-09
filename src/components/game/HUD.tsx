@@ -15,7 +15,7 @@ export function HUD({ hud, tutorialActive = false, onMenu }: { hud: HudState; tu
   useVoiceLine(`boss-${hud.bossHud?.name ?? "none"}-${hud.bossHud?.adaptedTell ?? "idle"}`, hud.bossHud?.name ?? "ENEMY", hud.bossHud?.adaptedTell, "critical");
   useVoiceLine(`emergency-${hud.emergencyQuest?.state ?? "none"}-${hud.emergencyQuest?.bossName ?? "none"}`, "NOVA", hud.emergencyQuest ? `${hud.emergencyQuest.state === "WARNING" ? "Emergency quest inbound" : hud.emergencyQuest.state === "ACTIVE" ? "Emergency quest active" : hud.emergencyQuest.state === "COMPLETE" ? "Emergency quest cleared" : "Emergency quest failed"}. ${hud.emergencyQuest.bossName}.` : null, "critical");
   return <div className="pointer-events-none fixed inset-0 z-10 hud-scanline select-none font-mono text-foreground">
-    <div className="pointer-events-auto absolute left-3 top-3"><Button title="Menu" size="icon" variant="ghost" className="bg-background/25 backdrop-blur-sm" onClick={onMenu} aria-label="Open menu"><Menu /></Button></div>
+    <div className="pointer-events-auto absolute left-3 top-3"><Button title="Menu" size="icon" variant="ghost" className="bg-background/25" onClick={onMenu} aria-label="Open menu"><Menu /></Button></div>
     {!hud.insideInterior && (
       <div className="absolute left-14 top-3 border-l border-primary/60 px-2.5 py-0.5 text-[9px] uppercase">
         <p style={{ color: FACTIONS[hud.owner]?.color }}>{hud.region} · {FACTIONS[hud.owner]?.short}{hud.contested ? " · CONTESTED" : ""}</p>
@@ -23,7 +23,7 @@ export function HUD({ hud, tutorialActive = false, onMenu }: { hud: HudState; tu
       </div>
     )}
     {!tutorialActive && <><Compass markers={hud.markers ?? []} yaw={hud.yaw ?? 0} /><TrackedObjectives markers={hud.markers ?? []} /></>}
-    <div className="absolute left-1/2 top-4 w-[min(26rem,calc(100%-7rem))] -translate-x-1/2 space-y-1 text-center text-[10px]">{hud.alerts.slice(0, 2).map((alert, index) => <p key={`${alert}-${index}`} className="hud-panel border-x border-primary/40 bg-background/45 px-3 py-1 text-foreground/90 backdrop-blur-sm" style={{ opacity: 1 - index * 0.28 }}>{alert}</p>)}</div>
+    <div className="absolute left-1/2 top-4 w-[min(26rem,calc(100%-7rem))] -translate-x-1/2 space-y-1 text-center text-[10px]">{hud.alerts.slice(0, 2).map((alert, index) => <p key={`${alert}-${index}`} className="hud-panel border-x border-primary/40 bg-background/45 px-3 py-1 text-foreground/90" style={{ opacity: 1 - index * 0.28 }}>{alert}</p>)}</div>
     {!tutorialActive && (hud.environment || hud.hazardWarning) && <div className="pointer-events-none absolute left-1/2 top-24 -translate-x-1/2 text-center font-mono text-[10px] uppercase tracking-[0.18em]">
       {hud.environment && <p className="text-muted-foreground">{hud.environment}</p>}
       {hud.hazardWarning && <p className="mt-1 text-destructive">{hud.hazardWarning}</p>}
@@ -110,7 +110,7 @@ function EmergencyQuestBanner({ eq }: { eq: HudState["emergencyQuest"] }) {
     eq.state === "COMPLETE" ? "EMERGENCY QUEST CLEARED" : "EMERGENCY QUEST FAILED";
   return (
     <div className="pointer-events-none absolute left-1/2 top-2 w-[min(28rem,calc(100%-6rem))] -translate-x-1/2 text-center">
-      <div className={`hud-panel animate-pulse border-x border-destructive/50 bg-background/55 px-3 py-1 text-[9px] uppercase tracking-[0.22em] backdrop-blur-sm ${tone}`}>
+      <div className={`hud-panel animate-pulse border-x border-destructive/50 bg-background/55 px-3 py-1 text-[9px] uppercase tracking-[0.22em] ${tone}`}>
         {label}{(eq.state === "WARNING" || eq.state === "ACTIVE") && ` · ${eq.timer}s`}
       </div>
     </div>

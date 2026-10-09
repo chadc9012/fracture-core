@@ -21,7 +21,7 @@ export function WorldAtlas({ progression, currentRegion, phase, onClose, markers
   const encounter = ENCOUNTERS.find((entry) => entry.regionId === selected);
   const [gallery, setGallery] = useState<"TACTICAL" | "MAP" | "TROOPS" | "BOSSES" | "FACTIONS">("TACTICAL");
   const art = gallery === "TROOPS" ? troopArt : gallery === "BOSSES" ? bossArt : gallery === "FACTIONS" ? factionArt : null;
-  return <div className="fixed inset-0 z-50 overflow-y-auto bg-background/95 text-foreground backdrop-blur-xl" role="dialog" aria-modal="true" aria-label="World map">
+  return <div className="fixed inset-0 z-50 overflow-y-auto bg-background/95 text-foreground" role="dialog" aria-modal="true" aria-label="World map">
     <div className="mx-auto max-w-7xl px-4 py-5 sm:px-7">
       <header className="flex items-start justify-between gap-4 border-b border-foreground/15 pb-5"><div><p className="ui-kicker">Director / The Fractured Earth / {phase}</p><h2 className="mt-1 font-mono text-3xl font-light sm:text-4xl">DESTINATIONS</h2></div><Button size="icon" variant="ghost" onClick={onClose} aria-label="Close world map"><X /></Button></header>
       <div className="mt-5 grid gap-6 lg:grid-cols-[minmax(0,1.6fr)_minmax(18rem,0.7fr)]">

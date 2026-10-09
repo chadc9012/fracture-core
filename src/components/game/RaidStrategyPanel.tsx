@@ -25,7 +25,7 @@ export function RaidStrategyPanel({ onClose }: { onClose: () => void }) {
     finally { setLoading(false); }
   };
 
-  return <div className="pointer-events-auto fixed inset-0 z-50 grid place-items-center bg-background/80 p-4 backdrop-blur-md">
+  return <div className="pointer-events-auto fixed inset-0 z-50 grid place-items-center bg-background/80 p-4">
     <section className="max-h-[92vh] w-full max-w-3xl overflow-y-auto border border-border bg-card p-5 shadow-2xl sm:p-7" aria-label="Fireteam Strategy">
       <header className="flex items-start justify-between gap-4 border-b border-border pb-4"><div><p className="font-mono text-[9px] uppercase tracking-[0.32em] text-primary">Raid intelligence</p><h2 className="mt-1 text-2xl font-semibold">Fireteam Strategy</h2></div><Button variant="ghost" size="icon" onClick={onClose} aria-label="Close strategy panel"><X /></Button></header>
       <div className="mt-5 grid gap-4 sm:grid-cols-2">

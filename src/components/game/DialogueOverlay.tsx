@@ -38,7 +38,7 @@ export function DialogueOverlay({ lines, onDone }: { lines: DialogueLine[]; onDo
   if (!line) return null;
 
   return (
-    <div className="pointer-events-none fixed inset-x-0 bottom-28 z-30 mx-auto w-[min(92vw,520px)] border border-border bg-background/85 p-4 backdrop-blur-md">
+    <div className="pointer-events-none fixed inset-x-0 bottom-28 z-30 mx-auto w-[min(92vw,520px)] border border-border bg-background/85 p-4">
       <p className="font-mono text-[10px] uppercase tracking-[0.25em] text-primary">{line.speaker}</p>
       <p className="mt-1 min-h-10 text-sm text-foreground">{line.text.slice(0, shown)}</p>
       <p className="mt-2 text-[9px] uppercase tracking-[0.2em] text-muted-foreground">

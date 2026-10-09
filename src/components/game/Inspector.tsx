@@ -53,7 +53,7 @@ export function Inspector({ view }: { view: InspectorView }) {
   const load = view.stepMs > 6 ? "#ff4d4d" : view.stepMs > 3 ? "#ff9f1c" : "#3ddc97";
 
   return (
-    <div className="pointer-events-none absolute left-4 top-1/2 max-h-[80vh] w-72 -translate-y-1/2 overflow-hidden rounded-lg border border-border/60 bg-card/85 font-mono backdrop-blur-md">
+    <div className="pointer-events-none absolute left-4 top-1/2 max-h-[80vh] w-72 -translate-y-1/2 overflow-hidden rounded-lg border border-border/60 bg-card/85 font-mono">
       <div className="flex items-center justify-between px-3 py-2">
         <span className="text-[10px] font-bold tracking-[0.25em]">ENGINE INSPECTOR</span>
         <span className="text-[9px] text-muted-foreground">[I] hide</span>

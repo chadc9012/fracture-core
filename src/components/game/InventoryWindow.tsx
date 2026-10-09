@@ -25,7 +25,7 @@ export function InventoryWindow({ progression, onProgression, onClose }: { progr
     onProgression({ ...progression, inventory: progression.inventory.filter((entry) => entry.id !== item.id), materials: { ...progression.materials, scrapMetal: (progression.materials.scrapMetal ?? 0) + 2 } });
     setSelectedId(progression.inventory.find((entry) => entry.id !== item.id)?.id ?? "");
   };
-  return <div className="fixed inset-0 z-50 overflow-y-auto bg-background/95 text-foreground backdrop-blur-xl hud-scanline" role="dialog" aria-modal="true" aria-label="Inventory">
+  return <div className="fixed inset-0 z-50 overflow-y-auto bg-background/95 text-foreground hud-scanline" role="dialog" aria-modal="true" aria-label="Inventory">
     <div className="mx-auto max-w-7xl px-4 py-5 sm:px-7">
       <header className="flex items-start justify-between gap-3 border-b border-primary/30 pb-5"><div><p className="hud-label">WF / Operator systems</p><h2 className="mt-1 font-mono text-3xl font-semibold" style={{ textShadow: "0 0 18px color-mix(in oklch, var(--primary) 30%, transparent)" }}>INVENTORY <span className="text-muted-foreground">// FRACTURE ADEPT IV</span></h2></div><Button size="icon" variant="outline" className="hud-panel border-0" onClick={onClose} aria-label="Close inventory"><X /></Button></header>
       <div className="mt-4 flex gap-2" role="tablist" aria-label="Inventory sections">{(["ARMORY", "MATERIALS", "CRAFTING"] as const).map((name) => <Button key={name} role="tab" aria-selected={tab === name} variant={tab === name ? "default" : "outline"} className={tab === name ? "hud-glow" : "hud-panel border-0"} onClick={() => setTab(name)}>{name}</Button>)}</div>

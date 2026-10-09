@@ -26,16 +26,16 @@ export function BlackoutProtocolOverlay({ mission, onEvent }: { mission: Mission
   };
 
   return <>
-    {mission.state !== "WORLD_UPDATE" && <div className="pointer-events-none fixed right-3 top-24 z-20 max-w-xs border-l-2 border-[#38e8ff] bg-card/80 p-3 backdrop-blur">
+    {mission.state !== "WORLD_UPDATE" && <div className="pointer-events-none fixed right-3 top-24 z-20 max-w-xs border-l-2 border-[#38e8ff] bg-card/80 p-3">
       <p className="font-mono text-[10px] uppercase tracking-[0.25em] text-[#38e8ff]">Blackout Protocol</p>
       <p className="mt-1 text-sm">{OBJECTIVE[mission.state]}</p>
       {(hacking || mission.state === "COMBAT_2") && <p className="mt-1 font-mono text-[10px] text-muted-foreground">RELAY {Math.round(mission.hack)}%</p>}
     </div>}
-    {mission.nova && <div className="pointer-events-none fixed bottom-24 left-3 z-20 flex max-w-sm items-start gap-3 border border-[#38e8ff]/40 bg-card/80 p-3 backdrop-blur">
+    {mission.nova && <div className="pointer-events-none fixed bottom-24 left-3 z-20 flex max-w-sm items-start gap-3 border border-[#38e8ff]/40 bg-card/80 p-3">
       <span className="mt-1 size-3 shrink-0 animate-pulse rounded-full bg-[#38e8ff] shadow-[0_0_12px_#38e8ff]" />
       <p className="text-sm"><span className="font-mono text-[10px] uppercase text-[#38e8ff]">NOVA · </span>{mission.nova}</p>
     </div>}
-    {hacking && <div className="fixed inset-0 z-30 grid place-items-center bg-background/40 backdrop-blur-sm">
+    {hacking && <div className="fixed inset-0 z-30 grid place-items-center bg-background/40">
       <section className="w-[min(26rem,calc(100%-2rem))] border border-[#38e8ff] bg-card/90 p-5">
         <p className="font-mono text-[10px] uppercase tracking-[0.25em] text-[#38e8ff]">Substation relay · cut grid power</p>
         <p className="mt-1 text-xs text-muted-foreground">Connect the relays in signal order. Next: <b className="text-foreground">RELAY {(order[route.length] ?? 0) + 1}</b></p>

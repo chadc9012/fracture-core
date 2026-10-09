@@ -36,7 +36,7 @@ export function EndingOverlay({ progression, onClose }: { progression: PlayerPro
   const ending = ENDINGS[tier];
   useVoiceLine(`ending-${tier}`, "NARRATOR", ending.line, "critical");
   return (
-    <div className="fixed inset-0 z-50 grid place-items-center bg-background/95 p-6 backdrop-blur-md">
+    <div className="fixed inset-0 z-50 grid place-items-center bg-background/95 p-6">
       <section className="w-full max-w-2xl text-center">
         <p className="font-mono text-[10px] uppercase tracking-[0.35em] text-primary">The Fracture Descent · Complete</p>
         <h1 className="mt-3 text-3xl font-semibold uppercase tracking-wide">{ending.title}</h1>

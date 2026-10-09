@@ -39,7 +39,7 @@ export function MainMenuHub({ className, level, shards, completedMissions, onNav
 
       <main className="relative mx-auto my-auto grid w-full max-w-6xl grid-cols-1 gap-3 py-8 sm:grid-cols-2 lg:grid-cols-5">
         {MODULES.map(({ id, code, title, body, action, icon: Icon }) => (
-          <button key={id} onClick={() => onNavigate(id)} className="ui-focus ui-enter group flex min-h-56 flex-col justify-between border border-foreground/15 bg-background/60 p-5 text-left backdrop-blur-sm transition-colors hover:border-primary/60 hover:bg-primary/5">
+          <button key={id} onClick={() => onNavigate(id)} className="ui-focus ui-enter group flex min-h-56 flex-col justify-between border border-foreground/15 bg-background/60 p-5 text-left transition-colors hover:border-primary/60 hover:bg-primary/5">
             <div>
               <div className="flex items-center justify-between"><span className="ui-kicker">Module / {code}</span><Icon className="h-4 w-4 text-muted-foreground group-hover:text-primary" /></div>
               <h2 className="mt-3 font-mono text-2xl uppercase tracking-wide group-hover:text-primary">{title}</h2>

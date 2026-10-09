@@ -87,7 +87,7 @@ export function SettingsWindow({
   const next = nextActivity({ completedMissions });
 
   return (
-    <div className="pointer-events-auto fixed inset-0 z-[60] overflow-y-auto bg-background/92 backdrop-blur-xl" role="dialog" aria-modal="true" aria-label="Game settings">
+    <div className="pointer-events-auto fixed inset-0 z-[60] overflow-y-auto bg-background/92" role="dialog" aria-modal="true" aria-label="Game settings">
       <div className="mx-auto flex min-h-full max-w-6xl flex-col px-4 py-5 sm:px-8 sm:py-8">
         <header className="flex items-center justify-between border-b border-foreground/15 pb-4">
           <div><p className="ui-kicker">System / Configuration</p><h2 className="mt-1 font-mono text-2xl uppercase sm:text-4xl">Settings</h2></div>
