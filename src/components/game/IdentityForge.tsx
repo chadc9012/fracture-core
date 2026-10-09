@@ -82,7 +82,7 @@ function Showcase({ classId, appearance, bodyType, selected, hidden, mode, onSel
   return <group ref={group} position={[x, 0, 0]} onClick={(event) => { event.stopPropagation(); if (mode === "CLASS") onSelect(classId); }}>
     <group ref={turntable} position-y={1.55}>
       <OperatorModel
-        classId={classId}
+        bodyType={bodyType} classId={classId}
         height={2.75}
         feetY={-1.55}
         color={appearance.armor}

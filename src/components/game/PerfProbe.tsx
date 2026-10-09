@@ -8,7 +8,7 @@ export function PerfProbe() {
   const { gl, scene } = useThree();
   const el = useRef<HTMLDivElement | null>(null);
   const shown = useRef(false);
-  const acc = useRef({ t: 0, frames: 0, worst: 0, lights: 0, lightT: 0, heavy: "", renderMs: 0, gpu: "", busyMs: 0, gpuMs: 0, gpuSamples: 0 });
+  const acc = useRef({ t: 0, frames: 0, worst: 0, lights: 0, lightT: 0, heavy: "", renderMs: 0, gpu: "", busyMs: 0, gpuMs: 0, gpuSamples: 0, lightInfo: "" });
   const timer = useRef<{ ctx: WebGL2RenderingContext; ext: { TIME_ELAPSED_EXT: number; GPU_DISJOINT_EXT: number }; open: WebGLQuery | null; pending: WebGLQuery[] } | null>(null);
   const frameStart = useRef(0);
   const v = useRef(new THREE.Vector3()).current;
@@ -76,10 +76,10 @@ export function PerfProbe() {
       if (a.lightT > 2) {
         a.lightT = 0;
         // Walk only what the renderer would draw (an invisible parent hides its whole subtree).
-        let n = 0; let total = 0; const groups = new Map<string, { tris: number; count: number; type: string }>();
+        let n = 0; let total = 0; const kinds: Record<string, number> = {}; const names: string[] = []; const groups = new Map<string, { tris: number; count: number; type: string }>();
         const walk = (o: THREE.Object3D) => {
           if (!o.visible) return;
-          if ((o as THREE.Light).isLight) n++;
+          if ((o as THREE.Light).isLight) { n++; kinds[o.type] = (kinds[o.type] ?? 0) + 1; if (o.type === "PointLight" || o.type === "SpotLight") { let p: THREE.Object3D | null = o; let path = ""; for (let d = 0; p && d < 4; d++, p = p.parent) path = (p.name || p.type) + (path ? ">" + path : ""); names.push(path); } }
           const m = o as THREE.Mesh;
           if (m.isMesh && m.geometry) {
             const g = m.geometry;
@@ -93,11 +93,12 @@ export function PerfProbe() {
         walk(scene);
         a.lights = n;
         const top = [...groups.values()].sort((x, y) => y.tris - x.tris).slice(0, 4);
+        a.lightInfo = Object.entries(kinds).map(([k, v]) => `${v} ${k.replace("Light", "")}`).join(", ") + (names.length ? "\n  " + names.slice(0, 6).join("\n  ") : "");
         a.heavy = `  scene ${(total / 1000).toFixed(0)}k tris\n` + top.map((h) => `  ${(h.tris / 1000).toFixed(0)}k = ${h.count} x ${h.type}`).join("\n");
       }
       const i = gl.info;
       const frameMs = (a.t / a.frames) * 1000; const renderMs = a.renderMs / a.frames;
-      el.current.textContent = `gpu ${a.gpu}\nframe ${frameMs.toFixed(0)} ms = render ${renderMs.toFixed(0)} + other ${Math.max(0, frameMs - renderMs).toFixed(0)}\njs busy ${(a.busyMs / a.frames).toFixed(0)} ms   gpu busy ${a.gpuSamples ? (a.gpuMs / a.gpuSamples).toFixed(0) + " ms" : "n/a"}\nFPS ${(a.frames / a.t).toFixed(0)}   worst ${(a.worst * 1000).toFixed(0)} ms\ncalls ${i.render.calls}   tris ${(i.render.triangles / 1000).toFixed(0)}k\nlights ${a.lights}   geo ${i.memory.geometries}   tex ${i.memory.textures}\ndpr ${gl.getPixelRatio().toFixed(2)}   ${gl.domElement.width}x${gl.domElement.height}${a.heavy ? "\nheaviest meshes:\n" + a.heavy : ""}`;
+      el.current.textContent = `gpu ${a.gpu}\nframe ${frameMs.toFixed(0)} ms = render ${renderMs.toFixed(0)} + other ${Math.max(0, frameMs - renderMs).toFixed(0)}\njs busy ${(a.busyMs / a.frames).toFixed(0)} ms   gpu busy ${a.gpuSamples ? (a.gpuMs / a.gpuSamples).toFixed(0) + " ms" : "n/a"}\nFPS ${(a.frames / a.t).toFixed(0)}   worst ${(a.worst * 1000).toFixed(0)} ms\ncalls ${i.render.calls}   tris ${(i.render.triangles / 1000).toFixed(0)}k\nlights ${a.lights}   geo ${i.memory.geometries}   tex ${i.memory.textures}\ndpr ${gl.getPixelRatio().toFixed(2)}   ${gl.domElement.width}x${gl.domElement.height}${a.lightInfo ? "\nlight types: " + a.lightInfo : ""}${a.heavy ? "\nheaviest meshes:\n" + a.heavy : ""}`;
     }
     a.t = 0; a.frames = 0; a.worst = 0; a.renderMs = 0; a.busyMs = 0; a.gpuMs = 0; a.gpuSamples = 0;
   });

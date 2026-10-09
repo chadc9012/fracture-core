@@ -1981,7 +1981,7 @@ export function Scene({
 
       {/* player on foot */}
       <group ref={player} position={SPAWN.toArray()}>
-        <OperatorModel classId={playerClass} height={2.75} feetY={-1.55} color={appearance.armor} pose="locomotion" motion={feel.current.motionRef} fallback={
+        <OperatorModel bodyType={bodyType} classId={playerClass} height={2.75} feetY={-1.55} color={appearance.armor} pose="locomotion" motion={feel.current.motionRef} fallback={
   <Operator bodyType={bodyType} armor={appearance.armor} cloth={appearance.cloth} visor={appearance.visor} trim={appearance.trim} classId={playerClass} motion={feel.current.motionRef} visualState={armorState} chestLevel={armorLevels.chest} helmetLevel={armorLevels.helmet} legsLevel={armorLevels.legs} />
         } />
         {playerClass === "TITAN" && sim.titan.blocking && (

@@ -4,6 +4,7 @@ import { Component, Suspense, useEffect, useMemo, useRef, type ReactNode } from 
 import * as THREE from "three";
 import { clone as cloneSkinned } from "three/examples/jsm/utils/SkeletonUtils.js";
 import type { ClassId } from "@/game/loadout";
+import { bodyProfile, type BodyType } from "@/game/operators";
 
 /** Authored (Meshy) operator models, served from /public. GOLIATH, NYX and CIPHER are rigged (Mixamo skeleton; walk/run for all, plus showcase for GOLIATH and idle for NYX); Anything missing or failing to load falls back to the procedural Operator. */
 export const OPERATOR_MODELS: Partial<Record<ClassId, { url: string; tint: boolean; rigged: boolean }>> = {
@@ -36,12 +37,13 @@ function pinRootMotion(clip: THREE.AnimationClip) {
 
 const actions0 = (a: Record<string, THREE.AnimationAction>, name: string) => Boolean(a[name]);
 
-function Model({ url, tint, height, feetY, color, pose, motion }: { url: string; tint: boolean; height: number; feetY: number; color: string | undefined; pose: "showcase" | "locomotion"; motion: ModelMotion | undefined }) {
+function Model({ url, tint, height, feetY, color, pose, motion, bodyType }: { bodyType: BodyType | undefined; url: string; tint: boolean; height: number; feetY: number; color: string | undefined; pose: "showcase" | "locomotion"; motion: ModelMotion | undefined }) {
   const { scene, animations } = useGLTF(url);
   const built = useMemo(() => {
     const object = cloneSkinned(scene);
     let skinned = false;
-    const material = tint ? new THREE.MeshStandardMaterial({ color: color ?? "#6b6f76", metalness: 0.55, roughness: 0.5 }) : null;
+    const robot = bodyProfile(bodyType).segmented;
+    const material = tint ? new THREE.MeshStandardMaterial({ color: color ?? "#6b6f76", metalness: robot ? 0.9 : 0.55, roughness: robot ? 0.28 : 0.5, emissive: robot ? new THREE.Color("#0a3a4a") : new THREE.Color("#000000"), emissiveIntensity: robot ? 0.6 : 0 }) : null;
     object.traverse((o) => {
       const m = o as THREE.SkinnedMesh;
       if (!m.isMesh) return;
@@ -58,7 +60,7 @@ function Model({ url, tint, height, feetY, color, pose, motion }: { url: string;
     const actions: Record<string, THREE.AnimationAction> = {};
     if (mixer) for (const clip of animations) { const a = mixer.clipAction(pinRootMotion(clip)); a.timeScale = 0; a.play(); a.weight = 0; actions[clip.name] = a; }
     return { object, scale, material, mixer, actions, offset: new THREE.Vector3(-centre.x * scale, feetY - box.min.y * scale, -centre.z * scale) };
-  }, [scene, animations, height, feetY, tint, color]);
+  }, [scene, animations, height, feetY, tint, color, bodyType]);
   useEffect(() => () => { built.material?.dispose(); built.mixer?.stopAllAction(); }, [built]);
 
   const rig = useRef<THREE.Group>(null);
@@ -73,7 +75,10 @@ function Model({ url, tint, height, feetY, color, pose, motion }: { url: string;
     b.prone += ((m0?.stance === "PRONE" ? 1 : 0) - b.prone) * k;
     b.lean += ((sliding ? 1 : 0) - b.lean) * k;
     if (rig.current) {
-      rig.current.scale.y = 1 - 0.24 * b.crouch;
+      // body type reshapes the one authored mesh: height, shoulder width and waist depth relative to the male baseline
+      const prof = bodyProfile(bodyType);
+      const wide = 1 + (prof.shoulders - 1.06) * 2.2;
+      rig.current.scale.set(wide, prof.height * (1 - 0.24 * b.crouch), 1 + (prof.waist - 1) * 1.8);
       rig.current.rotation.x = b.prone * 1.25 - b.lean * (actions0(built.actions, "slide") ? 0 : 0.45);
       rig.current.position.set(0, feetY + b.prone * 0.25, -b.prone * height * 0.4);
     }
@@ -112,11 +117,11 @@ function Model({ url, tint, height, feetY, color, pose, motion }: { url: string;
 
 /** Draws the authored model for `classId` if one exists, else `fallback` (also while loading or on failure).
  * `pose="showcase"` loops the flex clip (forge); `"locomotion"` drives walk/run from the live stride phase. */
-export function OperatorModel({ classId, height, feetY, fallback, color, pose = "showcase", motion }: {
-  classId: ClassId; height: number; feetY: number; fallback: ReactNode; color?: string | undefined; pose?: "showcase" | "locomotion"; motion?: ModelMotion | undefined;
+export function OperatorModel({ classId, height, feetY, fallback, color, pose = "showcase", motion, bodyType }: {
+  bodyType?: BodyType | undefined; classId: ClassId; height: number; feetY: number; fallback: ReactNode; color?: string | undefined; pose?: "showcase" | "locomotion"; motion?: ModelMotion | undefined;
 }) {
   const entry = OPERATOR_MODELS[classId];
   // a static mesh would just slide across the ground, so the world only uses rigged models
   if (!entry || (pose === "locomotion" && !entry.rigged)) return <>{fallback}</>;
-  return <Quiet fallback={fallback}><Suspense fallback={fallback}><Model url={entry.url} tint={entry.tint} height={height} feetY={feetY} color={color} pose={pose} motion={motion} /></Suspense></Quiet>;
+  return <Quiet fallback={fallback}><Suspense fallback={fallback}><Model url={entry.url} tint={entry.tint} height={height} feetY={feetY} color={color} pose={pose} motion={motion} bodyType={bodyType} /></Suspense></Quiet>;
 }
