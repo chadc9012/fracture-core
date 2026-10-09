@@ -7,6 +7,7 @@ import { heightAt, slopeAt, WATER_LEVEL } from "@/game/terrain";
 import { mulberry32 } from "@/game/useKeyboard";
 import { distanceToRoad, LANE_HALF_WIDTH } from "@/game/lanes";
 import { addObstacle } from "@/game/obstacles";
+import { isReserved } from "@/game/verdant";
 import boulder from "@/assets/polyhaven/namaqualand_boulder_02.glb.asset.json";
 import mossRocks from "@/assets/polyhaven/rock_moss_set_01.glb.asset.json";
 import deadTrunk from "@/assets/polyhaven/dead_tree_trunk.glb.asset.json";
@@ -39,6 +40,7 @@ function Placed({ url, regions, count, scale, seed }: (typeof PLACEMENT)[number]
         const x = region.x + Math.cos(a) * d, z = region.z + Math.sin(a) * d, y = heightAt(x, z);
         if (y < WATER_LEVEL + 0.3 || slopeAt(x, z) > 0.6 || distanceToRoad(x, z) < LANE_HALF_WIDTH + 2) continue;
         if (Math.hypot(x - region.x, z - (region.z + 12)) < 16) continue;
+        if (id === "veridan" && isReserved(x, z, 2)) continue; // keep the mission trail and clearings open
         out.push({ x, y, z, s: scale[0] + rnd() * (scale[1] - scale[0]), r: rnd() * Math.PI * 2 });
         n++;
       }

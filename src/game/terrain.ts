@@ -1,3 +1,4 @@
+import { CRASH_SITE, trailMask } from "./verdant";
 import { REGIONS, WORLD_RADIUS } from "./world";
 import { LANES, laneSamples } from "./lanes";
 
@@ -117,6 +118,10 @@ function rawHeightAt(x: number, z: number): number {
   const d = Math.hypot(x, z);
   const coast = 1 - smoothstep(WORLD_RADIUS * 0.78, WORLD_RADIUS * 1.02, d);
   h = h * coast - (1 - coast) * 16;
+
+  // Fracture crash site: a shallow impact bowl (Verdant Forest, see verdant.ts)
+  const cd = Math.hypot(x - CRASH_SITE.x, z - CRASH_SITE.z);
+  if (cd < CRASH_SITE.radius) h -= (1 - smoothstep(0, CRASH_SITE.radius, cd)) * 1.1;
   return h;
 }
 
@@ -258,6 +263,12 @@ export function colorAt(x: number, z: number, h: number): [number, number, numbe
     c = mix(c, [PALETTE.dirt[0] + cliff, PALETTE.dirt[1] + cliff, PALETTE.dirt[2] + cliff], dirt * 0.75);
     c = mix(c, [PALETTE.rock[0] + cliff, PALETTE.rock[1] + cliff, PALETTE.rock[2] + cliff], rock * 0.9);
   }
+
+  // Verdant trail: worn dirt along the path, scorched ground at the crash site
+  const tm = trailMask(x, z);
+  if (tm > 0) c = mix(c, [0.34, 0.27, 0.18], tm * 0.85);
+  const crash = Math.hypot(x - CRASH_SITE.x, z - CRASH_SITE.z);
+  if (crash < CRASH_SITE.radius) c = mix(c, [0.1, 0.1, 0.12], (1 - smoothstep(2, CRASH_SITE.radius, crash)) * 0.8);
 
   // a little noise so large surfaces never read as flat colour
   const n = (fbm(x * 0.35, z * 0.35, 2) - 0.5) * 0.08;

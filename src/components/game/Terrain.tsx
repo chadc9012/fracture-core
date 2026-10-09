@@ -12,6 +12,9 @@ import { WATER_LEVEL, colorAt, heightAt, slopeAt } from "@/game/terrain";
 import { groundDetailTextures, propDetailTextures } from "@/game/detail-texture";
 import { applySurfaceBlend, loadGroundSurfaces, surfaceWeights } from "@/game/region-materials";
 import { RegionModels } from "./RegionModels";
+import { PolyFoliage, type Placement } from "./PolyFoliage";
+import { reportAsset } from "@/game/forest-assets";
+import { isReserved } from "@/game/verdant";
 import { organicCanopy, organicRock } from "@/game/organic-geometry";
 import { LANE_HALF_WIDTH, distanceToRoad } from "@/game/lanes";
 import {
@@ -48,6 +51,8 @@ function scatter(
     if (slopeAt(x, z) > maxSlope) continue;
     // Keep the first insertion and immediate aiming lanes free of giant canopies.
     if (keepSpawnLaneClear && Math.hypot(x - region.x, z - (region.z + 12)) < 16) continue;
+    // Verdant Forest: the mission trail, spawn clearing, ambush clearing and crash pad stay open (verdant.ts)
+    if (region.id === "veridan" && isReserved(x, z, 1.5)) continue;
     // keep supply roads clear so convoys have a crash-free corridor
     if (distanceToRoad(x, z) < LANE_HALF_WIDTH) continue;
     out.push({ x, z, y, s: 0.7 + rnd() * 0.9, r: rnd() * Math.PI * 2 });
@@ -118,6 +123,15 @@ export function Terrain({ renderTier = "HIGH" }: { renderTier?: RenderTier } = {
   // ~13 MB of decorative Poly Haven GLBs would compete with the ground textures and first frames, so they join the world a few seconds after it appears
   const [modelsReady, setModelsReady] = useState(false);
   useEffect(() => { const t = window.setTimeout(() => setModelsReady(true), 4000); return () => window.clearTimeout(t); }, []);
+  // real Poly Haven trees replace the procedural ones species-by-species as each GLB finishes loading;
+  // until then (or if a file is missing) the procedural trees keep the forest populated
+  const [polyReady, setPolyReady] = useState({ fir: false, broadleaf: false });
+  const realTrees = renderTier !== "LOW";
+  useEffect(() => {
+    if (!realTrees) return;
+    // announce everything the forest will want, so the loading readout shows a total from the first frame
+    for (const [id, label] of [["fir", "Fir tree"], ["broadleaf", "Broadleaf tree"], ["fern", "Fern"], ["shrub", "Shrub"], ["rock", "Mossy rock"], ["log", "Fallen log"]] as const) reportAsset(`foliage:${id}`, label, "loading");
+  }, [realTrees]);
   const forest = byId("veridan");
   const frost = byId("frostspire");
   const ember = byId("ember");
@@ -136,7 +150,7 @@ export function Terrain({ renderTier = "HIGH" }: { renderTier?: RenderTier } = {
   // undergrowth clusters around each tree: saplings and low brush, kept off roads, water and steep ground
   const undergrowth = useMemo(() => clusterAround(trees, d(3), mulberry32(61), (x, z) => {
     const y = heightAt(x, z);
-    return y > 1.8 && y < 24 && slopeAt(x, z) < 0.5 && distanceToRoad(x, z) > LANE_HALF_WIDTH + 1 && Math.hypot(x - forest.x, z - (forest.z + 12)) > 12;
+    return y > 1.8 && y < 24 && slopeAt(x, z) < 0.5 && distanceToRoad(x, z) > LANE_HALF_WIDTH + 1 && Math.hypot(x - forest.x, z - (forest.z + 12)) > 12 && !isReserved(x, z, 0.5);
   }, { minScale: 0.45, maxScale: 1 }), [trees, density]);
   const flowers = useMemo(() => scatter(forest, d(70), 20, { min: 1.5, max: 20, maxSlope: 0.4 }), [forest, density]);
   const swampTrees = useMemo(() => scatter(swamp, d(70), 12, { min: -2.5, max: 6 }), [swamp, density]);
@@ -182,6 +196,14 @@ export function Terrain({ renderTier = "HIGH" }: { renderTier?: RenderTier } = {
 
   const alive = (list: Prop[]) => list.filter((p) => !p.o?.broken);
   const liveTrees = alive(trees);
+  // even-indexed trees are firs, odd are broadleaf (parity of the original index, so felling one never reshuffles the rest);
+  // a species is hidden from the procedural pass once its GLB is on screen
+  const procTrees = liveTrees.filter((t) => !(trees.indexOf(t) % 2 === 0 ? polyReady.fir : polyReady.broadleaf));
+  const asPlacement = (t: Prop): Placement => ({ x: t.x, y: t.y, z: t.z, s: t.s, r: t.r });
+  const firs: Placement[] = liveTrees.filter((t) => trees.indexOf(t) % 2 === 0).map(asPlacement);
+  const broadleafs: Placement[] = liveTrees.filter((t) => trees.indexOf(t) % 2 === 1).map(asPlacement);
+  const readyFir = useMemo(() => () => setPolyReady((p) => (p.fir ? p : { ...p, fir: true })), []);
+  const readyBroad = useMemo(() => () => setPolyReady((p) => (p.broadleaf ? p : { ...p, broadleaf: true })), []);
   const liveSwamp = alive(swampTrees);
   const liveBoulders = alive(boulders);
   const liveRocks = alive(rocks);
@@ -221,19 +243,25 @@ export function Terrain({ renderTier = "HIGH" }: { renderTier?: RenderTier } = {
     <group>
       <Ground />
       {renderTier !== "LOW" && modelsReady && <RegionModels />}
+      {realTrees && modelsReady && (
+        <>
+          <PolyFoliage kind="fir" items={firs} height={8} sway={0.35} shadows={fineShadows} onReady={readyFir} />
+          <PolyFoliage kind="broadleaf" items={broadleafs} height={9} sway={0.4} shadows={fineShadows} onReady={readyBroad} />
+        </>
+      )}
 
       {/* forest: trunk + two staggered canopy layers, hue-jittered per instance so the
           treeline reads as a forest instead of one stamped-out cone repeated 120 times */}
-      <Instances limit={liveTrees.length} castShadow receiveShadow>
+      <Instances limit={Math.max(1, liveTrees.length)} castShadow receiveShadow>
         <primitive object={trunkGeo} attach="geometry" />
         <meshStandardMaterial onBeforeCompile={swayTrunk} color="#4a3524" roughness={0.95} map={barkDetail.map} normalMap={barkDetail.normalMap} normalScale={new THREE.Vector2(0.6, 0.6)} />
-        {liveTrees.map((t, i) => (
+        {procTrees.map((t, i) => (
           <Instance key={i} position={[t.x, t.y + 2 * t.s, t.z]} scale={[1, t.s, 1]} color={jitter("#4a3524", i, 0.02, 0.1)} />
         ))}
       </Instances>
       <Instances limit={liveTrees.length} castShadow={fineShadows} receiveShadow geometry={canopyLow}>
         <meshStandardMaterial onBeforeCompile={swayCanopyLow} color="#2c7a41" roughness={0.9} map={leafDetail.map} normalMap={leafDetail.normalMap} normalScale={new THREE.Vector2(0.4, 0.4)} />
-        {liveTrees.map((t, i) => (
+        {procTrees.map((t, i) => (
           <Instance
             key={i}
             position={[t.x, t.y + 3.6 * t.s + 1.1, t.z]}
@@ -245,7 +273,7 @@ export function Terrain({ renderTier = "HIGH" }: { renderTier?: RenderTier } = {
       </Instances>
       <Instances limit={liveTrees.length} castShadow={fineShadows} receiveShadow geometry={canopyHigh}>
         <meshStandardMaterial onBeforeCompile={swayCanopyHigh} color="#3a8f4d" roughness={0.9} map={leafDetail.map} normalMap={leafDetail.normalMap} normalScale={new THREE.Vector2(0.4, 0.4)} />
-        {liveTrees.map((t, i) => (
+        {procTrees.map((t, i) => (
           <Instance
             key={i}
             position={[t.x, t.y + 5.9 * t.s + 1.6, t.z]}

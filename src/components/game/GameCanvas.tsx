@@ -67,6 +67,7 @@ import { grantXP } from "@/game/xp";
 import type { WorldSim } from "@/game/sim";
 import { LevelUpOverlay } from "./LevelUpOverlay";
 import { PerfOverlay, PerfSampler } from "./PerfOverlay";
+import { ForestAssetStatus } from "./ForestAssetStatus";
 import { VoiceSubtitle } from "./VoiceSubtitle";
 import { MainMenuHub } from "./MainMenuHub";
 import { configureVoice, speakVoice, stopVoice } from "@/game/voice-director";
@@ -673,6 +674,7 @@ export function GameCanvas() {
       }}</GraphicsGuard>
       </WorldErrorBoundary>
        <PerfOverlay />
+      <ForestAssetStatus />
        {savedFlash > 0 && <p className="pointer-events-none fixed right-4 top-4 z-30 font-mono text-[10px] uppercase tracking-[0.25em] text-primary" role="status">◌ Auto-saved</p>}
        <VoiceSubtitle />
        <HUD hud={hud} tutorialActive={Boolean(tutorial && tutorial.step !== "VICTORY")} onMenu={() => { setInventoryOpen(false); setAtlasOpen(false); setOperationsView(null); setMenuOpen(true); }} onStrategy={() => setStrategyOpen(true)} onGarage={() => setGarageOpen(true)} onAnalyze={() => setAnalysisOpen(true)} onOperations={(view) => { setInventoryOpen(false); setAtlasOpen(false); setOperationsView(view); }} onInventory={() => { setAtlasOpen(false); setOperationsView(null); setInventoryOpen(true); }} onAtlas={() => { setInventoryOpen(false); setOperationsView(null); setAtlasOpen(true); }} />

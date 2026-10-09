@@ -79,6 +79,9 @@ import { INTERIORS, INTERIOR_ALTITUDE, doorAt, atExitMarker, interiorById, isInt
 import { Interiors } from "./Interiors";
 
 import type { GameSettings } from "./SettingsWindow";
+import { VerdantForest } from "./VerdantForest";
+import { CRASH_SITE, ENCOUNTER, NEW_INVESTIGATION, shouldWakePatrol, stepInvestigation } from "@/game/verdant";
+import { spawnForestPatrol } from "@/game/forest-encounter";
 import { CHECKPOINT_INTERVAL_S, chooseRespawn, isCheckpointSafe } from "@/game/respawn";
 import { WEAPONS, WEAPON_ORDER, decay, freshAmmo, type WeaponId } from "@/game/weapons";
 import { DEFAULT_BINDINGS } from "@/game/bindings";
@@ -402,6 +405,8 @@ export function Scene({
   const lastDodgeStruggleAt = useRef(0);
   const lastAbilityStruggleAt = useRef(0);
   const awakeSpawned = useRef("");
+  const investigation = useRef(NEW_INVESTIGATION); // Verdant crash-site scan (verdant.ts), client-session only
+  const patrolWoken = useRef(false);
   const holdRef = useRef(0);
   const structure = useMemo(() => buildInterior("veridan-ruin", SPAWN.x + 28, walkHeight(SPAWN.x + 28, SPAWN.z + 20), SPAWN.z + 20), []);
   const depleted = useRef<Record<string, number>>({});
@@ -431,6 +436,7 @@ export function Scene({
     if (descent?.target && descent.state !== "COMPLETE" && descent.state !== "WORLD_UPDATE") list.push({ id: "m-descent-protocol", kind: "MISSION", label: "Descent Protocol", x: descent.target.x, z: descent.target.z, regionId: "swamps" });
     if (systemCore?.target && systemCore.state !== "COMPLETE" && systemCore.state !== "WORLD_UPDATE") list.push({ id: "m-system-core", kind: "MISSION", label: "The System Core", x: systemCore.target.x, z: systemCore.target.z, regionId: "swamps" });
     for (const m of sim.director.missions) { if (m.state !== "ACTIVE") continue; const c = regionCenter(m.regionId); if (c) list.push({ id: `m-${m.id}`, kind: "MISSION", label: m.name, x: c.x, z: c.z, regionId: m.regionId }); }
+    if (!investigation.current.done) list.push({ id: "forest-crash-site", kind: "MISSION", label: CRASH_SITE.label, x: CRASH_SITE.x, z: CRASH_SITE.z, regionId: "veridan" });
     for (const site of RESOURCE_SITES) list.push({ ...site, ready: (depleted.current[site.id] ?? 0) <= now });
     for (const lair of BOSS_LAIRS) list.push(lair);
     for (const m of sim.machines) if (m.alive && m.boss) list.push({ id: `live-${m.profile}`, kind: "BOSS", label: `${m.profile} (engaged)`, x: m.x, z: m.z, regionId: m.zone });
@@ -1469,6 +1475,18 @@ export function Scene({
       if (systemCore.state === "BOSS" && systemCoreSpawned.current === "BOSS" && !sim.machines.some((m) => m.alive && m.mission)) { systemCoreSpawned.current = "BOSS-done"; onSystemCoreEvent({ type: "CLEAR" }); }
     }
 
+    /* ---------------- Verdant Forest · crash-site investigation + ambush patrol ---------------- */
+    {
+      const inv = stepInvestigation(investigation.current, dt, Math.hypot(CRASH_SITE.x - s.x, CRASH_SITE.z - s.z));
+      investigation.current = inv.next;
+      if (inv.event === "APPROACH") alert(sim, "Fracture energy signature ahead — investigate the crash site");
+      else if (inv.event === "COMPLETE") alert(sim, "Crash site scanned — Fracture residue logged");
+      if (!tutorial && shouldWakePatrol(Math.hypot(ENCOUNTER.x - s.x, ENCOUNTER.z - s.z), patrolWoken.current)) {
+        patrolWoken.current = true;
+        if (spawnForestPatrol(sim) > 0) alert(sim, "Hostile signatures in the clearing — use the cover");
+      }
+    }
+
     /* ---------------- Neon Core · Awakening micro-objectives ---------------- */
     if (awakening && onAwakeningEvent) {
       const a = awakening;
@@ -1926,6 +1944,7 @@ export function Scene({
       <RegionLighting playerRef={player} tier={settings.renderTier} />
 
       <Terrain renderTier={settings.renderTier} />
+      <VerdantForest density={settings.renderTier === "LOW" ? 0.5 : settings.renderTier === "MEDIUM" ? 0.75 : 1} models={settings.renderTier !== "LOW"} investigation={investigation} />
       <RiftTurrets sim={sim} />
       <PerfProbe />
       <Weather playerRef={player} weatherRef={weatherKind} fxRef={weatherFx} />
