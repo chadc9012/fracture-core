@@ -8,7 +8,9 @@ export function PerfProbe() {
   const { gl, scene } = useThree();
   const el = useRef<HTMLDivElement | null>(null);
   const shown = useRef(false);
-  const acc = useRef({ t: 0, frames: 0, worst: 0, lights: 0, lightT: 0, heavy: "", renderMs: 0, gpu: "" });
+  const acc = useRef({ t: 0, frames: 0, worst: 0, lights: 0, lightT: 0, heavy: "", renderMs: 0, gpu: "", busyMs: 0, gpuMs: 0, gpuSamples: 0 });
+  const timer = useRef<{ ctx: WebGL2RenderingContext; ext: { TIME_ELAPSED_EXT: number; GPU_DISJOINT_EXT: number }; open: WebGLQuery | null; pending: WebGLQuery[] } | null>(null);
+  const frameStart = useRef(0);
   const v = useRef(new THREE.Vector3()).current;
 
   useEffect(() => {
@@ -28,14 +30,46 @@ export function PerfProbe() {
     const ctx = gl.getContext();
     const info = ctx.getExtension("WEBGL_debug_renderer_info");
     acc.current.gpu = info ? String(ctx.getParameter(info.UNMASKED_RENDERER_WEBGL)).slice(0, 44) : "unknown (no debug info)";
+    const c2 = ctx as WebGL2RenderingContext;
+    const ext = typeof c2.createQuery === "function" ? (c2.getExtension("EXT_disjoint_timer_query_webgl2") as { TIME_ELAPSED_EXT: number; GPU_DISJOINT_EXT: number } | null) : null;
+    timer.current = ext ? { ctx: c2, ext, open: null, pending: [] } : null;
     const original = gl.render;
     gl.render = (s: THREE.Object3D, c: THREE.Camera) => { const t0 = performance.now(); original.call(gl, s, c); acc.current.renderMs += performance.now() - t0; };
-    return () => { gl.render = original; };
+    return () => { gl.render = original; timer.current = null; };
   }, [gl]);
+
+  // Frame start (before any other work): open a GPU timer query, and after the frame's JS finishes (a message
+  // posted now runs once the rAF callbacks return) close it and record how long the main thread was busy.
+  const channel = useRef<MessageChannel | null>(null);
+  useFrame(() => {
+    if (!shown.current) return;
+    frameStart.current = performance.now();
+    const tm = timer.current;
+    if (tm && !tm.open && tm.pending.length < 6) { tm.open = tm.ctx.createQuery(); tm.ctx.beginQuery(tm.ext.TIME_ELAPSED_EXT, tm.open!); }
+    if (!channel.current) {
+      const mc = new MessageChannel();
+      mc.port1.onmessage = () => {
+        acc.current.busyMs += performance.now() - frameStart.current;
+        const t2 = timer.current;
+        if (t2?.open) { t2.ctx.endQuery(t2.ext.TIME_ELAPSED_EXT); t2.pending.push(t2.open); t2.open = null; }
+      };
+      channel.current = mc;
+    }
+    channel.current.port2.postMessage(0);
+  }, -1000);
 
   useFrame((_, dt) => {
     const a = acc.current;
     a.t += dt; a.frames++; a.worst = Math.max(a.worst, dt);
+    const tm = timer.current;
+    if (tm) {
+      const disjoint = tm.ctx.getParameter(tm.ext.GPU_DISJOINT_EXT);
+      while (tm.pending.length && tm.ctx.getQueryParameter(tm.pending[0]!, tm.ctx.QUERY_RESULT_AVAILABLE)) {
+        const q = tm.pending.shift()!;
+        if (!disjoint) { a.gpuMs += Number(tm.ctx.getQueryParameter(q, tm.ctx.QUERY_RESULT)) / 1e6; a.gpuSamples++; }
+        tm.ctx.deleteQuery(q);
+      }
+    }
     if (a.t < 0.5) return;
     if (shown.current && el.current) {
       a.lightT += a.t;
@@ -63,9 +97,9 @@ export function PerfProbe() {
       }
       const i = gl.info;
       const frameMs = (a.t / a.frames) * 1000; const renderMs = a.renderMs / a.frames;
-      el.current.textContent = `gpu ${a.gpu}\nframe ${frameMs.toFixed(0)} ms = render ${renderMs.toFixed(0)} + other ${Math.max(0, frameMs - renderMs).toFixed(0)}\nFPS ${(a.frames / a.t).toFixed(0)}   worst ${(a.worst * 1000).toFixed(0)} ms\ncalls ${i.render.calls}   tris ${(i.render.triangles / 1000).toFixed(0)}k\nlights ${a.lights}   geo ${i.memory.geometries}   tex ${i.memory.textures}\ndpr ${gl.getPixelRatio().toFixed(2)}   ${gl.domElement.width}x${gl.domElement.height}${a.heavy ? "\nheaviest meshes:\n" + a.heavy : ""}`;
+      el.current.textContent = `gpu ${a.gpu}\nframe ${frameMs.toFixed(0)} ms = render ${renderMs.toFixed(0)} + other ${Math.max(0, frameMs - renderMs).toFixed(0)}\njs busy ${(a.busyMs / a.frames).toFixed(0)} ms   gpu busy ${a.gpuSamples ? (a.gpuMs / a.gpuSamples).toFixed(0) + " ms" : "n/a"}\nFPS ${(a.frames / a.t).toFixed(0)}   worst ${(a.worst * 1000).toFixed(0)} ms\ncalls ${i.render.calls}   tris ${(i.render.triangles / 1000).toFixed(0)}k\nlights ${a.lights}   geo ${i.memory.geometries}   tex ${i.memory.textures}\ndpr ${gl.getPixelRatio().toFixed(2)}   ${gl.domElement.width}x${gl.domElement.height}${a.heavy ? "\nheaviest meshes:\n" + a.heavy : ""}`;
     }
-    a.t = 0; a.frames = 0; a.worst = 0; a.renderMs = 0;
+    a.t = 0; a.frames = 0; a.worst = 0; a.renderMs = 0; a.busyMs = 0; a.gpuMs = 0; a.gpuSamples = 0;
   });
   return null;
 }
