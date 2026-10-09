@@ -17,7 +17,9 @@ import { GraphicsGuard } from "./GraphicsGuard";
 import { StartMenu, type Deployment } from "./StartMenu";
 import { perfFlags } from "@/game/perf-flags";
 import { SettingsWindow, DEFAULT_SETTINGS, type GameSettings } from "./SettingsWindow";
-import { TitleScreen } from "./TitleScreen";
+import { BootSequence } from "./BootSequence";
+import { MainMenu } from "./MainMenu";
+import { bootSeen, evaluateSave, markBootSeen } from "@/game/startup";
 import { DeploymentBriefing } from "./DeploymentBriefing";
 import { RaidStrategyPanel } from "./RaidStrategyPanel";
 import { EMPTY_RETICLE } from "@/game/crosshair";
@@ -186,9 +188,12 @@ const initial: HudState = {
   })),
 };
 
+/** The in-game setting or the OS-level preference, whichever asks for less motion. */
+const prefersReduced = (setting?: boolean) => !!setting || (typeof window !== "undefined" && typeof window.matchMedia === "function" && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+
 export function GameCanvas() {
   const [hud, setHud] = useState<HudState>(initial);
-  const [phase, setPhase] = useState<"title" | "hub" | "loadout" | "briefing" | "world">("title");
+  const [phase, setPhase] = useState<"boot" | "title" | "hub" | "loadout" | "briefing" | "world">(() => (bootSeen() ? "title" : "boot"));
   const [pendingDeployment, setPendingDeployment] = useState<Deployment | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const [settings, setSettings] = useState<GameSettings>(DEFAULT_SETTINGS);
@@ -256,8 +261,6 @@ export function GameCanvas() {
     if (line) speakVoice({ id: "return-recap", scope: "recap", speaker: "NOVA", text: line, priority: "story" });
   }, [phase, progression]);
   const [introElapsed, setIntroElapsed] = useState(0);
-  const [boot, setBoot] = useState(true);
-  useEffect(() => { const timer = window.setTimeout(() => setBoot(false), 1700); return () => window.clearTimeout(timer); }, []);
 
   useEffect(() => saveProgression(progression), [progression]);
   useEffect(() => { if (phase !== "world") return; const t = window.setTimeout(() => setSavedFlash(Date.now()), 1200); return () => window.clearTimeout(t); }, [progression, phase]);
@@ -532,24 +535,21 @@ export function GameCanvas() {
     setPhase("title");
   };
 
-  if (boot) return (
-    <div className="fixed inset-0 grid place-items-center bg-background">
-      <div className="text-center">
-        <div className="mx-auto mb-7 size-16 animate-pulse rounded-full border border-primary shadow-[0_0_55px_var(--primary)]" />
-        <h1 className="font-mono text-2xl font-bold tracking-[0.2em] text-foreground sm:text-3xl">WORLD<span className="text-primary"> FRACTURE</span></h1>
-        <p className="mt-3 font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground">Initializing Adaptive Combat System…</p>
-      </div>
-    </div>
-  );
+  if (phase === "boot") {
+    return <BootSequence reducedMotion={prefersReduced(settings.reducedMotion)} onDone={() => { markBootSeen(); setPhase("title"); }} />;
+  }
 
   if (phase === "title") {
     return (
       <>
         {!menuOpen && (
-          <TitleScreen
-            canContinue={last !== null || progression.completedMissions.length > 0}
+          <MainMenu
+            save={evaluateSave(progression, last !== null)}
+            classId={progression.identityClass ?? cls}
+            reducedMotion={prefersReduced(settings.reducedMotion)}
             onContinue={() => setPhase(last || progression.completedMissions.length > 0 ? "hub" : "loadout")}
             onNewGame={() => setPhase("loadout")}
+            onCharacter={() => setPhase("loadout")}
             onSettings={() => setMenuOpen(true)}
           />
         )}
@@ -585,7 +585,7 @@ export function GameCanvas() {
   if (phase === "loadout") {
     return (
       <>
-        {!menuOpen && <StartMenu onDeploy={prepareDeployment} weaponOrder={activeLoadout(progression, progression.identityClass ?? cls).slots} onSaveCharacter={async (character) => { const result = await persistCharacter(progressionRef.current, character); progressionRef.current = result.progression; setProgression(result.progression); }} onSettings={() => setMenuOpen(true)} best={last} />}
+        {!menuOpen && <StartMenu onDeploy={prepareDeployment} weaponOrder={activeLoadout(progression, progression.identityClass ?? cls).slots} onSaveCharacter={async (character) => { const result = await persistCharacter(progressionRef.current, character); progressionRef.current = result.progression; setProgression(result.progression); }} onSettings={() => setMenuOpen(true)} onExit={() => setPhase("title")} best={last} />}
         {menuOpen && (
           <SettingsWindow
             completedMissions={progression.completedMissions}

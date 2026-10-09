@@ -49,6 +49,7 @@ function Toggle({ label, on, onChange }: { label: string; on: boolean; onChange:
 
 import { Accessibility, BookOpen, ChevronLeft, Compass, Gamepad2, Map as MapIcon, Monitor, Play, SlidersHorizontal, Speaker, X } from "lucide-react";
 import { useState } from "react";
+import { useMenuInput } from "./useMenuInput";
 import { Button } from "@/components/ui/button";
 import { DEFAULT_BINDINGS, type Bindings } from "@/game/bindings";
 import { CHRONICLE, ROADMAP, nextActivity } from "@/game/retention";
@@ -85,6 +86,8 @@ export function SettingsWindow({
   const set = (patch: Partial<GameSettings>) => onChange({ ...settings, ...patch });
   const [section, setSection] = useState<SettingsSection>("NEXT");
   const next = nextActivity({ completedMissions });
+  // Esc / Backspace / controller B-Circle closes; off on Controls, where Esc cancels an in-progress rebind
+  useMenuInput(section !== "CONTROLS", () => onClose(), ["back"]);
 
   return (
     <div className="pointer-events-auto fixed inset-0 z-[60] overflow-y-auto bg-background/92" role="dialog" aria-modal="true" aria-label="Game settings">

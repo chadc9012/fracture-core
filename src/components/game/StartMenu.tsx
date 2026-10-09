@@ -1,5 +1,6 @@
 import { ChevronLeft, ChevronRight, Circle, Cpu, Settings, Shield } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { useMenuInput } from "./useMenuInput";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { CLASSES, CUSTOMIZATION_PALETTE, DEFAULT_SUBCLASS, SUBCLASSES, appearanceById, operatorByClass, type AppearanceDefinition, type ClassId, type OperatorId, type SubclassId } from "@/game/loadout";
@@ -44,7 +45,7 @@ const GUIDE: Record<Stage, string> = {
   ASSEMBLING: "Identity stabilized. Armor assembly in progress.",
 };
 
-export function StartMenu({ onDeploy, onSaveCharacter, weaponOrder, onSettings }: { onDeploy: (deployment: Deployment) => void; onSaveCharacter?: (character: PlayerCharacter) => Promise<void>; weaponOrder?: readonly string[]; onSettings: () => void; best: { credits: number; kills: number } | null }) {
+export function StartMenu({ onDeploy, onSaveCharacter, weaponOrder, onSettings, onExit }: { onExit?: () => void; onDeploy: (deployment: Deployment) => void; onSaveCharacter?: (character: PlayerCharacter) => Promise<void>; weaponOrder?: readonly string[]; onSettings: () => void; best: { credits: number; kills: number } | null }) {
   const [classId, setClassId] = useState<ClassId>("TITAN");
   const [subclassId, setSubclassId] = useState<SubclassId>("SHIELD_TITAN");
   const [appearance, setAppearance] = useState<AppearanceDefinition>(() => APPEARANCE_FOR("TITAN"));
@@ -93,6 +94,9 @@ export function StartMenu({ onDeploy, onSaveCharacter, weaponOrder, onSettings }
     if (nextStage) setStage(nextStage);
   };
   const back = () => { const previous = STAGES[stageIndex - 1]; if (previous) setStage(previous); };
+
+  // Esc / Backspace / controller B-Circle: previous step, or out to the main menu from the first step (never mid-save)
+  useMenuInput(stage !== "ASSEMBLING" && !deploying, () => { if (stageIndex > 0) back(); else onExit?.(); }, ["back"]);
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
@@ -202,7 +206,8 @@ export function StartMenu({ onDeploy, onSaveCharacter, weaponOrder, onSettings }
     </div>}
 
     {stage !== "ASSEMBLING" && <footer className="pointer-events-none absolute inset-x-0 bottom-4 z-20 flex items-center justify-center gap-2">
-      {stageIndex > 0 && <Button className="hud-panel pointer-events-auto border-0" variant="outline" onClick={back}><ChevronLeft />Back</Button>}
+      {stageIndex > 0 && <Button className="hud-panel pointer-events-auto border-0" variant="outline" onClick={back} disabled={deploying}><ChevronLeft />Back</Button>}
+      {stageIndex === 0 && onExit && <Button className="hud-panel pointer-events-auto border-0" variant="outline" onClick={onExit}><ChevronLeft />Main menu</Button>}
       <Button className="hud-glow pointer-events-auto min-w-44" onClick={next} disabled={deploying}>{stage === "APPEARANCE" ? <Shield /> : null}{stage === "CLASS" ? `Imprint ${operatorByClass(classId).name}` : stage === "SUBCLASS" ? "Approach armor forge" : deploying ? "Saving character…" : "Save character & deploy"}<ChevronRight /></Button>
     </footer>}
     {stage === "ASSEMBLING" && <div className="absolute inset-x-0 bottom-12 z-20 text-center"><p className="animate-pulse font-mono text-xs uppercase tracking-[0.35em] text-primary" style={{ textShadow: "0 0 12px color-mix(in oklch, var(--primary) 60%, transparent)" }}>Armor lattice assembling</p><div className="mx-auto mt-3 h-px w-64 overflow-hidden bg-muted"><div className="h-full w-full origin-left animate-[forge-progress_2.1s_ease-in-out] bg-primary" style={{ boxShadow: "0 0 8px var(--primary)" }} /></div></div>}
