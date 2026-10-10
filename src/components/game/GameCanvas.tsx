@@ -10,6 +10,8 @@ import { walkHeight } from "@/game/terrain";
 import type { VehicleId } from "@/game/vehicles";
 import { STARTER_VEHICLES, VEHICLES, vehicleAcquisition } from "@/game/vehicles";
 import { Button } from "@/components/ui/button";
+import { MissionCinematic } from "./MissionCinematic";
+import { shouldPlay as shouldPlayCine, markPlayed as markCinePlayed } from "@/game/cinematics";
 import { ruinById, discoverNearby, canEvolve, evolveWeapon, isWeapon, ABILITY_RULES, EVOLVE_POWER_BONUS, EVOLVE_MIN_LEVEL, EVOLVE_CATALYSTS, EVOLVE_ELEMENT_AMOUNT } from "@/game/weapon-evolution";
 import { HUD } from "./HUD";
 import { Scene, type HudState } from "./Scene";
@@ -328,6 +330,9 @@ export function GameCanvas() {
   progressionRef.current = progression;
   const [tutorial, setTutorial] = useState<TutorialState | null>(null);
   const [showIntro, setShowIntro] = useState(false);
+  // Act I screenplay cinematic (cinematics.ts) that replaces the old text intro for a save's first deploy
+  const [cineId, setCineId] = useState<string | null>(null);
+  const [cineProgress, setCineProgress] = useState(0);
   // tutorial checkpoint: saved at every step so a reload resumes instead of restarting (VICTORY clears it)
   useEffect(() => { if (tutorial) setProgression((p) => withTutorialRun(p, tutorial)); }, [tutorial]);
   const lastPlayed = useRef<string | null>(null);
@@ -557,7 +562,10 @@ export function GameCanvas() {
     }));
     setMenuOpen(false);
     setPhase("world");
-    if (how.intro) { setIntroElapsed(0); setShowIntro(true); }
+    if (how.intro) {
+      if (shouldPlayCine(progressionRef.current.story, "m1-opening")) { setCineProgress(0); setCineId("m1-opening"); }
+      else { setIntroElapsed(0); setShowIntro(true); }
+    }
   };
   // a confirmed character; the cinematic plays only for a save that has not seen it (not on re-deploys or Continue)
   const deploy = (deployment: Deployment) => enterWorld(
@@ -794,7 +802,7 @@ export function GameCanvas() {
       >
         <color attach="background" args={["#bfe4f2"]} />
         <Suspense fallback={null}>
-            <Scene openedCaches={openedToday} onStoryEvent={recordStory} onHud={setHud} onDrops={(drops) => { showScenarioRewards(drops); setProgression((current) => claimDrops(current, drops)); }} gear={progression} settings={settings} onCameraPreference={(firstPerson) => { window.localStorage.setItem("world-fracture-camera", firstPerson ? "first" : "third"); setSettings((current) => ({ ...current, firstPersonDefault: firstPerson })); }} playerClass={cls} subclassId={subclass} appearance={appearance} bodyType={bodyType} vehicleId={vehicleId} vehicleUnlocked={vehicleUnlocked} activeBuild={progression.activeBuild} abilityBranches={progression.abilityBranches} tutorial={tutorial} onTutorialEvent={recordTutorial} mission={mission} onMissionEvent={recordMission} blackout={blackout} onBlackoutEvent={recordBlackout} neonCore={neonCore} onNeonCoreEvent={recordNeonCore} descent={descent} onDescentEvent={recordDescent} systemCore={systemCore} onSystemCoreEvent={recordSystemCore} awakening={awakening} onAwakeningEvent={recordAwakening} onXP={recordXP} weaponOrder={activeLoadout(progression, progression.identityClass ?? cls).slots} travelTo={travelTo} introPlayback={showIntro ? { elapsed: introElapsed, totalSeconds: introTotalSeconds() } : null} armorState={hud.hp < 35 ? "FRACTURE" : hud.heat > 65 ? "ASCENDANT" : hud.heat > 15 ? "ACTIVE" : "STABLE"} />
+            <Scene openedCaches={openedToday} onStoryEvent={recordStory} onHud={setHud} onDrops={(drops) => { showScenarioRewards(drops); setProgression((current) => claimDrops(current, drops)); }} gear={progression} settings={settings} onCameraPreference={(firstPerson) => { window.localStorage.setItem("world-fracture-camera", firstPerson ? "first" : "third"); setSettings((current) => ({ ...current, firstPersonDefault: firstPerson })); }} playerClass={cls} subclassId={subclass} appearance={appearance} bodyType={bodyType} vehicleId={vehicleId} vehicleUnlocked={vehicleUnlocked} activeBuild={progression.activeBuild} abilityBranches={progression.abilityBranches} tutorial={tutorial} onTutorialEvent={recordTutorial} mission={mission} onMissionEvent={recordMission} blackout={blackout} onBlackoutEvent={recordBlackout} neonCore={neonCore} onNeonCoreEvent={recordNeonCore} descent={descent} onDescentEvent={recordDescent} systemCore={systemCore} onSystemCoreEvent={recordSystemCore} awakening={awakening} onAwakeningEvent={recordAwakening} onXP={recordXP} weaponOrder={activeLoadout(progression, progression.identityClass ?? cls).slots} travelTo={travelTo} introPlayback={showIntro ? { elapsed: introElapsed, totalSeconds: introTotalSeconds() } : cineId ? { elapsed: cineProgress * introTotalSeconds(), totalSeconds: introTotalSeconds() } : null} armorState={hud.hp < 35 ? "FRACTURE" : hud.heat > 65 ? "ASCENDANT" : hud.heat > 15 ? "ACTIVE" : "STABLE"} />
         </Suspense>
         {post && (
           // cinematic grade: cool-leaning teal shadows, a touch more punch, so the HUD's cyan
@@ -918,6 +926,7 @@ export function GameCanvas() {
           onContinue={() => { setTutorial(null); setOperationsView("ABILITIES"); }}
         />
       )}
+      {cineId && <MissionCinematic id={cineId} onProgress={setCineProgress} onDone={(_handoff, _skipped) => { const id = cineId; setCineId(null); setProgression((cur) => ({ ...cur, story: markCinePlayed(cur.story, id) })); }} />}
       {showIntro && <IntroCinematic onComplete={() => setShowIntro(false)} onTick={setIntroElapsed} />}
       {strategyOpen && <RaidStrategyPanel onClose={() => setStrategyOpen(false)} />}
       {analysisOpen && <ZoneAnalysisPanel zoneName={hud.region} onClose={() => setAnalysisOpen(false)} />}

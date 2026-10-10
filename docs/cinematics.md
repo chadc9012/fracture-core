@@ -7,8 +7,14 @@ Status legend: **implemented** = code exists · **tested** = covered by `bun tes
 - Controller: ordered shots (camera kind, symbolic `anchor`, framing, cues, subtitle lines with speaker names and computed timing), `start/step/skip/pause/resume`, `inspectCinematic` (current shot + line, for the subtitle layer and a dev inspector), `shouldPlay/markPlayed` (once-keyed story flag `cine:<id>`, merged with the save).
 - Guarantees (tested): the handoff is produced exactly once; skipping at any moment yields the same valid handoff and objective; skipping or replaying only ever touches the `cine:<id>` flag — no rewards, no mission completion, no quest flags; line ids are unique across all scenes; every line fits its shot; each scene lands inside its screenplay target length; played state survives save/reload and cloud merge.
 
+## Wired so far (Mission 1 only)
+- `src/components/game/MissionCinematic.tsx` plays any cinematic by id: letterbox, shot title and cue text, speaker-named subtitles, lines spoken through the shared voice director (captions always shown), Enter/Space/Esc/click/pad skip. It only reports `onDone(handoff, skipped)`; GameCanvas then writes the once-keyed `cine:<id>` story flag (no rewards, no mission completion).
+- GameCanvas plays `m1-opening` on a save's first deploy (when `introSeen` is not yet set) in place of the old text intro, then the existing tutorial/awakening combat starts as the handoff. The old intro remains as a fallback if the scene was already played.
+- **Camera is a stand-in**: shots are NOT yet resolved to their symbolic anchors. The existing flythrough (intro-camera.ts) is scaled to the scene length, so the shots' framing text is not what the camera shows. Not browser-verified.
+- Missions 2-5 scenes are still data only.
+
 ## What does NOT exist yet
-- **Not wired into Scene/GameCanvas.** No camera is driven, no subtitles are drawn, nothing triggers a scene. Shots name symbolic anchors (`neon-core-skyline`, `player-hand`, …) that Scene must resolve to world positions. **Unverified.**
+- **Anchors are not resolved in Scene** (only Mission 1 is triggered, with the stand-in camera above). Shots name symbolic anchors (`neon-core-skyline`, `player-hand`, …) that Scene must resolve to world positions. **Unverified.**
 - No recorded audio. Lines are meant to go through the existing server-streamed TTS with captions as fallback.
 - No dev route (routeTree.gen.ts cannot be regenerated in this environment); use `inspectCinematic` from a dev panel when wiring.
 - Nothing has been seen in a browser.
