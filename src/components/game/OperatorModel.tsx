@@ -94,7 +94,8 @@ function attachWeapons(object: THREE.Object3D, height: number, modelScale: numbe
 /** Authored (Meshy) operator models, served from /public. GOLIATH, NYX and CIPHER are rigged (Mixamo skeleton; walk/run for all, plus showcase for GOLIATH and idle for NYX); Anything missing or failing to load falls back to the procedural Operator. */
 export const OPERATOR_MODELS: Partial<Record<ClassId, { url: string; tint: boolean; rigged: boolean }>> = {
   TITAN: { url: "/models/operators/goliath-hd.glb", tint: true, rigged: true },
-  WARLOCK: { url: "/models/operators/cipher-hd.glb", tint: true, rigged: true },
+  // CIPHER ships its own authored textures (Meshy, re-encoded by scripts/build-operator-authored.py): no runtime paint, no procedural plates on top.
+  WARLOCK: { url: "/models/operators/cipher-authored.glb", tint: false, rigged: true },
   HUNTER: { url: "/models/operators/nyx-hd.glb", tint: true, rigged: true },
 };
 
@@ -176,13 +177,14 @@ function Model({ url, tint, height, feetY, color, trim, pose, motion, bodyType, 
   }, [scene, animations, height, feetY, tint, color, trim, bodyType, look, cloth, pose]);
   const armorKey = piecesKey(gear, classId);
   useEffect(() => {
-    const pieces = equippedPieces(gear, classId);
+    // an authored (untinted) body already wears its armor in its textures; procedural plates would float over it
+    const pieces = tint ? equippedPieces(gear, classId) : [];
     if (!pieces.length) return;
     built.object.updateMatrixWorld(true);
     const accent = ELEMENT_GLOW[gear?.inventory.find((g) => g.id === gear.equippedGear.chest)?.element ?? "ARC"] ?? "#6fe7ff";
     return attachArmor(built.object, pieces, height, built.scale, { armor: color ?? "#9aa3ad", trim: "#3b4048", accent });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [built, armorKey, color, height]);
+  }, [built, armorKey, color, height, tint]);
   const heldGroups = useRef<Partial<Record<WeaponId, THREE.Group>>>({});
   useEffect(() => {
     if (!held) return;
