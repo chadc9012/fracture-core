@@ -26,3 +26,22 @@ describe("water network", () => {
     expect(carveTarget(5, 4, 3, 1, 20)).toBe(5);
   });
 });
+
+describe("named water features survive terrain changes", () => {
+  const net = waterNetwork();
+  const byRegion = (id: string) => net.rivers.find((r) => r.regionId === id);
+  it("Frostspire stream reaches the ocean down a four-fall cascade", () => {
+    const f = byRegion("frostspire")!;
+    expect(f.mouth).toBe("ocean");
+    expect(f.falls.length).toBe(4);
+  });
+  it("Ember stream keeps its falls; Veridan, swamp and Wastelands channels exist; Wastelands stays dry", () => {
+    expect(byRegion("ember")!.falls.length).toBeGreaterThanOrEqual(1);
+    expect(byRegion("veridan")).toBeDefined();
+    expect(byRegion("swamps")).toBeDefined();
+    expect(byRegion("wastelands")!.dry).toBe(true);
+  });
+  it("Solara keeps an oasis pool", () => {
+    expect(net.lakes.some((l) => Math.hypot(l.x + 18, l.z - 76) < 44)).toBe(true);
+  });
+});
