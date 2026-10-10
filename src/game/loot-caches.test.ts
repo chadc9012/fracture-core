@@ -43,3 +43,20 @@ describe("world loot caches", () => {
     expect(contractStatus(p).find((s) => s.contract.id === "side-salvage-veridan")!.done).toBe(true);
   });
 });
+
+import { rollCacheGear, GEAR_CHANCE } from "./loot-caches";
+describe("loot box gear", () => {
+  const all = lootCaches();
+  test("legendary boxes always drop gear", () => {
+    for (const c of all.filter((x) => x.rarity === "LEGENDARY")) expect(rollCacheGear(c, NOW)).not.toBeNull();
+  });
+  test("drop rate tracks rarity and gear goes to inventory once", () => {
+    const commons = all.filter((x) => x.rarity === "COMMON");
+    let hits = 0; for (let d = 0; d < 30; d++) for (const c of commons) if (rollCacheGear(c, NOW + d * 864e5)) hits++;
+    const rate = hits / (30 * commons.length);
+    expect(rate).toBeGreaterThan(GEAR_CHANCE.COMMON / 2); expect(rate).toBeLessThan(GEAR_CHANCE.COMMON * 2);
+    const leg = all.find((x) => x.rarity === "LEGENDARY")!;
+    const r = openCache(DEFAULT_PROGRESSION, leg, NOW)!;
+    expect(r.progression.inventory.filter((g) => g.id === r.gear!.id).length).toBe(1);
+  });
+});

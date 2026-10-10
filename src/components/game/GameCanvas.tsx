@@ -260,6 +260,7 @@ export function GameCanvas() {
       const r = openCache(current, cache);
       if (!r) return current;
       const lines = Object.entries(r.loot).map(([k, v]) => `+${v} ${k}`);
+      if (r.gear) lines.push(`New ${r.gear.slot}: ${r.gear.name} (${r.gear.power})`);
       for (const t of r.contracts) lines.push(`Side contract complete: ${t}`);
       setCacheBanner({ rarity: cache.rarity, lines });
       window.setTimeout(() => setCacheBanner(null), 4000);

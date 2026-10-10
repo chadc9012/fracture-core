@@ -9,7 +9,7 @@ import { mulberry32 } from "./useKeyboard";
 import { REGIONS, type ZoneKind } from "./world";
 import { heightAt, riverAt, waterNetwork, WATER_LEVEL } from "./terrain";
 import { distanceToRoad, LANE_HALF_WIDTH } from "./lanes";
-import type { MaterialId } from "./inventory";
+import type { GearItem, GearSlot, MaterialId } from "./inventory";
 import { grantXP } from "./xp";
 import { rewardMission, type PlayerProgression } from "./progression";
 
@@ -115,6 +115,31 @@ export function rollCache(c: LootCache, now = Date.now()): Partial<Record<Materi
   return loot;
 }
 
+/* ---------------- gear drops ---------------- */
+
+/** Chance a cache also holds one weapon or armor piece; Legendary boxes always do. */
+export const GEAR_CHANCE: Record<CacheRarity, number> = { COMMON: 0.1, RARE: 0.25, EPIC: 0.45, LEGENDARY: 1 };
+/** Power by box rarity — sits just above starter gear so boxes help without outclassing mission/raid rewards. */
+export const GEAR_POWER: Record<CacheRarity, number> = { COMMON: 80, RARE: 95, EPIC: 110, LEGENDARY: 125 };
+const WEAPON_SLOTS: GearSlot[] = ["primary", "secondary", "heavy"];
+const ARMOR_SLOTS: GearSlot[] = ["helmet", "chest", "gauntlets", "legs"];
+const REGION_ELEMENT: Record<string, GearItem["element"]> = { nexus: "ARC", veridan: "BIO", frostspire: "CRYO", ember: "THERMAL", wastelands: "KINETIC", solara: "THERMAL", swamps: "BIO" };
+const SLOT_NAME: Partial<Record<GearSlot, string>> = { primary: "Rifle", secondary: "Sidearm", heavy: "Launcher", helmet: "Helm", chest: "Plate", gauntlets: "Grips", legs: "Greaves" };
+
+/** At most one piece per open, weapons and armor equally likely, element follows the region. */
+export function rollCacheGear(c: LootCache, now = Date.now()): GearItem | null {
+  const rnd = mulberry32((c.id + "gear" + dayKey(now)).split("").reduce((a, ch) => (a * 31 + ch.charCodeAt(0)) >>> 0, 7919));
+  if (rnd() >= GEAR_CHANCE[c.rarity]) return null;
+  const pool = rnd() < 0.5 ? WEAPON_SLOTS : ARMOR_SLOTS;
+  const slot = pool[Math.floor(rnd() * pool.length)]!;
+  const region = REGIONS.find((r) => r.id === c.regionId);
+  return {
+    id: `cache-gear-${c.id}-${dayKey(now)}`, name: `${region?.name ?? "Salvaged"} ${SLOT_NAME[slot]}`, slot,
+    power: GEAR_POWER[c.rarity] + Math.floor(rnd() * 5), level: 1, element: REGION_ELEMENT[c.regionId] ?? "KINETIC",
+    source: `${c.rarity.toLowerCase()} loot box`, ...(c.rarity === "LEGENDARY" ? { rarity: "LEGENDARY" as const } : {}),
+  };
+}
+
 /* ---------------- side contracts ---------------- */
 
 export type SideContract = { id: string; title: string; detail: string; need: number; progress: (p: PlayerProgression, opened: Set<string>) => number; reward: Partial<Record<MaterialId, number>> };
@@ -140,12 +165,15 @@ export function contractStatus(p: PlayerProgression) {
 }
 
 /** open a cache: grant loot + discovery XP, record today's open, and pay any side contract it completes */
-export function openCache(p: PlayerProgression, c: LootCache, now = Date.now()): { progression: PlayerProgression; loot: Partial<Record<MaterialId, number>>; contracts: string[] } | null {
+export function openCache(p: PlayerProgression, c: LootCache, now = Date.now()): { progression: PlayerProgression; loot: Partial<Record<MaterialId, number>>; gear: GearItem | null; contracts: string[] } | null {
   if (isOpenedToday(p, c.id, now)) return null;
   const loot = rollCache(c, now);
   const materials = { ...p.materials };
   for (const [k, v] of Object.entries(loot) as [MaterialId, number][]) materials[k] = (materials[k] ?? 0) + v;
-  let next = grantXP({ ...p, materials, earnedRewards: [...p.earnedRewards, openKey(c.id, now)] }, "DISCOVERY").progression;
+  const rolled = rollCacheGear(c, now);
+  const gear = rolled && !p.inventory.some((g) => g.id === rolled.id) ? rolled : null;
+  const inventory = gear ? [...p.inventory, gear] : p.inventory;
+  let next = grantXP({ ...p, materials, inventory, earnedRewards: [...p.earnedRewards, openKey(c.id, now)] }, "DISCOVERY").progression;
   const contracts: string[] = [];
   const opened = cachesEverOpened(next);
   for (const sc of SIDE_CONTRACTS) {
@@ -153,7 +181,7 @@ export function openCache(p: PlayerProgression, c: LootCache, now = Date.now()):
     next = rewardMission(next, sc.id, sc.reward, now);
     contracts.push(sc.title);
   }
-  return { progression: next, loot, contracts };
+  return { progression: next, loot, gear, contracts };
 }
 
 export function nearestCache(x: number, z: number, y: number): LootCache | null {
