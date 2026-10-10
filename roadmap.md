@@ -154,3 +154,14 @@
 - [ ] Server-side mission-run guard (no mission_runs table exists yet; the player_saves revision check only protects the save).
 - [x] Mix-and-match armor attributes (src/game/armor-attributes.ts, with tests), from the uploaded armor-system notes: every armor piece carries INTELLECT (ability recharge), MOBILITY (move speed, slides) and DEFENSE (resistance) derived from its slot/power/set, with soft caps, trade-offs (heavy defense costs mobility, heavy intellect costs defense), a mixed-gear flexibility bonus, and soft fragile/slow warnings. Applied live in Scene via loadoutEffects; shown in the Armor Sets panel. Still open from those notes: per-piece perks/mod slots/rarity, saved and switchable loadouts, per-body armor fitting (male/female/robot), and per-piece 3D model updates.
 - [x] Per-piece armor perks and body-fitted looks (src/game/armor-perks.ts, armor-look.ts, ArmorMotif.tsx, with tests): all 30 regional set pieces carry a unique perk that works worn alone (helmet = ability recharge, gauntlets = weapon damage, chest = protection, legs = movement, class item = recovery/utility), scaled by piece level and stacked with set bonuses; each set has a signature motif per slot drawn in the set color on the Operator, and every slot has its own fit for female, male and robot bodies. Still open: rarity and mod slots, saved/switchable loadouts, a dedicated per-body armor model pipeline, and a preview of worn sets in the Identity Forge.
+
+## Realism & world completion (Oct 2026)
+- [x] Weapon and armor drops in loot boxes (rarity-scaled, region element).
+- [x] Separate helmet / chest+shoulder / gauntlet / leg armor pieces on Goliath, Nyx, Cipher rigs (starter procedural geometry).
+- [x] Region-faction enemy troopers replace box-and-capsule enemies (procedural, articulated).
+- [x] Warmer sun at golden hour, softer moonlight, warm street/plaza light, coloured light kept to shops and signs, lit building windows.
+- [ ] Terrain shaping + biome vegetation pass (must re-run the water-network guards).
+- [ ] Playable city district: connected roads, building footprints, street detail, paths fitted to terrain/water.
+- [ ] City safe hub: mission access, trading, upgrades, protected spawns.
+- [ ] Replayable regional mission scenarios using each region's hazards, enemies, traversal.
+- [ ] Weapon models in hand (from the modular armor/weapon document).
