@@ -82,7 +82,19 @@ export function traceRiver(h: H, id: string, regionId: string, sx: number, sz: n
       const v = h(x + Math.cos(a) * STEP * 2, z + Math.sin(a) * STEP * 2) + Math.abs(off) * 0.15;
       if (v < bestV) { bestV = v; bestA = a; }
     }
-    if (bestV > g + 0.4) break; // basin: no way down
+    if (bestV > g + 0.4) {
+      // basin: spill over the lowest nearby saddle if one leads lower, else pool into a lake here
+      let spill: { a: number; v: number } | null = null;
+      for (let r = 6; r <= 24 && !spill; r += 3) for (let k = 0; k < 24; k++) {
+        const a = (k / 24) * Math.PI * 2;
+        const v = h(x + Math.cos(a) * r, z + Math.sin(a) * r);
+        if (v < g - 0.3 && (!spill || v < spill.v)) spill = { a, v };
+      }
+      if (!spill || step > 200) break;
+      dir = spill.a;
+      x += Math.cos(dir) * STEP; z += Math.sin(dir) * STEP;
+      continue;
+    }
     dir = dir + (bestA - dir) * 0.6;
     x += Math.cos(dir) * STEP; z += Math.sin(dir) * STEP;
   }
@@ -90,24 +102,27 @@ export function traceRiver(h: H, id: string, regionId: string, sx: number, sz: n
   const lake = mouth === "lake" && !spec.dry ? fitLake(h, last.x, last.z) : null;
   if (lake) for (const p of pts.slice(-4)) p.s = Math.max(Math.min(p.s, lake.level + 0.4), lake.level);
 
-  // waterfalls: steep runs of surface whose total drop is real
+  // waterfalls: consecutive steep steps merged until they make a real drop (max ~9 m per fall,
+  // so a long mountain face becomes a cascade of falls and rapids, not one impossible plunge)
   const falls: Waterfall[] = [];
-  const speed: number[] = pts.map(() => 0.6);
-  let i = 1;
-  while (i < pts.length) {
-    const grade = (pts[i - 1]!.s - pts[i]!.s) / STEP;
-    if (grade < FALL_GRADE) { speed[i] = 0.6 + Math.min(2.4, grade * 6); i++; continue; }
-    const start = i - 1;
-    while (i < pts.length && (pts[i - 1]!.s - pts[i]!.s) / STEP >= FALL_GRADE * 0.6) i++;
-    const a = pts[start]!, b = pts[i - 1]!;
-    const drop = a.s - b.s;
-    if (drop >= FALL_MIN_DROP && !spec.dry) {
-      // hold the pool above the lip, then fall straight to the plunge pool
-      for (let k = start + 1; k < i - 1; k++) pts[k]!.s = a.s;
-      const dx = b.x - a.x, dz = b.z - a.z, len = Math.hypot(dx, dz) || 1;
-      falls.push({ x: b.x - (dx / len) * 1.2, z: b.z - (dz / len) * 1.2, top: a.s, bottom: b.s, dirX: dx / len, dirZ: dz / len, w: a.w * 0.9 });
-    }
-    for (let k = start; k < i; k++) speed[k] = 3;
+  const speed: number[] = pts.map((p, k) => k === 0 ? 0.6 : 0.6 + Math.min(2.4, Math.max(0, (pts[k - 1]!.s - p.s) / STEP) * 6));
+  let lip = -1;
+  for (let k = 1; k < pts.length; k++) {
+    const grade = (pts[k - 1]!.s - pts[k]!.s) / STEP;
+    if (grade >= FALL_GRADE) {
+      if (lip < 0) lip = k - 1;
+      speed[k] = 3;
+      const drop = pts[lip]!.s - pts[k]!.s;
+      const end = k === pts.length - 1 || (pts[k]!.s - pts[k + 1]!.s) / STEP < FALL_GRADE || drop >= 9;
+      if (end) {
+        if (drop >= FALL_MIN_DROP && !spec.dry) {
+          const a = pts[lip]!, b = pts[k]!;
+          const dx = b.x - a.x, dz = b.z - a.z, len = Math.hypot(dx, dz) || 1;
+          falls.push({ x: (a.x + b.x) / 2, z: (a.z + b.z) / 2, top: a.s, bottom: b.s, dirX: dx / len, dirZ: dz / len, w: a.w * 0.9 });
+        }
+        lip = -1;
+      }
+    } else lip = -1;
   }
   return { river: { id, regionId, dry: spec.dry, points: pts, falls, mouth, speed }, lake };
 }
