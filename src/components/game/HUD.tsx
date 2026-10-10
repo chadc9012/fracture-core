@@ -1,3 +1,4 @@
+import { xpRequiredForLevel } from "@/game/xp";
 import { operatorByClass } from "@/game/loadout";
 import { perfFlags } from "@/game/perf-flags";
 import { StratagemPanel } from "./StratagemPanel";
@@ -9,7 +10,7 @@ import { FACTIONS } from "@/game/sim";
 import { CornerBrackets, HudPanel } from "./HudChrome";
 import { useVoiceLine } from "./useVoiceLine";
 
-export function HUD({ hud, tutorialActive = false, onMenu }: { hud: HudState; tutorialActive?: boolean; onMenu: () => void; onStrategy: () => void; onGarage: () => void; onAnalyze: () => void; onInventory: () => void; onAtlas: () => void; onOperations: (view: "DUNGEONS" | "ARSENAL" | "ABILITIES") => void }) {
+export function HUD({ hud, tutorialActive = false, onMenu, level }: { hud: HudState; /** saved level + XP into the level; the bar only ever reads progression, never invents numbers */ level?: { level: number; xp: number }; tutorialActive?: boolean; onMenu: () => void; onStrategy: () => void; onGarage: () => void; onAnalyze: () => void; onInventory: () => void; onAtlas: () => void; onOperations: (view: "DUNGEONS" | "ARSENAL" | "ABILITIES") => void }) {
   const ammo = hud.ammo?.[hud.weaponSlot - 1];
   const melee = ammo?.magSize === 0;
   const lowAmmo = Boolean(ammo && !melee && ammo.mag <= Math.ceil(ammo.magSize * 0.25));
@@ -36,6 +37,11 @@ export function HUD({ hud, tutorialActive = false, onMenu }: { hud: HudState; tu
     <BossHealthBar boss={hud.bossHud} />
     <Crosshair hud={hud} />
     <div className="absolute bottom-4 left-4 w-[min(24rem,calc(100%-8rem))]">
+      {level && (() => { const need = xpRequiredForLevel(level.level); return (
+        <div className="mb-1.5 px-1" aria-label={`Level ${level.level}, ${level.xp} of ${need} XP`}>
+          <div className="flex items-center justify-between text-[9px] uppercase tracking-[0.18em] text-foreground/80"><span>Level {level.level}</span><span>{Math.floor(level.xp)} / {need} XP</span></div>
+          <div className="mt-0.5 h-1 w-full bg-foreground/15"><div className="h-full bg-primary" style={{ width: `${Math.min(100, Math.max(0, (level.xp / need) * 100))}%` }} /></div>
+        </div>); })()}
       <div className={`hud-status px-3 py-2 ${hud.hp <= 40 ? "hud-glow-destructive" : ""}`}>
         <div className="flex items-center justify-between"><span className="hud-label">{hud.callsign} // Hull Integrity</span><span className={`text-xs font-bold ${hud.hp > 40 ? "text-primary" : "text-destructive"}`}>{hud.hp}%</span></div>
         <div className="mt-1 h-2.5 overflow-hidden border border-foreground/20 bg-background/60">

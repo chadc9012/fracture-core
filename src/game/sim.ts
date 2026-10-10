@@ -352,7 +352,11 @@ function dropLoot(sim: WorldSim, zone: ZoneState | undefined, enemyType: string)
   alert(sim, `${item.rarity} drop — ${item.name}`);
 }
 
-export function defeatMachine(sim: WorldSim, m: Machine) {
+/** Who gets the kill. "world" = ambient defences (the safe-zone stability field and perimeter turrets): the machine dies but nothing is paid,
+ * no XP/credit/loot/kill count/quest signal is produced. Why: standing still in a safe zone used to level the player up from kills they never made. */
+export type KillCredit = "player" | "world";
+
+export function defeatMachine(sim: WorldSim, m: Machine, credit: KillCredit = "player") {
   if (!m.alive || m.hp > 0) return;
   sim.statuses.delete(m);
   if (m.decoy) { // a False Saint: no kill, credit, loot or progress
@@ -365,6 +369,11 @@ export function defeatMachine(sim: WorldSim, m: Machine) {
   const floor = encounterHpFloor(m, performance.now() / 1000);
   if (floor > 0) { m.hp = floor; return; }
   m.alive = false;
+  if (credit === "world" && !m.boss && !m.eq && !m.scenarioId) { // ambient kill: no kill, credit, XP, drop or director event
+    endEncounter(sim, m);
+    delete m.gimmickHistory; delete m.attuned; delete m.scenarioRun; delete m.playerHits; delete m.encounter; delete m.decoy;
+    return;
+  }
   sim.kills++;
   sim.credits += m.boss ? 250 : m.elite ? 75 : 45;
   directorEvent(sim.director, { type: "KILL" });
@@ -1366,7 +1375,7 @@ export function stepSim(sim: WorldSim, input: SimInput) {
       m.kz += (dz / d) * 14;
       m.hp -= dt * 6;
       if (m.hp <= 0) {
-         defeatMachine(sim, m);
+         defeatMachine(sim, m, "world");
         alert(sim, `${r.name} stability field vaporised a war machine`);
       }
     }
@@ -1416,7 +1425,7 @@ export function stepSim(sim: WorldSim, input: SimInput) {
     best.kx += (dx / d) * 8;
     best.kz += (dz / d) * 8;
     if (best.hp <= 0) {
-       defeatMachine(sim, best);
+       defeatMachine(sim, best, "world");
       alert(sim, "Safe-zone turret destroyed an ambusher");
     }
   }
