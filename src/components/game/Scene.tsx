@@ -849,7 +849,7 @@ export function Scene({
       if (near) {
         let enemiesNear = 0;
         for (const m of sim.machines) if (m.alive && Math.hypot(m.x - near.x, m.z - near.z) < GUARD_RADIUS) enemiesNear++;
-        const gate = canOpen(near, { enemiesNear, weather: envSample.weather?.state, night: nightFactor(time.current), heldSeconds: cacheLive.current.hold });
+        const gate = canOpen(near, { enemiesNear, weather: environmentAt(here?.id, time.current, nightFactor(time.current)).weather?.state, night: nightFactor(time.current), heldSeconds: cacheLive.current.hold });
         cacheLive.current.view = { id: near.id, label: SCENARIO_LABEL[near.scenario], rarity: near.rarity, ok: gate.ok, reason: gate.reason, hold: cacheLive.current.hold / ENCRYPT_SECONDS };
       } else cacheLive.current.view = null;
     }
