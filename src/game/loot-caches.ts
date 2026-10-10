@@ -35,7 +35,7 @@ export const REGION_MATERIAL: Record<string, MaterialId> = {
 };
 
 const TIERS: CacheRarity[] = ["COMMON", "RARE", "EPIC", "LEGENDARY"];
-const ZONE_TIER: Record<ZoneKind, number> = { safe: 0, starter: 0, war: 1, fracture: 2, core: 2 };
+const ZONE_TIER: Record<ZoneKind, number> = { safe: 0, starter: 0, war: 1, fracture: 1, core: 2 };
 const SCENARIO_BONUS: Record<CacheScenario, number> = { supply: 0, guarded: 1, encrypted: 0, sunken: 1, storm: 1, moon: 1 };
 const PER_REGION: Record<string, number> = { nexus: 3 };
 const LAND_SCENARIOS: CacheScenario[] = ["supply", "guarded", "encrypted", "storm", "moon", "supply"];
@@ -62,7 +62,8 @@ export function lootCaches(): LootCache[] {
       const rv = riverAt(x, z); if (rv && rv.dist < rv.w + 3) continue;
       if (out.some((c) => Math.hypot(c.x - x, c.z - z) < 14)) continue;
       const scenario = r.kind === "safe" ? "supply" : LAND_SCENARIOS[placed % LAND_SCENARIOS.length]!;
-      const tier = Math.min(3, ZONE_TIER[r.kind] + SCENARIO_BONUS[scenario] + (rnd() < 0.12 ? 1 : 0));
+      // legendary is rare: only a lucky roll lifts a cache to the top tier
+      const tier = Math.min(rnd() < 0.15 ? 3 : 2, ZONE_TIER[r.kind] + SCENARIO_BONUS[scenario] + (rnd() < 0.12 ? 1 : 0));
       out.push({ id: `${r.id}-${placed}`, regionId: r.id, x, z, y, scenario, rarity: TIERS[tier]! });
       placed++;
     }

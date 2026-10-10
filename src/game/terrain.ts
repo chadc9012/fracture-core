@@ -104,7 +104,9 @@ function naturalHeightAt(x: number, z: number): number {
         break;
       }
       case "wastelands": {
-        h = h * (1 - w) + w * (2.5 + (fbm(x * 0.04 + 9, z * 0.04, 3) - 0.5) * 6);
+        // eroded earth with flat-topped buttes: steep strata sides, wind-planed caps
+        const butte = smoothstep(0.6, 0.66, fbm(x * 0.028 + 31, z * 0.028 - 7, 2));
+        h = h * (1 - w) + w * (2.5 + (fbm(x * 0.04 + 9, z * 0.04, 3) - 0.5) * 6 + butte * 6);
         break;
       }
       case "nexus": {
