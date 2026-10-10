@@ -5,7 +5,8 @@ import { useFrame, useThree } from "@react-three/fiber";
 import { useEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
 
-import { REGIONS, SKY, ZONE_COLOR, clockLabel, phaseFor, regionAt, WORLD_RADIUS } from "@/game/world";
+import { REGIONS, SKY, ZONE_COLOR, clockLabel, phaseFor, regionAt, WORLD_RADIUS, WORLD_SCALE } from "@/game/world";
+import { BASE_FOOT_SPEED, SPRINT_MULT } from "@/game/foot-speed";
 import { useKeyboard } from "@/game/useKeyboard";
 import { walkHeight, slopeAt, heightAt, WATER_LEVEL } from "@/game/terrain";
 import { alert, applyLightning, collidePlayer, createSim, defeatMachine, FACTIONS, fireBullet, fireLauncher, hurtPlayer, throwBeacon, instabilityTier, spawnMissionDrones, stepSim, summonBoss, summonScenarioBoss, type Faction, type InstabilityTier, type WorldSim, type ZoneState } from "@/game/sim";
@@ -266,6 +267,8 @@ export type HudState = {
 };
 
 const SPAWN_REGION = REGIONS.find((r) => r.id === "veridan");
+/** the bigger map needs a longer view: fog distances grow by about half of the extra scale (1 at the original world; camera far is 1800) */
+const FOG_REACH = 1 + (WORLD_SCALE - 1) * 0.2;
 export const SPAWN = new THREE.Vector3(SPAWN_REGION?.x ?? -58, 0, (SPAWN_REGION?.z ?? -34) + 12);
 const NEXUS_REGION = REGIONS.find((r) => r.id === "nexus")!;
 
@@ -1001,8 +1004,8 @@ export function Scene({
     if (scene.fog instanceof THREE.Fog) {
       const fogK = 1 - Math.exp(-3 * dt);
       // regional air thickness (atmosphere.ts fogScale) scales the weather-driven fog distances
-      scene.fog.near += ((25 + visibility * 95) * atmo.current.fogScale - scene.fog.near) * fogK;
-      scene.fog.far += ((120 + visibility * 400) * atmo.current.fogScale - scene.fog.far) * fogK;
+      scene.fog.near += ((25 + visibility * 95) * FOG_REACH * atmo.current.fogScale - scene.fog.near) * fogK;
+      scene.fog.far += ((120 + visibility * 400) * FOG_REACH * atmo.current.fogScale - scene.fog.far) * fogK;
     }
     // underwater look: diving swaps the horizon for a close, turbid teal murk (eased in and out)
     underK.current += ((s.diving && !interior ? 1 : 0) - underK.current) * (1 - Math.exp(-4 * dt));
@@ -1324,7 +1327,7 @@ export function Scene({
       const stance = resolveStance(mvs.state, { crouchHeld: crouchKey, sprinting: boost, jumping: held.has("KeyC"), grounded: s.grounded, sliding: mvs.state.slideLeft > 0, swimming: s.diving || submerged });
       stepStance(mvs.state, dt);
       const sprint = boost && stance === "STAND";
-      const walk = 30 * traction * (sprint ? 2.1 : 1) * STANCE_SPEED[stance] * (1 + armorFxRef.current.moveSpeed) * sim.mods.footSpeed * (live.current.dashTime > 0 ? 1.4 : 1) * siegeMoveMult(live.current.siegeTime) * (1 + chainBonus) * sim.hazardSpeedMult;
+      const walk = BASE_FOOT_SPEED * traction * (sprint ? SPRINT_MULT : 1) * STANCE_SPEED[stance] * (1 + armorFxRef.current.moveSpeed) * sim.mods.footSpeed * (live.current.dashTime > 0 ? 1.4 : 1) * siegeMoveMult(live.current.siegeTime) * (1 + chainBonus) * sim.hazardSpeedMult;
       if (wish.lengthSq() > 0) wish.normalize().multiplyScalar(walk * hazardRef.current.speedMul);
       {
         // slide: out of a sprint, commit to the heading with a speed burst that bleeds off (movement.ts)
@@ -2059,7 +2062,7 @@ export function Scene({
 
   return (
     <>
-      <fog attach="fog" args={["#5f9aa3", 70, 430]} />
+      <fog attach="fog" args={["#5f9aa3", 70 * FOG_REACH, 430 * FOG_REACH]} />
       <FracturePortal />
       <Motes />
       <hemisphereLight ref={hemi} args={["#9ec8e8", "#3b3326", 0.85]} />

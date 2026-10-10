@@ -1,13 +1,16 @@
 import { MARKER_COLOR, type MarkerKind, type TrackedMarker } from "@/game/waypoints";
 import { CornerBrackets } from "./HudChrome";
+import { WORLD_SCALE } from "@/game/world";
 import { headingFromYaw, headingLabel, relativeDeg } from "@/game/compass";
 
 const ICON: Record<MarkerKind, string> = { MISSION: "◆", RESOURCE: "⬢", BOSS: "☠", RUIN: "✦", LANDMARK: "▣" };
+/** compass marker ranges grow with the map */
+const REACH = Math.max(1, WORLD_SCALE / 2);
 const fmt = (d: number) => (d >= 1000 ? `${(d / 1000).toFixed(1)}km` : `${Math.round(d)}m`);
 
 /** Top compass strip: markers slide by bearing within a ±90° field; closest ones get labels. */
 export function Compass({ markers, yaw }: { markers: TrackedMarker[]; yaw: number }) {
-  const visible = markers.filter((m) => Math.abs(m.bearing) < Math.PI / 2 && (m.kind !== "RESOURCE" || (m.ready !== false && m.dist < 220)) && (m.kind !== "LANDMARK" || m.dist < 260));
+  const visible = markers.filter((m) => Math.abs(m.bearing) < Math.PI / 2 && (m.kind !== "RESOURCE" || (m.ready !== false && m.dist < 220 * REACH)) && (m.kind !== "LANDMARK" || m.dist < 260 * REACH));
   const heading = headingFromYaw(yaw); // compass.ts: north = world -z, matching the map and minimap
   const dirs = [["N", 0], ["NE", 45], ["E", 90], ["SE", 135], ["S", 180], ["SW", 225], ["W", 270], ["NW", 315]] as const;
   return (

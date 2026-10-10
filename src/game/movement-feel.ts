@@ -1,3 +1,4 @@
+import { FOOT_SCALE } from "./foot-speed";
 /**
  * Movement feel — the stride that makes moving read as walking or running instead of gliding on a
  * rail. One phase accumulator is shared by the camera (head bob, sway, strafe roll, landing dip), the
@@ -17,8 +18,8 @@ export type Stride = {
 export const createStride = (): Stride => ({ phase: 0, intensity: 0, landDip: 0, wasGrounded: true });
 
 /** Speeds are world units/s as produced by Scene's walk speed (walk ~27, sprint ~57). */
-export const WALK_SPEED = 27;
-export const RUN_SPEED = 57;
+export const WALK_SPEED = 27 * FOOT_SCALE;
+export const RUN_SPEED = 57 * FOOT_SCALE;
 
 export type StrideInput = { speed: number; grounded: boolean; sliding: boolean; vy: number; dt: number };
 
@@ -37,13 +38,13 @@ export type FeelView = {
 
 /** Steps per second grows with speed: ~1.7 Hz walking, ~2.9 Hz sprinting. */
 export function strideHz(speed: number): number {
-  const t = Math.min(1, Math.max(0, (speed - 12) / (RUN_SPEED - 12)));
+  const t = Math.min(1, Math.max(0, (speed - 12 * FOOT_SCALE) / (RUN_SPEED - 12 * FOOT_SCALE)));
   return 1.7 + t * 1.2;
 }
 
 export function stepStride(stride: Stride, input: StrideInput, strafe: number): FeelView {
   const { speed, grounded, sliding, vy, dt } = input;
-  const moving = grounded && !sliding && speed > 3;
+  const moving = grounded && !sliding && speed > 3 * FOOT_SCALE;
   const target = moving ? Math.min(1, speed / RUN_SPEED) : 0;
   stride.intensity += (target - stride.intensity) * (1 - Math.exp(-(target > stride.intensity ? 9 : 6) * dt));
   if (moving) stride.phase += strideHz(speed) * Math.PI * 2 * dt;

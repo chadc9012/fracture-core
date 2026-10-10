@@ -68,13 +68,13 @@ describe("launcher weapons", () => {
 });
 
 describe("launchers in the sim", () => {
-  const fresh = () => { const sim = createSim(); const m = sim.machines[0]!; Object.assign(m, { alive: true, x: 0, z: 20, hp: 3, boss: false, scale: 1, cool: 0 }); for (const o of sim.machines) if (o !== m) o.alive = false; return { sim, m }; };
+  const fresh = () => { const sim = createSim(); const m = sim.machines[0]!; Object.assign(m, { alive: true, x: 0, z: 20, y: heightAt(0, 20), hp: 3, boss: false, scale: 1, cool: 0 }); for (const o of sim.machines) if (o !== m) o.alive = false; return { sim, m }; };
   const run = (sim: ReturnType<typeof createSim>, steps: number) => { for (let i = 0; i < steps; i++) stepSim(sim, { dt: 0.05, px: 0, pz: 0, night: 0 } as never); };
 
   test("a launcher round detonates, damages with falloff, logs a burst and never hurts the player", () => {
     const { sim, m } = fresh();
     const hp0 = sim.hp;
-    expect(fireLauncher(sim, "ROCKET", 0, m.y + 1, 0, 0, 0, 5)).toBe(true);
+    expect(fireLauncher(sim, "ROCKET", 0, Math.max(heightAt(0, 0), heightAt(0, 20)) + 1.5, 0, 0, 0, 5)).toBe(true); // launched just above the ground at the player, flat toward the target
     run(sim, 40);
     expect(sim.rounds.every((r) => !r.alive)).toBe(true);
     expect(sim.burstEvents.length).toBe(1);

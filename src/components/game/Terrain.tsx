@@ -1,23 +1,23 @@
 import { Instance, Instances } from "@react-three/drei";
 import { DistrictLight } from "./DistrictLight";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
 
-import { REGIONS, WORLD_RADIUS, type Region } from "@/game/world";
+import { REGIONS, WORLD_RADIUS, WORLD_SCALE, type Region } from "@/game/world";
 import type { RenderTier } from "@/game/performance";
 import { mulberry32 } from "@/game/useKeyboard";
 import { clusterAround } from "@/game/foliage";
 import { GROVE, growGroves } from "@/game/forest-density";
 import { windSway } from "@/game/wind-sway";
-import { WATER_LEVEL, colorAt, heightAt, slopeAt, riverAt } from "@/game/terrain";
+import { WATER_LEVEL, HEIGHT_K, colorAt, heightAt, slopeAt, riverAt } from "@/game/terrain";
 import { groundDetailTextures, propDetailTextures } from "@/game/detail-texture";
 import { applySurfaceBlend, loadGroundSurfaces, surfaceWeights } from "@/game/region-materials";
 import { RegionModels } from "./RegionModels";
 import { PolyFoliage, type Placement } from "./PolyFoliage";
 import { reportAsset } from "@/game/forest-assets";
-import { isReserved } from "@/game/verdant";
-import { refinePatch, carveCells } from "@/game/terrain-refine";
-import { IMPACT_PIT } from "@/game/forest-relief";
+import { isReserved, trailInfo, FOREST_SPAWN } from "@/game/verdant";
+import { CHUNK, startChunkBuild, chunkKey, chunksNear, distanceToChunk, lodForDistance, planBuilds, type BuildRequest, type ChunkBuild, type ChunkMesh, type ChunkSamplers } from "@/game/terrain-chunks";
 import { organicCanopy, organicRock } from "@/game/organic-geometry";
 import { LANE_HALF_WIDTH, distanceToRoad } from "@/game/lanes";
 import {
@@ -28,8 +28,9 @@ import {
   type ObstacleKind,
 } from "@/game/obstacles";
 
-const SEG = 210; // ~1.9 m grid: hills, banks and dunes read as shapes instead of facets
-const SIZE = WORLD_RADIUS * 2.1;
+/** caps for the non-culled instanced forest layers (see Terrain below) */
+const UNDERSTORY_PARENT_CAP = 320;
+const PROC_TREE_CAP = 500;
 
 type Prop = { x: number; z: number; y: number; s: number; r: number; o?: Obstacle };
 
@@ -83,54 +84,32 @@ function jitter(hex: string, seed: number, hueAmt = 0.02, lightAmt = 0.08): THRE
   return jitterColor.clone();
 }
 
-/** the heightmap mesh — vertex coloured by elevation and biome */
+/** Chunked, distance-LOD heightmap (terrain-chunks.ts): each tile is built lazily at the resolution its distance needs, nearest first,
+ * under a small per-frame time budget. Meshes are managed imperatively so no React re-render happens as the player moves. */
+const GROUND_SAMPLERS: ChunkSamplers = { height: heightAt, color: colorAt, weights: surfaceWeights };
+const BUILD_BUDGET_MS = 4;
+const WARMUP_BUDGET_MS = 14;
+const WARMUP_FRAMES = 120;
+const REPLAN_DISTANCE = 6;
+
+function chunkGeometry(m: ChunkMesh): THREE.BufferGeometry {
+  const g = new THREE.BufferGeometry();
+  g.setAttribute("position", new THREE.BufferAttribute(m.position, 3));
+  g.setAttribute("normal", new THREE.BufferAttribute(m.normal, 3));
+  g.setAttribute("color", new THREE.BufferAttribute(m.color, 3));
+  g.setAttribute("wA", new THREE.BufferAttribute(m.wA, 3));
+  g.setAttribute("wB", new THREE.BufferAttribute(m.wB, 3));
+  g.setAttribute("uv", new THREE.BufferAttribute(m.uv, 2));
+  g.setIndex(new THREE.BufferAttribute(m.index, 1));
+  g.computeBoundingSphere();
+  return g;
+}
+
 function Ground() {
-  const geometry = useMemo(() => {
-    const geo = new THREE.PlaneGeometry(SIZE, SIZE, SEG, SEG);
-    const pos = geo.attributes["position"] as THREE.BufferAttribute;
-    const colors = new Float32Array(pos.count * 3);
-    const wA = new Float32Array(pos.count * 3);
-    const wB = new Float32Array(pos.count * 3);
-    for (let i = 0; i < pos.count; i++) {
-      const x = pos.getX(i);
-      // plane is built in XY then rotated, so its local Y maps to world -Z
-      const z = -pos.getY(i);
-      const h = heightAt(x, z);
-      pos.setZ(i, h);
-      const [r, g, b] = colorAt(x, z, h);
-      colors[i * 3] = r;
-      colors[i * 3 + 1] = g;
-      colors[i * 3 + 2] = b;
-      const w = surfaceWeights(x, z);
-      wA[i * 3] = w[0]!; wA[i * 3 + 1] = w[1]!; wA[i * 3 + 2] = w[2]!;
-      wB[i * 3] = w[3]!; wB[i * 3 + 1] = w[4]!; wB[i * 3 + 2] = w[5]!;
-    }
-    // The 2.5 m grid cannot draw the 6.5 m impact pit, so a few cells around the crash site are swapped for a finer
-    // patch (terrain-refine.ts). Its border sits on the coarse edges, so there are no cracks; the rest of the world is unchanged.
-    const patch = refinePatch(SIZE, SEG, IMPACT_PIT.x, IMPACT_PIT.z, 15, 4, heightAt);
-    const n0 = pos.count, total = n0 + patch.vertices.length;
-    const grow = (src: ArrayLike<number>, perVertex: number) => { const a = new Float32Array(total * perVertex); a.set(src as ArrayLike<number> & { length: number }); return a; };
-    const P = grow(pos.array, 3), UV = grow((geo.attributes["uv"] as THREE.BufferAttribute).array, 2), C = grow(colors, 3), A = grow(wA, 3), B = grow(wB, 3);
-    patch.vertices.forEach((v, k) => {
-      const o = n0 + k;
-      P[o * 3] = v.x; P[o * 3 + 1] = -v.z; P[o * 3 + 2] = v.h; // plane space: local Y maps to world -Z
-      UV[o * 2] = v.u; UV[o * 2 + 1] = v.v;
-      const [r, g, b] = colorAt(v.x, v.z, v.h);
-      C[o * 3] = r; C[o * 3 + 1] = g; C[o * 3 + 2] = b;
-      const w = surfaceWeights(v.x, v.z);
-      A[o * 3] = w[0]!; A[o * 3 + 1] = w[1]!; A[o * 3 + 2] = w[2]!; B[o * 3] = w[3]!; B[o * 3 + 1] = w[4]!; B[o * 3 + 2] = w[5]!;
-    });
-    const merged = new THREE.BufferGeometry();
-    merged.setAttribute("position", new THREE.BufferAttribute(P, 3));
-    merged.setAttribute("uv", new THREE.BufferAttribute(UV, 2));
-    merged.setAttribute("color", new THREE.BufferAttribute(C, 3));
-    merged.setAttribute("wA", new THREE.BufferAttribute(A, 3));
-    merged.setAttribute("wB", new THREE.BufferAttribute(B, 3));
-    merged.setIndex([...carveCells(geo.getIndex()!.array, SEG, patch), ...patch.indices.map((i) => i + n0)]);
-    merged.computeVertexNormals();
-    geo.dispose();
-    return merged;
-  }, []);
+  const camera = useThree((s) => s.camera);
+  const scene = useThree((s) => s.scene);
+  const group = useRef<THREE.Group>(null);
+  const state = useRef({ meshes: new Map<string, { lod: number; mesh: THREE.Mesh }>(), queue: [] as BuildRequest[], active: null as { req: BuildRequest; build: ChunkBuild } | null, fx: NaN, fz: NaN, frames: 0 });
 
   const { map, normalMap } = useMemo(() => groundDetailTextures(), []);
   // Poly Haven region surfaces; procedural grain stays if any texture fails to load.
@@ -141,8 +120,83 @@ function Ground() {
     if (surfaces) applySurfaceBlend(m, surfaces);
     return m;
   }, [surfaces, map, normalMap]);
+  // existing chunk meshes pick up a replaced material (textures finishing) without rebuilding any geometry
+  useEffect(() => { for (const { mesh } of state.current.meshes.values()) mesh.material = material; }, [material]);
 
-  return <mesh geometry={geometry} material={material} rotation={[-Math.PI / 2, 0, 0]} receiveShadow />;
+  useEffect(() => {
+    const st = state.current;
+    return () => { for (const { mesh } of st.meshes.values()) { group.current?.remove(mesh); mesh.geometry.dispose(); } st.meshes.clear(); st.queue = []; st.active = null; st.fx = NaN; };
+  }, []);
+
+  // a throw inside a frame callback would stall the whole render loop, so a failed chunk build is logged once and skipped instead
+  const failed = useRef(false);
+  useEffect(() => {
+    const st = state.current;
+    const w = window as unknown as { __terrainChunks?: () => unknown };
+    w.__terrainChunks = () => {
+      const lods = [0, 0, 0, 0]; let tris = 0;
+      for (const { lod, mesh } of st.meshes.values()) { lods[lod]!++; tris += (mesh.geometry.index?.count ?? 0) / 3; }
+      return { chunks: st.meshes.size, byLod: lods, triangles: tris, queued: st.queue.length, building: !!st.active, failed: failed.current };
+    };
+    return () => { delete w.__terrainChunks; };
+  }, []);
+
+  useFrame(() => {
+    if (failed.current) return;
+    try {
+      const g = group.current;
+      if (!g) return;
+      const st = state.current;
+      const px = camera.position.x, pz = camera.position.z;
+      // pocket-dimension interiors sit far outside the map: keep the streamed ground as it is so leaving one is instant
+      if (Math.hypot(px, pz) > WORLD_RADIUS * 1.4) return;
+      if (!Number.isFinite(st.fx) || Math.hypot(px - st.fx, pz - st.fz) >= REPLAN_DISTANCE) {
+        st.fx = px; st.fz = pz;
+        const fog = scene.fog instanceof THREE.Fog ? scene.fog.far : 600;
+        const reach = Math.min(1100, Math.max(450, fog * 1.25 + CHUNK));
+        const wanted = chunksNear(px, pz, reach, WORLD_RADIUS).map((c) => {
+          const dist = distanceToChunk(c, px, pz);
+          return { ...c, dist, lod: lodForDistance(dist, st.meshes.get(chunkKey(c.cx, c.cz))?.lod) };
+        });
+        const keep = new Set(wanted.map((w) => chunkKey(w.cx, w.cz)));
+        for (const [key, e] of st.meshes) if (!keep.has(key)) { g.remove(e.mesh); e.mesh.geometry.dispose(); st.meshes.delete(key); }
+        st.queue = planBuilds(wanted, (k) => st.meshes.get(k)?.lod, new Set(st.active ? [`${chunkKey(st.active.req.cx, st.active.req.cz)}@${st.active.req.lod}`] : []));
+        if (st.active && !keep.has(chunkKey(st.active.req.cx, st.active.req.cz))) st.active = null;
+      }
+      if (!st.queue.length && !st.active) return;
+      st.frames++;
+      const budget = st.frames < WARMUP_FRAMES ? WARMUP_BUDGET_MS : BUILD_BUDGET_MS;
+      const t0 = performance.now();
+      // a chunk build is resumable (rows), so one big near tile never costs more than the frame budget
+      while (performance.now() - t0 < budget) {
+        if (!st.active) {
+          const req = st.queue.shift();
+          if (!req) break;
+          st.active = { req, build: startChunkBuild(req, req.lod, GROUND_SAMPLERS) };
+        }
+        const remaining = budget - (performance.now() - t0);
+        if (!st.active.build.step(Math.max(0.5, remaining))) break;
+        const { req, build } = st.active;
+        st.active = null;
+        const key = chunkKey(req.cx, req.cz);
+        const mesh = new THREE.Mesh(chunkGeometry(build.result()), material);
+        mesh.rotation.x = -Math.PI / 2;
+        mesh.receiveShadow = true;
+        mesh.matrixAutoUpdate = false;
+        mesh.updateMatrix();
+        mesh.name = `ground:${key}@${req.lod}`;
+        const old = st.meshes.get(key);
+        if (old) { g.remove(old.mesh); old.mesh.geometry.dispose(); }
+        g.add(mesh);
+        st.meshes.set(key, { lod: req.lod, mesh });
+      }
+    } catch (error) {
+      failed.current = true;
+      console.error("[terrain] chunk streaming failed; ground stops updating", error);
+    }
+  });
+
+  return <group ref={group} name="ground-chunks" />;
 }
 
 export function Terrain({ renderTier = "HIGH" }: { renderTier?: RenderTier } = {}) {
@@ -171,43 +225,57 @@ export function Terrain({ renderTier = "HIGH" }: { renderTier?: RenderTier } = {
   const density = renderTier === "LOW" ? 0.5 : renderTier === "MEDIUM" ? 0.75 : 1;
   const fineShadows = renderTier === "HIGH" || renderTier === "ULTRA";
   const d = (n: number) => Math.max(1, Math.round(n * density));
+  // The map is WORLD_SCALE times wider (16x the area at 4x). Forest tree counts follow the area at half density (the real GLB
+  // forest is distance-culled and tri-budgeted, so only CPU placement grows); the plain instanced props of the other regions grow with
+  // sqrt(scale) because they have no distance culling. LOW draws procedural trees, so its count stays small.
+  const forestK = realTrees ? Math.max(1, (WORLD_SCALE * WORLD_SCALE) / 2) : Math.min(2, Math.max(1, (WORLD_SCALE * WORLD_SCALE) / 2));
+  const otherK = Math.max(1, Math.sqrt(WORLD_SCALE));
+  const dF = (n: number) => Math.max(1, Math.round(n * density * forestK));
+  const dO = (n: number) => Math.max(1, Math.round(n * density * otherK));
+  const bigWorld = WORLD_SCALE > 1;
+  const treeMax = 26 * HEIGHT_K;
+  const firHeight = bigWorld ? 20 : 8;
+  const broadHeight = bigWorld ? 14 : 9;
+  const craterScale = Math.max(1, WORLD_SCALE);
 
-  const baseTrees = useMemo(() => scatter(forest, d(120), 11, { min: 1.5, max: 26, maxSlope: 0.55, keepSpawnLaneClear: true }), [forest, density]);
+  const baseTrees = useMemo(() => scatter(forest, dF(120), 11, { min: 1.5, max: treeMax, maxSlope: 0.55, keepSpawnLaneClear: true }), [forest, density]);
   // clustered groves on top of the uniform scatter: thick stands with open gaps between, instead of an evenly spread park
   const groveTrees = useMemo<Prop[]>(() => {
-    const centres = scatter(forest, d(GROVE.centres), 17, { min: 1.5, max: 26, maxSlope: 0.55, keepSpawnLaneClear: true });
+    const centres = scatter(forest, dF(GROVE.centres), 17, { min: 1.5, max: treeMax, maxSlope: 0.55, keepSpawnLaneClear: true });
     const accept = (x: number, z: number) => {
       if (Math.hypot(x - forest.x, z - forest.z) > forest.radius * 0.95) return false;
       const y = heightAt(x, z);
-      if (y < 1.5 || y > 26 || slopeAt(x, z) > 0.55) return false;
+      if (y < 1.5 || y > treeMax || slopeAt(x, z) > 0.55) return false;
       if (Math.hypot(x - forest.x, z - (forest.z + 12)) < 16 || isReserved(x, z, 1.5) || distanceToRoad(x, z) < LANE_HALF_WIDTH) return false;
       const rv = riverAt(x, z);
       return !(rv && rv.dist < rv.w + 2);
     };
-    return growGroves(centres, baseTrees, mulberry32(23), accept, d(GROVE.perGrove)).map((t) => ({ ...t, y: heightAt(t.x, t.z) }));
+    return growGroves(centres, baseTrees, mulberry32(23), accept, Math.round(d(GROVE.perGrove) * (bigWorld ? 1.5 : 1))).map((t) => ({ ...t, y: heightAt(t.x, t.z) }));
   }, [forest, baseTrees, density]);
   const trees = useMemo(() => [...baseTrees, ...groveTrees], [baseTrees, groveTrees]);
   // undergrowth clusters around each tree: saplings and low brush, kept off roads, water and steep ground
-  const undergrowth = useMemo(() => clusterAround(trees, d(3), mulberry32(61), (x, z) => {
+  // (drawn without distance culling, so on the big forest only the trees nearest the route get companions)
+  const understoryParents = useMemo(() => (trees.length <= UNDERSTORY_PARENT_CAP ? trees : trees.map((t) => ({ t, d: trailInfo(t.x, t.z).dist })).sort((a, b) => a.d - b.d).slice(0, UNDERSTORY_PARENT_CAP).map((e) => e.t)), [trees]);
+  const undergrowth = useMemo(() => clusterAround(understoryParents, d(3), mulberry32(61), (x, z) => {
     const y = heightAt(x, z);
-    return y > 1.8 && y < 24 && slopeAt(x, z) < 0.5 && distanceToRoad(x, z) > LANE_HALF_WIDTH + 1 && Math.hypot(x - forest.x, z - (forest.z + 12)) > 12 && !isReserved(x, z, 0.5);
-  }, { minScale: 0.45, maxScale: 1 }), [trees, density]);
-  const flowers = useMemo(() => scatter(forest, d(70), 20, { min: 1.5, max: 20, maxSlope: 0.4 }), [forest, density]);
-  const swampTrees = useMemo(() => scatter(swamp, d(70), 12, { min: -2.5, max: 6 }), [swamp, density]);
+    return y > 1.8 && y < treeMax - 2 && slopeAt(x, z) < 0.5 && distanceToRoad(x, z) > LANE_HALF_WIDTH + 1 && Math.hypot(x - forest.x, z - (forest.z + 12)) > 12 && !isReserved(x, z, 0.5);
+  }, { minScale: 0.45, maxScale: 1 }), [understoryParents, density]);
+  const flowers = useMemo(() => scatter(forest, dF(70), 20, { min: 1.5, max: treeMax - 6, maxSlope: 0.4 }), [forest, density]);
+  const swampTrees = useMemo(() => scatter(swamp, dO(70), 12, { min: -2.5, max: 6 }), [swamp, density]);
   const boulders = useMemo(
-    () => scatter(frost, d(40), 13, { min: 18, maxSlope: 0.85 }),
+    () => scatter(frost, dO(40), 13, { min: 18, maxSlope: 0.85 }),
     [frost, density],
   );
   const rocks = useMemo(
     () => [
-      ...scatter(waste, d(46), 14, { maxSlope: 0.7 }),
-      ...scatter(solara, d(40), 15, { maxSlope: 0.7 }),
+      ...scatter(waste, dO(46), 14, { maxSlope: 0.7 }),
+      ...scatter(solara, dO(40), 15, { maxSlope: 0.7 }),
     ],
     [waste, solara, density],
   );
-  const cacti = useMemo(() => scatter(solara, d(55), 16, { min: 2, maxSlope: 0.45 }), [solara, density]);
-  const wrecks = useMemo(() => scatter(waste, d(30), 18, { maxSlope: 0.4 }), [waste, density]);
-  const emberRocks = useMemo(() => scatter(ember, d(55), 21, { inner: 9, maxSlope: 0.95 }), [ember, density]);
+  const cacti = useMemo(() => scatter(solara, dO(55), 16, { min: 2, maxSlope: 0.45 }), [solara, density]);
+  const wrecks = useMemo(() => scatter(waste, dO(30), 18, { maxSlope: 0.4 }), [waste, density]);
+  const emberRocks = useMemo(() => scatter(ember, dO(55), 21, { inner: 9, maxSlope: 0.95 }), [ember, density]);
   const [, bump] = useState(0);
   useEffect(() => {
     const off = subscribeObstacles(() => bump((n) => n + 1));
@@ -235,13 +303,16 @@ export function Terrain({ renderTier = "HIGH" }: { renderTier?: RenderTier } = {
   }, [trees, swampTrees, boulders, rocks, emberRocks, cacti, wrecks]);
 
   const alive = (list: Prop[]) => list.filter((p) => !p.o?.broken);
+  const treeIndex = useMemo(() => new Map(trees.map((t, i) => [t, i] as const)), [trees]);
   const liveTrees = alive(trees);
   // even-indexed trees are firs, odd are broadleaf (parity of the original index, so felling one never reshuffles the rest);
   // a species is hidden from the procedural pass once its GLB is on screen
-  const procTrees = liveTrees.filter((t) => !(trees.indexOf(t) % 2 === 0 ? polyReady.fir : polyReady.broadleaf));
+  // The procedural stand-ins are drawn without distance culling, so they are capped to the trees nearest the spawn (the first seconds, or if a GLB fails to load).
+  const procTrees = liveTrees.filter((t) => !((treeIndex.get(t) ?? 0) % 2 === 0 ? polyReady.fir : polyReady.broadleaf))
+    .map((t) => ({ t, d: Math.hypot(t.x - FOREST_SPAWN.x, t.z - FOREST_SPAWN.z) })).sort((a, b) => a.d - b.d).slice(0, PROC_TREE_CAP).map((e) => e.t);
   const asPlacement = (t: Prop): Placement => ({ x: t.x, y: t.y, z: t.z, s: t.s, r: t.r });
-  const firs: Placement[] = liveTrees.filter((t) => trees.indexOf(t) % 2 === 0).map(asPlacement);
-  const broadleafs: Placement[] = liveTrees.filter((t) => trees.indexOf(t) % 2 === 1).map(asPlacement);
+  const firs: Placement[] = liveTrees.filter((t) => (treeIndex.get(t) ?? 0) % 2 === 0).map(asPlacement);
+  const broadleafs: Placement[] = liveTrees.filter((t) => (treeIndex.get(t) ?? 0) % 2 === 1).map(asPlacement);
   const readyFir = useMemo(() => () => setPolyReady((p) => (p.fir ? p : { ...p, fir: true })), []);
   const readyBroad = useMemo(() => () => setPolyReady((p) => (p.broadleaf ? p : { ...p, broadleaf: true })), []);
   const liveSwamp = alive(swampTrees);
@@ -273,7 +344,7 @@ export function Terrain({ renderTier = "HIGH" }: { renderTier?: RenderTier } = {
   const swayCanopyLow = useMemo(() => windSway(canopyLow, 0.55), [canopyLow]);
   const swayCanopyHigh = useMemo(() => windSway(canopyHigh, 0.8), [canopyHigh]);
   const swayReed = useMemo(() => windSway(reedGeo, 0.5), [reedGeo]);
-  const reeds = useMemo(() => scatter(swamp, d(240), 33, { min: -2.2, max: 3.5, maxSlope: 0.5 }), [swamp, density]);
+  const reeds = useMemo(() => scatter(swamp, dO(240), 33, { min: -2.2, max: 3.5, maxSlope: 0.5 }), [swamp, density]);
   const emberRockGeo = useMemo(() => organicRock(1.6, 44, 1, 0.5), []);
 
   return (
@@ -282,8 +353,8 @@ export function Terrain({ renderTier = "HIGH" }: { renderTier?: RenderTier } = {
       {renderTier !== "LOW" && modelsReady && <RegionModels />}
       {realTrees && modelsReady && (
         <>
-          <PolyFoliage kind="fir" items={firs} height={8} sway={0.35} shadows={fineShadows} onReady={readyFir} />
-          <PolyFoliage kind="broadleaf" items={broadleafs} height={9} sway={0.4} shadows={fineShadows} onReady={readyBroad} />
+          <PolyFoliage kind="fir" items={firs} height={firHeight} sway={0.35} shadows={fineShadows} onReady={readyFir} />
+          <PolyFoliage kind="broadleaf" items={broadleafs} height={broadHeight} sway={0.4} shadows={fineShadows} onReady={readyBroad} />
         </>
       )}
 
@@ -371,10 +442,10 @@ export function Terrain({ renderTier = "HIGH" }: { renderTier?: RenderTier } = {
       {/* volcano crater glow */}
       <group position={[ember.x, 0, ember.z]}>
         <mesh position-y={craterY - 1} rotation-x={-Math.PI / 2}>
-          <circleGeometry args={[7, 24]} />
+          <circleGeometry args={[7 * craterScale, 32]} />
           <meshStandardMaterial color="#ff5a12" emissive="#ff5a12" emissiveIntensity={2.6} toneMapped={false} />
         </mesh>
-        <DistrictLight range={170} position={[0, craterY + 6, 0]} color="#ff6a1f" intensity={220} distance={120} decay={2} />
+        <DistrictLight range={170 * Math.max(1, craterScale / 2)} position={[0, craterY + 6, 0]} color="#ff6a1f" intensity={220} distance={120 * Math.max(1, craterScale / 2)} decay={2} />
       </group>
       <Instances limit={liveEmber.length} castShadow receiveShadow geometry={emberRockGeo}>
         <meshStandardMaterial color="#3b2622" emissive="#ff3d00" emissiveIntensity={0.35} roughness={1} map={rockDetail.map} normalMap={rockDetail.normalMap} normalScale={new THREE.Vector2(0.4, 0.4)} />

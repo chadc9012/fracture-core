@@ -2,6 +2,7 @@
 import { describe, expect, it } from "bun:test";
 import { heightAt, waterNetwork, WATER_LEVEL } from "./terrain";
 import { carveTarget } from "./rivers";
+import { REGIONS } from "./world";
 
 describe("water network", () => {
   const net = waterNetwork();
@@ -42,7 +43,8 @@ describe("named water features survive terrain changes", () => {
     expect(byRegion("wastelands")!.dry).toBe(true);
   });
   it("Solara keeps an oasis pool", () => {
-    expect(net.lakes.some((l) => Math.hypot(l.x + 18, l.z - 76) < 44)).toBe(true);
+    const solara = REGIONS.find((r) => r.id === "solara")!;
+    expect(net.lakes.some((l) => Math.hypot(l.x - solara.x, l.z - solara.z) < solara.radius)).toBe(true);
   });
 });
 

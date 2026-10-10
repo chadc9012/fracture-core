@@ -1,7 +1,7 @@
 import { Text } from "@react-three/drei";
 import { DistrictLight } from "./DistrictLight";
 import { useMemo } from "react";
-import { REGIONS } from "@/game/world";
+import { REGIONS, NEON_OFFSET } from "@/game/world";
 import { walkHeight } from "@/game/terrain";
 import { addObstacle } from "@/game/obstacles";
 import { Model } from "./Vehicle";
@@ -19,7 +19,7 @@ import { ElevatedTrain, LightBar, ShopSign } from "./DistrictStreet";
  * lit signage instead of new geometry, and registers collision the same way NexusCity does.
  */
 const NEXUS = REGIONS.find((r) => r.id === "nexus")!;
-export const NEON_CITY_CENTER = { x: NEXUS.x + 82, z: NEXUS.z - 38 };
+export const NEON_CITY_CENTER = { x: NEXUS.x + NEON_OFFSET.x, z: NEXUS.z + NEON_OFFSET.z };
 
 const SIGN_COLORS = ["#ff2ea6", "#38e8ff", "#b968ff", "#39ff7a", "#ffcf3a"];
 

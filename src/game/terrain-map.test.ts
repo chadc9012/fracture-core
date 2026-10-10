@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { MAP_EXTENT, terrainMapPixels } from "./terrain-map";
-import { WORLD_RADIUS } from "./world";
+import { WORLD_RADIUS, scaleSite } from "./world";
 
 describe("terrain map raster", () => {
   const size = 96, px = terrainMapPixels(size);
@@ -20,7 +20,7 @@ describe("terrain map raster", () => {
     expect(MAP_EXTENT).toBeGreaterThan(WORLD_RADIUS);
   });
   test("the volcano and the desert have different colours", () => {
-    const ember = at(-52, 16), solara = at(-18, 76);
+    const e = scaleSite(-52, 16), s = scaleSite(-18, 76), ember = at(e.x, e.z), solara = at(s.x, s.z);
     expect(Math.abs(ember[0] - solara[0]) + Math.abs(ember[1] - solara[1]) + Math.abs(ember[2] - solara[2])).toBeGreaterThan(60);
   });
 });

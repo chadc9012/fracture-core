@@ -11,7 +11,7 @@
  * Door-proximity checks run inside Scene's existing per-frame loop rather than each interior
  * getting its own useFrame hook (the pasted DoorTrigger.tsx pattern) — one world, one loop.
  */
-import { hourOf } from "./world";
+import { hourOf, scaleSite } from "./world";
 
 export const INTERIOR_ALTITUDE = 600;
 export const DOOR_RADIUS = 2.2;
@@ -45,7 +45,7 @@ export const INTERIORS: readonly InteriorDef[] = [
     name: "Warrens Apartment 4B",
     kind: "APARTMENT",
     regionId: "nexus",
-    doorPos: { x: 62, z: -4 },
+    doorPos: scaleSite(62, -4),
     origin: { x: 2000, z: 0 },
     spawnOffset: { x: 0, z: -2.5 },
     exitOffset: { x: 0, z: 4 },
@@ -56,7 +56,7 @@ export const INTERIORS: readonly InteriorDef[] = [
     name: "Scrap-Market Storefront",
     kind: "SHOP",
     regionId: "nexus",
-    doorPos: { x: 98, z: 0 },
+    doorPos: scaleSite(98, 0),
     origin: { x: 2000, z: 60 },
     spawnOffset: { x: 0, z: -2.5 },
     exitOffset: { x: 0, z: 4 },
@@ -70,7 +70,7 @@ export const INTERIORS: readonly InteriorDef[] = [
     name: "Vanguard Outpost Alpha",
     kind: "APARTMENT",
     regionId: "veridan",
-    doorPos: { x: -40, z: -50 },
+    doorPos: scaleSite(-40, -50),
     origin: { x: 2000, z: 120 },
     spawnOffset: { x: 0, z: -2.5 },
     exitOffset: { x: 0, z: 4 },
@@ -81,7 +81,7 @@ export const INTERIORS: readonly InteriorDef[] = [
     name: "Summit Array Shelter",
     kind: "APARTMENT",
     regionId: "frostspire",
-    doorPos: { x: 30, z: -110 },
+    doorPos: scaleSite(30, -110),
     origin: { x: 2000, z: 180 },
     spawnOffset: { x: 0, z: -2.5 },
     exitOffset: { x: 0, z: 4 },
@@ -92,7 +92,7 @@ export const INTERIORS: readonly InteriorDef[] = [
     name: "Caldera Survey Bunker",
     kind: "APARTMENT",
     regionId: "ember",
-    doorPos: { x: -40, z: 30 },
+    doorPos: scaleSite(-40, 30),
     origin: { x: 2000, z: 240 },
     spawnOffset: { x: 0, z: -2.5 },
     exitOffset: { x: 0, z: 4 },
@@ -103,7 +103,7 @@ export const INTERIORS: readonly InteriorDef[] = [
     name: "Scrap-Outpost Alpha",
     kind: "SHOP",
     regionId: "wastelands",
-    doorPos: { x: 25, z: 10 },
+    doorPos: scaleSite(25, 10),
     origin: { x: 2000, z: 300 },
     spawnOffset: { x: 0, z: -2.5 },
     exitOffset: { x: 0, z: 4 },
@@ -117,7 +117,7 @@ export const INTERIORS: readonly InteriorDef[] = [
     name: "Solar Array Waystation",
     kind: "SHOP",
     regionId: "solara",
-    doorPos: { x: -5, z: 90 },
+    doorPos: scaleSite(-5, 90),
     origin: { x: 2000, z: 360 },
     spawnOffset: { x: 0, z: -2.5 },
     exitOffset: { x: 0, z: 4 },
@@ -131,7 +131,7 @@ export const INTERIORS: readonly InteriorDef[] = [
     name: "Airboat Transit Hub",
     kind: "SHOP",
     regionId: "swamps",
-    doorPos: { x: 75, z: 95 },
+    doorPos: scaleSite(75, 95),
     origin: { x: 2000, z: 420 },
     spawnOffset: { x: 0, z: -2.5 },
     exitOffset: { x: 0, z: 4 },

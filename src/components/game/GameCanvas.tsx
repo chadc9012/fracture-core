@@ -818,7 +818,7 @@ export function GameCanvas() {
         camera={{
           position: [START.x, walkHeight(START.x, START.z) + 30, START.z + 46],
           fov: 55,
-          far: 1200,
+          far: 1800,
         }}
       >
         <color attach="background" args={["#bfe4f2"]} />

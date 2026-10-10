@@ -2,7 +2,7 @@ import { REGION_HAZARD } from "@/game/region-hazards";
 import { useMemo, useState } from "react";
 import { ArrowLeft, ChevronRight, Skull } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { REGIONS, ZONE_COLOR, ZONE_LABEL } from "@/game/world";
+import { REGIONS, ZONE_COLOR, ZONE_LABEL, WORLD_SCALE } from "@/game/world";
 import { ENCOUNTERS } from "@/game/encounters";
 import { CHRONICLE, nextActivity } from "@/game/retention";
 import type { PlayerProgression } from "@/game/progression";
@@ -15,6 +15,9 @@ import { MapLegend, LANDMARK_GLYPH } from "./MapLegend";
 const THREAT = ["MINIMAL", "LOW", "MODERATE", "HIGH", "SEVERE", "EXTREME"];
 
 /** Destination-first star map rebuilt from the uploaded StarMapDeployment layout, driven by the real REGIONS/ENCOUNTERS data. */
+/** map sizes are authored in original-world units; positions are world units, so sizes grow with the map */
+const u = (n: number) => n * WORLD_SCALE;
+
 export function StarMap({ progression, onBack, onDeploy }: { progression: PlayerProgression; onBack: () => void; onDeploy: (regionId: string) => void }) {
   const next = nextActivity(progression);
   const recommended = REGIONS.find((r) => r.name === next.region)?.id ?? progression.currentWorld;
@@ -42,19 +45,19 @@ export function StarMap({ progression, onBack, onDeploy }: { progression: Player
         <section className="relative border border-foreground/15 bg-background/50 p-3 lg:col-span-3">
           <svg viewBox={`${-E} ${-E} ${E * 2} ${E * 2}`} className="mx-auto aspect-square max-h-[70vh] w-full border border-foreground/15" role="img" aria-label="Destination map">
             {art && <image href={art} x={-E} y={-E} width={E * 2} height={E * 2} preserveAspectRatio="none" />}
-            {LANES.map((l) => <polyline key={l.name} points={laneSamples(l, 24).map((p) => `${p.x},${p.z}`).join(" ")} fill="none" stroke="#f3e2b0" strokeOpacity={0.8} strokeWidth={0.9} strokeDasharray="2.4 1.6" />)}
+            {LANES.map((l) => <polyline key={l.name} points={laneSamples(l, 24).map((p) => `${p.x},${p.z}`).join(" ")} fill="none" stroke="#f3e2b0" strokeOpacity={0.8} strokeWidth={u(0.9)} strokeDasharray={`${u(2.4)} ${u(1.6)}`} />)}
             {REGIONS.map((r) => {
               const on = r.id === selected, rec = r.id === recommended;
               return (
                 <g key={r.id} onClick={() => setSelected(r.id)} className="cursor-pointer">
-                  <circle cx={r.x} cy={r.z} r={r.radius} fill={ZONE_COLOR[r.kind]} fillOpacity={on ? 0.24 : 0.04} stroke={ZONE_COLOR[r.kind]} strokeOpacity={on ? 1 : 0.7} strokeWidth={on ? 1.4 : 0.7} />
-                  {rec && <circle cx={r.x} cy={r.z} r={r.radius + 3} fill="none" stroke="#ffffff" strokeDasharray="3 3" strokeWidth={0.8} />}
-                  <text x={r.x} y={r.z + 1.5} textAnchor="middle" fontSize={5.4} fill="#fff" stroke="#000" strokeWidth={1.1} paintOrder="stroke" className="font-mono uppercase">{r.name}{rec ? " ◆" : ""}</text>
+                  <circle cx={r.x} cy={r.z} r={r.radius} fill={ZONE_COLOR[r.kind]} fillOpacity={on ? 0.24 : 0.04} stroke={ZONE_COLOR[r.kind]} strokeOpacity={on ? 1 : 0.7} strokeWidth={u(on ? 1.4 : 0.7)} />
+                  {rec && <circle cx={r.x} cy={r.z} r={r.radius + u(3)} fill="none" stroke="#ffffff" strokeDasharray={`${u(3)} ${u(3)}`} strokeWidth={u(0.8)} />}
+                  <g transform={`translate(${r.x} ${r.z}) scale(${WORLD_SCALE})`}><text y={1.5} textAnchor="middle" fontSize={5.4} fill="#fff" stroke="#000" strokeWidth={1.1} paintOrder="stroke" className="font-mono uppercase">{r.name}{rec ? " ◆" : ""}</text></g>
                 </g>
               );
             })}
-            {LANDMARKS.filter((l) => isLandmarkKnown(progression, l.id)).map((l) => <text key={l.id} x={l.x} y={l.z + 1.6} textAnchor="middle" fontSize={4.6} fill="#9fd4ff" stroke="#000" strokeWidth={0.8} paintOrder="stroke"><title>{l.name}</title>{LANDMARK_GLYPH[l.type]}</text>)}
-            <g transform={`translate(${E - 22} ${-E + 24})`} aria-label="Compass rose"><circle r={15} fill="#000" fillOpacity={0.45} stroke="#fff" strokeOpacity={0.6} strokeWidth={0.5} /><polygon points="0,-14 3,0 0,3 -3,0" fill="#ff5a5a" /><polygon points="0,14 3,0 0,-3 -3,0" fill="#e8e8e8" /><text y={-17} textAnchor="middle" fontSize={6} fill="#fff" fontWeight="700">N</text></g>
+            {LANDMARKS.filter((l) => isLandmarkKnown(progression, l.id)).map((l) => <g key={l.id} transform={`translate(${l.x} ${l.z}) scale(${WORLD_SCALE})`}><text y={1.6} textAnchor="middle" fontSize={4.6} fill="#9fd4ff" stroke="#000" strokeWidth={0.8} paintOrder="stroke"><title>{l.name}</title>{LANDMARK_GLYPH[l.type]}</text></g>)}
+            <g transform={`translate(${E - u(22)} ${-E + u(24)}) scale(${WORLD_SCALE})`} aria-label="Compass rose"><circle r={15} fill="#000" fillOpacity={0.45} stroke="#fff" strokeOpacity={0.6} strokeWidth={0.5} /><polygon points="0,-14 3,0 0,3 -3,0" fill="#ff5a5a" /><polygon points="0,14 3,0 0,-3 -3,0" fill="#e8e8e8" /><text y={-17} textAnchor="middle" fontSize={6} fill="#fff" fontWeight="700">N</text></g>
           </svg>
           <MapLegend phase="" />
         </section>

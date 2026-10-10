@@ -2,6 +2,8 @@
  * category, priced in region-flavoured materials from progression.materials (persisted), and gated
  * by player level and story progress. Pure logic; Scene detects proximity, ShopWindow draws it. */
 import { mulberry32 } from "./useKeyboard";
+import { REGIONS, NEON_OFFSET, scaleSite } from "./world";
+import { THALASSIA_CENTER } from "./thalassia-site";
 import { WEAPON_MANIFEST, ARMOR_MANIFEST, type WeaponTier, type ArmorTier } from "./equipment";
 import { listingToGearItem, type VendorListing } from "./vendors";
 import { upgradeGate } from "./upgrade-gates";
@@ -25,9 +27,9 @@ export type RegionalShop = {
   requires?: { missionId: string; label: string };
 };
 
-const NEXUS = { x: 78, z: 6 };
-const NEON = { x: 160, z: -32 };
-const THAL = { x: -97, z: -208 };
+const NEXUS = REGIONS.find((r) => r.id === "nexus")!;
+const NEON = { x: NEXUS.x + NEON_OFFSET.x, z: NEXUS.z + NEON_OFFSET.z };
+const THAL = THALASSIA_CENTER;
 const at = (c: { x: number; z: number }, angle: number, r: number) => ({ x: c.x + Math.cos(angle) * r, z: c.z + Math.sin(angle) * r });
 
 export const REGIONAL_SHOPS: readonly RegionalShop[] = [
@@ -38,14 +40,14 @@ export const REGIONAL_SHOPS: readonly RegionalShop[] = [
   { id: "neon-dealer", name: "Neon Street Dealer", kind: "weapons", place: "Neon City", blurb: "Civilian-market weapons", ...at(NEON, 0.8, 9), currency: "microCircuits", priceMult: 1.1, minLevel: 3 },
   { id: "neon-mods", name: "Glitch Mods", kind: "mods", place: "Neon City", blurb: "Element infusion and tuning", ...at(NEON, 2.6, 9), currency: "microCircuits", priceMult: 1, minLevel: 3 },
   { id: "thal-curator", name: "Thalassia Curator", kind: "armor", place: "Thalassia", blurb: "Pressure-rated ancient armor", ...at(THAL, 0.5, 10), currency: "dataShards", priceMult: 1.2, minLevel: 6, requires: { missionId: "system-core", label: "Reach Thalassia in the story" } },
-  { id: "waste-trader", name: "Rust Port Trader", kind: "supplies", place: "The Wastelands", blurb: "Salvage, fuel and patch kits", ...at({ x: 12, z: -6 }, 2.2, 14), currency: "scrapMetal", priceMult: 0.85, minLevel: 1 },
-  { id: "waste-garage", name: "Rust-Runner Garage", kind: "vehicles", place: "The Wastelands", blurb: "Ground vehicle parts", ...at({ x: 12, z: -6 }, 4.0, 14), currency: "fuel", priceMult: 1, minLevel: 2 },
-  { id: "veridan-broker", name: "Grove Research Broker", kind: "mods", place: "Veridan Forest", blurb: "Organic infusions", ...at({ x: -58, z: -34 }, 1.2, 12), currency: "sporeFiber", priceMult: 1, minLevel: 2 },
-  { id: "swamp-relics", name: "Bog Relic Dealer", kind: "armor", place: "Shrouded Swamps", blurb: "Anomaly-resistant pieces", ...at({ x: 62, z: 82 }, 3.0, 10), currency: "bioCatalyst", priceMult: 1.1, minLevel: 5 },
-  { id: "solara-heavy", name: "Dune Heavy Arms", kind: "weapons", place: "Solara Desert", blurb: "Heavy weapons and launchers", ...at({ x: -18, z: 76 }, 0.4, 14), currency: "anomalyCarbon", priceMult: 1, minLevel: 4 },
-  { id: "solara-garage", name: "Convoy Workshop", kind: "vehicles", place: "Solara Desert", blurb: "Vehicle plating and weapons", ...at({ x: -18, z: 76 }, 2.6, 14), currency: "vehicleParts", priceMult: 1, minLevel: 4 },
-  { id: "frost-research", name: "Spire Research Post", kind: "gunsmith", place: "Frostspire Mountains", blurb: "Precision calibration", ...at({ x: 18, z: -96 }, 1.6, 12), currency: "cryoCrystal", priceMult: 1, minLevel: 6 },
-  { id: "ember-alliance", name: "Ember Alliance Vendor", kind: "weapons", place: "Ember Peaks", blurb: "Elite high-tier weapons", ...at({ x: -52, z: 16 }, 5.2, 10), currency: "thermalShards", priceMult: 1.3, minLevel: 8, requires: { missionId: "awakening", label: "Complete Neon Core: Awakening" } },
+  { id: "waste-trader", name: "Rust Port Trader", kind: "supplies", place: "The Wastelands", blurb: "Salvage, fuel and patch kits", ...at(scaleSite(12, -6), 2.2, 14), currency: "scrapMetal", priceMult: 0.85, minLevel: 1 },
+  { id: "waste-garage", name: "Rust-Runner Garage", kind: "vehicles", place: "The Wastelands", blurb: "Ground vehicle parts", ...at(scaleSite(12, -6), 4.0, 14), currency: "fuel", priceMult: 1, minLevel: 2 },
+  { id: "veridan-broker", name: "Grove Research Broker", kind: "mods", place: "Veridan Forest", blurb: "Organic infusions", ...at(scaleSite(-58, -34), 1.2, 12), currency: "sporeFiber", priceMult: 1, minLevel: 2 },
+  { id: "swamp-relics", name: "Bog Relic Dealer", kind: "armor", place: "Shrouded Swamps", blurb: "Anomaly-resistant pieces", ...at(scaleSite(62, 82), 3.0, 10), currency: "bioCatalyst", priceMult: 1.1, minLevel: 5 },
+  { id: "solara-heavy", name: "Dune Heavy Arms", kind: "weapons", place: "Solara Desert", blurb: "Heavy weapons and launchers", ...at(scaleSite(-18, 76), 0.4, 14), currency: "anomalyCarbon", priceMult: 1, minLevel: 4 },
+  { id: "solara-garage", name: "Convoy Workshop", kind: "vehicles", place: "Solara Desert", blurb: "Vehicle plating and weapons", ...at(scaleSite(-18, 76), 2.6, 14), currency: "vehicleParts", priceMult: 1, minLevel: 4 },
+  { id: "frost-research", name: "Spire Research Post", kind: "gunsmith", place: "Frostspire Mountains", blurb: "Precision calibration", ...at(scaleSite(18, -96), 1.6, 12), currency: "cryoCrystal", priceMult: 1, minLevel: 6 },
+  { id: "ember-alliance", name: "Ember Alliance Vendor", kind: "weapons", place: "Ember Peaks", blurb: "Elite high-tier weapons", ...at(scaleSite(-52, 16), 5.2, 10), currency: "thermalShards", priceMult: 1.3, minLevel: 8, requires: { missionId: "awakening", label: "Complete Neon Core: Awakening" } },
 ];
 
 export const SHOP_REACH = 4;

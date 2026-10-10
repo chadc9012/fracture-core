@@ -3,11 +3,16 @@
  * Fracture crash site. Everything here is deterministic and renderer-free: Terrain, VerdantForest and
  * Scene all read the same trail, so props never block it, the ground paints it, and markers agree.
  * Only world.ts is imported, so terrain.ts can use it for ground colour without a cycle. */
-import { REGIONS } from "./world";
+import { REGIONS, WORLD_SCALE, scaleSite } from "./world";
 
 type P = { x: number; z: number };
 
 const forest = REGIONS.find((r) => r.id === "veridan")!;
+
+/* Authored at the original forest size, then stretched by WORLD_SCALE: route control points and clearing centres move
+ * with scaleSite (offset from the forest centre x WORLD_SCALE); anything that must stay human-sized (clearing radii,
+ * cover/spawn offsets around a clearing, debris, trail width) keeps its authored metres. At WORLD_SCALE 1 this is the identity. */
+const site = (x: number, z: number): P => scaleSite(x, z);
 
 /** where the player materialises — kept identical to Scene's SPAWN */
 export const FOREST_SPAWN: P = { x: forest.x, z: forest.z + 12 };
@@ -16,24 +21,30 @@ export const SPAWN_CLEARING_RADIUS = 12;
 /** trail control points, spawn → ambush clearing → crash site */
 export const TRAIL_CONTROL: readonly P[] = [
   FOREST_SPAWN,
-  { x: -63, z: -27 },
-  { x: -71, z: -29 },
-  { x: -79, z: -34 },
-  { x: -82, z: -42 },
-  { x: -79, z: -50 },
-  { x: -72, z: -55 },
-  { x: -69, z: -60 },
+  site(-63, -27),
+  site(-71, -29),
+  site(-79, -34),
+  site(-82, -42),
+  site(-79, -50),
+  site(-72, -55),
+  site(-69, -60),
 ];
 export const TRAIL_HALF_WIDTH = 2.8;
 
-export const CRASH_SITE = { x: -69, z: -61, radius: 11, scanRadius: 9, label: "Fracture Crash Site" } as const;
+/** the crash site and ambush clearing sit exactly where they did relative to the trail's own control points (so their local layout is unchanged) */
+const lastControl = TRAIL_CONTROL[TRAIL_CONTROL.length - 1]!;
+const encounterControl = TRAIL_CONTROL[4]!; // the (-82,-42) bend
+const encC: P = { x: encounterControl.x + 1, z: encounterControl.z };
+/** a point `dx, dz` metres from the clearing centre (authored offsets are in metres and do not scale) */
+const enc = (dx: number, dz: number): P => ({ x: encC.x + dx, z: encC.z + dz });
+export const CRASH_SITE = { x: lastControl.x, z: lastControl.z - 1, radius: 11, scanRadius: 9, label: "Fracture Crash Site" } as const;
 
 /** the ambush clearing: open ground ringed with cover, beside the trail */
 export const ENCOUNTER = {
-  x: -81, z: -42, radius: 11, triggerRadius: 30, label: "Forest Patrol",
+  ...encC, radius: 11, triggerRadius: 30, label: "Forest Patrol",
   /** where the existing machine pool is placed when the encounter wakes — the AI integration points */
   spawnPoints: [
-    { x: -88, z: -46 }, { x: -87, z: -37 }, { x: -83, z: -50 }, { x: -76, z: -47 }, { x: -90, z: -42 },
+    enc(-7, -4), enc(-6, 5), enc(-2, -8), enc(5, -5), enc(-9, 0),
   ] as readonly P[],
 } as const;
 
@@ -41,13 +52,13 @@ export type CoverKind = "rock" | "log";
 export type Cover = { x: number; z: number; kind: CoverKind; yaw: number; r: number };
 /** cover objects around the clearing; gaps are left on the trail sides so the route stays clear */
 export const COVER: readonly Cover[] = [
-  { x: -87, z: -48, kind: "rock", yaw: 0.6, r: 1.7 },
-  { x: -88, z: -39, kind: "log", yaw: 1.2, r: 1.0 },
-  { x: -87, z: -34, kind: "rock", yaw: 2.1, r: 1.6 },
-  { x: -75, z: -37, kind: "log", yaw: 0.3, r: 1.0 },
-  { x: -74, z: -46, kind: "rock", yaw: 4.0, r: 1.5 },
-  { x: -86, z: -52, kind: "log", yaw: 1.9, r: 1.0 },
-  { x: -91, z: -43, kind: "rock", yaw: 5.2, r: 1.8 },
+  { ...enc(-6, -6), kind: "rock", yaw: 0.6, r: 1.7 },
+  { ...enc(-7, 3), kind: "log", yaw: 1.2, r: 1.0 },
+  { ...enc(-6, 8), kind: "rock", yaw: 2.1, r: 1.6 },
+  { ...enc(6, 5), kind: "log", yaw: 0.3, r: 1.0 },
+  { ...enc(7, -4), kind: "rock", yaw: 4.0, r: 1.5 },
+  { ...enc(-5, -10), kind: "log", yaw: 1.9, r: 1.0 },
+  { ...enc(-10, -1), kind: "rock", yaw: 5.2, r: 1.8 },
 ];
 
 /* ---------------- trail geometry ---------------- */
@@ -131,13 +142,27 @@ export function trailEdgeScatter(count: number, rnd: () => number, near: number,
   return out;
 }
 
-/** scatter anywhere in the forest region, off the reserved ground */
+/** How many more understory plants the bigger forest gets (parent counts only; per-parent cluster sizes are unchanged). */
+export const UNDERSTORY_K = WORLD_SCALE > 1 ? Math.min(5, WORLD_SCALE * 1.25) : 1;
+/** On a scaled forest most low plants are placed along the route where the player walks (within this many metres of the trail); the rest of the woods keeps a thinner spread. */
+export const CORRIDOR_RADIUS = 70;
+const CORRIDOR_SHARE = 0.78;
+
+/** scatter anywhere in the forest region, off the reserved ground (on a scaled forest, mostly in the trail corridor) */
 export function forestScatter(count: number, rnd: () => number, accept: (x: number, z: number) => boolean, margin = 0.5): Floor[] {
   const out: Floor[] = [];
   let guard = count * 14;
   while (out.length < count && guard-- > 0) {
-    const a = rnd() * Math.PI * 2, d = Math.sqrt(rnd()) * forest.radius * 0.9;
-    const x = forest.x + Math.cos(a) * d, z = forest.z + Math.sin(a) * d;
+    let x: number, z: number;
+    if (WORLD_SCALE > 1 && rnd() < CORRIDOR_SHARE) {
+      const p = TRAIL[Math.floor(rnd() * (TRAIL.length - 1))]!;
+      const a = rnd() * Math.PI * 2, d = Math.sqrt(rnd()) * CORRIDOR_RADIUS;
+      x = p.x + Math.cos(a) * d; z = p.z + Math.sin(a) * d;
+      if (Math.hypot(x - forest.x, z - forest.z) > forest.radius * 0.95) continue;
+    } else {
+      const a = rnd() * Math.PI * 2, d = Math.sqrt(rnd()) * forest.radius * 0.9;
+      x = forest.x + Math.cos(a) * d; z = forest.z + Math.sin(a) * d;
+    }
     if (isReserved(x, z, margin) || !accept(x, z)) continue;
     out.push({ x, z, s: 0.7 + rnd() * 0.7, r: rnd() * Math.PI * 2 });
   }

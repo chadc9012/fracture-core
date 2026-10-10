@@ -1,8 +1,9 @@
-import { useFrame } from "@react-three/fiber";
+import { useFrame, useThree } from "@react-three/fiber";
 import { useMemo, useRef } from "react";
 import * as THREE from "three";
 
 import { heightAt, WATER_LEVEL } from "@/game/terrain";
+import { WORLD_RADIUS } from "@/game/world";
 
 /**
  * Animated ocean / lake surface: gerstner-ish sine waves in the vertex shader (amplitude scaled by
@@ -18,7 +19,12 @@ export type WaterStyleUniforms = {
   chop: number;
 };
 
-const DEPTH_TEX_RES = 192;
+const DEPTH_TEX_RES = 256;
+/** The surface mesh is a fixed-size patch that follows the camera (snapped to its vertex spacing, waves keyed to world position), so the vertex density stays
+ * fine on a map 4x wider. It reaches past the fog, so its edge is never seen. */
+const PATCH_SIZE = 2400;
+const PATCH_SEGS = 300;
+const PATCH_STEP = PATCH_SIZE / PATCH_SEGS;
 
 export function Water({
   size,
@@ -30,15 +36,19 @@ export function Water({
   styleRef: React.MutableRefObject<WaterStyleUniforms>;
 }) {
   const mat = useRef<THREE.ShaderMaterial>(null!);
+  const mesh = useRef<THREE.Mesh>(null!);
+  const camera = useThree((st) => st.camera);
+  // the baked depth texture only needs to cover the land (+ coast); beyond it, edge texels read as deep sea
+  const cover = Math.min(size, WORLD_RADIUS * 2.3);
 
   // Bake terrain height into a texture once, so the shader can tell deep water from shoreline.
   const depthTex = useMemo(() => {
     const data = new Float32Array(DEPTH_TEX_RES * DEPTH_TEX_RES);
-    const half = size / 2;
+    const half = cover / 2;
     for (let j = 0; j < DEPTH_TEX_RES; j++) {
       for (let i = 0; i < DEPTH_TEX_RES; i++) {
-        const x = (i / (DEPTH_TEX_RES - 1)) * size - half;
-        const z = (j / (DEPTH_TEX_RES - 1)) * size - half;
+        const x = (i / (DEPTH_TEX_RES - 1)) * cover - half;
+        const z = (j / (DEPTH_TEX_RES - 1)) * cover - half;
         data[j * DEPTH_TEX_RES + i] = heightAt(x, z);
       }
     }
@@ -47,7 +57,7 @@ export function Water({
     tex.minFilter = THREE.LinearFilter;
     tex.needsUpdate = true;
     return tex;
-  }, [size]);
+  }, [cover]);
 
   const uniforms = useMemo(
     () => ({
@@ -59,13 +69,20 @@ export function Water({
       uMurk: { value: 0.15 },
       uChop: { value: 1 },
       uDepthTex: { value: depthTex },
-      uWorldSize: { value: size },
+      uWorldSize: { value: cover },
+      uOrigin: { value: new THREE.Vector2(0, 0) },
     }),
-    [depthTex, size],
+    [depthTex, cover],
   );
 
   useFrame((_, raw) => {
     uniforms.uTime.value += Math.min(raw, 0.05);
+    const m = mesh.current;
+    if (m) {
+      const ox = Math.round(camera.position.x / PATCH_STEP) * PATCH_STEP, oz = Math.round(camera.position.z / PATCH_STEP) * PATCH_STEP;
+      m.position.x = ox; m.position.z = oz;
+      uniforms.uOrigin.value.set(ox, oz);
+    }
     uniforms.uSun.value.copy(sunRef.current).normalize();
     const st = styleRef.current;
     uniforms.uDeep.value.copy(st.deep);
@@ -75,8 +92,8 @@ export function Water({
   });
 
   return (
-    <mesh rotation-x={-Math.PI / 2} position-y={WATER_LEVEL} receiveShadow>
-      <planeGeometry args={[size, size, 200, 200]} />
+    <mesh ref={mesh} rotation-x={-Math.PI / 2} position-y={WATER_LEVEL} receiveShadow frustumCulled={false}>
+      <planeGeometry args={[PATCH_SIZE, PATCH_SIZE, PATCH_SEGS, PATCH_SEGS]} />
       <shaderMaterial
         ref={mat}
         transparent
@@ -84,6 +101,7 @@ export function Water({
         vertexShader={/* glsl */ `
           uniform float uTime;
           uniform float uChop;
+          uniform vec2 uOrigin;
           varying vec3 vNormalW;
           varying vec3 vPosW;
           varying float vFoam;
@@ -100,7 +118,7 @@ export function Water({
 
           void main() {
             vec3 pos = position;
-            vec2 p = pos.xy;
+            vec2 p = vec2(pos.x + uOrigin.x, pos.y - uOrigin.y); // world-keyed so the waves do not slide when the patch follows the camera
             float h = swell(p) * uChop;
             pos.z += h;
             float e = 0.6;

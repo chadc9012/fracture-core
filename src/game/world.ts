@@ -34,7 +34,26 @@ export const ZONE_LABEL: Record<ZoneKind, string> = {
   core: "Core Zone",
 };
 
-export const REGIONS: Region[] = [
+/* ---------- world scale ----------
+ * Every region below is authored at BASE size (the original ~380 m world). WORLD_SCALE stretches the map: wild regions
+ * move apart and grow by WORLD_SCALE, the Nexus city keeps its authored footprint (a bigger plateau around it, not
+ * bigger buildings). ?worldScale=1 restores the original layout for A/B performance checks. Set once at module load. */
+export const DEFAULT_WORLD_SCALE = 4;
+function readWorldScale(): number {
+  try {
+    const env = (globalThis as { process?: { env?: Record<string, string | undefined> } }).process?.env?.["WORLD_SCALE"]; // tests / tooling
+    if (env !== undefined && Number.isFinite(Number(env))) return Math.min(6, Math.max(1, Number(env)));
+    const q = typeof location !== "undefined" ? new URLSearchParams(location.search).get("worldScale") : null;
+    const v = q == null ? NaN : Number(q);
+    if (Number.isFinite(v)) return Math.min(6, Math.max(1, v));
+  } catch { /* SSR / blocked */ }
+  return DEFAULT_WORLD_SCALE;
+}
+export const WORLD_SCALE = readWorldScale();
+/** vertical stretch of the landform: heights grow less than widths so a big map has mountains, not walls (1 at scale 1) */
+export const HEIGHT_K = WORLD_SCALE === 1 ? 1 : 1 + (WORLD_SCALE - 1) * 0.35;
+
+const BASE_REGIONS: Region[] = [
   {
     id: "nexus",
     name: "Nexus City",
@@ -135,7 +154,29 @@ export const REGIONS: Region[] = [
   },
 ];
 
-export const WORLD_RADIUS = 190;
+/** original-size regions (terrain shaping noise runs in this space and is stretched by WORLD_SCALE) */
+export const BASE_WORLD_REGIONS: readonly Region[] = BASE_REGIONS;
+export const BASE_WORLD_RADIUS = 190;
+export const WORLD_RADIUS = BASE_WORLD_RADIUS * WORLD_SCALE;
+
+/** Regions at world size: centres and wild radii x WORLD_SCALE; Nexus keeps its authored radius. */
+export const REGIONS: Region[] = BASE_REGIONS.map((r) => ({ ...r, x: r.x * WORLD_SCALE, z: r.z * WORLD_SCALE, radius: r.id === "nexus" ? r.radius : r.radius * WORLD_SCALE }));
+
+/** Maps a coordinate authored at base size to the same place in the scaled world. Points inside a base region keep
+ * their offset from its centre multiplied by WORLD_SCALE (the Nexus city keeps a 1:1 offset); anything else (ocean sites)
+ * scales from the origin. With WORLD_SCALE = 1 this is the identity. */
+export function scaleSite(x: number, z: number, offsetScale: number = WORLD_SCALE): { x: number; z: number } {
+  if (WORLD_SCALE === 1) return { x, z };
+  let best = -1; let bestScore = Infinity;
+  BASE_REGIONS.forEach((r, i) => { const sc = Math.hypot(x - r.x, z - r.z) / r.radius; if (sc < 1.15 && sc < bestScore) { bestScore = sc; best = i; } });
+  if (best < 0) return { x: x * WORLD_SCALE, z: z * WORLD_SCALE };
+  const b = BASE_REGIONS[best]!, r = REGIONS[best]!;
+  const k = b.id === "nexus" ? 1 : offsetScale;
+  return { x: r.x + (x - b.x) * k, z: r.z + (z - b.z) * k };
+}
+
+/** Distance authored at base size -> world size (use for travel distances, not object sizes). */
+export const scaleDist = (d: number) => d * WORLD_SCALE;
 
 export function regionAt(x: number, z: number): Region | null {
   let best: Region | null = null;
@@ -182,3 +223,6 @@ export function clockLabel(t: number) {
   const mm = Math.floor((h - hh) * 60);
   return `${String(hh).padStart(2, "0")}:${String(mm).padStart(2, "0")}`;
 }
+
+/** Neon City sits beside the Nexus hub; its offset grows with the world (half the wild-region scale) so the districts stay distinct neighbours. */
+export const NEON_OFFSET = { x: 82 * Math.max(1, WORLD_SCALE / 2), z: -38 * Math.max(1, WORLD_SCALE / 2) } as const;

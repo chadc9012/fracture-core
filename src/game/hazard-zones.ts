@@ -3,6 +3,10 @@
  * applies the result. Each zone is telegraphed (warning text, visible on the atlas) and never kills outright:
  * Scene routes damage through the same hazard path as the regional hazards (hurtPlayer floors at 1 hp). */
 import { LANDMARKS, landmarkById } from "./landmarks";
+import { WORLD_SCALE } from "./world";
+
+/** zones are places you walk into: they grow with the map (half the scale factor) so they stay found-and-felt on a bigger world */
+const ZS = Math.max(1, WORLD_SCALE / 2);
 import type { HazardEffect } from "./region-hazards";
 
 export type ZoneKind = "quicksand" | "avalanche" | "spatial-sink" | "lava-trench" | "crevasse" | "fracture-tear";
@@ -18,19 +22,19 @@ export interface HazardZone {
 }
 
 export const HAZARD_ZONES: HazardZone[] = [
-  { id: "z-quicksand", kind: "quicksand", name: "Moving Quicksand", landmarkId: "quicksand-basin", radius: 16, hint: "Sinks and slows you on foot — vehicles cross it" },
-  { id: "z-avalanche", kind: "avalanche", name: "Avalanche Danger Zone", landmarkId: "avalanche-run", radius: 20, hint: "Slides on a cycle; the rumble gives a few seconds to run" },
-  { id: "z-sink", kind: "spatial-sink", name: "Spatial Sink", landmarkId: "spatial-sink", radius: 14, hint: "Distance folds: gravity drops and you are drawn to the centre" },
-  { id: "z-trench", kind: "lava-trench", name: "Smoldering Trench", landmarkId: "smoldering-trench", radius: 15, hint: "Heat burns anything on foot; keep moving" },
-  { id: "z-crevasse", kind: "crevasse", name: "Glacial Crevasse Network", landmarkId: "glacial-crevasse", radius: 17, hint: "Ice fields chill and slow you" },
-  { id: "z-tear", kind: "fracture-tear", name: "Fracture Tear", landmarkId: "fracture-grottos", radius: 14, hint: "Gravity surges when the tear pulses" },
+  { id: "z-quicksand", kind: "quicksand", name: "Moving Quicksand", landmarkId: "quicksand-basin", radius: 16 * ZS, hint: "Sinks and slows you on foot — vehicles cross it" },
+  { id: "z-avalanche", kind: "avalanche", name: "Avalanche Danger Zone", landmarkId: "avalanche-run", radius: 20 * ZS, hint: "Slides on a cycle; the rumble gives a few seconds to run" },
+  { id: "z-sink", kind: "spatial-sink", name: "Spatial Sink", landmarkId: "spatial-sink", radius: 14 * ZS, hint: "Distance folds: gravity drops and you are drawn to the centre" },
+  { id: "z-trench", kind: "lava-trench", name: "Smoldering Trench", landmarkId: "smoldering-trench", radius: 15 * ZS, hint: "Heat burns anything on foot; keep moving" },
+  { id: "z-crevasse", kind: "crevasse", name: "Glacial Crevasse Network", landmarkId: "glacial-crevasse", radius: 17 * ZS, hint: "Ice fields chill and slow you" },
+  { id: "z-tear", kind: "fracture-tear", name: "Fracture Tear", landmarkId: "fracture-grottos", radius: 14 * ZS, hint: "Gravity surges when the tear pulses" },
 ];
 
 export const AVALANCHE_PERIOD = 26;
 export const AVALANCHE_WARN = 4;
 export const AVALANCHE_SLIDE = 3;
 export const SINK_PULL = 3.2;
-export const QUICKSAND_DRIFT_RADIUS = 7;
+export const QUICKSAND_DRIFT_RADIUS = 7 * ZS;
 
 /** Effective centre: only quicksand drifts (slowly, on a fixed orbit of the clock). */
 export function zoneCenter(zone: HazardZone, t: number): { x: number; z: number } {

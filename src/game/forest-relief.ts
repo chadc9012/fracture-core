@@ -6,10 +6,13 @@
  *  - the impact pit the hull's nose dug, with an irregular rim and a heaped berm;
  *  - nothing outside the forest region (it fades out before the rim, so neighbours do not change).
  * Imports only world.ts + verdant.ts (no terrain.ts), so there is no cycle. */
-import { REGIONS } from "./world";
+import { REGIONS, WORLD_SCALE } from "./world";
 import { CRASH_SITE, ENCOUNTER, FOREST_SPAWN, FURROW, SPAWN_CLEARING_RADIUS, TRAIL, TRAIL_HALF_WIDTH, patchNoise, trailInfo } from "./verdant";
 
 const forest = REGIONS.find((r) => r.id === "veridan")!;
+/** hill wavelengths grow with the forest (sqrt, so a 4x forest gets 2x longer hills and 1.6x taller ones); 1 at WORLD_SCALE 1 */
+const HILL_K = 1 / Math.sqrt(WORLD_SCALE);
+const HILL_AMP = Math.sqrt(WORLD_SCALE) * 0.8 + 0.2;
 
 const smooth = (a: number, b: number, x: number) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
 
@@ -60,8 +63,8 @@ export function forestRelief(x: number, z: number): number {
   if (edge > 0) {
     const open = openWoods(x, z);
     if (open > 0) {
-      const hills = (patchNoise(x, z, 0.024) - 0.5) * 5.6 + (patchNoise(x + 310, z - 120, 0.065) - 0.5) * 2 + (patchNoise(x - 57, z + 83, 0.12) - 0.5) * 0.6;
-      h += hills * open * edge;
+      const hills = (patchNoise(x, z, 0.024 * HILL_K) - 0.5) * 5.6 + (patchNoise(x + 310, z - 120, 0.065 * HILL_K) - 0.5) * 2 + (patchNoise(x - 57, z + 83, 0.12) - 0.5) * 0.6;
+      h += hills * HILL_AMP * open * edge;
     }
   }
   return h + pitRelief(x, z);

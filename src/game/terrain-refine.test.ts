@@ -5,7 +5,7 @@ import { heightAt } from "./terrain";
 import { IMPACT_PIT } from "./forest-relief";
 import { WORLD_RADIUS } from "./world";
 
-const SEG = 160, SIZE = WORLD_RADIUS * 2.1, cell = SIZE / SEG, half = SIZE / 2;
+const SIZE = WORLD_RADIUS * 2.1, SEG = Math.round(SIZE / 2.5), cell = SIZE / SEG, half = SIZE / 2; // the 2.5 m grid the refinement was designed for, at any WORLD_SCALE
 const patch = refinePatch(SIZE, SEG, IMPACT_PIT.x, IMPACT_PIT.z, 15, 4, heightAt);
 
 /** height the mesh draws at (x, z): bilinear over the patch's own fine grid */

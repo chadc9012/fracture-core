@@ -3,7 +3,8 @@
  * every probed spot sits above WATER_LEVEL. Discovery is stored in the existing claim ledger
  * (progression.earnedRewards, cloud-merged by union) as `landmark-seen:<id>`; it grants nothing but map knowledge
  * and story text, so it can never farm rewards. */
-import { REGIONS } from "./world";
+import { REGIONS, NEON_OFFSET, WORLD_SCALE } from "./world";
+import { THALASSIA_CENTER } from "./thalassia-site";
 import type { PlayerProgression } from "./progression";
 
 export type LandmarkType = "hub" | "outpost" | "ruin" | "mountain" | "volcano" | "lake" | "river" | "forest" | "desert" | "ocean" | "hazard" | "resource";
@@ -51,11 +52,11 @@ const SPECS: Spec[] = [
 
 const regionOf = (id: string) => REGIONS.find((r) => r.id === id)!;
 const nexus = regionOf("nexus");
-const thalassia = { x: -97, z: -208 }; // thalassia-site.ts THALASSIA_CENTER (that module stays React-free; duplicated to keep this one dependency-light, covered by a test)
+const thalassia = THALASSIA_CENTER;
 
 export const LANDMARKS: Landmark[] = [
   ...SPECS.map((s): Landmark => { const r = regionOf(s.regionId); return { id: s.id, name: s.name, regionId: s.regionId, type: s.type, x: r.x + s.dx * r.radius, z: r.z + s.dz * r.radius, history: s.history }; }),
-  { id: "neon-city", name: "Neon City", regionId: "neon", type: "hub", x: nexus.x + 82, z: nexus.z - 38, history: "The district that kept its lights on through the Fracture, for reasons its owners will not explain." },
+  { id: "neon-city", name: "Neon City", regionId: "neon", type: "hub", x: nexus.x + NEON_OFFSET.x, z: nexus.z + NEON_OFFSET.z, history: "The district that kept its lights on through the Fracture, for reasons its owners will not explain." },
   { id: "thalassia", name: "Thalassia", regionId: "thalassia", type: "ocean", x: thalassia.x, z: thalassia.z, history: "A drowned city below the surface, still lit. Whatever keeps it lit does not want visitors." },
 ];
 
@@ -79,7 +80,7 @@ export function landmarkRoutes(): Route[] {
   return LANDMARK_ROUTES.flatMap(([ia, ib]) => { const a = landmarkById(ia), b = landmarkById(ib); return a && b ? [{ a, b, length: Math.hypot(a.x - b.x, a.z - b.z) }] : []; });
 }
 
-export const LANDMARK_DISCOVER_RADIUS = 45;
+export const LANDMARK_DISCOVER_RADIUS = 45 * Math.max(1, WORLD_SCALE / 2); // spotted from further away on a bigger map
 export const landmarkKey = (id: string) => `landmark-seen:${id}`;
 export const isLandmarkSeen = (p: Pick<PlayerProgression, "earnedRewards">, id: string) => p.earnedRewards.includes(landmarkKey(id));
 /** hubs of the safe zone are known from the start so the map is never empty */

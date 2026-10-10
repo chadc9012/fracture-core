@@ -8,7 +8,7 @@ import { clusterAround } from "@/game/foliage";
 import { organicRock } from "@/game/organic-geometry";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import {
-  COVER, CRASH_SITE, DEBRIS, ENCOUNTER, FURROW, patchNoise, TRAIL_HALF_WIDTH, aroundScatter, forestScatter, furrowFrame, trailEdgeScatter, trailInfo, vegetationOk,
+  COVER, CRASH_SITE, DEBRIS, ENCOUNTER, FURROW, patchNoise, TRAIL_HALF_WIDTH, aroundScatter, forestScatter, furrowFrame, trailEdgeScatter, trailInfo, vegetationOk, UNDERSTORY_K,
   type Floor, type Investigation,
 } from "@/game/verdant";
 import { grassCardTexture, hullDamageTexture, leafLitterTexture, mossTexture, scorchTexture, smokeTexture, soilTexture } from "./forest-textures";
@@ -38,6 +38,8 @@ const plantable = (x: number, z: number) => heightAt(x, z) > WATER_LEVEL + 2 && 
 const LEAF_TINTS = ["#ffffff", "#e8d2a8", "#c9b080", "#b6a070"];
 const MOSS_TINTS = ["#ffffff", "#d8f0b0", "#b8d890"];
 const FURROW_YAW = Math.atan2(FURROW.dz, -FURROW.dx); // log orientation (see lying()) that lies along the skid
+/** tree bases that get roots / litter / moss (nearest the trail first) */
+const ROOT_TREE_CAP = 420;
 const place = (f: Floor, lift = 0): Placement => ({ x: f.x, y: heightAt(f.x, f.z) + lift, z: f.z, s: f.s, r: f.r });
 
 /** a log lying on its side, centred on (x, z) along `yaw` */
@@ -51,7 +53,8 @@ export function VerdantForest({ density, models, investigation, heavyShadow = fa
   // like Terrain's other decorative GLBs: join the world a moment after first frame
   const [ready, setReady] = useState(false);
   useEffect(() => { const t = window.setTimeout(() => setReady(true), 4500); return () => window.clearTimeout(t); }, []);
-  const d = (n: number) => Math.max(1, Math.round(n * density));
+  const d = (n: number) => Math.max(1, Math.round(n * density * UNDERSTORY_K)); // parent / patch counts grow with the forest
+  const dd = (n: number) => Math.max(1, Math.round(n * density)); // per-parent cluster sizes and crash-site rings do not
 
   const layout = useMemo(() => {
     const rnd = (n: number) => mulberry32(n);
@@ -64,9 +67,9 @@ export function VerdantForest({ density, models, investigation, heavyShadow = fa
     const tallShrubs = [...trailEdgeScatter(d(28), rnd(104), TRAIL_HALF_WIDTH + 2.2, TRAIL_HALF_WIDTH + 10, plantable), ...forestScatter(d(22), rnd(105), plantable, 1.5)].map((f) => place(f, -0.05));
     const saplings = forestScatter(d(36), rnd(214), plantable, 1.5).map((f) => place(f, -0.1));
     // the wreck sits in a ring of growth that stops short of the hull, the approach trail and the skid
-    const around = aroundScatter(d(26), rnd(301), 8.5, 14, plantable);
+    const around = aroundScatter(dd(26), rnd(301), 8.5, 14, plantable);
     const aroundFerns = around.slice(0, Math.ceil(around.length * 0.7)).map((f) => place(f, -0.05));
-    const aroundShrubs = aroundScatter(d(9), rnd(302), 9.5, 15, plantable).map((f) => place(f, -0.05));
+    const aroundShrubs = aroundScatter(dd(9), rnd(302), 9.5, 15, plantable).map((f) => place(f, -0.05));
 
     // Grass: patchy meadows (patchNoise gates every blade, so bare duff shows between them), a short fringe that
     // feathers the trail edge into the forest floor, and a few tall clumps. Never inside the reserved ground.
@@ -111,7 +114,9 @@ export function VerdantForest({ density, models, investigation, heavyShadow = fa
   // Tree bases (registered by Terrain) anchor roots, leaf litter and moss. Read once the world has settled.
   const trees = useMemo(() => {
     if (!ready) return [] as { x: number; z: number; r: number }[];
-    return allObstacles().filter((o) => o.kind === "tree" && !o.broken && Math.hypot(o.x - forest.x, o.z - forest.z) < forest.radius).map((o) => ({ x: o.x, z: o.z, r: o.r }));
+    const all = allObstacles().filter((o) => o.kind === "tree" && !o.broken && Math.hypot(o.x - forest.x, o.z - forest.z) < forest.radius).map((o) => ({ x: o.x, z: o.z, r: o.r }));
+    // roots, litter and moss only read near the player's route: keep the trees closest to the trail (all of them on the original-size forest)
+    return all.length <= ROOT_TREE_CAP ? all : all.map((t) => ({ t, d: trailInfo(t.x, t.z).dist })).sort((a, b) => a.d - b.d).slice(0, ROOT_TREE_CAP).map((e) => e.t);
   }, [ready]);
   const ground = useMemo(() => {
     if (!trees.length) return null;
@@ -119,7 +124,7 @@ export function VerdantForest({ density, models, investigation, heavyShadow = fa
     const parents = trees.map((t) => ({ x: t.x, z: t.z, s: 1 }));
     const flat = (x: number, z: number) => heightAt(x, z) > WATER_LEVEL + 2 && slopeAt(x, z) < 0.35 && vegetationOk(x, z);
     const leaves = [
-      ...clusterAround(parents, d(2), rnd, flat, { minRadius: 0.6, maxRadius: 4.2, minScale: 1.3, maxScale: 2.8 }),
+      ...clusterAround(parents, dd(2), rnd, flat, { minRadius: 0.6, maxRadius: 4.2, minScale: 1.3, maxScale: 2.8 }),
       ...trailEdgeScatter(d(34), mulberry32(402), TRAIL_HALF_WIDTH + 0.1, TRAIL_HALF_WIDTH + 3.5, flat).map((f) => ({ ...f, s: 1.1 + (f.s - 0.7) * 1.2 })),
     ];
     const moss = [

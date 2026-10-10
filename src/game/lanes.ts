@@ -1,4 +1,4 @@
-import { REGIONS, type Region } from "./world";
+import { REGIONS, WORLD_SCALE, type Region } from "./world";
 
 /* Supply routes shared by the simulation, the road renderer and the
  * obstacle registry (props are cleared off the roads so convoys never crash). */
@@ -73,14 +73,30 @@ export function laneSamples(lane: Lane, steps = 24) {
   return Array.from({ length: steps + 1 }, (_, i) => lanePoint(lane, i / steps));
 }
 
-const ROAD_POINTS = LANES.flatMap((l) => laneSamples(l, 40));
+/** samples per route: a longer route gets proportionally more, so the spacing stays ~2.5 m at any WORLD_SCALE */
+export const ROAD_SAMPLES = Math.round(40 * Math.max(1, WORLD_SCALE));
+const ROAD_POINTS = LANES.flatMap((l) => laneSamples(l, ROAD_SAMPLES));
 
-/** distance from the nearest road centre-line sample */
+/* Bucketed lookup: the road is long and sampled densely, so a linear scan per terrain vertex or prop candidate is too slow. */
+const BUCKET = 24;
+const buckets = new Map<number, { x: number; z: number }[]>();
+const bucketKey = (cx: number, cz: number) => (cx + 4096) * 8192 + (cz + 4096);
+for (const p of ROAD_POINTS) {
+  const k = bucketKey(Math.floor(p.x / BUCKET), Math.floor(p.z / BUCKET));
+  const list = buckets.get(k);
+  if (list) list.push(p); else buckets.set(k, [p]);
+}
+/** farther than this from any road, distanceToRoad just reports ROAD_FAR (every caller only compares against a few metres) */
+export const ROAD_FAR = BUCKET * 2;
+
+/** distance from the nearest road centre-line sample (exact up to ROAD_FAR, then ROAD_FAR) */
 export function distanceToRoad(x: number, z: number) {
-  let best = Infinity;
-  for (const p of ROAD_POINTS) {
-    const d = Math.hypot(p.x - x, p.z - z);
-    if (d < best) best = d;
+  const cx = Math.floor(x / BUCKET), cz = Math.floor(z / BUCKET);
+  let best = ROAD_FAR;
+  for (let i = -2; i <= 2; i++) for (let j = -2; j <= 2; j++) {
+    const list = buckets.get(bucketKey(cx + i, cz + j));
+    if (!list) continue;
+    for (const p of list) { const d = Math.hypot(p.x - x, p.z - z); if (d < best) best = d; }
   }
   return best;
 }

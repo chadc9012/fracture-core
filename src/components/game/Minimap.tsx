@@ -1,4 +1,4 @@
-import { REGIONS, ZONE_COLOR } from "@/game/world";
+import { REGIONS, ZONE_COLOR, WORLD_SCALE } from "@/game/world";
 import { FACTIONS } from "@/game/sim";
 import { MARKER_COLOR } from "@/game/waypoints";
 import { HAZARD_ZONES, zoneCenter } from "@/game/hazard-zones";
@@ -12,7 +12,7 @@ import { CornerBrackets } from "./HudChrome";
  * track(), already computed every HUD tick) for nearby points of interest, and hud.ownership
  * (sim.zones) for live faction-tinted region blobs — no new world-state plumbing.
  */
-const VIEW_RADIUS = 90; // world units shown edge-to-edge
+const VIEW_RADIUS = 90 * Math.max(1, WORLD_SCALE / 2); // world units shown edge-to-edge (grows with the map)
 const SIZE = 128; // px
 const CENTER = SIZE / 2;
 const SCALE = CENTER / VIEW_RADIUS;

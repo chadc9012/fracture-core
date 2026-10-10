@@ -1,6 +1,6 @@
 // @ts-ignore bun:test has no types in this project's tsconfig
 import { describe, expect, it } from "bun:test";
-import { createStride, stepStride, strideHz, RUN_SPEED } from "./movement-feel";
+import { createStride, stepStride, strideHz, RUN_SPEED, WALK_SPEED } from "./movement-feel";
 
 const run = (speed: number, seconds: number, grounded = true) => {
   const s = createStride();
@@ -14,13 +14,13 @@ describe("stride", () => {
   it("stays still when standing and bobs when moving", () => {
     const idle = run(0, 1);
     expect(Math.max(...idle.ys.map(Math.abs))).toBeLessThan(0.001);
-    const walk = run(27, 2);
+    const walk = run(WALK_SPEED, 2);
     expect(Math.max(...walk.ys) - Math.min(...walk.ys)).toBeGreaterThan(0.02);
   });
   it("runs faster and harder than it walks", () => {
-    expect(strideHz(RUN_SPEED)).toBeGreaterThan(strideHz(27));
-    expect(run(RUN_SPEED, 2).v.swing).toBeGreaterThan(run(27, 2).v.swing);
-    expect(run(RUN_SPEED, 2).s.phase).toBeGreaterThan(run(27, 2).s.phase);
+    expect(strideHz(RUN_SPEED)).toBeGreaterThan(strideHz(WALK_SPEED));
+    expect(run(RUN_SPEED, 2).v.swing).toBeGreaterThan(run(WALK_SPEED, 2).v.swing);
+    expect(run(RUN_SPEED, 2).s.phase).toBeGreaterThan(run(WALK_SPEED, 2).s.phase);
   });
   it("dips the camera on a hard landing then recovers", () => {
     const s = createStride();

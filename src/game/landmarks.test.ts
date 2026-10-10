@@ -40,7 +40,7 @@ describe("landmarks", () => {
   });
   test("safe-zone hubs are known from the start; nearest works", () => {
     expect(isLandmarkKnown(P(), "transit-plaza")).toBe(true);
-    const n = nearestLandmark(78, 6)!; expect(n.landmark.id).toBe("transit-plaza");
+    const nx = REGIONS.find((r) => r.id === "nexus")!; const n = nearestLandmark(nx.x, nx.z)!; expect(n.landmark.id).toBe("transit-plaza");
   });
 });
 
