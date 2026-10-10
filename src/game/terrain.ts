@@ -2,6 +2,7 @@ import { CRASH_SITE, trailMask } from "./verdant";
 import { forestRelief, IMPACT_PIT } from "./forest-relief";
 import { REGIONS, WORLD_RADIUS } from "./world";
 import { LANES, laneSamples } from "./lanes";
+import { buildWaterNetwork, carveTarget, type RiverPoint, type WaterNetwork } from "./rivers";
 
 /* ------------------------------------------------------------------
  * Heightmap: seeded value noise (fbm) + per-region biome profiles.
@@ -61,7 +62,7 @@ function weight(d: number, radius: number) {
   return 1 - smoothstep(0.15, 1.05, d / radius);
 }
 
-function rawHeightAt(x: number, z: number): number {
+function naturalHeightAt(x: number, z: number): number {
   // rolling base terrain
   let h = fbm(x * 0.011, z * 0.011, 4) * 16 - 2;
   h += (fbm(x * 0.05 + 40, z * 0.05 - 20, 2) - 0.5) * 3;
@@ -103,7 +104,9 @@ function rawHeightAt(x: number, z: number): number {
         break;
       }
       case "wastelands": {
-        h = h * (1 - w) + w * (2.5 + (fbm(x * 0.04 + 9, z * 0.04, 3) - 0.5) * 6);
+        // eroded earth with flat-topped buttes: steep strata sides, wind-planed caps
+        const butte = smoothstep(0.6, 0.66, fbm(x * 0.028 + 31, z * 0.028 - 7, 2));
+        h = h * (1 - w) + w * (2.5 + (fbm(x * 0.04 + 9, z * 0.04, 3) - 0.5) * 6 + butte * 6);
         break;
       }
       case "nexus": {
@@ -122,6 +125,63 @@ function rawHeightAt(x: number, z: number): number {
 
   // Verdant Forest relief + the Fracture impact pit (forest-relief.ts); zero outside the forest
   h += forestRelief(x, z);
+  return h;
+}
+
+/* ---------------- river beds + lake basins (rivers.ts) ---------------- */
+
+const CARVE_CELL = 6;
+const CARVE_RANGE = Math.ceil(WORLD_RADIUS * 1.2 / CARVE_CELL);
+type CarveSeg = { a: RiverPoint; b: RiverPoint };
+let network: WaterNetwork | null = null;
+let carveCells: Map<number, CarveSeg[]> | null = null;
+
+/** the traced rivers, waterfalls and lakes (built once on the uncarved heightmap) */
+export function waterNetwork(): WaterNetwork {
+  if (network) return network;
+  network = buildWaterNetwork(naturalHeightAt, WATER_LEVEL);
+  const cells = new Map<number, CarveSeg[]>();
+  const reach = 6 + 7;
+  for (const r of network.rivers) for (let i = 0; i < r.points.length - 1; i++) {
+    const seg = { a: r.points[i]!, b: r.points[i + 1]! };
+    const minX = Math.min(seg.a.x, seg.b.x) - reach, maxX = Math.max(seg.a.x, seg.b.x) + reach;
+    const minZ = Math.min(seg.a.z, seg.b.z) - reach, maxZ = Math.max(seg.a.z, seg.b.z) + reach;
+    for (let cx = Math.floor(minX / CARVE_CELL); cx <= Math.floor(maxX / CARVE_CELL); cx++)
+      for (let cz = Math.floor(minZ / CARVE_CELL); cz <= Math.floor(maxZ / CARVE_CELL); cz++) {
+        const key = (cx + CARVE_RANGE) * 4096 + (cz + CARVE_RANGE);
+        let list = cells.get(key); if (!list) cells.set(key, (list = []));
+        list.push(seg);
+      }
+  }
+  carveCells = cells;
+  return network;
+}
+
+/** nearest river centre-line info at (x,z), or null if no river is within carving reach */
+export function riverAt(x: number, z: number): { dist: number; s: number; w: number; d: number } | null {
+  if (!carveCells) waterNetwork();
+  const list = carveCells!.get((Math.floor(x / CARVE_CELL) + CARVE_RANGE) * 4096 + (Math.floor(z / CARVE_CELL) + CARVE_RANGE));
+  if (!list) return null;
+  let best: { dist: number; s: number; w: number; d: number } | null = null;
+  for (const { a, b } of list) {
+    const ex = b.x - a.x, ez = b.z - a.z;
+    const len2 = ex * ex + ez * ez || 1;
+    const t = Math.min(1, Math.max(0, ((x - a.x) * ex + (z - a.z) * ez) / len2));
+    const dist = Math.hypot(a.x + ex * t - x, a.z + ez * t - z);
+    if (!best || dist < best.dist) best = { dist, s: a.s + (b.s - a.s) * t, w: a.w + (b.w - a.w) * t, d: a.d };
+  }
+  return best;
+}
+
+function rawHeightAt(x: number, z: number): number {
+  let h = naturalHeightAt(x, z);
+  const net = network ?? waterNetwork();
+  const rv = riverAt(x, z);
+  if (rv) h = carveTarget(h, rv.s, rv.w, rv.d, rv.dist);
+  for (const l of net.lakes) {
+    const d = Math.hypot(x - l.x, z - l.z);
+    if (d < l.r) h = Math.min(h, l.level - 0.4 - (1 - d / l.r) ** 2 * 1.2);
+  }
   return h;
 }
 
@@ -179,12 +239,61 @@ export function heightAt(x: number, z: number): number {
     if (d < best) { best = d; bh = sgm.a.h + (sgm.b.h - sgm.a.h) * t; }
   }
   const w = 1 - smoothstep(GRADE_CORE, GRADE_FADE, best);
-  return w <= 0 ? raw : raw + (Math.max(bh, WATER_LEVEL + 0.4) - raw) * w;
+  if (w <= 0) return raw;
+  // a road never fills a river channel: inside the channel the carved bed wins (a bridge spans it)
+  const rv = riverAt(x, z);
+  const keep = rv ? 1 - smoothstep(rv.w + 0.5, rv.w + 3, rv.dist) : 0;
+  const graded = raw + (Math.max(bh, WATER_LEVEL + 0.4) - raw) * w;
+  return graded + (Math.min(raw, graded) - graded) * keep;
 }
 
-/** ground height a walker stands on (water surface if submerged) */
+/* ---------------- road-over-river crossings ---------------- */
+
+export type Crossing = { x: number; z: number; deck: number; road: number; dirX: number; dirZ: number; length: number; width: number; dry: boolean; resolved: boolean };
+let crossings: Crossing[] | null = null;
+
+/** every place a supply road meets a river or dry wash; resolved crossings get a bridge deck */
+export function riverCrossings(): Crossing[] {
+  if (crossings) return crossings;
+  if (!gradePoints) buildGrade();
+  const out: Crossing[] = [];
+  for (const r of waterNetwork().rivers) {
+    let hit: { p: RiverPoint; g: GradePoint; d: number; gi: number } | null = null;
+    const flush = () => {
+      if (!hit) return;
+      const a = gradePoints![Math.max(0, hit.gi - 1)]!, b = gradePoints![Math.min(gradePoints!.length - 1, hit.gi + 1)]!;
+      const dx = b.x - a.x, dz = b.z - a.z, len = Math.hypot(dx, dz) || 1;
+      const deck = Math.max(hit.g.h, hit.p.s + 1.1);
+      out.push({ x: hit.p.x, z: hit.p.z, deck, road: hit.g.h, dirX: dx / len, dirZ: dz / len, length: (hit.p.w + 4) * 2, width: 8, dry: r.dry, resolved: deck - hit.g.h < 2.5 });
+      hit = null;
+    };
+    for (const p of r.points) {
+      let best: { g: GradePoint; d: number; gi: number } | null = null;
+      gradePoints!.forEach((g, gi) => { const d = Math.hypot(g.x - p.x, g.z - p.z); if (!best || d < best.d) best = { g, d, gi }; });
+      const b = best as { g: GradePoint; d: number; gi: number } | null;
+      if (b && b.d < GRADE_CORE + p.w) { if (!hit || b.d < hit.d) hit = { p, ...b }; }
+      else flush();
+    }
+    flush();
+  }
+  crossings = out;
+  return out;
+}
+
+/** bridge deck height at (x,z), or -Infinity off every deck */
+export function deckAt(x: number, z: number): number {
+  for (const c of riverCrossings()) {
+    if (!c.resolved) continue;
+    const dx = x - c.x, dz = z - c.z;
+    const along = dx * c.dirX + dz * c.dirZ, across = -dx * c.dirZ + dz * c.dirX;
+    if (Math.abs(along) < c.length / 2 && Math.abs(across) < c.width / 2) return c.deck;
+  }
+  return -Infinity;
+}
+
+/** ground height a walker stands on (water surface if submerged, bridge deck if on one) */
 export function walkHeight(x: number, z: number) {
-  return Math.max(WATER_LEVEL - 0.6, heightAt(x, z));
+  return Math.max(WATER_LEVEL - 0.6, heightAt(x, z), deckAt(x, z));
 }
 
 /** terrain steepness 0..1 — used for traction and traversal cost */

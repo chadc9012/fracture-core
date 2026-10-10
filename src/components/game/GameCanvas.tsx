@@ -2,7 +2,7 @@ import { Canvas } from "@react-three/fiber";
 import { PerformanceMonitor } from "@react-three/drei";
 import { Bloom, BrightnessContrast, ChromaticAberration, DepthOfField, EffectComposer, HueSaturation, Noise, SSAO, Vignette } from "@react-three/postprocessing";
 import * as THREE from "three";
-import { Suspense, useCallback, useEffect, useRef, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { appearanceById, classById, subclassById, type AppearanceDefinition, type ClassId, type SubclassId } from "@/game/loadout";
 import { REGIONS } from "@/game/world";
@@ -54,6 +54,7 @@ import { idleAbilityHud } from "@/game/ability-hud";
 import { grantScenarioReward, planScenarioRewardCards, type RewardCard } from "@/game/scenario-loot";
 import { scenarioById } from "@/game/unique-scenarios";
 import { claimDrops } from "@/game/inventory";
+import { ShopWindow } from "./ShopWindow";
 import { InventoryWindow } from "./InventoryWindow";
 import { WorldAtlas } from "./WorldAtlas";
 import { BrokenSignalOverlay } from "./BrokenSignalOverlay";
@@ -89,6 +90,7 @@ import { MainMenuHub } from "./MainMenuHub";
 import { configureVoice, speakVoice, stopVoice } from "@/game/voice-director";
 import { recapDue, recapLine } from "@/game/retention";
 import { localSavedAt } from "@/game/cloud-save";
+import { lootCaches, openCache, isOpenedToday, RARITY_HEX } from "@/game/loot-caches";
 
 const CA_OFFSET = new THREE.Vector2(0.0006, 0.0006);
 const START = REGIONS.find((r) => r.id === "nexus")!;
@@ -246,6 +248,41 @@ export function GameCanvas() {
   const [vehicleId, setVehicleId] = useState<VehicleId>("scrap-interceptor");
   const [garageOpen, setGarageOpen] = useState(false);
   const [inventoryOpen, setInventoryOpen] = useState(false);
+  const [shopOpen, setShopOpen] = useState<string | null>(null);
+  const shopNearRef = useRef<string | null>(null);
+  const cacheNearRef = useRef<HudState["cacheNear"]>(null);
+  const [cacheBanner, setCacheBanner] = useState<{ rarity: string; lines: string[] } | null>(null);
+  const openNearCache = () => {
+    const near = cacheNearRef.current;
+    if (!near?.ok) return;
+    const cache = lootCaches().find((c) => c.id === near.id);
+    if (!cache) return;
+    setProgression((current) => {
+      const r = openCache(current, cache);
+      if (!r) return current;
+      const lines = Object.entries(r.loot).map(([k, v]) => `+${v} ${k}`);
+      if (r.gear) lines.push(`New ${r.gear.slot}: ${r.gear.name} (${r.gear.power})`);
+      for (const t of r.contracts) lines.push(`Side contract complete: ${t}`);
+      setCacheBanner({ rarity: cache.rarity, lines });
+      window.setTimeout(() => setCacheBanner(null), 4000);
+      return r.progression;
+    });
+  };
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.code === "KeyY" && shopNearRef.current) { setShopOpen((open) => (open ? null : shopNearRef.current)); if (document.pointerLockElement) document.exitPointerLock(); }
+      else if (e.code === "KeyY" && !e.repeat && cacheNearRef.current && !cacheNearRef.current.label.startsWith("Encrypted")) openNearCache();
+      else if (e.code === "Escape") setShopOpen(null);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+  useEffect(() => { shopNearRef.current = hud.shopNearId ?? null; if (!hud.shopNearId) setShopOpen(null); }, [hud.shopNearId]);
+  useEffect(() => {
+    cacheNearRef.current = hud.cacheNear ?? null;
+    // encrypted caches open themselves the moment the hold-to-decrypt finishes
+    if (hud.cacheNear?.ok && hud.cacheNear.label.startsWith("Encrypted")) openNearCache();
+  }, [hud.cacheNear?.id, hud.cacheNear?.ok]);
   const [atlasOpen, setAtlasOpen] = useState(false);
   const [hubView, setHubView] = useState<"starmap" | "arsenal" | "saves" | null>(null);
   const [travelTo, setTravelTo] = useState<{ x: number; z: number; nonce: number } | null>(null);
@@ -256,6 +293,7 @@ export function GameCanvas() {
   const [operationsView, setOperationsView] = useState<"DUNGEONS" | "ARSENAL" | "ABILITIES" | null>(null);
   const [last, setLast] = useState<{ credits: number; kills: number } | null>(null);
   const [progression, setProgression] = useState<PlayerProgression>(() => loadProgression());
+  const openedToday = useMemo(() => lootCaches().filter((c) => isOpenedToday(progression, c.id)).map((c) => c.id), [progression.earnedRewards]);
   // the starter vehicle is saved progression, so Continue never re-asks for it
   const vehicleUnlocked = hasVehicle(progression);
   useEffect(() => { if (progression.selectedVehicle) setVehicleId(progression.selectedVehicle); }, [progression.selectedVehicle]);
@@ -736,7 +774,7 @@ export function GameCanvas() {
       >
         <color attach="background" args={["#bfe4f2"]} />
         <Suspense fallback={null}>
-            <Scene onStoryEvent={recordStory} onHud={setHud} onDrops={(drops) => { showScenarioRewards(drops); setProgression((current) => claimDrops(current, drops)); }} gear={progression} settings={settings} onCameraPreference={(firstPerson) => { window.localStorage.setItem("world-fracture-camera", firstPerson ? "first" : "third"); setSettings((current) => ({ ...current, firstPersonDefault: firstPerson })); }} playerClass={cls} subclassId={subclass} appearance={appearance} bodyType={bodyType} vehicleId={vehicleId} vehicleUnlocked={vehicleUnlocked} activeBuild={progression.activeBuild} abilityBranches={progression.abilityBranches} tutorial={tutorial} onTutorialEvent={recordTutorial} mission={mission} onMissionEvent={recordMission} blackout={blackout} onBlackoutEvent={recordBlackout} neonCore={neonCore} onNeonCoreEvent={recordNeonCore} descent={descent} onDescentEvent={recordDescent} systemCore={systemCore} onSystemCoreEvent={recordSystemCore} awakening={awakening} onAwakeningEvent={recordAwakening} onXP={recordXP} weaponOrder={activeLoadout(progression, progression.identityClass ?? cls).slots} travelTo={travelTo} introPlayback={showIntro ? { elapsed: introElapsed, totalSeconds: introTotalSeconds() } : null} armorState={hud.hp < 35 ? "FRACTURE" : hud.heat > 65 ? "ASCENDANT" : hud.heat > 15 ? "ACTIVE" : "STABLE"} />
+            <Scene openedCaches={openedToday} onStoryEvent={recordStory} onHud={setHud} onDrops={(drops) => { showScenarioRewards(drops); setProgression((current) => claimDrops(current, drops)); }} gear={progression} settings={settings} onCameraPreference={(firstPerson) => { window.localStorage.setItem("world-fracture-camera", firstPerson ? "first" : "third"); setSettings((current) => ({ ...current, firstPersonDefault: firstPerson })); }} playerClass={cls} subclassId={subclass} appearance={appearance} bodyType={bodyType} vehicleId={vehicleId} vehicleUnlocked={vehicleUnlocked} activeBuild={progression.activeBuild} abilityBranches={progression.abilityBranches} tutorial={tutorial} onTutorialEvent={recordTutorial} mission={mission} onMissionEvent={recordMission} blackout={blackout} onBlackoutEvent={recordBlackout} neonCore={neonCore} onNeonCoreEvent={recordNeonCore} descent={descent} onDescentEvent={recordDescent} systemCore={systemCore} onSystemCoreEvent={recordSystemCore} awakening={awakening} onAwakeningEvent={recordAwakening} onXP={recordXP} weaponOrder={activeLoadout(progression, progression.identityClass ?? cls).slots} travelTo={travelTo} introPlayback={showIntro ? { elapsed: introElapsed, totalSeconds: introTotalSeconds() } : null} armorState={hud.hp < 35 ? "FRACTURE" : hud.heat > 65 ? "ASCENDANT" : hud.heat > 15 ? "ACTIVE" : "STABLE"} />
         </Suspense>
         {post && (
           // cinematic grade: cool-leaning teal shadows, a touch more punch, so the HUD's cyan
@@ -775,7 +813,7 @@ export function GameCanvas() {
        {!tutorial && !hud.insideInterior && <Minimap hud={hud} />}
        {!tutorial && <QuestTracker progression={progression} />}
        {storyGraph && <StoryDialogue key={storyGraph.id} graph={storyGraph} story={progression.story} onStory={applyStory} onDone={finishStoryGraph} />}
-       {!storyGraph && !activeDialogue && objectiveFor(progression.story) && progression.story.stages.vaelith !== undefined && <p className="pointer-events-none fixed left-4 top-24 z-20 max-w-[280px] font-mono text-[10px] uppercase tracking-[0.18em] text-primary/80">Vaelith · {objectiveFor(progression.story)!.text}</p>}
+       {!storyGraph && !activeDialogue && objectiveFor(progression.story) && progression.story.stages["vaelith"] !== undefined && <p className="pointer-events-none fixed left-4 top-24 z-20 max-w-[280px] font-mono text-[10px] uppercase tracking-[0.18em] text-primary/80">Vaelith · {objectiveFor(progression.story)!.text}</p>}
        {!storyGraph && !activeDialogue && captionQueue[0] && <p className="pointer-events-none fixed inset-x-0 bottom-36 z-20 mx-auto w-[min(92vw,560px)] border border-border/60 bg-background/80 p-3 text-sm text-foreground" role="status"><span className="mr-2 font-mono text-[10px] uppercase tracking-[0.25em] text-primary">{captionQueue[0].speaker}</span>{captionQueue[0].text}</p>}
        {!storyGraph && !activeDialogue && bossObjective(progression.story) && <p className="pointer-events-none fixed left-4 top-36 z-20 max-w-[280px] font-mono text-[10px] uppercase tracking-[0.18em] text-primary/80">{bossObjective(progression.story)!.text}</p>}
        {activeDialogue && <DialogueOverlay lines={activeDialogue} onDone={() => setActiveDialogue(null)} />}
@@ -792,6 +830,25 @@ export function GameCanvas() {
            )}
          </div>
        )}
+       {hud.shopNearId && !shopOpen && (
+         <div className="pointer-events-none absolute bottom-24 left-1/2 -translate-x-1/2">
+           <Button className="pointer-events-auto" variant="outline" onClick={() => setShopOpen(hud.shopNearId ?? null)}>[Y] Trade · {hud.shopNearName}</Button>
+         </div>
+       )}
+       {hud.cacheNear && !hud.shopNearId && (
+         <div className="pointer-events-none absolute bottom-24 left-1/2 -translate-x-1/2 border border-border/60 bg-background/70 px-4 py-2 text-center font-mono text-[11px] uppercase tracking-[0.18em]">
+           <p style={{ color: RARITY_HEX[hud.cacheNear.rarity] }}>{hud.cacheNear.rarity} · {hud.cacheNear.label}</p>
+           <p className="mt-1 text-muted-foreground">{hud.cacheNear.ok ? "[Y] Open" : hud.cacheNear.reason}</p>
+           {hud.cacheNear.label.startsWith("Encrypted") && <div className="mt-1 h-1 w-48 bg-muted"><div className="h-1 bg-primary" style={{ width: `${Math.round(hud.cacheNear.hold * 100)}%` }} /></div>}
+         </div>
+       )}
+       {cacheBanner && (
+         <div className="pointer-events-none absolute left-1/2 top-28 -translate-x-1/2 border border-border/60 bg-background/80 px-5 py-3 text-center font-mono text-xs uppercase tracking-[0.18em]">
+           <p style={{ color: RARITY_HEX[cacheBanner.rarity as keyof typeof RARITY_HEX] }}>{cacheBanner.rarity} cache recovered</p>
+           {cacheBanner.lines.map((l) => <p key={l} className="mt-1 text-foreground">{l}</p>)}
+         </div>
+       )}
+       {shopOpen && <ShopWindow shopId={shopOpen} progression={progression} onProgression={setProgression} onClose={() => setShopOpen(null)} />}
        {inventoryOpen && <InventoryWindow progression={progression} onProgression={setProgression} onClose={() => setInventoryOpen(false)} />}
        {atlasOpen && <WorldAtlas progression={progression} markers={hud.markers} px={hud.px} pz={hud.pz} currentRegion={hud.region} phase={hud.phase} onClose={() => setAtlasOpen(false)} />}
       {awakening && <AwakeningOverlay run={awakening} onEvent={recordAwakening} />}

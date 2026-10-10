@@ -1,3 +1,4 @@
+import { FactionEnemy } from "./EnemyModel";
 import { scenarioModelReady } from "./ScenarioBosses";
 import { RoundedBox } from "@react-three/drei";
 import { useFrame } from "@react-three/fiber";
@@ -199,7 +200,7 @@ function WalkingTank() {
   );
 }
 
-function RegionalEnemy({ kind, boss }: { kind: "RAIDER" | "OVERCLOCKED" | "ABERRATION" | "VANGUARD"; boss: boolean }) {
+function RegionalEnemy({ kind, boss, elite = false }: { kind: "RAIDER" | "OVERCLOCKED" | "ABERRATION" | "VANGUARD"; boss: boolean; elite?: boolean }) {
   const metal = kind === "RAIDER" ? "#765949" : kind === "ABERRATION" ? "#375c43" : kind === "VANGUARD" ? "#5b7481" : "#636c85";
   const glow = kind === "RAIDER" ? "#f36b33" : kind === "ABERRATION" ? "#83dc89" : "#58d8ef";
   const head = useRef<THREE.Group>(null!);
@@ -211,21 +212,7 @@ function RegionalEnemy({ kind, boss }: { kind: "RAIDER" | "OVERCLOCKED" | "ABERR
     if (visor.current) visor.current.emissiveIntensity = 2 * pose.glow * (pose.talking ? 0.8 + Math.random() * 0.4 : 1);
     if (head.current) head.current.rotation.x = pose.lean + pose.jaw * 0.2;
   });
-  return <group>
-    <RoundedBox args={[1.4, 2.2, 0.8]} radius={0.16} smoothness={4} position-y={2.1} castShadow><meshStandardMaterial color={metal} roughness={0.55} metalness={kind === "ABERRATION" ? 0.1 : 0.65} /></RoundedBox>
-    <group ref={head} position-y={3.65}>
-      <mesh castShadow><icosahedronGeometry args={[0.68, 2]} /><meshStandardMaterial color={metal} metalness={0.5} roughness={0.4} /></mesh>
-      <RoundedBox args={[0.9, 0.2, 0.16]} radius={0.04} smoothness={2} position={[0, 0, 0.59]}><meshStandardMaterial ref={visor} color={glow} emissive={glow} emissiveIntensity={2} /></RoundedBox>
-    </group>
-    {[-1, 1].map((side) => <group key={side}>
-      <mesh position={[side * 1.04, 2, 0]} rotation-z={side * 0.25} castShadow><capsuleGeometry args={[0.25, 1.15, 4, 6]} /><meshStandardMaterial color={metal} metalness={0.5} /></mesh>
-      <mesh position={[side * 0.45, 0.58, 0]} castShadow><capsuleGeometry args={[0.3, 1.2, 4, 6]} /><meshStandardMaterial color={metal} metalness={0.35} /></mesh>
-      {(kind === "ABERRATION" || boss) && <mesh position={[side * 0.7, 4.25, 0]} rotation-z={side * -0.35} castShadow><coneGeometry args={[0.24, 1.25, 5]} /><meshStandardMaterial color={glow} roughness={0.7} /></mesh>}
-    </group>)}
-    {kind === "RAIDER" && <mesh position={[1.3, 1.9, 1]} rotation-x={Math.PI / 2} castShadow><cylinderGeometry args={[0.18, 0.3, 2.6, 8]} /><meshStandardMaterial color="#302f32" metalness={0.75} /></mesh>}
-    {kind === "OVERCLOCKED" && <mesh position={[0, 2.1, 0.5]}><octahedronGeometry args={[0.38]} /><meshStandardMaterial color={glow} emissive={glow} emissiveIntensity={1.8} /></mesh>}
-    {boss && <mesh position-y={2.5} rotation-x={Math.PI / 2}><torusGeometry args={[2.2, 0.08, 6, 24]} /><meshBasicMaterial color={glow} /></mesh>}
-  </group>;
+  return <FactionEnemy kind={kind} role={boss ? "boss" : elite ? "elite" : "standard"} visorRef={visor} headRef={head} />;
 }
 
 export function WarMachines({ sim }: { sim: WorldSim }) {
@@ -240,7 +227,7 @@ export function WarMachines({ sim }: { sim: WorldSim }) {
       if (!node) return;
       node.visible = m.alive;
       if (!m.alive) return;
-      const modelName = m.boss && m.scenarioId && scenarioModelReady.has(m.scenarioId) ? "scenario-model" : m.boss ? "boss-model" : m.kind === "OVERCLOCKED" ? "overclocked-model" : m.kind === "ABERRATION" ? "aberration-model" : m.kind === "VANGUARD" ? "vanguard-model" : "regional-model";
+      const modelName = m.boss && m.scenarioId && scenarioModelReady.has(m.scenarioId) ? "scenario-model" : m.boss ? "boss-model" : (m.kind === "OVERCLOCKED" ? "overclocked-model" : m.kind === "ABERRATION" ? "aberration-model" : m.kind === "VANGUARD" ? "vanguard-model" : "regional-model") + (m.elite ? "-elite" : "");
       for (const child of node.children) child.visible = child.name === "elite-ring" ? m.elite && !m.boss : child.name === modelName;
       // walking gait: subtle body bob + roll so the legs read as striding
       const gait = t * 3 + i;
@@ -259,6 +246,10 @@ export function WarMachines({ sim }: { sim: WorldSim }) {
           <group name="overclocked-model" visible={false}><RegionalEnemy kind="OVERCLOCKED" boss={false} /></group>
           <group name="aberration-model" visible={false}><RegionalEnemy kind="ABERRATION" boss={false} /></group>
           <group name="vanguard-model" visible={false}><RegionalEnemy kind="VANGUARD" boss={false} /></group>
+          <group name="regional-model-elite" visible={false}><RegionalEnemy kind="RAIDER" boss={false} elite /></group>
+          <group name="overclocked-model-elite" visible={false}><RegionalEnemy kind="OVERCLOCKED" boss={false} elite /></group>
+          <group name="aberration-model-elite" visible={false}><RegionalEnemy kind="ABERRATION" boss={false} elite /></group>
+          <group name="vanguard-model-elite" visible={false}><RegionalEnemy kind="VANGUARD" boss={false} elite /></group>
           <group name="boss-model" visible={false}><RegionalEnemy kind="OVERCLOCKED" boss /></group>
           {/* loot cue: elites (better drops) wear a glowing amber ring at their feet, like Diablo's elite tell */}
           <mesh name="elite-ring" visible={false} rotation={[-Math.PI / 2, 0, 0]} position={[0, -1.9, 0]}><ringGeometry args={[2.6, 3.1, 40]} /><meshBasicMaterial color="#ffb357" transparent opacity={0.85} depthWrite={false} /></mesh>

@@ -36,7 +36,8 @@ export function CloudLayer({ envRef }: { envRef: React.RefObject<SkyEnv> }) {
   useFrame((state) => {
     const env = envRef.current;
     if (!env || !group.current) return;
-    const visible = env.cloud > 0.02;
+    const cover = Math.max(env.cloud, 0.14); // thin high cirrus even on clear days
+    const visible = true;
     group.current.visible = visible;
     if (!visible) return;
     const t = state.clock.elapsedTime;
@@ -45,10 +46,10 @@ export function CloudLayer({ envRef }: { envRef: React.RefObject<SkyEnv> }) {
       if (!s) return;
       const angle = p.a + t * 0.004 * p.speed;
       s.position.set(Math.cos(angle) * p.r, p.y + Math.sin(t * 0.05 + p.drift) * 8, Math.sin(angle) * p.r);
-      const sc = p.scale * (1 + env.cloud * 0.25);
+      const sc = p.scale * (1 + cover * 0.25);
       s.scale.set(sc, sc * 0.55, 1);
       const mat = s.material as THREE.SpriteMaterial;
-      mat.opacity = p.baseOpacity * Math.min(1, env.cloud * 1.6 + 0.08);
+      mat.opacity = p.baseOpacity * Math.min(1, cover * 1.6 + 0.08);
       mat.color.copy(env.tint);
     });
   });

@@ -1,4 +1,4 @@
-import { Environment, Lightformer, Sky, Stars, Text } from "@react-three/drei";
+import { Environment, Lightformer, Sky, Text } from "@react-three/drei";
 import { useFrame, useThree } from "@react-three/fiber";
 import { useEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
@@ -30,6 +30,7 @@ import { loadoutEffects } from "@/game/armor-attributes";
 import { armorLook } from "@/game/armor-look";
 import { createStride, stepStride, RUN_SPEED, type FeelView } from "@/game/movement-feel";
 import { updateWind } from "@/game/wind-sway";
+import { waterStyleAt } from "@/game/water-style";
 import { atmosphereAt, NEUTRAL_ATMOSPHERE, type Atmosphere } from "@/game/atmosphere";
 import { closeStratagems, createStratagemState, inputDirection, openStratagems, releaseStratagems, stratagemById, stratagemHud, tickStratagems, type StratagemHud } from "@/game/stratagems";
 import { Wildlife } from "./Wildlife";
@@ -97,8 +98,17 @@ import { abilityHud, cancelAbilities, castAbility, holdDisabledField, syncSimFro
 import * as sfx from "@/game/audio";
 import { setVoiceLoad } from "@/game/voice-director";
 import { RegionLighting } from "./RegionLighting";
+import { ShopStalls } from "./ShopStalls";
+import { SkyBodies } from "./SkyBodies";
+import { moonAngle, moonlight } from "@/game/celestial";
+import { shopNear } from "@/game/regional-shops";
 import type { ArmorVisualState } from "./Scavenger";
 import type { PlayerProgression } from "@/game/progression";
+import { SkyFx, type SkyFxLive } from "./SkyFx";
+import { Rivers } from "./Rivers";
+import { LootCaches } from "./LootCaches";
+import { nearestCache, canOpen, GUARD_RADIUS, ENCRYPT_SECONDS, SCENARIO_LABEL, type CacheRarity } from "@/game/loot-caches";
+import { skyFxAt, NO_SKY_FX } from "@/game/sky-effects";
 
 export type LootView = { name: string; rarity: Rarity; power: number; mods: string[]; color: string };
 
@@ -213,6 +223,11 @@ export type HudState = {
   insideInterior: string | null;
   interiorName: string;
   interiorOpen: boolean;
+  /** walk-up regional vendor within reach (regional-shops.ts), null when none */
+  shopNearId?: string | null;
+  shopNearName?: string;
+  /** nearest world loot cache within reach (loot-caches.ts), with whether its scenario lets it open now */
+  cacheNear?: { id: string; label: string; rarity: CacheRarity; ok: boolean; reason: string; hold: number } | null;
   /** current zone's live instability tier — see sim.ts's instabilityTier(); STABLE unless the zone's own fracture-pulse is actually elevated */
   zoneTier: InstabilityTier;
   /** timestamp of the most recent hull-destroyed respawn (mirrors sim.lastDeath) — GameCanvas watches this to trigger the death screen */
@@ -305,6 +320,8 @@ function RegionLabels({ zones }: { zones: readonly ZoneState[] }) {
   );
 }
 
+const GOLDEN = new THREE.Color("#ffb06a");
+const NOON = new THREE.Color("#fff6ea");
 export function Scene({
   onHud,
   settings = { aimAssist: true, firstPersonDefault: true, zoneLabels: true, hudDensity: "full", renderTier: "HIGH" },
@@ -340,7 +357,10 @@ export function Scene({
   travelTo = null,
   onCheckpoint,
   introPlayback,
+  openedCaches = [],
 }: {
+  /** cache ids already opened today (hidden in the world) */
+  openedCaches?: string[];
   onHud: (s: HudState) => void;
   settings?: GameSettings;
   onCameraPreference?: (firstPerson: boolean) => void;
@@ -460,7 +480,6 @@ export function Scene({
     return list;
   };
   const moon = useRef<THREE.DirectionalLight>(null!);
-  const moonMesh = useRef<THREE.Mesh>(null!);
   const time = useRef(0.28);
   const sunDir = useRef(new THREE.Vector3(0.4, 0.9, 0.3));
   const carSpeed = useRef(0);
@@ -477,7 +496,12 @@ export function Scene({
   const move = useRef({ state: createMoveState(), jumpHeld: false, slideHeld: false, proneHeld: false });
   const reticle = useRef({ state: createReticle(), view: EMPTY_RETICLE, yaw: 0, pitch: 0, hit: 0, kills: 0, ready: false });
   /** eased regional atmosphere (atmosphere.ts) + scratch colours, so crossing a border blends rather than pops */
-  const atmo = useRef({ fogMix: 0, fogScale: 1, lightMix: 0, fogTint: new THREE.Color("#ffffff"), lightTint: new THREE.Color("#ffffff"), hemiBase: new THREE.Color("#9ec8e8") });
+  const atmo = useRef({ fogMix: 0, fogScale: 1, lightMix: 0, skyMix: 0, haze: 0, fogTint: new THREE.Color("#ffffff"), lightTint: new THREE.Color("#ffffff"), skyTint: new THREE.Color("#ffffff"), hemiBase: new THREE.Color("#9ec8e8") });
+  /** eased regional water style (water-style.ts): deep/shallow colours, murk and wave chop */
+  const waterStyle = useRef({ deep: new THREE.Color("#062a44"), shallow: new THREE.Color("#1d7fa8"), murk: 0.15, chop: 1 });
+  const cacheLive = useRef<{ id: string | null; hold: number; view: HudState["cacheNear"] }>({ id: null, hold: 0, view: null });
+  /** eased regional signature sky (sky-effects.ts): ashfall, aurora, spores, dust, pollen */
+  const skyFx = useRef<SkyFxLive>({ color: new THREE.Color("#ffffff"), density: 0, fall: 0, drift: 0, size: 2, glow: 0, aurora: 0 });
   const report = useRef(0);
   const live = useRef(createLiveBuild(activeBuild, abilityBranches));
   const abilityHeld = useRef<Record<string, boolean>>({});
@@ -740,6 +764,9 @@ export function Scene({
       sun.current.position.set(Math.cos(theta) * 140, Math.sin(theta) * 150 + 8, 70);
       sun.current.intensity = Math.max(0, intensityAt(time.current));
       sun.current.color.copy(lightColor);
+      // golden hour: low sun warms toward amber, high sun stays near-white for a natural daylight read
+      const elev = Math.sin(theta);
+      if (elev > -0.05) sun.current.color.lerp(GOLDEN, Math.max(0, Math.min(1, 1 - elev * 3)) * 0.55).lerp(NOON, Math.max(0, elev - 0.5) * 0.6);
     }
     sunDir.current.set(Math.cos(theta), Math.max(-0.2, Math.sin(theta)), 0.42).normalize();
     if (sky.current) {
@@ -750,10 +777,10 @@ export function Scene({
           .multiplyScalar(400);
       }
     }
-    if (moon.current) moon.current.intensity = 0.15 + night * 0.55;
-    if (moonMesh.current) {
-      moonMesh.current.position.set(-Math.cos(theta) * 300, -Math.sin(theta) * 280, -140);
-      moonMesh.current.visible = night > 0.05;
+    if (moon.current) {
+      const ma = moonAngle(time.current);
+      moon.current.position.set(-Math.cos(ma) * 140, Math.max(10, Math.sin(ma) * 120), -70);
+      moon.current.intensity = 0.12 + moonlight(time.current, 0) * night * 0.85;
     }
 
     /* ---------------- input ---------------- */
@@ -818,6 +845,21 @@ export function Scene({
     const nexusDetection = detectionStateFor(s.detectionMeter);
     if (s.hacking) s.hackProgress = stepHackProgress(s.hackProgress, dt, nexusDetection);
     else if (inNexus) s.hackProgress = Math.max(0, s.hackProgress - dt * 6); // an abandoned hack slowly drops off, doesn't hard-reset
+    // world loot caches: nearest unopened one, its scenario gate, and hold-to-decrypt progress
+    {
+      const c = s.inVehicle || s.insideInterior ? null : nearestCache(s.x, s.z, s.y);
+      const near = c && !openedCaches.includes(c.id) ? c : null;
+      if (!near || near.id !== cacheLive.current.id) cacheLive.current.hold = 0;
+      if (near?.scenario === "encrypted" && held.has("KeyY")) cacheLive.current.hold = Math.min(ENCRYPT_SECONDS, cacheLive.current.hold + dt);
+      else if (near?.scenario === "encrypted") cacheLive.current.hold = Math.max(0, cacheLive.current.hold - dt * 2);
+      cacheLive.current.id = near?.id ?? null;
+      if (near) {
+        let enemiesNear = 0;
+        for (const m of sim.machines) if (m.alive && Math.hypot(m.x - near.x, m.z - near.z) < GUARD_RADIUS) enemiesNear++;
+        const gate = canOpen(near, { enemiesNear, weather: environmentAt(here?.id, time.current, nightFactor(time.current)).weather?.state, night: nightFactor(time.current), heldSeconds: cacheLive.current.hold });
+        cacheLive.current.view = { id: near.id, label: SCENARIO_LABEL[near.scenario], rarity: near.rarity, ok: gate.ok, reason: gate.reason, hold: cacheLive.current.hold / ENCRYPT_SECONDS };
+      } else cacheLive.current.view = null;
+    }
     const nexusLockdown = lockdownStatus(s.detectionMeter);
     if (inNexus && nexusLockdown.tier !== lastLockdownTier.current) {
       if (nexusLockdown.tier !== "MONITORING") alert(sim, `Nexus City: ${nexusLockdown.response}`);
@@ -893,12 +935,33 @@ export function Scene({
       a.fogMix += (target.fogMix - a.fogMix) * k;
       a.fogScale += (target.fogScale - a.fogScale) * k;
       a.lightMix += (target.lightMix - a.lightMix) * k;
+      a.skyMix += (target.skyMix - a.skyMix) * k;
+      a.haze += (target.haze - a.haze) * k;
       a.fogTint.lerp(atmoScratch.set(target.fogTint), k);
       a.lightTint.lerp(atmoScratch.set(target.lightTint), k);
+      a.skyTint.lerp(atmoScratch.set(target.skyTint), k);
       if (scene.fog) (scene.fog as THREE.Fog).color.lerp(a.fogTint, a.fogMix);
-      scene.background instanceof THREE.Color && scene.background.lerp(a.fogTint, a.fogMix * 0.35);
+      // regional sky colour: the horizon/background picks up this region's own sky tint
+      scene.background instanceof THREE.Color && scene.background.lerp(a.fogTint, a.fogMix * 0.35).lerp(a.skyTint, a.skyMix);
       if (sun.current) sun.current.color.lerp(a.lightTint, a.lightMix);
       if (hemi.current) hemi.current.color.copy(a.hemiBase).lerp(a.lightTint, a.lightMix * 0.8);
+      // regional water: ease the ocean toward this region's colours, murk and wave chop
+      const wTarget = waterStyleAt(here?.id, wx?.state);
+      const w = waterStyle.current;
+      w.deep.lerp(atmoScratch.set(wTarget.deep), k);
+      w.shallow.lerp(atmoScratch.set(wTarget.shallow), k);
+      w.murk += (wTarget.murk - w.murk) * k;
+      w.chop += (wTarget.chop - w.chop) * k;
+      // signature sky: ease toward this region's effect so borders blend instead of popping
+      const fxT = interior ? NO_SKY_FX : skyFxAt(here?.id, night, wx?.state, wx?.cloud ?? 0);
+      const f = skyFx.current;
+      f.color.lerp(atmoScratch.set(fxT.color), k);
+      f.density += (fxT.density - f.density) * k;
+      f.fall += (fxT.fall - f.fall) * k;
+      f.drift += (fxT.drift - f.drift) * k;
+      f.size += (fxT.size - f.size) * k;
+      f.glow += (fxT.glow - f.glow) * k;
+      f.aurora += (fxT.aurora - f.aurora) * k * 0.5;
     }
     if (scene.fog instanceof THREE.Fog) {
       const fogK = 1 - Math.exp(-3 * dt);
@@ -929,9 +992,11 @@ export function Scene({
         // low sun angle and poor visibility both thicken the haze near the horizon; cloud cover
         // scatters more light too, so an overcast/stormy sky reads hazier and less saturated
         const horizonBoost = Math.max(0, 1 - Math.abs(Math.sin(theta)));
-        if (u["turbidity"]) u["turbidity"].value = 3.5 + horizonBoost * 6 + cloud * 5 + (1 - visibility) * 7;
+        // regional haze (atmosphere.ts): ember smoke / swamp mist / wasteland grit thicken the sky
+        const haze = atmo.current.haze;
+        if (u["turbidity"]) u["turbidity"].value = 3.5 + horizonBoost * 6 + cloud * 5 + (1 - visibility) * 7 + haze;
         if (u["rayleigh"]) u["rayleigh"].value = 1.4 + horizonBoost * 1.4 + night * 0.4;
-        if (u["mieCoefficient"]) u["mieCoefficient"].value = 0.004 + cloud * 0.01 + (1 - visibility) * 0.01;
+        if (u["mieCoefficient"]) u["mieCoefficient"].value = 0.004 + cloud * 0.01 + (1 - visibility) * 0.01 + haze * 0.002;
         if (u["mieDirectionalG"]) u["mieDirectionalG"].value = 0.8;
       }
     }
@@ -1887,6 +1952,9 @@ export function Scene({
         insideInterior: s.insideInterior,
         interiorName: interior?.name ?? "",
         interiorOpen: interior ? isInteriorOpen(interior, time.current) : true,
+        shopNearId: !interior && !s.inVehicle ? shopNear(s.x, s.z)?.id ?? null : null,
+        shopNearName: !interior && !s.inVehicle ? shopNear(s.x, s.z)?.name ?? "" : "",
+        cacheNear: cacheLive.current.view,
         zoneTier: instabilityTier(zone?.instability ?? 0),
         justDied: sim.lastDeath,
         deathCause: sim.lastDeathCause,
@@ -1953,11 +2021,7 @@ export function Scene({
         shadow-camera-bottom={-130}
         shadow-camera-far={520}
       />
-      <directionalLight ref={moon} position={[-90, 110, -70]} color="#9fc4ff" intensity={0.3} />
-      <mesh ref={moonMesh} position={[-200, 200, -140]}>
-        <sphereGeometry args={[14, 24, 24]} />
-        <meshBasicMaterial color="#eaf2ff" toneMapped={false} />
-      </mesh>
+      <directionalLight ref={moon} position={[-90, 110, -70]} color="#b9c8e8" intensity={0.3} />
       <Sky
         ref={sky as unknown as React.Ref<never>}
         distance={4000}
@@ -1967,8 +2031,9 @@ export function Scene({
         mieCoefficient={0.006}
         mieDirectionalG={0.82}
       />
-      <Stars radius={420} depth={90} count={1800} factor={7} fade speed={0.6} />
+      <SkyBodies timeRef={time} sunDirRef={sunDir} envRef={skyEnv} playerRef={player} />
       <CloudLayer envRef={skyEnv} />
+      {settings.renderTier !== "LOW" && <SkyFx fxRef={skyFx} envRef={skyEnv} playerRef={player} />}
       <RegionLighting playerRef={player} tier={settings.renderTier} />
 
       <Terrain renderTier={settings.renderTier} />
@@ -1978,7 +2043,10 @@ export function Scene({
       <Weather playerRef={player} weatherRef={weatherKind} fxRef={weatherFx} />
       <Wildlife playerRef={player} />
       <Civilians playerRef={player} />
-      <Water size={WORLD_RADIUS * 4} sunRef={sunDir} />
+      <Water size={WORLD_RADIUS * 4} sunRef={sunDir} styleRef={waterStyle} />
+      <Rivers sunRef={sunDir} />
+      <LootCaches opened={openedCaches} />
+      <ShopStalls />
       <NearOnly playerRef={player} x={NEXUS_REGION.x} z={NEXUS_REGION.z} radius={330}><NexusCity sim={sim} /></NearOnly>
       <NearOnly playerRef={player} x={NEON_CITY_CENTER.x} z={NEON_CITY_CENTER.z} radius={300}><NeonCity /></NearOnly>
       <NearOnly playerRef={player} x={THALASSIA_CENTER.x} z={THALASSIA_CENTER.z} radius={260}><Thalassia /></NearOnly>
@@ -2035,7 +2103,7 @@ export function Scene({
 
       {/* player on foot */}
       <group ref={player} position={SPAWN.toArray()}>
-        <OperatorModel bodyType={bodyType} classId={playerClass} height={2.75} feetY={-1.55} color={appearance.armor} cloth={appearance.cloth} look={worn} pose="locomotion" motion={feel.current.motionRef} fallback={
+        <OperatorModel gear={gear} bodyType={bodyType} classId={playerClass} height={2.75} feetY={-1.55} color={appearance.armor} cloth={appearance.cloth} look={worn} pose="locomotion" motion={feel.current.motionRef} fallback={
   <Operator bodyType={bodyType} armor={appearance.armor} cloth={appearance.cloth} visor={appearance.visor} trim={appearance.trim} classId={playerClass} motion={feel.current.motionRef} visualState={armorState} chestLevel={armorLevels.chest} helmetLevel={armorLevels.helmet} legsLevel={armorLevels.legs} look={worn} />
         } />
         {playerClass === "TITAN" && sim.titan.blocking && (

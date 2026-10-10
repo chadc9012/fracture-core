@@ -18,4 +18,14 @@ describe("atmosphereAt", () => {
   it("storms mute the light tint", () => {
     expect(atmosphereAt("ember", "STORM", 0).lightMix).toBeLessThan(atmosphereAt("ember", "CLEAR", 0).lightMix);
   });
+  it("each region has its own sky colour and haze", () => {
+    const skies = new Set(REGIONS.map((r) => REGION_ATMOSPHERE[r.id]!.skyTint));
+    expect(skies.size).toBe(REGIONS.length);
+    // ember smoke is the haziest air, frostspire the clearest
+    expect(atmosphereAt("ember", "CLEAR", 0).haze).toBeGreaterThan(atmosphereAt("frostspire", "CLEAR", 0).haze);
+  });
+  it("storms add haze and night fades the sky tint", () => {
+    expect(atmosphereAt("solara", "STORM", 0).haze).toBeGreaterThan(atmosphereAt("solara", "CLEAR", 0).haze);
+    expect(atmosphereAt("wastelands", "CLEAR", 1).skyMix).toBeLessThan(atmosphereAt("wastelands", "CLEAR", 0).skyMix);
+  });
 });

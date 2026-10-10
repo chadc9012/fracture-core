@@ -20,7 +20,14 @@ export const DEFAULT_ARSENAL: Record<ClassId, ClassArsenal> = {
   HUNTER: { active: 0, loadouts: [{ name: "Skirmish", slots: ["PULSE", "SWORD", "AUTO"] }, { name: "Overwatch", slots: ["PULSE", "HEAVY", "SWORD"] }] },
   WARLOCK: { active: 0, loadouts: [{ name: "Resonance", slots: ["AUTO", "PULSE", "HEAVY"] }, { name: "Conduit", slots: ["PULSE", "AUTO", "SWORD"] }] },
 };
-export type MissionReward = { missionId: string; factor: number; firstClear: boolean; xp: number; materials: Partial<Record<MaterialId, number>> };
+export type MissionReward = { missionId: string; factor: number; firstClear: boolean; xp: number; materials: Partial<Record<MaterialId, number>>; box?: { rarity: "COMMON" | "RARE" | "EPIC"; materials: Partial<Record<MaterialId, number>> } };
+
+/** every mission payout also cracks a loot box; fresher clears roll better boxes (no grind incentive) */
+export function missionBox(firstClear: boolean, factor: number): NonNullable<MissionReward["box"]> {
+  if (firstClear) return { rarity: "EPIC", materials: { scrapMetal: 8, dataShards: 2 } };
+  if (factor >= 1) return { rarity: "RARE", materials: { scrapMetal: 5, dataShards: 1 } };
+  return { rarity: "COMMON", materials: { scrapMetal: 2 } };
+}
 
 export type PlayerProgression = {
   version: 5;
@@ -227,12 +234,14 @@ export function rewardMission(progression: PlayerProgression, missionId: string,
     paid[id] = amount;
     nextMaterials[id] = (nextMaterials[id] ?? 0) + amount;
   }
+  const box = missionBox(firstClear, factor);
+  for (const [id, n] of Object.entries(box.materials) as [MaterialId, number][]) nextMaterials[id] = (nextMaterials[id] ?? 0) + n;
   return {
     ...withXp,
     completedMissions: firstClear ? [...withXp.completedMissions, missionId] : withXp.completedMissions,
     materials: nextMaterials,
     missionRuns: { ...withXp.missionRuns, [missionId]: { day, count: runsToday + 1 } },
-    lastMissionReward: { missionId, factor, firstClear, xp: gained, materials: paid },
+    lastMissionReward: { missionId, factor, firstClear, xp: gained, materials: paid, box },
   };
 }
 
