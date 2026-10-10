@@ -35,6 +35,28 @@ export const luma = (c: string) => { const [r, g, b] = hex(c); return (0.2126 * 
 /** raise a colour to at least `min` brightness without changing its hue much */
 export const lift = (c: string, min: number) => { const l = luma(c); return l >= min ? c : mixHex(c, "#c8ced8", Math.min(1, (min - l) / Math.max(0.05, 0.8 - l))); };
 
+/** hex -> [h 0..360, s 0..1, l 0..1] */
+export function toHsl(c: string): [number, number, number] {
+  const [r, g, b] = hex(c).map((x) => x / 255) as [number, number, number];
+  const max = Math.max(r, g, b), min = Math.min(r, g, b), l = (max + min) / 2, d = max - min;
+  if (d < 1e-6) return [0, 0, l];
+  const s = d / (1 - Math.abs(2 * l - 1));
+  const h = max === r ? ((g - b) / d) % 6 : max === g ? (b - r) / d + 2 : (r - g) / d + 4;
+  return [((h * 60) + 360) % 360, s, l];
+}
+export function fromHsl(h: number, s: number, l: number): string {
+  const c = (1 - Math.abs(2 * l - 1)) * s, x = c * (1 - Math.abs(((h / 60) % 2) - 1)), m = l - c / 2;
+  const [r, g, b] = h < 60 ? [c, x, 0] : h < 120 ? [x, c, 0] : h < 180 ? [0, c, x] : h < 240 ? [0, x, c] : h < 300 ? [x, 0, c] : [c, 0, x];
+  return toHex([(r + m) * 255, (g + m) * 255, (b + m) * 255]);
+}
+/** brighten and saturate WITHOUT washing the hue out (the old `lift` blended toward grey, which turned every dark brown/violet armor colour grey).
+ * Truly neutral colours (no hue to keep) fall back to `lift`. */
+export function vivid(c: string, minL: number, minS: number): string {
+  const [h, s, l] = toHsl(c);
+  if (s < 0.03) return lift(c, minL);
+  return fromHsl(h, Math.max(s, minS), Math.max(l, minL));
+}
+
 export type Paint = { color: string; /** 0 = matte cloth, 1 = polished plate */ plate: number };
 export type Palette = Record<Region, Paint>;
 
@@ -42,15 +64,15 @@ export type Palette = Record<Region, Paint>;
  * two read as one kit); unworn slots keep the operator's own armor colour, lifted so plating is never near-black. */
 export function buildPalette(opts: { armor: string | undefined; cloth?: string | undefined; look?: ArmorLook | undefined; bodyType?: BodyType | undefined; trim?: string | undefined }): Palette {
   const robot = opts.bodyType === "robot";
-  const armor = lift(opts.armor ?? "#6b6f76", 0.42);
-  const suit = robot ? "#8c97a6" : lift(opts.cloth ?? "#2d333d", 0.2);
+  const armor = vivid(opts.armor ?? "#6b6f76", 0.38, 0.34);
+  const suit = robot ? "#8c97a6" : vivid(opts.cloth ?? "#2d333d", 0.16, 0.18);
   // two-tone kit: the operator's own trim colour picks out the helmet, shoulders, gauntlets and shins so the body is
   // not one flat plate colour; thighs stay close to the base plate and the boots are darker
-  const trim = lift(opts.trim ?? "#c9a24a", 0.5);
-  const TRIM_MIX: Partial<Record<Region, number>> = { helmet: 0.32, pauldron: 0.5, gauntlet: 0.42, shin: 0.26 };
+  const trim = vivid(opts.trim ?? "#c9a24a", 0.5, 0.65);
+  const TRIM_MIX: Partial<Record<Region, number>> = { helmet: 0.55, pauldron: 0.7, gauntlet: 0.6, shin: 0.45 };
   const plateFor = (slot: SetSlot, region: Region): Paint => {
     const worn = opts.look?.[slot];
-    if (worn) return { color: lift(mixHex(worn.color, armor, 0.22), 0.4), plate: 1 };
+    if (worn) return { color: vivid(mixHex(worn.color, armor, 0.22), 0.4, 0.25), plate: 1 };
     return { color: mixHex(armor, trim, TRIM_MIX[region] ?? 0), plate: 1 };
   };
   const out = {} as Palette;

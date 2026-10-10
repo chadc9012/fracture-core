@@ -10,6 +10,11 @@ import { buildPalette, regionWeights, type Palette } from "@/game/operator-paint
 import { SURFACES } from "@/game/visual-standard";
 import { equippedPieces, piecesKey, type ArmorPiece } from "@/game/armor-pieces";
 import type { GearItem, GearSlot } from "@/game/inventory";
+import { HAND_BONE, WEAPON_PROPS } from "@/game/weapon-props";
+import { WEAPONS, WEAPON_ORDER, type WeaponId } from "@/game/weapons";
+
+/** the weapon the operator is currently holding; read every frame so a weapon swap needs no rebuild */
+export type HeldWeapon = { current: { weapon: WeaponId } };
 
 export type WornGear = { inventory: GearItem[]; equippedGear: Partial<Record<GearSlot, string>> };
 
@@ -50,6 +55,39 @@ function attachArmor(object: THREE.Object3D, pieces: ArmorPiece[], height: numbe
     made.push(g);
   }
   return () => { made.forEach((g) => g.removeFromParent()); geos.forEach((x) => x.dispose()); Object.values(mats).forEach((m) => m.dispose()); };
+}
+
+/** Builds one group per weapon on the right-hand bone (only the held one is visible). Starter procedural props from weapon-props.ts. */
+function attachWeapons(object: THREE.Object3D, height: number, modelScale: number) {
+  const bone = object.getObjectByName(HAND_BONE) ?? object.getObjectByName(HAND_BONE.replace("mixamorig:", "mixamorig"));
+  const groups: Partial<Record<WeaponId, THREE.Group>> = {};
+  if (!bone) return { groups, dispose: () => {} };
+  const unit = height / 1.85, ws = new THREE.Vector3();
+  bone.getWorldScale(ws);
+  const k = unit / Math.max(ws.y * modelScale, 1e-6);
+  const geos: THREE.BufferGeometry[] = [], mats: THREE.Material[] = [];
+  const body = new THREE.MeshStandardMaterial({ color: "#2b3138", metalness: 0.6, roughness: 0.45 });
+  const trim = new THREE.MeshStandardMaterial({ color: "#8b939c", metalness: 0.85, roughness: 0.35 });
+  mats.push(body, trim);
+  for (const id of WEAPON_ORDER) {
+    const glow = ELEMENT_GLOW[WEAPONS[id].element ?? ""] ?? "#ffb347";
+    const accent = new THREE.MeshStandardMaterial({ color: "#10151c", emissive: new THREE.Color(glow), emissiveIntensity: 1.1, roughness: 0.3 });
+    mats.push(accent);
+    const g = new THREE.Group();
+    g.name = `held:${id}`; g.scale.setScalar(k); g.visible = false;
+    for (const part of WEAPON_PROPS[id]) {
+      const [x, y, z] = part.size;
+      const geo = part.shape === "box" ? new THREE.BoxGeometry(x, y, z) : part.shape === "cylinder" ? new THREE.CylinderGeometry(x, x, y, 10) : part.shape === "cone" ? new THREE.ConeGeometry(x, y, 10) : new THREE.SphereGeometry(1, 10, 8).scale(x, y, z);
+      geos.push(geo);
+      const mesh = new THREE.Mesh(geo, part.tone === "body" ? body : part.tone === "trim" ? trim : accent);
+      mesh.position.set(...part.pos);
+      if (part.rot) mesh.rotation.set(...part.rot);
+      g.add(mesh);
+    }
+    bone.add(g);
+    groups[id] = g;
+  }
+  return { groups, dispose: () => { Object.values(groups).forEach((g) => g?.removeFromParent()); geos.forEach((x) => x.dispose()); mats.forEach((m) => m.dispose()); } };
 }
 
 /** Authored (Meshy) operator models, served from /public. GOLIATH, NYX and CIPHER are rigged (Mixamo skeleton; walk/run for all, plus showcase for GOLIATH and idle for NYX); Anything missing or failing to load falls back to the procedural Operator. */
@@ -107,7 +145,7 @@ function paintVertexColors(mesh: THREE.SkinnedMesh, palette: Palette) {
 
 const actions0 = (a: Record<string, THREE.AnimationAction>, name: string) => Boolean(a[name]);
 
-function Model({ url, tint, height, feetY, color, trim, pose, motion, bodyType, look, cloth, gear, classId }: { trim: string | undefined; gear: WornGear | undefined; classId: ClassId; look: ArmorLook | undefined; cloth: string | undefined; bodyType: BodyType | undefined; url: string; tint: boolean; height: number; feetY: number; color: string | undefined; pose: "showcase" | "locomotion"; motion: ModelMotion | undefined }) {
+function Model({ url, tint, height, feetY, color, trim, pose, motion, bodyType, look, cloth, gear, classId, held }: { held: HeldWeapon | undefined; trim: string | undefined; gear: WornGear | undefined; classId: ClassId; look: ArmorLook | undefined; cloth: string | undefined; bodyType: BodyType | undefined; url: string; tint: boolean; height: number; feetY: number; color: string | undefined; pose: "showcase" | "locomotion"; motion: ModelMotion | undefined }) {
   const { scene, animations } = useGLTF(url);
   const built = useMemo(() => {
     const object = cloneSkinned(scene);
@@ -153,11 +191,20 @@ function Model({ url, tint, height, feetY, color, trim, pose, motion, bodyType, 
     return attachArmor(built.object, pieces, height, built.scale, { armor: color ?? "#9aa3ad", trim: "#3b4048", accent });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [built, armorKey, color, height]);
+  const heldGroups = useRef<Partial<Record<WeaponId, THREE.Group>>>({});
+  useEffect(() => {
+    if (!held) return;
+    built.object.updateMatrixWorld(true);
+    const w = attachWeapons(built.object, height, built.scale);
+    heldGroups.current = w.groups;
+    return () => { heldGroups.current = {}; w.dispose(); };
+  }, [built, held, height]);
   useEffect(() => () => { built.material?.dispose(); built.ownGeometries.forEach((g) => g.dispose()); built.mixer?.stopAllAction(); }, [built]);
 
   const rig = useRef<THREE.Group>(null);
   const body = useRef({ crouch: 0, prone: 0, lean: 0 });
   useFrame(({ clock }, dt) => {
+    if (held) { const w = held.current.weapon; for (const id of WEAPON_ORDER) { const g = heldGroups.current[id]; if (g) g.visible = id === w; } }
     // stance pose: squash toward the ground for a crouch, tip face-down for prone, lean back in a slide (all pivot on the feet)
     const m0 = pose === "locomotion" ? motion?.current : undefined;
     const sliding = (m0?.slideT ?? -1) >= 0;
@@ -209,7 +256,9 @@ function Model({ url, tint, height, feetY, color, trim, pose, motion, bodyType, 
 
 /** Draws the authored model for `classId` if one exists, else `fallback` (also while loading or on failure).
  * `pose="showcase"` loops the flex clip (forge); `"locomotion"` drives walk/run from the live stride phase. */
-export function OperatorModel({ classId, height, feetY, fallback, color, trim, pose = "showcase", motion, bodyType, look, cloth, gear }: {
+export function OperatorModel({ classId, height, feetY, fallback, color, trim, pose = "showcase", motion, bodyType, look, cloth, gear, held }: {
+  /** weapon in hand (starter procedural props); omit for no weapon */
+  held?: HeldWeapon | undefined;
   /** equipped inventory: each worn armor slot attaches its own pieces to the rig */
   gear?: WornGear | undefined;
   trim?: string | undefined; look?: ArmorLook | undefined; cloth?: string | undefined; bodyType?: BodyType | undefined; classId: ClassId; height: number; feetY: number; fallback: ReactNode; color?: string | undefined; pose?: "showcase" | "locomotion"; motion?: ModelMotion | undefined;
@@ -217,5 +266,5 @@ export function OperatorModel({ classId, height, feetY, fallback, color, trim, p
   const entry = OPERATOR_MODELS[classId];
   // a static mesh would just slide across the ground, so the world only uses rigged models
   if (!entry || (pose === "locomotion" && !entry.rigged)) return <>{fallback}</>;
-  return <Quiet fallback={fallback}><Suspense fallback={fallback}><Model url={entry.url} tint={entry.tint} height={height} feetY={feetY} color={color} trim={trim} pose={pose} motion={motion} bodyType={bodyType} look={look} cloth={cloth} gear={gear} classId={classId} /></Suspense></Quiet>;
+  return <Quiet fallback={fallback}><Suspense fallback={fallback}><Model url={entry.url} tint={entry.tint} height={height} feetY={feetY} color={color} trim={trim} pose={pose} motion={motion} bodyType={bodyType} look={look} cloth={cloth} gear={gear} classId={classId} held={held} /></Suspense></Quiet>;
 }

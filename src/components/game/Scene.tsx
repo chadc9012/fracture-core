@@ -2131,7 +2131,7 @@ export function Scene({
 
       {/* player on foot */}
       <group ref={player} position={SPAWN.toArray()}>
-        <OperatorModel gear={gear} bodyType={bodyType} classId={playerClass} height={2.75} feetY={-1.55} color={appearance.armor} trim={appearance.trim} cloth={appearance.cloth} look={worn} pose="locomotion" motion={feel.current.motionRef} fallback={
+        <OperatorModel held={state} gear={gear} bodyType={bodyType} classId={playerClass} height={2.75} feetY={-1.55} color={appearance.armor} trim={appearance.visor} cloth={appearance.cloth} look={worn} pose="locomotion" motion={feel.current.motionRef} fallback={
   <Operator bodyType={bodyType} armor={appearance.armor} cloth={appearance.cloth} visor={appearance.visor} trim={appearance.trim} classId={playerClass} motion={feel.current.motionRef} visualState={armorState} chestLevel={armorLevels.chest} helmetLevel={armorLevels.helmet} legsLevel={armorLevels.legs} look={worn} />
         } />
         {playerClass === "TITAN" && sim.titan.blocking && (

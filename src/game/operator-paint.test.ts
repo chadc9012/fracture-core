@@ -1,6 +1,6 @@
 // @ts-ignore bun:test types
 import { describe, expect, test } from "bun:test";
-import { boneRegion, buildPalette, lift, luma, mixHex, regionWeights, REGION_SLOT, type Region } from "./operator-paint";
+import { boneRegion, buildPalette, lift, luma, mixHex, regionWeights, REGION_SLOT, toHsl, vivid, type Region } from "./operator-paint";
 import { armorLook } from "./armor-look";
 
 describe("operator paint", () => {
@@ -46,5 +46,25 @@ describe("operator paint", () => {
     expect(mixHex("#000000", "#ffffff", 0.5)).toBe("#808080");
     expect(lift("#000000", 0.3)).not.toBe("#000000");
     expect(lift("#ffffff", 0.3)).toBe("#ffffff");
+  });
+});
+
+describe("operators are coloured, not grey", () => {
+  const DEFAULTS = { goliath: { armor: "#4a4036", cloth: "#1c1815", visor: "#ff7a1a" }, nyx: { armor: "#2a2230", cloth: "#0e0b12", visor: "#ff2bd6" }, cipher: { armor: "#3d3a5c", cloth: "#121018", visor: "#ffc864" } };
+  test("each default operator's plating keeps a visible hue and the visor colour picks out helmet, shoulders and gauntlets", () => {
+    const chestHues: number[] = [];
+    for (const a of Object.values(DEFAULTS)) {
+      const pal = buildPalette({ armor: a.armor, cloth: a.cloth, trim: a.visor });
+      const [h, s, l] = toHsl(pal.chest.color);
+      expect(s).toBeGreaterThan(0.25);
+      expect(l).toBeGreaterThan(0.35);
+      chestHues.push(h);
+      for (const r of ["helmet", "pauldron", "gauntlet"] as Region[]) expect(pal[r].color).not.toBe(pal.chest.color);
+      expect(toHsl(pal.pauldron.color)[1]).toBeGreaterThan(0.3);
+    }
+    expect(new Set(chestHues.map((h) => Math.round(h / 20))).size).toBe(3); // three distinct armour hues
+  });
+  test("vivid keeps the hue of what it brightens", () => {
+    expect(Math.abs(toHsl(vivid("#4a4036", 0.4, 0.3))[0] - toHsl("#4a4036")[0])).toBeLessThan(6);
   });
 });

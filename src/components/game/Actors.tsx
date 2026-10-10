@@ -370,7 +370,7 @@ export function Bullets({ sim }: { sim: WorldSim }) {
   const quat = useMemo(() => new THREE.Quaternion(), []);
   const up = useMemo(() => new THREE.Vector3(0, 1, 0), []);
 
-  useFrame(() => {
+  useFrame(({ camera }) => {
     const cg = core.current, tg = tracer.current, fg = flash.current, hg = halo.current, rg = trail.current;
     if (!cg || !tg || !fg || !hg || !rg) return;
     sim.bullets.forEach((b, i) => {
@@ -380,19 +380,24 @@ export function Bullets({ sim }: { sim: WorldSim }) {
       const haloMesh = hg.children[i] as THREE.Mesh | undefined;
       const trailMesh = rg.children[i] as THREE.Mesh | undefined;
       if (!coreMesh || !tracerMesh || !flashMesh || !haloMesh || !trailMesh) return;
-      coreMesh.visible = b.alive;
-      tracerMesh.visible = b.alive;
-      haloMesh.visible = b.alive;
-      trailMesh.visible = b.alive;
-      const justFired = b.alive && b.life > 1.2; // life starts at 1.4 and counts down
-      flashMesh.visible = justFired;
-      if (!b.alive) return;
+      // a bullet right next to the camera filled the screen as a big white dot (the shot spawns at the player, the camera sits just behind):
+      // fade every part in over 3..8 m from the camera, and show nothing closer than 3 m
+      const camDist = b.alive ? Math.hypot(camera.position.x - b.x, camera.position.y - b.y, camera.position.z - b.z) : 0;
+      const near = THREE.MathUtils.clamp((camDist - 3) / 5, 0, 1);
+      const show = b.alive && near > 0;
+      coreMesh.visible = show;
+      tracerMesh.visible = show;
+      haloMesh.visible = show;
+      trailMesh.visible = show;
+      flashMesh.visible = false; // the flat disc read as a white square at the muzzle; the tracer and casings carry the feedback now
+      if (!show) return;
 
       coreMesh.position.set(b.x, b.y, b.z);
       haloMesh.position.set(b.x, b.y, b.z);
       // soft glow that swells slightly with age so a shot reads as energy, not a hard dot
-      haloMesh.scale.setScalar(1 + (1.4 - b.life) * 0.5);
-      (haloMesh.material as THREE.MeshBasicMaterial).opacity = THREE.MathUtils.clamp(b.life / 1.4, 0.2, 1) * 0.4;
+      haloMesh.scale.setScalar((1 + (1.4 - b.life) * 0.4) * near);
+      (haloMesh.material as THREE.MeshBasicMaterial).opacity = THREE.MathUtils.clamp(b.life / 1.4, 0.2, 1) * 0.25 * near;
+      coreMesh.scale.setScalar(near);
       tracerMesh.position.set(b.x, b.y, b.z);
       const speed = Math.hypot(b.vx, b.vy, b.vz) || 1;
       dir.set(b.vx, b.vy, b.vz).normalize();
@@ -401,19 +406,13 @@ export function Bullets({ sim }: { sim: WorldSim }) {
       // long faint streak trailing BEHIND the bullet (the cylinder is centred, so shift it back by half its length)
       const trailLen = THREE.MathUtils.clamp(speed * 0.09, 2.2, 7);
       trailMesh.quaternion.copy(quat);
-      trailMesh.scale.set(1, trailLen, 1);
+      trailMesh.scale.set(near, trailLen * near, near);
       trailMesh.position.set(b.x - dir.x * trailLen * 0.5, b.y - dir.y * trailLen * 0.5, b.z - dir.z * trailLen * 0.5);
-      (trailMesh.material as THREE.MeshBasicMaterial).opacity = THREE.MathUtils.clamp(b.life / 1.4, 0.1, 1) * 0.35;
-      tracerMesh.scale.set(1, THREE.MathUtils.clamp(speed * 0.035, 0.6, 2.4), 1);
+      (trailMesh.material as THREE.MeshBasicMaterial).opacity = THREE.MathUtils.clamp(b.life / 1.4, 0.1, 1) * 0.3;
+      tracerMesh.scale.set(near, THREE.MathUtils.clamp(speed * 0.035, 0.6, 2.4), near);
       (coreMesh.material as THREE.MeshStandardMaterial).opacity = THREE.MathUtils.clamp(b.life / 1.4, 0.35, 1);
       (tracerMesh.material as THREE.MeshStandardMaterial).opacity = THREE.MathUtils.clamp(b.life / 1.4, 0.25, 0.9);
 
-      if (justFired) {
-        flashMesh.position.set(b.x, b.y, b.z);
-        const t = (b.life - 1.2) / 0.2; // 1 right at the muzzle, fading to 0 over ~0.2s
-        flashMesh.scale.setScalar(0.35 + t * 0.85);
-        (flashMesh.material as THREE.MeshBasicMaterial).opacity = Math.max(0, t) * 0.8;
-      }
     });
   });
 
@@ -422,7 +421,7 @@ export function Bullets({ sim }: { sim: WorldSim }) {
       <group ref={halo}>
         {sim.bullets.map((_, i) => (
           <mesh key={i} visible={false}>
-            <sphereGeometry args={[0.45, 10, 8]} />
+            <sphereGeometry args={[0.22, 10, 8]} />
             <meshBasicMaterial color="#7fe8ff" transparent opacity={0.4} toneMapped={false} depthWrite={false} blending={THREE.AdditiveBlending} fog={false} />
           </mesh>
         ))}
@@ -438,7 +437,7 @@ export function Bullets({ sim }: { sim: WorldSim }) {
       <group ref={tracer}>
         {sim.bullets.map((_, i) => (
           <mesh key={i} visible={false}>
-            <cylinderGeometry args={[0.07, 0.07, 1, 6]} />
+            <cylinderGeometry args={[0.035, 0.035, 1, 6]} />
             <meshStandardMaterial color="#a8f0ff" emissive="#66e0ff" emissiveIntensity={4} transparent toneMapped={false} depthWrite={false} />
           </mesh>
         ))}
@@ -446,8 +445,8 @@ export function Bullets({ sim }: { sim: WorldSim }) {
       <group ref={core}>
         {sim.bullets.map((_, i) => (
           <mesh key={i} visible={false}>
-            <sphereGeometry args={[0.17, 8, 8]} />
-            <meshStandardMaterial color="#d8faff" emissive="#8af0ff" emissiveIntensity={5} transparent toneMapped={false} />
+            <sphereGeometry args={[0.085, 8, 8]} />
+            <meshStandardMaterial color="#d8faff" emissive="#8af0ff" emissiveIntensity={3} transparent toneMapped={false} />
           </mesh>
         ))}
       </group>

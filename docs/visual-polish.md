@@ -20,3 +20,11 @@ Context from your screenshots: Intel Iris GPU, 10–24 FPS, 3.5–4.6M triangles
 - Real shadows, HDRI lighting and SSAO remain tier-gated; this pass does not turn them on for weak GPUs.
 - Performance claims need numbers from your browser (F3 / `?perf=1`): compare triangles and draw calls in Veridan before and after.
 - If the extra trees cost too much, lower `GROVE.centres` / `GROVE.perGrove` in `forest-density.ts`.
+
+## Grey operators and the white bullet dot (follow-up)
+
+- **Cause of the grey operator:** `operator-paint.ts` raised dark armour colours with `lift`, which blends toward light grey, so the dark brown (Goliath), violet (Nyx) and indigo (Cipher) appearance colours all became grey. It now uses `vivid` (HSL: keeps the hue, raises lightness/saturation); neutral colours still fall back to `lift`. The operator's visor colour (orange / magenta / amber) is now the trim accent for helmet, shoulders, gauntlets and shins (Scene and the forge pass `trim={appearance.visor}`). Tests pin that the three default operators keep saturation and three distinct hues.
+- **Starter armour in the forge:** the forge never received the worn gear, so its operators showed no plates. `StartMenu` now passes `worn` to `IdentityForge`, which passes it to `OperatorModel` (the same attachment the world uses).
+- **Weapons in hand:** `weapon-props.ts` is a procedural starter prop per weapon (rifle, pulse, heavy, blade, four launchers) attached to `mixamorig:RightHand`; `OperatorModel` toggles the held one each frame from `held.current.weapon` (Scene passes its state; the forge shows each class's first loadout weapon). It is a carried pose, not an aimed one, and the hand-bone axes are assumed (barrel along +Z), so orientation needs a browser check.
+- **White dot:** player bullets spawn at the player while the camera sits just behind, so the halo/core filled the screen. Bullet parts now fade in between 3 and 8 m from the camera, the flat muzzle-flash disc is gone, and the core/halo/tracer are about half the size.
+- **Not browser-verified.** The `.tsx` changes are syntax-checked only.
