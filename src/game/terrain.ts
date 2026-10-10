@@ -1,4 +1,5 @@
 import { CRASH_SITE, trailMask } from "./verdant";
+import { forestRelief, IMPACT_PIT } from "./forest-relief";
 import { REGIONS, WORLD_RADIUS } from "./world";
 import { LANES, laneSamples } from "./lanes";
 
@@ -119,9 +120,8 @@ function rawHeightAt(x: number, z: number): number {
   const coast = 1 - smoothstep(WORLD_RADIUS * 0.78, WORLD_RADIUS * 1.02, d);
   h = h * coast - (1 - coast) * 16;
 
-  // Fracture crash site: a shallow impact bowl (Verdant Forest, see verdant.ts)
-  const cd = Math.hypot(x - CRASH_SITE.x, z - CRASH_SITE.z);
-  if (cd < CRASH_SITE.radius) h -= (1 - smoothstep(0, CRASH_SITE.radius, cd)) * 1.1;
+  // Verdant Forest relief + the Fracture impact pit (forest-relief.ts); zero outside the forest
+  h += forestRelief(x, z);
   return h;
 }
 
@@ -269,6 +269,9 @@ export function colorAt(x: number, z: number, h: number): [number, number, numbe
   if (tm > 0) c = mix(c, [0.34, 0.27, 0.18], tm * 0.85);
   const crash = Math.hypot(x - CRASH_SITE.x, z - CRASH_SITE.z);
   if (crash < CRASH_SITE.radius) c = mix(c, [0.1, 0.1, 0.12], (1 - smoothstep(2, CRASH_SITE.radius, crash)) * 0.8);
+  // freshly turned earth in and around the impact pit
+  const pit = Math.hypot(x - IMPACT_PIT.x, z - IMPACT_PIT.z);
+  if (pit < IMPACT_PIT.radius * 1.9) c = mix(c, [0.2, 0.15, 0.1], (1 - smoothstep(IMPACT_PIT.radius * 0.5, IMPACT_PIT.radius * 1.9, pit)) * 0.85);
 
   // a little noise so large surfaces never read as flat colour
   const n = (fbm(x * 0.35, z * 0.35, 2) - 0.5) * 0.08;

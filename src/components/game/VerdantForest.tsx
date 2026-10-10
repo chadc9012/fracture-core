@@ -16,6 +16,8 @@ import { REGIONS } from "@/game/world";
 import { windSway, windUniforms } from "@/game/wind-sway";
 import { DistrictLight } from "./DistrictLight";
 import { PolyFoliage, type Placement } from "./PolyFoliage";
+import { CrashedTransport, Crates, ScoutWreck, TrailWear } from "./CrashHull";
+import { HULL_SOLIDS, SCOUT } from "@/game/crash-layout";
 
 /* Verdant Forest upgrade (Phase 4.1): the authored layer on top of Terrain's scatter.
  *  - real Poly Haven GLBs (ferns, shrubs, mossy rocks, fallen logs) lining the trail and ringing the ambush clearing
@@ -96,8 +98,9 @@ export function VerdantForest({ density, models, investigation }: { density: num
         x: l.x + Math.cos(l.yaw) * k * (LOG_LENGTH * l.s) / 3, z: l.z - Math.sin(l.yaw) * k * (LOG_LENGTH * l.s) / 3,
         r: 0.8 * l.s, kind: "rock", hp: 160, solidity: 1.2,
       }))),
-      // the three heaviest hull sections of the crashed craft
-      ...DEBRIS.slice(0, 3).map((b): Solid => ({ x: CRASH_SITE.x + b.dx, z: CRASH_SITE.z + b.dz, r: Math.max(b.w, b.d) * 0.45, kind: "wreck", hp: 400, solidity: 1.3 })),
+      // the crashed transport, as circles down its length (see crash-layout.ts), and the scout wreck beside the road
+      ...HULL_SOLIDS.map((h): Solid => ({ x: h.x, z: h.z, r: h.r, kind: "wreck", hp: 400, solidity: 1.3 })),
+      ...(SCOUT ? [-1.4, 1.4].map((k): Solid => ({ x: SCOUT!.x + Math.cos(SCOUT!.yaw) * k, z: SCOUT!.z - Math.sin(SCOUT!.yaw) * k, r: 1.2, kind: "wreck", hp: 250, solidity: 1.2 })) : []),
     ];
     return {
       grass, seedlings, ferns: [...ferns, ...aroundFerns], lowShrubs, tallShrubs: [...tallShrubs, ...aroundShrubs], saplings, rocks,
@@ -159,6 +162,10 @@ export function VerdantForest({ density, models, investigation }: { density: num
         </>
       )}
       <CrashGround />
+      <CrashedTransport />
+      <ScoutWreck />
+      <Crates />
+      <TrailWear />
       <CrashSite investigation={investigation} />
       <ForestMotes count={d(90)} />
     </group>
@@ -341,13 +348,14 @@ const TORN = (() => {
   return Array.from({ length: 9 }, (_, i) => {
     const a = (i / 9) * 6.28 + r() * 0.5, d = 4.5 + r() * 3.5;
     return { x: Math.cos(a) * d, z: Math.sin(a) * d, w: 0.5 + r() * 1.6, h: 0.08 + r() * 0.12, d: 0.4 + r() * 1.1, rx: (r() - 0.5) * 0.9, ry: r() * 6.28, rz: (r() - 0.5) * 0.9 };
-  }).filter((p) => !furrowFrame(CRASH_SITE.x + p.x, CRASH_SITE.z + p.z) && trailInfo(CRASH_SITE.x + p.x, CRASH_SITE.z + p.z).dist > TRAIL_HALF_WIDTH + 0.5);
+  }).filter((p) => !furrowFrame(CRASH_SITE.x + p.x, CRASH_SITE.z + p.z) && trailInfo(CRASH_SITE.x + p.x, CRASH_SITE.z + p.z).dist > TRAIL_HALF_WIDTH + 0.5 && !HULL_SOLIDS.some((h) => Math.hypot(h.x - CRASH_SITE.x - p.x, h.z - CRASH_SITE.z - p.z) < h.r + 0.8));
 })();
 
 /** Stand-in wreckage: angular hull plates with glowing seams. A real crashed-craft GLB can replace this
  * group (see the asset list in the Phase 4.1 report) — the scan ring, beam, sparks and collision stay. */
 function CrashSite({ investigation }: { investigation: MutableRefObject<Investigation> }) {
-  const baseY = useMemo(() => heightAt(CRASH_SITE.x, CRASH_SITE.z), []);
+  // the scan ring lies on the average ground around the scan radius, not in the impact pit at the centre
+  const baseY = useMemo(() => { let sum = 0; for (let i = 0; i < 12; i++) sum += heightAt(CRASH_SITE.x + Math.cos(i * 0.5236) * CRASH_SITE.scanRadius, CRASH_SITE.z + Math.sin(i * 0.5236) * CRASH_SITE.scanRadius); return sum / 12; }, []);
   // damaged plating: soot, scratches, rust burn-through and panel seams, darker and rougher than clean metal
   const hullMat = useMemo(() => new THREE.MeshStandardMaterial({ color: "#d8dde6", map: hullDamageTexture(), metalness: 0.7, roughness: 0.62 }), []);
   const smoke = useRef<THREE.Group>(null);
@@ -401,7 +409,7 @@ function CrashSite({ investigation }: { investigation: MutableRefObject<Investig
   const ring = CRASH_SITE.scanRadius;
   return (
     <group ref={group} position={[CRASH_SITE.x, baseY, CRASH_SITE.z]}>
-      {DEBRIS.map((b, i) => {
+      {DEBRIS.slice(3).map((b, i) => { // the three heavy sections are now the real hull (CrashedTransport)
         const y = heightAt(CRASH_SITE.x + b.dx, CRASH_SITE.z + b.dz) - baseY;
         return (
           <group key={i} position={[b.dx, y + b.h * 0.4, b.dz]} rotation={[b.tilt, b.yaw, b.tilt * 0.5]}>

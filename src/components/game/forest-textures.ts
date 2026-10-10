@@ -132,3 +132,24 @@ export function grassCardTexture() {
     }
   }, 71);
 }
+
+/** a pressed wheel track: dark compacted groove with a lighter lip each side, long edges feathered to transparent.
+ * Painted along u (the direction of travel); used on strips that follow the trail. */
+export function rutTexture() {
+  return make("rut", 128, (g, r, n) => {
+    g.clearRect(0, 0, n, n);
+    const groove = g.createLinearGradient(0, 0, 0, n);
+    groove.addColorStop(0, "rgba(30,22,14,0)"); groove.addColorStop(0.22, "rgba(52,40,28,0.5)"); groove.addColorStop(0.5, "rgba(24,17,11,0.9)");
+    groove.addColorStop(0.78, "rgba(52,40,28,0.5)"); groove.addColorStop(1, "rgba(30,22,14,0)");
+    g.fillStyle = groove; g.fillRect(0, 0, n, n);
+    // tread blocks and loose stones so it never reads as a flat stripe
+    for (let i = 0; i < 90; i++) {
+      const x = r() * n, y = n * (0.3 + r() * 0.4);
+      g.fillStyle = r() < 0.5 ? "rgba(90,74,54,0.5)" : "rgba(15,11,8,0.5)";
+      g.fillRect(x, y, 2 + r() * 4, 1 + r() * 3);
+    }
+    // break the strip up along its length
+    g.globalCompositeOperation = "destination-out";
+    for (let i = 0; i < 14; i++) { g.fillStyle = `rgba(0,0,0,${0.35 + r() * 0.4})`; g.fillRect(r() * n, 0, 6 + r() * 16, n); }
+  }, 61);
+}
