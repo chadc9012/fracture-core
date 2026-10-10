@@ -284,6 +284,8 @@
 .title-landscape { animation: landscape-drift 26s ease-in-out infinite alternate; transform-origin: 60% 60%; }
 .title-sunlight { background: linear-gradient(110deg, transparent 25%, color-mix(in oklch, var(--warning) 15%, transparent) 53%, transparent 80%); mix-blend-mode: screen; animation: sunlight-sweep 18s ease-in-out infinite alternate; }
 .title-shadows { background: linear-gradient(130deg, transparent 20%, color-mix(in oklch, var(--background) 25%, transparent) 60%, transparent 84%); animation: shadow-sweep 22s ease-in-out infinite alternate; }
+.title-mist { background: radial-gradient(120% 90% at 30% 100%, color-mix(in oklch, var(--primary) 16%, transparent), transparent 70%), linear-gradient(to top, color-mix(in oklch, var(--background) 55%, transparent), transparent); filter: blur(10px); animation: mist-drift 30s ease-in-out infinite alternate; }
+@keyframes mist-drift { from { transform: translateX(-3%); opacity: .6; } to { transform: translateX(4%); opacity: .95; } }
 @keyframes landscape-drift { from { transform: scale(1.04) translate3d(-0.5%, 0.25%, 0); } to { transform: scale(1.13) translate3d(2%, -1.4%, 0); } }
 @keyframes sunlight-sweep { from { transform: translateX(-18%); opacity: .45; } to { transform: translateX(22%); opacity: .85; } }
 @keyframes shadow-sweep { from { transform: translateX(10%); opacity: .4; } to { transform: translateX(-15%); opacity: .7; } }
@@ -302,7 +304,7 @@
 @keyframes title-fade { from { opacity: 0; } to { opacity: 1; } }
 
 @media (prefers-reduced-motion: reduce) {
-  .title-glow, .title-landscape, .title-sunlight, .title-shadows { animation: none; }
+  .title-glow, .title-landscape, .title-sunlight, .title-shadows, .title-mist { animation: none; }
   .title-backdrop-canvas, .title-intro-rise, .title-intro-fade { animation: none; opacity: 1; transform: none; }
   .ui-enter { animation: none; }
 }

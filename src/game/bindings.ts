@@ -1,16 +1,16 @@
 /** Configurable input bindings. Keyboard uses KeyboardEvent.code; gamepad uses standard-mapping button indexes. */
-export type Action = "reload" | "nextWeapon" | "prevWeapon" | "weaponWheel" | "slot1" | "slot2" | "slot3" | "slot4" | "fire" | "aim" | "crouch" | "prone" | "abilityModifier" | "abilityPrimary" | "abilityTactical" | "abilityUltimate";
-export type Bindings = { keyboard: Record<"reload" | "nextWeapon" | "prevWeapon" | "weaponWheel" | "crouch" | "prone", string>; gamepad: Record<Action, number> };
+export type Action = "reload" | "nextWeapon" | "prevWeapon" | "weaponWheel" | "slot1" | "slot2" | "slot3" | "slot4" | "fire" | "aim" | "crouch" | "prone" | "abilityModifier" | "abilityPrimary" | "abilityTactical" | "abilityUltimate" | "map";
+export type Bindings = { keyboard: Record<"reload" | "nextWeapon" | "prevWeapon" | "weaponWheel" | "crouch" | "prone" | "map", string>; gamepad: Record<Action, number> };
 
 export const DEFAULT_BINDINGS: Bindings = {
-  keyboard: { reload: "KeyG", nextWeapon: "BracketRight", prevWeapon: "BracketLeft", weaponWheel: "KeyZ", crouch: "ControlLeft", prone: "KeyX" },
-  gamepad: { reload: 2, nextWeapon: 5, prevWeapon: 4, weaponWheel: 3, slot1: 12, slot2: 15, slot3: 13, slot4: 14, fire: 7, aim: 6, crouch: 1, prone: 11, abilityModifier: 8, abilityPrimary: 2, abilityTactical: 3, abilityUltimate: 1 },
+  keyboard: { reload: "KeyG", nextWeapon: "BracketRight", prevWeapon: "BracketLeft", weaponWheel: "KeyZ", crouch: "ControlLeft", prone: "KeyX", map: "KeyM" },
+  gamepad: { reload: 2, nextWeapon: 5, prevWeapon: 4, weaponWheel: 3, slot1: 12, slot2: 15, slot3: 13, slot4: 14, fire: 7, aim: 6, crouch: 1, prone: 11, abilityModifier: 8, abilityPrimary: 2, abilityTactical: 3, abilityUltimate: 1, map: 9 },
 };
 
 export const ACTION_LABEL: Record<Action, string> = {
   reload: "Reload", nextWeapon: "Next weapon", prevWeapon: "Previous weapon", weaponWheel: "Weapon wheel (hold)",
   slot1: "Weapon 1", slot2: "Weapon 2", slot3: "Weapon 3", slot4: "Weapon 4", fire: "Fire", aim: "Aim", crouch: "Crouch / slide (hold)", prone: "Prone (toggle)",
-  abilityModifier: "Ability chord (hold)", abilityPrimary: "Ability Q (with chord)", abilityTactical: "Ability E (with chord)", abilityUltimate: "Ability R (with chord)",
+  abilityModifier: "Ability chord (hold)", abilityPrimary: "Ability Q (with chord)", abilityTactical: "Ability E (with chord)", abilityUltimate: "Ability R (with chord)", map: "Open / close map",
 };
 
 const PAD_NAMES = ["A", "B", "X", "Y", "LB", "RB", "LT", "RT", "View", "Menu", "L3", "R3", "D-Up", "D-Down", "D-Left", "D-Right", "Home"];

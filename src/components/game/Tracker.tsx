@@ -1,9 +1,10 @@
+import { MARKER_GLYPH } from "@/game/map-symbols";
 import { MARKER_COLOR, type MarkerKind, type TrackedMarker } from "@/game/waypoints";
 import { CornerBrackets } from "./HudChrome";
 import { WORLD_SCALE } from "@/game/world";
 import { headingFromYaw, headingLabel, relativeDeg } from "@/game/compass";
 
-const ICON: Record<MarkerKind, string> = { MISSION: "◆", RESOURCE: "⬢", BOSS: "☠", RUIN: "✦", LANDMARK: "▣" };
+const ICON = MARKER_GLYPH;
 /** compass marker ranges grow with the map */
 const REACH = Math.max(1, WORLD_SCALE / 2);
 const fmt = (d: number) => (d >= 1000 ? `${(d / 1000).toFixed(1)}km` : `${Math.round(d)}m`);

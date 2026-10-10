@@ -2,7 +2,7 @@ import { xpRequiredForLevel } from "@/game/xp";
 import { operatorByClass } from "@/game/loadout";
 import { perfFlags } from "@/game/perf-flags";
 import { StratagemPanel } from "./StratagemPanel";
-import { Menu } from "lucide-react";
+import { Map as MapIcon, Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { HudState } from "./Scene";
 import { Compass, TrackedObjectives } from "./Tracker";
@@ -10,16 +10,16 @@ import { FACTIONS } from "@/game/sim";
 import { CornerBrackets, HudPanel } from "./HudChrome";
 import { useVoiceLine } from "./useVoiceLine";
 
-export function HUD({ hud, tutorialActive = false, onMenu, level }: { hud: HudState; /** saved level + XP into the level; the bar only ever reads progression, never invents numbers */ level?: { level: number; xp: number }; tutorialActive?: boolean; onMenu: () => void; onStrategy: () => void; onGarage: () => void; onAnalyze: () => void; onInventory: () => void; onAtlas: () => void; onOperations: (view: "DUNGEONS" | "ARSENAL" | "ABILITIES") => void }) {
+export function HUD({ hud, tutorialActive = false, onMenu, onAtlas, level }: { hud: HudState; /** saved level + XP into the level; the bar only ever reads progression, never invents numbers */ level?: { level: number; xp: number }; tutorialActive?: boolean; onMenu: () => void; onStrategy: () => void; onGarage: () => void; onAnalyze: () => void; onInventory: () => void; onAtlas: () => void; onOperations: (view: "DUNGEONS" | "ARSENAL" | "ABILITIES") => void }) {
   const ammo = hud.ammo?.[hud.weaponSlot - 1];
   const melee = ammo?.magSize === 0;
   const lowAmmo = Boolean(ammo && !melee && ammo.mag <= Math.ceil(ammo.magSize * 0.25));
   useVoiceLine(`boss-${hud.bossHud?.name ?? "none"}-${hud.bossHud?.adaptedTell ?? "idle"}`, hud.bossHud?.name ?? "ENEMY", hud.bossHud?.adaptedTell, "critical");
   useVoiceLine(`emergency-${hud.emergencyQuest?.state ?? "none"}-${hud.emergencyQuest?.bossName ?? "none"}`, "NOVA", hud.emergencyQuest ? `${hud.emergencyQuest.state === "WARNING" ? "Emergency quest inbound" : hud.emergencyQuest.state === "ACTIVE" ? "Emergency quest active" : hud.emergencyQuest.state === "COMPLETE" ? "Emergency quest cleared" : "Emergency quest failed"}. ${hud.emergencyQuest.bossName}.` : null, "critical");
   return <div className="pointer-events-none fixed inset-0 z-10 hud-scanline select-none font-mono text-foreground" style={perfFlags().hud ? undefined : { display: "none" }}>
-    <div className="pointer-events-auto absolute left-3 top-3"><Button title="Menu" size="icon" variant="ghost" className="bg-background/25" onClick={onMenu} aria-label="Open menu"><Menu /></Button></div>
+    <div className="pointer-events-auto absolute left-3 top-3"><Button title="Menu" size="icon" variant="ghost" className="bg-background/25" onClick={onMenu} aria-label="Open menu"><Menu /></Button><Button title="Map (M)" size="icon" variant="ghost" className="ml-1 bg-background/25" onClick={onAtlas} aria-label="Open map"><MapIcon /></Button></div>
     {!hud.insideInterior && (
-      <div className="absolute left-14 top-3 border-l border-primary/60 px-2.5 py-0.5 text-[9px] uppercase">
+      <div className="absolute left-[5.75rem] top-3 border-l border-primary/60 px-2.5 py-0.5 text-[9px] uppercase">
         <p style={{ color: FACTIONS[hud.owner]?.color }}>{hud.region} · {FACTIONS[hud.owner]?.short}{hud.contested ? " · CONTESTED" : ""}</p>
         {hud.zoneTier !== "STABLE" && <p className="text-destructive">{hud.zoneTier}</p>}
       </div>

@@ -1,17 +1,9 @@
-import { Canvas, useFrame } from "@react-three/fiber";
-import { ContactShadows, Environment, Lightformer, Sparkles } from "@react-three/drei";
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import type * as THREE from "three";
+import { useEffect, useMemo, useRef, useState } from "react";
 import horizon from "@/assets/world-fracture-horizon.png.asset.json";
 import { playIntroSwell, unlockAudio } from "@/game/audio";
 import { classById, type ClassId } from "@/game/loadout";
-import { OPERATOR_MODELS, OperatorModel, type WornGear } from "./OperatorModel";
 import { PAD_LABELS, moveFocus } from "@/game/menu-nav";
-import { detectGraphicsSupport } from "@/game/webgl-support";
 import type { SaveSummary } from "@/game/startup";
-import type { ArmorLook } from "@/game/armor-look";
-import type { AppearanceDefinition } from "@/game/loadout";
-import type { BodyType } from "@/game/operators";
 import { ConfirmDialog } from "./ConfirmDialog";
 import { CreditsPanel } from "./CreditsPanel";
 import { useMenuInput } from "./useMenuInput";
@@ -25,35 +17,9 @@ const ITEMS: Item[] = [
   { id: "credits", label: "Credits", hint: "Who and what made this" },
 ];
 
-/** Shows the player's operator or, if the model can't load, nothing at all (never a placeholder solid). */
-function Stage({ classId, color, look, appearance, bodyType, gear, reduced, onUnavailable }: { gear?: WornGear | undefined; classId: ClassId; color: string; look: ArmorLook | undefined; appearance?: AppearanceDefinition | undefined; bodyType?: BodyType | undefined; reduced: boolean; onUnavailable: () => void }) {
-  const turn = useRef<THREE.Group>(null);
-  useFrame((s) => { if (turn.current && !reduced) turn.current.rotation.y = Math.sin(s.clock.elapsedTime * 0.35) * 0.35 - 0.25; });
-  return (
-    <>
-      <ambientLight intensity={0.35} color="#9db4ff" />
-      <directionalLight position={[3, 5, 4]} intensity={2.1} color="#dfe8ff" />
-      <pointLight position={[-3, 2, -2]} intensity={26} distance={12} color="#7c6cff" />
-      <pointLight position={[2.5, 1, 2]} intensity={14} distance={9} color={color} />
-      <group ref={turn} rotation-y={-0.25}>
-        <OperatorModel classId={classId} height={2.5} feetY={-1.25} color={appearance?.armor ?? color} trim={appearance?.visor} cloth={appearance?.cloth} bodyType={bodyType} look={look} gear={gear} pose="showcase" fallback={<Pending onUnavailable={onUnavailable} />} />
-      </group>
-      <ContactShadows position={[0, -1.25, 0]} opacity={0.5} scale={7} blur={2.6} far={3} />
-      <Sparkles count={reduced ? 0 : 40} scale={[7, 4, 4]} size={1.2} speed={0.15} opacity={0.5} color="#8fa2ff" />
-      <Environment resolution={64}><Lightformer intensity={1.4} position={[0, 6, 3]} scale={[10, 4, 1]} /><Lightformer intensity={1} color="#7c6cff" position={[-6, 2, 0]} rotation-y={Math.PI / 2} scale={[10, 2, 1]} /></Environment>
-    </>
-  );
-}
-/** Rendered while the GLB loads (and if it fails). If it is still pending after 12 s, say so honestly. */
-function Pending({ onUnavailable }: { onUnavailable: () => void }) {
-  useEffect(() => { const t = window.setTimeout(onUnavailable, 12000); return () => window.clearTimeout(t); }, [onUnavailable]);
-  return null;
-}
-
-export function MainMenu({ save, classId, look, appearance, bodyType, gear, reducedMotion, startNotice, onContinue, onNewGame, onCharacter, onSettings }: {
+export function MainMenu({ save, classId, reducedMotion, startNotice, onContinue, onNewGame, onCharacter, onSettings }: {
   startNotice?: string;
-  gear?: WornGear | undefined;
-  save: SaveSummary; classId: ClassId; look?: ArmorLook | undefined; appearance?: AppearanceDefinition | undefined; bodyType?: BodyType | undefined; reducedMotion: boolean;
+  save: SaveSummary; classId: ClassId;reducedMotion: boolean;
   onContinue: () => void; onNewGame: () => void; onCharacter: () => void; onSettings: () => void;
 }) {
   const enabled = useMemo(() => ITEMS.map(() => true), []);
@@ -61,11 +27,8 @@ export function MainMenu({ save, classId, look, appearance, bodyType, gear, redu
   const [notice, setNotice] = useState("");
   const [overlay, setOverlay] = useState<null | "confirm-new" | "credits">(null);
   const [leaving, setLeaving] = useState(false);
-  const [modelDown, setModelDown] = useState(() => !OPERATOR_MODELS[classId]);
-  const caps = useMemo(() => detectGraphicsSupport(), []);
   const timer = useRef(0);
   useEffect(() => () => window.clearTimeout(timer.current), []);
-  const markDown = useCallback(() => setModelDown(true), []);
 
   // First deliberate input unlocks the procedural audio engine (same rule as the rest of the game); nothing plays before that.
   const swelled = useRef(false);
@@ -104,26 +67,15 @@ export function MainMenu({ save, classId, look, appearance, bodyType, gear, redu
   const labels = PAD_LABELS[pad ?? "generic"];
   const cls = classById(classId);
 
-  let stage: ReactNode = null;
-  if (caps.ok && !modelDown) {
-    stage = (
-      <Canvas dpr={[1, 1.5]} camera={{ position: [0, 0.9, 5.4], fov: 34 }} gl={{ antialias: true, alpha: true, powerPreference: "high-performance" }} onCreated={({ gl }) => gl.setClearColor(0x000000, 0)}>
-        <Stage classId={classId} color={cls.color} look={look} appearance={appearance} bodyType={bodyType} gear={gear} reduced={reducedMotion} onUnavailable={markDown} />
-      </Canvas>
-    );
-  }
-
   return (
     <div className={`fixed inset-0 overflow-hidden bg-background transition-opacity duration-200 ${leaving ? "opacity-0" : "opacity-100"}`}>
-      <img src={horizon.url} alt="" className="title-landscape absolute inset-0 h-full w-full object-cover object-center opacity-60" />
+      {/* cinematic backdrop: the Fractured Earth horizon on a slow push-in, drifting light and shadow sweeps and low mist; pure CSS, so it needs no WebGL and costs no draw calls.
+          Reduced motion freezes every layer (styles.css). */}
+      <img src={horizon.url} alt="" className="title-landscape absolute inset-0 h-full w-full object-cover object-center" />
+      <div className="title-sunlight pointer-events-none absolute inset-0" />
+      <div className="title-shadows pointer-events-none absolute inset-0" />
+      <div className="title-mist pointer-events-none absolute inset-x-0 bottom-0 h-2/5" />
       <div className="pointer-events-none absolute inset-0 title-vignette" />
-      <div className="pointer-events-none absolute inset-0" style={{ background: "linear-gradient(90deg, rgb(4 6 18 / 0.88) 0%, rgb(4 6 18 / 0.55) 45%, transparent 75%)" }} />
-      <div className="absolute inset-y-0 right-0 w-full lg:w-[55%]" aria-hidden={!stage}>{stage}</div>
-      {modelDown && (
-        <p className="absolute bottom-16 right-8 max-w-xs text-right font-mono text-[9px] uppercase tracking-[0.2em] text-muted-foreground" role="status">
-          {caps.ok ? `Operator model unavailable (${cls.name}) — the 3D preview is skipped.` : "3D graphics unavailable on this browser — the 3D preview is skipped."}
-        </p>
-      )}
 
       <main className="relative z-10 flex h-full flex-col justify-between overflow-y-auto px-6 py-8 sm:px-14 sm:py-12">
         <header>

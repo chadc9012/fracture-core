@@ -13,7 +13,7 @@ import { CITY_DESTINATIONS, dropPoint } from "@/game/destinations";
 import { MAP_EXTENT } from "@/game/terrain-map";
 import mapArt from "@/assets/fractured-earth-map-v2.jpg";
 import { MAP_VIEWBOX, MapLayers } from "./MapLayers";
-import { LANDMARK_GLYPH } from "./MapLegend";
+import { LANDMARK_GLYPH } from "@/game/map-symbols";
 import { useTerrainMap } from "./useTerrainMap";
 import { useMapArt } from "./useMapArt";
 

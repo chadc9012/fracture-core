@@ -311,6 +311,24 @@ export function GameCanvas() {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, []);
+  // Destiny-style map: M (rebindable) or the controller Menu button toggles the atlas; opening it closes every other in-world overlay.
+  const toggleAtlas = useCallback(() => {
+    setAtlasOpen((open) => { if (!open) { setInventoryOpen(false); setOperationsView(null); setMenuOpen(false); if (document.pointerLockElement) document.exitPointerLock(); } return !open; });
+  }, []);
+  useEffect(() => {
+    if (phase !== "world") return;
+    const typing = (t: EventTarget | null) => t instanceof HTMLElement && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.isContentEditable);
+    const onKey = (e: KeyboardEvent) => { if (e.code === settings.bindings.keyboard.map && !e.repeat && !typing(e.target)) toggleAtlas(); else if (e.code === "Escape") setAtlasOpen(false); };
+    let was = false;
+    const poll = window.setInterval(() => {
+      const pads = navigator.getGamepads?.() ?? [];
+      const down = pads.some((p) => !!p?.buttons[settings.bindings.gamepad.map]?.pressed);
+      if (down && !was) toggleAtlas();
+      was = down;
+    }, 80);
+    window.addEventListener("keydown", onKey);
+    return () => { window.removeEventListener("keydown", onKey); window.clearInterval(poll); };
+  }, [phase, settings.bindings, toggleAtlas]);
   useEffect(() => { shopNearRef.current = hud.shopNearId ?? null; if (!hud.shopNearId) setShopOpen(null); }, [hud.shopNearId]);
   useEffect(() => {
     cacheNearRef.current = hud.cacheNear ?? null;
@@ -741,10 +759,6 @@ export function GameCanvas() {
           <MainMenu
             save={evaluateSave(progression, last !== null)}
             classId={progression.identityClass ?? cls}
-            look={armorLook(progression)}
-            gear={progression}
-            appearance={appearance}
-            bodyType={bodyType}
             reducedMotion={prefersReduced(settings.reducedMotion)}
             startNotice={menuNotice}
             onContinue={() => setPhase(progression.character || last || progression.completedMissions.length > 0 ? "hub" : "loadout")}
