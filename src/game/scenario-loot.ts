@@ -70,3 +70,19 @@ export function grantScenarioReward(progress: PlayerProgression, claim: Scenario
 
 /** Pre-draws the chance rolls for a scenario (injectable RNG for tests). */
 export const rollScenario = (scenarioId: string, rng: () => number = Math.random): number[] => (SCENARIO_LOOT[scenarioId]?.chance ?? []).map(() => rng());
+
+/** What the reward screen should show for a batch of drops: only claims that really granted something, each run at most
+ * once per session (`shown` is a caller-owned set of run ids, so a repeated onDrops delivery or a render that has not yet
+ * caught up with the save can never show the same cards twice). A failed chance roll produces no card. */
+export function planScenarioRewardCards(progress: PlayerProgression, drops: { scenarioClaim?: ScenarioClaim }[], shown: Set<string>): { scenarioId: string; cards: RewardCard[] }[] {
+  const out: { scenarioId: string; cards: RewardCard[] }[] = [];
+  for (const drop of drops) {
+    const claim = drop.scenarioClaim;
+    if (!claim || shown.has(claim.runId)) continue;
+    const result = grantScenarioReward(progress, claim);
+    if (result.status !== "granted" || !result.cards.length) continue;
+    shown.add(claim.runId);
+    out.push({ scenarioId: claim.scenarioId, cards: result.cards });
+  }
+  return out;
+}

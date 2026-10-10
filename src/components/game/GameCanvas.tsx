@@ -46,7 +46,7 @@ import { IntroCinematic } from "./IntroCinematic";
 import { introTotalSeconds } from "@/game/intro";
 import { VictoryReport } from "./VictoryReport";
 import { ScenarioRewardCards } from "./ScenarioRewardCards";
-import { grantScenarioReward, type RewardCard } from "@/game/scenario-loot";
+import { grantScenarioReward, planScenarioRewardCards, type RewardCard } from "@/game/scenario-loot";
 import { scenarioById } from "@/game/unique-scenarios";
 import { claimDrops } from "@/game/inventory";
 import { InventoryWindow } from "./InventoryWindow";
@@ -545,12 +545,11 @@ export function GameCanvas() {
   const recordMission = (event: MissionEvent) => setMission((current) => current ? advanceMission(current, event) : current);
   // Unique Scenario clears: show what the (idempotent) grant actually did. The grant itself runs inside claimDrops; this only describes it.
   const [rewardCards, setRewardCards] = useState<{ title: string; cards: RewardCard[] } | null>(null);
+  const shownRewardRuns = useRef(new Set<string>());
   const showScenarioRewards = (drops: { scenarioClaim?: Parameters<typeof grantScenarioReward>[1] }[]) => {
-    for (const drop of drops) {
-      if (!drop.scenarioClaim) continue;
-      const result = grantScenarioReward(progressionRef.current, drop.scenarioClaim);
-      if (result.status === "granted" && result.cards.length) setRewardCards({ title: scenarioById(drop.scenarioClaim.scenarioId)?.name ?? "Scenario", cards: result.cards });
-    }
+    const plan = planScenarioRewardCards(progressionRef.current, drops, shownRewardRuns.current);
+    const last = plan[plan.length - 1];
+    if (last) setRewardCards({ title: scenarioById(last.scenarioId)?.name ?? "Scenario", cards: plan.flatMap((p) => p.cards) });
   };
   const [levelUpFlash, setLevelUpFlash] = useState<{ level: number; novaUnlocked: string[] } | null>(null);
   const recordXP = (event: WorldSim["xpEvents"][number]) => {
