@@ -26,10 +26,15 @@ describe("Awakening specifics", () => {
     expect(m).toMatchObject({ state: "HOLD", hold: 40 });
     expect(advanceAwakening(m, { type: "HOLD", progress: 99 }).state).toBe("HOLD");
   });
-  test("known limit: awakening has no wave id, so a duplicated CLEAR during PATROL skips ESCALATION", () => {
-    // Scene guards this with its per-wave spawn refs; the machine itself cannot tell two CLEARs apart.
+  test("a CLEAR tagged with its wave cannot be replayed to skip the next wave", () => {
     let m = advanceAwakening(advanceAwakening(AWAKENING, { type: "START" }), { type: "ANCHOR", x: 0, z: 0 });
-    m = advanceAwakening(advanceAwakening(m, { type: "CLEAR" }), { type: "CLEAR" });
-    expect(m.state).toBe("LOOT");
+    m = advanceAwakening(m, { type: "CLEAR", from: "PATROL" });
+    expect(m.state).toBe("ESCALATION");
+    expect(advanceAwakening(m, { type: "CLEAR", from: "PATROL" }).state).toBe("ESCALATION"); // duplicate delivery
+    expect(advanceAwakening(m, { type: "CLEAR", from: "ESCALATION" }).state).toBe("LOOT");
+  });
+  test("an untagged CLEAR (older saves, other callers) still advances as before", () => {
+    const m = advanceAwakening(advanceAwakening(advanceAwakening(AWAKENING, { type: "START" }), { type: "ANCHOR", x: 0, z: 0 }), { type: "CLEAR" });
+    expect(m.state).toBe("ESCALATION");
   });
 });

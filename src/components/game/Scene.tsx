@@ -1505,7 +1505,7 @@ export function Scene({
         spawnMissionDrones(sim, s.x, s.z, wave, a.state === "ESCALATION");
         if (a.state === "ESCALATION") alert(sim, "NEON CORE DISTRICT ALERT: Faction activity detected");
       }
-      if ((a.state === "PATROL" || a.state === "ESCALATION") && awakeSpawned.current === a.state && !sim.machines.some((m) => m.alive && m.mission)) { awakeSpawned.current = `${a.state}-done`; onAwakeningEvent({ type: "CLEAR" }); }
+      if ((a.state === "PATROL" || a.state === "ESCALATION") && awakeSpawned.current === a.state && !sim.machines.some((m) => m.alive && m.mission)) { awakeSpawned.current = `${a.state}-done`; onAwakeningEvent({ type: "CLEAR", from: a.state }); }
       if ((a.state === "CAPTURE" || a.state === "EXTRACT") && a.target && Math.hypot(a.target.x - s.x, a.target.z - s.z) < 9) onAwakeningEvent({ type: "ARRIVED" });
       if (a.state === "HOLD" && a.target) {
         if (Math.hypot(a.target.x - s.x, a.target.z - s.z) < 12) holdRef.current = Math.min(100, holdRef.current + dt * 8);

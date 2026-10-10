@@ -4,7 +4,8 @@ export type AwakeningState = "IDLE" | "DROP" | "PATROL" | "ESCALATION" | "LOOT" 
 export type AwakeningEvent =
   | { type: "START" }
   | { type: "ANCHOR"; x: number; z: number }
-  | { type: "CLEAR" }
+  /** `from` names the phase the cleared wave belonged to; a CLEAR for any other phase is a stale/duplicate delivery and is ignored. */
+  | { type: "CLEAR"; from?: "PATROL" | "ESCALATION" }
   | { type: "ARRIVED" }
   | { type: "HOLD"; progress: number }
   | { type: "ACK" };
@@ -22,8 +23,8 @@ export function advanceAwakening(m: AwakeningRun, e: AwakeningEvent): AwakeningR
   switch (m.state) {
     case "IDLE": return e.type === "START" ? { ...m, state: "DROP", line: "Identity stabilized… Deploying subject to live conflict zone. Welcome to Neon Core." } : m;
     case "DROP": return e.type === "ANCHOR" ? { ...m, state: "PATROL", target: { x: e.x, z: e.z }, line: "Hostiles on your position. Move and shoot." } : m;
-    case "PATROL": return e.type === "CLEAR" ? { ...m, state: "ESCALATION", alert: "NEON CORE DISTRICT ALERT: Faction activity detected", line: "Something bigger is coming. Use cover." } : m;
-    case "ESCALATION": return e.type === "CLEAR" ? { ...m, state: "LOOT", alert: "", line: "Gear recovered. Everything you do improves your build." } : m;
+    case "PATROL": return e.type === "CLEAR" && (!e.from || e.from === "PATROL") ? { ...m, state: "ESCALATION", alert: "NEON CORE DISTRICT ALERT: Faction activity detected", line: "Something bigger is coming. Use cover." } : m;
+    case "ESCALATION": return e.type === "CLEAR" && (!e.from || e.from === "ESCALATION") ? { ...m, state: "LOOT", alert: "", line: "Gear recovered. Everything you do improves your build." } : m;
     case "LOOT": return e.type === "ACK" && m.target ? { ...m, state: "CAPTURE", target: { x: m.target.x + 30, z: m.target.z - 18 }, line: "Capture point marked. Secure it." } : m;
     case "CAPTURE": return e.type === "ARRIVED" ? { ...m, state: "HOLD", hold: 0, line: "Hold position. New wave incoming." } : m;
     case "HOLD":
