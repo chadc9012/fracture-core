@@ -45,7 +45,7 @@ describe("world loot caches", () => {
 });
 
 import { rollCacheGear, GEAR_CHANCE } from "./loot-caches";
-describe("loot box gear", () => {
+describe("loot box gear", () => { const test = it;
   const all = lootCaches();
   test("legendary boxes always drop gear", () => {
     for (const c of all.filter((x) => x.rarity === "LEGENDARY")) expect(rollCacheGear(c, NOW)).not.toBeNull();
