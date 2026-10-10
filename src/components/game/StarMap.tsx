@@ -7,7 +7,7 @@ import { ENCOUNTERS } from "@/game/encounters";
 import { CHRONICLE, nextActivity } from "@/game/retention";
 import type { PlayerProgression } from "@/game/progression";
 import { NextActivityCard } from "./NextActivityCard";
-import { MAP_ART_ASPECT, MAP_ART_SPOTS } from "@/game/map-art";
+import { MAP_ART_ASPECT, MAP_ART_SPOTS, artSpotForWorld } from "@/game/map-art";
 import { LANDMARKS, isLandmarkKnown } from "@/game/landmarks";
 import { CITY_DESTINATIONS, dropPoint } from "@/game/destinations";
 import { MAP_EXTENT } from "@/game/terrain-map";
@@ -70,6 +70,16 @@ export function StarMap({ progression, onBack, onDeploy }: { progression: Player
               /* the illustrated Fractured Earth (title, region names, legend and compass are part of the picture); hotspots sit on each region */
               <div className="relative w-full max-w-[calc(72vh*var(--ar))]" style={{ aspectRatio: String(MAP_ART_ASPECT), ["--ar" as string]: String(MAP_ART_ASPECT) }}>
                 <img src={art.src} alt="The Fractured Earth: seven regions, terrain and zone types" className="absolute inset-0 size-full select-none object-contain" draggable={false} decoding="async" />
+                {CITY_DESTINATIONS.map((c) => {
+                  const at = artSpotForWorld(c.x, c.z), on = c.id === cityId, col = ZONE_COLOR[c.kind];
+                  return (
+                    <button key={c.id} type="button" onClick={() => setCityId(c.id)} aria-pressed={on} aria-label={`${c.name}, ${c.deployable ? "city" : "no landing site"}${at.clamped ? ", off the painted chart" : ""}`}
+                      className="ui-focus group absolute z-10 -translate-x-1/2 -translate-y-1/2" style={{ left: `${at.x}%`, top: `${at.y}%` }}>
+                      <span className="block size-3.5 rotate-45 border border-[#06101f]" style={{ background: col, opacity: c.deployable ? 1 : 0.6, boxShadow: on ? `0 0 0 2px #fff, 0 0 14px 4px ${col}99` : `0 0 8px 1px ${col}88` }} />
+                      <span className="absolute left-1/2 top-full mt-1 -translate-x-1/2 whitespace-nowrap bg-black/75 px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-widest text-white">{at.clamped ? "▲ " : ""}{c.name}{at.clamped ? " · off chart" : ""}</span>
+                    </button>
+                  );
+                })}
                 {REGIONS.map((r) => {
                   const spot = MAP_ART_SPOTS[r.id];
                   if (!spot) return null;

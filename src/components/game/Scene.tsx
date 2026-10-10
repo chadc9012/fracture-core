@@ -4,6 +4,7 @@ import { ruins, isEvolved, isDiscovered, freshCharge, RUIN_DISCOVER_RADIUS, RUIN
 import { useFrame, useThree } from "@react-three/fiber";
 import { useEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
+import { softSprite } from "./softSprite";
 
 import { REGIONS, SKY, ZONE_COLOR, clockLabel, phaseFor, regionAt, WORLD_RADIUS, WORLD_SCALE } from "@/game/world";
 import { BASE_FOOT_SPEED, SPRINT_MULT } from "@/game/foot-speed";
@@ -2274,27 +2275,69 @@ export function Scene({
   );
 }
 
-/** Swirling fracture rift hanging in the sky with orbiting shards — the reference art's signature. */
+/** The Fracture: a jagged tear in the sky. The sky is a dark void with a bright, unstable rim and a violet-to-cyan glow, with slivers of
+ * broken sky drifting along it. It is deliberately not round: the earlier white disc with a ring of shards read as a sun or moon. Presentation only. */
+const RIFT_VERT = /* glsl */ `varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`;
+const RIFT_FRAG = /* glsl */ `
+uniform float uTime; varying vec2 vUv;
+float hsh(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+float vn(vec2 p){ vec2 i = floor(p), f = fract(p); f = f*f*(3.0-2.0*f);
+  return mix(mix(hsh(i), hsh(i+vec2(1.0,0.0)), f.x), mix(hsh(i+vec2(0.0,1.0)), hsh(i+vec2(1.0,1.0)), f.x), f.y); }
+float fbm(vec2 p){ float a = 0.5, s = 0.0; for (int i = 0; i < 4; i++) { s += a * vn(p); p *= 2.03; a *= 0.5; } return s; }
+void main(){
+  vec2 p = vUv * 2.0 - 1.0;                       // -1..1, y runs along the tear
+  float along = 1.0 - abs(p.y);                   // 1 mid-tear .. 0 at the tips
+  // the centre line wanders, with sharp second-octave kinks
+  float wob = (fbm(vec2(p.y * 2.6, 1.7)) - 0.5) * 0.7 + (fbm(vec2(p.y * 9.0, 4.2)) - 0.5) * 0.16;
+  float dx = p.x - wob;
+  float wid = (0.025 + 0.2 * pow(max(along, 0.0), 0.7)) * (0.65 + 0.7 * fbm(vec2(p.y * 4.0, 7.3)));
+  // ragged edge: displace the distance with high-frequency noise so the lips are broken, not smooth
+  float rag = (fbm(vec2(p.y * 14.0, dx * 10.0 + 3.0)) - 0.5) * 0.09 * (0.3 + along);
+  float d = abs(dx) + rag;
+  float inside = 1.0 - smoothstep(wid * 0.82, wid, d);
+  float rim = smoothstep(wid * 0.55, wid, d) * (1.0 - smoothstep(wid, wid * 1.35, d));
+  float glow = exp(-pow(max(d - wid, 0.0) / (0.12 + 0.2 * along), 1.3)) * (0.35 + 0.65 * along);
+  float pulse = 0.82 + 0.18 * sin(uTime * 1.3 + p.y * 5.0 + fbm(vec2(p.y * 3.0, uTime * 0.15)) * 6.0);
+  // beyond the sky: a deep void with a few cold stars and slow swirls
+  vec2 q = vec2(dx * 2.2, p.y * 1.4);
+  float swirl = fbm(q * 3.0 + vec2(uTime * 0.05, -uTime * 0.04));
+  vec3 voidCol = mix(vec3(0.015, 0.01, 0.05), vec3(0.16, 0.07, 0.34), swirl * swirl);
+  float star = step(0.992, hsh(floor(q * 46.0))) * (0.5 + 0.5 * sin(uTime * 2.0 + hsh(floor(q * 46.0)) * 40.0));
+  voidCol += vec3(0.7, 0.85, 1.0) * star;
+  vec3 rimCol = mix(vec3(0.55, 0.4, 1.0), vec3(0.65, 1.0, 1.0), clamp(rim * 1.4 + along * 0.3, 0.0, 1.0));
+  vec3 col = voidCol * inside + rimCol * rim * 2.4 * pulse + mix(vec3(0.45, 0.25, 0.95), vec3(0.2, 0.85, 1.0), along) * glow * 0.9;
+  float a = clamp(inside + rim + glow * 0.75, 0.0, 1.0);
+  // fade to nothing at the tips and the plane edge so no rectangle is ever visible
+  a *= (1.0 - smoothstep(0.82, 1.0, abs(p.y))) * (1.0 - smoothstep(0.7, 1.0, abs(p.x)));
+  gl_FragColor = vec4(col, a);
+}`;
+
 function FracturePortal() {
   const g = useRef<THREE.Group>(null);
-  const rings = useMemo(() => [0, 1, 2, 3].map((i) => ({ r: 34 + i * 13, c: i % 2 ? "#8e7dff" : "#5ff2ff", o: 0.5 - i * 0.09 })), []);
-  const shards = useMemo(() => Array.from({ length: 18 }, (_, i) => ({ a: (i / 18) * Math.PI * 2, r: 50 + (i % 4) * 14, s: 3 + (i % 3) * 2.5, y: (i % 5) * 6 - 12 })), []);
-  useFrame((st, dt) => {
-    if (!g.current) return;
-    g.current.position.set(st.camera.position.x, 190, st.camera.position.z - 420);
-    g.current.children.forEach((c, i) => { c.rotation.z += dt * (i < rings.length ? 0.12 + i * 0.05 : 0.05) * (i % 2 ? -1 : 1); });
+  const slivers = useRef<THREE.Group>(null);
+  const mat = useMemo(() => new THREE.ShaderMaterial({ uniforms: { uTime: { value: 0 } }, vertexShader: RIFT_VERT, fragmentShader: RIFT_FRAG, transparent: true, depthWrite: false, fog: false, toneMapped: false, side: THREE.DoubleSide }), []);
+  // thin dark slivers of broken sky hanging along the tear (deterministic layout; they bob, they do not orbit)
+  const bits = useMemo(() => Array.from({ length: 14 }, (_, i) => {
+    const t = (i + 0.5) / 14 * 2 - 1;
+    const side = i % 2 ? 1 : -1;
+    return { y: t * 150, x: side * (10 + ((i * 37) % 23)), len: 5 + (i % 4) * 3.2, tilt: ((i * 53) % 90) / 90 * 1.2 - 0.6, phase: i * 1.7 };
+  }), []);
+  useFrame((st) => {
+    mat.uniforms["uTime"]!.value = st.clock.elapsedTime;
+    if (g.current) g.current.position.set(st.camera.position.x, 200, st.camera.position.z - 430);
+    slivers.current?.children.forEach((c, i) => { const b = bits[i]!; c.position.y = b.y + Math.sin(st.clock.elapsedTime * 0.4 + b.phase) * 3; c.rotation.z = b.tilt + Math.sin(st.clock.elapsedTime * 0.25 + b.phase) * 0.12; });
   });
   return <group ref={g}>
-    {rings.map((r, i) => <mesh key={i}><torusGeometry args={[r.r, 3.5 + i, 8, 96]} /><meshBasicMaterial color={r.c} transparent opacity={r.o} fog={false} blending={THREE.AdditiveBlending} depthWrite={false} toneMapped={false} /></mesh>)}
-    <group>{shards.map((sh, i) => <mesh key={i} position={[Math.cos(sh.a) * sh.r, Math.sin(sh.a) * sh.r + sh.y, 6]} rotation={[sh.a, sh.a * 2, sh.a]}><tetrahedronGeometry args={[sh.s]} /><meshBasicMaterial color="#1a2330" fog={false} /></mesh>)}</group>
-    <mesh position={[0, 0, -4]}><circleGeometry args={[30, 48]} /><meshBasicMaterial color="#bff8ff" transparent opacity={0.35} fog={false} blending={THREE.AdditiveBlending} depthWrite={false} toneMapped={false} /></mesh>
+    <mesh material={mat} renderOrder={2}><planeGeometry args={[210, 380]} /></mesh>
+    <group ref={slivers} position={[0, 0, 2]}>{bits.map((b, i) => <mesh key={i} position={[b.x, b.y, 0]} rotation={[0, 0, b.tilt]} scale={[1, b.len, 0.4]} renderOrder={3}><octahedronGeometry args={[1.1, 0]} /><meshBasicMaterial color="#07060f" fog={false} /></mesh>)}</group>
   </group>;
 }
 
 /** Drifting violet/cyan energy motes around the player. */
 function Motes() {
   const ref = useRef<THREE.Points>(null);
+  const map = useMemo(() => softSprite("dot"), []);
   const geo = useMemo(() => { const g = new THREE.BufferGeometry(); const p = new Float32Array(600 * 3); for (let i = 0; i < p.length; i++) p[i] = (Math.random() - 0.5) * (i % 3 === 1 ? 30 : 120); g.setAttribute("position", new THREE.BufferAttribute(p, 3)); return g; }, []);
   useFrame((st) => { if (!ref.current) return; const c = st.camera.position; ref.current.position.set(c.x, c.y + Math.sin(st.clock.elapsedTime * 0.3) * 1.5, c.z); ref.current.rotation.y = st.clock.elapsedTime * 0.02; });
-  return <points ref={ref} geometry={geo}><pointsMaterial color="#9fe9ff" size={0.35} transparent opacity={0.75} blending={THREE.AdditiveBlending} depthWrite={false} toneMapped={false} /></points>;
+  return <points ref={ref} geometry={geo}><pointsMaterial map={map} alphaTest={0.01} color="#9fe9ff" size={0.4} transparent opacity={0.75} blending={THREE.AdditiveBlending} depthWrite={false} toneMapped={false} /></points>;
 }

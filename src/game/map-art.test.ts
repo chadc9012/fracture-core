@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
-import { MAP_ART_ASPECT, MAP_ART_SPOTS, hiresArtUsable } from "./map-art";
+import { MAP_ART_ASPECT, MAP_ART_LEGEND_LEFT, MAP_ART_SPOTS, MAP_ART_TITLE_BOTTOM, artSpotForWorld, hiresArtUsable } from "./map-art";
+import { CITY_DESTINATIONS } from "./destinations";
 import { REGIONS } from "./world";
 
 describe("illustrated map hotspots", () => {
@@ -26,5 +27,26 @@ describe("high-resolution art", () => {
     expect(hiresArtUsable(4096, 4096)).toBe(false); // wrong shape would stretch
     expect(hiresArtUsable(0, 0)).toBe(false);
     expect(hiresArtUsable(Number.NaN, 100)).toBe(false);
+  });
+});
+
+describe("world position on the painting", () => {
+  test("every region centre maps back near its hotspot, so the fit can be trusted for other positions", () => {
+    for (const r of REGIONS) {
+      const a = artSpotForWorld(r.x, r.z), h = MAP_ART_SPOTS[r.id]!;
+      expect(Math.hypot(a.x - h.x, a.y - h.y)).toBeLessThan(4);
+    }
+  });
+  test("a position under the legend, title or off the picture is pinned inside the free map area and flagged", () => {
+    for (const c of CITY_DESTINATIONS) {
+      const a = artSpotForWorld(c.x, c.z);
+      expect(a.x).toBeLessThanOrEqual(MAP_ART_LEGEND_LEFT);
+      expect(a.y).toBeGreaterThanOrEqual(MAP_ART_TITLE_BOTTOM);
+      expect(a.y).toBeLessThanOrEqual(100);
+    }
+    // both authored cities sit outside the painted area today (Neon City under the legend, Thalassia north of the picture), so neither may be drawn as exact
+    expect(artSpotForWorld(CITY_DESTINATIONS.find((c) => c.id === "thalassia")!.x, CITY_DESTINATIONS.find((c) => c.id === "thalassia")!.z).clamped).toBe(true);
+    const nexus = REGIONS.find((r) => r.id === "nexus")!;
+    expect(artSpotForWorld(nexus.x, nexus.z).clamped).toBe(false);
   });
 });

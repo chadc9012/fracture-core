@@ -2,6 +2,7 @@ import { CRASH_SITE, trailMask } from "./verdant";
 import { forestRelief, openWoods, IMPACT_PIT } from "./forest-relief";
 import { REGIONS, WORLD_RADIUS, BASE_WORLD_REGIONS, BASE_WORLD_RADIUS, WORLD_SCALE, HEIGHT_K } from "./world";
 import { LANES, ROAD_SAMPLES, laneSamples, distanceToRoad } from "./lanes";
+import { coastShape } from "./coastline";
 import { buildWaterNetwork, carveTarget, carveWeight, RIVER_SCALE, type RiverPoint, type WaterNetwork } from "./rivers";
 
 /* ------------------------------------------------------------------
@@ -151,7 +152,8 @@ function smoothHeightAt(x: number, z: number): number {
   if (HEIGHT_K !== 1) h = WATER_LEVEL + (h - WATER_LEVEL) * HEIGHT_K;
   // Verdant Forest relief + the Fracture impact pit (forest-relief.ts); zero outside the forest
   h += forestRelief(x, z);
-  return h;
+  // painted-map coastline: beaches and sea cliffs (coastline.ts); the identity at WORLD_SCALE 1 and with ?coast=disc
+  return coastShape(h, x, z, WATER_LEVEL);
 }
 
 /** the full natural ground: the traced landform plus the walkable-scale rolls */

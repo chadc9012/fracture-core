@@ -1,6 +1,7 @@
 import { useFrame } from "@react-three/fiber";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type MutableRefObject } from "react";
 import * as THREE from "three";
+import { softSprite } from "./softSprite";
 import { heightAt, slopeAt, WATER_LEVEL } from "@/game/terrain";
 import { mulberry32 } from "@/game/useKeyboard";
 import { addObstacle, allObstacles, type Obstacle } from "@/game/obstacles";
@@ -438,7 +439,7 @@ function CrashSite({ investigation }: { investigation: MutableRefObject<Investig
         ))}
       </group>
       <mesh ref={beam} position={[0, 22, 0]}><cylinderGeometry args={[0.18, 0.5, 44, 10, 1, true]} /><meshBasicMaterial color="#39b6ff" transparent opacity={0.3} depthWrite={false} blending={THREE.AdditiveBlending} side={THREE.DoubleSide} /></mesh>
-      <points ref={sparks} geometry={spark.g}><pointsMaterial color="#8fdcff" size={0.18} transparent opacity={0.85} depthWrite={false} blending={THREE.AdditiveBlending} sizeAttenuation /></points>
+      <points ref={sparks} geometry={spark.g}><pointsMaterial map={softSprite("dot")} alphaTest={0.01} color="#8fdcff" size={0.2} transparent opacity={0.85} depthWrite={false} blending={THREE.AdditiveBlending} sizeAttenuation /></points>
       <mesh rotation-x={-Math.PI / 2} position={[0, 0.35, 0]}><ringGeometry args={[ring - 0.35, ring, 56]} /><meshBasicMaterial color="#39b6ff" transparent opacity={0.55} depthWrite={false} /></mesh>
       <mesh ref={disc} rotation-x={-Math.PI / 2} position={[0, 0.3, 0]} scale={0.001}><circleGeometry args={[ring - 0.35, 48]} /><meshBasicMaterial color="#39b6ff" transparent opacity={0.22} depthWrite={false} /></mesh>
       <DistrictLight position={[0, 3, 0]} color="#39b6ff" intensity={14} distance={26} decay={2} range={70} />
@@ -484,6 +485,6 @@ function ForestMotes({ count }: { count: number }) {
     }
     p.needsUpdate = true;
   });
-  return <points ref={ref} geometry={data.g} frustumCulled={false}><pointsMaterial color="#e6f2b0" size={0.14} transparent opacity={0.5} depthWrite={false} sizeAttenuation /></points>;
+  return <points ref={ref} geometry={data.g} frustumCulled={false}><pointsMaterial map={softSprite("dot")} alphaTest={0.01} color="#e6f2b0" size={0.16} transparent opacity={0.5} depthWrite={false} sizeAttenuation /></points>;
 }
 
