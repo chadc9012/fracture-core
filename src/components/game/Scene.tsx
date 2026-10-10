@@ -103,6 +103,9 @@ import { moonAngle, moonlight } from "@/game/celestial";
 import { shopNear } from "@/game/regional-shops";
 import type { ArmorVisualState } from "./Scavenger";
 import type { PlayerProgression } from "@/game/progression";
+import { SkyFx, type SkyFxLive } from "./SkyFx";
+import { Rivers } from "./Rivers";
+import { skyFxAt, NO_SKY_FX } from "@/game/sky-effects";
 
 export type LootView = { name: string; rarity: Rarity; power: number; mods: string[]; color: string };
 
@@ -486,6 +489,8 @@ export function Scene({
   const atmo = useRef({ fogMix: 0, fogScale: 1, lightMix: 0, skyMix: 0, haze: 0, fogTint: new THREE.Color("#ffffff"), lightTint: new THREE.Color("#ffffff"), skyTint: new THREE.Color("#ffffff"), hemiBase: new THREE.Color("#9ec8e8") });
   /** eased regional water style (water-style.ts): deep/shallow colours, murk and wave chop */
   const waterStyle = useRef({ deep: new THREE.Color("#062a44"), shallow: new THREE.Color("#1d7fa8"), murk: 0.15, chop: 1 });
+  /** eased regional signature sky (sky-effects.ts): ashfall, aurora, spores, dust, pollen */
+  const skyFx = useRef<SkyFxLive>({ color: new THREE.Color("#ffffff"), density: 0, fall: 0, drift: 0, size: 2, glow: 0, aurora: 0 });
   const report = useRef(0);
   const live = useRef(createLiveBuild(activeBuild, abilityBranches));
   const abilityHeld = useRef<Record<string, boolean>>({});
@@ -918,6 +923,16 @@ export function Scene({
       w.shallow.lerp(atmoScratch.set(wTarget.shallow), k);
       w.murk += (wTarget.murk - w.murk) * k;
       w.chop += (wTarget.chop - w.chop) * k;
+      // signature sky: ease toward this region's effect so borders blend instead of popping
+      const fxT = interior ? NO_SKY_FX : skyFxAt(here?.id, night, wx?.state, wx?.cloud ?? 0);
+      const f = skyFx.current;
+      f.color.lerp(atmoScratch.set(fxT.color), k);
+      f.density += (fxT.density - f.density) * k;
+      f.fall += (fxT.fall - f.fall) * k;
+      f.drift += (fxT.drift - f.drift) * k;
+      f.size += (fxT.size - f.size) * k;
+      f.glow += (fxT.glow - f.glow) * k;
+      f.aurora += (fxT.aurora - f.aurora) * k * 0.5;
     }
     if (scene.fog instanceof THREE.Fog) {
       const fogK = 1 - Math.exp(-3 * dt);
@@ -1977,6 +1992,7 @@ export function Scene({
       />
       <SkyBodies timeRef={time} sunDirRef={sunDir} envRef={skyEnv} playerRef={player} />
       <CloudLayer envRef={skyEnv} />
+      {settings.renderTier !== "LOW" && <SkyFx fxRef={skyFx} envRef={skyEnv} playerRef={player} />}
       <RegionLighting playerRef={player} tier={settings.renderTier} />
 
       <Terrain renderTier={settings.renderTier} />
@@ -1987,6 +2003,7 @@ export function Scene({
       <Wildlife playerRef={player} />
       <Civilians playerRef={player} />
       <Water size={WORLD_RADIUS * 4} sunRef={sunDir} styleRef={waterStyle} />
+      <Rivers sunRef={sunDir} />
       <ShopStalls />
       <NearOnly playerRef={player} x={NEXUS_REGION.x} z={NEXUS_REGION.z} radius={330}><NexusCity sim={sim} /></NearOnly>
       <NearOnly playerRef={player} x={NEON_CITY_CENTER.x} z={NEON_CITY_CENTER.z} radius={300}><NeonCity /></NearOnly>

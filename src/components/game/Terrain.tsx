@@ -8,7 +8,7 @@ import type { RenderTier } from "@/game/performance";
 import { mulberry32 } from "@/game/useKeyboard";
 import { clusterAround } from "@/game/foliage";
 import { windSway } from "@/game/wind-sway";
-import { WATER_LEVEL, colorAt, heightAt, slopeAt } from "@/game/terrain";
+import { WATER_LEVEL, colorAt, heightAt, slopeAt, riverAt } from "@/game/terrain";
 import { groundDetailTextures, propDetailTextures } from "@/game/detail-texture";
 import { applySurfaceBlend, loadGroundSurfaces, surfaceWeights } from "@/game/region-materials";
 import { RegionModels } from "./RegionModels";
@@ -57,6 +57,9 @@ function scatter(
     if (region.id === "veridan" && isReserved(x, z, 1.5)) continue;
     // keep supply roads clear so convoys have a crash-free corridor
     if (distanceToRoad(x, z) < LANE_HALF_WIDTH) continue;
+    // keep river channels and their banks open (rivers.ts)
+    const rv = riverAt(x, z);
+    if (rv && rv.dist < rv.w + 2) continue;
     out.push({ x, z, y, s: 0.7 + rnd() * 0.9, r: rnd() * Math.PI * 2 });
   }
   return out;

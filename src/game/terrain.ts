@@ -2,6 +2,7 @@ import { CRASH_SITE, trailMask } from "./verdant";
 import { forestRelief, IMPACT_PIT } from "./forest-relief";
 import { REGIONS, WORLD_RADIUS } from "./world";
 import { LANES, laneSamples } from "./lanes";
+import { buildWaterNetwork, carveTarget, type RiverPoint, type WaterNetwork } from "./rivers";
 
 /* ------------------------------------------------------------------
  * Heightmap: seeded value noise (fbm) + per-region biome profiles.
@@ -61,7 +62,7 @@ function weight(d: number, radius: number) {
   return 1 - smoothstep(0.15, 1.05, d / radius);
 }
 
-function rawHeightAt(x: number, z: number): number {
+function naturalHeightAt(x: number, z: number): number {
   // rolling base terrain
   let h = fbm(x * 0.011, z * 0.011, 4) * 16 - 2;
   h += (fbm(x * 0.05 + 40, z * 0.05 - 20, 2) - 0.5) * 3;
@@ -122,6 +123,63 @@ function rawHeightAt(x: number, z: number): number {
 
   // Verdant Forest relief + the Fracture impact pit (forest-relief.ts); zero outside the forest
   h += forestRelief(x, z);
+  return h;
+}
+
+/* ---------------- river beds + lake basins (rivers.ts) ---------------- */
+
+const CARVE_CELL = 6;
+const CARVE_RANGE = Math.ceil(WORLD_RADIUS * 1.2 / CARVE_CELL);
+type CarveSeg = { a: RiverPoint; b: RiverPoint };
+let network: WaterNetwork | null = null;
+let carveCells: Map<number, CarveSeg[]> | null = null;
+
+/** the traced rivers, waterfalls and lakes (built once on the uncarved heightmap) */
+export function waterNetwork(): WaterNetwork {
+  if (network) return network;
+  network = buildWaterNetwork(naturalHeightAt, WATER_LEVEL);
+  const cells = new Map<number, CarveSeg[]>();
+  const reach = 6 + 7;
+  for (const r of network.rivers) for (let i = 0; i < r.points.length - 1; i++) {
+    const seg = { a: r.points[i]!, b: r.points[i + 1]! };
+    const minX = Math.min(seg.a.x, seg.b.x) - reach, maxX = Math.max(seg.a.x, seg.b.x) + reach;
+    const minZ = Math.min(seg.a.z, seg.b.z) - reach, maxZ = Math.max(seg.a.z, seg.b.z) + reach;
+    for (let cx = Math.floor(minX / CARVE_CELL); cx <= Math.floor(maxX / CARVE_CELL); cx++)
+      for (let cz = Math.floor(minZ / CARVE_CELL); cz <= Math.floor(maxZ / CARVE_CELL); cz++) {
+        const key = (cx + CARVE_RANGE) * 4096 + (cz + CARVE_RANGE);
+        let list = cells.get(key); if (!list) cells.set(key, (list = []));
+        list.push(seg);
+      }
+  }
+  carveCells = cells;
+  return network;
+}
+
+/** nearest river centre-line info at (x,z), or null if no river is within carving reach */
+export function riverAt(x: number, z: number): { dist: number; s: number; w: number; d: number } | null {
+  if (!carveCells) waterNetwork();
+  const list = carveCells!.get((Math.floor(x / CARVE_CELL) + CARVE_RANGE) * 4096 + (Math.floor(z / CARVE_CELL) + CARVE_RANGE));
+  if (!list) return null;
+  let best: { dist: number; s: number; w: number; d: number } | null = null;
+  for (const { a, b } of list) {
+    const ex = b.x - a.x, ez = b.z - a.z;
+    const len2 = ex * ex + ez * ez || 1;
+    const t = Math.min(1, Math.max(0, ((x - a.x) * ex + (z - a.z) * ez) / len2));
+    const dist = Math.hypot(a.x + ex * t - x, a.z + ez * t - z);
+    if (!best || dist < best.dist) best = { dist, s: a.s + (b.s - a.s) * t, w: a.w + (b.w - a.w) * t, d: a.d };
+  }
+  return best;
+}
+
+function rawHeightAt(x: number, z: number): number {
+  let h = naturalHeightAt(x, z);
+  const net = network ?? waterNetwork();
+  const rv = riverAt(x, z);
+  if (rv) h = carveTarget(h, rv.s, rv.w, rv.d, rv.dist);
+  for (const l of net.lakes) {
+    const d = Math.hypot(x - l.x, z - l.z);
+    if (d < l.r) h = Math.min(h, l.level - 0.4 - (1 - d / l.r) ** 2 * 1.2);
+  }
   return h;
 }
 
