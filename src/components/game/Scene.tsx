@@ -1,4 +1,5 @@
 import { Environment, Lightformer, Sky, Text, useGLTF } from "@react-three/drei";
+import { ruins, isEvolved, isDiscovered, freshCharge, RUIN_DISCOVER_RADIUS, RUIN_REACH } from "@/game/weapon-evolution";
 import { useFrame, useThree } from "@react-three/fiber";
 import { useEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
@@ -236,6 +237,8 @@ export type HudState = {
   shopNearId?: string | null;
   shopNearName?: string;
   /** nearest world loot cache within reach (loot-caches.ts), with whether its scenario lets it open now */
+  /** weapon-evolution ruin within discovery range (reach = close enough to evolve) */
+  ruinNear?: { id: string; name: string; dist: number; reach: boolean; done: boolean } | null;
   cacheNear?: { id: string; label: string; rarity: CacheRarity; ok: boolean; reason: string; hold: number } | null;
   /** current zone's live instability tier — see sim.ts's instabilityTier(); STABLE unless the zone's own fracture-pulse is actually elevated */
   zoneTier: InstabilityTier;
@@ -389,7 +392,7 @@ export function Scene({
   onDrops?: (drops: WorldSim["drops"]) => void;
   /** story scenarios (vaelith.ts): lair entry, memory pickups, trial survived, lair defence cleared; the handler applies them with pure reducers */
   onStoryEvent?: (event: StoryWorldEvent) => void;
-  gear?: Pick<PlayerProgression, "inventory" | "equippedGear" | "dungeonClears" | "completedMissions" | "story">;
+  gear?: Pick<PlayerProgression, "inventory" | "equippedGear" | "dungeonClears" | "completedMissions" | "story" | "earnedRewards">;
   mission?: MissionRun | null;
   onMissionEvent?: (event: MissionEvent) => void;
   blackout?: BlackoutRun | null;
@@ -483,6 +486,7 @@ export function Scene({
     if (!investigation.current.done) list.push({ id: "forest-crash-site", kind: "MISSION", label: CRASH_SITE.label, x: CRASH_SITE.x, z: CRASH_SITE.z, regionId: "veridan" });
     for (const site of RESOURCE_SITES) list.push({ ...site, ready: (depleted.current[site.id] ?? 0) <= now });
     for (const lair of BOSS_LAIRS) list.push(lair);
+    if (gear) for (const r of ruins()) if (isDiscovered(gear, r.id)) list.push({ id: `ruin-${r.id}`, kind: "RUIN", label: isEvolved(gear, r.id) ? `${r.name} (spent)` : r.name, x: r.x, z: r.z, regionId: r.regionId });
     for (const lair of SCENARIO_LAIRS) list.push(lair);
     for (const m of sim.machines) if (m.alive && m.boss) list.push({ id: `live-${m.profile}`, kind: "BOSS", label: `${m.profile} (engaged)`, x: m.x, z: m.z, regionId: m.zone });
     if (sim.emergencyQuest.state === "WARNING" || sim.emergencyQuest.state === "ACTIVE") list.push({ id: "eq-boss", kind: "BOSS", label: `EQ · ${sim.emergencyQuest.bossName}`, x: sim.emergencyQuest.x, z: sim.emergencyQuest.z, regionId: sim.emergencyQuest.regionId });
@@ -510,6 +514,7 @@ export function Scene({
   const atmo = useRef({ fogMix: 0, fogScale: 1, lightMix: 0, skyMix: 0, haze: 0, fogTint: new THREE.Color("#ffffff"), lightTint: new THREE.Color("#ffffff"), skyTint: new THREE.Color("#ffffff"), hemiBase: new THREE.Color("#9ec8e8") });
   /** eased regional water style (water-style.ts): deep/shallow colours, murk and wave chop */
   const waterStyle = useRef({ deep: new THREE.Color("#062a44"), shallow: new THREE.Color("#1d7fa8"), murk: 0.15, chop: 1 });
+  const ruinLive = useRef<HudState["ruinNear"]>(null);
   const cacheLive = useRef<{ id: string | null; hold: number; view: HudState["cacheNear"] }>({ id: null, hold: 0, view: null });
   /** eased regional signature sky (sky-effects.ts): ashfall, aurora, spores, dust, pollen */
   const skyFx = useRef<SkyFxLive>({ color: new THREE.Color("#ffffff"), density: 0, fall: 0, drift: 0, size: 2, glow: 0, aurora: 0 });
@@ -871,6 +876,15 @@ export function Scene({
         cacheLive.current.view = { id: near.id, label: SCENARIO_LABEL[near.scenario], rarity: near.rarity, ok: gate.ok, reason: gate.reason, hold: cacheLive.current.hold / ENCRYPT_SECONDS };
       } else cacheLive.current.view = null;
     }
+    // weapon-evolution ruins (weapon-evolution.ts): report the nearest one in discovery range
+    {
+      let best: HudState["ruinNear"] = null;
+      if (!s.inVehicle && !s.insideInterior) for (const r of ruins()) {
+        const d = Math.hypot(r.x - s.x, r.z - s.z);
+        if (d <= RUIN_DISCOVER_RADIUS && (!best || d < best.dist)) best = { id: r.id, name: r.name, dist: d, reach: d <= RUIN_REACH, done: gear ? isEvolved(gear, r.id) : false };
+      }
+      ruinLive.current = best;
+    }
     const nexusLockdown = lockdownStatus(s.detectionMeter);
     if (inNexus && nexusLockdown.tier !== lastLockdownTier.current) {
       if (nexusLockdown.tier !== "MONITORING") alert(sim, `Nexus City: ${nexusLockdown.response}`);
@@ -1146,6 +1160,8 @@ export function Scene({
     sim.equippedElement = equippedWeapon?.element ?? "KINETIC";
     if (sim.equippedPerk !== equippedWeapon?.perk) sim.nullCharge = { charge: 0, lastTimedAt: -1e9, cooldownUntil: sim.nullCharge.cooldownUntil, lastEventId: sim.nullCharge.lastEventId };
     sim.equippedPerk = equippedWeapon?.perk;
+    if (sim.equippedEvolution !== equippedWeapon?.evolution?.ability) sim.evoCharge = freshCharge();
+    sim.equippedEvolution = equippedWeapon?.evolution?.ability;
     // self-targeted subclass verbs (RAGE/OVERSHIELD, see subclass-verbs.ts) live on LiveBuild, which
     // has no reference to WorldSim — bridge them in every frame rather than one-shot at cast time.
     syncSimFromLive(sim, live.current);
@@ -1984,6 +2000,7 @@ export function Scene({
         shopNearId: !interior && !s.inVehicle ? shopNear(s.x, s.z)?.id ?? null : null,
         shopNearName: !interior && !s.inVehicle ? shopNear(s.x, s.z)?.name ?? "" : "",
         cacheNear: cacheLive.current.view,
+        ruinNear: ruinLive.current,
         zoneTier: instabilityTier(zone?.instability ?? 0),
         justDied: sim.lastDeath,
         deathCause: sim.lastDeathCause,

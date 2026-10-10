@@ -2,6 +2,7 @@ import { mergeStory } from "./story";
 import { pruneCompleted } from "./missions/persistence";
 import { supabase } from "@/integrations/supabase/client";
 import { furtherTutorial } from "./onboarding";
+import { mergeEvolution } from "./weapon-evolution";
 import { migrateAbilityIds } from "./operators";
 import { DEFAULT_PROGRESSION, normalizeProgression, type PlayerProgression } from "./progression";
 import type { Json } from "@/integrations/supabase/types";
@@ -48,7 +49,7 @@ export function mergeProgression(local: PlayerProgression, cloud: PlayerProgress
       const other = cloud.inventory.find((entry) => entry.id === item.id);
       const localItem = local.inventory.find((entry) => entry.id === item.id);
       const best = other && localItem ? (localItem.level >= other.level ? localItem : other) : item;
-      return { ...best, favorite: Boolean(other?.favorite || localItem?.favorite) };
+      return { ...mergeEvolution(best, other, localItem), favorite: Boolean(other?.favorite || localItem?.favorite) };
     }),
     equippedGear: newer.equippedGear,
     materials: maxRecord(local.materials, cloud.materials, Math.max),

@@ -1,3 +1,4 @@
+import type { Evolution } from "./weapon-evolution";
 import type { PlayerProgression } from "./progression";
 import type { WorldSim } from "./sim";
 import { playerPowerScore, rewardPacing } from "./balance";
@@ -7,7 +8,7 @@ import { upgradeGate } from "./upgrade-gates";
 
 export type MaterialId = "scrapMetal" | "reinforcedAlloy" | "microCircuits" | "thermalShards" | "cryoCrystal" | "sporeFiber" | "bioCatalyst" | "vehicleParts" | "anomalyCarbon" | "dataShards" | "magmaCore" | "zeroCore" | "abyssCore" | "aegisCore" | "forgeCatalyst" | "tuningCore" | "anomalyCore" | "fuel" | "fuelKingCore" | "fractureCore" | "glacierFang" | "nullPlate" | "hollowHalo" | "roninEdge" | "tideCrown";
 export type GearSlot = "primary" | "secondary" | "heavy" | "helmet" | "chest" | "gauntlets" | "classItem" | "legs" | "vehicle";
-export type GearItem = { id: string; name: string; slot: GearSlot; power: number; level: number; element: "KINETIC" | "THERMAL" | "CRYO" | "ARC" | "BIO"; favorite?: boolean; source: string; /** armor-sets.ts: which set this piece belongs to */ setId?: string; /** scenario-exclusive rarity tier (absent = ordinary gear) */ rarity?: "LEGENDARY" | "EXOTIC"; /** unique weapon perk (null-disruption.ts) */ perk?: "NULL_DISRUPTION" };
+export type GearItem = { id: string; name: string; slot: GearSlot; power: number; level: number; element: "KINETIC" | "THERMAL" | "CRYO" | "ARC" | "BIO"; favorite?: boolean; source: string; /** armor-sets.ts: which set this piece belongs to */ setId?: string; /** scenario-exclusive rarity tier (absent = ordinary gear) */ rarity?: "LEGENDARY" | "EXOTIC"; /** unique weapon perk (null-disruption.ts) */ perk?: "NULL_DISRUPTION"; /** weapon-evolution.ts: set once at a ruin */ evolution?: Evolution };
 
 export const MATERIALS: Record<MaterialId, { name: string; source: string }> = {
   scrapMetal: { name: "Scrap Metal", source: "Raiders and convoy salvage" },
@@ -71,7 +72,7 @@ export function upgradeGear(progress: PlayerProgression, id: string): PlayerProg
 }
 export function infuseGear(progress: PlayerProgression, id: string, element: GearItem["element"]): PlayerProgression {
   const item = progress.inventory.find((entry) => entry.id === id);
-  if (!item || element === "KINETIC" || element === item.element) return progress;
+  if (!item || item.evolution || element === "KINETIC" || element === item.element) return progress;
   const material: MaterialId = element === "THERMAL" ? "thermalShards" : element === "CRYO" ? "cryoCrystal" : element === "BIO" ? "bioCatalyst" : "microCircuits";
   if ((progress.materials[material] ?? 0) < 3) return progress;
   return { ...progress, materials: { ...progress.materials, [material]: (progress.materials[material] ?? 0) - 3 }, inventory: progress.inventory.map((entry) => entry.id === id ? { ...entry, element } : entry) };

@@ -10,6 +10,7 @@ import { walkHeight } from "@/game/terrain";
 import type { VehicleId } from "@/game/vehicles";
 import { STARTER_VEHICLES, VEHICLES, vehicleAcquisition } from "@/game/vehicles";
 import { Button } from "@/components/ui/button";
+import { ruinById, discoverNearby, canEvolve, evolveWeapon, isWeapon, ABILITY_RULES, EVOLVE_POWER_BONUS, EVOLVE_MIN_LEVEL, EVOLVE_CATALYSTS, EVOLVE_ELEMENT_AMOUNT } from "@/game/weapon-evolution";
 import { HUD } from "./HUD";
 import { Scene, type HudState } from "./Scene";
 import { WorldErrorBoundary } from "./WorldErrorBoundary";
@@ -251,6 +252,23 @@ export function GameCanvas() {
   const [inventoryOpen, setInventoryOpen] = useState(false);
   const [shopOpen, setShopOpen] = useState<string | null>(null);
   const shopNearRef = useRef<string | null>(null);
+  const [ruinOpen, setRuinOpen] = useState<string | null>(null);
+  const ruinNearRef = useRef<HudState["ruinNear"]>(null);
+  useEffect(() => {
+    ruinNearRef.current = hud.ruinNear ?? null;
+    if (!hud.ruinNear?.reach) setRuinOpen(null);
+    const r = hud.ruinNear && ruinById(hud.ruinNear.id);
+    if (r) setProgression((current) => discoverNearby(current, r.x, r.z)); // idempotent: returns the same object once seen
+  }, [hud.ruinNear?.id, hud.ruinNear?.reach]);
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.code !== "KeyU" || e.repeat || !ruinNearRef.current?.reach) return;
+      setRuinOpen((open) => (open ? null : ruinNearRef.current?.id ?? null));
+      if (document.pointerLockElement) document.exitPointerLock();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
   const cacheNearRef = useRef<HudState["cacheNear"]>(null);
   const [cacheBanner, setCacheBanner] = useState<{ rarity: string; lines: string[] } | null>(null);
   const openNearCache = () => {
@@ -846,6 +864,37 @@ export function GameCanvas() {
            {hud.cacheNear.label.startsWith("Encrypted") && <div className="mt-1 h-1 w-48 bg-muted"><div className="h-1 bg-primary" style={{ width: `${Math.round(hud.cacheNear.hold * 100)}%` }} /></div>}
          </div>
        )}
+       {hud.ruinNear && !ruinOpen && !hud.shopNearId && !hud.cacheNear && (
+         <div className="pointer-events-none absolute bottom-24 left-1/2 -translate-x-1/2 border border-border/60 bg-background/70 px-4 py-2 text-center font-mono text-[11px] uppercase tracking-[0.18em]">
+           <p style={{ color: "#ffb23e" }}>Ancient ruin · {hud.ruinNear.name}</p>
+           <p className="mt-1 text-muted-foreground">{hud.ruinNear.done ? "Its power is spent" : hud.ruinNear.reach ? "[U] Attune a weapon" : `${Math.round(hud.ruinNear.dist)} m`}</p>
+         </div>
+       )}
+       {ruinOpen && (() => {
+         const ruin = ruinById(ruinOpen);
+         if (!ruin) return null;
+         const rule = ABILITY_RULES[ruin.ability];
+         return (
+           <div className="absolute left-1/2 top-1/2 w-[min(92vw,30rem)] -translate-x-1/2 -translate-y-1/2 border border-border/70 bg-background/90 p-4 font-mono text-xs">
+             <p className="text-sm uppercase tracking-[0.2em]" style={{ color: "#ffb23e" }}>{ruin.name}</p>
+             <p className="mt-1 text-muted-foreground">{ruin.blurb}</p>
+             <p className="mt-2">Grants: +{EVOLVE_POWER_BONUS} power, {ruin.element} element, <b>{rule.name}</b> — {rule.blurb}</p>
+             <p className="mt-1 text-muted-foreground">Needs weapon level {EVOLVE_MIN_LEVEL}+, {EVOLVE_CATALYSTS} forge catalysts, {EVOLVE_ELEMENT_AMOUNT} {ruin.material}. One weapon per ruin; a weapon evolves once.</p>
+             <div className="mt-3 space-y-1">
+               {progression.inventory.filter(isWeapon).map((w) => {
+                 const c = canEvolve(progression, ruin, w.id);
+                 return (
+                   <div key={w.id} className="flex items-center justify-between gap-2">
+                     <span>{w.name} · L{w.level} · {w.power}{w.evolution ? " · EVOLVED" : ""}</span>
+                     <Button size="sm" variant="outline" disabled={!c.ok} title={c.reason} onClick={() => { setProgression((cur) => evolveWeapon(cur, ruin.id, w.id)); setRuinOpen(null); }}>{c.ok ? "Evolve" : c.reason}</Button>
+                   </div>
+                 );
+               })}
+             </div>
+             <Button className="mt-3" size="sm" variant="ghost" onClick={() => setRuinOpen(null)}>Close [U]</Button>
+           </div>
+         );
+       })()}
        {cacheBanner && (
          <div className="pointer-events-none absolute left-1/2 top-28 -translate-x-1/2 border border-border/60 bg-background/80 px-5 py-3 text-center font-mono text-xs uppercase tracking-[0.18em]">
            <p style={{ color: RARITY_HEX[cacheBanner.rarity as keyof typeof RARITY_HEX] }}>{cacheBanner.rarity} cache recovered</p>

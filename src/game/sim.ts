@@ -56,7 +56,8 @@ import { PARTICIPATION_HITS, SCENARIO_LOOT, rollScenario, type ScenarioClaim } f
 import { attunedElement, gimmickMultiplier, type DamageElement } from "./scenario-gimmicks";
 import { fireRound, splashDamage, stepRound, type Burst, type OrdnanceDef, type Round } from "./ordnance";
 import { LAUNCHERS, pickLockTarget, type LauncherId } from "./launchers";
-import { applyElementHit, burnDamage, freshStatuses, mergeVuln, statusSpeedMult, type MachineStatuses } from "./weapon-elements";
+import { ABILITY_RULES, burstTargets, evolutionDamageMult, freshCharge, registerEvolutionHit, ruinElementOf, type EvolutionAbility, type EvolutionCharge } from "./weapon-evolution";
+import { applyElementHit, isChilled, burnDamage, freshStatuses, mergeVuln, statusSpeedMult, type MachineStatuses } from "./weapon-elements";
 
 /* ------------------------------------------------------------------
  * World simulation: faction capture, fracture instability,
@@ -259,6 +260,9 @@ export type WorldSim = {
   equippedElement: GearItem["element"];
   /** perk of the weapon in hand (set each frame by Scene) and the Null Disruption charge it feeds (null-disruption.ts) */
   equippedPerk: GearItem["perk"] | undefined;
+  /** evolved-weapon ability in hand (set each frame by Scene) and its hit counter (weapon-evolution.ts) */
+  equippedEvolution: EvolutionAbility | undefined;
+  evoCharge: EvolutionCharge;
   nullCharge: NullChargeState;
   /** last released Null Disruption pulse (id increments per pulse); Scene/NullPulseFx read it, never write it */
   nullPulse: { id: number; x: number; z: number; radius: number; at: number } | null;
@@ -272,6 +276,8 @@ export type WorldSim = {
   rounds: SimRound[];
   statuses: Map<Machine, MachineStatuses>;
   burstEvents: BurstEvent[];
+  /** evolved-ability bursts for presentation (CombatFx reads, never decides) */
+  evoBursts: { id: number; x: number; y: number; z: number; ability: EvolutionAbility; at: number }[];
   nextBurstId: number;
   /** 0..1 on-foot speed multiplier from slowing zones this step (Scene applies it) */
   hazardSpeedMult: number;
@@ -529,12 +535,14 @@ export function createSim(): WorldSim {
     titanActive: false,
     equippedElement: "KINETIC",
     equippedPerk: undefined,
+    equippedEvolution: undefined,
+    evoCharge: freshCharge(),
     nullCharge: { ...INITIAL_NULL_CHARGE },
     nullPulse: null,
     nextHitId: 0,
     encounterZones: [], encounterEvents: [], nextEncounterEventId: 1, nextEncounterZoneId: 1, hazardSpeedMult: 1,
     rounds: Array.from({ length: ROUND_POOL }, () => ({ ...fireRound(NO_ORDNANCE, { x: 0, y: 0, z: 0 }, [0, 0, 1]), alive: false, launcher: "ROCKET" as LauncherId, element: "KINETIC" as DamageElement, target: -1, knock: 1 })),
-    statuses: new Map(), burstEvents: [], nextBurstId: 1,
+    statuses: new Map(), burstEvents: [], evoBursts: [], nextBurstId: 1,
     materials: {}, drops: [], armorResist: 0, armorRegen: 0, enemyShots: [], bossPhaseFlares: [], xpEvents: [], nextDropId: 0,
     emergencyQuest: EMERGENCY_QUEST_INIT,
     bossCounter: counterTuningFor(null),
@@ -706,6 +714,25 @@ export function applyWeaponElement(sim: WorldSim, m: Machine, element: DamageEle
   const fx = applyElementHit(st, element, now, m.boss);
   if (fx.stun > 0) stunMachine(m, fx.stun);
   if (fx.vuln) { const v = mergeVuln({ mult: m.vulnMult, until: m.vulnUntil }, fx.vuln, now); m.vulnMult = v.mult; m.vulnUntil = v.until; }
+}
+
+/** evolved-weapon ability (weapon-evolution.ts): bursts go through applyMachineDamageMods / stunMachine like every other source */
+function evolutionHit(sim: WorldSim, m: Machine, dmg: number, px: number, pz: number) {
+  const ability = sim.equippedEvolution!;
+  const r = registerEvolutionHit(sim.evoCharge, ability);
+  sim.evoCharge = r.charge;
+  if (!r.burst) return;
+  const rule = ABILITY_RULES[ability];
+  const element = ruinElementOf(ability);
+  const live = sim.machines.filter((o) => o.alive && o !== m && !o.decoy);
+  for (const o of burstTargets(m, live, ability)) {
+    if (rule.burstFraction > 0) { o.hp -= applyMachineDamageMods(sim, o, dmg * rule.burstFraction, element, px, pz); }
+    applyWeaponElement(sim, o, element);
+    if (rule.stun > 0) stunMachine(o, rule.stun);
+    defeatMachine(sim, o);
+  }
+  sim.evoBursts.push({ id: sim.nextBurstId++, x: m.x, y: m.y, z: m.z, ability, at: performance.now() / 1000 });
+  if (sim.evoBursts.length > 8) sim.evoBursts.shift();
 }
 
 /** convoy truck damage shared by bullets and launcher bursts (one kill/loot path) */
@@ -1591,9 +1618,11 @@ export function stepSim(sim: WorldSim, input: SimInput) {
         b.alive = false;
         let dmg = sim.mods.bulletDamage * b.dmg * sim.verbDamageMult;
         if (sim.equippedElement !== "KINETIC") dmg += 0.35;
+        if (sim.equippedEvolution) { const st = sim.statuses.get(m); dmg *= evolutionDamageMult(sim.equippedEvolution, !!st && isChilled(st, performance.now() / 1000)); }
         dmg = applyMachineDamageMods(sim, m, dmg, b.element ?? sim.equippedElement, px, pz);
         m.hp -= dmg;
         if (b.element) applyWeaponElement(sim, m, b.element);
+        if (sim.equippedEvolution) evolutionHit(sim, m, dmg, px, pz);
         if (sim.equippedPerk === NULL_PERK) {
           // timed = interrupting a wind-up, or hitting a boss while its weak-point/stagger window is open
           const nowS = performance.now() / 1000;

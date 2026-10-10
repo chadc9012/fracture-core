@@ -1,7 +1,7 @@
 import { MARKER_COLOR, type MarkerKind, type TrackedMarker } from "@/game/waypoints";
 import { CornerBrackets } from "./HudChrome";
 
-const ICON: Record<MarkerKind, string> = { MISSION: "◆", RESOURCE: "⬢", BOSS: "☠" };
+const ICON: Record<MarkerKind, string> = { MISSION: "◆", RESOURCE: "⬢", BOSS: "☠", RUIN: "✦" };
 const fmt = (d: number) => (d >= 1000 ? `${(d / 1000).toFixed(1)}km` : `${Math.round(d)}m`);
 
 /** Top compass strip: markers slide by bearing within a ±90° field; closest ones get labels. */
