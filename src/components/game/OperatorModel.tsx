@@ -7,6 +7,7 @@ import type { ClassId } from "@/game/loadout";
 import { bodyProfile, type BodyType } from "@/game/operators";
 import type { ArmorLook } from "@/game/armor-look";
 import { buildPalette, regionWeights, type Palette } from "@/game/operator-paint";
+import { SURFACES } from "@/game/visual-standard";
 
 /** Authored (Meshy) operator models, served from /public. GOLIATH, NYX and CIPHER are rigged (Mixamo skeleton; walk/run for all, plus showcase for GOLIATH and idle for NYX); Anything missing or failing to load falls back to the procedural Operator. */
 export const OPERATOR_MODELS: Partial<Record<ClassId, { url: string; tint: boolean; rigged: boolean }>> = {
@@ -71,7 +72,9 @@ function Model({ url, tint, height, feetY, color, pose, motion, bodyType, look, 
     const robot = bodyProfile(bodyType).segmented;
     const palette = tint ? buildPalette({ armor: color, cloth, look, bodyType }) : null;
     // vertex colours carry the armor regions; a faint cool emissive floor keeps shadowed plates from going black
-    const material = palette ? new THREE.MeshStandardMaterial({ color: "#ffffff", vertexColors: true, metalness: robot ? 0.85 : 0.3, roughness: robot ? 0.3 : 0.55, emissive: new THREE.Color("#0f141c"), emissiveIntensity: 1 }) : null;
+    // shared visual standard: segmented chassis reads as bare metal, armored operators as painted ceramic plate
+    const surface = robot ? SURFACES.bareMetal : SURFACES.paintedArmor;
+    const material = palette ? new THREE.MeshStandardMaterial({ color: "#ffffff", vertexColors: true, metalness: surface.metalness, roughness: surface.roughness, emissive: new THREE.Color("#0f141c"), emissiveIntensity: 1 }) : null;
     const ownGeometries: THREE.BufferGeometry[] = [];
     if (material && robot) {
       // segmented chassis: glowing cyan seams every quarter metre up the body, in model-relative height
