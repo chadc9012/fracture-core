@@ -13,7 +13,7 @@ type Mats = { plate: string; under: string; accent: string; plateKind: keyof typ
 
 function Plate({ kind, color, ...p }: { kind: keyof typeof SURFACES; color: string; args: [number, number, number]; position?: [number, number, number]; rotation?: [number, number, number] }) {
   const s = SURFACES[kind];
-  return <RoundedBox args={p.args} radius={Math.min(...p.args) * 0.25} smoothness={2} position={p.position} rotation={p.rotation} castShadow>
+  return <RoundedBox args={p.args} radius={Math.min(...p.args) * 0.25} smoothness={2} position={p.position ?? [0, 0, 0]} rotation={p.rotation ?? [0, 0, 0]} castShadow>
     <meshStandardMaterial color={color} metalness={s.metalness} roughness={s.roughness} />
   </RoundedBox>;
 }
