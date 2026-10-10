@@ -1,4 +1,4 @@
-import { renderCounts, canvasWhy } from "@/game/perf-counters";
+import { renderCounts, canvasWhy, setterCalls } from "@/game/perf-counters";
 import { Canvas } from "@react-three/fiber";
 import { PerformanceMonitor } from "@react-three/drei";
 import { Bloom, BrightnessContrast, ChromaticAberration, DepthOfField, EffectComposer, HueSaturation, Noise, SSAO, Vignette } from "@react-three/postprocessing";
@@ -217,19 +217,26 @@ const initial: HudState = {
 /** The in-game setting or the OS-level preference, whichever asks for less motion. */
 const prefersReduced = (setting?: boolean) => !!setting || (typeof window !== "undefined" && typeof window.matchMedia === "function" && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
 
+/** useState whose setter bumps a per-name call counter (F3 "setters called" line). Same stable setter identity; remove with the F3 line. */
+function useCountedState<T>(name: string, initial: T | (() => T)): [T, React.Dispatch<React.SetStateAction<T>>] {
+  const [value, set] = useState<T>(initial);
+  const counted = useMemo<React.Dispatch<React.SetStateAction<T>>>(() => (v) => { setterCalls[name] = (setterCalls[name] ?? 0) + 1; set(v); }, [name]);
+  return [value, counted];
+}
+
 export function GameCanvas() {
   renderCounts.canvas++;
-  const [hud, setHud] = useState<HudState>(initial);
-  const [phase, setPhase] = useState<"boot" | "title" | "hub" | "loadout" | "briefing" | "world">(() => (bootSeen() ? "title" : "boot"));
-  const [pendingDeployment, setPendingDeployment] = useState<Deployment | null>(null);
-  const [menuOpen, setMenuOpen] = useState(false);
-  const [settings, setSettings] = useState<GameSettings>(DEFAULT_SETTINGS);
-  const [adaptiveDpr, setAdaptiveDpr] = useState(1.5);
-  const [lowPerf, setLowPerf] = useState(false);
+  const [hud, setHud] = useCountedState<HudState>("hud", initial);
+  const [phase, setPhase] = useCountedState<"boot" | "title" | "hub" | "loadout" | "briefing" | "world">("phase", () => (bootSeen() ? "title" : "boot"));
+  const [pendingDeployment, setPendingDeployment] = useCountedState<Deployment | null>("pendingDeployment", null);
+  const [menuOpen, setMenuOpen] = useCountedState("menuOpen", false);
+  const [settings, setSettings] = useCountedState<GameSettings>("settings", DEFAULT_SETTINGS);
+  const [adaptiveDpr, setAdaptiveDpr] = useCountedState("adaptiveDpr", 1.5);
+  const [lowPerf, setLowPerf] = useCountedState("lowPerf", false);
   // automatic quality step-down (quality-governor.ts): session-only cap, never changes the saved setting
-  const [autoCap, setAutoCap] = useState<RenderTier | null>(null);
+  const [autoCap, setAutoCap] = useCountedState<RenderTier | null>("autoCap", null);
   const lastStepAt = useRef(0);
-  const [qualityNotice, setQualityNotice] = useState<string | null>(null);
+  const [qualityNotice, setQualityNotice] = useCountedState<string | null>("qualityNotice", null);
   const liveTier = effectiveTier(settings.renderTier, autoCap);
   const liveSettings = useMemo(() => ({ ...settings, renderTier: liveTier }), [settings, liveTier]);
   useEffect(() => {
@@ -262,12 +269,12 @@ export function GameCanvas() {
     };
   }, [settings.reducedMotion, settings.highContrastHud]);
   useEffect(() => { if (menuOpen) stopVoice(); }, [menuOpen]);
-  const [vehicleId, setVehicleId] = useState<VehicleId>("scrap-interceptor");
-  const [garageOpen, setGarageOpen] = useState(false);
-  const [inventoryOpen, setInventoryOpen] = useState(false);
-  const [shopOpen, setShopOpen] = useState<string | null>(null);
+  const [vehicleId, setVehicleId] = useCountedState<VehicleId>("vehicleId", "scrap-interceptor");
+  const [garageOpen, setGarageOpen] = useCountedState("garageOpen", false);
+  const [inventoryOpen, setInventoryOpen] = useCountedState("inventoryOpen", false);
+  const [shopOpen, setShopOpen] = useCountedState<string | null>("shopOpen", null);
   const shopNearRef = useRef<string | null>(null);
-  const [ruinOpen, setRuinOpen] = useState<string | null>(null);
+  const [ruinOpen, setRuinOpen] = useCountedState<string | null>("ruinOpen", null);
   const ruinNearRef = useRef<HudState["ruinNear"]>(null);
   useEffect(() => {
     ruinNearRef.current = hud.ruinNear ?? null;
@@ -285,7 +292,7 @@ export function GameCanvas() {
     return () => window.removeEventListener("keydown", onKey);
   }, []);
   const cacheNearRef = useRef<HudState["cacheNear"]>(null);
-  const [cacheBanner, setCacheBanner] = useState<{ rarity: string; lines: string[] } | null>(null);
+  const [cacheBanner, setCacheBanner] = useCountedState<{ rarity: string; lines: string[] } | null>("cacheBanner", null);
   const openNearCache = () => {
     const near = cacheNearRef.current;
     if (!near?.ok) return;
@@ -335,22 +342,22 @@ export function GameCanvas() {
     // encrypted caches open themselves the moment the hold-to-decrypt finishes
     if (hud.cacheNear?.ok && hud.cacheNear.label.startsWith("Encrypted")) openNearCache();
   }, [hud.cacheNear?.id, hud.cacheNear?.ok]);
-  const [atlasOpen, setAtlasOpen] = useState(false);
-  const [hubView, setHubView] = useState<"starmap" | "arsenal" | "saves" | null>(null);
-  const [travelTo, setTravelTo] = useState<{ x: number; z: number; nonce: number } | null>(null);
+  const [atlasOpen, setAtlasOpen] = useCountedState("atlasOpen", false);
+  const [hubView, setHubView] = useCountedState<"starmap" | "arsenal" | "saves" | null>("hubView", null);
+  const [travelTo, setTravelTo] = useCountedState<{ x: number; z: number; nonce: number } | null>("travelTo", null);
   /** star-map fast travel: a Destiny-style cover hides the teleport (transit.ts timeline); the player moves only while fully covered */
-  const [transit, setTransit] = useState<{ startedAt: number; plan: TransitPlan; reduced: boolean; target: DeployTarget } | null>(null);
+  const [transit, setTransit] = useCountedState<{ startedAt: number; plan: TransitPlan; reduced: boolean; target: DeployTarget } | null>("transit", null);
   const transitTimers = useRef<number[]>([]);
   useEffect(() => () => { transitTimers.current.forEach((t) => window.clearTimeout(t)); }, []);
-  const [savedFlash, setSavedFlash] = useState(0);
+  const [savedFlash, setSavedFlash] = useCountedState("savedFlash", 0);
   useEffect(() => { if (!savedFlash) return; const t = window.setTimeout(() => setSavedFlash(0), 1800); return () => window.clearTimeout(t); }, [savedFlash]);
-  const [strategyOpen, setStrategyOpen] = useState(false);
-  const [analysisOpen, setAnalysisOpen] = useState(false);
-  const [operationsView, setOperationsView] = useState<"DUNGEONS" | "ARSENAL" | "ABILITIES" | null>(null);
-  const [last, setLast] = useState<{ credits: number; kills: number } | null>(null);
-  const [progression, setProgression] = useState<PlayerProgression>(() => loadProgression());
+  const [strategyOpen, setStrategyOpen] = useCountedState("strategyOpen", false);
+  const [analysisOpen, setAnalysisOpen] = useCountedState("analysisOpen", false);
+  const [operationsView, setOperationsView] = useCountedState<"DUNGEONS" | "ARSENAL" | "ABILITIES" | null>("operationsView", null);
+  const [last, setLast] = useCountedState<{ credits: number; kills: number } | null>("last", null);
+  const [progression, setProgression] = useCountedState<PlayerProgression>("progression", () => loadProgression());
   // landmark discovery (landmarks.ts): ledger-only, idempotent, shows the landmark's history once
-  const [landmarkToast, setLandmarkToast] = useState<{ name: string; history: string } | null>(null);
+  const [landmarkToast, setLandmarkToast] = useCountedState<{ name: string; history: string } | null>("landmarkToast", null);
   useEffect(() => {
     if (!hud.px && !hud.pz) return;
     const found = undiscoveredNear(progression, hud.px, hud.pz);
@@ -367,17 +374,17 @@ export function GameCanvas() {
   useEffect(() => { setProgression((current) => { const next = reconcileQuests(current); return next === current ? current : next; }); }, [progression.completedMissions.length, progression.dungeonClears]);
   // the operator the world renders is derived from the saved profile (never a hard-coded Goliath default)
   const [session0] = useState(() => sessionFromProgression(progression));
-  const [cls, setCls] = useState<ClassId>(session0.cls);
-  const [subclass, setSubclass] = useState<SubclassId>(session0.subclass);
-  const [appearance, setAppearance] = useState<AppearanceDefinition>(session0.appearance);
-  const [bodyType, setBodyType] = useState<BodyType>(session0.bodyType);
+  const [cls, setCls] = useCountedState<ClassId>("cls", session0.cls);
+  const [subclass, setSubclass] = useCountedState<SubclassId>("subclass", session0.subclass);
+  const [appearance, setAppearance] = useCountedState<AppearanceDefinition>("appearance", session0.appearance);
+  const [bodyType, setBodyType] = useCountedState<BodyType>("bodyType", session0.bodyType);
   const progressionRef = useRef(progression);
   progressionRef.current = progression;
-  const [tutorial, setTutorial] = useState<TutorialState | null>(null);
-  const [showIntro, setShowIntro] = useState(false);
+  const [tutorial, setTutorial] = useCountedState<TutorialState | null>("tutorial", null);
+  const [showIntro, setShowIntro] = useCountedState("showIntro", false);
   // Act I screenplay cinematic (cinematics.ts) that replaces the old text intro for a save's first deploy
-  const [cineId, setCineId] = useState<string | null>(null);
-  const [cineProgress, setCineProgress] = useState(0);
+  const [cineId, setCineId] = useCountedState<string | null>("cineId", null);
+  const [cineProgress, setCineProgress] = useCountedState("cineProgress", 0);
   // tutorial checkpoint: saved at every step so a reload resumes instead of restarting (VICTORY clears it)
   useEffect(() => { if (tutorial) setProgression((p) => withTutorialRun(p, tutorial)); }, [tutorial]);
   const lastPlayed = useRef<string | null>(null);
@@ -389,7 +396,7 @@ export function GameCanvas() {
     const line = recapDue(lastPlayed.current, Date.now()) ? recapLine(progression) : null;
     if (line) speakVoice({ id: "return-recap", scope: "recap", speaker: "NOVA", text: line, priority: "story" });
   }, [phase, progression]);
-  const [introElapsed, setIntroElapsed] = useState(0);
+  const [introElapsed, setIntroElapsed] = useCountedState("introElapsed", 0);
 
   useEffect(() => saveProgression(progression), [progression]);
   useEffect(() => { if (phase !== "world") return; const t = window.setTimeout(() => setSavedFlash(Date.now()), 1200); return () => window.clearTimeout(t); }, [progression, phase]);
@@ -398,9 +405,9 @@ export function GameCanvas() {
   }, [tutorial?.step, progression.completedMissions, cls]);
 
   /* Mission 01 · Broken Signal starts as a world event once the player is free-roaming. */
-  const [mission, setMission] = useState<MissionRun | null>(() => restoreMission<MissionRun>("broken-signal", progression));
+  const [mission, setMission] = useCountedState<MissionRun | null>("mission", () => restoreMission<MissionRun>("broken-signal", progression));
   useEffect(() => setProgression((p) => withMissionRun(p, "broken-signal", mission)), [mission]);
-  const [awakening, setAwakening] = useState<AwakeningRun | null>(() => restoreMission<AwakeningRun>("awakening", progression));
+  const [awakening, setAwakening] = useCountedState<AwakeningRun | null>("awakening", () => restoreMission<AwakeningRun>("awakening", progression));
   useEffect(() => setProgression((p) => withMissionRun(p, "awakening", awakening)), [awakening]);
   const awakeningDone = progression.completedMissions.includes("awakening");
   useEffect(() => {
@@ -437,7 +444,7 @@ export function GameCanvas() {
   /* Mission 02 · Blackout Protocol — picks up once Broken Signal is behind you; NOVA's line
    * sends you into the real Neon City street, same ANCHOR/ARRIVED/CLEAR/HACK/ACK shape as
    * Mission 01 so Scene.tsx wires it the identical way. */
-  const [blackout, setBlackout] = useState<BlackoutRun | null>(() => restoreMission<BlackoutRun>("blackout-protocol", progression));
+  const [blackout, setBlackout] = useCountedState<BlackoutRun | null>("blackout", () => restoreMission<BlackoutRun>("blackout-protocol", progression));
   useEffect(() => setProgression((p) => withMissionRun(p, "blackout-protocol", blackout)), [blackout]);
   const blackoutReady = phase === "world" && !tutorial && progression.completedMissions.includes("broken-signal") && !progression.completedMissions.includes("blackout-protocol");
   useEffect(() => {
@@ -456,7 +463,7 @@ export function GameCanvas() {
   /* Mission 03 · Stitched Neon Core — the dungeon Blackout Protocol's ending hooked but never
    * built a physical layer for; same ANCHOR/ARRIVED/CLEAR/HACK/ACK shape, ending in the game's
    * first scripted boss fight (Aegis-Prime, summoned through the normal summonBoss() path). */
-  const [neonCore, setNeonCore] = useState<NeonCoreRun | null>(() => restoreMission<NeonCoreRun>("stitched-neon-core", progression));
+  const [neonCore, setNeonCore] = useCountedState<NeonCoreRun | null>("neonCore", () => restoreMission<NeonCoreRun>("stitched-neon-core", progression));
   useEffect(() => setProgression((p) => withMissionRun(p, "stitched-neon-core", neonCore)), [neonCore]);
   const neonCoreReady = phase === "world" && !tutorial && progression.completedMissions.includes("blackout-protocol") && !progression.completedMissions.includes("stitched-neon-core");
   useEffect(() => {
@@ -475,7 +482,7 @@ export function GameCanvas() {
   /* Mission 04 · Descent Protocol — continues straight from Stitched Neon Core's ending; gives
    * fd-16's dive-to-Thalassia (previously just a bare survive-underwater timer) an actual
    * destination and story beat in the already-built sunken city. Same shape as Missions 01-03. */
-  const [descent, setDescent] = useState<DescentRun | null>(() => restoreMission<DescentRun>("descent-protocol", progression));
+  const [descent, setDescent] = useCountedState<DescentRun | null>("descent", () => restoreMission<DescentRun>("descent-protocol", progression));
   useEffect(() => setProgression((p) => withMissionRun(p, "descent-protocol", descent)), [descent]);
   const descentReady = phase === "world" && !tutorial && progression.completedMissions.includes("stitched-neon-core") && !progression.completedMissions.includes("descent-protocol");
   useEffect(() => {
@@ -496,7 +503,7 @@ export function GameCanvas() {
    * done) so it doesn't fire while fd-17's own deep-pressure dive timer is still running. Its
    * WORLD_UPDATE dispatches the BOSS_DEFEATED event fd-18 is listening for (key "system-core"),
    * which completes fd-18 and — via the ending effect below — triggers EndingOverlay. */
-  const [systemCore, setSystemCore] = useState<SystemCoreRun | null>(() => restoreMission<SystemCoreRun>("system-core", progression));
+  const [systemCore, setSystemCore] = useCountedState<SystemCoreRun | null>("systemCore", () => restoreMission<SystemCoreRun>("system-core", progression));
   useEffect(() => setProgression((p) => withMissionRun(p, "system-core", systemCore)), [systemCore]);
   const systemCoreReady = phase === "world" && !tutorial && progression.completedMissions.includes("descent-protocol") && progression.activeQuestId === "fd-18" && !progression.completedMissions.includes("system-core");
   useEffect(() => {
@@ -534,7 +541,7 @@ export function GameCanvas() {
    * RegionLabels/Minimap already surface) and whichever Fracture Descent quest is active, so an NPC
    * you've already met has something new to say rather than going silent forever. */
   const visitCounts = useRef(new Map<string, number>());
-  const [activeDialogue, setActiveDialogue] = useState<DialogueLine[] | null>(null);
+  const [activeDialogue, setActiveDialogue] = useCountedState<DialogueLine[] | null>("activeDialogue", null);
   useEffect(() => {
     if (!hud.insideInterior) return;
     const visits = visitCounts.current.get(hud.insideInterior) ?? 0;
@@ -557,7 +564,7 @@ export function GameCanvas() {
   /* Hull-destroyed feedback: hud.justDied mirrors sim.lastDeath (Scene.tsx already teleports the
    * player back to Nexus the instant it changes), so this only has to notice a new timestamp and
    * show the flash — unlike the ending above, this fires every time, not once ever. */
-  const [deathInfo, setDeathInfo] = useState<{ cause: string; cargoLost: number; deaths: number } | null>(null);
+  const [deathInfo, setDeathInfo] = useCountedState<{ cause: string; cargoLost: number; deaths: number } | null>("deathInfo", null);
   const seenDeathAt = useRef(0);
   useEffect(() => {
     if (!hud.justDied || hud.justDied === seenDeathAt.current) return;
@@ -568,7 +575,7 @@ export function GameCanvas() {
   /* The Fracture Descent's ending: fires once ever, the moment fd-18 lands in completedMissions —
    * gated on the persisted progression.endingSeen flag (not just a session ref) so a returning
    * player who already finished the campaign doesn't get the screen replayed on next launch. */
-  const [showEnding, setShowEnding] = useState(false);
+  const [showEnding, setShowEnding] = useCountedState("showEnding", false);
   const triggeringEnding = useRef(false);
   useEffect(() => {
     if (triggeringEnding.current || progression.endingSeen || !progression.completedMissions.includes("fd-18")) return;
@@ -647,7 +654,7 @@ export function GameCanvas() {
     setSystemCore((m) => (force ? null : (reconcileRuns({ "system-core": m }, incoming)["system-core"] as SystemCoreRun | null)));
     setTutorial((t) => (force ? null : reconcileTutorial(t, incoming)));
   }, []);
-  const [menuNotice, setMenuNotice] = useState("");
+  const [menuNotice, setMenuNotice] = useCountedState("menuNotice", "");
   const newGameBusy = useRef(false);
   /** New Game: with a save, park it in a free slot (never erase) and start from a fresh profile; refuse when no slot is free. */
   const startNewGame = async () => {
@@ -670,7 +677,7 @@ export function GameCanvas() {
   const recordTutorial = (event: TutorialEvent) => setTutorial((current) => current ? advanceTutorial(current, event) : current);
   const recordMission = (event: MissionEvent) => setMission((current) => current ? advanceMission(current, event) : current);
   // Unique Scenario clears: show what the (idempotent) grant actually did. The grant itself runs inside claimDrops; this only describes it.
-  const [rewardCards, setRewardCards] = useState<{ title: string; cards: RewardCard[] } | null>(null);
+  const [rewardCards, setRewardCards] = useCountedState<{ title: string; cards: RewardCard[] } | null>("rewardCards", null);
   const shownRewardRuns = useRef(new Set<string>());
   const showScenarioRewards = (drops: { scenarioClaim?: Parameters<typeof grantScenarioReward>[1] }[]) => {
     const plan = planScenarioRewardCards(progressionRef.current, drops, shownRewardRuns.current);
@@ -678,7 +685,7 @@ export function GameCanvas() {
     if (last) setRewardCards({ title: scenarioById(last.scenarioId)?.name ?? "Scenario", cards: plan.flatMap((p) => p.cards) });
   };
   // Story scenarios (vaelith.ts): branching conversations never block play (Esc / B skips); every effect goes through the pure story reducers
-  const [storyGraph, setStoryGraph] = useState<DialogueGraph | null>(null);
+  const [storyGraph, setStoryGraph] = useCountedState<DialogueGraph | null>("storyGraph", null);
   const applyStory = useCallback((story: StoryState) => setProgression((current) => (current.story === story ? current : { ...current, story })), []);
   const storyGraphRef = useRef<DialogueGraph | null>(null); storyGraphRef.current = storyGraph;
   const finishStoryGraph = useCallback((completed: boolean, story: StoryState) => {
@@ -698,7 +705,7 @@ export function GameCanvas() {
     if (granted.cards.length) { setProgression((current) => grantVaelithRewards({ ...current, story }).progress); setRewardCards({ title: "Vaelith", cards: granted.cards }); }
   }, []);
   // phase captions for the boss stories: presentation only, one line at a time
-  const [captionQueue, setCaptionQueue] = useState<StoryLine[]>([]);
+  const [captionQueue, setCaptionQueue] = useCountedState<StoryLine[]>("captionQueue", []);
   useEffect(() => {
     if (!captionQueue.length) return;
     const t = setTimeout(() => setCaptionQueue((q) => q.slice(1)), 4500);
@@ -728,7 +735,7 @@ export function GameCanvas() {
     if (event.type === "TRIAL_SURVIVED") setStoryGraph(TRUTH_DIALOGUE);
     if (event.type === "DEFENSE_CLEARED") setStoryGraph(ARTIFACT_DIALOGUE);
   }, []);
-  const [levelUpFlash, setLevelUpFlash] = useState<{ level: number; novaUnlocked: string[] } | null>(null);
+  const [levelUpFlash, setLevelUpFlash] = useCountedState<{ level: number; novaUnlocked: string[] } | null>("levelUpFlash", null);
   // diagnostic (F3 "why" line): which tracked state changed identity this render; remove with the F3 line
   canvasWhy.render({ hud, phase, pendingDeployment, menuOpen, settings, adaptiveDpr, lowPerf, autoCap, qualityNotice, vehicleId, garageOpen, inventoryOpen, shopOpen, ruinOpen, cacheBanner, atlasOpen, hubView, travelTo, transit, savedFlash, strategyOpen, analysisOpen, operationsView, last, progression, landmarkToast, cls, subclass, appearance, bodyType, tutorial, showIntro, cineId, cineProgress, introElapsed, mission, awakening, blackout, neonCore, descent, systemCore, activeDialogue, deathInfo, showEnding, menuNotice, rewardCards, storyGraph, captionQueue, levelUpFlash });
   const recordXP = (event: WorldSim["xpEvents"][number]) => {

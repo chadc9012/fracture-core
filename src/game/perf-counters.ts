@@ -29,3 +29,12 @@ export function createWhyRender() {
 }
 /** Shared instance for GameCanvas; PerfProbe drains it into the F3 text. */
 export const canvasWhy = createWhyRender();
+
+/** Diagnostic: how often each tracked state setter is called (not whether the value changed), so a setter hammered every frame shows up even
+ * when React bails out of the update. Wrapped setters keep a stable identity, like React's own. */
+export const setterCalls: Record<string, number> = {};
+export function drainSetterCalls(top = 5): [string, number][] {
+  const out = Object.entries(setterCalls).sort((a, b) => b[1] - a[1]).slice(0, top);
+  for (const k of Object.keys(setterCalls)) delete setterCalls[k];
+  return out;
+}
