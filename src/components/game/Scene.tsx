@@ -1,5 +1,6 @@
 import { renderCounts } from "@/game/perf-counters";
-import { Environment, Lightformer, Sky, Text, useGLTF } from "@react-three/drei";
+import { createHudGate } from "@/game/hud-gate";
+import { Billboard, Environment, Lightformer, Sky, Text, useGLTF } from "@react-three/drei";
 import { heavyShadows, NEAR_SCALE, setPerfTier } from "@/game/perf-budget";
 import { ruins, isEvolved, isDiscovered, freshCharge, RUIN_DISCOVER_RADIUS, RUIN_REACH } from "@/game/weapon-evolution";
 import { useFrame, useThree } from "@react-three/fiber";
@@ -322,9 +323,8 @@ function RegionLabels({ zones }: { zones: readonly ZoneState[] }) {
         const tier = instabilityTier(zone?.instability ?? 0);
         const color = zone ? FACTIONS[zone.owner].color : ZONE_COLOR[r.kind];
         return (
+          <Billboard key={r.id} position={[r.x, walkHeight(r.x, r.z) + 52, r.z]}>
           <Text
-            key={r.id}
-            position={[r.x, walkHeight(r.x, r.z) + 52, r.z]}
             fontSize={7}
             color={color}
             anchorX="center"
@@ -336,6 +336,7 @@ function RegionLabels({ zones }: { zones: readonly ZoneState[] }) {
             {zone?.contested ? " · CONTESTED" : ""}
             {tier !== "STABLE" ? ` · ${tier}` : ""}
           </Text>
+          </Billboard>
         );
       })}
     </group>
@@ -534,6 +535,7 @@ export function Scene({
   /** eased regional signature sky (sky-effects.ts): ashfall, aurora, spores, dust, pollen */
   const skyFx = useRef<SkyFxLive>({ color: new THREE.Color("#ffffff"), density: 0, fall: 0, drift: 0, size: 2, glow: 0, aurora: 0 });
   const report = useRef(0);
+  const hudGate = useRef(createHudGate());
   const live = useRef(createLiveBuild(activeBuild, abilityBranches));
   const abilityHeld = useRef<Record<string, boolean>>({});
   const cameraToggleHeld = useRef(false);
@@ -1915,7 +1917,7 @@ export function Scene({
       // the interior's own regionId — the same substitution updateMusicRegion/regionId already use —
       // rather than silently falling back to defaults for owner/contested/zoneTier while inside.
       const zone = sim.zones.find((z) => z.region.id === (interior ? interior.regionId : here?.id));
-      onHud({
+      const hudSnapshot: HudState = {
         region: interior ? interior.name : here?.name ?? "Open Wilds",
         sub: interior ? (interior.kind === "SHOP" ? (isInteriorOpen(interior, time.current) ? "Shop — open" : "Shop — closed for the night") : "Private residence") : here?.sub ?? "Unclaimed / no cover",
         kind: interior ? "safe" : here?.kind ?? "war",
@@ -2047,7 +2049,9 @@ export function Scene({
           regionId: sim.emergencyQuest.regionId,
           timer: Math.ceil(sim.emergencyQuest.timer),
         },
-      });
+      };
+      // identical snapshots (standing still) skip the React re-render; a heartbeat keeps clock-driven HUD fresh
+      if (hudGate.current(hudSnapshot, performance.now())) onHud(hudSnapshot);
     }
     resetFrameFailureCount();
     } catch (err) {
