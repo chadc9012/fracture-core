@@ -45,7 +45,7 @@ export function LootCaches({ opened }: { opened: string[] }) {
       </instancedMesh>
       <instancedMesh ref={seam} args={[undefined, undefined, max]} frustumCulled={false}>
         <boxGeometry args={[1.45, 0.08, 0.95]} />
-        <meshStandardMaterial color="#ffffff" emissive="#ffffff" emissiveIntensity={1.4} toneMapped={false} />
+        <meshBasicMaterial color="#ffffff" toneMapped={false} />
       </instancedMesh>
       <instancedMesh ref={beam} args={[undefined, undefined, max]} material={beamMat} frustumCulled={false}>
         <cylinderGeometry args={[0.15, 0.4, 24, 8, 1, true]} />
