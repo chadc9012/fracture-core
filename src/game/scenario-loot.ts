@@ -32,12 +32,20 @@ export const TIDECALLER_TRIDENT: GearItem = { id: "tidecaller-trident", name: "T
 export const VEIL_OF_THE_HOLLOW_SAINT: GearItem = { id: "veil-hollow-saint", name: "Veil of the Hollow Saint", slot: "chest", power: 235, level: 1, element: "ARC", rarity: "LEGENDARY", source: "The Hollow Saint" };
 export const CENSER_OF_THE_HOLLOW_SAINT: GearItem = { id: "censer-hollow-saint", name: "Censer of the Hollow Saint", slot: "heavy", power: 310, level: 1, element: "BIO", rarity: "LEGENDARY", source: "The Hollow Saint" };
 
+// Vaelith (story reward, not a boss kill): granted by vaelith.ts through the same idempotent claim, never by defeating the dragon.
+export const DRAGONHEART_PLATE: GearItem = { id: "dragonheart-plate", name: "Dragonheart Plate", slot: "chest", power: 245, level: 1, element: "THERMAL", rarity: "LEGENDARY", source: "Vaelith" };
+export const EMBER_LANCE: GearItem = { id: "ember-lance", name: "Ember Lance", slot: "primary", power: 325, level: 1, element: "THERMAL", rarity: "EXOTIC", source: "Vaelith" };
+export const DRAGON_SCALE_MANTLE: GearItem = { id: "dragon-scale-mantle", name: "Dragon-Scale Mantle", slot: "classItem", power: 245, level: 1, element: "THERMAL", rarity: "LEGENDARY", source: "Vaelith" };
+
 export const ITEM_BLURB: Record<string, string> = {
   "null-sovereign": "Exotic staff. NULL DISRUPTION: well-timed hits (interrupting a wind-up, or striking an open weak point) build Null Charge; at 5 the next hit releases a pulse that stuns nearby enemies and breaks boss poise.",
   "crown-drowned-court": "Legendary helmet. A salt-crusted crown from the sunken court — strong Intellect and Defense; works with any other armor.",
   "tidecaller-trident": "Legendary secondary weapon from the Drowned Monarch. Plain power and CRYO element; no special perk.",
   "veil-hollow-saint": "Legendary chest piece woven from the Saint's shroud — strong Defense; works with any other armor.",
   "censer-hollow-saint": "Legendary heavy weapon from the Hollow Saint. Plain power and BIO element; no special perk.",
+  "dragonheart-plate": "Legendary chest piece grown from a dragon's shed scale — strong Defense; works with any other armor.",
+  "ember-lance": "Exotic primary weapon forged in Vaelith's fire. Plain power and THERMAL element; no special perk.",
+  "dragon-scale-mantle": "Legendary class item woven with Vaelith's scales, given to those it calls Bonded. Strong Intellect, Mobility and Defense.",
   "mantle-null-sovereign": "Legendary class item — the Knight's black coat with cyan lining. Strong Intellect, Mobility and Defense; works with any other armor.",
 };
 
@@ -45,6 +53,8 @@ export type ScenarioLootEntry = { guaranteed: GearItem[]; chance: { item: GearIt
 export const SCENARIO_LOOT: Readonly<Record<string, ScenarioLootEntry>> = {
   "dark-knight": { guaranteed: [NULL_SOVEREIGN], chance: [{ item: MANTLE_OF_THE_NULL_SOVEREIGN, chance: DARK_KNIGHT_MANTLE_CHANCE }] },
   "drowned-monarch": { guaranteed: [CROWN_OF_THE_DROWNED_COURT], chance: [{ item: TIDECALLER_TRIDENT, chance: DROWNED_MONARCH_TRIDENT_CHANCE }] },
+  "vaelith-alliance": { guaranteed: [DRAGONHEART_PLATE, EMBER_LANCE], chance: [] },
+  "vaelith-bond": { guaranteed: [DRAGON_SCALE_MANTLE], chance: [] },
   "hollow-saint": { guaranteed: [VEIL_OF_THE_HOLLOW_SAINT], chance: [{ item: CENSER_OF_THE_HOLLOW_SAINT, chance: HOLLOW_SAINT_CENSER_CHANCE }] },
 };
 

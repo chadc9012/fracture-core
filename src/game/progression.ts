@@ -1,3 +1,4 @@
+import { EMPTY_STORY, normalizeStory, type StoryState } from "./story";
 import { sanitizeActiveMissions, type ActiveMissions } from "./missions/persistence";
 import { DEFAULT_BUILD, type ActiveBuild } from "./ability-network";
 import type { PlayerCharacter } from "./deployment/deployCharacter";
@@ -45,6 +46,8 @@ export type PlayerProgression = {
   activeMissions: ActiveMissions;
   dungeonClears: Record<string, number>;
   earnedRewards: string[];
+  /** shared story layer (story.ts): flags, decisions, trust, scenario stages, collected memories; absent in old saves */
+  story: StoryState;
   inventory: GearItem[];
   equippedGear: Partial<Record<GearSlot, string>>;
   materials: Partial<Record<MaterialId, number>>;
@@ -96,6 +99,7 @@ export const DEFAULT_PROGRESSION: PlayerProgression = {
   activeMissions: {},
   dungeonClears: {},
   earnedRewards: [],
+  story: EMPTY_STORY,
   inventory: STARTER_GEAR,
   equippedGear: STARTER_SLOTS,
   materials: {},
@@ -150,6 +154,7 @@ export function normalizeProgression(raw: unknown): PlayerProgression {
       activeMissions: sanitizeActiveMissions(parsed.activeMissions),
       dungeonClears: parsed.dungeonClears && typeof parsed.dungeonClears === "object" ? parsed.dungeonClears : {},
       earnedRewards: Array.isArray(parsed.earnedRewards) ? parsed.earnedRewards : [],
+      story: normalizeStory(parsed.story),
       abilityMastery: parsed.abilityMastery && typeof parsed.abilityMastery === "object" ? parsed.abilityMastery : {},
       abilityBranches: parsed.abilityBranches && typeof parsed.abilityBranches === "object" ? migrateBranches(parsed.abilityBranches) : {},
       calibrationTokens: typeof parsed.calibrationTokens === "number" ? parsed.calibrationTokens : 3,

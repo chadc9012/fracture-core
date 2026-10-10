@@ -37,7 +37,9 @@ export type PhaseDef = {
   finale?: { attack: string; window: number; floorHp: number; nova: string };
 };
 
-export type EncounterDef = { scenarioId: string; attacks: Record<string, AttackDef>; phases: readonly PhaseDef[]; victory: string };
+/** A non-lethal encounter (Vaelith's First Trial): once hp falls to `below` of max the boss stops attacking and cannot be reduced further. */
+export type TruceDef = { below: number; floorFrac: number; nova: string };
+export type EncounterDef = { scenarioId: string; attacks: Record<string, AttackDef>; phases: readonly PhaseDef[]; victory: string; truce?: TruceDef };
 
 const A = (a: AttackDef) => a;
 
@@ -122,8 +124,25 @@ const HOLLOW_SAINT: EncounterDef = {
   ],
 };
 
+const VAELITH: EncounterDef = {
+  scenarioId: "vaelith",
+  victory: "Survive the trial. Vaelith cannot be killed here.",
+  truce: { below: 0.4, floorFrac: 0.38, nova: "NOVA: It has stopped. It is not retreating - it is deciding to listen." },
+  attacks: {
+    "fire-sweep": A({ id: "fire-sweep", kind: "FAN", label: "Sweeping flame", tell: "Its throat glows white - a wide sweep of flame. Break the line.", tellTime: 1.1, damage: 11, minRange: 8, maxRange: 44, arc: 0.55, reach: 40, recovery: 1.8, window: 1.8 }),
+    "wing-gust": A({ id: "wing-gust", kind: "SLAM", label: "Wing gust", tell: "Its wings lift - a gust will slam the ground around it. Get clear.", tellTime: 1.0, damage: 9, minRange: 0, maxRange: 14, radius: 13, recovery: 1.6, window: 2.0 }),
+    dive: A({ id: "dive", kind: "POUNCE", label: "Aerial dive", tell: "It banks overhead - a dive onto where you stand. Move before it lands.", tellTime: 1.3, damage: 15, minRange: 10, maxRange: 50, radius: 8, recovery: 2.2, window: 2.4 }),
+    shockwave: A({ id: "shockwave", kind: "FIELD", label: "Volcanic shockwave", tell: "The rock glows red under the ring - the shockwave erupts when it turns white.", tellTime: 1.2, damage: 0, minRange: 0, maxRange: 60, recovery: 1.4, window: 1.6,
+      zones: { kind: "DAMAGE", radius: 6, dps: 10, count: 4, arm: 1.6, life: 7, place: "RING", ringRadius: 18, name: "Volcanic shockwave" } }),
+  },
+  phases: [
+    { id: "ashen-gate", name: "The Ashen Gate", below: 1, nova: "NOVA: It tests you. Read the throat glow and the wings.", attacks: ["fire-sweep", "wing-gust"], gap: 1.8 },
+    { id: "first-trial", name: "The First Trial", below: 0.7, nova: "NOVA: Dives and shockwaves now. Survive - you do not have to kill it.", attacks: ["dive", "fire-sweep", "shockwave", "wing-gust"], gap: 1.3 },
+  ],
+};
+
 export const ENCOUNTERS: Readonly<Record<string, EncounterDef>> = {
-  "dark-knight": DARK_KNIGHT, "rime-alpha": RIME_ALPHA, "drowned-monarch": DROWNED_MONARCH, "hollow-saint": HOLLOW_SAINT,
+  "dark-knight": DARK_KNIGHT, "rime-alpha": RIME_ALPHA, "drowned-monarch": DROWNED_MONARCH, "hollow-saint": HOLLOW_SAINT, vaelith: VAELITH,
 };
 export const encounterFor = (scenarioId: string | undefined): EncounterDef | undefined => (scenarioId ? ENCOUNTERS[scenarioId] : undefined);
 

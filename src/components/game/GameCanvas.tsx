@@ -46,6 +46,9 @@ import { IntroCinematic } from "./IntroCinematic";
 import { introTotalSeconds } from "@/game/intro";
 import { VictoryReport } from "./VictoryReport";
 import { ScenarioRewardCards } from "./ScenarioRewardCards";
+import { StoryDialogue } from "./StoryDialogue";
+import { TRUTH_DIALOGUE, ARTIFACT_DIALOGUE, applyVaelithEvent, dialogueDue, grantVaelithRewards, objectiveFor, type StoryWorldEvent } from "@/game/vaelith";
+import type { DialogueGraph, StoryState } from "@/game/story";
 import { idleAbilityHud } from "@/game/ability-hud";
 import { grantScenarioReward, planScenarioRewardCards, type RewardCard } from "@/game/scenario-loot";
 import { scenarioById } from "@/game/unique-scenarios";
@@ -552,6 +555,28 @@ export function GameCanvas() {
     const last = plan[plan.length - 1];
     if (last) setRewardCards({ title: scenarioById(last.scenarioId)?.name ?? "Scenario", cards: plan.flatMap((p) => p.cards) });
   };
+  // Story scenarios (vaelith.ts): branching conversations never block play (Esc / B skips); every effect goes through the pure story reducers
+  const [storyGraph, setStoryGraph] = useState<DialogueGraph | null>(null);
+  const applyStory = useCallback((story: StoryState) => setProgression((current) => (current.story === story ? current : { ...current, story })), []);
+  const finishStoryGraph = useCallback((completed: boolean, story: StoryState) => {
+    setStoryGraph(null);
+    if (!completed) return;
+    // the next beat is due right away (artifact -> alliance); once the alliance is sealed, pay the earned rewards through the validated claim path
+    const due = dialogueDue(story);
+    if (due) { setStoryGraph(due.graph); return; }
+    const granted = grantVaelithRewards({ ...progressionRef.current, story });
+    if (granted.cards.length) { setProgression((current) => grantVaelithRewards({ ...current, story }).progress); setRewardCards({ title: "Vaelith", cards: granted.cards }); }
+  }, []);
+  const recordStory = useCallback((event: StoryWorldEvent) => {
+    if (event.type === "LAIR_ENTER") { setStoryGraph((current) => current ?? dialogueDue(progressionRef.current.story)?.graph ?? null); return; }
+    const before = progressionRef.current.story;
+    const after = applyVaelithEvent(before, event);
+    if (after === before) return;
+    setProgression((current) => ({ ...current, story: applyVaelithEvent(current.story, event) }));
+    progressionRef.current = { ...progressionRef.current, story: after };
+    if (event.type === "TRIAL_SURVIVED") setStoryGraph(TRUTH_DIALOGUE);
+    if (event.type === "DEFENSE_CLEARED") setStoryGraph(ARTIFACT_DIALOGUE);
+  }, []);
   const [levelUpFlash, setLevelUpFlash] = useState<{ level: number; novaUnlocked: string[] } | null>(null);
   const recordXP = (event: WorldSim["xpEvents"][number]) => {
     setProgression((current) => {
@@ -681,7 +706,7 @@ export function GameCanvas() {
       >
         <color attach="background" args={["#bfe4f2"]} />
         <Suspense fallback={null}>
-            <Scene onHud={setHud} onDrops={(drops) => { showScenarioRewards(drops); setProgression((current) => claimDrops(current, drops)); }} gear={progression} settings={settings} onCameraPreference={(firstPerson) => { window.localStorage.setItem("world-fracture-camera", firstPerson ? "first" : "third"); setSettings((current) => ({ ...current, firstPersonDefault: firstPerson })); }} playerClass={cls} subclassId={subclass} appearance={appearance} bodyType={bodyType} vehicleId={vehicleId} vehicleUnlocked={vehicleUnlocked} activeBuild={progression.activeBuild} abilityBranches={progression.abilityBranches} tutorial={tutorial} onTutorialEvent={recordTutorial} mission={mission} onMissionEvent={recordMission} blackout={blackout} onBlackoutEvent={recordBlackout} neonCore={neonCore} onNeonCoreEvent={recordNeonCore} descent={descent} onDescentEvent={recordDescent} systemCore={systemCore} onSystemCoreEvent={recordSystemCore} awakening={awakening} onAwakeningEvent={recordAwakening} onXP={recordXP} weaponOrder={activeLoadout(progression, progression.identityClass ?? cls).slots} travelTo={travelTo} introPlayback={showIntro ? { elapsed: introElapsed, totalSeconds: introTotalSeconds() } : null} armorState={hud.hp < 35 ? "FRACTURE" : hud.heat > 65 ? "ASCENDANT" : hud.heat > 15 ? "ACTIVE" : "STABLE"} />
+            <Scene onStoryEvent={recordStory} onHud={setHud} onDrops={(drops) => { showScenarioRewards(drops); setProgression((current) => claimDrops(current, drops)); }} gear={progression} settings={settings} onCameraPreference={(firstPerson) => { window.localStorage.setItem("world-fracture-camera", firstPerson ? "first" : "third"); setSettings((current) => ({ ...current, firstPersonDefault: firstPerson })); }} playerClass={cls} subclassId={subclass} appearance={appearance} bodyType={bodyType} vehicleId={vehicleId} vehicleUnlocked={vehicleUnlocked} activeBuild={progression.activeBuild} abilityBranches={progression.abilityBranches} tutorial={tutorial} onTutorialEvent={recordTutorial} mission={mission} onMissionEvent={recordMission} blackout={blackout} onBlackoutEvent={recordBlackout} neonCore={neonCore} onNeonCoreEvent={recordNeonCore} descent={descent} onDescentEvent={recordDescent} systemCore={systemCore} onSystemCoreEvent={recordSystemCore} awakening={awakening} onAwakeningEvent={recordAwakening} onXP={recordXP} weaponOrder={activeLoadout(progression, progression.identityClass ?? cls).slots} travelTo={travelTo} introPlayback={showIntro ? { elapsed: introElapsed, totalSeconds: introTotalSeconds() } : null} armorState={hud.hp < 35 ? "FRACTURE" : hud.heat > 65 ? "ASCENDANT" : hud.heat > 15 ? "ACTIVE" : "STABLE"} />
         </Suspense>
         {post && (
           // cinematic grade: cool-leaning teal shadows, a touch more punch, so the HUD's cyan
@@ -719,6 +744,8 @@ export function GameCanvas() {
        <HUD hud={hud} tutorialActive={Boolean(tutorial && tutorial.step !== "VICTORY")} onMenu={() => { setInventoryOpen(false); setAtlasOpen(false); setOperationsView(null); setMenuOpen(true); }} onStrategy={() => setStrategyOpen(true)} onGarage={() => setGarageOpen(true)} onAnalyze={() => setAnalysisOpen(true)} onOperations={(view) => { setInventoryOpen(false); setAtlasOpen(false); setOperationsView(view); }} onInventory={() => { setAtlasOpen(false); setOperationsView(null); setInventoryOpen(true); }} onAtlas={() => { setInventoryOpen(false); setOperationsView(null); setAtlasOpen(true); }} />
        {!tutorial && !hud.insideInterior && <Minimap hud={hud} />}
        {!tutorial && <QuestTracker progression={progression} />}
+       {storyGraph && <StoryDialogue key={storyGraph.id} graph={storyGraph} story={progression.story} onStory={applyStory} onDone={finishStoryGraph} />}
+       {!storyGraph && !activeDialogue && objectiveFor(progression.story) && progression.story.stages.vaelith !== undefined && <p className="pointer-events-none fixed left-4 top-24 z-20 max-w-[280px] font-mono text-[10px] uppercase tracking-[0.18em] text-primary/80">Vaelith · {objectiveFor(progression.story)!.text}</p>}
        {activeDialogue && <DialogueOverlay lines={activeDialogue} onDone={() => setActiveDialogue(null)} />}
        {deathInfo && <DeathOverlay cause={deathInfo.cause} cargoLost={deathInfo.cargoLost} deaths={deathInfo.deaths} onDone={() => setDeathInfo(null)} />}
        {rewardCards && <ScenarioRewardCards title={rewardCards.title} cards={rewardCards.cards} onDone={() => setRewardCards(null)} />}

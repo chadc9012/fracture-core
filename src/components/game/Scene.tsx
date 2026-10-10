@@ -38,6 +38,8 @@ import { Bullets, BeaconMarkers, Convoys, HazardMarkers, SupplyLanes, WarMachine
 import { ScenarioBosses } from "./ScenarioBosses";
 import { NullPulseFx } from "./NullPulseFx";
 import { EncounterFx } from "./EncounterFx";
+import { VAELITH, VAELITH_LAIR, dialogueDue, lairDefenseCleared, memoryNear, startLairDefense, vaelithFightable, type StoryWorldEvent } from "@/game/vaelith";
+import { EMPTY_STORY, stageOf } from "@/game/story";
 import { Car } from "./Vehicle";
 import { NexusCity } from "./NexusCity";
 import { NeonCity, NEON_CITY_CENTER } from "./NeonCity";
@@ -318,6 +320,7 @@ export function Scene({
   tutorial,
   onTutorialEvent,
   onDrops,
+  onStoryEvent,
   gear,
   mission,
   onMissionEvent,
@@ -354,7 +357,9 @@ export function Scene({
   tutorial?: TutorialState | null;
   onTutorialEvent?: (event: TutorialEvent) => void;
   onDrops?: (drops: WorldSim["drops"]) => void;
-  gear?: Pick<PlayerProgression, "inventory" | "equippedGear" | "dungeonClears" | "completedMissions">;
+  /** story scenarios (vaelith.ts): lair entry, memory pickups, trial survived, lair defence cleared; the handler applies them with pure reducers */
+  onStoryEvent?: (event: StoryWorldEvent) => void;
+  gear?: Pick<PlayerProgression, "inventory" | "equippedGear" | "dungeonClears" | "completedMissions" | "story">;
   mission?: MissionRun | null;
   onMissionEvent?: (event: MissionEvent) => void;
   blackout?: BlackoutRun | null;
@@ -417,6 +422,7 @@ export function Scene({
   const structure = useMemo(() => buildInterior("veridan-ruin", SPAWN.x + 28, walkHeight(SPAWN.x + 28, SPAWN.z + 20), SPAWN.z + 20), []);
   const depleted = useRef<Record<string, number>>({});
   const lairsTriggered = useRef<Record<string, boolean>>({});
+  const storyBeats = useRef({ seenEncounterEvent: 0, defenseAt: -1 });
   const appearance = appearanceProp ?? appearanceById("BASTION");
   const selectedClass = classById(playerClass);
   const selectedSubclass = subclassById(subclassId);
@@ -1329,8 +1335,29 @@ export function Scene({
       for (const lair of SCENARIO_LAIRS) {
         const inside = Math.hypot(lair.x - s.x, lair.z - s.z) < LAIR_RADIUS;
         const scenario = scenarioById(lair.scenarioId);
+        // Vaelith is a story scenario: entering asks for the Ashen Gate conversation first; the trial begins once it has been heard
+        if (inside && lair.scenarioId === VAELITH && !tutorial && dialogueDue(gear?.story ?? EMPTY_STORY) && !lairsTriggered.current[`${lair.id}-asked`]) { lairsTriggered.current[`${lair.id}-asked`] = true; onStoryEvent?.({ type: "LAIR_ENTER" }); }
+        if (!inside) lairsTriggered.current[`${lair.id}-asked`] = false;
+        if (lair.scenarioId === VAELITH && (stageOf(gear?.story ?? EMPTY_STORY, VAELITH) === undefined || !vaelithFightable(gear?.story ?? EMPTY_STORY))) continue;
         if (inside && scenario && !lairsTriggered.current[lair.id] && !tutorial && !sim.machines.some((m) => m.alive && m.boss)) { lairsTriggered.current[lair.id] = true; summonScenarioBoss(sim, scenario, lair.x, lair.z); }
         if (!inside && Math.hypot(lair.x - s.x, lair.z - s.z) > LAIR_RADIUS * 4) lairsTriggered.current[lair.id] = false;
+      }
+      // Story beats (vaelith.ts): the sim decides what happened, these only forward it to the pure reducers
+      {
+        const story = gear?.story ?? EMPTY_STORY;
+        const beats = storyBeats.current;
+        const mem = memoryNear(story, s.x, s.z);
+        if (mem) onStoryEvent?.({ type: "MEMORY", id: mem });
+        for (const e of sim.encounterEvents) {
+          if (e.id <= beats.seenEncounterEvent) continue;
+          beats.seenEncounterEvent = e.id;
+          if (e.kind === "TRUCE" && e.scenarioId === VAELITH) onStoryEvent?.({ type: "TRIAL_SURVIVED" });
+        }
+        if (stageOf(story, VAELITH) === "memories") {
+          const nearLair = Math.hypot(VAELITH_LAIR.x - s.x, VAELITH_LAIR.z - s.z) < 30;
+          if (beats.defenseAt < 0 && nearLair && !tutorial) { if (startLairDefense(sim) > 0) beats.defenseAt = performance.now() / 1000; }
+          else if (beats.defenseAt >= 0 && performance.now() / 1000 - beats.defenseAt > 2 && lairDefenseCleared(sim)) { beats.defenseAt = -1; onStoryEvent?.({ type: "DEFENSE_CLEARED" }); }
+        } else beats.defenseAt = -1;
       }
     }
 

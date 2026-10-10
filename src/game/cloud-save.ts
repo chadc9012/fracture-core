@@ -1,3 +1,4 @@
+import { mergeStory } from "./story";
 import { pruneCompleted } from "./missions/persistence";
 import { supabase } from "@/integrations/supabase/client";
 import { furtherTutorial } from "./onboarding";
@@ -42,6 +43,7 @@ export function mergeProgression(local: PlayerProgression, cloud: PlayerProgress
     completedMissions: union(local.completedMissions, cloud.completedMissions),
     unlockedAbilities: migrateAbilityIds(union(local.unlockedAbilities, cloud.unlockedAbilities)),
     earnedRewards: union(local.earnedRewards, cloud.earnedRewards),
+    story: mergeStory(local.story, cloud.story, localIsNewer),
     inventory: [...new Map([...cloud.inventory, ...local.inventory].map((item) => [item.id, item])).values()].map((item) => {
       const other = cloud.inventory.find((entry) => entry.id === item.id);
       const localItem = local.inventory.find((entry) => entry.id === item.id);

@@ -13,12 +13,13 @@ export type EncounterState = {
   tx: number; tz: number; /** arena centre: where the boss was summoned */ cx: number; cz: number;
   /** attacks since the last finale; the finale attack replaces the next rotation slot once a full cycle is done */
   sinceFinale: number; finaleUntil: number; tellTotal: number;
+  /** non-lethal encounters (Vaelith): the truce has begun, the boss no longer attacks */ truce?: boolean; truceAt?: number;
 };
 export type EncounterZone = {
   id: number; scenarioId: string; name: string; kind: ZoneKind; x: number; z: number; radius: number; dps: number; slow: number;
   armAt: number; until: number; orbit?: { cx: number; cz: number; r: number; ang: number; speed: number }; /** "phase" zones live until the phase ends */ scope: "attack" | "phase";
 };
-export type EncounterEventKind = "TELL" | "IMPACT" | "INTERRUPT" | "PHASE" | "ZONE" | "FINALE" | "DECOY" | "DECOY_SHATTER" | "RESET" | "VICTORY";
+export type EncounterEventKind = "TRUCE" | "DEPART" | "TELL" | "IMPACT" | "INTERRUPT" | "PHASE" | "ZONE" | "FINALE" | "DECOY" | "DECOY_SHATTER" | "RESET" | "VICTORY";
 export type EncounterEvent = {
   id: number; kind: EncounterEventKind; scenarioId: string; phase: number; phaseName: string; attack?: string; text: string;
   x: number; z: number; radius: number; duration: number; /** IMPACT: did it actually hit the player */ hit?: boolean; at: number;
@@ -27,6 +28,8 @@ export const MAX_ENCOUNTER_EVENTS = 40;
 /** the encounter only runs while the player is this close to the boss (otherwise it waits, it never attacks from across the map) */
 export const ENGAGE_RANGE = 90;
 const DECOY_COOL = 99;
+/** after a truce the boss stays this long (time to talk), then withdraws */
+export const TRUCE_DEPART_SECONDS = 20;
 
 const nowS = () => performance.now() / 1000;
 
@@ -146,6 +149,22 @@ function stepBoss(sim: WorldSim, m: Machine, dt: number, px: number, pz: number,
   if (!def) return;
   const enc = (m.encounter ??= fresh(m));
   const maxHp = m.maxHp ?? 34;
+  if (def.truce && !enc.truce && m.hp / maxHp <= def.truce.below) {
+    enc.truce = true; enc.truceAt = now; enc.state = "IDLE"; enc.atk = undefined as unknown as string;
+    sim.encounterZones = sim.encounterZones.filter((z) => z.scenarioId !== m.scenarioId);
+    m.poiseState = INITIAL_POISE;
+    alert(sim, def.truce.nova);
+    emit(sim, m, { kind: "TRUCE", text: def.truce.nova, x: m.x, z: m.z, radius: 0, duration: 0 });
+  }
+  if (enc.truce) {
+    m.hp = Math.max(m.hp, maxHp * def.truce!.floorFrac);
+    if (now - (enc.truceAt ?? now) > TRUCE_DEPART_SECONDS) { // the dragon withdraws: no kill, no drops, and the boss slot is freed for other encounters
+      m.alive = false;
+      emit(sim, m, { kind: "DEPART", text: `${m.profile} withdraws to its lair`, x: m.x, z: m.z, radius: 0, duration: 0 });
+      delete m.scenarioId; delete m.scenarioRun; delete m.playerHits; delete m.encounter;
+    }
+    return;
+  }
   const target = phaseIndexFor(def, m.hp / maxHp);
   if (target > enc.phase) enterPhase(sim, m, def, enc, target, now, px, pz);
   const phase = def.phases[enc.phase]!;
@@ -229,6 +248,7 @@ export function encounterHpFloor(m: Machine, now: number): number {
   const def = encounterFor(m.scenarioId);
   const enc = m.encounter;
   if (!def || !enc) return 0;
+  if (def.truce) return (m.maxHp ?? 34) * def.truce.floorFrac; // non-lethal encounters can never be ended by damage, before or after the truce
   const finale = def.phases[enc.phase]?.finale;
   if (!finale) return 0;
   return now < enc.finaleUntil ? 0 : finale.floorHp;
