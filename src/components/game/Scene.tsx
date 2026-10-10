@@ -2108,7 +2108,7 @@ export function Scene({
       <PerfProbe />
       <group name="iso:weather"><Weather playerRef={player} weatherRef={weatherKind} fxRef={weatherFx} /></group>
       <group name="iso:life"><Wildlife playerRef={player} /><Civilians playerRef={player} /></group>
-      <group name="iso:water"><Water size={WORLD_RADIUS * 4} sunRef={sunDir} styleRef={waterStyle} /><Rivers sunRef={sunDir} /></group>
+      <group name="iso:water"><Water size={WORLD_RADIUS * 4} sunRef={sunDir} styleRef={waterStyle} tier={settings.renderTier} /><Rivers sunRef={sunDir} /></group>
       <LootCaches opened={openedCaches} />
       <ShopStalls />
       <NearOnly playerRef={player} x={NEXUS_REGION.x} z={NEXUS_REGION.z} radius={330 * NEAR_SCALE[settings.renderTier]} name="city:nexus"><NexusCity sim={sim} /></NearOnly>

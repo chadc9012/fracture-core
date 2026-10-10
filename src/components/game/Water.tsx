@@ -1,9 +1,11 @@
 import { useFrame, useThree } from "@react-three/fiber";
-import { useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
 
 import { heightAt, WATER_LEVEL } from "@/game/terrain";
 import { WORLD_RADIUS } from "@/game/world";
+import { WATER_INNER_HALF, waterAxis, waterGrid } from "@/game/water-grid";
+import type { RenderTier } from "@/game/performance";
 
 /**
  * Animated ocean / lake surface: gerstner-ish sine waves in the vertex shader (amplitude scaled by
@@ -22,20 +24,30 @@ export type WaterStyleUniforms = {
 const DEPTH_TEX_RES = 256;
 /** The surface mesh is a fixed-size patch that follows the camera (snapped to its vertex spacing, waves keyed to world position), so the vertex density stays
  * fine on a map 4x wider. It reaches past the fog, so its edge is never seen. */
-const PATCH_SIZE = 2400;
-const PATCH_SEGS = 300;
-const PATCH_STEP = PATCH_SIZE / PATCH_SEGS;
+const PATCH_STEP = 8; // near-field vertex spacing (water-grid.ts keeps inner coordinates on this lattice)
 
 export function Water({
   size,
   sunRef,
   styleRef,
+  tier = "MEDIUM",
 }: {
+  tier?: RenderTier;
   size: number;
   sunRef: React.MutableRefObject<THREE.Vector3>;
   styleRef: React.MutableRefObject<WaterStyleUniforms>;
 }) {
   const mat = useRef<THREE.ShaderMaterial>(null!);
+  // dense near the camera, coarse toward the fogged edge (water-grid.ts): 18k-65k triangles by tier instead of 180k everywhere
+  const geometry = useMemo(() => {
+    const { positions, index } = waterGrid(waterAxis(WATER_INNER_HALF[tier]));
+    const g = new THREE.BufferGeometry();
+    g.setAttribute("position", new THREE.BufferAttribute(positions, 3));
+    g.setIndex(new THREE.BufferAttribute(index, 1));
+    g.boundingSphere = new THREE.Sphere(new THREE.Vector3(), 2000); // never culled: it is centred on the camera
+    return g;
+  }, [tier]);
+  useEffect(() => () => geometry.dispose(), [geometry]);
   const mesh = useRef<THREE.Mesh>(null!);
   const camera = useThree((st) => st.camera);
   // the baked depth texture only needs to cover the land (+ coast); beyond it, edge texels read as deep sea
@@ -92,8 +104,7 @@ export function Water({
   });
 
   return (
-    <mesh ref={mesh} rotation-x={-Math.PI / 2} position-y={WATER_LEVEL} receiveShadow frustumCulled={false}>
-      <planeGeometry args={[PATCH_SIZE, PATCH_SIZE, PATCH_SEGS, PATCH_SEGS]} />
+    <mesh ref={mesh} geometry={geometry} rotation-x={-Math.PI / 2} position-y={WATER_LEVEL} receiveShadow frustumCulled={false}>
       <shaderMaterial
         ref={mat}
         transparent
