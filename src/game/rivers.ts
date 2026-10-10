@@ -113,8 +113,9 @@ export function traceRiver(h: H, id: string, regionId: string, sx: number, sz: n
     x += Math.cos(dir) * STEP; z += Math.sin(dir) * STEP;
   }
   const last = pts[pts.length - 1]!;
-  const lake = mouth === "lake" && !spec.dry ? fitLake(h, last.x, last.z) : null;
-  if (lake) for (const p of pts.slice(-4)) p.s = Math.max(Math.min(p.s, lake.level + 0.4), lake.level);
+  const fitted = mouth === "lake" && !spec.dry ? fitLake(h, last.x, last.z) : null;
+  // the pool can never sit above the stream that feeds it
+  const lake = fitted ? { ...fitted, level: Math.min(fitted.level, last.s), r: Math.max(fitted.r, last.w * 1.6) } : null;
 
   // waterfalls: consecutive steep steps merged until they make a real drop (max ~9 m per fall,
   // so a long mountain face becomes a cascade of falls and rapids, not one impossible plunge)
@@ -168,7 +169,11 @@ export function buildWaterNetwork(h: H, sea: number): WaterNetwork {
     const { river, lake } = traceRiver(h, `river-${spec.regionId}`, spec.regionId, src.x, src.z, spec, sea);
     if (river.points.length < 8) continue; // a spring that goes nowhere is not a river
     rivers.push(river);
-    if (lake) lakes.push(lake);
+    if (lake) {
+      const twin = lakes.findIndex((l) => Math.hypot(l.x - lake.x, l.z - lake.z) < lake.r + l.r);
+      if (twin < 0) lakes.push(lake);
+      else if (lake.level < lakes[twin]!.level) lakes[twin] = { ...lake, r: Math.max(lake.r, lakes[twin]!.r) };
+    }
   }
   const o = oasis(h, "solara", sea);
   if (o) lakes.push(o);
