@@ -46,6 +46,20 @@ So the next session can compare like with like:
 2. Our game, same screens: forge Gear tab, inventory, quest tracker, in-combat HUD at 1080p, and the star map Terrain view.
 3. Our F3/F4 captures per `docs/forest-perf-protocol.md` (still outstanding and the gate for everything above).
 
+## 8. Second reference batch: results, death, vendors, vaults, emblems (Behance UI sets)
+Ideas only. Do not reuse the source fonts, icons, emblems or names; all art must be original. Nothing here is implemented.
+
+- **Activity results screen.** Victory banner, a per-player scoreboard (kills / assists / deaths / score), a team-results panel and a rewards row. Our `VictoryReport.tsx` exists; the layout idea is banner on top, stats in the middle, reward chips along the bottom. Rewards stay on the existing idempotent claim ledger; the screen only displays what was already granted.
+- **Death screen.** Short line, a restart reason and "restarting from last checkpoint". Ours: copy and layout for the death overlay on top of `respawn.ts`; it must never change where the player respawns (calm safe ground only).
+- **Faction reputation vendor.** A vendor page with a rank bar, a progress-to-next-rank number and a grid of items gated by rank. Fits `regional-shops.ts`. A reputation system would be new progression state, so it needs your sign-off before any work; for now only the layout is noted.
+- **Vault grid.** Paged grid of item tiles with a capacity counter. Same caveat as the inventory caps in section 2: a cap is a progression rule and needs your decision.
+- **Emblems and rank icons.** Tiered rank badges (a shape, a tier count, a colour). Could drive original operator banners and profile cards; needs original art, none can be generated here.
+- **Character select.** Three tall class panels, which matches the class banner idea in section 3.
+- **Weapon / armor detail cards.** Perk icons with one-line text, stat bars, rarity header colour. Same as section 2; tooltips follow the typography scale in section 4.
+- **Director / destination map.** A planet-style node map with named destination cards and a recommended-activity highlight. Our star map already has region hotspots, a Recommended marker and city chips, so the extra idea is an activity list under each destination card.
+
+Order: these all sit behind the same gate as the rest of this brief (F3/F4 forest readings first, then Nexus, then transit completion, then map finalization). Result, death and detail-card layouts are presentation only and can come first; reputation, vault caps and ranks are progression changes and wait for your approval.
+
 ## Suggested order once the gate passes
 1. Presentation-only HUD polish: rank bars, status timer list, damage-number setting.
 2. Typography scale and minimum sizes.
