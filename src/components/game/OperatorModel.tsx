@@ -5,6 +5,8 @@ import * as THREE from "three";
 import { clone as cloneSkinned } from "three/examples/jsm/utils/SkeletonUtils.js";
 import type { ClassId } from "@/game/loadout";
 import { bodyProfile, type BodyType } from "@/game/operators";
+import type { ArmorLook } from "@/game/armor-look";
+import { buildPalette, regionWeights, type Palette } from "@/game/operator-paint";
 
 /** Authored (Meshy) operator models, served from /public. GOLIATH, NYX and CIPHER are rigged (Mixamo skeleton; walk/run for all, plus showcase for GOLIATH and idle for NYX); Anything missing or failing to load falls back to the procedural Operator. */
 export const OPERATOR_MODELS: Partial<Record<ClassId, { url: string; tint: boolean; rigged: boolean }>> = {
@@ -35,15 +37,42 @@ function pinRootMotion(clip: THREE.AnimationClip) {
   return out;
 }
 
+
+/** Gives every skinned mesh vertex colours from the paint plan, blended by skin weights, on a private copy of the
+ * geometry (the cached GLTF geometry is shared by every clone). The GLBs carry no materials, so this is what
+ * makes the helmet, chest, gauntlets and legs read as separate armor pieces. */
+function paintVertexColors(mesh: THREE.SkinnedMesh, palette: Palette) {
+  const geo = mesh.geometry.clone();
+  const skinIndex = geo.getAttribute("skinIndex"), skinWeight = geo.getAttribute("skinWeight"), position = geo.getAttribute("position");
+  if (!skinIndex || !skinWeight || !position) { mesh.geometry = geo; return geo; }
+  const names = mesh.skeleton.bones.map((b) => b.name);
+  const colours = Object.fromEntries(Object.entries(palette).map(([k, v]) => [k, new THREE.Color(v.color)])) as Record<string, THREE.Color>;
+  const out = new Float32Array(position.count * 3);
+  const j = [0, 0, 0, 0], w = [0, 0, 0, 0];
+  for (let i = 0; i < position.count; i++) {
+    for (let k = 0; k < 4; k++) { j[k] = k === 0 ? skinIndex.getX(i) : k === 1 ? skinIndex.getY(i) : k === 2 ? skinIndex.getZ(i) : skinIndex.getW(i); w[k] = k === 0 ? skinWeight.getX(i) : k === 1 ? skinWeight.getY(i) : k === 2 ? skinWeight.getZ(i) : skinWeight.getW(i); }
+    const parts = regionWeights(names, j, w);
+    let r = 0, g = 0, b = 0;
+    for (const [region, f] of Object.entries(parts)) { const c = colours[region]; if (c) { r += c.r * f!; g += c.g * f!; b += c.b * f!; } }
+    out[i * 3] = r; out[i * 3 + 1] = g; out[i * 3 + 2] = b;
+  }
+  geo.setAttribute("color", new THREE.BufferAttribute(out, 3));
+  mesh.geometry = geo;
+  return geo;
+}
+
 const actions0 = (a: Record<string, THREE.AnimationAction>, name: string) => Boolean(a[name]);
 
-function Model({ url, tint, height, feetY, color, pose, motion, bodyType }: { bodyType: BodyType | undefined; url: string; tint: boolean; height: number; feetY: number; color: string | undefined; pose: "showcase" | "locomotion"; motion: ModelMotion | undefined }) {
+function Model({ url, tint, height, feetY, color, pose, motion, bodyType, look, cloth }: { look: ArmorLook | undefined; cloth: string | undefined; bodyType: BodyType | undefined; url: string; tint: boolean; height: number; feetY: number; color: string | undefined; pose: "showcase" | "locomotion"; motion: ModelMotion | undefined }) {
   const { scene, animations } = useGLTF(url);
   const built = useMemo(() => {
     const object = cloneSkinned(scene);
     let skinned = false;
     const robot = bodyProfile(bodyType).segmented;
-    const material = tint ? new THREE.MeshStandardMaterial({ color: robot ? new THREE.Color(color ?? "#6b6f76").lerp(new THREE.Color("#9aa7b5"), 0.55) : (color ?? "#6b6f76"), metalness: robot ? 1 : 0.55, roughness: robot ? 0.22 : 0.5 }) : null;
+    const palette = tint ? buildPalette({ armor: color, cloth, look, bodyType }) : null;
+    // vertex colours carry the armor regions; a faint cool emissive floor keeps shadowed plates from going black
+    const material = palette ? new THREE.MeshStandardMaterial({ color: "#ffffff", vertexColors: true, metalness: robot ? 0.85 : 0.3, roughness: robot ? 0.3 : 0.55, emissive: new THREE.Color("#0f141c"), emissiveIntensity: 1 }) : null;
+    const ownGeometries: THREE.BufferGeometry[] = [];
     if (material && robot) {
       // segmented chassis: glowing cyan seams every quarter metre up the body, in model-relative height
       material.onBeforeCompile = (shader) => {
@@ -56,7 +85,7 @@ function Model({ url, tint, height, feetY, color, pose, motion, bodyType }: { bo
       const m = o as THREE.SkinnedMesh;
       if (!m.isMesh) return;
       m.castShadow = false; m.receiveShadow = false;
-      if (m.isSkinnedMesh) { skinned = true; m.frustumCulled = false; }
+      if (m.isSkinnedMesh) { skinned = true; m.frustumCulled = false; if (palette) ownGeometries.push(paintVertexColors(m, palette)); }
       if (material) m.material = material;
     });
     object.updateMatrixWorld(true);
@@ -67,9 +96,9 @@ function Model({ url, tint, height, feetY, color, pose, motion, bodyType }: { bo
     const mixer = skinned && animations.length ? new THREE.AnimationMixer(object) : null;
     const actions: Record<string, THREE.AnimationAction> = {};
     if (mixer) for (const clip of animations) { const a = mixer.clipAction(pinRootMotion(clip)); a.timeScale = 0; a.play(); a.weight = 0; actions[clip.name] = a; }
-    return { object, scale, material, mixer, actions, offset: new THREE.Vector3(-centre.x * scale, feetY - box.min.y * scale, -centre.z * scale) };
-  }, [scene, animations, height, feetY, tint, color, bodyType]);
-  useEffect(() => () => { built.material?.dispose(); built.mixer?.stopAllAction(); }, [built]);
+    return { object, scale, material, ownGeometries, mixer, actions, offset: new THREE.Vector3(-centre.x * scale, feetY - box.min.y * scale, -centre.z * scale) };
+  }, [scene, animations, height, feetY, tint, color, bodyType, look, cloth]);
+  useEffect(() => () => { built.material?.dispose(); built.ownGeometries.forEach((g) => g.dispose()); built.mixer?.stopAllAction(); }, [built]);
 
   const rig = useRef<THREE.Group>(null);
   const body = useRef({ crouch: 0, prone: 0, lean: 0 });
@@ -125,11 +154,11 @@ function Model({ url, tint, height, feetY, color, pose, motion, bodyType }: { bo
 
 /** Draws the authored model for `classId` if one exists, else `fallback` (also while loading or on failure).
  * `pose="showcase"` loops the flex clip (forge); `"locomotion"` drives walk/run from the live stride phase. */
-export function OperatorModel({ classId, height, feetY, fallback, color, pose = "showcase", motion, bodyType }: {
-  bodyType?: BodyType | undefined; classId: ClassId; height: number; feetY: number; fallback: ReactNode; color?: string | undefined; pose?: "showcase" | "locomotion"; motion?: ModelMotion | undefined;
+export function OperatorModel({ classId, height, feetY, fallback, color, pose = "showcase", motion, bodyType, look, cloth }: {
+  look?: ArmorLook | undefined; cloth?: string | undefined; bodyType?: BodyType | undefined; classId: ClassId; height: number; feetY: number; fallback: ReactNode; color?: string | undefined; pose?: "showcase" | "locomotion"; motion?: ModelMotion | undefined;
 }) {
   const entry = OPERATOR_MODELS[classId];
   // a static mesh would just slide across the ground, so the world only uses rigged models
   if (!entry || (pose === "locomotion" && !entry.rigged)) return <>{fallback}</>;
-  return <Quiet fallback={fallback}><Suspense fallback={fallback}><Model url={entry.url} tint={entry.tint} height={height} feetY={feetY} color={color} pose={pose} motion={motion} bodyType={bodyType} /></Suspense></Quiet>;
+  return <Quiet fallback={fallback}><Suspense fallback={fallback}><Model url={entry.url} tint={entry.tint} height={height} feetY={feetY} color={color} pose={pose} motion={motion} bodyType={bodyType} look={look} cloth={cloth} /></Suspense></Quiet>;
 }

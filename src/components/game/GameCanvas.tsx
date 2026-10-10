@@ -48,6 +48,7 @@ import { InventoryWindow } from "./InventoryWindow";
 import { WorldAtlas } from "./WorldAtlas";
 import { BrokenSignalOverlay } from "./BrokenSignalOverlay";
 import { AwakeningOverlay } from "./AwakeningOverlay";
+import { armorLook } from "@/game/armor-look";
 import { applyMissionCompletion, restoreMission, withMissionRun } from "@/game/missions/persistence";
 import { advanceAwakening, AWAKENING, type AwakeningEvent, type AwakeningRun } from "@/game/missions/awakening";
 import { normalizeBindings } from "@/game/bindings";
@@ -537,6 +538,7 @@ export function GameCanvas() {
           <MainMenu
             save={evaluateSave(progression, last !== null)}
             classId={progression.identityClass ?? cls}
+            look={armorLook(progression)}
             reducedMotion={prefersReduced(settings.reducedMotion)}
             onContinue={() => setPhase(last || progression.completedMissions.length > 0 ? "hub" : "loadout")}
             onNewGame={() => setPhase("loadout")}

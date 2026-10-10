@@ -86,6 +86,7 @@ function Showcase({ classId, appearance, bodyType, selected, hidden, mode, onSel
         height={2.75}
         feetY={-1.55}
         color={appearance.armor}
+        cloth={appearance.cloth}
         fallback={<Operator armor={appearance.armor} cloth={appearance.cloth} visor={appearance.visor} trim={appearance.trim} classId={classId} bodyType={bodyType} visualState="ACTIVE" />}
       />
     </group>
