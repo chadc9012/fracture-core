@@ -319,6 +319,8 @@ function RegionLabels({ zones }: { zones: readonly ZoneState[] }) {
   );
 }
 
+const GOLDEN = new THREE.Color("#ffb06a");
+const NOON = new THREE.Color("#fff6ea");
 export function Scene({
   onHud,
   settings = { aimAssist: true, firstPersonDefault: true, zoneLabels: true, hudDensity: "full", renderTier: "HIGH" },
@@ -761,6 +763,9 @@ export function Scene({
       sun.current.position.set(Math.cos(theta) * 140, Math.sin(theta) * 150 + 8, 70);
       sun.current.intensity = Math.max(0, intensityAt(time.current));
       sun.current.color.copy(lightColor);
+      // golden hour: low sun warms toward amber, high sun stays near-white for a natural daylight read
+      const elev = Math.sin(theta);
+      if (elev > -0.05) sun.current.color.lerp(GOLDEN, Math.max(0, Math.min(1, 1 - elev * 3)) * 0.55).lerp(NOON, Math.max(0, elev - 0.5) * 0.6);
     }
     sunDir.current.set(Math.cos(theta), Math.max(-0.2, Math.sin(theta)), 0.42).normalize();
     if (sky.current) {
@@ -774,7 +779,7 @@ export function Scene({
     if (moon.current) {
       const ma = moonAngle(time.current);
       moon.current.position.set(-Math.cos(ma) * 140, Math.max(10, Math.sin(ma) * 120), -70);
-      moon.current.intensity = 0.08 + moonlight(time.current, 0) * night * 0.7;
+      moon.current.intensity = 0.12 + moonlight(time.current, 0) * night * 0.85;
     }
 
     /* ---------------- input ---------------- */
@@ -2004,7 +2009,7 @@ export function Scene({
         shadow-camera-bottom={-130}
         shadow-camera-far={520}
       />
-      <directionalLight ref={moon} position={[-90, 110, -70]} color="#9fc4ff" intensity={0.3} />
+      <directionalLight ref={moon} position={[-90, 110, -70]} color="#b9c8e8" intensity={0.3} />
       <Sky
         ref={sky as unknown as React.Ref<never>}
         distance={4000}
@@ -2086,7 +2091,7 @@ export function Scene({
 
       {/* player on foot */}
       <group ref={player} position={SPAWN.toArray()}>
-        <OperatorModel bodyType={bodyType} classId={playerClass} height={2.75} feetY={-1.55} color={appearance.armor} cloth={appearance.cloth} look={worn} pose="locomotion" motion={feel.current.motionRef} fallback={
+        <OperatorModel gear={gear} bodyType={bodyType} classId={playerClass} height={2.75} feetY={-1.55} color={appearance.armor} cloth={appearance.cloth} look={worn} pose="locomotion" motion={feel.current.motionRef} fallback={
   <Operator bodyType={bodyType} armor={appearance.armor} cloth={appearance.cloth} visor={appearance.visor} trim={appearance.trim} classId={playerClass} motion={feel.current.motionRef} visualState={armorState} chestLevel={armorLevels.chest} helmetLevel={armorLevels.helmet} legsLevel={armorLevels.legs} look={worn} />
         } />
         {playerClass === "TITAN" && sim.titan.blocking && (

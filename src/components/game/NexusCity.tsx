@@ -1,3 +1,4 @@
+import { DistrictLight } from "./DistrictLight";
 import { useFrame } from "@react-three/fiber";
 import { useMemo, useRef } from "react";
 import * as THREE from "three";
@@ -70,6 +71,22 @@ function CityBuildings() {
           scale={b.scale}
         />
       ))}
+      {/* warm lit windows + ground-floor shop glow so buildings read as lived-in, especially after dark */}
+      {placed.map((b, i) => (
+        <group key={`w${i}`} position={[b.x, b.y, b.z]} rotation={[0, b.rot, 0]}>
+          {[0, 1, 2, 3].map((f) => (
+            <group key={f} rotation-y={(f * Math.PI) / 2}>
+              {[1.2, 4.4, 7.6].map((h, k) => (
+                <mesh key={k} position={[((i + f + k) % 3 - 1) * 1.2 * b.scale, h * b.scale * 0.6, 2.05 * b.scale]}>
+                  <planeGeometry args={[1.4 * b.scale, 0.55 * b.scale]} />
+                  <meshStandardMaterial color="#1a120a" emissive={k === 0 ? "#ffb25e" : "#ffd59a"} emissiveIntensity={k === 0 ? 1.6 : 0.9} side={THREE.DoubleSide} />
+                </mesh>
+              ))}
+            </group>
+          ))}
+        </group>
+      ))}
+      <DistrictLight range={120} position={[NEXUS.x, walkHeight(NEXUS.x, NEXUS.z) + 9, NEXUS.z]} color="#ffbf7a" intensity={22} distance={NEXUS.radius} decay={1.6} />
       {/* plaza slab so the hub reads as built ground, not open dirt */}
       <mesh rotation-x={-Math.PI / 2} position={[NEXUS.x, walkHeight(NEXUS.x, NEXUS.z) + 0.06, NEXUS.z]} receiveShadow>
         <circleGeometry args={[NEXUS.radius * 0.86, 64]} />

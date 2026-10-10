@@ -144,8 +144,8 @@ function NeonMarketStreet({ y }: { y: number }) {
         <mesh receiveShadow><boxGeometry args={[13.5, 0.28, 2.2]} /><meshStandardMaterial color="#353b47" metalness={0.65} roughness={0.32} /></mesh>
         <LightBar position={[0, -0.08, 1.05]} size={[13, 0.07, 0.07]} color={i ? "#ff2ea6" : "#38e8ff"} />
       </group>)}
-      <DistrictLight position={[0, 5, -13]} color="#ff2ea6" intensity={19} distance={34} decay={2} />
-      <DistrictLight position={[0, 7, 19]} color="#38e8ff" intensity={18} distance={36} decay={2} />
+      <DistrictLight position={[0, 5, -13]} color="#ffb36b" intensity={19} distance={34} decay={2} />
+      <DistrictLight position={[0, 7, 19]} color="#ffc98a" intensity={18} distance={36} decay={2} />
     </group>
   );
 }
@@ -161,8 +161,8 @@ export function NeonCity() {
         <planeGeometry args={[70, 56]} />
         <meshStandardMaterial color="#160a22" roughness={0.7} />
       </mesh>
-      <DistrictLight position={[NEON_CITY_CENTER.x, y + 8, NEON_CITY_CENTER.z]} color="#ff2ea6" intensity={18} distance={60} decay={2} />
-      <DistrictLight position={[NEON_CITY_CENTER.x - 20, y + 8, NEON_CITY_CENTER.z + 15]} color="#38e8ff" intensity={16} distance={50} decay={2} />
+      <DistrictLight position={[NEON_CITY_CENTER.x, y + 8, NEON_CITY_CENTER.z]} color="#ffb36b" intensity={18} distance={60} decay={2} />
+      <DistrictLight position={[NEON_CITY_CENTER.x - 20, y + 8, NEON_CITY_CENTER.z + 15]} color="#ffc98a" intensity={16} distance={50} decay={2} />
       <Billboard x={NEON_CITY_CENTER.x} y={y + 16} z={NEON_CITY_CENTER.z - 30} rotY={0} label="THE FRACTURED EARTH" sub="NEXUS CITY · SAFE ZONE / HUB — NEON CITY · ZONE UNKNOWN" color="#38e8ff" />
       <Billboard x={NEON_CITY_CENTER.x + 34} y={y + 10} z={NEON_CITY_CENTER.z + 4} rotY={-Math.PI / 2.4} label="NEON CITY MARKET" sub="CYBERNETICS & MODS" color="#ff2ea6" />
       <Billboard x={NEON_CITY_CENTER.x - 34} y={y + 9} z={NEON_CITY_CENTER.z + 10} rotY={Math.PI / 2.4} label="SYNTH-COFFEE" sub="& DATA-SHARDS" color="#ffcf3a" />

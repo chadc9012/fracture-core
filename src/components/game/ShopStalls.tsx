@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { REGIONAL_SHOPS, type ShopKind } from "@/game/regional-shops";
 import { walkHeight } from "@/game/terrain";
+import { DistrictLight } from "./DistrictLight";
 
 const KIND_COLOR: Record<ShopKind, string> = {
   weapons: "#ff7a3c", armor: "#66e0ff", supplies: "#8fe08a", mods: "#c86bff", gunsmith: "#ffd27a", vehicles: "#e8f4ff",
@@ -31,6 +32,10 @@ export function ShopStalls() {
             <boxGeometry args={[1.8, 0.35, 0.05]} />
             <meshBasicMaterial color={KIND_COLOR[s.kind]} toneMapped={false} />
           </mesh>
+          {/* warm lantern under the canopy lights the counter; the sign casts a soft wash of its own colour */}
+          <mesh position={[0, 2.75, 0.2]}><sphereGeometry args={[0.12, 10, 8]} /><meshStandardMaterial color="#2a1a0c" emissive="#ffb35c" emissiveIntensity={2.2} toneMapped={false} /></mesh>
+          <DistrictLight range={45} position={[0, 2.6, 0.4]} color="#ffb867" intensity={6} distance={9} decay={2} />
+          <DistrictLight range={45} position={[0, 2.4, 1.1]} color={KIND_COLOR[s.kind]} intensity={2.2} distance={5} decay={2} />
         </group>
       ))}
     </group>

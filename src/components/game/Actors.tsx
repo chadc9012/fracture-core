@@ -1,3 +1,4 @@
+import { EnemyModel } from "./EnemyModel";
 import { scenarioModelReady } from "./ScenarioBosses";
 import { RoundedBox } from "@react-three/drei";
 import { useFrame } from "@react-three/fiber";
@@ -211,21 +212,7 @@ function RegionalEnemy({ kind, boss }: { kind: "RAIDER" | "OVERCLOCKED" | "ABERR
     if (visor.current) visor.current.emissiveIntensity = 2 * pose.glow * (pose.talking ? 0.8 + Math.random() * 0.4 : 1);
     if (head.current) head.current.rotation.x = pose.lean + pose.jaw * 0.2;
   });
-  return <group>
-    <RoundedBox args={[1.4, 2.2, 0.8]} radius={0.16} smoothness={4} position-y={2.1} castShadow><meshStandardMaterial color={metal} roughness={0.55} metalness={kind === "ABERRATION" ? 0.1 : 0.65} /></RoundedBox>
-    <group ref={head} position-y={3.65}>
-      <mesh castShadow><icosahedronGeometry args={[0.68, 2]} /><meshStandardMaterial color={metal} metalness={0.5} roughness={0.4} /></mesh>
-      <RoundedBox args={[0.9, 0.2, 0.16]} radius={0.04} smoothness={2} position={[0, 0, 0.59]}><meshStandardMaterial ref={visor} color={glow} emissive={glow} emissiveIntensity={2} /></RoundedBox>
-    </group>
-    {[-1, 1].map((side) => <group key={side}>
-      <mesh position={[side * 1.04, 2, 0]} rotation-z={side * 0.25} castShadow><capsuleGeometry args={[0.25, 1.15, 4, 6]} /><meshStandardMaterial color={metal} metalness={0.5} /></mesh>
-      <mesh position={[side * 0.45, 0.58, 0]} castShadow><capsuleGeometry args={[0.3, 1.2, 4, 6]} /><meshStandardMaterial color={metal} metalness={0.35} /></mesh>
-      {(kind === "ABERRATION" || boss) && <mesh position={[side * 0.7, 4.25, 0]} rotation-z={side * -0.35} castShadow><coneGeometry args={[0.24, 1.25, 5]} /><meshStandardMaterial color={glow} roughness={0.7} /></mesh>}
-    </group>)}
-    {kind === "RAIDER" && <mesh position={[1.3, 1.9, 1]} rotation-x={Math.PI / 2} castShadow><cylinderGeometry args={[0.18, 0.3, 2.6, 8]} /><meshStandardMaterial color="#302f32" metalness={0.75} /></mesh>}
-    {kind === "OVERCLOCKED" && <mesh position={[0, 2.1, 0.5]}><octahedronGeometry args={[0.38]} /><meshStandardMaterial color={glow} emissive={glow} emissiveIntensity={1.8} /></mesh>}
-    {boss && <mesh position-y={2.5} rotation-x={Math.PI / 2}><torusGeometry args={[2.2, 0.08, 6, 24]} /><meshBasicMaterial color={glow} /></mesh>}
-  </group>;
+  return <EnemyModel kind={kind} boss={boss} visorRef={visor} headRef={head} />;
 }
 
 export function WarMachines({ sim }: { sim: WorldSim }) {
