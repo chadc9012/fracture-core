@@ -95,7 +95,7 @@ export function SkyFx({ fxRef, envRef, playerRef }: { fxRef: React.RefObject<Sky
     aMat.uniforms["uStrength"]!.value = fx.aurora;
     if (aurora.current) {
       aurora.current.visible = fx.aurora > 0.01;
-      if (p) aurora.current.position.set(p.x, 0, p.z);
+      if (p) aurora.current.position.set(p.x, 240, p.z);
     }
   });
 
