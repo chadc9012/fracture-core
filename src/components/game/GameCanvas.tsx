@@ -89,6 +89,7 @@ import { MainMenuHub } from "./MainMenuHub";
 import { configureVoice, speakVoice, stopVoice } from "@/game/voice-director";
 import { recapDue, recapLine } from "@/game/retention";
 import { localSavedAt } from "@/game/cloud-save";
+import { lootCaches, openCache, isOpenedToday, RARITY_HEX } from "@/game/loot-caches";
 
 const CA_OFFSET = new THREE.Vector2(0.0006, 0.0006);
 const START = REGIONS.find((r) => r.id === "nexus")!;
@@ -290,6 +291,7 @@ export function GameCanvas() {
   const [operationsView, setOperationsView] = useState<"DUNGEONS" | "ARSENAL" | "ABILITIES" | null>(null);
   const [last, setLast] = useState<{ credits: number; kills: number } | null>(null);
   const [progression, setProgression] = useState<PlayerProgression>(() => loadProgression());
+  const openedToday = useMemo(() => lootCaches().filter((c) => isOpenedToday(progression, c.id)).map((c) => c.id), [progression.earnedRewards]);
   // the starter vehicle is saved progression, so Continue never re-asks for it
   const vehicleUnlocked = hasVehicle(progression);
   useEffect(() => { if (progression.selectedVehicle) setVehicleId(progression.selectedVehicle); }, [progression.selectedVehicle]);
