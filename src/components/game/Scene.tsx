@@ -938,9 +938,11 @@ export function Scene({
         // low sun angle and poor visibility both thicken the haze near the horizon; cloud cover
         // scatters more light too, so an overcast/stormy sky reads hazier and less saturated
         const horizonBoost = Math.max(0, 1 - Math.abs(Math.sin(theta)));
-        if (u["turbidity"]) u["turbidity"].value = 3.5 + horizonBoost * 6 + cloud * 5 + (1 - visibility) * 7;
+        // regional haze (atmosphere.ts): ember smoke / swamp mist / wasteland grit thicken the sky
+        const haze = atmo.current.haze;
+        if (u["turbidity"]) u["turbidity"].value = 3.5 + horizonBoost * 6 + cloud * 5 + (1 - visibility) * 7 + haze;
         if (u["rayleigh"]) u["rayleigh"].value = 1.4 + horizonBoost * 1.4 + night * 0.4;
-        if (u["mieCoefficient"]) u["mieCoefficient"].value = 0.004 + cloud * 0.01 + (1 - visibility) * 0.01;
+        if (u["mieCoefficient"]) u["mieCoefficient"].value = 0.004 + cloud * 0.01 + (1 - visibility) * 0.01 + haze * 0.002;
         if (u["mieDirectionalG"]) u["mieDirectionalG"].value = 0.8;
       }
     }
