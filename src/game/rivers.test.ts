@@ -45,3 +45,10 @@ describe("named water features survive terrain changes", () => {
     expect(net.lakes.some((l) => Math.hypot(l.x + 18, l.z - 76) < 44)).toBe(true);
   });
 });
+
+describe("road crossings", () => {
+  it("every road-river crossing gets a bridge deck, never a filled channel", async () => {
+    const { riverCrossings, deckAt } = await import("./terrain");
+    for (const c of riverCrossings()) { expect(c.resolved).toBe(true); expect(deckAt(c.x, c.z)).toBe(c.deck); }
+  });
+});
