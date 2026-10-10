@@ -4,6 +4,7 @@
 import { mulberry32 } from "./useKeyboard";
 import { WEAPON_MANIFEST, ARMOR_MANIFEST, type WeaponTier, type ArmorTier } from "./equipment";
 import { listingToGearItem, type VendorListing } from "./vendors";
+import { upgradeGate } from "./upgrade-gates";
 import { upgradeGear, infuseGear, gearCost, type GearItem, type MaterialId } from "./inventory";
 import type { PlayerProgression } from "./progression";
 
@@ -115,6 +116,10 @@ export function shopOffers(shop: RegionalShop, day = today()): ShopOffer[] {
       offers.push({ key: `${shop.id}-${pack.material}`, type: "material", name: pack.name, detail: `+${pack.amount} ${pack.material}`, price: Math.max(1, Math.round((pack.price || 20) * shop.priceMult)), minLevel: 1, material: pack.material, amount: pack.amount });
     }
   }
+  if (shop.kind === "mods" && shop.currency !== "tuningCore") {
+    // the only way to BUY an armor-upgrade gate material; capped by the shop's own currency price, never sold for free
+    offers.push({ key: `${shop.id}-tuningCore`, type: "material", name: "Tuning Core", detail: "+1 tuningCore · unlocks armor upgrades from level 4", price: Math.max(1, Math.round(8 * shop.priceMult)), minLevel: 1, material: "tuningCore", amount: 1 });
+  }
   return offers.filter((o, i) => offers.findIndex((x) => x.key === o.key) === i);
 }
 
@@ -156,6 +161,6 @@ export function serviceGear(p: PlayerProgression, shop: RegionalShop, itemId: st
   const paid = pay(p, shop.currency, serviceFee(shop, item));
   if (!paid) return { error: `Not enough ${shop.currency}` };
   const next = shop.kind === "mods" && element ? infuseGear(paid, itemId, element) : upgradeGear(paid, itemId);
-  if (next === paid) return { error: shop.kind === "mods" ? "Missing infusion materials" : `Needs ${gearCost(item).amount} ${gearCost(item).material}` };
+  if (next === paid) return { error: shop.kind === "mods" ? "Missing infusion materials" : `Needs ${gearCost(item).amount} ${gearCost(item).material}${upgradeGate(item) ? ` + 1 ${upgradeGate(item)!.material}` : ""}` };
   return { progression: next, message: shop.kind === "mods" ? `${item.name} infused` : `${item.name} upgraded to level ${item.level + 1}` };
 }

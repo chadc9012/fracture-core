@@ -51,6 +51,7 @@ import { scenarioById, scenarioFor, type UniqueScenario } from "./unique-scenari
 import { INITIAL_NULL_CHARGE, NULL_PERK, NULL_PULSE_POISE, NULL_PULSE_RADIUS, NULL_PULSE_STUN_SECONDS, registerNullHit, type NullChargeState } from "./null-disruption";
 import { ENCOUNTERS } from "./scenario-encounters";
 import { encounterHpFloor, endEncounter, onDecoyShattered, resetEncounters, stepEncounters, type EncounterEvent, type EncounterState, type EncounterZone } from "./encounter-sim";
+import { rollWeaponLoot } from "./weapon-loot";
 import { PARTICIPATION_HITS, SCENARIO_LOOT, rollScenario, type ScenarioClaim } from "./scenario-loot";
 import { attunedElement, gimmickMultiplier, type DamageElement } from "./scenario-gimmicks";
 
@@ -258,7 +259,7 @@ export type WorldSim = {
   /** 0..1 on-foot speed multiplier from slowing zones this step (Scene applies it) */
   hazardSpeedMult: number;
   materials: Partial<Record<MaterialId, number>>;
-  drops: { id: number; material: MaterialId; amount: number; enemy: string; /** armor-sets.ts: a set piece this kill dropped */ setDrop?: SetDrop; /** scenario-loot.ts: signature reward claim for a valid Unique Scenario clear */ scenarioClaim?: ScenarioClaim }[];
+  drops: { id: number; material: MaterialId; amount: number; enemy: string; /** armor-sets.ts: a set piece this kill dropped */ setDrop?: SetDrop; /** scenario-loot.ts: signature reward claim for a valid Unique Scenario clear */ scenarioClaim?: ScenarioClaim; /** weapon-loot.ts: a real weapon item this kill dropped */ weaponDrop?: GearItem }[];
   /** equipped armor-set bonuses (armor-sets.ts), written by Scene each frame: damage resist 0..0.5 and hull regen/s */
   armorResist: number;
   armorRegen: number;
@@ -350,7 +351,10 @@ export function defeatMachine(sim: WorldSim, m: Machine) {
   const scenarioClaim: ScenarioClaim | undefined = m.scenarioId && SCENARIO_LOOT[m.scenarioId] && m.scenarioRun
     ? { scenarioId: m.scenarioId, runId: m.scenarioRun, participated: (m.playerHits ?? 0) >= PARTICIPATION_HITS, rolls: rollScenario(m.scenarioId) }
     : undefined;
-  sim.drops.push({ id: sim.nextDropId++, material, amount, enemy: m.profile, ...(setDrop ? { setDrop } : {}), ...(scenarioClaim ? { scenarioClaim } : {}) });
+  const dropId = sim.nextDropId++;
+  const weaponDrop = rollWeaponLoot(m.boss ? "enemy-boss" : m.elite ? "enemy-elite" : "enemy-regular", m.zone, Math.random(), `${dropId}-${Math.random().toString(36).slice(2, 8)}`) ?? undefined;
+  sim.drops.push({ id: dropId, material, amount, enemy: m.profile, ...(weaponDrop ? { weaponDrop } : {}), ...(setDrop ? { setDrop } : {}), ...(scenarioClaim ? { scenarioClaim } : {}) });
+  if (weaponDrop) alert(sim, `Weapon drop — ${weaponDrop.name}`);
   if (setDrop) alert(sim, `Armor drop — ${setById(setDrop.setId)?.pieces[setDrop.slot] ?? "set piece"}`);
   sim.xpEvents.push({ type: m.boss ? "BOSS_KILL" : m.elite ? "ELITE_KILL" : "KILL", enemyLevel: 1 + Math.floor(sim.combatHeat / 25), combatHeat: sim.combatHeat });
   dropLoot(sim, zoneOf(sim, m.zone), m.boss ? "ELITE" : m.profile);

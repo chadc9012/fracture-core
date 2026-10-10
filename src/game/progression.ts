@@ -10,6 +10,8 @@ import { FIRST_QUEST_ID } from "./quests";
 import { safeStorageRead, safeStorageWrite } from "./safe-state";
 import { grantXP } from "./xp";
 import { repeatRewardFactor } from "./retention";
+import { FIRST_CLEAR_SPECIAL, isSideContract } from "./upgrade-gates";
+import { grantCompletionWeapon } from "./weapon-loot";
 import type { WeaponId } from "./weapons";
 
 export type ClassId = "TITAN" | "HUNTER" | "WARLOCK";
@@ -234,10 +236,14 @@ export function rewardMission(progression: PlayerProgression, missionId: string,
     paid[id] = amount;
     nextMaterials[id] = (nextMaterials[id] ?? 0) + amount;
   }
+  // first clear only: the earned upgrade material (and, for main missions, one guaranteed weapon) - repeats never pay these
+  if (firstClear) for (const [id, n] of Object.entries(FIRST_CLEAR_SPECIAL(missionId)) as [MaterialId, number][]) nextMaterials[id] = (nextMaterials[id] ?? 0) + n;
   const box = missionBox(firstClear, factor);
   for (const [id, n] of Object.entries(box.materials) as [MaterialId, number][]) nextMaterials[id] = (nextMaterials[id] ?? 0) + n;
+  const inventory = firstClear && !isSideContract(missionId) && missionId !== "mission-01" ? grantCompletionWeapon(withXp, "mission", missionId).inventory : withXp.inventory;
   return {
     ...withXp,
+    inventory,
     completedMissions: firstClear ? [...withXp.completedMissions, missionId] : withXp.completedMissions,
     materials: nextMaterials,
     missionRuns: { ...withXp.missionRuns, [missionId]: { day, count: runsToday + 1 } },
