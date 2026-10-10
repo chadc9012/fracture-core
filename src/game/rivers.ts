@@ -50,6 +50,17 @@ function findSource(h: H, rx: number, rz: number, radius: number): { x: number; 
   return best;
 }
 
+/** springs rise on the upper slopes, not on the summit: walk down to ~60% of the peak's height */
+function springBelow(h: H, x: number, z: number, sea: number) {
+  const top = h(x, z), want = sea + (top - sea) * 0.6;
+  for (let i = 0; i < 40 && h(x, z) > want; i++) {
+    let ba = 0, bv = Infinity;
+    for (let k = 0; k < 12; k++) { const a = (k / 12) * Math.PI * 2; const v = h(x + Math.cos(a) * 3, z + Math.sin(a) * 3); if (v < bv) { bv = v; ba = a; } }
+    x += Math.cos(ba) * 3; z += Math.sin(ba) * 3;
+  }
+  return { x, z };
+}
+
 /** fit a lake into the basin at (x,z): the surface stops where the rim encloses it */
 export function fitLake(h: H, x: number, z: number): Lake {
   const pit = h(x, z);
@@ -85,12 +96,12 @@ export function traceRiver(h: H, id: string, regionId: string, sx: number, sz: n
     if (bestV > g + 0.4) {
       // basin: spill over the lowest nearby saddle if one leads lower, else pool into a lake here
       let spill: { a: number; v: number } | null = null;
-      for (let r = 6; r <= 24 && !spill; r += 3) for (let k = 0; k < 24; k++) {
+      for (let r = 6; r <= 48 && !spill; r += 3) for (let k = 0; k < 24; k++) {
         const a = (k / 24) * Math.PI * 2;
         const v = h(x + Math.cos(a) * r, z + Math.sin(a) * r);
         if (v < g - 0.3 && (!spill || v < spill.v)) spill = { a, v };
       }
-      if (!spill || step > 200) break;
+      if (!spill || step > 200 || g - surface > 6) break; // never cut an implausibly deep gorge
       dir = spill.a;
       x += Math.cos(dir) * STEP; z += Math.sin(dir) * STEP;
       continue;
@@ -149,7 +160,8 @@ export function buildWaterNetwork(h: H, sea: number): WaterNetwork {
   for (const spec of RIVER_SPEC) {
     const r = REGIONS.find((q) => q.id === spec.regionId);
     if (!r) continue;
-    const src = findSource(h, r.x, r.z, r.radius);
+    const peak = findSource(h, r.x, r.z, r.radius);
+    const src = springBelow(h, peak.x, peak.z, sea);
     const { river, lake } = traceRiver(h, `river-${spec.regionId}`, spec.regionId, src.x, src.z, spec, sea);
     if (river.points.length < 8) continue; // a spring that goes nowhere is not a river
     rivers.push(river);
