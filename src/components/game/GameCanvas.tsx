@@ -852,14 +852,14 @@ export function GameCanvas() {
           // depth-of-field (the costly passes) only mount on `premium` so this stays a flat
           // cost increase, not a new tier of budget risk, on MEDIUM/HIGH.
           <EffectComposer multisampling={0}>
-            <HueSaturation hue={-0.02} saturation={0.08} />
-            <BrightnessContrast brightness={-0.02} contrast={0.12} />
-            <Bloom intensity={0.65} luminanceThreshold={0.82} luminanceSmoothing={0.25} mipmapBlur />
+            {!flags.fxOff.has("grade") && <HueSaturation hue={-0.02} saturation={0.08} />}
+            {!flags.fxOff.has("grade") && <BrightnessContrast brightness={-0.02} contrast={0.12} />}
+            {!flags.fxOff.has("bloom") && <Bloom intensity={0.65} luminanceThreshold={0.82} luminanceSmoothing={0.25} mipmapBlur />}
             {premium && <SSAO intensity={18} radius={0.18} luminanceInfluence={0.4} bias={0.025} />}
             {premium && <DepthOfField focusDistance={0.012} focalLength={0.045} bokehScale={2.2} />}
-            <ChromaticAberration offset={CA_OFFSET} />
-            <Vignette offset={0.3} darkness={0.55} />
-            <Noise opacity={0.025} premultiply />
+            {!flags.fxOff.has("ca") && <ChromaticAberration offset={CA_OFFSET} />}
+            {!flags.fxOff.has("vignette") && <Vignette offset={0.3} darkness={0.55} />}
+            {!flags.fxOff.has("noise") && <Noise opacity={0.025} premultiply />}
           </EffectComposer>
         )}
         <PerfSampler />
