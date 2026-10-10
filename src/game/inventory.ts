@@ -3,7 +3,7 @@ import type { WorldSim } from "./sim";
 import { playerPowerScore, rewardPacing } from "./balance";
 import { ARMOR_LEVEL_MAX, grantSetPiece } from "./armor-sets";
 
-export type MaterialId = "scrapMetal" | "reinforcedAlloy" | "microCircuits" | "thermalShards" | "cryoCrystal" | "sporeFiber" | "bioCatalyst" | "vehicleParts" | "anomalyCarbon" | "dataShards" | "magmaCore" | "zeroCore" | "abyssCore" | "aegisCore" | "anomalyCore" | "fuel" | "fuelKingCore" | "fractureCore" | "glacierFang" | "nullPlate";
+export type MaterialId = "scrapMetal" | "reinforcedAlloy" | "microCircuits" | "thermalShards" | "cryoCrystal" | "sporeFiber" | "bioCatalyst" | "vehicleParts" | "anomalyCarbon" | "dataShards" | "magmaCore" | "zeroCore" | "abyssCore" | "aegisCore" | "anomalyCore" | "fuel" | "fuelKingCore" | "fractureCore" | "glacierFang" | "nullPlate" | "hollowHalo" | "roninEdge";
 export type GearSlot = "primary" | "secondary" | "heavy" | "helmet" | "chest" | "gauntlets" | "classItem" | "legs" | "vehicle";
 export type GearItem = { id: string; name: string; slot: GearSlot; power: number; level: number; element: "KINETIC" | "THERMAL" | "CRYO" | "ARC" | "BIO"; favorite?: boolean; source: string; /** armor-sets.ts: which set this piece belongs to */ setId?: string };
 
@@ -28,6 +28,8 @@ export const MATERIALS: Record<MaterialId, { name: string; source: string }> = {
   fractureCore: { name: "Fracture Core", source: "The System Core" },
   glacierFang: { name: "Glacier Fang", source: "The Rime Alpha" },
   nullPlate: { name: "Null Plate", source: "The Dark Knight" },
+  hollowHalo: { name: "Hollow Halo", source: "The Hollow Saint" },
+  roninEdge: { name: "Ronin Edge", source: "The Red Ronin" },
 };
 
 export const STARTER_GEAR: GearItem[] = [

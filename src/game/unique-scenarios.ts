@@ -11,8 +11,14 @@
  * both already call summonBoss() for whatever region they're given.
  */
 
+import type { Gimmick } from "./scenario-gimmicks";
+
 export type UniqueScenario = {
   id: string;
+  /** what the fight asks of the player besides damage (rules in scenario-gimmicks.ts) */
+  gimmick: Gimmick;
+  /** a line the boss speaks the moment it is summoned */
+  taunt?: string;
   name: string;
   regionId: string;
   bossName: string;
@@ -32,6 +38,7 @@ export type UniqueScenario = {
 export const UNIQUE_SCENARIOS: readonly UniqueScenario[] = [
   {
     id: "unbroken-glass",
+    gimmick: "poise",
     name: "Anomaly: The Unbroken Glass",
     regionId: "solara",
     bossName: "The Unbroken Glass",
@@ -43,6 +50,7 @@ export const UNIQUE_SCENARIOS: readonly UniqueScenario[] = [
   },
   {
     id: "system-core",
+    gimmick: "poise",
     name: "The System Core",
     regionId: "thalassia",
     bossName: "The System Core",
@@ -54,6 +62,7 @@ export const UNIQUE_SCENARIOS: readonly UniqueScenario[] = [
   },
   {
     id: "rime-alpha",
+    gimmick: "poise",
     name: "Hunt: The Rime Alpha",
     regionId: "frostspire",
     bossName: "Rime Alpha",
@@ -67,16 +76,46 @@ export const UNIQUE_SCENARIOS: readonly UniqueScenario[] = [
   },
   {
     id: "dark-knight",
+    gimmick: "adaptive",
+    taunt: "\"Show me what your world calls strength.\"",
     name: "Duel: The Dark Knight",
     regionId: "wastelands",
     bossName: "The Dark Knight",
     drop: "nullPlate",
-    briefing: "A lone armored sentinel with a null-field lattice reactor in its chest. Its plating shrugs off nearly everything — only the moment its reactor vents to recharge leaves a gap.",
+    briefing: "A lone armored sentinel with a null-field lattice reactor in its chest. He studies your fighting style: repeat one damage type and he counters it; mix elements and he is forced open. His plating still only yields while the reactor vents.",
     tell: "The chest reactor and arm-guards flash red as the knight raises its staff, then the reactor vents.",
     outsideWindowMult: 0.05,
     rewardCredits: 1000,
     model: { url: "/models/bosses/dark-knight.glb", height: 7.4, glow: 0.3 },
     lair: { dx: -0.5, dz: 0.45 },
+  },
+  {
+    id: "hollow-saint",
+    gimmick: "attune",
+    taunt: "\"Every power you carry was borrowed. I only collect the debt.\"",
+    name: "Apparition: The Hollow Saint",
+    regionId: "solara",
+    bossName: "The Hollow Saint",
+    drop: "hollowHalo",
+    briefing: "A celestial echo that rewrites itself to one damage type at a time. Hits of its attuned element land cleanly; everything else barely scratches it. Watch its halo — it changes colour every nine seconds, so swap your element to match.",
+    tell: "Its halo shifts colour and the ground ring rings once when the attunement changes.",
+    outsideWindowMult: 0.5,
+    rewardCredits: 1100,
+    lair: { dx: 0.5, dz: 0.4 },
+  },
+  {
+    id: "red-ronin",
+    gimmick: "closing",
+    taunt: "\"Distance is a coward's weapon. Come within my reach.\"",
+    name: "Duel: The Red Ronin",
+    regionId: "ember",
+    bossName: "The Red Ronin",
+    drop: "roninEdge",
+    briefing: "A masterless blade that sidesteps anything fired from afar. Shots from long range are cut out of the air; only a close-quarters duel connects, so close the gap and fight at blade range.",
+    tell: "It sinks into a low stance and its edge glows red a heartbeat before it dashes through you.",
+    outsideWindowMult: 0.5,
+    rewardCredits: 1000,
+    lair: { dx: -0.45, dz: -0.4 },
   },
 ];
 

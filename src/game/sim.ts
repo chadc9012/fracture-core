@@ -47,6 +47,7 @@ import { decayPoise, hitPoise, INITIAL_POISE, openWeakPoint, type PoiseState } f
 import { counterTuningFor, type CounterTuning } from "./boss-adaptive-ai";
 import { completeEmergencyQuest, EMERGENCY_QUEST_INIT, stepEmergencyQuest, type EmergencyQuest } from "./emergency-quest";
 import { scenarioById, scenarioFor, type UniqueScenario } from "./unique-scenarios";
+import { attunedElement, gimmickMultiplier, type DamageElement } from "./scenario-gimmicks";
 
 /* ------------------------------------------------------------------
  * World simulation: faction capture, fracture instability,
@@ -103,6 +104,9 @@ export type Machine = {
   eq?: boolean;
   /** set when this boss is a Unique Scenario encounter (see unique-scenarios.ts) instead of a regular catalog boss */
   scenarioId?: string;
+  /** scenario gimmick bookkeeping (scenario-gimmicks.ts): recent hit elements, and the attunement last announced */
+  gimmickHistory?: DamageElement[];
+  attuned?: DamageElement;
   /** patrol/detection/cover state (see enemy-perception.ts); reset when a pooled slot respawns */
   ai?: EnemyAi;
   /** subclass-verb vulnerability window (see subclass-verbs.ts's WEAKEN/MARKED) — while
@@ -325,6 +329,8 @@ export function defeatMachine(sim: WorldSim, m: Machine) {
     }
   }
   alert(sim, `${m.profile} defeated · ${material.replace(/([A-Z])/g, " $1")} +${amount}`);
+  // pooled slots are reused: never let the next occupant inherit this fight's scenario state
+  m.scenarioId = undefined; m.gimmickHistory = undefined; m.attuned = undefined;
 }
 
 const byId = (id: string) => REGIONS.find((r) => r.id === id)!;
@@ -537,7 +543,7 @@ export function summonBoss(sim: WorldSim, regionId: string, x: number, z: number
   }
   const m = sim.machines.find((candidate) => !candidate.alive);
   if (!m) return false;
-  Object.assign(m, { alive: true, x, z, y: walkHeight(x, z) + 5, hp: 28, maxHp: 28, phase: 0 as BossPhaseIndex, rot: 0, scale: 2.3, zone: regionId, cool: 2, elite: true, boss: true, profile: boss.name, kind: "OVERCLOCKED", drop: boss.drop, kx: 0, kz: 0, poiseState: INITIAL_POISE, vulnUntil: 0, vulnMult: 1, ...extra });
+  Object.assign(m, { alive: true, x, z, y: walkHeight(x, z) + 5, hp: 28, maxHp: 28, phase: 0 as BossPhaseIndex, rot: 0, scale: 2.3, zone: regionId, cool: 2, elite: true, boss: true, profile: boss.name, kind: "OVERCLOCKED", drop: boss.drop, kx: 0, kz: 0, poiseState: INITIAL_POISE, scenarioId: undefined, gimmickHistory: undefined, attuned: undefined, vulnUntil: 0, vulnMult: 1, ...extra });
   sim.raidFight = { start: performance.now() / 1000, hurt: 0, region: regionId };
   alert(sim, `${boss.name} · ${boss.tell}`);
   return true;
@@ -548,9 +554,10 @@ export function summonBoss(sim: WorldSim, regionId: string, x: number, z: number
 export function summonScenarioBoss(sim: WorldSim, scenario: UniqueScenario, x: number, z: number, extra?: Partial<Machine>): boolean {
   const m = sim.machines.find((candidate) => !candidate.alive);
   if (!m) return false;
-  Object.assign(m, { alive: true, x, z, y: walkHeight(x, z) + 5, hp: 34, maxHp: 34, phase: 0 as BossPhaseIndex, rot: 0, scale: 2.5, zone: scenario.regionId, cool: 2, elite: true, boss: true, profile: scenario.bossName, kind: "ABERRATION", drop: scenario.drop as MaterialId, kx: 0, kz: 0, poiseState: INITIAL_POISE, scenarioId: scenario.id, vulnUntil: 0, vulnMult: 1, ...extra });
+  Object.assign(m, { alive: true, x, z, y: walkHeight(x, z) + 5, hp: 34, maxHp: 34, phase: 0 as BossPhaseIndex, rot: 0, scale: 2.5, zone: scenario.regionId, cool: 2, elite: true, boss: true, profile: scenario.bossName, kind: "ABERRATION", drop: scenario.drop as MaterialId, kx: 0, kz: 0, poiseState: INITIAL_POISE, scenarioId: scenario.id, gimmickHistory: [], attuned: undefined, vulnUntil: 0, vulnMult: 1, ...extra });
   sim.raidFight = { start: performance.now() / 1000, hurt: 0, region: scenario.regionId };
   alert(sim, `${scenario.name} · ${scenario.briefing}`);
+  if (scenario.taunt) alert(sim, `${scenario.bossName}: ${scenario.taunt}`);
   return true;
 }
 
@@ -1320,6 +1327,13 @@ export function stepSim(sim: WorldSim, input: SimInput) {
     tr.cargo = 1 + Math.floor(Math.random() * 3);
   }
 
+  // ---------- unique-scenario attunement (Hollow Saint): announce each change so the player can swap element ----------
+  for (const m of sim.machines) {
+    if (!m.alive || !m.scenarioId || scenarioById(m.scenarioId)?.gimmick !== "attune") continue;
+    const now = attunedElement(performance.now() / 1000);
+    if (m.attuned !== now) { m.attuned = now; alert(sim, `${m.profile} attunes to ${now} — match it`); }
+  }
+
   // ---------- bullets ----------
   for (const b of sim.bullets) {
     if (!b.alive) continue;
@@ -1357,6 +1371,11 @@ export function stepSim(sim: WorldSim, input: SimInput) {
           // Unique Scenario gimmick: near-immune outside the weak-point/stagger window it just got
           if (m.scenarioId && mult === 1) mult = scenarioById(m.scenarioId)?.outsideWindowMult ?? 1;
           dmg *= mult;
+          if (m.scenarioId) {
+            const g = gimmickMultiplier(scenarioById(m.scenarioId)?.gimmick, { element: sim.equippedElement, nowSec, distance: Math.hypot(m.x - px, m.z - pz), history: m.gimmickHistory ?? [] });
+            m.gimmickHistory = g.history;
+            dmg *= g.mult;
+          }
         }
         m.hp -= dmg;
         if (sim.equippedElement === "CRYO" || sim.equippedElement === "ARC") m.cool = Math.max(m.cool, sim.equippedElement === "CRYO" ? 0.9 : 0.6);
