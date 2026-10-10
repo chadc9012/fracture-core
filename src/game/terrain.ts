@@ -104,7 +104,9 @@ function naturalHeightAt(x: number, z: number): number {
         break;
       }
       case "wastelands": {
-        h = h * (1 - w) + w * (2.5 + (fbm(x * 0.04 + 9, z * 0.04, 3) - 0.5) * 6);
+        // eroded earth with flat-topped buttes: steep strata sides, wind-planed caps
+        const butte = smoothstep(0.6, 0.66, fbm(x * 0.028 + 31, z * 0.028 - 7, 2));
+        h = h * (1 - w) + w * (2.5 + (fbm(x * 0.04 + 9, z * 0.04, 3) - 0.5) * 6 + butte * 6);
         break;
       }
       case "nexus": {
@@ -237,12 +239,61 @@ export function heightAt(x: number, z: number): number {
     if (d < best) { best = d; bh = sgm.a.h + (sgm.b.h - sgm.a.h) * t; }
   }
   const w = 1 - smoothstep(GRADE_CORE, GRADE_FADE, best);
-  return w <= 0 ? raw : raw + (Math.max(bh, WATER_LEVEL + 0.4) - raw) * w;
+  if (w <= 0) return raw;
+  // a road never fills a river channel: inside the channel the carved bed wins (a bridge spans it)
+  const rv = riverAt(x, z);
+  const keep = rv ? 1 - smoothstep(rv.w + 0.5, rv.w + 3, rv.dist) : 0;
+  const graded = raw + (Math.max(bh, WATER_LEVEL + 0.4) - raw) * w;
+  return graded + (Math.min(raw, graded) - graded) * keep;
 }
 
-/** ground height a walker stands on (water surface if submerged) */
+/* ---------------- road-over-river crossings ---------------- */
+
+export type Crossing = { x: number; z: number; deck: number; road: number; dirX: number; dirZ: number; length: number; width: number; dry: boolean; resolved: boolean };
+let crossings: Crossing[] | null = null;
+
+/** every place a supply road meets a river or dry wash; resolved crossings get a bridge deck */
+export function riverCrossings(): Crossing[] {
+  if (crossings) return crossings;
+  if (!gradePoints) buildGrade();
+  const out: Crossing[] = [];
+  for (const r of waterNetwork().rivers) {
+    let hit: { p: RiverPoint; g: GradePoint; d: number; gi: number } | null = null;
+    const flush = () => {
+      if (!hit) return;
+      const a = gradePoints![Math.max(0, hit.gi - 1)]!, b = gradePoints![Math.min(gradePoints!.length - 1, hit.gi + 1)]!;
+      const dx = b.x - a.x, dz = b.z - a.z, len = Math.hypot(dx, dz) || 1;
+      const deck = Math.max(hit.g.h, hit.p.s + 1.1);
+      out.push({ x: hit.p.x, z: hit.p.z, deck, road: hit.g.h, dirX: dx / len, dirZ: dz / len, length: (hit.p.w + 4) * 2, width: 8, dry: r.dry, resolved: deck - hit.g.h < 2.5 });
+      hit = null;
+    };
+    for (const p of r.points) {
+      let best: { g: GradePoint; d: number; gi: number } | null = null;
+      gradePoints!.forEach((g, gi) => { const d = Math.hypot(g.x - p.x, g.z - p.z); if (!best || d < best.d) best = { g, d, gi }; });
+      const b = best as { g: GradePoint; d: number; gi: number } | null;
+      if (b && b.d < GRADE_CORE + p.w) { if (!hit || b.d < hit.d) hit = { p, ...b }; }
+      else flush();
+    }
+    flush();
+  }
+  crossings = out;
+  return out;
+}
+
+/** bridge deck height at (x,z), or -Infinity off every deck */
+export function deckAt(x: number, z: number): number {
+  for (const c of riverCrossings()) {
+    if (!c.resolved) continue;
+    const dx = x - c.x, dz = z - c.z;
+    const along = dx * c.dirX + dz * c.dirZ, across = -dx * c.dirZ + dz * c.dirX;
+    if (Math.abs(along) < c.length / 2 && Math.abs(across) < c.width / 2) return c.deck;
+  }
+  return -Infinity;
+}
+
+/** ground height a walker stands on (water surface if submerged, bridge deck if on one) */
 export function walkHeight(x: number, z: number) {
-  return Math.max(WATER_LEVEL - 0.6, heightAt(x, z));
+  return Math.max(WATER_LEVEL - 0.6, heightAt(x, z), deckAt(x, z));
 }
 
 /** terrain steepness 0..1 — used for traction and traversal cost */

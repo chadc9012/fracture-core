@@ -105,6 +105,8 @@ import type { ArmorVisualState } from "./Scavenger";
 import type { PlayerProgression } from "@/game/progression";
 import { SkyFx, type SkyFxLive } from "./SkyFx";
 import { Rivers } from "./Rivers";
+import { LootCaches } from "./LootCaches";
+import { nearestCache, canOpen, GUARD_RADIUS, ENCRYPT_SECONDS, SCENARIO_LABEL, type CacheRarity } from "@/game/loot-caches";
 import { skyFxAt, NO_SKY_FX } from "@/game/sky-effects";
 
 export type LootView = { name: string; rarity: Rarity; power: number; mods: string[]; color: string };
@@ -223,6 +225,8 @@ export type HudState = {
   /** walk-up regional vendor within reach (regional-shops.ts), null when none */
   shopNearId?: string | null;
   shopNearName?: string;
+  /** nearest world loot cache within reach (loot-caches.ts), with whether its scenario lets it open now */
+  cacheNear?: { id: string; label: string; rarity: CacheRarity; ok: boolean; reason: string; hold: number } | null;
   /** current zone's live instability tier — see sim.ts's instabilityTier(); STABLE unless the zone's own fracture-pulse is actually elevated */
   zoneTier: InstabilityTier;
   /** timestamp of the most recent hull-destroyed respawn (mirrors sim.lastDeath) — GameCanvas watches this to trigger the death screen */
@@ -350,7 +354,10 @@ export function Scene({
   travelTo = null,
   onCheckpoint,
   introPlayback,
+  openedCaches = [],
 }: {
+  /** cache ids already opened today (hidden in the world) */
+  openedCaches?: string[];
   onHud: (s: HudState) => void;
   settings?: GameSettings;
   onCameraPreference?: (firstPerson: boolean) => void;
@@ -489,6 +496,7 @@ export function Scene({
   const atmo = useRef({ fogMix: 0, fogScale: 1, lightMix: 0, skyMix: 0, haze: 0, fogTint: new THREE.Color("#ffffff"), lightTint: new THREE.Color("#ffffff"), skyTint: new THREE.Color("#ffffff"), hemiBase: new THREE.Color("#9ec8e8") });
   /** eased regional water style (water-style.ts): deep/shallow colours, murk and wave chop */
   const waterStyle = useRef({ deep: new THREE.Color("#062a44"), shallow: new THREE.Color("#1d7fa8"), murk: 0.15, chop: 1 });
+  const cacheLive = useRef<{ id: string | null; hold: number; view: HudState["cacheNear"] }>({ id: null, hold: 0, view: null });
   /** eased regional signature sky (sky-effects.ts): ashfall, aurora, spores, dust, pollen */
   const skyFx = useRef<SkyFxLive>({ color: new THREE.Color("#ffffff"), density: 0, fall: 0, drift: 0, size: 2, glow: 0, aurora: 0 });
   const report = useRef(0);
@@ -831,6 +839,21 @@ export function Scene({
     const nexusDetection = detectionStateFor(s.detectionMeter);
     if (s.hacking) s.hackProgress = stepHackProgress(s.hackProgress, dt, nexusDetection);
     else if (inNexus) s.hackProgress = Math.max(0, s.hackProgress - dt * 6); // an abandoned hack slowly drops off, doesn't hard-reset
+    // world loot caches: nearest unopened one, its scenario gate, and hold-to-decrypt progress
+    {
+      const c = s.inVehicle || s.insideInterior ? null : nearestCache(s.x, s.z, s.y);
+      const near = c && !openedCaches.includes(c.id) ? c : null;
+      if (!near || near.id !== cacheLive.current.id) cacheLive.current.hold = 0;
+      if (near?.scenario === "encrypted" && held.has("KeyY")) cacheLive.current.hold = Math.min(ENCRYPT_SECONDS, cacheLive.current.hold + dt);
+      else if (near?.scenario === "encrypted") cacheLive.current.hold = Math.max(0, cacheLive.current.hold - dt * 2);
+      cacheLive.current.id = near?.id ?? null;
+      if (near) {
+        let enemiesNear = 0;
+        for (const m of sim.machines) if (m.alive && Math.hypot(m.x - near.x, m.z - near.z) < GUARD_RADIUS) enemiesNear++;
+        const gate = canOpen(near, { enemiesNear, weather: environmentAt(here?.id, time.current, nightFactor(time.current)).weather?.state, night: nightFactor(time.current), heldSeconds: cacheLive.current.hold });
+        cacheLive.current.view = { id: near.id, label: SCENARIO_LABEL[near.scenario], rarity: near.rarity, ok: gate.ok, reason: gate.reason, hold: cacheLive.current.hold / ENCRYPT_SECONDS };
+      } else cacheLive.current.view = null;
+    }
     const nexusLockdown = lockdownStatus(s.detectionMeter);
     if (inNexus && nexusLockdown.tier !== lastLockdownTier.current) {
       if (nexusLockdown.tier !== "MONITORING") alert(sim, `Nexus City: ${nexusLockdown.response}`);
@@ -1914,6 +1937,7 @@ export function Scene({
         interiorOpen: interior ? isInteriorOpen(interior, time.current) : true,
         shopNearId: !interior && !s.inVehicle ? shopNear(s.x, s.z)?.id ?? null : null,
         shopNearName: !interior && !s.inVehicle ? shopNear(s.x, s.z)?.name ?? "" : "",
+        cacheNear: cacheLive.current.view,
         zoneTier: instabilityTier(zone?.instability ?? 0),
         justDied: sim.lastDeath,
         deathCause: sim.lastDeathCause,
@@ -2004,6 +2028,7 @@ export function Scene({
       <Civilians playerRef={player} />
       <Water size={WORLD_RADIUS * 4} sunRef={sunDir} styleRef={waterStyle} />
       <Rivers sunRef={sunDir} />
+      <LootCaches opened={openedCaches} />
       <ShopStalls />
       <NearOnly playerRef={player} x={NEXUS_REGION.x} z={NEXUS_REGION.z} radius={330}><NexusCity sim={sim} /></NearOnly>
       <NearOnly playerRef={player} x={NEON_CITY_CENTER.x} z={NEON_CITY_CENTER.z} radius={300}><NeonCity /></NearOnly>

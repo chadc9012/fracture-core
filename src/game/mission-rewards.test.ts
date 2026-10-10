@@ -8,7 +8,9 @@ describe("mission rewards", () => {
   test("first clear pays 1.5x materials and is recorded", () => {
     const p = rewardMission(DEFAULT_PROGRESSION, "awakening", { dataShards: 2 }, NOW);
     expect(p.lastMissionReward?.factor).toBe(1.5);
-    expect(p.materials.dataShards).toBe(3);
+    expect(p.lastMissionReward?.materials.dataShards).toBe(3);
+    expect(p.lastMissionReward?.box?.rarity).toBe("EPIC");
+    expect(p.materials.dataShards).toBe(5); // 3 paid + 2 from the first-clear loot box
     expect(p.completedMissions).toContain("awakening");
   });
   test("repeats pay full for 10 runs a day, then taper to 25%", () => {
