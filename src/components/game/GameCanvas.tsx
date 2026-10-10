@@ -1,6 +1,7 @@
 import { renderCounts, canvasWhy, setterCalls } from "@/game/perf-counters";
 import { Canvas } from "@react-three/fiber";
 import { PerformanceMonitor } from "@react-three/drei";
+import { WorldLoading } from "./WorldLoading";
 import { Bloom, BrightnessContrast, ChromaticAberration, DepthOfField, EffectComposer, HueSaturation, Noise, SSAO, Vignette } from "@react-three/postprocessing";
 import * as THREE from "three";
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -318,6 +319,7 @@ export function GameCanvas() {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, []);
+  useEffect(() => { if (phase === "briefing" && !pendingDeployment) setPhase("loadout"); }, [phase, pendingDeployment]);
   // Destiny-style map: M (rebindable) or the controller Menu button toggles the atlas; opening it closes every other in-world overlay.
   const toggleAtlas = useCallback(() => {
     setAtlasOpen((open) => { if (!open) { setInventoryOpen(false); setOperationsView(null); setMenuOpen(false); if (document.pointerLockElement) document.exitPointerLock(); } return !open; });
@@ -823,6 +825,7 @@ export function GameCanvas() {
     );
   }
 
+  if (phase === "briefing" && !pendingDeployment) return null; // recovered by the effect above: a briefing with nothing to brief returns to character setup
   if (phase === "briefing" && pendingDeployment) {
     return (
       <DeploymentBriefing
@@ -867,7 +870,7 @@ export function GameCanvas() {
         }}
       >
         <color attach="background" args={["#bfe4f2"]} />
-        <Suspense fallback={null}>
+        <Suspense fallback={<WorldLoading />}>
             <Scene openedCaches={openedToday} onStoryEvent={recordStory} onHud={setHud} onDrops={(drops) => { showScenarioRewards(drops); setProgression((current) => claimDrops(current, drops)); }} gear={progression} settings={liveSettings} onCameraPreference={(firstPerson) => { window.localStorage.setItem("world-fracture-camera", firstPerson ? "first" : "third"); setSettings((current) => ({ ...current, firstPersonDefault: firstPerson })); }} playerClass={cls} subclassId={subclass} appearance={appearance} bodyType={bodyType} vehicleId={vehicleId} vehicleUnlocked={vehicleUnlocked} activeBuild={progression.activeBuild} abilityBranches={progression.abilityBranches} tutorial={tutorial} onTutorialEvent={recordTutorial} mission={mission} onMissionEvent={recordMission} blackout={blackout} onBlackoutEvent={recordBlackout} neonCore={neonCore} onNeonCoreEvent={recordNeonCore} descent={descent} onDescentEvent={recordDescent} systemCore={systemCore} onSystemCoreEvent={recordSystemCore} awakening={awakening} onAwakeningEvent={recordAwakening} onXP={recordXP} weaponOrder={activeLoadout(progression, progression.identityClass ?? cls).slots} travelTo={travelTo} introPlayback={showIntro ? { elapsed: introElapsed, totalSeconds: introTotalSeconds() } : cineId ? { elapsed: cineProgress * introTotalSeconds(), totalSeconds: introTotalSeconds() } : null} armorState={hud.hp < 35 ? "FRACTURE" : hud.heat > 65 ? "ASCENDANT" : hud.heat > 15 ? "ACTIVE" : "STABLE"} />
         </Suspense>
         {post && (
