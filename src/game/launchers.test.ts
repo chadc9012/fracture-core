@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { LAUNCHERS, isLauncherId, pickLockTarget } from "./launchers";
 import { STATUS_RULES, applyElementHit, burnDamage, freshStatuses, mergeVuln, statusSpeedMult } from "./weapon-elements";
+import { heightAt } from "./terrain";
 import { WEAPONS, WEAPON_ORDER, freshAmmo } from "./weapons";
 import { applyWeaponElement, createSim, defeatMachine, fireBullet, fireLauncher, stepSim } from "./sim";
 
@@ -121,5 +122,41 @@ describe("launchers in the sim", () => {
     sim.bullets.forEach((b) => (b.alive = false));
     fireBullet(sim, 0, 1, 0, 0);
     expect(sim.bullets.find((b) => b.alive)!.element).toBeUndefined();
+  });
+});
+
+describe("launcher tuning (documented numbers)", () => {
+  // sustained damage per second incl. reload, at a direct hit (centre of burst) and ~half falloff, vs the Heavy Cannon it replaces in the power slot
+  const dps = (id: keyof typeof WEAPONS, splashFrac: number) => {
+    const w = WEAPONS[id];
+    const cycle = w.mag * w.fireRate + w.reload;
+    const centre = w.kind === "launcher" ? w.damage : w.damage;
+    return (centre * splashFrac * w.mag) / cycle;
+  };
+  test("no launcher out-damages the Heavy Cannon on a single target by more than 30%, and every launcher has a longer reload", () => {
+    for (const id of ["ROCKET", "CINDER", "FROSTBITE", "VITRIOL"] as const) {
+      expect(dps(id, 1)).toBeLessThan(dps("HEAVY", 1) * 1.3);
+      expect(WEAPONS[id].reload).toBeGreaterThan(WEAPONS.HEAVY.reload);
+    }
+  });
+  test("launcher splash radii stay under 10 m and reserves under 12 rounds", () => {
+    for (const l of Object.values(LAUNCHERS)) { expect(l.ordnance.splashRadius).toBeLessThan(10); expect(WEAPONS[l.id].reserve).toBeLessThan(12); }
+  });
+});
+
+describe("launchers vs convoy trucks", () => {
+  test("a burst destroys a truck through the shared ambush path", () => {
+    const sim = createSim();
+    for (const o of sim.machines) o.alive = false;
+    const tr = sim.trucks[0]!;
+    for (const o of sim.trucks) if (o !== tr) o.alive = false;
+    Object.assign(tr, { alive: true, hp: 3, cargo: 2 });
+    stepSim(sim, { dt: 0.05, px: 0, pz: 0, night: 0 } as never); // trucks follow their lane; read where this one actually is
+    const px = tr.x - 14, pz = tr.z, yaw = Math.PI / 2;
+    const cargo0 = sim.cargo;
+    expect(fireLauncher(sim, "ROCKET", px, heightAt(px, pz) + 1.5, pz, yaw, 0, 5)).toBe(true);
+    for (let i = 0; i < 12 && tr.alive; i++) stepSim(sim, { dt: 0.05, px, pz, night: 0 } as never);
+    expect(tr.alive).toBe(false);
+    expect(sim.cargo).toBe(cargo0 + 2);
   });
 });

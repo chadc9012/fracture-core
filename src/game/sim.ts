@@ -708,6 +708,20 @@ export function applyWeaponElement(sim: WorldSim, m: Machine, element: DamageEle
   if (fx.vuln) { const v = mergeVuln({ mult: m.vulnMult, until: m.vulnUntil }, fx.vuln, now); m.vulnMult = v.mult; m.vulnUntil = v.until; }
 }
 
+/** convoy truck damage shared by bullets and launcher bursts (one kill/loot path) */
+function damageTruck(sim: WorldSim, tr: Truck, dmg: number) {
+  tr.hp -= dmg;
+  logBehavior(sim.adaptation, "combat", 1);
+  if (tr.hp <= 0 && tr.alive) {
+    tr.alive = false;
+    sim.cargo += tr.cargo;
+    logBehavior(sim.adaptation, "logistics", tr.cargo * 2);
+    directorEvent(sim.director, { type: "CARGO", amount: tr.cargo });
+    alert(sim, `Convoy ambushed — ${tr.cargo} crate${tr.cargo > 1 ? "s" : ""} seized`);
+    dropLoot(sim, sim.zones.find((z) => Math.hypot(tr.x - z.region.x, tr.z - z.region.z) < z.region.radius), "CONVOY");
+  }
+}
+
 /** splash damage for one detonation. Never hurts the player; every machine goes through applyMachineDamageMods exactly once. */
 function detonateRound(sim: WorldSim, r: SimRound, b: Burst, px: number, pz: number) {
   r.alive = false;
@@ -726,6 +740,12 @@ function detonateRound(sim: WorldSim, r: SimRound, b: Burst, px: number, pz: num
     sim.lastHit = performance.now();
     logBehavior(sim.adaptation, "combat", 1);
     defeatMachine(sim, m);
+  }
+  for (const tr of sim.trucks) {
+    if (!tr.alive) continue;
+    const d = Math.max(0, Math.hypot(tr.x - b.x, tr.z - b.z) - 3);
+    const base = splashDamage(b, d);
+    if (base > 0) damageTruck(sim, tr, Math.min(base, 3));
   }
   sim.combatHeat += 3;
   sim.burstEvents.push({ id: sim.nextBurstId++, x: b.x, y: b.y, z: b.z, radius: b.radius, element: r.element, launcher: r.launcher });
@@ -1536,6 +1556,11 @@ export function stepSim(sim: WorldSim, input: SimInput) {
         if (m.alive && Math.hypot(m.x - r.x, m.z - r.z) < 2.6 * m.scale) { burst = { x: r.x, y: r.y, z: r.z, radius: r.def.splashRadius, damage: r.def.damage, reason: "PROXIMITY" }; break; }
       }
     }
+    if (!burst && r.alive && r.y - heightAt(r.x, r.z) < 8) {
+      for (const tr of sim.trucks) {
+        if (tr.alive && Math.hypot(tr.x - r.x, tr.z - r.z) < 3.6) { burst = { x: r.x, y: r.y, z: r.z, radius: r.def.splashRadius, damage: r.def.damage, reason: "PROXIMITY" }; break; }
+      }
+    }
     if (burst) detonateRound(sim, r, burst, px, pz);
   }
 
@@ -1601,16 +1626,7 @@ export function stepSim(sim: WorldSim, input: SimInput) {
       if (!tr.alive) continue;
       if (Math.hypot(tr.x - b.x, tr.z - b.z) < 3.6) {
         b.alive = false;
-        tr.hp -= sim.mods.bulletDamage;
-        logBehavior(sim.adaptation, "combat", 1);
-        if (tr.hp <= 0) {
-          tr.alive = false;
-          sim.cargo += tr.cargo;
-          logBehavior(sim.adaptation, "logistics", tr.cargo * 2);
-          directorEvent(sim.director, { type: "CARGO", amount: tr.cargo });
-          alert(sim, `Convoy ambushed — ${tr.cargo} crate${tr.cargo > 1 ? "s" : ""} seized`);
-          dropLoot(sim, sim.zones.find((z) => Math.hypot(tr.x - z.region.x, tr.z - z.region.z) < z.region.radius), "CONVOY");
-        }
+        damageTruck(sim, tr, sim.mods.bulletDamage);
         break;
       }
     }

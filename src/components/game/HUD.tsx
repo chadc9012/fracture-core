@@ -47,7 +47,7 @@ export function HUD({ hud, tutorialActive = false, onMenu }: { hud: HudState; tu
     </div>
     {ammo && (
       <div className={`hud-status absolute bottom-4 right-4 w-36 px-3 py-2 text-right ${hud.overheated ? "hud-glow-destructive" : ""}`}>
-        <p className="hud-label truncate">{ammo.name}</p>
+        <p className="hud-label truncate">{ammo.name}{ammo.element ? <span className="ml-1 text-primary">· {ammo.element.toLowerCase()}</span> : null}</p>
         <p className={`text-3xl font-semibold leading-none ${lowAmmo ? "text-warning" : "text-foreground"}`}>{melee ? "∞" : ammo.mag}<span className="text-xs text-muted-foreground">{melee ? "" : ` / ${ammo.reserve}`}</span></p>
         <div className="mt-1.5 h-1.5 overflow-hidden border border-foreground/20 bg-background/60">{hud.reloading > 0 ? <div className="h-full hud-ticks bg-primary" style={{ width: `${hud.reloading * 100}%` }} /> : <div className={`h-full hud-ticks ${lowAmmo ? "bg-warning" : "bg-primary"}`} style={{ width: `${melee ? 100 : (ammo.mag / Math.max(1, ammo.magSize)) * 100}%` }} />}</div>
         <p className="mt-1 hud-label text-[8px]">{hud.reloading > 0 ? "Reloading" : hud.overheated ? "Venting" : `Weapon Heat ${hud.weaponHeat}%`}</p>

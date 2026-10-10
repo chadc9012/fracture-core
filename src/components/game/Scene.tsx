@@ -161,7 +161,7 @@ export type HudState = {
   weaponName: string;
   weaponSlot: number;
   /* ammo + weapon selection */
-  ammo: { id: WeaponId; name: string; mag: number; magSize: number; reserve: number }[];
+  ammo: { id: WeaponId; name: string; mag: number; magSize: number; reserve: number; element?: string }[];
   reloading: number;
   weaponWheel: boolean;
   weaponSwitched: number;
@@ -1914,7 +1914,7 @@ export function Scene({
         meleeTime: s.meleeTime,
         weaponName: WEAPONS[s.weapon].name,
         weaponSlot: orderRef.current.indexOf(s.weapon) + 1,
-        ammo: orderRef.current.map((id) => ({ id, name: WEAPONS[id].name, mag: s.ammo[id].mag, magSize: WEAPONS[id].mag, reserve: s.ammo[id].reserve })),
+        ammo: orderRef.current.map((id) => ({ id, name: WEAPONS[id].name, mag: s.ammo[id].mag, magSize: WEAPONS[id].mag, reserve: s.ammo[id].reserve, ...(WEAPONS[id].element && WEAPONS[id].element !== "KINETIC" ? { element: WEAPONS[id].element } : {}) })),
         reloading: s.reload > 0 ? 1 - s.reload / WEAPONS[s.weapon].reload : 0,
         weaponWheel: s.wheel,
         weaponSwitched: s.switchedAt,
