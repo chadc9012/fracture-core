@@ -86,6 +86,7 @@ export function traceRiver(h: H, id: string, regionId: string, sx: number, sz: n
     const grow = Math.min(1.6, 1 + step / 120);
     pts.push({ x, z, s: surface, w: spec.w * grow, d: spec.d });
     if (g < sea) { mouth = "ocean"; break; }
+    if (pts.some((q, qi) => qi < pts.length - 6 && Math.hypot(q.x - x, q.z - z) < STEP * 1.2)) break; // looping: pool here
     // choose the lowest heading near the current one (keeps meanders smooth)
     let bestA = dir, bestV = Infinity;
     for (const off of [0, -0.3, 0.3, -0.6, 0.6, -0.95, 0.95, -1.4, 1.4]) {
@@ -99,7 +100,9 @@ export function traceRiver(h: H, id: string, regionId: string, sx: number, sz: n
       for (let r = 6; r <= 48 && !spill; r += 3) for (let k = 0; k < 24; k++) {
         const a = (k / 24) * Math.PI * 2;
         const v = h(x + Math.cos(a) * r, z + Math.sin(a) * r);
-        if (v < g - 0.3 && (!spill || v < spill.v)) spill = { a, v };
+        const tx = x + Math.cos(a) * r, tz = z + Math.sin(a) * r;
+        const revisits = pts.some((q, qi) => qi < pts.length - 3 && Math.hypot(q.x - tx, q.z - tz) < r * 0.8);
+        if (v < surface - 0.3 && !revisits && (!spill || v < spill.v)) spill = { a, v };
       }
       if (!spill || step > 200 || g - surface > 6) break; // never cut an implausibly deep gorge
       dir = spill.a;
