@@ -2,6 +2,7 @@
 import { REGIONS } from "./world";
 import { ENCOUNTERS } from "./encounters";
 import type { MaterialId } from "./inventory";
+import { LAIR_SCENARIOS } from "./unique-scenarios";
 
 export type MarkerKind = "MISSION" | "RESOURCE" | "BOSS";
 export type Marker = { id: string; kind: MarkerKind; label: string; x: number; z: number; regionId: string; ready?: boolean };
@@ -35,6 +36,13 @@ export const BOSS_LAIRS: Marker[] = ENCOUNTERS.flatMap((entry) => {
   const region = REGIONS.find((r) => r.id === entry.regionId);
   if (!entry.boss || !region || region.kind === "safe") return [];
   return [{ id: `boss-${region.id}`, kind: "BOSS" as const, label: entry.boss.name, x: region.x + region.radius * 0.6, z: region.z - region.radius * 0.55, regionId: region.id }];
+});
+
+/** Unique Scenario lairs (unique-scenarios.ts): entering one summons that scenario's boss. */
+export const SCENARIO_LAIRS: (Marker & { scenarioId: string })[] = LAIR_SCENARIOS.flatMap((sc) => {
+  const region = REGIONS.find((r) => r.id === sc.regionId);
+  if (!region || !sc.lair) return [];
+  return [{ id: `scenario-${sc.id}`, scenarioId: sc.id, kind: "BOSS" as const, label: sc.bossName, x: region.x + region.radius * sc.lair.dx, z: region.z + region.radius * sc.lair.dz, regionId: region.id }];
 });
 
 export const GATHER_RADIUS = 4.5;

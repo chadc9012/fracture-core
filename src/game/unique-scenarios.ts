@@ -23,6 +23,10 @@ export type UniqueScenario = {
   /** damage multiplier applied to hits landing OUTSIDE a weak-point/stagger window — the gimmick */
   outsideWindowMult: number;
   rewardCredits: number;
+  /** authored GLB shown instead of the procedural boss body (ScenarioBosses.tsx); the procedural body stays as the fallback while it loads or if it fails */
+  model?: { url: string; /** displayed height in metres */ height: number; /** emissive lift from the colour map so glowing parts read in shadow */ glow: number };
+  /** a lair that summons this scenario when the player walks in (offsets are fractions of the region radius from its centre) */
+  lair?: { dx: number; dz: number };
 };
 
 export const UNIQUE_SCENARIOS: readonly UniqueScenario[] = [
@@ -48,10 +52,40 @@ export const UNIQUE_SCENARIOS: readonly UniqueScenario[] = [
     outsideWindowMult: 0.06,
     rewardCredits: 1200,
   },
+  {
+    id: "rime-alpha",
+    name: "Hunt: The Rime Alpha",
+    regionId: "frostspire",
+    bossName: "Rime Alpha",
+    drop: "glacierFang",
+    briefing: "A crystal-coated alpha that has fed on the Frostspire's cryo seams — its ice plating turns almost every shot aside. It only lowers its guard when it lunges and its coat cracks open.",
+    tell: "Its spine-crystals flare teal and the glow sinks into its ribs right before it lunges.",
+    outsideWindowMult: 0.07,
+    rewardCredits: 900,
+    model: { url: "/models/bosses/frost-wolf.glb", height: 5.2, glow: 0.45 },
+    lair: { dx: -0.5, dz: 0.45 },
+  },
+  {
+    id: "dark-knight",
+    name: "Duel: The Dark Knight",
+    regionId: "wastelands",
+    bossName: "The Dark Knight",
+    drop: "nullPlate",
+    briefing: "A lone armored sentinel with a null-field lattice reactor in its chest. Its plating shrugs off nearly everything — only the moment its reactor vents to recharge leaves a gap.",
+    tell: "The chest reactor and arm-guards flash red as the knight raises its staff, then the reactor vents.",
+    outsideWindowMult: 0.05,
+    rewardCredits: 1000,
+    model: { url: "/models/bosses/dark-knight.glb", height: 7.4, glow: 0.3 },
+    lair: { dx: -0.5, dz: 0.45 },
+  },
 ];
 
+/** Scenarios that have their own lair marker (the rest are summoned by a region, the debug key or a mission). */
+export const LAIR_SCENARIOS = UNIQUE_SCENARIOS.filter((s) => s.lair);
+
 export function scenarioFor(regionId: string): UniqueScenario | undefined {
-  return UNIQUE_SCENARIOS.find((s) => s.regionId === regionId);
+  // lair scenarios are summoned from their lair, not as a region's fallback boss
+  return UNIQUE_SCENARIOS.find((s) => s.regionId === regionId && !s.lair);
 }
 
 export function scenarioById(id: string): UniqueScenario | undefined {

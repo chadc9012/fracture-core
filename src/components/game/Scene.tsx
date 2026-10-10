@@ -6,7 +6,7 @@ import * as THREE from "three";
 import { REGIONS, SKY, ZONE_COLOR, clockLabel, phaseFor, regionAt, WORLD_RADIUS } from "@/game/world";
 import { useKeyboard } from "@/game/useKeyboard";
 import { walkHeight, slopeAt, heightAt, WATER_LEVEL } from "@/game/terrain";
-import { alert, applyLightning, applySuppressPulse, applyVulnPulse, collidePlayer, createSim, defeatMachine, FACTIONS, fireBullet, hurtPlayer, throwBeacon, instabilityTier, spawnMissionDrones, placeRiftTurret, spawnVolatileZone, stepSim, summonBoss, type Faction, type InstabilityTier, type WorldSim, type ZoneState } from "@/game/sim";
+import { alert, applyLightning, applySuppressPulse, applyVulnPulse, collidePlayer, createSim, defeatMachine, FACTIONS, fireBullet, hurtPlayer, throwBeacon, instabilityTier, spawnMissionDrones, placeRiftTurret, spawnVolatileZone, stepSim, summonBoss, summonScenarioBoss, type Faction, type InstabilityTier, type WorldSim, type ZoneState } from "@/game/sim";
 import type { MissionEvent, MissionRun } from "@/game/missions/broken-signal";
 import type { MissionEvent as BlackoutEvent, MissionRun as BlackoutRun } from "@/game/missions/blackout-protocol";
 import type { MissionEvent as NeonCoreEvent, MissionRun as NeonCoreRun } from "@/game/missions/stitched-neon-core";
@@ -35,6 +35,7 @@ import { closeStratagems, createStratagemState, inputDirection, openStratagems, 
 import { Wildlife } from "./Wildlife";
 import { Civilians } from "./Civilians";
 import { Bullets, BeaconMarkers, Convoys, HazardMarkers, SupplyLanes, WarMachines, ZoneBeacons } from "./Actors";
+import { ScenarioBosses } from "./ScenarioBosses";
 import { Car } from "./Vehicle";
 import { NexusCity } from "./NexusCity";
 import { NeonCity, NEON_CITY_CENTER } from "./NeonCity";
@@ -45,7 +46,8 @@ import { OperatorModel } from "./OperatorModel";
 import { Interior } from "./Interior";
 import { WorldMarkers } from "./WorldMarkers";
 import { buildInterior, applyDamage, hitTest, stepDebris, STRUCTURE_MULT } from "@/game/destruction";
-import { BOSS_LAIRS, GATHER_RADIUS, LAIR_RADIUS, RESOURCE_SITES, RESPAWN_SECONDS, regionCenter, track, type Marker, type TrackedMarker } from "@/game/waypoints";
+import { scenarioById } from "@/game/unique-scenarios";
+import { BOSS_LAIRS, SCENARIO_LAIRS, GATHER_RADIUS, LAIR_RADIUS, RESOURCE_SITES, RESPAWN_SECONDS, regionCenter, track, type Marker, type TrackedMarker } from "@/game/waypoints";
 import type { InspectorView } from "./Inspector";
 import { TIER_RADII } from "@/game/lod";
 import { RARITY_COLOR, type Rarity } from "@/game/loot";
@@ -440,6 +442,7 @@ export function Scene({
     if (!investigation.current.done) list.push({ id: "forest-crash-site", kind: "MISSION", label: CRASH_SITE.label, x: CRASH_SITE.x, z: CRASH_SITE.z, regionId: "veridan" });
     for (const site of RESOURCE_SITES) list.push({ ...site, ready: (depleted.current[site.id] ?? 0) <= now });
     for (const lair of BOSS_LAIRS) list.push(lair);
+    for (const lair of SCENARIO_LAIRS) list.push(lair);
     for (const m of sim.machines) if (m.alive && m.boss) list.push({ id: `live-${m.profile}`, kind: "BOSS", label: `${m.profile} (engaged)`, x: m.x, z: m.z, regionId: m.zone });
     if (sim.emergencyQuest.state === "WARNING" || sim.emergencyQuest.state === "ACTIVE") list.push({ id: "eq-boss", kind: "BOSS", label: `EQ · ${sim.emergencyQuest.bossName}`, x: sim.emergencyQuest.x, z: sim.emergencyQuest.z, regionId: sim.emergencyQuest.regionId });
     list.push({ id: "neon-city", kind: "MISSION", label: "Neon City", x: NEON_CITY_CENTER.x, z: NEON_CITY_CENTER.z, regionId: "nexus" });
@@ -1352,6 +1355,13 @@ export function Scene({
         if (inside && !lairsTriggered.current[lair.id] && !sim.machines.some((m) => m.alive && m.boss)) { lairsTriggered.current[lair.id] = true; summonBoss(sim, lair.regionId, lair.x, lair.z); }
         if (!inside && Math.hypot(lair.x - s.x, lair.z - s.z) > LAIR_RADIUS * 4) lairsTriggered.current[lair.id] = false;
       }
+      // Unique Scenario lairs (Rime Alpha, Dark Knight, ...): same walk-in trigger, but they summon the scenario boss
+      for (const lair of SCENARIO_LAIRS) {
+        const inside = Math.hypot(lair.x - s.x, lair.z - s.z) < LAIR_RADIUS;
+        const scenario = scenarioById(lair.scenarioId);
+        if (inside && scenario && !lairsTriggered.current[lair.id] && !tutorial && !sim.machines.some((m) => m.alive && m.boss)) { lairsTriggered.current[lair.id] = true; summonScenarioBoss(sim, scenario, lair.x, lair.z); }
+        if (!inside && Math.hypot(lair.x - s.x, lair.z - s.z) > LAIR_RADIUS * 4) lairsTriggered.current[lair.id] = false;
+      }
     }
 
     /* ---------------- combat audio: impacts, kills, damage taken, intensity mix ---------------- */
@@ -1966,6 +1976,7 @@ export function Scene({
       <ZoneBeacons sim={sim} />
       <Convoys sim={sim} />
       <WarMachines sim={sim} />
+      <ScenarioBosses sim={sim} />
       <HazardMarkers sim={sim} />
       <BeaconMarkers sim={sim} />
       {awakening?.target && (awakening.state === "CAPTURE" || awakening.state === "HOLD" || awakening.state === "EXTRACT") && (
