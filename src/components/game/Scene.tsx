@@ -37,6 +37,7 @@ import { Civilians } from "./Civilians";
 import { Bullets, BeaconMarkers, Convoys, HazardMarkers, SupplyLanes, WarMachines, ZoneBeacons } from "./Actors";
 import { ScenarioBosses } from "./ScenarioBosses";
 import { NullPulseFx } from "./NullPulseFx";
+import { EncounterFx } from "./EncounterFx";
 import { Car } from "./Vehicle";
 import { NexusCity } from "./NexusCity";
 import { NeonCity, NEON_CITY_CENTER } from "./NeonCity";
@@ -1200,7 +1201,7 @@ export function Scene({
       const stance = resolveStance(mvs.state, { crouchHeld: crouchKey, sprinting: boost, jumping: held.has("KeyC"), grounded: s.grounded, sliding: mvs.state.slideLeft > 0, swimming: s.diving || submerged });
       stepStance(mvs.state, dt);
       const sprint = boost && stance === "STAND";
-      const walk = 30 * traction * (sprint ? 2.1 : 1) * STANCE_SPEED[stance] * (1 + armorFxRef.current.moveSpeed) * sim.mods.footSpeed * (live.current.dashTime > 0 ? 1.4 : 1) * siegeMoveMult(live.current.siegeTime) * (1 + chainBonus);
+      const walk = 30 * traction * (sprint ? 2.1 : 1) * STANCE_SPEED[stance] * (1 + armorFxRef.current.moveSpeed) * sim.mods.footSpeed * (live.current.dashTime > 0 ? 1.4 : 1) * siegeMoveMult(live.current.siegeTime) * (1 + chainBonus) * sim.hazardSpeedMult;
       if (wish.lengthSq() > 0) wish.normalize().multiplyScalar(walk * hazardRef.current.speedMul);
       {
         // slide: out of a sprint, commit to the heading with a speed burst that bleeds off (movement.ts)
@@ -1948,6 +1949,7 @@ export function Scene({
       <WarMachines sim={sim} />
       <ScenarioBosses sim={sim} />
       <NullPulseFx sim={sim} tier={settings.renderTier} reducedMotion={!!settings.reducedMotion || (typeof window !== "undefined" && typeof window.matchMedia === "function" && window.matchMedia("(prefers-reduced-motion: reduce)").matches)} />
+      <EncounterFx sim={sim} reducedMotion={!!settings.reducedMotion || (typeof window !== "undefined" && typeof window.matchMedia === "function" && window.matchMedia("(prefers-reduced-motion: reduce)").matches)} />
       <HazardMarkers sim={sim} />
       <BeaconMarkers sim={sim} />
       {awakening?.target && (awakening.state === "CAPTURE" || awakening.state === "HOLD" || awakening.state === "EXTRACT") && (

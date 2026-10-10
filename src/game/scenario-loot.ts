@@ -21,14 +21,31 @@ export const MANTLE_OF_THE_NULL_SOVEREIGN: GearItem = {
   id: "mantle-null-sovereign", name: "Mantle of the Null Sovereign", slot: "classItem", power: 240, level: 1, element: "ARC", rarity: "LEGENDARY", source: "The Dark Knight",
 };
 
+/** Chance that a valid Drowned Monarch / Hollow Saint clear also drops its chance item. Named config, balance after playtesting. */
+export const DROWNED_MONARCH_TRIDENT_CHANCE = 0.2;
+export const HOLLOW_SAINT_CENSER_CHANCE = 0.2;
+
+// New scenario gear uses only systems that exist today: slot + power + element feed Defense/Mobility/Intellect or weapon
+// power through the normal calculations. There is no new perk, and no dedicated 3D model or special armor look yet.
+export const CROWN_OF_THE_DROWNED_COURT: GearItem = { id: "crown-drowned-court", name: "Crown of the Drowned Court", slot: "helmet", power: 235, level: 1, element: "CRYO", rarity: "LEGENDARY", source: "The Drowned Monarch" };
+export const TIDECALLER_TRIDENT: GearItem = { id: "tidecaller-trident", name: "Tidecaller Trident", slot: "secondary", power: 300, level: 1, element: "CRYO", rarity: "LEGENDARY", source: "The Drowned Monarch" };
+export const VEIL_OF_THE_HOLLOW_SAINT: GearItem = { id: "veil-hollow-saint", name: "Veil of the Hollow Saint", slot: "chest", power: 235, level: 1, element: "ARC", rarity: "LEGENDARY", source: "The Hollow Saint" };
+export const CENSER_OF_THE_HOLLOW_SAINT: GearItem = { id: "censer-hollow-saint", name: "Censer of the Hollow Saint", slot: "heavy", power: 310, level: 1, element: "BIO", rarity: "LEGENDARY", source: "The Hollow Saint" };
+
 export const ITEM_BLURB: Record<string, string> = {
   "null-sovereign": "Exotic staff. NULL DISRUPTION: well-timed hits (interrupting a wind-up, or striking an open weak point) build Null Charge; at 5 the next hit releases a pulse that stuns nearby enemies and breaks boss poise.",
+  "crown-drowned-court": "Legendary helmet. A salt-crusted crown from the sunken court — strong Intellect and Defense; works with any other armor.",
+  "tidecaller-trident": "Legendary secondary weapon from the Drowned Monarch. Plain power and CRYO element; no special perk.",
+  "veil-hollow-saint": "Legendary chest piece woven from the Saint's shroud — strong Defense; works with any other armor.",
+  "censer-hollow-saint": "Legendary heavy weapon from the Hollow Saint. Plain power and BIO element; no special perk.",
   "mantle-null-sovereign": "Legendary class item — the Knight's black coat with cyan lining. Strong Intellect, Mobility and Defense; works with any other armor.",
 };
 
 export type ScenarioLootEntry = { guaranteed: GearItem[]; chance: { item: GearItem; chance: number }[] };
 export const SCENARIO_LOOT: Readonly<Record<string, ScenarioLootEntry>> = {
   "dark-knight": { guaranteed: [NULL_SOVEREIGN], chance: [{ item: MANTLE_OF_THE_NULL_SOVEREIGN, chance: DARK_KNIGHT_MANTLE_CHANCE }] },
+  "drowned-monarch": { guaranteed: [CROWN_OF_THE_DROWNED_COURT], chance: [{ item: TIDECALLER_TRIDENT, chance: DROWNED_MONARCH_TRIDENT_CHANCE }] },
+  "hollow-saint": { guaranteed: [VEIL_OF_THE_HOLLOW_SAINT], chance: [{ item: CENSER_OF_THE_HOLLOW_SAINT, chance: HOLLOW_SAINT_CENSER_CHANCE }] },
 };
 
 /** What sim.defeatMachine attaches to a scenario kill. `rolls` are pre-drawn uniform [0,1) numbers (one per chance entry)

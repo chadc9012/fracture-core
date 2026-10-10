@@ -23,7 +23,8 @@ import { ElevatedTrain, LightBar, ShopSign } from "./DistrictStreet";
  * — glass-vault promenade with ocean on one side, amber strip lights, monorail overhead, tiered
  * market decks with holo signs (KAIZEN, AURA-SYS, NEO-FISHERY), steam vents and crowds.
  */
-export const THALASSIA_CENTER = { x: -97, z: -208 };
+import { THALASSIA_CENTER } from "@/game/thalassia-site";
+export { THALASSIA_CENTER };
 const SEA_FLOOR_Y = -16;
 const CORE_Y = SEA_FLOOR_Y + 26;
 

@@ -49,6 +49,8 @@ import { counterTuningFor, type CounterTuning } from "./boss-adaptive-ai";
 import { completeEmergencyQuest, EMERGENCY_QUEST_INIT, stepEmergencyQuest, type EmergencyQuest } from "./emergency-quest";
 import { scenarioById, scenarioFor, type UniqueScenario } from "./unique-scenarios";
 import { INITIAL_NULL_CHARGE, NULL_PERK, NULL_PULSE_POISE, NULL_PULSE_RADIUS, NULL_PULSE_STUN_SECONDS, registerNullHit, type NullChargeState } from "./null-disruption";
+import { ENCOUNTERS } from "./scenario-encounters";
+import { encounterHpFloor, endEncounter, onDecoyShattered, resetEncounters, stepEncounters, type EncounterEvent, type EncounterState, type EncounterZone } from "./encounter-sim";
 import { PARTICIPATION_HITS, SCENARIO_LOOT, rollScenario, type ScenarioClaim } from "./scenario-loot";
 import { attunedElement, gimmickMultiplier, type DamageElement } from "./scenario-gimmicks";
 
@@ -122,6 +124,10 @@ export type Machine = {
   vulnMult: number;
   /** seconds left in a ranged shot's wind-up telegraph; >0 means this machine holds an attack ticket */
   aim?: number;
+  /** Unique Scenario encounter director state (encounter-sim.ts): phase, attack state machine, arena centre */
+  encounter?: EncounterState | undefined;
+  /** Hollow Saint false copy: inert, shatters without kills/credit/loot (encounter-sim.ts) */
+  decoy?: boolean | undefined;
 };
 
 export type Truck = {
@@ -244,6 +250,13 @@ export type WorldSim = {
   /** last released Null Disruption pulse (id increments per pulse); Scene/NullPulseFx read it, never write it */
   nullPulse: { id: number; x: number; z: number; radius: number; at: number } | null;
   nextHitId: number;
+  /** Unique Scenario encounters (encounter-sim.ts): live hazard zones and a presentation event log. Presentation reads, never writes. */
+  encounterZones: EncounterZone[];
+  encounterEvents: EncounterEvent[];
+  nextEncounterEventId: number;
+  nextEncounterZoneId: number;
+  /** 0..1 on-foot speed multiplier from slowing zones this step (Scene applies it) */
+  hazardSpeedMult: number;
   materials: Partial<Record<MaterialId, number>>;
   drops: { id: number; material: MaterialId; amount: number; enemy: string; /** armor-sets.ts: a set piece this kill dropped */ setDrop?: SetDrop; /** scenario-loot.ts: signature reward claim for a valid Unique Scenario clear */ scenarioClaim?: ScenarioClaim }[];
   /** equipped armor-set bonuses (armor-sets.ts), written by Scene each frame: damage resist 0..0.5 and hull regen/s */
@@ -317,6 +330,15 @@ function dropLoot(sim: WorldSim, zone: ZoneState | undefined, enemyType: string)
 
 export function defeatMachine(sim: WorldSim, m: Machine) {
   if (!m.alive || m.hp > 0) return;
+  if (m.decoy) { // a False Saint: no kill, credit, loot or progress
+    m.alive = false;
+    onDecoyShattered(sim, m);
+    delete m.decoy;
+    return;
+  }
+  // encounter bosses cannot die before their authored finale window opens (Last Oath / Drowning / Last Benediction)
+  const floor = encounterHpFloor(m, performance.now() / 1000);
+  if (floor > 0) { m.hp = floor; return; }
   m.alive = false;
   sim.kills++;
   sim.credits += m.boss ? 250 : m.elite ? 75 : 45;
@@ -353,7 +375,8 @@ export function defeatMachine(sim: WorldSim, m: Machine) {
   }
   alert(sim, `${m.profile} defeated · ${material.replace(/([A-Z])/g, " $1")} +${amount}`);
   // pooled slots are reused: never let the next occupant inherit this fight's scenario state
-  delete m.scenarioId; delete m.gimmickHistory; delete m.attuned; delete m.scenarioRun; delete m.playerHits;
+  endEncounter(sim, m);
+  delete m.scenarioId; delete m.gimmickHistory; delete m.attuned; delete m.scenarioRun; delete m.playerHits; delete m.encounter; delete m.decoy;
 }
 
 const byId = (id: string) => REGIONS.find((r) => r.id === id)!;
@@ -486,6 +509,7 @@ export function createSim(): WorldSim {
     nullCharge: { ...INITIAL_NULL_CHARGE },
     nullPulse: null,
     nextHitId: 0,
+    encounterZones: [], encounterEvents: [], nextEncounterEventId: 1, nextEncounterZoneId: 1, hazardSpeedMult: 1,
     materials: {}, drops: [], armorResist: 0, armorRegen: 0, enemyShots: [], bossPhaseFlares: [], xpEvents: [], nextDropId: 0,
     emergencyQuest: EMERGENCY_QUEST_INIT,
     bossCounter: counterTuningFor(null),
@@ -550,6 +574,7 @@ function spawnMachine(sim: WorldSim, zone: ZoneState, elite = false) {
   m.vulnUntil = 0;
   m.vulnMult = 1;
   m.aim = 0;
+  delete m.encounter; delete m.decoy;
 }
 
 /** Spawn Broken Signal data drones around a point; tagged so the mission can count them. */
@@ -558,7 +583,7 @@ export function spawnMissionDrones(sim: WorldSim, x: number, z: number, count: n
     const m = sim.machines.find((e) => !e.alive);
     if (!m) return;
     const a = (i / count) * Math.PI * 2;
-    Object.assign(m, { alive: true, x: x + Math.cos(a) * 16, z: z + Math.sin(a) * 16, hp: elite ? 6 : 3, rot: 0, scale: elite ? 1.1 : 0.8, zone: "nexus", cool: elite ? 1.2 : 2.5, elite, profile: elite ? "Data Drone Elite" : "Data Drone Scout", kind: "OVERCLOCKED" as const, drop: "dataShards" as MaterialId, boss: false, kx: 0, kz: 0, mission: true, vulnUntil: 0, vulnMult: 1 });
+    Object.assign(m, { alive: true, x: x + Math.cos(a) * 16, z: z + Math.sin(a) * 16, hp: elite ? 6 : 3, rot: 0, scale: elite ? 1.1 : 0.8, zone: "nexus", cool: elite ? 1.2 : 2.5, elite, profile: elite ? "Data Drone Elite" : "Data Drone Scout", kind: "OVERCLOCKED" as const, drop: "dataShards" as MaterialId, boss: false, kx: 0, kz: 0, mission: true, vulnUntil: 0, vulnMult: 1, encounter: undefined, decoy: undefined });
   }
 }
 
@@ -575,7 +600,7 @@ export function summonBoss(sim: WorldSim, regionId: string, x: number, z: number
   }
   const m = sim.machines.find((candidate) => !candidate.alive);
   if (!m) return false;
-  Object.assign(m, { alive: true, x, z, y: walkHeight(x, z) + 5, hp: 28, maxHp: 28, phase: 0 as BossPhaseIndex, rot: 0, scale: 2.3, zone: regionId, cool: 2, elite: true, boss: true, profile: boss.name, kind: "OVERCLOCKED", drop: boss.drop, kx: 0, kz: 0, poiseState: INITIAL_POISE, scenarioId: undefined, gimmickHistory: undefined, attuned: undefined, scenarioRun: undefined, playerHits: undefined, vulnUntil: 0, vulnMult: 1, ...extra });
+  Object.assign(m, { alive: true, x, z, y: walkHeight(x, z) + 5, hp: 28, maxHp: 28, phase: 0 as BossPhaseIndex, rot: 0, scale: 2.3, zone: regionId, cool: 2, elite: true, boss: true, profile: boss.name, kind: "OVERCLOCKED", drop: boss.drop, kx: 0, kz: 0, poiseState: INITIAL_POISE, scenarioId: undefined, gimmickHistory: undefined, attuned: undefined, scenarioRun: undefined, playerHits: undefined, encounter: undefined, decoy: undefined, vulnUntil: 0, vulnMult: 1, ...extra });
   sim.raidFight = { start: performance.now() / 1000, hurt: 0, region: regionId };
   alert(sim, `${boss.name} · ${boss.tell}`);
   return true;
@@ -586,7 +611,7 @@ export function summonBoss(sim: WorldSim, regionId: string, x: number, z: number
 export function summonScenarioBoss(sim: WorldSim, scenario: UniqueScenario, x: number, z: number, extra?: Partial<Machine>): boolean {
   const m = sim.machines.find((candidate) => !candidate.alive);
   if (!m) return false;
-  Object.assign(m, { alive: true, x, z, y: walkHeight(x, z) + 5, hp: 34, maxHp: 34, phase: 0 as BossPhaseIndex, rot: 0, scale: 2.5, zone: scenario.regionId, cool: 2, elite: true, boss: true, profile: scenario.bossName, kind: "ABERRATION", drop: scenario.drop as MaterialId, kx: 0, kz: 0, poiseState: INITIAL_POISE, scenarioId: scenario.id, scenarioRun: `${scenario.id}-${Date.now().toString(36)}-${(sim.nextHitId++).toString(36)}-${Math.random().toString(36).slice(2, 8)}`, playerHits: 0, gimmickHistory: [], attuned: undefined, vulnUntil: 0, vulnMult: 1, ...extra });
+  Object.assign(m, { alive: true, x, z, y: walkHeight(x, z) + 5, hp: 34, maxHp: 34, phase: 0 as BossPhaseIndex, rot: 0, scale: 2.5, zone: scenario.regionId, cool: 2, elite: true, boss: true, profile: scenario.bossName, kind: "ABERRATION", drop: scenario.drop as MaterialId, kx: 0, kz: 0, poiseState: INITIAL_POISE, scenarioId: scenario.id, scenarioRun: `${scenario.id}-${Date.now().toString(36)}-${(sim.nextHitId++).toString(36)}-${Math.random().toString(36).slice(2, 8)}`, playerHits: 0, gimmickHistory: [], attuned: undefined, encounter: undefined, decoy: undefined, vulnUntil: 0, vulnMult: 1, ...extra });
   sim.raidFight = { start: performance.now() / 1000, hurt: 0, region: scenario.regionId };
   alert(sim, `${scenario.name} · ${scenario.briefing}`);
   if (scenario.taunt) alert(sim, `${scenario.bossName}: ${scenario.taunt}`);
@@ -772,6 +797,7 @@ export function hurtPlayer(sim: WorldSim, dmg: number, cause: string) {
     sim.hp = 100;
     sim.cargo = 0;
     alert(sim, `Hull destroyed (${cause}) — cargo lost`);
+    resetEncounters(sim);
   }
 }
 
@@ -875,6 +901,7 @@ export function stepSim(sim: WorldSim, input: SimInput) {
   if (sim.titanActive) tickTitan(sim.titan, dt);
   sim.iframes = Math.max(0, sim.iframes - dt);
   sim.barrierTime = Math.max(0, sim.barrierTime - dt);
+  stepEncounters(sim, dt, px, pz);
 
   // ---------- adaptive build loop ----------
   // passive behaviour: time spent driving, sneaking past hostiles, holding the line
@@ -1018,6 +1045,15 @@ export function stepSim(sim: WorldSim, input: SimInput) {
       continue;
     }
 
+    // Hollow Saint copies are inert: they never move or fight, they only exist to be told apart from the real boss
+    if (m.decoy) {
+      m.cool = Math.max(m.cool, 99);
+      if (m.hp <= 0) { defeatMachine(sim, m); continue; }
+      m.y = walkHeight(m.x, m.z) + 2.2 * m.scale;
+      continue;
+    }
+    // authored Unique Scenario bosses attack only through the encounter director (encounter-sim.ts), never the generic melee/volley
+    const scripted = !!m.boss && !!m.scenarioId && !!ENCOUNTERS[m.scenarioId];
     const dx = px - m.x;
     const dz = pz - m.z;
     const d = Math.hypot(dx, dz) || 1;
@@ -1087,7 +1123,7 @@ export function stepSim(sim: WorldSim, input: SimInput) {
       m.z += (nz * move.forward + nx * move.strafe) * speed * dt;
       m.rot = Math.atan2(dx, dz);
       m.cool -= dt;
-      if (d < 6 && m.cool <= 0) {
+      if (!scripted && d < 6 && m.cool <= 0) {
         m.cool = 1.1 * (bossTuning?.cooldownMult ?? 1);
         sim.combatHeat += 2;
          hurtPlayer(sim, ((m.boss ? 17 : m.elite ? 12 : 7) * (bossTuning?.damageMult ?? 1)) / sim.mods.hullDurability, m.profile);
@@ -1105,7 +1141,7 @@ export function stepSim(sim: WorldSim, input: SimInput) {
           if (sim.enemyShots.length > 24) sim.enemyShots.shift();
           if (Math.random() < 0.25) hurtPlayer(sim, ((m.boss ? 6 : m.elite ? 4 : 2) * (bossTuning?.damageMult ?? 1)) / sim.mods.hullDurability, m.profile);
         }
-      } else if (d < 55 && m.cool <= 0 && (m.boss || aimTickets < MAX_AIMING)) {
+      } else if (!scripted && d < 55 && m.cool <= 0 && (m.boss || aimTickets < MAX_AIMING)) {
         // ranged suppressing fire: take a ticket and start the telegraph; elites/bosses wind up faster
         m.aim = m.boss ? 0.2 : m.elite ? 0.28 : 0.4;
         aimTickets++;

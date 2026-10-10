@@ -12,6 +12,7 @@
  */
 
 import type { Gimmick } from "./scenario-gimmicks";
+import { THALASSIA_CENTER } from "./thalassia-site";
 
 export type UniqueScenario = {
   id: string;
@@ -33,6 +34,8 @@ export type UniqueScenario = {
   model?: { url: string; /** displayed height in metres */ height: number; /** emissive lift from the colour map so glowing parts read in shadow */ glow: number };
   /** a lair that summons this scenario when the player walks in (offsets are fractions of the region radius from its centre) */
   lair?: { dx: number; dz: number };
+  /** a lair at an absolute world position, for scenarios whose site is not a region (Thalassia) */
+  lairAt?: { x: number; z: number };
 };
 
 export const UNIQUE_SCENARIOS: readonly UniqueScenario[] = [
@@ -94,14 +97,28 @@ export const UNIQUE_SCENARIOS: readonly UniqueScenario[] = [
     gimmick: "attune",
     taunt: "\"Every power you carry was borrowed. I only collect the debt.\"",
     name: "Apparition: The Hollow Saint",
-    regionId: "solara",
+    regionId: "swamps",
     bossName: "The Hollow Saint",
     drop: "hollowHalo",
     briefing: "A celestial echo that rewrites itself to one damage type at a time. Hits of its attuned element land cleanly; everything else barely scratches it. Watch its halo — it changes colour every nine seconds, so swap your element to match.",
     tell: "Its halo shifts colour and the ground ring rings once when the attunement changes.",
     outsideWindowMult: 0.5,
     rewardCredits: 1100,
-    lair: { dx: 0.5, dz: 0.4 },
+    lair: { dx: 0.45, dz: -0.4 },
+  },
+  {
+    id: "drowned-monarch",
+    gimmick: "poise",
+    taunt: "\"The court is drowned. Kneel, or be counted among it.\"",
+    name: "Court: The Drowned Monarch",
+    regionId: "thalassia",
+    bossName: "The Drowned Monarch",
+    drop: "tideCrown",
+    briefing: "A king of the sunken ark, still holding court on the seabed beside Thalassia. His armor turns almost every shot; he only opens after an attack misses and he must recover. Read the tide, dodge the surge, and punish the opening.",
+    tell: "The water draws back and the crown-spires glow white right before each attack lands.",
+    outsideWindowMult: 0.06,
+    rewardCredits: 1300,
+    lairAt: { x: THALASSIA_CENTER.x + 30, z: THALASSIA_CENTER.z - 26 },
   },
   {
     id: "red-ronin",
@@ -120,11 +137,11 @@ export const UNIQUE_SCENARIOS: readonly UniqueScenario[] = [
 ];
 
 /** Scenarios that have their own lair marker (the rest are summoned by a region, the debug key or a mission). */
-export const LAIR_SCENARIOS = UNIQUE_SCENARIOS.filter((s) => s.lair);
+export const LAIR_SCENARIOS = UNIQUE_SCENARIOS.filter((s) => s.lair || s.lairAt);
 
 export function scenarioFor(regionId: string): UniqueScenario | undefined {
   // lair scenarios are summoned from their lair, not as a region's fallback boss
-  return UNIQUE_SCENARIOS.find((s) => s.regionId === regionId && !s.lair);
+  return UNIQUE_SCENARIOS.find((s) => s.regionId === regionId && !s.lair && !s.lairAt);
 }
 
 export function scenarioById(id: string): UniqueScenario | undefined {

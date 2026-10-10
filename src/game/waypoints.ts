@@ -40,6 +40,7 @@ export const BOSS_LAIRS: Marker[] = ENCOUNTERS.flatMap((entry) => {
 
 /** Unique Scenario lairs (unique-scenarios.ts): entering one summons that scenario's boss. */
 export const SCENARIO_LAIRS: (Marker & { scenarioId: string })[] = LAIR_SCENARIOS.flatMap((sc) => {
+  if (sc.lairAt) return [{ id: `scenario-${sc.id}`, scenarioId: sc.id, kind: "BOSS" as const, label: sc.bossName, x: sc.lairAt.x, z: sc.lairAt.z, regionId: "swamps" }]; // Thalassia has no region; the map files it under the nearest one (as Scene does for the dive marker)
   const region = REGIONS.find((r) => r.id === sc.regionId);
   if (!region || !sc.lair) return [];
   return [{ id: `scenario-${sc.id}`, scenarioId: sc.id, kind: "BOSS" as const, label: sc.bossName, x: region.x + region.radius * sc.lair.dx, z: region.z + region.radius * sc.lair.dz, regionId: region.id }];
