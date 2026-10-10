@@ -45,6 +45,7 @@ import { activeLoadout, rewardMission, loadProgression, rewardVehicle, saveProgr
 import { RENDER_PRESETS, defaultTierForGpu, detectGpuRenderer } from "@/game/performance";
 import { classBuild } from "@/game/live-build";
 import { persistCharacter } from "@/game/deployment/saveCharacter";
+import { withTimeout } from "@/game/with-timeout";
 import { bodyTypeOr, type BodyType } from "@/game/operators";
 import { nodeById } from "@/game/ability-network";
 import { questEventsFromHud, NEW_QUEST_SIGNALS } from "@/game/quest-signals";
@@ -666,7 +667,7 @@ export function GameCanvas() {
     if (!evaluateSave(progressionRef.current, last !== null).hasSave) { setPhase("loadout"); return; }
     newGameBusy.current = true;
     try {
-      const result = await beginNewGame(await currentUserId(), progressionRef.current);
+      const result = await withTimeout((async () => beginNewGame(await currentUserId(), progressionRef.current))(), 15000, "new game");
       if (result.status === "no-free-slot") { setMenuNotice("All 3 save slots are in use. Free one in Saves, then start a new game. Your save is untouched."); return; }
       adoptProgression(result.progression, true);
       setLast(null);

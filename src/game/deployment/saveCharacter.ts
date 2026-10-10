@@ -3,6 +3,7 @@ import { pushSave } from "../cloud-save";
 import { loadProgression, saveProgression, type PlayerProgression } from "../progression";
 import { supabase } from "@/integrations/supabase/client";
 import type { PlayerCharacter } from "./deployCharacter";
+import { orFallback, withTimeout } from "../with-timeout";
 
 export { applyCharacter };
 
@@ -16,9 +17,10 @@ export async function persistCharacter(current: PlayerProgression, character: Pl
   saveProgression(next);
   const local = loadProgression().character?.deploymentId === character.deploymentId;
   let userId: string | null = null;
-  try { userId = (await supabase.auth.getSession()).data.session?.user.id ?? null; } catch { userId = null; }
+  // a stalled auth lookup must not freeze Save & Deploy: the verified local save above is already written
+  userId = await orFallback((async () => (await supabase.auth.getSession()).data.session?.user.id ?? null)(), 5000, null, "auth session");
   if (userId) {
-    try { await pushSave(userId, next); } catch { throw new Error("Could not save your character to the cloud. Check your connection and try again."); }
+    try { await withTimeout(pushSave(userId, next), 12000, "cloud save"); } catch { throw new Error("Could not save your character to the cloud. Check your connection and try again."); }
     return { progression: next, durable: true };
   }
   return { progression: next, durable: local };
