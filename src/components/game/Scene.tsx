@@ -40,6 +40,7 @@ import { NullPulseFx } from "./NullPulseFx";
 import { EncounterFx } from "./EncounterFx";
 import { VAELITH, VAELITH_LAIR, dialogueDue, lairDefenseCleared, memoryNear, startLairDefense, vaelithFightable, type StoryWorldEvent } from "@/game/vaelith";
 import { EMPTY_STORY, stageOf } from "@/game/story";
+import { bossStoryFor, introDue, vaultNear, type BossStoryId } from "@/game/boss-stories";
 import { Car } from "./Vehicle";
 import { NexusCity } from "./NexusCity";
 import { NeonCity, NEON_CITY_CENTER } from "./NeonCity";
@@ -422,7 +423,7 @@ export function Scene({
   const structure = useMemo(() => buildInterior("veridan-ruin", SPAWN.x + 28, walkHeight(SPAWN.x + 28, SPAWN.z + 20), SPAWN.z + 20), []);
   const depleted = useRef<Record<string, number>>({});
   const lairsTriggered = useRef<Record<string, boolean>>({});
-  const storyBeats = useRef({ seenEncounterEvent: 0, defenseAt: -1 });
+  const storyBeats = useRef({ seenEncounterEvent: 0, defenseAt: -1, askedAt: {} as Record<string, number> });
   const appearance = appearanceProp ?? appearanceById("BASTION");
   const selectedClass = classById(playerClass);
   const selectedSubclass = subclassById(subclassId);
@@ -1339,6 +1340,12 @@ export function Scene({
         if (inside && lair.scenarioId === VAELITH && !tutorial && dialogueDue(gear?.story ?? EMPTY_STORY) && !lairsTriggered.current[`${lair.id}-asked`]) { lairsTriggered.current[`${lair.id}-asked`] = true; onStoryEvent?.({ type: "LAIR_ENTER" }); }
         if (!inside) lairsTriggered.current[`${lair.id}-asked`] = false;
         if (lair.scenarioId === VAELITH && (stageOf(gear?.story ?? EMPTY_STORY, VAELITH) === undefined || !vaelithFightable(gear?.story ?? EMPTY_STORY))) continue;
+        // The four existing boss stories: the lair intro conversation plays first (re-asked every 3 s while it is unheard and nothing else is open); the fight itself is unchanged
+        if (inside && bossStoryFor(lair.scenarioId) && !tutorial && introDue(gear?.story ?? EMPTY_STORY, lair.scenarioId as BossStoryId)) {
+          const beatsAsk = storyBeats.current, tNow = performance.now() / 1000;
+          if (tNow - (beatsAsk.askedAt[lair.id] ?? -99) > 3) { beatsAsk.askedAt[lair.id] = tNow; onStoryEvent?.({ type: "BOSS_LAIR_ENTER", scenarioId: lair.scenarioId }); }
+          continue;
+        }
         if (inside && scenario && !lairsTriggered.current[lair.id] && !tutorial && !sim.machines.some((m) => m.alive && m.boss)) { lairsTriggered.current[lair.id] = true; summonScenarioBoss(sim, scenario, lair.x, lair.z); }
         if (!inside && Math.hypot(lair.x - s.x, lair.z - s.z) > LAIR_RADIUS * 4) lairsTriggered.current[lair.id] = false;
       }
@@ -1348,10 +1355,15 @@ export function Scene({
         const beats = storyBeats.current;
         const mem = memoryNear(story, s.x, s.z);
         if (mem) onStoryEvent?.({ type: "MEMORY", id: mem });
+        const vault = vaultNear(story, s.x, s.z);
+        if (vault && !tutorial) { const tNow = performance.now() / 1000; if (tNow - (beats.askedAt[`vault-${vault}`] ?? -99) > 3) { beats.askedAt[`vault-${vault}`] = tNow; onStoryEvent?.({ type: "VAULT_ENTER", scenarioId: vault }); } }
         for (const e of sim.encounterEvents) {
           if (e.id <= beats.seenEncounterEvent) continue;
           beats.seenEncounterEvent = e.id;
           if (e.kind === "TRUCE" && e.scenarioId === VAELITH) onStoryEvent?.({ type: "TRIAL_SURVIVED" });
+          // boss stories: captions follow the encounter's own phases; BOSS_DEFEATED comes only from the real-kill VICTORY event (never a truce, reset or death)
+          if (e.kind === "PHASE" && bossStoryFor(e.scenarioId)) onStoryEvent?.({ type: "BOSS_PHASE", scenarioId: e.scenarioId, phase: e.phase });
+          if (e.kind === "VICTORY" && bossStoryFor(e.scenarioId)) onStoryEvent?.({ type: "BOSS_DEFEATED", scenarioId: e.scenarioId });
         }
         if (stageOf(story, VAELITH) === "memories") {
           const nearLair = Math.hypot(VAELITH_LAIR.x - s.x, VAELITH_LAIR.z - s.z) < 30;

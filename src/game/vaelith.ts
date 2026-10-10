@@ -8,6 +8,7 @@ import { grantScenarioReward, type RewardCard, type ScenarioClaim } from "./scen
 import type { PlayerProgression } from "./progression";
 import { applyMachineDamageMods, spawnMissionDrones, type Machine, type WorldSim } from "./sim";
 import { REGIONS } from "./world";
+import type { BossStoryEvent } from "./boss-stories";
 
 export const VAELITH = "vaelith";
 export const VAELITH_STAGES = ["unmet", "gate", "trial", "truth", "memories", "defense", "artifact", "alliance"] as const;
@@ -111,7 +112,10 @@ export function memoryNear(s: StoryState, x: number, z: number): string | null {
 }
 
 /** everything Scene reports to the story handler */
-export type StoryWorldEvent = { type: "LAIR_ENTER" } | VaelithEvent;
+export type StoryWorldEvent =
+  | { type: "LAIR_ENTER" } | VaelithEvent
+  /** the four existing boss stories (boss-stories.ts): lair intro request, phase caption, vault terminal, and the real-kill events */
+  | { type: "BOSS_LAIR_ENTER"; scenarioId: string } | { type: "BOSS_PHASE"; scenarioId: string; phase: number } | { type: "VAULT_ENTER"; scenarioId: string } | BossStoryEvent;
 export type VaelithEvent =
   | { type: "TRIAL_SURVIVED" }
   | { type: "MEMORY"; id: string }

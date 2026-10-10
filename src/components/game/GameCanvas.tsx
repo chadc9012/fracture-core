@@ -47,6 +47,7 @@ import { introTotalSeconds } from "@/game/intro";
 import { VictoryReport } from "./VictoryReport";
 import { ScenarioRewardCards } from "./ScenarioRewardCards";
 import { StoryDialogue } from "./StoryDialogue";
+import { applyBossStoryEvent, bossDialogueDue, bossObjective, bossStoryFor, type BossStoryId, type StoryLine } from "@/game/boss-stories";
 import { TRUTH_DIALOGUE, ARTIFACT_DIALOGUE, applyVaelithEvent, dialogueDue, grantVaelithRewards, objectiveFor, type StoryWorldEvent } from "@/game/vaelith";
 import type { DialogueGraph, StoryState } from "@/game/story";
 import { idleAbilityHud } from "@/game/ability-hud";
@@ -558,8 +559,16 @@ export function GameCanvas() {
   // Story scenarios (vaelith.ts): branching conversations never block play (Esc / B skips); every effect goes through the pure story reducers
   const [storyGraph, setStoryGraph] = useState<DialogueGraph | null>(null);
   const applyStory = useCallback((story: StoryState) => setProgression((current) => (current.story === story ? current : { ...current, story })), []);
+  const storyGraphRef = useRef<DialogueGraph | null>(null); storyGraphRef.current = storyGraph;
   const finishStoryGraph = useCallback((completed: boolean, story: StoryState) => {
+    const finished = storyGraphRef.current;
     setStoryGraph(null);
+    // boss stories (boss-stories.ts): hearing the lair intro, even skipped, lets the fight start; nothing else is paid here
+    const bossId = finished?.id.split(".")[0] ?? "";
+    if (finished && bossStoryFor(bossId)) {
+      if (!completed && finished.id.endsWith(".intro")) setProgression((current) => ({ ...current, story: applyBossStoryEvent(current.story, { type: "BOSS_INTRO_SEEN", scenarioId: bossId }) }));
+      return;
+    }
     if (!completed) return;
     // the next beat is due right away (artifact -> alliance); once the alliance is sealed, pay the earned rewards through the validated claim path
     const due = dialogueDue(story);
@@ -567,8 +576,29 @@ export function GameCanvas() {
     const granted = grantVaelithRewards({ ...progressionRef.current, story });
     if (granted.cards.length) { setProgression((current) => grantVaelithRewards({ ...current, story }).progress); setRewardCards({ title: "Vaelith", cards: granted.cards }); }
   }, []);
+  // phase captions for the boss stories: presentation only, one line at a time
+  const [captionQueue, setCaptionQueue] = useState<StoryLine[]>([]);
+  useEffect(() => {
+    if (!captionQueue.length) return;
+    const t = setTimeout(() => setCaptionQueue((q) => q.slice(1)), 4500);
+    return () => clearTimeout(t);
+  }, [captionQueue]);
   const recordStory = useCallback((event: StoryWorldEvent) => {
     if (event.type === "LAIR_ENTER") { setStoryGraph((current) => current ?? dialogueDue(progressionRef.current.story)?.graph ?? null); return; }
+    if (event.type === "BOSS_LAIR_ENTER" || event.type === "VAULT_ENTER") {
+      const id = event.scenarioId as BossStoryId;
+      setStoryGraph((current) => current ?? (bossStoryFor(id) ? bossDialogueDue(progressionRef.current.story, id, event.type === "VAULT_ENTER" ? "vault" : "lair") : null));
+      return;
+    }
+    if (event.type === "BOSS_PHASE") { const lines = bossStoryFor(event.scenarioId)?.phaseLines[event.phase]; if (lines?.length) setCaptionQueue([...lines]); return; }
+    if (event.type === "BOSS_DEFEATED" || event.type === "BOSS_INTRO_SEEN") {
+      const before = progressionRef.current.story;
+      const after = applyBossStoryEvent(before, event);
+      if (after !== before) { setProgression((current) => ({ ...current, story: applyBossStoryEvent(current.story, event) })); progressionRef.current = { ...progressionRef.current, story: after }; }
+      // the kill opens the boss's last-words conversation straight away (if it has one); the vault conversation waits for the player to walk there
+      if (event.type === "BOSS_DEFEATED") setStoryGraph((current) => current ?? bossDialogueDue(after, event.scenarioId as BossStoryId, "defeat"));
+      return;
+    }
     const before = progressionRef.current.story;
     const after = applyVaelithEvent(before, event);
     if (after === before) return;
@@ -746,6 +776,8 @@ export function GameCanvas() {
        {!tutorial && <QuestTracker progression={progression} />}
        {storyGraph && <StoryDialogue key={storyGraph.id} graph={storyGraph} story={progression.story} onStory={applyStory} onDone={finishStoryGraph} />}
        {!storyGraph && !activeDialogue && objectiveFor(progression.story) && progression.story.stages.vaelith !== undefined && <p className="pointer-events-none fixed left-4 top-24 z-20 max-w-[280px] font-mono text-[10px] uppercase tracking-[0.18em] text-primary/80">Vaelith · {objectiveFor(progression.story)!.text}</p>}
+       {!storyGraph && !activeDialogue && captionQueue[0] && <p className="pointer-events-none fixed inset-x-0 bottom-36 z-20 mx-auto w-[min(92vw,560px)] border border-border/60 bg-background/80 p-3 text-sm text-foreground" role="status"><span className="mr-2 font-mono text-[10px] uppercase tracking-[0.25em] text-primary">{captionQueue[0].speaker}</span>{captionQueue[0].text}</p>}
+       {!storyGraph && !activeDialogue && bossObjective(progression.story) && <p className="pointer-events-none fixed left-4 top-36 z-20 max-w-[280px] font-mono text-[10px] uppercase tracking-[0.18em] text-primary/80">{bossObjective(progression.story)!.text}</p>}
        {activeDialogue && <DialogueOverlay lines={activeDialogue} onDone={() => setActiveDialogue(null)} />}
        {deathInfo && <DeathOverlay cause={deathInfo.cause} cargoLost={deathInfo.cargoLost} deaths={deathInfo.deaths} onDone={() => setDeathInfo(null)} />}
        {rewardCards && <ScenarioRewardCards title={rewardCards.title} cards={rewardCards.cards} onDone={() => setRewardCards(null)} />}

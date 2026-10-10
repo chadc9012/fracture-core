@@ -108,7 +108,10 @@ export function applyEffects(s: StoryState, effects: StoryEffect[] | undefined, 
   return out;
 }
 
-export const visibleChoices = (s: StoryState, node: DialogueNode) => (node.choices ?? []).filter((c) => conditionHolds(s, c.requires));
+/** A choice that records a decision is closed once that decision was made differently: a replay can neither flip the first answer nor
+ * leave the other branch's flags behind. Re-picking the same answer stays open (its effects are once-keyed, so it changes nothing). */
+const decidedElsewhere = (s: StoryState, c: DialogueChoice) => (c.effects ?? []).some((e) => "choice" in e && s.choices[e.choice.key] !== undefined && s.choices[e.choice.key] !== e.choice.value);
+export const visibleChoices = (s: StoryState, node: DialogueNode) => (node.choices ?? []).filter((c) => conditionHolds(s, c.requires) && !decidedElsewhere(s, c));
 
 /** Enter a node: runs its effects (once). Returns the node to show. */
 export function enterNode(s: StoryState, graph: DialogueGraph, nodeId: string): { story: StoryState; node: DialogueNode } | null {
@@ -124,7 +127,7 @@ export function choose(s: StoryState, graph: DialogueGraph, nodeId: string, choi
   if (!node) return { ok: false, reason: "no-node" };
   const c = node.choices?.find((x) => x.id === choiceId);
   if (!c) return { ok: false, reason: "no-choice" };
-  if (!conditionHolds(s, c.requires)) return { ok: false, reason: "locked" };
+  if (!conditionHolds(s, c.requires) || decidedElsewhere(s, c)) return { ok: false, reason: "locked" };
   return { ok: true, story: applyEffects(s, c.effects, `${graph.id}:${node.id}:${c.id}`), next: c.next ?? node.next ?? null };
 }
 
