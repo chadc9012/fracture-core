@@ -838,6 +838,7 @@ export function Scene({
     s.detectionMeter = inNexus ? stepDetectionMeter(s.detectionMeter, dt, seenByNexus, s.hacking) : Math.max(0, s.detectionMeter - dt * 30);
     const nexusDetection = detectionStateFor(s.detectionMeter);
     if (s.hacking) s.hackProgress = stepHackProgress(s.hackProgress, dt, nexusDetection);
+    else if (inNexus) s.hackProgress = Math.max(0, s.hackProgress - dt * 6); // an abandoned hack slowly drops off, doesn't hard-reset
     // world loot caches: nearest unopened one, its scenario gate, and hold-to-decrypt progress
     {
       const c = s.inVehicle || s.insideInterior ? null : nearestCache(s.x, s.z, s.y);
@@ -853,7 +854,6 @@ export function Scene({
         cacheLive.current.view = { id: near.id, label: SCENARIO_LABEL[near.scenario], rarity: near.rarity, ok: gate.ok, reason: gate.reason, hold: cacheLive.current.hold / ENCRYPT_SECONDS };
       } else cacheLive.current.view = null;
     }
-    else if (inNexus) s.hackProgress = Math.max(0, s.hackProgress - dt * 6); // an abandoned hack slowly drops off, doesn't hard-reset
     const nexusLockdown = lockdownStatus(s.detectionMeter);
     if (inNexus && nexusLockdown.tier !== lastLockdownTier.current) {
       if (nexusLockdown.tier !== "MONITORING") alert(sim, `Nexus City: ${nexusLockdown.response}`);
