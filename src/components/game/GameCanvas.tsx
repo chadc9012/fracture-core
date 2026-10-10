@@ -53,6 +53,7 @@ import { idleAbilityHud } from "@/game/ability-hud";
 import { grantScenarioReward, planScenarioRewardCards, type RewardCard } from "@/game/scenario-loot";
 import { scenarioById } from "@/game/unique-scenarios";
 import { claimDrops } from "@/game/inventory";
+import { ShopWindow } from "./ShopWindow";
 import { InventoryWindow } from "./InventoryWindow";
 import { WorldAtlas } from "./WorldAtlas";
 import { BrokenSignalOverlay } from "./BrokenSignalOverlay";
@@ -245,6 +246,17 @@ export function GameCanvas() {
   const [vehicleId, setVehicleId] = useState<VehicleId>("scrap-interceptor");
   const [garageOpen, setGarageOpen] = useState(false);
   const [inventoryOpen, setInventoryOpen] = useState(false);
+  const [shopOpen, setShopOpen] = useState<string | null>(null);
+  const shopNearRef = useRef<string | null>(null);
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.code === "KeyY" && shopNearRef.current) { setShopOpen((open) => (open ? null : shopNearRef.current)); if (document.pointerLockElement) document.exitPointerLock(); }
+      else if (e.code === "Escape") setShopOpen(null);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+  useEffect(() => { shopNearRef.current = hud.shopNearId ?? null; if (!hud.shopNearId) setShopOpen(null); }, [hud.shopNearId]);
   const [atlasOpen, setAtlasOpen] = useState(false);
   const [hubView, setHubView] = useState<"starmap" | "arsenal" | "saves" | null>(null);
   const [travelTo, setTravelTo] = useState<{ x: number; z: number; nonce: number } | null>(null);
@@ -745,7 +757,7 @@ export function GameCanvas() {
        {!tutorial && !hud.insideInterior && <Minimap hud={hud} />}
        {!tutorial && <QuestTracker progression={progression} />}
        {storyGraph && <StoryDialogue key={storyGraph.id} graph={storyGraph} story={progression.story} onStory={applyStory} onDone={finishStoryGraph} />}
-       {!storyGraph && !activeDialogue && objectiveFor(progression.story) && progression.story.stages.vaelith !== undefined && <p className="pointer-events-none fixed left-4 top-24 z-20 max-w-[280px] font-mono text-[10px] uppercase tracking-[0.18em] text-primary/80">Vaelith · {objectiveFor(progression.story)!.text}</p>}
+       {!storyGraph && !activeDialogue && objectiveFor(progression.story) && progression.story.stages["vaelith"] !== undefined && <p className="pointer-events-none fixed left-4 top-24 z-20 max-w-[280px] font-mono text-[10px] uppercase tracking-[0.18em] text-primary/80">Vaelith · {objectiveFor(progression.story)!.text}</p>}
        {activeDialogue && <DialogueOverlay lines={activeDialogue} onDone={() => setActiveDialogue(null)} />}
        {deathInfo && <DeathOverlay cause={deathInfo.cause} cargoLost={deathInfo.cargoLost} deaths={deathInfo.deaths} onDone={() => setDeathInfo(null)} />}
        {rewardCards && <ScenarioRewardCards title={rewardCards.title} cards={rewardCards.cards} onDone={() => setRewardCards(null)} />}
@@ -760,6 +772,12 @@ export function GameCanvas() {
            )}
          </div>
        )}
+       {hud.shopNearId && !shopOpen && (
+         <div className="pointer-events-none absolute bottom-24 left-1/2 -translate-x-1/2">
+           <Button className="pointer-events-auto" variant="outline" onClick={() => setShopOpen(hud.shopNearId ?? null)}>[Y] Trade · {hud.shopNearName}</Button>
+         </div>
+       )}
+       {shopOpen && <ShopWindow shopId={shopOpen} progression={progression} onProgression={setProgression} onClose={() => setShopOpen(null)} />}
        {inventoryOpen && <InventoryWindow progression={progression} onProgression={setProgression} onClose={() => setInventoryOpen(false)} />}
        {atlasOpen && <WorldAtlas progression={progression} markers={hud.markers} px={hud.px} pz={hud.pz} currentRegion={hud.region} phase={hud.phase} onClose={() => setAtlasOpen(false)} />}
       {awakening && <AwakeningOverlay run={awakening} onEvent={recordAwakening} />}

@@ -173,7 +173,7 @@ describe("attacks have real consequences decided by geometry, not visuals", () =
   });
   it("the generic melee/volley AI is suppressed for encounter bosses: standing next to one does nothing between attacks", () => {
     const { sim, boss, step } = arena("dark-knight", 3);
-    boss.encounter = undefined as never; step(0.05); boss.encounter!.timer = 99; sim.hp = 100;
+    boss.encounter = undefined as never; step(0.05); (boss.encounter as unknown as { timer: number }).timer = 99; sim.hp = 100;
     step(3, { keepAlive: false });
     expect(sim.hp).toBe(100);
   });

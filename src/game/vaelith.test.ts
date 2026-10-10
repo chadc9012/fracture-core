@@ -188,7 +188,7 @@ describe("save, reload and cloud merge", () => {
     const m = mergeStory(a, b, true);
     expect(m.stages[VAELITH]).toBe("memories"); expect(m.trust[VAELITH]).toBe(70);
     expect(m.flags.sort()).toEqual(["x", "y"]); expect(m.collectibles).toHaveLength(2); expect(m.choices["k"]).toBe("a");
-    expect(mergeStory(a, b, false).choices.k).toBe("b");
+    expect(mergeStory(a, b, false).choices["k"]).toBe("b");
     expect(new Set(mergeStory(a, b, true).flags)).toEqual(new Set(mergeStory(b, a, false).flags));
   });
   it("merged progression never re-awards: claims union and the story carries over", () => {

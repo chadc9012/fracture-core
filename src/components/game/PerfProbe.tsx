@@ -83,7 +83,7 @@ export function PerfProbe() {
           const m = o as THREE.Mesh;
           if (m.isMesh && m.geometry) {
             const g = m.geometry;
-            const per = (g.index ? g.index.count : g.attributes.position?.count ?? 0) / 3;
+            const per = (g.index ? g.index.count : g.attributes["position"]?.count ?? 0) / 3;
             const tris = per * ((o as THREE.InstancedMesh).isInstancedMesh ? (o as THREE.InstancedMesh).count : 1);
             total += tris;
             const gk = g.uuid; const gg = groups.get(gk) ?? { tris: 0, count: 0, type: g.type }; gg.tris += tris; gg.count++; groups.set(gk, gg);
