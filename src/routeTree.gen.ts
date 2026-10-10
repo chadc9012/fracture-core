@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as ApiVoiceRouteImport } from './routes/api/voice'
+import { Route as DevAssetsRouteImport } from './routes/dev.assets'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -28,35 +29,44 @@ const ApiVoiceRoute = ApiVoiceRouteImport.update({
   path: '/api/voice',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DevAssetsRoute = DevAssetsRouteImport.update({
+  id: '/dev/assets',
+  path: '/dev/assets',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/reset-password': typeof ResetPasswordRoute
   '/api/voice': typeof ApiVoiceRoute
+  '/dev/assets': typeof DevAssetsRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/reset-password': typeof ResetPasswordRoute
   '/api/voice': typeof ApiVoiceRoute
+  '/dev/assets': typeof DevAssetsRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/reset-password': typeof ResetPasswordRoute
   '/api/voice': typeof ApiVoiceRoute
+  '/dev/assets': typeof DevAssetsRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/reset-password' | '/api/voice'
+  fullPaths: '/' | '/reset-password' | '/api/voice' | '/dev/assets'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/reset-password' | '/api/voice'
-  id: '__root__' | '/' | '/reset-password' | '/api/voice'
+  to: '/' | '/reset-password' | '/api/voice' | '/dev/assets'
+  id: '__root__' | '/' | '/reset-password' | '/api/voice' | '/dev/assets'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   ApiVoiceRoute: typeof ApiVoiceRoute
+  DevAssetsRoute: typeof DevAssetsRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -82,6 +92,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiVoiceRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/dev/assets': {
+      id: '/dev/assets'
+      path: '/dev/assets'
+      fullPath: '/dev/assets'
+      preLoaderRoute: typeof DevAssetsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -89,6 +106,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   ApiVoiceRoute: ApiVoiceRoute,
+  DevAssetsRoute: DevAssetsRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
