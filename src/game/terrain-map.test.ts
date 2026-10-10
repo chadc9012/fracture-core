@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { MAP_EXTENT, terrainMapPixels } from "./terrain-map";
+import { MAP_EXTENT, createMapJob, mapLand, oceanColor, terrainMapPixels } from "./terrain-map";
 import { WORLD_RADIUS, scaleSite } from "./world";
 
 describe("terrain map raster", () => {
@@ -22,5 +22,20 @@ describe("terrain map raster", () => {
   test("the volcano and the desert have different colours", () => {
     const e = scaleSite(-52, 16), s = scaleSite(-18, 76), ember = at(e.x, e.z), solara = at(s.x, s.z);
     expect(Math.abs(ember[0] - solara[0]) + Math.abs(ember[1] - solara[1]) + Math.abs(ember[2] - solara[2])).toBeGreaterThan(60);
+  });
+  test("the resumable job paints exactly what the one-shot call paints, however small the time slices", () => {
+    const job = createMapJob(48);
+    let slices = 0;
+    while (!job.step(0)) { slices++; expect(job.progress()).toBeLessThan(1); }
+    expect(slices).toBeGreaterThan(48);
+    expect(job.progress()).toBe(1);
+    expect(Array.from(job.pixels)).toEqual(Array.from(terrainMapPixels(48)));
+  });
+  test("ocean gets darker with depth and land colours are lifted, not blown out", () => {
+    const shallow = oceanColor(1), deep = oceanColor(40);
+    expect(shallow[0] + shallow[1] + shallow[2]).toBeGreaterThan(deep[0] + deep[1] + deep[2]);
+    const lifted = mapLand(0.2, 0.3, 0.2);
+    expect(lifted[1]).toBeGreaterThan(0.3);
+    expect(Math.max(...mapLand(1, 1, 1))).toBeLessThanOrEqual(1);
   });
 });

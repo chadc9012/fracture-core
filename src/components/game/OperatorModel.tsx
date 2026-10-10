@@ -6,7 +6,8 @@ import { clone as cloneSkinned } from "three/examples/jsm/utils/SkeletonUtils.js
 import type { ClassId } from "@/game/loadout";
 import { bodyProfile, type BodyType } from "@/game/operators";
 import type { ArmorLook } from "@/game/armor-look";
-import { boneRegion, buildPalette, regionWeights, type Palette } from "@/game/operator-paint";
+import { boneRegion, buildPalette, vivid } from "@/game/operator-paint";
+import { paintSkin, type SkinTextures } from "./operator-skin";
 import { SURFACES } from "@/game/visual-standard";
 import { equippedPieces, piecesKey, type ArmorPiece } from "@/game/armor-pieces";
 import type { GearItem, GearSlot } from "@/game/inventory";
@@ -92,9 +93,9 @@ function attachWeapons(object: THREE.Object3D, height: number, modelScale: numbe
 
 /** Authored (Meshy) operator models, served from /public. GOLIATH, NYX and CIPHER are rigged (Mixamo skeleton; walk/run for all, plus showcase for GOLIATH and idle for NYX); Anything missing or failing to load falls back to the procedural Operator. */
 export const OPERATOR_MODELS: Partial<Record<ClassId, { url: string; tint: boolean; rigged: boolean }>> = {
-  TITAN: { url: "/models/operators/goliath.glb", tint: true, rigged: true },
-  WARLOCK: { url: "/models/operators/cipher.glb", tint: true, rigged: true },
-  HUNTER: { url: "/models/operators/nyx.glb", tint: true, rigged: true },
+  TITAN: { url: "/models/operators/goliath-hd.glb", tint: true, rigged: true },
+  WARLOCK: { url: "/models/operators/cipher-hd.glb", tint: true, rigged: true },
+  HUNTER: { url: "/models/operators/nyx-hd.glb", tint: true, rigged: true },
 };
 
 export type ModelMotion = { current: { phase: number; intensity: number; air: boolean; stance?: "STAND" | "CROUCH" | "PRONE"; /** 0..1 progress through a slide, -1 when not sliding */ slideT?: number } };
@@ -120,29 +121,6 @@ function pinRootMotion(clip: THREE.AnimationClip) {
 }
 
 
-/** Gives every skinned mesh vertex colours from the paint plan, blended by skin weights, on a private copy of the
- * geometry (the cached GLTF geometry is shared by every clone). The GLBs carry no materials, so this is what
- * makes the helmet, chest, gauntlets and legs read as separate armor pieces. */
-function paintVertexColors(mesh: THREE.SkinnedMesh, palette: Palette) {
-  const geo = mesh.geometry.clone();
-  const skinIndex = geo.getAttribute("skinIndex"), skinWeight = geo.getAttribute("skinWeight"), position = geo.getAttribute("position");
-  if (!skinIndex || !skinWeight || !position) { mesh.geometry = geo; return geo; }
-  const names = mesh.skeleton.bones.map((b) => b.name);
-  const colours = Object.fromEntries(Object.entries(palette).map(([k, v]) => [k, new THREE.Color(v.color)])) as Record<string, THREE.Color>;
-  const out = new Float32Array(position.count * 3);
-  const j = [0, 0, 0, 0], w = [0, 0, 0, 0];
-  for (let i = 0; i < position.count; i++) {
-    for (let k = 0; k < 4; k++) { j[k] = k === 0 ? skinIndex.getX(i) : k === 1 ? skinIndex.getY(i) : k === 2 ? skinIndex.getZ(i) : skinIndex.getW(i); w[k] = k === 0 ? skinWeight.getX(i) : k === 1 ? skinWeight.getY(i) : k === 2 ? skinWeight.getZ(i) : skinWeight.getW(i); }
-    const parts = regionWeights(names, j, w);
-    let r = 0, g = 0, b = 0;
-    for (const [region, f] of Object.entries(parts)) { const c = colours[region]; if (c) { r += c.r * f!; g += c.g * f!; b += c.b * f!; } }
-    out[i * 3] = r; out[i * 3 + 1] = g; out[i * 3 + 2] = b;
-  }
-  geo.setAttribute("color", new THREE.BufferAttribute(out, 3));
-  mesh.geometry = geo;
-  return geo;
-}
-
 const actions0 = (a: Record<string, THREE.AnimationAction>, name: string) => Boolean(a[name]);
 
 function Model({ url, tint, height, feetY, color, trim, pose, motion, bodyType, look, cloth, gear, classId, held }: { held: HeldWeapon | undefined; trim: string | undefined; gear: WornGear | undefined; classId: ClassId; look: ArmorLook | undefined; cloth: string | undefined; bodyType: BodyType | undefined; url: string; tint: boolean; height: number; feetY: number; color: string | undefined; pose: "showcase" | "locomotion"; motion: ModelMotion | undefined }) {
@@ -152,11 +130,14 @@ function Model({ url, tint, height, feetY, color, trim, pose, motion, bodyType, 
     let skinned = false;
     const robot = bodyProfile(bodyType).segmented;
     const palette = tint ? buildPalette({ armor: color, cloth, look, bodyType, trim }) : null;
-    // vertex colours carry the armor regions; a faint cool emissive floor keeps shadowed plates from going black
+    // The body is painted into a texture through its UVs (game/operator-texture.ts): armor regions, seams, cavity shading, wear and the
+    // visor. The emissive map carries a faint cool floor (so shadowed plates never go black) plus the visor slit glow.
     // shared visual standard: segmented chassis reads as bare metal, armored operators as painted ceramic plate
     const surface = robot ? SURFACES.bareMetal : SURFACES.paintedArmor;
-    const material = palette ? new THREE.MeshStandardMaterial({ color: "#ffffff", vertexColors: true, metalness: surface.metalness, roughness: surface.roughness, emissive: new THREE.Color("#1c2836"), emissiveIntensity: 1 }) : null;
-    const ownGeometries: THREE.BufferGeometry[] = [];
+    const skins: SkinTextures[] = [];
+    const material = palette ? new THREE.MeshStandardMaterial({ color: "#ffffff", metalness: surface.metalness, roughness: surface.roughness, emissive: new THREE.Color("#ffffff"), emissiveIntensity: 1 }) : null;
+    const accent = vivid(trim ?? "#4fd8ff", 0.55, 0.7);
+    const texSize = pose === "showcase" ? 768 : 512;
     if (material && robot) {
       // segmented chassis: glowing cyan seams every quarter metre up the body, in model-relative height
       material.onBeforeCompile = (shader) => {
@@ -169,13 +150,20 @@ function Model({ url, tint, height, feetY, color, trim, pose, motion, bodyType, 
       const m = o as THREE.SkinnedMesh;
       if (!m.isMesh) return;
       m.castShadow = false; m.receiveShadow = false;
-      if (m.isSkinnedMesh) { skinned = true; m.frustumCulled = false; if (palette) ownGeometries.push(paintVertexColors(m, palette)); }
+      if (m.isSkinnedMesh) {
+        skinned = true; m.frustumCulled = false;
+        if (palette && material) {
+          const skin = paintSkin(m, palette, { size: texSize, accent });
+          if (skin) { skins.push(skin); material.map = skin.map; material.emissiveMap = skin.emissiveMap; }
+          else { material.color.set(palette.chest.color); material.emissive.set("#1c2836"); } // mesh lacks UVs/skin data: flat plate colour, never black
+        }
+      }
       if (material) m.material = material;
     });
     // F3 diagnostics (PerfProbe): what the paint path actually did for this operator, so a grey result can be traced
     let verts = 0, matCount = 0; const share: Record<string, number> = {};
     object.traverse((o) => { const m = o as THREE.SkinnedMesh; if (!m.isMesh) return; matCount += Array.isArray(m.material) ? m.material.length : 1; verts += m.geometry.getAttribute("position")?.count ?? 0; if (m.isSkinnedMesh) for (const b of m.skeleton.bones) { const r = boneRegion(b.name); share[r] = (share[r] ?? 0) + 1; } });
-    object.userData["operatorDiag"] = { url, tint, vertexColorMaterial: Boolean(material), materials: matCount, vertices: verts, bonesByRegion: share, armor: color ?? "(none)", trim: trim ?? "(none)", chest: palette?.chest.color ?? "(no palette)", helmet: palette?.helmet.color ?? "(no palette)", suit: palette?.suit.color ?? "(no palette)" };
+    object.userData["operatorDiag"] = { url, tint, texturePaint: skins.length > 0, textureSize: skins[0]?.size ?? 0, textureCovered: skins[0] ? Math.round(skins[0].covered * 100) + "%" : "0%", visorTexels: skins[0]?.visorTexels ?? 0, materials: matCount, vertices: verts, bonesByRegion: share, armor: color ?? "(none)", trim: trim ?? "(none)", chest: palette?.chest.color ?? "(no palette)", helmet: palette?.helmet.color ?? "(no palette)", suit: palette?.suit.color ?? "(no palette)" };
     object.updateMatrixWorld(true);
     const box = new THREE.Box3().setFromObject(object);
     const size = box.getSize(new THREE.Vector3());
@@ -184,8 +172,8 @@ function Model({ url, tint, height, feetY, color, trim, pose, motion, bodyType, 
     const mixer = skinned && animations.length ? new THREE.AnimationMixer(object) : null;
     const actions: Record<string, THREE.AnimationAction> = {};
     if (mixer) for (const clip of animations) { const a = mixer.clipAction(pinRootMotion(clip)); a.timeScale = 0; a.play(); a.weight = 0; actions[clip.name] = a; }
-    return { object, scale, material, ownGeometries, mixer, actions, offset: new THREE.Vector3(-centre.x * scale, feetY - box.min.y * scale, -centre.z * scale) };
-  }, [scene, animations, height, feetY, tint, color, trim, bodyType, look, cloth]);
+    return { object, scale, material, skins, mixer, actions, offset: new THREE.Vector3(-centre.x * scale, feetY - box.min.y * scale, -centre.z * scale) };
+  }, [scene, animations, height, feetY, tint, color, trim, bodyType, look, cloth, pose]);
   const armorKey = piecesKey(gear, classId);
   useEffect(() => {
     const pieces = equippedPieces(gear, classId);
@@ -203,7 +191,7 @@ function Model({ url, tint, height, feetY, color, trim, pose, motion, bodyType, 
     heldGroups.current = w.groups;
     return () => { heldGroups.current = {}; w.dispose(); };
   }, [built, held, height]);
-  useEffect(() => () => { built.material?.dispose(); built.ownGeometries.forEach((g) => g.dispose()); built.mixer?.stopAllAction(); }, [built]);
+  useEffect(() => () => { built.material?.dispose(); built.skins.forEach((t) => { t.map.dispose(); t.emissiveMap.dispose(); }); built.mixer?.stopAllAction(); }, [built]);
 
   const rig = useRef<THREE.Group>(null);
   const body = useRef({ crouch: 0, prone: 0, lean: 0 });

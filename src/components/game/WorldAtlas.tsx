@@ -1,13 +1,14 @@
 import { useMemo, useState } from "react";
 import { Crosshair, MapPin, Navigation, Shield, Skull, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { REGIONS, ZONE_COLOR, ZONE_LABEL, WORLD_SCALE } from "@/game/world";
-import { LANES, laneSamples } from "@/game/lanes";
-import { MAP_EXTENT, terrainMapDataUrl } from "@/game/terrain-map";
+import { REGIONS, ZONE_LABEL, WORLD_SCALE } from "@/game/world";
+import { MAP_OCEAN_EDGE } from "@/game/terrain-map";
 import { ENCOUNTERS } from "@/game/encounters";
 import { MARKER_COLOR, type TrackedMarker } from "@/game/waypoints";
 import type { PlayerProgression } from "@/game/progression";
 import { NextActivityCard } from "./NextActivityCard";
+import { MAP_VIEWBOX, MapLayers } from "./MapLayers";
+import { useTerrainMap } from "./useTerrainMap";
 import { MapLegend, LANDMARK_GLYPH } from "./MapLegend";
 import { LANDMARKS, landmarkRoutes, isLandmarkKnown } from "@/game/landmarks";
 import { HAZARD_ZONES, zoneCenter } from "@/game/hazard-zones";
@@ -46,23 +47,21 @@ const fmt = (d: number) => (d >= 1000 ? `${(d / 1000).toFixed(1)}km` : `${Math.r
 /** Live tactical map: region footprints, player arrow, and every tracked mission, resource site and boss lair. */
 function TacticalMap({ markers, px, pz, selected, onSelect, progression }: { markers: TrackedMarker[]; px: number; pz: number; selected: string; onSelect: (id: string) => void; progression: PlayerProgression }) {
   // the map shows the whole painted continent (terrain-map.ts), not just the region circles
-  const minX = -MAP_EXTENT, maxX = MAP_EXTENT, minZ = -MAP_EXTENT, maxZ = MAP_EXTENT;
-  const art = useMemo(() => terrainMapDataUrl(), []);
+  const map = useTerrainMap();
   const [legend, setLegend] = useState({ MISSION: true, RESOURCE: true, BOSS: true, RUIN: true, LANDMARK: true });
   const [hazards, setHazards] = useState(true);
   const known = (id: string) => isLandmarkKnown(progression, id);
   const hz = useMemo(() => HAZARD_ZONES.map((z) => ({ z, c: zoneCenter(z, performance.now() / 1000) })).filter(({ z }) => known(z.landmarkId)), [progression.earnedRewards]);
   return <div>
+    {!map.full && <p className="mb-1 font-mono text-[10px] uppercase tracking-widest text-muted-foreground" role="status">Surveying terrain… {Math.round(map.progress * 100)}%</p>}
     <div className="mb-2 flex flex-wrap gap-2 text-xs">{(Object.keys(legend) as (keyof typeof legend)[]).map((k) => <Button key={k} size="sm" variant="ghost" onClick={() => setLegend((l) => ({ ...l, [k]: !l[k] }))} className={`rounded-none border-b px-2 py-1 font-mono uppercase ${legend[k] ? "border-current" : "border-transparent opacity-40"}`} style={{ color: MARKER_COLOR[k] }}>{k === "MISSION" ? "◆ Missions" : k === "RESOURCE" ? "⬢ Resources" : k === "RUIN" ? "✦ Ruins" : k === "LANDMARK" ? "▣ Landmarks" : "☠ Bosses"}</Button>)}<Button size="sm" variant="ghost" onClick={() => setHazards((v) => !v)} className={`rounded-none border-b px-2 py-1 font-mono uppercase text-destructive ${hazards ? "border-current" : "border-transparent opacity-40"}`}>⚠ Hazards</Button></div>
-    <svg viewBox={`${minX} ${minZ} ${maxX - minX} ${maxZ - minZ}`} className="w-full border border-border bg-card/40" role="img" aria-label="Tactical map with markers">
-      {art && <image href={art} x={minX} y={minZ} width={maxX - minX} height={maxZ - minZ} preserveAspectRatio="none" style={{ imageRendering: "auto" }} />}
-      {LANES.map((l) => <polyline key={l.name} points={laneSamples(l, 24).map((p) => `${p.x},${p.z}`).join(" ")} fill="none" stroke="#f3e2b0" strokeOpacity={0.75} strokeWidth={u(0.9)} strokeDasharray={`${u(2.4)} ${u(1.6)}`} />)}
+    <svg viewBox={MAP_VIEWBOX} className="w-full border border-border" style={{ background: MAP_OCEAN_EDGE }} role="img" aria-label="Tactical map with markers">
+      <MapLayers art={map.url} preview={!map.full} selected={selected} onSelect={onSelect}>
       {legend.LANDMARK && landmarkRoutes().filter((r) => known(r.a.id) && known(r.b.id)).map((r) => <line key={`${r.a.id}-${r.b.id}`} x1={r.a.x} y1={r.a.z} x2={r.b.x} y2={r.b.z} stroke="#9fd4ff" strokeOpacity={0.7} strokeWidth={u(0.6)} strokeDasharray={`${u(0.8)} ${u(1.4)}`} strokeLinecap="round" />)}
       {hazards && hz.map(({ z, c }) => <g key={z.id}><title>{`${z.name} · ${z.hint}`}</title><circle cx={c.x} cy={c.z} r={z.radius} fill="#ff4d4d" fillOpacity={0.14} stroke="#ff4d4d" strokeWidth={u(0.6)} strokeDasharray={`${u(1.6)} ${u(1.2)}`} /><g transform={`translate(${c.x} ${c.z}) scale(${WORLD_SCALE})`}><text y={1.6} textAnchor="middle" fontSize={5} fill="#ff8a8a" stroke="#000" strokeWidth={0.8} paintOrder="stroke">⚠</text></g></g>)}
-      {REGIONS.map((r) => <g key={r.id} onClick={() => onSelect(r.id)} className="cursor-pointer"><circle cx={r.x} cy={r.z} r={r.radius} fill={ZONE_COLOR[r.kind]} fillOpacity={selected === r.id ? 0.22 : 0.05} stroke={ZONE_COLOR[r.kind]} strokeOpacity={0.7} strokeWidth={u(0.8)} /><g transform={`translate(${r.x} ${r.z - r.radius - u(2)}) scale(${WORLD_SCALE})`}><text textAnchor="middle" fontSize={5.5} fill="#ffffff" stroke="#000000" strokeWidth={1.1} paintOrder="stroke" className="font-mono">{r.name}</text></g></g>)}
       {markers.filter((m) => legend[m.kind]).map((m) => <g key={m.id} transform={`translate(${m.x} ${m.z}) scale(${WORLD_SCALE})`}><title>{`${m.label} · ${fmt(m.dist)}`}</title>{m.kind === "LANDMARK" ? <g><text y={1.8} textAnchor="middle" fontSize={5.5} fill={MARKER_COLOR.LANDMARK} stroke="#000" strokeWidth={0.9} paintOrder="stroke">{LANDMARK_GLYPH[LANDMARKS.find((l) => `lm-${l.id}` === m.id)?.type ?? "outpost"]}</text><text y={6.4} textAnchor="middle" fontSize={3.2} fill="#ffffff" stroke="#000" strokeWidth={0.7} paintOrder="stroke">{m.label}</text></g> : m.kind === "RESOURCE" ? <polygon points="0,-2.4 2,-1.2 2,1.2 0,2.4 -2,1.2 -2,-1.2" fill={MARKER_COLOR.RESOURCE} fillOpacity={m.ready === false ? 0.3 : 1} /> : m.kind === "BOSS" ? <g><circle r={3.2} fill="none" stroke={MARKER_COLOR.BOSS} strokeWidth={1} /><circle r={1.4} fill={MARKER_COLOR.BOSS} /></g> : m.kind === "RUIN" ? <polygon points="0,-3 2.6,2 -2.6,2" fill={MARKER_COLOR.RUIN} stroke="#000" strokeWidth={0.4} /> : <rect x={-2} y={-2} width={4} height={4} transform="rotate(45)" fill={MARKER_COLOR.MISSION} />}</g>)}
       <circle cx={px} cy={pz} r={u(2.6)} fill="#ffffff" stroke="#000000" strokeWidth={u(0.6)} />
-      <g transform={`translate(${maxX - u(22)} ${minZ + u(24)}) scale(${WORLD_SCALE})`} aria-label="Compass rose"><circle r={15} fill="#000" fillOpacity={0.45} stroke="#fff" strokeOpacity={0.6} strokeWidth={0.5} /><polygon points="0,-14 3,0 0,3 -3,0" fill="#ff5a5a" /><polygon points="0,14 3,0 0,-3 -3,0" fill="#e8e8e8" /><polygon points="14,0 0,3 -3,0 0,-3" fill="#bbb" /><polygon points="-14,0 0,3 3,0 0,-3" fill="#bbb" /><text y={-17} textAnchor="middle" fontSize={6} fill="#fff" fontWeight="700">N</text><text y={23} textAnchor="middle" fontSize={5} fill="#ccc">S</text><text x={19} y={2} textAnchor="middle" fontSize={5} fill="#ccc">E</text><text x={-19} y={2} textAnchor="middle" fontSize={5} fill="#ccc">W</text></g>
+      </MapLayers>
     </svg>
     <ul className="mt-3 grid gap-1 text-xs sm:grid-cols-2">{markers.filter((m) => legend[m.kind] && m.kind !== "RESOURCE" && m.kind !== "LANDMARK").slice(0, 8).map((m) => <li key={m.id} className="flex justify-between border-l-2 bg-card/40 px-2 py-1" style={{ borderColor: MARKER_COLOR[m.kind] }}><span>{m.label}</span><span className="text-muted-foreground">{fmt(m.dist)}</span></li>)}</ul>
   </div>;

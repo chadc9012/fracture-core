@@ -16,3 +16,6 @@ Wasteland/Solara rocks and Ember rocks (`namaqualand_boulder_02` is hosted but ~
 
 ## How to add the rest
 Models must be hosted in the project's asset store (the sandbox cannot reach Meshy or Poly Haven). Upload GLBs through Lovable, then: decimate to <=3k tris (rocks/cacti), <=6k (wrecks), embed textures <=1K, Y-up, origin at the base, 1 unit = 1 m, CC0/own licence noted in the `.asset.json`. Add a `FoliageKind` in PolyFoliage.tsx + a budget in perf-budget.ts + a hide-when-ready switch in Terrain.tsx.
+
+## Characters
+Operators use the upgraded `*-hd.glb` meshes with texture paint; see docs/characters-and-map.md.

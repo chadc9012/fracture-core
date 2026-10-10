@@ -72,14 +72,19 @@ describe("launchers in the sim", () => {
   const run = (sim: ReturnType<typeof createSim>, steps: number) => { for (let i = 0; i < steps; i++) stepSim(sim, { dt: 0.05, px: 0, pz: 0, night: 0 } as never); };
 
   test("a launcher round detonates, damages with falloff, logs a burst and never hurts the player", () => {
-    const { sim, m } = fresh();
-    const hp0 = sim.hp;
-    expect(fireLauncher(sim, "ROCKET", 0, Math.max(heightAt(0, 0), heightAt(0, 20)) + 1.5, 0, 0, 0, 5)).toBe(true); // launched just above the ground at the player, flat toward the target
-    run(sim, 40);
-    expect(sim.rounds.every((r) => !r.alive)).toBe(true);
-    expect(sim.burstEvents.length).toBe(1);
-    expect(m.alive).toBe(false);
-    expect(sim.hp).toBe(hp0);
+    // the sim's AI draws from Math.random (wander, spawns); a fixed value keeps the machine standing where the rocket lands, so this test cannot flake
+    const realRandom = Math.random;
+    Math.random = () => 0.5;
+    try {
+      const { sim, m } = fresh();
+      const hp0 = sim.hp;
+      expect(fireLauncher(sim, "ROCKET", 0, Math.max(heightAt(0, 0), heightAt(0, 20)) + 1.5, 0, 0, 0, 5)).toBe(true); // launched just above the ground at the player, flat toward the target
+      run(sim, 40);
+      expect(sim.rounds.every((r) => !r.alive)).toBe(true);
+      expect(sim.burstEvents.length).toBe(1);
+      expect(m.alive).toBe(false);
+      expect(sim.hp).toBe(hp0);
+    } finally { Math.random = realRandom; }
   });
   test("overheated launcher does not fire; pool recycles", () => {
     const { sim } = fresh();

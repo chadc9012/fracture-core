@@ -29,6 +29,7 @@ export function boneRegion(name: string): Region {
 
 const hex = (c: string): [number, number, number] => { const v = c.replace("#", ""); const f = v.length === 3 ? v.split("").map((x) => x + x).join("") : v; return [parseInt(f.slice(0, 2), 16) || 0, parseInt(f.slice(2, 4), 16) || 0, parseInt(f.slice(4, 6), 16) || 0]; };
 const toHex = (c: [number, number, number]) => "#" + c.map((x) => Math.round(Math.min(255, Math.max(0, x))).toString(16).padStart(2, "0")).join("");
+export const hexToRgb = hex;
 export const mixHex = (a: string, b: string, t: number) => { const A = hex(a), B = hex(b); return toHex([A[0] + (B[0] - A[0]) * t, A[1] + (B[1] - A[1]) * t, A[2] + (B[2] - A[2]) * t]); };
 /** perceived brightness 0..1 */
 export const luma = (c: string) => { const [r, g, b] = hex(c); return (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255; };

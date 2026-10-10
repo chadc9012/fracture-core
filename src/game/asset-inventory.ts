@@ -7,9 +7,9 @@ export type AssetStatus = "A" | "B" | "C" | "D" | "E";
 export type AssetEntry = { id: string; category: "operator" | "boss" | "enemy" | "civilian" | "merchant" | "weapon" | "vehicle" | "building" | "nature"; status: AssetStatus; url?: string; note: string };
 
 export const ASSET_INVENTORY: AssetEntry[] = [
-  { id: "goliath", category: "operator", status: "A", url: "/models/operators/goliath.glb", note: "Rigged single mesh, no materials; clips walk/run/showcase/stagger/squat. Armor slots are painted vertex-colour regions, not separate meshes." },
-  { id: "nyx", category: "operator", status: "A", url: "/models/operators/nyx.glb", note: "Rigged single mesh, no materials; clips walk/run/idle/slide/charge/combo/punch/sideshot." },
-  { id: "cipher", category: "operator", status: "A", url: "/models/operators/cipher.glb", note: "Rigged single mesh, no materials; clips walk/run only (no idle)." },
+  { id: "goliath", category: "operator", status: "A", url: "/models/operators/goliath-hd.glb", note: "Rigged single mesh (Meshy original subdivided once offline, ~12k tris, scripts/build-operator-hd.ts); clips walk/run/showcase/stagger/squat. Armor regions, visor and wear are painted into a runtime texture through the UVs." },
+  { id: "nyx", category: "operator", status: "A", url: "/models/operators/nyx-hd.glb", note: "Rigged single mesh (subdivided once offline, ~12k tris), painted at runtime; clips walk/run/idle/slide/charge/combo/punch/sideshot." },
+  { id: "cipher", category: "operator", status: "A", url: "/models/operators/cipher-hd.glb", note: "Rigged single mesh (subdivided once offline, ~12k tris), painted at runtime; clips walk/run only (no idle)." },
   { id: "modular-armor", category: "operator", status: "B", note: "Starter procedural helmet/chest+pauldron/gauntlet/thigh+shin pieces parented to rig bones (armor-pieces.ts); replaceable by authored GLBs per piece." },
   { id: "frost-wolf", category: "boss", status: "A", url: "/models/bosses/frost-wolf.glb", note: "Baked texture, skinned but zero animation clips." },
   { id: "dark-knight", category: "boss", status: "A", url: "/models/bosses/dark-knight.glb", note: "Baked texture, static (no skin, no clips)." },

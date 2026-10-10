@@ -1,22 +1,21 @@
 import { REGION_HAZARD } from "@/game/region-hazards";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { ArrowLeft, ChevronRight, Skull } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { REGIONS, ZONE_COLOR, ZONE_LABEL, WORLD_SCALE } from "@/game/world";
+import { REGIONS, ZONE_COLOR, ZONE_LABEL } from "@/game/world";
 import { ENCOUNTERS } from "@/game/encounters";
 import { CHRONICLE, nextActivity } from "@/game/retention";
 import type { PlayerProgression } from "@/game/progression";
 import { NextActivityCard } from "./NextActivityCard";
-import { MAP_EXTENT, terrainMapDataUrl } from "@/game/terrain-map";
-import { LANES, laneSamples } from "@/game/lanes";
+import { MAP_OCEAN_EDGE } from "@/game/terrain-map";
 import { LANDMARKS, isLandmarkKnown } from "@/game/landmarks";
 import { MapLegend, LANDMARK_GLYPH } from "./MapLegend";
+import { MAP_FONT, MAP_VIEWBOX, MapLayers } from "./MapLayers";
+import { useTerrainMap } from "./useTerrainMap";
 
 const THREAT = ["MINIMAL", "LOW", "MODERATE", "HIGH", "SEVERE", "EXTREME"];
 
 /** Destination-first star map rebuilt from the uploaded StarMapDeployment layout, driven by the real REGIONS/ENCOUNTERS data. */
-/** map sizes are authored in original-world units; positions are world units, so sizes grow with the map */
-const u = (n: number) => n * WORLD_SCALE;
 
 export function StarMap({ progression, onBack, onDeploy }: { progression: PlayerProgression; onBack: () => void; onDeploy: (regionId: string) => void }) {
   const next = nextActivity(progression);
@@ -26,8 +25,7 @@ export function StarMap({ progression, onBack, onDeploy }: { progression: Player
   const region = REGIONS.find((r) => r.id === selected)!;
   const encounter = ENCOUNTERS.find((e) => e.regionId === selected);
   const chapters = CHRONICLE.filter((c) => c.region === region.name);
-  const art = useMemo(() => terrainMapDataUrl(), []);
-  const E = MAP_EXTENT;
+  const map = useTerrainMap();
   const deploy = () => { setLaunching(true); window.setTimeout(() => onDeploy(region.id), 900); };
 
   return (
@@ -42,23 +40,13 @@ export function StarMap({ progression, onBack, onDeploy }: { progression: Player
       </header>
 
       <div className="relative my-3 grid min-h-0 flex-1 grid-cols-1 gap-4 lg:grid-cols-4">
-        <section className="relative border border-foreground/15 bg-background/50 p-3 lg:col-span-3">
-          <svg viewBox={`${-E} ${-E} ${E * 2} ${E * 2}`} className="mx-auto aspect-square max-h-[70vh] w-full border border-foreground/15" role="img" aria-label="Destination map">
-            {art && <image href={art} x={-E} y={-E} width={E * 2} height={E * 2} preserveAspectRatio="none" />}
-            {LANES.map((l) => <polyline key={l.name} points={laneSamples(l, 24).map((p) => `${p.x},${p.z}`).join(" ")} fill="none" stroke="#f3e2b0" strokeOpacity={0.8} strokeWidth={u(0.9)} strokeDasharray={`${u(2.4)} ${u(1.6)}`} />)}
-            {REGIONS.map((r) => {
-              const on = r.id === selected, rec = r.id === recommended;
-              return (
-                <g key={r.id} onClick={() => setSelected(r.id)} className="cursor-pointer">
-                  <circle cx={r.x} cy={r.z} r={r.radius} fill={ZONE_COLOR[r.kind]} fillOpacity={on ? 0.24 : 0.04} stroke={ZONE_COLOR[r.kind]} strokeOpacity={on ? 1 : 0.7} strokeWidth={u(on ? 1.4 : 0.7)} />
-                  {rec && <circle cx={r.x} cy={r.z} r={r.radius + u(3)} fill="none" stroke="#ffffff" strokeDasharray={`${u(3)} ${u(3)}`} strokeWidth={u(0.8)} />}
-                  <g transform={`translate(${r.x} ${r.z}) scale(${WORLD_SCALE})`}><text y={1.5} textAnchor="middle" fontSize={5.4} fill="#fff" stroke="#000" strokeWidth={1.1} paintOrder="stroke" className="font-mono uppercase">{r.name}{rec ? " ◆" : ""}</text></g>
-                </g>
-              );
-            })}
-            {LANDMARKS.filter((l) => isLandmarkKnown(progression, l.id)).map((l) => <g key={l.id} transform={`translate(${l.x} ${l.z}) scale(${WORLD_SCALE})`}><text y={1.6} textAnchor="middle" fontSize={4.6} fill="#9fd4ff" stroke="#000" strokeWidth={0.8} paintOrder="stroke"><title>{l.name}</title>{LANDMARK_GLYPH[l.type]}</text></g>)}
-            <g transform={`translate(${E - u(22)} ${-E + u(24)}) scale(${WORLD_SCALE})`} aria-label="Compass rose"><circle r={15} fill="#000" fillOpacity={0.45} stroke="#fff" strokeOpacity={0.6} strokeWidth={0.5} /><polygon points="0,-14 3,0 0,3 -3,0" fill="#ff5a5a" /><polygon points="0,14 3,0 0,-3 -3,0" fill="#e8e8e8" /><text y={-17} textAnchor="middle" fontSize={6} fill="#fff" fontWeight="700">N</text></g>
+        <section className="relative border border-foreground/15 p-3 lg:col-span-3" style={{ background: `radial-gradient(ellipse at center, ${MAP_OCEAN_EDGE} 0%, #061630 100%)` }}>
+          <svg viewBox={MAP_VIEWBOX} className="mx-auto aspect-square max-h-[74vh] w-full" style={{ background: MAP_OCEAN_EDGE }} role="img" aria-label="Destination map">
+            <MapLayers art={map.url} preview={!map.full} selected={selected} recommended={recommended} onSelect={setSelected}>
+              {LANDMARKS.filter((l) => isLandmarkKnown(progression, l.id)).map((l) => <g key={l.id}><title>{l.name}</title><text x={l.x} y={l.z + MAP_FONT * 0.35} textAnchor="middle" fontSize={MAP_FONT * 0.9} fill="#bfe3ff" stroke="#06101f" strokeWidth={MAP_FONT * 0.16} paintOrder="stroke">{LANDMARK_GLYPH[l.type]}</text></g>)}
+            </MapLayers>
           </svg>
+          {!map.full && <p className="pointer-events-none absolute left-5 top-5 bg-background/70 px-2 py-1 font-mono text-[10px] uppercase tracking-widest text-muted-foreground" role="status">Surveying terrain… {Math.round(map.progress * 100)}%</p>}
           <MapLegend phase="" />
         </section>
 
