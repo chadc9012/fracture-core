@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { farProxies, PROXY_MAX, foliageTris, heavyShadows, LIGHT_CAP, maxInstances, nearestWithin, pickLights, regionModelTris, setPerfTier, getPerfTier, perfTierVersion } from "./perf-budget";
+import { farProxies, isProxied, PROXY_COLOR, PROXY_RADIUS, PROXY_MAX, foliageTris, heavyShadows, LIGHT_CAP, maxInstances, nearestWithin, pickLights, regionModelTris, setPerfTier, getPerfTier, perfTierVersion } from "./perf-budget";
 import { DPR_FLOOR, effectiveTier, MIN_STEP_SECONDS, onDecline, stepDownTier } from "./quality-governor";
 
 describe("budgets", () => {
@@ -66,5 +66,12 @@ describe("far proxies", () => {
     expect(farProxies(pts, 0, 0, [], 100, 2)).toEqual([0, 2]);
     expect(farProxies(pts, 0, 0, [], 100, 0)).toEqual([]);
     expect(PROXY_MAX.LOW).toBeLessThan(PROXY_MAX.ULTRA);
+  });
+});
+
+describe("far silhouettes", () => {
+  test("trees, rocks and standing dead trunks keep a far proxy; plants do not", () => {
+    for (const k of ["fir", "broadleaf", "rock", "log"] as const) { expect(isProxied(k)).toBe(true); expect(PROXY_RADIUS[k]).toBeGreaterThan(0); expect(PROXY_COLOR[k]).toMatch(/^#[0-9a-f]{6}$/); }
+    for (const k of ["shrub", "fern"] as const) expect(isProxied(k)).toBe(false);
   });
 });

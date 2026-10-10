@@ -205,7 +205,7 @@ export function Terrain({ renderTier = "HIGH" }: { renderTier?: RenderTier } = {
   useEffect(() => { const t = window.setTimeout(() => setModelsReady(true), 4000); return () => window.clearTimeout(t); }, []);
   // real Poly Haven trees replace the procedural ones species-by-species as each GLB finishes loading;
   // until then (or if a file is missing) the procedural trees keep the forest populated
-  const [polyReady, setPolyReady] = useState({ fir: false, broadleaf: false });
+  const [polyReady, setPolyReady] = useState({ fir: false, broadleaf: false, rock: false, log: false, shrub: false, fern: false });
   const realTrees = renderTier !== "LOW";
   useEffect(() => {
     if (!realTrees) return;
@@ -315,8 +315,22 @@ export function Terrain({ renderTier = "HIGH" }: { renderTier?: RenderTier } = {
   const broadleafs: Placement[] = liveTrees.filter((t) => (treeIndex.get(t) ?? 0) % 2 === 1).map(asPlacement);
   const readyFir = useMemo(() => () => setPolyReady((p) => (p.fir ? p : { ...p, fir: true })), []);
   const readyBroad = useMemo(() => () => setPolyReady((p) => (p.broadleaf ? p : { ...p, broadleaf: true })), []);
-  const liveSwamp = alive(swampTrees);
-  const liveBoulders = alive(boulders);
+  const readyRock = useMemo(() => () => setPolyReady((p) => (p.rock ? p : { ...p, rock: true })), []);
+  const readyLog = useMemo(() => () => setPolyReady((p) => (p.log ? p : { ...p, log: true })), []);
+  const readyShrub = useMemo(() => () => setPolyReady((p) => (p.shrub ? p : { ...p, shrub: true })), []);
+  const readyFern = useMemo(() => () => setPolyReady((p) => (p.fern ? p : { ...p, fern: true })), []);
+  // Real Poly Haven models take over these props as each GLB finishes loading (near ones in detail, far ones as cheap silhouettes,
+  // see PolyFoliage); the procedural shapes below only draw while a model is loading or if it fails, and on the LOW tier.
+  const realProps = realTrees && modelsReady;
+  const liveSwampAll = alive(swampTrees);
+  const liveBouldersAll = alive(boulders);
+  const liveSwamp = realProps && polyReady.log ? [] : liveSwampAll;
+  const liveBoulders = realProps && polyReady.rock ? [] : liveBouldersAll;
+  const swampTrunks: Placement[] = liveSwampAll.map((t) => ({ x: t.x, y: t.y, z: t.z, s: t.s, r: t.r, tilt: (t.r - 3) * 0.03 }));
+  const boulderItems: Placement[] = liveBouldersAll.map(asPlacement);
+  const saplingItems: Placement[] = undergrowth.filter((_, i) => i % 3 !== 0).map((u) => ({ x: u.x, y: heightAt(u.x, u.z), z: u.z, s: u.s, r: u.r }));
+  const brushItems: Placement[] = undergrowth.filter((_, i) => i % 3 === 0).map((u) => ({ x: u.x, y: heightAt(u.x, u.z), z: u.z, s: u.s, r: u.r }));
+  const procUndergrowth = undergrowth.map((u, i) => ({ u, i })).filter(({ i }) => !(realProps && (i % 3 !== 0 ? polyReady.shrub : polyReady.fern)));
   const liveRocks = alive(rocks);
   const liveEmber = alive(emberRocks);
   const liveCacti = alive(cacti);
@@ -355,6 +369,10 @@ export function Terrain({ renderTier = "HIGH" }: { renderTier?: RenderTier } = {
         <>
           <PolyFoliage kind="fir" items={firs} height={firHeight} sway={0.35} shadows={fineShadows} onReady={readyFir} />
           <PolyFoliage kind="broadleaf" items={broadleafs} height={broadHeight} sway={0.4} shadows={fineShadows} onReady={readyBroad} />
+          <PolyFoliage kind="rock" items={boulderItems} height={3.4} shadows={fineShadows} variants onReady={readyRock} />
+          <PolyFoliage kind="log" items={swampTrunks} height={8} shadows={fineShadows} onReady={readyLog} />
+          <PolyFoliage kind="shrub" items={saplingItems} height={1.5} sway={0.14} shadows={false} variants onReady={readyShrub} />
+          <PolyFoliage kind="fern" items={brushItems} height={0.8} sway={0.1} shadows={false} variants onReady={readyFern} />
         </>
       )}
 
@@ -392,9 +410,9 @@ export function Terrain({ renderTier = "HIGH" }: { renderTier?: RenderTier } = {
         ))}
       </Instances>
       {/* undergrowth: saplings (tall) and brush (low, wide) clustered around the parent trees */}
-      <Instances limit={Math.max(1, undergrowth.length)} castShadow={false} receiveShadow geometry={canopyHigh}>
+      <Instances limit={Math.max(1, procUndergrowth.length)} castShadow={false} receiveShadow geometry={canopyHigh}>
         <meshStandardMaterial onBeforeCompile={swayCanopyHigh} color="#3f9a4f" roughness={0.9} map={leafDetail.map} normalMap={leafDetail.normalMap} normalScale={new THREE.Vector2(0.4, 0.4)} />
-        {undergrowth.map((u, i) => {
+        {procUndergrowth.map(({ u, i }) => {
           const sapling = i % 3 !== 0;
           const y = heightAt(u.x, u.z);
           return <Instance key={i} position={[u.x, y + (sapling ? 0.9 : 0.35) * u.s, u.z]} scale={sapling ? [0.3 * u.s, 0.42 * u.s, 0.3 * u.s] : [0.38 * u.s, 0.2 * u.s, 0.38 * u.s]} rotation-y={u.r} color={jitter(sapling ? "#3f9a4f" : "#2a6b3a", i + 7, 0.04, 0.14)} />;
@@ -410,7 +428,7 @@ export function Terrain({ renderTier = "HIGH" }: { renderTier?: RenderTier } = {
       </Instances>
 
       {/* frostspire boulders on the high slopes — mixed silhouettes + per-instance grey jitter */}
-      <Instances limit={liveBoulders.length} castShadow receiveShadow geometry={boulderA}>
+      <Instances limit={Math.max(1, liveBoulders.length)} castShadow receiveShadow geometry={boulderA}>
         <meshStandardMaterial color="#c3d4e6" roughness={0.7} map={rockDetail.map} normalMap={rockDetail.normalMap} normalScale={new THREE.Vector2(0.5, 0.5)} />
         {liveBoulders.map((b, i) =>
           i % 2 === 0 ? (
@@ -424,7 +442,7 @@ export function Terrain({ renderTier = "HIGH" }: { renderTier?: RenderTier } = {
           ) : null,
         )}
       </Instances>
-      <Instances limit={liveBoulders.length} castShadow receiveShadow geometry={boulderB}>
+      <Instances limit={Math.max(1, liveBoulders.length)} castShadow receiveShadow geometry={boulderB}>
         <meshStandardMaterial color="#c3d4e6" roughness={0.75} map={rockDetail.map} normalMap={rockDetail.normalMap} normalScale={new THREE.Vector2(0.5, 0.5)} />
         {liveBoulders.map((b, i) =>
           i % 2 === 1 ? (
@@ -507,7 +525,7 @@ export function Terrain({ renderTier = "HIGH" }: { renderTier?: RenderTier } = {
       </Instances>
 
       {/* swamp dead trees */}
-      <Instances limit={liveSwamp.length} castShadow receiveShadow>
+      <Instances limit={Math.max(1, liveSwamp.length)} castShadow receiveShadow>
         <primitive object={deadTrunkGeo} attach="geometry" />
         <meshStandardMaterial onBeforeCompile={swayDeadTrunk} color="#1d2b22" roughness={1} map={barkDetail.map} normalMap={barkDetail.normalMap} normalScale={new THREE.Vector2(0.6, 0.6)} />
         {liveSwamp.map((t, i) => (

@@ -26,9 +26,12 @@ export const maxInstances = (allowance: number, trisPerInstance: number) => (tri
 
 /** Far-forest proxies: trees past the detailed budget are drawn as ~20-triangle silhouettes instead of vanishing,
  * so the forest keeps its depth without paying for the real models. Only tree species get proxies. */
-export const PROXY_RADIUS = { fir: 340, broadleaf: 340 } as const;
+export const PROXY_RADIUS = { fir: 340, broadleaf: 340, rock: 300, log: 260 } as const;
+/** species that keep a cheap far silhouette once past their detailed budget (shrubs and ferns just fade out) */
+export type ProxiedKind = keyof typeof PROXY_RADIUS;
+export const isProxied = (kind: BudgetKind): kind is ProxiedKind => kind in PROXY_RADIUS;
 export const PROXY_MAX: Record<RenderTier, number> = { LOW: 900, MEDIUM: 1800, HIGH: 2600, ULTRA: 3600 };
-export const PROXY_COLOR = { fir: "#2c5a3a", broadleaf: "#4b7d3b" } as const;
+export const PROXY_COLOR = { fir: "#2c5a3a", broadleaf: "#4b7d3b", rock: "#767b72", log: "#2c3029" } as const;
 
 export type XZ = { x: number; z: number };
 /** nearest-first indices within `radius` that are NOT already drawn in detail (`near`), at most `max` */

@@ -20,7 +20,7 @@ export const ASSET_INVENTORY: AssetEntry[] = [
   { id: "suv/police/truck", category: "vehicle", status: "A", note: "CC0 GLBs used by Vehicle.tsx and NexusCity.tsx." },
   { id: "van/race-future/wheel", category: "vehicle", status: "C", note: "Registered and preloaded; wheel used by Vehicle.tsx, van/race-future not placed." },
   { id: "tower-a/b, block-a/b", category: "building", status: "A", note: "CC0 city blocks used in Nexus/Neon City." },
-  { id: "poly-haven-nature", category: "nature", status: "A", note: "Trees, shrubs, fern, boulder, moss rocks, trunk + 6 ground textures, with primitive fallback." },
+  { id: "poly-haven-nature", category: "nature", status: "A", note: "Trees, shrubs, fern, boulder, moss rocks, trunk + 6 ground textures, with primitive fallback. Frostspire boulders, swamp dead trunks and forest saplings/brush now use them (docs/realistic-assets.md); wrecks, cacti, reeds and arid rocks are still primitives." },
 ];
 
 import { ENEMY_MODEL_URLS } from "./enemy-visuals";
