@@ -51,8 +51,8 @@ void main(){
         float surf = fbm(n.xy * 5.0 + n.z * 3.0);
         float surf2 = fbm(n.yz * 11.0 - n.x * 7.0);
         // fracture network: thin bright ridges where two noise fields cross zero
-        float crack = 1.0 - smoothstep(0.0, 0.035, abs(fbm(n.xz * 7.5 + n.y * 4.0) - 0.5));
-        crack += (1.0 - smoothstep(0.0, 0.02, abs(fbm(n.xy * 14.0 + 3.0) - 0.5))) * 0.5;
+        float crack = 1.0 - smoothstep(0.0, 0.07, abs(fbm(n.xz * 7.5 + n.y * 4.0) - 0.5));
+        crack += (1.0 - smoothstep(0.0, 0.04, abs(fbm(n.xy * 14.0 + 3.0) - 0.5))) * 0.5;
         float lit = clamp(dot(n, normalize(sunDir)) * 0.8 + 0.35, 0.0, 1.0);
         vec3 rock = mix(vec3(0.46, 0.43, 0.5), vec3(0.86, 0.8, 0.74), surf * 0.7 + surf2 * 0.3);
         vec3 body = rock * (0.12 + lit * 1.05);

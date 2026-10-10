@@ -311,6 +311,14 @@ function nightFactor(t: number) {
   return Math.min(1, Math.max(0, -Math.sin(theta) * 1.2 + 0.15));
 }
 
+/** Region name labels are a landmark seen from outside a region; inside it the HUD already names the region and a
+ * camera-facing 52 m-high label just fills the sky (it did at spawn). Hidden while the camera is within `radius`. */
+function HideInside({ x, z, radius, children }: { x: number; z: number; radius: number; children: React.ReactNode }) {
+  const g = useRef<THREE.Group>(null!);
+  useFrame(({ camera }) => { if (g.current) g.current.visible = Math.hypot(camera.position.x - x, camera.position.z - z) > radius; });
+  return <group ref={g}>{children}</group>;
+}
+
 /** Labels tint by the zone's live faction owner (FACTIONS[...].color) instead of a static zone-kind
  * color, and append the instability tier when it's above STABLE — the territory-control sim
  * (sim.ts's zones: owner/challenger/contested/instability) already runs every frame, it just never
@@ -323,7 +331,8 @@ function RegionLabels({ zones }: { zones: readonly ZoneState[] }) {
         const tier = instabilityTier(zone?.instability ?? 0);
         const color = zone ? FACTIONS[zone.owner].color : ZONE_COLOR[r.kind];
         return (
-          <Billboard key={r.id} position={[r.x, walkHeight(r.x, r.z) + 52, r.z]}>
+          <HideInside key={r.id} x={r.x} z={r.z} radius={r.radius * 0.5}>
+          <Billboard position={[r.x, walkHeight(r.x, r.z) + 52, r.z]}>
           <Text
             fontSize={7}
             color={color}
@@ -337,6 +346,7 @@ function RegionLabels({ zones }: { zones: readonly ZoneState[] }) {
             {tier !== "STABLE" ? ` · ${tier}` : ""}
           </Text>
           </Billboard>
+          </HideInside>
         );
       })}
     </group>
