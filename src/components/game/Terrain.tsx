@@ -6,7 +6,7 @@ import * as THREE from "three";
 
 import { REGIONS, WORLD_RADIUS, WORLD_SCALE, type Region } from "@/game/world";
 import type { RenderTier } from "@/game/performance";
-import { mulberry32 } from "@/game/useKeyboard";
+import { mulberry32 } from "@/game/rng";
 import { clusterAround } from "@/game/foliage";
 import { GROVE, growGroves } from "@/game/forest-density";
 import { windSway } from "@/game/wind-sway";

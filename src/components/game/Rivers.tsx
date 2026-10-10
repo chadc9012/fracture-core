@@ -5,7 +5,7 @@ import { softSprite } from "./softSprite";
 import { waterNetwork } from "@/game/terrain";
 import { NEUTRAL_WATER, REGION_WATER } from "@/game/water-style";
 import { regionAt } from "@/game/world";
-import type { River, Waterfall, Lake } from "@/game/rivers";
+import { riverRibbon, type River, type Waterfall, type Lake } from "@/game/rivers";
 
 /**
  * Rivers, lakes and waterfalls from the traced water network (rivers.ts). Every surface sits on
@@ -56,15 +56,20 @@ function flowMaterial(regionId: string, round: boolean) {
 
 function riverGeometry(r: River) {
   const pos: number[] = [], uv: number[] = [], spd: number[] = [], idx: number[] = [];
-  let run = 0;
-  r.points.forEach((p, i) => {
-    const a = r.points[Math.max(0, i - 1)]!, b = r.points[Math.min(r.points.length - 1, i + 1)]!;
-    const dx = b.x - a.x, dz = b.z - a.z, len = Math.hypot(dx, dz) || 1;
-    const nx = -dz / len, nz = dx / len;
-    if (i > 0) run += Math.hypot(p.x - r.points[i - 1]!.x, p.z - r.points[i - 1]!.z);
-    const w = p.w * 1.08;
-    for (const side of [-1, 1]) { pos.push(p.x + nx * w * side, p.s + 0.05, p.z + nz * w * side); uv.push(side < 0 ? 0 : 1, run / 4); spd.push(r.speed[i] ?? 0.6); }
+  const sections = riverRibbon(r);
+  sections.forEach((c, i) => {
+    for (const side of [0, 1]) { const e = side ? c.right : c.left; pos.push(e[0], c.y, e[1]); uv.push(side, c.run / 4); spd.push(c.speed); }
     if (i > 0) { const k = i * 2; idx.push(k - 2, k, k - 1, k - 1, k, k + 1); }
+  });
+  // round caps: a fan of CAP_SEG triangles per section fills bend wedges and the river's blunt ends (same shader coordinates: edge = 1 on the rim)
+  sections.forEach((c) => {
+    const centre = pos.length / 3;
+    pos.push(c.cx, c.y, c.cz); uv.push(0.5, c.run / 4); spd.push(c.speed);
+    for (let k = 0; k < CAP_SEG; k++) {
+      const a = (k / CAP_SEG) * Math.PI * 2;
+      pos.push(c.cx + Math.cos(a) * c.r, c.y, c.cz + Math.sin(a) * c.r); uv.push(k % 2 ? 1 : 0, c.run / 4); spd.push(c.speed);
+    }
+    for (let k = 0; k < CAP_SEG; k++) idx.push(centre, centre + 1 + k, centre + 1 + ((k + 1) % CAP_SEG));
   });
   const g = new THREE.BufferGeometry();
   g.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
@@ -73,6 +78,7 @@ function riverGeometry(r: River) {
   g.setIndex(idx); g.computeBoundingSphere();
   return g;
 }
+const CAP_SEG = 10;
 
 const fallMat = (regionId: string) => {
   const st = styleFor(regionId);

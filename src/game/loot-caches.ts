@@ -5,7 +5,7 @@
  * "cache:<id>@<day>" so the existing additive cloud merge (union) keeps them without a schema change.
  * Side contracts complete once per region / scenario and pay through rewardMission (first-clear bonus).
  */
-import { mulberry32 } from "./useKeyboard";
+import { mulberry32 } from "./rng";
 import { REGIONS, type ZoneKind } from "./world";
 import { heightAt, riverAt, waterNetwork, WATER_LEVEL } from "./terrain";
 import { distanceToRoad, LANE_HALF_WIDTH } from "./lanes";

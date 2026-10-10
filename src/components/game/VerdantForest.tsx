@@ -3,7 +3,7 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState, type MutableRefO
 import * as THREE from "three";
 import { softSprite } from "./softSprite";
 import { heightAt, slopeAt, WATER_LEVEL } from "@/game/terrain";
-import { mulberry32 } from "@/game/useKeyboard";
+import { mulberry32 } from "@/game/rng";
 import { addObstacle, allObstacles, type Obstacle } from "@/game/obstacles";
 import { clusterAround } from "@/game/foliage";
 import { organicRock } from "@/game/organic-geometry";

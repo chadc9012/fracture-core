@@ -4,7 +4,7 @@ import { useMemo, useRef } from "react";
 import * as THREE from "three";
 import { REGIONS } from "@/game/world";
 import { heightAt, WATER_LEVEL } from "@/game/terrain";
-import { mulberry32 } from "@/game/useKeyboard";
+import { mulberry32 } from "@/game/rng";
 import { SPECIES_PROFILE, spawnCritter, stepCritter, type Critter, type Species } from "@/game/wildlife";
 
 /**

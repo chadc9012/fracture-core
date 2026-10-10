@@ -2,7 +2,7 @@
  * manifest, plus a sell-back path for owned gear. Replaces the old vendors that only drained
  * currency and printed a notice: buying here actually grants a GearItem into progression.inventory,
  * and selling actually removes one and pays out. Pure logic module; OperationsHub.tsx owns the UI. */
-import { mulberry32 } from "./useKeyboard";
+import { mulberry32 } from "./rng";
 import { WEAPON_MANIFEST, ARMOR_MANIFEST, type WeaponManifestItem, type ArmorManifestItem, type WeaponTier, type ArmorTier } from "./equipment";
 import type { GearItem, GearSlot } from "./inventory";
 import type { CurrencyId, Wallet } from "./economy";

@@ -3,6 +3,7 @@ import { forestRelief, openWoods, IMPACT_PIT } from "./forest-relief";
 import { REGIONS, WORLD_RADIUS, BASE_WORLD_REGIONS, BASE_WORLD_RADIUS, WORLD_SCALE, HEIGHT_K } from "./world";
 import { LANES, ROAD_SAMPLES, laneSamples, distanceToRoad } from "./lanes";
 import { coastShape } from "./coastline";
+import { wetnessAt, wetTint } from "./wetness";
 import { buildWaterNetwork, carveTarget, carveWeight, RIVER_SCALE, type RiverPoint, type WaterNetwork } from "./rivers";
 
 /* ------------------------------------------------------------------
@@ -382,6 +383,17 @@ export function slopeMask(slope: number): { dirt: number; rock: number } {
   return { dirt: smoothstep(0.22, 0.5, slope), rock: smoothstep(0.5, 0.85, slope) };
 }
 
+/** 0..1 ground wetness at (x,z) from the traced water network (river channel + banks, lake rims, waterfall spray). Sampled when terrain colour is baked, never per frame. */
+export function groundWetnessAt(x: number, z: number): number {
+  const net = network ?? waterNetwork();
+  const rv = riverAt(x, z);
+  let lake: { dist: number; r: number } | null = null;
+  for (const l of net.lakes) { const d = Math.hypot(x - l.x, z - l.z); if (d < l.r + 8 * RIVER_SCALE && (!lake || d - l.r < lake.dist - lake.r)) lake = { dist: d, r: l.r }; }
+  let fall: number | null = null;
+  for (const r of net.rivers) for (const f of r.falls) { const d = Math.hypot(x - f.x, z - f.z); if (d < 20 * RIVER_SCALE && (fall === null || d < fall)) fall = d; }
+  return wetnessAt({ river: rv, lake, fall });
+}
+
 /** colour by elevation, then tinted by the dominant biome, then cliff-masked by slope */
 /** `slope` (0..1, as slopeAt) may be passed when the caller already has it from a height grid, saving four extra height samples */
 export function colorAt(x: number, z: number, worldH: number, slope?: number): [number, number, number] {
@@ -435,8 +447,11 @@ export function colorAt(x: number, z: number, worldH: number, slope?: number): [
   if (h > WATER_LEVEL) {
     const road = distanceToRoad(x, z);
     if (road < 5) c = mix(c, [0.36 + (fbm(x * 0.5, z * 0.5, 2) - 0.5) * 0.06, 0.31, 0.24], (1 - smoothstep(2.4, 5, road)) * 0.8);
-    const rv = riverAt(x, z);
-    if (rv && rv.dist < rv.w + 3) c = mix(c, [0.3, 0.26, 0.2], (1 - smoothstep(rv.w * 0.8, rv.w + 3, rv.dist)) * 0.75);
+  }
+  // damp ground beside water (wetness.ts): river channel + banks, lake rims and waterfall spray zones darken toward mud; rock only darkens
+  {
+    const wet = groundWetnessAt(x, z);
+    if (wet > 0) c = wetTint(c, wet, h > 1.6 ? slopeMask(Math.min(1, (slope ?? slopeAt(x, z)) * SLOPE_BOOST)).rock : 0);
   }
 
   // large-scale tonal drift: lush and dry patches, bare ground and darker damp hollows, so a meadow is never one green

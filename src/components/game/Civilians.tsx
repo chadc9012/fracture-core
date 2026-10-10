@@ -3,7 +3,7 @@ import { useMemo, useRef } from "react";
 import * as THREE from "three";
 import { REGIONS } from "@/game/world";
 import { heightAt } from "@/game/terrain";
-import { mulberry32 } from "@/game/useKeyboard";
+import { mulberry32 } from "@/game/rng";
 import {
   spawnCivilian,
   stepCivilian,

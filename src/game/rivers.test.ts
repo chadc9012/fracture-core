@@ -54,3 +54,37 @@ describe("road crossings", () => {
     for (const c of riverCrossings()) { expect(c.resolved).toBe(true); expect(deckAt(c.x, c.z)).toBe(c.deck); }
   });
 });
+
+describe("water sheet covers the carved channel", () => {
+  it("every submerged channel sample is under some river's water sheet (no dry gaps at bends, ends or merges)", async () => {
+    const { riverAt } = await import("./terrain");
+    const { riverRibbon, ribbonCovers } = await import("./rivers");
+    const net = waterNetwork();
+    const sheets = net.rivers.filter((r) => !r.dry).map((r) => riverRibbon(r));
+    let wet = 0; const gaps: string[] = [];
+    for (const r of net.rivers) {
+      if (r.dry) continue;
+      for (const p of r.points) for (let gx = -1.2; gx <= 1.2; gx += 0.3) for (let gz = -1.2; gz <= 1.2; gz += 0.3) {
+        const x = p.x + gx * p.w, z = p.z + gz * p.w, rv = riverAt(x, z);
+        if (!rv || rv.dist > rv.w) continue;
+        if (heightAt(x, z) < rv.s - 0.05) { wet++; if (!sheets.some((s) => ribbonCovers(s, x, z))) gaps.push(`${r.id}@${x.toFixed(0)},${z.toFixed(0)}`); }
+      }
+    }
+    expect(wet).toBeGreaterThan(1000);
+    expect(gaps.slice(0, 5)).toEqual([]);
+  });
+  it("protected dry places are never under a river sheet or a lake: spawn, trail, crash site, cover and land landmarks", async () => {
+    const { riverRibbon, ribbonCovers } = await import("./rivers");
+    const { FOREST_SPAWN, CRASH_SITE, TRAIL, COVER } = await import("./verdant");
+    const { LANDMARKS } = await import("./landmarks");
+    const net = waterNetwork();
+    const sheets = net.rivers.filter((r) => !r.dry).map((r) => riverRibbon(r));
+    const wetAt = (x: number, z: number) => sheets.some((s) => ribbonCovers(s, x, z)) || net.lakes.some((l) => Math.hypot(x - l.x, z - l.z) < l.r);
+    const protectedPlaces = [
+      { n: "spawn", x: FOREST_SPAWN.x, z: FOREST_SPAWN.z }, { n: "crash", x: CRASH_SITE.x, z: CRASH_SITE.z },
+      ...TRAIL.map((p, i) => ({ n: `trail${i}`, x: p.x, z: p.z })), ...COVER.map((c, i) => ({ n: `cover${i}`, x: c.x, z: c.z })),
+      ...LANDMARKS.filter((l) => !["river", "lake", "ocean"].includes(l.type)).map((l) => ({ n: l.id, x: l.x, z: l.z })),
+    ];
+    expect(protectedPlaces.filter((p) => wetAt(p.x, p.z)).map((p) => p.n)).toEqual([]);
+  });
+});

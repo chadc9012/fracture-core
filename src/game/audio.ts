@@ -4,6 +4,7 @@
  * Browser-only — every entry point is a no-op until unlocked by a user gesture.
  */
 import type { WeaponId } from "./weapons";
+import { voiceAction, type WaterMix, type WaterSource } from "./water-audio";
 
 type Ctx = { ac: AudioContext; master: GainNode; sfx: GainNode; music: GainNode; noise: AudioBuffer; layers: { ambient: GainNode; tension: GainNode; drums: GainNode; motif: GainNode } | null; ambientOscs: OscillatorNode[]; musicRegion: string; beat: number };
 let ctx: Ctx | null = null;
@@ -230,6 +231,68 @@ export function updateWeatherAmbient(weather: string) {
   const def = WEATHER_AMBIENT[weather];
   if (!def) return;
   weatherVoice = { key: weather, stop: noiseBed(c, c.sfx, { cutoff: def.cutoff, gain: def.gain, type: def.type ?? "lowpass" }).stop };
+}
+
+/* ---------------- running water: one stream voice + one waterfall voice (water-audio.ts decides gains) ---------------- */
+
+type WaterVoice = { gain: GainNode; pan: StereoPannerNode; nodes: AudioScheduledSourceNode[]; silentSince: number };
+const waterVoices: { stream: WaterVoice | null; fall: WaterVoice | null } = { stream: null, fall: null };
+/** peak loudness of each voice at gain 1 (below the combat mix; nature stays a bed) */
+const WATER_PEAK = { stream: 0.13, fall: 0.22 };
+
+function loopNoise(c: Ctx, dest: AudioNode, type: BiquadFilterType, freq: number, q: number, level: number): { gain: GainNode; src: AudioBufferSourceNode } {
+  const src = c.ac.createBufferSource(); src.buffer = c.noise; src.loop = true;
+  const f = c.ac.createBiquadFilter(); f.type = type; f.frequency.value = freq; f.Q.value = q;
+  const g = c.ac.createGain(); g.gain.value = level;
+  src.connect(f).connect(g).connect(dest);
+  src.start(0, Math.random() * 0.8);
+  return { gain: g, src };
+}
+function startWaterVoice(c: Ctx, kind: "stream" | "fall"): WaterVoice {
+  const gain = c.ac.createGain(); gain.gain.value = 0;
+  const pan = c.ac.createStereoPanner();
+  gain.connect(pan).connect(c.sfx);
+  const nodes: AudioScheduledSourceNode[] = [];
+  if (kind === "stream") {
+    nodes.push(loopNoise(c, gain, "bandpass", 850, 0.5, 0.55).src);
+    const chatter = loopNoise(c, gain, "bandpass", 2700, 1.3, 0.22);
+    nodes.push(chatter.src);
+    // slow gain wobble on the high band: the burble of water over stones
+    const lfo = c.ac.createOscillator(); lfo.type = "sine"; lfo.frequency.value = 0.8 + Math.random() * 0.5;
+    const depth = c.ac.createGain(); depth.gain.value = 0.12;
+    lfo.connect(depth).connect(chatter.gain.gain); lfo.start(); nodes.push(lfo);
+  } else {
+    nodes.push(loopNoise(c, gain, "lowpass", 1500, 0.4, 0.7).src);
+    nodes.push(loopNoise(c, gain, "bandpass", 420, 0.6, 0.6).src);
+    nodes.push(loopNoise(c, gain, "lowpass", 160, 0.5, 1).src); // roar
+  }
+  return { gain, pan, nodes, silentSince: performance.now() };
+}
+function stopWaterVoice(c: Ctx, v: WaterVoice) {
+  v.gain.gain.setTargetAtTime(0, c.ac.currentTime, 0.3);
+  window.setTimeout(() => { for (const n of v.nodes) { try { n.stop(); } catch { /* already stopped */ } } v.gain.disconnect(); v.pan.disconnect(); }, 1500);
+}
+/** Called with the listener pose every audio tick. Gains ease (setTargetAtTime), a voice is created only while its source is audible and torn down after LINGER_MS of silence. */
+export function updateWaterAudio(lx: number, lz: number, yaw: number, mix: WaterMix) {
+  const c = ctx; if (!c) return;
+  const now = performance.now();
+  for (const kind of ["stream", "fall"] as const) {
+    const src: WaterSource | null = mix[kind];
+    const gain = src?.gain ?? 0;
+    let v = waterVoices[kind];
+    if (gain > 0.01) v ??= waterVoices[kind] = startWaterVoice(c, kind);
+    if (!v) continue;
+    if (gain > 0.01) v.silentSince = now;
+    const act = voiceAction(gain, true, now - v.silentSince);
+    if (act === "stop") { stopWaterVoice(c, v); waterVoices[kind] = null; continue; }
+    v.gain.gain.setTargetAtTime(gain * WATER_PEAK[kind], c.ac.currentTime, 0.35);
+    if (src) v.pan.pan.setTargetAtTime(Math.max(-0.85, Math.min(0.85, where(lx, lz, yaw, src.x, src.z).pan ?? 0)), c.ac.currentTime, 0.2);
+  }
+}
+/** Leaving the world (menu, hub, unmount): fade both water voices out and release their nodes. */
+export function stopWaterAudio() {
+  const c = ctx; if (!c) return;
+  for (const kind of ["stream", "fall"] as const) { const v = waterVoices[kind]; if (v) { stopWaterVoice(c, v); waterVoices[kind] = null; } }
 }
 
 /** Continuous vehicle engine: per-vehicle voice, rpm follows speed + throttle, brake squeal on hard decel. */

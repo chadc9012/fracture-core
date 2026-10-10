@@ -79,3 +79,16 @@ Done this session (55cf7aa, unit-tested, NOT VERIFIED visually): shared glyph ta
 6. **Browser verification pass** against the Phase J checklist, reported item by item.
 
 Current verdict: **PARTIALLY COMPLETE** on the existing code, **BLOCKED** for armor/weapons (assets missing) and for every browser-verification item (no live preview here).
+
+
+## Water pass (approved follow-up) - status
+| Item | State |
+|---|---|
+| Dry gaps in the carved river channel | FIXED in code, TESTED: measured 229 uncovered submerged samples before (4-5% per river, mostly river ends and bends), 0 after round caps (rivers.test.ts). NOT VERIFIED visually |
+| Protected dry places never wet (spawn, trail, crash site, cover, land landmarks) | TESTED |
+| Wet-edge / mud blend near channels, lake rims, waterfall spray; wet rock only darkens | IMPLEMENTED, TESTED (wetness.ts); baked into terrain colour once, no per-frame cost. NOT VERIFIED visually |
+| Stream and waterfall audio | IMPLEMENTED (water-audio.ts + audio.ts), TESTED mix/lifecycle logic. **Synthesized filtered noise, not recorded samples; nothing has been heard.** Recorded loops would need hosted audio files (none exist). NOT VERIFIED by ear |
+| Ripple normals, reflections | NOT DONE by instruction; follow-up items |
+| Shoaling, narrow ocean inlets drawn as sand on the painted map | NOT DONE: the ocean/lake painter was not changed; needs a map screenshot to target |
+| Test suite | `rng.ts` extracted so pure rule modules no longer import React (this was why `loot-caches` and `regional-shops` tests could not load). Result: 878 pass, 1 fail |
+| Remaining failure | `loot-caches.test.ts` "drop rate tracks rarity": the generated world contains **zero LEGENDARY caches** (5 common / 14 rare / 23 epic), so `find(LEGENDARY)` is undefined. Reproduced on the pre-water-pass commit, so it is older and was masked by the missing-React load error. Fix needs a reward-economy decision (let a cache roll legendary, or change the test); not changed here |

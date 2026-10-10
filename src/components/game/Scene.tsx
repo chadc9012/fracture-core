@@ -11,7 +11,10 @@ import { softSprite } from "./softSprite";
 import { REGIONS, SKY, ZONE_COLOR, clockLabel, phaseFor, regionAt, WORLD_RADIUS, WORLD_SCALE } from "@/game/world";
 import { BASE_FOOT_SPEED, SPRINT_MULT } from "@/game/foot-speed";
 import { useKeyboard } from "@/game/useKeyboard";
-import { walkHeight, slopeAt, heightAt, WATER_LEVEL } from "@/game/terrain";
+import { walkHeight, slopeAt, heightAt, waterNetwork, WATER_LEVEL } from "@/game/terrain";
+import { waterMix } from "@/game/water-audio";
+/** water audio is eased in the audio graph, so it only needs a pose update ~8x/s */
+let lastWaterAudioAt = 0;
 import { alert, applyLightning, collidePlayer, createSim, defeatMachine, FACTIONS, fireBullet, fireLauncher, hurtPlayer, throwBeacon, instabilityTier, spawnMissionDrones, stepSim, summonBoss, summonScenarioBoss, type Faction, type InstabilityTier, type WorldSim, type ZoneState } from "@/game/sim";
 import type { MissionEvent, MissionRun } from "@/game/missions/broken-signal";
 import type { MissionEvent as BlackoutEvent, MissionRun as BlackoutRun } from "@/game/missions/blackout-protocol";
@@ -726,7 +729,7 @@ export function Scene({
     const unlock = () => sfx.unlockAudio();
     window.addEventListener("pointerdown", unlock);
     window.addEventListener("keydown", unlock);
-    return () => { window.removeEventListener("pointerdown", unlock); window.removeEventListener("keydown", unlock); sfx.updateEngine(false, "", 0, 0, false); };
+    return () => { window.removeEventListener("pointerdown", unlock); window.removeEventListener("keydown", unlock); sfx.updateEngine(false, "", 0, 0, false); sfx.stopWaterAudio(); };
   }, []);
   useEffect(() => sfx.setVolume(settings.volume ?? 0.7), [settings.volume]);
   useEffect(() => sfx.setMixVolumes(settings.musicVolume ?? 1, settings.sfxVolume ?? 1), [settings.musicVolume, settings.sfxVolume]);
@@ -1534,6 +1537,8 @@ export function Scene({
       sfx.updateCombatAudio(Math.min(1, sim.combatHeat / 100), Boolean(liveBoss));
       sfx.updateBiomeAmbient(here?.id ?? "");
       sfx.updateWeatherAmbient(weather);
+      // running water: one stream + one waterfall voice, nearest wins; muffled indoors and while diving (water-audio.ts)
+      if (now - lastWaterAudioAt > 120) { lastWaterAudioAt = now; sfx.updateWaterAudio(s.x, s.z, s.yaw, waterMix(s.x, s.z, waterNetwork(), interior ? 0.25 : s.diving ? 0.4 : 1)); }
       // interiors keep their home region's music (a pocket room isn't its own "place"), so the score doesn't drop to silence indoors
       sfx.updateMusicRegion(interior ? interior.regionId : here?.id ?? "");
       for (const shot of sim.enemyShots.splice(0)) {

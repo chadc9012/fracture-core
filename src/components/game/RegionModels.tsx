@@ -5,7 +5,7 @@ import type * as THREE from "three";
 import { getPerfTier, heavyShadows, regionModelTris } from "@/game/perf-budget";
 import { REGIONS } from "@/game/world";
 import { heightAt, slopeAt, WATER_LEVEL } from "@/game/terrain";
-import { mulberry32 } from "@/game/useKeyboard";
+import { mulberry32 } from "@/game/rng";
 import { distanceToRoad, LANE_HALF_WIDTH } from "@/game/lanes";
 import { addObstacle } from "@/game/obstacles";
 import { isReserved } from "@/game/verdant";

@@ -202,3 +202,34 @@ export function carveTarget(base: number, surface: number, halfW: number, depth:
   const target = base + (inChannel - base) * blend;
   return Math.min(base, target); // only ever lowers the ground
 }
+
+/** Cross-section of the water ribbon at each river point: left/right edge positions (half width widened by RIBBON_WIDEN so the sheet always reaches
+ * under the banks) and the running distance along the river. Pure, so Rivers.tsx only builds a mesh from it and tests can check coverage. */
+export const RIBBON_WIDEN = 1.08;
+export type RibbonSection = { cx: number; cz: number; r: number; left: [number, number]; right: [number, number]; y: number; run: number; speed: number };
+export function riverRibbon(r: River): RibbonSection[] {
+  let run = 0;
+  return r.points.map((p, i) => {
+    const a = r.points[Math.max(0, i - 1)]!, b = r.points[Math.min(r.points.length - 1, i + 1)]!;
+    const dx = b.x - a.x, dz = b.z - a.z, len = Math.hypot(dx, dz) || 1;
+    const nx = -dz / len, nz = dx / len;
+    if (i > 0) run += Math.hypot(p.x - r.points[i - 1]!.x, p.z - r.points[i - 1]!.z);
+    const w = p.w * RIBBON_WIDEN;
+    return { cx: p.x, cz: p.z, r: w, left: [p.x - nx * w, p.z - nz * w], right: [p.x + nx * w, p.z + nz * w], y: p.s + 0.05, run, speed: r.speed[i] ?? 0.6 };
+  });
+}
+/** is (x,z) inside the water sheet: the quads between consecutive sections plus a round cap (disc, radius = widened half width) at every section,
+ * which fills the wedge on the outside of a bend and the blunt ends where the carved channel is rounded? */
+export function ribbonCovers(sections: readonly RibbonSection[], x: number, z: number): boolean {
+  const tri = (a: [number, number], b: [number, number], c: [number, number]) => {
+    const d = (p: [number, number], q: [number, number]) => (x - q[0]) * (p[1] - q[1]) - (p[0] - q[0]) * (z - q[1]);
+    const d1 = d(a, b), d2 = d(b, c), d3 = d(c, a);
+    return !((d1 < 0 || d2 < 0 || d3 < 0) && (d1 > 0 || d2 > 0 || d3 > 0));
+  };
+  for (const c of sections) if ((x - c.cx) ** 2 + (z - c.cz) ** 2 <= c.r * c.r) return true;
+  for (let i = 1; i < sections.length; i++) {
+    const p = sections[i - 1]!, q = sections[i]!;
+    if (tri(p.left, q.left, p.right) || tri(p.right, q.left, q.right)) return true;
+  }
+  return false;
+}

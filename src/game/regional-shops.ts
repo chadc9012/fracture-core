@@ -1,7 +1,7 @@
 /** Regional walk-up shops: specialist vendors placed in the world, each selling only its own
  * category, priced in region-flavoured materials from progression.materials (persisted), and gated
  * by player level and story progress. Pure logic; Scene detects proximity, ShopWindow draws it. */
-import { mulberry32 } from "./useKeyboard";
+import { mulberry32 } from "./rng";
 import { REGIONS, NEON_OFFSET, scaleSite } from "./world";
 import { THALASSIA_CENTER } from "./thalassia-site";
 import { WEAPON_MANIFEST, ARMOR_MANIFEST, type WeaponTier, type ArmorTier } from "./equipment";
