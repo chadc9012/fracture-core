@@ -4,6 +4,7 @@ import { REGIONS, WORLD_RADIUS, BASE_WORLD_REGIONS, BASE_WORLD_RADIUS, WORLD_SCA
 import { LANES, ROAD_SAMPLES, laneSamples, distanceToRoad } from "./lanes";
 import { coastShape } from "./coastline";
 import { wetnessAt, wetTint } from "./wetness";
+import { warpedDistance, jitteredSlope, pitSoilWeight, pitRimWeight, PIT_SOIL, PIT_RIM, bankFringe, hueDrift } from "./ground-blend";
 import { buildWaterNetwork, carveTarget, carveWeight, RIVER_SCALE, type RiverPoint, type WaterNetwork } from "./rivers";
 
 /* ------------------------------------------------------------------
@@ -409,8 +410,9 @@ export function colorAt(x: number, z: number, worldH: number, slope?: number): [
   else c = mix(PALETTE.rock, PALETTE.snow, Math.min(1, (h - 44) / 18));
 
   const bx = x / WORLD_SCALE, bz = z / WORLD_SCALE; // biome tints follow the landform, which lives in base space
+  const edgeNoise = fbm(x * 0.011 + 17, z * 0.011 - 53, 2); // low-frequency: region edges follow the landform, not a circle
   for (const r of BASE_WORLD_REGIONS) {
-    const d = Math.hypot(bx - r.x, bz - r.z);
+    const d = warpedDistance(Math.hypot(bx - r.x, bz - r.z), edgeNoise);
     if (d > r.radius * 1.1) continue;
     const w = weight(d, r.radius) * 0.85;
     if (w <= 0) continue;
@@ -428,7 +430,7 @@ export function colorAt(x: number, z: number, worldH: number, slope?: number): [
   // slope mask: steep ground sheds its grass/snow for dirt then bare rock; underwater and the
   // shoreline keep their colour so beaches and sea floors do not turn to cliff
   if (h > 1.6) {
-    const { dirt, rock } = slopeMask(Math.min(1, (slope ?? slopeAt(x, z)) * SLOPE_BOOST));
+    const { dirt, rock } = slopeMask(Math.min(1, jitteredSlope((slope ?? slopeAt(x, z)) * SLOPE_BOOST, fbm(x * 0.07 - 31, z * 0.07 + 11, 2))));
     const cliff = (fbm(x * 0.12, z * 0.12, 2) - 0.5) * 0.1; // strata variation
     c = mix(c, [PALETTE.dirt[0] + cliff, PALETTE.dirt[1] + cliff, PALETTE.dirt[2] + cliff], dirt * 0.75);
     c = mix(c, [PALETTE.rock[0] + cliff, PALETTE.rock[1] + cliff, PALETTE.rock[2] + cliff], rock * 0.9);
@@ -441,7 +443,12 @@ export function colorAt(x: number, z: number, worldH: number, slope?: number): [
   if (crash < CRASH_SITE.radius) c = mix(c, [0.1, 0.1, 0.12], (1 - smoothstep(2, CRASH_SITE.radius, crash)) * 0.8);
   // freshly turned earth in and around the impact pit
   const pit = Math.hypot(x - IMPACT_PIT.x, z - IMPACT_PIT.z);
-  if (pit < IMPACT_PIT.radius * 1.9) c = mix(c, [0.2, 0.15, 0.1], (1 - smoothstep(IMPACT_PIT.radius * 0.5, IMPACT_PIT.radius * 1.9, pit)) * 0.85);
+  if (pit < IMPACT_PIT.radius * 2.15) {
+    // soft, patchy skirt (ground-blend.ts) that never paints over the worn trail; a lighter rubble ring on the displaced berm
+    const keep = 1 - tm;
+    c = mix(c, PIT_SOIL, pitSoilWeight(pit, IMPACT_PIT.radius, fbm(x * 0.3 + 7, z * 0.3 - 5, 2)) * keep);
+    c = mix(c, PIT_RIM, pitRimWeight(pit, IMPACT_PIT.radius) * 0.35 * keep);
+  }
 
   // supply roads read as worn packed earth, and river banks as wet sand/mud, so water and routes are drawn on the ground itself
   if (h > WATER_LEVEL) {
@@ -451,7 +458,7 @@ export function colorAt(x: number, z: number, worldH: number, slope?: number): [
   // damp ground beside water (wetness.ts): river channel + banks, lake rims and waterfall spray zones darken toward mud; rock only darkens
   {
     const wet = groundWetnessAt(x, z);
-    if (wet > 0) c = wetTint(c, wet, h > 1.6 ? slopeMask(Math.min(1, (slope ?? slopeAt(x, z)) * SLOPE_BOOST)).rock : 0);
+    if (wet > 0) { c = wetTint(c, wet, h > 1.6 ? slopeMask(Math.min(1, (slope ?? slopeAt(x, z)) * SLOPE_BOOST)).rock : 0); if (h > 1.6) c = bankFringe(c, wet); }
   }
 
   // large-scale tonal drift: lush and dry patches, bare ground and darker damp hollows, so a meadow is never one green
@@ -460,6 +467,7 @@ export function colorAt(x: number, z: number, worldH: number, slope?: number): [
     const fleck = fbm(x * 1.1, z * 1.1, 2) - 0.5;                     // ~1 m speckle
     const t = patch * 0.22 + fleck * 0.07;
     c = [c[0] + t * 0.9 + Math.max(0, patch) * 0.06, c[1] + t * 0.8, c[2] + t * 0.45 - Math.max(0, patch) * 0.04];
+    c = hueDrift(c, fbm(x * 0.03 - 120, z * 0.03 + 66, 2));
   }
 
   // a little noise so large surfaces never read as flat colour

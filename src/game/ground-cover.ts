@@ -4,10 +4,11 @@
 import { REGIONS, type Region } from "./world";
 import { WATER_LEVEL, fbm, heightAt, slopeAt, riverAt, waterNetwork } from "./terrain";
 import { LANE_HALF_WIDTH, distanceToRoad } from "./lanes";
-import { isReserved } from "./verdant";
+import { COVER as MISSION_COVER, isReserved } from "./verdant";
+import { IMPACT_PIT } from "./forest-relief";
 
 export type CoverKind = "flower" | "bush" | "rock" | "reed";
-export type CoverItem = { kind: CoverKind; x: number; z: number; y: number; s: number; r: number; /** resolved hex colour from the region palette */ color: string };
+export type CoverItem = { kind: CoverKind; x: number; z: number; y: number; s: number; r: number; /** resolved hex colour from the region palette */ color: string; /** metres to sink into the ground so a rock on a slope does not hover on its downhill side (presentation only; y stays the terrain height) */ sink?: number };
 
 type Spec = { flower: number; bush: number; rock: number; reed: number; flowers: readonly string[]; bushes: readonly string[]; rocks: readonly string[] };
 /** per-region counts at density 1 and palettes (hex). Palettes are indexed by CoverItem.tint. */
@@ -31,7 +32,7 @@ type Rules = { maxSlope: number; minH?: number; maxH?: number; patch?: number };
 const RULES: Record<CoverKind, Rules> = {
   flower: { maxSlope: 0.45, minH: WATER_LEVEL + 0.5, patch: 0.5 },
   bush: { maxSlope: 0.7, minH: WATER_LEVEL + 0.5, patch: 0.38 },
-  rock: { maxSlope: 1.4, minH: WATER_LEVEL + 0.3 },
+  rock: { maxSlope: 1.4, minH: WATER_LEVEL + 0.3, patch: 0.4 }, // boulder fields and scatter, not an even carpet
   reed: { maxSlope: 0.35, minH: WATER_LEVEL - 0.2, patch: 0.45 },
 };
 
@@ -41,9 +42,19 @@ export function placeable(x: number, z: number, kind: CoverKind, region: Region 
   if (isReserved(x, z, 1)) return false; // the mission pads are fixed world positions, whichever region circle the item came from
   if (distanceToRoad(x, z) < LANE_HALF_WIDTH) return false;
   const rv = riverAt(x, z);
-  if (rv && kind !== "reed" && rv.dist < rv.w + 1.2) return false;
+  if (rv && kind !== "reed" && rv.dist < rv.w + (kind === "rock" ? 2.6 : 1.2)) return false;
+  if (kind === "rock") {
+    // rocks are solid-looking: keep a wider berth around the route, the mission pads, authored cover and the impact pit
+    if (isReserved(x, z, ROCK_ROUTE_MARGIN)) return false;
+    if (distanceToRoad(x, z) < LANE_HALF_WIDTH + ROCK_ROAD_MARGIN) return false;
+    for (const c of MISSION_COVER) if (Math.hypot(x - c.x, z - c.z) < c.r + ROCK_COVER_MARGIN) return false;
+    if (Math.hypot(x - IMPACT_PIT.x, z - IMPACT_PIT.z) < IMPACT_PIT.radius * 1.4) return false;
+  }
   return true;
 }
+export const ROCK_ROUTE_MARGIN = 3, ROCK_ROAD_MARGIN = 2.5, ROCK_COVER_MARGIN = 2.5, ROCK_MIN_SPACING = 1.4;
+/** how far a rock of scale `s` should sink on a slope: the downhill half of its footprint would otherwise hang in the air (footprint radius ~0.55*s) */
+export const rockSink = (s: number, slope: number) => Math.min(0.3 * s, 0.55 * s * Math.min(slope, 1.2) * 0.8 + 0.06 * s);
 
 function regionItems(region: Region, density: number): CoverItem[] {
   const spec = COVER_SPEC[region.id];
@@ -56,6 +67,7 @@ function regionItems(region: Region, density: number): CoverItem[] {
     const rule = RULES[kind];
     const palette: readonly string[] = kind === "flower" ? spec.flowers : kind === "bush" ? spec.bushes : kind === "rock" ? spec.rocks : REED_COLORS;
     let n = 0, guard = want * 25;
+    const placedRocks: CoverItem[] = [];
     while (n < want && guard-- > 0) {
       const a = rnd() * Math.PI * 2, d = Math.sqrt(rnd()) * region.radius * 0.97;
       const x = region.x + Math.cos(a) * d, z = region.z + Math.sin(a) * d;
@@ -65,7 +77,11 @@ function regionItems(region: Region, density: number): CoverItem[] {
       if (slopeAt(x, z) > rule.maxSlope) continue;
       if (kind === "reed") { const rv = riverAt(x, z); if (y > WATER_LEVEL + 1.2 && !(rv && rv.dist < rv.w + 4)) continue; }
       if (!placeable(x, z, kind, region)) continue;
-      out.push({ kind, x, z, y, s: kind === "rock" ? 0.4 + rnd() * rnd() * 2 : 0.7 + rnd() * 0.7, r: rnd() * Math.PI * 2, color: palette[Math.floor(rnd() * palette.length)]! });
+      const s = kind === "rock" ? 0.4 + rnd() * rnd() * 2 : 0.7 + rnd() * 0.7;
+      if (kind === "rock" && placedRocks.some((q) => Math.hypot(q.x - x, q.z - z) < ROCK_MIN_SPACING * (q.s + s) * 0.5 + 0.3)) continue; // no rocks fused together
+      const item: CoverItem = { kind, x, z, y, s, r: rnd() * Math.PI * 2, color: palette[Math.floor(rnd() * palette.length)]! };
+      if (kind === "rock") { item.sink = rockSink(s, slopeAt(x, z)); placedRocks.push(item); }
+      out.push(item);
       n++;
     }
   });

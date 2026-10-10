@@ -43,7 +43,7 @@ function Batch({ items, geometry, material, scale, yLift = 0 }: { items: CoverIt
     if (!m) return;
     const o = new THREE.Object3D(), c = new THREE.Color();
     items.forEach((it, i) => {
-      o.position.set(it.x, it.y + yLift, it.z);
+      o.position.set(it.x, it.y + yLift - (it.sink ?? 0), it.z);
       o.rotation.set(0, it.r, 0);
       o.scale.set(...scale(it));
       o.updateMatrix();
@@ -93,7 +93,7 @@ export function GroundCover({ density }: { density: number }) {
   useEffect(() => () => { Object.values(assets).forEach((a) => (a as { dispose?: () => void }).dispose?.()); }, [assets]);
 
   const s1 = useMemo(() => (it: CoverItem): [number, number, number] => [it.s, it.s * (0.8 + (it.r % 1) * 0.5), it.s], []);
-  const sRock = useMemo(() => (it: CoverItem): [number, number, number] => [it.s * (0.9 + (it.r % 1) * 0.5), it.s * 0.7, it.s * (0.9 + ((it.r * 3) % 1) * 0.5)], []);
+  const sRock = useMemo(() => (it: CoverItem): [number, number, number] => [it.s * (0.9 + (it.r % 1) * 0.5), it.s * (0.45 + ((it.r * 7) % 1) * 0.4), it.s * (0.9 + ((it.r * 3) % 1) * 0.5)], []);
   const sBush = useMemo(() => (it: CoverItem): [number, number, number] => [it.s * 1.3, it.s * 1.1, it.s * 1.3], []);
   if (!ready) return null;
   return (

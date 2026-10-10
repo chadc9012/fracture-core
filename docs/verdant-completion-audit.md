@@ -98,3 +98,9 @@ Current verdict: **PARTIALLY COMPLETE** on the existing code, **BLOCKED** for ar
 - Browser run: **BLOCKED**. `bun install --frozen-lockfile` fails with ConnectionRefused to the npm registry (curl to registry.npmjs.org returns no response), `node_modules` is empty, and hosted GLB/HDRI assets are unreachable, so the game cannot be built or served here.
 - Therefore NOT VERIFIED: river ends/bends, narrow-channel and sand-coloured map gaps, lake rims, plunge pools, wet-rock look, stream/waterfall audibility, indoor/diving attenuation, cleanup, and all four performance captures.
 - Exact owner steps for the performance checkpoint (MEDIUM, Veridan trail start, standing still): F3, wait 10 s, screenshot (idle). Then F4 to reach `iso:forest`, `iso:water`, `iso:sky`, 10 s each. Record fps, frame ms, gpu busy, js busy, tris, calls, react renders/s.
+
+
+## Phase 4 Step 2 - terrain polish (implemented, unit-tested, NOT browser-verified)
+- `src/game/ground-blend.ts` (pure): biome edges warped by low-frequency noise (+-14%), slope thresholds jittered (+-0.07) so dirt/rock start on ragged contours, soft patchy skirt and rubble ring around the impact pit (never over the worn trail), faint tide-mark fringe where wet bank meets dry, small warm/cool hue drift. All baked once into terrain vertex colour (no per-frame cost).
+- Rocks (`ground-cover.ts`): wider clearance from route/roads/mission cover/impact pit/rivers, boulder-field clustering, minimum spacing, per-rock `sink` so slope rocks do not hover (data `y` still equals the terrain), more height variation. Rock count unchanged (889 at MEDIUM; 3442 total cover).
+- Measured, no claimed improvement: neighbouring-vertex colour step is unchanged (worst 0.301 vs 0.305 before, mean 0.0292 vs 0.0289), so the change targets ring/contour *shape*, which needs a screenshot to judge. No authored ravine pass exists; none added.
