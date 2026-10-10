@@ -36,6 +36,7 @@ import { Wildlife } from "./Wildlife";
 import { Civilians } from "./Civilians";
 import { Bullets, BeaconMarkers, Convoys, HazardMarkers, SupplyLanes, WarMachines, ZoneBeacons } from "./Actors";
 import { ScenarioBosses } from "./ScenarioBosses";
+import { NullPulseFx } from "./NullPulseFx";
 import { Car } from "./Vehicle";
 import { NexusCity } from "./NexusCity";
 import { NeonCity, NEON_CITY_CENTER } from "./NeonCity";
@@ -1979,6 +1980,7 @@ export function Scene({
       <Convoys sim={sim} />
       <WarMachines sim={sim} />
       <ScenarioBosses sim={sim} />
+      <NullPulseFx sim={sim} tier={settings.renderTier} reducedMotion={!!settings.reducedMotion || (typeof window !== "undefined" && typeof window.matchMedia === "function" && window.matchMedia("(prefers-reduced-motion: reduce)").matches)} />
       <HazardMarkers sim={sim} />
       <BeaconMarkers sim={sim} />
       {awakening?.target && (awakening.state === "CAPTURE" || awakening.state === "HOLD" || awakening.state === "EXTRACT") && (

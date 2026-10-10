@@ -240,6 +240,8 @@ export type WorldSim = {
   /** perk of the weapon in hand (set each frame by Scene) and the Null Disruption charge it feeds (null-disruption.ts) */
   equippedPerk: GearItem["perk"] | undefined;
   nullCharge: NullChargeState;
+  /** last released Null Disruption pulse (id increments per pulse); Scene/NullPulseFx read it, never write it */
+  nullPulse: { id: number; x: number; z: number; radius: number; at: number } | null;
   nextHitId: number;
   materials: Partial<Record<MaterialId, number>>;
   drops: { id: number; material: MaterialId; amount: number; enemy: string; /** armor-sets.ts: a set piece this kill dropped */ setDrop?: SetDrop; /** scenario-loot.ts: signature reward claim for a valid Unique Scenario clear */ scenarioClaim?: ScenarioClaim }[];
@@ -473,6 +475,7 @@ export function createSim(): WorldSim {
     equippedElement: "KINETIC",
     equippedPerk: undefined,
     nullCharge: { ...INITIAL_NULL_CHARGE },
+    nullPulse: null,
     nextHitId: 0,
     materials: {}, drops: [], armorResist: 0, armorRegen: 0, enemyShots: [], bossPhaseFlares: [], xpEvents: [], nextDropId: 0,
     emergencyQuest: EMERGENCY_QUEST_INIT,
@@ -1406,6 +1409,7 @@ export function stepSim(sim: WorldSim, input: SimInput) {
               other.cool = Math.max(other.cool, NULL_PULSE_STUN_SECONDS);
               if (other.boss) other.poiseState = hitPoise(other.poiseState ?? INITIAL_POISE, NULL_PULSE_POISE, nowS).state;
             }
+            sim.nullPulse = { id: (sim.nullPulse?.id ?? 0) + 1, x: m.x, z: m.z, radius: NULL_PULSE_RADIUS, at: nowS };
             alert(sim, "NULL DISRUPTION — pulse released");
           }
         }

@@ -5,7 +5,12 @@
  *
  * Timed hit  = the target is winding up an attack (interrupt), or a boss's weak-point/stagger window is open.
  * Charge     = +1 per timed hit, max THRESHOLD; fades to 0 after DECAY_SECONDS without a timed hit.
- * Pulse      = fires on the next hit (timed or not) at full charge, once per hit event, then COOLDOWN_SECONDS lockout. */
+ * Pulse      = fires on the next hit (timed or not) at full charge, once per hit event, then COOLDOWN_SECONDS lockout.
+ *
+ * Can a fully charged hit be lost? Verified in null-disruption.integration.test.ts (real stepSim bullet path):
+ *  - Lockout: no. Charge cannot build during lockout and the pulse zeroes charge, so full charge never coexists with a lockout.
+ *  - Weapon switch: yes, by design (Scene resets charge, but keeps the lockout so swapping cannot dodge the cooldown).
+ *  - Decay: yes, by design. Full charge still expires DECAY_SECONDS after the last timed hit; the late hit then restarts at 1. */
 export const NULL_PERK = "NULL_DISRUPTION" as const;
 export const NULL_CHARGE_THRESHOLD = 5;
 export const NULL_DECAY_SECONDS = 6;
