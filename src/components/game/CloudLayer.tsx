@@ -5,7 +5,7 @@ import { cloudPuffTexture } from "@/game/sky-clouds";
 
 /** Written once a frame by Scene.tsx's day/weather block and read here — same imperative shared-ref
  * pattern as Weather.tsx's fxRef, so updating ~18 sprites a frame never triggers a React re-render. */
-export type SkyEnv = { cloud: number; tint: THREE.Color };
+export type SkyEnv = { cloud: number; tint: THREE.Color; /** region the player is in (sky mood), if any */ region?: string | undefined };
 
 const COUNT = 18;
 function mulberry(seed: number) {

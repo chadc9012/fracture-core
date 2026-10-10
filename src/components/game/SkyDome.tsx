@@ -121,11 +121,17 @@ export function SkyDome({ sunDirRef, envRef, playerRef, tier }: { sunDirRef: Rea
     side: THREE.BackSide, transparent: true, depthWrite: false, fog: false,
   }), [octaves]);
 
-  useFrame(({ clock }) => {
+  const eased = useRef<{ zenith: number[]; horizon: number[] } | null>(null);
+  useFrame(({ clock }, delta) => {
     const sd = sunDirRef.current, env = envRef.current;
     const p = playerRef.current?.position;
     if (root.current && p) root.current.position.set(p.x, 0, p.z);
-    const params = skyParams(sd?.y ?? 0.6, env?.cloud ?? 0);
+    const params = skyParams(sd?.y ?? 0.6, env?.cloud ?? 0, env?.region);
+    // ease the graded colours so crossing a region border blends over ~2 s instead of popping
+    const k = 1 - Math.exp(-Math.min(delta, 0.1) * 1.5);
+    if (!eased.current) eased.current = { zenith: [...params.zenith], horizon: [...params.horizon] };
+    for (let i = 0; i < 3; i++) { eased.current.zenith[i] = eased.current.zenith[i]! + (params.zenith[i]! - eased.current.zenith[i]!) * k; eased.current.horizon[i] = eased.current.horizon[i]! + (params.horizon[i]! - eased.current.horizon[i]!) * k; }
+    params.zenith = eased.current.zenith as typeof params.zenith; params.horizon = eased.current.horizon as typeof params.horizon;
     const u = material.uniforms as Record<string, { value: unknown }>;
     if (sd) (u["sunDir"]!.value as THREE.Vector3).copy(sd);
     (u["sunColor"]!.value as THREE.Vector3).set(...params.sunColor);

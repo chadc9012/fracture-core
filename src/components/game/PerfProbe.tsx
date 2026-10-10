@@ -104,7 +104,7 @@ export function PerfProbe() {
         const walk = (o: THREE.Object3D, label = "") => {
           if (o.name) label = o.name;
           const od = o.userData?.["operatorDiag"] as Record<string, unknown> | undefined;
-          if (od) operators.push(`  ${String(od["url"]).split("/").pop()} paint:${od["vertexColorMaterial"] ? "vertex-colour" : "NONE(GLB default)"} mats:${od["materials"]} verts:${od["vertices"]} chest:${od["chest"]} suit:${od["suit"]} bones:${JSON.stringify(od["bonesByRegion"])}`);
+          if (od) operators.push(`  ${String(od["url"]).split("/").pop()} paint:${od["texturePaint"] ? `texture ${od["textureSize"]}px covered ${od["textureCovered"]} visor ${od["visorTexels"]}` : od["vertexColorMaterial"] ? "vertex-colour" : "NONE(GLB default)"} mats:${od["materials"]} verts:${od["vertices"]} chest:${od["chest"]} suit:${od["suit"]} bones:${JSON.stringify(od["bonesByRegion"])}`);
           if (!o.visible) return;
           if ((o as THREE.Light).isLight) { n++; kinds[o.type] = (kinds[o.type] ?? 0) + 1; if (o.type === "PointLight" || o.type === "SpotLight") { let p: THREE.Object3D | null = o; let path = ""; for (let d = 0; p && d < 4; d++, p = p.parent) path = (p.name || p.type) + (path ? ">" + path : ""); names.push(path); } }
           const m = o as THREE.Mesh;

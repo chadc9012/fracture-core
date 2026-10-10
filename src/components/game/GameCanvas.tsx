@@ -34,7 +34,9 @@ import { EMPTY_STRATAGEM_HUD } from "@/game/stratagems";
 import { OperationsHub } from "./OperationsHub";
 import { ZoneAnalysisPanel } from "./ZoneAnalysisPanel";
 import { CloudSavePanel } from "./CloudSavePanel";
-import { StarMap } from "./StarMap";
+import { StarMap, type DeployTarget } from "./StarMap";
+import { TransitOverlay } from "./TransitOverlay";
+import { swapAt, totalSeconds, transitPlan, type TransitPlan } from "@/game/transit";
 import { ArsenalLoadouts } from "./ArsenalLoadouts";
 import { SaveManager } from "./SaveManager";
 import { activeLoadout, rewardMission, loadProgression, rewardVehicle, saveProgression, type PlayerProgression } from "@/game/progression";
@@ -316,6 +318,10 @@ export function GameCanvas() {
   const [atlasOpen, setAtlasOpen] = useState(false);
   const [hubView, setHubView] = useState<"starmap" | "arsenal" | "saves" | null>(null);
   const [travelTo, setTravelTo] = useState<{ x: number; z: number; nonce: number } | null>(null);
+  /** star-map fast travel: a Destiny-style cover hides the teleport (transit.ts timeline); the player moves only while fully covered */
+  const [transit, setTransit] = useState<{ startedAt: number; plan: TransitPlan; reduced: boolean; target: DeployTarget } | null>(null);
+  const transitTimers = useRef<number[]>([]);
+  useEffect(() => () => { transitTimers.current.forEach((t) => window.clearTimeout(t)); }, []);
   const [savedFlash, setSavedFlash] = useState(0);
   useEffect(() => { if (!savedFlash) return; const t = window.setTimeout(() => setSavedFlash(0), 1800); return () => window.clearTimeout(t); }, [savedFlash]);
   const [strategyOpen, setStrategyOpen] = useState(false);
@@ -593,6 +599,17 @@ export function GameCanvas() {
   );
   // Continue / hub: restore exactly what the save describes, no onboarding replay
   const continueIntoWorld = () => enterWorld(sessionFromProgression(progressionRef.current), { newCharacter: false, intro: false });
+  const continueRef = useRef(continueIntoWorld);
+  continueRef.current = continueIntoWorld; // the delayed swap must use the latest closure, not the one from the click
+  const startTransit = (target: DeployTarget) => {
+    if (transit) return; // single-flight: a second click never queues a second teleport
+    const reduced = prefersReduced(settings.reducedMotion), plan = transitPlan(reduced);
+    setTransit({ startedAt: performance.now(), plan, reduced, target });
+    transitTimers.current.push(
+      window.setTimeout(() => { setHubView(null); setTravelTo({ x: target.x, z: target.z, nonce: Date.now() }); continueRef.current(); }, swapAt(plan) * 1000),
+      window.setTimeout(() => setTransit(null), totalSeconds(plan) * 1000),
+    );
+  };
 
   /** Adopts a progression that arrived from outside the normal flow (cloud pull/merge, restore point, New Game).
    * Re-derives operator, tutorial and mission machines from the final merged save. Live runs are kept unless `force`. */
@@ -741,7 +758,8 @@ export function GameCanvas() {
   if (phase === "hub") {
     return (
       <>
-        {hubView === "starmap" && <StarMap progression={progression} onBack={() => setHubView(null)} onDeploy={(id) => { const r = REGIONS.find((x) => x.id === id)!; setHubView(null); setTravelTo({ x: r.x, z: r.z + 6, nonce: Date.now() }); continueIntoWorld(); }} />}
+        {transit && <TransitOverlay startedAt={transit.startedAt} plan={transit.plan} reduced={transit.reduced} name={transit.target.name} sub={transit.target.sub} color={transit.target.color} />}
+        {hubView === "starmap" && <StarMap progression={progression} onBack={() => setHubView(null)} onDeploy={startTransit} />}
         {hubView === "arsenal" && <ArsenalLoadouts progression={progression} onProgression={setProgression} onBack={() => setHubView(null)} />}
         {hubView === "saves" && <SaveManager progression={progression} onProgression={setProgression} onBack={() => setHubView(null)} />}
         {!menuOpen && !hubView && (
@@ -806,6 +824,7 @@ export function GameCanvas() {
         const premium = post && liveTier === "ULTRA";
         return (
       <>
+      {transit && <TransitOverlay startedAt={transit.startedAt} plan={transit.plan} reduced={transit.reduced} name={transit.target.name} sub={transit.target.sub} color={transit.target.color} />}
       <Canvas
         onCreated={onCreated}
         onPointerDown={(event) => {

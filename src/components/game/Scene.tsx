@@ -1024,6 +1024,7 @@ export function Scene({
 
     /* ---------------- sky atmosphere + cloud layer (reacts to day phase + live regional weather) ---------------- */
     skyEnv.current.cloud = cloud;
+    skyEnv.current.region = interior ? undefined : here?.id;
     skyEnv.current.tint.copy(lightColor).multiplyScalar(1 - cloud * 0.3);
     if (sky.current) {
       const m = (sky.current as unknown as { material?: THREE.ShaderMaterial }).material;

@@ -46,3 +46,23 @@ describe("the Fracture Moon and the sky wash", () => {
     for (const p of [dusk, noon, night]) for (const c of [...p.zenith, ...p.horizon]) { expect(c).toBeGreaterThanOrEqual(0); expect(c).toBeLessThanOrEqual(1.0001); }
   });
 });
+
+import { REGION_SKY_MOOD, skyParams as skyParamsMood } from "./sky-dome";
+describe("regional sky mood (from reference photos)", () => {
+  test("no region, or a region without a mood for this phase, changes nothing", () => {
+    for (const y of [-0.4, 0.05, 0.9]) {
+      expect(skyParamsMood(y, 0.3, null)).toEqual(skyParamsMood(y, 0.3));
+    }
+    expect(skyParamsMood(0.9, 0.3, "veridan")).toEqual(skyParamsMood(0.9, 0.3)); // veridan only has a golden-hour mood
+  });
+  test("golden hour moves Nexus toward its sunset photo, but not all the way", () => {
+    const base = skyParamsMood(0.05, 0.2), nexus = skyParamsMood(0.05, 0.2, "nexus"), ref = REGION_SKY_MOOD["nexus"]!.golden!;
+    const d = (a: number[], b: number[]) => Math.hypot(a[0]! - b[0]!, a[1]! - b[1]!, a[2]! - b[2]!);
+    expect(d(nexus.horizon, ref.horizon)).toBeLessThan(d(base.horizon, ref.horizon));
+    expect(d(nexus.horizon, ref.horizon)).toBeGreaterThan(0);
+  });
+  test("every mood colour is a valid 0..1 colour and the output stays in range", () => {
+    for (const m of Object.values(REGION_SKY_MOOD)) for (const c of [m.golden, m.night, m.day]) if (c) for (const v of [...c.zenith, ...c.horizon]) { expect(v).toBeGreaterThanOrEqual(0); expect(v).toBeLessThanOrEqual(1); }
+    for (const id of Object.keys(REGION_SKY_MOOD)) for (const y of [-0.5, -0.1, 0.05, 0.3, 0.9]) for (const v of [...skyParamsMood(y, 0.5, id).zenith, ...skyParamsMood(y, 0.5, id).horizon]) { expect(v).toBeGreaterThanOrEqual(0); expect(v).toBeLessThanOrEqual(1); }
+  });
+});

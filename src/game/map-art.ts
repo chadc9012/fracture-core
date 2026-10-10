@@ -17,22 +17,3 @@ export function hiresArtUsable(width: number, height: number): boolean {
   if (!(width >= MAP_ART_HIRES_MIN_WIDTH) || !(height > 0)) return false;
   return Math.abs(width / height / MAP_ART_ASPECT - 1) <= 0.01;
 }
-
-/** Decorative photo strips around the hub map frame (cropped from the concept picture; never terrain, never interactive). */
-export interface MapStrip { id: string; caption: string; edge: "top" | "left" | "bottom"; aspect: number }
-export const MAP_STRIPS: readonly MapStrip[] = [
-  { id: "sunrise-veridan", caption: "Sunrise · Veridan Forest", edge: "top", aspect: 321 / 158 },
-  { id: "sunset-nexus", caption: "Sunset · Nexus City", edge: "top", aspect: 315 / 158 },
-  { id: "night-frostspire", caption: "Night · Frostspire Mountains", edge: "top", aspect: 329 / 158 },
-  { id: "moonlight-fracture", caption: "Moonlight · Fracture Zone", edge: "top", aspect: 320 / 158 },
-  { id: "trees", caption: "Trees", edge: "left", aspect: 141 / 91 },
-  { id: "rocks", caption: "Rocks", edge: "left", aspect: 141 / 93 },
-  { id: "ocean", caption: "Ocean", edge: "left", aspect: 141 / 92 },
-  { id: "lake", caption: "Lake", edge: "left", aspect: 141 / 93 },
-  { id: "volcano", caption: "Volcano", edge: "left", aspect: 141 / 113 },
-  { id: "flowers", caption: "Flowers", edge: "left", aspect: 141 / 118 },
-  { id: "day-solara", caption: "Day · Solara Desert", edge: "bottom", aspect: 317 / 229 },
-  { id: "moon-frostspire", caption: "Moon · Frostspire Mountains", edge: "bottom", aspect: 332 / 229 },
-  { id: "storm-ember", caption: "Storm · Ember Peaks", edge: "bottom", aspect: 296 / 229 },
-  { id: "sunset-wastelands", caption: "Sunset · The Wastelands", edge: "bottom", aspect: 339 / 229 },
-];
