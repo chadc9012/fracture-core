@@ -757,7 +757,7 @@ export function GameCanvas() {
        {!tutorial && !hud.insideInterior && <Minimap hud={hud} />}
        {!tutorial && <QuestTracker progression={progression} />}
        {storyGraph && <StoryDialogue key={storyGraph.id} graph={storyGraph} story={progression.story} onStory={applyStory} onDone={finishStoryGraph} />}
-       {!storyGraph && !activeDialogue && objectiveFor(progression.story) && progression.story.stages.vaelith !== undefined && <p className="pointer-events-none fixed left-4 top-24 z-20 max-w-[280px] font-mono text-[10px] uppercase tracking-[0.18em] text-primary/80">Vaelith · {objectiveFor(progression.story)!.text}</p>}
+       {!storyGraph && !activeDialogue && objectiveFor(progression.story) && progression.story.stages["vaelith"] !== undefined && <p className="pointer-events-none fixed left-4 top-24 z-20 max-w-[280px] font-mono text-[10px] uppercase tracking-[0.18em] text-primary/80">Vaelith · {objectiveFor(progression.story)!.text}</p>}
        {activeDialogue && <DialogueOverlay lines={activeDialogue} onDone={() => setActiveDialogue(null)} />}
        {deathInfo && <DeathOverlay cause={deathInfo.cause} cargoLost={deathInfo.cargoLost} deaths={deathInfo.deaths} onDone={() => setDeathInfo(null)} />}
        {rewardCards && <ScenarioRewardCards title={rewardCards.title} cards={rewardCards.cards} onDone={() => setRewardCards(null)} />}

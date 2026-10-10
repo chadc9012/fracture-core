@@ -130,10 +130,10 @@ function Model({ url, tint, height, feetY, color, pose, motion, bodyType, look, 
     for (const key of Object.keys(actions)) { const a = actions[key]; if (a) a.weight = 0; }
     if (pose === "showcase") {
       // flex clip (GOLIATH) > idle clip (NYX) > walk held at mid-stance (CIPHER), a relaxed standing pose
-      const loop = actions.showcase ?? actions.idle;
-      if (loop) set(actions.showcase ? "showcase" : "idle", 1, clock.elapsedTime / loop.getClip().duration);
+      const loop = actions["showcase"] ?? actions["idle"];
+      if (loop) set(actions["showcase"] ? "showcase" : "idle", 1, clock.elapsedTime / loop.getClip().duration);
       else set("walk", 1, 0.25);
-    } else if (sliding && actions.slide) {
+    } else if (sliding && actions["slide"]) {
       // authored slide clip (NYX) scrubbed by slide progress
       set("slide", 1, Math.min(0.999, Math.max(0, m0?.slideT ?? 0)));
     } else {
@@ -142,10 +142,10 @@ function Model({ url, tint, height, feetY, color, pose, motion, bodyType, look, 
       const i = m?.intensity ?? 0;
       const run = smooth(0.4, 0.62, i);
       // with an idle clip, standing still plays it; without one the stride simply freezes mid-step
-      const moving = actions.idle ? Math.min(1, i * 5) : 1;
+      const moving = actions["idle"] ? Math.min(1, i * 5) : 1;
       set("walk", moving * (1 - run), cycle);
       set("run", moving * run, cycle);
-      if (actions.idle) set("idle", 1 - moving, clock.elapsedTime / actions.idle.getClip().duration);
+      if (actions["idle"]) set("idle", 1 - moving, clock.elapsedTime / actions["idle"].getClip().duration);
     }
     mixer.update(0);
   });

@@ -1,3 +1,4 @@
+import type { ThreeElements } from "@react-three/fiber";
 import { useFrame, useThree } from "@react-three/fiber";
 import { useRef } from "react";
 import * as THREE from "three";
@@ -8,7 +9,7 @@ import * as THREE from "three";
  * Checked a few times a second with hysteresis (on inside `range`, off past `range * 1.25`), so the
  * light count only changes — and shaders only recompile — when you actually enter or leave a district.
  */
-export function DistrictLight({ range = 90, ...props }: { range?: number } & JSX.IntrinsicElements["pointLight"]) {
+export function DistrictLight({ range = 90, ...props }: { range?: number } & ThreeElements["pointLight"]) {
   const light = useRef<THREE.PointLight>(null);
   const camera = useThree((s) => s.camera);
   const acc = useRef(Math.random() * 0.5);
