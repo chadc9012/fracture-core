@@ -1,4 +1,4 @@
-import { Environment, Lightformer, Sky, Stars, Text } from "@react-three/drei";
+import { Environment, Lightformer, Sky, Text } from "@react-three/drei";
 import { useFrame, useThree } from "@react-three/fiber";
 import { useEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
@@ -97,6 +97,8 @@ import * as sfx from "@/game/audio";
 import { setVoiceLoad } from "@/game/voice-director";
 import { RegionLighting } from "./RegionLighting";
 import { ShopStalls } from "./ShopStalls";
+import { SkyBodies } from "./SkyBodies";
+import { moonAngle, moonlight } from "@/game/celestial";
 import { shopNear } from "@/game/regional-shops";
 import type { ArmorVisualState } from "./Scavenger";
 import type { PlayerProgression } from "@/game/progression";
@@ -464,7 +466,6 @@ export function Scene({
     return list;
   };
   const moon = useRef<THREE.DirectionalLight>(null!);
-  const moonMesh = useRef<THREE.Mesh>(null!);
   const time = useRef(0.28);
   const sunDir = useRef(new THREE.Vector3(0.4, 0.9, 0.3));
   const carSpeed = useRef(0);
@@ -754,10 +755,10 @@ export function Scene({
           .multiplyScalar(400);
       }
     }
-    if (moon.current) moon.current.intensity = 0.15 + night * 0.55;
-    if (moonMesh.current) {
-      moonMesh.current.position.set(-Math.cos(theta) * 300, -Math.sin(theta) * 280, -140);
-      moonMesh.current.visible = night > 0.05;
+    if (moon.current) {
+      const ma = moonAngle(time.current);
+      moon.current.position.set(-Math.cos(ma) * 140, Math.max(10, Math.sin(ma) * 120), -70);
+      moon.current.intensity = 0.08 + moonlight(time.current, 0) * night * 0.7;
     }
 
     /* ---------------- input ---------------- */
@@ -1949,10 +1950,6 @@ export function Scene({
         shadow-camera-far={520}
       />
       <directionalLight ref={moon} position={[-90, 110, -70]} color="#9fc4ff" intensity={0.3} />
-      <mesh ref={moonMesh} position={[-200, 200, -140]}>
-        <sphereGeometry args={[14, 24, 24]} />
-        <meshBasicMaterial color="#eaf2ff" toneMapped={false} />
-      </mesh>
       <Sky
         ref={sky as unknown as React.Ref<never>}
         distance={4000}
@@ -1962,7 +1959,7 @@ export function Scene({
         mieCoefficient={0.006}
         mieDirectionalG={0.82}
       />
-      <Stars radius={420} depth={90} count={1800} factor={7} fade speed={0.6} />
+      <SkyBodies timeRef={time} sunDirRef={sunDir} envRef={skyEnv} playerRef={player} />
       <CloudLayer envRef={skyEnv} />
       <RegionLighting playerRef={player} tier={settings.renderTier} />
 
