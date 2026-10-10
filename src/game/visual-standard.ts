@@ -65,7 +65,7 @@ export const REGION_LOOK: Record<string, RegionLook> = {
   solara:     { armor: "#e8dcc0", cloth: "#b49a6a", accent: "#ffe08a", wear: 0.35, primary: "ceramic" },
   swamps:     { armor: "#3e4a36", cloth: "#2d3326", accent: "#9cff8a", wear: 0.6,  primary: "polymer" },
 };
-export const regionLook = (region: string): RegionLook => REGION_LOOK[region] ?? REGION_LOOK.nexus!;
+export const regionLook = (region: string): RegionLook => REGION_LOOK[region] ?? REGION_LOOK["nexus"]!;
 
 /** Wear roughens and de-saturates paint; returns adjusted roughness. */
 export const wornRoughness = (kind: SurfaceKind, wear: number) => Math.min(1, SURFACES[kind].roughness + 0.25 * Math.max(0, Math.min(1, wear)));
