@@ -1,10 +1,13 @@
 import { useFrame } from "@react-three/fiber";
-import { RoundedBox } from "@react-three/drei";
-import { useRef } from "react";
+import { RoundedBox, useGLTF } from "@react-three/drei";
+import { Component, Suspense, useMemo, useRef, type ReactNode } from "react";
+import { clone as cloneSkinned } from "three/examples/jsm/utils/SkeletonUtils.js";
+import { enemyVisual, type EnemyRole, type EnemyVisual } from "@/game/enemy-visuals";
 import * as THREE from "three";
 import { SURFACES, regionLook } from "@/game/visual-standard";
 
-export type EnemyKind = "RAIDER" | "OVERCLOCKED" | "ABERRATION" | "VANGUARD";
+import type { EnemyKind } from "@/game/enemy-visuals";
+export type { EnemyKind };
 
 /** Which region's look each enemy faction wears (visual-standard REGION_LOOK). */
 export const KIND_REGION: Record<EnemyKind, string> = { RAIDER: "wastelands", OVERCLOCKED: "nexus", ABERRATION: "swamps", VANGUARD: "frostspire" };
@@ -78,4 +81,41 @@ export function EnemyModel({ kind, boss, visorRef, headRef }: { kind: EnemyKind;
     </group>
     {boss && <mesh position-y={2.5} rotation-x={Math.PI / 2}><torusGeometry args={[2.2, 0.06, 6, 32]} /><meshBasicMaterial color={m.accent} transparent opacity={0.6} /></mesh>}
   </group>;
+}
+
+/* ---------------- authored enemy models (enemy-visuals.ts) with silent fallback ---------------- */
+
+class QuietBoundary extends Component<{ children: ReactNode; fallback: ReactNode }, { failed: boolean }> {
+  override state = { failed: false };
+  static getDerivedStateFromError() { return { failed: true }; }
+  override render() { return this.state.failed ? this.props.fallback : this.props.children; }
+}
+
+function Authored({ visual, headRef }: { visual: EnemyVisual; headRef?: React.Ref<THREE.Group> }) {
+  const { scene } = useGLTF(visual.url);
+  const built = useMemo(() => {
+    const obj = cloneSkinned(scene);
+    obj.traverse((o) => { const m = o as THREE.Mesh; if (m.isMesh) { m.castShadow = true; m.frustumCulled = !(m as THREE.SkinnedMesh).isSkinnedMesh; } });
+    obj.updateMatrixWorld(true);
+    const box = new THREE.Box3().setFromObject(obj);
+    const size = box.getSize(new THREE.Vector3()), c = box.getCenter(new THREE.Vector3());
+    const k = visual.height / Math.max(size.y, 1e-3);
+    return { obj, k, offset: [-c.x * k, -box.min.y * k, -c.z * k] as [number, number, number] };
+  }, [scene, visual.height]);
+  const body = useRef<THREE.Group>(null);
+  const seed = useRef(Math.random() * 10);
+  useFrame(({ clock }) => {
+    const t = clock.elapsedTime * 3 + seed.current, b = body.current;
+    if (!b) return;
+    // procedural motion until the rigs ship clips: bipeds sway/lean into the stride, creatures undulate
+    if (visual.motion === "creature") { b.rotation.set(0, Math.sin(t * 0.7) * 0.12, Math.sin(t) * 0.05); b.scale.set(1, 1 + Math.sin(t * 2) * 0.03, 1); }
+    else b.rotation.set(0.06 + Math.sin(t * 2) * 0.03, Math.sin(t) * 0.06, Math.sin(t) * 0.04);
+  });
+  return <group ref={body}><group ref={headRef ?? null}><primitive object={built.obj} scale={built.k} position={built.offset} /></group></group>;
+}
+
+/** Real enemy model for this faction/role; procedural trooper while loading or if the model fails. */
+export function FactionEnemy({ kind, role, visorRef, headRef }: { kind: EnemyKind; role: EnemyRole; visorRef?: React.Ref<THREE.MeshStandardMaterial>; headRef?: React.Ref<THREE.Group> }) {
+  const fallback = <EnemyModel kind={kind} boss={role === "boss"} {...(visorRef ? { visorRef } : {})} {...(headRef ? { headRef } : {})} />;
+  return <QuietBoundary fallback={fallback}><Suspense fallback={fallback}><Authored visual={enemyVisual(kind, role)} {...(headRef ? { headRef } : {})} /></Suspense></QuietBoundary>;
 }
