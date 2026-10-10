@@ -5,7 +5,7 @@ import { SKY_BODY, skyParams } from "@/game/sky-dome";
 import type { SkyEnv } from "./CloudLayer";
 import type { RenderTier } from "@/game/performance";
 
-const VERT = /* glsl */ `varying vec3 vDir; void main(){ vDir = normalize(position); gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`;
+const VERT = /* glsl */ `varying vec3 vDir; void main(){ vDir = normalize(position); vec4 p = projectionMatrix * modelViewMatrix * vec4(position, 1.0); gl_Position = p.xyww; }`; // .xyww pins the dome to the far plane: the sphere (r 3000) is beyond camera far (1800), so unpinned it was clipped inside ~53 deg of the view axis and showed the plain background colour as a big pale circle
 
 /** Procedural sky layer drawn over the atmospheric Sky: a sun disc with glow, lit volumetric-looking cumulus + high cirrus, stars and a Milky Way band.
  * The moon, halo and the extra starfield stay in SkyBodies. Everything is analytic (no textures), the dome is one draw call, and cloud octaves drop
