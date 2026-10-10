@@ -30,6 +30,7 @@ import { loadoutEffects } from "@/game/armor-attributes";
 import { armorLook } from "@/game/armor-look";
 import { createStride, stepStride, RUN_SPEED, type FeelView } from "@/game/movement-feel";
 import { updateWind } from "@/game/wind-sway";
+import { waterStyleAt } from "@/game/water-style";
 import { atmosphereAt, NEUTRAL_ATMOSPHERE, type Atmosphere } from "@/game/atmosphere";
 import { closeStratagems, createStratagemState, inputDirection, openStratagems, releaseStratagems, stratagemById, stratagemHud, tickStratagems, type StratagemHud } from "@/game/stratagems";
 import { Wildlife } from "./Wildlife";
@@ -483,6 +484,8 @@ export function Scene({
   const reticle = useRef({ state: createReticle(), view: EMPTY_RETICLE, yaw: 0, pitch: 0, hit: 0, kills: 0, ready: false });
   /** eased regional atmosphere (atmosphere.ts) + scratch colours, so crossing a border blends rather than pops */
   const atmo = useRef({ fogMix: 0, fogScale: 1, lightMix: 0, skyMix: 0, haze: 0, fogTint: new THREE.Color("#ffffff"), lightTint: new THREE.Color("#ffffff"), skyTint: new THREE.Color("#ffffff"), hemiBase: new THREE.Color("#9ec8e8") });
+  /** eased regional water style (water-style.ts): deep/shallow colours, murk and wave chop */
+  const waterStyle = useRef({ deep: new THREE.Color("#062a44"), shallow: new THREE.Color("#1d7fa8"), murk: 0.15, chop: 1 });
   const report = useRef(0);
   const live = useRef(createLiveBuild(activeBuild, abilityBranches));
   const abilityHeld = useRef<Record<string, boolean>>({});
@@ -908,6 +911,13 @@ export function Scene({
       scene.background instanceof THREE.Color && scene.background.lerp(a.fogTint, a.fogMix * 0.35).lerp(a.skyTint, a.skyMix);
       if (sun.current) sun.current.color.lerp(a.lightTint, a.lightMix);
       if (hemi.current) hemi.current.color.copy(a.hemiBase).lerp(a.lightTint, a.lightMix * 0.8);
+      // regional water: ease the ocean toward this region's colours, murk and wave chop
+      const wTarget = waterStyleAt(here?.id, wx?.state);
+      const w = waterStyle.current;
+      w.deep.lerp(atmoScratch.set(wTarget.deep), k);
+      w.shallow.lerp(atmoScratch.set(wTarget.shallow), k);
+      w.murk += (wTarget.murk - w.murk) * k;
+      w.chop += (wTarget.chop - w.chop) * k;
     }
     if (scene.fog instanceof THREE.Fog) {
       const fogK = 1 - Math.exp(-3 * dt);
@@ -1976,7 +1986,7 @@ export function Scene({
       <Weather playerRef={player} weatherRef={weatherKind} fxRef={weatherFx} />
       <Wildlife playerRef={player} />
       <Civilians playerRef={player} />
-      <Water size={WORLD_RADIUS * 4} sunRef={sunDir} />
+      <Water size={WORLD_RADIUS * 4} sunRef={sunDir} styleRef={waterStyle} />
       <ShopStalls />
       <NearOnly playerRef={player} x={NEXUS_REGION.x} z={NEXUS_REGION.z} radius={330}><NexusCity sim={sim} /></NearOnly>
       <NearOnly playerRef={player} x={NEON_CITY_CENTER.x} z={NEON_CITY_CENTER.z} radius={300}><NeonCity /></NearOnly>
