@@ -1,6 +1,6 @@
 // @ts-ignore bun:test has no types in this project's tsconfig
 import { afterEach, beforeEach, describe, expect, it, spyOn } from "bun:test";
-import { createSim, defeatMachine, stepSim, type Machine, type WorldSim } from "./sim";
+import { applyLightning, applyMachineDamageMods, createSim, defeatMachine, envCredit, PLAYER_CREDIT_WINDOW_S, stepSim, type Machine, type WorldSim } from "./sim";
 
 /** Regression: standing still in a safe zone used to level the player up, because the safe-zone turrets and stability field "killed"
  * machines through the same path as the player's own kills (XP, credits, drops, kill count). */
@@ -44,5 +44,46 @@ describe("who gets the kill", () => {
     for (let i = 0; i < 20 && sim.machines[0]!.alive; i++) { clock += 1; stepSim(sim, { px: tur.x + 900, pz: tur.z + 900, dt: 1, night: 0.5, inVehicle: false }); }
     expect(sim.machines[0]!.alive).toBe(false);
     expect(totals(sim)).toEqual({ kills: 0, credits: 0, xp: 0, drops: 0 });
+  });
+});
+
+describe("environmental deaths (collision, lightning, burn) are nobody's kill unless the player just hurt the machine", () => {
+  it("envCredit is world for an untouched machine and player right after the player damages it", () => {
+    const sim = empty(); const m = place(sim, 3000, 3000, 1);
+    expect(envCredit(m)).toBe("world");
+    m.lastPlayerDamage = clock - 2;
+    expect(envCredit(m)).toBe("player");
+    m.lastPlayerDamage = clock - (PLAYER_CREDIT_WINDOW_S + 1);
+    expect(envCredit(m)).toBe("world");
+  });
+  it("a mission machine always pays, so scripted missions never stall", () => {
+    const sim = empty(); const m = place(sim, 3000, 3000, 1, { mission: true });
+    expect(envCredit(m)).toBe("player");
+  });
+  it("a machine that dies from lightning with no player involvement pays no XP, credits or drops", () => {
+    const sim = empty(); const m = place(sim, 3000, 3000, 1);
+    applyLightning(sim, { x: 3000, z: 3000, radius: 10 } as never, 0, 0);
+    expect(m.alive).toBe(false);
+    expect(totals(sim)).toEqual({ kills: 0, credits: 0, xp: 0, drops: 0 });
+  });
+  it("the same lightning kill still pays when the player had just shot the machine", () => {
+    const sim = empty(); const m = place(sim, 3000, 3000, 1);
+    m.lastPlayerDamage = clock - 1;
+    applyLightning(sim, { x: 3000, z: 3000, radius: 10 } as never, 0, 0);
+    expect(m.alive).toBe(false);
+    expect(totals(sim)).toMatchObject({ kills: 1, xp: 1 });
+  });
+  it("a machine that dies by colliding with the world while the player stands still pays nothing", () => {
+    const sim = empty(); const m = place(sim, 3000, 3000, 0);
+    // the catch-all in stepSim: hp <= 0 after environment damage, with no recorded player damage
+    for (let i = 0; i < 3 && m.alive; i++) { clock += 1; stepSim(sim, { px: 3040, pz: 3000, dt: 1, night: 0.5, inVehicle: false }); }
+    expect(m.alive).toBe(false);
+    expect(totals(sim)).toEqual({ kills: 0, credits: 0, xp: 0, drops: 0 });
+  });
+  it("player damage through applyMachineDamageMods marks the machine", () => {
+    const sim = empty(); const m = place(sim, 3000, 3000, 5);
+    expect(m.lastPlayerDamage).toBeUndefined();
+    applyMachineDamageMods(sim, m, 1, "KINETIC", 0, 0);
+    expect(m.lastPlayerDamage).toBe(clock);
   });
 });

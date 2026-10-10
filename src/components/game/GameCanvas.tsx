@@ -83,7 +83,7 @@ import { advanceMission as advanceDescent, DESCENT_PROTOCOL, type MissionEvent a
 import { DescentProtocolOverlay } from "./DescentProtocolOverlay";
 import { advanceMission as advanceSystemCore, SYSTEM_CORE, type MissionEvent as SystemCoreEvent, type MissionRun as SystemCoreRun } from "@/game/missions/system-core";
 import { SystemCoreOverlay } from "./SystemCoreOverlay";
-import { gameTick, reconcileQuests, QUESTS } from "@/game/quests";
+import { gameTick, reconcileQuests, survivalTickIsNoop, QUESTS } from "@/game/quests";
 import { QuestTracker } from "./QuestTracker";
 import { dialogueFor, revisitDialogueFor, type DialogueLine } from "@/game/dialogue";
 import { DialogueOverlay } from "./DialogueOverlay";
@@ -534,6 +534,7 @@ export function GameCanvas() {
     const { events, next } = questEventsFromHud(questSignals.current.signals, hud, dt);
     questSignals.current.signals = next;
     if (!events.length) return;
+    if (survivalTickIsNoop(progressionRef.current, events)) return; // a no-op setState would still re-render GameCanvas + Scene on every HUD snapshot
     // functional update: this fires several times a second and must never overwrite newer progression
     setProgression((current) => events.reduce((p, event) => gameTick(p, event), current));
   }, [hud, phase]);

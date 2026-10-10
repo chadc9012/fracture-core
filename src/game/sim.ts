@@ -86,6 +86,8 @@ export type ZoneState = {
 };
 
 export type Machine = {
+  /** performance.now()/1000 of the last damage the PLAYER (or the player's own abilities/vehicle/stratagems) dealt; environmental deaths only pay if this is recent */
+  lastPlayerDamage?: number;
   alive: boolean;
   x: number;
   z: number;
@@ -356,6 +358,15 @@ function dropLoot(sim: WorldSim, zone: ZoneState | undefined, enemyType: string)
  * no XP/credit/loot/kill count/quest signal is produced. Why: standing still in a safe zone used to level the player up from kills they never made. */
 export type KillCredit = "player" | "world";
 
+/** How long after the player last hurt a machine a death by the environment (collision, lightning, burn) still counts as the player's kill. */
+export const PLAYER_CREDIT_WINDOW_S = 8;
+/** Credit for a machine that died from environmental damage: the player only if they damaged it recently, otherwise nobody (no XP, credits or drops). */
+export function envCredit(m: Machine, windowS = PLAYER_CREDIT_WINDOW_S): KillCredit {
+  if (m.mission) return "player"; // a scripted mission machine always counts: the mission state machines wait on its death
+  return m.lastPlayerDamage !== undefined && performance.now() / 1000 - m.lastPlayerDamage <= windowS ? "player" : "world";
+}
+const markPlayerDamage = (m: Machine) => { m.lastPlayerDamage = performance.now() / 1000; };
+
 export function defeatMachine(sim: WorldSim, m: Machine, credit: KillCredit = "player") {
   if (!m.alive || m.hp > 0) return;
   sim.statuses.delete(m);
@@ -371,7 +382,7 @@ export function defeatMachine(sim: WorldSim, m: Machine, credit: KillCredit = "p
   m.alive = false;
   if (credit === "world" && !m.boss && !m.eq && !m.scenarioId) { // ambient kill: no kill, credit, XP, drop or director event
     endEncounter(sim, m);
-    delete m.gimmickHistory; delete m.attuned; delete m.scenarioRun; delete m.playerHits; delete m.encounter; delete m.decoy;
+    delete m.gimmickHistory; delete m.attuned; delete m.scenarioRun; delete m.playerHits; delete m.encounter; delete m.decoy; delete m.lastPlayerDamage;
     return;
   }
   sim.kills++;
@@ -413,7 +424,7 @@ export function defeatMachine(sim: WorldSim, m: Machine, credit: KillCredit = "p
   alert(sim, `${m.profile} defeated · ${material.replace(/([A-Z])/g, " $1")} +${amount}`);
   // pooled slots are reused: never let the next occupant inherit this fight's scenario state
   endEncounter(sim, m);
-  delete m.scenarioId; delete m.gimmickHistory; delete m.attuned; delete m.scenarioRun; delete m.playerHits; delete m.encounter; delete m.decoy;
+  delete m.scenarioId; delete m.gimmickHistory; delete m.attuned; delete m.scenarioRun; delete m.playerHits; delete m.encounter; delete m.decoy; delete m.lastPlayerDamage;
 }
 
 const byId = (id: string) => REGIONS.find((r) => r.id === id)!;
@@ -614,6 +625,7 @@ function spawnMachine(sim: WorldSim, zone: ZoneState, elite = false) {
   m.kx = 0;
   m.kz = 0;
   m.vulnUntil = 0;
+  delete m.lastPlayerDamage;
   m.vulnMult = 1;
   m.aim = 0;
   delete m.encounter; delete m.decoy;
@@ -833,6 +845,7 @@ function detonateBeacon(sim: WorldSim, b: Beacon, px: number, pz: number) {
   if (b.kind === "ORBITAL_STRIKE") {
     for (const m of sim.machines) {
       if (!m.alive || !inRange(m.x, m.z, m.scale)) continue;
+      markPlayerDamage(m);
       m.hp -= m.boss ? 8 : 14;
       if (m.hp <= 0) defeatMachine(sim, m);
     }
@@ -877,7 +890,7 @@ export function applyLightning(sim: WorldSim, strike: Strike, px: number, pz: nu
     if (!m.alive) continue;
     if (Math.hypot(m.x - strike.x, m.z - strike.z) <= strike.radius + m.scale) {
       m.hp -= STRIKE_MACHINE_DAMAGE;
-      if (m.hp <= 0) defeatMachine(sim, m);
+      if (m.hp <= 0) defeatMachine(sim, m, envCredit(m));
     }
   }
   if (Math.hypot(px - strike.x, pz - strike.z) <= strike.radius) hurtPlayer(sim, STRIKE_PLAYER_DAMAGE, "Lightning strike");
@@ -888,6 +901,7 @@ export function applyLightning(sim: WorldSim, strike: Strike, px: number, pz: nu
  * that decides scenario reward participation. Returns the damage to subtract from m.hp. */
 export function applyMachineDamageMods(sim: WorldSim, m: Machine, dmg: number, element: Parameters<typeof gimmickMultiplier>[1]["element"], px: number, pz: number): number {
   const nowSec = performance.now() / 1000;
+  markPlayerDamage(m); // bullets, abilities, launchers, turrets and strikes all price their damage here, so this is the player's damage
   if (m.vulnUntil > nowSec) dmg *= m.vulnMult;
   if (!m.boss) return dmg;
   if (!m.poiseState) m.poiseState = INITIAL_POISE;
@@ -976,6 +990,7 @@ export function collidePlayer(sim: WorldSim, body: PlayerBody) {
     const force = Math.abs(speed) * mass;
     if (force > 30 && sim.impactCool <= 0) {
       sim.impactCool = 0.6;
+      markPlayerDamage(m);
       m.hp -= Math.round((force / 30) * sim.mods.ramDamage);
       logBehavior(sim.adaptation, body.inVehicle ? "vehicles" : "combat", 2);
       body.vSpeed *= 0.4;
@@ -1328,7 +1343,7 @@ export function stepSim(sim: WorldSim, input: SimInput) {
       }
     }
      if (m.hp <= 0) {
-       defeatMachine(sim, m);
+       defeatMachine(sim, m, envCredit(m)); // dying to a collision with a tree, wreck or another machine is nobody's kill unless the player had just hurt it
       continue;
     }
     m.y = walkHeight(m.x, m.z) + 2.2 * m.scale;
@@ -1342,6 +1357,7 @@ export function stepSim(sim: WorldSim, input: SimInput) {
       for (const m of sim.machines) {
         if (!m.alive) continue;
         if (Math.hypot(m.x - zone.x, m.z - zone.z) <= zone.radius) {
+          markPlayerDamage(m);
           m.hp -= zone.dps * dt;
           if (m.hp <= 0) defeatMachine(sim, m);
         }
@@ -1576,7 +1592,7 @@ export function stepSim(sim: WorldSim, input: SimInput) {
     for (const [m, st] of sim.statuses) {
       if (!m.alive) { sim.statuses.delete(m); continue; }
       const d = burnDamage(st, nowS, dt);
-      if (d > 0) { m.hp -= d; defeatMachine(sim, m); }
+      if (d > 0) { m.hp -= d; defeatMachine(sim, m, envCredit(m, 12)); }
       else if (st.burnUntil <= nowS && st.chillUntil <= nowS && st.shockReadyAt <= nowS) sim.statuses.delete(m);
     }
   }

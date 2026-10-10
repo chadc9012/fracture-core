@@ -310,3 +310,11 @@ export function gameTick(progression: PlayerProgression, event: QuestEvent): Pla
   }
   return updateWorldState(reconcileQuests(next), event);
 }
+
+/** True when applying `events` would change nothing AND every event is the continuous SURVIVED slice. GameCanvas skips the setState in that case:
+ * calling setProgression with an updater that returns the same object still makes React re-render GameCanvas (and Scene) before bailing out, and the
+ * survive slice fires on every HUD snapshot. One-shot events (KILL, HACK, ENTER_WORLD, ...) are never skipped, so no quest event can be lost. */
+export function survivalTickIsNoop(progression: PlayerProgression, events: readonly QuestEvent[]): boolean {
+  if (!events.length || !events.every((e) => e.type === "SURVIVED")) return false;
+  return events.reduce((p, e) => gameTick(p, e), progression) === progression;
+}
