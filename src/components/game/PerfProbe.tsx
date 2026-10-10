@@ -39,7 +39,7 @@ export function PerfProbe() {
 
   useEffect(() => {
     const div = document.createElement("div");
-    div.style.cssText = "position:fixed;right:8px;top:8px;z-index:9999;padding:6px 8px;font:11px/1.35 ui-monospace,monospace;color:#9df;background:rgba(0,0,0,.72);border:1px solid #3a6;pointer-events:none;white-space:pre;display:none";
+    div.style.cssText = "position:fixed;right:8px;top:8px;z-index:9999;padding:6px 8px;font:11px/1.35 ui-monospace,monospace;color:#9df;background:rgba(0,0,0,.72);border:1px solid #3a6;pointer-events:none;white-space:pre-wrap;overflow-wrap:anywhere;max-width:min(60ch,48vw);max-height:calc(100vh - 16px);overflow:hidden;display:none";
     document.body.appendChild(div);
     el.current = div;
     const toggle = () => { shown.current = !shown.current; div.style.display = shown.current ? "block" : "none"; };
