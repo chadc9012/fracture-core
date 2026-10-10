@@ -65,3 +65,28 @@ export async function renameSlot(userId: string | null, slot: number, label: str
   const data = slot === activeSlot() ? current : stored[slot] ? normalizeProgression(stored[slot]!.data) : DEFAULT_PROGRESSION;
   await writeSlot(userId, slot, label.slice(0, 32), data);
 }
+
+export type NewGameResult = { status: "started"; progression: PlayerProgression; slot: number } | { status: "no-free-slot" };
+
+/** New Game with an existing save: the current game is parked in its own slot and a free slot becomes the live save,
+ * starting from a fresh profile. Nothing is erased; if all slots are taken it refuses (the player frees one in Saves). */
+export async function beginNewGame(userId: string | null, current: PlayerProgression): Promise<NewGameResult> {
+  const stored = await readSlots(userId);
+  const act = activeSlot();
+  const free = Array.from({ length: SLOT_COUNT }, (_, i) => i + 1).find((slot) => slot !== act && !stored[slot]);
+  if (!free) return { status: "no-free-slot" };
+  const progression = await switchSlot(userId, current, free);
+  return { status: "started", progression: structuredClone(progression), slot: free };
+}
+
+export async function currentUserId(): Promise<string | null> {
+  const { data } = await supabase.auth.getSession();
+  return data.session?.user.id ?? null;
+}
+
+/** Which slot New Game would use, without changing anything (for the confirmation text). */
+export async function freeSlotForNewGame(userId: string | null): Promise<number | null> {
+  const stored = await readSlots(userId);
+  const act = activeSlot();
+  return Array.from({ length: SLOT_COUNT }, (_, i) => i + 1).find((slot) => slot !== act && !stored[slot]) ?? null;
+}

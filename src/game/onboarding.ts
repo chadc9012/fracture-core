@@ -34,3 +34,19 @@ export function advanceTutorial(state: TutorialState, event: TutorialEvent): Tut
   if (state.step === "SENTINEL" && event === "BOSS") return { ...state, step: "VICTORY" };
   return state;
 }
+
+export const TUTORIAL_ORDER: readonly TutorialStep[] = ["MATERIALIZE", "MOVEMENT", "ABILITY", "CONTACT", "REINFORCE", "CHAMBER", "POWER", "SENTINEL", "VICTORY"];
+
+/** Validates a saved tutorial checkpoint. VICTORY is never a checkpoint (it completes the tutorial); junk becomes null. */
+export function sanitizeTutorial(raw: unknown): TutorialState | null {
+  const r = raw as Partial<TutorialState> | null | undefined;
+  if (!r || typeof r !== "object" || !TUTORIAL_ORDER.includes(r.step as TutorialStep) || r.step === "VICTORY") return null;
+  const n = (v: unknown, max: number) => (typeof v === "number" && Number.isFinite(v) ? Math.max(0, Math.min(max, Math.floor(v))) : 0);
+  return { step: r.step as TutorialStep, gates: n(r.gates, 3), jumped: r.jumped === true, kills: n(r.kills, 2), chained: n(r.chained, 2), abilities: n(r.abilities, 2), bossHits: n(r.bossHits, 99) };
+}
+
+/** The checkpoint that is further along (progress is only gained, so merging two saves keeps the better one). */
+export function furtherTutorial(a: TutorialState | null, b: TutorialState | null): TutorialState | null {
+  if (!a || !b) return a ?? b;
+  return TUTORIAL_ORDER.indexOf(b.step) > TUTORIAL_ORDER.indexOf(a.step) ? b : a;
+}

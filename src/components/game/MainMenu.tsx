@@ -48,7 +48,8 @@ function Pending({ onUnavailable }: { onUnavailable: () => void }) {
   return null;
 }
 
-export function MainMenu({ save, classId, look, reducedMotion, onContinue, onNewGame, onCharacter, onSettings }: {
+export function MainMenu({ save, classId, look, reducedMotion, startNotice, onContinue, onNewGame, onCharacter, onSettings }: {
+  startNotice?: string;
   save: SaveSummary; classId: ClassId; look?: ArmorLook | undefined; reducedMotion: boolean;
   onContinue: () => void; onNewGame: () => void; onCharacter: () => void; onSettings: () => void;
 }) {
@@ -141,7 +142,7 @@ export function MainMenu({ save, classId, look, reducedMotion, onContinue, onNew
               </button>
             );
           })}
-          <p className="mt-3 min-h-4 font-mono text-[10px] uppercase tracking-[0.15em] text-primary" role="status" aria-live="polite">{notice}</p>
+          <p className="mt-3 min-h-4 font-mono text-[10px] uppercase tracking-[0.15em] text-primary" role="status" aria-live="polite">{startNotice || notice}</p>
         </nav>
 
         <footer className="font-mono text-[9px] uppercase tracking-[0.22em] text-muted-foreground">
@@ -151,7 +152,7 @@ export function MainMenu({ save, classId, look, reducedMotion, onContinue, onNew
 
       {overlay === "confirm-new" && (
         <ConfirmDialog pad={pad} title="Start a new game?" confirmLabel="New Game" cancelLabel="Keep my save"
-          body="You have saved progress. Nothing is deleted now — your save stays as it is until you confirm a new character in the next screen, and you can back out of character creation to return here."
+          body="You have saved progress. Starting a new game keeps it: your current game is parked in a free save slot and a fresh run begins. Nothing is erased, and you can switch back any time from Saves. If every slot is in use, New Game is refused until you free one."
           onCancel={() => setOverlay(null)} onConfirm={() => { setOverlay(null); go(onNewGame); }} />
       )}
       {overlay === "credits" && <CreditsPanel pad={pad} onClose={() => setOverlay(null)} />}

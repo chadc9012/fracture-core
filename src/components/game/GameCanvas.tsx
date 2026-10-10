@@ -2,7 +2,7 @@ import { Canvas } from "@react-three/fiber";
 import { PerformanceMonitor } from "@react-three/drei";
 import { Bloom, BrightnessContrast, ChromaticAberration, DepthOfField, EffectComposer, HueSaturation, Noise, SSAO, Vignette } from "@react-three/postprocessing";
 import * as THREE from "three";
-import { Suspense, useEffect, useRef, useState } from "react";
+import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 
 import { appearanceById, classById, subclassById, type AppearanceDefinition, type ClassId, type SubclassId } from "@/game/loadout";
 import { REGIONS } from "@/game/world";
@@ -38,6 +38,8 @@ import { bodyTypeOr, type BodyType } from "@/game/operators";
 import { nodeById } from "@/game/ability-network";
 import { questEventsFromHud, NEW_QUEST_SIGNALS } from "@/game/quest-signals";
 import { brokenSignalReady, hasVehicle } from "@/game/mission-gates";
+import { firstMissionHud, freshProgression, hudIdentity, reconcileRuns, reconcileTutorial, sameSession, sessionFromProgression, shouldPlayIntro, tutorialForEntry, withIntroSeen, withTutorialRun, type OperatorSession } from "@/game/session-restore";
+import { beginNewGame, currentUserId } from "@/game/save-slots";
 import { advanceTutorial, FIRST_TUTORIAL, type TutorialEvent, type TutorialState } from "@/game/onboarding";
 import { OnboardingSignal } from "./OnboardingSignal";
 import { IntroCinematic } from "./IntroCinematic";
@@ -233,9 +235,6 @@ export function GameCanvas() {
     };
   }, [settings.reducedMotion, settings.highContrastHud]);
   useEffect(() => { if (menuOpen) stopVoice(); }, [menuOpen]);
-  const [cls, setCls] = useState<ClassId>("TITAN");
-  const [subclass, setSubclass] = useState<SubclassId>("SHIELD_TITAN");
-  const [appearance, setAppearance] = useState<AppearanceDefinition>(() => appearanceById("BASTION"));
   const [vehicleId, setVehicleId] = useState<VehicleId>("scrap-interceptor");
   const [garageOpen, setGarageOpen] = useState(false);
   const [inventoryOpen, setInventoryOpen] = useState(false);
@@ -254,11 +253,18 @@ export function GameCanvas() {
   useEffect(() => { if (progression.selectedVehicle) setVehicleId(progression.selectedVehicle); }, [progression.selectedVehicle]);
   // repair/forward quest progress against what the save already proves (missions finished before their quest was active)
   useEffect(() => { setProgression((current) => { const next = reconcileQuests(current); return next === current ? current : next; }); }, [progression.completedMissions.length, progression.dungeonClears]);
-  const [bodyType, setBodyType] = useState<BodyType>(() => bodyTypeOr(progression.character?.bodyType));
+  // the operator the world renders is derived from the saved profile (never a hard-coded Goliath default)
+  const [session0] = useState(() => sessionFromProgression(progression));
+  const [cls, setCls] = useState<ClassId>(session0.cls);
+  const [subclass, setSubclass] = useState<SubclassId>(session0.subclass);
+  const [appearance, setAppearance] = useState<AppearanceDefinition>(session0.appearance);
+  const [bodyType, setBodyType] = useState<BodyType>(session0.bodyType);
   const progressionRef = useRef(progression);
   progressionRef.current = progression;
   const [tutorial, setTutorial] = useState<TutorialState | null>(null);
   const [showIntro, setShowIntro] = useState(false);
+  // tutorial checkpoint: saved at every step so a reload resumes instead of restarting (VICTORY clears it)
+  useEffect(() => { if (tutorial) setProgression((p) => withTutorialRun(p, tutorial)); }, [tutorial]);
   const lastPlayed = useRef<string | null>(null);
   const recapped = useRef(false);
   useEffect(() => { lastPlayed.current = localSavedAt(); }, []);
@@ -463,47 +469,74 @@ export function GameCanvas() {
     setPhase("briefing");
   };
 
-  const deploy = (deployment: Deployment) => {
-    setCls(deployment.classId);
-    setSubclass(deployment.subclassId);
-    setAppearance(deployment.appearance);
-    setBodyType(deployment.bodyType);
-    // players who already finished onboarding never replay it when they re-deploy from Character
-    setTutorial(progression.tutorialComplete ? null : FIRST_TUTORIAL);
-    setProgression((current) => ({ ...current, identityClass: deployment.classId, activeBuild: classBuild(deployment.classId) }));
-    if (progression.selectedVehicle) setVehicleId(progression.selectedVehicle);
-    setHud((current) => ({
-      ...current,
-      region: "Veridan Forest",
-      regionId: "veridan",
-      sub: "Starter Zone / Resources",
-      kind: "starter",
-      difficulty: 1,
-      weather: "Rain mist",
-      playerClass: deployment.classId,
-      subclassName: subclassById(deployment.subclassId).name,
-      callsign: deployment.appearance.callsign,
-      abilities: classById(deployment.classId).abilities.map((ability) => ({ slot: ability.slot, name: ability.name, ready: true })),
-      missions: [{
-        id: "mission-01",
-        name: "Mission 01 — First Resonance",
-        kind: "FIRST_RESONANCE",
-        regionId: "veridan",
-        intensity: "LOW",
-        state: "ACTIVE",
-        objectives: [
-          { type: "SURVIVE", label: "Stabilize after insertion (s)", amount: 20, progress: 0, done: false },
-          { type: "KILL", label: "Clear the forest patrol", amount: 2, progress: 0, done: false },
-        ],
-        reward: 500,
-        age: 0,
-        stage: 0,
-      }],
+  /** Single entry into the world for deploy, Continue and the hub: applies the operator, the tutorial checkpoint and the
+   * HUD identity from one place. First-time onboarding (intro) only runs when `intro` is true. */
+  const enterWorld = (session: OperatorSession, how: { newCharacter: boolean; intro: boolean }) => {
+    const current = progressionRef.current;
+    setCls(session.cls);
+    setSubclass(session.subclass);
+    setAppearance(session.appearance);
+    setBodyType(session.bodyType);
+    setTutorial(tutorialForEntry(current));
+    setProgression((p) => {
+      let next = p;
+      if (how.newCharacter) next = { ...next, identityClass: session.cls, activeBuild: classBuild(session.cls) };
+      return how.intro ? withIntroSeen(next) : next;
+    });
+    if (current.selectedVehicle) setVehicleId(current.selectedVehicle);
+    setHud((hudNow) => ({
+      ...hudNow,
+      ...(how.newCharacter ? { region: "Veridan Forest", regionId: "veridan", sub: "Starter Zone / Resources", kind: "starter" as const, difficulty: 1, weather: "Rain mist" } : {}),
+      ...hudIdentity(session),
+      missions: firstMissionHud(current),
     }));
     setMenuOpen(false);
     setPhase("world");
-    setIntroElapsed(0);
-    setShowIntro(true);
+    if (how.intro) { setIntroElapsed(0); setShowIntro(true); }
+  };
+  // a confirmed character; the cinematic plays only for a save that has not seen it (not on re-deploys or Continue)
+  const deploy = (deployment: Deployment) => enterWorld(
+    { cls: deployment.classId, subclass: deployment.subclassId, appearance: deployment.appearance, bodyType: deployment.bodyType },
+    { newCharacter: true, intro: shouldPlayIntro(progressionRef.current) },
+  );
+  // Continue / hub: restore exactly what the save describes, no onboarding replay
+  const continueIntoWorld = () => enterWorld(sessionFromProgression(progressionRef.current), { newCharacter: false, intro: false });
+
+  /** Adopts a progression that arrived from outside the normal flow (cloud pull/merge, restore point, New Game).
+   * Re-derives operator, tutorial and mission machines from the final merged save. Live runs are kept unless `force`. */
+  const adoptProgression = useCallback((incoming: PlayerProgression, force = false) => {
+    progressionRef.current = incoming;
+    setProgression(incoming);
+    const next = sessionFromProgression(incoming);
+    setCls(next.cls); setSubclass(next.subclass); setAppearance(next.appearance); setBodyType(next.bodyType);
+    setHud((h) => ({ ...h, ...hudIdentity(next) }));
+    setMission((m) => (force ? null : (reconcileRuns({ "broken-signal": m }, incoming)["broken-signal"] as MissionRun | null)));
+    setAwakening((m) => (force ? null : (reconcileRuns({ awakening: m }, incoming)["awakening"] as AwakeningRun | null)));
+    setBlackout((m) => (force ? null : (reconcileRuns({ "blackout-protocol": m }, incoming)["blackout-protocol"] as BlackoutRun | null)));
+    setNeonCore((m) => (force ? null : (reconcileRuns({ "stitched-neon-core": m }, incoming)["stitched-neon-core"] as NeonCoreRun | null)));
+    setDescent((m) => (force ? null : (reconcileRuns({ "descent-protocol": m }, incoming)["descent-protocol"] as DescentRun | null)));
+    setSystemCore((m) => (force ? null : (reconcileRuns({ "system-core": m }, incoming)["system-core"] as SystemCoreRun | null)));
+    setTutorial((t) => (force ? null : reconcileTutorial(t, incoming)));
+  }, []);
+  const [menuNotice, setMenuNotice] = useState("");
+  const newGameBusy = useRef(false);
+  /** New Game: with a save, park it in a free slot (never erase) and start from a fresh profile; refuse when no slot is free. */
+  const startNewGame = async () => {
+    if (newGameBusy.current) return;
+    setMenuNotice("");
+    if (!evaluateSave(progressionRef.current, last !== null).hasSave) { setPhase("loadout"); return; }
+    newGameBusy.current = true;
+    try {
+      const result = await beginNewGame(await currentUserId(), progressionRef.current);
+      if (result.status === "no-free-slot") { setMenuNotice("All 3 save slots are in use. Free one in Saves, then start a new game. Your save is untouched."); return; }
+      adoptProgression(result.progression, true);
+      setLast(null);
+      setPhase("loadout");
+    } catch {
+      setMenuNotice("Couldn't start a new game safely (save slots unreachable). Your save is untouched.");
+    } finally {
+      newGameBusy.current = false;
+    }
   };
   const recordTutorial = (event: TutorialEvent) => setTutorial((current) => current ? advanceTutorial(current, event) : current);
   const recordMission = (event: MissionEvent) => setMission((current) => current ? advanceMission(current, event) : current);
@@ -540,8 +573,9 @@ export function GameCanvas() {
             classId={progression.identityClass ?? cls}
             look={armorLook(progression)}
             reducedMotion={prefersReduced(settings.reducedMotion)}
-            onContinue={() => setPhase(last || progression.completedMissions.length > 0 ? "hub" : "loadout")}
-            onNewGame={() => setPhase("loadout")}
+            startNotice={menuNotice}
+            onContinue={() => setPhase(progression.character || last || progression.completedMissions.length > 0 ? "hub" : "loadout")}
+            onNewGame={() => void startNewGame()}
             onCharacter={() => setPhase("loadout")}
             onSettings={() => setMenuOpen(true)}
           />
@@ -554,7 +588,7 @@ export function GameCanvas() {
   if (phase === "hub") {
     return (
       <>
-        {hubView === "starmap" && <StarMap progression={progression} onBack={() => setHubView(null)} onDeploy={(id) => { const r = REGIONS.find((x) => x.id === id)!; setHubView(null); setTravelTo({ x: r.x, z: r.z + 6, nonce: Date.now() }); setPhase("world"); }} />}
+        {hubView === "starmap" && <StarMap progression={progression} onBack={() => setHubView(null)} onDeploy={(id) => { const r = REGIONS.find((x) => x.id === id)!; setHubView(null); setTravelTo({ x: r.x, z: r.z + 6, nonce: Date.now() }); continueIntoWorld(); }} />}
         {hubView === "arsenal" && <ArsenalLoadouts progression={progression} onProgression={setProgression} onBack={() => setHubView(null)} />}
         {hubView === "saves" && <SaveManager progression={progression} onProgression={setProgression} onBack={() => setHubView(null)} />}
         {!menuOpen && !hubView && (
@@ -566,7 +600,7 @@ export function GameCanvas() {
             onNavigate={(target) => {
               if (target === "system") { setMenuOpen(true); return; }
               if (target === "starmap" || target === "arsenal" || target === "saves") { setHubView(target); return; }
-              setPhase("world");
+              continueIntoWorld();
             }}
           />
         )}
@@ -578,7 +612,7 @@ export function GameCanvas() {
   if (phase === "loadout") {
     return (
       <>
-        <StartMenu paused={menuOpen} saved={progression.character} gear={progression} onDeploy={prepareDeployment} weaponOrder={activeLoadout(progression, progression.identityClass ?? cls).slots} onSaveCharacter={async (character) => { const result = await persistCharacter(progressionRef.current, character); progressionRef.current = result.progression; setProgression(result.progression); }} onSettings={() => setMenuOpen(true)} onExit={() => setPhase("title")} best={last} />
+        <StartMenu paused={menuOpen} saved={progression.character} gear={progression} onDeploy={prepareDeployment} weaponOrder={activeLoadout(progression, progression.identityClass ?? cls).slots} onSaveCharacter={async (character, equippedGear) => { const base = equippedGear ? { ...progressionRef.current, equippedGear } : progressionRef.current; const result = await persistCharacter(base, character); progressionRef.current = result.progression; setProgression(result.progression); }} onSettings={() => setMenuOpen(true)} onExit={() => setPhase("title")} best={last} />
         {menuOpen && (
           <SettingsWindow
             completedMissions={progression.completedMissions}
@@ -707,7 +741,7 @@ export function GameCanvas() {
       {analysisOpen && <ZoneAnalysisPanel zoneName={hud.region} onClose={() => setAnalysisOpen(false)} />}
       {operationsView && <OperationsHub initialView={operationsView} progression={progression} onProgression={setProgression} onClose={() => setOperationsView(null)} />}
       {progression.tutorialComplete && !tutorial && !vehicleUnlocked && <div className="fixed inset-0 z-40 grid place-items-center bg-background/80 p-4"><section className="w-full max-w-3xl border border-primary bg-card p-6"><p className="font-mono text-[10px] uppercase tracking-[0.3em] text-primary">Mission 01 complete · Garage assistant online</p><h2 className="mt-2 text-2xl font-semibold">Choose your first vehicle</h2><p className="mt-2 text-sm text-muted-foreground">This frame becomes your permanent world-travel unlock.</p><div className="mt-5 grid gap-3 sm:grid-cols-2">{STARTER_VEHICLES.map((vehicle) => <Button key={vehicle.id} variant="outline" onClick={() => { setVehicleId(vehicle.id); setProgression((current) => rewardVehicle(current, vehicle.id)); }} className="h-auto min-h-36 items-start justify-start rounded-none p-4 text-left whitespace-normal"><span><span className="font-mono text-base">{vehicle.name}</span><span className="mt-2 block text-xs text-muted-foreground">{vehicle.role}</span></span></Button>)}</div></section></div>}
-      <CloudSavePanel progression={progression} onProgression={setProgression} />
+      <CloudSavePanel progression={progression} onProgression={adoptProgression} />
       {garageOpen && <div className="fixed inset-0 z-40 grid place-items-center bg-background/80 p-4"><section className="max-h-[85vh] w-full max-w-4xl overflow-y-auto border border-border bg-card p-6"><div className="flex items-start justify-between"><div><p className="font-mono text-[10px] uppercase tracking-[0.3em] text-primary">Garage assistant</p><h2 className="mt-2 text-2xl">Vehicle registry</h2><p className="mt-1 text-xs text-muted-foreground">Garage loadout {progression.garageLoadout.length}/3</p></div><Button variant="outline" onClick={() => setGarageOpen(false)}>Back</Button></div><div className="mt-5 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">{VEHICLES.map((vehicle) => { const owned = progression.ownedVehicles.includes(vehicle.id); const selected = progression.selectedVehicle === vehicle.id; return <div key={vehicle.id} className={`border p-3 ${selected ? "border-primary" : "border-border"}`}><p className="font-mono text-sm">{vehicle.name}</p><p className="mt-1 text-[10px] uppercase text-muted-foreground">{selected ? "Active · summon with V" : owned ? "Owned" : vehicleAcquisition(vehicle).replace("_", " ")}</p>{owned && !selected && <Button size="sm" variant="outline" className="mt-3" onClick={() => { setVehicleId(vehicle.id); setProgression((current) => ({ ...current, selectedVehicle: vehicle.id })); }}>Equip</Button>}</div>; })}</div></section></div>}
       {menuOpen && (
         <SettingsWindow

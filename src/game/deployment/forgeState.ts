@@ -53,3 +53,31 @@ export function armorSummary(progress: Pick<PlayerProgression, "inventory" | "eq
   const attrs = loadoutAttributes(progress);
   return { slots, stats: attrs.effective, worn: attrs.worn };
 }
+
+export type SlotOption = { id: string | null; name: string; setId: string | null; power: number };
+
+/** Every choice for one slot: "None" plus each owned piece for that slot. Slots are independent, so pieces from
+ * different sets mix freely; nothing here invents items (it only lists the inventory). */
+export function slotOptions(progress: Pick<PlayerProgression, "inventory">, slot: SetSlot): SlotOption[] {
+  return [
+    { id: null, name: "None", setId: null, power: 0 },
+    ...progress.inventory.filter((i) => i.slot === slot).map((i) => ({ id: i.id, name: i.name, setId: i.setId ?? null, power: i.power })),
+  ];
+}
+
+/** Sets one slot to an owned piece (or null to remove it). Unknown ids and other slots' pieces are ignored. */
+export function setSlotPiece<T extends Pick<PlayerProgression, "inventory" | "equippedGear">>(progress: T, slot: SetSlot, id: string | null): T {
+  const gear = { ...progress.equippedGear };
+  if (id === null) delete gear[slot];
+  else if (progress.inventory.some((i) => i.id === id && i.slot === slot)) gear[slot] = id;
+  else return progress;
+  return { ...progress, equippedGear: gear };
+}
+
+/** Steps a slot to the next/previous option (wrapping), for d-pad / arrow navigation. */
+export function cyclePiece<T extends Pick<PlayerProgression, "inventory" | "equippedGear">>(progress: T, slot: SetSlot, dir: 1 | -1): T {
+  const options = slotOptions(progress, slot);
+  const at = Math.max(0, options.findIndex((o) => o.id === (progress.equippedGear[slot] ?? null)));
+  const next = options[(at + dir + options.length) % options.length]!;
+  return setSlotPiece(progress, slot, next.id);
+}

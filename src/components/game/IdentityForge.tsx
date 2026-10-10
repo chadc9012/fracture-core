@@ -4,6 +4,8 @@ import { useMemo, useRef } from "react";
 import * as THREE from "three";
 import type { AppearanceDefinition, ClassId } from "@/game/loadout";
 import type { BodyType } from "@/game/operators";
+import type { ArmorLook } from "@/game/armor-look";
+import { defaultAppearance } from "@/game/deployment/forgeState";
 import { Operator } from "./Operator";
 import { OperatorModel } from "./OperatorModel";
 
@@ -55,8 +57,9 @@ function ChamberShell({ activeColor }: { activeColor: string }) {
 
 /** A real operator standing on the ring, slowly turning like a showcase pedestal — Operator.tsx's
  * own feet-at-(-1.55)/head-at-1.2 footprint means it just needs to sit 1.55 above the ring. */
-function Showcase({ classId, appearance, bodyType, selected, hidden, mode, onSelect }: {
+function Showcase({ classId, appearance, bodyType, look, selected, hidden, mode, onSelect }: {
   classId: ClassId;
+  look?: ArmorLook | undefined;
   appearance: AppearanceDefinition;
   bodyType: BodyType;
   selected: boolean;
@@ -87,6 +90,7 @@ function Showcase({ classId, appearance, bodyType, selected, hidden, mode, onSel
         feetY={-1.55}
         color={appearance.armor}
         cloth={appearance.cloth}
+        look={look}
         fallback={<Operator armor={appearance.armor} cloth={appearance.cloth} visor={appearance.visor} trim={appearance.trim} classId={classId} bodyType={bodyType} visualState="ACTIVE" />}
       />
     </group>
@@ -99,7 +103,7 @@ function Showcase({ classId, appearance, bodyType, selected, hidden, mode, onSel
   </group>;
 }
 
-export function IdentityForge({ classId, appearance, bodyType, mode, onSelectClass }: { classId: ClassId; appearance: AppearanceDefinition; bodyType: BodyType; mode: ForgeMode; onSelectClass: (id: ClassId) => void }) {
+export function IdentityForge({ classId, appearance, bodyType, look, mode, onSelectClass }: { look?: ArmorLook; classId: ClassId; appearance: AppearanceDefinition; bodyType: BodyType; mode: ForgeMode; onSelectClass: (id: ClassId) => void }) {
   return <Canvas shadows dpr={[1, 1.5]} camera={{ position: [0, 2.7, 12], fov: 42 }} gl={{ antialias: true, toneMapping: THREE.ACESFilmicToneMapping }}>
     <ChamberShell activeColor={appearance.visor} />
     <CameraRig selected={classId} mode={mode} />
@@ -107,8 +111,9 @@ export function IdentityForge({ classId, appearance, bodyType, mode, onSelectCla
       <Showcase
         key={id}
         classId={id}
-        appearance={appearance}
+        appearance={id === classId ? appearance : defaultAppearance(id)}
         bodyType={bodyType}
+        look={id === classId ? look : undefined}
         selected={id === classId}
         hidden={mode !== "CLASS" && id !== classId}
         mode={mode}

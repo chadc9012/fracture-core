@@ -1,5 +1,6 @@
 import { pruneCompleted } from "./missions/persistence";
 import { supabase } from "@/integrations/supabase/client";
+import { furtherTutorial } from "./onboarding";
 import { migrateAbilityIds } from "./operators";
 import { DEFAULT_PROGRESSION, normalizeProgression, type PlayerProgression } from "./progression";
 import type { Json } from "@/integrations/supabase/types";
@@ -55,6 +56,8 @@ export function mergeProgression(local: PlayerProgression, cloud: PlayerProgress
     abilityMastery: maxRecord(local.abilityMastery, cloud.abilityMastery, (x, y) => (x.xp >= y.xp ? x : y)),
     dungeonClears: maxRecord(local.dungeonClears, cloud.dungeonClears, Math.max),
     tutorialComplete: local.tutorialComplete || cloud.tutorialComplete,
+    introSeen: local.introSeen || cloud.introSeen || local.tutorialComplete || cloud.tutorialComplete,
+    tutorialRun: local.tutorialComplete || cloud.tutorialComplete ? null : furtherTutorial(local.tutorialRun, cloud.tutorialRun),
     endingSeen: local.endingSeen || cloud.endingSeen,
     identityClass: newer.identityClass ?? local.identityClass ?? cloud.identityClass,
     // Quest engine: unlocks and corruption are only ever gained, so union/max them like everything else above;

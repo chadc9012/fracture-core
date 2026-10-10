@@ -6,8 +6,10 @@ import { Input } from "@/components/ui/input";
 import { CLASSES, CUSTOMIZATION_PALETTE, DEFAULT_SUBCLASS, SUBCLASSES, appearanceById, operatorByClass, type AppearanceDefinition, type ClassId, type OperatorId, type SubclassId } from "@/game/loadout";
 import { BODY_PROFILES, BODY_TYPES, type BodyType } from "@/game/operators";
 import { createDeployGuard, deployCharacter, newDeploymentId, type PlayerCharacter } from "@/game/deployment/deployCharacter";
-import { armorSummary, defaultAppearance, forgeDirty, forgeInitial } from "@/game/deployment/forgeState";
+import { armorLook } from "@/game/armor-look";
+import { armorSummary, cyclePiece, defaultAppearance, forgeDirty, forgeInitial, slotOptions, SLOT_LABEL } from "@/game/deployment/forgeState";
 import type { PlayerProgression } from "@/game/progression";
+import { SET_SLOTS } from "@/game/armor-sets";
 import { ConfirmDialog } from "./ConfirmDialog";
 import { CLASS_LABEL, IdentityForge } from "./IdentityForge";
 import { CornerBrackets } from "./HudChrome";
@@ -32,9 +34,9 @@ const CHANNELS: { key: "armor" | "cloth" | "visor" | "trim"; label: string }[] =
  * doesn't factor in here — all 3 of an Operator's subclasses are the same character. */
 const APPEARANCE_FOR = defaultAppearance;
 
-type Tab = "body" | "armor" | "cloth" | "visor" | "trim" | "callsign";
+type Tab = "body" | "gear" | "armor" | "cloth" | "visor" | "trim" | "callsign";
 const TABS: { key: Tab; label: string }[] = [
-  { key: "body", label: "Body" }, { key: "armor", label: "Armor" }, { key: "cloth", label: "Undersuit" },
+  { key: "body", label: "Body" }, { key: "gear", label: "Gear" }, { key: "armor", label: "Armor" }, { key: "cloth", label: "Undersuit" },
   { key: "visor", label: "Visor" }, { key: "trim", label: "Trim" }, { key: "callsign", label: "Callsign" },
 ];
 
@@ -45,7 +47,7 @@ const GUIDE: Record<Stage, string> = {
   ASSEMBLING: "Identity stabilized. Armor assembly in progress.",
 };
 
-export function StartMenu({ onDeploy, onSaveCharacter, weaponOrder, onSettings, onExit, saved, gear, paused }: { saved?: PlayerCharacter | null; gear?: Pick<PlayerProgression, "inventory" | "equippedGear">; paused?: boolean; onExit?: () => void; onDeploy: (deployment: Deployment) => void; onSaveCharacter?: (character: PlayerCharacter) => Promise<void>; weaponOrder?: readonly string[]; onSettings: () => void; best: { credits: number; kills: number } | null }) {
+export function StartMenu({ onDeploy, onSaveCharacter, weaponOrder, onSettings, onExit, saved, gear, paused }: { saved?: PlayerCharacter | null; gear?: Pick<PlayerProgression, "inventory" | "equippedGear">; paused?: boolean; onExit?: () => void; onDeploy: (deployment: Deployment) => void; onSaveCharacter?: (character: PlayerCharacter, equippedGear?: PlayerProgression["equippedGear"]) => Promise<void>; weaponOrder?: readonly string[]; onSettings: () => void; best: { credits: number; kills: number } | null }) {
   // reopening character creation restores the saved operator; `start` is what "unsaved edits" are measured against
   const start = useRef(forgeInitial(saved)).current;
   const [classId, setClassId] = useState<ClassId>(start.classId);
@@ -58,6 +60,10 @@ export function StartMenu({ onDeploy, onSaveCharacter, weaponOrder, onSettings, 
   const [deploying, setDeploying] = useState(false);
   const [tab, setTab] = useState<Tab>("body");
   const guard = useRef(createDeployGuard()).current;
+  // worn armor is edited per slot here and persisted with the character on confirm; slots mix pieces from any set
+  const [worn, setWorn] = useState(() => ({ inventory: gear?.inventory ?? [], equippedGear: gear?.equippedGear ?? {} }));
+  const startGear = useRef(gear?.equippedGear ?? {}).current;
+  const gearDirty = JSON.stringify(worn.equippedGear) !== JSON.stringify(startGear);
   const operator = operatorByClass(classId);
   const subclasses = SUBCLASSES.filter((item) => item.classId === classId);
   const stageIndex = STAGES.indexOf(stage);
@@ -79,7 +85,7 @@ export function StartMenu({ onDeploy, onSaveCharacter, weaponOrder, onSettings, 
     const ran = await guard.run(async () => {
       try {
         await deployCharacter(character, {
-          saveCharacter: async (c) => { await onSaveCharacter?.(c); setStage("ASSEMBLING"); },
+          saveCharacter: async (c) => { await onSaveCharacter?.(c, gearDirty ? worn.equippedGear : undefined); setStage("ASSEMBLING"); },
           // the mission only launches after the save above resolved and the assembly beat has played
           launchMission: () => new Promise<void>((resolve) => window.setTimeout(() => { onDeploy({ classId, subclassId, appearance, bodyType, deploymentId, operatorId: operator.id }); resolve(); }, 2200)),
         });
@@ -99,10 +105,11 @@ export function StartMenu({ onDeploy, onSaveCharacter, weaponOrder, onSettings, 
   const back = () => { const previous = STAGES[stageIndex - 1]; if (previous) setStage(previous); };
 
   // Esc / Backspace / controller B-Circle: previous step, or out to the main menu from the first step (never mid-save)
-  const dirty = forgeDirty(start, { classId, subclassId, appearance, bodyType });
+  const dirty = forgeDirty(start, { classId, subclassId, appearance, bodyType }) || gearDirty;
   const leave = () => { if (dirty) setConfirmLeave(true); else onExit?.(); };
   useMenuInput(stage !== "ASSEMBLING" && !deploying && !paused && !confirmLeave, () => { if (stageIndex > 0) back(); else leave(); }, ["back"]);
-  const summary = gear ? armorSummary(gear) : null;
+  const summary = gear ? armorSummary(worn) : null;
+  const look = armorLook(worn);
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
@@ -115,7 +122,7 @@ export function StartMenu({ onDeploy, onSaveCharacter, weaponOrder, onSettings, 
   });
 
   return <div className="fixed inset-0 z-50 overflow-hidden bg-background">
-    <div className="absolute inset-0"><IdentityForge classId={classId} appearance={appearance} bodyType={bodyType} mode={stage} onSelectClass={selectClass} /></div>
+    <div className="absolute inset-0"><IdentityForge look={look} classId={classId} appearance={appearance} bodyType={bodyType} mode={stage} onSelectClass={selectClass} /></div>
     <div className="pointer-events-none absolute inset-0 forge-veil" />
 
     <header className="pointer-events-none absolute inset-x-0 top-0 z-10 flex items-start justify-between p-4 sm:p-7">
@@ -191,6 +198,21 @@ export function StartMenu({ onDeploy, onSaveCharacter, weaponOrder, onSettings, 
             {tab === "body" && <div className="grid gap-2">
               {BODY_TYPES.map((type) => <button key={type} type="button" onClick={() => setBodyType(type)} className={`border px-3 py-2 text-left transition ${bodyType === type ? "border-primary bg-primary/15 text-foreground" : "border-border text-muted-foreground hover:text-foreground"}`}><span className="block font-mono text-[11px] uppercase tracking-[0.12em]">{BODY_PROFILES[type].label}</span><span className="block text-[9px]">{BODY_PROFILES[type].blurb}</span></button>)}
             </div>}
+            {tab === "gear" && <div className="grid gap-1.5" role="group" aria-label="Worn armor by slot">
+              {SET_SLOTS.map((slot) => {
+                const options = slotOptions(worn, slot);
+                const current = options.find((o) => o.id === (worn.equippedGear[slot] ?? null)) ?? options[0]!;
+                return <div key={slot} className="border border-border p-1.5">
+                  <div className="flex items-center justify-between gap-1">
+                    <button type="button" aria-label={`Previous ${SLOT_LABEL[slot]}`} disabled={options.length < 2} onClick={() => setWorn((w) => cyclePiece(w, slot, -1))} className="px-1.5 py-1 text-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary disabled:opacity-30"><ChevronLeft className="size-3" /></button>
+                    <span className="min-w-0 flex-1 text-center"><span className="block font-mono text-[9px] uppercase tracking-[0.14em] text-muted-foreground">{SLOT_LABEL[slot]}</span><span className={`block truncate font-mono text-[10px] uppercase ${current.id ? "text-foreground" : "text-muted-foreground/60"}`}>{current.name}{current.id ? ` · ${current.power}` : ""}</span></span>
+                    <button type="button" aria-label={`Next ${SLOT_LABEL[slot]}`} disabled={options.length < 2} onClick={() => setWorn((w) => cyclePiece(w, slot, 1))} className="px-1.5 py-1 text-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary disabled:opacity-30"><ChevronRight className="size-3" /></button>
+                  </div>
+                  {options.length < 2 && <p className="text-center text-[9px] text-muted-foreground">No {SLOT_LABEL[slot].toLowerCase()} pieces owned yet — earn them from regional drops.</p>}
+                </div>;
+              })}
+              <p className="text-[9px] leading-snug text-muted-foreground">Pieces mix freely across sets. Totals at right come from the worn items; colour motifs show on the model only for set pieces that have a motif.</p>
+            </div>}
             {tab === "callsign" && <label className="block">
               <span className="hud-label">Callsign</span>
               <Input value={appearance.callsign} maxLength={24} onChange={(event) => setAppearance((current) => ({ ...current, callsign: event.target.value.toUpperCase() }))} className="mt-1 h-9 rounded-none border-primary/30 bg-background/60 font-mono text-xs uppercase tracking-[0.12em]" />
@@ -220,7 +242,7 @@ export function StartMenu({ onDeploy, onSaveCharacter, weaponOrder, onSettings, 
       <ul className="mt-1 space-y-1 font-mono text-[10px] uppercase tracking-[0.12em]">
         {(["defense", "mobility", "intellect"] as const).map((k) => <li key={k} className="flex justify-between"><span className="text-muted-foreground">{k}</span><span className="text-foreground">{summary.stats[k].toFixed(1)}</span></li>)}
       </ul>
-      <p className="mt-3 text-[9px] leading-snug text-muted-foreground">Armor is changed from Inventory / Arsenal in the field; class abilities are separate.</p>
+      <p className="mt-3 text-[9px] leading-snug text-muted-foreground">Change worn pieces in the Gear tab; they are saved with your character.</p>
     </aside>}
     {confirmLeave && <ConfirmDialog pad={null} title="Discard changes?" body="You changed your operator but haven't saved. Leaving now discards those edits; your saved character is untouched." confirmLabel="Discard & leave" cancelLabel="Keep editing" onCancel={() => setConfirmLeave(false)} onConfirm={() => { setConfirmLeave(false); onExit?.(); }} />}
 

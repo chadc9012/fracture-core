@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { introStageAt, introTotalSeconds } from "@/game/intro";
 import { playIntroSwell, playNovaActivation } from "@/game/audio";
 import { speakVoice, stopVoice } from "@/game/voice-director";
+import { useMenuInput } from "./useMenuInput";
 
 /**
  * Full-screen opening cinematic — intro.ts's text beats playing over the real, running world
@@ -60,6 +61,9 @@ export function IntroCinematic({ onComplete, onTick }: { onComplete: () => void;
     return () => window.removeEventListener("keydown", skip);
   }, [onComplete]);
 
+  // controller: A/Cross or B/Circle skips, same as Enter/Space/Escape (start/pause is deliberately ignored)
+  const pad = useMenuInput(true, (intent, source) => { if (source === "pad" && (intent === "confirm" || intent === "back")) { stopVoice("intro"); onComplete(); } }, ["confirm", "back"]);
+
   if (!position) return null;
   const { stage, stageElapsed } = position;
   const fadeIn = Math.min(1, stageElapsed / 0.6);
@@ -99,7 +103,7 @@ export function IntroCinematic({ onComplete, onTick }: { onComplete: () => void;
         </div>
       </div>
       <p className="pointer-events-none absolute bottom-4 right-6 font-mono text-[9px] uppercase tracking-[0.25em] text-muted-foreground">
-        Click or press Enter to skip · {Math.max(0, Math.ceil(total - elapsed))}s
+        {pad ? `Press ${pad === "playstation" ? "✕ / ○" : pad === "xbox" ? "A / B" : "Button 1 / 2"} to skip` : "Click or press Enter to skip"} · {Math.max(0, Math.ceil(total - elapsed))}s
       </p>
     </div>
   );

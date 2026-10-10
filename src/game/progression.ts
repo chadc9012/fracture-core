@@ -2,6 +2,7 @@ import { sanitizeActiveMissions, type ActiveMissions } from "./missions/persiste
 import { DEFAULT_BUILD, type ActiveBuild } from "./ability-network";
 import type { PlayerCharacter } from "./deployment/deployCharacter";
 import { bodyTypeOr, migrateAbilityIds, migrateBranches, migrateBuild } from "./operators";
+import { sanitizeTutorial, type TutorialState } from "./onboarding";
 import type { VehicleId } from "./vehicles";
 import { STARTER_GEAR, STARTER_SLOTS, type GearItem, type GearSlot, type MaterialId } from "./inventory";
 import { FIRST_QUEST_ID } from "./quests";
@@ -36,6 +37,10 @@ export type PlayerProgression = {
   /** the last confirmed Identity Forge result (operator, body type, colors, loadout); null on old saves */
   character: PlayerCharacter | null;
   tutorialComplete: boolean;
+  /** the opening cinematic has played once for this save; Continue and re-deploys never replay it */
+  introSeen: boolean;
+  /** first-mission tutorial checkpoint (resumed instead of restarting); null once finished or never started */
+  tutorialRun: TutorialState | null;
   /** scripted mission state machines in progress (src/game/missions/persistence.ts); absent in legacy saves */
   activeMissions: ActiveMissions;
   dungeonClears: Record<string, number>;
@@ -86,6 +91,8 @@ export const DEFAULT_PROGRESSION: PlayerProgression = {
   identityClass: null,
   character: null,
   tutorialComplete: false,
+  introSeen: false,
+  tutorialRun: null,
   activeMissions: {},
   dungeonClears: {},
   earnedRewards: [],
@@ -137,6 +144,9 @@ export function normalizeProgression(raw: unknown): PlayerProgression {
       identityClass: parsed.identityClass === "TITAN" || parsed.identityClass === "HUNTER" || parsed.identityClass === "WARLOCK" ? parsed.identityClass : null,
       character: parsed.character && typeof parsed.character === "object" && typeof parsed.character.operatorId === "string" ? { ...parsed.character, bodyType: bodyTypeOr(parsed.character.bodyType) } : null,
       tutorialComplete: parsed.tutorialComplete === true,
+      // saves from before this flag that already progressed have obviously seen the intro
+      introSeen: parsed.introSeen === true || parsed.tutorialComplete === true || (Array.isArray(parsed.completedMissions) && parsed.completedMissions.length > 0),
+      tutorialRun: parsed.tutorialComplete === true ? null : sanitizeTutorial(parsed.tutorialRun),
       activeMissions: sanitizeActiveMissions(parsed.activeMissions),
       dungeonClears: parsed.dungeonClears && typeof parsed.dungeonClears === "object" ? parsed.dungeonClears : {},
       earnedRewards: Array.isArray(parsed.earnedRewards) ? parsed.earnedRewards : [],
