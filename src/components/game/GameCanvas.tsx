@@ -1,3 +1,4 @@
+import { renderCounts } from "@/game/perf-counters";
 import { Canvas } from "@react-three/fiber";
 import { PerformanceMonitor } from "@react-three/drei";
 import { Bloom, BrightnessContrast, ChromaticAberration, DepthOfField, EffectComposer, HueSaturation, Noise, SSAO, Vignette } from "@react-three/postprocessing";
@@ -217,6 +218,7 @@ const initial: HudState = {
 const prefersReduced = (setting?: boolean) => !!setting || (typeof window !== "undefined" && typeof window.matchMedia === "function" && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
 
 export function GameCanvas() {
+  renderCounts.canvas++;
   const [hud, setHud] = useState<HudState>(initial);
   const [phase, setPhase] = useState<"boot" | "title" | "hub" | "loadout" | "briefing" | "world">(() => (bootSeen() ? "title" : "boot"));
   const [pendingDeployment, setPendingDeployment] = useState<Deployment | null>(null);

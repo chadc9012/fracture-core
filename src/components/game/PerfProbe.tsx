@@ -1,6 +1,9 @@
 import { useFrame, useThree } from "@react-three/fiber";
 import { useEffect, useRef } from "react";
+import { renderCounts } from "@/game/perf-counters";
 import * as THREE from "three";
+
+const prevCounts = { scene: 0, canvas: 0 };
 
 /** F3 (or ?perf=1) toggles a plain-DOM readout: fps, worst frame, draw calls, triangles, lights,
  * geometries and textures. Updates a div directly, so it never re-renders React. */
@@ -128,8 +131,9 @@ export function PerfProbe() {
       // (Low Power Mode, thermal limits, other apps), not the game.
       if (++a.benchTick % 4 === 1) { const b0 = performance.now(); let x = 0; for (let k = 0; k < 3e6; k++) x += Math.sqrt(k); a.bench = performance.now() - b0 + (x < 0 ? 1 : 0); }
       const i = gl.info;
+      const rate = { scene: (renderCounts.scene - prevCounts.scene) / a.t, canvas: (renderCounts.canvas - prevCounts.canvas) / a.t }; prevCounts.scene = renderCounts.scene; prevCounts.canvas = renderCounts.canvas;
       const frameMs = (a.t / a.frames) * 1000; const renderMs = a.renderMs / a.frames;
-      el.current.textContent = `isolate [F4]: ${a.isoLabel}\ngpu ${a.gpu}\nframe ${frameMs.toFixed(0)} ms = render ${renderMs.toFixed(0)} + other ${Math.max(0, frameMs - renderMs).toFixed(0)}\njs busy ${(a.busyMs / a.frames).toFixed(0)} ms   gpu busy ${a.gpuSamples ? (a.gpuMs / a.gpuSamples).toFixed(0) + " ms" : "n/a"}\nFPS ${(a.frames / a.t).toFixed(0)}   worst ${(a.worst * 1000).toFixed(0)} ms\ncalls ${i.render.calls}   tris ${(i.render.triangles / 1000).toFixed(0)}k\nlights ${a.lights}   geo ${i.memory.geometries}   tex ${i.memory.textures}\ncpu bench ${a.bench.toFixed(0)} ms (3M sqrt)   cores ${navigator.hardwareConcurrency}\ndpr ${gl.getPixelRatio().toFixed(2)}   ${gl.domElement.width}x${gl.domElement.height}${a.lightInfo ? "\nlight types: " + a.lightInfo : ""}${a.heavy ? "\nheaviest meshes:\n" + a.heavy : ""}${a.operators ? "\noperator paint:\n" + a.operators : ""}`;
+      el.current.textContent = `isolate [F4]: ${a.isoLabel}\ngpu ${a.gpu}\nframe ${frameMs.toFixed(0)} ms = render ${renderMs.toFixed(0)} + other ${Math.max(0, frameMs - renderMs).toFixed(0)}\njs busy ${(a.busyMs / a.frames).toFixed(0)} ms   gpu busy ${a.gpuSamples ? (a.gpuMs / a.gpuSamples).toFixed(0) + " ms" : "n/a"}\nreact renders/s: Scene ${rate.scene.toFixed(1)}  GameCanvas ${rate.canvas.toFixed(1)}\nFPS ${(a.frames / a.t).toFixed(0)}   worst ${(a.worst * 1000).toFixed(0)} ms\ncalls ${i.render.calls}   tris ${(i.render.triangles / 1000).toFixed(0)}k\nlights ${a.lights}   geo ${i.memory.geometries}   tex ${i.memory.textures}\ncpu bench ${a.bench.toFixed(0)} ms (3M sqrt)   cores ${navigator.hardwareConcurrency}\ndpr ${gl.getPixelRatio().toFixed(2)}   ${gl.domElement.width}x${gl.domElement.height}${a.lightInfo ? "\nlight types: " + a.lightInfo : ""}${a.heavy ? "\nheaviest meshes:\n" + a.heavy : ""}${a.operators ? "\noperator paint:\n" + a.operators : ""}`;
     }
     a.t = 0; a.frames = 0; a.worst = 0; a.renderMs = 0; a.busyMs = 0; a.gpuMs = 0; a.gpuSamples = 0;
   });

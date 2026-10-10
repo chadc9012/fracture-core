@@ -1,3 +1,4 @@
+import { renderCounts } from "@/game/perf-counters";
 import { Environment, Lightformer, Sky, Text, useGLTF } from "@react-three/drei";
 import { heavyShadows, NEAR_SCALE, setPerfTier } from "@/game/perf-budget";
 import { ruins, isEvolved, isDiscovered, freshCharge, RUIN_DISCOVER_RADIUS, RUIN_REACH } from "@/game/weapon-evolution";
@@ -425,6 +426,7 @@ export function Scene({
    * same window, so this is the literal "world reveal" the player sees underneath it. */
   introPlayback?: { elapsed: number; totalSeconds: number } | null;
 }) {
+  renderCounts.scene++;
   const orderRef = useRef(weaponOrder); orderRef.current = weaponOrder;
   const travelSeen = useRef(0);
   const checkpoint = useRef<{ x: number; z: number } | null>(null);
