@@ -482,7 +482,7 @@ export function Scene({
   const move = useRef({ state: createMoveState(), jumpHeld: false, slideHeld: false, proneHeld: false });
   const reticle = useRef({ state: createReticle(), view: EMPTY_RETICLE, yaw: 0, pitch: 0, hit: 0, kills: 0, ready: false });
   /** eased regional atmosphere (atmosphere.ts) + scratch colours, so crossing a border blends rather than pops */
-  const atmo = useRef({ fogMix: 0, fogScale: 1, lightMix: 0, fogTint: new THREE.Color("#ffffff"), lightTint: new THREE.Color("#ffffff"), hemiBase: new THREE.Color("#9ec8e8") });
+  const atmo = useRef({ fogMix: 0, fogScale: 1, lightMix: 0, skyMix: 0, haze: 0, fogTint: new THREE.Color("#ffffff"), lightTint: new THREE.Color("#ffffff"), skyTint: new THREE.Color("#ffffff"), hemiBase: new THREE.Color("#9ec8e8") });
   const report = useRef(0);
   const live = useRef(createLiveBuild(activeBuild, abilityBranches));
   const abilityHeld = useRef<Record<string, boolean>>({});
@@ -898,10 +898,14 @@ export function Scene({
       a.fogMix += (target.fogMix - a.fogMix) * k;
       a.fogScale += (target.fogScale - a.fogScale) * k;
       a.lightMix += (target.lightMix - a.lightMix) * k;
+      a.skyMix += (target.skyMix - a.skyMix) * k;
+      a.haze += (target.haze - a.haze) * k;
       a.fogTint.lerp(atmoScratch.set(target.fogTint), k);
       a.lightTint.lerp(atmoScratch.set(target.lightTint), k);
+      a.skyTint.lerp(atmoScratch.set(target.skyTint), k);
       if (scene.fog) (scene.fog as THREE.Fog).color.lerp(a.fogTint, a.fogMix);
-      scene.background instanceof THREE.Color && scene.background.lerp(a.fogTint, a.fogMix * 0.35);
+      // regional sky colour: the horizon/background picks up this region's own sky tint
+      scene.background instanceof THREE.Color && scene.background.lerp(a.fogTint, a.fogMix * 0.35).lerp(a.skyTint, a.skyMix);
       if (sun.current) sun.current.color.lerp(a.lightTint, a.lightMix);
       if (hemi.current) hemi.current.color.copy(a.hemiBase).lerp(a.lightTint, a.lightMix * 0.8);
     }
@@ -934,9 +938,11 @@ export function Scene({
         // low sun angle and poor visibility both thicken the haze near the horizon; cloud cover
         // scatters more light too, so an overcast/stormy sky reads hazier and less saturated
         const horizonBoost = Math.max(0, 1 - Math.abs(Math.sin(theta)));
-        if (u["turbidity"]) u["turbidity"].value = 3.5 + horizonBoost * 6 + cloud * 5 + (1 - visibility) * 7;
+        // regional haze (atmosphere.ts): ember smoke / swamp mist / wasteland grit thicken the sky
+        const haze = atmo.current.haze;
+        if (u["turbidity"]) u["turbidity"].value = 3.5 + horizonBoost * 6 + cloud * 5 + (1 - visibility) * 7 + haze;
         if (u["rayleigh"]) u["rayleigh"].value = 1.4 + horizonBoost * 1.4 + night * 0.4;
-        if (u["mieCoefficient"]) u["mieCoefficient"].value = 0.004 + cloud * 0.01 + (1 - visibility) * 0.01;
+        if (u["mieCoefficient"]) u["mieCoefficient"].value = 0.004 + cloud * 0.01 + (1 - visibility) * 0.01 + haze * 0.002;
         if (u["mieDirectionalG"]) u["mieDirectionalG"].value = 0.8;
       }
     }
