@@ -2118,7 +2118,7 @@ export function Scene({
       />
       <SkyDome sunDirRef={sunDir} envRef={skyEnv} playerRef={player} tier={settings.renderTier} />
       <SkyBodies timeRef={time} sunDirRef={sunDir} envRef={skyEnv} playerRef={player} />
-      <CloudLayer envRef={skyEnv} />
+      <CloudLayer envRef={skyEnv} playerRef={player} />
       {settings.renderTier !== "LOW" && <SkyFx fxRef={skyFx} envRef={skyEnv} playerRef={player} />}
       </group>
       <RegionLighting playerRef={player} tier={settings.renderTier} />
