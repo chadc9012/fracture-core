@@ -20,7 +20,7 @@ import factionArt from "@/assets/enemy-roster.jpg.asset.json";
 // strips (top/bottom/left thumbnail rows) removed. Imported directly as a static asset rather than
 // through the Lovable .asset.json indirection the other reference images use, since this file lives
 // in the repo rather than Lovable's remote asset store.
-import cleanMapArt from "@/assets/fractured-earth-map-clean.png";
+import cleanMapArt from "@/assets/fractured-earth-map-v2.jpg";
 
 export function WorldAtlas({ progression, currentRegion, phase, onClose, markers = [], px = 0, pz = 0 }: { progression: PlayerProgression; currentRegion: string; phase: string; onClose: () => void; markers?: TrackedMarker[]; px?: number; pz?: number }) {
   const [selected, setSelected] = useState(REGIONS.find((region) => region.name === currentRegion)?.id ?? "veridan");

@@ -5,7 +5,7 @@
  * The raster is a resumable job: sampling the terrain for every pixel costs seconds on a weak machine, so the UI steps it a few milliseconds per
  * frame (useTerrainMap) instead of freezing the map screen. `terrainMapPixels` runs the same job to completion in one call. */
 import { WATER_LEVEL, colorAt, heightAt, riverAt, waterNetwork } from "./terrain";
-import { WORLD_RADIUS } from "./world";
+import { REGIONS, WORLD_RADIUS } from "./world";
 
 export const MAP_EXTENT = WORLD_RADIUS * 1.08; // world units from the centre to each edge of the map
 /** the ocean colour at the map's edge (also used as the screen background so the square image blends in) */
@@ -20,10 +20,10 @@ const mix = (a: number, b: number, t: number) => a + (b - a) * t;
 
 /** Ocean colour by depth below the waterline: turquoise shallows into deep navy. */
 export function oceanColor(depth: number): [number, number, number] {
-  const t = clamp01(depth / 26), s = smooth(0, 0.35, t);
-  const shallow: [number, number, number] = [96, 178, 198], mid: [number, number, number] = [34, 112, 168], deep: [number, number, number] = [12, 50, 100];
+  const t = clamp01(depth / 30), s = smooth(0.1, 0.5, t);
+  const shallow: [number, number, number] = [72, 190, 196], mid: [number, number, number] = [26, 120, 176], deep: [number, number, number] = [12, 50, 100];
   const a = [mix(shallow[0], mid[0], s), mix(shallow[1], mid[1], s), mix(shallow[2], mid[2], s)] as const;
-  const d = smooth(0.35, 1, t);
+  const d = smooth(0.4, 1, t);
   return [mix(a[0], deep[0], d), mix(a[1], deep[1], d), mix(a[2], deep[2], d)];
 }
 
@@ -32,6 +32,38 @@ export function mapLand(r: number, g: number, b: number): [number, number, numbe
   const L = 0.2126 * r + 0.7152 * g + 0.0722 * b, sat = 1.1;
   const lift = (c: number) => clamp01((L + (c - L) * sat) * 1.16 + 0.035);
   return [lift(r), lift(g), lift(b)];
+}
+
+/** Painterly biome tints (the in-game ground colours are dark; the illustrated map reads vivid): a region pulls nearby land toward its own palette. */
+const BIOME: Record<string, { c: [number, number, number]; k: number }> = {
+  veridan: { c: [38, 132, 56], k: 0.6 }, frostspire: { c: [226, 238, 252], k: 0.55 }, ember: { c: [52, 32, 30], k: 0.65 },
+  wastelands: { c: [216, 150, 80], k: 0.5 }, solara: { c: [238, 178, 94], k: 0.6 }, swamps: { c: [30, 100, 78], k: 0.6 }, nexus: { c: [128, 156, 176], k: 0.45 },
+};
+function hash2(x: number, y: number): number { let h = Math.imul(x | 0, 374761393) ^ Math.imul(y | 0, 668265263); h = Math.imul(h ^ (h >>> 13), 1274126177); return ((h ^ (h >>> 16)) >>> 0) / 4294967296; }
+/** 2D value noise, 0..1 */
+export function vnoise2(x: number, y: number): number {
+  const xi = Math.floor(x), yi = Math.floor(y), fx = x - xi, fy = y - yi, u = fx * fx * (3 - 2 * fx), v = fy * fy * (3 - 2 * fy);
+  return mix(mix(hash2(xi, yi), hash2(xi + 1, yi), u), mix(hash2(xi, yi + 1), hash2(xi + 1, yi + 1), u), v);
+}
+/** Land colour after biome tint and painterly texture (canopy mottling in the forest, glowing lava veins on Ember). RGB 0..255. */
+export function biomeLand(x: number, z: number, h: number, base: [number, number, number]): [number, number, number] {
+  let [r, g, b] = base;
+  for (const reg of REGIONS) {
+    const def = BIOME[reg.id];
+    if (!def) continue;
+    const d = Math.hypot(x - reg.x, z - reg.z) / reg.radius, w = 1 - smooth(0.55, 1.2, d);
+    if (w <= 0) continue;
+    let k = def.k * w;
+    if (reg.id === "frostspire") k *= smooth(8, 55, h - WATER_LEVEL);
+    r = mix(r, def.c[0], k); g = mix(g, def.c[1], k); b = mix(b, def.c[2], k);
+    if (reg.id === "veridan") { const m = 0.78 + 0.44 * (0.6 * vnoise2(x / 7, z / 7) + 0.4 * vnoise2(x / 2.6, z / 2.6)); r *= m; g *= m; b *= m; }
+    else if (reg.id === "ember") {
+      const vein = Math.abs(vnoise2(x / 16, z / 16) - 0.5) * 2; // ridged noise: thin bright lines
+      const glow = smooth(0.86, 0.975, 1 - vein) * w * (0.55 + 0.45 * smooth(-4, 30, h - WATER_LEVEL));
+      r = mix(r, 255, glow); g = mix(g, 112, glow); b = mix(b, 28, glow);
+    }
+  }
+  return [r, g, b];
 }
 
 export type MapJob = {
@@ -67,7 +99,7 @@ export function createMapJob(size: number): MapJob {
       } else {
         const [cr, cg, cb] = colorAt(x, z, h);
         const lc = mapLand(cr, cg, cb);
-        r = lc[0] * 255; g = lc[1] * 255; b = lc[2] * 255;
+        [r, g, b] = biomeLand(x, z, h, [lc[0] * 255, lc[1] * 255, lc[2] * 255]);
         // hillshade from the north-west, exaggerated so relief reads on a flat 1.6 km image
         // slope over +-2 pixels so fine surface noise does not turn into orange-peel shading
         const gx = (H(i + 2, j) - H(i - 2, j) + H(i + 2, j + 1) - H(i - 2, j + 1) + H(i + 2, j - 1) - H(i - 2, j - 1)) / (12 * stepM), gz = (H(i, j + 2) - H(i, j - 2) + H(i + 1, j + 2) - H(i + 1, j - 2) + H(i - 1, j + 2) - H(i - 1, j - 2)) / (12 * stepM), ex = 2.6;

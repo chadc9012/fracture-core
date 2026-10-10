@@ -7,11 +7,8 @@ import { ENCOUNTERS } from "@/game/encounters";
 import { CHRONICLE, nextActivity } from "@/game/retention";
 import type { PlayerProgression } from "@/game/progression";
 import { NextActivityCard } from "./NextActivityCard";
-import { MAP_OCEAN_EDGE } from "@/game/terrain-map";
-import { LANDMARKS, isLandmarkKnown } from "@/game/landmarks";
-import { MapLegend, LANDMARK_GLYPH } from "./MapLegend";
-import { MAP_FONT, MAP_VIEWBOX, MapLayers } from "./MapLayers";
-import { useTerrainMap } from "./useTerrainMap";
+import { MAP_ART_ASPECT, MAP_ART_SPOTS } from "@/game/map-art";
+import mapArt from "@/assets/fractured-earth-map-v2.jpg";
 
 const THREAT = ["MINIMAL", "LOW", "MODERATE", "HIGH", "SEVERE", "EXTREME"];
 
@@ -25,7 +22,6 @@ export function StarMap({ progression, onBack, onDeploy }: { progression: Player
   const region = REGIONS.find((r) => r.id === selected)!;
   const encounter = ENCOUNTERS.find((e) => e.regionId === selected);
   const chapters = CHRONICLE.filter((c) => c.region === region.name);
-  const map = useTerrainMap();
   const deploy = () => { setLaunching(true); window.setTimeout(() => onDeploy(region.id), 900); };
 
   return (
@@ -40,14 +36,25 @@ export function StarMap({ progression, onBack, onDeploy }: { progression: Player
       </header>
 
       <div className="relative my-3 grid min-h-0 flex-1 grid-cols-1 gap-4 lg:grid-cols-4">
-        <section className="relative border border-foreground/15 p-3 lg:col-span-3" style={{ background: `radial-gradient(ellipse at center, ${MAP_OCEAN_EDGE} 0%, #061630 100%)` }}>
-          <svg viewBox={MAP_VIEWBOX} className="mx-auto aspect-square max-h-[74vh] w-full" style={{ background: MAP_OCEAN_EDGE }} role="img" aria-label="Destination map">
-            <MapLayers art={map.url} preview={!map.full} selected={selected} recommended={recommended} onSelect={setSelected}>
-              {LANDMARKS.filter((l) => isLandmarkKnown(progression, l.id)).map((l) => <g key={l.id}><title>{l.name}</title><text x={l.x} y={l.z + MAP_FONT * 0.35} textAnchor="middle" fontSize={MAP_FONT * 0.9} fill="#bfe3ff" stroke="#06101f" strokeWidth={MAP_FONT * 0.16} paintOrder="stroke">{LANDMARK_GLYPH[l.type]}</text></g>)}
-            </MapLayers>
-          </svg>
-          {!map.full && <p className="pointer-events-none absolute left-5 top-5 bg-background/70 px-2 py-1 font-mono text-[10px] uppercase tracking-widest text-muted-foreground" role="status">Surveying terrain… {Math.round(map.progress * 100)}%</p>}
-          <MapLegend phase="" />
+        <section className="relative flex items-center justify-center border border-foreground/15 bg-[#050d1c] p-2 lg:col-span-3">
+          {/* the illustrated Fractured Earth (title, region names, legend and compass are part of the picture); hotspots sit on each region */}
+          <div className="relative w-full" style={{ aspectRatio: String(MAP_ART_ASPECT), maxHeight: "78vh", maxWidth: `calc(78vh * ${MAP_ART_ASPECT})` }}>
+            <img src={mapArt} alt="The Fractured Earth: seven regions, terrain and zone types" className="absolute inset-0 size-full select-none object-contain" draggable={false} />
+            {REGIONS.map((r) => {
+              const spot = MAP_ART_SPOTS[r.id];
+              if (!spot) return null;
+              const on = r.id === selected, rec = r.id === recommended, color = ZONE_COLOR[r.kind];
+              return (
+                <button key={r.id} type="button" onClick={() => setSelected(r.id)} aria-pressed={on} aria-label={`${r.name}, ${ZONE_LABEL[r.kind]}${rec ? ", recommended" : ""}`}
+                  className="ui-focus group absolute -translate-x-1/2 -translate-y-1/2 rounded-full"
+                  style={{ left: `${spot.x}%`, top: `${spot.y}%`, width: "11%", aspectRatio: "1", ...(on ? { boxShadow: `0 0 0 2px ${color}, 0 0 28px 6px ${color}66`, background: `${color}22` } : {}) }}>
+                  <span className={`absolute inset-0 rounded-full border transition-opacity ${on ? "opacity-0" : "border-white/0 group-hover:border-white/70"}`} />
+                  {rec && <span className="absolute -inset-1.5 animate-pulse rounded-full border-2 border-dashed border-white/80" />}
+                  {rec && <span className="absolute left-1/2 top-full mt-1 -translate-x-1/2 whitespace-nowrap bg-black/70 px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-widest text-white">◆ Recommended</span>}
+                </button>
+              );
+            })}
+          </div>
         </section>
 
         <aside className="flex flex-col justify-between gap-4 border border-foreground/15 bg-background/70 p-5">
