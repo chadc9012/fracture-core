@@ -271,16 +271,6 @@ export function GameCanvas() {
     const r = hud.ruinNear && ruinById(hud.ruinNear.id);
     if (r) setProgression((current) => discoverNearby(current, r.x, r.z)); // idempotent: returns the same object once seen
   }, [hud.ruinNear?.id, hud.ruinNear?.reach]);
-  // landmark discovery (landmarks.ts): ledger-only, idempotent, shows the landmark's history once
-  const [landmarkToast, setLandmarkToast] = useState<{ name: string; history: string } | null>(null);
-  useEffect(() => {
-    if (!hud.px && !hud.pz) return;
-    const found = undiscoveredNear(progression, hud.px, hud.pz);
-    if (!found.length) return;
-    setProgression((current) => discoverLandmarks(current, hud.px, hud.pz));
-    setLandmarkToast({ name: found[0]!.name, history: found[0]!.history });
-  }, [Math.round(hud.px / 8), Math.round(hud.pz / 8), progression.earnedRewards.length]);
-  useEffect(() => { if (!landmarkToast) return; const id = window.setTimeout(() => setLandmarkToast(null), 8000); return () => window.clearTimeout(id); }, [landmarkToast]);
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.code !== "KeyU" || e.repeat || !ruinNearRef.current?.reach) return;
@@ -333,6 +323,16 @@ export function GameCanvas() {
   const [operationsView, setOperationsView] = useState<"DUNGEONS" | "ARSENAL" | "ABILITIES" | null>(null);
   const [last, setLast] = useState<{ credits: number; kills: number } | null>(null);
   const [progression, setProgression] = useState<PlayerProgression>(() => loadProgression());
+  // landmark discovery (landmarks.ts): ledger-only, idempotent, shows the landmark's history once
+  const [landmarkToast, setLandmarkToast] = useState<{ name: string; history: string } | null>(null);
+  useEffect(() => {
+    if (!hud.px && !hud.pz) return;
+    const found = undiscoveredNear(progression, hud.px, hud.pz);
+    if (!found.length) return;
+    setProgression((current) => discoverLandmarks(current, hud.px, hud.pz));
+    setLandmarkToast({ name: found[0]!.name, history: found[0]!.history });
+  }, [Math.round(hud.px / 8), Math.round(hud.pz / 8), progression.earnedRewards.length]);
+  useEffect(() => { if (!landmarkToast) return; const id = window.setTimeout(() => setLandmarkToast(null), 8000); return () => window.clearTimeout(id); }, [landmarkToast]);
   const openedToday = useMemo(() => lootCaches().filter((c) => isOpenedToday(progression, c.id)).map((c) => c.id), [progression.earnedRewards]);
   // the starter vehicle is saved progression, so Continue never re-asks for it
   const vehicleUnlocked = hasVehicle(progression);
