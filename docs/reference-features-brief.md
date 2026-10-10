@@ -60,6 +60,37 @@ Ideas only. Do not reuse the source fonts, icons, emblems or names; all art must
 
 Order: these all sit behind the same gate as the rest of this brief (F3/F4 forest readings first, then Nexus, then transit completion, then map finalization). Result, death and detail-card layouts are presentation only and can come first; reputation, vault caps and ranks are progression changes and wait for your approval.
 
+## 9. Third reference batch: HUD elements, tooltip cards, rarity, forest-and-ruin look (Behance + EDZ captures)
+Ideas only, original art and names only. Nothing here is implemented, tested or browser-verified.
+
+**HUD elements (Behance "HUD Elements" board)**
+- Ability ring with five fill states (empty, charging arc, ready ring, ready+bonus ring, full). Maps to `abilityHud(live)`; presentation only, reads cooldown/energy, never spends them.
+- Ammo block: current-weapon icon + element glyph + magazine count, with two dimmed secondary-weapon rows beneath. Our HUD has the data (`weaponOrder`, element on weapons).
+- Boss bar: skull emblem, name, level, and a segmented health bar that shows phase breaks. Our scenario encounters already emit PHASE events, so the segment ticks could come from those.
+- Objective strip: icon + "CAPTURE X / 50% complete" with a thin progress bar, and a banner for announcements (e.g. "All zones held"). Fits the quest tracker and mission machines.
+- Enemy nameplate: name, faction, weapon type, and a two-segment health bar showing shield vs health. We have no enemy shields (project rule), so this would be a single health bar plus name and role.
+- Zone / checkpoint letters A/B/C in three states (neutral, held, contested). Only useful if we add capture objectives.
+
+**Tooltip and card kit (Behance "Tooltips")**
+- Quest card: header with emblem, "Level 10 Story Quest", progress pips, location image, a REWARDS list and an EXPAND / LAUNCH footer. Maps to a mission card in the star map sidebar; rewards shown are the real `rewardMission` payout, never invented.
+- Landing-zone card: banner, one-line lore, location image, LAUNCH. Fits the star map city/region cards.
+- Activity card with requirement bullets (fireteam size, solo allowed). We are single-player, so the bullets would be power gate and recommended class only.
+- Item card: attack number, stat bars, perk rows (icon, name, italic one-liner), footer Lock / Details / Equip. Same pattern as section 2.
+- Subclass card: tagline, path name, ability rows, Details button. Same as section 3.
+- Faction vendor header: bust art, rank progress bar, three rank-reward tokens, a "faction gear set 0/5" tile and a grid of rewards. Layout only; reputation is new progression state (needs your sign-off).
+
+**Rarity (Behance "Rarity Types")**
+Four tiers named by colour: common, uncommon, superior, exotic. Ours already has `rarity` on GearItem; confirm the colour ramp is consistent across inventory, loot toast and card headers. No new tiers.
+
+**Environment look references (EDZ screenshots, relevant to the forest and ruin work)**
+- Dense tall conifers with layered fog and warm backlit haze through the canopy: supports the existing atmosphere/fog grading in the Verdant Forest. A cheap check is whether our fog tint reads warmer toward the sun at golden hour.
+- Cobbled lane with grass tufts growing between stones, lined by low walls: could be set dressing near the Verdant trail edge using existing grass cards and the trail data in `verdant.ts`. No new models.
+- Ivy-covered gothic ruins with exposed brick and arched windows: relevant to ruined architecture in Nexus later. It needs authored GLBs or procedural pieces; none can be generated here.
+- Weapon showcase video frames: first-person viewmodel with a clean ring reticle and a muted green/grey weapon palette. Nothing to build; only a reminder that viewmodel readability matters.
+- Do not copy any Destiny location, building, weapon or emblem; the captures are for mood and composition only.
+
+**Priority**: unchanged. These are backlog. The gate is still the F3/F4 forest readings, then Nexus, then transit, then map finalization. HUD ring/ammo/boss-bar polish is the cheapest presentation-only set once the gate passes.
+
 ## Suggested order once the gate passes
 1. Presentation-only HUD polish: rank bars, status timer list, damage-number setting.
 2. Typography scale and minimum sizes.
