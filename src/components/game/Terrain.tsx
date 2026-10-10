@@ -15,6 +15,8 @@ import { RegionModels } from "./RegionModels";
 import { PolyFoliage, type Placement } from "./PolyFoliage";
 import { reportAsset } from "@/game/forest-assets";
 import { isReserved } from "@/game/verdant";
+import { refinePatch, carveCells } from "@/game/terrain-refine";
+import { IMPACT_PIT } from "@/game/forest-relief";
 import { organicCanopy, organicRock } from "@/game/organic-geometry";
 import { LANE_HALF_WIDTH, distanceToRoad } from "@/game/lanes";
 import {
@@ -99,11 +101,31 @@ function Ground() {
       wA[i * 3] = w[0]!; wA[i * 3 + 1] = w[1]!; wA[i * 3 + 2] = w[2]!;
       wB[i * 3] = w[3]!; wB[i * 3 + 1] = w[4]!; wB[i * 3 + 2] = w[5]!;
     }
-    geo.setAttribute("color", new THREE.BufferAttribute(colors, 3));
-    geo.setAttribute("wA", new THREE.BufferAttribute(wA, 3));
-    geo.setAttribute("wB", new THREE.BufferAttribute(wB, 3));
-    geo.computeVertexNormals();
-    return geo;
+    // The 2.5 m grid cannot draw the 6.5 m impact pit, so a few cells around the crash site are swapped for a finer
+    // patch (terrain-refine.ts). Its border sits on the coarse edges, so there are no cracks; the rest of the world is unchanged.
+    const patch = refinePatch(SIZE, SEG, IMPACT_PIT.x, IMPACT_PIT.z, 15, 4, heightAt);
+    const n0 = pos.count, total = n0 + patch.vertices.length;
+    const grow = (src: ArrayLike<number>, perVertex: number) => { const a = new Float32Array(total * perVertex); a.set(src as ArrayLike<number> & { length: number }); return a; };
+    const P = grow(pos.array, 3), UV = grow((geo.attributes["uv"] as THREE.BufferAttribute).array, 2), C = grow(colors, 3), A = grow(wA, 3), B = grow(wB, 3);
+    patch.vertices.forEach((v, k) => {
+      const o = n0 + k;
+      P[o * 3] = v.x; P[o * 3 + 1] = -v.z; P[o * 3 + 2] = v.h; // plane space: local Y maps to world -Z
+      UV[o * 2] = v.u; UV[o * 2 + 1] = v.v;
+      const [r, g, b] = colorAt(v.x, v.z, v.h);
+      C[o * 3] = r; C[o * 3 + 1] = g; C[o * 3 + 2] = b;
+      const w = surfaceWeights(v.x, v.z);
+      A[o * 3] = w[0]!; A[o * 3 + 1] = w[1]!; A[o * 3 + 2] = w[2]!; B[o * 3] = w[3]!; B[o * 3 + 1] = w[4]!; B[o * 3 + 2] = w[5]!;
+    });
+    const merged = new THREE.BufferGeometry();
+    merged.setAttribute("position", new THREE.BufferAttribute(P, 3));
+    merged.setAttribute("uv", new THREE.BufferAttribute(UV, 2));
+    merged.setAttribute("color", new THREE.BufferAttribute(C, 3));
+    merged.setAttribute("wA", new THREE.BufferAttribute(A, 3));
+    merged.setAttribute("wB", new THREE.BufferAttribute(B, 3));
+    merged.setIndex([...carveCells(geo.getIndex()!.array, SEG, patch), ...patch.indices.map((i) => i + n0)]);
+    merged.computeVertexNormals();
+    geo.dispose();
+    return merged;
   }, []);
 
   const { map, normalMap } = useMemo(() => groundDetailTextures(), []);

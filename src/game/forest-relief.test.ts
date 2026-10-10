@@ -8,7 +8,7 @@ import { REGIONS } from "./world";
 const forest = REGIONS.find((r) => r.id === "veridan")!;
 
 describe("forest relief", () => {
-  test("is exactly zero outside the forest region, so neighbours are untouched", () => {
+  test("hills are exactly zero outside the forest region, so neighbours are untouched (only the pit may reach past the rim)", () => {
     for (const [x, z] of [[forest.x + forest.radius + 1, forest.z], [0, 0], [forest.x, forest.z - forest.radius - 30]]) expect(forestRelief(x!, z!)).toBe(0);
   });
   test("is deterministic", () => {
@@ -45,6 +45,13 @@ describe("forest relief", () => {
 });
 
 describe("impact pit", () => {
+  test("the pit is continuous everywhere, including where it crosses the forest region's rim", () => {
+    let worst = 0;
+    for (let x = IMPACT_PIT.x - 16; x <= IMPACT_PIT.x + 16; x += 0.25) for (let z = IMPACT_PIT.z - 16; z <= IMPACT_PIT.z + 16; z += 0.25) {
+      worst = Math.max(worst, Math.abs(heightAt(x + 0.25, z) - heightAt(x, z)), Math.abs(heightAt(x, z + 0.25) - heightAt(x, z)));
+    }
+    expect(worst).toBeLessThan(0.5); // 0.25 m step: 2:1 slope at the very most (a rim cut-off was a 1.5 m cliff)
+  });
   test("is a real hollow with a raised rim, and its floor is lower than the ground just outside", () => {
     expect(pitRelief(IMPACT_PIT.x, IMPACT_PIT.z)).toBeLessThan(-1.2);
     let rim = -Infinity;

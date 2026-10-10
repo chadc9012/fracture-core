@@ -53,7 +53,8 @@ export function pitRelief(x: number, z: number): number {
 /** total extra height at (x, z): zero outside the forest region */
 export function forestRelief(x: number, z: number): number {
   const d = Math.hypot(x - forest.x, z - forest.z);
-  if (d >= forest.radius) return 0;
+  // the impact pit lies near the region's rim, so it must not be cut off by the region test
+  if (d >= forest.radius) return pitRelief(x, z);
   const edge = 1 - smooth(forest.radius * 0.72, forest.radius * 0.97, d);
   let h = 0;
   if (edge > 0) {
