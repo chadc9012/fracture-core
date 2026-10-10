@@ -1,7 +1,9 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Crosshair, MapPin, Navigation, Shield, Skull, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { REGIONS, ZONE_COLOR, ZONE_LABEL } from "@/game/world";
+import { LANES, laneSamples } from "@/game/lanes";
+import { MAP_EXTENT, terrainMapDataUrl } from "@/game/terrain-map";
 import { ENCOUNTERS } from "@/game/encounters";
 import { MARKER_COLOR, type TrackedMarker } from "@/game/waypoints";
 import type { PlayerProgression } from "@/game/progression";
@@ -37,13 +39,16 @@ const fmt = (d: number) => (d >= 1000 ? `${(d / 1000).toFixed(1)}km` : `${Math.r
 
 /** Live tactical map: region footprints, player arrow, and every tracked mission, resource site and boss lair. */
 function TacticalMap({ markers, px, pz, selected, onSelect }: { markers: TrackedMarker[]; px: number; pz: number; selected: string; onSelect: (id: string) => void }) {
-  const xs = REGIONS.flatMap((r) => [r.x - r.radius, r.x + r.radius]), zs = REGIONS.flatMap((r) => [r.z - r.radius, r.z + r.radius]);
-  const pad = 20, minX = Math.min(...xs) - pad, maxX = Math.max(...xs) + pad, minZ = Math.min(...zs) - pad, maxZ = Math.max(...zs) + pad;
+  // the map shows the whole painted continent (terrain-map.ts), not just the region circles
+  const minX = -MAP_EXTENT, maxX = MAP_EXTENT, minZ = -MAP_EXTENT, maxZ = MAP_EXTENT;
+  const art = useMemo(() => terrainMapDataUrl(), []);
   const [legend, setLegend] = useState({ MISSION: true, RESOURCE: true, BOSS: true });
   return <div>
     <div className="mb-2 flex flex-wrap gap-2 text-xs">{(Object.keys(legend) as (keyof typeof legend)[]).map((k) => <Button key={k} size="sm" variant="ghost" onClick={() => setLegend((l) => ({ ...l, [k]: !l[k] }))} className={`rounded-none border-b px-2 py-1 font-mono uppercase ${legend[k] ? "border-current" : "border-transparent opacity-40"}`} style={{ color: MARKER_COLOR[k] }}>{k === "MISSION" ? "◆ Missions" : k === "RESOURCE" ? "⬢ Resources" : "☠ Bosses"}</Button>)}</div>
     <svg viewBox={`${minX} ${minZ} ${maxX - minX} ${maxZ - minZ}`} className="w-full border border-border bg-card/40" role="img" aria-label="Tactical map with markers">
-      {REGIONS.map((r) => <g key={r.id} onClick={() => onSelect(r.id)} className="cursor-pointer"><circle cx={r.x} cy={r.z} r={r.radius} fill={ZONE_COLOR[r.kind]} fillOpacity={selected === r.id ? 0.28 : 0.12} stroke={ZONE_COLOR[r.kind]} strokeOpacity={0.7} strokeWidth={0.8} /><text x={r.x} y={r.z - r.radius - 2} textAnchor="middle" fontSize={5} fill="currentColor" className="fill-foreground font-mono">{r.name}</text></g>)}
+      {art && <image href={art} x={minX} y={minZ} width={maxX - minX} height={maxZ - minZ} preserveAspectRatio="none" style={{ imageRendering: "auto" }} />}
+      {LANES.map((l) => <polyline key={l.name} points={laneSamples(l, 24).map((p) => `${p.x},${p.z}`).join(" ")} fill="none" stroke="#f3e2b0" strokeOpacity={0.75} strokeWidth={0.9} strokeDasharray="2.4 1.6" />)}
+      {REGIONS.map((r) => <g key={r.id} onClick={() => onSelect(r.id)} className="cursor-pointer"><circle cx={r.x} cy={r.z} r={r.radius} fill={ZONE_COLOR[r.kind]} fillOpacity={selected === r.id ? 0.22 : 0.05} stroke={ZONE_COLOR[r.kind]} strokeOpacity={0.7} strokeWidth={0.8} /><text x={r.x} y={r.z - r.radius - 2} textAnchor="middle" fontSize={5.5} fill="#ffffff" stroke="#000000" strokeWidth={1.1} paintOrder="stroke" className="font-mono">{r.name}</text></g>)}
       {markers.filter((m) => legend[m.kind]).map((m) => <g key={m.id}><title>{`${m.label} · ${fmt(m.dist)}`}</title>{m.kind === "RESOURCE" ? <polygon points={`${m.x},${m.z - 2.4} ${m.x + 2},${m.z - 1.2} ${m.x + 2},${m.z + 1.2} ${m.x},${m.z + 2.4} ${m.x - 2},${m.z + 1.2} ${m.x - 2},${m.z - 1.2}`} fill={MARKER_COLOR.RESOURCE} fillOpacity={m.ready === false ? 0.3 : 1} /> : m.kind === "BOSS" ? <g><circle cx={m.x} cy={m.z} r={3.2} fill="none" stroke={MARKER_COLOR.BOSS} strokeWidth={1} /><circle cx={m.x} cy={m.z} r={1.4} fill={MARKER_COLOR.BOSS} /></g> : <rect x={m.x - 2} y={m.z - 2} width={4} height={4} transform={`rotate(45 ${m.x} ${m.z})`} fill={MARKER_COLOR.MISSION} />}</g>)}
       <circle cx={px} cy={pz} r={2.6} fill="#ffffff" stroke="#000000" strokeWidth={0.6} />
     </svg>

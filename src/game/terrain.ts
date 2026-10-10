@@ -1,7 +1,7 @@
 import { CRASH_SITE, trailMask } from "./verdant";
 import { forestRelief, IMPACT_PIT } from "./forest-relief";
 import { REGIONS, WORLD_RADIUS } from "./world";
-import { LANES, laneSamples } from "./lanes";
+import { LANES, laneSamples, distanceToRoad } from "./lanes";
 import { buildWaterNetwork, carveTarget, type RiverPoint, type WaterNetwork } from "./rivers";
 
 /* ------------------------------------------------------------------
@@ -381,6 +381,22 @@ export function colorAt(x: number, z: number, h: number): [number, number, numbe
   // freshly turned earth in and around the impact pit
   const pit = Math.hypot(x - IMPACT_PIT.x, z - IMPACT_PIT.z);
   if (pit < IMPACT_PIT.radius * 1.9) c = mix(c, [0.2, 0.15, 0.1], (1 - smoothstep(IMPACT_PIT.radius * 0.5, IMPACT_PIT.radius * 1.9, pit)) * 0.85);
+
+  // supply roads read as worn packed earth, and river banks as wet sand/mud, so water and routes are drawn on the ground itself
+  if (h > WATER_LEVEL) {
+    const road = distanceToRoad(x, z);
+    if (road < 5) c = mix(c, [0.36 + (fbm(x * 0.5, z * 0.5, 2) - 0.5) * 0.06, 0.31, 0.24], (1 - smoothstep(2.4, 5, road)) * 0.8);
+    const rv = riverAt(x, z);
+    if (rv && rv.dist < rv.w + 3) c = mix(c, [0.3, 0.26, 0.2], (1 - smoothstep(rv.w * 0.8, rv.w + 3, rv.dist)) * 0.75);
+  }
+
+  // large-scale tonal drift: lush and dry patches, bare ground and darker damp hollows, so a meadow is never one green
+  if (h > 1.2 && h < 30) {
+    const patch = fbm(x * 0.045 + 90, z * 0.045 - 40, 3) - 0.5;      // ~25 m patches
+    const fleck = fbm(x * 1.1, z * 1.1, 2) - 0.5;                     // ~1 m speckle
+    const t = patch * 0.22 + fleck * 0.07;
+    c = [c[0] + t * 0.9 + Math.max(0, patch) * 0.06, c[1] + t * 0.8, c[2] + t * 0.45 - Math.max(0, patch) * 0.04];
+  }
 
   // a little noise so large surfaces never read as flat colour
   const n = (fbm(x * 0.35, z * 0.35, 2) - 0.5) * 0.08;

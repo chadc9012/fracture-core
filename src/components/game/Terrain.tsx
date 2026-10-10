@@ -28,7 +28,7 @@ import {
   type ObstacleKind,
 } from "@/game/obstacles";
 
-const SEG = 160;
+const SEG = 210; // ~1.9 m grid: hills, banks and dunes read as shapes instead of facets
 const SIZE = WORLD_RADIUS * 2.1;
 
 type Prop = { x: number; z: number; y: number; s: number; r: number; o?: Obstacle };

@@ -106,6 +106,9 @@ import { setVoiceLoad } from "@/game/voice-director";
 import { RegionLighting } from "./RegionLighting";
 import { ShopStalls } from "./ShopStalls";
 import { SkyBodies } from "./SkyBodies";
+import { SkyDome } from "./SkyDome";
+import { GroundCover } from "./GroundCover";
+import { coverDensityFor } from "@/game/ground-cover";
 import { moonAngle, moonlight } from "@/game/celestial";
 import { shopNear } from "@/game/regional-shops";
 import type { ArmorVisualState } from "./Scavenger";
@@ -2057,12 +2060,14 @@ export function Scene({
         mieCoefficient={0.006}
         mieDirectionalG={0.82}
       />
+      <SkyDome sunDirRef={sunDir} envRef={skyEnv} playerRef={player} tier={settings.renderTier} />
       <SkyBodies timeRef={time} sunDirRef={sunDir} envRef={skyEnv} playerRef={player} />
       <CloudLayer envRef={skyEnv} />
       {settings.renderTier !== "LOW" && <SkyFx fxRef={skyFx} envRef={skyEnv} playerRef={player} />}
       <RegionLighting playerRef={player} tier={settings.renderTier} />
 
       <Terrain renderTier={settings.renderTier} />
+      <GroundCover density={coverDensityFor(settings.renderTier)} />
       <VerdantForest density={settings.renderTier === "LOW" ? 0.5 : settings.renderTier === "MEDIUM" ? 0.75 : 1} models={settings.renderTier !== "LOW"} investigation={investigation} />
       <RiftTurrets sim={sim} />
       <PerfProbe />
