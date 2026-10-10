@@ -98,6 +98,7 @@ import { Interiors } from "./Interiors";
 import type { GameSettings } from "./SettingsWindow";
 import { clampPitch, lookDelta } from "@/game/camera-look";
 import { VerdantForest } from "./VerdantForest";
+import { LightShafts } from "./LightShafts";
 import { CRASH_SITE, ENCOUNTER, NEW_INVESTIGATION, shouldWakePatrol, stepInvestigation } from "@/game/verdant";
 import { spawnForestPatrol } from "@/game/forest-encounter";
 import { CHECKPOINT_INTERVAL_S, chooseRespawn, isCheckpointSafe } from "@/game/respawn";
@@ -268,6 +269,7 @@ export type HudState = {
 
 const SPAWN_REGION = REGIONS.find((r) => r.id === "veridan");
 /** the bigger map needs a longer view: fog distances grow by about half of the extra scale (1 at the original world; camera far is 1800) */
+const VERIDAN_REGION = REGIONS.find((r) => r.id === "veridan")!;
 const FOG_REACH = 1 + (WORLD_SCALE - 1) * 0.2;
 export const SPAWN = new THREE.Vector3(SPAWN_REGION?.x ?? -58, 0, (SPAWN_REGION?.z ?? -34) + 12);
 const NEXUS_REGION = REGIONS.find((r) => r.id === "nexus")!;
@@ -2100,7 +2102,7 @@ export function Scene({
 
       <group name="terrain+trees"><Terrain renderTier={settings.renderTier} /></group>
       <group name="ground-cover"><GroundCover density={coverDensityFor(settings.renderTier)} /></group>
-      <group name="iso:forest"><VerdantForest density={settings.renderTier === "LOW" ? 0.5 : settings.renderTier === "MEDIUM" ? 0.75 : 1} models={settings.renderTier !== "LOW"} investigation={investigation} heavyShadow={heavyShadows(settings.renderTier)} /></group>
+      <group name="iso:forest">{settings.renderTier !== "LOW" && <LightShafts sunRef={sunDir} skyEnv={skyEnv} forest={VERIDAN_REGION} />}<VerdantForest density={settings.renderTier === "LOW" ? 0.5 : settings.renderTier === "MEDIUM" ? 0.75 : 1} models={settings.renderTier !== "LOW"} investigation={investigation} heavyShadow={heavyShadows(settings.renderTier)} /></group>
       <RiftTurrets sim={sim} />
       <PerfProbe />
       <group name="iso:weather"><Weather playerRef={player} weatherRef={weatherKind} fxRef={weatherFx} /></group>

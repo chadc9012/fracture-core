@@ -27,3 +27,9 @@ The world used to be ~380 m across with a 30 u/s walk, so crossing a region took
 Unit-tested (bun, at WORLD_SCALE 1, 2 and 4): scale maths, site relocation, trail/crash/clearing layout, chunk grid/LOD/seams/skirts/resumable builds, river features, road lookup, stride thresholds. **Not browser-verified**: chunk streaming, water patch shader change, frame cost, how the 4x forest looks, whether the 14 u/s walk feels right. `window.__terrainChunks()` in the console reports chunk counts per LOD, triangles and queue depth; F3 shows the frame numbers.
 
 Known follow-ups: Ember/Swamps supply roads (lanes derive from REGIONS, so they will follow the scale), wildlife/civilian counts per region are unchanged (sparser), swamps are drier than at 1x, `terrain-map.ts` samples the same number of pixels over a 4x area, atlas art ("MAP" tab) is the original picture.
+
+## Forest mood pass (same change set)
+
+* `LightShafts.tsx` + `light-shafts.ts`: crossed additive sunbeam cards (14 pooled, grid-keyed so they stay put), slanted along the live sun direction, strength from sun elevation, `skyEnv.cloud` and how deep the camera is inside Veridan; not mounted on LOW. Tested: placement, stability, strength rules. **Not seen in a browser.**
+* `atmosphere.ts` Veridan: cooler, thicker green-blue air (fogScale 0.78, haze 1.3) with a warmer key light, for layered mist and visible beams.
+* Not done yet: autumn-tinted broadleaf variation, valley mist cards, mossy-boulder and fern density review, stream bank props. Those need a look at real screenshots first.

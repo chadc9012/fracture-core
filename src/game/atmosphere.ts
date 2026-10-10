@@ -35,7 +35,8 @@ export const NEUTRAL_ATMOSPHERE: Atmosphere = {
 
 export const REGION_ATMOSPHERE: Record<string, Atmosphere> = {
   // golden-green forest air, warm afternoon sky
-  veridan: { fogTint: "#9bc27a", fogMix: 0.28, fogScale: 1, lightTint: "#ffe3a1", lightMix: 0.18, skyTint: "#cfe8b8", skyMix: 0.22, haze: 0.8 },
+  // (misty valley: cooler, thicker green-blue air with a warm key light, so shafts and distant ridges read in layers)
+  veridan: { fogTint: "#a3c7ad", fogMix: 0.34, fogScale: 0.78, lightTint: "#ffd98f", lightMix: 0.24, skyTint: "#cfe8c4", skyMix: 0.22, haze: 1.3 },
   // low sick-green bog mist, murky olive sky, very hazy
   swamps: { fogTint: "#6f8f62", fogMix: 0.5, fogScale: 0.55, lightTint: "#b8d68a", lightMix: 0.22, skyTint: "#8fa37a", skyMix: 0.4, haze: 3.2 },
   // dry dust bowl: tan sky, constant airborne grit
