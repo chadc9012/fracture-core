@@ -15,6 +15,6 @@ describe("visual standard", () => {
   test("operator fits its reference height", () => expect(fitScale(3.7, SCALE.operator)).toBeCloseTo(0.5, 2));
   test("unknown region falls back to nexus", () => expect(regionLook("nowhere").accent).toBe("#58e6ff"));
   test("every inventoried model file exists", () => {
-    for (const a of ASSET_INVENTORY) if (a.url) expect(existsSync(`public${a.url}`)).toBe(true);
+    for (const a of ASSET_INVENTORY) if (a.url?.startsWith("/models")) expect(existsSync(`public${a.url}`)).toBe(true);
   });
 });

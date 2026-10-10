@@ -13,7 +13,7 @@ export const ASSET_INVENTORY: AssetEntry[] = [
   { id: "modular-armor", category: "operator", status: "B", note: "Starter procedural helmet/chest+pauldron/gauntlet/thigh+shin pieces parented to rig bones (armor-pieces.ts); replaceable by authored GLBs per piece." },
   { id: "frost-wolf", category: "boss", status: "A", url: "/models/bosses/frost-wolf.glb", note: "Baked texture, skinned but zero animation clips." },
   { id: "dark-knight", category: "boss", status: "A", url: "/models/bosses/dark-knight.glb", note: "Baked texture, static (no skin, no clips)." },
-  { id: "regional-troops", category: "enemy", status: "B", note: "EnemyModel.tsx: articulated layered procedural troopers per faction/region with walk cycle; no enemy GLBs yet." },
+  { id: "regional-troops", category: "enemy", status: "A", note: "Seven user-supplied Meshy GLBs mapped per faction/role in enemy-visuals.ts (textures 1024 WebP). Rigs use generic bones with no clips, so motion is procedural; EnemyModel.tsx troopers are the fallback." },
   { id: "npc-a/b/c", category: "civilian", status: "A", note: "Repaired CC0 GLBs walk the Nexus plaza (NexusCity.tsx); regional Civilians.tsx still uses primitives." },
   { id: "shopkeepers", category: "merchant", status: "B", note: "ShopStalls.tsx stalls and keepers are primitives." },
   { id: "weapons", category: "weapon", status: "D", note: "No weapon models; weapons are data in weapons.ts with procedural viewmodels." },
@@ -23,4 +23,6 @@ export const ASSET_INVENTORY: AssetEntry[] = [
   { id: "poly-haven-nature", category: "nature", status: "A", note: "Trees, shrubs, fern, boulder, moss rocks, trunk + 6 ground textures, with primitive fallback." },
 ];
 
+import { ENEMY_MODEL_URLS } from "./enemy-visuals";
+ASSET_INVENTORY.push(...ENEMY_MODEL_URLS.map((url, i) => ({ id: `enemy-${i + 1}`, category: "enemy" as const, status: "A" as const, url, note: "Meshy enemy model" })));
 export const inspectable = () => ASSET_INVENTORY.filter((a) => a.url);
