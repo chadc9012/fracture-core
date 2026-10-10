@@ -47,7 +47,7 @@ function lying(x: number, z: number, yaw: number, s: number): Placement {
   return { x: bx, y: heightAt(x, z) + 0.45 * s, z: bz, s, r: yaw, tilt: Math.PI / 2 };
 }
 
-export function VerdantForest({ density, models, investigation }: { density: number; models: boolean; investigation: MutableRefObject<Investigation> }) {
+export function VerdantForest({ density, models, investigation, heavyShadow = false }: { density: number; models: boolean; investigation: MutableRefObject<Investigation>; /** rocks/logs cast shadows (HIGH+ only: the shadow pass redraws every caster) */ heavyShadow?: boolean }) {
   // like Terrain's other decorative GLBs: join the world a moment after first frame
   const [ready, setReady] = useState(false);
   useEffect(() => { const t = window.setTimeout(() => setReady(true), 4500); return () => window.clearTimeout(t); }, []);
@@ -149,8 +149,8 @@ export function VerdantForest({ density, models, investigation }: { density: num
           <PolyFoliage kind="shrub" items={layout.lowShrubs} height={0.75} sway={0.1} shadows={false} variants />
           <PolyFoliage kind="shrub" items={layout.tallShrubs} height={1.5} sway={0.16} shadows={false} variants />
           <PolyFoliage kind="fir" items={layout.saplings} height={2.4} sway={0.28} shadows={false} />
-          <PolyFoliage kind="rock" items={layout.rocks} height={1.7} shadows variants />
-          <PolyFoliage kind="log" items={layout.logs} height={LOG_LENGTH} shadows />
+          <PolyFoliage kind="rock" items={layout.rocks} height={1.7} shadows={heavyShadow} variants />
+          <PolyFoliage kind="log" items={layout.logs} height={LOG_LENGTH} shadows={heavyShadow} />
         </>
       )}
       <GrassCards items={layout.grass} />

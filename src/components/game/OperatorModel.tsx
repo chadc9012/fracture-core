@@ -6,7 +6,7 @@ import { clone as cloneSkinned } from "three/examples/jsm/utils/SkeletonUtils.js
 import type { ClassId } from "@/game/loadout";
 import { bodyProfile, type BodyType } from "@/game/operators";
 import type { ArmorLook } from "@/game/armor-look";
-import { buildPalette, regionWeights, type Palette } from "@/game/operator-paint";
+import { boneRegion, buildPalette, regionWeights, type Palette } from "@/game/operator-paint";
 import { SURFACES } from "@/game/visual-standard";
 import { equippedPieces, piecesKey, type ArmorPiece } from "@/game/armor-pieces";
 import type { GearItem, GearSlot } from "@/game/inventory";
@@ -172,6 +172,10 @@ function Model({ url, tint, height, feetY, color, trim, pose, motion, bodyType, 
       if (m.isSkinnedMesh) { skinned = true; m.frustumCulled = false; if (palette) ownGeometries.push(paintVertexColors(m, palette)); }
       if (material) m.material = material;
     });
+    // F3 diagnostics (PerfProbe): what the paint path actually did for this operator, so a grey result can be traced
+    let verts = 0, matCount = 0; const share: Record<string, number> = {};
+    object.traverse((o) => { const m = o as THREE.SkinnedMesh; if (!m.isMesh) return; matCount += Array.isArray(m.material) ? m.material.length : 1; verts += m.geometry.getAttribute("position")?.count ?? 0; if (m.isSkinnedMesh) for (const b of m.skeleton.bones) { const r = boneRegion(b.name); share[r] = (share[r] ?? 0) + 1; } });
+    object.userData["operatorDiag"] = { url, tint, vertexColorMaterial: Boolean(material), materials: matCount, vertices: verts, bonesByRegion: share, armor: color ?? "(none)", trim: trim ?? "(none)", chest: palette?.chest.color ?? "(no palette)", helmet: palette?.helmet.color ?? "(no palette)", suit: palette?.suit.color ?? "(no palette)" };
     object.updateMatrixWorld(true);
     const box = new THREE.Box3().setFromObject(object);
     const size = box.getSize(new THREE.Vector3());

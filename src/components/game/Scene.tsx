@@ -1,4 +1,5 @@
 import { Environment, Lightformer, Sky, Text, useGLTF } from "@react-three/drei";
+import { heavyShadows, NEAR_SCALE, setPerfTier } from "@/game/perf-budget";
 import { ruins, isEvolved, isDiscovered, freshCharge, RUIN_DISCOVER_RADIUS, RUIN_REACH } from "@/game/weapon-evolution";
 import { useFrame, useThree } from "@react-three/fiber";
 import { useEffect, useMemo, useRef } from "react";
@@ -462,6 +463,8 @@ export function Scene({
   const selectedVehicle = vehicleById(vehicleId);
   const player = useRef<THREE.Group>(null!);
   // start fetching this operator's model at once so the plain procedural stand-in is on screen for as short a time as possible
+  // foliage / region-model / light budgets read the live tier from perf-budget.ts
+  setPerfTier(settings.renderTier);
   useEffect(() => { const entry = OPERATOR_MODELS[playerClass]; if (entry) useGLTF.preload(entry.url); }, [playerClass]);
   const vehicle = useRef<THREE.Group>(null!);
   const sun = useRef<THREE.DirectionalLight>(null!);
@@ -2083,9 +2086,9 @@ export function Scene({
       {settings.renderTier !== "LOW" && <SkyFx fxRef={skyFx} envRef={skyEnv} playerRef={player} />}
       <RegionLighting playerRef={player} tier={settings.renderTier} />
 
-      <Terrain renderTier={settings.renderTier} />
-      <GroundCover density={coverDensityFor(settings.renderTier)} />
-      <VerdantForest density={settings.renderTier === "LOW" ? 0.5 : settings.renderTier === "MEDIUM" ? 0.75 : 1} models={settings.renderTier !== "LOW"} investigation={investigation} />
+      <group name="terrain+trees"><Terrain renderTier={settings.renderTier} /></group>
+      <group name="ground-cover"><GroundCover density={coverDensityFor(settings.renderTier)} /></group>
+      <VerdantForest density={settings.renderTier === "LOW" ? 0.5 : settings.renderTier === "MEDIUM" ? 0.75 : 1} models={settings.renderTier !== "LOW"} investigation={investigation} heavyShadow={heavyShadows(settings.renderTier)} />
       <RiftTurrets sim={sim} />
       <PerfProbe />
       <Weather playerRef={player} weatherRef={weatherKind} fxRef={weatherFx} />
@@ -2095,13 +2098,13 @@ export function Scene({
       <Rivers sunRef={sunDir} />
       <LootCaches opened={openedCaches} />
       <ShopStalls />
-      <NearOnly playerRef={player} x={NEXUS_REGION.x} z={NEXUS_REGION.z} radius={330}><NexusCity sim={sim} /></NearOnly>
-      <NearOnly playerRef={player} x={NEON_CITY_CENTER.x} z={NEON_CITY_CENTER.z} radius={300}><NeonCity /></NearOnly>
-      <NearOnly playerRef={player} x={THALASSIA_CENTER.x} z={THALASSIA_CENTER.z} radius={260}><Thalassia /></NearOnly>
+      <NearOnly playerRef={player} x={NEXUS_REGION.x} z={NEXUS_REGION.z} radius={330 * NEAR_SCALE[settings.renderTier]} name="city:nexus"><NexusCity sim={sim} /></NearOnly>
+      <NearOnly playerRef={player} x={NEON_CITY_CENTER.x} z={NEON_CITY_CENTER.z} radius={300 * NEAR_SCALE[settings.renderTier]} name="city:neon"><NeonCity /></NearOnly>
+      <NearOnly playerRef={player} x={THALASSIA_CENTER.x} z={THALASSIA_CENTER.z} radius={260 * NEAR_SCALE[settings.renderTier]} name="city:thalassia"><Thalassia /></NearOnly>
       <SupplyLanes sim={sim} />
       <ZoneBeacons sim={sim} />
       <Convoys sim={sim} />
-      <WarMachines sim={sim} />
+      <group name="enemies"><WarMachines sim={sim} /></group>
       <ScenarioBosses sim={sim} />
       <CombatFx sim={sim} reducedMotion={!!settings.reducedMotion} />
       <AbilityFx sim={sim} reducedMotion={!!settings.reducedMotion} />

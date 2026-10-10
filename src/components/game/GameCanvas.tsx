@@ -10,6 +10,8 @@ import { walkHeight } from "@/game/terrain";
 import type { VehicleId } from "@/game/vehicles";
 import { STARTER_VEHICLES, VEHICLES, vehicleAcquisition } from "@/game/vehicles";
 import { Button } from "@/components/ui/button";
+import type { RenderTier } from "@/game/performance";
+import { DPR_FLOOR, effectiveTier, onDecline as governDecline } from "@/game/quality-governor";
 import { MissionCinematic } from "./MissionCinematic";
 import { shouldPlay as shouldPlayCine, markPlayed as markCinePlayed } from "@/game/cinematics";
 import { ruinById, discoverNearby, canEvolve, evolveWeapon, isWeapon, ABILITY_RULES, EVOLVE_POWER_BONUS, EVOLVE_MIN_LEVEL, EVOLVE_CATALYSTS, EVOLVE_ELEMENT_AMOUNT } from "@/game/weapon-evolution";
@@ -219,6 +221,12 @@ export function GameCanvas() {
   const [settings, setSettings] = useState<GameSettings>(DEFAULT_SETTINGS);
   const [adaptiveDpr, setAdaptiveDpr] = useState(1.5);
   const [lowPerf, setLowPerf] = useState(false);
+  // automatic quality step-down (quality-governor.ts): session-only cap, never changes the saved setting
+  const [autoCap, setAutoCap] = useState<RenderTier | null>(null);
+  const lastStepAt = useRef(0);
+  const [qualityNotice, setQualityNotice] = useState<string | null>(null);
+  const liveTier = effectiveTier(settings.renderTier, autoCap);
+  const liveSettings = useMemo(() => ({ ...settings, renderTier: liveTier }), [settings, liveTier]);
   useEffect(() => {
     try {
       const savedSettings = window.localStorage.getItem("world-fracture-settings");
@@ -773,7 +781,7 @@ export function GameCanvas() {
     <div className="fixed inset-0 bg-background">
       <WorldErrorBoundary>
       <GraphicsGuard>{(caps, onCreated) => {
-        const preset = RENDER_PRESETS[settings.renderTier];
+        const preset = RENDER_PRESETS[liveTier];
         // Safari: cap pixel ratio, use hard-edged shadows and skip the post-processing pass, which
         // are the usual causes of a blank or lost context there.
         const maxDpr = caps.safari ? Math.min(preset.dpr, 1.5) : preset.dpr;
@@ -782,7 +790,7 @@ export function GameCanvas() {
         // SSAO and depth-of-field are the two costliest passes in the stack — reserve them for
         // the top render tier so MEDIUM/HIGH still get the cheap color-grade + bloom + vignette
         // look without paying for contact-shadow and bokeh sampling every frame.
-        const premium = post && settings.renderTier === "ULTRA";
+        const premium = post && liveTier === "ULTRA";
         return (
       <>
       <Canvas
@@ -802,7 +810,7 @@ export function GameCanvas() {
       >
         <color attach="background" args={["#bfe4f2"]} />
         <Suspense fallback={null}>
-            <Scene openedCaches={openedToday} onStoryEvent={recordStory} onHud={setHud} onDrops={(drops) => { showScenarioRewards(drops); setProgression((current) => claimDrops(current, drops)); }} gear={progression} settings={settings} onCameraPreference={(firstPerson) => { window.localStorage.setItem("world-fracture-camera", firstPerson ? "first" : "third"); setSettings((current) => ({ ...current, firstPersonDefault: firstPerson })); }} playerClass={cls} subclassId={subclass} appearance={appearance} bodyType={bodyType} vehicleId={vehicleId} vehicleUnlocked={vehicleUnlocked} activeBuild={progression.activeBuild} abilityBranches={progression.abilityBranches} tutorial={tutorial} onTutorialEvent={recordTutorial} mission={mission} onMissionEvent={recordMission} blackout={blackout} onBlackoutEvent={recordBlackout} neonCore={neonCore} onNeonCoreEvent={recordNeonCore} descent={descent} onDescentEvent={recordDescent} systemCore={systemCore} onSystemCoreEvent={recordSystemCore} awakening={awakening} onAwakeningEvent={recordAwakening} onXP={recordXP} weaponOrder={activeLoadout(progression, progression.identityClass ?? cls).slots} travelTo={travelTo} introPlayback={showIntro ? { elapsed: introElapsed, totalSeconds: introTotalSeconds() } : cineId ? { elapsed: cineProgress * introTotalSeconds(), totalSeconds: introTotalSeconds() } : null} armorState={hud.hp < 35 ? "FRACTURE" : hud.heat > 65 ? "ASCENDANT" : hud.heat > 15 ? "ACTIVE" : "STABLE"} />
+            <Scene openedCaches={openedToday} onStoryEvent={recordStory} onHud={setHud} onDrops={(drops) => { showScenarioRewards(drops); setProgression((current) => claimDrops(current, drops)); }} gear={progression} settings={liveSettings} onCameraPreference={(firstPerson) => { window.localStorage.setItem("world-fracture-camera", firstPerson ? "first" : "third"); setSettings((current) => ({ ...current, firstPersonDefault: firstPerson })); }} playerClass={cls} subclassId={subclass} appearance={appearance} bodyType={bodyType} vehicleId={vehicleId} vehicleUnlocked={vehicleUnlocked} activeBuild={progression.activeBuild} abilityBranches={progression.abilityBranches} tutorial={tutorial} onTutorialEvent={recordTutorial} mission={mission} onMissionEvent={recordMission} blackout={blackout} onBlackoutEvent={recordBlackout} neonCore={neonCore} onNeonCoreEvent={recordNeonCore} descent={descent} onDescentEvent={recordDescent} systemCore={systemCore} onSystemCoreEvent={recordSystemCore} awakening={awakening} onAwakeningEvent={recordAwakening} onXP={recordXP} weaponOrder={activeLoadout(progression, progression.identityClass ?? cls).slots} travelTo={travelTo} introPlayback={showIntro ? { elapsed: introElapsed, totalSeconds: introTotalSeconds() } : cineId ? { elapsed: cineProgress * introTotalSeconds(), totalSeconds: introTotalSeconds() } : null} armorState={hud.hp < 35 ? "FRACTURE" : hud.heat > 65 ? "ASCENDANT" : hud.heat > 15 ? "ACTIVE" : "STABLE"} />
         </Suspense>
         {post && (
           // cinematic grade: cool-leaning teal shadows, a touch more punch, so the HUD's cyan
@@ -826,7 +834,11 @@ export function GameCanvas() {
         <PerformanceMonitor
           bounds={() => [45, 58]}
           flipflops={6}
-          onDecline={() => setAdaptiveDpr((d) => { const next = Math.max(0.75, Math.round((d - 0.25) * 100) / 100); if (next <= 1) setLowPerf(true); return next; })}
+          onDecline={() => {
+            const cap = governDecline({ dpr: adaptiveDpr, chosen: settings.renderTier, cap: autoCap, secondsSinceLastStep: (performance.now() - lastStepAt.current) / 1000 });
+            if (cap) { lastStepAt.current = performance.now(); setAutoCap(cap); setQualityNotice(`Frame rate was low, so graphics quality was lowered to ${cap}. You can change it in Settings.`); window.setTimeout(() => setQualityNotice(null), 6000); }
+            setAdaptiveDpr((d) => { const next = Math.max(DPR_FLOOR, Math.round((d - 0.25) * 100) / 100); if (next <= 1) setLowPerf(true); return next; });
+          }}
           onIncline={() => setAdaptiveDpr((d) => { const next = Math.min(2, d + 0.25); if (next > 1.25) setLowPerf(false); return next; })}
         />
       </Canvas>
@@ -926,6 +938,7 @@ export function GameCanvas() {
           onContinue={() => { setTutorial(null); setOperationsView("ABILITIES"); }}
         />
       )}
+      {qualityNotice && <div className="pointer-events-none absolute left-1/2 top-16 z-50 -translate-x-1/2 border border-border/60 bg-background/80 px-4 py-2 font-mono text-[11px] uppercase tracking-[0.15em]">{qualityNotice}</div>}
       {cineId && <MissionCinematic id={cineId} onProgress={setCineProgress} onDone={(_handoff, _skipped) => { const id = cineId; setCineId(null); setProgression((cur) => ({ ...cur, story: markCinePlayed(cur.story, id) })); }} />}
       {showIntro && <IntroCinematic onComplete={() => setShowIntro(false)} onTick={setIntroElapsed} />}
       {strategyOpen && <RaidStrategyPanel onClose={() => setStrategyOpen(false)} />}

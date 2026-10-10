@@ -10,7 +10,8 @@ import deadLog from "@/assets/polyhaven/dead_tree_trunk.glb.asset.json";
 import mossRock from "@/assets/polyhaven/rock_moss_set_01.glb.asset.json";
 import { windSway } from "@/game/wind-sway";
 import { reportAsset, reportDetail } from "@/game/forest-assets";
-import { CULL_RADIUS, movedEnough, nearIndices } from "@/game/foliage-cull";
+import { CULL_RADIUS, movedEnough } from "@/game/foliage-cull";
+import { foliageTris, getPerfTier, maxInstances, nearestWithin, perfTierVersion } from "@/game/perf-budget";
 
 /** Poly Haven (CC0) foliage, simplified + texture-resized offline, rendered as GPU instances
  * (one draw call per sub-mesh). Each species is verified and isolated: on failure the caller
@@ -42,7 +43,7 @@ function looksLikeVariants(kids: THREE.Object3D[]): boolean {
   return true;
 }
 
-function Instanced({ url, items, scale, onReady, shadows, height, sway, variants, radius }: { radius: number; url: string; items: Placement[]; scale: number; onReady: () => void; shadows: boolean; height?: number | undefined; sway?: number | undefined; variants?: boolean | undefined }) {
+function Instanced({ kind, url, items, scale, onReady, shadows, height, sway, variants, radius }: { kind: FoliageKind; radius: number; url: string; items: Placement[]; scale: number; onReady: () => void; shadows: boolean; height?: number | undefined; sway?: number | undefined; variants?: boolean | undefined }) {
   const { scene } = useGLTF(url);
   // Poly Haven files ship several variants side by side. With `variants`, each variant is used (so plants stop
   // repeating one identical model); otherwise, or if the layout doesn't look like variants, the first one is used.
@@ -80,21 +81,26 @@ function Instanced({ url, items, scale, onReady, shadows, height, sway, variants
     reportDetail(`${url.split("/").pop()} h=${height ?? "native"}`, { variants: built.length, instances: items.length, triangles: Math.round(triangles), sourceHeight: first ? Math.round((height ? height / first.norm : 0) * 100) / 100 : 0 });
     onReady();
   }, [onReady, built, buckets, items.length, url, height]);
-  return <>{built.map((v, vi) => v.parts.map((p, i) => <Mesh key={`${vi}-${i}`} part={p} items={buckets[vi]!} scale={scale * v.norm} shadows={shadows} radius={radius} />))}</>;
+  // triangles one instance of each variant costs (all its sub-meshes); the allowance is shared between variants
+  const perInstance = useMemo(() => built.map((v) => v.parts.reduce((t, p) => t + (p.geometry.index ? p.geometry.index.count : p.geometry.getAttribute("position").count) / 3, 0)), [built]);
+  return <>{built.map((v, vi) => v.parts.map((p, i) => <Mesh key={`${vi}-${i}`} name={`foliage:${kind}`} kind={kind} share={built.length} trisPerInstance={perInstance[vi]!} part={p} items={buckets[vi]!} scale={scale * v.norm} shadows={shadows} radius={radius} />))}</>;
 }
 
 const tmp = new THREE.Object3D();
 tmp.rotation.order = "YXZ"; // yaw after tilt, so a laid-down log can still be turned to face any way
-function Mesh({ part, items, scale, shadows, radius }: { part: { geometry: THREE.BufferGeometry; material: THREE.Material }; items: Placement[]; scale: number; shadows: boolean; radius: number }) {
+function Mesh({ name, kind, share, trisPerInstance, part, items, scale, shadows, radius }: { name: string; kind: FoliageKind; share: number; trisPerInstance: number; part: { geometry: THREE.BufferGeometry; material: THREE.Material }; items: Placement[]; scale: number; shadows: boolean; radius: number }) {
   const ref = useRef<THREE.InstancedMesh>(null);
   const all = useRef<Float32Array>(new Float32Array(0));
   const last = useRef({ x: Infinity, z: Infinity });
   const clock = useRef(1);
+  const seenTier = useRef(-1);
   // matrices for every instance are computed once; the live buffer then only holds the ones near the camera
   const select = (cx: number, cz: number) => {
     const mesh = ref.current;
     if (!mesh) return;
-    const idx = nearIndices(items, cx, cz, radius);
+    // nearest-first within the species' triangle allowance for the current quality tier (perf-budget.ts)
+    const idx = nearestWithin(items, cx, cz, radius, Math.max(kind === "rock" || kind === "log" ? 2 : 0, maxInstances(foliageTris(kind, getPerfTier()) / share, trisPerInstance)));
+    seenTier.current = perfTierVersion();
     const dst = mesh.instanceMatrix.array as Float32Array;
     idx.forEach((src, k) => dst.set(all.current.subarray(src * 16, src * 16 + 16), k * 16));
     mesh.count = idx.length;
@@ -122,9 +128,9 @@ function Mesh({ part, items, scale, shadows, radius }: { part: { geometry: THREE
     if (clock.current < 0.25) return;
     clock.current = 0;
     const { x, z } = camera.position;
-    if (!Number.isFinite(last.current.x) || movedEnough(last.current.x, last.current.z, x, z)) select(x, z);
+    if (!Number.isFinite(last.current.x) || seenTier.current !== perfTierVersion() || movedEnough(last.current.x, last.current.z, x, z)) select(x, z);
   });
-  return <instancedMesh ref={ref} args={[part.geometry, part.material, Math.max(1, items.length)]} castShadow={shadows} receiveShadow frustumCulled={false} />;
+  return <instancedMesh ref={ref} name={name} args={[part.geometry, part.material, Math.max(1, items.length)]} castShadow={shadows} receiveShadow frustumCulled={false} />;
 }
 
 const verified = new Map<string, boolean>();
@@ -141,5 +147,5 @@ export function PolyFoliage({ kind, items, scale = 1, onReady, onFail, shadows =
   }, [url, kind, fail]);
   const ready = useMemo(() => () => { reportAsset(`foliage:${kind}`, LABEL[kind], "ok"); onReady?.(); }, [kind, onReady]);
   if (!ok || !items.length) return null;
-  return <Quiet onFail={fail}><Suspense fallback={null}><Instanced url={url} items={items} scale={scale} onReady={ready} shadows={shadows} height={height} sway={sway} variants={variants} radius={radius ?? CULL_RADIUS[kind]} /></Suspense></Quiet>;
+  return <Quiet onFail={fail}><Suspense fallback={null}><Instanced kind={kind} url={url} items={items} scale={scale} onReady={ready} shadows={shadows} height={height} sway={sway} variants={variants} radius={radius ?? CULL_RADIUS[kind]} /></Suspense></Quiet>;
 }

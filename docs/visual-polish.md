@@ -44,3 +44,17 @@ All of this is **implemented and covered by automated tests where it is pure log
 - `sky-dome.ts` adds `SKY_BODY` (fixed direction, angular radius 0.17 rad, i.e. a giant body filling the sky) and an authored zenith → horizon colour `wash` in `skyParams`, both pure and tested.
 - `SkyDome.tsx` draws the body as a lit, cracked sphere (fbm surface, glowing fracture network, sun-side lighting, atmosphere rim, halo) before stars/clouds/sun, so clouds pass in front of it.
 - Status: implemented and unit-tested for the parameters only. The GLSL has NOT been compiled or viewed in a browser; expect tuning once screenshots exist.
+
+## Performance pass (from your F3 screenshots)
+
+Measured by you on Intel / ANGLE Metal: 8-11 FPS, 5.6-6.5M triangles, GPU busy ~120 ms at 900x464 (dpr already at its 0.75 floor). That is triangle/light bound, not resolution bound.
+
+What changed (all presentation; nothing touches gameplay):
+- `src/game/perf-budget.ts` (+ tests): per-species triangle allowance per tier (MEDIUM: fir/broadleaf 280k each, shrub/fern 110k, rock 100k, log 50k; LOW x0.35, HIGH x1.9, ULTRA x3). `PolyFoliage` now draws the nearest instances until the allowance is spent, using each model's measured triangles per instance, so cost no longer depends on how heavy a downloaded model is. Rocks and logs always keep at least the 2 nearest.
+- `RegionModels` (the ~100k-triangle rocks/trunks): shown nearest-first within a shared allowance (MEDIUM 220k) and only cast shadows on HIGH/ULTRA.
+- Rocks and logs in the forest cast shadows only on HIGH/ULTRA (the shadow pass redraws every caster).
+- `DistrictLight`: all district point lights share one evaluation and compete nearest-first for a tier cap (LOW 2, MEDIUM 4, HIGH 6, ULTRA 8). You had 8 point lights on.
+- City mount radius (Nexus/Neon/Thalassia) is scaled by tier (MEDIUM x0.7).
+- `src/game/quality-governor.ts`: if frames stay low once resolution is at its floor, the effective tier drops one level (never faster than every 8 s, never up, never saved) with an on-screen notice.
+- F3 readout now names the heaviest meshes (terrain+trees, ground-cover, city:neon, foliage:fir, region-models:...) and prints an `operator paint:` section (paint path, material count, bones per region, chest/suit colours) to trace a grey operator.
+- NOT done in this pass: forest density changes, lighting/exposure changes, projectile effect upgrades, a dev showcase scene. Not browser-verified; no production build or full type-check could be run (dependencies cannot be installed here).

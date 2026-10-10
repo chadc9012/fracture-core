@@ -6,7 +6,7 @@ import type * as THREE from "three";
  * far past the fog line are pure cost: every point light is paid for by every lit pixel, and each
  * mounted mesh is a draw call. Checked twice a second with a 15% hysteresis band so standing on the
  * edge never flickers. */
-export function NearOnly({ playerRef, x, z, radius, children }: { playerRef: React.RefObject<THREE.Object3D>; x: number; z: number; radius: number; children: ReactNode }) {
+export function NearOnly({ playerRef, x, z, radius, children, name }: { name?: string; playerRef: React.RefObject<THREE.Object3D>; x: number; z: number; radius: number; children: ReactNode }) {
   const [near, setNear] = useState(false);
   const clock = useRef(0);
   const state = useRef(false);
@@ -20,5 +20,5 @@ export function NearOnly({ playerRef, x, z, radius, children }: { playerRef: Rea
     const next = state.current ? d < radius * 1.15 : d < radius;
     if (next !== state.current) { state.current = next; setNear(next); }
   });
-  return near ? <>{children}</> : null;
+  return near ? <group name={name ?? ""}>{children}</group> : null;
 }

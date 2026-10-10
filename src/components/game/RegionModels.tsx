@@ -2,6 +2,7 @@ import { useFrame } from "@react-three/fiber";
 import { useGLTF } from "@react-three/drei";
 import { Component, Suspense, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import type * as THREE from "three";
+import { getPerfTier, heavyShadows, regionModelTris } from "@/game/perf-budget";
 import { REGIONS } from "@/game/world";
 import { heightAt, slopeAt, WATER_LEVEL } from "@/game/terrain";
 import { mulberry32 } from "@/game/useKeyboard";
@@ -59,6 +60,13 @@ function Placed({ url, regions, count, scale, seed }: (typeof PLACEMENT)[number]
   // Each model is ~100k triangles, so only the ones near the camera are drawn at all, and only the
   // closest few cast shadows. Re-checked a few times a second; hysteresis stops edge flicker.
   const group = useRef<THREE.Group>(null);
+  // triangles one clone costs (measured from the loaded model, not assumed)
+  const trisEach = useRef(100_000);
+  useMemo(() => {
+    let t = 0;
+    variant.traverse((o) => { const m = o as THREE.Mesh; if (m.isMesh && m.geometry) t += (m.geometry.index ? m.geometry.index.count : m.geometry.getAttribute("position").count) / 3; });
+    trisEach.current = Math.max(1, t);
+  }, [variant]);
   const clock = useRef(0);
   useFrame(({ camera }, dt) => {
     clock.current += dt;
@@ -66,17 +74,22 @@ function Placed({ url, regions, count, scale, seed }: (typeof PLACEMENT)[number]
     clock.current = 0;
     const g = group.current;
     if (!g) return;
-    g.children.forEach((node, i) => {
-      const p = spots[i];
-      if (!p) return;
-      const d = Math.hypot(camera.position.x - p.x, camera.position.z - p.z);
-      const show = node.visible ? d < SHOW_RADIUS * 1.1 : d < SHOW_RADIUS;
+    // nearest-first within this tier's triangle allowance, shared by all region models (perf-budget.ts); at least the nearest one
+    const tier = getPerfTier();
+    const allowance = Math.max(trisEach.current, regionModelTris(tier) / PLACEMENT.length);
+    const order = g.children.map((node, i) => ({ node, i, d: spots[i] ? Math.hypot(camera.position.x - spots[i]!.x, camera.position.z - spots[i]!.z) : Infinity })).sort((a, b) => a.d - b.d);
+    let spent = 0;
+    for (const { node, d } of order) {
+      const within = node.visible ? d < SHOW_RADIUS * 1.1 : d < SHOW_RADIUS;
+      const affordable = spent + trisEach.current <= allowance;
+      const show = within && affordable;
+      if (show) spent += trisEach.current;
       if (node.visible !== show) node.visible = show;
-      const cast = d < SHADOW_RADIUS;
+      const cast = show && heavyShadows(tier) && d < SHADOW_RADIUS;
       node.traverse((o) => { if (o.castShadow !== cast) o.castShadow = cast; });
-    });
+    }
   });
-  return <group ref={group}>{spots.map((p, i) => <primitive key={i} object={clones[i]!} position={[p.x, p.y - 0.2, p.z]} rotation-y={p.r} scale={p.s} visible={false} />)}</group>;
+  return <group ref={group} name={`region-models:${url.split("/").pop()}`}>{spots.map((p, i) => <primitive key={i} object={clones[i]!} position={[p.x, p.y - 0.2, p.z]} rotation-y={p.r} scale={p.s} visible={false} />)}</group>;
 }
 
 const SHOW_RADIUS = 70;
