@@ -91,4 +91,10 @@ Current verdict: **PARTIALLY COMPLETE** on the existing code, **BLOCKED** for ar
 | Ripple normals, reflections | NOT DONE by instruction; follow-up items |
 | Shoaling, narrow ocean inlets drawn as sand on the painted map | NOT DONE: the ocean/lake painter was not changed; needs a map screenshot to target |
 | Test suite | `rng.ts` extracted so pure rule modules no longer import React (this was why `loot-caches` and `regional-shops` tests could not load). Result: 878 pass, 1 fail |
-| Remaining failure | `loot-caches.test.ts` "drop rate tracks rarity": the generated world contains **zero LEGENDARY caches** (5 common / 14 rare / 23 epic), so `find(LEGENDARY)` is undefined. Reproduced on the pre-water-pass commit, so it is older and was masked by the missing-React load error. Fix needs a reward-economy decision (let a cache roll legendary, or change the test); not changed here |
+| Former failure | `loot-caches.test.ts` "drop rate tracks rarity": the test assumed the seeded world contains a LEGENDARY cache. Cause: legendary needs (zone tier + scenario bonus >= 3) AND a 15% roll, so it is a rare seeded outcome and this terrain seed yields none (5 common / 14 rare / 23 epic); same on the pre-water commit. Loot rules unchanged; the test now builds a synthetic legendary box from a real site and separately asserts world legendaries stay under 15%. 881 pass, 0 fail |
+
+
+## Validation pass (checkpoint after 154e0ac)
+- Browser run: **BLOCKED**. `bun install --frozen-lockfile` fails with ConnectionRefused to the npm registry (curl to registry.npmjs.org returns no response), `node_modules` is empty, and hosted GLB/HDRI assets are unreachable, so the game cannot be built or served here.
+- Therefore NOT VERIFIED: river ends/bends, narrow-channel and sand-coloured map gaps, lake rims, plunge pools, wet-rock look, stream/waterfall audibility, indoor/diving attenuation, cleanup, and all four performance captures.
+- Exact owner steps for the performance checkpoint (MEDIUM, Veridan trail start, standing still): F3, wait 10 s, screenshot (idle). Then F4 to reach `iso:forest`, `iso:water`, `iso:sky`, 10 s each. Record fps, frame ms, gpu busy, js busy, tris, calls, react renders/s.

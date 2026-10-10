@@ -47,16 +47,26 @@ describe("world loot caches", () => {
 import { rollCacheGear, GEAR_CHANCE } from "./loot-caches";
 describe("loot box gear", () => { const test = it;
   const all = lootCaches();
-  test("legendary boxes always drop gear", () => {
-    for (const c of all.filter((x) => x.rarity === "LEGENDARY")) expect(rollCacheGear(c, NOW)).not.toBeNull();
+  // Legendary is a rare, seeded roll (a cache needs a high zone/scenario tier AND a 15% lucky roll), so whether the generated world
+  // contains one is a property of the terrain seed, not of the loot rules. The rules are therefore tested on a synthetic legendary box
+  // built from a real cache site; the world-based assertions only cover whatever the world really holds.
+  const synthetic = (rarity: "COMMON" | "LEGENDARY") => ({ ...all[0]!, id: `test-${rarity}`, rarity });
+  test("the world's legendary caches stay rare (probabilistic, never the norm)", () => {
+    expect(all.filter((x) => x.rarity === "LEGENDARY").length / all.length).toBeLessThan(0.15);
   });
-  test("drop rate tracks rarity and gear goes to inventory once", () => {
+  test("legendary boxes always drop gear (every world legendary, plus a synthetic one on many days)", () => {
+    for (const c of [...all.filter((x) => x.rarity === "LEGENDARY"), synthetic("LEGENDARY")]) for (let d = 0; d < 20; d++) expect(rollCacheGear(c, NOW + d * 864e5)).not.toBeNull();
+  });
+  test("drop rate tracks rarity", () => {
     const commons = all.filter((x) => x.rarity === "COMMON");
+    expect(commons.length).toBeGreaterThan(0);
     let hits = 0; for (let d = 0; d < 30; d++) for (const c of commons) if (rollCacheGear(c, NOW + d * 864e5)) hits++;
     const rate = hits / (30 * commons.length);
     expect(rate).toBeGreaterThan(GEAR_CHANCE.COMMON / 2); expect(rate).toBeLessThan(GEAR_CHANCE.COMMON * 2);
-    const leg = all.find((x) => x.rarity === "LEGENDARY")!;
-    const r = openCache(DEFAULT_PROGRESSION, leg, NOW)!;
+  });
+  test("a legendary box's gear goes to inventory exactly once", () => {
+    const r = openCache(DEFAULT_PROGRESSION, synthetic("LEGENDARY"), NOW)!;
+    expect(r.gear).not.toBeNull();
     expect(r.progression.inventory.filter((g) => g.id === r.gear!.id).length).toBe(1);
   });
 });
