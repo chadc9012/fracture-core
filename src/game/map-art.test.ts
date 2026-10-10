@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { MAP_ART_ASPECT, MAP_ART_SPOTS } from "./map-art";
+import { MAP_ART_ASPECT, MAP_ART_SPOTS, MAP_STRIPS, hiresArtUsable } from "./map-art";
 import { REGIONS } from "./world";
 
 describe("illustrated map hotspots", () => {
@@ -16,5 +16,20 @@ describe("illustrated map hotspots", () => {
     expect(by("nexus").a.x).toBeGreaterThan(by("veridan").a.x); // east is right
     expect(by("swamps").a.x).toBeGreaterThan(by("solara").a.x);
     expect(MAP_ART_ASPECT).toBeGreaterThan(1);
+  });
+});
+
+describe("high-resolution art and decorative strips", () => {
+  test("a candidate image is used only when it is large enough and the same shape", () => {
+    expect(hiresArtUsable(4096, Math.round(4096 / MAP_ART_ASPECT))).toBe(true);
+    expect(hiresArtUsable(1158, 791)).toBe(false); // the bundled image is never "upgraded"
+    expect(hiresArtUsable(4096, 4096)).toBe(false); // wrong shape would stretch
+    expect(hiresArtUsable(0, 0)).toBe(false);
+    expect(hiresArtUsable(Number.NaN, 100)).toBe(false);
+  });
+  test("14 strips: 4 top, 6 left, 4 bottom, unique ids", () => {
+    const count = (e: string) => MAP_STRIPS.filter((s) => s.edge === e).length;
+    expect([count("top"), count("left"), count("bottom")]).toEqual([4, 6, 4]);
+    expect(new Set(MAP_STRIPS.map((s) => s.id)).size).toBe(MAP_STRIPS.length);
   });
 });

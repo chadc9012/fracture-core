@@ -8,7 +8,14 @@ import { CHRONICLE, nextActivity } from "@/game/retention";
 import type { PlayerProgression } from "@/game/progression";
 import { NextActivityCard } from "./NextActivityCard";
 import { MAP_ART_ASPECT, MAP_ART_SPOTS } from "@/game/map-art";
+import { LANDMARKS, isLandmarkKnown } from "@/game/landmarks";
+import { MAP_EXTENT } from "@/game/terrain-map";
 import mapArt from "@/assets/fractured-earth-map-v2.jpg";
+import { MAP_VIEWBOX, MapLayers } from "./MapLayers";
+import { MapStrips } from "./MapStrips";
+import { LANDMARK_GLYPH } from "./MapLegend";
+import { useTerrainMap } from "./useTerrainMap";
+import { useMapArt } from "./useMapArt";
 
 const THREAT = ["MINIMAL", "LOW", "MODERATE", "HIGH", "SEVERE", "EXTREME"];
 
@@ -19,6 +26,10 @@ export function StarMap({ progression, onBack, onDeploy }: { progression: Player
   const recommended = REGIONS.find((r) => r.name === next.region)?.id ?? progression.currentWorld;
   const [selected, setSelected] = useState(REGIONS.find((r) => r.id === recommended)?.id ?? "veridan");
   const [launching, setLaunching] = useState(false);
+  const [view, setView] = useState<"painted" | "terrain">("painted");
+  const art = useMapArt(mapArt);
+  const terrain = useTerrainMap();
+  const known = LANDMARKS.filter((l) => isLandmarkKnown(progression, l.id));
   const region = REGIONS.find((r) => r.id === selected)!;
   const encounter = ENCOUNTERS.find((e) => e.regionId === selected);
   const chapters = CHRONICLE.filter((c) => c.region === region.name);
@@ -36,25 +47,50 @@ export function StarMap({ progression, onBack, onDeploy }: { progression: Player
       </header>
 
       <div className="relative my-3 grid min-h-0 flex-1 grid-cols-1 gap-4 lg:grid-cols-4">
-        <section className="relative flex items-center justify-center border border-foreground/15 bg-[#050d1c] p-2 lg:col-span-3">
-          {/* the illustrated Fractured Earth (title, region names, legend and compass are part of the picture); hotspots sit on each region */}
-          <div className="relative w-full" style={{ aspectRatio: String(MAP_ART_ASPECT), maxHeight: "78vh", maxWidth: `calc(78vh * ${MAP_ART_ASPECT})` }}>
-            <img src={mapArt} alt="The Fractured Earth: seven regions, terrain and zone types" className="absolute inset-0 size-full select-none object-contain" draggable={false} />
-            {REGIONS.map((r) => {
-              const spot = MAP_ART_SPOTS[r.id];
-              if (!spot) return null;
-              const on = r.id === selected, rec = r.id === recommended, color = ZONE_COLOR[r.kind];
-              return (
-                <button key={r.id} type="button" onClick={() => setSelected(r.id)} aria-pressed={on} aria-label={`${r.name}, ${ZONE_LABEL[r.kind]}${rec ? ", recommended" : ""}`}
-                  className="ui-focus group absolute -translate-x-1/2 -translate-y-1/2 rounded-full"
-                  style={{ left: `${spot.x}%`, top: `${spot.y}%`, width: "11%", aspectRatio: "1", ...(on ? { boxShadow: `0 0 0 2px ${color}, 0 0 28px 6px ${color}66`, background: `${color}22` } : {}) }}>
-                  <span className={`absolute inset-0 rounded-full border transition-opacity ${on ? "opacity-0" : "border-white/0 group-hover:border-white/70"}`} />
-                  {rec && <span className="absolute -inset-1.5 animate-pulse rounded-full border-2 border-dashed border-white/80" />}
-                  {rec && <span className="absolute left-1/2 top-full mt-1 -translate-x-1/2 whitespace-nowrap bg-black/70 px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-widest text-white">◆ Recommended</span>}
-                </button>
-              );
-            })}
+        <section className="relative flex flex-col gap-2 border border-foreground/15 bg-[#050d1c] p-2 lg:col-span-3">
+          <div className="flex items-center justify-between gap-2" role="group" aria-label="Map view">
+            <div className="flex font-mono text-[10px] uppercase tracking-widest">
+              {(["painted", "terrain"] as const).map((v) => <button key={v} type="button" aria-pressed={view === v} onClick={() => setView(v)} className={`ui-focus border border-foreground/25 px-3 py-1 ${view === v ? "bg-primary text-primary-foreground" : "bg-background/60 text-muted-foreground hover:text-foreground"}`}>{v === "painted" ? "Painted" : "Terrain"}</button>)}
+            </div>
+            <p className="ui-kicker">{view === "terrain" ? `${known.length}/${LANDMARKS.length} landmarks charted` : art.hires ? "High-res art" : "Illustrated"}</p>
           </div>
+          <MapStrips>
+            {view === "painted" ? (
+              /* the illustrated Fractured Earth (title, region names, legend and compass are part of the picture); hotspots sit on each region */
+              <div className="relative w-full max-w-[calc(78vh*var(--ar))] lg:max-w-[calc(60vh*var(--ar))]" style={{ aspectRatio: String(MAP_ART_ASPECT), ["--ar" as string]: String(MAP_ART_ASPECT) }}>
+                <img src={art.src} alt="The Fractured Earth: seven regions, terrain and zone types" className="absolute inset-0 size-full select-none object-contain" draggable={false} decoding="async" />
+                {REGIONS.map((r) => {
+                  const spot = MAP_ART_SPOTS[r.id];
+                  if (!spot) return null;
+                  const on = r.id === selected, rec = r.id === recommended, color = ZONE_COLOR[r.kind];
+                  return (
+                    <button key={r.id} type="button" onClick={() => setSelected(r.id)} aria-pressed={on} aria-label={`${r.name}, ${ZONE_LABEL[r.kind]}${rec ? ", recommended" : ""}`}
+                      className="ui-focus group absolute -translate-x-1/2 -translate-y-1/2 rounded-full"
+                      style={{ left: `${spot.x}%`, top: `${spot.y}%`, width: "11%", aspectRatio: "1", ...(on ? { boxShadow: `0 0 0 2px ${color}, 0 0 28px 6px ${color}66`, background: `${color}22` } : {}) }}>
+                      <span className={`absolute inset-0 rounded-full border transition-opacity ${on ? "opacity-0" : "border-white/0 group-hover:border-white/70"}`} />
+                      {rec && <span className="absolute -inset-1.5 animate-pulse rounded-full border-2 border-dashed border-white/80" />}
+                      {rec && <span className="absolute left-1/2 top-full mt-1 -translate-x-1/2 whitespace-nowrap bg-black/70 px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-widest text-white">◆ Recommended</span>}
+                    </button>
+                  );
+                })}
+              </div>
+            ) : (
+              /* the real-terrain view: same world coordinates as the in-game atlas; discovered landmarks are drawn from LANDMARKS through the one
+                 world->viewBox transform (undiscovered ones are not rendered at all) */
+              <div className="relative w-full max-w-[78vh] lg:max-w-[60vh]" style={{ aspectRatio: "1" }}>
+                <svg viewBox={MAP_VIEWBOX} className="absolute inset-0 size-full" role="img" aria-label="Terrain map with discovered landmarks">
+                  <MapLayers art={terrain.url} preview={!terrain.full} selected={selected} recommended={recommended} onSelect={setSelected}>
+                    <g aria-label="Discovered landmarks">
+                      {known.map((l) => <g key={l.id} transform={`translate(${l.x} ${l.z})`}>
+                        <title>{l.name}</title>
+                        <text y={MAP_EXTENT * 0.009} textAnchor="middle" fontSize={MAP_EXTENT * 0.026} fill="#ffe9a8" stroke="#06101f" strokeWidth={MAP_EXTENT * 0.005} paintOrder="stroke">{LANDMARK_GLYPH[l.type]}</text>
+                      </g>)}
+                    </g>
+                  </MapLayers>
+                </svg>
+              </div>
+            )}
+          </MapStrips>
         </section>
 
         <aside className="flex flex-col justify-between gap-4 border border-foreground/15 bg-background/70 p-5">

@@ -24,3 +24,10 @@ Not done: (old) the atlas "MAP" tab is still the illustrated PNG; icons for land
 
 ## Measured baseline from your F4 screenshots (Intel Metal, dpr 0.75, 900x506, all-on)
 FPS 8-17, frame 58-120 ms of which render 9-16 ms and "other" 49-104 ms; gpu busy 26-33 ms, js busy 12-21 ms; 2.0-2.3 M triangles, 350-860 draw calls, 7 lights. Heaviest meshes: fir 276k, log 204k (two ~100k-triangle logs, from the "at least 2 instances" rule), water 180k, shrub 110k. The "other" 50-100 ms is still unexplained (it is not JS or GPU-busy time). Follow-ups: decimate the log/rock/shrub GLBs, find the "other" time with a Performance trace.
+
+## Hub map: landmarks, high-res art and photo strips
+
+- **Terrain view** (StarMap "Painted | Terrain" toggle): the real terrain raster through the shared `MapLayers` viewBox (the same world coordinates as the in-game atlas). Discovered landmarks (`isLandmarkKnown`) are drawn from `LANDMARKS` at their world x/z through that one transform; undiscovered ones are not rendered. No landmark data is duplicated. The tactical map in the atlas was not changed and stays on world coordinates; the painted art is never a coordinate source.
+- **High-res art hook** (`useMapArt`, `hiresArtUsable` in `src/game/map-art.ts`): if `public/maps/fractured-earth-map-4096.jpg` exists, is an image, at least 2048 px wide and within 1% of the bundled aspect, it replaces the 1158 px art; otherwise the bundled image stays. **No such file exists yet: a higher-resolution export of the painting is still needed from the artist.** Nothing is upscaled.
+- **Photo strips** (`MapStrips.tsx`, `src/assets/map-strips/*.jpg`, `MAP_STRIPS`): 14 tiles (4 top, 6 left, 4 bottom) cropped from the concept picture you supplied (1312 px wide, so tiles are only 141-339 px: they read as thumbnails, not originals). Decorative, aria-hidden, hidden below `lg`. Cleaner originals would replace these files 1:1.
+- **Status**: unit-tested = aspect/usable rules and strip counts; module graph builds; **not browser-verified** (layout, hotspot alignment, strip sizing, terrain-view labels, HEAD probe behaviour all unseen).
