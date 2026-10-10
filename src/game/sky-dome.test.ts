@@ -36,7 +36,7 @@ describe("the Fracture Moon and the sky wash", () => {
     expect(skyBodyElevation()).toBeGreaterThan(0.3);
     expect(skyBodyElevation()).toBeLessThan(0.9);
     expect(SKY_BODY.radius).toBeGreaterThan(0.1); // our moon is ~0.02 rad
-    expect(SKY_BODY.radius).toBeLessThan(0.3);
+    expect(SKY_BODY.radius).toBeLessThan(0.5);
   });
   test("the wash is warm at the horizon at golden hour and cool and dark at night", () => {
     const dusk = skyParams(0.04, 0), noon = skyParams(0.9, 0), night = skyParams(-0.4, 0);

@@ -2,8 +2,8 @@
  * clouds and sun take at each hour. The shader only turns these numbers into pixels, so the look can be tuned and tested without a GPU. */
 export type RGB = [number, number, number];
 /** The Fracture Moon: a vast cracked world hanging over the horizon (fixed direction, so it is always where the player expects it). `radius` is its
- * angular radius in radians (~9.5 degrees, about 19x the width of our moon), `dir` a unit vector in the south-west sky at ~30 degrees elevation. */
-export const SKY_BODY = { dir: [-0.58, 0.5, -0.64] as RGB, radius: 0.17 } as const;
+ * angular radius in radians (~24 degrees, a huge cracked world filling a good part of the sky, about 50x the width of our moon), `dir` a unit vector in the south-west sky at ~30 degrees elevation. */
+export const SKY_BODY = { dir: [-0.58, 0.5, -0.64] as RGB, radius: 0.42 } as const;
 export const skyBodyElevation = () => { const [x, y, z] = SKY_BODY.dir; return Math.asin(y / Math.hypot(x, y, z)); };
 
 export type SkyParams = { zenith: RGB; horizon: RGB; wash: number; night: number; cover: number; sunStrength: number; sunColor: RGB; cloudLit: RGB; cloudShade: RGB; starStrength: number; milkyWay: number };

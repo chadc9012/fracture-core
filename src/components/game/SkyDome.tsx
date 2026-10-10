@@ -38,12 +38,12 @@ void main(){
     vec3 bd = normalize(bodyDir);
     float cosA = dot(d, bd);
     float ang = acos(clamp(cosA, -1.0, 1.0));
-    if (ang < bodyRadius * 1.9) {
+    if (ang < bodyRadius * 1.5) {
       vec3 t1 = normalize(cross(bd, vec3(0.0, 1.0, 0.0))), t2 = cross(bd, t1);
       float s = sin(bodyRadius);
       vec2 uv0 = vec2(dot(d, t1), dot(d, t2)) / s;
       float rr = length(uv0);
-      float halo = smoothstep(bodyRadius * 1.9, bodyRadius * 0.95, ang);
+      float halo = smoothstep(bodyRadius * 1.5, bodyRadius * 0.95, ang);
       vec3 haloCol = mix(vec3(0.55, 0.7, 1.0), vec3(1.0, 0.75, 0.5), 1.0 - night) * (0.18 + 0.2 * night);
       col = mix(col, haloCol, halo * 0.5); alpha = max(alpha, halo * 0.35);
       if (rr < 1.0) {
@@ -59,7 +59,7 @@ void main(){
         body *= 0.55 + 0.45 * smoothstep(0.0, 0.9, 1.0 - rr * 0.6);          // darker toward the limb
         vec3 crackCol = mix(vec3(1.0, 0.62, 0.25), vec3(0.4, 0.95, 1.0), night);
         body += crackCol * crack * (0.35 + 0.9 * night);
-        body = mix(body, haloCol * 3.0, pow(rr, 6.0) * 0.55);                // atmosphere rim
+        body = mix(body, haloCol * 3.0, pow(rr, 4.0) * 0.7);                // atmosphere rim
         col = mix(col, body, 1.0); alpha = 1.0;
       }
     }
