@@ -109,6 +109,7 @@ describe("Dark Knight defeat -> rewards, end to end", () => {
     expect(mergeProgression(local, DEFAULT_PROGRESSION, true).equippedGear.classItem).toBe("mantle-null-sovereign");
   });
   it("Rime Alpha and a catalog boss reward exactly as before (material only, no gear, no cards)", () => {
+    stubRandom(0.99); // pin the unrelated random armor-set drop roll so inventory counts are deterministic
     const rime = kill(20, "rime-alpha");
     expect(planScenarioRewardCards(DEFAULT_PROGRESSION, rime, new Set())).toEqual([]);
     const r = claimDrops(DEFAULT_PROGRESSION, rime);
