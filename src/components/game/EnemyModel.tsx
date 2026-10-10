@@ -11,7 +11,7 @@ export const KIND_REGION: Record<EnemyKind, string> = { RAIDER: "wastelands", OV
 
 type Mats = { plate: string; under: string; accent: string; plateKind: keyof typeof SURFACES };
 
-function Plate({ kind, color, ...p }: { kind: keyof typeof SURFACES; color: string } & JSX.IntrinsicElements["group"] & { args: [number, number, number] }) {
+function Plate({ kind, color, ...p }: { kind: keyof typeof SURFACES; color: string; args: [number, number, number]; position?: [number, number, number]; rotation?: [number, number, number] }) {
   const s = SURFACES[kind];
   return <RoundedBox args={p.args} radius={Math.min(...p.args) * 0.25} smoothness={2} position={p.position} rotation={p.rotation} castShadow>
     <meshStandardMaterial color={color} metalness={s.metalness} roughness={s.roughness} />
