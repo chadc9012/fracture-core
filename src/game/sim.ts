@@ -264,7 +264,7 @@ export type WorldSim = {
   armorResist: number;
   armorRegen: number;
   /** enemy gunfire this frame, consumed by the audio layer */
-  enemyShots: { x: number; z: number; kind: string; boss: boolean; elite: boolean }[];
+  enemyShots: { x: number; z: number; kind: string; boss: boolean; elite: boolean; /** region the shooter stands in (presentation: elemental flights) */ zone: string }[];
   /** boss phase transitions this frame, consumed by the audio/camera layer (see boss-phases.ts) */
   bossPhaseFlares: { x: number; z: number; name: string; phase: BossPhaseIndex; label: string }[];
   /** Loot + XP System v1 (xp.ts) — Scene.tsx drains this each frame and applies it to PlayerProgression. */
@@ -1141,7 +1141,7 @@ export function stepSim(sim: WorldSim, input: SimInput) {
         if ((m.aim ?? 0) <= 0) {
           m.aim = 0;
           m.cool = (m.boss ? 1.2 : m.elite ? 1.5 : 2.1) * (bossTuning?.cooldownMult ?? 1);
-          sim.enemyShots.push({ x: m.x, z: m.z, kind: m.kind, boss: m.boss, elite: m.elite });
+          sim.enemyShots.push({ x: m.x, z: m.z, kind: m.kind, boss: m.boss, elite: m.elite, zone: m.zone });
           if (sim.enemyShots.length > 24) sim.enemyShots.shift();
           if (Math.random() < 0.25) hurtPlayer(sim, ((m.boss ? 6 : m.elite ? 4 : 2) * (bossTuning?.damageMult ?? 1)) / sim.mods.hullDurability, m.profile);
         }

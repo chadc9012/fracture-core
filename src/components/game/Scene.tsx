@@ -39,6 +39,10 @@ import { Bullets, BeaconMarkers, Convoys, HazardMarkers, SupplyLanes, WarMachine
 import { ScenarioBosses } from "./ScenarioBosses";
 import { NullPulseFx } from "./NullPulseFx";
 import { AbilityFx } from "./AbilityFx";
+import { CombatFx } from "./CombatFx";
+import { fxBus } from "@/game/fx-bus";
+import { launch, zoneElement } from "@/game/combat-fx";
+import { ejectCasing } from "@/game/casings";
 import { EncounterFx } from "./EncounterFx";
 import { VAELITH, VAELITH_LAIR, dialogueDue, lairDefenseCleared, memoryNear, startLairDefense, vaelithFightable, type StoryWorldEvent } from "@/game/vaelith";
 import { EMPTY_STORY, stageOf } from "@/game/story";
@@ -1177,6 +1181,7 @@ export function Scene({
        if (fireBullet(sim, s.x, s.y + (s.inVehicle ? 1.5 : 0.95), s.z, s.yaw + yawJ, s.inVehicle, s.pitch + s.recoil + pitchJ, wpn.damage * gearPower * (1 + armorFxRef.current.weaponDamage), wpn.knock, wpn.heat)) {
         bossActionLog.current = logAction(bossActionLog.current, "RANGED", performance.now() / 1000);
         sfx.playShot(s.inVehicle ? "VEHICLE" : s.weapon);
+        if (!s.inVehicle) ejectCasing(fxBus.casings, s.weapon, s.x + Math.sin(s.yaw) * 0.5, s.y + 0.9, s.z + Math.cos(s.yaw) * 0.5, s.yaw);
         s.recoil += wpn.recoil;
         s.punch += wpn.punch;
         s.bloom = Math.min(1, s.bloom + 0.18 * wpn.punch);
@@ -1467,7 +1472,11 @@ export function Scene({
       sfx.updateWeatherAmbient(weather);
       // interiors keep their home region's music (a pocket room isn't its own "place"), so the score doesn't drop to silence indoors
       sfx.updateMusicRegion(interior ? interior.regionId : here?.id ?? "");
-      for (const shot of sim.enemyShots.splice(0)) sfx.playEnemyShot(shot.kind, shot.boss || shot.elite, sfx.where(s.x, s.z, s.yaw, shot.x, shot.z));
+      for (const shot of sim.enemyShots.splice(0)) {
+        sfx.playEnemyShot(shot.kind, shot.boss || shot.elite, sfx.where(s.x, s.z, s.yaw, shot.x, shot.z));
+        // visual flight only (the hit chance and damage are unchanged): troops shoot the element of the region they stand in
+        launch(fxBus.flights, zoneElement(shot.zone, shot.kind), [shot.x, walkHeight(shot.x, shot.z) + 1.9, shot.z], [s.x, s.y + 1, s.z], shot.boss ? 2 : shot.elite ? 1.4 : 1);
+      }
       for (const flare of sim.bossPhaseFlares.splice(0)) { sfx.playBossPhaseChange(flare.phase); s.punch += 1.4 + flare.phase * 0.6; }
       for (const event of sim.xpEvents.splice(0)) onXP?.(event);
       const speedNow = velocity.length();
@@ -2058,6 +2067,7 @@ export function Scene({
       <Convoys sim={sim} />
       <WarMachines sim={sim} />
       <ScenarioBosses sim={sim} />
+      <CombatFx sim={sim} reducedMotion={!!settings.reducedMotion} />
       <AbilityFx sim={sim} reducedMotion={!!settings.reducedMotion} />
       <NullPulseFx sim={sim} tier={settings.renderTier} reducedMotion={!!settings.reducedMotion || (typeof window !== "undefined" && typeof window.matchMedia === "function" && window.matchMedia("(prefers-reduced-motion: reduce)").matches)} />
       <EncounterFx sim={sim} reducedMotion={!!settings.reducedMotion || (typeof window !== "undefined" && typeof window.matchMedia === "function" && window.matchMedia("(prefers-reduced-motion: reduce)").matches)} />
