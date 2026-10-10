@@ -46,3 +46,20 @@ The weapon text is lore, not wired behaviour. Only 12 GLBs exist in `models.ts` 
 1. Wire `ordnance.ts` to the Heavy Cannon alt-fire or one shoulder launcher (smallest real rocket), with explosion VFX and splash through `applyMachineDamageMods`.
 2. Pure `flight.ts` + tests, then one drivable aircraft once a model exists.
 3. Model pass (tank, helicopter, jet, boat, motorcycle) before any more vehicle code.
+
+## Launchers and elemental weapons
+
+**Implemented and covered by `launchers.test.ts` (pure rules + sim):** four shoulder launchers, `ROCKET` (Breacher, kinetic), `CINDER` (thermal), `FROSTBITE` (cryo, the only guided one: locks the nearest machine in a 0.45 rad forward cone within 90 m when fired) and `VITRIOL` (corrosive/BIO, widest splash). They are `kind: "launcher"` entries in `weapons.ts` (mag 1-3, 6-10 reserve, 3.2-3.6 s reload) and use the ordnance rules in `ordnance.ts`; rounds live in a pooled `sim.rounds`. A round bursts on a machine, cover, ground or timeout; splash falls off linearly, never hurts the player, and each machine is hit once per burst through `applyMachineDamageMods` (so Weaken/Marked, boss poise, scenario gimmicks and participation behave exactly as for bullets).
+
+**Elemental statuses (`weapon-elements.ts`)** apply only to weapons that carry an element: Pulse Rifle (ARC), Heavy Cannon (THERMAL) and the elemental launchers. Auto Rifle, Fracture Blade and the Breacher (kinetic) apply none.
+
+| Element | Status | Regular enemy | Boss |
+|---|---|---|---|
+| THERMAL | Burn | 0.5 hp/s for 3 s, applied straight to hp (never counts as scenario participation or poise) | none |
+| CRYO | Chill | speed x0.55 for 3 s | none |
+| BIO | Corrode | damage x1.25 for 4 s | x1.10 for 4 s |
+| ARC | Shock | 0.7 s stun, 3.5 s cooldown per machine | same, plus the existing boss stun cap |
+
+Corrode reuses `vulnUntil/vulnMult` and never weakens or shortens an active window. Statuses live in `sim.statuses` (a `Map<Machine, MachineStatuses>`), are removed in `defeatMachine`, and are purged for dead pooled slots, so a respawned machine never inherits them.
+
+**Not done / not verified:** no browser run, so rocket, burst and launcher audio are unseen/unheard; the damage and reload numbers are first-pass and untuned; launchers are selectable in the Arsenal screen by everyone (no unlock gate yet); no launcher can hit trucks or vehicles; the element does not yet appear on the HUD. `CombatFx.tsx`, `Scene.tsx` and `ArsenalLoadouts.tsx` changes are not type-checked here (no react/three packages).

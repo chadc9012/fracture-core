@@ -7,6 +7,10 @@ import { ENCOUNTERS } from "@/game/scenario-encounters";
 import { ELEMENT_STYLE, attackFx, flightAt, launch, stepFlights, volleyTargets, type Element } from "@/game/combat-fx";
 import { stepCasings } from "@/game/casings";
 import { CASING_POOL, FLIGHT_POOL, fxBus } from "@/game/fx-bus";
+import { LAUNCHERS } from "@/game/launchers";
+
+const BURST_SLOTS = 4;
+type Boom = { start: number; x: number; y: number; z: number; radius: number; element: Element };
 
 type Pending = { at: number; scenarioId: string; element: Element; count: number; spread: number; reach: number; ax: number; az: number };
 type Spell = { start: number; end: number; x: number; y: number; z: number; element: Element };
@@ -19,6 +23,11 @@ export function CombatFx({ sim, reducedMotion }: { sim: WorldSim; reducedMotion:
   const casings = useRef<THREE.InstancedMesh>(null);
   const circles = useRef<(THREE.Group | null)[]>([]);
   const seen = useRef(0);
+  const rockets = useRef<(THREE.Group | null)[]>([]);
+  const booms = useRef<(Boom | null)[]>(Array(BURST_SLOTS).fill(null));
+  const boomMeshes = useRef<(THREE.Mesh | null)[]>([]);
+  const seenBoom = useRef(sim.nextBurstId - 1);
+  const boomNext = useRef(0);
   const pending = useRef<Pending[]>([]);
   const spells = useRef<(Spell | null)[]>([null, null]);
   const tmp = useMemo(() => ({ pos: [0, 0, 0] as [number, number, number], m: new THREE.Matrix4(), q: new THREE.Quaternion(), e: new THREE.Euler(), s: new THREE.Vector3(), p: new THREE.Vector3(), up: new THREE.Vector3(0, 1, 0), d: new THREE.Vector3(), c: new THREE.Color() }), []);
@@ -112,6 +121,40 @@ export function CombatFx({ sim, reducedMotion }: { sim: WorldSim; reducedMotion:
       beam!.scale.set(0.5 + t, 6 + 10 * t, 0.5 + t); beam!.position.y = 3 + 5 * t;
       for (const m of [ring, glyph, beam]) { const mat = m!.material as THREE.MeshBasicMaterial; mat.color.set(m === beam ? st.core : st.color); mat.opacity = (m === beam ? 0.45 : 0.85) * (t > 0.9 ? (1 - t) * 10 : 1); }
     });
+
+    // 6) launcher rounds in flight (read-only view of sim.rounds): a body with an additive exhaust, tinted by element
+    for (let i = 0; i < sim.rounds.length; i++) {
+      const r = sim.rounds[i]!, g = rockets.current[i];
+      if (!g) continue;
+      g.visible = r.alive;
+      if (!r.alive) continue;
+      const st = ELEMENT_STYLE[LAUNCHERS[r.launcher].fx];
+      g.position.set(r.x, r.y, r.z);
+      tmp.d.set(r.dx, r.dy, r.dz);
+      g.quaternion.setFromUnitVectors(tmp.up, tmp.d);
+      ((g.children[0] as THREE.Mesh).material as THREE.MeshBasicMaterial).color.set(st.core);
+      ((g.children[1] as THREE.Mesh).material as THREE.MeshBasicMaterial).color.set(st.color);
+    }
+
+    // 7) detonations: an expanding, fading shell sized to the real splash radius
+    for (const e of sim.burstEvents) {
+      if (e.id <= seenBoom.current) continue;
+      seenBoom.current = e.id;
+      booms.current[boomNext.current++ % BURST_SLOTS] = { start: now, x: e.x, y: e.y, z: e.z, radius: e.radius, element: LAUNCHERS[e.launcher].fx };
+    }
+    const boomLife = reducedMotion ? 0.25 : 0.6;
+    booms.current.forEach((b, i) => {
+      const mesh = boomMeshes.current[i];
+      if (!mesh) return;
+      const t = b ? (now - b.start) / boomLife : 2;
+      if (!b || t >= 1) { mesh.visible = false; return; }
+      const k = 1 - (1 - t) * (1 - t);
+      mesh.visible = true;
+      mesh.position.set(b.x, b.y, b.z);
+      mesh.scale.setScalar(b.radius * (0.2 + 0.8 * k));
+      const mat = mesh.material as THREE.MeshBasicMaterial;
+      mat.color.set(ELEMENT_STYLE[b.element].color); mat.opacity = 0.7 * (1 - t);
+    });
   });
 
   return (
@@ -121,6 +164,15 @@ export function CombatFx({ sim, reducedMotion }: { sim: WorldSim; reducedMotion:
           <mesh ref={(m) => { orbs.current[i] = m; }} visible={false}><sphereGeometry args={[1, 8, 6]} /><meshBasicMaterial color="#ffffff" toneMapped={false} fog={false} /></mesh>
           <mesh ref={(m) => { trails.current[i] = m; }} visible={false}><cylinderGeometry args={[0.3, 1, 1, 6, 1, true]} /><meshBasicMaterial color="#ffffff" transparent opacity={0.5} depthWrite={false} blending={THREE.AdditiveBlending} toneMapped={false} fog={false} /></mesh>
         </group>
+      ))}
+      {Array.from({ length: sim.rounds.length }, (_, i) => (
+        <group key={`r${i}`} ref={(g) => { rockets.current[i] = g; }} visible={false}>
+          <mesh><cylinderGeometry args={[0.12, 0.12, 1.1, 8]} /><meshBasicMaterial color="#ffffff" toneMapped={false} fog={false} /></mesh>
+          <mesh position={[0, -1, 0]}><cylinderGeometry args={[0.1, 0.45, 1.8, 8, 1, true]} /><meshBasicMaterial transparent opacity={0.6} depthWrite={false} blending={THREE.AdditiveBlending} toneMapped={false} fog={false} /></mesh>
+        </group>
+      ))}
+      {Array.from({ length: BURST_SLOTS }, (_, i) => (
+        <mesh key={`b${i}`} ref={(m) => { boomMeshes.current[i] = m; }} visible={false}><sphereGeometry args={[1, 16, 12]} /><meshBasicMaterial transparent depthWrite={false} blending={THREE.AdditiveBlending} toneMapped={false} fog={false} /></mesh>
       ))}
       <instancedMesh ref={casings} args={[undefined, undefined, CASING_POOL]} frustumCulled={false}>
         <cylinderGeometry args={[0.018, 0.018, 0.07, 6]} />

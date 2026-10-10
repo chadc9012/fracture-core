@@ -6,7 +6,7 @@ import * as THREE from "three";
 import { REGIONS, SKY, ZONE_COLOR, clockLabel, phaseFor, regionAt, WORLD_RADIUS } from "@/game/world";
 import { useKeyboard } from "@/game/useKeyboard";
 import { walkHeight, slopeAt, heightAt, WATER_LEVEL } from "@/game/terrain";
-import { alert, applyLightning, collidePlayer, createSim, defeatMachine, FACTIONS, fireBullet, hurtPlayer, throwBeacon, instabilityTier, spawnMissionDrones, stepSim, summonBoss, summonScenarioBoss, type Faction, type InstabilityTier, type WorldSim, type ZoneState } from "@/game/sim";
+import { alert, applyLightning, collidePlayer, createSim, defeatMachine, FACTIONS, fireBullet, fireLauncher, hurtPlayer, throwBeacon, instabilityTier, spawnMissionDrones, stepSim, summonBoss, summonScenarioBoss, type Faction, type InstabilityTier, type WorldSim, type ZoneState } from "@/game/sim";
 import type { MissionEvent, MissionRun } from "@/game/missions/broken-signal";
 import type { MissionEvent as BlackoutEvent, MissionRun as BlackoutRun } from "@/game/missions/blackout-protocol";
 import type { MissionEvent as NeonCoreEvent, MissionRun as NeonCoreRun } from "@/game/missions/stitched-neon-core";
@@ -97,6 +97,7 @@ import { CRASH_SITE, ENCOUNTER, NEW_INVESTIGATION, shouldWakePatrol, stepInvesti
 import { spawnForestPatrol } from "@/game/forest-encounter";
 import { CHECKPOINT_INTERVAL_S, chooseRespawn, isCheckpointSafe } from "@/game/respawn";
 import { WEAPONS, WEAPON_ORDER, decay, freshAmmo, type WeaponId } from "@/game/weapons";
+import { isLauncherId } from "@/game/launchers";
 import { DEFAULT_BINDINGS, abilityChord, maskChord } from "@/game/bindings";
 import type { AbilityHud } from "@/game/ability-effects";
 import { abilityHud, cancelAbilities, castAbility, holdDisabledField, syncSimFromLive } from "@/game/ability-effects";
@@ -1137,7 +1138,7 @@ export function Scene({
     padPrev.current = padNow;
     keyPrev.current = new Set(held);
     const wpn = s.inVehicle ? WEAPONS.AUTO : WEAPONS[s.weapon];
-    const equippedWeapon = gear?.inventory.find((item) => item.id === gear.equippedGear[s.inVehicle ? "vehicle" : s.weapon === "HEAVY" ? "heavy" : s.weapon === "PULSE" ? "secondary" : "primary"]);
+    const equippedWeapon = gear?.inventory.find((item) => item.id === gear.equippedGear[s.inVehicle ? "vehicle" : s.weapon === "HEAVY" || WEAPONS[s.weapon].kind === "launcher" ? "heavy" : s.weapon === "PULSE" ? "secondary" : "primary"]);
     const gearPower = equippedWeapon ? 1 + Math.max(0, equippedWeapon.power - 100) / 500 : 1;
     sim.equippedElement = equippedWeapon?.element ?? "KINETIC";
     if (sim.equippedPerk !== equippedWeapon?.perk) sim.nullCharge = { charge: 0, lastTimedAt: -1e9, cooldownUntil: sim.nullCharge.cooldownUntil, lastEventId: sim.nullCharge.lastEventId };
@@ -1178,7 +1179,20 @@ export function Scene({
       const spread = underwaterSpread((wpn.spread + s.bloom * 0.04) * ((mouse.current.aim || padState.current.aim) ? wpn.adsSpread : 1), s.diving ? depth : 0);
       const yawJ = (Math.random() - 0.5) * 2 * spread;
       const pitchJ = (Math.random() - 0.5) * 2 * spread;
-       if (fireBullet(sim, s.x, s.y + (s.inVehicle ? 1.5 : 0.95), s.z, s.yaw + yawJ, s.inVehicle, s.pitch + s.recoil + pitchJ, wpn.damage * gearPower * (1 + armorFxRef.current.weaponDamage), wpn.knock, wpn.heat)) {
+      if (!s.inVehicle && wpn.kind === "launcher" && isLauncherId(wpn.id)) {
+        // launcher rounds are sim.rounds (ordnance rules): splash damage and elemental status are resolved in stepSim, never here
+        if (fireLauncher(sim, wpn.id, s.x + Math.sin(s.yaw) * 0.6, s.y + 0.95, s.z + Math.cos(s.yaw) * 0.6, s.yaw + yawJ, s.pitch + s.recoil + pitchJ, wpn.damage * gearPower * (1 + armorFxRef.current.weaponDamage), wpn.knock, wpn.heat)) {
+          bossActionLog.current = logAction(bossActionLog.current, "RANGED", performance.now() / 1000);
+          sfx.playShot(s.weapon);
+          s.recoil += wpn.recoil;
+          s.punch += wpn.punch;
+          s.bloom = Math.min(1, s.bloom + 0.18 * wpn.punch);
+          if (live.current.veilTime > VEIL_BREAK_TIME) live.current.veilTime = VEIL_BREAK_TIME;
+          clip.mag--; if (clip.mag <= 0) startReload();
+        }
+        return;
+      }
+       if (fireBullet(sim, s.x, s.y + (s.inVehicle ? 1.5 : 0.95), s.z, s.yaw + yawJ, s.inVehicle, s.pitch + s.recoil + pitchJ, wpn.damage * gearPower * (1 + armorFxRef.current.weaponDamage), wpn.knock, wpn.heat, s.inVehicle ? undefined : wpn.element)) {
         bossActionLog.current = logAction(bossActionLog.current, "RANGED", performance.now() / 1000);
         sfx.playShot(s.inVehicle ? "VEHICLE" : s.weapon);
         if (!s.inVehicle) ejectCasing(fxBus.casings, s.weapon, s.x + Math.sin(s.yaw) * 0.5, s.y + 0.9, s.z + Math.cos(s.yaw) * 0.5, s.yaw);
@@ -1849,7 +1863,7 @@ export function Scene({
         viewmodel.current.visible = !s.inVehicle && s.cameraBlend < 0.22;
         viewmodel.current.position.copy(camera.position);
         viewmodel.current.quaternion.copy(camera.quaternion);
-        if (gunModel.current) { gunModel.current.visible = WEAPONS[s.weapon].kind === "gun"; gunModel.current.position.z = Math.min(0.35, s.punch * 0.06); gunModel.current.rotation.x = s.recoil * 3; const fv = feel.current.view; if (fv) { gunModel.current.position.y = fv.bobY * 0.9; gunModel.current.position.x = fv.swayX * 1.4; gunModel.current.rotation.z = Math.sin(fv.phase) * 0.03 * fv.intensity; } }
+        if (gunModel.current) { gunModel.current.visible = WEAPONS[s.weapon].kind !== "sword"; gunModel.current.position.z = Math.min(0.35, s.punch * 0.06); gunModel.current.rotation.x = s.recoil * 3; const fv = feel.current.view; if (fv) { gunModel.current.position.y = fv.bobY * 0.9; gunModel.current.position.x = fv.swayX * 1.4; gunModel.current.rotation.z = Math.sin(fv.phase) * 0.03 * fv.intensity; } }
         if (swordModel.current) { swordModel.current.visible = WEAPONS[s.weapon].kind === "sword"; const t = s.swing / 0.3; swordModel.current.rotation.z = (s.combo % 2 ? 1 : -1) * (t > 0 ? (1 - t) * 2.4 - 1.2 : -0.35); }
       }
     }

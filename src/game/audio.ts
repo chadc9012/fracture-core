@@ -77,6 +77,12 @@ export function playShot(weapon: WeaponId | "VEHICLE") {
     tone(c, o, { f0: 90, f1: 28, dur: 0.5, gain: 1 });
     tone(c, o, { f0: 900, f1: 120, dur: 0.25, type: "sawtooth", gain: 0.1 });
     burst(c, o, { dur: 0.9, freq: 400, type: "lowpass", gain: 0.18, at: 0.12 }); // distance tail
+  } else if (weapon === "ROCKET" || weapon === "CINDER" || weapon === "FROSTBITE" || weapon === "VITRIOL") {
+    // launcher: hollow thump + rushing exhaust; the element shades the top end only
+    tone(c, o, { f0: 120, f1: 36, dur: 0.35, gain: 0.9 });
+    burst(c, o, { dur: 0.6, freq: weapon === "FROSTBITE" ? 3200 : weapon === "VITRIOL" ? 1500 : 900, q: 0.6, type: weapon === "FROSTBITE" ? "highpass" : "lowpass", gain: 0.5 });
+    if (weapon === "CINDER") tone(c, o, { f0: 300, f1: 90, dur: 0.4, type: "sawtooth", gain: 0.12 });
+    burst(c, o, { dur: 0.8, freq: 380, type: "lowpass", gain: 0.16, at: 0.1 });
   }
 }
 export function playSwing(finisher: boolean) {

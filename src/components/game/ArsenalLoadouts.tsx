@@ -63,7 +63,7 @@ export function ArsenalLoadouts({ progression, onProgression, onBack }: { progre
                   const w = WEAPONS[id], on = loadout.slots[slot] === id;
                   return <button key={id} onClick={() => setSlot(slot, id)} className={`ui-focus w-full border p-2 text-left text-xs ${on ? "border-primary text-primary" : "border-foreground/10 text-muted-foreground hover:border-foreground/30"}`}>
                     <span className="block font-mono uppercase">{w.name}</span>
-                    <span>{w.kind === "sword" ? "Melee" : `${w.mag} rounds · ${(1 / w.fireRate).toFixed(1)}/s`} · dmg ×{w.damage}</span>
+                    <span>{w.kind === "sword" ? "Melee" : `${w.mag} rounds · ${(1 / w.fireRate).toFixed(1)}/s`} · dmg ×{w.damage}{w.kind === "launcher" ? " · splash" : ""}{w.element && w.element !== "KINETIC" ? ` · ${w.element.toLowerCase()}` : ""}</span>
                   </button>;
                 })}</div>
               </div>

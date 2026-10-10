@@ -54,6 +54,9 @@ import { encounterHpFloor, endEncounter, onDecoyShattered, resetEncounters, step
 import { rollWeaponLoot } from "./weapon-loot";
 import { PARTICIPATION_HITS, SCENARIO_LOOT, rollScenario, type ScenarioClaim } from "./scenario-loot";
 import { attunedElement, gimmickMultiplier, type DamageElement } from "./scenario-gimmicks";
+import { fireRound, splashDamage, stepRound, type Burst, type OrdnanceDef, type Round } from "./ordnance";
+import { LAUNCHERS, pickLockTarget, type LauncherId } from "./launchers";
+import { applyElementHit, burnDamage, freshStatuses, mergeVuln, statusSpeedMult, type MachineStatuses } from "./weapon-elements";
 
 /* ------------------------------------------------------------------
  * World simulation: faction capture, fracture instability,
@@ -189,7 +192,16 @@ export type Bullet = {
   life: number;
   dmg: number;
   knock: number;
+  /** set only by weapons that carry an element (Pulse, Heavy): drives on-hit status and the gimmick element; undefined = legacy behaviour */
+  element?: DamageElement | undefined;
 };
+
+/** a launcher round in flight (ordnance.ts rules) plus what the burst needs; pooled, never allocated per frame */
+export type SimRound = Round & { launcher: LauncherId; element: DamageElement; /** index into sim.machines for guided rounds, -1 = unguided */ target: number; knock: number };
+/** presentation log of rocket detonations (CombatFx reads it; it never decides anything) */
+export type BurstEvent = { id: number; x: number; y: number; z: number; radius: number; element: DamageElement; launcher: LauncherId };
+const ROUND_POOL = 12;
+const NO_ORDNANCE: OrdnanceDef = { id: "none", kind: "ROCKET", name: "", speed: 0, turnRate: 0, life: 0, splashRadius: 0, damage: 0, proximity: 0, domain: "ANY", fits: [] };
 
 export type { Lane };
 export { laneSamples };
@@ -256,6 +268,11 @@ export type WorldSim = {
   encounterEvents: EncounterEvent[];
   nextEncounterEventId: number;
   nextEncounterZoneId: number;
+  /** launcher rounds, element statuses per machine (weapon-elements.ts) and the detonation log */
+  rounds: SimRound[];
+  statuses: Map<Machine, MachineStatuses>;
+  burstEvents: BurstEvent[];
+  nextBurstId: number;
   /** 0..1 on-foot speed multiplier from slowing zones this step (Scene applies it) */
   hazardSpeedMult: number;
   materials: Partial<Record<MaterialId, number>>;
@@ -331,6 +348,7 @@ function dropLoot(sim: WorldSim, zone: ZoneState | undefined, enemyType: string)
 
 export function defeatMachine(sim: WorldSim, m: Machine) {
   if (!m.alive || m.hp > 0) return;
+  sim.statuses.delete(m);
   if (m.decoy) { // a False Saint: no kill, credit, loot or progress
     m.alive = false;
     onDecoyShattered(sim, m);
@@ -470,6 +488,7 @@ export function createSim(): WorldSim {
     life: 0,
     dmg: 1,
     knock: 1,
+    element: undefined,
   }));
 
   const adaptation = createAdaptation();
@@ -514,6 +533,8 @@ export function createSim(): WorldSim {
     nullPulse: null,
     nextHitId: 0,
     encounterZones: [], encounterEvents: [], nextEncounterEventId: 1, nextEncounterZoneId: 1, hazardSpeedMult: 1,
+    rounds: Array.from({ length: ROUND_POOL }, () => ({ ...fireRound(NO_ORDNANCE, { x: 0, y: 0, z: 0 }, [0, 0, 1]), alive: false, launcher: "ROCKET" as LauncherId, element: "KINETIC" as DamageElement, target: -1, knock: 1 })),
+    statuses: new Map(), burstEvents: [], nextBurstId: 1,
     materials: {}, drops: [], armorResist: 0, armorRegen: 0, enemyShots: [], bossPhaseFlares: [], xpEvents: [], nextDropId: 0,
     emergencyQuest: EMERGENCY_QUEST_INIT,
     bossCounter: counterTuningFor(null),
@@ -633,6 +654,7 @@ export function fireBullet(
   dmg = 1,
   knock = 1,
   heat = 1,
+  element?: DamageElement,
 ) {
   if (sim.overheated) return false;
   const b = sim.bullets.find((v) => !v.alive);
@@ -653,8 +675,61 @@ export function fireBullet(
   b.life = 1.4;
   b.dmg = dmg;
   b.knock = knock;
+  b.element = element;
   logBehavior(sim.adaptation, "combat", 0.35);
   return true;
+}
+
+/** fire a launcher weapon: `dmg` is the weapon multiplier x gear power (bullet-equivalent units). Guided launchers lock the nearest machine in a
+ * forward cone at the moment of firing. Shares heat/noise/overheat rules with bullets. Returns false when overheated or the pool is full. */
+export function fireLauncher(sim: WorldSim, id: LauncherId, x: number, y: number, z: number, yaw: number, pitch: number, dmg: number, knock = 1, heat = 1): boolean {
+  if (sim.overheated) return false;
+  const r = sim.rounds.find((v) => !v.alive);
+  if (!r) return false;
+  const L = LAUNCHERS[id];
+  sim.weaponHeat = Math.min(100, sim.weaponHeat + HEAT_PER_SHOT_FOOT * heat);
+  sim.playerNoise = 1;
+  if (sim.weaponHeat >= 100) { sim.overheated = true; alert(sim, "WEAPON OVERHEAT — venting"); }
+  const lock = L.guided ? pickLockTarget({ x, z }, yaw, sim.machines, L.lockCone, L.lockRange) : -1;
+  const aim: [number, number, number] = [Math.sin(yaw) * Math.cos(pitch), Math.sin(pitch), Math.cos(yaw) * Math.cos(pitch)];
+  Object.assign(r, fireRound({ ...L.ordnance, damage: dmg * sim.mods.bulletDamage * sim.verbDamageMult }, { x, y, z }, aim), { launcher: id, element: L.element, target: lock, knock });
+  logBehavior(sim.adaptation, "combat", 0.6);
+  return true;
+}
+
+/** apply the elemental status for one hit to a machine (weapon-elements.ts rules); stun goes through stunMachine so bosses stay capped */
+export function applyWeaponElement(sim: WorldSim, m: Machine, element: DamageElement) {
+  if (element === "KINETIC") return;
+  const now = performance.now() / 1000;
+  let st = sim.statuses.get(m);
+  if (!st) { st = freshStatuses(); sim.statuses.set(m, st); }
+  const fx = applyElementHit(st, element, now, m.boss);
+  if (fx.stun > 0) stunMachine(m, fx.stun);
+  if (fx.vuln) { const v = mergeVuln({ mult: m.vulnMult, until: m.vulnUntil }, fx.vuln, now); m.vulnMult = v.mult; m.vulnUntil = v.until; }
+}
+
+/** splash damage for one detonation. Never hurts the player; every machine goes through applyMachineDamageMods exactly once. */
+function detonateRound(sim: WorldSim, r: SimRound, b: Burst, px: number, pz: number) {
+  r.alive = false;
+  for (const m of sim.machines) {
+    if (!m.alive) continue;
+    const dx = m.x - b.x, dz = m.z - b.z, planar = Math.hypot(dx, dz);
+    const dist = Math.max(0, planar - 1.5 * m.scale);
+    const base = splashDamage(b, dist);
+    if (base <= 0) continue;
+    const dmg = applyMachineDamageMods(sim, m, base, r.element, px, pz);
+    m.hp -= dmg;
+    const fall = 1 - Math.min(1, dist / b.radius), n = planar || 1;
+    m.kx += (dx / n) * 7 * r.knock * fall;
+    m.kz += (dz / n) * 7 * r.knock * fall;
+    applyWeaponElement(sim, m, r.element);
+    sim.lastHit = performance.now();
+    logBehavior(sim.adaptation, "combat", 1);
+    defeatMachine(sim, m);
+  }
+  sim.combatHeat += 3;
+  sim.burstEvents.push({ id: sim.nextBurstId++, x: b.x, y: b.y, z: b.z, radius: b.radius, element: r.element, launcher: r.launcher });
+  if (sim.burstEvents.length > 8) sim.burstEvents.splice(0, sim.burstEvents.length - 8);
 }
 
 /** Subclass-verb pulses (see subclass-verbs.ts). All three are cast from the player's own position
@@ -1093,7 +1168,7 @@ export function stepSim(sim: WorldSim, input: SimInput) {
 
     const aggro =
       (70 + night * 60) * (m.elite ? 1.6 : 1) * sim.mods.aggroRadius * sim.adaptation.influence.aiAggression;
-    const speed = (10 + night * 6) * (m.elite ? 1.15 : 1) * (bossTuning?.speedMult ?? 1);
+    const speed = (10 + night * 6) * (m.elite ? 1.15 : 1) * (bossTuning?.speedMult ?? 1) * statusSpeedMult(sim.statuses.get(m), performance.now() / 1000);
     if (d < 120) hostileNear++;
 
     // ---- awareness: patrol → suspicious → alert → search (enemy-perception.ts) ----
@@ -1439,6 +1514,31 @@ export function stepSim(sim: WorldSim, input: SimInput) {
     if (m.attuned !== now) { m.attuned = now; alert(sim, `${m.profile} attunes to ${now} — match it`); }
   }
 
+  // ---------- element statuses: burn ticks (regular enemies only), expiry, dead-slot cleanup ----------
+  {
+    const nowS = performance.now() / 1000;
+    for (const [m, st] of sim.statuses) {
+      if (!m.alive) { sim.statuses.delete(m); continue; }
+      const d = burnDamage(st, nowS, dt);
+      if (d > 0) { m.hp -= d; defeatMachine(sim, m); }
+      else if (st.burnUntil <= nowS && st.chillUntil <= nowS && st.shockReadyAt <= nowS) sim.statuses.delete(m);
+    }
+  }
+
+  // ---------- launcher rounds ----------
+  for (const r of sim.rounds) {
+    if (!r.alive) continue;
+    const tm = r.target >= 0 ? sim.machines[r.target] : undefined;
+    let burst = stepRound(r, dt, tm && tm.alive ? { x: tm.x, y: tm.y + 1, z: tm.z } : null, heightAt);
+    if (!burst && r.alive && collideBody(r, 0.5, 70, 0.3).hit) burst = { x: r.x, y: r.y, z: r.z, radius: r.def.splashRadius, damage: r.def.damage, reason: "PROXIMITY" };
+    if (!burst && r.alive && r.y - heightAt(r.x, r.z) < 8) {
+      for (const m of sim.machines) {
+        if (m.alive && Math.hypot(m.x - r.x, m.z - r.z) < 2.6 * m.scale) { burst = { x: r.x, y: r.y, z: r.z, radius: r.def.splashRadius, damage: r.def.damage, reason: "PROXIMITY" }; break; }
+      }
+    }
+    if (burst) detonateRound(sim, r, burst, px, pz);
+  }
+
   // ---------- bullets ----------
   for (const b of sim.bullets) {
     if (!b.alive) continue;
@@ -1466,8 +1566,9 @@ export function stepSim(sim: WorldSim, input: SimInput) {
         b.alive = false;
         let dmg = sim.mods.bulletDamage * b.dmg * sim.verbDamageMult;
         if (sim.equippedElement !== "KINETIC") dmg += 0.35;
-        dmg = applyMachineDamageMods(sim, m, dmg, sim.equippedElement, px, pz);
+        dmg = applyMachineDamageMods(sim, m, dmg, b.element ?? sim.equippedElement, px, pz);
         m.hp -= dmg;
+        if (b.element) applyWeaponElement(sim, m, b.element);
         if (sim.equippedPerk === NULL_PERK) {
           // timed = interrupting a wind-up, or hitting a boss while its weak-point/stagger window is open
           const nowS = performance.now() / 1000;
@@ -1484,7 +1585,7 @@ export function stepSim(sim: WorldSim, input: SimInput) {
             alert(sim, "NULL DISRUPTION — pulse released");
           }
         }
-        if (sim.equippedElement === "CRYO" || sim.equippedElement === "ARC") m.cool = Math.max(m.cool, sim.equippedElement === "CRYO" ? 0.9 : 0.6);
+        if (!b.element && (sim.equippedElement === "CRYO" || sim.equippedElement === "ARC")) m.cool = Math.max(m.cool, sim.equippedElement === "CRYO" ? 0.9 : 0.6);
         sim.lastHit = performance.now();
         logBehavior(sim.adaptation, "combat", 1);
         // knockback impulse from the hit direction
