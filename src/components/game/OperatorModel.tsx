@@ -107,17 +107,17 @@ function paintVertexColors(mesh: THREE.SkinnedMesh, palette: Palette) {
 
 const actions0 = (a: Record<string, THREE.AnimationAction>, name: string) => Boolean(a[name]);
 
-function Model({ url, tint, height, feetY, color, pose, motion, bodyType, look, cloth, gear, classId }: { gear: WornGear | undefined; classId: ClassId; look: ArmorLook | undefined; cloth: string | undefined; bodyType: BodyType | undefined; url: string; tint: boolean; height: number; feetY: number; color: string | undefined; pose: "showcase" | "locomotion"; motion: ModelMotion | undefined }) {
+function Model({ url, tint, height, feetY, color, trim, pose, motion, bodyType, look, cloth, gear, classId }: { trim: string | undefined; gear: WornGear | undefined; classId: ClassId; look: ArmorLook | undefined; cloth: string | undefined; bodyType: BodyType | undefined; url: string; tint: boolean; height: number; feetY: number; color: string | undefined; pose: "showcase" | "locomotion"; motion: ModelMotion | undefined }) {
   const { scene, animations } = useGLTF(url);
   const built = useMemo(() => {
     const object = cloneSkinned(scene);
     let skinned = false;
     const robot = bodyProfile(bodyType).segmented;
-    const palette = tint ? buildPalette({ armor: color, cloth, look, bodyType }) : null;
+    const palette = tint ? buildPalette({ armor: color, cloth, look, bodyType, trim }) : null;
     // vertex colours carry the armor regions; a faint cool emissive floor keeps shadowed plates from going black
     // shared visual standard: segmented chassis reads as bare metal, armored operators as painted ceramic plate
     const surface = robot ? SURFACES.bareMetal : SURFACES.paintedArmor;
-    const material = palette ? new THREE.MeshStandardMaterial({ color: "#ffffff", vertexColors: true, metalness: surface.metalness, roughness: surface.roughness, emissive: new THREE.Color("#0f141c"), emissiveIntensity: 1 }) : null;
+    const material = palette ? new THREE.MeshStandardMaterial({ color: "#ffffff", vertexColors: true, metalness: surface.metalness, roughness: surface.roughness, emissive: new THREE.Color("#1c2836"), emissiveIntensity: 1 }) : null;
     const ownGeometries: THREE.BufferGeometry[] = [];
     if (material && robot) {
       // segmented chassis: glowing cyan seams every quarter metre up the body, in model-relative height
@@ -143,7 +143,7 @@ function Model({ url, tint, height, feetY, color, pose, motion, bodyType, look, 
     const actions: Record<string, THREE.AnimationAction> = {};
     if (mixer) for (const clip of animations) { const a = mixer.clipAction(pinRootMotion(clip)); a.timeScale = 0; a.play(); a.weight = 0; actions[clip.name] = a; }
     return { object, scale, material, ownGeometries, mixer, actions, offset: new THREE.Vector3(-centre.x * scale, feetY - box.min.y * scale, -centre.z * scale) };
-  }, [scene, animations, height, feetY, tint, color, bodyType, look, cloth]);
+  }, [scene, animations, height, feetY, tint, color, trim, bodyType, look, cloth]);
   const armorKey = piecesKey(gear, classId);
   useEffect(() => {
     const pieces = equippedPieces(gear, classId);
@@ -209,13 +209,13 @@ function Model({ url, tint, height, feetY, color, pose, motion, bodyType, look, 
 
 /** Draws the authored model for `classId` if one exists, else `fallback` (also while loading or on failure).
  * `pose="showcase"` loops the flex clip (forge); `"locomotion"` drives walk/run from the live stride phase. */
-export function OperatorModel({ classId, height, feetY, fallback, color, pose = "showcase", motion, bodyType, look, cloth, gear }: {
+export function OperatorModel({ classId, height, feetY, fallback, color, trim, pose = "showcase", motion, bodyType, look, cloth, gear }: {
   /** equipped inventory: each worn armor slot attaches its own pieces to the rig */
   gear?: WornGear | undefined;
-  look?: ArmorLook | undefined; cloth?: string | undefined; bodyType?: BodyType | undefined; classId: ClassId; height: number; feetY: number; fallback: ReactNode; color?: string | undefined; pose?: "showcase" | "locomotion"; motion?: ModelMotion | undefined;
+  trim?: string | undefined; look?: ArmorLook | undefined; cloth?: string | undefined; bodyType?: BodyType | undefined; classId: ClassId; height: number; feetY: number; fallback: ReactNode; color?: string | undefined; pose?: "showcase" | "locomotion"; motion?: ModelMotion | undefined;
 }) {
   const entry = OPERATOR_MODELS[classId];
   // a static mesh would just slide across the ground, so the world only uses rigged models
   if (!entry || (pose === "locomotion" && !entry.rigged)) return <>{fallback}</>;
-  return <Quiet fallback={fallback}><Suspense fallback={fallback}><Model url={entry.url} tint={entry.tint} height={height} feetY={feetY} color={color} pose={pose} motion={motion} bodyType={bodyType} look={look} cloth={cloth} gear={gear} classId={classId} /></Suspense></Quiet>;
+  return <Quiet fallback={fallback}><Suspense fallback={fallback}><Model url={entry.url} tint={entry.tint} height={height} feetY={feetY} color={color} trim={trim} pose={pose} motion={motion} bodyType={bodyType} look={look} cloth={cloth} gear={gear} classId={classId} /></Suspense></Quiet>;
 }

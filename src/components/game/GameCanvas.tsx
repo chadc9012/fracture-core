@@ -14,6 +14,7 @@ import { HUD } from "./HUD";
 import { Scene, type HudState } from "./Scene";
 import { WorldErrorBoundary } from "./WorldErrorBoundary";
 import { GraphicsGuard } from "./GraphicsGuard";
+import { CinematicGrade } from "./CinematicGrade";
 import { StartMenu, type Deployment } from "./StartMenu";
 import { perfFlags } from "@/game/perf-flags";
 import { SettingsWindow, DEFAULT_SETTINGS, type GameSettings } from "./SettingsWindow";
@@ -757,6 +758,7 @@ export function GameCanvas() {
         // look without paying for contact-shadow and bokeh sampling every frame.
         const premium = post && settings.renderTier === "ULTRA";
         return (
+      <>
       <Canvas
         onCreated={onCreated}
         onPointerDown={(event) => {
@@ -802,6 +804,8 @@ export function GameCanvas() {
           onIncline={() => setAdaptiveDpr((d) => { const next = Math.min(2, d + 0.25); if (next > 1.25) setLowPerf(false); return next; })}
         />
       </Canvas>
+      {!post && <CinematicGrade reduce={!!settings.reducedMotion} />}
+      </>
         );
       }}</GraphicsGuard>
       </WorldErrorBoundary>

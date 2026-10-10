@@ -7,6 +7,7 @@ import { REGIONS, WORLD_RADIUS, type Region } from "@/game/world";
 import type { RenderTier } from "@/game/performance";
 import { mulberry32 } from "@/game/useKeyboard";
 import { clusterAround } from "@/game/foliage";
+import { GROVE, growGroves } from "@/game/forest-density";
 import { windSway } from "@/game/wind-sway";
 import { WATER_LEVEL, colorAt, heightAt, slopeAt, riverAt } from "@/game/terrain";
 import { groundDetailTextures, propDetailTextures } from "@/game/detail-texture";
@@ -171,7 +172,21 @@ export function Terrain({ renderTier = "HIGH" }: { renderTier?: RenderTier } = {
   const fineShadows = renderTier === "HIGH" || renderTier === "ULTRA";
   const d = (n: number) => Math.max(1, Math.round(n * density));
 
-  const trees = useMemo(() => scatter(forest, d(120), 11, { min: 1.5, max: 26, maxSlope: 0.55, keepSpawnLaneClear: true }), [forest, density]);
+  const baseTrees = useMemo(() => scatter(forest, d(120), 11, { min: 1.5, max: 26, maxSlope: 0.55, keepSpawnLaneClear: true }), [forest, density]);
+  // clustered groves on top of the uniform scatter: thick stands with open gaps between, instead of an evenly spread park
+  const groveTrees = useMemo<Prop[]>(() => {
+    const centres = scatter(forest, d(GROVE.centres), 17, { min: 1.5, max: 26, maxSlope: 0.55, keepSpawnLaneClear: true });
+    const accept = (x: number, z: number) => {
+      if (Math.hypot(x - forest.x, z - forest.z) > forest.radius * 0.95) return false;
+      const y = heightAt(x, z);
+      if (y < 1.5 || y > 26 || slopeAt(x, z) > 0.55) return false;
+      if (Math.hypot(x - forest.x, z - (forest.z + 12)) < 16 || isReserved(x, z, 1.5) || distanceToRoad(x, z) < LANE_HALF_WIDTH) return false;
+      const rv = riverAt(x, z);
+      return !(rv && rv.dist < rv.w + 2);
+    };
+    return growGroves(centres, baseTrees, mulberry32(23), accept, d(GROVE.perGrove)).map((t) => ({ ...t, y: heightAt(t.x, t.z) }));
+  }, [forest, baseTrees, density]);
+  const trees = useMemo(() => [...baseTrees, ...groveTrees], [baseTrees, groveTrees]);
   // undergrowth clusters around each tree: saplings and low brush, kept off roads, water and steep ground
   const undergrowth = useMemo(() => clusterAround(trees, d(3), mulberry32(61), (x, z) => {
     const y = heightAt(x, z);

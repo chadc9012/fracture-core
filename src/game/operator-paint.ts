@@ -40,18 +40,23 @@ export type Palette = Record<Region, Paint>;
 
 /** Colour for every region. Worn set pieces take their set colour (blended a little with the operator's armor colour so the
  * two read as one kit); unworn slots keep the operator's own armor colour, lifted so plating is never near-black. */
-export function buildPalette(opts: { armor: string | undefined; cloth?: string | undefined; look?: ArmorLook | undefined; bodyType?: BodyType | undefined }): Palette {
+export function buildPalette(opts: { armor: string | undefined; cloth?: string | undefined; look?: ArmorLook | undefined; bodyType?: BodyType | undefined; trim?: string | undefined }): Palette {
   const robot = opts.bodyType === "robot";
-  const armor = lift(opts.armor ?? "#6b6f76", 0.3);
-  const suit = robot ? "#8c97a6" : lift(opts.cloth ?? "#2d333d", 0.14);
-  const plateFor = (slot: SetSlot): Paint => {
+  const armor = lift(opts.armor ?? "#6b6f76", 0.42);
+  const suit = robot ? "#8c97a6" : lift(opts.cloth ?? "#2d333d", 0.2);
+  // two-tone kit: the operator's own trim colour picks out the helmet, shoulders, gauntlets and shins so the body is
+  // not one flat plate colour; thighs stay close to the base plate and the boots are darker
+  const trim = lift(opts.trim ?? "#c9a24a", 0.5);
+  const TRIM_MIX: Partial<Record<Region, number>> = { helmet: 0.32, pauldron: 0.5, gauntlet: 0.42, shin: 0.26 };
+  const plateFor = (slot: SetSlot, region: Region): Paint => {
     const worn = opts.look?.[slot];
-    return { color: worn ? lift(mixHex(worn.color, armor, 0.22), 0.34) : armor, plate: 1 };
+    if (worn) return { color: lift(mixHex(worn.color, armor, 0.22), 0.4), plate: 1 };
+    return { color: mixHex(armor, trim, TRIM_MIX[region] ?? 0), plate: 1 };
   };
   const out = {} as Palette;
   (Object.keys(REGION_SLOT) as Region[]).forEach((r) => {
     const slot = REGION_SLOT[r];
-    out[r] = slot ? plateFor(slot) : r === "boot" ? { color: mixHex(suit, "#0b0d10", 0.55), plate: 0.4 } : { color: suit, plate: robot ? 1 : 0 };
+    out[r] = slot ? plateFor(slot, r) : r === "boot" ? { color: mixHex(suit, "#0b0d10", 0.45), plate: 0.4 } : { color: suit, plate: robot ? 1 : 0 };
   });
   return out;
 }

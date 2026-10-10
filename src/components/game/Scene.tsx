@@ -1,4 +1,4 @@
-import { Environment, Lightformer, Sky, Text } from "@react-three/drei";
+import { Environment, Lightformer, Sky, Text, useGLTF } from "@react-three/drei";
 import { useFrame, useThree } from "@react-three/fiber";
 import { useEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
@@ -38,6 +38,7 @@ import { Civilians } from "./Civilians";
 import { Bullets, BeaconMarkers, Convoys, HazardMarkers, SupplyLanes, WarMachines, ZoneBeacons } from "./Actors";
 import { ScenarioBosses } from "./ScenarioBosses";
 import { NullPulseFx } from "./NullPulseFx";
+import { AbilityFx } from "./AbilityFx";
 import { EncounterFx } from "./EncounterFx";
 import { VAELITH, VAELITH_LAIR, dialogueDue, lairDefenseCleared, memoryNear, startLairDefense, vaelithFightable, type StoryWorldEvent } from "@/game/vaelith";
 import { EMPTY_STORY, stageOf } from "@/game/story";
@@ -48,7 +49,7 @@ import { NeonCity, NEON_CITY_CENTER } from "./NeonCity";
 import { Thalassia, THALASSIA_CENTER } from "./Thalassia";
 import { Water } from "./Water";
 import { Operator } from "./Operator";
-import { OperatorModel } from "./OperatorModel";
+import { OperatorModel, OPERATOR_MODELS } from "./OperatorModel";
 import { Interior } from "./Interior";
 import { WorldMarkers } from "./WorldMarkers";
 import { buildInterior, applyDamage, hitTest, stepDebris, STRUCTURE_MULT } from "@/game/destruction";
@@ -449,6 +450,8 @@ export function Scene({
   const selectedSubclass = subclassById(subclassId);
   const selectedVehicle = vehicleById(vehicleId);
   const player = useRef<THREE.Group>(null!);
+  // start fetching this operator's model at once so the plain procedural stand-in is on screen for as short a time as possible
+  useEffect(() => { const entry = OPERATOR_MODELS[playerClass]; if (entry) useGLTF.preload(entry.url); }, [playerClass]);
   const vehicle = useRef<THREE.Group>(null!);
   const sun = useRef<THREE.DirectionalLight>(null!);
   const weatherKind = useRef<string>("Clear shield");
@@ -2055,6 +2058,7 @@ export function Scene({
       <Convoys sim={sim} />
       <WarMachines sim={sim} />
       <ScenarioBosses sim={sim} />
+      <AbilityFx sim={sim} reducedMotion={!!settings.reducedMotion} />
       <NullPulseFx sim={sim} tier={settings.renderTier} reducedMotion={!!settings.reducedMotion || (typeof window !== "undefined" && typeof window.matchMedia === "function" && window.matchMedia("(prefers-reduced-motion: reduce)").matches)} />
       <EncounterFx sim={sim} reducedMotion={!!settings.reducedMotion || (typeof window !== "undefined" && typeof window.matchMedia === "function" && window.matchMedia("(prefers-reduced-motion: reduce)").matches)} />
       <HazardMarkers sim={sim} />
@@ -2103,7 +2107,7 @@ export function Scene({
 
       {/* player on foot */}
       <group ref={player} position={SPAWN.toArray()}>
-        <OperatorModel gear={gear} bodyType={bodyType} classId={playerClass} height={2.75} feetY={-1.55} color={appearance.armor} cloth={appearance.cloth} look={worn} pose="locomotion" motion={feel.current.motionRef} fallback={
+        <OperatorModel gear={gear} bodyType={bodyType} classId={playerClass} height={2.75} feetY={-1.55} color={appearance.armor} trim={appearance.trim} cloth={appearance.cloth} look={worn} pose="locomotion" motion={feel.current.motionRef} fallback={
   <Operator bodyType={bodyType} armor={appearance.armor} cloth={appearance.cloth} visor={appearance.visor} trim={appearance.trim} classId={playerClass} motion={feel.current.motionRef} visualState={armorState} chestLevel={armorLevels.chest} helmetLevel={armorLevels.helmet} legsLevel={armorLevels.legs} look={worn} />
         } />
         {playerClass === "TITAN" && sim.titan.blocking && (

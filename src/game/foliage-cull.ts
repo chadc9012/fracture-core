@@ -14,7 +14,7 @@ export function nearIndices(items: readonly XZ[], cx: number, cz: number, radius
 }
 
 /** Draw radius per species (metres): big trees read far into the fog, ground cover only up close. */
-export const CULL_RADIUS = { fir: 170, broadleaf: 170, rock: 120, log: 90, shrub: 70, fern: 55 } as const;
+export const CULL_RADIUS = { fir: 130, broadleaf: 130, rock: 120, log: 90, shrub: 70, fern: 55 } as const;
 
 /** Re-select only after the camera has moved this far (m), so a still or slow camera costs nothing. */
 export const RESELECT_DISTANCE = 6;

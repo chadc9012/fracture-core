@@ -364,30 +364,46 @@ export function Bullets({ sim }: { sim: WorldSim }) {
   const core = useRef<THREE.Group>(null!);
   const tracer = useRef<THREE.Group>(null!);
   const flash = useRef<THREE.Group>(null!);
+  const halo = useRef<THREE.Group>(null!);
+  const trail = useRef<THREE.Group>(null!);
   const dir = useMemo(() => new THREE.Vector3(), []);
   const quat = useMemo(() => new THREE.Quaternion(), []);
   const up = useMemo(() => new THREE.Vector3(0, 1, 0), []);
 
   useFrame(() => {
-    const cg = core.current, tg = tracer.current, fg = flash.current;
-    if (!cg || !tg || !fg) return;
+    const cg = core.current, tg = tracer.current, fg = flash.current, hg = halo.current, rg = trail.current;
+    if (!cg || !tg || !fg || !hg || !rg) return;
     sim.bullets.forEach((b, i) => {
       const coreMesh = cg.children[i] as THREE.Mesh | undefined;
       const tracerMesh = tg.children[i] as THREE.Mesh | undefined;
       const flashMesh = fg.children[i] as THREE.Mesh | undefined;
-      if (!coreMesh || !tracerMesh || !flashMesh) return;
+      const haloMesh = hg.children[i] as THREE.Mesh | undefined;
+      const trailMesh = rg.children[i] as THREE.Mesh | undefined;
+      if (!coreMesh || !tracerMesh || !flashMesh || !haloMesh || !trailMesh) return;
       coreMesh.visible = b.alive;
       tracerMesh.visible = b.alive;
+      haloMesh.visible = b.alive;
+      trailMesh.visible = b.alive;
       const justFired = b.alive && b.life > 1.2; // life starts at 1.4 and counts down
       flashMesh.visible = justFired;
       if (!b.alive) return;
 
       coreMesh.position.set(b.x, b.y, b.z);
+      haloMesh.position.set(b.x, b.y, b.z);
+      // soft glow that swells slightly with age so a shot reads as energy, not a hard dot
+      haloMesh.scale.setScalar(1 + (1.4 - b.life) * 0.5);
+      (haloMesh.material as THREE.MeshBasicMaterial).opacity = THREE.MathUtils.clamp(b.life / 1.4, 0.2, 1) * 0.4;
       tracerMesh.position.set(b.x, b.y, b.z);
       const speed = Math.hypot(b.vx, b.vy, b.vz) || 1;
       dir.set(b.vx, b.vy, b.vz).normalize();
       quat.setFromUnitVectors(up, dir);
       tracerMesh.quaternion.copy(quat);
+      // long faint streak trailing BEHIND the bullet (the cylinder is centred, so shift it back by half its length)
+      const trailLen = THREE.MathUtils.clamp(speed * 0.09, 2.2, 7);
+      trailMesh.quaternion.copy(quat);
+      trailMesh.scale.set(1, trailLen, 1);
+      trailMesh.position.set(b.x - dir.x * trailLen * 0.5, b.y - dir.y * trailLen * 0.5, b.z - dir.z * trailLen * 0.5);
+      (trailMesh.material as THREE.MeshBasicMaterial).opacity = THREE.MathUtils.clamp(b.life / 1.4, 0.1, 1) * 0.35;
       tracerMesh.scale.set(1, THREE.MathUtils.clamp(speed * 0.035, 0.6, 2.4), 1);
       (coreMesh.material as THREE.MeshStandardMaterial).opacity = THREE.MathUtils.clamp(b.life / 1.4, 0.35, 1);
       (tracerMesh.material as THREE.MeshStandardMaterial).opacity = THREE.MathUtils.clamp(b.life / 1.4, 0.25, 0.9);
@@ -403,6 +419,22 @@ export function Bullets({ sim }: { sim: WorldSim }) {
 
   return (
     <>
+      <group ref={halo}>
+        {sim.bullets.map((_, i) => (
+          <mesh key={i} visible={false}>
+            <sphereGeometry args={[0.45, 10, 8]} />
+            <meshBasicMaterial color="#7fe8ff" transparent opacity={0.4} toneMapped={false} depthWrite={false} blending={THREE.AdditiveBlending} fog={false} />
+          </mesh>
+        ))}
+      </group>
+      <group ref={trail}>
+        {sim.bullets.map((_, i) => (
+          <mesh key={i} visible={false}>
+            <cylinderGeometry args={[0.035, 0.14, 1, 6, 1, true]} />
+            <meshBasicMaterial color="#5fd8ff" transparent opacity={0.35} toneMapped={false} depthWrite={false} blending={THREE.AdditiveBlending} fog={false} />
+          </mesh>
+        ))}
+      </group>
       <group ref={tracer}>
         {sim.bullets.map((_, i) => (
           <mesh key={i} visible={false}>
@@ -496,9 +528,12 @@ export function BeaconMarkers({ sim }: { sim: WorldSim }) {
       if (!b.alive) return;
       const color = BEACON_COLOR[b.kind] ?? "#ffffff";
       node.position.set(b.x, b.y, b.z);
-      const [body, beam, ring, blast] = node.children as THREE.Mesh[];
+      const [body, beam, ring, blast, glow] = node.children as THREE.Mesh[];
       const mat = (mesh?: THREE.Mesh) => mesh?.material as THREE.MeshBasicMaterial;
-      for (const mesh of [body, beam, ring, blast]) mat(mesh)?.color.set(color);
+      for (const mesh of [body, beam, ring, blast, glow]) mat(mesh)?.color.set(color);
+      // while the call-in is still in flight it carries a glowing halo so the throw can be followed across the sky
+      glow!.visible = b.state === "FLIGHT";
+      glow!.scale.setScalar(1 + 0.25 * Math.sin(t * 20));
       const armed = b.state === "ARMED";
       body!.visible = b.state !== "BLAST";
       body!.rotation.y = t * 6;
@@ -526,6 +561,7 @@ export function BeaconMarkers({ sim }: { sim: WorldSim }) {
           <mesh position={[0, 20, 0]} visible={false}><cylinderGeometry args={[0.12, 0.12, 40, 8, 1, true]} /><meshBasicMaterial color="#ffffff" transparent opacity={0.5} depthWrite={false} /></mesh>
           <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.1, 0]} visible={false}><ringGeometry args={[0.9, 1, 56]} /><meshBasicMaterial color="#ffffff" transparent opacity={0.85} depthWrite={false} side={THREE.DoubleSide} /></mesh>
           <mesh visible={false}><sphereGeometry args={[1, 24, 16]} /><meshBasicMaterial color="#ffffff" transparent opacity={0.6} depthWrite={false} /></mesh>
+          <mesh visible={false}><sphereGeometry args={[0.9, 14, 10]} /><meshBasicMaterial color="#ffffff" transparent opacity={0.45} depthWrite={false} blending={THREE.AdditiveBlending} toneMapped={false} fog={false} /></mesh>
         </group>
       ))}
     </group>

@@ -57,12 +57,12 @@ export function VerdantForest({ density, models, investigation }: { density: num
     const rnd = (n: number) => mulberry32(n);
     // Layered understory, built as natural patches rather than uniform dots: patch centres first, then children
     // clustered around them with varied scale and yaw (density falls off from each patch centre).
-    const fernParents = [...forestScatter(d(14), rnd(201), plantable, 1), ...trailEdgeScatter(d(14), rnd(202), TRAIL_HALF_WIDTH + 1.5, TRAIL_HALF_WIDTH + 8, plantable)];
+    const fernParents = [...forestScatter(d(24), rnd(201), plantable, 1), ...trailEdgeScatter(d(22), rnd(202), TRAIL_HALF_WIDTH + 1.5, TRAIL_HALF_WIDTH + 8, plantable)];
     const ferns = clusterAround(fernParents, 6, rnd(203), plantable, { minRadius: 0.4, maxRadius: 3.2, minScale: 0.55, maxScale: 1.3 }).map((f) => place(f, -0.05));
     const coverParents = forestScatter(d(10), rnd(211), plantable, 1.2);
     const lowShrubs = clusterAround(coverParents, 3, rnd(212), plantable, { minRadius: 0.8, maxRadius: 4, minScale: 0.6, maxScale: 1.1 }).map((f) => place(f, -0.05));
-    const tallShrubs = [...trailEdgeScatter(d(18), rnd(104), TRAIL_HALF_WIDTH + 2.2, TRAIL_HALF_WIDTH + 10, plantable), ...forestScatter(d(14), rnd(105), plantable, 1.5)].map((f) => place(f, -0.05));
-    const saplings = forestScatter(d(22), rnd(214), plantable, 1.5).map((f) => place(f, -0.1));
+    const tallShrubs = [...trailEdgeScatter(d(28), rnd(104), TRAIL_HALF_WIDTH + 2.2, TRAIL_HALF_WIDTH + 10, plantable), ...forestScatter(d(22), rnd(105), plantable, 1.5)].map((f) => place(f, -0.05));
+    const saplings = forestScatter(d(36), rnd(214), plantable, 1.5).map((f) => place(f, -0.1));
     // the wreck sits in a ring of growth that stops short of the hull, the approach trail and the skid
     const around = aroundScatter(d(26), rnd(301), 8.5, 14, plantable);
     const aroundFerns = around.slice(0, Math.ceil(around.length * 0.7)).map((f) => place(f, -0.05));
