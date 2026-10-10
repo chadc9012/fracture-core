@@ -742,6 +742,7 @@ export function GameCanvas() {
             save={evaluateSave(progression, last !== null)}
             classId={progression.identityClass ?? cls}
             look={armorLook(progression)}
+            gear={progression}
             appearance={appearance}
             bodyType={bodyType}
             reducedMotion={prefersReduced(settings.reducedMotion)}
