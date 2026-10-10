@@ -78,3 +78,4 @@
 - Progression syncs to player_saves with additive merges; never add a second persistence system. Why: progress is only gained.
 - Any 3D asset must be verified and fail silently to a fallback. Why: one failed model can suspend the whole scene.
 - Test files import "bun:test", typed by src/types/bun-test.d.ts. Why: the typecheck has no bun types.
+- Act I cinematics are data in src/game/cinematics.ts, driven by a pure controller (start/step/skip/pause, `inspectCinematic`); played state is the once-keyed story flag `cine:<id>`. A cinematic's only output is its handoff (objective + which system takes over); skipping or replaying never awards rewards, completes a mission or sets quest flags. Handoff `hook.exists` flags what the repo really has. Why: skippable, replay-safe and testable without rendering; not yet wired to Scene (docs/cinematics.md).
