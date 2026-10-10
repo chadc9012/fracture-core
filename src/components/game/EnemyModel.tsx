@@ -60,10 +60,10 @@ export function EnemyModel({ kind, boss, visorRef, headRef }: { kind: EnemyKind;
     {kind === "VANGUARD" && <Plate kind="bareMetal" color="#9aa6b2" args={[0.9, 1.1, 0.35]} position={[0, hip + 1, -0.6]} />}
     {kind === "OVERCLOCKED" && <mesh position={[0, hip + 1.1, -0.55]}><cylinderGeometry args={[0.18, 0.18, 0.8, 10]} /><meshStandardMaterial color="#222" emissive={m.accent} emissiveIntensity={1.2} /></mesh>}
     {/* head */}
-    <group ref={headRef} position-y={hip + 1.75}>
+    <group ref={headRef ?? null} position-y={hip + 1.75}>
       <mesh castShadow><sphereGeometry args={[0.36, 16, 12]} /><meshStandardMaterial color={m.plate} metalness={SURFACES[m.plateKind].metalness} roughness={SURFACES[m.plateKind].roughness} /></mesh>
       <Plate kind={m.plateKind} color={m.plate} args={[0.5, 0.22, 0.4]} position={[0, -0.2, 0.12]} />
-      <RoundedBox args={[0.5, 0.11, 0.1]} radius={0.03} smoothness={2} position={[0, 0.02, 0.32]}><meshStandardMaterial ref={visorRef} color="#0b0d10" emissive={m.accent} emissiveIntensity={1.1} roughness={0.15} /></RoundedBox>
+      <RoundedBox args={[0.5, 0.11, 0.1]} radius={0.03} smoothness={2} position={[0, 0.02, 0.32]}><meshStandardMaterial ref={visorRef ?? null} color="#0b0d10" emissive={m.accent} emissiveIntensity={1.1} roughness={0.15} /></RoundedBox>
       {kind === "ABERRATION" && [-1, 1].map((s) => <mesh key={s} position={[s * 0.25, 0.3, -0.1]} rotation-z={s * -0.5}><coneGeometry args={[0.08, 0.5, 6]} /><meshStandardMaterial color={m.accent} roughness={0.6} /></mesh>)}
       {kind === "VANGUARD" && <mesh position={[0, 0.34, -0.05]}><boxGeometry args={[0.06, 0.16, 0.5]} /><meshStandardMaterial color="#c9d3dc" metalness={0.9} roughness={0.3} /></mesh>}
     </group>
