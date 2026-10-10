@@ -96,6 +96,8 @@ import { abilityHud, cancelAbilities, castAbility, holdDisabledField, syncSimFro
 import * as sfx from "@/game/audio";
 import { setVoiceLoad } from "@/game/voice-director";
 import { RegionLighting } from "./RegionLighting";
+import { ShopStalls } from "./ShopStalls";
+import { shopNear } from "@/game/regional-shops";
 import type { ArmorVisualState } from "./Scavenger";
 import type { PlayerProgression } from "@/game/progression";
 
@@ -212,6 +214,9 @@ export type HudState = {
   insideInterior: string | null;
   interiorName: string;
   interiorOpen: boolean;
+  /** walk-up regional vendor within reach (regional-shops.ts), null when none */
+  shopNearId?: string | null;
+  shopNearName?: string;
   /** current zone's live instability tier — see sim.ts's instabilityTier(); STABLE unless the zone's own fracture-pulse is actually elevated */
   zoneTier: InstabilityTier;
   /** timestamp of the most recent hull-destroyed respawn (mirrors sim.lastDeath) — GameCanvas watches this to trigger the death screen */
@@ -1875,6 +1880,8 @@ export function Scene({
         insideInterior: s.insideInterior,
         interiorName: interior?.name ?? "",
         interiorOpen: interior ? isInteriorOpen(interior, time.current) : true,
+        shopNearId: !interior && !s.inVehicle ? shopNear(s.x, s.z)?.id ?? null : null,
+        shopNearName: !interior && !s.inVehicle ? shopNear(s.x, s.z)?.name ?? "" : "",
         zoneTier: instabilityTier(zone?.instability ?? 0),
         justDied: sim.lastDeath,
         deathCause: sim.lastDeathCause,
@@ -1967,6 +1974,7 @@ export function Scene({
       <Wildlife playerRef={player} />
       <Civilians playerRef={player} />
       <Water size={WORLD_RADIUS * 4} sunRef={sunDir} />
+      <ShopStalls />
       <NearOnly playerRef={player} x={NEXUS_REGION.x} z={NEXUS_REGION.z} radius={330}><NexusCity sim={sim} /></NearOnly>
       <NearOnly playerRef={player} x={NEON_CITY_CENTER.x} z={NEON_CITY_CENTER.z} radius={300}><NeonCity /></NearOnly>
       <NearOnly playerRef={player} x={THALASSIA_CENTER.x} z={THALASSIA_CENTER.z} radius={260}><Thalassia /></NearOnly>
