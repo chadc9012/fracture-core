@@ -723,6 +723,8 @@ export function GameCanvas() {
             save={evaluateSave(progression, last !== null)}
             classId={progression.identityClass ?? cls}
             look={armorLook(progression)}
+            appearance={appearance}
+            bodyType={bodyType}
             reducedMotion={prefersReduced(settings.reducedMotion)}
             startNotice={menuNotice}
             onContinue={() => setPhase(progression.character || last || progression.completedMissions.length > 0 ? "hub" : "loadout")}

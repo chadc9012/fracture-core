@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { foliageTris, heavyShadows, LIGHT_CAP, maxInstances, nearestWithin, pickLights, regionModelTris, setPerfTier, getPerfTier, perfTierVersion } from "./perf-budget";
+import { farProxies, PROXY_MAX, foliageTris, heavyShadows, LIGHT_CAP, maxInstances, nearestWithin, pickLights, regionModelTris, setPerfTier, getPerfTier, perfTierVersion } from "./perf-budget";
 import { DPR_FLOOR, effectiveTier, MIN_STEP_SECONDS, onDecline, stepDownTier } from "./quality-governor";
 
 describe("budgets", () => {
@@ -48,13 +48,23 @@ describe("quality governor", () => {
     expect(onDecline({ dpr: 1.25, chosen: "HIGH", cap: null, secondsSinceLastStep: 99 })).toBeNull();
     expect(onDecline({ dpr: DPR_FLOOR, chosen: "HIGH", cap: null, secondsSinceLastStep: MIN_STEP_SECONDS - 1 })).toBeNull();
     expect(onDecline({ dpr: DPR_FLOOR, chosen: "HIGH", cap: null, secondsSinceLastStep: 99 })).toBe("MEDIUM");
-    expect(onDecline({ dpr: DPR_FLOOR, chosen: "HIGH", cap: "MEDIUM", secondsSinceLastStep: 99 })).toBe("LOW");
-    expect(onDecline({ dpr: DPR_FLOOR, chosen: "HIGH", cap: "LOW", secondsSinceLastStep: 99 })).toBeNull();
+    expect(onDecline({ dpr: DPR_FLOOR, chosen: "HIGH", cap: "MEDIUM", secondsSinceLastStep: 99 })).toBeNull(); // the automatic cap never goes below MEDIUM
   });
   test("effective tier is the lower of choice and cap; never raises", () => {
     expect(effectiveTier("MEDIUM", "HIGH")).toBe("MEDIUM");
     expect(effectiveTier("ULTRA", "LOW")).toBe("LOW");
     expect(effectiveTier("HIGH", null)).toBe("HIGH");
-    expect(stepDownTier("LOW")).toBe("LOW");
+    expect(stepDownTier("LOW")).toBe("MEDIUM"); // never below the floor (a LOW start is lifted to it only when stepping)
+    expect(stepDownTier("MEDIUM")).toBe("MEDIUM");
+  });
+});
+
+describe("far proxies", () => {
+  test("skip what is drawn in detail, nearest first, bounded", () => {
+    const pts = [{ x: 1, z: 0 }, { x: 50, z: 0 }, { x: 20, z: 0 }, { x: 400, z: 0 }, { x: 30, z: 0 }];
+    expect(farProxies(pts, 0, 0, [0], 100, 10)).toEqual([2, 4, 1]);
+    expect(farProxies(pts, 0, 0, [], 100, 2)).toEqual([0, 2]);
+    expect(farProxies(pts, 0, 0, [], 100, 0)).toEqual([]);
+    expect(PROXY_MAX.LOW).toBeLessThan(PROXY_MAX.ULTRA);
   });
 });

@@ -8,10 +8,34 @@ export function PerfProbe() {
   const { gl, scene } = useThree();
   const el = useRef<HTMLDivElement | null>(null);
   const shown = useRef(false);
-  const acc = useRef({ t: 0, frames: 0, worst: 0, lights: 0, lightT: 0, heavy: "", operators: "", renderMs: 0, gpu: "", busyMs: 0, gpuMs: 0, gpuSamples: 0, lightInfo: "", bench: 0, benchTick: 0 });
+  const acc = useRef({ t: 0, frames: 0, worst: 0, lights: 0, lightT: 0, heavy: "", operators: "", renderMs: 0, gpu: "", busyMs: 0, gpuMs: 0, gpuSamples: 0, lightInfo: "", bench: 0, benchTick: 0, isoLabel: "all on" });
   const timer = useRef<{ ctx: WebGL2RenderingContext; ext: { TIME_ELAPSED_EXT: number; GPU_DISJOINT_EXT: number }; open: WebGLQuery | null; pending: WebGLQuery[] } | null>(null);
   const frameStart = useRef(0);
   const v = useRef(new THREE.Vector3()).current;
+
+  // F4 cycles an isolation mode so one screenshot per mode shows what each layer costs (gpu busy / other ms).
+  const iso = useRef({ mode: 0, hidden: [] as THREE.Object3D[], lights: [] as THREE.Light[], ui: [] as HTMLElement[] });
+  useEffect(() => {
+    const MODES: { label: string; hide?: string[]; ui?: boolean; shadows?: boolean }[] = [
+      { label: "all on" }, { label: "UI overlays hidden", ui: true }, { label: "sky off", hide: ["iso:sky"] }, { label: "water off", hide: ["iso:water"] },
+      { label: "weather+wildlife off", hide: ["iso:weather", "iso:life"] }, { label: "forest+ground cover off", hide: ["iso:forest", "ground-cover"] },
+      { label: "cities off", hide: ["city:nexus", "city:neon", "city:thalassia"] }, { label: "shadows off", shadows: true },
+    ];
+    const apply = (mode: number) => {
+      const st = iso.current;
+      st.hidden.forEach((o) => { o.visible = true; }); st.hidden = [];
+      st.lights.forEach((l) => { l.castShadow = true; }); st.lights = [];
+      st.ui.forEach((e) => { e.style.visibility = ""; }); st.ui = [];
+      const m = MODES[mode]!;
+      if (m.hide) scene.traverse((o) => { if (m.hide!.includes(o.name)) { o.visible = false; st.hidden.push(o); } });
+      if (m.shadows) scene.traverse((o) => { const l = o as THREE.Light; if (l.isLight && l.castShadow) { l.castShadow = false; st.lights.push(l); } });
+      if (m.ui) { const root = gl.domElement.closest(".fixed"); if (root) for (const c of Array.from(root.children) as HTMLElement[]) if (!c.contains(gl.domElement)) { c.style.visibility = "hidden"; st.ui.push(c); } }
+      st.mode = mode; acc.current.isoLabel = m.label;
+    };
+    const onKey = (e: KeyboardEvent) => { if (e.code === "F4" && shown.current) { e.preventDefault(); apply((iso.current.mode + 1) % MODES.length); } };
+    window.addEventListener("keydown", onKey);
+    return () => { window.removeEventListener("keydown", onKey); apply(0); };
+  }, [gl, scene]);
 
   useEffect(() => {
     const div = document.createElement("div");
@@ -105,7 +129,7 @@ export function PerfProbe() {
       if (++a.benchTick % 4 === 1) { const b0 = performance.now(); let x = 0; for (let k = 0; k < 3e6; k++) x += Math.sqrt(k); a.bench = performance.now() - b0 + (x < 0 ? 1 : 0); }
       const i = gl.info;
       const frameMs = (a.t / a.frames) * 1000; const renderMs = a.renderMs / a.frames;
-      el.current.textContent = `gpu ${a.gpu}\nframe ${frameMs.toFixed(0)} ms = render ${renderMs.toFixed(0)} + other ${Math.max(0, frameMs - renderMs).toFixed(0)}\njs busy ${(a.busyMs / a.frames).toFixed(0)} ms   gpu busy ${a.gpuSamples ? (a.gpuMs / a.gpuSamples).toFixed(0) + " ms" : "n/a"}\nFPS ${(a.frames / a.t).toFixed(0)}   worst ${(a.worst * 1000).toFixed(0)} ms\ncalls ${i.render.calls}   tris ${(i.render.triangles / 1000).toFixed(0)}k\nlights ${a.lights}   geo ${i.memory.geometries}   tex ${i.memory.textures}\ncpu bench ${a.bench.toFixed(0)} ms (3M sqrt)   cores ${navigator.hardwareConcurrency}\ndpr ${gl.getPixelRatio().toFixed(2)}   ${gl.domElement.width}x${gl.domElement.height}${a.lightInfo ? "\nlight types: " + a.lightInfo : ""}${a.heavy ? "\nheaviest meshes:\n" + a.heavy : ""}${a.operators ? "\noperator paint:\n" + a.operators : ""}`;
+      el.current.textContent = `isolate [F4]: ${a.isoLabel}\ngpu ${a.gpu}\nframe ${frameMs.toFixed(0)} ms = render ${renderMs.toFixed(0)} + other ${Math.max(0, frameMs - renderMs).toFixed(0)}\njs busy ${(a.busyMs / a.frames).toFixed(0)} ms   gpu busy ${a.gpuSamples ? (a.gpuMs / a.gpuSamples).toFixed(0) + " ms" : "n/a"}\nFPS ${(a.frames / a.t).toFixed(0)}   worst ${(a.worst * 1000).toFixed(0)} ms\ncalls ${i.render.calls}   tris ${(i.render.triangles / 1000).toFixed(0)}k\nlights ${a.lights}   geo ${i.memory.geometries}   tex ${i.memory.textures}\ncpu bench ${a.bench.toFixed(0)} ms (3M sqrt)   cores ${navigator.hardwareConcurrency}\ndpr ${gl.getPixelRatio().toFixed(2)}   ${gl.domElement.width}x${gl.domElement.height}${a.lightInfo ? "\nlight types: " + a.lightInfo : ""}${a.heavy ? "\nheaviest meshes:\n" + a.heavy : ""}${a.operators ? "\noperator paint:\n" + a.operators : ""}`;
     }
     a.t = 0; a.frames = 0; a.worst = 0; a.renderMs = 0; a.busyMs = 0; a.gpuMs = 0; a.gpuSamples = 0;
   });

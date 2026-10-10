@@ -68,3 +68,14 @@ What changed (all presentation; nothing touches gameplay):
 - `world-story.ts`: eras, region history, per-region landmark story that reveals on discovery.
 - Atlas: compass rose, zone/symbol/cycle legend (`MapLegend.tsx`), landmark pins, trails between known landmarks, hazard overlay toggle. Minimap: cardinals and hazard circles.
 - Status: unit-tested (landmarks/hazards/compass/story), UI checked for syntax only — not browser-verified.
+
+## Performance follow-up (from the user's F3 run, Oct 10)
+
+Measured by the user (Intel / ANGLE Metal, 900x464, dpr 0.75): triangles fell from 5.6-6.5M to 0.3-1.9M, GPU busy 16-35 ms, but FPS only rose to 10-18 and 48-81 ms of each frame was "other" (neither JS nor GPU busy). Hypothesis, not yet confirmed: browser compositing, chiefly the full-screen `mix-blend-mode: soft-light` grade overlay, and a fixed GPU cost near 20 ms that does not scale with triangles.
+- CinematicGrade is now one plain-alpha layer (no blend mode).
+- F3 panel: press F4 to cycle isolation modes (UI hidden, sky, water, weather+wildlife, forest+ground cover, cities, shadows). One screenshot per mode shows what each layer costs.
+- The automatic quality cap no longer goes below MEDIUM (LOW had cut foliage to 35% and swapped to procedural blobs: the "lost trees"). LOW's foliage scale is 0.6 when a player picks it.
+- Far-forest proxies: fir/broadleaf instances beyond the detailed budget draw as ~20-triangle silhouettes (<=1800 on MEDIUM), so depth stays without real models.
+- Title menu operator now receives the saved appearance/body type (it was painted with the class UI colour, hence pale blue).
+- Destination map uses the painted terrain with compass rose, legend and known landmarks.
+Status: unit-tested pure parts only; none of this has been seen in a browser.

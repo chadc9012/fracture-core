@@ -5,7 +5,7 @@
 import type { RenderTier } from "./performance";
 
 export type BudgetKind = "fir" | "broadleaf" | "shrub" | "fern" | "log" | "rock";
-const TIER_SCALE: Record<RenderTier, number> = { LOW: 0.35, MEDIUM: 1, HIGH: 1.9, ULTRA: 3 };
+const TIER_SCALE: Record<RenderTier, number> = { LOW: 0.6, MEDIUM: 1, HIGH: 1.9, ULTRA: 3 };
 /** triangles allowed per species on MEDIUM; other tiers multiply by TIER_SCALE */
 export const FOLIAGE_TRIS: Record<BudgetKind, number> = { fir: 280_000, broadleaf: 280_000, shrub: 110_000, fern: 110_000, log: 50_000, rock: 100_000 };
 /** triangles allowed for all decorative region models together (RegionModels) */
@@ -24,7 +24,25 @@ export const regionModelTris = (tier: RenderTier) => Math.round(REGION_MODEL_TRI
 /** how many instances fit in a triangle allowance (never negative; a model bigger than the allowance gets 0) */
 export const maxInstances = (allowance: number, trisPerInstance: number) => (trisPerInstance > 0 ? Math.max(0, Math.floor(allowance / trisPerInstance)) : Number.MAX_SAFE_INTEGER);
 
+/** Far-forest proxies: trees past the detailed budget are drawn as ~20-triangle silhouettes instead of vanishing,
+ * so the forest keeps its depth without paying for the real models. Only tree species get proxies. */
+export const PROXY_RADIUS = { fir: 340, broadleaf: 340 } as const;
+export const PROXY_MAX: Record<RenderTier, number> = { LOW: 900, MEDIUM: 1800, HIGH: 2600, ULTRA: 3600 };
+export const PROXY_COLOR = { fir: "#2c5a3a", broadleaf: "#4b7d3b" } as const;
+
 export type XZ = { x: number; z: number };
+/** nearest-first indices within `radius` that are NOT already drawn in detail (`near`), at most `max` */
+export function farProxies(items: readonly XZ[], cx: number, cz: number, near: readonly number[], radius: number, max: number): number[] {
+  if (max <= 0) return [];
+  const skip = new Set(near), r2 = radius * radius, hits: { i: number; d: number }[] = [];
+  for (let i = 0; i < items.length; i++) {
+    if (skip.has(i)) continue;
+    const dx = items[i]!.x - cx, dz = items[i]!.z - cz, d = dx * dx + dz * dz;
+    if (d <= r2) hits.push({ i, d });
+  }
+  hits.sort((a, b) => a.d - b.d); if (hits.length > max) hits.length = max;
+  return hits.map((h) => h.i);
+}
 /** indices of items within `radius` of (cx,cz), nearest first, at most `max` of them */
 export function nearestWithin(items: readonly XZ[], cx: number, cz: number, radius: number, max: number): number[] {
   if (max <= 0) return [];

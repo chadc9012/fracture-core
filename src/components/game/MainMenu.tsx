@@ -10,6 +10,8 @@ import { PAD_LABELS, moveFocus } from "@/game/menu-nav";
 import { detectGraphicsSupport } from "@/game/webgl-support";
 import type { SaveSummary } from "@/game/startup";
 import type { ArmorLook } from "@/game/armor-look";
+import type { AppearanceDefinition } from "@/game/loadout";
+import type { BodyType } from "@/game/operators";
 import { ConfirmDialog } from "./ConfirmDialog";
 import { CreditsPanel } from "./CreditsPanel";
 import { useMenuInput } from "./useMenuInput";
@@ -24,7 +26,7 @@ const ITEMS: Item[] = [
 ];
 
 /** Shows the player's operator or, if the model can't load, nothing at all (never a placeholder solid). */
-function Stage({ classId, color, look, reduced, onUnavailable }: { classId: ClassId; color: string; look: ArmorLook | undefined; reduced: boolean; onUnavailable: () => void }) {
+function Stage({ classId, color, look, appearance, bodyType, reduced, onUnavailable }: { classId: ClassId; color: string; look: ArmorLook | undefined; appearance?: AppearanceDefinition | undefined; bodyType?: BodyType | undefined; reduced: boolean; onUnavailable: () => void }) {
   const turn = useRef<THREE.Group>(null);
   useFrame((s) => { if (turn.current && !reduced) turn.current.rotation.y = Math.sin(s.clock.elapsedTime * 0.35) * 0.35 - 0.25; });
   return (
@@ -34,7 +36,7 @@ function Stage({ classId, color, look, reduced, onUnavailable }: { classId: Clas
       <pointLight position={[-3, 2, -2]} intensity={26} distance={12} color="#7c6cff" />
       <pointLight position={[2.5, 1, 2]} intensity={14} distance={9} color={color} />
       <group ref={turn} rotation-y={-0.25}>
-        <OperatorModel classId={classId} height={2.5} feetY={-1.25} color={color} look={look} pose="showcase" fallback={<Pending onUnavailable={onUnavailable} />} />
+        <OperatorModel classId={classId} height={2.5} feetY={-1.25} color={appearance?.armor ?? color} trim={appearance?.visor} cloth={appearance?.cloth} bodyType={bodyType} look={look} pose="showcase" fallback={<Pending onUnavailable={onUnavailable} />} />
       </group>
       <ContactShadows position={[0, -1.25, 0]} opacity={0.5} scale={7} blur={2.6} far={3} />
       <Sparkles count={reduced ? 0 : 40} scale={[7, 4, 4]} size={1.2} speed={0.15} opacity={0.5} color="#8fa2ff" />
@@ -48,9 +50,9 @@ function Pending({ onUnavailable }: { onUnavailable: () => void }) {
   return null;
 }
 
-export function MainMenu({ save, classId, look, reducedMotion, startNotice, onContinue, onNewGame, onCharacter, onSettings }: {
+export function MainMenu({ save, classId, look, appearance, bodyType, reducedMotion, startNotice, onContinue, onNewGame, onCharacter, onSettings }: {
   startNotice?: string;
-  save: SaveSummary; classId: ClassId; look?: ArmorLook | undefined; reducedMotion: boolean;
+  save: SaveSummary; classId: ClassId; look?: ArmorLook | undefined; appearance?: AppearanceDefinition | undefined; bodyType?: BodyType | undefined; reducedMotion: boolean;
   onContinue: () => void; onNewGame: () => void; onCharacter: () => void; onSettings: () => void;
 }) {
   const enabled = useMemo(() => ITEMS.map(() => true), []);
@@ -105,7 +107,7 @@ export function MainMenu({ save, classId, look, reducedMotion, startNotice, onCo
   if (caps.ok && !modelDown) {
     stage = (
       <Canvas dpr={[1, 1.5]} camera={{ position: [0, 0.9, 5.4], fov: 34 }} gl={{ antialias: true, alpha: true, powerPreference: "high-performance" }} onCreated={({ gl }) => gl.setClearColor(0x000000, 0)}>
-        <Stage classId={classId} color={cls.color} look={look} reduced={reducedMotion} onUnavailable={markDown} />
+        <Stage classId={classId} color={cls.color} look={look} appearance={appearance} bodyType={bodyType} reduced={reducedMotion} onUnavailable={markDown} />
       </Canvas>
     );
   }

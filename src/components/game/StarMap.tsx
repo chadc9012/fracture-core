@@ -7,6 +7,10 @@ import { ENCOUNTERS } from "@/game/encounters";
 import { CHRONICLE, nextActivity } from "@/game/retention";
 import type { PlayerProgression } from "@/game/progression";
 import { NextActivityCard } from "./NextActivityCard";
+import { MAP_EXTENT, terrainMapDataUrl } from "@/game/terrain-map";
+import { LANES, laneSamples } from "@/game/lanes";
+import { LANDMARKS, isLandmarkKnown } from "@/game/landmarks";
+import { MapLegend, LANDMARK_GLYPH } from "./MapLegend";
 
 const THREAT = ["MINIMAL", "LOW", "MODERATE", "HIGH", "SEVERE", "EXTREME"];
 
@@ -19,11 +23,8 @@ export function StarMap({ progression, onBack, onDeploy }: { progression: Player
   const region = REGIONS.find((r) => r.id === selected)!;
   const encounter = ENCOUNTERS.find((e) => e.regionId === selected);
   const chapters = CHRONICLE.filter((c) => c.region === region.name);
-  const box = useMemo(() => {
-    const xs = REGIONS.flatMap((r) => [r.x - r.radius, r.x + r.radius]), zs = REGIONS.flatMap((r) => [r.z - r.radius, r.z + r.radius]);
-    const minX = Math.min(...xs) - 20, minZ = Math.min(...zs) - 20;
-    return `${minX} ${minZ} ${Math.max(...xs) + 20 - minX} ${Math.max(...zs) + 20 - minZ}`;
-  }, []);
+  const art = useMemo(() => terrainMapDataUrl(), []);
+  const E = MAP_EXTENT;
   const deploy = () => { setLaunching(true); window.setTimeout(() => onDeploy(region.id), 900); };
 
   return (
@@ -39,19 +40,23 @@ export function StarMap({ progression, onBack, onDeploy }: { progression: Player
 
       <div className="relative my-3 grid min-h-0 flex-1 grid-cols-1 gap-4 lg:grid-cols-4">
         <section className="relative border border-foreground/15 bg-background/50 p-3 lg:col-span-3">
-          <svg viewBox={box} className="h-full max-h-[70vh] w-full" role="img" aria-label="Destination map">
+          <svg viewBox={`${-E} ${-E} ${E * 2} ${E * 2}`} className="mx-auto aspect-square max-h-[70vh] w-full border border-foreground/15" role="img" aria-label="Destination map">
+            {art && <image href={art} x={-E} y={-E} width={E * 2} height={E * 2} preserveAspectRatio="none" />}
+            {LANES.map((l) => <polyline key={l.name} points={laneSamples(l, 24).map((p) => `${p.x},${p.z}`).join(" ")} fill="none" stroke="#f3e2b0" strokeOpacity={0.8} strokeWidth={0.9} strokeDasharray="2.4 1.6" />)}
             {REGIONS.map((r) => {
               const on = r.id === selected, rec = r.id === recommended;
               return (
                 <g key={r.id} onClick={() => setSelected(r.id)} className="cursor-pointer">
-                  <circle cx={r.x} cy={r.z} r={r.radius} fill={ZONE_COLOR[r.kind]} fillOpacity={on ? 0.3 : 0.1} stroke={ZONE_COLOR[r.kind]} strokeWidth={on ? 1.6 : 0.6} />
-                  {rec && <circle cx={r.x} cy={r.z} r={r.radius + 4} fill="none" stroke="currentColor" strokeDasharray="3 3" strokeWidth={0.8} className="text-primary" />}
-                  <circle cx={r.x} cy={r.z} r={2.2} className="fill-foreground" />
-                  <text x={r.x} y={r.z - r.radius - 3} textAnchor="middle" fontSize={6} className="fill-foreground font-mono uppercase">{r.name}{rec ? " ◆" : ""}</text>
+                  <circle cx={r.x} cy={r.z} r={r.radius} fill={ZONE_COLOR[r.kind]} fillOpacity={on ? 0.24 : 0.04} stroke={ZONE_COLOR[r.kind]} strokeOpacity={on ? 1 : 0.7} strokeWidth={on ? 1.4 : 0.7} />
+                  {rec && <circle cx={r.x} cy={r.z} r={r.radius + 3} fill="none" stroke="#ffffff" strokeDasharray="3 3" strokeWidth={0.8} />}
+                  <text x={r.x} y={r.z + 1.5} textAnchor="middle" fontSize={5.4} fill="#fff" stroke="#000" strokeWidth={1.1} paintOrder="stroke" className="font-mono uppercase">{r.name}{rec ? " ◆" : ""}</text>
                 </g>
               );
             })}
+            {LANDMARKS.filter((l) => isLandmarkKnown(progression, l.id)).map((l) => <text key={l.id} x={l.x} y={l.z + 1.6} textAnchor="middle" fontSize={4.6} fill="#9fd4ff" stroke="#000" strokeWidth={0.8} paintOrder="stroke"><title>{l.name}</title>{LANDMARK_GLYPH[l.type]}</text>)}
+            <g transform={`translate(${E - 22} ${-E + 24})`} aria-label="Compass rose"><circle r={15} fill="#000" fillOpacity={0.45} stroke="#fff" strokeOpacity={0.6} strokeWidth={0.5} /><polygon points="0,-14 3,0 0,3 -3,0" fill="#ff5a5a" /><polygon points="0,14 3,0 0,-3 -3,0" fill="#e8e8e8" /><text y={-17} textAnchor="middle" fontSize={6} fill="#fff" fontWeight="700">N</text></g>
           </svg>
+          <MapLegend phase="" />
         </section>
 
         <aside className="flex flex-col justify-between gap-4 border border-foreground/15 bg-background/70 p-5">

@@ -5,7 +5,10 @@ import type { RenderTier } from "./performance";
 const ORDER: RenderTier[] = ["LOW", "MEDIUM", "HIGH", "ULTRA"];
 export const DPR_FLOOR = 0.75;
 export const MIN_STEP_SECONDS = 8;
-export const stepDownTier = (t: RenderTier): RenderTier => ORDER[Math.max(0, ORDER.indexOf(t) - 1)]!;
+/** The automatic cap never goes below MEDIUM: LOW strips the forest (procedural blobs, 60% foliage), which cost the player
+ * their trees for little frame time. Players can still choose LOW themselves in Settings. */
+export const AUTO_FLOOR: RenderTier = "MEDIUM";
+export const stepDownTier = (t: RenderTier): RenderTier => ORDER[Math.max(ORDER.indexOf(AUTO_FLOOR), ORDER.indexOf(t) - 1)]!;
 /** the tier actually used: the lower of what the player chose and the automatic cap */
 export const effectiveTier = (chosen: RenderTier, cap: RenderTier | null): RenderTier => (cap && ORDER.indexOf(cap) < ORDER.indexOf(chosen) ? cap : chosen);
 /** decide on a performance decline: returns the new cap, or null when nothing should change yet */

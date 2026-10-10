@@ -11,7 +11,7 @@ import mossRock from "@/assets/polyhaven/rock_moss_set_01.glb.asset.json";
 import { windSway } from "@/game/wind-sway";
 import { reportAsset, reportDetail } from "@/game/forest-assets";
 import { CULL_RADIUS, movedEnough } from "@/game/foliage-cull";
-import { foliageTris, getPerfTier, maxInstances, nearestWithin, perfTierVersion } from "@/game/perf-budget";
+import { PROXY_COLOR, PROXY_MAX, PROXY_RADIUS, farProxies, foliageTris, getPerfTier, maxInstances, nearestWithin, perfTierVersion } from "@/game/perf-budget";
 
 /** Poly Haven (CC0) foliage, simplified + texture-resized offline, rendered as GPU instances
  * (one draw call per sub-mesh). Each species is verified and isolated: on failure the caller
@@ -83,13 +83,26 @@ function Instanced({ kind, url, items, scale, onReady, shadows, height, sway, va
   }, [onReady, built, buckets, items.length, url, height]);
   // triangles one instance of each variant costs (all its sub-meshes); the allowance is shared between variants
   const perInstance = useMemo(() => built.map((v) => v.parts.reduce((t, p) => t + (p.geometry.index ? p.geometry.index.count : p.geometry.getAttribute("position").count) / 3, 0)), [built]);
-  return <>{built.map((v, vi) => v.parts.map((p, i) => <Mesh key={`${vi}-${i}`} name={`foliage:${kind}`} kind={kind} share={built.length} trisPerInstance={perInstance[vi]!} part={p} items={buckets[vi]!} scale={scale * v.norm} shadows={shadows} radius={radius} />))}</>;
+  // one cheap silhouette per variant (first part only), sized from the model's own bounds so it matches at any scale
+  const proxies = useMemo(() => built.map((v) => {
+    if (kind !== "fir" && kind !== "broadleaf") return null;
+    const box = new THREE.Box3();
+    v.parts.forEach((p) => { p.geometry.computeBoundingBox(); if (p.geometry.boundingBox) box.union(p.geometry.boundingBox); });
+    if (box.isEmpty()) return null;
+    const h = box.max.y - box.min.y, w = Math.max(box.max.x - box.min.x, box.max.z - box.min.z);
+    const g = kind === "fir" ? new THREE.ConeGeometry(w * 0.42, h, 6, 1) : new THREE.IcosahedronGeometry(w * 0.5, 0);
+    if (kind === "fir") g.translate(0, box.min.y + h / 2, 0); else { g.scale(1, 0.85, 1); g.translate(0, box.min.y + h * 0.66, 0); }
+    return g;
+  }), [built, kind]);
+  return <>{built.map((v, vi) => v.parts.map((p, i) => <Mesh key={`${vi}-${i}`} name={`foliage:${kind}`} kind={kind} share={built.length} trisPerInstance={perInstance[vi]!} part={p} items={buckets[vi]!} scale={scale * v.norm} shadows={shadows} radius={radius} proxy={i === 0 ? proxies[vi] ?? null : null} />))}</>;
 }
 
 const tmp = new THREE.Object3D();
 tmp.rotation.order = "YXZ"; // yaw after tilt, so a laid-down log can still be turned to face any way
-function Mesh({ name, kind, share, trisPerInstance, part, items, scale, shadows, radius }: { name: string; kind: FoliageKind; share: number; trisPerInstance: number; part: { geometry: THREE.BufferGeometry; material: THREE.Material }; items: Placement[]; scale: number; shadows: boolean; radius: number }) {
+function Mesh({ name, kind, share, trisPerInstance, part, items, scale, shadows, radius, proxy }: { proxy?: THREE.BufferGeometry | null; name: string; kind: FoliageKind; share: number; trisPerInstance: number; part: { geometry: THREE.BufferGeometry; material: THREE.Material }; items: Placement[]; scale: number; shadows: boolean; radius: number }) {
   const ref = useRef<THREE.InstancedMesh>(null);
+  const farRef = useRef<THREE.InstancedMesh>(null);
+  const farMaterial = useMemo(() => new THREE.MeshStandardMaterial({ color: kind === "fir" || kind === "broadleaf" ? PROXY_COLOR[kind] : "#3a6a3a", roughness: 1, flatShading: true }), [kind]);
   const all = useRef<Float32Array>(new Float32Array(0));
   const last = useRef({ x: Infinity, z: Infinity });
   const clock = useRef(1);
@@ -105,6 +118,14 @@ function Mesh({ name, kind, share, trisPerInstance, part, items, scale, shadows,
     idx.forEach((src, k) => dst.set(all.current.subarray(src * 16, src * 16 + 16), k * 16));
     mesh.count = idx.length;
     mesh.instanceMatrix.needsUpdate = true;
+    const far = farRef.current;
+    if (far && (kind === "fir" || kind === "broadleaf")) {
+      const fidx = farProxies(items, cx, cz, idx, PROXY_RADIUS[kind], Math.min(items.length, PROXY_MAX[getPerfTier()]));
+      const fd = far.instanceMatrix.array as Float32Array;
+      fidx.forEach((src, k) => fd.set(all.current.subarray(src * 16, src * 16 + 16), k * 16));
+      far.count = fidx.length;
+      far.instanceMatrix.needsUpdate = true;
+    }
     last.current = { x: cx, z: cz };
   };
   useLayoutEffect(() => {
@@ -120,6 +141,7 @@ function Mesh({ name, kind, share, trisPerInstance, part, items, scale, shadows,
     });
     all.current = m;
     mesh.count = 0; // nothing until the first camera-based selection (next frame)
+    if (farRef.current) farRef.current.count = 0;
     last.current = { x: Infinity, z: Infinity };
     clock.current = 1; // select on the very next frame
   }, [items, scale]);
@@ -130,7 +152,10 @@ function Mesh({ name, kind, share, trisPerInstance, part, items, scale, shadows,
     const { x, z } = camera.position;
     if (!Number.isFinite(last.current.x) || seenTier.current !== perfTierVersion() || movedEnough(last.current.x, last.current.z, x, z)) select(x, z);
   });
-  return <instancedMesh ref={ref} name={name} args={[part.geometry, part.material, Math.max(1, items.length)]} castShadow={shadows} receiveShadow frustumCulled={false} />;
+  return <>
+    <instancedMesh ref={ref} name={name} args={[part.geometry, part.material, Math.max(1, items.length)]} castShadow={shadows} receiveShadow frustumCulled={false} />
+    {proxy && <instancedMesh ref={farRef} name={`${name}:far`} args={[proxy, farMaterial, Math.max(1, Math.min(items.length, PROXY_MAX.ULTRA))]} frustumCulled={false} />}
+  </>;
 }
 
 const verified = new Map<string, boolean>();

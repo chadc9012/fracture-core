@@ -2078,6 +2078,7 @@ export function Scene({
         shadow-camera-far={520}
       />
       <directionalLight ref={moon} position={[-90, 110, -70]} color="#b9c8e8" intensity={0.3} />
+      <group name="iso:sky">
       <Sky
         ref={sky as unknown as React.Ref<never>}
         distance={4000}
@@ -2091,18 +2092,17 @@ export function Scene({
       <SkyBodies timeRef={time} sunDirRef={sunDir} envRef={skyEnv} playerRef={player} />
       <CloudLayer envRef={skyEnv} />
       {settings.renderTier !== "LOW" && <SkyFx fxRef={skyFx} envRef={skyEnv} playerRef={player} />}
+      </group>
       <RegionLighting playerRef={player} tier={settings.renderTier} />
 
       <group name="terrain+trees"><Terrain renderTier={settings.renderTier} /></group>
       <group name="ground-cover"><GroundCover density={coverDensityFor(settings.renderTier)} /></group>
-      <VerdantForest density={settings.renderTier === "LOW" ? 0.5 : settings.renderTier === "MEDIUM" ? 0.75 : 1} models={settings.renderTier !== "LOW"} investigation={investigation} heavyShadow={heavyShadows(settings.renderTier)} />
+      <group name="iso:forest"><VerdantForest density={settings.renderTier === "LOW" ? 0.5 : settings.renderTier === "MEDIUM" ? 0.75 : 1} models={settings.renderTier !== "LOW"} investigation={investigation} heavyShadow={heavyShadows(settings.renderTier)} /></group>
       <RiftTurrets sim={sim} />
       <PerfProbe />
-      <Weather playerRef={player} weatherRef={weatherKind} fxRef={weatherFx} />
-      <Wildlife playerRef={player} />
-      <Civilians playerRef={player} />
-      <Water size={WORLD_RADIUS * 4} sunRef={sunDir} styleRef={waterStyle} />
-      <Rivers sunRef={sunDir} />
+      <group name="iso:weather"><Weather playerRef={player} weatherRef={weatherKind} fxRef={weatherFx} /></group>
+      <group name="iso:life"><Wildlife playerRef={player} /><Civilians playerRef={player} /></group>
+      <group name="iso:water"><Water size={WORLD_RADIUS * 4} sunRef={sunDir} styleRef={waterStyle} /><Rivers sunRef={sunDir} /></group>
       <LootCaches opened={openedCaches} />
       <ShopStalls />
       <NearOnly playerRef={player} x={NEXUS_REGION.x} z={NEXUS_REGION.z} radius={330 * NEAR_SCALE[settings.renderTier]} name="city:nexus"><NexusCity sim={sim} /></NearOnly>

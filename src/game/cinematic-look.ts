@@ -1,17 +1,17 @@
 /** Cheap cinematic grade for tiers that skip the post-processing pass (LOW, Safari, or an adaptive drop to low performance).
- * It is a CSS overlay, not a shader: a vignette plus a cool-shadow / warm-highlight tint, so it costs the GPU almost nothing.
- * Pure data: the component only turns these numbers into style strings. Subtle by design: it must never hide gameplay. */
-export type GradeStyle = { vignette: string; tint: string; blend: "soft-light" | "overlay"; opacity: number };
+ * It is a single plain-alpha CSS layer (vignette + cool-top / warm-bottom tint), not a shader and NOT a CSS blend mode:
+ * `mix-blend-mode` over a WebGL canvas forces the browser compositor to resolve the canvas in an extra full-resolution
+ * pass, which on integrated GPUs costs far more than the pixels it tints (F3 showed 50-80 ms of non-render frame time
+ * with the old soft-light overlay). Pure data; subtle by design so it never hides gameplay. */
+export type GradeStyle = { background: string; opacity: number };
 
-export const GRADE = { vignetteInner: 52, vignetteDark: 0.5, tintTop: "rgba(24, 70, 96, 0.55)", tintBottom: "rgba(255, 168, 96, 0.35)", opacity: 0.6 } as const;
+export const GRADE = { vignetteInner: 52, vignetteDark: 0.42, tintTop: "rgba(24, 70, 96, 0.14)", tintBottom: "rgba(255, 168, 96, 0.10)" } as const;
 
 /** `reducedMotion`/`reduceEffects` users get a flatter grade (no heavy vignette) */
 export function gradeStyle(opts: { reduce?: boolean } = {}): GradeStyle {
   const dark = opts.reduce ? GRADE.vignetteDark * 0.4 : GRADE.vignetteDark;
   return {
-    vignette: `radial-gradient(ellipse at 50% 46%, rgba(0,0,0,0) ${GRADE.vignetteInner}%, rgba(2,8,14,${dark.toFixed(2)}) 100%)`,
-    tint: `linear-gradient(180deg, ${GRADE.tintTop} 0%, rgba(0,0,0,0) 45%, ${GRADE.tintBottom} 100%)`,
-    blend: "soft-light",
-    opacity: opts.reduce ? GRADE.opacity * 0.6 : GRADE.opacity,
+    background: `radial-gradient(ellipse at 50% 46%, rgba(0,0,0,0) ${GRADE.vignetteInner}%, rgba(2,8,14,${dark.toFixed(2)}) 100%), linear-gradient(180deg, ${GRADE.tintTop} 0%, rgba(0,0,0,0) 45%, ${GRADE.tintBottom} 100%)`,
+    opacity: opts.reduce ? 0.6 : 1,
   };
 }
