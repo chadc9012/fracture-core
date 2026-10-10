@@ -38,3 +38,9 @@ All of this is **implemented and covered by automated tests where it is pure log
 - **Terrain** (`terrain.ts`, `Terrain.tsx`): mesh grid 160 -> 210 segments (about 1.9 m); ground colour now has large-scale lush/dry patches and fine speckle, supply roads read as packed earth and river banks as wet mud.
 - **Map** (`terrain-map.ts`, `WorldAtlas.tsx`): the tactical map paints the real continent (hill-shaded from the game's own heightAt/colorAt, ocean depth, lakes, rivers), draws supply roads and outlined labelled regions.
 - Not done yet: a large sky body (Destiny-style sphere) is a style call waiting on the owner; no new tree species or new GLB assets; the main-menu/forge backdrop does not use the dome; performance must be measured with F3 (the earlier probe showed 10-15 FPS with ~4.5 M triangles on an integrated GPU, so the tree load is the real bottleneck, not these additions).
+
+## Fracture Moon and authored sky wash
+
+- `sky-dome.ts` adds `SKY_BODY` (fixed direction, angular radius 0.17 rad, i.e. a giant body filling the sky) and an authored zenith → horizon colour `wash` in `skyParams`, both pure and tested.
+- `SkyDome.tsx` draws the body as a lit, cracked sphere (fbm surface, glowing fracture network, sun-side lighting, atmosphere rim, halo) before stars/clouds/sun, so clouds pass in front of it.
+- Status: implemented and unit-tested for the parameters only. The GLSL has NOT been compiled or viewed in a browser; expect tuning once screenshots exist.

@@ -1,7 +1,7 @@
 import { useFrame } from "@react-three/fiber";
 import { useMemo, useRef } from "react";
 import * as THREE from "three";
-import { skyParams } from "@/game/sky-dome";
+import { SKY_BODY, skyParams } from "@/game/sky-dome";
 import type { SkyEnv } from "./CloudLayer";
 import type { RenderTier } from "@/game/performance";
 
@@ -13,7 +13,8 @@ const VERT = /* glsl */ `varying vec3 vDir; void main(){ vDir = normalize(positi
 const frag = (octaves: number) => /* glsl */ `
 precision highp float;
 varying vec3 vDir;
-uniform vec3 sunDir, sunColor, cloudLit, cloudShade;
+uniform vec3 sunDir, sunColor, cloudLit, cloudShade, zenith, horizonCol, bodyDir;
+uniform float wash, bodyRadius;
 uniform float time, cover, night, sunStrength, starStrength, milkyWay;
 float h21(vec2 p){ p = fract(p * vec2(123.34, 456.21)); p += dot(p, p + 45.32); return fract(p.x * p.y); }
 float vn(vec2 p){ vec2 i = floor(p), f = fract(p); f = f*f*(3.0-2.0*f);
@@ -26,6 +27,44 @@ void main(){
   if (d.y < -0.02) discard;
   vec3 col = vec3(0.0); float alpha = 0.0;
 
+  // ---- authored colour wash over the physical sky: zenith to horizon ----
+  float hz = pow(1.0 - clamp(d.y, 0.0, 1.0), 2.4);
+  vec3 sunSide = mix(horizonCol, sunColor, pow(max(dot(normalize(vec3(d.x, 0.0, d.z) + 1e-4), normalize(vec3(sunDir.x, 0.0, sunDir.z) + 1e-4)), 0.0), 3.0) * 0.6);
+  col = mix(zenith, sunSide, hz);
+  alpha = wash * (0.55 + 0.45 * hz);
+
+  // ---- the Fracture Moon: a vast cracked world, lit by the sun, cracks glowing from within ----
+  {
+    vec3 bd = normalize(bodyDir);
+    float cosA = dot(d, bd);
+    float ang = acos(clamp(cosA, -1.0, 1.0));
+    if (ang < bodyRadius * 1.9) {
+      vec3 t1 = normalize(cross(bd, vec3(0.0, 1.0, 0.0))), t2 = cross(bd, t1);
+      float s = sin(bodyRadius);
+      vec2 uv0 = vec2(dot(d, t1), dot(d, t2)) / s;
+      float rr = length(uv0);
+      float halo = smoothstep(bodyRadius * 1.9, bodyRadius * 0.95, ang);
+      vec3 haloCol = mix(vec3(0.55, 0.7, 1.0), vec3(1.0, 0.75, 0.5), 1.0 - night) * (0.18 + 0.2 * night);
+      col = mix(col, haloCol, halo * 0.5); alpha = max(alpha, halo * 0.35);
+      if (rr < 1.0) {
+        vec3 n = t1 * uv0.x + t2 * uv0.y + bd * sqrt(1.0 - rr * rr);   // sphere normal in world space
+        float surf = fbm(n.xy * 5.0 + n.z * 3.0);
+        float surf2 = fbm(n.yz * 11.0 - n.x * 7.0);
+        // fracture network: thin bright ridges where two noise fields cross zero
+        float crack = 1.0 - smoothstep(0.0, 0.035, abs(fbm(n.xz * 7.5 + n.y * 4.0) - 0.5));
+        crack += (1.0 - smoothstep(0.0, 0.02, abs(fbm(n.xy * 14.0 + 3.0) - 0.5))) * 0.5;
+        float lit = clamp(dot(n, normalize(sunDir)) * 0.8 + 0.35, 0.0, 1.0);
+        vec3 rock = mix(vec3(0.46, 0.43, 0.5), vec3(0.86, 0.8, 0.74), surf * 0.7 + surf2 * 0.3);
+        vec3 body = rock * (0.12 + lit * 1.05);
+        body *= 0.55 + 0.45 * smoothstep(0.0, 0.9, 1.0 - rr * 0.6);          // darker toward the limb
+        vec3 crackCol = mix(vec3(1.0, 0.62, 0.25), vec3(0.4, 0.95, 1.0), night);
+        body += crackCol * crack * (0.35 + 0.9 * night);
+        body = mix(body, haloCol * 3.0, pow(rr, 6.0) * 0.55);                // atmosphere rim
+        col = mix(col, body, 1.0); alpha = 1.0;
+      }
+    }
+  }
+
   // ---- stars + Milky Way (night only) ----
   if (starStrength > 0.01 || milkyWay > 0.01) {
     vec3 sp = d * 220.0; vec3 cell = floor(sp); vec3 f = fract(sp) - 0.5;
@@ -37,7 +76,7 @@ void main(){
     float dust = fbm(d.xz * 9.0 / max(0.25, abs(d.y) + 0.35) + d.y * 3.0);
     vec3 mw = mix(vec3(0.22, 0.26, 0.5), vec3(0.75, 0.55, 0.6), dust) * band * (0.35 + dust * 0.9);
     col += (vec3(0.9, 0.95, 1.0) * star * tw * 1.4) * starStrength + mw * milkyWay * 0.6;
-    alpha = max(alpha, clamp(star * starStrength + length(mw) * milkyWay * 0.5, 0.0, 1.0));
+    alpha = max(alpha, clamp(star * starStrength + length(mw) * milkyWay * 0.5, 0.0, 1.0)); // stars only draw where nothing else is
   }
 
   // ---- sun disc + glow ----
@@ -76,7 +115,7 @@ export function SkyDome({ sunDirRef, envRef, playerRef, tier }: { sunDirRef: Rea
     vertexShader: VERT,
     fragmentShader: frag(octaves),
     uniforms: {
-      sunDir: { value: new THREE.Vector3(0, 1, 0) }, sunColor: { value: new THREE.Vector3(1, 0.95, 0.86) }, cloudLit: { value: new THREE.Vector3(1, 1, 1) }, cloudShade: { value: new THREE.Vector3(0.5, 0.55, 0.7) },
+      sunDir: { value: new THREE.Vector3(0, 1, 0) }, zenith: { value: new THREE.Vector3(0.16, 0.42, 0.74) }, horizonCol: { value: new THREE.Vector3(1, 0.86, 0.62) }, bodyDir: { value: new THREE.Vector3(...SKY_BODY.dir).normalize() }, wash: { value: 0.5 }, bodyRadius: { value: SKY_BODY.radius }, sunColor: { value: new THREE.Vector3(1, 0.95, 0.86) }, cloudLit: { value: new THREE.Vector3(1, 1, 1) }, cloudShade: { value: new THREE.Vector3(0.5, 0.55, 0.7) },
       time: { value: 0 }, cover: { value: 0.4 }, night: { value: 0 }, sunStrength: { value: 1 }, starStrength: { value: 0 }, milkyWay: { value: 0 },
     },
     side: THREE.BackSide, transparent: true, depthWrite: false, fog: false,
@@ -92,6 +131,9 @@ export function SkyDome({ sunDirRef, envRef, playerRef, tier }: { sunDirRef: Rea
     (u["sunColor"]!.value as THREE.Vector3).set(...params.sunColor);
     (u["cloudLit"]!.value as THREE.Vector3).set(...params.cloudLit);
     (u["cloudShade"]!.value as THREE.Vector3).set(...params.cloudShade);
+    (u["zenith"]!.value as THREE.Vector3).set(...params.zenith);
+    (u["horizonCol"]!.value as THREE.Vector3).set(...params.horizon);
+    u["wash"]!.value = params.wash;
     u["time"]!.value = clock.elapsedTime;
     u["cover"]!.value = params.cover;
     u["night"]!.value = params.night;

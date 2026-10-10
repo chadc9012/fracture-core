@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { skyParams } from "./sky-dome";
+import { SKY_BODY, skyBodyElevation, skyParams } from "./sky-dome";
 
 describe("sky dome parameters", () => {
   test("day has no night/stars, midnight is fully dark with stars", () => {
@@ -28,5 +28,21 @@ describe("sky dome parameters", () => {
       const p = skyParams(y, c);
       for (const col of [p.sunColor, p.cloudLit, p.cloudShade]) for (const v of col) { expect(v).toBeGreaterThanOrEqual(0); expect(v).toBeLessThanOrEqual(1.0001); }
     }
+  });
+});
+
+describe("the Fracture Moon and the sky wash", () => {
+  test("the giant body sits above the horizon at a unit-ish direction and is much larger than the moon", () => {
+    expect(skyBodyElevation()).toBeGreaterThan(0.3);
+    expect(skyBodyElevation()).toBeLessThan(0.9);
+    expect(SKY_BODY.radius).toBeGreaterThan(0.1); // our moon is ~0.02 rad
+    expect(SKY_BODY.radius).toBeLessThan(0.3);
+  });
+  test("the wash is warm at the horizon at golden hour and cool and dark at night", () => {
+    const dusk = skyParams(0.04, 0), noon = skyParams(0.9, 0), night = skyParams(-0.4, 0);
+    expect(dusk.horizon[0]).toBeGreaterThan(dusk.horizon[2] * 2);
+    expect(noon.zenith[2]).toBeGreaterThan(noon.zenith[0]);
+    expect(night.zenith[0] + night.zenith[1] + night.zenith[2]).toBeLessThan(0.4);
+    for (const p of [dusk, noon, night]) for (const c of [...p.zenith, ...p.horizon]) { expect(c).toBeGreaterThanOrEqual(0); expect(c).toBeLessThanOrEqual(1.0001); }
   });
 });
