@@ -256,6 +256,7 @@ export function GameCanvas() {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, []);
+  useEffect(() => { shopNearRef.current = hud.shopNearId ?? null; if (!hud.shopNearId) setShopOpen(null); }, [hud.shopNearId]);
   const [atlasOpen, setAtlasOpen] = useState(false);
   const [hubView, setHubView] = useState<"starmap" | "arsenal" | "saves" | null>(null);
   const [travelTo, setTravelTo] = useState<{ x: number; z: number; nonce: number } | null>(null);
