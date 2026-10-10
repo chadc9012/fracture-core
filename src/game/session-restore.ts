@@ -1,3 +1,4 @@
+import { idleAbilityHud } from "./ability-hud";
 /** Pure rules that turn a saved profile into the live operator session, and that keep Continue, cloud
  * merges and re-deploys from replaying first-time onboarding. GameCanvas owns the React state; every
  * decision lives here so it can be tested without rendering. */
@@ -28,7 +29,7 @@ export function hudIdentity(s: OperatorSession) {
     playerClass: s.cls,
     subclassName: subclassById(s.subclass).name,
     callsign: s.appearance.callsign,
-    abilities: classById(s.cls).abilities.map((a) => ({ slot: a.slot, name: a.name, ready: true })),
+    abilities: idleAbilityHud(s.cls),
   };
 }
 

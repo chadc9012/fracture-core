@@ -42,7 +42,7 @@ export function HUD({ hud, tutorialActive = false, onMenu }: { hud: HudState; tu
           <div className={`relative h-full hud-ticks ${hud.hp > 40 ? "bg-primary" : "bg-destructive"}`} style={{ width: `${hud.hp}%`, transition: "width 200ms linear" }} />
         </div>
         <div className="mt-1.5 flex items-center gap-3 text-[8px] uppercase tracking-[0.18em] text-muted-foreground"><span>{operatorByClass(hud.playerClass).name}</span><span>{hud.subclassName}</span>{hud.playerClass === "TITAN" && <span className="text-primary">Shield {hud.shield}%</span>}</div>
-        <div className="mt-2 flex gap-1">{hud.abilities.map((ability) => <div key={ability.slot} className={`min-w-0 flex-1 border-t px-1 pt-1 ${ability.ready ? "border-primary text-foreground" : "border-border text-muted-foreground"}`}><p className="truncate text-[8px] uppercase">{ability.slot.slice(0, 1)} · {ability.name}</p></div>)}</div>
+        <div className="mt-2 flex gap-1">{hud.abilities.map((ability) => <div key={ability.slot} data-ability-state={ability.state} className={`min-w-0 flex-1 border-t px-1 pt-1 ${ability.state === "ACTIVE" ? "border-accent text-foreground" : ability.ready ? "border-primary text-foreground" : "border-border text-muted-foreground"}`}><p className="truncate text-[8px] uppercase">{ability.key} · {ability.name}</p><p className="text-[8px] uppercase tracking-wider">{ability.state === "COOLDOWN" ? `${ability.cooldown.toFixed(1)}s` : ability.state === "NO_ENERGY" ? `needs ${ability.cost}` : ability.state === "ACTIVE" ? "active" : "ready"}</p></div>)}</div>
       </div>
     </div>
     {ammo && (

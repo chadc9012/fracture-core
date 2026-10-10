@@ -5,6 +5,7 @@ import { createEnvState, STRIKE_MACHINE_DAMAGE, STRIKE_PLAYER_DAMAGE, type EnvSt
 import { familyFor, rollRaidDrop } from "./raid-loot";
 import { squadMove, squadRole } from "./enemy-intelligence";
 import { createAi, pickCover, shouldTakeCover, sightRange, stepAwareness, type EnemyAi } from "./enemy-perception";
+import type { AbilityEvent } from "./ability-effects";
 import { RIFT_TURRET_DAMAGE, deployRiftTurret, stepRiftTurret, type RiftTurret } from "./operator-abilities";
 import { REGIONS, type Region } from "./world";
 import { heightAt, smoothstep, walkHeight } from "./terrain";
@@ -269,6 +270,14 @@ export type WorldSim = {
   volatileZones: { x: number; z: number; radius: number; dps: number; until: number }[];
   /** CIPHER Rift Turrets (operator-abilities.ts): temporary deployables, expire on their own */
   riftTurrets: RiftTurret[];
+  /** ability-effects.ts: stable outcome log (activation / rejection / cancellation) consumed by HUD, animation and VFX; never written by presentation */
+  abilityEvents: AbilityEvent[];
+  nextAbilityEventId: number;
+  /** seconds of full damage immunity (Rift Dash) and of the Bastion Shield barrier; both zero on death */
+  iframes: number;
+  barrierTime: number;
+  /** performance.now() of the last hit the iframes/barrier absorbed (HUD feedback) */
+  lastBlockedAt: number;
   /** NYX Phase Veil: multiplies enemy sight range (1 = visible), set by Scene each frame */
   stealthMult: number;
   verbDamageMult: number;
@@ -482,6 +491,11 @@ export function createSim(): WorldSim {
     bossCounter: counterTuningFor(null),
     volatileZones: [],
     riftTurrets: [],
+    abilityEvents: [],
+    nextAbilityEventId: 1,
+    iframes: 0,
+    barrierTime: 0,
+    lastBlockedAt: 0,
     stealthMult: 1,
     verbDamageMult: 1,
     verbIncomingMult: 1,
@@ -709,8 +723,39 @@ export function applyLightning(sim: WorldSim, strike: Strike, px: number, pz: nu
   if (Math.hypot(px - strike.x, pz - strike.z) <= strike.radius) hurtPlayer(sim, STRIKE_PLAYER_DAMAGE, "Lightning strike");
 }
 
+/** The one place incoming damage to a war machine is shaped, shared by bullets, abilities and turrets so they all
+ * respect the same rules: Weaken/Marked vulnerability, boss poise windows, Unique Scenario gimmicks, and the hit count
+ * that decides scenario reward participation. Returns the damage to subtract from m.hp. */
+export function applyMachineDamageMods(sim: WorldSim, m: Machine, dmg: number, element: Parameters<typeof gimmickMultiplier>[1]["element"], px: number, pz: number): number {
+  const nowSec = performance.now() / 1000;
+  if (m.vulnUntil > nowSec) dmg *= m.vulnMult;
+  if (!m.boss) return dmg;
+  if (!m.poiseState) m.poiseState = INITIAL_POISE;
+  const result = hitPoise(m.poiseState, dmg * 9, nowSec);
+  m.poiseState = result.state;
+  let mult = result.damageMult;
+  // Unique Scenario gimmick: near-immune outside the weak-point/stagger window it just got
+  if (m.scenarioId && mult === 1) mult = scenarioById(m.scenarioId)?.outsideWindowMult ?? 1;
+  dmg *= mult;
+  if (m.scenarioId) {
+    const g = gimmickMultiplier(scenarioById(m.scenarioId)?.gimmick, { element, nowSec, distance: Math.hypot(m.x - px, m.z - pz), history: m.gimmickHistory ?? [] });
+    m.gimmickHistory = g.history;
+    dmg *= g.mult;
+    m.playerHits = (m.playerHits ?? 0) + 1;
+  }
+  return dmg;
+}
+
+/** Bosses are never hard-locked: any stun on a boss is capped to the same window Null Disruption uses. */
+export const BOSS_STUN_CAP = NULL_PULSE_STUN_SECONDS;
+export function stunMachine(m: Machine, seconds: number) {
+  m.cool = Math.max(m.cool, m.boss ? Math.min(seconds, BOSS_STUN_CAP) : seconds);
+}
+
 /** hurt the player and respawn at Nexus when the hull is gone */
 export function hurtPlayer(sim: WorldSim, dmg: number, cause: string) {
+  // Rift Dash i-frames and the Bastion Shield barrier negate the hit entirely (every damage source funnels through here)
+  if (sim.iframes > 0 || sim.barrierTime > 0) { sim.lastBlockedAt = performance.now(); return; }
   // Global Balance Controller (balance.ts): scales every hit the player takes by their own power
   // score before anything else runs — the one place all incoming damage already funnels through.
   // verbIncomingMult (Bulwark Titan's Safe Ground / OVERSHIELD) is set here too since every source
@@ -828,6 +873,8 @@ export function stepSim(sim: WorldSim, input: SimInput) {
   const t0 = performance.now();
   beginStats(sim.stats);
   if (sim.titanActive) tickTitan(sim.titan, dt);
+  sim.iframes = Math.max(0, sim.iframes - dt);
+  sim.barrierTime = Math.max(0, sim.barrierTime - dt);
 
   // ---------- adaptive build loop ----------
   // passive behaviour: time spent driving, sneaking past hostiles, holding the line
@@ -1171,7 +1218,7 @@ export function stepSim(sim: WorldSim, input: SimInput) {
       const hit = stepRiftTurret(rt, sim.machines, dt);
       const target = hit >= 0 ? sim.machines[hit] : undefined;
       if (target) {
-        target.hp -= RIFT_TURRET_DAMAGE;
+        target.hp -= applyMachineDamageMods(sim, target, RIFT_TURRET_DAMAGE, "KINETIC", px, pz);
         const dx = target.x - rt.x, dz = target.z - rt.z, d = Math.hypot(dx, dz) || 1;
         target.kx += (dx / d) * 2;
         target.kz += (dz / d) * 2;
@@ -1379,23 +1426,7 @@ export function stepSim(sim: WorldSim, input: SimInput) {
         b.alive = false;
         let dmg = sim.mods.bulletDamage * b.dmg * sim.verbDamageMult;
         if (sim.equippedElement !== "KINETIC") dmg += 0.35;
-        if (m.vulnUntil > performance.now() / 1000) dmg *= m.vulnMult;
-        if (m.boss) {
-          const nowSec = performance.now() / 1000;
-          if (!m.poiseState) m.poiseState = INITIAL_POISE;
-          const result = hitPoise(m.poiseState, dmg * 9, nowSec);
-          m.poiseState = result.state;
-          let mult = result.damageMult;
-          // Unique Scenario gimmick: near-immune outside the weak-point/stagger window it just got
-          if (m.scenarioId && mult === 1) mult = scenarioById(m.scenarioId)?.outsideWindowMult ?? 1;
-          dmg *= mult;
-          if (m.scenarioId) {
-            const g = gimmickMultiplier(scenarioById(m.scenarioId)?.gimmick, { element: sim.equippedElement, nowSec, distance: Math.hypot(m.x - px, m.z - pz), history: m.gimmickHistory ?? [] });
-            m.gimmickHistory = g.history;
-            dmg *= g.mult;
-            m.playerHits = (m.playerHits ?? 0) + 1;
-          }
-        }
+        dmg = applyMachineDamageMods(sim, m, dmg, sim.equippedElement, px, pz);
         m.hp -= dmg;
         if (sim.equippedPerk === NULL_PERK) {
           // timed = interrupting a wind-up, or hitting a boss while its weak-point/stagger window is open

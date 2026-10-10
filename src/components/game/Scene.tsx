@@ -6,7 +6,7 @@ import * as THREE from "three";
 import { REGIONS, SKY, ZONE_COLOR, clockLabel, phaseFor, regionAt, WORLD_RADIUS } from "@/game/world";
 import { useKeyboard } from "@/game/useKeyboard";
 import { walkHeight, slopeAt, heightAt, WATER_LEVEL } from "@/game/terrain";
-import { alert, applyLightning, applySuppressPulse, applyVulnPulse, collidePlayer, createSim, defeatMachine, FACTIONS, fireBullet, hurtPlayer, throwBeacon, instabilityTier, spawnMissionDrones, placeRiftTurret, spawnVolatileZone, stepSim, summonBoss, summonScenarioBoss, type Faction, type InstabilityTier, type WorldSim, type ZoneState } from "@/game/sim";
+import { alert, applyLightning, collidePlayer, createSim, defeatMachine, FACTIONS, fireBullet, hurtPlayer, throwBeacon, instabilityTier, spawnMissionDrones, stepSim, summonBoss, summonScenarioBoss, type Faction, type InstabilityTier, type WorldSim, type ZoneState } from "@/game/sim";
 import type { MissionEvent, MissionRun } from "@/game/missions/broken-signal";
 import type { MissionEvent as BlackoutEvent, MissionRun as BlackoutRun } from "@/game/missions/blackout-protocol";
 import type { MissionEvent as NeonCoreEvent, MissionRun as NeonCoreRun } from "@/game/missions/stitched-neon-core";
@@ -63,8 +63,7 @@ import { RiftTurrets } from "./RiftTurrets";
 import { NearOnly } from "./NearOnly";
 import { PerfProbe } from "./PerfProbe";
 import type { BodyType } from "@/game/operators";
-import { SIEGE_BLOOM_MULT, VEIL_BREAK_TIME, knockbackFrom, siegeDamageMult, siegeMoveMult, strikeDamage, strikeLanding, veilSightMult } from "@/game/operator-abilities";
-import { VERB_LABEL } from "@/game/subclass-verbs";
+import { SIEGE_BLOOM_MULT, VEIL_BREAK_TIME, siegeMoveMult } from "@/game/operator-abilities";
 import type { ActiveBuild } from "@/game/ability-network";
 import { buildSynergy } from "@/game/ability-network";
 import type { SquadArchetype } from "@/game/adaptation";
@@ -88,7 +87,9 @@ import { CRASH_SITE, ENCOUNTER, NEW_INVESTIGATION, shouldWakePatrol, stepInvesti
 import { spawnForestPatrol } from "@/game/forest-encounter";
 import { CHECKPOINT_INTERVAL_S, chooseRespawn, isCheckpointSafe } from "@/game/respawn";
 import { WEAPONS, WEAPON_ORDER, decay, freshAmmo, type WeaponId } from "@/game/weapons";
-import { DEFAULT_BINDINGS } from "@/game/bindings";
+import { DEFAULT_BINDINGS, abilityChord, maskChord } from "@/game/bindings";
+import type { AbilityHud } from "@/game/ability-effects";
+import { abilityHud, cancelAbilities, castAbility, holdDisabledField, syncSimFromLive } from "@/game/ability-effects";
 import * as sfx from "@/game/audio";
 import { setVoiceLoad } from "@/game/voice-director";
 import { RegionLighting } from "./RegionLighting";
@@ -152,7 +153,7 @@ export type HudState = {
   playerClass: ClassId;
   subclassName: string;
   callsign: string;
-  abilities: { slot: string; name: string; ready: boolean }[];
+  abilities: AbilityHud[];
   firstMissionComplete: boolean;
   weather: string;
   /** "Autumn · Dense fog · 14°C" */
@@ -821,61 +822,28 @@ export function Scene({
       summonBoss(sim, here.id, s.x + Math.sin(s.yaw) * 24, s.z + Math.cos(s.yaw) * 24);
     }
     bossHeld.current = held.has("KeyB");
+    // Abilities: Scene only forwards the input edge (keyboard Q/E/R, or the controller chord) and the pose.
+    // Cost, cooldown, target validation, damage, stun and the event record all happen in ability-effects.ts against the real sim.
+    const padForAbilities = typeof navigator !== "undefined" && navigator.getGamepads ? Array.from(navigator.getGamepads()).find(Boolean) ?? null : null;
+    const chord = abilityChord(padForAbilities ? padForAbilities.buttons.map((b) => b.pressed) : [], (settings.bindings ?? DEFAULT_BINDINGS).gamepad);
     for (const [key, slot] of [["KeyQ", "PRIMARY"], ["KeyE", "TACTICAL"], ["KeyR", "ULTIMATE"]] as const) {
-      if (held.has(key) && !abilityHeld.current[key] && !s.inVehicle) {
-        const ability = activateLiveAbility(live.current, slot, here?.kind ?? "war", subclassId);
-        if (ability) {
-          const verb = live.current.pendingVerb;
-          if (verb) {
-            if (verb.verb === "VOLATILE") spawnVolatileZone(sim, s.x, s.z, verb.radius, verb.magnitude, verb.duration);
-            else if (verb.verb === "SUPPRESS") applySuppressPulse(sim, s.x, s.z, verb.radius, verb.magnitude);
-            else applyVulnPulse(sim, s.x, s.z, verb.radius, verb.magnitude, verb.duration); // WEAKEN / MARKED
-            live.current.pendingVerb = null;
-            alert(sim, `${VERB_LABEL[verb.verb]} applied to nearby hostiles`);
-          }
+      const down = held.has(key) || chord[slot];
+      if (down && !abilityHeld.current[key]) {
+        const cast = castAbility(sim, live.current, slot, { x: s.x, z: s.z, yaw: s.yaw }, { environment: here?.kind ?? "war", subclassId, inVehicle: s.inVehicle });
+        if (cast.ok) {
+          const effect = cast.config.effects[0];
+          s.x = cast.pose.x; s.z = cast.pose.z; s.yaw = cast.pose.yaw;
           s.specialTime = Math.max(s.specialTime, slot === "ULTIMATE" ? 1.5 : 0.8);
-          const effect = ability.effects[0];
           sfx.playAbility(effect?.kind ?? "ABILITY");
-          if (effect?.kind === "DASH") { s.x += Math.sin(s.yaw) * effect.value; s.z += Math.cos(s.yaw) * effect.value; alert(sim, "RIFT DASH · incoming damage avoided"); bossActionLog.current = logAction(bossActionLog.current, "DASH", performance.now() / 1000); }
-          else bossActionLog.current = logAction(bossActionLog.current, "ABILITY", performance.now() / 1000);
-          if (effect?.kind === "SILENCE" || effect?.kind === "FIELD" || effect?.kind === "COOLDOWN_SHIFT") {
-            for (const enemy of sim.machines) if (enemy.alive && Math.hypot(enemy.x - s.x, enemy.z - s.z) < (effect.radius ?? 12)) enemy.cool = Math.max(enemy.cool, effect.duration ?? 3);
-            if (effect.kind === "FIELD") live.current.fieldTime = effect.duration ?? 8;
-            alert(sim, "Hostile systems disrupted · environment recalibrated");
-          }
-          if (effect?.kind === "DAMAGE") for (const enemy of sim.machines) if (enemy.alive && Math.hypot(enemy.x - s.x, enemy.z - s.z) < (effect.radius ?? 6) * 2) {
-            enemy.hp -= effect.value / 20;
-            if (effect.tags?.includes("knockback")) { const pushed = knockbackFrom(s.x, s.z, enemy.x, enemy.z, 6); enemy.x = pushed.x; enemy.z = pushed.z; enemy.cool = Math.max(enemy.cool, 1.2); }
-            if (enemy.hp <= 0) defeatMachine(sim, enemy);
-          }
-          if (effect?.kind === "DOME") { sim.titan.domeTime = Math.max(sim.titan.domeTime, effect.duration ?? 5); alert(sim, "Barrier projected"); }
-          if (effect?.kind === "MARK") { live.current.damageMultiplier = 1.25; applyVulnPulse(sim, s.x, s.z, effect.radius ?? 24, effect.value, effect.duration ?? 8); alert(sim, "Recon swarm deployed · hostiles revealed"); }
-          if (effect?.kind === "SIEGE") alert(sim, "SIEGE MODE · stability and firepower up");
-          if (effect?.kind === "VEIL") alert(sim, "PHASE VEIL · concealed until you attack");
-          if (effect?.kind === "TURRET") { placeRiftTurret(sim, s.x + Math.sin(s.yaw) * 2.5, s.z + Math.cos(s.yaw) * 2.5, effect.duration ?? 20); alert(sim, "Rift Turret deployed"); }
-          if (effect?.kind === "STRIKE") {
-            let target: (typeof sim.machines)[number] | null = null;
-            let best = effect.radius ?? 16;
-            for (const enemy of sim.machines) { if (!enemy.alive) continue; const d = Math.hypot(enemy.x - s.x, enemy.z - s.z); if (d < best) { best = d; target = enemy; } }
-            if (target) {
-              const land = strikeLanding(s.x, s.z, target.x, target.z);
-              s.x = land.x; s.z = land.z;
-              s.yaw = Math.atan2(target.x - land.x, target.z - land.z);
-              target.hp -= strikeDamage(live.current.veilTime) * live.current.strikeBoost;
-              target.cool = Math.max(target.cool, 1.2);
-              live.current.veilTime = 0;
-              if (target.hp <= 0) defeatMachine(sim, target);
-              alert(sim, "SHADOW STRIKE");
-            } else alert(sim, "Shadow Strike · no target in reach");
-          }
+          bossActionLog.current = logAction(bossActionLog.current, effect?.kind === "DASH" ? "DASH" : "ABILITY", performance.now() / 1000);
           if (tutorial?.step === "ABILITY") onTutorialEvent?.("ABILITY");
           else if (tutorial?.step === "REINFORCE" && slot === "PRIMARY") onTutorialEvent?.("MASTERY");
           else if (tutorial?.step === "CHAMBER") { chamberActions.current.add(slot); if (chamberActions.current.size >= 2) onTutorialEvent?.("CHAMBER"); }
           else if (tutorial?.step === "POWER" && slot !== "PRIMARY") onTutorialEvent?.("CHAIN");
           else if (tutorial?.step === "SENTINEL" && sentinel.current && effect?.kind !== "BLOCK") { sentinel.current.hp -= 2; }
-        }
+        } else alert(sim, cast.text);
       }
-      abilityHeld.current[key] = held.has(key);
+      abilityHeld.current[key] = down;
     }
     /* ---------------- weather cycle (deterministic fronts per region, see weather-cycle.ts) ---------------- */
     // seasons layer on top of the fronts (environment.ts): same deterministic clock, seasonally-adjusted weather
@@ -1032,7 +1000,7 @@ export function Scene({
     /* ------- input: keyboard + controller weapon selection (configurable bindings) ------- */
     const binds = settings.bindings ?? DEFAULT_BINDINGS;
     const pad = typeof navigator !== "undefined" && navigator.getGamepads ? Array.from(navigator.getGamepads()).find(Boolean) ?? null : null;
-    const padNow = pad ? pad.buttons.map((b) => b.pressed) : [];
+    const padNow = pad ? maskChord(pad.buttons.map((b) => b.pressed), binds.gamepad) : [];
     const padTap = (i: number) => !!padNow[i] && !padPrev.current[i];
     const keyTap = (code: string) => held.has(code) && !keyPrev.current.has(code);
     padState.current = { fire: !!padNow[binds.gamepad.fire], aim: !!padNow[binds.gamepad.aim], connected: !!pad };
@@ -1096,9 +1064,7 @@ export function Scene({
     sim.equippedPerk = equippedWeapon?.perk;
     // self-targeted subclass verbs (RAGE/OVERSHIELD, see subclass-verbs.ts) live on LiveBuild, which
     // has no reference to WorldSim — bridge them in every frame rather than one-shot at cast time.
-    sim.verbDamageMult = (live.current.verbKind === "RAGE" && live.current.verbTime > 0 ? live.current.verbMagnitude : 1) * (live.current.siegeTime > 0 ? live.current.siegeBoost : 1) * siegeDamageMult(live.current.siegeTime);
-    sim.stealthMult = veilSightMult(live.current.veilTime);
-    sim.verbIncomingMult = live.current.verbKind === "OVERSHIELD" && live.current.verbTime > 0 ? 1 - live.current.verbMagnitude : 1;
+    syncSimFromLive(sim, live.current);
     s.recoil = decay(s.recoil, 9, dt);
     s.punch = decay(s.punch, 14, dt);
     s.bloom = decay(s.bloom, 6, dt);
@@ -1580,6 +1546,7 @@ export function Scene({
     }
     if (sim.lastDeath !== deathSeen.current) {
       deathSeen.current = sim.lastDeath;
+      live.current = cancelAbilities(sim, live.current, { x: s.x, z: s.z, yaw: s.yaw });
       const spot = chooseRespawn({ x: s.x, z: s.z }, checkpoint.current, hostiles);
       alert(sim, `Respawned at ${spot.label} — away from active combat`);
       s.x = spot.x;
@@ -1620,7 +1587,7 @@ export function Scene({
     if (live.current.fieldTime > 0) sim.gravity *= 0.55;
     sim.gravity *= hazardRef.current.gravityMul;
     if (live.current.dashTime > 0) sim.hp = Math.min(100, sim.hp + dt * 15);
-    if (live.current.hackTime > 0) for (const enemy of sim.machines) if (enemy.alive && Math.hypot(enemy.x - s.x, enemy.z - s.z) < 12) enemy.cool = Math.max(enemy.cool, 0.3);
+    holdDisabledField(sim, live.current, { x: s.x, z: s.z, yaw: s.yaw });
 
     /* ---------------- vertical: gravity + terrain follow, or buoyancy + pressure diving ---------------- */
     const standY = (interior ? INTERIOR_ALTITUDE : walkHeight(s.x, s.z)) + (s.inVehicle ? 1.9 : 1.6);
@@ -1827,7 +1794,7 @@ export function Scene({
         playerClass,
         subclassName: selectedSubclass.name,
         callsign: appearance.callsign,
-        abilities: selectedClass.abilities.map((ability) => ({ slot: ability.slot, name: ability.name, ready: live.current.runtime[ability.slot]?.cooldown <= 0 })),
+        abilities: abilityHud(live.current),
         firstMissionComplete: sim.director.missions.some((mission) => mission.kind === "FIRST_RESONANCE" && mission.state === "COMPLETED"),
         weather: weatherName.current,
         environment: environmentSummary.current,

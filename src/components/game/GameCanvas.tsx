@@ -46,6 +46,7 @@ import { IntroCinematic } from "./IntroCinematic";
 import { introTotalSeconds } from "@/game/intro";
 import { VictoryReport } from "./VictoryReport";
 import { ScenarioRewardCards } from "./ScenarioRewardCards";
+import { idleAbilityHud } from "@/game/ability-hud";
 import { grantScenarioReward, planScenarioRewardCards, type RewardCard } from "@/game/scenario-loot";
 import { scenarioById } from "@/game/unique-scenarios";
 import { claimDrops } from "@/game/inventory";
@@ -168,7 +169,7 @@ const initial: HudState = {
   playerClass: "TITAN",
   subclassName: "Shield Titan",
   callsign: "BASTION-01",
-  abilities: classById("TITAN").abilities.map((ability) => ({ slot: ability.slot, name: ability.name, ready: true })),
+  abilities: idleAbilityHud("TITAN"),
   firstMissionComplete: false,
   weather: "Rain mist",
   environment: "",
