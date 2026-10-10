@@ -71,6 +71,8 @@ import { RENDER_PRESETS } from "@/game/performance";
 import { branchPosture } from "@/game/branch-effects";
 import { activateLiveAbility, createLiveBuild, rebindLiveBuild, tickLiveBuild } from "@/game/live-build";
 import { hazardAt, type HazardEffect } from "@/game/region-hazards";
+import { zoneAt, combineHazard } from "@/game/hazard-zones";
+import { LANDMARKS, isLandmarkKnown } from "@/game/landmarks";
 import { RiftTurrets } from "./RiftTurrets";
 import { NearOnly } from "./NearOnly";
 import { PerfProbe } from "./PerfProbe";
@@ -476,6 +478,7 @@ export function Scene({
   const hazardWarning = useRef("");
   const hazardRef = useRef<HazardEffect>(hazardAt({ regionId: null, t: 0, dt: 0, sheltered: true, exposure: 0 }));
   const lightning = useRef(0);
+  const zonePull = useRef({ x: 0, z: 0 });
   const markerList = (): Marker[] => {
     const now = performance.now();
     const list: Marker[] = [];
@@ -491,6 +494,7 @@ export function Scene({
     for (const lair of BOSS_LAIRS) list.push(lair);
     if (gear) for (const r of ruins()) if (isDiscovered(gear, r.id)) list.push({ id: `ruin-${r.id}`, kind: "RUIN", label: isEvolved(gear, r.id) ? `${r.name} (spent)` : r.name, x: r.x, z: r.z, regionId: r.regionId });
     for (const lair of SCENARIO_LAIRS) list.push(lair);
+    if (gear) for (const l of LANDMARKS) if (l.id !== "neon-city" && l.id !== "thalassia" && isLandmarkKnown(gear, l.id)) list.push({ id: `lm-${l.id}`, kind: "LANDMARK", label: l.name, x: l.x, z: l.z, regionId: l.regionId });
     for (const m of sim.machines) if (m.alive && m.boss) list.push({ id: `live-${m.profile}`, kind: "BOSS", label: `${m.profile} (engaged)`, x: m.x, z: m.z, regionId: m.zone });
     if (sim.emergencyQuest.state === "WARNING" || sim.emergencyQuest.state === "ACTIVE") list.push({ id: "eq-boss", kind: "BOSS", label: `EQ · ${sim.emergencyQuest.bossName}`, x: sim.emergencyQuest.x, z: sim.emergencyQuest.z, regionId: sim.emergencyQuest.regionId });
     list.push({ id: "neon-city", kind: "MISSION", label: "Neon City", x: NEON_CITY_CENTER.x, z: NEON_CITY_CENTER.z, regionId: "nexus" });
@@ -937,7 +941,10 @@ export function Scene({
     const visibility = interior ? 1 : wx!.visibility;
     sim.envVisibility = visibility;
     {
-      const hz = hazardAt({ regionId: s.insideInterior ? null : regionAt(s.x, s.z)?.id ?? null, t: performance.now() / 1000, dt, sheltered: s.inVehicle || !!s.insideInterior, exposure: hazardRef.current.exposure });
+      const hzT = performance.now() / 1000, hzSheltered = s.inVehicle || !!s.insideInterior;
+      const zone = zoneAt(s.x, s.z, hzT, hzSheltered); // localized zones (hazard-zones.ts) stack on the regional hazard
+      zonePull.current.x = zone.pullX; zonePull.current.z = zone.pullZ;
+      const hz = combineHazard(hazardAt({ regionId: s.insideInterior ? null : regionAt(s.x, s.z)?.id ?? null, t: hzT, dt, sheltered: hzSheltered, exposure: hazardRef.current.exposure }), zone);
       if (hz.warning && hz.warning !== hazardRef.current.warning) alert(sim, hz.warning);
       hazardRef.current = hz;
       if (hz.damagePerSec > 0) { if (sim.hp - hz.damagePerSec * dt <= 1) hurtPlayer(sim, 5, hz.name); else sim.hp -= hz.damagePerSec * dt; }
@@ -1337,8 +1344,8 @@ export function Scene({
       } else {
         velocity.lerp(wish, 1 - Math.exp(-14 * dt));
       }
-      s.x += velocity.x * dt;
-      s.z += velocity.z * dt;
+      s.x += (velocity.x + zonePull.current.x) * dt;
+      s.z += (velocity.z + zonePull.current.z) * dt;
       if (tutorial?.step === "MOVEMENT") { const travel = Math.hypot(s.x - SPAWN.x, s.z - SPAWN.z); if (travel >= (lastGate.current + 1) * 10 && lastGate.current < 3) { lastGate.current++; onTutorialEvent?.("GATE"); } }
     }
 

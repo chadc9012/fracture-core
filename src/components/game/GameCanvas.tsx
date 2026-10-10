@@ -14,6 +14,7 @@ import type { RenderTier } from "@/game/performance";
 import { DPR_FLOOR, effectiveTier, onDecline as governDecline } from "@/game/quality-governor";
 import { MissionCinematic } from "./MissionCinematic";
 import { shouldPlay as shouldPlayCine, markPlayed as markCinePlayed } from "@/game/cinematics";
+import { undiscoveredNear, discoverLandmarks, isLandmarkKnown } from "@/game/landmarks";
 import { ruinById, discoverNearby, canEvolve, evolveWeapon, isWeapon, ABILITY_RULES, EVOLVE_POWER_BONUS, EVOLVE_MIN_LEVEL, EVOLVE_CATALYSTS, EVOLVE_ELEMENT_AMOUNT } from "@/game/weapon-evolution";
 import { HUD } from "./HUD";
 import { Scene, type HudState } from "./Scene";
@@ -270,6 +271,16 @@ export function GameCanvas() {
     const r = hud.ruinNear && ruinById(hud.ruinNear.id);
     if (r) setProgression((current) => discoverNearby(current, r.x, r.z)); // idempotent: returns the same object once seen
   }, [hud.ruinNear?.id, hud.ruinNear?.reach]);
+  // landmark discovery (landmarks.ts): ledger-only, idempotent, shows the landmark's history once
+  const [landmarkToast, setLandmarkToast] = useState<{ name: string; history: string } | null>(null);
+  useEffect(() => {
+    if (!hud.px && !hud.pz) return;
+    const found = undiscoveredNear(progression, hud.px, hud.pz);
+    if (!found.length) return;
+    setProgression((current) => discoverLandmarks(current, hud.px, hud.pz));
+    setLandmarkToast({ name: found[0]!.name, history: found[0]!.history });
+  }, [Math.round(hud.px / 8), Math.round(hud.pz / 8), progression.earnedRewards.length]);
+  useEffect(() => { if (!landmarkToast) return; const id = window.setTimeout(() => setLandmarkToast(null), 8000); return () => window.clearTimeout(id); }, [landmarkToast]);
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.code !== "KeyU" || e.repeat || !ruinNearRef.current?.reach) return;
@@ -852,7 +863,7 @@ export function GameCanvas() {
        {savedFlash > 0 && <p className="pointer-events-none fixed right-4 top-4 z-30 font-mono text-[10px] uppercase tracking-[0.25em] text-primary" role="status">◌ Auto-saved</p>}
        <VoiceSubtitle />
        <HUD hud={hud} tutorialActive={Boolean(tutorial && tutorial.step !== "VICTORY")} onMenu={() => { setInventoryOpen(false); setAtlasOpen(false); setOperationsView(null); setMenuOpen(true); }} onStrategy={() => setStrategyOpen(true)} onGarage={() => setGarageOpen(true)} onAnalyze={() => setAnalysisOpen(true)} onOperations={(view) => { setInventoryOpen(false); setAtlasOpen(false); setOperationsView(view); }} onInventory={() => { setAtlasOpen(false); setOperationsView(null); setInventoryOpen(true); }} onAtlas={() => { setInventoryOpen(false); setOperationsView(null); setAtlasOpen(true); }} />
-       {!tutorial && !hud.insideInterior && <Minimap hud={hud} />}
+       {!tutorial && !hud.insideInterior && <Minimap hud={hud} known={(id) => isLandmarkKnown(progression, id)} />}
        {!tutorial && <QuestTracker progression={progression} />}
        {storyGraph && <StoryDialogue key={storyGraph.id} graph={storyGraph} story={progression.story} onStory={applyStory} onDone={finishStoryGraph} />}
        {!storyGraph && !activeDialogue && objectiveFor(progression.story) && progression.story.stages["vaelith"] !== undefined && <p className="pointer-events-none fixed left-4 top-24 z-20 max-w-[280px] font-mono text-[10px] uppercase tracking-[0.18em] text-primary/80">Vaelith · {objectiveFor(progression.story)!.text}</p>}
@@ -923,6 +934,7 @@ export function GameCanvas() {
        )}
        {shopOpen && <ShopWindow shopId={shopOpen} progression={progression} onProgression={setProgression} onClose={() => setShopOpen(null)} />}
        {inventoryOpen && <InventoryWindow progression={progression} onProgression={setProgression} onClose={() => setInventoryOpen(false)} />}
+       {landmarkToast && !atlasOpen && <div className="pointer-events-none absolute left-1/2 top-28 z-30 w-[min(26rem,86vw)] -translate-x-1/2 border-l-2 border-primary bg-background/80 px-3 py-2" role="status"><p className="font-mono text-[9px] uppercase tracking-[0.3em] text-primary">Landmark discovered</p><p className="text-sm font-semibold">{landmarkToast.name}</p><p className="mt-0.5 text-[11px] text-muted-foreground">{landmarkToast.history}</p></div>}
        {atlasOpen && <WorldAtlas progression={progression} markers={hud.markers} px={hud.px} pz={hud.pz} currentRegion={hud.region} phase={hud.phase} onClose={() => setAtlasOpen(false)} />}
       {awakening && <AwakeningOverlay run={awakening} onEvent={recordAwakening} />}
       {mission && <BrokenSignalOverlay mission={mission} onEvent={recordMission} />}

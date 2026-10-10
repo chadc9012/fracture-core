@@ -1,6 +1,7 @@
 import { REGIONS, ZONE_COLOR } from "@/game/world";
 import { FACTIONS } from "@/game/sim";
 import { MARKER_COLOR } from "@/game/waypoints";
+import { HAZARD_ZONES, zoneCenter } from "@/game/hazard-zones";
 import type { HudState } from "./Scene";
 import { CornerBrackets } from "./HudChrome";
 
@@ -16,7 +17,8 @@ const SIZE = 128; // px
 const CENTER = SIZE / 2;
 const SCALE = CENTER / VIEW_RADIUS;
 
-export function Minimap({ hud }: { hud: HudState }) {
+export function Minimap({ hud, known }: { hud: HudState; known?: (landmarkId: string) => boolean }) {
+  const zt = performance.now() / 1000;
   const toScreen = (x: number, z: number) => ({ x: (x - hud.px) * SCALE, y: (z - hud.pz) * SCALE });
   const ticks = Array.from({ length: 16 }, (_, i) => (i * 360) / 16);
   return (
@@ -51,6 +53,11 @@ export function Minimap({ hud }: { hud: HudState }) {
           />
         );
       })}
+      {HAZARD_ZONES.filter((z) => !known || known(z.landmarkId)).map((z) => {
+        const c = zoneCenter(z, zt); const p = toScreen(c.x, c.z); const rp = z.radius * SCALE;
+        if (Math.hypot(p.x, p.y) > CENTER + rp) return null;
+        return <div key={z.id} className="absolute rounded-full border border-dashed border-destructive/80 bg-destructive/15" style={{ left: CENTER + p.x - rp, top: CENTER + p.y - rp, width: rp * 2, height: rp * 2 }} />;
+      })}
       {hud.markers.slice(0, 14).map((m) => {
         const p = toScreen(m.x, m.z);
         if (Math.hypot(p.x, p.y) > CENTER) return null;
@@ -62,7 +69,7 @@ export function Minimap({ hud }: { hud: HudState }) {
           />
         );
       })}
-      <span className="absolute left-1/2 top-0.5 -translate-x-1/2 text-[8px] font-bold text-primary" style={{ textShadow: "0 0 6px color-mix(in oklch, var(--primary) 70%, transparent)" }}>N</span>
+      <span className="absolute bottom-0.5 left-1/2 -translate-x-1/2 text-[7px] text-primary/60">S</span><span className="absolute right-1 top-1/2 -translate-y-1/2 text-[7px] text-primary/60">E</span><span className="absolute left-1 top-1/2 -translate-y-1/2 text-[7px] text-primary/60">W</span><span className="absolute left-1/2 top-0.5 -translate-x-1/2 text-[8px] font-bold text-primary" style={{ textShadow: "0 0 6px color-mix(in oklch, var(--primary) 70%, transparent)" }}>N</span>
       <div
         className="absolute size-0"
         style={{ left: CENTER, top: CENTER, transform: `translate(-50%, -50%) rotate(${180 - (hud.yaw * 180) / Math.PI}deg)` }}

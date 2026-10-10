@@ -1,21 +1,23 @@
 import { MARKER_COLOR, type MarkerKind, type TrackedMarker } from "@/game/waypoints";
 import { CornerBrackets } from "./HudChrome";
+import { headingFromYaw, headingLabel, relativeDeg } from "@/game/compass";
 
-const ICON: Record<MarkerKind, string> = { MISSION: "◆", RESOURCE: "⬢", BOSS: "☠", RUIN: "✦" };
+const ICON: Record<MarkerKind, string> = { MISSION: "◆", RESOURCE: "⬢", BOSS: "☠", RUIN: "✦", LANDMARK: "▣" };
 const fmt = (d: number) => (d >= 1000 ? `${(d / 1000).toFixed(1)}km` : `${Math.round(d)}m`);
 
 /** Top compass strip: markers slide by bearing within a ±90° field; closest ones get labels. */
 export function Compass({ markers, yaw }: { markers: TrackedMarker[]; yaw: number }) {
-  const visible = markers.filter((m) => Math.abs(m.bearing) < Math.PI / 2 && (m.kind !== "RESOURCE" || (m.ready !== false && m.dist < 220)));
-  const heading = ((-yaw * 180) / Math.PI + 360 * 4) % 360;
-  const dirs = [["N", 0], ["E", 90], ["S", 180], ["W", 270]] as const;
+  const visible = markers.filter((m) => Math.abs(m.bearing) < Math.PI / 2 && (m.kind !== "RESOURCE" || (m.ready !== false && m.dist < 220)) && (m.kind !== "LANDMARK" || m.dist < 260));
+  const heading = headingFromYaw(yaw); // compass.ts: north = world -z, matching the map and minimap
+  const dirs = [["N", 0], ["NE", 45], ["E", 90], ["SE", 135], ["S", 180], ["SW", 225], ["W", 270], ["NW", 315]] as const;
   return (
     <div className="pointer-events-none absolute left-1/2 top-3 h-12 w-[min(34rem,70vw)] -translate-x-1/2 overflow-hidden border-t border-foreground/20 bg-gradient-to-b from-background/35 to-transparent" aria-label="Compass">
       {dirs.map(([label, deg]) => {
-        let rel = deg - heading; rel = ((rel + 540) % 360) - 180;
+        const rel = relativeDeg(deg, heading);
         if (Math.abs(rel) > 90) return null;
         return <span key={label} className="absolute top-1 -translate-x-1/2 text-[10px] font-bold text-primary" style={{ left: `${50 + (rel / 90) * 50}%`, textShadow: "0 0 6px color-mix(in oklch, var(--primary) 60%, transparent)" }}>{label}</span>;
       })}
+      <span className="absolute left-1/2 top-[34px] -translate-x-1/2 font-mono text-[9px] tracking-widest text-primary/90">{headingLabel(heading)}</span>
       <span className="absolute left-1/2 top-0 h-2 w-px bg-primary" style={{ boxShadow: "0 0 4px var(--primary)" }} />
       {visible.slice(0, 10).map((m, i) => (
         <span key={m.id} className="absolute top-4 flex -translate-x-1/2 flex-col items-center leading-none" style={{ left: `${50 + (m.bearing / (Math.PI / 2)) * 50}%`, color: MARKER_COLOR[m.kind] }}>

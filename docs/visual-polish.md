@@ -58,3 +58,13 @@ What changed (all presentation; nothing touches gameplay):
 - `src/game/quality-governor.ts`: if frames stay low once resolution is at its floor, the effective tier drops one level (never faster than every 8 s, never up, never saved) with an on-screen notice.
 - F3 readout now names the heaviest meshes (terrain+trees, ground-cover, city:neon, foliage:fir, region-models:...) and prints an `operator paint:` section (paint path, material count, bones per region, chest/suit colours) to trace a grey operator.
 - NOT done in this pass: forest density changes, lighting/exposure changes, projectile effect upgrades, a dev showcase scene. Not browser-verified; no production build or full type-check could be run (dependencies cannot be installed here).
+
+## Map, compass, landmarks and hazard zones
+
+- `compass.ts` is the one heading convention (north = world −z, east = +x). The HUD compass used `heading = −yaw`, which put N/E/S/W on the wrong sides relative to the map and minimap; it now uses `headingFromYaw`, shows 8 cardinals and a degree readout. The minimap arrow already matched the map.
+- `landmarks.ts`: 25 regional landmarks + Neon City + Thalassia, positioned from region centres, each with a one-line history. Landmark-to-landmark trails (`LANDMARK_ROUTES`) are map data only; they do not alter terrain, convoy lanes or collision. Ember and the Swamps still have no graded supply road — adding lanes changes `sim.ts` convoys and terrain grading and is left as a decision.
+- Discovery is `landmark-seen:<id>` in `progression.earnedRewards` (union-merged). Safe-zone hubs are known from the start. Discovery grants no rewards.
+- `hazard-zones.ts`: six localized zones (drifting quicksand, telegraphed avalanche, spatial sink pull, trench heat, crevasse chill, fracture-tear gravity) stacked on the regional hazard via `combineHazard`; Scene applies speed/gravity/damage/pull. Damage goes through the existing hazard path (hurtPlayer floors hp).
+- `world-story.ts`: eras, region history, per-region landmark story that reveals on discovery.
+- Atlas: compass rose, zone/symbol/cycle legend (`MapLegend.tsx`), landmark pins, trails between known landmarks, hazard overlay toggle. Minimap: cardinals and hazard circles.
+- Status: unit-tested (landmarks/hazards/compass/story), UI checked for syntax only — not browser-verified.
