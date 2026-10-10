@@ -155,12 +155,6 @@ export function openCache(p: PlayerProgression, c: LootCache, now = Date.now()):
   return { progression: next, loot, contracts };
 }
 
-/** mission loot box: every mission payout also cracks a box whose rarity follows how fresh the clear is */
-export function missionBoxRarity(firstClear: boolean, factor: number): CacheRarity {
-  if (firstClear) return "EPIC";
-  return factor >= 1 ? "RARE" : "COMMON";
-}
-
 export function nearestCache(x: number, z: number, y: number): LootCache | null {
   let best: LootCache | null = null, bd = CACHE_REACH;
   for (const c of lootCaches()) {
