@@ -71,3 +71,4 @@
 - Materials, glow caps, real-world scale and regional looks come from src/game/visual-standard.ts; the audited asset list lives in src/game/asset-inventory.ts and drives the dev-only /dev/assets inspector. Why: one consistent art standard instead of per-category guesses.
 - Visible armor comes only from src/game/armor-pieces.ts (equippedPieces): each worn slot yields pieces parented to Mixamo bones in OperatorModel; stats stay in armor-attributes. Why: one source for appearance, pieces are swappable for authored GLBs.
 - Loot box gear comes from rollCacheGear in loot-caches.ts and is appended to progression.inventory by openCache. Why: one reward handler, no second inventory.
+- Enemy appearance comes from src/game/enemy-visuals.ts (faction × role → model, height, motion style); FactionEnemy falls back to the procedural EnemyModel. Why: combat/AI never depend on art.

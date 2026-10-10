@@ -165,3 +165,7 @@
 - [ ] City safe hub: mission access, trading, upgrades, protected spawns.
 - [ ] Replayable regional mission scenarios using each region's hazards, enemies, traversal.
 - [ ] Weapon models in hand (from the modular armor/weapon document).
+- [x] User's seven Meshy enemy models optimized and wired per faction/role (procedural motion; rigs have no clips).
+- [ ] Shopkeeper models + idle animations (no merchant models supplied yet).
+- [ ] Civilian variety + ambient routines and combat reactions across regions.
+- [ ] Walk/attack/death animation clips for the Meshy enemy rigs (models ship without clips).
