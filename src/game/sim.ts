@@ -43,10 +43,12 @@ import { encounterFor, troopFor } from "./encounters";
 import type { MaterialId } from "./inventory";
 import type { GearItem } from "./inventory";
 import { phaseForHpFraction, tuningFor, type BossPhaseIndex } from "./boss-phases";
-import { decayPoise, hitPoise, INITIAL_POISE, openWeakPoint, type PoiseState } from "./boss-poise";
+import { decayPoise, hitPoise, INITIAL_POISE, isStaggered, isWeakPointOpen, openWeakPoint, type PoiseState } from "./boss-poise";
 import { counterTuningFor, type CounterTuning } from "./boss-adaptive-ai";
 import { completeEmergencyQuest, EMERGENCY_QUEST_INIT, stepEmergencyQuest, type EmergencyQuest } from "./emergency-quest";
 import { scenarioById, scenarioFor, type UniqueScenario } from "./unique-scenarios";
+import { INITIAL_NULL_CHARGE, NULL_PERK, NULL_PULSE_POISE, NULL_PULSE_RADIUS, NULL_PULSE_STUN_SECONDS, registerNullHit, type NullChargeState } from "./null-disruption";
+import { PARTICIPATION_HITS, SCENARIO_LOOT, rollScenario, type ScenarioClaim } from "./scenario-loot";
 import { attunedElement, gimmickMultiplier, type DamageElement } from "./scenario-gimmicks";
 
 /* ------------------------------------------------------------------
@@ -107,6 +109,9 @@ export type Machine = {
   /** scenario gimmick bookkeeping (scenario-gimmicks.ts): recent hit elements, and the attunement last announced */
   gimmickHistory?: DamageElement[];
   attuned?: DamageElement;
+  /** scenario run id (unique per summon) and how many player bullets landed on it — the basis of reward eligibility */
+  scenarioRun?: string;
+  playerHits?: number;
   /** patrol/detection/cover state (see enemy-perception.ts); reset when a pooled slot respawns */
   ai?: EnemyAi;
   /** subclass-verb vulnerability window (see subclass-verbs.ts's WEAKEN/MARKED) — while
@@ -232,8 +237,12 @@ export type WorldSim = {
   titan: TitanState;
   titanActive: boolean;
   equippedElement: GearItem["element"];
+  /** perk of the weapon in hand (set each frame by Scene) and the Null Disruption charge it feeds (null-disruption.ts) */
+  equippedPerk: GearItem["perk"] | undefined;
+  nullCharge: NullChargeState;
+  nextHitId: number;
   materials: Partial<Record<MaterialId, number>>;
-  drops: { id: number; material: MaterialId; amount: number; enemy: string; /** armor-sets.ts: a set piece this kill dropped */ setDrop?: SetDrop }[];
+  drops: { id: number; material: MaterialId; amount: number; enemy: string; /** armor-sets.ts: a set piece this kill dropped */ setDrop?: SetDrop; /** scenario-loot.ts: signature reward claim for a valid Unique Scenario clear */ scenarioClaim?: ScenarioClaim }[];
   /** equipped armor-set bonuses (armor-sets.ts), written by Scene each frame: damage resist 0..0.5 and hull regen/s */
   armorResist: number;
   armorRegen: number;
@@ -305,7 +314,10 @@ export function defeatMachine(sim: WorldSim, m: Machine) {
   const amount = m.boss ? 3 : m.elite ? 2 : 1;
   sim.materials[material] = (sim.materials[material] ?? 0) + amount;
   const setDrop = rollSetDrop(m.zone, m.boss ? "BOSS" : m.elite ? "ELITE" : "NORMAL", Math.random()) ?? undefined;
-  sim.drops.push({ id: sim.nextDropId++, material, amount, enemy: m.profile, ...(setDrop ? { setDrop } : {}) });
+  const scenarioClaim: ScenarioClaim | undefined = m.scenarioId && SCENARIO_LOOT[m.scenarioId] && m.scenarioRun
+    ? { scenarioId: m.scenarioId, runId: m.scenarioRun, participated: (m.playerHits ?? 0) >= PARTICIPATION_HITS, rolls: rollScenario(m.scenarioId) }
+    : undefined;
+  sim.drops.push({ id: sim.nextDropId++, material, amount, enemy: m.profile, ...(setDrop ? { setDrop } : {}), ...(scenarioClaim ? { scenarioClaim } : {}) });
   if (setDrop) alert(sim, `Armor drop — ${setById(setDrop.setId)?.pieces[setDrop.slot] ?? "set piece"}`);
   sim.xpEvents.push({ type: m.boss ? "BOSS_KILL" : m.elite ? "ELITE_KILL" : "KILL", enemyLevel: 1 + Math.floor(sim.combatHeat / 25), combatHeat: sim.combatHeat });
   dropLoot(sim, zoneOf(sim, m.zone), m.boss ? "ELITE" : m.profile);
@@ -330,7 +342,7 @@ export function defeatMachine(sim: WorldSim, m: Machine) {
   }
   alert(sim, `${m.profile} defeated · ${material.replace(/([A-Z])/g, " $1")} +${amount}`);
   // pooled slots are reused: never let the next occupant inherit this fight's scenario state
-  m.scenarioId = undefined; m.gimmickHistory = undefined; m.attuned = undefined;
+  delete m.scenarioId; delete m.gimmickHistory; delete m.attuned; delete m.scenarioRun; delete m.playerHits;
 }
 
 const byId = (id: string) => REGIONS.find((r) => r.id === id)!;
@@ -459,6 +471,9 @@ export function createSim(): WorldSim {
     titan: createTitanState(),
     titanActive: false,
     equippedElement: "KINETIC",
+    equippedPerk: undefined,
+    nullCharge: { ...INITIAL_NULL_CHARGE },
+    nextHitId: 0,
     materials: {}, drops: [], armorResist: 0, armorRegen: 0, enemyShots: [], bossPhaseFlares: [], xpEvents: [], nextDropId: 0,
     emergencyQuest: EMERGENCY_QUEST_INIT,
     bossCounter: counterTuningFor(null),
@@ -543,7 +558,7 @@ export function summonBoss(sim: WorldSim, regionId: string, x: number, z: number
   }
   const m = sim.machines.find((candidate) => !candidate.alive);
   if (!m) return false;
-  Object.assign(m, { alive: true, x, z, y: walkHeight(x, z) + 5, hp: 28, maxHp: 28, phase: 0 as BossPhaseIndex, rot: 0, scale: 2.3, zone: regionId, cool: 2, elite: true, boss: true, profile: boss.name, kind: "OVERCLOCKED", drop: boss.drop, kx: 0, kz: 0, poiseState: INITIAL_POISE, scenarioId: undefined, gimmickHistory: undefined, attuned: undefined, vulnUntil: 0, vulnMult: 1, ...extra });
+  Object.assign(m, { alive: true, x, z, y: walkHeight(x, z) + 5, hp: 28, maxHp: 28, phase: 0 as BossPhaseIndex, rot: 0, scale: 2.3, zone: regionId, cool: 2, elite: true, boss: true, profile: boss.name, kind: "OVERCLOCKED", drop: boss.drop, kx: 0, kz: 0, poiseState: INITIAL_POISE, scenarioId: undefined, gimmickHistory: undefined, attuned: undefined, scenarioRun: undefined, playerHits: undefined, vulnUntil: 0, vulnMult: 1, ...extra });
   sim.raidFight = { start: performance.now() / 1000, hurt: 0, region: regionId };
   alert(sim, `${boss.name} · ${boss.tell}`);
   return true;
@@ -554,7 +569,7 @@ export function summonBoss(sim: WorldSim, regionId: string, x: number, z: number
 export function summonScenarioBoss(sim: WorldSim, scenario: UniqueScenario, x: number, z: number, extra?: Partial<Machine>): boolean {
   const m = sim.machines.find((candidate) => !candidate.alive);
   if (!m) return false;
-  Object.assign(m, { alive: true, x, z, y: walkHeight(x, z) + 5, hp: 34, maxHp: 34, phase: 0 as BossPhaseIndex, rot: 0, scale: 2.5, zone: scenario.regionId, cool: 2, elite: true, boss: true, profile: scenario.bossName, kind: "ABERRATION", drop: scenario.drop as MaterialId, kx: 0, kz: 0, poiseState: INITIAL_POISE, scenarioId: scenario.id, gimmickHistory: [], attuned: undefined, vulnUntil: 0, vulnMult: 1, ...extra });
+  Object.assign(m, { alive: true, x, z, y: walkHeight(x, z) + 5, hp: 34, maxHp: 34, phase: 0 as BossPhaseIndex, rot: 0, scale: 2.5, zone: scenario.regionId, cool: 2, elite: true, boss: true, profile: scenario.bossName, kind: "ABERRATION", drop: scenario.drop as MaterialId, kx: 0, kz: 0, poiseState: INITIAL_POISE, scenarioId: scenario.id, scenarioRun: `${scenario.id}-${Date.now().toString(36)}-${(sim.nextHitId++).toString(36)}-${Math.random().toString(36).slice(2, 8)}`, playerHits: 0, gimmickHistory: [], attuned: undefined, vulnUntil: 0, vulnMult: 1, ...extra });
   sim.raidFight = { start: performance.now() / 1000, hurt: 0, region: scenario.regionId };
   alert(sim, `${scenario.name} · ${scenario.briefing}`);
   if (scenario.taunt) alert(sim, `${scenario.bossName}: ${scenario.taunt}`);
@@ -1375,9 +1390,25 @@ export function stepSim(sim: WorldSim, input: SimInput) {
             const g = gimmickMultiplier(scenarioById(m.scenarioId)?.gimmick, { element: sim.equippedElement, nowSec, distance: Math.hypot(m.x - px, m.z - pz), history: m.gimmickHistory ?? [] });
             m.gimmickHistory = g.history;
             dmg *= g.mult;
+            m.playerHits = (m.playerHits ?? 0) + 1;
           }
         }
         m.hp -= dmg;
+        if (sim.equippedPerk === NULL_PERK) {
+          // timed = interrupting a wind-up, or hitting a boss while its weak-point/stagger window is open
+          const nowS = performance.now() / 1000;
+          const timed = (m.aim ?? 0) > 0 || (!!m.poiseState && (isWeakPointOpen(m.poiseState, nowS) || isStaggered(m.poiseState, nowS)));
+          const r = registerNullHit(sim.nullCharge, { now: nowS, timed, eventId: sim.nextHitId++ });
+          sim.nullCharge = r.state;
+          if (r.pulse) {
+            for (const other of sim.machines) {
+              if (!other.alive || Math.hypot(other.x - m.x, other.z - m.z) > NULL_PULSE_RADIUS) continue;
+              other.cool = Math.max(other.cool, NULL_PULSE_STUN_SECONDS);
+              if (other.boss) other.poiseState = hitPoise(other.poiseState ?? INITIAL_POISE, NULL_PULSE_POISE, nowS).state;
+            }
+            alert(sim, "NULL DISRUPTION — pulse released");
+          }
+        }
         if (sim.equippedElement === "CRYO" || sim.equippedElement === "ARC") m.cool = Math.max(m.cool, sim.equippedElement === "CRYO" ? 0.9 : 0.6);
         sim.lastHit = performance.now();
         logBehavior(sim.adaptation, "combat", 1);

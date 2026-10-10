@@ -45,6 +45,9 @@ import { OnboardingSignal } from "./OnboardingSignal";
 import { IntroCinematic } from "./IntroCinematic";
 import { introTotalSeconds } from "@/game/intro";
 import { VictoryReport } from "./VictoryReport";
+import { ScenarioRewardCards } from "./ScenarioRewardCards";
+import { grantScenarioReward, type RewardCard } from "@/game/scenario-loot";
+import { scenarioById } from "@/game/unique-scenarios";
 import { claimDrops } from "@/game/inventory";
 import { InventoryWindow } from "./InventoryWindow";
 import { WorldAtlas } from "./WorldAtlas";
@@ -540,6 +543,15 @@ export function GameCanvas() {
   };
   const recordTutorial = (event: TutorialEvent) => setTutorial((current) => current ? advanceTutorial(current, event) : current);
   const recordMission = (event: MissionEvent) => setMission((current) => current ? advanceMission(current, event) : current);
+  // Unique Scenario clears: show what the (idempotent) grant actually did. The grant itself runs inside claimDrops; this only describes it.
+  const [rewardCards, setRewardCards] = useState<{ title: string; cards: RewardCard[] } | null>(null);
+  const showScenarioRewards = (drops: { scenarioClaim?: Parameters<typeof grantScenarioReward>[1] }[]) => {
+    for (const drop of drops) {
+      if (!drop.scenarioClaim) continue;
+      const result = grantScenarioReward(progressionRef.current, drop.scenarioClaim);
+      if (result.status === "granted" && result.cards.length) setRewardCards({ title: scenarioById(drop.scenarioClaim.scenarioId)?.name ?? "Scenario", cards: result.cards });
+    }
+  };
   const [levelUpFlash, setLevelUpFlash] = useState<{ level: number; novaUnlocked: string[] } | null>(null);
   const recordXP = (event: WorldSim["xpEvents"][number]) => {
     setProgression((current) => {
@@ -669,7 +681,7 @@ export function GameCanvas() {
       >
         <color attach="background" args={["#bfe4f2"]} />
         <Suspense fallback={null}>
-            <Scene onHud={setHud} onDrops={(drops) => setProgression((current) => claimDrops(current, drops))} gear={progression} settings={settings} onCameraPreference={(firstPerson) => { window.localStorage.setItem("world-fracture-camera", firstPerson ? "first" : "third"); setSettings((current) => ({ ...current, firstPersonDefault: firstPerson })); }} playerClass={cls} subclassId={subclass} appearance={appearance} bodyType={bodyType} vehicleId={vehicleId} vehicleUnlocked={vehicleUnlocked} activeBuild={progression.activeBuild} abilityBranches={progression.abilityBranches} tutorial={tutorial} onTutorialEvent={recordTutorial} mission={mission} onMissionEvent={recordMission} blackout={blackout} onBlackoutEvent={recordBlackout} neonCore={neonCore} onNeonCoreEvent={recordNeonCore} descent={descent} onDescentEvent={recordDescent} systemCore={systemCore} onSystemCoreEvent={recordSystemCore} awakening={awakening} onAwakeningEvent={recordAwakening} onXP={recordXP} weaponOrder={activeLoadout(progression, progression.identityClass ?? cls).slots} travelTo={travelTo} introPlayback={showIntro ? { elapsed: introElapsed, totalSeconds: introTotalSeconds() } : null} armorState={hud.hp < 35 ? "FRACTURE" : hud.heat > 65 ? "ASCENDANT" : hud.heat > 15 ? "ACTIVE" : "STABLE"} />
+            <Scene onHud={setHud} onDrops={(drops) => { showScenarioRewards(drops); setProgression((current) => claimDrops(current, drops)); }} gear={progression} settings={settings} onCameraPreference={(firstPerson) => { window.localStorage.setItem("world-fracture-camera", firstPerson ? "first" : "third"); setSettings((current) => ({ ...current, firstPersonDefault: firstPerson })); }} playerClass={cls} subclassId={subclass} appearance={appearance} bodyType={bodyType} vehicleId={vehicleId} vehicleUnlocked={vehicleUnlocked} activeBuild={progression.activeBuild} abilityBranches={progression.abilityBranches} tutorial={tutorial} onTutorialEvent={recordTutorial} mission={mission} onMissionEvent={recordMission} blackout={blackout} onBlackoutEvent={recordBlackout} neonCore={neonCore} onNeonCoreEvent={recordNeonCore} descent={descent} onDescentEvent={recordDescent} systemCore={systemCore} onSystemCoreEvent={recordSystemCore} awakening={awakening} onAwakeningEvent={recordAwakening} onXP={recordXP} weaponOrder={activeLoadout(progression, progression.identityClass ?? cls).slots} travelTo={travelTo} introPlayback={showIntro ? { elapsed: introElapsed, totalSeconds: introTotalSeconds() } : null} armorState={hud.hp < 35 ? "FRACTURE" : hud.heat > 65 ? "ASCENDANT" : hud.heat > 15 ? "ACTIVE" : "STABLE"} />
         </Suspense>
         {post && (
           // cinematic grade: cool-leaning teal shadows, a touch more punch, so the HUD's cyan
@@ -709,7 +721,8 @@ export function GameCanvas() {
        {!tutorial && <QuestTracker progression={progression} />}
        {activeDialogue && <DialogueOverlay lines={activeDialogue} onDone={() => setActiveDialogue(null)} />}
        {deathInfo && <DeathOverlay cause={deathInfo.cause} cargoLost={deathInfo.cargoLost} deaths={deathInfo.deaths} onDone={() => setDeathInfo(null)} />}
-       {levelUpFlash && <LevelUpOverlay level={levelUpFlash.level} novaUnlocked={levelUpFlash.novaUnlocked} onDone={() => setLevelUpFlash(null)} />}
+       {rewardCards && <ScenarioRewardCards title={rewardCards.title} cards={rewardCards.cards} onDone={() => setRewardCards(null)} />}
+      {levelUpFlash && <LevelUpOverlay level={levelUpFlash.level} novaUnlocked={levelUpFlash.novaUnlocked} onDone={() => setLevelUpFlash(null)} />}
        {showEnding && <EndingOverlay progression={progression} onClose={() => setShowEnding(false)} />}
        {hud.insideInterior && hud.interiorName && hud.sub.startsWith("Shop") && (
          <div className="pointer-events-none absolute bottom-24 left-1/2 -translate-x-1/2 text-center">

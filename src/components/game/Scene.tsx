@@ -1091,6 +1091,8 @@ export function Scene({
     const equippedWeapon = gear?.inventory.find((item) => item.id === gear.equippedGear[s.inVehicle ? "vehicle" : s.weapon === "HEAVY" ? "heavy" : s.weapon === "PULSE" ? "secondary" : "primary"]);
     const gearPower = equippedWeapon ? 1 + Math.max(0, equippedWeapon.power - 100) / 500 : 1;
     sim.equippedElement = equippedWeapon?.element ?? "KINETIC";
+    if (sim.equippedPerk !== equippedWeapon?.perk) sim.nullCharge = { charge: 0, lastTimedAt: -1e9, cooldownUntil: sim.nullCharge.cooldownUntil, lastEventId: sim.nullCharge.lastEventId };
+    sim.equippedPerk = equippedWeapon?.perk;
     // self-targeted subclass verbs (RAGE/OVERSHIELD, see subclass-verbs.ts) live on LiveBuild, which
     // has no reference to WorldSim — bridge them in every frame rather than one-shot at cast time.
     sim.verbDamageMult = (live.current.verbKind === "RAGE" && live.current.verbTime > 0 ? live.current.verbMagnitude : 1) * (live.current.siegeTime > 0 ? live.current.siegeBoost : 1) * siegeDamageMult(live.current.siegeTime);

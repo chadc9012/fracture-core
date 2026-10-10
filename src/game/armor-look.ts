@@ -28,6 +28,11 @@ export const SET_MOTIFS: Readonly<Record<string, Record<SetSlot, Motif>>> = {
   "dune-seeker": { helmet: "horns", gauntlets: "bands", chest: "core", legs: "fins", classItem: "mantle" },
 };
 
+/** Scenario-exclusive pieces without a set borrow an existing motif in their own colour (no dedicated 3D model exists for them). */
+export const SPECIAL_LOOKS: Readonly<Record<string, SlotLook>> = {
+  "mantle-null-sovereign": { motif: "mantle", color: "#19e6ff" },
+};
+
 export function armorLook(progress: Pick<PlayerProgression, "inventory" | "equippedGear">): ArmorLook {
   const look: ArmorLook = {};
   for (const slot of SET_SLOTS) {
@@ -35,6 +40,7 @@ export function armorLook(progress: Pick<PlayerProgression, "inventory" | "equip
     const set = item?.setId ? setById(item.setId) : undefined;
     const motif = set ? SET_MOTIFS[set.id]?.[slot] : undefined;
     if (set && motif) look[slot] = { motif, color: set.color };
+    else if (item && SPECIAL_LOOKS[item.id] && item.slot === slot) look[slot] = SPECIAL_LOOKS[item.id]!;
   }
   return look;
 }
