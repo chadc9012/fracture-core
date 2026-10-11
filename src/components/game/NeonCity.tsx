@@ -7,6 +7,7 @@ import { addObstacle } from "@/game/obstacles";
 import { Model } from "./Vehicle";
 import type { ModelKey } from "@/game/models";
 import { ElevatedTrain, LightBar, ShopSign } from "./DistrictStreet";
+import { NeonTiers } from "./NeonTiers";
 
 /**
  * Neon City — the Syndicate's market/cybernetics district bordering Nexus City (per the
@@ -156,14 +157,16 @@ export function NeonCity() {
     <group>
       <DistrictBuildings />
       <NeonMarketStreet y={y} />
+      <NeonTiers c={NEON_CITY_CENTER} />
       {/* street-level glow */}
       <mesh position={[NEON_CITY_CENTER.x, y + 0.03, NEON_CITY_CENTER.z]} rotation-x={-Math.PI / 2}>
-        <planeGeometry args={[70, 56]} />
-        <meshStandardMaterial color="#160a22" roughness={0.7} />
+        <planeGeometry args={[84, 72]} />
+        {/* wet asphalt under the acid rain: glossy so the neon smears across it */}
+        <meshStandardMaterial color="#120a1c" roughness={0.12} metalness={0.55} />
       </mesh>
       <DistrictLight position={[NEON_CITY_CENTER.x, y + 8, NEON_CITY_CENTER.z]} color="#ffb36b" intensity={18} distance={60} decay={2} />
       <DistrictLight position={[NEON_CITY_CENTER.x - 20, y + 8, NEON_CITY_CENTER.z + 15]} color="#ffc98a" intensity={16} distance={50} decay={2} />
-      <Billboard x={NEON_CITY_CENTER.x} y={y + 16} z={NEON_CITY_CENTER.z - 30} rotY={0} label="THE FRACTURED EARTH" sub="NEXUS CITY · SAFE ZONE / HUB — NEON CITY · ZONE UNKNOWN" color="#38e8ff" />
+      <Billboard x={NEON_CITY_CENTER.x} y={y + 21} z={NEON_CITY_CENTER.z - 30} rotY={0} label="THE FRACTURED EARTH" sub="NEXUS CITY · SAFE ZONE / HUB — NEON CITY · ZONE UNKNOWN" color="#38e8ff" />
       <Billboard x={NEON_CITY_CENTER.x + 34} y={y + 10} z={NEON_CITY_CENTER.z + 4} rotY={-Math.PI / 2.4} label="NEON CITY MARKET" sub="CYBERNETICS & MODS" color="#ff2ea6" />
       <Billboard x={NEON_CITY_CENTER.x - 34} y={y + 9} z={NEON_CITY_CENTER.z + 10} rotY={Math.PI / 2.4} label="SYNTH-COFFEE" sub="& DATA-SHARDS" color="#ffcf3a" />
     </group>
