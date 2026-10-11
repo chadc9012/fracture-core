@@ -70,6 +70,7 @@ import { scenarioById } from "@/game/unique-scenarios";
 import { claimDrops } from "@/game/inventory";
 import { ShopWindow } from "./ShopWindow";
 import { InventoryWindow } from "./InventoryWindow";
+import { CharacterScreen } from "./CharacterScreen";
 import { WorldAtlas } from "./WorldAtlas";
 import { BrokenSignalOverlay } from "./BrokenSignalOverlay";
 import { AwakeningOverlay } from "./AwakeningOverlay";
@@ -289,6 +290,8 @@ export function GameCanvas() {
   const [vehicleId, setVehicleId] = useCountedState<VehicleId>("vehicleId", "scrap-interceptor");
   const [garageOpen, setGarageOpen] = useCountedState("garageOpen", false);
   const [inventoryOpen, setInventoryOpen] = useCountedState("inventoryOpen", false);
+  /** Destiny-style character menu (CharacterScreen.tsx): Tab / F1, or the HUD inventory button */
+  const [characterOpen, setCharacterOpen] = useState(false);
   const [shopOpen, setShopOpen] = useCountedState<string | null>("shopOpen", null);
   const shopNearRef = useRef<string | null>(null);
   const [ruinOpen, setRuinOpen] = useCountedState<string | null>("ruinOpen", null);
@@ -343,7 +346,11 @@ export function GameCanvas() {
   useEffect(() => {
     if (phase !== "world") return;
     const typing = (t: EventTarget | null) => t instanceof HTMLElement && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.isContentEditable);
-    const onKey = (e: KeyboardEvent) => { if (e.code === settings.bindings.keyboard.map && !e.repeat && !typing(e.target)) toggleAtlas(); else if (e.code === "Escape") setAtlasOpen(false); };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.code === settings.bindings.keyboard.map && !e.repeat && !typing(e.target)) toggleAtlas();
+      else if ((e.code === "Tab" || e.code === "F1") && !e.repeat && !typing(e.target)) { e.preventDefault(); setAtlasOpen(false); setInventoryOpen(false); setOperationsView(null); setCharacterOpen((o) => { if (!o && document.pointerLockElement) document.exitPointerLock(); return !o; }); }
+      else if (e.code === "Escape") setAtlasOpen(false);
+    };
     let was = false;
     const poll = window.setInterval(() => {
       const pads = navigator.getGamepads?.() ?? [];
@@ -1044,7 +1051,7 @@ export function GameCanvas() {
       <ForestAssetStatus />
        {savedFlash > 0 && <p className="pointer-events-none fixed right-4 top-4 z-30 font-mono text-[10px] uppercase tracking-[0.25em] text-primary" role="status">◌ Auto-saved</p>}
        <VoiceSubtitle />
-       <Profiler id="hud" onRender={onProf}><HUD hud={hud} level={{ level: progression.level, xp: progression.xp }} tutorialActive={Boolean(tutorial && tutorial.step !== "VICTORY")} onMenu={() => { setInventoryOpen(false); setAtlasOpen(false); setOperationsView(null); setMenuOpen(true); }} onStrategy={() => setStrategyOpen(true)} onGarage={() => setGarageOpen(true)} onAnalyze={() => setAnalysisOpen(true)} onOperations={(view) => { setInventoryOpen(false); setAtlasOpen(false); setOperationsView(view); }} onInventory={() => { setAtlasOpen(false); setOperationsView(null); setInventoryOpen(true); }} onAtlas={() => { setInventoryOpen(false); setOperationsView(null); setAtlasOpen(true); }} /></Profiler>
+       <Profiler id="hud" onRender={onProf}><HUD hud={hud} level={{ level: progression.level, xp: progression.xp }} tutorialActive={Boolean(tutorial && tutorial.step !== "VICTORY")} onMenu={() => { setInventoryOpen(false); setAtlasOpen(false); setOperationsView(null); setMenuOpen(true); }} onStrategy={() => setStrategyOpen(true)} onGarage={() => setGarageOpen(true)} onAnalyze={() => setAnalysisOpen(true)} onOperations={(view) => { setInventoryOpen(false); setAtlasOpen(false); setOperationsView(view); }} onInventory={() => { setAtlasOpen(false); setOperationsView(null); setCharacterOpen(true); }} onAtlas={() => { setInventoryOpen(false); setOperationsView(null); setAtlasOpen(true); }} /></Profiler>
        {!tutorial && !hud.insideInterior && <Profiler id="minimap" onRender={onProf}><Minimap hud={hud} known={(id) => isLandmarkKnown(progression, id)} /></Profiler>}
        {!tutorial && <Profiler id="quest" onRender={onProf}><QuestTracker progression={progression} /></Profiler>}
        {storyGraph && <StoryDialogue key={storyGraph.id} graph={storyGraph} story={progression.story} onStory={applyStory} onDone={finishStoryGraph} />}
@@ -1115,6 +1122,7 @@ export function GameCanvas() {
          </div>
        )}
        {shopOpen && <ShopWindow shopId={shopOpen} progression={progression} onProgression={setProgression} onClose={() => setShopOpen(null)} />}
+       {characterOpen && <CharacterScreen progression={progression} onProgression={setProgression} classId={cls} subclassId={subclass} appearance={appearance} onClose={() => setCharacterOpen(false)} onInventory={() => { setCharacterOpen(false); setInventoryOpen(true); }} onSettings={() => { setCharacterOpen(false); setMenuOpen(true); }} />}
        {inventoryOpen && <InventoryWindow progression={progression} onProgression={setProgression} onClose={() => setInventoryOpen(false)} />}
        {landmarkToast && !atlasOpen && <div className="pointer-events-none absolute left-1/2 top-28 z-30 w-[min(26rem,86vw)] -translate-x-1/2 border-l-2 border-primary bg-background/80 px-3 py-2" role="status"><p className="font-mono text-[9px] uppercase tracking-[0.3em] text-primary">Landmark discovered</p><p className="text-sm font-semibold">{landmarkToast.name}</p><p className="mt-0.5 text-[11px] text-muted-foreground">{landmarkToast.history}</p></div>}
        {atlasOpen && <WorldAtlas progression={progression} markers={hud.markers} px={hud.px} pz={hud.pz} currentRegion={hud.region} phase={hud.phase} onClose={() => setAtlasOpen(false)} />}

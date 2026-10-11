@@ -339,3 +339,13 @@
   100% { opacity: 0; background-position: 0 0, 0 0, 0 0; }
 }
 @media (prefers-reduced-motion: reduce) { .dive-breach { animation: none; opacity: 0.85; } }
+
+/* Character menu (CharacterScreen.tsx; reference: Destiny 2 character screen, docs/ui-references.md): warm smoked-glass backdrop with
+   faint concentric emblem rings behind the operator, so the world reads through without competing with the gear */
+.char-screen {
+  background:
+    radial-gradient(circle at 50% 46%, transparent 0 17%, rgb(255 255 255 / 0.05) 17.2% 17.5%, transparent 17.7% 27%, rgb(255 255 255 / 0.04) 27.2% 27.4%, transparent 27.6%),
+    radial-gradient(ellipse at 50% 40%, rgb(120 110 96 / 0.55), rgb(28 30 33 / 0.92) 75%),
+    rgb(20 22 25 / 0.85);
+  backdrop-filter: blur(6px);
+}
