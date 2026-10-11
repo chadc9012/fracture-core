@@ -32,4 +32,4 @@ export const CITY_DESTINATIONS: readonly CityDestination[] = [
 
 /** Where the player stands after dropping in: a few metres off the centre so the drop never lands on a landmark. */
 export const dropPoint = (d: { x: number; z: number; arrival?: CityDestination["arrival"] }): { x: number; z: number; y?: number } =>
-  d.arrival === "submersible" ? { ...airlockSite(), y: DOCK_DECK_Y + 1.6 } : { x: d.x, z: d.z + 6 };
+  d.arrival === "submersible" ? { x: airlockSite().x + 5, z: airlockSite().z, y: DOCK_DECK_Y + 1.6 } : { x: d.x, z: d.z + 6 };

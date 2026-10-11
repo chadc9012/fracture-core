@@ -512,7 +512,7 @@ export function Scene({
     w.__warp = (to) => {
       if (typeof to !== "string") { devWarp.current = to; return "ok"; }
       const r = REGIONS.find((g) => g.id === to);
-      const spot = to === "neon" ? { x: NEON_CITY_CENTER.x, z: NEON_CITY_CENTER.z + 20 } : to === "thalassia" ? { ...airlockSite(), y: DOCK_DECK_Y + 1.6 } : to === "spire" ? { x: NEON_CITY_CENTER.x, z: NEON_CITY_CENTER.z - 30 } : r ? { x: r.x, z: r.z + r.radius * 0.3 } : null;
+      const spot = to === "neon" ? { x: NEON_CITY_CENTER.x, z: NEON_CITY_CENTER.z + 20 } : to === "thalassia" ? { x: airlockSite().x + 5, z: airlockSite().z, y: DOCK_DECK_Y + 1.6 } : to === "spire" ? { x: NEON_CITY_CENTER.x, z: NEON_CITY_CENTER.z - 30 } : r ? { x: r.x, z: r.z + r.radius * 0.3 } : null;
       if (!spot) return "unknown place";
       devWarp.current = spot; return "ok";
     };
@@ -590,6 +590,7 @@ export function Scene({
   const carSpeed = useRef(0);
   const carSteer = useRef(0);
   const sky = useRef<THREE.Object3D>(null!);
+  const skyDomeGroup = useRef<THREE.Group>(null);
   const hemi = useRef<THREE.HemisphereLight>(null!);
   /** stride shared by camera bob, viewmodel sway and the Operator's limbs (movement-feel.ts) */
   const feel = useRef((() => {
@@ -1107,6 +1108,10 @@ export function Scene({
       scene.fog.far += (45 - scene.fog.far) * u;
       if (scene.background instanceof THREE.Color) scene.background.lerp(deepWater, u);
     }
+    // below the surface there is no sky: hide the atmosphere and the dome so the murk reads as water, not air
+    const skyUp = underK.current < 0.6;
+    if (sky.current) sky.current.visible = skyUp;
+    if (skyDomeGroup.current) skyDomeGroup.current.visible = skyUp;
     const cloud = wx?.cloud ?? 0;
     if (sun.current) sun.current.intensity *= 1 - cloud * 0.6;
     if (moon.current) moon.current.intensity *= 1 - cloud * 0.5;
@@ -1930,7 +1935,7 @@ export function Scene({
       const dockCheckpoint = inCity && airlockRestored(descent) && descent?.state !== "WORLD_UPDATE";
       const a = airlockSite();
       alert(sim, dockCheckpoint ? "Respawned at the Sentry Dock airlock" : `Respawned at ${spot.label} — away from active combat`);
-      s.x = dockCheckpoint ? a.x : spot.x;
+      s.x = dockCheckpoint ? a.x + 5 : spot.x;
       s.z = dockCheckpoint ? a.z : spot.z;
       s.y = dockCheckpoint ? DOCK_DECK_Y + 1.6 : walkHeight(s.x, s.z) + 1.6;
       s.vy = 0;
@@ -2335,7 +2340,7 @@ export function Scene({
         mieCoefficient={0.006}
         mieDirectionalG={0.82}
       />
-      <SkyDome sunDirRef={sunDir} envRef={skyEnv} playerRef={player} tier={settings.renderTier} />
+      <group ref={skyDomeGroup}><SkyDome sunDirRef={sunDir} envRef={skyEnv} playerRef={player} tier={settings.renderTier} /></group>
       <SkyBodies timeRef={time} sunDirRef={sunDir} envRef={skyEnv} playerRef={player} />
       <CloudLayer envRef={skyEnv} playerRef={player} />
       {settings.renderTier !== "LOW" && <SkyFx fxRef={skyFx} envRef={skyEnv} playerRef={player} />}
