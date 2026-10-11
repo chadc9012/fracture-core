@@ -24,6 +24,8 @@ export type AbilityEvent = {
   id: number; kind: AbilityEventKind; abilityId: string; slot: AbilitySlot; effect: EffectKind | "NONE";
   /** where it happened (player position at cast, or where a dash/strike ended) and the REAL world radius it covered */
   x: number; z: number; radius: number; duration: number;
+  /** where the caster stood when the cast began (differs from x/z for dashes and strikes); presentation draws trails from it */
+  fromX?: number; fromZ?: number;
   /** enemies actually affected, how many were bosses, and how many died */
   hits: number; bossHits: number; kills: number;
   reason?: RejectReason; at: number;
@@ -210,7 +212,7 @@ export function castAbility(sim: WorldSim, live: LiveBuild, slot: AbilitySlot, p
     default: break;
   }
   if (!hits && verbHits) hits = verbHits;
-  const event = record(sim, { kind: "CAST", abilityId: config.id, slot, effect: effect?.kind ?? "NONE", x: out.x, z: out.z, radius, duration, hits, bossHits, kills });
+  const event = record(sim, { kind: "CAST", abilityId: config.id, slot, effect: effect?.kind ?? "NONE", x: out.x, z: out.z, fromX: px, fromZ: pz, radius, duration, hits, bossHits, kills });
   return { ok: true, config, pose: out, event };
 }
 
