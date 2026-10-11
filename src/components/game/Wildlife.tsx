@@ -24,10 +24,12 @@ const SKY_RANGE = 420;
 const euler = new THREE.Euler(0, 0, 0, "YXZ");
 
 /* ---------- shared geometry (built once) ---------- */
-const SPHERE = new THREE.SphereGeometry(1, 18, 14);
-const LIMB = (() => { const g = new THREE.CylinderGeometry(1, 0.72, 1, 10); g.translate(0, -0.5, 0); return g; })(); // pivot at the top, hangs down
-const NECK = (() => { const g = new THREE.CylinderGeometry(0.7, 1, 1, 10); g.translate(0, 0.5, 0); return g; })(); // pivot at the base, points up
-const CONE = new THREE.ConeGeometry(1, 1, 10);
+// low segment counts: ~130 animals are on the map, so every part must stay cheap (F3 measured 265k tris at 18x14)
+const SPHERE = new THREE.SphereGeometry(1, 10, 7);
+const SMALL = new THREE.SphereGeometry(1, 6, 4); // eyes, noses, hooves, tail tips
+const LIMB = (() => { const g = new THREE.CylinderGeometry(1, 0.72, 1, 6); g.translate(0, -0.5, 0); return g; })(); // pivot at the top, hangs down
+const NECK = (() => { const g = new THREE.CylinderGeometry(0.7, 1, 1, 7); g.translate(0, 0.5, 0); return g; })(); // pivot at the base, points up
+const CONE = new THREE.ConeGeometry(1, 1, 6);
 const WING = (() => {
   // a tapered wing with a swept trailing edge, pivot at the shoulder, spanning +x
   const s = new THREE.Shape();
@@ -47,7 +49,7 @@ function mat(color: string, rough = 0.92, side: THREE.Side = THREE.FrontSide) {
 
 type V3 = [number, number, number];
 function Part({ geo, color, at, scale, rot, rough, double }: { geo: THREE.BufferGeometry; color: string; at?: V3; scale: V3; rot?: V3; rough?: number; double?: boolean }) {
-  return <mesh geometry={geo} material={mat(color, rough, double ? THREE.DoubleSide : THREE.FrontSide)} position={at} scale={scale} rotation={rot} castShadow />;
+  return <mesh geometry={geo} material={mat(color, rough, double ? THREE.DoubleSide : THREE.FrontSide)} position={at} scale={scale} rotation={rot} />;
 }
 
 /* ---------- quadruped rig: deer, dog, cat, fox fallback ---------- */
@@ -117,14 +119,14 @@ function Quadruped({ c, spec }: { c: Critter; spec: QuadSpec }) {
       <Part geo={SPHERE} color={coat.belly} at={[0, bodyY - G * 0.55, 0.02]} scale={[G * 0.72, G * 0.45, L * 0.42]} />
       {/* neck + head */}
       <group ref={(g) => { if (g) j.current.neck = g; }} position={[0, bodyY + G * 0.45, L * 0.38]}>
-        <mesh geometry={NECK} material={mat(coat.coat)} scale={[G * 0.36, spec.neck, G * 0.42]} castShadow />
+        <mesh geometry={NECK} material={mat(coat.coat)} scale={[G * 0.36, spec.neck, G * 0.42]} />
         <Part geo={SPHERE} color={coat.belly} at={[0, spec.neck * 0.45, G * 0.18]} scale={[G * 0.22, spec.neck * 0.42, G * 0.18]} />
         <group ref={(g) => { if (g) j.current.head = g; }} position={[0, spec.neck, 0]}>
           <Part geo={SPHERE} color={coat.coat} scale={[spec.head * 0.62, spec.head * 0.68, spec.head]} at={[0, 0, spec.head * 0.25]} />
           <Part geo={SPHERE} color={coat.muzzle} scale={[spec.head * 0.38, spec.head * 0.4, spec.head * 0.62]} at={[0, -spec.head * 0.15, spec.head * 1.0]} />
-          <Part geo={SPHERE} color="#0c0a09" rough={0.4} scale={[spec.head * 0.14, spec.head * 0.11, spec.head * 0.1]} at={[0, -spec.head * 0.06, spec.head * 1.55]} />
-          <Part geo={SPHERE} color="#080706" rough={0.2} scale={[spec.head * 0.1, spec.head * 0.12, spec.head * 0.1]} at={[-spec.head * 0.42, spec.head * 0.18, spec.head * 0.6]} />
-          <Part geo={SPHERE} color="#080706" rough={0.2} scale={[spec.head * 0.1, spec.head * 0.12, spec.head * 0.1]} at={[spec.head * 0.42, spec.head * 0.18, spec.head * 0.6]} />
+          <Part geo={SMALL} color="#0c0a09" rough={0.4} scale={[spec.head * 0.14, spec.head * 0.11, spec.head * 0.1]} at={[0, -spec.head * 0.06, spec.head * 1.55]} />
+          <Part geo={SMALL} color="#080706" rough={0.2} scale={[spec.head * 0.1, spec.head * 0.12, spec.head * 0.1]} at={[-spec.head * 0.42, spec.head * 0.18, spec.head * 0.6]} />
+          <Part geo={SMALL} color="#080706" rough={0.2} scale={[spec.head * 0.1, spec.head * 0.12, spec.head * 0.1]} at={[spec.head * 0.42, spec.head * 0.18, spec.head * 0.6]} />
           {[-1, 1].map((sx, i) => (
             <group key={i} ref={(g) => { if (g) j.current.ears[i] = g; }} position={[sx * spec.head * 0.45, spec.head * 0.55, spec.head * 0.05]}>
               <Part geo={spec.earSharp ? CONE : SPHERE} color={coat.coat} at={[sx * spec.ears * 0.25, spec.ears * 0.5, 0]} scale={spec.earSharp ? [spec.ears * 0.42, spec.ears, spec.ears * 0.18] : [spec.ears * 0.32, spec.ears * 0.7, spec.ears * 0.12]} />
@@ -141,10 +143,10 @@ function Quadruped({ c, spec }: { c: Critter; spec: QuadSpec }) {
       {/* legs: hip/shoulder pivot, upper limb, knee/hock pivot, lower limb, hoof/paw */}
       {legs.map((leg, i) => (
         <group key={i} position={[leg.x, legTop, leg.z]} ref={(g) => { if (g) j.current.hips[i] = g; }}>
-          <mesh geometry={LIMB} material={mat(coat.coat)} scale={[spec.legR * (leg.front ? 1.5 : 2.0), spec.legUpper, spec.legR * (leg.front ? 1.6 : 2.4)]} castShadow />
+          <mesh geometry={LIMB} material={mat(coat.coat)} scale={[spec.legR * (leg.front ? 1.5 : 2.0), spec.legUpper, spec.legR * (leg.front ? 1.6 : 2.4)]} />
           <group position={[0, -spec.legUpper, 0]} ref={(g) => { if (g) j.current.knees[i] = g; }}>
-            <mesh geometry={LIMB} material={mat(coat.coat)} scale={[spec.legR, spec.legLower, spec.legR]} castShadow />
-            <Part geo={SPHERE} color={coat.dark} at={[0, -spec.legLower, spec.legR * 0.4]} scale={[spec.legR * 1.1, spec.legR * 0.9, spec.legR * 1.5]} rough={0.6} />
+            <mesh geometry={LIMB} material={mat(coat.coat)} scale={[spec.legR, spec.legLower, spec.legR]} />
+            <Part geo={SMALL} color={coat.dark} at={[0, -spec.legLower, spec.legR * 0.4]} scale={[spec.legR * 1.1, spec.legR * 0.9, spec.legR * 1.5]} rough={0.6} />
           </group>
         </group>
       ))}
@@ -154,7 +156,7 @@ function Quadruped({ c, spec }: { c: Critter; spec: QuadSpec }) {
 
 function Antlers({ size }: { size: number }) {
   const tine = (x: number, y: number, z: number, len: number, rx: number, rz: number, key: string) => (
-    <mesh key={key} geometry={CONE} material={mat("#d8c9a8", 0.7)} position={[x, y, z]} rotation={[rx, 0, rz]} scale={[0.012 * size * 4, len, 0.012 * size * 4]} castShadow />
+    <mesh key={key} geometry={CONE} material={mat("#d8c9a8", 0.7)} position={[x, y, z]} rotation={[rx, 0, rz]} scale={[0.012 * size * 4, len, 0.012 * size * 4]} />
   );
   return <group position={[0, size * 0.18, 0]}>
     {[-1, 1].map((s) => [
@@ -182,8 +184,8 @@ function Rabbit({ c }: { c: Critter }) {
     <Part geo={SPHERE} color={fur} at={[0, 0.13, -0.02]} scale={[0.1, 0.11, 0.15]} />
     <Part geo={SPHERE} color={light} at={[0, 0.08, 0.02]} scale={[0.07, 0.06, 0.11]} />
     <Part geo={SPHERE} color={fur} at={[0, 0.22, 0.12]} scale={[0.065, 0.07, 0.08]} />
-    <Part geo={SPHERE} color="#080706" rough={0.2} at={[-0.05, 0.24, 0.15]} scale={[0.011, 0.013, 0.011]} />
-    <Part geo={SPHERE} color="#080706" rough={0.2} at={[0.05, 0.24, 0.15]} scale={[0.011, 0.013, 0.011]} />
+    <Part geo={SMALL} color="#080706" rough={0.2} at={[-0.05, 0.24, 0.15]} scale={[0.011, 0.013, 0.011]} />
+    <Part geo={SMALL} color="#080706" rough={0.2} at={[0.05, 0.24, 0.15]} scale={[0.011, 0.013, 0.011]} />
     <group ref={ears} position={[0, 0.28, 0.1]}>
       <Part geo={SPHERE} color={fur} at={[-0.025, 0.07, -0.02]} scale={[0.016, 0.075, 0.01]} rot={[0, 0, 0.15]} />
       <Part geo={SPHERE} color={fur} at={[0.025, 0.07, -0.02]} scale={[0.016, 0.075, 0.01]} rot={[0, 0, -0.15]} />
@@ -265,7 +267,7 @@ function Fish({ c }: { c: Critter }) {
 }
 
 /* ---------- snake: a tapered body that slithers in a travelling wave ---------- */
-const SNAKE_SEGMENTS = 16;
+const SNAKE_SEGMENTS = 10;
 function Snake({ c }: { c: Critter }) {
   const segs = useRef<THREE.Mesh[]>([]);
   useFrame(() => {
@@ -284,7 +286,7 @@ function Snake({ c }: { c: Critter }) {
     {Array.from({ length: SNAKE_SEGMENTS }, (_, i) => {
       const t = i / (SNAKE_SEGMENTS - 1);
       const r = 0.045 * (i === 0 ? 0.95 : 1 - t * 0.75);
-      return <mesh key={i} ref={(m) => { if (m) segs.current[i] = m; }} geometry={SPHERE} material={mat(pattern[i % 3 === 0 ? 1 : 0]!, 0.55)} position={[0, r, -i * 0.07]} scale={[r, r * 0.8, r * (i === 0 ? 1.5 : 1.1)]} castShadow />;
+      return <mesh key={i} ref={(m) => { if (m) segs.current[i] = m; }} geometry={SPHERE} material={mat(pattern[i % 3 === 0 ? 1 : 0]!, 0.55)} position={[0, r, -i * 0.11]} scale={[r, r * 0.8, r * (i === 0 ? 1.5 : 1.1)]} />;
     })}
   </group>;
 }
