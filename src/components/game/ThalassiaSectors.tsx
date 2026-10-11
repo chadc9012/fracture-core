@@ -49,6 +49,12 @@ function SentryDock({ restored }: { restored: boolean }) {
       <mesh ref={door} position={[0, DOCK_DECK_Y + 2.6, 0]}><boxGeometry args={[0.5, 5, 5]} /><meshStandardMaterial color="#4a3b26" metalness={0.7} roughness={0.5} /></mesh>
       <Text position={[0.7, DOCK_DECK_Y + 9.2, 0]} rotation-y={Math.PI / 2} fontSize={0.7} color={restored ? "#3dff9a" : "#ffa21a"} anchorX="center">{restored ? "AIRLOCK · PRESSURISED" : "AIRLOCK · SEAL FAULT"}</Text>
     </group>
+    {/* readability (live playtest: the deck and airlock read as one dark mass): a lit rim around the berth, edge-lit airlock posts and a
+        work light over the deck. Emissive strips cost nothing per pixel; the one point light covers the berth. */}
+    <mesh position={[d.x, DOCK_DECK_Y + 0.02, d.z]} rotation-x={-Math.PI / 2}><ringGeometry args={[DOCK.r - 0.6, DOCK.r - 0.2, 48]} /><meshBasicMaterial color="#5fe0ff" toneMapped={false} /></mesh>
+    <mesh position={[d.x, DOCK_DECK_Y + 0.03, d.z]} rotation-x={-Math.PI / 2}><ringGeometry args={[4.6, 4.9, 32]} /><meshBasicMaterial color="#ffd27a" toneMapped={false} /></mesh>
+    {[-3.65, 3.65].map((zz) => <mesh key={zz} position={[a.x + 0.62, DOCK_DECK_Y + 4, a.z + zz]}><boxGeometry args={[0.08, 7.6, 0.12]} /><meshBasicMaterial color={restored ? "#3dff9a" : "#ffa21a"} toneMapped={false} /></mesh>)}
+    <pointLight position={[d.x - 4, DOCK_DECK_Y + 9, d.z]} color="#bdefff" intensity={60} distance={40} decay={1.6} />
     {/* rotating hull alarms around the deck */}
     <group ref={alarms}>
       {[0, 1, 2, 3].map((i) => { const ang = (i / 4) * Math.PI * 2; return <group key={i} position={[d.x + Math.cos(ang) * (DOCK.r - 1), DOCK_DECK_Y + 1.2, d.z + Math.sin(ang) * (DOCK.r - 1)]}>
