@@ -505,6 +505,19 @@ export function Scene({
   const relaySpawned = useRef("");
   const neonCoreSpawned = useRef("");
   const descentSpawned = useRef("");
+  const devWarp = useRef<{ x: number; z: number; y?: number } | null>(null);
+  useEffect(() => {
+    if (typeof window === "undefined" || new URLSearchParams(window.location.search).get("dev") !== "1") return;
+    const w = window as unknown as { __warp?: (to: string | { x: number; z: number; y?: number }) => string };
+    w.__warp = (to) => {
+      if (typeof to !== "string") { devWarp.current = to; return "ok"; }
+      const r = REGIONS.find((g) => g.id === to);
+      const spot = to === "neon" ? { x: NEON_CITY_CENTER.x, z: NEON_CITY_CENTER.z + 20 } : to === "thalassia" ? { ...airlockSite(), y: DOCK_DECK_Y + 1.6 } : to === "spire" ? { x: NEON_CITY_CENTER.x, z: NEON_CITY_CENTER.z - 30 } : r ? { x: r.x, z: r.z + r.radius * 0.3 } : null;
+      if (!spot) return "unknown place";
+      devWarp.current = spot; return "ok";
+    };
+    return () => { delete w.__warp; };
+  }, []);
   const solarArraySpawned = useRef("");
   const coreNodeSpawned = useRef("");
   const zoneSpawned = useRef<Partial<Record<ZoneMissionId, string>>>({});
@@ -1890,6 +1903,12 @@ export function Scene({
       checkpointClock.current = 0;
       const here = { x: s.x, z: s.z };
       if (!s.insideInterior && isCheckpointSafe(here, hostiles, performance.now() - sim.lastHit < 6000)) { checkpoint.current = here; onCheckpoint?.(here); }
+    }
+    // dev warp (?dev=1): window.__warp("neon" | "thalassia" | "nexus" | "ember" | ...) — a testing aid for checking places in the real game
+    if (devWarp.current) {
+      const w = devWarp.current; devWarp.current = null;
+      s.x = w.x; s.z = w.z; s.y = w.y ?? walkHeight(s.x, s.z) + 1.6; s.vy = 0; s.vSpeed = 0; s.inVehicle = false; s.insideInterior = null; interior = null; velocity.set(0, 0, 0);
+      if (w.y !== undefined) { s.diving = true; s.grounded = false; s.oxygen = OXYGEN_MAX; s.hull = 0; }
     }
     if (travelTo && travelTo.nonce !== travelSeen.current) {
       travelSeen.current = travelTo.nonce;
