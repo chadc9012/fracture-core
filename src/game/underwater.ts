@@ -60,3 +60,13 @@ export function lowOxygenPenalty(oxygen: number): { visionBlur: number; speedMul
 export function boostImpulse(yaw: number, strength = 1.5): { x: number; z: number } {
   return { x: Math.sin(yaw) * strength, z: Math.cos(yaw) * strength };
 }
+
+/** Underwater visibility (fog distances in metres + a 0..1 brightness for the murk colour). Open water stays a close,
+ * turbid murk; inside Thalassia the city's lights and filtered water keep structures, airlocks, enemies and routes
+ * readable out to ~120 m at the dock, falling off with depth so the Sunk-Core still feels deep. */
+export function underwaterVisibility(sector: string | null, depth: number): { near: number; far: number; light: number } {
+  if (!sector) return { near: 0.5, far: 45, light: 0.55 };
+  const deep = Math.min(1, Math.max(0, (depth - 8) / 22)); // 0 at the dock deck, 1 at the reactor and below
+  const base = sector === "SENTRY_DOCK" ? 125 : sector === "ABYSSAL_RING" ? 110 : sector === "SUNK_CORE" ? 70 : 100;
+  return { near: 6 - deep * 4, far: base - deep * 35, light: 1 - deep * 0.45 };
+}

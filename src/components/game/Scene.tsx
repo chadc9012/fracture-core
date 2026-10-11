@@ -107,6 +107,7 @@ import { difficultyCurve, playerPowerScore } from "@/game/balance";
 import type { TutorialEvent, TutorialState } from "@/game/onboarding";
 import { CITY_RADIUS, DOCK_DECK_Y, SECTOR_LABEL, airStationAt, airlockSite, coolantDamage, coolantPhase, dockSite, hullDamagePerSec, hullStressStep, reactorSite, ringWaypoint, sectorAt, type ThalassiaSector } from "@/game/thalassia-sectors";
 import { airlockRestored } from "@/game/missions/descent-protocol";
+import { underwaterVisibility } from "@/game/underwater";
 import { OXYGEN_MAX, WATER_DRAG, applyWaterDrag, classifyUnderwaterState, lowOxygenPenalty, oxygenStep, pressureSpeedMultiplier, stepBuoyancy } from "@/game/underwater";
 import { underwaterSpread } from "@/game/underwater-combat";
 import { heatStatus, stepHeatMeter } from "@/game/heat";
@@ -808,6 +809,7 @@ export function Scene({
   const fogColor = useMemo(() => new THREE.Color(), []);
   const atmoScratch = useMemo(() => new THREE.Color(), []);
   const deepWater = useMemo(() => new THREE.Color("#0a4f63"), []);
+  const waterTint = useMemo(() => new THREE.Color(), []);
   const underK = useRef(0);
   const instabilityColor = useMemo(() => new THREE.Color("#ff2d55"), []);
   const lightColor = useMemo(() => new THREE.Color(), []);
@@ -1103,10 +1105,13 @@ export function Scene({
     sfx.setUnderwaterMuffle(underK.current);
     if (underK.current > 0.01 && scene.fog instanceof THREE.Fog) {
       const u = underK.current;
-      scene.fog.color.lerp(deepWater, u);
-      scene.fog.near += (0.5 - scene.fog.near) * u;
-      scene.fog.far += (45 - scene.fog.far) * u;
-      if (scene.background instanceof THREE.Color) scene.background.lerp(deepWater, u);
+      // Thalassia keeps its structures readable; open water stays a close murk (underwater.ts underwaterVisibility)
+      const vis = underwaterVisibility(s.sector, Math.max(0, WATER_LEVEL - s.y));
+      waterTint.copy(deepWater).multiplyScalar(0.55 + vis.light * 0.75);
+      scene.fog.color.lerp(waterTint, u);
+      scene.fog.near += (vis.near - scene.fog.near) * u;
+      scene.fog.far += (vis.far - scene.fog.far) * u;
+      if (scene.background instanceof THREE.Color) scene.background.lerp(waterTint, u);
     }
     // below the surface there is no sky: hide the atmosphere and the dome so the murk reads as water, not air
     const skyUp = underK.current < 0.6;
