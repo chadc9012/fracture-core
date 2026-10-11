@@ -16,3 +16,11 @@ describe("rigged faction enemy models", () => {
     });
   }
 });
+
+describe("aberration models", () => {
+  for (const role of ["standard", "elite", "boss"] as const) test(role, () => {
+    const v = ENEMY_VISUALS.ABERRATION[role];
+    expect(existsSync(`public${v.url}`)).toBe(true);
+    expect(readFileSync(`public${v.url}`).length).toBeLessThan(4.5 * 1024 * 1024);
+  });
+});

@@ -4,7 +4,7 @@
  * Raiders, Overclocked and Vanguard (regular/elite/boss) are generated from the owner's faction sheet
  * (public/refs/enemies), remeshed to ~10k tris and rigged in Meshy with idle/walk/run/shoot clips
  * (public/models/enemies, built by scripts/build-operator-authored.py --base-tex=1024); EnemyModel.tsx blends the clips
- * from real speed/aim (enemy-anim.ts). Aberrations are still the older static creature meshes with procedural motion.
+ * from real speed/aim (enemy-anim.ts). Aberrations come from the same sheet: the Viper is rigged; Crawler and Queen are static meshes with procedural creature motion.
  */
 import ch1 from "@/assets/models/enemies/enemy-character.glb.asset.json";
 import ch2 from "@/assets/models/enemies/enemy-character-2.glb.asset.json";
@@ -29,6 +29,9 @@ const V = {
   vgRegular: { id: "vanguard-regular", url: M("vanguard-regular"), height: 4.0, motion: "biped", note: "Vanguard Enforcer (Frostspire); rigged" },
   vgElite: { id: "vanguard-elite", url: M("vanguard-elite"), height: 4.3, motion: "biped", note: "Vanguard Juggernaut; rigged" },
   vgBoss: { id: "vanguard-boss", url: M("vanguard-boss"), height: 4.7, motion: "biped", note: "Vanguard Champion; rigged" },
+  abRegular: { id: "aberration-regular", url: M("aberration-regular"), height: 2.8, motion: "creature", note: "Aberration Crawler (Swamps) from the faction sheet; static mesh (Smart Rig, no clips), display base stripped" },
+  abElite: { id: "aberration-elite", url: M("aberration-elite"), height: 3.8, motion: "biped", note: "Aberration Viper; rigged walk/run/alert/attack" },
+  abBoss: { id: "aberration-boss", url: M("aberration-boss"), height: 5.4, motion: "creature", note: "Aberration Queen; static mesh" },
   raider: { id: "ember-raider", url: ch3.url, height: 3.9, motion: "biped", note: "orange/black scavenger trooper" },
   overclocked: { id: "nexus-overclocked", url: ch2.url, height: 3.9, motion: "biped", note: "black/red/cyan cyber trooper" },
   vanguard: { id: "frost-crystal-brute", url: ch1.url, height: 4.4, motion: "biped", note: "wide cyan crystal heavy" },
@@ -41,7 +44,7 @@ const V = {
 export const ENEMY_VISUALS: Record<EnemyKind, Record<EnemyRole, EnemyVisual>> = {
   RAIDER: { standard: V.raiderRegular, elite: V.raiderElite, boss: V.raiderBoss },
   OVERCLOCKED: { standard: V.ocRegular, elite: V.ocElite, boss: V.ocBoss },
-  ABERRATION: { standard: V.craw, elite: V.viper, boss: V.viper },
+  ABERRATION: { standard: V.abRegular, elite: V.abElite, boss: V.abBoss },
   VANGUARD: { standard: V.vgRegular, elite: V.vgElite, boss: V.vgBoss },
 };
 
