@@ -94,6 +94,7 @@ import { advanceMission as advanceNeonCore, STITCHED_NEON_CORE, type MissionEven
 import { StitchedNeonCoreOverlay } from "./StitchedNeonCoreOverlay";
 import { advanceMission as advanceDescent, DESCENT_PROTOCOL, type MissionEvent as DescentEvent, type MissionRun as DescentRun } from "@/game/missions/descent-protocol";
 import { DescentProtocolOverlay } from "./DescentProtocolOverlay";
+import { AIRLOCK_REACH, REACTOR_REACH } from "@/game/thalassia-sectors";
 import { advanceMission as advanceSystemCore, SYSTEM_CORE, type MissionEvent as SystemCoreEvent, type MissionRun as SystemCoreRun } from "@/game/missions/system-core";
 import { SystemCoreOverlay } from "./SystemCoreOverlay";
 import { gameTick, reconcileQuests, survivalTickIsNoop, QUESTS } from "@/game/quests";
@@ -1134,7 +1135,7 @@ export function GameCanvas() {
       {solarArray && <SolarArrayOverlay mission={solarArray} onEvent={recordSolarArray} />}
       {coreNode && <CoreNodeOverlay mission={coreNode} onEvent={recordCoreNode} talking={storyGraph?.id === REVEAL_GRAPH.id} onTalk={() => setStoryGraph((current) => current ?? REVEAL_GRAPH)} />}
       {ZONE_MISSION_IDS.map((id) => { const run = zoneRuns[id]; return run ? <ZoneMissionOverlay key={id} mission={run} onEvent={(e) => recordZone(id, e)} /> : null; })}
-      {descent && <DescentProtocolOverlay mission={descent} onEvent={recordDescent} near={!descent.target || Math.hypot(descent.target.x - (hud.px ?? 0), descent.target.z - (hud.pz ?? 0)) < 10} />}
+      {descent && <DescentProtocolOverlay mission={descent} onEvent={recordDescent} near={!descent.target || Math.hypot(descent.target.x - (hud.px ?? 0), descent.target.z - (hud.pz ?? 0)) < (descent.state === "TRACING" ? REACTOR_REACH : AIRLOCK_REACH)} />}
       {systemCore && <SystemCoreOverlay mission={systemCore} onEvent={recordSystemCore} />}
       {tutorial && <OnboardingSignal tutorial={tutorial} classId={cls} onOpenHub={() => { setTutorial(null); setOperationsView("ABILITIES"); }} />}
       {tutorial?.step === "VICTORY" && (

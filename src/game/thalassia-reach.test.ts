@@ -14,3 +14,11 @@ describe("Thalassia is reachable", () => {
     expect(Math.hypot(a.x - THALASSIA_CENTER.x, a.z - THALASSIA_CENTER.z)).toBeLessThan(CITY_RADIUS + 80);
   });
 });
+
+import { REACTOR_REACH as RR } from "./thalassia-sectors";
+import { THALASSIA_CENTER as TC } from "./thalassia-site";
+import { reactorSite as rs } from "./thalassia-sectors";
+test("the reactor trace is reachable from outside the central tower's 10 m footprint", () => {
+  const r = rs();
+  expect(Math.hypot(r.x - TC.x, r.z - TC.z) + 10 + 1).toBeLessThan(RR); // tower radius + player radius
+});

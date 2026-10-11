@@ -81,3 +81,9 @@ export function airStationAt(x: number, y: number, z: number, airlockRestored: b
   }
   return null;
 }
+
+/** how close counts as "at" a Descent target (Scene arrival checks and the overlay's hack panels share these). The reactor sits inside the
+ * city's central tower footprint (a 10 m obstacle at every depth), so a diver can never get closer than ~11 m: live playtest showed the
+ * trace panel never opening at the old 10 m reach. */
+export const AIRLOCK_REACH = 10;
+export const REACTOR_REACH = 16;

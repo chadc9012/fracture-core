@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Settings2 } from "lucide-react";
 import { Canvas, useFrame } from "@react-three/fiber";
-import { ContactShadows } from "@react-three/drei";
+import { Bounds, ContactShadows, useBounds } from "@react-three/drei";
 import { useRef } from "react";
 import type * as THREE from "three";
 import { Operator } from "./Operator";
@@ -25,11 +25,13 @@ export function CharacterScreen({ progression, onProgression, classId, subclassI
   const [tab, setTab] = useState<CharacterTab>(initialTab);
   const [hover, setHover] = useState<GearItem | null>(null);
   const [picking, setPicking] = useState<GearSlot | null>(null);
+  // one stable listener (live check: re-subscribing on every parent render dropped an Esc press)
+  const latest = useRef({ picking, onClose }); latest.current = { picking, onClose };
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") { e.preventDefault(); if (picking) setPicking(null); else onClose(); } };
+    const onKey = (e: KeyboardEvent) => { if (e.key !== "Escape") return; e.preventDefault(); if (latest.current.picking) setPicking(null); else latest.current.onClose(); };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [picking, onClose]);
+  }, []);
   const sheet = characterSheet(progression);
   const op = operatorByClass(classId), sub = subclassById(subclassId), cls = classById(classId);
   const need = xpRequiredForLevel(progression.level);
@@ -145,8 +147,9 @@ function CharacterPreview({ appearance, classId, progression }: { appearance: Ap
       <ambientLight intensity={0.7} />
       <directionalLight position={[3, 6, 5]} intensity={2.6} color="#fff1dc" />
       <pointLight position={[-3, 2.5, 2]} intensity={14} color={appearance.visor} />
-      <Turntable><OperatorModel classId={classId} bodyType={progression.character?.bodyType} height={2.75} feetY={-1.55} color={appearance.armor} trim={appearance.visor} cloth={appearance.cloth} gear={progression} held={{ current: { weapon: DEFAULT_ARSENAL[classId].loadouts[0]!.slots[0] } }} pose="showcase"
-        fallback={<Operator armor={appearance.armor} cloth={appearance.cloth} visor={appearance.visor} trim={appearance.trim} classId={classId} visualState="ACTIVE" />} /></Turntable>
+      {/* live check: fixed framing showed only the legs of the authored body; Bounds frames whatever finally loads (GLB or fallback) */}
+      <Bounds fit clip observe margin={1.15}><Turntable><OperatorModel classId={classId} bodyType={progression.character?.bodyType} height={2.75} feetY={-1.55} color={appearance.armor} trim={appearance.visor} cloth={appearance.cloth} gear={progression} held={{ current: { weapon: DEFAULT_ARSENAL[classId].loadouts[0]!.slots[0] } }} pose="showcase"
+        fallback={<Operator armor={appearance.armor} cloth={appearance.cloth} visor={appearance.visor} trim={appearance.trim} classId={classId} visualState="ACTIVE" />} /></Turntable><Refit /></Bounds>
       <ContactShadows position={[0, 0.02, 0]} opacity={0.5} scale={5} blur={2.4} />
     </Canvas>
   </div>;
@@ -155,4 +158,10 @@ function Turntable({ children }: { children: React.ReactNode }) {
   const g = useRef<THREE.Group>(null);
   useFrame((_, dt) => { if (g.current) g.current.rotation.y += Math.min(dt, 0.05) * 0.35; });
   return <group ref={g} position-y={1.55}>{children}</group>;
+}
+/** the GLB streams in after the fallback, so re-frame a few times while it settles */
+function Refit() {
+  const bounds = useBounds();
+  useEffect(() => { const ids = [300, 1200, 3000].map((ms) => window.setTimeout(() => bounds.refresh().clip().fit(), ms)); return () => ids.forEach((id) => window.clearTimeout(id)); }, [bounds]);
+  return null;
 }

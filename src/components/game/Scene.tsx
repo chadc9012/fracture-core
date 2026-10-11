@@ -105,7 +105,7 @@ import { ADAPTIVE_TUTORIAL_INIT, maybeReteach, recordStruggle } from "@/game/ada
 import { isValidPlayerState, resetFrameFailureCount, sanitizePlayerState, softFrameFailure } from "@/game/safe-state";
 import { difficultyCurve, playerPowerScore } from "@/game/balance";
 import type { TutorialEvent, TutorialState } from "@/game/onboarding";
-import { CITY_RADIUS, DOCK_DECK_Y, REBREATHER_DRAIN_SCALE, SECTOR_LABEL, airStationAt, airlockSite, coolantDamage, coolantPhase, dockSite, hullDamagePerSec, hullStressStep, reactorSite, ringWaypoint, sectorAt, type ThalassiaSector } from "@/game/thalassia-sectors";
+import { CITY_RADIUS, DOCK_DECK_Y, REACTOR_REACH, REBREATHER_DRAIN_SCALE, SECTOR_LABEL, airStationAt, airlockSite, coolantDamage, coolantPhase, dockSite, hullDamagePerSec, hullStressStep, reactorSite, ringWaypoint, sectorAt, type ThalassiaSector } from "@/game/thalassia-sectors";
 import { airlockRestored } from "@/game/missions/descent-protocol";
 import { underwaterVisibility } from "@/game/underwater";
 import { OXYGEN_MAX, WATER_DRAG, applyWaterDrag, classifyUnderwaterState, lowOxygenPenalty, oxygenStep, pressureSpeedMultiplier, stepBuoyancy } from "@/game/underwater";
@@ -1834,7 +1834,7 @@ function SceneImpl({
         // the Sunk-Core's patrol wakes once when you go down; it is not a gate — the reactor is the objective
         if (descentSpawned.current !== "CORE" && s.sector === "SUNK_CORE") { descentSpawned.current = "CORE"; const r = reactorSite(); spawnMissionDrones(sim, r.x, r.z, 3, true); }
         const r = reactorSite();
-        if (s.sector === "SUNK_CORE" && Math.hypot(r.x - s.x, r.z - s.z) < 14) onDescentEvent({ type: "ARRIVED" });
+        if (s.sector === "SUNK_CORE" && Math.hypot(r.x - s.x, r.z - s.z) < REACTOR_REACH) onDescentEvent({ type: "ARRIVED" });
       }
     }
 
