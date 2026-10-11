@@ -525,7 +525,7 @@ function SceneImpl({
     // dev-only test aids (?dev=1): finish the current mission wave as the player, or set hp/oxygen to exercise death and refill paths
     const wd = window as unknown as { __dev?: Record<string, (n?: number) => unknown> };
     wd.__dev = {
-      killMission: () => { let n = 0; for (const m of sim.machines) if (m.alive && m.mission) { defeatMachine(sim, m, "player"); n++; } return n; },
+      killMission: () => { let n = 0; for (const m of sim.machines) if (m.alive && m.mission) { m.hp = 0; defeatMachine(sim, m, "player"); if (!m.alive) n++; } return n; },
       hp: (n = 1) => { sim.hp = n; return sim.hp; },
       o2: (n = 0) => { state.current.oxygen = n; return n; },
       hull: (n = 0) => { state.current.hull = n; return n; },
