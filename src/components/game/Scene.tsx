@@ -1505,7 +1505,8 @@ export function Scene({
     }
 
     // world bounds — skipped inside a pocket-dimension interior, which lives far outside WORLD_RADIUS by design
-    if (!interior) {
+    // Thalassia sits past the world disc in open ocean: its city radius (plus an approach lane) is inside the bounds too
+    if (!interior && Math.hypot(s.x - THALASSIA_CENTER.x, s.z - THALASSIA_CENTER.z) > CITY_RADIUS + 80) {
       const d = Math.hypot(s.x, s.z);
       if (d > WORLD_RADIUS - 6) {
         s.x *= (WORLD_RADIUS - 6) / d;
