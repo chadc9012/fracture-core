@@ -20,7 +20,7 @@ export type Spec = {
 };
 const adv = (s: Spec, m: Run, e: Ev) => (s.advance as (m: Run, e: Ev) => Run)(m, e);
 const ALL: Ev[] = [{ type: "START" }, { type: "ANCHOR", x: 5, z: 5 }, { type: "ARRIVED" }, { type: "CLEAR" }, { type: "HACK", progress: 100 }, { type: "HOLD", progress: 100 }, { type: "ACK" }];
-const PREREQ: Record<MissionId, MissionId | null> = { "awakening": null, "broken-signal": "awakening", "blackout-protocol": "broken-signal", "stitched-neon-core": "blackout-protocol", "descent-protocol": "stitched-neon-core", "system-core": "descent-protocol" };
+const PREREQ: Record<MissionId, MissionId | null> = { "awakening": null, "broken-signal": "awakening", "drowned-relay": "broken-signal", "blackout-protocol": "broken-signal", "stitched-neon-core": "blackout-protocol", "descent-protocol": "stitched-neon-core", "system-core": "descent-protocol" };
 
 /** A save in which the mission is legitimately resumable (tutorial done, prerequisite done, on the right quest). */
 export function readySave(id: MissionId): PlayerProgression {

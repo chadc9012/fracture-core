@@ -311,3 +311,15 @@ Note: M-22, M-23, M-25 are the same objects as D-01…D-03. Decide whether they 
 - Two throw-away simulations of `gameTick` (not committed) produced the findings in §2.1–2.2.
 - Typecheck: not rerun (no code changed this pass).
 - Browser: **not performed.**
+
+---
+
+## Zone story missions (A3 + B5) — progress
+
+| Zone | Mission | Quest | State | Notes |
+|---|---|---|---|---|
+| Shrouded Swamps | **The Drowned Relay** (`drowned-relay`) | upgrades `fd-05` (adds `MISSION_COMPLETE drowned-relay` as objective 2; the 90 s survive stays objective 1 so part-way saves keep progress) | PLAYABLE BUT UNVERIFIED — state machine, persistence, purge minigame and placement unit-tested; not browser-verified | TRIGGERED → WADING (relay site from `relaySite`, kept far from the KV-Unit free-roam lair) → COMBAT_1 (swamp troops via `spawnMissionDrones(..., "swamps")`) → PURGING (3-channel carrier-pulse minigame) → BOSS (KV-Unit, `summonBoss("swamps", { mission: true })`) → COMPLETE → WORLD_UPDATE. Pays bioCatalyst ×2 + dataShards ×2 through `applyMissionCompletion`. Story: the Broken Signal trace sinks into a drowned Vanguard relay; the KV-Unit is the war-frame the swamp grew into; the relay was only forwarding the signal to Neon City (hands off to Blackout Protocol). Blackout Protocol now starts only after the Drowned Relay (or once `fd-05` is already complete, so older saves are unaffected). |
+| Solara Desert | — | `fd-08` | NEXT | Unbroken Glass available |
+| Frostspire | — | `fd-11` | PLANNED | Subject Zero available |
+| Ember Peaks | — | `fd-12`/`fd-13` | PLANNED | Overseer Kael available |
+| Wastelands | — | `fd-14` | PLANNED | |

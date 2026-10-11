@@ -50,9 +50,9 @@ describe("B1 — kill and survive events come from gameplay", () => {
     expect(long && long.type === "SURVIVED" ? long.seconds : 0).toBe(MAX_SURVIVE_DT);
   });
 
-  const cases: { id: string; region: string; kind: "kills" | "survive"; amount: number }[] = [
+  const cases: { id: string; region: string; kind: "kills" | "survive"; amount: number; mission?: string }[] = [
     { id: "fd-02", region: "veridan", kind: "kills", amount: 5 },
-    { id: "fd-05", region: "swamps", kind: "survive", amount: 90 },
+    { id: "fd-05", region: "swamps", kind: "survive", amount: 90, mission: "drowned-relay" },
     { id: "fd-08", region: "solara", kind: "survive", amount: 90 },
     { id: "fd-11", region: "frostspire", kind: "survive", amount: 90 },
     { id: "fd-12", region: "ember", kind: "kills", amount: 8 },
@@ -62,6 +62,7 @@ describe("B1 — kill and survive events come from gameplay", () => {
   for (const c of cases) {
     test(`${c.id} (${QUESTS[c.id]!.title}) completes from ${c.kind} in ${c.region}`, () => {
       const r = new Run(withActive(c.id));
+      if (c.mission) r.mission(c.mission);
       r.enter(c.region);
       expect(active(r)).toBe(c.id); // not satisfied by merely arriving
       if (c.kind === "kills") { r.kill(c.amount - 1); expect(active(r)).toBe(c.id); r.kill(1); }
@@ -85,7 +86,7 @@ describe("B1 — the whole chain is completable with only events the game emits"
     r.enter("veridan"); r.kill(5);                                // fd-02
     r.mission("broken-signal", { dataShards: 3 });                // fd-03
     r.enter("swamps");                                            // fd-04
-    r.stay(95);                                                   // fd-05
+    r.stay(95); r.mission("drowned-relay", { bioCatalyst: 2, dataShards: 2 }); // fd-05
     r.enter("neon"); r.mission("blackout-protocol", { microCircuits: 4 }); r.snap(0.18, { heatLevel: 3 }); // fd-06
     r.mission("stitched-neon-core", { aegisCore: 1 }); r.snap(0.18, { heatLevel: 5 });                    // fd-07
     r.enter("solara"); r.stay(95);                                // fd-08
@@ -173,4 +174,22 @@ describe("B2 — returning player and the broken-signal prerequisite", () => {
     expect(gate(returning(), { tutorialActive: true })).toBe(false);
   });
   test("it does not restart once completed", () => { expect(gate({ ...returning(), completedMissions: ["awakening", "broken-signal"] })).toBe(false); });
+});
+
+describe("fd-05 needs the Drowned Relay as well as the survive timer", () => {
+  test("surviving alone no longer finishes fd-05; the relay mission then does", () => {
+    const r = new Run(withActive("fd-05"));
+    r.enter("swamps"); r.stay(120);
+    expect(active(r)).toBe("fd-05");
+    r.mission("drowned-relay", { bioCatalyst: 2, dataShards: 2 });
+    expect(r.p.completedMissions).toContain("fd-05");
+    expect(active(r)).toBe("fd-06");
+  });
+  test("a save mid-way through the old survive timer keeps its progress", () => {
+    const old = { ...withActive("fd-05"), questObjectiveProgress: { "fd-05": [45] } };
+    const r = new Run(old);
+    r.mission("drowned-relay");
+    r.enter("swamps"); r.stay(50);
+    expect(r.p.completedMissions).toContain("fd-05");
+  });
 });

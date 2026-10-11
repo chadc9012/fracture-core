@@ -102,7 +102,11 @@ export const QUESTS: Record<string, Quest> = {
   "fd-05": {
     id: "fd-05", title: "Crossing the Shrouded Swamps", world: "swamps",
     line: "Bio-tech mutation thick enough to breathe. Something in the reeds is watching you cross.",
-    objectives: [{ type: "SURVIVE", label: "Hold out in the fog (s)", key: "swamps", amount: 90 }],
+    // index 0 stays the survive timer so saves already part-way through fd-05 keep their progress
+    objectives: [
+      { type: "SURVIVE", label: "Hold out in the fog (s)", key: "swamps", amount: 90 },
+      { type: "MISSION_COMPLETE", label: "Purge the Drowned Relay", key: "drowned-relay", amount: 1 },
+    ],
     rewardShards: 260, rewardMaterials: { bioCatalyst: 3 }, unlocksWorld: null, nextQuestId: "fd-06", corruption: 2,
   },
   "fd-06": {

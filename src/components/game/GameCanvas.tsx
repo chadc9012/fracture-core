@@ -78,6 +78,8 @@ import { normalizeBindings } from "@/game/bindings";
 import { advanceMission, BROKEN_SIGNAL, type MissionEvent, type MissionRun } from "@/game/missions/broken-signal";
 import { advanceMission as advanceBlackout, BLACKOUT_PROTOCOL, type MissionEvent as BlackoutEvent, type MissionRun as BlackoutRun } from "@/game/missions/blackout-protocol";
 import { BlackoutProtocolOverlay } from "./BlackoutProtocolOverlay";
+import { advanceMission as advanceRelay, DROWNED_RELAY, type MissionEvent as RelayEvent, type MissionRun as RelayRun } from "@/game/missions/drowned-relay";
+import { DrownedRelayOverlay } from "./DrownedRelayOverlay";
 import { advanceMission as advanceNeonCore, STITCHED_NEON_CORE, type MissionEvent as NeonCoreEvent, type MissionRun as NeonCoreRun } from "@/game/missions/stitched-neon-core";
 import { StitchedNeonCoreOverlay } from "./StitchedNeonCoreOverlay";
 import { advanceMission as advanceDescent, DESCENT_PROTOCOL, type MissionEvent as DescentEvent, type MissionRun as DescentRun } from "@/game/missions/descent-protocol";
@@ -444,12 +446,32 @@ export function GameCanvas() {
     return () => window.clearTimeout(timer);
   }, [mission?.state, progression.completedMissions]);
 
+  /* Swamp story mission · The Drowned Relay — upgrades fd-05 (was a bare survive timer). Starts once
+   * Broken Signal is done and the swamp chapter (fd-05) is still open; Blackout Protocol now waits for it
+   * (or for fd-05 already being complete, so older saves past the swamp are unaffected). */
+  const [relay, setRelay] = useCountedState<RelayRun | null>("relay", () => restoreMission<RelayRun>("drowned-relay", progression));
+  useEffect(() => setProgression((p) => withMissionRun(p, "drowned-relay", relay)), [relay]);
+  const swampChapterDone = progression.completedMissions.includes("drowned-relay") || progression.completedMissions.includes("fd-05");
+  const relayReady = phase === "world" && !tutorial && progression.completedMissions.includes("broken-signal") && !swampChapterDone;
+  useEffect(() => {
+    if (!relayReady || relay) return;
+    const timer = window.setTimeout(() => setRelay(advanceRelay(DROWNED_RELAY, { type: "START" })), 6000);
+    return () => window.clearTimeout(timer);
+  }, [relayReady, relay]);
+  const recordRelay = (event: RelayEvent) => setRelay((current) => current ? advanceRelay(current, event) : current);
+  useEffect(() => {
+    if (relay?.state !== "WORLD_UPDATE" || progression.completedMissions.includes("drowned-relay")) return;
+    setProgression((current) => applyMissionCompletion(current, "drowned-relay"));
+    const timer = window.setTimeout(() => setRelay(null), 9000);
+    return () => window.clearTimeout(timer);
+  }, [relay?.state, progression.completedMissions]);
+
   /* Mission 02 · Blackout Protocol — picks up once Broken Signal is behind you; NOVA's line
    * sends you into the real Neon City street, same ANCHOR/ARRIVED/CLEAR/HACK/ACK shape as
    * Mission 01 so Scene.tsx wires it the identical way. */
   const [blackout, setBlackout] = useCountedState<BlackoutRun | null>("blackout", () => restoreMission<BlackoutRun>("blackout-protocol", progression));
   useEffect(() => setProgression((p) => withMissionRun(p, "blackout-protocol", blackout)), [blackout]);
-  const blackoutReady = phase === "world" && !tutorial && progression.completedMissions.includes("broken-signal") && !progression.completedMissions.includes("blackout-protocol");
+  const blackoutReady = phase === "world" && !tutorial && progression.completedMissions.includes("broken-signal") && swampChapterDone && !progression.completedMissions.includes("blackout-protocol");
   useEffect(() => {
     if (!blackoutReady || blackout) return;
     const timer = window.setTimeout(() => setBlackout(advanceBlackout(BLACKOUT_PROTOCOL, { type: "START" })), 8000);
@@ -652,6 +674,7 @@ export function GameCanvas() {
     setHud((h) => ({ ...h, ...hudIdentity(next) }));
     setMission((m) => (force ? null : (reconcileRuns({ "broken-signal": m }, incoming)["broken-signal"] as MissionRun | null)));
     setAwakening((m) => (force ? null : (reconcileRuns({ awakening: m }, incoming)["awakening"] as AwakeningRun | null)));
+    setRelay((m) => (force ? null : (reconcileRuns({ "drowned-relay": m }, incoming)["drowned-relay"] as RelayRun | null)));
     setBlackout((m) => (force ? null : (reconcileRuns({ "blackout-protocol": m }, incoming)["blackout-protocol"] as BlackoutRun | null)));
     setNeonCore((m) => (force ? null : (reconcileRuns({ "stitched-neon-core": m }, incoming)["stitched-neon-core"] as NeonCoreRun | null)));
     setDescent((m) => (force ? null : (reconcileRuns({ "descent-protocol": m }, incoming)["descent-protocol"] as DescentRun | null)));
@@ -741,7 +764,7 @@ export function GameCanvas() {
   }, []);
   const [levelUpFlash, setLevelUpFlash] = useCountedState<{ level: number; novaUnlocked: string[] } | null>("levelUpFlash", null);
   // diagnostic (F3 "why" line): which tracked state changed identity this render; remove with the F3 line
-  canvasWhy.render({ hud, phase, pendingDeployment, menuOpen, settings, adaptiveDpr, lowPerf, autoCap, qualityNotice, vehicleId, garageOpen, inventoryOpen, shopOpen, ruinOpen, cacheBanner, atlasOpen, hubView, travelTo, transit, savedFlash, strategyOpen, analysisOpen, operationsView, last, progression, landmarkToast, cls, subclass, appearance, bodyType, tutorial, showIntro, cineId, cineProgress, introElapsed, mission, awakening, blackout, neonCore, descent, systemCore, activeDialogue, deathInfo, showEnding, menuNotice, rewardCards, storyGraph, captionQueue, levelUpFlash });
+  canvasWhy.render({ hud, phase, pendingDeployment, menuOpen, settings, adaptiveDpr, lowPerf, autoCap, qualityNotice, vehicleId, garageOpen, inventoryOpen, shopOpen, ruinOpen, cacheBanner, atlasOpen, hubView, travelTo, transit, savedFlash, strategyOpen, analysisOpen, operationsView, last, progression, landmarkToast, cls, subclass, appearance, bodyType, tutorial, showIntro, cineId, cineProgress, introElapsed, mission, awakening, relay, blackout, neonCore, descent, systemCore, activeDialogue, deathInfo, showEnding, menuNotice, rewardCards, storyGraph, captionQueue, levelUpFlash });
   const recordXP = (event: WorldSim["xpEvents"][number]) => {
     setProgression((current) => {
       const result = grantXP(current, event.type, { enemyLevel: event.enemyLevel, combatHeat: event.combatHeat });
@@ -873,7 +896,7 @@ export function GameCanvas() {
       >
         <color attach="background" args={["#bfe4f2"]} />
         <Suspense fallback={<WorldLoading />}>
-            <Scene openedCaches={openedToday} onStoryEvent={recordStory} onHud={setHud} onDrops={(drops) => { showScenarioRewards(drops); setProgression((current) => claimDrops(current, drops)); }} gear={progression} settings={liveSettings} onCameraPreference={(firstPerson) => { window.localStorage.setItem("world-fracture-camera", firstPerson ? "first" : "third"); setSettings((current) => ({ ...current, firstPersonDefault: firstPerson })); }} playerClass={cls} subclassId={subclass} appearance={appearance} bodyType={bodyType} vehicleId={vehicleId} vehicleUnlocked={vehicleUnlocked} activeBuild={progression.activeBuild} abilityBranches={progression.abilityBranches} tutorial={tutorial} onTutorialEvent={recordTutorial} mission={mission} onMissionEvent={recordMission} blackout={blackout} onBlackoutEvent={recordBlackout} neonCore={neonCore} onNeonCoreEvent={recordNeonCore} descent={descent} onDescentEvent={recordDescent} systemCore={systemCore} onSystemCoreEvent={recordSystemCore} awakening={awakening} onAwakeningEvent={recordAwakening} onXP={recordXP} weaponOrder={activeLoadout(progression, progression.identityClass ?? cls).slots} travelTo={travelTo} introPlayback={showIntro ? { elapsed: introElapsed, totalSeconds: introTotalSeconds() } : cineId ? { elapsed: cineProgress * introTotalSeconds(), totalSeconds: introTotalSeconds() } : null} armorState={hud.hp < 35 ? "FRACTURE" : hud.heat > 65 ? "ASCENDANT" : hud.heat > 15 ? "ACTIVE" : "STABLE"} />
+            <Scene openedCaches={openedToday} onStoryEvent={recordStory} onHud={setHud} onDrops={(drops) => { showScenarioRewards(drops); setProgression((current) => claimDrops(current, drops)); }} gear={progression} settings={liveSettings} onCameraPreference={(firstPerson) => { window.localStorage.setItem("world-fracture-camera", firstPerson ? "first" : "third"); setSettings((current) => ({ ...current, firstPersonDefault: firstPerson })); }} playerClass={cls} subclassId={subclass} appearance={appearance} bodyType={bodyType} vehicleId={vehicleId} vehicleUnlocked={vehicleUnlocked} activeBuild={progression.activeBuild} abilityBranches={progression.abilityBranches} tutorial={tutorial} onTutorialEvent={recordTutorial} mission={mission} onMissionEvent={recordMission} relay={relay} onRelayEvent={recordRelay} blackout={blackout} onBlackoutEvent={recordBlackout} neonCore={neonCore} onNeonCoreEvent={recordNeonCore} descent={descent} onDescentEvent={recordDescent} systemCore={systemCore} onSystemCoreEvent={recordSystemCore} awakening={awakening} onAwakeningEvent={recordAwakening} onXP={recordXP} weaponOrder={activeLoadout(progression, progression.identityClass ?? cls).slots} travelTo={travelTo} introPlayback={showIntro ? { elapsed: introElapsed, totalSeconds: introTotalSeconds() } : cineId ? { elapsed: cineProgress * introTotalSeconds(), totalSeconds: introTotalSeconds() } : null} armorState={hud.hp < 35 ? "FRACTURE" : hud.heat > 65 ? "ASCENDANT" : hud.heat > 15 ? "ACTIVE" : "STABLE"} />
         </Suspense>
         {post && (
           // cinematic grade: cool-leaning teal shadows, a touch more punch, so the HUD's cyan
@@ -991,6 +1014,7 @@ export function GameCanvas() {
       {awakening && <AwakeningOverlay run={awakening} onEvent={recordAwakening} />}
       {mission && <BrokenSignalOverlay mission={mission} onEvent={recordMission} />}
       {blackout && <BlackoutProtocolOverlay mission={blackout} onEvent={recordBlackout} />}
+      {relay && <DrownedRelayOverlay mission={relay} onEvent={recordRelay} />}
       {neonCore && <StitchedNeonCoreOverlay mission={neonCore} onEvent={recordNeonCore} />}
       {descent && <DescentProtocolOverlay mission={descent} onEvent={recordDescent} />}
       {systemCore && <SystemCoreOverlay mission={systemCore} onEvent={recordSystemCore} />}

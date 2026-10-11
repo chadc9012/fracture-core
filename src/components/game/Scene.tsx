@@ -19,6 +19,7 @@ import { alert, applyLightning, collidePlayer, createSim, defeatMachine, FACTION
 import type { MissionEvent, MissionRun } from "@/game/missions/broken-signal";
 import type { MissionEvent as BlackoutEvent, MissionRun as BlackoutRun } from "@/game/missions/blackout-protocol";
 import type { MissionEvent as NeonCoreEvent, MissionRun as NeonCoreRun } from "@/game/missions/stitched-neon-core";
+import { relaySite, type MissionEvent as RelayEvent, type MissionRun as RelayRun } from "@/game/missions/drowned-relay";
 import type { MissionEvent as DescentEvent, MissionRun as DescentRun } from "@/game/missions/descent-protocol";
 import type { MissionEvent as SystemCoreEvent, MissionRun as SystemCoreRun } from "@/game/missions/system-core";
 import { introCameraAt } from "@/game/intro-camera";
@@ -378,6 +379,8 @@ export function Scene({
   gear,
   mission,
   onMissionEvent,
+  relay,
+  onRelayEvent,
   blackout,
   onBlackoutEvent,
   neonCore,
@@ -419,6 +422,8 @@ export function Scene({
   gear?: Pick<PlayerProgression, "inventory" | "equippedGear" | "dungeonClears" | "completedMissions" | "story" | "earnedRewards">;
   mission?: MissionRun | null;
   onMissionEvent?: (event: MissionEvent) => void;
+  relay?: RelayRun | null;
+  onRelayEvent?: (event: RelayEvent) => void;
   blackout?: BlackoutRun | null;
   onBlackoutEvent?: (event: BlackoutEvent) => void;
   neonCore?: NeonCoreRun | null;
@@ -464,6 +469,7 @@ export function Scene({
   armorFxRef.current = armorFx;
   const missionSpawned = useRef("");
   const blackoutSpawned = useRef("");
+  const relaySpawned = useRef("");
   const neonCoreSpawned = useRef("");
   const descentSpawned = useRef("");
   const systemCoreSpawned = useRef("");
@@ -506,6 +512,7 @@ export function Scene({
     const list: Marker[] = [];
     if (awakening?.target) list.push({ id: "m-awakening", kind: "MISSION", label: "Awakening", x: awakening.target.x, z: awakening.target.z, regionId: "nexus" });
     if (mission?.target && mission.state !== "COMPLETE" && mission.state !== "WORLD_UPDATE") list.push({ id: "m-broken-signal", kind: "MISSION", label: "Broken Signal", x: mission.target.x, z: mission.target.z, regionId: "nexus" });
+    if (relay?.target && relay.state !== "COMPLETE" && relay.state !== "WORLD_UPDATE") list.push({ id: "m-drowned-relay", kind: "MISSION", label: "The Drowned Relay", x: relay.target.x, z: relay.target.z, regionId: "swamps" });
     if (blackout?.target && blackout.state !== "COMPLETE" && blackout.state !== "WORLD_UPDATE") list.push({ id: "m-blackout-protocol", kind: "MISSION", label: "Blackout Protocol", x: blackout.target.x, z: blackout.target.z, regionId: "nexus" });
     if (neonCore?.target && neonCore.state !== "COMPLETE" && neonCore.state !== "WORLD_UPDATE") list.push({ id: "m-stitched-neon-core", kind: "MISSION", label: "Stitched Neon Core", x: neonCore.target.x, z: neonCore.target.z, regionId: "nexus" });
     if (descent?.target && descent.state !== "COMPLETE" && descent.state !== "WORLD_UPDATE") list.push({ id: "m-descent-protocol", kind: "MISSION", label: "Descent Protocol", x: descent.target.x, z: descent.target.z, regionId: "swamps" });
@@ -1593,6 +1600,23 @@ export function Scene({
       lastHpForAdaptive.current = sim.hp;
     }
 
+    /* ---------------- Swamp story mission · The Drowned Relay world triggers ---------------- */
+    if (relay && onRelayEvent) {
+      const swamps = REGIONS.find((r) => r.id === "swamps");
+      if (relay.state === "TRIGGERED" && !relay.target && swamps) { const site = relaySite(swamps); onRelayEvent({ type: "ANCHOR", x: site.x, z: site.z }); }
+      if (relay.state === "WADING" && relay.target && Math.hypot(relay.target.x - s.x, relay.target.z - s.z) < 14) onRelayEvent({ type: "ARRIVED" });
+      if (relay.state === "COMBAT_1" && relaySpawned.current !== "COMBAT_1" && relaySpawned.current !== "COMBAT_1-done") {
+        relaySpawned.current = "COMBAT_1";
+        spawnMissionDrones(sim, s.x, s.z, 5, false, "swamps");
+      }
+      if (relay.state === "COMBAT_1" && relaySpawned.current === "COMBAT_1" && !sim.machines.some((m) => m.alive && m.mission)) { relaySpawned.current = "COMBAT_1-done"; onRelayEvent({ type: "CLEAR" }); }
+      if (relay.state === "BOSS" && relaySpawned.current !== "BOSS" && relaySpawned.current !== "BOSS-done") {
+        relaySpawned.current = "BOSS";
+        summonBoss(sim, "swamps", s.x, s.z - 18, { mission: true });
+      }
+      if (relay.state === "BOSS" && relaySpawned.current === "BOSS" && !sim.machines.some((m) => m.alive && m.mission)) { relaySpawned.current = "BOSS-done"; onRelayEvent({ type: "CLEAR" }); }
+    }
+
     /* ---------------- Mission 02 · Blackout Protocol world triggers ---------------- */
     if (blackout && onBlackoutEvent) {
       if (blackout.state === "TRIGGERED" && !blackout.target) onBlackoutEvent({ type: "ANCHOR", x: NEON_CITY_CENTER.x, z: NEON_CITY_CENTER.z });
@@ -2157,6 +2181,12 @@ export function Scene({
         <group position={[mission.target.x, heightAt(mission.target.x, mission.target.z) + 3, mission.target.z]}>
           <mesh><octahedronGeometry args={[0.9, 0]} /><meshStandardMaterial color="#39e6ff" emissive="#39e6ff" emissiveIntensity={3} /></mesh>
           <mesh position={[0, 30, 0]}><cylinderGeometry args={[0.15, 0.15, 60, 6]} /><meshBasicMaterial color={mission.state === "TRAVERSAL" ? "#ff6a3d" : "#39e6ff"} transparent opacity={0.45} /></mesh>
+        </group>
+      )}
+      {relay?.target && relay.state === "WADING" && (
+        <group position={[relay.target.x, heightAt(relay.target.x, relay.target.z) + 3, relay.target.z]}>
+          <mesh><octahedronGeometry args={[0.9, 0]} /><meshStandardMaterial color="#63d6a8" emissive="#63d6a8" emissiveIntensity={3} /></mesh>
+          <mesh position={[0, 30, 0]}><cylinderGeometry args={[0.15, 0.15, 60, 6]} /><meshBasicMaterial color="#63d6a8" transparent opacity={0.45} /></mesh>
         </group>
       )}
       {blackout?.target && blackout.state === "INFILTRATION" && (

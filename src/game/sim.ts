@@ -632,12 +632,15 @@ function spawnMachine(sim: WorldSim, zone: ZoneState, elite = false) {
 }
 
 /** Spawn Broken Signal data drones around a point; tagged so the mission can count them. */
-export function spawnMissionDrones(sim: WorldSim, x: number, z: number, count: number, elite: boolean) {
+/** Spawns a mission wave in a ring around (x,z). Without `regionId` it is the classic data-drone wave;
+ * with one, the wave is that region's own troops (encounters.ts), e.g. spore-walkers in the swamps. */
+export function spawnMissionDrones(sim: WorldSim, x: number, z: number, count: number, elite: boolean, regionId?: string) {
   for (let i = 0; i < count; i++) {
     const m = sim.machines.find((e) => !e.alive);
     if (!m) return;
     const a = (i / count) * Math.PI * 2;
-    Object.assign(m, { alive: true, x: x + Math.cos(a) * 16, z: z + Math.sin(a) * 16, hp: elite ? 6 : 3, rot: 0, scale: elite ? 1.1 : 0.8, zone: "nexus", cool: elite ? 1.2 : 2.5, elite, profile: elite ? "Data Drone Elite" : "Data Drone Scout", kind: "OVERCLOCKED" as const, drop: "dataShards" as MaterialId, boss: false, kx: 0, kz: 0, mission: true, vulnUntil: 0, vulnMult: 1, encounter: undefined, decoy: undefined });
+    const troop = regionId ? troopFor(regionId, i) : null;
+    Object.assign(m, { alive: true, x: x + Math.cos(a) * 16, z: z + Math.sin(a) * 16, hp: elite ? 6 : 3, rot: 0, scale: elite ? 1.1 : 0.8, zone: regionId ?? "nexus", cool: elite ? 1.2 : 2.5, elite, profile: troop ? troop.name : elite ? "Data Drone Elite" : "Data Drone Scout", kind: troop ? troop.kind : ("OVERCLOCKED" as const), drop: (troop ? troop.drop : "dataShards") as MaterialId, boss: false, kx: 0, kz: 0, mission: true, vulnUntil: 0, vulnMult: 1, encounter: undefined, decoy: undefined });
   }
 }
 
