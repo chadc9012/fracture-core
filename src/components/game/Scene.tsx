@@ -814,7 +814,7 @@ function SceneImpl({
   const instabilityColor = useMemo(() => new THREE.Color("#ff2d55"), []);
   const lightColor = useMemo(() => new THREE.Color(), []);
   const skyEnv = useRef<SkyEnv>({ cloud: 0, tint: new THREE.Color("#ffffff") });
-  const { scene, gl } = useThree();
+  const scene = useThree((s) => s.scene); const gl = useThree((s) => s.gl); // selectors: a bare useThree() re-renders this whole tree on every R3F store change (Canvas reconfigures on each parent render)
 
   useEffect(() => { state.current.firstPerson = settings.firstPersonDefault; }, [settings.firstPersonDefault]);
   useEffect(() => {

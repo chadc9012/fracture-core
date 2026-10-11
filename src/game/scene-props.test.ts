@@ -20,3 +20,8 @@ describe("scene prop equality", () => {
     expect(shallowSame(run, { ...run })).toBe(true);
   });
 });
+
+test("Scene never subscribes to the whole R3F store (a bare useThree() re-renders the world on every Canvas reconfigure)", async () => {
+  const src = await Bun.file(new URL("../components/game/Scene.tsx", import.meta.url)).text();
+  expect(src.includes("useThree()")).toBe(false);
+});
