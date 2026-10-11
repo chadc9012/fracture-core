@@ -2,7 +2,7 @@ import { FactionEnemy, type DriveRef } from "./EnemyModel";
 import { scenarioModelReady } from "./ScenarioBosses";
 import { RoundedBox } from "@react-three/drei";
 import { useFrame } from "@react-three/fiber";
-import { useMemo, useRef } from "react";
+import { useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 
 
@@ -220,6 +220,10 @@ export function WarMachines({ sim }: { sim: WorldSim }) {
   // one motion record per pooled machine slot, shared by that slot's faction variants
   const drives = useMemo<DriveRef[]>(() => sim.machines.map(() => ({ current: { speed: 0, aiming: false } })), [sim.machines]);
   const last = useMemo(() => sim.machines.map(() => ({ x: NaN, z: NaN })), [sim.machines]);
+  // variants mount the first time a slot needs them (and stay mounted): an unseen faction never downloads or clones its model
+  const [mounted, setMounted] = useState<string[][]>(() => sim.machines.map(() => []));
+  const mountedRef = useRef(mounted);
+  const need = (i: number, name: string) => mounted[i]?.includes(name) ?? false;
 
   useFrame((state, dt) => {
     const g = group.current;
@@ -238,6 +242,11 @@ export function WarMachines({ sim }: { sim: WorldSim }) {
         prev.x = m.x; prev.z = m.z;
       }
       const modelName = m.boss && m.scenarioId && scenarioModelReady.has(m.scenarioId) ? "scenario-model" : m.boss ? "boss-model" : (m.kind === "OVERCLOCKED" ? "overclocked-model" : m.kind === "ABERRATION" ? "aberration-model" : m.kind === "VANGUARD" ? "vanguard-model" : "regional-model") + (m.elite ? "-elite" : "");
+      if (modelName !== "scenario-model" && !mountedRef.current[i]?.includes(modelName)) {
+        const next = mountedRef.current.map((list, k) => (k === i ? [...list, modelName] : list));
+        mountedRef.current = next;
+        setMounted(next);
+      }
       for (const child of node.children) child.visible = child.name === "elite-ring" ? m.elite && !m.boss : child.name === modelName;
       // walking gait: subtle body bob + roll so the legs read as striding
       const gait = t * 3 + i;
@@ -254,15 +263,15 @@ export function WarMachines({ sim }: { sim: WorldSim }) {
     <group ref={group}>
       {sim.machines.map((_, i) => (
         <group key={i} visible={false}>
-          <group name="regional-model" visible={false}><RegionalEnemy kind="RAIDER" boss={false} drive={drives[i]!} /></group>
-          <group name="overclocked-model" visible={false}><RegionalEnemy kind="OVERCLOCKED" boss={false} drive={drives[i]!} /></group>
-          <group name="aberration-model" visible={false}><RegionalEnemy kind="ABERRATION" boss={false} drive={drives[i]!} /></group>
-          <group name="vanguard-model" visible={false}><RegionalEnemy kind="VANGUARD" boss={false} drive={drives[i]!} /></group>
-          <group name="regional-model-elite" visible={false}><RegionalEnemy kind="RAIDER" boss={false} elite drive={drives[i]!} /></group>
-          <group name="overclocked-model-elite" visible={false}><RegionalEnemy kind="OVERCLOCKED" boss={false} elite drive={drives[i]!} /></group>
-          <group name="aberration-model-elite" visible={false}><RegionalEnemy kind="ABERRATION" boss={false} elite drive={drives[i]!} /></group>
-          <group name="vanguard-model-elite" visible={false}><RegionalEnemy kind="VANGUARD" boss={false} elite drive={drives[i]!} /></group>
-          <group name="boss-model" visible={false}><RegionalEnemy kind="OVERCLOCKED" boss drive={drives[i]!} /></group>
+          <group name="regional-model" visible={false}>{need(i, "regional-model") && <RegionalEnemy kind="RAIDER" boss={false} drive={drives[i]!} />}</group>
+          <group name="overclocked-model" visible={false}>{need(i, "overclocked-model") && <RegionalEnemy kind="OVERCLOCKED" boss={false} drive={drives[i]!} />}</group>
+          <group name="aberration-model" visible={false}>{need(i, "aberration-model") && <RegionalEnemy kind="ABERRATION" boss={false} drive={drives[i]!} />}</group>
+          <group name="vanguard-model" visible={false}>{need(i, "vanguard-model") && <RegionalEnemy kind="VANGUARD" boss={false} drive={drives[i]!} />}</group>
+          <group name="regional-model-elite" visible={false}>{need(i, "regional-model-elite") && <RegionalEnemy kind="RAIDER" boss={false} elite drive={drives[i]!} />}</group>
+          <group name="overclocked-model-elite" visible={false}>{need(i, "overclocked-model-elite") && <RegionalEnemy kind="OVERCLOCKED" boss={false} elite drive={drives[i]!} />}</group>
+          <group name="aberration-model-elite" visible={false}>{need(i, "aberration-model-elite") && <RegionalEnemy kind="ABERRATION" boss={false} elite drive={drives[i]!} />}</group>
+          <group name="vanguard-model-elite" visible={false}>{need(i, "vanguard-model-elite") && <RegionalEnemy kind="VANGUARD" boss={false} elite drive={drives[i]!} />}</group>
+          <group name="boss-model" visible={false}>{need(i, "boss-model") && <RegionalEnemy kind="OVERCLOCKED" boss drive={drives[i]!} />}</group>
           {/* loot cue: elites (better drops) wear a glowing amber ring at their feet, like Diablo's elite tell */}
           <mesh name="elite-ring" visible={false} rotation={[-Math.PI / 2, 0, 0]} position={[0, -1.9, 0]}><ringGeometry args={[2.6, 3.1, 40]} /><meshBasicMaterial color="#ffb357" transparent opacity={0.85} depthWrite={false} /></mesh>
         </group>
