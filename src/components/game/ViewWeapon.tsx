@@ -172,10 +172,11 @@ function Arm({ m, side }: { m: Mats; side: 1 | -1 }) {
   return <group>
     <Part geo="box" size={[0.06, 0.05, 0.09]} at={[0, 0, 0]} mat={m.glove} />
     <Part geo="box" size={[0.065, 0.06, 0.04]} at={[0, 0.012, 0.06]} mat={m.armor} />
-    <group rotation={[0.55, side * -0.25, 0]}>
-      <Part geo="cyl" size={[0.035, 0.035, 0.32]} at={[0, -0.02, 0.22]} mat={m.sleeve} />
-      <Part geo="box" size={[0.075, 0.065, 0.17]} at={[0, 0.005, 0.18]} mat={m.armor} />
-      <Part geo="box" size={[0.012, 0.012, 0.12]} at={[side * 0.04, 0.02, 0.18]} mat={m.accent} />
+    {/* the forearm drops steeply toward the bottom of the screen; a shallow angle ran it through the near plane as a huge dark slab */}
+    <group rotation={[1.05, side * -0.3, 0]}>
+      <Part geo="cyl" size={[0.03, 0.03, 0.2]} at={[0, -0.01, 0.14]} mat={m.sleeve} />
+      <Part geo="box" size={[0.06, 0.055, 0.11]} at={[0, 0.005, 0.12]} mat={m.armor} />
+      <Part geo="box" size={[0.01, 0.01, 0.08]} at={[side * 0.033, 0.018, 0.12]} mat={m.accent} />
     </group>
   </group>;
 }

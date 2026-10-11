@@ -2089,7 +2089,8 @@ export function Scene({
         s.y + (s.inVehicle ? 1.5 : 0.95) + (s.inVehicle ? 5 : 2.2) * s.cameraBlend,
         s.z + Math.cos(s.yaw) * (s.inVehicle ? 1 : 0.15) + (-Math.sin(s.yaw) * shoulder - Math.cos(s.yaw) * distance) * s.cameraBlend,
       );
-      camTarget.y = Math.max(camTarget.y, (interior ? INTERIOR_ALTITUDE : walkHeight(camTarget.x, camTarget.z)) + 1.35) - cameraDrop(move.current.state);
+      // divers: the camera may go below the surface (clamp to the seabed, not the water-clamped walk height)
+      camTarget.y = Math.max(camTarget.y, (interior ? INTERIOR_ALTITUDE : s.diving ? heightAt(camTarget.x, camTarget.z) + 0.6 : walkHeight(camTarget.x, camTarget.z)) + (s.diving ? 0 : 1.35)) - cameraDrop(move.current.state);
       camera.position.lerp(camTarget, 1 - Math.exp(-18 * dt));
       const kickPitch = s.pitch + s.recoil;
       const shakeAmt = Math.min(0.08, s.punch * 0.012);
