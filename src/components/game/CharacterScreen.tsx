@@ -1,6 +1,12 @@
 import { useEffect, useState } from "react";
 import { Settings2 } from "lucide-react";
-import { OperatorPreview } from "./OperatorPreview";
+import { Canvas, useFrame } from "@react-three/fiber";
+import { ContactShadows } from "@react-three/drei";
+import { useRef } from "react";
+import type * as THREE from "three";
+import { Operator } from "./Operator";
+import { OperatorModel } from "./OperatorModel";
+import { DEFAULT_ARSENAL } from "@/game/progression";
 import { SLOT_NAME, characterSheet, collections, equipItem, equipOptions, itemTooltip, tierOf, TIER_COLOR, triumphs } from "@/game/character-sheet";
 import { classById, operatorByClass, subclassById, type AppearanceDefinition, type ClassId, type SubclassId } from "@/game/loadout";
 import type { GearItem, GearSlot } from "@/game/inventory";
@@ -48,13 +54,13 @@ export function CharacterScreen({ progression, onProgression, classId, subclassI
       <main className="relative min-h-0 flex-1 overflow-y-auto px-4 py-4 sm:px-8">
         {tab === "CHARACTER" && <div className="mx-auto grid max-w-6xl gap-4 md:grid-cols-[auto_minmax(0,1fr)_auto] md:items-start">
           <section className="flex flex-row gap-3 md:flex-col" aria-label="Subclass and weapons">
-            <div className="grid size-20 rotate-45 place-items-center border-2 border-white/60 bg-white/10" title={`${sub.name} — ${sub.description}`} style={{ boxShadow: `0 0 18px ${cls.color}55` }}>
+            <div className="m-3 grid size-16 shrink-0 rotate-45 place-items-center border-2 border-white/60 bg-white/10" title={`${sub.name} — ${sub.description}`} style={{ boxShadow: `0 0 18px ${cls.color}55` }}>
               <span className="-rotate-45 text-center font-mono text-[9px] uppercase leading-tight tracking-[0.1em]" style={{ color: cls.color }}>{sub.name.split(" ")[0]}</span>
             </div>
             {sheet.weapons.map(({ slot, item }) => <Slot key={slot} slot={slot} item={item} onHover={setHover} onPick={setPicking} />)}
           </section>
           <section className="relative min-h-[18rem]" aria-label="Operator">
-            <OperatorPreview appearance={appearance} classId={classId} />
+            <CharacterPreview appearance={appearance} classId={classId} progression={progression} />
             <p className="mt-2 text-center font-mono text-[10px] uppercase tracking-[0.25em] text-white/50">{op.className} · {sub.name}</p>
           </section>
           <section className="flex flex-col gap-3" aria-label="Power and armor">
@@ -131,3 +137,22 @@ function SlotPicker({ slot, progression, onPick, onClose }: { slot: GearSlot; pr
   </div>;
 }
 
+
+/** the operator as they look in the world: the authored body wearing the equipped armor, on a slow turntable (falls back to the procedural body) */
+function CharacterPreview({ appearance, classId, progression }: { appearance: AppearanceDefinition; classId: ClassId; progression: PlayerProgression }) {
+  return <div className="relative h-[22rem] sm:h-[28rem]" aria-label={`${appearance.name}, wearing the equipped gear`}>
+    <Canvas dpr={[1, 1.5]} camera={{ position: [0, 1.5, 6.2], fov: 32 }} gl={{ alpha: true }}>
+      <ambientLight intensity={0.7} />
+      <directionalLight position={[3, 6, 5]} intensity={2.6} color="#fff1dc" />
+      <pointLight position={[-3, 2.5, 2]} intensity={14} color={appearance.visor} />
+      <Turntable><OperatorModel classId={classId} bodyType={progression.character?.bodyType} height={2.75} feetY={-1.55} color={appearance.armor} trim={appearance.visor} cloth={appearance.cloth} gear={progression} held={{ current: { weapon: DEFAULT_ARSENAL[classId].loadouts[0]!.slots[0] } }} pose="showcase"
+        fallback={<Operator armor={appearance.armor} cloth={appearance.cloth} visor={appearance.visor} trim={appearance.trim} classId={classId} visualState="ACTIVE" />} /></Turntable>
+      <ContactShadows position={[0, 0.02, 0]} opacity={0.5} scale={5} blur={2.4} />
+    </Canvas>
+  </div>;
+}
+function Turntable({ children }: { children: React.ReactNode }) {
+  const g = useRef<THREE.Group>(null);
+  useFrame((_, dt) => { if (g.current) g.current.rotation.y += Math.min(dt, 0.05) * 0.35; });
+  return <group ref={g} position-y={1.55}>{children}</group>;
+}

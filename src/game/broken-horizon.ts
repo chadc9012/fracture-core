@@ -46,7 +46,7 @@ export function brokenHorizon(seed = 7): HorizonIsland[] {
     }
     const debris = Array.from({ length: 3 + Math.floor(rnd() * 4) }, () => ({ dx: (rnd() - 0.5) * r * 1.4, dy: -(r * 0.6 + rnd() * r * 1.4), dz: (rnd() - 0.5) * r * 1.4, s: 4 + rnd() * 12 }));
     out.push({
-      x: Math.cos(ang) * dist, z: Math.sin(ang) * dist, y: 130 + rnd() * 230 + (inverted ? 120 : 0),
+      x: Math.cos(ang) * dist, z: Math.sin(ang) * dist, y: 240 + rnd() * 260 + (inverted ? 120 : 0), // live check: at 130-360 m they sat just over the hills and read as clutter, not sky
       r, depth: r * (1.1 + rnd() * 0.8), towers, debris, inverted,
       spin: (rnd() - 0.5) * 0.01, bob: 3 + rnd() * 6, phase: rnd() * Math.PI * 2,
     });
