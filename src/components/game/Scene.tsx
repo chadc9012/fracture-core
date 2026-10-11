@@ -55,6 +55,7 @@ import { AbilityFx } from "./AbilityFx";
 import { Squad } from "./Squad";
 import { CoreNodePod } from "./CoreNodePod";
 import { LavaTrench, WreckField } from "./SetPieces";
+import { EmberPeaks } from "./EmberPeaks";
 import { CombatFx } from "./CombatFx";
 import { fxBus } from "@/game/fx-bus";
 import { launch, zoneElement } from "@/game/combat-fx";
@@ -2267,6 +2268,7 @@ export function Scene({
       <ShopStalls />
       <NearOnly playerRef={player} x={NEXUS_REGION.x} z={NEXUS_REGION.z} radius={330 * NEAR_SCALE[settings.renderTier]} name="city:nexus"><NexusCity sim={sim} /></NearOnly>
       <NearOnly playerRef={player} x={NEON_CITY_CENTER.x} z={NEON_CITY_CENTER.z} radius={300 * NEAR_SCALE[settings.renderTier]} name="city:neon"><NeonCity /></NearOnly>
+      {(() => { const em = REGIONS.find((r) => r.id === "ember"); return em ? <NearOnly playerRef={player} x={em.x} z={em.z} radius={(em.radius + 220) * NEAR_SCALE[settings.renderTier]} name="region:ember"><EmberPeaks /></NearOnly> : null; })()}
       {LANDMARKS.filter((l) => l.id === "convoy-sprint" || l.id === "smoldering-trench").map((l) => (
         <NearOnly key={l.id} playerRef={player} x={l.x} z={l.z} radius={260 * NEAR_SCALE[settings.renderTier]} name={`set:${l.id}`}>{l.id === "convoy-sprint" ? <WreckField /> : <LavaTrench />}</NearOnly>
       ))}
