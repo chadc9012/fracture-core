@@ -1,4 +1,6 @@
-import { renderCounts, canvasWhy, setterCalls } from "@/game/perf-counters";
+import { renderCounts, canvasWhy, setterCalls, recordSubtree } from "@/game/perf-counters";
+import { Profiler, type ProfilerOnRenderCallback } from "react";
+const onProf: ProfilerOnRenderCallback = (id, _phase, actualMs) => recordSubtree(id, actualMs);
 import { Canvas } from "@react-three/fiber";
 import { PerformanceMonitor } from "@react-three/drei";
 import { WorldLoading } from "./WorldLoading";
@@ -960,8 +962,8 @@ export function GameCanvas() {
   }
 
   return (
-    <div className="fixed inset-0 bg-background">
-      <WorldErrorBoundary>
+    <Profiler id="all" onRender={onProf}><div className="fixed inset-0 bg-background">
+      <Profiler id="world" onRender={onProf}><WorldErrorBoundary>
       <GraphicsGuard>{(caps, onCreated) => {
         const preset = RENDER_PRESETS[liveTier];
         // Safari: cap pixel ratio, use hard-edged shadows and skip the post-processing pass, which
@@ -993,14 +995,14 @@ export function GameCanvas() {
       >
         <color attach="background" args={["#bfe4f2"]} />
         <Suspense fallback={<WorldLoading />}>
-            <Scene openedCaches={openedToday} onStoryEvent={recordStory} onHud={setHud} onDrops={(drops) => { showScenarioRewards(drops); setProgression((current) => claimDrops(current, drops)); }} gear={progression} settings={liveSettings} onCameraPreference={(firstPerson) => { window.localStorage.setItem("world-fracture-camera", firstPerson ? "first" : "third"); setSettings((current) => ({ ...current, firstPersonDefault: firstPerson })); }} playerClass={cls} subclassId={subclass} appearance={appearance} bodyType={bodyType} vehicleId={vehicleId} vehicleUnlocked={vehicleUnlocked} activeBuild={progression.activeBuild} abilityBranches={progression.abilityBranches} tutorial={tutorial} onTutorialEvent={recordTutorial} mission={mission} onMissionEvent={recordMission} relay={relay} onRelayEvent={recordRelay} blackout={blackout} onBlackoutEvent={recordBlackout} neonCore={neonCore} onNeonCoreEvent={recordNeonCore} solarArray={solarArray} onSolarArrayEvent={recordSolarArray} coreNode={coreNode} onCoreNodeEvent={recordCoreNode} zoneRuns={zoneRuns} onZoneEvent={recordZone} descent={descent} onDescentEvent={recordDescent} systemCore={systemCore} onSystemCoreEvent={recordSystemCore} awakening={awakening} onAwakeningEvent={recordAwakening} onXP={recordXP} weaponOrder={carriedWeapons(activeLoadout(progression, progression.identityClass ?? cls).slots)} travelTo={travelTo} introPlayback={showIntro ? { elapsed: introElapsed, totalSeconds: introTotalSeconds() } : cineId ? { elapsed: cineProgress * introTotalSeconds(), totalSeconds: introTotalSeconds() } : null} armorState={hud.hp < 35 ? "FRACTURE" : hud.heat > 65 ? "ASCENDANT" : hud.heat > 15 ? "ACTIVE" : "STABLE"} />
+            <Profiler id="scene" onRender={onProf}><Scene openedCaches={openedToday} onStoryEvent={recordStory} onHud={setHud} onDrops={(drops) => { showScenarioRewards(drops); setProgression((current) => claimDrops(current, drops)); }} gear={progression} settings={liveSettings} onCameraPreference={(firstPerson) => { window.localStorage.setItem("world-fracture-camera", firstPerson ? "first" : "third"); setSettings((current) => ({ ...current, firstPersonDefault: firstPerson })); }} playerClass={cls} subclassId={subclass} appearance={appearance} bodyType={bodyType} vehicleId={vehicleId} vehicleUnlocked={vehicleUnlocked} activeBuild={progression.activeBuild} abilityBranches={progression.abilityBranches} tutorial={tutorial} onTutorialEvent={recordTutorial} mission={mission} onMissionEvent={recordMission} relay={relay} onRelayEvent={recordRelay} blackout={blackout} onBlackoutEvent={recordBlackout} neonCore={neonCore} onNeonCoreEvent={recordNeonCore} solarArray={solarArray} onSolarArrayEvent={recordSolarArray} coreNode={coreNode} onCoreNodeEvent={recordCoreNode} zoneRuns={zoneRuns} onZoneEvent={recordZone} descent={descent} onDescentEvent={recordDescent} systemCore={systemCore} onSystemCoreEvent={recordSystemCore} awakening={awakening} onAwakeningEvent={recordAwakening} onXP={recordXP} weaponOrder={carriedWeapons(activeLoadout(progression, progression.identityClass ?? cls).slots)} travelTo={travelTo} introPlayback={showIntro ? { elapsed: introElapsed, totalSeconds: introTotalSeconds() } : cineId ? { elapsed: cineProgress * introTotalSeconds(), totalSeconds: introTotalSeconds() } : null} armorState={hud.hp < 35 ? "FRACTURE" : hud.heat > 65 ? "ASCENDANT" : hud.heat > 15 ? "ACTIVE" : "STABLE"} /></Profiler>
         </Suspense>
         {post && (
           // cinematic grade: cool-leaning teal shadows, a touch more punch, so the HUD's cyan
           // reads against the world the way it does in the reference concept art. SSAO and
           // depth-of-field (the costly passes) only mount on `premium` so this stays a flat
           // cost increase, not a new tier of budget risk, on MEDIUM/HIGH.
-          <EffectComposer multisampling={0}>
+          <Profiler id="post" onRender={onProf}><EffectComposer multisampling={0}>
             {!flags.fxOff.has("grade") && <HueSaturation hue={-0.02} saturation={0.08} />}
             {!flags.fxOff.has("grade") && <BrightnessContrast brightness={-0.02} contrast={0.12} />}
             {!flags.fxOff.has("bloom") && <Bloom intensity={0.65} luminanceThreshold={0.82} luminanceSmoothing={0.25} mipmapBlur />}
@@ -1009,7 +1011,7 @@ export function GameCanvas() {
             {!flags.fxOff.has("ca") && <ChromaticAberration offset={CA_OFFSET} />}
             {!flags.fxOff.has("vignette") && <Vignette offset={0.3} darkness={0.55} />}
             {!flags.fxOff.has("noise") && <Noise opacity={0.025} premultiply />}
-          </EffectComposer>
+          </EffectComposer></Profiler>
         )}
         <PerfSampler />
         {/* Adaptive quality: when frames drop, lower resolution first, then turn off the
@@ -1029,14 +1031,14 @@ export function GameCanvas() {
       </>
         );
       }}</GraphicsGuard>
-      </WorldErrorBoundary>
+      </WorldErrorBoundary></Profiler>
        <PerfOverlay />
       <ForestAssetStatus />
        {savedFlash > 0 && <p className="pointer-events-none fixed right-4 top-4 z-30 font-mono text-[10px] uppercase tracking-[0.25em] text-primary" role="status">◌ Auto-saved</p>}
        <VoiceSubtitle />
-       <HUD hud={hud} level={{ level: progression.level, xp: progression.xp }} tutorialActive={Boolean(tutorial && tutorial.step !== "VICTORY")} onMenu={() => { setInventoryOpen(false); setAtlasOpen(false); setOperationsView(null); setMenuOpen(true); }} onStrategy={() => setStrategyOpen(true)} onGarage={() => setGarageOpen(true)} onAnalyze={() => setAnalysisOpen(true)} onOperations={(view) => { setInventoryOpen(false); setAtlasOpen(false); setOperationsView(view); }} onInventory={() => { setAtlasOpen(false); setOperationsView(null); setInventoryOpen(true); }} onAtlas={() => { setInventoryOpen(false); setOperationsView(null); setAtlasOpen(true); }} />
-       {!tutorial && !hud.insideInterior && <Minimap hud={hud} known={(id) => isLandmarkKnown(progression, id)} />}
-       {!tutorial && <QuestTracker progression={progression} />}
+       <Profiler id="hud" onRender={onProf}><HUD hud={hud} level={{ level: progression.level, xp: progression.xp }} tutorialActive={Boolean(tutorial && tutorial.step !== "VICTORY")} onMenu={() => { setInventoryOpen(false); setAtlasOpen(false); setOperationsView(null); setMenuOpen(true); }} onStrategy={() => setStrategyOpen(true)} onGarage={() => setGarageOpen(true)} onAnalyze={() => setAnalysisOpen(true)} onOperations={(view) => { setInventoryOpen(false); setAtlasOpen(false); setOperationsView(view); }} onInventory={() => { setAtlasOpen(false); setOperationsView(null); setInventoryOpen(true); }} onAtlas={() => { setInventoryOpen(false); setOperationsView(null); setAtlasOpen(true); }} /></Profiler>
+       {!tutorial && !hud.insideInterior && <Profiler id="minimap" onRender={onProf}><Minimap hud={hud} known={(id) => isLandmarkKnown(progression, id)} /></Profiler>}
+       {!tutorial && <Profiler id="quest" onRender={onProf}><QuestTracker progression={progression} /></Profiler>}
        {storyGraph && <StoryDialogue key={storyGraph.id} graph={storyGraph} story={progression.story} onStory={applyStory} onDone={finishStoryGraph} />}
        {!storyGraph && !activeDialogue && objectiveFor(progression.story) && progression.story.stages["vaelith"] !== undefined && <p className="pointer-events-none fixed left-4 top-24 z-20 max-w-[280px] font-mono text-[10px] uppercase tracking-[0.18em] text-primary/80">Vaelith · {objectiveFor(progression.story)!.text}</p>}
        {!storyGraph && !activeDialogue && captionQueue[0] && <p className="pointer-events-none fixed inset-x-0 bottom-36 z-20 mx-auto w-[min(92vw,560px)] border border-border/60 bg-background/80 p-3 text-sm text-foreground" role="status"><span className="mr-2 font-mono text-[10px] uppercase tracking-[0.25em] text-primary">{captionQueue[0].speaker}</span>{captionQueue[0].text}</p>}
@@ -1133,7 +1135,7 @@ export function GameCanvas() {
       {analysisOpen && <ZoneAnalysisPanel zoneName={hud.region} onClose={() => setAnalysisOpen(false)} />}
       {operationsView && <OperationsHub initialView={operationsView} progression={progression} onProgression={setProgression} onClose={() => setOperationsView(null)} />}
       {progression.tutorialComplete && !tutorial && !vehicleUnlocked && <div className="fixed inset-0 z-40 grid place-items-center bg-background/80 p-4"><section className="w-full max-w-3xl border border-primary bg-card p-6"><p className="font-mono text-[10px] uppercase tracking-[0.3em] text-primary">Mission 01 complete · Garage assistant online</p><h2 className="mt-2 text-2xl font-semibold">Choose your first vehicle</h2><p className="mt-2 text-sm text-muted-foreground">This frame becomes your permanent world-travel unlock.</p><div className="mt-5 grid gap-3 sm:grid-cols-2">{STARTER_VEHICLES.map((vehicle) => <Button key={vehicle.id} variant="outline" onClick={() => { setVehicleId(vehicle.id); setProgression((current) => rewardVehicle(current, vehicle.id)); }} className="h-auto min-h-36 items-start justify-start rounded-none p-4 text-left whitespace-normal"><span><span className="font-mono text-base">{vehicle.name}</span><span className="mt-2 block text-xs text-muted-foreground">{vehicle.role}</span></span></Button>)}</div></section></div>}
-      <CloudSavePanel progression={progression} onProgression={adoptProgression} />
+      <Profiler id="cloud" onRender={onProf}><CloudSavePanel progression={progression} onProgression={adoptProgression} /></Profiler>
       {garageOpen && <div className="fixed inset-0 z-40 grid place-items-center bg-background/80 p-4"><section className="max-h-[85vh] w-full max-w-4xl overflow-y-auto border border-border bg-card p-6"><div className="flex items-start justify-between"><div><p className="font-mono text-[10px] uppercase tracking-[0.3em] text-primary">Garage assistant</p><h2 className="mt-2 text-2xl">Vehicle registry</h2><p className="mt-1 text-xs text-muted-foreground">Garage loadout {progression.garageLoadout.length}/3</p></div><Button variant="outline" onClick={() => setGarageOpen(false)}>Back</Button></div><div className="mt-5 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">{VEHICLES.map((vehicle) => { const owned = progression.ownedVehicles.includes(vehicle.id); const selected = progression.selectedVehicle === vehicle.id; return <div key={vehicle.id} className={`border p-3 ${selected ? "border-primary" : "border-border"}`}><p className="font-mono text-sm">{vehicle.name}</p><p className="mt-1 text-[10px] uppercase text-muted-foreground">{selected ? "Active · summon with V" : owned ? "Owned" : vehicleAcquisition(vehicle).replace("_", " ")}</p>{owned && !selected && <Button size="sm" variant="outline" className="mt-3" onClick={() => { setVehicleId(vehicle.id); setProgression((current) => ({ ...current, selectedVehicle: vehicle.id })); }}>Equip</Button>}</div>; })}</div></section></div>}
       {menuOpen && (
         <SettingsWindow
@@ -1144,6 +1146,6 @@ export function GameCanvas() {
           onOrbit={toOrbit}
         />
       )}
-    </div>
+    </div></Profiler>
   );
 }

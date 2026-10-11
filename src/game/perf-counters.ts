@@ -38,3 +38,16 @@ export function drainSetterCalls(top = 5): [string, number][] {
   for (const k of Object.keys(setterCalls)) delete setterCalls[k];
   return out;
 }
+
+/** Diagnostic: React render time per profiled subtree (React <Profiler> actualDuration), so the F3 readout names the costly
+ * children of a parent re-render instead of guessing. One add per commit; drained per readout. */
+export const subtreeMs: Record<string, { ms: number; n: number }> = {};
+export function recordSubtree(id: string, ms: number) {
+  const e = subtreeMs[id] ?? (subtreeMs[id] = { ms: 0, n: 0 });
+  e.ms += ms; e.n++;
+}
+export function drainSubtrees(top = 6): [string, number, number][] {
+  const out = Object.entries(subtreeMs).sort((a, b) => b[1].ms - a[1].ms).slice(0, top).map(([k, v]) => [k, v.ms, v.n] as [string, number, number]);
+  for (const k of Object.keys(subtreeMs)) delete subtreeMs[k];
+  return out;
+}
