@@ -1139,7 +1139,7 @@ export function Scene({
     // Interiors are flat pocket rooms far outside the terrain's authored bounds, so slope/height/water sampling there would just be noise — treat them as dry, flat, and out of the water entirely.
     const slope = interior ? 0 : slopeAt(s.x, s.z);
     const ground = interior ? INTERIOR_ALTITUDE : walkHeight(s.x, s.z);
-    const submerged = interior ? false : heightAt(s.x, s.z) < WATER_LEVEL - 0.2;
+    let submerged = interior ? false : heightAt(s.x, s.z) < WATER_LEVEL - 0.2; // re-read after a teleport below, or the first frame snaps a diver to the surface
     if (submerged && !s.wasSubmerged) sfx.playSplash(Math.min(1, (s.inVehicle ? Math.abs(s.vSpeed) : velocity.length()) / 20));
     s.wasSubmerged = submerged;
     if (!submerged) s.diving = false;
@@ -1912,12 +1912,14 @@ export function Scene({
       const w = devWarp.current; devWarp.current = null;
       s.x = w.x; s.z = w.z; s.y = w.y ?? walkHeight(s.x, s.z) + 1.6; s.vy = 0; s.vSpeed = 0; s.inVehicle = false; s.insideInterior = null; interior = null; velocity.set(0, 0, 0);
       if (w.y !== undefined) { s.diving = true; s.grounded = false; s.oxygen = OXYGEN_MAX; s.hull = 0; }
+      submerged = heightAt(s.x, s.z) < WATER_LEVEL - 0.2;
     }
     if (travelTo && travelTo.nonce !== travelSeen.current) {
       travelSeen.current = travelTo.nonce;
       s.x = travelTo.x; s.z = travelTo.z; s.y = walkHeight(s.x, s.z) + 1.6; s.vy = 0; s.vSpeed = 0; s.inVehicle = false; s.insideInterior = null; interior = null; velocity.set(0, 0, 0);
       // submersible arrival (Thalassia): the sub breaches the dock seal and you exit at depth, diving, full rebreather
       if (travelTo.y !== undefined) { s.y = travelTo.y; s.diving = true; s.grounded = false; s.oxygen = OXYGEN_MAX; s.hull = 0; s.breachAt = performance.now() / 1000; s.sector = sectorAt(s.x, s.y, s.z); }
+      submerged = heightAt(s.x, s.z) < WATER_LEVEL - 0.2;
     }
     if (sim.lastDeath !== deathSeen.current) {
       deathSeen.current = sim.lastDeath;
@@ -1941,6 +1943,7 @@ export function Scene({
       s.interiorReturnPos = null;
       interior = null;
       velocity.set(0, 0, 0);
+      submerged = heightAt(s.x, s.z) < WATER_LEVEL - 0.2;
       sfx.playDeath();
     }
     // Zones already toss the player around above 0.6 instability (below); this is the visual half of
