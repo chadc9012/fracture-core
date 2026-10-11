@@ -592,6 +592,14 @@ export function GameCanvas() {
     return () => window.clearTimeout(timer);
   }, [descentReady, descent]);
   const recordDescent = (event: DescentEvent) => setDescent((current) => current ? advanceDescent(current, event) : current);
+  const descentNow = useRef(descent); descentNow.current = descent;
+  useEffect(() => {
+    // dev-only (?dev=1): start/inspect Descent Protocol without replaying the campaign that unlocks it
+    if (typeof window === "undefined" || new URLSearchParams(window.location.search).get("dev") !== "1") return;
+    const w = window as unknown as { __descent?: (cmd?: string) => unknown };
+    w.__descent = (cmd = "state") => { if (cmd === "start") setDescent(advanceDescent(DESCENT_PROTOCOL, { type: "START" })); return descentNow.current; };
+    return () => { delete w.__descent; };
+  }, []);
   useEffect(() => {
     if (descent?.state !== "WORLD_UPDATE" || progression.completedMissions.includes("descent-protocol")) return;
     setProgression((current) => { return applyMissionCompletion(current, "descent-protocol"); });

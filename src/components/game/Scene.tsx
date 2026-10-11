@@ -519,7 +519,16 @@ function SceneImpl({
     };
     const wr = window as unknown as { __where?: () => unknown };
     wr.__where = () => { const st = state.current; return { x: Math.round(st.x), y: Math.round(st.y * 10) / 10, z: Math.round(st.z), diving: st.diving, sector: st.sector, oxygen: Math.round(st.oxygen), hull: st.hull, hp: Math.round(sim.hp) }; };
-    return () => { delete w.__warp; delete wr.__where; };
+    // dev-only test aids (?dev=1): finish the current mission wave as the player, or set hp/oxygen to exercise death and refill paths
+    const wd = window as unknown as { __dev?: Record<string, (n?: number) => unknown> };
+    wd.__dev = {
+      killMission: () => { let n = 0; for (const m of sim.machines) if (m.alive && m.mission) { defeatMachine(sim, m, "player"); n++; } return n; },
+      hp: (n = 1) => { sim.hp = n; return sim.hp; },
+      o2: (n = 0) => { state.current.oxygen = n; return n; },
+      hull: (n = 0) => { state.current.hull = n; return n; },
+      machines: () => sim.machines.filter((m) => m.alive && m.mission).map((m) => ({ x: Math.round(m.x), z: Math.round(m.z), hp: Math.round(m.hp) })),
+    };
+    return () => { delete w.__warp; delete wr.__where; delete wd.__dev; };
   }, []);
   const solarArraySpawned = useRef("");
   const coreNodeSpawned = useRef("");
