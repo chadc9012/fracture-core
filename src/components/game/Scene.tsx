@@ -104,6 +104,7 @@ import { ADAPTIVE_TUTORIAL_INIT, maybeReteach, recordStruggle } from "@/game/ada
 import { isValidPlayerState, resetFrameFailureCount, sanitizePlayerState, softFrameFailure } from "@/game/safe-state";
 import { difficultyCurve, playerPowerScore } from "@/game/balance";
 import type { TutorialEvent, TutorialState } from "@/game/onboarding";
+import { SECTOR_LABEL, coolantDamage, coolantPhase, hullDamagePerSec, hullStressStep, sectorAt, type ThalassiaSector } from "@/game/thalassia-sectors";
 import { OXYGEN_MAX, WATER_DRAG, applyWaterDrag, classifyUnderwaterState, lowOxygenPenalty, oxygenStep, pressureSpeedMultiplier, stepBuoyancy } from "@/game/underwater";
 import { underwaterSpread } from "@/game/underwater-combat";
 import { heatStatus, stepHeatMeter } from "@/game/heat";
@@ -241,6 +242,11 @@ export type HudState = {
   oxygen: number;
   underwaterState: string;
   depth: number;
+  /** Thalassia sector the player is in (thalassia-sectors.ts), hull stress 0..1, coolant cycle phase in the Abyssal Ring, seconds since a sector breach */
+  sector: string;
+  hullStress: number;
+  coolant: string;
+  breachAge: number;
   /* Neon City chase system — heat is derived from sim.combatHeat, vehicle stage from sim.hp while in a vehicle */
   heatLevel: number;
   heatLabel: string;
@@ -646,6 +652,9 @@ export function Scene({
     diving: false,
     oxygen: OXYGEN_MAX,
     wasSubmerged: false,
+    hull: 0,
+    sector: null as ThalassiaSector | null,
+    breachAt: -1e9,
     /* Neon City chase system — heat meter, vault chain tracking */
     heatMeter: 0,
     chainCount: 0,
@@ -1071,6 +1080,7 @@ export function Scene({
     }
     // underwater look: diving swaps the horizon for a close, turbid teal murk (eased in and out)
     underK.current += ((s.diving && !interior ? 1 : 0) - underK.current) * (1 - Math.exp(-4 * dt));
+    sfx.setUnderwaterMuffle(underK.current);
     if (underK.current > 0.01 && scene.fog instanceof THREE.Fog) {
       const u = underK.current;
       scene.fog.color.lerp(deepWater, u);
@@ -1119,6 +1129,15 @@ export function Scene({
     const depth = s.diving ? Math.max(0, WATER_LEVEL - s.y) : 0;
     const oxygenPenalty = lowOxygenPenalty(s.oxygen);
     if (s.diving && s.oxygen <= 0 && Math.random() < dt * 0.6) sim.hp = Math.max(1, sim.hp - 4); // drowning trickle damage, never a hard kill on its own
+    /* ---------------- Thalassia sectors: hull stress past crush depth, electrified coolant in the Abyssal Ring ---------------- */
+    {
+      const sector = submerged ? sectorAt(s.x, s.y, s.z) : null;
+      if (sector && !s.sector) s.breachAt = performance.now() / 1000; // entering the city: the breach overlay plays
+      s.sector = sector;
+      s.hull = hullStressStep(s.hull, s.diving ? depth : 0, dt);
+      const envDamage = hullDamagePerSec(s.hull) * dt + coolantDamage(sector, s.y, performance.now() / 1000, dt);
+      if (envDamage > 0) sim.hp = Math.max(1, sim.hp - envDamage); // environmental, like drowning: never a hard kill on its own
+    }
 
     s.viewCool -= dt;
     if (held.has("KeyF") && !cameraToggleHeld.current) {
@@ -2154,6 +2173,10 @@ export function Scene({
         oxygen: Math.round(s.oxygen),
         depth: Math.round(depth),
         underwaterState: classifyUnderwaterState({ submerged, depth, oxygen: s.oxygen, boosting: boost }),
+        sector: s.sector ? SECTOR_LABEL[s.sector] : "",
+        hullStress: Math.round(s.hull * 100) / 100,
+        coolant: s.sector === "ABYSSAL_RING" ? coolantPhase(performance.now() / 1000) : "",
+        breachAge: performance.now() / 1000 - s.breachAt,
         structure: (() => { const all = [...structure.nodes.values()]; const e = structure.events[structure.events.length - 1]; return { standing: all.filter((n) => !n.isDestroyed).length, total: all.length, lastEvent: e ? `${e.type} ${e.nodeId}` : "" }; })(),
         heatLevel: heatStatus(s.heatMeter).level,
         heatLabel: heatStatus(s.heatMeter).label,

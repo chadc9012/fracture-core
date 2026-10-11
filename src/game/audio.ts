@@ -18,7 +18,9 @@ export function unlockAudio() {
   if (!AC) return;
   const ac = new AC();
   const master = ac.createGain(); master.gain.value = volume; master.connect(ac.destination);
-  const comp = ac.createDynamicsCompressor(); comp.threshold.value = -14; comp.ratio.value = 4; comp.connect(master);
+  // underwater: the whole mix passes one lowpass that setUnderwaterMuffle() closes down while diving
+  muffle = ac.createBiquadFilter(); muffle.type = "lowpass"; muffle.frequency.value = 18000; muffle.Q.value = 0.7; muffle.connect(master);
+  const comp = ac.createDynamicsCompressor(); comp.threshold.value = -14; comp.ratio.value = 4; comp.connect(muffle);
   const sfx = ac.createGain(); sfx.connect(comp);
   const music = ac.createGain(); music.gain.value = 0.35; music.connect(comp);
   const noise = ac.createBuffer(1, ac.sampleRate, ac.sampleRate);
@@ -26,6 +28,14 @@ export function unlockAudio() {
   ctx = { ac, master, sfx, music, noise, layers: null, ambientOscs: [], musicRegion: "", beat: 0 };
   applyMix();
   startMusic(ctx);
+}
+
+let muffle: BiquadFilterNode | null = null;
+/** 0 = open air, 1 = fully submerged: eases the master lowpass from 18 kHz down to ~550 Hz (acoustic dampening). */
+export function setUnderwaterMuffle(k: number) {
+  if (!ctx || !muffle) return;
+  const f = 18000 * Math.pow(550 / 18000, Math.max(0, Math.min(1, k)));
+  muffle.frequency.setTargetAtTime(f, ctx.ac.currentTime, 0.12);
 }
 
 export function setVolume(v: number) { volume = v; if (ctx) ctx.master.gain.setTargetAtTime(v, ctx.ac.currentTime, 0.05); }
