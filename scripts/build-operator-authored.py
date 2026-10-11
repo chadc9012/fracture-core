@@ -66,7 +66,8 @@ def main(out_path, specs):
             base["accessors"].append(acc); acc_map[ai] = len(base["accessors"]) - 1; return acc_map[ai]
         samplers = [{**s, "input": copy_acc(s["input"]), "output": copy_acc(s["output"])} for s in a["samplers"]]
         anims.append({"name": name or a.get("name"), "samplers": samplers, "channels": a["channels"]})
-    base["animations"] = anims
+    if anims: base["animations"] = anims
+    else: base.pop("animations", None)  # a static (clip-less) creature body
     # Meshy's newer "Smart Rig" names joints smartrig:*; the game looks bones up by the Mixamo names
     for n in base["nodes"]:
         if n.get("name", "").startswith("smartrig:"): n["name"] = "mixamorig:" + n["name"][len("smartrig:"):]
