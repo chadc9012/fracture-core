@@ -32,8 +32,9 @@ export function DeploymentBriefing({ deployment, progression, onLaunch, onBack }
           <Button variant="ghost" onClick={onBack}>Back</Button>
         </header>
 
-        <section className="flex min-h-0 flex-1 flex-col justify-end pb-6 sm:pb-10">
-          <div className="max-w-3xl ui-enter">
+        {/* scrolls instead of spilling up over the header when the briefing is taller than the window */}
+        <section className="flex min-h-0 flex-1 flex-col overflow-y-auto pb-6 sm:pb-10">
+          <div className="mt-auto max-w-3xl pt-6 ui-enter">
             <p className="ui-kicker">First deployment</p>
             <h2 className="mt-3 max-w-2xl text-4xl font-light leading-none sm:text-6xl">Mission 01<br /><span className="text-primary">First Resonance</span></h2>
             <p className="mt-5 max-w-xl text-sm leading-relaxed text-muted-foreground sm:text-base">Materialize beyond the Nexus perimeter, complete NOVA’s field calibration, and secure the first stable signal.</p>
