@@ -19,3 +19,10 @@ Models must be hosted in the project's asset store (the sandbox cannot reach Mes
 
 ## Characters
 Operators use the upgraded `*-hd.glb` meshes with texture paint; see docs/characters-and-map.md.
+
+## Wildlife (Oct 2026)
+- Fixed: animal legs, wings and tails never moved (the animation phase was captured once at mount), fish were placed on land in the swamp, birds walked on the ground, and only 38 animals existed in a world 16x larger than they were placed for.
+- Now: 135 animals across the forest, Frostspire, swamp, deserts, Wastelands and Nexus, plus fish schools in every lake large enough. Herds share alarms, animals notice moving (and louder sprinting) players, look at them, then bolt; birds feed, take off and land elsewhere; vultures circle high over the deserts.
+- Real model: the fox is the Khronos sample Fox GLB (CC0 model, CC BY 4.0 rig/animation, credited in Credits), with Survey/Walk/Run clips matched to ground speed. Every other species is a jointed procedural rig; a rigged GLB per species can replace it.
+- Rime Alpha (frost wolf boss): the GLB has a skeleton but no clips; legs are now found from the skeleton and walk/gallop procedurally.
+- NOT browser-verified: proportions, gait timing and the fox's facing were checked from the model data and unit tests only.

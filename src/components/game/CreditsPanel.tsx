@@ -6,7 +6,7 @@ import { useMenuInput } from "./useMenuInput";
 const SECTIONS: { heading: string; lines: string[] }[] = [
   { heading: "Game", lines: ["World Fracture"] },
   { heading: "Engine & tools", lines: ["React · TanStack Start", "three.js · React Three Fiber · Drei", "Built with Lovable and Claude Code"] },
-  { heading: "Assets", lines: ["Operator models: Meshy-generated", "Environment HDRIs: Poly Haven (CC0)", "Foliage and rocks: see project asset manifests"] },
+  { heading: "Assets", lines: ["Operator models: Meshy-generated", "Environment HDRIs: Poly Haven (CC0)", "Foliage and rocks: see project asset manifests", "Fox: model by PixelMannen (CC0), rigging and animation by tomkranis (CC BY 4.0), glTF conversion by @AsoboStudio and @scurest (CC BY 4.0), via Khronos glTF Sample Assets", "Other wildlife: procedural, built in-engine"] },
   { heading: "Voice & audio", lines: ["Combat and ambience: procedural, generated in-engine", "Story voice: server-streamed synthesis, captions as fallback"] },
   { heading: "Full credits", lines: ["Placeholder — the complete credit roll is not written yet."] },
 ];

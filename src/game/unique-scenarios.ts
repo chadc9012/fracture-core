@@ -31,7 +31,7 @@ export type UniqueScenario = {
   outsideWindowMult: number;
   rewardCredits: number;
   /** authored GLB shown instead of the procedural boss body (ScenarioBosses.tsx); the procedural body stays as the fallback while it loads or if it fails */
-  model?: { url: string; /** displayed height in metres */ height: number; /** emissive lift from the colour map so glowing parts read in shadow */ glow: number };
+  model?: { url: string; /** displayed height in metres */ height: number; /** emissive lift from the colour map so glowing parts read in shadow */ glow: number; /** clip-less skinned quadruped: walk/run legs procedurally (skeleton-gait.ts) */ gait?: "quadruped" };
   /** a lair that summons this scenario when the player walks in (offsets are fractions of the region radius from its centre) */
   lair?: { dx: number; dz: number };
   /** a lair at an absolute world position, for scenarios whose site is not a region (Thalassia) */
@@ -74,7 +74,7 @@ export const UNIQUE_SCENARIOS: readonly UniqueScenario[] = [
     tell: "Its spine-crystals flare teal and the glow sinks into its ribs right before it lunges.",
     outsideWindowMult: 0.07,
     rewardCredits: 900,
-    model: { url: "/models/bosses/frost-wolf.glb", height: 5.2, glow: 0.45 },
+    model: { url: "/models/bosses/frost-wolf.glb", height: 5.2, glow: 0.45, gait: "quadruped" },
     lair: { dx: -0.5, dz: 0.45 },
   },
   {
