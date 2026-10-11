@@ -6,6 +6,7 @@ as the base (mesh + skin + textures + its clip), copies the clips of the other e
 them to the game's locomotion names (walk / run), and re-encodes the textures to web size (base colour 2048 JPEG, normal + metal/rough 1024 JPEG).
 
 usage: build-operator-authored.py OUT.glb BASE.glb[:clipname] OTHER.glb:clipname ...
+   BASE may be a clip-less rigged export (Character_output.glb); then every clip comes from the OTHER files (animation-only exports work).
    e.g. build-operator-authored.py public/models/operators/cipher-authored.glb Walking.glb:walk Running.glb:run
 """
 import io, json, struct, sys
@@ -47,6 +48,8 @@ def main(out_path, specs):
     anims = []
     for k, (j, b, name) in enumerate(parsed):
         assert [n.get("name") for n in j["nodes"]] == names, "skeleton mismatch in " + specs[k]
+        if k == 0 and not j.get("animations"):
+            continue  # a rigged "Character_output" export: mesh + skin + textures, clips come from the others
         a = j["animations"][0]
         if k == 0:
             a["name"] = name or a.get("name"); anims.append(a); continue
@@ -63,6 +66,9 @@ def main(out_path, specs):
         samplers = [{**s, "input": copy_acc(s["input"]), "output": copy_acc(s["output"])} for s in a["samplers"]]
         anims.append({"name": name or a.get("name"), "samplers": samplers, "channels": a["channels"]})
     base["animations"] = anims
+    # Meshy's newer "Smart Rig" names joints smartrig:*; the game looks bones up by the Mixamo names
+    for n in base["nodes"]:
+        if n.get("name", "").startswith("smartrig:"): n["name"] = "mixamorig:" + n["name"][len("smartrig:"):]
     # rebuild the binary: every view in order, images swapped for the re-encoded bytes
     extra = dict(extra_views); out = bytearray(); 
     for i, v in enumerate(base["bufferViews"]):

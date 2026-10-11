@@ -93,10 +93,12 @@ function attachWeapons(object: THREE.Object3D, height: number, modelScale: numbe
 
 /** Authored (Meshy) operator models, served from /public. GOLIATH, NYX and CIPHER are rigged (Mixamo skeleton; walk/run for all, plus showcase for GOLIATH and idle for NYX); Anything missing or failing to load falls back to the procedural Operator. */
 export const OPERATOR_MODELS: Partial<Record<ClassId, { url: string; tint: boolean; rigged: boolean }>> = {
-  TITAN: { url: "/models/operators/goliath-hd.glb", tint: true, rigged: true },
+  // All three ship their own authored textures (Meshy from the owner's concept art, rigged with walk/run, re-encoded by
+  // scripts/build-operator-authored.py): no runtime paint, no procedural plates on top. The *-hd.glb bodies stay as paint sources.
+  TITAN: { url: "/models/operators/goliath-authored.glb", tint: false, rigged: true },
   // CIPHER ships its own authored textures (Meshy, re-encoded by scripts/build-operator-authored.py): no runtime paint, no procedural plates on top.
   WARLOCK: { url: "/models/operators/cipher-authored.glb", tint: false, rigged: true },
-  HUNTER: { url: "/models/operators/nyx-hd.glb", tint: true, rigged: true },
+  HUNTER: { url: "/models/operators/nyx-authored.glb", tint: false, rigged: true },
 };
 
 export type ModelMotion = { current: { phase: number; intensity: number; air: boolean; stance?: "STAND" | "CROUCH" | "PRONE"; /** 0..1 progress through a slide, -1 when not sliding */ slideT?: number } };
