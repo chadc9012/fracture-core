@@ -1821,7 +1821,8 @@ function SceneImpl({
     if (descent && onDescentEvent) {
       if (descent.state === "TRIGGERED" && !descent.target) { const d = dockSite(); onDescentEvent({ type: "ANCHOR", x: d.x, z: d.z }); }
       if (descent.state === "DIVE" && descent.target && Math.hypot(descent.target.x - s.x, descent.target.z - s.z) < 18) onDescentEvent({ type: "ARRIVED" });
-      if (descent.state === "COMBAT_1" && descentSpawned.current !== "COMBAT_1" && descentSpawned.current !== "COMBAT_1-done") {
+      // the dock's security frames wake only at the dock, and give a respawned diver a few seconds before re-waking
+      if (descent.state === "COMBAT_1" && descentSpawned.current !== "COMBAT_1" && descentSpawned.current !== "COMBAT_1-done" && s.sector === "SENTRY_DOCK" && performance.now() - sim.lastDeath > 6000) {
         descentSpawned.current = "COMBAT_1";
         spawnMissionDrones(sim, s.x, s.z, 4, false);
       }
@@ -1950,9 +1951,16 @@ function SceneImpl({
       deathSeen.current = sim.lastDeath;
       live.current = cancelAbilities(sim, live.current, { x: s.x, z: s.z, yaw: s.yaw });
       const spot = chooseRespawn({ x: s.x, z: s.z }, checkpoint.current, hostiles);
-      // Thalassia descent checkpoint: once the dock airlock is restored, dying in the city returns you to the airlock deck
+      // Thalassia descent checkpoint: dying in the city during the mission returns you to the dock berth
       const inCity = Math.hypot(s.x - dockSite().x, s.z - dockSite().z) < CITY_RADIUS + 60;
-      const dockCheckpoint = inCity && airlockRestored(descent) && descent?.state !== "WORLD_UPDATE";
+      // live playtest: before this, a death at the dock (pre-airlock) respawned the diver ~1 km away in the Verdant Forest. The berth is
+      // the checkpoint from arrival on; restoring the airlock adds the air station there.
+      const dockCheckpoint = inCity && !!descent && descent.state !== "TRIGGERED" && descent.state !== "DIVE" && descent.state !== "WORLD_UPDATE";
+      if (dockCheckpoint && descent?.state === "COMBAT_1") {
+        // the wave that killed you stands down (no kill credit) and re-wakes a few seconds after you are back on the berth
+        for (const m of sim.machines) if (m.alive && m.mission) m.alive = false;
+        descentSpawned.current = "";
+      }
       const a = airlockSite();
       alert(sim, dockCheckpoint ? "Respawned at the Sentry Dock airlock" : `Respawned at ${spot.label} — away from active combat`);
       s.x = dockCheckpoint ? a.x + 5 : spot.x;

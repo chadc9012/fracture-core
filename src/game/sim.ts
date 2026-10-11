@@ -1214,7 +1214,7 @@ export function stepSim(sim: WorldSim, input: SimInput) {
       m.x = pred.x;
       m.z = pred.z;
       m.y = walkHeight(m.x, m.z) + 2.2 * m.scale;
-      if (Math.hypot(px - m.x, pz - m.z) > 340) m.alive = false;
+      if (!m.mission && Math.hypot(px - m.x, pz - m.z) > 340) m.alive = false; // scripted mission machines are never leashed away: missions wait on their defeat
       sim.stats.dormant++;
       continue;
     }
@@ -1340,7 +1340,7 @@ export function stepSim(sim: WorldSim, input: SimInput) {
         m.x += (wx / wd) * 5 * dt; m.z += (wz / wd) * 5 * dt;
         m.rot = Math.atan2(wx, wz);
       }
-      if (d > 260) m.alive = false;
+      if (d > 260 && !m.mission) m.alive = false; // live playtest: a respawn 1 km away leashed the dock wave away and the mission counted it as cleared
     }
     // knockback from impacts, damped frame-rate independently
     m.x += m.kx * dt;
