@@ -1975,7 +1975,8 @@ export function Scene({
       const ascend = held.has("KeyC");
       if (ascend) s.vy = Math.min(4.5, s.vy + 9 * dt);
       if (descend) s.vy = Math.max(-4.5, s.vy - 9 * dt);
-      s.vy = applyWaterDrag(stepBuoyancy(s.vy, dt, descend), WATER_DRAG.vertical, dt);
+      // inside Thalassia the suit trims to neutral buoyancy (you hover where you stop); in open water you drift up
+      s.vy = applyWaterDrag(s.sector ? s.vy : stepBuoyancy(s.vy, dt, descend), WATER_DRAG.vertical, dt);
       s.y += s.vy * dt;
       // Diving follows the true seabed; walkHeight is surface-clamped for ordinary walkers.
       const floor = heightAt(s.x, s.z) + 1.1;
