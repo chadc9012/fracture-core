@@ -130,7 +130,11 @@ export const QUESTS: Record<string, Quest> = {
   "fd-08": {
     id: "fd-08", title: "The Desert Approach", world: "solara",
     line: "Solara's Glass Flats — old energy-harvesting ruins baking under a sky that never cools.",
-    objectives: [{ type: "SURVIVE", label: "Cross the Glass Flats (s)", key: "solara", amount: 90 }],
+    // index 0 stays the survive timer so saves already part-way through fd-08 keep their progress
+    objectives: [
+      { type: "SURVIVE", label: "Cross the Glass Flats (s)", key: "solara", amount: 90 },
+      { type: "MISSION_COMPLETE", label: "Realign Solar Array Alpha", key: "solar-array", amount: 1 },
+    ],
     rewardShards: 260, rewardMaterials: { anomalyCarbon: 3 }, unlocksWorld: null, nextQuestId: "fd-09", corruption: 2,
   },
   "fd-09": {

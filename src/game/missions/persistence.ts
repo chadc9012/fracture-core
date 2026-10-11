@@ -1,5 +1,5 @@
 /** Save/restore for the scripted mission state machines (awakening, broken-signal, drowned-relay, blackout-protocol,
- * stitched-neon-core, descent-protocol, system-core). Only the machine's own small state is saved
+ * stitched-neon-core, solar-array, descent-protocol, system-core). Only the machine's own small state is saved
  * (phase, target, hack/hold progress, flags, NOVA line); live world objects (drone waves, bosses) are
  * never saved. Combat phases resume by re-spawning their wave from the start, and boss phases by
  * re-summoning the boss at full health, because Scene spawns from the phase. Rewards are applied by
@@ -9,7 +9,7 @@ import { rewardMission } from "../progression";
 import type { MaterialId } from "../inventory";
 import { gameTick, type QuestEvent } from "../quests";
 
-export const MISSION_IDS = ["awakening", "broken-signal", "drowned-relay", "blackout-protocol", "stitched-neon-core", "descent-protocol", "system-core"] as const;
+export const MISSION_IDS = ["awakening", "broken-signal", "drowned-relay", "blackout-protocol", "stitched-neon-core", "solar-array", "descent-protocol", "system-core"] as const;
 export type MissionId = (typeof MISSION_IDS)[number];
 
 /** The superset of fields the six machines use; each machine rebuilds only its own. */
@@ -23,6 +23,7 @@ export const RESUMABLE_STATES: Record<MissionId, readonly string[]> = {
   "drowned-relay": ["TRIGGERED", "WADING", "COMBAT_1", "PURGING", "BOSS", "COMPLETE", "WORLD_UPDATE"],
   "blackout-protocol": ["TRIGGERED", "INFILTRATION", "COMBAT_1", "HACKING", "COMBAT_2", "COMPLETE", "WORLD_UPDATE"],
   "stitched-neon-core": ["TRIGGERED", "DESCENT", "COMBAT_1", "STABILIZING", "BOSS", "COMPLETE", "WORLD_UPDATE"],
+  "solar-array": ["TRIGGERED", "CROSSING", "COMBAT_1", "REALIGNING", "BOSS", "COMPLETE", "WORLD_UPDATE"],
   "descent-protocol": ["TRIGGERED", "DIVE", "COMBAT_1", "TRACING", "COMPLETE", "WORLD_UPDATE"],
   "system-core": ["TRIGGERED", "DIVE", "COMBAT_1", "STABILIZING", "BOSS", "COMPLETE", "WORLD_UPDATE"],
 };
@@ -34,6 +35,7 @@ export const RESPAWNS_ON_RESUME: Record<MissionId, readonly string[]> = {
   "drowned-relay": ["COMBAT_1", "BOSS"],
   "blackout-protocol": ["COMBAT_1", "COMBAT_2"],
   "stitched-neon-core": ["COMBAT_1", "BOSS"],
+  "solar-array": ["COMBAT_1", "BOSS"],
   "descent-protocol": ["COMBAT_1"],
   "system-core": ["COMBAT_1", "BOSS"],
 };
@@ -45,6 +47,7 @@ const COMPLETION: Record<MissionId, { materials: Partial<Record<MaterialId, numb
   "drowned-relay": { materials: { bioCatalyst: 2, dataShards: 2 }, event: { type: "MISSION_COMPLETE", missionId: "drowned-relay" } },
   "blackout-protocol": { materials: { microCircuits: 4 }, event: { type: "MISSION_COMPLETE", missionId: "blackout-protocol" } },
   "stitched-neon-core": { materials: { aegisCore: 1 }, event: { type: "MISSION_COMPLETE", missionId: "stitched-neon-core" } },
+  "solar-array": { materials: { anomalyCarbon: 2, dataShards: 2 }, event: { type: "MISSION_COMPLETE", missionId: "solar-array" } },
   "descent-protocol": { materials: { dataShards: 5 }, event: { type: "MISSION_COMPLETE", missionId: "descent-protocol" } },
   "system-core": { materials: { fractureCore: 1 }, event: { type: "BOSS_DEFEATED", encounterId: "system-core" } },
 };
@@ -80,7 +83,7 @@ export function sanitizeActiveMissions(raw: unknown): ActiveMissions {
   return out;
 }
 
-const PREREQUISITE: Record<MissionId, MissionId | null> = { "awakening": null, "broken-signal": "awakening", "drowned-relay": "broken-signal", "blackout-protocol": "broken-signal", "stitched-neon-core": "blackout-protocol", "descent-protocol": "stitched-neon-core", "system-core": "descent-protocol" };
+const PREREQUISITE: Record<MissionId, MissionId | null> = { "awakening": null, "broken-signal": "awakening", "drowned-relay": "broken-signal", "blackout-protocol": "broken-signal", "stitched-neon-core": "blackout-protocol", "solar-array": "stitched-neon-core", "descent-protocol": "stitched-neon-core", "system-core": "descent-protocol" };
 
 /** Is it safe to resume this mission in the current save? Rejects completed missions, an unfinished
  * tutorial, a missing prerequisite mission, and System Core outside its own quest (`fd-18`). */

@@ -10,6 +10,7 @@ export const CHRONICLE: ChronicleEntry[] = [
   { id: "drowned-relay", title: "The Drowned Relay", region: "Shrouded Swamps", summary: "The trace sank into the swamp. You purged a drowned Vanguard relay and put down the war-frame the swamp had grown into." },
   { id: "blackout-protocol", title: "Blackout Protocol", region: "Nexus City", summary: "The grid went dark on purpose. You held the substations until the city could breathe." },
   { id: "stitched-neon-core", title: "Stitched Neon Core", region: "Nexus City", summary: "Something was sewn into the neon core. You tore it out before it could wake." },
+  { id: "solar-array", title: "Solar Array Alpha", region: "Solara Desert", summary: "You followed Neon's power into the desert, turned the mirrors back on target and shattered the anomaly feeding on the beam. It led to Nexus." },
   { id: "descent-protocol", title: "Descent Protocol", region: "Swamps", summary: "Beneath the swamps, the vaults opened. You went down so the surface would not have to." },
   { id: "system-core", title: "The System Core", region: "Swamps", summary: "At the heart of the fracture you faced the system that wrote the war." },
 ];

@@ -19,6 +19,7 @@ import { alert, applyLightning, collidePlayer, createSim, defeatMachine, FACTION
 import type { MissionEvent, MissionRun } from "@/game/missions/broken-signal";
 import type { MissionEvent as BlackoutEvent, MissionRun as BlackoutRun } from "@/game/missions/blackout-protocol";
 import type { MissionEvent as NeonCoreEvent, MissionRun as NeonCoreRun } from "@/game/missions/stitched-neon-core";
+import { arraySite, type MissionEvent as ArrayEvent, type MissionRun as ArrayRun } from "@/game/missions/solar-array";
 import { relaySite, type MissionEvent as RelayEvent, type MissionRun as RelayRun } from "@/game/missions/drowned-relay";
 import type { MissionEvent as DescentEvent, MissionRun as DescentRun } from "@/game/missions/descent-protocol";
 import type { MissionEvent as SystemCoreEvent, MissionRun as SystemCoreRun } from "@/game/missions/system-core";
@@ -385,6 +386,8 @@ export function Scene({
   onBlackoutEvent,
   neonCore,
   onNeonCoreEvent,
+  solarArray,
+  onSolarArrayEvent,
   descent,
   onDescentEvent,
   systemCore,
@@ -428,6 +431,8 @@ export function Scene({
   onBlackoutEvent?: (event: BlackoutEvent) => void;
   neonCore?: NeonCoreRun | null;
   onNeonCoreEvent?: (event: NeonCoreEvent) => void;
+  solarArray?: ArrayRun | null;
+  onSolarArrayEvent?: (event: ArrayEvent) => void;
   descent?: DescentRun | null;
   onDescentEvent?: (event: DescentEvent) => void;
   systemCore?: SystemCoreRun | null;
@@ -472,6 +477,7 @@ export function Scene({
   const relaySpawned = useRef("");
   const neonCoreSpawned = useRef("");
   const descentSpawned = useRef("");
+  const solarArraySpawned = useRef("");
   const systemCoreSpawned = useRef("");
   const bossActionLog = useRef<ActionLogEntry[]>([]);
   const bossAdaptedPattern = useRef<PlayerAction | null>(null);
@@ -515,6 +521,7 @@ export function Scene({
     if (relay?.target && relay.state !== "COMPLETE" && relay.state !== "WORLD_UPDATE") list.push({ id: "m-drowned-relay", kind: "MISSION", label: "The Drowned Relay", x: relay.target.x, z: relay.target.z, regionId: "swamps" });
     if (blackout?.target && blackout.state !== "COMPLETE" && blackout.state !== "WORLD_UPDATE") list.push({ id: "m-blackout-protocol", kind: "MISSION", label: "Blackout Protocol", x: blackout.target.x, z: blackout.target.z, regionId: "nexus" });
     if (neonCore?.target && neonCore.state !== "COMPLETE" && neonCore.state !== "WORLD_UPDATE") list.push({ id: "m-stitched-neon-core", kind: "MISSION", label: "Stitched Neon Core", x: neonCore.target.x, z: neonCore.target.z, regionId: "nexus" });
+    if (solarArray?.target && solarArray.state !== "COMPLETE" && solarArray.state !== "WORLD_UPDATE") list.push({ id: "m-solar-array", kind: "MISSION", label: "Solar Array Alpha", x: solarArray.target.x, z: solarArray.target.z, regionId: "solara" });
     if (descent?.target && descent.state !== "COMPLETE" && descent.state !== "WORLD_UPDATE") list.push({ id: "m-descent-protocol", kind: "MISSION", label: "Descent Protocol", x: descent.target.x, z: descent.target.z, regionId: "swamps" });
     if (systemCore?.target && systemCore.state !== "COMPLETE" && systemCore.state !== "WORLD_UPDATE") list.push({ id: "m-system-core", kind: "MISSION", label: "The System Core", x: systemCore.target.x, z: systemCore.target.z, regionId: "swamps" });
     for (const m of sim.director.missions) { if (m.state !== "ACTIVE") continue; const c = regionCenter(m.regionId); if (c) list.push({ id: `m-${m.id}`, kind: "MISSION", label: m.name, x: c.x, z: c.z, regionId: m.regionId }); }
@@ -1645,6 +1652,23 @@ export function Scene({
       if (neonCore.state === "BOSS" && neonCoreSpawned.current === "BOSS" && !sim.machines.some((m) => m.alive && m.mission)) { neonCoreSpawned.current = "BOSS-done"; onNeonCoreEvent({ type: "CLEAR" }); }
     }
 
+    /* ---------------- Solara story mission · Solar Array Alpha world triggers ---------------- */
+    if (solarArray && onSolarArrayEvent) {
+      const solara = REGIONS.find((r) => r.id === "solara");
+      if (solarArray.state === "TRIGGERED" && !solarArray.target && solara) { const site = arraySite(solara); onSolarArrayEvent({ type: "ANCHOR", x: site.x, z: site.z }); }
+      if (solarArray.state === "CROSSING" && solarArray.target && Math.hypot(solarArray.target.x - s.x, solarArray.target.z - s.z) < 14) onSolarArrayEvent({ type: "ARRIVED" });
+      if (solarArray.state === "COMBAT_1" && solarArraySpawned.current !== "COMBAT_1" && solarArraySpawned.current !== "COMBAT_1-done") {
+        solarArraySpawned.current = "COMBAT_1";
+        spawnMissionDrones(sim, s.x, s.z, 6, false, "solara");
+      }
+      if (solarArray.state === "COMBAT_1" && solarArraySpawned.current === "COMBAT_1" && !sim.machines.some((m) => m.alive && m.mission)) { solarArraySpawned.current = "COMBAT_1-done"; onSolarArrayEvent({ type: "CLEAR" }); }
+      if (solarArray.state === "BOSS" && solarArraySpawned.current !== "BOSS" && solarArraySpawned.current !== "BOSS-done") {
+        solarArraySpawned.current = "BOSS";
+        summonBoss(sim, "solara", s.x, s.z - 18, { mission: true });
+      }
+      if (solarArray.state === "BOSS" && solarArraySpawned.current === "BOSS" && !sim.machines.some((m) => m.alive && m.mission)) { solarArraySpawned.current = "BOSS-done"; onSolarArrayEvent({ type: "CLEAR" }); }
+    }
+
     /* ---------------- Mission 04 · Descent Protocol world triggers ---------------- */
     if (descent && onDescentEvent) {
       if (descent.state === "TRIGGERED" && !descent.target) onDescentEvent({ type: "ANCHOR", x: THALASSIA_CENTER.x, z: THALASSIA_CENTER.z });
@@ -2199,6 +2223,12 @@ export function Scene({
         <group position={[neonCore.target.x, heightAt(neonCore.target.x, neonCore.target.z) + 3, neonCore.target.z]}>
           <mesh><octahedronGeometry args={[0.9, 0]} /><meshStandardMaterial color="#ff3df2" emissive="#ff3df2" emissiveIntensity={3} /></mesh>
           <mesh position={[0, 30, 0]}><cylinderGeometry args={[0.15, 0.15, 60, 6]} /><meshBasicMaterial color="#ff3df2" transparent opacity={0.45} /></mesh>
+        </group>
+      )}
+      {solarArray?.target && solarArray.state === "CROSSING" && (
+        <group position={[solarArray.target.x, heightAt(solarArray.target.x, solarArray.target.z) + 3, solarArray.target.z]}>
+          <mesh><octahedronGeometry args={[0.9, 0]} /><meshStandardMaterial color="#ffe8a8" emissive="#ffe8a8" emissiveIntensity={3} /></mesh>
+          <mesh position={[0, 30, 0]}><cylinderGeometry args={[0.15, 0.15, 60, 6]} /><meshBasicMaterial color="#ffe8a8" transparent opacity={0.45} /></mesh>
         </group>
       )}
       {descent?.target && descent.state === "DIVE" && (
