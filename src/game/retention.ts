@@ -11,6 +11,9 @@ export const CHRONICLE: ChronicleEntry[] = [
   { id: "blackout-protocol", title: "Blackout Protocol", region: "Nexus City", summary: "The grid went dark on purpose. You held the substations until the city could breathe." },
   { id: "stitched-neon-core", title: "Stitched Neon Core", region: "Nexus City", summary: "Something was sewn into the neon core. You tore it out before it could wake." },
   { id: "solar-array", title: "Solar Array Alpha", region: "Solara Desert", summary: "You followed Neon's power into the desert, turned the mirrors back on target and shattered the anomaly feeding on the beam. It led to Nexus." },
+  { id: "frozen-beacon", title: "The Frozen Beacon", region: "Frostspire Mountains", summary: "The purge order came down from the high passes. You re-keyed the beacon and put down Subject Zero, the Authority's first Resonant." },
+  { id: "failure-core", title: "The Failure Core", region: "Ember Peaks", summary: "You vented the reactor where containment first failed and found it had been feeding the Fracture all along." },
+  { id: "convoy-breaker", title: "Convoy Breaker", region: "Wastelands", summary: "You stopped the Rust-King's fuel convoy on the Grid-Iron Highway and learned who was buying: the Fuel King." },
   { id: "descent-protocol", title: "Descent Protocol", region: "Swamps", summary: "Beneath the swamps, the vaults opened. You went down so the surface would not have to." },
   { id: "system-core", title: "The System Core", region: "Swamps", summary: "At the heart of the fracture you faced the system that wrote the war." },
 ];

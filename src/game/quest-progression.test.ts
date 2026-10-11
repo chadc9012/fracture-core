@@ -54,10 +54,10 @@ describe("B1 — kill and survive events come from gameplay", () => {
     { id: "fd-02", region: "veridan", kind: "kills", amount: 5 },
     { id: "fd-05", region: "swamps", kind: "survive", amount: 90, mission: "drowned-relay" },
     { id: "fd-08", region: "solara", kind: "survive", amount: 90, mission: "solar-array" },
-    { id: "fd-11", region: "frostspire", kind: "survive", amount: 90 },
+    { id: "fd-11", region: "frostspire", kind: "survive", amount: 90, mission: "frozen-beacon" },
     { id: "fd-12", region: "ember", kind: "kills", amount: 8 },
-    { id: "fd-13", region: "ember", kind: "survive", amount: 60 },
-    { id: "fd-14", region: "wastelands", kind: "kills", amount: 10 },
+    { id: "fd-13", region: "ember", kind: "survive", amount: 60, mission: "failure-core" },
+    { id: "fd-14", region: "wastelands", kind: "kills", amount: 10, mission: "convoy-breaker" },
   ];
   for (const c of cases) {
     test(`${c.id} (${QUESTS[c.id]!.title}) completes from ${c.kind} in ${c.region}`, () => {
@@ -92,9 +92,9 @@ describe("B1 — the whole chain is completable with only events the game emits"
     r.enter("solara"); r.stay(95); r.mission("solar-array", { anomalyCarbon: 2, dataShards: 2 }); // fd-08
     r.enter("nexus"); r.snap(0.18, { hackProgress: 100 });        // fd-09
     r.snap(0.18, { nexusLockdownTier: "LOCKDOWN_PURGE" });        // fd-10
-    r.enter("frostspire"); r.stay(95);                            // fd-11
-    r.enter("ember"); r.kill(8); r.stay(65);                      // fd-12, fd-13
-    r.enter("wastelands"); r.kill(10);                            // fd-14
+    r.enter("frostspire"); r.stay(95); r.mission("frozen-beacon"); // fd-11
+    r.enter("ember"); r.kill(8); r.stay(65); r.mission("failure-core"); // fd-12, fd-13
+    r.enter("wastelands"); r.kill(10); r.mission("convoy-breaker"); // fd-14
     // fd-15: the raid claim in OperationsHub (dungeonClears + both events)
     const cleared = { ...r.p, dungeonClears: { ...r.p.dungeonClears, "wasteland-fuel-king": 1 } };
     r.p = gameTick(gameTick(cleared, { type: "DUNGEON_CLEARED", dungeonId: "wasteland-fuel-king" }), { type: "BOSS_DEFEATED", encounterId: "wasteland-fuel-king" });

@@ -152,7 +152,11 @@ export const QUESTS: Record<string, Quest> = {
   "fd-11": {
     id: "fd-11", title: "Ember's Warning", world: "frostspire",
     line: "Frostspire — the isolation zone. The cold here doesn't just kill you, it makes you forget why you came.",
-    objectives: [{ type: "SURVIVE", label: "Traverse the high passes (s)", key: "frostspire", amount: 90 }],
+    // existing objective stays index 0 so part-way saves keep their progress
+    objectives: [
+      { type: "SURVIVE", label: "Traverse the high passes (s)", key: "frostspire", amount: 90 },
+      { type: "MISSION_COMPLETE", label: "Re-key the Frozen Beacon", key: "frozen-beacon", amount: 1 },
+    ],
     rewardShards: 260, rewardMaterials: { cryoCrystal: 3 }, unlocksWorld: null, nextQuestId: "fd-12", corruption: 2,
   },
   "fd-12": {
@@ -164,13 +168,19 @@ export const QUESTS: Record<string, Quest> = {
   "fd-13": {
     id: "fd-13", title: "The Failure Core", world: "ember",
     line: "This is where containment failed the first time. It's about to fail again, with you inside it.",
-    objectives: [{ type: "SURVIVE", label: "Hold through a reality-breakdown spike (s)", key: "ember", amount: 60 }],
+    objectives: [
+      { type: "SURVIVE", label: "Hold through a reality-breakdown spike (s)", key: "ember", amount: 60 },
+      { type: "MISSION_COMPLETE", label: "Vent the Failure Core", key: "failure-core", amount: 1 },
+    ],
     rewardShards: 340, rewardMaterials: { thermalShards: 6 }, unlocksWorld: null, nextQuestId: "fd-14", corruption: 4,
   },
   "fd-14": {
     id: "fd-14", title: "Grid-Iron Highway", world: "wastelands",
     line: "The Wasteland Rebellion holds the highway — scavengers running stolen Fracture tech against everyone.",
-    objectives: [{ type: "KILLS", label: "Break Raider control of the highway", key: "wastelands", amount: 10 }],
+    objectives: [
+      { type: "KILLS", label: "Break Raider control of the highway", key: "wastelands", amount: 10 },
+      { type: "MISSION_COMPLETE", label: "Stop the convoy", key: "convoy-breaker", amount: 1 },
+    ],
     rewardShards: 300, rewardMaterials: { scrapMetal: 6 }, unlocksWorld: null, nextQuestId: "fd-15", corruption: 3,
   },
   "fd-15": {

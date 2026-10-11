@@ -19,6 +19,7 @@ import { alert, applyLightning, collidePlayer, createSim, defeatMachine, FACTION
 import type { MissionEvent, MissionRun } from "@/game/missions/broken-signal";
 import type { MissionEvent as BlackoutEvent, MissionRun as BlackoutRun } from "@/game/missions/blackout-protocol";
 import type { MissionEvent as NeonCoreEvent, MissionRun as NeonCoreRun } from "@/game/missions/stitched-neon-core";
+import { ZONE_MISSIONS, ZONE_MISSION_IDS, zoneSite, type MissionEvent as ZoneEvent, type MissionRun as ZoneRun, type ZoneMissionId } from "@/game/missions/zone-missions";
 import { arraySite, type MissionEvent as ArrayEvent, type MissionRun as ArrayRun } from "@/game/missions/solar-array";
 import { relaySite, type MissionEvent as RelayEvent, type MissionRun as RelayRun } from "@/game/missions/drowned-relay";
 import type { MissionEvent as DescentEvent, MissionRun as DescentRun } from "@/game/missions/descent-protocol";
@@ -388,6 +389,8 @@ export function Scene({
   onNeonCoreEvent,
   solarArray,
   onSolarArrayEvent,
+  zoneRuns,
+  onZoneEvent,
   descent,
   onDescentEvent,
   systemCore,
@@ -433,6 +436,8 @@ export function Scene({
   onNeonCoreEvent?: (event: NeonCoreEvent) => void;
   solarArray?: ArrayRun | null;
   onSolarArrayEvent?: (event: ArrayEvent) => void;
+  zoneRuns?: Partial<Record<ZoneMissionId, ZoneRun>>;
+  onZoneEvent?: (id: ZoneMissionId, event: ZoneEvent) => void;
   descent?: DescentRun | null;
   onDescentEvent?: (event: DescentEvent) => void;
   systemCore?: SystemCoreRun | null;
@@ -478,6 +483,7 @@ export function Scene({
   const neonCoreSpawned = useRef("");
   const descentSpawned = useRef("");
   const solarArraySpawned = useRef("");
+  const zoneSpawned = useRef<Partial<Record<ZoneMissionId, string>>>({});
   const systemCoreSpawned = useRef("");
   const bossActionLog = useRef<ActionLogEntry[]>([]);
   const bossAdaptedPattern = useRef<PlayerAction | null>(null);
@@ -522,6 +528,7 @@ export function Scene({
     if (blackout?.target && blackout.state !== "COMPLETE" && blackout.state !== "WORLD_UPDATE") list.push({ id: "m-blackout-protocol", kind: "MISSION", label: "Blackout Protocol", x: blackout.target.x, z: blackout.target.z, regionId: "nexus" });
     if (neonCore?.target && neonCore.state !== "COMPLETE" && neonCore.state !== "WORLD_UPDATE") list.push({ id: "m-stitched-neon-core", kind: "MISSION", label: "Stitched Neon Core", x: neonCore.target.x, z: neonCore.target.z, regionId: "nexus" });
     if (solarArray?.target && solarArray.state !== "COMPLETE" && solarArray.state !== "WORLD_UPDATE") list.push({ id: "m-solar-array", kind: "MISSION", label: "Solar Array Alpha", x: solarArray.target.x, z: solarArray.target.z, regionId: "solara" });
+    for (const id of ZONE_MISSION_IDS) { const z = zoneRuns?.[id]; if (z?.target && z.state !== "COMPLETE" && z.state !== "WORLD_UPDATE") list.push({ id: `m-${id}`, kind: "MISSION", label: ZONE_MISSIONS[id].title, x: z.target.x, z: z.target.z, regionId: ZONE_MISSIONS[id].regionId }); }
     if (descent?.target && descent.state !== "COMPLETE" && descent.state !== "WORLD_UPDATE") list.push({ id: "m-descent-protocol", kind: "MISSION", label: "Descent Protocol", x: descent.target.x, z: descent.target.z, regionId: "swamps" });
     if (systemCore?.target && systemCore.state !== "COMPLETE" && systemCore.state !== "WORLD_UPDATE") list.push({ id: "m-system-core", kind: "MISSION", label: "The System Core", x: systemCore.target.x, z: systemCore.target.z, regionId: "swamps" });
     for (const m of sim.director.missions) { if (m.state !== "ACTIVE") continue; const c = regionCenter(m.regionId); if (c) list.push({ id: `m-${m.id}`, kind: "MISSION", label: m.name, x: c.x, z: c.z, regionId: m.regionId }); }
@@ -1669,6 +1676,29 @@ export function Scene({
       if (solarArray.state === "BOSS" && solarArraySpawned.current === "BOSS" && !sim.machines.some((m) => m.alive && m.mission)) { solarArraySpawned.current = "BOSS-done"; onSolarArrayEvent({ type: "CLEAR" }); }
     }
 
+    /* ---------------- Zone story missions (Frostspire / Ember / Wastelands) world triggers ---------------- */
+    if (zoneRuns && onZoneEvent) {
+      for (const id of ZONE_MISSION_IDS) {
+        const z = zoneRuns[id];
+        if (!z) continue;
+        const spec = ZONE_MISSIONS[id];
+        const spawned = zoneSpawned.current[id] ?? "";
+        const region = REGIONS.find((r) => r.id === spec.regionId);
+        if (z.state === "TRIGGERED" && !z.target && region) { const site = zoneSite(spec, region); onZoneEvent(id, { type: "ANCHOR", x: site.x, z: site.z }); }
+        if (z.state === "TRAVEL" && z.target && Math.hypot(z.target.x - s.x, z.target.z - s.z) < 14) onZoneEvent(id, { type: "ARRIVED" });
+        if (z.state === "COMBAT_1" && spawned !== "COMBAT_1" && spawned !== "COMBAT_1-done") {
+          zoneSpawned.current[id] = "COMBAT_1";
+          spawnMissionDrones(sim, s.x, s.z, spec.waveSize, false, spec.regionId);
+        }
+        if (z.state === "COMBAT_1" && zoneSpawned.current[id] === "COMBAT_1" && !sim.machines.some((m) => m.alive && m.mission)) { zoneSpawned.current[id] = "COMBAT_1-done"; onZoneEvent(id, { type: "CLEAR" }); }
+        if (z.state === "BOSS" && spawned !== "BOSS" && spawned !== "BOSS-done") {
+          zoneSpawned.current[id] = "BOSS";
+          summonBoss(sim, spec.regionId, s.x, s.z - 18, { mission: true });
+        }
+        if (z.state === "BOSS" && zoneSpawned.current[id] === "BOSS" && !sim.machines.some((m) => m.alive && m.mission)) { zoneSpawned.current[id] = "BOSS-done"; onZoneEvent(id, { type: "CLEAR" }); }
+      }
+    }
+
     /* ---------------- Mission 04 · Descent Protocol world triggers ---------------- */
     if (descent && onDescentEvent) {
       if (descent.state === "TRIGGERED" && !descent.target) onDescentEvent({ type: "ANCHOR", x: THALASSIA_CENTER.x, z: THALASSIA_CENTER.z });
@@ -2231,6 +2261,15 @@ export function Scene({
           <mesh position={[0, 30, 0]}><cylinderGeometry args={[0.15, 0.15, 60, 6]} /><meshBasicMaterial color="#ffe8a8" transparent opacity={0.45} /></mesh>
         </group>
       )}
+      {ZONE_MISSION_IDS.map((id) => {
+        const z = zoneRuns?.[id];
+        if (!z?.target || z.state !== "TRAVEL") return null;
+        const c = ZONE_MISSIONS[id].accent;
+        return <group key={id} position={[z.target.x, heightAt(z.target.x, z.target.z) + 3, z.target.z]}>
+          <mesh><octahedronGeometry args={[0.9, 0]} /><meshStandardMaterial color={c} emissive={c} emissiveIntensity={3} /></mesh>
+          <mesh position={[0, 30, 0]}><cylinderGeometry args={[0.15, 0.15, 60, 6]} /><meshBasicMaterial color={c} transparent opacity={0.45} /></mesh>
+        </group>;
+      })}
       {descent?.target && descent.state === "DIVE" && (
         <group position={[descent.target.x, heightAt(descent.target.x, descent.target.z) + 3, descent.target.z]}>
           <mesh><octahedronGeometry args={[0.9, 0]} /><meshStandardMaterial color="#5fd8ff" emissive="#5fd8ff" emissiveIntensity={3} /></mesh>

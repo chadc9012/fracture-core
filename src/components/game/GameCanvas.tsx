@@ -80,6 +80,8 @@ import { advanceMission as advanceBlackout, BLACKOUT_PROTOCOL, type MissionEvent
 import { BlackoutProtocolOverlay } from "./BlackoutProtocolOverlay";
 import { advanceMission as advanceRelay, DROWNED_RELAY, type MissionEvent as RelayEvent, type MissionRun as RelayRun } from "@/game/missions/drowned-relay";
 import { DrownedRelayOverlay } from "./DrownedRelayOverlay";
+import { advanceMission as advanceZone, initialRun as zoneInitial, zoneMissionReady, ZONE_MISSION_IDS, type MissionEvent as ZoneEvent, type MissionRun as ZoneRun, type ZoneMissionId } from "@/game/missions/zone-missions";
+import { ZoneMissionOverlay } from "./ZoneMissionOverlay";
 import { advanceMission as advanceArray, SOLAR_ARRAY, type MissionEvent as ArrayEvent, type MissionRun as ArrayRun } from "@/game/missions/solar-array";
 import { SolarArrayOverlay } from "./SolarArrayOverlay";
 import { advanceMission as advanceNeonCore, STITCHED_NEON_CORE, type MissionEvent as NeonCoreEvent, type MissionRun as NeonCoreRun } from "@/game/missions/stitched-neon-core";
@@ -526,6 +528,31 @@ export function GameCanvas() {
     return () => window.clearTimeout(timer);
   }, [solarArray?.state, progression.completedMissions]);
 
+  /* Zone story missions · Frozen Beacon (fd-11), Failure Core (fd-13), Convoy Breaker (fd-14) — one
+   * shared machine (zone-missions.ts). Each starts when the previous chapter's quest is done and its own
+   * isn't; chapters are sequential, so at most one is ever ready. */
+  const [zoneRuns, setZoneRuns] = useCountedState<Partial<Record<ZoneMissionId, ZoneRun>>>("zoneRuns", () => {
+    const out: Partial<Record<ZoneMissionId, ZoneRun>> = {};
+    for (const id of ZONE_MISSION_IDS) { const r = restoreMission<ZoneRun>(id, progression); if (r) out[id] = r; }
+    return out;
+  });
+  useEffect(() => setProgression((p) => ZONE_MISSION_IDS.reduce((acc, id) => withMissionRun(acc, id, zoneRuns[id] ?? null), p)), [zoneRuns]);
+  const zoneReady = phase === "world" && !tutorial ? ZONE_MISSION_IDS.find((id) => zoneMissionReady(id, progression.completedMissions) && !zoneRuns[id]) ?? null : null;
+  useEffect(() => {
+    if (!zoneReady) return;
+    const timer = window.setTimeout(() => setZoneRuns((runs) => (runs[zoneReady] ? runs : { ...runs, [zoneReady]: advanceZone(zoneInitial(zoneReady), { type: "START" }) })), 8000);
+    return () => window.clearTimeout(timer);
+  }, [zoneReady]);
+  const recordZone = (id: ZoneMissionId, event: ZoneEvent) => setZoneRuns((runs) => { const cur = runs[id]; return cur ? { ...runs, [id]: advanceZone(cur, event) } : runs; });
+  const zoneFinished = ZONE_MISSION_IDS.filter((id) => zoneRuns[id]?.state === "WORLD_UPDATE").join(",");
+  useEffect(() => {
+    if (!zoneFinished) return;
+    const ids = zoneFinished.split(",") as ZoneMissionId[];
+    if (ids.some((id) => !progression.completedMissions.includes(id))) setProgression((current) => ids.reduce((acc, id) => applyMissionCompletion(acc, id), current));
+    const timer = window.setTimeout(() => setZoneRuns((runs) => { const next = { ...runs }; for (const id of ids) delete next[id]; return next; }), 9000);
+    return () => window.clearTimeout(timer);
+  }, [zoneFinished, progression.completedMissions]);
+
   /* Mission 04 · Descent Protocol — continues straight from Stitched Neon Core's ending; gives
    * fd-16's dive-to-Thalassia (previously just a bare survive-underwater timer) an actual
    * destination and story beat in the already-built sunken city. Same shape as Missions 01-03. */
@@ -699,6 +726,13 @@ export function GameCanvas() {
     setRelay((m) => (force ? null : (reconcileRuns({ "drowned-relay": m }, incoming)["drowned-relay"] as RelayRun | null)));
     setBlackout((m) => (force ? null : (reconcileRuns({ "blackout-protocol": m }, incoming)["blackout-protocol"] as BlackoutRun | null)));
     setNeonCore((m) => (force ? null : (reconcileRuns({ "stitched-neon-core": m }, incoming)["stitched-neon-core"] as NeonCoreRun | null)));
+    setZoneRuns((runs) => {
+      if (force) return {};
+      const live = reconcileRuns(runs, incoming);
+      const out: Partial<Record<ZoneMissionId, ZoneRun>> = {};
+      for (const id of ZONE_MISSION_IDS) { const r = live[id] as ZoneRun | null; if (r) out[id] = r; }
+      return out;
+    });
     setSolarArray((m) => (force ? null : (reconcileRuns({ "solar-array": m }, incoming)["solar-array"] as ArrayRun | null)));
     setDescent((m) => (force ? null : (reconcileRuns({ "descent-protocol": m }, incoming)["descent-protocol"] as DescentRun | null)));
     setSystemCore((m) => (force ? null : (reconcileRuns({ "system-core": m }, incoming)["system-core"] as SystemCoreRun | null)));
@@ -787,7 +821,7 @@ export function GameCanvas() {
   }, []);
   const [levelUpFlash, setLevelUpFlash] = useCountedState<{ level: number; novaUnlocked: string[] } | null>("levelUpFlash", null);
   // diagnostic (F3 "why" line): which tracked state changed identity this render; remove with the F3 line
-  canvasWhy.render({ hud, phase, pendingDeployment, menuOpen, settings, adaptiveDpr, lowPerf, autoCap, qualityNotice, vehicleId, garageOpen, inventoryOpen, shopOpen, ruinOpen, cacheBanner, atlasOpen, hubView, travelTo, transit, savedFlash, strategyOpen, analysisOpen, operationsView, last, progression, landmarkToast, cls, subclass, appearance, bodyType, tutorial, showIntro, cineId, cineProgress, introElapsed, mission, awakening, relay, blackout, neonCore, solarArray, descent, systemCore, activeDialogue, deathInfo, showEnding, menuNotice, rewardCards, storyGraph, captionQueue, levelUpFlash });
+  canvasWhy.render({ hud, phase, pendingDeployment, menuOpen, settings, adaptiveDpr, lowPerf, autoCap, qualityNotice, vehicleId, garageOpen, inventoryOpen, shopOpen, ruinOpen, cacheBanner, atlasOpen, hubView, travelTo, transit, savedFlash, strategyOpen, analysisOpen, operationsView, last, progression, landmarkToast, cls, subclass, appearance, bodyType, tutorial, showIntro, cineId, cineProgress, introElapsed, mission, awakening, relay, blackout, neonCore, solarArray, zoneRuns, descent, systemCore, activeDialogue, deathInfo, showEnding, menuNotice, rewardCards, storyGraph, captionQueue, levelUpFlash });
   const recordXP = (event: WorldSim["xpEvents"][number]) => {
     setProgression((current) => {
       const result = grantXP(current, event.type, { enemyLevel: event.enemyLevel, combatHeat: event.combatHeat });
@@ -919,7 +953,7 @@ export function GameCanvas() {
       >
         <color attach="background" args={["#bfe4f2"]} />
         <Suspense fallback={<WorldLoading />}>
-            <Scene openedCaches={openedToday} onStoryEvent={recordStory} onHud={setHud} onDrops={(drops) => { showScenarioRewards(drops); setProgression((current) => claimDrops(current, drops)); }} gear={progression} settings={liveSettings} onCameraPreference={(firstPerson) => { window.localStorage.setItem("world-fracture-camera", firstPerson ? "first" : "third"); setSettings((current) => ({ ...current, firstPersonDefault: firstPerson })); }} playerClass={cls} subclassId={subclass} appearance={appearance} bodyType={bodyType} vehicleId={vehicleId} vehicleUnlocked={vehicleUnlocked} activeBuild={progression.activeBuild} abilityBranches={progression.abilityBranches} tutorial={tutorial} onTutorialEvent={recordTutorial} mission={mission} onMissionEvent={recordMission} relay={relay} onRelayEvent={recordRelay} blackout={blackout} onBlackoutEvent={recordBlackout} neonCore={neonCore} onNeonCoreEvent={recordNeonCore} solarArray={solarArray} onSolarArrayEvent={recordSolarArray} descent={descent} onDescentEvent={recordDescent} systemCore={systemCore} onSystemCoreEvent={recordSystemCore} awakening={awakening} onAwakeningEvent={recordAwakening} onXP={recordXP} weaponOrder={activeLoadout(progression, progression.identityClass ?? cls).slots} travelTo={travelTo} introPlayback={showIntro ? { elapsed: introElapsed, totalSeconds: introTotalSeconds() } : cineId ? { elapsed: cineProgress * introTotalSeconds(), totalSeconds: introTotalSeconds() } : null} armorState={hud.hp < 35 ? "FRACTURE" : hud.heat > 65 ? "ASCENDANT" : hud.heat > 15 ? "ACTIVE" : "STABLE"} />
+            <Scene openedCaches={openedToday} onStoryEvent={recordStory} onHud={setHud} onDrops={(drops) => { showScenarioRewards(drops); setProgression((current) => claimDrops(current, drops)); }} gear={progression} settings={liveSettings} onCameraPreference={(firstPerson) => { window.localStorage.setItem("world-fracture-camera", firstPerson ? "first" : "third"); setSettings((current) => ({ ...current, firstPersonDefault: firstPerson })); }} playerClass={cls} subclassId={subclass} appearance={appearance} bodyType={bodyType} vehicleId={vehicleId} vehicleUnlocked={vehicleUnlocked} activeBuild={progression.activeBuild} abilityBranches={progression.abilityBranches} tutorial={tutorial} onTutorialEvent={recordTutorial} mission={mission} onMissionEvent={recordMission} relay={relay} onRelayEvent={recordRelay} blackout={blackout} onBlackoutEvent={recordBlackout} neonCore={neonCore} onNeonCoreEvent={recordNeonCore} solarArray={solarArray} onSolarArrayEvent={recordSolarArray} zoneRuns={zoneRuns} onZoneEvent={recordZone} descent={descent} onDescentEvent={recordDescent} systemCore={systemCore} onSystemCoreEvent={recordSystemCore} awakening={awakening} onAwakeningEvent={recordAwakening} onXP={recordXP} weaponOrder={activeLoadout(progression, progression.identityClass ?? cls).slots} travelTo={travelTo} introPlayback={showIntro ? { elapsed: introElapsed, totalSeconds: introTotalSeconds() } : cineId ? { elapsed: cineProgress * introTotalSeconds(), totalSeconds: introTotalSeconds() } : null} armorState={hud.hp < 35 ? "FRACTURE" : hud.heat > 65 ? "ASCENDANT" : hud.heat > 15 ? "ACTIVE" : "STABLE"} />
         </Suspense>
         {post && (
           // cinematic grade: cool-leaning teal shadows, a touch more punch, so the HUD's cyan
@@ -1040,6 +1074,7 @@ export function GameCanvas() {
       {relay && <DrownedRelayOverlay mission={relay} onEvent={recordRelay} />}
       {neonCore && <StitchedNeonCoreOverlay mission={neonCore} onEvent={recordNeonCore} />}
       {solarArray && <SolarArrayOverlay mission={solarArray} onEvent={recordSolarArray} />}
+      {ZONE_MISSION_IDS.map((id) => { const run = zoneRuns[id]; return run ? <ZoneMissionOverlay key={id} mission={run} onEvent={(e) => recordZone(id, e)} /> : null; })}
       {descent && <DescentProtocolOverlay mission={descent} onEvent={recordDescent} />}
       {systemCore && <SystemCoreOverlay mission={systemCore} onEvent={recordSystemCore} />}
       {tutorial && <OnboardingSignal tutorial={tutorial} classId={cls} onOpenHub={() => { setTutorial(null); setOperationsView("ABILITIES"); }} />}
