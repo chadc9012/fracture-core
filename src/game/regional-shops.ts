@@ -2,6 +2,7 @@
  * category, priced in region-flavoured materials from progression.materials (persisted), and gated
  * by player level and story progress. Pure logic; Scene detects proximity, ShopWindow draws it. */
 import { mulberry32 } from "./rng";
+import { livingShopTerms } from "./living-world";
 import { REGIONS, NEON_OFFSET, scaleSite } from "./world";
 import { THALASSIA_CENTER } from "./thalassia-site";
 import { WEAPON_MANIFEST, ARMOR_MANIFEST, type WeaponTier, type ArmorTier } from "./equipment";
@@ -59,11 +60,14 @@ export function shopNear(x: number, z: number): RegionalShop | null {
 }
 
 /** null = open; otherwise the reason the shop won't trade yet */
-export function shopLock(shop: RegionalShop, p: Pick<PlayerProgression, "level" | "completedMissions">): string | null {
+export function shopLock(shop: RegionalShop, p: Pick<PlayerProgression, "level" | "completedMissions"> & { living?: PlayerProgression["living"] }, now = Date.now()): string | null {
   if (p.level < shop.minLevel) return `Requires level ${shop.minLevel}`;
   if (shop.requires && !p.completedMissions.includes(shop.requires.missionId)) return shop.requires.label;
-  return null;
+  return livingShopTerms(p.living, shop, now).lock; // living-world.ts: faction standing and district status (city shops only)
 }
+
+/** price multiplier from the Living World (standing, secured district); 1 outside the cities */
+export const shopPriceMult = (shop: RegionalShop, p: { living?: PlayerProgression["living"] }, now = Date.now()) => livingShopTerms(p.living, shop, now).priceMult;
 
 export type ShopOffer =
   | { key: string; type: "gear"; name: string; detail: string; price: number; minLevel: number; listing: VendorListing }
@@ -94,7 +98,8 @@ const daySeed = (id: string, day: number) => { let h = day * 2654435761; for (co
 export const today = (now = Date.now()) => Math.floor(now / 86_400_000);
 
 /** Stock rotates daily; each shop only stocks its own category. S-tier is never sold. */
-export function shopOffers(shop: RegionalShop, day = today()): ShopOffer[] {
+export function shopOffers(shop: RegionalShop, day = today(), mult = 1): ShopOffer[] {
+  shop = mult === 1 ? shop : { ...shop, priceMult: shop.priceMult * mult };
   const rand = mulberry32(daySeed(shop.id, day));
   const offers: ShopOffer[] = [];
   if (shop.kind === "weapons") {

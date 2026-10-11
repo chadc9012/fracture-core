@@ -69,6 +69,10 @@ import { grantScenarioReward, planScenarioRewardCards, type RewardCard } from "@
 import { scenarioById } from "@/game/unique-scenarios";
 import { claimDrops } from "@/game/inventory";
 import { ShopWindow } from "./ShopWindow";
+import { LivingNpcPanel, LivingTracker } from "./LivingNpcPanel";
+import { resolveLivingEvent } from "@/game/living-events";
+import { recordCityKills, recordReach } from "@/game/living-npcs";
+import type { LivingEmit } from "@/game/living-runtime";
 import { InventoryWindow } from "./InventoryWindow";
 import { CharacterScreen } from "./CharacterScreen";
 import { MissionBannerView } from "./MissionBannerView";
@@ -297,6 +301,12 @@ export function GameCanvas() {
   const [characterOpen, setCharacterOpen] = useState(false);
   const [shopOpen, setShopOpen] = useCountedState<string | null>("shopOpen", null);
   const shopNearRef = useRef<string | null>(null);
+  /** Living World talk panel (LivingNpcPanel.tsx): the NPC id being talked to, and the latest Living World message */
+  const [npcOpen, setNpcOpen] = useState<string | null>(null);
+  const npcNearRef = useRef<string | null>(null);
+  const [livingToast, setLivingToast] = useState<string | null>(null);
+  const toastTimer = useRef<number | undefined>(undefined);
+  const showLivingToast = useCallback((text: string) => { if (!text) return; setLivingToast(text); window.clearTimeout(toastTimer.current); toastTimer.current = window.setTimeout(() => setLivingToast(null), 6000); }, []);
   const [ruinOpen, setRuinOpen] = useCountedState<string | null>("ruinOpen", null);
   const ruinNearRef = useRef<HudState["ruinNear"]>(null);
   useEffect(() => {
@@ -335,6 +345,7 @@ export function GameCanvas() {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.code === "KeyY" && shopNearRef.current) { setShopOpen((open) => (open ? null : shopNearRef.current)); if (document.pointerLockElement) document.exitPointerLock(); }
+      else if (e.code === "KeyY" && !e.repeat && npcNearRef.current) { setNpcOpen((open) => (open ? null : npcNearRef.current)); if (document.pointerLockElement) document.exitPointerLock(); }
       else if (e.code === "KeyY" && !e.repeat && cacheNearRef.current && !cacheNearRef.current.label.startsWith("Encrypted")) openNearCache();
       else if (e.code === "Escape") setShopOpen(null);
     };
@@ -365,6 +376,7 @@ export function GameCanvas() {
     return () => { window.removeEventListener("keydown", onKey); window.clearInterval(poll); };
   }, [phase, settings.bindings, toggleAtlas]);
   useEffect(() => { shopNearRef.current = hud.shopNearId ?? null; if (!hud.shopNearId) setShopOpen(null); }, [hud.shopNearId]);
+  useEffect(() => { npcNearRef.current = hud.npcNear?.id ?? null; if (!hud.npcNear) setNpcOpen(null); }, [hud.npcNear?.id]);
   useEffect(() => {
     cacheNearRef.current = hud.cacheNear ?? null;
     // encrypted caches open themselves the moment the hold-to-decrypt finishes
@@ -855,6 +867,18 @@ export function GameCanvas() {
     const t = setTimeout(() => setCaptionQueue((q) => q.slice(1)), 4500);
     return () => clearTimeout(t);
   }, [captionQueue]);
+  /** Living World outcomes from Scene (living-runtime.ts): all three reducers are idempotent, so a repeat changes nothing */
+  const recordLiving = useCallback((event: LivingEmit) => {
+    if (event.type === "KILLS") { setProgression((current) => recordCityKills(current, event.city, event.count)); return; }
+    if (event.type === "EVENT") {
+      showLivingToast(resolveLivingEvent(progressionRef.current, event.event, event.outcome).message);
+      setProgression((current) => resolveLivingEvent(current, event.event, event.outcome).progression);
+      return;
+    }
+    const preview = recordReach(progressionRef.current, event.x, event.z);
+    if (preview.messages.length) showLivingToast(preview.messages.join(" · "));
+    setProgression((current) => recordReach(current, event.x, event.z).progression);
+  }, [showLivingToast]);
   const recordStory = useCallback((event: StoryWorldEvent) => {
     if (event.type === "LAIR_ENTER") { setStoryGraph((current) => current ?? dialogueDue(progressionRef.current.story)?.graph ?? null); return; }
     if (event.type === "BOSS_LAIR_ENTER" || event.type === "VAULT_ENTER") {
@@ -1025,7 +1049,7 @@ export function GameCanvas() {
       >
         <color attach="background" args={["#bfe4f2"]} />
         <Suspense fallback={<WorldLoading />}>
-            <Profiler id="scene" onRender={onProf}><Scene openedCaches={openedToday} onStoryEvent={recordStory} onHud={setHud} onDrops={(drops) => { showScenarioRewards(drops); setProgression((current) => claimDrops(current, drops)); }} gear={progression} settings={liveSettings} onCameraPreference={(firstPerson) => { window.localStorage.setItem("world-fracture-camera", firstPerson ? "first" : "third"); setSettings((current) => ({ ...current, firstPersonDefault: firstPerson })); }} playerClass={cls} subclassId={subclass} appearance={appearance} bodyType={bodyType} vehicleId={vehicleId} vehicleUnlocked={vehicleUnlocked} activeBuild={progression.activeBuild} abilityBranches={progression.abilityBranches} tutorial={tutorial} onTutorialEvent={recordTutorial} mission={mission} onMissionEvent={recordMission} relay={relay} onRelayEvent={recordRelay} blackout={blackout} onBlackoutEvent={recordBlackout} neonCore={neonCore} onNeonCoreEvent={recordNeonCore} solarArray={solarArray} onSolarArrayEvent={recordSolarArray} coreNode={coreNode} onCoreNodeEvent={recordCoreNode} zoneRuns={zoneRuns} onZoneEvent={recordZone} descent={descent} onDescentEvent={recordDescent} systemCore={systemCore} onSystemCoreEvent={recordSystemCore} awakening={awakening} onAwakeningEvent={recordAwakening} onXP={recordXP} weaponOrder={carriedWeapons(activeLoadout(progression, progression.identityClass ?? cls).slots)} travelTo={travelTo} introPlayback={showIntro ? { elapsed: introElapsed, totalSeconds: introTotalSeconds() } : cineId ? { elapsed: cineProgress * introTotalSeconds(), totalSeconds: introTotalSeconds() } : null} armorState={hud.hp < 35 ? "FRACTURE" : hud.heat > 65 ? "ASCENDANT" : hud.heat > 15 ? "ACTIVE" : "STABLE"} /></Profiler>
+            <Profiler id="scene" onRender={onProf}><Scene openedCaches={openedToday} onStoryEvent={recordStory} onLiving={recordLiving} onHud={setHud} onDrops={(drops) => { showScenarioRewards(drops); setProgression((current) => claimDrops(current, drops)); }} gear={progression} settings={liveSettings} onCameraPreference={(firstPerson) => { window.localStorage.setItem("world-fracture-camera", firstPerson ? "first" : "third"); setSettings((current) => ({ ...current, firstPersonDefault: firstPerson })); }} playerClass={cls} subclassId={subclass} appearance={appearance} bodyType={bodyType} vehicleId={vehicleId} vehicleUnlocked={vehicleUnlocked} activeBuild={progression.activeBuild} abilityBranches={progression.abilityBranches} tutorial={tutorial} onTutorialEvent={recordTutorial} mission={mission} onMissionEvent={recordMission} relay={relay} onRelayEvent={recordRelay} blackout={blackout} onBlackoutEvent={recordBlackout} neonCore={neonCore} onNeonCoreEvent={recordNeonCore} solarArray={solarArray} onSolarArrayEvent={recordSolarArray} coreNode={coreNode} onCoreNodeEvent={recordCoreNode} zoneRuns={zoneRuns} onZoneEvent={recordZone} descent={descent} onDescentEvent={recordDescent} systemCore={systemCore} onSystemCoreEvent={recordSystemCore} awakening={awakening} onAwakeningEvent={recordAwakening} onXP={recordXP} weaponOrder={carriedWeapons(activeLoadout(progression, progression.identityClass ?? cls).slots)} travelTo={travelTo} introPlayback={showIntro ? { elapsed: introElapsed, totalSeconds: introTotalSeconds() } : cineId ? { elapsed: cineProgress * introTotalSeconds(), totalSeconds: introTotalSeconds() } : null} armorState={hud.hp < 35 ? "FRACTURE" : hud.heat > 65 ? "ASCENDANT" : hud.heat > 15 ? "ACTIVE" : "STABLE"} /></Profiler>
         </Suspense>
         {post && (
           // cinematic grade: cool-leaning teal shadows, a touch more punch, so the HUD's cyan
@@ -1088,6 +1112,13 @@ export function GameCanvas() {
            )}
          </div>
        )}
+       {hud.npcNear && !hud.shopNearId && !npcOpen && (
+         <div className="pointer-events-none absolute bottom-24 left-1/2 -translate-x-1/2">
+           <Button className="pointer-events-auto" variant="outline" onClick={() => setNpcOpen(hud.npcNear?.id ?? null)}>[Y] Talk · {hud.npcNear.name} <span className="ml-2 text-muted-foreground">{hud.npcNear.title}</span></Button>
+         </div>
+       )}
+       <LivingTracker living={hud.living} px={hud.px} pz={hud.pz} toast={livingToast} />
+       {npcOpen && <LivingNpcPanel npcId={npcOpen} progression={progression} eventTitle={hud.living?.event && hud.living.event.phase !== "WON" && hud.living.event.phase !== "FAILED" ? hud.living.event.title : null} onProgression={setProgression} onClose={() => setNpcOpen(null)} />}
        {hud.shopNearId && !shopOpen && (
          <div className="pointer-events-none absolute bottom-24 left-1/2 -translate-x-1/2">
            <Button className="pointer-events-auto" variant="outline" onClick={() => setShopOpen(hud.shopNearId ?? null)}>[Y] Trade · {hud.shopNearName}</Button>

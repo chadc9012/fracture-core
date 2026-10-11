@@ -5,6 +5,7 @@ import * as THREE from "three";
 import { clone as cloneSkinned } from "three/examples/jsm/utils/SkeletonUtils.js";
 import { CIVILIAN_HEIGHT, civilianClip, civilianModelUrl, type CivilianClip } from "@/game/civilian-models";
 import { REGIONS } from "@/game/world";
+import { NEON_CENTER as NEON } from "@/game/living-world";
 import { heightAt } from "@/game/terrain";
 import { mulberry32 } from "@/game/rng";
 import {
@@ -33,6 +34,16 @@ function buildRoster(): CivilianSpec[] {
     { id: "jael", name: "Jael", role: "ARTISAN", title: "Nexus Arcology Tech-Smith", lore: "Precision salvage work on arcology systems.", homeX: nexus.x + 12, homeZ: nexus.z + 5 },
     { id: "ryu", name: "Ryu", role: "SCAVENGER", title: "Veridan Forest Scavenger", lore: "Works the tree line for anything worth carrying home.", homeX: veridan.x + 14, homeZ: veridan.z - 6 },
     { id: "lyra", name: "Lyra", role: "OBSERVER", title: "Veridan Outpost Forward Observer", lore: "Watches the tree line from the outpost ridge.", homeX: veridan.x - 10, homeZ: veridan.z + 10 },
+    // Living World: Nexus outer districts and Neon City streets (living-world.ts). They panic and run from fights nearby.
+    { id: "nx-dock", name: "Dock Hand", role: "ENGINEER", title: "Shipyard Loader", lore: "Moves crates between the shipyard bays.", homeX: nexus.x + 4, homeZ: nexus.z + 60 },
+    { id: "nx-trader", name: "Street Trader", role: "VENDOR", title: "Market District Trader", lore: "Sells whatever came in on the last convoy.", homeX: nexus.x + 60, homeZ: nexus.z + 4 },
+    { id: "nx-tech", name: "Arcology Tech", role: "ARTISAN", title: "Arcology Maintenance", lore: "Keeps the arcology lifts running.", homeX: nexus.x - 60, homeZ: nexus.z - 4 },
+    { id: "nx-clerk", name: "Spire Clerk", role: "OBSERVER", title: "Spire District Clerk", lore: "Files permits nobody reads.", homeX: nexus.x - 4, homeZ: nexus.z - 60 },
+    { id: "ne-runner", name: "Courier", role: "SCAVENGER", title: "Neon Courier", lore: "Runs packages through the Undercity.", homeX: NEON.x - 26, homeZ: NEON.z + 7 },
+    { id: "ne-vendor", name: "Noodle Vendor", role: "VENDOR", title: "Neon Market Stall", lore: "Best broth under the Grid.", homeX: NEON.x - 3, homeZ: NEON.z + 18 },
+    { id: "ne-medic", name: "Street Medic", role: "MEDIC", title: "Undercity Clinic", lore: "Patches up whoever walks in.", homeX: NEON.x + 22, homeZ: NEON.z + 7 },
+    { id: "ne-tourist", name: "Spire Visitor", role: "OBSERVER", title: "Checkpoint Queue", lore: "Waiting on clearance, again.", homeX: NEON.x + 2, homeZ: NEON.z - 22 },
+    { id: "ne-tech", name: "Grid Tech", role: "ENGINEER", title: "Grid Maintenance", lore: "Climbs the deck pillars all day.", homeX: NEON.x + 30, homeZ: NEON.z + 20 },
   ];
   return specs;
 }
@@ -49,7 +60,7 @@ const ROLE_LOOK: Record<CivilianRole, { jacket: string; trim: string; glow: stri
   OBSERVER: { jacket: "#4a5142", trim: "#33382c", glow: "#5ad0e0", hooded: false },
 };
 
-function Humanoid({ role, phase, walking, greeting }: { role: CivilianRole; phase: number; walking: boolean; greeting: boolean }) {
+export function Humanoid({ role, phase, walking, greeting }: { role: CivilianRole; phase: number; walking: boolean; greeting: boolean }) {
   const look = ROLE_LOOK[role];
   const legRef = useRef<THREE.Group>(null!);
   const armRef = useRef<THREE.Group>(null!);
@@ -96,14 +107,14 @@ function Humanoid({ role, phase, walking, greeting }: { role: CivilianRole; phas
   );
 }
 
-class Quiet extends Component<{ children: ReactNode; fallback: ReactNode }, { failed: boolean }> {
+export class Quiet extends Component<{ children: ReactNode; fallback: ReactNode }, { failed: boolean }> {
   override state = { failed: false };
   static getDerivedStateFromError() { return { failed: true }; }
   override render() { return this.state.failed ? this.props.fallback : this.props.children; }
 }
 
 /** Authored civilian body (civilian-models.ts) with idle / walk / wave clips crossfaded from the AI state. */
-function CivilianModel({ role, live }: { role: CivilianRole; live: React.RefObject<Civilian> }) {
+export function CivilianModel({ role, live }: { role: CivilianRole; live: React.RefObject<Civilian> }) {
   const { scene, animations } = useGLTF(civilianModelUrl(role));
   const built = useMemo(() => {
     const obj = cloneSkinned(scene);
@@ -122,6 +133,7 @@ function CivilianModel({ role, live }: { role: CivilianRole; live: React.RefObje
   }, [scene, animations]);
   const weights = useRef<Record<CivilianClip, number>>({ idle: 1, walk: 0, wave: 0 });
   useFrame((_, dt) => {
+    if (live.current?.hidden) return;
     const want = civilianClip(live.current?.state ?? "IDLE");
     const k = 1 - Math.exp(-dt * 6);
     for (const name of ["idle", "walk", "wave"] as const) {
@@ -143,6 +155,8 @@ function CivilianView({ civilian, sharedRef }: { civilian: Civilian; sharedRef: 
     const current = sharedRef.current?.find((c) => c.id === civilian.id) ?? civilian;
     live.current = current;
     if (!group.current) return;
+    group.current.visible = !current.hidden;
+    if (current.hidden) return;
     group.current.position.set(current.x, heightAt(current.x, current.z), current.z);
     group.current.quaternion.setFromAxisAngle(UP, current.heading);
     const bob = current.state === "WANDER" ? Math.abs(Math.sin(current.phase)) * 0.04 : 0;
@@ -158,7 +172,7 @@ function CivilianView({ civilian, sharedRef }: { civilian: Civilian; sharedRef: 
   );
 }
 
-export function Civilians({ playerRef }: { playerRef: React.RefObject<THREE.Object3D> }) {
+export function Civilians({ playerRef, threatsRef }: { playerRef: React.RefObject<THREE.Object3D>; threatsRef?: React.RefObject<{ x: number; z: number }[]> }) {
   const roster = useMemo(() => buildRoster(), []);
   const civilians = useMemo(() => roster.map((spec, i) => spawnCivilian(spec, i)), [roster]);
   const civiliansRef = useRef<Civilian[]>(civilians);
@@ -170,8 +184,10 @@ export function Civilians({ playerRef }: { playerRef: React.RefObject<THREE.Obje
     if (!p) return;
     for (const c of civiliansRef.current) {
       // only bother stepping AI for civilians anywhere near the player — same distance culling as Wildlife
-      if (Math.hypot(c.x - p.position.x, c.z - p.position.z) > 140) continue;
-      stepCivilian(c, dt, p.position.x, p.position.z, rndRef.current);
+      const far = Math.hypot(c.x - p.position.x, c.z - p.position.z);
+      c.hidden = far > 190;
+      if (far > 140) continue;
+      stepCivilian(c, dt, p.position.x, p.position.z, rndRef.current, threatsRef?.current ?? []);
     }
   });
 

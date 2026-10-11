@@ -9,7 +9,7 @@
  */
 
 export type CivilianRole = "ENGINEER" | "VENDOR" | "SCAVENGER" | "OBSERVER" | "MEDIC" | "ARTISAN";
-export type CivilianState = "WANDER" | "IDLE" | "GREET";
+export type CivilianState = "WANDER" | "IDLE" | "GREET" | "FLEE" | "COWER";
 
 export type CivilianSpec = { id: string; name: string; role: CivilianRole; title: string; lore: string; homeX: number; homeZ: number };
 
@@ -29,7 +29,19 @@ export type Civilian = {
   targetZ: number;
   timer: number;
   phase: number;
+  /** seconds since the last threat was near; civilians stay in cover until it passes CALM_SECONDS */
+  calm: number;
+  /** set by the view layer when the player is far away: skip drawing and animation */
+  hidden?: boolean;
 };
+
+/** a threat (live enemy, blast) this close makes a civilian run; they cower once far enough away */
+export const PANIC_RADIUS = 22;
+export const SAFE_DISTANCE = 30;
+export const FLEE_SPEED = 3.4;
+export const CALM_SECONDS = 6;
+/** how far from home a fleeing civilian may run */
+export const FLEE_LEASH = 26;
 
 export const GREET_RADIUS = 7;
 
@@ -76,6 +88,7 @@ export function spawnCivilian(spec: CivilianSpec, index: number): Civilian {
     targetZ: spec.homeZ,
     timer: rnd() * 2,
     phase: rnd() * Math.PI * 2,
+    calm: CALM_SECONDS,
   };
 }
 
@@ -91,10 +104,33 @@ function pickWanderTarget(c: Civilian, rnd: () => number) {
  * otherwise the NPC wanders its home post on the usual wander/idle cycle. Mutates and returns the same
  * object (call site owns the array).
  */
-export function stepCivilian(c: Civilian, dt: number, playerX: number, playerZ: number, rnd: () => number): Civilian {
+export function stepCivilian(c: Civilian, dt: number, playerX: number, playerZ: number, rnd: () => number, threats: readonly { x: number; z: number }[] = []): Civilian {
   const profile = ROLE_PROFILE[c.role];
   const distToPlayer = Math.hypot(playerX - c.x, playerZ - c.z);
-  c.phase += dt * (c.state === "GREET" ? 1.6 : 2.4);
+  c.phase += dt * (c.state === "GREET" ? 1.6 : c.state === "FLEE" ? 4.5 : 2.4);
+  c.calm ??= CALM_SECONDS;
+
+  // Living World: combat nearby beats everything else. Run directly away from the nearest threat (but never past the
+  // flee leash from home), then cower until it has been quiet for CALM_SECONDS.
+  let near: { x: number; z: number } | null = null, nearD = Infinity;
+  for (const t of threats) { const d = Math.hypot(t.x - c.x, t.z - c.z); if (d < nearD) { nearD = d; near = t; } }
+  if (near && nearD < PANIC_RADIUS) c.calm = 0; else c.calm += dt;
+  if (c.calm < CALM_SECONDS) {
+    if (near && nearD < SAFE_DISTANCE) {
+      let ax = c.x - near.x, az = c.z - near.z;
+      const len = Math.hypot(ax, az) || 1;
+      ax /= len; az /= len;
+      // bias back toward home when the leash is tight so they slide along it instead of stopping dead
+      const hx = c.homeX - c.x, hz = c.homeZ - c.z, hd = Math.hypot(hx, hz);
+      if (hd > FLEE_LEASH * 0.8) { ax += (hx / hd) * 0.8; az += (hz / hd) * 0.8; const l2 = Math.hypot(ax, az) || 1; ax /= l2; az /= l2; }
+      const nx = c.x + ax * FLEE_SPEED * dt, nz = c.z + az * FLEE_SPEED * dt;
+      if (Math.hypot(nx - c.homeX, nz - c.homeZ) <= FLEE_LEASH) { c.x = nx; c.z = nz; c.state = "FLEE"; c.heading = Math.atan2(ax, az); return c; }
+    }
+    c.state = "COWER";
+    if (near) c.heading = Math.atan2(c.x - near.x, c.z - near.z);
+    return c;
+  }
+  if (c.state === "FLEE" || c.state === "COWER") { c.state = "WANDER"; c.targetX = c.homeX; c.targetZ = c.homeZ; }
 
   if (distToPlayer < GREET_RADIUS) {
     c.state = "GREET";

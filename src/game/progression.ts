@@ -1,3 +1,4 @@
+import { EMPTY_LIVING, normalizeLiving, type LivingState } from "./living-world";
 import { profileKey } from "./save-profile";
 import { EMPTY_STORY, normalizeStory, type StoryState } from "./story";
 import { sanitizeActiveMissions, type ActiveMissions } from "./missions/persistence";
@@ -58,6 +59,8 @@ export type PlayerProgression = {
   earnedRewards: string[];
   /** shared story layer (story.ts): flags, decisions, trust, scenario stages, collected memories; absent in old saves */
   story: StoryState;
+  /** Living World (living-world.ts): city faction standing, district outcomes, contracts, revealed intel; absent in old saves */
+  living: LivingState;
   inventory: GearItem[];
   equippedGear: Partial<Record<GearSlot, string>>;
   materials: Partial<Record<MaterialId, number>>;
@@ -111,6 +114,7 @@ export const DEFAULT_PROGRESSION: PlayerProgression = {
   dungeonClears: {},
   earnedRewards: [],
   story: EMPTY_STORY,
+  living: EMPTY_LIVING,
   inventory: STARTER_GEAR,
   equippedGear: STARTER_SLOTS,
   materials: {},
@@ -166,6 +170,7 @@ export function normalizeProgression(raw: unknown): PlayerProgression {
       dungeonClears: parsed.dungeonClears && typeof parsed.dungeonClears === "object" ? parsed.dungeonClears : {},
       earnedRewards: Array.isArray(parsed.earnedRewards) ? parsed.earnedRewards : [],
       story: normalizeStory(parsed.story),
+      living: normalizeLiving(parsed.living),
       abilityMastery: parsed.abilityMastery && typeof parsed.abilityMastery === "object" ? parsed.abilityMastery : {},
       abilityBranches: parsed.abilityBranches && typeof parsed.abilityBranches === "object" ? migrateBranches(parsed.abilityBranches) : {},
       calibrationTokens: typeof parsed.calibrationTokens === "number" ? parsed.calibrationTokens : 3,

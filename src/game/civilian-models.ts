@@ -13,7 +13,7 @@ export const civilianModelUrl = (role: CivilianRole) => `/models/npcs/${CIVILIAN
 export const CIVILIAN_HEIGHT = 1.8;
 
 export type CivilianClip = "idle" | "walk" | "wave";
-/** WANDER walks, GREET waves at the player, everything else idles. */
+/** WANDER and FLEE walk (FLEE plays it faster), GREET waves at the player, everything else (IDLE, COWER) idles. */
 export function civilianClip(state: string): CivilianClip {
-  return state === "WANDER" ? "walk" : state === "GREET" ? "wave" : "idle";
+  return state === "WANDER" || state === "FLEE" ? "walk" : state === "GREET" ? "wave" : "idle";
 }

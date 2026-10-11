@@ -2,7 +2,8 @@ import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import type { PlayerProgression } from "@/game/progression";
 import type { GearItem } from "@/game/inventory";
-import { REGIONAL_SHOPS, SHOP_KIND_LABEL, shopLock, shopOffers, buyOffer, serviceTargets, serviceGear, serviceFee } from "@/game/regional-shops";
+import { REGIONAL_SHOPS, SHOP_KIND_LABEL, shopLock, shopOffers, shopPriceMult, buyOffer, serviceTargets, serviceGear, serviceFee } from "@/game/regional-shops";
+import { FACTIONS, SHOP_FACTION, TIER_RULES, tierOf, EMPTY_LIVING } from "@/game/living-world";
 
 const ELEMENTS: GearItem["element"][] = ["THERMAL", "CRYO", "ARC", "BIO"];
 
@@ -10,8 +11,11 @@ export function ShopWindow({ shopId, progression, onProgression, onClose }: { sh
   const shop = REGIONAL_SHOPS.find((s) => s.id === shopId);
   const [notice, setNotice] = useState("");
   const [element, setElement] = useState<GearItem["element"]>("THERMAL");
-  const offers = useMemo(() => (shop ? shopOffers(shop) : []), [shop]);
+  const mult = shop ? shopPriceMult(shop, progression) : 1;
+  const offers = useMemo(() => (shop ? shopOffers(shop, undefined, mult) : []), [shop, mult]);
   if (!shop) return null;
+  const owner = SHOP_FACTION[shop.id];
+  const ownerTier = owner ? tierOf(progression.living ?? EMPTY_LIVING, owner) : null;
   const lock = shopLock(shop, progression);
   const funds = progression.materials[shop.currency] ?? 0;
   const targets = serviceTargets(shop, progression);
@@ -25,6 +29,7 @@ export function ShopWindow({ shopId, progression, onProgression, onClose }: { sh
             <p className="font-mono text-[9px] uppercase tracking-[0.3em] text-primary">{SHOP_KIND_LABEL[shop.kind]} · {shop.place}</p>
             <h3 className="mt-1 text-2xl font-semibold">{shop.name}</h3>
             <p className="text-xs text-muted-foreground">{shop.blurb} · stock rotates daily</p>
+            {owner && ownerTier && <p className="mt-1 font-mono text-[10px] uppercase tracking-[0.2em]" style={{ color: TIER_RULES[ownerTier].color }}>{FACTIONS[owner].name} · {TIER_RULES[ownerTier].label}{Math.abs(mult - 1) > 0.001 ? ` · prices ×${mult.toFixed(2)}` : ""}</p>}
           </div>
           <div className="text-right">
             <p className="font-mono text-xs">{funds} {shop.currency}</p>

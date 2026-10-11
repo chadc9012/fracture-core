@@ -145,6 +145,11 @@ import { GroundCover } from "./GroundCover";
 import { coverDensityFor } from "@/game/ground-cover";
 import { moonAngle, moonlight } from "@/game/celestial";
 import { shopNear } from "@/game/regional-shops";
+import { createLivingRuntime, stepLivingRuntime, type LivingEmit, type LivingHud, type LivingRuntime } from "@/game/living-runtime";
+import { EMPTY_LIVING } from "@/game/living-world";
+import { fallenDistricts } from "@/game/living-events";
+import { livingMarkers, npcNear } from "@/game/living-npcs";
+import { LivingCity } from "./LivingCity";
 import type { ArmorVisualState } from "./Scavenger";
 import type { PlayerProgression } from "@/game/progression";
 import { SkyFx, type SkyFxLive } from "./SkyFx";
@@ -271,6 +276,10 @@ export type HudState = {
   insideInterior: string | null;
   interiorName: string;
   interiorOpen: boolean;
+  /** Living World (living-runtime.ts): the city you're in and its live world event */
+  living?: LivingHud | null;
+  /** talkable Living World NPC within reach (living-npcs.ts) */
+  npcNear?: { id: string; name: string; title: string } | null;
   /** walk-up regional vendor within reach (regional-shops.ts), null when none */
   shopNearId?: string | null;
   shopNearName?: string;
@@ -402,6 +411,7 @@ function SceneImpl({
   onTutorialEvent,
   onDrops,
   onStoryEvent,
+  onLiving,
   gear,
   mission,
   onMissionEvent,
@@ -451,7 +461,9 @@ function SceneImpl({
   onDrops?: (drops: WorldSim["drops"]) => void;
   /** story scenarios (vaelith.ts): lair entry, memory pickups, trial survived, lair defence cleared; the handler applies them with pure reducers */
   onStoryEvent?: (event: StoryWorldEvent) => void;
-  gear?: Pick<PlayerProgression, "inventory" | "equippedGear" | "dungeonClears" | "completedMissions" | "story" | "earnedRewards">;
+  /** Living World outcomes (city kills, event results, survey/stash reached); GameCanvas applies them to progression */
+  onLiving?: (event: LivingEmit) => void;
+  gear?: Pick<PlayerProgression, "inventory" | "equippedGear" | "dungeonClears" | "completedMissions" | "story" | "earnedRewards"> & Partial<Pick<PlayerProgression, "living">>;
   mission?: MissionRun | null;
   onMissionEvent?: (event: MissionEvent) => void;
   relay?: RelayRun | null;
@@ -490,6 +502,11 @@ function SceneImpl({
   const checkpointClock = useRef(0);
   const keys = useKeyboard();
   const sim = useMemo<WorldSim>(() => createSim(), []);
+  const livingRt = useRef<LivingRuntime | null>(null);
+  const livingHud = useRef<LivingHud | null>(null);
+  const livingThreats = useRef<{ x: number; z: number }[]>([]);
+  const livingFallen = useMemo(() => fallenDistricts({ living: gear?.living ?? EMPTY_LIVING }, Date.now()), [gear?.living]);
+  const livingMarks = useMemo(() => (gear ? livingMarkers({ ...(gear as PlayerProgression), living: gear.living ?? EMPTY_LIVING }) : []), [gear]);
   // Global Balance Controller: recomputed only when equipped gear/clears/missions actually change,
   // not every frame — the frame loop just assigns the (already-cheap) result into sim.mods below.
   const balance = useMemo(() => difficultyCurve(playerPowerScore({ inventory: gear?.inventory ?? [], equippedGear: gear?.equippedGear ?? {}, dungeonClears: gear?.dungeonClears ?? {}, completedMissions: gear?.completedMissions ?? [] } as Parameters<typeof playerPowerScore>[0])), [gear?.inventory, gear?.equippedGear, gear?.dungeonClears, gear?.completedMissions]);
@@ -535,6 +552,10 @@ function SceneImpl({
       // what the camera can actually see around the player: named scene groups within `r` metres (verifies set pieces mounted)
       near: (r = 60) => { const out: string[] = []; const p = new THREE.Vector3(); scene.traverse((o) => { if (!o.name || out.length > 60) return; o.getWorldPosition(p); const st = state.current; if (Math.hypot(p.x - st.x, p.z - st.z) < r) out.push(`${o.name}@${Math.round(p.x)},${Math.round(p.y)},${Math.round(p.z)}`); }); return out; },
       machines: () => sim.machines.filter((m) => m.alive && m.mission).map((m) => ({ x: Math.round(m.x), z: Math.round(m.z), hp: Math.round(m.hp) })),
+      /** Living World: start the next city event now (optionally of a given kind), read the live one, list guards */
+      livingNow: () => { if (livingRt.current) livingRt.current.director = { ...livingRt.current.director, next: 0 }; return "next city event starts on the next frame (you must be inside Nexus or Neon City)"; },
+      living: () => ({ event: livingRt.current?.director.current ?? null, next: Math.round(livingRt.current?.director.next ?? 0), guards: livingRt.current?.guards.map((g) => ({ id: g.id, state: g.state, x: Math.round(g.x), z: Math.round(g.z) })) }),
+      livingKill: () => { let n = 0; const id = livingRt.current?.director.current?.id; for (const m of sim.machines) if (m.alive && id && m.living === id) { m.hp = 0; defeatMachine(sim, m, "player"); n++; } return n; },
     };
     return () => { delete w.__warp; delete wr.__where; delete wd.__dev; };
   }, []);
@@ -1916,6 +1937,15 @@ function SceneImpl({
       inVehicle: s.inVehicle,
       yaw: s.yaw,
     });
+    // Living World: city events, patrols, civilian panic and contract progress (living-runtime.ts); outcomes go to GameCanvas
+    {
+      livingRt.current ??= createLivingRuntime(sim);
+      const blocked = !!tutorial || !!interior || !!introPlayback || sim.machines.some((m) => m.alive && m.mission);
+      const lv = stepLivingRuntime(livingRt.current, sim, { dt, now: Date.now(), px: s.x, pz: s.z, blocked, living: gear?.living ?? EMPTY_LIVING, fallen: livingFallen, markers: livingMarks, rnd: Math.random });
+      livingHud.current = lv.hud;
+      livingThreats.current = livingRt.current.threats;
+      for (const e of lv.emits) onLiving?.(e);
+    }
     // Hull-destroyed respawn: hurtPlayer() (sim.ts) already resets hp/cargo and stamps sim.lastDeath, but
     // it can't touch the player's world position — that lives here in Scene's own state, not in WorldSim.
     // Detect the new timestamp and do the part sim.ts's alert text always claimed but never performed:
@@ -2295,6 +2325,8 @@ function SceneImpl({
         insideInterior: s.insideInterior,
         interiorName: interior?.name ?? "",
         interiorOpen: interior ? isInteriorOpen(interior, time.current) : true,
+        living: livingHud.current,
+        npcNear: !interior && !s.inVehicle ? (() => { const n = npcNear(s.x, s.z); return n ? { id: n.id, name: n.name, title: n.title } : null; })() : null,
         shopNearId: !interior && !s.inVehicle ? shopNear(s.x, s.z)?.id ?? null : null,
         shopNearName: !interior && !s.inVehicle ? shopNear(s.x, s.z)?.name ?? "" : "",
         cacheNear: cacheLive.current.view,
@@ -2390,7 +2422,7 @@ function SceneImpl({
       <RiftTurrets sim={sim} />
       <PerfProbe />
       <group name="iso:weather"><Weather playerRef={player} weatherRef={weatherKind} fxRef={weatherFx} /></group>
-      <group name="iso:life"><Wildlife playerRef={player} /><Civilians playerRef={player} /></group>
+      <group name="iso:life"><Wildlife playerRef={player} /><Civilians playerRef={player} threatsRef={livingThreats} /><LivingCity runtime={livingRt} playerRef={player} gear={gear as PlayerProgression | undefined} /></group>
       <group name="iso:water"><Water size={WORLD_RADIUS * 4} sunRef={sunDir} styleRef={waterStyle} tier={settings.renderTier} /><Rivers sunRef={sunDir} /></group>
       <LootCaches opened={openedCaches} />
       <ShopStalls />

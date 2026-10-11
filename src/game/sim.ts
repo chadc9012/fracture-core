@@ -139,6 +139,8 @@ export type Machine = {
   encounter?: EncounterState | undefined;
   /** Hollow Saint false copy: inert, shatters without kills/credit/loot (encounter-sim.ts) */
   decoy?: boolean | undefined;
+  /** Living World event id (living-events.ts) this machine belongs to; never leashed away, cleared when the slot is freed */
+  living?: string | undefined;
 };
 
 export type Truck = {
@@ -236,6 +238,8 @@ export type WorldSim = {
   impactCool: number;
   /** rolling combat activity used for pacing */
   combatHeat: number;
+  /** Living World: player kills per event id (living-events.ts reads this to decide who won) */
+  livingKills: Record<string, number>;
   /** AI squadmates (squad.ts): formation + support fire, presentation in Squad.tsx */
   squad: SquadState;
   /** 0..1 weather visibility set by Scene each frame; shrinks enemy sight */
@@ -383,6 +387,7 @@ export function defeatMachine(sim: WorldSim, m: Machine, credit: KillCredit = "p
   m.swimY = undefined;
   if (m.decoy) { // a False Saint: no kill, credit, loot or progress
     m.alive = false;
+    delete m.living;
     onDecoyShattered(sim, m);
     delete m.decoy;
     return;
@@ -391,6 +396,7 @@ export function defeatMachine(sim: WorldSim, m: Machine, credit: KillCredit = "p
   const floor = encounterHpFloor(m, performance.now() / 1000);
   if (floor > 0) { m.hp = floor; return; }
   m.alive = false;
+  if (m.living) { if (credit === "player") sim.livingKills[m.living] = (sim.livingKills[m.living] ?? 0) + 1; delete m.living; }
   if (credit === "world" && !m.boss && !m.eq && !m.scenarioId) { // ambient kill: no kill, credit, XP, drop or director event
     endEncounter(sim, m);
     delete m.gimmickHistory; delete m.attuned; delete m.scenarioRun; delete m.playerHits; delete m.encounter; delete m.decoy; delete m.lastPlayerDamage;
@@ -548,6 +554,7 @@ export function createSim(): WorldSim {
     director: createDirector(),
     impactCool: 0,
     combatHeat: 0,
+    livingKills: {},
     squad: createSquad(0, 0, typeof location !== "undefined" && /[?&]squad=1/.test(location.search)),
     envVisibility: 1,
     playerNoise: 0,
@@ -642,7 +649,7 @@ function spawnMachine(sim: WorldSim, zone: ZoneState, elite = false) {
   delete m.lastPlayerDamage;
   m.vulnMult = 1;
   m.aim = 0;
-  delete m.encounter; delete m.decoy;
+  delete m.encounter; delete m.decoy; delete m.living;
 }
 
 /** Spawn Broken Signal data drones around a point; tagged so the mission can count them. */
@@ -654,8 +661,25 @@ export function spawnMissionDrones(sim: WorldSim, x: number, z: number, count: n
     if (!m) return;
     const a = (i / count) * Math.PI * 2;
     const troop = regionId ? troopFor(regionId, i) : null;
-    Object.assign(m, { alive: true, x: x + Math.cos(a) * 16, z: z + Math.sin(a) * 16, hp: elite ? 6 : 3, rot: 0, scale: elite ? 1.1 : 0.8, zone: regionId ?? "nexus", cool: elite ? 1.2 : 2.5, elite, profile: troop ? troop.name : elite ? "Data Drone Elite" : "Data Drone Scout", kind: troop ? troop.kind : ("OVERCLOCKED" as const), drop: (troop ? troop.drop : "dataShards") as MaterialId, boss: false, kx: 0, kz: 0, mission: true, vulnUntil: 0, vulnMult: 1, encounter: undefined, decoy: undefined });
+    Object.assign(m, { alive: true, x: x + Math.cos(a) * 16, z: z + Math.sin(a) * 16, hp: elite ? 6 : 3, rot: 0, scale: elite ? 1.1 : 0.8, zone: regionId ?? "nexus", cool: elite ? 1.2 : 2.5, elite, profile: troop ? troop.name : elite ? "Data Drone Elite" : "Data Drone Scout", kind: troop ? troop.kind : ("OVERCLOCKED" as const), drop: (troop ? troop.drop : "dataShards") as MaterialId, boss: false, kx: 0, kz: 0, mission: true, vulnUntil: 0, vulnMult: 1, encounter: undefined, decoy: undefined, living: undefined });
   }
+}
+
+/** Living World event wave (living-events.ts): `regionId` troops in a ring around (x,z), tagged with the event id. Not a
+ * scripted-mission machine (missions wait on `mission` machines), but never leashed away while the event runs. */
+export function spawnEventSquad(sim: WorldSim, tag: string, x: number, z: number, count: number, elite: number, regionId: string, ring = 12): number {
+  let n = 0;
+  for (let i = 0; i < count; i++) {
+    const m = sim.machines.find((e) => !e.alive);
+    if (!m) break;
+    const a = (i / count) * Math.PI * 2 + Math.random() * 0.4;
+    const troop = troopFor(regionId, i);
+    const isElite = i < elite;
+    Object.assign(m, { alive: true, x: x + Math.cos(a) * ring, z: z + Math.sin(a) * ring, hp: isElite ? 7 : 3.5, rot: 0, scale: isElite ? 1.4 : 0.95, zone: regionId, cool: 1.5 + Math.random(), elite: isElite, profile: troop ? troop.name : "Hostile", kind: troop ? troop.kind : ("RAIDER" as const), drop: (troop ? troop.drop : "scrapMetal") as MaterialId, boss: false, kx: 0, kz: 0, mission: false, vulnUntil: 0, vulnMult: 1, encounter: undefined, decoy: undefined, living: tag, scenarioId: undefined, eq: undefined, swimY: undefined });
+    delete m.lastPlayerDamage; delete m.ai;
+    n++;
+  }
+  return n;
 }
 
 
@@ -671,7 +695,7 @@ export function summonBoss(sim: WorldSim, regionId: string, x: number, z: number
   }
   const m = sim.machines.find((candidate) => !candidate.alive);
   if (!m) return false;
-  Object.assign(m, { alive: true, x, z, y: walkHeight(x, z) + 5, hp: 28, maxHp: 28, phase: 0 as BossPhaseIndex, rot: 0, scale: 2.3, zone: regionId, cool: 2, elite: true, boss: true, profile: boss.name, kind: "OVERCLOCKED", drop: boss.drop, kx: 0, kz: 0, poiseState: INITIAL_POISE, scenarioId: undefined, gimmickHistory: undefined, attuned: undefined, scenarioRun: undefined, playerHits: undefined, encounter: undefined, decoy: undefined, vulnUntil: 0, vulnMult: 1, ...extra });
+  Object.assign(m, { alive: true, x, z, y: walkHeight(x, z) + 5, hp: 28, maxHp: 28, phase: 0 as BossPhaseIndex, rot: 0, scale: 2.3, zone: regionId, cool: 2, elite: true, boss: true, profile: boss.name, kind: "OVERCLOCKED", drop: boss.drop, kx: 0, kz: 0, poiseState: INITIAL_POISE, scenarioId: undefined, gimmickHistory: undefined, attuned: undefined, scenarioRun: undefined, playerHits: undefined, encounter: undefined, decoy: undefined, living: undefined, vulnUntil: 0, vulnMult: 1, ...extra });
   sim.raidFight = { start: performance.now() / 1000, hurt: 0, region: regionId };
   alert(sim, `${boss.name} · ${boss.tell}`);
   return true;
@@ -682,7 +706,7 @@ export function summonBoss(sim: WorldSim, regionId: string, x: number, z: number
 export function summonScenarioBoss(sim: WorldSim, scenario: UniqueScenario, x: number, z: number, extra?: Partial<Machine>): boolean {
   const m = sim.machines.find((candidate) => !candidate.alive);
   if (!m) return false;
-  Object.assign(m, { alive: true, x, z, y: walkHeight(x, z) + 5, hp: 34, maxHp: 34, phase: 0 as BossPhaseIndex, rot: 0, scale: 2.5, zone: scenario.regionId, cool: 2, elite: true, boss: true, profile: scenario.bossName, kind: "ABERRATION", drop: scenario.drop as MaterialId, kx: 0, kz: 0, poiseState: INITIAL_POISE, scenarioId: scenario.id, scenarioRun: `${scenario.id}-${Date.now().toString(36)}-${(sim.nextHitId++).toString(36)}-${Math.random().toString(36).slice(2, 8)}`, playerHits: 0, gimmickHistory: [], attuned: undefined, encounter: undefined, decoy: undefined, vulnUntil: 0, vulnMult: 1, ...extra });
+  Object.assign(m, { alive: true, x, z, y: walkHeight(x, z) + 5, hp: 34, maxHp: 34, phase: 0 as BossPhaseIndex, rot: 0, scale: 2.5, zone: scenario.regionId, cool: 2, elite: true, boss: true, profile: scenario.bossName, kind: "ABERRATION", drop: scenario.drop as MaterialId, kx: 0, kz: 0, poiseState: INITIAL_POISE, scenarioId: scenario.id, scenarioRun: `${scenario.id}-${Date.now().toString(36)}-${(sim.nextHitId++).toString(36)}-${Math.random().toString(36).slice(2, 8)}`, playerHits: 0, gimmickHistory: [], attuned: undefined, encounter: undefined, decoy: undefined, living: undefined, vulnUntil: 0, vulnMult: 1, ...extra });
   sim.raidFight = { start: performance.now() / 1000, hurt: 0, region: scenario.regionId };
   alert(sim, `${scenario.name} · ${scenario.briefing}`);
   if (scenario.taunt) alert(sim, `${scenario.bossName}: ${scenario.taunt}`);
@@ -1230,7 +1254,7 @@ export function stepSim(sim: WorldSim, input: SimInput) {
       m.x = pred.x;
       m.z = pred.z;
       m.y = walkHeight(m.x, m.z) + 2.2 * m.scale;
-      if (!m.mission && Math.hypot(px - m.x, pz - m.z) > 340) m.alive = false; // scripted mission machines are never leashed away: missions wait on their defeat
+      if (!m.mission && !m.living && Math.hypot(px - m.x, pz - m.z) > 340) m.alive = false; // scripted mission machines are never leashed away: missions wait on their defeat
       sim.stats.dormant++;
       continue;
     }
@@ -1356,7 +1380,7 @@ export function stepSim(sim: WorldSim, input: SimInput) {
         m.x += (wx / wd) * 5 * dt; m.z += (wz / wd) * 5 * dt;
         m.rot = Math.atan2(wx, wz);
       }
-      if (d > 260 && !m.mission) m.alive = false; // live playtest: a respawn 1 km away leashed the dock wave away and the mission counted it as cleared
+      if (d > 260 && !m.mission && !m.living) m.alive = false; // live playtest: a respawn 1 km away leashed the dock wave away and the mission counted it as cleared
     }
     // knockback from impacts, damped frame-rate independently
     m.x += m.kx * dt;
@@ -1465,7 +1489,7 @@ export function stepSim(sim: WorldSim, input: SimInput) {
     let best: Machine | null = null;
     let bestD = tur.range;
     for (const m of sim.machines) {
-      if (!m.alive) continue;
+      if (!m.alive || m.living) continue; // Living World events are the player's (and the city patrols') fight, not the hub turrets'
       const d = Math.hypot(m.x - tur.x, m.z - tur.z);
       if (d < bestD) {
         bestD = d;
