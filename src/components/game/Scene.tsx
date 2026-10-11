@@ -4,7 +4,7 @@ import { Billboard, Environment, Lightformer, Sky, Text, useGLTF } from "@react-
 import { heavyShadows, NEAR_SCALE, setPerfTier } from "@/game/perf-budget";
 import { ruins, isEvolved, isDiscovered, freshCharge, RUIN_DISCOVER_RADIUS, RUIN_REACH } from "@/game/weapon-evolution";
 import { useFrame, useThree } from "@react-three/fiber";
-import { useEffect, useMemo, useRef } from "react";
+import { memo, useEffect, useMemo, useRef, type ComponentProps } from "react";
 import * as THREE from "three";
 import { softSprite } from "./softSprite";
 
@@ -381,7 +381,7 @@ function RegionLabels({ zones }: { zones: readonly ZoneState[] }) {
 
 const GOLDEN = new THREE.Color("#ffb06a");
 const NOON = new THREE.Color("#fff6ea");
-export function Scene({
+function SceneImpl({
   onHud,
   settings = { aimAssist: true, firstPersonDefault: true, zoneLabels: true, hudDensity: "full", renderTier: "HIGH" },
   onCameraPreference,
@@ -2600,4 +2600,42 @@ function Motes() {
   const geo = useMemo(() => { const g = new THREE.BufferGeometry(); const p = new Float32Array(600 * 3); for (let i = 0; i < p.length; i++) p[i] = (Math.random() - 0.5) * (i % 3 === 1 ? 30 : 120); g.setAttribute("position", new THREE.BufferAttribute(p, 3)); return g; }, []);
   useFrame((st) => { if (!ref.current) return; const c = st.camera.position; ref.current.position.set(c.x, c.y + Math.sin(st.clock.elapsedTime * 0.3) * 1.5, c.z); ref.current.rotation.y = st.clock.elapsedTime * 0.02; });
   return <points ref={ref} geometry={geo}><pointsMaterial map={map} alphaTest={0.01} color="#9fe9ff" size={0.4} transparent opacity={0.75} blending={THREE.AdditiveBlending} depthWrite={false} toneMapped={false} /></points>;
+}
+
+
+/* ---------------- render isolation ----------------
+ * Live profiling (Long Animation Frames, Oct 2026) showed React reconciliation taking ~80% of main-thread time: every HUD
+ * update re-rendered GameCanvas, which re-rendered this whole 3D tree. Scene's parent passes fresh callback closures and
+ * fresh arrays/objects each render, so a plain memo never hit. The shell below routes every callback prop through a
+ * stable forwarder that always calls the latest prop (so useFrame closures never go stale), and the memo compares data
+ * props by value one level deep (arrays element-wise, plain objects key-wise). */
+type SceneProps = ComponentProps<typeof SceneImpl>;
+const shallowSame = (a: unknown, b: unknown): boolean => {
+  if (Object.is(a, b)) return true;
+  if (Array.isArray(a) && Array.isArray(b)) return a.length === b.length && a.every((v, i) => Object.is(v, b[i]));
+  if (a && b && typeof a === "object" && typeof b === "object" && Object.getPrototypeOf(a) === Object.prototype && Object.getPrototypeOf(b) === Object.prototype) {
+    const ka = Object.keys(a as object), kb = Object.keys(b as object);
+    return ka.length === kb.length && ka.every((k) => Object.is((a as Record<string, unknown>)[k], (b as Record<string, unknown>)[k]));
+  }
+  return false;
+};
+export const scenePropsEqual = (a: Record<string, unknown>, b: Record<string, unknown>): boolean => {
+  const keys = new Set([...Object.keys(a), ...Object.keys(b)]);
+  for (const k of keys) if (!shallowSame(a[k], b[k])) return false;
+  return true;
+};
+const SceneMemo = memo(SceneImpl, (a, b) => scenePropsEqual(a as Record<string, unknown>, b as Record<string, unknown>));
+
+export function Scene(props: SceneProps) {
+  const latest = useRef(props);
+  latest.current = props;
+  const forwarders = useRef<Record<string, (...args: unknown[]) => unknown>>({});
+  const routed: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(props)) {
+    if (typeof v === "function") {
+      forwarders.current[k] ??= (...args: unknown[]) => ((latest.current as Record<string, unknown>)[k] as ((...a: unknown[]) => unknown) | undefined)?.(...args);
+      routed[k] = forwarders.current[k];
+    } else routed[k] = v;
+  }
+  return <SceneMemo {...(routed as SceneProps)} />;
 }
