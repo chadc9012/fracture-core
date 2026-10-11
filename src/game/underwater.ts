@@ -36,8 +36,9 @@ export function stepBuoyancy(velocityY: number, dt: number, activelyDescending: 
   return Math.min(3.5, velocityY + BUOYANCY_RISE * dt);
 }
 
-export function oxygenStep(oxygen: number, dt: number, submerged: boolean): number {
-  const next = submerged ? oxygen - OXYGEN_DRAIN_PER_SEC * dt : oxygen + OXYGEN_REGEN_PER_SEC * dt;
+/** `drainScale` < 1 for a better rebreather (Thalassia's deep-dive kit: thalassia-sectors.ts REBREATHER_DRAIN_SCALE) */
+export function oxygenStep(oxygen: number, dt: number, submerged: boolean, drainScale = 1): number {
+  const next = submerged ? oxygen - OXYGEN_DRAIN_PER_SEC * drainScale * dt : oxygen + OXYGEN_REGEN_PER_SEC * dt;
   return Math.max(0, Math.min(OXYGEN_MAX, next));
 }
 

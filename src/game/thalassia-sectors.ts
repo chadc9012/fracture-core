@@ -70,6 +70,9 @@ export function airStations(): AirStation[] {
   return [{ id: "dock", x: a.x - 3, y: DOCK_DECK_Y + 1, z: a.z + 4 }, { id: "ring", x: r.x + 6, y: RING.floorY + 5, z: r.z }];
 }
 export const AIR_REACH = 4.5;
+/** Inside Thalassia the operator dives on the deep-dive rebreather: ~73 s of air instead of the ~18 s open-water lungful.
+ * Live playtest: at the open-water rate the diver arrived at the Sentry Dock and was at 11% before the first fight was over. */
+export const REBREATHER_DRAIN_SCALE = 0.25;
 /** the air station refilling the player at (x,y,z), if any is functional and in reach */
 export function airStationAt(x: number, y: number, z: number, airlockRestored: boolean): AirStation | null {
   for (const s of airStations()) {

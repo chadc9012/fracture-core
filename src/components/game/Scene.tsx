@@ -105,7 +105,7 @@ import { ADAPTIVE_TUTORIAL_INIT, maybeReteach, recordStruggle } from "@/game/ada
 import { isValidPlayerState, resetFrameFailureCount, sanitizePlayerState, softFrameFailure } from "@/game/safe-state";
 import { difficultyCurve, playerPowerScore } from "@/game/balance";
 import type { TutorialEvent, TutorialState } from "@/game/onboarding";
-import { CITY_RADIUS, DOCK_DECK_Y, SECTOR_LABEL, airStationAt, airlockSite, coolantDamage, coolantPhase, dockSite, hullDamagePerSec, hullStressStep, reactorSite, ringWaypoint, sectorAt, type ThalassiaSector } from "@/game/thalassia-sectors";
+import { CITY_RADIUS, DOCK_DECK_Y, REBREATHER_DRAIN_SCALE, SECTOR_LABEL, airStationAt, airlockSite, coolantDamage, coolantPhase, dockSite, hullDamagePerSec, hullStressStep, reactorSite, ringWaypoint, sectorAt, type ThalassiaSector } from "@/game/thalassia-sectors";
 import { airlockRestored } from "@/game/missions/descent-protocol";
 import { underwaterVisibility } from "@/game/underwater";
 import { OXYGEN_MAX, WATER_DRAG, applyWaterDrag, classifyUnderwaterState, lowOxygenPenalty, oxygenStep, pressureSpeedMultiplier, stepBuoyancy } from "@/game/underwater";
@@ -526,6 +526,9 @@ function SceneImpl({
       hp: (n = 1) => { sim.hp = n; return sim.hp; },
       o2: (n = 0) => { state.current.oxygen = n; return n; },
       hull: (n = 0) => { state.current.hull = n; return n; },
+      look: (yawDeg = 0, pitchDeg = 0) => { state.current.yaw = (yawDeg * Math.PI) / 180; state.current.pitch = (pitchDeg * Math.PI) / 180; return "ok"; },
+      // what the camera can actually see around the player: named scene groups within `r` metres (verifies set pieces mounted)
+      near: (r = 60) => { const out: string[] = []; const p = new THREE.Vector3(); scene.traverse((o) => { if (!o.name || out.length > 60) return; o.getWorldPosition(p); const st = state.current; if (Math.hypot(p.x - st.x, p.z - st.z) < r) out.push(`${o.name}@${Math.round(p.x)},${Math.round(p.y)},${Math.round(p.z)}`); }); return out; },
       machines: () => sim.machines.filter((m) => m.alive && m.mission).map((m) => ({ x: Math.round(m.x), z: Math.round(m.z), hp: Math.round(m.hp) })),
     };
     return () => { delete w.__warp; delete wr.__where; delete wd.__dev; };
@@ -1056,7 +1059,7 @@ function SceneImpl({
     }
     // environmental hazards: exposure, lightning, with shelter in interiors / safe zones / the Nexus shield
     {
-      const sheltered = Boolean(interior) || here?.kind === "safe" || here?.id === "nexus";
+      const sheltered = Boolean(interior) || here?.kind === "safe" || here?.id === "nexus" || s.diving; // underwater: no lightning or air exposure (live playtest showed a storm bolt striking the Sentry Dock seabed)
       const hazard = stepEnvironment(sim.env, { dt, regionId: here?.id, env: envSample, sheltered, px: s.x, pz: s.z, rand: Math.random });
       if (hazard.damage > 0) hurtPlayer(sim, hazard.damage, hazard.cause);
       for (const strike of hazard.detonated) {
@@ -1166,7 +1169,7 @@ function SceneImpl({
     // functional air stations in Thalassia refill the rebreather even while submerged (thalassia-sectors.ts)
     const dockAir = airlockRestored(descent) || !!gear?.completedMissions?.includes("descent-protocol");
     const atStation = s.diving ? airStationAt(s.x, s.y, s.z, dockAir) : null;
-    s.oxygen = oxygenStep(s.oxygen, dt, s.diving && !atStation);
+    s.oxygen = oxygenStep(s.oxygen, dt, s.diving && !atStation, s.sector ? REBREATHER_DRAIN_SCALE : 1);
     const depth = s.diving ? Math.max(0, WATER_LEVEL - s.y) : 0;
     const oxygenPenalty = lowOxygenPenalty(s.oxygen);
     if (s.diving && s.oxygen <= 0 && Math.random() < dt * 0.6) sim.hp = Math.max(1, sim.hp - 4); // drowning trickle damage, never a hard kill on its own

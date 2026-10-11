@@ -31,19 +31,19 @@ function SentryDock({ restored }: { restored: boolean }) {
     alarms.current?.children.forEach((c, i) => { c.rotation.y = t * 3 + i; (((c as THREE.Group).children[1] as THREE.Mesh).material as THREE.MeshBasicMaterial).color.set(restored ? "#3dff9a" : "#ffa21a"); });
     if (door.current) door.current.position.y += ((restored ? DOCK_DECK_Y + 7.5 : DOCK_DECK_Y + 2.6) - door.current.position.y) * Math.min(1, dt * 1.5);
   });
-  return <group>
+  return <group name="thal:dock">
     {/* berth deck and a docking ring around the sub */}
     <mesh receiveShadow position={[d.x, DOCK_DECK_Y - 0.5, d.z]}><cylinderGeometry args={[DOCK.r, DOCK.r * 1.05, 1, 32]} /><meshStandardMaterial color={STEEL} metalness={0.8} roughness={0.35} /></mesh>
     <mesh position={[d.x + 3, DOCK_DECK_Y + 3, d.z]} rotation-z={Math.PI / 2}><torusGeometry args={[4.2, 0.35, 10, 32]} /><meshStandardMaterial color="#3a4652" metalness={0.85} roughness={0.3} emissive="#0e2a3a" /></mesh>
     {/* the submersible, berthed */}
-    <group position={[d.x + 6, DOCK_DECK_Y + 3, d.z]}>
+    <group name="thal:sub" position={[d.x + 6, DOCK_DECK_Y + 3, d.z]}>
       <mesh castShadow rotation-z={Math.PI / 2}><capsuleGeometry args={[2.2, 7, 8, 16]} /><meshStandardMaterial color="#c8a24a" metalness={0.5} roughness={0.45} /></mesh>
       <mesh position={[-4.6, 0.6, 0]}><sphereGeometry args={[1.5, 16, 12]} /><meshPhysicalMaterial color="#9fdcff" transparent opacity={0.45} roughness={0.05} /></mesh>
       <mesh position={[0, 2.5, 0]}><boxGeometry args={[3, 1.2, 1.4]} /><meshStandardMaterial color="#a8853a" metalness={0.5} roughness={0.5} /></mesh>
       <pointLight position={[-6, 0.4, 0]} color="#fff2c0" intensity={20} distance={30} decay={2} />
     </group>
     {/* airlock frame and the pressure door that rises once restored */}
-    <group position={[a.x, 0, a.z]}>
+    <group name="thal:airlock" position={[a.x, 0, a.z]}>
       {[-3, 3].map((zz) => <mesh key={zz} castShadow position={[0, DOCK_DECK_Y + 4, zz]}><boxGeometry args={[1.2, 8, 1]} /><meshStandardMaterial color={STEEL} metalness={0.8} roughness={0.35} /></mesh>)}
       <mesh position={[0, DOCK_DECK_Y + 8.3, 0]}><boxGeometry args={[1.2, 0.8, 7]} /><meshStandardMaterial color={STEEL} metalness={0.8} roughness={0.35} /></mesh>
       <mesh ref={door} position={[0, DOCK_DECK_Y + 2.6, 0]}><boxGeometry args={[0.5, 5, 5]} /><meshStandardMaterial color="#4a3b26" metalness={0.7} roughness={0.5} /></mesh>
@@ -76,7 +76,7 @@ function CoolantRing() {
     arcs.current?.children.forEach((c) => { c.visible = ph === "ARC" && Math.random() < 0.7; });
   });
   const walks = useMemo(() => Array.from({ length: 6 }, (_, i) => (i / 6) * Math.PI * 2 + 0.3), []);
-  return <group position={[C.x, 0, C.z]}>
+  return <group name="thal:ring" position={[C.x, 0, C.z]}>
     <mesh position-y={RING.floorY} rotation-x={-Math.PI / 2}><ringGeometry args={[RING.inner, RING.outer, 64, 1]} /><meshStandardMaterial ref={mat} color="#0b3a4a" emissive="#2fd0ff" emissiveIntensity={0.6} transparent opacity={0.85} roughness={0.15} side={THREE.DoubleSide} /></mesh>
     <group ref={arcs}>{arcGeo.map((l, i) => <primitive key={i} object={l} />)}</group>
     {/* safe catwalks: radial spans above the coolant's reach */}
@@ -99,7 +99,7 @@ function SunkCore() {
     if (rift.current) rift.current.opacity = 0.55 + 0.25 * Math.sin(t * 1.3);
     motes.current?.children.forEach((c, i) => { const k = (t * 0.06 + i / 24) % 1; c.position.set(Math.sin(i * 2.3 + t * 0.2) * 9 * (1 - k), REACTOR_Y - 4 + k * 16, Math.cos(i * 1.7) * 9 * (1 - k)); ((c as THREE.Sprite).material as THREE.SpriteMaterial).opacity = (1 - k) * 0.7; });
   });
-  return <group position={[C.x, 0, C.z]}>
+  return <group name="thal:core" position={[C.x, 0, C.z]}>
     <mesh position-y={REACTOR_Y - 5.5} rotation-x={-Math.PI / 2}><circleGeometry args={[16, 48]} /><meshBasicMaterial ref={rift} color="#8a3dff" transparent toneMapped={false} /></mesh>
     <pointLight position={[0, REACTOR_Y - 2, 0]} color="#9a5cff" intensity={60} distance={45} decay={2} />
     <mesh castShadow position-y={REACTOR_Y}><cylinderGeometry args={[4, 4.6, 6, 12, 1, true]} /><meshStandardMaterial color="#2f3640" metalness={0.8} roughness={0.4} side={THREE.DoubleSide} /></mesh>
@@ -113,7 +113,7 @@ function SunkCore() {
 function AirStation({ x, y, z, live }: { x: number; y: number; z: number; live: boolean }) {
   const lamp = useRef<THREE.MeshBasicMaterial>(null);
   useFrame(({ clock }) => { if (lamp.current) lamp.current.color.set(live ? (Math.sin(clock.elapsedTime * 2) > 0 ? "#3dff9a" : "#1fbf6a") : "#ff2a2a"); });
-  return <group position={[x, y - 1, z]}>
+  return <group name="thal:air" position={[x, y - 1, z]}>
     <mesh castShadow><cylinderGeometry args={[0.5, 0.7, 2.4, 10]} /><meshStandardMaterial color="#3a4652" metalness={0.8} roughness={0.35} /></mesh>
     <mesh position-y={1.4}><sphereGeometry args={[0.35, 10, 8]} /><meshBasicMaterial ref={lamp} color="#3dff9a" toneMapped={false} /></mesh>
     <Text position={[0, 2.1, 0]} fontSize={0.35} color={live ? "#3dff9a" : "#ff6a6a"} anchorX="center">{live ? "O₂ STATION" : "O₂ STATION · OFFLINE"}</Text>

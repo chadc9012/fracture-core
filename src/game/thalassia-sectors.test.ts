@@ -53,3 +53,11 @@ describe("Thalassia mission sites and air", () => {
     expect(airStationAt(ring!.x, ring!.y + AIR_REACH + 1, ring!.z, true)).toBeNull();
   });
 });
+
+import { oxygenStep, OXYGEN_MAX } from "./underwater";
+import { REBREATHER_DRAIN_SCALE } from "./thalassia-sectors";
+test("the Thalassia rebreather lasts over a minute; open water stays a short lungful", () => {
+  const secondsOfAir = (scale: number) => { let o = OXYGEN_MAX, t = 0; while (o > 0 && t < 600) { o = oxygenStep(o, 0.1, true, scale); t += 0.1; } return t; };
+  expect(secondsOfAir(REBREATHER_DRAIN_SCALE)).toBeGreaterThan(60);
+  expect(secondsOfAir(1)).toBeLessThan(25);
+});
