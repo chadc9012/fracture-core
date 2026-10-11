@@ -20,8 +20,10 @@ export type MissionState = "IDLE" | "TRIGGERED" | "DIVE" | "COMBAT_1" | "AIRLOCK
 export type MissionEvent =
   | { type: "START" }
   | { type: "ANCHOR"; x: number; z: number }
-  | { type: "ARRIVED" }
-  | { type: "CLEAR" }
+  /** `from`: the state the world saw when it emitted the event. The frame loop emits every frame until React catches up, so a second
+   * ARRIVED queued behind the first would otherwise be applied to the NEXT state (live playtest: RING skipped straight past CORE to TRACING). */
+  | { type: "ARRIVED"; from?: MissionState }
+  | { type: "CLEAR"; from?: MissionState }
   | { type: "HACK"; progress: number }
   | { type: "ACK" };
 
@@ -53,6 +55,7 @@ export const OBJECTIVE: Record<MissionState, string> = {
 export const airlockRestored = (m: MissionRun | null | undefined) => !!m && ["RING", "CORE", "TRACING", "COMPLETE", "WORLD_UPDATE"].includes(m.state);
 
 export function advanceMission(m: MissionRun, e: MissionEvent): MissionRun {
+  if ((e.type === "ARRIVED" || e.type === "CLEAR") && e.from && e.from !== m.state) return m; // stale world event for an earlier state
   switch (m.state) {
     case "IDLE":
       return e.type === "START"

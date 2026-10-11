@@ -3,8 +3,9 @@ export type MissionState = "IDLE" | "TRIGGERED" | "DISCOVERY" | "TRAVERSAL" | "C
 export type MissionEvent =
   | { type: "START" }
   | { type: "ANCHOR"; x: number; z: number }
-  | { type: "ARRIVED" }
-  | { type: "CLEAR" }
+  /** `from`: the state the world saw when it emitted (see descent-protocol.ts: a duplicate frame-loop ARRIVED must not skip TRAVERSAL) */
+  | { type: "ARRIVED"; from?: MissionState }
+  | { type: "CLEAR"; from?: MissionState }
   | { type: "HACK"; progress: number }
   | { type: "ACK" };
 
@@ -33,6 +34,7 @@ export const OBJECTIVE: Record<MissionState, string> = {
 };
 
 export function advanceMission(m: MissionRun, e: MissionEvent): MissionRun {
+  if ((e.type === "ARRIVED" || e.type === "CLEAR") && e.from && e.from !== m.state) return m;
   switch (m.state) {
     case "IDLE":
       return e.type === "START" ? { ...m, state: "TRIGGERED", nova: "That wasn't supposed to happen… something is interfering with the ad network." } : m;

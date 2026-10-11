@@ -40,3 +40,12 @@ describe("Mission 01 — Broken Signal end-to-end state progression", () => {
     expect(run.state).toBe("COMBAT_2");
   });
 });
+
+test("Broken Signal: a duplicate DISCOVERY arrival never skips TRAVERSAL", () => {
+  let m = advanceMission(BROKEN_SIGNAL, { type: "START" });
+  m = advanceMission(m, { type: "ANCHOR", x: 0, z: 0 });
+  m = advanceMission(m, { type: "ARRIVED", from: "DISCOVERY" });
+  expect(m.state).toBe("TRAVERSAL");
+  m = advanceMission(m, { type: "ARRIVED", from: "DISCOVERY" });
+  expect(m.state).toBe("TRAVERSAL");
+});

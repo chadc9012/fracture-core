@@ -1687,7 +1687,7 @@ function SceneImpl({
     /* ---------------- Mission 01 · Broken Signal world triggers ---------------- */
     if (mission && onMissionEvent) {
       if (mission.state === "TRIGGERED" && !mission.target) onMissionEvent({ type: "ANCHOR", x: s.x + Math.sin(s.yaw) * 40, z: s.z + Math.cos(s.yaw) * 40 });
-      if ((mission.state === "DISCOVERY" || mission.state === "TRAVERSAL") && mission.target && Math.hypot(mission.target.x - s.x, mission.target.z - s.z) < 8) onMissionEvent({ type: "ARRIVED" });
+      if ((mission.state === "DISCOVERY" || mission.state === "TRAVERSAL") && mission.target && Math.hypot(mission.target.x - s.x, mission.target.z - s.z) < 8) onMissionEvent({ type: "ARRIVED", from: mission.state });
       const combat = mission.state === "COMBAT_1" || mission.state === "COMBAT_2";
       if (combat && missionSpawned.current !== mission.state && missionSpawned.current !== `${mission.state}-done`) {
         missionSpawned.current = mission.state;
@@ -1820,21 +1820,21 @@ function SceneImpl({
     /* ---------------- Mission 04 · Descent Protocol world triggers ---------------- */
     if (descent && onDescentEvent) {
       if (descent.state === "TRIGGERED" && !descent.target) { const d = dockSite(); onDescentEvent({ type: "ANCHOR", x: d.x, z: d.z }); }
-      if (descent.state === "DIVE" && descent.target && Math.hypot(descent.target.x - s.x, descent.target.z - s.z) < 18) onDescentEvent({ type: "ARRIVED" });
+      if (descent.state === "DIVE" && descent.target && Math.hypot(descent.target.x - s.x, descent.target.z - s.z) < 18) onDescentEvent({ type: "ARRIVED", from: descent.state });
       // the dock's security frames wake only at the dock, and give a respawned diver a few seconds before re-waking
       if (descent.state === "COMBAT_1" && descentSpawned.current !== "COMBAT_1" && descentSpawned.current !== "COMBAT_1-done" && s.sector === "SENTRY_DOCK" && performance.now() - sim.lastDeath > 6000) {
         descentSpawned.current = "COMBAT_1";
         spawnMissionDrones(sim, s.x, s.z, 4, false);
       }
-      if (descent.state === "COMBAT_1" && descentSpawned.current === "COMBAT_1" && !sim.machines.some((m) => m.alive && m.mission)) { descentSpawned.current = "COMBAT_1-done"; onDescentEvent({ type: "CLEAR" }); }
+      if (descent.state === "COMBAT_1" && descentSpawned.current === "COMBAT_1" && !sim.machines.some((m) => m.alive && m.mission)) { descentSpawned.current = "COMBAT_1-done"; onDescentEvent({ type: "CLEAR", from: descent.state }); }
       // Thalassia's mission machines swim at the diver's depth instead of riding the surface
       if (s.diving && s.sector) for (const m of sim.machines) if (m.alive && m.mission && Math.hypot(m.x - s.x, m.z - s.z) < 90) m.swimY = s.y + 0.5;
-      if (descent.state === "RING") { const w = ringWaypoint(); if (Math.hypot(w.x - s.x, w.z - s.z) < 9) onDescentEvent({ type: "ARRIVED" }); }
+      if (descent.state === "RING") { const w = ringWaypoint(); if (Math.hypot(w.x - s.x, w.z - s.z) < 9) onDescentEvent({ type: "ARRIVED", from: descent.state }); }
       if (descent.state === "CORE") {
         // the Sunk-Core's patrol wakes once when you go down; it is not a gate — the reactor is the objective
         if (descentSpawned.current !== "CORE" && s.sector === "SUNK_CORE") { descentSpawned.current = "CORE"; const r = reactorSite(); spawnMissionDrones(sim, r.x, r.z, 3, true); }
         const r = reactorSite();
-        if (s.sector === "SUNK_CORE" && Math.hypot(r.x - s.x, r.z - s.z) < REACTOR_REACH) onDescentEvent({ type: "ARRIVED" });
+        if (s.sector === "SUNK_CORE" && Math.hypot(r.x - s.x, r.z - s.z) < REACTOR_REACH) onDescentEvent({ type: "ARRIVED", from: descent.state });
       }
     }
 
