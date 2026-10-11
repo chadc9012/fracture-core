@@ -3,6 +3,10 @@ import { RoundedBox, useGLTF } from "@react-three/drei";
 import { Component, Suspense, useMemo, useRef, type ReactNode } from "react";
 import { clone as cloneSkinned } from "three/examples/jsm/utils/SkeletonUtils.js";
 import { enemyVisual, type EnemyRole, type EnemyVisual } from "@/game/enemy-visuals";
+import { enemyClipWeights, strideRate, type ClipWeights, type EnemyDrive } from "@/game/enemy-anim";
+
+/** Per-machine motion the renderer reads (WarMachines writes it each frame). `procedural` is set by the model: true while it has no clips. */
+export type DriveRef = { current: EnemyDrive & { procedural?: boolean } };
 import * as THREE from "three";
 import { SURFACES, regionLook } from "@/game/visual-standard";
 
@@ -91,8 +95,10 @@ class QuietBoundary extends Component<{ children: ReactNode; fallback: ReactNode
   override render() { return this.state.failed ? this.props.fallback : this.props.children; }
 }
 
-function Authored({ visual, headRef }: { visual: EnemyVisual; headRef?: React.Ref<THREE.Group> }) {
-  const { scene } = useGLTF(visual.url);
+const CLIP_NAMES: (keyof ClipWeights)[] = ["idle", "walk", "run", "shoot"];
+
+function Authored({ visual, headRef, drive }: { visual: EnemyVisual; headRef?: React.Ref<THREE.Group>; drive?: DriveRef }) {
+  const { scene, animations } = useGLTF(visual.url);
   const built = useMemo(() => {
     const obj = cloneSkinned(scene);
     obj.traverse((o) => { const m = o as THREE.Mesh; if (m.isMesh) { m.castShadow = true; m.frustumCulled = !(m as THREE.SkinnedMesh).isSkinnedMesh; } });
@@ -100,14 +106,41 @@ function Authored({ visual, headRef }: { visual: EnemyVisual; headRef?: React.Re
     const box = new THREE.Box3().setFromObject(obj);
     const size = box.getSize(new THREE.Vector3()), c = box.getCenter(new THREE.Vector3());
     const k = visual.height / Math.max(size.y, 1e-3);
-    return { obj, k, offset: [-c.x * k, -box.min.y * k, -c.z * k] as [number, number, number] };
-  }, [scene, visual.height]);
+    // rigged models with authored clips get their own mixer; clip names are idle/walk/run/shoot (build-enemy-rigged.py)
+    const clips: Partial<Record<keyof ClipWeights, THREE.AnimationAction>> = {};
+    let mixer: THREE.AnimationMixer | null = null;
+    if (animations.length) {
+      mixer = new THREE.AnimationMixer(obj);
+      for (const name of CLIP_NAMES) {
+        const clip = animations.find((a) => a.name.toLowerCase() === name);
+        if (!clip) continue;
+        const a = mixer.clipAction(clip); a.play(); a.weight = 0; a.time = Math.random() * clip.duration; clips[name] = a;
+      }
+      if (!Object.keys(clips).length) mixer = null;
+    }
+    return { obj, k, offset: [-c.x * k, -box.min.y * k, -c.z * k] as [number, number, number], mixer, clips };
+  }, [scene, animations, visual.height]);
   const body = useRef<THREE.Group>(null);
   const seed = useRef(Math.random() * 10);
-  useFrame(({ clock }) => {
-    const t = clock.elapsedTime * 3 + seed.current, b = body.current;
+  useFrame(({ clock }, dt) => {
+    const b = body.current;
     if (!b) return;
-    // procedural motion until the rigs ship clips: bipeds sway/lean into the stride, creatures undulate
+    // only the variant actually shown in its pooled slot animates (and reports whether it needs the procedural bob)
+    for (let o: THREE.Object3D | null = b; o; o = o.parent) if (!o.visible) return;
+    if (drive) drive.current.procedural = !built.mixer;
+    if (built.mixer) {
+      const d = drive?.current ?? { speed: 0, aiming: false };
+      const has = { idle: !!built.clips.idle, walk: !!built.clips.walk, run: !!built.clips.run, shoot: !!built.clips.shoot };
+      const w = enemyClipWeights(d, has);
+      for (const name of CLIP_NAMES) { const a = built.clips[name]; if (a) a.weight = w[name]; }
+      if (built.clips.walk) built.clips.walk.timeScale = strideRate(d.speed, "walk");
+      if (built.clips.run) built.clips.run.timeScale = strideRate(d.speed, "run");
+      built.mixer.update(Math.min(dt, 0.1));
+      b.rotation.set(0, 0, 0);
+      return;
+    }
+    const t = clock.elapsedTime * 3 + seed.current;
+    // procedural motion for models without clips: bipeds sway/lean into the stride, creatures undulate
     if (visual.motion === "creature") { b.rotation.set(0, Math.sin(t * 0.7) * 0.12, Math.sin(t) * 0.05); b.scale.set(1, 1 + Math.sin(t * 2) * 0.03, 1); }
     else b.rotation.set(0.06 + Math.sin(t * 2) * 0.03, Math.sin(t) * 0.06, Math.sin(t) * 0.04);
   });
@@ -115,7 +148,7 @@ function Authored({ visual, headRef }: { visual: EnemyVisual; headRef?: React.Re
 }
 
 /** Real enemy model for this faction/role; procedural trooper while loading or if the model fails. */
-export function FactionEnemy({ kind, role, visorRef, headRef }: { kind: EnemyKind; role: EnemyRole; visorRef?: React.Ref<THREE.MeshStandardMaterial>; headRef?: React.Ref<THREE.Group> }) {
+export function FactionEnemy({ kind, role, visorRef, headRef, drive }: { kind: EnemyKind; role: EnemyRole; visorRef?: React.Ref<THREE.MeshStandardMaterial>; headRef?: React.Ref<THREE.Group>; drive?: DriveRef }) {
   const fallback = <EnemyModel kind={kind} boss={role === "boss"} {...(visorRef ? { visorRef } : {})} {...(headRef ? { headRef } : {})} />;
-  return <QuietBoundary fallback={fallback}><Suspense fallback={fallback}><Authored visual={enemyVisual(kind, role)} {...(headRef ? { headRef } : {})} /></Suspense></QuietBoundary>;
+  return <QuietBoundary fallback={fallback}><Suspense fallback={fallback}><Authored visual={enemyVisual(kind, role)} {...(headRef ? { headRef } : {})} {...(drive ? { drive } : {})} /></Suspense></QuietBoundary>;
 }

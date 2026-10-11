@@ -6,6 +6,7 @@ as the base (mesh + skin + textures + its clip), copies the clips of the other e
 them to the game's locomotion names (walk / run), and re-encodes the textures to web size (base colour 2048 JPEG, normal + metal/rough 1024 JPEG).
 
 usage: build-operator-authored.py OUT.glb BASE.glb[:clipname] OTHER.glb:clipname ...
+   --base-tex=1024 shrinks the colour map (normal/metal-rough follow) for crowds such as enemies.
    BASE may be a clip-less rigged export (Character_output.glb); then every clip comes from the OTHER files (animation-only exports work).
    e.g. build-operator-authored.py public/models/operators/cipher-authored.glb Walking.glb:walk Running.glb:run
 """
@@ -34,10 +35,10 @@ def main(out_path, specs):
     # re-encode textures; role comes from the material that references the image
     mat = base["materials"][0]; tex = base["textures"]
     role = {}
-    role[tex[mat["normalTexture"]["index"]]["source"]] = ("normal", 1024, 90)
+    role[tex[mat["normalTexture"]["index"]]["source"]] = ("normal", min(1024, BASE_TEX), 90)
     pbr = mat["pbrMetallicRoughness"]
-    role[tex[pbr["baseColorTexture"]["index"]]["source"]] = ("base", 2048, 86)
-    role[tex[pbr["metallicRoughnessTexture"]["index"]]["source"]] = ("mr", 1024, 88)
+    role[tex[pbr["baseColorTexture"]["index"]]["source"]] = ("base", BASE_TEX, 86)
+    role[tex[pbr["metallicRoughnessTexture"]["index"]]["source"]] = ("mr", min(1024, BASE_TEX // 2), 88)
     new_img = {}
     for i, im in enumerate(base["images"]):
         _, size, q = role[i]
@@ -85,5 +86,10 @@ def main(out_path, specs):
     open(out_path, "wb").write(glb)
     print(out_path, round(len(glb) / 1024), "KB;", len(anims), "clips:", [a["name"] for a in anims])
 
+BASE_TEX = 2048
+
 if __name__ == "__main__":
-    main(sys.argv[1], sys.argv[2:])
+    args = [a for a in sys.argv[1:] if not a.startswith("--base-tex=")]
+    for a in sys.argv[1:]:
+        if a.startswith("--base-tex="): BASE_TEX = int(a.split("=", 1)[1])  # e.g. 1024 for enemies
+    main(args[0], args[1:])
