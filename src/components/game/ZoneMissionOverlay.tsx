@@ -21,7 +21,7 @@ export function ZoneMissionOverlay({ mission, onEvent }: Props) {
   const hacking = mission.state === "HACKING";
 
   return <>
-    {mission.state !== "WORLD_UPDATE" && <div className="pointer-events-none fixed right-3 top-24 z-20 max-w-xs border-l-2 p-3" style={{ borderColor: accent, background: "color-mix(in oklch, var(--card) 80%, transparent)" }}>
+    {mission.state !== "WORLD_UPDATE" && <div className="pointer-events-none mission-tracker fixed right-3 top-24 z-20 max-w-xs border-l-2 p-3" style={{ borderColor: accent, background: "color-mix(in oklch, var(--card) 80%, transparent)" }}>
       <p className="font-mono text-[10px] uppercase tracking-[0.25em]" style={{ color: accent }}>{spec.title}</p>
       <p className="mt-1 text-sm">{spec.objective[mission.state]}</p>
       {hacking && <p className="mt-1 font-mono text-[10px] text-muted-foreground">{spec.hackLabel.toUpperCase()} {Math.round(mission.hack)}%</p>}

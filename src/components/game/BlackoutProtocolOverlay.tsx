@@ -26,7 +26,7 @@ export function BlackoutProtocolOverlay({ mission, onEvent }: { mission: Mission
   };
 
   return <>
-    {mission.state !== "WORLD_UPDATE" && <div className="pointer-events-none fixed right-3 top-24 z-20 max-w-xs border-l-2 border-[#38e8ff] bg-card/80 p-3">
+    {mission.state !== "WORLD_UPDATE" && <div className="pointer-events-none mission-tracker fixed right-3 top-24 z-20 max-w-xs border-l-2 border-[#38e8ff] bg-card/80 p-3">
       <p className="font-mono text-[10px] uppercase tracking-[0.25em] text-[#38e8ff]">Blackout Protocol</p>
       <p className="mt-1 text-sm">{OBJECTIVE[mission.state]}</p>
       {(hacking || mission.state === "COMBAT_2") && <p className="mt-1 font-mono text-[10px] text-muted-foreground">RELAY {Math.round(mission.hack)}%</p>}

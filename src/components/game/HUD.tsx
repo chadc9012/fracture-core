@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from "react";
 import { xpRequiredForLevel } from "@/game/xp";
 import { DiveHud } from "./DiveHud";
 import { operatorByClass } from "@/game/loadout";
@@ -18,6 +19,7 @@ export function HUD({ hud, tutorialActive = false, onMenu, onAtlas, level }: { h
   useVoiceLine(`boss-${hud.bossHud?.name ?? "none"}-${hud.bossHud?.adaptedTell ?? "idle"}`, hud.bossHud?.name ?? "ENEMY", hud.bossHud?.adaptedTell, "critical");
   useVoiceLine(`emergency-${hud.emergencyQuest?.state ?? "none"}-${hud.emergencyQuest?.bossName ?? "none"}`, "NOVA", hud.emergencyQuest ? `${hud.emergencyQuest.state === "WARNING" ? "Emergency quest inbound" : hud.emergencyQuest.state === "ACTIVE" ? "Emergency quest active" : hud.emergencyQuest.state === "COMPLETE" ? "Emergency quest cleared" : "Emergency quest failed"}. ${hud.emergencyQuest.bossName}.` : null, "critical");
   return <div className="pointer-events-none fixed inset-0 z-10 hud-scanline select-none font-mono text-foreground" style={perfFlags().hud ? undefined : { display: "none" }}>
+    <HealthVignette hp={hud.hp} />
     <div className="pointer-events-auto absolute left-3 top-3"><Button title="Menu" size="icon" variant="ghost" className="bg-background/25" onClick={onMenu} aria-label="Open menu"><Menu /></Button><Button title="Map (M)" size="icon" variant="ghost" className="ml-1 bg-background/25" onClick={onAtlas} aria-label="Open map"><MapIcon /></Button></div>
     {!hud.insideInterior && (
       <div className="absolute left-[5.75rem] top-3 border-l border-primary/60 px-2.5 py-0.5 text-[9px] uppercase">
@@ -132,4 +134,15 @@ function WeaponSelector({ hud }: { hud: HudState }) {
   if (!recent && !hud.weaponWheel) return null;
   if (hud.weaponWheel) return <div className="absolute left-1/2 top-1/2 grid size-64 -translate-x-1/2 -translate-y-1/2 grid-cols-2 gap-20">{hud.ammo.map((weapon, index) => <div key={weapon.id} className={`hud-panel relative grid place-items-center p-2 text-center ${index + 1 === hud.weaponSlot ? "hud-glow text-primary" : "text-muted-foreground"}`}><CornerBrackets /><span className="text-[9px] uppercase">{weapon.name}<br />{weapon.magSize ? `${weapon.mag}/${weapon.reserve}` : "melee"}</span></div>)}</div>;
   return <div className="absolute bottom-24 left-1/2 flex -translate-x-1/2 gap-1">{hud.ammo.map((weapon, index) => <div key={weapon.id} className={`h-1 w-10 ${index + 1 === hud.weaponSlot ? "bg-primary" : "bg-foreground/20"}`} style={index + 1 === hud.weaponSlot ? { boxShadow: "0 0 6px color-mix(in oklch, var(--primary) 70%, transparent)" } : undefined} />)}</div>;
+}
+/** Damage feedback: a red edge vignette that deepens below 40% health, and a brief flash whenever health drops. Presentation only. */
+function HealthVignette({ hp }: { hp: number }) {
+  const prev = useRef(hp);
+  const [flash, setFlash] = useState(0);
+  useEffect(() => { if (hp < prev.current - 0.5) setFlash((f) => f + 1); prev.current = hp; }, [hp]);
+  const low = hp > 0 && hp <= 40 ? (40 - hp) / 40 : 0;
+  return <>
+    {low > 0 && <div className={`absolute inset-0 ${hp <= 20 ? "animate-pulse" : ""}`} style={{ background: `radial-gradient(ellipse at center, transparent 45%, rgb(160 10 20 / ${0.18 + low * 0.45}) 100%)` }} aria-hidden />}
+    {flash > 0 && <div key={flash} className="hit-flash absolute inset-0" aria-hidden />}
+  </>;
 }

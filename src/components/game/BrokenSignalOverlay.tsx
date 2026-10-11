@@ -48,7 +48,7 @@ export function BrokenSignalOverlay({ mission, onEvent }: { mission: MissionRun;
     {glitch && <div className="pointer-events-none fixed inset-x-0 top-24 z-30 mx-auto w-fit animate-pulse border border-destructive bg-background/70 px-6 py-3 font-mono text-lg uppercase tracking-[0.3em] text-destructive">
       <span className="line-through opacity-60">Neon Core ad network active</span><br />Unauthorized signal detected
     </div>}
-    {mission.state !== "WORLD_UPDATE" && <div className="pointer-events-none fixed right-3 top-24 z-20 max-w-xs border-l-2 border-primary bg-card/80 p-3">
+    {mission.state !== "WORLD_UPDATE" && <div className="pointer-events-none mission-tracker fixed right-3 top-24 z-20 max-w-xs border-l-2 border-primary bg-card/80 p-3">
       <p className="font-mono text-[10px] uppercase tracking-[0.25em] text-primary">Broken Signal</p>
       <p className="mt-1 text-sm">{OBJECTIVE[mission.state]}</p>
       {(hacking || mission.state === "COMBAT_2") && <p className="mt-1 font-mono text-[10px] text-muted-foreground">DATA NODE {Math.round(mission.hack)}%</p>}

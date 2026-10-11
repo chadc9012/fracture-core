@@ -71,6 +71,8 @@ import { claimDrops } from "@/game/inventory";
 import { ShopWindow } from "./ShopWindow";
 import { InventoryWindow } from "./InventoryWindow";
 import { CharacterScreen } from "./CharacterScreen";
+import { MissionBannerView } from "./MissionBannerView";
+import { bannerFor, type MissionBanner } from "@/game/mission-banner";
 import { WorldAtlas } from "./WorldAtlas";
 import { BrokenSignalOverlay } from "./BrokenSignalOverlay";
 import { AwakeningOverlay } from "./AwakeningOverlay";
@@ -878,6 +880,18 @@ export function GameCanvas() {
     if (event.type === "DEFENSE_CLEARED") setStoryGraph(ARTIFACT_DIALOGUE);
   }, []);
   const [levelUpFlash, setLevelUpFlash] = useCountedState<{ level: number; novaUnlocked: string[] } | null>("levelUpFlash", null);
+  // mission banners (mission-banner.ts): compare every scripted run's state with the last render; the first render is the baseline, so a run
+  // restored from the save never shows a "New mission" banner
+  const missionStates: Record<string, string | undefined> = { "awakening": awakening?.state, "broken-signal": mission?.state, "blackout-protocol": blackout?.state, "drowned-relay": relay?.state, "stitched-neon-core": neonCore?.state, "solar-array": solarArray?.state, "core-node": coreNode?.state, "descent-protocol": descent?.state, "system-core": systemCore?.state };
+  const missionKey = JSON.stringify(missionStates);
+  const prevMissionStates = useRef<Record<string, string | undefined> | null>(null);
+  const [missionBanner, setMissionBanner] = useState<MissionBanner | null>(null);
+  useEffect(() => {
+    const next = JSON.parse(missionKey) as Record<string, string | undefined>;
+    if (prevMissionStates.current) { const b = bannerFor(prevMissionStates.current, next); if (b) setMissionBanner(b); }
+    prevMissionStates.current = next;
+  }, [missionKey]);
+  const clearBanner = useCallback(() => setMissionBanner(null), []);
   // diagnostic (F3 "why" line): which tracked state changed identity this render; remove with the F3 line
   canvasWhy.render({ hud, phase, pendingDeployment, menuOpen, settings, adaptiveDpr, lowPerf, autoCap, qualityNotice, vehicleId, garageOpen, inventoryOpen, shopOpen, ruinOpen, cacheBanner, atlasOpen, hubView, travelTo, transit, savedFlash, strategyOpen, analysisOpen, operationsView, last, progression, landmarkToast, cls, subclass, appearance, bodyType, tutorial, showIntro, cineId, cineProgress, introElapsed, mission, awakening, relay, blackout, neonCore, solarArray, coreNode, zoneRuns, descent, systemCore, activeDialogue, deathInfo, showEnding, menuNotice, rewardCards, storyGraph, captionQueue, levelUpFlash });
   const recordXP = (event: WorldSim["xpEvents"][number]) => {
@@ -1062,6 +1076,7 @@ export function GameCanvas() {
        {activeDialogue && <DialogueOverlay lines={activeDialogue} onDone={() => setActiveDialogue(null)} />}
        {deathInfo && <DeathOverlay cause={deathInfo.cause} cargoLost={deathInfo.cargoLost} deaths={deathInfo.deaths} onDone={() => setDeathInfo(null)} />}
        {rewardCards && <ScenarioRewardCards title={rewardCards.title} cards={rewardCards.cards} onDone={() => setRewardCards(null)} />}
+      {missionBanner && <MissionBannerView banner={missionBanner} onDone={clearBanner} />}
       {levelUpFlash && <LevelUpOverlay level={levelUpFlash.level} novaUnlocked={levelUpFlash.novaUnlocked} onDone={() => setLevelUpFlash(null)} />}
        {showEnding && <EndingOverlay progression={progression} onClose={() => setShowEnding(false)} />}
        {hud.insideInterior && hud.interiorName && hud.sub.startsWith("Shop") && (

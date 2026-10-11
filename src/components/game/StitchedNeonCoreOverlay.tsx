@@ -30,7 +30,7 @@ export function StitchedNeonCoreOverlay({ mission, onEvent }: { mission: Mission
   };
 
   return <>
-    {mission.state !== "WORLD_UPDATE" && <div className="pointer-events-none fixed right-3 top-24 z-20 max-w-xs border-l-2 p-3" style={{ borderColor: ACCENT, background: "color-mix(in oklch, var(--card) 80%, transparent)" }}>
+    {mission.state !== "WORLD_UPDATE" && <div className="pointer-events-none mission-tracker fixed right-3 top-24 z-20 max-w-xs border-l-2 p-3" style={{ borderColor: ACCENT, background: "color-mix(in oklch, var(--card) 80%, transparent)" }}>
       <p className="font-mono text-[10px] uppercase tracking-[0.25em]" style={{ color: ACCENT }}>Stitched Neon Core</p>
       <p className="mt-1 text-sm">{OBJECTIVE[mission.state]}</p>
       {stabilizing && <p className="mt-1 font-mono text-[10px] text-muted-foreground">NODES {Math.round(mission.hack)}%</p>}

@@ -349,3 +349,26 @@
     rgb(20 22 25 / 0.85);
   backdrop-filter: blur(6px);
 }
+
+/* HUD stacking (live playtest: on narrow screens the NOVA tutorial card, the mission tracker and the dive gauges were drawn on top of each
+   other). Below 1024px the left card and the right tracker each take at most half the width, and long tutorial text is clamped. */
+.mission-tracker { max-width: min(20rem, calc(50% - 1rem)) !important; }
+@media (max-width: 1023px) {
+  .onboarding-card { width: calc(50% - 1.5rem) !important; padding: 0.5rem 0.75rem !important; }
+  .onboarding-card p { font-size: 11px; line-height: 1.35; }
+  .onboarding-card p:nth-of-type(3) { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+  .dive-gauges { width: 11.5rem !important; }
+}
+
+/* NEW MISSION ribbon (MissionBannerView, Destiny 2 reference): slanted crimson band that slides in from the left; the place name fades in
+   wide-tracked lower-left */
+.mission-ribbon { background: linear-gradient(90deg, rgb(150 24 36 / 0.92), rgb(150 24 36 / 0.75) 70%, transparent); clip-path: polygon(0 0, 100% 0, 92% 100%, 0 100%); animation: ribbon-in 0.6s cubic-bezier(.2,.8,.2,1) both; }
+.mission-place { letter-spacing: 0.45em; text-shadow: 0 2px 12px rgb(0 0 0 / 0.8); animation: place-in 1.2s 0.4s ease-out both; }
+@keyframes ribbon-in { from { transform: translateX(-105%); } to { transform: none; } }
+@keyframes place-in { from { opacity: 0; letter-spacing: 0.8em; } to { opacity: 1; letter-spacing: 0.45em; } }
+@media (prefers-reduced-motion: reduce) { .mission-ribbon, .mission-place { animation: none; } }
+
+/* hit flash (HUD HealthVignette): a quick red edge pulse when health drops */
+.hit-flash { background: radial-gradient(ellipse at center, transparent 55%, rgb(220 20 30 / 0.45) 100%); animation: hit-flash 0.45s ease-out forwards; }
+@keyframes hit-flash { from { opacity: 1; } to { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .hit-flash { animation-duration: 0.15s; } }

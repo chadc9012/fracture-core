@@ -16,7 +16,7 @@ export function DiveHud({ hud }: { hud: HudState }) {
           <p className="text-sm font-bold tracking-[0.2em] text-slate-100">PRESSURIZED ZONE · {hud.sector || "THALASSIA"}</p>
         </div>
       </div>}
-      <div className="absolute right-4 top-24 w-56 space-y-2">
+      <div className="dive-gauges absolute bottom-36 right-4 w-56 space-y-2">{/* live playtest: at top-24 this sat on top of the mission tracker */}
         <div className="border border-cyan-400/40 bg-slate-950/70 px-3 py-2">
           <p className="text-[9px] tracking-[0.25em] text-cyan-300">{hud.sector ? `// ${hud.sector.toUpperCase()}` : "// SUBMERGED"}</p>
           <p className="text-lg font-black text-slate-100">DEPTH <span className="text-cyan-300">{hud.depth}m</span></p>
