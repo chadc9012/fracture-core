@@ -33,7 +33,7 @@ export function HUD({ hud, tutorialActive = false, onMenu, onAtlas, level }: { h
         {hud.hazard && <div className={hud.hazard.active ? "text-destructive" : "text-foreground/70"}><p>⚠ {hud.hazard.name}</p><div className="mt-0.5 h-0.5 w-24 bg-foreground/15"><div className="h-full bg-current" style={{ width: `${Math.round(hud.hazard.intensity * 100)}%` }} /></div></div>}
     </div>}
     {hud.diving && <div className="water-overlay pointer-events-none absolute inset-0 z-10" aria-hidden />}
-    {!tutorialActive && <DiveHud hud={hud} />}
+    <DiveHud hud={hud} />
     {!tutorialActive && <StratagemPanel hud={hud.stratagem} />}
     <EmergencyQuestBanner eq={hud.emergencyQuest} />
     <BossHealthBar boss={hud.bossHud} />
