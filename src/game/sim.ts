@@ -540,7 +540,7 @@ export function createSim(): WorldSim {
     director: createDirector(),
     impactCool: 0,
     combatHeat: 0,
-    squad: createSquad(0, 0, typeof location === "undefined" || !/[?&]squad=0/.test(location.search)),
+    squad: createSquad(0, 0, typeof location !== "undefined" && /[?&]squad=1/.test(location.search)),
     envVisibility: 1,
     playerNoise: 0,
     adaptation,
