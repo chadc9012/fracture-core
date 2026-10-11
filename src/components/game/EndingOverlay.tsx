@@ -1,12 +1,13 @@
 import { Button } from "@/components/ui/button";
 import type { PlayerProgression } from "@/game/progression";
 import { useVoiceLine } from "./useVoiceLine";
+import { aftermathFor, endingTierFor } from "@/game/endings";
+import { FACTIONS, factionOf } from "@/game/missions/core-node";
 
 /**
  * The Fracture Descent's closing screen — fires once, when fd-18 (The System Core) completes.
- * Which of the three lore-established endings (Control/Chaos/Resonant-Balance) plays is read off
- * progression.corruptionLevel, the same number the quest chain has been accumulating all along, so
- * the ending reflects how the player actually played rather than a scripted final choice screen.
+ * Which of the three lore-established endings (Control/Chaos/Resonant-Balance) plays is decided by the
+ * allegiance chosen in the Core Node (game/endings.ts); saves without one fall back to corruptionLevel.
  * The world keeps running after this closes — per the lore's own "post-game is a live, evolving
  * world" framing, this is a milestone screen, not a game-over.
  */
@@ -25,15 +26,12 @@ const ENDINGS = {
   },
 } as const;
 
-export function endingTierFor(progression: PlayerProgression): keyof typeof ENDINGS {
-  if (progression.corruptionLevel < 35) return "CONTROL";
-  if (progression.corruptionLevel > 65) return "CHAOS";
-  return "BALANCE";
-}
+export { endingTierFor };
 
 export function EndingOverlay({ progression, onClose }: { progression: PlayerProgression; onClose: () => void }) {
   const tier = endingTierFor(progression);
   const ending = ENDINGS[tier];
+  const faction = factionOf(progression.story);
   useVoiceLine(`ending-${tier}`, "NARRATOR", ending.line, "critical");
   return (
     <div className="fixed inset-0 z-50 grid place-items-center bg-background/95 p-6">
@@ -41,7 +39,9 @@ export function EndingOverlay({ progression, onClose }: { progression: PlayerPro
         <p className="font-mono text-[10px] uppercase tracking-[0.35em] text-primary">The Fracture Descent · Complete</p>
         <h1 className="mt-3 text-3xl font-semibold uppercase tracking-wide">{ending.title}</h1>
         <p className="mt-4 text-sm leading-relaxed text-muted-foreground">{ending.line}</p>
+        {aftermathFor(progression).map((line) => <p key={line} className="mt-3 text-sm leading-relaxed text-muted-foreground/90">{line}</p>)}
         <div className="mt-6 flex flex-wrap justify-center gap-x-6 gap-y-2 font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
+          {faction && <span>Stood with the {FACTIONS[faction].name}</span>}
           <span>Corruption {Math.round(progression.corruptionLevel)}%</span>
           <span>Fracture Shards {progression.fractureShards}</span>
           <span>Worlds unlocked {progression.unlockedWorlds.length}</span>

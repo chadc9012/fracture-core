@@ -90,7 +90,7 @@ describe("B1 — the whole chain is completable with only events the game emits"
     r.enter("neon"); r.mission("blackout-protocol", { microCircuits: 4 }); r.snap(0.18, { heatLevel: 3 }); // fd-06
     r.mission("stitched-neon-core", { aegisCore: 1 }); r.snap(0.18, { heatLevel: 5 });                    // fd-07
     r.enter("solara"); r.stay(95); r.mission("solar-array", { anomalyCarbon: 2, dataShards: 2 }); // fd-08
-    r.enter("nexus"); r.snap(0.18, { hackProgress: 100 });        // fd-09
+    r.enter("nexus"); r.snap(0.18, { hackProgress: 100 }); r.mission("core-node"); // fd-09
     r.snap(0.18, { nexusLockdownTier: "LOCKDOWN_PURGE" });        // fd-10
     r.enter("frostspire"); r.stay(95); r.mission("frozen-beacon"); // fd-11
     r.enter("ember"); r.kill(8); r.stay(65); r.mission("failure-core"); // fd-12, fd-13

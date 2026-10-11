@@ -19,6 +19,7 @@ import { alert, applyLightning, collidePlayer, createSim, defeatMachine, FACTION
 import type { MissionEvent, MissionRun } from "@/game/missions/broken-signal";
 import type { MissionEvent as BlackoutEvent, MissionRun as BlackoutRun } from "@/game/missions/blackout-protocol";
 import type { MissionEvent as NeonCoreEvent, MissionRun as NeonCoreRun } from "@/game/missions/stitched-neon-core";
+import type { MissionEvent as CoreNodeEvent, MissionRun as CoreNodeRun } from "@/game/missions/core-node";
 import { ZONE_MISSIONS, ZONE_MISSION_IDS, zoneSite, type MissionEvent as ZoneEvent, type MissionRun as ZoneRun, type ZoneMissionId } from "@/game/missions/zone-missions";
 import { arraySite, type MissionEvent as ArrayEvent, type MissionRun as ArrayRun } from "@/game/missions/solar-array";
 import { relaySite, type MissionEvent as RelayEvent, type MissionRun as RelayRun } from "@/game/missions/drowned-relay";
@@ -389,6 +390,8 @@ export function Scene({
   onNeonCoreEvent,
   solarArray,
   onSolarArrayEvent,
+  coreNode,
+  onCoreNodeEvent,
   zoneRuns,
   onZoneEvent,
   descent,
@@ -436,6 +439,8 @@ export function Scene({
   onNeonCoreEvent?: (event: NeonCoreEvent) => void;
   solarArray?: ArrayRun | null;
   onSolarArrayEvent?: (event: ArrayEvent) => void;
+  coreNode?: CoreNodeRun | null;
+  onCoreNodeEvent?: (event: CoreNodeEvent) => void;
   zoneRuns?: Partial<Record<ZoneMissionId, ZoneRun>>;
   onZoneEvent?: (id: ZoneMissionId, event: ZoneEvent) => void;
   descent?: DescentRun | null;
@@ -483,6 +488,7 @@ export function Scene({
   const neonCoreSpawned = useRef("");
   const descentSpawned = useRef("");
   const solarArraySpawned = useRef("");
+  const coreNodeSpawned = useRef("");
   const zoneSpawned = useRef<Partial<Record<ZoneMissionId, string>>>({});
   const systemCoreSpawned = useRef("");
   const bossActionLog = useRef<ActionLogEntry[]>([]);
@@ -528,6 +534,7 @@ export function Scene({
     if (blackout?.target && blackout.state !== "COMPLETE" && blackout.state !== "WORLD_UPDATE") list.push({ id: "m-blackout-protocol", kind: "MISSION", label: "Blackout Protocol", x: blackout.target.x, z: blackout.target.z, regionId: "nexus" });
     if (neonCore?.target && neonCore.state !== "COMPLETE" && neonCore.state !== "WORLD_UPDATE") list.push({ id: "m-stitched-neon-core", kind: "MISSION", label: "Stitched Neon Core", x: neonCore.target.x, z: neonCore.target.z, regionId: "nexus" });
     if (solarArray?.target && solarArray.state !== "COMPLETE" && solarArray.state !== "WORLD_UPDATE") list.push({ id: "m-solar-array", kind: "MISSION", label: "Solar Array Alpha", x: solarArray.target.x, z: solarArray.target.z, regionId: "solara" });
+    if (coreNode?.target && coreNode.state !== "COMPLETE" && coreNode.state !== "WORLD_UPDATE") list.push({ id: "m-core-node", kind: "MISSION", label: "The Core Node", x: coreNode.target.x, z: coreNode.target.z, regionId: "nexus" });
     for (const id of ZONE_MISSION_IDS) { const z = zoneRuns?.[id]; if (z?.target && z.state !== "COMPLETE" && z.state !== "WORLD_UPDATE") list.push({ id: `m-${id}`, kind: "MISSION", label: ZONE_MISSIONS[id].title, x: z.target.x, z: z.target.z, regionId: ZONE_MISSIONS[id].regionId }); }
     if (descent?.target && descent.state !== "COMPLETE" && descent.state !== "WORLD_UPDATE") list.push({ id: "m-descent-protocol", kind: "MISSION", label: "Descent Protocol", x: descent.target.x, z: descent.target.z, regionId: "swamps" });
     if (systemCore?.target && systemCore.state !== "COMPLETE" && systemCore.state !== "WORLD_UPDATE") list.push({ id: "m-system-core", kind: "MISSION", label: "The System Core", x: systemCore.target.x, z: systemCore.target.z, regionId: "swamps" });
@@ -1676,6 +1683,18 @@ export function Scene({
       if (solarArray.state === "BOSS" && solarArraySpawned.current === "BOSS" && !sim.machines.some((m) => m.alive && m.mission)) { solarArraySpawned.current = "BOSS-done"; onSolarArrayEvent({ type: "CLEAR" }); }
     }
 
+    /* ---------------- Reveal mission · The Core Node world triggers (the REVEAL phase is UI only) ---------------- */
+    if (coreNode && onCoreNodeEvent) {
+      const nexus = REGIONS.find((r) => r.id === "nexus");
+      if (coreNode.state === "TRIGGERED" && !coreNode.target && nexus) onCoreNodeEvent({ type: "ANCHOR", x: nexus.x + 6, z: nexus.z - 8 });
+      if (coreNode.state === "INFILTRATE" && coreNode.target && Math.hypot(coreNode.target.x - s.x, coreNode.target.z - s.z) < 12) onCoreNodeEvent({ type: "ARRIVED" });
+      if (coreNode.state === "COMBAT_1" && coreNodeSpawned.current !== "COMBAT_1" && coreNodeSpawned.current !== "COMBAT_1-done") {
+        coreNodeSpawned.current = "COMBAT_1";
+        spawnMissionDrones(sim, s.x, s.z, 6, true, "nexus");
+      }
+      if (coreNode.state === "COMBAT_1" && coreNodeSpawned.current === "COMBAT_1" && !sim.machines.some((m) => m.alive && m.mission)) { coreNodeSpawned.current = "COMBAT_1-done"; onCoreNodeEvent({ type: "CLEAR" }); }
+    }
+
     /* ---------------- Zone story missions (Frostspire / Ember / Wastelands) world triggers ---------------- */
     if (zoneRuns && onZoneEvent) {
       for (const id of ZONE_MISSION_IDS) {
@@ -2259,6 +2278,12 @@ export function Scene({
         <group position={[solarArray.target.x, heightAt(solarArray.target.x, solarArray.target.z) + 3, solarArray.target.z]}>
           <mesh><octahedronGeometry args={[0.9, 0]} /><meshStandardMaterial color="#ffe8a8" emissive="#ffe8a8" emissiveIntensity={3} /></mesh>
           <mesh position={[0, 30, 0]}><cylinderGeometry args={[0.15, 0.15, 60, 6]} /><meshBasicMaterial color="#ffe8a8" transparent opacity={0.45} /></mesh>
+        </group>
+      )}
+      {coreNode?.target && coreNode.state === "INFILTRATE" && (
+        <group position={[coreNode.target.x, heightAt(coreNode.target.x, coreNode.target.z) + 3, coreNode.target.z]}>
+          <mesh><octahedronGeometry args={[0.9, 0]} /><meshStandardMaterial color="#66e0ff" emissive="#66e0ff" emissiveIntensity={3} /></mesh>
+          <mesh position={[0, 30, 0]}><cylinderGeometry args={[0.15, 0.15, 60, 6]} /><meshBasicMaterial color="#66e0ff" transparent opacity={0.45} /></mesh>
         </group>
       )}
       {ZONE_MISSION_IDS.map((id) => {

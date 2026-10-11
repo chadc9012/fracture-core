@@ -140,7 +140,11 @@ export const QUESTS: Record<string, Quest> = {
   "fd-09": {
     id: "fd-09", title: "Protocol Breach", world: "nexus",
     line: "Nexus City — the Authority's control layer. They don't police chaos here. They erase it.",
-    objectives: [{ type: "HACK_COMPLETE", label: "Breach the Core Node terminal", amount: 1 }],
+    // existing objective stays index 0 so part-way saves keep their progress
+    objectives: [
+      { type: "HACK_COMPLETE", label: "Breach the Core Node terminal", amount: 1 },
+      { type: "MISSION_COMPLETE", label: "Open the Core Node's archive", key: "core-node", amount: 1 },
+    ],
     rewardShards: 280, rewardMaterials: { dataShards: 5 }, unlocksWorld: null, nextQuestId: "fd-10", corruption: 2,
   },
   "fd-10": {

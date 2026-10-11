@@ -324,4 +324,13 @@ Note: M-22, M-23, M-25 are the same objects as D-01…D-03. Decide whether they 
 | Ember Peaks | **The Failure Core** (`failure-core`) | upgrades `fd-13` (objective 2; `fd-12` kills unchanged) | PLAYABLE BUT UNVERIFIED | Starts after `fd-12`. Ember troops → reactor venting (valve dials) → Overseer Kael. Story: the reactor was feeding the Fracture; its fuel came up the Grid-Iron Highway. |
 | Wastelands | **Convoy Breaker** (`convoy-breaker`) | upgrades `fd-14` (objective 2) | PLAYABLE BUT UNVERIFIED | Starts after `fd-13`. Wasteland troops → convoy override (code match) → Rust-King Gant. Story: every tanker was bound for the Fuel King (hands off to `fd-15`). |
 
-All six zone missions in §8 now exist in code. Remaining from §8: the mid-campaign reveal mission (NOVA secret + faction choice) and the finale approach/aftermath. Nothing here is browser-verified yet.
+All six zone missions in §8 now exist in code.
+
+### Reveal mission and choice model (A4 + B6)
+| Item | State | Notes |
+|---|---|---|
+| **The Core Node** (`core-node`, upgrades `fd-09`, objective 2) | PLAYABLE BUT UNVERIFIED | Starts after `fd-08` (and for older saves past `fd-09` that never chose a side; never after `fd-18`). Nexus troops → archive handshake (sequence) → REVEAL: `REVEAL_GRAPH` conversation in StoryDialogue. NOVA's secret: she is a loose fragment of the Thalassian Deepmind that started the Fracture. The archive names the Carrier program: carry the key to the System Core. The player chooses Controllers / Breakers / Resonants (`story.choices.faction`, first answer stands, replay-safe). Skipping leaves REVEAL open; the overlay's "Talk to NOVA" reopens it. |
+| Ending selection | DONE (unit-tested) | `src/game/endings.ts`: the allegiance decides the ending (Controllers → Control, Breakers → Chaos, Resonants → Balance); saves without one keep the corruption rule. Settles the "3 vs 4 endings" question at 3. |
+| Aftermath | DONE (unit-tested) | `aftermathFor`: one line on what the chosen side does with the world, one on NOVA's fate from her trust (reveal choices). Shown under the ending. |
+
+Still open: browser verification of every mission above; faction-specific gameplay (vendors, allies at the Core) beyond the ending; the orbital/Act IV-V roster is out of scope until new engine systems exist.

@@ -51,7 +51,7 @@ export function ZoneMissionOverlay({ mission, onEvent }: Props) {
 type GameProps = { seed: number; accent: string; onProgress: (p: number) => void };
 
 /** Memorize-and-repeat: the pattern plays once per "Show pattern"; a slip restarts the entry. */
-function SequenceGame({ seed, accent, onProgress }: GameProps) {
+export function SequenceGame({ seed, accent, onProgress }: GameProps) {
   const seq = useMemo(() => sequenceFor(seed), [seed]);
   const [state, setState] = useState<SequenceState>({ entered: 0 });
   const [showing, setShowing] = useState(-1);

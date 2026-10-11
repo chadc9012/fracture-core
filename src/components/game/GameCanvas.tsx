@@ -80,6 +80,8 @@ import { advanceMission as advanceBlackout, BLACKOUT_PROTOCOL, type MissionEvent
 import { BlackoutProtocolOverlay } from "./BlackoutProtocolOverlay";
 import { advanceMission as advanceRelay, DROWNED_RELAY, type MissionEvent as RelayEvent, type MissionRun as RelayRun } from "@/game/missions/drowned-relay";
 import { DrownedRelayOverlay } from "./DrownedRelayOverlay";
+import { advanceMission as advanceCoreNode, CORE_NODE, coreNodeReady, factionOf, REVEAL_GRAPH, type MissionEvent as CoreNodeEvent, type MissionRun as CoreNodeRun } from "@/game/missions/core-node";
+import { CoreNodeOverlay } from "./CoreNodeOverlay";
 import { advanceMission as advanceZone, initialRun as zoneInitial, zoneMissionReady, ZONE_MISSION_IDS, type MissionEvent as ZoneEvent, type MissionRun as ZoneRun, type ZoneMissionId } from "@/game/missions/zone-missions";
 import { ZoneMissionOverlay } from "./ZoneMissionOverlay";
 import { advanceMission as advanceArray, SOLAR_ARRAY, type MissionEvent as ArrayEvent, type MissionRun as ArrayRun } from "@/game/missions/solar-array";
@@ -528,6 +530,24 @@ export function GameCanvas() {
     return () => window.clearTimeout(timer);
   }, [solarArray?.state, progression.completedMissions]);
 
+  /* Reveal mission · The Core Node (fd-09) — NOVA's secret and the faction choice. The REVEAL phase is a
+   * story.ts conversation (REVEAL_GRAPH); finishing it with an allegiance sends DECIDED (see finishStoryGraph). */
+  const [coreNode, setCoreNode] = useCountedState<CoreNodeRun | null>("coreNode", () => restoreMission<CoreNodeRun>("core-node", progression));
+  useEffect(() => setProgression((p) => withMissionRun(p, "core-node", coreNode)), [coreNode]);
+  const coreNodeIsReady = phase === "world" && !tutorial && coreNodeReady(progression.completedMissions, progression.story);
+  useEffect(() => {
+    if (!coreNodeIsReady || coreNode) return;
+    const timer = window.setTimeout(() => setCoreNode(advanceCoreNode(CORE_NODE, { type: "START" })), 8000);
+    return () => window.clearTimeout(timer);
+  }, [coreNodeIsReady, coreNode]);
+  const recordCoreNode = (event: CoreNodeEvent) => setCoreNode((current) => current ? advanceCoreNode(current, event, factionOf(progressionRef.current.story)) : current);
+  useEffect(() => {
+    if (coreNode?.state !== "WORLD_UPDATE" || progression.completedMissions.includes("core-node")) return;
+    setProgression((current) => applyMissionCompletion(current, "core-node"));
+    const timer = window.setTimeout(() => setCoreNode(null), 9000);
+    return () => window.clearTimeout(timer);
+  }, [coreNode?.state, progression.completedMissions]);
+
   /* Zone story missions · Frozen Beacon (fd-11), Failure Core (fd-13), Convoy Breaker (fd-14) — one
    * shared machine (zone-missions.ts). Each starts when the previous chapter's quest is done and its own
    * isn't; chapters are sequential, so at most one is ever ready. */
@@ -726,6 +746,7 @@ export function GameCanvas() {
     setRelay((m) => (force ? null : (reconcileRuns({ "drowned-relay": m }, incoming)["drowned-relay"] as RelayRun | null)));
     setBlackout((m) => (force ? null : (reconcileRuns({ "blackout-protocol": m }, incoming)["blackout-protocol"] as BlackoutRun | null)));
     setNeonCore((m) => (force ? null : (reconcileRuns({ "stitched-neon-core": m }, incoming)["stitched-neon-core"] as NeonCoreRun | null)));
+    setCoreNode((m) => (force ? null : (reconcileRuns({ "core-node": m }, incoming)["core-node"] as CoreNodeRun | null)));
     setZoneRuns((runs) => {
       if (force) return {};
       const live = reconcileRuns(runs, incoming);
@@ -775,6 +796,12 @@ export function GameCanvas() {
   const finishStoryGraph = useCallback((completed: boolean, story: StoryState) => {
     const finished = storyGraphRef.current;
     setStoryGraph(null);
+    // the Core Node reveal: an allegiance closes the mission's REVEAL phase; a skip leaves it open (the overlay can reopen it)
+    if (finished?.id === REVEAL_GRAPH.id) {
+      const faction = factionOf(story);
+      if (faction) setCoreNode((current) => (current ? advanceCoreNode(current, { type: "DECIDED" }, faction) : current));
+      return;
+    }
     // boss stories (boss-stories.ts): hearing the lair intro, even skipped, lets the fight start; nothing else is paid here
     const bossId = finished?.id.split(".")[0] ?? "";
     if (finished && bossStoryFor(bossId)) {
@@ -788,6 +815,14 @@ export function GameCanvas() {
     const granted = grantVaelithRewards({ ...progressionRef.current, story });
     if (granted.cards.length) { setProgression((current) => grantVaelithRewards({ ...current, story }).progress); setRewardCards({ title: "Vaelith", cards: granted.cards }); }
   }, []);
+  // Core Node reveal: the conversation opens by itself once per session when the hack lands; after a skip, the overlay's button reopens it
+  const revealOpened = useRef(false);
+  useEffect(() => {
+    if (coreNode?.state !== "REVEAL" || revealOpened.current) return;
+    revealOpened.current = true;
+    const timer = window.setTimeout(() => setStoryGraph((current) => current ?? REVEAL_GRAPH), 1500);
+    return () => window.clearTimeout(timer);
+  }, [coreNode?.state]);
   // phase captions for the boss stories: presentation only, one line at a time
   const [captionQueue, setCaptionQueue] = useCountedState<StoryLine[]>("captionQueue", []);
   useEffect(() => {
@@ -821,7 +856,7 @@ export function GameCanvas() {
   }, []);
   const [levelUpFlash, setLevelUpFlash] = useCountedState<{ level: number; novaUnlocked: string[] } | null>("levelUpFlash", null);
   // diagnostic (F3 "why" line): which tracked state changed identity this render; remove with the F3 line
-  canvasWhy.render({ hud, phase, pendingDeployment, menuOpen, settings, adaptiveDpr, lowPerf, autoCap, qualityNotice, vehicleId, garageOpen, inventoryOpen, shopOpen, ruinOpen, cacheBanner, atlasOpen, hubView, travelTo, transit, savedFlash, strategyOpen, analysisOpen, operationsView, last, progression, landmarkToast, cls, subclass, appearance, bodyType, tutorial, showIntro, cineId, cineProgress, introElapsed, mission, awakening, relay, blackout, neonCore, solarArray, zoneRuns, descent, systemCore, activeDialogue, deathInfo, showEnding, menuNotice, rewardCards, storyGraph, captionQueue, levelUpFlash });
+  canvasWhy.render({ hud, phase, pendingDeployment, menuOpen, settings, adaptiveDpr, lowPerf, autoCap, qualityNotice, vehicleId, garageOpen, inventoryOpen, shopOpen, ruinOpen, cacheBanner, atlasOpen, hubView, travelTo, transit, savedFlash, strategyOpen, analysisOpen, operationsView, last, progression, landmarkToast, cls, subclass, appearance, bodyType, tutorial, showIntro, cineId, cineProgress, introElapsed, mission, awakening, relay, blackout, neonCore, solarArray, coreNode, zoneRuns, descent, systemCore, activeDialogue, deathInfo, showEnding, menuNotice, rewardCards, storyGraph, captionQueue, levelUpFlash });
   const recordXP = (event: WorldSim["xpEvents"][number]) => {
     setProgression((current) => {
       const result = grantXP(current, event.type, { enemyLevel: event.enemyLevel, combatHeat: event.combatHeat });
@@ -953,7 +988,7 @@ export function GameCanvas() {
       >
         <color attach="background" args={["#bfe4f2"]} />
         <Suspense fallback={<WorldLoading />}>
-            <Scene openedCaches={openedToday} onStoryEvent={recordStory} onHud={setHud} onDrops={(drops) => { showScenarioRewards(drops); setProgression((current) => claimDrops(current, drops)); }} gear={progression} settings={liveSettings} onCameraPreference={(firstPerson) => { window.localStorage.setItem("world-fracture-camera", firstPerson ? "first" : "third"); setSettings((current) => ({ ...current, firstPersonDefault: firstPerson })); }} playerClass={cls} subclassId={subclass} appearance={appearance} bodyType={bodyType} vehicleId={vehicleId} vehicleUnlocked={vehicleUnlocked} activeBuild={progression.activeBuild} abilityBranches={progression.abilityBranches} tutorial={tutorial} onTutorialEvent={recordTutorial} mission={mission} onMissionEvent={recordMission} relay={relay} onRelayEvent={recordRelay} blackout={blackout} onBlackoutEvent={recordBlackout} neonCore={neonCore} onNeonCoreEvent={recordNeonCore} solarArray={solarArray} onSolarArrayEvent={recordSolarArray} zoneRuns={zoneRuns} onZoneEvent={recordZone} descent={descent} onDescentEvent={recordDescent} systemCore={systemCore} onSystemCoreEvent={recordSystemCore} awakening={awakening} onAwakeningEvent={recordAwakening} onXP={recordXP} weaponOrder={activeLoadout(progression, progression.identityClass ?? cls).slots} travelTo={travelTo} introPlayback={showIntro ? { elapsed: introElapsed, totalSeconds: introTotalSeconds() } : cineId ? { elapsed: cineProgress * introTotalSeconds(), totalSeconds: introTotalSeconds() } : null} armorState={hud.hp < 35 ? "FRACTURE" : hud.heat > 65 ? "ASCENDANT" : hud.heat > 15 ? "ACTIVE" : "STABLE"} />
+            <Scene openedCaches={openedToday} onStoryEvent={recordStory} onHud={setHud} onDrops={(drops) => { showScenarioRewards(drops); setProgression((current) => claimDrops(current, drops)); }} gear={progression} settings={liveSettings} onCameraPreference={(firstPerson) => { window.localStorage.setItem("world-fracture-camera", firstPerson ? "first" : "third"); setSettings((current) => ({ ...current, firstPersonDefault: firstPerson })); }} playerClass={cls} subclassId={subclass} appearance={appearance} bodyType={bodyType} vehicleId={vehicleId} vehicleUnlocked={vehicleUnlocked} activeBuild={progression.activeBuild} abilityBranches={progression.abilityBranches} tutorial={tutorial} onTutorialEvent={recordTutorial} mission={mission} onMissionEvent={recordMission} relay={relay} onRelayEvent={recordRelay} blackout={blackout} onBlackoutEvent={recordBlackout} neonCore={neonCore} onNeonCoreEvent={recordNeonCore} solarArray={solarArray} onSolarArrayEvent={recordSolarArray} coreNode={coreNode} onCoreNodeEvent={recordCoreNode} zoneRuns={zoneRuns} onZoneEvent={recordZone} descent={descent} onDescentEvent={recordDescent} systemCore={systemCore} onSystemCoreEvent={recordSystemCore} awakening={awakening} onAwakeningEvent={recordAwakening} onXP={recordXP} weaponOrder={activeLoadout(progression, progression.identityClass ?? cls).slots} travelTo={travelTo} introPlayback={showIntro ? { elapsed: introElapsed, totalSeconds: introTotalSeconds() } : cineId ? { elapsed: cineProgress * introTotalSeconds(), totalSeconds: introTotalSeconds() } : null} armorState={hud.hp < 35 ? "FRACTURE" : hud.heat > 65 ? "ASCENDANT" : hud.heat > 15 ? "ACTIVE" : "STABLE"} />
         </Suspense>
         {post && (
           // cinematic grade: cool-leaning teal shadows, a touch more punch, so the HUD's cyan
@@ -1074,6 +1109,7 @@ export function GameCanvas() {
       {relay && <DrownedRelayOverlay mission={relay} onEvent={recordRelay} />}
       {neonCore && <StitchedNeonCoreOverlay mission={neonCore} onEvent={recordNeonCore} />}
       {solarArray && <SolarArrayOverlay mission={solarArray} onEvent={recordSolarArray} />}
+      {coreNode && <CoreNodeOverlay mission={coreNode} onEvent={recordCoreNode} talking={storyGraph?.id === REVEAL_GRAPH.id} onTalk={() => setStoryGraph((current) => current ?? REVEAL_GRAPH)} />}
       {ZONE_MISSION_IDS.map((id) => { const run = zoneRuns[id]; return run ? <ZoneMissionOverlay key={id} mission={run} onEvent={(e) => recordZone(id, e)} /> : null; })}
       {descent && <DescentProtocolOverlay mission={descent} onEvent={recordDescent} />}
       {systemCore && <SystemCoreOverlay mission={systemCore} onEvent={recordSystemCore} />}
