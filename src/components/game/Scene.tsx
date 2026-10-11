@@ -137,6 +137,9 @@ import { RegionLighting } from "./RegionLighting";
 import { ShopStalls } from "./ShopStalls";
 import { SkyBodies } from "./SkyBodies";
 import { SkyDome } from "./SkyDome";
+import { BrokenHorizon } from "./BrokenHorizon";
+import { NovaDrone } from "./NovaDrone";
+import { GlitchAnomalies } from "./GlitchAnomalies";
 import { GroundCover } from "./GroundCover";
 import { coverDensityFor } from "@/game/ground-cover";
 import { moonAngle, moonlight } from "@/game/celestial";
@@ -1156,7 +1159,7 @@ function SceneImpl({
     if (wx?.state === "STORM") {
       lightning.current -= dt;
       if (lightning.current < -2 - Math.random() * 6) lightning.current = 0.18;
-      if (lightning.current > 0 && sun.current) { sun.current.intensity += 3.5; sun.current.color.set("#cfe0ff"); }
+      if (lightning.current > 0 && sun.current) { sun.current.intensity += 3.5; sun.current.color.set("#d9c4ff"); /* fracture storms flash violet (trailer reference) */ }
     }
     // Interiors are flat pocket rooms far outside the terrain's authored bounds, so slope/height/water sampling there would just be noise — treat them as dry, flat, and out of the water entirely.
     const slope = interior ? 0 : slopeAt(s.x, s.z);
@@ -2329,7 +2332,6 @@ function SceneImpl({
   return (
     <>
       <fog attach="fog" args={["#5f9aa3", 70 * FOG_REACH, 430 * FOG_REACH]} />
-      <FracturePortal />
       <Motes />
       <hemisphereLight ref={hemi} args={["#9ec8e8", "#3b3326", 0.85]} />
       <directionalLight
@@ -2357,7 +2359,7 @@ function SceneImpl({
         mieCoefficient={0.006}
         mieDirectionalG={0.82}
       />
-      <group ref={skyDomeGroup}><SkyDome sunDirRef={sunDir} envRef={skyEnv} playerRef={player} tier={settings.renderTier} /></group>
+      <group ref={skyDomeGroup}><SkyDome sunDirRef={sunDir} envRef={skyEnv} playerRef={player} tier={settings.renderTier} /><BrokenHorizon playerRef={player} /></group>
       <SkyBodies timeRef={time} sunDirRef={sunDir} envRef={skyEnv} playerRef={player} />
       <CloudLayer envRef={skyEnv} playerRef={player} />
       {settings.renderTier !== "LOW" && <SkyFx fxRef={skyFx} envRef={skyEnv} playerRef={player} />}
@@ -2366,7 +2368,7 @@ function SceneImpl({
 
       <group name="terrain+trees"><Terrain renderTier={settings.renderTier} /></group>
       <group name="ground-cover"><GroundCover density={coverDensityFor(settings.renderTier)} /></group>
-      <group name="iso:forest">{settings.renderTier !== "LOW" && <LightShafts sunRef={sunDir} skyEnv={skyEnv} forest={VERIDAN_REGION} />}<VerdantForest density={settings.renderTier === "LOW" ? 0.5 : settings.renderTier === "MEDIUM" ? 0.75 : 1} models={settings.renderTier !== "LOW"} investigation={investigation} heavyShadow={heavyShadows(settings.renderTier)} /></group>
+      <group name="iso:forest">{settings.renderTier !== "LOW" && <LightShafts sunRef={sunDir} skyEnv={skyEnv} forest={VERIDAN_REGION} />}<GlitchAnomalies /><VerdantForest density={settings.renderTier === "LOW" ? 0.5 : settings.renderTier === "MEDIUM" ? 0.75 : 1} models={settings.renderTier !== "LOW"} investigation={investigation} heavyShadow={heavyShadows(settings.renderTier)} /></group>
       <RiftTurrets sim={sim} />
       <PerfProbe />
       <group name="iso:weather"><Weather playerRef={player} weatherRef={weatherKind} fxRef={weatherFx} /></group>
@@ -2467,6 +2469,7 @@ function SceneImpl({
       <Interiors />
       {settings.zoneLabels && <RegionLabels zones={sim.zones} />}
 
+      <NovaDrone held={state} />
       {/* player on foot */}
       <group ref={player} position={SPAWN.toArray()}>
         <OperatorModel held={state} gear={gear} bodyType={bodyType} classId={playerClass} height={2.75} feetY={-1.55} color={appearance.armor} trim={appearance.visor} cloth={appearance.cloth} look={worn} pose="locomotion" motion={feel.current.motionRef} fallback={
@@ -2547,63 +2550,9 @@ function SceneImpl({
   );
 }
 
-/** The Fracture: a jagged tear in the sky. The sky is a dark void with a bright, unstable rim and a violet-to-cyan glow, with slivers of
- * broken sky drifting along it. It is deliberately not round: the earlier white disc with a ring of shards read as a sun or moon. Presentation only. */
-const RIFT_VERT = /* glsl */ `varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`;
-const RIFT_FRAG = /* glsl */ `
-uniform float uTime; varying vec2 vUv;
-float hsh(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
-float vn(vec2 p){ vec2 i = floor(p), f = fract(p); f = f*f*(3.0-2.0*f);
-  return mix(mix(hsh(i), hsh(i+vec2(1.0,0.0)), f.x), mix(hsh(i+vec2(0.0,1.0)), hsh(i+vec2(1.0,1.0)), f.x), f.y); }
-float fbm(vec2 p){ float a = 0.5, s = 0.0; for (int i = 0; i < 4; i++) { s += a * vn(p); p *= 2.03; a *= 0.5; } return s; }
-void main(){
-  vec2 p = vUv * 2.0 - 1.0;                       // -1..1, y runs along the tear
-  float along = 1.0 - abs(p.y);                   // 1 mid-tear .. 0 at the tips
-  // the centre line wanders, with sharp second-octave kinks
-  float wob = (fbm(vec2(p.y * 2.6, 1.7)) - 0.5) * 0.7 + (fbm(vec2(p.y * 9.0, 4.2)) - 0.5) * 0.16;
-  float dx = p.x - wob;
-  float wid = (0.025 + 0.2 * pow(max(along, 0.0), 0.7)) * (0.65 + 0.7 * fbm(vec2(p.y * 4.0, 7.3)));
-  // ragged edge: displace the distance with high-frequency noise so the lips are broken, not smooth
-  float rag = (fbm(vec2(p.y * 14.0, dx * 10.0 + 3.0)) - 0.5) * 0.09 * (0.3 + along);
-  float d = abs(dx) + rag;
-  float inside = 1.0 - smoothstep(wid * 0.82, wid, d);
-  float rim = smoothstep(wid * 0.55, wid, d) * (1.0 - smoothstep(wid, wid * 1.35, d));
-  float glow = exp(-pow(max(d - wid, 0.0) / (0.12 + 0.2 * along), 1.3)) * (0.35 + 0.65 * along);
-  float pulse = 0.82 + 0.18 * sin(uTime * 1.3 + p.y * 5.0 + fbm(vec2(p.y * 3.0, uTime * 0.15)) * 6.0);
-  // beyond the sky: a deep void with a few cold stars and slow swirls
-  vec2 q = vec2(dx * 2.2, p.y * 1.4);
-  float swirl = fbm(q * 3.0 + vec2(uTime * 0.05, -uTime * 0.04));
-  vec3 voidCol = mix(vec3(0.015, 0.01, 0.05), vec3(0.16, 0.07, 0.34), swirl * swirl);
-  float star = step(0.992, hsh(floor(q * 46.0))) * (0.5 + 0.5 * sin(uTime * 2.0 + hsh(floor(q * 46.0)) * 40.0));
-  voidCol += vec3(0.7, 0.85, 1.0) * star;
-  vec3 rimCol = mix(vec3(0.55, 0.4, 1.0), vec3(0.65, 1.0, 1.0), clamp(rim * 1.4 + along * 0.3, 0.0, 1.0));
-  vec3 col = voidCol * inside + rimCol * rim * 2.4 * pulse + mix(vec3(0.45, 0.25, 0.95), vec3(0.2, 0.85, 1.0), along) * glow * 0.9;
-  float a = clamp(inside + rim + glow * 0.75, 0.0, 1.0);
-  // fade to nothing at the tips and the plane edge so no rectangle is ever visible
-  a *= (1.0 - smoothstep(0.82, 1.0, abs(p.y))) * (1.0 - smoothstep(0.7, 1.0, abs(p.x)));
-  gl_FragColor = vec4(col, a);
-}`;
-
-function FracturePortal() {
-  const g = useRef<THREE.Group>(null);
-  const slivers = useRef<THREE.Group>(null);
-  const mat = useMemo(() => new THREE.ShaderMaterial({ uniforms: { uTime: { value: 0 } }, vertexShader: RIFT_VERT, fragmentShader: RIFT_FRAG, transparent: true, depthWrite: false, fog: false, toneMapped: false, side: THREE.DoubleSide }), []);
-  // thin dark slivers of broken sky hanging along the tear (deterministic layout; they bob, they do not orbit)
-  const bits = useMemo(() => Array.from({ length: 14 }, (_, i) => {
-    const t = (i + 0.5) / 14 * 2 - 1;
-    const side = i % 2 ? 1 : -1;
-    return { y: t * 150, x: side * (10 + ((i * 37) % 23)), len: 5 + (i % 4) * 3.2, tilt: ((i * 53) % 90) / 90 * 1.2 - 0.6, phase: i * 1.7 };
-  }), []);
-  useFrame((st) => {
-    mat.uniforms["uTime"]!.value = st.clock.elapsedTime;
-    if (g.current) g.current.position.set(st.camera.position.x, 200, st.camera.position.z - 430);
-    slivers.current?.children.forEach((c, i) => { const b = bits[i]!; c.position.y = b.y + Math.sin(st.clock.elapsedTime * 0.4 + b.phase) * 3; c.rotation.z = b.tilt + Math.sin(st.clock.elapsedTime * 0.25 + b.phase) * 0.12; });
-  });
-  return <group ref={g}>
-    <mesh material={mat} renderOrder={2}><planeGeometry args={[210, 380]} /></mesh>
-    <group ref={slivers} position={[0, 0, 2]}>{bits.map((b, i) => <mesh key={i} position={[b.x, b.y, 0]} rotation={[0, 0, b.tilt]} scale={[1, b.len, 0.4]} renderOrder={3}><octahedronGeometry args={[1.1, 0]} /><meshBasicMaterial color="#07060f" fog={false} /></mesh>)}</group>
-  </group>;
-}
+/* The Fracture (the tear in the sky) now lives in the sky dome as the Sky Rift (sky-dome.ts SKY_RIFT, SkyDome.tsx), drawn from the
+ * trailer reference (docs/trailer-references.md): diagonal, white-hot seam, shattered-glass cracks and leaking code, violet at the edges.
+ * Being part of the dome it hides underwater with the rest of the sky; the old billboard showed through the sea at Thalassia. */
 
 /** Drifting violet/cyan energy motes around the player. */
 function Motes() {

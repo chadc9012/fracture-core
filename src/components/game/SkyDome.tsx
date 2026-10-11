@@ -1,7 +1,7 @@
 import { useFrame } from "@react-three/fiber";
 import { useMemo, useRef } from "react";
 import * as THREE from "three";
-import { SKY_BODY, skyParams } from "@/game/sky-dome";
+import { SKY_BODY, SKY_RIFT, riftGlow, skyParams } from "@/game/sky-dome";
 import type { SkyEnv } from "./CloudLayer";
 import type { RenderTier } from "@/game/performance";
 
@@ -16,6 +16,7 @@ varying vec3 vDir;
 uniform vec3 sunDir, sunColor, cloudLit, cloudShade, zenith, horizonCol, bodyDir;
 uniform float wash, bodyRadius;
 uniform float time, cover, night, sunStrength, starStrength, milkyWay;
+uniform vec3 riftA, riftB; uniform float riftWidth, riftJag, riftGlow;
 float h21(vec2 p){ p = fract(p * vec2(123.34, 456.21)); p += dot(p, p + 45.32); return fract(p.x * p.y); }
 float vn(vec2 p){ vec2 i = floor(p), f = fract(p); f = f*f*(3.0-2.0*f);
   return mix(mix(h21(i), h21(i+vec2(1,0)), f.x), mix(h21(i+vec2(0,1)), h21(i+vec2(1,1)), f.x), f.y); }
@@ -105,6 +106,41 @@ void main(){
     col = mix(col, mix(cc, cloudLit, cir * (1.0 - dens)), ca);
     alpha = max(alpha, ca);
   }
+  // ---- the Sky Rift: a jagged tear across the sky, a white-hot seam with branching cracks and "code" leaking off one edge (sky-dome.ts SKY_RIFT) ----
+  if (riftGlow > 0.01) {
+    vec3 ra = normalize(riftA), rb = normalize(riftB);
+    vec3 rn = normalize(cross(ra, rb));
+    float om = acos(clamp(dot(ra, rb), -1.0, 1.0));
+    float across = asin(clamp(dot(d, rn), -1.0, 1.0));
+    vec3 pr = normalize(d - rn * dot(d, rn) + 1e-5);
+    float along = atan(dot(pr, cross(rn, ra)), dot(pr, ra)) / om;
+    if (along > -0.05 && along < 1.05 && abs(across) < 0.3) {
+      float taper = smoothstep(0.0, 0.14, along) * smoothstep(1.0, 0.78, along);
+      float fadeOut = smoothstep(0.3, 0.18, abs(across));
+      float wob = (fbm(vec2(along * 7.0, 1.7)) - 0.5) * 2.0 * riftJag + (vn(vec2(along * 55.0, 3.0)) - 0.5) * riftJag * 0.45;
+      float x = across - wob;
+      float w = riftWidth * (0.3 + 1.4 * taper) * (0.65 + 0.7 * vn(vec2(along * 17.0, 9.0)));
+      // torn opening: a bright inner seam inside a wider, paler gash with a hard jagged rim
+      float seam = smoothstep(w * 0.35, 0.0, abs(x));
+      float gash = smoothstep(w, w * 0.8, abs(x) + (vn(vec2(along * 140.0, x * 300.0)) - 0.5) * w * 0.5);
+      float edge = exp(-abs(x) / (w * 2.5)) * taper * fadeOut;
+      // shattered-glass cracks branching off the tear, strongest near it
+      float c1 = 1.0 - smoothstep(0.0, 0.012, abs(fbm(vec2(along * 11.0, x * 22.0)) - 0.5));
+      float c2 = 1.0 - smoothstep(0.0, 0.008, abs(fbm(vec2(along * 26.0 + 5.0, x * 48.0)) - 0.5));
+      float br = (c1 + c2 * 0.6) * smoothstep(w * 14.0, w * 1.5, abs(x)) * taper;
+      // leaking code: rows of bright glyph dashes streaming off the sun-side edge and drifting away from the tear
+      vec2 g = vec2(along * 150.0, (x - time * 0.003) * 260.0);
+      vec2 gc = floor(g), gf = fract(g);
+      float on = step(0.55, h21(gc + floor(time * 2.0 + h21(gc) * 9.0) * 0.37)) * step(0.35, h21(vec2(gc.y, 4.0)));
+      float glyph = on * step(0.12, gf.x) * step(gf.x, 0.88) * step(0.4, gf.y) * step(gf.y, 0.62);
+      float stream = smoothstep(w * 18.0, w * 2.0, x) * step(w * 1.4, x) * taper * smoothstep(0.25, 0.6, vn(vec2(along * 9.0, 2.0)));
+      vec3 rc = vec3(1.0, 0.98, 0.94) * seam * 2.6 * taper + mix(vec3(0.85, 0.93, 1.0), vec3(1.0, 0.9, 0.75), 0.35) * gash * 1.6 * taper * (0.85 + 0.3 * vn(vec2(along * 40.0, time * 0.4))) + mix(vec3(0.35, 0.68, 1.0), vec3(0.62, 0.38, 1.0), vn(vec2(along * 5.0, 11.0))) * edge * 0.6 + vec3(0.7, 0.85, 1.0) * br * 0.75 + vec3(0.5, 0.95, 1.0) * glyph * stream * 1.3;
+      float ra2 = clamp((seam + gash) * taper + edge * 0.4 + br * 0.55 + glyph * stream, 0.0, 1.0) * riftGlow;
+      vec3 pre = col * alpha + rc * riftGlow;          // additive light on top of whatever the dome already drew
+      alpha = max(alpha, ra2);
+      col = pre / max(alpha, 1e-3);
+    }
+  }
   gl_FragColor = vec4(col, clamp(alpha, 0.0, 1.0));
 }`;
 
@@ -116,6 +152,7 @@ export function SkyDome({ sunDirRef, envRef, playerRef, tier }: { sunDirRef: Rea
     fragmentShader: frag(octaves),
     uniforms: {
       sunDir: { value: new THREE.Vector3(0, 1, 0) }, zenith: { value: new THREE.Vector3(0.16, 0.42, 0.74) }, horizonCol: { value: new THREE.Vector3(1, 0.86, 0.62) }, bodyDir: { value: new THREE.Vector3(...SKY_BODY.dir).normalize() }, wash: { value: 0.5 }, bodyRadius: { value: SKY_BODY.radius }, sunColor: { value: new THREE.Vector3(1, 0.95, 0.86) }, cloudLit: { value: new THREE.Vector3(1, 1, 1) }, cloudShade: { value: new THREE.Vector3(0.5, 0.55, 0.7) },
+      riftA: { value: new THREE.Vector3(...SKY_RIFT.from).normalize() }, riftB: { value: new THREE.Vector3(...SKY_RIFT.to).normalize() }, riftWidth: { value: SKY_RIFT.width }, riftJag: { value: SKY_RIFT.jag }, riftGlow: { value: 0.6 },
       time: { value: 0 }, cover: { value: 0.4 }, night: { value: 0 }, sunStrength: { value: 1 }, starStrength: { value: 0 }, milkyWay: { value: 0 },
     },
     side: THREE.BackSide, transparent: true, depthWrite: false, fog: false,
@@ -146,6 +183,7 @@ export function SkyDome({ sunDirRef, envRef, playerRef, tier }: { sunDirRef: Rea
     u["sunStrength"]!.value = params.sunStrength;
     u["starStrength"]!.value = params.starStrength;
     u["milkyWay"]!.value = params.milkyWay;
+    u["riftGlow"]!.value = riftGlow(params.night, env?.cloud ?? 0, (env?.cloud ?? 0) > 0.8);
   });
 
   return (

@@ -74,3 +74,13 @@ export function neonWeather(lx: number, lz: number): number {
   const d = Math.hypot(lx, lz);
   return d <= WEATHER_R ? 1 : d >= WEATHER_R + WEATHER_FADE ? 0 : 1 - (d - WEATHER_R) / WEATHER_FADE;
 }
+
+/** Fracture vortex over the Spire (trailer reference: the sky spiralling open above a vertical city canyon, docs/trailer-references.md):
+ * a slow cyan/violet whirl hanging above the crown, plus violet arcs that crawl down the Spire's faces now and then. Presentation only. */
+export const VORTEX = { y: SPIRE.height + 70, r: 55, spin: 0.08 } as const;
+/** is a facade arc crawling at time t (seconds)? Arcs last ~0.7 s and come every ~5.5 s, deterministic so every client agrees */
+export function facadeArc(t: number): { on: boolean; k: number; face: number } {
+  const period = 5.5, len = 0.7;
+  const n = Math.floor(t / period), k = (t - n * period) / len;
+  return { on: k < 1, k: Math.min(1, k), face: ((n * 7) % 4 + 4) % 4 };
+}

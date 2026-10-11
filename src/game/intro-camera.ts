@@ -1,4 +1,5 @@
 import { walkHeight } from "./terrain";
+import { riftPoint } from "./sky-dome";
 
 /**
  * Opening cinematic camera path — a scripted flythrough that plays behind intro.ts's text beats
@@ -29,14 +30,17 @@ function lerp(a: number, b: number, t: number): number {
  * a high slow orbit over the shattered regions, a lateral pass over faction territory, then a
  * descending push toward the spawn point, ending on the same spot/offset Scene.tsx's resting
  * third-person camera uses — so the handoff to live gameplay control is a cut, not a jump. */
+/* Opening shots follow the trailer reference (docs/trailer-references.md, "broken horizon"): open low on the horizon where torn-loose
+ * chunks of the world hang under the Sky Rift, tilt up the tear itself, then sweep down over the land to the spawn. */
+const RIFT_LOW = riftPoint(0.85), RIFT_MID = riftPoint(0.45);
 const WAYPOINTS: readonly { at: number; pose: CameraPose }[] = [
   {
     at: 0,
-    pose: { position: [SPAWN_X + 260, 230, SPAWN_Z + 180], lookAt: [SPAWN_X, 10, SPAWN_Z] },
+    pose: { position: [SPAWN_X - RIFT_LOW[0] * 60, 46, SPAWN_Z - RIFT_LOW[2] * 60], lookAt: [SPAWN_X + RIFT_LOW[0] * 1000, 60 + RIFT_LOW[1] * 1000, SPAWN_Z + RIFT_LOW[2] * 1000] },
   },
   {
     at: 0.3,
-    pose: { position: [SPAWN_X - 190, 170, SPAWN_Z + 140], lookAt: [SPAWN_X + 40, 5, SPAWN_Z - 30] },
+    pose: { position: [SPAWN_X - RIFT_LOW[0] * 120, 120, SPAWN_Z - RIFT_LOW[2] * 120], lookAt: [SPAWN_X + RIFT_MID[0] * 1000, 120 + RIFT_MID[1] * 1000, SPAWN_Z + RIFT_MID[2] * 1000] },
   },
   {
     at: 0.62,

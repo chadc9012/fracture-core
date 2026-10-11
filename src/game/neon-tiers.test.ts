@@ -27,3 +27,12 @@ describe("Neon City tiers", () => {
     const mid = neonWeather(90, 0); expect(mid).toBeGreaterThan(0); expect(mid).toBeLessThan(1);
   });
 });
+
+import { VORTEX, facadeArc, SPIRE as SPIRE_V } from "./neon-tiers";
+test("fracture vortex hangs above the Spire crown and facade arcs are brief and periodic", () => {
+  expect(VORTEX.y).toBeGreaterThan(SPIRE_V.height + 30);
+  let on = 0, n = 0;
+  for (let t = 0; t < 55; t += 0.05) { n++; if (facadeArc(t).on) on++; }
+  expect(on / n).toBeGreaterThan(0.08);
+  expect(on / n).toBeLessThan(0.2);
+});

@@ -68,3 +68,21 @@ export function skyParams(sunY: number, envCloud: number, regionId?: string | nu
     milkyWay: night * (1 - clamp01(envCloud)),
   };
 }
+
+/** The Sky Rift (trailer reference "broken horizon", docs/trailer-references.md): a jagged tear in the sky itself, running from high in the
+ * north-east sky down toward the eastern horizon, opposite the Fracture Moon, with streams of simulation "code" leaking from its edges.
+ * `from`/`to` are unit-ish directions on the dome (the tear follows the great circle between them); `width` is the core half-width in
+ * radians. Fixed in the sky like the moon, so the intro and the player always find it in the same place. */
+export const SKY_RIFT = { from: [0.32, 0.86, -0.4] as RGB, to: [0.86, 0.06, 0.5] as RGB, width: 0.022, jag: 0.05 } as const;
+/** How strongly the rift glows: it reads by day, burns at night and flares while a storm is overhead (the fracture feeds on storms). */
+export function riftGlow(night: number, cloud: number, storm: boolean): number {
+  return clamp01(0.55 + 0.45 * clamp01(night) + (storm ? 0.35 : 0) - clamp01(cloud) * 0.15);
+}
+/** Unit direction of a point `t` (0 = from, 1 = to) along the rift's great circle — where the intro camera looks to frame it. */
+export function riftPoint(t: number): RGB {
+  const n = (v: RGB): RGB => { const l = Math.hypot(v[0], v[1], v[2]); return [v[0] / l, v[1] / l, v[2] / l]; };
+  const a = n(SKY_RIFT.from as RGB), b = n(SKY_RIFT.to as RGB);
+  const om = Math.acos(Math.min(1, Math.max(-1, a[0] * b[0] + a[1] * b[1] + a[2] * b[2])));
+  const s = Math.sin(om), k0 = Math.sin((1 - t) * om) / s, k1 = Math.sin(t * om) / s;
+  return n([a[0] * k0 + b[0] * k1, a[1] * k0 + b[1] * k1, a[2] * k0 + b[2] * k1]);
+}

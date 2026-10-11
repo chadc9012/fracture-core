@@ -1,3 +1,4 @@
+import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import { FactionEnemy, type DriveRef } from "./EnemyModel";
 import { scenarioModelReady } from "./ScenarioBosses";
 import { RoundedBox } from "@react-three/drei";
@@ -484,6 +485,22 @@ export function Bullets({ sim }: { sim: WorldSim }) {
 }
 
 const HAZARD_SLOTS = 6;
+/** Fracture lightning (trailer reference, docs/trailer-references.md): a jagged violet bolt with a side fork instead of a smooth column.
+ * One fixed shape per pool slot (seeded), spun per strike so repeats don't read as the same bolt. 60 m tall, centred on its midpoint. */
+const boltCache = new Map<number, THREE.BufferGeometry>();
+function boltGeometry(slot: number): THREE.BufferGeometry {
+  const hit = boltCache.get(slot); if (hit) return hit;
+  let seed = 977 + slot * 131; const rnd = () => { seed = (seed * 16807) % 2147483647; return seed / 2147483647; };
+  const main: THREE.Vector3[] = [];
+  for (let k = 0; k <= 10; k++) main.push(new THREE.Vector3(k === 0 || k === 10 ? 0 : (rnd() - 0.5) * 7, 30 - k * 6, k === 0 || k === 10 ? 0 : (rnd() - 0.5) * 7));
+  const forkFrom = main[3]!.clone();
+  const fork = [forkFrom, forkFrom.clone().add(new THREE.Vector3(5 + rnd() * 4, -7, rnd() * 3)), forkFrom.clone().add(new THREE.Vector3(9 + rnd() * 5, -15, rnd() * 5))];
+  const a = new THREE.TubeGeometry(new THREE.CatmullRomCurve3(main, false, "catmullrom", 0.1), 40, 0.45, 5, false);
+  const b = new THREE.TubeGeometry(new THREE.CatmullRomCurve3(fork, false, "catmullrom", 0.1), 12, 0.22, 4, false);
+  const merged = mergeGeometries([a, b]) ?? a;
+  boltCache.set(slot, merged);
+  return merged;
+}
 
 /** Environmental hazard markers (environment.ts): a pulsing ring on the ground during a lightning
  * strike's warning window, then a brief bright column when it lands. Pooled meshes, no allocation. */
@@ -509,7 +526,7 @@ export function HazardMarkers({ sim }: { sim: WorldSim }) {
       const flash = sim.env.flashes[i];
       if (bolt) {
         bolt.visible = Boolean(flash);
-        if (flash) { bolt.position.set(flash.x, walkHeight(flash.x, flash.z) + 30, flash.z); bolt.scale.set(1, 1, 1); (bolt.material as THREE.MeshBasicMaterial).opacity = Math.min(1, flash.t / 0.3); }
+        if (flash) { bolt.position.set(flash.x, walkHeight(flash.x, flash.z) + 30, flash.z); bolt.rotation.y = flash.x * 0.37 + flash.z * 0.11; bolt.scale.set(1, 1, 1); (bolt.material as THREE.MeshBasicMaterial).opacity = Math.min(1, flash.t / 0.3); }
       }
     }
   });
@@ -520,11 +537,10 @@ export function HazardMarkers({ sim }: { sim: WorldSim }) {
         <group key={i}>
           <mesh ref={(node) => { rings.current[i] = node; }} rotation={[-Math.PI / 2, 0, 0]} visible={false}>
             <ringGeometry args={[0.82, 1, 48]} />
-            <meshBasicMaterial color="#9fd8ff" transparent opacity={0.9} depthWrite={false} side={THREE.DoubleSide} />
+            <meshBasicMaterial color="#b98cff" transparent opacity={0.9} depthWrite={false} side={THREE.DoubleSide} />
           </mesh>
-          <mesh ref={(node) => { bolts.current[i] = node; }} visible={false}>
-            <cylinderGeometry args={[0.35, 0.9, 60, 8, 1, true]} />
-            <meshBasicMaterial color="#e8f4ff" transparent opacity={1} depthWrite={false} />
+          <mesh ref={(node) => { bolts.current[i] = node; }} visible={false} geometry={boltGeometry(i)}>
+            <meshBasicMaterial color="#d9b8ff" transparent opacity={1} depthWrite={false} toneMapped={false} />
           </mesh>
         </group>
       ))}

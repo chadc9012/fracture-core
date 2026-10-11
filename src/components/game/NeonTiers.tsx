@@ -4,7 +4,7 @@ import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import { walkHeight } from "@/game/terrain";
 import { addObstacle } from "@/game/obstacles";
-import { CHECKPOINT, DECK, DRONE_LANES, HOLOGRAMS, PIPES, SKYBRIDGES, SPIRE, deckPillars, laneAt, lanePerimeter, neonWeather, undercity, type Holo } from "@/game/neon-tiers";
+import { VORTEX, facadeArc, CHECKPOINT, DECK, DRONE_LANES, HOLOGRAMS, PIPES, SKYBRIDGES, SPIRE, deckPillars, laneAt, lanePerimeter, neonWeather, undercity, type Holo } from "@/game/neon-tiers";
 import { LightBar } from "./DistrictStreet";
 import { softSprite } from "./softSprite";
 
@@ -23,6 +23,8 @@ export function NeonTiers({ c }: { c: { x: number; z: number } }) {
       <Undercity />
       {HOLOGRAMS.map((h, i) => <Hologram key={i} h={h} seed={i} />)}
       <NeonWeather c={c} y0={y0} />
+      <FractureVortex />
+      <FacadeArcs />
     </group>
   );
 }
@@ -241,4 +243,51 @@ function NeonWeather({ c, y0 }: { c: { x: number; z: number }; y0: number }) {
       ))}
     </group>
   </group>;
+}
+
+const VORTEX_FRAG = /* glsl */ `
+uniform float uTime; varying vec2 vUv;
+float h(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+float n2(vec2 p){ vec2 i = floor(p), f = fract(p); f = f*f*(3.0-2.0*f); return mix(mix(h(i), h(i+vec2(1,0)), f.x), mix(h(i+vec2(0,1)), h(i+vec2(1,1)), f.x), f.y); }
+void main(){
+  vec2 p = vUv * 2.0 - 1.0; float r = length(p); if (r > 1.0) discard;
+  float a = atan(p.y, p.x);
+  float arms = sin(a * 3.0 + log(r + 0.02) * 6.0 - uTime * 0.9) * 0.5 + 0.5;
+  float grain = n2(vec2(a * 4.0, r * 9.0 - uTime * 0.3));
+  float eye = smoothstep(0.22, 0.0, r);
+  float body = pow(arms, 3.0) * (0.55 + 0.45 * grain) * smoothstep(1.0, 0.35, r);
+  vec3 col = mix(vec3(0.62, 0.38, 1.0), vec3(0.45, 0.9, 1.0), smoothstep(0.7, 0.1, r)) * body * 1.3 + vec3(0.95, 0.98, 1.0) * eye * 1.6;
+  gl_FragColor = vec4(col, clamp(body * 0.8 + eye, 0.0, 1.0) * smoothstep(1.0, 0.8, r));
+}`;
+const VORTEX_VERT = /* glsl */ `varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`;
+
+/** the sky spiralling open above the Spire (neon-tiers.ts VORTEX) — one additive disc facing down */
+function FractureVortex() {
+  const mat = useMemo(() => new THREE.ShaderMaterial({ uniforms: { uTime: { value: 0 } }, vertexShader: VORTEX_VERT, fragmentShader: VORTEX_FRAG, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, fog: false, toneMapped: false, side: THREE.DoubleSide }), []);
+  const ref = useRef<THREE.Mesh>(null);
+  useFrame(({ clock }) => { mat.uniforms["uTime"]!.value = clock.elapsedTime; if (ref.current) ref.current.rotation.z = clock.elapsedTime * VORTEX.spin; });
+  return <mesh ref={ref} material={mat} position={[SPIRE.x, VORTEX.y, SPIRE.z]} rotation-x={Math.PI / 2}><circleGeometry args={[VORTEX.r, 64]} /></mesh>;
+}
+
+/** violet fracture lightning crawling down one Spire face every few seconds (neon-tiers.ts facadeArc) — one pooled line, re-jittered per frame while on */
+function FacadeArcs() {
+  const line = useMemo(() => { const g = new THREE.BufferGeometry(); g.setAttribute("position", new THREE.BufferAttribute(new Float32Array(24 * 3), 3)); return new THREE.Line(g, new THREE.LineBasicMaterial({ color: "#d4a8ff", toneMapped: false, transparent: true })); }, []);
+  useFrame(({ clock }) => {
+    const a = facadeArc(clock.elapsedTime);
+    line.visible = a.on;
+    if (!a.on) return;
+    const pos = line.geometry.getAttribute("position") as THREE.BufferAttribute;
+    const ang = (a.face / 4) * Math.PI * 2 + Math.PI / 4;
+    const nx = Math.cos(ang), nz = Math.sin(ang), tx = -nz, tz = nx;
+    const top = SPIRE.height * 0.95, reach = SPIRE.height * 0.85 * a.k;
+    for (let i = 0; i < 24; i++) {
+      const f = i / 23, y = top - reach * f;
+      const r = SPIRE.base * (1 - 0.45 * Math.min(1, Math.max(0, y / SPIRE.height)));
+      const off = (Math.random() - 0.5) * r * 0.9;
+      pos.setXYZ(i, SPIRE.x + nx * (r + 0.4) + tx * off, y, SPIRE.z + nz * (r + 0.4) + tz * off);
+    }
+    pos.needsUpdate = true;
+    (line.material as THREE.LineBasicMaterial).opacity = 1 - a.k * 0.5;
+  });
+  return <primitive object={line} />;
 }

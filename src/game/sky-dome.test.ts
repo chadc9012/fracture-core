@@ -66,3 +66,17 @@ describe("regional sky mood (from reference photos)", () => {
     for (const id of Object.keys(REGION_SKY_MOOD)) for (const y of [-0.5, -0.1, 0.05, 0.3, 0.9]) for (const v of [...skyParamsMood(y, 0.5, id).zenith, ...skyParamsMood(y, 0.5, id).horizon]) { expect(v).toBeGreaterThanOrEqual(0); expect(v).toBeLessThanOrEqual(1); }
   });
 });
+
+import { SKY_RIFT, SKY_BODY as BODY2, riftGlow, riftPoint } from "./sky-dome";
+test("the sky rift sits above the horizon, away from the Fracture Moon, and glows brighter at night and in storms", () => {
+  for (const t of [0, 0.25, 0.5, 0.75, 1]) {
+    const p = riftPoint(t);
+    expect(p[1]).toBeGreaterThan(0); // never below the horizon (the dome discards d.y < 0)
+    const m = BODY2.dir, ml = Math.hypot(m[0], m[1], m[2]);
+    const cos = (p[0] * m[0] + p[1] * m[1] + p[2] * m[2]) / ml;
+    expect(Math.acos(cos)).toBeGreaterThan(BODY2.radius * 2); // never overlaps the moon
+  }
+  expect(riftGlow(1, 0, false)).toBeGreaterThan(riftGlow(0, 0, false));
+  expect(riftGlow(0, 0.5, true)).toBeGreaterThan(riftGlow(0, 0.5, false));
+  expect(SKY_RIFT.width).toBeGreaterThan(0);
+});
