@@ -1,4 +1,4 @@
-import { renderCounts } from "@/game/perf-counters";
+import { renderCounts, setterCalls } from "@/game/perf-counters";
 import { createHudGate } from "@/game/hud-gate";
 import { Billboard, Environment, Lightformer, Sky, Text, useGLTF } from "@react-three/drei";
 import { heavyShadows, NEAR_SCALE, setPerfTier } from "@/game/perf-budget";
@@ -2621,7 +2621,7 @@ const shallowSame = (a: unknown, b: unknown): boolean => {
 };
 export const scenePropsEqual = (a: Record<string, unknown>, b: Record<string, unknown>): boolean => {
   const keys = new Set([...Object.keys(a), ...Object.keys(b)]);
-  for (const k of keys) if (!shallowSame(a[k], b[k])) return false;
+  for (const k of keys) if (!shallowSame(a[k], b[k])) { setterCalls[`scene!=${k}`] = (setterCalls[`scene!=${k}`] ?? 0) + 1; return false; }
   return true;
 };
 const SceneMemo = memo(SceneImpl, (a, b) => scenePropsEqual(a as Record<string, unknown>, b as Record<string, unknown>));
