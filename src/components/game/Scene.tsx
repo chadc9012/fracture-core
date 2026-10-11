@@ -53,6 +53,7 @@ import { ScenarioBosses } from "./ScenarioBosses";
 import { NullPulseFx } from "./NullPulseFx";
 import { AbilityFx } from "./AbilityFx";
 import { Squad } from "./Squad";
+import { CoreNodePod } from "./CoreNodePod";
 import { LavaTrench, WreckField } from "./SetPieces";
 import { CombatFx } from "./CombatFx";
 import { fxBus } from "@/game/fx-bus";
@@ -2278,6 +2279,7 @@ export function Scene({
       <CombatFx sim={sim} reducedMotion={!!settings.reducedMotion} />
       <AbilityFx sim={sim} reducedMotion={!!settings.reducedMotion} />
       <Squad sim={sim} />
+      {coreNode?.target && <CoreNodePod run={coreNode} />}
       <NullPulseFx sim={sim} tier={settings.renderTier} reducedMotion={!!settings.reducedMotion || (typeof window !== "undefined" && typeof window.matchMedia === "function" && window.matchMedia("(prefers-reduced-motion: reduce)").matches)} />
       <EncounterFx sim={sim} reducedMotion={!!settings.reducedMotion || (typeof window !== "undefined" && typeof window.matchMedia === "function" && window.matchMedia("(prefers-reduced-motion: reduce)").matches)} />
       <HazardMarkers sim={sim} />
