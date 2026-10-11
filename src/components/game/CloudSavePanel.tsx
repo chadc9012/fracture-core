@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { isTestProfile } from "@/game/save-profile";
 import type { User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable";
@@ -31,8 +32,9 @@ export function CloudSavePanel({ progression, onProgression }: { progression: Pl
 
   useEffect(() => {
     setRemoteMergeHandler((p) => { setStatus("merged"); onProgression(p); });
-    const { data } = supabase.auth.onAuthStateChange((_e, session) => setUser(session?.user ?? null));
-    supabase.auth.getSession().then(({ data: d }) => setUser(d.session?.user ?? null));
+    // test profile (?dev=1 / ?profile=test): never sign the session into cloud sync, so test runs can't touch the real save
+    const { data } = supabase.auth.onAuthStateChange((_e, session) => setUser(isTestProfile() ? null : session?.user ?? null));
+    supabase.auth.getSession().then(({ data: d }) => setUser(isTestProfile() ? null : d.session?.user ?? null));
     return () => { data.subscription.unsubscribe(); setRemoteMergeHandler(null); };
   }, [onProgression]);
 
@@ -87,7 +89,7 @@ export function CloudSavePanel({ progression, onProgression }: { progression: Pl
   return (
     <>
       <button onClick={() => setOpen((o) => !o)} className={`fixed left-4 top-[18.5rem] z-30 border border-border bg-card/80 px-3 py-1.5 text-[9px] uppercase tracking-[0.2em] ${tone}`}>
-        ☁ {user ? LABEL[status] : "Cloud save · sign in"}
+        ☁ {isTestProfile() ? "Test profile · cloud sync off" : user ? LABEL[status] : "Cloud save · sign in"}
       </button>
       {open && (
         <section className="fixed left-4 top-[21rem] z-40 w-72 border border-border bg-card/95 p-4 text-xs">

@@ -1,3 +1,4 @@
+import { profileKey } from "./save-profile";
 import { EMPTY_STORY, normalizeStory, type StoryState } from "./story";
 import { sanitizeActiveMissions, type ActiveMissions } from "./missions/persistence";
 import { DEFAULT_BUILD, type ActiveBuild } from "./ability-network";
@@ -83,7 +84,8 @@ export type PlayerProgression = {
   arsenal: Record<ClassId, ClassArsenal>;
 };
 
-const STORAGE_KEY = "world-fracture.progression.v1";
+const STORAGE_KEY_BASE = "world-fracture.progression.v1";
+const storageKey = () => profileKey(STORAGE_KEY_BASE); // save-profile.ts: ?dev=1 runs on a separate test profile
 
 /** Every real, physically-walkable region is already open from the start — nothing in this game locks movement. "neon" and "thalassia" are the two narrative-only reveals the quest chain actually unlocks. */
 const STARTING_UNLOCKED_WORLDS = ["veridan", "nexus", "wastelands", "solara", "swamps", "frostspire", "ember"];
@@ -131,7 +133,7 @@ export const DEFAULT_PROGRESSION: PlayerProgression = {
 export function loadProgression(): PlayerProgression {
   if (typeof window === "undefined") return DEFAULT_PROGRESSION;
   try {
-    return normalizeProgression(JSON.parse(safeStorageRead(STORAGE_KEY) ?? "null"));
+    return normalizeProgression(JSON.parse(safeStorageRead(storageKey()) ?? "null"));
   } catch {
     return DEFAULT_PROGRESSION;
   }
@@ -204,7 +206,7 @@ export function saveProgression(progression: PlayerProgression) {
   // Soft-fail: a full quota or a blocked storage API (private-browsing Safari) should mean
   // "this session's progress isn't persisted," never an uncaught throw wherever saveProgression
   // happened to be called from mid-gameplay.
-  if (safeStorageWrite(STORAGE_KEY, JSON.stringify(progression))) safeStorageWrite("world-fracture.progression.savedAt", new Date().toISOString());
+  if (safeStorageWrite(storageKey(), JSON.stringify(progression))) safeStorageWrite(profileKey("world-fracture.progression.savedAt"), new Date().toISOString());
 }
 
 export function completeMission(progression: PlayerProgression, missionId: string): PlayerProgression {

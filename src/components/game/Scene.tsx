@@ -15,7 +15,7 @@ import { walkHeight, slopeAt, heightAt, waterNetwork, WATER_LEVEL } from "@/game
 import { waterMix } from "@/game/water-audio";
 /** water audio is eased in the audio graph, so it only needs a pose update ~8x/s */
 let lastWaterAudioAt = 0;
-import { alert, applyLightning, collidePlayer, createSim, defeatMachine, FACTIONS, fireBullet, fireLauncher, hurtPlayer, throwBeacon, instabilityTier, spawnMissionDrones, stepSim, summonBoss, summonScenarioBoss, type Faction, type InstabilityTier, type WorldSim, type ZoneState } from "@/game/sim";
+import { alert, applyLightning, chipPlayer, collidePlayer, createSim, defeatMachine, FACTIONS, fireBullet, fireLauncher, hurtPlayer, throwBeacon, instabilityTier, spawnMissionDrones, stepSim, summonBoss, summonScenarioBoss, type Faction, type InstabilityTier, type WorldSim, type ZoneState } from "@/game/sim";
 import type { MissionEvent, MissionRun } from "@/game/missions/broken-signal";
 import type { MissionEvent as BlackoutEvent, MissionRun as BlackoutRun } from "@/game/missions/blackout-protocol";
 import type { MissionEvent as NeonCoreEvent, MissionRun as NeonCoreRun } from "@/game/missions/stitched-neon-core";
@@ -829,7 +829,7 @@ function SceneImpl({
   const instabilityColor = useMemo(() => new THREE.Color("#ff2d55"), []);
   const lightColor = useMemo(() => new THREE.Color(), []);
   const skyEnv = useRef<SkyEnv>({ cloud: 0, tint: new THREE.Color("#ffffff") });
-  const scene = useThree((s) => s.scene); const gl = useThree((s) => s.gl); // selectors: a bare useThree() re-renders this whole tree on every R3F store change (Canvas reconfigures on each parent render)
+  const scene = useThree((s) => s.scene); const gl = useThree((s) => s.gl); // selectors: a selector-less useThree call re-renders this whole tree on every R3F store change (Canvas reconfigures on each parent render)
 
   useEffect(() => { state.current.firstPerson = settings.firstPersonDefault; }, [settings.firstPersonDefault]);
   useEffect(() => {
@@ -1058,10 +1058,11 @@ function SceneImpl({
       const hz = combineHazard(hazardAt({ regionId: s.insideInterior ? null : regionAt(s.x, s.z)?.id ?? null, t: hzT, dt, sheltered: hzSheltered, exposure: hazardRef.current.exposure }), zone);
       if (hz.warning && hz.warning !== hazardRef.current.warning) alert(sim, hz.warning);
       hazardRef.current = hz;
-      if (hz.damagePerSec > 0) { if (sim.hp - hz.damagePerSec * dt <= 1) hurtPlayer(sim, 5, hz.name); else sim.hp -= hz.damagePerSec * dt; }
+      if (hz.damagePerSec > 0) { if (sim.hp - hz.damagePerSec * dt <= 1) hurtPlayer(sim, 5, hz.name); else chipPlayer(sim, hz.damagePerSec * dt); }
     }
     // environmental hazards: exposure, lightning, with shelter in interiors / safe zones / the Nexus shield
     {
+      sim.inSafeZone = !s.diving && (here?.kind === "safe" || here?.id === "nexus"); // health.ts: fast recovery in safe zones
       const sheltered = Boolean(interior) || here?.kind === "safe" || here?.id === "nexus" || s.diving; // underwater: no lightning or air exposure (live playtest showed a storm bolt striking the Sentry Dock seabed)
       const hazard = stepEnvironment(sim.env, { dt, regionId: here?.id, env: envSample, sheltered, px: s.x, pz: s.z, rand: Math.random });
       if (hazard.damage > 0) hurtPlayer(sim, hazard.damage, hazard.cause);
@@ -1175,7 +1176,7 @@ function SceneImpl({
     s.oxygen = oxygenStep(s.oxygen, dt, s.diving && !atStation, s.sector ? REBREATHER_DRAIN_SCALE : 1);
     const depth = s.diving ? Math.max(0, WATER_LEVEL - s.y) : 0;
     const oxygenPenalty = lowOxygenPenalty(s.oxygen);
-    if (s.diving && s.oxygen <= 0 && Math.random() < dt * 0.6) sim.hp = Math.max(1, sim.hp - 4); // drowning trickle damage, never a hard kill on its own
+    if (s.diving && s.oxygen <= 0 && Math.random() < dt * 0.6) chipPlayer(sim, 4); // drowning trickle damage, never a hard kill on its own
     /* ---------------- Thalassia sectors: hull stress past crush depth, electrified coolant in the Abyssal Ring ---------------- */
     {
       const sector = submerged ? sectorAt(s.x, s.y, s.z) : null;
@@ -1183,7 +1184,7 @@ function SceneImpl({
       s.sector = sector;
       s.hull = hullStressStep(s.hull, s.diving ? depth : 0, dt);
       const envDamage = hullDamagePerSec(s.hull) * dt + coolantDamage(sector, s.y, performance.now() / 1000, dt);
-      if (envDamage > 0) sim.hp = Math.max(1, sim.hp - envDamage); // environmental, like drowning: never a hard kill on its own
+      if (envDamage > 0) chipPlayer(sim, envDamage); // environmental, like drowning: never a hard kill on its own
       // NOVA hazard cues: once per dive each, before the hazard can matter
       const cue = (key: string, line: string) => { if (!s.cues.has(key)) { s.cues.add(key); alert(sim, `NOVA: ${line}`); } };
       if (!s.diving) s.cues.clear();
@@ -1578,7 +1579,7 @@ function SceneImpl({
       alert(sim, "STRUCTURE COLLAPSE — cover lost");
       sfx.playExplosion(true, sfx.where(s.x, s.z, s.yaw, structure.lastCollapse.x, structure.lastCollapse.z));
       for (const m of sim.machines) { if (!m.alive) continue; const d = Math.hypot(m.x - structure.lastCollapse.x, m.z - structure.lastCollapse.z); if (d < 14) { m.hp -= 4; m.kx += (m.x - structure.lastCollapse.x) / Math.max(1, d) * 18; m.kz += (m.z - structure.lastCollapse.z) / Math.max(1, d) * 18; m.cool = Math.max(m.cool, 1.2); } }
-      if (Math.hypot(s.x - structure.lastCollapse.x, s.z - structure.lastCollapse.z) < 6) sim.hp = Math.max(1, sim.hp - 12);
+      if (Math.hypot(s.x - structure.lastCollapse.x, s.z - structure.lastCollapse.z) < 6) chipPlayer(sim, 12);
       structure.lastCollapse = { ...structure.lastCollapse, t: 0 };
     }
 

@@ -1,3 +1,4 @@
+import { profileKey } from "./save-profile";
 import { mergeStory } from "./story";
 import { pruneCompleted } from "./missions/persistence";
 import { supabase } from "@/integrations/supabase/client";
@@ -145,7 +146,7 @@ export function restoreBackup(): PlayerProgression | null {
   } catch { return null; }
 }
 export const hasBackup = () => typeof window !== "undefined" && !!localStorage.getItem(BACKUP_KEY);
-export const localSavedAt = () => (typeof window === "undefined" ? null : localStorage.getItem("world-fracture.progression.savedAt"));
+export const localSavedAt = () => (typeof window === "undefined" ? null : localStorage.getItem(profileKey("world-fracture.progression.savedAt")));
 
 export type RestorePoint = { id: string; revision: number; created_at: string; device_id: string; summary: string };
 

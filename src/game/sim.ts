@@ -58,6 +58,7 @@ import { attunedElement, gimmickMultiplier, type DamageElement } from "./scenari
 import { fireRound, splashDamage, stepRound, type Burst, type OrdnanceDef, type Round } from "./ordnance";
 import { LAUNCHERS, pickLockTarget, type LauncherId } from "./launchers";
 import { ABILITY_RULES, burstTargets, evolutionDamageMult, freshCharge, registerEvolutionHit, ruinElementOf, type EvolutionAbility, type EvolutionCharge } from "./weapon-evolution";
+import { stepHealth } from "./health";
 import { applyElementHit, isChilled, burnDamage, freshStatuses, mergeVuln, statusSpeedMult, type MachineStatuses } from "./weapon-elements";
 
 /* ------------------------------------------------------------------
@@ -254,6 +255,10 @@ export type WorldSim = {
   lastHit: number;
   /** timestamp of the most recent hull-destroyed respawn — Scene watches this to trigger the death screen and teleport home */
   lastDeath: number;
+  /** seconds (performance clock) of the last damage taken; health.ts regen waits on it */
+  lastDamageAt: number;
+  /** set by Scene each frame: standing in a safe zone (fast recovery) */
+  inSafeZone: boolean;
   /** cause text + cargo lost on the most recent death, for the death screen's stakes readout */
   lastDeathCause: string;
   lastDeathCargo: number;
@@ -553,6 +558,8 @@ export function createSim(): WorldSim {
     overheated: false,
     lastHit: 0,
     lastDeath: 0,
+    lastDamageAt: 0,
+    inSafeZone: false,
     lastDeathCause: "",
     lastDeathCargo: 0,
     deaths: 0,
@@ -937,6 +944,14 @@ export function stunMachine(m: Machine, seconds: number) {
 }
 
 /** hurt the player and respawn at Nexus when the hull is gone */
+/** Non-lethal environmental damage (drowning, hull stress, coolant, falling debris): never takes the last point of health, but it is still
+ * damage, so it pauses recovery (health.ts). */
+export function chipPlayer(sim: WorldSim, dmg: number) {
+  if (dmg <= 0 || sim.hp <= 0) return;
+  sim.hp = Math.max(1, sim.hp - dmg);
+  sim.lastDamageAt = performance.now() / 1000;
+}
+
 export function hurtPlayer(sim: WorldSim, dmg: number, cause: string) {
   // Rift Dash i-frames and the Bastion Shield barrier negate the hit entirely (every damage source funnels through here)
   if (sim.iframes > 0 || sim.barrierTime > 0) { sim.lastBlockedAt = performance.now(); return; }
@@ -947,6 +962,7 @@ export function hurtPlayer(sim: WorldSim, dmg: number, cause: string) {
   const scaled = dmg * sim.mods.incomingDamageScale * sim.verbIncomingMult * (1 - Math.min(0.5, Math.max(0, sim.armorResist)));
   const resolvedDamage = sim.titanActive ? absorbTitanDamage(sim.titan, scaled, performance.now() / 1000) : scaled;
   sim.hp = Math.max(0, sim.hp - resolvedDamage);
+  if (resolvedDamage > 0) sim.lastDamageAt = performance.now() / 1000;
   if (sim.raidFight) sim.raidFight.hurt += resolvedDamage;
   if (sim.hp === 0) {
     sim.lastDeath = performance.now();
@@ -1078,7 +1094,7 @@ export function stepSim(sim: WorldSim, input: SimInput) {
   // so enemy squads actually see the equipped archetype / shield / branch posture.
   const { squadArchetype, rangedHoldFire, branchPosture } = sim.mods;
   sim.mods = { ...adaptationMods(sim.adaptation), squadArchetype, rangedHoldFire, branchPosture };
-  if (sim.mods.regen + sim.armorRegen > 0 && sim.hp < 100) sim.hp = Math.min(100, sim.hp + (sim.mods.regen + sim.armorRegen) * dt);
+  sim.hp = stepHealth(sim.hp, dt, performance.now() / 1000 - sim.lastDamageAt, { bonusRate: sim.mods.regen + sim.armorRegen, safe: sim.inSafeZone });
 
   // ---------- Emergency Quest world event ----------
   const eqWasWarning = sim.emergencyQuest.state === "WARNING";

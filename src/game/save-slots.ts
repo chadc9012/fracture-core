@@ -2,12 +2,15 @@ import { supabase } from "@/integrations/supabase/client";
 import type { Json } from "@/integrations/supabase/types";
 import { DEFAULT_PROGRESSION, normalizeProgression, type PlayerProgression } from "./progression";
 import { pushSave } from "./cloud-save";
+import { isTestProfile, profileKey } from "./save-profile";
 
 /** Multiple save slots on top of the single live cloud save: the active slot is what player_saves
  * holds and syncs; inactive slots are parked copies. Switching replaces (never merges). */
 export const SLOT_COUNT = 3;
-const ACTIVE_KEY = "world-fracture.active-slot";
-const LOCAL_SLOTS_KEY = "world-fracture.slots";
+// save-profile.ts: the test profile keeps its own slots and never touches the cloud
+const ACTIVE_KEY = profileKey("world-fracture.active-slot");
+const LOCAL_SLOTS_KEY = profileKey("world-fracture.slots");
+const cloudUser = (userId: string | null) => (isTestProfile() ? null : userId);
 
 export type SlotSummary = { slot: number; label: string; empty: boolean; updatedAt: string | null; summary: string; active: boolean };
 
@@ -23,14 +26,16 @@ export const describe = (p: PlayerProgression) =>
 type Stored = { label: string; data: unknown; updated_at: string };
 const readLocal = (): Record<number, Stored> => { try { return JSON.parse(localStorage.getItem(LOCAL_SLOTS_KEY) ?? "{}"); } catch { return {}; } };
 
-async function readSlots(userId: string | null): Promise<Record<number, Stored>> {
+async function readSlots(user: string | null): Promise<Record<number, Stored>> {
+  const userId = cloudUser(user);
   if (!userId) return readLocal();
   const { data, error } = await supabase.from("player_save_slots").select("slot, label, data, updated_at").eq("user_id", userId);
   if (error) throw error;
   return Object.fromEntries((data ?? []).map((r) => [r.slot, { label: r.label, data: r.data, updated_at: r.updated_at }]));
 }
 
-async function writeSlot(userId: string | null, slot: number, label: string, p: PlayerProgression) {
+async function writeSlot(user: string | null, slot: number, label: string, p: PlayerProgression) {
+  const userId = cloudUser(user);
   const updated_at = new Date().toISOString();
   if (!userId) { const all = readLocal(); all[slot] = { label, data: p, updated_at }; localStorage.setItem(LOCAL_SLOTS_KEY, JSON.stringify(all)); return; }
   const { error } = await supabase.from("player_save_slots").upsert({ user_id: userId, slot, label, data: p as unknown as Json, updated_at });
@@ -55,7 +60,7 @@ export async function switchSlot(userId: string | null, current: PlayerProgressi
   const stored = await readSlots(userId);
   await writeSlot(userId, from, stored[from]?.label || `Slot ${from}`, current);
   const next = stored[target] ? normalizeProgression(stored[target]!.data) : DEFAULT_PROGRESSION;
-  if (userId) await pushSave(userId, next);
+  if (cloudUser(userId)) await pushSave(userId!, next);
   localStorage.setItem(ACTIVE_KEY, String(target));
   return next;
 }
