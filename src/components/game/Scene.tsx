@@ -15,6 +15,7 @@ import { walkHeight, slopeAt, heightAt, waterNetwork, WATER_LEVEL } from "@/game
 import { waterMix } from "@/game/water-audio";
 /** water audio is eased in the audio graph, so it only needs a pose update ~8x/s */
 let lastWaterAudioAt = 0;
+import { flavorFor } from "@/game/audio-design";
 import { alert, applyLightning, chipPlayer, collidePlayer, createSim, defeatMachine, FACTIONS, fireBullet, fireLauncher, hurtPlayer, throwBeacon, instabilityTier, spawnMissionDrones, stepSim, summonBoss, summonScenarioBoss, type Faction, type InstabilityTier, type WorldSim, type ZoneState } from "@/game/sim";
 import type { MissionEvent, MissionRun } from "@/game/missions/broken-signal";
 import type { MissionEvent as BlackoutEvent, MissionRun as BlackoutRun } from "@/game/missions/blackout-protocol";
@@ -509,6 +510,7 @@ function SceneImpl({
   const relaySpawned = useRef("");
   const neonCoreSpawned = useRef("");
   const descentSpawned = useRef("");
+  const burstHeard = useRef(0);
   const devWarp = useRef<{ x: number; z: number; y?: number } | null>(null);
   useEffect(() => {
     if (typeof window === "undefined" || new URLSearchParams(window.location.search).get("dev") !== "1") return;
@@ -1918,6 +1920,13 @@ function SceneImpl({
     // it can't touch the player's world position — that lives here in Scene's own state, not in WorldSim.
     // Detect the new timestamp and do the part sim.ts's alert text always claimed but never performed:
     // teleport back to Nexus City, bail out of any vehicle/interior, and zero out momentum.
+    // launcher detonations (sim.burstEvents, read-only here): until this pass every rocket/elemental round blew up in silence
+    for (const ev of sim.burstEvents) {
+      if (ev.id <= burstHeard.current) continue;
+      burstHeard.current = ev.id;
+      sfx.playExplosion(ev.radius >= 7, sfx.where(s.x, s.z, s.yaw, ev.x, ev.z), flavorFor(ev.element));
+      if (Math.hypot(s.x - ev.x, s.z - ev.z) < 25) s.punch += 0.5;
+    }
     for (const ev of sim.stratagemEvents.splice(0)) {
       const dist = Math.hypot(s.x - ev.x, s.z - ev.z);
       sfx.playExplosion(ev.kind === "ORBITAL_STRIKE", sfx.where(s.x, s.z, s.yaw, ev.x, ev.z));

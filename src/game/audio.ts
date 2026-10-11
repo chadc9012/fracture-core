@@ -5,8 +5,9 @@
  */
 import type { WeaponId } from "./weapons";
 import { voiceAction, type WaterMix, type WaterSource } from "./water-audio";
+import { BLAST_FLAVOR, SHOTS, blastAtDistance, shotKey, variation, type BlastFlavor, type ShotProfile } from "./audio-design";
 
-type Ctx = { ac: AudioContext; master: GainNode; sfx: GainNode; music: GainNode; noise: AudioBuffer; layers: { ambient: GainNode; tension: GainNode; drums: GainNode; motif: GainNode } | null; ambientOscs: OscillatorNode[]; musicRegion: string; beat: number };
+type Ctx = { ac: AudioContext; master: GainNode; sfx: GainNode; music: GainNode; noise: AudioBuffer; brown: AudioBuffer; verb: GainNode; drive: Map<number, Float32Array>; layers: { ambient: GainNode; tension: GainNode; drums: GainNode; motif: GainNode } | null; ambientOscs: OscillatorNode[]; musicRegion: string; beat: number };
 let ctx: Ctx | null = null;
 let volume = 0.7;
 export const VOLUME_KEY = "world-fracture-volume";
@@ -25,7 +26,13 @@ export function unlockAudio() {
   const music = ac.createGain(); music.gain.value = 0.35; music.connect(comp);
   const noise = ac.createBuffer(1, ac.sampleRate, ac.sampleRate);
   const d = noise.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
-  ctx = { ac, master, sfx, music, noise, layers: null, ambientOscs: [], musicRegion: "", beat: 0 };
+  // brown noise (integrated white): the rolling low rumble of explosions and heavy tails
+  const brown = ac.createBuffer(1, ac.sampleRate * 2, ac.sampleRate);
+  { const b = brown.getChannelData(0); let last = 0; for (let i = 0; i < b.length; i++) { last = (last + 0.02 * (Math.random() * 2 - 1)) / 1.02; b[i] = last * 3.5; } }
+  // outdoor reverb: a generated impulse (early slap-back off terrain + a long diffuse decay), shared by every shot and blast through one send bus
+  const verbNode = ac.createConvolver(); verbNode.buffer = outdoorImpulse(ac, 2.4);
+  const verb = ac.createGain(); verb.gain.value = 0.55; verb.connect(verbNode).connect(comp);
+  ctx = { ac, master, sfx, music, noise, brown, verb, drive: new Map(), layers: null, ambientOscs: [], musicRegion: "", beat: 0 };
   applyMix();
   startMusic(ctx);
 }
@@ -71,42 +78,66 @@ function tone(c: Ctx, dest: AudioNode, { f0, f1, dur, type = "sine", gain = 1, a
   o.connect(g).connect(dest); o.start(t); o.stop(t + dur + 0.02);
 }
 
-/** Weapon = base shot + mechanical layer + energy layer + sub-bass recoil. */
+/** stereo impulse response: a couple of early reflections (terrain slap-back) and an exponentially decaying noise tail */
+function outdoorImpulse(ac: AudioContext, seconds: number): AudioBuffer {
+  const len = Math.floor(ac.sampleRate * seconds), buf = ac.createBuffer(2, len, ac.sampleRate);
+  for (let ch = 0; ch < 2; ch++) {
+    const d = buf.getChannelData(ch);
+    for (let i = 0; i < len; i++) { const t = i / ac.sampleRate; d[i] = (Math.random() * 2 - 1) * Math.pow(1 - t / seconds, 3.2) * (t < 0.012 ? 0 : 0.6); }
+    for (const [at, g] of [[0.045 + ch * 0.007, 0.5], [0.11 + ch * 0.013, 0.32], [0.19, 0.2]] as const) { const i = Math.floor(at * ac.sampleRate); if (i < len) d[i] = (d[i] ?? 0) + g; }
+  }
+  return buf;
+}
+/** soft-clip curve (cached per amount): pushes the blast layer into saturation for punch without harsh digital clipping */
+function driveCurve(c: Ctx, amount: number): Float32Array {
+  const k = Math.round(amount * 10) / 10; const hit = c.drive.get(k); if (hit) return hit;
+  const n = 1024, curve = new Float32Array(n);
+  for (let i = 0; i < n; i++) { const x = (i / (n - 1)) * 2 - 1; curve[i] = Math.tanh(x * k) / Math.tanh(k); }
+  c.drive.set(k, curve); return curve;
+}
+/** output with a reverb send: returns the dry input node; `send` is how much goes to the shared outdoor reverb */
+function outVerb(c: Ctx, w: Where = {}, send = 0.25, at = 0) {
+  const dry = out(c, w);
+  const s = c.ac.createGain(); s.gain.value = send * (w.dist ? 1 + Math.min(1.5, w.dist / 60) : 1); // far things are mostly reverb
+  const input = c.ac.createGain();
+  if (at > 0) { const dl = c.ac.createDelay(4); dl.delayTime.value = at; input.connect(dl); dl.connect(dry); dl.connect(s); }
+  else { input.connect(dry); input.connect(s); }
+  s.connect(c.verb);
+  return input;
+}
+function noiseLayer(c: Ctx, dest: AudioNode, opts: { buf?: AudioBuffer; dur: number; freq: number; q?: number; type?: BiquadFilterType; gain: number; at?: number; drive?: number; sweepTo?: number; attack?: number }) {
+  const t = c.ac.currentTime + (opts.at ?? 0);
+  const src = c.ac.createBufferSource(); src.buffer = opts.buf ?? c.noise;
+  const f = c.ac.createBiquadFilter(); f.type = opts.type ?? "bandpass"; f.frequency.setValueAtTime(opts.freq, t); f.Q.value = opts.q ?? 0.8;
+  if (opts.sweepTo) f.frequency.exponentialRampToValueAtTime(opts.sweepTo, t + opts.dur);
+  const g = c.ac.createGain(); const a = opts.attack ?? 0.002;
+  g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(opts.gain, t + a); g.gain.exponentialRampToValueAtTime(0.001, t + opts.dur);
+  let node: AudioNode = src.connect(f);
+  if (opts.drive) { const ws = c.ac.createWaveShaper(); ws.curve = driveCurve(c, opts.drive) as unknown as Float32Array<ArrayBuffer>; ws.oversample = "2x"; node = node.connect(ws); }
+  node.connect(g).connect(dest);
+  src.start(t, Math.random() * Math.max(0, src.buffer!.duration - opts.dur - 0.05)); src.stop(t + opts.dur + 0.05);
+}
+function shotLayers(c: Ctx, dest: AudioNode, p: ShotProfile, v: { pitch: number; gain: number }) {
+  noiseLayer(c, dest, { dur: p.crack.dur, freq: p.crack.freq * v.pitch, type: "highpass", q: 0.7, gain: p.crack.gain * v.gain, attack: 0.0008 });
+  noiseLayer(c, dest, { dur: p.blast.dur, freq: p.blast.freq * v.pitch, q: p.blast.q, gain: p.blast.gain * v.gain, drive: p.blast.drive, attack: 0.001 });
+  tone(c, dest, { f0: p.thump.f0 * v.pitch, f1: p.thump.f1, dur: p.thump.dur, gain: p.thump.gain * v.gain });
+  noiseLayer(c, dest, { buf: c.brown, dur: p.tail.dur, freq: p.tail.cutoff, type: "lowpass", q: 0.5, gain: p.tail.gain, at: 0.015, attack: 0.02 });
+  if (p.zap) tone(c, dest, { f0: p.zap.f0 * v.pitch, f1: p.zap.f1, dur: p.zap.dur, type: p.zap.type, gain: p.zap.gain });
+  for (const m of p.mech ?? []) noiseLayer(c, dest, { dur: 0.035, freq: m.freq, q: 6, gain: m.gain, at: m.at });
+}
+
+/** Player weapon: crack + saturated blast + thump + reverb tail (+ bolt/pump/zap) from audio-design.ts SHOTS, humanised per shot.
+ * Launchers keep their element shading on top of the shared launcher profile. */
 export function playShot(weapon: WeaponId | "VEHICLE") {
   const c = ctx; if (!c) return;
-  const o = out(c);
-  if (weapon === "AUTO" || weapon === "VEHICLE") {
-    burst(c, o, { dur: 0.09, freq: 2400, q: 0.7, gain: 0.55 });
-    burst(c, o, { dur: 0.04, freq: 6000, type: "highpass", gain: 0.25 });
-    tone(c, o, { f0: 140, f1: 50, dur: 0.08, gain: 0.5 });
-  } else if (weapon === "PULSE") {
-    burst(c, o, { dur: 0.1, freq: 1800, q: 1.2, gain: 0.45 });
-    tone(c, o, { f0: 1400, f1: 300, dur: 0.12, type: "square", gain: 0.12 });
-    tone(c, o, { f0: 110, f1: 45, dur: 0.1, gain: 0.5 });
-  } else if (weapon === "HEAVY") {
-    burst(c, o, { dur: 0.45, freq: 600, q: 0.5, type: "lowpass", gain: 0.9 });
-    tone(c, o, { f0: 90, f1: 28, dur: 0.5, gain: 1 });
-    tone(c, o, { f0: 900, f1: 120, dur: 0.25, type: "sawtooth", gain: 0.1 });
-    burst(c, o, { dur: 0.9, freq: 400, type: "lowpass", gain: 0.18, at: 0.12 }); // distance tail
-  } else if (weapon === "SIDEARM") {
-    // hand cannon: sharp crack, heavy mid body, short slap-back
-    burst(c, o, { dur: 0.12, freq: 1500, q: 0.8, gain: 0.75 });
-    burst(c, o, { dur: 0.03, freq: 7000, type: "highpass", gain: 0.3 });
-    tone(c, o, { f0: 170, f1: 55, dur: 0.14, gain: 0.7 });
-    burst(c, o, { dur: 0.35, freq: 500, type: "lowpass", gain: 0.12, at: 0.06 });
-  } else if (weapon === "SHOTGUN") {
-    // shotgun: wide boom, then the pump racking
-    burst(c, o, { dur: 0.28, freq: 900, q: 0.4, type: "lowpass", gain: 1 });
-    tone(c, o, { f0: 110, f1: 32, dur: 0.3, gain: 1 });
-    burst(c, o, { dur: 0.05, freq: 5000, type: "highpass", gain: 0.35 });
-    burst(c, o, { dur: 0.05, freq: 2200, q: 5, gain: 0.35, at: 0.24 });
-    burst(c, o, { dur: 0.05, freq: 1600, q: 5, gain: 0.35, at: 0.36 });
-  } else if (weapon === "ROCKET" || weapon === "CINDER" || weapon === "FROSTBITE" || weapon === "VITRIOL") {
-    // launcher: hollow thump + rushing exhaust; the element shades the top end only
-    tone(c, o, { f0: 120, f1: 36, dur: 0.35, gain: 0.9 });
-    burst(c, o, { dur: 0.6, freq: weapon === "FROSTBITE" ? 3200 : weapon === "VITRIOL" ? 1500 : 900, q: 0.6, type: weapon === "FROSTBITE" ? "highpass" : "lowpass", gain: 0.5 });
+  const key = shotKey(weapon); if (!key) return;
+  const p = SHOTS[key];
+  const o = outVerb(c, {}, p.tail.send);
+  shotLayers(c, o, p, variation(Math.random));
+  if (key === "LAUNCHER") {
+    // rocket motor: a rushing exhaust that fades as the round leaves; the element shades its colour
+    noiseLayer(c, o, { dur: 0.7, freq: weapon === "FROSTBITE" ? 3200 : weapon === "VITRIOL" ? 1500 : 900, q: 0.6, type: weapon === "FROSTBITE" ? "highpass" : "lowpass", gain: 0.45, at: 0.03, attack: 0.04, sweepTo: 300 });
     if (weapon === "CINDER") tone(c, o, { f0: 300, f1: 90, dur: 0.4, type: "sawtooth", gain: 0.12 });
-    burst(c, o, { dur: 0.8, freq: 380, type: "lowpass", gain: 0.16, at: 0.1 });
   }
 }
 export function playSwing(finisher: boolean) {
@@ -130,21 +161,38 @@ export function playImpact(material: "METAL" | "ORGANIC" | "TECH", w: Where) {
   else { burst(c, o, { dur: 0.1, freq: 300, type: "lowpass", gain: 0.5 }); }
   tone(c, out(c), { f0: 2600, f1: 2600, dur: 0.04, type: "sine", gain: 0.1 }); // hit-marker tick, always centered
 }
-/** A real explosion — sub-bass thump, a sawtooth blast layer, a high-passed crack of debris, and
- * a rolling lowpass aftershock tail. Distinct from playKill()'s short "confirm" chime: this is
- * for structure collapses and boss deaths, where the scene should actually read as something
- * blowing up rather than just a kill being logged. */
-export function playExplosion(big: boolean, w: Where = {}) {
-  const c = ctx; if (!c) return; const o = out(c, w);
-  burst(c, o, { dur: big ? 1.6 : 0.8, freq: big ? 220 : 400, type: "lowpass", gain: big ? 1 : 0.7 });
-  tone(c, o, { f0: big ? 70 : 100, f1: 20, dur: big ? 1.4 : 0.8, type: "sawtooth", gain: big ? 0.9 : 0.55 });
-  burst(c, o, { dur: 0.3, freq: 5500, type: "highpass", gain: big ? 0.35 : 0.2, at: 0.02 });
-  burst(c, o, { dur: big ? 1.2 : 0.6, freq: 300, type: "lowpass", gain: big ? 0.4 : 0.2, at: 0.15 });
+/** A real explosion: initial crack, a saturated sub thump, a brown-noise rumble whose filter closes over seconds, scattered debris ticks and
+ * a big reverb send. Arrives late and darker with distance (blastAtDistance: speed of sound), so far blasts sound far. `flavor` adds an
+ * elemental layer (fire roar, ice shatter, acid hiss, arc crackle). */
+export function playExplosion(big: boolean, w: Where = {}, flavor: BlastFlavor = "KINETIC") {
+  const c = ctx; if (!c) return;
+  const far = blastAtDistance(w.dist ?? 0);
+  const o = outVerb(c, { ...w, dist: 0 }, big ? 0.6 : 0.45, far.delay);
+  const lp = c.ac.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.value = far.cutoff;
+  const g = c.ac.createGain(); g.gain.value = far.gain; g.connect(lp).connect(o);
+  const sub = c.ac.createGain(); sub.gain.value = far.sub; sub.connect(o); // the sub carries further than the crack
+  noiseLayer(c, g, { dur: 0.05, freq: 3500, type: "highpass", gain: big ? 0.9 : 0.65, attack: 0.0008 });
+  noiseLayer(c, g, { dur: big ? 0.5 : 0.3, freq: 900, q: 0.5, gain: big ? 1 : 0.8, drive: 3.5, attack: 0.002, sweepTo: 200 });
+  tone(c, sub, { f0: big ? 75 : 95, f1: 22, dur: big ? 1.5 : 0.8, gain: big ? 1 : 0.75 });
+  noiseLayer(c, sub, { buf: c.brown, dur: big ? 3.2 : 1.7, freq: big ? 1600 : 2200, type: "lowpass", q: 0.6, gain: big ? 0.9 : 0.6, attack: 0.01, sweepTo: 120 });
+  const ticks = big ? 14 : 7;
+  for (let k = 0; k < ticks; k++) noiseLayer(c, g, { dur: 0.02 + Math.random() * 0.03, freq: 2500 + Math.random() * 4000, q: 4, gain: 0.12 + Math.random() * 0.15, at: 0.15 + Math.random() * (big ? 1.4 : 0.8) });
+  const fl = BLAST_FLAVOR[flavor];
+  if (fl.kind === "roar") noiseLayer(c, g, { dur: 1.4, freq: 600, q: 0.7, gain: fl.gain, at: 0.05, attack: 0.15, drive: 2 });
+  else if (fl.kind === "shatter") for (let k = 0; k < 9; k++) tone(c, g, { f0: 2600 + Math.random() * 3000, f1: 1800, dur: 0.18, type: "triangle", gain: fl.gain * 0.4, at: 0.05 + Math.random() * 0.4 });
+  else if (fl.kind === "hiss") noiseLayer(c, g, { dur: 1.8, freq: 5000, type: "highpass", q: 0.5, gain: fl.gain, at: 0.1, attack: 0.2 });
+  else if (fl.kind === "crackle") for (let k = 0; k < 12; k++) noiseLayer(c, g, { dur: 0.015, freq: 6000, type: "highpass", gain: fl.gain, at: Math.random() * 0.9 });
 }
+/** a machine dying: a small mechanical blast (smaller than a full explosion) plus the confirm chime */
 export function playKill(boss: boolean, w: Where) {
-  const c = ctx; if (!c) return; const o = out(c, w);
-  burst(c, o, { dur: boss ? 1.4 : 0.6, freq: 500, type: "lowpass", gain: boss ? 1 : 0.6 });
-  tone(c, o, { f0: boss ? 70 : 120, f1: 25, dur: boss ? 1.2 : 0.5, gain: 0.7 });
+  const c = ctx; if (!c) return;
+  if (boss) { playExplosion(true, w); } else {
+    const o = outVerb(c, w, 0.35);
+    noiseLayer(c, o, { dur: 0.03, freq: 4000, type: "highpass", gain: 0.5, attack: 0.0008 });
+    noiseLayer(c, o, { dur: 0.22, freq: 1100, q: 0.6, gain: 0.7, drive: 2.5, sweepTo: 300 });
+    tone(c, o, { f0: 130, f1: 30, dur: 0.4, gain: 0.7 });
+    for (let k = 0; k < 4; k++) noiseLayer(c, o, { dur: 0.02, freq: 3000 + Math.random() * 3000, q: 4, gain: 0.15, at: 0.08 + Math.random() * 0.35 });
+  }
   tone(c, out(c), { f0: 660, f1: 990, dur: 0.12, type: "triangle", gain: 0.08, at: 0.05 }); // confirm chime
 }
 export function playAbility(kind: string) {
@@ -157,12 +205,12 @@ export function playAbility(kind: string) {
 export function playHurt() { const c = ctx; if (!c) return; const o = out(c); tone(c, o, { f0: 180, f1: 60, dur: 0.2, type: "square", gain: 0.12 }); burst(c, o, { dur: 0.12, freq: 800, type: "lowpass", gain: 0.4 }); }
 /** Enemy telegraph: shot from a hostile, positioned in space. */
 export function playEnemyShot(kind: string, heavy: boolean, w: Where) {
-  const c = ctx; if (!c) return; const o = out(c, w);
+  const c = ctx; if (!c) return; const o = outVerb(c, w, 0.3, Math.min(0.25, (w.dist ?? 0) / 343)); // distant fire arrives late, like real gunfire
   const v = 0.9 + Math.random() * 0.2; // per-shot pitch variation
   if (kind === "OVERCLOCKED") { tone(c, o, { f0: 1600 * v, f1: 400, dur: 0.12, type: "sawtooth", gain: 0.08 }); burst(c, o, { dur: 0.06, freq: 5000, type: "highpass", gain: 0.2 }); }
   else if (kind === "ABERRATION") { burst(c, o, { dur: 0.25, freq: 500 * v, q: 3, gain: 0.45 }); tone(c, o, { f0: 220 * v, f1: 90, dur: 0.25, type: "triangle", gain: 0.15 }); }
   else if (kind === "VANGUARD") { tone(c, o, { f0: 900 * v, f1: 250, dur: 0.14, type: "square", gain: 0.08 }); burst(c, o, { dur: 0.08, freq: 2200, q: 1, gain: 0.35 }); }
-  else { burst(c, o, { dur: 0.1, freq: 1400 * v, q: 0.8, gain: 0.5 }); tone(c, o, { f0: 130, f1: 50, dur: 0.08, gain: 0.25 }); } // raider ballistic
+  else { shotLayers(c, o, SHOTS.AUTO, { pitch: v, gain: 0.55 }); } // raider ballistic: a real rifle report, a bit lighter than yours
   if (heavy) { tone(c, o, { f0: 80, f1: 30, dur: 0.35, gain: 0.5 }); burst(c, o, { dur: 0.5, freq: 350, type: "lowpass", gain: 0.2, at: 0.08 }); }
 }
 
