@@ -34,11 +34,13 @@ describe("transit timeline", () => {
 });
 
 describe("city destinations", () => {
-  test("Neon City is deployable, Thalassia is not and says why", () => {
+  test("Neon City drops in; Thalassia arrives by submersible at the Sentry Dock, already at depth", () => {
     const neon = CITY_DESTINATIONS.find((c) => c.id === "neon-city")!, th = CITY_DESTINATIONS.find((c) => c.id === "thalassia")!;
     expect(neon.deployable).toBe(true);
-    expect(th.deployable).toBe(false);
-    expect(th.blockedReason).toBeTruthy();
+    expect(th.deployable).toBe(true);
+    expect(th.arrival).toBe("submersible");
+    const at = dropPoint(th);
+    expect(at.y).toBeLessThan(0);
     expect(dropPoint(neon).z).toBe(neon.z + 6);
   });
 });

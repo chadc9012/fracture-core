@@ -54,6 +54,7 @@ import { NullPulseFx } from "./NullPulseFx";
 import { AbilityFx } from "./AbilityFx";
 import { Squad } from "./Squad";
 import { CoreNodePod } from "./CoreNodePod";
+import { ThalassiaSectors } from "./ThalassiaSectors";
 import { LavaTrench, WreckField } from "./SetPieces";
 import { EmberPeaks } from "./EmberPeaks";
 import { SolaraDesert } from "./SolaraDesert";
@@ -104,7 +105,8 @@ import { ADAPTIVE_TUTORIAL_INIT, maybeReteach, recordStruggle } from "@/game/ada
 import { isValidPlayerState, resetFrameFailureCount, sanitizePlayerState, softFrameFailure } from "@/game/safe-state";
 import { difficultyCurve, playerPowerScore } from "@/game/balance";
 import type { TutorialEvent, TutorialState } from "@/game/onboarding";
-import { SECTOR_LABEL, coolantDamage, coolantPhase, hullDamagePerSec, hullStressStep, sectorAt, type ThalassiaSector } from "@/game/thalassia-sectors";
+import { CITY_RADIUS, DOCK_DECK_Y, SECTOR_LABEL, airStationAt, airlockSite, coolantDamage, coolantPhase, dockSite, hullDamagePerSec, hullStressStep, reactorSite, ringWaypoint, sectorAt, type ThalassiaSector } from "@/game/thalassia-sectors";
+import { airlockRestored } from "@/game/missions/descent-protocol";
 import { OXYGEN_MAX, WATER_DRAG, applyWaterDrag, classifyUnderwaterState, lowOxygenPenalty, oxygenStep, pressureSpeedMultiplier, stepBuoyancy } from "@/game/underwater";
 import { underwaterSpread } from "@/game/underwater-combat";
 import { heatStatus, stepHeatMeter } from "@/game/heat";
@@ -469,7 +471,7 @@ export function Scene({
   /** active class loadout: weapon slot order for keys 1-3, cycling and HUD */
   weaponOrder?: WeaponId[];
   /** star map deployment target; nonce changes trigger the drop */
-  travelTo?: { x: number; z: number; nonce: number } | null;
+  travelTo?: { x: number; z: number; nonce: number; y?: number } | null;
   onCheckpoint?: (p: { x: number; z: number }) => void;
   /** Opening cinematic: while set, the camera follows intro-camera.ts's scripted flythrough
    * instead of the normal player follow-cam — IntroCinematic.tsx's overlay fades out over this
@@ -655,6 +657,8 @@ export function Scene({
     hull: 0,
     sector: null as ThalassiaSector | null,
     breachAt: -1e9,
+    /** NOVA hazard cues already given this dive (reset on surfacing) */
+    cues: new Set<string>(),
     /* Neon City chase system — heat meter, vault chain tracking */
     heatMeter: 0,
     chainCount: 0,
@@ -1125,7 +1129,10 @@ export function Scene({
     s.wasSubmerged = submerged;
     if (!submerged) s.diving = false;
     /* ---------------- oxygen: depletes while diving below the surface, regenerates everywhere else ---------------- */
-    s.oxygen = oxygenStep(s.oxygen, dt, s.diving);
+    // functional air stations in Thalassia refill the rebreather even while submerged (thalassia-sectors.ts)
+    const dockAir = airlockRestored(descent) || !!gear?.completedMissions?.includes("descent-protocol");
+    const atStation = s.diving ? airStationAt(s.x, s.y, s.z, dockAir) : null;
+    s.oxygen = oxygenStep(s.oxygen, dt, s.diving && !atStation);
     const depth = s.diving ? Math.max(0, WATER_LEVEL - s.y) : 0;
     const oxygenPenalty = lowOxygenPenalty(s.oxygen);
     if (s.diving && s.oxygen <= 0 && Math.random() < dt * 0.6) sim.hp = Math.max(1, sim.hp - 4); // drowning trickle damage, never a hard kill on its own
@@ -1137,6 +1144,15 @@ export function Scene({
       s.hull = hullStressStep(s.hull, s.diving ? depth : 0, dt);
       const envDamage = hullDamagePerSec(s.hull) * dt + coolantDamage(sector, s.y, performance.now() / 1000, dt);
       if (envDamage > 0) sim.hp = Math.max(1, sim.hp - envDamage); // environmental, like drowning: never a hard kill on its own
+      // NOVA hazard cues: once per dive each, before the hazard can matter
+      const cue = (key: string, line: string) => { if (!s.cues.has(key)) { s.cues.add(key); alert(sim, `NOVA: ${line}`); } };
+      if (!s.diving) s.cues.clear();
+      else {
+        if (s.oxygen < 30) cue("o2", "Rebreather's under a third. Find an air station or get topside.");
+        if (sector === "ABYSSAL_RING") cue("coolant", "Live coolant on this floor. When the ring charges, get up off it.");
+        if (s.hull > 0.25) cue("hull", "Past crush depth — your suit won't hold long. Ascend to bleed the stress off.");
+        if (atStation) cue(`air-${atStation.id}`, "Air station's live. Breathe while you can.");
+      }
     }
 
     s.viewCool -= dt;
@@ -1762,13 +1778,22 @@ export function Scene({
 
     /* ---------------- Mission 04 · Descent Protocol world triggers ---------------- */
     if (descent && onDescentEvent) {
-      if (descent.state === "TRIGGERED" && !descent.target) onDescentEvent({ type: "ANCHOR", x: THALASSIA_CENTER.x, z: THALASSIA_CENTER.z });
+      if (descent.state === "TRIGGERED" && !descent.target) { const d = dockSite(); onDescentEvent({ type: "ANCHOR", x: d.x, z: d.z }); }
       if (descent.state === "DIVE" && descent.target && Math.hypot(descent.target.x - s.x, descent.target.z - s.z) < 18) onDescentEvent({ type: "ARRIVED" });
       if (descent.state === "COMBAT_1" && descentSpawned.current !== "COMBAT_1" && descentSpawned.current !== "COMBAT_1-done") {
         descentSpawned.current = "COMBAT_1";
         spawnMissionDrones(sim, s.x, s.z, 4, false);
       }
       if (descent.state === "COMBAT_1" && descentSpawned.current === "COMBAT_1" && !sim.machines.some((m) => m.alive && m.mission)) { descentSpawned.current = "COMBAT_1-done"; onDescentEvent({ type: "CLEAR" }); }
+      // Thalassia's mission machines swim at the diver's depth instead of riding the surface
+      if (s.diving && s.sector) for (const m of sim.machines) if (m.alive && m.mission && Math.hypot(m.x - s.x, m.z - s.z) < 90) m.swimY = s.y + 0.5;
+      if (descent.state === "RING") { const w = ringWaypoint(); if (Math.hypot(w.x - s.x, w.z - s.z) < 9) onDescentEvent({ type: "ARRIVED" }); }
+      if (descent.state === "CORE") {
+        // the Sunk-Core's patrol wakes once when you go down; it is not a gate — the reactor is the objective
+        if (descentSpawned.current !== "CORE" && s.sector === "SUNK_CORE") { descentSpawned.current = "CORE"; const r = reactorSite(); spawnMissionDrones(sim, r.x, r.z, 3, true); }
+        const r = reactorSite();
+        if (s.sector === "SUNK_CORE" && Math.hypot(r.x - s.x, r.z - s.z) < 14) onDescentEvent({ type: "ARRIVED" });
+      }
     }
 
     /* ---------------- Mission 05 · The System Core world triggers ---------------- */
@@ -1869,19 +1894,26 @@ export function Scene({
     if (travelTo && travelTo.nonce !== travelSeen.current) {
       travelSeen.current = travelTo.nonce;
       s.x = travelTo.x; s.z = travelTo.z; s.y = walkHeight(s.x, s.z) + 1.6; s.vy = 0; s.vSpeed = 0; s.inVehicle = false; s.insideInterior = null; interior = null; velocity.set(0, 0, 0);
+      // submersible arrival (Thalassia): the sub breaches the dock seal and you exit at depth, diving, full rebreather
+      if (travelTo.y !== undefined) { s.y = travelTo.y; s.diving = true; s.grounded = false; s.oxygen = OXYGEN_MAX; s.hull = 0; s.breachAt = performance.now() / 1000; s.sector = sectorAt(s.x, s.y, s.z); }
     }
     if (sim.lastDeath !== deathSeen.current) {
       deathSeen.current = sim.lastDeath;
       live.current = cancelAbilities(sim, live.current, { x: s.x, z: s.z, yaw: s.yaw });
       const spot = chooseRespawn({ x: s.x, z: s.z }, checkpoint.current, hostiles);
-      alert(sim, `Respawned at ${spot.label} — away from active combat`);
-      s.x = spot.x;
-      s.z = spot.z;
-      s.y = walkHeight(s.x, s.z) + 1.6;
+      // Thalassia descent checkpoint: once the dock airlock is restored, dying in the city returns you to the airlock deck
+      const inCity = Math.hypot(s.x - dockSite().x, s.z - dockSite().z) < CITY_RADIUS + 60;
+      const dockCheckpoint = inCity && airlockRestored(descent) && descent?.state !== "WORLD_UPDATE";
+      const a = airlockSite();
+      alert(sim, dockCheckpoint ? "Respawned at the Sentry Dock airlock" : `Respawned at ${spot.label} — away from active combat`);
+      s.x = dockCheckpoint ? a.x : spot.x;
+      s.z = dockCheckpoint ? a.z : spot.z;
+      s.y = dockCheckpoint ? DOCK_DECK_Y + 1.6 : walkHeight(s.x, s.z) + 1.6;
       s.vy = 0;
       s.vSpeed = 0;
-      s.grounded = true;
-      s.diving = false;
+      s.grounded = !dockCheckpoint;
+      s.diving = dockCheckpoint;
+      if (dockCheckpoint) { s.oxygen = OXYGEN_MAX; s.hull = 0; }
       s.inVehicle = false;
       s.insideInterior = null;
       s.interiorReturnPos = null;
@@ -2303,7 +2335,7 @@ export function Scene({
       {LANDMARKS.filter((l) => l.id === "convoy-sprint" || l.id === "smoldering-trench").map((l) => (
         <NearOnly key={l.id} playerRef={player} x={l.x} z={l.z} radius={260 * NEAR_SCALE[settings.renderTier]} name={`set:${l.id}`}>{l.id === "convoy-sprint" ? <WreckField /> : <LavaTrench />}</NearOnly>
       ))}
-      <NearOnly playerRef={player} x={THALASSIA_CENTER.x} z={THALASSIA_CENTER.z} radius={260 * NEAR_SCALE[settings.renderTier]} name="city:thalassia"><Thalassia /></NearOnly>
+      <NearOnly playerRef={player} x={THALASSIA_CENTER.x} z={THALASSIA_CENTER.z} radius={260 * NEAR_SCALE[settings.renderTier]} name="city:thalassia"><Thalassia /><ThalassiaSectors descent={descent ?? null} everRestored={!!gear?.completedMissions?.includes("descent-protocol")} /></NearOnly>
       <SupplyLanes sim={sim} />
       <ZoneBeacons sim={sim} />
       <Convoys sim={sim} />

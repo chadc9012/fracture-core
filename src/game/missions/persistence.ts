@@ -28,7 +28,7 @@ export const RESUMABLE_STATES: Record<MissionId, readonly string[]> = {
   "frozen-beacon": ["TRIGGERED", "TRAVEL", "COMBAT_1", "HACKING", "BOSS", "COMPLETE", "WORLD_UPDATE"],
   "failure-core": ["TRIGGERED", "TRAVEL", "COMBAT_1", "HACKING", "BOSS", "COMPLETE", "WORLD_UPDATE"],
   "convoy-breaker": ["TRIGGERED", "TRAVEL", "COMBAT_1", "HACKING", "BOSS", "COMPLETE", "WORLD_UPDATE"],
-  "descent-protocol": ["TRIGGERED", "DIVE", "COMBAT_1", "TRACING", "COMPLETE", "WORLD_UPDATE"],
+  "descent-protocol": ["TRIGGERED", "DIVE", "COMBAT_1", "AIRLOCK", "RING", "CORE", "TRACING", "COMPLETE", "WORLD_UPDATE"],
   "system-core": ["TRIGGERED", "DIVE", "COMBAT_1", "STABILIZING", "BOSS", "COMPLETE", "WORLD_UPDATE"],
 };
 

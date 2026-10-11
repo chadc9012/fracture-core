@@ -8,7 +8,7 @@ import { createAi, pickCover, shouldTakeCover, sightRange, stepAwareness, type E
 import type { AbilityEvent } from "./ability-effects";
 import { RIFT_TURRET_DAMAGE, deployRiftTurret, stepRiftTurret, type RiftTurret } from "./operator-abilities";
 import { REGIONS, type Region } from "./world";
-import { heightAt, smoothstep, walkHeight } from "./terrain";
+import { heightAt, smoothstep, walkHeight, WATER_LEVEL } from "./terrain";
 import { LANES, laneLanePoint, laneSamples, type Lane } from "./lanes";
 import { collideBody } from "./obstacles";
 import {
@@ -117,6 +117,8 @@ export type Machine = {
   eq?: boolean;
   /** set when this boss is a Unique Scenario encounter (see unique-scenarios.ts) instead of a regular catalog boss */
   scenarioId?: string;
+  /** underwater (Thalassia) machines hold this world-y instead of riding the surface; cleared when the slot is freed */
+  swimY?: number | undefined;
   /** scenario gimmick bookkeeping (scenario-gimmicks.ts): recent hit elements, and the attunement last announced */
   gimmickHistory?: DamageElement[];
   attuned?: DamageElement;
@@ -373,6 +375,7 @@ const markPlayerDamage = (m: Machine) => { m.lastPlayerDamage = performance.now(
 export function defeatMachine(sim: WorldSim, m: Machine, credit: KillCredit = "player") {
   if (!m.alive || m.hp > 0) return;
   sim.statuses.delete(m);
+  m.swimY = undefined;
   if (m.decoy) { // a False Saint: no kill, credit, loot or progress
     m.alive = false;
     onDecoyShattered(sim, m);
@@ -1367,7 +1370,11 @@ export function stepSim(sim: WorldSim, input: SimInput) {
        defeatMachine(sim, m, envCredit(m)); // dying to a collision with a tree, wreck or another machine is nobody's kill unless the player had just hurt it
       continue;
     }
-    m.y = walkHeight(m.x, m.z) + 2.2 * m.scale;
+    if (m.swimY !== undefined && heightAt(m.x, m.z) < WATER_LEVEL - 2) {
+      // swimmers stay submerged: between the seabed and just under the surface
+      const bed = heightAt(m.x, m.z) + 1.5;
+      m.y += (Math.max(bed, Math.min(WATER_LEVEL - 1.5, m.swimY)) - m.y) * Math.min(1, dt * 2);
+    } else m.y = walkHeight(m.x, m.z) + 2.2 * m.scale;
   }
 
   // ---------- subclass-verb volatile zones (Void Warlock's Corrosion Field, see subclass-verbs.ts) ----------

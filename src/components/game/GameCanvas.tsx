@@ -360,7 +360,7 @@ export function GameCanvas() {
   }, [hud.cacheNear?.id, hud.cacheNear?.ok]);
   const [atlasOpen, setAtlasOpen] = useCountedState("atlasOpen", false);
   const [hubView, setHubView] = useCountedState<"starmap" | "arsenal" | "saves" | null>("hubView", null);
-  const [travelTo, setTravelTo] = useCountedState<{ x: number; z: number; nonce: number } | null>("travelTo", null);
+  const [travelTo, setTravelTo] = useCountedState<{ x: number; z: number; nonce: number; y?: number } | null>("travelTo", null);
   /** star-map fast travel: a Destiny-style cover hides the teleport (transit.ts timeline); the player moves only while fully covered */
   const [transit, setTransit] = useCountedState<{ startedAt: number; plan: TransitPlan; reduced: boolean; target: DeployTarget } | null>("transit", null);
   const transitTimers = useRef<number[]>([]);
@@ -733,7 +733,7 @@ export function GameCanvas() {
     const reduced = prefersReduced(settings.reducedMotion), plan = transitPlan(reduced);
     setTransit({ startedAt: performance.now(), plan, reduced, target });
     transitTimers.current.push(
-      window.setTimeout(() => { setHubView(null); setTravelTo({ x: target.x, z: target.z, nonce: Date.now() }); continueRef.current(); }, swapAt(plan) * 1000),
+      window.setTimeout(() => { setHubView(null); setTravelTo({ x: target.x, z: target.z, nonce: Date.now(), ...(target.y !== undefined ? { y: target.y } : {}) }); continueRef.current(); }, swapAt(plan) * 1000),
       window.setTimeout(() => setTransit(null), totalSeconds(plan) * 1000),
     );
   };
@@ -1116,7 +1116,7 @@ export function GameCanvas() {
       {solarArray && <SolarArrayOverlay mission={solarArray} onEvent={recordSolarArray} />}
       {coreNode && <CoreNodeOverlay mission={coreNode} onEvent={recordCoreNode} talking={storyGraph?.id === REVEAL_GRAPH.id} onTalk={() => setStoryGraph((current) => current ?? REVEAL_GRAPH)} />}
       {ZONE_MISSION_IDS.map((id) => { const run = zoneRuns[id]; return run ? <ZoneMissionOverlay key={id} mission={run} onEvent={(e) => recordZone(id, e)} /> : null; })}
-      {descent && <DescentProtocolOverlay mission={descent} onEvent={recordDescent} />}
+      {descent && <DescentProtocolOverlay mission={descent} onEvent={recordDescent} near={!descent.target || Math.hypot(descent.target.x - (hud.px ?? 0), descent.target.z - (hud.pz ?? 0)) < 10} />}
       {systemCore && <SystemCoreOverlay mission={systemCore} onEvent={recordSystemCore} />}
       {tutorial && <OnboardingSignal tutorial={tutorial} classId={cls} onOpenHub={() => { setTutorial(null); setOperationsView("ABILITIES"); }} />}
       {tutorial?.step === "VICTORY" && (

@@ -22,7 +22,8 @@ const THREAT = ["MINIMAL", "LOW", "MODERATE", "HIGH", "SEVERE", "EXTREME"];
 /** Destination-first star map rebuilt from the uploaded StarMapDeployment layout, driven by the real REGIONS/ENCOUNTERS data. */
 
 /** What the star map hands to the game when the player drops in: a destination name for the transit card and the world position to land on. */
-export interface DeployTarget { id: string; name: string; sub: string; color: string; x: number; z: number }
+/** `y`: arrive at this world height already diving (Thalassia's submersible arrival) */
+export interface DeployTarget { id: string; name: string; sub: string; color: string; x: number; z: number; y?: number }
 
 export function StarMap({ progression, onBack, onDeploy }: { progression: PlayerProgression; onBack: () => void; onDeploy: (target: DeployTarget) => void }) {
   const next = nextActivity(progression);
@@ -43,7 +44,7 @@ export function StarMap({ progression, onBack, onDeploy }: { progression: Player
     if (city && !city.deployable) return;
     setLaunching(true);
     const at = dropPoint(city ?? region);
-    onDeploy({ id: city?.id ?? region.id, name: city?.name ?? region.name, sub: city?.sub ?? region.sub, color: ZONE_COLOR[(city ?? region).kind], x: at.x, z: at.z });
+    onDeploy({ id: city?.id ?? region.id, name: city?.name ?? region.name, sub: city?.sub ?? region.sub, color: ZONE_COLOR[(city ?? region).kind], x: at.x, z: at.z, ...("y" in at && at.y !== undefined ? { y: at.y } : {}) });
   };
 
   return (

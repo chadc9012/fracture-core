@@ -9,11 +9,13 @@ const ACCENT = "#5fd8ff"; // Thalassia's own glow color (see Thalassia.tsx's dom
 /** Mission 04 presentation layer: NOVA line, in-world objective, and a signal-triangulation
  * minigame (same connect-in-order shape as the earlier missions' hack puzzles, re-themed as
  * "tracing" rather than "hacking" since there's nothing to break into here). */
-export function DescentProtocolOverlay({ mission, onEvent }: { mission: MissionRun; onEvent: (e: MissionEvent) => void }) {
+/** `near`: the diver is at the mission target — the airlock reroute and reactor trace only open there */
+export function DescentProtocolOverlay({ mission, onEvent, near = true }: { mission: MissionRun; onEvent: (e: MissionEvent) => void; near?: boolean }) {
   useVoiceLine(`descent-${mission.state}`, "NOVA", mission.nova, "critical");
   const [route, setRoute] = useState<number[]>([]);
   const order = useMemo(() => [...NODES].sort(() => Math.random() - 0.5), []);
-  const tracing = mission.state === "TRACING";
+  const airlock = mission.state === "AIRLOCK";
+  const tracing = (mission.state === "TRACING" || airlock) && near;
 
   const pick = (n: number) => {
     const expected = order[route.length];
@@ -31,7 +33,7 @@ export function DescentProtocolOverlay({ mission, onEvent }: { mission: MissionR
     {mission.state !== "WORLD_UPDATE" && <div className="pointer-events-none fixed right-3 top-24 z-20 max-w-xs border-l-2 p-3" style={{ borderColor: ACCENT, background: "color-mix(in oklch, var(--card) 80%, transparent)" }}>
       <p className="font-mono text-[10px] uppercase tracking-[0.25em]" style={{ color: ACCENT }}>Descent Protocol</p>
       <p className="mt-1 text-sm">{OBJECTIVE[mission.state]}</p>
-      {tracing && <p className="mt-1 font-mono text-[10px] text-muted-foreground">SIGNAL LOCK {Math.round(mission.hack)}%</p>}
+      {(mission.state === "TRACING" || airlock) && <p className="mt-1 font-mono text-[10px] text-muted-foreground">{airlock ? "AIRLOCK REROUTE" : "SIGNAL LOCK"} {Math.round(mission.hack)}%{near ? "" : " · get to the marker"}</p>}
     </div>}
     {mission.nova && <div className="pointer-events-none fixed bottom-24 left-3 z-20 flex max-w-sm items-start gap-3 border p-3" style={{ borderColor: `color-mix(in oklch, ${ACCENT} 40%, transparent)`, background: "color-mix(in oklch, var(--card) 80%, transparent)" }}>
       <span className="mt-1 size-3 shrink-0 animate-pulse rounded-full" style={{ background: ACCENT, boxShadow: `0 0 12px ${ACCENT}` }} />
@@ -39,8 +41,8 @@ export function DescentProtocolOverlay({ mission, onEvent }: { mission: MissionR
     </div>}
     {tracing && <div className="fixed inset-0 z-30 grid place-items-center bg-background/40">
       <section className="w-[min(26rem,calc(100%-2rem))] border bg-card/90 p-5" style={{ borderColor: ACCENT }}>
-        <p className="font-mono text-[10px] uppercase tracking-[0.25em]" style={{ color: ACCENT }}>Signal trace · triangulate the core</p>
-        <p className="mt-1 text-xs text-muted-foreground">Follow the signal bearings in order. Next: <b className="text-foreground">BEARING {(order[route.length] ?? 0) + 1}</b></p>
+        <p className="font-mono text-[10px] uppercase tracking-[0.25em]" style={{ color: ACCENT }}>{airlock ? "Airlock controller · reroute the seals" : "Signal trace · triangulate the core"}</p>
+        <p className="mt-1 text-xs text-muted-foreground">{airlock ? "Re-seat the pressure relays in order." : "Follow the signal bearings in order."} Next: <b className="text-foreground">{airlock ? "RELAY" : "BEARING"} {(order[route.length] ?? 0) + 1}</b></p>
         <div className="mt-4 grid grid-cols-4 gap-2">{NODES.map((n) => <Button key={n} variant={route.includes(n) ? "default" : "outline"} onClick={() => pick(n)} className="h-14 rounded-none font-mono">{n + 1}</Button>)}</div>
       </section>
     </div>}

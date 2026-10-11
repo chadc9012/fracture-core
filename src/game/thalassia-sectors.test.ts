@@ -35,3 +35,21 @@ describe("Thalassia sectors", () => {
     expect(coolantDamage("ABYSSAL_RING", RING.floorY + 1, 0.5, 0.1)).toBe(0);
   });
 });
+
+import { AIR_REACH, CRUSH_DEPTH as CD, DOCK_DECK_Y, REACTOR_Y, airStationAt, airStations, dockSite, reactorSite, ringWaypoint, depthOf } from "./thalassia-sectors";
+describe("Thalassia mission sites and air", () => {
+  test("sites sit in their sectors", () => {
+    const d = dockSite(); expect(sectorAt(d.x, DOCK_DECK_Y, d.z)).toBe("SENTRY_DOCK");
+    const w = ringWaypoint(); expect(sectorAt(w.x, -10, w.z)).toBe("ABYSSAL_RING");
+    const r = reactorSite(); expect(sectorAt(r.x, REACTOR_Y, r.z)).toBe("SUNK_CORE");
+    expect(depthOf(DOCK_DECK_Y)).toBeLessThan(CD); // the dock is safe from crush depth
+    expect(depthOf(REACTOR_Y)).toBeGreaterThan(CD); // the reactor is not
+  });
+  test("the dock air station only works once the airlock is restored; the ring station always works", () => {
+    const [dock, ring] = airStations();
+    expect(airStationAt(dock!.x, dock!.y, dock!.z, false)).toBeNull();
+    expect(airStationAt(dock!.x, dock!.y, dock!.z, true)?.id).toBe("dock");
+    expect(airStationAt(ring!.x, ring!.y, ring!.z, false)?.id).toBe("ring");
+    expect(airStationAt(ring!.x, ring!.y + AIR_REACH + 1, ring!.z, true)).toBeNull();
+  });
+});

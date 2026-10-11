@@ -51,3 +51,30 @@ export function coolantDamage(sector: ThalassiaSector | null, y: number, t: numb
   if (sector !== "ABYSSAL_RING" || coolantPhase(t) !== "ARC") return 0;
   return y - RING.floorY < COOLANT.reach ? (COOLANT.damage / COOLANT.arc) * dt : 0;
 }
+
+/** mission sites (world x,z) */
+export const dockSite = () => ({ x: THALASSIA_CENTER.x + DOCK.dx, z: THALASSIA_CENTER.z + DOCK.dz });
+export const airlockSite = () => ({ x: THALASSIA_CENTER.x + DOCK.dx - 9, z: THALASSIA_CENTER.z + DOCK.dz });
+/** the Abyssal Ring's far side from the dock */
+export const ringWaypoint = () => ({ x: THALASSIA_CENTER.x, z: THALASSIA_CENTER.z - (RING.inner + RING.outer) / 2 });
+export const reactorSite = () => ({ x: THALASSIA_CENTER.x, z: THALASSIA_CENTER.z });
+/** the dock's pressurised deck (world y) — submersible arrivals and dock respawns stand here */
+export const DOCK_DECK_Y = -10;
+/** how deep the reactor sits (world y) */
+export const REACTOR_Y = -24;
+
+/** Air stations: refill oxygen while you're within reach. The dock's only works once its airlock is restored. */
+export type AirStation = { id: "dock" | "ring"; x: number; y: number; z: number };
+export function airStations(): AirStation[] {
+  const a = airlockSite(), r = ringWaypoint();
+  return [{ id: "dock", x: a.x - 3, y: DOCK_DECK_Y + 1, z: a.z + 4 }, { id: "ring", x: r.x + 6, y: RING.floorY + 5, z: r.z }];
+}
+export const AIR_REACH = 4.5;
+/** the air station refilling the player at (x,y,z), if any is functional and in reach */
+export function airStationAt(x: number, y: number, z: number, airlockRestored: boolean): AirStation | null {
+  for (const s of airStations()) {
+    if (s.id === "dock" && !airlockRestored) continue;
+    if (Math.hypot(x - s.x, y - s.y, z - s.z) <= AIR_REACH) return s;
+  }
+  return null;
+}
