@@ -516,7 +516,9 @@ export function Scene({
       if (!spot) return "unknown place";
       devWarp.current = spot; return "ok";
     };
-    return () => { delete w.__warp; };
+    const wr = window as unknown as { __where?: () => unknown };
+    wr.__where = () => { const st = state.current; return { x: Math.round(st.x), y: Math.round(st.y * 10) / 10, z: Math.round(st.z), diving: st.diving, sector: st.sector, oxygen: Math.round(st.oxygen), hull: st.hull, hp: Math.round(sim.hp) }; };
+    return () => { delete w.__warp; delete wr.__where; };
   }, []);
   const solarArraySpawned = useRef("");
   const coreNodeSpawned = useRef("");
