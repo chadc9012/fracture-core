@@ -1,6 +1,7 @@
 import { useMemo, useRef, type ReactElement } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
+import { softSprite } from "./softSprite";
 import { handlingClass, type HandlingClass, type ViewPose } from "@/game/weapon-handling";
 
 /**
@@ -189,6 +190,9 @@ const FLASH_TEX = (() => {
   return new THREE.CanvasTexture(c);
 })();
 
+const SMOKE_PUFFS = 6;
+const SMOKE_LIFE = 0.9;
+
 export function ViewWeapon({ pose, colors }: { pose: { current: ViewPose | null }; colors: Colors }) {
   const m = useMats(colors);
   const root = useRef<THREE.Group>(null!);
@@ -198,6 +202,11 @@ export function ViewWeapon({ pose, colors }: { pose: { current: ViewPose | null 
   const flash = useRef<THREE.Sprite>(null!);
   const light = useRef<THREE.PointLight>(null!);
   const flashMat = useMemo(() => new THREE.SpriteMaterial({ map: FLASH_TEX, color: "#ffd9a0", transparent: true, depthWrite: false, blending: THREE.AdditiveBlending }), []);
+  const smoke = useRef<THREE.Group>(null!);
+  const puffs = useRef<{ age: number; x: number; y: number; z: number }[]>(Array.from({ length: SMOKE_PUFFS }, () => ({ age: 9, x: 0, y: 0, z: 0 })));
+  const lastFlash = useRef(0);
+  const nextPuff = useRef(0);
+  const smokeTex = useMemo(() => softSprite("dot"), []);
   const clearer = useMemo(() => {
     const mesh = new THREE.Mesh(new THREE.PlaneGeometry(0.0001, 0.0001), new THREE.MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false }));
     mesh.renderOrder = ORDER - 1; mesh.frustumCulled = false;
@@ -205,7 +214,7 @@ export function ViewWeapon({ pose, colors }: { pose: { current: ViewPose | null 
     return mesh;
   }, []);
 
-  useFrame(() => {
+  useFrame((_, dt) => {
     const p = pose.current;
     if (!p || !root.current) return;
     const cls = handlingClass(p.weapon);
@@ -225,8 +234,24 @@ export function ViewWeapon({ pose, colors }: { pose: { current: ViewPose | null 
     }
     const muzzle = MUZZLE[cls];
     const on = muzzle && p.flash > 0;
-    if (flash.current) { flash.current.visible = Boolean(on); if (on) { flash.current.position.set(muzzle[0], muzzle[1], muzzle[2] - 0.05); const s = (cls === "shotgun" || cls === "heavy" ? 0.45 : 0.3) * (0.7 + p.flash * 0.6); flash.current.scale.set(s, s, s); flash.current.material.rotation = Math.random() * Math.PI; } }
-    if (light.current) { light.current.intensity = on ? 6 * p.flash : 0; if (muzzle) light.current.position.set(muzzle[0], muzzle[1], muzzle[2]); }
+    if (flash.current) { flash.current.visible = Boolean(on); if (on) { flash.current.position.set(muzzle[0], muzzle[1], muzzle[2] - 0.05); const s = (cls === "shotgun" || cls === "heavy" ? 0.65 : 0.42) * (0.7 + p.flash * 0.6); flash.current.scale.set(s, s, s); flash.current.material.rotation = Math.random() * Math.PI; } }
+    if (light.current) { light.current.intensity = on ? 9 * p.flash : 0; if (muzzle) light.current.position.set(muzzle[0], muzzle[1], muzzle[2]); }
+    // gun smoke: a soft puff leaves the muzzle on every shot and drifts up as it thins
+    if (muzzle && p.flash > 0.85 && lastFlash.current <= 0.85) {
+      const puff = puffs.current[nextPuff.current++ % SMOKE_PUFFS]!;
+      puff.age = 0; puff.x = muzzle[0]; puff.y = muzzle[1]; puff.z = muzzle[2] - 0.08;
+    }
+    lastFlash.current = p.flash;
+    smoke.current?.children.forEach((c, i) => {
+      const puff = puffs.current[i]!;
+      puff.age += dt;
+      const k = puff.age / SMOKE_LIFE;
+      c.visible = k < 1;
+      if (k >= 1) return;
+      c.position.set(puff.x + k * 0.04, puff.y + k * 0.16, puff.z - k * 0.12);
+      const sc = 0.08 + k * 0.32; c.scale.set(sc, sc, sc);
+      ((c as THREE.Sprite).material as THREE.SpriteMaterial).opacity = 0.32 * (1 - k) * Math.min(1, k * 10);
+    });
   });
 
   return <group>
@@ -241,6 +266,9 @@ export function ViewWeapon({ pose, colors }: { pose: { current: ViewPose | null 
       <group ref={support}><group rotation={[0, 0.5, 0]}><Arm m={m} side={-1} /></group></group>
       <sprite ref={flash} material={flashMat} visible={false} renderOrder={ORDER + 1} />
       <pointLight ref={light} color="#ffb060" intensity={0} distance={6} decay={2} />
+      <group ref={smoke}>
+        {Array.from({ length: SMOKE_PUFFS }, (_, i) => <sprite key={i} visible={false} renderOrder={ORDER + 1}><spriteMaterial map={smokeTex ?? null} color="#c9c4bd" transparent depthWrite={false} /></sprite>)}
+      </group>
     </group>
   </group>;
 }

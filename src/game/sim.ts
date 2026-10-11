@@ -39,6 +39,7 @@ import {
   directorTick,
   type Director,
 } from "./director";
+import { createSquad, stepSquad, type SquadState } from "./squad";
 import { absorbTitanDamage, createTitanState, tickTitan, type TitanState } from "./titan";
 import { encounterFor, troopFor } from "./encounters";
 import type { MaterialId } from "./inventory";
@@ -232,6 +233,8 @@ export type WorldSim = {
   impactCool: number;
   /** rolling combat activity used for pacing */
   combatHeat: number;
+  /** AI squadmates (squad.ts): formation + support fire, presentation in Squad.tsx */
+  squad: SquadState;
   /** 0..1 weather visibility set by Scene each frame; shrinks enemy sight */
   envVisibility: number;
   /** latest player gunfire noise 0..1, decays each frame */
@@ -537,6 +540,7 @@ export function createSim(): WorldSim {
     director: createDirector(),
     impactCool: 0,
     combatHeat: 0,
+    squad: createSquad(0, 0, typeof location === "undefined" || !/[?&]squad=0/.test(location.search)),
     envVisibility: 1,
     playerNoise: 0,
     adaptation,
@@ -1045,6 +1049,8 @@ export type SimInput = {
   /** 0..1 through the day; night raises AI aggression */
   night: number;
   inVehicle: boolean;
+  /** player facing (yaw 0 = +z); squadmates hold formation off it */
+  yaw?: number;
 };
 
 export function stepSim(sim: WorldSim, input: SimInput) {
@@ -1084,6 +1090,18 @@ export function stepSim(sim: WorldSim, input: SimInput) {
     const eq = sim.emergencyQuest;
     if (!summonBoss(sim, eq.regionId, eq.x, eq.z, { eq: true })) sim.emergencyQuest = { ...sim.emergencyQuest, state: "FAILED", timer: 10 };
     else alert(sim, `EMERGENCY QUEST ACTIVE · ${eq.bossName} has arrived`);
+  }
+
+  // ---------- squadmates ----------
+  {
+    const hits = stepSquad(sim.squad, sim.machines, { px, pz, yaw: input.yaw ?? 0, dt, heat: sim.combatHeat, inVehicle: input.inVehicle, rand: Math.random });
+    for (const h of hits) {
+      const m = sim.machines[h.index];
+      if (!m?.alive) continue;
+      m.hp -= applyMachineDamageMods(sim, m, h.damage, "KINETIC", px, pz);
+      if (m.hp <= 0 && !m.boss) defeatMachine(sim, m);
+      else if (m.hp <= 0) m.hp = 0.01;
+    }
   }
 
   // ---------- alerts ----------

@@ -52,6 +52,8 @@ import { Bullets, BeaconMarkers, Convoys, HazardMarkers, SupplyLanes, WarMachine
 import { ScenarioBosses } from "./ScenarioBosses";
 import { NullPulseFx } from "./NullPulseFx";
 import { AbilityFx } from "./AbilityFx";
+import { Squad } from "./Squad";
+import { LavaTrench, WreckField } from "./SetPieces";
 import { CombatFx } from "./CombatFx";
 import { fxBus } from "@/game/fx-bus";
 import { launch, zoneElement } from "@/game/combat-fx";
@@ -1817,6 +1819,7 @@ export function Scene({
       pz: s.z,
       night,
       inVehicle: s.inVehicle,
+      yaw: s.yaw,
     });
     // Hull-destroyed respawn: hurtPlayer() (sim.ts) already resets hp/cargo and stamps sim.lastDeath, but
     // it can't touch the player's world position — that lives here in Scene's own state, not in WorldSim.
@@ -2263,6 +2266,9 @@ export function Scene({
       <ShopStalls />
       <NearOnly playerRef={player} x={NEXUS_REGION.x} z={NEXUS_REGION.z} radius={330 * NEAR_SCALE[settings.renderTier]} name="city:nexus"><NexusCity sim={sim} /></NearOnly>
       <NearOnly playerRef={player} x={NEON_CITY_CENTER.x} z={NEON_CITY_CENTER.z} radius={300 * NEAR_SCALE[settings.renderTier]} name="city:neon"><NeonCity /></NearOnly>
+      {LANDMARKS.filter((l) => l.id === "convoy-sprint" || l.id === "smoldering-trench").map((l) => (
+        <NearOnly key={l.id} playerRef={player} x={l.x} z={l.z} radius={260 * NEAR_SCALE[settings.renderTier]} name={`set:${l.id}`}>{l.id === "convoy-sprint" ? <WreckField /> : <LavaTrench />}</NearOnly>
+      ))}
       <NearOnly playerRef={player} x={THALASSIA_CENTER.x} z={THALASSIA_CENTER.z} radius={260 * NEAR_SCALE[settings.renderTier]} name="city:thalassia"><Thalassia /></NearOnly>
       <SupplyLanes sim={sim} />
       <ZoneBeacons sim={sim} />
@@ -2271,6 +2277,7 @@ export function Scene({
       <ScenarioBosses sim={sim} />
       <CombatFx sim={sim} reducedMotion={!!settings.reducedMotion} />
       <AbilityFx sim={sim} reducedMotion={!!settings.reducedMotion} />
+      <Squad sim={sim} />
       <NullPulseFx sim={sim} tier={settings.renderTier} reducedMotion={!!settings.reducedMotion || (typeof window !== "undefined" && typeof window.matchMedia === "function" && window.matchMedia("(prefers-reduced-motion: reduce)").matches)} />
       <EncounterFx sim={sim} reducedMotion={!!settings.reducedMotion || (typeof window !== "undefined" && typeof window.matchMedia === "function" && window.matchMedia("(prefers-reduced-motion: reduce)").matches)} />
       <HazardMarkers sim={sim} />
