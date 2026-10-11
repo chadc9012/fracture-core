@@ -113,6 +113,8 @@ import { CRASH_SITE, ENCOUNTER, NEW_INVESTIGATION, shouldWakePatrol, stepInvesti
 import { spawnForestPatrol } from "@/game/forest-encounter";
 import { CHECKPOINT_INTERVAL_S, chooseRespawn, isCheckpointSafe } from "@/game/respawn";
 import { WEAPONS, WEAPON_ORDER, decay, freshAmmo, type WeaponId } from "@/game/weapons";
+import { initialView, stepView, viewPose, type ViewPose, type ViewState } from "@/game/weapon-handling";
+import { ViewWeapon } from "./ViewWeapon";
 import { isLauncherId } from "@/game/launchers";
 import { DEFAULT_BINDINGS, abilityChord, maskChord } from "@/game/bindings";
 import type { AbilityHud } from "@/game/ability-effects";
@@ -615,6 +617,8 @@ export function Scene({
     ammo: freshAmmo(),
     reload: 0,
     switchedAt: 0,
+    /** shots fired so far (the first-person weapon reads the change to kick, flash and cycle) */
+    shots: 0,
     wheel: false,
     burstLeft: 0,
     burstCool: 0,
@@ -741,9 +745,11 @@ export function Scene({
   const camTarget = useMemo(() => new THREE.Vector3(), []);
   const look = useMemo(() => new THREE.Vector3(), []);
   const cameraDirection = useMemo(() => new THREE.Vector3(), []);
-  const gunModel = useRef<THREE.Group>(null);
-  const swordModel = useRef<THREE.Group>(null);
   const viewmodel = useRef<THREE.Group>(null);
+  // first-person weapon presentation (weapon-handling.ts): state stepped each frame, pose read by ViewWeapon
+  const viewState = useRef<ViewState | null>(null);
+  const viewPoseRef = useRef<ViewPose | null>(null);
+  const viewShots = useRef(0);
   const mouse = useRef({ fire: false, aim: false });
   const padPrev = useRef<boolean[]>([]);
   const keyPrev = useRef<Set<string>>(new Set());
@@ -1265,6 +1271,7 @@ export function Scene({
         if (fireLauncher(sim, wpn.id, s.x + Math.sin(s.yaw) * 0.6, s.y + 0.95, s.z + Math.cos(s.yaw) * 0.6, s.yaw + yawJ, s.pitch + s.recoil + pitchJ, wpn.damage * gearPower * (1 + armorFxRef.current.weaponDamage), wpn.knock, wpn.heat)) {
           bossActionLog.current = logAction(bossActionLog.current, "RANGED", performance.now() / 1000);
           sfx.playShot(s.weapon);
+          s.shots++;
           s.recoil += wpn.recoil;
           s.punch += wpn.punch;
           s.bloom = Math.min(1, s.bloom + 0.18 * wpn.punch);
@@ -1273,7 +1280,15 @@ export function Scene({
         }
         return;
       }
-       if (fireBullet(sim, s.x, s.y + (s.inVehicle ? 1.5 : 0.95), s.z, s.yaw + yawJ, s.inVehicle, s.pitch + s.recoil + pitchJ, wpn.damage * gearPower * (1 + armorFxRef.current.weaponDamage), wpn.knock, wpn.heat, s.inVehicle ? undefined : wpn.element)) {
+      // shotguns fire a spread of pellets per trigger pull; every pellet is a real bullet with its own jitter
+      let fired = false;
+      const pellets = s.inVehicle ? 1 : wpn.pellets ?? 1;
+      for (let pi = 0; pi < pellets; pi++) {
+        const py = pi === 0 ? yawJ : (Math.random() - 0.5) * 2 * spread, pp = pi === 0 ? pitchJ : (Math.random() - 0.5) * 2 * spread;
+        if (fireBullet(sim, s.x, s.y + (s.inVehicle ? 1.5 : 0.95), s.z, s.yaw + py, s.inVehicle, s.pitch + s.recoil + pp, wpn.damage * gearPower * (1 + armorFxRef.current.weaponDamage), wpn.knock / pellets, wpn.heat / pellets, s.inVehicle ? undefined : wpn.element)) fired = true;
+      }
+       if (fired) {
+        s.shots++;
         bossActionLog.current = logAction(bossActionLog.current, "RANGED", performance.now() / 1000);
         sfx.playShot(s.inVehicle ? "VEHICLE" : s.weapon);
         if (!s.inVehicle) ejectCasing(fxBus.casings, s.weapon, s.x + Math.sin(s.yaw) * 0.5, s.y + 0.9, s.z + Math.cos(s.yaw) * 0.5, s.yaw);
@@ -2015,8 +2030,24 @@ export function Scene({
         viewmodel.current.visible = !s.inVehicle && s.cameraBlend < 0.22;
         viewmodel.current.position.copy(camera.position);
         viewmodel.current.quaternion.copy(camera.quaternion);
-        if (gunModel.current) { gunModel.current.visible = WEAPONS[s.weapon].kind !== "sword"; gunModel.current.position.z = Math.min(0.35, s.punch * 0.06); gunModel.current.rotation.x = s.recoil * 3; const fv = feel.current.view; if (fv) { gunModel.current.position.y = fv.bobY * 0.9; gunModel.current.position.x = fv.swayX * 1.4; gunModel.current.rotation.z = Math.sin(fv.phase) * 0.03 * fv.intensity; } }
-        if (swordModel.current) { swordModel.current.visible = WEAPONS[s.weapon].kind === "sword"; const t = s.swing / 0.3; swordModel.current.rotation.z = (s.combo % 2 ? 1 : -1) * (t > 0 ? (1 - t) * 2.4 - 1.2 : -0.35); }
+        // one shared handling system: draw/holster, ADS, recoil spring, sprint, reload choreography, slide/pump/bolt, melee arcs
+        const vdef = WEAPONS[s.weapon];
+        const vfeel = { mobility: armorFxRef.current.moveSpeed * 10, defense: armorFxRef.current.resist * 4 };
+        const fired = s.shots - viewShots.current; viewShots.current = s.shots;
+        const vin = {
+          weapon: s.weapon,
+          aiming: Boolean(mouse.current.aim || padState.current.aim),
+          sprinting: s.grounded && (held.has("ShiftLeft") || held.has("ShiftRight")) && Math.hypot(velocity.x, velocity.z) > 2 && move.current.state.stance === "STAND",
+          fired: Math.max(0, Math.min(3, fired)),
+          reload: s.reload > 0 && vdef.reload > 0 ? 1 - s.reload / vdef.reload : -1,
+          swing: s.swing > 0 ? 1 - s.swing / 0.3 : -1,
+          combo: s.combo,
+          feel: vfeel,
+          noise: Math.random() * 2 - 1,
+        };
+        viewState.current = stepView(viewState.current ?? initialView(s.weapon), vin, dt);
+        const fv = feel.current.view;
+        viewPoseRef.current = viewPose(viewState.current, vin, fv?.bobY ?? 0, fv?.swayX ?? 0, vfeel);
       }
     }
 
@@ -2341,34 +2372,7 @@ export function Scene({
 
       {/* Local first-person arms and rifle; the world avatar remains available for external views. */}
       <group ref={viewmodel} visible={false}>
-        <mesh position={[0.52, -0.54, -1.05]} rotation={[0.25, -0.16, 0.2]}>
-          <boxGeometry args={[0.27, 0.3, 0.85]} />
-          <meshStandardMaterial color={appearance.armor} metalness={0.6} roughness={0.45} depthTest={false} />
-        </mesh>
-        <mesh position={[-0.36, -0.62, -1.02]} rotation={[0.2, 0.15, -0.25]}>
-          <boxGeometry args={[0.25, 0.27, 0.7]} />
-          <meshStandardMaterial color={appearance.cloth} roughness={0.8} depthTest={false} />
-        </mesh>
-        <group ref={gunModel}>
-        <mesh position={[0.32, -0.39, -1.45]}>
-          <boxGeometry args={[0.3, 0.23, 1.55]} />
-          <meshStandardMaterial color={appearance.armor} metalness={0.75} roughness={0.32} depthTest={false} />
-        </mesh>
-        <mesh position={[0.32, -0.37, -2.38]}>
-          <boxGeometry args={[0.11, 0.11, 0.55]} />
-          <meshStandardMaterial color={appearance.visor} emissive={appearance.visor} emissiveIntensity={0.3} depthTest={false} />
-        </mesh>
-        </group>
-        <group ref={swordModel} position={[0.45, -0.45, -1.2]} visible={false}>
-          <mesh position={[0, 0.9, -0.2]} rotation-x={-0.5}>
-            <boxGeometry args={[0.07, 1.8, 0.16]} />
-            <meshStandardMaterial color={appearance.visor} emissive={appearance.visor} emissiveIntensity={0.8} metalness={0.9} roughness={0.2} depthTest={false} />
-          </mesh>
-          <mesh>
-            <boxGeometry args={[0.36, 0.08, 0.12]} />
-            <meshStandardMaterial color={appearance.armor} metalness={0.7} roughness={0.4} depthTest={false} />
-          </mesh>
-        </group>
+        <ViewWeapon pose={viewPoseRef} colors={{ armor: appearance.armor, cloth: appearance.cloth, accent: appearance.visor }} />
       </group>
 
       {/* Titan training arena: three readable cover anchors and one hazardous fracture pool. */}

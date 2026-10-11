@@ -78,6 +78,19 @@ export function playShot(weapon: WeaponId | "VEHICLE") {
     tone(c, o, { f0: 90, f1: 28, dur: 0.5, gain: 1 });
     tone(c, o, { f0: 900, f1: 120, dur: 0.25, type: "sawtooth", gain: 0.1 });
     burst(c, o, { dur: 0.9, freq: 400, type: "lowpass", gain: 0.18, at: 0.12 }); // distance tail
+  } else if (weapon === "SIDEARM") {
+    // hand cannon: sharp crack, heavy mid body, short slap-back
+    burst(c, o, { dur: 0.12, freq: 1500, q: 0.8, gain: 0.75 });
+    burst(c, o, { dur: 0.03, freq: 7000, type: "highpass", gain: 0.3 });
+    tone(c, o, { f0: 170, f1: 55, dur: 0.14, gain: 0.7 });
+    burst(c, o, { dur: 0.35, freq: 500, type: "lowpass", gain: 0.12, at: 0.06 });
+  } else if (weapon === "SHOTGUN") {
+    // shotgun: wide boom, then the pump racking
+    burst(c, o, { dur: 0.28, freq: 900, q: 0.4, type: "lowpass", gain: 1 });
+    tone(c, o, { f0: 110, f1: 32, dur: 0.3, gain: 1 });
+    burst(c, o, { dur: 0.05, freq: 5000, type: "highpass", gain: 0.35 });
+    burst(c, o, { dur: 0.05, freq: 2200, q: 5, gain: 0.35, at: 0.24 });
+    burst(c, o, { dur: 0.05, freq: 1600, q: 5, gain: 0.35, at: 0.36 });
   } else if (weapon === "ROCKET" || weapon === "CINDER" || weapon === "FROSTBITE" || weapon === "VITRIOL") {
     // launcher: hollow thump + rushing exhaust; the element shades the top end only
     tone(c, o, { f0: 120, f1: 36, dur: 0.35, gain: 0.9 });

@@ -2,7 +2,7 @@
  * nothing. Pure pooled physics: eject, fall, bounce once or twice, settle, fade. Visual only: it never touches ammo or damage. */
 export type CasingSize = "small" | "large";
 /** AUTO is a ballistic rifle and HEAVY a cannon (shell casing); PULSE and SWORD shoot light or nothing */
-export const CASING_OF: Readonly<Record<string, CasingSize | undefined>> = { AUTO: "small", HEAVY: "large", PULSE: undefined, SWORD: undefined };
+export const CASING_OF: Readonly<Record<string, CasingSize | undefined>> = { AUTO: "small", SIDEARM: "small", SHOTGUN: "large", HEAVY: "large", PULSE: undefined, SWORD: undefined };
 export const casingFor = (weaponId: string): CasingSize | null => CASING_OF[weaponId] ?? null;
 
 export type Casing = { alive: boolean; size: CasingSize; x: number; y: number; z: number; vx: number; vy: number; vz: number; spin: number; rx: number; rz: number; age: number; bounces: number };

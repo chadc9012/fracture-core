@@ -77,7 +77,8 @@ describe("casings", () => {
     expect(casingFor("PULSE")).toBeNull();
     expect(casingFor("SWORD")).toBeNull();
     expect(casingFor("unknown")).toBeNull();
-    expect(Object.keys(CASING_OF).sort()).toEqual(["AUTO", "HEAVY", "PULSE", "SWORD"]);
+    expect(Object.keys(CASING_OF).sort()).toEqual(["AUTO", "HEAVY", "PULSE", "SHOTGUN", "SIDEARM", "SWORD"]);
+    expect(casingFor("SHOTGUN")).toBe("large"); expect(casingFor("SIDEARM")).toBe("small");
     const pool = createCasings(4);
     expect(ejectCasing(pool, "PULSE", 0, 1, 0, 0)).toBeNull();
     expect(pool.some((c) => c.alive)).toBe(false);

@@ -25,6 +25,16 @@ export const WEAPON_PROPS: Record<WeaponId, PropPart[]> = {
   AUTO: rifle(0.62, 0.06),
   PULSE: [...rifle(0.5, 0.07), { shape: "box", size: [0.075, 0.015, 0.3], pos: [0, 0.075, 0.2], tone: "accent" }],
   HEAVY: [...rifle(0.7, 0.1), { shape: "cylinder", size: [0.045, 0.25, 0.045], pos: [0, 0.04, 0.95], rot: ALONG_Z, tone: "trim" }],
+  SIDEARM: [
+    { shape: "box", size: [0.045, 0.06, 0.26], pos: [0, 0.05, 0.1], tone: "body" },
+    { shape: "box", size: [0.04, 0.12, 0.06], pos: [0, -0.02, -0.01], rot: [-0.25, 0, 0], tone: "trim" },
+    { shape: "cylinder", size: [0.022, 0.08, 0.022], pos: [0, 0.055, 0.25], rot: ALONG_Z, tone: "trim" },
+    { shape: "box", size: [0.012, 0.02, 0.05], pos: [0, 0.09, 0.15], tone: "accent" },
+  ],
+  SHOTGUN: [
+    ...rifle(0.58, 0.075),
+    { shape: "cylinder", size: [0.035, 0.24, 0.035], pos: [0, -0.02, 0.42], rot: ALONG_Z, tone: "trim" },
+  ],
   SWORD: [
     { shape: "box", size: [0.03, 0.05, 0.14], pos: [0, 0, 0.02], tone: "trim" },
     { shape: "box", size: [0.06, 0.14, 0.03], pos: [0, 0, 0.1], tone: "trim" },

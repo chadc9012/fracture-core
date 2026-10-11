@@ -17,7 +17,7 @@ export type Debris = { alive: boolean; x: number; y: number; z: number; vx: numb
 export type Structure = { chunkId: string; nodes: Map<string, StructuralNode>; events: DestructionEvent[]; nextEvent: number; debris: Debris[]; cover: { x: number; z: number }[]; version: number; lastCollapse: { x: number; z: number; t: number } | null };
 
 /** Weapons interact differently: bullets chip, heavy shells break structure, energy weakens. */
-export const STRUCTURE_MULT: Record<string, number> = { AUTO: 0.6, PULSE: 0.9, HEAVY: 4, SWORD: 1.2, VEHICLE: 1.5 };
+export const STRUCTURE_MULT: Record<string, number> = { AUTO: 0.6, PULSE: 0.9, HEAVY: 4, SWORD: 1.2, SIDEARM: 0.8, SHOTGUN: 1.6, VEHICLE: 1.5 };
 const MATERIAL_HP: Record<Material, number> = { CONCRETE: 1, GLASS: 0.25, METAL: 1.6 };
 
 /** Deterministic, seeded (identical on every client). */

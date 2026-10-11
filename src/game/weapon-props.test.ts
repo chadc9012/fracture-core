@@ -9,7 +9,7 @@ describe("held weapon props", () => {
       expect(parts.length).toBeGreaterThan(2);
       expect(parts.some((p) => p.tone === "accent")).toBe(true);
       for (const p of parts) for (const v of p.size) { expect(v).toBeGreaterThan(0); expect(v).toBeLessThan(1.2); }
-      expect(propLength(id)).toBeGreaterThan(0.3);
+      expect(propLength(id)).toBeGreaterThan(id === "SIDEARM" ? 0.2 : 0.3); // a hand cannon is short
       expect(propLength(id)).toBeLessThan(1.6);
     }
   });

@@ -18,7 +18,7 @@ export type ClassId = "TITAN" | "HUNTER" | "WARLOCK";
 export type WeaponLoadout = { name: string; slots: [WeaponId, WeaponId, WeaponId] };
 export type ClassArsenal = { loadouts: WeaponLoadout[]; active: number };
 export const DEFAULT_ARSENAL: Record<ClassId, ClassArsenal> = {
-  TITAN: { active: 0, loadouts: [{ name: "Breach", slots: ["AUTO", "HEAVY", "SWORD"] }, { name: "Bulwark", slots: ["PULSE", "AUTO", "HEAVY"] }] },
+  TITAN: { active: 0, loadouts: [{ name: "Breach", slots: ["AUTO", "SHOTGUN", "SWORD"] }, { name: "Bulwark", slots: ["PULSE", "AUTO", "HEAVY"] }] },
   HUNTER: { active: 0, loadouts: [{ name: "Skirmish", slots: ["PULSE", "SWORD", "AUTO"] }, { name: "Overwatch", slots: ["PULSE", "HEAVY", "SWORD"] }] },
   WARLOCK: { active: 0, loadouts: [{ name: "Resonance", slots: ["AUTO", "PULSE", "HEAVY"] }, { name: "Conduit", slots: ["PULSE", "AUTO", "SWORD"] }] },
 };

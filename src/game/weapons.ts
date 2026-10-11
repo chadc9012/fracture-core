@@ -1,7 +1,8 @@
 /** Weapon feel data: guns carry the constant combat rhythm, abilities are the spikes. */
 import type { DamageElement } from "./scenario-gimmicks";
 import type { LauncherId } from "./launchers";
-export type WeaponId = "AUTO" | "PULSE" | "HEAVY" | "SWORD" | LauncherId;
+import type { Handling } from "./weapon-handling";
+export type WeaponId = "AUTO" | "PULSE" | "HEAVY" | "SWORD" | "SIDEARM" | "SHOTGUN" | LauncherId;
 
 export type WeaponDef = {
   id: WeaponId;
@@ -22,6 +23,10 @@ export type WeaponDef = {
   mag: number; // rounds per magazine (0 = no ammo, melee)
   reserve: number; // starting reserve rounds
   reload: number; // seconds
+  /** projectiles per trigger pull fired at once (shotgun); default 1 */
+  pellets?: number;
+  /** how the weapon is held and animated (weapon-handling.ts); derived from kind when absent */
+  handling?: Handling;
 };
 
 export const WEAPONS: Record<WeaponId, WeaponDef> = {
@@ -32,13 +37,18 @@ export const WEAPONS: Record<WeaponId, WeaponDef> = {
   CINDER: { id: "CINDER", name: "Cinder Launcher", kind: "launcher", element: "THERMAL", damage: 4, fireRate: 1.5, burst: 1, burstGap: 0, spread: 0.014, adsSpread: 0.5, recoil: 0.055, knock: 2.5, heat: 3, punch: 3, mag: 2, reserve: 8, reload: 3.4 },
   FROSTBITE: { id: "FROSTBITE", name: "Frostbite Missile", kind: "launcher", element: "CRYO", damage: 4.5, fireRate: 1.8, burst: 1, burstGap: 0, spread: 0.01, adsSpread: 0.6, recoil: 0.05, knock: 2, heat: 3, punch: 2.8, mag: 1, reserve: 6, reload: 3.6 },
   VITRIOL: { id: "VITRIOL", name: "Vitriol Launcher", kind: "launcher", element: "BIO", damage: 3.5, fireRate: 1.5, burst: 1, burstGap: 0, spread: 0.016, adsSpread: 0.5, recoil: 0.05, knock: 1.5, heat: 3, punch: 2.8, mag: 3, reserve: 9, reload: 3.4 },
+  SIDEARM: { id: "SIDEARM", name: "Hand Cannon", kind: "gun", handling: "pistol", damage: 2.4, fireRate: 0.34, burst: 1, burstGap: 0, spread: 0.012, adsSpread: 0.4, recoil: 0.03, knock: 1.6, heat: 1.2, punch: 1.6, mag: 8, reserve: 64, reload: 1.3 },
+  SHOTGUN: { id: "SHOTGUN", name: "Breach Shotgun", kind: "gun", handling: "shotgun", damage: 0.75, pellets: 8, fireRate: 0.8, burst: 1, burstGap: 0, spread: 0.075, adsSpread: 0.75, recoil: 0.04, knock: 2.2, heat: 2, punch: 2.6, mag: 6, reserve: 42, reload: 2.4 },
   SWORD: { id: "SWORD", name: "Fracture Blade", kind: "sword", damage: 3.2, fireRate: 0.55, burst: 0, burstGap: 0, spread: 0, adsSpread: 1, recoil: 0, knock: 4, heat: 0, punch: 1.6, mag: 0, reserve: 0, reload: 0 },
 };
 
-export const WEAPON_ORDER: WeaponId[] = ["AUTO", "PULSE", "HEAVY", "SWORD", "ROCKET", "CINDER", "FROSTBITE", "VITRIOL"];
+export const WEAPON_ORDER: WeaponId[] = ["AUTO", "PULSE", "HEAVY", "SWORD", "SIDEARM", "SHOTGUN", "ROCKET", "CINDER", "FROSTBITE", "VITRIOL"];
 
 /** Frame-rate independent spring back for recoil/punch/crosshair bloom. */
 export const decay = (v: number, k: number, dt: number) => v * Math.exp(-k * dt);
 
 export type AmmoState = Record<WeaponId, { mag: number; reserve: number }>;
 export const freshAmmo = (): AmmoState => Object.fromEntries(WEAPON_ORDER.map((id) => [id, { mag: WEAPONS[id].mag, reserve: WEAPONS[id].reserve }])) as AmmoState;
+
+/** What the player actually carries: the loadout's three slots plus the sidearm, always on the hip (slot 4). */
+export const carriedWeapons = (slots: readonly WeaponId[]): WeaponId[] => (slots.includes("SIDEARM") ? [...slots] : [...slots, "SIDEARM"]);
