@@ -1,6 +1,9 @@
 import { useFrame } from "@react-three/fiber";
-import { useMemo, useRef } from "react";
+import { useGLTF } from "@react-three/drei";
+import { Component, Suspense, useMemo, useRef, type ReactNode } from "react";
 import * as THREE from "three";
+import { clone as cloneSkinned } from "three/examples/jsm/utils/SkeletonUtils.js";
+import { CIVILIAN_HEIGHT, civilianClip, civilianModelUrl, type CivilianClip } from "@/game/civilian-models";
 import { REGIONS } from "@/game/world";
 import { heightAt } from "@/game/terrain";
 import { mulberry32 } from "@/game/rng";
@@ -93,6 +96,46 @@ function Humanoid({ role, phase, walking, greeting }: { role: CivilianRole; phas
   );
 }
 
+class Quiet extends Component<{ children: ReactNode; fallback: ReactNode }, { failed: boolean }> {
+  override state = { failed: false };
+  static getDerivedStateFromError() { return { failed: true }; }
+  override render() { return this.state.failed ? this.props.fallback : this.props.children; }
+}
+
+/** Authored civilian body (civilian-models.ts) with idle / walk / wave clips crossfaded from the AI state. */
+function CivilianModel({ role, live }: { role: CivilianRole; live: React.RefObject<Civilian> }) {
+  const { scene, animations } = useGLTF(civilianModelUrl(role));
+  const built = useMemo(() => {
+    const obj = cloneSkinned(scene);
+    obj.traverse((o) => { const m = o as THREE.Mesh; if (m.isMesh) { m.castShadow = true; m.frustumCulled = false; } });
+    obj.updateMatrixWorld(true);
+    const box = new THREE.Box3().setFromObject(obj);
+    const size = box.getSize(new THREE.Vector3()), c = box.getCenter(new THREE.Vector3());
+    const k = CIVILIAN_HEIGHT / Math.max(size.y, 1e-3);
+    const mixer = new THREE.AnimationMixer(obj);
+    const actions: Partial<Record<CivilianClip, THREE.AnimationAction>> = {};
+    for (const name of ["idle", "walk", "wave"] as const) {
+      const clip = animations.find((a) => a.name === name);
+      if (clip) { const a = mixer.clipAction(clip); a.play(); a.weight = name === "idle" ? 1 : 0; a.time = Math.random() * clip.duration; actions[name] = a; }
+    }
+    return { obj, k, offset: [-c.x * k, -box.min.y * k, -c.z * k] as [number, number, number], mixer, actions };
+  }, [scene, animations]);
+  const weights = useRef<Record<CivilianClip, number>>({ idle: 1, walk: 0, wave: 0 });
+  useFrame((_, dt) => {
+    const want = civilianClip(live.current?.state ?? "IDLE");
+    const k = 1 - Math.exp(-dt * 6);
+    for (const name of ["idle", "walk", "wave"] as const) {
+      const w = weights.current;
+      w[name] += ((name === want ? 1 : 0) - w[name]) * k;
+      const a = built.actions[name] ?? (name === "wave" ? built.actions.idle : undefined);
+      if (built.actions[name]) built.actions[name]!.weight = w[name];
+      else if (a) a.weight = Math.max(a.weight, w[name]);
+    }
+    built.mixer.update(Math.min(dt, 0.1));
+  });
+  return <primitive object={built.obj} scale={built.k} position={built.offset} />;
+}
+
 function CivilianView({ civilian, sharedRef }: { civilian: Civilian; sharedRef: React.RefObject<Civilian[]> }) {
   const group = useRef<THREE.Group>(null!);
   const live = useRef(civilian);
@@ -107,7 +150,10 @@ function CivilianView({ civilian, sharedRef }: { civilian: Civilian; sharedRef: 
   });
   return (
     <group ref={group}>
-      <Humanoid role={civilian.role} phase={civilian.phase} walking={live.current.state === "WANDER"} greeting={live.current.state === "GREET"} />
+      {(() => {
+        const fallback = <Humanoid role={civilian.role} phase={civilian.phase} walking={live.current.state === "WANDER"} greeting={live.current.state === "GREET"} />;
+        return <Quiet fallback={fallback}><Suspense fallback={fallback}><CivilianModel role={civilian.role} live={live} /></Suspense></Quiet>;
+      })()}
     </group>
   );
 }
