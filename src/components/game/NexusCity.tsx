@@ -10,6 +10,7 @@ import { walkHeight } from "@/game/terrain";
 import type { WorldSim } from "@/game/sim";
 import { addObstacle } from "@/game/obstacles";
 import { Model, useModel } from "./Vehicle";
+import { NexusDistricts } from "./NexusDistricts";
 
 const NEXUS = REGIONS.find((r) => r.id === "nexus")!;
 
@@ -249,6 +250,7 @@ export function NexusCity({ sim }: { sim: WorldSim }) {
   return (
     <group>
       <CityBuildings />
+      <NexusDistricts />
       <Pedestrians />
       <CityTraffic />
       <Turrets sim={sim} />
