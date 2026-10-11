@@ -57,6 +57,9 @@ import { CoreNodePod } from "./CoreNodePod";
 import { LavaTrench, WreckField } from "./SetPieces";
 import { EmberPeaks } from "./EmberPeaks";
 import { SolaraDesert } from "./SolaraDesert";
+import { FrostspireDressing } from "./FrostspireDressing";
+import { SwampDressing } from "./SwampDressing";
+import { WastelandsDressing } from "./WastelandsDressing";
 import { CombatFx } from "./CombatFx";
 import { fxBus } from "@/game/fx-bus";
 import { launch, zoneElement } from "@/game/combat-fx";
@@ -2269,6 +2272,9 @@ export function Scene({
       <ShopStalls />
       <NearOnly playerRef={player} x={NEXUS_REGION.x} z={NEXUS_REGION.z} radius={330 * NEAR_SCALE[settings.renderTier]} name="city:nexus"><NexusCity sim={sim} /></NearOnly>
       <NearOnly playerRef={player} x={NEON_CITY_CENTER.x} z={NEON_CITY_CENTER.z} radius={300 * NEAR_SCALE[settings.renderTier]} name="city:neon"><NeonCity /></NearOnly>
+      {(() => { const rg = REGIONS.find((r) => r.id === "frostspire"); return rg ? <NearOnly playerRef={player} x={rg.x} z={rg.z} radius={(rg.radius + 220) * NEAR_SCALE[settings.renderTier]} name="region:frostspire"><FrostspireDressing /></NearOnly> : null; })()}
+      {(() => { const rg = REGIONS.find((r) => r.id === "swamps"); return rg ? <NearOnly playerRef={player} x={rg.x} z={rg.z} radius={(rg.radius + 220) * NEAR_SCALE[settings.renderTier]} name="region:swamps"><SwampDressing /></NearOnly> : null; })()}
+      {(() => { const rg = REGIONS.find((r) => r.id === "wastelands"); return rg ? <NearOnly playerRef={player} x={rg.x} z={rg.z} radius={(rg.radius + 220) * NEAR_SCALE[settings.renderTier]} name="region:wastelands"><WastelandsDressing /></NearOnly> : null; })()}
       {(() => { const so = REGIONS.find((r) => r.id === "solara"); return so ? <NearOnly playerRef={player} x={so.x} z={so.z} radius={(so.radius + 220) * NEAR_SCALE[settings.renderTier]} name="region:solara"><SolaraDesert /></NearOnly> : null; })()}
       {(() => { const em = REGIONS.find((r) => r.id === "ember"); return em ? <NearOnly playerRef={player} x={em.x} z={em.z} radius={(em.radius + 220) * NEAR_SCALE[settings.renderTier]} name="region:ember"><EmberPeaks /></NearOnly> : null; })()}
       {LANDMARKS.filter((l) => l.id === "convoy-sprint" || l.id === "smoldering-trench").map((l) => (
