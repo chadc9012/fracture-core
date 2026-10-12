@@ -381,14 +381,14 @@ export function GameCanvas() {
     if (phase !== "world") return;
     const typing = (t: EventTarget | null) => t instanceof HTMLElement && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.isContentEditable);
     const onKey = (e: KeyboardEvent) => {
-      if (e.code === settings.bindings.keyboard.map && !e.repeat && !typing(e.target)) toggleAtlas();
+      if (e.code === settings.bindings?.keyboard.map && !e.repeat && !typing(e.target)) toggleAtlas();
       else if ((e.code === "Tab" || e.code === "F1") && !e.repeat && !typing(e.target)) { e.preventDefault(); setAtlasOpen(false); setInventoryOpen(false); setOperationsView(null); setCharacterOpen((o) => { if (!o && document.pointerLockElement) document.exitPointerLock(); return !o; }); }
       else if (e.code === "Escape") setAtlasOpen(false);
     };
     let was = false;
     const poll = window.setInterval(() => {
       const pads = navigator.getGamepads?.() ?? [];
-      const down = pads.some((p) => !!p?.buttons[settings.bindings.gamepad.map]?.pressed);
+      const down = pads.some((p) => !!p?.buttons[settings.bindings?.gamepad.map ?? -1]?.pressed);
       if (down && !was) toggleAtlas();
       was = down;
     }, 80);

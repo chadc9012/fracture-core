@@ -26,7 +26,7 @@ const ORDER = 1_000_000;
 function Part({ geo, size, at, rot, mat }: PartProps) {
   const g = geo === "box" ? BOX : geo === "cyl" ? CYL : SPHERE;
   // cylinders: size = [radius, radius, length]
-  return <mesh geometry={g} material={mat} position={at} rotation={rot} scale={size} renderOrder={ORDER} frustumCulled={false} />;
+  return <mesh geometry={g} material={mat} position={at ?? [0, 0, 0]} rotation={rot ?? [0, 0, 0]} scale={size} renderOrder={ORDER} frustumCulled={false} />;
 }
 
 function useMats(c: Colors) {

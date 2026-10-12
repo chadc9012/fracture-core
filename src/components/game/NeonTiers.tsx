@@ -189,7 +189,7 @@ function Hologram({ h, seed }: { h: Holo; seed: number }) {
   }), [h.color]);
   useFrame(({ clock }) => {
     const t = clock.elapsedTime + seed * 7.1;
-    mat.uniforms.t!.value = t;
+    mat.uniforms["t"]!.value = t;
     // brief glitch: a horizontal jitter and a dropout every few seconds
     const glitch = Math.sin(t * 0.7) > 0.97;
     if (g.current) { g.current.position.x = h.x + (glitch ? Math.sin(t * 90) * 0.25 : 0); g.current.visible = !(glitch && Math.sin(t * 53) > 0.6); }

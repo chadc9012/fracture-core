@@ -116,7 +116,7 @@ describe("sanctuaries", () => {
     const p = { ...DEFAULT_PROGRESSION, materials: {}, earnedRewards: [] };
     const r = claimHeart(p);
     if ("error" in r) throw new Error(r.error);
-    expect(r.progression.materials.forgeCatalyst).toBe(HEART_CATALYSTS);
+    expect((r.progression.materials as Record<string, number>)["forgeCatalyst"]).toBe(HEART_CATALYSTS);
     expect("error" in claimHeart(r.progression)).toBe(true);
   });
 });
