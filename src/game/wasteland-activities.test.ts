@@ -119,6 +119,23 @@ describe("runtime on the real sim", () => {
   });
 });
 
+describe("rally finish", () => {
+  it("crossing the finish (the start gate) does not start a new run until you leave and come back", () => {
+    const sim = quiet(), rt = createWasteRuntime(sim);
+    const at = (x: number, z: number) => stepWasteRuntime(rt, sim, { dt: 0.5, now: NOW, px: x, pz: z, inVehicle: true, blocked: false });
+    at(A.RUST_RUN.start.x, A.RUST_RUN.start.z);
+    expect(rt.rally).not.toBeNull();
+    const emits = [];
+    for (const c of A.RUST_RUN.checkpoints) emits.push(...at(c.x, c.z).emits);
+    expect(emits).toEqual([expect.objectContaining({ type: "RALLY" })]);
+    at(A.RUST_RUN.start.x, A.RUST_RUN.start.z);
+    expect(rt.rally).toBeNull();
+    at(A.RUST_RUN.start.x + 40, A.RUST_RUN.start.z);
+    at(A.RUST_RUN.start.x, A.RUST_RUN.start.z);
+    expect(rt.rally).not.toBeNull();
+  });
+});
+
 describe("full machine pool", () => {
   it("authored waves retire far ambient machines to make room instead of 'clearing' instantly", async () => {
     const sim = createSim();
