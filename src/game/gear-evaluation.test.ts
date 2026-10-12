@@ -13,7 +13,7 @@ describe("gear evaluation", () => {
   test("score adds the documented bonuses", () => {
     const g = item({ power: 100, setId: undefined, perk: undefined, rarity: undefined });
     expect(gearScore(g)).toBe(100);
-    expect(gearScore({ ...g, perk: "x" } as GearItem)).toBe(110);
+    expect(gearScore({ ...g, perk: "x" } as unknown as GearItem)).toBe(110);
   });
   test("an equipped item reports EQUIPPED with no deltas", () => {
     const worn = base.inventory.find((g) => base.equippedGear[g.slot] === g.id)!;
