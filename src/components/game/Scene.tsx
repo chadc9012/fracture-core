@@ -1012,6 +1012,7 @@ function SceneImpl({
       s.toggleCool = 0.4;
       const wasInVehicle = s.inVehicle;
       s.inVehicle = !s.inVehicle;
+      if (s.inVehicle) sfx.playVehicleEngineStart();
       // Neon City parkour: hopping out mid-drive keeps a fraction of the car's speed as foot-chase momentum.
       if (wasInVehicle) velocity.set(Math.sin(s.yaw), 0, Math.cos(s.yaw)).multiplyScalar(exitVehicleMomentum(s.vSpeed));
       else velocity.set(0, 0, 0);
@@ -1751,7 +1752,7 @@ function SceneImpl({
       if (liveBoss) { a.bossAlive = true; a.bossX = liveBoss.x; a.bossZ = liveBoss.z; }
       else if (a.bossAlive) { a.bossAlive = false; sfx.playExplosion(true, sfx.where(s.x, s.z, s.yaw, a.bossX, a.bossZ)); }
       sfx.updateCombatAudio(Math.min(1, sim.combatHeat / 100), Boolean(liveBoss));
-      sfx.updateBiomeAmbient(here?.id ?? "");
+      sfx.updateBiomeAmbient(s.diving ? "thalassia" : here?.id ?? "");
       sfx.updateWeatherAmbient(weather);
       // running water: one stream + one waterfall voice, nearest wins; muffled indoors and while diving (water-audio.ts)
       if (now - lastWaterAudioAt > 120) { lastWaterAudioAt = now; sfx.updateWaterAudio(s.x, s.z, s.yaw, waterMix(s.x, s.z, waterNetwork(), interior ? 0.25 : s.diving ? 0.4 : 1)); }
