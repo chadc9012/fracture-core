@@ -11,7 +11,7 @@ describe("gear evaluation", () => {
     expect(gradeOf(0)).toBe("D"); expect(gradeOf(80)).toBe("C"); expect(gradeOf(100)).toBe("B"); expect(gradeOf(125)).toBe("A"); expect(gradeOf(999)).toBe("S");
   });
   test("score adds the documented bonuses", () => {
-    const g = item({ power: 100, setId: undefined, perk: undefined, rarity: undefined });
+    const g = item({ power: 100 });
     expect(gearScore(g)).toBe(100);
     expect(gearScore({ ...g, perk: "x" } as unknown as GearItem)).toBe(110);
   });

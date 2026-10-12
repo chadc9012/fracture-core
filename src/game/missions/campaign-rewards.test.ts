@@ -39,7 +39,7 @@ describe("campaign rewards are paid once", () => {
     for (const id of MISSION_IDS) {
       const before = playChain().states;
       const idx = MISSION_IDS.indexOf(id);
-      const stale = idx === 0 ? { ...DEFAULT_PROGRESSION, tutorialComplete: true } : before[MISSION_IDS[idx - 1]];
+      const stale = idx === 0 ? { ...DEFAULT_PROGRESSION, tutorialComplete: true } : before[MISSION_IDS[idx - 1]!];
       const done = before[id];
       for (const localNewer of [true, false]) {
         const merged = mergeProgression(localNewer ? stale : done, localNewer ? done : stale, localNewer);

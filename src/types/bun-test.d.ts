@@ -11,3 +11,4 @@ declare module "bun:test" {
   export const mock: any;
   export const spyOn: any;
 }
+declare const Bun: { file: (p: string | URL) => { text: () => Promise<string> } };
