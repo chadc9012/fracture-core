@@ -205,7 +205,7 @@ export function performNpcAction(p: PlayerProgression, npcId: string, actionId: 
 }
 
 /** The line an NPC opens with: an active event or a fallen district overrides the standing-based greeting. */
-export function npcLine(p: PlayerProgression, npc: LivingNpc, ctx: { eventTitle?: string | null } = {}, now = Date.now()): string {
+export function npcLine(p: PlayerProgression, npc: LivingNpc, ctx: { eventTitle?: string | null | undefined } = {}, now = Date.now()): string {
   const l = living(p);
   if (ctx.eventTitle) return `${ctx.eventTitle} — get out there, Operator. Talk later.`;
   const fallen = ["nexus:spire", "nexus:market", "nexus:shipyard", "nexus:arcology", "neon:spire", "neon:undercity", "neon:market", "neon:grid"]
