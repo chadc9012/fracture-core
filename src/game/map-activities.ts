@@ -16,8 +16,9 @@ import type { MaterialId } from "./inventory";
 import { TRAITS } from "./nemesis";
 import { HOLLOW_CROWN, forgeStage } from "./godforge";
 import { GARAGES } from "./fleet";
+import { ARENA, RUST_RUN, VAULT_GATE, legionRank } from "./wasteland-activities";
 
-export type ActivityKind = "STORY" | "SAFE_ZONE" | "BOSS" | "NEMESIS" | "RESOURCE" | "CONTRACT" | "STASH" | "PATROL";
+export type ActivityKind = "STORY" | "SAFE_ZONE" | "BOSS" | "NEMESIS" | "RESOURCE" | "CONTRACT" | "STASH" | "PATROL" | "ACTIVITY";
 export type ActivityStatus = "NEXT" | "AVAILABLE" | "DONE" | "LOCKED";
 export type Activity = {
   id: string; kind: ActivityKind; name: string; detail: string; regionId: string;
@@ -26,8 +27,8 @@ export type Activity = {
   drop: { x: number; z: number; y?: number };
 };
 
-export const ACTIVITY_LABEL: Record<ActivityKind, string> = { STORY: "Story", SAFE_ZONE: "Safe zone", BOSS: "Boss lair", RESOURCE: "Resource site", CONTRACT: "Contract", STASH: "Hidden stash", PATROL: "Patrol", NEMESIS: "Nemesis" };
-export const ACTIVITY_COLOR: Record<ActivityKind, string> = { STORY: "#ffd166", SAFE_ZONE: ZONE_COLOR.safe, BOSS: "#ff4d5e", RESOURCE: "#4de3b0", CONTRACT: "#7ef2b0", STASH: "#ffb23e", PATROL: "#66e0ff", NEMESIS: "#ff2e63" };
+export const ACTIVITY_LABEL: Record<ActivityKind, string> = { STORY: "Story", SAFE_ZONE: "Safe zone", BOSS: "Boss lair", RESOURCE: "Resource site", CONTRACT: "Contract", STASH: "Hidden stash", PATROL: "Patrol", NEMESIS: "Nemesis", ACTIVITY: "Activity" };
+export const ACTIVITY_COLOR: Record<ActivityKind, string> = { STORY: "#ffd166", SAFE_ZONE: ZONE_COLOR.safe, BOSS: "#ff4d5e", RESOURCE: "#4de3b0", CONTRACT: "#7ef2b0", STASH: "#ffb23e", PATROL: "#66e0ff", NEMESIS: "#ff2e63", ACTIVITY: "#ff9b3c" };
 
 const off = (x: number, z: number, d: number, from: { x: number; z: number }) => {
   const dx = from.x - x, dz = from.z - z, len = Math.hypot(dx, dz) || 1;
@@ -114,6 +115,13 @@ export function regionActivities(p: PlayerProgression, regionId: string, now = D
   if (regionId === "wastelands") {
     const stage = forgeStage(p);
     if (stage !== "SEALED") out.push({ id: "forge:hollow-crown", kind: stage === "DOOR" ? "BOSS" : "SAFE_ZONE", name: stage === "DOOR" ? "The Hollow Crown" : "Vael's Godforge", detail: stage === "DOOR" ? "The Forgewright's door is open. The Furnace Guardian waits inside." : "Vael forges Godforged relics and binds runes", regionId, x: HOLLOW_CROWN.x, z: HOLLOW_CROWN.z, status: "AVAILABLE", drop: { x: HOLLOW_CROWN.x, z: HOLLOW_CROWN.z - HOLLOW_CROWN.radius - 8 } });
+  }
+  if (regionId === "wastelands") {
+    // wasteland-activities.ts: drops land just outside each start so walking/driving in is what starts it
+    const legion = legionRank(p), best = p.records?.["rust-run"], pit = p.records?.["mash-pit"];
+    out.push({ id: "act:vault", kind: "ACTIVITY", name: "Defense contract · Sub-Terra Perimeter", detail: `Hold the vault gate against three raider waves. Legion rank: ${legion}`, regionId, x: VAULT_GATE.x, z: VAULT_GATE.z, status: p.completedMissions.includes("side-vault-defense") ? "DONE" : "AVAILABLE", drop: { x: VAULT_GATE.x - VAULT_GATE.radius - 10, z: VAULT_GATE.z } });
+    out.push({ id: "act:rally", kind: "ACTIVITY", name: "Rust Run rally", detail: `Vehicle time trial through ${RUST_RUN.checkpoints.length} checkpoints${best !== undefined ? ` · best ${best.toFixed(1)} s` : ""}`, regionId, x: RUST_RUN.start.x, z: RUST_RUN.start.z, status: "AVAILABLE", drop: { x: RUST_RUN.start.x - 16, z: RUST_RUN.start.z + 10 } });
+    out.push({ id: "act:derby", kind: "ACTIVITY", name: "The Mash-Pit derby", detail: `Drive in and wreck buggies for 75 s${pit !== undefined ? ` · best ${pit} wrecks` : ""}`, regionId, x: ARENA.x, z: ARENA.z, status: "AVAILABLE", drop: { x: ARENA.x, z: ARENA.z + ARENA.radius + 10 } });
   }
   for (const g of Object.values(GARAGES)) {
     if (g.mapRegion !== regionId) continue;

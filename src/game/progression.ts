@@ -1,6 +1,7 @@
 import { EMPTY_LIVING, normalizeLiving, type LivingState } from "./living-world";
 import { normalizeNemeses, type Nemesis } from "./nemesis";
 import { EMPTY_FLEET, normalizeFleet, type FleetState } from "./fleet";
+import { normalizeRecords } from "./wasteland-activities";
 import { profileKey } from "./save-profile";
 import { EMPTY_STORY, normalizeStory, type StoryState } from "./story";
 import { sanitizeActiveMissions, type ActiveMissions } from "./missions/persistence";
@@ -71,6 +72,8 @@ export type PlayerProgression = {
   nemeses: Nemesis[];
   /** fleet.ts: owned fleet builds, garages, tuning and paint */
   fleet: FleetState;
+  /** wasteland-activities.ts: best rally times (lower wins) and arena scores (higher wins) */
+  records: Record<string, number>;
   inventory: GearItem[];
   equippedGear: Partial<Record<GearSlot, string>>;
   materials: Partial<Record<MaterialId, number>>;
@@ -129,6 +132,7 @@ export const DEFAULT_PROGRESSION: PlayerProgression = {
   patrol: null,
   nemeses: [],
   fleet: EMPTY_FLEET,
+  records: {},
   inventory: STARTER_GEAR,
   equippedGear: STARTER_SLOTS,
   materials: {},
@@ -187,6 +191,7 @@ export function normalizeProgression(raw: unknown): PlayerProgression {
       living: normalizeLiving(parsed.living),
       nemeses: normalizeNemeses(parsed.nemeses),
       fleet: normalizeFleet(parsed.fleet),
+      records: normalizeRecords(parsed.records),
       challenge: parsed.challenge === "HARD" || parsed.challenge === "VERY_HARD" ? parsed.challenge : "STANDARD",
       patrol: parsed.patrol && typeof parsed.patrol === "object" && typeof parsed.patrol.regionId === "string" && typeof parsed.patrol.kills === "number" && typeof parsed.patrol.need === "number" && typeof parsed.patrol.day === "string" ? { regionId: parsed.patrol.regionId, kills: parsed.patrol.kills, need: parsed.patrol.need, day: parsed.patrol.day } : null,
       abilityMastery: parsed.abilityMastery && typeof parsed.abilityMastery === "object" ? parsed.abilityMastery : {},

@@ -154,6 +154,8 @@ import { garageNear, sanctuariesFor, tunedVehicle } from "@/game/fleet";
 import { LIVING_NPCS, PLEDGE_KEY, livingMarkers, npcNear, npcWorld } from "@/game/living-npcs";
 import { SECRETS, secretPoint, type SecretContext } from "@/game/secrets";
 import { LivingCity } from "./LivingCity";
+import { WastelandSites } from "./WastelandSites";
+import { createWasteRuntime, stepWasteRuntime, type WasteEmit, type WasteHud, type WasteRuntime } from "@/game/wasteland-runtime";
 import type { ArmorVisualState } from "./Scavenger";
 import type { PlayerProgression } from "@/game/progression";
 import { SkyFx, type SkyFxLive } from "./SkyFx";
@@ -284,6 +286,8 @@ export type HudState = {
   living?: LivingHud | null;
   /** fleet.ts: a garage base within reach */
   garageNear?: string | null;
+  /** wasteland-runtime.ts: the running Wastelands activity (vault defense / rally / derby) */
+  waste?: WasteHud;
   /** godforge.ts: Vael is in reach (her forge is open) */
   vaelNear?: boolean;
   /** talkable Living World NPC within reach (living-npcs.ts) */
@@ -420,6 +424,7 @@ function SceneImpl({
   onDrops,
   onStoryEvent,
   onLiving,
+  onWaste,
   summonNemesis = null,
   gear,
   mission,
@@ -472,6 +477,8 @@ function SceneImpl({
   onStoryEvent?: (event: StoryWorldEvent) => void;
   /** Living World outcomes (city kills, event results, survey/stash reached); GameCanvas applies them to progression */
   onLiving?: (event: LivingEmit) => void;
+  /** Wastelands activity results (wasteland-runtime.ts); GameCanvas resolves them into the save */
+  onWaste?: (event: WasteEmit) => void;
   gear?: Pick<PlayerProgression, "inventory" | "equippedGear" | "dungeonClears" | "completedMissions" | "story" | "earnedRewards"> & Partial<Pick<PlayerProgression, "living" | "challenge" | "nemeses" | "fleet">>;
   /** nemesis.ts: a nemesis the player picked on the map; it ambushes right after arrival */
   summonNemesis?: string | null;
@@ -514,6 +521,8 @@ function SceneImpl({
   const keys = useKeyboard();
   const sim = useMemo<WorldSim>(() => createSim(), []);
   const livingRt = useRef<LivingRuntime | null>(null);
+  const wasteRt = useRef<WasteRuntime | null>(null);
+  const wasteHud = useRef<WasteHud>(null);
   // fleet.ts / godforge.ts: Vael's opened forge and owned garage bases are small sanctuaries (sim.ts pushes hostiles out)
   const sanctuaries = useMemo(() => sanctuariesFor({ earnedRewards: gear?.earnedRewards ?? [], fleet: gear?.fleet }), [gear?.earnedRewards, gear?.fleet]);
   const gearLive = useRef(gear); gearLive.current = gear; // dev hooks read the latest save, not the one at mount
@@ -1977,6 +1986,11 @@ function SceneImpl({
       livingHud.current = lv.hud;
       livingThreats.current = livingRt.current.threats;
       for (const e of lv.emits) onLiving?.(e);
+      // Wastelands activities (wasteland-runtime.ts): vault defense, Rust Run rally, Mash-Pit derby
+      wasteRt.current ??= createWasteRuntime(sim);
+      const wv = stepWasteRuntime(wasteRt.current, sim, { dt, now: Date.now(), px: s.x, pz: s.z, inVehicle: s.inVehicle, blocked });
+      wasteHud.current = wv.hud;
+      for (const e of wv.emits) onWaste?.(e);
     }
     // Hull-destroyed respawn: hurtPlayer() (sim.ts) already resets hp/cargo and stamps sim.lastDeath, but
     // it can't touch the player's world position — that lives here in Scene's own state, not in WorldSim.
@@ -2359,6 +2373,7 @@ function SceneImpl({
         interiorOpen: interior ? isInteriorOpen(interior, time.current) : true,
         living: livingHud.current,
         garageNear: !interior ? garageNear(s.x, s.z) : null,
+        waste: wasteHud.current,
         vaelNear: !interior && !s.inVehicle && vaelNear({ earnedRewards: gear?.earnedRewards ?? [] }, s.x, s.z),
         npcNear: !interior && !s.inVehicle ? (() => { const n = npcNear(s.x, s.z); return n ? { id: n.id, name: n.name, title: n.title } : null; })() : null,
         shopNearId: !interior && !s.inVehicle ? shopNear(s.x, s.z)?.id ?? null : null,
@@ -2456,7 +2471,7 @@ function SceneImpl({
       <RiftTurrets sim={sim} />
       <PerfProbe />
       <group name="iso:weather"><Weather playerRef={player} weatherRef={weatherKind} fxRef={weatherFx} /></group>
-      <group name="iso:life"><Wildlife playerRef={player} /><Civilians playerRef={player} threatsRef={livingThreats} /><LivingCity runtime={livingRt} playerRef={player} gear={gear as PlayerProgression | undefined} /></group>
+      <group name="iso:life"><Wildlife playerRef={player} /><Civilians playerRef={player} threatsRef={livingThreats} /><LivingCity runtime={livingRt} playerRef={player} gear={gear as PlayerProgression | undefined} /><WastelandSites runtime={wasteRt} playerRef={player} /></group>
       <group name="iso:water"><Water size={WORLD_RADIUS * 4} sunRef={sunDir} styleRef={waterStyle} tier={settings.renderTier} /><Rivers sunRef={sunDir} /></group>
       <LootCaches opened={openedCaches} />
       <ShopStalls />

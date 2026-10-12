@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import type { PlayerProgression } from "@/game/progression";
 import type { LivingHud } from "@/game/living-runtime";
+import type { WasteHud } from "@/game/wasteland-runtime";
 import { CITIES, DISTRICTS, EMPTY_LIVING, FACTIONS, TIER_RULES, districtStatus } from "@/game/living-world";
 import { headingLabel, headingTo } from "@/game/compass";
 import { REGIONS } from "@/game/world";
@@ -89,11 +90,11 @@ export function LivingNpcPanel({ npcId, progression, eventTitle, onProgression, 
 }
 
 /** Live world-event card (mission-tracker style) plus the most recent Living World message. Presentation only. */
-export function LivingTracker({ living, px, pz, toast, patrol }: { living: LivingHud | null | undefined; px: number; pz: number; toast: string | null; patrol?: PlayerProgression["patrol"] | undefined }) {
+export function LivingTracker({ living, px, pz, toast, patrol, waste = null }: { living: LivingHud | null | undefined; px: number; pz: number; toast: string | null; patrol?: PlayerProgression["patrol"] | undefined; waste?: WasteHud }) {
   const ev = living?.event;
   const nem = living?.nemesis;
   const sec = living?.secret;
-  if (!ev && !toast && !patrol && !nem && !sec) return null;
+  if (!ev && !toast && !patrol && !nem && !sec && !waste) return null;
   const dist = ev ? Math.round(Math.hypot(ev.x - px, ev.z - pz)) : 0;
   const bearing = ev ? headingLabel(headingTo(px, pz, ev.x, ev.z)) : "";
   const color = !ev ? "" : ev.phase === "WON" ? "#7ef2b0" : ev.phase === "FAILED" ? "#ff4d4d" : ev.kind === "FRACTURE" ? "#b968ff" : ev.phase === "WARNING" ? "#ffb23e" : "#ff3b4e";
@@ -112,6 +113,14 @@ export function LivingTracker({ living, px, pz, toast, patrol }: { living: Livin
               <div className="mt-1 h-1 bg-muted"><div className="h-1" style={{ width: `${Math.min(100, (ev.hold / ev.holdNeed) * 100)}%`, background: color }} /></div>
             </>
           )}
+        </div>
+      )}
+      {waste && (
+        <div className="border border-border/60 bg-background/80 p-3 backdrop-blur-sm" style={{ borderLeft: `3px solid ${waste.kind === "RALLY" ? "#38e8ff" : waste.kind === "DERBY" ? "#ff5a3c" : "#ffb23e"}` }}>
+          <p className="font-mono text-[9px] uppercase tracking-[0.3em] text-[#ffb23e]">Wastelands{waste.tx !== undefined && waste.tz !== undefined ? ` · ${Math.round(Math.hypot(waste.tx - px, waste.tz - pz))} m ${headingLabel(headingTo(px, pz, waste.tx, waste.tz))}` : ""}</p>
+          <p className="mt-1 text-sm font-semibold uppercase tracking-wider">{waste.title}</p>
+          {waste.lines.map((l) => <p key={l} className="mt-1 font-mono text-[11px]">{l}</p>)}
+          {waste.progress !== undefined && <div className="mt-1 h-1 bg-muted"><div className="h-1 bg-[#ffb23e]" style={{ width: `${Math.max(0, Math.min(1, waste.progress)) * 100}%` }} /></div>}
         </div>
       )}
       {sec && (

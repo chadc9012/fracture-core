@@ -693,13 +693,13 @@ export function spawnMissionDrones(sim: WorldSim, x: number, z: number, count: n
 
 /** Living World event wave (living-events.ts): `regionId` troops in a ring around (x,z), tagged with the event id. Not a
  * scripted-mission machine (missions wait on `mission` machines), but never leashed away while the event runs. */
-export function spawnEventSquad(sim: WorldSim, tag: string, x: number, z: number, count: number, elite: number, regionId: string, ring = 12): number {
+export function spawnEventSquad(sim: WorldSim, tag: string, x: number, z: number, count: number, elite: number, regionId: string, ring = 12, troopIndex?: number): number {
   let n = 0;
   for (let i = 0; i < count; i++) {
     const m = sim.machines.find((e) => !e.alive);
     if (!m) break;
     const a = (i / count) * Math.PI * 2 + Math.random() * 0.4;
-    const troop = troopFor(regionId, i);
+    const troop = troopFor(regionId, troopIndex ?? i);
     const isElite = i < elite;
     Object.assign(m, { alive: true, x: x + Math.cos(a) * ring, z: z + Math.sin(a) * ring, hp: (isElite ? 7 : 3.5) * (sim.challenge?.enemyHp ?? 1), rot: 0, scale: isElite ? 1.4 : 0.95, zone: regionId, cool: 1.5 + Math.random(), elite: isElite, profile: troop ? troop.name : "Hostile", kind: troop ? troop.kind : ("RAIDER" as const), drop: (troop ? troop.drop : "scrapMetal") as MaterialId, boss: false, kx: 0, kz: 0, mission: false, vulnUntil: 0, vulnMult: 1, encounter: undefined, decoy: undefined, living: tag, scenarioId: undefined, eq: undefined, swimY: undefined, nemesis: undefined, nemesisWeak: undefined, nemesisDamage: undefined });
     delete m.lastPlayerDamage; delete m.ai;
