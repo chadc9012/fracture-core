@@ -41,7 +41,8 @@ import {
 } from "./director";
 import { createSquad, stepSquad, type SquadState } from "./squad";
 import { absorbTitanDamage, createTitanState, tickTitan, type TitanState } from "./titan";
-import { encounterFor, troopFor } from "./encounters";
+import { encounterFor, factionOf, troopFor } from "./encounters";
+import { ENEMY_TUNING, aggroRadius, rangedCooldownFor, trooperSpeed, windupFor } from "./enemy-tuning";
 import type { MaterialId } from "./inventory";
 import type { GearItem } from "./inventory";
 import { phaseForHpFraction, tuningFor, type BossPhaseIndex } from "./boss-phases";
@@ -762,7 +763,7 @@ export function summonBoss(sim: WorldSim, regionId: string, x: number, z: number
   }
   const m = sim.machines.find((candidate) => !candidate.alive);
   if (!m) return false;
-  Object.assign(m, { alive: true, x, z, y: walkHeight(x, z) + 5, hp: 28 * (sim.challenge?.enemyHp ?? 1), maxHp: 28 * (sim.challenge?.enemyHp ?? 1), phase: 0 as BossPhaseIndex, rot: 0, scale: 2.3, zone: regionId, cool: 2, elite: true, boss: true, profile: boss.name, kind: "OVERCLOCKED", drop: boss.drop, kx: 0, kz: 0, poiseState: INITIAL_POISE, scenarioId: undefined, gimmickHistory: undefined, attuned: undefined, scenarioRun: undefined, playerHits: undefined, encounter: undefined, decoy: undefined, living: undefined, nemesis: undefined, nemesisWeak: undefined, nemesisDamage: undefined, vulnUntil: 0, vulnMult: 1, ...extra });
+  Object.assign(m, { alive: true, x, z, y: walkHeight(x, z) + 5, hp: 28 * (sim.challenge?.enemyHp ?? 1), maxHp: 28 * (sim.challenge?.enemyHp ?? 1), phase: 0 as BossPhaseIndex, rot: 0, scale: 2.3, zone: regionId, cool: 2, elite: true, boss: true, profile: boss.name, kind: factionOf(regionId), drop: boss.drop, kx: 0, kz: 0, poiseState: INITIAL_POISE, scenarioId: undefined, gimmickHistory: undefined, attuned: undefined, scenarioRun: undefined, playerHits: undefined, encounter: undefined, decoy: undefined, living: undefined, nemesis: undefined, nemesisWeak: undefined, nemesisDamage: undefined, vulnUntil: 0, vulnMult: 1, ...extra });
   sim.raidFight = { start: performance.now() / 1000, hurt: 0, region: regionId };
   alert(sim, `${boss.name} · ${boss.tell}`);
   return true;
@@ -773,7 +774,7 @@ export function summonBoss(sim: WorldSim, regionId: string, x: number, z: number
 export function summonScenarioBoss(sim: WorldSim, scenario: UniqueScenario, x: number, z: number, extra?: Partial<Machine>): boolean {
   const m = sim.machines.find((candidate) => !candidate.alive);
   if (!m) return false;
-  Object.assign(m, { alive: true, x, z, y: walkHeight(x, z) + 5, hp: 34 * (sim.challenge?.enemyHp ?? 1), maxHp: 34 * (sim.challenge?.enemyHp ?? 1), phase: 0 as BossPhaseIndex, rot: 0, scale: 2.5, zone: scenario.regionId, cool: 2, elite: true, boss: true, profile: scenario.bossName, kind: "ABERRATION", drop: scenario.drop as MaterialId, kx: 0, kz: 0, poiseState: INITIAL_POISE, scenarioId: scenario.id, scenarioRun: `${scenario.id}-${Date.now().toString(36)}-${(sim.nextHitId++).toString(36)}-${Math.random().toString(36).slice(2, 8)}`, playerHits: 0, gimmickHistory: [], attuned: undefined, encounter: undefined, decoy: undefined, living: undefined, nemesis: undefined, nemesisWeak: undefined, nemesisDamage: undefined, vulnUntil: 0, vulnMult: 1, ...extra });
+  Object.assign(m, { alive: true, x, z, y: walkHeight(x, z) + 5, hp: 34 * (sim.challenge?.enemyHp ?? 1), maxHp: 34 * (sim.challenge?.enemyHp ?? 1), phase: 0 as BossPhaseIndex, rot: 0, scale: 2.5, zone: scenario.regionId, cool: 2, elite: true, boss: true, profile: scenario.bossName, kind: factionOf(scenario.regionId), drop: scenario.drop as MaterialId, kx: 0, kz: 0, poiseState: INITIAL_POISE, scenarioId: scenario.id, scenarioRun: `${scenario.id}-${Date.now().toString(36)}-${(sim.nextHitId++).toString(36)}-${Math.random().toString(36).slice(2, 8)}`, playerHits: 0, gimmickHistory: [], attuned: undefined, encounter: undefined, decoy: undefined, living: undefined, nemesis: undefined, nemesisWeak: undefined, nemesisDamage: undefined, vulnUntil: 0, vulnMult: 1, ...extra });
   sim.raidFight = { start: performance.now() / 1000, hurt: 0, region: scenario.regionId };
   alert(sim, `${scenario.name} · ${scenario.briefing}`);
   if (scenario.taunt) alert(sim, `${scenario.bossName}: ${scenario.taunt}`);
@@ -1390,8 +1391,8 @@ export function stepSim(sim: WorldSim, input: SimInput) {
     }
 
     const aggro =
-      (70 + night * 60) * (m.elite ? 1.6 : 1) * sim.mods.aggroRadius * sim.adaptation.influence.aiAggression;
-    const speed = (10 + night * 6) * (m.elite ? 1.15 : 1) * (bossTuning?.speedMult ?? 1) * statusSpeedMult(sim.statuses.get(m), performance.now() / 1000);
+      aggroRadius(night, m.elite, sim.mods.aggroRadius, sim.adaptation.influence.aiAggression); // enemy-tuning.ts
+    const speed = trooperSpeed(night, m.elite) * (bossTuning?.speedMult ?? 1) * statusSpeedMult(sim.statuses.get(m), performance.now() / 1000);
     if (d < 120) hostileNear++;
 
     // ---- awareness: patrol → suspicious → alert → search (enemy-perception.ts) ----
@@ -1426,7 +1427,7 @@ export function stepSim(sim: WorldSim, input: SimInput) {
       m.rot = Math.atan2(dx, dz);
       m.cool -= dt;
       if (!scripted && d < 6 && m.cool <= 0) {
-        m.cool = 1.1 * (bossTuning?.cooldownMult ?? 1);
+        m.cool = ENEMY_TUNING.meleeCooldown * (bossTuning?.cooldownMult ?? 1);
         sim.combatHeat += 2;
         sim.lastHitBy = { profile: m.profile, zone: m.zone, elite: m.elite, boss: m.boss, nemesis: m.nemesis };
          hurtPlayer(sim, ((m.boss ? 17 : m.elite ? 12 : 7) * (bossTuning?.damageMult ?? 1) * (m.nemesisDamage ?? 1)) / sim.mods.hullDurability, m.profile);
@@ -1439,14 +1440,14 @@ export function stepSim(sim: WorldSim, input: SimInput) {
         m.aim = (m.aim ?? 0) - dt;
         if ((m.aim ?? 0) <= 0) {
           m.aim = 0;
-          m.cool = (m.boss ? 1.2 : m.elite ? 1.5 : 2.1) * (bossTuning?.cooldownMult ?? 1);
+          m.cool = rangedCooldownFor(m) * (bossTuning?.cooldownMult ?? 1);
           sim.enemyShots.push({ x: m.x, z: m.z, kind: m.kind, boss: m.boss, elite: m.elite, zone: m.zone });
           if (sim.enemyShots.length > 24) sim.enemyShots.shift();
           if (Math.random() < 0.25) { sim.lastHitBy = { profile: m.profile, zone: m.zone, elite: m.elite, boss: m.boss, nemesis: m.nemesis }; hurtPlayer(sim, ((m.boss ? 6 : m.elite ? 4 : 2) * (bossTuning?.damageMult ?? 1) * (m.nemesisDamage ?? 1)) / sim.mods.hullDurability, m.profile); }
         }
-      } else if (!scripted && d < 55 && m.cool <= 0 && (m.boss || aimTickets < MAX_AIMING)) {
+      } else if (!scripted && d < ENEMY_TUNING.rangedRange && m.cool <= 0 && (m.boss || aimTickets < MAX_AIMING)) {
         // ranged suppressing fire: take a ticket and start the telegraph; elites/bosses wind up faster
-        m.aim = m.boss ? 0.2 : m.elite ? 0.28 : 0.4;
+        m.aim = windupFor(m);
         aimTickets++;
       }
     } else if (aiState === "SUSPICIOUS" || aiState === "SEARCH") {

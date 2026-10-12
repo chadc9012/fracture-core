@@ -1,4 +1,6 @@
 
+/** Faction per region follows the owner's faction sheet (public/refs/factions-sheet.png): Raiders = Wastelands, Overclocked = Nexus,
+ * Vanguard = Frostspire, Aberrations = Swamps. Regions the sheet does not cover keep their themed mix. */
 export type EnemyKind = "RAIDER" | "OVERCLOCKED" | "ABERRATION" | "VANGUARD";
 export type EnemyProfile = { name: string; kind: EnemyKind; role: string; drop: string };
 export type RegionalEncounter = { regionId: string; troops: readonly EnemyProfile[]; boss?: { name: string; lair: string; drop: string; tell: string } };
@@ -20,18 +22,18 @@ export const ENCOUNTERS: readonly RegionalEncounter[] = [
     { name: "Rust-Runner Buggy", kind: "RAIDER", role: "Mobile skirmisher", drop: "vehicleParts" },
   ], boss: { name: "Rust-King ‘Gant’", lair: "Junkyard Citadel", drop: "vehicleParts", tell: "Crane arm locks its landing lane" } },
   { regionId: "frostspire", troops: [
-    { name: "Ice-Stalker Drone", kind: "OVERCLOCKED", role: "Cryo pursuit", drop: "cryoCrystal" },
-    { name: "Frost-Corrupted Ravager", kind: "ABERRATION", role: "Pouncing beast", drop: "cryoCrystal" },
-    { name: "Spore-Corrupted Glacial Wolf", kind: "ABERRATION", role: "Pack flanker", drop: "sporeFiber" },
+    { name: "Vanguard Enforcer", kind: "VANGUARD", role: "Perimeter defender", drop: "cryoCrystal" },
+    { name: "Vanguard Cryo-Lancer", kind: "VANGUARD", role: "Long-range cryo marksman", drop: "cryoCrystal" },
+    { name: "Vanguard Juggernaut", kind: "VANGUARD", role: "Shielded heavy", drop: "reinforcedAlloy" },
   ], boss: { name: "Subject Zero", lair: "Glacial Crevasse", drop: "zeroCore", tell: "Ice blades fan outward before the lunge" } },
   { regionId: "swamps", troops: [
     { name: "Spore-Walker", kind: "ABERRATION", role: "Ambush brute", drop: "sporeFiber" },
     { name: "Naga-Siren Hybrid", kind: "ABERRATION", role: "Waterborne lure", drop: "bioCatalyst" },
-    { name: "Hacked Vanguard Drone", kind: "OVERCLOCKED", role: "Disruption support", drop: "microCircuits" },
+    { name: "Bog Crawler", kind: "ABERRATION", role: "Swarming ambusher", drop: "bioCatalyst" },
   ], boss: { name: "The Kraken-Vanguard (KV-Unit)", lair: "Shrouded Effigy", drop: "abyssCore", tell: "Tentacles rise before the sweep" } },
   { regionId: "nexus", troops: [
-    { name: "Vanguard Enforcer", kind: "VANGUARD", role: "Perimeter defender", drop: "microCircuits" },
-    { name: "Automated Sentry Turret", kind: "VANGUARD", role: "Defensive emplacement", drop: "reinforcedAlloy" },
+    { name: "Overclocked Operative", kind: "OVERCLOCKED", role: "Perimeter trooper", drop: "microCircuits" },
+    { name: "Overclocked Augmented", kind: "OVERCLOCKED", role: "Augmented heavy", drop: "reinforcedAlloy" },
     { name: "Cyber-Corrupted Riot Squad", kind: "OVERCLOCKED", role: "Breach team", drop: "microCircuits" },
   ], boss: { name: "Aegis-Prime", lair: "High-Tech Interior", drop: "aegisCore", tell: "Shield panels open before the pulse" } },
   { regionId: "solara", troops: [
@@ -54,3 +56,6 @@ export const troopFor = (regionId: string, index: number) => {
   const troops = encounterFor(regionId)?.troops;
   return troops?.[Math.abs(index) % troops.length] ?? EXTRA_ENEMIES[0];
 };
+/** the faction a region's bosses (and boss models) belong to, from the faction sheet; uncovered regions use their main troop faction */
+export const REGION_FACTION: Record<string, EnemyKind> = { wastelands: "RAIDER", nexus: "OVERCLOCKED", frostspire: "VANGUARD", swamps: "ABERRATION", veridan: "ABERRATION", ember: "RAIDER", solara: "RAIDER" };
+export const factionOf = (regionId: string | undefined): EnemyKind => REGION_FACTION[regionId ?? ""] ?? "OVERCLOCKED";

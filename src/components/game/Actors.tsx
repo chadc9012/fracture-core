@@ -242,7 +242,7 @@ export function WarMachines({ sim }: { sim: WorldSim }) {
         drive.current.aiming = (m.aim ?? 0) > 0;
         prev.x = m.x; prev.z = m.z;
       }
-      const modelName = m.boss && m.scenarioId && scenarioModelReady.has(m.scenarioId) ? "scenario-model" : m.boss ? "boss-model" : (m.kind === "OVERCLOCKED" ? "overclocked-model" : m.kind === "ABERRATION" ? "aberration-model" : m.kind === "VANGUARD" ? "vanguard-model" : "regional-model") + (m.elite ? "-elite" : "");
+      const modelName = m.boss && m.scenarioId && scenarioModelReady.has(m.scenarioId) ? "scenario-model" : m.boss ? `boss-model-${m.kind ?? "OVERCLOCKED"}` : (m.kind === "OVERCLOCKED" ? "overclocked-model" : m.kind === "ABERRATION" ? "aberration-model" : m.kind === "VANGUARD" ? "vanguard-model" : "regional-model") + (m.elite ? "-elite" : "");
       if (modelName !== "scenario-model" && !mountedRef.current[i]?.includes(modelName)) {
         const next = mountedRef.current.map((list, k) => (k === i ? [...list, modelName] : list));
         mountedRef.current = next;
@@ -272,7 +272,11 @@ export function WarMachines({ sim }: { sim: WorldSim }) {
           <group name="overclocked-model-elite" visible={false}>{need(i, "overclocked-model-elite") && <RegionalEnemy kind="OVERCLOCKED" boss={false} elite drive={drives[i]!} />}</group>
           <group name="aberration-model-elite" visible={false}>{need(i, "aberration-model-elite") && <RegionalEnemy kind="ABERRATION" boss={false} elite drive={drives[i]!} />}</group>
           <group name="vanguard-model-elite" visible={false}>{need(i, "vanguard-model-elite") && <RegionalEnemy kind="VANGUARD" boss={false} elite drive={drives[i]!} />}</group>
-          <group name="boss-model" visible={false}>{need(i, "boss-model") && <RegionalEnemy kind="OVERCLOCKED" boss drive={drives[i]!} />}</group>
+          {/* region bosses wear their region faction's boss from the faction sheet (encounters.ts REGION_FACTION) */}
+          <group name="boss-model-RAIDER" visible={false}>{need(i, "boss-model-RAIDER") && <RegionalEnemy kind="RAIDER" boss drive={drives[i]!} />}</group>
+          <group name="boss-model-OVERCLOCKED" visible={false}>{need(i, "boss-model-OVERCLOCKED") && <RegionalEnemy kind="OVERCLOCKED" boss drive={drives[i]!} />}</group>
+          <group name="boss-model-VANGUARD" visible={false}>{need(i, "boss-model-VANGUARD") && <RegionalEnemy kind="VANGUARD" boss drive={drives[i]!} />}</group>
+          <group name="boss-model-ABERRATION" visible={false}>{need(i, "boss-model-ABERRATION") && <RegionalEnemy kind="ABERRATION" boss drive={drives[i]!} />}</group>
           {/* loot cue: elites (better drops) wear a glowing amber ring at their feet, like Diablo's elite tell */}
           <mesh name="elite-ring" visible={false} rotation={[-Math.PI / 2, 0, 0]} position={[0, -1.9, 0]}><ringGeometry args={[2.6, 3.1, 40]} /><meshBasicMaterial color="#ffb357" transparent opacity={0.85} depthWrite={false} /></mesh>
         </group>
