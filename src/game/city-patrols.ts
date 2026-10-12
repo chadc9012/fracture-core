@@ -21,7 +21,7 @@ export type Guard = {
 };
 
 export const GUARD_RANGE = 28, GUARD_PURSUE = 18, GUARD_WALK = 2.2, GUARD_RUN = 4.6;
-export const GUARD_FIRE_INTERVAL = 0.85, GUARD_DAMAGE = 0.9, GUARD_PLAYER_DAMAGE = 3, WARN_SECONDS = 2.5, HOSTILE_SIGHT = 22;
+export const GUARD_FIRE_INTERVAL = 0.85, GUARD_DAMAGE = 0.5, GUARD_PLAYER_DAMAGE = 3, WARN_SECONDS = 2.5, HOSTILE_SIGHT = 22;
 /** guards never chase this far from their beat */
 export const GUARD_LEASH = 30;
 

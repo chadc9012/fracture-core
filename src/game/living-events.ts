@@ -21,6 +21,8 @@ export type LivingEvent = {
   spawned: boolean;
   /** FRACTURE: seconds until the next aberration wave */
   wave: number;
+  /** the hostiles were all cleared, but none by the player (city patrols did it): no reward, no penalty */
+  cleared?: boolean;
 };
 
 export type EventRule = {
@@ -129,7 +131,7 @@ export function stepLivingDirector(d: LivingDirector, inp: DirectorInput): Direc
     if (inp.alive && Math.hypot(inp.px - ev.x, inp.pz - ev.z) <= FRACTURE_RADIUS) hold += inp.dt;
     if (hold >= FRACTURE_HOLD) return finish(d, { ...ev, hold }, "WON");
   } else if (ev.spawned && inp.tagAlive === 0) {
-    return finish(d, ev, inp.playerKills > 0 ? "WON" : "FAILED");
+    return inp.playerKills > 0 ? finish(d, ev, "WON") : finish(d, { ...ev, cleared: true }, "FAILED");
   }
   if (timer <= 0) return finish(d, { ...ev, hold }, "FAILED");
   return { director: { ...d, current: { ...ev, timer, hold, wave: Math.max(0, ev.wave - inp.dt) } } };
@@ -145,7 +147,7 @@ export const fallenDistricts = (p: Pick<PlayerProgression, "living">, now: numbe
   DISTRICTS.filter((d) => districtStatus(p.living ?? EMPTY_LIVING, d.id, now) === "FALLEN").map((d) => d.id);
 
 /** Apply an event's outcome to the save, once per event id: standing, district status, DEFEND contracts and rewards. */
-export function resolveLivingEvent(p: PlayerProgression, ev: Pick<LivingEvent, "id" | "kind" | "city" | "district">, outcome: "WON" | "FAILED", now = Date.now()): { progression: PlayerProgression; message: string } {
+export function resolveLivingEvent(p: PlayerProgression, ev: Pick<LivingEvent, "id" | "kind" | "city" | "district" | "cleared">, outcome: "WON" | "FAILED", now = Date.now()): { progression: PlayerProgression; message: string } {
   const key = `living-event:${ev.id}`;
   if (p.earnedRewards.includes(key)) return { progression: p, message: "" };
   const rule = EVENT_RULES[ev.kind];
@@ -163,6 +165,7 @@ export function resolveLivingEvent(p: PlayerProgression, ev: Pick<LivingEvent, "
     const mats = Object.entries(rule.win.materials).map(([k, v]) => `+${v} ${k.replace(/([A-Z])/g, " $1").toLowerCase()}`).join(", ");
     return { progression: next, message: `${rule.title} won · +${rule.win.rep} ${FACTIONS[beneficiary].name} · ${mats}, +${rule.win.shards} shards${owner ? ` · ${FACTIONS[owner].name} won't forget` : ""}` };
   }
+  if (ev.cleared) return { progression: next, message: `${rule.title}: the city patrols handled it without you. No reward.` };
   living = adjustRep(living, beneficiary, rule.failRep, false);
   if (rule.districtStakes) living = recordDistrict(living, ev.district, "FAILED", now);
   const district = DISTRICTS.find((x) => x.id === ev.district);

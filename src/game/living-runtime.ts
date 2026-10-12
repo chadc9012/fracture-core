@@ -2,7 +2,7 @@
  * `stepLivingRuntime` once per frame after stepSim; it advances the event director, spawns/despawns event machines,
  * runs city patrols (their hits go through the same damage path as everything else), tracks where civilians should
  * run from, and returns the save-changing events (`emits`) that GameCanvas applies to progression. No rendering. */
-import { alert, applyMachineDamageMods, defeatMachine, hurtPlayer, spawnEventSquad, summonBoss, type WorldSim } from "./sim";
+import { alert, defeatMachine, hurtPlayer, spawnEventSquad, summonBoss, type WorldSim } from "./sim";
 import { CITIES, FACTIONS, TIER_RULES, cityAt, districtById, tierOf, type CityId, type FactionId, type LivingState } from "./living-world";
 import { EVENT_RULES, FRACTURE_HOLD, FRACTURE_RADIUS, createLivingDirector, stepLivingDirector, type LivingDirector, type LivingEvent } from "./living-events";
 import { createGuards, stepGuards, type Guard } from "./city-patrols";
@@ -116,7 +116,8 @@ export function stepLivingRuntime(rt: LivingRuntime, sim: WorldSim, inp: LivingS
     for (const h of res.hits) {
       const m = sim.machines[h.index];
       if (!m?.alive || h.damage <= 0) continue;
-      m.hp -= applyMachineDamageMods(sim, m, h.damage, "KINETIC", inp.px, inp.pz);
+      // NOT applyMachineDamageMods: that marks the hit as the player's damage, and a later death would then pay the player
+      m.hp -= h.damage * (m.vulnUntil > performance.now() / 1000 ? m.vulnMult : 1);
       if (m.hp <= 0 && !m.boss) defeatMachine(sim, m, "world"); // city defence: the machine dies, the player is not paid for it
       else if (m.hp <= 0) m.hp = 0.01;
     }

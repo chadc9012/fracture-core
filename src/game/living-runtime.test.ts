@@ -69,4 +69,17 @@ describe("living runtime against the real sim", () => {
     expect(sim.hp).toBeLessThan(hp0);
     expect(sim.alerts.some((a) => a.text.includes("Nexus Wardens patrol"))).toBe(true);
   });
+
+  it("patrol kills never pay the player or mark player damage", () => {
+    const sim = quiet();
+    const rt = createLivingRuntime(sim);
+    rt.director.next = 1e9;
+    const g = rt.guards.find((x) => x.id === "warden-north")!;
+    const m = sim.machines[0]!;
+    Object.assign(m, { alive: true, x: g.x + 8, z: g.z, hp: 2, boss: false, elite: false, scale: 1, cool: 5, profile: "Test", living: "ev-x" });
+    for (let i = 0; i < 60 && m.alive; i++) stepLivingRuntime(rt, sim, { dt: 0.25, now: NOW, px: C.x + 300, pz: C.z, blocked: false, living: EMPTY_LIVING, fallen: [], markers: [], rnd: () => 0 });
+    expect(m.alive).toBe(false);
+    expect(sim.kills).toBe(0);
+    expect(sim.livingKills["ev-x"] ?? 0).toBe(0);
+  });
 });

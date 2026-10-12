@@ -162,6 +162,12 @@ describe("world events", () => {
     expect(stepLivingDirector(d, inp({ tagAlive: 3 })).resolved).toBeUndefined();
     s = stepLivingDirector(d, inp({ tagAlive: 0, playerKills: 4 }));
     expect(s.resolved?.outcome).toBe("WON");
+    // cleared by the city patrols alone: no reward, but no district loss either
+    const patrols = stepLivingDirector(d, inp({ tagAlive: 0, playerKills: 0 }));
+    expect(patrols.resolved?.outcome).toBe("FAILED");
+    const r = resolveLivingEvent(base(), patrols.resolved!.event, "FAILED", NOW);
+    expect(r.progression.living.districts).toEqual({});
+    expect(r.progression.materials).toEqual({});
   });
   test("leaving the city or running out of time fails it", () => {
     const d = { next: 0, serial: 1, current: { ...pickEvent("neon", () => 0.1, [], NOW, 1), phase: "ACTIVE" as const, timer: 50, spawned: true } };

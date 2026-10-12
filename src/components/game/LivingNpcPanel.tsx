@@ -95,7 +95,7 @@ export function LivingTracker({ living, px, pz, toast }: { living: LivingHud | n
   const bearing = ev ? headingLabel(headingTo(px, pz, ev.x, ev.z)) : "";
   const color = !ev ? "" : ev.phase === "WON" ? "#7ef2b0" : ev.phase === "FAILED" ? "#ff4d4d" : ev.kind === "FRACTURE" ? "#b968ff" : ev.phase === "WARNING" ? "#ffb23e" : "#ff3b4e";
   return (
-    <div className="mission-tracker living-tracker pointer-events-none absolute right-4 top-44 w-72 space-y-2">
+    <div className="mission-tracker living-tracker pointer-events-none absolute left-4 top-[22%] w-72 space-y-2">
       {ev && (
         <div className="border border-border/60 bg-background/75 p-3 backdrop-blur-sm" style={{ borderLeft: `3px solid ${color}` }}>
           <p className="font-mono text-[9px] uppercase tracking-[0.3em]" style={{ color }}>{ev.phase === "WARNING" ? "World event incoming" : ev.phase === "ACTIVE" ? "World event" : ev.phase === "WON" ? "Event won" : "Event lost"} · {ev.district}</p>
