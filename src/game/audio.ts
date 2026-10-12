@@ -550,6 +550,7 @@ export function playEnding(tier: "CONTROL" | "CHAOS" | "BALANCE") {
 
 /** The "dopamine hit" cue for a player level-up (Loot + XP System v1) — a short bright ascending arpeggio. */
 export function playLevelUp() {
+  if (playSample("loot", {}, 0.56)) return;
   const c = ctx; if (!c) return; const o = out(c);
   const notes = [440, 554, 659, 880];
   notes.forEach((f, i) => tone(c, o, { f0: f, f1: f, dur: 0.22, type: "triangle", gain: 0.28, at: i * 0.07 }));
