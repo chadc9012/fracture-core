@@ -82,4 +82,16 @@ describe("living runtime against the real sim", () => {
     expect(sim.kills).toBe(0);
     expect(sim.livingKills["ev-x"] ?? 0).toBe(0);
   });
+
+  it("a Living World boss killed by the world (walls, patrols) pays nothing; a catalog boss still does", () => {
+    const sim = quiet();
+    const m = sim.machines[0]!;
+    Object.assign(m, { alive: true, x: C.x, z: C.z, hp: 0, boss: true, elite: true, scale: 2, profile: "Aegis-Prime", living: "ev-b" });
+    defeatMachine(sim, m, "world");
+    expect(m.alive).toBe(false); expect(sim.kills).toBe(0); expect(sim.credits).toBe(createSim().credits);
+    const n = sim.machines[1]!;
+    Object.assign(n, { alive: true, x: C.x, z: C.z, hp: 0, boss: true, elite: true, scale: 2, profile: "Catalog", drop: "aegisCore", zone: "nexus" });
+    defeatMachine(sim, n, "world");
+    expect(sim.kills).toBe(1);
+  });
 });

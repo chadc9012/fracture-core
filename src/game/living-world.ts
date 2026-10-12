@@ -49,10 +49,10 @@ export const DISTRICTS: readonly District[] = [
   { id: "nexus:market", city: "nexus", name: "Market District", ...nexusAnchor(Math.PI / 2), faction: "guild" },
   { id: "nexus:shipyard", city: "nexus", name: "Shipyard", ...nexusAnchor(Math.PI), faction: "guild" },
   { id: "nexus:arcology", city: "nexus", name: "Arcology", ...nexusAnchor(-Math.PI / 2), faction: "wardens" },
-  { id: "neon:spire", city: "neon", name: "Aegis Spire", ...neonAt(0, -40), faction: "aegis" },
+  { id: "neon:spire", city: "neon", name: "Aegis Spire", ...neonAt(0, -29), faction: "aegis" },
   { id: "neon:undercity", city: "neon", name: "Undercity", ...neonAt(-22, -7), faction: "syndicate" },
   { id: "neon:market", city: "neon", name: "Neon Market", ...neonAt(0, 12), faction: "syndicate" },
-  { id: "neon:grid", city: "neon", name: "The Grid", ...neonAt(30, 20), faction: "aegis" },
+  { id: "neon:grid", city: "neon", name: "The Grid", ...neonAt(40, 20), faction: "aegis" },
 ];
 export const districtById = (id: string) => DISTRICTS.find((d) => d.id === id);
 
@@ -66,7 +66,7 @@ export function districtOf(x: number, z: number): District | null {
     return districtById(`nexus:${id}`)!;
   }
   const lx = x - NEON_CENTER.x, lz = z - NEON_CENTER.z;
-  const id = lz < -30 ? "spire" : Math.abs(lz + 7) < 8 ? "undercity" : Math.abs(lx) < 12 ? "market" : "grid";
+  const id = lz < -26 ? "spire" : Math.abs(lz + 7) < 8 ? "undercity" : Math.abs(lx) < 12 ? "market" : "grid";
   return districtById(`neon:${id}`)!;
 }
 

@@ -396,8 +396,10 @@ export function defeatMachine(sim: WorldSim, m: Machine, credit: KillCredit = "p
   const floor = encounterHpFloor(m, performance.now() / 1000);
   if (floor > 0) { m.hp = floor; return; }
   m.alive = false;
+  const livingTag = m.living;
   if (m.living) { if (credit === "player") sim.livingKills[m.living] = (sim.livingKills[m.living] ?? 0) + 1; delete m.living; }
-  if (credit === "world" && !m.boss && !m.eq && !m.scenarioId) { // ambient kill: no kill, credit, XP, drop or director event
+  // a Living World boss that dies to the world (a wall, the patrols) pays nobody, unlike catalog bosses
+  if (credit === "world" && !m.eq && !m.scenarioId && (!m.boss || livingTag)) { // ambient kill: no kill, credit, XP, drop or director event
     endEncounter(sim, m);
     delete m.gimmickHistory; delete m.attuned; delete m.scenarioRun; delete m.playerHits; delete m.encounter; delete m.decoy; delete m.lastPlayerDamage;
     return;

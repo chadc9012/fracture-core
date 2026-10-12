@@ -72,12 +72,11 @@ export function pickEvent(city: CityId, rnd: () => number, fallen: readonly stri
   const kind: LivingEventKind = retake ? "INVASION" : kinds[Math.floor(rnd() * kinds.length)]!;
   const district: District = retake ?? inCity[Math.floor(rnd() * inCity.length)]!;
   const c = CITIES[city];
-  let x = district.x + (rnd() - 0.5) * 10, z = district.z + (rnd() - 0.5) * 10;
-  if (kind === "ROAMING_BOSS" || kind === "CONVOY") {
-    // on the city edge, on the district's bearing
-    const a = Math.atan2(district.x - c.x, district.z - c.z);
-    const r = c.radius * (kind === "ROAMING_BOSS" ? 0.85 : 0.7);
-    x = c.x + Math.sin(a) * r; z = c.z + Math.cos(a) * r;
+  // Nexus anchors sit on street intersections of the district grid: stay on them (a jitter can land inside a building block)
+  let x = district.x, z = district.z;
+  if (city === "neon" && (kind === "ROAMING_BOSS" || kind === "CONVOY")) {
+    // Neon's edge: either open end of the cross street (the blocks and the Spire fill the rest of the rim)
+    x = c.x + (district.x >= c.x ? 45 : -45); z = c.z + 7;
   }
   const rule = EVENT_RULES[kind];
   return { id: `${city}-${kind.toLowerCase()}-${now.toString(36)}-${serial}`, kind, city, district: district.id, x, z, phase: "WARNING", timer: rule.warn, hold: 0, spawned: false, wave: 0 };
