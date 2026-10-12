@@ -52,6 +52,7 @@ export function mergeProgression(local: PlayerProgression, cloud: PlayerProgress
     story: mergeStory(local.story, cloud.story, localIsNewer),
     nemeses: mergeNemeses(local.nemeses ?? [], cloud.nemeses ?? []),
     records: mergeRecords(local.records ?? {}, cloud.records ?? {}),
+    blade: (localIsNewer ? local.blade : cloud.blade) ?? (localIsNewer ? cloud.blade : local.blade) ?? null,
     fleet: mergeFleet(local.fleet ?? EMPTY_FLEET, cloud.fleet ?? EMPTY_FLEET, localIsNewer),
     living: mergeLiving(local.living ?? EMPTY_LIVING, cloud.living ?? EMPTY_LIVING, union(local.earnedRewards, cloud.earnedRewards)),
     inventory: [...new Map([...cloud.inventory, ...local.inventory].map((item) => [item.id, item])).values()].map((item) => {

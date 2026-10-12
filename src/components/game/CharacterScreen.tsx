@@ -13,6 +13,7 @@ import type { GearItem, GearSlot } from "@/game/inventory";
 import type { PlayerProgression } from "@/game/progression";
 import { xpRequiredForLevel } from "@/game/xp";
 import { ENDINGS, campaignProgress } from "@/game/campaign";
+import { BLADES, FOUNDRIES, equipBlade, ownedBlades, type BladeId } from "@/game/foundries";
 
 export type CharacterTab = "CHARACTER" | "COLLECTIONS" | "TRIUMPHS" | "CAMPAIGN";
 
@@ -61,6 +62,7 @@ export function CharacterScreen({ progression, onProgression, classId, subclassI
               <span className="-rotate-45 text-center font-mono text-[9px] uppercase leading-tight tracking-[0.1em]" style={{ color: cls.color }}>{sub.name.split(" ")[0]}</span>
             </div>
             {sheet.weapons.map(({ slot, item }) => <Slot key={slot} slot={slot} item={item} onHover={setHover} onPick={setPicking} />)}
+            <BladePicker progression={progression} onProgression={onProgression} />
           </section>
           <section className="relative min-h-[18rem]" aria-label="Operator">
             <CharacterPreview appearance={appearance} classId={classId} progression={progression} />
@@ -182,3 +184,20 @@ function Refit() {
   useEffect(() => { const ids = [300, 1200, 3000].map((ms) => window.setTimeout(() => bounds.refresh().clip().fit(), ms)); return () => ids.forEach((id) => window.clearTimeout(id)); }, [bounds]);
   return null;
 }
+
+/** foundries.ts monoblades: the blade your melee swing uses (earned in the Wastelands). */
+function BladePicker({ progression, onProgression }: { progression: PlayerProgression; onProgression: (p: PlayerProgression) => void }) {
+  const owned = ownedBlades(progression);
+  const current = progression.blade && owned.includes(progression.blade as BladeId) ? BLADES[progression.blade as BladeId] : null;
+  const all = Object.values(BLADES);
+  return <div className="w-44 border border-white/15 bg-black/30 p-2" aria-label="Monoblade">
+    <p className="font-mono text-[9px] uppercase tracking-[0.2em] text-white/60">Melee · monoblade</p>
+    <p className="mt-1 text-xs font-semibold" style={{ color: current ? FOUNDRIES[current.foundry].color : undefined }}>{current ? current.name : "Fracture Blade (standard)"}</p>
+    {current && <p className="text-[10px] text-white/60">{current.perk}: {current.text}</p>}
+    <div className="mt-1 flex flex-col gap-1">
+      {all.map((b) => { const has = owned.includes(b.id); return <button key={b.id} type="button" disabled={!has} title={has ? b.text : `Earn it: ${b.source}`} onClick={() => onProgression(equipBlade(progression, progression.blade === b.id ? null : b.id))}
+        className={`border px-1.5 py-1 text-left text-[10px] ${progression.blade === b.id ? "border-white/80" : "border-white/15"} ${has ? "hover:border-white/60" : "opacity-45"}`}>{has ? b.name : `Locked · ${b.source}`}</button>; })}
+    </div>
+  </div>;
+}
+

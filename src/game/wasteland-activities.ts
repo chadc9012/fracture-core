@@ -11,6 +11,7 @@
 import type { MaterialId } from "./inventory";
 import { rewardMission, type PlayerProgression } from "./progression";
 import { applyEffects, trustOf } from "./story";
+import { BLADES, grantBlade, type BladeId } from "./foundries";
 
 /* ------------------------------------------------------------ places ------------------------------------------------------------ */
 /** the Sub-Terra Apex vault entrance, on open flat ground east of Rust Port */
@@ -111,6 +112,7 @@ export const legionRank = (p: Pick<PlayerProgression, "story">) => { const t = t
 
 const MEDAL_PAY: Record<Medal, Partial<Record<MaterialId, number>>> = { GOLD: { tuningCore: 2, vehicleParts: 8 }, SILVER: { tuningCore: 1, vehicleParts: 5 }, BRONZE: { vehicleParts: 4, fuel: 6 } };
 const MEDAL_ORDER: readonly Medal[] = ["BRONZE", "SILVER", "GOLD"];
+const GOLD_BLADE: Record<string, BladeId> = { "rust-run": "sun-cutter", "mash-pit": "aegis-broadsword" };
 const matText = (m: Partial<Record<MaterialId, number>>) => Object.entries(m).map(([k, v]) => `+${v} ${k}`).join(", ");
 
 /** pay each medal tier (and the ones below it) once, ever */
@@ -124,6 +126,8 @@ function payMedals(p: PlayerProgression, activity: string, medal: Medal | null):
     for (const [k, v] of Object.entries(MEDAL_PAY[m]) as [MaterialId, number][]) materials[k] = (materials[k] ?? 0) + v;
     next = { ...next, materials, earnedRewards: [...next.earnedRewards, key] };
     lines.push(`${m.toLowerCase()} medal: ${matText(MEDAL_PAY[m])}`);
+    const gold = m === "GOLD" ? GOLD_BLADE[activity] : undefined; // foundries.ts: gold medals award a monoblade
+    if (gold) { const g = grantBlade(next, gold); next = g.progression; if (g.granted) lines.push(`you earned the ${BLADES[gold].name}`); }
   }
   return { progression: next, lines };
 }
@@ -134,10 +138,12 @@ export function resolveVault(p: PlayerProgression, run: Pick<VaultRun, "id" | "g
   let next: PlayerProgression = { ...p, earnedRewards: [...p.earnedRewards, key] };
   if (outcome === "FAILED") return { progression: next, message: "The vault gate fell. The Legion will hold the inner doors; try again." };
   next = rewardMission(next, "side-vault-defense", { reinforcedAlloy: 6, scrapMetal: 20 }, now);
+  const blade = grantBlade(next, "vectal"); // foundries.ts: the Legion's Häkke monoblade, once
+  next = blade.progression;
   // Legion standing: +10 per defended run, +5 more for a nearly untouched gate (once per run id)
   const bonus = run.gate >= 80 ? 5 : 0;
   next = { ...next, story: applyEffects(next.story, [{ trust: { who: LEGION, amount: 10 + bonus } }], `vault:${run.id}`) };
-  return { progression: next, message: `Vault gates held (${Math.round(run.gate)}% integrity). Sub-Terra Legion: ${legionRank(next)}${bonus ? " · clean defense bonus" : ""}` };
+  return { progression: next, message: `Vault gates held (${Math.round(run.gate)}% integrity). Sub-Terra Legion: ${legionRank(next)}${bonus ? " · clean defense bonus" : ""}${blade.granted ? ` · the Legion hands you the ${BLADES.vectal.name}` : ""}` };
 }
 
 export function resolveRally(p: PlayerProgression, runId: string, time: number, now = Date.now()): { progression: PlayerProgression; message: string; medal: Medal | null } {

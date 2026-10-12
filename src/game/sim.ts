@@ -59,6 +59,7 @@ import { fireRound, splashDamage, stepRound, type Burst, type OrdnanceDef, type 
 import { LAUNCHERS, pickLockTarget, type LauncherId } from "./launchers";
 import { ABILITY_RULES, burstTargets, evolutionDamageMult, freshCharge, registerEvolutionHit, ruinElementOf, type EvolutionAbility, type EvolutionCharge } from "./weapon-evolution";
 import { stepHealth } from "./health";
+import { FOUNDRY_RULES, type FoundryId } from "./foundries";
 import { AWAKENED_MULT, DEVOUR_EVERY, DEVOUR_MULT, NO_RUNES, REAP_HEAL, RIFT_MULT, WARD_MULT, type RuneCombat } from "./godforge";
 import { nemesisStats, WEAK_ELEMENT, type KillerSnapshot, type Nemesis } from "./nemesis";
 import { applyElementHit, isChilled, burnDamage, freshStatuses, mergeVuln, statusSpeedMult, type MachineStatuses } from "./weapon-elements";
@@ -248,6 +249,9 @@ export type WorldSim = {
   livingKills: Record<string, number>;
   /** small player sanctuaries beyond the region safe zones (Vael's opened forge, owned garage bases): hostiles are pushed out, the player heals as in a safe zone */
   sanctuaries: { x: number; z: number; radius: number }[];
+  /** foundries.ts: the equipped weapon's foundry (set by Scene) and the monoblade deflect window (performance.now()/1000) */
+  foundry: FoundryId | null;
+  deflectUntil: number;
   /** nemesis.ts: the machine that last hit the player, deaths it caused, and nemesis kills/escapes for Scene to report */
   lastHitBy: KillerSnapshot | null;
   deathEvents: { killer: KillerSnapshot; at: number }[];
@@ -397,6 +401,16 @@ export function envCredit(m: Machine, windowS = PLAYER_CREDIT_WINDOW_S): KillCre
 }
 const markPlayerDamage = (m: Machine) => { m.lastPlayerDamage = performance.now() / 1000; };
 
+/** Black Armory Nanite Swarm: one hop of nanite damage into the nearest hostile near a player kill (never chains) */
+let naniteChain = false;
+function naniteBurst(sim: WorldSim, x: number, z: number) {
+  let best: Machine | null = null, bd: number = FOUNDRY_RULES.naniteRange;
+  for (const o of sim.machines) { if (!o.alive || o.decoy) continue; const d = Math.hypot(o.x - x, o.z - z); if (d > 0.01 && d < bd) { bd = d; best = o; } }
+  if (!best) return;
+  best.hp -= applyMachineDamageMods(sim, best, FOUNDRY_RULES.naniteDamage, "KINETIC", x, z);
+  if (best.hp <= 0) { naniteChain = true; try { if (best.boss) best.hp = 0.01; else defeatMachine(sim, best, "player"); } finally { naniteChain = false; } }
+}
+
 export function defeatMachine(sim: WorldSim, m: Machine, credit: KillCredit = "player") {
   if (!m.alive || m.hp > 0) return;
   sim.statuses.delete(m);
@@ -423,6 +437,7 @@ export function defeatMachine(sim: WorldSim, m: Machine, credit: KillCredit = "p
   }
   sim.kills++;
   if (sim.runes.reap) sim.hp = Math.min(100, sim.hp + REAP_HEAL); // godforge.ts Reap rune
+  if (sim.foundry === "BLACK_ARMORY" && credit === "player" && !naniteChain) naniteBurst(sim, m.x, m.z); // foundries.ts: Nanite Swarm
   sim.credits += m.boss ? 250 : m.elite ? 75 : 45;
   directorEvent(sim.director, { type: "KILL" });
   const material = m.drop;
@@ -576,6 +591,8 @@ export function createSim(): WorldSim {
     combatHeat: 0,
     livingKills: {},
     sanctuaries: [],
+    foundry: null,
+    deflectUntil: 0,
     runes: { ...NO_RUNES, charges: [], devourHits: 0 },
     lastHitBy: null,
     deathEvents: [],
@@ -1053,7 +1070,7 @@ export function hurtPlayer(sim: WorldSim, dmg: number, cause: string) {
   // score before anything else runs — the one place all incoming damage already funnels through.
   // verbIncomingMult (Bulwark Titan's Safe Ground / OVERSHIELD) is set here too since every source
   // of incoming damage — bullets, collisions, hazards — already routes through this one function.
-  const scaled = dmg * (sim.challenge?.enemyDamage ?? 1) * (sim.runes?.ward ? WARD_MULT : 1) * sim.mods.incomingDamageScale * sim.verbIncomingMult * (1 - Math.min(0.5, Math.max(0, sim.armorResist)));
+  const scaled = dmg * (performance.now() / 1000 < sim.deflectUntil ? 0.5 : 1) * (sim.challenge?.enemyDamage ?? 1) * (sim.runes?.ward ? WARD_MULT : 1) * sim.mods.incomingDamageScale * sim.verbIncomingMult * (1 - Math.min(0.5, Math.max(0, sim.armorResist)));
   const resolvedDamage = sim.titanActive ? absorbTitanDamage(sim.titan, scaled, performance.now() / 1000) : scaled;
   sim.hp = Math.max(0, sim.hp - resolvedDamage);
   if (resolvedDamage > 0) sim.lastDamageAt = performance.now() / 1000;
@@ -1796,6 +1813,7 @@ export function stepSim(sim: WorldSim, input: SimInput) {
         if (sim.equippedElement !== "KINETIC") dmg += 0.35;
         if (sim.equippedEvolution) { const st = sim.statuses.get(m); dmg *= evolutionDamageMult(sim.equippedEvolution, !!st && isChilled(st, performance.now() / 1000)); }
         if (sim.runes.bursts.length || sim.runes.devour || sim.runes.rift || sim.runes.awakened) dmg *= runeDamageMult(sim, m);
+        if (sim.foundry === "HAKKE" && (m.elite || m.boss)) dmg *= FOUNDRY_RULES.hakkeArmored; // foundries.ts: Wall-Piercer
         dmg = applyMachineDamageMods(sim, m, dmg, b.element ?? sim.equippedElement, px, pz);
         m.hp -= dmg;
         if (b.element) applyWeaponElement(sim, m, b.element);

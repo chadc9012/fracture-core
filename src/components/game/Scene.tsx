@@ -151,6 +151,7 @@ import { fallenDistricts } from "@/game/living-events";
 import { CHALLENGES } from "@/game/map-activities";
 import { HOLLOW_CROWN, VAEL, runeCombat, vaelNear } from "@/game/godforge";
 import { garageNear, sanctuariesFor, tunedVehicle } from "@/game/fleet";
+import { FOUNDRY_RULES, activeBlade, foundryOf, inShockwave, swingStats } from "@/game/foundries";
 import { LIVING_NPCS, PLEDGE_KEY, livingMarkers, npcNear, npcWorld } from "@/game/living-npcs";
 import { SECRETS, secretPoint, type SecretContext } from "@/game/secrets";
 import { LivingCity } from "./LivingCity";
@@ -479,7 +480,7 @@ function SceneImpl({
   onLiving?: (event: LivingEmit) => void;
   /** Wastelands activity results (wasteland-runtime.ts); GameCanvas resolves them into the save */
   onWaste?: (event: WasteEmit) => void;
-  gear?: Pick<PlayerProgression, "inventory" | "equippedGear" | "dungeonClears" | "completedMissions" | "story" | "earnedRewards"> & Partial<Pick<PlayerProgression, "living" | "challenge" | "nemeses" | "fleet">>;
+  gear?: Pick<PlayerProgression, "inventory" | "equippedGear" | "dungeonClears" | "completedMissions" | "story" | "earnedRewards"> & Partial<Pick<PlayerProgression, "living" | "challenge" | "nemeses" | "fleet" | "blade">>;
   /** nemesis.ts: a nemesis the player picked on the map; it ambushes right after arrival */
   summonNemesis?: string | null;
   mission?: MissionRun | null;
@@ -1367,6 +1368,11 @@ function SceneImpl({
     const wpn = s.inVehicle ? WEAPONS.AUTO : WEAPONS[s.weapon];
     const equippedWeapon = gear?.inventory.find((item) => item.id === gear.equippedGear[s.inVehicle ? "vehicle" : s.weapon === "HEAVY" || WEAPONS[s.weapon].kind === "launcher" ? "heavy" : s.weapon === "PULSE" ? "secondary" : "primary"]);
     const gearPower = equippedWeapon ? 1 + Math.max(0, equippedWeapon.power - 100) / 500 : 1;
+    // foundries.ts: the equipped weapon's foundry is a real rule (Häkke/Black Armory in sim.ts, Omolon/SUROS/Tex here)
+    const foundry = s.inVehicle ? null : foundryOf(equippedWeapon);
+    sim.foundry = foundry;
+    const heatMult = foundry === "OMOLON" ? FOUNDRY_RULES.omolonHeat : 1, recoilMult = foundry === "SUROS" ? FOUNDRY_RULES.surosRecoil : 1;
+    const hipMult = foundry === "TEX_MECHANICA" && !(mouse.current.aim || padState.current.aim) ? FOUNDRY_RULES.texHip : 1;
     sim.equippedElement = equippedWeapon?.element ?? "KINETIC";
     if (sim.equippedPerk !== equippedWeapon?.perk) sim.nullCharge = { charge: 0, lastTimedAt: -1e9, cooldownUntil: sim.nullCharge.cooldownUntil, lastEventId: sim.nullCharge.lastEventId };
     sim.equippedPerk = equippedWeapon?.perk;
@@ -1413,11 +1419,11 @@ function SceneImpl({
       const pitchJ = (Math.random() - 0.5) * 2 * spread;
       if (!s.inVehicle && wpn.kind === "launcher" && isLauncherId(wpn.id)) {
         // launcher rounds are sim.rounds (ordnance rules): splash damage and elemental status are resolved in stepSim, never here
-        if (fireLauncher(sim, wpn.id, s.x + Math.sin(s.yaw) * 0.6, s.y + 0.95, s.z + Math.cos(s.yaw) * 0.6, s.yaw + yawJ, s.pitch + s.recoil + pitchJ, wpn.damage * gearPower * (1 + armorFxRef.current.weaponDamage), wpn.knock, wpn.heat)) {
+        if (fireLauncher(sim, wpn.id, s.x + Math.sin(s.yaw) * 0.6, s.y + 0.95, s.z + Math.cos(s.yaw) * 0.6, s.yaw + yawJ, s.pitch + s.recoil + pitchJ, wpn.damage * gearPower * (1 + armorFxRef.current.weaponDamage), wpn.knock, wpn.heat * heatMult)) {
           bossActionLog.current = logAction(bossActionLog.current, "RANGED", performance.now() / 1000);
           sfx.playShot(s.weapon);
           s.shots++;
-          s.recoil += wpn.recoil;
+          s.recoil += wpn.recoil * recoilMult;
           s.punch += wpn.punch;
           s.bloom = Math.min(1, s.bloom + 0.18 * wpn.punch);
           if (live.current.veilTime > VEIL_BREAK_TIME) live.current.veilTime = VEIL_BREAK_TIME;
@@ -1430,14 +1436,14 @@ function SceneImpl({
       const pellets = s.inVehicle ? 1 : wpn.pellets ?? 1;
       for (let pi = 0; pi < pellets; pi++) {
         const py = pi === 0 ? yawJ : (Math.random() - 0.5) * 2 * spread, pp = pi === 0 ? pitchJ : (Math.random() - 0.5) * 2 * spread;
-        if (fireBullet(sim, s.x, s.y + (s.inVehicle ? 1.5 : 0.95), s.z, s.yaw + py, s.inVehicle, s.pitch + s.recoil + pp, wpn.damage * gearPower * (1 + armorFxRef.current.weaponDamage), wpn.knock / pellets, wpn.heat / pellets, s.inVehicle ? undefined : wpn.element)) fired = true;
+        if (fireBullet(sim, s.x, s.y + (s.inVehicle ? 1.5 : 0.95), s.z, s.yaw + py, s.inVehicle, s.pitch + s.recoil + pp, wpn.damage * gearPower * hipMult * (1 + armorFxRef.current.weaponDamage), wpn.knock / pellets, (wpn.heat * heatMult) / pellets, s.inVehicle ? undefined : wpn.element)) fired = true;
       }
        if (fired) {
         s.shots++;
         bossActionLog.current = logAction(bossActionLog.current, "RANGED", performance.now() / 1000);
         sfx.playShot(s.inVehicle ? "VEHICLE" : s.weapon);
         if (!s.inVehicle) ejectCasing(fxBus.casings, s.weapon, s.x + Math.sin(s.yaw) * 0.5, s.y + 0.9, s.z + Math.cos(s.yaw) * 0.5, s.yaw);
-        s.recoil += wpn.recoil;
+        s.recoil += wpn.recoil * recoilMult;
         s.punch += wpn.punch;
         s.bloom = Math.min(1, s.bloom + 0.18 * wpn.punch);
         if (live.current.veilTime > VEIL_BREAK_TIME) live.current.veilTime = VEIL_BREAK_TIME;
@@ -1454,14 +1460,28 @@ function SceneImpl({
         s.meleeTime = Math.max(s.meleeTime, 0.6);
         bossActionLog.current = logAction(bossActionLog.current, "MELEE", performance.now() / 1000);
         s.punch += wpn.punch * (s.combo === 3 ? 1.6 : 1);
-        const reach = s.combo === 3 ? 8 : 6;
-        const dmg = wpn.damage * (s.combo === 3 ? 1.8 : 1);
+        // foundries.ts monoblades: damage, reach, a finisher shockwave and a deflect window replace the plain swing
+        const blade = activeBlade({ earnedRewards: gear?.earnedRewards ?? [], blade: gear?.blade });
+        const swing = swingStats(blade, s.combo, { damage: wpn.damage, reach: s.combo === 3 ? 8 : 6 }, false);
+        const reach = swing.reach;
+        if (swing.deflect > 0) sim.deflectUntil = performance.now() / 1000 + swing.deflect;
+        if (swing.shockwave) {
+          const sw = swing.shockwave;
+          for (const enemy of sim.machines) {
+            if (!enemy.alive || enemy.decoy || !inShockwave(sw, s.x, s.z, s.yaw, enemy.x, enemy.z)) continue;
+            enemy.hp -= sw.damage;
+            sim.lastHit = performance.now();
+            if (enemy.hp <= 0) { if (enemy.boss) enemy.hp = 0.01; else defeatMachine(sim, enemy); }
+          }
+          sim.burstEvents.push({ id: sim.nextBurstId++, x: s.x + Math.sin(s.yaw) * sw.length * 0.5, y: s.y, z: s.z + Math.cos(s.yaw) * sw.length * 0.5, radius: 5, element: "ARC", launcher: "ROCKET" }); // drawn + heard like a small blast
+        }
         for (const enemy of sim.machines) {
           if (!enemy.alive) continue;
           const dx = enemy.x - s.x;
           const dz = enemy.z - s.z;
           const d = Math.hypot(dx, dz);
           if (d > reach * enemy.scale + 1 || dx * Math.sin(s.yaw) + dz * Math.cos(s.yaw) < 0) continue;
+          const dmg = swingStats(blade, s.combo, { damage: wpn.damage, reach }, enemy.elite || enemy.boss).damage;
           enemy.hp -= dmg;
           enemy.kx += (dx / Math.max(d, 0.1)) * wpn.knock * 8;
           enemy.kz += (dz / Math.max(d, 0.1)) * wpn.knock * 8;

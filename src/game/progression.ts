@@ -74,6 +74,8 @@ export type PlayerProgression = {
   fleet: FleetState;
   /** wasteland-activities.ts: best rally times (lower wins) and arena scores (higher wins) */
   records: Record<string, number>;
+  /** foundries.ts: the equipped monoblade (owned blades are `blade:<id>` in earnedRewards) */
+  blade: string | null;
   inventory: GearItem[];
   equippedGear: Partial<Record<GearSlot, string>>;
   materials: Partial<Record<MaterialId, number>>;
@@ -133,6 +135,7 @@ export const DEFAULT_PROGRESSION: PlayerProgression = {
   nemeses: [],
   fleet: EMPTY_FLEET,
   records: {},
+  blade: null,
   inventory: STARTER_GEAR,
   equippedGear: STARTER_SLOTS,
   materials: {},
@@ -192,6 +195,7 @@ export function normalizeProgression(raw: unknown): PlayerProgression {
       nemeses: normalizeNemeses(parsed.nemeses),
       fleet: normalizeFleet(parsed.fleet),
       records: normalizeRecords(parsed.records),
+      blade: typeof parsed.blade === "string" ? parsed.blade : null,
       challenge: parsed.challenge === "HARD" || parsed.challenge === "VERY_HARD" ? parsed.challenge : "STANDARD",
       patrol: parsed.patrol && typeof parsed.patrol === "object" && typeof parsed.patrol.regionId === "string" && typeof parsed.patrol.kills === "number" && typeof parsed.patrol.need === "number" && typeof parsed.patrol.day === "string" ? { regionId: parsed.patrol.regionId, kills: parsed.patrol.kills, need: parsed.patrol.need, day: parsed.patrol.day } : null,
       abilityMastery: parsed.abilityMastery && typeof parsed.abilityMastery === "object" ? parsed.abilityMastery : {},

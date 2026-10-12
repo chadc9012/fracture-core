@@ -1,6 +1,7 @@
 /** The Character screen's view model (reference: Destiny 2's character/collections/triumphs screens, interfaceingame.com; see
  * docs/ui-references.md). Pure: everything the screen shows is derived here from the save, so the numbers match combat and the
  * screen can be tested without React. Equipping goes through `equipItem`, which refuses anything that is not a legal swap. */
+import { FOUNDRIES, foundryOf, taxonomyOf } from "./foundries";
 import { loadoutAttributes, pieceAttributes } from "./armor-attributes";
 import { ARMOR_SETS, SET_SLOTS, setById, type SetSlot } from "./armor-sets";
 import { MATERIALS, type GearItem, type GearSlot } from "./inventory";
@@ -60,6 +61,8 @@ export function itemTooltip(item: GearItem): Tooltip {
     ...(item.perk === "NULL_DISRUPTION" ? ["Null Disruption"] : []),
     ...(set ? [`${set.name} set`] : []),
     ...(item.evolution ? ["Evolved at a ruin"] : []),
+    ...(() => { const f = foundryOf(item); return f ? [`${FOUNDRIES[f].name}: ${FOUNDRIES[f].perk} (${FOUNDRIES[f].text})`] : []; })(),
+    ...(() => { const t = taxonomyOf(item); return t ? [`${t.category} · ${t.type}`] : []; })(),
   ];
   return { title: item.name, type: `${SLOT_NAME[item.slot]} · ${tier[0]}${tier.slice(1).toLowerCase()}`, tier, color: TIER_COLOR[tier], power: item.power, source: item.source, stats, perks };
 }
