@@ -9,6 +9,9 @@ const { regionActivities } = await import("./map-activities");
 const { REGIONS } = await import("./world");
 const { CAMPAIGN, campaignProgress } = await import("./campaign");
 const { CHRONICLE } = await import("./retention");
+const { sanctuariesFor } = await import("./fleet");
+const { claimHeart, HEART_CATALYSTS, HOLLOW_CROWN } = await import("./godforge");
+const { createSim, stepSim } = await import("./sim");
 
 type P = typeof DEFAULT_PROGRESSION;
 const ok = (r: { progression: P; message: string } | { error: string }) => { if ("error" in r) throw new Error(r.error); return r.progression; };
@@ -92,5 +95,28 @@ describe("campaign", () => {
     expect(c0.total).toBe(21);
     const c1 = campaignProgress({ ...DEFAULT_PROGRESSION, completedMissions: ["awakening", "descent-protocol", "not-a-mission"] });
     expect(c1.done).toBe(2);
+  });
+});
+
+describe("sanctuaries", () => {
+  it("owned dry garages and the opened forge are sanctuaries; hostiles get pushed out and nobody is paid", () => {
+    expect(sanctuariesFor({ earnedRewards: [] })).toEqual([]);
+    const s = sanctuariesFor({ earnedRewards: ["godforge:heart"], fleet: { ...EMPTY_FLEET, garages: ["base-01", "base-04"] } });
+    expect(s.length).toBe(2); // the underwater Sub-Dock is not one
+    const sim = createSim();
+    for (const m of sim.machines) m.alive = false;
+    sim.sanctuaries = s;
+    const m = sim.machines[0]!;
+    Object.assign(m, { alive: true, x: HOLLOW_CROWN.x + 1, z: HOLLOW_CROWN.z, hp: 5, boss: false, scale: 1, cool: 9, profile: "T", zone: "wastelands" });
+    stepSim(sim, { dt: 0.05, px: HOLLOW_CROWN.x, pz: HOLLOW_CROWN.z, night: 0, inVehicle: false, yaw: 0 });
+    expect(Math.hypot(m.x - HOLLOW_CROWN.x, m.z - HOLLOW_CROWN.z)).toBeGreaterThan(HOLLOW_CROWN.radius);
+    expect(sim.kills).toBe(0);
+  });
+  it("the Furnace Guardian's Heart comes with one Relic's worth of catalysts, once", () => {
+    const p = { ...DEFAULT_PROGRESSION, materials: {}, earnedRewards: [] };
+    const r = claimHeart(p);
+    if ("error" in r) throw new Error(r.error);
+    expect(r.progression.materials.forgeCatalyst).toBe(HEART_CATALYSTS);
+    expect("error" in claimHeart(r.progression)).toBe(true);
   });
 });

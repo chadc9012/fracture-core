@@ -150,7 +150,7 @@ import { EMPTY_LIVING } from "@/game/living-world";
 import { fallenDistricts } from "@/game/living-events";
 import { CHALLENGES } from "@/game/map-activities";
 import { HOLLOW_CROWN, VAEL, runeCombat, vaelNear } from "@/game/godforge";
-import { garageNear, tunedVehicle } from "@/game/fleet";
+import { garageNear, sanctuariesFor, tunedVehicle } from "@/game/fleet";
 import { LIVING_NPCS, PLEDGE_KEY, livingMarkers, npcNear, npcWorld } from "@/game/living-npcs";
 import { SECRETS, secretPoint, type SecretContext } from "@/game/secrets";
 import { LivingCity } from "./LivingCity";
@@ -514,6 +514,9 @@ function SceneImpl({
   const keys = useKeyboard();
   const sim = useMemo<WorldSim>(() => createSim(), []);
   const livingRt = useRef<LivingRuntime | null>(null);
+  // fleet.ts / godforge.ts: Vael's opened forge and owned garage bases are small sanctuaries (sim.ts pushes hostiles out)
+  const sanctuaries = useMemo(() => sanctuariesFor({ earnedRewards: gear?.earnedRewards ?? [], fleet: gear?.fleet }), [gear?.earnedRewards, gear?.fleet]);
+  const gearLive = useRef(gear); gearLive.current = gear; // dev hooks read the latest save, not the one at mount
   const runeKeyRef = useRef("");
   const relicIdRef = useRef<string | null>(null);
   const livingHud = useRef<LivingHud | null>(null);
@@ -576,7 +579,7 @@ function SceneImpl({
       crown: () => ({ ...HOLLOW_CROWN, vael: VAEL }),
       spawn: (n = 4) => spawnEventSquad(sim, "", state.current.x + 18, state.current.z, n, 1, regionAt(state.current.x, state.current.z)?.id ?? "wastelands", 6),
       dieTo: () => { const profile = "Wasteland Grunt"; sim.lastHitBy = { profile, zone: regionAt(state.current.x, state.current.z)?.id ?? "wastelands", elite: true, boss: false }; hurtPlayer(sim, 9999, profile); return "died"; },
-      nemesis: () => (gear?.nemeses ?? []).map((n) => `${n.name} ${n.epithet} r${n.rank} ${n.regionId} ${n.status} [${n.traits.join(",")}]`),
+      nemesis: () => (gearLive.current?.nemeses ?? []).map((n) => `${n.name} ${n.epithet} r${n.rank} ${n.regionId} ${n.status} [${n.traits.join(",")}]`),
       livingKill: () => { let n = 0; const id = livingRt.current?.director.current?.id; for (const m of sim.machines) if (m.alive && id && m.living === id) { m.hp = 0; defeatMachine(sim, m, "player"); n++; } return n; },
     };
     return () => { delete w.__warp; delete wr.__where; delete wd.__dev; };
@@ -1107,7 +1110,8 @@ function SceneImpl({
     }
     // environmental hazards: exposure, lightning, with shelter in interiors / safe zones / the Nexus shield
     {
-      sim.inSafeZone = !s.diving && (here?.kind === "safe" || here?.id === "nexus"); // health.ts: fast recovery in safe zones
+      sim.sanctuaries = sanctuaries;
+      sim.inSafeZone = !s.diving && (here?.kind === "safe" || here?.id === "nexus" || sanctuaries.some((z) => Math.hypot(s.x - z.x, s.z - z.z) < z.radius)); // health.ts: fast recovery in safe zones
       const sheltered = Boolean(interior) || here?.kind === "safe" || here?.id === "nexus" || s.diving; // underwater: no lightning or air exposure (live playtest showed a storm bolt striking the Sentry Dock seabed)
       const hazard = stepEnvironment(sim.env, { dt, regionId: here?.id, env: envSample, sheltered, px: s.x, pz: s.z, rand: Math.random });
       if (hazard.damage > 0) hurtPlayer(sim, hazard.damage, hazard.cause);

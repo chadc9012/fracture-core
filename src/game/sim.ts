@@ -246,6 +246,8 @@ export type WorldSim = {
   combatHeat: number;
   /** Living World: player kills per event id (living-events.ts reads this to decide who won) */
   livingKills: Record<string, number>;
+  /** small player sanctuaries beyond the region safe zones (Vael's opened forge, owned garage bases): hostiles are pushed out, the player heals as in a safe zone */
+  sanctuaries: { x: number; z: number; radius: number }[];
   /** nemesis.ts: the machine that last hit the player, deaths it caused, and nemesis kills/escapes for Scene to report */
   lastHitBy: KillerSnapshot | null;
   deathEvents: { killer: KillerSnapshot; at: number }[];
@@ -573,6 +575,7 @@ export function createSim(): WorldSim {
     impactCool: 0,
     combatHeat: 0,
     livingKills: {},
+    sanctuaries: [],
     runes: { ...NO_RUNES, charges: [], devourHits: 0 },
     lastHitBy: null,
     deathEvents: [],
@@ -1496,6 +1499,17 @@ export function stepSim(sim: WorldSim, input: SimInput) {
 // stealth: surviving close to hostiles without opening fire
   if (!input.inVehicle && hostileNear > 0 && sim.combatHeat < 2) {
     logBehavior(sim.adaptation, "stealth", dt * 0.8 * hostileNear);
+  }
+
+  // ---------- sanctuaries (forge, owned garages): hostiles are shoved out, no burn, no kills ----------
+  for (const sz of sim.sanctuaries) {
+    for (const m of sim.machines) {
+      if (!m.alive) continue;
+      const dx = m.x - sz.x, dz = m.z - sz.z, d = Math.hypot(dx, dz) || 0.001;
+      if (d >= sz.radius) continue;
+      const push = sz.radius - d + 0.5;
+      m.x += (dx / d) * push; m.z += (dz / d) * push;
+    }
   }
 
   // ---------- safe-zone stability field ----------

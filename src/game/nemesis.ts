@@ -57,7 +57,11 @@ export function onPlayerKilled(list: readonly Nemesis[], killer: KillerSnapshot 
   if (!canPromote(killer)) return { list: [...list], line: null };
   if (list.filter((x) => x.status === "ALIVE").length >= MAX_ALIVE) return { list: [...list], line: null };
   const seed = hash(`${killer.profile}|${killer.zone}|${now}`);
-  const name = NAMES[seed % NAMES.length]!, epithet = EPITHETS[(seed >>> 8) % EPITHETS.length]!;
+  // names stay unique among nemeses you have met (alive or slain), so the map and alerts never show two "Ravik"s
+  const taken = new Set(list.map((x) => x.name));
+  let ni = seed % NAMES.length;
+  for (let k = 0; k < NAMES.length && taken.has(NAMES[ni]!); k++) ni = (ni + 1) % NAMES.length;
+  const name = NAMES[ni]!, epithet = EPITHETS[(seed >>> 8) % EPITHETS.length]!;
   const strength = STRENGTHS[(seed >>> 4) % STRENGTHS.length]!, weakness = WEAKNESSES[(seed >>> 12) % WEAKNESSES.length]!;
   const n: Nemesis = {
     id: `nem-${now.toString(36)}-${(seed % 1679616).toString(36)}`, name, epithet, profile: killer.profile, regionId: killer.zone,

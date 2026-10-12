@@ -88,3 +88,11 @@ describe("nemesis in the real sim", () => {
     expect(emits.some((e) => e.type === "PLAYER_KILLED" && e.killer.nemesis === list[0]!.id)).toBe(true);
   });
 });
+
+describe("nemesis names", () => {
+  it("are unique among the nemeses you have met", () => {
+    let list = onPlayerKilled([], grunt, "x", NOW).list;
+    for (let i = 1; i < 30 && list.filter((n) => n.status === "ALIVE").length < MAX_ALIVE; i++) list = onPlayerKilled(list, { ...grunt, profile: `P${i}` }, "x", NOW + i * 7919).list;
+    expect(new Set(list.map((n) => n.name)).size).toBe(list.length);
+  });
+});

@@ -193,7 +193,10 @@ export function premiumPurchase(): { error: string } {
 }
 
 /** The Furnace Guardian fell: the Heart of the Hollow Crown, once. */
+/** catalysts the Furnace Guardian yields with the Heart: exactly one Relic's worth */
+export const HEART_CATALYSTS = 2;
 export function claimHeart<P extends ForgeSave>(p: P): ForgeResult<P> {
   if (p.earnedRewards.includes(HEART_KEY)) return { error: "Already claimed" };
-  return { progression: { ...p, materials: { ...p.materials, crownHeart: (p.materials.crownHeart ?? 0) + 1 }, earnedRewards: [...p.earnedRewards, HEART_KEY] }, message: "The Heart of the Hollow Crown is yours. Vael waits at the forge." };
+  // the Guardian also yields the catalysts for a first Relic, so the first Godforged weapon is earned right here (design brief)
+  return { progression: { ...p, materials: { ...p.materials, crownHeart: (p.materials.crownHeart ?? 0) + 1, forgeCatalyst: (p.materials.forgeCatalyst ?? 0) + HEART_CATALYSTS }, earnedRewards: [...p.earnedRewards, HEART_KEY] }, message: `The Heart of the Hollow Crown is yours, with ${HEART_CATALYSTS} forge catalysts. Vael waits at the forge.` };
 }

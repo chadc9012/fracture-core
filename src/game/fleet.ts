@@ -9,6 +9,7 @@ import { REGIONS, scaleSite } from "./world";
 import { NEON_CENTER } from "./living-world";
 import { DOCK_DECK_Y, airlockSite } from "./thalassia-sectors";
 import type { MaterialId } from "./inventory";
+import { HOLLOW_CROWN } from "./godforge";
 import type { VehicleDefinition, VehicleId } from "./vehicles";
 
 export type GarageId = "base-01" | "base-02" | "base-03" | "base-04";
@@ -138,4 +139,14 @@ export function tunedVehicle(def: VehicleDefinition, fleet: FleetState | undefin
   const mult: Record<TuneStat, number> = { speed: 1, hull: 1, handling: 1, ram: 1 };
   for (const n of active.nodes) mult[n.stat] += n.perLevel * (t[n.id] ?? 0);
   return { ...def, name: active.name, speed: def.speed * mult.speed, hull: def.hull * mult.hull, handling: def.handling * mult.handling, ram: def.ram * mult.ram };
+}
+
+/** Small player sanctuaries: owned garage bases and Vael's forge once its Heart is claimed. Hostiles are pushed out
+ * (sim.ts `sanctuaries`) and the player heals as in a safe zone, so a menu opened there is never a death trap. */
+export const SANCTUARY_RADIUS = 16;
+export function sanctuariesFor(p: { earnedRewards: readonly string[]; fleet?: FleetState | undefined }): { x: number; z: number; radius: number }[] {
+  const out: { x: number; z: number; radius: number }[] = [];
+  for (const id of p.fleet?.garages ?? []) { const g = GARAGES[id]; if (g && g.deckY === undefined) out.push({ x: g.x, z: g.z - 4, radius: SANCTUARY_RADIUS }); }
+  if (p.earnedRewards.includes("godforge:heart")) out.push({ x: HOLLOW_CROWN.x, z: HOLLOW_CROWN.z, radius: HOLLOW_CROWN.radius + 4 });
+  return out;
 }
