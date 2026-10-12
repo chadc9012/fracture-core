@@ -133,7 +133,8 @@ export function CivilianModel({ role, live }: { role: CivilianRole; live: React.
   }, [scene, animations]);
   const weights = useRef<Record<CivilianClip, number>>({ idle: 1, walk: 0, wave: 0 });
   useFrame((_, dt) => {
-    if (live.current?.hidden) return;
+    built.obj.visible = !live.current?.far;
+    if (live.current?.hidden || live.current?.far) return;
     const want = civilianClip(live.current?.state ?? "IDLE");
     const k = 1 - Math.exp(-dt * 6);
     for (const name of ["idle", "walk", "wave"] as const) {
@@ -146,6 +147,21 @@ export function CivilianModel({ role, live }: { role: CivilianRole; live: React.
     built.mixer.update(Math.min(dt, 0.1));
   });
   return <primitive object={built.obj} scale={built.k} position={built.offset} />;
+}
+
+/** Level of detail: the authored body (~100k triangles, own animation mixer) up close, a cheap procedural stand-in past
+ * DETAIL_DISTANCE. `live.current.far` is set by whoever owns the position (Civilians loop, LivingCity NPCs). */
+export const DETAIL_DISTANCE = 32;
+export function CivilianBody({ role, live }: { role: CivilianRole; live: React.RefObject<Civilian> }) {
+  const lo = useRef<THREE.Group>(null!);
+  useFrame(() => { if (lo.current) lo.current.visible = !!live.current?.far; });
+  const fallback = <Humanoid role={role} phase={0} walking={false} greeting={false} />;
+  return (
+    <>
+      <group ref={lo} visible={false}><Humanoid role={role} phase={0} walking={false} greeting={false} /></group>
+      <Quiet fallback={fallback}><Suspense fallback={fallback}><CivilianModel role={role} live={live} /></Suspense></Quiet>
+    </>
+  );
 }
 
 function CivilianView({ civilian, sharedRef }: { civilian: Civilian; sharedRef: React.RefObject<Civilian[]> }) {
@@ -164,10 +180,7 @@ function CivilianView({ civilian, sharedRef }: { civilian: Civilian; sharedRef: 
   });
   return (
     <group ref={group}>
-      {(() => {
-        const fallback = <Humanoid role={civilian.role} phase={civilian.phase} walking={live.current.state === "WANDER"} greeting={live.current.state === "GREET"} />;
-        return <Quiet fallback={fallback}><Suspense fallback={fallback}><CivilianModel role={civilian.role} live={live} /></Suspense></Quiet>;
-      })()}
+      <CivilianBody role={civilian.role} live={live} />
     </group>
   );
 }
@@ -185,7 +198,8 @@ export function Civilians({ playerRef, threatsRef }: { playerRef: React.RefObjec
     for (const c of civiliansRef.current) {
       // only bother stepping AI for civilians anywhere near the player — same distance culling as Wildlife
       const far = Math.hypot(c.x - p.position.x, c.z - p.position.z);
-      c.hidden = far > 190;
+      c.hidden = far > 150;
+      c.far = far > DETAIL_DISTANCE; // authored bodies are ~100k triangles each: full detail only up close
       if (far > 140) continue;
       stepCivilian(c, dt, p.position.x, p.position.z, rndRef.current, threatsRef?.current ?? []);
     }

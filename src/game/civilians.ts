@@ -33,6 +33,8 @@ export type Civilian = {
   calm: number;
   /** set by the view layer when the player is far away: skip drawing and animation */
   hidden?: boolean;
+  /** set by the view layer: past the detail distance, draw the cheap stand-in instead of the authored body */
+  far?: boolean;
 };
 
 /** a threat (live enemy, blast) this close makes a civilian run; they cower once far enough away */

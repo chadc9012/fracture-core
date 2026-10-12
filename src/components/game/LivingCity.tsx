@@ -1,5 +1,5 @@
 import { useFrame } from "@react-three/fiber";
-import { Suspense, useMemo, useRef } from "react";
+import { useMemo, useRef } from "react";
 import * as THREE from "three";
 import { heightAt } from "@/game/terrain";
 import { FACTIONS } from "@/game/living-world";
@@ -10,13 +10,15 @@ import { BEATS, type Guard } from "@/game/city-patrols";
 import type { FactionId } from "@/game/living-world";
 import type { Civilian } from "@/game/civilians";
 import type { PlayerProgression } from "@/game/progression";
-import { CivilianModel, Humanoid, Quiet } from "./Civilians";
+import { CivilianBody, DETAIL_DISTANCE } from "./Civilians";
 
 /** Living World presentation: city patrol guards (and their tracers), the talkable NPCs with name plates, the live
  * world-event beacon / fracture ring, and beacons on revealed stashes and survey points. Reads living-runtime state only;
  * nothing here changes combat, standing or the save. */
 const UP = new THREE.Vector3(0, 1, 0);
 const DRAW = 200;
+/** NPC bodies share the ~100k-triangle civilian GLBs, so they are drawn only up close (the name plate shows from there) */
+const NPC_DRAW = 150;
 
 function GuardView({ id, faction, runtime, playerRef }: { id: string; faction: FactionId; runtime: React.RefObject<LivingRuntime | null>; playerRef: React.RefObject<THREE.Object3D> }) {
   const group = useRef<THREE.Group>(null!);
@@ -99,16 +101,16 @@ function NpcView({ npc, playerRef }: { npc: LivingNpc; playerRef: React.RefObjec
     const p = playerRef.current;
     if (!p || !group.current) return;
     const d = Math.hypot(p.position.x - pos.x, p.position.z - pos.z);
-    group.current.visible = d < DRAW;
-    live.current.hidden = d > DRAW;
+    group.current.visible = d < NPC_DRAW;
+    live.current.hidden = d > NPC_DRAW;
+    live.current.far = d > DETAIL_DISTANCE;
     live.current.state = d < 6 ? "GREET" : "IDLE";
     if (d < 14) group.current.children[0]!.quaternion.setFromAxisAngle(UP, Math.atan2(p.position.x - pos.x, p.position.z - pos.z));
   });
-  const fallback = <Humanoid role={npc.body} phase={0} walking={false} greeting={false} />;
   return (
     <group ref={group} position={[pos.x, y, pos.z]}>
       <group>
-        <Quiet fallback={fallback}><Suspense fallback={fallback}><CivilianModel role={npc.body} live={live} /></Suspense></Quiet>
+        <CivilianBody role={npc.body} live={live} />
       </group>
       <mesh rotation-x={-Math.PI / 2} position={[0, 0.04, 0]}><ringGeometry args={[0.7, 0.85, 32]} /><meshBasicMaterial color={color} transparent opacity={0.7} toneMapped={false} /></mesh>
       {plate && <sprite position={[0, 2.45, 0]} scale={[1.9, 0.48, 1]}><spriteMaterial map={plate} transparent depthWrite={false} /></sprite>}
