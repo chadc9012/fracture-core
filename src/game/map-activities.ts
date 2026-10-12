@@ -15,6 +15,7 @@ import { rewardMission, type PlayerProgression } from "./progression";
 import type { MaterialId } from "./inventory";
 import { TRAITS } from "./nemesis";
 import { HOLLOW_CROWN, forgeStage } from "./godforge";
+import { GARAGES } from "./fleet";
 
 export type ActivityKind = "STORY" | "SAFE_ZONE" | "BOSS" | "NEMESIS" | "RESOURCE" | "CONTRACT" | "STASH" | "PATROL";
 export type ActivityStatus = "NEXT" | "AVAILABLE" | "DONE" | "LOCKED";
@@ -113,6 +114,11 @@ export function regionActivities(p: PlayerProgression, regionId: string, now = D
   if (regionId === "wastelands") {
     const stage = forgeStage(p);
     if (stage !== "SEALED") out.push({ id: "forge:hollow-crown", kind: stage === "DOOR" ? "BOSS" : "SAFE_ZONE", name: stage === "DOOR" ? "The Hollow Crown" : "Vael's Godforge", detail: stage === "DOOR" ? "The Forgewright's door is open. The Furnace Guardian waits inside." : "Vael forges Godforged relics and binds runes", regionId, x: HOLLOW_CROWN.x, z: HOLLOW_CROWN.z, status: "AVAILABLE", drop: { x: HOLLOW_CROWN.x, z: HOLLOW_CROWN.z - HOLLOW_CROWN.radius - 8 } });
+  }
+  for (const g of Object.values(GARAGES)) {
+    if (g.mapRegion !== regionId) continue;
+    const ownedBase = (p.fleet?.garages ?? []).includes(g.id);
+    out.push({ id: `garage:${g.id}`, kind: "SAFE_ZONE", name: g.name, detail: ownedBase ? "Your garage: tune, paint and switch vehicles" : "Garage base for sale: buy it to unlock its vehicles", regionId, x: g.x, z: g.z, status: "AVAILABLE", drop: g.deckY !== undefined ? { x: g.x + 5, z: g.z, y: g.deckY + 1.6 } : { x: g.x, z: g.z + 8 } });
   }
   for (const s of RESOURCE_SITES.filter((m) => m.regionId === regionId)) out.push({ id: `res:${s.id}`, kind: "RESOURCE", name: s.label, detail: `Gather ${s.material}`, regionId, x: s.x, z: s.z, status: "AVAILABLE", drop: off(s.x, s.z, 6, centre) });
   for (const m of livingMarkers(p)) {

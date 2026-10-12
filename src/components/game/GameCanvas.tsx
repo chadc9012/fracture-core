@@ -75,6 +75,8 @@ import { PLEDGE_KEY, recordCityKills, recordReach } from "@/game/living-npcs";
 import { claimSecret } from "@/game/secrets";
 import { claimHeart, recordRelicKills } from "@/game/godforge";
 import { ForgePanel } from "./ForgePanel";
+import { GaragePanel } from "./GaragePanel";
+import { GARAGES, type GarageId } from "@/game/fleet";
 import { ACTIVITY_COLOR, ACTIVITY_LABEL, CHALLENGES, recordPatrolKills } from "@/game/map-activities";
 import { applyNemesisKill, applyPlayerDeath } from "@/game/nemesis";
 import type { LivingEmit } from "@/game/living-runtime";
@@ -312,6 +314,9 @@ export function GameCanvas() {
   /** godforge.ts: Vael's forge panel, and whether she is in reach */
   const [forgeOpen, setForgeOpen] = useState(false);
   const vaelNearRef = useRef(false);
+  /** fleet.ts: the garage base panel and the base in reach */
+  const [basePanel, setBasePanel] = useState<GarageId | null>(null);
+  const garageNearRef = useRef<GarageId | null>(null);
   const [livingToast, setLivingToast] = useState<string | null>(null);
   /** nemesis picked on the map: it ambushes right after the drop (living-runtime.ts) */
   const [summonNemesis, setSummonNemesis] = useState<string | null>(null);
@@ -355,6 +360,7 @@ export function GameCanvas() {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.code === "KeyY" && shopNearRef.current) { setShopOpen((open) => (open ? null : shopNearRef.current)); if (document.pointerLockElement) document.exitPointerLock(); }
+      else if (e.code === "KeyY" && !e.repeat && garageNearRef.current) { setBasePanel((open) => (open ? null : garageNearRef.current)); if (document.pointerLockElement) document.exitPointerLock(); }
       else if (e.code === "KeyY" && !e.repeat && vaelNearRef.current) { setForgeOpen((open) => !open); if (document.pointerLockElement) document.exitPointerLock(); }
       else if (e.code === "KeyY" && !e.repeat && npcNearRef.current) { setNpcOpen((open) => (open ? null : npcNearRef.current)); if (document.pointerLockElement) document.exitPointerLock(); }
       else if (e.code === "KeyY" && !e.repeat && cacheNearRef.current && !cacheNearRef.current.label.startsWith("Encrypted")) openNearCache();
@@ -389,6 +395,7 @@ export function GameCanvas() {
   useEffect(() => { shopNearRef.current = hud.shopNearId ?? null; if (!hud.shopNearId) setShopOpen(null); }, [hud.shopNearId]);
   useEffect(() => { npcNearRef.current = hud.npcNear?.id ?? null; if (!hud.npcNear) setNpcOpen(null); }, [hud.npcNear?.id]);
   useEffect(() => { vaelNearRef.current = !!hud.vaelNear; if (!hud.vaelNear) setForgeOpen(false); }, [hud.vaelNear]);
+  useEffect(() => { garageNearRef.current = (hud.garageNear as GarageId | null | undefined) ?? null; if (!hud.garageNear) setBasePanel(null); }, [hud.garageNear]);
   useEffect(() => {
     cacheNearRef.current = hud.cacheNear ?? null;
     // encrypted caches open themselves the moment the hold-to-decrypt finishes
@@ -1166,6 +1173,12 @@ export function GameCanvas() {
            )}
          </div>
        )}
+       {hud.garageNear && !basePanel && !hud.shopNearId && (
+         <div className="pointer-events-none absolute bottom-24 left-1/2 -translate-x-1/2">
+           <Button className="pointer-events-auto" variant="outline" onClick={() => setBasePanel(hud.garageNear as GarageId)}>[Y] Garage · {GARAGES[hud.garageNear as GarageId]?.name}</Button>
+         </div>
+       )}
+       {basePanel && <GaragePanel garageId={basePanel} progression={progression} onProgression={setProgression} onSelectVehicle={(v) => { if (v) setVehicleId(v); }} onClose={() => setBasePanel(null)} />}
        {hud.vaelNear && !forgeOpen && (
          <div className="pointer-events-none absolute bottom-24 left-1/2 -translate-x-1/2">
            <Button className="pointer-events-auto border-[#ffb23e] text-[#ffd79a]" variant="outline" onClick={() => setForgeOpen(true)}>[Y] Speak with Vael · The Godforge</Button>

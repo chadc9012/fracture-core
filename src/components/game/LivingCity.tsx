@@ -12,6 +12,7 @@ import type { Civilian } from "@/game/civilians";
 import type { PlayerProgression } from "@/game/progression";
 import { CivilianBody, DETAIL_DISTANCE } from "./Civilians";
 import { HOLLOW_CROWN, VAEL, forgeStage } from "@/game/godforge";
+import { GARAGES, type GarageId } from "@/game/fleet";
 
 /** Living World presentation: city patrol guards (and their tracers), the talkable NPCs with name plates, the live
  * world-event beacon / fracture ring, and beacons on revealed stashes and survey points. Reads living-runtime state only;
@@ -226,6 +227,29 @@ function HollowCrown({ gear, playerRef }: { gear?: PlayerProgression | undefined
   );
 }
 
+/** fleet.ts garage bases: an open hangar frame with a lit sign and roll-up door, amber while for sale, cyan once owned. */
+function GarageView({ id, owned, playerRef }: { id: GarageId; owned: boolean; playerRef: React.RefObject<THREE.Object3D> }) {
+  const g = GARAGES[id];
+  const grp = useRef<THREE.Group>(null!);
+  const y = useMemo(() => (g.deckY !== undefined ? g.deckY : heightAt(g.x, g.z)), [g]);
+  const color = owned ? "#38e8ff" : "#ffb23e";
+  const plate = useMemo(() => plateTexture(g.name, owned ? "Your garage · [Y]" : "Garage base for sale · [Y]", color), [g, owned, color]);
+  useFrame(() => { const p = playerRef.current; if (p && grp.current) grp.current.visible = Math.hypot(p.position.x - g.x, p.position.z - g.z) < DRAW; });
+  // the hangar opens toward +z (the drop point side); the player stands at the mouth to use it
+  return (
+    <group ref={grp} position={[g.x, y, g.z - 7]}>
+      {[-5, 5].map((x) => <mesh key={x} position={[x, 3, 0]} castShadow><boxGeometry args={[0.6, 6, 10]} /><meshStandardMaterial color="#3a3f45" metalness={0.6} roughness={0.5} /></mesh>)}
+      <mesh position={[0, 6.2, 0]} castShadow><boxGeometry args={[11, 0.5, 10.5]} /><meshStandardMaterial color="#2d3238" metalness={0.6} roughness={0.5} /></mesh>
+      <mesh position={[0, 3, -5]}><boxGeometry args={[10, 6, 0.3]} /><meshStandardMaterial color="#23272c" metalness={0.5} roughness={0.6} /></mesh>
+      <mesh position={[0, 5.4, 5.05]}><boxGeometry args={[9.4, 1.2, 0.2]} /><meshStandardMaterial color="#1b1f24" metalness={0.7} roughness={0.4} /></mesh>
+      <mesh position={[0, 0.03, 2]} rotation-x={-Math.PI / 2}><planeGeometry args={[9.6, 14]} /><meshStandardMaterial color="#2a2e33" roughness={0.9} /></mesh>
+      {[-4.6, 4.6].map((x) => <mesh key={x} position={[x, 0.05, 5.6]}><boxGeometry args={[0.25, 0.1, 3]} /><meshStandardMaterial color={color} emissive={color} emissiveIntensity={2} toneMapped={false} /></mesh>)}
+      <pointLight position={[0, 5, 1]} color={color} intensity={6} distance={14} />
+      {plate && <sprite position={[0, 7.4, 5.2]} scale={[4.6, 1.15, 1]}><spriteMaterial map={plate} transparent depthWrite={false} /></sprite>}
+    </group>
+  );
+}
+
 export function LivingCity({ runtime, playerRef, gear }: { runtime: React.RefObject<LivingRuntime | null>; playerRef: React.RefObject<THREE.Object3D>; gear?: PlayerProgression | undefined }) {
   return (
     <group name="living-city">
@@ -235,6 +259,7 @@ export function LivingCity({ runtime, playerRef, gear }: { runtime: React.RefObj
       <SecretShimmer runtime={runtime} />
       <HollowCrown gear={gear} playerRef={playerRef} />
       <MarkerBeacons gear={gear} />
+      {(Object.keys(GARAGES) as GarageId[]).map((id) => <GarageView key={id} id={id} owned={(gear?.fleet?.garages ?? []).includes(id)} playerRef={playerRef} />)}
     </group>
   );
 }

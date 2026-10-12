@@ -150,6 +150,7 @@ import { EMPTY_LIVING } from "@/game/living-world";
 import { fallenDistricts } from "@/game/living-events";
 import { CHALLENGES } from "@/game/map-activities";
 import { HOLLOW_CROWN, VAEL, runeCombat, vaelNear } from "@/game/godforge";
+import { garageNear, tunedVehicle } from "@/game/fleet";
 import { LIVING_NPCS, PLEDGE_KEY, livingMarkers, npcNear, npcWorld } from "@/game/living-npcs";
 import { SECRETS, secretPoint, type SecretContext } from "@/game/secrets";
 import { LivingCity } from "./LivingCity";
@@ -281,6 +282,8 @@ export type HudState = {
   interiorOpen: boolean;
   /** Living World (living-runtime.ts): the city you're in and its live world event */
   living?: LivingHud | null;
+  /** fleet.ts: a garage base within reach */
+  garageNear?: string | null;
   /** godforge.ts: Vael is in reach (her forge is open) */
   vaelNear?: boolean;
   /** talkable Living World NPC within reach (living-npcs.ts) */
@@ -469,7 +472,7 @@ function SceneImpl({
   onStoryEvent?: (event: StoryWorldEvent) => void;
   /** Living World outcomes (city kills, event results, survey/stash reached); GameCanvas applies them to progression */
   onLiving?: (event: LivingEmit) => void;
-  gear?: Pick<PlayerProgression, "inventory" | "equippedGear" | "dungeonClears" | "completedMissions" | "story" | "earnedRewards"> & Partial<Pick<PlayerProgression, "living" | "challenge" | "nemeses">>;
+  gear?: Pick<PlayerProgression, "inventory" | "equippedGear" | "dungeonClears" | "completedMissions" | "story" | "earnedRewards"> & Partial<Pick<PlayerProgression, "living" | "challenge" | "nemeses" | "fleet">>;
   /** nemesis.ts: a nemesis the player picked on the map; it ambushes right after arrival */
   summonNemesis?: string | null;
   mission?: MissionRun | null;
@@ -597,7 +600,7 @@ function SceneImpl({
   const appearance = appearanceProp ?? appearanceById("BASTION");
   const selectedClass = classById(playerClass);
   const selectedSubclass = subclassById(subclassId);
-  const selectedVehicle = vehicleById(vehicleId);
+  const selectedVehicle = useMemo(() => tunedVehicle(vehicleById(vehicleId), gear?.fleet), [vehicleId, gear?.fleet]); // fleet.ts tuning of the active build
   const player = useRef<THREE.Group>(null!);
   // start fetching this operator's model at once so the plain procedural stand-in is on screen for as short a time as possible
   // foliage / region-model / light budgets read the live tier from perf-budget.ts
@@ -2349,6 +2352,7 @@ function SceneImpl({
         interiorName: interior?.name ?? "",
         interiorOpen: interior ? isInteriorOpen(interior, time.current) : true,
         living: livingHud.current,
+        garageNear: !interior ? garageNear(s.x, s.z) : null,
         vaelNear: !interior && !s.inVehicle && vaelNear({ earnedRewards: gear?.earnedRewards ?? [] }, s.x, s.z),
         npcNear: !interior && !s.inVehicle ? (() => { const n = npcNear(s.x, s.z); return n ? { id: n.id, name: n.name, title: n.title } : null; })() : null,
         shopNearId: !interior && !s.inVehicle ? shopNear(s.x, s.z)?.id ?? null : null,

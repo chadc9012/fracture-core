@@ -12,8 +12,9 @@ import { classById, operatorByClass, subclassById, type AppearanceDefinition, ty
 import type { GearItem, GearSlot } from "@/game/inventory";
 import type { PlayerProgression } from "@/game/progression";
 import { xpRequiredForLevel } from "@/game/xp";
+import { ENDINGS, campaignProgress } from "@/game/campaign";
 
-export type CharacterTab = "CHARACTER" | "COLLECTIONS" | "TRIUMPHS";
+export type CharacterTab = "CHARACTER" | "COLLECTIONS" | "TRIUMPHS" | "CAMPAIGN";
 
 /** Destiny-style character menu (layout reference: docs/ui-references.md). Weapons left, the live operator centre, armor and Power right;
  * hover an item for its card, click a slot to swap. Collections and Triumphs are derived from the save (character-sheet.ts).
@@ -35,7 +36,7 @@ export function CharacterScreen({ progression, onProgression, classId, subclassI
   const sheet = characterSheet(progression);
   const op = operatorByClass(classId), sub = subclassById(subclassId), cls = classById(classId);
   const need = xpRequiredForLevel(progression.level);
-  const tabs: { id: CharacterTab | "INVENTORY" | "SETTINGS"; label: string }[] = [{ id: "COLLECTIONS", label: "Collections" }, { id: "TRIUMPHS", label: "Triumphs" }, { id: "CHARACTER", label: "Character" }, { id: "INVENTORY", label: "Inventory" }];
+  const tabs: { id: CharacterTab | "INVENTORY" | "SETTINGS"; label: string }[] = [{ id: "CAMPAIGN", label: "Campaign" }, { id: "COLLECTIONS", label: "Collections" }, { id: "TRIUMPHS", label: "Triumphs" }, { id: "CHARACTER", label: "Character" }, { id: "INVENTORY", label: "Inventory" }];
   return (
     <div className="fixed inset-0 z-50 flex flex-col overflow-hidden text-foreground char-screen" role="dialog" aria-modal="true" aria-label="Character">
       <header className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 bg-[#2c4a57]/70 px-4 py-2 backdrop-blur-sm sm:px-8">
@@ -88,6 +89,22 @@ export function CharacterScreen({ progression, onProgression, classId, subclassI
             <p className="mt-1 text-xs text-white/60">{x.detail}</p>
             <div className="mt-2 flex items-center gap-2"><div className="h-1 flex-1 bg-white/10"><div className="h-1 bg-white/80" style={{ width: `${(x.done / Math.max(1, x.goal)) * 100}%` }} /></div><span className="font-mono text-[10px] text-white/60">{x.done}/{x.goal}</span></div>
           </div>; })}</div>
+        </div>; })()}
+
+        {tab === "CAMPAIGN" && (() => { const c = campaignProgress(progression); const end = ENDINGS[c.ending]; return <div className="mx-auto max-w-4xl space-y-4">
+          <div className="flex flex-wrap items-end justify-between gap-2 border-b border-white/10 pb-2">
+            <p className="font-mono text-[11px] uppercase tracking-[0.3em] text-white/60">The Fracture · campaign</p>
+            <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-white/60">{c.done} / {c.playable} playable missions done · {c.total - c.playable} planned</p>
+          </div>
+          {c.acts.map(({ act, done, playable }) => <section key={act.id} className="border border-white/15 bg-black/30 p-3">
+            <div className="flex flex-wrap items-baseline justify-between gap-2"><p className="font-semibold">{act.title}</p><p className="font-mono text-[10px] uppercase tracking-[0.15em] text-white/60">{done}/{playable} · {act.goal}</p></div>
+            <ol className="mt-2 grid gap-1 sm:grid-cols-2">{act.missions.map((m) => { const isDone = !!m.playable && progression.completedMissions.includes(m.playable); return <li key={m.n} className={`border px-2 py-1.5 text-xs ${isDone ? "border-[#cdae33]/70 bg-[#cdae33]/10" : m.playable ? "border-white/20" : "border-dashed border-white/15 text-white/45"}`}>
+              <span className="font-mono text-white/50">{String(m.n).padStart(2, "0")}</span> {m.title} <span className="text-white/45">· {m.region}</span>
+              <span className="float-right font-mono text-[10px] uppercase">{isDone ? "Done" : m.playable ? "Playable" : "Planned"}</span>
+              {m.note && <span className="block text-[10px] text-white/45">{m.note}</span>}
+            </li>; })}</ol>
+          </section>)}
+          <section className="border border-white/15 bg-black/30 p-3"><p className="font-mono text-[10px] uppercase tracking-[0.25em] text-white/60">Your path so far</p><p className="mt-1 text-lg">{end.title}</p><p className="text-xs text-white/60">{end.text}</p></section>
         </div>; })()}
 
         {hover && !picking && <ItemCard item={hover} className="pointer-events-none fixed bottom-14 left-1/2 z-10 w-[min(92vw,22rem)] -translate-x-1/2" />}

@@ -1,5 +1,6 @@
 import { EMPTY_LIVING, mergeLiving } from "./living-world";
 import { mergeNemeses } from "./nemesis";
+import { EMPTY_FLEET, mergeFleet } from "./fleet";
 import { profileKey } from "./save-profile";
 import { mergeStory } from "./story";
 import { pruneCompleted } from "./missions/persistence";
@@ -49,6 +50,7 @@ export function mergeProgression(local: PlayerProgression, cloud: PlayerProgress
     earnedRewards: union(local.earnedRewards, cloud.earnedRewards),
     story: mergeStory(local.story, cloud.story, localIsNewer),
     nemeses: mergeNemeses(local.nemeses ?? [], cloud.nemeses ?? []),
+    fleet: mergeFleet(local.fleet ?? EMPTY_FLEET, cloud.fleet ?? EMPTY_FLEET, localIsNewer),
     living: mergeLiving(local.living ?? EMPTY_LIVING, cloud.living ?? EMPTY_LIVING, union(local.earnedRewards, cloud.earnedRewards)),
     inventory: [...new Map([...cloud.inventory, ...local.inventory].map((item) => [item.id, item])).values()].map((item) => {
       const other = cloud.inventory.find((entry) => entry.id === item.id);
