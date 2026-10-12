@@ -72,6 +72,7 @@ import { ShopWindow } from "./ShopWindow";
 import { LivingNpcPanel, LivingTracker } from "./LivingNpcPanel";
 import { resolveLivingEvent } from "@/game/living-events";
 import { recordCityKills, recordReach } from "@/game/living-npcs";
+import { ACTIVITY_COLOR, ACTIVITY_LABEL, CHALLENGES, recordPatrolKills } from "@/game/map-activities";
 import type { LivingEmit } from "@/game/living-runtime";
 import { InventoryWindow } from "./InventoryWindow";
 import { CharacterScreen } from "./CharacterScreen";
@@ -870,6 +871,12 @@ export function GameCanvas() {
   /** Living World outcomes from Scene (living-runtime.ts): all three reducers are idempotent, so a repeat changes nothing */
   const recordLiving = useCallback((event: LivingEmit) => {
     if (event.type === "KILLS") { setProgression((current) => recordCityKills(current, event.city, event.count)); return; }
+    if (event.type === "REGION_KILLS") {
+      const preview = recordPatrolKills(progressionRef.current, event.region, event.count);
+      if (preview.message) showLivingToast(preview.message);
+      setProgression((current) => recordPatrolKills(current, event.region, event.count).progression);
+      return;
+    }
     if (event.type === "EVENT") {
       showLivingToast(resolveLivingEvent(progressionRef.current, event.event, event.outcome).message);
       setProgression((current) => resolveLivingEvent(current, event.event, event.outcome).progression);
@@ -920,7 +927,7 @@ export function GameCanvas() {
   canvasWhy.render({ hud, phase, pendingDeployment, menuOpen, settings, adaptiveDpr, lowPerf, autoCap, qualityNotice, vehicleId, garageOpen, inventoryOpen, shopOpen, ruinOpen, cacheBanner, atlasOpen, hubView, travelTo, transit, savedFlash, strategyOpen, analysisOpen, operationsView, last, progression, landmarkToast, cls, subclass, appearance, bodyType, tutorial, showIntro, cineId, cineProgress, introElapsed, mission, awakening, relay, blackout, neonCore, solarArray, coreNode, zoneRuns, descent, systemCore, activeDialogue, deathInfo, showEnding, menuNotice, rewardCards, storyGraph, captionQueue, levelUpFlash });
   const recordXP = (event: WorldSim["xpEvents"][number]) => {
     setProgression((current) => {
-      const result = grantXP(current, event.type, { enemyLevel: event.enemyLevel, combatHeat: event.combatHeat });
+      const result = grantXP(current, event.type, { enemyLevel: event.enemyLevel, combatHeat: event.combatHeat, scale: CHALLENGES[current.challenge ?? "STANDARD"].reward });
       if (result.leveledUp) {
         playLevelUp();
         if (result.novaUnlocked.length) playNovaUnlock();
@@ -965,7 +972,7 @@ export function GameCanvas() {
     return (
       <>
         {transit && <TransitOverlay startedAt={transit.startedAt} plan={transit.plan} reduced={transit.reduced} name={transit.target.name} sub={transit.target.sub} color={transit.target.color} />}
-        {hubView === "starmap" && <StarMap progression={progression} onBack={() => setHubView(null)} onDeploy={startTransit} />}
+        {hubView === "starmap" && <StarMap progression={progression} onBack={() => setHubView(null)} onDeploy={startTransit} onProgression={setProgression} />}
         {hubView === "arsenal" && <ArsenalLoadouts progression={progression} onProgression={setProgression} onBack={() => setHubView(null)} />}
         {hubView === "saves" && <SaveManager progression={progression} onProgression={setProgression} onBack={() => setHubView(null)} />}
         {!menuOpen && !hubView && (
@@ -1117,7 +1124,7 @@ export function GameCanvas() {
            <Button className="pointer-events-auto" variant="outline" onClick={() => setNpcOpen(hud.npcNear?.id ?? null)}>[Y] Talk · {hud.npcNear.name} <span className="ml-2 text-muted-foreground">{hud.npcNear.title}</span></Button>
          </div>
        )}
-       <LivingTracker living={hud.living} px={hud.px} pz={hud.pz} toast={livingToast} />
+       <LivingTracker living={hud.living} px={hud.px} pz={hud.pz} toast={livingToast} patrol={progression.patrol} />
        {npcOpen && <LivingNpcPanel npcId={npcOpen} progression={progression} eventTitle={hud.living?.event && hud.living.event.phase !== "WON" && hud.living.event.phase !== "FAILED" ? hud.living.event.title : null} onProgression={setProgression} onClose={() => setNpcOpen(null)} />}
        {hud.shopNearId && !shopOpen && (
          <div className="pointer-events-none absolute bottom-24 left-1/2 -translate-x-1/2">
@@ -1172,7 +1179,7 @@ export function GameCanvas() {
        {characterOpen && <CharacterScreen progression={progression} onProgression={setProgression} classId={cls} subclassId={subclass} appearance={appearance} onClose={() => setCharacterOpen(false)} onInventory={() => { setCharacterOpen(false); setInventoryOpen(true); }} onSettings={() => { setCharacterOpen(false); setMenuOpen(true); }} />}
        {inventoryOpen && <InventoryWindow progression={progression} onProgression={setProgression} onClose={() => setInventoryOpen(false)} />}
        {landmarkToast && !atlasOpen && <div className="pointer-events-none absolute left-1/2 top-28 z-30 w-[min(26rem,86vw)] -translate-x-1/2 border-l-2 border-primary bg-background/80 px-3 py-2" role="status"><p className="font-mono text-[9px] uppercase tracking-[0.3em] text-primary">Landmark discovered</p><p className="text-sm font-semibold">{landmarkToast.name}</p><p className="mt-0.5 text-[11px] text-muted-foreground">{landmarkToast.history}</p></div>}
-       {atlasOpen && <WorldAtlas progression={progression} markers={hud.markers} px={hud.px} pz={hud.pz} currentRegion={hud.region} phase={hud.phase} onClose={() => setAtlasOpen(false)} />}
+       {atlasOpen && <WorldAtlas progression={progression} markers={hud.markers} px={hud.px} pz={hud.pz} currentRegion={hud.region} phase={hud.phase} onClose={() => setAtlasOpen(false)} onProgression={setProgression} onTravel={(a) => { setAtlasOpen(false); startTransit({ id: a.id, name: a.name, sub: ACTIVITY_LABEL[a.kind], color: ACTIVITY_COLOR[a.kind], x: a.drop.x, z: a.drop.z, ...(a.drop.y !== undefined ? { y: a.drop.y } : {}) }); }} />}
       {awakening && <AwakeningOverlay run={awakening} onEvent={recordAwakening} />}
       {mission && <BrokenSignalOverlay mission={mission} onEvent={recordMission} />}
       {blackout && <BlackoutProtocolOverlay mission={blackout} onEvent={recordBlackout} />}

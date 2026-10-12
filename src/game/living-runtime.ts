@@ -7,9 +7,12 @@ import { CITIES, FACTIONS, TIER_RULES, cityAt, districtById, tierOf, type CityId
 import { EVENT_RULES, FRACTURE_HOLD, FRACTURE_RADIUS, createLivingDirector, stepLivingDirector, type LivingDirector, type LivingEvent } from "./living-events";
 import { createGuards, stepGuards, type Guard } from "./city-patrols";
 import { STASH_REACH, SURVEY_REACH } from "./living-npcs";
+import { regionAt } from "./world";
 
 export type LivingEmit =
   | { type: "KILLS"; city: CityId; count: number }
+  /** player kills per region (map-activities.ts patrols) */
+  | { type: "REGION_KILLS"; region: string; count: number }
   | { type: "EVENT"; event: LivingEvent; outcome: "WON" | "FAILED" }
   | { type: "REACH"; x: number; z: number };
 
@@ -18,6 +21,7 @@ export type LivingRuntime = {
   guards: Guard[];
   killsSeen: number;
   killAcc: Partial<Record<CityId, number>>;
+  regionAcc: Record<string, number>;
   flushIn: number;
   reached: Set<string>;
   /** where civilians should run from (live hostile machines inside the cities) */
@@ -27,7 +31,7 @@ export type LivingRuntime = {
 };
 
 export function createLivingRuntime(sim: Pick<WorldSim, "kills">): LivingRuntime {
-  return { director: createLivingDirector(), guards: createGuards(), killsSeen: sim.kills, killAcc: {}, flushIn: 1.5, reached: new Set(), threats: [], warnedAt: {}, clock: 0 };
+  return { director: createLivingDirector(), guards: createGuards(), killsSeen: sim.kills, killAcc: {}, regionAcc: {}, flushIn: 1.5, reached: new Set(), threats: [], warnedAt: {}, clock: 0 };
 }
 
 export type LivingStepInput = {
@@ -74,11 +78,15 @@ export function stepLivingRuntime(rt: LivingRuntime, sim: WorldSim, inp: LivingS
   const delta = sim.kills - rt.killsSeen;
   rt.killsSeen = sim.kills;
   if (delta > 0 && city) rt.killAcc[city] = (rt.killAcc[city] ?? 0) + delta;
+  const region = delta > 0 ? regionAt(inp.px, inp.pz) : null;
+  if (region) rt.regionAcc[region.id] = (rt.regionAcc[region.id] ?? 0) + delta;
   rt.flushIn -= inp.dt;
   if (rt.flushIn <= 0) {
     rt.flushIn = 1.5;
     for (const c of Object.keys(rt.killAcc) as CityId[]) { const n = rt.killAcc[c] ?? 0; if (n > 0) emits.push({ type: "KILLS", city: c, count: n }); }
     rt.killAcc = {};
+    for (const [r, n] of Object.entries(rt.regionAcc)) if (n > 0) emits.push({ type: "REGION_KILLS", region: r, count: n });
+    rt.regionAcc = {};
   }
 
   // 2) world events

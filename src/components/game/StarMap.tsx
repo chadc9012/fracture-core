@@ -7,6 +7,8 @@ import { ENCOUNTERS } from "@/game/encounters";
 import { CHRONICLE, nextActivity } from "@/game/retention";
 import type { PlayerProgression } from "@/game/progression";
 import { NextActivityCard } from "./NextActivityCard";
+import { ActivityPanel } from "./ActivityPanel";
+import { ACTIVITY_COLOR, ACTIVITY_LABEL } from "@/game/map-activities";
 import { MAP_ART_ASPECT, MAP_ART_SPOTS, artSpotForWorld } from "@/game/map-art";
 import { LANDMARKS, isLandmarkKnown } from "@/game/landmarks";
 import { CITY_DESTINATIONS, dropPoint } from "@/game/destinations";
@@ -25,7 +27,7 @@ const THREAT = ["MINIMAL", "LOW", "MODERATE", "HIGH", "SEVERE", "EXTREME"];
 /** `y`: arrive at this world height already diving (Thalassia's submersible arrival) */
 export interface DeployTarget { id: string; name: string; sub: string; color: string; x: number; z: number; y?: number }
 
-export function StarMap({ progression, onBack, onDeploy }: { progression: PlayerProgression; onBack: () => void; onDeploy: (target: DeployTarget) => void }) {
+export function StarMap({ progression, onBack, onDeploy, onProgression }: { progression: PlayerProgression; onBack: () => void; onDeploy: (target: DeployTarget) => void; onProgression?: (next: PlayerProgression) => void }) {
   const next = nextActivity(progression);
   const recommended = REGIONS.find((r) => r.name === next.region)?.id ?? progression.currentWorld;
   const [selected, setSelected] = useState(REGIONS.find((r) => r.id === recommended)?.id ?? "veridan");
@@ -141,6 +143,12 @@ export function StarMap({ progression, onBack, onDeploy }: { progression: Player
             </div>
             {encounter?.boss && <p className="mt-3 flex items-center gap-2 text-xs text-destructive"><Skull className="size-3" /> {encounter.boss.name} · {encounter.boss.lair}</p>}
             <div className="mt-4"><NextActivityCard progression={progression} /></div>
+            {onProgression && (
+              <div className="mt-4 border-t border-foreground/15 pt-4">
+                <ActivityPanel key={region.id} progression={progression} regionId={region.id} onProgression={onProgression} launchLabel="Drop in"
+                  onLaunch={(a) => { if (launching) return; setLaunching(true); onDeploy({ id: a.id, name: a.name, sub: `${ACTIVITY_LABEL[a.kind]} · ${region.name}`, color: ACTIVITY_COLOR[a.kind], x: a.drop.x, z: a.drop.z, ...(a.drop.y !== undefined ? { y: a.drop.y } : {}) }); }} />
+              </div>
+            )}
           </div>
           <div>
             {city && !city.deployable && <p className="mb-2 text-xs text-destructive">{city.blockedReason}</p>}

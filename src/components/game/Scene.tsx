@@ -148,6 +148,7 @@ import { shopNear } from "@/game/regional-shops";
 import { createLivingRuntime, stepLivingRuntime, type LivingEmit, type LivingHud, type LivingRuntime } from "@/game/living-runtime";
 import { EMPTY_LIVING } from "@/game/living-world";
 import { fallenDistricts } from "@/game/living-events";
+import { CHALLENGES } from "@/game/map-activities";
 import { LIVING_NPCS, livingMarkers, npcNear, npcWorld } from "@/game/living-npcs";
 import { LivingCity } from "./LivingCity";
 import type { ArmorVisualState } from "./Scavenger";
@@ -463,7 +464,7 @@ function SceneImpl({
   onStoryEvent?: (event: StoryWorldEvent) => void;
   /** Living World outcomes (city kills, event results, survey/stash reached); GameCanvas applies them to progression */
   onLiving?: (event: LivingEmit) => void;
-  gear?: Pick<PlayerProgression, "inventory" | "equippedGear" | "dungeonClears" | "completedMissions" | "story" | "earnedRewards"> & Partial<Pick<PlayerProgression, "living">>;
+  gear?: Pick<PlayerProgression, "inventory" | "equippedGear" | "dungeonClears" | "completedMissions" | "story" | "earnedRewards"> & Partial<Pick<PlayerProgression, "living" | "challenge">>;
   mission?: MissionRun | null;
   onMissionEvent?: (event: MissionEvent) => void;
   relay?: RelayRun | null;
@@ -1941,6 +1942,8 @@ function SceneImpl({
     // Living World: city events, patrols, civilian panic and contract progress (living-runtime.ts); outcomes go to GameCanvas
     {
       livingRt.current ??= createLivingRuntime(sim);
+      const ch = CHALLENGES[gear?.challenge ?? "STANDARD"];
+      sim.challenge.enemyHp = ch.enemyHp; sim.challenge.enemyDamage = ch.enemyDamage;
       const blocked = !!tutorial || !!interior || !!introPlayback || sim.machines.some((m) => m.alive && m.mission);
       const lv = stepLivingRuntime(livingRt.current, sim, { dt, now: Date.now(), px: s.x, pz: s.z, blocked, living: gear?.living ?? EMPTY_LIVING, fallen: livingFallen, markers: livingMarks, rnd: Math.random });
       livingHud.current = lv.hud;

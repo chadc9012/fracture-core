@@ -4,6 +4,7 @@ import type { PlayerProgression } from "@/game/progression";
 import type { LivingHud } from "@/game/living-runtime";
 import { CITIES, DISTRICTS, EMPTY_LIVING, FACTIONS, TIER_RULES, districtStatus } from "@/game/living-world";
 import { headingLabel, headingTo } from "@/game/compass";
+import { REGIONS } from "@/game/world";
 import { contractById, npcActions, npcById, npcLine, performNpcAction, repSummary } from "@/game/living-npcs";
 
 /** Talk panel for Living World NPCs (living-npcs.ts): the NPC's line, your standing in their city, district status, your
@@ -88,9 +89,9 @@ export function LivingNpcPanel({ npcId, progression, eventTitle, onProgression, 
 }
 
 /** Live world-event card (mission-tracker style) plus the most recent Living World message. Presentation only. */
-export function LivingTracker({ living, px, pz, toast }: { living: LivingHud | null | undefined; px: number; pz: number; toast: string | null }) {
+export function LivingTracker({ living, px, pz, toast, patrol }: { living: LivingHud | null | undefined; px: number; pz: number; toast: string | null; patrol?: PlayerProgression["patrol"] | undefined }) {
   const ev = living?.event;
-  if (!ev && !toast) return null;
+  if (!ev && !toast && !patrol) return null;
   const dist = ev ? Math.round(Math.hypot(ev.x - px, ev.z - pz)) : 0;
   const bearing = ev ? headingLabel(headingTo(px, pz, ev.x, ev.z)) : "";
   const color = !ev ? "" : ev.phase === "WON" ? "#7ef2b0" : ev.phase === "FAILED" ? "#ff4d4d" : ev.kind === "FRACTURE" ? "#b968ff" : ev.phase === "WARNING" ? "#ffb23e" : "#ff3b4e";
@@ -109,6 +110,13 @@ export function LivingTracker({ living, px, pz, toast }: { living: LivingHud | n
               <div className="mt-1 h-1 bg-muted"><div className="h-1" style={{ width: `${Math.min(100, (ev.hold / ev.holdNeed) * 100)}%`, background: color }} /></div>
             </>
           )}
+        </div>
+      )}
+      {patrol && (
+        <div className="border border-border/60 bg-background/75 p-3 backdrop-blur-sm" style={{ borderLeft: "3px solid #66e0ff" }}>
+          <p className="font-mono text-[9px] uppercase tracking-[0.3em] text-[#66e0ff]">Patrol · {REGIONS.find((r) => r.id === patrol.regionId)?.name ?? patrol.regionId}</p>
+          <p className="mt-1 font-mono text-[11px]">Hostiles {patrol.kills}/{patrol.need}</p>
+          <div className="mt-1 h-1 bg-muted"><div className="h-1 bg-[#66e0ff]" style={{ width: `${(patrol.kills / patrol.need) * 100}%` }} /></div>
         </div>
       )}
       {toast && <p className="border border-border/60 bg-background/80 px-3 py-2 font-mono text-[11px] text-primary">{toast}</p>}

@@ -61,6 +61,10 @@ export type PlayerProgression = {
   story: StoryState;
   /** Living World (living-world.ts): city faction standing, district outcomes, contracts, revealed intel; absent in old saves */
   living: LivingState;
+  /** star-map pre-launch choice (map-activities.ts CHALLENGES); newer copy wins on merge */
+  challenge: "STANDARD" | "HARD" | "VERY_HARD";
+  /** the regional patrol in progress (map-activities.ts), null when none */
+  patrol: { regionId: string; kills: number; need: number; day: string } | null;
   inventory: GearItem[];
   equippedGear: Partial<Record<GearSlot, string>>;
   materials: Partial<Record<MaterialId, number>>;
@@ -115,6 +119,8 @@ export const DEFAULT_PROGRESSION: PlayerProgression = {
   earnedRewards: [],
   story: EMPTY_STORY,
   living: EMPTY_LIVING,
+  challenge: "STANDARD",
+  patrol: null,
   inventory: STARTER_GEAR,
   equippedGear: STARTER_SLOTS,
   materials: {},
@@ -171,6 +177,8 @@ export function normalizeProgression(raw: unknown): PlayerProgression {
       earnedRewards: Array.isArray(parsed.earnedRewards) ? parsed.earnedRewards : [],
       story: normalizeStory(parsed.story),
       living: normalizeLiving(parsed.living),
+      challenge: parsed.challenge === "HARD" || parsed.challenge === "VERY_HARD" ? parsed.challenge : "STANDARD",
+      patrol: parsed.patrol && typeof parsed.patrol === "object" && typeof parsed.patrol.regionId === "string" && typeof parsed.patrol.kills === "number" && typeof parsed.patrol.need === "number" && typeof parsed.patrol.day === "string" ? { regionId: parsed.patrol.regionId, kills: parsed.patrol.kills, need: parsed.patrol.need, day: parsed.patrol.day } : null,
       abilityMastery: parsed.abilityMastery && typeof parsed.abilityMastery === "object" ? parsed.abilityMastery : {},
       abilityBranches: parsed.abilityBranches && typeof parsed.abilityBranches === "object" ? migrateBranches(parsed.abilityBranches) : {},
       calibrationTokens: typeof parsed.calibrationTokens === "number" ? parsed.calibrationTokens : 3,

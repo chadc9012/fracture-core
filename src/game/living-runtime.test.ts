@@ -40,8 +40,8 @@ describe("living runtime against the real sim", () => {
     const rt = createLivingRuntime(sim);
     rt.director.next = 1e9;
     const run = (px: number, pz: number) => { sim.kills += 2; const out: LivingEmit[] = []; for (let i = 0; i < 4; i++) out.push(...stepLivingRuntime(rt, sim, { dt: 0.5, now: NOW, px, pz, blocked: false, living: EMPTY_LIVING, fallen: [], markers: [], rnd: Math.random }).emits); return out; };
-    expect(run(C.x + 10, C.z)).toEqual([{ type: "KILLS", city: "nexus", count: 2 }]);
-    expect(run(C.x + 900, C.z)).toEqual([]);
+    expect(run(C.x + 10, C.z)).toEqual([{ type: "KILLS", city: "nexus", count: 2 }, { type: "REGION_KILLS", region: "nexus", count: 2 }]);
+    expect(run(C.x + 900, C.z).filter((e) => e.type === "KILLS")).toEqual([]);
   });
 
   it("event machines are not scripted-mission machines and are never leashed away", () => {
