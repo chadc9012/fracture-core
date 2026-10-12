@@ -132,7 +132,8 @@ import { recapDue, recapLine } from "@/game/retention";
 import { localSavedAt } from "@/game/cloud-save";
 import { lootCaches, openCache, isOpenedToday, RARITY_HEX } from "@/game/loot-caches";
 
-const CA_OFFSET = new THREE.Vector2(0.0006, 0.0006);
+// Keep gameplay optics crisp: chromatic fringing is a barely-visible edge accent, not a constant blur.
+const CA_OFFSET = new THREE.Vector2(0.00025, 0.00025);
 const START = REGIONS.find((r) => r.id === "nexus")!;
 
 const initial: HudState = {
@@ -1131,14 +1132,15 @@ export function GameCanvas() {
           // depth-of-field (the costly passes) only mount on `premium` so this stays a flat
           // cost increase, not a new tier of budget risk, on MEDIUM/HIGH.
           <Profiler id="post" onRender={onProf}><EffectComposer multisampling={0}>
-            {!flags.fxOff.has("grade") && <HueSaturation hue={-0.02} saturation={0.08} />}
-            {!flags.fxOff.has("grade") && <BrightnessContrast brightness={-0.02} contrast={0.12} />}
-            {!flags.fxOff.has("bloom") && <Bloom intensity={0.65} luminanceThreshold={0.82} luminanceSmoothing={0.25} mipmapBlur />}
-            {premium && <SSAO intensity={18} radius={0.18} luminanceInfluence={0.4} bias={0.025} />}
-            {premium && <DepthOfField focusDistance={0.012} focalLength={0.045} bokehScale={2.2} />}
+            {!flags.fxOff.has("grade") && <HueSaturation hue={-0.012} saturation={0.045} />}
+            {!flags.fxOff.has("grade") && <BrightnessContrast brightness={-0.005} contrast={0.085} />}
+            {!flags.fxOff.has("bloom") && <Bloom intensity={0.42} luminanceThreshold={0.88} luminanceSmoothing={0.22} mipmapBlur />}
+            {premium && <SSAO intensity={11} radius={0.14} luminanceInfluence={0.32} bias={0.03} />}
+            {/* depth of field only during cinematics: gameplay stays sharp */}
+            {premium && (showIntro || Boolean(cineId)) && <DepthOfField focusDistance={0.018} focalLength={0.035} bokehScale={1.1} />}
             {!flags.fxOff.has("ca") && <ChromaticAberration offset={CA_OFFSET} />}
-            {!flags.fxOff.has("vignette") && <Vignette offset={0.3} darkness={0.55} />}
-            {!flags.fxOff.has("noise") && <Noise opacity={0.025} premultiply />}
+            {!flags.fxOff.has("vignette") && <Vignette offset={0.36} darkness={0.38} />}
+            {!flags.fxOff.has("noise") && <Noise opacity={0.012} premultiply />}
           </EffectComposer></Profiler>
         )}
         <PerfSampler />
