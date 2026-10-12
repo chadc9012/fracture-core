@@ -161,12 +161,35 @@ function MarkerBeacons({ gear }: { gear: PlayerProgression | undefined }) {
   );
 }
 
+/** secrets.ts: a faint violet shimmer over the secret NOVA is sensing (within SECRET_SHIMMER); brighter when it answers now */
+function SecretShimmer({ runtime }: { runtime: React.RefObject<LivingRuntime | null> }) {
+  const g = useRef<THREE.Group>(null!);
+  const mat = useRef<THREE.MeshBasicMaterial>(null!);
+  useFrame((st) => {
+    const near = runtime.current?.secretNear;
+    if (!g.current) return;
+    g.current.visible = !!near;
+    if (!near) return;
+    const t = st.clock.elapsedTime;
+    g.current.position.set(near.x, heightAt(near.x, near.z) + 1.2 + Math.sin(t * 1.3) * 0.15, near.z);
+    g.current.rotation.y = t * 0.8;
+    mat.current.opacity = (near.open ? 0.55 : 0.22) * (0.75 + Math.sin(t * 3) * 0.25);
+  });
+  return (
+    <group ref={g} visible={false}>
+      <mesh><octahedronGeometry args={[0.35, 0]} /><meshBasicMaterial ref={mat} color="#c89bff" transparent opacity={0.4} depthWrite={false} blending={THREE.AdditiveBlending} toneMapped={false} /></mesh>
+      <mesh rotation-x={-Math.PI / 2} position={[0, -1.1, 0]}><ringGeometry args={[0.9, 1.05, 24]} /><meshBasicMaterial color="#c89bff" transparent opacity={0.35} depthWrite={false} toneMapped={false} /></mesh>
+    </group>
+  );
+}
+
 export function LivingCity({ runtime, playerRef, gear }: { runtime: React.RefObject<LivingRuntime | null>; playerRef: React.RefObject<THREE.Object3D>; gear?: PlayerProgression | undefined }) {
   return (
     <group name="living-city">
       {BEATS.map((b) => <GuardView key={b.id} id={b.id} faction={b.faction} runtime={runtime} playerRef={playerRef} />)}
       {LIVING_NPCS.map((n) => <NpcView key={n.id} npc={n} playerRef={playerRef} />)}
       <EventBeacon runtime={runtime} playerRef={playerRef} />
+      <SecretShimmer runtime={runtime} />
       <MarkerBeacons gear={gear} />
     </group>
   );

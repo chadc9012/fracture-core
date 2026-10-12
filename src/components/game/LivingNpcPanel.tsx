@@ -91,7 +91,9 @@ export function LivingNpcPanel({ npcId, progression, eventTitle, onProgression, 
 /** Live world-event card (mission-tracker style) plus the most recent Living World message. Presentation only. */
 export function LivingTracker({ living, px, pz, toast, patrol }: { living: LivingHud | null | undefined; px: number; pz: number; toast: string | null; patrol?: PlayerProgression["patrol"] | undefined }) {
   const ev = living?.event;
-  if (!ev && !toast && !patrol) return null;
+  const nem = living?.nemesis;
+  const sec = living?.secret;
+  if (!ev && !toast && !patrol && !nem && !sec) return null;
   const dist = ev ? Math.round(Math.hypot(ev.x - px, ev.z - pz)) : 0;
   const bearing = ev ? headingLabel(headingTo(px, pz, ev.x, ev.z)) : "";
   const color = !ev ? "" : ev.phase === "WON" ? "#7ef2b0" : ev.phase === "FAILED" ? "#ff4d4d" : ev.kind === "FRACTURE" ? "#b968ff" : ev.phase === "WARNING" ? "#ffb23e" : "#ff3b4e";
@@ -110,6 +112,18 @@ export function LivingTracker({ living, px, pz, toast, patrol }: { living: Livin
               <div className="mt-1 h-1 bg-muted"><div className="h-1" style={{ width: `${Math.min(100, (ev.hold / ev.holdNeed) * 100)}%`, background: color }} /></div>
             </>
           )}
+        </div>
+      )}
+      {sec && (
+        <p className="border border-[#b968ff]/50 bg-background/75 px-3 py-2 font-mono text-[11px] text-[#d6b8ff]">
+          {sec.inReach ? (sec.open ? `NOVA: ${sec.name}.` : `${sec.name}: ${sec.locked}`) : `NOVA: Resonance nearby · ${sec.dist} m`}
+        </p>
+      )}
+      {nem && (
+        <div className="border border-[#ff2e63]/70 bg-background/80 p-3 backdrop-blur-sm" style={{ borderLeft: "3px solid #ff2e63" }}>
+          <p className="font-mono text-[9px] uppercase tracking-[0.3em] text-[#ff2e63]">Nemesis · rank {nem.rank}</p>
+          <p className="mt-1 text-sm font-semibold uppercase tracking-wider">{nem.name}</p>
+          <p className="mt-1 font-mono text-[10px] text-muted-foreground">{nem.traits.join(" · ")}{nem.weak ? ` · weak to ${nem.weak.toLowerCase()}` : ""}</p>
         </div>
       )}
       {patrol && (

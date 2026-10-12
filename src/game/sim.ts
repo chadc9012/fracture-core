@@ -59,6 +59,7 @@ import { fireRound, splashDamage, stepRound, type Burst, type OrdnanceDef, type 
 import { LAUNCHERS, pickLockTarget, type LauncherId } from "./launchers";
 import { ABILITY_RULES, burstTargets, evolutionDamageMult, freshCharge, registerEvolutionHit, ruinElementOf, type EvolutionAbility, type EvolutionCharge } from "./weapon-evolution";
 import { stepHealth } from "./health";
+import { nemesisStats, WEAK_ELEMENT, type KillerSnapshot, type Nemesis } from "./nemesis";
 import { applyElementHit, isChilled, burnDamage, freshStatuses, mergeVuln, statusSpeedMult, type MachineStatuses } from "./weapon-elements";
 
 /* ------------------------------------------------------------------
@@ -141,6 +142,10 @@ export type Machine = {
   decoy?: boolean | undefined;
   /** Living World event id (living-events.ts) this machine belongs to; never leashed away, cleared when the slot is freed */
   living?: string | undefined;
+  /** nemesis.ts: this machine is a nemesis (id), its weak element and its damage multiplier; cleared when the slot is freed */
+  nemesis?: string | undefined;
+  nemesisWeak?: DamageElement | undefined;
+  nemesisDamage?: number | undefined;
 };
 
 export type Truck = {
@@ -240,6 +245,10 @@ export type WorldSim = {
   combatHeat: number;
   /** Living World: player kills per event id (living-events.ts reads this to decide who won) */
   livingKills: Record<string, number>;
+  /** nemesis.ts: the machine that last hit the player, deaths it caused, and nemesis kills/escapes for Scene to report */
+  lastHitBy: KillerSnapshot | null;
+  deathEvents: { killer: KillerSnapshot; at: number }[];
+  nemesisEvents: { id: string; killed: boolean }[];
   /** star-map challenge (map-activities.ts CHALLENGES), set by Scene from the save: enemy health and damage multipliers */
   challenge: { enemyHp: number; enemyDamage: number };
   /** AI squadmates (squad.ts): formation + support fire, presentation in Squad.tsx */
@@ -398,6 +407,7 @@ export function defeatMachine(sim: WorldSim, m: Machine, credit: KillCredit = "p
   const floor = encounterHpFloor(m, performance.now() / 1000);
   if (floor > 0) { m.hp = floor; return; }
   m.alive = false;
+  if (m.nemesis) { sim.nemesisEvents.push({ id: m.nemesis, killed: credit === "player" }); delete m.nemesis; delete m.nemesisWeak; delete m.nemesisDamage; }
   const livingTag = m.living;
   if (m.living) { if (credit === "player") sim.livingKills[m.living] = (sim.livingKills[m.living] ?? 0) + 1; delete m.living; }
   // a Living World boss that dies to the world (a wall, the patrols) pays nobody, unlike catalog bosses
@@ -559,6 +569,9 @@ export function createSim(): WorldSim {
     impactCool: 0,
     combatHeat: 0,
     livingKills: {},
+    lastHitBy: null,
+    deathEvents: [],
+    nemesisEvents: [],
     challenge: { enemyHp: 1, enemyDamage: 1 },
     squad: createSquad(0, 0, typeof location !== "undefined" && /[?&]squad=1/.test(location.search)),
     envVisibility: 1,
@@ -654,7 +667,7 @@ function spawnMachine(sim: WorldSim, zone: ZoneState, elite = false) {
   delete m.lastPlayerDamage;
   m.vulnMult = 1;
   m.aim = 0;
-  delete m.encounter; delete m.decoy; delete m.living;
+  delete m.encounter; delete m.decoy; delete m.living; delete m.nemesis; delete m.nemesisWeak; delete m.nemesisDamage;
 }
 
 /** Spawn Broken Signal data drones around a point; tagged so the mission can count them. */
@@ -666,7 +679,7 @@ export function spawnMissionDrones(sim: WorldSim, x: number, z: number, count: n
     if (!m) return;
     const a = (i / count) * Math.PI * 2;
     const troop = regionId ? troopFor(regionId, i) : null;
-    Object.assign(m, { alive: true, x: x + Math.cos(a) * 16, z: z + Math.sin(a) * 16, hp: (elite ? 6 : 3) * (sim.challenge?.enemyHp ?? 1), rot: 0, scale: elite ? 1.1 : 0.8, zone: regionId ?? "nexus", cool: elite ? 1.2 : 2.5, elite, profile: troop ? troop.name : elite ? "Data Drone Elite" : "Data Drone Scout", kind: troop ? troop.kind : ("OVERCLOCKED" as const), drop: (troop ? troop.drop : "dataShards") as MaterialId, boss: false, kx: 0, kz: 0, mission: true, vulnUntil: 0, vulnMult: 1, encounter: undefined, decoy: undefined, living: undefined });
+    Object.assign(m, { alive: true, x: x + Math.cos(a) * 16, z: z + Math.sin(a) * 16, hp: (elite ? 6 : 3) * (sim.challenge?.enemyHp ?? 1), rot: 0, scale: elite ? 1.1 : 0.8, zone: regionId ?? "nexus", cool: elite ? 1.2 : 2.5, elite, profile: troop ? troop.name : elite ? "Data Drone Elite" : "Data Drone Scout", kind: troop ? troop.kind : ("OVERCLOCKED" as const), drop: (troop ? troop.drop : "dataShards") as MaterialId, boss: false, kx: 0, kz: 0, mission: true, vulnUntil: 0, vulnMult: 1, encounter: undefined, decoy: undefined, living: undefined, nemesis: undefined, nemesisWeak: undefined, nemesisDamage: undefined });
   }
 }
 
@@ -680,13 +693,26 @@ export function spawnEventSquad(sim: WorldSim, tag: string, x: number, z: number
     const a = (i / count) * Math.PI * 2 + Math.random() * 0.4;
     const troop = troopFor(regionId, i);
     const isElite = i < elite;
-    Object.assign(m, { alive: true, x: x + Math.cos(a) * ring, z: z + Math.sin(a) * ring, hp: (isElite ? 7 : 3.5) * (sim.challenge?.enemyHp ?? 1), rot: 0, scale: isElite ? 1.4 : 0.95, zone: regionId, cool: 1.5 + Math.random(), elite: isElite, profile: troop ? troop.name : "Hostile", kind: troop ? troop.kind : ("RAIDER" as const), drop: (troop ? troop.drop : "scrapMetal") as MaterialId, boss: false, kx: 0, kz: 0, mission: false, vulnUntil: 0, vulnMult: 1, encounter: undefined, decoy: undefined, living: tag, scenarioId: undefined, eq: undefined, swimY: undefined });
+    Object.assign(m, { alive: true, x: x + Math.cos(a) * ring, z: z + Math.sin(a) * ring, hp: (isElite ? 7 : 3.5) * (sim.challenge?.enemyHp ?? 1), rot: 0, scale: isElite ? 1.4 : 0.95, zone: regionId, cool: 1.5 + Math.random(), elite: isElite, profile: troop ? troop.name : "Hostile", kind: troop ? troop.kind : ("RAIDER" as const), drop: (troop ? troop.drop : "scrapMetal") as MaterialId, boss: false, kx: 0, kz: 0, mission: false, vulnUntil: 0, vulnMult: 1, encounter: undefined, decoy: undefined, living: tag, scenarioId: undefined, eq: undefined, swimY: undefined, nemesis: undefined, nemesisWeak: undefined, nemesisDamage: undefined });
     delete m.lastPlayerDamage; delete m.ai;
     n++;
   }
   return n;
 }
 
+
+/** nemesis.ts: put a nemesis into a free machine slot at (x,z) with its rank's stats; returns false when the pool is full */
+export function spawnNemesis(sim: WorldSim, n: Nemesis, x: number, z: number): boolean {
+  const m = sim.machines.find((e) => !e.alive);
+  if (!m) return false;
+  const st = nemesisStats(n);
+  const troop = troopFor(n.regionId, 0);
+  const weak = n.traits.map((t) => WEAK_ELEMENT[t]).find(Boolean);
+  Object.assign(m, { alive: true, x, z, hp: st.hp * (sim.challenge?.enemyHp ?? 1), rot: 0, scale: st.scale, zone: n.regionId, cool: 1.2, elite: true, profile: `${n.name} ${n.epithet}`, kind: troop ? troop.kind : ("RAIDER" as const), drop: (troop ? troop.drop : "scrapMetal") as MaterialId, boss: false, kx: 0, kz: 0, mission: false, vulnUntil: 0, vulnMult: 1, encounter: undefined, decoy: undefined, living: undefined, scenarioId: undefined, eq: undefined, swimY: undefined, nemesis: n.id, nemesisWeak: weak, nemesisDamage: st.damage });
+  delete m.lastPlayerDamage; delete m.ai;
+  alert(sim, `${n.name} ${n.epithet}: "${n.grudge}"`);
+  return true;
+}
 
 /** Spawns the regional catalog boss (encounters.ts) at (x,z). `extra` merges additional Machine
  * fields in afterward — used to tag an Emergency Quest spawn (`{ eq: true }`). Falls back to that
@@ -700,7 +726,7 @@ export function summonBoss(sim: WorldSim, regionId: string, x: number, z: number
   }
   const m = sim.machines.find((candidate) => !candidate.alive);
   if (!m) return false;
-  Object.assign(m, { alive: true, x, z, y: walkHeight(x, z) + 5, hp: 28 * (sim.challenge?.enemyHp ?? 1), maxHp: 28 * (sim.challenge?.enemyHp ?? 1), phase: 0 as BossPhaseIndex, rot: 0, scale: 2.3, zone: regionId, cool: 2, elite: true, boss: true, profile: boss.name, kind: "OVERCLOCKED", drop: boss.drop, kx: 0, kz: 0, poiseState: INITIAL_POISE, scenarioId: undefined, gimmickHistory: undefined, attuned: undefined, scenarioRun: undefined, playerHits: undefined, encounter: undefined, decoy: undefined, living: undefined, vulnUntil: 0, vulnMult: 1, ...extra });
+  Object.assign(m, { alive: true, x, z, y: walkHeight(x, z) + 5, hp: 28 * (sim.challenge?.enemyHp ?? 1), maxHp: 28 * (sim.challenge?.enemyHp ?? 1), phase: 0 as BossPhaseIndex, rot: 0, scale: 2.3, zone: regionId, cool: 2, elite: true, boss: true, profile: boss.name, kind: "OVERCLOCKED", drop: boss.drop, kx: 0, kz: 0, poiseState: INITIAL_POISE, scenarioId: undefined, gimmickHistory: undefined, attuned: undefined, scenarioRun: undefined, playerHits: undefined, encounter: undefined, decoy: undefined, living: undefined, nemesis: undefined, nemesisWeak: undefined, nemesisDamage: undefined, vulnUntil: 0, vulnMult: 1, ...extra });
   sim.raidFight = { start: performance.now() / 1000, hurt: 0, region: regionId };
   alert(sim, `${boss.name} · ${boss.tell}`);
   return true;
@@ -711,7 +737,7 @@ export function summonBoss(sim: WorldSim, regionId: string, x: number, z: number
 export function summonScenarioBoss(sim: WorldSim, scenario: UniqueScenario, x: number, z: number, extra?: Partial<Machine>): boolean {
   const m = sim.machines.find((candidate) => !candidate.alive);
   if (!m) return false;
-  Object.assign(m, { alive: true, x, z, y: walkHeight(x, z) + 5, hp: 34 * (sim.challenge?.enemyHp ?? 1), maxHp: 34 * (sim.challenge?.enemyHp ?? 1), phase: 0 as BossPhaseIndex, rot: 0, scale: 2.5, zone: scenario.regionId, cool: 2, elite: true, boss: true, profile: scenario.bossName, kind: "ABERRATION", drop: scenario.drop as MaterialId, kx: 0, kz: 0, poiseState: INITIAL_POISE, scenarioId: scenario.id, scenarioRun: `${scenario.id}-${Date.now().toString(36)}-${(sim.nextHitId++).toString(36)}-${Math.random().toString(36).slice(2, 8)}`, playerHits: 0, gimmickHistory: [], attuned: undefined, encounter: undefined, decoy: undefined, living: undefined, vulnUntil: 0, vulnMult: 1, ...extra });
+  Object.assign(m, { alive: true, x, z, y: walkHeight(x, z) + 5, hp: 34 * (sim.challenge?.enemyHp ?? 1), maxHp: 34 * (sim.challenge?.enemyHp ?? 1), phase: 0 as BossPhaseIndex, rot: 0, scale: 2.5, zone: scenario.regionId, cool: 2, elite: true, boss: true, profile: scenario.bossName, kind: "ABERRATION", drop: scenario.drop as MaterialId, kx: 0, kz: 0, poiseState: INITIAL_POISE, scenarioId: scenario.id, scenarioRun: `${scenario.id}-${Date.now().toString(36)}-${(sim.nextHitId++).toString(36)}-${Math.random().toString(36).slice(2, 8)}`, playerHits: 0, gimmickHistory: [], attuned: undefined, encounter: undefined, decoy: undefined, living: undefined, nemesis: undefined, nemesisWeak: undefined, nemesisDamage: undefined, vulnUntil: 0, vulnMult: 1, ...extra });
   sim.raidFight = { start: performance.now() / 1000, hurt: 0, region: scenario.regionId };
   alert(sim, `${scenario.name} · ${scenario.briefing}`);
   if (scenario.taunt) alert(sim, `${scenario.bossName}: ${scenario.taunt}`);
@@ -949,6 +975,7 @@ export function applyMachineDamageMods(sim: WorldSim, m: Machine, dmg: number, e
   const nowSec = performance.now() / 1000;
   markPlayerDamage(m); // bullets, abilities, launchers, turrets and strikes all price their damage here, so this is the player's damage
   if (m.vulnUntil > nowSec) dmg *= m.vulnMult;
+  if (m.nemesisWeak && element === m.nemesisWeak) dmg *= 2; // nemesis.ts: a scarred nemesis takes double damage from its weak element
   if (!m.boss) return dmg;
   if (!m.poiseState) m.poiseState = INITIAL_POISE;
   const result = hitPoise(m.poiseState, dmg * 9, nowSec);
@@ -996,6 +1023,7 @@ export function hurtPlayer(sim: WorldSim, dmg: number, cause: string) {
   if (sim.hp === 0) {
     sim.lastDeath = performance.now();
     sim.lastDeathCause = cause;
+    if (sim.lastHitBy && sim.lastHitBy.profile === cause) { sim.deathEvents.push({ killer: sim.lastHitBy, at: Date.now() }); if (sim.deathEvents.length > 8) sim.deathEvents.shift(); }
     sim.lastDeathCargo = sim.cargo;
     sim.deaths++;
     sim.hp = 100;
@@ -1345,7 +1373,8 @@ export function stepSim(sim: WorldSim, input: SimInput) {
       if (!scripted && d < 6 && m.cool <= 0) {
         m.cool = 1.1 * (bossTuning?.cooldownMult ?? 1);
         sim.combatHeat += 2;
-         hurtPlayer(sim, ((m.boss ? 17 : m.elite ? 12 : 7) * (bossTuning?.damageMult ?? 1)) / sim.mods.hullDurability, m.profile);
+        sim.lastHitBy = { profile: m.profile, zone: m.zone, elite: m.elite, boss: m.boss, nemesis: m.nemesis };
+         hurtPlayer(sim, ((m.boss ? 17 : m.elite ? 12 : 7) * (bossTuning?.damageMult ?? 1) * (m.nemesisDamage ?? 1)) / sim.mods.hullDurability, m.profile);
         // machines besieging Nexus chew the city core
         if (Math.hypot(m.x - byId("nexus").x, m.z - byId("nexus").z) < byId("nexus").radius) {
           sim.coreHp = Math.max(0, sim.coreHp - 2);
@@ -1358,7 +1387,7 @@ export function stepSim(sim: WorldSim, input: SimInput) {
           m.cool = (m.boss ? 1.2 : m.elite ? 1.5 : 2.1) * (bossTuning?.cooldownMult ?? 1);
           sim.enemyShots.push({ x: m.x, z: m.z, kind: m.kind, boss: m.boss, elite: m.elite, zone: m.zone });
           if (sim.enemyShots.length > 24) sim.enemyShots.shift();
-          if (Math.random() < 0.25) hurtPlayer(sim, ((m.boss ? 6 : m.elite ? 4 : 2) * (bossTuning?.damageMult ?? 1)) / sim.mods.hullDurability, m.profile);
+          if (Math.random() < 0.25) { sim.lastHitBy = { profile: m.profile, zone: m.zone, elite: m.elite, boss: m.boss, nemesis: m.nemesis }; hurtPlayer(sim, ((m.boss ? 6 : m.elite ? 4 : 2) * (bossTuning?.damageMult ?? 1) * (m.nemesisDamage ?? 1)) / sim.mods.hullDurability, m.profile); }
         }
       } else if (!scripted && d < 55 && m.cool <= 0 && (m.boss || aimTickets < MAX_AIMING)) {
         // ranged suppressing fire: take a ticket and start the telegraph; elites/bosses wind up faster

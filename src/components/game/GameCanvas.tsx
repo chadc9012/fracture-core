@@ -71,8 +71,10 @@ import { claimDrops } from "@/game/inventory";
 import { ShopWindow } from "./ShopWindow";
 import { LivingNpcPanel, LivingTracker } from "./LivingNpcPanel";
 import { resolveLivingEvent } from "@/game/living-events";
-import { recordCityKills, recordReach } from "@/game/living-npcs";
+import { PLEDGE_KEY, recordCityKills, recordReach } from "@/game/living-npcs";
+import { claimSecret } from "@/game/secrets";
 import { ACTIVITY_COLOR, ACTIVITY_LABEL, CHALLENGES, recordPatrolKills } from "@/game/map-activities";
+import { applyNemesisKill, applyPlayerDeath } from "@/game/nemesis";
 import type { LivingEmit } from "@/game/living-runtime";
 import { InventoryWindow } from "./InventoryWindow";
 import { CharacterScreen } from "./CharacterScreen";
@@ -306,6 +308,8 @@ export function GameCanvas() {
   const [npcOpen, setNpcOpen] = useState<string | null>(null);
   const npcNearRef = useRef<string | null>(null);
   const [livingToast, setLivingToast] = useState<string | null>(null);
+  /** nemesis picked on the map: it ambushes right after the drop (living-runtime.ts) */
+  const [summonNemesis, setSummonNemesis] = useState<string | null>(null);
   const toastTimer = useRef<number | undefined>(undefined);
   const showLivingToast = useCallback((text: string) => { if (!text) return; setLivingToast(text); window.clearTimeout(toastTimer.current); toastTimer.current = window.setTimeout(() => setLivingToast(null), 6000); }, []);
   const [ruinOpen, setRuinOpen] = useCountedState<string | null>("ruinOpen", null);
@@ -763,6 +767,7 @@ export function GameCanvas() {
   continueRef.current = continueIntoWorld; // the delayed swap must use the latest closure, not the one from the click
   const startTransit = (target: DeployTarget) => {
     if (transit) return; // single-flight: a second click never queues a second teleport
+    setSummonNemesis(target.id.startsWith("nemesis:") ? target.id.slice("nemesis:".length) : null);
     const reduced = prefersReduced(settings.reducedMotion), plan = transitPlan(reduced);
     setTransit({ startedAt: performance.now(), plan, reduced, target });
     transitTimers.current.push(
@@ -871,6 +876,29 @@ export function GameCanvas() {
   /** Living World outcomes from Scene (living-runtime.ts): all three reducers are idempotent, so a repeat changes nothing */
   const recordLiving = useCallback((event: LivingEmit) => {
     if (event.type === "KILLS") { setProgression((current) => recordCityKills(current, event.city, event.count)); return; }
+    if (event.type === "SECRET") {
+      const ctx = (q: PlayerProgression) => ({ night: event.night, storm: event.storm, nemesisSlain: (q.nemeses ?? []).some((n) => n.status === "SLAIN"), pledged: !!q.story.choices[PLEDGE_KEY] });
+      const preview = claimSecret(progressionRef.current, event.id, ctx(progressionRef.current));
+      if ("message" in preview) showLivingToast(preview.message);
+      setProgression((current) => { const r = claimSecret(current, event.id, ctx(current)); return "progression" in r ? r.progression : current; });
+      return;
+    }
+    if (event.type === "PLAYER_KILLED") {
+      const now = Date.now();
+      const preview = applyPlayerDeath(progressionRef.current, event.killer, event.regionName, now);
+      if (preview.line) showLivingToast(preview.line);
+      setProgression((current) => applyPlayerDeath(current, event.killer, event.regionName, now).progression);
+      return;
+    }
+    if (event.type === "NEMESIS_DOWN") {
+      if (!event.killed) { showLivingToast("Your nemesis got away."); return; }
+      const now = Date.now();
+      const preview = applyNemesisKill(progressionRef.current, event.id, now);
+      if (preview.line) showLivingToast(preview.line);
+      setProgression((current) => applyNemesisKill(current, event.id, now).progression);
+      setSummonNemesis(null);
+      return;
+    }
     if (event.type === "REGION_KILLS") {
       const preview = recordPatrolKills(progressionRef.current, event.region, event.count);
       if (preview.message) showLivingToast(preview.message);
@@ -1056,7 +1084,7 @@ export function GameCanvas() {
       >
         <color attach="background" args={["#bfe4f2"]} />
         <Suspense fallback={<WorldLoading />}>
-            <Profiler id="scene" onRender={onProf}><Scene openedCaches={openedToday} onStoryEvent={recordStory} onLiving={recordLiving} onHud={setHud} onDrops={(drops) => { showScenarioRewards(drops); setProgression((current) => claimDrops(current, drops)); }} gear={progression} settings={liveSettings} onCameraPreference={(firstPerson) => { window.localStorage.setItem("world-fracture-camera", firstPerson ? "first" : "third"); setSettings((current) => ({ ...current, firstPersonDefault: firstPerson })); }} playerClass={cls} subclassId={subclass} appearance={appearance} bodyType={bodyType} vehicleId={vehicleId} vehicleUnlocked={vehicleUnlocked} activeBuild={progression.activeBuild} abilityBranches={progression.abilityBranches} tutorial={tutorial} onTutorialEvent={recordTutorial} mission={mission} onMissionEvent={recordMission} relay={relay} onRelayEvent={recordRelay} blackout={blackout} onBlackoutEvent={recordBlackout} neonCore={neonCore} onNeonCoreEvent={recordNeonCore} solarArray={solarArray} onSolarArrayEvent={recordSolarArray} coreNode={coreNode} onCoreNodeEvent={recordCoreNode} zoneRuns={zoneRuns} onZoneEvent={recordZone} descent={descent} onDescentEvent={recordDescent} systemCore={systemCore} onSystemCoreEvent={recordSystemCore} awakening={awakening} onAwakeningEvent={recordAwakening} onXP={recordXP} weaponOrder={carriedWeapons(activeLoadout(progression, progression.identityClass ?? cls).slots)} travelTo={travelTo} introPlayback={showIntro ? { elapsed: introElapsed, totalSeconds: introTotalSeconds() } : cineId ? { elapsed: cineProgress * introTotalSeconds(), totalSeconds: introTotalSeconds() } : null} armorState={hud.hp < 35 ? "FRACTURE" : hud.heat > 65 ? "ASCENDANT" : hud.heat > 15 ? "ACTIVE" : "STABLE"} /></Profiler>
+            <Profiler id="scene" onRender={onProf}><Scene openedCaches={openedToday} onStoryEvent={recordStory} onLiving={recordLiving} summonNemesis={summonNemesis} onHud={setHud} onDrops={(drops) => { showScenarioRewards(drops); setProgression((current) => claimDrops(current, drops)); }} gear={progression} settings={liveSettings} onCameraPreference={(firstPerson) => { window.localStorage.setItem("world-fracture-camera", firstPerson ? "first" : "third"); setSettings((current) => ({ ...current, firstPersonDefault: firstPerson })); }} playerClass={cls} subclassId={subclass} appearance={appearance} bodyType={bodyType} vehicleId={vehicleId} vehicleUnlocked={vehicleUnlocked} activeBuild={progression.activeBuild} abilityBranches={progression.abilityBranches} tutorial={tutorial} onTutorialEvent={recordTutorial} mission={mission} onMissionEvent={recordMission} relay={relay} onRelayEvent={recordRelay} blackout={blackout} onBlackoutEvent={recordBlackout} neonCore={neonCore} onNeonCoreEvent={recordNeonCore} solarArray={solarArray} onSolarArrayEvent={recordSolarArray} coreNode={coreNode} onCoreNodeEvent={recordCoreNode} zoneRuns={zoneRuns} onZoneEvent={recordZone} descent={descent} onDescentEvent={recordDescent} systemCore={systemCore} onSystemCoreEvent={recordSystemCore} awakening={awakening} onAwakeningEvent={recordAwakening} onXP={recordXP} weaponOrder={carriedWeapons(activeLoadout(progression, progression.identityClass ?? cls).slots)} travelTo={travelTo} introPlayback={showIntro ? { elapsed: introElapsed, totalSeconds: introTotalSeconds() } : cineId ? { elapsed: cineProgress * introTotalSeconds(), totalSeconds: introTotalSeconds() } : null} armorState={hud.hp < 35 ? "FRACTURE" : hud.heat > 65 ? "ASCENDANT" : hud.heat > 15 ? "ACTIVE" : "STABLE"} /></Profiler>
         </Suspense>
         {post && (
           // cinematic grade: cool-leaning teal shadows, a touch more punch, so the HUD's cyan

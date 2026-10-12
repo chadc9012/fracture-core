@@ -16,7 +16,7 @@ import { waterMix } from "@/game/water-audio";
 /** water audio is eased in the audio graph, so it only needs a pose update ~8x/s */
 let lastWaterAudioAt = 0;
 import { flavorFor } from "@/game/audio-design";
-import { alert, applyLightning, chipPlayer, collidePlayer, createSim, defeatMachine, FACTIONS, fireBullet, fireLauncher, hurtPlayer, throwBeacon, instabilityTier, spawnMissionDrones, stepSim, summonBoss, summonScenarioBoss, type Faction, type InstabilityTier, type WorldSim, type ZoneState } from "@/game/sim";
+import { alert, applyLightning, chipPlayer, collidePlayer, createSim, defeatMachine, FACTIONS, fireBullet, fireLauncher, hurtPlayer, throwBeacon, instabilityTier, spawnMissionDrones, spawnEventSquad, stepSim, summonBoss, summonScenarioBoss, type Faction, type InstabilityTier, type WorldSim, type ZoneState } from "@/game/sim";
 import type { MissionEvent, MissionRun } from "@/game/missions/broken-signal";
 import type { MissionEvent as BlackoutEvent, MissionRun as BlackoutRun } from "@/game/missions/blackout-protocol";
 import type { MissionEvent as NeonCoreEvent, MissionRun as NeonCoreRun } from "@/game/missions/stitched-neon-core";
@@ -149,7 +149,8 @@ import { createLivingRuntime, stepLivingRuntime, type LivingEmit, type LivingHud
 import { EMPTY_LIVING } from "@/game/living-world";
 import { fallenDistricts } from "@/game/living-events";
 import { CHALLENGES } from "@/game/map-activities";
-import { LIVING_NPCS, livingMarkers, npcNear, npcWorld } from "@/game/living-npcs";
+import { LIVING_NPCS, PLEDGE_KEY, livingMarkers, npcNear, npcWorld } from "@/game/living-npcs";
+import type { SecretContext } from "@/game/secrets";
 import { LivingCity } from "./LivingCity";
 import type { ArmorVisualState } from "./Scavenger";
 import type { PlayerProgression } from "@/game/progression";
@@ -413,6 +414,7 @@ function SceneImpl({
   onDrops,
   onStoryEvent,
   onLiving,
+  summonNemesis = null,
   gear,
   mission,
   onMissionEvent,
@@ -464,7 +466,9 @@ function SceneImpl({
   onStoryEvent?: (event: StoryWorldEvent) => void;
   /** Living World outcomes (city kills, event results, survey/stash reached); GameCanvas applies them to progression */
   onLiving?: (event: LivingEmit) => void;
-  gear?: Pick<PlayerProgression, "inventory" | "equippedGear" | "dungeonClears" | "completedMissions" | "story" | "earnedRewards"> & Partial<Pick<PlayerProgression, "living" | "challenge">>;
+  gear?: Pick<PlayerProgression, "inventory" | "equippedGear" | "dungeonClears" | "completedMissions" | "story" | "earnedRewards"> & Partial<Pick<PlayerProgression, "living" | "challenge" | "nemeses">>;
+  /** nemesis.ts: a nemesis the player picked on the map; it ambushes right after arrival */
+  summonNemesis?: string | null;
   mission?: MissionRun | null;
   onMissionEvent?: (event: MissionEvent) => void;
   relay?: RelayRun | null;
@@ -557,6 +561,9 @@ function SceneImpl({
       npcs: () => ({ near: npcNear(state.current.x, state.current.z)?.id ?? null, inVehicle: state.current.inVehicle, list: LIVING_NPCS.map((n) => ({ id: n.id, ...npcWorld(n) })) }),
       livingNow: () => { if (livingRt.current) livingRt.current.director = { ...livingRt.current.director, next: 0 }; return "next city event starts on the next frame (you must be inside Nexus or Neon City)"; },
       living: () => ({ event: livingRt.current?.director.current ?? null, next: Math.round(livingRt.current?.director.next ?? 0), guards: livingRt.current?.guards.map((g) => ({ id: g.id, state: g.state, x: Math.round(g.x), z: Math.round(g.z) })) }),
+      spawn: (n = 4) => spawnEventSquad(sim, "", state.current.x + 18, state.current.z, n, 1, regionAt(state.current.x, state.current.z)?.id ?? "wastelands", 6),
+      dieTo: () => { const profile = "Wasteland Grunt"; sim.lastHitBy = { profile, zone: regionAt(state.current.x, state.current.z)?.id ?? "wastelands", elite: true, boss: false }; hurtPlayer(sim, 9999, profile); return "died"; },
+      nemesis: () => (gear?.nemeses ?? []).map((n) => `${n.name} ${n.epithet} r${n.rank} ${n.regionId} ${n.status} [${n.traits.join(",")}]`),
       livingKill: () => { let n = 0; const id = livingRt.current?.director.current?.id; for (const m of sim.machines) if (m.alive && id && m.living === id) { m.hp = 0; defeatMachine(sim, m, "player"); n++; } return n; },
     };
     return () => { delete w.__warp; delete wr.__where; delete wd.__dev; };
@@ -1945,7 +1952,8 @@ function SceneImpl({
       const ch = CHALLENGES[gear?.challenge ?? "STANDARD"];
       sim.challenge.enemyHp = ch.enemyHp; sim.challenge.enemyDamage = ch.enemyDamage;
       const blocked = !!tutorial || !!interior || !!introPlayback || sim.machines.some((m) => m.alive && m.mission);
-      const lv = stepLivingRuntime(livingRt.current, sim, { dt, now: Date.now(), px: s.x, pz: s.z, blocked, living: gear?.living ?? EMPTY_LIVING, fallen: livingFallen, markers: livingMarks, rnd: Math.random });
+      const secretCtx = livingSecretCtx(gear, night > 0.5, wx?.state === "STORM");
+      const lv = stepLivingRuntime(livingRt.current, sim, { dt, now: Date.now(), px: s.x, pz: s.z, blocked, living: gear?.living ?? EMPTY_LIVING, fallen: livingFallen, markers: livingMarks, rnd: Math.random, nemeses: gear?.nemeses ?? [], summonedNemesis: summonNemesis, secrets: secretCtx });
       livingHud.current = lv.hud;
       livingThreats.current = livingRt.current.threats;
       for (const e of lv.emits) onLiving?.(e);
@@ -2634,6 +2642,11 @@ const shallowSame = (a: unknown, b: unknown): boolean => {
   }
   return false;
 };
+/** secrets.ts conditions from the save and the live clock/weather */
+function livingSecretCtx(gear: SceneProps["gear"], night: boolean, storm: boolean): SecretContext {
+  return { night, storm, nemesisSlain: (gear?.nemeses ?? []).some((n) => n.status === "SLAIN"), pledged: !!gear?.story?.choices?.[PLEDGE_KEY], earned: gear?.earnedRewards ?? [] };
+}
+
 export const scenePropsEqual = (a: Record<string, unknown>, b: Record<string, unknown>): boolean => {
   const keys = new Set([...Object.keys(a), ...Object.keys(b)]);
   for (const k of keys) if (!shallowSame(a[k], b[k])) { setterCalls[`scene!=${k}`] = (setterCalls[`scene!=${k}`] ?? 0) + 1; return false; }

@@ -1,4 +1,5 @@
 import { EMPTY_LIVING, normalizeLiving, type LivingState } from "./living-world";
+import { normalizeNemeses, type Nemesis } from "./nemesis";
 import { profileKey } from "./save-profile";
 import { EMPTY_STORY, normalizeStory, type StoryState } from "./story";
 import { sanitizeActiveMissions, type ActiveMissions } from "./missions/persistence";
@@ -65,6 +66,8 @@ export type PlayerProgression = {
   challenge: "STANDARD" | "HARD" | "VERY_HARD";
   /** the regional patrol in progress (map-activities.ts), null when none */
   patrol: { regionId: string; kills: number; need: number; day: string } | null;
+  /** nemesis.ts: enemies that killed you and came back (merge by id, SLAIN wins) */
+  nemeses: Nemesis[];
   inventory: GearItem[];
   equippedGear: Partial<Record<GearSlot, string>>;
   materials: Partial<Record<MaterialId, number>>;
@@ -121,6 +124,7 @@ export const DEFAULT_PROGRESSION: PlayerProgression = {
   living: EMPTY_LIVING,
   challenge: "STANDARD",
   patrol: null,
+  nemeses: [],
   inventory: STARTER_GEAR,
   equippedGear: STARTER_SLOTS,
   materials: {},
@@ -177,6 +181,7 @@ export function normalizeProgression(raw: unknown): PlayerProgression {
       earnedRewards: Array.isArray(parsed.earnedRewards) ? parsed.earnedRewards : [],
       story: normalizeStory(parsed.story),
       living: normalizeLiving(parsed.living),
+      nemeses: normalizeNemeses(parsed.nemeses),
       challenge: parsed.challenge === "HARD" || parsed.challenge === "VERY_HARD" ? parsed.challenge : "STANDARD",
       patrol: parsed.patrol && typeof parsed.patrol === "object" && typeof parsed.patrol.regionId === "string" && typeof parsed.patrol.kills === "number" && typeof parsed.patrol.need === "number" && typeof parsed.patrol.day === "string" ? { regionId: parsed.patrol.regionId, kills: parsed.patrol.kills, need: parsed.patrol.need, day: parsed.patrol.day } : null,
       abilityMastery: parsed.abilityMastery && typeof parsed.abilityMastery === "object" ? parsed.abilityMastery : {},

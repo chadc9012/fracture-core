@@ -13,8 +13,9 @@ import { CITIES, cityAt } from "./living-world";
 import { livingMarkers } from "./living-npcs";
 import { rewardMission, type PlayerProgression } from "./progression";
 import type { MaterialId } from "./inventory";
+import { TRAITS } from "./nemesis";
 
-export type ActivityKind = "STORY" | "SAFE_ZONE" | "BOSS" | "RESOURCE" | "CONTRACT" | "STASH" | "PATROL";
+export type ActivityKind = "STORY" | "SAFE_ZONE" | "BOSS" | "NEMESIS" | "RESOURCE" | "CONTRACT" | "STASH" | "PATROL";
 export type ActivityStatus = "NEXT" | "AVAILABLE" | "DONE" | "LOCKED";
 export type Activity = {
   id: string; kind: ActivityKind; name: string; detail: string; regionId: string;
@@ -23,8 +24,8 @@ export type Activity = {
   drop: { x: number; z: number; y?: number };
 };
 
-export const ACTIVITY_LABEL: Record<ActivityKind, string> = { STORY: "Story", SAFE_ZONE: "Safe zone", BOSS: "Boss lair", RESOURCE: "Resource site", CONTRACT: "Contract", STASH: "Hidden stash", PATROL: "Patrol" };
-export const ACTIVITY_COLOR: Record<ActivityKind, string> = { STORY: "#ffd166", SAFE_ZONE: ZONE_COLOR.safe, BOSS: "#ff4d5e", RESOURCE: "#4de3b0", CONTRACT: "#7ef2b0", STASH: "#ffb23e", PATROL: "#66e0ff" };
+export const ACTIVITY_LABEL: Record<ActivityKind, string> = { STORY: "Story", SAFE_ZONE: "Safe zone", BOSS: "Boss lair", RESOURCE: "Resource site", CONTRACT: "Contract", STASH: "Hidden stash", PATROL: "Patrol", NEMESIS: "Nemesis" };
+export const ACTIVITY_COLOR: Record<ActivityKind, string> = { STORY: "#ffd166", SAFE_ZONE: ZONE_COLOR.safe, BOSS: "#ff4d5e", RESOURCE: "#4de3b0", CONTRACT: "#7ef2b0", STASH: "#ffb23e", PATROL: "#66e0ff", NEMESIS: "#ff2e63" };
 
 const off = (x: number, z: number, d: number, from: { x: number; z: number }) => {
   const dx = from.x - x, dz = from.z - z, len = Math.hypot(dx, dz) || 1;
@@ -104,6 +105,9 @@ export function regionActivities(p: PlayerProgression, regionId: string, now = D
     // a lair inside a submerged city (the Drowned Monarch in Thalassia) is reached the way the city is: by submersible
     const sub = CITY_DESTINATIONS.find((c) => c.arrival === "submersible" && Math.hypot(c.x - l.x, c.z - l.z) < 250);
     out.push({ id: `boss:${l.id}`, kind: "BOSS", name: l.label, detail: sub ? `Boss lair in ${sub.name}: submersible arrival, then dive to it` : "Boss lair: walk in to start the fight", regionId, x: l.x, z: l.z, status: "AVAILABLE", drop: sub ? dropPoint(sub) : off(l.x, l.z, 18, centre) });
+  }
+  for (const n of (p.nemeses ?? []).filter((x) => x.status === "ALIVE" && x.regionId === regionId)) {
+    out.push({ id: `nemesis:${n.id}`, kind: "NEMESIS", name: `${n.name} ${n.epithet}`, detail: `Rank ${n.rank} ${n.profile} · ${n.traits.map((t) => TRAITS[t].label).join(", ")} · killed you ${n.kills}× · hunts you on arrival`, regionId, x: region.x, z: region.z, status: "AVAILABLE", drop: { x: region.x + region.radius * 0.35, z: region.z - region.radius * 0.2 } });
   }
   for (const s of RESOURCE_SITES.filter((m) => m.regionId === regionId)) out.push({ id: `res:${s.id}`, kind: "RESOURCE", name: s.label, detail: `Gather ${s.material}`, regionId, x: s.x, z: s.z, status: "AVAILABLE", drop: off(s.x, s.z, 6, centre) });
   for (const m of livingMarkers(p)) {

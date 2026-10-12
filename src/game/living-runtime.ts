@@ -2,19 +2,26 @@
  * `stepLivingRuntime` once per frame after stepSim; it advances the event director, spawns/despawns event machines,
  * runs city patrols (their hits go through the same damage path as everything else), tracks where civilians should
  * run from, and returns the save-changing events (`emits`) that GameCanvas applies to progression. No rendering. */
-import { alert, defeatMachine, hurtPlayer, spawnEventSquad, summonBoss, type WorldSim } from "./sim";
+import { alert, defeatMachine, spawnNemesis, hurtPlayer, spawnEventSquad, summonBoss, type WorldSim } from "./sim";
 import { CITIES, FACTIONS, TIER_RULES, cityAt, districtById, tierOf, type CityId, type FactionId, type LivingState } from "./living-world";
 import { EVENT_RULES, FRACTURE_HOLD, FRACTURE_RADIUS, createLivingDirector, stepLivingDirector, type LivingDirector, type LivingEvent } from "./living-events";
 import { createGuards, stepGuards, type Guard } from "./city-patrols";
 import { STASH_REACH, SURVEY_REACH } from "./living-npcs";
-import { regionAt } from "./world";
+import { REGIONS, regionAt } from "./world";
+import { CONDITION_TEXT, SECRET_REACH, SECRET_SHIMMER, secretPoint, senseSecret, type SecretContext } from "./secrets";
+import { ambushDue, TRAITS, type KillerSnapshot, type Nemesis } from "./nemesis";
 
 export type LivingEmit =
   | { type: "KILLS"; city: CityId; count: number }
   /** player kills per region (map-activities.ts patrols) */
   | { type: "REGION_KILLS"; region: string; count: number }
   | { type: "EVENT"; event: LivingEvent; outcome: "WON" | "FAILED" }
-  | { type: "REACH"; x: number; z: number };
+  | { type: "REACH"; x: number; z: number }
+  /** nemesis.ts: the player died to this machine / a nemesis machine died (killed = by the player) */
+  | { type: "PLAYER_KILLED"; killer: KillerSnapshot; regionName: string }
+  | { type: "NEMESIS_DOWN"; id: string; killed: boolean }
+  /** secrets.ts: the player reached a secret that answers now */
+  | { type: "SECRET"; id: string; night: boolean; storm: boolean };
 
 export type LivingRuntime = {
   director: LivingDirector;
@@ -28,10 +35,14 @@ export type LivingRuntime = {
   threats: { x: number; z: number }[];
   warnedAt: Partial<Record<FactionId, number>>;
   clock: number;
+  /** nemesis ambush timing */
+  nemRegion: string | null; nemInRegion: number; nemLastAmbush: number; nemSummonDone: string | null;
+  /** secrets.ts: the one the player is sensing (LivingCity draws its shimmer) */
+  secretNear: { x: number; z: number; open: boolean; dist: number } | null;
 };
 
 export function createLivingRuntime(sim: Pick<WorldSim, "kills">): LivingRuntime {
-  return { director: createLivingDirector(), guards: createGuards(), killsSeen: sim.kills, killAcc: {}, regionAcc: {}, flushIn: 1.5, reached: new Set(), threats: [], warnedAt: {}, clock: 0 };
+  return { director: createLivingDirector(), guards: createGuards(), killsSeen: sim.kills, killAcc: {}, regionAcc: {}, flushIn: 1.5, reached: new Set(), threats: [], warnedAt: {}, clock: 0, nemRegion: null, nemInRegion: 0, nemLastAmbush: -1e9, nemSummonDone: null, secretNear: null };
 }
 
 export type LivingStepInput = {
@@ -42,10 +53,19 @@ export type LivingStepInput = {
   fallen: readonly string[];
   markers: readonly { id: string; x: number; z: number; kind: "survey" | "stash" }[];
   rnd: () => number;
+  /** nemesis.ts: the save's nemeses and one the player chose on the map (skips the wait) */
+  nemeses?: readonly Nemesis[];
+  summonedNemesis?: string | null;
+  /** secrets.ts conditions (night, storm, nemesis slain, pledged) and what is already found */
+  secrets?: SecretContext;
 };
 
 export type LivingHud = {
   city: CityId | null;
+  /** secrets.ts: NOVA senses something (distance only; the name shows once you are in reach) */
+  secret?: { dist: number; inReach: boolean; open: boolean; name: string | null; locked: string | null } | null;
+  /** a nemesis is on the field */
+  nemesis?: { name: string; rank: number; traits: string[]; weak: string | null; hp: number } | null;
   event: null | { title: string; brief: string; kind: LivingEvent["kind"]; phase: LivingEvent["phase"]; timer: number; district: string; x: number; z: number; hold: number; holdNeed: number; left: number; inRift: boolean };
 };
 
@@ -137,6 +157,34 @@ export function stepLivingRuntime(rt: LivingRuntime, sim: WorldSim, inp: LivingS
     }
   }
 
+  // 3b) nemeses: report deaths/kills, and ambush the player in a nemesis's region (never during missions or city events)
+  for (const d of sim.deathEvents.splice(0)) emits.push({ type: "PLAYER_KILLED", killer: d.killer, regionName: REGIONS.find((r) => r.id === d.killer.zone)?.name ?? "the wastes" });
+  for (const e of sim.nemesisEvents.splice(0)) emits.push({ type: "NEMESIS_DOWN", id: e.id, killed: e.killed });
+  {
+    const here = regionAt(inp.px, inp.pz)?.id ?? null;
+    if (here !== rt.nemRegion) { rt.nemRegion = here; rt.nemInRegion = 0; } else rt.nemInRegion += inp.dt;
+    const busy = inp.blocked || !!rt.director.current || sim.machines.some((m) => m.alive && m.nemesis);
+    const summoned = inp.summonedNemesis && inp.summonedNemesis !== rt.nemSummonDone ? inp.summonedNemesis : null;
+    const due = busy || !alive ? null : ambushDue(inp.nemeses ?? [], here, rt.nemInRegion, rt.clock - rt.nemLastAmbush, summoned);
+    if (due) {
+      const a = inp.rnd() * Math.PI * 2;
+      if (spawnNemesis(sim, due, inp.px + Math.cos(a) * 24, inp.pz + Math.sin(a) * 24)) { rt.nemLastAmbush = rt.clock; if (due.id === summoned) rt.nemSummonDone = summoned; }
+    }
+  }
+
+  // 3c) secrets: sense the nearest unfound one; reaching one that answers now emits its claim (once per session)
+  rt.secretNear = null;
+  let secretHud: LivingHud["secret"] = null;
+  if (inp.secrets && alive) {
+    const sensed = senseSecret(inp.px, inp.pz, inp.secrets);
+    if (sensed) {
+      const p = secretPoint(sensed.secret), inReach = sensed.dist <= SECRET_REACH;
+      rt.secretNear = sensed.dist <= SECRET_SHIMMER ? { x: p.x, z: p.z, open: sensed.open, dist: sensed.dist } : null;
+      secretHud = { dist: Math.round(sensed.dist), inReach, open: sensed.open, name: inReach ? sensed.secret.name : null, locked: inReach && !sensed.open ? sensed.secret.locked || CONDITION_TEXT[sensed.secret.condition] : null };
+      if (inReach && sensed.open && !rt.reached.has(`secret:${sensed.secret.id}`)) { rt.reached.add(`secret:${sensed.secret.id}`); emits.push({ type: "SECRET", id: sensed.secret.id, night: inp.secrets.night, storm: inp.secrets.storm }); }
+    }
+  }
+
   // 4) where civilians run from
   rt.threats.length = 0;
   for (const m of sim.machines) if (m.alive && !m.decoy && cityAt(m.x, m.z)) rt.threats.push({ x: m.x, z: m.z });
@@ -148,8 +196,12 @@ export function stepLivingRuntime(rt: LivingRuntime, sim: WorldSim, inp: LivingS
   }
 
   const ev = rt.director.current;
+  const nm = sim.machines.find((m) => m.alive && m.nemesis);
+  const nd = nm ? (inp.nemeses ?? []).find((n) => n.id === nm.nemesis) : undefined;
   const hud: LivingHud = {
     city,
+    secret: secretHud,
+    nemesis: nm && nd ? { name: `${nd.name} ${nd.epithet}`, rank: nd.rank, traits: nd.traits.map((t) => TRAITS[t].label), weak: nm.nemesisWeak ?? null, hp: Math.round(nm.hp * 10) / 10 } : null,
     event: ev ? {
       title: EVENT_RULES[ev.kind].title, brief: EVENT_RULES[ev.kind].brief, kind: ev.kind, phase: ev.phase, timer: ev.timer,
       district: districtById(ev.district)?.name ?? CITIES[ev.city].name, x: ev.x, z: ev.z, hold: ev.hold, holdNeed: FRACTURE_HOLD,
