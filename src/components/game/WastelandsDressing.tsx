@@ -123,7 +123,7 @@ function Billboards() {
     const y = walkHeight(b.x, b.z);
     return <group key={i} position={[b.x, y, b.z]} rotation-y={b.r}>
       {[-3.4, 3.4].map((x) => <mesh key={x} castShadow position={[x, 4, 0]}><cylinderGeometry args={[0.18, 0.22, 8, 6]} /><meshStandardMaterial color="#3d3b38" metalness={0.6} roughness={0.6} /></mesh>)}
-      <mesh castShadow position={[0, 9, 0]} rotation-z={b.tilt * 0.6}><boxGeometry args={[10, 4.5, 0.2]} /><meshStandardMaterial color={["#a8623a", "#3f6f7a", "#9a8a4a"][i % 3]} roughness={0.9} /></mesh>
+      <mesh castShadow position={[0, 9, 0]} rotation-z={b.tilt * 0.6}><boxGeometry args={[10, 4.5, 0.2]} /><meshStandardMaterial color={["#a8623a", "#3f6f7a", "#9a8a4a"][i % 3]!} roughness={0.9} /></mesh>
       <mesh position={[-1.5, 9.2, 0.12]}><planeGeometry args={[5, 1.2]} /><meshStandardMaterial color="#e8dcc0" roughness={1} /></mesh>
     </group>;
   })}</group>;

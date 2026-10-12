@@ -5,7 +5,7 @@
  * with the old soft-light overlay). Pure data; subtle by design so it never hides gameplay. */
 export type GradeStyle = { background: string; vignette: string; opacity: number };
 
-export const GRADE = { vignetteInner: 52, vignetteDark: 0.42, tintTop: "rgba(24, 70, 96, 0.2)", tintBottom: "rgba(255, 168, 96, 0.14)" } as const;
+export const GRADE = { vignetteInner: 52, vignetteDark: 0.3, tintTop: "rgba(24, 70, 96, 0.14)", tintBottom: "rgba(255, 168, 96, 0.09)" } as const;
 
 /** `reducedMotion`/`reduceEffects` users get a flatter grade (no heavy vignette) */
 export function gradeStyle(opts: { reduce?: boolean } = {}): GradeStyle {
@@ -14,6 +14,6 @@ export function gradeStyle(opts: { reduce?: boolean } = {}): GradeStyle {
   return {
     vignette,
     background: `${vignette}, linear-gradient(180deg, ${GRADE.tintTop} 0%, rgba(0,0,0,0) 45%, ${GRADE.tintBottom} 100%)`,
-    opacity: opts.reduce ? 0.4 : 0.7,
+    opacity: opts.reduce ? 0.32 : 0.5,
   };
 }

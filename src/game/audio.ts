@@ -5,6 +5,7 @@
  */
 import type { WeaponId } from "./weapons";
 import { voiceAction, type WaterMix, type WaterSource } from "./water-audio";
+import { AUDIO_FILES } from "./audio-files";
 import { BLAST_FLAVOR, SHOTS, blastAtDistance, shotKey, variation, type BlastFlavor, type ShotProfile } from "./audio-design";
 
 type Ctx = { ac: AudioContext; master: GainNode; sfx: GainNode; music: GainNode; noise: AudioBuffer; brown: AudioBuffer; verb: GainNode; drive: Map<number, Float32Array>; layers: { ambient: GainNode; tension: GainNode; drums: GainNode; motif: GainNode } | null; ambientOscs: OscillatorNode[]; musicRegion: string; beat: number };
@@ -33,6 +34,7 @@ export function unlockAudio() {
   const verbNode = ac.createConvolver(); verbNode.buffer = outdoorImpulse(ac, 2.4);
   const verb = ac.createGain(); verb.gain.value = 0.55; verb.connect(verbNode).connect(comp);
   ctx = { ac, master, sfx, music, noise, brown, verb, drive: new Map(), layers: null, ambientOscs: [], musicRegion: "", beat: 0 };
+  preloadSamples(ctx);
   applyMix();
   startMusic(ctx);
 }
@@ -126,10 +128,63 @@ function shotLayers(c: Ctx, dest: AudioNode, p: ShotProfile, v: { pitch: number;
   for (const m of p.mech ?? []) noiseLayer(c, dest, { dur: 0.035, freq: m.freq, q: 6, gain: m.gain, at: m.at });
 }
 
+/* ---------------- bundled samples (audio-files.ts); procedural synthesis stays the fallback ---------------- */
+const SAMPLE_FILES = { rifle: "precision-rifle", shotgun: "shotgun-blast", tank: "tank-cannon", melee: "melee-impact", fracture: "reality-fracture-impact", portal: "reality-rift-portal", loot: "loot-pickup", engine: "vehicle-engine-start" } as const;
+type SampleId = keyof typeof SAMPLE_FILES;
+const AMBIENCE_FILES: Record<string, string> = { veridan: "forest-wilds", swamps: "swamp-marsh", thalassia: "underwater-city", nexus: "nexus-hum", frostspire: "frost-spire", solara: "solara-dunes", wastelands: "wasteland-wind", ember: "ember-peaks" };
+const sampleBuffers = new Map<string, AudioBuffer>();
+const sampleLoads = new Set<string>();
+let activeBiomeRegion = "";
+function loadSample(c: Ctx, id: string, file: string) {
+  const url = AUDIO_FILES[file]; if (!url || sampleBuffers.has(id) || sampleLoads.has(id)) return;
+  sampleLoads.add(id);
+  fetch(url).then((r) => { if (!r.ok) throw new Error(String(r.status)); return r.arrayBuffer(); })
+    .then((b) => c.ac.decodeAudioData(b)).then((buf) => {
+      sampleBuffers.set(id, buf);
+      if (id === `ambient:${activeBiomeRegion}`) { biomeVoice?.stop(); biomeVoice = null; updateBiomeAmbient(activeBiomeRegion); }
+    })
+    .catch(() => { /* keep the procedural sound */ }).finally(() => sampleLoads.delete(id));
+}
+function preloadSamples(c: Ctx) {
+  for (const [id, f] of Object.entries(SAMPLE_FILES)) loadSample(c, id, f);
+  for (const [r, f] of Object.entries(AMBIENCE_FILES)) loadSample(c, `ambient:${r}`, f);
+}
+/** true only when a decoded sample played; callers otherwise run their procedural sound */
+function playSample(id: SampleId, w: Where = {}, gain = 0.8, rate = 1) {
+  const c = ctx; const buffer = sampleBuffers.get(id); if (!c || !buffer) return false;
+  const src = c.ac.createBufferSource(); src.buffer = buffer; src.playbackRate.value = rate;
+  const o = outVerb(c, w, 0.2); const g = c.ac.createGain(); g.gain.value = gain;
+  src.connect(g).connect(o); src.start();
+  return true;
+}
+let ambientSample: { source: AudioBufferSourceNode; gain: GainNode } | null = null;
+function stopAmbientSample() {
+  const c = ctx, a = ambientSample; if (!c || !a) return; ambientSample = null;
+  a.gain.gain.setTargetAtTime(0, c.ac.currentTime, 0.45);
+  setTimeout(() => { try { a.source.stop(); } catch { /* stopped */ } }, 1800);
+}
+function startAmbientSample(regionId: string) {
+  const c = ctx; const buf = sampleBuffers.get(`ambient:${regionId}`); if (!c || !buf) return false;
+  stopAmbientSample();
+  const source = c.ac.createBufferSource(); source.buffer = buf; source.loop = true;
+  const gain = c.ac.createGain(); gain.gain.value = 0; source.connect(gain).connect(c.sfx); source.start();
+  gain.gain.setTargetAtTime(0.22, c.ac.currentTime, 1.2);
+  ambientSample = { source, gain }; return true;
+}
+export function playVehicleEngineStart() {
+  if (playSample("engine", {}, 0.68)) return;
+  const c = ctx; if (!c) return; const o = out(c);
+  tone(c, o, { f0: 36, f1: 72, dur: 0.85, type: "sawtooth", gain: 0.25 });
+  burst(c, o, { dur: 0.6, freq: 380, type: "lowpass", gain: 0.25, at: 0.12 });
+}
+
 /** Player weapon: crack + saturated blast + thump + reverb tail (+ bolt/pump/zap) from audio-design.ts SHOTS, humanised per shot.
  * Launchers keep their element shading on top of the shared launcher profile. */
 export function playShot(weapon: WeaponId | "VEHICLE") {
   const c = ctx; if (!c) return;
+  if (weapon === "VEHICLE" && playSample("tank", {}, 0.85)) return;
+  if (weapon === "AUTO" && playSample("rifle", {}, 0.58, 0.94 + Math.random() * 0.12)) return;
+  if (weapon === "HEAVY" && playSample("shotgun", {}, 0.82, 0.96 + Math.random() * 0.08)) return;
   const key = shotKey(weapon); if (!key) return;
   const p = SHOTS[key];
   const o = outVerb(c, {}, p.tail.send);
@@ -141,6 +196,7 @@ export function playShot(weapon: WeaponId | "VEHICLE") {
   }
 }
 export function playSwing(finisher: boolean) {
+  if (playSample("melee", {}, finisher ? 0.9 : 0.62, finisher ? 0.86 : 1.08)) return;
   const c = ctx; if (!c) return; const o = out(c);
   burst(c, o, { dur: finisher ? 0.35 : 0.22, freq: finisher ? 900 : 1400, q: 2, gain: 0.5 });
   tone(c, o, { f0: finisher ? 500 : 800, f1: 120, dur: 0.25, type: "triangle", gain: 0.12 });
@@ -156,6 +212,7 @@ export function playSwitch() { const c = ctx; if (!c) return; const o = out(c); 
 /** Material impact: enemies are machines (metal clang) or aberrations (organic thud). */
 export function playImpact(material: "METAL" | "ORGANIC" | "TECH", w: Where) {
   const c = ctx; if (!c) return; const o = out(c, w);
+  if (material === "METAL" && playSample("melee", w, 0.42, 1.12)) { tone(c, out(c), { f0: 2600, f1: 2600, dur: 0.04, type: "sine", gain: 0.1 }); return; }
   if (material === "METAL") { tone(c, o, { f0: 1800, f1: 1500, dur: 0.12, type: "triangle", gain: 0.18 }); burst(c, o, { dur: 0.05, freq: 5000, q: 3, gain: 0.25 }); }
   else if (material === "TECH") { burst(c, o, { dur: 0.1, freq: 7000, type: "highpass", gain: 0.25 }); tone(c, o, { f0: 2400, f1: 600, dur: 0.08, type: "sawtooth", gain: 0.06 }); }
   else { burst(c, o, { dur: 0.1, freq: 300, type: "lowpass", gain: 0.5 }); }
@@ -166,6 +223,7 @@ export function playImpact(material: "METAL" | "ORGANIC" | "TECH", w: Where) {
  * elemental layer (fire roar, ice shatter, acid hiss, arc crackle). */
 export function playExplosion(big: boolean, w: Where = {}, flavor: BlastFlavor = "KINETIC") {
   const c = ctx; if (!c) return;
+  if (big) playSample("fracture", w, 0.7); // layered under the procedural blast, which keeps distance delay + flavour
   const far = blastAtDistance(w.dist ?? 0);
   const o = outVerb(c, { ...w, dist: 0 }, big ? 0.6 : 0.45, far.delay);
   const lp = c.ac.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.value = far.cutoff;
@@ -196,6 +254,7 @@ export function playKill(boss: boolean, w: Where) {
   tone(c, out(c), { f0: 660, f1: 990, dur: 0.12, type: "triangle", gain: 0.08, at: 0.05 }); // confirm chime
 }
 export function playAbility(kind: string) {
+  if ((kind === "RIFT" || kind === "PORTAL" || kind === "TELEPORT") && playSample("portal", {}, 0.72)) return;
   const c = ctx; if (!c) return; const o = out(c);
   if (kind === "DASH") burst(c, o, { dur: 0.3, freq: 1200, q: 1.5, gain: 0.6 });
   else if (kind === "DOME" || kind === "SHIELD") { tone(c, o, { f0: 200, f1: 400, dur: 0.6, type: "triangle", gain: 0.25 }); tone(c, o, { f0: 300, f1: 600, dur: 0.6, type: "sine", gain: 0.2 }); }
@@ -272,8 +331,10 @@ const BIOME_AMBIENT: Record<string, BiomeAmbientDef> = {
 /** Called once per HUD tick with the current region id; only rebuilds voices when the region actually changes. */
 export function updateBiomeAmbient(regionId: string) {
   const c = ctx; if (!c) return;
+  activeBiomeRegion = regionId;
   if (biomeVoice?.key === regionId) return;
   biomeVoice?.stop(); biomeVoice = null;
+  if (startAmbientSample(regionId)) { biomeVoice = { key: regionId, stop: stopAmbientSample }; return; }
   const def = BIOME_AMBIENT[regionId];
   if (!def) return;
   const dest = c.sfx;
@@ -489,6 +550,7 @@ export function playEnding(tier: "CONTROL" | "CHAOS" | "BALANCE") {
 
 /** The "dopamine hit" cue for a player level-up (Loot + XP System v1) — a short bright ascending arpeggio. */
 export function playLevelUp() {
+  if (playSample("loot", {}, 0.56)) return;
   const c = ctx; if (!c) return; const o = out(c);
   const notes = [440, 554, 659, 880];
   notes.forEach((f, i) => tone(c, o, { f0: f, f1: f, dur: 0.22, type: "triangle", gain: 0.28, at: i * 0.07 }));

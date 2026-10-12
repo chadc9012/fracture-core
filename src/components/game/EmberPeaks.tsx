@@ -58,7 +58,7 @@ function LavaFlows() {
         gl_FragColor = vec4(col, edge * (0.75 + 0.25 * flow));
       }`,
   }), []);
-  useFrame((_, dt) => { mat.uniforms.t!.value += dt; });
+  useFrame((_, dt) => { mat.uniforms["t"]!.value += dt; });
   return (
     <group>
       {geos.map((g, i) => (

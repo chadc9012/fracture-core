@@ -121,7 +121,7 @@ function Snow({ playerRef, weatherRef }: { playerRef: React.RefObject<THREE.Obje
   return (
     <instancedMesh ref={mesh} args={[undefined, undefined, field.length]} frustumCulled={false} visible={false}>
       <planeGeometry args={[0.26, 0.26]} />
-      <meshBasicMaterial map={map} color="#ffffff" transparent opacity={0.9} depthWrite={false} fog={false} side={THREE.DoubleSide} />
+      <meshBasicMaterial map={map ?? null} color="#ffffff" transparent opacity={0.9} depthWrite={false} fog={false} side={THREE.DoubleSide} />
     </instancedMesh>
   );
 }
@@ -159,7 +159,7 @@ function Ashfall({ playerRef, weatherRef }: { playerRef: React.RefObject<THREE.O
   return (
     <instancedMesh ref={mesh} args={[undefined, undefined, field.length]} frustumCulled={false} visible={false}>
       <planeGeometry args={[0.34, 0.34]} />
-      <meshBasicMaterial map={map} color="#ff8a3d" transparent opacity={0.8} depthWrite={false} fog={false} toneMapped={false} blending={THREE.AdditiveBlending} side={THREE.DoubleSide} />
+      <meshBasicMaterial map={map ?? null} color="#ff8a3d" transparent opacity={0.8} depthWrite={false} fog={false} toneMapped={false} blending={THREE.AdditiveBlending} side={THREE.DoubleSide} />
     </instancedMesh>
   );
 }
@@ -192,7 +192,7 @@ function Dust({ playerRef, weatherRef }: { playerRef: React.RefObject<THREE.Obje
   return (
     <instancedMesh ref={mesh} args={[undefined, undefined, field.length]} frustumCulled={false} visible={false}>
       <planeGeometry args={[1.1, 1.1]} />
-      <meshBasicMaterial map={map} color="#cbb27a" transparent opacity={0.3} depthWrite={false} fog={false} side={THREE.DoubleSide} />
+      <meshBasicMaterial map={map ?? null} color="#cbb27a" transparent opacity={0.3} depthWrite={false} fog={false} side={THREE.DoubleSide} />
     </instancedMesh>
   );
 }

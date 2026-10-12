@@ -49,7 +49,7 @@ function mat(color: string, rough = 0.92, side: THREE.Side = THREE.FrontSide) {
 
 type V3 = [number, number, number];
 function Part({ geo, color, at, scale, rot, rough, double }: { geo: THREE.BufferGeometry; color: string; at?: V3; scale: V3; rot?: V3; rough?: number; double?: boolean }) {
-  return <mesh geometry={geo} material={mat(color, rough, double ? THREE.DoubleSide : THREE.FrontSide)} position={at} scale={scale} rotation={rot} />;
+  return <mesh geometry={geo} material={mat(color, rough, double ? THREE.DoubleSide : THREE.FrontSide)} position={at ?? [0, 0, 0]} scale={scale} rotation={rot ?? [0, 0, 0]} />;
 }
 
 /* ---------- quadruped rig: deer, dog, cat, fox fallback ---------- */
