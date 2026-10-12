@@ -126,6 +126,7 @@ import { CRASH_SITE, ENCOUNTER, NEW_INVESTIGATION, shouldWakePatrol, stepInvesti
 import { spawnForestPatrol } from "@/game/forest-encounter";
 import { CHECKPOINT_INTERVAL_S, chooseRespawn, isCheckpointSafe } from "@/game/respawn";
 import { WEAPONS, WEAPON_ORDER, decay, freshAmmo, type WeaponId } from "@/game/weapons";
+import { atSupplyPoint, killRefund, restockAll, trickleRestock } from "@/game/ammo";
 import { initialView, stepView, viewPose, type ViewPose, type ViewState } from "@/game/weapon-handling";
 import { ViewWeapon } from "./ViewWeapon";
 import { isLauncherId } from "@/game/launchers";
@@ -867,6 +868,8 @@ function SceneImpl({
   const padState = useRef({ fire: false, aim: false, connected: false });
   /** hit stop: a ~40-80ms near-freeze on kills and on hits against elites/bosses (weight, not on every auto-fire hit) */
   const hitStopUntil = useRef(0);
+  const ammoKills = useRef(0);
+  const ammoCarry = useRef<Partial<Record<WeaponId, number>>>({});
   const audioSeen = useRef({ hit: 0, kills: 0, hp: 100, hurtAt: 0, stepT: 1, bossAlive: false, bossX: 0, bossZ: 0 });
   /** last sim.lastDeath timestamp this component has already reacted to — mirrors the audioSeen pattern above */
   const deathSeen = useRef(0);
@@ -1122,6 +1125,10 @@ function SceneImpl({
     {
       sim.sanctuaries = sanctuaries;
       sim.inSafeZone = !s.diving && (here?.kind === "safe" || here?.id === "nexus" || sanctuaries.some((z) => Math.hypot(s.x - z.x, s.z - z.z) < z.radius)); // health.ts: fast recovery in safe zones
+      // ammo.ts: kills refund the equipped weapon, safe ground and supply points top every reserve up
+      if (sim.kills > ammoKills.current) { s.ammo = killRefund(s.ammo, s.weapon, sim.kills - ammoKills.current); }
+      ammoKills.current = sim.kills;
+      if (sim.inSafeZone || atSupplyPoint(s.x, s.z)) s.ammo = trickleRestock(s.ammo, dt, ammoCarry.current);
       const sheltered = Boolean(interior) || here?.kind === "safe" || here?.id === "nexus" || s.diving; // underwater: no lightning or air exposure (live playtest showed a storm bolt striking the Sentry Dock seabed)
       const hazard = stepEnvironment(sim.env, { dt, regionId: here?.id, env: envSample, sheltered, px: s.x, pz: s.z, rand: Math.random });
       if (hazard.damage > 0) hurtPlayer(sim, hazard.damage, hazard.cause);
@@ -2055,6 +2062,7 @@ function SceneImpl({
     }
     if (sim.lastDeath !== deathSeen.current) {
       deathSeen.current = sim.lastDeath;
+      s.ammo = restockAll(s.ammo); // ammo.ts: you come back armed
       live.current = cancelAbilities(sim, live.current, { x: s.x, z: s.z, yaw: s.yaw });
       const spot = chooseRespawn({ x: s.x, z: s.z }, checkpoint.current, hostiles);
       // Thalassia descent checkpoint: dying in the city during the mission returns you to the dock berth

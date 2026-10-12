@@ -132,11 +132,11 @@ function payMedals(p: PlayerProgression, activity: string, medal: Medal | null):
   return { progression: next, lines };
 }
 
-export function resolveVault(p: PlayerProgression, run: Pick<VaultRun, "id" | "gate">, outcome: "WON" | "FAILED", now = Date.now()): { progression: PlayerProgression; message: string } {
+export function resolveVault(p: PlayerProgression, run: Pick<VaultRun, "id" | "gate"> & { reason?: string | undefined }, outcome: "WON" | "FAILED", now = Date.now()): { progression: PlayerProgression; message: string } {
   const key = `vault-run:${run.id}`;
   if (p.earnedRewards.includes(key)) return { progression: p, message: "" };
   let next: PlayerProgression = { ...p, earnedRewards: [...p.earnedRewards, key] };
-  if (outcome === "FAILED") return { progression: next, message: "The vault gate fell. The Legion will hold the inner doors; try again." };
+  if (outcome === "FAILED") return { progression: next, message: `${run.reason ?? "The vault gate was breached."} The Legion will hold the inner doors; try again.` };
   next = rewardMission(next, "side-vault-defense", { reinforcedAlloy: 6, scrapMetal: 20 }, now);
   const blade = grantBlade(next, "vectal"); // foundries.ts: the Legion's Häkke monoblade, once
   next = blade.progression;
