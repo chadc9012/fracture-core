@@ -2,7 +2,7 @@
  * `stepLivingRuntime` once per frame after stepSim; it advances the event director, spawns/despawns event machines,
  * runs city patrols (their hits go through the same damage path as everything else), tracks where civilians should
  * run from, and returns the save-changing events (`emits`) that GameCanvas applies to progression. No rendering. */
-import { alert, defeatMachine, spawnNemesis, hurtPlayer, spawnEventSquad, summonBoss, type WorldSim } from "./sim";
+import { alert, freeSlots, defeatMachine, spawnNemesis, hurtPlayer, spawnEventSquad, summonBoss, type WorldSim } from "./sim";
 import { CITIES, FACTIONS, TIER_RULES, cityAt, districtById, tierOf, type CityId, type FactionId, type LivingState } from "./living-world";
 import { EVENT_RULES, FRACTURE_HOLD, FRACTURE_RADIUS, createLivingDirector, stepLivingDirector, type LivingDirector, type LivingEvent } from "./living-events";
 import { createGuards, stepGuards, type Guard } from "./city-patrols";
@@ -83,6 +83,7 @@ const FRACTURE_WAVE_EVERY = 10;
 
 function spawnFor(sim: WorldSim, ev: LivingEvent) {
   const region = INVADERS[ev.city];
+  freeSlots(sim, ev.kind === "INVASION" ? 6 : 4, ev.x, ev.z); // never let a full pool turn a wave into an instant clear
   switch (ev.kind) {
     case "INVASION": spawnEventSquad(sim, ev.id, ev.x, ev.z, 6, 1, region); break;
     case "DISTRESS": spawnEventSquad(sim, ev.id, ev.x, ev.z, 3, 0, region, 8); break;

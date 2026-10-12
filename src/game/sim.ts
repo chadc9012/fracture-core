@@ -691,6 +691,17 @@ export function spawnMissionDrones(sim: WorldSim, x: number, z: number, count: n
   }
 }
 
+/** Make room in the machine pool for an authored wave: retire the farthest ambient machines (not mission, boss, event,
+ * nemesis or scenario machines) silently — no kill, no credit. Returns how many slots are now free. */
+export function freeSlots(sim: WorldSim, need: number, px: number, pz: number): number {
+  let free = sim.machines.filter((m) => !m.alive).length;
+  if (free >= need) return free;
+  const ambient = sim.machines.filter((m) => m.alive && !m.mission && !m.boss && !m.living && !m.nemesis && !m.scenarioId && !m.eq && !m.decoy)
+    .sort((a, b) => Math.hypot(b.x - px, b.z - pz) - Math.hypot(a.x - px, a.z - pz));
+  for (const m of ambient) { if (free >= need) break; m.alive = false; delete m.lastPlayerDamage; free++; }
+  return free;
+}
+
 /** Living World event wave (living-events.ts): `regionId` troops in a ring around (x,z), tagged with the event id. Not a
  * scripted-mission machine (missions wait on `mission` machines), but never leashed away while the event runs. */
 export function spawnEventSquad(sim: WorldSim, tag: string, x: number, z: number, count: number, elite: number, regionId: string, ring = 12, troopIndex?: number): number {

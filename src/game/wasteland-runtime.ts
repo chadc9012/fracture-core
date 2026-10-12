@@ -2,7 +2,7 @@
  * Starts an activity when the player steps onto its start (the vault gate pad on foot or in a vehicle, the rally start gate
  * and the Mash-Pit only in a vehicle), spawns its tagged raiders, steps its state machine and returns `emits` that
  * GameCanvas applies to the save through the resolve* reducers. */
-import { alert, spawnEventSquad, type WorldSim } from "./sim";
+import { alert, freeSlots, spawnEventSquad, type WorldSim } from "./sim";
 import {
   ARENA, DERBY_TARGETS, GATE_THREAT_RADIUS, RALLY_REACH, RUST_RUN, VAULT_GATE, VAULT_WAVES, rallyTargets,
   startDerby, startRally, startVault, stepDerby, stepRally, stepVault, type DerbyRun, type RallyRun, type VaultRun,
@@ -50,7 +50,9 @@ export function stepWasteRuntime(rt: WasteRuntime, sim: WorldSim, inp: { dt: num
     rt.vault = s.run;
     if (s.spawnWave) {
       const a = (inp.now / 997) % (Math.PI * 2); // waves come from a different side each time
-      spawnEventSquad(sim, tag, VAULT_GATE.x + Math.cos(a) * 48, VAULT_GATE.z + Math.sin(a) * 48, s.spawnWave.size, s.spawnWave.elites, "wastelands", 9);
+      freeSlots(sim, s.spawnWave.size, inp.px, inp.pz); // a full machine pool once turned a wave into an instant "clear"
+      const n = spawnEventSquad(sim, tag, VAULT_GATE.x + Math.cos(a) * 48, VAULT_GATE.z + Math.sin(a) * 48, s.spawnWave.size, s.spawnWave.elites, "wastelands", 9);
+      if (n === 0) rt.vault = { ...s.run, phase: "BREAK", wave: s.run.wave - 1, timer: 1, spawned: false }; // try again in a second
       alert(sim, `Wave ${s.run.wave}/${VAULT_WAVES.length} inbound`);
     }
     if (s.outcome) { if (s.outcome === "FAILED") despawn(sim, tag); emits.push({ type: "VAULT", run: s.run, outcome: s.outcome }); rt.vault = null; rt.last = s.outcome === "WON" ? "Vault gates held" : s.run.reason ?? "The gate fell"; rt.doneHold = 6; }
@@ -65,7 +67,7 @@ export function stepWasteRuntime(rt: WasteRuntime, sim: WorldSim, inp: { dt: num
     const r = rt.derby, tag = derbyTag(r);
     const s = stepDerby(r, { dt: inp.dt, inArena: dArena <= ARENA.radius, inVehicle: inp.inVehicle, kills, tagAlive: tagCount(sim, tag) });
     rt.derby = s.run;
-    if (s.spawn) spawnEventSquad(sim, tag, ARENA.x, ARENA.z, s.spawn, 0, "wastelands", ARENA.radius - 6, 2 /* Rust-Runner Buggy */);
+    if (s.spawn) { freeSlots(sim, s.spawn, inp.px, inp.pz); spawnEventSquad(sim, tag, ARENA.x, ARENA.z, s.spawn, 0, "wastelands", ARENA.radius - 6, 2 /* Rust-Runner Buggy */); }
     if (s.outcome) { despawn(sim, tag); emits.push({ type: "DERBY", run: s.run, wrecks: s.outcome.wrecks }); rt.last = `${s.run.reason ?? ""} ${s.outcome.wrecks} wrecks`.trim(); rt.derby = null; rt.doneHold = 6; }
     else hud = { kind: "DERBY", title: "The Mash-Pit", lines: [`${s.run.wrecks} wrecks · ${Math.ceil(s.run.time)} s left`, `Gold ${DERBY_TARGETS.GOLD} · Silver ${DERBY_TARGETS.SILVER} · Bronze ${DERBY_TARGETS.BRONZE}`], progress: s.run.time / 75, tx: ARENA.x, tz: ARENA.z };
   }

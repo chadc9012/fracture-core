@@ -40,7 +40,7 @@ export const derbyMedal = (wrecks: number): Medal | null => (wrecks >= DERBY_TAR
 
 /* ------------------------------------------------------------ vault defense ------------------------------------------------------------ */
 export const VAULT_WAVES: readonly { size: number; elites: number }[] = [{ size: 5, elites: 0 }, { size: 7, elites: 1 }, { size: 9, elites: 2 }];
-export const GATE_MAX = 100, GATE_DPS_PER_RAIDER = 2.2, GATE_THREAT_RADIUS = 16, VAULT_BREAK = 8, VAULT_LEASH = 120;
+export const GATE_MAX = 100, GATE_DPS_PER_RAIDER = 0.7, GATE_THREAT_RADIUS = 16, VAULT_BREAK = 8, VAULT_LEASH = 120;
 export type VaultRun = { id: string; phase: "WAVE" | "BREAK" | "WON" | "FAILED"; wave: number; gate: number; timer: number; spawned: boolean; reason?: string };
 export const startVault = (now: number): VaultRun => ({ id: `vault-${now.toString(36)}`, phase: "BREAK", wave: 0, gate: GATE_MAX, timer: 3, spawned: false });
 

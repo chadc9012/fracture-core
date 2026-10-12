@@ -118,3 +118,16 @@ describe("runtime on the real sim", () => {
     expect(buggies.every((m) => m.profile === "Rust-Runner Buggy")).toBe(true);
   });
 });
+
+describe("full machine pool", () => {
+  it("authored waves retire far ambient machines to make room instead of 'clearing' instantly", async () => {
+    const sim = createSim();
+    for (const m of sim.machines) Object.assign(m, { alive: true, x: A.VAULT_GATE.x + 300, z: A.VAULT_GATE.z, hp: 3, boss: false, mission: false, living: undefined, nemesis: undefined, scenarioId: undefined });
+    const rt = createWasteRuntime(sim);
+    stepWasteRuntime(rt, sim, { dt: 0.1, now: NOW, px: A.VAULT_GATE.x, pz: A.VAULT_GATE.z, inVehicle: false, blocked: false });
+    stepWasteRuntime(rt, sim, { dt: 3.5, now: NOW, px: A.VAULT_GATE.x, pz: A.VAULT_GATE.z, inVehicle: false, blocked: false });
+    expect(sim.machines.filter((m) => m.alive && m.living?.startsWith("vault:")).length).toBe(A.VAULT_WAVES[0]!.size);
+    expect(rt.vault?.phase).toBe("WAVE");
+    expect(sim.kills).toBe(0);
+  });
+});
