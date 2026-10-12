@@ -17,4 +17,16 @@ describe("held weapon props", () => {
     expect(propLength("ROCKET")).toBeGreaterThan(propLength("AUTO") * 0.9);
     expect(HAND_BONE).toBe("mixamorig:RightHand");
   });
+  test("rifles carry stock, magazine, optic and side-rail detail", () => {
+    const parts = WEAPON_PROPS.AUTO;
+    expect(parts.length).toBeGreaterThanOrEqual(10);
+    expect(parts.some((p) => p.shape === "cylinder" && p.rot?.[0] === Math.PI / 2)).toBe(true);
+    expect(parts.filter((p) => p.tone === "trim").length).toBeGreaterThan(2);
+  });
+  test("weapon silhouettes remain distinct across primary, heavy, blade and launcher classes", () => {
+    expect(WEAPON_PROPS.HEAVY.length).toBeGreaterThan(WEAPON_PROPS.AUTO.length);
+    expect(WEAPON_PROPS.SWORD.some((p) => p.shape === "box" && p.size[2] > 0.8)).toBe(true);
+    expect(WEAPON_PROPS.FROSTBITE.some((p) => p.shape === "sphere")).toBe(true);
+    expect(WEAPON_PROPS.ROCKET.some((p) => p.shape === "cylinder")).toBe(true);
+  });
 });

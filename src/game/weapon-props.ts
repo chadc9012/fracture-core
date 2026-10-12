@@ -8,17 +8,33 @@ export type PropPart = { shape: "box" | "cylinder" | "cone" | "sphere"; /** box 
 const ALONG_Z: [number, number, number] = [Math.PI / 2, 0, 0];
 
 const rifle = (len: number, thick: number): PropPart[] => [
+  // Rear stock and receiver: grip stays at the hand-bone origin; muzzle points along +Z.
+  { shape: "box", size: [thick * 1.2, thick * 1.45, 0.24], pos: [0, 0.015, -0.17], tone: "body" },
   { shape: "box", size: [thick, thick * 1.5, len], pos: [0, 0.03, len * 0.38], tone: "body" },
   { shape: "box", size: [thick * 0.9, thick * 1.6, 0.18], pos: [0, 0.01, -0.06], tone: "trim" },
+  // Barrel, muzzle brake and a slightly wider end-cap establish a readable weapon silhouette.
   { shape: "cylinder", size: [0.016, 0.3, 0.016], pos: [0, 0.04, len * 0.38 + len / 2 + 0.1], rot: ALONG_Z, tone: "trim" },
-  { shape: "box", size: [thick * 0.7, 0.13, 0.06], pos: [0, -0.08, len * 0.3], tone: "trim" },
+  { shape: "cylinder", size: [0.025, 0.075, 0.025], pos: [0, 0.04, len * 0.38 + len / 2 + 0.285], rot: ALONG_Z, tone: "body" },
+  // Angled pistol grip and magazine well.
+  { shape: "box", size: [thick * 0.72, 0.15, 0.1], pos: [0, -0.105, 0.02], rot: [-0.18, 0, 0], tone: "body" },
+  { shape: "box", size: [thick * 0.82, 0.19, 0.13], pos: [0, -0.16, len * 0.25], tone: "trim" },
+  // Raised optic, top rail, side rails and the element/status strip.
+  { shape: "box", size: [0.09, 0.065, 0.14], pos: [0, 0.13, len * 0.14], tone: "body" },
+  { shape: "box", size: [0.055, 0.018, 0.09], pos: [0, 0.17, len * 0.14], tone: "accent" },
+  { shape: "box", size: [0.025, 0.035, len * 0.52], pos: [thick * 0.72, 0.035, len * 0.38], tone: "trim" },
+  { shape: "box", size: [0.025, 0.035, len * 0.52], pos: [-thick * 0.72, 0.035, len * 0.38], tone: "trim" },
   { shape: "box", size: [0.02, 0.03, 0.08], pos: [0, 0.1, len * 0.45], tone: "accent" },
 ];
 const launcher = (tube: number, flare: number): PropPart[] => [
+  { shape: "box", size: [0.16, 0.17, 0.24], pos: [0, 0.04, -0.12], tone: "trim" },
   { shape: "cylinder", size: [0.075, tube, 0.075], pos: [0, 0.07, tube * 0.3], rot: ALONG_Z, tone: "body" },
   { shape: "cone", size: [flare, 0.16, flare], pos: [0, 0.07, tube * 0.3 + tube / 2 + 0.06], rot: ALONG_Z, tone: "trim" },
+  { shape: "cylinder", size: [flare * 0.7, 0.055, flare * 0.7], pos: [0, 0.07, tube * 0.3 + tube / 2 + 0.17], rot: ALONG_Z, tone: "body" },
   { shape: "box", size: [0.05, 0.1, 0.1], pos: [0, -0.04, 0.05], tone: "trim" },
+  { shape: "box", size: [0.07, 0.16, 0.14], pos: [0, -0.11, tube * 0.18], tone: "body" },
   { shape: "box", size: [0.04, 0.05, 0.14], pos: [0, 0.17, tube * 0.2], tone: "accent" },
+  { shape: "box", size: [0.02, 0.035, tube * 0.45], pos: [0.085, 0.07, tube * 0.28], tone: "trim" },
+  { shape: "box", size: [0.02, 0.035, tube * 0.45], pos: [-0.085, 0.07, tube * 0.28], tone: "trim" },
 ];
 
 export const WEAPON_PROPS: Record<WeaponId, PropPart[]> = {
