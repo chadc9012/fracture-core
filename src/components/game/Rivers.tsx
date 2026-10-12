@@ -130,7 +130,7 @@ function WaterfallMesh({ f, regionId }: { f: Waterfall; regionId: string }) {
         <circleGeometry args={[f.w * 1.6, 24]} />
       </mesh>
       <points geometry={mist}>
-        <pointsMaterial map={softSprite("dot")} alphaTest={0.01} size={2.6} color="#eef6ff" transparent opacity={0.22} depthWrite={false} />
+        <pointsMaterial map={softSprite("dot") ?? null} alphaTest={0.01} size={2.6} color="#eef6ff" transparent opacity={0.22} depthWrite={false} />
       </points>
     </group>
   );

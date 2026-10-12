@@ -2688,7 +2688,7 @@ function Motes() {
   const map = useMemo(() => softSprite("dot"), []);
   const geo = useMemo(() => { const g = new THREE.BufferGeometry(); const p = new Float32Array(600 * 3); for (let i = 0; i < p.length; i++) p[i] = (Math.random() - 0.5) * (i % 3 === 1 ? 30 : 120); g.setAttribute("position", new THREE.BufferAttribute(p, 3)); return g; }, []);
   useFrame((st) => { if (!ref.current) return; const c = st.camera.position; ref.current.position.set(c.x, c.y + Math.sin(st.clock.elapsedTime * 0.3) * 1.5, c.z); ref.current.rotation.y = st.clock.elapsedTime * 0.02; });
-  return <points ref={ref} geometry={geo}><pointsMaterial map={map} alphaTest={0.01} color="#9fe9ff" size={0.4} transparent opacity={0.75} blending={THREE.AdditiveBlending} depthWrite={false} toneMapped={false} /></points>;
+  return <points ref={ref ?? null} geometry={geo}><pointsMaterial map={map ?? null} alphaTest={0.01} color="#9fe9ff" size={0.4} transparent opacity={0.75} blending={THREE.AdditiveBlending} depthWrite={false} toneMapped={false} /></points>;
 }
 
 
