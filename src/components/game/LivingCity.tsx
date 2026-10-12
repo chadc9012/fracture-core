@@ -11,6 +11,7 @@ import type { FactionId } from "@/game/living-world";
 import type { Civilian } from "@/game/civilians";
 import type { PlayerProgression } from "@/game/progression";
 import { CivilianBody, DETAIL_DISTANCE } from "./Civilians";
+import { HOLLOW_CROWN, VAEL, forgeStage } from "@/game/godforge";
 
 /** Living World presentation: city patrol guards (and their tracers), the talkable NPCs with name plates, the live
  * world-event beacon / fracture ring, and beacons on revealed stashes and survey points. Reads living-runtime state only;
@@ -183,6 +184,48 @@ function SecretShimmer({ runtime }: { runtime: React.RefObject<LivingRuntime | n
   );
 }
 
+/** godforge.ts: the Hollow Crown ruin (always there, sealed until the three marks are found), and Vael at her forge once the
+ * Furnace Guardian has fallen. Presentation only; the guardian and Vael's reach are decided in godforge.ts/living-runtime. */
+function HollowCrown({ gear, playerRef }: { gear?: PlayerProgression | undefined; playerRef: React.RefObject<THREE.Object3D> }) {
+  const g = useRef<THREE.Group>(null!);
+  const fire = useRef<THREE.PointLight>(null!);
+  const stage = forgeStage({ earnedRewards: gear?.earnedRewards ?? [] });
+  const y = useMemo(() => heightAt(HOLLOW_CROWN.x, HOLLOW_CROWN.z), []);
+  const pillars = useMemo(() => Array.from({ length: 9 }, (_, i) => { const a = (i / 9) * Math.PI * 2; return { x: Math.cos(a) * HOLLOW_CROWN.radius, z: Math.sin(a) * HOLLOW_CROWN.radius, h: 5 + ((i * 37) % 7), tilt: ((i * 13) % 5 - 2) * 0.06 }; }), []);
+  const live = useRef({ state: "IDLE" } as Civilian);
+  useFrame((st) => {
+    const p = playerRef.current;
+    if (!g.current || !p) return;
+    const d = Math.hypot(p.position.x - HOLLOW_CROWN.x, p.position.z - HOLLOW_CROWN.z);
+    g.current.visible = d < 260;
+    live.current.far = d > DETAIL_DISTANCE; live.current.hidden = d > 150;
+    if (fire.current) fire.current.intensity = stage === "GUARDIAN_SLAIN" ? 3 + Math.sin(st.clock.elapsedTime * 9) * 0.6 : 0;
+  });
+  const glow = stage === "SEALED" ? "#5a3a1a" : "#ffb23e";
+  return (
+    <group ref={g} position={[HOLLOW_CROWN.x, y, HOLLOW_CROWN.z]}>
+      {pillars.map((pl, i) => (
+        <mesh key={i} position={[pl.x, pl.h / 2 - 0.5, pl.z]} rotation={[pl.tilt, 0, -pl.tilt]} castShadow>
+          <cylinderGeometry args={[0.7, 1.1, pl.h, 6]} /><meshStandardMaterial color="#1a1512" roughness={0.6} metalness={0.3} />
+        </mesh>
+      ))}
+      <mesh rotation-x={-Math.PI / 2} position={[0, 0.06, 0]}><ringGeometry args={[HOLLOW_CROWN.radius - 1.2, HOLLOW_CROWN.radius - 0.6, 48]} /><meshBasicMaterial color={glow} transparent opacity={stage === "SEALED" ? 0.25 : 0.7} toneMapped={false} /></mesh>
+      <group position={[0, 0, -HOLLOW_CROWN.radius + 1]}>
+        <mesh position={[0, 2.5, 0]}><boxGeometry args={[4.5, 5, 0.6]} /><meshStandardMaterial color="#231a12" roughness={0.7} /></mesh>
+        <mesh position={[0, 2.5, 0.32]}><planeGeometry args={[1.6, 1.6]} /><meshBasicMaterial color={glow} transparent opacity={stage === "SEALED" ? 0.3 : 0.9} toneMapped={false} /></mesh>
+      </group>
+      {stage === "GUARDIAN_SLAIN" && (
+        <group position={[VAEL.x - HOLLOW_CROWN.x, 0, VAEL.z - HOLLOW_CROWN.z]}>
+          <CivilianBody role="ARTISAN" live={live} />
+          <mesh position={[1.6, 0.5, 0]}><boxGeometry args={[1.2, 1, 0.6]} /><meshStandardMaterial color="#2b2b2e" metalness={0.8} roughness={0.35} /></mesh>
+          <mesh position={[1.6, 0.4, 1.4]}><cylinderGeometry args={[0.8, 1, 0.8, 10]} /><meshStandardMaterial color="#3a1c0c" emissive="#ff6a1a" emissiveIntensity={1.4} toneMapped={false} /></mesh>
+          <pointLight ref={fire} position={[1.6, 1.6, 1.4]} color="#ff8a3a" distance={14} intensity={3} />
+        </group>
+      )}
+    </group>
+  );
+}
+
 export function LivingCity({ runtime, playerRef, gear }: { runtime: React.RefObject<LivingRuntime | null>; playerRef: React.RefObject<THREE.Object3D>; gear?: PlayerProgression | undefined }) {
   return (
     <group name="living-city">
@@ -190,6 +233,7 @@ export function LivingCity({ runtime, playerRef, gear }: { runtime: React.RefObj
       {LIVING_NPCS.map((n) => <NpcView key={n.id} npc={n} playerRef={playerRef} />)}
       <EventBeacon runtime={runtime} playerRef={playerRef} />
       <SecretShimmer runtime={runtime} />
+      <HollowCrown gear={gear} playerRef={playerRef} />
       <MarkerBeacons gear={gear} />
     </group>
   );

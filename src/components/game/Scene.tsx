@@ -149,8 +149,9 @@ import { createLivingRuntime, stepLivingRuntime, type LivingEmit, type LivingHud
 import { EMPTY_LIVING } from "@/game/living-world";
 import { fallenDistricts } from "@/game/living-events";
 import { CHALLENGES } from "@/game/map-activities";
+import { HOLLOW_CROWN, VAEL, runeCombat, vaelNear } from "@/game/godforge";
 import { LIVING_NPCS, PLEDGE_KEY, livingMarkers, npcNear, npcWorld } from "@/game/living-npcs";
-import type { SecretContext } from "@/game/secrets";
+import { SECRETS, secretPoint, type SecretContext } from "@/game/secrets";
 import { LivingCity } from "./LivingCity";
 import type { ArmorVisualState } from "./Scavenger";
 import type { PlayerProgression } from "@/game/progression";
@@ -280,6 +281,8 @@ export type HudState = {
   interiorOpen: boolean;
   /** Living World (living-runtime.ts): the city you're in and its live world event */
   living?: LivingHud | null;
+  /** godforge.ts: Vael is in reach (her forge is open) */
+  vaelNear?: boolean;
   /** talkable Living World NPC within reach (living-npcs.ts) */
   npcNear?: { id: string; name: string; title: string } | null;
   /** walk-up regional vendor within reach (regional-shops.ts), null when none */
@@ -508,6 +511,8 @@ function SceneImpl({
   const keys = useKeyboard();
   const sim = useMemo<WorldSim>(() => createSim(), []);
   const livingRt = useRef<LivingRuntime | null>(null);
+  const runeKeyRef = useRef("");
+  const relicIdRef = useRef<string | null>(null);
   const livingHud = useRef<LivingHud | null>(null);
   const livingThreats = useRef<{ x: number; z: number }[]>([]);
   const livingFallen = useMemo(() => fallenDistricts({ living: gear?.living ?? EMPTY_LIVING }, Date.now()), [gear?.living]);
@@ -561,6 +566,9 @@ function SceneImpl({
       npcs: () => ({ near: npcNear(state.current.x, state.current.z)?.id ?? null, inVehicle: state.current.inVehicle, list: LIVING_NPCS.map((n) => ({ id: n.id, ...npcWorld(n) })) }),
       livingNow: () => { if (livingRt.current) livingRt.current.director = { ...livingRt.current.director, next: 0 }; return "next city event starts on the next frame (you must be inside Nexus or Neon City)"; },
       living: () => ({ event: livingRt.current?.director.current ?? null, next: Math.round(livingRt.current?.director.next ?? 0), guards: livingRt.current?.guards.map((g) => ({ id: g.id, state: g.state, x: Math.round(g.x), z: Math.round(g.z) })) }),
+      aim: () => { const st = state.current; let best = null as null | { x: number; z: number }, bd = 1e9; for (const m of sim.machines) { if (!m.alive) continue; const d = Math.hypot(m.x - st.x, m.z - st.z); if (d < bd) { bd = d; best = m; } } if (!best) return "none"; st.yaw = Math.atan2(best.x - st.x, best.z - st.z); st.pitch = -0.04; return Math.round(bd); },
+      secrets: () => SECRETS.map((sc) => ({ id: sc.id, ...secretPoint(sc), condition: sc.condition })),
+      crown: () => ({ ...HOLLOW_CROWN, vael: VAEL }),
       spawn: (n = 4) => spawnEventSquad(sim, "", state.current.x + 18, state.current.z, n, 1, regionAt(state.current.x, state.current.z)?.id ?? "wastelands", 6),
       dieTo: () => { const profile = "Wasteland Grunt"; sim.lastHitBy = { profile, zone: regionAt(state.current.x, state.current.z)?.id ?? "wastelands", elite: true, boss: false }; hurtPlayer(sim, 9999, profile); return "died"; },
       nemesis: () => (gear?.nemeses ?? []).map((n) => `${n.name} ${n.epithet} r${n.rank} ${n.regionId} ${n.status} [${n.traits.join(",")}]`),
@@ -1346,6 +1354,9 @@ function SceneImpl({
     sim.equippedPerk = equippedWeapon?.perk;
     if (sim.equippedEvolution !== equippedWeapon?.evolution?.ability) sim.evoCharge = freshCharge();
     sim.equippedEvolution = equippedWeapon?.evolution?.ability;
+    // godforge.ts: runes of the relic in hand (rebuilt only when the relic or its runes change)
+    const runeKey = equippedWeapon?.godforge ? `${equippedWeapon.id}|${equippedWeapon.godforge.runes.join(",")}|${equippedWeapon.godforge.awakened}` : "";
+    if (runeKey !== runeKeyRef.current) { runeKeyRef.current = runeKey; const rc = runeCombat(equippedWeapon?.godforge); Object.assign(sim.runes, rc, { charges: rc.bursts.map(() => freshCharge()), devourHits: 0 }); relicIdRef.current = equippedWeapon?.godforge ? equippedWeapon.id : null; }
     // self-targeted subclass verbs (RAGE/OVERSHIELD, see subclass-verbs.ts) live on LiveBuild, which
     // has no reference to WorldSim — bridge them in every frame rather than one-shot at cast time.
     syncSimFromLive(sim, live.current);
@@ -1953,7 +1964,7 @@ function SceneImpl({
       sim.challenge.enemyHp = ch.enemyHp; sim.challenge.enemyDamage = ch.enemyDamage;
       const blocked = !!tutorial || !!interior || !!introPlayback || sim.machines.some((m) => m.alive && m.mission);
       const secretCtx = livingSecretCtx(gear, night > 0.5, wx?.state === "STORM");
-      const lv = stepLivingRuntime(livingRt.current, sim, { dt, now: Date.now(), px: s.x, pz: s.z, blocked, living: gear?.living ?? EMPTY_LIVING, fallen: livingFallen, markers: livingMarks, rnd: Math.random, nemeses: gear?.nemeses ?? [], summonedNemesis: summonNemesis, secrets: secretCtx });
+      const lv = stepLivingRuntime(livingRt.current, sim, { dt, now: Date.now(), px: s.x, pz: s.z, blocked, living: gear?.living ?? EMPTY_LIVING, fallen: livingFallen, markers: livingMarks, rnd: Math.random, nemeses: gear?.nemeses ?? [], summonedNemesis: summonNemesis, secrets: secretCtx, forge: { earned: gear?.earnedRewards ?? [], relicId: relicIdRef.current } });
       livingHud.current = lv.hud;
       livingThreats.current = livingRt.current.threats;
       for (const e of lv.emits) onLiving?.(e);
@@ -2338,6 +2349,7 @@ function SceneImpl({
         interiorName: interior?.name ?? "",
         interiorOpen: interior ? isInteriorOpen(interior, time.current) : true,
         living: livingHud.current,
+        vaelNear: !interior && !s.inVehicle && vaelNear({ earnedRewards: gear?.earnedRewards ?? [] }, s.x, s.z),
         npcNear: !interior && !s.inVehicle ? (() => { const n = npcNear(s.x, s.z); return n ? { id: n.id, name: n.name, title: n.title } : null; })() : null,
         shopNearId: !interior && !s.inVehicle ? shopNear(s.x, s.z)?.id ?? null : null,
         shopNearName: !interior && !s.inVehicle ? shopNear(s.x, s.z)?.name ?? "" : "",

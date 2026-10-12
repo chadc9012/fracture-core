@@ -73,6 +73,8 @@ import { LivingNpcPanel, LivingTracker } from "./LivingNpcPanel";
 import { resolveLivingEvent } from "@/game/living-events";
 import { PLEDGE_KEY, recordCityKills, recordReach } from "@/game/living-npcs";
 import { claimSecret } from "@/game/secrets";
+import { claimHeart, recordRelicKills } from "@/game/godforge";
+import { ForgePanel } from "./ForgePanel";
 import { ACTIVITY_COLOR, ACTIVITY_LABEL, CHALLENGES, recordPatrolKills } from "@/game/map-activities";
 import { applyNemesisKill, applyPlayerDeath } from "@/game/nemesis";
 import type { LivingEmit } from "@/game/living-runtime";
@@ -307,6 +309,9 @@ export function GameCanvas() {
   /** Living World talk panel (LivingNpcPanel.tsx): the NPC id being talked to, and the latest Living World message */
   const [npcOpen, setNpcOpen] = useState<string | null>(null);
   const npcNearRef = useRef<string | null>(null);
+  /** godforge.ts: Vael's forge panel, and whether she is in reach */
+  const [forgeOpen, setForgeOpen] = useState(false);
+  const vaelNearRef = useRef(false);
   const [livingToast, setLivingToast] = useState<string | null>(null);
   /** nemesis picked on the map: it ambushes right after the drop (living-runtime.ts) */
   const [summonNemesis, setSummonNemesis] = useState<string | null>(null);
@@ -350,6 +355,7 @@ export function GameCanvas() {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.code === "KeyY" && shopNearRef.current) { setShopOpen((open) => (open ? null : shopNearRef.current)); if (document.pointerLockElement) document.exitPointerLock(); }
+      else if (e.code === "KeyY" && !e.repeat && vaelNearRef.current) { setForgeOpen((open) => !open); if (document.pointerLockElement) document.exitPointerLock(); }
       else if (e.code === "KeyY" && !e.repeat && npcNearRef.current) { setNpcOpen((open) => (open ? null : npcNearRef.current)); if (document.pointerLockElement) document.exitPointerLock(); }
       else if (e.code === "KeyY" && !e.repeat && cacheNearRef.current && !cacheNearRef.current.label.startsWith("Encrypted")) openNearCache();
       else if (e.code === "Escape") setShopOpen(null);
@@ -382,6 +388,7 @@ export function GameCanvas() {
   }, [phase, settings.bindings, toggleAtlas]);
   useEffect(() => { shopNearRef.current = hud.shopNearId ?? null; if (!hud.shopNearId) setShopOpen(null); }, [hud.shopNearId]);
   useEffect(() => { npcNearRef.current = hud.npcNear?.id ?? null; if (!hud.npcNear) setNpcOpen(null); }, [hud.npcNear?.id]);
+  useEffect(() => { vaelNearRef.current = !!hud.vaelNear; if (!hud.vaelNear) setForgeOpen(false); }, [hud.vaelNear]);
   useEffect(() => {
     cacheNearRef.current = hud.cacheNear ?? null;
     // encrypted caches open themselves the moment the hold-to-decrypt finishes
@@ -876,6 +883,18 @@ export function GameCanvas() {
   /** Living World outcomes from Scene (living-runtime.ts): all three reducers are idempotent, so a repeat changes nothing */
   const recordLiving = useCallback((event: LivingEmit) => {
     if (event.type === "KILLS") { setProgression((current) => recordCityKills(current, event.city, event.count)); return; }
+    if (event.type === "FORGE_HEART") {
+      const preview = claimHeart(progressionRef.current);
+      if ("message" in preview) showLivingToast(preview.message);
+      setProgression((current) => { const r = claimHeart(current); return "progression" in r ? r.progression : current; });
+      return;
+    }
+    if (event.type === "RELIC_KILLS") {
+      const preview = recordRelicKills(progressionRef.current, event.itemId, event.count);
+      if (preview.message) showLivingToast(preview.message);
+      setProgression((current) => recordRelicKills(current, event.itemId, event.count).progression);
+      return;
+    }
     if (event.type === "SECRET") {
       const ctx = (q: PlayerProgression) => ({ night: event.night, storm: event.storm, nemesisSlain: (q.nemeses ?? []).some((n) => n.status === "SLAIN"), pledged: !!q.story.choices[PLEDGE_KEY] });
       const preview = claimSecret(progressionRef.current, event.id, ctx(progressionRef.current));
@@ -1147,6 +1166,12 @@ export function GameCanvas() {
            )}
          </div>
        )}
+       {hud.vaelNear && !forgeOpen && (
+         <div className="pointer-events-none absolute bottom-24 left-1/2 -translate-x-1/2">
+           <Button className="pointer-events-auto border-[#ffb23e] text-[#ffd79a]" variant="outline" onClick={() => setForgeOpen(true)}>[Y] Speak with Vael · The Godforge</Button>
+         </div>
+       )}
+       {forgeOpen && <ForgePanel progression={progression} onProgression={setProgression} onClose={() => setForgeOpen(false)} />}
        {hud.npcNear && !hud.shopNearId && !npcOpen && (
          <div className="pointer-events-none absolute bottom-24 left-1/2 -translate-x-1/2">
            <Button className="pointer-events-auto" variant="outline" onClick={() => setNpcOpen(hud.npcNear?.id ?? null)}>[Y] Talk · {hud.npcNear.name} <span className="ml-2 text-muted-foreground">{hud.npcNear.title}</span></Button>

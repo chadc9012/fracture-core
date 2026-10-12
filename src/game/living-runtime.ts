@@ -8,6 +8,7 @@ import { EVENT_RULES, FRACTURE_HOLD, FRACTURE_RADIUS, createLivingDirector, step
 import { createGuards, stepGuards, type Guard } from "./city-patrols";
 import { STASH_REACH, SURVEY_REACH } from "./living-npcs";
 import { REGIONS, regionAt } from "./world";
+import { GUARDIAN_TAG, HOLLOW_CROWN, guardianDue } from "./godforge";
 import { CONDITION_TEXT, SECRET_REACH, SECRET_SHIMMER, secretPoint, senseSecret, type SecretContext } from "./secrets";
 import { ambushDue, TRAITS, type KillerSnapshot, type Nemesis } from "./nemesis";
 
@@ -21,7 +22,10 @@ export type LivingEmit =
   | { type: "PLAYER_KILLED"; killer: KillerSnapshot; regionName: string }
   | { type: "NEMESIS_DOWN"; id: string; killed: boolean }
   /** secrets.ts: the player reached a secret that answers now */
-  | { type: "SECRET"; id: string; night: boolean; storm: boolean };
+  | { type: "SECRET"; id: string; night: boolean; storm: boolean }
+  /** godforge.ts: the Furnace Guardian fell to the player; kills made with a Godforged relic in hand */
+  | { type: "FORGE_HEART" }
+  | { type: "RELIC_KILLS"; itemId: string; count: number };
 
 export type LivingRuntime = {
   director: LivingDirector;
@@ -39,10 +43,12 @@ export type LivingRuntime = {
   nemRegion: string | null; nemInRegion: number; nemLastAmbush: number; nemSummonDone: string | null;
   /** secrets.ts: the one the player is sensing (LivingCity draws its shimmer) */
   secretNear: { x: number; z: number; open: boolean; dist: number } | null;
+  /** godforge.ts: the guardian has been summoned for this visit to the Hollow Crown */
+  guardianOut: boolean;
 };
 
 export function createLivingRuntime(sim: Pick<WorldSim, "kills">): LivingRuntime {
-  return { director: createLivingDirector(), guards: createGuards(), killsSeen: sim.kills, killAcc: {}, regionAcc: {}, flushIn: 1.5, reached: new Set(), threats: [], warnedAt: {}, clock: 0, nemRegion: null, nemInRegion: 0, nemLastAmbush: -1e9, nemSummonDone: null, secretNear: null };
+  return { director: createLivingDirector(), guards: createGuards(), killsSeen: sim.kills, killAcc: {}, regionAcc: {}, flushIn: 1.5, reached: new Set(), threats: [], warnedAt: {}, clock: 0, nemRegion: null, nemInRegion: 0, nemLastAmbush: -1e9, nemSummonDone: null, secretNear: null, guardianOut: false };
 }
 
 export type LivingStepInput = {
@@ -58,6 +64,8 @@ export type LivingStepInput = {
   summonedNemesis?: string | null;
   /** secrets.ts conditions (night, storm, nemesis slain, pledged) and what is already found */
   secrets?: SecretContext;
+  /** godforge.ts: the save's ledger (stage) and the Godforged relic in hand, if any */
+  forge?: { earned: readonly string[]; relicId: string | null };
 };
 
 export type LivingHud = {
@@ -183,6 +191,21 @@ export function stepLivingRuntime(rt: LivingRuntime, sim: WorldSim, inp: LivingS
       secretHud = { dist: Math.round(sensed.dist), inReach, open: sensed.open, name: inReach ? sensed.secret.name : null, locked: inReach && !sensed.open ? sensed.secret.locked || CONDITION_TEXT[sensed.secret.condition] : null };
       if (inReach && sensed.open && !rt.reached.has(`secret:${sensed.secret.id}`)) { rt.reached.add(`secret:${sensed.secret.id}`); emits.push({ type: "SECRET", id: sensed.secret.id, night: inp.secrets.night, storm: inp.secrets.storm }); }
     }
+  }
+
+  // 3d) the Godforge: the Furnace Guardian wakes when you walk into the opened Hollow Crown; relic mastery counts kills
+  if (inp.forge) {
+    const fp = { earnedRewards: inp.forge.earned as string[] };
+    if (guardianDue(fp, inp.px, inp.pz) && !rt.guardianOut && alive && !sim.machines.some((m) => m.alive && m.living === GUARDIAN_TAG)) {
+      const hp = 60 * (sim.challenge?.enemyHp ?? 1);
+      if (summonBoss(sim, "ember", HOLLOW_CROWN.x, HOLLOW_CROWN.z + 6, { profile: "The Furnace Guardian", living: GUARDIAN_TAG, hp, maxHp: hp, drop: "thermalShards" })) {
+        rt.guardianOut = true;
+        alert(sim, "The Furnace Guardian wakes: \"None pass to the forge unproven.\"");
+      }
+    }
+    if (rt.guardianOut && Math.hypot(inp.px - HOLLOW_CROWN.x, inp.pz - HOLLOW_CROWN.z) > HOLLOW_CROWN.radius * 6 && !sim.machines.some((m) => m.alive && m.living === GUARDIAN_TAG)) rt.guardianOut = false;
+    if ((sim.livingKills[GUARDIAN_TAG] ?? 0) > 0) { delete sim.livingKills[GUARDIAN_TAG]; emits.push({ type: "FORGE_HEART" }); }
+    if (delta > 0 && inp.forge.relicId) emits.push({ type: "RELIC_KILLS", itemId: inp.forge.relicId, count: delta });
   }
 
   // 4) where civilians run from

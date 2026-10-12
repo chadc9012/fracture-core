@@ -59,6 +59,7 @@ import { fireRound, splashDamage, stepRound, type Burst, type OrdnanceDef, type 
 import { LAUNCHERS, pickLockTarget, type LauncherId } from "./launchers";
 import { ABILITY_RULES, burstTargets, evolutionDamageMult, freshCharge, registerEvolutionHit, ruinElementOf, type EvolutionAbility, type EvolutionCharge } from "./weapon-evolution";
 import { stepHealth } from "./health";
+import { AWAKENED_MULT, DEVOUR_EVERY, DEVOUR_MULT, NO_RUNES, REAP_HEAL, RIFT_MULT, WARD_MULT, type RuneCombat } from "./godforge";
 import { nemesisStats, WEAK_ELEMENT, type KillerSnapshot, type Nemesis } from "./nemesis";
 import { applyElementHit, isChilled, burnDamage, freshStatuses, mergeVuln, statusSpeedMult, type MachineStatuses } from "./weapon-elements";
 
@@ -290,6 +291,8 @@ export type WorldSim = {
   /** evolved-weapon ability in hand (set each frame by Scene) and its hit counter (weapon-evolution.ts) */
   equippedEvolution: EvolutionAbility | undefined;
   evoCharge: EvolutionCharge;
+  /** godforge.ts: the Godforged relic in hand (set each frame by Scene) with one hit counter per burst rune and the Devour counter */
+  runes: RuneCombat & { charges: EvolutionCharge[]; devourHits: number };
   nullCharge: NullChargeState;
   /** last released Null Disruption pulse (id increments per pulse); Scene/NullPulseFx read it, never write it */
   nullPulse: { id: number; x: number; z: number; radius: number; at: number } | null;
@@ -417,6 +420,7 @@ export function defeatMachine(sim: WorldSim, m: Machine, credit: KillCredit = "p
     return;
   }
   sim.kills++;
+  if (sim.runes.reap) sim.hp = Math.min(100, sim.hp + REAP_HEAL); // godforge.ts Reap rune
   sim.credits += m.boss ? 250 : m.elite ? 75 : 45;
   directorEvent(sim.director, { type: "KILL" });
   const material = m.drop;
@@ -569,6 +573,7 @@ export function createSim(): WorldSim {
     impactCool: 0,
     combatHeat: 0,
     livingKills: {},
+    runes: { ...NO_RUNES, charges: [], devourHits: 0 },
     lastHitBy: null,
     deathEvents: [],
     nemesisEvents: [],
@@ -815,6 +820,25 @@ function evolutionHit(sim: WorldSim, m: Machine, dmg: number, px: number, pz: nu
   const r = registerEvolutionHit(sim.evoCharge, ability);
   sim.evoCharge = r.charge;
   if (!r.burst) return;
+  abilityBurst(sim, m, dmg, px, pz, ability);
+}
+/** godforge.ts: each burst rune on the relic in hand keeps its own hit counter and bursts like an evolved weapon */
+function runeHits(sim: WorldSim, m: Machine, dmg: number, px: number, pz: number) {
+  sim.runes.bursts.forEach((ability, k) => {
+    const r = registerEvolutionHit(sim.runes.charges[k] ?? freshCharge(), ability);
+    sim.runes.charges[k] = r.charge;
+    if (r.burst) abilityBurst(sim, m, dmg, px, pz, ability);
+  });
+}
+/** godforge.ts: Devour (every 8th hit ×2.5), Rift (+25% vs elites/bosses), Frost (chilled bonus), awakened (+10%) */
+function runeDamageMult(sim: WorldSim, m: Machine): number {
+  let k = sim.runes.awakened ? AWAKENED_MULT : 1;
+  if (sim.runes.devour) { sim.runes.devourHits++; if (sim.runes.devourHits >= DEVOUR_EVERY) { sim.runes.devourHits = 0; k *= DEVOUR_MULT; } }
+  if (sim.runes.rift && (m.elite || m.boss)) k *= RIFT_MULT;
+  if (sim.runes.bursts.includes("RIME_SHATTER")) { const st = sim.statuses.get(m); k *= evolutionDamageMult("RIME_SHATTER", !!st && isChilled(st, performance.now() / 1000)); }
+  return k;
+}
+function abilityBurst(sim: WorldSim, m: Machine, dmg: number, px: number, pz: number, ability: EvolutionAbility) {
   const rule = ABILITY_RULES[ability];
   const element = ruinElementOf(ability);
   const live = sim.machines.filter((o) => o.alive && o !== m && !o.decoy);
@@ -1015,7 +1039,7 @@ export function hurtPlayer(sim: WorldSim, dmg: number, cause: string) {
   // score before anything else runs — the one place all incoming damage already funnels through.
   // verbIncomingMult (Bulwark Titan's Safe Ground / OVERSHIELD) is set here too since every source
   // of incoming damage — bullets, collisions, hazards — already routes through this one function.
-  const scaled = dmg * (sim.challenge?.enemyDamage ?? 1) * sim.mods.incomingDamageScale * sim.verbIncomingMult * (1 - Math.min(0.5, Math.max(0, sim.armorResist)));
+  const scaled = dmg * (sim.challenge?.enemyDamage ?? 1) * (sim.runes?.ward ? WARD_MULT : 1) * sim.mods.incomingDamageScale * sim.verbIncomingMult * (1 - Math.min(0.5, Math.max(0, sim.armorResist)));
   const resolvedDamage = sim.titanActive ? absorbTitanDamage(sim.titan, scaled, performance.now() / 1000) : scaled;
   sim.hp = Math.max(0, sim.hp - resolvedDamage);
   if (resolvedDamage > 0) sim.lastDamageAt = performance.now() / 1000;
@@ -1746,10 +1770,12 @@ export function stepSim(sim: WorldSim, input: SimInput) {
         let dmg = sim.mods.bulletDamage * b.dmg * sim.verbDamageMult;
         if (sim.equippedElement !== "KINETIC") dmg += 0.35;
         if (sim.equippedEvolution) { const st = sim.statuses.get(m); dmg *= evolutionDamageMult(sim.equippedEvolution, !!st && isChilled(st, performance.now() / 1000)); }
+        if (sim.runes.bursts.length || sim.runes.devour || sim.runes.rift || sim.runes.awakened) dmg *= runeDamageMult(sim, m);
         dmg = applyMachineDamageMods(sim, m, dmg, b.element ?? sim.equippedElement, px, pz);
         m.hp -= dmg;
         if (b.element) applyWeaponElement(sim, m, b.element);
         if (sim.equippedEvolution) evolutionHit(sim, m, dmg, px, pz);
+        if (sim.runes.bursts.length) runeHits(sim, m, dmg, px, pz);
         if (sim.equippedPerk === NULL_PERK) {
           // timed = interrupting a wind-up, or hitting a boss while its weak-point/stagger window is open
           const nowS = performance.now() / 1000;
