@@ -394,6 +394,7 @@
   .hud-ammo { bottom: 242px !important; right: 12px !important; }
   .touch-stick { bottom: max(28px, env(safe-area-inset-bottom)); left: max(12px, env(safe-area-inset-left)); }
   .touch-controls button { touch-action: none; }
+  .vehicle-hud { top: 92px; bottom: auto; left: 12px; width: 240px; }
 }
 @media (pointer: coarse) and (max-width: 600px) {
   .hud-health { bottom: 248px !important; width: calc(100% - 136px) !important; }
