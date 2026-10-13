@@ -155,6 +155,7 @@ import { fallenDistricts } from "@/game/living-events";
 import { CHALLENGES } from "@/game/map-activities";
 import { HOLLOW_CROWN, VAEL, runeCombat, vaelNear } from "@/game/godforge";
 import { garageNear, sanctuariesFor, tunedVehicle } from "@/game/fleet";
+import { driveTelemetry } from "@/game/vehicle-audio";
 import { FOUNDRY_RULES, activeBlade, foundryOf, inShockwave, swingStats } from "@/game/foundries";
 import { LIVING_NPCS, PLEDGE_KEY, livingMarkers, npcNear, npcWorld } from "@/game/living-npcs";
 import { SECRETS, secretPoint, type SecretContext } from "@/game/secrets";
@@ -184,6 +185,7 @@ export type HudState = {
   speed: number;
   /* systems */
   mode: "foot" | "vehicle";
+  vehicle?: { name: string; rpm: number; load: number; reverse: boolean; hull: number };
   owner: Faction;
   challenger: Faction;
   progress: number;
@@ -1022,7 +1024,7 @@ function SceneImpl({
       s.toggleCool = 0.4;
       const wasInVehicle = s.inVehicle;
       s.inVehicle = !s.inVehicle;
-      if (s.inVehicle) sfx.playVehicleEngineStart();
+      if (s.inVehicle) sfx.playVehicleEngineStart(vehicleId, selectedVehicle.speed / vehicleById(vehicleId).speed);
       // Neon City parkour: hopping out mid-drive keeps a fraction of the car's speed as foot-chase momentum.
       if (wasInVehicle) velocity.set(Math.sin(s.yaw), 0, Math.cos(s.yaw)).multiplyScalar(exitVehicleMomentum(s.vSpeed));
       else velocity.set(0, 0, 0);
@@ -1793,7 +1795,7 @@ function SceneImpl({
         if (a.stepT <= 0) { a.stepT = 1; const rid = here?.id; sfx.playFootstep(interior ? "HARD" : submerged ? "WATER" : rid === "frostspire" ? "SNOW" : rid === "solara" ? "SAND" : rid === "nexus" ? "HARD" : "GRASS", held.has("ShiftLeft") || held.has("ShiftRight")); }
       }
       const fwd = held.has("KeyW") || held.has("ArrowUp"), rev = held.has("KeyS") || held.has("ArrowDown");
-      sfx.updateEngine(s.inVehicle, vehicleId, Math.min(1, Math.abs(s.vSpeed) / 45), fwd || rev ? 1 : 0, rev && s.vSpeed > 2);
+      sfx.updateEngine(s.inVehicle, vehicleId, Math.min(1, Math.abs(s.vSpeed) / 45), fwd || rev ? 1 : 0, rev && s.vSpeed > 2, selectedVehicle.speed / vehicleById(vehicleId).speed);
     }
 
     /* ---------------- Mission 01 · Broken Signal world triggers ---------------- */
@@ -2327,6 +2329,7 @@ function SceneImpl({
         clock: clockLabel(time.current),
         speed: Math.round(s.inVehicle ? Math.abs(s.vSpeed) * 2.4 : velocity.length() * 2.4),
         mode: s.inVehicle ? "vehicle" : "foot",
+        ...(s.inVehicle ? { vehicle: { name: selectedVehicle.name, ...driveTelemetry(vehicleId, Math.abs(s.vSpeed) / 45, fwd || rev ? 1 : 0, selectedVehicle.speed / vehicleById(vehicleId).speed), load: Math.min(1, Math.abs(s.vSpeed) / 45), reverse: s.vSpeed < -0.1, hull: selectedVehicle.hull } } : {}),
         owner: zone?.owner ?? "syndicate",
         challenger: zone?.challenger ?? "vanguard",
         progress: zone?.progress ?? 0,

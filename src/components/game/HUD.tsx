@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { xpRequiredForLevel } from "@/game/xp";
 import { DiveHud } from "./DiveHud";
+import { VehicleHud } from "./VehicleHud";
 import { operatorByClass } from "@/game/loadout";
 import { perfFlags } from "@/game/perf-flags";
 import { StratagemPanel } from "./StratagemPanel";
@@ -36,6 +37,7 @@ export function HUD({ hud, tutorialActive = false, onMenu, onAtlas, level }: { h
     </div>}
     {hud.diving && <div className="water-overlay pointer-events-none absolute inset-0 z-10" aria-hidden />}
     <DiveHud hud={hud} />
+    <VehicleHud hud={hud} />
     {!tutorialActive && <StratagemPanel hud={hud.stratagem} />}
     <EmergencyQuestBanner eq={hud.emergencyQuest} />
     <BossHealthBar boss={hud.bossHud} />
