@@ -1211,7 +1211,7 @@ export function GameCanvas() {
          </div>
        )}
        {skateOpen && <SkateShop progression={progression} onProgression={setProgression} onClose={() => setSkateOpen(false)} />}
-       <TouchControls />
+       <TouchControls bindings={settings.bindings} disabled={Boolean(menuOpen || characterOpen || inventoryOpen || atlasOpen || operationsView || shopOpen || skateOpen || npcOpen || forgeOpen || basePanel || ruinOpen || showIntro || cineId || deathInfo || storyGraph || activeDialogue || transit)} />
        <ConsumableHud progression={progression} bindings={settings.bindings} disabled={Boolean(menuOpen || characterOpen || inventoryOpen || atlasOpen || operationsView || shopOpen || skateOpen || npcOpen || forgeOpen || basePanel || ruinOpen || showIntro || cineId || deathInfo || storyGraph || activeDialogue || transit || hud.hp <= 0)} onUse={useConsumable} />
        <KillPlaylistPlayer volume={(settings.volume ?? 0.7) * (settings.musicVolume ?? 1)} muted={!!settings.mute?.music} />
        {hud.garageNear && !basePanel && !hud.shopNearId && (

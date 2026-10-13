@@ -13,11 +13,14 @@ import { equippedPieces, piecesKey, type ArmorPiece } from "@/game/armor-pieces"
 import type { GearItem, GearSlot } from "@/game/inventory";
 import { HAND_BONE, WEAPON_PROPS } from "@/game/weapon-props";
 import { WEAPONS, WEAPON_ORDER, type WeaponId } from "@/game/weapons";
+import { attachSkates } from "./skate-attachments";
+import { bootStats } from "@/game/skate-boots";
+import { getEquippedBoots } from "@/game/client-input";
 
 /** the weapon the operator is currently holding; read every frame so a weapon swap needs no rebuild */
 export type HeldWeapon = { current: { weapon: WeaponId } };
 
-export type WornGear = { inventory: GearItem[]; equippedGear: Partial<Record<GearSlot, string>> };
+export type WornGear = { inventory: GearItem[]; equippedGear: Partial<Record<GearSlot, string>>; earnedRewards?: string[] };
 
 const ELEMENT_GLOW: Record<string, string> = { KINETIC: "#ffd9a0", THERMAL: "#ff8a3a", CRYO: "#8fd8ff", ARC: "#6fe7ff", BIO: "#9cff8a" };
 
@@ -188,6 +191,8 @@ function Model({ url, tint, height, feetY, color, trim, pose, motion, bodyType, 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [built, armorKey, color, height, tint]);
   const heldGroups = useRef<Partial<Record<WeaponId, THREE.Group>>>({});
+  const skate = useRef({ id: "none", dispose: () => {} });
+  useEffect(() => () => { skate.current.dispose(); skate.current = { id: "none", dispose: () => {} }; }, [built]);
   useEffect(() => {
     if (!held) return;
     built.object.updateMatrixWorld(true);
@@ -200,6 +205,8 @@ function Model({ url, tint, height, feetY, color, trim, pose, motion, bodyType, 
   const rig = useRef<THREE.Group>(null);
   const body = useRef({ crouch: 0, prone: 0, lean: 0 });
   useFrame(({ clock }, dt) => {
+    const boots = bootStats(gear?.earnedRewards ?? [], getEquippedBoots()).id;
+    if (boots !== skate.current.id) { skate.current.dispose(); skate.current = { id: boots, dispose: attachSkates(built.object, boots, classId, built.scale) }; }
     if (held) { const w = held.current.weapon; for (const id of WEAPON_ORDER) { const g = heldGroups.current[id]; if (g) g.visible = id === w; } }
     // stance pose: squash toward the ground for a crouch, tip face-down for prone, lean back in a slide (all pivot on the feet)
     const m0 = pose === "locomotion" ? motion?.current : undefined;

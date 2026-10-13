@@ -26,7 +26,7 @@ export function ShopWindow({ shopId, progression, onProgression, onClose }: { sh
   const apply = (r: ReturnType<typeof buyOffer>) => { if ("error" in r) setNotice(r.error); else { onProgression(r.progression); setNotice(r.message); } };
 
   return (
-    <div className="absolute inset-0 z-40 flex items-center justify-center bg-background/80 p-4" onKeyDown={(e) => e.key === "Escape" && onClose()}>
+    <div role="dialog" aria-modal="true" aria-label={shop.name} className="absolute inset-0 z-40 flex items-center justify-center bg-background/80 p-4" onKeyDown={(e) => e.key === "Escape" && onClose()}>
       <div className="max-h-[85vh] w-full max-w-2xl overflow-y-auto border border-border bg-card p-5">
         <div className="flex items-start justify-between gap-4">
           <div>
@@ -41,7 +41,7 @@ export function ShopWindow({ shopId, progression, onProgression, onClose }: { sh
           </div>
         </div>
         {lock && <p className="mt-4 border border-destructive/50 p-3 text-sm text-destructive">Closed to you · {lock}</p>}
-        {notice && <p className="mt-3 text-xs text-primary">{notice}</p>}
+        {notice && <p role="status" className="mt-3 text-xs text-primary">{notice}</p>}
         {!lock && <section className="mt-5 border-t border-border pt-4">
           <div className="flex justify-between gap-3"><h4 className="font-mono text-sm">Sell duplicate gear</h4><span className="text-xs text-primary">{progression.fractureShards} fracture shards</span></div>
           {duplicates.length === 0 && <p className="mt-2 text-xs text-muted-foreground">No spare duplicates available.</p>}
@@ -57,7 +57,7 @@ export function ShopWindow({ shopId, progression, onProgression, onClose }: { sh
             {offers.map((o) => {
               const lvl = progression.level < o.minLevel;
               return (
-                <div key={o.key} className="flex items-center justify-between gap-3 border border-border p-3">
+                <div key={o.key} className="flex flex-wrap items-center justify-between gap-3 border border-border p-3">
                   <div><p className="font-mono text-sm">{o.name}</p><p className="text-[10px] text-muted-foreground">{o.detail}</p></div>
                   <Button size="sm" variant="outline" disabled={lvl || funds < o.price} onClick={() => apply(buyOffer(progression, shop, o))}>{lvl ? `Level ${o.minLevel}` : `${o.price} ${shop.currency}`}</Button>
                 </div>

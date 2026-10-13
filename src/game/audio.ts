@@ -8,6 +8,7 @@ import { voiceAction, type WaterMix, type WaterSource } from "./water-audio";
 import { AUDIO_FILES } from "./audio-files";
 import { BLAST_FLAVOR, SHOTS, blastAtDistance, shotKey, variation, type BlastFlavor, type ShotProfile } from "./audio-design";
 import { RADIO_STATIONS, type StationId } from "./radio-stations";
+import { engineVoice } from "./vehicle-audio";
 
 type Ctx = { ac: AudioContext; master: GainNode; sfx: GainNode; music: GainNode; amb: GainNode; abil: GainNode; noise: AudioBuffer; brown: AudioBuffer; verb: GainNode; drive: Map<number, Float32Array>; layers: { ambient: GainNode; tension: GainNode; drums: GainNode; motif: GainNode } | null; ambientOscs: OscillatorNode[]; musicRegion: string; beat: number };
 let ctx: Ctx | null = null;
@@ -210,15 +211,17 @@ function startAmbientSample(regionId: string) {
   const c = ctx; const buf = sampleBuffers.get(`ambient:${regionId}`); if (!c || !buf) return false;
   stopAmbientSample();
   const source = c.ac.createBufferSource(); source.buffer = buf; source.loop = true;
-  const gain = c.ac.createGain(); gain.gain.value = 0; source.connect(gain).connect(c.sfx); source.start();
+  const gain = c.ac.createGain(); gain.gain.value = 0; source.connect(gain).connect(c.amb); source.start();
   gain.gain.setTargetAtTime(0.22, c.ac.currentTime, 1.2);
   ambientSample = { source, gain }; return true;
 }
-export function playVehicleEngineStart() {
-  if (playSample("engine", {}, 0.68)) return;
+export function playVehicleEngineStart(vehicleId = "scrap-interceptor", speedRatio = 1) {
   const c = ctx; if (!c) return; const o = out(c);
-  tone(c, o, { f0: 36, f1: 72, dur: 0.85, type: "sawtooth", gain: 0.25 });
-  burst(c, o, { dur: 0.6, freq: 380, type: "lowpass", gain: 0.25, at: 0.12 });
+  const v = engineVoice(vehicleId, speedRatio);
+  // Keep the starter recording as a texture, with the model-specific ignition on top.
+  if (vehicleId === "scrap-interceptor") playSample("engine", {}, 0.22, speedRatio);
+  tone(c, o, { f0: v.base * 0.55, f1: v.base * 1.7, dur: v.ignition, type: v.type, gain: 0.16 });
+  burst(c, o, { dur: v.ignition * 0.7, freq: v.cutoff * 0.7, type: "lowpass", gain: 0.12, at: 0.08 });
 }
 
 /** Player weapon: crack + saturated blast + thump + reverb tail (+ bolt/pump/zap) from audio-design.ts SHOTS, humanised per shot.
@@ -473,17 +476,12 @@ export function stopWaterAudio() {
 /** Continuous vehicle engine: per-vehicle voice, rpm follows speed + throttle, brake squeal on hard decel. */
 type Engine = { id: string; osc: OscillatorNode; sub: OscillatorNode; filter: BiquadFilterNode; gain: GainNode; brake: GainNode; brakeSrc: AudioBufferSourceNode };
 let engine: Engine | null = null;
-const ENGINE_VOICE: Record<string, { base: number; type: OscillatorType; cutoff: number }> = {};
-function voiceFor(id: string) {
-  if (!ENGINE_VOICE[id]) { let h = 0; for (const ch of id) h = (h * 31 + ch.charCodeAt(0)) >>> 0; const types: OscillatorType[] = ["sawtooth", "square", "triangle"]; ENGINE_VOICE[id] = { base: 38 + (h % 50), type: types[h % 3]!, cutoff: 500 + (h % 900) }; }
-  return ENGINE_VOICE[id]!;
-}
-export function updateEngine(active: boolean, vehicleId: string, speed01: number, throttle: number, braking: boolean) {
+export function updateEngine(active: boolean, vehicleId: string, speed01: number, throttle: number, braking: boolean, speedRatio = 1) {
   const c = ctx; if (!c) return;
   if (!active) { if (engine) { engine.gain.gain.setTargetAtTime(0, c.ac.currentTime, 0.15); const e = engine; setTimeout(() => { e.osc.stop(); e.sub.stop(); e.brakeSrc.stop(); }, 800); engine = null; } return; }
   if (!engine || engine.id !== vehicleId) {
     updateEngine(false, vehicleId, 0, 0, false);
-    const v = voiceFor(vehicleId);
+    const v = engineVoice(vehicleId, speedRatio);
     const osc = c.ac.createOscillator(); osc.type = v.type; const sub = c.ac.createOscillator(); sub.type = "sine";
     const filter = c.ac.createBiquadFilter(); filter.type = "lowpass"; filter.frequency.value = v.cutoff; filter.Q.value = 4;
     const gain = c.ac.createGain(); gain.gain.value = 0;
@@ -493,7 +491,7 @@ export function updateEngine(active: boolean, vehicleId: string, speed01: number
     osc.start(); sub.start(); brakeSrc.start();
     engine = { id: vehicleId, osc, sub, filter, gain, brake, brakeSrc };
   }
-  const v = voiceFor(vehicleId), t = c.ac.currentTime;
+  const v = engineVoice(vehicleId, speedRatio), t = c.ac.currentTime;
   const rpm = v.base * (1 + speed01 * 2.4 + throttle * 0.5);
   engine.osc.frequency.setTargetAtTime(rpm, t, 0.08);
   engine.sub.frequency.setTargetAtTime(rpm / 2, t, 0.08);

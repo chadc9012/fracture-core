@@ -1,6 +1,7 @@
 # Roadmap
 
 ## Current request
+- [ ] Expanded brief: personalized cinematic actors and emotes → economy/vendor dialogue → housing/build mode → garages/cosmetics → factions/map integration; preserve latest source and verify each phase independently.
 - [ ] Review the running world against realistic sci-fi and Destiny-style references; fix confirmed overlaps and missing assets.
 - [ ] Verify phone-sized gameplay controls/HUD (physical phone validation remains a device check).
 - [ ] Test audio/radio playback and add vehicle-specific engine/startup profiles linked to existing tuning.

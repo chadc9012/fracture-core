@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { craftStim, dismantle, grant, mergeStash, sellDuplicate, toVault, useStim, buffEffect } from "./stash";
+import { craftStim, dismantle, grant, mergeStash, sellDuplicate, toVault, useStim, buffEffect, type Buffs } from "./stash";
 import type { GearItem } from "./inventory";
 
 const gun = (id: string): GearItem => ({ id, name: "Rifle", slot: "primary", power: 100, level: 2, element: "KINETIC", source: "drop" });
@@ -11,10 +11,23 @@ describe("stash", () => {
     expect(craftStim({ ...base([]), materials: { healStim: 3, dataChip: 9, energyToken: 9 } }, "healStim").materials.dataChip).toBe(9);
   });
   test("active buff stacks cap at 3", () => {
-    let p = { ...base([]), materials: { armorStim: 3 } }; let b = {};
-    for (let i = 0; i < 3; i++) { const r = useStim(p, b, "armorStim", 0)!; p = r.progression; b = r.buffs; }
-    p = { ...p, materials: { armorStim: 1 } }; b = useStim(p, b, "armorStim", 0)!.buffs;
+    let p = { ...base([]), materials: { armorStim: 3 } }; let b: Buffs = {};
+    for (let i = 0; i < 3; i++) { const r = useStim(p, b, "armorStim", 0); if (!r) throw new Error("Expected valid stack"); p = r.progression; b = r.buffs; }
+    p = { ...p, materials: { armorStim: 1 } };
+    expect(useStim(p, b, "armorStim", 0)).toBeNull();
+    expect(p.materials.armorStim).toBe(1);
     expect(buffEffect(b, 1).resist).toBeCloseTo(0.3);
+  });
+  test("Ruin Surge gives 15% per stack and expires at 45 seconds", () => {
+    const result = useStim({ ...base([]), materials: { ruinStone: 1 } }, {}, "ruinStone", 0);
+    if (!result) throw new Error("Expected Ruin Stone use");
+    expect(result.progression.materials.ruinStone).toBe(0);
+    expect(buffEffect(result.buffs, 44999).damageMult).toBe(1.15);
+    expect(buffEffect(result.buffs, 45000).damageMult).toBe(1);
+  });
+  test("healing stacks grant 5 HP/s each and expire after 30 seconds", () => {
+    expect(buffEffect({ healStim: { stacks: 3, until: 30000 } }, 29999).regen).toBe(15);
+    expect(buffEffect({ healStim: { stacks: 3, until: 30000 } }, 30000).regen).toBe(0);
   });
   test("only duplicates sell; equipped never", () => {
     expect(sellDuplicate(base([gun("a"), gun("b")]), "b").fractureShards).toBeGreaterThan(0);
