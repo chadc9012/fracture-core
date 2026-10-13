@@ -8,7 +8,7 @@ import { voiceAction, type WaterMix, type WaterSource } from "./water-audio";
 import { AUDIO_FILES } from "./audio-files";
 import { BLAST_FLAVOR, SHOTS, blastAtDistance, shotKey, variation, type BlastFlavor, type ShotProfile } from "./audio-design";
 
-type Ctx = { ac: AudioContext; master: GainNode; sfx: GainNode; music: GainNode; noise: AudioBuffer; brown: AudioBuffer; verb: GainNode; drive: Map<number, Float32Array>; layers: { ambient: GainNode; tension: GainNode; drums: GainNode; motif: GainNode } | null; ambientOscs: OscillatorNode[]; musicRegion: string; beat: number };
+type Ctx = { ac: AudioContext; master: GainNode; sfx: GainNode; music: GainNode; amb: GainNode; abil: GainNode; noise: AudioBuffer; brown: AudioBuffer; verb: GainNode; drive: Map<number, Float32Array>; layers: { ambient: GainNode; tension: GainNode; drums: GainNode; motif: GainNode } | null; ambientOscs: OscillatorNode[]; musicRegion: string; beat: number };
 let ctx: Ctx | null = null;
 let volume = 0.7;
 export const VOLUME_KEY = "world-fracture-volume";
@@ -25,6 +25,7 @@ export function unlockAudio() {
   const comp = ac.createDynamicsCompressor(); comp.threshold.value = -14; comp.ratio.value = 4; comp.connect(muffle);
   const sfx = ac.createGain(); sfx.connect(comp);
   const music = ac.createGain(); music.gain.value = 0.35; music.connect(comp);
+  const amb = ac.createGain(); amb.connect(comp); const abil = ac.createGain(); abil.connect(comp);
   const noise = ac.createBuffer(1, ac.sampleRate, ac.sampleRate);
   const d = noise.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
   // brown noise (integrated white): the rolling low rumble of explosions and heavy tails
@@ -33,7 +34,7 @@ export function unlockAudio() {
   // outdoor reverb: a generated impulse (early slap-back off terrain + a long diffuse decay), shared by every shot and blast through one send bus
   const verbNode = ac.createConvolver(); verbNode.buffer = outdoorImpulse(ac, 2.4);
   const verb = ac.createGain(); verb.gain.value = 0.55; verb.connect(verbNode).connect(comp);
-  ctx = { ac, master, sfx, music, noise, brown, verb, drive: new Map(), layers: null, ambientOscs: [], musicRegion: "", beat: 0 };
+  ctx = { ac, master, sfx, music, amb, abil, noise, brown, verb, drive: new Map(), layers: null, ambientOscs: [], musicRegion: "", beat: 0 };
   preloadSamples(ctx);
   applyMix();
   startMusic(ctx);
@@ -48,22 +49,26 @@ export function setUnderwaterMuffle(k: number) {
 }
 
 export function setVolume(v: number) { volume = v; if (ctx) ctx.master.gain.setTargetAtTime(v, ctx.ac.currentTime, 0.05); }
-let musicVol = 1; let sfxVol = 1;
+let musicVol = 1; let sfxVol = 1; let ambVol = 1; let abilVol = 1;
+let combatLevel = 0;
+/** last combat intensity (0..1) fed by Scene; the kill playlist reads it */
+export const getCombatLevel = () => combatLevel;
 /** Separate channel levels (0..1) on top of master. Music bus keeps its 0.35 base mix. */
-export function setMixVolumes(music: number, effects: number) {
-  musicVol = music; sfxVol = effects;
+export function setMixVolumes(music: number, effects: number, ambience = 1, abilities = 1) {
+  musicVol = music; sfxVol = effects; ambVol = ambience; abilVol = abilities;
+  if (ctx) { ctx.amb.gain.setTargetAtTime(ambience, ctx.ac.currentTime, 0.05); ctx.abil.gain.setTargetAtTime(abilities, ctx.ac.currentTime, 0.05); }
   if (ctx) { ctx.music.gain.setTargetAtTime(0.35 * music, ctx.ac.currentTime, 0.05); ctx.sfx.gain.setTargetAtTime(effects, ctx.ac.currentTime, 0.05); }
 }
-function applyMix() { if (ctx) { ctx.music.gain.value = 0.35 * musicVol; ctx.sfx.gain.value = sfxVol; } }
+function applyMix() { if (ctx) { ctx.music.gain.value = 0.35 * musicVol; ctx.sfx.gain.value = sfxVol; ctx.amb.gain.value = ambVol; ctx.abil.gain.value = abilVol; } }
 
 /** Spatial send: distance attenuation, stereo pan from listener yaw, lowpass muffling beyond 20m. */
 type Where = { dist?: number; pan?: number };
-function out(c: Ctx, w: Where = {}) {
+function out(c: Ctx, w: Where = {}, bus?: GainNode) {
   const dist = w.dist ?? 0;
   const g = c.ac.createGain(); g.gain.value = 1 / (dist * 0.08 + 1);
   const p = c.ac.createStereoPanner(); p.pan.value = Math.max(-1, Math.min(1, w.pan ?? 0));
   const lp = c.ac.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.value = dist > 20 ? Math.max(700, 9000 - dist * 90) : 18000;
-  g.connect(lp).connect(p).connect(c.sfx);
+  g.connect(lp).connect(p).connect(bus ?? c.sfx);
   return g;
 }
 function burst(c: Ctx, dest: AudioNode, { dur, freq, q = 1, type = "bandpass", gain = 1, at = 0 }: { dur: number; freq: number; q?: number; type?: BiquadFilterType; gain?: number; at?: number }) {
@@ -255,7 +260,7 @@ export function playKill(boss: boolean, w: Where) {
 }
 export function playAbility(kind: string) {
   if ((kind === "RIFT" || kind === "PORTAL" || kind === "TELEPORT") && playSample("portal", {}, 0.72)) return;
-  const c = ctx; if (!c) return; const o = out(c);
+  const c = ctx; if (!c) return; const o = out(c, {}, c.abil);
   if (kind === "DASH") burst(c, o, { dur: 0.3, freq: 1200, q: 1.5, gain: 0.6 });
   else if (kind === "DOME" || kind === "SHIELD") { tone(c, o, { f0: 200, f1: 400, dur: 0.6, type: "triangle", gain: 0.25 }); tone(c, o, { f0: 300, f1: 600, dur: 0.6, type: "sine", gain: 0.2 }); }
   else { tone(c, o, { f0: 300, f1: 1800, dur: 0.35, type: "sawtooth", gain: 0.1 }); burst(c, o, { dur: 0.4, freq: 3000, q: 1, gain: 0.3 }); }
@@ -337,7 +342,7 @@ export function updateBiomeAmbient(regionId: string) {
   if (startAmbientSample(regionId)) { biomeVoice = { key: regionId, stop: stopAmbientSample }; return; }
   const def = BIOME_AMBIENT[regionId];
   if (!def) return;
-  const dest = c.sfx;
+  const dest = c.amb;
   const stops: (() => void)[] = [noiseBed(c, dest, { cutoff: def.bedCutoff, gain: def.bedGain, ...(def.bedType ? { type: def.bedType } : {}) }).stop];
   if (def.hum) {
     const o = c.ac.createOscillator(); o.type = "sine"; o.frequency.value = def.hum;
@@ -362,7 +367,7 @@ export function updateWeatherAmbient(weather: string) {
   weatherVoice?.stop(); weatherVoice = null;
   const def = WEATHER_AMBIENT[weather];
   if (!def) return;
-  weatherVoice = { key: weather, stop: noiseBed(c, c.sfx, { cutoff: def.cutoff, gain: def.gain, type: def.type ?? "lowpass" }).stop };
+  weatherVoice = { key: weather, stop: noiseBed(c, c.amb, { cutoff: def.cutoff, gain: def.gain, type: def.type ?? "lowpass" }).stop };
 }
 
 /* ---------------- running water: one stream voice + one waterfall voice (water-audio.ts decides gains) ---------------- */
@@ -383,7 +388,7 @@ function loopNoise(c: Ctx, dest: AudioNode, type: BiquadFilterType, freq: number
 function startWaterVoice(c: Ctx, kind: "stream" | "fall"): WaterVoice {
   const gain = c.ac.createGain(); gain.gain.value = 0;
   const pan = c.ac.createStereoPanner();
-  gain.connect(pan).connect(c.sfx);
+  gain.connect(pan).connect(c.amb);
   const nodes: AudioScheduledSourceNode[] = [];
   if (kind === "stream") {
     nodes.push(loopNoise(c, gain, "bandpass", 850, 0.5, 0.55).src);
@@ -482,6 +487,7 @@ function startMusic(c: Ctx) {
  * drops below a driving floor, so a boss fight reads as a distinct, more frantic piece rather
  * than just "regular combat but louder" — the "different fights get different music" ask. */
 export function updateCombatAudio(intensity: number, boss = false) {
+  combatLevel = intensity;
   const c = ctx; if (!c || !c.layers) return;
   const now = c.ac.currentTime;
   const eff = boss ? Math.max(intensity, 0.72) : intensity;
