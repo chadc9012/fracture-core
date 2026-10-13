@@ -11,6 +11,8 @@ import { softSprite } from "./softSprite";
 import { REGIONS, SKY, ZONE_COLOR, clockLabel, phaseFor, regionAt, WORLD_RADIUS, WORLD_SCALE } from "@/game/world";
 import { BASE_FOOT_SPEED, SPRINT_MULT } from "@/game/foot-speed";
 import { useKeyboard } from "@/game/useKeyboard";
+import { touch, getEquippedBoots } from "@/game/client-input";
+import { bootStats, SKATE_SHOP_OFFSET, SKATE_SHOP_RADIUS } from "@/game/skate-boots";
 import { walkHeight, slopeAt, heightAt, waterNetwork, WATER_LEVEL } from "@/game/terrain";
 import { waterMix } from "@/game/water-audio";
 /** water audio is eased in the audio graph, so it only needs a pose update ~8x/s */
@@ -288,6 +290,7 @@ export type HudState = {
   living?: LivingHud | null;
   /** fleet.ts: a garage base within reach */
   garageNear?: string | null;
+  skateShopNear?: boolean;
   /** wasteland-runtime.ts: the running Wastelands activity (vault defense / rally / derby) */
   waste?: WasteHud;
   /** godforge.ts: Vael is in reach (her forge is open) */
@@ -853,6 +856,7 @@ function SceneImpl({
   };
 
   const velocity = useMemo(() => new THREE.Vector3(), []);
+  const bootDash = useRef({ held: false, readyAt: 0 });
   const wish = useMemo(() => new THREE.Vector3(), []);
   const camTarget = useMemo(() => new THREE.Vector3(), []);
   const look = useMemo(() => new THREE.Vector3(), []);
@@ -928,6 +932,12 @@ function SceneImpl({
     const dt = Math.min(raw, 0.05) * (performance.now() < hitStopUntil.current ? 0.08 : 1);
     const held = keys.current;
     const s = state.current;
+    if (touch.active && s) {
+      // touch controls (TouchControls.tsx): look drag turns the camera, fire/aim buttons stand in for the mouse
+      s.yaw -= touch.lookDX * 0.005; s.pitch = THREE.MathUtils.clamp(s.pitch - touch.lookDY * 0.005, -1.2, 1.2);
+      touch.lookDX = 0; touch.lookDY = 0; mouse.current.fire = touch.fire; mouse.current.aim = touch.aim;
+    }
+    const boots = bootStats(gearLive.current?.earnedRewards ?? [], getEquippedBoots());
     // Safe-state guard: a null/invalid player or world ref (bad hot-reload, a race during a scene
     // transition) skips this frame instead of throwing into React Three Fiber's render loop.
     if (!s || !sim) return;
@@ -1555,6 +1565,18 @@ function SceneImpl({
       if (left) { wish.x += Math.sin(s.yaw + Math.PI / 2); wish.z += Math.cos(s.yaw + Math.PI / 2); }
       if (right) { wish.x += Math.sin(s.yaw - Math.PI / 2); wish.z += Math.cos(s.yaw - Math.PI / 2); }
       // Neon City parkour: chaining vaults within the window nets a small, capped speed bonus.
+      {
+        // jet-boots dash (skate-boots.ts): tap Shift for a burst along the facing, gated by the pair's cooldown
+        const shift = held.has("ShiftLeft") || held.has("ShiftRight");
+        const nowB = performance.now() / 1000;
+        if (boots.dash > 0 && shift && !bootDash.current.held && nowB >= bootDash.current.readyAt) {
+          velocity.x += Math.sin(s.yaw) * boots.dash; velocity.z += Math.cos(s.yaw) * boots.dash;
+          if (boots.dashStyle === "air" && !s.grounded) s.vy = Math.max(s.vy, 6);
+          if (boots.dashStyle === "blink") { s.x += Math.sin(s.yaw) * 4; s.z += Math.cos(s.yaw) * 4; }
+          bootDash.current.readyAt = nowB + boots.dashCooldown; s.punch += 0.2; sfx.playAbility("DASH");
+        }
+        bootDash.current.held = shift;
+      }
       const chainBonus = parkourChainBonus(s.chainCount, performance.now() / 1000 - s.lastVaultAt);
       const mvs = move.current;
       const crouchKey = held.has(binds.keyboard.crouch) || !!padNow[binds.gamepad.crouch];
@@ -1564,7 +1586,7 @@ function SceneImpl({
       const stance = resolveStance(mvs.state, { crouchHeld: crouchKey, sprinting: boost, jumping: held.has("KeyC"), grounded: s.grounded, sliding: mvs.state.slideLeft > 0, swimming: s.diving || submerged });
       stepStance(mvs.state, dt);
       const sprint = boost && stance === "STAND";
-      const walk = BASE_FOOT_SPEED * traction * (sprint ? SPRINT_MULT : 1) * STANCE_SPEED[stance] * (1 + armorFxRef.current.moveSpeed) * sim.mods.footSpeed * (live.current.dashTime > 0 ? 1.4 : 1) * siegeMoveMult(live.current.siegeTime) * (1 + chainBonus) * sim.hazardSpeedMult;
+      const walk = BASE_FOOT_SPEED * traction * (sprint ? SPRINT_MULT * boots.boost : 1) * STANCE_SPEED[stance] * (1 + armorFxRef.current.moveSpeed) * sim.mods.footSpeed * (live.current.dashTime > 0 ? 1.4 : 1) * siegeMoveMult(live.current.siegeTime) * (1 + chainBonus) * sim.hazardSpeedMult;
       if (wish.lengthSq() > 0) wish.normalize().multiplyScalar(walk * hazardRef.current.speedMul);
       {
         // slide: out of a sprint, commit to the heading with a speed burst that bleeds off (movement.ts)
@@ -2140,7 +2162,7 @@ function SceneImpl({
       if (!s.inVehicle && held.has("KeyC") && s.grounded && !submerged) {
         // Neon City parkour: a running jump vaults further and a little higher — momentum-based since the world's collision is radius-based, not mesh-accurate.
         const lunge = vaultLunge(velocity.length(), Math.sqrt(2 * sim.gravity * 6.5));
-        s.vy = lunge.verticalBoost;
+        s.vy = lunge.verticalBoost * boots.jump;
         if (lunge.forwardBoost > 0 && velocity.lengthSq() > 0.01) velocity.addScaledVector(velocity.clone().normalize(), lunge.forwardBoost);
         const nowSec = performance.now() / 1000;
         s.chainCount = nowSec - s.lastVaultAt < 1.4 ? s.chainCount + 1 : 1;
@@ -2150,7 +2172,7 @@ function SceneImpl({
       } else {
         s.y = THREE.MathUtils.lerp(s.y, standY, 1 - Math.exp(-14 * dt));
         s.grounded = true;
-        land(move.current.state, playerClass);
+        land(move.current.state, playerClass); move.current.state.airJumpsLeft += boots.extraAirJumps;
         move.current.jumpHeld = held.has("KeyC");
       }
     } else {
@@ -2160,7 +2182,7 @@ function SceneImpl({
         const jumpHeld = held.has("KeyC");
         if (jumpHeld && !mv.jumpHeld) {
           const mult = airJump(mv.state, playerClass);
-          if (mult !== null) { s.vy = Math.sqrt(2 * sim.gravity * 6.5) * mult; s.punch += 0.15; sfx.playReload("end"); }
+          if (mult !== null) { s.vy = Math.sqrt(2 * sim.gravity * 6.5) * mult * boots.jump; s.punch += 0.15; sfx.playReload("end"); }
         }
         mv.jumpHeld = jumpHeld;
         const before = s.vy;
@@ -2173,7 +2195,7 @@ function SceneImpl({
         s.y = standY;
         s.vy = 0;
         s.grounded = true;
-        land(move.current.state, playerClass);
+        land(move.current.state, playerClass); move.current.state.airJumpsLeft += boots.extraAirJumps;
       }
     }
     // fracture instability tosses loose objects (and you) around
@@ -2402,6 +2424,7 @@ function SceneImpl({
         interiorOpen: interior ? isInteriorOpen(interior, time.current) : true,
         living: livingHud.current,
         garageNear: !interior ? garageNear(s.x, s.z) : null,
+        skateShopNear: !interior && Math.hypot(s.x - NEON_CITY_CENTER.x - SKATE_SHOP_OFFSET.x, s.z - NEON_CITY_CENTER.z - SKATE_SHOP_OFFSET.z) < SKATE_SHOP_RADIUS,
         waste: wasteHud.current,
         vaelNear: !interior && !s.inVehicle && vaelNear({ earnedRewards: gear?.earnedRewards ?? [] }, s.x, s.z),
         npcNear: !interior && !s.inVehicle ? (() => { const n = npcNear(s.x, s.z); return n ? { id: n.id, name: n.name, title: n.title } : null; })() : null,
