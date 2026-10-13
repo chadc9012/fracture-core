@@ -148,7 +148,7 @@ function Undercity() {
         {k.kind === "terminals" && <group>
           {[0, 1, 2].map((j) => <group key={j} position={[(j - 1) * 0.9, 0.9 + (j % 2) * 0.7, 0]}>
             <mesh><boxGeometry args={[0.8, 0.65, 0.6]} /><meshStandardMaterial color="#2e2a26" roughness={0.8} /></mesh>
-            <mesh position-z={0.31}><planeGeometry args={[0.6, 0.45]} /><meshBasicMaterial ref={i === 0 && j === 0 ? crt : undefined} color={j === 1 ? "#ffb347" : "#39ff7a"} transparent toneMapped={false} /></mesh>
+            <mesh position-z={0.31}><planeGeometry args={[0.6, 0.45]} /><meshBasicMaterial ref={i === 0 && j === 0 ? crt : null} color={j === 1 ? "#ffb347" : "#39ff7a"} transparent toneMapped={false} /></mesh>
           </group>)}
           <mesh position-y={0.3}><boxGeometry args={[2.8, 0.6, 0.8]} /><meshStandardMaterial color="#1e1c1a" /></mesh>
         </group>}
