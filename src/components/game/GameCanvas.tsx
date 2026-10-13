@@ -30,6 +30,9 @@ import { perfFlags } from "@/game/perf-flags";
 import { TouchControls } from "./TouchControls";
 import { SkateShop } from "./SkateShop";
 import { KillPlaylistPlayer } from "./KillPlaylist";
+import { ConsumableHud } from "./ConsumableHud";
+import { activeBuffs } from "@/game/client-input";
+import { useStim, type ConsumableId } from "@/game/stash";
 import { SettingsWindow, DEFAULT_SETTINGS, type GameSettings } from "./SettingsWindow";
 import { BootSequence } from "./BootSequence";
 import { MainMenu } from "./MainMenu";
@@ -449,6 +452,13 @@ export function GameCanvas() {
   const [bodyType, setBodyType] = useCountedState<BodyType>("bodyType", session0.bodyType);
   const progressionRef = useRef(progression);
   progressionRef.current = progression;
+  const useConsumable = useCallback((id: ConsumableId) => {
+    const result = useStim(progressionRef.current, activeBuffs.current, id, Date.now());
+    if (!result) return;
+    activeBuffs.current = result.buffs;
+    progressionRef.current = result.progression;
+    setProgression(result.progression);
+  }, []);
   const [tutorial, setTutorial] = useCountedState<TutorialState | null>("tutorial", null);
   const [showIntro, setShowIntro] = useCountedState("showIntro", false);
   // Act I screenplay cinematic (cinematics.ts) that replaces the old text intro for a save's first deploy
@@ -1202,6 +1212,7 @@ export function GameCanvas() {
        )}
        {skateOpen && <SkateShop progression={progression} onProgression={setProgression} onClose={() => setSkateOpen(false)} />}
        <TouchControls />
+       <ConsumableHud progression={progression} bindings={settings.bindings} disabled={Boolean(menuOpen || characterOpen || inventoryOpen || atlasOpen || operationsView || shopOpen || skateOpen || npcOpen || forgeOpen || basePanel || ruinOpen || showIntro || cineId || deathInfo || storyGraph || activeDialogue || transit || hud.hp <= 0)} onUse={useConsumable} />
        <KillPlaylistPlayer volume={(settings.volume ?? 0.7) * (settings.musicVolume ?? 1)} muted={!!settings.mute?.music} />
        {hud.garageNear && !basePanel && !hud.shopNearId && (
          <div className="pointer-events-none absolute bottom-24 left-1/2 -translate-x-1/2">

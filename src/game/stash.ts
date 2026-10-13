@@ -19,6 +19,9 @@ export const STIMS: Record<StimId, { name: string; seconds: number; blurb: strin
   healStim: { name: "Heal Stim", seconds: 30, blurb: "+5 health per second per stack for 30 s", recipe: { dataChip: 2, energyToken: 2 } },
 };
 export const RUIN_STONE_RECIPE: Partial<Record<MaterialId, number>> = { dataChip: 5, energyToken: 5, relicFragment: 3 };
+export const RUIN_SURGE = { name: "Ruin Surge", seconds: 45, damagePerStack: 0.15, blurb: "+15% combat damage per stack for 45 s" };
+export type ConsumableId = StimId | "ruinStone";
+export const CONSUMABLES = { ...STIMS, ruinStone: RUIN_SURGE };
 
 const has = (p: P, cost: Partial<Record<MaterialId, number>>) => Object.entries(cost).every(([k, n]) => (p.materials[k as MaterialId] ?? 0) >= (n ?? 0));
 const pay = (p: P, cost: Partial<Record<MaterialId, number>>) => {
@@ -43,21 +46,23 @@ export function craftStim<T extends P>(p: T, id: StimId): T {
 }
 
 export type Buff = { stacks: number; until: number };
-export type Buffs = Partial<Record<StimId, Buff>>;
+export type Buffs = Partial<Record<ConsumableId, Buff>>;
 /** use one stim: spends it, adds a stack (max 3) and refreshes the timer */
-export function useStim<T extends P>(p: T, buffs: Buffs, id: StimId, now: number): { progression: T; buffs: Buffs } | null {
+export function useStim<T extends P>(p: T, buffs: Buffs, id: ConsumableId, now: number): { progression: T; buffs: Buffs } | null {
   if ((p.materials[id] ?? 0) < 1) return null;
   const cur = buffs[id];
+  if (cur && cur.until > now && cur.stacks >= STACK_CAP) return null;
   const stacks = cur && cur.until > now ? Math.min(STACK_CAP, cur.stacks + 1) : 1;
-  return { progression: { ...p, materials: { ...p.materials, [id]: (p.materials[id] ?? 0) - 1 } }, buffs: { ...buffs, [id]: { stacks, until: now + STIMS[id].seconds * 1000 } } };
+  return { progression: { ...p, materials: { ...p.materials, [id]: (p.materials[id] ?? 0) - 1 } }, buffs: { ...buffs, [id]: { stacks, until: now + CONSUMABLES[id].seconds * 1000 } } };
 }
 export function buffEffect(buffs: Buffs, now: number) {
-  const s = (id: StimId) => { const b = buffs[id]; return b && b.until > now ? b.stacks : 0; };
-  return { resist: 0.1 * s("armorStim"), regen: 5 * s("healStim") };
+  const s = (id: ConsumableId) => { const b = buffs[id]; return b && b.until > now ? Math.min(STACK_CAP, b.stacks) : 0; };
+  return { resist: 0.1 * s("armorStim"), regen: 5 * s("healStim"), damageMult: 1 + RUIN_SURGE.damagePerStack * s("ruinStone") };
 }
 
 const locked = (p: P, item: GearItem) => item.favorite || item.source === "Starting loadout" || Object.values(p.equippedGear).includes(item.id);
 export const isDuplicate = (p: P, item: GearItem) => p.inventory.some((g) => g.id !== item.id && g.name === item.name && g.slot === item.slot);
+export const canSellDuplicate = (p: P, item: GearItem) => !locked(p, item) && !inVault(p, item.id) && isDuplicate(p, item);
 export const sellValue = (item: GearItem) => 10 + Math.round(item.power / 10) + item.level * 2;
 export const dismantleParts = (item: GearItem) => 2 + item.level + (item.rarity ? 4 : 0);
 const remove = <T extends P>(p: T, id: string): T => ({ ...p, inventory: p.inventory.filter((g) => g.id !== id), vaultIds: (p.vaultIds ?? []).filter((v) => v !== id), earnedRewards: [...p.earnedRewards, `gone:${id}`] });
@@ -65,7 +70,7 @@ const remove = <T extends P>(p: T, id: string): T => ({ ...p, inventory: p.inven
 /** only duplicates can be traded; equipped, favorited and starter gear are refused */
 export function sellDuplicate<T extends P>(p: T, id: string): T {
   const item = p.inventory.find((g) => g.id === id);
-  if (!item || locked(p, item) || !isDuplicate(p, item)) return p;
+  if (!item || !canSellDuplicate(p, item)) return p;
   return { ...remove(p, id), fractureShards: p.fractureShards + sellValue(item) };
 }
 export function dismantle<T extends P>(p: T, id: string): T {

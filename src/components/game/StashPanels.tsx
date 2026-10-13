@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { MATERIALS, type GearItem, type MaterialId } from "@/game/inventory";
 import type { PlayerProgression } from "@/game/progression";
-import { RUIN_STONE_RECIPE, STACK_CAP, STIMS, VAULT_CAP, craftRuinStone, craftStim, dismantle, dismantleParts, fromVault, inVault, isDuplicate, partsCost, sellDuplicate, sellValue, toVault, upgradeWithParts, useStim, type StimId } from "@/game/stash";
+import { RUIN_STONE_RECIPE, RUIN_SURGE, STACK_CAP, STIMS, VAULT_CAP, craftRuinStone, craftStim, dismantle, dismantleParts, fromVault, inVault, partsCost, toVault, upgradeWithParts, useStim, type StimId } from "@/game/stash";
 import { activeBuffs } from "@/game/client-input";
 
 const recipe = (r: Partial<Record<MaterialId, number>>) => Object.entries(r).map(([k, n]) => `${n} ${MATERIALS[k as MaterialId].name}`).join(" + ");
@@ -22,7 +22,9 @@ export function StashCrafting({ progression, onProgression }: { progression: Pla
       <div className="hud-panel p-3">
         <p className="font-semibold">Ruin Stone</p>
         <p className="text-xs text-muted-foreground">{recipe(RUIN_STONE_RECIPE)}</p>
+        <p className="mt-1 text-xs text-primary">Ruin Surge · {RUIN_SURGE.blurb} · max 3 stacks</p>
         <Button size="sm" className="mt-2" disabled={craftRuinStone(progression) === progression} onClick={() => onProgression(craftRuinStone(progression))}>Craft Ruin Stone</Button>
+        <Button size="sm" variant="outline" className="ml-2 mt-2" disabled={m("ruinStone") < 1} onClick={() => { const r = useStim(progression, activeBuffs.current, "ruinStone", Date.now()); if (r) { activeBuffs.current = r.buffs; onProgression(r.progression); } }}>Use Ruin Stone</Button>
       </div>
       {(Object.keys(STIMS) as StimId[]).map((id) => {
         const b = activeBuffs.current[id]; const live = b && b.until > now;
@@ -65,14 +67,12 @@ export function StashVault({ progression, onProgression, onSelect }: { progressi
 /** Item actions: vault, sell duplicate, dismantle for parts, upgrade with parts. */
 export function StashItemActions({ progression, item, onProgression, onRemoved }: { progression: PlayerProgression; item: GearItem; onProgression: (p: PlayerProgression) => void; onRemoved: () => void }) {
   const vaulted = inVault(progression, item.id);
-  const dup = isDuplicate(progression, item);
-  const sold = sellDuplicate(progression, item.id); const broken = dismantle(progression, item.id); const up = upgradeWithParts(progression, item.id);
+  const broken = dismantle(progression, item.id); const up = upgradeWithParts(progression, item.id);
   return (
     <div className="mt-4 border-t border-primary/20 pt-4">
       <p className="hud-label">Vault & trade</p>
       <div className="mt-2 flex flex-wrap gap-2">
         <Button size="sm" variant="outline" disabled={!vaulted && toVault(progression, item.id) === progression} onClick={() => onProgression(vaulted ? fromVault(progression, item.id) : toVault(progression, item.id))}>{vaulted ? "Take out of vault" : "Store in vault"}</Button>
-        <Button size="sm" variant="outline" disabled={sold === progression} onClick={() => { onProgression(sold); onRemoved(); }}>{dup ? `Sell duplicate · ${sellValue(item)} shards` : "Sell (duplicates only)"}</Button>
         <Button size="sm" variant="outline" disabled={broken === progression} onClick={() => { onProgression(broken); onRemoved(); }}>Dismantle · {dismantleParts(item)} parts</Button>
         <Button size="sm" disabled={up === progression} onClick={() => onProgression(up)}>Upgrade · {partsCost(item)} parts</Button>
       </div>

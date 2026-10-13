@@ -323,6 +323,7 @@ export type WorldSim = {
   /** equipped armor-set bonuses (armor-sets.ts), written by Scene each frame: damage resist 0..0.5 and hull regen/s */
   armorResist: number;
   armorRegen: number;
+  consumableDamageMult: number;
   /** enemy gunfire this frame, consumed by the audio layer */
   enemyShots: { x: number; z: number; kind: string; boss: boolean; elite: boolean; /** region the shooter stands in (presentation: elemental flights) */ zone: string }[];
   /** boss phase transitions this frame, consumed by the audio/camera layer (see boss-phases.ts) */
@@ -628,7 +629,7 @@ export function createSim(): WorldSim {
     encounterZones: [], encounterEvents: [], nextEncounterEventId: 1, nextEncounterZoneId: 1, hazardSpeedMult: 1,
     rounds: Array.from({ length: ROUND_POOL }, () => ({ ...fireRound(NO_ORDNANCE, { x: 0, y: 0, z: 0 }, [0, 0, 1]), alive: false, launcher: "ROCKET" as LauncherId, element: "KINETIC" as DamageElement, target: -1, knock: 1 })),
     statuses: new Map(), burstEvents: [], evoBursts: [], nextBurstId: 1,
-    materials: {}, drops: [], armorResist: 0, armorRegen: 0, enemyShots: [], bossPhaseFlares: [], xpEvents: [], nextDropId: 0,
+    materials: {}, drops: [], armorResist: 0, armorRegen: 0, consumableDamageMult: 1, enemyShots: [], bossPhaseFlares: [], xpEvents: [], nextDropId: 0,
     emergencyQuest: EMERGENCY_QUEST_INIT,
     bossCounter: counterTuningFor(null),
     volatileZones: [],
@@ -1028,6 +1029,7 @@ export function applyLightning(sim: WorldSim, strike: Strike, px: number, pz: nu
  * respect the same rules: Weaken/Marked vulnerability, boss poise windows, Unique Scenario gimmicks, and the hit count
  * that decides scenario reward participation. Returns the damage to subtract from m.hp. */
 export function applyMachineDamageMods(sim: WorldSim, m: Machine, dmg: number, element: Parameters<typeof gimmickMultiplier>[1]["element"], px: number, pz: number): number {
+  dmg *= sim.consumableDamageMult;
   const nowSec = performance.now() / 1000;
   markPlayerDamage(m); // bullets, abilities, launchers, turrets and strikes all price their damage here, so this is the player's damage
   if (m.vulnUntil > nowSec) dmg *= m.vulnMult;
