@@ -1,6 +1,7 @@
 # Roadmap
 
 ## Current request
+- [ ] Vehicle expansion: separate earned Nex and repair/recovery, component damage, six-personality racing AI/rival persistence, hybrid acquisition; menu and phone HUD polish using provided references.
 - [ ] Expanded brief: personalized cinematic actors and emotes → economy/vendor dialogue → housing/build mode → garages/cosmetics → factions/map integration; preserve latest source and verify each phase independently.
 - [ ] Review the running world against realistic sci-fi and Destiny-style references; fix confirmed overlaps and missing assets.
 - [ ] Verify phone-sized gameplay controls/HUD (physical phone validation remains a device check).

@@ -1,0 +1,8 @@
+import { expect, test } from "bun:test";
+import { FRESH_VEHICLE, impactVehicle, conditionEffects, recoverVehicle, repairPrice } from "./vehicle-condition";
+import { nexBalance, spendNex } from "./nex";
+test("minor impacts differ from high speed crashes", () => { expect(impactVehicle(FRESH_VEHICLE, 1)).toBe(FRESH_VEHICLE); expect(impactVehicle(FRESH_VEHICLE, 30).suspension).toBeGreaterThan(impactVehicle(FRESH_VEHICLE, 5).suspension); });
+test("casual damage is lower than competitive", () => { expect(impactVehicle(FRESH_VEHICLE, 20, "casual").body).toBeLessThan(impactVehicle(FRESH_VEHICLE, 20, "competitive").body); });
+test("components penalize their driving systems", () => { const e = conditionEffects({ body: 0, engine: 90, tires: 50, suspension: 40 }); expect(e.disabled).toBe(true); expect(e.speed).toBeLessThan(1); expect(e.grip).toBeLessThan(1); expect(e.stability).toBeLessThan(1); });
+test("recovery requires calm and stationary and retains damage", () => { const c = { body: 100, engine: 100, tires: 60, suspension: 50 }; expect(recoverVehicle(c, false, true)).toBe(c); expect(recoverVehicle(c, true, false)).toBe(c); expect(conditionEffects(recoverVehicle(c, true, true)).disabled).toBe(false); expect(recoverVehicle(c, true, true).tires).toBe(60); });
+test("Nex spending never converts shards and keeps debits after union merge", () => { const paid = spendNex({ mission: 100 }, "repair:1", 30); expect(paid).not.toBeNull(); expect(nexBalance({ mission: 100, ...paid })).toBe(70); expect(spendNex({ mission: 10 }, "repair:2", 30)).toBeNull(); expect(repairPrice(FRESH_VEHICLE)).toBe(0); });
