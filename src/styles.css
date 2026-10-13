@@ -400,6 +400,8 @@
   [aria-label="Minimap"] { display: none; }
   [aria-label="Compass"] { top: 56px !important; width: calc(100% - 24px) !important; }
   .quest-hud { top: 208px !important; right: 12px !important; max-width: 190px; }
+  .mission-tracker { top: 116px !important; right: 12px !important; width: calc(100% - 24px); max-width: none !important; }
+  .mission-tracker p { font-size: 10px; line-height: 1.3; }
   .quest-hud p { font-size: 10px; }
   .voice-subtitle { bottom: 224px !important; padding: 6px 10px !important; }
   .voice-subtitle p { font-size: 10px !important; line-height: 1.3; }
