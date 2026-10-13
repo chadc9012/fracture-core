@@ -40,7 +40,7 @@ export function HUD({ hud, tutorialActive = false, onMenu, onAtlas, level }: { h
     <EmergencyQuestBanner eq={hud.emergencyQuest} />
     <BossHealthBar boss={hud.bossHud} />
     <Crosshair hud={hud} />
-    <div className="absolute bottom-4 left-4 w-[min(24rem,calc(100%-8rem))]">
+    <div className="hud-health absolute bottom-4 left-4 w-[min(24rem,calc(100%-8rem))]">
       {level && (() => { const need = xpRequiredForLevel(level.level); return (
         <div className="mb-1.5 px-1" aria-label={`Level ${level.level}, ${level.xp} of ${need} XP`}>
           <div className="flex items-center justify-between text-[9px] uppercase tracking-[0.18em] text-foreground/80"><span>Level {level.level}</span><span>{Math.floor(level.xp)} / {need} XP</span></div>
@@ -56,7 +56,7 @@ export function HUD({ hud, tutorialActive = false, onMenu, onAtlas, level }: { h
       </div>
     </div>
     {ammo && (
-      <div className={`hud-status absolute bottom-4 right-4 w-36 px-3 py-2 text-right ${hud.overheated ? "hud-glow-destructive" : ""}`}>
+      <div className={`hud-ammo hud-status absolute bottom-4 right-4 w-36 px-3 py-2 text-right ${hud.overheated ? "hud-glow-destructive" : ""}`}>
         <p className="hud-label truncate">{ammo.name}{ammo.element ? <span className="ml-1 text-primary">· {ammo.element.toLowerCase()}</span> : null}</p>
         <p className={`text-3xl font-semibold leading-none ${lowAmmo ? "text-warning" : "text-foreground"}`}>{melee ? "∞" : ammo.mag}<span className="text-xs text-muted-foreground">{melee ? "" : ` / ${ammo.reserve}`}</span></p>
         <div className="mt-1.5 h-1.5 overflow-hidden border border-foreground/20 bg-background/60">{hud.reloading > 0 ? <div className="h-full hud-ticks bg-primary" style={{ width: `${hud.reloading * 100}%` }} /> : <div className={`h-full hud-ticks ${lowAmmo ? "bg-warning" : "bg-primary"}`} style={{ width: `${melee ? 100 : (ammo.mag / Math.max(1, ammo.magSize)) * 100}%` }} />}</div>

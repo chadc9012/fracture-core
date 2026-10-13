@@ -372,3 +372,31 @@
 .hit-flash { background: radial-gradient(ellipse at center, transparent 55%, rgb(220 20 30 / 0.45) 100%); animation: hit-flash 0.45s ease-out forwards; }
 @keyframes hit-flash { from { opacity: 1; } to { opacity: 0; } }
 @media (prefers-reduced-motion: reduce) { .hit-flash { animation-duration: 0.15s; } }
+
+.touch-fire { bottom: 80px; right: 16px; }
+.touch-aim { bottom: 156px; right: 16px; }
+.touch-jump { bottom: 20px; right: 70px; }
+.touch-dash { bottom: 96px; right: 92px; }
+.touch-reload { bottom: 20px; right: 16px; }
+.touch-next { bottom: 156px; right: 70px; }
+.touch-crouch { bottom: 20px; right: 124px; }
+.touch-q { bottom: 176px; left: 16px; }
+.touch-e { bottom: 176px; left: 70px; }
+.touch-r { bottom: 176px; left: 124px; }
+.touch-use { top: 36%; right: 16px; }
+.touch-vehicle { top: calc(36% + 54px); right: 16px; }
+.touch-map { top: 36%; right: 70px; }
+@media (pointer: coarse) {
+  .consumable-hud { top: 26%; left: 12px; max-width: 160px; }
+  .consumable-hud button { min-height: 44px; }
+  .consumable-hud [role="status"] { font-size: 9px; max-width: 100px; }
+  .hud-health { bottom: 242px !important; left: 12px !important; width: min(250px, calc(100% - 24px)) !important; }
+  .hud-ammo { bottom: 242px !important; right: 12px !important; }
+  .touch-stick { bottom: max(28px, env(safe-area-inset-bottom)); left: max(12px, env(safe-area-inset-left)); }
+  .touch-controls button { touch-action: none; }
+}
+@media (pointer: coarse) and (max-width: 600px) {
+  .hud-health { bottom: 248px !important; width: calc(100% - 136px) !important; }
+  .hud-ammo { bottom: 248px !important; width: 104px !important; }
+  .hud-health .hud-label { font-size: 8px; }
+}
