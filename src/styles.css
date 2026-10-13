@@ -397,6 +397,14 @@
   .vehicle-hud { top: 92px; bottom: auto; left: 12px; width: 240px; }
 }
 @media (pointer: coarse) and (max-width: 600px) {
+  [aria-label="Minimap"] { display: none; }
+  [aria-label="Compass"] { top: 56px !important; width: calc(100% - 24px) !important; }
+  .quest-hud { top: 208px !important; right: 12px !important; max-width: 190px; }
+  .quest-hud p { font-size: 10px; }
+  .voice-subtitle { bottom: 224px !important; padding: 6px 10px !important; }
+  .voice-subtitle p { font-size: 10px !important; line-height: 1.3; }
+  .mission-ribbon { top: 64px !important; padding: 6px 16px; }
+  .mission-place { bottom: 224px !important; font-size: 14px !important; letter-spacing: 0; }
   .hud-health { bottom: 248px !important; width: calc(100% - 136px) !important; }
   .hud-ammo { bottom: 248px !important; width: 104px !important; }
   .hud-health .hud-label { font-size: 8px; }
