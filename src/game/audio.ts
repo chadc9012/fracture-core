@@ -7,6 +7,7 @@ import type { WeaponId } from "./weapons";
 import { voiceAction, type WaterMix, type WaterSource } from "./water-audio";
 import { AUDIO_FILES } from "./audio-files";
 import { BLAST_FLAVOR, SHOTS, blastAtDistance, shotKey, variation, type BlastFlavor, type ShotProfile } from "./audio-design";
+import { RADIO_STATIONS, type StationId } from "./radio-stations";
 
 type Ctx = { ac: AudioContext; master: GainNode; sfx: GainNode; music: GainNode; amb: GainNode; abil: GainNode; noise: AudioBuffer; brown: AudioBuffer; verb: GainNode; drive: Map<number, Float32Array>; layers: { ambient: GainNode; tension: GainNode; drums: GainNode; motif: GainNode } | null; ambientOscs: OscillatorNode[]; musicRegion: string; beat: number };
 let ctx: Ctx | null = null;
@@ -51,15 +52,52 @@ export function setUnderwaterMuffle(k: number) {
 export function setVolume(v: number) { volume = v; if (ctx) ctx.master.gain.setTargetAtTime(v, ctx.ac.currentTime, 0.05); }
 let musicVol = 1; let sfxVol = 1; let ambVol = 1; let abilVol = 1;
 let combatLevel = 0;
+let externalMusic = false;
+export function setExternalMusic(active: boolean) { externalMusic = active; if (ctx) ctx.music.gain.setTargetAtTime(active ? 0 : 0.35 * musicVol, ctx.ac.currentTime, 0.15); }
 /** last combat intensity (0..1) fed by Scene; the kill playlist reads it */
 export const getCombatLevel = () => combatLevel;
 /** Separate channel levels (0..1) on top of master. Music bus keeps its 0.35 base mix. */
 export function setMixVolumes(music: number, effects: number, ambience = 1, abilities = 1) {
   musicVol = music; sfxVol = effects; ambVol = ambience; abilVol = abilities;
   if (ctx) { ctx.amb.gain.setTargetAtTime(ambience, ctx.ac.currentTime, 0.05); ctx.abil.gain.setTargetAtTime(abilities, ctx.ac.currentTime, 0.05); }
-  if (ctx) { ctx.music.gain.setTargetAtTime(0.35 * music, ctx.ac.currentTime, 0.05); ctx.sfx.gain.setTargetAtTime(effects, ctx.ac.currentTime, 0.05); }
+  if (ctx) { ctx.music.gain.setTargetAtTime(externalMusic ? 0 : 0.35 * music, ctx.ac.currentTime, 0.05); ctx.sfx.gain.setTargetAtTime(effects, ctx.ac.currentTime, 0.05); }
 }
-function applyMix() { if (ctx) { ctx.music.gain.value = 0.35 * musicVol; ctx.sfx.gain.value = sfxVol; ctx.amb.gain.value = ambVol; ctx.abil.gain.value = abilVol; } }
+function applyMix() { if (ctx) { ctx.music.gain.value = externalMusic ? 0 : 0.35 * musicVol; ctx.sfx.gain.value = sfxVol; ctx.amb.gain.value = ambVol; ctx.abil.gain.value = abilVol; } }
+
+/** Schedules a small look-ahead window on the existing audio graph; one cancellable station voice. */
+export function startRadio(id: StationId) {
+  const c = ctx;
+  if (!c) return () => {};
+  const def = RADIO_STATIONS[id];
+  const bus = c.ac.createGain(); bus.gain.value = 0.16 * musicVol; bus.connect(c.master);
+  let cursor = c.ac.currentTime + 0.03, step = 0;
+  const voices = new Set<OscillatorNode>();
+  const note = (freq: number, duration: number, level: number, type: OscillatorType, at: number, endFreq?: number) => {
+    const osc = c.ac.createOscillator(), gain = c.ac.createGain();
+    osc.type = type; osc.frequency.setValueAtTime(freq, at);
+    if (endFreq) osc.frequency.exponentialRampToValueAtTime(endFreq, at + duration);
+    gain.gain.setValueAtTime(0, at); gain.gain.linearRampToValueAtTime(level, at + 0.006); gain.gain.exponentialRampToValueAtTime(0.001, at + duration);
+    osc.connect(gain).connect(bus); voices.add(osc); osc.onended = () => { voices.delete(osc); osc.disconnect(); gain.disconnect(); }; osc.start(at); osc.stop(at + duration + 0.01);
+  };
+  const timer = window.setInterval(() => {
+    bus.gain.setTargetAtTime(0.16 * musicVol, c.ac.currentTime, 0.1);
+    if (cursor < c.ac.currentTime - 0.1) cursor = c.ac.currentTime;
+    while (cursor < c.ac.currentTime + 0.1) {
+      const n = step % 16, chord = Math.floor(step / 16) % 4;
+      const kick = id === "house" ? n % 4 === 0 : id === "reggae" ? n === 4 || n === 12 : n === 0 || n === 8 || (id === "hiphop" && n === 11);
+      if (kick) note(140, 0.18, 0.75, "sine", cursor, 38);
+      if (n === 4 || n === 12) note(220, 0.09, 0.15, "triangle", cursor, 90);
+      if (n % 2 === 0) note(6200, 0.025, 0.028, "square", cursor);
+      if (n % 4 === 0 || (id === "reggae" && n === 7)) note(def.bass[chord] ?? 55, 0.26, 0.3, "triangle", cursor);
+      if (id === "reggae" ? n % 4 === 2 : id === "rock" ? n % 2 === 0 : n === 2 || n === 6 || n === 14) {
+        const root = def.notes[chord] ?? 220;
+        [1, 1.2, 1.5].forEach((ratio) => note(root * ratio, id === "house" ? 0.16 : 0.1, id === "rock" ? 0.045 : 0.07, def.wave, cursor));
+      }
+      cursor += 60 / def.bpm / 4; step++;
+    }
+  }, 25);
+  return () => { window.clearInterval(timer); voices.forEach((v) => { v.onended = null; v.stop(); v.disconnect(); }); voices.clear(); bus.disconnect(); };
+}
 
 /** Spatial send: distance attenuation, stereo pan from listener yaw, lowpass muffling beyond 20m. */
 type Where = { dist?: number; pan?: number };

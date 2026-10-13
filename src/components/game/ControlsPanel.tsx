@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { ACTION_LABEL, DEFAULT_BINDINGS, firstPressedButton, keyName, padName, type Action, type Bindings } from "@/game/bindings";
+import { ACTION_LABEL, CONSUMABLE_LABEL, DEFAULT_BINDINGS, firstPressedButton, keyName, padName, type Action, type Bindings } from "@/game/bindings";
 
 type Listening = { device: "keyboard"; action: keyof Bindings["keyboard"] } | { device: "gamepad"; action: Action } | null;
 
@@ -48,7 +48,7 @@ export function ControlsPanel({ bindings, onChange }: { bindings: Bindings; onCh
   return (
     <div className="space-y-2 pt-2">
       <p className="font-mono text-[9px] uppercase tracking-[0.2em] text-muted-foreground">Keyboard · 1–4 always select weapons</p>
-      {(Object.keys(bindings.keyboard) as (keyof Bindings["keyboard"])[]).map((a) => row(ACTION_LABEL[a], keyName(bindings.keyboard[a]), listening?.device === "keyboard" && listening.action === a, () => setListening({ device: "keyboard", action: a })))}
+      {(Object.keys(bindings.keyboard) as (keyof Bindings["keyboard"])[]).map((a) => row(a in CONSUMABLE_LABEL ? CONSUMABLE_LABEL[a as keyof typeof CONSUMABLE_LABEL] : ACTION_LABEL[a as Action], keyName(bindings.keyboard[a]), listening?.device === "keyboard" && listening.action === a, () => setListening({ device: "keyboard", action: a })))}
       <p className="pt-1 font-mono text-[9px] uppercase tracking-[0.2em] text-muted-foreground">Controller · {pad ? "connected" : "press any button to connect"}</p>
       {(Object.keys(bindings.gamepad) as Action[]).map((a) => row(ACTION_LABEL[a], padName(bindings.gamepad[a]), listening?.device === "gamepad" && listening.action === a, () => setListening({ device: "gamepad", action: a })))}
       <Button size="sm" variant="outline" className="w-full text-[10px]" onClick={() => onChange(DEFAULT_BINDINGS)}>Reset controls</Button>

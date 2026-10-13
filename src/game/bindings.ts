@@ -12,6 +12,7 @@ export const ACTION_LABEL: Record<Action, string> = {
   slot1: "Weapon 1", slot2: "Weapon 2", slot3: "Weapon 3", slot4: "Weapon 4", fire: "Fire", aim: "Aim", crouch: "Crouch / slide (hold)", prone: "Prone (toggle)",
   abilityModifier: "Ability chord (hold)", abilityPrimary: "Ability Q (with chord)", abilityTactical: "Ability E (with chord)", abilityUltimate: "Ability R (with chord)", map: "Open / close map",
 };
+export const CONSUMABLE_LABEL = { healStim: "Quick-use healing stim", armorStim: "Quick-use armor stim", ruinStone: "Quick-use Ruin Stone" };
 
 const PAD_NAMES = ["A", "B", "X", "Y", "LB", "RB", "LT", "RT", "View", "Menu", "L3", "R3", "D-Up", "D-Down", "D-Left", "D-Right", "Home"];
 export const padName = (i: number) => PAD_NAMES[i] ?? `Button ${i}`;
