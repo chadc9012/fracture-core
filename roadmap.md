@@ -1,5 +1,12 @@
 # Roadmap
 
+## Current request
+- [ ] Show four distinct equipped skate-boot designs on all Operators.
+- [ ] Add world-vendor duplicate sales with prices and confirmation.
+- [ ] Make Ruin Stones usable with a combat boost and HUD timer.
+- [ ] Add gameplay quick-use stims with effects, stacks and timers.
+- [ ] Add Hip-hop, Rock, EDM / House and Dancehall / Reggae radio channels.
+
 - [x] Build explorable Thalassia District B1 street with glass ocean promenade, elevated markets, luminous signs, and a moving overhead train.
 - [x] Build a matching street-level Neon City market with walkable lanes, layered storefronts, signage, and moving elevated transit.
 
