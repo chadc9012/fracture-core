@@ -9,7 +9,7 @@ import type { PlayerProgression } from "@/game/progression";
 const IDS: ConsumableId[] = ["healStim", "armorStim", "ruinStone"];
 const ICONS = { healStim: HeartPulse, armorStim: Shield, ruinStone: Gem };
 
-export function ConsumableHud({ progression, bindings, disabled, onUse }: { progression: PlayerProgression; bindings: Bindings; disabled: boolean; onUse: (id: ConsumableId) => void }) {
+export function ConsumableHud({ progression, bindings, disabled, onUse }: { progression: PlayerProgression; bindings?: Bindings; disabled: boolean; onUse: (id: ConsumableId) => void }) {
   const [now, setNow] = useState(Date.now());
   const keys = normalizeBindings(bindings).keyboard;
   useEffect(() => { const timer = window.setInterval(() => setNow(Date.now()), 250); return () => window.clearInterval(timer); }, []);
