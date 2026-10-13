@@ -7,11 +7,18 @@ import { ARMOR_LEVEL_MAX, grantSetPiece } from "./armor-sets";
 import { grantScenarioReward } from "./scenario-loot";
 import { upgradeGate } from "./upgrade-gates";
 
-export type MaterialId = "scrapMetal" | "reinforcedAlloy" | "microCircuits" | "thermalShards" | "cryoCrystal" | "sporeFiber" | "bioCatalyst" | "vehicleParts" | "anomalyCarbon" | "dataShards" | "magmaCore" | "zeroCore" | "abyssCore" | "aegisCore" | "forgeCatalyst" | "tuningCore" | "anomalyCore" | "fuel" | "fuelKingCore" | "fractureCore" | "glacierFang" | "nullPlate" | "hollowHalo" | "roninEdge" | "tideCrown" | "crownHeart" | "runeDust";
+export type MaterialId = "scrapMetal" | "reinforcedAlloy" | "microCircuits" | "thermalShards" | "cryoCrystal" | "sporeFiber" | "bioCatalyst" | "vehicleParts" | "anomalyCarbon" | "dataShards" | "magmaCore" | "zeroCore" | "abyssCore" | "aegisCore" | "forgeCatalyst" | "tuningCore" | "anomalyCore" | "fuel" | "fuelKingCore" | "fractureCore" | "glacierFang" | "nullPlate" | "hollowHalo" | "roninEdge" | "tideCrown" | "crownHeart" | "runeDust" | "dataChip" | "energyToken" | "relicFragment" | "ruinStone" | "gearParts" | "armorStim" | "healStim";
 export type GearSlot = "primary" | "secondary" | "heavy" | "helmet" | "chest" | "gauntlets" | "classItem" | "legs" | "vehicle";
 export type GearItem = { /** foundries.ts: explicit foundry (otherwise derived from the name) */ foundry?: import("./foundries").FoundryId; id: string; name: string; slot: GearSlot; power: number; level: number; element: "KINETIC" | "THERMAL" | "CRYO" | "ARC" | "BIO"; favorite?: boolean; source: string; /** armor-sets.ts: which set this piece belongs to */ setId?: string; /** scenario-exclusive rarity tier (absent = ordinary gear) */ rarity?: "LEGENDARY" | "EXOTIC"; /** unique weapon perk (null-disruption.ts) */ perk?: "NULL_DISRUPTION"; /** weapon-evolution.ts: set once at a ruin */ evolution?: Evolution; /** godforge.ts: a Godforged relic's tier, socketed runes and mastery */ godforge?: Godforged };
 
 export const MATERIALS: Record<MaterialId, { name: string; source: string }> = {
+  dataChip: { name: "Data Chips", source: "Collectible: mission loot boxes and world caches" },
+  energyToken: { name: "Energy Tokens", source: "Collectible: every enemy drop" },
+  relicFragment: { name: "Relic Fragments", source: "Collectible: bosses and first clears" },
+  ruinStone: { name: "Ruin Stones", source: "Crafted: 5 data chips + 5 energy tokens + 3 relic fragments" },
+  gearParts: { name: "Gear Parts", source: "Dismantled weapons and armor; upgrades gear" },
+  armorStim: { name: "Armor Stim", source: "Crafted; carry up to 3; +10% resistance per stack for 60 s" },
+  healStim: { name: "Heal Stim", source: "Crafted; carry up to 3; +5 health/s per stack for 30 s" },
   scrapMetal: { name: "Scrap Metal", source: "Raiders and convoy salvage" },
   reinforcedAlloy: { name: "Reinforced Alloy", source: "Warlords and armored patrols" },
   microCircuits: { name: "Micro-Circuits", source: "Overclocked units and city defenses" },
@@ -92,6 +99,8 @@ export function claimDrops(progress: PlayerProgression, drops: WorldSim["drops"]
     if (drop.weaponDrop && !next.inventory.some((g) => g.id === drop.weaponDrop!.id)) next = { ...next, inventory: [...next.inventory, drop.weaponDrop] };
     if (drop.scenarioClaim) next = grantScenarioReward(next, drop.scenarioClaim).progress;
     next = collectDrop(next, drop.material, Math.max(1, Math.round(drop.amount * pacing)));
+    next = collectDrop(next, "energyToken", 1);
+    if (drop.amount >= 3) next = collectDrop(next, "relicFragment", 1);
     if (["magmaCore", "zeroCore", "abyssCore", "aegisCore", "anomalyCore", "vehicleParts", "fractureCore"].includes(drop.material) && drop.amount >= 3) {
       const id = `boss-${drop.material}`;
       if (!next.inventory.some((item) => item.id === id)) {

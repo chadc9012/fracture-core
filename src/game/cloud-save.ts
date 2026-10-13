@@ -1,3 +1,4 @@
+import { mergeStash } from "./stash";
 import { EMPTY_LIVING, mergeLiving } from "./living-world";
 import { mergeNemeses } from "./nemesis";
 import { EMPTY_FLEET, mergeFleet } from "./fleet";
@@ -44,6 +45,11 @@ export function mergeProgression(local: PlayerProgression, cloud: PlayerProgress
   const newer = localIsNewer ? local : cloud;
   const ownedVehicles = union(local.ownedVehicles, cloud.ownedVehicles);
   const garage = newer.garageLoadout.filter((v) => ownedVehicles.includes(v));
+  const merged = mergeInner(local, cloud, localIsNewer, newer, ownedVehicles, garage);
+  const stash = mergeStash(merged.inventory, merged.earnedRewards, newer.vaultIds);
+  return { ...merged, inventory: stash.inventory, vaultIds: stash.vaultIds };
+}
+function mergeInner(local: PlayerProgression, cloud: PlayerProgression, localIsNewer: boolean, newer: PlayerProgression, ownedVehicles: PlayerProgression["ownedVehicles"], garage: PlayerProgression["garageLoadout"]): PlayerProgression {
   return {
     ...newer,
     completedMissions: union(local.completedMissions, cloud.completedMissions),
