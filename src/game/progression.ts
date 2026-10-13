@@ -18,6 +18,8 @@ import { repeatRewardFactor } from "./retention";
 import { FIRST_CLEAR_SPECIAL, isSideContract } from "./upgrade-gates";
 import { grantCompletionWeapon } from "./weapon-loot";
 import type { WeaponId } from "./weapons";
+import { normalizeNex, type NexLedger } from "./nex";
+import { normalizeCondition, type VehicleCondition } from "./vehicle-condition";
 
 export type ClassId = "TITAN" | "HUNTER" | "WARLOCK";
 export type WeaponLoadout = { name: string; slots: [WeaponId, WeaponId, WeaponId] };
@@ -48,6 +50,8 @@ export type PlayerProgression = {
   abilityBranches: Record<string, string>;
   calibrationTokens: number;
   fractureShards: number;
+  nexLedger: NexLedger;
+  vehicleConditions: Record<string, VehicleCondition>;
   identityClass: "TITAN" | "HUNTER" | "WARLOCK" | null;
   /** the last confirmed Identity Forge result (operator, body type, colors, loadout); null on old saves */
   character: PlayerCharacter | null;
@@ -122,6 +126,8 @@ export const DEFAULT_PROGRESSION: PlayerProgression = {
   abilityBranches: {},
   calibrationTokens: 3,
   fractureShards: 120,
+  nexLedger: {},
+  vehicleConditions: {},
   identityClass: null,
   character: null,
   tutorialComplete: false,
@@ -206,6 +212,8 @@ export function normalizeProgression(raw: unknown): PlayerProgression {
       abilityBranches: parsed.abilityBranches && typeof parsed.abilityBranches === "object" ? migrateBranches(parsed.abilityBranches) : {},
       calibrationTokens: typeof parsed.calibrationTokens === "number" ? parsed.calibrationTokens : 3,
       fractureShards: typeof parsed.fractureShards === "number" ? parsed.fractureShards : 120,
+      nexLedger: normalizeNex(parsed.nexLedger),
+      vehicleConditions: Object.fromEntries(Object.entries(parsed.vehicleConditions ?? {}).map(([id, c]) => [id, normalizeCondition(c)])),
       activeQuestId: typeof parsed.activeQuestId === "string" || parsed.activeQuestId === null ? parsed.activeQuestId : FIRST_QUEST_ID,
       questObjectiveProgress: parsed.questObjectiveProgress && typeof parsed.questObjectiveProgress === "object" ? parsed.questObjectiveProgress : {},
       unlockedWorlds: Array.isArray(parsed.unlockedWorlds) ? parsed.unlockedWorlds : DEFAULT_PROGRESSION.unlockedWorlds,
@@ -284,6 +292,7 @@ export function rewardMission(progression: PlayerProgression, missionId: string,
     inventory,
     completedMissions: firstClear ? [...withXp.completedMissions, missionId] : withXp.completedMissions,
     materials: nextMaterials,
+    nexLedger: { ...withXp.nexLedger, [`mission:${missionId}:${day}:${runsToday + 1}`]: Math.round(100 * factor) },
     missionRuns: { ...withXp.missionRuns, [missionId]: { day, count: runsToday + 1 } },
     lastMissionReward: { missionId, factor, firstClear, xp: gained, materials: paid, box },
   };

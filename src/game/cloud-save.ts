@@ -52,6 +52,8 @@ export function mergeProgression(local: PlayerProgression, cloud: PlayerProgress
 function mergeInner(local: PlayerProgression, cloud: PlayerProgression, localIsNewer: boolean, newer: PlayerProgression, ownedVehicles: PlayerProgression["ownedVehicles"], garage: PlayerProgression["garageLoadout"]): PlayerProgression {
   return {
     ...newer,
+    nexLedger: { ...cloud.nexLedger, ...local.nexLedger },
+    vehicleConditions: newer.vehicleConditions,
     completedMissions: union(local.completedMissions, cloud.completedMissions),
     unlockedAbilities: migrateAbilityIds(union(local.unlockedAbilities, cloud.unlockedAbilities)),
     earnedRewards: union(local.earnedRewards, cloud.earnedRewards),

@@ -155,6 +155,8 @@ import { fallenDistricts } from "@/game/living-events";
 import { CHALLENGES } from "@/game/map-activities";
 import { HOLLOW_CROWN, VAEL, runeCombat, vaelNear } from "@/game/godforge";
 import { garageNear, sanctuariesFor, tunedVehicle } from "@/game/fleet";
+import { conditionEffects, FRESH_VEHICLE, impactVehicle, normalizeCondition, recoverVehicle, type VehicleCondition } from "@/game/vehicle-condition";
+import { VehicleDamageFx } from "./VehicleDamageFx";
 import { driveTelemetry } from "@/game/vehicle-audio";
 import { FOUNDRY_RULES, activeBlade, foundryOf, inShockwave, swingStats } from "@/game/foundries";
 import { LIVING_NPCS, PLEDGE_KEY, livingMarkers, npcNear, npcWorld } from "@/game/living-npcs";
@@ -432,6 +434,7 @@ function SceneImpl({
   onDrops,
   onStoryEvent,
   onLiving,
+  onVehicleCondition,
   onWaste,
   summonNemesis = null,
   gear,
@@ -485,9 +488,10 @@ function SceneImpl({
   onStoryEvent?: (event: StoryWorldEvent) => void;
   /** Living World outcomes (city kills, event results, survey/stash reached); GameCanvas applies them to progression */
   onLiving?: (event: LivingEmit) => void;
+  onVehicleCondition?: (id: string, condition: VehicleCondition) => void;
   /** Wastelands activity results (wasteland-runtime.ts); GameCanvas resolves them into the save */
   onWaste?: (event: WasteEmit) => void;
-  gear?: Pick<PlayerProgression, "inventory" | "equippedGear" | "dungeonClears" | "completedMissions" | "story" | "earnedRewards"> & Partial<Pick<PlayerProgression, "living" | "challenge" | "nemeses" | "fleet" | "blade">>;
+  gear?: Pick<PlayerProgression, "inventory" | "equippedGear" | "dungeonClears" | "completedMissions" | "story" | "earnedRewards"> & Partial<Pick<PlayerProgression, "living" | "challenge" | "nemeses" | "fleet" | "blade" | "vehicleConditions">>;
   /** nemesis.ts: a nemesis the player picked on the map; it ambushes right after arrival */
   summonNemesis?: string | null;
   mission?: MissionRun | null;
@@ -623,6 +627,8 @@ function SceneImpl({
   const selectedClass = classById(playerClass);
   const selectedSubclass = subclassById(subclassId);
   const selectedVehicle = useMemo(() => tunedVehicle(vehicleById(vehicleId), gear?.fleet), [vehicleId, gear?.fleet]); // fleet.ts tuning of the active build
+  const condition = useRef<VehicleCondition>(FRESH_VEHICLE);
+  useEffect(() => { condition.current = normalizeCondition(gear?.vehicleConditions?.[vehicleId]); }, [vehicleId, gear?.vehicleConditions]);
   const player = useRef<THREE.Group>(null!);
   // start fetching this operator's model at once so the plain procedural stand-in is on screen for as short a time as possible
   // foliage / region-model / light budgets read the live tier from perf-budget.ts
@@ -1023,7 +1029,7 @@ function SceneImpl({
     if (vehicleUnlocked && held.has("KeyV") && s.toggleCool <= 0 && !interior) {
       s.toggleCool = 0.4;
       const wasInVehicle = s.inVehicle;
-      s.inVehicle = !s.inVehicle;
+      s.inVehicle = !s.inVehicle && !conditionEffects(condition.current).disabled;
       if (s.inVehicle) sfx.playVehicleEngineStart(vehicleId, selectedVehicle.speed / vehicleById(vehicleId).speed);
       // Neon City parkour: hopping out mid-drive keeps a fraction of the car's speed as foot-chase momentum.
       if (wasInVehicle) velocity.set(Math.sin(s.yaw), 0, Math.cos(s.yaw)).multiplyScalar(exitVehicleMomentum(s.vSpeed));
@@ -1039,8 +1045,12 @@ function SceneImpl({
 
     // Neon City chase system: heat climbs off the same combatHeat signal sim.ts already tracks, decays when disengaged.
     s.heatMeter = stepHeatMeter(s.heatMeter, sim.combatHeat, dt);
-    // No separate vehicle-HP pool exists in this codebase — the car's condition is read straight off the shared sim.hp while riding it.
-    const vehicleStage = s.inVehicle ? vehicleDamageStage(sim.hp) : "NOMINAL";
+    const damageFx = conditionEffects(condition.current);
+    if (held.has("KeyB") && !s.inVehicle && Math.abs(s.vSpeed) < 1 && sim.combatHeat < 0.1 && performance.now() - sim.lastHit > 6000) {
+      const recovered = recoverVehicle(condition.current, true, true);
+      if (JSON.stringify(recovered) !== JSON.stringify(condition.current)) { condition.current = recovered; onVehicleCondition?.(vehicleId, recovered); }
+    }
+    const vehicleStage = vehicleDamageStage(100 - condition.current.body);
     const vehicleEffect = VEHICLE_DAMAGE_EFFECT[vehicleStage];
 
     const here = regionAt(s.x, s.z);
@@ -1544,8 +1554,8 @@ function SceneImpl({
     if (s.inVehicle) {
        const vehicleGear = gear?.inventory.find((item) => item.id === gear.equippedGear.vehicle);
        // Neon City vehicle-combat: a damaged car tops out slower and steers worse, per VEHICLE_DAMAGE_EFFECT.
-       const maxSpeed = 62 * biomeGrip * (boost ? 1.5 : 1) * sim.mods.vehicleSpeed * selectedVehicle.speed * (vehicleGear ? 1 + vehicleGear.level * 0.04 : 1) * vehicleEffect.speedMult;
-      const accel = 52 * traction * selectedVehicle.speed * vehicleEffect.speedMult;
+       const maxSpeed = 62 * biomeGrip * (boost ? 1.5 : 1) * sim.mods.vehicleSpeed * selectedVehicle.speed * (vehicleGear ? 1 + vehicleGear.level * 0.04 : 1) * damageFx.speed;
+      const accel = 52 * traction * selectedVehicle.speed * damageFx.acceleration;
       if (throttleF) s.vSpeed += accel * dt;
       else if (throttleB) s.vSpeed -= accel * 0.8 * dt;
       else s.vSpeed *= Math.exp(-1.4 * dt);
@@ -1553,7 +1563,7 @@ function SceneImpl({
       s.vSpeed *= Math.exp(-(0.22 + slope * 1.6) * dt);
       s.vSpeed = THREE.MathUtils.clamp(s.vSpeed, -18, maxSpeed);
 
-      const steerRate = 1.5 * traction * selectedVehicle.handling * vehicleEffect.handlingMult * THREE.MathUtils.clamp(Math.abs(s.vSpeed) / 14, 0.15, 1);
+      const steerRate = 1.5 * traction * selectedVehicle.handling * damageFx.grip * damageFx.stability * THREE.MathUtils.clamp(Math.abs(s.vSpeed) / 14, 0.15, 1);
       if (left) s.yaw += steerRate * dt * Math.sign(s.vSpeed || 1);
       if (right) s.yaw -= steerRate * dt * Math.sign(s.vSpeed || 1);
 
@@ -1661,11 +1671,12 @@ function SceneImpl({
     s.x = body.x;
     s.z = body.z;
     s.vSpeed = body.vSpeed;
+    if (s.inVehicle && Math.abs(preCollideSpeed - s.vSpeed) > 2) { condition.current = impactVehicle(condition.current, Math.abs(preCollideSpeed - s.vSpeed)); onVehicleCondition?.(vehicleId, condition.current); }
 
     // Neon City vehicle-combat: a wreck-level car forces you out on foot; a heavily damaged one only does when the collision actually stopped it.
     if (s.inVehicle) {
       const blocked = Math.abs(preCollideSpeed) > 4 && Math.abs(s.vSpeed) < Math.abs(preCollideSpeed) * 0.4;
-      if (shouldForceFootTransition(vehicleStage, blocked)) {
+      if (conditionEffects(condition.current).disabled || shouldForceFootTransition(vehicleStage, blocked)) {
         s.inVehicle = false;
         velocity.set(Math.sin(s.yaw), 0, Math.cos(s.yaw)).multiplyScalar(exitVehicleMomentum(s.vSpeed));
         s.vSpeed = 0;
@@ -2019,6 +2030,7 @@ function SceneImpl({
     }
 
     /* ---------------- simulation step ---------------- */
+    const hpBeforeCombat = sim.hp;
     const { playerInstability } = stepSim(sim, {
       dt,
       px: s.x,
@@ -2027,6 +2039,7 @@ function SceneImpl({
       inVehicle: s.inVehicle,
       yaw: s.yaw,
     });
+    if (s.inVehicle && sim.hp < hpBeforeCombat) { condition.current = impactVehicle(condition.current, hpBeforeCombat - sim.hp + 2); onVehicleCondition?.(vehicleId, condition.current); }
     // Living World: city events, patrols, civilian panic and contract progress (living-runtime.ts); outcomes go to GameCanvas
     {
       livingRt.current ??= createLivingRuntime(sim);
@@ -2661,6 +2674,7 @@ function SceneImpl({
 
       {/* drivable wasteland raider — armour plate, ram spikes, roof gun */}
       <group ref={vehicle} visible={vehicleUnlocked}>
+        <VehicleDamageFx condition={condition} />
         <Car body={selectedVehicle.model} scale={selectedVehicle.modelScale} speedRef={carSpeed} steerRef={carSteer} />
         {/* front ram spikes */}
         {[-1.1, -0.55, 0, 0.55, 1.1].map((x) => (
