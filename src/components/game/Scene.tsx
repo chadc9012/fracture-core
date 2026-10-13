@@ -11,7 +11,8 @@ import { softSprite } from "./softSprite";
 import { REGIONS, SKY, ZONE_COLOR, clockLabel, phaseFor, regionAt, WORLD_RADIUS, WORLD_SCALE } from "@/game/world";
 import { BASE_FOOT_SPEED, SPRINT_MULT } from "@/game/foot-speed";
 import { useKeyboard } from "@/game/useKeyboard";
-import { touch, getEquippedBoots } from "@/game/client-input";
+import { touch, getEquippedBoots, activeBuffs } from "@/game/client-input";
+import { buffEffect } from "@/game/stash";
 import { bootStats, SKATE_SHOP_OFFSET, SKATE_SHOP_RADIUS } from "@/game/skate-boots";
 import { walkHeight, slopeAt, heightAt, waterNetwork, WATER_LEVEL } from "@/game/terrain";
 import { waterMix } from "@/game/water-audio";
@@ -951,8 +952,7 @@ function SceneImpl({
     if (tutorial?.step === "MATERIALIZE" && tutorialClock.current > 2) onTutorialEvent?.("READY");
     sim.titanActive = playerClass === "TITAN" && !s.inVehicle;
     sim.backpack = backpackFor(playerClass);
-    sim.armorResist = armorFxRef.current.resist;
-    sim.armorRegen = armorFxRef.current.regen;
+    { const bf = buffEffect(activeBuffs.current, Date.now()); sim.armorResist = Math.min(0.75, armorFxRef.current.resist + bf.resist); sim.armorRegen = armorFxRef.current.regen + bf.regen; }
 
     /* ---------------- day / night ---------------- */
     time.current += dt * (held.has("KeyT") ? 0.06 : 0.008);
