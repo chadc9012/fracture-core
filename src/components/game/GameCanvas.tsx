@@ -27,6 +27,9 @@ import { GraphicsGuard } from "./GraphicsGuard";
 import { CinematicGrade } from "./CinematicGrade";
 import { StartMenu, type Deployment } from "./StartMenu";
 import { perfFlags } from "@/game/perf-flags";
+import { TouchControls } from "./TouchControls";
+import { SkateShop } from "./SkateShop";
+import { KillPlaylistPlayer } from "./KillPlaylist";
 import { SettingsWindow, DEFAULT_SETTINGS, type GameSettings } from "./SettingsWindow";
 import { BootSequence } from "./BootSequence";
 import { MainMenu } from "./MainMenu";
@@ -284,13 +287,13 @@ export function GameCanvas() {
     if (saved === "third") setSettings((current) => ({ ...current, firstPersonDefault: false }));
     const vol = Number(window.localStorage.getItem("world-fracture-volume"));
     if (window.localStorage.getItem("world-fracture-volume") !== null && Number.isFinite(vol)) setSettings((current) => ({ ...current, volume: Math.min(1, Math.max(0, vol)) }));
-    try { const m = window.localStorage.getItem("world-fracture-mix"); if (m) { const p = JSON.parse(m) as { music?: number; sfx?: number; voice?: number; spoken?: boolean }; const c = (n: unknown, fallback = 1) => (typeof n === "number" && Number.isFinite(n) ? Math.min(1, Math.max(0, n)) : fallback); setSettings((current) => ({ ...current, musicVolume: c(p.music), sfxVolume: c(p.sfx), voiceVolume: c(p.voice, 0.85), spokenDialogue: p.spoken ?? true })); } } catch { /* keep defaults */ }
+    try { const m = window.localStorage.getItem("world-fracture-mix"); if (m) { const p = JSON.parse(m) as { music?: number; sfx?: number; voice?: number; spoken?: boolean; amb?: number; abil?: number; mute?: GameSettings["mute"] }; const c = (n: unknown, fallback = 1) => (typeof n === "number" && Number.isFinite(n) ? Math.min(1, Math.max(0, n)) : fallback); setSettings((current) => ({ ...current, musicVolume: c(p.music), sfxVolume: c(p.sfx), voiceVolume: c(p.voice, 0.85), spokenDialogue: p.spoken ?? true, ambienceVolume: c(p.amb), abilityVolume: c(p.abil), mute: p.mute ?? {} })); } } catch { /* keep defaults */ }
     try { const b = window.localStorage.getItem("world-fracture-bindings"); if (b) setSettings((current) => ({ ...current, bindings: normalizeBindings(JSON.parse(b)) })); } catch { /* keep defaults */ }
   }, []);
   const updateSettings = (next: GameSettings) => {
     window.localStorage.setItem("world-fracture-settings", JSON.stringify(next));
     if (next.volume !== settings.volume && next.volume !== undefined) window.localStorage.setItem("world-fracture-volume", String(next.volume));
-    if (next.musicVolume !== settings.musicVolume || next.sfxVolume !== settings.sfxVolume || next.voiceVolume !== settings.voiceVolume || next.spokenDialogue !== settings.spokenDialogue) window.localStorage.setItem("world-fracture-mix", JSON.stringify({ music: next.musicVolume ?? 1, sfx: next.sfxVolume ?? 1, voice: next.voiceVolume ?? 0.85, spoken: next.spokenDialogue ?? true }));
+    if (next.ambienceVolume !== settings.ambienceVolume || next.abilityVolume !== settings.abilityVolume || next.mute !== settings.mute || next.musicVolume !== settings.musicVolume || next.sfxVolume !== settings.sfxVolume || next.voiceVolume !== settings.voiceVolume || next.spokenDialogue !== settings.spokenDialogue) window.localStorage.setItem("world-fracture-mix", JSON.stringify({ music: next.musicVolume ?? 1, sfx: next.sfxVolume ?? 1, voice: next.voiceVolume ?? 0.85, spoken: next.spokenDialogue ?? true, amb: next.ambienceVolume ?? 1, abil: next.abilityVolume ?? 1, mute: next.mute ?? {} }));
     if (next.firstPersonDefault !== settings.firstPersonDefault) window.localStorage.setItem("world-fracture-camera", next.firstPersonDefault ? "first" : "third");
     if (next.bindings !== settings.bindings) window.localStorage.setItem("world-fracture-bindings", JSON.stringify(next.bindings));
     setSettings(next);
@@ -319,6 +322,8 @@ export function GameCanvas() {
   const vaelNearRef = useRef(false);
   /** fleet.ts: the garage base panel and the base in reach */
   const [basePanel, setBasePanel] = useState<GarageId | null>(null);
+  const [skateOpen, setSkateOpen] = useState(false);
+  const skateNearRef = useRef(false);
   const garageNearRef = useRef<GarageId | null>(null);
   const [livingToast, setLivingToast] = useState<string | null>(null);
   /** nemesis picked on the map: it ambushes right after the drop (living-runtime.ts) */
@@ -363,6 +368,7 @@ export function GameCanvas() {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.code === "KeyY" && shopNearRef.current) { setShopOpen((open) => (open ? null : shopNearRef.current)); if (document.pointerLockElement) document.exitPointerLock(); }
+      else if (e.code === "KeyY" && !e.repeat && skateNearRef.current) { setSkateOpen((o) => !o); if (document.pointerLockElement) document.exitPointerLock(); }
       else if (e.code === "KeyY" && !e.repeat && garageNearRef.current) { setBasePanel((open) => (open ? null : garageNearRef.current)); if (document.pointerLockElement) document.exitPointerLock(); }
       else if (e.code === "KeyY" && !e.repeat && vaelNearRef.current) { setForgeOpen((open) => !open); if (document.pointerLockElement) document.exitPointerLock(); }
       else if (e.code === "KeyY" && !e.repeat && npcNearRef.current) { setNpcOpen((open) => (open ? null : npcNearRef.current)); if (document.pointerLockElement) document.exitPointerLock(); }
@@ -398,6 +404,7 @@ export function GameCanvas() {
   useEffect(() => { shopNearRef.current = hud.shopNearId ?? null; if (!hud.shopNearId) setShopOpen(null); }, [hud.shopNearId]);
   useEffect(() => { npcNearRef.current = hud.npcNear?.id ?? null; if (!hud.npcNear) setNpcOpen(null); }, [hud.npcNear?.id]);
   useEffect(() => { vaelNearRef.current = !!hud.vaelNear; if (!hud.vaelNear) setForgeOpen(false); }, [hud.vaelNear]);
+  useEffect(() => { skateNearRef.current = !!hud.skateShopNear; if (!hud.skateShopNear) setSkateOpen(false); }, [hud.skateShopNear]);
   useEffect(() => { garageNearRef.current = (hud.garageNear as GarageId | null | undefined) ?? null; if (!hud.garageNear) setBasePanel(null); }, [hud.garageNear]);
   useEffect(() => {
     cacheNearRef.current = hud.cacheNear ?? null;
@@ -1188,6 +1195,14 @@ export function GameCanvas() {
            )}
          </div>
        )}
+       {hud.skateShopNear && !skateOpen && (
+         <div className="pointer-events-none absolute bottom-24 left-1/2 -translate-x-1/2">
+           <Button className="pointer-events-auto" variant="outline" onClick={() => setSkateOpen(true)}>[Y] Kickz Skate Shop · Jet boots</Button>
+         </div>
+       )}
+       {skateOpen && <SkateShop progression={progression} onProgression={setProgression} onClose={() => setSkateOpen(false)} />}
+       <TouchControls />
+       <KillPlaylistPlayer volume={(settings.volume ?? 0.7) * (settings.musicVolume ?? 1)} muted={!!settings.mute?.music} />
        {hud.garageNear && !basePanel && !hud.shopNearId && (
          <div className="pointer-events-none absolute bottom-24 left-1/2 -translate-x-1/2">
            <Button className="pointer-events-auto" variant="outline" onClick={() => setBasePanel(hud.garageNear as GarageId)}>[Y] Garage · {GARAGES[hud.garageNear as GarageId]?.name}</Button>

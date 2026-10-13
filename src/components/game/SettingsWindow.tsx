@@ -1,3 +1,4 @@
+import { KillPlaylistPanel } from "./KillPlaylist";
 export type GameSettings = {
   aimAssist: boolean;
   firstPersonDefault: boolean;
@@ -8,6 +9,9 @@ export type GameSettings = {
   volume?: number;
   musicVolume?: number;
   sfxVolume?: number;
+  ambienceVolume?: number;
+  abilityVolume?: number;
+  mute?: Partial<Record<"music" | "ambience" | "sfx" | "abilities", boolean>>;
   voiceVolume?: number;
   spokenDialogue?: boolean;
   reducedMotion?: boolean;
@@ -111,7 +115,7 @@ export function SettingsWindow({
               {section === "ROADMAP" && <>{ROADMAP.map((r) => <div key={r.label} className="flex justify-between border-b border-foreground/10 py-3"><span className="text-sm">{r.label}</span><span className={`font-mono text-[10px] ${r.status === "LIVE" ? "text-primary" : "text-muted-foreground"}`}>{r.status}</span></div>)}<p className="text-xs text-muted-foreground">No content is ever removed. Progress never resets.</p></>}
               {section === "GAMEPLAY" && <><Toggle label="Predictive aim assist" on={settings.aimAssist} onChange={(v) => set({ aimAssist: v })} /><Toggle label="First-person camera" on={settings.firstPersonDefault} onChange={(v) => set({ firstPersonDefault: v })} /></>}
               {section === "DISPLAY" && <><p className="ui-kicker">Rendering quality</p><div className="grid grid-cols-2 gap-2 sm:grid-cols-4">{(["LOW", "MEDIUM", "HIGH", "ULTRA"] as const).map((tier) => <Button key={tier} variant={settings.renderTier === tier ? "default" : "outline"} onClick={() => set({ renderTier: tier })} className="rounded-none">{tier}</Button>)}</div><p className="text-xs text-muted-foreground">Simulation and combat remain identical at every quality.</p></>}
-              {section === "AUDIO" && <>{([["Master volume", "volume", 0.7], ["Music volume", "musicVolume", 1], ["Sound effects", "sfxVolume", 1], ["Voice volume", "voiceVolume", 0.85]] as const).map(([label, key, def]) => <Volume key={key} label={label} value={settings[key] ?? def} onChange={(value) => set({ [key]: value })} />)}<Toggle label="Spoken dialogue" on={settings.spokenDialogue ?? true} onChange={(v) => set({ spokenDialogue: v })} /></>}
+              {section === "AUDIO" && <><Volume label="Master volume" value={settings.volume ?? 0.7} onChange={(value) => set({ volume: value })} />{([["Music", "musicVolume", "music"], ["Region ambience", "ambienceVolume", "ambience"], ["Weapon sound effects", "sfxVolume", "sfx"], ["Ability sound effects", "abilityVolume", "abilities"]] as const).map(([label, key, mk]) => <div key={key} className="grid grid-cols-[minmax(0,1fr)_auto] items-end gap-3"><Volume label={label} value={settings[key] ?? 1} onChange={(value) => set({ [key]: value })} /><Toggle label="Mute" on={!!settings.mute?.[mk]} onChange={(v) => set({ mute: { ...settings.mute, [mk]: v } })} /></div>)}<Volume label="Voice volume" value={settings.voiceVolume ?? 0.85} onChange={(value) => set({ voiceVolume: value })} /><Toggle label="Spoken dialogue" on={settings.spokenDialogue ?? true} onChange={(v) => set({ spokenDialogue: v })} /><KillPlaylistPanel /></>}
               {section === "INTERFACE" && <><Toggle label="Zone name markers" on={settings.zoneLabels} onChange={(v) => set({ zoneLabels: v })} /><Toggle label="Full HUD panels" on={settings.hudDensity === "full"} onChange={(v) => set({ hudDensity: v ? "full" : "lean" })} /></>}
               {section === "CONTROLS" && <ControlsPanel bindings={settings.bindings ?? DEFAULT_BINDINGS} onChange={(bindings) => set({ bindings })} />}
               {section === "ACCESSIBILITY" && <><Toggle label="Reduced interface motion" on={settings.reducedMotion ?? false} onChange={(v) => set({ reducedMotion: v })} /><Toggle label="High contrast HUD" on={settings.highContrastHud ?? false} onChange={(v) => set({ highContrastHud: v })} /><Toggle label="Spoken dialogue" on={settings.spokenDialogue ?? true} onChange={(v) => set({ spokenDialogue: v })} /></>}
