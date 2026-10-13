@@ -4,6 +4,7 @@ import type { PlayerProgression } from "@/game/progression";
 import type { GearItem } from "@/game/inventory";
 import { REGIONAL_SHOPS, SHOP_KIND_LABEL, shopLock, shopOffers, shopPriceMult, buyOffer, serviceTargets, serviceGear, serviceFee } from "@/game/regional-shops";
 import { FACTIONS, SHOP_FACTION, TIER_RULES, tierOf, EMPTY_LIVING } from "@/game/living-world";
+import { canSellDuplicate, sellDuplicate, sellValue } from "@/game/stash";
 
 const ELEMENTS: GearItem["element"][] = ["THERMAL", "CRYO", "ARC", "BIO"];
 
@@ -11,6 +12,7 @@ export function ShopWindow({ shopId, progression, onProgression, onClose }: { sh
   const shop = REGIONAL_SHOPS.find((s) => s.id === shopId);
   const [notice, setNotice] = useState("");
   const [element, setElement] = useState<GearItem["element"]>("THERMAL");
+  const [sale, setSale] = useState<string | null>(null);
   const mult = shop ? shopPriceMult(shop, progression) : 1;
   const offers = useMemo(() => (shop ? shopOffers(shop, undefined, mult) : []), [shop, mult]);
   if (!shop) return null;
@@ -19,6 +21,8 @@ export function ShopWindow({ shopId, progression, onProgression, onClose }: { sh
   const lock = shopLock(shop, progression);
   const funds = progression.materials[shop.currency] ?? 0;
   const targets = serviceTargets(shop, progression);
+  const duplicates = progression.inventory.filter((item) => canSellDuplicate(progression, item));
+  const pendingSale = duplicates.find((item) => item.id === sale);
   const apply = (r: ReturnType<typeof buyOffer>) => { if ("error" in r) setNotice(r.error); else { onProgression(r.progression); setNotice(r.message); } };
 
   return (
@@ -38,6 +42,16 @@ export function ShopWindow({ shopId, progression, onProgression, onClose }: { sh
         </div>
         {lock && <p className="mt-4 border border-destructive/50 p-3 text-sm text-destructive">Closed to you · {lock}</p>}
         {notice && <p className="mt-3 text-xs text-primary">{notice}</p>}
+        {!lock && <section className="mt-5 border-t border-border pt-4">
+          <div className="flex justify-between gap-3"><h4 className="font-mono text-sm">Sell duplicate gear</h4><span className="text-xs text-primary">{progression.fractureShards} fracture shards</span></div>
+          {duplicates.length === 0 && <p className="mt-2 text-xs text-muted-foreground">No spare duplicates available.</p>}
+          {duplicates.map((item) => <div key={item.id} className="mt-2 flex items-center justify-between gap-3 border-b border-border py-2"><div className="min-w-0"><p className="truncate text-sm">{item.name}</p><p className="text-xs text-muted-foreground">{item.slot} · Power {item.power} · Level {item.level}</p></div><Button size="sm" variant="outline" onClick={() => setSale(item.id)}>Sell · {sellValue(item)} shards</Button></div>)}
+          {pendingSale && <div role="alertdialog" aria-label="Confirm duplicate sale" className="mt-3 border border-primary p-3">
+            <p className="text-sm">Sell {pendingSale.name} to {shop.name} for <strong>{sellValue(pendingSale)} fracture shards</strong>?</p>
+            <p className="mt-1 text-xs text-muted-foreground">This copy will be permanently removed.</p>
+            <div className="mt-3 flex gap-2"><Button size="sm" onClick={() => { const next = shopLock(shop, progression) ? progression : sellDuplicate(progression, pendingSale.id); if (next !== progression) { onProgression(next); setNotice(`Sold ${pendingSale.name} · +${sellValue(pendingSale)} fracture shards`); } setSale(null); }}>Confirm sale</Button><Button size="sm" variant="outline" onClick={() => setSale(null)}>Cancel</Button></div>
+          </div>}
+        </section>}
         {!lock && offers.length > 0 && (
           <div className="mt-4 space-y-2">
             {offers.map((o) => {

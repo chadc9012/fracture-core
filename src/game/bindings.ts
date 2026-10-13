@@ -1,9 +1,9 @@
 /** Configurable input bindings. Keyboard uses KeyboardEvent.code; gamepad uses standard-mapping button indexes. */
 export type Action = "reload" | "nextWeapon" | "prevWeapon" | "weaponWheel" | "slot1" | "slot2" | "slot3" | "slot4" | "fire" | "aim" | "crouch" | "prone" | "abilityModifier" | "abilityPrimary" | "abilityTactical" | "abilityUltimate" | "map";
-export type Bindings = { keyboard: Record<"reload" | "nextWeapon" | "prevWeapon" | "weaponWheel" | "crouch" | "prone" | "map", string>; gamepad: Record<Action, number> };
+export type Bindings = { keyboard: Record<"reload" | "nextWeapon" | "prevWeapon" | "weaponWheel" | "crouch" | "prone" | "map" | "healStim" | "armorStim" | "ruinStone", string>; gamepad: Record<Action, number> };
 
 export const DEFAULT_BINDINGS: Bindings = {
-  keyboard: { reload: "KeyG", nextWeapon: "BracketRight", prevWeapon: "BracketLeft", weaponWheel: "KeyZ", crouch: "ControlLeft", prone: "KeyX", map: "KeyM" },
+  keyboard: { reload: "KeyG", nextWeapon: "BracketRight", prevWeapon: "BracketLeft", weaponWheel: "KeyZ", crouch: "ControlLeft", prone: "KeyX", map: "KeyM", healStim: "Digit5", armorStim: "Digit6", ruinStone: "Digit7" },
   gamepad: { reload: 2, nextWeapon: 5, prevWeapon: 4, weaponWheel: 3, slot1: 12, slot2: 15, slot3: 13, slot4: 14, fire: 7, aim: 6, crouch: 1, prone: 11, abilityModifier: 8, abilityPrimary: 2, abilityTactical: 3, abilityUltimate: 1, map: 9 },
 };
 

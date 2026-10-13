@@ -952,7 +952,7 @@ function SceneImpl({
     if (tutorial?.step === "MATERIALIZE" && tutorialClock.current > 2) onTutorialEvent?.("READY");
     sim.titanActive = playerClass === "TITAN" && !s.inVehicle;
     sim.backpack = backpackFor(playerClass);
-    { const bf = buffEffect(activeBuffs.current, Date.now()); sim.armorResist = Math.min(0.75, armorFxRef.current.resist + bf.resist); sim.armorRegen = armorFxRef.current.regen + bf.regen; }
+    { const bf = buffEffect(activeBuffs.current, Date.now()); sim.armorResist = Math.min(0.75, armorFxRef.current.resist + bf.resist); sim.armorRegen = armorFxRef.current.regen + bf.regen; sim.consumableDamageMult = bf.damageMult; }
 
     /* ---------------- day / night ---------------- */
     time.current += dt * (held.has("KeyT") ? 0.06 : 0.008);
