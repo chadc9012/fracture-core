@@ -3,7 +3,7 @@ import { craftStim, dismantle, grant, mergeStash, sellDuplicate, toVault, useSti
 import type { GearItem } from "./inventory";
 
 const gun = (id: string): GearItem => ({ id, name: "Rifle", slot: "primary", power: 100, level: 2, element: "KINETIC", source: "drop" });
-const base = (inv: GearItem[]) => ({ inventory: inv, materials: {}, equippedGear: { primary: "a" }, earnedRewards: [] as string[], fractureShards: 0, vaultIds: [] as string[] });
+const base = (inv: GearItem[]) => ({ inventory: inv, materials: {} as Partial<Record<import("./inventory").MaterialId, number>>, equippedGear: { primary: "a" }, earnedRewards: [] as string[], fractureShards: 0, vaultIds: [] as string[] });
 
 describe("stash", () => {
   test("stims never carry more than 3", () => {
