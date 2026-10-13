@@ -1,6 +1,12 @@
 # Roadmap
 
 ## Current request
+- [ ] Review the running world against realistic sci-fi and Destiny-style references; fix confirmed overlaps and missing assets.
+- [ ] Verify phone-sized gameplay controls/HUD (physical phone validation remains a device check).
+- [ ] Test audio/radio playback and add vehicle-specific engine/startup profiles linked to existing tuning.
+- [ ] Integrate story and boss cutscene playback, including dungeon and raid coverage.
+- [ ] Test building entry, shop purchase and confirmed duplicate sales.
+- [ ] Improve vehicle telemetry and tuning presentation on the existing fleet system.
 - [ ] Show four distinct equipped skate-boot designs on all Operators.
 - [ ] Add world-vendor duplicate sales with prices and confirmation.
 - [ ] Make Ruin Stones usable with a combat boost and HUD timer.
