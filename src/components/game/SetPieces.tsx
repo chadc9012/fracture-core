@@ -105,8 +105,8 @@ export function LavaTrench() {
     <group>
       {fissures.map((f, i) => (
         <group key={i}>
-          <mesh geometry={strips[i]![0]}><meshStandardMaterial side={THREE.DoubleSide} ref={i === 0 ? crust : undefined} color="#1a0f0c" emissive="#ff3a0a" emissiveIntensity={1.1} roughness={1} transparent opacity={0.85} depthWrite={false} polygonOffset polygonOffsetFactor={-2} /></mesh>
-          <mesh geometry={strips[i]![1]}><meshBasicMaterial side={THREE.DoubleSide} ref={i === 0 ? lava : undefined} color="#ff6a14" toneMapped={false} polygonOffset polygonOffsetFactor={-4} /></mesh>
+          <mesh geometry={strips[i]![0]}><meshStandardMaterial side={THREE.DoubleSide} ref={i === 0 ? crust : null} color="#1a0f0c" emissive="#ff3a0a" emissiveIntensity={1.1} roughness={1} transparent opacity={0.85} depthWrite={false} polygonOffset polygonOffsetFactor={-2} /></mesh>
+          <mesh geometry={strips[i]![1]}><meshBasicMaterial side={THREE.DoubleSide} ref={i === 0 ? lava : null} color="#ff6a14" toneMapped={false} polygonOffset polygonOffsetFactor={-4} /></mesh>
           {i === 0 && <pointLight position={[f.x, walkHeight(f.x, f.z) + 2, f.z]} color="#ff5a1a" intensity={30} distance={40} decay={2} />}
         </group>
       ))}

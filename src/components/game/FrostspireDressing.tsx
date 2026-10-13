@@ -79,7 +79,7 @@ function Camps() {
     {cs.map((c, i) => (
       <group key={i} position={[c.at.x, walkHeight(c.at.x, c.at.z), c.at.z]}>
         <mesh castShadow position-y={4}><cylinderGeometry args={[0.1, 0.16, 8, 6]} /><meshStandardMaterial color="#5a6470" metalness={0.6} roughness={0.5} /></mesh>
-        <mesh position-y={8.1}><sphereGeometry args={[0.22, 8, 6]} /><meshBasicMaterial ref={i === 0 ? blink : undefined} color="#ff2a2a" transparent toneMapped={false} /></mesh>
+        <mesh position-y={8.1}><sphereGeometry args={[0.22, 8, 6]} /><meshBasicMaterial ref={i === 0 ? blink : null} color="#ff2a2a" transparent toneMapped={false} /></mesh>
       </group>
     ))}
   </group>;
