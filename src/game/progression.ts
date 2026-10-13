@@ -31,9 +31,9 @@ export type MissionReward = { missionId: string; factor: number; firstClear: boo
 
 /** every mission payout also cracks a loot box; fresher clears roll better boxes (no grind incentive) */
 export function missionBox(firstClear: boolean, factor: number): NonNullable<MissionReward["box"]> {
-  if (firstClear) return { rarity: "EPIC", materials: { scrapMetal: 8, dataShards: 2 } };
-  if (factor >= 1) return { rarity: "RARE", materials: { scrapMetal: 5, dataShards: 1 } };
-  return { rarity: "COMMON", materials: { scrapMetal: 2 } };
+  if (firstClear) return { rarity: "EPIC", materials: { scrapMetal: 8, dataShards: 2, dataChip: 3, relicFragment: 1 } };
+  if (factor >= 1) return { rarity: "RARE", materials: { scrapMetal: 5, dataShards: 1, dataChip: 2 } };
+  return { rarity: "COMMON", materials: { scrapMetal: 2, dataChip: 1 } };
 }
 
 export type PlayerProgression = {
@@ -77,6 +77,8 @@ export type PlayerProgression = {
   /** foundries.ts: the equipped monoblade (owned blades are `blade:<id>` in earnedRewards) */
   blade: string | null;
   inventory: GearItem[];
+  /** stash.ts: ids of inventory gear stored in the vault */
+  vaultIds: string[];
   equippedGear: Partial<Record<GearSlot, string>>;
   materials: Partial<Record<MaterialId, number>>;
   /** Cross-world quest engine (src/game/quests.ts) — the persistent story spine, distinct from the AI Director's live per-session missions. */
@@ -137,6 +139,7 @@ export const DEFAULT_PROGRESSION: PlayerProgression = {
   records: {},
   blade: null,
   inventory: STARTER_GEAR,
+  vaultIds: [],
   equippedGear: STARTER_SLOTS,
   materials: {},
   activeQuestId: FIRST_QUEST_ID,
@@ -179,6 +182,7 @@ export function normalizeProgression(raw: unknown): PlayerProgression {
       garageLoadout: Array.isArray(parsed.garageLoadout) ? parsed.garageLoadout : [],
        version: 5,
        inventory: Array.isArray(parsed.inventory) ? parsed.inventory : STARTER_GEAR,
+       vaultIds: Array.isArray(parsed.vaultIds) ? parsed.vaultIds : [],
        equippedGear: parsed.equippedGear && typeof parsed.equippedGear === "object" ? parsed.equippedGear : STARTER_SLOTS,
        materials: parsed.materials && typeof parsed.materials === "object" ? parsed.materials : {},
       identityClass: parsed.identityClass === "TITAN" || parsed.identityClass === "HUNTER" || parsed.identityClass === "WARLOCK" ? parsed.identityClass : null,
