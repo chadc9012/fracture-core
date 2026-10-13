@@ -2329,7 +2329,7 @@ function SceneImpl({
         clock: clockLabel(time.current),
         speed: Math.round(s.inVehicle ? Math.abs(s.vSpeed) * 2.4 : velocity.length() * 2.4),
         mode: s.inVehicle ? "vehicle" : "foot",
-        ...(s.inVehicle ? { vehicle: { name: selectedVehicle.name, ...driveTelemetry(vehicleId, Math.abs(s.vSpeed) / 45, fwd || rev ? 1 : 0, selectedVehicle.speed / vehicleById(vehicleId).speed), load: Math.min(1, Math.abs(s.vSpeed) / 45), reverse: s.vSpeed < -0.1, hull: selectedVehicle.hull } } : {}),
+        ...(s.inVehicle ? { vehicle: { name: selectedVehicle.name, ...driveTelemetry(vehicleId, Math.abs(s.vSpeed) / 45, keys.has("KeyW") || keys.has("KeyS") ? 1 : 0, selectedVehicle.speed / vehicleById(vehicleId).speed), load: Math.min(1, Math.abs(s.vSpeed) / 45), reverse: s.vSpeed < -0.1, hull: selectedVehicle.hull } } : {}),
         owner: zone?.owner ?? "syndicate",
         challenger: zone?.challenger ?? "vanguard",
         progress: zone?.progress ?? 0,
