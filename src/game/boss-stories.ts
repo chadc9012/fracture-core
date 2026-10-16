@@ -323,6 +323,12 @@ export const BOSS_STORIES: Record<BossStoryId, BossStory> = {
     vault: { label: "Benediction Archive", dx: 0, dz: -16 }, defeatedFlag: "hollow_saint_defeated",
     objectives: { defeated: "Search behind the altar for Haven's Rest's archive" },
   }, HS_STAGES),
+  vyrak: mk({
+    id: VY, title: "The Ashen Covenant", intro: VY_INTRO, phaseLines: VY_PHASES,
+    due: { defeated: { graph: VY_BOND, place: "defeat" }, bonded: { graph: VY_ARCHIVE, place: "vault" } },
+    vault: { label: "Scorched survey terminal", dx: 0, dz: -16 }, defeatedFlag: "vyrak_defeated",
+    objectives: { defeated: "Read the scorched survey terminal at the crater's edge" },
+  }, VY_STAGES),
 };
 export const BOSS_STORY_IDS = Object.keys(BOSS_STORIES) as BossStoryId[];
 export const bossStoryFor = (scenarioId: string | undefined): BossStory | null => (scenarioId && scenarioId in BOSS_STORIES ? BOSS_STORIES[scenarioId as BossStoryId] : null);
