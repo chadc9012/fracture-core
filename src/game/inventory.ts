@@ -7,9 +7,9 @@ import { ARMOR_LEVEL_MAX, grantSetPiece } from "./armor-sets";
 import { grantScenarioReward } from "./scenario-loot";
 import { upgradeGate } from "./upgrade-gates";
 
-export type MaterialId = "scrapMetal" | "reinforcedAlloy" | "microCircuits" | "thermalShards" | "cryoCrystal" | "sporeFiber" | "bioCatalyst" | "vehicleParts" | "anomalyCarbon" | "dataShards" | "magmaCore" | "zeroCore" | "abyssCore" | "aegisCore" | "forgeCatalyst" | "tuningCore" | "anomalyCore" | "fuel" | "fuelKingCore" | "fractureCore" | "glacierFang" | "nullPlate" | "hollowHalo" | "roninEdge" | "tideCrown" | "crownHeart" | "runeDust" | "dataChip" | "energyToken" | "relicFragment" | "ruinStone" | "gearParts" | "armorStim" | "healStim";
+export type MaterialId = "scrapMetal" | "reinforcedAlloy" | "microCircuits" | "thermalShards" | "cryoCrystal" | "sporeFiber" | "bioCatalyst" | "vehicleParts" | "anomalyCarbon" | "dataShards" | "magmaCore" | "zeroCore" | "abyssCore" | "aegisCore" | "forgeCatalyst" | "tuningCore" | "anomalyCore" | "fuel" | "fuelKingCore" | "fractureCore" | "glacierFang" | "nullPlate" | "hollowHalo" | "roninEdge" | "tideCrown" | "crownHeart" | "runeDust" | "dataChip" | "energyToken" | "relicFragment" | "ruinStone" | "gearParts" | "armorStim" | "healStim" | "dragonite";
 export type GearSlot = "primary" | "secondary" | "heavy" | "helmet" | "chest" | "gauntlets" | "classItem" | "legs" | "vehicle";
-export type GearItem = { /** foundries.ts: explicit foundry (otherwise derived from the name) */ foundry?: import("./foundries").FoundryId; id: string; name: string; slot: GearSlot; power: number; level: number; element: "KINETIC" | "THERMAL" | "CRYO" | "ARC" | "BIO"; favorite?: boolean; source: string; /** armor-sets.ts: which set this piece belongs to */ setId?: string; /** scenario-exclusive rarity tier (absent = ordinary gear) */ rarity?: "LEGENDARY" | "EXOTIC"; /** unique weapon perk (null-disruption.ts) */ perk?: "NULL_DISRUPTION"; /** weapon-evolution.ts: set once at a ruin */ evolution?: Evolution; /** godforge.ts: a Godforged relic's tier, socketed runes and mastery */ godforge?: Godforged };
+export type GearItem = { /** foundries.ts: explicit foundry (otherwise derived from the name) */ foundry?: import("./foundries").FoundryId; id: string; name: string; slot: GearSlot; power: number; level: number; element: "KINETIC" | "THERMAL" | "CRYO" | "ARC" | "BIO"; favorite?: boolean; source: string; /** armor-sets.ts: which set this piece belongs to */ setId?: string; /** scenario-exclusive rarity tier (absent = ordinary gear) */ rarity?: "LEGENDARY" | "EXOTIC"; /** unique weapon perk (null-disruption.ts) */ perk?: "NULL_DISRUPTION"; /** weapon-evolution.ts: set once at a ruin */ evolution?: Evolution; /** godforge.ts: a Godforged relic's tier, socketed runes and mastery */ godforge?: Godforged; /** armor-shaders.ts: applied shader id (appearance only, never stats) */ shader?: string };
 
 export const MATERIALS: Record<MaterialId, { name: string; source: string }> = {
   dataChip: { name: "Data Chips", source: "Collectible: mission loot boxes and world caches" },
@@ -45,6 +45,7 @@ export const MATERIALS: Record<MaterialId, { name: string; source: string }> = {
   roninEdge: { name: "Ronin Edge", source: "The Red Ronin" },
   tideCrown: { name: "Tide Crown Shard", source: "The Drowned Monarch" },
   crownHeart: { name: "Heart of the Hollow Crown", source: "The Furnace Guardian (godforge.ts)" },
+  dragonite: { name: "Dragonite", source: "Vyrak's Covenant and your Wyrmling's daily gift" },
   runeDust: { name: "Rune Dust", source: "Slain nemeses and secrets; spent at the Godforge" },
 };
 

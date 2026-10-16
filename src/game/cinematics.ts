@@ -17,7 +17,7 @@ export type CineShot = {
 export type HandoffHook = { system: string; exists: boolean; note: string };
 export type Handoff = { objective: string; control: "gameplay" | "class-select"; hook: HandoffHook };
 export type Cinematic = {
-  id: string; mission: 1 | 2 | 3 | 4 | 5; part: string; title: string; /** screenplay target length, seconds */ target: readonly [number, number];
+  id: string; mission: 1 | 2 | 3 | 4 | 5 | "side"; part: string; title: string; /** screenplay target length, seconds */ target: readonly [number, number];
   trigger: string; shots: CineShot[]; handoff: Handoff; /** the scene ends on a title card */ titleCard?: string;
 };
 
@@ -138,7 +138,22 @@ const M5B: Cinematic = {
   handoff: { objective: "Act I complete.", control: "gameplay", hook: { system: "post-Act I free play / next quest", exists: false, note: "Nexus City exists as a world; the Act I end state and what unlocks next must be chosen." } },
 };
 
-export const CINEMATICS: readonly Cinematic[] = [M1, M2, M3, M4, M4B, M5, M5B];
+/* ===== Neon City - First Arrival (reusable framework: same shots/lines/handoff as story scenes) ===== */
+const NEON_ARRIVAL: Cinematic = {
+  id: "neon-arrival", mission: "side", part: "first-arrival", title: "Neon City - First Arrival", target: [30, 45],
+  trigger: "first time the player enters Neon City",
+  shots: [
+    S("na-s1-skyline", "rise", "neon-skyline", "Emerge above the outer structures; rain through distant tower lights; elevated transit crosses frame; aircraft pass between skyscrapers.", 6, ["Rain and distant city hum."], []),
+    S("na-s2-operator", "pull-behind", "player", "Behind the equipped Operator; armor catches passing sign reflections; fabric and gear move in the wind.", 5, [], []),
+    S("na-s3-grid", "plunge", "neon-grid", "Descend toward the Grid: traffic at intersections, drones over pedestrians and storefronts; city audio swells.", 6, ["City ambience rises."], []),
+    S("na-s4-nova", "closeup", "player", "NOVA's drone enters beside the Operator.", 4, [],
+      [L(N, "Welcome to Neon City. Keep your weapons ready. The lights are beautiful. The things hiding beneath them aren't.")]),
+    S("na-s5-anomaly", "static", "neon-tower", "A distant tower flickers; a violet fracture crosses its surface; surrounding lights distort, then return.", 4, ["Violet fracture flash."], []),
+  ],
+  handoff: { objective: "INVESTIGATE THE DISTURBANCE", control: "gameplay", hook: { system: "free roam in Neon City", exists: true, note: "Control returns in place; no second cinematic follows." } },
+};
+
+export const CINEMATICS: readonly Cinematic[] = [M1, M2, M3, M4, M4B, M5, M5B, NEON_ARRIVAL];
 export const cinematicById = (id: string) => CINEMATICS.find((c) => c.id === id);
 
 /* ------------------------------ played state (once-keyed story flag) ------------------------------ */
