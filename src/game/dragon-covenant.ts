@@ -47,6 +47,7 @@ export function claimCovenant(p: PlayerProgression, cls: ClassId | null): { prog
   if (!cls || isBonded(p, cls)) return { progression: p, bonded: false };
   const owned = new Set(p.inventory.map((g) => g.id));
   const gear = dragoniteGear(cls).filter((g) => !owned.has(g.id));
+  const ability = COVENANT_ABILITY[cls].id;
   return {
     bonded: true,
     progression: {
@@ -54,6 +55,7 @@ export function claimCovenant(p: PlayerProgression, cls: ClassId | null): { prog
       earnedRewards: [...p.earnedRewards, bondKey(cls)],
       inventory: [...p.inventory, ...gear],
       materials: { ...p.materials, dragonite: (p.materials.dragonite ?? 0) + 5 },
+      unlockedAbilities: p.unlockedAbilities.includes(ability) ? p.unlockedAbilities : [...p.unlockedAbilities, ability],
     },
   };
 }
