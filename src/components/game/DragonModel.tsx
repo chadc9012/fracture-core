@@ -15,7 +15,7 @@ function curveTube(points: [number, number, number][], r0: number, r1: number) {
   const curve = new THREE.CatmullRomCurve3(points.map((p) => new THREE.Vector3(...p)));
   const g = new THREE.TubeGeometry(curve, 24, 1, 10, false);
   // taper the radius along the length
-  const pos = g.attributes.position!, n = 25, ring = 11, centre = new THREE.Vector3(), v = new THREE.Vector3();
+  const pos = g.attributes["position"]!, n = 25, ring = 11, centre = new THREE.Vector3(), v = new THREE.Vector3();
   for (let i = 0; i < n; i++) {
     curve.getPointAt(i / (n - 1), centre);
     const r = r0 + (r1 - r0) * (i / (n - 1));
@@ -35,7 +35,7 @@ function wingShape() {
 function Wing({ side, gRef }: { side: 1 | -1; gRef?: Ref<THREE.Group> | undefined }) {
   const geo = useMemo(wingShape, []);
   const fingers: [number, number][] = [[2.6, 0.9], [2.5, -0.4], [1.8, -0.9], [1.0, -1.1]];
-  return <group ref={gRef} position={[side * 0.35, 0.55, 0.3]} scale={[side, 1, 1]}>
+  return <group ref={gRef ?? null} position={[side * 0.35, 0.55, 0.3]} scale={[side, 1, 1]}>
     <group rotation-x={-Math.PI / 2}>
       <mesh geometry={geo}><meshStandardMaterial color="#5a1f14" roughness={0.7} side={THREE.DoubleSide} emissive={EMBER} emissiveIntensity={0.12} transparent opacity={0.94} /></mesh>
       {fingers.map(([x, y], i) => { const len = Math.hypot(x - 0.6, y - 0.5); return (
@@ -61,19 +61,19 @@ export function DragonModel({ refs = {}, ember = 1 }: { refs?: DragonRefs; ember
     <mesh position={[0, 0.55, 0]} scale={[0.62, 0.55, 1.05]} castShadow><sphereGeometry args={[0.7, 20, 14]} /><meshStandardMaterial color={SCALE} metalness={0.35} roughness={0.55} /></mesh>
     <mesh position={[0, 0.32, 0.1]} scale={[0.5, 0.3, 0.9]}><sphereGeometry args={[0.7, 16, 10]} /><meshStandardMaterial color={BELLY} roughness={0.7} /></mesh>
     {/* ember chest core — the weak point */}
-    <mesh position={[0, 0.48, 0.62]}><sphereGeometry args={[0.16, 14, 10]} /><meshStandardMaterial ref={refs.core} color="#ffb070" emissive={EMBER} emissiveIntensity={1.5 * ember} toneMapped={false} /></mesh>
-    <mesh ref={refs.weak} position={[0, 0.48, 0.66]} visible={false}><torusGeometry args={[0.3, 0.03, 8, 32]} /><meshBasicMaterial color="#9ffcff" toneMapped={false} /></mesh>
+    <mesh position={[0, 0.48, 0.62]}><sphereGeometry args={[0.16, 14, 10]} /><meshStandardMaterial ref={refs.core ?? null} color="#ffb070" emissive={EMBER} emissiveIntensity={1.5 * ember} toneMapped={false} /></mesh>
+    <mesh ref={refs.weak ?? null} position={[0, 0.48, 0.66]} visible={false}><torusGeometry args={[0.3, 0.03, 8, 32]} /><meshBasicMaterial color="#9ffcff" toneMapped={false} /></mesh>
     <mesh geometry={neck.g} castShadow><meshStandardMaterial color={SCALE} metalness={0.35} roughness={0.55} /></mesh>
     <mesh geometry={tail.g} castShadow><meshStandardMaterial color={SCALE} metalness={0.35} roughness={0.55} /></mesh>
     {plates.map(({ p, s }, i) => <mesh key={i} position={[p.x, p.y + s * 0.9, p.z]} rotation-x={-0.4}><coneGeometry args={[s * 0.6, s * 1.8, 4]} /><meshStandardMaterial color="#1f0f0c" metalness={0.5} roughness={0.4} emissive={EMBER} emissiveIntensity={0.2 * ember} /></mesh>)}
     {/* tail blade */}
     <mesh position={[0.62, 0.25, -2.75]} rotation={[Math.PI / 2, 0, 0.6]}><coneGeometry args={[0.12, 0.45, 3]} /><meshStandardMaterial color={BONE} roughness={0.35} /></mesh>
     {/* head */}
-    <group ref={refs.head} position={[0, 1.42, 1.5]}>
+    <group ref={refs.head ?? null} position={[0, 1.42, 1.5]}>
       <mesh scale={[0.32, 0.26, 0.45]} castShadow><sphereGeometry args={[1, 16, 12]} /><meshStandardMaterial color={SCALE} metalness={0.35} roughness={0.5} /></mesh>
       <mesh position={[0, -0.02, 0.42]} scale={[0.2, 0.13, 0.32]}><boxGeometry args={[1, 1, 1]} /><meshStandardMaterial color={SCALE} roughness={0.5} /></mesh>
-      <mesh ref={refs.jaw} position={[0, -0.12, 0.35]} scale={[0.18, 0.06, 0.34]}><boxGeometry args={[1, 1, 1]} /><meshStandardMaterial color={BELLY} roughness={0.6} /></mesh>
-      <mesh position={[0, -0.07, 0.5]}><sphereGeometry args={[0.07, 10, 8]} /><meshBasicMaterial ref={refs.mouth} color={EMBER} toneMapped={false} transparent opacity={0.3} /></mesh>
+      <mesh ref={refs.jaw ?? null} position={[0, -0.12, 0.35]} scale={[0.18, 0.06, 0.34]}><boxGeometry args={[1, 1, 1]} /><meshStandardMaterial color={BELLY} roughness={0.6} /></mesh>
+      <mesh position={[0, -0.07, 0.5]}><sphereGeometry args={[0.07, 10, 8]} /><meshBasicMaterial ref={refs.mouth ?? null} color={EMBER} toneMapped={false} transparent opacity={0.3} /></mesh>
       {[-1, 1].map((s) => <group key={s}>
         <mesh position={[s * 0.15, 0.08, 0.22]}><sphereGeometry args={[0.04, 10, 8]} /><meshBasicMaterial color="#ffd27a" toneMapped={false} /></mesh>
         <mesh position={[s * 0.16, 0.22, -0.18]} rotation={[-0.9, 0, s * 0.35]}><coneGeometry args={[0.05, 0.55, 6]} /><meshStandardMaterial color={BONE} roughness={0.35} /></mesh>
