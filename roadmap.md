@@ -205,3 +205,8 @@
 - [ ] Vyrak/Wyrmling authored dragon models (both currently procedural bodies)
 - [ ] Neon districts (Aegis Spire / Grid / Rust-Muck), underground racing loop, arrival trigger in Scene
 - [ ] Graphics quality presets measured in-game
+
+- [x] Vyrak balance pass (longer tells, wider weak-point windows, stronger Dragonite abilities)
+- [x] Homes/garage quarters rules + saving (housing.ts)
+- [ ] Homes: walk-in property shop + decorate panel in the world
+- [ ] UI Foundation Package 01: Atlas, activity log, patrol beacon, bounty, faction contacts in Neon City

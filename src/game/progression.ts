@@ -21,6 +21,7 @@ import { grantSetPiece } from "./armor-sets";
 import { collectionReward } from "./armor-collections";
 import type { WeaponId } from "./weapons";
 import { normalizeNex, type NexLedger } from "./nex";
+import { EMPTY_HOUSING, normalizeHousing, type HousingState } from "./housing";
 import { normalizeCondition, type VehicleCondition } from "./vehicle-condition";
 
 export type ClassId = "TITAN" | "HUNTER" | "WARLOCK";
@@ -78,6 +79,8 @@ export type PlayerProgression = {
   nemeses: Nemesis[];
   /** fleet.ts: owned fleet builds, garages, tuning and paint */
   fleet: FleetState;
+  /** housing.ts: placed decor per home (ownership lives in nexLedger) */
+  housing: HousingState;
   /** wasteland-activities.ts: best rally times (lower wins) and arena scores (higher wins) */
   records: Record<string, number>;
   /** foundries.ts: the equipped monoblade (owned blades are `blade:<id>` in earnedRewards) */
@@ -144,6 +147,7 @@ export const DEFAULT_PROGRESSION: PlayerProgression = {
   patrol: null,
   nemeses: [],
   fleet: EMPTY_FLEET,
+  housing: EMPTY_HOUSING,
   records: {},
   blade: null,
   inventory: STARTER_GEAR,
@@ -206,6 +210,7 @@ export function normalizeProgression(raw: unknown): PlayerProgression {
       living: normalizeLiving(parsed.living),
       nemeses: normalizeNemeses(parsed.nemeses),
       fleet: normalizeFleet(parsed.fleet),
+      housing: normalizeHousing(parsed.housing),
       records: normalizeRecords(parsed.records),
       blade: typeof parsed.blade === "string" ? parsed.blade : null,
       challenge: parsed.challenge === "HARD" || parsed.challenge === "VERY_HARD" ? parsed.challenge : "STANDARD",
