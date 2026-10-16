@@ -1,5 +1,6 @@
 import type { GearItem, GearSlot } from "./inventory";
 import type { PlayerProgression } from "./progression";
+import { COLLECTIONS } from "./armor-collections";
 
 /**
  * Armor sets: one themed five-piece set per region, dropped by that region's enemies. Equipping 2 or 4
@@ -68,10 +69,11 @@ export const ARMOR_SETS: readonly ArmorSet[] = [
     two: { name: "Mirage Step", description: "Move 7% faster.", effects: { moveSpeed: 0.07 } },
     four: { name: "Sun Surge", description: "Weapon damage +10%, move 6% faster.", effects: { weaponDamage: 0.1, moveSpeed: 0.06 } },
   },
+  ...COLLECTIONS,
 ];
 
 export const setById = (id: string): ArmorSet | undefined => ARMOR_SETS.find((s) => s.id === id);
-export const setForRegion = (regionId: string): ArmorSet | undefined => ARMOR_SETS.find((s) => s.regionId === regionId);
+export const setForRegion = (regionId: string): ArmorSet | undefined => ARMOR_SETS.find((s) => s.regionId && s.regionId === regionId);
 export const setPieceId = (setId: string, slot: SetSlot) => `set-${setId}-${slot}`;
 
 const BASE_POWER: Record<SetSlot, number> = { helmet: 95, gauntlets: 90, chest: 110, legs: 95, classItem: 85 };
