@@ -4,7 +4,7 @@ import { walkHeight } from "@/game/terrain";
 import { DistrictLight } from "./DistrictLight";
 
 const KIND_COLOR: Record<ShopKind, string> = {
-  weapons: "#ff7a3c", armor: "#66e0ff", supplies: "#8fe08a", mods: "#c86bff", gunsmith: "#ffd27a", vehicles: "#e8f4ff",
+  weapons: "#ff7a3c", armor: "#66e0ff", supplies: "#8fe08a", mods: "#c86bff", gunsmith: "#ffd27a", vehicles: "#e8f4ff", blackmarket: "#ff3aa0",
 };
 
 /** Walk-up vendor stalls: counter, canopy and a glowing kind-coloured sign so shops read from a distance. */

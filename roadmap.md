@@ -190,7 +190,7 @@
 
 ## Armor loot, shops & black market (user notes, in order)
 - [x] Stage 1: 30 armor collections in 5 families, mix-and-match, named drop sources, mission drops with bad-luck protection
-- [ ] Stage 2: tiered city armor/weapon shops (daily deals, rotation) — raid/exotic never sold
-- [ ] Stage 3: Neon City underground black market
+- [x] Stage 2: tiered city armor/weapon shops (daily deals, rotation) — raid/exotic never sold
+- [x] Stage 3: Neon City underground black market (The Undercroft; level 10 + Stitched Neon Core)
 - [ ] Stage 4: Dragon's Covenant / Vyrak and Dragonite gear
 - [ ] Stage 5: remaining unique encounters

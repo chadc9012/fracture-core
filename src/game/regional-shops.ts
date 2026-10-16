@@ -10,10 +10,12 @@ import { listingToGearItem, type VendorListing } from "./vendors";
 import { upgradeGate } from "./upgrade-gates";
 import { upgradeGear, infuseGear, gearCost, type GearItem, type MaterialId } from "./inventory";
 import type { PlayerProgression } from "./progression";
+import { COLLECTIONS, vendorSellable, type VendorTier } from "./armor-collections";
+import { grantSetPiece, type SetDrop } from "./armor-sets";
 
-export type ShopKind = "weapons" | "armor" | "supplies" | "mods" | "gunsmith" | "vehicles";
+export type ShopKind = "weapons" | "armor" | "supplies" | "mods" | "gunsmith" | "vehicles" | "blackmarket";
 export const SHOP_KIND_LABEL: Record<ShopKind, string> = {
-  weapons: "Weapon Dealer", armor: "Armor Shop", supplies: "Outfitter", mods: "Mod Shop", gunsmith: "Gunsmith", vehicles: "Vehicle Workshop",
+  weapons: "Weapon Dealer", armor: "Armor Shop", supplies: "Outfitter", mods: "Mod Shop", gunsmith: "Gunsmith", vehicles: "Vehicle Workshop", blackmarket: "Black Market",
 };
 
 export type RegionalShop = {
@@ -26,6 +28,8 @@ export type RegionalShop = {
   minLevel: number;
   /** mission that must be complete first (story gate) */
   requires?: { missionId: string; label: string };
+  /** armor-collections.ts: highest collection tier this armor shop stocks (city tier) */
+  vendorTier?: VendorTier;
 };
 
 const NEXUS = REGIONS.find((r) => r.id === "nexus")!;
@@ -35,16 +39,17 @@ const at = (c: { x: number; z: number }, angle: number, r: number) => ({ x: c.x 
 
 export const REGIONAL_SHOPS: readonly RegionalShop[] = [
   { id: "nexus-armory", name: "Nexus Armory", kind: "weapons", place: "Nexus City", blurb: "Regulated military weapons", ...at(NEXUS, 0.3, 7), currency: "scrapMetal", priceMult: 1, minLevel: 1 },
-  { id: "nexus-plate", name: "Bastion Fittings", kind: "armor", place: "Nexus City", blurb: "Standard-issue armor by slot", ...at(NEXUS, 1.9, 7), currency: "reinforcedAlloy", priceMult: 1, minLevel: 1 },
+  { id: "nexus-plate", name: "Bastion Fittings", kind: "armor", place: "Nexus City", blurb: "Standard-issue armor by slot", ...at(NEXUS, 1.9, 7), currency: "reinforcedAlloy", priceMult: 1, minLevel: 1, vendorTier: 2 },
   { id: "nexus-calibration", name: "Calibration Range", kind: "gunsmith", place: "Nexus City", blurb: "Weapon upgrades and tuning", ...at(NEXUS, 3.5, 7), currency: "scrapMetal", priceMult: 0.9, minLevel: 2 },
   { id: "nexus-outfitter", name: "Field Outfitter", kind: "supplies", place: "Nexus City", blurb: "Mission supplies and kits", ...at(NEXUS, 5.1, 7), currency: "scrapMetal", priceMult: 1, minLevel: 1 },
   { id: "neon-dealer", name: "Neon Street Dealer", kind: "weapons", place: "Neon City", blurb: "Civilian-market weapons", ...at(NEON, 0.8, 9), currency: "microCircuits", priceMult: 1.1, minLevel: 3 },
   { id: "neon-mods", name: "Glitch Mods", kind: "mods", place: "Neon City", blurb: "Element infusion and tuning", ...at(NEON, 2.6, 9), currency: "microCircuits", priceMult: 1, minLevel: 3 },
-  { id: "thal-curator", name: "Thalassia Curator", kind: "armor", place: "Thalassia", blurb: "Pressure-rated ancient armor", ...at(THAL, 0.5, 10), currency: "dataShards", priceMult: 1.2, minLevel: 6, requires: { missionId: "system-core", label: "Reach Thalassia in the story" } },
+  { id: "thal-curator", name: "Thalassia Curator", kind: "armor", place: "Thalassia", blurb: "Pressure-rated ancient armor", ...at(THAL, 0.5, 10), currency: "dataShards", priceMult: 1.2, minLevel: 6, requires: { missionId: "system-core", label: "Reach Thalassia in the story" }, vendorTier: 4 },
   { id: "waste-trader", name: "Rust Port Trader", kind: "supplies", place: "The Wastelands", blurb: "Salvage, fuel and patch kits", ...at(scaleSite(12, -6), 2.2, 14), currency: "scrapMetal", priceMult: 0.85, minLevel: 1 },
   { id: "waste-garage", name: "Rust-Runner Garage", kind: "vehicles", place: "The Wastelands", blurb: "Ground vehicle parts", ...at(scaleSite(12, -6), 4.0, 14), currency: "fuel", priceMult: 1, minLevel: 2 },
   { id: "veridan-broker", name: "Grove Research Broker", kind: "mods", place: "Veridan Forest", blurb: "Organic infusions", ...at(scaleSite(-58, -34), 1.2, 12), currency: "sporeFiber", priceMult: 1, minLevel: 2 },
-  { id: "swamp-relics", name: "Bog Relic Dealer", kind: "armor", place: "Shrouded Swamps", blurb: "Anomaly-resistant pieces", ...at(scaleSite(62, 82), 3.0, 10), currency: "bioCatalyst", priceMult: 1.1, minLevel: 5 },
+  { id: "swamp-relics", name: "Bog Relic Dealer", kind: "armor", place: "Shrouded Swamps", blurb: "Anomaly-resistant pieces", ...at(scaleSite(62, 82), 3.0, 10), currency: "bioCatalyst", priceMult: 1.1, minLevel: 5, vendorTier: 3 },
+  { id: "neon-underground", name: "The Undercroft", kind: "blackmarket", place: "Neon City (underground)", blurb: "Smuggled street armor, no questions asked", ...at(NEON, 4.4, 12), currency: "microCircuits", priceMult: 1.5, minLevel: 10, requires: { missionId: "stitched-neon-core", label: "Complete Stitched Neon Core" }, vendorTier: 5 },
   { id: "solara-heavy", name: "Dune Heavy Arms", kind: "weapons", place: "Solara Desert", blurb: "Heavy weapons and launchers", ...at(scaleSite(-18, 76), 0.4, 14), currency: "anomalyCarbon", priceMult: 1, minLevel: 4 },
   { id: "solara-garage", name: "Convoy Workshop", kind: "vehicles", place: "Solara Desert", blurb: "Vehicle plating and weapons", ...at(scaleSite(-18, 76), 2.6, 14), currency: "vehicleParts", priceMult: 1, minLevel: 4 },
   { id: "frost-research", name: "Spire Research Post", kind: "gunsmith", place: "Frostspire Mountains", blurb: "Precision calibration", ...at(scaleSite(18, -96), 1.6, 12), currency: "cryoCrystal", priceMult: 1, minLevel: 6 },
@@ -71,6 +76,7 @@ export const shopPriceMult = (shop: RegionalShop, p: { living?: PlayerProgressio
 
 export type ShopOffer =
   | { key: string; type: "gear"; name: string; detail: string; price: number; minLevel: number; listing: VendorListing }
+  | { key: string; type: "piece"; name: string; detail: string; price: number; minLevel: number; drop: SetDrop; deal?: boolean }
   | { key: string; type: "material"; name: string; detail: string; price: number; minLevel: number; material: MaterialId; amount: number };
 
 const WEAPON_LEVEL: Record<WeaponTier, number> = { T1: 1, T2: 3, T3: 6, T4: 9, T5: 12, S: 99 };
@@ -110,7 +116,13 @@ export function shopOffers(shop: RegionalShop, day = today(), mult = 1): ShopOff
       const listing: VendorListing = { key: `${shop.id}-${w.id}`, kind: "weapon", item: w, price: 0, currency: "credits", power: WEAPON_POWER[w.tier] };
       offers.push({ key: listing.key, type: "gear", name: w.name, detail: `${w.tier} · ${w.archetype} · ${w.element} · POWER ${listing.power}`, price: Math.round(WEAPON_PRICE[w.tier] * shop.priceMult), minLevel: WEAPON_LEVEL[w.tier], listing });
     }
-  } else if (shop.kind === "armor") {
+  } else if (shop.kind === "armor" && shop.vendorTier) {
+    // tiered city stock: collection pieces up to this city's tier, never raid/dungeon/exotic
+    collectionOffers(shop, rand, COLLECTIONS.filter((c) => vendorSellable(c, shop.vendorTier!) && !c.sources.includes("black-market")), 5, offers);
+  } else if (shop.kind === "blackmarket") {
+    collectionOffers(shop, rand, COLLECTIONS.filter((c) => c.sources.includes("black-market") && c.family !== "exotic"), 4, offers);
+  }
+  if (shop.kind === "armor") {
     const pool = ARMOR_MANIFEST.filter((a) => a.tier !== "S");
     for (let i = 0; i < 6; i++) {
       const a = pool[Math.floor(rand() * pool.length)]!;
@@ -127,7 +139,25 @@ export function shopOffers(shop: RegionalShop, day = today(), mult = 1): ShopOff
     // the only way to BUY an armor-upgrade gate material; capped by the shop's own currency price, never sold for free
     offers.push({ key: `${shop.id}-tuningCore`, type: "material", name: "Tuning Core", detail: "+1 tuningCore · unlocks armor upgrades from level 4", price: Math.max(1, Math.round(8 * shop.priceMult)), minLevel: 1, material: "tuningCore", amount: 1 });
   }
-  return offers.filter((o, i) => offers.findIndex((x) => x.key === o.key) === i);
+  const unique = offers.filter((o, i) => offers.findIndex((x) => x.key === o.key) === i);
+  // one daily deal per gear shop: the first gear/piece offer of the day at DAILY_DEAL_OFF discount
+  const deal = unique.find((o) => o.type !== "material");
+  if (deal) { deal.price = Math.max(1, Math.round(deal.price * (1 - DAILY_DEAL_OFF))); deal.detail = `DAILY DEAL −${DAILY_DEAL_OFF * 100}% · ${deal.detail}`; if (deal.type === "piece") deal.deal = true; }
+  return unique;
+}
+
+export const DAILY_DEAL_OFF = 0.3;
+const PIECE_SLOTS = ["helmet", "gauntlets", "chest", "legs", "classItem"] as const;
+const PIECE_PRICE: Record<VendorTier, number> = { 1: 30, 2: 55, 3: 95, 4: 150, 5: 220 };
+const PIECE_LEVEL: Record<VendorTier, number> = { 1: 1, 2: 3, 3: 5, 4: 8, 5: 10 };
+function collectionOffers(shop: RegionalShop, rand: () => number, pool: typeof COLLECTIONS, count: number, out: ShopOffer[]) {
+  if (!pool.length) return;
+  for (let i = 0; i < count; i++) {
+    const c = pool[Math.floor(rand() * pool.length)]!;
+    const slot = PIECE_SLOTS[Math.floor(rand() * PIECE_SLOTS.length)]!;
+    const tier = c.vendorTier ?? 5;
+    out.push({ key: `${shop.id}-${c.id}-${slot}`, type: "piece", name: c.pieces[slot] ?? `${c.name} ${slot}`, detail: `${c.name} · tier ${tier} · ${c.two.name} (2) / ${c.four.name} (4)`, price: Math.round(PIECE_PRICE[tier] * shop.priceMult), minLevel: PIECE_LEVEL[tier], drop: { setId: c.id, slot } });
+  }
 }
 
 export type ShopResult = { progression: PlayerProgression; message: string } | { error: string };
@@ -144,6 +174,12 @@ export function buyOffer(p: PlayerProgression, shop: RegionalShop, offer: ShopOf
   if (p.level < offer.minLevel) return { error: `Requires level ${offer.minLevel}` };
   const paid = pay(p, shop.currency, offer.price);
   if (!paid) return { error: `Not enough ${shop.currency}` };
+  if (offer.type === "piece") {
+    const granted = grantSetPiece(paid, offer.drop);
+    if (!granted) return { error: "That piece is unavailable" };
+    if (granted.result !== "NEW") return { error: "You already own that piece" };
+    return { progression: granted.progress, message: `${offer.name} added to inventory` };
+  }
   if (offer.type === "gear") {
     const item = listingToGearItem(offer.listing, shop.name);
     return { progression: { ...paid, inventory: [...paid.inventory, item] }, message: `${offer.name} added to inventory` };
