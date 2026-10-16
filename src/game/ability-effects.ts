@@ -161,7 +161,7 @@ export function castAbility(sim: WorldSim, live: LiveBuild, slot: AbilitySlot, p
           hurt(m, 2, 0.6, false);
           burned++;
         }
-        if (burned) live.energy = Math.min(live.maxEnergy ?? 100, live.energy + burned * 6);
+        if (burned) live.energy = Math.min(100, live.energy + burned * 6);
         radius = effect.value;
         alert(sim, burned ? `WYRM DASH · ${burned} burned, energy refunded` : "WYRM DASH");
       } else alert(sim, "RIFT DASH · incoming damage negated");

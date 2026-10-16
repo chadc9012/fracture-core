@@ -15,7 +15,7 @@ import { LAIR_SCENARIOS } from "./unique-scenarios";
 import { REGIONS } from "./world";
 import { applyEffects, registerStages, stageAtLeast, stageOf, type DialogueGraph, type DialogueNode, type StoryEffect, type StoryState } from "./story";
 
-export type BossStoryId = "dark-knight" | "rime-alpha" | "drowned-monarch" | "hollow-saint";
+export type BossStoryId = "dark-knight" | "rime-alpha" | "drowned-monarch" | "hollow-saint" | "vyrak";
 export type StoryLine = { speaker: string; text: string };
 /** where a conversation may be opened: at the lair before the fight, right after the kill, or at the vault terminal */
 export type DuePlace = "lair" | "defeat" | "vault";
