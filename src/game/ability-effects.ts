@@ -158,7 +158,7 @@ export function castAbility(sim: WorldSim, live: LiveBuild, slot: AbilitySlot, p
           const dx = to.x - px, dz = to.z - pz, l2 = dx * dx + dz * dz;
           const t = l2 === 0 ? 0 : Math.max(0, Math.min(1, ((m.x - px) * dx + (m.z - pz) * dz) / l2));
           if (Math.hypot(m.x - (px + t * dx), m.z - (pz + t * dz)) > 2.5) continue;
-          hurt(m, 2, 0.6, false);
+          hurt(m, 3, 0.8, false);
           burned++;
         }
         if (burned) live.energy = Math.min(100, live.energy + burned * 6);
@@ -175,8 +175,8 @@ export function castAbility(sim: WorldSim, live: LiveBuild, slot: AbilitySlot, p
         if (effect.tags?.includes("knockback") && !m.boss) { const pushed = knockbackFrom(px, pz, m.x, m.z, SLAM_KNOCKBACK); m.x = pushed.x; m.z = pushed.z; }
         hurt(m, effect.value / 20, IMPACT_STUN_SECONDS, true);
       }
-      if (effect.tags?.includes("weaken")) { // Ash Nova: the ash clings — enemies inside take +15% damage for a while
-        applyVulnPulse(sim, px, pz, radius, 1.15, 6);
+      if (effect.tags?.includes("weaken")) { // Ash Nova: the ash clings — enemies inside take +20% damage for a while
+        applyVulnPulse(sim, px, pz, radius, 1.2, 8);
         alert(sim, "ASH NOVA · hostiles weakened");
       }
       break;
