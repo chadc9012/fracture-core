@@ -38,6 +38,6 @@ describe("housing", () => {
   test("merge keeps both copies' rooms, newer wins a slot", () => {
     const a = { placed: { x: { "0:tv": "tv-holo" } }, home: "x" }, b = { placed: { x: { "0:tv": "tv-wall", "0:art": "art-vyrak" } }, home: null };
     const m = mergeHousing(a, b, true);
-    expect(m.placed.x).toEqual({ "0:tv": "tv-holo", "0:art": "art-vyrak" });
+    expect(m.placed["x"]).toEqual({ "0:tv": "tv-holo", "0:art": "art-vyrak" });
   });
 });
