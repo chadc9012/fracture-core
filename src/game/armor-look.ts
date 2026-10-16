@@ -1,3 +1,4 @@
+import { COLLECTIONS } from "./armor-collections";
 import { SET_SLOTS, setById, type SetSlot } from "./armor-sets";
 import type { BodyType } from "./operators";
 import type { PlayerProgression } from "./progression";
@@ -19,7 +20,15 @@ export type SlotLook = { motif: Motif; color: string };
 export type ArmorLook = Partial<Record<SetSlot, SlotLook>>;
 
 /** Per-set signature motifs (colors come from the set itself). */
+const FAMILY_MOTIFS: Record<string, Record<SetSlot, Motif>> = {
+  military: { helmet: "slit", gauntlets: "bands", chest: "plates", legs: "greaves", classItem: "sash" },
+  ninja: { helmet: "slit", gauntlets: "bands", chest: "spine", legs: "fins", classItem: "sash" },
+  sentinel: { helmet: "crest", gauntlets: "spikes", chest: "core", legs: "greaves", classItem: "banner" },
+  street: { helmet: "slit", gauntlets: "bands", chest: "plates", legs: "fins", classItem: "mantle" },
+  exotic: { helmet: "horns", gauntlets: "spikes", chest: "core", legs: "greaves", classItem: "mantle" },
+};
 export const SET_MOTIFS: Readonly<Record<string, Record<SetSlot, Motif>>> = {
+  ...Object.fromEntries(COLLECTIONS.map((c) => [c.id, FAMILY_MOTIFS[c.family]!])),
   "verdant-warden": { helmet: "horns", gauntlets: "bands", chest: "spine", legs: "greaves", classItem: "mantle" },
   "mire-stalker": { helmet: "slit", gauntlets: "bands", chest: "plates", legs: "fins", classItem: "sash" },
   "cinder-vanguard": { helmet: "crest", gauntlets: "spikes", chest: "core", legs: "greaves", classItem: "banner" },
