@@ -192,7 +192,8 @@
 - [x] Stage 1: 30 armor collections in 5 families, mix-and-match, named drop sources, mission drops with bad-luck protection
 - [x] Stage 2: tiered city armor/weapon shops (daily deals, rotation) — raid/exotic never sold
 - [x] Stage 3: Neon City underground black market (The Undercroft; level 10 + Stitched Neon Core)
-- [x] Stage 4: Vyrak's Covenant rules (class-bound Wyrmling, Dragonite set/abilities/daily gift) — not yet placed in world/Scene
+- [x] Stage 4: Vyrak's Covenant rules (class-bound Wyrmling, Dragonite set/abilities/daily gift)
+- [x] Stage 4 world wiring: Vyrak lair + 3-phase encounter in Solara, boss-story intro/bond/archive dialogue, bond on confirmed kill, covenant abilities castable, Wyrmling companion rendered, daily gift on world entry
 - [ ] Stage 5: remaining unique encounters
 
 ## Cinematic action pass (user brief, in order)
@@ -201,6 +202,6 @@
 - [x] Neon City First Arrival cinematic data with NOVA line and handoff
 - [ ] Wire combat feedback/rumble into Scene hits; enemy stagger/armor-break visuals
 - [ ] Shader UI in inventory + renderer using shaderLook
-- [ ] Place Vyrak encounter + Wyrmling model in Solara; ability buttons
+- [ ] Vyrak/Wyrmling authored dragon models (both currently procedural bodies)
 - [ ] Neon districts (Aegis Spire / Grid / Rust-Muck), underground racing loop, arrival trigger in Scene
 - [ ] Graphics quality presets measured in-game
