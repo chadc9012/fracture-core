@@ -96,7 +96,6 @@ import { RARITY_COLOR, type Rarity } from "@/game/loot";
 import { appearanceById, classById, subclassById, type AppearanceDefinition, type ClassId, type SubclassId } from "@/game/loadout";
 import { handlingFor, stepVehicle, canExitVehicle, vehicleCamera } from "@/game/vehicle-handling";
 import { surfaceAt, surfaceGrip } from "@/game/vehicle-surface";
-import { rumble } from "@/game/combat-feedback";
 import { vehicleById, type VehicleId } from "@/game/vehicles";
 import { projectDome, shieldBash } from "@/game/titan";
 import { RENDER_PRESETS } from "@/game/performance";
@@ -1590,7 +1589,7 @@ function SceneImpl({
       const floorH = handling.mode === "WATER" ? heightAt(s.x, s.z) : walkHeight(s.x, s.z);
       const venv = { grip: surfaceGrip(gSurface, slope) * damageFx.grip * damageFx.stability * selectedVehicle.handling, slope, floor: floorH, water: WATER_LEVEL, overWater: heightAt(s.x, s.z) < WATER_LEVEL - 0.3 };
       const before = { x: s.x, z: s.z };
-      const r = stepVehicle(handling, { speed: s.vSpeed, yaw: s.yaw, y: s.y, vy: s.vy, ...vh.current }, vin, venv, maxSpeed / (boost ? 1.5 : 1) * damageFx.acceleration ** 0, dt);
+      const r = stepVehicle(handling, { speed: s.vSpeed, yaw: s.yaw, y: s.y, vy: s.vy, ...vh.current }, vin, venv, maxSpeed / (boost ? 1.5 : 1), dt);
       s.vSpeed = r.speed; s.yaw = r.yaw;
       vh.current.airborne = r.airborne; vh.current.slip = r.slip; vh.current.roll = r.roll; vh.current.pitch = r.pitch;
       if (handling.mode !== "GROUND") { s.y = r.y; s.vy = r.vy; }
