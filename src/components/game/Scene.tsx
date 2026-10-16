@@ -71,6 +71,8 @@ import { launch, zoneElement } from "@/game/combat-fx";
 import { ejectCasing } from "@/game/casings";
 import { EncounterFx } from "./EncounterFx";
 import { COMBAT_FEEDBACK, impactFor, rumble } from "@/game/combat-feedback";
+import { encounterFor } from "@/game/scenario-encounters";
+const feedbackPad = () => (typeof navigator !== "undefined" && navigator.getGamepads ? Array.from(navigator.getGamepads()).find(Boolean) ?? null : null);
 import { raceLive } from "./NeonDistricts";
 import { RACE_BEST_KEY, RACE_GATES, RACE_IDLE, raceReward, stepRace, type RaceState } from "@/game/neon-districts";
 import { VAELITH, VAELITH_LAIR, dialogueDue, lairDefenseCleared, memoryNear, startLairDefense, vaelithFightable, type StoryWorldEvent } from "@/game/vaelith";
@@ -1784,7 +1786,7 @@ function SceneImpl({
         sfx.playImpact(near?.kind === "ABERRATION" ? "ORGANIC" : near?.kind === "OVERCLOCKED" ? "TECH" : "METAL", near ? sfx.where(s.x, s.z, s.yaw, near.x, near.z) : {});
         if (near && (near.elite || near.boss) && best < 40) hitStopUntil.current = Math.max(hitStopUntil.current, performance.now() + 45);
         // combat-feedback.ts: one impact class per hit scales camera kick + controller rumble (heavy weapons, bosses hit harder)
-        const heavyWeapon = !s.inVehicle && (s.weapon === "SHOTGUN" || s.weapon === "LAUNCHER" || s.weapon === "SWORD");
+        const heavyWeapon = !s.inVehicle && (s.weapon === "SHOTGUN" || s.weapon === "HEAVY" || s.weapon === "SWORD" || String(s.weapon).startsWith("LAUNCH"));
         const cls = impactFor({ boss: Boolean(near?.boss && best < 40), critical: heavyWeapon || Boolean(near?.elite), damage: 0 });
         s.punch += COMBAT_FEEDBACK[cls].cameraImpulse * 6;
         rumble(feedbackPad(), cls);
@@ -1806,6 +1808,26 @@ function SceneImpl({
       const weakOpen = sim.machines.some((m) => m.alive && m.scenarioId && (m.poiseState?.weakPointUntil ?? 0) > tNow);
       if (weakOpen && !a.weakOpen) sfx.playWeakPointOpen();
       a.weakOpen = weakOpen;
+      // Rust-Muck underground race (neon-districts.ts): on foot or in a vehicle, gates in order, credits on finish
+      {
+        const rr = stepRace(race.current, s.x - NEON_CITY_CENTER.x, s.z - NEON_CITY_CENTER.z, tNow);
+        race.current = rr.state;
+        raceLive.gate = rr.state.phase === "RUNNING" ? rr.state.gate : -1;
+        const ev = rr.event;
+        if (ev?.kind === "COUNTDOWN") { alert(sim, "UNDERGROUND RACE · 3… 2… 1…"); sfx.playBossTell(0); }
+        else if (ev?.kind === "GO") { alert(sim, `GO! ${RACE_GATES.length} gates — follow the gold ring`); sfx.playWeakPointOpen(); }
+        else if (ev?.kind === "GATE") { alert(sim, `Gate ${ev.gate + 1}/${RACE_GATES.length}`); sfx.playSwitch(); }
+        else if (ev?.kind === "TIMEOUT") alert(sim, "Race abandoned — time limit reached");
+        else if (ev?.kind === "FINISH") {
+          let best: number | null = null;
+          try { const v = Number(localStorage.getItem(RACE_BEST_KEY)); best = v > 0 ? v : null; } catch { /* storage off */ }
+          const r = raceReward(ev.time, best);
+          sim.credits += r.credits;
+          if (r.newBest) try { localStorage.setItem(RACE_BEST_KEY, String(ev.time)); } catch { /* storage off */ }
+          alert(sim, `FINISH ${ev.time.toFixed(1)}s${r.newBest ? " · NEW BEST" : ""} · +${r.credits} credits`);
+          sfx.playLevelUp();
+        }
+      }
       a.hp = sim.hp;
       // Boss-fight audio: track the engaged boss's last known position so a sudden "alive -> not
       // alive" edge (it just died) can play a real explosion there instead of the ordinary kill
