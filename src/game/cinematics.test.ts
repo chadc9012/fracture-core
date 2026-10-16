@@ -12,7 +12,7 @@ describe("cinematic data", () => {
     const ids = CINEMATICS.map((c) => c.id);
     expect(new Set(ids).size).toBe(ids.length);
     expect(ids).toEqual(["m1-opening", "m2-evac", "m3-facility", "m4-training", "m4-transmission", "m5-road", "m5-gates"]);
-    expect([...new Set(CINEMATICS.map((c) => c.mission))]).toEqual([1, 2, 3, 4, 5]);
+    expect([...new Set(CINEMATICS.map((c) => c.mission))]).toEqual([1, 2, 3, 4, 5, "side"]);
   });
   test("line ids are unique across every scene (duplicate-dialogue prevention)", () => {
     const all = CINEMATICS.flatMap((c) => c.shots.flatMap((s) => s.lines.map((l) => l.id)));
