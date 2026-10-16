@@ -74,6 +74,7 @@ import { idleAbilityHud } from "@/game/ability-hud";
 import { grantScenarioReward, planScenarioRewardCards, type RewardCard } from "@/game/scenario-loot";
 import { scenarioById } from "@/game/unique-scenarios";
 import { claimDrops } from "@/game/inventory";
+import { claimWyrmlingGift, isBonded } from "@/game/dragon-covenant";
 import { ShopWindow } from "./ShopWindow";
 import { LivingNpcPanel, LivingTracker } from "./LivingNpcPanel";
 import { resolveLivingEvent } from "@/game/living-events";
@@ -474,6 +475,9 @@ export function GameCanvas() {
     recapped.current = true;
     const line = recapDue(lastPlayed.current, Date.now()) ? recapLine(progression) : null;
     if (line) speakVoice({ id: "return-recap", scope: "recap", speaker: "NOVA", text: line, priority: "story" });
+    // Vyrak's Covenant: the bonded Wyrmling brings its daily Dragonite gift on world entry (once per UTC day)
+    const gifted = claimWyrmlingGift(progression, progression.identityClass ?? null, Date.now());
+    if (gifted) setProgression(gifted);
   }, [phase, progression]);
   const [introElapsed, setIntroElapsed] = useCountedState("introElapsed", 0);
 
