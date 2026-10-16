@@ -140,7 +140,7 @@ const M5B: Cinematic = {
 
 /* ===== Neon City - First Arrival (reusable framework: same shots/lines/handoff as story scenes) ===== */
 const NEON_ARRIVAL: Cinematic = {
-  id: "neon-arrival", mission: "side", part: "first-arrival", title: "Neon City - First Arrival", target: [30, 45],
+  id: "neon-arrival", mission: "side", part: "first-arrival", title: "Neon City - First Arrival", target: [25, 40],
   trigger: "first time the player enters Neon City",
   shots: [
     S("na-s1-skyline", "rise", "neon-skyline", "Emerge above the outer structures; rain through distant tower lights; elevated transit crosses frame; aircraft pass between skyscrapers.", 6, ["Rain and distant city hum."], []),
