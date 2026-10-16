@@ -208,5 +208,5 @@
 
 - [x] Vyrak balance pass (longer tells, wider weak-point windows, stronger Dragonite abilities)
 - [x] Homes/garage quarters rules + saving (housing.ts)
-- [ ] Homes: walk-in property shop + decorate panel in the world
+- [x] Homes: Veyra Realty office (Neon City) + decorate screen
 - [ ] UI Foundation Package 01: Atlas, activity log, patrol beacon, bounty, faction contacts in Neon City

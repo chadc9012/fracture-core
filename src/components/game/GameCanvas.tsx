@@ -76,6 +76,8 @@ import { scenarioById } from "@/game/unique-scenarios";
 import { claimDrops } from "@/game/inventory";
 import { claimWyrmlingGift, isBonded } from "@/game/dragon-covenant";
 import { ShopWindow } from "./ShopWindow";
+import { HousingPanel } from "./HousingPanel";
+import { interiorById } from "@/game/interiors";
 import { LivingNpcPanel, LivingTracker } from "./LivingNpcPanel";
 import { resolveLivingEvent } from "@/game/living-events";
 import { PLEDGE_KEY, recordCityKills, recordReach } from "@/game/living-npcs";
@@ -327,6 +329,7 @@ export function GameCanvas() {
   /** fleet.ts: the garage base panel and the base in reach */
   const [basePanel, setBasePanel] = useState<GarageId | null>(null);
   const [skateOpen, setSkateOpen] = useState(false);
+  const [housingOpen, setHousingOpen] = useState<"HOMES" | "DECORATE" | null>(null);
   const skateNearRef = useRef(false);
   const garageNearRef = useRef<GarageId | null>(null);
   const [livingToast, setLivingToast] = useState<string | null>(null);
@@ -1200,6 +1203,12 @@ export function GameCanvas() {
       {missionBanner && <MissionBannerView banner={missionBanner} onDone={clearBanner} />}
       {levelUpFlash && <LevelUpOverlay level={levelUpFlash.level} novaUnlocked={levelUpFlash.novaUnlocked} onDone={() => setLevelUpFlash(null)} />}
        {showEnding && <EndingOverlay progression={progression} onClose={() => setShowEnding(false)} />}
+       {hud.insideInterior && !housingOpen && (hud.insideInterior === "neon-property-office" || interiorById(hud.insideInterior)?.kind === "APARTMENT") && (
+         <div className="pointer-events-none absolute bottom-36 left-1/2 -translate-x-1/2">
+           <Button className="pointer-events-auto" variant="outline" onClick={() => setHousingOpen(hud.insideInterior === "neon-property-office" ? "HOMES" : "DECORATE")}>{hud.insideInterior === "neon-property-office" ? "Talk to the agent · Buy homes" : "Decorate my homes"}</Button>
+         </div>
+       )}
+       {housingOpen && <HousingPanel progression={progression} startTab={housingOpen} onProgression={setProgression} onClose={() => setHousingOpen(null)} />}
        {hud.insideInterior && hud.interiorName && hud.sub.startsWith("Shop") && (
          <div className="pointer-events-none absolute bottom-24 left-1/2 -translate-x-1/2 text-center">
            {hud.interiorOpen ? (

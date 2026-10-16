@@ -140,6 +140,17 @@ export const INTERIORS: readonly InteriorDef[] = [
     openHour: 0,
     closeHour: 24,
   },
+  {
+    id: "neon-property-office",
+    name: "Veyra Realty Office",
+    kind: "APARTMENT",
+    regionId: "nexus",
+    doorPos: scaleSite(80, -14),
+    origin: { x: 2000, z: 480 },
+    spawnOffset: { x: 0, z: -2.5 },
+    exitOffset: { x: 0, z: 4 },
+    npcName: "Veyra Realty agent",
+  },
 ];
 
 export function interiorById(id: string | null): InteriorDef | null {
