@@ -16,6 +16,7 @@ import { WEAPONS, WEAPON_ORDER, type WeaponId } from "@/game/weapons";
 import { attachSkates } from "./skate-attachments";
 import { bootStats } from "@/game/skate-boots";
 import { getEquippedBoots } from "@/game/client-input";
+import { cinematicImported, createCinematicMaterial } from "@/game/cinematic-materials";
 
 /** the weapon the operator is currently holding; read every frame so a weapon swap needs no rebuild */
 export type HeldWeapon = { current: { weapon: WeaponId } };
@@ -33,6 +34,7 @@ function attachArmor(object: THREE.Object3D, pieces: ArmorPiece[], height: numbe
     accent: new THREE.MeshStandardMaterial({ color: "#10151c", emissive: new THREE.Color(colors.accent), emissiveIntensity: 0.9, roughness: 0.3 }),
   };
   const geos: THREE.BufferGeometry[] = [];
+  const surfaces = new Map<string, THREE.Material>();
   const unit = height / 1.85;
   const ws = new THREE.Vector3();
   for (const piece of pieces) {
@@ -50,7 +52,10 @@ function attachArmor(object: THREE.Object3D, pieces: ArmorPiece[], height: numbe
         : part.shape === "cone" ? new THREE.ConeGeometry(x, y, 8)
         : new THREE.TorusGeometry(x, y * 0.5, 8, 20);
       geos.push(geo);
-      const mesh = new THREE.Mesh(geo, mats[part.tone]);
+      const key = `${part.surface}:${part.tone}`;
+      let surface = surfaces.get(key);
+      if (!surface) { surface = createCinematicMaterial(part.surface, part.tone === "accent" ? "#10151c" : colors[part.tone === "trim" ? "trim" : "armor"], 0.15, part.tone === "accent" ? colors.accent : undefined); surfaces.set(key, surface); }
+      const mesh = new THREE.Mesh(geo, surface);
       mesh.position.set(...part.pos);
       if (part.rot) mesh.rotation.set(...part.rot);
       g.add(mesh);
@@ -58,7 +63,7 @@ function attachArmor(object: THREE.Object3D, pieces: ArmorPiece[], height: numbe
     bone.add(g);
     made.push(g);
   }
-  return () => { made.forEach((g) => g.removeFromParent()); geos.forEach((x) => x.dispose()); Object.values(mats).forEach((m) => m.dispose()); };
+  return () => { made.forEach((g) => g.removeFromParent()); geos.forEach((x) => x.dispose()); Object.values(mats).forEach((m) => m.dispose()); surfaces.forEach((m) => m.dispose()); };
 }
 
 /** Builds one group per weapon on the right-hand bone (only the held one is visible). Starter procedural props from weapon-props.ts. */
@@ -141,6 +146,7 @@ function Model({ url, tint, height, feetY, color, trim, pose, motion, bodyType, 
     // shared visual standard: segmented chassis reads as bare metal, armored operators as painted ceramic plate
     const surface = robot ? SURFACES.bareMetal : SURFACES.paintedArmor;
     const skins: SkinTextures[] = [];
+    const authoredMaterials: THREE.Material[] = [];
     const material = palette ? new THREE.MeshStandardMaterial({ color: "#ffffff", metalness: surface.metalness, roughness: surface.roughness, emissive: new THREE.Color("#ffffff"), emissiveIntensity: 1 }) : null;
     const accent = vivid(trim ?? "#4fd8ff", 0.55, 0.7);
     const texSize = pose === "showcase" ? 768 : 512;
@@ -165,6 +171,11 @@ function Model({ url, tint, height, feetY, color, trim, pose, motion, bodyType, 
         }
       }
       if (material) m.material = material;
+      else {
+        const copies = (Array.isArray(m.material) ? m.material : [m.material]).map(cinematicImported);
+        authoredMaterials.push(...copies); m.material = Array.isArray(m.material) ? copies : copies[0] ?? m.material;
+        m.receiveShadow = true;
+      }
     });
     // F3 diagnostics (PerfProbe): what the paint path actually did for this operator, so a grey result can be traced
     let verts = 0, matCount = 0; const share: Record<string, number> = {};
@@ -178,7 +189,7 @@ function Model({ url, tint, height, feetY, color, trim, pose, motion, bodyType, 
     const mixer = skinned && animations.length ? new THREE.AnimationMixer(object) : null;
     const actions: Record<string, THREE.AnimationAction> = {};
     if (mixer) for (const clip of animations) { const a = mixer.clipAction(pinRootMotion(clip)); a.timeScale = 0; a.play(); a.weight = 0; actions[clip.name] = a; }
-    return { object, scale, material, skins, mixer, actions, offset: new THREE.Vector3(-centre.x * scale, feetY - box.min.y * scale, -centre.z * scale) };
+    return { object, scale, material, authoredMaterials, skins, mixer, actions, offset: new THREE.Vector3(-centre.x * scale, feetY - box.min.y * scale, -centre.z * scale) };
   }, [scene, animations, height, feetY, tint, color, trim, bodyType, look, cloth, pose]);
   const armorKey = piecesKey(gear, classId);
   useEffect(() => {
@@ -200,7 +211,7 @@ function Model({ url, tint, height, feetY, color, trim, pose, motion, bodyType, 
     heldGroups.current = w.groups;
     return () => { heldGroups.current = {}; w.dispose(); };
   }, [built, held, height]);
-  useEffect(() => () => { built.material?.dispose(); built.skins.forEach((t) => { t.map.dispose(); t.emissiveMap.dispose(); }); built.mixer?.stopAllAction(); }, [built]);
+  useEffect(() => () => { built.material?.dispose(); built.authoredMaterials.forEach((m) => m.dispose()); built.skins.forEach((t) => { t.map.dispose(); t.emissiveMap.dispose(); }); built.mixer?.stopAllAction(); }, [built]);
 
   const rig = useRef<THREE.Group>(null);
   const body = useRef({ crouch: 0, prone: 0, lean: 0 });
