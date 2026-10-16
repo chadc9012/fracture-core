@@ -639,6 +639,8 @@ function SceneImpl({
   const selectedClass = classById(playerClass);
   const selectedSubclass = subclassById(subclassId);
   const selectedVehicle = useMemo(() => tunedVehicle(vehicleById(vehicleId), gear?.fleet), [vehicleId, gear?.fleet]); // fleet.ts tuning of the active build
+  const handling = useMemo(() => handlingFor(vehicleById(vehicleId)), [vehicleId]); // vehicle-handling.ts: jet/heli/boat/sub/tank/car each move differently
+  const vh = useRef({ airborne: false, slip: 0, roll: 0, pitch: 0, skidAt: 0 });
   const condition = useRef<VehicleCondition>(FRESH_VEHICLE);
   useEffect(() => { condition.current = normalizeCondition(gear?.vehicleConditions?.[vehicleId]); }, [vehicleId, gear?.vehicleConditions]);
   const player = useRef<THREE.Group>(null!);
@@ -1042,12 +1044,17 @@ function SceneImpl({
     if (vehicleUnlocked && held.has("KeyV") && s.toggleCool <= 0 && !interior) {
       s.toggleCool = 0.4;
       const wasInVehicle = s.inVehicle;
+      const exitCheck = wasInVehicle ? canExitVehicle(handling, { speed: s.vSpeed, airborne: vh.current.airborne }, heightAt(s.x, s.z) < WATER_LEVEL - 1.5) : { ok: true as const };
+      if (!exitCheck.ok) alert(sim, exitCheck.reason);
+      else {
       s.inVehicle = !s.inVehicle && !conditionEffects(condition.current).disabled;
+      if (s.inVehicle) { vh.current.airborne = false; vh.current.slip = 0; if (handling.mode === "WATER" && heightAt(s.x, s.z) > WATER_LEVEL - 0.3) { s.inVehicle = false; alert(sim, "Boats launch from the water's edge"); } }
       if (s.inVehicle) sfx.playVehicleEngineStart(vehicleId, selectedVehicle.speed / vehicleById(vehicleId).speed);
       // Neon City parkour: hopping out mid-drive keeps a fraction of the car's speed as foot-chase momentum.
       if (wasInVehicle) velocity.set(Math.sin(s.yaw), 0, Math.cos(s.yaw)).multiplyScalar(exitVehicleMomentum(s.vSpeed));
       else velocity.set(0, 0, 0);
       s.vSpeed = 0;
+      }
     }
     s.inspectorCool -= dt;
     if (held.has("KeyI") && s.inspectorCool <= 0) {
@@ -1569,20 +1576,29 @@ function SceneImpl({
        const vehicleGear = gear?.inventory.find((item) => item.id === gear.equippedGear.vehicle);
        // Neon City vehicle-combat: a damaged car tops out slower and steers worse, per VEHICLE_DAMAGE_EFFECT.
        const maxSpeed = 62 * biomeGrip * (boost ? 1.5 : 1) * sim.mods.vehicleSpeed * selectedVehicle.speed * (vehicleGear ? 1 + vehicleGear.level * 0.04 : 1) * damageFx.speed;
-      const accel = 52 * traction * selectedVehicle.speed * damageFx.acceleration;
-      if (throttleF) s.vSpeed += accel * dt;
-      else if (throttleB) s.vSpeed -= accel * 0.8 * dt;
-      else s.vSpeed *= Math.exp(-1.4 * dt);
-      // drag + grade resistance climbing hills
-      s.vSpeed *= Math.exp(-(0.22 + slope * 1.6) * dt);
-      s.vSpeed = THREE.MathUtils.clamp(s.vSpeed, -18, maxSpeed);
-
-      const steerRate = 1.5 * traction * selectedVehicle.handling * damageFx.grip * damageFx.stability * THREE.MathUtils.clamp(Math.abs(s.vSpeed) / 14, 0.15, 1);
-      if (left) s.yaw += steerRate * dt * Math.sign(s.vSpeed || 1);
-      if (right) s.yaw -= steerRate * dt * Math.sign(s.vSpeed || 1);
-
+      const ax = pad?.axes ?? [];
+      const dz = (v: number | undefined) => (v && Math.abs(v) > 0.15 ? v : 0);
+      const trig = (i: number) => pad?.buttons[i]?.value ?? 0;
+      const gSurface = surfaceAt(here?.id, heightAt(s.x, s.z), WATER_LEVEL);
+      const vin = {
+        throttle: Math.max(throttleF ? 1 : 0, trig(7)), brake: Math.max(throttleB ? 1 : 0, trig(6)),
+        steer: THREE.MathUtils.clamp((left ? 1 : 0) - (right ? 1 : 0) - dz(ax[0]), -1, 1),
+        ascend: Math.max(held.has("KeyC") ? 1 : 0, pad?.buttons[5]?.pressed ? 1 : 0, handling.mode === "AIR" ? Math.max(0, -dz(ax[3])) : 0),
+        descend: Math.max(held.has("KeyZ") ? 1 : 0, pad?.buttons[4]?.pressed ? 1 : 0, handling.mode === "AIR" ? Math.max(0, dz(ax[3])) : 0),
+        handbrake: held.has("Space") || !!pad?.buttons[0]?.pressed, boost,
+      };
+      const floorH = handling.mode === "WATER" ? heightAt(s.x, s.z) : walkHeight(s.x, s.z);
+      const venv = { grip: surfaceGrip(gSurface, slope) * damageFx.grip * damageFx.stability * selectedVehicle.handling, slope, floor: floorH, water: WATER_LEVEL, overWater: heightAt(s.x, s.z) < WATER_LEVEL - 0.3 };
+      const before = { x: s.x, z: s.z };
+      const r = stepVehicle(handling, { speed: s.vSpeed, yaw: s.yaw, y: s.y, vy: s.vy, ...vh.current }, vin, venv, maxSpeed / (boost ? 1.5 : 1) * damageFx.acceleration ** 0, dt);
+      s.vSpeed = r.speed; s.yaw = r.yaw;
+      vh.current.airborne = r.airborne; vh.current.slip = r.slip; vh.current.roll = r.roll; vh.current.pitch = r.pitch;
+      if (handling.mode !== "GROUND") { s.y = r.y; s.vy = r.vy; }
+      if (r.landed) { sfx.playReload("end"); if (r.hardLanding) { rumble(pad as never, "heavy"); condition.current = impactVehicle(condition.current, 14); onVehicleCondition?.(vehicleId, condition.current); } }
+      if (r.skidding && performance.now() - vh.current.skidAt > 450) { vh.current.skidAt = performance.now(); rumble(pad as never, "light", 0.4); }
       s.x += Math.sin(s.yaw) * s.vSpeed * dt;
       s.z += Math.cos(s.yaw) * s.vSpeed * dt;
+      if (handling.mode === "WATER" && heightAt(s.x, s.z) > WATER_LEVEL - 0.3) { s.x = before.x; s.z = before.z; s.vSpeed *= 0.2; }
     } else {
       // Mouse-look sets the facing direction; WASD stays relative to it.
       wish.set(0, 0, 0);
@@ -2211,7 +2227,9 @@ function SceneImpl({
 
     /* ---------------- vertical: gravity + terrain follow, or buoyancy + pressure diving ---------------- */
     const standY = (interior ? INTERIOR_ALTITUDE : walkHeight(s.x, s.z)) + (s.inVehicle ? 1.9 : 1.6);
-    if (!s.inVehicle && submerged && (s.diving || held.has("KeyZ"))) {
+    if (s.inVehicle && handling.mode !== "GROUND") {
+      s.grounded = !vh.current.airborne; // stepVehicle owns height for aircraft and boats
+    } else if (!s.inVehicle && submerged && (s.diving || held.has("KeyZ"))) {
       // Thalassia-style underwater vertical control: KeyC kicks up, KeyZ dives down, otherwise buoyancy carries you toward the surface.
       s.diving = true;
       const descend = held.has("KeyZ");
@@ -2320,10 +2338,11 @@ function SceneImpl({
       const targetBlend = override || !s.firstPerson ? 1 : 0;
       s.cameraBlend += (targetBlend - s.cameraBlend) * (1 - Math.exp(-15 * dt));
       const shoulder = s.inVehicle ? 0 : 1.3;
-      const distance = s.inVehicle ? 14 : 5.8;
+      const vcam = vehicleCamera(handling);
+      const distance = s.inVehicle ? vcam.distance : 5.8;
       camTarget.set(
         s.x + Math.sin(s.yaw) * (s.inVehicle ? 1 : 0.15) + (Math.cos(s.yaw) * shoulder - Math.sin(s.yaw) * distance) * s.cameraBlend,
-        s.y + (s.inVehicle ? 1.5 : 0.95) + (s.inVehicle ? 5 : 2.2) * s.cameraBlend,
+        s.y + (s.inVehicle ? 1.5 : 0.95) + (s.inVehicle ? vcam.height : 2.2) * s.cameraBlend,
         s.z + Math.cos(s.yaw) * (s.inVehicle ? 1 : 0.15) + (-Math.sin(s.yaw) * shoulder - Math.cos(s.yaw) * distance) * s.cameraBlend,
       );
       // divers: the camera may go below the surface (clamp to the seabed, not the water-clamped walk height)
