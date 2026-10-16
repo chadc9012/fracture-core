@@ -141,8 +141,28 @@ const VAELITH: EncounterDef = {
   ],
 };
 
+const VYRAK: EncounterDef = {
+  scenarioId: "vyrak",
+  victory: "Survive the Covenant Trial and strike Vyrak in the final window to earn the bond.",
+  attacks: {
+    "strafing-fire": A({ id: "strafing-fire", kind: "FAN", label: "Strafing fire run", tell: "Vyrak banks low — a strafing line of fire. Break the line.", tellTime: 1.1, damage: 12, minRange: 10, maxRange: 48, arc: 0.4, reach: 44, recovery: 1.8, window: 1.8 }),
+    "wing-gust": A({ id: "wing-gust", kind: "SLAM", label: "Wing gust", tell: "Its wings beat down — a gust slams the ground around it. Get clear.", tellTime: 1.0, damage: 10, minRange: 0, maxRange: 15, radius: 13, recovery: 1.6, window: 2.0 }),
+    dive: A({ id: "dive", kind: "POUNCE", label: "Sovereign dive", tell: "It wheels overhead — a dive onto where you stand. Move before it lands.", tellTime: 1.3, damage: 16, minRange: 10, maxRange: 52, radius: 8, recovery: 2.2, window: 2.4 }),
+    "ember-field": A({ id: "ember-field", kind: "FIELD", label: "Ember field", tell: "Embers scatter across the glass — the glowing patches are about to burn.", tellTime: 1.2, damage: 0, minRange: 0, maxRange: 60, recovery: 1.3, window: 1.5,
+      zones: { kind: "DAMAGE", radius: 6, dps: 11, count: 4, arm: 1.5, life: 9, place: "PLAYER", ringRadius: 14, name: "Ember field" } }),
+    "scale-burst": A({ id: "scale-burst", kind: "SLAM", label: "Scale burst", tell: "Its cracked plates glow white — a burst of shedding scales around it.", tellTime: 1.2, damage: 18, minRange: 0, maxRange: 60, radius: 12, recovery: 1.5, window: 1.6 }),
+    "covenant-roar": A({ id: "covenant-roar", kind: "SLAM", label: "Covenant roar", tell: "COVENANT ROAR — the whole lair shakes. Run to the edge!", tellTime: 2.2, damage: 28, minRange: 0, maxRange: 80, radius: 18, recovery: 0.8, window: 0 }),
+  },
+  phases: [
+    { id: "sky-sovereign", name: "Sky Sovereign", below: 1, nova: "NOVA: It owns the sky. Read the banking turn, then punish the recovery.", attacks: ["strafing-fire", "wing-gust", "dive"], gap: 1.8 },
+    { id: "scale-shedding", name: "Scale Shedding", below: 0.6, nova: "NOVA: Its chest plates are cracking — the weak point is open between attacks. Ember fields now.", attacks: ["ember-field", "dive", "scale-burst", "strafing-fire"], gap: 1.4 },
+    { id: "covenant-trial", name: "Covenant Trial", below: 0.25, nova: "NOVA: It has landed. This is the trial now — survive the roar and it will decide.", attacks: ["scale-burst", "wing-gust", "ember-field"], gap: 1.2,
+      finale: { attack: "covenant-roar", window: 5, floorHp: 3, nova: "NOVA: FINAL WINDOW — strike now, and the Covenant is yours!" } },
+  ],
+};
+
 export const ENCOUNTERS: Readonly<Record<string, EncounterDef>> = {
-  "dark-knight": DARK_KNIGHT, "rime-alpha": RIME_ALPHA, "drowned-monarch": DROWNED_MONARCH, "hollow-saint": HOLLOW_SAINT, vaelith: VAELITH,
+  "dark-knight": DARK_KNIGHT, "rime-alpha": RIME_ALPHA, "drowned-monarch": DROWNED_MONARCH, "hollow-saint": HOLLOW_SAINT, vaelith: VAELITH, vyrak: VYRAK,
 };
 export const encounterFor = (scenarioId: string | undefined): EncounterDef | undefined => (scenarioId ? ENCOUNTERS[scenarioId] : undefined);
 
