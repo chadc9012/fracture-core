@@ -13,6 +13,7 @@
 
 import type { Gimmick } from "./scenario-gimmicks";
 import { THALASSIA_CENTER } from "./thalassia-site";
+import { VYRAK } from "./dragon-covenant";
 
 export type UniqueScenario = {
   id: string;
@@ -147,6 +148,20 @@ export const UNIQUE_SCENARIOS: readonly UniqueScenario[] = [
     outsideWindowMult: 0.5,
     rewardCredits: 1000,
     lair: { dx: -0.45, dz: -0.4 },
+  },
+  {
+    id: "vyrak",
+    gimmick: "poise",
+    taunt: VYRAK.intro[1]!.text,
+    name: "Covenant: The Sky Sovereign",
+    regionId: "solara",
+    bossName: VYRAK.name,
+    drop: "dragonite",
+    briefing: VYRAK.briefing,
+    tell: VYRAK.tell,
+    outsideWindowMult: 0.07,
+    rewardCredits: 1500,
+    lair: { dx: 0.45, dz: 0.5 },
   },
 ];
 
