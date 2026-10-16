@@ -75,7 +75,7 @@ describe("Vyrak in the world", () => {
     const sc = scenarioById("vyrak")!;
     expect(sc.regionId).toBe("solara");
     expect(LAIR_SCENARIOS.some((s) => s.id === "vyrak")).toBe(true);
-    const enc = ENCOUNTERS.vyrak!;
+    const enc = ENCOUNTERS["vyrak"]!;
     expect(enc.phases.map((p) => p.name)).toEqual(["Sky Sovereign", "Scale Shedding", "Covenant Trial"]);
     expect(enc.phases[2]!.finale?.attack).toBe("covenant-roar");
   });
