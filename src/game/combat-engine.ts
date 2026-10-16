@@ -22,6 +22,10 @@ export const ABILITY_CONFIGS: readonly AbilityConfig[] = [
   { id: "recon-swarm", classId: "WARLOCK", slot: "PRIMARY", input: "Q", cooldown: 20, resourceCost: 18, castTime: 0.15, recovery: 0.25, effects: [{ kind: "MARK", value: 1.25, radius: 30, duration: 8, tags: ["reveal", "swarm"] }] },
   { id: "disruption-pulse", classId: "WARLOCK", slot: "TACTICAL", input: "E", cooldown: 18, resourceCost: 24, castTime: 0.3, recovery: 0.4, effects: [{ kind: "SILENCE", value: 1, radius: 14, duration: 5, tags: ["emp", "disable-tech"] }] },
   { id: "rift-turret", classId: "WARLOCK", slot: "ULTIMATE", input: "R", cooldown: 30, resourceCost: 45, castTime: 0.4, recovery: 0.5, effects: [{ kind: "TURRET", value: 1, radius: 34, duration: 20, tags: ["deployable"] }] },
+  // Vyrak's Covenant abilities (bonded Operators only — see dragon-covenant.ts)
+  { id: "ember-bulwark", classId: "TITAN", slot: "TACTICAL", input: "E", cooldown: 45, resourceCost: 30, castTime: 0.3, recovery: 0.4, effects: [{ kind: "DOME", value: 80, radius: 4, duration: 8, tags: ["dragonfire", "barrier"] }] },
+  { id: "wyrm-dash", classId: "HUNTER", slot: "TACTICAL", input: "E", cooldown: 30, resourceCost: 20, castTime: 0, recovery: 0.2, effects: [{ kind: "DASH", value: 13, duration: 0.3, tags: ["invulnerable", "dragonfire"] }] },
+  { id: "ash-nova", classId: "WARLOCK", slot: "TACTICAL", input: "E", cooldown: 40, resourceCost: 28, castTime: 0.25, recovery: 0.4, effects: [{ kind: "DAMAGE", value: 50, radius: 8, tags: ["ash", "weaken"] }] },
 ];
 
 export function createAbilityRuntime(): Record<AbilitySlot, AbilityRuntime> {

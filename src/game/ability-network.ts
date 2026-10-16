@@ -18,6 +18,11 @@ export const ABILITY_NODES: readonly AbilityNode[] = [
   { id: "recon-swarm", name: "Recon Swarm", classId: "WARLOCK", slot: "PRIMARY", stream: "SYSTEMS", cost: 0, cooldown: 20, resource: 18, description: "Reveal nearby enemies.", links: ["phase-veil"], branches: branchSet("Deep Scan", "Hunter Swarm", "Relay") },
   { id: "disruption-pulse", name: "Disruption Pulse", classId: "WARLOCK", slot: "TACTICAL", stream: "SYSTEMS", cost: 14, cooldown: 18, resource: 24, description: "Temporarily disable enemy technology.", links: ["kinetic-slam"], branches: branchSet("Blackout", "Null Zone", "Feedback") },
   { id: "rift-turret", name: "Rift Turret", classId: "WARLOCK", slot: "ULTIMATE", stream: "SYSTEMS", cost: 32, cooldown: 30, resource: 45, description: "Deploy an automated combat device.", links: ["bastion-shield", "shadow-strike"], branches: branchSet("Overclock", "Twin Mount", "Shared Clock") },
+  // Vyrak's Covenant (dragon-covenant.ts): one per class, TACTICAL slot. Cost 999 puts them beyond mastery unlock —
+  // only the bond (unlockedAbilities) grants them.
+  { id: "ember-bulwark", name: "Ember Bulwark", classId: "TITAN", slot: "TACTICAL", stream: "COMBAT", cost: 999, cooldown: 45, resource: 30, description: "The Wyrmling breathes a wall of flame that blocks shots and burns enemies who cross it.", links: [], branches: branchSet("Searing Wall", "Long Burn", "Shared Hearth") },
+  { id: "wyrm-dash", name: "Wyrm Dash", classId: "HUNTER", slot: "TACTICAL", stream: "COMBAT", cost: 999, cooldown: 30, resource: 20, description: "Dash through enemies trailing dragonfire; each enemy hit refunds dodge energy.", links: [], branches: branchSet("Wildfire Trail", "Long Glide", "Shared Wings") },
+  { id: "ash-nova", name: "Ash Nova", classId: "WARLOCK", slot: "TACTICAL", stream: "SYSTEMS", cost: 999, cooldown: 40, resource: 28, description: "The Wyrmling dives and detonates an ash nova that weakens enemies by 15%.", links: [], branches: branchSet("Heavy Ash", "Wide Nova", "Shared Embers") },
 ];
 
 function branchSet(first: string, second: string, third: string): readonly EvolutionBranch[] {
