@@ -144,6 +144,7 @@ import { SkyBodies } from "./SkyBodies";
 import { SkyDome } from "./SkyDome";
 import { BrokenHorizon } from "./BrokenHorizon";
 import { NovaDrone } from "./NovaDrone";
+import { Wyrmling } from "./Wyrmling";
 import { GlitchAnomalies } from "./GlitchAnomalies";
 import { GroundCover } from "./GroundCover";
 import { coverDensityFor } from "@/game/ground-cover";
