@@ -70,6 +70,11 @@ import { fxBus } from "@/game/fx-bus";
 import { launch, zoneElement } from "@/game/combat-fx";
 import { ejectCasing } from "@/game/casings";
 import { EncounterFx } from "./EncounterFx";
+import { COMBAT_FEEDBACK, impactFor, rumble } from "@/game/combat-feedback";
+import { encounterFor } from "@/game/scenario-encounters";
+const feedbackPad = () => (typeof navigator !== "undefined" && navigator.getGamepads ? Array.from(navigator.getGamepads()).find(Boolean) ?? null : null);
+import { raceLive } from "./NeonDistricts";
+import { RACE_BEST_KEY, RACE_GATES, RACE_IDLE, raceReward, stepRace, type RaceState } from "@/game/neon-districts";
 import { VAELITH, VAELITH_LAIR, dialogueDue, lairDefenseCleared, memoryNear, startLairDefense, vaelithFightable, type StoryWorldEvent } from "@/game/vaelith";
 import { EMPTY_STORY, stageOf } from "@/game/story";
 import { bossStoryFor, introDue, vaultNear, type BossStoryId } from "@/game/boss-stories";
@@ -887,7 +892,8 @@ function SceneImpl({
   const hitStopUntil = useRef(0);
   const ammoKills = useRef(0);
   const ammoCarry = useRef<Partial<Record<WeaponId, number>>>({});
-  const audioSeen = useRef({ hit: 0, kills: 0, hp: 100, hurtAt: 0, stepT: 1, bossAlive: false, bossX: 0, bossZ: 0 });
+  const audioSeen = useRef({ hit: 0, kills: 0, hp: 100, hurtAt: 0, stepT: 1, bossAlive: false, bossX: 0, bossZ: 0, encEvent: 0, weakOpen: false });
+  const race = useRef<RaceState>(RACE_IDLE);
   /** last sim.lastDeath timestamp this component has already reacted to — mirrors the audioSeen pattern above */
   const deathSeen = useRef(0);
   useEffect(() => {
@@ -1116,6 +1122,7 @@ function SceneImpl({
           s.x = cast.pose.x; s.z = cast.pose.z; s.yaw = cast.pose.yaw;
           s.specialTime = Math.max(s.specialTime, slot === "ULTIMATE" ? 1.5 : 0.8);
           sfx.playAbility(effect?.kind ?? "ABILITY");
+          s.punch += COMBAT_FEEDBACK.ability.cameraImpulse * 8; rumble(padForAbilities, "ability");
           bossActionLog.current = logAction(bossActionLog.current, effect?.kind === "DASH" ? "DASH" : "ABILITY", performance.now() / 1000);
           if (tutorial?.step === "ABILITY") onTutorialEvent?.("ABILITY");
           else if (tutorial?.step === "REINFORCE" && slot === "PRIMARY") onTutorialEvent?.("MASTERY");
@@ -1778,11 +1785,49 @@ function SceneImpl({
         for (const m of sim.machines) { if (!m.alive) continue; const d = Math.hypot(m.x - s.x, m.z - s.z); if (d < best) { best = d; near = m; } }
         sfx.playImpact(near?.kind === "ABERRATION" ? "ORGANIC" : near?.kind === "OVERCLOCKED" ? "TECH" : "METAL", near ? sfx.where(s.x, s.z, s.yaw, near.x, near.z) : {});
         if (near && (near.elite || near.boss) && best < 40) hitStopUntil.current = Math.max(hitStopUntil.current, performance.now() + 45);
+        // combat-feedback.ts: one impact class per hit scales camera kick + controller rumble (heavy weapons, bosses hit harder)
+        const heavyWeapon = !s.inVehicle && (s.weapon === "SHOTGUN" || s.weapon === "HEAVY" || s.weapon === "SWORD" || String(s.weapon).startsWith("LAUNCH"));
+        const cls = impactFor({ boss: Boolean(near?.boss && best < 40), critical: heavyWeapon || Boolean(near?.elite), damage: 0 });
+        s.punch += COMBAT_FEEDBACK[cls].cameraImpulse * 6;
+        rumble(feedbackPad(), cls);
       }
-      if (sim.kills > a.kills) { sfx.playKill(false, {}); hitStopUntil.current = Math.max(hitStopUntil.current, performance.now() + 70); s.punch += 0.6; }
+      if (sim.kills > a.kills) { sfx.playKill(false, {}); hitStopUntil.current = Math.max(hitStopUntil.current, performance.now() + 70); s.punch += 0.6; rumble(feedbackPad(), "heavy"); }
       a.kills = sim.kills;
       const now = performance.now();
-      if (sim.hp < a.hp - 0.5 && now - a.hurtAt > 250) { sfx.playHurt(); a.hurtAt = now; }
+      if (sim.hp < a.hp - 0.5 && now - a.hurtAt > 250) { sfx.playHurt(); a.hurtAt = now; s.punch += 0.35; rumble(feedbackPad(), sim.hp < a.hp - 15 ? "boss" : "light"); }
+      // Unique encounter telegraphs (encounter-sim.ts events): wind-up siren, phase roar, finale/weak-point chime + rumble
+      for (const e of sim.encounterEvents) {
+        if (e.id <= a.encEvent) continue;
+        a.encEvent = e.id;
+        if (e.kind === "TELL") sfx.playBossTell(e.attack && encounterFor(e.scenarioId)?.phases.some((p) => p.finale?.attack === e.attack) ? 2 : e.radius > 6 ? 1 : 0);
+        else if (e.kind === "PHASE") { sfx.playBossPhaseChange(Math.min(2, e.phase) as 0 | 1 | 2); s.punch += 1; rumble(feedbackPad(), "boss", 1.2); }
+        else if (e.kind === "FINALE") { sfx.playWeakPointOpen(); rumble(feedbackPad(), "boss"); }
+        else if (e.kind === "IMPACT" && e.hit) rumble(feedbackPad(), "boss");
+      }
+      const tNow = performance.now() / 1000;
+      const weakOpen = sim.machines.some((m) => m.alive && m.scenarioId && (m.poiseState?.weakPointUntil ?? 0) > tNow);
+      if (weakOpen && !a.weakOpen) sfx.playWeakPointOpen();
+      a.weakOpen = weakOpen;
+      // Rust-Muck underground race (neon-districts.ts): on foot or in a vehicle, gates in order, credits on finish
+      {
+        const rr = stepRace(race.current, s.x - NEON_CITY_CENTER.x, s.z - NEON_CITY_CENTER.z, tNow);
+        race.current = rr.state;
+        raceLive.gate = rr.state.phase === "RUNNING" ? rr.state.gate : -1;
+        const ev = rr.event;
+        if (ev?.kind === "COUNTDOWN") { alert(sim, "UNDERGROUND RACE · 3… 2… 1…"); sfx.playBossTell(0); }
+        else if (ev?.kind === "GO") { alert(sim, `GO! ${RACE_GATES.length} gates — follow the gold ring`); sfx.playWeakPointOpen(); }
+        else if (ev?.kind === "GATE") { alert(sim, `Gate ${ev.gate + 1}/${RACE_GATES.length}`); sfx.playSwitch(); }
+        else if (ev?.kind === "TIMEOUT") alert(sim, "Race abandoned — time limit reached");
+        else if (ev?.kind === "FINISH") {
+          let best: number | null = null;
+          try { const v = Number(localStorage.getItem(RACE_BEST_KEY)); best = v > 0 ? v : null; } catch { /* storage off */ }
+          const r = raceReward(ev.time, best);
+          sim.credits += r.credits;
+          if (r.newBest) try { localStorage.setItem(RACE_BEST_KEY, String(ev.time)); } catch { /* storage off */ }
+          alert(sim, `FINISH ${ev.time.toFixed(1)}s${r.newBest ? " · NEW BEST" : ""} · +${r.credits} credits`);
+          sfx.playLevelUp();
+        }
+      }
       a.hp = sim.hp;
       // Boss-fight audio: track the engaged boss's last known position so a sudden "alive -> not
       // alive" edge (it just died) can play a real explosion there instead of the ordinary kill

@@ -1,4 +1,5 @@
 import { CRASH_SITE, trailMask } from "./verdant";
+import { districtDeckAt } from "./district-decks";
 import { forestRelief, openWoods, IMPACT_PIT } from "./forest-relief";
 import { REGIONS, WORLD_RADIUS, BASE_WORLD_REGIONS, BASE_WORLD_RADIUS, WORLD_SCALE, HEIGHT_K } from "./world";
 import { LANES, ROAD_SAMPLES, laneSamples, distanceToRoad } from "./lanes";
@@ -340,7 +341,7 @@ export function deckAt(x: number, z: number): number {
 
 /** ground height a walker stands on (water surface if submerged, bridge deck if on one) */
 export function walkHeight(x: number, z: number) {
-  return Math.max(WATER_LEVEL - 0.6, heightAt(x, z), deckAt(x, z));
+  return Math.max(WATER_LEVEL - 0.6, heightAt(x, z), deckAt(x, z), districtDeckAt(x, z));
 }
 
 /** terrain steepness 0..1 — used for traction and traversal cost */

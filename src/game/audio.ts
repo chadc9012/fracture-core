@@ -618,6 +618,21 @@ export function playBossPhaseChange(phase: 0 | 1 | 2) {
   tone(c, o, { f0: base * 2.5, f1: base * 1.6, dur: 0.5, type: "square", gain: 0.15, at: 0.05 });
 }
 
+/** Boss attack wind-up warning: a rising two-tone siren whose pitch climbs with severity (finale = 2). Plays at tell start. */
+export function playBossTell(severity: 0 | 1 | 2 = 0) {
+  const c = ctx; if (!c) return; const o = out(c);
+  const f = 420 + severity * 120;
+  tone(c, o, { f0: f, f1: f * 1.6, dur: 0.28, type: "triangle", gain: 0.14 });
+  tone(c, o, { f0: f * 1.2, f1: f * 2, dur: 0.28, type: "triangle", gain: 0.12, at: 0.3 });
+  if (severity > 0) tone(c, o, { f0: 90, f1: 55, dur: 0.6, type: "sawtooth", gain: 0.18 });
+}
+/** Weak point exposed: a bright, clean chime so the opening is audible even off-screen. */
+export function playWeakPointOpen() {
+  const c = ctx; if (!c) return; const o = out(c);
+  tone(c, o, { f0: 1320, f1: 1320, dur: 0.18, type: "sine", gain: 0.12 });
+  tone(c, o, { f0: 1760, f1: 1760, dur: 0.3, type: "sine", gain: 0.1, at: 0.1 });
+}
+
 /** Hull-destroyed sting — heavier and longer than playHurt()'s per-tick flinch, marking the actual respawn-at-Nexus event. */
 export function playDeath() {
   const c = ctx; if (!c) return; const o = out(c);
