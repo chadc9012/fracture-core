@@ -76,7 +76,7 @@ function TheGrid({ c }: { c: C }) {
           <mesh position={[s * (w.width / 2 - 0.1), w.top + 0.9, 0]} rotation-x={Math.PI / 2}><cylinderGeometry args={[0.06, 0.06, flat, 8]} /><meshStandardMaterial color="#c9d3df" metalness={1} roughness={0.15} /></mesh>
           <LightBar position={[s * (w.width / 2), w.top - 0.3, 0]} size={[0.06, 0.06, flat]} color={d.color} />
         </group>)}
-        {Array.from({ length: Math.max(2, Math.floor(flat / 10)) }, (_, i, a) => <mesh key={i} position={[0, w.top / 2 - 0.3, -flat / 2 + (i + 0.5) * (flat / a.length)]} castShadow><boxGeometry args={[0.7, w.top - 0.3, 0.7]} /><meshStandardMaterial color="#1c2129" metalness={0.6} roughness={0.5} /></mesh>)}
+        {(() => { const n = Math.max(2, Math.floor(flat / 10)); return Array.from({ length: n }, (_, i) => <mesh key={i} position={[0, w.top / 2 - 0.3, -flat / 2 + (i + 0.5) * (flat / n)]} castShadow><boxGeometry args={[0.7, w.top - 0.3, 0.7]} /><meshStandardMaterial color="#1c2129" metalness={0.6} roughness={0.5} /></mesh>); })()}
       </group>;
     })}
     <group ref={drone}>

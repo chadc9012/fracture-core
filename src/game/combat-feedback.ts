@@ -39,7 +39,8 @@ export function spendBudget(remaining: number, impact: ImpactClass, intensity = 
   return { particles, remaining: Math.max(0, remaining - particles) };
 }
 
-type Rumbler = { vibrationActuator?: { playEffect?: (t: string, o: object) => Promise<unknown> } | null };
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type Rumbler = { vibrationActuator?: { playEffect?: (t: any, o?: any) => Promise<unknown> } | null };
 /** Controller vibration scaled to the impact; silently does nothing on pads/browsers without support. */
 export function rumble(pad: Rumbler | null | undefined, impact: ImpactClass, intensity = 1) {
   const s = COMBAT_FEEDBACK[impact].haptic * clampIntensity(intensity);
