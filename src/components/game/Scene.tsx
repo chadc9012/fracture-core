@@ -2305,7 +2305,8 @@ function SceneImpl({
       if (s.inVehicle) {
         v.position.set(s.x, s.y, s.z);
         v.rotation.y = s.yaw;
-        v.rotation.x = -slopeAt(s.x, s.z) * 0.25;
+        v.rotation.x = handling.mode === "AIR" ? -vh.current.pitch : -slopeAt(s.x, s.z) * 0.25;
+        v.rotation.z = vh.current.roll;
       } else {
         // parked at the spawn pad when on foot
         v.position.set(SPAWN.x + 8, walkHeight(SPAWN.x + 8, SPAWN.z + 6) + 1.9, SPAWN.z + 6);
