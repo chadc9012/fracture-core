@@ -144,6 +144,7 @@ import { SkyBodies } from "./SkyBodies";
 import { SkyDome } from "./SkyDome";
 import { BrokenHorizon } from "./BrokenHorizon";
 import { NovaDrone } from "./NovaDrone";
+import { Wyrmling } from "./Wyrmling";
 import { GlitchAnomalies } from "./GlitchAnomalies";
 import { GroundCover } from "./GroundCover";
 import { coverDensityFor } from "@/game/ground-cover";
@@ -422,6 +423,7 @@ function SceneImpl({
   onCameraPreference,
   playerClass = "TITAN",
   subclassId = "SHIELD_TITAN",
+  bonded = false,
   appearance: appearanceProp,
   bodyType,
   vehicleId = "scrap-interceptor",
@@ -472,6 +474,8 @@ function SceneImpl({
   onCameraPreference?: (firstPerson: boolean) => void;
   playerClass?: ClassId;
   subclassId?: SubclassId;
+  /** dragon-covenant.ts: the active class won Vyrak's Covenant — render the Wyrmling companion */
+  bonded?: boolean;
   /** Fully-resolved field colors + callsign (preset or freely customized in the Identity Forge) —
    * session-local only, never synced to player_saves. */
   appearance?: AppearanceDefinition;
@@ -2637,6 +2641,7 @@ function SceneImpl({
       {settings.zoneLabels && <RegionLabels zones={sim.zones} />}
 
       <NovaDrone held={state} />
+      {bonded && <Wyrmling held={state} />}
       {/* player on foot */}
       <group ref={player} position={SPAWN.toArray()}>
         <OperatorModel held={state} gear={gear} bodyType={bodyType} classId={playerClass} height={2.75} feetY={-1.55} color={appearance.armor} trim={appearance.visor} cloth={appearance.cloth} look={worn} pose="locomotion" motion={feel.current.motionRef} fallback={

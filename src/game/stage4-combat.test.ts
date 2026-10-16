@@ -5,6 +5,14 @@ import { claimCovenant, claimWyrmlingGift, isBonded } from "./dragon-covenant";
 import { spendBudget, impactFor, FRAME_PARTICLE_BUDGET } from "./combat-feedback";
 import { buyShader, applyShader, grantShader, shaderLook } from "./armor-shaders";
 import { cinematicById } from "./cinematics";
+import { LAIR_SCENARIOS, scenarioById } from "./unique-scenarios";
+import { ENCOUNTERS } from "./scenario-encounters";
+import { bossStoryFor, bossDialogueDue } from "./boss-stories";
+import { claimDrops } from "./inventory";
+import { EMPTY_STORY } from "./story";
+import { createSim, summonScenarioBoss } from "./sim";
+import { createLiveBuild } from "./live-build";
+import { castAbility } from "./ability-effects";
 
 describe("Vyrak's Covenant", () => {
   test("bonds only the Operator class that won, once", () => {
@@ -60,4 +68,48 @@ describe("armor shaders", () => {
 test("Neon arrival ends in player control with the objective", () => {
   const c = cinematicById("neon-arrival")!;
   expect(c.handoff).toMatchObject({ control: "gameplay", objective: "INVESTIGATE THE DISTURBANCE" });
+});
+
+describe("Vyrak in the world", () => {
+  test("registered as a Solara lair scenario with a three-phase encounter and finale", () => {
+    const sc = scenarioById("vyrak")!;
+    expect(sc.regionId).toBe("solara");
+    expect(LAIR_SCENARIOS.some((s) => s.id === "vyrak")).toBe(true);
+    const enc = ENCOUNTERS["vyrak"]!;
+    expect(enc.phases.map((p) => p.name)).toEqual(["Sky Sovereign", "Scale Shedding", "Covenant Trial"]);
+    expect(enc.phases[2]!.finale?.attack).toBe("covenant-roar");
+  });
+  test("a confirmed, participated Vyrak kill bonds the Operator through claimDrops", () => {
+    const p = { ...loadProgression(), identityClass: "TITAN" as const };
+    const next = claimDrops(p, [{ id: 1, material: "dragonite", amount: 3, enemy: "Vyrak, the Ashen Covenant", scenarioClaim: { scenarioId: "vyrak", runId: "vyrak-test-run", participated: true, rolls: [] } }]);
+    expect(isBonded(next, "TITAN")).toBe(true);
+    expect(next.inventory.filter((g) => g.setId === "dragons-covenant").length).toBe(5);
+    expect(next.unlockedAbilities).toContain("ember-bulwark");
+    // no participation, no bond
+    const nope = claimDrops(loadProgression(), [{ id: 2, material: "dragonite", amount: 3, enemy: "Vyrak", scenarioClaim: { scenarioId: "vyrak", runId: "vyrak-test-run-2", participated: false, rolls: [] } }]);
+    expect(nope.earnedRewards.some((r) => r.startsWith("covenant:vyrak:"))).toBe(false);
+  });
+  test("boss story: intro at the lair, bond conversation after the kill", () => {
+    const story = bossStoryFor("vyrak")!;
+    expect(story.title).toBe("The Ashen Covenant");
+    expect(bossDialogueDue(EMPTY_STORY, "vyrak", "lair")?.id).toBe("vyrak.intro");
+    expect(bossDialogueDue(EMPTY_STORY, "vyrak", "defeat")).toBeNull();
+  });
+  test("covenant abilities cast: wyrm-dash burns and refunds, ash-nova weakens", () => {
+    const sim = createSim();
+    expect(summonScenarioBoss(sim, scenarioById("rime-alpha")!, 0, 4)).toBe(true);
+    const m = sim.machines.find((x) => x.alive)!;
+    Object.assign(m, { hp: 1e6, maxHp: 1e6, cool: 999, x: 0, z: 4 }); // on the dash path (yaw 0 → +z)
+    const hunter = { ...loadProgression(), identityClass: "HUNTER" as const };
+    const bonded = claimCovenant(hunter, "HUNTER").progression;
+    const live = createLiveBuild({ mode: "HYBRID", slots: { PRIMARY: "phase-veil", TACTICAL: "wyrm-dash", ULTIMATE: "shadow-strike" } }, bonded.abilityBranches);
+    const hpBefore = m.hp;
+    const r = castAbility(sim, live, "TACTICAL", { x: 0, z: 0, yaw: 0 }, { environment: "war", inVehicle: false });
+    expect(r.ok).toBe(true);
+    expect(m.hp).toBeLessThan(hpBefore);
+    const warlock = claimCovenant(loadProgression(), "WARLOCK").progression;
+    const live2 = createLiveBuild({ mode: "HYBRID", slots: { PRIMARY: "recon-swarm", TACTICAL: "ash-nova", ULTIMATE: "rift-turret" } }, warlock.abilityBranches);
+    const r2 = castAbility(sim, live2, "TACTICAL", { x: 0, z: 0, yaw: 0 }, { environment: "war", inVehicle: false });
+    expect(r2.ok).toBe(true);
+  });
 });

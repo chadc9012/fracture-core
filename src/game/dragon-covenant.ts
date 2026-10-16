@@ -10,6 +10,8 @@ export const VYRAK = {
   name: "Vyrak, the Ashen Covenant",
   regionId: "solara",
   minLevel: 12,
+  briefing: "Vyrak has ruled the thermals over the Glass Flats since before the Fracture. Its scale armor turns almost everything — it only opens in the moments after its own attacks, and again when the chest plates crack. Survive the trial and it may choose you.",
+  tell: "Its wings flare gold before a strafing run, its chest plates glow before they burst, and the whole lair shakes before the Covenant roar.",
   phases: [
     { at: 1, name: "Sky Sovereign", telegraph: "Wings flare gold before a strafing fire run" },
     { at: 0.6, name: "Scale Shedding", telegraph: "Chest plates glow and crack — the weak point opens" },
@@ -47,6 +49,7 @@ export function claimCovenant(p: PlayerProgression, cls: ClassId | null): { prog
   if (!cls || isBonded(p, cls)) return { progression: p, bonded: false };
   const owned = new Set(p.inventory.map((g) => g.id));
   const gear = dragoniteGear(cls).filter((g) => !owned.has(g.id));
+  const ability = COVENANT_ABILITY[cls].id;
   return {
     bonded: true,
     progression: {
@@ -54,6 +57,7 @@ export function claimCovenant(p: PlayerProgression, cls: ClassId | null): { prog
       earnedRewards: [...p.earnedRewards, bondKey(cls)],
       inventory: [...p.inventory, ...gear],
       materials: { ...p.materials, dragonite: (p.materials.dragonite ?? 0) + 5 },
+      unlockedAbilities: p.unlockedAbilities.includes(ability) ? p.unlockedAbilities : [...p.unlockedAbilities, ability],
     },
   };
 }

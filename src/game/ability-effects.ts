@@ -150,7 +150,21 @@ export function castAbility(sim: WorldSim, live: LiveBuild, slot: AbilitySlot, p
       const to = dashLanding(pose.x, pose.z, pose.yaw, effect.value);
       out.x = to.x; out.z = to.z;
       sim.iframes = Math.max(sim.iframes, effect.duration ?? 0.28);
-      alert(sim, "RIFT DASH · incoming damage negated");
+      if (effect.tags?.includes("dragonfire")) {
+        // Wyrm Dash: burn everything the dash crosses; each enemy hit refunds dodge energy
+        let burned = 0;
+        for (const m of sim.machines) {
+          if (!m.alive) continue;
+          const dx = to.x - px, dz = to.z - pz, l2 = dx * dx + dz * dz;
+          const t = l2 === 0 ? 0 : Math.max(0, Math.min(1, ((m.x - px) * dx + (m.z - pz) * dz) / l2));
+          if (Math.hypot(m.x - (px + t * dx), m.z - (pz + t * dz)) > 2.5) continue;
+          hurt(m, 2, 0.6, false);
+          burned++;
+        }
+        if (burned) live.energy = Math.min(100, live.energy + burned * 6);
+        radius = effect.value;
+        alert(sim, burned ? `WYRM DASH · ${burned} burned, energy refunded` : "WYRM DASH");
+      } else alert(sim, "RIFT DASH · incoming damage negated");
       break;
     }
     case "DAMAGE": {
@@ -160,6 +174,10 @@ export function castAbility(sim: WorldSim, live: LiveBuild, slot: AbilitySlot, p
         if (!m.alive || Math.hypot(m.x - px, m.z - pz) >= radius) continue;
         if (effect.tags?.includes("knockback") && !m.boss) { const pushed = knockbackFrom(px, pz, m.x, m.z, SLAM_KNOCKBACK); m.x = pushed.x; m.z = pushed.z; }
         hurt(m, effect.value / 20, IMPACT_STUN_SECONDS, true);
+      }
+      if (effect.tags?.includes("weaken")) { // Ash Nova: the ash clings — enemies inside take +15% damage for a while
+        applyVulnPulse(sim, px, pz, radius, 1.15, 6);
+        alert(sim, "ASH NOVA · hostiles weakened");
       }
       break;
     }
