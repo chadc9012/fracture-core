@@ -56,6 +56,10 @@ export const SCENARIO_LOOT: Readonly<Record<string, ScenarioLootEntry>> = {
   "vaelith-alliance": { guaranteed: [DRAGONHEART_PLATE, EMBER_LANCE], chance: [] },
   "vaelith-bond": { guaranteed: [DRAGON_SCALE_MANTLE], chance: [] },
   "hollow-saint": { guaranteed: [VEIL_OF_THE_HOLLOW_SAINT], chance: [{ item: CENSER_OF_THE_HOLLOW_SAINT, chance: HOLLOW_SAINT_CENSER_CHANCE }] },
+  // Vyrak pays no gear here: the reward is the Covenant itself (dragon-covenant.ts claimCovenant, per-class and
+  // once ever). The empty entry exists so sim.defeatMachine still attaches a ScenarioClaim, which claimDrops
+  // uses as the confirmed-kill signal (participation included) to grant the bond.
+  vyrak: { guaranteed: [], chance: [] },
 };
 
 /** What sim.defeatMachine attaches to a scenario kill. `rolls` are pre-drawn uniform [0,1) numbers (one per chance entry)
