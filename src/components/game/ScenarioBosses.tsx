@@ -6,6 +6,7 @@ import { clone as cloneSkinned } from "three/examples/jsm/utils/SkeletonUtils.js
 import { UNIQUE_SCENARIOS, type UniqueScenario } from "@/game/unique-scenarios";
 import { walkHeight } from "@/game/terrain";
 import type { WorldSim } from "@/game/sim";
+import { DragonModel } from "./DragonModel";
 import { findQuadrupedLegs, legAngles, type Leg, type RestBone } from "@/game/skeleton-gait";
 
 type GaitJoint = { bone: THREE.Bone; rest: THREE.Quaternion; axis: THREE.Vector3 };
@@ -101,6 +102,39 @@ function BossModel({ scenario, sim }: { scenario: UniqueScenario; sim: WorldSim 
   </group>;
 }
 
+/** Vyrak: the shared DragonModel at boss scale, with readable telegraphs — wings flare and the jaw/mouth fill with ember during
+ * a tell (brighter for the finale), the chest core flashes cyan-white with a ring while the weak point is open. Reads sim only. */
+function VyrakBody({ sim }: { sim: WorldSim }) {
+  const group = useRef<THREE.Group>(null!);
+  const wingL = useRef<THREE.Group>(null), wingR = useRef<THREE.Group>(null), head = useRef<THREE.Group>(null);
+  const jaw = useRef<THREE.Mesh>(null), core = useRef<THREE.MeshStandardMaterial>(null), mouth = useRef<THREE.MeshBasicMaterial>(null), weak = useRef<THREE.Mesh>(null);
+  const flash = useRef(0); const lastPhase = useRef(0);
+  useEffect(() => { scenarioModelReady.add("vyrak"); return () => { scenarioModelReady.delete("vyrak"); }; }, []);
+  useFrame(({ clock }, dt) => {
+    const g = group.current; if (!g) return;
+    const m = sim.machines.find((e) => e.alive && e.scenarioId === "vyrak");
+    g.visible = Boolean(m); if (!m) return;
+    const t = clock.elapsedTime, now = performance.now() / 1000, enc = m.encounter;
+    const telling = enc?.state === "TELL", tellK = telling ? 1 - enc!.timer / Math.max(0.01, enc!.tellTotal) : 0;
+    const finale = (enc?.finaleUntil ?? 0) > now;
+    const open = finale || (m.poiseState?.weakPointUntil ?? 0) > now;
+    if (enc && enc.phase !== lastPhase.current) { lastPhase.current = enc.phase; flash.current = 1; }
+    flash.current = Math.max(0, flash.current - dt * 0.8);
+    const hover = 3 + Math.sin(t * 1.4) * 0.6 + (enc?.phase === 0 ? 2 : 0);
+    g.position.set(m.x, walkHeight(m.x, m.z) + hover, m.z);
+    g.rotation.set(-tellK * 0.25, m.rot, Math.sin(t * 0.8) * 0.05);
+    const flap = telling ? 0.9 * tellK : Math.sin(t * 3.2) * 0.5;
+    if (wingL.current) wingL.current.rotation.z = flap; if (wingR.current) wingR.current.rotation.z = -flap;
+    if (head.current) head.current.rotation.x = -tellK * 0.5;
+    if (jaw.current) jaw.current.rotation.x = tellK * 0.5;
+    if (mouth.current) { mouth.current.opacity = 0.2 + tellK * 0.8; mouth.current.color.set(finale ? "#fff1a8" : "#ff6a1f"); }
+    if (core.current) { core.current.emissive.set(open ? "#9ffcff" : "#ff6a1f"); core.current.emissiveIntensity = open ? 6 + Math.sin(t * 14) * 2 : 1.5 + flash.current * 6; }
+    if (weak.current) { weak.current.visible = open; weak.current.scale.setScalar(1 + Math.sin(t * 8) * 0.15); }
+  });
+  return <group ref={group} visible={false}><group scale={2.6}><DragonModel refs={{ wingL, wingR, head, jaw, core, mouth, weak }} /></group>
+    <pointLight position={[0, 1.4, 1.6]} color="#ff7a2e" intensity={30} distance={22} /></group>;
+}
+
 /** Authored GLB bodies for Unique Scenario bosses. Each model is downloaded only once its boss has actually been summoned. */
 export function ScenarioBosses({ sim }: { sim: WorldSim }) {
   const [wanted, setWanted] = useState<string[]>([]);
@@ -108,11 +142,11 @@ export function ScenarioBosses({ sim }: { sim: WorldSim }) {
     for (const m of sim.machines) {
       if (m.alive && m.scenarioId && !wanted.includes(m.scenarioId)) {
         const id = m.scenarioId;
-        if (UNIQUE_SCENARIOS.find((s) => s.id === id)?.model) setWanted((list) => (list.includes(id) ? list : [...list, id]));
+        if (id === "vyrak" || UNIQUE_SCENARIOS.find((s) => s.id === id)?.model) setWanted((list) => (list.includes(id) ? list : [...list, id]));
       }
     }
   });
-  return <>{UNIQUE_SCENARIOS.filter((s) => s.model && wanted.includes(s.id)).map((s) => (
+  return <>{wanted.includes("vyrak") && <VyrakBody sim={sim} />}{UNIQUE_SCENARIOS.filter((s) => s.model && wanted.includes(s.id)).map((s) => (
     <Quiet key={s.id} id={s.id}><Suspense fallback={null}><BossModel scenario={s} sim={sim} /></Suspense></Quiet>
   ))}</>;
 }
