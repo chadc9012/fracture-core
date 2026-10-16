@@ -46,7 +46,8 @@ describe("patrols", () => {
     expect(done.message).toContain("patrol complete");
     expect(patrolsToday(done.progression, NOW)).toBe(1);
     expect(Object.keys(done.progression.materials).length).toBeGreaterThan(0);
-    expect(done.progression.inventory.length).toBe(p.inventory.length); // side contract: no completion weapon
+    const gained = done.progression.inventory.filter((g) => !p.inventory.some((o) => o.id === g.id));
+    expect(gained.some((g) => g.slot === "primary" || g.slot === "secondary" || g.slot === "heavy")).toBe(false); // side contract: no completion weapon (armor collection pieces are allowed)
     let q = done.progression;
     for (let i = 1; i < PATROL_DAILY_CAP; i++) { const s = startPatrol(q, region, NOW); if ("error" in s) throw new Error(s.error); q = recordPatrolKills(s.progression, region, PATROL_KILLS, NOW).progression; }
     expect(patrolsToday(q, NOW)).toBe(PATROL_DAILY_CAP);
