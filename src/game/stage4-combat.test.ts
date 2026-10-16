@@ -10,7 +10,7 @@ import { ENCOUNTERS } from "./scenario-encounters";
 import { bossStoryFor, bossDialogueDue } from "./boss-stories";
 import { claimDrops } from "./inventory";
 import { EMPTY_STORY } from "./story";
-import { createSim } from "./sim";
+import { createSim, summonScenarioBoss } from "./sim";
 import { createLiveBuild } from "./live-build";
 import { castAbility } from "./ability-effects";
 
@@ -97,8 +97,9 @@ describe("Vyrak in the world", () => {
   });
   test("covenant abilities cast: wyrm-dash burns and refunds, ash-nova weakens", () => {
     const sim = createSim();
+    expect(summonScenarioBoss(sim, scenarioById("rime-alpha")!, 0, 4)).toBe(true);
     const m = sim.machines.find((x) => x.alive)!;
-    m.x = 3; m.z = 0; // on the dash path (facing +z yaw 0? yaw 0 → +z); place on path
+    Object.assign(m, { hp: 1e6, maxHp: 1e6, cool: 999, x: 0, z: 4 }); // on the dash path (yaw 0 → +z)
     const hunter = { ...loadProgression(), identityClass: "HUNTER" as const };
     const bonded = claimCovenant(hunter, "HUNTER").progression;
     const live = createLiveBuild({ mode: "HYBRID", slots: { PRIMARY: "phase-veil", TACTICAL: "wyrm-dash", ULTIMATE: "shadow-strike" } }, bonded.abilityBranches);
