@@ -36,7 +36,7 @@ export function buyShader(p: PlayerProgression, id: string): { progression: Play
 export function applyShader(p: PlayerProgression, itemId: string, shaderId: string | null): { progression: PlayerProgression } | { error: string } {
   const item = p.inventory.find((g) => g.id === itemId);
   if (!item) return { error: "Item not owned" };
-  if (shaderId === null) return { progression: { ...p, inventory: p.inventory.map((g) => (g.id === itemId ? { ...g, shader: undefined } : g)) } };
+  if (shaderId === null) return { progression: { ...p, inventory: p.inventory.map((g) => (g.id === itemId ? (({ shader: _drop, ...rest }) => rest)(g) : g)) } };
   const s = shaderById(shaderId);
   if (!s || !ownsShader(p, shaderId)) return { error: "Shader not owned" };
   if (!s.slots.includes(item.slot)) return { error: "Not compatible with this item" };
