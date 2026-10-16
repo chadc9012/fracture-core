@@ -77,6 +77,7 @@ import { claimDrops } from "@/game/inventory";
 import { claimWyrmlingGift, isBonded } from "@/game/dragon-covenant";
 import { ShopWindow } from "./ShopWindow";
 import { HousingPanel } from "./HousingPanel";
+import { interiorById } from "@/game/interiors";
 import { LivingNpcPanel, LivingTracker } from "./LivingNpcPanel";
 import { resolveLivingEvent } from "@/game/living-events";
 import { PLEDGE_KEY, recordCityKills, recordReach } from "@/game/living-npcs";
@@ -328,6 +329,7 @@ export function GameCanvas() {
   /** fleet.ts: the garage base panel and the base in reach */
   const [basePanel, setBasePanel] = useState<GarageId | null>(null);
   const [skateOpen, setSkateOpen] = useState(false);
+  const [housingOpen, setHousingOpen] = useState<"HOMES" | "DECORATE" | null>(null);
   const skateNearRef = useRef(false);
   const garageNearRef = useRef<GarageId | null>(null);
   const [livingToast, setLivingToast] = useState<string | null>(null);
