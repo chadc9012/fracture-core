@@ -187,3 +187,10 @@
 - [ ] Shopkeeper models + idle animations (no merchant models supplied yet).
 - [ ] Civilian variety + ambient routines and combat reactions across regions.
 - [ ] Walk/attack/death animation clips for the Meshy enemy rigs (models ship without clips).
+
+## Armor loot, shops & black market (user notes, in order)
+- [x] Stage 1: 30 armor collections in 5 families, mix-and-match, named drop sources, mission drops with bad-luck protection
+- [ ] Stage 2: tiered city armor/weapon shops (daily deals, rotation) — raid/exotic never sold
+- [ ] Stage 3: Neon City underground black market
+- [ ] Stage 4: Dragon's Covenant / Vyrak and Dragonite gear
+- [ ] Stage 5: remaining unique encounters

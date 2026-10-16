@@ -17,6 +17,8 @@ import { grantXP } from "./xp";
 import { repeatRewardFactor } from "./retention";
 import { FIRST_CLEAR_SPECIAL, isSideContract } from "./upgrade-gates";
 import { grantCompletionWeapon } from "./weapon-loot";
+import { grantSetPiece } from "./armor-sets";
+import { collectionReward } from "./armor-collections";
 import type { WeaponId } from "./weapons";
 import { normalizeNex, type NexLedger } from "./nex";
 import { normalizeCondition, type VehicleCondition } from "./vehicle-condition";
@@ -287,9 +289,12 @@ export function rewardMission(progression: PlayerProgression, missionId: string,
   const box = missionBox(firstClear, factor);
   for (const [id, n] of Object.entries(box.materials) as [MaterialId, number][]) nextMaterials[id] = (nextMaterials[id] ?? 0) + n;
   const inventory = firstClear && !isSideContract(missionId) && missionId !== "mission-01" ? grantCompletionWeapon(withXp, "mission", missionId).inventory : withXp.inventory;
+  // armor collections: first clear always, repeats every PITY_RUNS-th run (bad-luck protection, never endless grind)
+  const drop = collectionReward(isSideContract(missionId) ? "patrol" : "story", missionId, runsToday + 1, firstClear);
+  const granted = drop ? grantSetPiece({ ...withXp, inventory }, drop) : null;
   return {
     ...withXp,
-    inventory,
+    inventory: granted ? granted.progress.inventory : inventory,
     completedMissions: firstClear ? [...withXp.completedMissions, missionId] : withXp.completedMissions,
     materials: nextMaterials,
     nexLedger: { ...withXp.nexLedger, [`mission:${missionId}:${day}:${runsToday + 1}`]: Math.round(100 * factor) },

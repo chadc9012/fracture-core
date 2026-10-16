@@ -1,3 +1,4 @@
+import { COLLECTIONS } from "./armor-collections";
 import { ARMOR_LEVEL_MAX, BONUS_PER_LEVEL, NO_EFFECTS, SET_SLOTS, setById, type ArmorEffects, type SetSlot } from "./armor-sets";
 import type { GearItem } from "./inventory";
 import type { PlayerProgression } from "./progression";
@@ -12,7 +13,20 @@ export type ArmorPerk = { name: string; description: string; effects: Partial<Ar
 
 const p = (name: string, description: string, effects: Partial<ArmorEffects>): ArmorPerk => ({ name, description, effects });
 
+const SLOT_PERK: Record<SetSlot, [string, string, Partial<ArmorEffects>]> = {
+  helmet: ["Focus", "Abilities recharge 4% faster.", { abilityRecharge: 0.04 }],
+  gauntlets: ["Grip", "Weapon damage +3%.", { weaponDamage: 0.03 }],
+  chest: ["Bulwark", "Incoming damage reduced by 4%.", { resist: 0.04 }],
+  legs: ["Stride", "Move 3% faster.", { moveSpeed: 0.03 }],
+  classItem: ["Resolve", "Hull regenerates a little.", { regen: 0.4 }],
+};
+const collectionPerks = Object.fromEntries(COLLECTIONS.map((c) => [c.id, Object.fromEntries((Object.keys(SLOT_PERK) as SetSlot[]).map((slot) => {
+  const [n, d, e] = SLOT_PERK[slot];
+  return [slot, { name: `${c.name} ${n}`, description: d, effects: e }];
+})) as Record<SetSlot, ArmorPerk>]));
+
 export const ARMOR_PERKS: Readonly<Record<string, Record<SetSlot, ArmorPerk>>> = {
+  ...collectionPerks,
   "verdant-warden": {
     helmet: p("Canopy Sight", "Abilities recharge 4% faster.", { abilityRecharge: 0.04 }),
     gauntlets: p("Thornwrap Grip", "Weapon damage +2%.", { weaponDamage: 0.02 }),
