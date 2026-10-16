@@ -9,6 +9,7 @@ import { AUDIO_FILES } from "./audio-files";
 import { BLAST_FLAVOR, SHOTS, blastAtDistance, shotKey, variation, type BlastFlavor, type ShotProfile } from "./audio-design";
 import { RADIO_STATIONS, type StationId } from "./radio-stations";
 import { engineVoice } from "./vehicle-audio";
+import { AUDIO_SAFETY, envelopeAttack, unitVolume } from "./audio-safety";
 
 type Ctx = { ac: AudioContext; master: GainNode; sfx: GainNode; music: GainNode; amb: GainNode; abil: GainNode; noise: AudioBuffer; brown: AudioBuffer; verb: GainNode; drive: Map<number, Float32Array>; layers: { ambient: GainNode; tension: GainNode; drums: GainNode; motif: GainNode } | null; ambientOscs: OscillatorNode[]; musicRegion: string; beat: number };
 let ctx: Ctx | null = null;
@@ -24,7 +25,7 @@ export function unlockAudio() {
   const master = ac.createGain(); master.gain.value = volume; master.connect(ac.destination);
   // underwater: the whole mix passes one lowpass that setUnderwaterMuffle() closes down while diving
   muffle = ac.createBiquadFilter(); muffle.type = "lowpass"; muffle.frequency.value = 18000; muffle.Q.value = 0.7; muffle.connect(master);
-  const comp = ac.createDynamicsCompressor(); comp.threshold.value = -14; comp.ratio.value = 4; comp.connect(muffle);
+  const comp = ac.createDynamicsCompressor(); comp.threshold.value = -12; comp.ratio.value = 8; comp.attack.value = 0.003; comp.release.value = 0.18; comp.connect(muffle);
   const sfx = ac.createGain(); sfx.connect(comp);
   const music = ac.createGain(); music.gain.value = 0.35; music.connect(comp);
   const amb = ac.createGain(); amb.connect(comp); const abil = ac.createGain(); abil.connect(comp);
@@ -35,7 +36,7 @@ export function unlockAudio() {
   { const b = brown.getChannelData(0); let last = 0; for (let i = 0; i < b.length; i++) { last = (last + 0.02 * (Math.random() * 2 - 1)) / 1.02; b[i] = last * 3.5; } }
   // outdoor reverb: a generated impulse (early slap-back off terrain + a long diffuse decay), shared by every shot and blast through one send bus
   const verbNode = ac.createConvolver(); verbNode.buffer = outdoorImpulse(ac, 2.4);
-  const verb = ac.createGain(); verb.gain.value = 0.55; verb.connect(verbNode).connect(comp);
+  const verb = ac.createGain(); verb.gain.value = AUDIO_SAFETY.reverbGain; verb.connect(verbNode).connect(comp);
   ctx = { ac, master, sfx, music, amb, abil, noise, brown, verb, drive: new Map(), layers: null, ambientOscs: [], musicRegion: "", beat: 0 };
   preloadSamples(ctx);
   applyMix();
@@ -50,7 +51,7 @@ export function setUnderwaterMuffle(k: number) {
   muffle.frequency.setTargetAtTime(f, ctx.ac.currentTime, 0.12);
 }
 
-export function setVolume(v: number) { volume = v; if (ctx) ctx.master.gain.setTargetAtTime(v, ctx.ac.currentTime, 0.05); }
+export function setVolume(v: number) { volume = unitVolume(v); if (ctx) ctx.master.gain.setTargetAtTime(volume, ctx.ac.currentTime, 0.05); }
 let musicVol = 1; let sfxVol = 1; let ambVol = 1; let abilVol = 1;
 let combatLevel = 0;
 let externalMusic = false;
@@ -59,6 +60,7 @@ export function setExternalMusic(active: boolean) { externalMusic = active; if (
 export const getCombatLevel = () => combatLevel;
 /** Separate channel levels (0..1) on top of master. Music bus keeps its 0.35 base mix. */
 export function setMixVolumes(music: number, effects: number, ambience = 1, abilities = 1) {
+  music = unitVolume(music); effects = unitVolume(effects); ambience = unitVolume(ambience); abilities = unitVolume(abilities);
   musicVol = music; sfxVol = effects; ambVol = ambience; abilVol = abilities;
   if (ctx) { ctx.amb.gain.setTargetAtTime(ambience, ctx.ac.currentTime, 0.05); ctx.abil.gain.setTargetAtTime(abilities, ctx.ac.currentTime, 0.05); }
   if (ctx) { ctx.music.gain.setTargetAtTime(externalMusic ? 0 : 0.35 * music, ctx.ac.currentTime, 0.05); ctx.sfx.gain.setTargetAtTime(effects, ctx.ac.currentTime, 0.05); }
@@ -104,7 +106,7 @@ export function startRadio(id: StationId) {
 type Where = { dist?: number; pan?: number };
 function out(c: Ctx, w: Where = {}, bus?: GainNode) {
   const dist = w.dist ?? 0;
-  const g = c.ac.createGain(); g.gain.value = 1 / (dist * 0.08 + 1);
+  const g = c.ac.createGain(); g.gain.value = AUDIO_SAFETY.effectsGain / (Math.max(0, dist) * 0.08 + 1);
   const p = c.ac.createStereoPanner(); p.pan.value = Math.max(-1, Math.min(1, w.pan ?? 0));
   const lp = c.ac.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.value = dist > 20 ? Math.max(700, 9000 - dist * 90) : 18000;
   g.connect(lp).connect(p).connect(bus ?? c.sfx);
@@ -114,13 +116,13 @@ function burst(c: Ctx, dest: AudioNode, { dur, freq, q = 1, type = "bandpass", g
   const t = c.ac.currentTime + at;
   const src = c.ac.createBufferSource(); src.buffer = c.noise;
   const f = c.ac.createBiquadFilter(); f.type = type; f.frequency.value = freq; f.Q.value = q;
-  const g = c.ac.createGain(); g.gain.setValueAtTime(gain, t); g.gain.exponentialRampToValueAtTime(0.001, t + dur);
+  const g = c.ac.createGain(); g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(gain, t + envelopeAttack(dur)); g.gain.exponentialRampToValueAtTime(0.001, t + dur);
   src.connect(f).connect(g).connect(dest); src.start(t, Math.random() * 0.5); src.stop(t + dur + 0.02);
 }
 function tone(c: Ctx, dest: AudioNode, { f0, f1, dur, type = "sine", gain = 1, at = 0 }: { f0: number; f1: number; dur: number; type?: OscillatorType; gain?: number; at?: number }) {
   const t = c.ac.currentTime + at;
   const o = c.ac.createOscillator(); o.type = type; o.frequency.setValueAtTime(f0, t); o.frequency.exponentialRampToValueAtTime(Math.max(1, f1), t + dur);
-  const g = c.ac.createGain(); g.gain.setValueAtTime(gain, t); g.gain.exponentialRampToValueAtTime(0.001, t + dur);
+  const g = c.ac.createGain(); g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(gain, t + envelopeAttack(dur)); g.gain.exponentialRampToValueAtTime(0.001, t + dur);
   o.connect(g).connect(dest); o.start(t); o.stop(t + dur + 0.02);
 }
 
@@ -159,9 +161,9 @@ function noiseLayer(c: Ctx, dest: AudioNode, opts: { buf?: AudioBuffer; dur: num
   const g = c.ac.createGain(); const a = opts.attack ?? 0.002;
   g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(opts.gain, t + a); g.gain.exponentialRampToValueAtTime(0.001, t + opts.dur);
   let node: AudioNode = src.connect(f);
-  if (opts.drive) { const ws = c.ac.createWaveShaper(); ws.curve = driveCurve(c, opts.drive) as unknown as Float32Array<ArrayBuffer>; ws.oversample = "2x"; node = node.connect(ws); }
+  if (opts.drive) { const ws = c.ac.createWaveShaper(); ws.curve = new Float32Array(driveCurve(c, Math.min(AUDIO_SAFETY.maxDrive, opts.drive))); ws.oversample = "2x"; node = node.connect(ws); }
   node.connect(g).connect(dest);
-  src.start(t, Math.random() * Math.max(0, src.buffer!.duration - opts.dur - 0.05)); src.stop(t + opts.dur + 0.05);
+  src.start(t, Math.random() * Math.max(0, (src.buffer?.duration ?? 0) - opts.dur - 0.05)); src.stop(t + opts.dur + 0.05);
 }
 function shotLayers(c: Ctx, dest: AudioNode, p: ShotProfile, v: { pitch: number; gain: number }) {
   noiseLayer(c, dest, { dur: p.crack.dur, freq: p.crack.freq * v.pitch, type: "highpass", q: 0.7, gain: p.crack.gain * v.gain, attack: 0.0008 });
@@ -185,7 +187,7 @@ function loadSample(c: Ctx, id: string, file: string) {
   fetch(url).then((r) => { if (!r.ok) throw new Error(String(r.status)); return r.arrayBuffer(); })
     .then((b) => c.ac.decodeAudioData(b)).then((buf) => {
       sampleBuffers.set(id, buf);
-      if (id === `ambient:${activeBiomeRegion}`) { biomeVoice?.stop(); biomeVoice = null; updateBiomeAmbient(activeBiomeRegion); }
+      if (id === `ambient:${activeBiomeRegion}` && biomeVoice) { biomeVoice.stop(); biomeVoice = null; updateBiomeAmbient(activeBiomeRegion); }
     })
     .catch(() => { /* keep the procedural sound */ }).finally(() => sampleLoads.delete(id));
 }
@@ -230,7 +232,7 @@ export function playShot(weapon: WeaponId | "VEHICLE") {
   const c = ctx; if (!c) return;
   if (weapon === "VEHICLE" && playSample("tank", {}, 0.85)) return;
   if (weapon === "AUTO" && playSample("rifle", {}, 0.58, 0.94 + Math.random() * 0.12)) return;
-  if (weapon === "HEAVY" && playSample("shotgun", {}, 0.82, 0.96 + Math.random() * 0.08)) return;
+  if ((weapon === "HEAVY" || weapon === "SHOTGUN") && playSample("shotgun", {}, 0.82, 0.96 + Math.random() * 0.08)) return;
   const key = shotKey(weapon); if (!key) return;
   const p = SHOTS[key];
   const o = outVerb(c, {}, p.tail.send);
@@ -269,7 +271,7 @@ export function playImpact(material: "METAL" | "ORGANIC" | "TECH", w: Where) {
  * elemental layer (fire roar, ice shatter, acid hiss, arc crackle). */
 export function playExplosion(big: boolean, w: Where = {}, flavor: BlastFlavor = "KINETIC") {
   const c = ctx; if (!c) return;
-  if (big) playSample("fracture", w, 0.7); // layered under the procedural blast, which keeps distance delay + flavour
+  if (big && playSample("fracture", w, 0.7)) return;
   const far = blastAtDistance(w.dist ?? 0);
   const o = outVerb(c, { ...w, dist: 0 }, big ? 0.6 : 0.45, far.delay);
   const lp = c.ac.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.value = far.cutoff;
@@ -483,7 +485,7 @@ export function updateEngine(active: boolean, vehicleId: string, speed01: number
     updateEngine(false, vehicleId, 0, 0, false);
     const v = engineVoice(vehicleId, speedRatio);
     const osc = c.ac.createOscillator(); osc.type = v.type; const sub = c.ac.createOscillator(); sub.type = "sine";
-    const filter = c.ac.createBiquadFilter(); filter.type = "lowpass"; filter.frequency.value = v.cutoff; filter.Q.value = 4;
+    const filter = c.ac.createBiquadFilter(); filter.type = "lowpass"; filter.frequency.value = v.cutoff; filter.Q.value = 0.7;
     const gain = c.ac.createGain(); gain.gain.value = 0;
     const brake = c.ac.createGain(); brake.gain.value = 0; const bf = c.ac.createBiquadFilter(); bf.type = "bandpass"; bf.frequency.value = 3200; bf.Q.value = 8;
     const brakeSrc = c.ac.createBufferSource(); brakeSrc.buffer = c.noise; brakeSrc.loop = true;

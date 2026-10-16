@@ -9,6 +9,7 @@ import fern from "@/assets/polyhaven/fern_02.glb.asset.json";
 import deadLog from "@/assets/polyhaven/dead_tree_trunk.glb.asset.json";
 import mossRock from "@/assets/polyhaven/rock_moss_set_01.glb.asset.json";
 import { windSway } from "@/game/wind-sway";
+import { cinematicImported } from "@/game/cinematic-materials";
 import { reportAsset, reportDetail } from "@/game/forest-assets";
 import { CULL_RADIUS, movedEnough } from "@/game/foliage-cull";
 import { PROXY_COLOR, PROXY_MAX, PROXY_RADIUS, farProxies, isProxied, foliageTris, getPerfTier, maxInstances, nearestWithin, perfTierVersion } from "@/game/perf-budget";
@@ -63,7 +64,7 @@ function Instanced({ kind, url, items, scale, onReady, shadows, height, sway, va
         if (!m.isMesh) return;
         const g = m.geometry.clone();
         g.applyMatrix4(new THREE.Matrix4().multiplyMatrices(centre, m.matrixWorld));
-        const mat = (Array.isArray(m.material) ? m.material[0]! : m.material).clone() as THREE.MeshStandardMaterial;
+        const mat = cinematicImported((Array.isArray(m.material) ? m.material[0] : m.material) ?? new THREE.MeshStandardMaterial()) as THREE.MeshStandardMaterial;
         if (mat.map && mat.transparent) { mat.transparent = false; mat.alphaTest = 0.5; }
         mat.side = THREE.DoubleSide;
         if (sway) mat.onBeforeCompile = windSway(g, sway / Math.max(0.01, norm));

@@ -50,12 +50,12 @@ export function StarMap({ progression, onBack, onDeploy, onProgression }: { prog
   };
 
   return (
-    <div className="deployment-field fixed inset-0 z-50 flex flex-col overflow-y-auto p-4 text-foreground lg:p-6" role="dialog" aria-modal="true" aria-label="Star map">
+    <div className="deployment-field fixed inset-0 z-50 flex flex-col overflow-y-auto p-4 text-foreground lg:p-6" role="dialog" aria-modal="true" aria-label="World map">
       <div className="fracture-grid pointer-events-none absolute inset-0 opacity-30" />
       <header className="relative flex flex-wrap items-center justify-between gap-3 border-b border-foreground/15 pb-3">
         <div className="flex items-center gap-3">
           <Button variant="ghost" size="sm" onClick={onBack} className="ui-focus font-mono"><ArrowLeft /> Hub</Button>
-          <h1 className="font-mono text-xl uppercase tracking-[0.25em] lg:text-2xl">The Fractured Earth</h1>
+          <h1 className="font-mono text-xl uppercase tracking-[0.25em] lg:text-2xl">Veyra · World Map</h1>
         </div>
         <p className="ui-kicker">{REGIONS.length} destinations · {progression.completedMissions.length}/{CHRONICLE.length} chapters</p>
       </header>
