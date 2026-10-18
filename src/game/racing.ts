@@ -348,9 +348,8 @@ function raceActivity(race: RaceDef): ActivityDef {
 }
 (function register() {
   for (const race of RACES) {
-    const def = raceActivity(race), legacy = ACTIVITIES.find((a) => a.id === race.id);
-    if (legacy) Object.assign(legacy as ActivityDef, def); // the four early checkpoint races become full races under the same ids (saves keep their records)
-    else if (race.hidden) {
+    const def = raceActivity(race);
+    if (race.hidden) {
       EXTRA_DEFS.push(def);
       const d: Discovery = { id: race.id, area: race.area, kind: "movement", name: race.name, sign: race.brief, at: race.points[0]!.f, hidden: true, def, unlock: (p) => hiddenUnlocked(p, race) };
       (DISCOVERIES as Discovery[]).push(d);

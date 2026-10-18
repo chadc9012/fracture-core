@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { ACTIVITIES, AREAS, activityById, activityState, startActivity, stepRun, completeActivity, abandonRun, currentTarget, pointWorld, reputationOf, msUntilReset, dayKeyUtc, areaOfPoint, type Run, type Tick } from "./activities";
+import { ACTIVITIES, AREAS, isFeatured, activityById, activityState, startActivity, stepRun, completeActivity, abandonRun, currentTarget, pointWorld, reputationOf, msUntilReset, dayKeyUtc, areaOfPoint, type Run, type Tick } from "./activities";
 import { DEFAULT_PROGRESSION } from "./progression";
 
 const T0 = Date.UTC(2026, 9, 18, 12, 0, 0);
@@ -20,12 +20,12 @@ describe("catalogue", () => {
     }
   });
   test("named activities exist", () => {
-    for (const n of ["Midnight Circuit", "Rooftop Ghost Run", "Rail Riot", "Signal Jackers", "The Black Ledger", "Pressure Line", "Abyssal Hunters", "The Silent Dock", "Dust Devil Run", "Convoy Breaker", "Rebel Route", "Glass Caravan", "Scale-Breakers", "Sunspire Ascent"]) expect(ACTIVITIES.some((a) => a.name === n)).toBe(true);
+    for (const n of ["Signal Jackers", "The Black Ledger", "Pressure Line", "Abyssal Hunters", "The Silent Dock", "Convoy Breaker", "Rebel Route", "Glass Caravan", "Scale-Breakers"]) expect(ACTIVITIES.some((a) => a.name === n)).toBe(true);
   });
 });
 
 describe("real-time limits", () => {
-  const def = activityById("nc-circuit")!;
+  const def = activityById("nx-grid")!;
   test("starting consumes an attempt; failing/abandoning never refunds", () => {
     let p = fresh(); let left = activityState(p, def, T0).attemptsLeft; expect(left).toBe(3);
     const s = startActivity(p, def.id, T0); if ("error" in s) throw new Error(s.error);
@@ -37,7 +37,7 @@ describe("real-time limits", () => {
     let p = fresh();
     for (let i = 0; i < 3; i++) { const s = startActivity(p, def.id, T0 + i); if ("error" in s) throw new Error(s.error); p = s.progression; }
     expect("error" in startActivity(p, def.id, T0 + 5)).toBe(true);
-    expect(activityState(p, activityById("nc-ghost")!, T0).available).toBe(true);
+    expect(activityState(p, activityById("nx-sentinel")!, T0).available).toBe(true);
   });
   test("resets at 00:00 UTC and not before", () => {
     let p = fresh();
@@ -72,11 +72,11 @@ describe("objectives", () => {
     stepRun(def, run, tick({ kills: 57, elites: 1 })); expect(run.status).toBe("complete");
   });
   test("race gates must be hit in order and the clock fails the run", () => {
-    const def = activityById("nc-circuit")!; const run = (startActivity(fresh(), def.id, T0) as any).run as Run;
+    const def = activityById("sw-track")!; const run = (startActivity(fresh(), def.id, T0) as any).run as Run;
     const o: any = def.stages[0];
     const w1 = pointWorld(def.area, o.points[1]); stepRun(def, run, tick({ x: w1.x, z: w1.z })); expect(run.cp).toBe(0);
     for (const f of o.points) { const w = pointWorld(def.area, f); stepRun(def, run, tick({ x: w.x, z: w.z })); }
-    expect(run.status).toBe("complete");
+    expect(run.stage).toBe(1); // all four gates hit in order moves on to the kills stage
     const late = (startActivity(fresh(), def.id, T0) as any).run as Run;
     stepRun(def, late, tick({ now: T0 + 1000 })); stepRun(def, late, tick({ now: T0 + (o.timeLimit + 1) * 1000 }));
     expect(late.status).toBe("failed"); expect(late.failReason).toBe("Out of time");
@@ -97,19 +97,19 @@ describe("objectives", () => {
 });
 
 describe("rewards", () => {
-  const def = activityById("nc-circuit")!;
+  const def = activityById("sw-track")!;
   const complete = (hurt = false, now = T0 + 60_000) => { const s = startActivity(fresh(), def.id, T0) as any; const run: Run = s.run; run.status = "complete"; run.wasHurt = hurt; return { s, run, now }; };
   test("pays nex, rep, materials; bonus adds 25%", () => {
     const { s, run } = complete(); const r = completeActivity(s.progression, def, run, T0 + 60_000, () => 0.99) as any;
     expect(r.payout.bonus).toBe(true); // fast challenge met (60 s of 150 s)
-    expect(r.payout.nex).toBe(Math.round(def.rewards.nex * 1.25));
+    expect(r.payout.nex).toBe(Math.round(def.rewards.nex * 1.25 * (isFeatured(def.id, T0) ? 1.5 : 1)));
     expect(reputationOf(r.progression, def.faction)).toBe(r.payout.rep);
-    expect(r.progression.materials.microCircuits).toBeGreaterThan(s.progression.materials.microCircuits ?? 0);
+    expect(r.progression.materials.bioCatalyst).toBeGreaterThan(s.progression.materials.bioCatalyst ?? 0);
     expect(Object.values(r.progression.nexLedger).reduce((a: number, b: any) => a + b, 0)).toBe(r.payout.nex);
   });
   test("slow run gets base reward; shader drop is earned-only and not duplicated", () => {
-    const { s, run } = complete(); const r = completeActivity(s.progression, def, run, T0 + 140_000, () => 0) as any;
-    expect(r.payout.bonus).toBe(false); expect(r.payout.nex).toBe(def.rewards.nex); expect(r.payout.shader).toBe("circuit-runner");
+    const { s, run } = complete(); const r = completeActivity(s.progression, def, run, T0 + 200_000, () => 0) as any;
+    expect(r.payout.bonus).toBe(false); expect(r.payout.nex).toBe(Math.round(def.rewards.nex * (isFeatured(def.id, T0) ? 1.5 : 1))); expect(r.payout.shader).toBe("circuit-runner");
     const again = (startActivity(r.progression, def.id, T0 + 3_000_000) as any); const run2: Run = again.run; run2.status = "complete";
     const r2 = completeActivity(again.progression, def, run2, T0 + 3_100_000, () => 0) as any;
     expect(r2.payout.shader).not.toBe("circuit-runner");

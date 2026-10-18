@@ -47,7 +47,7 @@ describe("featured bonus and elites", () => {
 
 describe("reward protection", () => {
   test("the same completed run cannot be claimed twice", () => {
-    const def = activityById("nc-circuit")!; const s = startActivity(fresh(), def.id, T0) as any; const run: Run = s.run; run.status = "complete";
+    const def = activityById("nx-grid")!; const s = startActivity(fresh(), def.id, T0) as any; const run: Run = s.run; run.status = "complete";
     const first = completeActivity(s.progression, def, run, T0 + 100_000, () => 0.99) as any;
     expect(first.payout).toBeTruthy();
     const second = completeActivity(first.progression, def, run, T0 + 101_000, () => 0.99) as any;
@@ -56,7 +56,7 @@ describe("reward protection", () => {
     expect(sum(first.progression)).toBe(first.payout.nex);
   });
   test("a new attempt can be claimed once its own run completes", () => {
-    const def = activityById("nc-circuit")!; let p = fresh(); let total = 0;
+    const def = activityById("nx-grid")!; let p = fresh(); let total = 0;
     for (let i = 0; i < 2; i++) {
       const s = startActivity(p, def.id, T0 + i * 3_600_000) as any; s.run.status = "complete";
       const r = completeActivity(s.progression, def, s.run, T0 + i * 3_600_000 + 100_000, () => 0.99) as any; p = r.progression; total += r.payout.nex;
@@ -64,8 +64,8 @@ describe("reward protection", () => {
     expect(Object.values(p.nexLedger).reduce((a: number, b: any) => a + b, 0)).toBe(total);
   });
   test("existing saves load: an old missionRuns record without 'last' has no cooldown", () => {
-    const p = fresh(); p.missionRuns["act:nc-circuit"] = { day: "2026-10-18", count: 1 };
-    const st = activityState(p, activityById("nc-circuit")!, T0); expect(st.cooldownLeftMs).toBe(0); expect(st.attemptsLeft).toBe(2);
+    const p = fresh(); p.missionRuns["act:nx-grid"] = { day: "2026-10-18", count: 1 };
+    const st = activityState(p, activityById("nx-grid")!, T0); expect(st.cooldownLeftMs).toBe(0); expect(st.attemptsLeft).toBe(2);
   });
 });
 
