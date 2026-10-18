@@ -11,7 +11,7 @@ import { softSprite } from "./softSprite";
 import { REGIONS, SKY, ZONE_COLOR, clockLabel, phaseFor, regionAt, WORLD_RADIUS, WORLD_SCALE } from "@/game/world";
 import { BASE_FOOT_SPEED, SPRINT_MULT } from "@/game/foot-speed";
 import { useKeyboard } from "@/game/useKeyboard";
-import { touch, getEquippedBoots, activeBuffs, dashHud } from "@/game/client-input";
+import { touch, getEquippedBoots, activeBuffs, dashHud, dragoniteHud } from "@/game/client-input";
 import { buffEffect } from "@/game/stash";
 import { bootStats, SKATE_SHOP_OFFSET, SKATE_SHOP_RADIUS } from "@/game/skate-boots";
 import { walkHeight, slopeAt, heightAt, waterNetwork, WATER_LEVEL } from "@/game/terrain";
@@ -44,6 +44,8 @@ import { backpackFor } from "@/game/backpacks";
 import { createReticle, markHit, stepReticle, type Motion, type ReticleView, EMPTY_RETICLE } from "@/game/crosshair";
 import { createGrind, isGrinding, leaveGrind, stepGrind, tryLatch, worldRails } from "@/game/maggrind";
 import { createTraversal, restTraversal, startTraversal, stepTraversal } from "@/game/traversal";
+import { createDragoniteRuntime, castDragonite, stepDragonite, statsFor as dragoniteStatsFor } from "@/game/dragonite-cast";
+import { DRAGONITE_IDS, DRAGONITE } from "@/game/dragonite";
 import { DASHES, createDashState, dashHit, dashStats, hoverVy, stepDash, tryDash } from "@/game/dash";
 import { airJump, cameraDrop, cancelSlide, createMoveState, glideVy, GLIDE_THRUST, land, movementFov, resolveStance, startSlide, stepSlide, stepStance, AIR_PROFILE, STANCE_SPEED, SLIDE_SECONDS, type Stance } from "@/game/movement";
 import { loadoutEffects } from "@/game/armor-attributes";
@@ -145,7 +147,7 @@ import { atSupplyPoint, killRefund, restockAll, trickleRestock } from "@/game/am
 import { initialView, stepView, viewPose, type ViewPose, type ViewState } from "@/game/weapon-handling";
 import { ViewWeapon } from "./ViewWeapon";
 import { isLauncherId } from "@/game/launchers";
-import { DEFAULT_BINDINGS, abilityChord, maskChord } from "@/game/bindings";
+import { DEFAULT_BINDINGS, abilityChord, maskChord, normalizeBindings } from "@/game/bindings";
 import type { AbilityHud } from "@/game/ability-effects";
 import { abilityHud, cancelAbilities, castAbility, holdDisabledField, syncSimFromLive } from "@/game/ability-effects";
 import * as sfx from "@/game/audio";
@@ -891,6 +893,8 @@ function SceneImpl({
   const grindRt = useRef({ state: createGrind(), jumpPrev: false });
   const grindRails = useMemo(() => worldRails(NEON_CITY_CENTER, walkHeight), []);
   const opDash = useRef({ state: createDashState(playerClass, abilityBranches), held: false, wasActive: false });
+  /** Dragonite abilities of the bonded Operator (dragonite-cast.ts) */
+  const dragoniteRt = useRef({ rt: createDragoniteRuntime(), held: {} as Record<string, boolean> });
   const opDashStats = useMemo(() => dashStats(playerClass, abilityBranches), [playerClass, abilityBranches]);
   const wish = useMemo(() => new THREE.Vector3(), []);
   const camTarget = useMemo(() => new THREE.Vector3(), []);
@@ -1154,6 +1158,27 @@ function SceneImpl({
         } else alert(sim, cast.text);
       }
       abilityHeld.current[key] = down;
+    }
+    {
+      // Dragonite (dragonite-cast.ts): the bonded Operator's four abilities on rebindable keys
+      const dkeys = normalizeBindings(settings.bindings).keyboard;
+      const dr = dragoniteRt.current, dctx = { earnedRewards: gear?.earnedRewards ?? [], inventory: gear?.inventory ?? [], equippedGear: gear?.equippedGear ?? {}, cls: playerClass };
+      for (const id of DRAGONITE_IDS) {
+        const down = held.has(dkeys[id]);
+        if (down && !dr.held[id]) {
+          const e = { value: live.current.energy };
+          const r = castDragonite(dr.rt, sim, e, id, { x: s.x, z: s.z, yaw: s.yaw }, s.grounded, dctx);
+          if (r.ok) {
+            live.current.energy = e.value; s.punch += 0.2; sfx.playAbility("ABILITY");
+            if (r.launchVy) { s.vy = Math.max(s.vy, r.launchVy); s.grounded = false; }
+            else if (id === "wyrmwing") { velocity.x += Math.sin(s.yaw) * 18; velocity.z += Math.cos(s.yaw) * 18; }
+          } else if (r.text) alert(sim, r.text);
+        }
+        dr.held[id] = down;
+      }
+      const dres = stepDragonite(dr.rt, sim, dt, { x: s.x, z: s.z }, dctx);
+      dragoniteHud.current = playerClass && dctx.earnedRewards.includes(`covenant:vyrak:${playerClass}`) ? DRAGONITE_IDS.map((id) => ({ name: DRAGONITE[id].name, cd: dr.rt.cd[id], max: dragoniteStatsFor(dctx, id).cooldown, key: dkeys[id] })) : null;
+      sim.dragoniteResist = dres.resist;
     }
     /* ---------------- weather cycle (deterministic fronts per region, see weather-cycle.ts) ---------------- */
     // seasons layer on top of the fronts (environment.ts): same deterministic clock, seasonally-adjusted weather
@@ -2345,6 +2370,7 @@ function SceneImpl({
       }
       if (!travActive) {
       s.vy -= sim.gravity * dt;
+      if (dragoniteRt.current.rt.glide > 0 && s.vy < -2.5) s.vy = -2.5; // Wyrmwing glide
       s.y += s.vy * dt;
       if (s.y <= standY) {
         s.y = standY;

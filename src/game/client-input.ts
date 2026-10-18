@@ -27,3 +27,6 @@ import type { Buffs } from "./stash";
 export const activeBuffs: { current: Buffs } = { current: {} };
 /** Operator dash readout written by Scene each frame (dash.ts), read by DashHud */
 export const dashHud: { current: { name: string; charges: number; max: number; fill: number } | null } = { current: null };
+
+/** Dragonite ability readout written by Scene each frame (dragonite-cast.ts), read by DragoniteHud; null when the Operator is not bonded */
+export const dragoniteHud: { current: { name: string; cd: number; max: number; key: string }[] | null } = { current: null };
