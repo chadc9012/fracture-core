@@ -123,3 +123,11 @@ describe("progression, rewards, protection", () => {
     expect((settleConvoy(fresh(), run, T0) as any).reward.nex).toBeLessThan(a.nex);
   });
 });
+
+import { convoyBoard } from "./convoy";
+describe("convoy board listing", () => {
+  test("every region lists 10 levels; only the next level is open on a fresh save", () => {
+    const rows = convoyBoard(fresh(), T0); expect(rows.length).toBe(10);
+    for (const r of rows) { expect(r.levels.length).toBe(10); expect(r.levels[0]!.locked).toBeNull(); expect(r.levels[1]!.locked).not.toBeNull(); }
+  });
+});

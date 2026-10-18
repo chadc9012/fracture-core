@@ -187,3 +187,9 @@ export function settleConvoy(p: PlayerProgression, run: ConvoyRun, now: number):
   return { progression: next, reward: { nex, xp, rep, materials, quality: q, optional, levelUp, suspended: false } };
 }
 export const convoyRecord = (p: Store) => ({ deliveries: count(p, "deliveries"), cargoSaved: count(p, "cargo-saved"), commandersDefeated: count(p, "commanders"), highest: Object.fromEntries(CONVOYS.map((c) => [c.region, highestThreat(p, c.region)])) });
+
+/** Board listing: one row per region with every threat level and why it is locked (null = available). Pure; the UI/world layer consumes it. */
+export type ConvoyBoardRow = { region: ConvoyRegion; name: string; attackers: readonly Attacker[]; highest: number; levels: { level: number; title: string; locked: string | null }[] };
+export function convoyBoard(p: Store, now: number): ConvoyBoardRow[] {
+  return CONVOYS.map((c) => ({ region: c.region, name: c.name, attackers: c.attackers, highest: highestThreat(p, c.region), levels: THREAT_NAMES.map((title, i) => ({ level: i + 1, title, locked: levelLocked(p, c.region, i + 1, now) })) }));
+}
