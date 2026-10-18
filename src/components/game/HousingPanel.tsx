@@ -8,7 +8,7 @@ const SLOTS: DecorSlot[] = ["paint", "wallpaper", "floor", "furniture", "art", "
 const ROOM_NAME = { living: "Living room", bedroom: "Bedroom", bathroom: "Bathroom", kitchen: "Kitchen", garage: "Garage" } as const;
 
 /** Veyra Realty: buy homes, then decorate any owned home room by room (housing.ts). */
-export function HousingPanel({ progression, onProgression, onClose, startTab = "HOMES", startHome }: { startHome?: string; progression: PlayerProgression; onProgression: (p: PlayerProgression) => void; onClose: () => void; startTab?: "HOMES" | "DECORATE" }) {
+export function HousingPanel({ progression, onProgression, onClose, startTab = "HOMES", startHome }: { startHome?: string | undefined; progression: PlayerProgression; onProgression: (p: PlayerProgression) => void; onClose: () => void; startTab?: "HOMES" | "DECORATE" }) {
   const [tab, setTab] = useState(startTab);
   const [notice, setNotice] = useState("");
   const owned = HOMES.filter((h) => ownsHome(progression, h.id));
