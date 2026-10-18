@@ -1,6 +1,6 @@
 import { Instance, Instances } from "@react-three/drei";
 import { DistrictLight } from "./DistrictLight";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
 
@@ -199,6 +199,34 @@ function Ground() {
   return <group ref={group} name="ground-chunks" />;
 }
 
+/** soft radial contact-shadow texture, shared by every blob shadow */
+let blobTex: THREE.Texture | null = null;
+function blobTexture(): THREE.Texture {
+  if (blobTex) return blobTex;
+  const c = document.createElement("canvas"); c.width = c.height = 64;
+  const g = c.getContext("2d")!;
+  const r = g.createRadialGradient(32, 32, 0, 32, 32, 32);
+  r.addColorStop(0, "rgba(0,0,0,0.55)"); r.addColorStop(0.55, "rgba(0,0,0,0.32)"); r.addColorStop(1, "rgba(0,0,0,0)");
+  g.fillStyle = r; g.fillRect(0, 0, 64, 64);
+  blobTex = new THREE.CanvasTexture(c);
+  return blobTex;
+}
+
+/** On tiers where trees cast no real shadows (LOW/MEDIUM), a soft dark disc under each crown grounds the forest for
+ * two triangles a tree instead of a shadow-map pass. */
+function BlobShadows({ items }: { items: (Placement & { r0: number })[] }) {
+  const ref = useRef<THREE.InstancedMesh>(null);
+  const geo = useMemo(() => new THREE.PlaneGeometry(2, 2).rotateX(-Math.PI / 2), []);
+  const mat = useMemo(() => new THREE.MeshBasicMaterial({ map: blobTexture(), transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 }), []);
+  useLayoutEffect(() => {
+    const m = ref.current; if (!m) return;
+    const o = new THREE.Object3D();
+    items.forEach((t, i) => { const r = t.r0 * t.s; o.position.set(t.x, heightAt(t.x, t.z) + 0.06, t.z); o.rotation.set(0, t.r, 0); o.scale.set(r, 1, r); o.updateMatrix(); m.setMatrixAt(i, o.matrix); });
+    m.count = items.length; m.instanceMatrix.needsUpdate = true;
+  }, [items]);
+  return <instancedMesh ref={ref} args={[geo, mat, Math.max(1, items.length)]} frustumCulled={false} renderOrder={1} />;
+}
+
 export function Terrain({ renderTier = "HIGH" }: { renderTier?: RenderTier } = {}) {
   // ~13 MB of decorative Poly Haven GLBs would compete with the ground textures and first frames, so they join the world a few seconds after it appears
   const [modelsReady, setModelsReady] = useState(false);
@@ -370,6 +398,7 @@ export function Terrain({ renderTier = "HIGH" }: { renderTier?: RenderTier } = {
       {renderTier !== "LOW" && modelsReady && <RegionModels />}
       {realTrees && modelsReady && (
         <>
+          {!fineShadows && <BlobShadows items={[...firs.map((t) => ({ ...t, r0: firHeight * 0.2 })), ...broadleafs.map((t) => ({ ...t, r0: broadHeight * 0.36 }))]} />}
           <PolyFoliage kind="fir" items={firs} height={firHeight} sway={0.35} shadows={fineShadows} variants onReady={readyFir} />
           <PolyFoliage kind="broadleaf" items={broadleafs} height={broadHeight} sway={0.4} shadows={fineShadows} variants onReady={readyBroad} />
           {realHeavy && <>

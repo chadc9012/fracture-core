@@ -1192,10 +1192,15 @@ export function GameCanvas() {
         // the top render tier so MEDIUM/HIGH still get the cheap color-grade + bloom + vignette
         // look without paying for contact-shadow and bokeh sampling every frame.
         const premium = post && liveTier === "ULTRA";
+        // LOW / MEDIUM have no post stack (a composer pass would also drop MSAA), so they get the same cool, contrasty grade
+        // as a GPU-composited CSS filter on the canvas plus a vignette overlay: no extra WebGL pass, no frame-time cost.
+        const liteGrade = !post && flags.post && !flags.fxOff.has("grade");
         return (
       <>
       {transit && <TransitOverlay startedAt={transit.startedAt} plan={transit.plan} reduced={transit.reduced} name={transit.target.name} sub={transit.target.sub} color={transit.target.color} />}
+      {liteGrade && <div aria-hidden className="pointer-events-none fixed inset-0 z-[1]" style={{ background: "radial-gradient(ellipse at center, transparent 55%, rgba(4,8,14,0.42) 100%)" }} />}
       <Canvas
+        style={liteGrade ? { filter: "contrast(1.08) saturate(1.06) brightness(0.98)" } : undefined}
         onCreated={onCreated}
         onPointerDown={(event) => {
           if (event.button === 0 || event.button === 2) event.currentTarget.requestPointerLock?.();
