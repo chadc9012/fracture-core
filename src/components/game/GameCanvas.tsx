@@ -18,6 +18,7 @@ import type { RenderTier } from "@/game/performance";
 import { DPR_FLOOR, effectiveTier, onDecline as governDecline } from "@/game/quality-governor";
 import { MissionCinematic } from "./MissionCinematic";
 import { recordClue } from "@/game/encounter-journal";
+import { discoveryById, discoveryOfDef, reveal as revealDiscoveries } from "@/game/discoveries";
 import { VYRAK_REMATCH, activityState, activityById, startActivity, completeActivity, abandonRun, type ActivityDef, type Run as ActivityRun } from "@/game/activities";
 import { ActivityTracker, ActivityResultPanel, type ActivityResult } from "./ActivityHud";
 import { CAMPAIGN_CHAIN } from "@/game/campaign-cinematics";
@@ -891,13 +892,20 @@ export function GameCanvas() {
     if ("error" in res) { setMenuNotice(res.error); return; }
     setProgression(res.progression); setActivity({ def: activityById(id)!, run: res.run }); setOperationsView(null);
   };
+  const onDiscovery = (id: string) => {
+    const d = discoveryById(id); if (!d || activity) return;
+    const res = startActivity(progressionRef.current, d.def.id, Date.now());
+    if ("error" in res) return;
+    progressionRef.current = res.progression; // block a second trigger before React re-renders
+    setProgression(res.progression); setActivity({ def: d.def, run: res.run });
+  };
   const onActivityChange = () => {
     setActivityTick((n) => n + 1);
     const cur = activity; if (!cur) return;
     if (cur.run.status === "complete") {
       const done = completeActivity(progressionRef.current, cur.def, cur.run, Date.now());
       setActivity(null);
-      if (!("error" in done)) { setProgression(done.progression); setActivityResult({ def: cur.def, ok: true, payout: done.payout }); }
+      if (!("error" in done)) { const found = discoveryOfDef(cur.def.id)?.reveals; setProgression(found ? revealDiscoveries(done.progression, found) : done.progression); setActivityResult({ def: cur.def, ok: true, payout: done.payout, ...(discoveryOfDef(cur.def.id)?.reveals?.length ? { revealed: discoveryOfDef(cur.def.id)!.reveals!.length } : {}) }); }
     } else if (cur.run.status === "failed") { setActivity(null); setActivityResult({ def: cur.def, ok: false, reason: cur.run.failReason ?? "Failed" }); }
   };
   const abandonActivity = () => { if (!activity) return; abandonRun(activity.run); onActivityChange(); };
@@ -1181,7 +1189,7 @@ export function GameCanvas() {
       >
         <color attach="background" args={["#bfe4f2"]} />
         <Suspense fallback={<WorldLoading />}>
-            <Profiler id="scene" onRender={onProf}><Scene vyrakRematch={rematchReady} onVyrakRematch={spendRematch} activity={activity} onActivityChange={onActivityChange} onEncounterClue={(enc, clue) => setProgression((cur) => recordClue(cur, enc, clue).progression)} openedCaches={openedToday} onStoryEvent={recordStory} onLiving={recordLiving} onWaste={recordWaste} summonNemesis={summonNemesis} onHud={setHud} onDrops={(drops) => { showScenarioRewards(drops); setProgression((current) => claimDrops(current, drops)); }} gear={progression} settings={liveSettings} onCameraPreference={(firstPerson) => { window.localStorage.setItem("world-fracture-camera", firstPerson ? "first" : "third"); setSettings((current) => ({ ...current, firstPersonDefault: firstPerson })); }} playerClass={cls} subclassId={subclass} bonded={isBonded(progression, cls)} appearance={appearance} bodyType={bodyType} vehicleId={vehicleId} vehicleUnlocked={vehicleUnlocked} activeBuild={progression.activeBuild} abilityBranches={progression.abilityBranches} tutorial={tutorial} onTutorialEvent={recordTutorial} mission={mission} onMissionEvent={recordMission} relay={relay} onRelayEvent={recordRelay} blackout={blackout} onBlackoutEvent={recordBlackout} neonCore={neonCore} onNeonCoreEvent={recordNeonCore} solarArray={solarArray} onSolarArrayEvent={recordSolarArray} coreNode={coreNode} onCoreNodeEvent={recordCoreNode} zoneRuns={zoneRuns} onZoneEvent={recordZone} descent={descent} onDescentEvent={recordDescent} systemCore={systemCore} onSystemCoreEvent={recordSystemCore} awakening={awakening} onAwakeningEvent={recordAwakening} onXP={recordXP} weaponOrder={carriedWeapons(activeLoadout(progression, progression.identityClass ?? cls).slots)} travelTo={travelTo} introPlayback={showIntro ? { elapsed: introElapsed, totalSeconds: introTotalSeconds() } : cineId ? { elapsed: cineProgress * introTotalSeconds(), totalSeconds: introTotalSeconds() } : null} armorState={hud.hp < 35 ? "FRACTURE" : hud.heat > 65 ? "ASCENDANT" : hud.heat > 15 ? "ACTIVE" : "STABLE"} /></Profiler>
+            <Profiler id="scene" onRender={onProf}><Scene onDiscovery={onDiscovery} vyrakRematch={rematchReady} onVyrakRematch={spendRematch} activity={activity} onActivityChange={onActivityChange} onEncounterClue={(enc, clue) => setProgression((cur) => recordClue(cur, enc, clue).progression)} openedCaches={openedToday} onStoryEvent={recordStory} onLiving={recordLiving} onWaste={recordWaste} summonNemesis={summonNemesis} onHud={setHud} onDrops={(drops) => { showScenarioRewards(drops); setProgression((current) => claimDrops(current, drops)); }} gear={progression} settings={liveSettings} onCameraPreference={(firstPerson) => { window.localStorage.setItem("world-fracture-camera", firstPerson ? "first" : "third"); setSettings((current) => ({ ...current, firstPersonDefault: firstPerson })); }} playerClass={cls} subclassId={subclass} bonded={isBonded(progression, cls)} appearance={appearance} bodyType={bodyType} vehicleId={vehicleId} vehicleUnlocked={vehicleUnlocked} activeBuild={progression.activeBuild} abilityBranches={progression.abilityBranches} tutorial={tutorial} onTutorialEvent={recordTutorial} mission={mission} onMissionEvent={recordMission} relay={relay} onRelayEvent={recordRelay} blackout={blackout} onBlackoutEvent={recordBlackout} neonCore={neonCore} onNeonCoreEvent={recordNeonCore} solarArray={solarArray} onSolarArrayEvent={recordSolarArray} coreNode={coreNode} onCoreNodeEvent={recordCoreNode} zoneRuns={zoneRuns} onZoneEvent={recordZone} descent={descent} onDescentEvent={recordDescent} systemCore={systemCore} onSystemCoreEvent={recordSystemCore} awakening={awakening} onAwakeningEvent={recordAwakening} onXP={recordXP} weaponOrder={carriedWeapons(activeLoadout(progression, progression.identityClass ?? cls).slots)} travelTo={travelTo} introPlayback={showIntro ? { elapsed: introElapsed, totalSeconds: introTotalSeconds() } : cineId ? { elapsed: cineProgress * introTotalSeconds(), totalSeconds: introTotalSeconds() } : null} armorState={hud.hp < 35 ? "FRACTURE" : hud.heat > 65 ? "ASCENDANT" : hud.heat > 15 ? "ACTIVE" : "STABLE"} /></Profiler>
         </Suspense>
         {post && (
           // cinematic grade: cool-leaning teal shadows, a touch more punch, so the HUD's cyan

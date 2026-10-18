@@ -20,7 +20,7 @@ export function ActivityTracker({ def, run, onAbandon }: { def: ActivityDef; run
   </div>;
 }
 
-export type ActivityResult = { def: ActivityDef; ok: boolean; reason?: string; payout?: Payout };
+export type ActivityResult = { def: ActivityDef; ok: boolean; reason?: string; payout?: Payout; /** hidden discoveries a beacon just revealed */ revealed?: number };
 export function ActivityResultPanel({ result, onDone }: { result: ActivityResult; onDone: () => void }) {
   useEffect(() => { const t = setTimeout(onDone, 9000); return () => clearTimeout(t); }, [onDone]);
   const p = result.payout;
@@ -30,6 +30,8 @@ export function ActivityResultPanel({ result, onDone }: { result: ActivityResult
     {result.ok && p ? <ul className="mt-2 space-y-1">
       <li>+{p.nex} Nex · +{p.xp} XP · +{p.rep} reputation</li>
       {Object.entries(p.materials).map(([k, v]) => <li key={k}>+{v} {k}</li>)}
+      {p.featured && <li className="text-primary">Featured contract bonus (+50%)</li>}
+      {result.revealed ? <li className="text-primary">{result.revealed} hidden signal{result.revealed > 1 ? "s" : ""} marked on your map when you get near</li> : null}
       {p.shader && <li className="text-primary">Shader unlocked: {p.shader}</li>}
       {p.bonus ? <li className="text-primary">Bonus challenge met (+25%)</li> : result.def.challenge && <li className="text-muted-foreground">Bonus missed: {result.def.challenge.label}</li>}
       <li className="text-muted-foreground">Cooldown started — see the Activity Board.</li>

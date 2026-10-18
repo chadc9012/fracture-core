@@ -1,4 +1,6 @@
+const DISCOVERY_LABEL: Record<string, string> = { flag: "Flag", beacon: "Beacon", patrol: "Patrol", fracture: "Rift Fracture", distress: "Distress Signal", cache: "Cache", movement: "Movement Route", anomaly: "Anomaly" };
 const ACTIVITY_REGION: Record<string, string> = { veridan: "veridan", ember: "ember", wastelands: "wastelands", swamps: "swamps", solara: "solara", frostspire: "frostspire", thalassia: "swamps" };
+import { nearby as discoveriesNear, triggered as discoveryTriggered } from "@/game/discoveries";
 import { novaHint } from "@/game/encounter-journal";
 import { stepRun as stepActivity, currentTarget as activityTarget, type ActivityDef, type Run as ActivityRun } from "@/game/activities";
 import { renderCounts, setterCalls } from "@/game/perf-counters";
@@ -459,6 +461,7 @@ function SceneImpl({
   onEncounterClue,
   activity,
   onActivityChange,
+  onDiscovery,
   vyrakRematch,
   onVyrakRematch,
   onLiving,
@@ -521,6 +524,8 @@ function SceneImpl({
   /** activities.ts: the run in progress (mutated here each frame) and a notifier when its stage/progress/status changes */
   activity?: { def: ActivityDef; run: ActivityRun } | null;
   onActivityChange?: () => void;
+  /** the player walked into a discovery; the host starts it through the same activity pipeline as the board */
+  onDiscovery?: (discoveryId: string) => void;
   /** Vyrak rematch (activities.ts VYRAK_REMATCH): a bonded Operator may re-summon the Sky Sovereign only while this is true; the host spends the attempt */
   vyrakRematch?: boolean;
   onVyrakRematch?: () => void;
@@ -685,7 +690,8 @@ function SceneImpl({
   const hazardRef = useRef<HazardEffect>(hazardAt({ regionId: null, t: 0, dt: 0, sheltered: true, exposure: 0 }));
   const lightning = useRef(0);
   const zonePull = useRef({ x: 0, z: 0 });
-  const markerList = (): Marker[] => {
+  const discoveryClock = useRef(0);
+  const markerList = (px?: number, pz?: number): Marker[] => {
     const now = performance.now();
     const list: Marker[] = [];
     if (awakening?.target) list.push({ id: "m-awakening", kind: "MISSION", label: "Awakening", x: awakening.target.x, z: awakening.target.z, regionId: "nexus" });
@@ -699,6 +705,8 @@ function SceneImpl({
     if (descent?.target && descent.state !== "COMPLETE" && descent.state !== "WORLD_UPDATE") list.push({ id: "m-descent-protocol", kind: "MISSION", label: "Descent Protocol", x: descent.target.x, z: descent.target.z, regionId: "swamps" });
     if (systemCore?.target && systemCore.state !== "COMPLETE" && systemCore.state !== "WORLD_UPDATE") list.push({ id: "m-system-core", kind: "MISSION", label: "The System Core", x: systemCore.target.x, z: systemCore.target.z, regionId: "swamps" });
     for (const m of sim.director.missions) { if (m.state !== "ACTIVE") continue; const c = regionCenter(m.regionId); if (c) list.push({ id: `m-${m.id}`, kind: "MISSION", label: m.name, x: c.x, z: c.z, regionId: m.regionId }); }
+    // open-world discoveries (discoveries.ts): only ones the player can see or hear from here; hidden ones appear once a beacon has revealed them
+    if (gear && !tutorial && px !== undefined && pz !== undefined) for (const f of discoveriesNear(gear, px, pz, Date.now())) list.push({ id: `disc-${f.discovery.id}`, kind: "MISSION", label: `${DISCOVERY_LABEL[f.discovery.kind]} · ${f.discovery.name}`, x: f.x, z: f.z, regionId: ACTIVITY_REGION[f.discovery.area] ?? "nexus" });
     { const tg = activity ? activityTarget(activity.def, activity.run) : null; if (tg) list.push({ id: "m-activity", kind: "MISSION", label: `${activity!.def.name} · ${tg.label}`, x: tg.x, z: tg.z, regionId: ACTIVITY_REGION[activity!.def.area] ?? "nexus" }); }
     if (!investigation.current.done) list.push({ id: "forest-crash-site", kind: "MISSION", label: CRASH_SITE.label, x: CRASH_SITE.x, z: CRASH_SITE.z, regionId: "veridan" });
     for (const site of RESOURCE_SITES) list.push({ ...site, ready: (depleted.current[site.id] ?? 0) <= now });
@@ -1903,6 +1911,8 @@ function SceneImpl({
         stepActivity(activity.def, r, { x: s.x, z: s.z, dt, now: Date.now(), kills: sim.kills, elites: sim.eliteKills, bosses: sim.bossKills, hp: sim.hp, deaths: sim.deaths });
         if (sig0 !== `${r.stage}|${r.progress}|${r.status}|${r.cp}|${r.carrying}`) onActivityChange?.();
       }
+      // walking into a discovery starts it (consuming one attempt, like any activity); a running activity or the tutorial blocks it
+      if (gear && !tutorial && !activity && onDiscovery) { discoveryClock.current += dt; if (discoveryClock.current > 0.3) { discoveryClock.current = 0; const hit = discoveryTriggered(gear, s.x, s.z, Date.now()); if (hit) onDiscovery(hit.id); } }
       if (gear && !tutorial && onEncounterClue) {
         const known = (id: string) => gear.earnedRewards.includes(`enc-clue:vyrak:${id}`) || clueSent.current.has(id);
         // NOVA comments after each new clue (one clue is not a pattern; two or more point at the region), using the keys the journal will hold once this clue is saved
@@ -2678,7 +2688,7 @@ function SceneImpl({
           color: RARITY_COLOR[it.rarity],
         })),
         inspector: s.showInspector ? buildInspector() : null,
-        markers: track(markerList(), s.x, s.z, s.yaw),
+        markers: track(markerList(s.x, s.z), s.x, s.z, s.yaw),
         px: s.x, pz: s.z, yaw: s.yaw,
         diving: s.diving,
         oxygen: Math.round(s.oxygen),
