@@ -43,13 +43,13 @@ function DecorObject({ id }: { id: string }) {
 }
 
 function Room({ index, roomName, decor, exitRoom }: { index: number; roomName: string; decor: Record<string, string>; exitRoom: boolean }) {
-  const wall = WALL[decor.wallpaper] ?? WALL[decor.paint] ?? { color: roomName === "bathroom" ? "#9fb0b8" : "#565d68" };
-  const floor = FLOOR[decor.floor] ?? (roomName === "garage" ? "#3d3f42" : "#3a3a42");
+  const wall = WALL[decor["wallpaper"] ?? ""] ?? WALL[decor["paint"] ?? ""] ?? { color: roomName === "bathroom" ? "#9fb0b8" : "#565d68" };
+  const floor = FLOOR[decor["floor"] ?? ""] ?? (roomName === "garage" ? "#3d3f42" : "#3a3a42");
   const x = index * HOME_ROOM_SIZE;
   const w = (p: [number, number, number], s: [number, number, number]) => <Box p={p} s={s} c={wall.color} e={wall.emissive} r={0.75} />;
   return (
     <group position={[x, 0, 0]}>
-      <mesh rotation-x={-Math.PI / 2} receiveShadow><planeGeometry args={[HOME_ROOM_SIZE, HOME_ROOM_SIZE]} /><meshStandardMaterial color={floor} roughness={decor.floor === "floor-concrete" ? 0.35 : 0.8} /></mesh>
+      <mesh rotation-x={-Math.PI / 2} receiveShadow><planeGeometry args={[HOME_ROOM_SIZE, HOME_ROOM_SIZE]} /><meshStandardMaterial color={floor} roughness={decor["floor"] === "floor-concrete" ? 0.35 : 0.8} /></mesh>
       <mesh rotation-x={Math.PI / 2} position={[0, H, 0]}><planeGeometry args={[HOME_ROOM_SIZE, HOME_ROOM_SIZE]} /><meshStandardMaterial color="#1e2027" side={THREE.DoubleSide} /></mesh>
       {w([0, H / 2, -HALF], [HOME_ROOM_SIZE, H, 0.25])}
       {/* front wall: room 0 keeps a gap for the exit, others are solid */}
@@ -66,7 +66,7 @@ function Room({ index, roomName, decor, exitRoom }: { index: number; roomName: s
 }
 
 /** Every buyable home as walkable rooms parked at INTERIOR_ALTITUDE, decorated from progression.housing. Only owned homes render. */
-export const HomeInteriors = memo(function HomeInteriors({ housing, nexLedger }: { housing?: HousingState; nexLedger?: Record<string, unknown> }) {
+export const HomeInteriors = memo(function HomeInteriors({ housing, nexLedger }: { housing?: HousingState | undefined; nexLedger?: Record<string, unknown> | undefined }) {
   return (
     <group>
       {HOME_INTERIORS.map((it) => {
@@ -78,7 +78,7 @@ export const HomeInteriors = memo(function HomeInteriors({ housing, nexLedger }:
             {/* the last room's far wall closes the home */}
             {home.rooms.map((room, i) => {
               const decor: Record<string, string> = {};
-              for (const [k, v] of Object.entries(placed)) { const [ri, slot] = k.split(":"); if (Number(ri) === i) decor[slot] = v; }
+              for (const [k, v] of Object.entries(placed)) { const [ri, slot] = k.split(":"); if (slot && Number(ri) === i) decor[slot] = v; }
               return <Room key={i} index={i} roomName={room} decor={decor} exitRoom={i === 0} />;
             })}
             <mesh rotation-x={-Math.PI / 2} position={[it.exitOffset.x, 0.02, it.exitOffset.z]}><ringGeometry args={[1.2, 1.6, 24]} /><meshBasicMaterial color="#7dffca" transparent opacity={0.6} /></mesh>
