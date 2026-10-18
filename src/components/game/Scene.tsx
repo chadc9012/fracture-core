@@ -147,6 +147,7 @@ import { atSupplyPoint, killRefund, restockAll, trickleRestock } from "@/game/am
 import { initialView, stepView, viewPose, type ViewPose, type ViewState } from "@/game/weapon-handling";
 import { ViewWeapon } from "./ViewWeapon";
 import { isLauncherId } from "@/game/launchers";
+import { acquireTarget, cycleTarget as cycleLockTarget, lockLookAt, newLockState, retainLock, swapShoulder, type LockCandidate } from "@/game/target-lock";
 import { DEFAULT_BINDINGS, abilityChord, maskChord, normalizeBindings } from "@/game/bindings";
 import type { AbilityHud } from "@/game/ability-effects";
 import { abilityHud, cancelAbilities, castAbility, holdDisabledField, syncSimFromLive } from "@/game/ability-effects";
@@ -894,6 +895,8 @@ function SceneImpl({
   const grindRails = useMemo(() => worldRails(NEON_CITY_CENTER, walkHeight), []);
   const opDash = useRef({ state: createDashState(playerClass, abilityBranches), held: false, wasActive: false });
   /** Dragonite abilities of the bonded Operator (dragonite-cast.ts) */
+  /** target lock + shoulder side (target-lock.ts) */
+  const lockRt = useRef({ state: newLockState(), keys: {} as Record<string, boolean> });
   const dragoniteRt = useRef({ rt: createDragoniteRuntime(), held: {} as Record<string, boolean> });
   const opDashStats = useMemo(() => dashStats(playerClass, abilityBranches), [playerClass, abilityBranches]);
   const wish = useMemo(() => new THREE.Vector3(), []);
@@ -1590,6 +1593,30 @@ function SceneImpl({
       }
     }
 
+    {
+      // Target lock (target-lock.ts): U locks the best target in front, P cycles, O swaps the camera shoulder; the camera turns softly toward the lock
+      const lk = lockRt.current, lkeys = normalizeBindings(settings.bindings).keyboard;
+      const edge = (name: "lockOn" | "cycleTarget" | "swapShoulder") => { const down = held.has(lkeys[name]); const hit = down && !lk.keys[name]; lk.keys[name] = down; return hit; };
+      const cands: LockCandidate[] = [];
+      for (let i = 0; i < sim.machines.length; i++) { const m = sim.machines[i]!; if (m.alive) cands.push({ id: String(i), position: { x: m.x, y: m.y, z: m.z }, alive: true, priority: m.boss ? 2 : m.elite ? 1 : 0 }); }
+      const origin = { x: s.x, y: s.y + 1.4, z: s.z };
+      const fwd = { x: Math.sin(s.yaw), y: 0, z: Math.cos(s.yaw) };
+      if (edge("lockOn")) {
+        if (lk.state.lockedTargetId) { lk.state = { ...lk.state, lockedTargetId: null }; alert(sim, "Lock released"); }
+        else { const id = acquireTarget(origin, fwd, cands); lk.state = { ...lk.state, lockedTargetId: id }; alert(sim, id ? "TARGET LOCKED" : "No target in view"); }
+      }
+      if (edge("cycleTarget")) lk.state = { ...lk.state, lockedTargetId: cycleLockTarget(lk.state.lockedTargetId, cands) };
+      if (edge("swapShoulder")) lk.state = swapShoulder(lk.state);
+      lk.state = retainLock(lk.state, origin, cands);
+      const lockedMachine = lk.state.lockedTargetId ? sim.machines[Number(lk.state.lockedTargetId)] : undefined;
+      if (lockedMachine && lockedMachine.alive && !s.inVehicle && !introPlayback) {
+        const at = lockLookAt({ x: lockedMachine.x, y: lockedMachine.y, z: lockedMachine.z }, { x: lockedMachine.kx, y: 0, z: lockedMachine.kz }, { targetHeight: 1.0, leadSeconds: 0.15 });
+        const want = Math.atan2(at.x - s.x, at.z - s.z), delta = Math.atan2(Math.sin(want - s.yaw), Math.cos(want - s.yaw));
+        s.yaw += delta * Math.min(1, dt * 6);
+        const flat = Math.hypot(at.x - s.x, at.z - s.z);
+        s.pitch = clampPitch(s.pitch + (Math.atan2(at.y - origin.y, Math.max(1, flat)) - s.pitch) * Math.min(1, dt * 4));
+      } else if (lk.state.lockedTargetId) lk.state = { ...lk.state, lockedTargetId: null };
+    }
     /* ---------------- keyboard + gamepad look: arrows / right stick turn the camera on foot (mouse look still works) ---------------- */
     const codeEntry = stratagem.current.open; // arrows enter the call-in code while N is held
     if (!s.inVehicle && !codeEntry && !introPlayback) {
@@ -2453,7 +2480,7 @@ function SceneImpl({
       const override = !s.inVehicle && (s.meleeTime > 0 || s.specialTime > 0);
       const targetBlend = override || !s.firstPerson ? 1 : 0;
       s.cameraBlend += (targetBlend - s.cameraBlend) * (1 - Math.exp(-15 * dt));
-      const shoulder = s.inVehicle ? 0 : 1.3;
+      const shoulder = s.inVehicle ? 0 : 1.3 * lockRt.current.state.shoulderSide;
       const vcam = vehicleCamera(handling);
       const distance = s.inVehicle ? vcam.distance : 5.8;
       camTarget.set(
