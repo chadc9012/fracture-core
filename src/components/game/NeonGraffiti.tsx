@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import * as THREE from "three";
-import { Text } from "@react-three/drei";
+import { Text } from "./SafeText";
 import { walkHeight } from "@/game/terrain";
 import { SKATE_SHOP_OFFSET } from "@/game/skate-boots";
 

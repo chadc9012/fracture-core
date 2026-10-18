@@ -13,6 +13,8 @@ export type BootStats = {
   /** horizontal burst (units/s) on a Shift tap; 0 = no dash */ dash: number;
   /** seconds between dashes */ dashCooldown: number;
   /** dash direction: ground skids forward, air dashes keep you aloft */ dashStyle: "skid" | "air" | "blink";
+  /** NEX-only price; when set the pair cannot be bought with shards */ nexPrice?: number;
+  /** magnetic soles: can latch onto Neon City grind rails */ grind?: boolean;
 };
 
 export const BOOTS: Record<Exclude<BootId, "none">, BootStats> = {

@@ -7,7 +7,8 @@ import { novaHint } from "@/game/encounter-journal";
 import { stepRun as stepActivity, currentTarget as activityTarget, type ActivityDef, type Run as ActivityRun } from "@/game/activities";
 import { renderCounts, setterCalls } from "@/game/perf-counters";
 import { createHudGate } from "@/game/hud-gate";
-import { Billboard, Environment, Lightformer, Sky, Text, useGLTF } from "@react-three/drei";
+import { Billboard, Environment, Lightformer, Sky, useGLTF } from "@react-three/drei";
+import { Text } from "./SafeText";
 import { heavyShadows, NEAR_SCALE, setPerfTier } from "@/game/perf-budget";
 import { ruins, isEvolved, isDiscovered, freshCharge, RUIN_DISCOVER_RADIUS, RUIN_REACH } from "@/game/weapon-evolution";
 import { useFrame, useThree } from "@react-three/fiber";
@@ -536,7 +537,7 @@ function SceneImpl({
   onVehicleCondition?: (id: string, condition: VehicleCondition) => void;
   /** Wastelands activity results (wasteland-runtime.ts); GameCanvas resolves them into the save */
   onWaste?: (event: WasteEmit) => void;
-  gear?: Pick<PlayerProgression, "inventory" | "equippedGear" | "dungeonClears" | "completedMissions" | "story" | "earnedRewards"> & Partial<Pick<PlayerProgression, "living" | "challenge" | "nemeses" | "fleet" | "blade" | "vehicleConditions" | "nexLedger" | "housing">>;
+  gear?: Pick<PlayerProgression, "inventory" | "equippedGear" | "dungeonClears" | "completedMissions" | "story" | "earnedRewards" | "missionRuns"> & Partial<Pick<PlayerProgression, "living" | "challenge" | "nemeses" | "fleet" | "blade" | "vehicleConditions" | "nexLedger" | "housing">>;
   /** nemesis.ts: a nemesis the player picked on the map; it ambushes right after arrival */
   summonNemesis?: string | null;
   mission?: MissionRun | null;

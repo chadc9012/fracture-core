@@ -1,4 +1,4 @@
-import { Text } from "@react-three/drei";
+import { Text } from "./SafeText";
 import { DistrictLight } from "./DistrictLight";
 import { useFrame } from "@react-three/fiber";
 import { useMemo, useRef } from "react";

@@ -39,11 +39,12 @@ function Gate({ look, width }: { look: Look; width: number }) {
 }
 
 export const RaceCourse = memo(function RaceCourse({ race, run }: { race: RaceDef; run: RaceRun }) {
-  const look = LOOK[race.area] ?? LOOK.neon!;
+  const look = LOOK[race.area] ?? LOOK["neon"]!;
   const gates = useRef<(THREE.Group | null)[]>([]), rivals = useRef<(THREE.Group | null)[]>([]);
   const width = race.mode === "foot" ? 7 : race.mode === "dive" ? 14 : 16;
   const rivalCount = race.rivals;
   const rivalColors = useMemo(() => Array.from({ length: rivalCount }, (_, i) => new THREE.Color().setHSL((i * 0.17 + 0.05) % 1, 0.7, 0.55)), [rivalCount]);
+  const rivalColor = (r: number) => rivalColors[r] ?? "#ffffff";
   useFrame(() => {
     const first = run.phase === "staging" || run.phase === "countdown" ? 0 : run.next;
     for (let k = 0; k < GATES_SHOWN; k++) {
@@ -70,9 +71,9 @@ export const RaceCourse = memo(function RaceCourse({ race, run }: { race: RaceDe
       {Array.from({ length: GATES_SHOWN }, (_, k) => <group key={k} ref={(el) => { gates.current[k] = el; }} visible={false}><Gate look={look} width={width} /></group>)}
       {Array.from({ length: rivalCount }, (_, r) => (
         <group key={r} ref={(el) => { rivals.current[r] = el; }} visible={false}>
-          {race.mode === "vehicle" ? <mesh position={[0, 0.5, 0]}><boxGeometry args={[1.8, 0.8, 4]} /><meshStandardMaterial color={rivalColors[r]} metalness={0.6} roughness={0.4} /></mesh>
-            : race.mode === "dive" ? <mesh><capsuleGeometry args={[0.6, 2, 6, 10]} /><meshStandardMaterial color={rivalColors[r]} emissive={rivalColors[r]} emissiveIntensity={0.3} /></mesh>
-            : <mesh position={[0, 0.9, 0]}><capsuleGeometry args={[0.35, 1, 4, 8]} /><meshStandardMaterial color={rivalColors[r]} /></mesh>}
+          {race.mode === "vehicle" ? <mesh position={[0, 0.5, 0]}><boxGeometry args={[1.8, 0.8, 4]} /><meshStandardMaterial color={rivalColor(r)} metalness={0.6} roughness={0.4} /></mesh>
+            : race.mode === "dive" ? <mesh><capsuleGeometry args={[0.6, 2, 6, 10]} /><meshStandardMaterial color={rivalColor(r)} emissive={rivalColor(r)} emissiveIntensity={0.3} /></mesh>
+            : <mesh position={[0, 0.9, 0]}><capsuleGeometry args={[0.35, 1, 4, 8]} /><meshStandardMaterial color={rivalColor(r)} /></mesh>}
         </group>
       ))}
     </group>

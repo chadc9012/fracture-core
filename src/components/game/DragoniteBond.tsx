@@ -25,7 +25,7 @@ export function DragoniteBond({ progression, classId, onProgression }: { progres
   const trust = trustOf(progression, classId), tStage = trustStage(progression, classId);
   const claim = (eternal: boolean) => {
     const r = eternal ? claimEternalCovenant(progression, classId) : claimAncientBond(progression, classId);
-    if (!r.ok) { setNotice(("reason" in r && r.reason) || "Not yet"); return; }
+    if (!r.ok) { setNotice(("reason" in r && typeof r.reason === "string" && r.reason) || "Not yet"); return; }
     setNotice(eternal ? "The Eternal Covenant begins" : "The Ancient Bond is complete: dragon riding unlocked"); onProgression(r.progression);
   };
   const buy = (id: (typeof DRAGONITE_IDS)[number]) => {

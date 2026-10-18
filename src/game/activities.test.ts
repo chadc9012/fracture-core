@@ -93,7 +93,7 @@ describe("objectives", () => {
     expect(currentTarget(dd, dr)!.x).toBeCloseTo(to.x);
     stepRun(dd, dr, tick({ x: to.x, z: to.z })); expect(dr.status).toBe("complete");
   });
-  test("areaOfPoint finds the area", () => { const a = AREAS.nexus!; expect(areaOfPoint(a.x, a.z)).toBe("nexus"); });
+  test("areaOfPoint finds the area", () => { const a = AREAS["nexus"]!; expect(areaOfPoint(a.x, a.z)).toBe("nexus"); });
 });
 
 describe("rewards", () => {

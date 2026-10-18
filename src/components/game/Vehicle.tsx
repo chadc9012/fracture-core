@@ -1,6 +1,6 @@
 import { useGLTF } from "@react-three/drei";
 import { useFrame } from "@react-three/fiber";
-import { useMemo, useRef } from "react";
+import { Component, Suspense, useMemo, useRef, type ReactNode } from "react";
 import * as THREE from "three";
 
 import { MODELS, type ModelKey } from "@/game/models";
@@ -20,7 +20,27 @@ export function useModel(key: ModelKey) {
   }, [scene]);
 }
 
-export function Model({
+/**
+ * A missing or unreachable GLB must never take the world down (src/game/AGENTS.md): every Model and Car waits and
+ * fails on its own. A prop that cannot load is skipped; a car that cannot load keeps a plain procedural hull so
+ * the player can still see and drive it.
+ */
+export class QuietModel extends Component<{ children: ReactNode; fallback: ReactNode; url: string }, { failed: boolean }> {
+  override state = { failed: false };
+  static getDerivedStateFromError() { return { failed: true }; }
+  override componentDidCatch(error: unknown) { console.warn(`[model] ${this.props.url} unavailable, using fallback:`, error); }
+  override render() { return this.state.failed ? this.props.fallback : this.props.children; }
+}
+
+export function Model(props: Parameters<typeof ModelBody>[0]) {
+  return (
+    <QuietModel url={MODELS[props.modelKey]} fallback={null}>
+      <Suspense fallback={null}><ModelBody {...props} /></Suspense>
+    </QuietModel>
+  );
+}
+
+function ModelBody({
   modelKey,
   position,
   rotation,
@@ -46,7 +66,30 @@ const WHEEL_OFFSETS: [number, number, number][] = [
  * A complete CC0 vehicle: body shell plus four wheels that roll with speed.
  * `speed` is world units / second, used for wheel spin only.
  */
-export function Car({
+function FallbackHull({ lights }: { lights: boolean }) {
+  return (
+    <group>
+      <mesh position={[0, 0.45, 0]} castShadow receiveShadow><boxGeometry args={[1.3, 0.5, 2.4]} /><meshStandardMaterial color="#2b3440" metalness={0.6} roughness={0.45} /></mesh>
+      <mesh position={[0, 0.8, -0.15]} castShadow><boxGeometry args={[1.05, 0.35, 1.2]} /><meshStandardMaterial color="#14202b" metalness={0.3} roughness={0.2} /></mesh>
+      {WHEEL_OFFSETS.map((o, i) => (
+        <mesh key={i} position={[o[0], 0.3, o[2]]} rotation={[0, 0, Math.PI / 2]} castShadow><cylinderGeometry args={[0.3, 0.3, 0.22, 14]} /><meshStandardMaterial color="#111" roughness={0.9} /></mesh>
+      ))}
+      {lights && <pointLight position={[0, 0.5, 1.6]} color="#bfeaff" intensity={6} distance={18} decay={2} />}
+    </group>
+  );
+}
+
+export function Car(props: Parameters<typeof CarBody>[0]) {
+  const scale = props.scale ?? 2.4, lights = props.lights ?? true;
+  const fallback = <group scale={scale}><FallbackHull lights={lights} /></group>;
+  return (
+    <QuietModel url={MODELS[props.body]} fallback={fallback}>
+      <Suspense fallback={fallback}><CarBody {...props} /></Suspense>
+    </QuietModel>
+  );
+}
+
+function CarBody({
   body,
   scale = 2.4,
   speedRef,

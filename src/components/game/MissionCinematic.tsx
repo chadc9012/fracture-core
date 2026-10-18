@@ -30,11 +30,16 @@ export function MissionCinematic({ id, onDone, onProgress }: { id: string; onDon
   }, [cine]);
 
   const view = player && cine ? inspectCinematic(player, cine) : null;
+  // the host passes fresh callbacks on every render; reading them through refs keeps this effect to one run per tick.
+  // Depending on them re-ran it after each progress report re-rendered the host, chaining effect-driven updates
+  // until React flagged "Maximum update depth exceeded" on slow frames.
+  const onDoneRef = useRef(onDone), onProgressRef = useRef(onProgress);
+  onDoneRef.current = onDone; onProgressRef.current = onProgress;
   useEffect(() => {
     if (!player || !cine) return;
-    onProgress?.(Math.min(1, player.elapsed / cinematicSeconds(cine)));
-    if (player.status === "done" && !done.current) { done.current = true; stopVoice("cine"); onDone(player.handoff, player.skipped); }
-  }, [player, cine, onDone, onProgress]);
+    onProgressRef.current?.(Math.min(1, player.elapsed / cinematicSeconds(cine)));
+    if (player.status === "done" && !done.current) { done.current = true; stopVoice("cine"); onDoneRef.current(player.handoff, player.skipped); }
+  }, [player, cine]);
   useEffect(() => {
     const line = view?.line;
     if (!line || spokenLines.current.has(line.id)) return;
@@ -51,7 +56,7 @@ export function MissionCinematic({ id, onDone, onProgress }: { id: string; onDon
   useMenuInput(true, (intent, source) => { if (source === "pad" && (intent === "confirm" || intent === "back")) skip(); }, ["confirm", "back"]);
 
   // unknown id: hand off immediately so the player is never stuck behind a missing scene
-  useEffect(() => { if (!cine && !done.current) { done.current = true; onDone(null, true); } }, [cine, onDone]);
+  useEffect(() => { if (!cine && !done.current) { done.current = true; onDoneRef.current(null, true); } }, [cine]);
   if (!view) return null;
   const fade = Math.min(1, view.shotElapsed / 0.8);
   return (

@@ -1,6 +1,6 @@
 import { DistrictLight } from "./DistrictLight";
 import { useFrame } from "@react-three/fiber";
-import { useMemo, useRef } from "react";
+import { Suspense, useMemo, useRef } from "react";
 import * as THREE from "three";
 
 
@@ -9,7 +9,7 @@ import { REGIONS } from "@/game/world";
 import { walkHeight } from "@/game/terrain";
 import type { WorldSim } from "@/game/sim";
 import { addObstacle } from "@/game/obstacles";
-import { Model, useModel } from "./Vehicle";
+import { Model, QuietModel, useModel } from "./Vehicle";
 import { NexusDistricts } from "./NexusDistricts";
 
 const NEXUS = REGIONS.find((r) => r.id === "nexus")!;
@@ -156,7 +156,7 @@ function Pedestrians() {
   return (
     <group>
       {peds.map((p, i) => (
-        <Pedestrian key={i} ped={p} />
+        <QuietModel key={i} url={MODELS[p.key]} fallback={null}><Suspense fallback={null}><Pedestrian ped={p} /></Suspense></QuietModel>
       ))}
     </group>
   );

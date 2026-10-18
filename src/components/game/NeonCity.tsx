@@ -1,4 +1,4 @@
-import { Text } from "@react-three/drei";
+import { Text } from "./SafeText";
 import { DistrictLight } from "./DistrictLight";
 import { useMemo } from "react";
 import { REGIONS, NEON_OFFSET } from "@/game/world";

@@ -1,7 +1,8 @@
 /** Runtime for the bonded Operator's Dragonite abilities (rules and numbers live in dragonite.ts). Pure over a WorldSim:
  * Scene forwards key edges and the pose; cost, cooldown, damage, burn, resistance and the Wyrm's attacks happen here. */
 import { DRAGONITE, MAX_UPGRADE, armorBonus, createWyrm, dragoniteStats, hasAbility, stepWyrm, summonWyrm, upgradeLevel, wornCovenant, type DragoniteId, type DragoniteStats, type Wyrm } from "./dragonite";
-import type { ClassId, GearItem } from "./progression";
+import type { ClassId } from "./progression";
+import type { GearItem } from "./inventory";
 import { knockbackFrom } from "./operator-abilities";
 import { alert, applyMachineDamageMods, applyVulnPulse, defeatMachine, stunMachine, type WorldSim } from "./sim";
 
@@ -111,11 +112,12 @@ export function stepDragonite(rt: DragoniteRuntime, sim: WorldSim, dt: number, p
   }
   if (ctx.cls && rt.wyrm.state !== "BONDED") {
     const st = statsFor(ctx, "wyrmcall");
-    const targets = sim.machines.filter((m) => m.alive && Math.hypot(m.x - pose.x, m.z - pose.z) < 40).map((m) => ({ id: m.id, dist: Math.hypot(m.x - pose.x, m.z - pose.z), boss: !!m.boss, windingUp: m.aim > 0 }));
+    // machine slots are pooled and carry no id, so the wyrm targets by pool index
+    const targets = sim.machines.flatMap((m, id) => m.alive && Math.hypot(m.x - pose.x, m.z - pose.z) < 40 ? [{ id, dist: Math.hypot(m.x - pose.x, m.z - pose.z), boss: !!m.boss, windingUp: (m.aim ?? 0) > 0 }] : []);
     const action = stepWyrm(rt.wyrm, dt, targets, st);
     if (action) {
-      const m = sim.machines.find((x) => x.id === action.target && x.alive);
-      if (m) {
+      const m = sim.machines[action.target];
+      if (m && m.alive) {
         const base = st["damage"]!;
         const dmg = action.kind === "finisher" ? base * 3 : action.kind === "breath" ? base * 1.5 : base;
         if (action.kind === "interrupt") { m.aim = 0; stunMachine(m, 1.5); }

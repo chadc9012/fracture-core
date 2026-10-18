@@ -4,7 +4,8 @@
  * Riding unlocks only at full trust, for that Operator alone; regions and activities can still forbid it. */
 import { CHALLENGES, challengeKey, type ChallengeId } from "./dragonite";
 import { isBonded } from "./dragon-covenant";
-import type { ClassId, GearItem, PlayerProgression } from "./progression";
+import type { ClassId, PlayerProgression } from "./progression";
+import type { GearItem } from "./inventory";
 
 type Store = Pick<PlayerProgression, "earnedRewards">;
 export const FULL_TRUST = 100, ETERNAL_CHALLENGES = 3;
