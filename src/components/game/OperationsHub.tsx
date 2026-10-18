@@ -11,6 +11,7 @@ import { DUNGEONS } from "@/game/dungeons";
 import { CLASS_MISSIONS } from "@/game/class-missions";
 import { ARMOR_MANIFEST, EQUIPMENT_COUNTS, WEAPON_MANIFEST, type WeaponTier } from "@/game/equipment";
 import { STARTING_WALLET, UPGRADE_RECIPES, canAfford, spend, transformGear, type ForgeMode, type Wallet } from "@/game/economy";
+import { applySales, todaysBundle } from "@/game/vendor-sales";
 import { VENDOR_DEFS, vendorStock, purchaseListing, sellGear, sellValue, type VendorListing } from "@/game/vendors";
 import { xpRequiredForLevel } from "@/game/xp";
 import { shapeLoot, type LootItem } from "@/game/loot";
@@ -134,13 +135,21 @@ function Arsenal({ progression, onProgression }: { progression: PlayerProgressio
   const [notice, setNotice] = useState("Select a forge operation or vendor offer.");
   const [vendorId, setVendorId] = useState(VENDOR_DEFS[0]!.id);
   const vendor = VENDOR_DEFS.find((entry) => entry.id === vendorId) ?? VENDOR_DEFS[0]!;
-  const stock = useMemo(() => vendorStock(vendor), [vendor]);
+  const stock = useMemo(() => applySales(vendorStock(vendor), vendor, { day: Math.floor(Date.now() / 86_400_000) }), [vendor]);
+  const bundle = useMemo(() => todaysBundle(stock, vendor), [stock, vendor]);
   const buy = (listing: VendorListing) => {
     const result = purchaseListing(progression, wallet, listing, vendor.name);
     if (!result) { setNotice("Insufficient currency for that offer."); return; }
     setWallet(result.wallet);
     onProgression(result.progression);
     setNotice(`${listing.item.name} added to inventory.`);
+  };
+  const buyBundle = () => {
+    if (!bundle) return;
+    const a = purchaseListing(progression, wallet, { ...bundle.weapon, price: Math.round(bundle.weapon.price * 0.9) }, vendor.name);
+    const b = a && purchaseListing(a.progression, a.wallet, { ...bundle.armor, price: Math.round(bundle.armor.price * 0.9) }, vendor.name);
+    if (!b) { setNotice("Insufficient currency for that bundle."); return; }
+    setWallet(b.wallet); onProgression(b.progression); setNotice(`${bundle.weapon.item.name} + ${bundle.armor.item.name} bundle bought.`);
   };
   const sell = (itemId: string, name: string) => {
     const result = sellGear(progression, wallet, itemId);
@@ -164,7 +173,8 @@ function Arsenal({ progression, onProgression }: { progression: PlayerProgressio
       <section><p className="font-mono text-[9px] uppercase tracking-[0.3em] text-muted-foreground">Vendor districts</p>
         <div className="mt-2 flex flex-wrap gap-1">{VENDOR_DEFS.map((entry) => <Button key={entry.id} size="sm" variant={entry.id === vendorId ? "default" : "outline"} onClick={() => setVendorId(entry.id)}>{entry.name}</Button>)}</div>
         <p className="mt-2 text-[10px] text-muted-foreground">{vendor.district} · {vendor.offer} · resets daily</p>
-        <div className="mt-3 space-y-2">{stock.map((listing) => { const affordable = wallet[listing.currency] >= listing.price; return <div key={listing.key} className="border border-border p-3"><div className="flex items-center justify-between gap-3"><div><p className="font-mono text-sm">{listing.item.name}</p><p className="text-[10px] text-muted-foreground">{listing.kind === "weapon" ? `${listing.item.tier} · ${listing.item.archetype}` : `${listing.item.tier} · ${listing.item.slot}`} · POWER {listing.power}</p></div><Button size="sm" variant="outline" disabled={!affordable} onClick={() => buy(listing)}><PackageOpen /> {listing.price} {currencyLabel[listing.currency]}</Button></div></div>; })}
+        <div className="mt-3 space-y-2">{stock.map((listing) => { const affordable = wallet[listing.currency] >= listing.price; return <div key={listing.key} className="border border-border p-3"><div className="flex items-center justify-between gap-3"><div><p className="font-mono text-sm">{listing.item.name}</p><p className="text-[10px] text-muted-foreground">{listing.kind === "weapon" ? `${listing.item.tier} · ${listing.item.archetype}` : `${listing.item.tier} · ${listing.item.slot}`} · POWER {listing.power}</p>{listing.sales.length > 0 && <p className="text-[10px] text-primary">{listing.sales.map((x) => `${x.label} −${Math.round(x.pct * 100)}%`).join(" · ")} <span className="text-muted-foreground line-through">{listing.basePrice}</span></p>}</div><Button size="sm" variant="outline" disabled={!affordable} onClick={() => buy(listing)}><PackageOpen /> {listing.price} {currencyLabel[listing.currency]}</Button></div></div>; })}
+          {bundle && <div className="border border-primary/60 p-3 text-xs"><p className="font-mono text-[10px] uppercase text-primary">Bundle · 10% off the pair</p><p className="mt-1">{bundle.weapon.item.name} + {bundle.armor.item.name}</p><Button size="sm" className="mt-2" variant="outline" disabled={wallet[bundle.weapon.currency] < Math.round(bundle.weapon.price * 0.9) + Math.round(bundle.armor.price * 0.9)} onClick={buyBundle}>Buy both · {Math.round(bundle.weapon.price * 0.9) + Math.round(bundle.armor.price * 0.9)}</Button></div>}
           {stock.length === 0 && <p className="text-[10px] text-muted-foreground">This district's stock is empty today — check back tomorrow.</p>}
         </div>
         {progression.inventory.length > 0 && <div className="mt-4"><p className="font-mono text-[9px] uppercase tracking-[0.3em] text-muted-foreground">Sell gear</p><div className="mt-2 max-h-44 space-y-1 overflow-y-auto">{progression.inventory.map((item) => { const equipped = Object.values(progression.equippedGear).includes(item.id); const value = sellValue(item); return <div key={item.id} className="flex items-center justify-between gap-2 border border-border/60 px-2 py-1.5"><span className="text-[11px]">{item.name} <span className="text-[9px] text-muted-foreground">· {item.slot} · PWR {item.power}</span></span><Button size="sm" variant="ghost" disabled={equipped} onClick={() => sell(item.id, item.name)}>{equipped ? "Equipped" : `Sell · ${value.amount} ${currencyLabel[value.currency]}`}</Button></div>; })}</div></div>}
