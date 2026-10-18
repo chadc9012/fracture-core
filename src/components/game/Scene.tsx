@@ -125,7 +125,7 @@ import { heatStatus, stepHeatMeter } from "@/game/heat";
 import { shouldForceFootTransition, vehicleDamageStage, VEHICLE_DAMAGE_EFFECT, type VehicleDamageStage } from "@/game/chase-ai";
 import { exitVehicleMomentum, parkourChainBonus, vaultLunge } from "@/game/parkour";
 import { anySensorSees, detectionStateFor, lockdownStatus, nexusSensors, stepDetectionMeter, stepHackProgress, type DetectionState, type LockdownTier } from "@/game/stealth";
-import { INTERIORS, INTERIOR_ALTITUDE, doorAt, atExitMarker, interiorById, isInteriorOpen, clampHomeLocal } from "@/game/interiors";
+import { INTERIORS, INTERIOR_ALTITUDE, doorAt, atExitMarker, interiorById, isInteriorOpen, clampHomeLocal, exitPosition } from "@/game/interiors";
 import { homeById } from "@/game/housing";
 import { HomeInteriors } from "./HomeInteriors";
 import { Interiors } from "./Interiors";
@@ -1681,9 +1681,10 @@ function SceneImpl({
       const localZ = s.z - interior.origin.z;
       if (atExitMarker(interior, localX, localZ)) {
         const back = s.interiorReturnPos;
+        const leaving = interior;
         s.insideInterior = null;
         interior = null;
-        if (back) { s.x = back.x; s.y = back.y; s.z = back.z; }
+        if (back) { const out = exitPosition(leaving.doorPos, back); s.x = out.x; s.y = back.y; s.z = out.z; }
         s.interiorReturnPos = null;
         s.vy = 0;
         s.grounded = true;

@@ -222,3 +222,14 @@ export function isInteriorOpen(interior: InteriorDef, worldTime: number): boolea
   const hour = hourOf(worldTime);
   return interior.openHour < interior.closeHour ? hour >= interior.openHour && hour < interior.closeHour : hour >= interior.openHour || hour < interior.closeHour;
 }
+
+/** Where the player stands after leaving: the spot they entered from, pushed just outside the door radius. Without this the
+ * return position is inside the door trigger and the next frame walks the player straight back in. */
+export function exitPosition(doorPos: { x: number; z: number }, back: { x: number; z: number }, margin = 1): { x: number; z: number } {
+  const dx = back.x - doorPos.x, dz = back.z - doorPos.z;
+  const d = Math.hypot(dx, dz);
+  const need = DOOR_RADIUS + margin;
+  if (d >= need) return { x: back.x, z: back.z };
+  if (d < 1e-6) return { x: doorPos.x, z: doorPos.z + need };
+  return { x: doorPos.x + (dx / d) * need, z: doorPos.z + (dz / d) * need };
+}
