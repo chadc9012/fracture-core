@@ -10,6 +10,7 @@ import { ElevatedTrain, LightBar, ShopSign } from "./DistrictStreet";
 import { NeonTiers } from "./NeonTiers";
 import { NeonGraffiti } from "./NeonGraffiti";
 import { NeonRails } from "./NeonRails";
+import { MaglevTrains } from "./MaglevTrains";
 import { NeonDistricts } from "./NeonDistricts";
 
 /**
@@ -163,6 +164,7 @@ export function NeonCity() {
       <NeonTiers c={NEON_CITY_CENTER} />
       <NeonGraffiti c={NEON_CITY_CENTER} />
       <NeonRails c={NEON_CITY_CENTER} />
+      <MaglevTrains c={NEON_CITY_CENTER} />
       <NeonDistricts c={NEON_CITY_CENTER} />
       {/* street-level glow */}
       <mesh position={[NEON_CITY_CENTER.x, y + 0.03, NEON_CITY_CENTER.z]} rotation-x={-Math.PI / 2}>
