@@ -41,3 +41,19 @@ describe("housing", () => {
     expect(m.placed["x"]).toEqual({ "0:tv": "tv-holo", "0:art": "art-vyrak" });
   });
 });
+
+import { HOME_INTERIORS, clampHomeLocal, doorAt } from "./interiors";
+import { HOMES } from "./housing";
+import { test as t2, expect as e2 } from "bun:test";
+t2("every home has a walk-in door that only opens for its owner", () => {
+  e2(HOME_INTERIORS.length).toBe(HOMES.length);
+  const d = HOME_INTERIORS[0]!;
+  e2(doorAt(d.doorPos.x, d.doorPos.z, (i) => !i.homeId)?.id).not.toBe(d.id);
+  e2(doorAt(d.doorPos.x, d.doorPos.z)?.id).toBe(d.id);
+});
+t2("home walls only let you through the doorway", () => {
+  const d = HOME_INTERIORS[0]!;
+  e2(clampHomeLocal(d, 2, 6, 3, 4).x).toBe(4);
+  e2(clampHomeLocal(d, 2, 6, 0.5, 4).x).toBe(6);
+  e2(clampHomeLocal(d, 1, 9, 0, 4).x).toBeCloseTo(4.6);
+});

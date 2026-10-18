@@ -125,7 +125,9 @@ import { heatStatus, stepHeatMeter } from "@/game/heat";
 import { shouldForceFootTransition, vehicleDamageStage, VEHICLE_DAMAGE_EFFECT, type VehicleDamageStage } from "@/game/chase-ai";
 import { exitVehicleMomentum, parkourChainBonus, vaultLunge } from "@/game/parkour";
 import { anySensorSees, detectionStateFor, lockdownStatus, nexusSensors, stepDetectionMeter, stepHackProgress, type DetectionState, type LockdownTier } from "@/game/stealth";
-import { INTERIORS, INTERIOR_ALTITUDE, doorAt, atExitMarker, interiorById, isInteriorOpen } from "@/game/interiors";
+import { INTERIORS, INTERIOR_ALTITUDE, doorAt, atExitMarker, interiorById, isInteriorOpen, clampHomeLocal } from "@/game/interiors";
+import { homeById } from "@/game/housing";
+import { HomeInteriors } from "./HomeInteriors";
 import { Interiors } from "./Interiors";
 
 import type { GameSettings } from "./SettingsWindow";
@@ -502,7 +504,7 @@ function SceneImpl({
   onVehicleCondition?: (id: string, condition: VehicleCondition) => void;
   /** Wastelands activity results (wasteland-runtime.ts); GameCanvas resolves them into the save */
   onWaste?: (event: WasteEmit) => void;
-  gear?: Pick<PlayerProgression, "inventory" | "equippedGear" | "dungeonClears" | "completedMissions" | "story" | "earnedRewards"> & Partial<Pick<PlayerProgression, "living" | "challenge" | "nemeses" | "fleet" | "blade" | "vehicleConditions">>;
+  gear?: Pick<PlayerProgression, "inventory" | "equippedGear" | "dungeonClears" | "completedMissions" | "story" | "earnedRewards"> & Partial<Pick<PlayerProgression, "living" | "challenge" | "nemeses" | "fleet" | "blade" | "vehicleConditions" | "nexLedger" | "housing">>;
   /** nemesis.ts: a nemesis the player picked on the map; it ambushes right after arrival */
   summonNemesis?: string | null;
   mission?: MissionRun | null;
@@ -786,6 +788,7 @@ function SceneImpl({
     /* Interior Building system — which interior (if any) the player is currently inside, and where to return to */
     insideInterior: null as string | null,
     interiorReturnPos: null as { x: number; y: number; z: number } | null,
+    interiorPrevX: null as number | null,
   });
 
   /** snapshot of every live engine system for the dev inspector */
@@ -1654,7 +1657,7 @@ function SceneImpl({
 
     /* ---------------- interiors: walk up to a door to go in, walk up to the exit marker to come back out ---------------- */
     if (!interior && !s.inVehicle) {
-      const door = doorAt(s.x, s.z);
+      const door = doorAt(s.x, s.z, (d) => !d.homeId || `home:${d.homeId}` in (gearLive.current?.nexLedger ?? {}));
       if (door) {
         s.interiorReturnPos = { x: s.x, y: s.y, z: s.z };
         s.insideInterior = door.id;
@@ -1668,6 +1671,12 @@ function SceneImpl({
         velocity.set(0, 0, 0);
       }
     } else if (interior) {
+      if (interior.homeId) {
+        const rooms = homeById(interior.homeId)?.rooms.length ?? 1;
+        const c = clampHomeLocal(interior, rooms, s.x - interior.origin.x, s.z - interior.origin.z, (s.interiorPrevX ?? s.x) - interior.origin.x);
+        s.x = interior.origin.x + c.x; s.z = interior.origin.z + c.z;
+      }
+      s.interiorPrevX = s.x;
       const localX = s.x - interior.origin.x;
       const localZ = s.z - interior.origin.z;
       if (atExitMarker(interior, localX, localZ)) {
@@ -2705,6 +2714,7 @@ function SceneImpl({
       <WorldMarkers depleted={depleted} />
       <Interior structure={structure} />
       <Interiors />
+      <HomeInteriors housing={gear?.housing} nexLedger={gear?.nexLedger} />
       {settings.zoneLabels && <RegionLabels zones={sim.zones} />}
 
       <NovaDrone held={state} />
