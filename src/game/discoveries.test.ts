@@ -1,4 +1,5 @@
 import { describe, expect, test } from "bun:test";
+import "./racing"; // registers the race catalogue (Movement & Racing category)
 import { ACTIVITIES, ELITES, FEATURED_BONUS, FEATURED_COUNT, activityState, categoryOf, completeActivity, featuredFor, isFeatured, startActivity, stepRun, weekKeyUtc, weeklyElitesFor, msUntilWeekReset, reputationOf, addReputation, activityById, type Run } from "./activities";
 import { DISCOVERIES, DISTRESS_WINDOW_MS, discoveryById, isKnown, isOpen, nearby, positionOf, reveal, revealedBy, triggered } from "./discoveries";
 import { DEFAULT_PROGRESSION } from "./progression";
