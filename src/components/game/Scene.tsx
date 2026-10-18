@@ -42,6 +42,7 @@ import { weatherName as weatherLabel } from "@/game/weather-cycle";
 import { environmentAt, stepEnvironment } from "@/game/environment";
 import { backpackFor } from "@/game/backpacks";
 import { createReticle, markHit, stepReticle, type Motion, type ReticleView, EMPTY_RETICLE } from "@/game/crosshair";
+import { createGrind, isGrinding, leaveGrind, stepGrind, tryLatch, worldRails } from "@/game/maggrind";
 import { createTraversal, restTraversal, startTraversal, stepTraversal } from "@/game/traversal";
 import { DASHES, createDashState, dashHit, dashStats, hoverVy, stepDash, tryDash } from "@/game/dash";
 import { airJump, cameraDrop, cancelSlide, createMoveState, glideVy, GLIDE_THRUST, land, movementFov, resolveStance, startSlide, stepSlide, stepStance, AIR_PROFILE, STANCE_SPEED, SLIDE_SECONDS, type Stance } from "@/game/movement";
@@ -886,6 +887,9 @@ function SceneImpl({
   const bootDash = useRef({ held: false, readyAt: 0 });
   /** Operator dash (dash.ts): per-class dash with perks from abilityBranches */
   const trav = useRef(createTraversal(playerClass));
+  /** Mag-Grind Boots rail grinding (maggrind.ts) */
+  const grindRt = useRef({ state: createGrind(), jumpPrev: false });
+  const grindRails = useMemo(() => worldRails(NEON_CITY_CENTER, walkHeight), []);
   const opDash = useRef({ state: createDashState(playerClass, abilityBranches), held: false, wasActive: false });
   const opDashStats = useMemo(() => dashStats(playerClass, abilityBranches), [playerClass, abilityBranches]);
   const wish = useMemo(() => new THREE.Vector3(), []);
@@ -2355,6 +2359,23 @@ function SceneImpl({
     if (playerInstability > 0.6 && s.grounded && !s.diving && Math.random() < playerInstability * dt * 1.2) {
       s.vy = 6 + playerInstability * 10;
       s.grounded = false;
+    }
+    {
+      // Mag-Grind Boots: latch onto a Neon City rail, ride it, jump off with the speed (maggrind.ts)
+      const gr = grindRt.current, jumpNow = held.has("KeyC");
+      if (!interior && !s.inVehicle && !s.diving && !submerged) {
+        const slideKey = held.has(binds.keyboard.crouch) || !!padNow[binds.gamepad.crouch];
+        if (!isGrinding(gr.state) && boots.grind && (!s.grounded ? s.vy <= 0.5 : slideKey) && tryLatch(gr.state, grindRails, true, s.x, s.y - 0.5, s.z, velocity.x, velocity.z)) { sfx.playAbility("DASH"); s.punch += 0.2; cancelSlide(move.current.state); }
+        const g = stepGrind(gr.state, grindRails, dt);
+        if (g) {
+          if (g.ended) { velocity.x = g.vx; velocity.z = g.vz; s.vy = 4; s.grounded = false; }
+          else if (jumpNow && !gr.jumpPrev) {
+            const out = leaveGrind(gr.state, grindRails);
+            if (out) { velocity.x = out.vx; velocity.z = out.vz; s.vy = out.vy; s.grounded = false; s.punch += 0.25; sfx.playReload("end"); }
+          } else { s.x = g.x; s.z = g.z; s.y = g.y + 0.5; s.vy = 0; s.grounded = true; velocity.x = g.vx; velocity.z = g.vz; }
+        }
+      } else if (isGrinding(gr.state)) gr.state.railId = null;
+      gr.jumpPrev = jumpNow;
     }
     void ground;
 

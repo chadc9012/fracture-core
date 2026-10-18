@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import type { PlayerProgression } from "@/game/progression";
-import { BOOTS, buyBoots, ownsBoots, type BootId } from "@/game/skate-boots";
+import { BOOTS, buyBoots, buyBootsNex, ownsBoots, type BootId } from "@/game/skate-boots";
+import { nexBalance } from "@/game/nex";
 import { getEquippedBoots, setEquippedBoots } from "@/game/client-input";
 
 /** Neon City skate shop: buy jet-boots with fracture shards and pick which pair you wear. */
@@ -9,6 +10,12 @@ export function SkateShop({ progression, onProgression, onClose }: { progression
   const [worn, setWorn] = useState(getEquippedBoots() ?? "none");
   const [msg, setMsg] = useState<string | null>(null);
   const buy = (id: BootId) => onProgression((p) => {
+    if (BOOTS[id as Exclude<BootId, "none">]?.nexPrice) {
+      const n = buyBootsNex(p, id);
+      if (!n.ok) { setMsg(n.reason === "FUNDS" ? "Not enough NEX." : "Already yours."); return p; }
+      setMsg(`${BOOTS[id as Exclude<BootId, "none">].name} unlocked for good!`);
+      return n.progression;
+    }
     const r = buyBoots(p, id);
     if (!r.ok) { setMsg(r.reason === "FUNDS" ? "Not enough fracture shards." : "Already yours."); return p; }
     setMsg(`${BOOTS[id as Exclude<BootId, "none">].name} bought!`);
@@ -22,7 +29,7 @@ export function SkateShop({ progression, onProgression, onClose }: { progression
           <h2 className="truncate font-mono text-2xl font-black italic uppercase tracking-tight text-primary">Kickz Radio · Skate Shop</h2>
           <Button variant="outline" onClick={onClose}>Close</Button>
         </div>
-        <p className="mt-1 text-sm text-muted-foreground">Shards: {progression.fractureShards}. Tap Shift (or Dash) to boost-dash; boots also jump higher and sprint faster.</p>
+        <p className="mt-1 text-sm text-muted-foreground">Shards: {progression.fractureShards} · NΞ {nexBalance(progression.nexLedger)}. Tap Shift (or Dash) to boost-dash; boots also jump higher and sprint faster.</p>
         {msg && <p className="mt-2 font-mono text-xs uppercase text-primary">{msg}</p>}
         <div className="mt-4 grid gap-3 sm:grid-cols-2">
           {Object.values(BOOTS).map((b) => {
@@ -35,7 +42,7 @@ export function SkateShop({ progression, onProgression, onClose }: { progression
                 <div className="mt-2 flex gap-2">
                   {owned
                     ? <Button size="sm" variant={worn === b.id ? "default" : "outline"} onClick={() => wear(worn === b.id ? "none" : b.id)}>{worn === b.id ? "Wearing · take off" : "Wear"}</Button>
-                    : <Button size="sm" onClick={() => buy(b.id)}>Buy · {b.price} shards</Button>}
+                    : <Button size="sm" onClick={() => buy(b.id)}>{b.nexPrice ? `Buy · ${b.nexPrice} NEX` : `Buy · ${b.price} shards`}</Button>}
                 </div>
               </div>
             );
