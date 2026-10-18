@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ACTIVITIES, AREAS, CATEGORIES, FEATURED_BONUS, activityState, categoryOf, featuredFor, msUntilPeriodReset, msUntilReset, msUntilWeekReset, reputationOf, weeklyElitesFor, type ActivityDef, type Category } from "@/game/activities";
 import type { PlayerProgression } from "@/game/progression";
+import { convoyBoard } from "@/game/convoy";
 import { DIFFICULTIES, bestMedal, difficultyLocked, isRaceActivity, personalBest, rankName, raceById, type Difficulty } from "@/game/racing";
 
 const fmt = (ms: number) => { const s = Math.ceil(ms / 1000), d = Math.floor(s / 86400), h = Math.floor((s % 86400) / 3600), m = Math.floor((s % 3600) / 60); return d ? `${d}d ${h}h` : h ? `${h}h ${String(m).padStart(2, "0")}m` : `${m}:${String(s % 60).padStart(2, "0")}`; };
@@ -42,6 +43,9 @@ export function ActivityBoard({ progression, activeId, onStart }: { progression:
     <p className="mt-5 font-mono text-[9px] uppercase tracking-[0.25em] text-primary">All activities</p>
     <div className="mt-2 flex flex-wrap gap-1">{Object.entries(AREAS).map(([id, a]) => <Button key={id} size="sm" variant={area === id ? "default" : "outline"} className="h-7 text-[10px]" onClick={() => setArea(id)}>{a.name}</Button>)}</div>
     <div className="mt-2 flex flex-wrap gap-1">{[{ id: "all" as const, label: "All" }, ...CATEGORIES].map((c) => <Button key={c.id} size="sm" variant={cat === c.id ? "default" : "ghost"} className="h-7 text-[10px]" onClick={() => setCat(c.id)}>{c.label}</Button>)}</div>
+    {(() => { const row = convoyBoard(progression, now).find((r) => r.region === area); if (!row) return null; return <div className="mt-4 border border-border/60 p-3"><p className="font-mono text-[9px] uppercase tracking-[0.25em] text-primary">Convoy escort · {row.name} · highest cleared {row.highest}/10</p>
+      <p className="mt-1 text-xs text-muted-foreground">Preview only: escort runs are not playable yet because the in-world convoy, enemies and vehicles are not built. Threat levels and lock rules below are live.</p>
+      <ul className="mt-2 grid gap-1 font-mono text-[10px] text-muted-foreground md:grid-cols-2">{row.levels.map((l) => <li key={l.level}>{l.level}. {l.title}{l.locked ? ` — ${l.locked}` : " — open"}</li>)}</ul></div>; })()}
     <div className="mt-3 grid gap-3 md:grid-cols-2">{list.length ? list.map((a) => card(a)) : <p className="text-xs text-muted-foreground">Nothing in this category here yet.</p>}</div>
   </section>;
 }
