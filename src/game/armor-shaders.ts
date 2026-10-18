@@ -15,6 +15,10 @@ export const ARMOR_SHADERS: readonly ArmorShader[] = [
   { id: "void-prism", name: "Void Prism", rarity: "exotic", base: "#15121f", accent: "#8f50ff", emissive: "#bd65ff", metalness: 0.85, roughness: 0.25, tintsEmissive: true, slots: ALL, source: "Hidden Fracture encounter" },
   { id: "vanguard-drab", name: "Vanguard Drab", rarity: "common", base: "#4a5040", accent: "#a8a080", emissive: "#ffd27a", metalness: 0.55, roughness: 0.65, tintsEmissive: false, slots: ALL, price: { material: "reinforcedAlloy", amount: 20 }, source: "City armor shops" },
   { id: "ashen-covenant", name: "Ashen Covenant", rarity: "legendary", base: "#2a1a14", accent: "#ffb040", emissive: "#ff6a1a", metalness: 0.75, roughness: 0.4, tintsEmissive: true, slots: ALL, source: "Vyrak's Covenant" },
+  { id: "circuit-runner", name: "Circuit Runner", rarity: "rare", base: "#101a24", accent: "#38e8ff", emissive: "#38e8ff", metalness: 0.65, roughness: 0.35, tintsEmissive: true, slots: ALL, source: "Neon City races and parkour" },
+  { id: "deep-current", name: "Deep Current", rarity: "rare", base: "#0c2230", accent: "#3fd0c9", emissive: "#2fb4ff", metalness: 0.5, roughness: 0.4, tintsEmissive: true, slots: ALL, source: "Thalassia hunts" },
+  { id: "dune-glass", name: "Dune Glass", rarity: "rare", base: "#5b4630", accent: "#ffd27a", emissive: "#ffb347", metalness: 0.45, roughness: 0.5, tintsEmissive: false, slots: ALL, source: "Solara contracts" },
+  { id: "whiteout", name: "Whiteout", rarity: "rare", base: "#cfd8e0", accent: "#8fd3ff", emissive: "#bfeaff", metalness: 0.4, roughness: 0.55, tintsEmissive: true, slots: ALL, source: "Frost Spire rescues" },
 ];
 export const shaderById = (id: string) => ARMOR_SHADERS.find((s) => s.id === id);
 export const ownsShader = (p: Pick<PlayerProgression, "earnedRewards">, id: string) => p.earnedRewards.includes(`shader:${id}`);

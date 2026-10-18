@@ -108,7 +108,7 @@ export type PlayerProgression = {
   novaLevel: number;
   novaUnlocks: string[];
   /** per-mission clears today (repeat taper) */
-  missionRuns: Record<string, { day: string; count: number }>;
+  missionRuns: Record<string, { day: string; count: number; /** real-time ms of the last completion (activities.ts cooldowns) */ last?: number }>;
   lastMissionReward: MissionReward | null;
   arsenal: Record<ClassId, ClassArsenal>;
 };
