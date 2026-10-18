@@ -1,7 +1,8 @@
 import { memo, useMemo } from "react";
 import * as THREE from "three";
 import { HOME_INTERIORS, HOME_ROOM_SIZE, INTERIOR_ALTITUDE } from "@/game/interiors";
-import { homeById, type HousingState } from "@/game/housing";
+import { decorById, homeById, type HousingState, type RoomId } from "@/game/housing";
+import { roomFurniture, styleOf, type HomeStyle, type Part } from "@/game/home-furniture";
 import { heightAt } from "@/game/terrain";
 
 const H = 3.6;
@@ -25,25 +26,34 @@ function Box({ p, s, c, e, r = 0.6, m = 0 }: { p: [number, number, number]; s: [
   );
 }
 
-/** Furniture/finish objects for one placed decor id, positioned within a room (local coords, room centered at 0). */
-function DecorObject({ id }: { id: string }) {
-  switch (id) {
-    case "sofa-street": return <group position={[0, 0, -3.6]}><Box p={[0, 0.3, 0]} s={[2.4, 0.6, 0.9]} c="#6b4a3a" r={0.9} /><Box p={[0, 0.75, -0.35]} s={[2.4, 0.6, 0.2]} c="#5a3c2e" r={0.9} /></group>;
-    case "sofa-aegis": return <group position={[0, 0, -3.4]}><Box p={[0, 0.25, 0]} s={[3.2, 0.5, 1]} c="#d8d4cc" r={0.5} /><Box p={[0, 0.7, -0.4]} s={[3.2, 0.5, 0.2]} c="#cfcac0" r={0.5} /><Box p={[0, 0.2, 1.4]} s={[1.4, 0.4, 0.7]} c="#2a2d33" m={0.6} r={0.25} /></group>;
-    case "art-fracture": return <Box p={[-HALF + 0.2, 1.9, 0]} s={[0.05, 1.1, 1.6]} c="#2a1640" e="#8f4dff" />;
-    case "art-vyrak": return <Box p={[-HALF + 0.2, 1.9, 0]} s={[0.06, 1.3, 2]} c="#7a2a10" e="#3a1004" r={0.8} />;
-    case "tv-wall": return <Box p={[HALF - 0.2, 1.7, 0]} s={[0.08, 1.1, 2]} c="#0d1016" e="#1a3b6a" r={0.2} />;
-    case "tv-holo": return <group position={[HALF - 1.2, 0, 0]}><Box p={[0, 0.2, 0]} s={[0.9, 0.4, 0.9]} c="#20242c" m={0.7} /><mesh position={[0, 1.5, 0]}><cylinderGeometry args={[0.5, 0.5, 1.8, 20, 1, true]} /><meshBasicMaterial color="#5ce1ff" transparent opacity={0.25} side={THREE.DoubleSide} /></mesh></group>;
-    case "bed-bunk": return <group position={[2.5, 0, -3]}><Box p={[0, 0.35, 0]} s={[1.2, 0.3, 2.2]} c="#6a7480" /><Box p={[0, 1.5, 0]} s={[1.2, 0.3, 2.2]} c="#6a7480" /><Box p={[0.6, 0.9, 0]} s={[0.08, 1.8, 2.2]} c="#3a3f46" m={0.5} /></group>;
-    case "bed-king": return <group position={[0, 0, -3]}><Box p={[0, 0.45, 0]} s={[2.4, 0.4, 2.4]} c="#e6e2da" r={0.85} /><Box p={[0, 0.85, -1.1]} s={[2.4, 0.9, 0.2]} c="#3a2d4a" /><mesh position={[0, 0.12, 0]} rotation-x={-Math.PI / 2}><planeGeometry args={[2.6, 2.6]} /><meshBasicMaterial color="#7a5cff" transparent opacity={0.35} /></mesh></group>;
-    default:
-      if (id.startsWith("bath")) return <group position={[2.6, 0, -3]}><Box p={[0, 0.35, 0]} s={[1.6, 0.7, 2.6]} c="#e8ecef" r={0.2} /><Box p={[0, 0.65, 0]} s={[1.3, 0.1, 2.3]} c="#7fb8d0" r={0.05} /></group>;
-      if (id.startsWith("light")) return <group position={[0, H - 0.3, 0]}><Box p={[0, 0, 0]} s={[2, 0.08, 0.3]} c="#fff1cf" e="#ffd28a" /><pointLight color="#ffd8a0" intensity={6} distance={9} /></group>;
-      return null;
-  }
+/** One part of a furniture model: a box, cylinder or sphere with its own material (and a light if it glows). */
+function PartMesh({ part }: { part: Part }) {
+  const glow = part.emissive;
+  return (
+    <group position={part.pos} rotation-y={part.rotY ?? 0}>
+      <mesh castShadow={!part.ghost} receiveShadow>
+        {part.shape === "box" && <boxGeometry args={part.size} />}
+        {part.shape === "cyl" && <cylinderGeometry args={[part.size[0] / 2, part.size[0] / 2, part.size[1], 20]} />}
+        {part.shape === "sphere" && <sphereGeometry args={[part.size[0] / 2, 16, 12]} />}
+        <meshStandardMaterial color={part.color} emissive={glow ?? "#000"} emissiveIntensity={glow ? 1.2 : 0} roughness={part.rough ?? 0.6} metalness={part.metal ?? 0} transparent={part.opacity !== undefined} opacity={part.opacity ?? 1} depthWrite={part.opacity === undefined} />
+      </mesh>
+      {part.light && <pointLight color={glow ?? "#ffd8a0"} intensity={part.light.intensity} distance={part.light.distance} />}
+    </group>
+  );
 }
 
-function Room({ index, roomName, decor, exitRoom }: { index: number; roomName: string; decor: Record<string, string>; exitRoom: boolean }) {
+/** Built-in fixtures plus a detailed model for every item placed in this room, styled for the home. */
+const Furniture = memo(function Furniture({ room, style, decor }: { room: RoomId; style: HomeStyle; decor: Record<string, string> }) {
+  const f = useMemo(() => roomFurniture(room, style, decor, (id, slot, r) => { const d = decorById(id); return !!d && d.slot === slot && d.rooms.includes(r); }), [room, style, decor]);
+  return (
+    <group>
+      {f.fixtures.map((p, i) => <PartMesh key={`f${i}`} part={p} />)}
+      {f.items.map((it) => <group key={it.slot}>{it.parts.map((p, i) => <PartMesh key={i} part={p} />)}</group>)}
+    </group>
+  );
+});
+
+function Room({ index, roomName, decor, exitRoom, style }: { index: number; roomName: RoomId; decor: Record<string, string>; exitRoom: boolean; style: HomeStyle }) {
   const wall = WALL[decor["wallpaper"] ?? ""] ?? WALL[decor["paint"] ?? ""] ?? { color: roomName === "bathroom" ? "#9fb0b8" : "#565d68" };
   const floor = FLOOR[decor["floor"] ?? ""] ?? (roomName === "garage" ? "#3d3f42" : "#3a3a42");
   const x = index * HOME_ROOM_SIZE;
@@ -61,7 +71,7 @@ function Room({ index, roomName, decor, exitRoom }: { index: number; roomName: s
       {w([HALF, H / 2, 3.1], [0.25, H, 3.8])}
       {w([HALF, H - 0.4, 0], [0.25, 0.8, 2.4])}
       <pointLight position={[0, H - 0.5, 0]} color="#e8eeff" intensity={4} distance={11} />
-      {Object.entries(decor).map(([slot, id]) => !["paint", "wallpaper", "floor"].includes(slot) && <DecorObject key={slot} id={id} />)}
+      <Furniture room={roomName} style={style} decor={decor} />
     </group>
   );
 }
@@ -97,7 +107,7 @@ export const HomeInteriors = memo(function HomeInteriors({ housing, nexLedger }:
             {home.rooms.map((room, i) => {
               const decor: Record<string, string> = {};
               for (const [k, v] of Object.entries(placed)) { const [ri, slot] = k.split(":"); if (slot && Number(ri) === i) decor[slot] = v; }
-              return <Room key={i} index={i} roomName={room} decor={decor} exitRoom={i === 0} />;
+              return <Room key={i} index={i} roomName={room} decor={decor} exitRoom={i === 0} style={styleOf(home.id)} />;
             })}
             <mesh rotation-x={-Math.PI / 2} position={[it.exitOffset.x, 0.02, it.exitOffset.z]}><ringGeometry args={[1.2, 1.6, 24]} /><meshBasicMaterial color="#7dffca" transparent opacity={0.6} /></mesh>
           </group>
