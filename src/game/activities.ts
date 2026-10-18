@@ -19,13 +19,16 @@ export type Objective =
   | { kind: "course"; /** ordered checkpoints, fractions of the area radius */ points: readonly (readonly [number, number])[]; timeLimit: number; label: string }
   | { kind: "collect"; points: readonly (readonly [number, number])[]; timeLimit: number; label: string }
   | { kind: "hold"; at: readonly [number, number]; radius: number; seconds: number; label: string }
-  | { kind: "deliver"; from: readonly [number, number]; to: readonly [number, number]; timeLimit: number; label: string };
-export type OptionalChallenge = { id: "no-damage" | "fast" | "no-death"; label: string };
+  | { kind: "deliver"; from: readonly [number, number]; to: readonly [number, number]; timeLimit: number; label: string }
+  /** a full race (racing.ts): lifecycle, ordered checkpoints, rivals, penalties; `timeLimit` is the Standard limit in seconds */
+  | { kind: "race"; raceId: string; timeLimit: number; label: string };
+export type OptionalChallenge = { id: "no-damage" | "fast" | "no-death" | "gold"; label: string };
 export type Rewards = { nex: number; xp: number; rep: number; materials: Partial<Record<MaterialId, number>>; /** earned-only shader chance on completion */ shaderChance: number };
 export type ActivityDef = {
   id: string; area: string; name: string; kind: ActivityKind; difficulty: 1 | 2 | 3 | 4; brief: string;
   attempts: number; cooldownMin: number; stages: readonly Objective[]; challenge?: OptionalChallenge; rewards: Rewards;
   /** limits reset daily (default) or weekly (elite operations) */ period?: "day" | "week";
+  /** extra eligibility rule (racing rank, unlock chains): returns the reason it is locked, or null */ gate?: (p: Pick<PlayerProgression, "earnedRewards" | "missionRuns">) => string | null;
   /** needs the underwater approach (Thalassia) */ submerged?: boolean; /** reputation needed to see this contract */ minRep?: number; faction: string;
 };
 
@@ -142,6 +145,7 @@ export function activityState(p: Pick<PlayerProgression, "missionRuns" | "earned
   // a clock set backwards must not extend or shorten anything: a "last" in the future counts as just now
   const since = last > now ? 0 : now - last;
   const cooldownLeftMs = last ? Math.max(0, def.cooldownMin * 60_000 - since) : 0;
+  const gated = def.gate?.(p); if (gated) return { attemptsLeft, cooldownLeftMs, available: false, reason: gated };
   if (def.minRep && reputationOf(p, def.faction) < def.minRep) return { attemptsLeft, cooldownLeftMs, available: false, reason: `Requires ${def.minRep} ${def.faction} reputation` };
   if (attemptsLeft <= 0) return { attemptsLeft, cooldownLeftMs, available: false, reason: def.period === "week" ? "Weekly limit reached" : "Daily limit reached" };
   if (cooldownLeftMs > 0) return { attemptsLeft, cooldownLeftMs, available: false, reason: "On cooldown" };
@@ -164,8 +168,10 @@ export type Run = {
   id: string; startedAt: number; stage: number; stageStartedAt: number; status: "active" | "complete" | "failed"; failReason?: string;
   progress: number; need: number; cp: number; visited: number[]; carrying: boolean; hold: number; killsBase: number; elitesBase: number; bossesBase: number;
   hpMin: number; deaths0: number; diedDuring: boolean; wasHurt: boolean;
+  /** racing.ts state while a race stage is active */ race?: unknown;
+  /** race difficulty chosen at start (standard | advanced | legendary) */ difficulty?: string;
 };
-export function startActivity(p: PlayerProgression, id: string, now = Date.now()): { progression: PlayerProgression; run: Run } | { error: string } {
+export function startActivity(p: PlayerProgression, id: string, now = Date.now(), difficulty?: string): { progression: PlayerProgression; run: Run } | { error: string } {
   const def = activityById(id); if (!def) return { error: "Unknown activity" };
   const st = activityState(p, def, now);
   if (!st.available) return { error: st.reason ?? "Unavailable" };
@@ -173,12 +179,15 @@ export function startActivity(p: PlayerProgression, id: string, now = Date.now()
   const today = rec && rec.day === periodKey(def, now) ? rec.count : 0;
   // the attempt is spent the moment the activity starts and is never refunded
   const next = { ...p, missionRuns: { ...p.missionRuns, [recKey(id)]: { ...(rec ?? {}), day: periodKey(def, now), count: today + 1, last: (rec as { last?: number } | undefined)?.last ?? 0 } } } as PlayerProgression;
-  return { progression: next, run: newRun(def, now) };
+  const run = newRun(def, now); if (difficulty) run.difficulty = difficulty;
+  return { progression: next, run };
 }
 export const newRun = (def: ActivityDef, now: number): Run => ({ id: def.id, startedAt: now, stage: 0, stageStartedAt: now, status: "active", progress: 0, need: def.stages[0] ? needOf(def.stages[0]) : 0, cp: 0, visited: [], carrying: false, hold: 0, killsBase: -1, elitesBase: -1, bossesBase: -1, hpMin: 100, deaths0: -1, diedDuring: false, wasHurt: false });
-function needOf(o: Objective): number { return o.kind === "kills" ? o.count : o.kind === "course" || o.kind === "collect" ? o.points.length : o.kind === "hold" ? o.seconds : 1; }
+function needOf(o: Objective): number { return o.kind === "race" ? 1 : o.kind === "kills" ? o.count : o.kind === "course" || o.kind === "collect" ? o.points.length : o.kind === "hold" ? o.seconds : 1; }
 
-export type Tick = { x: number; z: number; dt: number; now: number; kills: number; elites: number; bosses: number; hp: number; deaths: number };
+export type Tick = { x: number; z: number; dt: number; now: number; kills: number; elites: number; bosses: number; hp: number; deaths: number; /** race facts: movement mode, height/depth, vehicle wrecked, fell out of the world, collisions this tick, style points earned this tick */ mode?: "foot" | "vehicle" | "dive"; y?: number; vehicleDisabled?: boolean; fell?: boolean; collisions?: number; style?: number };
+/** other modules plug their objective logic in here to avoid import cycles */
+export const hooks: { race?: (def: ActivityDef, run: Run, o: Extract<Objective, { kind: "race" }>, t: Tick) => void; raceTarget?: (def: ActivityDef, run: Run) => { x: number; z: number; label: string } | null } = {};
 export const pointWorld = (area: string, f: readonly [number, number]) => { const a = AREAS[area]!; return { x: a.x + f[0] * a.radius, z: a.z + f[1] * a.radius }; };
 export const CHECKPOINT_RADIUS = 7;
 
@@ -189,6 +198,7 @@ export function currentTarget(def: ActivityDef, run: Run): { x: number; z: numbe
   if (o.kind === "collect") { const i = o.points.findIndex((_, k) => !run.visited.includes(k)); return i >= 0 ? { ...pointWorld(def.area, o.points[i]!), label: o.label } : null; }
   if (o.kind === "hold") return { ...pointWorld(def.area, o.at), label: o.label };
   if (o.kind === "deliver") return { ...pointWorld(def.area, run.carrying ? o.to : o.from), label: o.label };
+  if (o.kind === "race") return hooks.raceTarget?.(def, run) ?? null;
   return null;
 }
 
@@ -202,7 +212,7 @@ export function stepRun(def: ActivityDef, run: Run, t: Tick): Run {
   const o = def.stages[run.stage]!;
   const elapsed = (t.now - run.stageStartedAt) / 1000;
   const near = (f: readonly [number, number], r = CHECKPOINT_RADIUS) => { const w = pointWorld(def.area, f); return Math.hypot(t.x - w.x, t.z - w.z) <= r; };
-  const timed = o.kind === "course" || o.kind === "collect" || o.kind === "deliver";
+  const timed = o.kind === "course" || o.kind === "collect" || o.kind === "deliver"; // races keep their own clock (racing.ts), which also ignores paused frames
   if (timed && elapsed > (o as { timeLimit: number }).timeLimit) { run.status = "failed"; run.failReason = "Out of time"; return run; }
   switch (o.kind) {
     case "kills": {
@@ -229,6 +239,7 @@ export function stepRun(def: ActivityDef, run: Run, t: Tick): Run {
       if (run.hold >= o.seconds) advance(def, run, t.now);
       break;
     }
+    case "race": hooks.race?.(def, run, o, t); break; // the hook sets run.status itself (races are single-stage)
     case "deliver": {
       if (!run.carrying && near(o.from)) run.carrying = true;
       else if (run.carrying && near(o.to)) { run.progress = 1; advance(def, run, t.now); }
@@ -248,6 +259,7 @@ export function challengeMet(def: ActivityDef, run: Run, now: number): boolean {
   if (!def.challenge) return false;
   if (def.challenge.id === "no-damage") return !run.wasHurt && !run.diedDuring;
   if (def.challenge.id === "no-death") return !run.diedDuring;
+  if (def.challenge.id === "gold") return (run.race as { result?: { medal?: string } } | undefined)?.result?.medal === "gold";
   const limit = def.stages.reduce((n, o) => n + ("timeLimit" in o ? o.timeLimit : 0), 0);
   return limit > 0 && (now - run.startedAt) / 1000 <= limit * 0.6;
 }

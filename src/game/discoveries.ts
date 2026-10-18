@@ -7,7 +7,7 @@ import { ACTIVITIES, AREAS, EXTRA_DEFS, NO_DEATH, NO_DMG, R, activityState, coll
 import type { PlayerProgression } from "./progression";
 
 export type DiscoveryKind = "flag" | "beacon" | "patrol" | "fracture" | "distress" | "cache" | "movement" | "anomaly";
-export type Discovery = { id: string; area: string; kind: DiscoveryKind; name: string; sign: string; at: readonly [number, number]; hidden: boolean; reveals?: readonly string[]; def: ActivityDef };
+export type Discovery = { id: string; area: string; kind: DiscoveryKind; name: string; sign: string; at: readonly [number, number]; hidden: boolean; reveals?: readonly string[]; def: ActivityDef; /** hidden races: known once this rule holds (derived from your own completed discoveries) */ unlock?: (p: Pick<PlayerProgression, "earnedRewards" | "missionRuns">) => boolean };
 export const VISIBLE_RANGE = 120;
 export const TRIGGER_RADIUS = 7;
 const foundKey = (id: string) => `disc-found:${id}`;
@@ -75,6 +75,9 @@ const SPECS: Spec[] = [
   { id: "fs-flag", area: "frostspire", kind: "flag", name: "Rescue Flag", sign: "A flag whipping in the whiteout.", at: [0.3, 0.3], faction: "wardens", stages: caches("frostspire", 3, 150), rewards: R(70, 40, 8, { cryoCrystal: 2 }, 0.04) },
   { id: "fs-beacon", area: "frostspire", kind: "beacon", name: "Frozen Beacon", sign: "An abandoned outpost beacon, iced shut.", at: [-0.4, 0.2], faction: "wardens", stages: beaconStages, rewards: R(60, 35, 6, { cryoCrystal: 1 }, 0) },
   { id: "fs-rift", area: "frostspire", kind: "anomaly", name: "Time-Freeze", sign: "Snow hangs in the air around an outpost. It is not falling.", at: [0, -0.5], faction: "wardens", stages: stabilize("frostspire", 5, 25), rewards: R(95, 55, 9, { cryoCrystal: 2, zeroCore: 0 }, 0.06) },
+  { id: "nx-beacon", area: "nexus", kind: "beacon", name: "Concealed Signal Beacon", sign: "A signal that should not exist hums under the grid.", at: [0.1, -0.7], faction: "wardens", stages: beaconStages, rewards: R(30, 25, 5, { microCircuits: 1 }, 0) },
+  { id: "ncd-term-a", area: "neon-core", kind: "beacon", name: "Restricted Terminal A", sign: "A restricted terminal logging racing telemetry.", at: [-0.5, 0.2], faction: "aegis", stages: beaconStages, rewards: R(40, 30, 6, { dataChip: 1 }, 0) },
+  { id: "ncd-term-b", area: "neon-core", kind: "beacon", name: "Restricted Terminal B", sign: "A second terminal with a partial course map.", at: [0.5, -0.3], faction: "aegis", stages: beaconStages, rewards: R(40, 30, 6, { dataChip: 1 }, 0) },
   // Neon Core
   { id: "ncd-signal", area: "neon-core", kind: "distress", name: "Aegis Distress", sign: "A technician's emergency call from a locked wing.", at: [0.2, 0.3], faction: "aegis", stages: (at) => [hold(at[0], at[1], 10, 25, "Hold the wing"), kills(5, "Drive off the response team")], rewards: R(110, 60, 10, { dataChip: 1, anomalyCore: 0 }, 0.06) },
 ];
@@ -91,7 +94,7 @@ export function reveal<T extends Pick<PlayerProgression, "earnedRewards">>(p: T,
   return add.length ? { ...p, earnedRewards: [...p.earnedRewards, ...add] } : p;
 }
 export const revealedBy = (defId: string) => discoveryOfDef(defId)?.reveals ?? [];
-export const isKnown = (p: Pick<PlayerProgression, "earnedRewards">, d: Discovery) => !d.hidden || has(p, d.id);
+export const isKnown = (p: Pick<PlayerProgression, "earnedRewards" | "missionRuns">, d: Discovery) => !d.hidden || has(p, d.id) || Boolean(d.unlock?.(p));
 
 /** patrols walk a loop in real time; everything else stays put */
 export function positionOf(d: Discovery, now: number): { x: number; z: number } {
