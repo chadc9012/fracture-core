@@ -42,6 +42,7 @@ import { weatherName as weatherLabel } from "@/game/weather-cycle";
 import { environmentAt, stepEnvironment } from "@/game/environment";
 import { backpackFor } from "@/game/backpacks";
 import { createReticle, markHit, stepReticle, type Motion, type ReticleView, EMPTY_RETICLE } from "@/game/crosshair";
+import { createTraversal, restTraversal, startTraversal, stepTraversal } from "@/game/traversal";
 import { createDashState, dashHit, dashStats, hoverVy, stepDash, tryDash } from "@/game/dash";
 import { airJump, cameraDrop, cancelSlide, createMoveState, glideVy, GLIDE_THRUST, land, movementFov, resolveStance, startSlide, stepSlide, stepStance, AIR_PROFILE, STANCE_SPEED, SLIDE_SECONDS, type Stance } from "@/game/movement";
 import { loadoutEffects } from "@/game/armor-attributes";
@@ -884,6 +885,7 @@ function SceneImpl({
   const velocity = useMemo(() => new THREE.Vector3(), []);
   const bootDash = useRef({ held: false, readyAt: 0 });
   /** Operator dash (dash.ts): per-class dash with perks from abilityBranches */
+  const trav = useRef(createTraversal(playerClass));
   const opDash = useRef({ state: createDashState(playerClass, abilityBranches), held: false, wasActive: false });
   const opDashStats = useMemo(() => dashStats(playerClass, abilityBranches), [playerClass, abilityBranches]);
   const wish = useMemo(() => new THREE.Vector3(), []);
@@ -2322,6 +2324,21 @@ function SceneImpl({
         s.vy = hoverVy(opDash.current.state, glideVy(s.vy, playerClass, jumpHeld));
         if (AIR_PROFILE[playerClass].glide && jumpHeld && s.vy !== before) { velocity.x += Math.sin(s.yaw) * GLIDE_THRUST * dt; velocity.z += Math.cos(s.yaw) * GLIDE_THRUST * dt; }
       }
+      // mantle / climb (traversal.ts): meeting a higher surface while airborne pulls you over it instead of snapping you up
+      let travActive = false;
+      if (!s.inVehicle && !submerged && !interior && !s.diving) {
+        const tv = trav.current, climbHeld = held.has("KeyC");
+        if (tv.mode === "NONE" && standY > s.y && startTraversal(tv, playerClass, s.y, standY, { forward: throttleF, climbHeld })) { s.vy = 0; s.punch += 0.15; sfx.playReload("end"); }
+        if (tv.mode !== "NONE") {
+          const r = stepTraversal(tv, playerClass, dt, standY, climbHeld);
+          travActive = !r.fell;
+          if (!r.fell) {
+            s.y = r.y; s.vy = 0; velocity.x *= r.steer; velocity.z *= r.steer;
+            if (r.done) { s.y = standY; s.grounded = true; land(move.current.state, playerClass); move.current.state.airJumpsLeft += boots.extraAirJumps; }
+          }
+        }
+      }
+      if (!travActive) {
       s.vy -= sim.gravity * dt;
       s.y += s.vy * dt;
       if (s.y <= standY) {
@@ -2330,7 +2347,9 @@ function SceneImpl({
         s.grounded = true;
         land(move.current.state, playerClass); move.current.state.airJumpsLeft += boots.extraAirJumps;
       }
+      }
     }
+    restTraversal(trav.current, playerClass, dt, s.grounded);
     // fracture instability tosses loose objects (and you) around
     if (playerInstability > 0.6 && s.grounded && !s.diving && Math.random() < playerInstability * dt * 1.2) {
       s.vy = 6 + playerInstability * 10;
