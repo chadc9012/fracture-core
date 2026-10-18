@@ -45,3 +45,17 @@ describe("unique scenarios", () => {
     }
   });
 });
+
+import { SCENARIO_LOOT } from "./scenario-loot";
+describe("special encounters 05-08", () => {
+  const ids = ["hollow-colossus", "exiled-architect", "verdant-sovereign", "black-market-phantom"];
+  it("are registered with lairs, loot, and a region that exists", () => {
+    for (const id of ids) {
+      const s = scenarioById(id)!;
+      expect(s).toBeDefined();
+      expect(SCENARIO_LOOT[id]!.guaranteed.length).toBeGreaterThan(0);
+      expect(SCENARIO_LAIRS.find((l) => l.scenarioId === id)).toBeDefined();
+      expect(scenarioFor(s.regionId)?.id).not.toBe(id);
+    }
+  });
+});

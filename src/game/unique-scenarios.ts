@@ -14,6 +14,7 @@
 import type { Gimmick } from "./scenario-gimmicks";
 import { THALASSIA_CENTER } from "./thalassia-site";
 import { VYRAK } from "./dragon-covenant";
+import { NEON_CENTER } from "./living-world";
 
 export type UniqueScenario = {
   id: string;
@@ -162,6 +163,62 @@ export const UNIQUE_SCENARIOS: readonly UniqueScenario[] = [
     outsideWindowMult: 0.07,
     rewardCredits: 1500,
     lair: { dx: 0.45, dz: 0.5 },
+  },
+  {
+    id: "hollow-colossus",
+    gimmick: "poise",
+    taunt: "\"...\" (the chamber floor groans as something enormous turns over)",
+    name: "Slumber: The Hollow Colossus",
+    regionId: "wastelands",
+    bossName: "The Hollow Colossus",
+    drop: "ruinStone",
+    briefing: "A gigantic sleeper beneath the ruins. Its stone hide shrugs off almost everything; only the stagger window after a slam exposes its core. Every blow struck outside that window wakes a harsher defense.",
+    tell: "The ceiling dust falls and the floor cracks in a ring a moment before each slam.",
+    outsideWindowMult: 0.05,
+    rewardCredits: 1500,
+    lair: { dx: -0.4, dz: 0.5 },
+  },
+  {
+    id: "exiled-architect",
+    gimmick: "adaptive",
+    taunt: "\"Do not solve it the way I taught you. Solve it the way I never imagined.\"",
+    name: "Trial: The Exiled Architect",
+    regionId: "solara",
+    bossName: "The Exiled Architect",
+    drop: "relicFragment",
+    briefing: "A former engineer who learned to rewrite reality. He punishes repetition: the same damage type over and over lands for less and less, so the fight asks you to chain different elements and abilities.",
+    tell: "Blueprint lines draw themselves across the floor right before each construct drops in.",
+    outsideWindowMult: 0.5,
+    rewardCredits: 1400,
+    lair: { dx: -0.5, dz: -0.35 },
+  },
+  {
+    id: "verdant-sovereign",
+    gimmick: "attune",
+    taunt: "\"The forest hears everything you do in it.\"",
+    name: "Grove: The Verdant Sovereign",
+    regionId: "veridan",
+    bossName: "The Verdant Sovereign",
+    drop: "sporeFiber",
+    briefing: "A hidden power that governs the forest. It leans toward one element at a time; hits of its attuned element land cleanly while the rest are turned aside by living bark.",
+    tell: "Its crown of leaves changes colour and the roots ring once when the attunement shifts.",
+    outsideWindowMult: 0.5,
+    rewardCredits: 1200,
+    lair: { dx: 0.4, dz: -0.45 },
+  },
+  {
+    id: "black-market-phantom",
+    gimmick: "closing",
+    taunt: "\"Catch me, or keep running the route everyone else runs.\"",
+    name: "Rival: The Black Market Phantom",
+    regionId: "nexus",
+    bossName: "The Black Market Phantom",
+    drop: "dataChip",
+    briefing: "A masked rival from the underground network. It dodges anything fired from range, so close the distance and strike while it is cornered.",
+    tell: "A neon after-image flickers one step ahead of it right before it vanishes down a shortcut.",
+    outsideWindowMult: 0.5,
+    rewardCredits: 1300,
+    lairAt: { x: NEON_CENTER.x - 14, z: NEON_CENTER.z + 20 },
   },
 ];
 

@@ -37,7 +37,21 @@ export const DRAGONHEART_PLATE: GearItem = { id: "dragonheart-plate", name: "Dra
 export const EMBER_LANCE: GearItem = { id: "ember-lance", name: "Ember Lance", slot: "primary", power: 325, level: 1, element: "THERMAL", rarity: "EXOTIC", source: "Vaelith" };
 export const DRAGON_SCALE_MANTLE: GearItem = { id: "dragon-scale-mantle", name: "Dragon-Scale Mantle", slot: "classItem", power: 245, level: 1, element: "THERMAL", rarity: "LEGENDARY", source: "Vaelith" };
 
+// Special encounters (design doc 05-08). Plain power + element like the other scenario gear; no new perks.
+export const COLOSSUS_PLATING: GearItem = { id: "colossus-plating", name: "Colossus Plating", slot: "chest", power: 240, level: 1, element: "KINETIC", rarity: "LEGENDARY", source: "The Hollow Colossus" };
+export const QUAKEBREAKER_MAUL: GearItem = { id: "quakebreaker-maul", name: "Quakebreaker Maul", slot: "heavy", power: 315, level: 1, element: "KINETIC", rarity: "LEGENDARY", source: "The Hollow Colossus" };
+export const ARCHITECTS_SIGNET: GearItem = { id: "architects-signet", name: "Architect's Signet", slot: "classItem", power: 245, level: 1, element: "ARC", rarity: "EXOTIC", source: "The Exiled Architect" };
+export const SOVEREIGN_BARK_GUARD: GearItem = { id: "sovereign-bark-guard", name: "Sovereign Bark Guard", slot: "chest", power: 235, level: 1, element: "BIO", rarity: "LEGENDARY", source: "The Verdant Sovereign" };
+export const BIOME_BOW: GearItem = { id: "biome-bow", name: "Bow of the Seasons", slot: "primary", power: 310, level: 1, element: "BIO", rarity: "LEGENDARY", source: "The Verdant Sovereign" };
+export const PHANTOM_RACING_SUIT: GearItem = { id: "phantom-racing-suit", name: "Phantom Racing Suit", slot: "chest", power: 235, level: 1, element: "ARC", rarity: "LEGENDARY", source: "The Black Market Phantom" };
+
 export const ITEM_BLURB: Record<string, string> = {
+  "colossus-plating": "Legendary chest piece of ruin-stone plates — strong Defense; works with any other armor.",
+  "quakebreaker-maul": "Legendary heavy weapon built for stagger. Plain power and KINETIC element; no special perk.",
+  "architects-signet": "Exotic class item from the Exiled Architect. Strong Intellect and Mobility; works with any other armor.",
+  "sovereign-bark-guard": "Legendary chest piece of living bark — strong Defense; works with any other armor.",
+  "biome-bow": "Legendary primary weapon from the forest's Sovereign. Plain power and BIO element; no special perk.",
+  "phantom-racing-suit": "Legendary racing armor from the underground network — strong Mobility; works with any other armor.",
   "null-sovereign": "Exotic staff. NULL DISRUPTION: well-timed hits (interrupting a wind-up, or striking an open weak point) build Null Charge; at 5 the next hit releases a pulse that stuns nearby enemies and breaks boss poise.",
   "crown-drowned-court": "Legendary helmet. A salt-crusted crown from the sunken court — strong Intellect and Defense; works with any other armor.",
   "tidecaller-trident": "Legendary secondary weapon from the Drowned Monarch. Plain power and CRYO element; no special perk.",
@@ -60,6 +74,10 @@ export const SCENARIO_LOOT: Readonly<Record<string, ScenarioLootEntry>> = {
   // once ever). The empty entry exists so sim.defeatMachine still attaches a ScenarioClaim, which claimDrops
   // uses as the confirmed-kill signal (participation included) to grant the bond.
   vyrak: { guaranteed: [], chance: [] },
+  "hollow-colossus": { guaranteed: [COLOSSUS_PLATING], chance: [{ item: QUAKEBREAKER_MAUL, chance: 0.2 }] },
+  "exiled-architect": { guaranteed: [ARCHITECTS_SIGNET], chance: [] },
+  "verdant-sovereign": { guaranteed: [SOVEREIGN_BARK_GUARD], chance: [{ item: BIOME_BOW, chance: 0.2 }] },
+  "black-market-phantom": { guaranteed: [PHANTOM_RACING_SUIT], chance: [] },
 };
 
 /** What sim.defeatMachine attaches to a scenario kill. `rolls` are pre-drawn uniform [0,1) numbers (one per chance entry)
