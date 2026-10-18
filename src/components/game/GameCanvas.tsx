@@ -18,6 +18,8 @@ import type { RenderTier } from "@/game/performance";
 import { DPR_FLOOR, effectiveTier, onDecline as governDecline } from "@/game/quality-governor";
 import { MissionCinematic } from "./MissionCinematic";
 import { recordClue } from "@/game/encounter-journal";
+import { activityById, startActivity, completeActivity, abandonRun, type ActivityDef, type Run as ActivityRun } from "@/game/activities";
+import { ActivityTracker, ActivityResultPanel, type ActivityResult } from "./ActivityHud";
 import { CAMPAIGN_CHAIN } from "@/game/campaign-cinematics";
 import { shouldPlay as shouldPlayCine, markPlayed as markCinePlayed } from "@/game/cinematics";
 import { undiscoveredNear, discoverLandmarks, isLandmarkKnown } from "@/game/landmarks";
@@ -873,6 +875,26 @@ export function GameCanvas() {
   // Unique Scenario clears: show what the (idempotent) grant actually did. The grant itself runs inside claimDrops; this only describes it.
   const [rewardCards, setRewardCards] = useCountedState<{ title: string; cards: RewardCard[] } | null>("rewardCards", null);
   const shownRewardRuns = useRef(new Set<string>());
+  // Regional activities (activities.ts): the run object is mutated by Scene each frame; changes re-render through `activityTick`
+  const [activity, setActivity] = useState<{ def: ActivityDef; run: ActivityRun } | null>(null);
+  const [activityResult, setActivityResult] = useState<ActivityResult | null>(null);
+  const [, setActivityTick] = useState(0);
+  const startActivityById = (id: string) => {
+    if (activity) return;
+    const res = startActivity(progressionRef.current, id, Date.now());
+    if ("error" in res) { setMenuNotice(res.error); return; }
+    setProgression(res.progression); setActivity({ def: activityById(id)!, run: res.run }); setOperationsView(null);
+  };
+  const onActivityChange = () => {
+    setActivityTick((n) => n + 1);
+    const cur = activity; if (!cur) return;
+    if (cur.run.status === "complete") {
+      const done = completeActivity(progressionRef.current, cur.def, cur.run, Date.now());
+      setActivity(null);
+      if (!("error" in done)) { setProgression(done.progression); setActivityResult({ def: cur.def, ok: true, payout: done.payout }); }
+    } else if (cur.run.status === "failed") { setActivity(null); setActivityResult({ def: cur.def, ok: false, reason: cur.run.failReason ?? "Failed" }); }
+  };
+  const abandonActivity = () => { if (!activity) return; abandonRun(activity.run); onActivityChange(); };
   const showScenarioRewards = (drops: { scenarioClaim?: Parameters<typeof grantScenarioReward>[1] }[]) => {
     const plan = planScenarioRewardCards(progressionRef.current, drops, shownRewardRuns.current);
     const last = plan[plan.length - 1];
@@ -1153,7 +1175,7 @@ export function GameCanvas() {
       >
         <color attach="background" args={["#bfe4f2"]} />
         <Suspense fallback={<WorldLoading />}>
-            <Profiler id="scene" onRender={onProf}><Scene onEncounterClue={(enc, clue) => setProgression((cur) => recordClue(cur, enc, clue).progression)} openedCaches={openedToday} onStoryEvent={recordStory} onLiving={recordLiving} onWaste={recordWaste} summonNemesis={summonNemesis} onHud={setHud} onDrops={(drops) => { showScenarioRewards(drops); setProgression((current) => claimDrops(current, drops)); }} gear={progression} settings={liveSettings} onCameraPreference={(firstPerson) => { window.localStorage.setItem("world-fracture-camera", firstPerson ? "first" : "third"); setSettings((current) => ({ ...current, firstPersonDefault: firstPerson })); }} playerClass={cls} subclassId={subclass} bonded={isBonded(progression, cls)} appearance={appearance} bodyType={bodyType} vehicleId={vehicleId} vehicleUnlocked={vehicleUnlocked} activeBuild={progression.activeBuild} abilityBranches={progression.abilityBranches} tutorial={tutorial} onTutorialEvent={recordTutorial} mission={mission} onMissionEvent={recordMission} relay={relay} onRelayEvent={recordRelay} blackout={blackout} onBlackoutEvent={recordBlackout} neonCore={neonCore} onNeonCoreEvent={recordNeonCore} solarArray={solarArray} onSolarArrayEvent={recordSolarArray} coreNode={coreNode} onCoreNodeEvent={recordCoreNode} zoneRuns={zoneRuns} onZoneEvent={recordZone} descent={descent} onDescentEvent={recordDescent} systemCore={systemCore} onSystemCoreEvent={recordSystemCore} awakening={awakening} onAwakeningEvent={recordAwakening} onXP={recordXP} weaponOrder={carriedWeapons(activeLoadout(progression, progression.identityClass ?? cls).slots)} travelTo={travelTo} introPlayback={showIntro ? { elapsed: introElapsed, totalSeconds: introTotalSeconds() } : cineId ? { elapsed: cineProgress * introTotalSeconds(), totalSeconds: introTotalSeconds() } : null} armorState={hud.hp < 35 ? "FRACTURE" : hud.heat > 65 ? "ASCENDANT" : hud.heat > 15 ? "ACTIVE" : "STABLE"} /></Profiler>
+            <Profiler id="scene" onRender={onProf}><Scene activity={activity} onActivityChange={onActivityChange} onEncounterClue={(enc, clue) => setProgression((cur) => recordClue(cur, enc, clue).progression)} openedCaches={openedToday} onStoryEvent={recordStory} onLiving={recordLiving} onWaste={recordWaste} summonNemesis={summonNemesis} onHud={setHud} onDrops={(drops) => { showScenarioRewards(drops); setProgression((current) => claimDrops(current, drops)); }} gear={progression} settings={liveSettings} onCameraPreference={(firstPerson) => { window.localStorage.setItem("world-fracture-camera", firstPerson ? "first" : "third"); setSettings((current) => ({ ...current, firstPersonDefault: firstPerson })); }} playerClass={cls} subclassId={subclass} bonded={isBonded(progression, cls)} appearance={appearance} bodyType={bodyType} vehicleId={vehicleId} vehicleUnlocked={vehicleUnlocked} activeBuild={progression.activeBuild} abilityBranches={progression.abilityBranches} tutorial={tutorial} onTutorialEvent={recordTutorial} mission={mission} onMissionEvent={recordMission} relay={relay} onRelayEvent={recordRelay} blackout={blackout} onBlackoutEvent={recordBlackout} neonCore={neonCore} onNeonCoreEvent={recordNeonCore} solarArray={solarArray} onSolarArrayEvent={recordSolarArray} coreNode={coreNode} onCoreNodeEvent={recordCoreNode} zoneRuns={zoneRuns} onZoneEvent={recordZone} descent={descent} onDescentEvent={recordDescent} systemCore={systemCore} onSystemCoreEvent={recordSystemCore} awakening={awakening} onAwakeningEvent={recordAwakening} onXP={recordXP} weaponOrder={carriedWeapons(activeLoadout(progression, progression.identityClass ?? cls).slots)} travelTo={travelTo} introPlayback={showIntro ? { elapsed: introElapsed, totalSeconds: introTotalSeconds() } : cineId ? { elapsed: cineProgress * introTotalSeconds(), totalSeconds: introTotalSeconds() } : null} armorState={hud.hp < 35 ? "FRACTURE" : hud.heat > 65 ? "ASCENDANT" : hud.heat > 15 ? "ACTIVE" : "STABLE"} /></Profiler>
         </Suspense>
         {post && (
           // cinematic grade: cool-leaning teal shadows, a touch more punch, so the HUD's cyan
@@ -1204,7 +1226,9 @@ export function GameCanvas() {
        {!storyGraph && !activeDialogue && bossObjective(progression.story) && <p className="pointer-events-none fixed left-4 top-36 z-20 max-w-[280px] font-mono text-[10px] uppercase tracking-[0.18em] text-primary/80">{bossObjective(progression.story)!.text}</p>}
        {activeDialogue && <DialogueOverlay lines={activeDialogue} onDone={() => setActiveDialogue(null)} />}
        {deathInfo && <DeathOverlay cause={deathInfo.cause} cargoLost={deathInfo.cargoLost} deaths={deathInfo.deaths} onDone={() => setDeathInfo(null)} />}
-       {rewardCards && <ScenarioRewardCards title={rewardCards.title} cards={rewardCards.cards} onDone={() => setRewardCards(null)} />}
+       {activity && <ActivityTracker def={activity.def} run={activity.run} onAbandon={abandonActivity} />}
+      {activityResult && <ActivityResultPanel result={activityResult} onDone={() => setActivityResult(null)} />}
+      {rewardCards && <ScenarioRewardCards title={rewardCards.title} cards={rewardCards.cards} onDone={() => setRewardCards(null)} />}
       {missionBanner && <MissionBannerView banner={missionBanner} onDone={clearBanner} />}
       {levelUpFlash && <LevelUpOverlay level={levelUpFlash.level} novaUnlocked={levelUpFlash.novaUnlocked} onDone={() => setLevelUpFlash(null)} />}
        {showEnding && <EndingOverlay progression={progression} onClose={() => setShowEnding(false)} />}
@@ -1331,7 +1355,7 @@ export function GameCanvas() {
       {showIntro && <IntroCinematic onComplete={() => setShowIntro(false)} onTick={setIntroElapsed} />}
       {strategyOpen && <RaidStrategyPanel onClose={() => setStrategyOpen(false)} />}
       {analysisOpen && <ZoneAnalysisPanel zoneName={hud.region} onClose={() => setAnalysisOpen(false)} />}
-      {operationsView && <OperationsHub initialView={operationsView} progression={progression} onProgression={setProgression} onClose={() => setOperationsView(null)} />}
+      {operationsView && <OperationsHub onStartActivity={startActivityById} activeActivityId={activity?.def.id ?? null} initialView={operationsView} progression={progression} onProgression={setProgression} onClose={() => setOperationsView(null)} />}
       {progression.tutorialComplete && !tutorial && !vehicleUnlocked && <div className="fixed inset-0 z-40 grid place-items-center bg-background/80 p-4"><section className="w-full max-w-3xl border border-primary bg-card p-6"><p className="font-mono text-[10px] uppercase tracking-[0.3em] text-primary">Mission 01 complete · Garage assistant online</p><h2 className="mt-2 text-2xl font-semibold">Choose your first vehicle</h2><p className="mt-2 text-sm text-muted-foreground">This frame becomes your permanent world-travel unlock.</p><div className="mt-5 grid gap-3 sm:grid-cols-2">{STARTER_VEHICLES.map((vehicle) => <Button key={vehicle.id} variant="outline" onClick={() => { setVehicleId(vehicle.id); setProgression((current) => rewardVehicle(current, vehicle.id)); }} className="h-auto min-h-36 items-start justify-start rounded-none p-4 text-left whitespace-normal"><span><span className="font-mono text-base">{vehicle.name}</span><span className="mt-2 block text-xs text-muted-foreground">{vehicle.role}</span></span></Button>)}</div></section></div>}
       <Profiler id="cloud" onRender={onProf}><CloudSavePanel progression={progression} onProgression={adoptProgression} /></Profiler>
       {garageOpen && <div className="fixed inset-0 z-40 grid place-items-center bg-background/80 p-4"><section className="max-h-[85vh] w-full max-w-4xl overflow-y-auto border border-border bg-card p-6"><div className="flex items-start justify-between"><div><p className="font-mono text-[10px] uppercase tracking-[0.3em] text-primary">Garage assistant</p><h2 className="mt-2 text-2xl">Vehicle registry</h2><p className="mt-1 text-xs text-muted-foreground">Garage loadout {progression.garageLoadout.length}/3</p></div><Button variant="outline" onClick={() => setGarageOpen(false)}>Back</Button></div><div className="mt-5 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">{VEHICLES.map((vehicle) => { const owned = progression.ownedVehicles.includes(vehicle.id); const selected = progression.selectedVehicle === vehicle.id; return <div key={vehicle.id} className={`border p-3 ${selected ? "border-primary" : "border-border"}`}><p className="font-mono text-sm">{vehicle.name}</p><p className="mt-1 text-[10px] uppercase text-muted-foreground">{selected ? "Active · summon with V" : owned ? "Owned" : vehicleAcquisition(vehicle).replace("_", " ")}</p>{owned && !selected && <Button size="sm" variant="outline" className="mt-3" onClick={() => { setVehicleId(vehicle.id); setProgression((current) => ({ ...current, selectedVehicle: vehicle.id })); }}>Equip</Button>}</div>; })}</div></section></div>}

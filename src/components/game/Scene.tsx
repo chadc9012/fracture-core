@@ -1,3 +1,5 @@
+const ACTIVITY_REGION: Record<string, string> = { veridan: "veridan", ember: "ember", wastelands: "wastelands", swamps: "swamps", solara: "solara", frostspire: "frostspire", thalassia: "swamps" };
+import { stepRun as stepActivity, currentTarget as activityTarget, type ActivityDef, type Run as ActivityRun } from "@/game/activities";
 import { renderCounts, setterCalls } from "@/game/perf-counters";
 import { createHudGate } from "@/game/hud-gate";
 import { Billboard, Environment, Lightformer, Sky, Text, useGLTF } from "@react-three/drei";
@@ -454,6 +456,8 @@ function SceneImpl({
   onDrops,
   onStoryEvent,
   onEncounterClue,
+  activity,
+  onActivityChange,
   onLiving,
   onVehicleCondition,
   onWaste,
@@ -511,6 +515,9 @@ function SceneImpl({
   onStoryEvent?: (event: StoryWorldEvent) => void;
   /** an encounter clue was found in the world (encounter-journal.ts); the host records it and returns nothing */
   onEncounterClue?: (encounterId: string, clueId: string) => void;
+  /** activities.ts: the run in progress (mutated here each frame) and a notifier when its stage/progress/status changes */
+  activity?: { def: ActivityDef; run: ActivityRun } | null;
+  onActivityChange?: () => void;
   /** Living World outcomes (city kills, event results, survey/stash reached); GameCanvas applies them to progression */
   onLiving?: (event: LivingEmit) => void;
   onVehicleCondition?: (id: string, condition: VehicleCondition) => void;
@@ -686,6 +693,7 @@ function SceneImpl({
     if (descent?.target && descent.state !== "COMPLETE" && descent.state !== "WORLD_UPDATE") list.push({ id: "m-descent-protocol", kind: "MISSION", label: "Descent Protocol", x: descent.target.x, z: descent.target.z, regionId: "swamps" });
     if (systemCore?.target && systemCore.state !== "COMPLETE" && systemCore.state !== "WORLD_UPDATE") list.push({ id: "m-system-core", kind: "MISSION", label: "The System Core", x: systemCore.target.x, z: systemCore.target.z, regionId: "swamps" });
     for (const m of sim.director.missions) { if (m.state !== "ACTIVE") continue; const c = regionCenter(m.regionId); if (c) list.push({ id: `m-${m.id}`, kind: "MISSION", label: m.name, x: c.x, z: c.z, regionId: m.regionId }); }
+    { const tg = activity ? activityTarget(activity.def, activity.run) : null; if (tg) list.push({ id: "m-activity", kind: "MISSION", label: `${activity!.def.name} · ${tg.label}`, x: tg.x, z: tg.z, regionId: ACTIVITY_REGION[activity!.def.area] ?? "nexus" }); }
     if (!investigation.current.done) list.push({ id: "forest-crash-site", kind: "MISSION", label: CRASH_SITE.label, x: CRASH_SITE.x, z: CRASH_SITE.z, regionId: "veridan" });
     for (const site of RESOURCE_SITES) list.push({ ...site, ready: (depleted.current[site.id] ?? 0) <= now });
     for (const lair of BOSS_LAIRS) list.push(lair);
@@ -1884,6 +1892,11 @@ function SceneImpl({
         if (!inside && Math.hypot(lair.x - s.x, lair.z - s.z) > LAIR_RADIUS * 4) lairsTriggered.current[lair.id] = false;
       }
       // Vyrak discovery (vyrak-site.ts): walk up to a clue site, or sense the hidden lair; each pays its journal clue once
+      if (activity && activity.run.status === "active") {
+        const r = activity.run, sig0 = `${r.stage}|${r.progress}|${r.status}|${r.cp}|${r.carrying}`;
+        stepActivity(activity.def, r, { x: s.x, z: s.z, dt, now: Date.now(), kills: sim.kills, elites: sim.eliteKills, bosses: sim.bossKills, hp: sim.hp, deaths: sim.deaths });
+        if (sig0 !== `${r.stage}|${r.progress}|${r.status}|${r.cp}|${r.carrying}`) onActivityChange?.();
+      }
       if (gear && !tutorial && onEncounterClue) {
         const known = (id: string) => gear.earnedRewards.includes(`enc-clue:vyrak:${id}`) || clueSent.current.has(id);
         const site = nearClueSite(s.x, s.z);

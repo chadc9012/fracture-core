@@ -240,6 +240,9 @@ export type WorldSim = {
   gravity: number;
   alerts: { text: string; life: number }[];
   kills: number;
+  /** activities.ts: tiered kill counters */
+  eliteKills: number;
+  bossKills: number;
   extractions: number;
   director: Director;
   /** impact damage cooldown so one obstacle cannot drain the hull */
@@ -442,6 +445,7 @@ export function defeatMachine(sim: WorldSim, m: Machine, credit: KillCredit = "p
     return;
   }
   sim.kills++;
+  if (m.boss) sim.bossKills++; else if (m.elite) sim.eliteKills++;
   if (sim.runes.reap) sim.hp = Math.min(100, sim.hp + REAP_HEAL); // godforge.ts Reap rune
   if (sim.foundry === "BLACK_ARMORY" && credit === "player" && !naniteChain) naniteBurst(sim, m.x, m.z); // foundries.ts: Nanite Swarm
   sim.credits += m.boss ? 250 : m.elite ? 75 : 45;
@@ -591,6 +595,8 @@ export function createSim(): WorldSim {
     gravity: 26,
     alerts: [],
     kills: 0,
+    eliteKills: 0,
+    bossKills: 0,
     extractions: 0,
     director: createDirector(),
     impactCool: 0,
