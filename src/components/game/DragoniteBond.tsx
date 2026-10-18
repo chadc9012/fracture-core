@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { CHALLENGES, DRAGONITE, DRAGONITE_IDS, MAX_UPGRADE, PIECE_FOCUS, PIECE_NAMES, UPGRADE_COST, appearanceStage, challengeKey, clearCount, upgradeDragonite, upgradeLevel, wornCovenant, type ChallengeId, type CovenantPiece } from "@/game/dragonite";
+import { FULL_TRUST, STAGE_NAMES, claimAncientBond, claimEternalCovenant, trustOf, trustStage } from "@/game/vyrak-trust";
 import { isBonded } from "@/game/dragon-covenant";
 import { COVENANT_ABILITY } from "@/game/dragon-covenant";
 import type { ClassId, PlayerProgression } from "@/game/progression";
@@ -21,6 +22,12 @@ export function DragoniteBond({ progression, classId, onProgression }: { progres
   const dragonite = progression.materials.dragonite ?? 0;
   const stage = appearanceStage(clearCount(progression, classId));
   const worn = new Set<CovenantPiece>(wornCovenant(progression.inventory, progression.equippedGear));
+  const trust = trustOf(progression, classId), tStage = trustStage(progression, classId);
+  const claim = (eternal: boolean) => {
+    const r = eternal ? claimEternalCovenant(progression, classId) : claimAncientBond(progression, classId);
+    if (!r.ok) { setNotice(("reason" in r && r.reason) || "Not yet"); return; }
+    setNotice(eternal ? "The Eternal Covenant begins" : "The Ancient Bond is complete: dragon riding unlocked"); onProgression(r.progression);
+  };
   const buy = (id: (typeof DRAGONITE_IDS)[number]) => {
     const r = upgradeDragonite(progression, classId, id);
     if ("error" in r) { setNotice(r.error); return; }
@@ -30,6 +37,13 @@ export function DragoniteBond({ progression, classId, onProgression }: { progres
     <div className="mt-4 border border-border p-4">
       <div className="flex items-center justify-between"><div><p className="font-mono text-[9px] uppercase tracking-[0.25em] text-primary">Vyrak's Covenant · {STAGE[stage]}</p><h4 className="mt-1 text-lg">Dragonite</h4></div><span className="font-mono text-[10px]">{dragonite} Dragonite</span></div>
       <p className="mt-1 text-xs text-muted-foreground">Class bond: {COVENANT_ABILITY[classId].name}. {COVENANT_ABILITY[classId].description}</p>
+      <div className="mt-3 border border-border p-2">
+        <div className="flex items-center justify-between font-mono text-[10px]"><b>{STAGE_NAMES[tStage]}</b><span>Trust {trust.total}/{FULL_TRUST}</span></div>
+        <div className="mt-1 h-1 overflow-hidden border border-primary/60 bg-background/70"><div className="h-full bg-primary" style={{ width: `${trust.total}%` }} /></div>
+        <p className="mt-1 text-[9px] text-muted-foreground">Trust comes from dragon challenges, hard encounters, ruins, puzzles and protecting Vyrak; each pays once. Riding unlocks at full trust, for this Operator only.</p>
+        {tStage < 4 && <Button size="sm" variant="ghost" disabled={trust.total < FULL_TRUST} onClick={() => claim(false)} className="mt-1 h-6 rounded-none border px-2 text-[9px]">Complete the Ancient Bond</Button>}
+        {tStage === 4 && <Button size="sm" variant="ghost" onClick={() => claim(true)} className="mt-1 h-6 rounded-none border px-2 text-[9px]">Begin the Eternal Covenant</Button>}
+      </div>
       <div className="mt-3 space-y-2">
         {DRAGONITE_IDS.map((id) => {
           const def = DRAGONITE[id], lv = upgradeLevel(progression, classId, id);
