@@ -1,4 +1,5 @@
-import { useMemo, useRef, type ReactElement } from "react";
+import { Component, Suspense, useMemo, useRef, type ReactElement, type ReactNode } from "react";
+import { useGLTF } from "@react-three/drei";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import { softSprite } from "./softSprite";
@@ -51,7 +52,62 @@ type Mats = ReturnType<typeof useMats>;
 type Rig = { mag?: THREE.Group | null; action?: THREE.Group | null; support?: THREE.Group | null };
 
 /* ---------- models (origin = firing hand grip, barrel along -z) ---------- */
+
+/** Authored rifle (scripts/build-rifle.py): same frame as the procedural one, with RifleMag pivoted at the mag
+ * well and RifleBolt at the grip so the reload drop and bolt cycle drive the real parts. */
+export const RIFLE_URL = "/models/weapons/rifle.glb";
+const RIFLE_MAG_PIVOT: [number, number, number] = [0, 0.02, -0.18];
+
+function viewmodelReady(obj: THREE.Object3D, accent: THREE.MeshStandardMaterial) {
+  obj.traverse((o) => {
+    const mesh = o as THREE.Mesh;
+    if (!mesh.isMesh) return;
+    mesh.renderOrder = ORDER;
+    mesh.frustumCulled = false;
+    mesh.castShadow = false;
+    const src = mesh.material as THREE.MeshStandardMaterial;
+    if (src.name === "RifleAccent") { mesh.material = accent; return; }
+    // draw in the transparent pass after the depth clear, like every other viewmodel part
+    const mat = src.clone();
+    mat.transparent = true; mat.opacity = 1; mat.depthWrite = true;
+    mesh.material = mat;
+  });
+  return obj;
+}
+
+function RifleAuthored({ m, rig }: { m: Mats; rig: Rig }) {
+  const { scene } = useGLTF(RIFLE_URL);
+  const parts = useMemo(() => {
+    const pick = (name: string) => { const node = scene.getObjectByName(name); return node ? viewmodelReady(node.clone(true), m.accent) : null; };
+    const body = new THREE.Group();
+    for (const name of ["RifleBody", "RifleAccent"]) { const p = pick(name); if (p) body.add(p); }
+    const mag = pick("RifleMag");
+    if (mag) mag.position.set(0, 0, 0); // the rig group already sits at the mag-well pivot
+    return { body, mag, bolt: pick("RifleBolt") };
+  }, [scene, m.accent]);
+  return <group>
+    <primitive object={parts.body} />
+    <group ref={(g) => { rig.mag = g; if (g && g.userData["y0"] === undefined) g.userData["y0"] = g.position.y; }} position={RIFLE_MAG_PIVOT}>
+      {parts.mag && <primitive object={parts.mag} />}
+    </group>
+    <group ref={(g) => { rig.action = g; }}>{parts.bolt && <primitive object={parts.bolt} />}</group>
+  </group>;
+}
+
+class ModelBoundary extends Component<{ children: ReactNode; fallback: ReactNode }, { failed: boolean }> {
+  override state = { failed: false };
+  static getDerivedStateFromError() { return { failed: true }; }
+  override componentDidCatch(error: unknown) { console.warn("[viewmodel] rifle model unavailable, using procedural rifle:", error); }
+  override render() { return this.state.failed ? this.props.fallback : this.props.children; }
+}
+
+/** The authored rifle, with the procedural one standing in while it loads or if the file is unreachable. */
 function Rifle({ m, rig }: { m: Mats; rig: Rig }) {
+  const fallback = <RifleProcedural m={m} rig={rig} />;
+  return <ModelBoundary fallback={fallback}><Suspense fallback={fallback}><RifleAuthored m={m} rig={rig} /></Suspense></ModelBoundary>;
+}
+
+function RifleProcedural({ m, rig }: { m: Mats; rig: Rig }) {
   return <group>
     <Part geo="box" size={[0.06, 0.085, 0.36]} at={[0, 0.07, -0.12]} mat={m.metal} />
     <Part geo="box" size={[0.064, 0.07, 0.26]} at={[0, 0.06, -0.42]} mat={m.dark} />
@@ -273,3 +329,4 @@ export function ViewWeapon({ pose, colors }: { pose: { current: ViewPose | null 
     </group>
   </group>;
 }
+if (typeof window !== "undefined") useGLTF.preload(RIFLE_URL);
