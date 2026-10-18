@@ -25,6 +25,7 @@ export type Rewards = { nex: number; xp: number; rep: number; materials: Partial
 export type ActivityDef = {
   id: string; area: string; name: string; kind: ActivityKind; difficulty: 1 | 2 | 3 | 4; brief: string;
   attempts: number; cooldownMin: number; stages: readonly Objective[]; challenge?: OptionalChallenge; rewards: Rewards;
+  /** limits reset daily (default) or weekly (elite operations) */ period?: "day" | "week";
   /** needs the underwater approach (Thalassia) */ submerged?: boolean; /** reputation needed to see this contract */ minRep?: number; faction: string;
 };
 
@@ -40,14 +41,14 @@ export const AREAS: Readonly<Record<string, { name: string; x: number; z: number
 };
 function pick(id: string) { const r = REGIONS.find((x) => x.id === id)!; return { x: r.x, z: r.z, radius: r.radius }; }
 
-const ring = (n: number, r: number, a0 = 0): [number, number][] => Array.from({ length: n }, (_, i) => { const a = a0 + (i / n) * Math.PI * 2; return [Math.round(Math.sin(a) * r * 100) / 100, Math.round(Math.cos(a) * r * 100) / 100] as [number, number]; });
-const R = (nex: number, xp: number, rep: number, materials: Rewards["materials"], shaderChance = 0.06): Rewards => ({ nex, xp, rep, materials, shaderChance });
-const kills = (count: number, label: string, tier: "any" | "elite" | "boss" = "any"): Objective => ({ kind: "kills", count, tier, label });
-const hold = (x: number, z: number, radius: number, seconds: number, label: string): Objective => ({ kind: "hold", at: [x, z], radius, seconds, label });
-const deliver = (from: [number, number], to: [number, number], timeLimit: number, label: string): Objective => ({ kind: "deliver", from, to, timeLimit, label });
-const course = (points: [number, number][], timeLimit: number, label: string): Objective => ({ kind: "course", points, timeLimit, label });
-const collect = (points: [number, number][], timeLimit: number, label: string): Objective => ({ kind: "collect", points, timeLimit, label });
-const NO_DMG: OptionalChallenge = { id: "no-damage", label: "Finish without taking damage" }, FAST: OptionalChallenge = { id: "fast", label: "Finish in under 60% of the time limit" }, NO_DEATH: OptionalChallenge = { id: "no-death", label: "Finish without dying" };
+export const ring = (n: number, r: number, a0 = 0): [number, number][] => Array.from({ length: n }, (_, i) => { const a = a0 + (i / n) * Math.PI * 2; return [Math.round(Math.sin(a) * r * 100) / 100, Math.round(Math.cos(a) * r * 100) / 100] as [number, number]; });
+export const R = (nex: number, xp: number, rep: number, materials: Rewards["materials"], shaderChance = 0.06): Rewards => ({ nex, xp, rep, materials, shaderChance });
+export const kills = (count: number, label: string, tier: "any" | "elite" | "boss" = "any"): Objective => ({ kind: "kills", count, tier, label });
+export const hold = (x: number, z: number, radius: number, seconds: number, label: string): Objective => ({ kind: "hold", at: [x, z], radius, seconds, label });
+export const deliver = (from: [number, number], to: [number, number], timeLimit: number, label: string): Objective => ({ kind: "deliver", from, to, timeLimit, label });
+export const course = (points: [number, number][], timeLimit: number, label: string): Objective => ({ kind: "course", points, timeLimit, label });
+export const collect = (points: [number, number][], timeLimit: number, label: string): Objective => ({ kind: "collect", points, timeLimit, label });
+export const NO_DMG: OptionalChallenge = { id: "no-damage", label: "Finish without taking damage" }, FAST: OptionalChallenge = { id: "fast", label: "Finish in under 60% of the time limit" }, NO_DEATH: OptionalChallenge = { id: "no-death", label: "Finish without dying" };
 
 export const ACTIVITIES: readonly ActivityDef[] = [
   // Verdant Forest
@@ -93,12 +94,23 @@ export const ACTIVITIES: readonly ActivityDef[] = [
   // Neon Core District
   { id: "ncd-spire", area: "neon-core", name: "Aegis Spire Infiltration", kind: "contract", difficulty: 4, faction: "aegis", brief: "Slip past the Spire's security and reach the vault level.", attempts: 2, cooldownMin: 60, stages: [collect(ring(4, 0.55, 0.3), 360, "Breach the four security nodes"), kills(6, "Deal with the response team")], challenge: NO_DMG, rewards: R(260, 150, 26, { anomalyCore: 1, dataChip: 2 }, 0.18) },
   { id: "ncd-security", area: "neon-core", name: "High-Tier Security Bounty", kind: "bounty", difficulty: 4, faction: "aegis", brief: "A senior enforcer has gone rogue inside the Core.", attempts: 2, cooldownMin: 60, stages: [kills(1, "Take down the enforcer", "elite"), kills(8, "Clear their squad")], challenge: NO_DEATH, rewards: R(280, 160, 28, { anomalyCore: 1, aegisCore: 1 }, 0.18) },
+  // reactive follow-ups: unlocked by faction reputation earned in the same region
+  { id: "th-trench", area: "thalassia", name: "Trench Descent", kind: "bounty", difficulty: 4, faction: "tidewardens", submerged: true, minRep: 30, brief: "Deeper assignments open once the habitats are safe: a trench-bound hunt.", attempts: 2, cooldownMin: 60, stages: [collect(ring(4, 0.6, 0.5), 420, "Reach the four trench markers"), kills(1, "Defeat the trench stalker", "elite")], challenge: NO_DEATH, rewards: R(300, 160, 22, { abyssCore: 2, dataChip: 2 }, 0.15) },
+  { id: "so-reliquary", area: "solara", name: "Reliquary Breach", kind: "bounty", difficulty: 4, faction: "covenant", minRep: 30, brief: "With raiders broken, the Covenant opens a sealed reliquary job. Vyrak is not part of it.", attempts: 2, cooldownMin: 60, stages: [kills(8, "Clear the reliquary guards"), kills(1, "Defeat the keeper", "elite")], challenge: NO_DMG, rewards: R(300, 160, 22, { relicFragment: 3, dragonite: 1 }, 0.15) },
+  { id: "em-deepvein", area: "ember", name: "Deep Vein", kind: "bounty", difficulty: 4, faction: "forgeborn", minRep: 30, brief: "The foundries trust you with the deep vein.", attempts: 2, cooldownMin: 50, stages: [hold(0, 0, 14, 60, "Hold the deep vein"), kills(1, "Defeat the vein-warden", "elite")], challenge: NO_DMG, rewards: R(290, 160, 22, { magmaCore: 2, forgeCatalyst: 1 }, 0.12) },
+  { id: "fs-summit", area: "frostspire", name: "Summit Hunt", kind: "bounty", difficulty: 4, faction: "wardens", minRep: 30, brief: "A harder hunt near the summit, open to proven rescuers.", attempts: 2, cooldownMin: 50, stages: [kills(8, "Defeat the summit pack"), kills(1, "Defeat the alpha", "elite")], challenge: NO_DEATH, rewards: R(290, 160, 22, { zeroCore: 2, cryoCrystal: 4 }, 0.12) },
+  { id: "nu-vault", area: "neon-underground", name: "The Vault Run", kind: "contract", difficulty: 4, faction: "syndicate", minRep: 40, brief: "The market now trusts you with its vault. In, out, no witnesses.", attempts: 2, cooldownMin: 60, stages: [collect(ring(4, 0.55, 0.4), 300, "Take the four vault keys"), course([[0.85, 0.5], [0, 0.95]], 80, "Escape")], challenge: NO_DMG, rewards: R(380, 190, 28, { anomalyCore: 1, dataChip: 3 }, 0.2) },
+  { id: "wl-blacksite", area: "wastelands", name: "Black Site Raid", kind: "contract", difficulty: 4, faction: "rebels", minRep: 30, brief: "The rebels hand you a black-site raid.", attempts: 2, cooldownMin: 55, stages: [kills(8, "Clear the black site"), deliver([0, 0], [-0.7, -0.7], 180, "Carry the data core to the trade port")], rewards: R(310, 160, 24, { fractureCore: 1, vehicleParts: 3 }, 0.12) },
+  { id: "nx-archive", area: "nexus", name: "Restricted Archive", kind: "contract", difficulty: 4, faction: "aegis", minRep: 40, brief: "Aegis clears you for a restricted archive. Mind the guards.", attempts: 2, cooldownMin: 60, stages: [collect(ring(3, 0.5, 0.2), 300, "Reach the three archive terminals"), kills(1, "Defeat the archive warden", "elite")], challenge: NO_DMG, rewards: R(330, 170, 24, { anomalyCore: 1, dataChip: 3 }, 0.15) },
+  { id: "ncd-director", area: "neon-core", name: "Director's Gambit", kind: "bounty", difficulty: 4, faction: "aegis", minRep: 60, brief: "Top-tier Aegis clearance: the Director's guard.", attempts: 2, cooldownMin: 60, stages: [kills(10, "Break the Director's guard"), kills(2, "Defeat the lieutenants", "elite")], challenge: NO_DEATH, rewards: R(400, 200, 30, { anomalyCore: 2, aegisCore: 1 }, 0.2) },
 ];
 
 /** The Vyrak rematch is NOT a board activity (Vyrak stays a special unique encounter): it only borrows the same real-time limits.
  * Once bonded, the Operator may face the Sky Sovereign again for Dragonite and the measurable challenges, 2 attempts a day with a 60 minute cooldown. */
 export const VYRAK_REMATCH: ActivityDef = { id: "vyrak-rematch", area: "solara", name: "Vyrak — Rematch", kind: "contract", difficulty: 4, faction: "covenant", brief: "Face the Sky Sovereign again.", attempts: 2, cooldownMin: 60, stages: [], rewards: R(0, 0, 0, {}, 0) };
-export const activityById = (id: string) => ACTIVITIES.find((a) => a.id === id) ?? (id === VYRAK_REMATCH.id ? VYRAK_REMATCH : undefined);
+export const activityById = (id: string) => ACTIVITIES.find((a) => a.id === id) ?? ELITES.find((a) => a.id === id) ?? EXTRA_DEFS.find((a) => a.id === id) ?? (id === VYRAK_REMATCH.id ? VYRAK_REMATCH : undefined);
+/** other modules (discoveries.ts) register their own hidden defs here so they share the same limits and payout code */
+export const EXTRA_DEFS: ActivityDef[] = [];
 /** stamp a completion (starts the cooldown) for an activity that is not run through stepRun, e.g. the Vyrak rematch */
 export function markCompleted<T extends Pick<PlayerProgression, "missionRuns">>(p: T, def: ActivityDef, now = Date.now()): T {
   const rec = p.missionRuns[recKey(def.id)];
@@ -113,19 +125,25 @@ export const areaOfPoint = (x: number, z: number): string | null => {
 
 /* ------------------------------ real-time limits ------------------------------ */
 export const dayKeyUtc = (now: number) => new Date(now).toISOString().slice(0, 10);
+/** Monday 00:00 UTC of the week containing `now`, as a date string */
+export const weekKeyUtc = (now: number) => { const d = new Date(now); const back = (d.getUTCDay() + 6) % 7; return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() - back)).toISOString().slice(0, 10); };
+export const periodKey = (def: Pick<ActivityDef, "period">, now: number) => (def.period === "week" ? `w${weekKeyUtc(now)}` : dayKeyUtc(now));
+export const msUntilWeekReset = (now: number) => Date.parse(`${weekKeyUtc(now)}T00:00:00Z`) + 7 * 86_400_000 - now;
+export const msUntilPeriodReset = (def: Pick<ActivityDef, "period">, now: number) => (def.period === "week" ? msUntilWeekReset(now) : msUntilReset(now));
 const recKey = (id: string) => `act:${id}`;
 export const msUntilReset = (now: number) => { const d = new Date(now); return Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() + 1) - now; };
 
 export type ActivityState = { attemptsLeft: number; cooldownLeftMs: number; available: boolean; reason?: string };
-export function activityState(p: Pick<PlayerProgression, "missionRuns">, def: ActivityDef, now = Date.now()): ActivityState {
+export function activityState(p: Pick<PlayerProgression, "missionRuns" | "earnedRewards">, def: ActivityDef, now = Date.now()): ActivityState {
   const rec = p.missionRuns[recKey(def.id)];
-  const used = rec && rec.day === dayKeyUtc(now) ? rec.count : 0;
+  const used = rec && rec.day === periodKey(def, now) ? rec.count : 0;
   const attemptsLeft = Math.max(0, def.attempts - used);
   const last = (rec as { last?: number } | undefined)?.last ?? 0;
   // a clock set backwards must not extend or shorten anything: a "last" in the future counts as just now
   const since = last > now ? 0 : now - last;
   const cooldownLeftMs = last ? Math.max(0, def.cooldownMin * 60_000 - since) : 0;
-  if (attemptsLeft <= 0) return { attemptsLeft, cooldownLeftMs, available: false, reason: "Daily limit reached" };
+  if (def.minRep && reputationOf(p, def.faction) < def.minRep) return { attemptsLeft, cooldownLeftMs, available: false, reason: `Requires ${def.minRep} ${def.faction} reputation` };
+  if (attemptsLeft <= 0) return { attemptsLeft, cooldownLeftMs, available: false, reason: def.period === "week" ? "Weekly limit reached" : "Daily limit reached" };
   if (cooldownLeftMs > 0) return { attemptsLeft, cooldownLeftMs, available: false, reason: "On cooldown" };
   return { attemptsLeft, cooldownLeftMs, available: true };
 }
@@ -152,9 +170,9 @@ export function startActivity(p: PlayerProgression, id: string, now = Date.now()
   const st = activityState(p, def, now);
   if (!st.available) return { error: st.reason ?? "Unavailable" };
   const rec = p.missionRuns[recKey(id)];
-  const today = rec && rec.day === dayKeyUtc(now) ? rec.count : 0;
+  const today = rec && rec.day === periodKey(def, now) ? rec.count : 0;
   // the attempt is spent the moment the activity starts and is never refunded
-  const next = { ...p, missionRuns: { ...p.missionRuns, [recKey(id)]: { ...(rec ?? {}), day: dayKeyUtc(now), count: today + 1, last: (rec as { last?: number } | undefined)?.last ?? 0 } } } as PlayerProgression;
+  const next = { ...p, missionRuns: { ...p.missionRuns, [recKey(id)]: { ...(rec ?? {}), day: periodKey(def, now), count: today + 1, last: (rec as { last?: number } | undefined)?.last ?? 0 } } } as PlayerProgression;
   return { progression: next, run: newRun(def, now) };
 }
 export const newRun = (def: ActivityDef, now: number): Run => ({ id: def.id, startedAt: now, stage: 0, stageStartedAt: now, status: "active", progress: 0, need: def.stages[0] ? needOf(def.stages[0]) : 0, cp: 0, visited: [], carrying: false, hold: 0, killsBase: -1, elitesBase: -1, bossesBase: -1, hpMin: 100, deaths0: -1, diedDuring: false, wasHurt: false });
@@ -234,17 +252,21 @@ export function challengeMet(def: ActivityDef, run: Run, now: number): boolean {
   return limit > 0 && (now - run.startedAt) / 1000 <= limit * 0.6;
 }
 
-export type Payout = { nex: number; xp: number; rep: number; materials: Partial<Record<MaterialId, number>>; shader: string | null; bonus: boolean };
+export type Payout = { nex: number; xp: number; rep: number; materials: Partial<Record<MaterialId, number>>; shader: string | null; bonus: boolean; featured?: boolean };
 /** complete a run: pays Nex, XP, reputation, materials and a possible earned-only shader; the optional challenge adds 25% and a better shader chance.
  * Starts the cooldown. Pays at most once per run (the run must be "complete"; callers drop it afterwards). */
 export function completeActivity(p: PlayerProgression, def: ActivityDef, run: Run, now = Date.now(), rng: () => number = Math.random): { progression: PlayerProgression; payout: Payout } | { error: string } {
   if (run.status !== "complete" || run.id !== def.id) return { error: "Not complete" };
-  const bonus = challengeMet(def, run, now), mult = bonus ? 1.25 : 1;
+  const bonus = challengeMet(def, run, now), featured = isFeatured(def.id, run.startedAt);
+  const mult = (bonus ? 1.25 : 1) * (featured ? FEATURED_BONUS : 1);
   const r = def.rewards;
   const rec = p.missionRuns[recKey(def.id)];
-  let next: PlayerProgression = { ...p, missionRuns: { ...p.missionRuns, [recKey(def.id)]: { ...(rec ?? { day: dayKeyUtc(now), count: 1 }), last: now } } } as PlayerProgression;
+  // one payout per attempt: the ledger key is the attempt itself, so a repeated claim for the same run pays nothing
+  const claimKey = `activity:${def.id}:${rec?.day ?? periodKey(def, now)}:${rec?.count ?? 1}`;
+  if (p.nexLedger[claimKey] !== undefined) return { error: "Already claimed" };
+  let next: PlayerProgression = { ...p, missionRuns: { ...p.missionRuns, [recKey(def.id)]: { ...(rec ?? { day: periodKey(def, now), count: 1 }), last: now } } } as PlayerProgression;
   const nex = Math.round(r.nex * mult), rep = Math.round(r.rep * mult);
-  next = { ...next, nexLedger: { ...next.nexLedger, [`activity:${def.id}:${dayKeyUtc(now)}:${rec && rec.day === dayKeyUtc(now) ? rec.count : 1}`]: nex } };
+  next = { ...next, nexLedger: { ...next.nexLedger, [claimKey]: nex } };
   next = grantXP(next, "MISSION", { scale: (r.xp / 100) * mult }).progression;
   const materials: Payout["materials"] = {};
   const mats = { ...next.materials };
@@ -258,6 +280,45 @@ export function completeActivity(p: PlayerProgression, def: ActivityDef, run: Ru
     const pick = any[Math.min(any.length - 1, Math.floor(rng() * any.length))];
     if (pick) { next = grantShader(next, pick.id); shader = pick.id; }
   }
-  return { progression: next, payout: { nex, xp: Math.round(r.xp * mult), rep, materials, shader, bonus } };
+  return { progression: next, payout: { nex, xp: Math.round(r.xp * mult), rep, materials, shader, bonus, featured } };
 }
 const sourceHint = (area: string) => ({ neon: "neon city", thalassia: "thalassia", solara: "solara", frostspire: "frost spire" } as Record<string, string>)[area] ?? "~~none~~";
+
+/* ------------------------------ board: categories, rotation, elites ------------------------------ */
+export type Category = "side" | "bounty" | "movement" | "underground" | "events";
+export const CATEGORIES: readonly { id: Category; label: string }[] = [
+  { id: "side", label: "Side Missions" }, { id: "bounty", label: "Bounties" }, { id: "movement", label: "Movement & Racing" }, { id: "underground", label: "Underground Operations" }, { id: "events", label: "Regional Events" },
+];
+export function categoryOf(def: ActivityDef): Category {
+  if (def.kind === "side") return "side";
+  if (def.kind === "race" || def.kind === "parkour") return "movement";
+  if (def.kind === "event") return "events";
+  if (def.kind === "contract" && (def.area === "neon-underground" || def.id === "th-dock" || def.id === "wl-route" || def.id === "nu-vault" || def.id === "wl-blacksite")) return "underground";
+  return "bounty";
+}
+
+/** small deterministic generator so rotation depends only on the real-world period, never on the game clock */
+function rng32(seed: number) { let s = (seed ^ 0x9e3779b9) >>> 0; return () => { s = (Math.imul(s ^ (s >>> 15), 2246822507) + 0x6d2b79f5) >>> 0; return s / 4294967296; }; }
+function shuffled<T>(list: readonly T[], seed: number): T[] { const r = rng32(seed), a = [...list]; for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [a[i], a[j]] = [a[j]!, a[i]!]; } return a; }
+export const FEATURED_BONUS = 1.5;
+export const FEATURED_COUNT = 4;
+/** today's featured contracts (UTC day): one per area so the day pushes players to different regions; always standard board activities */
+export function featuredFor(now: number): ActivityDef[] {
+  const day = Math.floor(now / 86_400_000), seen = new Set<string>(), out: ActivityDef[] = [];
+  for (const a of shuffled(ACTIVITIES.filter((x) => !x.minRep), day)) { if (seen.has(a.area)) continue; seen.add(a.area); out.push(a); if (out.length >= FEATURED_COUNT) break; }
+  return out;
+}
+export const isFeatured = (id: string, now: number) => featuredFor(now).some((a) => a.id === id);
+
+const E = (id: string, area: string, name: string, brief: string, faction: string, stages: Objective[], rewards: Rewards, extra: Partial<ActivityDef> = {}): ActivityDef => ({ id, area, name, kind: "contract", difficulty: 4, brief, faction, attempts: 1, cooldownMin: 0, period: "week", stages, challenge: NO_DEATH, rewards, ...extra });
+/** Weekly elite operations: tougher objective chains, better rewards, one attempt a week. They sit beside dungeons and bosses, never in place of them. */
+export const ELITES: readonly ActivityDef[] = [
+  E("el-sentinel", "nexus", "Elite · Sentinel Lockdown", "Two rogue Sentinels and a reinforcement wave; hold the plaza until the grid is back.", "wardens", [kills(2, "Destroy both rogue Sentinels", "elite"), kills(10, "Clear the reinforcement wave"), hold(0, 0, 14, 45, "Hold the plaza")], R(620, 300, 50, { aegisCore: 1, reinforcedAlloy: 4, gearParts: 4 }, 0.35)),
+  E("el-abyss", "thalassia", "Elite · Abyssal Apex", "The deep-water apex hunters have surfaced together.", "tidewardens", [kills(8, "Defeat the deep-water pack"), kills(2, "Defeat both apex hunters", "elite")], R(640, 300, 50, { abyssCore: 2, bioCatalyst: 4 }, 0.35), { submerged: true }),
+  E("el-ember", "ember", "Elite · Emberheart Siege", "Defend the geothermal tap against Cinder-Brutes.", "forgeborn", [hold(0, 0, 14, 90, "Hold the tap"), kills(2, "Destroy the Cinder-Brutes", "elite")], R(620, 300, 50, { magmaCore: 2, forgeCatalyst: 2, thermalShards: 6 }, 0.35)),
+  E("el-frost", "frostspire", "Elite · Whiteout Siege", "A pack leader and its shard-wolves in a whiteout.", "wardens", [kills(10, "Defeat the shard pack"), kills(2, "Defeat both pack leaders", "elite")], R(620, 300, 50, { zeroCore: 2, cryoCrystal: 6 }, 0.35)),
+  E("el-core", "neon-core", "Elite · Aegis Blacksite", "Breach the blacksite, then answer the full security response.", "aegis", [collect(ring(4, 0.55, 0.9), 300, "Breach the four security nodes"), kills(2, "Destroy the enforcers", "elite"), kills(8, "Clear the squad")], R(700, 330, 55, { anomalyCore: 2, dataChip: 4 }, 0.4)),
+  E("el-dune", "solara", "Elite · Dune Reckoning", "Covenant war-parties are massing in the dunes. This is not Vyrak; it is the road that leads toward him.", "covenant", [kills(10, "Break the war-party"), kills(2, "Defeat both war-captains", "elite")], R(620, 300, 50, { relicFragment: 4, dragonite: 2 }, 0.35)),
+];
+export const WEEKLY_COUNT = 3;
+export function weeklyElitesFor(now: number): ActivityDef[] { return shuffled(ELITES, Math.floor(Date.parse(`${weekKeyUtc(now)}T00:00:00Z`) / 86_400_000)).slice(0, WEEKLY_COUNT); }

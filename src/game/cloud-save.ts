@@ -90,7 +90,7 @@ function mergeInner(local: PlayerProgression, cloud: PlayerProgression, localIsN
     corruptionLevel: Math.max(local.corruptionLevel, cloud.corruptionLevel),
     activeQuestId: newer.activeQuestId,
     currentWorld: newer.currentWorld,
-    missionRuns: maxRecord(local.missionRuns, cloud.missionRuns, (a, b) => (a.day > b.day ? a : b.day > a.day ? b : a.count >= b.count ? a : b)),
+    missionRuns: maxRecord(local.missionRuns, cloud.missionRuns, (a, b) => { const w = a.day > b.day ? a : b.day > a.day ? b : a.count >= b.count ? a : b; const last = Math.max(a.last ?? 0, b.last ?? 0); return last && a.day === b.day ? { ...w, last } : w; }),
     // in-progress scripted missions are a choice (newer copy), but a mission the other copy finished is never reopened
     activeMissions: pruneCompleted(newer.activeMissions, union(local.completedMissions, cloud.completedMissions)),
     questObjectiveProgress: maxRecord(local.questObjectiveProgress, cloud.questObjectiveProgress, (a, b) => a.map((v, i) => Math.max(v, b[i] ?? 0))),
