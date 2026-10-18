@@ -1891,6 +1891,7 @@ function SceneImpl({
           if (tNow - (beatsAsk.askedAt[lair.id] ?? -99) > 3) { beatsAsk.askedAt[lair.id] = tNow; onStoryEvent?.({ type: "BOSS_LAIR_ENTER", scenarioId: lair.scenarioId }); }
           continue;
         }
+        if (lair.scenarioId === "vyrak" && bonded) continue; // unique encounter: once this Operator is bonded the Sky Sovereign is not fought again
         if (inside && scenario && !lairsTriggered.current[lair.id] && !tutorial && !sim.machines.some((m) => m.alive && m.boss)) { lairsTriggered.current[lair.id] = true; summonScenarioBoss(sim, scenario, lair.x, lair.z); }
         if (!inside && Math.hypot(lair.x - s.x, lair.z - s.z) > LAIR_RADIUS * 4) lairsTriggered.current[lair.id] = false;
       }
