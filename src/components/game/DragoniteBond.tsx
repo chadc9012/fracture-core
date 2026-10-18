@@ -61,7 +61,7 @@ export function DragoniteBond({ progression, classId, onProgression }: { progres
       <ul className="mt-1 text-[10px]">{(Object.keys(PIECE_NAMES) as CovenantPiece[]).map((k) => <li key={k} className={worn.has(k) ? "text-primary" : "text-muted-foreground"}>{worn.has(k) ? "✓" : "·"} {PIECE_NAMES[k]} — {PIECE_FOCUS[k]}</li>)}</ul>
       <p className="mt-3 font-mono text-[9px] uppercase tracking-[0.2em] text-muted-foreground">Challenges</p>
       <ul className="mt-1 text-[10px]">{(Object.keys(CHALLENGES) as ChallengeId[]).map((k) => { const done = progression.earnedRewards.includes(challengeKey(classId, k)); return <li key={k} className={done ? "text-primary" : "text-muted-foreground"}>{done ? `✓ ${CHALLENGES[k].ornament} · "${CHALLENGES[k].title}"` : `· ${CHALLENGES[k].name} — ${CHALLENGES[k].how}`}</li>; })}</ul>
-      <p className="mt-2 text-[9px] text-muted-foreground">Keys 8 / 9 / 0 / - cast Dragonfire, Wyrmwing, Dragonhide and Wyrmcall (rebindable in Controls).{notice ? ` · ${notice}` : ""}</p>
+      <p className="mt-2 text-[9px] text-muted-foreground">Abilities have their own keys (8 9 0 - = \\ ;), rebindable in Controls. Skyfall needs the Ancient Bond.{notice ? ` · ${notice}` : ""}</p>
     </div>
   );
 }

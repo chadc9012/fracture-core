@@ -8,7 +8,7 @@ const world = () => { const sim = createSim(); for (const m of sim.machines) m.a
 let slot = 0;
 function put(sim: WorldSim, dx: number, dz: number, hp = 50): Machine {
   const m = sim.machines[slot++ % sim.machines.length]!;
-  Object.assign(m, { alive: true, x: 3000 + dx, z: 3000 + dz, hp, boss: false, aim: 0, stunUntil: 0 });
+  Object.assign(m, { alive: true, x: 3000 + dx, z: 3000 + dz, hp, boss: false, aim: 0, cool: 0 });
   return m;
 }
 const bondedCtx = (cls: "HUNTER" | "TITAN" = "HUNTER"): DragoniteCtx => {
@@ -56,5 +56,33 @@ describe("Dragonite casting", () => {
     expect(castDragonite(rt, sim, e, "wyrmcall", pose, true, ctx).ok).toBe(false);
     for (let i = 0; i < 40 * 60; i++) { target.hp = Math.max(target.hp, 1); stepDragonite(rt, sim, 1 / 60, pose, ctx); }
     expect(rt.wyrm.state).toBe("RECOVERY");
+  });
+});
+
+describe("new Dragonite abilities", () => {
+  test("Roar staggers everything in range and clears their wind-up", () => {
+    slot = 0; const sim = world(), rt = createDragoniteRuntime(), e = { value: 100 };
+    const near = put(sim, 0, 5); near.aim = 0.5; const far = put(sim, 0, 40);
+    expect(castDragonite(rt, sim, e, "roar", pose, true, bondedCtx()).ok).toBe(true);
+    expect(near.aim).toBe(0); expect(far.aim).toBe(0);
+    expect(near.cool).toBeGreaterThan(far.cool);
+  });
+  test("Scalebreaker hits the arc in front and not behind", () => {
+    slot = 0; const sim = world(), rt = createDragoniteRuntime(), e = { value: 100 };
+    const front = put(sim, 0, 3), behind = put(sim, 0, -3);
+    castDragonite(rt, sim, e, "scalebreaker", pose, true, bondedCtx());
+    expect(front.hp).toBeLessThan(50); expect(behind.hp).toBe(50);
+  });
+  test("Skyfall lands after its wind-up, on the area ahead, once", () => {
+    slot = 0; const sim = world(), rt = createDragoniteRuntime(), e = { value: 100 }, ctx = bondedCtx();
+    const target = put(sim, 0, 14), safe = put(sim, 0, -30);
+    expect(castDragonite(rt, sim, e, "skyfall", pose, true, ctx).ok).toBe(false); // needs the Ancient Bond
+    ctx.earnedRewards = [...ctx.earnedRewards, "vyrak-riding:HUNTER"];
+    expect(castDragonite(rt, sim, e, "skyfall", pose, true, ctx).ok).toBe(true);
+    expect(target.hp).toBe(50);
+    stepDragonite(rt, sim, 0.5, pose, ctx); expect(target.hp).toBe(50);
+    stepDragonite(rt, sim, 0.6, pose, ctx);
+    expect(target.hp).toBeLessThan(50); expect(safe.hp).toBe(50);
+    const after = target.hp; stepDragonite(rt, sim, 1, pose, ctx); expect(target.hp).toBe(after);
   });
 });

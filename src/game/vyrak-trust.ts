@@ -4,7 +4,7 @@
  * Riding unlocks only at full trust, for that Operator alone; regions and activities can still forbid it. */
 import { CHALLENGES, challengeKey, type ChallengeId } from "./dragonite";
 import { isBonded } from "./dragon-covenant";
-import type { ClassId, PlayerProgression } from "./progression";
+import type { ClassId, GearItem, PlayerProgression } from "./progression";
 
 type Store = Pick<PlayerProgression, "earnedRewards">;
 export const FULL_TRUST = 100, ETERNAL_CHALLENGES = 3;
@@ -47,6 +47,14 @@ export function trustStage(p: Store, c: ClassId | null): TrustStage {
   return trustOf(p, c).total > 0 ? 3 : 2;
 }
 
+/** Covenant armor rewards for the later stages (same set as the boss drops, so they count toward the 2/3/5-piece bonuses) */
+export const ancientBondGear = (c: ClassId): GearItem => ({ id: `vyrak-wingmantle-${c.toLowerCase()}`, name: "Wingmantle of the Ancient Bond", slot: "classItem", power: 330, level: 1, element: "THERMAL", rarity: "EXOTIC", setId: "dragons-covenant", source: "Vyrak's Ancient Bond" });
+export const eternalGear = (c: ClassId): GearItem => ({ id: `vyrak-eternal-crest-${c.toLowerCase()}`, name: "Crest of the Eternal Covenant", slot: "helmet", power: 340, level: 1, element: "THERMAL", rarity: "EXOTIC", setId: "dragons-covenant", source: "Vyrak's Eternal Covenant" });
+const withGear = <T extends Store>(p: T, item: GearItem): T => {
+  const inv = (p as unknown as { inventory?: GearItem[] }).inventory;
+  return inv && !inv.some((g) => g.id === item.id) ? { ...p, inventory: [...inv, item] } : p;
+};
+
 const add = <T extends Store>(p: T, k: string): T => (p.earnedRewards.includes(k) ? p : { ...p, earnedRewards: [...p.earnedRewards, k] });
 /** one-time trust sources recorded by the game (idempotent per id) */
 export function recordTrust<T extends Store>(p: T, c: ClassId | null, kind: "ruin" | "puzzle" | "protect", id: string): T {
@@ -58,13 +66,13 @@ export function claimAncientBond<T extends Store>(p: T, c: ClassId | null): { pr
   if (!c || !isBonded(p, c)) return { progression: p, ok: false, reason: "Not bonded on this Operator" };
   if (p.earnedRewards.includes(ridingKey(c))) return { progression: p, ok: false, reason: "Already complete" };
   if (trustOf(p, c).total < FULL_TRUST) return { progression: p, ok: false, reason: `Trust ${trustOf(p, c).total}/${FULL_TRUST}` };
-  return { progression: add(p, ridingKey(c)), ok: true };
+  return { progression: withGear(add(p, ridingKey(c)), ancientBondGear(c)), ok: true };
 }
 /** the optional endgame: three Vyrak challenges complete after the Ancient Bond */
 export function claimEternalCovenant<T extends Store>(p: T, c: ClassId | null): { progression: T; ok: boolean } {
   if (!c || !p.earnedRewards.includes(ridingKey(c))) return { progression: p, ok: false };
   const done = (Object.keys(CHALLENGES) as ChallengeId[]).filter((id) => p.earnedRewards.includes(challengeKey(c, id))).length;
-  return done >= ETERNAL_CHALLENGES ? { progression: add(p, eternalKey(c)), ok: true } : { progression: p, ok: false };
+  return done >= ETERNAL_CHALLENGES ? { progression: withGear(add(p, eternalKey(c)), eternalGear(c)), ok: true } : { progression: p, ok: false };
 }
 
 export type RideContext = { regionId: string | null; inDungeon: boolean; inStoryMission: boolean; indoors: boolean };

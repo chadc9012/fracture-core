@@ -1,9 +1,9 @@
 /** Configurable input bindings. Keyboard uses KeyboardEvent.code; gamepad uses standard-mapping button indexes. */
 export type Action = "reload" | "nextWeapon" | "prevWeapon" | "weaponWheel" | "slot1" | "slot2" | "slot3" | "slot4" | "fire" | "aim" | "crouch" | "prone" | "dash" | "abilityModifier" | "abilityPrimary" | "abilityTactical" | "abilityUltimate" | "map";
-export type Bindings = { keyboard: Record<"reload" | "nextWeapon" | "prevWeapon" | "weaponWheel" | "crouch" | "prone" | "dash" | "map" | "healStim" | "armorStim" | "ruinStone" | "dragonfire" | "wyrmwing" | "dragonhide" | "wyrmcall" | "lockOn" | "cycleTarget" | "swapShoulder", string>; gamepad: Record<Action, number> };
+export type Bindings = { keyboard: Record<"reload" | "nextWeapon" | "prevWeapon" | "weaponWheel" | "crouch" | "prone" | "dash" | "map" | "healStim" | "armorStim" | "ruinStone" | "dragonfire" | "wyrmwing" | "dragonhide" | "wyrmcall" | "roar" | "scalebreaker" | "skyfall" | "lockOn" | "cycleTarget" | "swapShoulder", string>; gamepad: Record<Action, number> };
 
 export const DEFAULT_BINDINGS: Bindings = {
-  keyboard: { reload: "KeyG", nextWeapon: "BracketRight", prevWeapon: "BracketLeft", weaponWheel: "KeyZ", crouch: "ControlLeft", prone: "KeyX", dash: "AltLeft", map: "KeyM", healStim: "Digit5", armorStim: "Digit6", ruinStone: "Digit7", dragonfire: "Digit8", wyrmwing: "Digit9", dragonhide: "Digit0", wyrmcall: "Minus", lockOn: "KeyU", cycleTarget: "KeyP", swapShoulder: "KeyO" },
+  keyboard: { reload: "KeyG", nextWeapon: "BracketRight", prevWeapon: "BracketLeft", weaponWheel: "KeyZ", crouch: "ControlLeft", prone: "KeyX", dash: "AltLeft", map: "KeyM", healStim: "Digit5", armorStim: "Digit6", ruinStone: "Digit7", dragonfire: "Digit8", wyrmwing: "Digit9", dragonhide: "Digit0", wyrmcall: "Minus", roar: "Equal", scalebreaker: "Backslash", skyfall: "Semicolon", lockOn: "KeyU", cycleTarget: "KeyP", swapShoulder: "KeyO" },
   gamepad: { reload: 2, nextWeapon: 5, prevWeapon: 4, weaponWheel: 3, slot1: 12, slot2: 15, slot3: 13, slot4: 14, fire: 7, aim: 6, crouch: 1, prone: 11, dash: 10, abilityModifier: 8, abilityPrimary: 2, abilityTactical: 3, abilityUltimate: 1, map: 9 },
 };
 
@@ -12,11 +12,11 @@ export const ACTION_LABEL: Record<Action, string> = {
   slot1: "Weapon 1", slot2: "Weapon 2", slot3: "Weapon 3", slot4: "Weapon 4", fire: "Fire", aim: "Aim", crouch: "Crouch / slide (hold)", prone: "Prone (toggle)", dash: "Operator dash",
   abilityModifier: "Ability chord (hold)", abilityPrimary: "Ability Q (with chord)", abilityTactical: "Ability E (with chord)", abilityUltimate: "Ability R (with chord)", map: "Open / close map",
 };
-export const CONSUMABLE_LABEL = { healStim: "Quick-use healing stim", armorStim: "Quick-use armor stim", ruinStone: "Quick-use Ruin Stone", dragonfire: "Dragonite: Dragonfire", wyrmwing: "Dragonite: Wyrmwing", dragonhide: "Dragonite: Dragonhide", wyrmcall: "Dragonite: Wyrmcall", lockOn: "Lock on / release target", cycleTarget: "Next lock target", swapShoulder: "Swap camera shoulder" };
+export const CONSUMABLE_LABEL = { healStim: "Quick-use healing stim", armorStim: "Quick-use armor stim", ruinStone: "Quick-use Ruin Stone", dragonfire: "Dragonite: Dragonfire", wyrmwing: "Dragonite: Wyrmwing", dragonhide: "Dragonite: Dragonhide", wyrmcall: "Dragonite: Wyrmcall", roar: "Dragonite: Roar of Ruin", scalebreaker: "Dragonite: Scalebreaker", skyfall: "Dragonite: Skyfall", lockOn: "Lock on / release target", cycleTarget: "Next lock target", swapShoulder: "Swap camera shoulder" };
 
 const PAD_NAMES = ["A", "B", "X", "Y", "LB", "RB", "LT", "RT", "View", "Menu", "L3", "R3", "D-Up", "D-Down", "D-Left", "D-Right", "Home"];
 export const padName = (i: number) => PAD_NAMES[i] ?? `Button ${i}`;
-export const keyName = (code: string) => code.replace("AltLeft", "Alt").replace(/^Key/, "").replace(/^Digit/, "").replace("BracketRight", "]").replace("BracketLeft", "[").replace("ControlLeft", "Ctrl").replace("Minus", "-");
+export const keyName = (code: string) => code.replace("AltLeft", "Alt").replace(/^Key/, "").replace(/^Digit/, "").replace("BracketRight", "]").replace("BracketLeft", "[").replace("ControlLeft", "Ctrl").replace("Minus", "-").replace("Equal", "=").replace("Backslash", "\\").replace("Semicolon", ";");
 
 export const normalizeBindings = (b: Partial<Bindings> | undefined): Bindings => ({
   keyboard: { ...DEFAULT_BINDINGS.keyboard, ...(b?.keyboard ?? {}) },

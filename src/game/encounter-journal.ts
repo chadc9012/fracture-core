@@ -80,12 +80,12 @@ export function recordMastery<T extends Store>(p: T, cls: ClassId | null, encoun
 }
 export const masteryCount = (p: Store, cls: ClassId | null, encounterId: string) => (cls ? p.earnedRewards.filter((r) => r.startsWith(`enc-mastery:${cls}:${encounterId}:`)).length : 0);
 
-export type JournalEntry = { id: string; name: string; discovered: boolean; completed: boolean; clues: { text: string; known: boolean }[]; hint: string | null; mastery: number };
+export type JournalEntry = { id: string; /** unique story encounters (Vyrak) get their own journal section */ special: boolean; name: string; discovered: boolean; completed: boolean; clues: { text: string; known: boolean }[]; hint: string | null; mastery: number };
 /** The journal view: undiscovered encounters show only the clues already found, with the rest masked. */
 export function journalFor(p: Store, cls: ClassId | null): JournalEntry[] {
   return UNIQUE_SCENARIOS.filter((s) => isDiscovered(p, s.id) || knownClues(p, s.id).length > 0 || isCompleted(p, cls, s.id)).map((s) => {
     const known = new Set(knownClues(p, s.id).map((c) => c.id));
     const discovered = isDiscovered(p, s.id);
-    return { id: s.id, name: discovered ? s.name : "Unknown encounter", discovered, completed: isCompleted(p, cls, s.id), clues: cluesFor(s.id).map((c) => ({ text: known.has(c.id) ? c.text : "???", known: known.has(c.id) })), hint: novaHint(p, s.id), mastery: masteryCount(p, cls, s.id) };
+    return { id: s.id, special: s.id === "vyrak", name: discovered ? s.name : "Unknown encounter", discovered, completed: isCompleted(p, cls, s.id), clues: cluesFor(s.id).map((c) => ({ text: known.has(c.id) ? c.text : "???", known: known.has(c.id) })), hint: novaHint(p, s.id), mastery: masteryCount(p, cls, s.id) };
   });
 }

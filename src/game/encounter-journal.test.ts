@@ -47,3 +47,9 @@ describe("encounter journal", () => {
     expect(journalFor(p0, "HUNTER")).toEqual([]);
   });
 });
+
+test("Vyrak is flagged as a special journal entry", () => {
+  const p = recordClue({ earnedRewards: [] as string[] }, "vyrak", "inscription").progression;
+  expect(journalFor(p, "HUNTER").find((e) => e.id === "vyrak")?.special).toBe(true);
+  expect(journalFor(recordClue(p, "hollow-colossus", "site").progression, "HUNTER").find((e) => e.id === "hollow-colossus")?.special).toBe(false);
+});

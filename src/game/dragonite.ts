@@ -12,13 +12,16 @@ import type { ClassId, PlayerProgression } from "./progression";
 import type { GearItem } from "./inventory";
 import { claimCovenant, dragoniteGear, isBonded } from "./dragon-covenant";
 
-export type DragoniteId = "dragonfire" | "wyrmwing" | "dragonhide" | "wyrmcall";
-export type DragoniteDef = { id: DragoniteId; name: string; kind: "OFFENSE" | "MOBILITY" | "DEFENSE" | "SUMMON"; cooldown: number; energy: number; windup: number; blurb: string; upgrades: readonly [string, string, string, string] };
+export type DragoniteId = "dragonfire" | "wyrmwing" | "dragonhide" | "wyrmcall" | "roar" | "scalebreaker" | "skyfall";
+export type DragoniteDef = { id: DragoniteId; name: string; kind: "OFFENSE" | "MOBILITY" | "DEFENSE" | "SUMMON" | "CONTROL" | "ULTIMATE"; cooldown: number; energy: number; windup: number; blurb: string; upgrades: readonly [string, string, string, string] };
 export const DRAGONITE: Record<DragoniteId, DragoniteDef> = {
   dragonfire: { id: "dragonfire", name: "Dragonfire", kind: "OFFENSE", cooldown: 18, energy: 25, windup: 0.6, blurb: "A forward cone of violet fire that leaves Fracture Burn.", upgrades: ["Longer range", "Wider cone", "More damage to corrupted enemies", "Eruption at the end of the breath"] },
   wyrmwing: { id: "wyrmwing", name: "Wyrmwing", kind: "MOBILITY", cooldown: 22, energy: 20, windup: 0.2, blurb: "Spectral wings: a launch, a controlled glide and one air dash.", upgrades: ["Higher launch", "Longer glide", "Second air dash", "Aerial strike on landing"] },
   dragonhide: { id: "dragonhide", name: "Dragonhide", kind: "DEFENSE", cooldown: 30, energy: 30, windup: 0, blurb: "Spectral scales: damage resistance and less stagger. Time it for a bonus.", upgrades: ["More resistance", "Less stagger", "Wider perfect-timing window", "Shares a smaller shield with nearby allies"] },
   wyrmcall: { id: "wyrmcall", name: "Wyrmcall", kind: "SUMMON", cooldown: 120, energy: 60, windup: 0.8, blurb: "Vyrak answers: strafing runs, dragonfire on a group, interrupts, a finishing assault.", upgrades: ["Longer stay", "Shorter cooldown", "Another strafing run", "Finishing assault on bosses"] },
+  roar: { id: "roar", name: "Roar of Ruin", kind: "CONTROL", cooldown: 26, energy: 28, windup: 0.4, blurb: "Vyrak bellows: nearby enemies are staggered and their next attack is delayed. Bosses only lose poise.", upgrades: ["Wider roar", "Longer stagger", "Enemies take extra damage while staggered", "Shockwave knocks smaller enemies back"] },
+  scalebreaker: { id: "scalebreaker", name: "Scalebreaker", kind: "OFFENSE", cooldown: 20, energy: 22, windup: 0.3, blurb: "A tail-and-claw slam in front of you that shatters armor and hits boss poise hard.", upgrades: ["More damage", "Larger arc", "Strips enemy shields", "Second strike"] },
+  skyfall: { id: "skyfall", name: "Skyfall", kind: "ULTIMATE", cooldown: 150, energy: 80, windup: 1.0, blurb: "Vyrak climbs, then dives onto the target area in a violet impact. Needs room above and is a late-game finisher.", upgrades: ["Larger impact", "Shorter cooldown", "Leaves Fracture Burn", "Furious Vyrak hits harder"] },
 };
 export const DRAGONITE_IDS = Object.keys(DRAGONITE) as DragoniteId[];
 export const MAX_UPGRADE = 4;
@@ -81,6 +84,9 @@ export function dragoniteStats(id: DragoniteId, level: number, armor: ArmorBonus
     case "dragonfire": return { cooldown: base.cooldown, energy, damage: (6 + 1.5 * L) * boost, range: 10 + (L >= 1 ? 3 : 0), coneDeg: 40 + (L >= 2 ? 20 : 0), corruptedMult: L >= 3 ? 1.5 : 1.2, burnSeconds: 4, burnChance: Math.min(1, 0.7 + armor.burnChance), eruption: L >= 4 ? 1 : 0 };
     case "wyrmwing": return { cooldown: base.cooldown, energy, launch: (9 + (L >= 1 ? 2 : 0)) * boost, glideSeconds: 4 + (L >= 2 ? 2 : 0), airDashes: L >= 3 ? 2 : 1, control: 0.5 + armor.airControl, landingStrike: L >= 4 ? 1 : 0 };
     case "dragonhide": return { cooldown: base.cooldown, energy, resist: Math.min(RESIST_CAP, (0.25 + 0.03 * L) * boost), duration: 8, stagger: Math.min(0.9, 0.3 + (L >= 2 ? 0.2 : 0) + armor.stagger), perfectWindow: 0.3 + (L >= 3 ? 0.15 : 0), perfectBonus: 0.1, allyShield: L >= 4 ? 0.1 : 0 };
+    case "roar": return { cooldown: base.cooldown, energy, radius: (9 + (L >= 1 ? 3 : 0)) * boost, stagger: 2 + (L >= 2 ? 1.2 : 0), vulnMult: L >= 3 ? 1.25 : 1, vulnSeconds: 6, knockback: L >= 4 ? 5 : 0 };
+    case "scalebreaker": return { cooldown: base.cooldown, energy, damage: (8 + 2 * L) * boost, arcDeg: 70 + (L >= 1 ? 30 : 0), range: 5.5, shieldBreak: L >= 2 ? 1 : 0, strikes: L >= 3 ? 2 : 1 };
+    case "skyfall": return { cooldown: L >= 1 ? 120 : base.cooldown, energy, radius: (9 + (L >= 2 ? 3 : 0)) * boost, damage: 32 * boost, windup: base.windup, burn: L >= 3 ? 1 : 0, furyMult: L >= 4 ? 1.5 : 1 };
     case "wyrmcall": return { cooldown: Math.max(60, 120 - (L >= 2 ? 25 : 0)), energy, duration: (12 + (L >= 1 ? 4 : 0)) * (1 + armor.summonTime), strafes: 1 + (L >= 3 ? 1 : 0), damage: 14 * boost, finisher: L >= 4 ? 1 : 0 };
   }
 }

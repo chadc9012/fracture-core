@@ -63,3 +63,14 @@ describe("dragon flight", () => {
     expect(stepFlight(createFlight(0, 100, 0, 0), { pitch: 0, turn: 1, throttle: 0 }, 0.5, () => 0).bank).toBeGreaterThan(0);
   });
 });
+
+describe("later-stage rewards", () => {
+  test("the Ancient Bond and Eternal Covenant grant Covenant armor once, per Operator", () => {
+    const base = { ...full(), inventory: [] as never[] };
+    const a = claimAncientBond(base, "HUNTER"); expect(a.ok).toBe(true);
+    expect(a.progression.inventory.some((g: { id: string }) => g.id === "vyrak-wingmantle-hunter")).toBe(true);
+    const e = claimEternalCovenant(a.progression, "HUNTER"); expect(e.ok).toBe(true);
+    expect(e.progression.inventory.filter((g: { setId?: string }) => g.setId === "dragons-covenant").length).toBe(2);
+    expect(claimEternalCovenant(e.progression, "HUNTER").progression.inventory.length).toBe(e.progression.inventory.length);
+  });
+});

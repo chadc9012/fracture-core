@@ -44,6 +44,7 @@ import { backpackFor } from "@/game/backpacks";
 import { createReticle, markHit, stepReticle, type Motion, type ReticleView, EMPTY_RETICLE } from "@/game/crosshair";
 import { createGrind, isGrinding, leaveGrind, stepGrind, tryLatch, worldRails } from "@/game/maggrind";
 import { createTraversal, restTraversal, startTraversal, stepTraversal } from "@/game/traversal";
+import { createPersonality, furyBonus, maybeIdle, react as vyrakReact, stepMood as vyrakStepMood } from "@/game/vyrak-personality";
 import { createDragoniteRuntime, castDragonite, stepDragonite, statsFor as dragoniteStatsFor } from "@/game/dragonite-cast";
 import { DRAGONITE_IDS, DRAGONITE } from "@/game/dragonite";
 import { DASHES, createDashState, dashHit, dashStats, hoverVy, stepDash, tryDash } from "@/game/dash";
@@ -897,6 +898,8 @@ function SceneImpl({
   /** Dragonite abilities of the bonded Operator (dragonite-cast.ts) */
   /** target lock + shoulder side (target-lock.ts) */
   const lockRt = useRef({ state: newLockState(), keys: {} as Record<string, boolean> });
+  /** Vyrak's mood and banter (vyrak-personality.ts) */
+  const vyrakMind = useRef({ p: createPersonality(), kills: 0, hp: 100, clock: 0, lowAt: -99, bosses: 0 });
   const dragoniteRt = useRef({ rt: createDragoniteRuntime(), held: {} as Record<string, boolean> });
   const opDashStats = useMemo(() => dashStats(playerClass, abilityBranches), [playerClass, abilityBranches]);
   const wish = useMemo(() => new THREE.Vector3(), []);
@@ -1165,19 +1168,32 @@ function SceneImpl({
     {
       // Dragonite (dragonite-cast.ts): the bonded Operator's four abilities on rebindable keys
       const dkeys = normalizeBindings(settings.bindings).keyboard;
-      const dr = dragoniteRt.current, dctx = { earnedRewards: gear?.earnedRewards ?? [], inventory: gear?.inventory ?? [], equippedGear: gear?.equippedGear ?? {}, cls: playerClass };
+      const dr = dragoniteRt.current, dctx: { earnedRewards: readonly string[]; inventory: PlayerProgression["inventory"]; equippedGear: Partial<Record<string, string>>; cls: ClassId | null; fury?: number } = { earnedRewards: gear?.earnedRewards ?? [], inventory: gear?.inventory ?? [], equippedGear: gear?.equippedGear ?? {}, cls: playerClass };
       for (const id of DRAGONITE_IDS) {
         const down = held.has(dkeys[id]);
         if (down && !dr.held[id]) {
           const e = { value: live.current.energy };
           const r = castDragonite(dr.rt, sim, e, id, { x: s.x, z: s.z, yaw: s.yaw }, s.grounded, dctx);
           if (r.ok) {
+            if (id === "wyrmcall") { const line = vyrakReact(vyrakMind.current.p, "summon", vyrakMind.current.clock); if (line) alert(sim, `VYRAK: ${line.text}`); }
             live.current.energy = e.value; s.punch += 0.2; sfx.playAbility("ABILITY");
             if (r.launchVy) { s.vy = Math.max(s.vy, r.launchVy); s.grounded = false; }
             else if (id === "wyrmwing") { velocity.x += Math.sin(s.yaw) * 18; velocity.z += Math.cos(s.yaw) * 18; }
           } else if (r.text) alert(sim, r.text);
         }
         dr.held[id] = down;
+      }
+      const vm = vyrakMind.current;
+      if (dctx.earnedRewards.includes(`covenant:vyrak:${playerClass}`)) {
+        vm.clock += dt; vyrakStepMood(vm.p, dt);
+        const say = (line: { text: string } | null) => { if (line) alert(sim, `VYRAK: ${line.text}`); };
+        if (sim.kills > vm.kills) say(vyrakReact(vm.p, sim.machines.filter((m) => m.alive && m.boss).length < vm.bosses ? "bossKill" : "kill", vm.clock));
+        if (sim.hp < vm.hp - 0.5) say(vyrakReact(vm.p, "hurt", vm.clock));
+        if (sim.hp < 30 && vm.hp >= 30 && vm.clock - vm.lowAt > 30) { vm.lowAt = vm.clock; say(vyrakReact(vm.p, "lowHp", vm.clock)); }
+        if (sim.hp >= 60 && vm.hp < 30) say(vyrakReact(vm.p, "recover", vm.clock));
+        vm.kills = sim.kills; vm.hp = sim.hp; vm.bosses = sim.machines.filter((m) => m.alive && m.boss).length;
+        say(maybeIdle(vm.p, vm.clock));
+        dctx.fury = furyBonus(vm.p);
       }
       const dres = stepDragonite(dr.rt, sim, dt, { x: s.x, z: s.z }, dctx);
       dragoniteHud.current = playerClass && dctx.earnedRewards.includes(`covenant:vyrak:${playerClass}`) ? DRAGONITE_IDS.map((id) => ({ name: DRAGONITE[id].name, cd: dr.rt.cd[id], max: dragoniteStatsFor(dctx, id).cooldown, key: dkeys[id] })) : null;
