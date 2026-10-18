@@ -166,7 +166,7 @@ const HOME_DOORS: Record<string, { x: number; z: number }> = {
 };
 function homeDoor(id: string, regionId: string, i: number) {
   if (HOME_DOORS[id]) return HOME_DOORS[id];
-  const r = REGIONS.find((x) => x.id === regionId) ?? REGIONS[0];
+  const r = REGIONS.find((x) => x.id === regionId) ?? REGIONS[0]!;
   return { x: r.x + 18 + i * 3, z: r.z + 14 };
 }
 export const HOME_INTERIORS: readonly InteriorDef[] = HOMES.map((h, i) => ({

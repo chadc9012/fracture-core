@@ -15,7 +15,7 @@ const WALL: Record<string, { color: string; emissive?: string }> = {
 };
 const FLOOR: Record<string, string> = { "floor-concrete": "#8a8d90", "floor-oak": "#7a5232" };
 
-function Box({ p, s, c, e, r = 0.6, m = 0 }: { p: [number, number, number]; s: [number, number, number]; c: string; e?: string; r?: number; m?: number }) {
+function Box({ p, s, c, e, r = 0.6, m = 0 }: { p: [number, number, number]; s: [number, number, number]; c: string; e?: string | undefined; r?: number; m?: number }) {
   return (
     <mesh position={p} castShadow receiveShadow>
       <boxGeometry args={s} />
