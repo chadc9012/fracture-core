@@ -1,3 +1,4 @@
+import { recordEncounterClear } from "./encounter-journal";
 import type { Evolution } from "./weapon-evolution";
 import type { Godforged } from "./godforge";
 import type { PlayerProgression } from "./progression";
@@ -100,6 +101,7 @@ export function claimDrops(progress: PlayerProgression, drops: WorldSim["drops"]
     if (drop.setDrop) next = grantSetPiece(next, drop.setDrop)?.progress ?? next;
     if (drop.weaponDrop && !next.inventory.some((g) => g.id === drop.weaponDrop!.id)) next = { ...next, inventory: [...next.inventory, drop.weaponDrop] };
     if (drop.scenarioClaim) next = grantScenarioReward(next, drop.scenarioClaim).progress;
+    if (drop.scenarioClaim?.participated) next = recordEncounterClear(next, next.identityClass, drop.scenarioClaim.scenarioId);
     // Vyrak pays no gear through scenario-loot: a confirmed, participated kill bonds the winning Operator class
     // (dragon-covenant.ts — Dragonite set, class ability, Wyrmling). Idempotent per class.
     if (drop.scenarioClaim?.scenarioId === "vyrak" && drop.scenarioClaim.participated) next = recordVyrakClear(next, next.identityClass, drop.scenarioClaim.runId).progression;
