@@ -17,6 +17,7 @@ import { Button } from "@/components/ui/button";
 import type { RenderTier } from "@/game/performance";
 import { DPR_FLOOR, effectiveTier, onDecline as governDecline } from "@/game/quality-governor";
 import { MissionCinematic } from "./MissionCinematic";
+import { CAMPAIGN_CHAIN } from "@/game/campaign-cinematics";
 import { shouldPlay as shouldPlayCine, markPlayed as markCinePlayed } from "@/game/cinematics";
 import { undiscoveredNear, discoverLandmarks, isLandmarkKnown } from "@/game/landmarks";
 import { ruinById, discoverNearby, canEvolve, evolveWeapon, isWeapon, ABILITY_RULES, EVOLVE_POWER_BONUS, EVOLVE_MIN_LEVEL, EVOLVE_CATALYSTS, EVOLVE_ELEMENT_AMOUNT } from "@/game/weapon-evolution";
@@ -558,7 +559,7 @@ export function GameCanvas() {
   const blackoutReady = phase === "world" && !tutorial && progression.completedMissions.includes("broken-signal") && swampChapterDone && !progression.completedMissions.includes("blackout-protocol");
   useEffect(() => {
     if (!blackoutReady || blackout) return;
-    const timer = window.setTimeout(() => setBlackout(advanceBlackout(BLACKOUT_PROTOCOL, { type: "START" })), 8000);
+    const timer = window.setTimeout(() => { setBlackout(advanceBlackout(BLACKOUT_PROTOCOL, { type: "START" })); if (shouldPlayCine(progressionRef.current.story, "c-blackout-2")) { setCineProgress(0); setCineId("c-blackout-2"); } }, 8000);
     return () => window.clearTimeout(timer);
   }, [blackoutReady, blackout]);
   const recordBlackout = (event: BlackoutEvent) => setBlackout((current) => current ? advanceBlackout(current, event) : current);
@@ -1325,7 +1326,7 @@ export function GameCanvas() {
         />
       )}
       {qualityNotice && <div className="pointer-events-none absolute left-1/2 top-16 z-50 -translate-x-1/2 border border-border/60 bg-background/80 px-4 py-2 font-mono text-[11px] uppercase tracking-[0.15em]">{qualityNotice}</div>}
-      {cineId && <MissionCinematic id={cineId} onProgress={setCineProgress} onDone={(_handoff, _skipped) => { const id = cineId; setCineId(null); setProgression((cur) => ({ ...cur, story: markCinePlayed(cur.story, id) })); }} />}
+      {cineId && <MissionCinematic id={cineId} onProgress={setCineProgress} onDone={(_handoff, _skipped) => { const id = cineId; const played = markCinePlayed(progressionRef.current.story, id); const next = CAMPAIGN_CHAIN[id]; setCineProgress(0); setCineId(next && shouldPlayCine(played, next) ? next : null); setProgression((cur) => ({ ...cur, story: markCinePlayed(cur.story, id) })); }} />}
       {showIntro && <IntroCinematic onComplete={() => setShowIntro(false)} onTick={setIntroElapsed} />}
       {strategyOpen && <RaidStrategyPanel onClose={() => setStrategyOpen(false)} />}
       {analysisOpen && <ZoneAnalysisPanel zoneName={hud.region} onClose={() => setAnalysisOpen(false)} />}

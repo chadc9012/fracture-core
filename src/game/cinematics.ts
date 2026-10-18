@@ -17,7 +17,7 @@ export type CineShot = {
 export type HandoffHook = { system: string; exists: boolean; note: string };
 export type Handoff = { objective: string; control: "gameplay" | "class-select"; hook: HandoffHook };
 export type Cinematic = {
-  id: string; mission: 1 | 2 | 3 | 4 | 5 | "side"; part: string; title: string; /** screenplay target length, seconds */ target: readonly [number, number];
+  id: string; mission: number | "side" | "raid"; part: string; title: string; /** screenplay target length, seconds */ target: readonly [number, number];
   trigger: string; shots: CineShot[]; handoff: Handoff; /** the scene ends on a title card */ titleCard?: string;
 };
 

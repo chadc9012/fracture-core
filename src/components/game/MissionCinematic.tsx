@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { campaignCinematicById } from "@/game/campaign-cinematics";
 import { cinematicById, cinematicSeconds, inspectCinematic, skipCinematic, startCinematic, stepCinematic, type CinePlayer, type Handoff } from "@/game/cinematics";
 import { speakVoice, stopVoice } from "@/game/voice-director";
 import { useMenuInput } from "./useMenuInput";
@@ -11,7 +12,7 @@ import { useMenuInput } from "./useMenuInput";
  * existing flythrough path (intro-camera.ts) scaled to this scene's length — presentation only, not yet browser-verified.
  */
 export function MissionCinematic({ id, onDone, onProgress }: { id: string; onDone: (handoff: Handoff | null, skipped: boolean) => void; onProgress?: (progress: number) => void }) {
-  const cine = cinematicById(id);
+  const cine = cinematicById(id) ?? campaignCinematicById(id);
   const [player, setPlayer] = useState<CinePlayer | null>(() => (cine ? startCinematic(cine) : null));
   const last = useRef(performance.now());
   const done = useRef(false);
