@@ -206,12 +206,15 @@ export function Terrain({ renderTier = "HIGH" }: { renderTier?: RenderTier } = {
   // real Poly Haven trees replace the procedural ones species-by-species as each GLB finishes loading;
   // until then (or if a file is missing) the procedural trees keep the forest populated
   const [polyReady, setPolyReady] = useState({ fir: false, broadleaf: false, rock: false, log: false, shrub: false, fern: false });
-  const realTrees = renderTier !== "LOW";
+  // the authored trees (public/models/foliage, ~1.5-2k tris each) are light enough for every tier, so even LOW gets real
+  // trees; the heavier Poly Haven rocks, logs, shrubs and ferns stay procedural on LOW
+  const realTrees = true;
+  const realHeavy = renderTier !== "LOW";
   useEffect(() => {
-    if (!realTrees) return;
     // announce everything the forest will want, so the loading readout shows a total from the first frame
-    for (const [id, label] of [["fir", "Fir tree"], ["broadleaf", "Broadleaf tree"], ["fern", "Fern"], ["shrub", "Shrub"], ["rock", "Mossy rock"], ["log", "Fallen log"]] as const) reportAsset(`foliage:${id}`, label, "loading");
-  }, [realTrees]);
+    const wanted = realHeavy ? ([["fir", "Fir tree"], ["broadleaf", "Broadleaf tree"], ["fern", "Fern"], ["shrub", "Shrub"], ["rock", "Mossy rock"], ["log", "Fallen log"]] as const) : ([["fir", "Fir tree"], ["broadleaf", "Broadleaf tree"]] as const);
+    for (const [id, label] of wanted) reportAsset(`foliage:${id}`, label, "loading");
+  }, [realHeavy]);
   const forest = byId("veridan");
   const frost = byId("frostspire");
   const ember = byId("ember");
@@ -227,8 +230,8 @@ export function Terrain({ renderTier = "HIGH" }: { renderTier?: RenderTier } = {
   const d = (n: number) => Math.max(1, Math.round(n * density));
   // The map is WORLD_SCALE times wider (16x the area at 4x). Forest tree counts follow the area at half density (the real GLB
   // forest is distance-culled and tri-budgeted, so only CPU placement grows); the plain instanced props of the other regions grow with
-  // sqrt(scale) because they have no distance culling. LOW draws procedural trees, so its count stays small.
-  const forestK = realTrees ? Math.max(1, (WORLD_SCALE * WORLD_SCALE) / 2) : Math.min(2, Math.max(1, (WORLD_SCALE * WORLD_SCALE) / 2));
+  // sqrt(scale) because they have no distance culling. Every tier now draws real (culled, budgeted) trees.
+  const forestK = Math.max(1, (WORLD_SCALE * WORLD_SCALE) / 2);
   const otherK = Math.max(1, Math.sqrt(WORLD_SCALE));
   const dF = (n: number) => Math.max(1, Math.round(n * density * forestK));
   const dO = (n: number) => Math.max(1, Math.round(n * density * otherK));
@@ -321,7 +324,7 @@ export function Terrain({ renderTier = "HIGH" }: { renderTier?: RenderTier } = {
   const readyFern = useMemo(() => () => setPolyReady((p) => (p.fern ? p : { ...p, fern: true })), []);
   // Real Poly Haven models take over these props as each GLB finishes loading (near ones in detail, far ones as cheap silhouettes,
   // see PolyFoliage); the procedural shapes below only draw while a model is loading or if it fails, and on the LOW tier.
-  const realProps = realTrees && modelsReady;
+  const realProps = realHeavy && modelsReady;
   const liveSwampAll = alive(swampTrees);
   const liveBouldersAll = alive(boulders);
   const liveSwamp = realProps && polyReady.log ? [] : liveSwampAll;
@@ -367,12 +370,14 @@ export function Terrain({ renderTier = "HIGH" }: { renderTier?: RenderTier } = {
       {renderTier !== "LOW" && modelsReady && <RegionModels />}
       {realTrees && modelsReady && (
         <>
-          <PolyFoliage kind="fir" items={firs} height={firHeight} sway={0.35} shadows={fineShadows} onReady={readyFir} />
-          <PolyFoliage kind="broadleaf" items={broadleafs} height={broadHeight} sway={0.4} shadows={fineShadows} onReady={readyBroad} />
-          <PolyFoliage kind="rock" items={boulderItems} height={3.4} shadows={fineShadows} variants onReady={readyRock} />
-          <PolyFoliage kind="log" items={swampTrunks} height={8} shadows={fineShadows} onReady={readyLog} />
-          <PolyFoliage kind="shrub" items={saplingItems} height={1.5} sway={0.14} shadows={false} variants onReady={readyShrub} />
-          <PolyFoliage kind="fern" items={brushItems} height={0.8} sway={0.1} shadows={false} variants onReady={readyFern} />
+          <PolyFoliage kind="fir" items={firs} height={firHeight} sway={0.35} shadows={fineShadows} variants onReady={readyFir} />
+          <PolyFoliage kind="broadleaf" items={broadleafs} height={broadHeight} sway={0.4} shadows={fineShadows} variants onReady={readyBroad} />
+          {realHeavy && <>
+            <PolyFoliage kind="rock" items={boulderItems} height={3.4} shadows={fineShadows} variants onReady={readyRock} />
+            <PolyFoliage kind="log" items={swampTrunks} height={8} shadows={fineShadows} onReady={readyLog} />
+            <PolyFoliage kind="shrub" items={saplingItems} height={1.5} sway={0.14} shadows={false} variants onReady={readyShrub} />
+            <PolyFoliage kind="fern" items={brushItems} height={0.8} sway={0.1} shadows={false} variants onReady={readyFern} />
+          </>}
         </>
       )}
 

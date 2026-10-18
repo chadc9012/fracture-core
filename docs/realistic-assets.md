@@ -2,6 +2,14 @@
 
 Rule: no model is claimed to work in-game until it was seen in a browser. Nothing below has been browser-verified yet.
 
+## Authored for this game (Oct 2026)
+| Asset | File | Built by |
+|---|---|---|
+| First-person auto rifle (worn gunmetal, accent glow, separate mag/bolt) | public/models/weapons/rifle.glb | scripts/build-rifle.py |
+| Forest trees: broadleaf + conifer, 3 variants each, ~1.4-2k tris, bark + leaf-card textures; far trees are crossed textured cards | public/models/foliage/*.glb | scripts/build-trees.py |
+
+Both scripts run with Blender as a Python module (`pip install bpy`). Real trees now draw on every tier, LOW included.
+
 ## Now using real (already hosted, CC0 Poly Haven) models
 | Prop | Where | Model | Fallback |
 |---|---|---|---|

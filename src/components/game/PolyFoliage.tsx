@@ -2,8 +2,6 @@ import { useFrame } from "@react-three/fiber";
 import { useGLTF } from "@react-three/drei";
 import { Component, Suspense, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import * as THREE from "three";
-import fir from "@/assets/polyhaven/fir_sapling.glb.asset.json";
-import broadleaf from "@/assets/polyhaven/island_tree_02.glb.asset.json";
 import shrub from "@/assets/polyhaven/shrub_02.glb.asset.json";
 import fern from "@/assets/polyhaven/fern_02.glb.asset.json";
 import deadLog from "@/assets/polyhaven/dead_tree_trunk.glb.asset.json";
@@ -17,7 +15,8 @@ import { PROXY_COLOR, PROXY_MAX, PROXY_RADIUS, farProxies, isProxied, foliageTri
 /** Poly Haven (CC0) foliage, simplified + texture-resized offline, rendered as GPU instances
  * (one draw call per sub-mesh). Each species is verified and isolated: on failure the caller
  * keeps its procedural fallback, and the world scene never suspends. */
-export const FOLIAGE = { fir: fir.url, broadleaf: broadleaf.url, shrub: shrub.url, fern: fern.url, log: deadLog.url, rock: mossRock.url } as const;
+/** Trees are authored for this game (scripts/build-trees.py, three variants each); the rest is Poly Haven. */
+export const FOLIAGE = { fir: "/models/foliage/conifer.glb", broadleaf: "/models/foliage/broadleaf.glb", shrub: shrub.url, fern: fern.url, log: deadLog.url, rock: mossRock.url } as const;
 const LABEL: Record<keyof typeof FOLIAGE, string> = { fir: "Fir tree", broadleaf: "Broadleaf tree", shrub: "Shrub", fern: "Fern", log: "Fallen log", rock: "Mossy rock" };
 export type FoliageKind = keyof typeof FOLIAGE;
 /** `tilt` lays a model on its side (radians about Z) before yawing — used for fallen logs */
@@ -31,6 +30,26 @@ class Quiet extends Component<{ children: ReactNode; onFail: () => void }, { fai
 }
 
 type Part = { geometry: THREE.BufferGeometry; material: THREE.Material };
+
+/** Three vertical quads crossed at 60°, full UV each: a 6-triangle far-distance tree that carries a leaf texture. */
+export function crossedCards(width: number, height: number, baseY: number): THREE.BufferGeometry {
+  const pos: number[] = [], uv: number[] = [], idx: number[] = [];
+  for (let k = 0; k < 3; k++) {
+    const a = (k * Math.PI) / 3, cx = Math.cos(a) * width / 2, cz = Math.sin(a) * width / 2, b = k * 4;
+    pos.push(-cx, baseY, -cz, cx, baseY, cz, cx, baseY + height, cz, -cx, baseY + height, -cz);
+    uv.push(0, 0, 1, 0, 1, 1, 0, 1);
+    idx.push(b, b + 1, b + 2, b, b + 2, b + 3);
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
+  g.setAttribute("uv", new THREE.Float32BufferAttribute(uv, 2));
+  g.setIndex(idx);
+  g.computeVertexNormals();
+  // normals straight up-and-out read as a lit crown rather than three dark planes
+  const n = g.getAttribute("normal") as THREE.BufferAttribute;
+  for (let i = 0; i < n.count; i++) n.setXYZ(i, 0, 1, 0);
+  return g;
+}
 
 /** True when a model's top-level children are separate, side-by-side variants rather than parts of one object:
  * their bounding boxes must not overlap each other and their heights must be comparable. */
@@ -91,21 +110,30 @@ function Instanced({ kind, url, items, scale, onReady, shadows, height, sway, va
     v.parts.forEach((p) => { p.geometry.computeBoundingBox(); if (p.geometry.boundingBox) box.union(p.geometry.boundingBox); });
     if (box.isEmpty()) return null;
     const h = box.max.y - box.min.y, w = Math.max(box.max.x - box.min.x, box.max.z - box.min.z);
-    // silhouettes sized from the model's own bounds: cone (fir), blob (broadleaf), squashed blob (rock), thin tapered post (standing trunk)
-    if (kind === "fir") { const g = new THREE.ConeGeometry(w * 0.42, h, 6, 1); g.translate(0, box.min.y + h / 2, 0); return g; }
+    // trees: three crossed cards textured with the model's own leaf material, so a far forest keeps a ragged,
+    // leaf-coloured silhouette instead of solid flat-shaded cones and blobs (still 6 triangles per tree)
+    if (kind === "fir" || kind === "broadleaf") return crossedCards(w * (kind === "fir" ? 0.8 : 0.95), h * (kind === "fir" ? 0.92 : 0.78), box.min.y + h * (kind === "fir" ? 0.06 : 0.22));
+    // silhouettes sized from the model's own bounds: squashed blob (rock), thin tapered post (standing trunk)
     if (kind === "rock") { const g = new THREE.IcosahedronGeometry(w * 0.5, 0); g.scale(1, h / w, 1); g.translate(0, box.min.y + h / 2, 0); return g; }
     if (kind === "log") { const g = new THREE.CylinderGeometry(w * 0.08, w * 0.2, h, 5, 1); g.translate(0, box.min.y + h / 2, 0); return g; }
     const g = new THREE.IcosahedronGeometry(w * 0.5, 0); g.scale(1, 0.85, 1); g.translate(0, box.min.y + h * 0.66, 0); return g;
   }), [built, kind]);
-  return <>{built.map((v, vi) => v.parts.map((p, i) => <Mesh key={`${vi}-${i}`} name={`foliage:${kind}`} kind={kind} share={built.length} trisPerInstance={perInstance[vi]!} part={p} items={buckets[vi]!} scale={scale * v.norm} shadows={shadows} radius={radius} proxy={i === 0 ? proxies[vi] ?? null : null} />))}</>;
+  const farMats = useMemo(() => built.map((v) => {
+    const leaf = v.parts.find((p) => { const m = p.material as THREE.MeshStandardMaterial; return Boolean(m.map) && m.alphaTest > 0; });
+    if (!leaf || (kind !== "fir" && kind !== "broadleaf")) return null;
+    const m = (leaf.material as THREE.MeshStandardMaterial).clone();
+    m.onBeforeCompile = () => {}; // far cards don't sway
+    return m;
+  }), [built, kind]);
+  return <>{built.map((v, vi) => v.parts.map((p, i) => <Mesh key={`${vi}-${i}`} farMat={i === 0 ? farMats[vi] ?? null : null} name={`foliage:${kind}`} kind={kind} share={built.length} trisPerInstance={perInstance[vi]!} part={p} items={buckets[vi]!} scale={scale * v.norm} shadows={shadows} radius={radius} proxy={i === 0 ? proxies[vi] ?? null : null} />))}</>;
 }
 
 const tmp = new THREE.Object3D();
 tmp.rotation.order = "YXZ"; // yaw after tilt, so a laid-down log can still be turned to face any way
-function Mesh({ name, kind, share, trisPerInstance, part, items, scale, shadows, radius, proxy }: { proxy?: THREE.BufferGeometry | null; name: string; kind: FoliageKind; share: number; trisPerInstance: number; part: { geometry: THREE.BufferGeometry; material: THREE.Material }; items: Placement[]; scale: number; shadows: boolean; radius: number }) {
+function Mesh({ name, kind, share, trisPerInstance, part, items, scale, shadows, radius, proxy, farMat }: { farMat?: THREE.Material | null; proxy?: THREE.BufferGeometry | null; name: string; kind: FoliageKind; share: number; trisPerInstance: number; part: { geometry: THREE.BufferGeometry; material: THREE.Material }; items: Placement[]; scale: number; shadows: boolean; radius: number }) {
   const ref = useRef<THREE.InstancedMesh>(null);
   const farRef = useRef<THREE.InstancedMesh>(null);
-  const farMaterial = useMemo(() => new THREE.MeshStandardMaterial({ color: isProxied(kind) ? PROXY_COLOR[kind] : "#3a6a3a", roughness: 1, flatShading: true }), [kind]);
+  const farMaterial = useMemo(() => farMat ?? new THREE.MeshStandardMaterial({ color: isProxied(kind) ? PROXY_COLOR[kind] : "#3a6a3a", roughness: 1, flatShading: true }), [kind, farMat]);
   const all = useRef<Float32Array>(new Float32Array(0));
   const last = useRef({ x: Infinity, z: Infinity });
   const clock = useRef(1);
