@@ -42,6 +42,7 @@ import { weatherName as weatherLabel } from "@/game/weather-cycle";
 import { environmentAt, stepEnvironment } from "@/game/environment";
 import { backpackFor } from "@/game/backpacks";
 import { createReticle, markHit, stepReticle, type Motion, type ReticleView, EMPTY_RETICLE } from "@/game/crosshair";
+import { createDashState, dashHit, dashStats, hoverVy, stepDash, tryDash } from "@/game/dash";
 import { airJump, cameraDrop, cancelSlide, createMoveState, glideVy, GLIDE_THRUST, land, movementFov, resolveStance, startSlide, stepSlide, stepStance, AIR_PROFILE, STANCE_SPEED, SLIDE_SECONDS, type Stance } from "@/game/movement";
 import { loadoutEffects } from "@/game/armor-attributes";
 import { armorLook } from "@/game/armor-look";
@@ -882,6 +883,9 @@ function SceneImpl({
 
   const velocity = useMemo(() => new THREE.Vector3(), []);
   const bootDash = useRef({ held: false, readyAt: 0 });
+  /** Operator dash (dash.ts): per-class dash with perks from abilityBranches */
+  const opDash = useRef({ state: createDashState(playerClass, abilityBranches), held: false, wasActive: false });
+  const opDashStats = useMemo(() => dashStats(playerClass, abilityBranches), [playerClass, abilityBranches]);
   const wish = useMemo(() => new THREE.Vector3(), []);
   const camTarget = useMemo(() => new THREE.Vector3(), []);
   const look = useMemo(() => new THREE.Vector3(), []);
@@ -1642,6 +1646,41 @@ function SceneImpl({
         const slideSpeed = stepSlide(mv.state, dt);
         if (slideSpeed > 0) { const sb = slideSpeed * (1 + armorFxRef.current.slideBoost); wish.set(mv.state.slideDirX * sb, 0, mv.state.slideDirZ * sb); }
       }
+      {
+        // Operator dash (dash.ts): NYX Ghost Step / GOLIATH Bulwark Rush / CIPHER Phase Drift
+        const od = opDash.current, st = opDashStats, ds = od.state;
+        const dashKey = held.has(binds.keyboard.dash) || !!padNow[binds.gamepad.dash];
+        if (dashKey && !od.held && !s.diving && !submerged) {
+          const dirX = wish.lengthSq() > 0 ? wish.x : Math.sin(s.yaw), dirZ = wish.lengthSq() > 0 ? wish.z : Math.cos(s.yaw);
+          if (tryDash(ds, st, dirX, dirZ)) { sim.iframes = Math.max(sim.iframes, st.iframes); od.wasActive = true; cancelSlide(mvs.state); s.punch += 0.2; sfx.playAbility("DASH"); }
+        }
+        od.held = dashKey;
+        const dashSpeed = stepDash(ds, st, dt);
+        sim.dashResist = dashSpeed > 0 ? st.resist : 0;
+        if (dashSpeed > 0) {
+          wish.set(ds.dirX * dashSpeed, 0, ds.dirZ * dashSpeed);
+          velocity.x = wish.x; velocity.z = wish.z;
+          const nowS = performance.now() / 1000;
+          for (let i = 0; i < sim.machines.length; i++) {
+            const m = sim.machines[i]!;
+            if (!m.alive || Math.hypot(m.x - s.x, m.z - s.z) > 1.8 || !dashHit(ds, st, i)) continue;
+            if (!m.boss && st.hitDamage > 0) { m.hp -= st.hitDamage; if (m.hp <= 0) defeatMachine(sim, m, "player"); }
+            m.kx += ds.dirX * st.knockback; m.kz += ds.dirZ * st.knockback;
+            if (st.mark > 0) { m.vulnUntil = nowS + 4; m.vulnMult = 1 + st.mark; }
+            if (st.slow > 0) m.cool = Math.max(m.cool, st.slow * 3);
+            if (!st.pierce && !m.boss) ds.active = Math.min(ds.active, 0.0001);
+          }
+        } else if (od.wasActive) {
+          od.wasActive = false;
+          if (st.endBlastRadius > 0) for (const m of sim.machines) {
+            if (!m.alive) continue;
+            const ex = m.x - s.x, ez = m.z - s.z, ed = Math.hypot(ex, ez);
+            if (ed > st.endBlastRadius) continue;
+            if (!m.boss) { m.hp -= st.endBlastDamage; if (m.hp <= 0) { defeatMachine(sim, m, "player"); continue; } }
+            m.kx += (ex / (ed || 1)) * 3; m.kz += (ez / (ed || 1)) * 3;
+          }
+        }
+      }
       if (s.diving) {
         // swimming toward where you're looking: pitch steers you up/down, and the response is floatier than land movement
         const swimPitch = (throttleF ? 1 : throttleB ? -1 : 0) * Math.sin(s.pitch);
@@ -2280,7 +2319,7 @@ function SceneImpl({
         }
         mv.jumpHeld = jumpHeld;
         const before = s.vy;
-        s.vy = glideVy(s.vy, playerClass, jumpHeld);
+        s.vy = hoverVy(opDash.current.state, glideVy(s.vy, playerClass, jumpHeld));
         if (AIR_PROFILE[playerClass].glide && jumpHeld && s.vy !== before) { velocity.x += Math.sin(s.yaw) * GLIDE_THRUST * dt; velocity.z += Math.cos(s.yaw) * GLIDE_THRUST * dt; }
       }
       s.vy -= sim.gravity * dt;
