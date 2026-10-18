@@ -31,6 +31,7 @@ import { TouchControls } from "./TouchControls";
 import { SkateShop } from "./SkateShop";
 import { KillPlaylistPlayer } from "./KillPlaylist";
 import { ConsumableHud } from "./ConsumableHud";
+import { DashHud } from "./DashHud";
 import { activeBuffs } from "@/game/client-input";
 import { useStim, type ConsumableId } from "@/game/stash";
 import { SettingsWindow, DEFAULT_SETTINGS, type GameSettings } from "./SettingsWindow";
@@ -1225,7 +1226,8 @@ export function GameCanvas() {
        )}
        {skateOpen && <SkateShop progression={progression} onProgression={setProgression} onClose={() => setSkateOpen(false)} />}
        <TouchControls bindings={settings.bindings} disabled={Boolean(menuOpen || characterOpen || inventoryOpen || atlasOpen || operationsView || shopOpen || skateOpen || npcOpen || forgeOpen || basePanel || ruinOpen || showIntro || cineId || deathInfo || storyGraph || activeDialogue || transit)} />
-       <ConsumableHud progression={progression} bindings={settings.bindings} disabled={Boolean(menuOpen || characterOpen || inventoryOpen || atlasOpen || operationsView || shopOpen || skateOpen || npcOpen || forgeOpen || basePanel || ruinOpen || showIntro || cineId || deathInfo || storyGraph || activeDialogue || transit || hud.hp <= 0)} onUse={useConsumable} />
+       <DashHud bindings={settings.bindings} />
+      <ConsumableHud progression={progression} bindings={settings.bindings} disabled={Boolean(menuOpen || characterOpen || inventoryOpen || atlasOpen || operationsView || shopOpen || skateOpen || npcOpen || forgeOpen || basePanel || ruinOpen || showIntro || cineId || deathInfo || storyGraph || activeDialogue || transit || hud.hp <= 0)} onUse={useConsumable} />
        <KillPlaylistPlayer volume={(settings.volume ?? 0.7) * (settings.musicVolume ?? 1)} muted={!!settings.mute?.music} />
        {hud.garageNear && !basePanel && !hud.shopNearId && (
          <div className="pointer-events-none absolute bottom-24 left-1/2 -translate-x-1/2">

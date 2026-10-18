@@ -25,3 +25,5 @@ export function isTouchDevice(): boolean {
 /** active stim buffs (stash.ts) — timed and per-session, so client-local */
 import type { Buffs } from "./stash";
 export const activeBuffs: { current: Buffs } = { current: {} };
+/** Operator dash readout written by Scene each frame (dash.ts), read by DashHud */
+export const dashHud: { current: { name: string; charges: number; max: number; fill: number } | null } = { current: null };

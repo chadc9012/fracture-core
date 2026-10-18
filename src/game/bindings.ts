@@ -16,7 +16,7 @@ export const CONSUMABLE_LABEL = { healStim: "Quick-use healing stim", armorStim:
 
 const PAD_NAMES = ["A", "B", "X", "Y", "LB", "RB", "LT", "RT", "View", "Menu", "L3", "R3", "D-Up", "D-Down", "D-Left", "D-Right", "Home"];
 export const padName = (i: number) => PAD_NAMES[i] ?? `Button ${i}`;
-export const keyName = (code: string) => code.replace(/^Key/, "").replace(/^Digit/, "").replace("BracketRight", "]").replace("BracketLeft", "[").replace("ControlLeft", "Ctrl");
+export const keyName = (code: string) => code.replace("AltLeft", "Alt").replace(/^Key/, "").replace(/^Digit/, "").replace("BracketRight", "]").replace("BracketLeft", "[").replace("ControlLeft", "Ctrl");
 
 export const normalizeBindings = (b: Partial<Bindings> | undefined): Bindings => ({
   keyboard: { ...DEFAULT_BINDINGS.keyboard, ...(b?.keyboard ?? {}) },

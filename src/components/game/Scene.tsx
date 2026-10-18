@@ -11,7 +11,7 @@ import { softSprite } from "./softSprite";
 import { REGIONS, SKY, ZONE_COLOR, clockLabel, phaseFor, regionAt, WORLD_RADIUS, WORLD_SCALE } from "@/game/world";
 import { BASE_FOOT_SPEED, SPRINT_MULT } from "@/game/foot-speed";
 import { useKeyboard } from "@/game/useKeyboard";
-import { touch, getEquippedBoots, activeBuffs } from "@/game/client-input";
+import { touch, getEquippedBoots, activeBuffs, dashHud } from "@/game/client-input";
 import { buffEffect } from "@/game/stash";
 import { bootStats, SKATE_SHOP_OFFSET, SKATE_SHOP_RADIUS } from "@/game/skate-boots";
 import { walkHeight, slopeAt, heightAt, waterNetwork, WATER_LEVEL } from "@/game/terrain";
@@ -43,7 +43,7 @@ import { environmentAt, stepEnvironment } from "@/game/environment";
 import { backpackFor } from "@/game/backpacks";
 import { createReticle, markHit, stepReticle, type Motion, type ReticleView, EMPTY_RETICLE } from "@/game/crosshair";
 import { createTraversal, restTraversal, startTraversal, stepTraversal } from "@/game/traversal";
-import { createDashState, dashHit, dashStats, hoverVy, stepDash, tryDash } from "@/game/dash";
+import { DASHES, createDashState, dashHit, dashStats, hoverVy, stepDash, tryDash } from "@/game/dash";
 import { airJump, cameraDrop, cancelSlide, createMoveState, glideVy, GLIDE_THRUST, land, movementFov, resolveStance, startSlide, stepSlide, stepStance, AIR_PROFILE, STANCE_SPEED, SLIDE_SECONDS, type Stance } from "@/game/movement";
 import { loadoutEffects } from "@/game/armor-attributes";
 import { armorLook } from "@/game/armor-look";
@@ -1658,6 +1658,7 @@ function SceneImpl({
         }
         od.held = dashKey;
         const dashSpeed = stepDash(ds, st, dt);
+        dashHud.current = { name: DASHES[playerClass].name, charges: ds.charges, max: st.charges, fill: ds.charges >= st.charges ? 1 : Math.max(0, Math.min(1, 1 - ds.recharge / st.cooldown)) };
         sim.dashResist = dashSpeed > 0 ? st.resist : 0;
         if (dashSpeed > 0) {
           wish.set(ds.dirX * dashSpeed, 0, ds.dirZ * dashSpeed);
