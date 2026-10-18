@@ -3,7 +3,7 @@ import { HeartPulse, Shield, Gem } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { keyName, normalizeBindings, type Bindings } from "@/game/bindings";
 import { activeBuffs } from "@/game/client-input";
-import { CONSUMABLES, STACK_CAP, type ConsumableId } from "@/game/stash";
+import { CONSUMABLES, STACK_CAP, visibleConsumables, type ConsumableId } from "@/game/stash";
 import type { PlayerProgression } from "@/game/progression";
 
 const IDS: ConsumableId[] = ["healStim", "armorStim", "ruinStone"];
@@ -22,8 +22,9 @@ export function ConsumableHud({ progression, bindings, disabled, onUse }: { prog
     window.addEventListener("keydown", key);
     return () => window.removeEventListener("keydown", key);
   }, [keys.healStim, keys.armorStim, keys.ruinStone, disabled, onUse]);
+  const shown = visibleConsumables(progression.materials, activeBuffs.current, now);
   return <div className="consumable-hud pointer-events-auto fixed left-3 top-[42%] z-[35] flex max-w-[calc(100vw-1.5rem)] flex-col gap-1 font-mono">
-    {IDS.map((id) => {
+    {shown.map((id) => {
       const buff = activeBuffs.current[id];
       const live = buff && buff.until > now;
       const count = progression.materials[id] ?? 0;

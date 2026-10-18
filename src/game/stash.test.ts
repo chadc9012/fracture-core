@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { craftStim, dismantle, grant, mergeStash, sellDuplicate, toVault, useStim, buffEffect, type Buffs } from "./stash";
+import { craftStim, dismantle, grant, mergeStash, sellDuplicate, toVault, useStim, buffEffect, visibleConsumables, type Buffs } from "./stash";
 import type { GearItem } from "./inventory";
 
 const gun = (id: string): GearItem => ({ id, name: "Rifle", slot: "primary", power: 100, level: 2, element: "KINETIC", source: "drop" });
@@ -42,5 +42,23 @@ describe("stash", () => {
   test("equipped gear cannot go in the vault", () => {
     expect(toVault(base([gun("a")]), "a").vaultIds).toEqual([]);
     expect(toVault(base([gun("a"), gun("b")]), "b").vaultIds).toEqual(["b"]);
+  });
+});
+
+describe("consumable HUD visibility", () => {
+  test("a player with no Ruin Stone only sees the two stims", () => {
+    expect(visibleConsumables({}, {}, 0)).toEqual(["healStim", "armorStim"]);
+    expect(visibleConsumables({ ruinStone: 0 }, {}, 0)).toEqual(["healStim", "armorStim"]);
+  });
+  test("owning one adds it", () => {
+    expect(visibleConsumables({ ruinStone: 1 }, {}, 0)).toEqual(["healStim", "armorStim", "ruinStone"]);
+  });
+  test("it stays while its boost runs after the last one is spent, and goes when the boost ends", () => {
+    const buffs: Buffs = { ruinStone: { stacks: 1, until: 5000 } };
+    expect(visibleConsumables({ ruinStone: 0 }, buffs, 4999)).toContain("ruinStone");
+    expect(visibleConsumables({ ruinStone: 0 }, buffs, 5000)).not.toContain("ruinStone");
+  });
+  test("an expired boost on a stim does not hide the stim", () => {
+    expect(visibleConsumables({}, { healStim: { stacks: 2, until: 1 } }, 99)).toContain("healStim");
   });
 });

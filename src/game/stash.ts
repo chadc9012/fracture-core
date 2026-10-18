@@ -55,6 +55,12 @@ export function useStim<T extends P>(p: T, buffs: Buffs, id: ConsumableId, now: 
   const stacks = cur && cur.until > now ? Math.min(STACK_CAP, cur.stacks + 1) : 1;
   return { progression: { ...p, materials: { ...p.materials, [id]: (p.materials[id] ?? 0) - 1 } }, buffs: { ...buffs, [id]: { stacks, until: now + CONSUMABLES[id].seconds * 1000 } } };
 }
+/** Which consumables the HUD lists. Stims are always shown; the Ruin Stone only once the player has one (or while its boost is
+ * running), so a player who has never found one is not shown a slot for it. */
+export function visibleConsumables(materials: Partial<Record<string, number>>, buffs: Buffs, now: number): ConsumableId[] {
+  const live = (id: ConsumableId) => { const b = buffs[id]; return Boolean(b && b.until > now); };
+  return (["healStim", "armorStim", "ruinStone"] as ConsumableId[]).filter((id) => id !== "ruinStone" || (materials[id] ?? 0) >= 1 || live(id));
+}
 export function buffEffect(buffs: Buffs, now: number) {
   const s = (id: ConsumableId) => { const b = buffs[id]; return b && b.until > now ? Math.min(STACK_CAP, b.stacks) : 0; };
   return { resist: 0.1 * s("armorStim"), regen: 5 * s("healStim"), damageMult: 1 + RUIN_SURGE.damagePerStack * s("ruinStone") };
