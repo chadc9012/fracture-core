@@ -788,6 +788,7 @@ function SceneImpl({
     /* Interior Building system — which interior (if any) the player is currently inside, and where to return to */
     insideInterior: null as string | null,
     interiorReturnPos: null as { x: number; y: number; z: number } | null,
+    interiorPrevX: null as number | null,
   });
 
   /** snapshot of every live engine system for the dev inspector */
