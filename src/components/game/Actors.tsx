@@ -1,6 +1,8 @@
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import { FactionEnemy, type DriveRef } from "./EnemyModel";
 import { scenarioModelReady } from "./ScenarioBosses";
+import { OperatorModel, type ModelMotion } from "./OperatorModel";
+import { RIVAL_COLORS, type RivalClass } from "@/game/crucible";
 import { RoundedBox } from "@react-three/drei";
 import { useFrame } from "@react-three/fiber";
 import { useMemo, useRef, useState } from "react";
@@ -221,6 +223,8 @@ export function WarMachines({ sim }: { sim: WorldSim }) {
   // one motion record per pooled machine slot, shared by that slot's faction variants
   const drives = useMemo<DriveRef[]>(() => sim.machines.map(() => ({ current: { speed: 0, aiming: false } })), [sim.machines]);
   const last = useMemo(() => sim.machines.map(() => ({ x: NaN, z: NaN })), [sim.machines]);
+  // Crucible rivals walk/run on the operator rig's own clips, driven from their real ground speed
+  const strides = useMemo<ModelMotion[]>(() => sim.machines.map(() => ({ current: { phase: 0, intensity: 0, air: false } })), [sim.machines]);
   // variants mount the first time a slot needs them (and stay mounted): an unseen faction never downloads or clones its model
   const [mounted, setMounted] = useState<string[][]>(() => sim.machines.map(() => []));
   const mountedRef = useRef(mounted);
@@ -242,7 +246,9 @@ export function WarMachines({ sim }: { sim: WorldSim }) {
         drive.current.aiming = (m.aim ?? 0) > 0;
         prev.x = m.x; prev.z = m.z;
       }
-      const modelName = m.boss && m.scenarioId && scenarioModelReady.has(m.scenarioId) ? "scenario-model" : m.boss ? `boss-model-${m.kind ?? "OVERCLOCKED"}` : (m.kind === "OVERCLOCKED" ? "overclocked-model" : m.kind === "ABERRATION" ? "aberration-model" : m.kind === "VANGUARD" ? "vanguard-model" : "regional-model") + (m.elite ? "-elite" : "");
+      const stride = strides[i];
+      if (m.rival && stride && drive) { stride.current.phase += drive.current.speed * dt * 1.25; stride.current.intensity = Math.min(1, drive.current.speed / 9); drive.current.procedural = false; }
+      const modelName = m.rival ? `rival-${m.rival}` : m.boss && m.scenarioId && scenarioModelReady.has(m.scenarioId) ? "scenario-model" : m.boss ? `boss-model-${m.kind ?? "OVERCLOCKED"}` : (m.kind === "OVERCLOCKED" ? "overclocked-model" : m.kind === "ABERRATION" ? "aberration-model" : m.kind === "VANGUARD" ? "vanguard-model" : "regional-model") + (m.elite ? "-elite" : "");
       if (modelName !== "scenario-model" && !mountedRef.current[i]?.includes(modelName)) {
         const next = mountedRef.current.map((list, k) => (k === i ? [...list, modelName] : list));
         mountedRef.current = next;
@@ -277,6 +283,12 @@ export function WarMachines({ sim }: { sim: WorldSim }) {
           <group name="boss-model-OVERCLOCKED" visible={false}>{need(i, "boss-model-OVERCLOCKED") && <RegionalEnemy kind="OVERCLOCKED" boss drive={drives[i]!} />}</group>
           <group name="boss-model-VANGUARD" visible={false}>{need(i, "boss-model-VANGUARD") && <RegionalEnemy kind="VANGUARD" boss drive={drives[i]!} />}</group>
           <group name="boss-model-ABERRATION" visible={false}>{need(i, "boss-model-ABERRATION") && <RegionalEnemy kind="ABERRATION" boss drive={drives[i]!} />}</group>
+          {/* Crucible rival operators in their hostile colourways (crucible.ts) */}
+          {(["TITAN", "HUNTER", "WARLOCK"] as RivalClass[]).map((cls) => (
+            <group key={cls} name={`rival-${cls}`} visible={false} position={[0, 2.2, 0]}>
+              {need(i, `rival-${cls}`) && <OperatorModel classId={cls} height={2.75} feetY={-2.2} pose="locomotion" motion={strides[i]} color={RIVAL_COLORS[cls].armor} trim={RIVAL_COLORS[cls].trim} cloth={RIVAL_COLORS[cls].cloth} fallback={<RegionalEnemy kind="VANGUARD" boss={false} drive={drives[i]!} />} />}
+            </group>
+          ))}
           {/* loot cue: elites (better drops) wear a glowing amber ring at their feet, like Diablo's elite tell */}
           <mesh name="elite-ring" visible={false} rotation={[-Math.PI / 2, 0, 0]} position={[0, -1.9, 0]}><ringGeometry args={[2.6, 3.1, 40]} /><meshBasicMaterial color="#ffb357" transparent opacity={0.85} depthWrite={false} /></mesh>
         </group>

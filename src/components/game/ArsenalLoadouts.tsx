@@ -11,7 +11,7 @@ const MAX_LOADOUTS = 4;
 
 /** Per-class weapon setups (layout adapted from the uploaded ArsenalLoadout). The active loadout of the
  * current class drives weapon keys 1-3, cycling and the ammo HUD in the world. */
-export function ArsenalLoadouts({ progression, onProgression, onBack }: { progression: PlayerProgression; onProgression: (p: PlayerProgression) => void; onBack: () => void }) {
+export function ArsenalLoadouts({ progression, onProgression, onBack, embedded = false }: { embedded?: boolean; progression: PlayerProgression; onProgression: (p: PlayerProgression) => void; onBack: () => void }) {
   const [cls, setCls] = useState<ClassId>(progression.identityClass ?? "TITAN");
   const arsenal = progression.arsenal[cls];
   const [editing, setEditing] = useState(arsenal.active);
@@ -33,9 +33,9 @@ export function ArsenalLoadouts({ progression, onProgression, onBack }: { progre
   };
 
   return (
-    <div className="deployment-field fixed inset-0 z-50 overflow-y-auto p-4 text-foreground lg:p-6" role="dialog" aria-modal="true" aria-label="Arsenal loadouts">
+    <div className={`deployment-field fixed ${embedded ? "inset-x-0 bottom-0 top-14" : "inset-0"} z-50 overflow-y-auto p-4 text-foreground lg:p-6`} role="dialog" aria-modal="true" aria-label="Arsenal loadouts">
       <header className="flex flex-wrap items-center justify-between gap-3 border-b border-foreground/15 pb-3">
-        <div className="flex items-center gap-3"><Button variant="ghost" size="sm" onClick={onBack} className="ui-focus"><ArrowLeft /> Back</Button><h1 className="font-mono text-xl uppercase tracking-[0.25em]">Arsenal</h1></div>
+        <div className="flex items-center gap-3">{!embedded && <Button variant="ghost" size="sm" onClick={onBack} className="ui-focus"><ArrowLeft /> Back</Button>}<h1 className="font-mono text-xl uppercase tracking-[0.25em]">Arsenal</h1></div>
         <nav className="flex gap-1">{CLASSES.map((c) => <Button key={c} size="sm" variant="ghost" onClick={() => { setCls(c); setEditing(progression.arsenal[c].active); }} className={`rounded-none border-b-2 font-mono ${cls === c ? "border-primary text-primary" : "border-transparent"}`}>{classById(c).name}{progression.identityClass === c ? " ·" : ""}</Button>)}</nav>
       </header>
 

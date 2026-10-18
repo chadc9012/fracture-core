@@ -12,8 +12,9 @@ import { NEON_CENTER } from "./living-world";
 import { THALASSIA_CENTER } from "./thalassia-site";
 import type { MaterialId } from "./inventory";
 import type { PlayerProgression } from "./progression";
+import { ARENA_POINT, CRUCIBLE_MODES, type CrucibleModeId } from "./crucible";
 
-export type ActivityKind = "side" | "bounty" | "race" | "parkour" | "event" | "contract";
+export type ActivityKind = "side" | "bounty" | "race" | "parkour" | "event" | "contract" | "crucible";
 export type Objective =
   | { kind: "kills"; count: number; tier?: "any" | "elite" | "boss"; label: string }
   | { kind: "course"; /** ordered checkpoints, fractions of the area radius */ points: readonly (readonly [number, number])[]; timeLimit: number; label: string }
@@ -21,7 +22,9 @@ export type Objective =
   | { kind: "hold"; at: readonly [number, number]; radius: number; seconds: number; label: string }
   | { kind: "deliver"; from: readonly [number, number]; to: readonly [number, number]; timeLimit: number; label: string }
   /** a full race (racing.ts): lifecycle, ordered checkpoints, rivals, penalties; `timeLimit` is the Standard limit in seconds */
-  | { kind: "race"; raceId: string; timeLimit: number; label: string };
+  | { kind: "race"; raceId: string; timeLimit: number; label: string }
+  /** a Crucible match (crucible.ts): first to `target` — your rival eliminations vs your deaths */
+  | { kind: "crucible"; mode: CrucibleModeId; target: number; label: string };
 export type OptionalChallenge = { id: "no-damage" | "fast" | "no-death" | "gold"; label: string };
 export type Rewards = { nex: number; xp: number; rep: number; materials: Partial<Record<MaterialId, number>>; /** earned-only shader chance on completion */ shaderChance: number };
 export type ActivityDef = {
@@ -66,6 +69,9 @@ export const ACTIVITIES: readonly ActivityDef[] = [
   // Nexus City
   { id: "nx-grid", area: "nexus", name: "Grid Restoration", kind: "side", difficulty: 2, faction: "wardens", brief: "Reboot three failed grid nodes around the city.", attempts: 3, cooldownMin: 20, stages: [collect(ring(3, 0.6, 0.3), 360, "Reach the three grid nodes")], rewards: R(100, 60, 12, { microCircuits: 3, scrapMetal: 3 }) },
   { id: "nx-contract", area: "nexus", name: "Guild Contract", kind: "contract", difficulty: 2, faction: "guild", brief: "Escort a guild courier across the market district.", attempts: 3, cooldownMin: 25, stages: [deliver([-0.6, 0], [0.6, 0], 150, "Deliver the package")], rewards: R(110, 60, 14, { reinforcedAlloy: 2 }) },
+  // Crucible (PvP) vs AI rival operators in the Wastelands arena (crucible.ts); 3 rewarded matches a day like every activity, paid on a win
+  { id: "crucible-duel", area: "wastelands", name: "Crucible · Duel", kind: "crucible", difficulty: 2, faction: "guild", brief: CRUCIBLE_MODES.duel.brief, attempts: 3, cooldownMin: 0, stages: [{ kind: "crucible", mode: "duel", target: CRUCIBLE_MODES.duel.target, label: "Eliminate the rival operator" }], rewards: R(120, 180, 2, { scrapMetal: 3 }) },
+  { id: "crucible-skirmish", area: "wastelands", name: "Crucible · Skirmish", kind: "crucible", difficulty: 3, faction: "guild", brief: CRUCIBLE_MODES.skirmish.brief, attempts: 3, cooldownMin: 0, stages: [{ kind: "crucible", mode: "skirmish", target: CRUCIBLE_MODES.skirmish.target, label: "Win the skirmish" }], rewards: R(260, 400, 4, { scrapMetal: 6 }) },
   { id: "nx-sentinel", area: "nexus", name: "Rogue Sentinel", kind: "bounty", difficulty: 3, faction: "wardens", brief: "A Sentinel has gone rogue near the Spire. Stop it.", attempts: 3, cooldownMin: 35, stages: [kills(1, "Destroy the rogue Sentinel", "elite"), kills(4, "Clear its escorts")], challenge: NO_DMG, rewards: R(160, 100, 18, { gearParts: 2, reinforcedAlloy: 2 }) },
   // Thalassia
   { id: "th-pressure", area: "thalassia", name: "Pressure Line", kind: "side", difficulty: 2, faction: "tidewardens", submerged: true, brief: "Repair a failing habitat before the seals give.", attempts: 3, cooldownMin: 30, stages: [collect(ring(4, 0.5, 0.2), 420, "Seal the four failing joints")], rewards: R(120, 70, 14, { abyssCore: 1, reinforcedAlloy: 2 }) },
@@ -164,6 +170,7 @@ export type Run = {
   hpMin: number; deaths0: number; diedDuring: boolean; wasHurt: boolean;
   /** racing.ts state while a race stage is active */ race?: unknown;
   /** race difficulty chosen at start (standard | advanced | legendary) */ difficulty?: string;
+  /** Crucible: sim.rivalKills when the match started, and the rivals' score so far */ rivalBase?: number; theirScore?: number;
 };
 export function startActivity(p: PlayerProgression, id: string, now = Date.now(), difficulty?: string): { progression: PlayerProgression; run: Run } | { error: string } {
   const def = activityById(id); if (!def) return { error: "Unknown activity" };
@@ -177,9 +184,9 @@ export function startActivity(p: PlayerProgression, id: string, now = Date.now()
   return { progression: next, run };
 }
 export const newRun = (def: ActivityDef, now: number): Run => ({ id: def.id, startedAt: now, stage: 0, stageStartedAt: now, status: "active", progress: 0, need: def.stages[0] ? needOf(def.stages[0]) : 0, cp: 0, visited: [], carrying: false, hold: 0, killsBase: -1, elitesBase: -1, bossesBase: -1, hpMin: 100, deaths0: -1, diedDuring: false, wasHurt: false });
-function needOf(o: Objective): number { return o.kind === "race" ? 1 : o.kind === "kills" ? o.count : o.kind === "course" || o.kind === "collect" ? o.points.length : o.kind === "hold" ? o.seconds : 1; }
+function needOf(o: Objective): number { return o.kind === "race" ? 1 : o.kind === "crucible" ? o.target : o.kind === "kills" ? o.count : o.kind === "course" || o.kind === "collect" ? o.points.length : o.kind === "hold" ? o.seconds : 1; }
 
-export type Tick = { x: number; z: number; dt: number; now: number; kills: number; elites: number; bosses: number; hp: number; deaths: number; /** race facts: movement mode, height/depth, vehicle wrecked, fell out of the world, collisions this tick, style points earned this tick */ mode?: "foot" | "vehicle" | "dive"; y?: number; vehicleDisabled?: boolean; fell?: boolean; collisions?: number; style?: number };
+export type Tick = { x: number; z: number; dt: number; now: number; kills: number; elites: number; bosses: number; hp: number; deaths: number; /** Crucible rival eliminations (sim.rivalKills) */ rivalKills?: number; /** race facts: movement mode, height/depth, vehicle wrecked, fell out of the world, collisions this tick, style points earned this tick */ mode?: "foot" | "vehicle" | "dive"; y?: number; vehicleDisabled?: boolean; fell?: boolean; collisions?: number; style?: number };
 /** other modules plug their objective logic in here to avoid import cycles */
 export const hooks: { race?: (def: ActivityDef, run: Run, o: Extract<Objective, { kind: "race" }>, t: Tick) => void; raceTarget?: (def: ActivityDef, run: Run) => { x: number; z: number; label: string } | null } = {};
 export const pointWorld = (area: string, f: readonly [number, number]) => { const a = AREAS[area]!; return { x: a.x + f[0] * a.radius, z: a.z + f[1] * a.radius }; };
@@ -193,6 +200,7 @@ export function currentTarget(def: ActivityDef, run: Run): { x: number; z: numbe
   if (o.kind === "hold") return { ...pointWorld(def.area, o.at), label: o.label };
   if (o.kind === "deliver") return { ...pointWorld(def.area, run.carrying ? o.to : o.from), label: o.label };
   if (o.kind === "race") return hooks.raceTarget?.(def, run) ?? null;
+  if (o.kind === "crucible") return { ...pointWorld(def.area, ARENA_POINT), label: o.label };
   return null;
 }
 
@@ -231,6 +239,14 @@ export function stepRun(def: ActivityDef, run: Run, t: Tick): Run {
       if (Math.hypot(t.x - w.x, t.z - w.z) <= o.radius) run.hold += t.dt; else run.hold = Math.max(0, run.hold - t.dt * 2);
       run.progress = Math.min(o.seconds, Math.floor(run.hold));
       if (run.hold >= o.seconds) advance(def, run, t.now);
+      break;
+    }
+    case "crucible": {
+      if (run.rivalBase === undefined) run.rivalBase = t.rivalKills ?? 0;
+      run.progress = Math.max(0, (t.rivalKills ?? 0) - run.rivalBase);
+      run.theirScore = Math.max(0, t.deaths - run.deaths0);
+      if (run.progress >= o.target) advance(def, run, t.now);
+      else if (run.theirScore >= o.target) { run.status = "failed"; run.failReason = `The rivals reached ${o.target} first`; }
       break;
     }
     case "race": hooks.race?.(def, run, o, t); break; // the hook sets run.status itself (races are single-stage)

@@ -36,7 +36,7 @@ export function Compass({ markers, yaw }: { markers: TrackedMarker[]; yaw: numbe
 /** Right-side tracker: nearest active mission, resource site, and boss with distance + direction arrow. */
 export function TrackedObjectives({ markers }: { markers: TrackedMarker[] }) {
   const pick = (kind: MarkerKind) => markers.find((m) => m.kind === kind && m.ready !== false);
-  const rows = (["MISSION", "RESOURCE", "BOSS"] as const).map((k) => [k, pick(k)] as const).filter(([, m]) => m);
+  const rows = (["WAYPOINT", "MISSION", "RESOURCE", "BOSS"] as const).map((k) => [k, pick(k)] as const).filter(([, m]) => m);
   if (!rows.length) return null;
   return (
     <div className="pointer-events-none absolute right-4 top-40 hidden w-56 space-y-1.5 md:block" aria-label="Tracked objectives">
@@ -45,7 +45,7 @@ export function TrackedObjectives({ markers }: { markers: TrackedMarker[] }) {
           <CornerBrackets />
           <span className="inline-block text-sm" style={{ color: MARKER_COLOR[kind], transform: `rotate(${(m.bearing * 180) / Math.PI}deg)`, filter: `drop-shadow(0 0 4px ${MARKER_COLOR[kind]})` }}>▲</span>
           <div className="min-w-0 flex-1">
-            <p className="text-[8px] uppercase tracking-[0.25em]" style={{ color: MARKER_COLOR[kind] }}>{kind === "RESOURCE" ? "Gather" : kind}</p>
+            <p className="text-[8px] uppercase tracking-[0.25em]" style={{ color: MARKER_COLOR[kind] }}>{kind === "RESOURCE" ? "Gather" : kind === "WAYPOINT" ? "Waypoint" : kind}</p>
             <p className="truncate text-[11px]">{m.label}</p>
           </div>
           <span className="text-[10px] text-muted-foreground">{fmt(m.dist)}</span>

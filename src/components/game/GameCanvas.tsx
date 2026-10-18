@@ -20,7 +20,7 @@ import { MissionCinematic } from "./MissionCinematic";
 import { recordClue } from "@/game/encounter-journal";
 import { applyRaceResult, difficultyLocked, isRaceActivity, raceById, type Difficulty } from "@/game/racing";
 import { discoveryById, discoveryOfDef, reveal as revealDiscoveries } from "@/game/discoveries";
-import { VYRAK_REMATCH, activityState, activityById, startActivity, completeActivity, abandonRun, type ActivityDef, type Run as ActivityRun } from "@/game/activities";
+import { VYRAK_REMATCH, activityState, activityById, pointWorld, startActivity, completeActivity, abandonRun, type ActivityDef, type Run as ActivityRun } from "@/game/activities";
 import { ActivityTracker, ActivityResultPanel, type ActivityResult } from "./ActivityHud";
 import { CAMPAIGN_CHAIN } from "@/game/campaign-cinematics";
 import { shouldPlay as shouldPlayCine, markPlayed as markCinePlayed } from "@/game/cinematics";
@@ -144,7 +144,8 @@ import { LevelUpOverlay } from "./LevelUpOverlay";
 import { PerfOverlay, PerfSampler } from "./PerfOverlay";
 import { ForestAssetStatus } from "./ForestAssetStatus";
 import { VoiceSubtitle } from "./VoiceSubtitle";
-import { MainMenuHub } from "./MainMenuHub";
+import { Director } from "./Director";
+import { ARENA_POINT, ARENA_RADIUS } from "@/game/crucible";
 import { configureVoice, speakVoice, stopVoice } from "@/game/voice-director";
 import { recapDue, recapLine } from "@/game/retention";
 import { localSavedAt } from "@/game/cloud-save";
@@ -895,6 +896,17 @@ export function GameCanvas() {
     if ("error" in res) { setMenuNotice(res.error); return; }
     setProgression(res.progression); setActivity({ def: activityById(id)!, run: res.run }); setOperationsView(null);
   };
+  /** Crucible from the director: start the match activity, then drop into the Wastelands arena through the normal transit */
+  const launchCrucible = (id: string) => {
+    const def = activityById(id);
+    if (!def || activity) return;
+    const res = startActivity(progressionRef.current, id, Date.now());
+    if ("error" in res) { setMenuNotice(res.error); return; }
+    progressionRef.current = res.progression;
+    setProgression(res.progression); setActivity({ def, run: res.run });
+    const at = pointWorld(def.area, ARENA_POINT);
+    startTransit({ id: `crucible:${id}`, name: def.name, sub: "Wastelands · Grid-Iron arena", color: "#ff4a2a", x: at.x + ARENA_RADIUS * 0.7, z: at.z });
+  };
   const onDiscovery = (id: string) => {
     const d = discoveryById(id); if (!d || activity) return;
     const res = startActivity(progressionRef.current, d.def.id, Date.now());
@@ -913,6 +925,8 @@ export function GameCanvas() {
         const found = discoveryOfDef(cur.def.id)?.reveals;
         let next = found ? revealDiscoveries(done.progression, found) : done.progression;
         let race: { result: NonNullable<ReturnType<typeof raceResultOf>>; reward: Extract<ReturnType<typeof applyRaceResult>, { reward: unknown }>["reward"]; name: string } | undefined;
+        // Crucible wins count toward the PvP rank; one unique key per match so the cloud merge's union keeps every win
+        if (cur.def.kind === "crucible") next = { ...next, earnedRewards: [...next.earnedRewards, `crucible-win:${cur.def.id}:${cur.run.startedAt}`] };
         if (isRaceActivity(cur.def)) { const rec = applyRaceResult(next, cur.def, cur.run); if (!("error" in rec)) { next = rec.progression; race = { result: raceResultOf(cur.run)!, reward: rec.reward, name: cur.def.name }; } }
         setProgression(next);
         setActivityResult({ def: cur.def, ok: true, payout: done.payout, ...(race ? { race } : {}), ...(found?.length ? { revealed: found.length } : {}) });
@@ -1116,20 +1130,18 @@ export function GameCanvas() {
     return (
       <>
         {transit && <TransitOverlay startedAt={transit.startedAt} plan={transit.plan} reduced={transit.reduced} name={transit.target.name} sub={transit.target.sub} color={transit.target.color} />}
-        {hubView === "starmap" && <StarMap progression={progression} onBack={() => setHubView(null)} onDeploy={startTransit} onProgression={setProgression} />}
-        {hubView === "arsenal" && <ArsenalLoadouts progression={progression} onProgression={setProgression} onBack={() => setHubView(null)} />}
-        {hubView === "saves" && <SaveManager progression={progression} onProgression={setProgression} onBack={() => setHubView(null)} />}
-        {!menuOpen && !hubView && (
-          <MainMenuHub
-            className={classById(progression.identityClass ?? cls).name}
-            level={progression.level}
-            shards={progression.materials.dataShards ?? 0}
-            completedMissions={progression.completedMissions}
-            onNavigate={(target) => {
-              if (target === "system") { setMenuOpen(true); return; }
-              if (target === "starmap" || target === "arsenal" || target === "saves") { setHubView(target); return; }
-              continueIntoWorld();
-            }}
+        {/* Destiny-style director (Director.tsx): the world map is home; Crucible, Raid, Arsenal and Saves are tabs */}
+        {!menuOpen && (
+          <Director
+            progression={progression}
+            onProgression={setProgression}
+            onDeploy={startTransit}
+            onCrucible={launchCrucible}
+            onResume={continueIntoWorld}
+            onSystem={() => setMenuOpen(true)}
+            operatorName={classById(progression.identityClass ?? cls).name}
+            playerClass={progression.identityClass ?? cls}
+            notice={menuNotice}
           />
         )}
         {menuOpen && <SettingsWindow completedMissions={progression.completedMissions} settings={settings} onChange={updateSettings} onClose={() => setMenuOpen(false)} onOrbit={() => { setMenuOpen(false); setPhase("title"); }} />}

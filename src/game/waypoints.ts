@@ -4,11 +4,12 @@ import { ENCOUNTERS } from "./encounters";
 import type { MaterialId } from "./inventory";
 import { LAIR_SCENARIOS } from "./unique-scenarios";
 
-export type MarkerKind = "MISSION" | "RESOURCE" | "BOSS" | "RUIN" | "LANDMARK";
+/** WAYPOINT is the player's own pin (map-pin.ts); VENDOR and TRAVEL are atlas layers (shops, drop points) */
+export type MarkerKind = "MISSION" | "RESOURCE" | "BOSS" | "RUIN" | "LANDMARK" | "WAYPOINT" | "VENDOR" | "TRAVEL";
 export type Marker = { id: string; kind: MarkerKind; label: string; x: number; z: number; regionId: string; ready?: boolean };
 export type TrackedMarker = Marker & { dist: number; bearing: number };
 
-export const MARKER_COLOR: Record<MarkerKind, string> = { MISSION: "#ffd166", RESOURCE: "#4de3b0", BOSS: "#ff4d5e", RUIN: "#ffb23e", LANDMARK: "#9fd4ff" };
+export const MARKER_COLOR: Record<MarkerKind, string> = { MISSION: "#ffd166", RESOURCE: "#4de3b0", BOSS: "#ff4d5e", RUIN: "#ffb23e", LANDMARK: "#9fd4ff", WAYPOINT: "#ffffff", VENDOR: "#c49bff", TRAVEL: "#6fe7ff" };
 
 const RESOURCE_BY_REGION: Record<string, MaterialId> = {
   veridan: "sporeFiber", ember: "thermalShards", wastelands: "scrapMetal", frostspire: "cryoCrystal",

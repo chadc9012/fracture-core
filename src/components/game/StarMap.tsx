@@ -27,7 +27,7 @@ const THREAT = ["MINIMAL", "LOW", "MODERATE", "HIGH", "SEVERE", "EXTREME"];
 /** `y`: arrive at this world height already diving (Thalassia's submersible arrival) */
 export interface DeployTarget { id: string; name: string; sub: string; color: string; x: number; z: number; y?: number }
 
-export function StarMap({ progression, onBack, onDeploy, onProgression }: { progression: PlayerProgression; onBack: () => void; onDeploy: (target: DeployTarget) => void; onProgression?: (next: PlayerProgression) => void }) {
+export function StarMap({ progression, onBack, onDeploy, onProgression, embedded = false }: { embedded?: boolean; progression: PlayerProgression; onBack: () => void; onDeploy: (target: DeployTarget) => void; onProgression?: (next: PlayerProgression) => void }) {
   const next = nextActivity(progression);
   const recommended = REGIONS.find((r) => r.name === next.region)?.id ?? progression.currentWorld;
   const [selected, setSelected] = useState(REGIONS.find((r) => r.id === recommended)?.id ?? "veridan");
@@ -50,11 +50,11 @@ export function StarMap({ progression, onBack, onDeploy, onProgression }: { prog
   };
 
   return (
-    <div className="deployment-field fixed inset-0 z-50 flex flex-col overflow-y-auto p-4 text-foreground lg:p-6" role="dialog" aria-modal="true" aria-label="World map">
+    <div className={`deployment-field fixed ${embedded ? "inset-x-0 bottom-0 top-14" : "inset-0"} z-50 flex flex-col overflow-y-auto p-4 text-foreground lg:p-6`} role="dialog" aria-modal="true" aria-label="World map">
       <div className="fracture-grid pointer-events-none absolute inset-0 opacity-30" />
       <header className="relative flex flex-wrap items-center justify-between gap-3 border-b border-foreground/15 pb-3">
         <div className="flex items-center gap-3">
-          <Button variant="ghost" size="sm" onClick={onBack} className="ui-focus font-mono"><ArrowLeft /> Hub</Button>
+          {!embedded && <Button variant="ghost" size="sm" onClick={onBack} className="ui-focus font-mono"><ArrowLeft /> Hub</Button>}
           <h1 className="font-mono text-xl uppercase tracking-[0.25em] lg:text-2xl">Veyra · World Map</h1>
         </div>
         <p className="ui-kicker">{REGIONS.length} destinations · {progression.completedMissions.length}/{CHRONICLE.length} chapters</p>

@@ -9,6 +9,9 @@ import { renderCounts, setterCalls } from "@/game/perf-counters";
 import { createHudGate } from "@/game/hud-gate";
 import { Billboard, Environment, Lightformer, Sky, useGLTF } from "@react-three/drei";
 import { Text } from "./SafeText";
+import { getPin, pinMarker, reached, setPin } from "@/game/map-pin";
+import { ARENA_POINT, ARENA_RADIUS, clearRivals, newCrucible, stepRivals, type CrucibleState, type RivalClass } from "@/game/crucible";
+import { pointWorld } from "@/game/activities";
 import { CoverWall } from "./PropModels";
 import { heavyShadows, NEAR_SCALE, setPerfTier } from "@/game/perf-budget";
 import { ruins, isEvolved, isDiscovered, freshCharge, RUIN_DISCOVER_RADIUS, RUIN_REACH } from "@/game/weapon-evolution";
@@ -609,6 +612,7 @@ function SceneImpl({
   const missionSpawned = useRef("");
   const blackoutSpawned = useRef("");
   const relaySpawned = useRef("");
+  const crucible = useRef<CrucibleState | null>(null);
   const neonCoreSpawned = useRef("");
   const descentSpawned = useRef("");
   const burstHeard = useRef(0);
@@ -722,6 +726,8 @@ function SceneImpl({
     if (sim.emergencyQuest.state === "WARNING" || sim.emergencyQuest.state === "ACTIVE") list.push({ id: "eq-boss", kind: "BOSS", label: `EQ · ${sim.emergencyQuest.bossName}`, x: sim.emergencyQuest.x, z: sim.emergencyQuest.z, regionId: sim.emergencyQuest.regionId });
     list.push({ id: "neon-city", kind: "MISSION", label: "Neon City", x: NEON_CITY_CENTER.x, z: NEON_CITY_CENTER.z, regionId: "nexus" });
     list.push({ id: "thalassia", kind: "MISSION", label: "Thalassia (deep dive)", x: THALASSIA_CENTER.x, z: THALASSIA_CENTER.z, regionId: "swamps" });
+    // the player's own waypoint (map-pin.ts): first in the list so the compass and tracker always show it; cleared on arrival
+    { const pin = getPin(); if (pin) { if (px !== undefined && pz !== undefined && reached(pin, px, pz)) { setPin(null); alert(sim, `Waypoint reached: ${pin.label}`); } else list.unshift(pinMarker(pin)); } }
     return list;
   };
   const moon = useRef<THREE.DirectionalLight>(null!);
@@ -1909,10 +1915,18 @@ function SceneImpl({
         if (inside && !lairsTriggered.current[lair.id] && !sim.machines.some((m) => m.alive && m.boss)) { lairsTriggered.current[lair.id] = true; summonBoss(sim, lair.regionId, lair.x, lair.z); }
         if (!inside && Math.hypot(lair.x - s.x, lair.z - s.z) > LAIR_RADIUS * 4) lairsTriggered.current[lair.id] = false;
       }
+      // Crucible (crucible.ts): keep the rival lineup on the field while a match runs; rivals leave when it ends
+      {
+        const stage = activity && activity.run.status === "active" ? activity.def.stages[activity.run.stage] : undefined;
+        if (stage?.kind === "crucible") {
+          if (!crucible.current || crucible.current.mode !== stage.mode) crucible.current = newCrucible(stage.mode);
+          stepRivals(sim, crucible.current, pointWorld(activity!.def.area, ARENA_POINT), playerClass as RivalClass, dt);
+        } else if (crucible.current) { clearRivals(sim); crucible.current = null; }
+      }
       // Vyrak discovery (vyrak-site.ts): walk up to a clue site, or sense the hidden lair; each pays its journal clue once
       if (activity && activity.run.status === "active") {
         const r = activity.run, rsig = () => { const rr = r.race as { phase?: string; next?: number; recoveries?: number; notice?: string | null; countdown?: number } | undefined; return `${r.stage}|${r.progress}|${r.status}|${r.cp}|${r.carrying}|${rr?.phase}|${rr?.next}|${rr?.recoveries}|${rr?.notice}|${rr?.phase === "countdown" ? Math.ceil(rr.countdown ?? 0) : ""}`; }, sig0 = rsig();
-        stepActivity(activity.def, r, { x: s.x, z: s.z, dt, now: Date.now(), kills: sim.kills, elites: sim.eliteKills, bosses: sim.bossKills, hp: sim.hp, deaths: sim.deaths, mode: s.inVehicle ? "vehicle" : s.diving ? "dive" : "foot", y: s.y, vehicleDisabled: s.inVehicle && conditionEffects(condition.current).disabled });
+        stepActivity(activity.def, r, { x: s.x, z: s.z, dt, now: Date.now(), kills: sim.kills, elites: sim.eliteKills, bosses: sim.bossKills, hp: sim.hp, deaths: sim.deaths, rivalKills: sim.rivalKills, mode: s.inVehicle ? "vehicle" : s.diving ? "dive" : "foot", y: s.y, vehicleDisabled: s.inVehicle && conditionEffects(condition.current).disabled });
         // a race asked to put the player back on the course (wreck, fall, or lost): same place as the last checkpoint, race clock keeps running
         const back = (r.race as { recover?: { x: number; z: number; depth?: number } | null } | undefined)?.recover;
         if (back) { s.x = back.x; s.z = back.z; s.vSpeed = 0; s.vy = 0; if (back.depth !== undefined) s.y = back.depth; else s.y = walkHeight(back.x, back.z) + 0.2; (r.race as { recover: unknown }).recover = null; }
@@ -2346,7 +2360,9 @@ function SceneImpl({
       deathSeen.current = sim.lastDeath;
       s.ammo = restockAll(s.ammo); // ammo.ts: you come back armed
       live.current = cancelAbilities(sim, live.current, { x: s.x, z: s.z, yaw: s.yaw });
-      const spot = chooseRespawn({ x: s.x, z: s.z }, checkpoint.current, hostiles);
+      const arena = crucible.current && activity ? pointWorld(activity.def.area, ARENA_POINT) : null;
+      // in a Crucible match you come back at the arena edge, opposite where you fell, not at a distant checkpoint
+      const spot = arena ? { x: arena.x - Math.sign(s.x - arena.x || 1) * ARENA_RADIUS * 0.7, z: arena.z, label: "the arena edge" } : chooseRespawn({ x: s.x, z: s.z }, checkpoint.current, hostiles);
       // Thalassia descent checkpoint: dying in the city during the mission returns you to the dock berth
       const inCity = Math.hypot(s.x - dockSite().x, s.z - dockSite().z) < CITY_RADIUS + 60;
       // live playtest: before this, a death at the dock (pre-airlock) respawned the diver ~1 km away in the Verdant Forest. The berth is

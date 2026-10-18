@@ -6,7 +6,7 @@ import type { PlayerProgression } from "@/game/progression";
 import { listSlots, renameSlot, switchSlot, type SlotSummary } from "@/game/save-slots";
 
 /** Multi-slot save manager on top of the existing cloud save: the active slot is the live synced save. */
-export function SaveManager({ progression, onProgression, onBack }: { progression: PlayerProgression; onProgression: (p: PlayerProgression) => void; onBack: () => void }) {
+export function SaveManager({ progression, onProgression, onBack, embedded = false }: { embedded?: boolean; progression: PlayerProgression; onProgression: (p: PlayerProgression) => void; onBack: () => void }) {
   const [userId, setUserId] = useState<string | null>(null);
   const [slots, setSlots] = useState<SlotSummary[] | null>(null);
   const [confirm, setConfirm] = useState<number | null>(null);
@@ -26,9 +26,9 @@ export function SaveManager({ progression, onProgression, onBack }: { progressio
   };
 
   return (
-    <div className="deployment-field fixed inset-0 z-[55] overflow-y-auto p-4 text-foreground lg:p-6" role="dialog" aria-modal="true" aria-label="Save manager">
+    <div className={`deployment-field fixed ${embedded ? "inset-x-0 bottom-0 top-14" : "inset-0"} z-[55] overflow-y-auto p-4 text-foreground lg:p-6`} role="dialog" aria-modal="true" aria-label="Save manager">
       <header className="flex items-center justify-between border-b border-foreground/15 pb-3">
-        <div className="flex items-center gap-3"><Button variant="ghost" size="sm" onClick={onBack} className="ui-focus"><ArrowLeft /> Back</Button><h1 className="font-mono text-xl uppercase tracking-[0.25em]">Save slots</h1></div>
+        <div className="flex items-center gap-3">{!embedded && <Button variant="ghost" size="sm" onClick={onBack} className="ui-focus"><ArrowLeft /> Back</Button>}<h1 className="font-mono text-xl uppercase tracking-[0.25em]">Save slots</h1></div>
         <p className="ui-kicker flex items-center gap-2">{userId ? <><Cloud className="size-3" /> Cloud synced</> : <><HardDrive className="size-3" /> This device only — sign in to sync</>}</p>
       </header>
       <p className="mx-auto mt-4 max-w-4xl text-xs text-muted-foreground">Your game auto-saves continuously. The active slot is the one that syncs; switching parks your current game safely in its slot.</p>

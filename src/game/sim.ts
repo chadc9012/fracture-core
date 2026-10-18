@@ -92,6 +92,8 @@ export type ZoneState = {
 };
 
 export type Machine = {
+  /** crucible.ts: a rival operator in a Crucible match (renders as that operator; kills score the match, no loot) */
+  rival?: "TITAN" | "HUNTER" | "WARLOCK" | undefined;
   /** performance.now()/1000 of the last damage the PLAYER (or the player's own abilities/vehicle/stratagems) dealt; environmental deaths only pay if this is recent */
   lastPlayerDamage?: number;
   alive: boolean;
@@ -243,6 +245,8 @@ export type WorldSim = {
   gravity: number;
   alerts: { text: string; life: number }[];
   kills: number;
+  /** Crucible: rival operators the player has eliminated (crucible.ts) */
+  rivalKills: number;
   /** activities.ts: tiered kill counters */
   eliteKills: number;
   bossKills: number;
@@ -438,6 +442,12 @@ export function defeatMachine(sim: WorldSim, m: Machine, credit: KillCredit = "p
   const floor = encounterHpFloor(m, performance.now() / 1000);
   if (floor > 0) { m.hp = floor; return; }
   m.alive = false;
+  if (m.rival) { // Crucible rival: scores the match; the match result pays out, not a drop
+    const who = m.rival;
+    delete m.rival; delete m.living; delete m.lastPlayerDamage;
+    if (credit === "player") { sim.rivalKills++; alert(sim, `Rival ${who === "TITAN" ? "GOLIATH" : who === "HUNTER" ? "NYX" : "CIPHER"} eliminated`); }
+    return;
+  }
   if (m.nemesis) { sim.nemesisEvents.push({ id: m.nemesis, killed: credit === "player" }); delete m.nemesis; delete m.nemesisWeak; delete m.nemesisDamage; }
   const livingTag = m.living;
   if (m.living) { if (credit === "player") sim.livingKills[m.living] = (sim.livingKills[m.living] ?? 0) + 1; delete m.living; }
@@ -598,6 +608,7 @@ export function createSim(): WorldSim {
     gravity: 26,
     alerts: [],
     kills: 0,
+    rivalKills: 0,
     eliteKills: 0,
     bossKills: 0,
     extractions: 0,

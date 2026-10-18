@@ -3,8 +3,8 @@
 import type { MarkerKind } from "./waypoints";
 import type { LandmarkType } from "./landmarks";
 
-export const MARKER_GLYPH: Record<MarkerKind, string> = { MISSION: "◆", RESOURCE: "⬢", BOSS: "☠", RUIN: "✦", LANDMARK: "▣" };
-export const MARKER_NAME: Record<MarkerKind, string> = { MISSION: "Mission signal", RESOURCE: "Resource node", BOSS: "Boss lair", RUIN: "Weapon ruin", LANDMARK: "Landmark" };
+export const MARKER_GLYPH: Record<MarkerKind, string> = { MISSION: "◆", RESOURCE: "⬢", BOSS: "☠", RUIN: "✦", LANDMARK: "▣", WAYPOINT: "⌖", VENDOR: "¤", TRAVEL: "⇣" };
+export const MARKER_NAME: Record<MarkerKind, string> = { MISSION: "Mission signal", RESOURCE: "Resource node", BOSS: "Boss lair", RUIN: "Weapon ruin", LANDMARK: "Landmark", WAYPOINT: "Your waypoint", VENDOR: "Vendor", TRAVEL: "Fast-travel drop point" };
 
 export const LANDMARK_GLYPH: Record<LandmarkType, string> = {
   hub: "◉", outpost: "▣", ruin: "⌂", mountain: "▲", volcano: "◭", lake: "◒", river: "≈", forest: "♣", desert: "∴", ocean: "≋", hazard: "⚠", resource: "⬢",

@@ -1,10 +1,13 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { Crosshair, MapPin, Navigation, Shield, Skull, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { REGIONS, ZONE_LABEL, WORLD_SCALE } from "@/game/world";
 import { MAP_OCEAN_EDGE } from "@/game/terrain-map";
 import { ENCOUNTERS } from "@/game/encounters";
-import { MARKER_COLOR, type TrackedMarker } from "@/game/waypoints";
+import { MARKER_COLOR, type Marker, type TrackedMarker } from "@/game/waypoints";
+import { getPin, pinAt, pinFromMarker, setPin, subscribePin } from "@/game/map-pin";
+import { REGIONAL_SHOPS, SHOP_KIND_LABEL } from "@/game/regional-shops";
+import { CITY_DESTINATIONS, dropPoint } from "@/game/destinations";
 import type { PlayerProgression } from "@/game/progression";
 import { NextActivityCard } from "./NextActivityCard";
 import { ActivityPanel } from "./ActivityPanel";
@@ -47,25 +50,73 @@ export function WorldAtlas({ progression, currentRegion, phase, onClose, markers
 const u = (n: number) => n * WORLD_SCALE;
 const fmt = (d: number) => (d >= 1000 ? `${(d / 1000).toFixed(1)}km` : `${Math.round(d)}m`);
 
-/** Live tactical map: region footprints, player arrow, and every tracked mission, resource site and boss lair. */
+/** atlas-only layers: every vendor and every fast-travel drop point (regions + cities), in world coordinates */
+const VENDOR_MARKERS: Marker[] = REGIONAL_SHOPS.map((sh) => ({ id: `shop-${sh.id}`, kind: "VENDOR", label: `${sh.name} · ${SHOP_KIND_LABEL[sh.kind]}`, x: sh.x, z: sh.z, regionId: "" }));
+const TRAVEL_MARKERS: Marker[] = [...REGIONS.filter((r) => r.kind !== "core").map((r) => ({ id: `drop-${r.id}`, name: r.name, ...dropPoint(r) })), ...CITY_DESTINATIONS.filter((c) => c.deployable).map((c) => ({ id: `drop-${c.id}`, name: c.name, ...dropPoint(c) }))]
+  .map((d) => ({ id: d.id, kind: "TRAVEL" as const, label: `${d.name} drop point`, x: d.x, z: d.z, regionId: "" }));
+const LAYERS = ["WAYPOINT", "MISSION", "BOSS", "RUIN", "LANDMARK", "VENDOR", "TRAVEL", "RESOURCE"] as const;
+const LAYER_NAME: Record<(typeof LAYERS)[number], string> = { WAYPOINT: "Waypoint", MISSION: "Missions", BOSS: "Bosses", RUIN: "Ruins", LANDMARK: "Landmarks", VENDOR: "Vendors", TRAVEL: "Fast travel", RESOURCE: "Resources" };
+const [VB_X, VB_Y, VB_W] = MAP_VIEWBOX.split(" ").map(Number) as [number, number, number, number];
+
+/** Live tactical map: zoom (wheel / buttons), drag to pan, layer filters, and click any marker or point to set a
+ * waypoint that the HUD compass and tracker follow (map-pin.ts). */
 function TacticalMap({ markers, px, pz, selected, onSelect, progression }: { markers: TrackedMarker[]; px: number; pz: number; selected: string; onSelect: (id: string) => void; progression: PlayerProgression }) {
   // the map shows the whole painted continent (terrain-map.ts), not just the region circles
   const map = useTerrainMap();
-  const [legend, setLegend] = useState({ MISSION: true, RESOURCE: true, BOSS: true, RUIN: true, LANDMARK: true });
+  const [legend, setLegend] = useState<Record<(typeof LAYERS)[number], boolean>>({ WAYPOINT: true, MISSION: true, RESOURCE: false, BOSS: true, RUIN: true, LANDMARK: true, VENDOR: true, TRAVEL: true });
   const [hazards, setHazards] = useState(true);
+  const pin = useSyncExternalStore(subscribePin, getPin, () => null);
+  // view: centre + zoom in world units (zoom 1 = whole map)
+  const [view, setView] = useState({ cx: VB_X + VB_W / 2, cz: VB_Y + VB_W / 2, zoom: 1 });
+  const span = VB_W / view.zoom;
+  const vb = `${view.cx - span / 2} ${view.cz - span / 2} ${span} ${span}`;
+  const svgRef = useRef<SVGSVGElement>(null);
+  const drag = useRef<{ x: number; y: number; cx: number; cz: number; moved: boolean } | null>(null);
+  const clampView = (v: { cx: number; cz: number; zoom: number }) => { const z = Math.min(12, Math.max(1, v.zoom)); const half = VB_W / z / 2; const lo = VB_X + half, hi = VB_X + VB_W - half; return { zoom: z, cx: Math.min(hi, Math.max(lo, v.cx)), cz: Math.min(hi, Math.max(lo, v.cz)) }; };
+  const toWorld = (clientX: number, clientY: number) => { const r = svgRef.current!.getBoundingClientRect(); return { x: view.cx - span / 2 + ((clientX - r.left) / r.width) * span, z: view.cz - span / 2 + ((clientY - r.top) / r.height) * span }; };
+  const zoomBy = (k: number, at?: { x: number; z: number }) => setView((v) => { const z = Math.min(12, Math.max(1, v.zoom * k)); const f = at ? 1 - v.zoom / z : 0; return clampView({ zoom: z, cx: v.cx + (at ? (at.x - v.cx) * f : 0), cz: v.cz + (at ? (at.z - v.cz) * f : 0) }); });
+  // wheel zoom toward the cursor; a native non-passive listener so the page itself doesn't scroll
+  const zoomRef = useRef(zoomBy); zoomRef.current = zoomBy;
+  const worldRef = useRef(toWorld); worldRef.current = toWorld;
+  useEffect(() => {
+    const el = svgRef.current; if (!el) return;
+    const onWheel = (e: WheelEvent) => { e.preventDefault(); zoomRef.current(e.deltaY < 0 ? 1.25 : 0.8, worldRef.current(e.clientX, e.clientY)); };
+    el.addEventListener("wheel", onWheel, { passive: false });
+    return () => el.removeEventListener("wheel", onWheel);
+  }, []);
   const known = (id: string) => isLandmarkKnown(progression, id);
   const hz = useMemo(() => HAZARD_ZONES.map((z) => ({ z, c: zoneCenter(z, performance.now() / 1000) })).filter(({ z }) => known(z.landmarkId)), [progression.earnedRewards]);
+  const live: TrackedMarker[] = useMemo(() => {
+    const extra = [...VENDOR_MARKERS, ...TRAVEL_MARKERS].map((m) => ({ ...m, dist: Math.hypot(m.x - px, m.z - pz), bearing: 0 }));
+    return [...markers.filter((m) => m.kind !== "WAYPOINT"), ...extra];
+  }, [markers, px, pz]);
+  const scaleK = WORLD_SCALE / Math.sqrt(view.zoom); // markers shrink a little as you zoom so they don't cover the detail
+  const pickPin = (m: Marker) => setPin(getPin()?.id === m.id ? null : pinFromMarker(m));
   return <div>
     {!map.full && <p className="mb-1 font-mono text-[10px] uppercase tracking-widest text-muted-foreground" role="status">Surveying terrain… {Math.round(map.progress * 100)}%</p>}
-    <div className="mb-2 flex flex-wrap gap-2 text-xs">{(Object.keys(legend) as (keyof typeof legend)[]).map((k) => <Button key={k} size="sm" variant="ghost" onClick={() => setLegend((l) => ({ ...l, [k]: !l[k] }))} className={`rounded-none border-b px-2 py-1 font-mono uppercase ${legend[k] ? "border-current" : "border-transparent opacity-40"}`} style={{ color: MARKER_COLOR[k] }}>{MARKER_GLYPH[k]} {k === "MISSION" ? "Missions" : k === "RESOURCE" ? "Resources" : k === "RUIN" ? "Ruins" : k === "LANDMARK" ? "Landmarks" : "Bosses"}</Button>)}<Button size="sm" variant="ghost" onClick={() => setHazards((v) => !v)} className={`rounded-none border-b px-2 py-1 font-mono uppercase text-destructive ${hazards ? "border-current" : "border-transparent opacity-40"}`}>⚠ Hazards</Button></div>
-    <svg viewBox={MAP_VIEWBOX} className="w-full border border-border" style={{ background: MAP_OCEAN_EDGE }} role="img" aria-label="Tactical map with markers">
-      <MapLayers art={map.url} preview={!map.full} selected={selected} onSelect={onSelect}>
-      {legend.LANDMARK && landmarkRoutes().filter((r) => known(r.a.id) && known(r.b.id)).map((r) => <line key={`${r.a.id}-${r.b.id}`} x1={r.a.x} y1={r.a.z} x2={r.b.x} y2={r.b.z} stroke="#9fd4ff" strokeOpacity={0.7} strokeWidth={u(0.6)} strokeDasharray={`${u(0.8)} ${u(1.4)}`} strokeLinecap="round" />)}
-      {hazards && hz.map(({ z, c }) => <g key={z.id}><title>{`${z.name} · ${z.hint}`}</title><circle cx={c.x} cy={c.z} r={z.radius} fill="#ff4d4d" fillOpacity={0.14} stroke="#ff4d4d" strokeWidth={u(0.6)} strokeDasharray={`${u(1.6)} ${u(1.2)}`} /><g transform={`translate(${c.x} ${c.z}) scale(${WORLD_SCALE})`}><text y={1.6} textAnchor="middle" fontSize={5} fill="#ff8a8a" stroke="#000" strokeWidth={0.8} paintOrder="stroke">⚠</text></g></g>)}
-      {markers.filter((m) => legend[m.kind]).map((m) => <g key={m.id} transform={`translate(${m.x} ${m.z}) scale(${WORLD_SCALE})`}><title>{`${m.label} · ${fmt(m.dist)}`}</title><g><text y={m.kind === "LANDMARK" ? 1.8 : 1.9} textAnchor="middle" fontSize={m.kind === "LANDMARK" ? 5.5 : 5} fill={MARKER_COLOR[m.kind]} fillOpacity={m.ready === false ? 0.4 : 1} stroke="#000" strokeWidth={0.9} paintOrder="stroke">{m.kind === "LANDMARK" ? LANDMARK_GLYPH[LANDMARKS.find((l) => `lm-${l.id}` === m.id)?.type ?? "outpost"] : MARKER_GLYPH[m.kind]}</text>{m.kind === "LANDMARK" && <text y={6.4} textAnchor="middle" fontSize={3.2} fill="#ffffff" stroke="#000" strokeWidth={0.7} paintOrder="stroke">{m.label}</text>}</g></g>)}
-      <circle cx={px} cy={pz} r={u(2.6)} fill="#ffffff" stroke="#000000" strokeWidth={u(0.6)} />
-      </MapLayers>
-    </svg>
-    <ul className="mt-3 grid gap-1 text-xs sm:grid-cols-2">{markers.filter((m) => legend[m.kind] && m.kind !== "RESOURCE" && m.kind !== "LANDMARK").slice(0, 8).map((m) => <li key={m.id} className="flex justify-between border-l-2 bg-card/40 px-2 py-1" style={{ borderColor: MARKER_COLOR[m.kind] }}><span>{m.label}</span><span className="text-muted-foreground">{fmt(m.dist)}</span></li>)}</ul>
+    <div className="mb-2 flex flex-wrap gap-2 text-xs">{LAYERS.map((k) => <Button key={k} size="sm" variant="ghost" aria-pressed={legend[k]} onClick={() => setLegend((l) => ({ ...l, [k]: !l[k] }))} className={`rounded-none border-b px-2 py-1 font-mono uppercase ${legend[k] ? "border-current" : "border-transparent opacity-40"}`} style={{ color: MARKER_COLOR[k] }}>{MARKER_GLYPH[k]} {LAYER_NAME[k]}</Button>)}<Button size="sm" variant="ghost" aria-pressed={hazards} onClick={() => setHazards((v) => !v)} className={`rounded-none border-b px-2 py-1 font-mono uppercase text-destructive ${hazards ? "border-current" : "border-transparent opacity-40"}`}>⚠ Hazards</Button></div>
+    <div className="relative">
+      <svg ref={svgRef} viewBox={vb} className="w-full touch-none border border-border" style={{ background: MAP_OCEAN_EDGE, cursor: drag.current ? "grabbing" : "crosshair" }} role="img" aria-label="Tactical map: drag to pan, scroll to zoom, click a marker or double-click to set a waypoint"
+        onPointerDown={(e) => { drag.current = { x: e.clientX, y: e.clientY, cx: view.cx, cz: view.cz, moved: false }; (e.target as Element).setPointerCapture?.(e.pointerId); }}
+        onPointerMove={(e) => { const d = drag.current; if (!d) return; const r = svgRef.current!.getBoundingClientRect(); const dx = ((e.clientX - d.x) / r.width) * span, dz = ((e.clientY - d.y) / r.height) * span; if (Math.abs(e.clientX - d.x) + Math.abs(e.clientY - d.y) > 4) d.moved = true; setView((v) => clampView({ ...v, cx: d.cx - dx, cz: d.cz - dz })); }}
+        onPointerUp={() => { drag.current = null; }}
+        onDoubleClick={(e) => { const w = toWorld(e.clientX, e.clientY); setPin(pinAt(w.x, w.z)); }}>
+        <MapLayers art={map.url} preview={!map.full} selected={selected} onSelect={onSelect}>
+        {legend.LANDMARK && landmarkRoutes().filter((r) => known(r.a.id) && known(r.b.id)).map((r) => <line key={`${r.a.id}-${r.b.id}`} x1={r.a.x} y1={r.a.z} x2={r.b.x} y2={r.b.z} stroke="#9fd4ff" strokeOpacity={0.7} strokeWidth={u(0.6)} strokeDasharray={`${u(0.8)} ${u(1.4)}`} strokeLinecap="round" />)}
+        {hazards && hz.map(({ z, c }) => <g key={z.id}><title>{`${z.name} · ${z.hint}`}</title><circle cx={c.x} cy={c.z} r={z.radius} fill="#ff4d4d" fillOpacity={0.14} stroke="#ff4d4d" strokeWidth={u(0.6)} strokeDasharray={`${u(1.6)} ${u(1.2)}`} /><g transform={`translate(${c.x} ${c.z}) scale(${WORLD_SCALE})`}><text y={1.6} textAnchor="middle" fontSize={5} fill="#ff8a8a" stroke="#000" strokeWidth={0.8} paintOrder="stroke">⚠</text></g></g>)}
+        {live.filter((m) => legend[m.kind as (typeof LAYERS)[number]]).map((m) => <g key={m.id} transform={`translate(${m.x} ${m.z}) scale(${scaleK})`} className="cursor-pointer" onPointerUp={(e) => { if (drag.current?.moved) return; e.stopPropagation(); drag.current = null; pickPin(m); }}><title>{`${m.label} · ${fmt(m.dist)} — click to ${pin?.id === m.id ? "clear" : "set"} waypoint`}</title><g><circle r={4} fill="transparent" /><text y={m.kind === "LANDMARK" ? 1.8 : 1.9} textAnchor="middle" fontSize={m.kind === "LANDMARK" ? 5.5 : 5} fill={MARKER_COLOR[m.kind]} fillOpacity={m.ready === false ? 0.4 : 1} stroke={pin?.id === m.id ? "#ffffff" : "#000"} strokeWidth={pin?.id === m.id ? 1.4 : 0.9} paintOrder="stroke">{m.kind === "LANDMARK" ? LANDMARK_GLYPH[LANDMARKS.find((l) => `lm-${l.id}` === m.id)?.type ?? "outpost"] : MARKER_GLYPH[m.kind]}</text>{(m.kind === "LANDMARK" || view.zoom >= 3) && <text y={6.4} textAnchor="middle" fontSize={3.2} fill="#ffffff" stroke="#000" strokeWidth={0.7} paintOrder="stroke">{m.label}</text>}</g></g>)}
+        {pin && legend.WAYPOINT && <g transform={`translate(${pin.x} ${pin.z}) scale(${scaleK})`} pointerEvents="none"><line x1={(px - pin.x) / scaleK} y1={(pz - pin.z) / scaleK} x2={0} y2={0} stroke="#ffffff" strokeOpacity={0.55} strokeWidth={0.5} strokeDasharray="2 2" /><circle r={3.2} fill="none" stroke="#ffffff" strokeWidth={0.8} /><text y={1.8} textAnchor="middle" fontSize={5} fill="#ffffff" stroke="#000" strokeWidth={0.9} paintOrder="stroke">{MARKER_GLYPH.WAYPOINT}</text></g>}
+        <circle cx={px} cy={pz} r={u(2.6) / Math.sqrt(view.zoom)} fill="#ffffff" stroke="#000000" strokeWidth={u(0.6) / Math.sqrt(view.zoom)} />
+        </MapLayers>
+      </svg>
+      <div className="absolute right-2 top-2 flex flex-col gap-1">
+        <Button size="icon" variant="outline" aria-label="Zoom in" onClick={() => zoomBy(1.5)}>+</Button>
+        <Button size="icon" variant="outline" aria-label="Zoom out" onClick={() => zoomBy(1 / 1.5)}>−</Button>
+        <Button size="icon" variant="outline" aria-label="Centre on you" onClick={() => setView((v) => clampView({ ...v, cx: px, cz: pz, zoom: Math.max(v.zoom, 3) }))}><Crosshair /></Button>
+      </div>
+      <p className="absolute bottom-2 left-2 font-mono text-[10px] uppercase tracking-widest text-foreground/80" style={{ textShadow: "0 0 4px #000" }}>{Math.round(view.zoom * 100)}% · drag to pan · click a marker or double-click the map for a waypoint</p>
+    </div>
+    {pin && <div className="mt-2 flex items-center justify-between border-l-2 border-white bg-card/40 px-2 py-1 text-xs"><span><span className="ui-kicker">Waypoint</span> {pin.label} · {fmt(Math.hypot(pin.x - px, pin.z - pz))}</span><Button size="sm" variant="ghost" onClick={() => setPin(null)}>Clear</Button></div>}
+    <ul className="mt-3 grid gap-1 text-xs sm:grid-cols-2">{live.filter((m) => legend[m.kind as (typeof LAYERS)[number]] && m.kind !== "RESOURCE" && m.kind !== "LANDMARK" && m.kind !== "TRAVEL").sort((a, b) => a.dist - b.dist).slice(0, 8).map((m) => <li key={m.id}><button type="button" onClick={() => pickPin(m)} className="ui-focus flex w-full justify-between border-l-2 bg-card/40 px-2 py-1 text-left hover:bg-card/70" style={{ borderColor: MARKER_COLOR[m.kind] }}><span>{pin?.id === m.id ? "⌖ " : ""}{m.label}</span><span className="text-muted-foreground">{fmt(m.dist)}</span></button></li>)}</ul>
   </div>;
 }
