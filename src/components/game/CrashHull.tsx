@@ -4,6 +4,7 @@ import { heightAt, slopeAt } from "@/game/terrain";
 import { CRATES, HULL, PUDDLES, SCOUT, rutLines } from "@/game/crash-layout";
 import { TRAIL_HALF_WIDTH } from "@/game/verdant";
 import { hullDamageTexture, rutTexture } from "./forest-textures";
+import { CrateModels } from "./PropModels";
 
 /* The crashed transport and the set dressing around it, built from real (deformed) geometry rather than boxes.
  * No spacecraft GLB ships with the project and none could be verified from the build environment, so the hull is
@@ -152,41 +153,43 @@ export function ScoutWreck() {
   );
 }
 
-/** supply crates: tilted on the ground, half of them burst open (lid off, dark interior) */
-export function Crates() {
+/** supply crates: tilted on the ground, half of them burst open (lid off). Bodies use the authored crate model
+ * (PropModels.tsx); the plain boxes below are its load/failure stand-in. */
+const crateMatrices = (): { bodies: THREE.Matrix4[]; lids: THREE.Matrix4[] } => {
+  const o = new THREE.Object3D(), bodies: THREE.Matrix4[] = [], lids: THREE.Matrix4[] = [];
+  CRATES.forEach((c) => {
+    o.position.set(c.x, heightAt(c.x, c.z) + c.h * 0.42, c.z); o.rotation.set(c.tilt, c.yaw, c.tilt * 0.6); o.scale.set(c.w, c.h, c.d); o.updateMatrix();
+    bodies.push(o.matrix.clone());
+    if (c.open) {
+      // the lid, thrown a metre away and lying skewed
+      o.position.set(c.x + Math.cos(c.yaw) * 1.1, heightAt(c.x + Math.cos(c.yaw) * 1.1, c.z - Math.sin(c.yaw) * 1.1) + 0.05, c.z - Math.sin(c.yaw) * 1.1);
+      o.rotation.set(0.15, c.yaw + 0.6, -0.1); o.scale.set(c.w, 0.08, c.d); o.updateMatrix(); lids.push(o.matrix.clone());
+    }
+  });
+  return { bodies, lids };
+};
+
+function BoxInstances({ matrices, color, tint }: { matrices: THREE.Matrix4[]; color: string; tint?: boolean }) {
   const ref = useRef<THREE.InstancedMesh>(null);
-  const lids = useRef<THREE.InstancedMesh>(null);
   useLayoutEffect(() => {
-    const m = ref.current, l = lids.current;
-    if (!m || !l) return;
-    const o = new THREE.Object3D(), col = new THREE.Color();
-    let nl = 0;
-    CRATES.forEach((c, i) => {
-      const y = heightAt(c.x, c.z) + c.h * 0.42;
-      o.position.set(c.x, y, c.z); o.rotation.set(c.tilt, c.yaw, c.tilt * 0.6); o.scale.set(c.w, c.h, c.d); o.updateMatrix();
-      m.setMatrixAt(i, o.matrix);
-      m.setColorAt(i, col.set(c.open ? "#4a5240" : "#586047").offsetHSL(0, 0, (i % 3) * 0.02));
-      if (c.open) {
-        // the lid, thrown a metre away and lying skewed
-        o.position.set(c.x + Math.cos(c.yaw) * 1.1, heightAt(c.x + Math.cos(c.yaw) * 1.1, c.z - Math.sin(c.yaw) * 1.1) + 0.05, c.z - Math.sin(c.yaw) * 1.1);
-        o.rotation.set(0.15, c.yaw + 0.6, -0.1); o.scale.set(c.w, 0.08, c.d); o.updateMatrix(); l.setMatrixAt(nl++, o.matrix);
-      }
-    });
-    m.count = CRATES.length; l.count = nl;
-    m.instanceMatrix.needsUpdate = true; l.instanceMatrix.needsUpdate = true;
+    const m = ref.current;
+    if (!m) return;
+    const col = new THREE.Color();
+    matrices.forEach((mat, i) => { m.setMatrixAt(i, mat); if (tint) m.setColorAt(i, col.set(color).offsetHSL(0, 0, (i % 3) * 0.02)); });
+    m.count = matrices.length; m.instanceMatrix.needsUpdate = true;
     if (m.instanceColor) m.instanceColor.needsUpdate = true;
-  }, []);
-  const open = CRATES.filter((c) => c.open).length;
+  }, [matrices, color, tint]);
+  return <instancedMesh ref={ref} args={[undefined, undefined, Math.max(1, matrices.length)]} castShadow receiveShadow frustumCulled={false}>
+    <boxGeometry args={[1, 1, 1]} /><meshStandardMaterial color={tint ? "#ffffff" : color} roughness={0.85} metalness={0.25} />
+  </instancedMesh>;
+}
+
+export function Crates() {
+  const { bodies, lids } = useMemo(crateMatrices, []);
   return (
     <group>
-      <instancedMesh ref={ref} args={[undefined, undefined, CRATES.length]} castShadow receiveShadow frustumCulled={false}>
-        <boxGeometry args={[1, 1, 1]} /><meshStandardMaterial roughness={0.85} metalness={0.25} />
-      </instancedMesh>
-      {open > 0 && (
-        <instancedMesh ref={lids} args={[undefined, undefined, open]} castShadow frustumCulled={false}>
-          <boxGeometry args={[1, 1, 1]} /><meshStandardMaterial color="#454b3b" roughness={0.85} metalness={0.25} />
-        </instancedMesh>
-      )}
+      <CrateModels matrices={bodies} fallback={<BoxInstances matrices={bodies} color="#586047" tint />} />
+      {lids.length > 0 && <BoxInstances matrices={lids} color="#454b3b" />}
     </group>
   );
 }

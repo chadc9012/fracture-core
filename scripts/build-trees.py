@@ -20,7 +20,8 @@ from PIL import Image, ImageDraw, ImageFilter
 
 OUTDIR = sys.argv[-1] if len(sys.argv) > 1 and not sys.argv[-1].endswith(".py") else os.path.join(os.path.dirname(__file__), "..", "public", "models", "foliage")
 os.makedirs(OUTDIR, exist_ok=True)
-TMP = os.path.join(OUTDIR, "_tex")
+import tempfile
+TMP = tempfile.mkdtemp(prefix="wf-tex-")
 os.makedirs(TMP, exist_ok=True)
 
 
