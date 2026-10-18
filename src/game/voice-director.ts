@@ -1,5 +1,6 @@
 import { createParser } from "eventsource-parser";
 import { voiceLive } from "./voice-animation";
+import { decodeWav, recordedUrl } from "./recorded-voice";
 
 export type VoicePriority = "ambient" | "story" | "critical";
 export type VoiceLine = { id: string; scope: string; speaker: string; text: string; priority?: VoicePriority };
@@ -163,8 +164,8 @@ async function play(line: QueuedLine, signal: AbortSignal) {
   let playhead = 0;
   let lastPlayback = Promise.resolve();
   let started = false;
-  const schedule = (samples: Float32Array) => {
-    const buffer = context.createBuffer(1, samples.length, 24000);
+  const schedule = (samples: Float32Array, rate = 24000) => {
+    const buffer = context.createBuffer(1, samples.length, rate);
     buffer.copyToChannel(samples as Float32Array<ArrayBuffer>, 0);
     const source = context.createBufferSource();
     source.buffer = buffer; source.connect(fade); sources.add(source);
@@ -180,7 +181,20 @@ async function play(line: QueuedLine, signal: AbortSignal) {
   };
   signal.addEventListener("abort", abort, { once: true });
   try {
-    if (cached) cached.forEach(schedule);
+    const clip = recordedUrl(line.id);
+    let recorded = false;
+    if (clip) {
+      // pre-recorded dialogue: play the file; if it cannot be fetched or decoded, fall through to streamed synthesis
+      try {
+        const res = await fetch(clip, { signal });
+        if (!res.ok) throw new Error(`clip ${res.status}`);
+        const wav = decodeWav(await res.arrayBuffer());
+        signal.throwIfAborted();
+        schedule(wav.samples, wav.sampleRate); recorded = true;
+      } catch (error) { if (signal.aborted) throw error; }
+    }
+    if (recorded) { /* playing */ }
+    else if (cached) cached.forEach((c) => schedule(c));
     else {
       const chunks: Float32Array[] = [];
       await stream(line.speaker, line.text, signal, (s) => { chunks.push(s); schedule(s); });
