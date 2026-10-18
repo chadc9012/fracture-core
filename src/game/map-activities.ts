@@ -7,6 +7,7 @@
  * Patrol payouts go through rewardMission with a `side-patrol-*` id, so the daily repeat taper and first-clear rules apply. */
 import { REGIONS, ZONE_COLOR, type Region } from "./world";
 import { CHRONICLE } from "./retention";
+import { lairRevealed } from "./vyrak-site";
 import { BOSS_LAIRS, RESOURCE_SITES, SCENARIO_LAIRS } from "./waypoints";
 import { CITY_DESTINATIONS, dropPoint } from "./destinations";
 import { CITIES, cityAt } from "./living-world";
@@ -104,7 +105,7 @@ export function regionActivities(p: PlayerProgression, regionId: string, now = D
   });
   if (region.kind === "safe") out.push({ id: `safe:${region.id}`, kind: "SAFE_ZONE", name: region.name, detail: "Safe zone: fast healing, vendors, no hostile spawns", regionId, x: region.x, z: region.z, status: "AVAILABLE", drop: { x: region.x, z: region.z + 6 } });
   for (const c of CITY_DESTINATIONS.filter((d) => d.regionId === regionId)) out.push({ id: `city:${c.id}`, kind: "SAFE_ZONE", name: c.name, detail: c.deployable ? c.sub : c.blockedReason ?? c.sub, regionId, x: c.x, z: c.z, status: c.deployable ? "AVAILABLE" : "LOCKED", ...(c.deployable ? {} : { lockReason: c.blockedReason ?? "No landing site" }), drop: dropPoint(c) });
-  for (const l of [...BOSS_LAIRS, ...SCENARIO_LAIRS].filter((m) => m.regionId === regionId)) {
+  for (const l of [...BOSS_LAIRS, ...SCENARIO_LAIRS.filter((l) => lairRevealed(p, l.scenarioId))].filter((m) => m.regionId === regionId)) {
     // a lair inside a submerged city (the Drowned Monarch in Thalassia) is reached the way the city is: by submersible
     const sub = CITY_DESTINATIONS.find((c) => c.arrival === "submersible" && Math.hypot(c.x - l.x, c.z - l.z) < 250);
     out.push({ id: `boss:${l.id}`, kind: "BOSS", name: l.label, detail: sub ? `Boss lair in ${sub.name}: submersible arrival, then dive to it` : "Boss lair: walk in to start the fight", regionId, x: l.x, z: l.z, status: "AVAILABLE", drop: sub ? dropPoint(sub) : off(l.x, l.z, 18, centre) });

@@ -44,6 +44,8 @@ import { backpackFor } from "@/game/backpacks";
 import { createReticle, markHit, stepReticle, type Motion, type ReticleView, EMPTY_RETICLE } from "@/game/crosshair";
 import { createGrind, isGrinding, leaveGrind, stepGrind, tryLatch, worldRails } from "@/game/maggrind";
 import { createTraversal, restTraversal, startTraversal, stepTraversal } from "@/game/traversal";
+import { VyrakClueSites } from "./VyrakClueSites";
+import { VYRAK_CLUE_SITES, lairRevealed, nearClueSite, nearHiddenLair } from "@/game/vyrak-site";
 import { createPersonality, furyBonus, maybeIdle, react as vyrakReact, stepMood as vyrakStepMood } from "@/game/vyrak-personality";
 import { createDragoniteRuntime, castDragonite, stepDragonite, statsFor as dragoniteStatsFor } from "@/game/dragonite-cast";
 import { DRAGONITE_IDS, DRAGONITE } from "@/game/dragonite";
@@ -451,6 +453,7 @@ function SceneImpl({
   onTutorialEvent,
   onDrops,
   onStoryEvent,
+  onEncounterClue,
   onLiving,
   onVehicleCondition,
   onWaste,
@@ -506,6 +509,8 @@ function SceneImpl({
   onDrops?: (drops: WorldSim["drops"]) => void;
   /** story scenarios (vaelith.ts): lair entry, memory pickups, trial survived, lair defence cleared; the handler applies them with pure reducers */
   onStoryEvent?: (event: StoryWorldEvent) => void;
+  /** an encounter clue was found in the world (encounter-journal.ts); the host records it and returns nothing */
+  onEncounterClue?: (encounterId: string, clueId: string) => void;
   /** Living World outcomes (city kills, event results, survey/stash reached); GameCanvas applies them to progression */
   onLiving?: (event: LivingEmit) => void;
   onVehicleCondition?: (id: string, condition: VehicleCondition) => void;
@@ -685,7 +690,7 @@ function SceneImpl({
     for (const site of RESOURCE_SITES) list.push({ ...site, ready: (depleted.current[site.id] ?? 0) <= now });
     for (const lair of BOSS_LAIRS) list.push(lair);
     if (gear) for (const r of ruins()) if (isDiscovered(gear, r.id)) list.push({ id: `ruin-${r.id}`, kind: "RUIN", label: isEvolved(gear, r.id) ? `${r.name} (spent)` : r.name, x: r.x, z: r.z, regionId: r.regionId });
-    for (const lair of SCENARIO_LAIRS) list.push(lair);
+    for (const lair of SCENARIO_LAIRS) if (!gear || lairRevealed(gear, lair.scenarioId)) list.push(lair);
     if (gear) for (const l of LANDMARKS) if (l.id !== "neon-city" && l.id !== "thalassia" && isLandmarkKnown(gear, l.id)) list.push({ id: `lm-${l.id}`, kind: "LANDMARK", label: l.name, x: l.x, z: l.z, regionId: l.regionId });
     for (const m of sim.machines) if (m.alive && m.boss) list.push({ id: `live-${m.profile}`, kind: "BOSS", label: `${m.profile} (engaged)`, x: m.x, z: m.z, regionId: m.zone });
     if (sim.emergencyQuest.state === "WARNING" || sim.emergencyQuest.state === "ACTIVE") list.push({ id: "eq-boss", kind: "BOSS", label: `EQ · ${sim.emergencyQuest.bossName}`, x: sim.emergencyQuest.x, z: sim.emergencyQuest.z, regionId: sim.emergencyQuest.regionId });
@@ -899,6 +904,7 @@ function SceneImpl({
   /** target lock + shoulder side (target-lock.ts) */
   const lockRt = useRef({ state: newLockState(), keys: {} as Record<string, boolean> });
   /** Vyrak's mood and banter (vyrak-personality.ts) */
+  const clueSent = useRef(new Set<string>());
   const vyrakMind = useRef({ p: createPersonality(), kills: 0, hp: 100, clock: 0, lowAt: -99, bosses: 0 });
   const dragoniteRt = useRef({ rt: createDragoniteRuntime(), held: {} as Record<string, boolean> });
   const opDashStats = useMemo(() => dashStats(playerClass, abilityBranches), [playerClass, abilityBranches]);
@@ -1877,6 +1883,13 @@ function SceneImpl({
         if (inside && !lairsTriggered.current[lair.id] && !sim.machines.some((m) => m.alive && m.boss)) { lairsTriggered.current[lair.id] = true; summonBoss(sim, lair.regionId, lair.x, lair.z); }
         if (!inside && Math.hypot(lair.x - s.x, lair.z - s.z) > LAIR_RADIUS * 4) lairsTriggered.current[lair.id] = false;
       }
+      // Vyrak discovery (vyrak-site.ts): walk up to a clue site, or sense the hidden lair; each pays its journal clue once
+      if (gear && !tutorial && onEncounterClue) {
+        const known = (id: string) => gear.earnedRewards.includes(`enc-clue:vyrak:${id}`) || clueSent.current.has(id);
+        const site = nearClueSite(s.x, s.z);
+        if (site && !known(site.clueId)) { clueSent.current.add(site.clueId); onEncounterClue("vyrak", site.clueId); alert(sim, `CLUE · ${site.found}`); }
+        if (nearHiddenLair(s.x, s.z) && !known("site")) { clueSent.current.add("site"); onEncounterClue("vyrak", "site"); alert(sim, "CLUE · The air is hot and the stone is scarred here. Something enormous has slept nearby."); }
+      }
       // Unique Scenario lairs (Rime Alpha, Dark Knight, ...): same walk-in trigger, but they summon the scenario boss
       for (const lair of SCENARIO_LAIRS) {
         const inside = Math.hypot(lair.x - s.x, lair.z - s.z) < LAIR_RADIUS;
@@ -1891,7 +1904,7 @@ function SceneImpl({
           if (tNow - (beatsAsk.askedAt[lair.id] ?? -99) > 3) { beatsAsk.askedAt[lair.id] = tNow; onStoryEvent?.({ type: "BOSS_LAIR_ENTER", scenarioId: lair.scenarioId }); }
           continue;
         }
-        if (lair.scenarioId === "vyrak" && bonded) continue; // unique encounter: once this Operator is bonded the Sky Sovereign is not fought again
+        if (lair.scenarioId === "vyrak" && (bonded || (gear && !lairRevealed(gear, "vyrak")))) continue; // unique encounter: once this Operator is bonded the Sky Sovereign is not fought again
         if (inside && scenario && !lairsTriggered.current[lair.id] && !tutorial && !sim.machines.some((m) => m.alive && m.boss)) { lairsTriggered.current[lair.id] = true; summonScenarioBoss(sim, scenario, lair.x, lair.z); }
         if (!inside && Math.hypot(lair.x - s.x, lair.z - s.z) > LAIR_RADIUS * 4) lairsTriggered.current[lair.id] = false;
       }
@@ -2870,6 +2883,7 @@ function SceneImpl({
 
       <NovaDrone held={state} />
       {bonded && <Wyrmling held={state} />}
+      <VyrakClueSites />
       {/* player on foot */}
       <group ref={player} position={SPAWN.toArray()}>
         <OperatorModel held={state} gear={gear} bodyType={bodyType} classId={playerClass} height={2.75} feetY={-1.55} color={appearance.armor} trim={appearance.visor} cloth={appearance.cloth} look={worn} pose="locomotion" motion={feel.current.motionRef} fallback={
