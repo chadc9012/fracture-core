@@ -1,6 +1,8 @@
 const DISCOVERY_LABEL: Record<string, string> = { flag: "Flag", beacon: "Beacon", patrol: "Patrol", fracture: "Rift Fracture", distress: "Distress Signal", cache: "Cache", movement: "Movement Route", anomaly: "Anomaly" };
 const ACTIVITY_REGION: Record<string, string> = { veridan: "veridan", ember: "ember", wastelands: "wastelands", swamps: "swamps", solara: "solara", frostspire: "frostspire", thalassia: "swamps" };
 import { nearby as discoveriesNear, triggered as discoveryTriggered } from "@/game/discoveries";
+import { RaceCourse } from "./RaceCourse";
+import { raceById, type RaceRun } from "@/game/racing";
 import { novaHint } from "@/game/encounter-journal";
 import { stepRun as stepActivity, currentTarget as activityTarget, type ActivityDef, type Run as ActivityRun } from "@/game/activities";
 import { renderCounts, setterCalls } from "@/game/perf-counters";
@@ -1907,9 +1909,12 @@ function SceneImpl({
       }
       // Vyrak discovery (vyrak-site.ts): walk up to a clue site, or sense the hidden lair; each pays its journal clue once
       if (activity && activity.run.status === "active") {
-        const r = activity.run, sig0 = `${r.stage}|${r.progress}|${r.status}|${r.cp}|${r.carrying}`;
-        stepActivity(activity.def, r, { x: s.x, z: s.z, dt, now: Date.now(), kills: sim.kills, elites: sim.eliteKills, bosses: sim.bossKills, hp: sim.hp, deaths: sim.deaths });
-        if (sig0 !== `${r.stage}|${r.progress}|${r.status}|${r.cp}|${r.carrying}`) onActivityChange?.();
+        const r = activity.run, rsig = () => { const rr = r.race as { phase?: string; next?: number; recoveries?: number; notice?: string | null; countdown?: number } | undefined; return `${r.stage}|${r.progress}|${r.status}|${r.cp}|${r.carrying}|${rr?.phase}|${rr?.next}|${rr?.recoveries}|${rr?.notice}|${rr?.phase === "countdown" ? Math.ceil(rr.countdown ?? 0) : ""}`; }, sig0 = rsig();
+        stepActivity(activity.def, r, { x: s.x, z: s.z, dt, now: Date.now(), kills: sim.kills, elites: sim.eliteKills, bosses: sim.bossKills, hp: sim.hp, deaths: sim.deaths, mode: s.inVehicle ? "vehicle" : s.diving ? "dive" : "foot", y: s.y, vehicleDisabled: s.inVehicle && conditionEffects(condition.current).disabled });
+        // a race asked to put the player back on the course (wreck, fall, or lost): same place as the last checkpoint, race clock keeps running
+        const back = (r.race as { recover?: { x: number; z: number; depth?: number } | null } | undefined)?.recover;
+        if (back) { s.x = back.x; s.z = back.z; s.vSpeed = 0; s.vy = 0; if (back.depth !== undefined) s.y = back.depth; else s.y = walkHeight(back.x, back.z) + 0.2; (r.race as { recover: unknown }).recover = null; }
+        if (sig0 !== rsig()) onActivityChange?.();
       }
       // walking into a discovery starts it (consuming one attempt, like any activity); a running activity or the tutorial blocks it
       if (gear && !tutorial && !activity && onDiscovery) { discoveryClock.current += dt; if (discoveryClock.current > 0.3) { discoveryClock.current = 0; const hit = discoveryTriggered(gear, s.x, s.z, Date.now()); if (hit) onDiscovery(hit.id); } }
@@ -2916,6 +2921,7 @@ function SceneImpl({
       <NovaDrone held={state} />
       {bonded && <Wyrmling held={state} />}
       <VyrakClueSites />
+      {activity && activity.def.stages[0]?.kind === "race" && activity.run.race ? <RaceCourse race={raceById((activity.def.stages[0] as { raceId: string }).raceId)!} run={activity.run.race as RaceRun} /> : null}
       {/* player on foot */}
       <group ref={player} position={SPAWN.toArray()}>
         <OperatorModel held={state} gear={gear} bodyType={bodyType} classId={playerClass} height={2.75} feetY={-1.55} color={appearance.armor} trim={appearance.visor} cloth={appearance.cloth} look={worn} pose="locomotion" motion={feel.current.motionRef} fallback={

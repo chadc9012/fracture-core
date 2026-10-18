@@ -28,7 +28,7 @@ import type { ClassId } from "@/game/loadout";
 
 const currencyLabel = { credits: "Credits", dataShards: "Data Shards", spatialCores: "Spatial Cores" } as const;
 
-export function OperationsHub({ initialView = "DUNGEONS", progression, onProgression, onClose, onStartActivity, activeActivityId = null }: { onStartActivity?: (id: string) => void; activeActivityId?: string | null; initialView?: HubView; progression: PlayerProgression; onProgression: (next: PlayerProgression) => void; onClose: () => void }) {
+export function OperationsHub({ initialView = "DUNGEONS", progression, onProgression, onClose, onStartActivity, activeActivityId = null }: { onStartActivity?: (id: string, difficulty?: import("@/game/racing").Difficulty) => void; activeActivityId?: string | null; initialView?: HubView; progression: PlayerProgression; onProgression: (next: PlayerProgression) => void; onClose: () => void }) {
   const [view, setView] = useState<HubView>(initialView);
   const [dismissed, setDismissed] = useState<HubView[]>([]);
   const stop = dismissed.includes(view) ? null : hubStopFor(view);

@@ -2,13 +2,14 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ACTIVITIES, AREAS, CATEGORIES, FEATURED_BONUS, activityState, categoryOf, featuredFor, msUntilPeriodReset, msUntilReset, msUntilWeekReset, reputationOf, weeklyElitesFor, type ActivityDef, type Category } from "@/game/activities";
 import type { PlayerProgression } from "@/game/progression";
+import { DIFFICULTIES, bestMedal, difficultyLocked, isRaceActivity, personalBest, rankName, raceById, type Difficulty } from "@/game/racing";
 
 const fmt = (ms: number) => { const s = Math.ceil(ms / 1000), d = Math.floor(s / 86400), h = Math.floor((s % 86400) / 3600), m = Math.floor((s % 3600) / 60); return d ? `${d}d ${h}h` : h ? `${h}h ${String(m).padStart(2, "0")}m` : `${m}:${String(s % 60).padStart(2, "0")}`; };
 const STARS = ["", "I", "II", "III", "IV"];
 
 /** Regional Operations Board: organised work (side missions, bounties, movement & racing, underground, events) plus today's featured and this week's elite contracts.
  * Limits and rotations use real time (UTC), never the game clock. The world also hides discoveries (flags, beacons, patrols, rift fractures) that are not listed here. */
-export function ActivityBoard({ progression, activeId, onStart }: { progression: PlayerProgression; activeId: string | null; onStart: (id: string) => void }) {
+export function ActivityBoard({ progression, activeId, onStart }: { progression: PlayerProgression; activeId: string | null; onStart: (id: string, difficulty?: Difficulty) => void }) {
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => { const t = setInterval(() => setNow(Date.now()), 1000); return () => clearInterval(t); }, []);
   const [area, setArea] = useState<string>("neon");
@@ -28,11 +29,13 @@ export function ActivityBoard({ progression, activeId, onStart }: { progression:
       <p className="mt-2 font-mono text-[10px]">{r.nex} Nex · {r.xp} XP · +{r.rep} {a.faction} rep · {Object.entries(r.materials).map(([k, v]) => `${v} ${k}`).join(", ")}{r.shaderChance > 0 ? ` · shader chance ${Math.round(r.shaderChance * 100)}%` : ""}</p>
       <div className="mt-2 flex items-center justify-between gap-2">
         <span className="font-mono text-[10px] text-muted-foreground">{activeId === a.id ? "In progress" : locked ? `Requires ${a.minRep} ${a.faction} reputation (you have ${reputationOf(progression, a.faction)})` : st.cooldownLeftMs > 0 ? `Cooldown ${fmt(st.cooldownLeftMs)}` : st.attemptsLeft <= 0 ? `Resets in ${fmt(msUntilPeriodReset(a, now))}` : "Ready"}</span>
-        <Button size="sm" disabled={!st.available || Boolean(activeId)} onClick={() => onStart(a.id)}>{activeId === a.id ? "Active" : "Start"}</Button>
+        {isRaceActivity(a) ? <div className="flex gap-1">{DIFFICULTIES.map((d) => { const why = difficultyLocked(progression, raceById((a.stages[0] as { raceId: string }).raceId)!.id, d); const m = bestMedal(progression, a.id, d); return <Button key={d} size="sm" variant={d === "standard" ? "default" : "outline"} className="h-7 px-2 text-[9px]" title={why ?? `Best: ${personalBest(progression, a.id, d)?.toFixed(1) ?? "—"}s`} disabled={!st.available || Boolean(activeId) || Boolean(why)} onClick={() => onStart(a.id, d)}>{d.slice(0, 3).toUpperCase()}{m ? ` ${m[0]!.toUpperCase()}` : ""}</Button>; })}</div>
+          : <Button size="sm" disabled={!st.available || Boolean(activeId)} onClick={() => onStart(a.id)}>{activeId === a.id ? "Active" : "Start"}</Button>}
       </div></div>;
   };
   return <section className="mt-6 border border-border p-4" aria-label="Regional operations board">
     <p className="font-mono text-[9px] uppercase tracking-[0.3em] text-primary">Regional operations board</p>
+    <p className="mt-1 font-mono text-[10px] text-primary">Racing rank: {rankName(progression)} · rank follows medals and championships, not races entered</p>
     <p className="mt-1 text-xs text-muted-foreground">Cooldowns, daily attempts and rotations use real time and reset at 00:00 UTC. Starting spends an attempt; failing or abandoning does not refund it. A capped activity never blocks the others. The board lists organised work; flags, beacons, patrols and rift fractures out in the world are not listed here, and hidden ones are only found by exploring.</p>
     <div className="mt-4"><p className="font-mono text-[9px] uppercase tracking-[0.25em] text-primary">Featured today · rotates in {fmt(msUntilReset(now))}</p><div className="mt-2 grid gap-3 md:grid-cols-2">{featured.map((a) => card(a, "f-"))}</div></div>
     <div className="mt-4"><p className="font-mono text-[9px] uppercase tracking-[0.25em] text-primary">Weekly elite operations · rotates in {fmt(msUntilWeekReset(now))}</p><div className="mt-2 grid gap-3 md:grid-cols-2">{elites.map((a) => card(a, "e-"))}</div></div>

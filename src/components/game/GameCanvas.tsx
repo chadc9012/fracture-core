@@ -18,6 +18,7 @@ import type { RenderTier } from "@/game/performance";
 import { DPR_FLOOR, effectiveTier, onDecline as governDecline } from "@/game/quality-governor";
 import { MissionCinematic } from "./MissionCinematic";
 import { recordClue } from "@/game/encounter-journal";
+import { applyRaceResult, difficultyLocked, isRaceActivity, raceById, type Difficulty } from "@/game/racing";
 import { discoveryById, discoveryOfDef, reveal as revealDiscoveries } from "@/game/discoveries";
 import { VYRAK_REMATCH, activityState, activityById, startActivity, completeActivity, abandonRun, type ActivityDef, type Run as ActivityRun } from "@/game/activities";
 import { ActivityTracker, ActivityResultPanel, type ActivityResult } from "./ActivityHud";
@@ -886,9 +887,11 @@ export function GameCanvas() {
     check(); const t = setInterval(check, 5000); return () => clearInterval(t);
   }, []);
   const spendRematch = () => { const res = startActivity(progressionRef.current, VYRAK_REMATCH.id, Date.now()); if (!("error" in res)) { setProgression(res.progression); setRematchReady(false); } };
-  const startActivityById = (id: string) => {
+  const startActivityById = (id: string, difficulty: Difficulty = "standard") => {
     if (activity) return;
-    const res = startActivity(progressionRef.current, id, Date.now());
+    const lockedWhy = isRaceActivity(activityById(id)!) ? difficultyLocked(progressionRef.current, id, difficulty) : null;
+    if (lockedWhy) { setMenuNotice(lockedWhy); return; }
+    const res = startActivity(progressionRef.current, id, Date.now(), difficulty);
     if ("error" in res) { setMenuNotice(res.error); return; }
     setProgression(res.progression); setActivity({ def: activityById(id)!, run: res.run }); setOperationsView(null);
   };
@@ -899,13 +902,21 @@ export function GameCanvas() {
     progressionRef.current = res.progression; // block a second trigger before React re-renders
     setProgression(res.progression); setActivity({ def: d.def, run: res.run });
   };
+  const raceResultOf = (run: ActivityRun) => (run.race as { result?: import("@/game/racing").RaceResult } | undefined)?.result;
   const onActivityChange = () => {
     setActivityTick((n) => n + 1);
     const cur = activity; if (!cur) return;
     if (cur.run.status === "complete") {
       const done = completeActivity(progressionRef.current, cur.def, cur.run, Date.now());
       setActivity(null);
-      if (!("error" in done)) { const found = discoveryOfDef(cur.def.id)?.reveals; setProgression(found ? revealDiscoveries(done.progression, found) : done.progression); setActivityResult({ def: cur.def, ok: true, payout: done.payout, ...(discoveryOfDef(cur.def.id)?.reveals?.length ? { revealed: discoveryOfDef(cur.def.id)!.reveals!.length } : {}) }); }
+      if (!("error" in done)) {
+        const found = discoveryOfDef(cur.def.id)?.reveals;
+        let next = found ? revealDiscoveries(done.progression, found) : done.progression;
+        let race: { result: NonNullable<ReturnType<typeof raceResultOf>>; reward: Extract<ReturnType<typeof applyRaceResult>, { reward: unknown }>["reward"]; name: string } | undefined;
+        if (isRaceActivity(cur.def)) { const rec = applyRaceResult(next, cur.def, cur.run); if (!("error" in rec)) { next = rec.progression; race = { result: raceResultOf(cur.run)!, reward: rec.reward, name: cur.def.name }; } }
+        setProgression(next);
+        setActivityResult({ def: cur.def, ok: true, payout: done.payout, ...(race ? { race } : {}), ...(found?.length ? { revealed: found.length } : {}) });
+      }
     } else if (cur.run.status === "failed") { setActivity(null); setActivityResult({ def: cur.def, ok: false, reason: cur.run.failReason ?? "Failed" }); }
   };
   const abandonActivity = () => { if (!activity) return; abandonRun(activity.run); onActivityChange(); };
