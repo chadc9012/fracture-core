@@ -36,7 +36,7 @@ export function Interiors() {
   return (
     <group>
       <pointLight ref={light} intensity={0} distance={14} />
-      {INTERIORS.map((interior) => (
+      {INTERIORS.filter((i) => i.kind !== "HOME").map((interior) => (
         <group key={interior.id} position={[interior.origin.x, INTERIOR_ALTITUDE, interior.origin.z]}>
           {/* floor */}
           <mesh rotation-x={-Math.PI / 2} receiveShadow position={[0, 0, 0]}>

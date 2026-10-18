@@ -11,12 +11,15 @@
  * Door-proximity checks run inside Scene's existing per-frame loop rather than each interior
  * getting its own useFrame hook (the pasted DoorTrigger.tsx pattern) — one world, one loop.
  */
-import { hourOf, scaleSite } from "./world";
+import { REGIONS, hourOf, scaleSite } from "./world";
+import { HOMES } from "./housing";
 
 export const INTERIOR_ALTITUDE = 600;
 export const DOOR_RADIUS = 2.2;
 
-export type InteriorKind = "APARTMENT" | "SHOP";
+export type InteriorKind = "APARTMENT" | "SHOP" | "HOME";
+/** HOME interiors: one 10m room per entry in the home's rooms list, laid side by side along +X with doorways */
+export const HOME_ROOM_SIZE = 10;
 
 export type InteriorDef = {
   id: string;
@@ -33,13 +36,15 @@ export type InteriorDef = {
   /** the exit door's position inside the room, relative to origin — walk up to it to leave */
   exitOffset: { x: number; z: number };
   npcName?: string;
+  /** HOME only: housing.ts home id; the door only opens for its owner */
+  homeId?: string;
   /** SHOP only: vendor id from economy.ts's VENDORS, and the hours (0-24) it's actually open */
   vendorId?: string;
   openHour?: number;
   closeHour?: number;
 };
 
-export const INTERIORS: readonly InteriorDef[] = [
+export const INTERIORS: InteriorDef[] = [
   {
     id: "nexus-apartment",
     name: "Warrens Apartment 4B",
@@ -153,17 +158,55 @@ export const INTERIORS: readonly InteriorDef[] = [
   },
 ];
 
+/** Where each buyable home's front door sits in the open world (Neon homes by district, others near their region). */
+const HOME_DOORS: Record<string, { x: number; z: number }> = {
+  "rustmuck-capsule": scaleSite(-70, -6),
+  "grid-loft": scaleSite(70, 30),
+  "aegis-penthouse": scaleSite(10, -70),
+};
+function homeDoor(id: string, regionId: string, i: number) {
+  if (HOME_DOORS[id]) return HOME_DOORS[id];
+  const r = REGIONS.find((x) => x.id === regionId) ?? REGIONS[0];
+  return { x: r.x + 18 + i * 3, z: r.z + 14 };
+}
+export const HOME_INTERIORS: readonly InteriorDef[] = HOMES.map((h, i) => ({
+  id: `home-${h.id}`,
+  name: h.name,
+  kind: "HOME" as const,
+  regionId: h.regionId,
+  doorPos: homeDoor(h.id, h.regionId, i),
+  origin: { x: 2400, z: i * 80 },
+  spawnOffset: { x: 0, z: 2 },
+  exitOffset: { x: 0, z: 4 },
+  homeId: h.id,
+}));
+INTERIORS.push(...HOME_INTERIORS);
+
+/** Keeps the player inside a HOME's rooms: outer walls, and internal walls crossable only through the doorway (|z| < 1.2). */
+export function clampHomeLocal(interior: InteriorDef, rooms: number, x: number, z: number, prevX: number): { x: number; z: number } {
+  const half = HOME_ROOM_SIZE / 2 - 0.4;
+  let nx = Math.max(-half, Math.min((rooms - 1) * HOME_ROOM_SIZE + half, x));
+  const nz = Math.max(-half, Math.min(half, z));
+  if (Math.abs(nz) > 1.2) {
+    // crossing an internal wall at x = k*10 + 5 outside the doorway snaps back to the previous room
+    const wall = (v: number) => Math.floor((v + HOME_ROOM_SIZE / 2) / HOME_ROOM_SIZE);
+    if (wall(nx) !== wall(prevX)) nx = prevX;
+  }
+  void interior;
+  return { x: nx, z: nz };
+}
+
 export function interiorById(id: string | null): InteriorDef | null {
   return id ? INTERIORS.find((i) => i.id === id) ?? null : null;
 }
 
 /** The interior whose door the player is standing in, if any (nearest within DOOR_RADIUS). */
-export function doorAt(x: number, z: number): InteriorDef | null {
+export function doorAt(x: number, z: number, canEnter: (i: InteriorDef) => boolean = () => true): InteriorDef | null {
   let best: InteriorDef | null = null;
   let bestDist = DOOR_RADIUS;
   for (const interior of INTERIORS) {
     const d = Math.hypot(x - interior.doorPos.x, z - interior.doorPos.z);
-    if (d < bestDist) { bestDist = d; best = interior; }
+    if (d < bestDist && canEnter(interior)) { bestDist = d; best = interior; }
   }
   return best;
 }
