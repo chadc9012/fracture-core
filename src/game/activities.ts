@@ -95,7 +95,15 @@ export const ACTIVITIES: readonly ActivityDef[] = [
   { id: "ncd-security", area: "neon-core", name: "High-Tier Security Bounty", kind: "bounty", difficulty: 4, faction: "aegis", brief: "A senior enforcer has gone rogue inside the Core.", attempts: 2, cooldownMin: 60, stages: [kills(1, "Take down the enforcer", "elite"), kills(8, "Clear their squad")], challenge: NO_DEATH, rewards: R(280, 160, 28, { anomalyCore: 1, aegisCore: 1 }, 0.18) },
 ];
 
-export const activityById = (id: string) => ACTIVITIES.find((a) => a.id === id);
+/** The Vyrak rematch is NOT a board activity (Vyrak stays a special unique encounter): it only borrows the same real-time limits.
+ * Once bonded, the Operator may face the Sky Sovereign again for Dragonite and the measurable challenges, 2 attempts a day with a 60 minute cooldown. */
+export const VYRAK_REMATCH: ActivityDef = { id: "vyrak-rematch", area: "solara", name: "Vyrak — Rematch", kind: "contract", difficulty: 4, faction: "covenant", brief: "Face the Sky Sovereign again.", attempts: 2, cooldownMin: 60, stages: [], rewards: R(0, 0, 0, {}, 0) };
+export const activityById = (id: string) => ACTIVITIES.find((a) => a.id === id) ?? (id === VYRAK_REMATCH.id ? VYRAK_REMATCH : undefined);
+/** stamp a completion (starts the cooldown) for an activity that is not run through stepRun, e.g. the Vyrak rematch */
+export function markCompleted<T extends Pick<PlayerProgression, "missionRuns">>(p: T, def: ActivityDef, now = Date.now()): T {
+  const rec = p.missionRuns[recKey(def.id)];
+  return { ...p, missionRuns: { ...p.missionRuns, [recKey(def.id)]: { day: rec?.day ?? dayKeyUtc(now), count: rec?.count ?? 0, last: now } } };
+}
 export const activitiesIn = (area: string) => ACTIVITIES.filter((a) => a.area === area);
 export const areaOfPoint = (x: number, z: number): string | null => {
   let best: string | null = null, bestD = Infinity;
@@ -149,7 +157,7 @@ export function startActivity(p: PlayerProgression, id: string, now = Date.now()
   const next = { ...p, missionRuns: { ...p.missionRuns, [recKey(id)]: { ...(rec ?? {}), day: dayKeyUtc(now), count: today + 1, last: (rec as { last?: number } | undefined)?.last ?? 0 } } } as PlayerProgression;
   return { progression: next, run: newRun(def, now) };
 }
-export const newRun = (def: ActivityDef, now: number): Run => ({ id: def.id, startedAt: now, stage: 0, stageStartedAt: now, status: "active", progress: 0, need: needOf(def.stages[0]!), cp: 0, visited: [], carrying: false, hold: 0, killsBase: -1, elitesBase: -1, bossesBase: -1, hpMin: 100, deaths0: -1, diedDuring: false, wasHurt: false });
+export const newRun = (def: ActivityDef, now: number): Run => ({ id: def.id, startedAt: now, stage: 0, stageStartedAt: now, status: "active", progress: 0, need: def.stages[0] ? needOf(def.stages[0]) : 0, cp: 0, visited: [], carrying: false, hold: 0, killsBase: -1, elitesBase: -1, bossesBase: -1, hpMin: 100, deaths0: -1, diedDuring: false, wasHurt: false });
 function needOf(o: Objective): number { return o.kind === "kills" ? o.count : o.kind === "course" || o.kind === "collect" ? o.points.length : o.kind === "hold" ? o.seconds : 1; }
 
 export type Tick = { x: number; z: number; dt: number; now: number; kills: number; elites: number; bosses: number; hp: number; deaths: number };

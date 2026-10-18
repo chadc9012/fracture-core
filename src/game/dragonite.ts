@@ -96,10 +96,18 @@ export const cappedResist = (armorResist: number, dragonhide: number) => Math.mi
 /* ---------------- repeat clears and optional challenges ---------------- */
 export type ChallengeId = "unbroken-covenant" | "wings-of-the-ancient" | "dragons-patience";
 export const CHALLENGES: Record<ChallengeId, { name: string; how: string; ornament: string; title: string }> = {
-  "unbroken-covenant": { name: "The Unbroken Covenant", how: "Defeat Vyrak without a teammate being incapacitated in the final phase.", ornament: "Unbroken Crest", title: "Unbroken" },
-  "wings-of-the-ancient": { name: "Wings of the Ancient", how: "Complete the aerial section within the target time.", ornament: "Ancient Wingtips", title: "Wingbound" },
+  "unbroken-covenant": { name: "The Unbroken Covenant", how: "Defeat Vyrak in a rematch without dying.", ornament: "Unbroken Crest", title: "Unbroken" },
+  "wings-of-the-ancient": { name: "Wings of the Ancient", how: "Defeat Vyrak in a rematch within 5 minutes of the summons.", ornament: "Ancient Wingtips", title: "Wingbound" },
   "dragons-patience": { name: "The Dragon's Patience", how: "Answer each hidden attack pattern correctly.", ornament: "Patient Scale", title: "Patient One" },
 };
+/** Challenges the game can really measure from a rematch claim. "dragons-patience" needs hidden-pattern tracking that is not built, so it is not awarded yet. */
+export const WINGS_SECONDS = 300;
+export function challengesMet(claim: { elapsed?: number | undefined; deaths?: number | undefined }): ChallengeId[] {
+  const out: ChallengeId[] = [];
+  if (claim.deaths === 0) out.push("unbroken-covenant");
+  if (claim.elapsed !== undefined && claim.elapsed <= WINGS_SECONDS) out.push("wings-of-the-ancient");
+  return out;
+}
 export const challengeKey = (c: ClassId, id: ChallengeId) => `covenant-challenge:${c}:${id}`;
 
 /** Record a Vyrak clear for this Operator. First clear: the bond (dragon-covenant.ts). Later clears: Dragonite material, and every 2nd one an extra

@@ -129,6 +129,9 @@ export type Machine = {
   attuned?: DamageElement;
   /** scenario run id (unique per summon) and how many player bullets landed on it — the basis of reward eligibility */
   scenarioRun?: string;
+  /** seconds clock and death count at summon (scenario claims report elapsed/deaths) */
+  scenarioT0?: number;
+  scenarioDeaths0?: number;
   playerHits?: number;
   /** patrol/detection/cover state (see enemy-perception.ts); reset when a pooled slot respawns */
   ai?: EnemyAi;
@@ -455,7 +458,7 @@ export function defeatMachine(sim: WorldSim, m: Machine, credit: KillCredit = "p
   sim.materials[material] = (sim.materials[material] ?? 0) + amount;
   const setDrop = rollSetDrop(m.zone, m.boss ? "BOSS" : m.elite ? "ELITE" : "NORMAL", Math.random()) ?? undefined;
   const scenarioClaim: ScenarioClaim | undefined = m.scenarioId && SCENARIO_LOOT[m.scenarioId] && m.scenarioRun
-    ? { scenarioId: m.scenarioId, runId: m.scenarioRun, participated: (m.playerHits ?? 0) >= PARTICIPATION_HITS, rolls: rollScenario(m.scenarioId) }
+    ? { scenarioId: m.scenarioId, runId: m.scenarioRun, participated: (m.playerHits ?? 0) >= PARTICIPATION_HITS, rolls: rollScenario(m.scenarioId), elapsed: m.scenarioT0 !== undefined ? performance.now() / 1000 - m.scenarioT0 : undefined, deaths: m.scenarioDeaths0 !== undefined ? sim.deaths - m.scenarioDeaths0 : undefined }
     : undefined;
   const dropId = sim.nextDropId++;
   const weaponDrop = rollWeaponLoot(m.boss ? "enemy-boss" : m.elite ? "enemy-elite" : "enemy-regular", m.zone, Math.random(), `${dropId}-${Math.random().toString(36).slice(2, 8)}`) ?? undefined;
@@ -788,6 +791,7 @@ export function summonScenarioBoss(sim: WorldSim, scenario: UniqueScenario, x: n
   const m = sim.machines.find((candidate) => !candidate.alive);
   if (!m) return false;
   Object.assign(m, { alive: true, x, z, y: walkHeight(x, z) + 5, hp: 34 * (sim.challenge?.enemyHp ?? 1), maxHp: 34 * (sim.challenge?.enemyHp ?? 1), phase: 0 as BossPhaseIndex, rot: 0, scale: 2.5, zone: scenario.regionId, cool: 2, elite: true, boss: true, profile: scenario.bossName, kind: factionOf(scenario.regionId), drop: scenario.drop as MaterialId, kx: 0, kz: 0, poiseState: INITIAL_POISE, scenarioId: scenario.id, scenarioRun: `${scenario.id}-${Date.now().toString(36)}-${(sim.nextHitId++).toString(36)}-${Math.random().toString(36).slice(2, 8)}`, playerHits: 0, gimmickHistory: [], attuned: undefined, encounter: undefined, decoy: undefined, living: undefined, nemesis: undefined, nemesisWeak: undefined, nemesisDamage: undefined, vulnUntil: 0, vulnMult: 1, ...extra });
+  m.scenarioT0 = performance.now() / 1000; m.scenarioDeaths0 = sim.deaths;
   sim.raidFight = { start: performance.now() / 1000, hurt: 0, region: scenario.regionId };
   alert(sim, `${scenario.name} · ${scenario.briefing}`);
   if (scenario.taunt) alert(sim, `${scenario.bossName}: ${scenario.taunt}`);

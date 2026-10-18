@@ -1,4 +1,5 @@
 const ACTIVITY_REGION: Record<string, string> = { veridan: "veridan", ember: "ember", wastelands: "wastelands", swamps: "swamps", solara: "solara", frostspire: "frostspire", thalassia: "swamps" };
+import { novaHint } from "@/game/encounter-journal";
 import { stepRun as stepActivity, currentTarget as activityTarget, type ActivityDef, type Run as ActivityRun } from "@/game/activities";
 import { renderCounts, setterCalls } from "@/game/perf-counters";
 import { createHudGate } from "@/game/hud-gate";
@@ -458,6 +459,8 @@ function SceneImpl({
   onEncounterClue,
   activity,
   onActivityChange,
+  vyrakRematch,
+  onVyrakRematch,
   onLiving,
   onVehicleCondition,
   onWaste,
@@ -518,6 +521,9 @@ function SceneImpl({
   /** activities.ts: the run in progress (mutated here each frame) and a notifier when its stage/progress/status changes */
   activity?: { def: ActivityDef; run: ActivityRun } | null;
   onActivityChange?: () => void;
+  /** Vyrak rematch (activities.ts VYRAK_REMATCH): a bonded Operator may re-summon the Sky Sovereign only while this is true; the host spends the attempt */
+  vyrakRematch?: boolean;
+  onVyrakRematch?: () => void;
   /** Living World outcomes (city kills, event results, survey/stash reached); GameCanvas applies them to progression */
   onLiving?: (event: LivingEmit) => void;
   onVehicleCondition?: (id: string, condition: VehicleCondition) => void;
@@ -1899,9 +1905,11 @@ function SceneImpl({
       }
       if (gear && !tutorial && onEncounterClue) {
         const known = (id: string) => gear.earnedRewards.includes(`enc-clue:vyrak:${id}`) || clueSent.current.has(id);
+        // NOVA comments after each new clue (one clue is not a pattern; two or more point at the region), using the keys the journal will hold once this clue is saved
+        const nova = () => { const h = novaHint({ earnedRewards: [...gear.earnedRewards, ...[...clueSent.current].map((c) => `enc-clue:vyrak:${c}`)] }, "vyrak"); if (h) alert(sim, h); };
         const site = nearClueSite(s.x, s.z);
-        if (site && !known(site.clueId)) { clueSent.current.add(site.clueId); onEncounterClue("vyrak", site.clueId); alert(sim, `CLUE · ${site.found}`); }
-        if (nearHiddenLair(s.x, s.z) && !known("site")) { clueSent.current.add("site"); onEncounterClue("vyrak", "site"); alert(sim, "CLUE · The air is hot and the stone is scarred here. Something enormous has slept nearby."); }
+        if (site && !known(site.clueId)) { clueSent.current.add(site.clueId); onEncounterClue("vyrak", site.clueId); alert(sim, `CLUE · ${site.found}`); nova(); }
+        if (nearHiddenLair(s.x, s.z) && !known("site")) { clueSent.current.add("site"); onEncounterClue("vyrak", "site"); alert(sim, "CLUE · The air is hot and the stone is scarred here. Something enormous has slept nearby."); nova(); }
       }
       // Unique Scenario lairs (Rime Alpha, Dark Knight, ...): same walk-in trigger, but they summon the scenario boss
       for (const lair of SCENARIO_LAIRS) {
@@ -1917,8 +1925,9 @@ function SceneImpl({
           if (tNow - (beatsAsk.askedAt[lair.id] ?? -99) > 3) { beatsAsk.askedAt[lair.id] = tNow; onStoryEvent?.({ type: "BOSS_LAIR_ENTER", scenarioId: lair.scenarioId }); }
           continue;
         }
-        if (lair.scenarioId === "vyrak" && (bonded || (gear && !lairRevealed(gear, "vyrak")))) continue; // unique encounter: once this Operator is bonded the Sky Sovereign is not fought again
-        if (inside && scenario && !lairsTriggered.current[lair.id] && !tutorial && !sim.machines.some((m) => m.alive && m.boss)) { lairsTriggered.current[lair.id] = true; summonScenarioBoss(sim, scenario, lair.x, lair.z); }
+        // unique encounter: the first meeting is hidden-discovery gated; once bonded the Sky Sovereign returns only as a rematch within the real-time daily limit and cooldown
+        if (lair.scenarioId === "vyrak" && ((gear && !lairRevealed(gear, "vyrak")) || (bonded && !vyrakRematch))) continue;
+        if (inside && scenario && !lairsTriggered.current[lair.id] && !tutorial && !sim.machines.some((m) => m.alive && m.boss)) { lairsTriggered.current[lair.id] = true; if (summonScenarioBoss(sim, scenario, lair.x, lair.z) && lair.scenarioId === "vyrak" && bonded) { onVyrakRematch?.(); alert(sim, "VYRAK REMATCH · No death and a fast kill earn the Covenant ornaments."); } }
         if (!inside && Math.hypot(lair.x - s.x, lair.z - s.z) > LAIR_RADIUS * 4) lairsTriggered.current[lair.id] = false;
       }
       // Story beats (vaelith.ts): the sim decides what happened, these only forward it to the pure reducers

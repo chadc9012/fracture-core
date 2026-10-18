@@ -6,6 +6,7 @@ import { hubStopFor, markHubStopSeen, type HubView } from "@/game/hub-tour";
 import { Button } from "@/components/ui/button";
 import { ArmorSetsPanel } from "./ArmorSetsPanel";
 import { DashTree } from "./DashTree";
+import { EncounterJournal } from "./EncounterJournal";
 import { ActivityBoard } from "./ActivityBoard";
 import { DragoniteBond } from "./DragoniteBond";
 import { ABILITY_NODES, DEFAULT_BUILD, buildSynergy, nodeById, type ActiveBuild } from "@/game/ability-network";
@@ -56,7 +57,7 @@ export function OperationsHub({ initialView = "DUNGEONS", progression, onProgres
         {view === "DUNGEONS" && <DungeonOperations progression={progression} onProgression={onProgression} />}
         {view === "ARSENAL" && <><Arsenal progression={progression} onProgression={onProgression} /><ArmorSetsPanel progression={progression} onProgression={onProgression} /></>}
         {view === "ABILITIES" && <AbilityNetwork progression={progression} onProgression={onProgression} />}
-        {view === "WORLD" && <><WorldSystems />{onStartActivity && <ActivityBoard progression={progression} activeId={activeActivityId} onStart={onStartActivity} />}</>}
+        {view === "WORLD" && <><WorldSystems /><EncounterJournal progression={progression} />{onStartActivity && <ActivityBoard progression={progression} activeId={activeActivityId} onStart={onStartActivity} />}</>}
         {view === "SOCIAL" && <SocialSystems />}
       </div>
     </div>

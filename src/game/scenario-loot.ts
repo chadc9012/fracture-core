@@ -82,7 +82,7 @@ export const SCENARIO_LOOT: Readonly<Record<string, ScenarioLootEntry>> = {
 
 /** What sim.defeatMachine attaches to a scenario kill. `rolls` are pre-drawn uniform [0,1) numbers (one per chance entry)
  * so the grant itself is deterministic; `participated` is the sim's own hit count check, never a client message. */
-export type ScenarioClaim = { scenarioId: string; runId: string; participated: boolean; rolls: number[] };
+export type ScenarioClaim = { scenarioId: string; runId: string; participated: boolean; rolls: number[]; /** seconds from summon to kill, and deaths during the fight (Vyrak rematch challenges) */ elapsed?: number | undefined; deaths?: number | undefined };
 export type RewardCard = { itemId: string; name: string; rarity: string; slot: string; guaranteed: boolean; outcome: "NEW" | "DUPLICATE_LEVEL" | "DUPLICATE_SHARDS"; level: number; blurb: string };
 export type RewardResult = { progress: PlayerProgression; cards: RewardCard[]; status: "granted" | "already-claimed" | "invalid" | "ineligible" };
 

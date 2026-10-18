@@ -121,3 +121,25 @@ describe("rewards", () => {
   });
   test("dayKey is UTC", () => { expect(dayKeyUtc(Date.UTC(2026, 9, 18, 23, 59))).toBe("2026-10-18"); });
 });
+
+import { challengesMet } from "./dragonite";
+import { VYRAK_REMATCH, markCompleted } from "./activities";
+describe("vyrak rematch limits", () => {
+  test("2 per day, 60 min cooldown from the clear, challenges are measurable", () => {
+    let p = structuredClone(DEFAULT_PROGRESSION);
+    expect(activityState(p, VYRAK_REMATCH, T0).available).toBe(true);
+    p = (startActivity(p, "vyrak-rematch", T0) as any).progression;
+    expect(activityState(p, VYRAK_REMATCH, T0).attemptsLeft).toBe(1);
+    p = markCompleted(p, VYRAK_REMATCH, T0 + 200_000);
+    expect(activityState(p, VYRAK_REMATCH, T0 + 300_000).reason).toBe("On cooldown");
+    expect(activityState(p, VYRAK_REMATCH, T0 + 200_000 + 61 * 60_000).available).toBe(true);
+    p = (startActivity(p, "vyrak-rematch", T0 + 4_000_000) as any).progression;
+    expect(activityState(p, VYRAK_REMATCH, T0 + 4_100_000 + 3600_000).reason).toBe("Daily limit reached");
+  });
+  test("first clear does not spend a rematch attempt", () => { const p = markCompleted(structuredClone(DEFAULT_PROGRESSION), VYRAK_REMATCH, T0); expect(activityState(p, VYRAK_REMATCH, T0 + 61 * 60_000).attemptsLeft).toBe(2); });
+  test("challenges", () => {
+    expect(challengesMet({ elapsed: 200, deaths: 0 })).toEqual(["unbroken-covenant", "wings-of-the-ancient"]);
+    expect(challengesMet({ elapsed: 400, deaths: 1 })).toEqual([]);
+    expect(challengesMet({})).toEqual([]);
+  });
+});
