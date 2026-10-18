@@ -238,7 +238,7 @@ def worn_material(name):
     # base colours: parkerised gunmetal vs black polymer
     base = n.new("ShaderNodeMix"); base.data_type = "RGBA"
     sock(base, "A_Color").default_value = (0.018, 0.019, 0.021, 1)  # black polymer
-    sock(base, "B_Color").default_value = (0.055, 0.057, 0.062, 1)  # dark parkerised gunmetal
+    sock(base, "B_Color").default_value = (0.085, 0.088, 0.095, 1)  # dark parkerised gunmetal
     nt.links.new(attr.outputs["Fac"], base.inputs["Factor"])
     worn = n.new("ShaderNodeMix"); worn.data_type = "RGBA"
     sock(worn, "B_Color").default_value = (0.30, 0.29, 0.27, 1)  # scuffed bare steel

@@ -97,7 +97,7 @@ function RifleAuthored({ m, rig }: { m: Mats; rig: Rig }) {
 class ModelBoundary extends Component<{ children: ReactNode; fallback: ReactNode }, { failed: boolean }> {
   override state = { failed: false };
   static getDerivedStateFromError() { return { failed: true }; }
-  override componentDidCatch(error: unknown) { console.warn("[viewmodel] rifle model unavailable, using procedural rifle:", error); }
+  override componentDidCatch(error: unknown) { console.warn("[viewmodel] model unavailable, using the procedural stand-in:", error); }
   override render() { return this.state.failed ? this.props.fallback : this.props.children; }
 }
 
@@ -223,8 +223,44 @@ const SUPPORT: Record<HandlingClass, { grip: [number, number, number]; well: [nu
 };
 const MUZZLE: Record<HandlingClass, [number, number, number] | null> = { rifle: [0, 0.07, -0.8], pistol: [0, 0.075, -0.22], shotgun: [0, 0.095, -0.75], heavy: [0, 0.08, -0.74], launcher: [0, 0.12, -0.65], sword: null };
 
-/** Gloved hand + armored forearm reaching back toward the camera's lower edge. */
+export const ARMS_URL = "/models/weapons/arms.glb";
+
+/** Authored gloved fist + gauntlet (scripts/build-arms.py). Armour, sleeve and accent take the operator's own
+ * materials; the left arm is the right one mirrored. */
+function ArmAuthored({ m, side }: { m: Mats; side: 1 | -1 }) {
+  const { scene } = useGLTF(ARMS_URL);
+  const parts = useMemo(() => {
+    const byName: Record<string, THREE.Material> = { ArmArmor: m.armor, ArmSleeve: m.sleeve, ArmAccent: m.accent, Glove: m.glove };
+    const pick = (name: string) => {
+      const node = scene.getObjectByName(name);
+      if (!node) return null;
+      const c = node.clone(true);
+      c.position.set(0, 0, 0);
+      c.traverse((o) => {
+        const mesh = o as THREE.Mesh;
+        if (!mesh.isMesh) return;
+        mesh.renderOrder = ORDER; mesh.frustumCulled = false; mesh.castShadow = false;
+        const src = mesh.material as THREE.Material;
+        mesh.material = byName[src.name] ?? m.glove;
+      });
+      return c;
+    };
+    return { hand: pick("ArmHand"), fore: pick("ArmForearm") };
+  }, [scene, m]);
+  return <group scale={[side, 1, 1]}>
+    {parts.hand && <primitive object={parts.hand} />}
+    {/* the forearm drops steeply toward the bottom of the screen (same angle as the procedural arm) */}
+    <group rotation={[1.05, -0.3, 0]}>{parts.fore && <primitive object={parts.fore} />}</group>
+  </group>;
+}
+
 function Arm({ m, side }: { m: Mats; side: 1 | -1 }) {
+  const fallback = <ArmProcedural m={m} side={side} />;
+  return <ModelBoundary fallback={fallback}><Suspense fallback={fallback}><ArmAuthored m={m} side={side} /></Suspense></ModelBoundary>;
+}
+
+/** Gloved hand + armored forearm reaching back toward the camera's lower edge. */
+function ArmProcedural({ m, side }: { m: Mats; side: 1 | -1 }) {
   return <group>
     <Part geo="box" size={[0.06, 0.05, 0.09]} at={[0, 0, 0]} mat={m.glove} />
     <Part geo="box" size={[0.065, 0.06, 0.04]} at={[0, 0.012, 0.06]} mat={m.armor} />
@@ -329,4 +365,4 @@ export function ViewWeapon({ pose, colors }: { pose: { current: ViewPose | null 
     </group>
   </group>;
 }
-if (typeof window !== "undefined") useGLTF.preload(RIFLE_URL);
+if (typeof window !== "undefined") { useGLTF.preload(RIFLE_URL); useGLTF.preload(ARMS_URL); }
