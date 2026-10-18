@@ -5,7 +5,7 @@ import type { WorldSim } from "./sim";
 import { playerPowerScore, rewardPacing } from "./balance";
 import { ARMOR_LEVEL_MAX, grantSetPiece } from "./armor-sets";
 import { grantScenarioReward } from "./scenario-loot";
-import { claimCovenant } from "./dragon-covenant";
+import { recordVyrakClear } from "./dragonite";
 import { upgradeGate } from "./upgrade-gates";
 
 export type MaterialId = "scrapMetal" | "reinforcedAlloy" | "microCircuits" | "thermalShards" | "cryoCrystal" | "sporeFiber" | "bioCatalyst" | "vehicleParts" | "anomalyCarbon" | "dataShards" | "magmaCore" | "zeroCore" | "abyssCore" | "aegisCore" | "forgeCatalyst" | "tuningCore" | "anomalyCore" | "fuel" | "fuelKingCore" | "fractureCore" | "glacierFang" | "nullPlate" | "hollowHalo" | "roninEdge" | "tideCrown" | "crownHeart" | "runeDust" | "dataChip" | "energyToken" | "relicFragment" | "ruinStone" | "gearParts" | "armorStim" | "healStim" | "dragonite";
@@ -102,7 +102,7 @@ export function claimDrops(progress: PlayerProgression, drops: WorldSim["drops"]
     if (drop.scenarioClaim) next = grantScenarioReward(next, drop.scenarioClaim).progress;
     // Vyrak pays no gear through scenario-loot: a confirmed, participated kill bonds the winning Operator class
     // (dragon-covenant.ts — Dragonite set, class ability, Wyrmling). Idempotent per class.
-    if (drop.scenarioClaim?.scenarioId === "vyrak" && drop.scenarioClaim.participated) next = claimCovenant(next, next.identityClass).progression;
+    if (drop.scenarioClaim?.scenarioId === "vyrak" && drop.scenarioClaim.participated) next = recordVyrakClear(next, next.identityClass, drop.scenarioClaim.runId).progression;
     next = collectDrop(next, drop.material, Math.max(1, Math.round(drop.amount * pacing)));
     next = collectDrop(next, "energyToken", 1);
     if (drop.amount >= 3) next = collectDrop(next, "relicFragment", 1);
