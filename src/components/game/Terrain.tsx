@@ -3,6 +3,7 @@ import { DistrictLight } from "./DistrictLight";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
+import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 
 import { REGIONS, WORLD_RADIUS, WORLD_SCALE, type Region } from "@/game/world";
 import type { RenderTier } from "@/game/performance";
@@ -105,11 +106,18 @@ function chunkGeometry(m: ChunkMesh): THREE.BufferGeometry {
   return g;
 }
 
+/** coarse chunks (this LOD and up) are merged in SUPER x SUPER tiles */
+const MERGE_LOD = 2;
+const SUPER = 4;
+const superKey = (cx: number, cz: number) => `${Math.floor(cx / SUPER)},${Math.floor(cz / SUPER)}`;
+
 function Ground() {
   const camera = useThree((s) => s.camera);
   const scene = useThree((s) => s.scene);
   const group = useRef<THREE.Group>(null);
-  const state = useRef({ meshes: new Map<string, { lod: number; mesh: THREE.Mesh }>(), queue: [] as BuildRequest[], active: null as { req: BuildRequest; build: ChunkBuild } | null, fx: NaN, fz: NaN, frames: 0 });
+  const state = useRef({ meshes: new Map<string, { lod: number; mesh: THREE.Mesh }>(), queue: [] as BuildRequest[], active: null as { req: BuildRequest; build: ChunkBuild } | null, fx: NaN, fz: NaN, frames: 0,
+    // far chunks merged into SUPER x SUPER tiles: one draw per tile instead of one per chunk
+    merged: new Map<string, { mesh: THREE.Mesh; members: string[] }>(), mergeDirty: false, lastMerge: 0 });
 
   const { map, normalMap } = useMemo(() => groundDetailTextures(), []);
   // Poly Haven region surfaces; procedural grain stays if any texture fails to load.
@@ -121,12 +129,67 @@ function Ground() {
     return m;
   }, [surfaces, map, normalMap]);
   // existing chunk meshes pick up a replaced material (textures finishing) without rebuilding any geometry
-  useEffect(() => { for (const { mesh } of state.current.meshes.values()) mesh.material = material; }, [material]);
+  useEffect(() => {
+    for (const { mesh } of state.current.meshes.values()) mesh.material = material;
+    for (const { mesh } of state.current.merged.values()) mesh.material = material;
+  }, [material]);
 
   useEffect(() => {
     const st = state.current;
-    return () => { for (const { mesh } of st.meshes.values()) { group.current?.remove(mesh); mesh.geometry.dispose(); } st.meshes.clear(); st.queue = []; st.active = null; st.fx = NaN; };
+    return () => {
+      for (const { mesh } of st.meshes.values()) { group.current?.remove(mesh); mesh.geometry.dispose(); }
+      for (const { mesh } of st.merged.values()) { group.current?.remove(mesh); mesh.geometry.dispose(); }
+      st.meshes.clear(); st.merged.clear(); st.queue = []; st.active = null; st.fx = NaN;
+    };
   }, []);
+
+  /** split a merged tile back into its chunks (a member is being replaced or dropped) */
+  const unmergeChunk = (key: string) => {
+    const st = state.current;
+    const [cx, cz] = key.split(",").map(Number) as [number, number];
+    const tk = superKey(cx, cz);
+    const t = st.merged.get(tk);
+    if (!t) return;
+    group.current?.remove(t.mesh); t.mesh.geometry.dispose(); st.merged.delete(tk);
+    for (const m of t.members) { const e = st.meshes.get(m); if (e) e.mesh.visible = true; }
+    st.mergeDirty = true;
+  };
+  /** returns true when every coarse tile is settled (nothing skipped for a pending rebuild) */
+  const mergeFar = (): boolean => {
+    const st = state.current, g = group.current;
+    if (!g) return false;
+    const pending = new Set(st.queue.map((q) => superKey(q.cx, q.cz)));
+    let settled = true;
+    const tiles = new Map<string, string[]>();
+    for (const [key, e] of st.meshes) {
+      if (e.lod < MERGE_LOD) continue;
+      const [cx, cz] = key.split(",").map(Number) as [number, number];
+      const tk = superKey(cx, cz);
+      const list = tiles.get(tk) ?? []; list.push(key); tiles.set(tk, list);
+    }
+    for (const [tk, members] of tiles) {
+      if (pending.has(tk)) { settled = false; continue; }
+      const had = st.merged.get(tk);
+      if (had) {
+        // unchanged tile: keep it; a chunk joined since: rebuild it with the newcomer
+        if (had.members.length === members.length && members.every((m) => had.members.includes(m))) continue;
+        g.remove(had.mesh); had.mesh.geometry.dispose(); st.merged.delete(tk);
+        for (const m of had.members) { const e = st.meshes.get(m); if (e) e.mesh.visible = true; }
+      }
+      if (members.length < 2) continue;
+      const geos = members.map((k) => st.meshes.get(k)!.mesh.geometry);
+      const merged = mergeGeometries(geos, false);
+      if (!merged) continue;
+      merged.computeBoundingSphere();
+      const mesh = new THREE.Mesh(merged, material);
+      mesh.rotation.x = -Math.PI / 2; mesh.receiveShadow = true; mesh.matrixAutoUpdate = false; mesh.updateMatrix();
+      mesh.name = `ground:tile:${tk}`;
+      g.add(mesh);
+      for (const k of members) st.meshes.get(k)!.mesh.visible = false;
+      st.merged.set(tk, { mesh, members });
+    }
+    return settled;
+  };
 
   // a throw inside a frame callback would stall the whole render loop, so a failed chunk build is logged once and skipped instead
   const failed = useRef(false);
@@ -136,7 +199,7 @@ function Ground() {
     w.__terrainChunks = () => {
       const lods = [0, 0, 0, 0]; let tris = 0;
       for (const { lod, mesh } of st.meshes.values()) { lods[lod]!++; tris += (mesh.geometry.index?.count ?? 0) / 3; }
-      return { chunks: st.meshes.size, byLod: lods, triangles: tris, queued: st.queue.length, building: !!st.active, failed: failed.current };
+      return { chunks: st.meshes.size, byLod: lods, triangles: tris, mergedTiles: st.merged.size, mergedChunks: [...st.merged.values()].reduce((n, t) => n + t.members.length, 0), queued: st.queue.length, building: !!st.active, failed: failed.current };
     };
     return () => { delete w.__terrainChunks; };
   }, []);
@@ -159,11 +222,15 @@ function Ground() {
           return { ...c, dist, lod: lodForDistance(dist, st.meshes.get(chunkKey(c.cx, c.cz))?.lod) };
         });
         const keep = new Set(wanted.map((w) => chunkKey(w.cx, w.cz)));
-        for (const [key, e] of st.meshes) if (!keep.has(key)) { g.remove(e.mesh); e.mesh.geometry.dispose(); st.meshes.delete(key); }
+        for (const [key, e] of st.meshes) if (!keep.has(key)) { unmergeChunk(key); g.remove(e.mesh); e.mesh.geometry.dispose(); st.meshes.delete(key); }
         st.queue = planBuilds(wanted, (k) => st.meshes.get(k)?.lod, new Set(st.active ? [`${chunkKey(st.active.req.cx, st.active.req.cz)}@${st.active.req.lod}`] : []));
         if (st.active && !keep.has(chunkKey(st.active.req.cx, st.active.req.cz))) st.active = null;
       }
-      if (!st.queue.length && !st.active) return;
+      if (!st.queue.length && !st.active) {
+        // streaming has settled: fold the last builds into their merged tiles
+        if (st.mergeDirty && performance.now() - st.lastMerge > 800) { st.lastMerge = performance.now(); st.mergeDirty = !mergeFar(); }
+        return;
+      }
       st.frames++;
       const budget = st.frames < WARMUP_FRAMES ? WARMUP_BUDGET_MS : BUILD_BUDGET_MS;
       const t0 = performance.now();
@@ -186,10 +253,14 @@ function Ground() {
         mesh.updateMatrix();
         mesh.name = `ground:${key}@${req.lod}`;
         const old = st.meshes.get(key);
-        if (old) { g.remove(old.mesh); old.mesh.geometry.dispose(); }
+        if (old) { unmergeChunk(key); g.remove(old.mesh); old.mesh.geometry.dispose(); }
         g.add(mesh);
         st.meshes.set(key, { lod: req.lod, mesh });
+        st.mergeDirty = true;
       }
+      // once streaming settles, fold coarse chunks into merged tiles (rebuilt only when their members change)
+      // (also while streaming continues: tiles with a chunk still waiting to rebuild are skipped and picked up next time)
+      if (!st.active && st.mergeDirty && performance.now() - st.lastMerge > 800) { st.lastMerge = performance.now(); st.mergeDirty = !mergeFar(); }
     } catch (error) {
       failed.current = true;
       console.error("[terrain] chunk streaming failed; ground stops updating", error);

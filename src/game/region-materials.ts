@@ -36,9 +36,17 @@ export function applySurfaceBlend(mat: THREE.MeshStandardMaterial, textures: THR
       .replace("#include <begin_vertex>", "#include <begin_vertex>\nvWA = wA; vWB = wB; vSurfUv = position.xy / 9.0;");
     shader.fragmentShader = shader.fragmentShader
       .replace("#include <common>", `#include <common>\n${textures.map((_, i) => `uniform sampler2D uSurf${i};`).join("\n")}\nvarying vec3 vWA; varying vec3 vWB; varying vec2 vSurfUv;`)
+      // only the surfaces that weigh in here are sampled (usually one or two of the six); gradients come from outside the
+      // branches so mip selection stays correct where neighbouring pixels take different branches
       .replace("#include <color_fragment>", `#include <color_fragment>
-      vec3 surf = texture2D(uSurf0, vSurfUv).rgb * vWA.x + texture2D(uSurf1, vSurfUv).rgb * vWA.y + texture2D(uSurf2, vSurfUv).rgb * vWA.z
-        + texture2D(uSurf3, vSurfUv).rgb * vWB.x + texture2D(uSurf4, vSurfUv).rgb * vWB.y + texture2D(uSurf5, vSurfUv).rgb * vWB.z;
+      vec2 sdx = dFdx(vSurfUv), sdy = dFdy(vSurfUv);
+      vec3 surf = vec3(0.0);
+      if (vWA.x > 0.004) surf += textureGrad(uSurf0, vSurfUv, sdx, sdy).rgb * vWA.x;
+      if (vWA.y > 0.004) surf += textureGrad(uSurf1, vSurfUv, sdx, sdy).rgb * vWA.y;
+      if (vWA.z > 0.004) surf += textureGrad(uSurf2, vSurfUv, sdx, sdy).rgb * vWA.z;
+      if (vWB.x > 0.004) surf += textureGrad(uSurf3, vSurfUv, sdx, sdy).rgb * vWB.x;
+      if (vWB.y > 0.004) surf += textureGrad(uSurf4, vSurfUv, sdx, sdy).rgb * vWB.y;
+      if (vWB.z > 0.004) surf += textureGrad(uSurf5, vSurfUv, sdx, sdy).rgb * vWB.z;
       diffuseColor.rgb = mix(diffuseColor.rgb, diffuseColor.rgb * surf * 2.2, 0.8);`);
   };
   mat.needsUpdate = true;

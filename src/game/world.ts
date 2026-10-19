@@ -224,13 +224,30 @@ export function clockLabel(t: number) {
   return `${String(hh).padStart(2, "0")}:${String(mm).padStart(2, "0")}`;
 }
 
-/** Neon City sits beside the Nexus hub; its offset grows with the world (half the wild-region scale) so the districts stay distinct neighbours. */
-export const NEON_OFFSET = { x: 82 * Math.max(1, WORLD_SCALE / 2), z: -38 * Math.max(1, WORLD_SCALE / 2) } as const;
+/** Neon City sits beside the Nexus hub, along this bearing from it */
+const NEON_DIR = { x: 82 / Math.hypot(82, 38), z: -38 / Math.hypot(82, 38) };
+/** the authored spacing (half the wild-region scale), and the room the city plateau needs past it */
+const NEON_BASE_DIST = Math.hypot(82, 38) * Math.max(1, WORLD_SCALE / 2);
+const NEON_CLEAR = 50 + 25 + 20; // plateau fade + the hub's building ring + a gap
+/** Largest city plateau (flat radius, 40..160 m) that fits between the hub and the world's edge, and how far out the city sits
+ * for it: never closer than the authored spacing, pushed out just enough to clear the hub. At the default scale this is
+ * the full 160 m at the authored 271 m; on the smaller ?worldScale=4 map a 135 m city 230 m out (it used to get 70 m,
+ * too small for a single tower block). */
+const NEON_FIT = (() => {
+  const nexus = BASE_REGIONS.find((r) => r.id === "nexus")!;
+  const nx = nexus.x * WORLD_SCALE, nz = nexus.z * WORLD_SCALE, edge = BASE_WORLD_RADIUS * WORLD_SCALE - 40;
+  for (let flat = 160; flat >= 40; flat -= 5) {
+    const dist = Math.max(NEON_BASE_DIST, flat + NEON_CLEAR);
+    if (Math.hypot(nx + NEON_DIR.x * dist, nz + NEON_DIR.z * dist) + flat + 50 < edge) return { flat, dist };
+  }
+  return { flat: 40, dist: NEON_BASE_DIST };
+})();
+export const NEON_OFFSET = { x: NEON_DIR.x * NEON_FIT.dist, z: NEON_DIR.z * NEON_FIT.dist } as const;
 
 /** Neon City's own level ground: flat out to NEON_FLAT metres from its centre, easing back to the land over NEON_FADE.
  * Sized to the room between it and the Nexus hub (the hub's buildings stay within ~25 m of its centre), so at the default
  * scale the whole city — districts, race loop and the tower blocks around them — stands on one level. */
 const NEON_NEXUS = REGIONS.find((r) => r.id === "nexus")!;
 export const NEON_SITE = { x: NEON_NEXUS.x + NEON_OFFSET.x, z: NEON_NEXUS.z + NEON_OFFSET.z } as const;
-export const NEON_FADE = 50;
-export const NEON_FLAT = Math.max(40, Math.min(160, Math.hypot(NEON_OFFSET.x, NEON_OFFSET.z) - 111));
+export const NEON_FADE = 50; // keep equal to the fade inside NEON_FIT
+export const NEON_FLAT = NEON_FIT.flat;
