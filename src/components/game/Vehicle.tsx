@@ -6,6 +6,7 @@ import * as THREE from "three";
 import { MODELS, type ModelKey } from "@/game/models";
 import { softSprite } from "./softSprite";
 import { applyVehicleFinish } from "./VehicleFinish";
+import { perfTierVersion } from "@/game/perf-budget";
 
 /** deep clone of a loaded GLB so the same asset can appear many times */
 export function useModel(key: ModelKey) {
@@ -131,8 +132,11 @@ function CarBody({
   const wheelSrc = useModel("wheel");
   const wheels = useMemo(() => WHEEL_OFFSETS.map(() => applyVehicleFinish(wheelSrc.clone(true))), [wheelSrc]);
   const group = useRef<THREE.Group>(null!);
+  // the quality tier can change mid-game (settings, or the auto-lowering): re-derive paint/glass for the new tier
+  const tierSeen = useRef(perfTierVersion());
 
   useFrame((_, raw) => {
+    if (tierSeen.current !== perfTierVersion()) { tierSeen.current = perfTierVersion(); applyVehicleFinish(shell); wheels.forEach((w) => applyVehicleFinish(w)); }
     const dt = Math.min(raw, 0.05);
     const spin = ((speedRef?.current ?? 0) / (0.3 * scale)) * dt;
     const steer = THREE.MathUtils.clamp(steerRef?.current ?? 0, -0.5, 0.5);
