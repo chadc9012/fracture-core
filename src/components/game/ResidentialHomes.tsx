@@ -1,7 +1,8 @@
 import { useEffect, useMemo } from "react";
 import * as THREE from "three";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
-import { homeBoxes, homeDecks, homeWalls, residences, type Box, type Mat, type Residence } from "@/game/residences";
+import { DESIGNS, homeBoxes, homeDecks, homeWalls, residences, type Box, type Mat, type Residence } from "@/game/residences";
+import { DistrictLight } from "./DistrictLight";
 import { setWalls, clearWalls } from "@/game/walls";
 import { registerDeck } from "@/game/district-decks";
 
@@ -9,6 +10,8 @@ import { registerDeck } from "@/game/district-decks";
  * Walk-in residences (layout and geometry in residences.ts): every home in a city merged into one mesh per material —
  * painted surfaces, glazing, ceiling lights — so twelve furnished houses cost three draw calls, not the thousand-odd a
  * mesh per wall and table would. Colours ride on vertex colours. Walls go to the wall collider, floors to the decks.
+ * Each home also has one warm ceiling light over the living room, managed by DistrictLight: it only exists for the
+ * renderer when you're close (a short range) and counts against the tier's light cap like every other world light.
  */
 const tmp = new THREE.Matrix4(), q = new THREE.Quaternion(), up = new THREE.Vector3(0, 1, 0);
 
@@ -64,6 +67,13 @@ export function ResidentialHomes({ city }: { city: "nexus" | "neon" }) {
     for (const h of homes) { setWalls(h.id, homeWalls(h)); for (const d of homeDecks(h)) registerDeck(d); }
     return () => { for (const h of homes) clearWalls(h.id); };
   }, [homes]);
+  const lamps = useMemo(() => homes.map((h) => {
+    const d = DESIGNS[h.style], z = d.d * 0.16; // living-room centre, between the partition and the front wall
+    return { id: h.id, x: h.x + z * Math.sin(h.rot), y: h.floor + d.h - 0.5, z: h.z + z * Math.cos(h.rot), reach: Math.max(d.w, d.d) };
+  }), [homes]);
   if (!homes.length) return null;
-  return <group name={`residences-${city}`}>{meshes.map((m) => <primitive key={m.name} object={m} />)}</group>;
+  return <group name={`residences-${city}`}>
+    {meshes.map((m) => <primitive key={m.name} object={m} />)}
+    {lamps.map((l) => <DistrictLight key={l.id} range={l.reach + 10} position={[l.x, l.y, l.z]} color="#ffd9a8" intensity={9} distance={l.reach} decay={1.6} castShadow={false} />)}
+  </group>;
 }
