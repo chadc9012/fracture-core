@@ -4,7 +4,9 @@
  * names like paintRed / window / carTire / lightFront. Anything unrecognised is left exactly as it was. */
 import type { RenderTier } from "./performance";
 
-export type CarPart = "paint" | "glass" | "chrome" | "metal" | "rubber" | "lamp" | "other";
+/** `kitbody`: a whole body painted from one palette texture (CC0 kits name it "colormap"): paint, windows and trim
+ * share the surface, so it gets a moderate lacquer rather than a mirror finish */
+export type CarPart = "paint" | "glass" | "chrome" | "metal" | "rubber" | "lamp" | "kitbody" | "other";
 
 export function classifyCarMaterial(name: string): CarPart {
   const n = name.toLowerCase();
@@ -14,6 +16,7 @@ export function classifyCarMaterial(name: string): CarPart {
   if (/chrome|mirror|exhaust|hub/.test(n)) return "chrome";
   if (/steel|metal|rim|grille|grill/.test(n)) return "metal";
   if (/paint|body|car|shell|panel/.test(n)) return "paint";
+  if (/colou?rmap|palette|atlas/.test(n)) return "kitbody";
   return "other";
 }
 
@@ -29,6 +32,9 @@ export function finishFor(part: CarPart, tier: RenderTier): Finish | null {
       : { metalness: 0.4, roughness: 0.32, envMapIntensity: 1.1 };
     // tinted glass: opaque (no interiors to show), near-black and mirror-smooth so it reflects the sky
     case "glass": return { metalness: 0.9, roughness: 0.04, envMapIntensity: 1.6, tint: "#0d161c", ...(rich ? { clearcoat: 1, clearcoatRoughness: 0 } : {}) };
+    case "kitbody": return tier === "LOW" ? null : rich
+      ? { metalness: 0.3, roughness: 0.5, clearcoat: 0.6, clearcoatRoughness: 0.12, envMapIntensity: 1.1 }
+      : { metalness: 0.3, roughness: 0.45, envMapIntensity: 1 };
     case "chrome": return { metalness: 1, roughness: 0.12, envMapIntensity: 1.4 };
     case "metal": return { metalness: 0.75, roughness: 0.38 };
     case "rubber": return { metalness: 0, roughness: 0.92, envMapIntensity: 0.3 };

@@ -12,6 +12,10 @@ export const FOLIAGE_TRIS: Record<BudgetKind, number> = { fir: 280_000, broadlea
 export const REGION_MODEL_TRIS = 220_000;
 /** district point lights that may be on at once; each costs every lit pixel */
 export const LIGHT_CAP: Record<RenderTier, number> = { LOW: 2, MEDIUM: 4, HIGH: 6, ULTRA: 8 };
+/** full 3D trees only this close (m); the crossed-card forest takes over beyond. Measured on an Intel Iris Mac in the
+ * Veridan forest: near trees were ~23 of 43 ms of GPU per frame on LOW (their cost follows triangles, not pixels), and
+ * keeping the nearest 40% saved ~11 ms. HIGH/ULTRA keep the full 130 m (foliage-cull.ts CULL_RADIUS). */
+export const NEAR_TREE_RADIUS: Record<RenderTier, number> = { LOW: 65, MEDIUM: 95, HIGH: 130, ULTRA: 130 };
 /** heavy decorative meshes only cast shadows from HIGH up: the shadow pass redraws every caster */
 export const heavyShadows = (tier: RenderTier) => tier === "HIGH" || tier === "ULTRA";
 

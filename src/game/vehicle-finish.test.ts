@@ -13,7 +13,8 @@ describe("vehicle finish", () => {
     expect(classifyCarMaterial("Rim")).toBe("metal");
     expect(classifyCarMaterial("Headlight")).toBe("lamp");
     expect(classifyCarMaterial("lightBack")).toBe("lamp");
-    expect(classifyCarMaterial("colormap")).toBe("other");
+    expect(classifyCarMaterial("colormap")).toBe("kitbody"); // the Lovable car kit: one palette texture per body
+    expect(classifyCarMaterial("Material.001")).toBe("other");
   });
   test("lamps and unknown materials are left alone; clearcoat only on HIGH/ULTRA", () => {
     for (const t of ["LOW", "MEDIUM", "HIGH", "ULTRA"] as const) {

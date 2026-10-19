@@ -9,20 +9,28 @@ import { softSprite } from "./softSprite";
  * engine damage puts smoke out of the engine bay, light grey and thin at first, thick and black when the engine is
  * failing, then flame near breakdown (additive sprites, no light: a point light is paid for on every lit pixel even at zero); heavy body damage throws the odd spark and scrapes the
  * flanks. Fixed budget: a pool of sprites recycled every frame, no allocations, no physics.
- * Frame: the vehicle group (front toward +z, ground at y 0).
+ * Frame: the vehicle group (front toward +z, ground at y 0). With `bounds` (the body's real box, from Car) the engine
+ * bay, flames, sparks and scrapes sit on the actual hood and flanks; without it they use a typical car's numbers.
+ * (Fixed numbers buried the fire inside every body scaled past ~2x — the jeep showed no flames at all.)
  */
 const PUFFS = 14;
 const LIFE = 1.6;
 const FLAMES = 4;
 const SPARKS = 6;
 const ENGINE: [number, number, number] = [0, 1.55, 1.9];
+/** engine-bay point and flank half-width from the body box: hood height is ~60% up the body, the bay ~20% back from the nose */
+export function bayFrom(b: THREE.Box3 | null | undefined): { x: number; y: number; z: number; side: number; scale: number } {
+  if (!b || b.isEmpty()) return { x: ENGINE[0], y: ENGINE[1], z: ENGINE[2], side: 1.45, scale: 1 };
+  const h = b.max.y - b.min.y, l = b.max.z - b.min.z, w = b.max.x - b.min.x;
+  return { x: (b.min.x + b.max.x) / 2, y: b.min.y + h * 0.6, z: b.max.z - l * 0.2, side: w / 2, scale: Math.max(1, w / 2.9) };
+}
 
 type Puff = { age: number; x: number; y: number; z: number; drift: number; size: number };
 const LIGHT_SMOKE = new THREE.Color("#9aa0a6");
 const BLACK_SMOKE = new THREE.Color("#1a1a1c");
 const tone = new THREE.Color();
 
-export function VehicleDamageFx({ condition, speedRef }: { condition: { current: VehicleCondition }; speedRef?: { current: number } }) {
+export function VehicleDamageFx({ condition, speedRef, bounds }: { condition: { current: VehicleCondition }; speedRef?: { current: number }; bounds?: { current: THREE.Box3 | null } }) {
   const dot = useMemo(() => softSprite("dot"), []);
   const ember = useMemo(() => softSprite("ember"), []);
   const smokeMats = useMemo(() => Array.from({ length: PUFFS }, () => new THREE.SpriteMaterial({ map: dot ?? null, color: "#8a9096", transparent: true, depthWrite: false, opacity: 0 })), [dot]);
@@ -42,6 +50,8 @@ export function VehicleDamageFx({ condition, speedRef }: { condition: { current:
     const c = condition.current;
     const engine = c.engine / 100, body = c.body / 100;
     const speed = Math.abs(speedRef?.current ?? 0);
+    const bay = bayFrom(bounds?.current);
+    if (scratches.current) { scratches.current.scale.set(bay.side / 1.53, bay.scale, bay.scale); scratches.current.position.set(bay.x, 0, 0); }
     // smoke: none until a quarter of the engine is gone, then more, darker and denser toward failure
     const rate = engine < 0.25 ? 0 : 3 + (engine - 0.25) * 22;
     emit.current += rate * dt;
@@ -50,8 +60,8 @@ export function VehicleDamageFx({ condition, speedRef }: { condition: { current:
       emit.current -= 1;
       const p = list.find((q) => q.age >= LIFE);
       if (!p) break;
-      p.age = 0; p.x = ENGINE[0] + (Math.random() - 0.5) * 0.8; p.y = ENGINE[1]; p.z = ENGINE[2] + (Math.random() - 0.5) * 0.6;
-      p.drift = 0.6 + speed * 0.09; p.size = 0.5 + engine * 0.9 + Math.random() * 0.3;
+      p.age = 0; p.x = bay.x + (Math.random() - 0.5) * 0.8 * bay.scale; p.y = bay.y; p.z = bay.z + (Math.random() - 0.5) * 0.6 * bay.scale;
+      p.drift = 0.6 + speed * 0.09; p.size = (0.5 + engine * 0.9 + Math.random() * 0.3) * bay.scale;
     }
     tone.lerpColors(LIGHT_SMOKE, BLACK_SMOKE, Math.min(1, Math.max(0, (engine - 0.35) / 0.4)));
     smokeG.current?.children.forEach((child, i) => {
@@ -75,8 +85,8 @@ export function VehicleDamageFx({ condition, speedRef }: { condition: { current:
       child.visible = burning;
       if (!burning) return;
       const flick = 0.75 + 0.25 * Math.sin(t * (13 + i * 3.1) + i * 1.7);
-      child.position.set(ENGINE[0] + (i - 1.5) * 0.22, ENGINE[1] - 0.15 + flick * 0.25, ENGINE[2] + 0.1 * Math.sin(i));
-      const s = (0.45 + (engine - 0.75) * 1.6) * flick;
+      child.position.set(bay.x + (i - 1.5) * 0.22 * bay.scale, bay.y + flick * 0.25 * bay.scale, bay.z + 0.1 * Math.sin(i));
+      const s = (0.45 + (engine - 0.75) * 1.6) * flick * bay.scale;
       child.scale.set(s, s * 1.5, s);
       flameMats[i]!.opacity = 0.8 * flick;
     });
@@ -87,7 +97,7 @@ export function VehicleDamageFx({ condition, speedRef }: { condition: { current:
       if (sparkClock.current <= 0) {
         sparkClock.current = 0.6 + Math.random() * 1.6;
         const side = Math.random() < 0.5 ? -1 : 1, z = (Math.random() - 0.3) * 3;
-        for (const s of sp) { s.age = 0; s.x = side * 1.45; s.y = 0.9 + Math.random() * 0.6; s.z = z; s.vx = side * (1 + Math.random() * 2); s.vy = 1.5 + Math.random() * 2.5; s.vz = (Math.random() - 0.5) * 2 - speed * 0.05; }
+        for (const s of sp) { s.age = 0; s.x = bay.x + side * bay.side; s.y = (0.9 + Math.random() * 0.6) * bay.scale; s.z = z * bay.scale; s.vx = side * (1 + Math.random() * 2); s.vy = 1.5 + Math.random() * 2.5; s.vz = (Math.random() - 0.5) * 2 - speed * 0.05; }
       }
     }
     sparkG.current?.children.forEach((child, i) => {

@@ -780,6 +780,8 @@ function SceneImpl({
   const carSpeed = useRef(0);
   const carSteer = useRef(0);
   const carBrake = useRef(0);
+  /** the driven body's real bounds (Car fills it), so damage smoke and fire sit on its hood, not inside it */
+  const carBounds = useRef<THREE.Box3 | null>(null);
   const headlamp = useRef<THREE.PointLight>(null);
   const sky = useRef<THREE.Object3D>(null!);
   const skyDomeGroup = useRef<THREE.Group>(null);
@@ -3052,9 +3054,9 @@ function SceneImpl({
 
       {/* drivable wasteland raider — armour plate, ram spikes, roof gun */}
       <group ref={vehicle} visible={vehicleUnlocked}>
-        <VehicleDamageFx condition={condition} speedRef={carSpeed} />
+        <VehicleDamageFx condition={condition} speedRef={carSpeed} bounds={carBounds} />
         {/* no light of its own: the one headlamp below only switches on while you drive (a parked car's lights were lit pixels all game) */}
-        <Car body={selectedVehicle.model} scale={selectedVehicle.modelScale} speedRef={carSpeed} steerRef={carSteer} brakeRef={carBrake} lights={false} />
+        <Car body={selectedVehicle.model} scale={selectedVehicle.modelScale} speedRef={carSpeed} steerRef={carSteer} brakeRef={carBrake} boundsRef={carBounds} lights={false} />
         {/* front ram spikes */}
         {[-1.1, -0.55, 0, 0.55, 1.1].map((x) => (
           <mesh key={x} position={[x, 0.8, 3.5]} rotation={[Math.PI / 2, 0, 0]} castShadow>

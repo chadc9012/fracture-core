@@ -1,6 +1,6 @@
 import { useGLTF } from "@react-three/drei";
 import { useFrame } from "@react-three/fiber";
-import { Component, Suspense, useMemo, useRef, type ReactNode } from "react";
+import { Component, Suspense, useEffect, useMemo, useRef, type ReactNode } from "react";
 import * as THREE from "three";
 
 import { MODELS, type ModelKey } from "@/game/models";
@@ -98,6 +98,7 @@ function CarBody({
   steerRef,
   lights = true,
   brakeRef,
+  boundsRef,
 }: {
   body: ModelKey;
   scale?: number;
@@ -106,6 +107,8 @@ function CarBody({
   lights?: boolean;
   /** 0..1: brake/reverse lamps brighten while it's up (the player's car only) */
   brakeRef?: React.MutableRefObject<number>;
+  /** receives the body's bounds in the car's parent frame (metres, scale applied), so effects can sit on the real body */
+  boundsRef?: React.MutableRefObject<THREE.Box3 | null>;
 }) {
   const raw = useModel(body);
   // real paint, tinted glass, chrome and tyres (VehicleFinish.ts), shared between copies of the same model
@@ -115,8 +118,13 @@ function CarBody({
     const b = new THREE.Box3().setFromObject(shell);
     const w = b.max.x - b.min.x, h = b.max.y - b.min.y;
     const x = w * 0.34, y = b.min.y + h * 0.5, size = Math.max(0.08, Math.min(0.24, w * 0.12));
-    return { front: b.max.z + 0.004, rear: b.min.z - 0.004, x, y, size };
+    return { front: b.max.z + 0.004, rear: b.min.z - 0.004, x, y, size, box: b };
   }, [shell]);
+  useEffect(() => {
+    if (!boundsRef) return;
+    boundsRef.current = new THREE.Box3(lamps.box.min.clone().multiplyScalar(scale), lamps.box.max.clone().multiplyScalar(scale));
+    return () => { boundsRef.current = null; };
+  }, [boundsRef, lamps, scale]);
   const tail = useMemo(() => new THREE.MeshBasicMaterial({ color: new THREE.Color("#ff2a1a").multiplyScalar(0.8), toneMapped: false }), []);
   const head = useMemo(() => new THREE.MeshBasicMaterial({ color: new THREE.Color("#dff3ff").multiplyScalar(2.2), toneMapped: false }), []);
   const flare = useMemo(() => new THREE.SpriteMaterial({ map: softSprite("dot") ?? null, color: "#cfeaff", transparent: true, opacity: 0.55, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false }), []);
