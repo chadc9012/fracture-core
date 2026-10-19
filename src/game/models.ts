@@ -16,7 +16,10 @@ export const MODELS = {
   tower_b: "/__l5e/assets-v1/5092d44c-5549-41c4-b51a-f3e216886c1b/tower-b.glb",
   truck: "/__l5e/assets-v1/6c088128-5442-434b-b5ed-3ccbc6d52326/truck.glb",
   van: "/__l5e/assets-v1/c0075348-1bc6-4e67-81dd-990ce9905412/van.glb",
-  wheel: "/__l5e/assets-v1/95ab0f27-e0d2-453c-8486-229d401f5cc0/wheel.glb",
+  /** authored for this game (scripts/build-vehicles.py): off-road tyre on a beadlock rim, same size/axle as the kit wheel */
+  wheel: "/models/vehicles/wheel-offroad.glb",
+  /** authored Scrap-Built Interceptor body (scripts/build-vehicles.py); wheels come from <Car> */
+  interceptor: "/models/vehicles/interceptor.glb",
 } as const;
 // Note: an earlier "nature-kit" tree/rock GLB pack (hosted off a third-party GitHub repo via
 // jsdelivr) was removed from here — the repo never actually contained a nature-kit directory,

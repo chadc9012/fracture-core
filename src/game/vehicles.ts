@@ -50,7 +50,7 @@ export const VEHICLES: readonly VehicleDefinition[] = [
     domain: "LAND", allegiance: "RESONANT", lore: "A welded highway chassis with a supercharged fracture-fuel engine.",
     role: "Blazing acceleration, heavy drift and a barricade-clearing ram.", weapon: "Ram bar + roof repeater", seats: 2,
     speed: 1.16, hull: 0.88, handling: 1.12, ram: 1.45, collisionRadius: 3.2, terrainGrip: 0.92,
-    model: "race_future", modelScale: 2.45, starter: true,
+    model: "interceptor", modelScale: 2.45, starter: true,
   },
   {
     id: "goliath-tank", name: "GOLIATH Heavy Armored Tank", type: "Military Tracked Vehicle", rarity: "EPIC",
