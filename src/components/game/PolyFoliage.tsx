@@ -10,7 +10,7 @@ import { windSway } from "@/game/wind-sway";
 import { cinematicImported } from "@/game/cinematic-materials";
 import { reportAsset, reportDetail } from "@/game/forest-assets";
 import { CULL_RADIUS, movedEnough } from "@/game/foliage-cull";
-import { NEAR_TREE_RADIUS, PROXY_COLOR, PROXY_MAX, PROXY_RADIUS, farProxies, isProxied, foliageTris, getPerfTier, maxInstances, nearestWithin, perfTierVersion } from "@/game/perf-budget";
+import { NEAR_TREE_MAX, NEAR_TREE_RADIUS, PROXY_COLOR, PROXY_MAX, PROXY_RADIUS, farProxies, isProxied, foliageTris, getPerfTier, maxInstances, nearestWithin, perfTierVersion } from "@/game/perf-budget";
 
 /** Poly Haven (CC0) foliage, simplified + texture-resized offline, rendered as GPU instances
  * (one draw call per sub-mesh). Each species is verified and isolated: on failure the caller
@@ -145,7 +145,9 @@ function Mesh({ name, kind, share, trisPerInstance, part, items, scale, shadows,
     // nearest-first within the species' triangle allowance for the current quality tier (perf-budget.ts)
     const tier = getPerfTier();
     const reach = kind === "fir" || kind === "broadleaf" ? Math.min(radius, NEAR_TREE_RADIUS[tier]) : radius;
-    const idx = nearestWithin(items, cx, cz, reach, Math.max(kind === "rock" || kind === "log" ? (trisPerInstance > 60_000 ? 1 : 2) : 0, maxInstances(foliageTris(kind, getPerfTier()) / share, trisPerInstance)));
+    const budget = maxInstances(foliageTris(kind, tier) / share, trisPerInstance);
+    const cap = kind === "fir" || kind === "broadleaf" ? Math.min(budget, Math.ceil(NEAR_TREE_MAX[tier] / share)) : budget;
+    const idx = nearestWithin(items, cx, cz, reach, Math.max(kind === "rock" || kind === "log" ? (trisPerInstance > 60_000 ? 1 : 2) : 0, cap));
     seenTier.current = perfTierVersion();
     const dst = mesh.instanceMatrix.array as Float32Array;
     idx.forEach((src, k) => dst.set(all.current.subarray(src * 16, src * 16 + 16), k * 16));

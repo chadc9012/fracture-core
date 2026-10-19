@@ -16,6 +16,9 @@ export const LIGHT_CAP: Record<RenderTier, number> = { LOW: 2, MEDIUM: 4, HIGH: 
  * Veridan forest: near trees were ~23 of 43 ms of GPU per frame on LOW (their cost follows triangles, not pixels), and
  * keeping the nearest 40% saved ~11 ms. HIGH/ULTRA keep the full 130 m (foliage-cull.ts CULL_RADIUS). */
 export const NEAR_TREE_RADIUS: Record<RenderTier, number> = { LOW: 65, MEDIUM: 95, HIGH: 130, ULTRA: 130 };
+/** and at most this many full trees per species (nearest first; the rest become cards). In dense forest the radius alone
+ * changed nothing — ~200 trees stood within 65 m — while capping to the nearest ~48 took GPU from 41 to 31 ms (17 -> 24 fps). */
+export const NEAR_TREE_MAX: Record<RenderTier, number> = { LOW: 24, MEDIUM: 45, HIGH: Infinity, ULTRA: Infinity };
 /** heavy decorative meshes only cast shadows from HIGH up: the shadow pass redraws every caster */
 export const heavyShadows = (tier: RenderTier) => tier === "HIGH" || tier === "ULTRA";
 
