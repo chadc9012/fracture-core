@@ -1913,7 +1913,7 @@ function SceneImpl({
 
     /* ---------------- collisions (physics before sim) ---------------- */
     const preCollideSpeed = s.vSpeed;
-    const body = { x: s.x, z: s.z, yaw: s.yaw, vSpeed: s.vSpeed, inVehicle: s.inVehicle };
+    const body = { x: s.x, z: s.z, y: s.y - 1.6, yaw: s.yaw, vSpeed: s.vSpeed, inVehicle: s.inVehicle };
     collidePlayer(sim, body);
     s.x = body.x;
     s.z = body.z;

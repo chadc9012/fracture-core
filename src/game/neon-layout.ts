@@ -42,8 +42,18 @@ function paths(): Seg[] {
   return out;
 }
 
+/** a block given over to a walk-in residence (residences.ts) instead of a tower; `rot` turns its door (local +z) to face the city centre */
+export type HomeLot = { x: number; z: number; rot: 0 | 1 | 2 | 3 };
+/** room a residence needs around a lot centre (largest Neon design, residences.ts, is 16 x 18 m plus its porch) */
+export const HOME_REACH = 13.5;
+
 /** extra keep-out points (local), e.g. shop counters and interior doors, supplied by the caller so this module stays leaf-level */
 export function neonTowers(keepOut: readonly { x: number; z: number; r: number }[] = []): TowerPlacement[] {
+  return neonLayout(keepOut).towers;
+}
+
+/** the whole grid: towers, plus a few outer blocks (spread round the city) that hold residences instead */
+export function neonLayout(keepOut: readonly { x: number; z: number; r: number }[] = []): { towers: TowerPlacement[]; homes: HomeLot[] } {
   const segs = paths();
   const discs = [
     ...NEON_DISTRICTS.map((d) => ({ x: d.dx, z: d.dz, r: d.radius + MARGIN })),
@@ -56,27 +66,49 @@ export function neonTowers(keepOut: readonly { x: number; z: number; r: number }
   const out: TowerPlacement[] = [];
   const lim = NEON_FLAT - 10;
   const n = Math.floor(lim / BLOCK);
+  const clear = (x: number, z: number, ex: number, ez: number) => {
+    const reach = Math.hypot(ex, ez);
+    return Math.hypot(x, z) + reach <= lim && !(Math.abs(x) < coreX + ex && Math.abs(z) < coreZ + ez)
+      && !discs.some((c) => Math.hypot(x - c.x, z - c.z) < c.r + reach) && !segs.some((s) => segDist(s, x, z) < s.half + reach);
+  };
+  // residences take outer blocks with room for the largest design, picked evenly round the compass
+  const want = NEON_FLAT >= 150 ? 4 : NEON_FLAT >= 120 ? 2 : 0;
+  const spots: { x: number; z: number; a: number }[] = [];
+  for (let i = -n; i <= n; i++) for (let j = -n; j <= n; j++) {
+    const x = i * BLOCK, z = j * BLOCK;
+    if (Math.hypot(x, z) >= 70 && clear(x, z, HOME_REACH / Math.SQRT2, HOME_REACH / Math.SQRT2)) spots.push({ x, z, a: Math.atan2(z, x) });
+  }
+  spots.sort((p, q) => p.a - q.a);
+  const homes: HomeLot[] = [];
+  if (want && spots.length) for (let k = 0; k < Math.min(want, spots.length); k++) {
+    const s = spots[Math.floor((k * spots.length) / Math.min(want, spots.length))]!;
+    // door toward the centre: local +z turned by rot quarter-turns is (sin, cos) of rot·π/2
+    const r = Math.round(Math.atan2(-s.x, -s.z) / (Math.PI / 2));
+    homes.push({ x: s.x, z: s.z, rot: (((r % 4) + 4) % 4) as 0 | 1 | 2 | 3 });
+  }
+  const taken = new Set(homes.map((h) => `${h.x},${h.z}`));
   let seed = 9001;
   const rnd = () => { seed = (seed * 1103515245 + 12345) % 2147483648; return seed / 2147483648; };
   for (let i = -n; i <= n; i++) for (let j = -n; j <= n; j++) {
     const x = i * BLOCK, z = j * BLOCK;
     const pick = rnd(), turn = rnd(), tint = rnd();
+    if (taken.has(`${x},${z}`)) continue;
     const d = Math.hypot(x, z);
     const pool = d < 75 ? TALL : d < 115 ? MID : LOW;
     const variant = pool[Math.floor(pick * pool.length)]!;
     const rot = (Math.floor(turn * 4) % 4) as 0 | 1 | 2 | 3;
     const [hx, hz] = TOWER_FOOTPRINT[variant];
     const ex = rot % 2 ? hz : hx, ez = rot % 2 ? hx : hz;
-    const reach = Math.hypot(ex, ez);
-    if (d + reach > lim) continue;
-    if (Math.abs(x) < coreX + ex && Math.abs(z) < coreZ + ez) continue;
-    if (discs.some((c) => Math.hypot(x - c.x, z - c.z) < c.r + reach)) continue;
-    if (segs.some((s) => segDist(s, x, z) < s.half + reach)) continue;
+    if (!clear(x, z, ex, ez)) continue;
     out.push({ x, z, variant, rot, glow: GLOWS[Math.floor(tint * GLOWS.length)]! });
   }
-  return out;
+  return { towers: out, homes };
 }
 
 /** the same placements in world coordinates */
-export const neonTowersWorld = (keepOut: readonly { x: number; z: number; r: number }[] = []) =>
-  neonTowers(keepOut.map((k) => ({ x: k.x - NEON_SITE.x, z: k.z - NEON_SITE.z, r: k.r }))).map((t) => ({ ...t, x: t.x + NEON_SITE.x, z: t.z + NEON_SITE.z }));
+export const neonTowersWorld = (keepOut: readonly { x: number; z: number; r: number }[] = []) => neonLayoutWorld(keepOut).towers;
+
+export function neonLayoutWorld(keepOut: readonly { x: number; z: number; r: number }[] = []) {
+  const l = neonLayout(keepOut.map((k) => ({ x: k.x - NEON_SITE.x, z: k.z - NEON_SITE.z, r: k.r })));
+  return { towers: l.towers.map((t) => ({ ...t, x: t.x + NEON_SITE.x, z: t.z + NEON_SITE.z })), homes: l.homes.map((h) => ({ ...h, x: h.x + NEON_SITE.x, z: h.z + NEON_SITE.z })) };
+}

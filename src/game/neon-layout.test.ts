@@ -12,7 +12,8 @@ describe("Neon City tower blocks", () => {
   const towers = neonTowersWorld(keep);
   test("fills the plateau with a real skyline, deterministically", () => {
     // a real skyline for the plateau the map has room for: 160 m at the default scale, 135 m on the ?worldScale=4 map
-    expect(towers.length).toBeGreaterThan(NEON_FLAT >= 150 ? 40 : NEON_FLAT >= 120 ? 15 : 0);
+    // (a few outer blocks hold walk-in residences instead, residences.ts)
+    expect(towers.length).toBeGreaterThan(NEON_FLAT >= 150 ? 40 : NEON_FLAT >= 120 ? 12 : 0);
     expect(neonTowersWorld(keep)).toEqual(towers);
   });
   test("every tower stands on the plateau, on the street grid, without overlapping another", () => {

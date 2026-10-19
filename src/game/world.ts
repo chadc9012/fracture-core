@@ -251,3 +251,7 @@ const NEON_NEXUS = REGIONS.find((r) => r.id === "nexus")!;
 export const NEON_SITE = { x: NEON_NEXUS.x + NEON_OFFSET.x, z: NEON_NEXUS.z + NEON_OFFSET.z } as const;
 export const NEON_FADE = 50; // keep equal to the fade inside NEON_FIT
 export const NEON_FLAT = NEON_FIT.flat;
+
+/** Nexus City's residential street (residences.ts): a disc south of the outer districts where the walkable-scale
+ * ground rolls (terrain.ts detailHeight) ease out, as they already do around the hub, so houses stand level. */
+export const NEXUS_SUBURB = { x: NEON_NEXUS.x, z: NEON_NEXUS.z + 155, r: 62, fade: 30 } as const;

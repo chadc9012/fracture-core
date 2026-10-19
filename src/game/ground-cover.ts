@@ -6,6 +6,7 @@ import { WATER_LEVEL, fbm, heightAt, slopeAt, riverAt, waterNetwork } from "./te
 import { LANE_HALF_WIDTH, distanceToRoad } from "./lanes";
 import { COVER as MISSION_COVER, isReserved } from "./verdant";
 import { IMPACT_PIT } from "./forest-relief";
+import { inResidence } from "./residences";
 
 export type CoverKind = "flower" | "bush" | "rock" | "reed";
 export type CoverItem = { kind: CoverKind; x: number; z: number; y: number; s: number; r: number; /** resolved hex colour from the region palette */ color: string; /** metres to sink into the ground so a rock on a slope does not hover on its downhill side (presentation only; y stays the terrain height) */ sink?: number };
@@ -41,6 +42,7 @@ export function placeable(x: number, z: number, kind: CoverKind, region: Region 
   void region;
   if (isReserved(x, z, 1)) return false; // the mission pads are fixed world positions, whichever region circle the item came from
   if (distanceToRoad(x, z) < LANE_HALF_WIDTH) return false;
+  if (inResidence(x, z)) return false; // no bushes growing through a living-room floor
   const rv = riverAt(x, z);
   if (rv && kind !== "reed" && rv.dist < rv.w + (kind === "rock" ? 2.6 : 1.2)) return false;
   if (kind === "rock") {

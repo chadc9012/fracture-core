@@ -16,7 +16,7 @@ type C = { x: number; z: number };
 const at = (c: C, id: string) => { const d = NEON_DISTRICTS.find((k) => k.id === id)!; return { x: c.x + d.dx, z: c.z + d.dz, d }; };
 
 const METAL = { color: "#2b313c", metalness: 0.75, roughness: 0.32 } as const;
-const WET = { color: "#0d0a14", metalness: 0.6, roughness: 0.1 } as const;
+const WET = { color: "#0d0a14", metalness: 0.6, roughness: 0.25 } as const;
 
 function DistrictLabel({ x, y, z, text, sub, color }: { x: number; y: number; z: number; text: string; sub: string; color: string }) {
   return <group position={[x, y, z]}>
@@ -34,7 +34,7 @@ function AegisSpire({ c }: { c: C }) {
     addObstacle("tower", x, z - 10, 7, 9999, 3);
     registerDeck({ id: "aegis-plaza", x, z: z + 6, dirX: 0, dirZ: 1, length: 34, width: 26, top: y + 1.2, base: y, ramp: 6 });
   }, [x, z, y]);
-  useFrame(({ clock }) => { if (crown.current) crown.current.emissiveIntensity = 2.4 + Math.sin(clock.elapsedTime * 1.3) * 0.6; });
+  useFrame(({ clock }) => { if (crown.current) crown.current.emissiveIntensity = 1.3 + Math.sin(clock.elapsedTime * 1.3) * 0.3; });
   const tiers = [ [12, 22], [10, 20], [8, 18], [6, 16] ] as const;
   let h = 0;
   return <group>
@@ -42,10 +42,10 @@ function AegisSpire({ c }: { c: C }) {
     <LightBar position={[x, y + 1.25, z + 17]} size={[26, 0.08, 0.08]} color={d.color} />
     <group position={[x, y, z - 10]}>
       {tiers.map(([w, th], i) => { const yy = h + th / 2; h += th; return <group key={i}>
-        <mesh position={[0, yy, 0]} castShadow><boxGeometry args={[w, th, w]} /><meshPhysicalMaterial color="#1b2a3a" metalness={0.9} roughness={0.08} clearcoat={1} /></mesh>
+        <mesh position={[0, yy, 0]} castShadow><boxGeometry args={[w, th, w]} /><meshPhysicalMaterial color="#1b2a3a" metalness={0.9} roughness={0.27} clearcoat={0.55} clearcoatRoughness={0.2} /></mesh>
         {[-1, 1].map((s) => <LightBar key={s} position={[s * (w / 2 + 0.02), yy, 0]} size={[0.06, th * 0.96, 0.25]} color={d.color} />)}
       </group>; })}
-      <mesh position={[0, h + 6, 0]}><coneGeometry args={[3, 12, 4]} /><meshStandardMaterial ref={crown} color="#cfefff" emissive={d.color} emissiveIntensity={2.4} toneMapped={false} /></mesh>
+      <mesh position={[0, h + 6, 0]}><coneGeometry args={[3, 12, 4]} /><meshStandardMaterial ref={crown} color="#cfefff" emissive={d.color} emissiveIntensity={1.3} /></mesh>
       <DistrictLight position={[0, h + 4, 0]} color={d.color} intensity={30} distance={90} decay={2} />
     </group>
     <ShopSign label="AEGIS · CORPORATE" color={d.color} position={[x, y + 5, z + 1]} />

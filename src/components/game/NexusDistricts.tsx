@@ -25,7 +25,7 @@ export function NexusDistricts() {
 }
 
 const LOOK: Record<Style, { color: string; glass: string; lit: number; cell: [number, number]; win: [number, number]; metal: number; rough: number }> = {
-  glass: { color: "#5d7486", glass: "#1b2b3a", lit: 0.42, cell: [2.2, 3.4], win: [0.86, 0.78], metal: 0.6, rough: 0.25 },
+  glass: { color: "#5d7486", glass: "#1b2b3a", lit: 0.42, cell: [2.2, 3.4], win: [0.86, 0.78], metal: 0.32, rough: 0.36 },
   concrete: { color: "#a39a8c", glass: "#1d2229", lit: 0.35, cell: [3.0, 3.4], win: [0.5, 0.5], metal: 0.05, rough: 0.9 },
   industrial: { color: "#4f5458", glass: "#1a1d20", lit: 0.2, cell: [6.0, 4.2], win: [0.35, 0.25], metal: 0.5, rough: 0.7 },
 };
@@ -52,10 +52,19 @@ function windowMaterial(style: Style): THREE.MeshStandardMaterial {
           float inside = step(abs(f.x - 0.5), uWin.x * 0.5) * step(abs(f.y - 0.55), uWin.y * 0.5);
           // window frames read as recessed glass; a hashed share are lit, some cool white, most warm
           float h = wHash(mod(id + floor(vWn.xz * 3.0 + 0.5) * 17.0, 1024.0));
-          diffuseColor.rgb = mix(diffuseColor.rgb, uGlass, inside);
-          float lit = inside * step(h, uLit);
+          // recessed glazing in a dark frame, a centre mullion and a seam at each floor line, plus a little
+          // per-panel variation: all in the facade shader, so no extra draw calls
+          float outer = step(abs(f.x - 0.5), min(0.49, uWin.x * 0.5 + 0.045)) * step(abs(f.y - 0.55), min(0.49, uWin.y * 0.5 + 0.045));
+          float frame = max(0.0, outer - inside);
+          float mullion = inside * (1.0 - step(0.016, abs(f.x - 0.5)));
+          float seam = 1.0 - smoothstep(0.0, 0.025, min(f.y, 1.0 - f.y));
+          diffuseColor.rgb *= (0.95 + 0.1 * wHash(mod(floor(id * 0.5), 1024.0))) * (1.0 - seam * 0.12);
+          diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.055, 0.071, 0.084), frame * 0.88);
+          diffuseColor.rgb = mix(diffuseColor.rgb, uGlass, inside * 0.91);
+          diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.085, 0.105, 0.12), mullion * 0.7);
+          float lit = max(0.0, inside - mullion) * step(h, uLit);
           vec3 warm = mix(vec3(1.0, 0.72, 0.38), vec3(0.75, 0.88, 1.0), step(0.8, fract(h * 7.0)));
-          totalEmissiveRadiance += warm * lit * (0.55 + 0.45 * fract(h * 13.0));
+          totalEmissiveRadiance += warm * lit * (0.42 + 0.38 * fract(h * 13.0));
         }`);
   };
   return m;

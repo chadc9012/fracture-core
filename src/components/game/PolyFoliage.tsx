@@ -44,10 +44,10 @@ export function crossedCards(width: number, height: number, baseY: number): THRE
   g.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
   g.setAttribute("uv", new THREE.Float32BufferAttribute(uv, 2));
   g.setIndex(idx);
+  // each card keeps its own plane normal: the double-sided material flips it for the back face, so both sides
+  // light like the near tree they stand in for (a forced-up normal flipped to point down and darkened every back face)
   g.computeVertexNormals();
-  // normals straight up-and-out read as a lit crown rather than three dark planes
-  const n = g.getAttribute("normal") as THREE.BufferAttribute;
-  for (let i = 0; i < n.count; i++) n.setXYZ(i, 0, 1, 0);
+  g.computeBoundingSphere();
   return g;
 }
 

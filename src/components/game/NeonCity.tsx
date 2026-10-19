@@ -9,6 +9,7 @@ import { NeonRails } from "./NeonRails";
 import { MaglevTrains } from "./MaglevTrains";
 import { NeonDistricts } from "./NeonDistricts";
 import { NeonTowerBlocks } from "./NeonTowerBlocks";
+import { ResidentialHomes } from "./ResidentialHomes";
 import { NEON_FLAT } from "@/game/world";
 
 /**
@@ -33,7 +34,7 @@ function Billboard({ x, z, y, rotY, label, sub, color }: { x: number; z: number;
       </mesh>
       <mesh position={[0, 0, 0.09]}>
         <planeGeometry args={[6, 2.8]} />
-        <meshStandardMaterial color={color} emissive={color} emissiveIntensity={1.4} toneMapped={false} transparent opacity={0.28} />
+        <meshStandardMaterial color={color} emissive={color} emissiveIntensity={0.85} transparent opacity={0.28} />
       </mesh>
       <Text position={[0, sub ? 0.5 : 0, 0.12]} fontSize={0.62} color={color} anchorX="center" anchorY="middle" outlineWidth={0.02} outlineColor="#000000">
         {label}
@@ -97,6 +98,7 @@ export function NeonCity() {
     <group>
       {/* the skyline: authored towers on the street grid across the whole city plateau (neon-layout.ts) */}
       <NeonTowerBlocks />
+      <ResidentialHomes city="neon" />
       <NeonMarketStreet y={y} />
       <NeonTiers c={NEON_CITY_CENTER} />
       <NeonGraffiti c={NEON_CITY_CENTER} />
@@ -107,7 +109,7 @@ export function NeonCity() {
       <mesh position={[NEON_CITY_CENTER.x, y + 0.04, NEON_CITY_CENTER.z]} rotation-x={-Math.PI / 2} receiveShadow>
         <circleGeometry args={[NEON_FLAT - 2, 96]} />
         {/* wet asphalt under the acid rain: glossy so the neon smears across it */}
-        <meshStandardMaterial color="#120a1c" roughness={0.12} metalness={0.55} />
+        <meshStandardMaterial color="#120a1c" roughness={0.28} metalness={0.4} />
       </mesh>
       <DistrictLight position={[NEON_CITY_CENTER.x, y + 8, NEON_CITY_CENTER.z]} color="#ffb36b" intensity={18} distance={60} decay={2} />
       <DistrictLight position={[NEON_CITY_CENTER.x - 20, y + 8, NEON_CITY_CENTER.z + 15]} color="#ffc98a" intensity={16} distance={50} decay={2} />

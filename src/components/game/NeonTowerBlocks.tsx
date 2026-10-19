@@ -4,8 +4,7 @@ import * as THREE from "three";
 import { TOWER_FOOTPRINT, neonTowersWorld, type TowerPlacement, type TowerVariant } from "@/game/neon-layout";
 import { neonPlateauLevel } from "@/game/terrain";
 import { addObstacle } from "@/game/obstacles";
-import { REGIONAL_SHOPS } from "@/game/regional-shops";
-import { INTERIORS } from "@/game/interiors";
+import { neonKeepOut } from "@/game/residences";
 import { QuietModel } from "./Vehicle";
 
 /**
@@ -19,8 +18,8 @@ const VARIANTS: TowerVariant[] = ["A", "B", "C", "D", "E", "F"];
 
 function usePlacements() {
   return useMemo(() => {
-    const keep = [...REGIONAL_SHOPS.map((s) => ({ x: s.x, z: s.z, r: 8 })), ...INTERIORS.map((i) => ({ x: i.doorPos.x, z: i.doorPos.z, r: 6 }))];
-    const list = neonTowersWorld(keep);
+    // same keep-out list the residences are laid out with, so the two can never claim the same block
+    const list = neonTowersWorld(neonKeepOut());
     for (const t of list) {
       const [hx, hz] = TOWER_FOOTPRINT[t.variant];
       addObstacle("tower", t.x, t.z, Math.max(hx, hz) * 0.95, 400, 2);

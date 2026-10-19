@@ -11,6 +11,7 @@ import { REGIONS, type Region } from "./world";
 import { heightAt, smoothstep, walkHeight, WATER_LEVEL } from "./terrain";
 import { LANES, laneLanePoint, laneSamples, type Lane } from "./lanes";
 import { collideBody } from "./obstacles";
+import { collideWalls } from "./walls";
 import {
   createAdaptation,
   dominantBehavior,
@@ -1118,7 +1119,8 @@ export function hurtPlayer(sim: WorldSim, dmg: number, cause: string) {
   }
 }
 
-export type PlayerBody = { x: number; z: number; yaw: number; vSpeed: number; inVehicle: boolean };
+/** `y` (feet), when given, lets a body pass over or under a wall */
+export type PlayerBody = { x: number; z: number; y?: number; yaw: number; vSpeed: number; inVehicle: boolean };
 
 /**
  * Physics pass for the player body: collide with terrain props, war machines
@@ -1128,6 +1130,9 @@ export function collidePlayer(sim: WorldSim, body: PlayerBody) {
   const radius = body.inVehicle ? 3.1 : 1.0;
   const mass = body.inVehicle ? 2.4 : 0.8;
   const speed = body.inVehicle ? body.vSpeed : 8;
+
+  // --- building walls (residences): a person-sized body so doorways stay passable; a vehicle stops at the wall ---
+  if (collideWalls(body, body.inVehicle ? 2.2 : 0.45, body.y) && body.inVehicle) body.vSpeed *= 0.4;
 
   // --- world props (trees, rocks, wrecks, towers) ---
   const impact = collideBody(body, radius, speed, mass);

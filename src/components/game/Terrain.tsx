@@ -14,6 +14,7 @@ import { windSway } from "@/game/wind-sway";
 import { WATER_LEVEL, HEIGHT_K, colorAt, heightAt, slopeAt, riverAt } from "@/game/terrain";
 import { groundDetailTextures, propDetailTextures } from "@/game/detail-texture";
 import { applySurfaceBlend, loadGroundSurfaces, surfaceWeights } from "@/game/region-materials";
+import { getPerfTier } from "@/game/perf-budget";
 import { RegionModels } from "./RegionModels";
 import { PolyFoliage, type Placement } from "./PolyFoliage";
 import { reportAsset } from "@/game/forest-assets";
@@ -120,9 +121,22 @@ function Ground() {
     merged: new Map<string, { mesh: THREE.Mesh; members: string[] }>(), mergeDirty: false, lastMerge: 0 });
 
   const { map, normalMap } = useMemo(() => groundDetailTextures(), []);
+  // ground is mostly seen at a grazing angle: anisotropic filtering keeps it sharp toward the horizon. 8x on HIGH and
+  // ULTRA, 4x below (each extra tap is paid on every ground pixel), never above what the GPU offers.
+  const maxAniso = useThree((s) => s.gl.capabilities.getMaxAnisotropy());
+  const aniso = Math.max(1, Math.min(maxAniso, getPerfTier() === "HIGH" || getPerfTier() === "ULTRA" ? 8 : 4));
+  useEffect(() => { for (const t of [map, normalMap]) { t.anisotropy = aniso; t.needsUpdate = true; } }, [map, normalMap, aniso]);
   // Poly Haven region surfaces; procedural grain stays if any texture fails to load.
   const [surfaces, setSurfaces] = useState<THREE.Texture[] | null>(null);
-  useEffect(() => { let live = true; void loadGroundSurfaces().then((t) => { if (live) setSurfaces(t); }); return () => { live = false; }; }, []);
+  useEffect(() => {
+    let live = true;
+    void loadGroundSurfaces().then((t) => {
+      if (!live || !t) return;
+      for (const tex of t) if (tex.anisotropy !== aniso) { tex.anisotropy = aniso; tex.needsUpdate = true; }
+      setSurfaces(t);
+    });
+    return () => { live = false; };
+  }, [aniso]);
   const material = useMemo(() => {
     const m = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.95, metalness: 0.02, map: surfaces ? null : map, normalMap, normalScale: new THREE.Vector2(0.35, 0.35) });
     if (surfaces) applySurfaceBlend(m, surfaces);

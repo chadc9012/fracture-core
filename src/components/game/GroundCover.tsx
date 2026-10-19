@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
-import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
+import { mergeGeometries, mergeVertices } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import { groundCover, type CoverItem, type CoverKind } from "@/game/ground-cover";
 import { windSway } from "@/game/wind-sway";
 import { organicRock } from "@/game/organic-geometry";
@@ -11,22 +11,55 @@ function reedTexture(): THREE.Texture | null {
   const c = document.createElement("canvas"); c.width = 64; c.height = 128;
   const g = c.getContext("2d"); if (!g) return null;
   let s = 77; const rnd = () => { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; };
-  for (let i = 0; i < 16; i++) {
-    const x = 6 + rnd() * 52, lean = (rnd() - 0.5) * 22, top = 6 + rnd() * 40;
-    const grad = g.createLinearGradient(0, 128, 0, top); grad.addColorStop(0, "#5c7a3a"); grad.addColorStop(1, "#d8e6a0");
-    g.strokeStyle = grad; g.lineWidth = 1.4 + rnd() * 1.6; g.lineCap = "round";
-    g.beginPath(); g.moveTo(x, 128); g.quadraticCurveTo(x + lean * 0.3, 70, x + lean, top); g.stroke();
+  // broad tapered leaves (filled, not hairline strokes, so they survive mipmapping), darker at the root
+  for (let i = 0; i < 22; i++) {
+    const x = 5 + rnd() * 54, tipX = x + (rnd() - 0.5) * 32, tipY = 8 + rnd() * 63, w = 1.3 + rnd() * 3.8;
+    const grad = g.createLinearGradient(x, 128, tipX, tipY);
+    grad.addColorStop(0, i % 3 === 0 ? "#354f26" : "#4e6d30");
+    grad.addColorStop(0.6, i % 4 === 0 ? "#8c9c50" : "#718b40");
+    grad.addColorStop(1, "#b9b77a");
+    g.fillStyle = grad;
+    g.beginPath(); g.moveTo(x - w, 128);
+    g.quadraticCurveTo(x - w * 0.6, 68, tipX, tipY); g.quadraticCurveTo(x + w * 0.8, 76, x + w, 128);
+    g.closePath(); g.fill();
   }
-  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t;
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4; return t;
 }
 
+/** two crossed cards; their real plane normals are kept (double-sided, so the back faces light correctly) —
+ * forced-up normals lit every reed like flat ground in full sun */
 const cards = (w: number, h: number) => {
   const a = new THREE.PlaneGeometry(w, h).translate(0, h / 2, 0), b = new THREE.PlaneGeometry(w, h).translate(0, h / 2, 0).rotateY(Math.PI / 2);
   const g = mergeGeometries([a, b])!;
-  const n = g.getAttribute("normal") as THREE.BufferAttribute;
-  for (let i = 0; i < n.count; i++) n.setXYZ(i, 0, 1, 0);
+  a.dispose(); b.dispose();
   return g;
 };
+
+/** a shrub as four leaf masses rather than one ball: same triangle count as the old single icosahedron (it is drawn ~1,200 times) */
+function shrubCanopy(): THREE.BufferGeometry {
+  const lobes: [number, number, number, number][] = [[0, 0.4, 0, 0.5], [-0.36, 0.3, 0.08, 0.34], [0.33, 0.32, -0.1, 0.36], [0.02, 0.56, -0.26, 0.32]];
+  const parts = lobes.map(([x, y, z, r], i) => new THREE.IcosahedronGeometry(r, 0).scale(1.08, 0.74 + (i % 2) * 0.1, 1.04).rotateY(i * 1.3).translate(x, y, z));
+  const g = mergeVertices(mergeGeometries(parts)!.deleteAttribute("normal").deleteAttribute("uv"));
+  parts.forEach((p) => p.dispose());
+  g.computeVertexNormals();
+  return shade(g, 0.55, 1.05, 0, 0.85);
+}
+
+/** a five-petal flower head as one flat star (10 triangles, double-sided), centre darker through vertex colour */
+function flowerHead(): THREE.BufferGeometry {
+  const pos = [0, 0.365, 0], col = [0.55, 0.45, 0.2], idx: number[] = [];
+  for (let i = 0; i < 10; i++) {
+    const a = (i / 10) * Math.PI * 2, r = i % 2 ? 0.03 : 0.085, lift = i % 2 ? 0.355 : 0.375;
+    pos.push(Math.sin(a) * r, lift, Math.cos(a) * r); col.push(1, 1, 1);
+    idx.push(0, 1 + i, 1 + ((i + 1) % 10));
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
+  g.setAttribute("color", new THREE.Float32BufferAttribute(col, 3));
+  g.setIndex(idx);
+  g.computeVertexNormals();
+  return g;
+}
 
 /** gives geometry a dark-at-the-base vertex colour so bushes and flower heads are not flat blobs */
 function shade(geo: THREE.BufferGeometry, lo: number, hi: number, minY: number, maxY: number) {
@@ -70,17 +103,22 @@ export function GroundCover({ density }: { density: number }) {
 
   const assets = useMemo(() => {
     const stem = new THREE.CylinderGeometry(0.012, 0.016, 0.34, 3).translate(0, 0.17, 0);
-    const head = new THREE.OctahedronGeometry(0.075, 0).scale(1, 0.55, 1).translate(0, 0.36, 0);
-    const bush = shade(new THREE.IcosahedronGeometry(0.55, 1).scale(1, 0.72, 1).translate(0, 0.3, 0), 0.5, 1.05, -0.1, 0.7);
-    const rock = shade(organicRock(0.5, 11, 1), 0.65, 1.0, -0.5, 0.5);
+    const head = flowerHead();
+    const bush = shrubCanopy();
+    // weathered rather than faceted: weld the boulder's vertices so its normals smooth across faces
+    const rockRaw = organicRock(0.5, 11, 1);
+    const rock = mergeVertices(rockRaw.deleteAttribute("normal").deleteAttribute("uv"));
+    rockRaw.dispose();
+    rock.computeVertexNormals();
+    shade(rock, 0.65, 1.0, -0.5, 0.5);
     const reed = cards(0.55, 1.5);
     const reedTex = reedTexture();
     return {
       stem, head, bush, rock, reed,
       stemMat: new THREE.MeshStandardMaterial({ color: "#4f7a3a", roughness: 1 }),
-      headMat: new THREE.MeshStandardMaterial({ color: "#ffffff", roughness: 0.7, emissive: new THREE.Color("#ffffff"), emissiveIntensity: 0.08 }),
+      headMat: new THREE.MeshStandardMaterial({ color: "#ffffff", vertexColors: true, roughness: 0.9, side: THREE.DoubleSide }),
       bushMat: new THREE.MeshStandardMaterial({ color: "#ffffff", vertexColors: true, roughness: 1 }),
-      rockMat: new THREE.MeshStandardMaterial({ color: "#ffffff", vertexColors: true, roughness: 0.95, flatShading: true }),
+      rockMat: new THREE.MeshStandardMaterial({ color: "#ffffff", vertexColors: true, roughness: 0.95 }),
       reedMat: new THREE.MeshStandardMaterial({ map: reedTex, color: "#ffffff", alphaTest: 0.4, side: THREE.DoubleSide, roughness: 1 }),
     };
   }, []);

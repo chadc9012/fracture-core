@@ -59,6 +59,10 @@ export function loadGroundSurfaces(): Promise<THREE.Texture[] | null> {
   const loader = new THREE.TextureLoader();
   pending = Promise.all(GROUND_SURFACES.map((url) => loader.loadAsync(url).then((t) => {
     t.wrapS = t.wrapT = THREE.RepeatWrapping; t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4; return t;
-  }))).catch(() => null);
+  }))).catch(() => {
+    // a dropped request must not pin every biome to the fallback for the life of the page: the next mount retries
+    pending = null;
+    return null;
+  });
   return pending;
 }

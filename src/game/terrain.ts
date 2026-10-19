@@ -1,7 +1,7 @@
 import { CRASH_SITE, trailMask } from "./verdant";
 import { districtDeckAt } from "./district-decks";
 import { forestRelief, openWoods, IMPACT_PIT } from "./forest-relief";
-import { REGIONS, WORLD_RADIUS, BASE_WORLD_REGIONS, BASE_WORLD_RADIUS, WORLD_SCALE, HEIGHT_K, NEON_SITE, NEON_FLAT, NEON_FADE } from "./world";
+import { REGIONS, WORLD_RADIUS, BASE_WORLD_REGIONS, BASE_WORLD_RADIUS, WORLD_SCALE, HEIGHT_K, NEON_SITE, NEON_FLAT, NEON_FADE, NEXUS_SUBURB } from "./world";
 import { LANES, ROAD_SAMPLES, laneSamples, distanceToRoad } from "./lanes";
 import { coastShape } from "./coastline";
 import { wetnessAt, wetTint } from "./wetness";
@@ -146,7 +146,9 @@ function detailHeight(x: number, z: number): number {
   if (city <= 0) return 0;
   const open = openWoods(x, z);
   if (open <= 0) return 0;
-  return (fbm(x * 0.04 + 11, z * 0.04 - 5, 2) - 0.5) * 2 * DETAIL_AMP * city * open;
+  const suburb = smoothstep(NEXUS_SUBURB.r, NEXUS_SUBURB.r + NEXUS_SUBURB.fade, Math.hypot(x - NEXUS_SUBURB.x, z - NEXUS_SUBURB.z));
+  if (suburb <= 0) return 0;
+  return (fbm(x * 0.04 + 11, z * 0.04 - 5, 2) - 0.5) * 2 * DETAIL_AMP * city * open * suburb;
 }
 
 /** the landform water is traced on: stretched base terrain + forest relief, WITHOUT the small world-space rolls (those would trap streams in pits) */
@@ -162,11 +164,27 @@ export function neonPlateauLevel(): number {
   return neonLevel;
 }
 
-/** the landform with Neon City's plateau levelled in, so rivers are traced around the city instead of through it */
+/** 1 on Nexus City's residential street (world.ts NEXUS_SUBURB), easing to 0 over its fade */
+export function suburbWeight(x: number, z: number): number {
+  if (WORLD_SCALE === 1) return 0;
+  const d = Math.hypot(x - NEXUS_SUBURB.x, z - NEXUS_SUBURB.z);
+  return d >= NEXUS_SUBURB.r + NEXUS_SUBURB.fade ? 0 : 1 - smoothstep(NEXUS_SUBURB.r, NEXUS_SUBURB.r + NEXUS_SUBURB.fade, d);
+}
+let suburbLevel: number | null = null;
+/** the level the street is graded to: the natural ground at its centre */
+export function suburbGroundLevel(): number {
+  if (suburbLevel === null) suburbLevel = Math.max(WATER_LEVEL + 2, landformAt(NEXUS_SUBURB.x, NEXUS_SUBURB.z));
+  return suburbLevel;
+}
+
+/** the landform with Neon City's plateau (and the Nexus residential street) levelled in, so rivers are traced around them */
 function smoothHeightAt(x: number, z: number): number {
-  const h = landformAt(x, z);
+  let h = landformAt(x, z);
   const w = neonPlateauWeight(x, z);
-  return w <= 0 ? h : h + (neonPlateauLevel() - h) * w;
+  if (w > 0) h += (neonPlateauLevel() - h) * w;
+  const s = suburbWeight(x, z);
+  if (s > 0) h += (suburbGroundLevel() - h) * s;
+  return h;
 }
 
 function landformAt(x: number, z: number): number {
