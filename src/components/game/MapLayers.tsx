@@ -14,7 +14,7 @@ const LABELS = placeLabels(REGIONS.map((r) => ({ id: r.id, name: r.name.toUpperC
 const GRID = graticule(E, 200);
 const BAR = scaleBarMeters(E);
 
-export function MapLayers({ art, preview, selected, recommended, onSelect, children, showZones = true }: { art: string | null; preview?: boolean; selected: string; recommended?: string | undefined; onSelect: (id: string) => void; children?: ReactNode; showZones?: boolean }) {
+export function MapLayers({ art, preview, selected, recommended, onSelect, children, showZones = true, labelScale = 1 }: { art: string | null; preview?: boolean; selected: string; recommended?: string | undefined; onSelect: (id: string) => void; children?: ReactNode; showZones?: boolean; /** shrink region markers and names when the map is zoomed in, so they stop covering the detail */ labelScale?: number }) {
   const stroke = (n: number) => E * 0.0022 * n;
   return <>
     <rect x={-E} y={-E} width={E * 2} height={E * 2} fill={MAP_OCEAN_EDGE} />
@@ -31,7 +31,7 @@ export function MapLayers({ art, preview, selected, recommended, onSelect, child
     {children}
     {REGIONS.map((r) => {
       const on = r.id === selected, rec = r.id === recommended, color = ZONE_COLOR[r.kind], label = LABELS.find((l) => l.id === r.id)!;
-      return <g key={`l-${r.id}`} onClick={() => onSelect(r.id)} className="cursor-pointer">
+      return <g key={`l-${r.id}`} onClick={() => onSelect(r.id)} className="cursor-pointer" transform={labelScale === 1 ? undefined : `translate(${r.x} ${r.z}) scale(${labelScale}) translate(${-r.x} ${-r.z})`}>
         <circle cx={r.x} cy={r.z} r={MARKER_R * (on ? 1.35 : 1)} fill={color} stroke="#06101f" strokeWidth={stroke(1.3)} />
         <circle cx={r.x} cy={r.z} r={MARKER_R * (on ? 2.1 : 1.7)} fill="none" stroke={color} strokeOpacity={on ? 0.9 : 0.5} strokeWidth={stroke(0.9)} />
         <text x={label.x} y={label.y} textAnchor={label.anchor} fontSize={MAP_FONT} fontWeight={on ? 700 : 600} fill={on ? "#ffffff" : "#e8f0f8"} stroke="#06101f" strokeWidth={MAP_FONT * 0.2} strokeLinejoin="round" paintOrder="stroke" className="font-mono" style={{ letterSpacing: "0.06em" }}>{r.name.toUpperCase()}{rec ? " ◆" : ""}</text>

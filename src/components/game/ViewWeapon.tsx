@@ -111,13 +111,15 @@ function Rifle({ m, rig }: { m: Mats; rig: Rig }) {
  * Each GLB has <Prefix>Body (+ <Prefix>Blade on the sword), <Prefix>Mag pivoted at the reload rig's position below,
  * <Prefix>Action at the grip origin (slide, pump, charging handle) and <Prefix>Accent, recoloured per operator.
  * The procedural model stands in while the file loads or if it can't be fetched. */
+/** blade (-z) tipped up and forward ~35 deg from the fist. The old -1.1 rad pointed it down and out of view, leaving only the pommel on screen. */
+const SWORD_HOLD: [number, number, number] = [0.6, 0, 0];
 type AuthoredSpec = { url: string; prefix: string; mag?: [number, number, number]; edge?: boolean; wrap?: [number, number, number] };
 const AUTHORED: Record<Exclude<HandlingClass, "rifle">, AuthoredSpec> = {
   pistol: { url: "/models/weapons/pistol.glb", prefix: "Pistol", mag: [0, -0.01, 0.005] },
   shotgun: { url: "/models/weapons/shotgun.glb", prefix: "Shotgun", mag: [0, 0.02, -0.12] },
   heavy: { url: "/models/weapons/heavy.glb", prefix: "Heavy", mag: [0, 0, -0.2] },
   launcher: { url: "/models/weapons/launcher.glb", prefix: "Launcher", mag: [0, 0.12, 0.25] },
-  sword: { url: "/models/weapons/sword.glb", prefix: "Sword", edge: true, wrap: [-1.1, 0, 0] },
+  sword: { url: "/models/weapons/sword.glb", prefix: "Sword", edge: true, wrap: SWORD_HOLD },
 };
 
 function AuthoredWeapon({ spec, m, rig }: { spec: AuthoredSpec; m: Mats; rig: Rig }) {
@@ -245,7 +247,7 @@ function Launcher({ m, rig }: { m: Mats; rig: Rig }) {
 
 function Sword({ m }: { m: Mats; rig: Rig }) {
   // held upright-forward; the edge glows in the operator's accent
-  return <group rotation={[-1.1, 0, 0]}>
+  return <group rotation={SWORD_HOLD}>
     <Part geo="box" size={[0.03, 0.03, 0.16]} at={[0, 0, 0.04]} mat={m.glove} />
     <Part geo="box" size={[0.14, 0.03, 0.035]} at={[0, 0, -0.05]} mat={m.metal} />
     <Part geo="box" size={[0.045, 0.008, 0.85]} at={[0, 0, -0.5]} mat={m.blade} />
