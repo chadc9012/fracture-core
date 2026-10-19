@@ -644,6 +644,33 @@ function SceneImpl({
       look: (yawDeg = 0, pitchDeg = 0) => { state.current.yaw = (yawDeg * Math.PI) / 180; state.current.pitch = (pitchDeg * Math.PI) / 180; return "ok"; },
       // what the camera can actually see around the player: named scene groups within `r` metres (verifies set pieces mounted)
       near: (r = 60) => { const out: string[] = []; const p = new THREE.Vector3(); scene.traverse((o) => { if (!o.name || out.length > 60) return; o.getWorldPosition(p); const st = state.current; if (Math.hypot(p.x - st.x, p.z - st.z) < r) out.push(`${o.name}@${Math.round(p.x)},${Math.round(p.y)},${Math.round(p.z)}`); }); return out; },
+      /** what the frame costs: every visible, on-screen mesh grouped by its nearest named ancestor (draws, instances, triangles) */
+      census: (top = 25) => {
+        const three = getThree(); const cam = three.camera; cam.updateMatrixWorld();
+        const frustum = new THREE.Frustum().setFromProjectionMatrix(new THREE.Matrix4().multiplyMatrices(cam.projectionMatrix, cam.matrixWorldInverse));
+        const groups = new Map<string, { draws: number; inst: number; tris: number; shadow: number }>();
+        const sphere = new THREE.Sphere();
+        three.scene.traverseVisible((o) => {
+          const m = o as THREE.Mesh & { count?: number; isInstancedMesh?: boolean };
+          if (!m.isMesh && !(o as THREE.Sprite).isSprite) return;
+          if (m.frustumCulled !== false && m.geometry) {
+            if (!m.geometry.boundingSphere) m.geometry.computeBoundingSphere();
+            const bs = (m as THREE.InstancedMesh).boundingSphere ?? m.geometry.boundingSphere;
+            if (bs) { sphere.copy(bs).applyMatrix4(m.matrixWorld); if (!frustum.intersectsSphere(sphere)) return; }
+          }
+          let key = ""; for (let q: THREE.Object3D | null = o; q; q = q.parent) if (q.name) { key = q.name.split(":")[0]!.split("@")[0]!; break; }
+          if (!key) { const mat = (Array.isArray(m.material) ? m.material[0] : m.material) as THREE.MeshStandardMaterial | undefined; key = `?${m.geometry?.type ?? "sprite"}/${mat?.type ?? ""}/${mat?.name || mat?.color?.getHexString?.() || ""}`; }
+          const g = groups.get(key) ?? { draws: 0, inst: 0, tris: 0, shadow: 0 };
+          const count = m.isInstancedMesh ? (m.count ?? 0) : 1;
+          const idx = m.geometry?.index ? m.geometry.index.count : m.geometry?.attributes["position"]?.count ?? 0;
+          const mats = Array.isArray(m.material) ? m.material.length : 1;
+          g.draws += mats; g.inst += count; g.tris += (idx / 3) * count; if (m.castShadow) g.shadow += mats;
+          groups.set(key, g);
+        });
+        const list = [...groups.entries()].map(([k, v]) => ({ k, ...v, tris: Math.round(v.tris) })).sort((a, b) => b.draws - a.draws);
+        const total = list.reduce((t, g) => ({ draws: t.draws + g.draws, tris: t.tris + g.tris, shadow: t.shadow + g.shadow }), { draws: 0, tris: 0, shadow: 0 });
+        return { total, info: { calls: three.gl.info.render.calls, tris: three.gl.info.render.triangles, programs: three.gl.info.programs?.length, geometries: three.gl.info.memory.geometries, textures: three.gl.info.memory.textures }, top: list.slice(0, top) };
+      },
       // meshes around the camera with what could hide them (visibility up the tree, layers, material side/opacity, frustum culling)
       meshes: (r = 8) => { const camera = getThree().camera; const out: unknown[] = []; const p = new THREE.Vector3(); scene.traverse((o) => { const mesh = o as THREE.Mesh; if (!mesh.isMesh || out.length > 40) return; mesh.getWorldPosition(p); if (p.distanceTo(camera.position) > r) return; let vis = true; for (let q: THREE.Object3D | null = mesh; q; q = q.parent) if (!q.visible) vis = false; const m = mesh.material as THREE.MeshStandardMaterial; out.push({ geo: mesh.geometry.type, at: [p.x, p.y, p.z].map((v) => Math.round(v * 10) / 10), vis, layers: mesh.layers.mask, side: m?.side, op: m?.opacity, tr: m?.transparent, col: m?.color?.getHexString?.(), culled: mesh.frustumCulled, order: mesh.renderOrder }); }); return { cam: [camera.position.x, camera.position.y, camera.position.z].map((v) => Math.round(v * 10) / 10), near: (camera as THREE.PerspectiveCamera).near, layers: camera.layers.mask, list: out }; },
       machines: () => sim.machines.filter((m) => m.alive && m.mission).map((m) => ({ x: Math.round(m.x), z: Math.round(m.z), hp: Math.round(m.hp) })),
