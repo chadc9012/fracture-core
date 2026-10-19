@@ -87,3 +87,28 @@ describe("environmental deaths (collision, lightning, burn) are nobody's kill un
     expect(m.lastPlayerDamage).toBe(clock);
   });
 });
+
+/** Regression: the tutorial's "First Contact" drones spawned inside Veridan's stability field and were vaporised
+ * (a field kill pays no kill), so DRONES stayed 0/2 and new players were stuck. Scripted machines are exempt. */
+describe("safe-zone stability field", () => {
+  const field = (sim: WorldSim) => {
+    const z = sim.zones.find((s) => s.region.id === "veridan")!;
+    z.owner = "vanguard";
+    return z.region;
+  };
+  const tick = (sim: WorldSim, px: number, pz: number) => { clock += 0.1; stepSim(sim, { px, pz, dt: 0.1, night: 0.5, inVehicle: false }); };
+  it("pushes ordinary machines out of a friendly starter zone", () => {
+    const sim = empty(); const r = field(sim);
+    const m = place(sim, r.x + 5, r.z, 3);
+    tick(sim, r.x, r.z);
+    expect(!m.alive || Math.hypot(m.x - r.x, m.z - r.z) >= r.radius).toBe(true);
+  });
+  it("leaves scripted mission and tutorial machines where they were placed, for the player to kill", () => {
+    const sim = empty(); const r = field(sim);
+    const m = place(sim, r.x + 5, r.z - 28, 3, { mission: true });
+    for (let i = 0; i < 10; i++) tick(sim, r.x + 5, r.z);
+    expect(m.alive).toBe(true);
+    expect(Math.hypot(m.x - r.x, m.z - r.z)).toBeLessThan(r.radius);
+    expect(sim.alerts.some((a) => /stability field vaporised/.test(a.text))).toBe(false);
+  });
+});

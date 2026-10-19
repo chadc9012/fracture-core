@@ -809,6 +809,8 @@ function SceneImpl({
   const tutorialStage = useRef<TutorialState["step"] | null>(null);
   const tutorialKills = useRef(0);
   const sentinel = useRef<WorldSim["machines"][number] | null>(null);
+  /** machines spawned for the current tutorial step; survivors lose their mission tag when the step ends */
+  const tutorialSpawns = useRef<WorldSim["machines"]>([]);
   const lastLockdownTier = useRef<LockdownTier>("MONITORING");
 
   const state = useRef({
@@ -880,6 +882,9 @@ function SceneImpl({
     const s = state.current;
     if (tutorial && tutorial.step !== tutorialStage.current) {
       tutorialStage.current = tutorial.step;
+      // a spare drone left from the previous step must not hold later mission "wave cleared" checks open
+      for (const m of tutorialSpawns.current) if (m.alive) m.mission = false;
+      tutorialSpawns.current = [];
       if (tutorial.step === "CONTACT" || tutorial.step === "SENTINEL") {
         const count = tutorial.step === "CONTACT" ? 3 : 1;
         for (let i = 0; i < count; i++) {
@@ -888,6 +893,9 @@ function SceneImpl({
           machine.alive = true; machine.x = s.x + (i - (count - 1) / 2) * 8; machine.z = s.z - 28;
           machine.y = walkHeight(machine.x, machine.z); machine.hp = tutorial.step === "SENTINEL" ? 14 : 3;
            machine.scale = tutorial.step === "SENTINEL" ? 2 : 1; machine.zone = "veridan"; machine.cool = 2; machine.elite = tutorial.step === "SENTINEL"; machine.boss = tutorial.step === "SENTINEL"; machine.profile = tutorial.step === "SENTINEL" ? "Adaptive Sentinel" : "Cyber-Corrupted Drone"; machine.kind = "OVERCLOCKED"; machine.drop = "microCircuits"; machine.kx = 0; machine.kz = 0;
+          // tagged as a scripted machine so the Veridan stability field leaves it for the player; pooled-slot leftovers cleared
+          Object.assign(machine, { mission: true, vulnUntil: 0, vulnMult: 1, encounter: undefined, decoy: undefined, living: undefined, scenarioId: undefined, eq: undefined, swimY: undefined, nemesis: undefined, nemesisWeak: undefined, nemesisDamage: undefined, rival: undefined });
+          tutorialSpawns.current.push(machine);
           if (tutorial.step === "SENTINEL") sentinel.current = machine;
         }
         tutorialKills.current = sim.kills;

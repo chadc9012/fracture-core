@@ -1573,11 +1573,13 @@ export function stepSim(sim: WorldSim, input: SimInput) {
   // ---------- safe-zone stability field ----------
   // enemies can never enter a friendly safe zone: the field shoves them back
   // out across the boundary and burns their armour while they touch it.
+  // Scripted mission/tutorial machines are exempt: they are placed on purpose and the
+  // mission or tutorial step waits on the player killing them (a field kill pays no kill).
   for (const z of sim.zones) {
     const r = z.region;
     if ((r.kind !== "safe" && r.kind !== "starter") || z.owner !== "vanguard") continue;
     for (const m of sim.machines) {
-      if (!m.alive) continue;
+      if (!m.alive || m.mission) continue;
       const dx = m.x - r.x;
       const dz = m.z - r.z;
       const d = Math.hypot(dx, dz) || 0.001;
