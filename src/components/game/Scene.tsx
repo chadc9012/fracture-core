@@ -2614,7 +2614,8 @@ function SceneImpl({
         f.motion.phase = f.view.phase; f.motion.intensity = f.view.intensity; f.motion.swing = f.view.swing; f.motion.lean = f.view.lean; f.motion.air = !s.grounded && !s.diving; f.motion.stance = move.current.state.stance; f.motion.slideT = move.current.state.slideLeft > 0 ? 1 - move.current.state.slideLeft / SLIDE_SECONDS : -1;
       }
       const override = !s.inVehicle && (s.meleeTime > 0 || s.specialTime > 0);
-      const targetBlend = override || !s.firstPerson ? 1 : 0;
+      // vehicles always use the chase camera: a first-person blend put the camera at the vehicle's centre, inside its body
+      const targetBlend = override || !s.firstPerson || s.inVehicle ? 1 : 0;
       s.cameraBlend += (targetBlend - s.cameraBlend) * (1 - Math.exp(-15 * dt));
       const shoulder = s.inVehicle ? 0 : 1.3 * lockRt.current.state.shoulderSide;
       const vcam = vehicleCamera(handling);
