@@ -1,4 +1,5 @@
 import { Text } from "./SafeText";
+import { DistrictLight } from "./DistrictLight";
 import { useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
@@ -40,7 +41,7 @@ function SentryDock({ restored }: { restored: boolean }) {
       <mesh castShadow rotation-z={Math.PI / 2}><capsuleGeometry args={[2.2, 7, 8, 16]} /><meshStandardMaterial color="#c8a24a" metalness={0.5} roughness={0.45} /></mesh>
       <mesh position={[-4.6, 0.6, 0]}><sphereGeometry args={[1.5, 16, 12]} /><meshPhysicalMaterial color="#9fdcff" transparent opacity={0.45} roughness={0.05} /></mesh>
       <mesh position={[0, 2.5, 0]}><boxGeometry args={[3, 1.2, 1.4]} /><meshStandardMaterial color="#a8853a" metalness={0.5} roughness={0.5} /></mesh>
-      <pointLight position={[-6, 0.4, 0]} color="#fff2c0" intensity={20} distance={30} decay={2} />
+      <DistrictLight range={90} position={[-6, 0.4, 0]} color="#fff2c0" intensity={20} distance={30} decay={2} />
     </group>
     {/* airlock frame and the pressure door that rises once restored */}
     <group name="thal:airlock" position={[a.x, 0, a.z]}>
@@ -54,7 +55,7 @@ function SentryDock({ restored }: { restored: boolean }) {
     <mesh position={[d.x, DOCK_DECK_Y + 0.02, d.z]} rotation-x={-Math.PI / 2}><ringGeometry args={[DOCK.r - 0.6, DOCK.r - 0.2, 48]} /><meshBasicMaterial color="#5fe0ff" toneMapped={false} /></mesh>
     <mesh position={[d.x, DOCK_DECK_Y + 0.03, d.z]} rotation-x={-Math.PI / 2}><ringGeometry args={[4.6, 4.9, 32]} /><meshBasicMaterial color="#ffd27a" toneMapped={false} /></mesh>
     {[-3.65, 3.65].map((zz) => <mesh key={zz} position={[a.x + 0.62, DOCK_DECK_Y + 4, a.z + zz]}><boxGeometry args={[0.08, 7.6, 0.12]} /><meshBasicMaterial color={restored ? "#3dff9a" : "#ffa21a"} toneMapped={false} /></mesh>)}
-    <pointLight position={[d.x - 4, DOCK_DECK_Y + 9, d.z]} color="#bdefff" intensity={60} distance={40} decay={1.6} />
+    <DistrictLight range={110} position={[d.x - 4, DOCK_DECK_Y + 9, d.z]} color="#bdefff" intensity={60} distance={40} decay={1.6} />
     {/* rotating hull alarms around the deck */}
     <group ref={alarms}>
       {[0, 1, 2, 3].map((i) => { const ang = (i / 4) * Math.PI * 2; return <group key={i} position={[d.x + Math.cos(ang) * (DOCK.r - 1), DOCK_DECK_Y + 1.2, d.z + Math.sin(ang) * (DOCK.r - 1)]}>
@@ -107,7 +108,7 @@ function SunkCore() {
   });
   return <group name="thal:core" position={[C.x, 0, C.z]}>
     <mesh position-y={REACTOR_Y - 5.5} rotation-x={-Math.PI / 2}><circleGeometry args={[16, 48]} /><meshBasicMaterial ref={rift} color="#8a3dff" transparent toneMapped={false} /></mesh>
-    <pointLight position={[0, REACTOR_Y - 2, 0]} color="#9a5cff" intensity={60} distance={45} decay={2} />
+    <DistrictLight range={120} position={[0, REACTOR_Y - 2, 0]} color="#9a5cff" intensity={60} distance={45} decay={2} />
     <mesh castShadow position-y={REACTOR_Y}><cylinderGeometry args={[4, 4.6, 6, 12, 1, true]} /><meshStandardMaterial color="#2f3640" metalness={0.8} roughness={0.4} side={THREE.DoubleSide} /></mesh>
     <mesh position-y={REACTOR_Y}><icosahedronGeometry args={[2.2, 1]} /><meshStandardMaterial color="#1a0f2a" emissive="#b07cff" emissiveIntensity={2.4} flatShading /></mesh>
     {Array.from({ length: 5 }, (_, i) => { const a = (i / 5) * Math.PI * 2; return <mesh key={i} castShadow position={[Math.cos(a) * 11, REACTOR_Y + 1, Math.sin(a) * 11]} rotation={[0.2 * (i % 2 ? 1 : -1), -a, 0.35 * (i % 2 ? -1 : 1)]}><boxGeometry args={[0.6, 7, 5]} /><meshStandardMaterial color="#4a3b26" metalness={0.7} roughness={0.55} /></mesh>; })}

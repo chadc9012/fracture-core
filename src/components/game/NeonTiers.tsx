@@ -1,4 +1,5 @@
 import { Text } from "./SafeText";
+import { DistrictLight } from "./DistrictLight";
 import { useEffect, useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
@@ -155,7 +156,7 @@ function Undercity() {
         {k.kind === "den" && <group>
           <mesh position-y={1.4}><boxGeometry args={[3.6, 2.8, 2.4]} /><meshStandardMaterial color="#1a1516" roughness={0.9} /></mesh>
           {[-0.9, 0, 0.9].map((x) => <mesh key={x} position={[x, 1.3, 1.22]}><planeGeometry args={[0.85, 2.3]} /><meshStandardMaterial color="#4a0f18" roughness={1} side={THREE.DoubleSide} /></mesh>)}
-          <pointLight position={[0, 2.2, 1.6]} color="#ff2a3a" intensity={4} distance={7} decay={2} />
+          <DistrictLight range={45} position={[0, 2.2, 1.6]} color="#ff2a3a" intensity={4} distance={7} decay={2} />
         </group>}
         {k.kind === "vent" && <SteamVent />}
       </group>

@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { DistrictLight } from "./DistrictLight";
 import * as THREE from "three";
 import { Text } from "./SafeText";
 import { walkHeight } from "@/game/terrain";
@@ -54,7 +55,7 @@ export function NeonGraffiti({ c }: { c: { x: number; z: number } }) {
         <mesh position={[0, 3.6, 1.55]}><planeGeometry args={[5.4, 1.1]} /><meshBasicMaterial color="#ff4fa3" toneMapped={false} /></mesh>
         <Text position={[0, 3.6, 1.6]} fontSize={0.6} color="#111" anchorX="center" anchorY="middle">KICKZ · SKATE SHOP [Y]</Text>
         <mesh position={[0, 0.02, 3]} rotation-x={-Math.PI / 2}><ringGeometry args={[1.6, 2, 32]} /><meshBasicMaterial color="#b6ff3e" toneMapped={false} /></mesh>
-        <pointLight position={[0, 3, 3]} color="#ff4fa3" intensity={6} distance={14} />
+        <DistrictLight range={60} position={[0, 3, 3]} color="#ff4fa3" intensity={6} distance={14} />
       </group>
     </group>
   );

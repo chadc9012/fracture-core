@@ -1,4 +1,5 @@
 import { useMemo, useRef } from "react";
+import { DistrictLight } from "./DistrictLight";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import { walkHeight } from "@/game/terrain";
@@ -146,7 +147,7 @@ function Smoke({ x, z, seed }: { x: number; z: number; seed: number }) {
     });
   });
   return <group position={[x, base, z]}>
-    <pointLight ref={light} color="#ff7a2a" distance={12} decay={2} />
+    <DistrictLight lightRef={light} range={60} color="#ff7a2a" distance={12} decay={2} />
     <group ref={ref}>{Array.from({ length: N }, (_, i) => <sprite key={i}><spriteMaterial map={tex ?? null} color="#2a2624" transparent depthWrite={false} fog /></sprite>)}</group>
   </group>;
 }

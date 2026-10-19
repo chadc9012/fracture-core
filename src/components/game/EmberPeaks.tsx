@@ -1,4 +1,5 @@
 import { useLayoutEffect, useMemo, useRef } from "react";
+import { DistrictLight } from "./DistrictLight";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import { walkHeight } from "@/game/terrain";
@@ -65,7 +66,7 @@ function LavaFlows() {
         <group key={i}>
           <mesh geometry={g.crust} receiveShadow><meshStandardMaterial color="#161010" emissive="#5a1204" emissiveIntensity={0.6} roughness={1} polygonOffset polygonOffsetFactor={-2} /></mesh>
           <mesh geometry={g.lava} material={mat} renderOrder={2} />
-          <pointLight position={[g.head.x, walkHeight(g.head.x, g.head.z) + 3, g.head.z]} color="#ff5a1a" intensity={25} distance={30} decay={2} />
+          <DistrictLight range={100} position={[g.head.x, walkHeight(g.head.x, g.head.z) + 3, g.head.z]} color="#ff5a1a" intensity={25} distance={30} decay={2} />
         </group>
       ))}
     </group>

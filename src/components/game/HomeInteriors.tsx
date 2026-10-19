@@ -1,4 +1,5 @@
 import { memo, useMemo } from "react";
+import { DistrictLight } from "./DistrictLight";
 import * as THREE from "three";
 import { HOME_INTERIORS, HOME_ROOM_SIZE, INTERIOR_ALTITUDE } from "@/game/interiors";
 import { decorById, homeById, type HousingState, type RoomId } from "@/game/housing";
@@ -38,7 +39,7 @@ function PartMesh({ part }: { part: Part }) {
         {part.shape === "sphere" && <sphereGeometry args={[part.size[0] / 2, 16, 12]} />}
         <meshStandardMaterial color={part.color} emissive={glow ?? "#000"} emissiveIntensity={glow ? 1.2 : 0} roughness={part.rough ?? 0.6} metalness={part.metal ?? 0} transparent={part.opacity !== undefined} opacity={part.opacity ?? 1} depthWrite={part.opacity === undefined} />
       </mesh>
-      {part.light && <pointLight color={glow ?? "#ffd8a0"} intensity={part.light.intensity} distance={part.light.distance} />}
+      {part.light && <DistrictLight range={25} color={glow ?? "#ffd8a0"} intensity={part.light.intensity} distance={part.light.distance} />}
     </group>
   );
 }
@@ -71,7 +72,7 @@ function Room({ index, roomName, decor, exitRoom, style }: { index: number; room
       {w([HALF, H / 2, -3.1], [0.25, H, 3.8])}
       {w([HALF, H / 2, 3.1], [0.25, H, 3.8])}
       {w([HALF, H - 0.4, 0], [0.25, 0.8, 2.4])}
-      <pointLight position={[0, H - 0.5, 0]} color="#e8eeff" intensity={4} distance={11} />
+      <DistrictLight range={25} position={[0, H - 0.5, 0]} color="#e8eeff" intensity={4} distance={11} />
       <Furniture room={roomName} style={style} decor={decor} />
     </group>
   );

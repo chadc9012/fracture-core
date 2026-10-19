@@ -1,4 +1,5 @@
 import { Component, Suspense, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { DistrictLight } from "./DistrictLight";
 import { useFrame } from "@react-three/fiber";
 import { useGLTF } from "@react-three/drei";
 import * as THREE from "three";
@@ -132,7 +133,7 @@ function VyrakBody({ sim }: { sim: WorldSim }) {
     if (weak.current) { weak.current.visible = open; weak.current.scale.setScalar(1 + Math.sin(t * 8) * 0.15); }
   });
   return <group ref={group} visible={false}><group scale={2.6}><DragonModel refs={{ wingL, wingR, head, jaw, core, mouth, weak }} /></group>
-    <pointLight position={[0, 1.4, 1.6]} color="#ff7a2e" intensity={30} distance={22} /></group>;
+    <DistrictLight range={90} position={[0, 1.4, 1.6]} color="#ff7a2e" intensity={30} distance={22} /></group>;
 }
 
 /** Authored GLB bodies for Unique Scenario bosses. Each model is downloaded only once its boss has actually been summoned. */

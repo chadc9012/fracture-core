@@ -1,4 +1,5 @@
 import { useFrame } from "@react-three/fiber";
+import { DistrictLight } from "./DistrictLight";
 import { useMemo, useRef } from "react";
 import * as THREE from "three";
 import { heightAt } from "@/game/terrain";
@@ -220,7 +221,7 @@ function HollowCrown({ gear, playerRef }: { gear?: PlayerProgression | undefined
           <CivilianBody role="ARTISAN" live={live} />
           <mesh position={[1.6, 0.5, 0]}><boxGeometry args={[1.2, 1, 0.6]} /><meshStandardMaterial color="#2b2b2e" metalness={0.8} roughness={0.35} /></mesh>
           <mesh position={[1.6, 0.4, 1.4]}><cylinderGeometry args={[0.8, 1, 0.8, 10]} /><meshStandardMaterial color="#3a1c0c" emissive="#ff6a1a" emissiveIntensity={1.4} toneMapped={false} /></mesh>
-          <pointLight ref={fire} position={[1.6, 1.6, 1.4]} color="#ff8a3a" distance={14} intensity={3} />
+          <DistrictLight lightRef={fire} range={60} position={[1.6, 1.6, 1.4]} color="#ff8a3a" distance={14} intensity={3} />
         </group>
       )}
     </group>
@@ -244,7 +245,7 @@ function GarageView({ id, owned, playerRef }: { id: GarageId; owned: boolean; pl
       <mesh position={[0, 5.4, 5.05]}><boxGeometry args={[9.4, 1.2, 0.2]} /><meshStandardMaterial color="#1b1f24" metalness={0.7} roughness={0.4} /></mesh>
       <mesh position={[0, 0.03, 2]} rotation-x={-Math.PI / 2}><planeGeometry args={[9.6, 14]} /><meshStandardMaterial color="#2a2e33" roughness={0.9} /></mesh>
       {[-4.6, 4.6].map((x) => <mesh key={x} position={[x, 0.05, 5.6]}><boxGeometry args={[0.25, 0.1, 3]} /><meshStandardMaterial color={color} emissive={color} emissiveIntensity={2} toneMapped={false} /></mesh>)}
-      <pointLight position={[0, 5, 1]} color={color} intensity={6} distance={14} />
+      <DistrictLight range={60} position={[0, 5, 1]} color={color} intensity={6} distance={14} />
       {plate && <sprite position={[0, 7.4, 5.2]} scale={[4.6, 1.15, 1]}><spriteMaterial map={plate} transparent depthWrite={false} /></sprite>}
     </group>
   );

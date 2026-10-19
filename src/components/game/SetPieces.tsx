@@ -1,4 +1,5 @@
 import { useMemo, useRef } from "react";
+import { DistrictLight } from "./DistrictLight";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import { walkHeight } from "@/game/terrain";
@@ -49,7 +50,7 @@ function Embers({ wd, len, h }: { wd: number; len: number; h: number }) {
   return (
     <group position={[0, h + 0.2, 0]}>
       <mesh rotation={[-Math.PI / 2, 0, 0]}><planeGeometry args={[wd * 0.8, len * 0.7]} /><meshBasicMaterial ref={glow} color="#ff6a1f" transparent depthWrite={false} blending={THREE.AdditiveBlending} toneMapped={false} /></mesh>
-      <pointLight ref={light} color="#ff7a2a" distance={14} decay={2} />
+      <DistrictLight lightRef={light} range={70} color="#ff7a2a" distance={14} decay={2} />
     </group>
   );
 }
@@ -107,7 +108,7 @@ export function LavaTrench() {
         <group key={i}>
           <mesh geometry={strips[i]![0]}><meshStandardMaterial side={THREE.DoubleSide} ref={i === 0 ? crust : null} color="#1a0f0c" emissive="#ff3a0a" emissiveIntensity={1.1} roughness={1} transparent opacity={0.85} depthWrite={false} polygonOffset polygonOffsetFactor={-2} /></mesh>
           <mesh geometry={strips[i]![1]}><meshBasicMaterial side={THREE.DoubleSide} ref={i === 0 ? lava : null} color="#ff6a14" toneMapped={false} polygonOffset polygonOffsetFactor={-4} /></mesh>
-          {i === 0 && <pointLight position={[f.x, walkHeight(f.x, f.z) + 2, f.z]} color="#ff5a1a" intensity={30} distance={40} decay={2} />}
+          {i === 0 && <DistrictLight range={110} position={[f.x, walkHeight(f.x, f.z) + 2, f.z]} color="#ff5a1a" intensity={30} distance={40} decay={2} />}
         </group>
       ))}
       <group ref={debrisRef}>

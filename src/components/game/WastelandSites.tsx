@@ -1,4 +1,5 @@
 import { useFrame } from "@react-three/fiber";
+import { DistrictLight } from "./DistrictLight";
 import { useMemo, useRef } from "react";
 import * as THREE from "three";
 import { heightAt } from "@/game/terrain";
@@ -39,7 +40,7 @@ function VaultGate({ playerRef }: { playerRef: React.RefObject<THREE.Object3D> }
         {[1.6, 3.6, 5.6].map((h) => <mesh key={h} position={[0, h, -0.25]}><boxGeometry args={[8.6, 0.12, 0.1]} /><meshStandardMaterial color="#ffb23e" emissive="#ffb23e" emissiveIntensity={1.8} toneMapped={false} /></mesh>)}
         <mesh position={[0, -1.4, 2.5]} rotation-x={-0.35}><boxGeometry args={[9, 0.4, 7]} /><meshStandardMaterial color="#35322e" roughness={0.95} /></mesh>
         {tex && <sprite position={[0, 11, 0.5]} scale={[7, 1.75, 1]}><spriteMaterial map={tex} transparent depthWrite={false} /></sprite>}
-        <pointLight position={[0, 6, 3]} color="#ffb23e" intensity={8} distance={22} />
+        <DistrictLight range={80} position={[0, 6, 3]} color="#ffb23e" intensity={8} distance={22} />
       </group>
       <mesh rotation-x={-Math.PI / 2} position={[0, 0.08, 0]}><ringGeometry args={[VAULT_GATE.radius - 0.8, VAULT_GATE.radius, 48]} /><meshBasicMaterial color="#ffb23e" transparent opacity={0.65} toneMapped={false} /></mesh>
     </group>
@@ -66,7 +67,7 @@ function Arena({ playerRef }: { playerRef: React.RefObject<THREE.Object3D> }) {
           <mesh position={[0, 10, 0]}><boxGeometry args={[1.2, 0.5, 0.5]} /><meshStandardMaterial color="#fff4d0" emissive="#ffd88a" emissiveIntensity={2} toneMapped={false} /></mesh>
         </group>
       ))}
-      <pointLight position={[ARENA.x, y0 + 12, ARENA.z]} color="#ffcf8a" intensity={10} distance={40} />
+      <DistrictLight range={100} position={[ARENA.x, y0 + 12, ARENA.z]} color="#ffcf8a" intensity={10} distance={40} />
       {tex && <sprite position={[ARENA.x, y0 + 9, ARENA.z - ARENA.radius - 2]} scale={[8, 2, 1]}><spriteMaterial map={tex} transparent depthWrite={false} /></sprite>}
     </group>
   );

@@ -1,4 +1,5 @@
 import { useMemo, useRef } from "react";
+import { DistrictLight } from "./DistrictLight";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import { walkHeight } from "@/game/terrain";
@@ -54,7 +55,7 @@ export function CoreNodePod({ run }: { run: MissionRun }) {
       <group position={[0, 6, 0]}>
         {/* the core */}
         <mesh ref={core}><icosahedronGeometry args={[1.6, 1]} /><meshStandardMaterial ref={coreMat} color="#2a0f4a" emissive="#b07cff" emissiveIntensity={1} roughness={0.3} metalness={0.1} flatShading /></mesh>
-        <pointLight ref={light} color="#b48cff" intensity={20} distance={60} decay={2} />
+        <DistrictLight lightRef={light} range={140} color="#b48cff" intensity={20} distance={60} decay={2} />
         {/* orbit rings */}
         <group ref={rings}>
           {[2.6, 3.2].map((r, i) => <mesh key={i}><torusGeometry args={[r, 0.06, 6, 64]} /><meshBasicMaterial color={i ? "#7fe6ff" : "#d6b8ff"} toneMapped={false} /></mesh>)}

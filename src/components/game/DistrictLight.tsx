@@ -25,7 +25,8 @@ function evaluate(camera: THREE.Camera) {
   for (const e of registry.values()) { const on = allowed.has(e.id); if (e.light.visible !== on) e.light.visible = on; }
 }
 
-export function DistrictLight({ range = 90, ...props }: { range?: number } & ThreeElements["pointLight"]) {
+/** `lightRef` hands the underlying light to code that animates it (flicker, pulses); visibility stays managed here */
+export function DistrictLight({ range = 90, lightRef, ...props }: { range?: number; lightRef?: React.MutableRefObject<THREE.PointLight | null> } & Omit<ThreeElements["pointLight"], "ref">) {
   const light = useRef<THREE.PointLight>(null);
   const camera = useThree((s) => s.camera);
   const id = useRef(nextId++).current;
@@ -40,5 +41,5 @@ export function DistrictLight({ range = 90, ...props }: { range?: number } & Thr
     lastEval = now;
     evaluate(camera);
   });
-  return <pointLight ref={light} visible={false} {...props} />;
+  return <pointLight ref={(l) => { light.current = l; if (lightRef) lightRef.current = l; }} visible={false} {...props} />;
 }
