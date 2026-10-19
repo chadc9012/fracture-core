@@ -10,7 +10,7 @@ const inputSchema = z.object({
 });
 
 export const analyzeZoneScreenshot = createServerFn({ method: "POST" })
-  .inputValidator((input: unknown) => inputSchema.parse(input))
+  .validator((input: unknown) => inputSchema.parse(input))
   .handler(async ({ data }) => {
     if (data.imageDataUrl.length > 8_000_000) return { analysis: "", error: "Screenshot is too large. Use an image under 6 MB." };
     const key = process.env['LOVABLE_API_KEY'];
