@@ -22,7 +22,10 @@ export function Interiors() {
   useFrame(({ camera }) => {
     const l = light.current;
     if (!l) return;
-    if (camera.position.y < INTERIOR_ALTITUDE - 50) { l.intensity = 0; return; }
+    // out in the world the light is switched off entirely, not just dimmed: three.js shades every lit pixel for each
+    // visible light, even at zero intensity. The light count changes only at a door, once each way.
+    if (camera.position.y < INTERIOR_ALTITUDE - 50) { l.visible = false; return; }
+    l.visible = true;
     let best = INTERIORS[0];
     let bd = Infinity;
     for (const it of INTERIORS) {

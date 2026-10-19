@@ -7,7 +7,7 @@ import { softSprite } from "./softSprite";
 /**
  * What the player's vehicle shows of its real condition (vehicle-condition.ts; no second health system):
  * engine damage puts smoke out of the engine bay, light grey and thin at first, thick and black when the engine is
- * failing, then flame and a flickering glow near breakdown; heavy body damage throws the odd spark and scrapes the
+ * failing, then flame near breakdown (additive sprites, no light: a point light is paid for on every lit pixel even at zero); heavy body damage throws the odd spark and scrapes the
  * flanks. Fixed budget: a pool of sprites recycled every frame, no allocations, no physics.
  * Frame: the vehicle group (front toward +z, ground at y 0).
  */
@@ -33,7 +33,6 @@ export function VehicleDamageFx({ condition, speedRef }: { condition: { current:
   const smokeG = useRef<THREE.Group>(null);
   const flameG = useRef<THREE.Group>(null);
   const sparkG = useRef<THREE.Group>(null);
-  const glow = useRef<THREE.PointLight>(null);
   const scratches = useRef<THREE.Group>(null);
   const emit = useRef(0);
   const sparkClock = useRef(0);
@@ -81,7 +80,6 @@ export function VehicleDamageFx({ condition, speedRef }: { condition: { current:
       child.scale.set(s, s * 1.5, s);
       flameMats[i]!.opacity = 0.8 * flick;
     });
-    if (glow.current) glow.current.intensity = burning ? (2.2 + Math.sin(t * 17) * 0.6 + Math.sin(t * 6.3) * 0.4) * (0.6 + engine) : 0;
     // sparks from a battered body: a short burst every second or two
     const sp = sparks.current;
     if (body >= 0.6) {
@@ -114,7 +112,6 @@ export function VehicleDamageFx({ condition, speedRef }: { condition: { current:
     <group ref={smokeG}>{smokeMats.map((m, i) => <sprite key={i} material={m} visible={false} />)}</group>
     <group ref={flameG}>{flameMats.map((m, i) => <sprite key={i} material={m} visible={false} />)}</group>
     <group ref={sparkG}>{Array.from({ length: SPARKS }, (_, i) => <sprite key={i} material={sparkMat} visible={false} />)}</group>
-    <pointLight ref={glow} position={[ENGINE[0], ENGINE[1] + 0.3, ENGINE[2]]} color="#ff7a2a" intensity={0} distance={9} decay={2} />
     <group ref={scratches} visible={false}>
       {[[-1, 1.15, 0.3, 1.4], [1, 1.0, -0.4, 1.1], [-1, 0.85, -0.9, 0.9], [1, 1.25, 0.8, 0.8], [-1, 1.3, 1.1, 0.7]].map(([side, y, z, len], i) => (
         <mesh key={i} position={[side! * 1.53, y!, z!]} rotation={[0, 0, side! * 0.2]}><boxGeometry args={[0.025, 0.04, len!]} /><meshStandardMaterial color="#a3abb0" metalness={0.8} roughness={0.6} /></mesh>

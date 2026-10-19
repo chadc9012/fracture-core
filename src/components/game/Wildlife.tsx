@@ -7,6 +7,8 @@ import { heightAt } from "@/game/terrain";
 import { mulberry32 } from "@/game/rng";
 import { SPECIES_PROFILE, stepCritter, type Alarms, type Critter } from "@/game/wildlife";
 import { buildPopulation, HABITAT, lakeSurfaceAt } from "@/game/wildlife-habitat";
+import { getPerfTier } from "@/game/perf-budget";
+import type { RenderTier } from "@/game/performance";
 
 /**
  * Ambient wildlife: deer herds, foxes and rabbits in the forest, deer on the Frostspire slopes, songbirds
@@ -19,8 +21,12 @@ import { buildPopulation, HABITAT, lakeSurfaceAt } from "@/game/wildlife-habitat
  * procedural fox as its fallback. Animals further than VIEW_RANGE are hidden and not posed.
  */
 
-const VIEW_RANGE = 130;
-const SKY_RANGE = 420;
+// each animal is a procedural rig of ~10-20 meshes (one draw each) posed every frame, so how far they are drawn is the main
+// cost on integrated GPUs: the tier sets it (measured on an Intel Iris: the wildlife layer alone was ~16 ms of script a frame)
+const VIEW_BY_TIER: Record<RenderTier, number> = { LOW: 60, MEDIUM: 90, HIGH: 130, ULTRA: 160 };
+const SKY_BY_TIER: Record<RenderTier, number> = { LOW: 150, MEDIUM: 250, HIGH: 420, ULTRA: 420 };
+const viewRange = () => VIEW_BY_TIER[getPerfTier()];
+const skyRange = () => SKY_BY_TIER[getPerfTier()];
 const euler = new THREE.Euler(0, 0, 0, "YXZ");
 
 /* ---------- shared geometry (built once) ---------- */
@@ -340,7 +346,7 @@ function CritterView({ c, camera }: { c: Critter; camera: React.RefObject<THREE.
     const g = group.current;
     if (!g) return;
     const cam = camera.current;
-    const range = loco === "soar" ? SKY_RANGE : VIEW_RANGE;
+    const range = loco === "soar" ? skyRange() : viewRange();
     const visible = !cam || Math.hypot(c.x - cam.x, c.z - cam.z) < range;
     g.visible = visible;
     if (!visible) return;
@@ -403,7 +409,7 @@ export function Wildlife({ playerRef }: { playerRef: React.RefObject<THREE.Objec
     // teleports (fast travel, respawn) are not running
     const threat = { x: p.position.x, z: p.position.z, speed: speed > 60 ? 0 : speed, sprinting: speed > 5.5 && speed <= 60 };
     for (const c of critters) {
-      const range = SPECIES_PROFILE[c.species].locomotion === "soar" ? SKY_RANGE : VIEW_RANGE + 40;
+      const range = SPECIES_PROFILE[c.species].locomotion === "soar" ? skyRange() : viewRange() + 40;
       if (Math.hypot(c.x - p.position.x, c.z - p.position.z) > range) continue;
       stepCritter(c, dt, threat, rnd.current, HABITAT, alarms.current, clock.current);
     }
