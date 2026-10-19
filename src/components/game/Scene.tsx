@@ -367,6 +367,8 @@ const SPAWN_REGION = REGIONS.find((r) => r.id === "veridan");
 /** the bigger map needs a longer view: fog distances grow by about half of the extra scale (1 at the original world; camera far is 1800) */
 const VERIDAN_REGION = REGIONS.find((r) => r.id === "veridan")!;
 const FOG_REACH = 1 + (WORLD_SCALE - 1) * 0.2;
+/** furthest fog line per quality tier (m); HIGH/ULTRA keep the full view */
+const FOG_CAP = { LOW: 480, MEDIUM: 700, HIGH: Infinity, ULTRA: Infinity } as const;
 export const SPAWN = new THREE.Vector3(SPAWN_REGION?.x ?? -58, 0, (SPAWN_REGION?.z ?? -34) + 12);
 const NEXUS_REGION = REGIONS.find((r) => r.id === "nexus")!;
 
@@ -1355,8 +1357,11 @@ function SceneImpl({
     if (scene.fog instanceof THREE.Fog) {
       const fogK = 1 - Math.exp(-3 * dt);
       // regional air thickness (atmosphere.ts fogScale) scales the weather-driven fog distances
-      scene.fog.near += ((25 + visibility * 95) * FOG_REACH * atmo.current.fogScale - scene.fog.near) * fogK;
-      scene.fog.far += ((120 + visibility * 400) * FOG_REACH * atmo.current.fogScale - scene.fog.far) * fogK;
+      // the cheaper tiers see less far: the terrain streams out to ~1.25x the fog distance (Terrain.tsx), so a nearer fog line
+      // is fewer ground chunks to build and draw (measured: ~130 chunk draws a frame in the forest at scale 6 with no cap)
+      const fogCap = FOG_CAP[settings.renderTier as keyof typeof FOG_CAP] ?? Infinity;
+      scene.fog.near += (Math.min(fogCap * 0.3, (25 + visibility * 95) * FOG_REACH * atmo.current.fogScale) - scene.fog.near) * fogK;
+      scene.fog.far += (Math.min(fogCap, (120 + visibility * 400) * FOG_REACH * atmo.current.fogScale) - scene.fog.far) * fogK;
     }
     // underwater look: diving swaps the horizon for a close, turbid teal murk (eased in and out)
     underK.current += ((s.diving && !interior ? 1 : 0) - underK.current) * (1 - Math.exp(-4 * dt));
