@@ -32,7 +32,7 @@ import { waterMix } from "@/game/water-audio";
 /** water audio is eased in the audio graph, so it only needs a pose update ~8x/s */
 let lastWaterAudioAt = 0;
 import { flavorFor } from "@/game/audio-design";
-import { alert, applyLightning, chipPlayer, collidePlayer, createSim, defeatMachine, FACTIONS, fireBullet, fireLauncher, hurtPlayer, throwBeacon, instabilityTier, spawnMissionDrones, spawnEventSquad, stepSim, summonBoss, summonScenarioBoss, type Faction, type InstabilityTier, type WorldSim, type ZoneState } from "@/game/sim";
+import { alert, applyLightning, chipPlayer, collidePlayer, createSim, defeatMachine, logImpact, FACTIONS, fireBullet, fireLauncher, hurtPlayer, throwBeacon, instabilityTier, spawnMissionDrones, spawnEventSquad, stepSim, summonBoss, summonScenarioBoss, type Faction, type InstabilityTier, type WorldSim, type ZoneState } from "@/game/sim";
 import type { MissionEvent, MissionRun } from "@/game/missions/broken-signal";
 import type { MissionEvent as BlackoutEvent, MissionRun as BlackoutRun } from "@/game/missions/blackout-protocol";
 import type { MissionEvent as NeonCoreEvent, MissionRun as NeonCoreRun } from "@/game/missions/stitched-neon-core";
@@ -74,6 +74,8 @@ import { closeStratagems, createStratagemState, inputDirection, openStratagems, 
 import { Wildlife } from "./Wildlife";
 import { Civilians } from "./Civilians";
 import { Bullets, BeaconMarkers, Convoys, HazardMarkers, SupplyLanes, WarMachines, ZoneBeacons } from "./Actors";
+import { BulletImpacts } from "./BulletFx";
+import { Roads } from "./Roads";
 import { ScenarioBosses } from "./ScenarioBosses";
 import { NullPulseFx } from "./NullPulseFx";
 import { AbilityFx } from "./AbilityFx";
@@ -643,6 +645,8 @@ function SceneImpl({
       wreck: (engine = 80, body = 70, drive = true) => { condition.current = { ...condition.current, engine, body }; if (drive) state.current.inVehicle = true; return condition.current; },
       /** equip any weapon by id for this session (added to the slot order so the loadout guard doesn't swap it back) */
       weapon: (id: string) => { const w = id as WeaponId; if (!WEAPONS[w]) return "unknown weapon"; if (!orderRef.current.includes(w)) orderRef.current = [...orderRef.current, w]; state.current.weapon = w; return w; },
+      /** presentation test: log bullet impacts of each kind in an arc 6-9 m ahead of the player (no damage, nothing hit) */
+      impacts: () => { const st = state.current; const kinds = ["ground", "cover", "truck", "machine"] as const; kinds.forEach((k, i) => { const a = st.yaw + (i - 1.5) * 0.25, d = 7; const x = st.x + Math.sin(a) * d, z = st.z + Math.cos(a) * d; logImpact(sim, { x, y: walkHeight(x, z) + (k === "ground" ? 0.3 : 1.2), z, vx: Math.sin(a) * 130, vz: Math.cos(a) * 130 }, k); }); return "ok"; },
       look: (yawDeg = 0, pitchDeg = 0) => { state.current.yaw = (yawDeg * Math.PI) / 180; state.current.pitch = (pitchDeg * Math.PI) / 180; return "ok"; },
       // what the camera can actually see around the player: named scene groups within `r` metres (verifies set pieces mounted)
       near: (r = 60) => { const out: string[] = []; const p = new THREE.Vector3(); scene.traverse((o) => { if (!o.name || out.length > 60) return; o.getWorldPosition(p); const st = state.current; if (Math.hypot(p.x - st.x, p.z - st.z) < r) out.push(`${o.name}@${Math.round(p.x)},${Math.round(p.y)},${Math.round(p.z)}`); }); return out; },
@@ -2900,6 +2904,7 @@ function SceneImpl({
       <RegionLighting playerRef={player} tier={settings.renderTier} />
 
       <group name="terrain+trees"><Terrain renderTier={settings.renderTier} /></group>
+      <Roads />
       <group name="ground-cover"><GroundCover density={coverDensityFor(settings.renderTier)} /></group>
       <group name="iso:forest">{settings.renderTier !== "LOW" && <LightShafts sunRef={sunDir} skyEnv={skyEnv} forest={VERIDAN_REGION} />}<GlitchAnomalies /><VerdantForest density={settings.renderTier === "LOW" ? 0.5 : settings.renderTier === "MEDIUM" ? 0.75 : 1} models={settings.renderTier !== "LOW"} investigation={investigation} heavyShadow={heavyShadows(settings.renderTier)} /></group>
       <RiftTurrets sim={sim} />
@@ -2997,6 +3002,7 @@ function SceneImpl({
         </group>
       )}
       <Bullets sim={sim} />
+      <BulletImpacts sim={sim} />
       <WorldMarkers depleted={depleted} />
       <Interior structure={structure} />
       <Interiors />

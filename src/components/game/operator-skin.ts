@@ -1,14 +1,15 @@
 import * as THREE from "three";
 import type { Palette } from "@/game/operator-paint";
 import { weldIds, vertexCurvature } from "@/game/operator-mesh";
-import { bakeTexels, paintBaked, regionWeightArray, type Baked } from "@/game/operator-texture";
+import { bakeTexels, paintBaked, regionWeightArray, type Baked, type PlateSurface } from "@/game/operator-texture";
 
 /** Texture-space paint for a skinned operator mesh (see game/operator-texture.ts). The model-only bake is cached per geometry and
  * resolution, so changing colours or armor only re-runs the cheap palette pass. Returns null when the mesh lacks what painting needs
  * (the caller then keeps a flat material). */
 const bakes = new WeakMap<THREE.BufferGeometry, Map<number, Baked>>();
 
-export type SkinTextures = { map: THREE.DataTexture; emissiveMap: THREE.DataTexture; size: number; covered: number; visorTexels: number };
+/** `surface`: linear ORM map (G roughness, B metalness), assign as both roughnessMap and metalnessMap with factors 1 */
+export type SkinTextures = { map: THREE.DataTexture; emissiveMap: THREE.DataTexture; surface: THREE.DataTexture; size: number; covered: number; visorTexels: number };
 
 function bakeFor(mesh: THREE.SkinnedMesh, size: number, forward: 1 | -1): Baked | null {
   const geo = mesh.geometry;
@@ -29,9 +30,9 @@ function bakeFor(mesh: THREE.SkinnedMesh, size: number, forward: 1 | -1): Baked 
   return baked;
 }
 
-function texture(data: Uint8Array, size: number): THREE.DataTexture {
+function texture(data: Uint8Array, size: number, linear = false): THREE.DataTexture {
   const t = new THREE.DataTexture(data, size, size, THREE.RGBAFormat);
-  t.colorSpace = THREE.SRGBColorSpace;
+  t.colorSpace = linear ? THREE.NoColorSpace : THREE.SRGBColorSpace;
   t.flipY = false; // glTF UVs have v = 0 at the first row
   t.wrapS = t.wrapT = THREE.ClampToEdgeWrapping;
   t.generateMipmaps = true;
@@ -42,9 +43,9 @@ function texture(data: Uint8Array, size: number): THREE.DataTexture {
   return t;
 }
 
-export function paintSkin(mesh: THREE.SkinnedMesh, palette: Palette, opts: { size: number; accent: string; forward?: 1 | -1 }): SkinTextures | null {
+export function paintSkin(mesh: THREE.SkinnedMesh, palette: Palette, opts: { size: number; accent: string; forward?: 1 | -1; plate?: PlateSurface }): SkinTextures | null {
   const baked = bakeFor(mesh, opts.size, opts.forward ?? 1);
   if (!baked) return null;
-  const out = paintBaked(baked, palette, { accent: opts.accent });
-  return { map: texture(out.color, out.size), emissiveMap: texture(out.emissive, out.size), size: out.size, covered: out.covered, visorTexels: out.visorTexels };
+  const out = paintBaked(baked, palette, { accent: opts.accent, ...(opts.plate ? { plate: opts.plate } : {}) });
+  return { map: texture(out.color, out.size), emissiveMap: texture(out.emissive, out.size), surface: texture(out.surface, out.size, true), size: out.size, covered: out.covered, visorTexels: out.visorTexels };
 }

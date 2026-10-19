@@ -16,7 +16,11 @@ export type PaintMesh = {
   curvature: ArrayLike<number>;
 };
 export type TextureOptions = { size?: number; accent?: string; robot?: boolean; /** which way the face looks along z (glTF default +1) */ forward?: 1 | -1 };
-export type PaintResult = { size: number; color: Uint8Array; emissive: Uint8Array; covered: number; visorTexels: number };
+/** `surface` is a linear glTF-style ORM map: G = roughness, B = metalness (R unused, 255), absolute values (material factors 1) */
+export type PaintResult = { size: number; color: Uint8Array; emissive: Uint8Array; surface: Uint8Array; covered: number; visorTexels: number };
+/** how the plates themselves behave; cloth, worn edges, seams and the visor follow from the texel data */
+export type PlateSurface = { metalness: number; roughness: number };
+const PAINTED_PLATE: PlateSurface = { metalness: 0.15, roughness: 0.48 };
 
 /** Per-vertex region weights as one flat array (REGION_ORDER), from skin influences and bone names. */
 export function regionWeightArray(boneNames: readonly string[], joints: ArrayLike<number>, weights: ArrayLike<number>, count: number): Float32Array {
@@ -119,13 +123,14 @@ export function bakeTexels(mesh: PaintMesh, size = 512, forward: 1 | -1 = 1): Ba
 }
 
 /** Palette pass: colours, cavity/edge shading, seams, cloth and the visor, from baked texel data. No allocation per texel. */
-export function paintBaked(b: Baked, palette: Palette, opts: { accent?: string } = {}): PaintResult {
+export function paintBaked(b: Baked, palette: Palette, opts: { accent?: string; plate?: PlateSurface } = {}): PaintResult {
   const size = b.size, N = size * size;
   const accent = hexToRgb(opts.accent ?? "#4fd8ff");
   const base = REGION_ORDER.map((r) => hexToRgb(palette[r].color));
   const plate = REGION_ORDER.map((r) => palette[r].plate);
   const metal = [196, 202, 212], glass = [8, 12, 18], floor = [28, 40, 54];
-  const color = new Uint8Array(N * 4), emissive = new Uint8Array(N * 4);
+  const color = new Uint8Array(N * 4), emissive = new Uint8Array(N * 4), surface = new Uint8Array(N * 4);
+  const plateS = opts.plate ?? PAINTED_PLATE;
   const done = new Uint8Array(b.mask);
   let visorTexels = 0;
   for (let i = 0; i < N; i++) {
@@ -142,17 +147,19 @@ export function paintBaked(b: Baked, palette: Palette, opts: { accent?: string }
     cr += (base[i1]![0]! - cr) * sharp; cg += (base[i1]![1]! - cg) * sharp; cb += (base[i1]![2]! - cb) * sharp;
     const curv = b.curv[i]! / 127, grunge = b.grunge[i]! / 255, ny = b.ny[i]! / 127, nx = b.nx[i]! / 127, py = (b.y[i]! / 255) * Y_RANGE;
     let k = 1;
+    // surface: plates take the plate preset (grime roughens them a little), cloth is matte; edges, seams and visor below
+    let rough = pl > 0.5 ? plateS.roughness + (grunge - 0.5) * 0.14 : 0.86 + (grunge - 0.5) * 0.1, met = pl > 0.5 ? plateS.metalness : 0;
     if (pl > 0.5) {
       k *= 0.92 + grunge * 0.16;
       // baked cavity: creases darken; only the sharpest ridges show bare metal, tinted by the plate colour so it reads as worn paint
       if (curv < 0) k *= 1 + curv * 0.6;
-      else if (curv > 0.4) { const t = smooth01((curv - 0.4) / 0.4) * (0.4 + 0.6 * (b.wear[i]! / 255)) * 0.6; cr += (metal[0]! * 0.8 + cr * 0.2 - cr) * t; cg += (metal[1]! * 0.8 + cg * 0.2 - cg) * t; cb += (metal[2]! * 0.8 + cb * 0.2 - cb) * t; }
+      else if (curv > 0.4) { const t = smooth01((curv - 0.4) / 0.4) * (0.4 + 0.6 * (b.wear[i]! / 255)) * 0.6; rough += (0.26 - rough) * t * 1.6; met += (0.9 - met) * t * 1.6; cr += (metal[0]! * 0.8 + cr * 0.2 - cr) * t; cg += (metal[1]! * 0.8 + cg * 0.2 - cg) * t; cb += (metal[2]! * 0.8 + cb * 0.2 - cb) * t; }
     } else {
       const x = i % size, y = (i / size) | 0;
       const weave = 0.5 + 0.5 * Math.sin(x * 1.9) * Math.sin(y * 1.9);
       k *= 0.93 + weave * 0.07 + (grunge - 0.5) * 0.14 + Math.min(0, curv) * 0.4;
     }
-    if (i2 >= 0 && i1 !== i2 && REGION_ORDER[i1] !== REGION_ORDER[i2]) { const q = w1 - w2; if (q < 0.2) k *= 1 - 0.5 * (1 - q / 0.2); } // seam between armor pieces
+    if (i2 >= 0 && i1 !== i2 && REGION_ORDER[i1] !== REGION_ORDER[i2]) { const q = w1 - w2; if (q < 0.2) { k *= 1 - 0.5 * (1 - q / 0.2); rough += (0.8 - rough) * (1 - q / 0.2); } } // seam between armor pieces
     k *= (0.92 + 0.1 * Math.min(1, Math.max(-1, ny))) * (0.86 + 0.22 * smooth01(py / 1.7));
     let r = cr * k, g = cg * k, bl = cb * k, er = floor[0]!, eg = floor[1]!, eb = floor[2]!;
     const tv = smooth01((b.visor[i]! / 255 - 0.26) / 0.12);
@@ -162,9 +169,11 @@ export function paintBaked(b: Baked, palette: Palette, opts: { accent?: string }
       r += (gr + (accent[0] - gr) * ts - r) * tv; g += (gg + (accent[1] - gg) * ts - g) * tv; bl += (gb + (accent[2] - gb) * ts - bl) * tv;
       er += (floor[0]! * 0.4 + (accent[0] - floor[0]! * 0.4) * ts - er) * tv; eg += (floor[1]! * 0.4 + (accent[1] - floor[1]! * 0.4) * ts - eg) * tv; eb += (floor[2]! * 0.4 + (accent[2] - floor[2]! * 0.4) * ts - eb) * tv;
       if (tv > 0.5) visorTexels++;
+      rough += (0.06 - rough) * tv; met += (0.3 - met) * tv; // the visor is smooth glass
     }
     color[o] = r; color[o + 1] = g; color[o + 2] = bl; color[o + 3] = 255;
     emissive[o] = er; emissive[o + 1] = eg; emissive[o + 2] = eb; emissive[o + 3] = 255;
+    surface[o] = 255; surface[o + 1] = Math.round(Math.min(1, Math.max(0.04, rough)) * 255); surface[o + 2] = Math.round(Math.min(1, Math.max(0, met)) * 255); surface[o + 3] = 255;
   }
   // dilate 3 texels into the gutter so bilinear/mip sampling at island borders never pulls in unpainted colour
   const fill = base[REGION_ORDER.indexOf("suit")]!;
@@ -178,10 +187,10 @@ export function paintBaked(b: Baked, palette: Palette, opts: { accent?: string }
         add.push(y * size + x, (ny * size + nx) * 4); break;
       }
     }
-    for (let i = 0; i < add.length; i += 2) { const dst = add[i]!, src = add[i + 1]!, o = dst * 4; for (let c = 0; c < 4; c++) { color[o + c] = color[src + c]!; emissive[o + c] = emissive[src + c]!; } done[dst] = 1; }
+    for (let i = 0; i < add.length; i += 2) { const dst = add[i]!, src = add[i + 1]!, o = dst * 4; for (let c = 0; c < 4; c++) { color[o + c] = color[src + c]!; emissive[o + c] = emissive[src + c]!; surface[o + c] = surface[src + c]!; } done[dst] = 1; }
   }
-  for (let i = 0; i < N; i++) if (!done[i]) { const o = i * 4; color[o] = fill[0]!; color[o + 1] = fill[1]!; color[o + 2] = fill[2]!; color[o + 3] = 255; emissive[o] = floor[0]!; emissive[o + 1] = floor[1]!; emissive[o + 2] = floor[2]!; emissive[o + 3] = 255; }
-  return { size, color, emissive, covered: b.covered, visorTexels };
+  for (let i = 0; i < N; i++) if (!done[i]) { const o = i * 4; color[o] = fill[0]!; color[o + 1] = fill[1]!; color[o + 2] = fill[2]!; color[o + 3] = 255; emissive[o] = floor[0]!; emissive[o + 1] = floor[1]!; emissive[o + 2] = floor[2]!; emissive[o + 3] = 255; surface[o] = 255; surface[o + 1] = 219; surface[o + 2] = 0; surface[o + 3] = 255; }
+  return { size, color, emissive, surface, covered: b.covered, visorTexels };
 }
 
 /** bake + paint in one call (tests, offline previews) */

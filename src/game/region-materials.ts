@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import { REGIONS } from "./world";
+import { WATER_LEVEL } from "./terrain";
 import forest from "@/assets/polyhaven/forest_ground_04.jpg.asset.json";
 import rocks from "@/assets/polyhaven/aerial_rocks_02.jpg.asset.json";
 import sand from "@/assets/polyhaven/coast_sand_01.jpg.asset.json";
@@ -27,15 +28,24 @@ export function surfaceWeights(x: number, z: number): number[] {
   return w.map((v) => v / total);
 }
 
-/** Patches a vertex-coloured standard material to blend the six surfaces by wA/wB attributes. */
+/** seconds, shared by every ground material: drives the seabed caustics (Terrain advances it each frame) */
+export const groundTime = { value: 0 };
+
+/** Patches a vertex-coloured standard material to blend the six surfaces by wA/wB attributes. Ground below the waterline
+ * also gets sunlight caustics: two drifting interference layers, strongest just under the surface and gone by ~24 m. */
 export function applySurfaceBlend(mat: THREE.MeshStandardMaterial, textures: THREE.Texture[]) {
   mat.onBeforeCompile = (shader) => {
     textures.forEach((t, i) => { shader.uniforms[`uSurf${i}`] = { value: t }; });
+    shader.uniforms["uGroundTime"] = groundTime;
     shader.vertexShader = shader.vertexShader
-      .replace("#include <common>", "#include <common>\nattribute vec3 wA; attribute vec3 wB; varying vec3 vWA; varying vec3 vWB; varying vec2 vSurfUv;")
-      .replace("#include <begin_vertex>", "#include <begin_vertex>\nvWA = wA; vWB = wB; vSurfUv = position.xy / 9.0;");
+      .replace("#include <common>", "#include <common>\nattribute vec3 wA; attribute vec3 wB; varying vec3 vWA; varying vec3 vWB; varying vec2 vSurfUv; varying vec3 vGroundW;")
+      .replace("#include <begin_vertex>", "#include <begin_vertex>\nvWA = wA; vWB = wB; vSurfUv = position.xy / 9.0; vGroundW = (modelMatrix * vec4(transformed, 1.0)).xyz;");
     shader.fragmentShader = shader.fragmentShader
-      .replace("#include <common>", `#include <common>\n${textures.map((_, i) => `uniform sampler2D uSurf${i};`).join("\n")}\nvarying vec3 vWA; varying vec3 vWB; varying vec2 vSurfUv;`)
+      .replace("#include <common>", `#include <common>\n${textures.map((_, i) => `uniform sampler2D uSurf${i};`).join("\n")}\nvarying vec3 vWA; varying vec3 vWB; varying vec2 vSurfUv; varying vec3 vGroundW; uniform float uGroundTime;
+      float causticLayer(vec2 p, float t) {
+        vec2 q = p + vec2(sin(p.y * 1.3 + t), cos(p.x * 1.1 - t * 0.8)) * 0.9;
+        return pow(abs(sin(q.x) * sin(q.y)), 0.35);
+      }`)
       // only the surfaces that weigh in here are sampled (usually one or two of the six); gradients come from outside the
       // branches so mip selection stays correct where neighbouring pixels take different branches
       .replace("#include <color_fragment>", `#include <color_fragment>
@@ -47,7 +57,17 @@ export function applySurfaceBlend(mat: THREE.MeshStandardMaterial, textures: THR
       if (vWB.x > 0.004) surf += textureGrad(uSurf3, vSurfUv, sdx, sdy).rgb * vWB.x;
       if (vWB.y > 0.004) surf += textureGrad(uSurf4, vSurfUv, sdx, sdy).rgb * vWB.y;
       if (vWB.z > 0.004) surf += textureGrad(uSurf5, vSurfUv, sdx, sdy).rgb * vWB.z;
-      diffuseColor.rgb = mix(diffuseColor.rgb, diffuseColor.rgb * surf * 2.2, 0.8);`);
+      diffuseColor.rgb = mix(diffuseColor.rgb, diffuseColor.rgb * surf * 2.2, 0.8);
+      float depthUnder = ${WATER_LEVEL.toFixed(2)} - vGroundW.y;
+      if (depthUnder > 0.0 && depthUnder < 24.0) {
+        float t = uGroundTime;
+        vec2 cp = vGroundW.xz * 0.42;
+        // two layers crossing at different scales and speeds; their product keeps only the bright knots of the web
+        float c = causticLayer(cp, t * 0.9) * causticLayer(cp * 1.37 + 3.1, -t * 0.7);
+        c = smoothstep(0.55, 0.95, c);
+        float fade = smoothstep(0.0, 0.6, depthUnder) * (1.0 - smoothstep(6.0, 24.0, depthUnder));
+        diffuseColor.rgb *= 1.0 + c * 0.9 * fade;
+      }`);
   };
   mat.needsUpdate = true;
 }

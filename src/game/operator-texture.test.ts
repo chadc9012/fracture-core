@@ -40,6 +40,21 @@ describe("operator texture", () => {
     expect(a.covered).toBe(c.covered);
     expect([...a.color.slice(0, 64)]).not.toEqual([...c.color.slice(0, 64)]);
   });
+  test("surface map: cloth is matte, plates satin, the seam between them rougher; a metal chassis has metallic plates", () => {
+    const m = quad();
+    // left half becomes suit cloth instead of helmet plate
+    for (let v = 0; v < 6; v++) { const h = m.regionWeights[v * R + REGION_ORDER.indexOf("helmet")]!; (m.regionWeights as Float32Array)[v * R + REGION_ORDER.indexOf("helmet")] = 0; (m.regionWeights as Float32Array)[v * R + REGION_ORDER.indexOf("suit")] = h; }
+    const b = bakeTexels(m, 64);
+    const painted = paintBaked(b, palette), metal = paintBaked(b, palette, { plate: { metalness: 0.9, roughness: 0.34 } });
+    const rough = (o: typeof painted, x: number) => o.surface[(32 * 64 + x) * 4 + 1]! / 255, met = (o: typeof painted, x: number) => o.surface[(32 * 64 + x) * 4 + 2]! / 255;
+    expect(rough(painted, 4)).toBeGreaterThan(0.75);          // cloth
+    expect(rough(painted, 60)).toBeLessThan(0.6);             // chest plate
+    expect(met(painted, 4)).toBe(0);
+    expect(met(painted, 60)).toBeLessThan(0.25);
+    expect(met(metal, 60)).toBeGreaterThan(0.8);
+    expect(met(metal, 4)).toBe(0);                            // cloth never turns metal
+    expect(rough(painted, 32)).toBeGreaterThan(rough(painted, 60)); // seam
+  });
   test("every texel is opaque and the emissive floor is never black", () => {
     const out = paintBaked(bakeTexels(quad(), 32), palette);
     for (let i = 0; i < 32 * 32; i++) { expect(out.color[i * 4 + 3]).toBe(255); expect(out.emissive[i * 4]! + out.emissive[i * 4 + 1]! + out.emissive[i * 4 + 2]!).toBeGreaterThan(10); }

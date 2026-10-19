@@ -13,7 +13,7 @@ import { GROVE, growGroves } from "@/game/forest-density";
 import { windSway } from "@/game/wind-sway";
 import { WATER_LEVEL, HEIGHT_K, colorAt, heightAt, slopeAt, riverAt } from "@/game/terrain";
 import { groundDetailTextures, propDetailTextures } from "@/game/detail-texture";
-import { applySurfaceBlend, loadGroundSurfaces, surfaceWeights } from "@/game/region-materials";
+import { applySurfaceBlend, groundTime, loadGroundSurfaces, surfaceWeights } from "@/game/region-materials";
 import { getPerfTier } from "@/game/perf-budget";
 import { RegionModels } from "./RegionModels";
 import { PolyFoliage, type Placement } from "./PolyFoliage";
@@ -218,7 +218,8 @@ function Ground() {
     return () => { delete w.__terrainChunks; };
   }, []);
 
-  useFrame(() => {
+  useFrame(({ clock }) => {
+    groundTime.value = clock.elapsedTime % 3600; // seabed caustics (region-materials.ts); wrapped so float precision holds
     if (failed.current) return;
     try {
       const g = group.current;

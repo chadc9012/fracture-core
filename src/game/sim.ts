@@ -218,6 +218,15 @@ export type Bullet = {
   /** set only by weapons that carry an element (Pulse, Heavy): drives on-hit status and the gimmick element; undefined = legacy behaviour */
   element?: DamageElement | undefined;
 };
+export type BulletHit = "ground" | "cover" | "machine" | "truck";
+/** presentation log of where bullets struck (a fixed ring, IMPACT_LOG slots; impact effects read it, combat never does) */
+export type ImpactEvent = { id: number; x: number; y: number; z: number; kind: BulletHit; vx: number; vz: number };
+export const IMPACT_LOG = 32;
+export function logImpact(sim: WorldSim, b: Pick<Bullet, "x" | "y" | "z" | "vx" | "vz">, kind: BulletHit) {
+  const id = sim.nextImpactId++;
+  const e = sim.impacts[id % IMPACT_LOG]!;
+  e.id = id; e.x = b.x; e.y = b.y; e.z = b.z; e.kind = kind; e.vx = b.vx; e.vz = b.vz;
+}
 
 /** a launcher round in flight (ordnance.ts rules) plus what the burst needs; pooled, never allocated per frame */
 export type SimRound = Round & { launcher: LauncherId; element: DamageElement; /** index into sim.machines for guided rounds, -1 = unguided */ target: number; knock: number };
@@ -327,6 +336,9 @@ export type WorldSim = {
   /** evolved-ability bursts for presentation (CombatFx reads, never decides) */
   evoBursts: { id: number; x: number; y: number; z: number; ability: EvolutionAbility; at: number }[];
   nextBurstId: number;
+  /** bullet impact ring (presentation only, see logImpact) */
+  impacts: ImpactEvent[];
+  nextImpactId: number;
   /** 0..1 on-foot speed multiplier from slowing zones this step (Scene applies it) */
   hazardSpeedMult: number;
   materials: Partial<Record<MaterialId, number>>;
@@ -653,7 +665,7 @@ export function createSim(): WorldSim {
     nextHitId: 0,
     encounterZones: [], encounterEvents: [], nextEncounterEventId: 1, nextEncounterZoneId: 1, hazardSpeedMult: 1,
     rounds: Array.from({ length: ROUND_POOL }, () => ({ ...fireRound(NO_ORDNANCE, { x: 0, y: 0, z: 0 }, [0, 0, 1]), alive: false, launcher: "ROCKET" as LauncherId, element: "KINETIC" as DamageElement, target: -1, knock: 1 })),
-    statuses: new Map(), burstEvents: [], evoBursts: [], nextBurstId: 1,
+    statuses: new Map(), burstEvents: [], evoBursts: [], nextBurstId: 1, impacts: Array.from({ length: IMPACT_LOG }, () => ({ id: 0, x: 0, y: 0, z: 0, kind: "ground" as BulletHit, vx: 0, vz: 0 })), nextImpactId: 1,
     materials: {}, drops: [], armorResist: 0, armorRegen: 0, consumableDamageMult: 1, enemyShots: [], bossPhaseFlares: [], xpEvents: [], nextDropId: 0,
     emergencyQuest: EMERGENCY_QUEST_INIT,
     bossCounter: counterTuningFor(null),
@@ -1830,6 +1842,7 @@ export function stepSim(sim: WorldSim, input: SimInput) {
     b.life -= dt;
     if (b.y < heightAt(b.x, b.z) + 0.35) {
       b.alive = false;
+      logImpact(sim, b, "ground");
       continue;
     }
     if (b.life <= 0) {
@@ -1840,12 +1853,14 @@ export function stepSim(sim: WorldSim, input: SimInput) {
     const cover = collideBody(b, 0.4, 130, 0.25);
     if (cover.hit) {
       b.alive = false;
+      logImpact(sim, b, "cover");
       continue;
     }
     for (const m of sim.machines) {
       if (!m.alive) continue;
       if (Math.hypot(m.x - b.x, m.z - b.z) < 3.4 * m.scale) {
         b.alive = false;
+        logImpact(sim, b, "machine");
         let dmg = sim.mods.bulletDamage * b.dmg * sim.verbDamageMult;
         if (sim.equippedElement !== "KINETIC") dmg += 0.35;
         if (sim.equippedEvolution) { const st = sim.statuses.get(m); dmg *= evolutionDamageMult(sim.equippedEvolution, !!st && isChilled(st, performance.now() / 1000)); }
@@ -1888,6 +1903,7 @@ export function stepSim(sim: WorldSim, input: SimInput) {
       if (!tr.alive) continue;
       if (Math.hypot(tr.x - b.x, tr.z - b.z) < 3.6) {
         b.alive = false;
+        logImpact(sim, b, "truck");
         damageTruck(sim, tr, sim.mods.bulletDamage);
         break;
       }

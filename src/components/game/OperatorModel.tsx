@@ -165,8 +165,9 @@ function Model({ url, tint, height, feetY, color, trim, pose, motion, bodyType, 
       if (m.isSkinnedMesh) {
         skinned = true; m.frustumCulled = false;
         if (palette && material) {
-          const skin = paintSkin(m, palette, { size: texSize, accent });
-          if (skin) { skins.push(skin); material.map = skin.map; material.emissiveMap = skin.emissiveMap; }
+          const skin = paintSkin(m, palette, { size: texSize, accent, plate: surface });
+          // per-texel surface: satin plates, matte cloth, bare-metal worn edges, rough seams, glossy visor (the map holds absolute values)
+          if (skin) { skins.push(skin); material.map = skin.map; material.emissiveMap = skin.emissiveMap; material.roughnessMap = skin.surface; material.metalnessMap = skin.surface; material.roughness = 1; material.metalness = 1; }
           else { material.color.set(palette.chest.color); material.emissive.set("#1c2836"); } // mesh lacks UVs/skin data: flat plate colour, never black
         }
       }
@@ -211,7 +212,7 @@ function Model({ url, tint, height, feetY, color, trim, pose, motion, bodyType, 
     heldGroups.current = w.groups;
     return () => { heldGroups.current = {}; w.dispose(); };
   }, [built, held, height]);
-  useEffect(() => () => { built.material?.dispose(); built.authoredMaterials.forEach((m) => m.dispose()); built.skins.forEach((t) => { t.map.dispose(); t.emissiveMap.dispose(); }); built.mixer?.stopAllAction(); }, [built]);
+  useEffect(() => () => { built.material?.dispose(); built.authoredMaterials.forEach((m) => m.dispose()); built.skins.forEach((t) => { t.map.dispose(); t.emissiveMap.dispose(); t.surface.dispose(); }); built.mixer?.stopAllAction(); }, [built]);
 
   const rig = useRef<THREE.Group>(null);
   const body = useRef({ crouch: 0, prone: 0, lean: 0 });

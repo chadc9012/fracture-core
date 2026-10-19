@@ -5,6 +5,7 @@ import * as THREE from "three";
 
 import { MODELS, type ModelKey } from "@/game/models";
 import { softSprite } from "./softSprite";
+import { applyVehicleFinish } from "./VehicleFinish";
 
 /** deep clone of a loaded GLB so the same asset can appear many times */
 export function useModel(key: ModelKey) {
@@ -106,7 +107,9 @@ function CarBody({
   /** 0..1: brake/reverse lamps brighten while it's up (the player's car only) */
   brakeRef?: React.MutableRefObject<number>;
 }) {
-  const shell = useModel(body);
+  const raw = useModel(body);
+  // real paint, tinted glass, chrome and tyres (VehicleFinish.ts), shared between copies of the same model
+  const shell = useMemo(() => applyVehicleFinish(raw), [raw]);
   // lamp lenses sit on the model's own front and rear faces (front is +z), so any body gets them in the right place
   const lamps = useMemo(() => {
     const b = new THREE.Box3().setFromObject(shell);
@@ -118,7 +121,7 @@ function CarBody({
   const head = useMemo(() => new THREE.MeshBasicMaterial({ color: new THREE.Color("#dff3ff").multiplyScalar(2.2), toneMapped: false }), []);
   const flare = useMemo(() => new THREE.SpriteMaterial({ map: softSprite("dot") ?? null, color: "#cfeaff", transparent: true, opacity: 0.55, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false }), []);
   const wheelSrc = useModel("wheel");
-  const wheels = useMemo(() => WHEEL_OFFSETS.map(() => wheelSrc.clone(true)), [wheelSrc]);
+  const wheels = useMemo(() => WHEEL_OFFSETS.map(() => applyVehicleFinish(wheelSrc.clone(true))), [wheelSrc]);
   const group = useRef<THREE.Group>(null!);
 
   useFrame((_, raw) => {
