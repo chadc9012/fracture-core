@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { LANES } from "./lanes";
-import { ROAD_COLS, ROAD_HALF, ROAD_LIFT, roadRibbon } from "./road-ribbon";
+import { ROAD_COLS, ROAD_HALF, ROAD_LIFT, SLOPE_LIFT, roadRibbon } from "./road-ribbon";
 import { WATER_LEVEL, heightAt, riverCrossings } from "./terrain";
 
 describe("road ribbons", () => {
@@ -19,7 +19,9 @@ describe("road ribbons", () => {
     for (const r of ribbons) for (let v = 0; v < r.positions.length / 3; v++) {
       const x = r.positions[v * 3]!, y = r.positions[v * 3 + 1]!, z = r.positions[v * 3 + 2]!;
       const ground = heightAt(x, z);
-      expect(Math.abs(y - ground - ROAD_LIFT)).toBeLessThan(0.05); // float32 storage nudges the sample point a little
+      // float32 storage nudges the sample point a little; steep edges sit higher (SLOPE_LIFT)
+      expect(y - ground).toBeGreaterThan(ROAD_LIFT - 0.05);
+      expect(y - ground).toBeLessThan(ROAD_LIFT + SLOPE_LIFT + 0.05);
       expect(ground).toBeGreaterThan(WATER_LEVEL);
     }
   });
