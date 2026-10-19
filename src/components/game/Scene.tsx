@@ -774,6 +774,7 @@ function SceneImpl({
   const carSpeed = useRef(0);
   const carSteer = useRef(0);
   const carBrake = useRef(0);
+  const headlamp = useRef<THREE.PointLight>(null);
   const sky = useRef<THREE.Object3D>(null!);
   const skyDomeGroup = useRef<THREE.Group>(null);
   const hemi = useRef<THREE.HemisphereLight>(null!);
@@ -2567,6 +2568,8 @@ function SceneImpl({
     carSpeed.current = s.inVehicle ? s.vSpeed : 0;
     carSteer.current = s.inVehicle ? (left ? 0.4 : right ? -0.4 : 0) : 0;
     carBrake.current = s.inVehicle && ((throttleB && s.vSpeed > 0.5) || s.vSpeed < -0.3) ? 1 : 0;
+    // the light count changes only when you get in or out (one shader rebuild), not while driving
+    if (headlamp.current && headlamp.current.visible !== s.inVehicle) headlamp.current.visible = s.inVehicle;
 
     /* ---------------- transforms ---------------- */
     const p = player.current;
@@ -3033,7 +3036,8 @@ function SceneImpl({
       {/* drivable wasteland raider — armour plate, ram spikes, roof gun */}
       <group ref={vehicle} visible={vehicleUnlocked}>
         <VehicleDamageFx condition={condition} speedRef={carSpeed} />
-        <Car body={selectedVehicle.model} scale={selectedVehicle.modelScale} speedRef={carSpeed} steerRef={carSteer} brakeRef={carBrake} />
+        {/* no light of its own: the one headlamp below only switches on while you drive (a parked car's lights were lit pixels all game) */}
+        <Car body={selectedVehicle.model} scale={selectedVehicle.modelScale} speedRef={carSpeed} steerRef={carSteer} brakeRef={carBrake} lights={false} />
         {/* front ram spikes */}
         {[-1.1, -0.55, 0, 0.55, 1.1].map((x) => (
           <mesh key={x} position={[x, 0.8, 3.5]} rotation={[Math.PI / 2, 0, 0]} castShadow>
@@ -3069,7 +3073,7 @@ function SceneImpl({
           <cylinderGeometry args={[0.11, 0.11, 2.6, 8]} />
           <meshStandardMaterial color="#1d2226" metalness={0.85} roughness={0.3} />
         </mesh>
-        <pointLight position={[0, 1.2, 4]} color="#ffe2b0" intensity={16} distance={44} decay={2} />
+        <pointLight ref={headlamp} visible={false} position={[0, 1.2, 4]} color="#ffe2b0" intensity={16} distance={44} decay={2} />
       </group>
 
     </>

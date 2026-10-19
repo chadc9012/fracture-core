@@ -147,7 +147,7 @@ function CarBody({
       {lights && (
         <pointLight position={[0, 0.5, 1.6]} color="#bfeaff" intensity={6} distance={18} decay={2} />
       )}
-      {lights && [-1, 1].map((side) => (
+      {[-1, 1].map((side) => (
         <group key={side}>
           <mesh position={[side * lamps.x, lamps.y, lamps.front]} material={head}><planeGeometry args={[lamps.size * 1.6, lamps.size * 0.7]} /></mesh>
           <sprite position={[side * lamps.x, lamps.y, lamps.front + 0.05]} scale={[lamps.size * 4, lamps.size * 4, 1]} material={flare} />
