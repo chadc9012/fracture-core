@@ -14,7 +14,7 @@ import { softSprite } from "./softSprite";
  * (Fixed numbers buried the fire inside every body scaled past ~2x — the jeep showed no flames at all.)
  */
 const PUFFS = 14;
-const LIFE = 1.6;
+const LIFE = 2.4;
 const FLAMES = 4;
 const SPARKS = 6;
 const ENGINE: [number, number, number] = [0, 1.55, 1.9];
@@ -71,12 +71,14 @@ export function VehicleDamageFx({ condition, speedRef, bounds }: { condition: { 
       child.visible = k < 1;
       if (k >= 1) return;
       // rises, spreads, and streams back behind the vehicle the faster it goes
-      child.position.set(p.x + Math.sin(p.age * 2 + i) * 0.15, p.y + k * 2.4, p.z - k * p.drift * 3.2);
+      // climbs well clear of the cab: from a chase camera behind, smoke that thins out at roof height was never seen
+      child.position.set(p.x + Math.sin(p.age * 2 + i) * 0.15, p.y + k * 3.6 * bay.scale, p.z - k * p.drift * 3.2);
       const s = p.size * (0.6 + k * 2.2);
       child.scale.set(s, s, s);
       const m = smokeMats[i]!;
       m.color.copy(tone);
-      m.opacity = (0.22 + engine * 0.35) * (1 - k) * Math.min(1, k * 8);
+      // thickest mid-climb (above the body), thin at the bay and as it disperses
+      m.opacity = (0.3 + engine * 0.4) * Math.pow(Math.sin(Math.PI * k), 0.7);
     });
     // fire past three quarters engine damage
     const burning = engine >= 0.75;
@@ -85,10 +87,11 @@ export function VehicleDamageFx({ condition, speedRef, bounds }: { condition: { 
       child.visible = burning;
       if (!burning) return;
       const flick = 0.75 + 0.25 * Math.sin(t * (13 + i * 3.1) + i * 1.7);
-      child.position.set(bay.x + (i - 1.5) * 0.22 * bay.scale, bay.y + flick * 0.25 * bay.scale, bay.z + 0.1 * Math.sin(i));
-      const s = (0.45 + (engine - 0.75) * 1.6) * flick * bay.scale;
-      child.scale.set(s, s * 1.5, s);
-      flameMats[i]!.opacity = 0.8 * flick;
+      // tongues of fire rise off the hood line, tall enough to show over it from behind
+      const s = (0.55 + (engine - 0.75) * 2) * flick * bay.scale;
+      child.position.set(bay.x + (i - 1.5) * 0.24 * bay.scale, bay.y + s * 0.6, bay.z + 0.1 * Math.sin(i));
+      child.scale.set(s, s * 1.8, s);
+      flameMats[i]!.opacity = 0.85 * flick;
     });
     // sparks from a battered body: a short burst every second or two
     const sp = sparks.current;
