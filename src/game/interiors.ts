@@ -13,6 +13,8 @@
  */
 import { REGIONS, hourOf, scaleSite } from "./world";
 import { HOMES } from "./housing";
+import { REGIONAL_SHOPS } from "./regional-shops";
+import { shopAccessKind } from "./shop-access";
 
 export const INTERIOR_ALTITUDE = 600;
 export const DOOR_RADIUS = 2.2;
@@ -40,6 +42,8 @@ export type InteriorDef = {
   homeId?: string;
   /** SHOP only: vendor id from economy.ts's VENDORS, and the hours (0-24) it's actually open */
   vendorId?: string;
+  /** Existing regional stock identity; never a new economy. */
+  shopId?: string;
   openHour?: number;
   closeHour?: number;
 };
@@ -157,6 +161,16 @@ export const INTERIORS: InteriorDef[] = [
     npcName: "Veyra Realty agent",
   },
 ];
+
+/** Regional storefronts share their original stock and price gates. */
+export const SHOP_INTERIORS: readonly InteriorDef[] = REGIONAL_SHOPS.filter((s) => shopAccessKind(s.id) === "interior").map((s, i) => ({
+  id: `store-${s.id}`, name: s.name, kind: "SHOP" as const,
+  regionId: s.id.startsWith("neon") || s.id.startsWith("nexus") ? "nexus" : s.id.startsWith("frost") ? "frostspire" : s.id.startsWith("ember") ? "ember" : s.id.startsWith("veridan") ? "veridan" : s.id.startsWith("swamp") ? "swamps" : s.id.startsWith("solara") ? "solara" : "wastelands",
+  doorPos: { x: s.x, z: s.z + 3 }, origin: { x: 2800, z: i * 60 },
+  spawnOffset: { x: 0, z: 1.5 }, exitOffset: { x: 0, z: 4 },
+  npcName: `${s.name} specialist`, shopId: s.id,
+}));
+INTERIORS.push(...SHOP_INTERIORS);
 
 /** Where each buyable home's front door sits in the open world (Neon homes by district, others near their region). */
 const HOME_DOORS: Record<string, { x: number; z: number }> = {
