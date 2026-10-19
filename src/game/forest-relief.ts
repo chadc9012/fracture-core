@@ -12,7 +12,8 @@ import { CRASH_SITE, ENCOUNTER, FOREST_SPAWN, FURROW, SPAWN_CLEARING_RADIUS, TRA
 const forest = REGIONS.find((r) => r.id === "veridan")!;
 /** hill wavelengths grow with the forest (sqrt, so a 4x forest gets 2x longer hills and 1.6x taller ones); 1 at WORLD_SCALE 1 */
 const HILL_K = 1 / Math.sqrt(WORLD_SCALE);
-const HILL_AMP = Math.sqrt(WORLD_SCALE) * 0.8 + 0.2;
+// hills stop growing past the 5x map: a bigger forest gets more and longer hills, not taller walls, so the floor stays walkable
+const HILL_AMP = Math.sqrt(Math.min(WORLD_SCALE, 5)) * 0.8 + 0.2;
 
 const smooth = (a: number, b: number, x: number) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
 

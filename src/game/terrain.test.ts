@@ -23,7 +23,9 @@ describe("slope masking", () => {
 describe("road grading", () => {
   it("keeps terrain continuous across the verge and smoother along the road", async () => {
     const { LANES, laneSamples } = await import("./lanes");
-    const pts = laneSamples(LANES[0]!, 60);
+    const { WORLD_SCALE } = await import("./world");
+    // same spacing in metres at any map scale (the lane grows with the map), so roughness compares like with like
+    const pts = laneSamples(LANES[0]!, Math.round(60 * Math.max(1, WORLD_SCALE / 4)));
     let worstStep = 0, roughness = 0;
     for (let i = 1; i < pts.length - 1; i++) {
       const a = pts[i - 1]!, b = pts[i]!, c = pts[i + 1]!;

@@ -37,7 +37,9 @@ describe("world scale", () => {
     }
     const sea = scaleSite(-97, -208);
     expect(sea.x).toBeCloseTo(-97 * WORLD_SCALE, 9);
-    expect(THALASSIA_CENTER).toEqual(sea);
+    // Thalassia keeps the authored bearing; it is only pulled in so its reachable zone always overlaps the world disc (thalassia-site.ts)
+    expect(Math.atan2(THALASSIA_CENTER.z, THALASSIA_CENTER.x)).toBeCloseTo(Math.atan2(sea.z, sea.x), 9);
+    expect(Math.hypot(THALASSIA_CENTER.x, THALASSIA_CENTER.z)).toBeLessThanOrEqual(Math.hypot(sea.x, sea.z) + 1e-9);
   });
   test("scale 1 is the identity for every authored site", () => {
     if (WORLD_SCALE !== 1) return;

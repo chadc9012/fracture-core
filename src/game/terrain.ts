@@ -235,6 +235,8 @@ const GRADE_CELL = 8;
 const GRADE_RANGE = Math.ceil(WORLD_RADIUS * 1.2 / GRADE_CELL);
 const GRADE_CORE = 5;
 const GRADE_FADE = 14;
+/** moving-average half window (samples ~2.5 m apart); past the 4x map the small rolls are taller, so roads average over more of them */
+const GRADE_WINDOW = Math.round(5 * Math.max(1, WORLD_SCALE / 4));
 let gradePoints: GradePoint[] | null = null;
 let gradeSegments: { a: GradePoint; b: GradePoint }[] | null = null;
 let gradeNear: Uint8Array | null = null;
@@ -249,7 +251,7 @@ function buildGrade() {
     const raw = laneSamples(lane, ROAD_SAMPLES).map((p) => ({ ...p, h: rawHeightAt(p.x, p.z) }));
     raw.forEach((p, i) => {
       let sum = 0, n = 0;
-      for (let k = -5; k <= 5; k++) { const q = raw[i + k]; if (q) { sum += q.h; n++; } }
+      for (let k = -GRADE_WINDOW; k <= GRADE_WINDOW; k++) { const q = raw[i + k]; if (q) { sum += q.h; n++; } }
       pts.push({ x: p.x, z: p.z, h: sum / n });
     });
     for (let i = start; i < pts.length - 1; i++) segs.push({ a: pts[i]!, b: pts[i + 1]! });

@@ -1,7 +1,7 @@
 // @ts-ignore bun:test has no types in this project's tsconfig
 import { describe, expect, it } from "bun:test";
 import { heightAt, waterNetwork, WATER_LEVEL } from "./terrain";
-import { carveTarget } from "./rivers";
+import { carveTarget, RIVER_SCALE } from "./rivers";
 import { REGIONS } from "./world";
 
 describe("water network", () => {
@@ -24,7 +24,7 @@ describe("water network", () => {
   it("carving only ever lowers ground", () => {
     expect(carveTarget(5, 8, 3, 1, 0)).toBe(5);
     expect(carveTarget(5, 4, 3, 1, 0)).toBeCloseTo(3);
-    expect(carveTarget(5, 4, 3, 1, 20)).toBe(5);
+    expect(carveTarget(5, 4, 3, 1, 3 + 6 * RIVER_SCALE + 1)).toBe(5); // past the channel plus its (map-scaled) bank
   });
 });
 
