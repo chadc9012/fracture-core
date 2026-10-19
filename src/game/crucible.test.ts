@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { createSim, defeatMachine } from "./sim";
 import { ARENA_RADIUS, CRUCIBLE_MODES, RIVAL_RESPAWN_S, clearRivals, newCrucible, rivalLineup, stepRivals } from "./crucible";
-import { activityById, newRun, stepRun, type Tick } from "./activities";
+import { activityById, activityState, newRun, periodKey, stepRun, type Tick } from "./activities";
 
 const center = { x: 100, z: -40 };
 const rivals = (sim: ReturnType<typeof createSim>) => sim.machines.filter((m) => m.alive && m.rival);
@@ -66,4 +66,17 @@ describe("Crucible as an activity", () => {
       expect(lose.theirScore).toBe(target);
     });
   }
+});
+
+describe("PvP match limits", () => {
+  test("matches are unlimited: still available after fifty plays today", () => {
+    const now = Date.UTC(2026, 9, 18, 12);
+    for (const id of ["crucible-duel", "crucible-skirmish"]) {
+      const def = activityById(id)!;
+      const p = { earnedRewards: [], missionRuns: { [`act:${id}`]: { day: periodKey(def, now), count: 50, last: now - 1000 } } };
+      const st = activityState(p, def, now);
+      expect(st.available).toBe(true);
+      expect(Number.isFinite(st.attemptsLeft)).toBe(false);
+    }
+  });
 });

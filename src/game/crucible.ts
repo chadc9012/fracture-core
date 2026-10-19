@@ -1,4 +1,4 @@
-/** Crucible (PvP) against AI rival operators: the match rules, kept pure so they are testable apart from Scene.
+/** The Killbox (PvP; named "crucible" in code, ids and saves so existing wins keep counting) against AI rival operators: the match rules, kept pure so they are testable apart from Scene.
  * There is no online multiplayer yet, so rivals are bot GOLIATH / NYX / CIPHER operators in an enemy colourway. A
  * match is a normal activity (activities.ts, objective kind "crucible"): you score by eliminating rivals (sim.rivalKills),
  * they score when you die (sim.deaths). Rivals respawn at the arena edge after a short delay. When real players can
@@ -19,7 +19,7 @@ export const ARENA_POINT: readonly [number, number] = [0.05, -0.1];
 export const ARENA_RADIUS = 34;
 export const RIVAL_RESPAWN_S = 3.5;
 /** the Crucible opens after NOVA's field calibration (the Mission 01 tutorial), like Destiny's after the intro */
-export const CRUCIBLE_LOCKED = "Finish NOVA's field calibration in Mission 01 to unlock the Crucible";
+export const CRUCIBLE_LOCKED = "Finish NOVA's field calibration in Mission 01 to unlock the Killbox";
 export const RIVAL_HP = 9;
 export const RIVAL_LABEL: Record<RivalClass, string> = { TITAN: "GOLIATH", HUNTER: "NYX", WARLOCK: "CIPHER" };
 /** rivals wear a hostile colourway so they never read as the player's own operator */

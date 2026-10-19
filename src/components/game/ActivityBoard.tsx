@@ -23,7 +23,7 @@ export function ActivityBoard({ progression, activeId, onStart }: { progression:
     const r = a.rewards;
     return <div key={`${tag ?? ""}${a.id}`} className={`border p-3 ${st.available ? "border-border" : "border-border/50 opacity-80"}`}>
       <div className="flex items-start justify-between gap-2"><div><p className="font-mono text-[9px] uppercase tracking-[0.2em] text-primary">{a.period === "week" ? "Weekly elite" : CATEGORIES.find((c) => c.id === categoryOf(a))?.label} · {AREAS[a.area]?.name} · difficulty {STARS[a.difficulty]}{a.submerged ? " · submersible access" : ""}</p><p className="mt-1 text-sm font-semibold">{a.name}{featuredIds.has(a.id) && a.period !== "week" ? <span className="ml-2 text-[9px] text-primary">FEATURED +{Math.round((FEATURED_BONUS - 1) * 100)}%</span> : null}</p></div>
-        <span className="font-mono text-[9px] text-muted-foreground">{st.attemptsLeft}/{a.attempts} {a.period === "week" ? "this week" : "today"}</span></div>
+        <span className="font-mono text-[9px] text-muted-foreground">{Number.isFinite(a.attempts) ? `${st.attemptsLeft}/${a.attempts} ${a.period === "week" ? "this week" : "today"}` : "Unlimited"}</span></div>
       <p className="mt-1 text-xs text-muted-foreground">{a.brief}</p>
       <ul className="mt-2 font-mono text-[10px] text-muted-foreground">{a.stages.map((o, i) => <li key={i}>{i + 1}. {o.label}{"timeLimit" in o ? ` (${o.timeLimit}s)` : ""}</li>)}</ul>
       {a.challenge && <p className="mt-1 font-mono text-[10px] text-primary/80">Optional: {a.challenge.label} (+25%)</p>}

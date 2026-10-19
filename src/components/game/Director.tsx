@@ -10,13 +10,13 @@ import { StarMap, type DeployTarget } from "./StarMap";
 import { ArsenalLoadouts } from "./ArsenalLoadouts";
 import { SaveManager } from "./SaveManager";
 
-/** Destiny-style director: the world map is home, with Crucible (PvP), Raid and the gear/save screens as tabs along the
- * top. Destinations deploy through the map's own transit; Crucible matches start an activity and drop you in the arena. */
+/** Destiny-style director: the world map is home, with the Killbox (PvP; "crucible" in code and saves), Raid and the gear/save screens as tabs along the
+ * top. Destinations deploy through the map's own transit; Killbox matches start an activity and drop you in the arena. */
 export type DirectorTab = "map" | "crucible" | "raid" | "arsenal" | "saves";
 
 const TABS: { id: DirectorTab; label: string; icon: LucideIcon }[] = [
   { id: "map", label: "Map", icon: MapIcon },
-  { id: "crucible", label: "Crucible", icon: Swords },
+  { id: "crucible", label: "Killbox", icon: Swords },
   { id: "raid", label: "Raid", icon: Users },
   { id: "arsenal", label: "Arsenal", icon: Shield },
   { id: "saves", label: "Saves", icon: Save },
@@ -91,11 +91,11 @@ function CrucibleView({ progression, playerClass, onLaunch }: { progression: Pla
   const wins = modes.reduce((n, m) => n + (progression.earnedRewards.filter((r) => r === `crucible-win:${m.id}`).length), 0);
   const rank = PVP_RANKS[Math.min(PVP_RANKS.length - 1, Math.floor(wins / 5))];
   return (
-    <Panel label="Crucible">
+    <Panel label="Killbox">
       <header className="flex flex-wrap items-end justify-between gap-3 border-b border-foreground/15 pb-4">
         <div>
           <p className="ui-kicker text-primary">Wastelands · Grid-Iron arena</p>
-          <h1 className="mt-1 font-mono text-3xl uppercase tracking-[0.25em]">Crucible</h1>
+          <h1 className="mt-1 font-mono text-3xl uppercase tracking-[0.25em]">Killbox</h1>
         </div>
         <div className="text-right font-mono"><p className="ui-kicker">Rank</p><p className="text-lg text-primary">{rank}</p></div>
       </header>
@@ -117,7 +117,7 @@ function CrucibleView({ progression, playerClass, onLaunch }: { progression: Pla
                   <div><dt className="ui-kicker">Score to win</dt><dd className="text-foreground">{m.target}</dd></div>
                   <div><dt className="ui-kicker">Rivals</dt><dd className="text-foreground">{lineup}</dd></div>
                   <div><dt className="ui-kicker">Reward</dt><dd className="text-foreground">{def.rewards.nex} NEX · {def.rewards.xp} XP</dd></div>
-                  <div><dt className="ui-kicker">Matches today</dt><dd className="text-foreground">{st.attemptsLeft} left</dd></div>
+                  <div><dt className="ui-kicker">Matches</dt><dd className="text-foreground">{Number.isFinite(st.attemptsLeft) ? `${st.attemptsLeft} left today` : "Unlimited"}</dd></div>
                 </dl>
               </div>
               <Button className="mt-5 w-full font-mono uppercase tracking-widest" disabled={!st.available || !progression.tutorialComplete} onClick={() => onLaunch(id)}>

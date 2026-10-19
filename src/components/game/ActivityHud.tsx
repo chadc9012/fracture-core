@@ -28,7 +28,7 @@ export function ActivityTracker({ def, run, onAbandon }: { def: ActivityDef; run
     </div>;
   }
   return <div className="pointer-events-auto absolute left-3 top-28 z-30 w-64 border border-primary/60 bg-background/80 p-3 font-mono text-[10px] backdrop-blur" role="status" aria-label="Active activity">
-    <p className="text-[9px] uppercase tracking-[0.25em] text-primary">{AREAS[def.area]?.name} · {def.kind}</p>
+    <p className="text-[9px] uppercase tracking-[0.25em] text-primary">{AREAS[def.area]?.name} · {def.kind === "crucible" ? "killbox" : def.kind}</p>
     <p className="mt-1 text-sm font-semibold">{def.name}</p>
     <p className="mt-1 text-muted-foreground">Stage {run.stage + 1}/{def.stages.length} · {o.label}</p>
     <p className="mt-1">{o.kind === "deliver" ? (run.carrying ? "Cargo picked up — deliver it" : "Go to the pickup") : `${Math.min(run.progress, need)} / ${need}`}{left !== null && <span className={`ml-2 ${left < 15 ? "text-destructive" : "text-primary"}`}>{Math.floor(left / 60)}:{String(left % 60).padStart(2, "0")}</span>}</p>

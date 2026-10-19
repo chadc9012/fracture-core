@@ -14,6 +14,8 @@ describe("catalogue", () => {
   });
   test("attempts and cooldowns follow the design table", () => {
     for (const a of ACTIVITIES) {
+      // PvP matches are unlimited by design; every PvE activity keeps the 2-3 attempt budget
+      if (a.kind === "crucible") { expect(a.attempts).toBe(Infinity); expect(a.cooldownMin).toBe(0); continue; }
       expect(a.attempts).toBeGreaterThanOrEqual(2); expect(a.attempts).toBeLessThanOrEqual(3);
       if (a.area === "neon-underground" || a.area === "neon-core") { expect(a.attempts).toBe(2); expect(a.cooldownMin).toBe(60); }
       if (a.area === "neon") { expect(a.attempts).toBe(3); expect(a.cooldownMin).toBeGreaterThanOrEqual(20); expect(a.cooldownMin).toBeLessThanOrEqual(30); }
