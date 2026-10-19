@@ -5,7 +5,9 @@
 import type { Marker, MarkerKind } from "./waypoints";
 
 export type MapPin = { id: string; label: string; x: number; z: number; source: MarkerKind | "MAP" };
-export const PIN_KEY = "world-fracture-waypoint";
+import { WORLD_SCALE } from "./world";
+/** keyed to the map scale: a pin is a world coordinate, so one set on a differently sized map would point at the wrong place */
+export const PIN_KEY = WORLD_SCALE === 4 ? "world-fracture-waypoint" : `world-fracture-waypoint@${WORLD_SCALE}`;
 /** within this many metres the waypoint counts as reached */
 export const ARRIVE_RADIUS = 12;
 

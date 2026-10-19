@@ -7,6 +7,7 @@ Rule: no model is claimed to work in-game until it was seen in a browser. Nothin
 |---|---|---|
 | First-person auto rifle, rebuilt to the reference art (compact armoured carbine: bolted side plates, vented shroud with glowing vents, block brake, boxy optic, ribbed box mag, skeletal stock; separate mag/bolt) | public/models/weapons/rifle.glb | scripts/build-rifle.py (weapon_kit.py) |
 | First-person hand cannon, breach shotgun, heavy cannon, launcher and blade (same worn kit; separate mag/action parts for the reload and cycle rigs) | public/models/weapons/{pistol,shotgun,heavy,launcher,sword}.glb | scripts/build-weapons.py (helpers in scripts/weapon_kit.py) |
+| Neon City towers: six variants (setback curtain-wall shafts, lit window grid, storefront podium, rooftop plant and masts, recolourable neon trims), ~200-400 tris each, drawn instanced | public/models/city/neon-towers.glb | scripts/build-city.py |
 | Forest trees: broadleaf + conifer, 3 variants each, ~1.4-2k tris, bark + leaf-card textures; far trees are crossed textured cards | public/models/foliage/*.glb | scripts/build-trees.py |
 
 Both scripts run with Blender as a Python module (`pip install bpy`). Real trees now draw on every tier, LOW included.

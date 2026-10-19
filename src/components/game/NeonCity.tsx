@@ -1,17 +1,15 @@
 import { Text } from "./SafeText";
 import { DistrictLight } from "./DistrictLight";
-import { useMemo } from "react";
 import { REGIONS, NEON_OFFSET } from "@/game/world";
 import { walkHeight } from "@/game/terrain";
-import { addObstacle } from "@/game/obstacles";
-import { Model } from "./Vehicle";
-import type { ModelKey } from "@/game/models";
 import { ElevatedTrain, LightBar, ShopSign } from "./DistrictStreet";
 import { NeonTiers } from "./NeonTiers";
 import { NeonGraffiti } from "./NeonGraffiti";
 import { NeonRails } from "./NeonRails";
 import { MaglevTrains } from "./MaglevTrains";
 import { NeonDistricts } from "./NeonDistricts";
+import { NeonTowerBlocks } from "./NeonTowerBlocks";
+import { NEON_FLAT } from "@/game/world";
 
 /**
  * Neon City — the Syndicate's market/cybernetics district bordering Nexus City (per the
@@ -25,50 +23,6 @@ import { NeonDistricts } from "./NeonDistricts";
  */
 const NEXUS = REGIONS.find((r) => r.id === "nexus")!;
 export const NEON_CITY_CENTER = { x: NEXUS.x + NEON_OFFSET.x, z: NEXUS.z + NEON_OFFSET.z };
-
-const SIGN_COLORS = ["#ff2ea6", "#38e8ff", "#b968ff", "#39ff7a", "#ffcf3a"];
-
-type Placed = { key: ModelKey; x: number; z: number; y: number; rot: number; scale: number; glow: string };
-
-function districtBlocks(): Placed[] {
-  const out: Placed[] = [];
-  let seed = 501;
-  const rnd = () => {
-    seed = (seed * 1103515245 + 12345) % 2147483648;
-    return seed / 2147483648;
-  };
-  const keys: ModelKey[] = ["tower_a", "tower_b", "block_a", "block_b"];
-  const cols = 5;
-  const rows = 4;
-  const spacing = 14;
-  for (let cx = 0; cx < cols; cx++) {
-    for (let cz = 0; cz < rows; cz++) {
-      // leave a cross-shaped street grid clear so the district reads as city blocks, not a solid wall
-      if (cx === Math.floor(cols / 2) || cz === Math.floor(rows / 2)) continue;
-      const x = NEON_CITY_CENTER.x + (cx - (cols - 1) / 2) * spacing + (rnd() - 0.5) * 3;
-      const z = NEON_CITY_CENTER.z + (cz - (rows - 1) / 2) * spacing + (rnd() - 0.5) * 3;
-      out.push({
-        key: keys[Math.floor(rnd() * keys.length)]!,
-        x,
-        z,
-        y: walkHeight(x, z),
-        rot: rnd() * Math.PI * 2,
-        scale: 2.6 + rnd() * 1.8,
-        glow: SIGN_COLORS[Math.floor(rnd() * SIGN_COLORS.length)]!,
-      });
-    }
-  }
-  return out;
-}
-
-function NeonStrip({ height, color }: { height: number; color: string }) {
-  return (
-    <mesh position={[0, height / 2, 0.02]}>
-      <boxGeometry args={[0.18, height, 0.06]} />
-      <meshStandardMaterial color={color} emissive={color} emissiveIntensity={3.2} toneMapped={false} />
-    </mesh>
-  );
-}
 
 function Billboard({ x, z, y, rotY, label, sub, color }: { x: number; z: number; y: number; rotY: number; label: string; sub?: string; color: string }) {
   return (
@@ -89,24 +43,6 @@ function Billboard({ x, z, y, rotY, label, sub, color }: { x: number; z: number;
           {sub}
         </Text>
       )}
-    </group>
-  );
-}
-
-function DistrictBuildings() {
-  const placed = useMemo(() => {
-    const list = districtBlocks();
-    for (const b of list) addObstacle("tower", b.x, b.z, b.scale * 0.7, 400, 2);
-    return list;
-  }, []);
-  return (
-    <group>
-      {placed.map((b, i) => (
-        <group key={i} position={[b.x, b.y, b.z]} rotation-y={b.rot}>
-          <Model modelKey={b.key} scale={b.scale} />
-          <NeonStrip height={b.scale * 3.4} color={b.glow} />
-        </group>
-      ))}
     </group>
   );
 }
@@ -159,16 +95,17 @@ export function NeonCity() {
   const y = walkHeight(NEON_CITY_CENTER.x, NEON_CITY_CENTER.z);
   return (
     <group>
-      <DistrictBuildings />
+      {/* the skyline: authored towers on the street grid across the whole city plateau (neon-layout.ts) */}
+      <NeonTowerBlocks />
       <NeonMarketStreet y={y} />
       <NeonTiers c={NEON_CITY_CENTER} />
       <NeonGraffiti c={NEON_CITY_CENTER} />
       <NeonRails c={NEON_CITY_CENTER} />
       <MaglevTrains c={NEON_CITY_CENTER} />
       <NeonDistricts c={NEON_CITY_CENTER} />
-      {/* street-level glow */}
-      <mesh position={[NEON_CITY_CENTER.x, y + 0.03, NEON_CITY_CENTER.z]} rotation-x={-Math.PI / 2}>
-        <planeGeometry args={[84, 72]} />
+      {/* street level: the whole plateau is paved */}
+      <mesh position={[NEON_CITY_CENTER.x, y + 0.04, NEON_CITY_CENTER.z]} rotation-x={-Math.PI / 2} receiveShadow>
+        <circleGeometry args={[NEON_FLAT - 2, 96]} />
         {/* wet asphalt under the acid rain: glossy so the neon smears across it */}
         <meshStandardMaterial color="#120a1c" roughness={0.12} metalness={0.55} />
       </mesh>

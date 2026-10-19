@@ -15,7 +15,7 @@
  * Pure and deterministic. Off at WORLD_SCALE 1 (the original disc world) and with ?coast=disc, for A/B checks. */
 import { COAST_MASK } from "./coast-mask";
 import { artRawForWorld, metresPerArtPercent, worldForArt } from "./map-art";
-import { REGIONS, WORLD_SCALE, NEON_OFFSET } from "./world";
+import { REGIONS, WORLD_SCALE, NEON_OFFSET, NEON_FLAT, NEON_FADE } from "./world";
 import { LANES, ROAD_SAMPLES, laneSamples } from "./lanes";
 import { LANDMARKS } from "./landmarks";
 import { TRAIL, FOREST_SPAWN, CRASH_SITE } from "./verdant";
@@ -60,7 +60,8 @@ function protectedDiscs(): [number, number, number][] {
   const d: [number, number, number][] = [];
   for (const r of REGIONS) d.push([r.x, r.z, r.id === "nexus" ? r.radius + 45 : r.radius * 0.5]);
   for (const l of LANDMARKS) if (l.type !== "ocean" && l.regionId !== "thalassia") d.push([l.x, l.z, 45]);
-  d.push([REGIONS.find((r) => r.id === "nexus")!.x + NEON_OFFSET.x, REGIONS.find((r) => r.id === "nexus")!.z + NEON_OFFSET.z, 130]);
+  // Neon City: its whole plateau and fade stay land (world.ts NEON_FLAT/NEON_FADE)
+  d.push([REGIONS.find((r) => r.id === "nexus")!.x + NEON_OFFSET.x, REGIONS.find((r) => r.id === "nexus")!.z + NEON_OFFSET.z, Math.max(130, NEON_FLAT + NEON_FADE + 20)]);
   d.push([FOREST_SPAWN.x, FOREST_SPAWN.z, 70], [CRASH_SITE.x, CRASH_SITE.z, 60]);
   for (const p of TRAIL) d.push([p.x, p.z, 55]);
   for (const lane of LANES) for (const p of laneSamples(lane, ROAD_SAMPLES)) d.push([p.x, p.z, 26]);

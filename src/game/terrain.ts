@@ -1,7 +1,7 @@
 import { CRASH_SITE, trailMask } from "./verdant";
 import { districtDeckAt } from "./district-decks";
 import { forestRelief, openWoods, IMPACT_PIT } from "./forest-relief";
-import { REGIONS, WORLD_RADIUS, BASE_WORLD_REGIONS, BASE_WORLD_RADIUS, WORLD_SCALE, HEIGHT_K } from "./world";
+import { REGIONS, WORLD_RADIUS, BASE_WORLD_REGIONS, BASE_WORLD_RADIUS, WORLD_SCALE, HEIGHT_K, NEON_SITE, NEON_FLAT, NEON_FADE } from "./world";
 import { LANES, ROAD_SAMPLES, laneSamples, distanceToRoad } from "./lanes";
 import { coastShape } from "./coastline";
 import { wetnessAt, wetTint } from "./wetness";
@@ -150,7 +150,26 @@ function detailHeight(x: number, z: number): number {
 }
 
 /** the landform water is traced on: stretched base terrain + forest relief, WITHOUT the small world-space rolls (those would trap streams in pits) */
+/** 1 on Neon City's plateau, easing to 0 over NEON_FADE */
+export function neonPlateauWeight(x: number, z: number): number {
+  const d = Math.hypot(x - NEON_SITE.x, z - NEON_SITE.z);
+  return d >= NEON_FLAT + NEON_FADE ? 0 : 1 - smoothstep(NEON_FLAT, NEON_FLAT + NEON_FADE, d);
+}
+let neonLevel: number | null = null;
+/** the level Neon City stands at: the natural ground at its centre, kept clear of the water */
+export function neonPlateauLevel(): number {
+  if (neonLevel === null) neonLevel = Math.max(WATER_LEVEL + 3, landformAt(NEON_SITE.x, NEON_SITE.z));
+  return neonLevel;
+}
+
+/** the landform with Neon City's plateau levelled in, so rivers are traced around the city instead of through it */
 function smoothHeightAt(x: number, z: number): number {
+  const h = landformAt(x, z);
+  const w = neonPlateauWeight(x, z);
+  return w <= 0 ? h : h + (neonPlateauLevel() - h) * w;
+}
+
+function landformAt(x: number, z: number): number {
   let h = baseNaturalHeightAt(x / WORLD_SCALE, z / WORLD_SCALE);
   if (HEIGHT_K !== 1) h = WATER_LEVEL + (h - WATER_LEVEL) * HEIGHT_K;
   // Verdant Forest relief + the Fracture impact pit (forest-relief.ts); zero outside the forest
@@ -214,7 +233,7 @@ function rawHeightAt(x: number, z: number): number {
   const rv = riverAt(x, z);
   const sm = smoothHeightAt(x, z);
   // the small rolls fade out over river channels and lake basins, so water always sits in a carved bed with banks
-  let detail = detailHeight(x, z);
+  let detail = detailHeight(x, z) * (1 - neonPlateauWeight(x, z));
   if (detail !== 0) {
     if (rv) detail *= 1 - carveWeight(rv.w, rv.dist);
     for (const l of net.lakes) { const d = Math.hypot(x - l.x, z - l.z); if (d < l.r * 2) detail *= smoothstep(l.r * 0.8, l.r * 2, d); }

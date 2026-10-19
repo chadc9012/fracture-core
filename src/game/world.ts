@@ -38,7 +38,7 @@ export const ZONE_LABEL: Record<ZoneKind, string> = {
  * Every region below is authored at BASE size (the original ~380 m world). WORLD_SCALE stretches the map: wild regions
  * move apart and grow by WORLD_SCALE, the Nexus city keeps its authored footprint (a bigger plateau around it, not
  * bigger buildings). ?worldScale=1 restores the original layout for A/B performance checks. Set once at module load. */
-export const DEFAULT_WORLD_SCALE = 4;
+export const DEFAULT_WORLD_SCALE = 6;
 function readWorldScale(): number {
   try {
     const env = (globalThis as { process?: { env?: Record<string, string | undefined> } }).process?.env?.["WORLD_SCALE"]; // tests / tooling
@@ -226,3 +226,11 @@ export function clockLabel(t: number) {
 
 /** Neon City sits beside the Nexus hub; its offset grows with the world (half the wild-region scale) so the districts stay distinct neighbours. */
 export const NEON_OFFSET = { x: 82 * Math.max(1, WORLD_SCALE / 2), z: -38 * Math.max(1, WORLD_SCALE / 2) } as const;
+
+/** Neon City's own level ground: flat out to NEON_FLAT metres from its centre, easing back to the land over NEON_FADE.
+ * Sized to the room between it and the Nexus hub (the hub's buildings stay within ~25 m of its centre), so at the default
+ * scale the whole city — districts, race loop and the tower blocks around them — stands on one level. */
+const NEON_NEXUS = REGIONS.find((r) => r.id === "nexus")!;
+export const NEON_SITE = { x: NEON_NEXUS.x + NEON_OFFSET.x, z: NEON_NEXUS.z + NEON_OFFSET.z } as const;
+export const NEON_FADE = 50;
+export const NEON_FLAT = Math.max(40, Math.min(160, Math.hypot(NEON_OFFSET.x, NEON_OFFSET.z) - 111));
