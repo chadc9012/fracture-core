@@ -1283,7 +1283,7 @@ export function GameCanvas() {
          </div>
        )}
        {housingOpen && <HousingPanel progression={progression} startTab={housingOpen} startHome={interiorById(hud.insideInterior ?? null)?.homeId} onProgression={setProgression} onClose={() => setHousingOpen(null)} />}
-       {hud.insideInterior && hud.interiorName && hud.sub.startsWith("Shop") && (
+       {hud.insideInterior && hud.interiorName && hud.sub.startsWith("Shop") && !interiorById(hud.insideInterior)?.shopId && (
          <div className="pointer-events-none absolute bottom-24 left-1/2 -translate-x-1/2 text-center">
            {hud.interiorOpen ? (
              <Button className="pointer-events-auto" variant="outline" onClick={() => setOperationsView("ARSENAL")}>Browse {hud.interiorName}</Button>
@@ -1298,11 +1298,11 @@ export function GameCanvas() {
          </div>
        )}
        {skateOpen && <SkateShop progression={progression} onProgression={setProgression} onClose={() => setSkateOpen(false)} />}
-       <TouchControls bindings={settings.bindings} disabled={Boolean(menuOpen || characterOpen || inventoryOpen || atlasOpen || operationsView || shopOpen || skateOpen || npcOpen || forgeOpen || basePanel || ruinOpen || showIntro || cineId || deathInfo || storyGraph || activeDialogue || transit)} />
+       <TouchControls bindings={settings.bindings} disabled={Boolean(housingOpen || menuOpen || characterOpen || inventoryOpen || atlasOpen || operationsView || shopOpen || skateOpen || npcOpen || forgeOpen || basePanel || ruinOpen || showIntro || cineId || deathInfo || storyGraph || activeDialogue || transit)} />
        <DashHud bindings={settings.bindings} />
        <DragoniteHud bindings={settings.bindings} />
       <NexChip ledger={progression.nexLedger} />
-      <ConsumableHud progression={progression} bindings={settings.bindings} disabled={Boolean(menuOpen || characterOpen || inventoryOpen || atlasOpen || operationsView || shopOpen || skateOpen || npcOpen || forgeOpen || basePanel || ruinOpen || showIntro || cineId || deathInfo || storyGraph || activeDialogue || transit || hud.hp <= 0)} onUse={useConsumable} />
+      <ConsumableHud progression={progression} bindings={settings.bindings} disabled={Boolean(housingOpen || menuOpen || characterOpen || inventoryOpen || atlasOpen || operationsView || shopOpen || skateOpen || npcOpen || forgeOpen || basePanel || ruinOpen || showIntro || cineId || deathInfo || storyGraph || activeDialogue || transit || hud.hp <= 0)} onUse={useConsumable} />
        <KillPlaylistPlayer volume={(settings.volume ?? 0.7) * (settings.musicVolume ?? 1)} muted={!!settings.mute?.music} />
        {hud.garageNear && !basePanel && !hud.shopNearId && (
          <div className="pointer-events-none absolute bottom-24 left-1/2 -translate-x-1/2">

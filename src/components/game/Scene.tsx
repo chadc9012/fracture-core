@@ -1,3 +1,4 @@
+import { accessibleShop } from "@/game/shop-access";
 const DISCOVERY_LABEL: Record<string, string> = { flag: "Flag", beacon: "Beacon", patrol: "Patrol", fracture: "Rift Fracture", distress: "Distress Signal", cache: "Cache", movement: "Movement Route", anomaly: "Anomaly" };
 const ACTIVITY_REGION: Record<string, string> = { veridan: "veridan", ember: "ember", wastelands: "wastelands", swamps: "swamps", solara: "solara", frostspire: "frostspire", thalassia: "swamps" };
 import { nearby as discoveriesNear, triggered as discoveryTriggered } from "@/game/discoveries";
@@ -1828,6 +1829,10 @@ function SceneImpl({
         const c = clampHomeLocal(interior, rooms, s.x - interior.origin.x, s.z - interior.origin.z, (s.interiorPrevX ?? s.x) - interior.origin.x);
         s.x = interior.origin.x + c.x; s.z = interior.origin.z + c.z;
       }
+      if (!interior.homeId) {
+        s.x = interior.origin.x + Math.max(-4.5, Math.min(4.5, s.x - interior.origin.x));
+        s.z = interior.origin.z + Math.max(-4.5, Math.min(4.5, s.z - interior.origin.z));
+      }
       s.interiorPrevX = s.x;
       const localX = s.x - interior.origin.x;
       const localZ = s.z - interior.origin.z;
@@ -2743,8 +2748,8 @@ function SceneImpl({
         waste: wasteHud.current,
         vaelNear: !interior && !s.inVehicle && vaelNear({ earnedRewards: gear?.earnedRewards ?? [] }, s.x, s.z),
         npcNear: !interior && !s.inVehicle ? (() => { const n = npcNear(s.x, s.z); return n ? { id: n.id, name: n.name, title: n.title } : null; })() : null,
-        shopNearId: !interior && !s.inVehicle ? shopNear(s.x, s.z)?.id ?? null : null,
-        shopNearName: !interior && !s.inVehicle ? shopNear(s.x, s.z)?.name ?? "" : "",
+        shopNearId: !s.inVehicle && (!interior || isInteriorOpen(interior, time.current)) ? accessibleShop(s.x, s.z, interior)?.id ?? null : null,
+        shopNearName: !s.inVehicle ? accessibleShop(s.x, s.z, interior)?.name ?? "" : "",
         cacheNear: cacheLive.current.view,
         ruinNear: ruinLive.current,
         zoneTier: instabilityTier(zone?.instability ?? 0),
