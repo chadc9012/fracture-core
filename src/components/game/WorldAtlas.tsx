@@ -9,7 +9,9 @@ import { getPin, pinAt, pinFromMarker, setPin, subscribePin } from "@/game/map-p
 import { REGIONAL_SHOPS, SHOP_KIND_LABEL, shopLock } from "@/game/regional-shops";
 import { CITY_DESTINATIONS, dropPoint } from "@/game/destinations";
 import { DESTINATIONS, FILTER_LABEL, cityDistricts, destinationActivities, destinationById, destinationFleet, destinationGarages, destinationHomes, destinationResidences, destinationShops, destinationSummary, discoveredSites, matchesFilter, type CityDistrict, type Destination, type DestinationSummary, type DirectorFilter } from "@/game/destination-director";
-import { GARAGES, buyFleetVehicle, buyGarage } from "@/game/fleet";
+import { GARAGES, buyFleetVehicle, buyGarage, setActiveFleet } from "@/game/fleet";
+import { shopAccessKind } from "@/game/shop-access";
+import { INTERIORS } from "@/game/interiors";
 import { buyHome, ownsHome } from "@/game/housing";
 import { nexBalance } from "@/game/nex";
 import { MATERIALS, type MaterialId } from "@/game/inventory";
@@ -157,7 +159,8 @@ function DestinationView({ dest, progression, phase, markers, px, pz, onProgress
   const focus = { x: dest.x, z: dest.z, radius: dest.reach ?? region.radius };
   const tabs: ViewTab[] = ["ACTIVITIES", ...(shops.length ? ["SHOPS" as const] : []), ...(homes.length || walkIns.length ? ["HOMES" as const] : []), ...(garages.length ? ["VEHICLES" as const] : [])];
   const waypoint = (id: string, label: string, x: number, z: number) => { setPin({ id, label, x, z, source: "MAP" }); setNotice(`Waypoint set: ${label}`); };
-  const travelTo = (id: string, name: string, x: number, z: number) => onTravel?.({ id, kind: "SAFE_ZONE", name, detail: "", regionId: dest.regionId, x, z, status: "AVAILABLE", drop: { x, z: z + 4 } });
+  /** fast travel next to a place (`ahead` m south of it, the side doors face) through the normal transit */
+  const travelTo = (id: string, name: string, x: number, z: number, ahead = 4) => onTravel?.({ id, kind: "SAFE_ZONE", name, detail: "", regionId: dest.regionId, x, z, status: "AVAILABLE", drop: { x, z: z + ahead } });
   const act = <P,>(r: { progression: P; message: string } | { error: string }) => { if ("error" in r) setNotice(r.error); else { onProgression?.(r.progression as PlayerProgression); setNotice(r.message); } };
   const nex = nexBalance(progression.nexLedger);
   const fleetState = progression.fleet ?? { owned: [], garages: [], active: null };
@@ -182,10 +185,10 @@ function DestinationView({ dest, progression, phase, markers, px, pz, onProgress
         {sites.length > 0 && <div className="mt-4"><p className="ui-kicker text-violet-300">Discovered dungeons & sites</p><ul className="mt-1 space-y-1.5">{sites.map((l) => <li key={l.id} className="border-l-2 border-violet-400 pl-2 text-xs"><b>{LANDMARK_GLYPH[l.type]} {l.name}</b><span className="block text-muted-foreground">{l.history}</span><button type="button" className="ui-focus mt-0.5 text-[10px] uppercase text-violet-300" onClick={() => waypoint(`lm-${l.id}`, l.name, l.x, l.z)}>Add waypoint</button></li>)}</ul></div>}
       </>}
       {tab === "SHOPS" && <ul className="mt-3 space-y-2">{shops.map((sh) => { const lock = shopLock(sh, progression); return <li key={sh.id} className="border border-foreground/15 bg-background/60 p-3">
-        <p className="ui-kicker text-violet-300">{SHOP_KIND_LABEL[sh.kind]}{districtOf(districts, sh.x, sh.z) ? ` · ${districtOf(districts, sh.x, sh.z)}` : ""}</p>
+        <p className="ui-kicker text-violet-300">{SHOP_KIND_LABEL[sh.kind]} · {ACCESS_LABEL[shopAccessKind(sh.id)]}{districtOf(districts, sh.x, sh.z) ? ` · ${districtOf(districts, sh.x, sh.z)}` : ""}</p>
         <strong className="block text-sm">{sh.name}</strong><p className="text-xs text-muted-foreground">{sh.blurb} · pays in {MATERIALS[sh.currency]?.name ?? sh.currency}</p>
         {lock && <p className="mt-1 text-xs text-amber-400">{lock}</p>}
-        <div className="mt-2 flex gap-1"><Button size="sm" variant="outline" className="rounded-none" onClick={() => waypoint(`shop-${sh.id}`, sh.name, sh.x, sh.z)}>Add waypoint</Button>{onTravel && <Button size="sm" className="rounded-none" onClick={() => travelTo(`shop-${sh.id}`, sh.name, sh.x, sh.z)}>Fast travel</Button>}</div>
+        <div className="mt-2 flex gap-1"><Button size="sm" variant="outline" className="rounded-none" onClick={() => waypoint(`shop-${sh.id}`, sh.name, sh.x, sh.z)}>Add waypoint</Button>{onTravel && <Button size="sm" className="rounded-none" onClick={() => shopAccessKind(sh.id) === "interior" ? travelTo(`shop-${sh.id}`, sh.name, sh.x, sh.z + 3, 4) : travelTo(`shop-${sh.id}`, sh.name, sh.x, sh.z)}>{shopAccessKind(sh.id) === "interior" ? "Go to the door" : "Fast travel"}</Button>}</div>
       </li>; })}</ul>}
       {tab === "HOMES" && <div className="mt-3 space-y-2">
         <p className="text-xs text-muted-foreground">Bought with Nex at the property agent's rates · you have <b className="text-foreground">{nex.toLocaleString()} Nex</b>. Decorate an owned home from inside it.</p>
@@ -193,7 +196,7 @@ function DestinationView({ dest, progression, phase, markers, px, pz, onProgress
           <p className="ui-kicker" style={{ color: "#e8c39e" }}>{h.kind.replace("_", " ").toLowerCase()} · {h.district}</p>
           <strong className="block text-sm">{h.name}</strong><p className="text-xs text-muted-foreground">{h.blurb} · {h.rooms.length} rooms</p>
           <div className="mt-2 flex items-center justify-between gap-2"><span className="font-mono text-xs text-amber-300">{h.price.toLocaleString()} Nex</span>
-            {owned ? <span className="font-mono text-[10px] uppercase text-primary">Owned{progression.housing?.home === h.id ? " · home" : ""}</span>
+            {owned ? <span className="flex items-center gap-2"><span className="font-mono text-[10px] uppercase text-primary">Owned{progression.housing?.home === h.id ? " · home" : ""}</span>{onTravel && homeDoor(h.id) && <Button size="sm" variant="outline" className="rounded-none" onClick={() => { const d = homeDoor(h.id)!; travelTo(`home-${h.id}`, h.name, d.x, d.z, 4); }}>Go home</Button>}</span>
               : <Button size="sm" className="rounded-none" disabled={!onProgression || nex < h.price} onClick={() => act(buyHome(progression, h.id))}>{nex < h.price ? "Not enough Nex" : "Buy"}</Button>}</div>
         </li>; })}</ul>
         {walkIns.length > 0 && <><p className="ui-kicker mt-3">Walk-in homes on the street · {walkIns.length}</p><ul className="space-y-1">{walkIns.map((r) => <li key={r.id} className="flex items-center justify-between gap-2 border border-foreground/10 bg-background/60 px-3 py-1.5 text-xs"><span>{r.style.replace(/^./, (c) => c.toUpperCase())}{districtOf(districts, r.x, r.z) ? ` · ${districtOf(districts, r.x, r.z)}` : ""}</span><button type="button" className="ui-focus font-mono text-[10px] uppercase text-primary" onClick={() => waypoint(r.id, `${r.style} home`, r.x, r.z)}>Visit</button></li>)}</ul><p className="text-[11px] text-muted-foreground">These are open to walk in; buying them comes with the property update.</p></>}
@@ -205,7 +208,7 @@ function DestinationView({ dest, progression, phase, markers, px, pz, onProgress
           <ul className="mt-1 space-y-1">{fleet.filter((f) => f.garage === gid).map((f) => { const owned = fleetState.owned.includes(f.id); return <li key={f.id} className="border border-foreground/15 bg-background/60 p-3">
             <p className="ui-kicker">{f.category.toLowerCase()} · {f.ability}</p><strong className="block text-sm">{f.name}</strong><p className="text-xs text-muted-foreground">{f.hardpoints.join(" · ")}</p>
             <div className="mt-2 flex items-center justify-between gap-2"><span className="font-mono text-[11px] text-amber-300">{fmtCost(f.cost)}</span>
-              {owned ? <span className="font-mono text-[10px] uppercase text-primary">{fleetState.active === f.id ? "Active" : "Owned"}</span> : <Button size="sm" className="rounded-none" disabled={!onProgression || !ownedBase} title={ownedBase ? undefined : `Needs the ${g.name}`} onClick={() => act(buyFleetVehicle(progression, f.id))}>{ownedBase ? "Buy" : "Needs base"}</Button>}</div>
+              {owned ? (fleetState.active === f.id ? <span className="font-mono text-[10px] uppercase text-primary">Active · the car you drive</span> : <Button size="sm" variant="outline" className="rounded-none" disabled={!onProgression} onClick={() => act(setActiveFleet(progression, f.id))}>Make active</Button>) : <Button size="sm" className="rounded-none" disabled={!onProgression || !ownedBase} title={ownedBase ? undefined : `Needs the ${g.name}`} onClick={() => act(buyFleetVehicle(progression, f.id))}>{ownedBase ? "Buy" : "Needs base"}</Button>}</div>
           </li>; })}</ul>
         </div>; })}
       </div>}
@@ -222,6 +225,8 @@ function DestinationView({ dest, progression, phase, markers, px, pz, onProgress
     </aside>
   </div>;
 }
+const ACCESS_LABEL = { interior: "walk-in", window: "service window", table: "street counter" } as const;
+const homeDoor = (homeId: string) => INTERIORS.find((i) => i.homeId === homeId)?.doorPos;
 const districtOf = (ds: CityDistrict[], x: number, z: number) => ds.find((k) => Math.hypot(x - k.x, z - k.z) <= k.r)?.name;
 
 /** map sizes are authored in original-world units; positions are world units, so sizes grow with the map */
