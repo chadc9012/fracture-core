@@ -45,3 +45,40 @@ describe("destination director", () => {
     expect(discoveredSites({ earnedRewards: [] }, d!).some((l) => l.id === site.id)).toBe(false);
   });
 });
+
+import { cityDistricts, destinationFleet, destinationGarages, destinationHomes, destinationResidences, destinationShops, destinationSummary } from "./destination-director";
+import { REGIONAL_SHOPS } from "./regional-shops";
+import { FLEET, GARAGES } from "./fleet";
+import { HOMES } from "./housing";
+import { residences } from "./residences";
+
+describe("destination services", () => {
+  const once = <T,>(all: readonly T[], of: (d: (typeof DESTINATIONS)[number]) => T[], key: (t: T) => string) => {
+    for (const t of all) expect(DESTINATIONS.filter((d) => of(d).some((x) => key(x) === key(t))).map((d) => d.id).length === 1 ? key(t) : `${key(t)} in ${DESTINATIONS.filter((d) => of(d).some((x) => key(x) === key(t))).map((d) => d.id).join(",") || "nowhere"}`).toBe(key(t));
+  };
+  test("every shop, base, home and walk-in residence belongs to exactly one destination", () => {
+    once(REGIONAL_SHOPS, destinationShops, (s) => s.id);
+    once(Object.keys(GARAGES), destinationGarages, (g) => g);
+    once(HOMES, destinationHomes, (h) => h.id);
+    once(residences(), destinationResidences, (r) => r.id);
+  });
+  test("every fleet vehicle is sold where its garage stands", () => {
+    for (const f of FLEET) expect(DESTINATIONS.filter((d) => destinationFleet(d).some((x) => x.id === f.id)).length).toBe(1);
+  });
+  test("Neon City, Thalassia and Nexus City have named districts inside them", () => {
+    for (const id of ["neon-city", "thalassia", "nexus"]) {
+      const d = destinationById(id)!, ds = cityDistricts(d);
+      expect(ds.length).toBeGreaterThanOrEqual(3);
+      for (const k of ds) expect(Math.hypot(k.x - d.x, k.z - d.z)).toBeLessThan((d.reach ?? 400) + 10);
+    }
+    expect(cityDistricts(destinationById("veridan")!).length).toBe(0);
+  });
+  test("the summary adds up with the lists", () => {
+    const p = fresh();
+    for (const d of DESTINATIONS) {
+      const s = destinationSummary(p, d);
+      expect(s.shops).toBe(destinationShops(d).length);
+      expect(s.dungeonsFound).toBeLessThanOrEqual(s.dungeonsTotal);
+    }
+  });
+});

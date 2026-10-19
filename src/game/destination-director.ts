@@ -11,6 +11,15 @@ import { CITY_RADIUS } from "./thalassia-sectors";
 import { LANDMARKS, isLandmarkKnown, type Landmark } from "./landmarks";
 import { regionActivities, type Activity, type ActivityKind } from "./map-activities";
 import type { PlayerProgression } from "./progression";
+import { NEON_DISTRICTS } from "./neon-districts";
+import { NEON_SITE, NEXUS_SUBURB } from "./world";
+import { NEXUS, CITY_INNER, CITY_OUTER } from "./nexus-districts";
+import { THALASSIA_CENTER } from "./thalassia-site";
+import { DOCK, RING, CORE } from "./thalassia-sectors";
+import { REGIONAL_SHOPS, type RegionalShop } from "./regional-shops";
+import { GARAGES, FLEET, type FleetEntry, type GarageId } from "./fleet";
+import { HOMES, type HomeDef } from "./housing";
+import { residences, type Residence } from "./residences";
 
 export type Destination = {
   id: string; name: string; sub: string; kind: ZoneKind; x: number; z: number;
@@ -60,4 +69,71 @@ export function discoveredSites(p: Pick<PlayerProgression, "earnedRewards">, d: 
     if (d.city) return inside(d, l.x, l.z);
     return l.regionId === d.id && !citiesOf(d.id).some((c) => inside(c, l.x, l.z));
   });
+}
+
+/* ------------------------------------------------------------------ city services: districts, shops, homes, vehicles
+ * Everything here is the game's real data — the walk-up shops (regional-shops.ts), the homes the property agent sells
+ * (housing.ts, paid in Nex), the bases and fleet vehicles (fleet.ts, paid in materials) and the walk-in residences — so
+ * what the Director lists is exactly what exists and can be bought in the world. */
+
+export type CityDistrict = { id: string; name: string; tagline: string; x: number; z: number; r: number; color: string };
+
+/** the named districts of a city destination (Nexus City is the nexus region's city) */
+export function cityDistricts(d: Destination): CityDistrict[] {
+  if (d.id === "neon-city") return NEON_DISTRICTS.map((n) => ({ id: n.id, name: n.name, tagline: n.tagline, x: NEON_SITE.x + n.dx, z: NEON_SITE.z + n.dz, r: n.radius, color: n.color }));
+  if (d.id === "thalassia") {
+    const c = THALASSIA_CENTER;
+    return [
+      { id: "sentry-dock", name: "Sentry Dock", tagline: "Airlock berth · the only dry deck", x: c.x + DOCK.dx, z: c.z + DOCK.dz, r: DOCK.r, color: "#7ef2ff" },
+      { id: "abyssal-ring", name: "Abyssal Ring", tagline: "Containment · electrified coolant floor", x: c.x, z: c.z - (RING.inner + RING.outer) / 2, r: (RING.outer - RING.inner) / 2 + 4, color: "#b98cff" },
+      { id: "sunk-core", name: "Sunk-Core", tagline: "The deep trench · crush depth", x: c.x, z: c.z, r: CORE.r * 0.6, color: "#ff6b8a" },
+    ];
+  }
+  if (d.id === "nexus") {
+    const mid = (CITY_INNER + CITY_OUTER) / 2;
+    // districts are compass quarters of the city (nexus-districts.ts districtAt: north = world -z)
+    const q = (id: string, name: string, tagline: string, ang: number, color: string): CityDistrict => ({ id, name, tagline, x: NEXUS.x + Math.sin(ang) * mid, z: NEXUS.z - Math.cos(ang) * mid, r: (CITY_OUTER - CITY_INNER) / 2, color });
+    return [
+      q("spire", "Spire District", "Glass towers and the command core", 0, "#9fd4ff"),
+      q("market", "Market District", "Shops, stalls and vendors", Math.PI / 2, "#ffd166"),
+      q("shipyard", "Shipyard", "Freight yards and hangars", Math.PI, "#c9b089"),
+      q("arcology", "Arcology", "Stacked housing blocks", -Math.PI / 2, "#7ef2b0"),
+      { id: "residential", name: "Residential Street", tagline: "Walk-in homes south of the city", x: NEXUS_SUBURB.x, z: NEXUS_SUBURB.z, r: NEXUS_SUBURB.r, color: "#e8c39e" },
+    ];
+  }
+  return [];
+}
+
+/** the region a point is relatively nearest to (distance in units of each region's radius), so sites in the wilds
+ * between regions are still listed once, under the region they lean toward */
+const ownerRegion = (x: number, z: number) => REGIONS.reduce((best, r) => (Math.hypot(x - r.x, z - r.z) / r.radius < Math.hypot(x - best.x, z - best.z) / best.radius ? r : best), REGIONS[0]!).id;
+/** a point belongs to a destination: a city by its reach; a region when it is that region's (and none of its cities') */
+function belongs(d: Destination, x: number, z: number): boolean {
+  if (d.city) return inside(d, x, z);
+  if (DESTINATIONS.some((c) => c.city && inside(c, x, z))) return false;
+  return ownerRegion(x, z) === d.id;
+}
+
+export const destinationShops = (d: Destination): RegionalShop[] => REGIONAL_SHOPS.filter((s) => belongs(d, s.x, s.z));
+export const destinationGarages = (d: Destination): GarageId[] => (Object.values(GARAGES)).filter((g) => belongs(d, g.x, g.z)).map((g) => g.id);
+/** fleet vehicles sold at this destination's bases */
+export const destinationFleet = (d: Destination): FleetEntry[] => { const gs = destinationGarages(d); return FLEET.filter((f) => gs.includes(f.garage)); };
+/** homes the property agent sells here: Neon City's districts (housing.ts lists them under the nexus region) belong to Neon */
+const NEON_HOME = /rust-muck|the grid|aegis/i;
+export function destinationHomes(d: Destination): HomeDef[] {
+  if (d.id === "neon-city") return HOMES.filter((h) => NEON_HOME.test(h.district));
+  if (d.city) return [];
+  return HOMES.filter((h) => h.regionId === d.id && !(d.id === "nexus" && NEON_HOME.test(h.district)));
+}
+/** the walk-in residences standing in this destination (residences.ts) */
+export const destinationResidences = (d: Destination): Residence[] => residences().filter((r) => belongs(d, r.x, r.z));
+
+/** the headline numbers for a destination card (reference: Destiny's destination summary) */
+export type DestinationSummary = { story: number; patrols: number; safeZones: number; bosses: number; other: number; dungeonsFound: number; dungeonsTotal: number; shops: number; homes: number; vehicles: number };
+export function destinationSummary(p: PlayerProgression, d: Destination): DestinationSummary {
+  const acts = destinationActivities(p, d);
+  const n = (f: DirectorFilter) => acts.filter((a) => matchesFilter(a, f)).length;
+  const all = LANDMARKS.filter((l) => DUNGEON_TYPES.has(l.type) && (d.city ? inside(d, l.x, l.z) : l.regionId === d.id && !citiesOf(d.id).some((c) => inside(c, l.x, l.z))));
+  return { story: n("STORY"), patrols: n("PATROL"), safeZones: n("SAFE_ZONE"), bosses: n("BOSS"), other: n("OTHER"), dungeonsFound: discoveredSites(p, d).length, dungeonsTotal: all.length,
+    shops: destinationShops(d).length, homes: destinationHomes(d).length + destinationResidences(d).length, vehicles: destinationFleet(d).length };
 }

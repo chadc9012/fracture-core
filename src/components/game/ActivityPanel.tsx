@@ -1,5 +1,8 @@
 import { useMemo, useState } from "react";
 import { ChevronRight, Lock } from "lucide-react";
+
+/** one glyph per activity kind (shared with the destination map) */
+export const KIND_GLYPH: Record<Activity["kind"], string> = { STORY: "★", SAFE_ZONE: "⛨", BOSS: "☠", NEMESIS: "☠", RESOURCE: "◆", CONTRACT: "✉", STASH: "▣", PATROL: "⟲", ACTIVITY: "◎" };
 import { Button } from "@/components/ui/button";
 import type { PlayerProgression } from "@/game/progression";
 import { ACTIVITY_COLOR, ACTIVITY_LABEL, CHALLENGES, CHALLENGE_ORDER, PATROL_DAILY_CAP, patrolsToday, regionActivities, setChallenge, startPatrol, type Activity } from "@/game/map-activities";
@@ -7,12 +10,19 @@ import { ACTIVITY_COLOR, ACTIVITY_LABEL, CHALLENGES, CHALLENGE_ORDER, PATROL_DAI
 /** Map game flow (map-activities.ts): the activities in one region, then a pre-launch card for the chosen one with the
  * challenge level, then Launch, which drops the player next to it through the normal transit. Shared by the star map
  * (orbit) and the in-game world map, so both offer exactly the same choices. */
-export function ActivityPanel({ progression, regionId, onProgression, onLaunch, launchLabel = "Launch", activities, pickId, onPick }: {
+/** the main action on an activity's card, by kind (Destiny-style: story and bosses launch, patrols start, safe zones fast-travel) */
+const ACTION: Partial<Record<Activity["kind"], string>> = { STORY: "Launch", BOSS: "Launch", NEMESIS: "Launch", PATROL: "Start patrol", SAFE_ZONE: "Fast travel" };
+
+export function ActivityPanel({ progression, regionId, onProgression, onLaunch, launchLabel = "Launch", activities, pickId, onPick, onWaypoint, recommendedLevel }: {
   progression: PlayerProgression; regionId: string;
   /** a narrower list than the whole region (the world map's destination + filter); defaults to every activity in the region */
   activities?: Activity[];
   /** controlled selection (the map's markers pick the same activity); uncontrolled when omitted */
   pickId?: string | null; onPick?: (id: string | null) => void;
+  /** adds an "Add waypoint" action to the card (the compass and tracker follow it) */
+  onWaypoint?: (a: Activity) => void;
+  /** shown on the card: the level this destination is meant for */
+  recommendedLevel?: number;
   onProgression: (next: PlayerProgression) => void;
   onLaunch: (a: Activity) => void;
   launchLabel?: string;
@@ -40,10 +50,16 @@ export function ActivityPanel({ progression, regionId, onProgression, onLaunch, 
     return (
       <div className="space-y-3" aria-label="Pre-launch">
         <button type="button" className="ui-focus font-mono text-[10px] uppercase tracking-widest text-muted-foreground" onClick={() => setPick(null)}>← All activities</button>
-        <div className="border border-foreground/15 p-3" style={{ borderLeft: `3px solid ${ACTIVITY_COLOR[chosen.kind]}` }}>
-          <p className="ui-kicker" style={{ color: ACTIVITY_COLOR[chosen.kind] }}>{ACTIVITY_LABEL[chosen.kind]}</p>
-          <h3 className="mt-1 font-mono text-lg uppercase">{chosen.name}</h3>
-          <p className="mt-1 text-xs text-muted-foreground">{chosen.detail}</p>
+        <div className="overflow-hidden border border-foreground/20" style={{ boxShadow: `0 0 28px ${ACTIVITY_COLOR[chosen.kind]}22` }}>
+          <div className="relative h-16" style={{ background: `linear-gradient(120deg, ${ACTIVITY_COLOR[chosen.kind]}55, #06101f 70%)` }}>
+            <span className="absolute bottom-[-18px] left-3 flex size-11 items-center justify-center border-2 bg-[#06101f] text-xl" style={{ borderColor: ACTIVITY_COLOR[chosen.kind], color: ACTIVITY_COLOR[chosen.kind] }} aria-hidden="true">{KIND_GLYPH[chosen.kind]}</span>
+          </div>
+          <div className="px-3 pb-3 pt-6">
+            <h3 className="font-mono text-lg uppercase leading-tight">{chosen.name}</h3>
+            <p className="ui-kicker" style={{ color: ACTIVITY_COLOR[chosen.kind] }}>{ACTIVITY_LABEL[chosen.kind]}{chosen.status === "DONE" ? " · completed" : chosen.status === "NEXT" ? " · next" : ""}</p>
+            <p className="mt-2 text-xs text-muted-foreground">{chosen.detail}</p>
+            {recommendedLevel !== undefined && <p className="mt-2 text-[11px]">Recommended level: <b style={{ color: progression.level >= recommendedLevel ? "#7ef2b0" : "#ffb23e" }}>{recommendedLevel}</b><span className="text-muted-foreground"> · you are {progression.level}</span></p>}
+          </div>
         </div>
         <div>
           <p className="ui-kicker">Set challenge</p>
@@ -62,7 +78,8 @@ export function ActivityPanel({ progression, regionId, onProgression, onLaunch, 
           <p className="mt-1 text-[11px] text-muted-foreground">{CHALLENGES[challenge].blurb}</p>
         </div>
         {notice && <p className="text-xs text-destructive">{notice}</p>}
-        <Button size="lg" className="ui-focus w-full justify-between rounded-none" disabled={chosen.status === "LOCKED"} onClick={launch}>{chosen.status === "LOCKED" ? chosen.lockReason ?? "Locked" : `${launchLabel}: ${chosen.name}`}<ChevronRight /></Button>
+        <Button size="lg" className="ui-focus w-full justify-between rounded-none" disabled={chosen.status === "LOCKED"} onClick={launch} aria-label={`${ACTION[chosen.kind] ?? launchLabel}: ${chosen.name}`}>{chosen.status === "LOCKED" ? chosen.lockReason ?? "Locked" : ACTION[chosen.kind] ?? launchLabel}<ChevronRight /></Button>
+        {onWaypoint && <Button variant="outline" className="ui-focus w-full rounded-none" onClick={() => onWaypoint(chosen)}>Add waypoint</Button>}
       </div>
     );
   }

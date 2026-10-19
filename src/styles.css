@@ -411,3 +411,10 @@
   .hud-ammo { bottom: 248px !important; width: 104px !important; }
   .hud-health .hud-label { font-size: 8px; }
 }
+
+/* Destination Director: each stage eases in; the selected city node breathes. Off under reduced motion. */
+@keyframes wf-director-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+.wf-director-in { animation: wf-director-in 0.32s ease-out both; }
+@keyframes wf-pulse { 0%, 100% { stroke-opacity: 0.95; } 50% { stroke-opacity: 0.35; } }
+.wf-pulse { animation: wf-pulse 1.6s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) { .wf-director-in, .wf-pulse { animation: none; } }
