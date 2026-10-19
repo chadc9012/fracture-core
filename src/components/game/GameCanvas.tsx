@@ -405,7 +405,8 @@ export function GameCanvas() {
     const typing = (t: EventTarget | null) => t instanceof HTMLElement && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.isContentEditable);
     const onKey = (e: KeyboardEvent) => {
       if (e.code === settings.bindings?.keyboard.map && !e.repeat && !typing(e.target)) toggleAtlas();
-      else if ((e.code === "Tab" || e.code === "F1") && !e.repeat && !typing(e.target)) { e.preventDefault(); setAtlasOpen(false); setInventoryOpen(false); setOperationsView(null); setCharacterOpen((o) => { if (!o && document.pointerLockElement) document.exitPointerLock(); return !o; }); }
+      // Tab inside an open menu (the atlas) moves keyboard focus between its markers and buttons instead of toggling the character screen
+      else if ((e.code === "F1" || (e.code === "Tab" && !(e.target instanceof Element && e.target.closest('[aria-modal="true"]')))) && !e.repeat && !typing(e.target)) { e.preventDefault(); setAtlasOpen(false); setInventoryOpen(false); setOperationsView(null); setCharacterOpen((o) => { if (!o && document.pointerLockElement) document.exitPointerLock(); return !o; }); }
       else if (e.code === "Escape") setAtlasOpen(false);
     };
     let was = false;
