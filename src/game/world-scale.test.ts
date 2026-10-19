@@ -3,6 +3,7 @@ import { BASE_WORLD_REGIONS, BASE_WORLD_RADIUS, REGIONS, WORLD_RADIUS, WORLD_SCA
 import { BASE_FOOT_SPEED, FOOT_SCALE, SPRINT_MULT } from "./foot-speed";
 import { CRASH_SITE, ENCOUNTER, FOREST_SPAWN, TRAIL, TRAIL_LENGTH, COVER, isReserved } from "./verdant";
 import { INTERIORS } from "./interiors";
+import { NEON_CENTER } from "./living-world";
 import { heightAt, WATER_LEVEL, riverAt } from "./terrain";
 import { LANES, ROAD_SAMPLES, distanceToRoad, laneSamples, ROAD_FAR } from "./lanes";
 import { THALASSIA_CENTER } from "./thalassia-site";
@@ -73,8 +74,10 @@ describe("authored sites survive the rescale", () => {
   });
   test("interior doors stand in their regions on dry ground", () => {
     for (const i of INTERIORS) {
+      // Neon City is its own district beside Nexus, outside the region circles: its storefront doors count if they're in the city
+      const inNeon = Math.hypot(i.doorPos.x - NEON_CENTER.x, i.doorPos.z - NEON_CENTER.z) < 60;
       const r = regionAt(i.doorPos.x, i.doorPos.z);
-      expect(r).not.toBeNull();
+      expect(r !== null || inNeon).toBe(true);
       expect(heightAt(i.doorPos.x, i.doorPos.z)).toBeGreaterThan(WATER_LEVEL);
     }
   });

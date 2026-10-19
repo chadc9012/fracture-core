@@ -58,7 +58,7 @@ type Rig = { mag?: THREE.Group | null; action?: THREE.Group | null; support?: TH
 export const RIFLE_URL = "/models/weapons/rifle.glb";
 const RIFLE_MAG_PIVOT: [number, number, number] = [0, 0.02, -0.18];
 
-function viewmodelReady(obj: THREE.Object3D, accent: THREE.MeshStandardMaterial) {
+function viewmodelReady(obj: THREE.Object3D, accent: THREE.MeshStandardMaterial, accentName = "RifleAccent") {
   obj.traverse((o) => {
     const mesh = o as THREE.Mesh;
     if (!mesh.isMesh) return;
@@ -66,7 +66,7 @@ function viewmodelReady(obj: THREE.Object3D, accent: THREE.MeshStandardMaterial)
     mesh.frustumCulled = false;
     mesh.castShadow = false;
     const src = mesh.material as THREE.MeshStandardMaterial;
-    if (src.name === "RifleAccent") { mesh.material = accent; return; }
+    if (src.name === accentName) { mesh.material = accent; return; }
     // draw in the transparent pass after the depth clear, like every other viewmodel part
     const mat = src.clone();
     mat.transparent = true; mat.opacity = 1; mat.depthWrite = true;
@@ -106,6 +106,48 @@ function Rifle({ m, rig }: { m: Mats; rig: Rig }) {
   const fallback = <RifleProcedural m={m} rig={rig} />;
   return <ModelBoundary fallback={fallback}><Suspense fallback={fallback}><RifleAuthored m={m} rig={rig} /></Suspense></ModelBoundary>;
 }
+
+/* ---------- authored sidearm / shotgun / heavy / launcher / sword (scripts/build-weapons.py) ----------
+ * Each GLB has <Prefix>Body (+ <Prefix>Blade on the sword), <Prefix>Mag pivoted at the reload rig's position below,
+ * <Prefix>Action at the grip origin (slide, pump, charging handle) and <Prefix>Accent, recoloured per operator.
+ * The procedural model stands in while the file loads or if it can't be fetched. */
+type AuthoredSpec = { url: string; prefix: string; mag?: [number, number, number]; edge?: boolean; wrap?: [number, number, number] };
+const AUTHORED: Record<Exclude<HandlingClass, "rifle">, AuthoredSpec> = {
+  pistol: { url: "/models/weapons/pistol.glb", prefix: "Pistol", mag: [0, -0.01, 0.005] },
+  shotgun: { url: "/models/weapons/shotgun.glb", prefix: "Shotgun", mag: [0, 0.02, -0.12] },
+  heavy: { url: "/models/weapons/heavy.glb", prefix: "Heavy", mag: [0, 0, -0.2] },
+  launcher: { url: "/models/weapons/launcher.glb", prefix: "Launcher", mag: [0, 0.12, 0.25] },
+  sword: { url: "/models/weapons/sword.glb", prefix: "Sword", edge: true, wrap: [-1.1, 0, 0] },
+};
+
+function AuthoredWeapon({ spec, m, rig }: { spec: AuthoredSpec; m: Mats; rig: Rig }) {
+  const { scene } = useGLTF(spec.url);
+  const parts = useMemo(() => {
+    const accent = spec.edge ? m.edge : m.accent;
+    const pick = (suffix: string) => { const node = scene.getObjectByName(spec.prefix + suffix); return node ? viewmodelReady(node.clone(true), accent, `${spec.prefix}Accent`) : null; };
+    const body = new THREE.Group();
+    for (const suffix of ["Body", "Blade", "Accent"]) { const p = pick(suffix); if (p) body.add(p); }
+    const mag = pick("Mag");
+    if (mag) mag.position.set(0, 0, 0); // the rig group already sits at the mag pivot
+    const action = pick("Action");
+    if (action) action.position.set(0, 0, 0);
+    return { body, mag, action };
+  }, [scene, spec, m.accent, m.edge]);
+  return <group rotation={spec.wrap ?? [0, 0, 0]}>
+    <primitive object={parts.body} />
+    {spec.mag && <group ref={(g) => { rig.mag = g; if (g && g.userData["y0"] === undefined) g.userData["y0"] = g.position.y; }} position={spec.mag}>
+      {parts.mag && <primitive object={parts.mag} />}
+    </group>}
+    {parts.action && <group ref={(g) => { rig.action = g; }}><primitive object={parts.action} /></group>}
+  </group>;
+}
+
+/** authored model with the procedural one as the loading/failed stand-in */
+const withAuthored = (cls: Exclude<HandlingClass, "rifle">, Procedural: (p: { m: Mats; rig: Rig }) => ReactElement) =>
+  function Weapon({ m, rig }: { m: Mats; rig: Rig }) {
+    const fallback = <Procedural m={m} rig={rig} />;
+    return <ModelBoundary fallback={fallback}><Suspense fallback={fallback}><AuthoredWeapon spec={AUTHORED[cls]} m={m} rig={rig} /></Suspense></ModelBoundary>;
+  };
 
 function RifleProcedural({ m, rig }: { m: Mats; rig: Rig }) {
   return <group>
@@ -211,7 +253,10 @@ function Sword({ m }: { m: Mats; rig: Rig }) {
   </group>;
 }
 
-const MODELS: Record<HandlingClass, (p: { m: Mats; rig: Rig }) => ReactElement> = { rifle: Rifle, pistol: Pistol, shotgun: Shotgun, heavy: Heavy, launcher: Launcher, sword: Sword };
+const MODELS: Record<HandlingClass, (p: { m: Mats; rig: Rig }) => ReactElement> = {
+  rifle: Rifle, pistol: withAuthored("pistol", Pistol), shotgun: withAuthored("shotgun", Shotgun), heavy: withAuthored("heavy", Heavy),
+  launcher: withAuthored("launcher", Launcher), sword: withAuthored("sword", Sword),
+};
 /** support hand rest positions per class: foregrip, and magazine well while reloading (null = one-handed) */
 const SUPPORT: Record<HandlingClass, { grip: [number, number, number]; well: [number, number, number] } | null> = {
   rifle: { grip: [0, -0.04, -0.4], well: [0, -0.06, -0.18] },

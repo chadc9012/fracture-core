@@ -637,9 +637,15 @@ function SceneImpl({
       hp: (n = 1) => { sim.hp = n; return sim.hp; },
       o2: (n = 0) => { state.current.oxygen = n; return n; },
       hull: (n = 0) => { state.current.hull = n; return n; },
+      /** set the current vehicle's condition (0-100 damage) and optionally get in, to see damage presentation */
+      wreck: (engine = 80, body = 70, drive = true) => { condition.current = { ...condition.current, engine, body }; if (drive) state.current.inVehicle = true; return condition.current; },
+      /** equip any weapon by id for this session (added to the slot order so the loadout guard doesn't swap it back) */
+      weapon: (id: string) => { const w = id as WeaponId; if (!WEAPONS[w]) return "unknown weapon"; if (!orderRef.current.includes(w)) orderRef.current = [...orderRef.current, w]; state.current.weapon = w; return w; },
       look: (yawDeg = 0, pitchDeg = 0) => { state.current.yaw = (yawDeg * Math.PI) / 180; state.current.pitch = (pitchDeg * Math.PI) / 180; return "ok"; },
       // what the camera can actually see around the player: named scene groups within `r` metres (verifies set pieces mounted)
       near: (r = 60) => { const out: string[] = []; const p = new THREE.Vector3(); scene.traverse((o) => { if (!o.name || out.length > 60) return; o.getWorldPosition(p); const st = state.current; if (Math.hypot(p.x - st.x, p.z - st.z) < r) out.push(`${o.name}@${Math.round(p.x)},${Math.round(p.y)},${Math.round(p.z)}`); }); return out; },
+      // meshes around the camera with what could hide them (visibility up the tree, layers, material side/opacity, frustum culling)
+      meshes: (r = 8) => { const camera = getThree().camera; const out: unknown[] = []; const p = new THREE.Vector3(); scene.traverse((o) => { const mesh = o as THREE.Mesh; if (!mesh.isMesh || out.length > 40) return; mesh.getWorldPosition(p); if (p.distanceTo(camera.position) > r) return; let vis = true; for (let q: THREE.Object3D | null = mesh; q; q = q.parent) if (!q.visible) vis = false; const m = mesh.material as THREE.MeshStandardMaterial; out.push({ geo: mesh.geometry.type, at: [p.x, p.y, p.z].map((v) => Math.round(v * 10) / 10), vis, layers: mesh.layers.mask, side: m?.side, op: m?.opacity, tr: m?.transparent, col: m?.color?.getHexString?.(), culled: mesh.frustumCulled, order: mesh.renderOrder }); }); return { cam: [camera.position.x, camera.position.y, camera.position.z].map((v) => Math.round(v * 10) / 10), near: (camera as THREE.PerspectiveCamera).near, layers: camera.layers.mask, list: out }; },
       machines: () => sim.machines.filter((m) => m.alive && m.mission).map((m) => ({ x: Math.round(m.x), z: Math.round(m.z), hp: Math.round(m.hp) })),
       /** Living World: start the next city event now (optionally of a given kind), read the live one, list guards */
       npcs: () => ({ near: npcNear(state.current.x, state.current.z)?.id ?? null, inVehicle: state.current.inVehicle, list: LIVING_NPCS.map((n) => ({ id: n.id, ...npcWorld(n) })) }),
@@ -736,6 +742,7 @@ function SceneImpl({
   const sunDir = useRef(new THREE.Vector3(0.4, 0.9, 0.3));
   const carSpeed = useRef(0);
   const carSteer = useRef(0);
+  const carBrake = useRef(0);
   const sky = useRef<THREE.Object3D>(null!);
   const skyDomeGroup = useRef<THREE.Group>(null);
   const hemi = useRef<THREE.HemisphereLight>(null!);
@@ -943,6 +950,7 @@ function SceneImpl({
   const opDashStats = useMemo(() => dashStats(playerClass, abilityBranches), [playerClass, abilityBranches]);
   const wish = useMemo(() => new THREE.Vector3(), []);
   const camTarget = useMemo(() => new THREE.Vector3(), []);
+  const lastCamPlayer = useRef({ x: NaN, y: NaN, z: NaN }); // unknown until the first follow frame, so that frame eases (never a false jump)
   const look = useMemo(() => new THREE.Vector3(), []);
   const cameraDirection = useMemo(() => new THREE.Vector3(), []);
   const viewmodel = useRef<THREE.Group>(null);
@@ -979,7 +987,7 @@ function SceneImpl({
   const instabilityColor = useMemo(() => new THREE.Color("#ff2d55"), []);
   const lightColor = useMemo(() => new THREE.Color(), []);
   const skyEnv = useRef<SkyEnv>({ cloud: 0, tint: new THREE.Color("#ffffff") });
-  const scene = useThree((s) => s.scene); const gl = useThree((s) => s.gl); // selectors: a selector-less useThree call re-renders this whole tree on every R3F store change (Canvas reconfigures on each parent render)
+  const scene = useThree((s) => s.scene); const gl = useThree((s) => s.gl); const getThree = useThree((s) => s.get); // selectors: a selector-less useThree call re-renders this whole tree on every R3F store change (Canvas reconfigures on each parent render)
 
   useEffect(() => { state.current.firstPerson = settings.firstPersonDefault; }, [settings.firstPersonDefault]);
   useEffect(() => {
@@ -2524,6 +2532,7 @@ function SceneImpl({
 
     carSpeed.current = s.inVehicle ? s.vSpeed : 0;
     carSteer.current = s.inVehicle ? (left ? 0.4 : right ? -0.4 : 0) : 0;
+    carBrake.current = s.inVehicle && ((throttleB && s.vSpeed > 0.5) || s.vSpeed < -0.3) ? 1 : 0;
 
     /* ---------------- transforms ---------------- */
     const p = player.current;
@@ -2580,7 +2589,12 @@ function SceneImpl({
       );
       // divers: the camera may go below the surface (clamp to the seabed, not the water-clamped walk height)
       camTarget.y = Math.max(camTarget.y, (interior ? INTERIOR_ALTITUDE : s.diving ? heightAt(camTarget.x, camTarget.z) + 0.6 : walkHeight(camTarget.x, camTarget.z)) + (s.diving ? 0 : 1.35)) - cameraDrop(move.current.state);
-      camera.position.lerp(camTarget, 1 - Math.exp(-18 * dt));
+      // a teleport (door into a pocket room and back, fast travel, respawn) snaps the camera; easing it would fly the view
+      // across kilometres of world for half a second. Keyed on the player's own jump, so the intro hand-off still eases in.
+      const jumped = Math.hypot(s.x - lastCamPlayer.current.x, s.y - lastCamPlayer.current.y, s.z - lastCamPlayer.current.z) > 40;
+      lastCamPlayer.current = { x: s.x, y: s.y, z: s.z };
+      if (jumped) camera.position.copy(camTarget);
+      else camera.position.lerp(camTarget, 1 - Math.exp(-18 * dt));
       const kickPitch = s.pitch + s.recoil;
       const shakeAmt = Math.min(0.08, s.punch * 0.012);
       camera.position.x += (Math.random() - 0.5) * shakeAmt;
@@ -2984,8 +2998,8 @@ function SceneImpl({
 
       {/* drivable wasteland raider — armour plate, ram spikes, roof gun */}
       <group ref={vehicle} visible={vehicleUnlocked}>
-        <VehicleDamageFx condition={condition} />
-        <Car body={selectedVehicle.model} scale={selectedVehicle.modelScale} speedRef={carSpeed} steerRef={carSteer} />
+        <VehicleDamageFx condition={condition} speedRef={carSpeed} />
+        <Car body={selectedVehicle.model} scale={selectedVehicle.modelScale} speedRef={carSpeed} steerRef={carSteer} brakeRef={carBrake} />
         {/* front ram spikes */}
         {[-1.1, -0.55, 0, 0.55, 1.1].map((x) => (
           <mesh key={x} position={[x, 0.8, 3.5]} rotation={[Math.PI / 2, 0, 0]} castShadow>

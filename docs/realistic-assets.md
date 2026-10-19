@@ -6,6 +6,7 @@ Rule: no model is claimed to work in-game until it was seen in a browser. Nothin
 | Asset | File | Built by |
 |---|---|---|
 | First-person auto rifle (worn gunmetal, accent glow, separate mag/bolt) | public/models/weapons/rifle.glb | scripts/build-rifle.py |
+| First-person hand cannon, breach shotgun, heavy cannon, launcher and blade (same worn kit; separate mag/action parts for the reload and cycle rigs) | public/models/weapons/{pistol,shotgun,heavy,launcher,sword}.glb | scripts/build-weapons.py (helpers in scripts/weapon_kit.py) |
 | Forest trees: broadleaf + conifer, 3 variants each, ~1.4-2k tris, bark + leaf-card textures; far trees are crossed textured cards | public/models/foliage/*.glb | scripts/build-trees.py |
 
 Both scripts run with Blender as a Python module (`pip install bpy`). Real trees now draw on every tier, LOW included.

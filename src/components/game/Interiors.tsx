@@ -1,7 +1,8 @@
 import { useFrame } from "@react-three/fiber";
 import { useRef } from "react";
 import * as THREE from "three";
-import { INTERIOR_ALTITUDE, INTERIORS } from "@/game/interiors";
+import { INTERIOR_ALTITUDE, INTERIORS, SHOP_INTERIORS } from "@/game/interiors";
+import { DoorMarker } from "./HomeInteriors";
 import { SpeakingFigure } from "./SpeakingFigure";
 
 const ROOM_HALF = 5;
@@ -36,6 +37,8 @@ export function Interiors() {
   return (
     <group>
       <pointLight ref={light} intensity={0} distance={14} />
+      {/* walk-in storefronts: entering is automatic at the door (doorAt), so the doorway has to be visible in the street */}
+      {SHOP_INTERIORS.map((it) => <DoorMarker key={`door-${it.id}`} x={it.doorPos.x} z={it.doorPos.z} label={it.name} />)}
       {INTERIORS.filter((i) => i.kind !== "HOME").map((interior) => (
         <group key={interior.id} position={[interior.origin.x, INTERIOR_ALTITUDE, interior.origin.z]}>
           {/* floor */}
@@ -69,6 +72,12 @@ export function Interiors() {
           <mesh position={[(ROOM_HALF - interior.exitOffset.x) / 2 + 1, WALL_HEIGHT / 2, ROOM_HALF]} castShadow receiveShadow>
             <boxGeometry args={[ROOM_HALF - 1.6, WALL_HEIGHT, 0.3]} />
             <meshStandardMaterial color="#565d68" roughness={0.7} />
+          </mesh>
+
+          {/* the doorway shows daylight from the street, not the sky around the pocket room */}
+          <mesh position={[interior.exitOffset.x, WALL_HEIGHT / 2, ROOM_HALF + 0.35]}>
+            <planeGeometry args={[3.6, WALL_HEIGHT]} />
+            <meshBasicMaterial color={interior.kind === "SHOP" ? "#f3dcb4" : "#d6e6f2"} toneMapped={false} side={THREE.DoubleSide} />
           </mesh>
 
           {/* shop counter, present only for SHOP interiors */}
