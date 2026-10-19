@@ -18,6 +18,8 @@ export const CRUCIBLE_MODES: Readonly<Record<CrucibleModeId, CrucibleMode>> = {
 export const ARENA_POINT: readonly [number, number] = [0.05, -0.1];
 export const ARENA_RADIUS = 34;
 export const RIVAL_RESPAWN_S = 3.5;
+/** the Crucible opens after NOVA's field calibration (the Mission 01 tutorial), like Destiny's after the intro */
+export const CRUCIBLE_LOCKED = "Finish NOVA's field calibration in Mission 01 to unlock the Crucible";
 export const RIVAL_HP = 9;
 export const RIVAL_LABEL: Record<RivalClass, string> = { TITAN: "GOLIATH", HUNTER: "NYX", WARLOCK: "CIPHER" };
 /** rivals wear a hostile colourway so they never read as the player's own operator */

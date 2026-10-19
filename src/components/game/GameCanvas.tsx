@@ -145,7 +145,7 @@ import { PerfOverlay, PerfSampler } from "./PerfOverlay";
 import { ForestAssetStatus } from "./ForestAssetStatus";
 import { VoiceSubtitle } from "./VoiceSubtitle";
 import { Director } from "./Director";
-import { ARENA_POINT, ARENA_RADIUS } from "@/game/crucible";
+import { ARENA_POINT, ARENA_RADIUS, CRUCIBLE_LOCKED } from "@/game/crucible";
 import { configureVoice, speakVoice, stopVoice } from "@/game/voice-director";
 import { recapDue, recapLine } from "@/game/retention";
 import { localSavedAt } from "@/game/cloud-save";
@@ -900,6 +900,7 @@ export function GameCanvas() {
   const launchCrucible = (id: string) => {
     const def = activityById(id);
     if (!def || activity) return;
+    if (!progressionRef.current.tutorialComplete) { setMenuNotice(CRUCIBLE_LOCKED); return; }
     const res = startActivity(progressionRef.current, id, Date.now());
     if ("error" in res) { setMenuNotice(res.error); return; }
     progressionRef.current = res.progression;

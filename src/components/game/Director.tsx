@@ -4,7 +4,7 @@ import type { LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { PlayerProgression } from "@/game/progression";
 import { activityById, activityState } from "@/game/activities";
-import { CRUCIBLE_MODES, RIVAL_LABEL, rivalLineup, type CrucibleModeId, type RivalClass } from "@/game/crucible";
+import { CRUCIBLE_LOCKED, CRUCIBLE_MODES, RIVAL_LABEL, rivalLineup, type CrucibleModeId, type RivalClass } from "@/game/crucible";
 import { FRACTURE_RAID, PVP_RANKS } from "@/game/system-foundations";
 import { StarMap, type DeployTarget } from "./StarMap";
 import { ArsenalLoadouts } from "./ArsenalLoadouts";
@@ -99,6 +99,7 @@ function CrucibleView({ progression, playerClass, onLaunch }: { progression: Pla
         </div>
         <div className="text-right font-mono"><p className="ui-kicker">Rank</p><p className="text-lg text-primary">{rank}</p></div>
       </header>
+      {!progression.tutorialComplete && <p className="mt-4 border-l-2 border-primary pl-3 text-sm">{CRUCIBLE_LOCKED}.</p>}
       <p className="mt-4 max-w-3xl text-sm text-muted-foreground">Fight rival operators in the Wastelands arena. Online matchmaking isn't live yet, so every rival slot is filled by an AI GOLIATH, NYX or CIPHER; the same scoring will carry over when real players can join.</p>
       <div className="mt-6 grid gap-4 md:grid-cols-2">
         {modes.map(({ mode, id }) => {
@@ -119,8 +120,8 @@ function CrucibleView({ progression, playerClass, onLaunch }: { progression: Pla
                   <div><dt className="ui-kicker">Matches today</dt><dd className="text-foreground">{st.attemptsLeft} left</dd></div>
                 </dl>
               </div>
-              <Button className="mt-5 w-full font-mono uppercase tracking-widest" disabled={!st.available} onClick={() => onLaunch(id)}>
-                {st.available ? <><Swords /> Launch {m.name}</> : st.reason ?? "Unavailable"}
+              <Button className="mt-5 w-full font-mono uppercase tracking-widest" disabled={!st.available || !progression.tutorialComplete} onClick={() => onLaunch(id)}>
+                {!progression.tutorialComplete ? <><LockKeyhole /> Locked</> : st.available ? <><Swords /> Launch {m.name}</> : st.reason ?? "Unavailable"}
               </Button>
             </article>
           );

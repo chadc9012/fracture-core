@@ -1899,6 +1899,14 @@ function SceneImpl({
     }
 
     /* ---------------- resource gathering + boss lairs ---------------- */
+    // Crucible (crucible.ts): keep the rival lineup on the field while a match runs; rivals leave when it ends
+    {
+      const stage = activity && activity.run.status === "active" ? activity.def.stages[activity.run.stage] : undefined;
+      if (stage?.kind === "crucible") {
+        if (!crucible.current || crucible.current.mode !== stage.mode) crucible.current = newCrucible(stage.mode);
+        stepRivals(sim, crucible.current, pointWorld(activity!.def.area, ARENA_POINT), playerClass as RivalClass, dt);
+      } else if (crucible.current) { clearRivals(sim); crucible.current = null; }
+    }
     if (!s.inVehicle && !tutorial) {
       const now = performance.now();
       for (const site of RESOURCE_SITES) {
@@ -1914,14 +1922,6 @@ function SceneImpl({
         const inside = Math.hypot(lair.x - s.x, lair.z - s.z) < LAIR_RADIUS;
         if (inside && !lairsTriggered.current[lair.id] && !sim.machines.some((m) => m.alive && m.boss)) { lairsTriggered.current[lair.id] = true; summonBoss(sim, lair.regionId, lair.x, lair.z); }
         if (!inside && Math.hypot(lair.x - s.x, lair.z - s.z) > LAIR_RADIUS * 4) lairsTriggered.current[lair.id] = false;
-      }
-      // Crucible (crucible.ts): keep the rival lineup on the field while a match runs; rivals leave when it ends
-      {
-        const stage = activity && activity.run.status === "active" ? activity.def.stages[activity.run.stage] : undefined;
-        if (stage?.kind === "crucible") {
-          if (!crucible.current || crucible.current.mode !== stage.mode) crucible.current = newCrucible(stage.mode);
-          stepRivals(sim, crucible.current, pointWorld(activity!.def.area, ARENA_POINT), playerClass as RivalClass, dt);
-        } else if (crucible.current) { clearRivals(sim); crucible.current = null; }
       }
       // Vyrak discovery (vyrak-site.ts): walk up to a clue site, or sense the hidden lair; each pays its journal clue once
       if (activity && activity.run.status === "active") {
