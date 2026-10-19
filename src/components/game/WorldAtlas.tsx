@@ -164,7 +164,8 @@ function DestinationView({ dest, progression, phase, markers, px, pz, onProgress
   return <div className="mt-5 grid gap-6 lg:grid-cols-[minmax(0,1.6fr)_minmax(18rem,0.7fr)] wf-director-in">
     <section className="min-w-0">
       <TacticalMap markers={markers} px={px} pz={pz} selected={region.id} onSelect={() => {}} progression={progression} focus={focus} activities={tab === "ACTIVITIES" ? shown : []} sites={sites} districts={districts} pickedActivity={pick} onActivity={(id) => { setTab("ACTIVITIES"); setPick(id); }} />
-      <MapLegend phase={phase} />
+      {/* folded here: on a narrow screen the full legend pushed the destination's tabs far below the map */}
+      <details className="mt-2"><summary className="ui-focus cursor-pointer font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Map legend</summary><MapLegend phase={phase} /></details>
     </section>
     <aside className="min-w-0">
       <ul className="grid grid-cols-2 gap-px border border-foreground/15 bg-foreground/10 text-xs" aria-label="What's here">
