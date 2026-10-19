@@ -1,3 +1,4 @@
+import { NEON_FLAT } from "./world";
 import { describe, expect, test } from "bun:test";
 import { BASE_WORLD_REGIONS, BASE_WORLD_RADIUS, REGIONS, WORLD_RADIUS, WORLD_SCALE, HEIGHT_K, NEON_OFFSET, scaleSite, regionAt } from "./world";
 import { BASE_FOOT_SPEED, FOOT_SCALE, SPRINT_MULT } from "./foot-speed";
@@ -77,7 +78,7 @@ describe("authored sites survive the rescale", () => {
   test("interior doors stand in their regions on dry ground", () => {
     for (const i of INTERIORS) {
       // Neon City is its own district beside Nexus, outside the region circles: its storefront doors count if they're in the city
-      const inNeon = Math.hypot(i.doorPos.x - NEON_CENTER.x, i.doorPos.z - NEON_CENTER.z) < 60;
+      const inNeon = Math.hypot(i.doorPos.x - NEON_CENTER.x, i.doorPos.z - NEON_CENTER.z) < NEON_FLAT;
       const r = regionAt(i.doorPos.x, i.doorPos.z);
       expect(r !== null || inNeon).toBe(true);
       expect(heightAt(i.doorPos.x, i.doorPos.z)).toBeGreaterThan(WATER_LEVEL);

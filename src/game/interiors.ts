@@ -11,13 +11,18 @@
  * Door-proximity checks run inside Scene's existing per-frame loop rather than each interior
  * getting its own useFrame hook (the pasted DoorTrigger.tsx pattern) — one world, one loop.
  */
-import { REGIONS, hourOf, scaleSite } from "./world";
+import { NEON_SITE, REGIONS, hourOf, scaleSite } from "./world";
 import { HOMES } from "./housing";
 import { REGIONAL_SHOPS } from "./regional-shops";
 import { shopAccessKind } from "./shop-access";
 
 export const INTERIOR_ALTITUDE = 600;
 export const DOOR_RADIUS = 2.2;
+
+/** a point in Neon City, metres from its centre — the same frame as neon-districts.ts (Rust-Muck west, The Grid east,
+ * Aegis Spire north). These used to go through scaleSite as if they were map positions, which put the Grid loft's door
+ * in Nexus City, Rust-Muck's near Veridan and the penthouse's on a mountainside once the map grew and Neon moved. */
+const neon = (dx: number, dz: number) => ({ x: NEON_SITE.x + dx, z: NEON_SITE.z + dz });
 
 export type InteriorKind = "APARTMENT" | "SHOP" | "HOME";
 /** HOME interiors: one 10m room per entry in the home's rooms list, laid side by side along +X with doorways */
@@ -154,7 +159,7 @@ export const INTERIORS: InteriorDef[] = [
     name: "Veyra Realty Office",
     kind: "APARTMENT",
     regionId: "nexus",
-    doorPos: scaleSite(80, -14),
+    doorPos: neon(80, -14),
     origin: { x: 2000, z: 480 },
     spawnOffset: { x: 0, z: -2.5 },
     exitOffset: { x: 0, z: 4 },
@@ -174,9 +179,9 @@ INTERIORS.push(...SHOP_INTERIORS);
 
 /** Where each buyable home's front door sits in the open world (Neon homes by district, others near their region). */
 const HOME_DOORS: Record<string, { x: number; z: number }> = {
-  "rustmuck-capsule": scaleSite(-70, -6),
-  "grid-loft": scaleSite(70, 30),
-  "aegis-penthouse": scaleSite(10, -70),
+  "rustmuck-capsule": neon(-70, -6),
+  "grid-loft": neon(70, 30),
+  "aegis-penthouse": neon(10, -70),
 };
 function homeDoor(id: string, regionId: string, i: number) {
   if (HOME_DOORS[id]) return HOME_DOORS[id];
