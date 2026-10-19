@@ -14,7 +14,7 @@ import { getPin, pinMarker, reached, setPin } from "@/game/map-pin";
 import { ARENA_POINT, ARENA_RADIUS, clearRivals, newCrucible, stepRivals, type CrucibleState, type RivalClass } from "@/game/crucible";
 import { pointWorld } from "@/game/activities";
 import { CoverWall } from "./PropModels";
-import { heavyShadows, NEAR_SCALE, setPerfTier } from "@/game/perf-budget";
+import { getPerfTier, heavyShadows, NEAR_SCALE, setPerfTier } from "@/game/perf-budget";
 import { ruins, isEvolved, isDiscovered, freshCharge, RUIN_DISCOVER_RADIUS, RUIN_REACH } from "@/game/weapon-evolution";
 import { useFrame, useThree } from "@react-three/fiber";
 import { memo, useEffect, useMemo, useRef, type ComponentProps } from "react";
@@ -645,6 +645,8 @@ function SceneImpl({
       wreck: (engine = 80, body = 70, drive = true) => { condition.current = { ...condition.current, engine, body }; if (drive) state.current.inVehicle = true; return condition.current; },
       /** equip any weapon by id for this session (added to the slot order so the loadout guard doesn't swap it back) */
       weapon: (id: string) => { const w = id as WeaponId; if (!WEAPONS[w]) return "unknown weapon"; if (!orderRef.current.includes(w)) orderRef.current = [...orderRef.current, w]; state.current.weapon = w; return w; },
+      /** perf investigation: the live three.js state (scene, gl, camera) and the render tier, for toggling layers by hand */
+      three: () => ({ ...getThree(), tier: getPerfTier() }),
       /** presentation test: log bullet impacts of each kind in an arc 6-9 m ahead of the player (no damage, nothing hit) */
       impacts: () => { const st = state.current; const kinds = ["ground", "cover", "truck", "machine"] as const; kinds.forEach((k, i) => { const a = st.yaw + (i - 1.5) * 0.25, d = 7; const x = st.x + Math.sin(a) * d, z = st.z + Math.cos(a) * d; logImpact(sim, { x, y: walkHeight(x, z) + (k === "ground" ? 0.3 : 1.2), z, vx: Math.sin(a) * 130, vz: Math.cos(a) * 130 }, k); }); return "ok"; },
       look: (yawDeg = 0, pitchDeg = 0) => { state.current.yaw = (yawDeg * Math.PI) / 180; state.current.pitch = (pitchDeg * Math.PI) / 180; return "ok"; },
