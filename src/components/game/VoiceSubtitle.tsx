@@ -3,10 +3,11 @@ import { Radio } from "lucide-react";
 import { subscribeVoice, type VoiceStatus } from "@/game/voice-director";
 import { CornerBrackets } from "./HudChrome";
 
-export function VoiceSubtitle() {
+/** `hidden` keeps the subscription (so the current line is not lost) while a full-screen menu such as the atlas is open */
+export function VoiceSubtitle({ hidden = false }: { hidden?: boolean }) {
   const [status, setStatus] = useState<VoiceStatus>({ state: "idle" });
   useEffect(() => subscribeVoice(setStatus), []);
-  if (status.state === "idle") return null;
+  if (status.state === "idle" || hidden) return null;
   return (
     <div className="voice-subtitle pointer-events-none fixed bottom-24 left-1/2 z-[70] w-[min(36rem,calc(100%-2rem))] -translate-x-1/2 border border-primary/40 bg-background/85 px-4 py-3">
       <CornerBrackets />

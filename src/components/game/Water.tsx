@@ -71,6 +71,8 @@ export function Water({
     return tex;
   }, [cover]);
 
+  useEffect(() => () => depthTex.dispose(), [depthTex]);
+
   const uniforms = useMemo(
     () => ({
       uTime: { value: 0 },
@@ -135,7 +137,9 @@ export function Water({
             float e = 0.6;
             float hx = swell(p + vec2(e, 0.0)) * uChop;
             float hz = swell(p + vec2(0.0, e)) * uChop;
-            vec3 n = normalize(vec3(-(hx - h) / e, 1.0, -(hz - h) / e));
+            // the patch is authored in local XY and displaced along local Z (rotated to world Y by the mesh),
+            // so the slope normal is Z-up here; a Y-up normal lit the waves sideways
+            vec3 n = normalize(vec3(-(hx - h) / e, -(hz - h) / e, 1.0));
             vNormalW = normalize(mat3(modelMatrix) * n);
             vec4 world = modelMatrix * vec4(pos, 1.0);
             vPosW = world.xyz;
@@ -158,13 +162,18 @@ export function Water({
 
           void main() {
             vec3 view = normalize(cameraPosition - vPosW);
-            vec3 n = normalize(vNormalW);
+            // ease wave slopes out with distance: three long regular swells otherwise alias into hard
+            // reflection stripes near the horizon, while close water keeps its full detail
+            float far = smoothstep(25.0, 180.0, length(cameraPosition - vPosW));
+            vec3 n = normalize(mix(normalize(vNormalW), vec3(0.0, 1.0, 0.0), far * 0.85));
             float fres = pow(1.0 - clamp(dot(n, view), 0.0, 1.0), 3.0);
             float diff = clamp(dot(n, normalize(uSun)) * 0.5 + 0.5, 0.0, 1.0);
 
             // water depth from the baked terrain height: bright shallows near shore, deep colour offshore
             vec2 uv = vPosW.xz / uWorldSize + 0.5;
-            float ground = texture2D(uDepthTex, uv).r;
+            // past the baked terrain footprint it is open ocean: don't smear the edge texel into phantom shallows
+            bool inside = all(greaterThanEqual(uv, vec2(0.0))) && all(lessThanEqual(uv, vec2(1.0)));
+            float ground = inside ? texture2D(uDepthTex, uv).r : ${WATER_LEVEL.toFixed(2)} - 60.0;
             float depth = clamp((${WATER_LEVEL.toFixed(2)} - ground) / 6.0, 0.0, 1.0);
             vec3 col = mix(uShallow, uDeep, sqrt(depth));
             col = mix(col, col * (0.55 + 0.45 * diff), 1.0 - uMurk * 0.5);
@@ -178,8 +187,10 @@ export function Water({
             col += vec3(1.0, 0.96, 0.85) * spec * 1.6 * (1.0 - uMurk * 0.7);
 
             // shoreline foam: an animated band where the water meets the land, plus whitecaps on crests
-            float shore = 1.0 - smoothstep(0.0, 0.16, depth);
-            float lap = 0.5 + 0.5 * sin(uTime * 1.4 + vPosW.x * 0.35 + vPosW.z * 0.27);
+            // a ring between roughly 10 cm and 50 cm of depth: it traces the waterline instead of whitening flats the
+            // baked depth reads as at/above sea level; the lapping pattern is broken up by a second cross-running wave
+            float shore = smoothstep(0.0, 0.02, depth) * (1.0 - smoothstep(0.03, 0.09, depth));
+            float lap = 0.5 + 0.25 * sin(uTime * 1.4 + vPosW.x * 0.35 + vPosW.z * 0.27) + 0.25 * sin(uTime * 0.9 - vPosW.x * 0.21 + vPosW.z * 0.43);
             float foam = clamp(vFoam * 0.5 + shore * (0.45 + 0.55 * lap), 0.0, 1.0);
             col = mix(col, vec3(0.92, 0.97, 1.0), foam * (0.35 + shore * 0.45) * (1.0 - uMurk * 0.5));
 

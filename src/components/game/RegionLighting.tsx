@@ -29,7 +29,8 @@ class Guard extends Component<{ children: ReactNode }, { failed: boolean }> {
   override render() { return this.state.failed ? <Fallback /> : this.props.children; }
 }
 
-const verified = new Map<string, boolean>();
+// HDRI files confirmed to resolve; a failed check is not remembered, so a network blip retries on the next visit
+const verified = new Set<string>();
 
 export function RegionLighting({ playerRef, tier }: { playerRef: React.RefObject<THREE.Object3D>; tier: string }) {
   const [region, setRegion] = useState("veridan");
@@ -44,13 +45,15 @@ export function RegionLighting({ playerRef, tier }: { playerRef: React.RefObject
     if (id && id !== region) setRegion(id);
   });
   useEffect(() => {
-    if (simple) return;
+    if (simple) { setUrl(null); return; }
     const next = REGION_HDRI[region];
+    // drop the previous region's sky while the next one is checked, so a biome never wears another's lighting
+    setUrl(null);
     if (!next) return;
-    if (verified.get(next)) { setUrl(next); return; }
+    if (verified.has(next)) { setUrl(next); return; }
     let live = true;
     // verify the file resolves before mounting it, so a dead link can never suspend the scene
-    fetch(next, { method: "HEAD" }).then((r) => { verified.set(next, r.ok); if (live && r.ok) setUrl(next); }).catch(() => verified.set(next, false));
+    fetch(next, { method: "HEAD" }).then((r) => { if (!r.ok) return; verified.add(next); if (live) setUrl(next); }).catch(() => { /* neutral fallback stays; retried next visit */ });
     return () => { live = false; };
   }, [region, simple]);
   if (simple || !url) return <Fallback />;

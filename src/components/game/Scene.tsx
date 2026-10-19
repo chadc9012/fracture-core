@@ -2807,7 +2807,9 @@ function SceneImpl({
         castShadow={RENDER_PRESETS[settings.renderTier].shadows}
         shadow-mapSize-width={settings.renderTier === "ULTRA" ? 4096 : settings.renderTier === "HIGH" ? 2048 : 1024}
         shadow-mapSize-height={settings.renderTier === "ULTRA" ? 4096 : settings.renderTier === "HIGH" ? 2048 : 1024}
-        shadow-bias={-0.0018}
+        shadow-bias={-0.00035}
+        shadow-normalBias={0.035}
+        shadow-radius={settings.renderTier === "LOW" ? 1 : 2}
         shadow-camera-left={-130}
         shadow-camera-right={130}
         shadow-camera-top={130}

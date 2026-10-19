@@ -1229,13 +1229,14 @@ export function GameCanvas() {
           <Profiler id="post" onRender={onProf}><EffectComposer multisampling={0}>
             {!flags.fxOff.has("grade") && <HueSaturation hue={-0.012} saturation={0.045} />}
             {!flags.fxOff.has("grade") && <BrightnessContrast brightness={-0.005} contrast={0.085} />}
-            {!flags.fxOff.has("bloom") && <Bloom intensity={0.42} luminanceThreshold={0.88} luminanceSmoothing={0.22} mipmapBlur />}
-            {premium && <SSAO intensity={11} radius={0.14} luminanceInfluence={0.32} bias={0.03} />}
+            {!flags.fxOff.has("bloom") && <Bloom intensity={0.23} luminanceThreshold={1.05} luminanceSmoothing={0.18} mipmapBlur />}
+            {premium && <SSAO intensity={6} radius={0.12} luminanceInfluence={0.42} bias={0.03} />}
             {/* depth of field only during cinematics: gameplay stays sharp */}
             {premium && (showIntro || Boolean(cineId)) && <DepthOfField focusDistance={0.018} focalLength={0.035} bokehScale={1.1} />}
-            {!flags.fxOff.has("ca") && <ChromaticAberration offset={CA_OFFSET} />}
-            {!flags.fxOff.has("vignette") && <Vignette offset={0.36} darkness={0.38} />}
-            {!flags.fxOff.has("noise") && <Noise opacity={0.012} premultiply />}
+            {/* colour fringing and film grain only in cinematics; live gameplay stays crisp */}
+            {!flags.fxOff.has("ca") && (showIntro || Boolean(cineId)) && <ChromaticAberration offset={CA_OFFSET} />}
+            {!flags.fxOff.has("vignette") && <Vignette offset={0.4} darkness={0.22} />}
+            {!flags.fxOff.has("noise") && (showIntro || Boolean(cineId)) && <Noise opacity={0.012} premultiply />}
           </EffectComposer></Profiler>
         )}
         <PerfSampler />
@@ -1260,7 +1261,7 @@ export function GameCanvas() {
        <PerfOverlay />
       <ForestAssetStatus />
        {savedFlash > 0 && <p className="pointer-events-none fixed right-4 top-4 z-30 font-mono text-[10px] uppercase tracking-[0.25em] text-primary" role="status">◌ Auto-saved</p>}
-       <VoiceSubtitle />
+       <VoiceSubtitle hidden={atlasOpen} />
        <Profiler id="hud" onRender={onProf}><HUD hud={hud} level={{ level: progression.level, xp: progression.xp }} tutorialActive={Boolean(tutorial && tutorial.step !== "VICTORY")} onMenu={() => { setInventoryOpen(false); setAtlasOpen(false); setOperationsView(null); setMenuOpen(true); }} onStrategy={() => setStrategyOpen(true)} onGarage={() => setGarageOpen(true)} onAnalyze={() => setAnalysisOpen(true)} onOperations={(view) => { setInventoryOpen(false); setAtlasOpen(false); setOperationsView(view); }} onInventory={() => { setAtlasOpen(false); setOperationsView(null); setCharacterOpen(true); }} onAtlas={() => { setInventoryOpen(false); setOperationsView(null); setAtlasOpen(true); }} /></Profiler>
        {!tutorial && !hud.insideInterior && <Profiler id="minimap" onRender={onProf}><Minimap hud={hud} known={(id) => isLandmarkKnown(progression, id)} /></Profiler>}
        {!tutorial && <Profiler id="quest" onRender={onProf}><QuestTracker progression={progression} /></Profiler>}
