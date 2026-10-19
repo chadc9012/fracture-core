@@ -22,7 +22,7 @@ function roadTexture(): THREE.CanvasTexture | null {
   const wob = (v: number, f: number, ph: number) => Math.sin((v * f + ph) * Math.PI * 2) * 0.5 + Math.sin((v * f * 2 + ph * 1.7) * Math.PI * 2) * 0.25;
   for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
     const u = x / (W - 1), v = y / H;
-    let r = 112, gg = 96, b = 76;
+    let r = 92, gg = 82, b = 70; // packed, darker than loose sand or soil so the road reads in every region
     // tyre ruts: two worn tracks, darker and smoother, drifting slightly along the road
     for (const centre of [0.3, 0.7]) {
       const d = Math.abs(u - centre - wob(v, 1, centre * 3) * 0.02);

@@ -6,7 +6,9 @@ import { LANES, ROAD_SAMPLES, laneSamples, type Lane } from "./lanes";
 import { WATER_LEVEL, heightAt, riverCrossings } from "./terrain";
 
 export const ROAD_HALF = 3.6;        // half the surfaced width, metres (the graded corridor is wider)
-export const ROAD_LIFT = 0.07;       // above the ground mesh (plus a polygon offset in the material)
+export const ROAD_LIFT = 0.09;       // above the ground mesh (plus a polygon offset in the material)
+/** vertices across the strip: it must follow the graded crown, or the ground pokes through its middle */
+export const ROAD_COLS = 5;
 export const ROAD_TILE = 7;          // metres of road per texture repeat
 
 export type Ribbon = { positions: Float32Array; uvs: Float32Array; indices: Uint32Array; points: number };
@@ -19,18 +21,24 @@ export function roadRibbon(lane: Lane, samples = ROAD_SAMPLES, height: (x: numbe
     const p = pts[i]!, a = pts[Math.max(0, i - 1)]!, b = pts[Math.min(pts.length - 1, i + 1)]!;
     if (i > 0) along += Math.hypot(p.x - pts[i - 1]!.x, p.z - pts[i - 1]!.z);
     const dx = b.x - a.x, dz = b.z - a.z, len = Math.hypot(dx, dz) || 1, nx = -dz / len, nz = dx / len;
-    const lx = p.x + nx * ROAD_HALF, lz = p.z + nz * ROAD_HALF, rx = p.x - nx * ROAD_HALF, rz = p.z - nz * ROAD_HALF;
-    const hl = height(lx, lz), hr = height(rx, rz), hc = height(p.x, p.z);
+    const row: number[] = [];
+    let low = Infinity;
+    for (let c = 0; c < ROAD_COLS; c++) {
+      const u = c / (ROAD_COLS - 1), off = (0.5 - u) * 2 * ROAD_HALF; // u = 0 on the left edge
+      const x = p.x + nx * off, z = p.z + nz * off, h = height(x, z);
+      low = Math.min(low, h);
+      row.push(x, h + ROAD_LIFT, z);
+    }
     const onBridge = bridges.some((c) => Math.hypot(p.x - c.x, p.z - c.z) < c.length / 2 + 2);
-    const keep = Math.min(hl, hr, hc) > WATER_LEVEL + 0.25 && !onBridge;
-    if (!keep) { run = -1; continue; }
+    if (low <= WATER_LEVEL + 0.25 || onBridge) { run = -1; continue; }
     const v = pos.length / 3;
-    pos.push(lx, hl + ROAD_LIFT, lz, rx, hr + ROAD_LIFT, rz);
-    uv.push(0, along / ROAD_TILE, 1, along / ROAD_TILE);
-    if (run >= 0) idx.push(run, run + 1, v, run + 1, v + 1, v);
+    pos.push(...row);
+    for (let c = 0; c < ROAD_COLS; c++) uv.push(c / (ROAD_COLS - 1), along / ROAD_TILE);
+    // wound counter-clockwise seen from above, so the face points up (the other way it is back-face culled and invisible)
+    if (run >= 0) for (let c = 0; c < ROAD_COLS - 1; c++) idx.push(run + c, v + c, run + c + 1, run + c + 1, v + c, v + c + 1);
     run = v;
   }
-  return { positions: new Float32Array(pos), uvs: new Float32Array(uv), indices: new Uint32Array(idx), points: pos.length / 6 };
+  return { positions: new Float32Array(pos), uvs: new Float32Array(uv), indices: new Uint32Array(idx), points: pos.length / (3 * ROAD_COLS) };
 }
 
 export const allRoadRibbons = () => LANES.map((l) => roadRibbon(l));
