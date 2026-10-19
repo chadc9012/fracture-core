@@ -7,14 +7,21 @@ import { ACTIVITY_COLOR, ACTIVITY_LABEL, CHALLENGES, CHALLENGE_ORDER, PATROL_DAI
 /** Map game flow (map-activities.ts): the activities in one region, then a pre-launch card for the chosen one with the
  * challenge level, then Launch, which drops the player next to it through the normal transit. Shared by the star map
  * (orbit) and the in-game world map, so both offer exactly the same choices. */
-export function ActivityPanel({ progression, regionId, onProgression, onLaunch, launchLabel = "Launch" }: {
+export function ActivityPanel({ progression, regionId, onProgression, onLaunch, launchLabel = "Launch", activities, pickId, onPick }: {
   progression: PlayerProgression; regionId: string;
+  /** a narrower list than the whole region (the world map's destination + filter); defaults to every activity in the region */
+  activities?: Activity[];
+  /** controlled selection (the map's markers pick the same activity); uncontrolled when omitted */
+  pickId?: string | null; onPick?: (id: string | null) => void;
   onProgression: (next: PlayerProgression) => void;
   onLaunch: (a: Activity) => void;
   launchLabel?: string;
 }) {
-  const acts = useMemo(() => regionActivities(progression, regionId), [progression, regionId]);
-  const [pick, setPick] = useState<string | null>(null);
+  const regionActs = useMemo(() => regionActivities(progression, regionId), [progression, regionId]);
+  const acts = activities ?? regionActs;
+  const [ownPick, setOwnPick] = useState<string | null>(null);
+  const pick = pickId !== undefined ? pickId : ownPick;
+  const setPick = (id: string | null) => { if (onPick) onPick(id); else setOwnPick(id); };
   const [notice, setNotice] = useState("");
   const chosen = acts.find((a) => a.id === pick) ?? null;
   const challenge = progression.challenge ?? "STANDARD";
@@ -63,6 +70,7 @@ export function ActivityPanel({ progression, regionId, onProgression, onLaunch, 
   return (
     <div aria-label="Activities">
       <div className="flex items-baseline justify-between"><p className="ui-kicker">Activities</p><p className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground">Patrols {patrolsToday(progression)}/{PATROL_DAILY_CAP} today</p></div>
+      {acts.length === 0 && <p className="mt-2 text-xs text-muted-foreground">Nothing here in this category.</p>}
       <ul className="mt-2 max-h-[38vh] space-y-1 overflow-y-auto pr-1">
         {acts.map((a) => (
           <li key={a.id}>
