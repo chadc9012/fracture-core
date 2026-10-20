@@ -226,3 +226,20 @@ describe("hidden races and discovery", () => {
     for (const r of RACES.filter((x) => x.hidden)) for (const m of r.hidden!.markers) expect(DISCOVERIES.some((d) => d.id === m)).toBe(true);
   });
 });
+
+import { courseProgress, livePlace } from "./racing";
+describe("live race standings", () => {
+  test("progress runs 0 at the start to 1 at the finish, and your place follows it", () => {
+    const def = RACES.find((r) => r.mode === "vehicle")!;
+    const s = worldPoint(def, 0), f = worldPoint(def, def.points.length - 1);
+    expect(courseProgress(def, 1, s.x, s.z)).toBeCloseTo(0, 5);
+    expect(courseProgress(def, def.points.length - 1, f.x, f.z)).toBeCloseTo(1, 5);
+    const mid = Math.floor(def.points.length / 2), m = worldPoint(def, mid);
+    const p = courseProgress(def, mid + 1, m.x, m.z);
+    expect(p).toBeGreaterThan(0.2); expect(p).toBeLessThan(0.8);
+    const run = { ...newRaceRun(def, "standard", 0), phase: "running" as const, time: 1, next: def.points.length - 1 };
+    expect(livePlace(def, run, f.x, f.z).place).toBe(1); // at the line one second in: ahead of everyone
+    const slow = { ...run, time: def.par * 3, next: 1 };
+    expect(livePlace(def, slow, s.x, s.z).place).toBe(def.rivals + 1);
+  });
+});

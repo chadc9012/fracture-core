@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { AREAS, type ActivityDef, type Payout, type Run } from "@/game/activities";
-import { raceById, timeLimit, type RaceReward, type RaceResult, type RaceRun } from "@/game/racing";
+import { livePlace, raceById, rivalPositions, timeLimit, worldPoint, type RaceDef, type RaceReward, type RaceResult, type RaceRun } from "@/game/racing";
 
 /** In-world tracker for the running activity: objective, progress and the stage clock. */
-export function ActivityTracker({ def, run, onAbandon }: { def: ActivityDef; run: Run; onAbandon: () => void }) {
+export function ActivityTracker({ def, run, onAbandon, px, pz }: { def: ActivityDef; run: Run; onAbandon: () => void; /** where you are, for the race map and your live place */ px?: number; pz?: number }) {
   const [, setNow] = useState(0);
   useEffect(() => { const t = setInterval(() => setNow((n) => n + 1), 500); return () => clearInterval(t); }, []);
   const o = def.stages[run.stage]!;
@@ -16,16 +16,28 @@ export function ActivityTracker({ def, run, onAbandon }: { def: ActivityDef; run
     const lim = timeLimit(race, (rr?.difficulty ?? "standard")), t = rr?.time ?? 0, total = race.points.length - 1;
     const line = !rr || rr.phase === "staging" ? "Go to the start line" : rr.phase === "countdown" ? `Starting in ${Math.ceil(rr.countdown)}…` : `Checkpoint ${Math.min(rr.next, total)}/${total}`;
     const fmtT = (x: number) => `${Math.floor(x / 60)}:${(x % 60).toFixed(1).padStart(4, "0")}`;
-    return <div className="pointer-events-auto absolute left-3 top-28 z-30 w-64 border border-primary/60 bg-background/80 p-3 font-mono text-[10px] backdrop-blur" role="status" aria-label="Active race">
-      <p className="text-[9px] uppercase tracking-[0.25em] text-primary">{AREAS[def.area]?.name} · {race.type} · {rr?.difficulty ?? "standard"}</p>
-      <p className="mt-1 text-sm font-semibold">{race.name}</p>
-      <p className="mt-1 text-muted-foreground">{line}</p>
-      {rr?.phase === "running" && <p className="mt-1">{fmtT(t + rr.penalties)} <span className="text-muted-foreground">/ par {fmtT(race.par)} · limit {fmtT(lim)}</span>{rr.penalties > 0 && <span className="ml-1 text-destructive">+{rr.penalties.toFixed(1)}s</span>}</p>}
-      {rr?.notice && <p className="mt-1 text-destructive">{rr.notice}</p>}
-      {race.style && rr && rr.style > 0 && <p className="mt-1 text-primary">Style {Math.round(rr.style)}</p>}
-      <p className="mt-1 text-[9px] text-muted-foreground">{race.hazards.join(" · ")}</p>
-      <Button size="sm" variant="outline" className="mt-2 h-6 text-[9px]" onClick={onAbandon}>Abandon (attempt is not refunded)</Button>
-    </div>;
+    const standing = rr && px !== undefined && pz !== undefined ? livePlace(race, rr, px, pz) : null;
+    return <>
+      {/* reference: the sample track view — position and checkpoint top left, the race clock top right, the course map bottom left */}
+      <div className="pointer-events-auto absolute left-3 top-28 z-30 w-64 border-l-2 border-[var(--wf-ice)] bg-gradient-to-r from-background/85 to-background/30 p-3 font-mono text-[10px] backdrop-blur" role="status" aria-label="Active race">
+        <p className="text-[9px] uppercase tracking-[0.25em] text-[var(--wf-ice)]">{AREAS[def.area]?.name} · {race.type} · {rr?.difficulty ?? "standard"}</p>
+        <p className="mt-1 text-sm font-semibold uppercase tracking-wider">{race.name}</p>
+        {rr?.phase === "running" && standing ? <div className="mt-2 flex gap-5">
+          <div><p className="text-[9px] uppercase tracking-widest text-muted-foreground">Position</p><p className="text-2xl font-bold leading-none">{standing.place}<span className="text-sm text-muted-foreground">/{standing.field}</span></p></div>
+          <div><p className="text-[9px] uppercase tracking-widest text-muted-foreground">Checkpoint</p><p className="text-2xl font-bold leading-none">{Math.min(rr.next, total)}<span className="text-sm text-muted-foreground">/{total}</span></p></div>
+        </div> : <p className="mt-1 text-muted-foreground">{line}</p>}
+        {rr?.notice && <p className="mt-1 text-destructive">{rr.notice}</p>}
+        {race.style && rr && rr.style > 0 && <p className="mt-1 text-primary">Style {Math.round(rr.style)}</p>}
+        <p className="mt-1 text-[9px] text-muted-foreground">{race.hazards.join(" · ")}</p>
+        <Button size="sm" variant="outline" className="mt-2 h-6 text-[9px]" onClick={onAbandon}>Abandon (attempt is not refunded)</Button>
+      </div>
+      {rr?.phase === "running" && <div className="pointer-events-none absolute right-4 top-24 z-30 text-right font-mono" aria-hidden="true">
+        <p className="text-3xl font-bold tabular-nums tracking-wider drop-shadow">{fmtT(t + rr.penalties)}</p>
+        <p className="text-[10px] text-muted-foreground">par {fmtT(race.par)} · limit {fmtT(lim)}{rr.penalties > 0 && <span className="ml-1 text-destructive">+{rr.penalties.toFixed(1)}s</span>}</p>
+      </div>}
+      {rr?.phase === "countdown" && <p className="pointer-events-none absolute left-1/2 top-1/3 z-30 -translate-x-1/2 font-mono text-7xl font-bold text-[var(--wf-ice)] drop-shadow-lg" aria-live="assertive">{Math.ceil(rr.countdown)}</p>}
+      {px !== undefined && pz !== undefined && <RaceMap race={race} run={rr} px={px} pz={pz} />}
+    </>;
   }
   return <div className="pointer-events-auto absolute left-3 top-28 z-30 w-64 border border-primary/60 bg-background/80 p-3 font-mono text-[10px] backdrop-blur" role="status" aria-label="Active activity">
     <p className="text-[9px] uppercase tracking-[0.25em] text-primary">{AREAS[def.area]?.name} · {def.kind === "crucible" ? "killbox" : def.kind}</p>
@@ -58,5 +70,26 @@ export function ActivityResultPanel({ result, onDone }: { result: ActivityResult
       <li className="text-muted-foreground">Cooldown started — see the Activity Board.</li>
     </ul> : <p className="mt-2 text-muted-foreground">{result.reason}. The attempt was spent and is not refunded; other activities stay available.</p>}
     <Button size="sm" className="mt-3" onClick={onDone}>Close</Button>
+  </div>;
+}
+
+/** the course from above (reference: the sample track view's corner map): the route, passed gates dimmed, the next gate
+ * ringed, the rivals on their real pace and you, north up */
+function RaceMap({ race, run, px, pz }: { race: RaceDef; run: RaceRun | undefined; px: number; pz: number }) {
+  const pts = race.points.map((_, i) => worldPoint(race, i));
+  const xs = pts.map((p) => p.x), zs = pts.map((p) => p.z), pad = 20;
+  const x0 = Math.min(...xs) - pad, z0 = Math.min(...zs) - pad, span = Math.max(Math.max(...xs) - x0, Math.max(...zs) - z0) + pad;
+  const next = run && run.phase === "running" ? run.next : 0, rivals = run && run.phase === "running" ? rivalPositions(race, run.difficulty, run.time) : [];
+  const sw = span / 90;
+  return <div className="pointer-events-none absolute bottom-40 left-3 z-30 size-40 rounded-full border border-[var(--wf-line)] bg-background/70 p-2 backdrop-blur sm:bottom-44" aria-hidden="true">
+    <svg viewBox={`${x0} ${z0} ${span} ${span}`} className="size-full">
+      <polyline points={pts.map((p) => `${p.x},${p.z}`).join(" ")} fill="none" stroke="#0b1622" strokeWidth={sw * 5} strokeLinejoin="round" strokeLinecap="round" />
+      <polyline points={pts.map((p) => `${p.x},${p.z}`).join(" ")} fill="none" stroke="#92e9f5" strokeOpacity={0.85} strokeWidth={sw * 2.2} strokeLinejoin="round" strokeLinecap="round" />
+      {pts.slice(0, Math.max(1, next)).length > 1 && <polyline points={pts.slice(0, Math.max(1, next)).map((p) => `${p.x},${p.z}`).join(" ")} fill="none" stroke="#3a5566" strokeWidth={sw * 2.4} strokeLinejoin="round" strokeLinecap="round" />}
+      <circle cx={pts[0]!.x} cy={pts[0]!.z} r={sw * 3} fill="#ffffff" />
+      {pts[next] && <circle cx={pts[next]!.x} cy={pts[next]!.z} r={sw * 5} fill="none" stroke="#ffd166" strokeWidth={sw * 1.6} />}
+      {rivals.map((r, i) => <circle key={i} cx={r.x} cy={r.z} r={sw * 2.6} fill="#ff6b6b" />)}
+      <circle cx={px} cy={pz} r={sw * 3.4} fill="#7dffb0" stroke="#03120a" strokeWidth={sw} />
+    </svg>
   </div>;
 }

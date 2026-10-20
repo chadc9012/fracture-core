@@ -16,3 +16,4 @@
 - Touch input uses normalized keyboard bindings and releases on cancellation/menus. Why: remapping and interrupted gestures must not leave movement or fire held.
 - Vehicle sound/RPM profiles consume existing fleet tuning; never invent a gearbox, fuel or second health system. Why: telemetry must describe real supported systems.
 - Skate attachments preserve the model-up frame when parented to foot bones. Why: differing rig rolls must not turn accessories into the foot.
+- Vehicle race courses are routed over drivable ground (src/game/race-routing.ts: A* over the real terrain, rivers, towers, homes and garages) and baked per world scale by `bun scripts/bake-race-routes.ts` into race-routes.generated.ts; race-routing.test.ts fails if a world change blocks a baked route. Why: authored course shapes ran through lakes and buildings; routing at load is too slow.

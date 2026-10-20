@@ -1316,7 +1316,7 @@ export function GameCanvas() {
        {!storyGraph && !activeDialogue && bossObjective(progression.story) && <p className="pointer-events-none fixed left-4 top-36 z-20 max-w-[280px] font-mono text-[10px] uppercase tracking-[0.18em] text-primary/80">{bossObjective(progression.story)!.text}</p>}
        {activeDialogue && <DialogueOverlay lines={activeDialogue} onDone={() => setActiveDialogue(null)} />}
        {deathInfo && <DeathOverlay cause={deathInfo.cause} cargoLost={deathInfo.cargoLost} deaths={deathInfo.deaths} onDone={() => setDeathInfo(null)} />}
-       {activity && <ActivityTracker def={activity.def} run={activity.run} onAbandon={abandonActivity} />}
+       {activity && <ActivityTracker def={activity.def} run={activity.run} onAbandon={abandonActivity} px={hud.px} pz={hud.pz} />}
       {activityResult && <ActivityResultPanel result={activityResult} onDone={() => setActivityResult(null)} />}
       {rewardCards && <ScenarioRewardCards title={rewardCards.title} cards={rewardCards.cards} onDone={() => setRewardCards(null)} />}
       {missionBanner && <MissionBannerView banner={missionBanner} onDone={clearBanner} />}

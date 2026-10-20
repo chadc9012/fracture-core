@@ -7,12 +7,15 @@
  * detection with recovery from the last checkpoint, movement-mode checks, collision and recovery penalties, deterministic rival pace, medals,
  * ranks, championships, time limits per difficulty.
  * What is NOT here: rival collision/blocking AI, traffic, weather, falling debris and creature pursuit (courses list them as `hazards` for the
- * world layer to build), relay/co-op (needs multiplayer), live leaderboards and friend times (needs a backend). Course coordinates are
- * placeholders laid out from each area's centre; nobody has driven them. */
+ * world layer to build), relay/co-op (needs multiplayer), live leaderboards and friend times (needs a backend).
+ * Courses are laid out as shapes round each area's centre; every VEHICLE course is then routed over drivable ground (race-routing.ts,
+ * baked per world scale into race-routes.generated.ts and re-checked by race-routing.test.ts). Foot and dive courses keep their shape. */
 import { ACTIVITIES, AREAS, EXTRA_DEFS, NO_DEATH, R, activityById, hooks, pointWorld, type ActivityDef, type Run, type Tick } from "./activities";
 import { DISCOVERIES, type Discovery } from "./discoveries";
 import type { PlayerProgression } from "./progression";
 import type { MaterialId } from "./inventory";
+import { BAKED_ROUTES } from "./race-routes.generated";
+import { WORLD_SCALE } from "./world";
 
 export type RaceMode = "foot" | "vehicle" | "dive";
 export type Difficulty = "standard" | "advanced" | "legendary";
@@ -153,8 +156,22 @@ const ROWS: Row[] = [
 ];
 
 const PAR_BONUS_PER_CP = 1.5;
+/** the authored layout of a vehicle course in world coordinates (scripts/bake-race-routes.ts routes these) */
+export const rawVehicleCourses = () => ROWS.filter((r) => r.mode === "vehicle").map((r) => ({ id: r.id, area: r.area, points: layout(r).points.map((p) => pointWorld(r.area, p.f)) }));
+/** a vehicle course routed over drivable ground (race-routing.ts), baked for this world scale; else the authored shape */
+function routed(row: Row): { points: RacePoint[]; shortcuts: Shortcut[] } {
+  const lay = layout(row), baked = row.mode === "vehicle" ? BAKED_ROUTES[WORLD_SCALE]?.[row.id] : undefined;
+  if (!baked) return lay;
+  const a = AREAS[row.area]!;
+  const points: RacePoint[] = baked.map(([x, z]) => ({ f: [(x - a.x) / a.radius, (z - a.z) / a.radius] as const }));
+  // reality gates keep their place along the course (half way and the last gate before the finish)
+  if (row.windows) for (const i of [Math.floor(points.length / 2), points.length - 2]) if (i > 0 && i < points.length - 1) points[i] = { ...points[i]!, window: { period: 8, open: 5 } };
+  // the authored shortcut cut straight across the old shape; on a routed course it would run through whatever the route
+  // goes round, so routed courses have none until shortcuts are routed too
+  return { points, shortcuts: [] };
+}
 function build(row: Row): RaceDef {
-  const { points, shortcuts } = layout(row);
+  const { points, shortcuts } = routed(row);
   const mode = row.mode, len = polyLength(points, row.area), speed = SPEED[row.type] ?? 20;
   const par = row.par ?? Math.max(20, Math.round(len / speed + row.n * PAR_BONUS_PER_CP));
   return { id: row.id, area: row.area, name: row.name, type: row.type, mode, brief: row.brief, hazards: row.hazards ?? [], points, shortcuts, par, rivals: row.rivals ?? 5, crew: row.crew ?? `${AREAS[row.area]!.name} racers`, faction: row.faction ?? FACTION[row.area] ?? "wardens", rank: row.rank ?? 0, style: Boolean(row.style), ...(row.hidden ? { hidden: row.hidden } : {}) };
@@ -372,3 +389,22 @@ hooks.raceTarget = (def, run) => {
   const w = worldPoint(race, i);
   return { x: w.x, z: w.z, label: i === 0 ? "Start line" : i >= race.points.length - 1 ? "Finish" : `Checkpoint ${i}/${race.points.length - 2}` };
 };
+
+/* ------------------------------ live standings (HUD) ------------------------------ */
+/** how far along the course a racer is, 0..1 by distance: legs done plus the share of the current leg covered */
+export function courseProgress(def: RaceDef, next: number, x: number, z: number): number {
+  const legs: number[] = []; let total = 0;
+  for (let i = 1; i < def.points.length; i++) { const a = worldPoint(def, i - 1), b = worldPoint(def, i); const l = Math.hypot(a.x - b.x, a.z - b.z); legs.push(l); total += l; }
+  if (!total) return 0;
+  const leg = Math.max(1, Math.min(def.points.length - 1, next));
+  let done = 0; for (let i = 0; i < leg - 1; i++) done += legs[i]!;
+  const a = worldPoint(def, leg - 1), b = worldPoint(def, leg), dx = b.x - a.x, dz = b.z - a.z, l2 = dx * dx + dz * dz;
+  const u = l2 ? Math.max(0, Math.min(1, ((x - a.x) * dx + (z - a.z) * dz) / l2)) : 0;
+  return Math.min(1, (done + u * (legs[leg - 1] ?? 0)) / total);
+}
+/** your place in the field right now (1 = leading), against the rivals' deterministic pace on the same course */
+export function livePlace(def: RaceDef, run: RaceRun, x: number, z: number): { place: number; field: number } {
+  if (run.phase !== "running") return { place: def.rivals + 1, field: def.rivals + 1 };
+  const me = courseProgress(def, run.next, x, z), rivals = rivalPositions(def, run.difficulty, run.time);
+  return { place: 1 + rivals.filter((r) => r.progress > me).length, field: rivals.length + 1 };
+}
