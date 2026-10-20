@@ -1995,14 +1995,6 @@ function SceneImpl({
         if (!inside && Math.hypot(lair.x - s.x, lair.z - s.z) > LAIR_RADIUS * 4) lairsTriggered.current[lair.id] = false;
       }
       // Vyrak discovery (vyrak-site.ts): walk up to a clue site, or sense the hidden lair; each pays its journal clue once
-      if (activity && activity.run.status === "active") {
-        const r = activity.run, rsig = () => { const rr = r.race as { phase?: string; next?: number; recoveries?: number; notice?: string | null; countdown?: number } | undefined; return `${r.stage}|${r.progress}|${r.status}|${r.cp}|${r.carrying}|${rr?.phase}|${rr?.next}|${rr?.recoveries}|${rr?.notice}|${rr?.phase === "countdown" ? Math.ceil(rr.countdown ?? 0) : ""}`; }, sig0 = rsig();
-        stepActivity(activity.def, r, { x: s.x, z: s.z, dt, now: Date.now(), kills: sim.kills, elites: sim.eliteKills, bosses: sim.bossKills, hp: sim.hp, deaths: sim.deaths, rivalKills: sim.rivalKills, mode: s.inVehicle ? "vehicle" : s.diving ? "dive" : "foot", y: s.y, vehicleDisabled: s.inVehicle && conditionEffects(condition.current).disabled });
-        // a race asked to put the player back on the course (wreck, fall, or lost): same place as the last checkpoint, race clock keeps running
-        const back = (r.race as { recover?: { x: number; z: number; depth?: number } | null } | undefined)?.recover;
-        if (back) { s.x = back.x; s.z = back.z; s.vSpeed = 0; s.vy = 0; if (back.depth !== undefined) s.y = back.depth; else s.y = walkHeight(back.x, back.z) + 0.2; (r.race as { recover: unknown }).recover = null; }
-        if (sig0 !== rsig()) onActivityChange?.();
-      }
       // walking into a discovery starts it (consuming one attempt, like any activity); a running activity or the tutorial blocks it
       if (gear && !tutorial && !activity && onDiscovery) { discoveryClock.current += dt; if (discoveryClock.current > 0.3) { discoveryClock.current = 0; const hit = discoveryTriggered(gear, s.x, s.z, Date.now()); if (hit) onDiscovery(hit.id); } }
       if (gear && !tutorial && onEncounterClue) {
@@ -2054,6 +2046,17 @@ function SceneImpl({
           else if (beats.defenseAt >= 0 && performance.now() / 1000 - beats.defenseAt > 2 && lairDefenseCleared(sim)) { beats.defenseAt = -1; onStoryEvent?.({ type: "DEFENSE_CLEARED" }); }
         } else beats.defenseAt = -1;
       }
+    }
+    // the running activity steps in a vehicle too (it used to sit inside the on-foot block above, so a vehicle race never left the start line)
+    if (!tutorial) {
+        if (activity && activity.run.status === "active") {
+          const r = activity.run, rsig = () => { const rr = r.race as { phase?: string; next?: number; recoveries?: number; notice?: string | null; countdown?: number } | undefined; return `${r.stage}|${r.progress}|${r.status}|${r.cp}|${r.carrying}|${rr?.phase}|${rr?.next}|${rr?.recoveries}|${rr?.notice}|${rr?.phase === "countdown" ? Math.ceil(rr.countdown ?? 0) : ""}`; }, sig0 = rsig();
+          stepActivity(activity.def, r, { x: s.x, z: s.z, dt, now: Date.now(), kills: sim.kills, elites: sim.eliteKills, bosses: sim.bossKills, hp: sim.hp, deaths: sim.deaths, rivalKills: sim.rivalKills, mode: s.inVehicle ? "vehicle" : s.diving ? "dive" : "foot", y: s.y, vehicleDisabled: s.inVehicle && conditionEffects(condition.current).disabled });
+          // a race asked to put the player back on the course (wreck, fall, or lost): same place as the last checkpoint, race clock keeps running
+          const back = (r.race as { recover?: { x: number; z: number; depth?: number } | null } | undefined)?.recover;
+          if (back) { s.x = back.x; s.z = back.z; s.vSpeed = 0; s.vy = 0; if (back.depth !== undefined) s.y = back.depth; else s.y = walkHeight(back.x, back.z) + 0.2; (r.race as { recover: unknown }).recover = null; }
+          if (sig0 !== rsig()) onActivityChange?.();
+        }
     }
 
     /* ---------------- combat audio: impacts, kills, damage taken, intensity mix ---------------- */
