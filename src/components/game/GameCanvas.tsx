@@ -18,7 +18,7 @@ import type { RenderTier } from "@/game/performance";
 import { DPR_FLOOR, effectiveTier, onDecline as governDecline } from "@/game/quality-governor";
 import { MissionCinematic } from "./MissionCinematic";
 import { recordClue } from "@/game/encounter-journal";
-import { applyRaceResult, difficultyLocked, isRaceActivity, raceById, type Difficulty } from "@/game/racing";
+import { applyRaceResult, difficultyLocked, isRaceActivity, raceById, worldPoint as raceWorldPoint, type Difficulty } from "@/game/racing";
 import { discoveryById, discoveryOfDef, reveal as revealDiscoveries } from "@/game/discoveries";
 import { VYRAK_REMATCH, activityState, activityById, pointWorld, startActivity, completeActivity, abandonRun, type ActivityDef, type Run as ActivityRun } from "@/game/activities";
 import { ActivityTracker, ActivityResultPanel, type ActivityResult } from "./ActivityHud";
@@ -942,6 +942,20 @@ export function GameCanvas() {
     if ("error" in res) { setMenuNotice(res.error); return; }
     setProgression(res.progression); setActivity({ def: activityById(id)!, run: res.run }); setOperationsView(null);
   };
+  /** a race from the Director: sign up (spends the attempt), then travel to its start line through the normal transit */
+  const startRace = (id: string, difficulty: Difficulty) => {
+    if (activity) return;
+    const race = raceById(id), def = activityById(id);
+    if (!race || !def) return;
+    const lockedWhy = difficultyLocked(progressionRef.current, id, difficulty);
+    if (lockedWhy) { setMenuNotice(lockedWhy); return; }
+    const res = startActivity(progressionRef.current, id, Date.now(), difficulty);
+    if ("error" in res) { setMenuNotice(res.error); return; }
+    setProgression(res.progression); setActivity({ def, run: res.run });
+    const start = raceWorldPoint(race, 0);
+    setAtlasOpen(false);
+    startTransit({ id: `race:${id}`, name: race.name, sub: "Start line", color: "#ffd166", x: start.x, z: start.z, ...(start.depth !== undefined ? { y: start.depth } : {}) });
+  };
   /** Crucible from the director: start the match activity, then drop into the Wastelands arena through the normal transit */
   const launchCrucible = (id: string) => {
     const def = activityById(id);
@@ -1431,7 +1445,7 @@ export function GameCanvas() {
        {characterOpen && <CharacterScreen progression={progression} onProgression={setProgression} classId={cls} subclassId={subclass} appearance={appearance} onClose={() => setCharacterOpen(false)} onInventory={() => { setCharacterOpen(false); setInventoryOpen(true); }} onSettings={() => { setCharacterOpen(false); setMenuOpen(true); }} />}
        {inventoryOpen && <InventoryWindow progression={progression} onProgression={setProgression} onClose={() => setInventoryOpen(false)} />}
        {landmarkToast && !atlasOpen && <div className="pointer-events-none absolute left-1/2 top-28 z-30 w-[min(26rem,86vw)] -translate-x-1/2 border-l-2 border-primary bg-background/80 px-3 py-2" role="status"><p className="font-mono text-[9px] uppercase tracking-[0.3em] text-primary">Landmark discovered</p><p className="text-sm font-semibold">{landmarkToast.name}</p><p className="mt-0.5 text-[11px] text-muted-foreground">{landmarkToast.history}</p></div>}
-       {atlasOpen && <WorldAtlas progression={progression} markers={hud.markers} px={hud.px} pz={hud.pz} currentRegion={hud.region} phase={hud.phase} onClose={() => setAtlasOpen(false)} onProgression={setProgression} onTravel={(a) => { setAtlasOpen(false); startTransit({ id: a.id, name: a.name, sub: ACTIVITY_LABEL[a.kind], color: ACTIVITY_COLOR[a.kind], x: a.drop.x, z: a.drop.z, ...(a.drop.y !== undefined ? { y: a.drop.y } : {}) }); }} />}
+       {atlasOpen && <WorldAtlas onStartRace={startRace} activeActivityId={activity?.def.id ?? null} progression={progression} markers={hud.markers} px={hud.px} pz={hud.pz} currentRegion={hud.region} phase={hud.phase} onClose={() => setAtlasOpen(false)} onProgression={setProgression} onTravel={(a) => { setAtlasOpen(false); startTransit({ id: a.id, name: a.name, sub: ACTIVITY_LABEL[a.kind], color: ACTIVITY_COLOR[a.kind], x: a.drop.x, z: a.drop.z, ...(a.drop.y !== undefined ? { y: a.drop.y } : {}) }); }} />}
       {awakening && <AwakeningOverlay run={awakening} onEvent={recordAwakening} />}
       {mission && <BrokenSignalOverlay mission={mission} onEvent={recordMission} />}
       {blackout && <BlackoutProtocolOverlay mission={blackout} onEvent={recordBlackout} />}

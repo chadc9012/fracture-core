@@ -20,6 +20,8 @@ import { ActivityPanel, KIND_GLYPH } from "./ActivityPanel";
 import { ACTIVITY_COLOR, ACTIVITY_LABEL, type Activity } from "@/game/map-activities";
 import { MAP_FONT, MAP_VIEWBOX, MapLayers } from "./MapLayers";
 import { useDetailMap, useTerrainMap } from "./useTerrainMap";
+import { DIFFICULTIES, RANKS, bestMedal, difficultyLocked, personalBest, racesIn, rankIndex, rankName, worldPoint, type Difficulty, type RaceDef } from "@/game/racing";
+import { activityById, activityState } from "@/game/activities";
 import { cityPlan, type CityPlan, type PlanRect } from "@/game/city-plan";
 import { MapLegend } from "./MapLegend";
 import { LANDMARK_GLYPH, MARKER_GLYPH } from "@/game/map-symbols";
@@ -36,7 +38,7 @@ import { regionHistory, regionStory, discoveredCount } from "@/game/world-story"
  *     transit). Discovered ruins and hazards show; undiscovered ones show nothing at all. Region intel stays below.
  * Back (or Escape) steps out one stage; close leaves the map.
  */
-export function WorldAtlas({ progression, currentRegion, phase, onClose, markers = [], px = 0, pz = 0, onProgression, onTravel }: { progression: PlayerProgression; currentRegion: string; phase: string; onClose: () => void; markers?: TrackedMarker[]; px?: number; pz?: number ; onProgression?: (next: PlayerProgression) => void; onTravel?: (a: Activity) => void }) {
+export function WorldAtlas({ progression, currentRegion, phase, onClose, markers = [], px = 0, pz = 0, onProgression, onTravel, onStartRace, activeActivityId = null }: { progression: PlayerProgression; currentRegion: string; phase: string; onClose: () => void; markers?: TrackedMarker[]; px?: number; pz?: number ; onProgression?: (next: PlayerProgression) => void; onTravel?: (a: Activity) => void; /** sign up for a race and go to its start line */ onStartRace?: (id: string, difficulty: Difficulty) => void; activeActivityId?: string | null }) {
   const [destId, setDestId] = useState<string | null>(null);
   const dest = destId ? destinationById(destId) ?? null : null;
   const here = REGIONS.find((r) => r.name === currentRegion)?.id;
@@ -53,7 +55,7 @@ export function WorldAtlas({ progression, currentRegion, phase, onClose, markers
         <div className="flex gap-1">{dest && <Button variant="outline" className="rounded-none" onClick={() => setDestId(null)} aria-label="Back to destinations"><ArrowLeft />Destinations</Button>}<Button size="icon" variant="ghost" onClick={onClose} aria-label="Close world map"><X /></Button></div>
       </header>
       {!dest ? <DestinationOverview progression={progression} here={here} px={px} pz={pz} onPick={setDestId} onTravel={onTravel ? (a) => onTravel(a) : undefined} />
-        : <DestinationView key={dest.id} dest={dest} progression={progression} phase={phase} markers={markers} px={px} pz={pz} onProgression={onProgression} onTravel={onTravel} onClose={onClose} />}
+        : <DestinationView key={dest.id} dest={dest} progression={progression} phase={phase} markers={markers} px={px} pz={pz} onProgression={onProgression} onTravel={onTravel} onStartRace={onStartRace} activeActivityId={activeActivityId} onClose={onClose} />}
     </div>
   </div>;
 }
@@ -134,11 +136,11 @@ function DestinationCard({ dest, summary, here, onOpen, onTravel }: { dest: Dest
   </div>;
 }
 
-type ViewTab = "ACTIVITIES" | "SHOPS" | "HOMES" | "VEHICLES";
+type ViewTab = "ACTIVITIES" | "RACES" | "SHOPS" | "HOMES" | "VEHICLES";
 const fmtCost = (cost: Partial<Record<MaterialId, number>>) => Object.entries(cost).map(([k, v]) => `${v} ${MATERIALS[k as MaterialId]?.name ?? k}`).join(" · ");
 
 /** stage 2: one destination */
-function DestinationView({ dest, progression, phase, markers, px, pz, onProgression, onTravel, onClose }: { dest: Destination; progression: PlayerProgression; phase: string; markers: TrackedMarker[]; px: number; pz: number; onProgression?: ((next: PlayerProgression) => void) | undefined; onTravel?: ((a: Activity) => void) | undefined; onClose: () => void }) {
+function DestinationView({ dest, progression, phase, markers, px, pz, onProgression, onTravel, onStartRace, activeActivityId, onClose }: { dest: Destination; progression: PlayerProgression; phase: string; markers: TrackedMarker[]; px: number; pz: number; onProgression?: ((next: PlayerProgression) => void) | undefined; onTravel?: ((a: Activity) => void) | undefined; onStartRace?: ((id: string, d: Difficulty) => void) | undefined; activeActivityId?: string | null; onClose: () => void }) {
   const region = REGIONS.find((r) => r.id === dest.regionId)!;
   const encounter = ENCOUNTERS.find((e) => e.regionId === dest.regionId);
   const [filter, setFilter] = useState<DirectorFilter>("ALL");
@@ -157,7 +159,10 @@ function DestinationView({ dest, progression, phase, markers, px, pz, onProgress
   const fleet = useMemo(() => destinationFleet(dest), [dest]);
   const focus = { x: dest.x, z: dest.z, radius: dest.reach ?? region.radius };
   const plan = useMemo(() => (dest.city || dest.id === "nexus" ? cityPlan(dest, focus.radius * 1.35) : undefined), [dest, focus.radius]);
-  const tabs: ViewTab[] = ["ACTIVITIES", ...(shops.length ? ["SHOPS" as const] : []), ...(homes.length || walkIns.length ? ["HOMES" as const] : []), ...(garages.length ? ["VEHICLES" as const] : [])];
+  const races = useMemo(() => racesFor(dest), [dest]);
+  const [raceId, setRaceId] = useState<string | null>(null);
+  const course = tab === "RACES" ? races.find((r) => r.id === raceId) ?? races[0] : undefined;
+  const tabs: ViewTab[] = ["ACTIVITIES", ...(races.length ? ["RACES" as const] : []), ...(shops.length ? ["SHOPS" as const] : []), ...(homes.length || walkIns.length ? ["HOMES" as const] : []), ...(garages.length ? ["VEHICLES" as const] : [])];
   const waypoint = (id: string, label: string, x: number, z: number) => { setPin({ id, label, x, z, source: "MAP" }); setNotice(`Waypoint set: ${label}`); };
   /** fast travel next to a place (`ahead` m south of it, the side doors face) through the normal transit */
   const travelTo = (id: string, name: string, x: number, z: number, ahead = 4) => onTravel?.({ id, kind: "SAFE_ZONE", name, detail: "", regionId: dest.regionId, x, z, status: "AVAILABLE", drop: { x, z: z + ahead } });
@@ -165,7 +170,7 @@ function DestinationView({ dest, progression, phase, markers, px, pz, onProgress
   const fleetState = progression.fleet ?? { owned: [], garages: [], active: null };
   return <div className="mt-5 grid gap-6 lg:grid-cols-[minmax(0,1.6fr)_minmax(18rem,0.7fr)] wf-director-in">
     <section className="min-w-0">
-      <TacticalMap markers={markers} px={px} pz={pz} selected={region.id} onSelect={() => {}} progression={progression} focus={focus} activities={tab === "ACTIVITIES" ? shown : []} sites={sites} districts={districts} plan={plan} pickedActivity={pick} onActivity={(id) => { setTab("ACTIVITIES"); setPick(id); }} />
+      <TacticalMap markers={markers} px={px} pz={pz} selected={region.id} onSelect={() => {}} progression={progression} focus={focus} activities={tab === "ACTIVITIES" ? shown : []} sites={sites} districts={districts} plan={plan} course={course} pickedActivity={pick} onActivity={(id) => { setTab("ACTIVITIES"); setPick(id); }} />
       {/* folded here: on a narrow screen the full legend pushed the destination's tabs far below the map */}
       <details className="mt-2"><summary className="ui-focus cursor-pointer font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Map legend</summary><MapLegend phase={phase} /></details>
     </section>
@@ -176,13 +181,14 @@ function DestinationView({ dest, progression, phase, markers, px, pz, onProgress
             className={`ui-focus flex w-full items-center justify-between px-3 py-1.5 text-left ${on ? "bg-primary/20" : "bg-background/80 hover:bg-background/60"}`}><span><span style={{ color: r.color }}>{r.glyph}</span> {r.label}</span><b>{summary[r.key]}</b></button></li>; })}
         {summary.dungeonsTotal > 0 && <li className="flex items-center justify-between bg-background/80 px-3 py-1.5"><span><span className="text-violet-300">◈</span> Dungeons</span><b>{summary.dungeonsFound}/{summary.dungeonsTotal}</b></li>}
       </ul>
-      {tabs.length > 1 && <div className="mt-3 flex flex-wrap gap-1" role="tablist" aria-label="Destination sections">{tabs.map((t) => <Button key={t} size="sm" role="tab" aria-selected={tab === t} variant={tab === t ? "default" : "outline"} className="rounded-none font-mono text-[10px] uppercase" onClick={() => { setTab(t); setPick(null); setNotice(""); }}>{t === "ACTIVITIES" ? "Activities" : t === "SHOPS" ? "Shops" : t === "HOMES" ? "Real estate" : "Vehicles"}</Button>)}</div>}
+      {tabs.length > 1 && <div className="mt-3 flex flex-wrap gap-1" role="tablist" aria-label="Destination sections">{tabs.map((t) => <Button key={t} size="sm" role="tab" aria-selected={tab === t} variant={tab === t ? "default" : "outline"} className="rounded-none font-mono text-[10px] uppercase" onClick={() => { setTab(t); setPick(null); setNotice(""); }}>{t === "ACTIVITIES" ? "Activities" : t === "RACES" ? "Races" : t === "SHOPS" ? "Shops" : t === "HOMES" ? "Real estate" : "Vehicles"}</Button>)}</div>}
       {notice && <p className="mt-2 text-xs text-primary" role="status">{notice}</p>}
       {tab === "ACTIVITIES" && <>
         {filter !== "ALL" && <button type="button" className="ui-focus mt-2 font-mono text-[10px] uppercase text-muted-foreground" onClick={() => setFilter("ALL")}>Showing {FILTER_LABEL[filter]} · show all ×</button>}
         {onProgression && onTravel && <div className="mt-3 border border-border p-3"><ActivityPanel progression={progression} regionId={dest.regionId} activities={shown} pickId={pick} onPick={setPick} onProgression={onProgression} onLaunch={onTravel} launchLabel="Travel" recommendedLevel={recommendedLevel(dest)} onWaypoint={(a) => waypoint(`act-${a.id}`, a.name, a.x, a.z)} /></div>}
         {sites.length > 0 && <div className="mt-4"><p className="ui-kicker text-violet-300">Discovered dungeons & sites</p><ul className="mt-1 space-y-1.5">{sites.map((l) => <li key={l.id} className="border-l-2 border-violet-400 pl-2 text-xs"><b>{LANDMARK_GLYPH[l.type]} {l.name}</b><span className="block text-muted-foreground">{l.history}</span><button type="button" className="ui-focus mt-0.5 text-[10px] uppercase text-violet-300" onClick={() => waypoint(`lm-${l.id}`, l.name, l.x, l.z)}>Add waypoint</button></li>)}</ul></div>}
       </>}
+      {tab === "RACES" && <RaceList races={races} progression={progression} pick={course?.id ?? null} onPick={setRaceId} onStart={onStartRace} activeId={activeActivityId ?? null} />}
       {tab === "SHOPS" && <ul className="mt-3 space-y-2">{shops.map((sh) => { const lock = shopLock(sh, progression); return <li key={sh.id} className="border border-foreground/15 bg-background/60 p-3">
         <p className="ui-kicker text-violet-300">{SHOP_KIND_LABEL[sh.kind]} · {ACCESS_LABEL[shopAccessKind(sh.id)]}{districtOf(districts, sh.x, sh.z) ? ` · ${districtOf(districts, sh.x, sh.z)}` : ""}</p>
         <strong className="block text-sm">{sh.name}</strong><p className="text-xs text-muted-foreground">{sh.blurb} · pays in {MATERIALS[sh.currency]?.name ?? sh.currency}</p>
@@ -218,6 +224,29 @@ function DestinationView({ dest, progression, phase, markers, px, pz, onProgress
     </aside>
   </div>;
 }
+/* ------------------------------------------------------------------ races (racing.ts) */
+/** which racing areas (activities.ts AREAS) a destination holds */
+const RACE_AREAS: Record<string, string[]> = { "neon-city": ["neon", "neon-core"], nexus: ["nexus"], veridan: ["veridan"], thalassia: ["thalassia"], ember: ["ember"], wastelands: ["wastelands"], swamps: ["swamps"], solara: ["solara"], frostspire: ["frostspire"] };
+const racesFor = (d: Destination) => (RACE_AREAS[d.id] ?? []).flatMap((a) => racesIn(a));
+const MODE_LABEL = { vehicle: "Vehicle", foot: "On foot", dive: "Submersible" } as const;
+const MEDAL_COLOR = { gold: "#ffd166", silver: "#d6dde4", bronze: "#d9935a" } as const;
+/** the destination's races (reference: the racing tracks sheet): pick one to see its course on the map, then sign up at a difficulty */
+function RaceList({ races, progression, pick, onPick, onStart, activeId }: { races: RaceDef[]; progression: PlayerProgression; pick: string | null; onPick: (id: string) => void; onStart?: ((id: string, d: Difficulty) => void) | undefined; activeId: string | null }) {
+  return <div className="mt-3 space-y-2">
+    <p className="text-[11px] text-muted-foreground">Racing rank <b className="text-foreground">{rankName(progression)}</b> · rank follows medals, not races entered. Signing up spends a daily attempt and takes you to the start line.</p>
+    <ul className="space-y-1.5">{races.map((r) => { const on = pick === r.id, def = activityById(r.id), st = def ? activityState(progression, def) : null, best = personalBest(progression, r.id, "standard"), medal = bestMedal(progression, r.id, "standard"), rankLock = rankIndex(progression) < r.rank;
+      return <li key={r.id}><div role="button" tabIndex={0} onClick={() => onPick(r.id)} onKeyDown={(e) => { if (e.key === "Enter") onPick(r.id); }} className={`ui-focus cursor-pointer border p-2.5 ${on ? "border-[#ffd166] bg-[#ffd166]/5" : "border-foreground/15 bg-background/60 hover:border-foreground/30"}`}>
+        <div className="flex items-start justify-between gap-2"><div><p className="ui-kicker" style={{ color: "#ffd166" }}>{MODE_LABEL[r.mode]} · {r.type}</p><strong className="block text-sm">{r.name}</strong></div>
+          <span className="text-right font-mono text-[10px] text-muted-foreground">{r.points.length - 1} gates · par {r.par}s{best !== null && <span className="block text-foreground">best {best.toFixed(1)}s</span>}{medal && <span className="block" style={{ color: MEDAL_COLOR[medal] }}>● {medal}</span>}</span></div>
+        {on && <><p className="mt-1 text-xs text-muted-foreground">{r.brief}</p><p className="mt-1 text-[10px] text-muted-foreground">Track: {r.hazards.join(" · ") || "open course"}</p>
+          {rankLock ? <p className="mt-1 text-xs text-amber-400">Requires racing rank {RANKS[r.rank]}</p>
+            : <div className="mt-2 flex flex-wrap gap-1">{DIFFICULTIES.map((d) => { const why = difficultyLocked(progression, r.id, d); return <Button key={d} size="sm" variant={d === "standard" ? "default" : "outline"} className="h-7 rounded-none px-2 text-[10px] uppercase" title={why ?? undefined} disabled={!onStart || !!why || !!activeId || !st?.available} onClick={(e) => { e.stopPropagation(); onStart?.(r.id, d); }}>{d}{bestMedal(progression, r.id, d) ? " ●" : ""}</Button>; })}</div>}
+          {activeId && <p className="mt-1 text-[10px] text-amber-400">Finish or abandon your current activity first</p>}
+          {st && !st.available && !activeId && <p className="mt-1 text-[10px] text-amber-400">{st.cooldownLeftMs > 0 ? "Cooling down" : "No attempts left today"}</p>}</>}
+      </div></li>; })}</ul>
+  </div>;
+}
+
 /* ------------------------------------------------------------------ destination map pieces */
 const HEX = (r: number) => Array.from({ length: 6 }, (_, i) => { const a = Math.PI / 6 + (i * Math.PI) / 3; return `${(Math.cos(a) * r).toFixed(2)},${(Math.sin(a) * r).toFixed(2)}`; }).join(" ");
 const districtGlyph = (k: CityDistrict) => {
@@ -262,7 +291,7 @@ const [VB_X, VB_Y, VB_W] = MAP_VIEWBOX.split(" ").map(Number) as [number, number
 
 /** Live tactical map: zoom (wheel / buttons), drag to pan, layer filters, and click any marker or point to set a
  * waypoint that the HUD compass and tracker follow (map-pin.ts). */
-function TacticalMap({ markers, px, pz, selected, onSelect, progression, focus, activities = [], sites = [], pickedActivity, onActivity, districts = [], plan }: { markers: TrackedMarker[]; px: number; pz: number; selected: string; onSelect: (id: string) => void; progression: PlayerProgression;
+function TacticalMap({ markers, px, pz, selected, onSelect, progression, focus, activities = [], sites = [], pickedActivity, onActivity, districts = [], plan, course }: { markers: TrackedMarker[]; px: number; pz: number; selected: string; onSelect: (id: string) => void; progression: PlayerProgression;
   /** open centred on this area (a destination), fitted to its radius */
   focus?: { x: number; z: number; radius: number };
   /** the destination's activities, drawn as rings in their kind's colour; clicking one picks it in the side panel */
@@ -270,7 +299,9 @@ function TacticalMap({ markers, px, pz, selected, onSelect, progression, focus, 
   /** a city's named districts, drawn as soft areas under the markers */
   districts?: CityDistrict[];
   /** a city's building footprints, drawn on the close-up */
-  plan?: CityPlan | undefined }) {
+  plan?: CityPlan | undefined;
+  /** a race course to draw: its route, start line and gates */
+  course?: RaceDef | undefined }) {
   // the map shows the whole painted continent (terrain-map.ts), not just the region circles
   const map = useTerrainMap();
   // and, for a destination, a sharp close-up of just that area painted over it
@@ -344,6 +375,12 @@ function TacticalMap({ markers, px, pz, selected, onSelect, progression, focus, 
           onPointerUp={(e) => { if (drag.current?.moved) return; e.stopPropagation(); drag.current = null; setInspectId(m.id); pickPin(m); }}><title>{`${m.label} · ${fmt(m.dist)} — click to ${pin?.id === m.id ? "clear" : "set"} waypoint`}</title><g>{inspectId === m.id && <circle r={5} fill="none" stroke="#ffffff" strokeWidth={0.6} strokeDasharray="1.4 1" />}<circle r={4} fill="transparent" /><text y={m.kind === "LANDMARK" ? 1.8 : 1.9} textAnchor="middle" fontSize={m.kind === "LANDMARK" ? 5.5 : 5} fill={MARKER_COLOR[m.kind]} fillOpacity={m.ready === false ? 0.4 : 1} stroke={pin?.id === m.id ? "#ffffff" : "#000"} strokeWidth={pin?.id === m.id ? 1.4 : 0.9} paintOrder="stroke">{m.kind === "LANDMARK" ? LANDMARK_GLYPH[LANDMARKS.find((l) => `lm-${l.id}` === m.id)?.type ?? "outpost"] : MARKER_GLYPH[m.kind]}</text>{focus && m.kind === "LANDMARK" && <polygon points={HEX(4.6)} fill="none" stroke={MARKER_COLOR.LANDMARK} strokeWidth={0.6} />}{(m.kind === "LANDMARK" ? !focus || view.zoom >= labelZoom : view.zoom >= labelZoom) && <text y={6.4} textAnchor="middle" fontSize={3.2} fill="#ffffff" stroke="#000" strokeWidth={0.7} paintOrder="stroke">{m.label}</text>}</g></g>)}
         {districts.map((k) => <g key={`dist-${k.id}`} pointerEvents="none"><circle cx={k.x} cy={k.z} r={k.r} fill={k.color} fillOpacity={0.08} stroke={k.color} strokeOpacity={0.45} strokeWidth={u(0.3)} strokeDasharray={`${u(1.4)} ${u(1)}`} />
           <HexBadge x={k.x} z={k.z} scale={scaleK * 0.9} color={k.color} glyph={districtGlyph(k)} name={k.name} sub={k.tagline.split(" · ")[0]!} /></g>)}
+        {course && (() => { const pts = course.points.map((_, i) => worldPoint(course, i)), line = pts.map((p) => `${p.x},${p.z}`).join(" "); return <g key={`course-${course.id}`} pointerEvents="none">
+          <polyline points={line} fill="none" stroke="#03080f" strokeOpacity={0.7} strokeWidth={u(1.6) / Math.sqrt(view.zoom) * 1.4} strokeLinejoin="round" strokeLinecap="round" />
+          <polyline points={line} fill="none" stroke="#ffd166" strokeWidth={u(0.8) / Math.sqrt(view.zoom) * 1.4} strokeLinejoin="round" strokeLinecap="round" />
+          {pts.slice(1, -1).map((p, i) => <circle key={i} cx={p.x} cy={p.z} r={u(0.6) / Math.sqrt(view.zoom) * 1.4} fill="#ffffff" stroke="#03080f" strokeWidth={u(0.2)} />)}
+          <g transform={`translate(${pts[0]!.x} ${pts[0]!.z}) scale(${scaleK})`}><circle r={4.4} fill="#061422" stroke="#ffd166" strokeWidth={1} /><text y={1.8} textAnchor="middle" fontSize={5} fill="#ffd166">⚑</text><text y={8.6} textAnchor="middle" fontSize={3.2} fontWeight={700} fill="#ffffff" stroke="#000" strokeWidth={0.7} paintOrder="stroke">{course.name} · start</text></g>
+        </g>; })()}
         {sites.map((l) => <g key={`site-${l.id}`} transform={`translate(${l.x} ${l.z}) scale(${scaleK})`} pointerEvents="none"><title>{`Discovered site: ${l.name}`}</title><circle r={3.6} fill="#21112f" fillOpacity={0.85} stroke="#b98cff" strokeWidth={0.7} /><text y={1.7} textAnchor="middle" fontSize={4.4} fill="#d8c2ff">{LANDMARK_GLYPH[l.type]}</text>{view.zoom >= 2 && <text y={6.6} textAnchor="middle" fontSize={3} fill="#e6dcff" stroke="#000" strokeWidth={0.6} paintOrder="stroke">{l.name}</text>}</g>)}
         {activities.map((a) => { const on = pickedActivity === a.id; return <g key={`act-${a.id}`} transform={`translate(${a.x} ${a.z}) scale(${scaleK})`} className="cursor-pointer outline-none" tabIndex={0} role="button" aria-pressed={on} aria-label={`${ACTIVITY_LABEL[a.kind]}: ${a.name}${a.status === "LOCKED" ? ", locked" : ""}`}
           onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); e.stopPropagation(); pickActivity(a); } }}
