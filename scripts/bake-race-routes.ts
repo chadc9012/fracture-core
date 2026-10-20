@@ -5,7 +5,7 @@ import { spawnSync } from "node:child_process";
 import { writeFileSync } from "node:fs";
 
 if (process.env["BAKE_ONE"]) {
-  const { rawVehicleCourses } = await import("../src/game/racing");
+  const { rawVehicleCourses, rawFootCourses } = await import("../src/game/racing");
   const { routeCourse, drivablePoint, legDrivable } = await import("../src/game/race-routing");
   const { AREAS } = await import("../src/game/activities");
   type Baked = { p: [number, number][]; s?: { at: number; via: [number, number]; skipTo: number } };
@@ -48,6 +48,19 @@ if (process.env["BAKE_ONE"]) {
       console.error(`  ${c.id}: shortcut ${best ? "routed" : "dropped (no drivable cut)"}`);
     }
     out[c.id] = baked;
+  }
+  // on-foot courses keep their shape: only a gate standing in water or inside a building moves to the nearest open ground
+  for (const c of rawFootCourses()) {
+    let moved = 0;
+    const p = c.points.map((pt) => {
+      if (drivablePoint(pt.x, pt.z)) return [pt.x, pt.z] as [number, number];
+      for (let rad = 3; rad <= 60; rad += 3) for (let k = 0; k < 16; k++) { const a = (k / 16) * Math.PI * 2, x = pt.x + Math.sin(a) * rad, z = pt.z + Math.cos(a) * rad; if (drivablePoint(x, z)) { moved++; return [x, z] as [number, number]; } }
+      return [pt.x, pt.z] as [number, number];
+    });
+    // a loop still closes on its start
+    if (Math.hypot(c.points[0]!.x - c.points[c.points.length - 1]!.x, c.points[0]!.z - c.points[c.points.length - 1]!.z) < 1) p[p.length - 1] = [...p[0]!];
+    if (moved) console.error(`  ${c.id}: moved ${moved} gate(s) onto open ground`);
+    out[c.id] = { p };
   }
   process.stdout.write(JSON.stringify(out));
 } else {

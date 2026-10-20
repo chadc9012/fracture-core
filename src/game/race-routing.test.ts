@@ -51,3 +51,18 @@ describe("routed shortcuts and laps", () => {
     expect(n).toBeGreaterThan(0);
   });
 });
+
+import { heightAt, WATER_LEVEL } from "./terrain";
+describe("on-foot and dive courses", () => {
+  test("every on-foot gate stands on open ground (not in water, not inside a building)", () => {
+    for (const r of RACES.filter((x) => x.mode === "foot")) for (let i = 0; i < r.points.length; i++) { const p = worldPoint(r, i); expect(drivablePoint(p.x, p.z) ? "ok" : `${r.id} gate ${i}`).toBe("ok"); }
+  });
+  test("every dive gate is in open water: above the sea floor and below the surface", () => {
+    for (const r of RACES.filter((x) => x.mode === "dive")) for (let i = 0; i < r.points.length; i++) {
+      const p = worldPoint(r, i);
+      expect(p.depth).toBeDefined();
+      expect(p.depth! - heightAt(p.x, p.z) >= 2.5 ? "ok" : `${r.id} gate ${i} under the sea floor`).toBe("ok");
+      expect(p.depth!).toBeLessThan(WATER_LEVEL - 2);
+    }
+  });
+});

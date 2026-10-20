@@ -16,6 +16,7 @@ import type { PlayerProgression } from "./progression";
 import type { MaterialId } from "./inventory";
 import { BAKED_ROUTES } from "./race-routes.generated";
 import { WORLD_SCALE } from "./world";
+import { WATER_LEVEL, heightAt } from "./terrain";
 
 export type RaceMode = "foot" | "vehicle" | "dive";
 export type Difficulty = "standard" | "advanced" | "legendary";
@@ -160,12 +161,24 @@ const ROWS: Row[] = [
 ];
 
 const PAR_BONUS_PER_CP = 1.5;
+/** a dive gate never sits below the sea floor (Pressure Drop's deepest gates were under the seabed) or at the surface */
+const DIVE_CLEAR = 3;
+function diveSafe(area: string, pt: RacePoint): RacePoint {
+  if (pt.depth === undefined) return pt;
+  const w = pointWorld(area, pt.f), floor = heightAt(w.x, w.z);
+  return { ...pt, depth: Math.round(Math.min(WATER_LEVEL - DIVE_CLEAR, Math.max(floor + DIVE_CLEAR, pt.depth)) * 10) / 10 };
+}
 /** the authored layout of a vehicle course in world coordinates (scripts/bake-race-routes.ts routes these) */
+/** the authored on-foot courses in world coordinates (the bake moves any gate that stands in water or inside a building) */
+export const rawFootCourses = () => ROWS.filter((r) => r.mode === "foot").map((r) => ({ id: r.id, points: layout(r).points.map((p) => pointWorld(r.area, p.f)) }));
 export const rawVehicleCourses = () => ROWS.filter((r) => r.mode === "vehicle").map((r) => { const l = layout(r); return { id: r.id, area: r.area, points: l.points.map((p) => pointWorld(r.area, p.f)), shortcut: l.shortcuts[0] ? { at: l.shortcuts[0].at, skipTo: l.shortcuts[0].skipTo, via: pointWorld(r.area, l.shortcuts[0].via) } : null }; });
 /** a vehicle course routed over drivable ground (race-routing.ts), baked for this world scale; else the authored shape */
 function routed(row: Row): { points: RacePoint[]; shortcuts: Shortcut[] } {
-  const lay = layout(row), baked = row.mode === "vehicle" ? BAKED_ROUTES[WORLD_SCALE]?.[row.id] : undefined;
+  const lay = layout(row), baked = row.mode !== "dive" ? BAKED_ROUTES[WORLD_SCALE]?.[row.id] : undefined;
+  if (row.mode === "dive") return { ...lay, points: lay.points.map((pt) => diveSafe(row.area, pt)) };
   if (!baked) return lay;
+  // on foot: the same gates, only moved off water and out of buildings, so the authored shortcut still lines up
+  if (row.mode === "foot") { const a = AREAS[row.area]!; return { points: lay.points.map((pt, i) => { const b = baked.p[i]; return b ? { ...pt, f: [(b[0] - a.x) / a.radius, (b[1] - a.z) / a.radius] as const } : pt; }), shortcuts: lay.shortcuts }; }
   const a = AREAS[row.area]!, f = ([x, z]: readonly [number, number]) => [(x - a.x) / a.radius, (z - a.z) / a.radius] as const;
   const points: RacePoint[] = baked.p.map((xz) => ({ f: f(xz) }));
   // reality gates keep their place along the course (half way and the last gate before the finish)
