@@ -79,32 +79,25 @@ export function IntroCinematic({ onComplete, onTick }: { onComplete: () => void;
       style={{ backgroundColor: `rgba(0,0,0,${veilAlpha})` }}
       onClick={() => { stopVoice("intro"); onComplete(); }}
     >
-      <div className="hud-scanline pointer-events-none absolute inset-0 opacity-20" />
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0%,rgba(0,0,0,0.85)_78%)]" />
-      <div className="pointer-events-none absolute inset-x-0 top-0 bg-black transition-[height] duration-300" style={{ height: `${letterbox}vh` }} />
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-black transition-[height] duration-300" style={{ height: `${letterbox}vh` }} />
-      <div className="relative w-[min(90vw,44rem)] text-center" style={{ opacity }}>
-        <p className="font-mono text-[11px] uppercase tracking-[0.45em] text-primary" style={{ textShadow: "0 0 16px color-mix(in oklch, var(--primary) 60%, transparent)" }}>
-          {stage.kicker}
-        </p>
-        <div className="mt-5 space-y-2">
-          {stage.lines.map((line, i) => (
-            <p key={i} className="text-lg font-medium leading-relaxed text-foreground/90 sm:text-xl">
-              {line}
-            </p>
-          ))}
-        </div>
+      {/* editorial title-card look (ported from the onboarding stage): brand line, a ruled kicker, large light
+          uppercase lines set left, the signal progress and the skip control along the bottom */}
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_52%_40%,transparent_15%,rgba(0,0,0,0.8)_100%)]" />
+      <div className="pointer-events-none absolute inset-x-0 top-0 bg-[#03070d] transition-[height] duration-300" style={{ height: `${letterbox}vh` }} />
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-[#03070d] transition-[height] duration-300" style={{ height: `${letterbox}vh` }} />
+      <div className="pointer-events-none absolute left-[6vw] flex items-center gap-3 text-[10px] font-semibold uppercase tracking-[0.34em] text-cyan-200/75" style={{ top: `${letterbox + 3}vh` }}>
+        <span className="inline-block size-2 rotate-45 border border-cyan-200" /> World Fracture <span className="ml-2 text-white/35">/ Origin</span>
       </div>
-      <div className="pointer-events-none absolute bottom-10 left-1/2 flex -translate-x-1/2 items-center gap-2">
-        <div className="flex gap-1.5">
-          {Array.from({ length: 4 }, (_, i) => (
-            <span key={i} className={`h-1 w-6 rounded-full transition-colors ${i === position.index ? "bg-primary" : "bg-muted-foreground/30"}`} />
-          ))}
-        </div>
+      <div className="pointer-events-none absolute left-[8vw] right-[8vw] top-1/2 max-w-[960px] -translate-y-1/2 text-left text-white" style={{ opacity }}>
+        <div className="mb-6 flex items-center gap-4"><span className="h-px w-12 bg-cyan-200/80" /><span className="text-[11px] uppercase tracking-[0.42em] text-cyan-100/85">{stage.kicker}</span></div>
+        <h1 className="max-w-[850px] text-3xl font-light uppercase leading-[1.17] tracking-[0.08em] drop-shadow-2xl sm:text-5xl lg:text-6xl">
+          {stage.lines.map((line, i) => <span key={i} className="block py-1">{line}</span>)}
+        </h1>
+        <div className="mt-9 h-px w-24 bg-gradient-to-r from-cyan-200 to-transparent" />
       </div>
-      <p className="pointer-events-none absolute bottom-4 right-6 font-mono text-[9px] uppercase tracking-[0.25em] text-muted-foreground">
-        {pad ? `Press ${pad === "playstation" ? "✕ / ○" : pad === "xbox" ? "A / B" : "Button 1 / 2"} to skip` : "Click or press Enter to skip"} · {Math.max(0, Math.ceil(total - elapsed))}s
-      </p>
+      <div className="absolute left-[6vw] right-[6vw] flex items-end justify-between gap-6" style={{ bottom: `${letterbox + 3}vh` }}>
+        <div className="flex items-center gap-3"><span className="text-[10px] tracking-[0.3em] text-white/55">SIGNAL</span><div className="flex gap-1.5">{Array.from({ length: 4 }, (_, i) => <span key={i} className={`h-[2px] w-9 transition-colors ${i <= position.index ? "bg-cyan-100" : "bg-white/20"}`} />)}</div><span className="font-mono text-[10px] text-white/40">{Math.max(0, Math.ceil(total - elapsed))}s</span></div>
+        <button type="button" onClick={(e) => { e.stopPropagation(); stopVoice("intro"); onComplete(); }} className="border border-white/35 bg-black/30 px-5 py-3 text-[10px] uppercase tracking-[0.26em] text-white/85 transition hover:border-cyan-100 hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-200">{pad ? `Skip · ${pad === "playstation" ? "✕" : pad === "xbox" ? "A" : "Button 1"}` : "Skip · Enter"}</button>
+      </div>
     </div>
   );
 }

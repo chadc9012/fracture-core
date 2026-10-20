@@ -52,8 +52,10 @@ export function neonTowers(keepOut: readonly { x: number; z: number; r: number }
   return neonLayout(keepOut).towers;
 }
 
-/** the whole grid: towers, plus a few outer blocks (spread round the city) that hold residences instead */
-export function neonLayout(keepOut: readonly { x: number; z: number; r: number }[] = []): { towers: TowerPlacement[]; homes: HomeLot[] } {
+/** the clearance test the grid is laid out with (local coordinates): a rectangle of half-extents ex, ez centred at x, z
+ * stays on the plateau and clear of the market core, district cores, spire, skate shop, race loop, rails, maglev and
+ * the caller's keep-out points. Also used to fit things in after the grid (residence garages). */
+export function neonClearance(keepOut: readonly { x: number; z: number; r: number }[] = []) {
   const segs = paths();
   const discs = [
     ...NEON_DISTRICTS.map((d) => ({ x: d.dx, z: d.dz, r: d.radius + MARGIN })),
@@ -63,14 +65,20 @@ export function neonLayout(keepOut: readonly { x: number; z: number; r: number }
   ];
   // market avenue, Grid deck and the drone lanes above it
   const coreX = DECK.halfX + DECK.width + MARGIN + 4, coreZ = DECK.halfZ + DECK.width + MARGIN + 4;
-  const out: TowerPlacement[] = [];
   const lim = NEON_FLAT - 10;
-  const n = Math.floor(lim / BLOCK);
-  const clear = (x: number, z: number, ex: number, ez: number) => {
+  return (x: number, z: number, ex: number, ez: number) => {
     const reach = Math.hypot(ex, ez);
     return Math.hypot(x, z) + reach <= lim && !(Math.abs(x) < coreX + ex && Math.abs(z) < coreZ + ez)
       && !discs.some((c) => Math.hypot(x - c.x, z - c.z) < c.r + reach) && !segs.some((s) => segDist(s, x, z) < s.half + reach);
   };
+}
+
+/** the whole grid: towers, plus a few outer blocks (spread round the city) that hold residences instead */
+export function neonLayout(keepOut: readonly { x: number; z: number; r: number }[] = []): { towers: TowerPlacement[]; homes: HomeLot[] } {
+  const clear = neonClearance(keepOut);
+  const out: TowerPlacement[] = [];
+  const lim = NEON_FLAT - 10;
+  const n = Math.floor(lim / BLOCK);
   // residences take outer blocks with room for the largest design, picked evenly round the compass
   const want = NEON_FLAT >= 150 ? 4 : NEON_FLAT >= 120 ? 2 : 0;
   const spots: { x: number; z: number; a: number }[] = [];

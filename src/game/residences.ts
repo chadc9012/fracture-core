@@ -13,14 +13,18 @@ import { NEXUS_SUBURB, REGIONS } from "./world";
 import { heightAt, neonPlateauLevel, slopeAt, WATER_LEVEL } from "./terrain";
 import { distanceToRoad, LANE_HALF_WIDTH } from "./lanes";
 import { CITY_OUTER, NEXUS } from "./nexus-districts";
-import { neonLayoutWorld } from "./neon-layout";
+import { neonClearance, neonLayoutWorld, TOWER_FOOTPRINT } from "./neon-layout";
+import { NEON_SITE } from "./world";
 import { REGIONAL_SHOPS } from "./regional-shops";
 import { INTERIORS } from "./interiors";
 import type { Wall } from "./walls";
 import type { Deck } from "./district-decks";
 
 export type HomeStyle = "suburban" | "townhouse" | "duplex" | "courtyard" | "apartment" | "condo" | "loft" | "villa";
-export type Residence = { id: string; style: HomeStyle; city: "nexus" | "neon"; x: number; z: number; rot: number; floor: number; base: number };
+export type Residence = { id: string; style: HomeStyle; city: "nexus" | "neon"; x: number; z: number; rot: number; floor: number; base: number;
+  /** the home's own garage beside it (none where nothing fits): centre, same turn as the house, door on its local +z */
+  garage?: Garage };
+export type Garage = { x: number; z: number; rot: number; bays: number; floor: number; base: number };
 export type Design = { w: number; d: number; h: number; levels: number; wall: string; trim: string; floor: string; accent: string; glass: string; roof: "gable" | "flat" | "parapet" };
 
 /** w across the front, d front-to-back, h ground-floor height (m) */
@@ -40,6 +44,14 @@ export const WALL = 0.26;
 export const DOOR = 2.0;
 export const INNER_DOOR = 1.6;
 export const PORCH = 2.2;
+
+/** parking bays in each design's garage: private houses get a private garage, blocks a shared one */
+export const GARAGE_BAYS: Record<HomeStyle, number> = { suburban: 1, townhouse: 1, duplex: 2, courtyard: 2, apartment: 1, condo: 2, loft: 2, villa: 3 };
+export const BAY_W = 3.4;          // one bay: a car is ~2 m wide, doors open either side
+export const GARAGE_D = 7.2;       // front to back
+export const GARAGE_H = 3.0;
+export const DOOR_H = 2.5;          // door opening height
+export const garageWidth = (bays: number) => bays * BAY_W + WALL * 2;
 
 const NEXUS_STYLES: HomeStyle[] = ["suburban", "townhouse", "duplex", "courtyard", "suburban", "townhouse", "apartment", "condo"];
 const NEON_STYLES: HomeStyle[] = ["apartment", "loft", "condo", "villa"];
@@ -91,7 +103,56 @@ function build(): Residence[] {
   neonLayoutWorld(neonKeepOut()).homes.forEach((h, i) => {
     out.push({ id: `neon-home-${i + 1}`, style: NEON_STYLES[i % NEON_STYLES.length]!, city: "neon", x: h.x, z: h.z, rot: (h.rot * Math.PI) / 2, floor: level + 0.15, base: level - 0.6 });
   });
+  placeGarages(out);
   return out;
+}
+
+type Rect = { x: number; z: number; hx: number; hz: number };
+const rectsOverlap = (a: Rect, b: Rect, m = 0) => Math.abs(a.x - b.x) < a.hx + b.hx + m && Math.abs(a.z - b.z) < a.hz + b.hz + m;
+/** a garage's world-axis half extents (turns are quarter turns) */
+export function garageRect(g: Garage): Rect {
+  const w = garageWidth(g.bays) / 2, d = GARAGE_D / 2;
+  return Math.round(g.rot / (Math.PI / 2)) % 2 !== 0 ? { x: g.x, z: g.z, hx: d, hz: w } : { x: g.x, z: g.z, hx: w, hz: d };
+}
+
+/** Fit each home's garage beside it, door facing the street like the front door: try the right side, then the left;
+ * a home with no room on either side has no garage. Checked against every home and garage already placed, the supply
+ * roads, shops and interior doors, slope and water (Nexus), and the tower grid's clearances (Neon). */
+function placeGarages(homes: Residence[]) {
+  const shells: Rect[] = homes.map((h) => ({ x: h.x, z: h.z, ...footprint(h) }));
+  const neon = neonLayoutWorld(neonKeepOut());
+  const towers: Rect[] = neon.towers.map((t) => { const [hx, hz] = TOWER_FOOTPRINT[t.variant]; return t.rot % 2 ? { x: t.x, z: t.z, hx: hz, hz: hx } : { x: t.x, z: t.z, hx, hz }; });
+  const clearNeon = neonClearance(neonKeepOut().map((k) => ({ x: k.x - NEON_SITE.x, z: k.z - NEON_SITE.z, r: k.r })));
+  const placed: Rect[] = [];
+  for (const h of homes) {
+    const p = DESIGNS[h.style], bays = GARAGE_BAYS[h.style], gw = garageWidth(bays);
+    for (const side of [1, -1]) {
+      const lx = side * (p.w / 2 + 1.4 + gw / 2), lz = p.d / 2 - GARAGE_D / 2;
+      const c = turn(h, lx, lz);
+      const g: Garage = { x: c.x, z: c.z, rot: h.rot, bays, floor: h.floor, base: h.base };
+      const r = garageRect(g);
+      // and the apron in front of the doors stays open, so a car can pull in
+      const apron = turn(h, lx, p.d / 2 + 3.5);
+      const pts = [[r.x - r.hx, r.z - r.hz], [r.x + r.hx, r.z - r.hz], [r.x - r.hx, r.z + r.hz], [r.x + r.hx, r.z + r.hz], [r.x, r.z], [apron.x, apron.z]] as const;
+      if (shells.some((s) => rectsOverlap(r, s, 1)) || placed.some((s) => rectsOverlap(r, s, 1))) continue;
+      if (REGIONAL_SHOPS.some((s) => Math.hypot(r.x - s.x, r.z - s.z) < Math.max(r.hx, r.hz) + 8)) continue;
+      if (INTERIORS.some((it) => Math.hypot(r.x - it.doorPos.x, r.z - it.doorPos.z) < Math.max(r.hx, r.hz) + 6)) continue;
+      if (h.city === "nexus") {
+        const hs = pts.map(([x, z]) => heightAt(x, z));
+        if (Math.min(...hs) < WATER_LEVEL + 1 || Math.max(...hs) - Math.min(...hs) > 1.4) continue;
+        if (pts.some(([x, z]) => distanceToRoad(x, z) < LANE_HALF_WIDTH + 2)) continue;
+        if (others.some((o) => Math.hypot(r.x - o.x, r.z - o.z) < o.radius + 15)) continue;
+        if (Math.hypot(r.x - NEXUS.x, r.z - NEXUS.z) < CITY_OUTER + 8) continue;
+        g.floor = Math.max(...hs) + 0.12; g.base = Math.min(...hs) - 0.6;
+      } else {
+        if (!clearNeon(r.x - NEON_SITE.x, r.z - NEON_SITE.z, r.hx, r.hz)) continue;
+        if (towers.some((t) => rectsOverlap(r, t, 2))) continue;
+        if (!clearNeon(apron.x - NEON_SITE.x, apron.z - NEON_SITE.z, 1.5, 1.5)) continue;
+      }
+      h.garage = g; placed.push(r);
+      break;
+    }
+  }
 }
 
 let cached: Residence[] | null = null;
@@ -102,6 +163,7 @@ export function inResidence(x: number, z: number, margin = 1): boolean {
   for (const r of residences()) {
     const f = footprint(r);
     if (Math.abs(x - r.x) < f.hx + margin && Math.abs(z - r.z) < f.hz + margin) return true;
+    if (r.garage) { const g = garageRect(r.garage); if (Math.abs(x - g.x) < g.hx + margin && Math.abs(z - g.z) < g.hz + margin) return true; }
   }
   return false;
 }
@@ -239,5 +301,65 @@ export function homeDecks(r: Residence): Deck[] {
     { id: `${r.id}:floor`, x: r.x, z: r.z, dirX: fwd.x, dirZ: fwd.z, length: d - WALL, width: w - WALL, top: r.floor, base: r.floor, ramp: 0 },
     // ramps at both ends: the inner end sits under the floor deck (the higher deck wins), the outer one meets the street
     { id: `${r.id}:porch`, x: porch.x, z: porch.z, dirX: fwd.x, dirZ: fwd.z, length: PORCH + 1.2, width: DOOR + 1.2, top: r.floor, base: Math.min(r.floor, ground), ramp: 1.4 },
+  ];
+}
+
+/* ------------------------------------------------------------------ garages (residence-deeds.ts sells them with the home)
+ * Local frame: origin at the slab centre on the floor, doors along +z. One roll-up door per bay; the doors themselves
+ * are drawn and animated by ResidenceGarages.tsx (they lift for the owner), so only the shell is here. */
+
+const turnG = (g: Garage, x: number, z: number) => { const c = Math.cos(g.rot), s = Math.sin(g.rot); return { x: g.x + x * c + z * s, z: g.z - x * s + z * c }; };
+/** local x of a bay's centre */
+export const bayX = (g: Pick<Garage, "bays">, i: number) => (i - (g.bays - 1) / 2) * BAY_W;
+/** where a vehicle stands in bay i (world), nose toward the door */
+export function bayPose(g: Garage, i: number) { const p = turnG(g, bayX(g, i), 0.2); return { x: p.x, z: p.z, y: g.floor, rot: g.rot }; }
+/** the point in front of bay i's door (world): where you stand to open it */
+export function bayApron(g: Garage, i: number) { return turnG(g, bayX(g, i), GARAGE_D / 2 + 2.5); }
+
+export function garageBoxes(g: Garage, sink = 1): Box[] {
+  const w = garageWidth(g.bays), d = GARAGE_D, h = GARAGE_H, out: Box[] = [];
+  const box = (x: number, y: number, z: number, sx: number, sy: number, sz: number, color: string, mat: Mat = "solid") => out.push({ x, y, z, sx, sy, sz, color, mat });
+  const wall = "#8c8f93", trim = "#3b4046";
+  box(0, -sink / 2, 0, w + 0.3, sink, d + 0.3, "#5f6164");
+  box(0, -0.02, 0, w - WALL * 2, 0.04, d - WALL * 2, "#4a4d51");
+  // apron slab in front of the doors, down to the street
+  box(0, -0.06, d / 2 + 1.5, w, 0.12, 3, "#56595d");
+  box(0, h / 2, -d / 2 + WALL / 2, w, h, WALL, wall);
+  box(-w / 2 + WALL / 2, h / 2, 0, WALL, h, d, wall);
+  box(w / 2 - WALL / 2, h / 2, 0, WALL, h, d, wall);
+  // header over the doors, and posts between the bays
+  box(0, DOOR_H + (h - DOOR_H) / 2, d / 2 - WALL / 2, w, h - DOOR_H, WALL, wall);
+  for (let i = 1; i < g.bays; i++) box(-w / 2 + WALL + i * BAY_W, DOOR_H / 2, d / 2 - WALL / 2, 0.3, DOOR_H, WALL + 0.04, trim);
+  box(0, h + 0.1, 0, w + 0.4, 0.2, d + 0.4, trim);
+  // bay lines, wheel stops and a strip light per bay
+  for (let i = 0; i < g.bays; i++) {
+    const x = bayX(g, i);
+    for (const s of [-1, 1]) box(x + s * (BAY_W / 2 - 0.12), 0.005, 0.2, 0.08, 0.012, d - 1.4, "#d8cf8e");
+    box(x, 0.08, -d / 2 + 1.0, 1.6, 0.14, 0.22, "#c9a640");
+    box(x, h - 0.05, 0, 0.18, 0.04, 2.4, "#fff3dc", "lamp");
+  }
+  return out;
+}
+
+/** collision for the garage shell, plus each closed door (a vehicle-tight wall across the bay) */
+export function garageWalls(g: Garage, open: readonly boolean[]): Wall[] {
+  const w = garageWidth(g.bays), d = GARAGE_D, top = g.floor + GARAGE_H, out: Wall[] = [];
+  const seg = (ax: number, az: number, bx: number, bz: number, half: number, wallTop = top) => { const a = turnG(g, ax, az), b = turnG(g, bx, bz); out.push({ ax: a.x, az: a.z, bx: b.x, bz: b.z, half, base: g.base, top: wallTop }); };
+  const ix = w / 2 - WALL / 2, iz = d / 2 - WALL / 2;
+  seg(-ix, -iz, ix, -iz, WALL / 2);
+  seg(-ix, -iz, -ix, iz, WALL / 2);
+  seg(ix, -iz, ix, iz, WALL / 2);
+  for (let i = 1; i < g.bays; i++) { const x = -w / 2 + WALL + i * BAY_W; seg(x, iz - 0.1, x, iz + 0.1, 0.15); }
+  for (let i = 0; i < g.bays; i++) if (!open[i]) { const x = bayX(g, i); seg(x - BAY_W / 2 + 0.15, iz, x + BAY_W / 2 - 0.15, iz, 0.12); }
+  return out;
+}
+
+/** the garage floor and the apron ramp as walkable decks */
+export function garageDecks(id: string, g: Garage): Deck[] {
+  const w = garageWidth(g.bays), fwd = { x: Math.sin(g.rot), z: Math.cos(g.rot) };
+  const apron = turnG(g, 0, GARAGE_D / 2 + 1.5), ground = heightAt(apron.x, apron.z);
+  return [
+    { id: `${id}:garage`, x: g.x, z: g.z, dirX: fwd.x, dirZ: fwd.z, length: GARAGE_D - WALL, width: w - WALL, top: g.floor, base: g.floor, ramp: 0 },
+    { id: `${id}:apron`, x: apron.x, z: apron.z, dirX: fwd.x, dirZ: fwd.z, length: 3.6, width: w, top: g.floor, base: Math.min(g.floor, ground), ramp: 2.4 },
   ];
 }

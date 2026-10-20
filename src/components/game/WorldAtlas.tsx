@@ -11,17 +11,16 @@ import { CITY_DESTINATIONS, dropPoint } from "@/game/destinations";
 import { DESTINATIONS, FILTER_LABEL, cityDistricts, destinationActivities, destinationById, destinationFleet, destinationGarages, destinationHomes, destinationResidences, destinationShops, destinationSummary, discoveredSites, matchesFilter, type CityDistrict, type Destination, type DestinationSummary, type DirectorFilter } from "@/game/destination-director";
 import { GARAGES, buyFleetVehicle, buyGarage, setActiveFleet } from "@/game/fleet";
 import { shopAccessKind } from "@/game/shop-access";
-import { INTERIORS } from "@/game/interiors";
-import { buyHome, ownsHome } from "@/game/housing";
-import { nexBalance } from "@/game/nex";
 import { MATERIALS, type MaterialId } from "@/game/inventory";
 import type { Landmark } from "@/game/landmarks";
 import type { PlayerProgression } from "@/game/progression";
 import { NextActivityCard } from "./NextActivityCard";
+import { RealEstateStore } from "./RealEstateStore";
 import { ActivityPanel, KIND_GLYPH } from "./ActivityPanel";
 import { ACTIVITY_COLOR, ACTIVITY_LABEL, type Activity } from "@/game/map-activities";
 import { MAP_FONT, MAP_VIEWBOX, MapLayers } from "./MapLayers";
-import { useTerrainMap } from "./useTerrainMap";
+import { useDetailMap, useTerrainMap } from "./useTerrainMap";
+import { cityPlan, type CityPlan, type PlanRect } from "@/game/city-plan";
 import { MapLegend } from "./MapLegend";
 import { LANDMARK_GLYPH, MARKER_GLYPH } from "@/game/map-symbols";
 import { LANDMARKS, landmarkRoutes, isLandmarkKnown } from "@/game/landmarks";
@@ -46,7 +45,7 @@ export function WorldAtlas({ progression, currentRegion, phase, onClose, markers
     window.addEventListener("keydown", onKey, true);
     return () => window.removeEventListener("keydown", onKey, true);
   }, [destId]);
-  return <div className="fixed inset-0 z-50 overflow-y-auto bg-background/95 text-foreground" role="dialog" aria-modal="true" aria-label="Destination director">
+  return <div className="wf-shell fixed inset-0 z-50 overflow-y-auto bg-background/95 text-foreground" role="dialog" aria-modal="true" aria-label="Destination director">
     <div className="mx-auto max-w-7xl px-4 py-5 sm:px-7">
       <header className="flex items-start justify-between gap-4 border-b border-foreground/15 pb-5">
         <div><p className="ui-kicker">Director / The Fractured Earth / {phase}</p><h2 className="mt-1 font-mono text-3xl font-light uppercase sm:text-4xl">{dest ? dest.name : "Destinations"}</h2>
@@ -157,16 +156,16 @@ function DestinationView({ dest, progression, phase, markers, px, pz, onProgress
   const garages = useMemo(() => destinationGarages(dest), [dest]);
   const fleet = useMemo(() => destinationFleet(dest), [dest]);
   const focus = { x: dest.x, z: dest.z, radius: dest.reach ?? region.radius };
+  const plan = useMemo(() => (dest.city || dest.id === "nexus" ? cityPlan(dest, focus.radius * 1.35) : undefined), [dest, focus.radius]);
   const tabs: ViewTab[] = ["ACTIVITIES", ...(shops.length ? ["SHOPS" as const] : []), ...(homes.length || walkIns.length ? ["HOMES" as const] : []), ...(garages.length ? ["VEHICLES" as const] : [])];
   const waypoint = (id: string, label: string, x: number, z: number) => { setPin({ id, label, x, z, source: "MAP" }); setNotice(`Waypoint set: ${label}`); };
   /** fast travel next to a place (`ahead` m south of it, the side doors face) through the normal transit */
   const travelTo = (id: string, name: string, x: number, z: number, ahead = 4) => onTravel?.({ id, kind: "SAFE_ZONE", name, detail: "", regionId: dest.regionId, x, z, status: "AVAILABLE", drop: { x, z: z + ahead } });
   const act = <P,>(r: { progression: P; message: string } | { error: string }) => { if ("error" in r) setNotice(r.error); else { onProgression?.(r.progression as PlayerProgression); setNotice(r.message); } };
-  const nex = nexBalance(progression.nexLedger);
   const fleetState = progression.fleet ?? { owned: [], garages: [], active: null };
   return <div className="mt-5 grid gap-6 lg:grid-cols-[minmax(0,1.6fr)_minmax(18rem,0.7fr)] wf-director-in">
     <section className="min-w-0">
-      <TacticalMap markers={markers} px={px} pz={pz} selected={region.id} onSelect={() => {}} progression={progression} focus={focus} activities={tab === "ACTIVITIES" ? shown : []} sites={sites} districts={districts} pickedActivity={pick} onActivity={(id) => { setTab("ACTIVITIES"); setPick(id); }} />
+      <TacticalMap markers={markers} px={px} pz={pz} selected={region.id} onSelect={() => {}} progression={progression} focus={focus} activities={tab === "ACTIVITIES" ? shown : []} sites={sites} districts={districts} plan={plan} pickedActivity={pick} onActivity={(id) => { setTab("ACTIVITIES"); setPick(id); }} />
       {/* folded here: on a narrow screen the full legend pushed the destination's tabs far below the map */}
       <details className="mt-2"><summary className="ui-focus cursor-pointer font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Map legend</summary><MapLegend phase={phase} /></details>
     </section>
@@ -190,16 +189,10 @@ function DestinationView({ dest, progression, phase, markers, px, pz, onProgress
         {lock && <p className="mt-1 text-xs text-amber-400">{lock}</p>}
         <div className="mt-2 flex gap-1"><Button size="sm" variant="outline" className="rounded-none" onClick={() => waypoint(`shop-${sh.id}`, sh.name, sh.x, sh.z)}>Add waypoint</Button>{onTravel && <Button size="sm" className="rounded-none" onClick={() => shopAccessKind(sh.id) === "interior" ? travelTo(`shop-${sh.id}`, sh.name, sh.x, sh.z + 3, 4) : travelTo(`shop-${sh.id}`, sh.name, sh.x, sh.z)}>{shopAccessKind(sh.id) === "interior" ? "Go to the door" : "Fast travel"}</Button>}</div>
       </li>; })}</ul>}
-      {tab === "HOMES" && <div className="mt-3 space-y-2">
-        <p className="text-xs text-muted-foreground">Bought with Nex at the property agent's rates · you have <b className="text-foreground">{nex.toLocaleString()} Nex</b>. Decorate an owned home from inside it.</p>
-        <ul className="space-y-2">{homes.map((h) => { const owned = ownsHome(progression, h.id); return <li key={h.id} className="border border-foreground/15 bg-background/60 p-3">
-          <p className="ui-kicker" style={{ color: "#e8c39e" }}>{h.kind.replace("_", " ").toLowerCase()} · {h.district}</p>
-          <strong className="block text-sm">{h.name}</strong><p className="text-xs text-muted-foreground">{h.blurb} · {h.rooms.length} rooms</p>
-          <div className="mt-2 flex items-center justify-between gap-2"><span className="font-mono text-xs text-amber-300">{h.price.toLocaleString()} Nex</span>
-            {owned ? <span className="flex items-center gap-2"><span className="font-mono text-[10px] uppercase text-primary">Owned{progression.housing?.home === h.id ? " · home" : ""}</span>{onTravel && homeDoor(h.id) && <Button size="sm" variant="outline" className="rounded-none" onClick={() => { const d = homeDoor(h.id)!; travelTo(`home-${h.id}`, h.name, d.x, d.z, 4); }}>Go home</Button>}</span>
-              : <Button size="sm" className="rounded-none" disabled={!onProgression || nex < h.price} onClick={() => act(buyHome(progression, h.id))}>{nex < h.price ? "Not enough Nex" : "Buy"}</Button>}</div>
-        </li>; })}</ul>
-        {walkIns.length > 0 && <><p className="ui-kicker mt-3">Walk-in homes on the street · {walkIns.length}</p><ul className="space-y-1">{walkIns.map((r) => <li key={r.id} className="flex items-center justify-between gap-2 border border-foreground/10 bg-background/60 px-3 py-1.5 text-xs"><span>{r.style.replace(/^./, (c) => c.toUpperCase())}{districtOf(districts, r.x, r.z) ? ` · ${districtOf(districts, r.x, r.z)}` : ""}</span><button type="button" className="ui-focus font-mono text-[10px] uppercase text-primary" onClick={() => waypoint(r.id, `${r.style} home`, r.x, r.z)}>Visit</button></li>)}</ul><p className="text-[11px] text-muted-foreground">These are open to walk in; buying them comes with the property update.</p></>}
+      {tab === "HOMES" && <div className="mt-3">
+        {onProgression ? <RealEstateStore embedded progression={progression} onProgression={onProgression} only={[...homes.map((h) => h.id), ...walkIns.map((r) => r.id)]}
+          onTravel={onTravel ? (name, x, z) => travelTo(`home-${name}`, name, x, z, 0) : undefined} />
+          : <p className="text-xs text-muted-foreground">Visit the property agent to buy.</p>}
       </div>}
       {tab === "VEHICLES" && <div className="mt-3 space-y-2">
         {garages.map((gid) => { const g = GARAGES[gid], ownedBase = fleetState.garages.includes(gid); return <div key={gid}>
@@ -225,8 +218,32 @@ function DestinationView({ dest, progression, phase, markers, px, pz, onProgress
     </aside>
   </div>;
 }
+/* ------------------------------------------------------------------ destination map pieces */
+const HEX = (r: number) => Array.from({ length: 6 }, (_, i) => { const a = Math.PI / 6 + (i * Math.PI) / 3; return `${(Math.cos(a) * r).toFixed(2)},${(Math.sin(a) * r).toFixed(2)}`; }).join(" ");
+const districtGlyph = (k: CityDistrict) => {
+  const t = `${k.id} ${k.name} ${k.tagline}`.toLowerCase();
+  return /market|shop|vendor|bazaar/.test(t) ? "◆" : /home|residen|housing|arcology|loft/.test(t) ? "⌂" : /dock|ship|port|harbo/.test(t) ? "⚓" : /spire|tower|core|command/.test(t) ? "▲" : /race|track|muck/.test(t) ? "⚑" : /trench|deep|ring|contain/.test(t) ? "◎" : "⬡";
+};
+/** a district's badge (reference: the city maps' hex icons with the name and what it's for beside them) */
+function HexBadge({ x, z, scale, color, glyph, name, sub }: { x: number; z: number; scale: number; color: string; glyph: string; name: string; sub: string }) {
+  return <g transform={`translate(${x} ${z}) scale(${scale})`}>
+    <polygon points={HEX(5.6)} fill="#061422" fillOpacity={0.88} stroke={color} strokeWidth={1.1} />
+    <polygon points={HEX(4.1)} fill={color} fillOpacity={0.2} stroke={color} strokeOpacity={0.5} strokeWidth={0.4} />
+    <text y={1.8} textAnchor="middle" fontSize={5} fill={color}>{glyph}</text>
+    <text x={7.6} y={-0.2} fontSize={3.5} fontWeight={700} fill="#ffffff" stroke="#03080f" strokeWidth={0.7} paintOrder="stroke" style={{ letterSpacing: "0.04em" }}>{name}</text>
+    <text x={7.6} y={3.7} fontSize={2.5} fill="#cfe7f2" stroke="#03080f" strokeWidth={0.5} paintOrder="stroke">({sub})</text>
+  </g>;
+}
+const PLAN_STYLE: Record<PlanRect["kind"], { fill: string; stroke: string }> = { tower: { fill: "#0a1424", stroke: "#7fe3ff" }, home: { fill: "#3a2d22", stroke: "#ffd5a3" }, garage: { fill: "#2a2f36", stroke: "#b9c3cc" }, shop: { fill: "#3b2a08", stroke: "#ffd166" } };
+/** a city's footprints on its close-up: lit blocks for towers, warm ones for homes, gold for shop counters */
+function PlanLayer({ plan }: { plan: CityPlan }) {
+  return <g aria-hidden="true" pointerEvents="none">
+    {plan.rings.map((r, i) => <circle key={i} cx={r.x} cy={r.z} r={r.r} fill={r.kind === "dome" ? "#7ef2ff" : "none"} fillOpacity={r.kind === "dome" ? 0.06 : 0} stroke={r.kind === "dock" ? "#7ef2ff" : "#b98cff"} strokeOpacity={0.7} strokeWidth={r.kind === "dome" ? 0.9 : 0.6} />)}
+    {plan.rects.map((r, i) => { const st = PLAN_STYLE[r.kind]; return <rect key={i} x={-r.hx} y={-r.hz} width={r.hx * 2} height={r.hz * 2} transform={`translate(${r.x} ${r.z})${r.yaw ? ` rotate(${(-r.yaw * 180) / Math.PI})` : ""}`} fill={st.fill} fillOpacity={0.55 + r.h * 0.35} stroke={st.stroke} strokeOpacity={0.35 + r.h * 0.5} strokeWidth={0.35} />; })}
+  </g>;
+}
+
 const ACCESS_LABEL = { interior: "walk-in", window: "service window", table: "street counter" } as const;
-const homeDoor = (homeId: string) => INTERIORS.find((i) => i.homeId === homeId)?.doorPos;
 const districtOf = (ds: CityDistrict[], x: number, z: number) => ds.find((k) => Math.hypot(x - k.x, z - k.z) <= k.r)?.name;
 
 /** map sizes are authored in original-world units; positions are world units, so sizes grow with the map */
@@ -243,15 +260,20 @@ const [VB_X, VB_Y, VB_W] = MAP_VIEWBOX.split(" ").map(Number) as [number, number
 
 /** Live tactical map: zoom (wheel / buttons), drag to pan, layer filters, and click any marker or point to set a
  * waypoint that the HUD compass and tracker follow (map-pin.ts). */
-function TacticalMap({ markers, px, pz, selected, onSelect, progression, focus, activities = [], sites = [], pickedActivity, onActivity, districts = [] }: { markers: TrackedMarker[]; px: number; pz: number; selected: string; onSelect: (id: string) => void; progression: PlayerProgression;
+function TacticalMap({ markers, px, pz, selected, onSelect, progression, focus, activities = [], sites = [], pickedActivity, onActivity, districts = [], plan }: { markers: TrackedMarker[]; px: number; pz: number; selected: string; onSelect: (id: string) => void; progression: PlayerProgression;
   /** open centred on this area (a destination), fitted to its radius */
   focus?: { x: number; z: number; radius: number };
   /** the destination's activities, drawn as rings in their kind's colour; clicking one picks it in the side panel */
   activities?: Activity[]; sites?: Landmark[]; pickedActivity?: string | null; onActivity?: (id: string) => void;
   /** a city's named districts, drawn as soft areas under the markers */
-  districts?: CityDistrict[] }) {
+  districts?: CityDistrict[];
+  /** a city's building footprints, drawn on the close-up */
+  plan?: CityPlan | undefined }) {
   // the map shows the whole painted continent (terrain-map.ts), not just the region circles
   const map = useTerrainMap();
+  // and, for a destination, a sharp close-up of just that area painted over it
+  const detailBounds = focus ? { x0: focus.x - focus.radius * 1.35, z0: focus.z - focus.radius * 1.35, span: focus.radius * 2.7 } : null;
+  const detail = useDetailMap(focus ? `${Math.round(focus.x)},${Math.round(focus.z)},${Math.round(focus.radius)}` : null, detailBounds);
   // a destination view draws its own activity rings, so the HUD's mission and boss markers would sit on top of them twice
   const [legend, setLegend] = useState<Record<(typeof LAYERS)[number], boolean>>({ WAYPOINT: true, MISSION: !focus, RESOURCE: false, BOSS: !focus, RUIN: true, LANDMARK: true, VENDOR: true, TRAVEL: true });
   const [hazards, setHazards] = useState(true);
@@ -312,14 +334,14 @@ function TacticalMap({ markers, px, pz, selected, onSelect, progression, focus, 
         onPointerMove={(e) => { const d = drag.current; if (!d) return; const r = svgRef.current!.getBoundingClientRect(); const dx = ((e.clientX - d.x) / r.width) * span, dz = ((e.clientY - d.y) / r.height) * span; if (Math.abs(e.clientX - d.x) + Math.abs(e.clientY - d.y) > 4) d.moved = true; setView((v) => clampView({ ...v, cx: d.cx - dx, cz: d.cz - dz })); }}
         onPointerUp={() => { drag.current = null; }}
         onDoubleClick={(e) => { const w = toWorld(e.clientX, e.clientY); setPin(pinAt(w.x, w.z)); }}>
-        <MapLayers art={map.url} preview={!map.full} selected={selected} onSelect={onSelect} labelScale={1 / Math.sqrt(view.zoom)}>
+        <MapLayers art={map.url} preview={!map.full} selected={selected} onSelect={onSelect} labelScale={1 / Math.sqrt(view.zoom)} detail={detail} plan={plan && <PlanLayer plan={plan} />}>
         {legend.LANDMARK && landmarkRoutes().filter((r) => known(r.a.id) && known(r.b.id)).map((r) => <line key={`${r.a.id}-${r.b.id}`} x1={r.a.x} y1={r.a.z} x2={r.b.x} y2={r.b.z} stroke="#9fd4ff" strokeOpacity={0.7} strokeWidth={u(0.6)} strokeDasharray={`${u(0.8)} ${u(1.4)}`} strokeLinecap="round" />)}
         {hazards && hz.map(({ z, c }) => <g key={z.id}><title>{`${z.name} · ${z.hint}`}</title><circle cx={c.x} cy={c.z} r={z.radius} fill="#ff4d4d" fillOpacity={0.14} stroke="#ff4d4d" strokeWidth={u(0.6)} strokeDasharray={`${u(1.6)} ${u(1.2)}`} /><g transform={`translate(${c.x} ${c.z}) scale(${WORLD_SCALE})`}><text y={1.6} textAnchor="middle" fontSize={5} fill="#ff8a8a" stroke="#000" strokeWidth={0.8} paintOrder="stroke">⚠</text></g></g>)}
         {live.filter((m) => legend[m.kind as (typeof LAYERS)[number]]).map((m) => <g key={m.id} transform={`translate(${m.x} ${m.z}) scale(${scaleK})`} className="cursor-pointer outline-none" tabIndex={0} role="button" aria-label={`${LAYER_NAME[m.kind as (typeof LAYERS)[number]] ?? m.kind}: ${m.label}, ${fmt(m.dist)}${pin?.id === m.id ? ", current waypoint" : ""}`} aria-pressed={pin?.id === m.id}
           onFocus={() => setInspectId(m.id)} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); e.stopPropagation(); pickPin(m); } }}
-          onPointerUp={(e) => { if (drag.current?.moved) return; e.stopPropagation(); drag.current = null; setInspectId(m.id); pickPin(m); }}><title>{`${m.label} · ${fmt(m.dist)} — click to ${pin?.id === m.id ? "clear" : "set"} waypoint`}</title><g>{inspectId === m.id && <circle r={5} fill="none" stroke="#ffffff" strokeWidth={0.6} strokeDasharray="1.4 1" />}<circle r={4} fill="transparent" /><text y={m.kind === "LANDMARK" ? 1.8 : 1.9} textAnchor="middle" fontSize={m.kind === "LANDMARK" ? 5.5 : 5} fill={MARKER_COLOR[m.kind]} fillOpacity={m.ready === false ? 0.4 : 1} stroke={pin?.id === m.id ? "#ffffff" : "#000"} strokeWidth={pin?.id === m.id ? 1.4 : 0.9} paintOrder="stroke">{m.kind === "LANDMARK" ? LANDMARK_GLYPH[LANDMARKS.find((l) => `lm-${l.id}` === m.id)?.type ?? "outpost"] : MARKER_GLYPH[m.kind]}</text>{(m.kind === "LANDMARK" ? !focus || view.zoom >= labelZoom : view.zoom >= labelZoom) && <text y={6.4} textAnchor="middle" fontSize={3.2} fill="#ffffff" stroke="#000" strokeWidth={0.7} paintOrder="stroke">{m.label}</text>}</g></g>)}
-        {districts.map((k) => <g key={`dist-${k.id}`} pointerEvents="none"><circle cx={k.x} cy={k.z} r={k.r} fill={k.color} fillOpacity={0.1} stroke={k.color} strokeOpacity={0.6} strokeWidth={u(0.35)} strokeDasharray={`${u(1.4)} ${u(1)}`} />
-          <text x={k.x} y={k.z - k.r - u(1)} textAnchor="middle" fontSize={u(2.6) / Math.sqrt(view.zoom) * 1.6} fontWeight={700} fill={k.color} stroke="#06101f" strokeWidth={u(0.5) / Math.sqrt(view.zoom)} paintOrder="stroke" className="font-mono">{k.name.toUpperCase()}</text></g>)}
+          onPointerUp={(e) => { if (drag.current?.moved) return; e.stopPropagation(); drag.current = null; setInspectId(m.id); pickPin(m); }}><title>{`${m.label} · ${fmt(m.dist)} — click to ${pin?.id === m.id ? "clear" : "set"} waypoint`}</title><g>{inspectId === m.id && <circle r={5} fill="none" stroke="#ffffff" strokeWidth={0.6} strokeDasharray="1.4 1" />}<circle r={4} fill="transparent" /><text y={m.kind === "LANDMARK" ? 1.8 : 1.9} textAnchor="middle" fontSize={m.kind === "LANDMARK" ? 5.5 : 5} fill={MARKER_COLOR[m.kind]} fillOpacity={m.ready === false ? 0.4 : 1} stroke={pin?.id === m.id ? "#ffffff" : "#000"} strokeWidth={pin?.id === m.id ? 1.4 : 0.9} paintOrder="stroke">{m.kind === "LANDMARK" ? LANDMARK_GLYPH[LANDMARKS.find((l) => `lm-${l.id}` === m.id)?.type ?? "outpost"] : MARKER_GLYPH[m.kind]}</text>{focus && m.kind === "LANDMARK" && <polygon points={HEX(4.6)} fill="none" stroke={MARKER_COLOR.LANDMARK} strokeWidth={0.6} />}{(m.kind === "LANDMARK" ? !focus || view.zoom >= labelZoom : view.zoom >= labelZoom) && <text y={6.4} textAnchor="middle" fontSize={3.2} fill="#ffffff" stroke="#000" strokeWidth={0.7} paintOrder="stroke">{m.label}</text>}</g></g>)}
+        {districts.map((k) => <g key={`dist-${k.id}`} pointerEvents="none"><circle cx={k.x} cy={k.z} r={k.r} fill={k.color} fillOpacity={0.08} stroke={k.color} strokeOpacity={0.45} strokeWidth={u(0.3)} strokeDasharray={`${u(1.4)} ${u(1)}`} />
+          <HexBadge x={k.x} z={k.z} scale={scaleK * 1.15} color={k.color} glyph={districtGlyph(k)} name={k.name} sub={k.tagline.split(" · ")[0]!} /></g>)}
         {sites.map((l) => <g key={`site-${l.id}`} transform={`translate(${l.x} ${l.z}) scale(${scaleK})`} pointerEvents="none"><title>{`Discovered site: ${l.name}`}</title><circle r={3.6} fill="#21112f" fillOpacity={0.85} stroke="#b98cff" strokeWidth={0.7} /><text y={1.7} textAnchor="middle" fontSize={4.4} fill="#d8c2ff">{LANDMARK_GLYPH[l.type]}</text>{view.zoom >= 2 && <text y={6.6} textAnchor="middle" fontSize={3} fill="#e6dcff" stroke="#000" strokeWidth={0.6} paintOrder="stroke">{l.name}</text>}</g>)}
         {activities.map((a) => { const on = pickedActivity === a.id; return <g key={`act-${a.id}`} transform={`translate(${a.x} ${a.z}) scale(${scaleK})`} className="cursor-pointer outline-none" tabIndex={0} role="button" aria-pressed={on} aria-label={`${ACTIVITY_LABEL[a.kind]}: ${a.name}${a.status === "LOCKED" ? ", locked" : ""}`}
           onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); e.stopPropagation(); pickActivity(a); } }}

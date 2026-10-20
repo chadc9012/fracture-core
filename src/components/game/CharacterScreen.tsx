@@ -39,7 +39,7 @@ export function CharacterScreen({ progression, onProgression, classId, subclassI
   const need = xpRequiredForLevel(progression.level);
   const tabs: { id: CharacterTab | "INVENTORY" | "SETTINGS"; label: string }[] = [{ id: "CAMPAIGN", label: "Campaign" }, { id: "COLLECTIONS", label: "Collections" }, { id: "TRIUMPHS", label: "Triumphs" }, { id: "CHARACTER", label: "Character" }, { id: "INVENTORY", label: "Inventory" }];
   return (
-    <div className="fixed inset-0 z-50 flex flex-col overflow-hidden text-foreground char-screen" role="dialog" aria-modal="true" aria-label="Character">
+    <div className="wf-shell fixed inset-0 z-50 flex flex-col overflow-hidden text-foreground char-screen" role="dialog" aria-modal="true" aria-label="Character">
       <header className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 bg-[#2c4a57]/70 px-4 py-2 backdrop-blur-sm sm:px-8">
         <div className="flex items-center gap-3">
           <div className="grid size-10 place-items-center border border-white/30 bg-black/30 font-mono text-lg" style={{ color: cls.color }}>◈</div>

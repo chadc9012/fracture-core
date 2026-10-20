@@ -44,8 +44,12 @@ export const DECOR: readonly DecorDef[] = [
 ];
 
 /** placed decor: homeId -> "roomIndex:slot" -> decorId */
-export type HousingState = { placed: Record<string, Record<string, string>>; home: string | null };
+/** `parked`: fleet vehicle id -> the residence (residence-deeds.ts) whose garage it is parked in; "" = taken out again
+ * (kept, not deleted, so a cloud merge with an older copy can't park it back) */
+export type HousingState = { placed: Record<string, Record<string, string>>; home: string | null; parked?: Record<string, string> };
 export const EMPTY_HOUSING: HousingState = { placed: {}, home: null };
+/** residence ids (residences.ts), checked by shape here so housing.ts stays leaf-level */
+export const RESIDENCE_ID = /^(nexus|neon)-home-\d+$/;
 
 type HouseSave = { nexLedger: NexLedger; housing?: HousingState; fleet?: { garages: GarageId[] } };
 export type HousingResult<P> = { progression: P; message: string } | { error: string };
@@ -104,11 +108,14 @@ export function normalizeHousing(raw: unknown): HousingState {
     placed[h] = {};
     for (const [k, v] of Object.entries(rooms)) if (typeof v === "string" && decorById(v)) placed[h]![k] = v;
   }
-  return { placed, home: typeof r.home === "string" && homeById(r.home) ? r.home : null };
+  const parked: Record<string, string> = {};
+  if (r.parked && typeof r.parked === "object") for (const [v, at] of Object.entries(r.parked)) if (typeof at === "string" && (at === "" || RESIDENCE_ID.test(at))) parked[v] = at;
+  return { placed, home: typeof r.home === "string" && homeById(r.home) ? r.home : null, ...(Object.keys(parked).length ? { parked } : {}) };
 }
 export function mergeHousing(a: HousingState, b: HousingState, aIsNewer: boolean): HousingState {
   const newer = aIsNewer ? a : b, older = aIsNewer ? b : a;
   const placed: HousingState["placed"] = {};
   for (const h of new Set([...Object.keys(older.placed), ...Object.keys(newer.placed)])) placed[h] = { ...(older.placed[h] ?? {}), ...(newer.placed[h] ?? {}) };
-  return { placed, home: newer.home ?? older.home };
+  const parked = { ...(older.parked ?? {}), ...(newer.parked ?? {}) };
+  return { placed, home: newer.home ?? older.home, ...(Object.keys(parked).length ? { parked } : {}) };
 }

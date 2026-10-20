@@ -23,8 +23,8 @@ export function HousingPanel({ progression, onProgression, onClose, startTab = "
   const placed = (homeId && progression.housing?.placed[homeId]) || {};
 
   return (
-    <div className="absolute inset-0 z-40 flex items-center justify-center bg-background/85 p-4" role="dialog" aria-label="Veyra Realty">
-      <div className="max-h-[88vh] w-full max-w-4xl overflow-y-auto border border-border bg-card p-5">
+    <div className="wf-shell absolute inset-0 z-40 flex items-center justify-center bg-background/85 p-4" role="dialog" aria-label="Veyra Realty">
+      <div className="wf-panel max-h-[88vh] w-full max-w-4xl overflow-y-auto p-5">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <p className="font-mono text-[9px] uppercase tracking-[0.3em] text-primary">Veyra Realty · {nexBalance(progression.nexLedger).toLocaleString()} Nex</p>

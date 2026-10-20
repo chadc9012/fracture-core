@@ -75,20 +75,25 @@ export type MapJob = {
   progress(): number;
 };
 
-export function createMapJob(size: number): MapJob {
+/** a square window of the world to paint (world units): the whole map by default, or one destination up close */
+export type MapBounds = { x0: number; z0: number; span: number };
+export const WORLD_BOUNDS: MapBounds = { x0: -MAP_EXTENT, z0: -MAP_EXTENT, span: 2 * MAP_EXTENT };
+
+export function createMapJob(size: number, bounds: MapBounds = WORLD_BOUNDS): MapJob {
   const pixels = new Uint8ClampedArray(size * size * 4);
   const hs = new Float32Array(size * size);
   const net = waterNetwork();
-  const stepM = (2 * MAP_EXTENT) / size;
+  const stepM = bounds.span / size;
+  const X0 = bounds.x0, Z0 = bounds.z0, whole = bounds === WORLD_BOUNDS;
   let hDone = 0, sDone = 0, lakesDone = false;
   const WL = WATER_LEVEL;
   const sun = (() => { const x = -0.6, y = 0.62, z = -0.5, l = Math.hypot(x, y, z); return { x: x / l, y: y / l, z: z / l }; })();
   const H = (i: number, j: number) => hs[Math.min(size - 1, Math.max(0, j)) * size + Math.min(size - 1, Math.max(0, i))]!;
 
-  const heightRow = (j: number) => { for (let i = 0; i < size; i++) hs[j * size + i] = heightAt(-MAP_EXTENT + (i + 0.5) * stepM, -MAP_EXTENT + (j + 0.5) * stepM); };
+  const heightRow = (j: number) => { for (let i = 0; i < size; i++) hs[j * size + i] = heightAt(X0 + (i + 0.5) * stepM, Z0 + (j + 0.5) * stepM); };
   const shadeRow = (j: number) => {
     for (let i = 0; i < size; i++) {
-      const x = -MAP_EXTENT + (i + 0.5) * stepM, z = -MAP_EXTENT + (j + 0.5) * stepM, h = hs[j * size + i]!;
+      const x = X0 + (i + 0.5) * stepM, z = Z0 + (j + 0.5) * stepM, h = hs[j * size + i]!;
       let r: number, g: number, b: number;
       if (h < WL) {
         const depth = WL - h;
@@ -124,14 +129,14 @@ export function createMapJob(size: number): MapJob {
         }
       }
       // gentle vignette toward the frame
-      const edge = Math.hypot(x, z) / MAP_EXTENT, vig = 1 - 0.32 * smooth(0.82, 1.35, edge);
+      const edge = Math.hypot(x, z) / MAP_EXTENT, vig = whole ? 1 - 0.32 * smooth(0.82, 1.35, edge) : 1;
       const k = (j * size + i) * 4;
       pixels[k] = r * vig; pixels[k + 1] = g * vig; pixels[k + 2] = b * vig; pixels[k + 3] = 255;
     }
   };
   const paintLakes = () => {
     for (const l of net.lakes) {
-      const cx = (l.x + MAP_EXTENT) / stepM, cy = (l.z + MAP_EXTENT) / stepM, rr = l.r / stepM;
+      const cx = (l.x - X0) / stepM, cy = (l.z - Z0) / stepM, rr = l.r / stepM;
       for (let j = Math.max(0, Math.floor(cy - rr - 1)); j <= Math.min(size - 1, Math.ceil(cy + rr + 1)); j++) for (let i = Math.max(0, Math.floor(cx - rr - 1)); i <= Math.min(size - 1, Math.ceil(cx + rr + 1)); i++) {
         const d = Math.hypot(i - cx, j - cy);
         if (d > rr + 0.6) continue;

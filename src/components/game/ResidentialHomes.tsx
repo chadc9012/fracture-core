@@ -24,7 +24,8 @@ function prism(): THREE.BufferGeometry {
   return g;
 }
 
-function piece(b: Box, home: Residence): THREE.BufferGeometry {
+/** one box (or roof prism) of a building in world space; `at` is the building's floor centre and turn */
+export function piece(b: Box, home: Pick<Residence, "x" | "z" | "floor" | "rot">): THREE.BufferGeometry {
   let g: THREE.BufferGeometry;
   if (b.prism) g = prism();
   else { const box = new THREE.BoxGeometry(1, 1, 1); g = box.toNonIndexed(); box.dispose(); g.clearGroups(); }
@@ -37,31 +38,34 @@ function piece(b: Box, home: Residence): THREE.BufferGeometry {
   return g;
 }
 
+/** merge pieces into one mesh per material (painted, glass, lamps) */
+export function mergeByMat(pieces: { b: Box; at: Pick<Residence, "x" | "z" | "floor" | "rot"> }[], name: string): THREE.Mesh[] {
+  const by: Record<Mat, THREE.BufferGeometry[]> = { solid: [], glass: [], lamp: [] };
+  for (const { b, at } of pieces) by[b.mat].push(piece(b, at));
+  const mats: Record<Mat, THREE.Material> = {
+    solid: new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.82, metalness: 0.02 }),
+    glass: new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.18, metalness: 0.35, envMapIntensity: 1.4 }),
+    lamp: new THREE.MeshBasicMaterial({ vertexColors: true, toneMapped: false, color: new THREE.Color(1.6, 1.5, 1.35) }),
+  };
+  const out: THREE.Mesh[] = [];
+  for (const k of ["solid", "glass", "lamp"] as Mat[]) {
+    if (!by[k].length) { mats[k].dispose(); continue; }
+    const g = mergeGeometries(by[k]);
+    by[k].forEach((p) => p.dispose());
+    if (!g) continue;
+    g.computeBoundingSphere();
+    const m = new THREE.Mesh(g, mats[k]);
+    m.name = `${name}:${k}`;
+    m.castShadow = k === "solid"; m.receiveShadow = k !== "lamp";
+    m.matrixAutoUpdate = false;
+    out.push(m);
+  }
+  return out;
+}
+
 export function ResidentialHomes({ city }: { city: "nexus" | "neon" }) {
   const homes = useMemo(() => residences().filter((r) => r.city === city), [city]);
-  const meshes = useMemo(() => {
-    const by: Record<Mat, THREE.BufferGeometry[]> = { solid: [], glass: [], lamp: [] };
-    for (const h of homes) for (const b of homeBoxes(h.style, h.floor - h.base)) by[b.mat].push(piece(b, h));
-    const mats: Record<Mat, THREE.Material> = {
-      solid: new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.82, metalness: 0.02 }),
-      glass: new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.18, metalness: 0.35, envMapIntensity: 1.4 }),
-      lamp: new THREE.MeshBasicMaterial({ vertexColors: true, toneMapped: false, color: new THREE.Color(1.6, 1.5, 1.35) }),
-    };
-    const out: THREE.Mesh[] = [];
-    for (const k of ["solid", "glass", "lamp"] as Mat[]) {
-      if (!by[k].length) continue;
-      const g = mergeGeometries(by[k]);
-      by[k].forEach((p) => p.dispose());
-      if (!g) continue;
-      g.computeBoundingSphere();
-      const m = new THREE.Mesh(g, mats[k]);
-      m.name = `residences:${city}:${k}`;
-      m.castShadow = k === "solid"; m.receiveShadow = k !== "lamp";
-      m.matrixAutoUpdate = false;
-      out.push(m);
-    }
-    return out;
-  }, [homes, city]);
+  const meshes = useMemo(() => mergeByMat(homes.flatMap((h) => homeBoxes(h.style, h.floor - h.base).map((b) => ({ b, at: h }))), `residences:${city}`), [homes, city]);
   useEffect(() => () => { for (const m of meshes) { m.geometry.dispose(); (m.material as THREE.Material).dispose(); } }, [meshes]);
   useEffect(() => {
     for (const h of homes) { setWalls(h.id, homeWalls(h)); for (const d of homeDecks(h)) registerDeck(d); }

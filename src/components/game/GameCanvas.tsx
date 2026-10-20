@@ -94,6 +94,11 @@ import { claimSecret } from "@/game/secrets";
 import { claimHeart, recordRelicKills } from "@/game/godforge";
 import { ForgePanel } from "./ForgePanel";
 import { GaragePanel } from "./GaragePanel";
+import { RealEstateStore } from "./RealEstateStore";
+import { deedById, garageAt, ownsDeed, parkVehicle, parkedAt, unparkVehicle } from "@/game/residence-deeds";
+import { bayPose, residences } from "@/game/residences";
+import { onVehicleEnter, onVehicleExit, requestDriveOut } from "@/game/vehicle-request";
+import { fleetById as fleetEntry, setActiveFleet as makeActiveFleet } from "@/game/fleet";
 import { GARAGES, type GarageId } from "@/game/fleet";
 import { ACTIVITY_COLOR, ACTIVITY_LABEL, CHALLENGES, recordPatrolKills } from "@/game/map-activities";
 import { applyNemesisKill, applyPlayerDeath } from "@/game/nemesis";
@@ -338,6 +343,9 @@ export function GameCanvas() {
   const vaelNearRef = useRef(false);
   /** fleet.ts: the garage base panel and the base in reach */
   const [basePanel, setBasePanel] = useState<GarageId | null>(null);
+  /** the property agent's store: open on a listing (null = just the store) */
+  const [realty, setRealty] = useState<{ start: string | null } | null>(null);
+  const residenceNearRef = useRef<string | null>(null);
   const [skateOpen, setSkateOpen] = useState(false);
   const [housingOpen, setHousingOpen] = useState<"HOMES" | "DECORATE" | null>(null);
   const skateNearRef = useRef(false);
@@ -387,6 +395,7 @@ export function GameCanvas() {
       if (e.code === "KeyY" && shopNearRef.current) { setShopOpen((open) => (open ? null : shopNearRef.current)); if (document.pointerLockElement) document.exitPointerLock(); }
       else if (e.code === "KeyY" && !e.repeat && skateNearRef.current) { setSkateOpen((o) => !o); if (document.pointerLockElement) document.exitPointerLock(); }
       else if (e.code === "KeyY" && !e.repeat && garageNearRef.current) { setBasePanel((open) => (open ? null : garageNearRef.current)); if (document.pointerLockElement) document.exitPointerLock(); }
+      else if (e.code === "KeyY" && !e.repeat && residenceNearRef.current) { const id = residenceNearRef.current; setRealty((open) => (open ? null : { start: id })); if (document.pointerLockElement) document.exitPointerLock(); }
       else if (e.code === "KeyY" && !e.repeat && vaelNearRef.current) { setForgeOpen((open) => !open); if (document.pointerLockElement) document.exitPointerLock(); }
       else if (e.code === "KeyY" && !e.repeat && npcNearRef.current) { setNpcOpen((open) => (open ? null : npcNearRef.current)); if (document.pointerLockElement) document.exitPointerLock(); }
       else if (e.code === "KeyY" && !e.repeat && cacheNearRef.current && !cacheNearRef.current.label.startsWith("Encrypted")) openNearCache();
@@ -424,6 +433,42 @@ export function GameCanvas() {
   useEffect(() => { vaelNearRef.current = !!hud.vaelNear; if (!hud.vaelNear) setForgeOpen(false); }, [hud.vaelNear]);
   useEffect(() => { skateNearRef.current = !!hud.skateShopNear; if (!hud.skateShopNear) setSkateOpen(false); }, [hud.skateShopNear]);
   useEffect(() => { garageNearRef.current = (hud.garageNear as GarageId | null | undefined) ?? null; if (!hud.garageNear) setBasePanel(null); }, [hud.garageNear]);
+  useEffect(() => { residenceNearRef.current = hud.residenceNear ?? null; }, [hud.residenceNear]);
+  // home garages: stepping out of your active fleet car inside one of your garages parks it there; driving off
+  // (summoning it, or taking it out) frees the bay again
+  const vehicleIdRef = useRef(vehicleId); vehicleIdRef.current = vehicleId;
+  useEffect(() => {
+    const offExit = onVehicleExit((x, z) => {
+      const at = garageAt(x, z);
+      if (!at) return;
+      setProgression((cur) => {
+        const active = cur.fleet?.active ? fleetEntry(cur.fleet.active) : undefined;
+        if (!active || active.base !== vehicleIdRef.current || !ownsDeed(cur, at)) return cur;
+        const r = parkVehicle(cur, active.id, at);
+        setParkNotice("error" in r ? r.error : r.message);
+        return "error" in r ? cur : r.progression;
+      });
+    });
+    const offEnter = onVehicleEnter(() => setProgression((cur) => {
+      const a = cur.fleet?.active;
+      if (!a || !parkedAt(cur)[a]) return cur;
+      const r = unparkVehicle(cur, a);
+      return "error" in r ? cur : r.progression;
+    }));
+    return () => { offExit(); offEnter(); };
+  }, []);
+  const [parkNotice, setParkNotice] = useState("");
+  useEffect(() => { if (!parkNotice) return; const t = window.setTimeout(() => setParkNotice(""), 3500); return () => window.clearTimeout(t); }, [parkNotice]);
+  /** from a home's garage panel: make the vehicle active and drive it out of its bay */
+  const driveOut = (deedId: string, vehicleId: string, bay: number) => {
+    const r = residences().find((h) => h.id === deedId), f = fleetEntry(vehicleId);
+    if (!r?.garage || !f) return;
+    setProgression((cur) => { const a = makeActiveFleet(cur, vehicleId); if ("error" in a) return cur; const u = unparkVehicle(a.progression, vehicleId); return "error" in u ? a.progression : u.progression; });
+    setVehicleId(f.base);
+    const pose = bayPose(r.garage, bay);
+    requestDriveOut({ x: pose.x, z: pose.z, y: pose.y, yaw: pose.rot });
+    setRealty(null);
+  };
   useEffect(() => {
     cacheNearRef.current = hud.cacheNear ?? null;
     // encrypted caches open themselves the moment the hold-to-decrypt finishes
@@ -1277,9 +1322,9 @@ export function GameCanvas() {
       {missionBanner && <MissionBannerView banner={missionBanner} onDone={clearBanner} />}
       {levelUpFlash && <LevelUpOverlay level={levelUpFlash.level} novaUnlocked={levelUpFlash.novaUnlocked} onDone={() => setLevelUpFlash(null)} />}
        {showEnding && <EndingOverlay progression={progression} onClose={() => setShowEnding(false)} />}
-       {hud.insideInterior && !housingOpen && (hud.insideInterior === "neon-property-office" || interiorById(hud.insideInterior)?.kind === "APARTMENT" || interiorById(hud.insideInterior)?.kind === "HOME") && (
+       {hud.insideInterior && !housingOpen && !realty && (hud.insideInterior === "neon-property-office" || interiorById(hud.insideInterior)?.kind === "APARTMENT" || interiorById(hud.insideInterior)?.kind === "HOME") && (
          <div className="pointer-events-none absolute bottom-36 left-1/2 -translate-x-1/2">
-           <Button className="pointer-events-auto" variant="outline" onClick={() => setHousingOpen(hud.insideInterior === "neon-property-office" ? "HOMES" : "DECORATE")}>{hud.insideInterior === "neon-property-office" ? "Talk to the agent · Buy homes" : interiorById(hud.insideInterior)?.homeId ? "Decorate this home" : "Decorate my homes"}</Button>
+           <Button className="pointer-events-auto" variant="outline" onClick={() => { if (hud.insideInterior === "neon-property-office") setRealty({ start: null }); else setHousingOpen("DECORATE"); }}>{hud.insideInterior === "neon-property-office" ? "Talk to the agent · Buy homes" : interiorById(hud.insideInterior)?.homeId ? "Decorate this home" : "Decorate my homes"}</Button>
          </div>
        )}
        {housingOpen && <HousingPanel progression={progression} startTab={housingOpen} startHome={interiorById(hud.insideInterior ?? null)?.homeId} onProgression={setProgression} onClose={() => setHousingOpen(null)} />}
@@ -1309,6 +1354,16 @@ export function GameCanvas() {
            <Button className="pointer-events-auto" variant="outline" onClick={() => setBasePanel(hud.garageNear as GarageId)}>[Y] Garage · {GARAGES[hud.garageNear as GarageId]?.name}</Button>
          </div>
        )}
+       {hud.residenceNear && !realty && !basePanel && !hud.garageNear && !hud.shopNearId && (() => { const d = deedById(hud.residenceNear!); if (!d) return null; const mine = ownsDeed(progression, d.id); return (
+         <div className="pointer-events-none absolute bottom-24 left-1/2 -translate-x-1/2">
+           <Button className="pointer-events-auto" variant="outline" onClick={() => setRealty({ start: d.id })}>[Y] {d.address} · {mine ? "Your home · garage" : `For sale · NΞ ${d.price.toLocaleString()}`}</Button>
+         </div>
+       ); })()}
+       {parkNotice && <p className="pointer-events-none absolute bottom-36 left-1/2 -translate-x-1/2 border border-emerald-400/50 bg-background/80 px-3 py-1 font-mono text-xs text-emerald-300" role="status">{parkNotice}</p>}
+       {realty && <RealEstateStore progression={progression} onProgression={setProgression} onClose={() => setRealty(null)} startId={realty.start} nearId={hud.residenceNear ?? null}
+         onDecorate={(id) => { setRealty(null); setHousingOpen("DECORATE"); void id; }}
+         onTravel={(name, x, z) => { setRealty(null); startTransit({ id: `home-${name}`, name, sub: "Home", color: "#e8c39e", x, z }); }}
+         onDriveOut={driveOut} />}
        {basePanel && <GaragePanel garageId={basePanel} progression={progression} onProgression={setProgression} onSelectVehicle={(v) => { if (v) setVehicleId(v); }} onClose={() => setBasePanel(null)} />}
        {hud.vaelNear && !forgeOpen && (
          <div className="pointer-events-none absolute bottom-24 left-1/2 -translate-x-1/2">

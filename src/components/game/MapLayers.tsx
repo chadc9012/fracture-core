@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { REGIONS, ZONE_COLOR, WORLD_SCALE } from "@/game/world";
 import { LANES, laneSamples } from "@/game/lanes";
-import { MAP_EXTENT, MAP_OCEAN_EDGE } from "@/game/terrain-map";
+import { MAP_EXTENT, MAP_OCEAN_EDGE, type MapBounds } from "@/game/terrain-map";
 import { graticule, placeLabels, scaleBarMeters } from "@/game/map-labels";
 
 /** Shared cartography for the hub star map and the in-game atlas: terrain image, faint grid, supply roads, soft region zones, markers with
@@ -14,11 +14,24 @@ const LABELS = placeLabels(REGIONS.map((r) => ({ id: r.id, name: r.name.toUpperC
 const GRID = graticule(E, 200);
 const BAR = scaleBarMeters(E);
 
-export function MapLayers({ art, preview, selected, recommended, onSelect, children, showZones = true, labelScale = 1 }: { art: string | null; preview?: boolean; selected: string; recommended?: string | undefined; onSelect: (id: string) => void; children?: ReactNode; showZones?: boolean; /** shrink region markers and names when the map is zoomed in, so they stop covering the detail */ labelScale?: number }) {
+export function MapLayers({ art, preview, selected, recommended, onSelect, children, showZones = true, labelScale = 1, detail, plan }: { art: string | null; preview?: boolean; selected: string; recommended?: string | undefined; onSelect: (id: string) => void; children?: ReactNode; showZones?: boolean; /** shrink region markers and names when the map is zoomed in, so they stop covering the detail */ labelScale?: number;
+  /** a sharp close-up painting of one destination over the world image, feathered into it at the edges */
+  detail?: { url: string | null; bounds: MapBounds } | null | undefined;
+  /** drawn on the close-up, under the roads: a city's building footprints */
+  plan?: ReactNode }) {
   const stroke = (n: number) => E * 0.0022 * n;
+  const b = detail?.bounds;
   return <>
     <rect x={-E} y={-E} width={E * 2} height={E * 2} fill={MAP_OCEAN_EDGE} />
     {art && <image href={art} x={-E} y={-E} width={E * 2} height={E * 2} preserveAspectRatio="none" style={{ imageRendering: "auto", filter: preview ? "blur(1.2px)" : undefined }} />}
+    {b && detail?.url && <>
+      <defs>
+        <radialGradient id="detail-feather"><stop offset="0.62" stopColor="#fff" /><stop offset="1" stopColor="#000" /></radialGradient>
+        <mask id="detail-mask" maskUnits="userSpaceOnUse" x={b.x0} y={b.z0} width={b.span} height={b.span}><rect x={b.x0} y={b.z0} width={b.span} height={b.span} fill="url(#detail-feather)" /></mask>
+      </defs>
+      <image href={detail.url} x={b.x0} y={b.z0} width={b.span} height={b.span} preserveAspectRatio="none" mask="url(#detail-mask)" />
+    </>}
+    {plan}
     <g aria-hidden="true" stroke="#ffffff" strokeOpacity={0.07} strokeWidth={stroke(0.5)}>{GRID.map((v) => <g key={v}><line x1={v} y1={-E} x2={v} y2={E} /><line x1={-E} y1={v} x2={E} y2={v} /></g>)}</g>
     {LANES.map((l) => { const pts = laneSamples(l, 24).map((p) => `${p.x},${p.z}`).join(" "); return <g key={l.name} fill="none" strokeLinecap="round"><polyline points={pts} stroke="#1a1208" strokeOpacity={0.55} strokeWidth={stroke(2.4)} /><polyline points={pts} stroke="#f6e7b8" strokeOpacity={0.95} strokeWidth={stroke(1.2)} strokeDasharray={`${stroke(5)} ${stroke(3.4)}`} /></g>; })}
     {showZones && REGIONS.map((r) => {

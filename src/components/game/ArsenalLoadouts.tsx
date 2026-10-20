@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { ArrowLeft, Check, Plus } from "lucide-react";
+import { ArrowLeft, Check, Eye, Plus } from "lucide-react";
+import { WeaponInspection } from "./WeaponInspection";
 import { Button } from "@/components/ui/button";
 import { WEAPONS, WEAPON_ORDER, type WeaponId } from "@/game/weapons";
 import { classById } from "@/game/loadout";
@@ -16,6 +17,7 @@ export function ArsenalLoadouts({ progression, onProgression, onBack, embedded =
   const arsenal = progression.arsenal[cls];
   const [editing, setEditing] = useState(arsenal.active);
   const loadout = arsenal.loadouts[editing] ?? arsenal.loadouts[0]!;
+  const [inspect, setInspect] = useState<WeaponId | null>(null);
 
   const write = (loadouts: WeaponLoadout[], active = arsenal.active) =>
     onProgression({ ...progression, arsenal: { ...progression.arsenal, [cls]: { loadouts, active } } });
@@ -33,7 +35,7 @@ export function ArsenalLoadouts({ progression, onProgression, onBack, embedded =
   };
 
   return (
-    <div className={`deployment-field fixed ${embedded ? "inset-x-0 bottom-0 top-14" : "inset-0"} z-50 overflow-y-auto p-4 text-foreground lg:p-6`} role="dialog" aria-modal="true" aria-label="Arsenal loadouts">
+    <div className={`wf-shell deployment-field fixed ${embedded ? "inset-x-0 bottom-0 top-14" : "inset-0"} z-50 overflow-y-auto p-4 text-foreground lg:p-6`} role="dialog" aria-modal="true" aria-label="Arsenal loadouts">
       <header className="flex flex-wrap items-center justify-between gap-3 border-b border-foreground/15 pb-3">
         <div className="flex items-center gap-3">{!embedded && <Button variant="ghost" size="sm" onClick={onBack} className="ui-focus"><ArrowLeft /> Back</Button>}<h1 className="font-mono text-xl uppercase tracking-[0.25em]">Arsenal</h1></div>
         <nav className="flex gap-1">{CLASSES.map((c) => <Button key={c} size="sm" variant="ghost" onClick={() => { setCls(c); setEditing(progression.arsenal[c].active); }} className={`rounded-none border-b-2 font-mono ${cls === c ? "border-primary text-primary" : "border-transparent"}`}>{classById(c).name}{progression.identityClass === c ? " ·" : ""}</Button>)}</nav>
@@ -59,6 +61,7 @@ export function ArsenalLoadouts({ progression, onProgression, onBack, embedded =
             {SLOT_NAMES.map((name, slot) => (
               <div key={name}>
                 <p className="ui-kicker">Key {slot + 1} · {name}</p>
+                <button type="button" className="ui-focus mt-1 flex w-full items-center justify-center gap-1 border border-[var(--wf-line)] py-1.5 text-[10px] uppercase tracking-widest text-[var(--wf-ice)] hover:bg-[var(--wf-ice)]/10" onClick={() => setInspect(loadout.slots[slot]!)}><Eye className="size-3" /> Inspect {WEAPONS[loadout.slots[slot]!].name}</button>
                 <div className="mt-2 space-y-1">{WEAPON_ORDER.map((id) => {
                   const w = WEAPONS[id], on = loadout.slots[slot] === id;
                   return <button key={id} onClick={() => setSlot(slot, id)} className={`ui-focus w-full border p-2 text-left text-xs ${on ? "border-primary text-primary" : "border-foreground/10 text-muted-foreground hover:border-foreground/30"}`}>
@@ -69,6 +72,7 @@ export function ArsenalLoadouts({ progression, onProgression, onBack, embedded =
               </div>
             ))}
           </div>
+          {inspect && <WeaponInspection id={inspect} onClose={() => setInspect(null)} />}
           <div className="mt-6 flex justify-end">
             <Button className="rounded-none" disabled={arsenal.active === editing} onClick={() => write(arsenal.loadouts, editing)}>{arsenal.active === editing ? "Equipped" : "Equip loadout"}</Button>
           </div>

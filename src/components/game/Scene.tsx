@@ -189,6 +189,9 @@ import { fallenDistricts } from "@/game/living-events";
 import { CHALLENGES } from "@/game/map-activities";
 import { HOLLOW_CROWN, VAEL, runeCombat, vaelNear } from "@/game/godforge";
 import { garageNear, sanctuariesFor, tunedVehicle } from "@/game/fleet";
+import { ResidenceGarages } from "./ResidenceGarages";
+import { reportVehicleEnter, reportVehicleExit, takeDriveOut } from "@/game/vehicle-request";
+import { deedNear, parkedAt } from "@/game/residence-deeds";
 import { conditionEffects, FRESH_VEHICLE, impactVehicle, normalizeCondition, recoverVehicle, type VehicleCondition } from "@/game/vehicle-condition";
 import { VehicleDamageFx } from "./VehicleDamageFx";
 import { driveTelemetry } from "@/game/vehicle-audio";
@@ -329,6 +332,8 @@ export type HudState = {
   living?: LivingHud | null;
   /** fleet.ts: a garage base within reach */
   garageNear?: string | null;
+  /** a walk-in residence's front door or garage is right here (residence-deeds.ts) */
+  residenceNear?: string | null;
   skateShopNear?: boolean;
   /** wasteland-runtime.ts: the running Wastelands activity (vault defense / rally / derby) */
   waste?: WasteHud;
@@ -721,6 +726,7 @@ function SceneImpl({
   const appearance = appearanceProp ?? appearanceById("BASTION");
   const selectedClass = classById(playerClass);
   const selectedSubclass = subclassById(subclassId);
+  const activeParked = Boolean(gear?.fleet?.active && gear.housing && parkedAt(gear)[gear.fleet.active]);
   const selectedVehicle = useMemo(() => tunedVehicle(vehicleById(vehicleId), gear?.fleet), [vehicleId, gear?.fleet]); // fleet.ts tuning of the active build
   const handling = useMemo(() => handlingFor(vehicleById(vehicleId)), [vehicleId]); // vehicle-handling.ts: jet/heli/boat/sub/tank/car each move differently
   const vh = useRef({ airborne: false, slip: 0, roll: 0, pitch: 0, skidAt: 0 });
@@ -1166,10 +1172,11 @@ function SceneImpl({
       else {
       s.inVehicle = !s.inVehicle && !conditionEffects(condition.current).disabled;
       if (s.inVehicle) { vh.current.airborne = false; vh.current.slip = 0; if (handling.mode === "WATER" && heightAt(s.x, s.z) > WATER_LEVEL - 0.3) { s.inVehicle = false; alert(sim, "Boats launch from the water's edge"); } }
-      if (s.inVehicle) sfx.playVehicleEngineStart(vehicleId, selectedVehicle.speed / vehicleById(vehicleId).speed);
+      if (s.inVehicle) { sfx.playVehicleEngineStart(vehicleId, selectedVehicle.speed / vehicleById(vehicleId).speed); reportVehicleEnter(); }
       // Neon City parkour: hopping out mid-drive keeps a fraction of the car's speed as foot-chase momentum.
       if (wasInVehicle) velocity.set(Math.sin(s.yaw), 0, Math.cos(s.yaw)).multiplyScalar(exitVehicleMomentum(s.vSpeed));
       else velocity.set(0, 0, 0);
+      if (wasInVehicle && !s.inVehicle && Math.abs(s.vSpeed) < 3) reportVehicleExit(s.x, s.z);
       s.vSpeed = 0;
       }
     }
@@ -2420,6 +2427,8 @@ function SceneImpl({
       if (travelTo.y !== undefined) { s.y = travelTo.y; s.diving = true; s.grounded = false; s.oxygen = OXYGEN_MAX; s.hull = 0; s.breachAt = performance.now() / 1000; s.sector = sectorAt(s.x, s.y, s.z); }
       submerged = heightAt(s.x, s.z) < WATER_LEVEL - 0.2;
     }
+    // "Drive out" from a home garage (residence-deeds.ts): into the driver's seat at the bay, nose to the door
+    { const out = takeDriveOut(); if (out && vehicleUnlocked) { s.x = out.x; s.z = out.z; s.y = out.y + 1.6; s.yaw = out.yaw; s.vy = 0; s.vSpeed = 0; s.insideInterior = null; interior = null; velocity.set(0, 0, 0); s.inVehicle = !conditionEffects(condition.current).disabled; vh.current.airborne = false; vh.current.slip = 0; if (s.inVehicle) sfx.playVehicleEngineStart(vehicleId, 1); } }
     if (sim.lastDeath !== deathSeen.current) {
       deathSeen.current = sim.lastDeath;
       s.ammo = restockAll(s.ammo); // ammo.ts: you come back armed
@@ -2606,7 +2615,8 @@ function SceneImpl({
         // parked at the spawn pad when on foot
         v.position.set(SPAWN.x + 8, walkHeight(SPAWN.x + 8, SPAWN.z + 6) + 1.9, SPAWN.z + 6);
         v.rotation.set(0, 0.6, 0);
-        v.visible = vehicleUnlocked;
+        // a car parked in a home garage (ResidenceGarages.tsx) stands there, not here as well
+        v.visible = vehicleUnlocked && !activeParked;
       }
     }
 
@@ -2812,6 +2822,7 @@ function SceneImpl({
         interiorOpen: interior ? isInteriorOpen(interior, time.current) : true,
         living: livingHud.current,
         garageNear: !interior ? garageNear(s.x, s.z) : null,
+        residenceNear: !interior && !s.inVehicle ? deedNear(s.x, s.z) : null,
         skateShopNear: !interior && Math.hypot(s.x - NEON_CITY_CENTER.x - SKATE_SHOP_OFFSET.x, s.z - NEON_CITY_CENTER.z - SKATE_SHOP_OFFSET.z) < SKATE_SHOP_RADIUS,
         waste: wasteHud.current,
         vaelNear: !interior && !s.inVehicle && vaelNear({ earnedRewards: gear?.earnedRewards ?? [] }, s.x, s.z),
@@ -2918,8 +2929,8 @@ function SceneImpl({
       <group name="iso:water"><Water size={WORLD_RADIUS * 4} sunRef={sunDir} styleRef={waterStyle} tier={settings.renderTier} /><Rivers sunRef={sunDir} /></group>
       <LootCaches opened={openedCaches} />
       <ShopStalls />
-      <NearOnly playerRef={player} x={NEXUS_REGION.x} z={NEXUS_REGION.z} radius={330 * NEAR_SCALE[settings.renderTier]} name="city:nexus"><NexusCity sim={sim} /></NearOnly>
-      <NearOnly playerRef={player} x={NEON_CITY_CENTER.x} z={NEON_CITY_CENTER.z} radius={300 * NEAR_SCALE[settings.renderTier]} name="city:neon"><NeonCity /></NearOnly>
+      <NearOnly playerRef={player} x={NEXUS_REGION.x} z={NEXUS_REGION.z} radius={330 * NEAR_SCALE[settings.renderTier]} name="city:nexus"><NexusCity sim={sim} />{gear && <ResidenceGarages city="nexus" progression={{ nexLedger: gear.nexLedger ?? {}, housing: gear.housing, fleet: gear.fleet }} />}</NearOnly>
+      <NearOnly playerRef={player} x={NEON_CITY_CENTER.x} z={NEON_CITY_CENTER.z} radius={300 * NEAR_SCALE[settings.renderTier]} name="city:neon"><NeonCity />{gear && <ResidenceGarages city="neon" progression={{ nexLedger: gear.nexLedger ?? {}, housing: gear.housing, fleet: gear.fleet }} />}</NearOnly>
       {(() => { const rg = REGIONS.find((r) => r.id === "frostspire"); return rg ? <NearOnly playerRef={player} x={rg.x} z={rg.z} radius={(rg.radius + 220) * NEAR_SCALE[settings.renderTier]} name="region:frostspire"><FrostspireDressing /></NearOnly> : null; })()}
       {(() => { const rg = REGIONS.find((r) => r.id === "swamps"); return rg ? <NearOnly playerRef={player} x={rg.x} z={rg.z} radius={(rg.radius + 220) * NEAR_SCALE[settings.renderTier]} name="region:swamps"><SwampDressing /></NearOnly> : null; })()}
       {(() => { const rg = REGIONS.find((r) => r.id === "wastelands"); return rg ? <NearOnly playerRef={player} x={rg.x} z={rg.z} radius={(rg.radius + 220) * NEAR_SCALE[settings.renderTier]} name="region:wastelands"><WastelandsDressing /></NearOnly> : null; })()}

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { createMapJob, pixelsToDataUrl, terrainMapPixels, type MapJob } from "@/game/terrain-map";
+import { createMapJob, pixelsToDataUrl, terrainMapPixels, type MapBounds, type MapJob } from "@/game/terrain-map";
 
 /** The painted terrain image, delivered progressively: a coarse preview within ~100 ms, then the full-resolution map painted a few
  * milliseconds per frame (so opening the map never freezes the game), shared and cached across every map screen. */
@@ -41,4 +41,40 @@ export function useTerrainMap(): State {
   const [s, setS] = useState(state);
   useEffect(() => { listeners.add(setS); setS(state); start(); return () => { listeners.delete(setS); }; }, []);
   return s;
+}
+
+/** A sharp close-up of one destination (a city, a region), painted the same way as the world map but over a small
+ * square, so zooming into Neon City shows its streets' ground instead of a few blurred pixels of the world image.
+ * Painted progressively a few ms per frame and cached per destination for the session. */
+const DETAIL = 384;
+type Detail = { url: string | null; bounds: MapBounds; full: boolean };
+const details = new Map<string, Detail>();
+const detailListeners = new Map<string, Set<(d: Detail) => void>>();
+const painting = new Set<string>();
+function paintDetail(key: string, bounds: MapBounds) {
+  if (painting.has(key) || details.get(key)?.full || typeof window === "undefined") return;
+  painting.add(key);
+  const job = createMapJob(DETAIL, bounds);
+  const emit = (d: Detail) => { details.set(key, d); detailListeners.get(key)?.forEach((l) => l(d)); };
+  const tick = () => {
+    try {
+      if (job.step(FRAME_BUDGET_MS)) { painting.delete(key); emit({ url: pixelsToDataUrl(job.pixels, DETAIL), bounds, full: true }); return; }
+      window.requestAnimationFrame(tick);
+    } catch (error) { painting.delete(key); console.error("[map] detail image failed", error); }
+  };
+  window.requestAnimationFrame(tick);
+}
+export function useDetailMap(key: string | null, bounds: MapBounds | null): Detail | null {
+  const [d, setD] = useState<Detail | null>(key ? details.get(key) ?? null : null);
+  useEffect(() => {
+    if (!key || !bounds) { setD(null); return; }
+    let set = detailListeners.get(key);
+    if (!set) detailListeners.set(key, (set = new Set()));
+    set.add(setD); setD(details.get(key) ?? null);
+    paintDetail(key, bounds);
+    return () => { set!.delete(setD); };
+    // bounds follow the key
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [key]);
+  return d;
 }

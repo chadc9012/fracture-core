@@ -26,8 +26,8 @@ export function ShopWindow({ shopId, progression, onProgression, onClose }: { sh
   const apply = (r: ReturnType<typeof buyOffer>) => { if ("error" in r) setNotice(r.error); else { onProgression(r.progression); setNotice(r.message); } };
 
   return (
-    <div role="dialog" aria-modal="true" aria-label={shop.name} className="absolute inset-0 z-40 flex items-center justify-center bg-background/80 p-4" onKeyDown={(e) => e.key === "Escape" && onClose()}>
-      <div className="max-h-[85vh] w-full max-w-2xl overflow-y-auto border border-border bg-card p-5">
+    <div role="dialog" aria-modal="true" aria-label={shop.name} className="wf-shell absolute inset-0 z-40 flex items-center justify-center bg-background/80 p-4" onKeyDown={(e) => e.key === "Escape" && onClose()}>
+      <div className="wf-panel max-h-[85vh] w-full max-w-2xl overflow-y-auto p-5">
         <div className="flex items-start justify-between gap-4">
           <div>
             <p className="font-mono text-[9px] uppercase tracking-[0.3em] text-primary">{SHOP_KIND_LABEL[shop.kind]} · {shop.place}</p>

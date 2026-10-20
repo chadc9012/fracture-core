@@ -23,7 +23,7 @@ const MODULES: { id: HubTarget; code: string; title: string; body: string; actio
 export function MainMenuHub({ className, level, shards, completedMissions, onNavigate }: Props) {
   const next = nextActivity({ completedMissions });
   return (
-    <div className="deployment-field fixed inset-0 z-50 flex flex-col overflow-y-auto px-5 py-5 text-foreground sm:px-10 sm:py-8">
+    <div className="wf-shell deployment-field fixed inset-0 z-50 flex flex-col overflow-y-auto px-5 py-5 text-foreground sm:px-10 sm:py-8">
       <div className="fracture-grid pointer-events-none absolute inset-0 opacity-40" />
       <header className="relative grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 border-b border-foreground/15 pb-4">
         <div className="flex min-w-0 items-center gap-3">
