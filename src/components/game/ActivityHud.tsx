@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { AREAS, type ActivityDef, type Payout, type Run } from "@/game/activities";
-import { livePlace, raceById, rivalPositions, timeLimit, worldPoint, type RaceDef, type RaceReward, type RaceResult, type RaceRun } from "@/game/racing";
+import { lapOf, livePlace, raceById, rivalPositions, timeLimit, worldPoint, type RaceDef, type RaceReward, type RaceResult, type RaceRun } from "@/game/racing";
 
 /** In-world tracker for the running activity: objective, progress and the stage clock. */
 export function ActivityTracker({ def, run, onAbandon, px, pz }: { def: ActivityDef; run: Run; onAbandon: () => void; /** where you are, for the race map and your live place */ px?: number; pz?: number }) {
@@ -24,6 +24,7 @@ export function ActivityTracker({ def, run, onAbandon, px, pz }: { def: Activity
         <p className="mt-1 text-sm font-semibold uppercase tracking-wider">{race.name}</p>
         {rr?.phase === "running" && standing ? <div className="mt-2 flex gap-5">
           <div><p className="text-[9px] uppercase tracking-widest text-muted-foreground">Position</p><p className="text-2xl font-bold leading-none">{standing.place}<span className="text-sm text-muted-foreground">/{standing.field}</span></p></div>
+          {race.laps > 1 && <div><p className="text-[9px] uppercase tracking-widest text-muted-foreground">Lap</p><p className="text-2xl font-bold leading-none">{lapOf(race, rr.next)}<span className="text-sm text-muted-foreground">/{race.laps}</span></p></div>}
           <div><p className="text-[9px] uppercase tracking-widest text-muted-foreground">Checkpoint</p><p className="text-2xl font-bold leading-none">{Math.min(rr.next, total)}<span className="text-sm text-muted-foreground">/{total}</span></p></div>
         </div> : <p className="mt-1 text-muted-foreground">{line}</p>}
         {rr?.notice && <p className="mt-1 text-destructive">{rr.notice}</p>}
@@ -76,10 +77,12 @@ export function ActivityResultPanel({ result, onDone }: { result: ActivityResult
 /** the course from above (reference: the sample track view's corner map): the route, passed gates dimmed, the next gate
  * ringed, the rivals on their real pace and you, north up */
 function RaceMap({ race, run, px, pz }: { race: RaceDef; run: RaceRun | undefined; px: number; pz: number }) {
-  const pts = race.points.map((_, i) => worldPoint(race, i));
+  const per = (race.points.length - 1) / race.laps;
+  // one lap of the circuit; the next gate is shown on the lap you are on
+  const pts = race.points.slice(0, per + 1).map((_, i) => worldPoint(race, i));
   const xs = pts.map((p) => p.x), zs = pts.map((p) => p.z), pad = 20;
   const x0 = Math.min(...xs) - pad, z0 = Math.min(...zs) - pad, span = Math.max(Math.max(...xs) - x0, Math.max(...zs) - z0) + pad;
-  const next = run && run.phase === "running" ? run.next : 0, rivals = run && run.phase === "running" ? rivalPositions(race, run.difficulty, run.time) : [];
+  const next = run && run.phase === "running" ? ((run.next - 1) % per) + 1 : 0, rivals = run && run.phase === "running" ? rivalPositions(race, run.difficulty, run.time) : [];
   const sw = span / 90;
   return <div className="pointer-events-none absolute bottom-40 left-3 z-30 size-40 rounded-full border border-[var(--wf-line)] bg-background/70 p-2 backdrop-blur sm:bottom-44" aria-hidden="true">
     <svg viewBox={`${x0} ${z0} ${span} ${span}`} className="size-full">

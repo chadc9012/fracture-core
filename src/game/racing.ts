@@ -25,7 +25,11 @@ export type Shortcut = { /** the checkpoint index this replaces */ at: number; v
 export type RaceDef = {
   id: string; area: string; name: string; type: string; mode: RaceMode; brief: string; hazards: readonly string[]; points: readonly RacePoint[]; shortcuts: readonly Shortcut[];
   par: number; rivals: number; crew: string; faction: string; rank: number; style: boolean; hidden?: { markers: readonly string[]; need: number };
+  /** laps of a circuit; `points` already holds every lap's gates */
+  laps: number;
 };
+/** which lap a racer heading for gate `next` is on (1-based) */
+export const lapOf = (def: RaceDef, next: number) => Math.min(def.laps, 1 + Math.floor(Math.max(0, next - 1) / ((def.points.length - 1) / def.laps)));
 export type Championship = { id: string; area: string; name: string; rounds: readonly string[]; rank: number };
 
 /* ------------------------------ geometry & constants ------------------------------ */
@@ -157,24 +161,34 @@ const ROWS: Row[] = [
 
 const PAR_BONUS_PER_CP = 1.5;
 /** the authored layout of a vehicle course in world coordinates (scripts/bake-race-routes.ts routes these) */
-export const rawVehicleCourses = () => ROWS.filter((r) => r.mode === "vehicle").map((r) => ({ id: r.id, area: r.area, points: layout(r).points.map((p) => pointWorld(r.area, p.f)) }));
+export const rawVehicleCourses = () => ROWS.filter((r) => r.mode === "vehicle").map((r) => { const l = layout(r); return { id: r.id, area: r.area, points: l.points.map((p) => pointWorld(r.area, p.f)), shortcut: l.shortcuts[0] ? { at: l.shortcuts[0].at, skipTo: l.shortcuts[0].skipTo, via: pointWorld(r.area, l.shortcuts[0].via) } : null }; });
 /** a vehicle course routed over drivable ground (race-routing.ts), baked for this world scale; else the authored shape */
 function routed(row: Row): { points: RacePoint[]; shortcuts: Shortcut[] } {
   const lay = layout(row), baked = row.mode === "vehicle" ? BAKED_ROUTES[WORLD_SCALE]?.[row.id] : undefined;
   if (!baked) return lay;
-  const a = AREAS[row.area]!;
-  const points: RacePoint[] = baked.map(([x, z]) => ({ f: [(x - a.x) / a.radius, (z - a.z) / a.radius] as const }));
+  const a = AREAS[row.area]!, f = ([x, z]: readonly [number, number]) => [(x - a.x) / a.radius, (z - a.z) / a.radius] as const;
+  const points: RacePoint[] = baked.p.map((xz) => ({ f: f(xz) }));
   // reality gates keep their place along the course (half way and the last gate before the finish)
   if (row.windows) for (const i of [Math.floor(points.length / 2), points.length - 2]) if (i > 0 && i < points.length - 1) points[i] = { ...points[i]!, window: { period: 8, open: 5 } };
-  // the authored shortcut cut straight across the old shape; on a routed course it would run through whatever the route
-  // goes round, so routed courses have none until shortcuts are routed too
-  return { points, shortcuts: [] };
+  // the shortcut was routed too: a drivable cut from one checkpoint past the next (scripts/bake-race-routes.ts)
+  return { points, shortcuts: baked.s ? [{ at: baked.s.at, via: f(baked.s.via), skipTo: baked.s.skipTo }] : [] };
+}
+/** laps of a circuit (reference: "LAP 1/3"): street and tech circuits run three, rally and dive loops two, foot loops one */
+const LAPS: Record<string, number> = { street: 3, tech: 3, rally: 2, dive: 2, hazard: 2 };
+export const lapsFor = (row: Pick<Row, "shape" | "type" | "mode">) => (row.shape === "loop" && row.mode !== "foot" ? LAPS[row.type] ?? 1 : 1);
+/** repeat a loop's gates for each lap (the finish of one lap is the start line of the next); shortcuts repeat per lap */
+function withLaps(c: { points: RacePoint[]; shortcuts: Shortcut[] }, laps: number): { points: RacePoint[]; shortcuts: Shortcut[] } {
+  if (laps <= 1) return c;
+  const per = c.points.length - 1, points = [...c.points], shortcuts = [...c.shortcuts];
+  for (let l = 1; l < laps; l++) { points.push(...c.points.slice(1)); for (const s of c.shortcuts) shortcuts.push({ ...s, at: s.at + l * per, skipTo: s.skipTo + l * per }); }
+  return { points, shortcuts };
 }
 function build(row: Row): RaceDef {
-  const { points, shortcuts } = routed(row);
+  const laps = lapsFor(row);
+  const { points, shortcuts } = withLaps(routed(row), laps);
   const mode = row.mode, len = polyLength(points, row.area), speed = SPEED[row.type] ?? 20;
   const par = row.par ?? Math.max(20, Math.round(len / speed + row.n * PAR_BONUS_PER_CP));
-  return { id: row.id, area: row.area, name: row.name, type: row.type, mode, brief: row.brief, hazards: row.hazards ?? [], points, shortcuts, par, rivals: row.rivals ?? 5, crew: row.crew ?? `${AREAS[row.area]!.name} racers`, faction: row.faction ?? FACTION[row.area] ?? "wardens", rank: row.rank ?? 0, style: Boolean(row.style), ...(row.hidden ? { hidden: row.hidden } : {}) };
+  return { id: row.id, area: row.area, name: row.name, type: row.type, mode, brief: row.brief, hazards: row.hazards ?? [], points, shortcuts, par, rivals: row.rivals ?? 5, crew: row.crew ?? `${AREAS[row.area]!.name} racers`, faction: row.faction ?? FACTION[row.area] ?? "wardens", rank: row.rank ?? 0, style: Boolean(row.style), laps, ...(row.hidden ? { hidden: row.hidden } : {}) };
 }
 export const RACES: readonly RaceDef[] = ROWS.map(build);
 export const raceById = (id: string) => RACES.find((r) => r.id === id);
@@ -275,7 +289,7 @@ export function tickRace(def: RaceDef, run: RaceRun, t: Pick<Tick, "x" | "z" | "
   const depthOk = (pt: RacePoint) => pt.depth === undefined || t.y === undefined || Math.abs(t.y - pt.depth) <= 8;
   const near = (w: { x: number; z: number }) => Math.hypot(t.x - w.x, t.z - w.z) <= cr;
   // shortcut: an authored alternative gate that lets you skip ahead, only by actually passing through it
-  if (sc && near(pointWorld(def.area, sc.via))) { run.passed.push(run.next); run.next = sc.skipTo; run.viaShortcut = true; run.notice = "Shortcut taken"; }
+  if (sc && near(pointWorld(def.area, sc.via))) { for (let k = run.next; k < sc.skipTo; k++) run.passed.push(k); run.next = sc.skipTo; run.viaShortcut = true; run.notice = "Shortcut taken"; }
   const pt = def.points[run.next];
   if (pt && near(nxt) && depthOk(pt)) {
     if (!windowOpen(pt, run.time)) { run.notice = "Gate closed: wait for it to open"; }
@@ -307,7 +321,8 @@ export function rivalPositions(def: RaceDef, d: Difficulty, time: number): { x: 
 }
 export function evaluate(def: RaceDef, run: RaceRun, collisionPenalty: number): RaceResult {
   const total = run.time + run.penalties + collisionPenalty, d = run.difficulty, gold = def.par * GOLD_MULT[d];
-  const valid = run.next >= def.points.length && run.passed.length >= (run.viaShortcut ? def.points.length - 2 : def.points.length - 1);
+  // a shortcut counts the gates it skips as passed (tickRace), so every valid finish has passed them all
+  const valid = run.next >= def.points.length && run.passed.length >= def.points.length - 1;
   const medal: Medal | null = !valid ? null : total <= gold ? "gold" : total <= gold * 1.15 ? "silver" : total <= gold * 1.35 ? "bronze" : null;
   const field = rivalTimes(def, d), place = 1 + field.filter((rt) => rt < total).length;
   return { valid, time: Math.round(total * 1000) / 1000, penalties: Math.round((run.penalties + collisionPenalty) * 1000) / 1000, par: def.par, medal, place, field: field.length + 1, style: Math.round(run.style), difficulty: d };

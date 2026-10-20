@@ -15,7 +15,7 @@ function drive(def: RaceDef, run: RaceRun, pace = 1, skip: number[] = []) {
   for (let i = 1; i < def.points.length; i++) {
     if (skip.includes(i)) continue;
     const w = worldPoint(def, i);
-    for (let k = 0; k < Math.round(per / 0.1); k++) { tickRace(def, run, { x: w.x, z: w.z, dt: 0.1, now: T0, mode: def.mode, ...(w.depth !== undefined ? { y: w.depth } : {}) } as never); if (run.phase !== "running") break; }
+    for (let k = 0; k < Math.floor(per / 0.1); k++) { tickRace(def, run, { x: w.x, z: w.z, dt: 0.1, now: T0, mode: def.mode, ...(w.depth !== undefined ? { y: w.depth } : {}) } as never); if (run.phase !== "running") break; }
     if (run.phase !== "running") break;
   }
   return run;
@@ -241,5 +241,32 @@ describe("live race standings", () => {
     expect(livePlace(def, run, f.x, f.z).place).toBe(1); // at the line one second in: ahead of everyone
     const slow = { ...run, time: def.par * 3, next: 1 };
     expect(livePlace(def, slow, s.x, s.z).place).toBe(def.rivals + 1);
+  });
+});
+
+import { lapOf, tickRace as tick2 } from "./racing";
+describe("laps", () => {
+  test("street circuits run three laps, rally loops two, point-to-point one; the lap counter follows the gates", () => {
+    const street = RACES.find((r) => r.id === "nc-circuit")!, line = RACES.find((r) => r.id === "r-vf-wildroot")!;
+    expect(street.laps).toBe(3);
+    expect(line.laps).toBe(1);
+    const per = (street.points.length - 1) / 3;
+    expect(lapOf(street, 1)).toBe(1); expect(lapOf(street, per)).toBe(1); expect(lapOf(street, per + 1)).toBe(2); expect(lapOf(street, street.points.length - 1)).toBe(3);
+    // lap 2 starts on lap 1's finish: the start line
+    const a = worldPoint(street, 0), b = worldPoint(street, per);
+    expect(Math.hypot(a.x - b.x, a.z - b.z)).toBeLessThan(1);
+  });
+  test("a shortcut counts the gates it skips, so the finish stays valid", () => {
+    const def = RACES.find((r) => r.shortcuts.length > 0 && r.mode === "vehicle")!;
+    const run = { ...newRaceRun(def, "standard", 0), phase: "running" as const };
+    const sc = def.shortcuts[0]!;
+    // drive the gates up to the shortcut, take it, then the rest
+    for (let i = 1; i < sc.at; i++) { const w = worldPoint(def, i); tick2(def, run, { x: w.x, z: w.z, dt: 0.1, now: 0, mode: "vehicle" }); }
+    const a0 = AREAS[def.area]!, v = { x: a0.x + sc.via[0] * a0.radius, z: a0.z + sc.via[1] * a0.radius };
+    tick2(def, run, { x: v.x, z: v.z, dt: 0.1, now: 0, mode: "vehicle" });
+    expect(run.next).toBe(sc.skipTo);
+    for (let i = sc.skipTo; i < def.points.length; i++) { const w = worldPoint(def, i); tick2(def, run, { x: w.x, z: w.z, dt: 0.1, now: 0, mode: "vehicle" }); }
+    expect(run.phase).toBe("finished");
+    expect(run.result?.valid).toBe(true);
   });
 });

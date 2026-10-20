@@ -24,12 +24,30 @@ describe("drivable race routes", () => {
   test("routing keeps each course a real race: enough gates, most of its authored length, loops still close", () => {
     const raw = new Map(rawVehicleCourses().map((c) => [c.id, c.points]));
     for (const r of vehicle) {
-      const pts = r.points.map((_, i) => worldPoint(r, i)), src = raw.get(r.id)!;
+      // one lap (a circuit's points repeat for every lap)
+      const per = (r.points.length - 1) / r.laps, pts = r.points.slice(0, per + 1).map((_, i) => worldPoint(r, i)), src = raw.get(r.id)!;
+      expect(Number.isInteger(per)).toBe(true);
       expect(pts.length).toBeGreaterThanOrEqual(6);
       expect(len(pts) / len(src) > 0.6 ? "ok" : `${r.id} only ${Math.round((len(pts) / len(src)) * 100)}% of its length`).toBe("ok");
       const loop = Math.hypot(src[0]!.x - src[src.length - 1]!.x, src[0]!.z - src[src.length - 1]!.z) < 1;
       if (loop) expect(Math.hypot(pts[0]!.x - pts[pts.length - 1]!.x, pts[0]!.z - pts[pts.length - 1]!.z)).toBeLessThan(1);
       expect(r.par).toBeGreaterThan(20);
     }
+  });
+});
+
+import { pointWorld } from "./activities";
+describe("routed shortcuts and laps", () => {
+  test("a routed shortcut is a drivable cut no longer than the route it skips, and repeats every lap", () => {
+    let n = 0;
+    for (const r of RACES.filter((x) => x.mode === "vehicle")) for (const sc of r.shortcuts) {
+      n++;
+      const from = worldPoint(r, sc.at - 1), to = worldPoint(r, sc.skipTo), via = pointWorld(r.area, sc.via);
+      expect(sc.skipTo).toBeGreaterThan(sc.at);
+      expect(legDrivable(from, via) && legDrivable(via, to) ? "ok" : `${r.id} shortcut`).toBe("ok");
+      let route = 0; for (let k = sc.at; k <= sc.skipTo; k++) { const a = worldPoint(r, k - 1), b = worldPoint(r, k); route += Math.hypot(a.x - b.x, a.z - b.z); }
+      expect(Math.hypot(via.x - from.x, via.z - from.z) + Math.hypot(to.x - via.x, to.z - via.z)).toBeLessThanOrEqual(route + 0.5);
+    }
+    expect(n).toBeGreaterThan(0);
   });
 });
