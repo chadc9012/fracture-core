@@ -5,7 +5,7 @@
  * ResidenceGarages.tsx shows in the world. */
 import { nexBalance, spendNex, type NexLedger } from "./nex";
 import { EMPTY_HOUSING, type HousingState } from "./housing";
-import { residences, GARAGE_BAYS, DESIGNS, PORCH, GARAGE_D, garageWidth, type HomeStyle, type Residence } from "./residences";
+import { residences, DESIGNS, PORCH, GARAGE_D, garageWidth, type HomeStyle, type Residence } from "./residences";
 import { FLEET, fleetById, type FleetState } from "./fleet";
 
 export type DeedKind = "HOUSE" | "APARTMENT" | "CONDO";
@@ -35,7 +35,7 @@ function build(): Deed[] {
       id: r.id, residence: r, address, name: `${address}`, kind: s.kind, city: neon ? "Neon City" : "Nexus City",
       district: neon ? "Skyline Residences" : "Residential Street",
       price: Math.round((s.price * (neon ? NEON_PREMIUM : 1)) / 500) * 500,
-      bays: r.garage ? GARAGE_BAYS[r.style] : 0,
+      bays: r.garage?.bays ?? 0,
       blurb: `${s.name} · ${s.blurb}`,
     };
   });

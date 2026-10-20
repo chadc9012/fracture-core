@@ -47,7 +47,8 @@ export const PORCH = 2.2;
 
 /** parking bays in each design's garage: private houses get a private garage, blocks a shared one */
 export const GARAGE_BAYS: Record<HomeStyle, number> = { suburban: 1, townhouse: 1, duplex: 2, courtyard: 2, apartment: 1, condo: 2, loft: 2, villa: 3 };
-export const BAY_W = 3.4;          // one bay: a car is ~2 m wide, doors open either side
+/** one bay: wide enough for the drivable vehicles (their wall-collision radius is 2.2 m, sim.ts), not just a car body */
+export const BAY_W = 5.0;
 export const GARAGE_D = 7.2;       // front to back
 export const GARAGE_H = 3.0;
 export const DOOR_H = 2.5;          // door opening height
@@ -125,14 +126,19 @@ function placeGarages(homes: Residence[]) {
   const clearNeon = neonClearance(neonKeepOut().map((k) => ({ x: k.x - NEON_SITE.x, z: k.z - NEON_SITE.z, r: k.r })));
   const placed: Rect[] = [];
   for (const h of homes) {
-    const p = DESIGNS[h.style], bays = GARAGE_BAYS[h.style], gw = garageWidth(bays);
-    for (const side of [1, -1]) {
-      const lx = side * (p.w / 2 + 1.4 + gw / 2), lz = p.d / 2 - GARAGE_D / 2;
+    const p = DESIGNS[h.style];
+    // the design's bay count, or fewer where the full garage doesn't fit
+    for (let bays = GARAGE_BAYS[h.style]; bays >= 1 && !h.garage; bays--) {
+    const gw = garageWidth(bays);
+    // right side, then left; flush with the front, then set back level with the middle of the house
+    const spots = [1, -1].flatMap((side) => [p.d / 2 - GARAGE_D / 2, 0, -p.d / 2 + GARAGE_D / 2].map((lz) => ({ side, lz })));
+    for (const { side, lz } of spots) {
+      const lx = side * (p.w / 2 + 1.4 + gw / 2);
       const c = turn(h, lx, lz);
       const g: Garage = { x: c.x, z: c.z, rot: h.rot, bays, floor: h.floor, base: h.base };
       const r = garageRect(g);
       // and the apron in front of the doors stays open, so a car can pull in
-      const apron = turn(h, lx, p.d / 2 + 3.5);
+      const apron = turn(h, lx, lz + GARAGE_D / 2 + 3.5);
       const pts = [[r.x - r.hx, r.z - r.hz], [r.x + r.hx, r.z - r.hz], [r.x - r.hx, r.z + r.hz], [r.x + r.hx, r.z + r.hz], [r.x, r.z], [apron.x, apron.z]] as const;
       if (shells.some((s) => rectsOverlap(r, s, 1)) || placed.some((s) => rectsOverlap(r, s, 1))) continue;
       if (REGIONAL_SHOPS.some((s) => Math.hypot(r.x - s.x, r.z - s.z) < Math.max(r.hx, r.hz) + 8)) continue;
@@ -151,6 +157,7 @@ function placeGarages(homes: Residence[]) {
       }
       h.garage = g; placed.push(r);
       break;
+    }
     }
   }
 }

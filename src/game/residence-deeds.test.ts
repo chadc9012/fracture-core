@@ -22,13 +22,13 @@ describe("residence garages", () => {
       for (const [x, z] of [[r.x - r.hx, r.z - r.hz], [r.x + r.hx, r.z + r.hz]] as const) { expect(heightAt(x, z)).toBeGreaterThan(WATER_LEVEL); expect(distanceToRoad(x, z)).toBeGreaterThan(LANE_HALF_WIDTH); }
     }
   });
-  test("a closed door is a wall across the bay; an open one lets a car through", () => {
+  test("a closed door is a wall across the bay; an open one lets a drivable vehicle through", () => {
     const h = homes.find((r) => r.garage)!, g = h.garage!;
     const outside = bayApron(g, 0), inside = bayPose(g, 0);
     const drive = (open: boolean) => {
       setWalls("t", garageWalls(g, Array.from({ length: g.bays }, () => open)));
       const body = { ...outside };
-      for (let i = 0; i < 300; i++) { const dx = inside.x - body.x, dz = inside.z - body.z, d = Math.hypot(dx, dz); if (d < 0.05) break; body.x += (dx / d) * 0.1; body.z += (dz / d) * 0.1; collideWalls(body, 0.9, g.floor + 0.5); }
+      for (let i = 0; i < 300; i++) { const dx = inside.x - body.x, dz = inside.z - body.z, d = Math.hypot(dx, dz); if (d < 0.05) break; body.x += (dx / d) * 0.1; body.z += (dz / d) * 0.1; collideWalls(body, 2.2, g.floor + 0.5); } // a drivable vehicle's wall radius (sim.ts)
       return Math.hypot(body.x - inside.x, body.z - inside.z);
     };
     expect(drive(false)).toBeGreaterThan(1.5);
