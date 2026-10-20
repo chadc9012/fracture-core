@@ -55,6 +55,7 @@ import { INITIAL_NULL_CHARGE, NULL_PERK, NULL_PULSE_POISE, NULL_PULSE_RADIUS, NU
 import { ENCOUNTERS } from "./scenario-encounters";
 import { encounterHpFloor, endEncounter, onDecoyShattered, resetEncounters, stepEncounters, type EncounterEvent, type EncounterState, type EncounterZone } from "./encounter-sim";
 import { rollWeaponLoot } from "./weapon-loot";
+import { isStaggeredNow, reactTo } from "./enemy-reactions";
 import { PARTICIPATION_HITS, SCENARIO_LOOT, rollScenario, type ScenarioClaim } from "./scenario-loot";
 import { attunedElement, gimmickMultiplier, type DamageElement } from "./scenario-gimmicks";
 import { fireRound, splashDamage, stepRound, type Burst, type OrdnanceDef, type Round } from "./ordnance";
@@ -155,6 +156,8 @@ export type Machine = {
   nemesis?: string | undefined;
   nemesisWeak?: DamageElement | undefined;
   nemesisDamage?: number | undefined;
+  /** enemy-reactions.ts: the live flinch/stagger from the last confirmed hit (cleared when the slot respawns) */
+  react?: import("./enemy-reactions").Reaction | undefined;
 };
 
 export type Truck = {
@@ -722,6 +725,7 @@ function spawnMachine(sim: WorldSim, zone: ZoneState, elite = false) {
   if (!profile) return;
   m.profile = profile.name; m.kind = profile.kind; m.drop = profile.drop as MaterialId; m.boss = false; m.mission = false;
   m.hp = ((elite ? 7 : 3) + Math.round(zone.region.difficulty * 0.8)) * (sim.challenge?.enemyHp ?? 1);
+  m.maxHp = m.hp; m.react = undefined;
   m.rot = 0;
   m.scale = (elite ? 1.5 : 0.9) + Math.random() * 0.7;
   m.zone = zone.region.id;
@@ -745,7 +749,7 @@ export function spawnMissionDrones(sim: WorldSim, x: number, z: number, count: n
     if (!m) return;
     const a = (i / count) * Math.PI * 2;
     const troop = regionId ? troopFor(regionId, i) : null;
-    Object.assign(m, { alive: true, x: x + Math.cos(a) * 16, z: z + Math.sin(a) * 16, hp: (elite ? 6 : 3) * (sim.challenge?.enemyHp ?? 1), rot: 0, scale: elite ? 1.1 : 0.8, zone: regionId ?? "nexus", cool: elite ? 1.2 : 2.5, elite, profile: troop ? troop.name : elite ? "Data Drone Elite" : "Data Drone Scout", kind: troop ? troop.kind : ("OVERCLOCKED" as const), drop: (troop ? troop.drop : "dataShards") as MaterialId, boss: false, kx: 0, kz: 0, mission: true, vulnUntil: 0, vulnMult: 1, encounter: undefined, decoy: undefined, living: undefined, nemesis: undefined, nemesisWeak: undefined, nemesisDamage: undefined });
+    Object.assign(m, { alive: true, react: undefined, x: x + Math.cos(a) * 16, z: z + Math.sin(a) * 16, hp: (elite ? 6 : 3) * (sim.challenge?.enemyHp ?? 1), maxHp: (elite ? 6 : 3) * (sim.challenge?.enemyHp ?? 1), rot: 0, scale: elite ? 1.1 : 0.8, zone: regionId ?? "nexus", cool: elite ? 1.2 : 2.5, elite, profile: troop ? troop.name : elite ? "Data Drone Elite" : "Data Drone Scout", kind: troop ? troop.kind : ("OVERCLOCKED" as const), drop: (troop ? troop.drop : "dataShards") as MaterialId, boss: false, kx: 0, kz: 0, mission: true, vulnUntil: 0, vulnMult: 1, encounter: undefined, decoy: undefined, living: undefined, nemesis: undefined, nemesisWeak: undefined, nemesisDamage: undefined });
   }
 }
 
@@ -770,7 +774,7 @@ export function spawnEventSquad(sim: WorldSim, tag: string, x: number, z: number
     const a = (i / count) * Math.PI * 2 + Math.random() * 0.4;
     const troop = troopFor(regionId, troopIndex ?? i);
     const isElite = i < elite;
-    Object.assign(m, { alive: true, x: x + Math.cos(a) * ring, z: z + Math.sin(a) * ring, hp: (isElite ? 7 : 3.5) * (sim.challenge?.enemyHp ?? 1), rot: 0, scale: isElite ? 1.4 : 0.95, zone: regionId, cool: 1.5 + Math.random(), elite: isElite, profile: troop ? troop.name : "Hostile", kind: troop ? troop.kind : ("RAIDER" as const), drop: (troop ? troop.drop : "scrapMetal") as MaterialId, boss: false, kx: 0, kz: 0, mission: false, vulnUntil: 0, vulnMult: 1, encounter: undefined, decoy: undefined, living: tag, scenarioId: undefined, eq: undefined, swimY: undefined, nemesis: undefined, nemesisWeak: undefined, nemesisDamage: undefined });
+    Object.assign(m, { alive: true, react: undefined, x: x + Math.cos(a) * ring, z: z + Math.sin(a) * ring, hp: (isElite ? 7 : 3.5) * (sim.challenge?.enemyHp ?? 1), maxHp: (isElite ? 7 : 3.5) * (sim.challenge?.enemyHp ?? 1), rot: 0, scale: isElite ? 1.4 : 0.95, zone: regionId, cool: 1.5 + Math.random(), elite: isElite, profile: troop ? troop.name : "Hostile", kind: troop ? troop.kind : ("RAIDER" as const), drop: (troop ? troop.drop : "scrapMetal") as MaterialId, boss: false, kx: 0, kz: 0, mission: false, vulnUntil: 0, vulnMult: 1, encounter: undefined, decoy: undefined, living: tag, scenarioId: undefined, eq: undefined, swimY: undefined, nemesis: undefined, nemesisWeak: undefined, nemesisDamage: undefined });
     delete m.lastPlayerDamage; delete m.ai;
     n++;
   }
@@ -785,7 +789,7 @@ export function spawnNemesis(sim: WorldSim, n: Nemesis, x: number, z: number): b
   const st = nemesisStats(n);
   const troop = troopFor(n.regionId, 0);
   const weak = n.traits.map((t) => WEAK_ELEMENT[t]).find(Boolean);
-  Object.assign(m, { alive: true, x, z, hp: st.hp * (sim.challenge?.enemyHp ?? 1), rot: 0, scale: st.scale, zone: n.regionId, cool: 1.2, elite: true, profile: `${n.name} ${n.epithet}`, kind: troop ? troop.kind : ("RAIDER" as const), drop: (troop ? troop.drop : "scrapMetal") as MaterialId, boss: false, kx: 0, kz: 0, mission: false, vulnUntil: 0, vulnMult: 1, encounter: undefined, decoy: undefined, living: undefined, scenarioId: undefined, eq: undefined, swimY: undefined, nemesis: n.id, nemesisWeak: weak, nemesisDamage: st.damage });
+  Object.assign(m, { alive: true, react: undefined, x, z, hp: st.hp * (sim.challenge?.enemyHp ?? 1), maxHp: st.hp * (sim.challenge?.enemyHp ?? 1), rot: 0, scale: st.scale, zone: n.regionId, cool: 1.2, elite: true, profile: `${n.name} ${n.epithet}`, kind: troop ? troop.kind : ("RAIDER" as const), drop: (troop ? troop.drop : "scrapMetal") as MaterialId, boss: false, kx: 0, kz: 0, mission: false, vulnUntil: 0, vulnMult: 1, encounter: undefined, decoy: undefined, living: undefined, scenarioId: undefined, eq: undefined, swimY: undefined, nemesis: n.id, nemesisWeak: weak, nemesisDamage: st.damage });
   delete m.lastPlayerDamage; delete m.ai;
   alert(sim, `${n.name} ${n.epithet}: "${n.grudge}"`);
   return true;
@@ -803,7 +807,7 @@ export function summonBoss(sim: WorldSim, regionId: string, x: number, z: number
   }
   const m = sim.machines.find((candidate) => !candidate.alive);
   if (!m) return false;
-  Object.assign(m, { alive: true, x, z, y: walkHeight(x, z) + 5, hp: 28 * (sim.challenge?.enemyHp ?? 1), maxHp: 28 * (sim.challenge?.enemyHp ?? 1), phase: 0 as BossPhaseIndex, rot: 0, scale: 2.3, zone: regionId, cool: 2, elite: true, boss: true, profile: boss.name, kind: factionOf(regionId), drop: boss.drop, kx: 0, kz: 0, poiseState: INITIAL_POISE, scenarioId: undefined, gimmickHistory: undefined, attuned: undefined, scenarioRun: undefined, playerHits: undefined, encounter: undefined, decoy: undefined, living: undefined, nemesis: undefined, nemesisWeak: undefined, nemesisDamage: undefined, vulnUntil: 0, vulnMult: 1, ...extra });
+  Object.assign(m, { alive: true, react: undefined, x, z, y: walkHeight(x, z) + 5, hp: 28 * (sim.challenge?.enemyHp ?? 1), maxHp: 28 * (sim.challenge?.enemyHp ?? 1), phase: 0 as BossPhaseIndex, rot: 0, scale: 2.3, zone: regionId, cool: 2, elite: true, boss: true, profile: boss.name, kind: factionOf(regionId), drop: boss.drop, kx: 0, kz: 0, poiseState: INITIAL_POISE, scenarioId: undefined, gimmickHistory: undefined, attuned: undefined, scenarioRun: undefined, playerHits: undefined, encounter: undefined, decoy: undefined, living: undefined, nemesis: undefined, nemesisWeak: undefined, nemesisDamage: undefined, vulnUntil: 0, vulnMult: 1, ...extra });
   sim.raidFight = { start: performance.now() / 1000, hurt: 0, region: regionId };
   alert(sim, `${boss.name} · ${boss.tell}`);
   return true;
@@ -814,7 +818,7 @@ export function summonBoss(sim: WorldSim, regionId: string, x: number, z: number
 export function summonScenarioBoss(sim: WorldSim, scenario: UniqueScenario, x: number, z: number, extra?: Partial<Machine>): boolean {
   const m = sim.machines.find((candidate) => !candidate.alive);
   if (!m) return false;
-  Object.assign(m, { alive: true, x, z, y: walkHeight(x, z) + 5, hp: 34 * (sim.challenge?.enemyHp ?? 1), maxHp: 34 * (sim.challenge?.enemyHp ?? 1), phase: 0 as BossPhaseIndex, rot: 0, scale: 2.5, zone: scenario.regionId, cool: 2, elite: true, boss: true, profile: scenario.bossName, kind: factionOf(scenario.regionId), drop: scenario.drop as MaterialId, kx: 0, kz: 0, poiseState: INITIAL_POISE, scenarioId: scenario.id, scenarioRun: `${scenario.id}-${Date.now().toString(36)}-${(sim.nextHitId++).toString(36)}-${Math.random().toString(36).slice(2, 8)}`, playerHits: 0, gimmickHistory: [], attuned: undefined, encounter: undefined, decoy: undefined, living: undefined, nemesis: undefined, nemesisWeak: undefined, nemesisDamage: undefined, vulnUntil: 0, vulnMult: 1, ...extra });
+  Object.assign(m, { alive: true, react: undefined, x, z, y: walkHeight(x, z) + 5, hp: 34 * (sim.challenge?.enemyHp ?? 1), maxHp: 34 * (sim.challenge?.enemyHp ?? 1), phase: 0 as BossPhaseIndex, rot: 0, scale: 2.5, zone: scenario.regionId, cool: 2, elite: true, boss: true, profile: scenario.bossName, kind: factionOf(scenario.regionId), drop: scenario.drop as MaterialId, kx: 0, kz: 0, poiseState: INITIAL_POISE, scenarioId: scenario.id, scenarioRun: `${scenario.id}-${Date.now().toString(36)}-${(sim.nextHitId++).toString(36)}-${Math.random().toString(36).slice(2, 8)}`, playerHits: 0, gimmickHistory: [], attuned: undefined, encounter: undefined, decoy: undefined, living: undefined, nemesis: undefined, nemesisWeak: undefined, nemesisDamage: undefined, vulnUntil: 0, vulnMult: 1, ...extra });
   m.scenarioT0 = performance.now() / 1000; m.scenarioDeaths0 = sim.deaths;
   sim.raidFight = { start: performance.now() / 1000, hurt: 0, region: scenario.regionId };
   alert(sim, `${scenario.name} · ${scenario.briefing}`);
@@ -1886,6 +1890,12 @@ export function stepSim(sim: WorldSim, input: SimInput) {
             sim.nullPulse = { id: (sim.nullPulse?.id ?? 0) + 1, x: m.x, z: m.z, radius: NULL_PULSE_RADIUS, at: nowS };
             alert(sim, "NULL DISRUPTION — pulse released");
           }
+        }
+        // (after the perks read the wind-up) flinch / stagger (enemy-reactions.ts): a stagger knocks a ranged wind-up back to the start (the shot is delayed, the telegraph stays readable) and holds the next attack
+        if (!m.rival && !m.decoy) {
+          const nowR = performance.now() / 1000, prevR = m.react;
+          m.react = reactTo(m.react, { damage: dmg, maxHp: m.maxHp ?? (m.elite ? 7 : 3.5), elite: m.elite, boss: m.boss, now: nowR, dx: m.x - px, dz: m.z - pz });
+          if (m.react !== prevR && isStaggeredNow(m.react, nowR)) { if ((m.aim ?? 0) > 0) m.aim = Math.max(m.aim ?? 0, windupFor(m)); stunMachine(m, m.react!.until - nowR + 0.25); }
         }
         if (!b.element && (sim.equippedElement === "CRYO" || sim.equippedElement === "ARC")) m.cool = Math.max(m.cool, sim.equippedElement === "CRYO" ? 0.9 : 0.6);
         sim.lastHit = performance.now();

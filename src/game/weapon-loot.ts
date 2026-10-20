@@ -3,6 +3,7 @@
  * entries of the master manifest (equipment.ts) turned into ordinary GearItems, so they equip, upgrade, sell and save like any other.
  * Power stays inside the established bands (80 / 95 / 110 / 125): nothing here inflates rewards. Pure; Math.random only at the call site. */
 import { WEAPON_MANIFEST, type WeaponManifestItem } from "./equipment";
+import { catalogFrom } from "./weapon-catalog";
 import type { GearItem, GearSlot, MaterialId } from "./inventory";
 
 export type LootSource = "enemy-regular" | "enemy-elite" | "enemy-boss" | "dungeon" | "mission";
@@ -11,7 +12,10 @@ export const SOURCE_POWER: Record<LootSource, number> = { "enemy-regular": 80, "
 const ELEMENT: Record<WeaponManifestItem["element"], GearItem["element"]> = { KINETIC: "KINETIC", PLASMA: "ARC", CRYO: "CRYO", ARC: "ARC", THERMAL: "THERMAL", VOID: "BIO" };
 const SLOT_OF = (w: WeaponManifestItem): GearSlot => (w.archetype === "HEAVY" ? "heavy" : w.archetype === "SIDEARM" ? "secondary" : "primary");
 /** only ordinary tiers can drop: T4+/S weapons stay behind forges, raids and signature rewards */
-const DROPPABLE = WEAPON_MANIFEST.filter((w) => w.tier === "T1" || w.tier === "T2" || w.tier === "T3");
+const DROPPABLE: WeaponManifestItem[] = WEAPON_MANIFEST.filter((w) => w.tier === "T1" || w.tier === "T2" || w.tier === "T3");
+/** the named catalogue (weapon-catalog.ts): its rare "loot" weapons drop from any enemy, its epic "boss" weapons from bosses */
+const ENEMY_POOL: WeaponManifestItem[] = [...DROPPABLE, ...catalogFrom("loot")];
+const BOSS_POOL: WeaponManifestItem[] = [...ENEMY_POOL, ...catalogFrom("boss")];
 const hash = (s: string) => { let h = 2166136261 >>> 0; for (const ch of s) { h ^= ch.charCodeAt(0); h = Math.imul(h, 16777619) >>> 0; } return h >>> 0; };
 
 function build(source: LootSource, w: WeaponManifestItem, id: string, label: string): GearItem {
@@ -21,7 +25,8 @@ function build(source: LootSource, w: WeaponManifestItem, id: string, label: str
 export function rollWeaponLoot(source: Extract<LootSource, `enemy-${string}`>, zone: string, roll: number, uniqueSuffix: string): GearItem | null {
   const chance = WEAPON_DROP_CHANCE[source];
   if (!(roll >= 0) || roll >= chance) return null;
-  const pick = DROPPABLE[hash(`${zone}|${roll}`) % DROPPABLE.length]!;
+  const pool = source === "enemy-boss" ? BOSS_POOL : ENEMY_POOL;
+  const pick = pool[hash(`${zone}|${roll}`) % pool.length]!;
   return build(source, pick, `drop-${pick.id}-${uniqueSuffix}`, `${source === "enemy-boss" ? "Boss" : source === "enemy-elite" ? "Elite" : "Enemy"} drop · ${zone}`);
 }
 /** One guaranteed, stable-id weapon per clear (dungeon or main mission): granting twice is impossible because the id is the key. */

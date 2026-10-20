@@ -7,6 +7,7 @@ import { REGIONS, NEON_OFFSET, scaleSite } from "./world";
 import { THALASSIA_CENTER } from "./thalassia-site";
 import { WEAPON_MANIFEST, ARMOR_MANIFEST, type WeaponTier, type ArmorTier } from "./equipment";
 import { listingToGearItem, type VendorListing } from "./vendors";
+import { CLASS_LABEL, weeklyCatalogStock } from "./weapon-catalog";
 import { upgradeGate } from "./upgrade-gates";
 import { upgradeGear, infuseGear, gearCost, type GearItem, type MaterialId } from "./inventory";
 import type { PlayerProgression } from "./progression";
@@ -115,6 +116,11 @@ export function shopOffers(shop: RegionalShop, day = today(), mult = 1): ShopOff
       const w = pool[Math.floor(rand() * pool.length)]!;
       const listing: VendorListing = { key: `${shop.id}-${w.id}`, kind: "weapon", item: w, price: 0, currency: "credits", power: WEAPON_POWER[w.tier] };
       offers.push({ key: listing.key, type: "gear", name: w.name, detail: `${w.tier} · ${w.archetype} · ${w.element} · POWER ${listing.power}`, price: Math.round(WEAPON_PRICE[w.tier] * shop.priceMult), minLevel: WEAPON_LEVEL[w.tier], listing });
+    }
+    // this week's named catalogue weapons (weapon-catalog.ts): a weekly rotation per shop, reset Monday 00:00 UTC
+    for (const w of weeklyCatalogStock(shop.id, day * 86_400_000).filter((c) => !heavy || c.archetype === "HEAVY")) {
+      const listing: VendorListing = { key: `${shop.id}-${w.id}`, kind: "weapon", item: w, price: 0, currency: "credits", power: WEAPON_POWER[w.tier] };
+      offers.push({ key: listing.key, type: "gear", name: w.name, detail: `WEEKLY · ${CLASS_LABEL[w.cls]} · ${w.rarity} · ${w.element} · POWER ${listing.power}`, price: Math.round(WEAPON_PRICE[w.tier] * shop.priceMult * 1.2), minLevel: WEAPON_LEVEL[w.tier], listing });
     }
   } else if (shop.kind === "armor" && shop.vendorTier) {
     // tiered city stock: collection pieces up to this city's tier, never raid/dungeon/exotic

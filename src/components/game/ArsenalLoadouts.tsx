@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { ArrowLeft, Check, Eye, Plus } from "lucide-react";
 import { WeaponInspection } from "./WeaponInspection";
+import { WeaponCatalogue } from "./WeaponCatalogue";
 import { Button } from "@/components/ui/button";
 import { WEAPONS, WEAPON_ORDER, type WeaponId } from "@/game/weapons";
 import { classById } from "@/game/loadout";
@@ -78,6 +79,7 @@ export function ArsenalLoadouts({ progression, onProgression, onBack, embedded =
           </div>
         </section>
       </div>
+      <div className="mx-auto max-w-6xl"><WeaponCatalogue progression={progression} /></div>
     </div>
   );
 }

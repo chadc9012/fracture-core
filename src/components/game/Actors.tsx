@@ -7,6 +7,7 @@ import { RoundedBox } from "@react-three/drei";
 import { useFrame } from "@react-three/fiber";
 import { useMemo, useRef, useState } from "react";
 import * as THREE from "three";
+import { isStaggeredNow, recoilAt } from "@/game/enemy-reactions";
 
 
 
@@ -259,10 +260,15 @@ export function WarMachines({ sim }: { sim: WorldSim }) {
       const gait = t * 3 + i;
       // rigged models walk with their own clips; only clip-less ones get the procedural bob/roll
       const bob = drive?.current.procedural === false ? 0 : 1;
-      node.position.set(m.x, m.y - 2.2 * m.scale + Math.abs(Math.sin(gait)) * 0.28 * bob, m.z);
-      node.rotation.set(Math.sin(gait) * 0.03 * bob, m.rot, Math.sin(gait * 0.5) * 0.05 * bob);
-      // attack telegraph: a fast pulse while the machine winds up a ranged shot
-      node.scale.setScalar(m.scale * ((m.aim ?? 0) > 0 ? 1 + Math.abs(Math.sin(t * 28)) * 0.1 : 1));
+      // hit reaction (enemy-reactions.ts): thrown back along the shot, hardest on a stagger, easing out
+      const nowS = performance.now() / 1000, kick = recoilAt(m.react, nowS), staggered = isStaggeredNow(m.react, nowS);
+      const back = kick * (staggered ? 0.55 : 0.18) * m.scale, rx = m.react?.dx ?? 0, rz = m.react?.dz ?? 0;
+      node.position.set(m.x + rx * back, m.y - 2.2 * m.scale + Math.abs(Math.sin(gait)) * 0.28 * bob, m.z + rz * back);
+      // lean: pitch away from the hit in the enemy's own frame
+      const c = Math.cos(m.rot), sn = Math.sin(m.rot), fwd = rx * sn + rz * c, side = rx * c - rz * sn, lean = kick * (staggered ? 0.32 : 0.1);
+      node.rotation.set(Math.sin(gait) * 0.03 * bob + fwd * lean, m.rot, Math.sin(gait * 0.5) * 0.05 * bob - side * lean);
+      // attack telegraph: a fast pulse while the machine winds up a ranged shot (a stagger cancels it)
+      node.scale.setScalar(m.scale * ((m.aim ?? 0) > 0 && !staggered ? 1 + Math.abs(Math.sin(t * 28)) * 0.1 : 1));
     });
   });
 
