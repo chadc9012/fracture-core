@@ -66,7 +66,7 @@ export function GaragePanel({ garageId, progression, onProgression, onSelectVehi
           <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3">
             {shown.map((f) => { const has = fleet.owned.includes(f.id), on = sel?.id === f.id; return <li key={f.id}>
               <button type="button" aria-pressed={on} onClick={() => { setPick(f.id); setConfirm(false); setNotice(""); }} className={`wf-card w-full text-left ${on ? "wf-card-on" : ""}`}>
-                <VehicleArt category={f.category} className="block aspect-[5/3] w-full" />
+                <VehicleArt category={f.category} hover={f.base === "aether-hoverbike"} className="block aspect-[5/3] w-full" />
                 <span className="block px-2 pt-1.5 text-[13px] font-medium leading-tight">{f.name}</span>
                 <span className="block px-2 text-[10px] uppercase tracking-wider text-muted-foreground">{CAT_LABEL[f.category]}</span>
                 <span className="flex items-center justify-between gap-1 px-2 pb-2 pt-1"><span className="truncate font-mono text-[10px] text-amber-300">{costText(f.cost)}</span><span className={`wf-chip shrink-0 ${has ? "wf-chip-owned" : ""}`}>{fleet.active === f.id ? "Active" : has ? "Owned" : "Buy"}</span></span>
@@ -88,7 +88,7 @@ function VehicleDetail({ f, progression, baseOwned, confirm, setConfirm, run }: 
   const homes = ownedDeeds(progression).filter((d) => d.bays > 0);
   const at = parkedAt(progression)[f.id];
   return <section className="wf-detail" aria-label={f.name}>
-    <VehicleArt category={f.category} className="block aspect-[16/9] w-full" />
+    <VehicleArt category={f.category} hover={f.base === "aether-hoverbike"} className="block aspect-[16/9] w-full" />
     <div className="p-4">
       <p className="ui-kicker">{CAT_LABEL[f.category]} · drives as {base.name}</p>
       <h3 className="mt-1 text-xl font-light uppercase tracking-[0.08em]">{f.name}</h3>

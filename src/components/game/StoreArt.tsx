@@ -53,10 +53,10 @@ export function HomeArt({ style, kind, city = "nexus", className = "" }: { style
 const CATEGORY_COLOR: Record<FleetEntry["category"], string> = { LAND: "#ff6b4a", AIR: "#7ad7ff", HEAVY: "#c9b089", AQUATIC: "#4ae3c9" };
 
 /** a vehicle class silhouette on a lit turntable */
-export function VehicleArt({ category, className = "" }: { category: FleetEntry["category"]; className?: string }) {
+export function VehicleArt({ category, hover = false, className = "" }: { category: FleetEntry["category"]; /** an anti-grav bike: no wheels, a glow under it */ hover?: boolean; className?: string }) {
   const c = CATEGORY_COLOR[category];
   const body = {
-    LAND: "M30 78 L52 62 L96 58 L122 66 L160 70 L168 82 L30 84 Z",
+    LAND: hover ? "M36 74 L70 64 L104 62 L120 54 L134 56 L126 64 L166 70 L170 76 L40 80 Z" : "M30 78 L52 62 L96 58 L122 66 L160 70 L168 82 L30 84 Z",
     HEAVY: "M26 82 L30 64 L70 60 L84 50 L120 50 L128 60 L170 64 L172 82 Z",
     AIR: "M20 70 L70 62 L110 44 L120 46 L104 62 L150 64 L178 52 L182 56 L168 72 L104 76 L22 74 Z",
     AQUATIC: "M24 70 L160 66 L178 72 L160 80 L40 82 Z",
@@ -70,7 +70,8 @@ export function VehicleArt({ category, className = "" }: { category: FleetEntry[
     <ellipse cx={100} cy={92} rx={64} ry={7} fill={c} fillOpacity={0.12} />
     {category === "AQUATIC" && <path d="M10 88 Q 40 82 70 88 T 130 88 T 190 88" fill="none" stroke={c} strokeOpacity={0.6} />}
     <path d={body} fill="#0b121c" stroke={c} strokeWidth={1.2} />
-    {category === "LAND" && [56, 140].map((x) => <circle key={x} cx={x} cy={84} r={9} fill="#05080d" stroke={c} strokeOpacity={0.7} />)}
+    {hover && <ellipse cx={100} cy={86} rx={56} ry={4} fill={c} fillOpacity={0.55} />}
+    {category === "LAND" && !hover && [56, 140].map((x) => <circle key={x} cx={x} cy={84} r={9} fill="#05080d" stroke={c} strokeOpacity={0.7} />)}
     {category === "HEAVY" && <><rect x={32} y={78} width={136} height={10} rx={5} fill="#05080d" stroke={c} strokeOpacity={0.7} /><rect x={96} y={52} width={56} height={3} fill={c} /></>}
     <path d={body} fill="none" stroke="#ffffff" strokeOpacity={0.25} strokeWidth={0.5} transform="translate(0,-1)" />
   </svg>;

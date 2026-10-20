@@ -63,9 +63,11 @@ export function WeaponInspection({ id, onClose }: { id: WeaponId; onClose: () =>
     <div className="mt-4 grid gap-5 lg:grid-cols-[minmax(0,1.5fr)_minmax(14rem,1fr)]">
       <div className="relative h-72 overflow-hidden border border-[var(--wf-line)]" style={{ background: "radial-gradient(ellipse at 50% 70%, #17384d, #050b14 70%)" }}>
         <Canvas camera={{ position: [0, 0.6, 3.2], fov: 38 }} dpr={[1, 1.75]}>
-          <ambientLight intensity={0.6} />
-          <directionalLight position={[3, 4, 5]} intensity={2.4} />
-          <directionalLight position={[-4, 1, -3]} intensity={1.2} color="#7fd6ff" />
+          {/* a studio rig: the weapons' authored materials are dark gunmetal, so key + rim + a cool fill */}
+          <hemisphereLight args={["#dff4ff", "#1a2430", 1.4]} />
+          <directionalLight position={[3, 4, 5]} intensity={3.4} />
+          <directionalLight position={[-4, 1.5, -3]} intensity={2.2} color="#7fd6ff" />
+          <pointLight position={[0, -1.5, 2]} intensity={6} distance={8} color="#9fe6ff" />
           <Quiet><Suspense fallback={null}><Model url={URL[handlingClass(id)]} /></Suspense></Quiet>
           <OrbitControls enablePan={false} minDistance={1.8} maxDistance={6} />
         </Canvas>

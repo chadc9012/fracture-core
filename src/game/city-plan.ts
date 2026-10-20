@@ -11,11 +11,13 @@ import { REGIONAL_SHOPS } from "./regional-shops";
 import { THALASSIA_CENTER } from "./thalassia-site";
 import { CITY_RADIUS, CORE, DOCK, RING } from "./thalassia-sectors";
 import type { Destination } from "./destination-director";
+import { NEON_FLAT } from "./world";
 
 export type PlanKind = "tower" | "home" | "garage" | "shop";
-export type PlanRect = { x: number; z: number; hx: number; hz: number; kind: PlanKind; /** 0..1 how tall, for the shading */ h: number; /** turned this much (radians, like the world: about +y) */ yaw?: number };
+export type PlanRect = { x: number; z: number; hx: number; hz: number; kind: PlanKind; /** 0..1 how tall, for the shading */ h: number; /** turned this much (radians, like the world: about +y) */ yaw?: number; /** its own lit colour (Neon towers' glow) */ glow?: string };
 export type PlanRing = { x: number; z: number; r: number; kind: "dome" | "ring" | "dock" };
-export type CityPlan = { rects: PlanRect[]; rings: PlanRing[] };
+/** `night`: the city reads as lit blocks on dark streets (Neon City), not daylight roofs */
+export type CityPlan = { rects: PlanRect[]; rings: PlanRing[]; ground?: { x: number; z: number; r: number; night: boolean } };
 
 const within = (d: Destination, x: number, z: number, reach: number) => Math.hypot(x - d.x, z - d.z) <= reach;
 
@@ -26,7 +28,7 @@ export function cityPlan(d: Destination, reach: number): CityPlan {
   if (hit) return hit;
   const rects: PlanRect[] = [], rings: PlanRing[] = [];
   if (d.id === "nexus") for (const b of buildings()) rects.push({ x: b.x, z: b.z, hx: b.w / 2, hz: b.d / 2, kind: "tower", h: Math.min(1, (b.top - b.base) / 120), yaw: b.yaw });
-  if (d.id === "neon-city") for (const t of neonLayoutWorld(neonKeepOut()).towers) { const [hx, hz] = TOWER_FOOTPRINT[t.variant]; rects.push({ x: t.x, z: t.z, hx: t.rot % 2 ? hz : hx, hz: t.rot % 2 ? hx : hz, kind: "tower", h: 0.8 }); }
+  if (d.id === "neon-city") for (const t of neonLayoutWorld(neonKeepOut()).towers) { const [hx, hz] = TOWER_FOOTPRINT[t.variant]; rects.push({ x: t.x, z: t.z, hx: t.rot % 2 ? hz : hx, hz: t.rot % 2 ? hx : hz, kind: "tower", h: 0.8, glow: t.glow }); }
   if (d.id === "thalassia") {
     const c = THALASSIA_CENTER;
     rings.push({ x: c.x, z: c.z, r: CITY_RADIUS, kind: "dome" }, { x: c.x, z: c.z, r: RING.outer, kind: "ring" }, { x: c.x, z: c.z, r: RING.inner, kind: "ring" }, { x: c.x, z: c.z, r: CORE.r * 0.6, kind: "ring" }, { x: c.x + DOCK.dx, z: c.z + DOCK.dz, r: DOCK.r, kind: "dock" });
@@ -39,7 +41,7 @@ export function cityPlan(d: Destination, reach: number): CityPlan {
     }
     for (const s of REGIONAL_SHOPS) if (within(d, s.x, s.z, reach)) rects.push({ x: s.x, z: s.z, hx: 2.2, hz: 2.2, kind: "shop", h: 0.1 });
   }
-  const plan = { rects: rects.filter((r) => within(d, r.x, r.z, reach)), rings };
+  const plan: CityPlan = { rects: rects.filter((r) => within(d, r.x, r.z, reach)), rings, ...(d.id === "neon-city" ? { ground: { x: d.x, z: d.z, r: NEON_FLAT, night: true } } : {}) };
   cache.set(key, plan);
   return plan;
 }
