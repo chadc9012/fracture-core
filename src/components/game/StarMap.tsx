@@ -40,7 +40,7 @@ export function StarMap({ progression, onBack, onDeploy, onProgression, embedded
   const city = CITY_DESTINATIONS.find((c) => c.id === cityId) ?? null;
   const pickRegion = (id: string) => { setCityId(null); setSelected(id); };
   const region = REGIONS.find((r) => r.id === (city ? city.regionId : selected))!;
-  const encounter = ENCOUNTERS.find((e) => e.regionId === selected);
+  const encounter = ENCOUNTERS.find((e) => e.regionId === region.id);
   const chapters = CHRONICLE.filter((c) => c.region === region.name);
   const deploy = () => {
     if (city && !city.deployable) return;
@@ -57,7 +57,7 @@ export function StarMap({ progression, onBack, onDeploy, onProgression, embedded
           {!embedded && <Button variant="ghost" size="sm" onClick={onBack} className="ui-focus font-mono"><ArrowLeft /> Hub</Button>}
           <h1 className="font-mono text-xl uppercase tracking-[0.25em] lg:text-2xl">Veyra · World Map</h1>
         </div>
-        <p className="ui-kicker">{REGIONS.length} destinations · {progression.completedMissions.length}/{CHRONICLE.length} chapters</p>
+        <p className="ui-kicker">{REGIONS.length + CITY_DESTINATIONS.length} destinations · {progression.completedMissions.length}/{CHRONICLE.length} chapters</p>
       </header>
 
       <div className="relative my-3 grid min-h-0 flex-1 grid-cols-1 gap-4 lg:grid-cols-4">
