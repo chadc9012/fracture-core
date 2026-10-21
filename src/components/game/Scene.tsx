@@ -173,6 +173,7 @@ import * as sfx from "@/game/audio";
 import { setVoiceLoad } from "@/game/voice-director";
 import { RegionLighting } from "./RegionLighting";
 import { ShopStalls } from "./ShopStalls";
+import { Storefronts } from "./Storefronts";
 import { SkyBodies } from "./SkyBodies";
 import { SkyDome } from "./SkyDome";
 import { BrokenHorizon } from "./BrokenHorizon";
@@ -2932,6 +2933,7 @@ function SceneImpl({
       <group name="iso:water"><Water size={WORLD_RADIUS * 4} sunRef={sunDir} styleRef={waterStyle} tier={settings.renderTier} /><Rivers sunRef={sunDir} /></group>
       <LootCaches opened={openedCaches} />
       <ShopStalls />
+      <Storefronts />
       <NearOnly playerRef={player} x={NEXUS_REGION.x} z={NEXUS_REGION.z} radius={330 * NEAR_SCALE[settings.renderTier]} name="city:nexus"><NexusCity sim={sim} />{gear && <ResidenceGarages city="nexus" progression={{ nexLedger: gear.nexLedger ?? {}, housing: gear.housing, fleet: gear.fleet }} />}</NearOnly>
       <NearOnly playerRef={player} x={NEON_CITY_CENTER.x} z={NEON_CITY_CENTER.z} radius={300 * NEAR_SCALE[settings.renderTier]} name="city:neon"><NeonCity />{gear && <ResidenceGarages city="neon" progression={{ nexLedger: gear.nexLedger ?? {}, housing: gear.housing, fleet: gear.fleet }} />}</NearOnly>
       {(() => { const rg = REGIONS.find((r) => r.id === "frostspire"); return rg ? <NearOnly playerRef={player} x={rg.x} z={rg.z} radius={(rg.radius + 220) * NEAR_SCALE[settings.renderTier]} name="region:frostspire"><FrostspireDressing /></NearOnly> : null; })()}
