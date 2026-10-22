@@ -5,6 +5,8 @@ import type { GearItem } from "@/game/inventory";
 import { REGIONAL_SHOPS, SHOP_KIND_LABEL, shopLock, shopOffers, shopPriceMult, buyOffer, serviceTargets, serviceGear, serviceFee } from "@/game/regional-shops";
 import { FACTIONS, SHOP_FACTION, TIER_RULES, tierOf, EMPTY_LIVING } from "@/game/living-world";
 import { canSellDuplicate, sellDuplicate, sellValue } from "@/game/stash";
+import { shopAccessKind } from "@/game/shop-access";
+import { comparePrice, sortOffers, type OfferSort } from "@/game/shop-compare";
 
 const ELEMENTS: GearItem["element"][] = ["THERMAL", "CRYO", "ARC", "BIO"];
 
@@ -13,6 +15,10 @@ export function ShopWindow({ shopId, progression, onProgression, onClose }: { sh
   const [notice, setNotice] = useState("");
   const [element, setElement] = useState<GearItem["element"]>("THERMAL");
   const [sale, setSale] = useState<string | null>(null);
+  const [sort, setSort] = useState<OfferSort>("default");
+  const [affordable, setAffordable] = useState(false);
+  const [preview, setPreview] = useState<string | null>(null);
+  const [confirm, setConfirm] = useState<string | null>(null);
   const mult = shop ? shopPriceMult(shop, progression) : 1;
   const offers = useMemo(() => (shop ? shopOffers(shop, undefined, mult) : []), [shop, mult]);
   if (!shop) return null;
@@ -20,6 +26,8 @@ export function ShopWindow({ shopId, progression, onProgression, onClose }: { sh
   const ownerTier = owner ? tierOf(progression.living ?? EMPTY_LIVING, owner) : null;
   const lock = shopLock(shop, progression);
   const funds = progression.materials[shop.currency] ?? 0;
+  const access = shopAccessKind(shop.id);
+  const visible = sortOffers(offers, sort, funds, affordable);
   const targets = serviceTargets(shop, progression);
   const duplicates = progression.inventory.filter((item) => canSellDuplicate(progression, item));
   const pendingSale = duplicates.find((item) => item.id === sale);
@@ -53,17 +61,43 @@ export function ShopWindow({ shopId, progression, onProgression, onClose }: { sh
           </div>}
         </section>}
         {!lock && offers.length > 0 && (
-          <div className="mt-4 space-y-2">
-            {offers.map((o) => {
-              const lvl = progression.level < o.minLevel;
-              return (
-                <div key={o.key} className="flex flex-wrap items-center justify-between gap-3 border border-border p-3">
-                  <div><p className="font-mono text-sm">{o.name}</p><p className="text-[10px] text-muted-foreground">{o.detail}</p></div>
-                  <Button size="sm" variant="outline" disabled={lvl || funds < o.price} onClick={() => apply(buyOffer(progression, shop, o))}>{lvl ? `Level ${o.minLevel}` : `${o.price} ${shop.currency}`}</Button>
-                </div>
-              );
-            })}
-          </div>
+          <section className="mt-4">
+            <div className="flex flex-wrap items-center gap-2">
+              <p className="mr-auto font-mono text-[9px] uppercase tracking-[0.3em] text-muted-foreground">{access === "interior" ? "In-store stock" : access === "window" ? "Window display" : "On the table"} · {visible.length} items</p>
+              {(["default", "price-asc", "price-desc"] as OfferSort[]).map((s) => <Button key={s} size="sm" variant={sort === s ? "default" : "outline"} onClick={() => setSort(s)}>{s === "default" ? "Featured" : s === "price-asc" ? "Price ↑" : "Price ↓"}</Button>)}
+              <Button size="sm" variant={affordable ? "default" : "outline"} onClick={() => setAffordable((v) => !v)}>Can afford</Button>
+            </div>
+            <div className="mt-2 space-y-2">
+              {visible.map((o) => {
+                const lvl = progression.level < o.minLevel;
+                const open = preview === o.key;
+                const cmp = open ? comparePrice(shop, o) : null;
+                return (
+                  <div key={o.key} className={`border p-3 ${open ? "border-primary" : "border-border"}`}>
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <button className="min-w-0 text-left" onClick={() => { setPreview(open ? null : o.key); setConfirm(null); }} aria-expanded={open}>
+                        <p className="font-mono text-sm">{o.name}</p><p className="text-[10px] text-muted-foreground">{o.detail}</p>
+                      </button>
+                      <Button size="sm" variant="outline" disabled={lvl || funds < o.price} onClick={() => { setPreview(o.key); setConfirm(o.key); }}>{lvl ? `Level ${o.minLevel}` : `${o.price} ${shop.currency}`}</Button>
+                    </div>
+                    {open && cmp && <div className="mt-3 grid gap-1 border-t border-border pt-2 text-xs">
+                      <p>Type: {o.type === "gear" ? "Weapon / gear" : o.type === "piece" ? "Armor piece" : "Materials"} · Requires level {o.minLevel}</p>
+                      <p>After purchase: {funds - o.price} {shop.currency}{funds < o.price ? ` (short ${o.price - funds})` : ""}</p>
+                      <p className={cmp.delta == null ? "text-muted-foreground" : cmp.delta > 0 ? "text-destructive" : "text-primary"}>
+                        {cmp.cheapest ? cmp.delta! > 0 ? `${cmp.delta} cheaper at ${cmp.cheapest.shopName} (${cmp.cheapest.place})` : cmp.delta === 0 ? `Same price at ${cmp.cheapest.shopName}` : `Best price — ${-cmp.delta!} less than ${cmp.cheapest.shopName}` : "Only stocked here today"}
+                      </p>
+                    </div>}
+                    {confirm === o.key && <div role="alertdialog" aria-label="Confirm purchase" className="mt-3 flex flex-wrap items-center gap-2 border border-primary p-2 text-xs">
+                      <span className="mr-auto">Buy {o.name} for {o.price} {shop.currency}?</span>
+                      <Button size="sm" onClick={() => { apply(buyOffer(progression, shop, o)); setConfirm(null); }}>Buy</Button>
+                      <Button size="sm" variant="outline" onClick={() => setConfirm(null)}>Cancel</Button>
+                    </div>}
+                  </div>
+                );
+              })}
+              {visible.length === 0 && <p className="text-xs text-muted-foreground">Nothing here you can afford yet.</p>}
+            </div>
+          </section>
         )}
         {!lock && (shop.kind === "gunsmith" || shop.kind === "mods" || shop.kind === "vehicles") && (
           <div className="mt-5">
