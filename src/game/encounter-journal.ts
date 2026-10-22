@@ -27,6 +27,26 @@ const AUTHORED: Record<string, readonly Clue[]> = {
     { id: "rumour", route: "npc", text: "Racers whisper about a masked rival who takes impossible routes and vanishes before the finish." },
     { id: "shortcut", route: "world", text: "A hidden shortcut in Neon City's underground network does not appear on any map." },
   ],
+  "king-beneath": [
+    { id: "screens", route: "world", text: "Every screen in the Undercity flickers the same red eye at the same moment." },
+    { id: "fixer", route: "npc", text: "A Syndicate fixer swears the city's machines answer to something below the dens." },
+  ],
+  "clockwork-saint": [
+    { id: "frozen-clock", route: "world", text: "A survey camp clock in Frostspire runs backwards, then forwards, then stops." },
+    { id: "echo", route: "combat", text: "An enemy you just defeated stands up again for a moment, then shatters like glass." },
+  ],
+  "abyssal-leviathan": [
+    { id: "current", route: "world", text: "A current below Thalassia pulls toward the trench even when the sea is calm." },
+    { id: "diver", route: "npc", text: "A dock worker says the deep ruins have a heartbeat." },
+  ],
+  "eternal-huntress": [
+    { id: "arrows", route: "world", text: "Arrows with no fletching are buried in the Mistwood trees, all aimed at the same clearing." },
+    { id: "fog", route: "combat", text: "Something in the fog watches your fights and never fires twice from the same place." },
+  ],
+  "iron-behemoth": [
+    { id: "tracks", route: "world", text: "Tread marks wider than a road lead into an abandoned Wastelands military complex." },
+    { id: "legion", route: "npc", text: "The Sub-Terra Legion keeps a gate sealed against a machine that is still running." },
+  ],
   vyrak: [
     { id: "inscription", route: "world", text: "An inscription in Solara describes a sky sovereign that tests courage, not strength." },
     { id: "ember", route: "npc", text: "A ranger remembers a dragon that remembers the world before the Fracture." },

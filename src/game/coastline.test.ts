@@ -15,7 +15,7 @@ describe("coastline", () => {
     const bad: string[] = [];
     for (const r of REGIONS) if (!dry(r.x, r.z)) bad.push(`region ${r.id}`);
     for (const l of LANDMARKS) if (l.type !== "ocean" && l.regionId !== "thalassia" && !dry(l.x, l.z)) bad.push(`landmark ${l.id}`);
-    for (const m of [...RESOURCE_SITES, ...BOSS_LAIRS, ...SCENARIO_LAIRS]) if (m.id !== "scenario-drowned-monarch" && !dry(m.x, m.z)) bad.push(`${m.kind} ${m.id}`);
+    for (const m of [...RESOURCE_SITES, ...BOSS_LAIRS, ...SCENARIO_LAIRS]) if (m.id !== "scenario-drowned-monarch" && m.id !== "scenario-abyssal-leviathan" && !dry(m.x, m.z)) bad.push(`${m.kind} ${m.id}`);
     for (const p of [FOREST_SPAWN, CRASH_SITE, ...TRAIL]) if (!dry(p.x, p.z)) bad.push("verdant point");
     expect(bad).toEqual([]);
   });

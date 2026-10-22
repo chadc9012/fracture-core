@@ -26,7 +26,6 @@ export function AbilityFx({ sim, reducedMotion }: { sim: WorldSim; reducedMotion
   useFrame(() => {
     const g = root.current;
     if (!g) return;
-    drawSignature(sig.current, slots.current, performance.now() / 1000, reducedMotion, color);
     const now = performance.now() / 1000;
     for (const e of sim.abilityEvents) {
       if (e.id <= seen.current) continue;
@@ -40,7 +39,7 @@ export function AbilityFx({ sim, reducedMotion }: { sim: WorldSim; reducedMotion
       if (!node) return;
       const f = slot ? fxFrame(now - slot.start, slot.style, slot.r, reducedMotion) : null;
       node.visible = !!f?.active;
-      if (!slot || !f?.active) { if (slot && f && !f.active && now - slot.start > Math.max(1, Math.min(20, slot.dur))) slots.current[i] = null; return; }
+      if (!slot || !f?.active) { if (slot && f && !f.active) slots.current[i] = null; return; }
       node.position.set(slot.x, walkHeight(slot.x, slot.z) + 0.2, slot.z);
       const [ring, dome, pillar, burst] = node.children as THREE.Mesh[];
       const tint = (m: THREE.Mesh | undefined, c: string, o: number) => { const mat = m?.material as THREE.MeshBasicMaterial | undefined; if (mat) { mat.color.copy(color.set(c)); mat.opacity = o; } };
@@ -51,6 +50,8 @@ export function AbilityFx({ sim, reducedMotion }: { sim: WorldSim; reducedMotion
       pillar!.scale.set(1.2 * (1 - f.t * 0.6), f.pillarHeight, 1.2 * (1 - f.t * 0.6)); pillar!.position.y = f.pillarHeight / 2; tint(pillar, slot.style.core, f.opacity * 0.7);
       burst!.scale.setScalar(Math.max(0.2, f.ringScale * 0.45 * (0.4 + f.t))); burst!.position.y = 0.8; tint(burst, slot.style.core, f.opacity * 0.6);
     });
+    // Update after expiration, so pooled signature meshes cannot persist beyond the cast.
+    drawSignature(sig.current, slots.current, now, reducedMotion, color);
   });
 
   const mat = <meshBasicMaterial transparent depthWrite={false} blending={THREE.AdditiveBlending} toneMapped={false} side={THREE.DoubleSide} fog={false} />;

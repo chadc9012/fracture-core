@@ -105,3 +105,27 @@ export function triumphs(p: Pick<PlayerProgression, "completedMissions" | "earne
   ];
   return { list, score: list.reduce((n, t) => n + (t.done >= t.goal ? t.score : 0), 0) };
 }
+
+/** Power Level and attributes if `id` were equipped in its slot (the inventory/character compare read-out); same paths as the sheet */
+export function sheetIfEquipped(p: Save, id: string): { power: number; attributes: Sheet["attributes"] } | null {
+  const item = p.inventory.find((i) => i.id === id);
+  if (!item) return null;
+  const next = { inventory: p.inventory, equippedGear: { ...p.equippedGear, [item.slot]: id } };
+  const a = loadoutAttributes(next);
+  return { power: powerLevel(next), attributes: [{ label: "Mobility", value: Math.round(a.effective.mobility) }, { label: "Defense", value: Math.round(a.effective.defense) }, { label: "Intellect", value: Math.round(a.effective.intellect) }] };
+}
+
+export type AppearancePatch = Partial<Record<"armor" | "cloth" | "visor" | "trim" | "callsign", string>>;
+const HEX = /^#[0-9a-f]{6}$/i;
+/** Character menu appearance edit: saved on the confirmed character (the same record the forge writes and session-restore
+ * reads), so it survives reloads and cloud merges. Colours must be #rrggbb; the callsign is trimmed, upper-cased, max 16.
+ * Without a confirmed character nothing changes (the forge creates one). */
+export function updateAppearance<T extends Pick<PlayerProgression, "character">>(p: T, patch: AppearancePatch): T {
+  const c = p.character;
+  if (!c) return p;
+  const next = { ...c.appearance };
+  for (const k of ["armor", "cloth", "visor", "trim"] as const) { const v = patch[k]; if (v !== undefined && HEX.test(v)) next[k] = v.toLowerCase(); }
+  if (patch.callsign !== undefined) { const s = patch.callsign.trim().toUpperCase().slice(0, 16); if (s) next.callsign = s; }
+  if (JSON.stringify(next) === JSON.stringify(c.appearance)) return p;
+  return { ...p, character: { ...c, appearance: next } };
+}

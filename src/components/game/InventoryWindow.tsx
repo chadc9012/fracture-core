@@ -1,42 +1,147 @@
-import { useState } from "react";
-import { Anvil, CarFront, Crosshair, Diamond, Heart, Package, Shield, Trash2, X } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { GearEvaluation } from "./GearEvaluation";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Anvil, Diamond, Heart, Shield, Trash2, X } from "lucide-react";
 import { MATERIALS, gearCost, infuseGear, upgradeGear, type GearItem, type GearSlot } from "@/game/inventory";
 import type { PlayerProgression } from "@/game/progression";
-import inventoryArt from "@/assets/inventory-reference.jpg.asset.json";
-import { CornerBrackets } from "./HudChrome";
+import { SLOT_NAME, characterSheet, equipItem, sheetIfEquipped, tierOf } from "@/game/character-sheet";
+import type { AppearanceDefinition, ClassId } from "@/game/loadout";
 import { StashCrafting, StashItemActions, StashVault } from "./StashPanels";
 import { dismantle as dismantleForParts, inVault } from "@/game/stash";
+import { AttributeBars, CompareCards, GearTile } from "./GearUi";
+import { CharacterPreview } from "./CharacterScreen";
 
-const SLOTS: { id: GearSlot; label: string }[] = [
-  { id: "primary", label: "Primary" }, { id: "secondary", label: "Secondary" }, { id: "heavy", label: "Heavy" },
-  { id: "helmet", label: "Helmet" }, { id: "chest", label: "Chest" }, { id: "gauntlets", label: "Gauntlets" },
-  { id: "classItem", label: "Class Item" }, { id: "legs", label: "Legs" }, { id: "vehicle", label: "Vehicle" },
-];
-const iconFor = (slot: GearSlot) => slot === "vehicle" ? CarFront : ["primary", "secondary", "heavy"].includes(slot) ? Crosshair : Shield;
+/** Inventory manager in the shared operator-menu look (owner's Destiny / WF inventory references): the operator in the
+ * middle wearing the equipped gear with weapons left and armor right, the armory grid by category, and the selected item
+ * compared against what is worn with Equip / Favorite / Dismantle. Every number comes from the save. */
+const WEAPONS: GearSlot[] = ["primary", "secondary", "heavy"];
+const ARMOR: GearSlot[] = ["helmet", "gauntlets", "chest", "legs", "classItem"];
+type Tab = "ARMORY" | "VAULT" | "MATERIALS" | "CRAFTING";
+type Filter = "ALL" | "WEAPONS" | "ARMOR" | "VEHICLES";
+const FILTER_SLOTS: Record<Filter, GearSlot[] | null> = { ALL: null, WEAPONS: WEAPONS, ARMOR: ARMOR, VEHICLES: ["vehicle"] };
+const TIER_RANK = { EXOTIC: 0, LEGENDARY: 1, RARE: 2, COMMON: 3 } as const;
 
-export function InventoryWindow({ progression, onProgression, onClose }: { progression: PlayerProgression; onProgression: (next: PlayerProgression) => void; onClose: () => void }) {
-  const [selectedId, setSelectedId] = useState(progression.inventory[0]?.id ?? "");
-  const [tab, setTab] = useState<"ARMORY" | "VAULT" | "MATERIALS" | "CRAFTING">("ARMORY");
+export function InventoryWindow({ progression, onProgression, onClose, classId, appearance }: {
+  progression: PlayerProgression; onProgression: (next: PlayerProgression) => void; onClose: () => void;
+  /** the live operator (shown wearing the equipped gear); omitted = no 3D preview */
+  classId?: ClassId; appearance?: AppearanceDefinition;
+}) {
+  const [selectedId, setSelectedId] = useState(progression.equippedGear.primary ?? progression.inventory[0]?.id ?? "");
+  const [tab, setTab] = useState<Tab>("ARMORY");
+  const [filter, setFilter] = useState<Filter>("ALL");
   const selected = progression.inventory.find((item) => item.id === selectedId);
   const cost = selected ? gearCost(selected) : null;
   const equipped = (item: GearItem) => progression.equippedGear[item.slot] === item.id;
+  const sheet = characterSheet(progression);
+  const preview = selected && !equipped(selected) ? sheetIfEquipped(progression, selected.id) : null;
+  const latest = useRef(onClose); latest.current = onClose;
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") { e.preventDefault(); latest.current(); } };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+
+  const armory = useMemo(() => {
+    const slots = FILTER_SLOTS[filter];
+    return progression.inventory.filter((g) => !inVault(progression, g.id) && (!slots || slots.includes(g.slot)))
+      .sort((a, b) => TIER_RANK[tierOf(a)] - TIER_RANK[tierOf(b)] || b.power - a.power);
+  }, [progression, filter]);
+  const storedCount = progression.inventory.filter((g) => !inVault(progression, g.id)).length;
+
   const toggleFavorite = (item: GearItem) => onProgression({ ...progression, inventory: progression.inventory.map((entry) => entry.id === item.id ? { ...entry, favorite: !entry.favorite } : entry) });
+  const canDismantle = (item: GearItem) => !(item.favorite || equipped(item) || item.source === "Starting loadout");
   const dismantle = (item: GearItem) => {
-    if (item.favorite || equipped(item) || item.source === "Starting loadout") return;
+    if (!canDismantle(item)) return;
     onProgression(dismantleForParts(progression, item.id));
     setSelectedId(progression.inventory.find((entry) => entry.id !== item.id)?.id ?? "");
   };
-  return <div className="wf-shell fixed inset-0 z-50 overflow-y-auto bg-background/95 text-foreground hud-scanline" role="dialog" aria-modal="true" aria-label="Inventory">
-    <div className="mx-auto max-w-7xl px-4 py-5 sm:px-7">
-      <header className="flex items-start justify-between gap-3 border-b border-primary/30 pb-5"><div><p className="hud-label">WF / Operator systems</p><h2 className="mt-1 font-mono text-3xl font-semibold" style={{ textShadow: "0 0 18px color-mix(in oklch, var(--primary) 30%, transparent)" }}>INVENTORY <span className="text-muted-foreground">// FRACTURE ADEPT IV</span></h2></div><Button size="icon" variant="outline" className="hud-panel border-0" onClick={onClose} aria-label="Close inventory"><X /></Button></header>
-      <div className="mt-4 flex gap-2" role="tablist" aria-label="Inventory sections">{(["ARMORY", "VAULT", "MATERIALS", "CRAFTING"] as const).map((name) => <Button key={name} role="tab" aria-selected={tab === name} variant={tab === name ? "default" : "outline"} className={tab === name ? "hud-glow" : "hud-panel border-0"} onClick={() => setTab(name)}>{name}</Button>)}</div>
-      <div className="mt-5 grid gap-6 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.4fr)_minmax(16rem,0.75fr)]">
-        <section className="min-w-0"><p className="hud-label mb-3">Loadout / {Object.keys(progression.equippedGear).length} equipped</p><div className="grid grid-cols-2 gap-2">{SLOTS.map(({ id, label }) => { const item = progression.inventory.find((entry) => entry.id === progression.equippedGear[id]); const Icon = iconFor(id); return <Button key={id} variant="ghost" onClick={() => item && setSelectedId(item.id)} className={`hud-panel relative h-auto min-h-20 flex-col items-start gap-0 p-2 text-left whitespace-normal ${item && selectedId === item.id ? "hud-glow" : ""}`}><CornerBrackets size={6} /><Icon className="mb-1 size-4 text-primary" style={{ filter: "drop-shadow(0 0 3px var(--primary))" }} /><span className="hud-label !text-[9px]">{label}</span><span className="block text-xs font-semibold">{item?.name ?? "Empty"}</span></Button>; })}</div><div className="mt-5 border-t border-primary/20 pt-4"><p className="hud-label">Field condition</p><div className="mt-2 grid grid-cols-3 gap-2 text-center text-xs">{[["89%", "DURABILITY"], [String(progression.inventory.filter(equipped).reduce((sum, item) => sum + item.power, 0)), "POWER"], ["76%", "STABILITY"]].map(([value, label]) => <span key={label} className="hud-panel relative p-2 text-primary"><CornerBrackets size={5} />{value}<small className="hud-label !mb-0 block">{label}</small></span>)}</div></div></section>
-        <section className="min-w-0"><div className="flex justify-between hud-label"><span>Armory</span><span>{progression.inventory.filter((g) => !inVault(progression, g.id)).length} / 120 Capacity</span></div>{tab === "VAULT" ? <StashVault progression={progression} onProgression={onProgression} onSelect={setSelectedId} /> : tab === "ARMORY" ? <div className="mt-3 grid grid-cols-3 gap-2 sm:grid-cols-4 xl:grid-cols-5">{progression.inventory.filter((g) => !inVault(progression, g.id)).map((item) => { const Icon = iconFor(item.slot); return <Button key={item.id} variant="ghost" onClick={() => setSelectedId(item.id)} className={`hud-panel relative h-24 flex-col items-start justify-between p-2 text-left whitespace-normal ${selectedId === item.id ? "hud-glow" : ""}`}><CornerBrackets size={5} /><Icon className="size-5 text-primary" style={{ filter: "drop-shadow(0 0 3px var(--primary))" }} /><span className="line-clamp-2 w-full text-[10px] leading-tight">{item.name}</span><span className="text-[9px] text-muted-foreground">{item.element} · {item.power}</span>{item.favorite && <Heart className="absolute right-1 top-1 size-3 fill-current text-destructive" style={{ filter: "drop-shadow(0 0 3px var(--destructive))" }} />}</Button>; })}</div> : tab === "MATERIALS" ? <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">{Object.entries(MATERIALS).map(([id, material]) => <div key={id} className="hud-panel relative min-h-24 p-3"><CornerBrackets /><Diamond className="size-4 text-primary" style={{ filter: "drop-shadow(0 0 3px var(--primary))" }} /><p className="mt-2 text-sm font-medium">{material.name} <b className="text-primary">×{progression.materials[id as keyof typeof MATERIALS] ?? 0}</b></p><p className="mt-1 text-[10px] text-muted-foreground">{material.source}</p></div>)}</div> : <><StashCrafting progression={progression} onProgression={onProgression} /><div className="hud-panel hud-glow relative mt-3 p-5"><CornerBrackets /><Anvil className="size-6 text-primary" style={{ filter: "drop-shadow(0 0 4px var(--primary))" }} /><h3 className="mt-3 text-lg font-semibold">Field forge</h3><p className="mt-2 text-sm text-muted-foreground">Select gear to upgrade its power or apply an elemental infusion. Materials come from regional troops, bosses, and salvage.</p><img src={inventoryArt.url} alt="Inventory concept showing armor, weapons, materials and loadout" className="mt-5 w-full border border-primary/30" /></div></>}</section>
-        <aside className="min-w-0 border-t border-primary/20 pt-4 lg:border-l lg:border-t-0 lg:pl-5 lg:pt-0">{selected ? <><p className="hud-label">{selected.slot} / level {selected.level}</p><h3 className="mt-2 text-2xl font-semibold">{selected.name}</h3><div className="hud-panel hud-glow relative my-5 flex aspect-[4/3] items-center justify-center"><CornerBrackets /><Package className="size-20 text-primary/70" strokeWidth={0.7} style={{ filter: "drop-shadow(0 0 8px color-mix(in oklch, var(--primary) 50%, transparent))" }} /></div><dl className="grid grid-cols-2 gap-y-2 border-b border-primary/20 pb-4 text-sm"><dt className="text-muted-foreground">Power</dt><dd>{selected.power}</dd><dt className="text-muted-foreground">Element</dt><dd>{selected.element}</dd><dt className="text-muted-foreground">Source</dt><dd>{selected.source}</dd></dl><GearEvaluation progression={progression} item={selected} /><div className="mt-4 flex flex-wrap gap-2"><Button size="sm" className="hud-glow" disabled={equipped(selected) || inVault(progression, selected.id)} onClick={() => onProgression({ ...progression, equippedGear: { ...progression.equippedGear, [selected.slot]: selected.id } })}><Shield /> {equipped(selected) ? "Equipped" : "Equip"}</Button><Button size="sm" variant="outline" className="hud-panel border-0" onClick={() => toggleFavorite(selected)}><Heart className={selected.favorite ? "fill-current" : ""} /> {selected.favorite ? "Favorited" : "Favorite"}</Button><Button size="sm" variant="outline" className="hud-panel border-0" disabled={selected.favorite || equipped(selected) || selected.source === "Starting loadout"} onClick={() => dismantle(selected)}><Trash2 /> Dismantle</Button></div><StashItemActions progression={progression} item={selected} onProgression={onProgression} onRemoved={() => setSelectedId(progression.inventory.find((e) => e.id !== selected.id)?.id ?? "")} /><div className="mt-6 border-t border-primary/20 pt-4"><p className="hud-label">Upgrade & infusion</p><Button className="hud-panel mt-3 w-full border-0" variant="outline" disabled={!cost || (progression.materials[cost.material] ?? 0) < cost.amount} onClick={() => onProgression(upgradeGear(progression, selected.id))}><Anvil /> Upgrade · {cost ? `${cost.amount} ${MATERIALS[cost.material].name}` : ""}</Button><div className="mt-3 grid grid-cols-3 gap-1">{(["THERMAL", "CRYO", "ARC", "BIO"] as const).map((element) => { const material = element === "THERMAL" ? "thermalShards" : element === "CRYO" ? "cryoCrystal" : element === "BIO" ? "bioCatalyst" : "microCircuits"; return <Button key={element} size="sm" variant="outline" className="hud-panel h-auto min-h-10 whitespace-normal border-0 text-[10px]" disabled={selected.element === element || (progression.materials[material] ?? 0) < 3} onClick={() => onProgression(infuseGear(progression, selected.id, element))}>{element}</Button>; })}</div><p className="mt-2 text-xs text-muted-foreground">Infusion costs 3 matching materials.</p></div></> : <p className="text-sm text-muted-foreground">No item selected.</p>}</aside>
+  const equip = (item: GearItem) => onProgression(equipItem(progression, item.slot, item.id));
+  const worn = (slot: GearSlot) => progression.inventory.find((g) => g.id === progression.equippedGear[slot]) ?? null;
+  const callsign = progression.character?.appearance.callsign ?? progression.character?.displayName ?? "Operator";
+
+  return (
+    <div className="wf-op fixed inset-0 z-50 flex flex-col overflow-hidden" role="dialog" aria-modal="true" aria-label="Inventory">
+      <header className="wf-op-head">
+        <div className="flex items-baseline gap-3">
+          <h2 className="text-3xl font-bold uppercase tracking-[0.12em] text-[#f1e3c0]">Inventory</h2>
+          <span className="text-2xl font-semibold uppercase tracking-[0.1em] text-[#9fd8e8]">// {callsign}</span>
+        </div>
+        <nav className="flex items-center" role="tablist" aria-label="Inventory sections">
+          {(["ARMORY", "VAULT", "MATERIALS", "CRAFTING"] as const).map((name) => <button key={name} type="button" role="tab" aria-selected={tab === name} className="wf-op-tab" onClick={() => setTab(name)}>{name}</button>)}
+        </nav>
+        <div className="flex items-center gap-4">
+          <div className="text-right"><p className="wf-op-kicker !text-[10px]">Power</p><p className="text-3xl font-bold leading-none text-[#7fe0ff]">◆{sheet.power}</p></div>
+          <button type="button" className="wf-op-btn !px-2.5" onClick={onClose} aria-label="Close inventory"><X className="size-5" /></button>
+        </div>
+      </header>
+
+      <div className="grid min-h-0 flex-1 gap-4 overflow-y-auto p-4 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,1.25fr)_minmax(20rem,0.95fr)] lg:overflow-hidden">
+        {/* ---------------- loadout: weapons | operator | armor ---------------- */}
+        <section className="wf-op-panel flex min-h-0 flex-col p-3" aria-label="Loadout">
+          <p className="wf-op-kicker">Loadout</p>
+          <div className="mt-2 grid flex-1 grid-cols-[auto_minmax(0,1fr)_auto] items-start gap-2">
+            <div className="flex flex-col gap-2">
+              {WEAPONS.map((s) => { const it = worn(s); return <GearTile key={s} slot={s} item={it} equipped selected={!!it && it.id === selectedId} onClick={() => { if (it) setSelectedId(it.id); else { setFilter("WEAPONS"); setTab("ARMORY"); } }} />; })}
+              <GearTile slot="vehicle" item={worn("vehicle")} equipped size="sm" selected={worn("vehicle")?.id === selectedId} onClick={() => { const it = worn("vehicle"); if (it) setSelectedId(it.id); else setFilter("VEHICLES"); }} />
+            </div>
+            <div className="wf-op-stage min-h-[16rem] self-stretch">
+              {classId && appearance ? <CharacterPreview appearance={appearance} classId={classId} progression={progression} /> : <div className="grid h-full place-items-center text-white/30"><Shield className="size-16" strokeWidth={1} /></div>}
+            </div>
+            <div className="flex flex-col gap-2">
+              {ARMOR.map((s) => { const it = worn(s); return <GearTile key={s} slot={s} item={it} equipped selected={!!it && it.id === selectedId} onClick={() => { if (it) setSelectedId(it.id); else { setFilter("ARMOR"); setTab("ARMORY"); } }} />; })}
+            </div>
+          </div>
+          <div className="mt-3 border-t border-white/10 pt-3">
+            <AttributeBars attributes={sheet.attributes} preview={preview?.attributes ?? null} />
+            {preview && preview.power !== sheet.power && <p className="mt-2 text-sm font-semibold uppercase tracking-[0.14em] text-white/70">Power if equipped <b className={preview.power > sheet.power ? "text-[#7be08a]" : "text-[#ff6b6b]"}>◆{preview.power}</b></p>}
+          </div>
+        </section>
+
+        {/* ---------------- armory / vault / materials / crafting ---------------- */}
+        <section className="wf-op-panel flex min-h-0 flex-col p-3" aria-label={tab.toLowerCase()}>
+          {tab === "ARMORY" && <>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <p className="wf-op-kicker">Armory // {storedCount} / 120</p>
+              <div className="flex" role="group" aria-label="Category">{(["ALL", "WEAPONS", "ARMOR", "VEHICLES"] as const).map((f) => <button key={f} type="button" aria-pressed={filter === f} onClick={() => setFilter(f)} className={`border px-2.5 py-1 text-xs font-semibold uppercase tracking-[0.14em] ${filter === f ? "border-[#92e9f5] bg-[#92e9f5]/15 text-white" : "border-white/15 text-white/60 hover:text-white"}`}>{f}</button>)}</div>
+            </div>
+            <div className="mt-3 grid min-h-0 flex-1 auto-rows-max grid-cols-[repeat(auto-fill,minmax(4.5rem,1fr))] gap-2 overflow-y-auto pr-1">
+              {armory.map((item) => <div key={item.id} className="flex flex-col items-center gap-1">
+                <GearTile slot={item.slot} item={item} equipped={equipped(item)} selected={item.id === selectedId} onClick={() => setSelectedId(item.id)} />
+                <span className="line-clamp-1 w-full text-center text-[11px] leading-tight text-white/70">{item.name}</span>
+              </div>)}
+              {armory.length === 0 && <p className="col-span-full text-sm text-white/50">Nothing here yet. Loot drops from kills, bosses and caches.</p>}
+            </div>
+          </>}
+          {tab === "VAULT" && <><p className="wf-op-kicker">Vault</p><div className="mt-2 min-h-0 flex-1 overflow-y-auto font-sans"><StashVault progression={progression} onProgression={onProgression} onSelect={setSelectedId} /></div></>}
+          {tab === "MATERIALS" && <><p className="wf-op-kicker">Materials</p><div className="mt-3 grid min-h-0 flex-1 auto-rows-max grid-cols-2 gap-2 overflow-y-auto sm:grid-cols-3">{Object.entries(MATERIALS).map(([id, material]) => { const n = progression.materials[id as keyof typeof MATERIALS] ?? 0; return (
+            <div key={id} className={`border p-3 ${n ? "border-white/20 bg-white/[0.03]" : "border-white/10 opacity-50"}`}>
+              <div className="flex items-center justify-between"><Diamond className="size-4 text-[#92e9f5]" /><b className="text-xl">{n}</b></div>
+              <p className="mt-1 font-semibold">{material.name}</p><p className="text-xs text-white/55">{material.source}</p>
+            </div>); })}</div></>}
+          {tab === "CRAFTING" && <><p className="wf-op-kicker">Crafting</p><div className="mt-2 min-h-0 flex-1 overflow-y-auto font-sans"><StashCrafting progression={progression} onProgression={onProgression} />
+            <p className="mt-3 text-sm text-white/60">Select gear to upgrade its power or infuse an element in the panel on the right. Materials come from regional troops, bosses and salvage.</p></div></>}
+        </section>
+
+        {/* ---------------- selected item: compare + actions ---------------- */}
+        <aside className="flex min-h-0 flex-col gap-3 overflow-y-auto" aria-label="Selected item">
+          {selected ? <>
+            <CompareCards item={selected} progression={progression} />
+            <div className="grid grid-cols-3 gap-2">
+              <button type="button" className="wf-op-btn wf-op-btn-primary" disabled={equipped(selected) || inVault(progression, selected.id)} onClick={() => equip(selected)}><Shield className="size-4" />{equipped(selected) ? "Equipped" : "Equip"}</button>
+              <button type="button" className="wf-op-btn" onClick={() => toggleFavorite(selected)}><Heart className={`size-4 ${selected.favorite ? "fill-current" : ""}`} />{selected.favorite ? "Fav'd" : "Favorite"}</button>
+              <button type="button" className="wf-op-btn" disabled={!canDismantle(selected)} title={canDismantle(selected) ? "Break down for parts" : "Equipped, favorited or starting gear can't be dismantled"} onClick={() => dismantle(selected)}><Trash2 className="size-4" />Dismantle</button>
+            </div>
+            <div className="wf-op-panel p-3 font-sans text-sm">
+              <StashItemActions progression={progression} item={selected} onProgression={onProgression} onRemoved={() => setSelectedId(progression.inventory.find((e) => e.id !== selected.id)?.id ?? "")} />
+              <p className="wf-op-kicker mt-3">Upgrade & infusion</p>
+              <button type="button" className="wf-op-btn mt-2 w-full" disabled={!cost || (progression.materials[cost.material] ?? 0) < cost.amount} onClick={() => onProgression(upgradeGear(progression, selected.id))}><Anvil className="size-4" />Upgrade · {cost ? `${cost.amount} ${MATERIALS[cost.material].name}` : ""}</button>
+              <div className="mt-2 grid grid-cols-4 gap-1">{(["THERMAL", "CRYO", "ARC", "BIO"] as const).map((element) => { const material = element === "THERMAL" ? "thermalShards" : element === "CRYO" ? "cryoCrystal" : element === "BIO" ? "bioCatalyst" : "microCircuits"; return <button key={element} type="button" className="wf-op-btn !px-1 !text-[11px]" disabled={selected.element === element || (progression.materials[material] ?? 0) < 3} onClick={() => onProgression(infuseGear(progression, selected.id, element))}>{element}</button>; })}</div>
+              <p className="mt-1 text-xs text-white/50">Infusion costs 3 matching materials. {SLOT_NAME[selected.slot]} · level {selected.level}</p>
+            </div>
+          </> : <p className="text-white/50">Select an item.</p>}
+        </aside>
       </div>
+      <footer className="flex flex-wrap justify-center gap-6 border-t border-white/10 bg-black/30 px-4 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-white/55">
+        <span>Select: mouse / stick</span><span>Equip: button</span><span>[Esc] Close</span>
+      </footer>
     </div>
-  </div>;
+  );
 }

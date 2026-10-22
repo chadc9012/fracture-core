@@ -43,6 +43,13 @@ export const QUAKEBREAKER_MAUL: GearItem = { id: "quakebreaker-maul", name: "Qua
 export const ARCHITECTS_SIGNET: GearItem = { id: "architects-signet", name: "Architect's Signet", slot: "classItem", power: 245, level: 1, element: "ARC", rarity: "EXOTIC", source: "The Exiled Architect" };
 export const SOVEREIGN_BARK_GUARD: GearItem = { id: "sovereign-bark-guard", name: "Sovereign Bark Guard", slot: "chest", power: 235, level: 1, element: "BIO", rarity: "LEGENDARY", source: "The Verdant Sovereign" };
 export const BIOME_BOW: GearItem = { id: "biome-bow", name: "Bow of the Seasons", slot: "primary", power: 310, level: 1, element: "BIO", rarity: "LEGENDARY", source: "The Verdant Sovereign" };
+export const CYBERNETIC_CROWN: GearItem = { id: "cybernetic-crown", name: "Cybernetic Crown", slot: "helmet", power: 240, level: 1, element: "ARC", rarity: "LEGENDARY", source: "The King Beneath the City" };
+export const CHRONO_GAUNTLETS: GearItem = { id: "chrono-gauntlets", name: "Chrono Gauntlets", slot: "gauntlets", power: 240, level: 1, element: "CRYO", rarity: "LEGENDARY", source: "The Clockwork Saint" };
+export const ABYSSAL_PLATE: GearItem = { id: "abyssal-plate", name: "Abyssal Plate", slot: "chest", power: 245, level: 1, element: "CRYO", rarity: "LEGENDARY", source: "The Abyssal Leviathan" };
+export const SHADOWSTALKER_GREAVES: GearItem = { id: "shadowstalker-greaves", name: "Shadowstalker Greaves", slot: "legs", power: 235, level: 1, element: "BIO", rarity: "LEGENDARY", source: "The Eternal Huntress" };
+export const PHANTOM_BOW: GearItem = { id: "phantom-bow", name: "Phantom Bow", slot: "primary", power: 315, level: 1, element: "BIO", rarity: "EXOTIC", source: "The Eternal Huntress" };
+export const TITANBREAKER_PLATE: GearItem = { id: "titanbreaker-plate", name: "Titanbreaker Plate", slot: "chest", power: 245, level: 1, element: "KINETIC", rarity: "LEGENDARY", source: "The Iron Behemoth" };
+export const SIEGE_CANNON: GearItem = { id: "siege-cannon", name: "Behemoth Siege Cannon", slot: "heavy", power: 320, level: 1, element: "THERMAL", rarity: "LEGENDARY", source: "The Iron Behemoth" };
 export const PHANTOM_RACING_SUIT: GearItem = { id: "phantom-racing-suit", name: "Phantom Racing Suit", slot: "chest", power: 235, level: 1, element: "ARC", rarity: "LEGENDARY", source: "The Black Market Phantom" };
 
 export const ITEM_BLURB: Record<string, string> = {
@@ -51,6 +58,13 @@ export const ITEM_BLURB: Record<string, string> = {
   "architects-signet": "Exotic class item from the Exiled Architect. Strong Intellect and Mobility; works with any other armor.",
   "sovereign-bark-guard": "Legendary chest piece of living bark — strong Defense; works with any other armor.",
   "biome-bow": "Legendary primary weapon from the forest's Sovereign. Plain power and BIO element; no special perk.",
+  "cybernetic-crown": "Legendary helmet from the Undercity's machine king — strong Intellect; works with any other armor.",
+  "chrono-gauntlets": "Legendary gauntlets from the Clockwork Saint — strong Mobility and Intellect; works with any other armor.",
+  "abyssal-plate": "Legendary chest piece of leviathan scale — strong Defense; works with any other armor.",
+  "shadowstalker-greaves": "Legendary leg armor from the Eternal Huntress — strong Mobility; works with any other armor.",
+  "phantom-bow": "Exotic primary weapon from the Eternal Huntress. Plain power and BIO element; no special perk.",
+  "titanbreaker-plate": "Legendary chest piece cut from the Behemoth's hull — strong Defense; works with any other armor.",
+  "siege-cannon": "Legendary heavy weapon salvaged from the Iron Behemoth. Plain power and THERMAL element; no special perk.",
   "phantom-racing-suit": "Legendary racing armor from the underground network — strong Mobility; works with any other armor.",
   "null-sovereign": "Exotic staff. NULL DISRUPTION: well-timed hits (interrupting a wind-up, or striking an open weak point) build Null Charge; at 5 the next hit releases a pulse that stuns nearby enemies and breaks boss poise.",
   "crown-drowned-court": "Legendary helmet. A salt-crusted crown from the sunken court — strong Intellect and Defense; works with any other armor.",
@@ -78,6 +92,11 @@ export const SCENARIO_LOOT: Readonly<Record<string, ScenarioLootEntry>> = {
   "exiled-architect": { guaranteed: [ARCHITECTS_SIGNET], chance: [] },
   "verdant-sovereign": { guaranteed: [SOVEREIGN_BARK_GUARD], chance: [{ item: BIOME_BOW, chance: 0.2 }] },
   "black-market-phantom": { guaranteed: [PHANTOM_RACING_SUIT], chance: [] },
+  "king-beneath": { guaranteed: [CYBERNETIC_CROWN], chance: [] },
+  "clockwork-saint": { guaranteed: [CHRONO_GAUNTLETS], chance: [] },
+  "abyssal-leviathan": { guaranteed: [ABYSSAL_PLATE], chance: [] },
+  "eternal-huntress": { guaranteed: [SHADOWSTALKER_GREAVES], chance: [{ item: PHANTOM_BOW, chance: 0.15 }] },
+  "iron-behemoth": { guaranteed: [TITANBREAKER_PLATE], chance: [{ item: SIEGE_CANNON, chance: 0.2 }] },
 };
 
 /** What sim.defeatMachine attaches to a scenario kill. `rolls` are pre-drawn uniform [0,1) numbers (one per chance entry)

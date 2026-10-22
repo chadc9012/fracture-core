@@ -57,6 +57,8 @@ export const fitScale = (measuredHeight: number, targetHeight: number) => target
 /** Region identity for enemies/civilians/merchants: base armor tint, cloth tint, accent glow colour and wear. */
 export type RegionLook = { armor: string; cloth: string; accent: string; wear: number; primary: SurfaceKind };
 export const REGION_LOOK: Record<string, RegionLook> = {
+  neon:       { armor: "#252c46", cloth: "#171b30", accent: "#ed73ff", wear: 0.2, primary: "paintedArmor" },
+  thalassia:  { armor: "#4e899b", cloth: "#183a4e", accent: "#55e6e8", wear: 0.3, primary: "polymer" },
   nexus:      { armor: "#c9ced6", cloth: "#2a3442", accent: "#58e6ff", wear: 0.15, primary: "ceramic" },
   veridan:    { armor: "#5d6b45", cloth: "#3b3a2a", accent: "#b8f06a", wear: 0.45, primary: "paintedArmor" },
   frostspire: { armor: "#dfe7ee", cloth: "#46586b", accent: "#9fd8ff", wear: 0.3,  primary: "ceramic" },

@@ -3046,7 +3046,7 @@ function SceneImpl({
       {activity && activity.def.stages[0]?.kind === "race" && activity.run.race ? <RaceCourse race={raceById((activity.def.stages[0] as { raceId: string }).raceId)!} run={activity.run.race as RaceRun} /> : null}
       {/* player on foot */}
       <group ref={player} position={SPAWN.toArray()}>
-        <OperatorModel held={state} gear={gear} bodyType={bodyType} classId={playerClass} height={2.75} feetY={-1.55} color={appearance.armor} trim={appearance.visor} cloth={appearance.cloth} look={worn} pose="locomotion" motion={feel.current.motionRef} fallback={
+        <OperatorModel colorway held={state} gear={gear} bodyType={bodyType} classId={playerClass} height={2.75} feetY={-1.55} color={appearance.armor} trim={appearance.visor} cloth={appearance.cloth} look={worn} pose="locomotion" motion={feel.current.motionRef} fallback={
   <Operator bodyType={bodyType} armor={appearance.armor} cloth={appearance.cloth} visor={appearance.visor} trim={appearance.trim} classId={playerClass} motion={feel.current.motionRef} visualState={armorState} chestLevel={armorLevels.chest} helmetLevel={armorLevels.helmet} legsLevel={armorLevels.legs} look={worn} />
         } />
         {playerClass === "TITAN" && sim.titan.blocking && (

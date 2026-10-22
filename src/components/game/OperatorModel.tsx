@@ -1,4 +1,5 @@
 import { useFrame } from "@react-three/fiber";
+import { COLORWAY_EMISSIVE, COLORWAY_MAP, COLORWAY_UNIFORMS, colorwayFor, type Colorway } from "@/game/operator-colorway";
 import { useGLTF } from "@react-three/drei";
 import { prepareWorldAsset } from "@/game/asset-render-quality";
 import { Component, Suspense, useEffect, useMemo, useRef, type ReactNode } from "react";
@@ -135,7 +136,7 @@ function pinRootMotion(clip: THREE.AnimationClip) {
 
 const actions0 = (a: Record<string, THREE.AnimationAction>, name: string) => Boolean(a[name]);
 
-function Model({ url, tint, height, feetY, color, trim, pose, motion, bodyType, look, cloth, gear, classId, held }: { held: HeldWeapon | undefined; trim: string | undefined; gear: WornGear | undefined; classId: ClassId; look: ArmorLook | undefined; cloth: string | undefined; bodyType: BodyType | undefined; url: string; tint: boolean; height: number; feetY: number; color: string | undefined; pose: "showcase" | "locomotion"; motion: ModelMotion | undefined }) {
+function Model({ url, tint, height, feetY, color, trim, pose, motion, bodyType, look, cloth, gear, classId, held, colorway: recolor }: { colorway: boolean; held: HeldWeapon | undefined; trim: string | undefined; gear: WornGear | undefined; classId: ClassId; look: ArmorLook | undefined; cloth: string | undefined; bodyType: BodyType | undefined; url: string; tint: boolean; height: number; feetY: number; color: string | undefined; pose: "showcase" | "locomotion"; motion: ModelMotion | undefined }) {
   const { scene, animations } = useGLTF(url);
   const built = useMemo(() => {
     const object = cloneSkinned(scene);
@@ -149,6 +150,8 @@ function Model({ url, tint, height, feetY, color, trim, pose, motion, bodyType, 
     const surface = robot ? SURFACES.bareMetal : SURFACES.paintedArmor;
     const skins: SkinTextures[] = [];
     const authoredMaterials: THREE.Material[] = [];
+    // operator-colorway.ts: the player's chosen plate/accent colours on the authored texture (null = as authored)
+    const way = !tint && recolor && color && trim ? colorwayFor(classId, { armor: color, visor: trim }) : null;
     const material = palette ? new THREE.MeshStandardMaterial({ color: "#ffffff", metalness: surface.metalness, roughness: surface.roughness, emissive: new THREE.Color("#ffffff"), emissiveIntensity: 1 }) : null;
     const accent = vivid(trim ?? "#4fd8ff", 0.55, 0.7);
     const texSize = pose === "showcase" ? 768 : 512;
@@ -176,6 +179,7 @@ function Model({ url, tint, height, feetY, color, trim, pose, motion, bodyType, 
       if (material) m.material = material;
       else {
         const copies = (Array.isArray(m.material) ? m.material : [m.material]).map(cinematicImported);
+        if (way) for (const c of copies) applyColorway(c, way);
         authoredMaterials.push(...copies); m.material = Array.isArray(m.material) ? copies : copies[0] ?? m.material;
         m.receiveShadow = true;
       }
@@ -193,7 +197,7 @@ function Model({ url, tint, height, feetY, color, trim, pose, motion, bodyType, 
     const actions: Record<string, THREE.AnimationAction> = {};
     if (mixer) for (const clip of animations) { const a = mixer.clipAction(pinRootMotion(clip)); a.timeScale = 0; a.play(); a.weight = 0; actions[clip.name] = a; }
     return { object, scale, material, authoredMaterials, skins, mixer, actions, offset: new THREE.Vector3(-centre.x * scale, feetY - box.min.y * scale, -centre.z * scale) };
-  }, [scene, animations, height, feetY, tint, color, trim, bodyType, look, cloth, pose]);
+  }, [scene, animations, height, feetY, tint, color, trim, bodyType, look, cloth, pose, recolor, classId]);
   const armorKey = piecesKey(gear, classId);
   useEffect(() => {
     // an authored (untinted) body already wears its armor in its textures; procedural plates would float over it
@@ -271,9 +275,27 @@ function Model({ url, tint, height, feetY, color, trim, pose, motion, bodyType, 
   return <group ref={rig} position={[0, feetY, 0]}><primitive object={built.object} scale={built.scale} position={[built.offset.x, built.offset.y - feetY, built.offset.z]} /></group>;
 }
 
+/** recolour one authored material copy (operator-colorway.ts); the shader reads the baked texture, so geometry and stats are untouched */
+function applyColorway(material: THREE.Material, way: Colorway) {
+  if (!(material instanceof THREE.MeshStandardMaterial)) return;
+  material.onBeforeCompile = (shader) => {
+    shader.uniforms["wfArmor"] = { value: new THREE.Vector3(...way.armor) };
+    shader.uniforms["wfAccent"] = { value: new THREE.Vector3(...way.accent) };
+    shader.uniforms["wfPlate"] = { value: way.plate };
+    shader.uniforms["wfGlow"] = { value: way.glow };
+    shader.fragmentShader = shader.fragmentShader.replace("#include <common>", `#include <common>\n${COLORWAY_UNIFORMS}`)
+      .replace("#include <map_fragment>", `#include <map_fragment>\n${COLORWAY_MAP}`)
+      .replace("#include <emissivemap_fragment>", `#include <emissivemap_fragment>\n${COLORWAY_EMISSIVE}`);
+  };
+  material.customProgramCacheKey = () => `operator-colorway-${way.armor.join(",")}-${way.accent.join(",")}-${way.plate}-${way.glow}`;
+  material.needsUpdate = true;
+}
+
 /** Draws the authored model for `classId` if one exists, else `fallback` (also while loading or on failure).
  * `pose="showcase"` loops the flex clip (forge); `"locomotion"` drives walk/run from the live stride phase. */
-export function OperatorModel({ classId, height, feetY, fallback, color, trim, pose = "showcase", motion, bodyType, look, cloth, gear, held }: {
+export function OperatorModel({ classId, height, feetY, fallback, color, trim, pose = "showcase", motion, bodyType, look, cloth, gear, held, colorway = false }: {
+  /** recolour the authored body from `color` (plate) and `trim` (accent glow) through operator-colorway.ts; the player's operator only */
+  colorway?: boolean;
   /** weapon in hand (starter procedural props); omit for no weapon */
   held?: HeldWeapon | undefined;
   /** equipped inventory: each worn armor slot attaches its own pieces to the rig */
@@ -283,5 +305,5 @@ export function OperatorModel({ classId, height, feetY, fallback, color, trim, p
   const entry = OPERATOR_MODELS[classId];
   // a static mesh would just slide across the ground, so the world only uses rigged models
   if (!entry || (pose === "locomotion" && !entry.rigged)) return <>{fallback}</>;
-  return <Quiet fallback={fallback}><Suspense fallback={fallback}><Model url={entry.url} tint={entry.tint} height={height} feetY={feetY} color={color} trim={trim} pose={pose} motion={motion} bodyType={bodyType} look={look} cloth={cloth} gear={gear} classId={classId} held={held} /></Suspense></Quiet>;
+  return <Quiet fallback={fallback}><Suspense fallback={fallback}><Model url={entry.url} tint={entry.tint} height={height} feetY={feetY} color={color} trim={trim} pose={pose} motion={motion} bodyType={bodyType} look={look} cloth={cloth} gear={gear} classId={classId} held={held} colorway={colorway} /></Suspense></Quiet>;
 }
