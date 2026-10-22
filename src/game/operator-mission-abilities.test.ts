@@ -35,7 +35,7 @@ describe("Operator abilities cast in missions with their listed cooldown and ene
         expect(live.runtime[s.slot].cooldown).toBeCloseTo(s.cooldown, 5);
         const again = castAbility(sim, live, s.slot, { x: TX, z: TZ, yaw: 0 }, { environment: "war", inVehicle: false });
         expect(again.ok).toBe(false);
-        expect(again.reason).toBe("COOLDOWN");
+        expect(again.ok ? null : again.reason).toBe("COOLDOWN");
       }
     });
   }
@@ -43,7 +43,7 @@ describe("Operator abilities cast in missions with their listed cooldown and ene
     const sim = missionSim(), live = createLiveBuild(classBuild("WARLOCK"));
     live.energy = 44;
     const r = castAbility(sim, live, "ULTIMATE", { x: TX, z: TZ, yaw: 0 }, { environment: "war", inVehicle: false });
-    expect(r.reason).toBe("ENERGY");
+    expect(r.ok ? null : r.reason).toBe("ENERGY");
     expect(live.energy).toBe(44);
     expect(live.runtime.ULTIMATE.cooldown).toBe(0);
   });
