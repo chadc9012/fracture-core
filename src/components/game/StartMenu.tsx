@@ -59,7 +59,7 @@ export function StartMenu({ onDeploy, onSaveCharacter, weaponOrder, onSettings, 
   // Subclass is a respec of the same Operator, so it never touches appearance; only switching
   // Operator (class) resets colors/callsign back to that Operator's signature.
   const applySubclass = (id: SubclassId) => { setSubclassId(id); };
-  const selectClass = (id: ClassId) => { setClassId(id); applySubclass(DEFAULT_SUBCLASS[id]); setAppearance(APPEARANCE_FOR(id)); };
+  const selectClass = (id: ClassId) => { if (id === classId) return; setClassId(id); applySubclass(DEFAULT_SUBCLASS[id]); setAppearance(APPEARANCE_FOR(id)); try { rememberOperator(window.localStorage, preferenceKey(), id); } catch { /* Best effort. */ } };
   const preferenceKey = () => selectionKey(new URLSearchParams(window.location.search).get("profile") === "test");
   useEffect(() => {
     if (saved) return;
@@ -72,10 +72,6 @@ export function StartMenu({ onDeploy, onSaveCharacter, weaponOrder, onSettings, 
       setBodyType(restored.bodyType);
     } catch { /* Keep the default if browser storage is unavailable. */ }
   }, [saved]);
-  useEffect(() => {
-    if (classId === startRef.current.classId) return;
-    try { rememberOperator(window.localStorage, preferenceKey(), classId); } catch { /* Best effort. */ }
-  }, [classId]);
   const confirmIdentity = async () => {
     const deploymentId = newDeploymentId();
     const character: PlayerCharacter = {
