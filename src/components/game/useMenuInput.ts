@@ -26,13 +26,15 @@ export function useMenuInput(active: boolean, onIntent: (intent: MenuIntent, sou
     };
     window.addEventListener("keydown", onKey);
 
-    let raf = 0, nav = NEW_PAD_NAV, lastKind: PadKind | null = null;
+    let raf = 0, nav = NEW_PAD_NAV, lastKind: PadKind | null = null, firstPoll = true;
     const tick = (now: number) => {
       raf = requestAnimationFrame(tick);
       const pads = typeof navigator !== "undefined" && navigator.getGamepads ? Array.from(navigator.getGamepads()) : [];
       const gp = pads.find((p): p is Gamepad => !!p && p.connected) ?? null;
       const r = padIntent(nav, gp ? { buttons: gp.buttons.map((b) => b.pressed), axes: gp.axes } : null, now);
       nav = r.next;
+      // A held button from the previous screen must be released before it can confirm here.
+      if (firstPoll) { firstPoll = false; return; }
       if (r.intent && gp && (!filter.current || filter.current.includes(r.intent))) {
         const kind = padKind(gp.id);
         if (kind !== lastKind) { lastKind = kind; setPad(kind); }
