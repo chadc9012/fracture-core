@@ -1,4 +1,5 @@
 import { OrbitalDirector } from "./OrbitalDirector";
+import { DestinationMap, type DestinationChrome } from "./DestinationMap";
 import { REGION_HAZARD } from "@/game/region-hazards";
 import { useState } from "react";
 import { ArrowLeft, ChevronRight, Skull } from "lucide-react";
@@ -28,12 +29,12 @@ const THREAT = ["MINIMAL", "LOW", "MODERATE", "HIGH", "SEVERE", "EXTREME"];
 /** `y`: arrive at this world height already diving (Thalassia's submersible arrival) */
 export interface DeployTarget { id: string; name: string; sub: string; color: string; x: number; z: number; y?: number }
 
-export function StarMap({ progression, onBack, onDeploy, onProgression, embedded = false }: { embedded?: boolean; progression: PlayerProgression; onBack: () => void; onDeploy: (target: DeployTarget) => void; onProgression?: (next: PlayerProgression) => void }) {
+export function StarMap({ progression, onBack, onDeploy, onProgression, embedded = false, chrome }: { embedded?: boolean; progression: PlayerProgression; onBack: () => void; onDeploy: (target: DeployTarget) => void; onProgression?: (next: PlayerProgression) => void; chrome?: DestinationChrome }) {
   const next = nextActivity(progression);
   const recommended = REGIONS.find((r) => r.name === next.region)?.id ?? progression.currentWorld;
   const [selected, setSelected] = useState(REGIONS.find((r) => r.id === recommended)?.id ?? "veridan");
   const [launching, setLaunching] = useState(false);
-  const [view, setView] = useState<"director" | "painted" | "terrain">("director");
+  const [view, setView] = useState<"destination" | "director" | "painted" | "terrain">("destination");
   const art = useMapArt(mapArt);
   const terrain = useTerrainMap();
   const known = LANDMARKS.filter((l) => isLandmarkKnown(progression, l.id));
@@ -50,7 +51,9 @@ export function StarMap({ progression, onBack, onDeploy, onProgression, embedded
     onDeploy({ id: city?.id ?? region.id, name: city?.name ?? region.name, sub: city?.sub ?? region.sub, color: ZONE_COLOR[(city ?? region).kind], x: at.x, z: at.z, ...("y" in at && at.y !== undefined ? { y: at.y } : {}) });
   };
 
-  if (view === "director") return <div className={`deployment-field fixed ${embedded ? "inset-x-0 bottom-0 top-14" : "inset-0"} z-50 flex flex-col overflow-hidden text-foreground`}><OrbitalDirector progression={progression} onDeploy={onDeploy} onAtlas={() => setView("terrain")} /></div>;
+  // destination-map.ts: the painted planet from the owner's reference is home; the geographic director and atlas sit behind it
+  if (view === "destination") return <DestinationMap progression={progression} onDeploy={onDeploy} {...(onProgression ? { onProgression } : {})} onAtlas={() => setView("director")} {...(chrome ? { chrome } : {})} />;
+  if (view === "director") return <div className={`deployment-field fixed ${embedded ? "inset-x-0 bottom-0 top-14" : "inset-0"} z-50 flex flex-col overflow-hidden text-foreground`}><OrbitalDirector progression={progression} onDeploy={onDeploy} onAtlas={() => setView("terrain")} onBack={() => setView("destination")} /></div>;
 
   return (
     <div className={`deployment-field fixed ${embedded ? "inset-x-0 bottom-0 top-14" : "inset-0"} z-50 flex flex-col overflow-y-auto p-4 text-foreground lg:p-6`} role="dialog" aria-modal="true" aria-label="World map">
@@ -67,7 +70,7 @@ export function StarMap({ progression, onBack, onDeploy, onProgression, embedded
         <section className="relative flex flex-col gap-2 border border-foreground/15 bg-[#050d1c] p-2 lg:col-span-3">
           <div className="flex items-center justify-between gap-2" role="group" aria-label="Map view">
             <div className="flex font-mono text-[10px] uppercase tracking-widest">
-              {(["director", "painted", "terrain"] as const).map((v) => <button key={v} type="button" aria-pressed={view === v} onClick={() => setView(v)} className={`ui-focus border border-foreground/25 px-3 py-1 ${view === v ? "bg-primary text-primary-foreground" : "bg-background/60 text-muted-foreground hover:text-foreground"}`}>{v === "director" ? "Director" : v === "painted" ? "Painted" : "Terrain"}</button>)}
+              {(["destination", "director", "painted", "terrain"] as const).map((v) => <button key={v} type="button" aria-pressed={view === v} onClick={() => setView(v)} className={`ui-focus border border-foreground/25 px-3 py-1 ${view === v ? "bg-primary text-primary-foreground" : "bg-background/60 text-muted-foreground hover:text-foreground"}`}>{v === "director" ? "Director" : v === "painted" ? "Painted" : "Terrain"}</button>)}
             </div>
             <p className="ui-kicker">{view === "terrain" ? `${known.length}/${LANDMARKS.length} landmarks charted` : art.hires ? "High-res art" : "Illustrated"}</p>
           </div>

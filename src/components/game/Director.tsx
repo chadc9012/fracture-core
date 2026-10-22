@@ -50,7 +50,8 @@ export function Director({ progression, onProgression, onDeploy, onCrucible, onR
 
   return (
     <>
-      <nav className="fixed inset-x-0 top-0 z-[60] flex h-14 items-center justify-between gap-2 border-b border-foreground/15 bg-background/90 px-3 backdrop-blur sm:px-6" aria-label="Director">
+      {/* on the map tab the Destination Map draws these tabs in its own painted tab bar (md and up) */}
+      <nav className={`fixed inset-x-0 top-0 z-[60] flex h-14 items-center justify-between gap-2 border-b border-foreground/15 bg-background/90 px-3 backdrop-blur sm:px-6 ${tab === "map" ? "md:hidden" : ""}`} aria-label="Director">
         <div className="flex min-w-0 items-center gap-1 overflow-x-auto">
           <span className="mr-2 hidden font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground sm:inline">Q</span>
           {TABS.map(({ id, label, icon: Icon }) => (
@@ -68,7 +69,8 @@ export function Director({ progression, onProgression, onDeploy, onCrucible, onR
         </div>
       </nav>
       {notice && <div role="status" className="fixed left-1/2 top-16 z-[61] -translate-x-1/2 border border-destructive/60 bg-background/95 px-4 py-2 font-mono text-xs">{notice}</div>}
-      {tab === "map" && <StarMap embedded progression={progression} onBack={() => setTab("map")} onDeploy={onDeploy} onProgression={onProgression} />}
+      {tab === "map" && <StarMap embedded progression={progression} onBack={() => setTab("map")} onDeploy={onDeploy} onProgression={onProgression}
+        chrome={{ tabs: TABS.map(({ id, label }) => ({ id, label })), current: tab, onTab: (id) => setTab(id as DirectorTab), operator: operatorName, level: progression.level, onResume, onSystem }} />}
       {tab === "crucible" && <CrucibleView progression={progression} playerClass={playerClass} onLaunch={onCrucible} />}
       {tab === "raid" && <RaidView />}
       {tab === "arsenal" && <ArsenalLoadouts embedded progression={progression} onProgression={onProgression} onBack={() => setTab("map")} />}

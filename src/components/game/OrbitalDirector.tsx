@@ -15,10 +15,12 @@ import type { DeployTarget } from "./StarMap";
 const destinations = [...REGIONS, ...CITY_DESTINATIONS];
 const E = MAP_EXTENT;
 
-export function OrbitalDirector({ progression, onDeploy, onAtlas }: {
+export function OrbitalDirector({ progression, onDeploy, onAtlas, onBack }: {
   progression: PlayerProgression;
   onDeploy: (target: DeployTarget) => void;
   onAtlas: () => void;
+  /** back to the painted Destination Map */
+  onBack?: () => void;
 }) {
   const terrain = useTerrainMap();
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -49,7 +51,7 @@ export function OrbitalDirector({ progression, onDeploy, onAtlas }: {
   return <div className="relative flex min-h-0 flex-1 flex-col overflow-y-auto bg-[#06131d] text-white" aria-label="Planetary Destination Director">
     <header className="flex flex-wrap items-center justify-between gap-3 border-b border-white/15 px-5 py-4">
       <div><p className="font-mono text-[10px] uppercase tracking-[0.4em] text-cyan-300">World Fracture / Veyra</p><h1 className="font-mono text-2xl uppercase tracking-[0.22em]">World Destinations</h1></div>
-      <button type="button" onClick={onAtlas} className="ui-focus flex items-center gap-2 border border-white/30 px-4 py-2 font-mono text-xs uppercase tracking-widest hover:bg-white/10"><Compass className="size-4"/> Full terrain atlas</button>
+      <div className="flex flex-wrap gap-2">{onBack && <button type="button" onClick={onBack} className="ui-focus flex items-center gap-2 border border-white/30 px-4 py-2 font-mono text-xs uppercase tracking-widest hover:bg-white/10"><ArrowLeft className="size-4"/> Destination map</button>}<button type="button" onClick={onAtlas} className="ui-focus flex items-center gap-2 border border-white/30 px-4 py-2 font-mono text-xs uppercase tracking-widest hover:bg-white/10"><Compass className="size-4"/> Full terrain atlas</button></div>
     </header>
     <div className="grid min-h-[620px] flex-1 grid-cols-1 lg:grid-cols-[minmax(0,1fr)_340px]">
       <section className="relative flex min-h-[520px] flex-col items-center justify-center overflow-hidden bg-[#0a2b55] p-3" aria-label="Geographical world map">

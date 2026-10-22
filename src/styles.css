@@ -464,3 +464,47 @@
   background: linear-gradient(to left, color-mix(in oklch, var(--primary) 70%, transparent), transparent);
 }
 @media (prefers-reduced-motion: reduce) { .operator-roster-card { transition: none; } .operator-roster-card:hover { transform: none; } }
+
+/* ------------------------------------------------------------------------------------------------------------
+ * Destination Map + menu display type (owner's reference art: docs/reference/destination-map). Rajdhani (OFL, self-hosted
+ * in public/fonts) is the menu display face; the stage scales every control with the art through container units (cqw),
+ * so the live panels keep covering the art's painted chrome at any screen size.
+ * ---------------------------------------------------------------------------------------------------------- */
+@font-face { font-family: "Rajdhani"; font-weight: 500; font-display: swap; src: url("/fonts/rajdhani-latin-500-normal.woff2") format("woff2"); }
+@font-face { font-family: "Rajdhani"; font-weight: 600; font-display: swap; src: url("/fonts/rajdhani-latin-600-normal.woff2") format("woff2"); }
+@font-face { font-family: "Rajdhani"; font-weight: 700; font-display: swap; src: url("/fonts/rajdhani-latin-700-normal.woff2") format("woff2"); }
+:root { --wf-display: "Rajdhani", "Eurostile", "Bahnschrift", system-ui, sans-serif; }
+.wf-display { font-family: var(--wf-display); }
+
+.wf-dest { position: fixed; inset: 0; z-index: 50; display: flex; align-items: center; justify-content: center; overflow: hidden; color: #eaf6fb; font-family: var(--wf-display);
+  background: radial-gradient(ellipse at 50% 40%, #0b2234 0%, #040b14 60%, #01040a 100%); }
+.wf-dest-stage { position: relative; aspect-ratio: 3 / 2; width: min(100vw, calc(100dvh * 1.5)); container-type: inline-size; user-select: none; }
+.wf-dest-art { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; pointer-events: none; }
+.wf-dest-panel { position: absolute; background: linear-gradient(160deg, #0a1c2c, #040c16); border: 1px solid rgba(146, 221, 240, 0.28);
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(170, 232, 250, 0.1), 0 0.6cqw 2.4cqw rgba(0, 0, 0, 0.55); }
+.wf-dest-panel::before { content: ""; position: absolute; left: -1px; top: -1px; width: 1.2cqw; height: 1.2cqw; border-left: 2px solid var(--wf-ice); border-top: 2px solid var(--wf-ice); pointer-events: none; }
+.wf-dest-kicker { font-weight: 600; font-size: 0.95cqw; letter-spacing: 0.32em; text-transform: uppercase; color: #d9f2fb; }
+.wf-dest-row { display: flex; width: 100%; align-items: center; gap: 0.9cqw; padding: 0 0.8cqw; border: 1px solid transparent; font-size: 1.15cqw; font-weight: 500; color: #e8f4fa; text-align: left; transition: background-color .15s, border-color .15s, box-shadow .15s; }
+.wf-dest-row + .wf-dest-row { border-top-color: rgba(146, 221, 240, 0.08); }
+.wf-dest-row:hover { background: rgba(146, 221, 240, 0.07); }
+.wf-dest-row[aria-current="true"] { background: linear-gradient(90deg, rgba(56, 196, 232, 0.28), rgba(56, 196, 232, 0.08)); border-color: rgba(146, 233, 245, 0.85); box-shadow: 0 0 1.2cqw rgba(56, 196, 232, 0.35), inset 0 0 0.8cqw rgba(56, 196, 232, 0.2); }
+.wf-dest-tab { position: relative; height: 100%; padding: 0 1.7cqw; font-weight: 600; font-size: 1.05cqw; letter-spacing: 0.16em; text-transform: uppercase; color: rgba(234, 246, 251, 0.72); transition: color .15s; }
+.wf-dest-tab:hover { color: #fff; }
+.wf-dest-tab[aria-current="page"] { color: #fff; }
+.wf-dest-tab[aria-current="page"]::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 2px; background: var(--wf-ice); box-shadow: 0 0 0.8cqw var(--wf-ice); }
+.wf-dest-cap { display: inline-flex; align-items: center; justify-content: center; min-width: 2cqw; height: 1.4cqw; padding: 0 0.35cqw; border-radius: 0.3cqw; background: rgba(214, 232, 240, 0.85); color: #08131d; font-weight: 700; font-size: 0.8cqw; letter-spacing: 0; }
+.wf-dest-hint { display: inline-flex; align-items: center; gap: 0.6cqw; font-weight: 600; font-size: 0.95cqw; letter-spacing: 0.16em; text-transform: uppercase; color: #dcebf2; padding: 0.3cqw 0.6cqw; }
+.wf-dest-hint:hover:not(:disabled) { color: #fff; text-shadow: 0 0 0.8cqw var(--wf-ice); }
+.wf-dest-hint:disabled { opacity: 0.4; }
+.wf-dest-pin { position: absolute; border-radius: 0.6cqw; outline: none; transition: box-shadow .18s, background-color .18s; }
+.wf-dest-pin:hover, .wf-dest-pin:focus-visible { background: rgba(146, 221, 240, 0.08); box-shadow: 0 0 0 1px rgba(146, 221, 240, 0.45), 0 0 1.4cqw rgba(56, 196, 232, 0.3); }
+.wf-dest-pin[aria-pressed="true"] { box-shadow: 0 0 0 2px var(--pin), 0 0 2.2cqw color-mix(in srgb, var(--pin) 55%, transparent); background: color-mix(in srgb, var(--pin) 10%, transparent); }
+.wf-dest-ring { position: absolute; width: 5.2cqw; height: 5.2cqw; margin: -2.6cqw 0 0 -2.6cqw; border-radius: 50%; border: 2px solid var(--pin); box-shadow: 0 0 1.6cqw var(--pin); pointer-events: none; animation: wf-dest-ring 1.8s ease-out infinite; }
+@keyframes wf-dest-ring { 0% { transform: scale(0.7); opacity: 0.95; } 100% { transform: scale(1.5); opacity: 0; } }
+.wf-dest-badge { display: inline-flex; align-items: center; gap: 0.25cqw; padding: 0.1cqw 0.45cqw; font-weight: 700; font-size: 0.78cqw; letter-spacing: 0.12em; text-transform: uppercase; border: 1px solid currentColor; background: rgba(4, 12, 22, 0.85); white-space: nowrap; }
+.wf-dest-launch { display: flex; width: 100%; align-items: center; justify-content: center; gap: 1cqw; height: 3cqw; border: 1px solid rgba(146, 233, 245, 0.75); background: linear-gradient(180deg, rgba(56, 196, 232, 0.22), rgba(10, 40, 60, 0.6));
+  font-weight: 700; font-size: 1.35cqw; letter-spacing: 0.32em; text-transform: uppercase; color: #fff; box-shadow: inset 0 0 1cqw rgba(56, 196, 232, 0.25); transition: filter .15s, box-shadow .15s; }
+.wf-dest-launch:hover:not(:disabled) { filter: brightness(1.2); box-shadow: inset 0 0 1cqw rgba(56, 196, 232, 0.35), 0 0 1.6cqw rgba(56, 196, 232, 0.45); }
+.wf-dest-launch:disabled { opacity: 0.45; cursor: not-allowed; }
+.wf-dest-in { animation: wf-director-in 0.28s ease-out both; }
+@media (prefers-reduced-motion: reduce) { .wf-dest-ring, .wf-dest-in { animation: none; } }
