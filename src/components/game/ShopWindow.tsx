@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import type { PlayerProgression } from "@/game/progression";
 import type { GearItem } from "@/game/inventory";
@@ -19,6 +19,7 @@ export function ShopWindow({ shopId, progression, onProgression, onClose }: { sh
   const [affordable, setAffordable] = useState(false);
   const [preview, setPreview] = useState<string | null>(null);
   const [confirm, setConfirm] = useState<string | null>(null);
+  useEffect(() => { const k = (e: KeyboardEvent) => { if (e.key === "Escape") { e.stopPropagation(); onClose(); } }; window.addEventListener("keydown", k, true); return () => window.removeEventListener("keydown", k, true); }, [onClose]);
   const mult = shop ? shopPriceMult(shop, progression) : 1;
   const offers = useMemo(() => (shop ? shopOffers(shop, undefined, mult) : []), [shop, mult]);
   if (!shop) return null;
@@ -34,7 +35,7 @@ export function ShopWindow({ shopId, progression, onProgression, onClose }: { sh
   const apply = (r: ReturnType<typeof buyOffer>) => { if ("error" in r) setNotice(r.error); else { onProgression(r.progression); setNotice(r.message); } };
 
   return (
-    <div role="dialog" aria-modal="true" aria-label={shop.name} className="wf-shell absolute inset-0 z-40 flex items-center justify-center bg-background/80 p-4" onKeyDown={(e) => e.key === "Escape" && onClose()}>
+    <div role="dialog" aria-modal="true" aria-label={shop.name} className="wf-shell absolute inset-0 z-40 flex items-center justify-center bg-background/80 p-4">
       <div className="wf-panel max-h-[85vh] w-full max-w-2xl overflow-y-auto p-5">
         <div className="flex items-start justify-between gap-4">
           <div>
