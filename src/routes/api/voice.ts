@@ -19,7 +19,14 @@ export const Route = createFileRoute("/api/voice")({
     handlers: {
       POST: async ({ request }) => {
         try {
-          const parsed = requestSchema.safeParse(await request.json().catch(() => null));
+          let parsed: ReturnType<typeof requestSchema.safeParse>;
+          try {
+            parsed = requestSchema.safeParse(await request.json());
+          } catch (error) {
+            // an aborted body means the player left — that is a cancellation, not a bad request
+            if ((error as { name?: string } | null)?.name === "AbortError" || request.signal.aborted) return new Response(null, { status: 499 });
+            return Response.json({ message: "This dialogue line could not be prepared." }, { status: 400 });
+          }
           if (!parsed.success) return Response.json({ message: "This dialogue line could not be prepared." }, { status: 400 });
           const apiKey = process.env["LOVABLE_API_KEY"];
           if (!apiKey) return Response.json({ message: "Spoken dialogue is not configured." }, { status: 401 });
