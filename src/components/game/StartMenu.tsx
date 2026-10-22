@@ -13,7 +13,8 @@ import { ConfirmDialog } from "./ConfirmDialog";
 import { IdentityForge } from "./IdentityForge";
 import { CornerBrackets } from "./HudChrome";
 import { useVoiceLine } from "./useVoiceLine";
-import { ABILITY_NODES } from "@/game/ability-network";
+import { nodeById } from "@/game/ability-network";
+import { operatorAbilityStats } from "@/game/live-build";
 import { initialOperatorSelection, rememberedOperator, rememberOperator, selectionKey } from "@/game/deployment/operatorSelection";
 
 export type { ClassId } from "@/game/loadout";
@@ -157,7 +158,7 @@ export function StartMenu({ onDeploy, onSaveCharacter, weaponOrder, onSettings, 
           const op = operatorByClass(item.id);
           const active = classId === item.id;
           const stats = [["Health", op.baseStats.health], ["Armor", op.baseStats.armor], ["Mobility", op.baseStats.mobility], ["Tech", op.baseStats.tech]] as const;
-          const abilities = ABILITY_NODES.filter((node) => node.classId === item.id && node.cost < 999);
+          const abilities = operatorAbilityStats(item.id).map((live) => ({ ...nodeById(live.id), slot: live.slot, cooldown: live.cooldown, resource: live.energy }));
           return <Button variant="ghost" key={item.id} type="button" aria-label={`Select ${op.name}`} aria-pressed={active} onClick={() => selectClass(item.id)} className={`hud-panel pointer-events-auto min-w-0 items-stretch flex-col gap-0 h-auto rounded-none whitespace-normal relative px-3 pb-3 pt-4 text-center transition ${active ? "hud-glow text-foreground" : "text-muted-foreground hover:text-foreground"}`}>
             <CornerBrackets size={6} />
             <span className="block font-mono text-[9px] tracking-normal text-primary">0{index + 1} // {op.className.toUpperCase()} CLASS</span>

@@ -93,6 +93,7 @@ export function StarMap({ progression, onBack, onDeploy, onProgression, embedded
                       style={{ left: `${spot.x}%`, top: `${spot.y}%`, width: "11%", aspectRatio: "1", ...(on ? { boxShadow: `0 0 0 2px ${color}, 0 0 28px 6px ${color}66`, background: `${color}22` } : {}) }}>
                       <span className={`absolute inset-0 rounded-full border transition-opacity ${on ? "opacity-0" : "border-white/0 group-hover:border-white/70"}`} />
                       {rec && <span className="absolute -inset-1.5 animate-pulse rounded-full border-2 border-dashed border-white/80" />}
+                      <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 whitespace-nowrap bg-background/80 px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-widest text-foreground">{r.name}</span>
                       {rec && <span className="absolute left-1/2 top-full mt-1 -translate-x-1/2 whitespace-nowrap bg-black/70 px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-widest text-white">◆ Recommended</span>}
                     </button>
                   );
@@ -126,6 +127,7 @@ export function StarMap({ progression, onBack, onDeploy, onProgression, embedded
           </div>
           <div className="flex flex-wrap items-center gap-2 font-mono text-[10px] uppercase tracking-widest" role="group" aria-label="Cities">
             <span className="ui-kicker">Cities</span>
+            {REGIONS.filter((r) => r.kind === "safe").map((r) => <button key={r.id} type="button" aria-pressed={!city && selected === r.id} onClick={() => pickRegion(r.id)} className={`ui-focus border px-3 py-1 ${!city && selected === r.id ? "border-white bg-white/15 text-white" : "border-foreground/25 bg-background/60 text-muted-foreground hover:text-foreground"}`} style={{ borderLeft: `3px solid ${ZONE_COLOR[r.kind]}` }}>{r.name}</button>)}
             {CITY_DESTINATIONS.map((c) => <button key={c.id} type="button" aria-pressed={c.id === cityId} onClick={() => setCityId(c.id)} className={`ui-focus border px-3 py-1 ${c.id === cityId ? "border-white bg-white/15 text-white" : "border-foreground/25 bg-background/60 text-muted-foreground hover:text-foreground"}`} style={{ borderLeft: `3px solid ${ZONE_COLOR[c.kind]}` }}>{c.name}{c.deployable ? "" : " · no landing"}</button>)}
           </div>
         </section>

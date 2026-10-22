@@ -115,3 +115,14 @@ export function activateLiveAbility(live: LiveBuild, slot: AbilitySlot, environm
   live.effectTime = 3;
   return config;
 }
+
+/** What an Operator's starting abilities really cost in missions (no branches equipped): the exact energy spent and cooldown set by
+ * activateLiveAbility, including the build's synergy cooldown multiplier. The Operator selection cards read this so they never drift. */
+export function operatorAbilityStats(classId: ClassId): { slot: AbilitySlot; id: string; cooldown: number; energy: number }[] {
+  const build = classBuild(classId);
+  const synergy = resolveSynergyEffects(Object.values(build.slots));
+  return (["PRIMARY", "TACTICAL", "ULTIMATE"] as const).map((slot) => {
+    const config = ABILITY_CONFIGS.find((c) => c.id === build.slots[slot])!;
+    return { slot, id: config.id, cooldown: Math.round(config.cooldown * synergy.cooldownMultiplier * 10) / 10, energy: config.resourceCost };
+  });
+}
