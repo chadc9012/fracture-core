@@ -21,9 +21,9 @@ describe("terrain geometry across every region", () => {
           expect(Number.isFinite(h)).toBe(true);
           expect(h).toBeGreaterThan(-40);
           expect(h).toBeLessThan(120);
-          // no cliffs taller than a building between neighbouring samples 8m apart
-          const step = Math.abs(heightAt(x + 8, z) - h);
-          expect(step).toBeLessThan(20);
+          // no tears: at 1m resolution even a mountain face rises smoothly (Frostspire reaches ~3m/m)
+          const step = Math.abs(heightAt(x + 1, z) - h);
+          expect(step).toBeLessThan(5);
         }
       }
     });
