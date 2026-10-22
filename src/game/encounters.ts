@@ -7,24 +7,24 @@ export type RegionalEncounter = { regionId: string; troops: readonly EnemyProfil
 
 export const ENCOUNTERS: readonly RegionalEncounter[] = [
   { regionId: "veridan", troops: [
-    { name: "Goliath-Root Sporeling", kind: "ABERRATION", role: "Rooted bruiser", drop: "sporeFiber" },
-    { name: "Feral Forest Predator", kind: "ABERRATION", role: "Flanking hunter", drop: "sporeFiber" },
+    { name: "Spore-Stalker Tracker", kind: "ABERRATION", role: "Four-legged heat tracker", drop: "sporeFiber" },
+    { name: "Overgrowth Sentinel", kind: "RAIDER", role: "Root-bound heavy, liquid-plasma repeater", drop: "sporeFiber" },
     { name: "Veridan Corruptor", kind: "ABERRATION", role: "Spore support", drop: "bioCatalyst" },
   ], boss: { name: "Veridan Effigy", lair: "Corrupted Spore-Grove", drop: "bioCatalyst", tell: "Roots spread before a ground slam" } },
   { regionId: "ember", troops: [
-    { name: "Magma-Architect", kind: "OVERCLOCKED", role: "Thermal controller", drop: "thermalShards" },
-    { name: "Volcanic Drone", kind: "OVERCLOCKED", role: "Aerial harrier", drop: "microCircuits" },
-    { name: "Lava-Born Berserker", kind: "RAIDER", role: "Charging frontline", drop: "thermalShards" },
+    { name: "Breaker Magma Berserker", kind: "RAIDER", role: "Thermal blade frontline", drop: "thermalShards" },
+    { name: "Crater Crawler", kind: "ABERRATION", role: "Lava-wading arachnid mech", drop: "thermalShards" },
+    { name: "Breaker Slag-Thrower", kind: "OVERCLOCKED", role: "Area-denial lava bombs", drop: "microCircuits" },
   ], boss: { name: "Overseer Kael", lair: "Ember Peaks Volcanic", drop: "magmaCore", tell: "Hammer glows before the shockwave" } },
   { regionId: "wastelands", troops: [
-    { name: "Wasteland Warlord", kind: "RAIDER", role: "Armored commander", drop: "reinforcedAlloy" },
+    { name: "Badlands Marauder", kind: "RAIDER", role: "Swarming scrap-fighter", drop: "reinforcedAlloy" },
     { name: "Nomad Sniper", kind: "RAIDER", role: "Long-range marksman", drop: "scrapMetal" },
     { name: "Rust-Runner Buggy", kind: "RAIDER", role: "Mobile skirmisher", drop: "vehicleParts" },
   ], boss: { name: "Rust-King ‘Gant’", lair: "Junkyard Citadel", drop: "vehicleParts", tell: "Crane arm locks its landing lane" } },
   { regionId: "frostspire", troops: [
     { name: "Vanguard Enforcer", kind: "VANGUARD", role: "Perimeter defender", drop: "cryoCrystal" },
-    { name: "Vanguard Cryo-Lancer", kind: "VANGUARD", role: "Long-range cryo marksman", drop: "cryoCrystal" },
-    { name: "Vanguard Juggernaut", kind: "VANGUARD", role: "Shielded heavy", drop: "reinforcedAlloy" },
+    { name: "Chrono-Stalker", kind: "VANGUARD", role: "Phase-shifting assassin", drop: "cryoCrystal" },
+    { name: "Glacial Sentinel", kind: "VANGUARD", role: "Gauss-cannon construct", drop: "reinforcedAlloy" },
   ], boss: { name: "Subject Zero", lair: "Glacial Crevasse", drop: "zeroCore", tell: "Ice blades fan outward before the lunge" } },
   { regionId: "swamps", troops: [
     { name: "Spore-Walker", kind: "ABERRATION", role: "Ambush brute", drop: "sporeFiber" },
@@ -40,6 +40,16 @@ export const ENCOUNTERS: readonly RegionalEncounter[] = [
     { name: "Ash-Born Stalker", kind: "RAIDER", role: "Dune ambusher", drop: "scrapMetal" },
     { name: "Silicon-Fused Viper", kind: "ABERRATION", role: "Burrowing hunter", drop: "anomalyCarbon" },
     { name: "Augmented Soldier", kind: "OVERCLOCKED", role: "Ranged patrol", drop: "microCircuits" },
+  ] },
+  // not map regions: troop rosters for places inside one (owner's regional roster). Neon City's Controllers guard the Aegis Spire;
+  // Thalassia's Abyssal units hold the drowned city (descent-protocol spawns use them, machines keep the swamps zone).
+  { regionId: "neon", troops: [
+    { name: "Controller Enforcer", kind: "OVERCLOCKED", role: "Railgun carbine + hard-light shield", drop: "microCircuits" },
+    { name: "Spire Interceptor Drone", kind: "OVERCLOCKED", role: "Target-lock spotter", drop: "dataShards" },
+  ] },
+  { regionId: "thalassia", troops: [
+    { name: "Abyssal Drowner", kind: "ABERRATION", role: "Phasing sonic attacker", drop: "bioCatalyst" },
+    { name: "Sub-Surface Guardian", kind: "VANGUARD", role: "Waterjet plasma-arc mech", drop: "reinforcedAlloy" },
   ] },
 ];
 
@@ -57,5 +67,5 @@ export const troopFor = (regionId: string, index: number) => {
   return troops?.[Math.abs(index) % troops.length] ?? EXTRA_ENEMIES[0];
 };
 /** the faction a region's bosses (and boss models) belong to, from the faction sheet; uncovered regions use their main troop faction */
-export const REGION_FACTION: Record<string, EnemyKind> = { wastelands: "RAIDER", nexus: "OVERCLOCKED", frostspire: "VANGUARD", swamps: "ABERRATION", veridan: "ABERRATION", ember: "RAIDER", solara: "RAIDER" };
+export const REGION_FACTION: Record<string, EnemyKind> = { wastelands: "RAIDER", nexus: "OVERCLOCKED", frostspire: "VANGUARD", swamps: "ABERRATION", neon: "OVERCLOCKED", thalassia: "ABERRATION", veridan: "ABERRATION", ember: "RAIDER", solara: "RAIDER" };
 export const factionOf = (regionId: string | undefined): EnemyKind => REGION_FACTION[regionId ?? ""] ?? "OVERCLOCKED";

@@ -2281,7 +2281,7 @@ function SceneImpl({
       // the dock's security frames wake only at the dock, and give a respawned diver a few seconds before re-waking
       if (descent.state === "COMBAT_1" && descentSpawned.current !== "COMBAT_1" && descentSpawned.current !== "COMBAT_1-done" && s.sector === "SENTRY_DOCK" && performance.now() - sim.lastDeath > 6000) {
         descentSpawned.current = "COMBAT_1";
-        spawnMissionDrones(sim, s.x, s.z, 4, false);
+        spawnMissionDrones(sim, s.x, s.z, 4, false, "swamps", "thalassia");
       }
       if (descent.state === "COMBAT_1" && descentSpawned.current === "COMBAT_1" && !sim.machines.some((m) => m.alive && m.mission)) { descentSpawned.current = "COMBAT_1-done"; onDescentEvent({ type: "CLEAR", from: descent.state }); }
       // Thalassia's mission machines swim at the diver's depth instead of riding the surface
@@ -2289,7 +2289,7 @@ function SceneImpl({
       if (descent.state === "RING") { const w = ringWaypoint(); if (Math.hypot(w.x - s.x, w.z - s.z) < 9) onDescentEvent({ type: "ARRIVED", from: descent.state }); }
       if (descent.state === "CORE") {
         // the Sunk-Core's patrol wakes once when you go down; it is not a gate — the reactor is the objective
-        if (descentSpawned.current !== "CORE" && s.sector === "SUNK_CORE") { descentSpawned.current = "CORE"; const r = reactorSite(); spawnMissionDrones(sim, r.x, r.z, 3, true); }
+        if (descentSpawned.current !== "CORE" && s.sector === "SUNK_CORE") { descentSpawned.current = "CORE"; const r = reactorSite(); spawnMissionDrones(sim, r.x, r.z, 3, true, "swamps", "thalassia"); }
         const r = reactorSite();
         if (s.sector === "SUNK_CORE" && Math.hypot(r.x - s.x, r.z - s.z) < REACTOR_REACH) onDescentEvent({ type: "ARRIVED", from: descent.state });
       }
