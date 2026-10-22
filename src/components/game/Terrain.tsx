@@ -147,6 +147,9 @@ function Ground() {
     for (const { mesh } of state.current.meshes.values()) mesh.material = material;
     for (const { mesh } of state.current.merged.values()) mesh.material = material;
   }, [material]);
+  // A terrain texture swap creates a new GPU material. Dispose the old one
+  // after the chunk meshes have been rebound to avoid leaking shader programs.
+  useEffect(() => () => material.dispose(), [material]);
 
   useEffect(() => {
     const st = state.current;

@@ -1,6 +1,7 @@
 import { useGLTF } from "@react-three/drei";
 import { Suspense, useLayoutEffect, useMemo, useRef, type ReactNode } from "react";
 import * as THREE from "three";
+import { prepareWorldAsset } from "@/game/asset-render-quality";
 import { QuietModel } from "./Vehicle";
 
 /** Authored world props (scripts/build-props.py). Each waits and fails on its own, keeping the old primitive. */
@@ -8,6 +9,7 @@ export const PROP_URLS = { crate: "/models/props/crate.glb", coverWall: "/models
 
 function meshesOf(scene: THREE.Object3D) {
   const out: { geometry: THREE.BufferGeometry; material: THREE.Material }[] = [];
+  prepareWorldAsset(scene);
   scene.updateMatrixWorld(true);
   scene.traverse((o) => {
     const m = o as THREE.Mesh;

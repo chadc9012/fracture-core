@@ -13,6 +13,7 @@
 
 - Gameplay, 3D components, assets, saves and combat rules are documented in `src/game/AGENTS.md`; read it before changing them. Why: detailed contracts belong next to their owning subsystem.
 - Keep the TanStack Start route architecture and generated client boundaries. Why: the published app runs on the Worker runtime.
+- Controller onboarding browser tests use the isolated test save profile and a simulated standard Gamepad API in scripts/tests; never inject real saves or replace menu handlers. Why: end-to-end input regressions must exercise real polling without changing player progress.
 - Touch input uses normalized keyboard bindings and releases on cancellation/menus. Why: remapping and interrupted gestures must not leave movement or fire held.
 - Vehicle sound/RPM profiles consume existing fleet tuning; never invent a gearbox, fuel or second health system. Why: telemetry must describe real supported systems.
 - Skate attachments preserve the model-up frame when parented to foot bones. Why: differing rig rolls must not turn accessories into the foot.

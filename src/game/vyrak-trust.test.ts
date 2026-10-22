@@ -74,3 +74,39 @@ describe("later-stage rewards", () => {
     expect(claimEternalCovenant(e.progression, "HUNTER").progression.inventory.length).toBe(e.progression.inventory.length);
   });
 });
+
+
+describe("Vyrak trust save integrity", () => {
+  test("duplicated reward records cannot farm trust", () => {
+    const p = bonded();
+    const once = withKeys(p, ["vyrak-ruin:HUNTER:one", "vyrak-puzzle:HUNTER:one", "enc-done:HUNTER:boss"]);
+    const duplicated = withKeys(once, Array(30).fill("vyrak-ruin:HUNTER:one").concat(Array(30).fill("vyrak-puzzle:HUNTER:one"), Array(30).fill("enc-done:HUNTER:boss")));
+    expect(trustOf(duplicated, "HUNTER").total).toBe(trustOf(once, "HUNTER").total);
+  });
+  test("stale riding and eternal reward flags cannot bypass full trust", () => {
+    const p = withKeys(bonded(), ["vyrak-riding:HUNTER", "vyrak-eternal:HUNTER"]);
+    expect(trustStage(p, "HUNTER")).toBe(2);
+    expect(canRide(p, "HUNTER", { regionId: "solara", inDungeon: false, inStoryMission: false, indoors: false }).ok).toBe(false);
+    expect(claimEternalCovenant(p, "HUNTER").ok).toBe(false);
+  });
+});
+
+
+describe("dragon flight frame safety", () => {
+  test("rejects invalid elapsed time and controller values", () => {
+    const start = createFlight(0, 50, 0, 0);
+    for (const dt of [-1, 0, Number.NaN, Infinity]) {
+      expect(stepFlight(start, { pitch: 1, turn: 1, throttle: 1 }, dt, () => 0)).toEqual(start);
+    }
+    expect(stepFlight(start, { pitch: NaN, turn: 0, throttle: 0 }, 1 / 60, () => 0)).toEqual(start);
+  });
+  test("caps a suspended-tab frame to a safe simulation tick", () => {
+    const start = createFlight(0, 50, 0, 0);
+    const input = { pitch: 0, turn: 1, throttle: 1 };
+    expect(stepFlight(start, input, 30, () => 0)).toEqual(stepFlight(start, input, 1 / 15, () => 0));
+  });
+  test("does not propagate an invalid terrain height", () => {
+    const result = stepFlight(createFlight(0, 50, 0, 0), { pitch: 0, turn: 0, throttle: 0 }, 1 / 60, () => NaN);
+    expect(Number.isFinite(result.y)).toBe(true);
+  });
+});

@@ -20,6 +20,17 @@ describe("enemy clip weights", () => {
     expect(w.walk).toBe(1);
     expect(sum(w)).toBeCloseTo(1, 6);
   });
+  test("nonfinite speed never produces NaN clip weights", () => {
+    for (const speed of [NaN, Infinity, -Infinity, -3]) {
+      const weights = enemyClipWeights({ speed, aiming: false }, all);
+      expect(Object.values(weights).every(Number.isFinite)).toBe(true);
+      expect(sum(weights)).toBeCloseTo(1, 6);
+      expect(Number.isFinite(strideRate(speed, "walk"))).toBe(true);
+    }
+  });
+  test("single available shoot clip receives weight even while idle", () => {
+    expect(enemyClipWeights({ speed: 0, aiming: false }, { shoot: true }).shoot).toBe(1);
+  });
   test("stride rate is clamped", () => {
     expect(strideRate(0, "walk")).toBe(0.6);
     expect(strideRate(100, "run")).toBe(1.8);

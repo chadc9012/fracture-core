@@ -27,7 +27,7 @@ const neon = lm("neon-city"), thalassia = lm("thalassia");
 
 export const CITY_DESTINATIONS: readonly CityDestination[] = [
   { id: "neon-city", name: "Neon City", sub: "Safe Zone / District", kind: "safe", x: neon.x, z: neon.z, regionId: "nexus", rules: ["Beside the Nexus hub", "Lit district, dense street traffic", neon.history], deployable: true },
-  { id: "thalassia", name: "Thalassia", sub: "Containment Rift / Submerged", kind: "fracture", x: thalassia.x, z: thalassia.z, regionId: "swamps", rules: ["Submersible arrival at the Sentry Dock airlock", "Crush depth below the city · electrified coolant in the Abyssal Ring", thalassia.history], deployable: true, arrival: "submersible" },
+  { id: "thalassia", name: "Thalassia", sub: "Containment Rift / Submerged", kind: "fracture", x: thalassia.x, z: thalassia.z, regionId: "swamps", rules: ["Offshore from Verdant Forest · submersible arrival at the Sentry Dock airlock", "Crush depth below the city · electrified coolant in the Abyssal Ring", thalassia.history], deployable: true, arrival: "submersible" },
 ];
 
 /** Where the player stands after dropping in: a few metres off the centre so the drop never lands on a landmark. */

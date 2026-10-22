@@ -1,3 +1,5 @@
+import { ThalassiaMapCity } from "./ThalassiaMapCity";
+import { REGION_CARTOGRAPHY } from "@/game/region-cartography";
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { ArrowLeft, Crosshair, Focus, Globe2, Navigation, Shield, Skull, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -92,6 +94,7 @@ function DestinationOverview({ progression, here, px, pz, onPick, onTravel }: { 
       {!map.full && <p className="mb-1 font-mono text-[10px] uppercase tracking-widest text-muted-foreground" role="status">Surveying terrain… {Math.round(map.progress * 100)}%</p>}
       <svg viewBox={MAP_VIEWBOX} className="w-full border border-border" style={{ background: MAP_OCEAN_EDGE }} role="group" aria-label="Destinations map: choose a region or city">
         <MapLayers art={map.url} preview={!map.full} selected={chosen.city ? chosen.regionId : chosen.id} onSelect={choose}>
+          <ThalassiaMapCity />
           {cities.map((c) => { const on = c.id === sel; return <g key={c.id} className="cursor-pointer outline-none" tabIndex={0} role="button" aria-pressed={on} aria-label={`${c.name}${on ? ", selected — press again to open" : ""}`} onClick={() => choose(c.id)} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); choose(c.id); } }}>
             <title>{`${c.name} · ${c.sub}`}</title>
             <circle cx={c.x} cy={c.z} r={CITY_R * (on ? 2.8 : 2.2)} fill="none" stroke={on ? "#ffffff" : "#66e0ff"} strokeOpacity={on ? 0.95 : 0.7} strokeWidth={CITY_R * 0.18} className={on ? "wf-pulse" : undefined} />
@@ -148,7 +151,10 @@ function DestinationView({ dest, progression, phase, markers, px, pz, onProgress
   const [pick, setPick] = useState<string | null>(null);
   const [notice, setNotice] = useState("");
   const acts = useMemo(() => destinationActivities(progression, dest), [progression, dest]);
-  const shown = acts.filter((a) => matchesFilter(a, filter));
+  // Destination maps begin with only safe arrival points and revealed main-story chapters.
+  // Other activity categories are opt-in through the Director filters.
+  const [showOther, setShowOther] = useState(false);
+  const shown = acts.filter((a) => matchesFilter(a, filter) && (showOther || a.kind === "SAFE_ZONE" || a.kind === "STORY"));
   const sites = useMemo(() => discoveredSites(progression, dest), [progression, dest]);
   const summary = useMemo(() => destinationSummary(progression, dest), [progression, dest]);
   const districts = useMemo(() => cityDistricts(dest), [dest]);
@@ -170,17 +176,22 @@ function DestinationView({ dest, progression, phase, markers, px, pz, onProgress
   const fleetState = progression.fleet ?? { owned: [], garages: [], active: null };
   return <div className="mt-5 grid gap-6 lg:grid-cols-[minmax(0,1.6fr)_minmax(18rem,0.7fr)] wf-director-in">
     <section className="min-w-0">
-      <TacticalMap markers={markers} px={px} pz={pz} selected={region.id} onSelect={() => {}} progression={progression} focus={focus} activities={tab === "ACTIVITIES" ? shown : []} sites={sites} districts={districts} plan={plan} course={course} pickedActivity={pick} onActivity={(id) => { setTab("ACTIVITIES"); setPick(id); }} />
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-2 border-l-2 bg-background/60 px-3 py-2" style={{ borderColor: REGION_CARTOGRAPHY[dest.id]?.accent ?? dest.accent ?? "#8ddaff" }}>
+        <div><p className="font-mono text-[10px] uppercase tracking-[0.22em]" style={{ color: REGION_CARTOGRAPHY[dest.id]?.accent ?? dest.accent }}>{REGION_CARTOGRAPHY[dest.id]?.terrain ?? "Regional survey"} / local chart</p><p className="text-sm font-semibold">{dest.name}</p><p className="text-xs text-muted-foreground">{REGION_CARTOGRAPHY[dest.id]?.subtitle ?? dest.sub}</p></div>
+        <div className="flex gap-3 font-mono text-[10px] uppercase"><span className="text-cyan-300">⌂ Safe zone</span><span className="text-amber-300">◆ Reached story</span></div>
+      </div>
+      <TacticalMap chartRegionId={dest.id} markers={markers} px={px} pz={pz} selected={region.id} onSelect={() => {}} progression={progression} focus={focus} activities={tab === "ACTIVITIES" ? shown : []} sites={sites} districts={districts} plan={plan} course={course} pickedActivity={pick} onActivity={(id) => { setTab("ACTIVITIES"); setPick(id); }} />
       {/* folded here: on a narrow screen the full legend pushed the destination's tabs far below the map */}
       <details className="mt-2"><summary className="ui-focus cursor-pointer font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Map legend</summary><MapLegend phase={phase} /></details>
     </section>
     <aside className="min-w-0">
       <ul className="grid grid-cols-2 gap-px border border-foreground/15 bg-foreground/10 text-xs" aria-label="What's here">
         {COUNT_ROWS.filter((r) => summary[r.key] > 0).map((r) => { const on = r.filter ? filter === r.filter && tab === "ACTIVITIES" : tab === (r.key === "shops" ? "SHOPS" : r.key === "homes" ? "HOMES" : "VEHICLES");
-          return <li key={r.key}><button type="button" aria-pressed={on} onClick={() => { setPick(null); setNotice(""); if (r.filter) { setTab("ACTIVITIES"); setFilter(on ? "ALL" : r.filter); } else setTab(on ? "ACTIVITIES" : r.key === "shops" ? "SHOPS" : r.key === "homes" ? "HOMES" : "VEHICLES"); }}
+          return <li key={r.key}><button type="button" aria-pressed={on} onClick={() => { setPick(null); setNotice(""); if (r.filter) { setTab("ACTIVITIES"); setFilter(on ? "ALL" : r.filter); if (r.filter !== "STORY" && r.filter !== "SAFE_ZONE") setShowOther(true); } else setTab(on ? "ACTIVITIES" : r.key === "shops" ? "SHOPS" : r.key === "homes" ? "HOMES" : "VEHICLES"); }}
             className={`ui-focus flex w-full items-center justify-between px-3 py-1.5 text-left ${on ? "bg-primary/20" : "bg-background/80 hover:bg-background/60"}`}><span><span style={{ color: r.color }}>{r.glyph}</span> {r.label}</span><b>{summary[r.key]}</b></button></li>; })}
         {summary.dungeonsTotal > 0 && <li className="flex items-center justify-between bg-background/80 px-3 py-1.5"><span><span className="text-violet-300">◈</span> Dungeons</span><b>{summary.dungeonsFound}/{summary.dungeonsTotal}</b></li>}
       </ul>
+      <label className="mt-3 flex items-center gap-2 text-xs"><input type="checkbox" checked={showOther} onChange={(e) => setShowOther(e.target.checked)} /> Show patrols, bosses and other activities</label>
       {tabs.length > 1 && <div className="mt-3 flex flex-wrap gap-1" role="tablist" aria-label="Destination sections">{tabs.map((t) => <Button key={t} size="sm" role="tab" aria-selected={tab === t} variant={tab === t ? "default" : "outline"} className="rounded-none font-mono text-[10px] uppercase" onClick={() => { setTab(t); setPick(null); setNotice(""); }}>{t === "ACTIVITIES" ? "Activities" : t === "RACES" ? "Races" : t === "SHOPS" ? "Shops" : t === "HOMES" ? "Real estate" : "Vehicles"}</Button>)}</div>}
       {notice && <p className="mt-2 text-xs text-primary" role="status">{notice}</p>}
       {tab === "ACTIVITIES" && <>
@@ -274,6 +285,20 @@ function PlanLayer({ plan }: { plan: CityPlan }) {
   </g>;
 }
 
+/** Transparent survey lines are anchored in world space, not screen pixels. They never obscure map interactions. */
+function RegionChartPattern({ regionId, x, z, radius }: { regionId: string; x: number; z: number; radius: number }) {
+  const profile = REGION_CARTOGRAPHY[regionId];
+  if (!profile) return null;
+  const lines = Array.from({ length: 7 }, (_, i) => i - 3);
+  const step = radius / 3.8;
+  return <g aria-hidden="true" pointerEvents="none" opacity={0.32} stroke={profile.accent} fill="none" strokeWidth={Math.max(0.2, radius / 600)}>
+    {profile.pattern === "grid" ? lines.map((n) => <g key={n}><path d={`M ${x + n * step} ${z - radius} V ${z + radius}`} /><path d={`M ${x - radius} ${z + n * step} H ${x + radius}`} /></g>)
+      : lines.map((n) => { const yy = z + n * step; const wave = profile.pattern === "current" ? step * 0.35 : profile.pattern === "dune" ? step * 0.24 : step * 0.12;
+        return <path key={n} strokeDasharray={profile.pattern === "fracture" ? `${step * 0.6} ${step * 0.22}` : undefined} d={`M ${x - radius} ${yy} Q ${x - radius / 2} ${yy - wave} ${x} ${yy} T ${x + radius} ${yy}`} />; })}
+    <circle cx={x} cy={z} r={radius * 0.9} strokeDasharray={`${step * 0.2} ${step * 0.3}`} opacity={0.45} />
+  </g>;
+}
+
 const ACCESS_LABEL = { interior: "walk-in", window: "service window", table: "street counter" } as const;
 const districtOf = (ds: CityDistrict[], x: number, z: number) => ds.find((k) => Math.hypot(x - k.x, z - k.z) <= k.r)?.name;
 
@@ -291,7 +316,7 @@ const [VB_X, VB_Y, VB_W] = MAP_VIEWBOX.split(" ").map(Number) as [number, number
 
 /** Live tactical map: zoom (wheel / buttons), drag to pan, layer filters, and click any marker or point to set a
  * waypoint that the HUD compass and tracker follow (map-pin.ts). */
-function TacticalMap({ markers, px, pz, selected, onSelect, progression, focus, activities = [], sites = [], pickedActivity, onActivity, districts = [], plan, course }: { markers: TrackedMarker[]; px: number; pz: number; selected: string; onSelect: (id: string) => void; progression: PlayerProgression;
+function TacticalMap({ chartRegionId, markers, px, pz, selected, onSelect, progression, focus, activities = [], sites = [], pickedActivity, onActivity, districts = [], plan, course }: { chartRegionId: string; markers: TrackedMarker[]; px: number; pz: number; selected: string; onSelect: (id: string) => void; progression: PlayerProgression;
   /** open centred on this area (a destination), fitted to its radius */
   focus?: { x: number; z: number; radius: number };
   /** the destination's activities, drawn as rings in their kind's colour; clicking one picks it in the side panel */
@@ -368,6 +393,7 @@ function TacticalMap({ markers, px, pz, selected, onSelect, progression, focus, 
         onPointerUp={() => { drag.current = null; }}
         onDoubleClick={(e) => { const w = toWorld(e.clientX, e.clientY); setPin(pinAt(w.x, w.z)); }}>
         <MapLayers art={map.url} preview={!map.full} selected={selected} onSelect={onSelect} labelScale={1 / Math.sqrt(view.zoom)} detail={detail} plan={plan && <PlanLayer plan={plan} />}>
+        {focus && <RegionChartPattern regionId={chartRegionId} x={focus.x} z={focus.z} radius={focus.radius} />}
         {legend.LANDMARK && landmarkRoutes().filter((r) => known(r.a.id) && known(r.b.id)).map((r) => <line key={`${r.a.id}-${r.b.id}`} x1={r.a.x} y1={r.a.z} x2={r.b.x} y2={r.b.z} stroke="#9fd4ff" strokeOpacity={0.7} strokeWidth={u(0.6)} strokeDasharray={`${u(0.8)} ${u(1.4)}`} strokeLinecap="round" />)}
         {hazards && hz.map(({ z, c }) => <g key={z.id}><title>{`${z.name} · ${z.hint}`}</title><circle cx={c.x} cy={c.z} r={z.radius} fill="#ff4d4d" fillOpacity={0.14} stroke="#ff4d4d" strokeWidth={u(0.6)} strokeDasharray={`${u(1.6)} ${u(1.2)}`} /><g transform={`translate(${c.x} ${c.z}) scale(${WORLD_SCALE})`}><text y={1.6} textAnchor="middle" fontSize={5} fill="#ff8a8a" stroke="#000" strokeWidth={0.8} paintOrder="stroke">⚠</text></g></g>)}
         {live.filter((m) => legend[m.kind as (typeof LAYERS)[number]]).map((m) => <g key={m.id} transform={`translate(${m.x} ${m.z}) scale(${scaleK})`} className="cursor-pointer outline-none" tabIndex={0} role="button" aria-label={`${LAYER_NAME[m.kind as (typeof LAYERS)[number]] ?? m.kind}: ${m.label}, ${fmt(m.dist)}${pin?.id === m.id ? ", current waypoint" : ""}`} aria-pressed={pin?.id === m.id}

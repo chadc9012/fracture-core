@@ -1,5 +1,6 @@
 import { useFrame } from "@react-three/fiber";
 import { useGLTF } from "@react-three/drei";
+import { prepareWorldAsset } from "@/game/asset-render-quality";
 import { Component, Suspense, useEffect, useMemo, useRef, type ReactNode } from "react";
 import * as THREE from "three";
 import { clone as cloneSkinned } from "three/examples/jsm/utils/SkeletonUtils.js";
@@ -138,6 +139,7 @@ function Model({ url, tint, height, feetY, color, trim, pose, motion, bodyType, 
   const { scene, animations } = useGLTF(url);
   const built = useMemo(() => {
     const object = cloneSkinned(scene);
+    prepareWorldAsset(object, { castShadow: false, receiveShadow: true });
     let skinned = false;
     const robot = bodyProfile(bodyType).segmented;
     const palette = tint ? buildPalette({ armor: color, cloth, look, bodyType, trim }) : null;

@@ -5,6 +5,7 @@ import type { PlayerProgression } from "@/game/progression";
 import { NextActivityCard } from "./NextActivityCard";
 import { classById, subclassById, type AppearanceDefinition, type ClassId, type OperatorId, type SubclassId } from "@/game/loadout";
 import type { BodyType } from "@/game/operators";
+import { useMenuInput } from "./useMenuInput";
 
 export type DeploymentBriefingData = {
   classId: ClassId;
@@ -16,6 +17,10 @@ export type DeploymentBriefingData = {
 };
 
 export function DeploymentBriefing({ deployment, progression, onLaunch, onBack }: { deployment: DeploymentBriefingData; progression: PlayerProgression; onLaunch: () => void; onBack: () => void }) {
+  useMenuInput(true, (intent) => {
+    if (intent === "confirm") onLaunch();
+    else if (intent === "back") onBack();
+  }, ["confirm", "back"]);
   const operatorClass = classById(deployment.classId);
   const subclass = subclassById(deployment.subclassId);
 
@@ -27,7 +32,7 @@ export function DeploymentBriefing({ deployment, progression, onLaunch, onBack }
         <header className="flex items-center justify-between border-b border-foreground/15 pb-4">
           <div>
             <p className="ui-kicker">Deployment queue / 01</p>
-            <h1 className="mt-1 font-mono text-xl uppercase sm:text-3xl">Veridan Forest</h1>
+            <h1 className="mt-1 font-mono text-xl uppercase sm:text-3xl">Verdant Forest</h1>
           </div>
           <Button variant="ghost" onClick={onBack}>Back</Button>
         </header>

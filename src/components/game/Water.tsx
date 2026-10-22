@@ -85,6 +85,7 @@ export function Water({
       uDepthTex: { value: depthTex },
       uWorldSize: { value: cover },
       uOrigin: { value: new THREE.Vector2(0, 0) },
+      uSkyHorizon: { value: new THREE.Color("#87b9d0") },
     }),
     [depthTex, cover],
   );
@@ -152,6 +153,7 @@ export function Water({
           uniform vec3 uDeep;
           uniform vec3 uShallow;
           uniform vec3 uSky;
+          uniform vec3 uSkyHorizon;
           uniform float uMurk;
           uniform float uTime;
           uniform sampler2D uDepthTex;
@@ -179,7 +181,11 @@ export function Water({
             col = mix(col, col * (0.55 + 0.45 * diff), 1.0 - uMurk * 0.5);
 
             // sky reflection, dulled by murk
-            col = mix(col, uSky, fres * 0.7 * (1.0 - uMurk * 0.6));
+            // A horizon-dependent reflection keeps shallow bays blue and offshore water
+            // reflective without requiring a costly screen-space reflection pass.
+            float horizonFacing = pow(1.0 - clamp(view.y, 0.0, 1.0), 2.0);
+            vec3 reflectedSky = mix(uSky, uSkyHorizon, horizonFacing * 0.65);
+            col = mix(col, reflectedSky, fres * 0.78 * (1.0 - uMurk * 0.6));
 
             // sun glint, dulled by murk
             vec3 h = normalize(normalize(uSun) + view);
@@ -192,7 +198,9 @@ export function Water({
             float shore = smoothstep(0.0, 0.02, depth) * (1.0 - smoothstep(0.03, 0.09, depth));
             float lap = 0.5 + 0.25 * sin(uTime * 1.4 + vPosW.x * 0.35 + vPosW.z * 0.27) + 0.25 * sin(uTime * 0.9 - vPosW.x * 0.21 + vPosW.z * 0.43);
             float foam = clamp(vFoam * 0.5 + shore * (0.45 + 0.55 * lap), 0.0, 1.0);
-            col = mix(col, vec3(0.92, 0.97, 1.0), foam * (0.35 + shore * 0.45) * (1.0 - uMurk * 0.5));
+            // Break up perfectly continuous whitecaps using world-space interference.
+            float crestBreakup = 0.68 + 0.32 * sin(vPosW.x * 0.47 + uTime * 0.7) * sin(vPosW.z * 0.39 - uTime * 0.45);
+            col = mix(col, vec3(0.92, 0.97, 1.0), foam * crestBreakup * (0.35 + shore * 0.45) * (1.0 - uMurk * 0.5));
 
             float alpha = mix(0.82, 0.96, max(uMurk, depth * 0.6));
             gl_FragColor = vec4(col, alpha);

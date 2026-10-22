@@ -3,6 +3,7 @@ import { RoundedBox, useGLTF } from "@react-three/drei";
 import { Component, Suspense, useMemo, useRef, type ReactNode } from "react";
 import { clone as cloneSkinned } from "three/examples/jsm/utils/SkeletonUtils.js";
 import { enemyVisual, type EnemyRole, type EnemyVisual } from "@/game/enemy-visuals";
+import { prepareWorldAsset } from "@/game/asset-render-quality";
 import { enemyClipWeights, strideRate, type ClipWeights, type EnemyDrive } from "@/game/enemy-anim";
 
 /** Per-machine motion the renderer reads (WarMachines writes it each frame). `procedural` is set by the model: true while it has no clips. */
@@ -41,7 +42,7 @@ function Limb({ m, len, r, side, arm, swing }: { m: Mats; len: number; r: number
 }
 
 /** Articulated region-faction trooper (procedural starter model, ~3.9 units tall to match existing hit volumes). */
-export function EnemyModel({ kind, boss, visorRef, headRef }: { kind: EnemyKind; boss: boolean; visorRef?: React.Ref<THREE.MeshStandardMaterial>; headRef?: React.Ref<THREE.Group> }) {
+export function EnemyModel({ kind, boss, visorRef, headRef, drive }: { kind: EnemyKind; boss: boolean; drive?: DriveRef; visorRef?: React.Ref<THREE.MeshStandardMaterial>; headRef?: React.Ref<THREE.Group> }) {
   const look = regionLook(KIND_REGION[kind]);
   const m: Mats = { plate: look.armor, under: look.cloth, accent: look.accent, plateKind: kind === "ABERRATION" ? "polymer" : kind === "RAIDER" ? "paintedArmor" : look.primary };
   const legs = [useRef<THREE.Group>(null), useRef<THREE.Group>(null)];
@@ -49,7 +50,9 @@ export function EnemyModel({ kind, boss, visorRef, headRef }: { kind: EnemyKind;
   const seed = useRef(Math.random() * 10);
   useFrame(({ clock }) => {
     const t = clock.elapsedTime * 3 + seed.current;
-    const s = Math.sin(t);
+    const speed = Number.isFinite(drive?.current.speed) ? Math.max(0, drive!.current.speed) : 0;
+    const movement = Math.min(1, speed / 1.2);
+    const s = Math.sin(t * (1 + Math.min(speed, 8) * 0.22)) * movement;
     legs[0]!.current?.rotation.set(s * 0.45, 0, 0); legs[1]!.current?.rotation.set(-s * 0.45, 0, 0);
     // arms hold the weapon forward, with a little sway
     arms[0]!.current?.rotation.set(-1.1 + s * 0.05, 0, 0.15); arms[1]!.current?.rotation.set(-1.2 - s * 0.05, 0, -0.3);
@@ -101,7 +104,18 @@ function Authored({ visual, headRef, drive }: { visual: EnemyVisual; headRef?: R
   const { scene, animations } = useGLTF(visual.url);
   const built = useMemo(() => {
     const obj = cloneSkinned(scene);
-    obj.traverse((o) => { const m = o as THREE.Mesh; if (m.isMesh) { m.castShadow = true; m.frustumCulled = !(m as THREE.SkinnedMesh).isSkinnedMesh; } });
+    prepareWorldAsset(obj);
+    obj.traverse((o) => {
+      const m = o as THREE.Mesh;
+      if (!m.isMesh) return;
+      m.castShadow = true;
+      m.receiveShadow = true;
+      // Skinned animation can move limbs outside their bind-pose bounds.
+      m.frustumCulled = !(m as THREE.SkinnedMesh).isSkinnedMesh;
+      // Preserve authored GLTF PBR maps, metallic/roughness values and normal
+      // maps; replacing them with procedural colors destroys asset fidelity.
+      // Shadow reception is safe per instance and adds grounded contact shading.
+    });
     obj.updateMatrixWorld(true);
     const box = new THREE.Box3().setFromObject(obj);
     const size = box.getSize(new THREE.Vector3()), c = box.getCenter(new THREE.Vector3());
@@ -149,6 +163,6 @@ function Authored({ visual, headRef, drive }: { visual: EnemyVisual; headRef?: R
 
 /** Real enemy model for this faction/role; procedural trooper while loading or if the model fails. */
 export function FactionEnemy({ kind, role, visorRef, headRef, drive }: { kind: EnemyKind; role: EnemyRole; visorRef?: React.Ref<THREE.MeshStandardMaterial>; headRef?: React.Ref<THREE.Group>; drive?: DriveRef }) {
-  const fallback = <EnemyModel kind={kind} boss={role === "boss"} {...(visorRef ? { visorRef } : {})} {...(headRef ? { headRef } : {})} />;
+  const fallback = <EnemyModel kind={kind} boss={role === "boss"} {...(drive ? { drive } : {})} {...(visorRef ? { visorRef } : {})} {...(headRef ? { headRef } : {})} />;
   return <QuietBoundary fallback={fallback}><Suspense fallback={fallback}><Authored visual={enemyVisual(kind, role)} {...(headRef ? { headRef } : {})} {...(drive ? { drive } : {})} /></Suspense></QuietBoundary>;
 }

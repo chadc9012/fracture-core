@@ -1,3 +1,4 @@
+import { emptyChainState, registerChainHit, resolveChainDamage, type ChainState, type ChainReaction } from "./legendary-chain";
 import { rollSetDrop, setById, type SetDrop } from "./armor-sets";
 import { stratagemById, type StratagemId } from "./stratagems";
 import { NO_BACKPACK, type BackpackDef } from "./backpacks";
@@ -327,6 +328,9 @@ export type WorldSim = {
   /** last released Null Disruption pulse (id increments per pulse); Scene/NullPulseFx read it, never write it */
   nullPulse: { id: number; x: number; z: number; radius: number; at: number } | null;
   nextHitId: number;
+  /** Per-simulation combo ledger. Damage and defeats still use the normal simulation pipeline. */
+  chainState: ChainState;
+  lastChainReaction: ChainReaction | null;
   /** Unique Scenario encounters (encounter-sim.ts): live hazard zones and a presentation event log. Presentation reads, never writes. */
   encounterZones: EncounterZone[];
   encounterEvents: EncounterEvent[];
@@ -665,7 +669,7 @@ export function createSim(): WorldSim {
     evoCharge: freshCharge(),
     nullCharge: { ...INITIAL_NULL_CHARGE },
     nullPulse: null,
-    nextHitId: 0,
+    nextHitId: 0, chainState: emptyChainState(), lastChainReaction: null,
     encounterZones: [], encounterEvents: [], nextEncounterEventId: 1, nextEncounterZoneId: 1, hazardSpeedMult: 1,
     rounds: Array.from({ length: ROUND_POOL }, () => ({ ...fireRound(NO_ORDNANCE, { x: 0, y: 0, z: 0 }, [0, 0, 1]), alive: false, launcher: "ROCKET" as LauncherId, element: "KINETIC" as DamageElement, target: -1, knock: 1 })),
     statuses: new Map(), burstEvents: [], evoBursts: [], nextBurstId: 1, impacts: Array.from({ length: IMPACT_LOG }, () => ({ id: 0, x: 0, y: 0, z: 0, kind: "ground" as BulletHit, vx: 0, vz: 0 })), nextImpactId: 1,
@@ -878,6 +882,22 @@ export function fireLauncher(sim: WorldSim, id: LauncherId, x: number, y: number
   Object.assign(r, fireRound({ ...L.ordnance, damage: dmg * sim.mods.bulletDamage * sim.verbDamageMult }, { x, y, z }, aim), { launcher: id, element: L.element, target: lock, knock });
   logBehavior(sim.adaptation, "combat", 0.6);
   return true;
+}
+
+/** Register an authoritative elemental hit from a distinct Operator. The caller must
+ * provide a stable unique hit ID and source ID (never trust client-generated damage).
+ * Returns a proposed multiplier only; no HP, XP or loot is changed here. */
+export function registerSimChainHit(sim: WorldSim, machine: Machine, hit: Readonly<{
+  id: string; sourceId: string; element: DamageElement; at: number;
+}>): ChainReaction | null {
+  const targetIndex = sim.machines.indexOf(machine);
+  if (targetIndex < 0 || !machine.alive) return null;
+  const result = registerChainHit(sim.chainState, {
+    ...hit, targetId: `machine:${targetIndex}`,
+  });
+  sim.chainState = result.state;
+  sim.lastChainReaction = result.reaction;
+  return result.reaction;
 }
 
 /** apply the elemental status for one hit to a machine (weapon-elements.ts rules); stun goes through stunMachine so bosses stay capped */
@@ -1870,7 +1890,12 @@ export function stepSim(sim: WorldSim, input: SimInput) {
         if (sim.equippedEvolution) { const st = sim.statuses.get(m); dmg *= evolutionDamageMult(sim.equippedEvolution, !!st && isChilled(st, performance.now() / 1000)); }
         if (sim.runes.bursts.length || sim.runes.devour || sim.runes.rift || sim.runes.awakened) dmg *= runeDamageMult(sim, m);
         if (sim.foundry === "HAKKE" && (m.elite || m.boss)) dmg *= FOUNDRY_RULES.hakkeArmored; // foundries.ts: Wall-Piercer
-        dmg = applyMachineDamageMods(sim, m, dmg, b.element ?? sim.equippedElement, px, pz);
+        const bulletElement = b.element ?? sim.equippedElement;
+        const chain = registerSimChainHit(sim, m, {
+          id: `hit:${sim.nextHitId++}`, sourceId: "local-operator",
+          element: bulletElement, at: performance.now(),
+        });
+        dmg = applyMachineDamageMods(sim, m, resolveChainDamage(dmg, chain), bulletElement, px, pz);
         m.hp -= dmg;
         if (b.element) applyWeaponElement(sim, m, b.element);
         if (sim.equippedEvolution) evolutionHit(sim, m, dmg, px, pz);

@@ -6,6 +6,7 @@ import { getPerfTier, heavyShadows, regionModelTris } from "@/game/perf-budget";
 import { REGIONS } from "@/game/world";
 import { heightAt, slopeAt, WATER_LEVEL } from "@/game/terrain";
 import { mulberry32 } from "@/game/rng";
+import { prepareWorldAsset } from "@/game/asset-render-quality";
 import { distanceToRoad, LANE_HALF_WIDTH } from "@/game/lanes";
 import { addObstacle } from "@/game/obstacles";
 import { isReserved } from "@/game/verdant";
@@ -54,7 +55,7 @@ function Placed({ url, regions, count, scale, seed }: (typeof PLACEMENT)[number]
   const clones = useMemo(() => spots.map(() => {
     const c = variant.clone(true);
     c.position.set(0, 0, 0);
-    c.traverse((o) => { o.castShadow = false; o.receiveShadow = true; });
+    prepareWorldAsset(c, { castShadow: false });
     return c;
   }), [variant, spots]);
   // Each model is ~100k triangles, so only the ones near the camera are drawn at all, and only the

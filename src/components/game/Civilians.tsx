@@ -18,7 +18,7 @@ import {
 
 /**
  * Ambient, friendly civilian population — Nexus City's techs, vendors and medics and the outpost
- * scouts/scavengers in Veridan Forest (per the "World Fracture Civilian Population" reference sheets).
+ * scouts/scavengers in Verdant Forest (per the "World Fracture Civilian Population" reference sheets).
  * Same centrally-stepped / imperative-view pattern as Weather.tsx and Wildlife.tsx: one shared array is
  * advanced once per frame, and each <CivilianView> only ever reads it to set transforms.
  */
@@ -32,7 +32,7 @@ function buildRoster(): CivilianSpec[] {
     { id: "elara", name: "Elara", role: "VENDOR", title: "Nexus Market Vendor", lore: "Runs a stall of re-purposed tools and salvage.", homeX: nexus.x + 6, homeZ: nexus.z - 9 },
     { id: "aris", name: "Dr. Aris", role: "MEDIC", title: "Refugee Camp Lead Physician", lore: "Treats arrivals from the outer zones.", homeX: nexus.x - 4, homeZ: nexus.z - 12 },
     { id: "jael", name: "Jael", role: "ARTISAN", title: "Nexus Arcology Tech-Smith", lore: "Precision salvage work on arcology systems.", homeX: nexus.x + 12, homeZ: nexus.z + 5 },
-    { id: "ryu", name: "Ryu", role: "SCAVENGER", title: "Veridan Forest Scavenger", lore: "Works the tree line for anything worth carrying home.", homeX: veridan.x + 14, homeZ: veridan.z - 6 },
+    { id: "ryu", name: "Ryu", role: "SCAVENGER", title: "Verdant Forest Scavenger", lore: "Works the tree line for anything worth carrying home.", homeX: veridan.x + 14, homeZ: veridan.z - 6 },
     { id: "lyra", name: "Lyra", role: "OBSERVER", title: "Veridan Outpost Forward Observer", lore: "Watches the tree line from the outpost ridge.", homeX: veridan.x - 10, homeZ: veridan.z + 10 },
     // Living World: Nexus outer districts and Neon City streets (living-world.ts). They panic and run from fights nearby.
     { id: "nx-dock", name: "Dock Hand", role: "ENGINEER", title: "Shipyard Loader", lore: "Moves crates between the shipyard bays.", homeX: nexus.x + 4, homeZ: nexus.z + 60 },

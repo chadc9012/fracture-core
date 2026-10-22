@@ -1,5 +1,6 @@
 import { Component, Suspense, useMemo, useRef, type ReactElement, type ReactNode } from "react";
 import { useGLTF } from "@react-three/drei";
+import { prepareWorldAsset } from "@/game/asset-render-quality";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import { softSprite } from "./softSprite";
@@ -59,6 +60,7 @@ export const RIFLE_URL = "/models/weapons/rifle.glb";
 const RIFLE_MAG_PIVOT: [number, number, number] = [0, 0.02, -0.18];
 
 function viewmodelReady(obj: THREE.Object3D, accent: THREE.MeshStandardMaterial, accentName = "RifleAccent") {
+  prepareWorldAsset(obj, { castShadow: false, receiveShadow: false, anisotropy: 8 });
   obj.traverse((o) => {
     const mesh = o as THREE.Mesh;
     if (!mesh.isMesh) return;

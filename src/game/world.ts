@@ -70,7 +70,7 @@ const BASE_REGIONS: Region[] = [
   },
   {
     id: "veridan",
-    name: "Veridan Forest",
+    name: "Verdant Forest",
     sub: "Safe Zone / Resources",
     kind: "starter",
     x: -58,

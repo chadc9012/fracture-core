@@ -22,7 +22,7 @@ export type SkyMood = { golden?: SkyMoodColors; night?: SkyMoodColors; day?: Sky
  * docs/reference-world-brief.md). `golden` is the sunrise/sunset look, `night` and `day` the other two. Regions without a reference photo for a
  * phase keep the authored global gradient for it. */
 export const REGION_SKY_MOOD: Readonly<Record<string, SkyMood>> = {
-  veridan: { golden: { zenith: hex("#8995cf"), horizon: hex("#c3b4bd") } },   // sunrise - Veridan Forest
+  veridan: { golden: { zenith: hex("#8995cf"), horizon: hex("#c3b4bd") } },   // sunrise - Verdant Forest
   nexus: { golden: { zenith: hex("#97647c"), horizon: hex("#e67c48") } },     // sunset - Nexus City
   wastelands: { golden: { zenith: hex("#a57886"), horizon: hex("#c08574") } },// sunset - The Wastelands
   frostspire: { night: { zenith: hex("#0c3475"), horizon: hex("#134897") } }, // night - Frostspire Mountains

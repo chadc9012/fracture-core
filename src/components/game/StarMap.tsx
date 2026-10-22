@@ -1,3 +1,4 @@
+import { OrbitalDirector } from "./OrbitalDirector";
 import { REGION_HAZARD } from "@/game/region-hazards";
 import { useState } from "react";
 import { ArrowLeft, ChevronRight, Skull } from "lucide-react";
@@ -32,7 +33,7 @@ export function StarMap({ progression, onBack, onDeploy, onProgression, embedded
   const recommended = REGIONS.find((r) => r.name === next.region)?.id ?? progression.currentWorld;
   const [selected, setSelected] = useState(REGIONS.find((r) => r.id === recommended)?.id ?? "veridan");
   const [launching, setLaunching] = useState(false);
-  const [view, setView] = useState<"painted" | "terrain">("painted");
+  const [view, setView] = useState<"director" | "painted" | "terrain">("director");
   const art = useMapArt(mapArt);
   const terrain = useTerrainMap();
   const known = LANDMARKS.filter((l) => isLandmarkKnown(progression, l.id));
@@ -40,7 +41,7 @@ export function StarMap({ progression, onBack, onDeploy, onProgression, embedded
   const city = CITY_DESTINATIONS.find((c) => c.id === cityId) ?? null;
   const pickRegion = (id: string) => { setCityId(null); setSelected(id); };
   const region = REGIONS.find((r) => r.id === (city ? city.regionId : selected))!;
-  const encounter = ENCOUNTERS.find((e) => e.regionId === selected);
+  const encounter = ENCOUNTERS.find((e) => e.regionId === region.id);
   const chapters = CHRONICLE.filter((c) => c.region === region.name);
   const deploy = () => {
     if (city && !city.deployable) return;
@@ -48,6 +49,8 @@ export function StarMap({ progression, onBack, onDeploy, onProgression, embedded
     const at = dropPoint(city ?? region);
     onDeploy({ id: city?.id ?? region.id, name: city?.name ?? region.name, sub: city?.sub ?? region.sub, color: ZONE_COLOR[(city ?? region).kind], x: at.x, z: at.z, ...("y" in at && at.y !== undefined ? { y: at.y } : {}) });
   };
+
+  if (view === "director") return <div className={`deployment-field fixed ${embedded ? "inset-x-0 bottom-0 top-14" : "inset-0"} z-50 flex flex-col overflow-hidden text-foreground`}><OrbitalDirector progression={progression} onDeploy={onDeploy} onAtlas={() => setView("terrain")} /></div>;
 
   return (
     <div className={`deployment-field fixed ${embedded ? "inset-x-0 bottom-0 top-14" : "inset-0"} z-50 flex flex-col overflow-y-auto p-4 text-foreground lg:p-6`} role="dialog" aria-modal="true" aria-label="World map">
@@ -57,14 +60,14 @@ export function StarMap({ progression, onBack, onDeploy, onProgression, embedded
           {!embedded && <Button variant="ghost" size="sm" onClick={onBack} className="ui-focus font-mono"><ArrowLeft /> Hub</Button>}
           <h1 className="font-mono text-xl uppercase tracking-[0.25em] lg:text-2xl">Veyra · World Map</h1>
         </div>
-        <p className="ui-kicker">{REGIONS.length} destinations · {progression.completedMissions.length}/{CHRONICLE.length} chapters</p>
+        <p className="ui-kicker">{REGIONS.length + CITY_DESTINATIONS.length} destinations · {progression.completedMissions.length}/{CHRONICLE.length} chapters</p>
       </header>
 
       <div className="relative my-3 grid min-h-0 flex-1 grid-cols-1 gap-4 lg:grid-cols-4">
         <section className="relative flex flex-col gap-2 border border-foreground/15 bg-[#050d1c] p-2 lg:col-span-3">
           <div className="flex items-center justify-between gap-2" role="group" aria-label="Map view">
             <div className="flex font-mono text-[10px] uppercase tracking-widest">
-              {(["painted", "terrain"] as const).map((v) => <button key={v} type="button" aria-pressed={view === v} onClick={() => setView(v)} className={`ui-focus border border-foreground/25 px-3 py-1 ${view === v ? "bg-primary text-primary-foreground" : "bg-background/60 text-muted-foreground hover:text-foreground"}`}>{v === "painted" ? "Painted" : "Terrain"}</button>)}
+              {(["director", "painted", "terrain"] as const).map((v) => <button key={v} type="button" aria-pressed={view === v} onClick={() => setView(v)} className={`ui-focus border border-foreground/25 px-3 py-1 ${view === v ? "bg-primary text-primary-foreground" : "bg-background/60 text-muted-foreground hover:text-foreground"}`}>{v === "director" ? "Director" : v === "painted" ? "Painted" : "Terrain"}</button>)}
             </div>
             <p className="ui-kicker">{view === "terrain" ? `${known.length}/${LANDMARKS.length} landmarks charted` : art.hires ? "High-res art" : "Illustrated"}</p>
           </div>
@@ -92,6 +95,7 @@ export function StarMap({ progression, onBack, onDeploy, onProgression, embedded
                       className="ui-focus group absolute -translate-x-1/2 -translate-y-1/2 rounded-full"
                       style={{ left: `${spot.x}%`, top: `${spot.y}%`, width: "11%", aspectRatio: "1", ...(on ? { boxShadow: `0 0 0 2px ${color}, 0 0 28px 6px ${color}66`, background: `${color}22` } : {}) }}>
                       <span className={`absolute inset-0 rounded-full border transition-opacity ${on ? "opacity-0" : "border-white/0 group-hover:border-white/70"}`} />
+                      {r.id === "veridan" && <span className="pointer-events-none absolute left-1/2 top-full z-20 mt-1 -translate-x-1/2 whitespace-nowrap border border-emerald-300/60 bg-[#061c14]/95 px-2 py-1 font-mono text-[10px] font-bold uppercase tracking-wider text-emerald-100 shadow-lg">{r.name}</span>}
                       {rec && <span className="absolute -inset-1.5 animate-pulse rounded-full border-2 border-dashed border-white/80" />}
                       {rec && <span className="absolute left-1/2 top-full mt-1 -translate-x-1/2 whitespace-nowrap bg-black/70 px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-widest text-white">◆ Recommended</span>}
                     </button>

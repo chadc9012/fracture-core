@@ -4,21 +4,18 @@ import { Component, Suspense, useEffect, useMemo, useRef, type ReactNode } from 
 import * as THREE from "three";
 
 import { MODELS, type ModelKey } from "@/game/models";
+import { removeModelSolid, setModelSolid } from "@/game/environment-collision";
 import { softSprite } from "./softSprite";
 import { applyVehicleFinish } from "./VehicleFinish";
 import { perfTierVersion } from "@/game/perf-budget";
+import { prepareWorldAsset } from "@/game/asset-render-quality";
 
 /** deep clone of a loaded GLB so the same asset can appear many times */
 export function useModel(key: ModelKey) {
   const { scene } = useGLTF(MODELS[key]);
   return useMemo(() => {
     const root = scene.clone(true);
-    root.traverse((o) => {
-      if ((o as THREE.Mesh).isMesh) {
-        o.castShadow = true;
-        o.receiveShadow = true;
-      }
-    });
+    prepareWorldAsset(root);
     return root;
   }, [scene]);
 }
@@ -55,6 +52,14 @@ function ModelBody({
   scale?: number | [number, number, number];
 }) {
   const object = useModel(modelKey);
+  useEffect(() => {
+    if (!["block_a", "block_b", "tower_a", "tower_b"].includes(modelKey)) return;
+    object.updateWorldMatrix(true, true);
+    const box = new THREE.Box3().setFromObject(object);
+    const size = box.getSize(new THREE.Vector3()), center = box.getCenter(new THREE.Vector3());
+    if (!box.isEmpty()) setModelSolid(object.uuid, { x: center.x, y: center.y, z: center.z, w: size.x, h: size.y, d: size.z });
+    return () => removeModelSolid(object.uuid);
+  }, [object, modelKey, position, rotation, scale]);
   return <primitive object={object} position={position} rotation={rotation} scale={scale} />;
 }
 

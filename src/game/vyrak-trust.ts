@@ -20,7 +20,12 @@ export const protectKey = (c: ClassId, id: string) => `vyrak-protect:${c}:${id}`
 export const ridingKey = (c: ClassId) => `vyrak-riding:${c}`;
 export const eternalKey = (c: ClassId) => `vyrak-eternal:${c}`;
 
-const count = (p: Store, prefix: string, exclude?: string) => p.earnedRewards.filter((r) => r.startsWith(prefix) && (!exclude || !r.endsWith(exclude))).length;
+// Count unique, non-empty source IDs only. Save migrations or repeated rewards must
+// never allow one encounter/puzzle to manufacture additional dragon trust.
+const count = (p: Store, prefix: string, exclude?: string) => new Set(
+  p.earnedRewards.filter((r) => r.startsWith(prefix) && r.length > prefix.length && (!exclude || !r.endsWith(exclude)))
+).size;
+const hasFullRidingTrust = (p: Store, c: ClassId) => isBonded(p, c) && trustOf(p, c).total >= FULL_TRUST;
 
 export type TrustBreakdown = Record<TrustKind, number> & { total: number };
 export function trustOf(p: Store, c: ClassId | null): TrustBreakdown {
@@ -43,8 +48,10 @@ export const STAGE_NAMES: Record<TrustStage, string> = { 0: "No bond", 1: "The C
 /** stage 4 needs full trust AND the bond ceremony (claimAncientBond); stage 5 is the optional endgame path */
 export function trustStage(p: Store, c: ClassId | null): TrustStage {
   if (!c || !isBonded(p, c)) return 0;
-  if (p.earnedRewards.includes(eternalKey(c)) && p.earnedRewards.includes(ridingKey(c))) return 5;
-  if (p.earnedRewards.includes(ridingKey(c))) return 4;
+  if (hasFullRidingTrust(p, c) && p.earnedRewards.includes(ridingKey(c))) {
+    if (p.earnedRewards.includes(eternalKey(c))) return 5;
+    return 4;
+  }
   return trustOf(p, c).total > 0 ? 3 : 2;
 }
 
@@ -71,7 +78,7 @@ export function claimAncientBond<T extends Store>(p: T, c: ClassId | null): { pr
 }
 /** the optional endgame: three Vyrak challenges complete after the Ancient Bond */
 export function claimEternalCovenant<T extends Store>(p: T, c: ClassId | null): { progression: T; ok: boolean } {
-  if (!c || !p.earnedRewards.includes(ridingKey(c))) return { progression: p, ok: false };
+  if (!c || !hasFullRidingTrust(p, c) || !p.earnedRewards.includes(ridingKey(c))) return { progression: p, ok: false };
   const done = (Object.keys(CHALLENGES) as ChallengeId[]).filter((id) => p.earnedRewards.includes(challengeKey(c, id))).length;
   return done >= ETERNAL_CHALLENGES ? { progression: withGear(add(p, eternalKey(c)), eternalGear(c)), ok: true } : { progression: p, ok: false };
 }
@@ -80,7 +87,7 @@ export type RideContext = { regionId: string | null; inDungeon: boolean; inStory
 /** regions where Vyrak will not carry you: cities' no-fly lockdowns, interiors, dungeons and story missions */
 const NO_FLY_REGIONS = new Set(["nexus", "neon"]);
 export function canRide(p: Store, c: ClassId | null, ctx: RideContext): { ok: boolean; reason?: string } {
-  if (!c || !p.earnedRewards.includes(ridingKey(c))) return { ok: false, reason: "Vyrak does not trust you enough to carry you" };
+  if (!c || !hasFullRidingTrust(p, c) || !p.earnedRewards.includes(ridingKey(c))) return { ok: false, reason: "Vyrak does not trust you enough to carry you" };
   if (ctx.indoors) return { ok: false, reason: "Too cramped to ride indoors" };
   if (ctx.inDungeon) return { ok: false, reason: "Vyrak will not enter this place" };
   if (ctx.inStoryMission) return { ok: false, reason: "The mission requires you on foot" };
@@ -93,6 +100,11 @@ export type Flight = { x: number; y: number; z: number; yaw: number; pitch: numb
 export const FLIGHT = { min: 8, cruise: 24, max: 42, ceiling: 140, climbMax: 0.7, diveMax: 0.9, turnRate: 1.2 } as const;
 export function createFlight(x: number, y: number, z: number, yaw: number): Flight { return { x, y, z, yaw, pitch: 0, bank: 0, speed: FLIGHT.cruise }; }
 export function stepFlight(f: Flight, input: { pitch: number; turn: number; throttle: number }, dt: number, groundAt: (x: number, z: number) => number): Flight {
+  // A paused tab or malformed controller packet must never teleport the mount.
+  // The caller may integrate long elapsed time over multiple simulation ticks.
+  if (!Number.isFinite(dt) || dt <= 0 || ![input.pitch, input.turn, input.throttle].every(Number.isFinite)) return f;
+  if (![f.x, f.y, f.z, f.yaw, f.pitch, f.bank, f.speed].every(Number.isFinite)) return f;
+  dt = Math.min(dt, 1 / 15);
   const clamp = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
   const pitch = clamp(f.pitch + (clamp(input.pitch, -1, 1) * FLIGHT.climbMax - f.pitch) * Math.min(1, dt * 3), -FLIGHT.diveMax, FLIGHT.climbMax);
   const bank = f.bank + (clamp(input.turn, -1, 1) * 0.8 - f.bank) * Math.min(1, dt * 4);
@@ -104,7 +116,8 @@ export function stepFlight(f: Flight, input: { pitch: number; turn: number; thro
   const x = f.x + Math.sin(yaw) * horiz * dt, z = f.z + Math.cos(yaw) * horiz * dt;
   let y = f.y + Math.sin(pitch) * speed * dt;
   y = Math.min(y, FLIGHT.ceiling);
-  const floor = groundAt(x, z) + 2;
+  const terrain = groundAt(x, z);
+  const floor = (Number.isFinite(terrain) ? terrain : f.y - 2) + 2;
   if (y < floor) y = floor; // terrain collision: skim, never clip through
   return { x, y, z, yaw, pitch, bank, speed };
 }
