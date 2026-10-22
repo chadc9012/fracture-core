@@ -1,6 +1,7 @@
 # Roadmap
 
 ## Current request
+- [ ] Add simulated Gamepad API browser tests for GOLIATH, NYX and CIPHER selection, previews and deployment; fix confirmed controller gaps.
 - [ ] Cinematic Veyra benchmark: inspect uploaded art snapshot without overwriting latest source; improve real-time forest/armor materials and lighting, fix noisy audio, rename Star Map to World Map, verify playable flows.
 - [ ] Neon mag-grind traversal and NPC robots/pets; Operator-bound small Vaelith companion with Dragonite rewards; expand unique encounter dialogue and task acceptance.
 - [ ] Carry benchmark standards to remaining regions only after visual and device-performance verification; requested AI names are references only.
