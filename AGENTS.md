@@ -20,3 +20,4 @@
 - Vehicle race courses are routed over drivable ground (src/game/race-routing.ts: A* over the real terrain, rivers, towers, homes and garages) and baked per world scale by `bun scripts/bake-race-routes.ts` into race-routes.generated.ts; race-routing.test.ts fails if a world change blocks a baked route. Why: authored course shapes ran through lakes and buildings; routing at load is too slow.
 
 - Integrate uploaded menu revisions only into their owning presentation files, retaining the existing save/deployment guards and semantic controls. Why: reference snapshots must not replace newer gameplay systems.
+- Operator menu preferences are client-local drafts used only without a confirmed character; saved identity wins, explicit discard/deployment clears the draft, and ability card details come from ability-network. Why: returning selections persist without changing player progress or duplicating combat data.

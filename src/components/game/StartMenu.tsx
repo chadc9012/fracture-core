@@ -13,6 +13,8 @@ import { ConfirmDialog } from "./ConfirmDialog";
 import { IdentityForge } from "./IdentityForge";
 import { CornerBrackets } from "./HudChrome";
 import { useVoiceLine } from "./useVoiceLine";
+import { ABILITY_NODES } from "@/game/ability-network";
+import { initialOperatorSelection, rememberedOperator, rememberOperator, selectionKey } from "@/game/deployment/operatorSelection";
 
 export type { ClassId } from "@/game/loadout";
 type Stage = "CLASS" | "SUBCLASS" | "APPEARANCE" | "ASSEMBLING";
@@ -34,7 +36,8 @@ const GUIDE: Record<Stage, string> = {
 
 export function StartMenu({ onDeploy, onSaveCharacter, weaponOrder, onSettings, onExit, saved, gear, paused }: { saved?: PlayerCharacter | null; gear?: Pick<PlayerProgression, "inventory" | "equippedGear">; paused?: boolean; onExit?: () => void; onDeploy: (deployment: Deployment) => void; onSaveCharacter?: (character: PlayerCharacter, equippedGear?: PlayerProgression["equippedGear"]) => Promise<void>; weaponOrder?: readonly string[]; onSettings: () => void; best: { credits: number; kills: number } | null }) {
   // reopening character creation restores the saved operator; `start` is what "unsaved edits" are measured against
-  const start = useRef(forgeInitial(saved)).current;
+  const startRef = useRef(forgeInitial(saved));
+  const start = startRef.current;
   const [classId, setClassId] = useState<ClassId>(start.classId);
   const [subclassId, setSubclassId] = useState<SubclassId>(start.subclassId);
   const [appearance, setAppearance] = useState<AppearanceDefinition>(start.appearance);
@@ -56,7 +59,19 @@ export function StartMenu({ onDeploy, onSaveCharacter, weaponOrder, onSettings, 
   // Subclass is a respec of the same Operator, so it never touches appearance; only switching
   // Operator (class) resets colors/callsign back to that Operator's signature.
   const applySubclass = (id: SubclassId) => { setSubclassId(id); };
-  const selectClass = (id: ClassId) => { setClassId(id); applySubclass(DEFAULT_SUBCLASS[id]); setAppearance(APPEARANCE_FOR(id)); };
+  const selectClass = (id: ClassId) => { if (id === classId) return; setClassId(id); applySubclass(DEFAULT_SUBCLASS[id]); setAppearance(APPEARANCE_FOR(id)); try { rememberOperator(window.localStorage, preferenceKey(), id); } catch { /* Best effort. */ } };
+  const preferenceKey = () => selectionKey(new URLSearchParams(window.location.search).get("profile") === "test");
+  useEffect(() => {
+    if (saved) return;
+    try {
+      const restored = initialOperatorSelection(saved, rememberedOperator(window.localStorage, preferenceKey()));
+      startRef.current = restored;
+      setClassId(restored.classId);
+      setSubclassId(restored.subclassId);
+      setAppearance(restored.appearance);
+      setBodyType(restored.bodyType);
+    } catch { /* Keep the default if browser storage is unavailable. */ }
+  }, [saved]);
   const confirmIdentity = async () => {
     const deploymentId = newDeploymentId();
     const character: PlayerCharacter = {
@@ -69,7 +84,7 @@ export function StartMenu({ onDeploy, onSaveCharacter, weaponOrder, onSettings, 
     const ran = await guard.run(async () => {
       try {
         await deployCharacter(character, {
-          saveCharacter: async (c) => { await onSaveCharacter?.(c, gearDirty ? worn.equippedGear : undefined); setStage("ASSEMBLING"); },
+          saveCharacter: async (c) => { await onSaveCharacter?.(c, gearDirty ? worn.equippedGear : undefined); try { rememberOperator(window.localStorage, preferenceKey(), null); } catch { /* Saved identity remains authoritative. */ } setStage("ASSEMBLING"); },
           // the mission only launches after the save above resolved and the assembly beat has played
           launchMission: () => new Promise<void>((resolve) => window.setTimeout(() => { onDeploy({ classId, subclassId, appearance, bodyType, deploymentId, operatorId: operator.id }); resolve(); }, 2200)),
         });
@@ -136,27 +151,30 @@ export function StartMenu({ onDeploy, onSaveCharacter, weaponOrder, onSettings, 
     </div>
 
     {stage === "CLASS" && <>
-      <div className="pointer-events-none absolute inset-x-0 bottom-20 z-10 grid grid-cols-3 gap-2 px-[2vw] sm:gap-4 sm:px-[8vw]">
+      <div aria-label="Operator selection" className="pointer-events-auto absolute inset-x-0 bottom-24 top-40 z-10 flex flex-col justify-end px-4 sm:px-[8vw]">
+      <div className="grid max-h-full grid-cols-1 items-stretch gap-2 overflow-y-auto sm:grid-cols-3 sm:gap-4">
         {CLASSES.map((item, index) => {
           const op = operatorByClass(item.id);
           const active = classId === item.id;
-          const stats: [string, number, number][] = [["Health", op.baseStats.health, 160], ["Armor", op.baseStats.armor, 130], ["Mobility", op.baseStats.mobility, 100], ["Tech", op.baseStats.tech, 110]];
-          return <Button variant="ghost" key={item.id} type="button" onClick={() => selectClass(item.id)} className={`hud-panel pointer-events-auto flex-col gap-0 h-auto rounded-none whitespace-normal relative overflow-hidden px-3 pb-3 pt-4 text-center transition ${active ? "hud-glow text-foreground" : "text-muted-foreground opacity-75 hover:opacity-100"}`}>
+          const stats = [["Health", op.baseStats.health], ["Armor", op.baseStats.armor], ["Mobility", op.baseStats.mobility], ["Tech", op.baseStats.tech]] as const;
+          const abilities = ABILITY_NODES.filter((node) => node.classId === item.id && node.cost < 999);
+          return <Button variant="ghost" key={item.id} type="button" aria-label={`Select ${op.name}`} aria-pressed={active} onClick={() => selectClass(item.id)} className={`hud-panel pointer-events-auto min-w-0 items-stretch flex-col gap-0 h-auto rounded-none whitespace-normal relative px-3 pb-3 pt-4 text-center transition ${active ? "hud-glow text-foreground" : "text-muted-foreground hover:text-foreground"}`}>
             <CornerBrackets size={6} />
             <span className="block font-mono text-[9px] tracking-normal text-primary">0{index + 1} // {op.className.toUpperCase()} CLASS</span>
             <span className="mt-1 block font-mono text-lg font-bold tracking-normal sm:text-2xl">{op.name}</span>
-            <span className="mt-0.5 hidden text-[10px] sm:block">{item.role}</span>
-            <span className="mt-2 hidden gap-1 sm:grid">
-              {stats.map(([label, value, max]) => <span key={label} className="grid grid-cols-[3.6rem_1fr] items-center gap-2 text-left font-mono text-[8px] uppercase tracking-normal">
-                <span>{label}</span>
-                <span className="h-1 bg-foreground/15"><span className="block h-full bg-primary" style={{ width: `${Math.min(100, (value / max) * 100)}%`, boxShadow: active ? "0 0 6px var(--primary)" : "none" }} /></span>
+            <span className="mt-1 text-xs leading-relaxed">{item.role}</span>
+            <span className="mt-3 text-left font-mono text-[9px] uppercase text-primary">Base ratings</span>
+            <span className="mt-1 grid grid-cols-2 gap-x-4 gap-y-1">
+              {stats.map(([label, value]) => <span key={label} className="flex justify-between gap-2 text-left font-mono text-[10px] uppercase tracking-normal">
+                <span>{label}</span><b className="text-foreground">{value}</b>
               </span>)}
             </span>
-            {active && <span className="mt-2 hidden border-t border-primary/30 pt-2 text-left sm:block">
-              {item.abilities.map((ability) => <span key={ability.slot} className="block text-[9px] leading-snug"><b className="text-primary">{ability.name}</b> · {ability.description}</span>)}
-            </span>}
+            <span className="mt-3 grid gap-2 border-t border-primary/30 pt-3 text-left">
+              {abilities.map((ability) => <span key={ability.slot} className="block text-xs leading-relaxed"><b className="block text-primary">{ability.name}</b><span className="block">{ability.description}</span><span className="block font-mono text-[9px] text-muted-foreground">{ability.cooldown}s cooldown · {ability.resource} energy</span></span>)}
+            </span>
           </Button>;
         })}
+      </div>
       </div>
     </>}
 
@@ -198,7 +216,7 @@ export function StartMenu({ onDeploy, onSaveCharacter, weaponOrder, onSettings, 
       {deployError && <p role="alert" className="mt-3 bg-destructive/20 p-2 text-center text-sm text-destructive">{deployError}</p>}
     </section>}
 
-    {confirmLeave && <ConfirmDialog pad={pad} title="Discard changes?" body="You changed your operator but haven't saved. Leaving now discards those edits; your saved character is untouched." confirmLabel="Discard & leave" cancelLabel="Keep editing" onCancel={() => setConfirmLeave(false)} onConfirm={() => { setConfirmLeave(false); onExit?.(); }} />}
+    {confirmLeave && <ConfirmDialog pad={pad} title="Discard changes?" body="You changed your operator but haven't saved. Leaving now discards those edits; your saved character is untouched." confirmLabel="Discard & leave" cancelLabel="Keep editing" onCancel={() => setConfirmLeave(false)} onConfirm={() => { try { rememberOperator(window.localStorage, preferenceKey(), null); } catch { /* Best effort. */ } setConfirmLeave(false); onExit?.(); }} />}
 
     {stage !== "ASSEMBLING" && <footer className="pointer-events-none absolute inset-x-0 bottom-4 z-20 flex items-center justify-center gap-2">
       {stageIndex > 0 && <Button className="hud-panel pointer-events-auto border-0" variant="outline" onClick={back} disabled={deploying}><ChevronLeft />Back</Button>}
