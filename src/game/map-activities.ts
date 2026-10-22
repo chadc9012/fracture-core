@@ -96,6 +96,9 @@ export function regionActivities(p: PlayerProgression, regionId: string, now = D
   const centre = { x: region.x, z: region.z };
   const next = CHRONICLE.find((c) => !p.completedMissions.includes(c.id));
   CHRONICLE.filter((c) => c.region === region.name).forEach((c, i) => {
+    // Future chapters must not leak their title, coordinates or icon into the Director.
+    // Completed chapters remain available for replay; only the next chapter is revealed.
+    if (!p.completedMissions.includes(c.id) && next?.id !== c.id) return;
     const done = p.completedMissions.includes(c.id);
     const isNext = next?.id === c.id;
     const a = (i * 2.1) % (Math.PI * 2), r = region.radius * 0.25;

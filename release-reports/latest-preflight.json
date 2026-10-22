@@ -1,0 +1,53 @@
+{
+  "generatedAt": "2026-10-22T11:03:38.037Z",
+  "scope": "Automated checks with explicit blocked status for missing dependencies",
+  "checks": [
+    {
+      "name": "source-audit",
+      "status": "passed",
+      "exitCode": 0,
+      "durationMs": 99,
+      "error": null
+    },
+    {
+      "name": "gameplay-core",
+      "status": "passed",
+      "exitCode": 0,
+      "durationMs": 277,
+      "error": null
+    },
+    {
+      "name": "typescript",
+      "status": "blocked",
+      "exitCode": null,
+      "durationMs": 0,
+      "error": "Required project dependency is not installed"
+    },
+    {
+      "name": "unit-tests",
+      "status": "blocked",
+      "exitCode": null,
+      "durationMs": 0,
+      "error": "Required project dependency is not installed"
+    },
+    {
+      "name": "production-build",
+      "status": "blocked",
+      "exitCode": null,
+      "durationMs": 0,
+      "error": "Required project dependency is not installed"
+    }
+  ],
+  "dependenciesInstalled": false,
+  "packageManager": "bun",
+  "installGuidance": "Use bun install --frozen-lockfile; npm ci is incompatible with this Bun-only lockfile.",
+  "automatedChecksPassed": false,
+  "releaseReady": false,
+  "blockers": [
+    "typescript: blocked (Required project dependency is not installed)",
+    "unit-tests: blocked (Required project dependency is not installed)",
+    "production-build: blocked (Required project dependency is not installed)",
+    "Browser gameplay, controller operation, performance, and save migrations require hands-on verification",
+    "Multiplayer is explicitly deferred from the single-player release scope"
+  ]
+}

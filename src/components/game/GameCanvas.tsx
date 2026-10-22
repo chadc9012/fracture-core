@@ -45,6 +45,8 @@ import { useStim, type ConsumableId } from "@/game/stash";
 import { SettingsWindow, DEFAULT_SETTINGS, type GameSettings } from "./SettingsWindow";
 import { BootSequence } from "./BootSequence";
 import { MainMenu } from "./MainMenu";
+import { OperatorRoster } from "./OperatorRoster";
+import { launchDestination } from "@/game/launch-flow";
 import { bootSeen, evaluateSave, markBootSeen } from "@/game/startup";
 import { DeploymentBriefing } from "./DeploymentBriefing";
 import { RaidStrategyPanel } from "./RaidStrategyPanel";
@@ -141,7 +143,7 @@ import { dialogueFor, revisitDialogueFor, type DialogueLine } from "@/game/dialo
 import { DialogueOverlay } from "./DialogueOverlay";
 import { EndingOverlay, endingTierFor } from "./EndingOverlay";
 import { DeathOverlay } from "./DeathOverlay";
-import { playEnding, playLevelUp, playNovaUnlock } from "@/game/audio";
+import { playEnding, playLevelUp, playNovaUnlock, setVolume, setMixVolumes } from "@/game/audio";
 import { Minimap } from "./Minimap";
 import { grantXP } from "@/game/xp";
 import type { WorldSim } from "@/game/sim";
@@ -286,7 +288,7 @@ function useCountedState<T>(name: string, initial: T | (() => T)): [T, React.Dis
 export function GameCanvas() {
   renderCounts.canvas++;
   const [hud, setHud] = useCountedState<HudState>("hud", initial);
-  const [phase, setPhase] = useCountedState<"boot" | "title" | "hub" | "loadout" | "briefing" | "world">("phase", () => (bootSeen() ? "title" : "boot"));
+  const [phase, setPhase] = useCountedState<"boot" | "title" | "roster" | "hub" | "loadout" | "briefing" | "world">("phase", () => (bootSeen() ? "title" : "boot"));
   const [pendingDeployment, setPendingDeployment] = useCountedState<Deployment | null>("pendingDeployment", null);
   const [menuOpen, setMenuOpen] = useCountedState("menuOpen", false);
   const [settings, setSettings] = useCountedState<GameSettings>("settings", DEFAULT_SETTINGS);
@@ -311,6 +313,9 @@ export function GameCanvas() {
     try { const m = window.localStorage.getItem("world-fracture-mix"); if (m) { const p = JSON.parse(m) as { music?: number; sfx?: number; voice?: number; spoken?: boolean; amb?: number; abil?: number; mute?: GameSettings["mute"] }; const c = (n: unknown, fallback = 1) => (typeof n === "number" && Number.isFinite(n) ? Math.min(1, Math.max(0, n)) : fallback); setSettings((current) => ({ ...current, musicVolume: c(p.music), sfxVolume: c(p.sfx), voiceVolume: c(p.voice, 0.85), spokenDialogue: p.spoken ?? true, ambienceVolume: c(p.amb), abilityVolume: c(p.abil), mute: p.mute ?? {} })); } } catch { /* keep defaults */ }
     try { const b = window.localStorage.getItem("world-fracture-bindings"); if (b) setSettings((current) => ({ ...current, bindings: normalizeBindings(JSON.parse(b)) })); } catch { /* keep defaults */ }
   }, []);
+  // menu volume sliders drive the real audio buses (master + music/sfx/ambience/ability mix, honoring mute toggles)
+  useEffect(() => { setVolume(settings.volume ?? 0.7); }, [settings.volume]);
+  useEffect(() => { const m = settings.mute ?? {}; setMixVolumes(m.music ? 0 : settings.musicVolume ?? 1, m.sfx ? 0 : settings.sfxVolume ?? 1, m.ambience ? 0 : settings.ambienceVolume ?? 1, m.abilities ? 0 : settings.abilityVolume ?? 1); }, [settings.musicVolume, settings.sfxVolume, settings.ambienceVolume, settings.abilityVolume, settings.mute]);
   const updateSettings = (next: GameSettings) => {
     window.localStorage.setItem("world-fracture-settings", JSON.stringify(next));
     if (next.volume !== settings.volume && next.volume !== undefined) window.localStorage.setItem("world-fracture-volume", String(next.volume));
@@ -842,7 +847,7 @@ export function GameCanvas() {
     if (current.selectedVehicle) setVehicleId(current.selectedVehicle);
     setHud((hudNow) => ({
       ...hudNow,
-      ...(how.newCharacter ? { region: "Veridan Forest", regionId: "veridan", sub: "Starter Zone / Resources", kind: "starter" as const, difficulty: 1, weather: "Rain mist" } : {}),
+      ...(how.newCharacter ? { region: "Verdant Forest", regionId: "veridan", sub: "Starter Zone / Resources", kind: "starter" as const, difficulty: 1, weather: "Rain mist" } : {}),
       ...hudIdentity(session),
       missions: firstMissionHud(current),
     }));
@@ -1176,15 +1181,33 @@ export function GameCanvas() {
             classId={progression.identityClass ?? cls}
             reducedMotion={prefersReduced(settings.reducedMotion)}
             startNotice={menuNotice}
-            onContinue={() => setPhase(progression.character || last || progression.completedMissions.length > 0 ? "hub" : "loadout")}
+            onContinue={() => setPhase("roster")}
             onNewGame={() => void startNewGame()}
-            onCharacter={() => setPhase("loadout")}
+            onCharacter={() => setPhase("roster")}
             onSettings={() => setMenuOpen(true)}
           />
         )}
         {menuOpen && <SettingsWindow completedMissions={progression.completedMissions} settings={settings} onChange={updateSettings} onClose={() => setMenuOpen(false)} onOrbit={() => setMenuOpen(false)} />}
       </>
     );
+  }
+
+  if (phase === "roster") {
+    return <OperatorRoster progression={progression} onBack={() => setPhase("title")}
+      onSelect={(save, route) => {
+        adoptProgression(save, true);
+        setLast(null);
+        if (route === "creation") setPhase("loadout");
+        else if (route === "director") setPhase("hub");
+        else {
+          // Resume the chosen operator's first mission, never another slot's tutorial.
+          const session = sessionFromProgression(save);
+          setCls(session.cls); setSubclass(session.subclass); setAppearance(session.appearance); setBodyType(session.bodyType);
+          setTutorial(tutorialForEntry(save));
+          setHud((h) => ({ ...h, ...hudIdentity(session), missions: firstMissionHud(save) }));
+          setPhase("world");
+        }
+      }} />;
   }
 
   if (phase === "hub") {

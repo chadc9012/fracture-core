@@ -4,14 +4,12 @@ import { playIntroSwell, unlockAudio } from "@/game/audio";
 import { classById, type ClassId } from "@/game/loadout";
 import { PAD_LABELS, moveFocus } from "@/game/menu-nav";
 import type { SaveSummary } from "@/game/startup";
-import { ConfirmDialog } from "./ConfirmDialog";
 import { CreditsPanel } from "./CreditsPanel";
 import { useMenuInput } from "./useMenuInput";
 
-type Item = { id: "continue" | "new" | "character" | "settings" | "credits"; label: string; hint: string };
+type Item = { id: "continue" | "character" | "settings" | "credits"; label: string; hint: string };
 const ITEMS: Item[] = [
-  { id: "continue", label: "Continue", hint: "Resume your saved game" },
-  { id: "new", label: "New Game", hint: "Create an operator and deploy" },
+  { id: "continue", label: "Start", hint: "Choose an operator or create a new one" },
   { id: "character", label: "Character", hint: "Operator, class, body and appearance" },
   { id: "settings", label: "Settings", hint: "Controls, audio, display, accessibility" },
   { id: "credits", label: "Credits", hint: "Who and what made this" },
@@ -23,9 +21,9 @@ export function MainMenu({ save, classId, reducedMotion, startNotice, onContinue
   onContinue: () => void; onNewGame: () => void; onCharacter: () => void; onSettings: () => void;
 }) {
   const enabled = useMemo(() => ITEMS.map(() => true), []);
-  const [index, setIndex] = useState(() => (save.hasSave ? 0 : 1)); // land on New Game when there is nothing to continue
+  const [index, setIndex] = useState(0); // land on New Game when there is nothing to continue
   const [notice, setNotice] = useState("");
-  const [overlay, setOverlay] = useState<null | "confirm-new" | "credits">(null);
+  const [overlay, setOverlay] = useState<null | "credits">(null);
   const [leaving, setLeaving] = useState(false);
   const timer = useRef(0);
   useEffect(() => () => window.clearTimeout(timer.current), []);
@@ -48,11 +46,7 @@ export function MainMenu({ save, classId, reducedMotion, startNotice, onContinue
     setNotice("");
     switch (item.id) {
       case "continue":
-        if (!save.hasSave) { setNotice("No saved game found on this device. Choose New Game to begin."); return; }
         go(onContinue); return;
-      case "new":
-        if (save.hasSave) setOverlay("confirm-new"); else go(onNewGame);
-        return;
       case "character": go(onCharacter); return;
       case "settings": onSettings(); return;
       case "credits": setOverlay("credits"); return;
@@ -85,14 +79,15 @@ export function MainMenu({ save, classId, reducedMotion, startNotice, onContinue
         </header>
 
         <nav aria-label="Main menu" className="my-8 flex w-full max-w-sm flex-col gap-1">
+          <p className="mb-3 font-mono text-[10px] uppercase tracking-[0.3em] text-primary/80">Your journey begins here</p>
           {ITEMS.map((item, i) => {
             const active = i === index;
-            const dim = item.id === "continue" && !save.hasSave;
+            const dim = false;
             return (
               <button key={item.id} type="button" onClick={() => { setIndex(i); activate(item); }} onMouseEnter={() => setIndex(i)} onFocus={() => setIndex(i)}
                 aria-current={active ? "true" : undefined}
-                className={`group h-12 border-l-2 pl-4 text-left font-mono text-sm uppercase tracking-[0.22em] outline-none transition-all duration-150 ${active ? "translate-x-1 border-primary bg-primary/10 text-foreground ui-focus" : "border-transparent text-muted-foreground"} ${dim ? "opacity-60" : ""} focus-visible:ring-1 focus-visible:ring-primary`}>
-                {item.label}
+                className={`group ${item.id === "continue" ? "mb-5 min-h-16 border border-primary/65 bg-primary/15 px-6 text-lg shadow-[0_0_32px_rgba(80,180,220,0.12)]" : "h-12 pl-4 text-sm"} border-l-2 text-left font-mono uppercase tracking-[0.22em] outline-none transition-all duration-150 ${active ? "translate-x-1 border-primary bg-primary/10 text-foreground ui-focus" : "border-transparent text-muted-foreground"} ${dim ? "opacity-60" : ""} focus-visible:ring-1 focus-visible:ring-primary`}>
+                {item.id === "continue" ? "▶ START" : item.label}
                 {active && <span className="ml-3 hidden font-sans text-[10px] normal-case tracking-normal text-muted-foreground sm:inline">{item.hint}</span>}
               </button>
             );
@@ -105,11 +100,6 @@ export function MainMenu({ save, classId, reducedMotion, startNotice, onContinue
         </footer>
       </main>
 
-      {overlay === "confirm-new" && (
-        <ConfirmDialog pad={pad} title="Start a new game?" confirmLabel="New Game" cancelLabel="Keep my save"
-          body="You have saved progress. Starting a new game keeps it: your current game is parked in a free save slot and a fresh run begins. Nothing is erased, and you can switch back any time from Saves. If every slot is in use, New Game is refused until you free one."
-          onCancel={() => setOverlay(null)} onConfirm={() => { setOverlay(null); go(onNewGame); }} />
-      )}
       {overlay === "credits" && <CreditsPanel pad={pad} onClose={() => setOverlay(null)} />}
     </div>
   );

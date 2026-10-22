@@ -27,7 +27,7 @@ export const MATERIALS: Record<MaterialId, { name: string; source: string }> = {
   microCircuits: { name: "Micro-Circuits", source: "Overclocked units and city defenses" },
   thermalShards: { name: "Thermal Shards", source: "Ember Peaks" },
   cryoCrystal: { name: "Cryo Crystals", source: "Frostspire Mountains" },
-  sporeFiber: { name: "Spore Fiber", source: "Veridan Forest and the Swamps" },
+  sporeFiber: { name: "Spore Fiber", source: "Verdant Forest and the Swamps" },
   bioCatalyst: { name: "Bio Catalyst", source: "Corrupted forest and swamp bosses" },
   vehicleParts: { name: "Vehicle Parts", source: "Rust-Runners and the Junkyard Citadel" },
   anomalyCarbon: { name: "Anomaly Carbon", source: "Solara Desert" },

@@ -447,3 +447,20 @@
 .wf-stat { height: 4px; background: rgba(255, 255, 255, 0.1); }
 .wf-stat > i { display: block; height: 100%; background: linear-gradient(90deg, #4fc8e8, var(--wf-ice)); }
 @media (prefers-reduced-motion: reduce) { .wf-card, .wf-tab { transition: none; } .wf-card:hover { transform: none; } }
+
+/* Cinematic operator archive: CSS-only depth and light, no extra GPU draw calls. */
+.operator-roster-scene {
+  background-image: radial-gradient(ellipse at 70% 22%, color-mix(in oklch, var(--primary) 16%, transparent), transparent 48%),
+    radial-gradient(ellipse at 14% 86%, color-mix(in oklch, var(--primary) 9%, transparent), transparent 45%),
+    linear-gradient(145deg, #090e18, #151e2c 55%, #080b13);
+}
+.operator-roster-scene::before {
+  content: ""; position: fixed; inset: 0; pointer-events: none; opacity: .16;
+  background-image: linear-gradient(to right, currentColor 1px, transparent 1px), linear-gradient(to bottom, currentColor 1px, transparent 1px);
+  background-size: 90px 90px; mask-image: linear-gradient(to top, black, transparent 85%);
+}
+.operator-roster-card::after {
+  content: ""; position: absolute; top: 0; right: 0; width: 35%; height: 1px;
+  background: linear-gradient(to left, color-mix(in oklch, var(--primary) 70%, transparent), transparent);
+}
+@media (prefers-reduced-motion: reduce) { .operator-roster-card { transition: none; } .operator-roster-card:hover { transform: none; } }

@@ -1,4 +1,4 @@
-import { REGIONS, WORLD_SCALE, type Region } from "./world";
+import { REGIONS, WORLD_SCALE, NEON_SITE, type Region } from "./world";
 
 /* Supply routes shared by the simulation, the road renderer and the
  * obstacle registry (props are cleared off the roads so convoys never crash). */
@@ -7,11 +7,26 @@ export type Lane = { name: string; a: Region; b: Region; bow: number };
 
 const byId = (id: string) => REGIONS.find((r) => r.id === id)!;
 
+/** Connected surface-highway network. Every land destination has at least two approaches.
+ * Thalassia is underwater and requires a separate shore-to-airlock transit link,
+ * not a road painted across open ocean. */
+const neon: Region = { ...byId("nexus"), id: "neon", name: "Neon City", x: NEON_SITE.x, z: NEON_SITE.z, radius: 30 };
+const road = (name: string, a: string, b: string, bow: number): Lane => ({ name, a: a === "neon" ? neon : byId(a), b: b === "neon" ? neon : byId(b), bow });
 export const LANES: Lane[] = [
-  { name: "Nexus → Wastelands supply run", a: byId("nexus"), b: byId("wastelands"), bow: 0.1 },
-  { name: "Wastelands → Solara convoy", a: byId("wastelands"), b: byId("solara"), bow: 0.24 },
-  { name: "Veridan → Nexus resource haul", a: byId("veridan"), b: byId("nexus"), bow: -0.26 },
-  { name: "Wastelands → Frostspire ascent", a: byId("wastelands"), b: byId("frostspire"), bow: 0.34 },
+  road("Nexus–Wastelands Highway", "nexus", "wastelands", 0.10),
+  road("Wastelands–Solara Convoy Road", "wastelands", "solara", 0.24),
+  road("Verdant–Nexus Forest Road", "veridan", "nexus", -0.26),
+  road("Wastelands–Frostspire Pass", "wastelands", "frostspire", 0.34),
+  road("Nexus–Neon Expressway", "nexus", "neon", -0.12),
+  road("Neon–Solara Southern Bypass", "neon", "solara", 0.19),
+  road("Verdant–Swamps Causeway", "veridan", "swamps", 0.18),
+  road("Swamps–Solara Southern Road", "swamps", "solara", -0.24),
+  road("Frostspire–Ember Mountain Pass", "frostspire", "ember", -0.18),
+  road("Ember–Wastelands Ash Road", "ember", "wastelands", 0.22),
+  road("Ember–Solara Ridge Road", "ember", "solara", -0.14),
+  road("Verdant–Frostspire Highland Road", "veridan", "frostspire", 0.16),
+  road("Nexus–Swamps South Road", "nexus", "swamps", -0.12),
+  road("Neon–Wastelands Industrial Road", "neon", "wastelands", 0.15),
 ];
 
 export const LANE_HALF_WIDTH = 9;
@@ -25,7 +40,7 @@ const GATES = new Map<string, { x: number; z: number }>();
     ends.push({ key: `${i}a`, hub: l.a, toward: l.b });
     ends.push({ key: `${i}b`, hub: l.b, toward: l.a });
   });
-  for (const hub of REGIONS) {
+  for (const hub of [...REGIONS, neon]) {
     const here = ends.filter((e) => e.hub === hub);
     here.forEach((e, idx) => {
       const base = Math.atan2(e.toward.z - hub.z, e.toward.x - hub.x);

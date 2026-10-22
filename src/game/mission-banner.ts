@@ -5,7 +5,7 @@ export type MissionBanner = { kind: "NEW" | "COMPLETE"; title: string; subtitle:
 
 export const MISSION_NAMES: Record<string, { title: string; place: string }> = {
   "awakening": { title: "Awakening", place: "Neon Core District" },
-  "broken-signal": { title: "Broken Signal", place: "Veridan Forest" },
+  "broken-signal": { title: "Broken Signal", place: "Verdant Forest" },
   "blackout-protocol": { title: "Blackout Protocol", place: "Nexus City" },
   "drowned-relay": { title: "The Drowned Relay", place: "The Swamps" },
   "stitched-neon-core": { title: "Stitched Neon Core", place: "Neon City" },

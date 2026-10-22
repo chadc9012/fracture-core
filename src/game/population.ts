@@ -11,7 +11,7 @@
 
 export type PopulationRegion = "nexus" | "neon" | "thalassia" | "wastelands" | "veridan" | "swamps" | "solara" | "frostspire" | "ember";
 export const POPULATION_REGIONS: readonly PopulationRegion[] = ["nexus", "neon", "thalassia", "wastelands", "veridan", "swamps", "solara", "frostspire", "ember"];
-export const REGION_LABEL: Record<PopulationRegion, string> = { nexus: "Nexus City", neon: "Neon City", thalassia: "Thalassia", wastelands: "Wastelands", veridan: "Veridan Forest", swamps: "Shrouded Swamps", solara: "Solara Desert", frostspire: "Frostspire Mountains", ember: "Ember Peaks" };
+export const REGION_LABEL: Record<PopulationRegion, string> = { nexus: "Nexus City", neon: "Neon City", thalassia: "Thalassia", wastelands: "Wastelands", veridan: "Verdant Forest", swamps: "Shrouded Swamps", solara: "Solara Desert", frostspire: "Frostspire Mountains", ember: "Ember Peaks" };
 export type AssetStatus = "profile-only" | "procedural-placeholder" | "existing-model" | "temporary-placeholder" | "missing";
 
 /** deterministic, dependency-free hash + rng (this module must stay importable without React) */

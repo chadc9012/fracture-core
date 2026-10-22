@@ -57,7 +57,10 @@ export function applySurfaceBlend(mat: THREE.MeshStandardMaterial, textures: THR
       if (vWB.x > 0.004) surf += textureGrad(uSurf3, vSurfUv, sdx, sdy).rgb * vWB.x;
       if (vWB.y > 0.004) surf += textureGrad(uSurf4, vSurfUv, sdx, sdy).rgb * vWB.y;
       if (vWB.z > 0.004) surf += textureGrad(uSurf5, vSurfUv, sdx, sdy).rgb * vWB.z;
-      diffuseColor.rgb = mix(diffuseColor.rgb, diffuseColor.rgb * surf * 2.2, 0.8);
+      // Texture albedo is authored in sRGB and decoded by the renderer. Preserve
+      // the vertex biome tint without amplifying highlights into clipping.
+      // Keep a little vertex colour for wet/steep transitions and distant LODs.
+      diffuseColor.rgb *= mix(vec3(1.0), clamp(surf * 1.7, 0.0, 1.35), 0.86);
       float depthUnder = ${WATER_LEVEL.toFixed(2)} - vGroundW.y;
       if (depthUnder > 0.0 && depthUnder < 24.0) {
         float t = uGroundTime;
@@ -78,7 +81,7 @@ export function loadGroundSurfaces(): Promise<THREE.Texture[] | null> {
   if (pending) return pending;
   const loader = new THREE.TextureLoader();
   pending = Promise.all(GROUND_SURFACES.map((url) => loader.loadAsync(url).then((t) => {
-    t.wrapS = t.wrapT = THREE.RepeatWrapping; t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4; return t;
+    t.wrapS = t.wrapT = THREE.RepeatWrapping; t.colorSpace = THREE.SRGBColorSpace; t.minFilter = THREE.LinearMipmapLinearFilter; t.magFilter = THREE.LinearFilter; t.generateMipmaps = true; t.anisotropy = 4; return t;
   }))).catch(() => {
     // a dropped request must not pin every biome to the fallback for the life of the page: the next mount retries
     pending = null;

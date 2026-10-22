@@ -1,15 +1,15 @@
 import { useMemo } from "react";
-import { REGIONAL_SHOPS, type ShopKind } from "@/game/regional-shops";
+import { REGIONAL_SHOPS } from "@/game/regional-shops";
+import { shopAccessKind } from "@/game/shop-access";
 import { walkHeight } from "@/game/terrain";
 import { DistrictLight } from "./DistrictLight";
+import { KIND_COLOR } from "./Storefronts";
 
-const KIND_COLOR: Record<ShopKind, string> = {
-  weapons: "#ff7a3c", armor: "#66e0ff", supplies: "#8fe08a", mods: "#c86bff", gunsmith: "#ffd27a", vehicles: "#e8f4ff", blackmarket: "#ff3aa0",
-};
-
-/** Walk-up vendor stalls: counter, canopy and a glowing kind-coloured sign so shops read from a distance. */
+/** Open-air vendor tables: counter, canopy and a glowing kind-coloured sign so shops read from a distance.
+ * Only "table" shops get a stall — walk-in shops have a real storefront building and window shops a
+ * service facade (Storefronts.tsx), and rendering a stall on top of those would double them up. */
 export function ShopStalls() {
-  const stalls = useMemo(() => REGIONAL_SHOPS.map((s) => ({ ...s, y: walkHeight(s.x, s.z) })), []);
+  const stalls = useMemo(() => REGIONAL_SHOPS.filter((s) => shopAccessKind(s.id) === "table").map((s) => ({ ...s, y: walkHeight(s.x, s.z) })), []);
   return (
     <group>
       {stalls.map((s) => (

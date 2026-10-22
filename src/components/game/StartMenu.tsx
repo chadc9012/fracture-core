@@ -1,6 +1,7 @@
 import { ChevronLeft, ChevronRight, Circle, Cpu, Settings, Shield } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useMenuInput } from "./useMenuInput";
+import { moveFocus } from "@/game/menu-nav";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { CLASSES, CUSTOMIZATION_PALETTE, DEFAULT_SUBCLASS, SUBCLASSES, appearanceById, operatorByClass, type AppearanceDefinition, type ClassId, type OperatorId, type SubclassId } from "@/game/loadout";
@@ -107,7 +108,23 @@ export function StartMenu({ onDeploy, onSaveCharacter, weaponOrder, onSettings, 
   // Esc / Backspace / controller B-Circle: previous step, or out to the main menu from the first step (never mid-save)
   const dirty = forgeDirty(start, { classId, subclassId, appearance, bodyType }) || gearDirty;
   const leave = () => { if (dirty) setConfirmLeave(true); else onExit?.(); };
-  useMenuInput(stage !== "ASSEMBLING" && !deploying && !paused && !confirmLeave, () => { if (stageIndex > 0) back(); else leave(); }, ["back"]);
+  useMenuInput(stage !== "ASSEMBLING" && !deploying && !paused && !confirmLeave, (intent, source) => {
+    if (intent === "back") { if (stageIndex > 0) back(); else leave(); return; }
+    // Keyboard keeps its existing shortcuts; pad selection updates the same live preview state.
+    if (source !== "pad") return;
+    if (intent === "confirm") { next(); return; }
+    const dir = intent === "down" ? 1 : -1;
+    if (stage === "CLASS") {
+      const item = CLASSES[moveFocus(CLASSES.findIndex((c) => c.id === classId), dir, CLASSES.map(() => true))];
+      if (item) selectClass(item.id);
+    } else if (stage === "SUBCLASS") {
+      const item = subclasses[moveFocus(subclasses.findIndex((s) => s.id === subclassId), dir, subclasses.map(() => true))];
+      if (item) applySubclass(item.id);
+    } else if (stage === "APPEARANCE") {
+      const type = BODY_TYPES[moveFocus(BODY_TYPES.indexOf(bodyType), dir, BODY_TYPES.map(() => true))];
+      if (type) { setTab("body"); setBodyType(type); }
+    }
+  });
   const summary = gear ? armorSummary(worn) : null;
   const look = armorLook(worn);
 
@@ -122,7 +139,7 @@ export function StartMenu({ onDeploy, onSaveCharacter, weaponOrder, onSettings, 
   });
 
   return <div className="fixed inset-0 z-50 overflow-hidden bg-background">
-    <div className="absolute inset-0"><IdentityForge gear={worn} look={look} classId={classId} appearance={appearance} bodyType={bodyType} mode={stage} onSelectClass={selectClass} /></div>
+    <div className="absolute inset-0" role="img" aria-label={`${operator.name} ${bodyType} preview`}><IdentityForge gear={worn} look={look} classId={classId} appearance={appearance} bodyType={bodyType} mode={stage} onSelectClass={selectClass} /></div>
     <div className="pointer-events-none absolute inset-0 forge-veil" />
 
     <header className="pointer-events-none absolute inset-x-0 top-0 z-10 flex items-start justify-between p-4 sm:p-7">

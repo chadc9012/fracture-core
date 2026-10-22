@@ -12,32 +12,86 @@ const ACTIVE_KEY = profileKey("world-fracture.active-slot");
 const LOCAL_SLOTS_KEY = profileKey("world-fracture.slots");
 const cloudUser = (userId: string | null) => (isTestProfile() ? null : userId);
 
+/** Validate untrusted slot IDs before any cloud write or local persistence mutation. */
+export function assertValidSlot(slot: number): void {
+  if (!Number.isInteger(slot) || slot < 1 || slot > SLOT_COUNT) {
+    throw new RangeError(`Invalid save slot ${String(slot)}; expected 1–${SLOT_COUNT}`);
+  }
+}
+
 export type SlotSummary = { slot: number; label: string; empty: boolean; updatedAt: string | null; summary: string; active: boolean };
 
+/** Storage may throw in privacy mode or when the browser blocks site data. */
+function storageRead(key: string): string | null {
+  try { return typeof localStorage === "undefined" ? null : localStorage.getItem(key); }
+  catch { return null; }
+}
+
+function storageWrite(key: string, value: string): void {
+  if (typeof localStorage === "undefined") throw new Error("Save storage is unavailable");
+  try { localStorage.setItem(key, value); }
+  catch { throw new Error("Unable to save game: browser storage is unavailable or full"); }
+}
+
 export const activeSlot = () => {
-  if (typeof window === "undefined") return 1;
-  const n = Number(localStorage.getItem(ACTIVE_KEY));
-  return n >= 1 && n <= SLOT_COUNT ? n : 1;
+  const raw = storageRead(ACTIVE_KEY);
+  if (raw === null || raw.trim() === "") return 1;
+  const n = Number(raw);
+  return Number.isInteger(n) && n >= 1 && n <= SLOT_COUNT ? n : 1;
 };
 
 export const describe = (p: PlayerProgression) =>
   `${p.identityClass ?? "No class"} · Lv ${p.level} · ${p.completedMissions.length} missions`;
 
 type Stored = { label: string; data: unknown; updated_at: string };
-const readLocal = (): Record<number, Stored> => { try { return JSON.parse(localStorage.getItem(LOCAL_SLOTS_KEY) ?? "{}"); } catch { return {}; } };
+
+/** Validate both browser and cloud records using the same boundary. */
+export function parseStoredSlotRecord(value: unknown): Stored | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  const row = value as Record<string, unknown>;
+  if (typeof row.label !== "string" || typeof row.updated_at !== "string") return null;
+  if (!row.data || typeof row.data !== "object" || Array.isArray(row.data)) return null;
+  // A malformed timestamp should never be surfaced as a valid save date.
+  if (!Number.isFinite(Date.parse(row.updated_at))) return null;
+  // Reject implausible future timestamps caused by corrupted storage or clock errors.
+  if (Date.parse(row.updated_at) > Date.now() + 24 * 60 * 60 * 1000) return null;
+  return { label: row.label.slice(0, 32), updated_at: row.updated_at, data: row.data };
+}
+/** Treat browser storage as untrusted: malformed or non-object JSON must not crash slot operations. */
+export function parseLocalSlots(raw: string | null): Record<number, Stored> {
+  try {
+    const parsed: unknown = JSON.parse(raw ?? "{}");
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return {};
+    const result: Record<number, Stored> = {};
+    for (let slot = 1; slot <= SLOT_COUNT; slot++) {
+      const entry = (parsed as Record<string, unknown>)[String(slot)];
+      const record = parseStoredSlotRecord(entry);
+      if (record) result[slot] = record;
+    }
+    return result;
+  } catch { return {}; }
+}
+const readLocal = (): Record<number, Stored> => parseLocalSlots(storageRead(LOCAL_SLOTS_KEY));
 
 async function readSlots(user: string | null): Promise<Record<number, Stored>> {
   const userId = cloudUser(user);
   if (!userId) return readLocal();
   const { data, error } = await supabase.from("player_save_slots").select("slot, label, data, updated_at").eq("user_id", userId);
   if (error) throw error;
-  return Object.fromEntries((data ?? []).map((r) => [r.slot, { label: r.label, data: r.data, updated_at: r.updated_at }]));
+  const slots: Record<number, Stored> = {};
+  for (const row of data ?? []) {
+    if (!Number.isInteger(row.slot) || row.slot < 1 || row.slot > SLOT_COUNT) continue;
+    const record = parseStoredSlotRecord(row);
+    if (record) slots[row.slot] = record;
+  }
+  return slots;
 }
 
 async function writeSlot(user: string | null, slot: number, label: string, p: PlayerProgression) {
+  assertValidSlot(slot);
   const userId = cloudUser(user);
   const updated_at = new Date().toISOString();
-  if (!userId) { const all = readLocal(); all[slot] = { label, data: p, updated_at }; localStorage.setItem(LOCAL_SLOTS_KEY, JSON.stringify(all)); return; }
+  if (!userId) { const all = readLocal(); all[slot] = { label, data: p, updated_at }; storageWrite(LOCAL_SLOTS_KEY, JSON.stringify(all)); return; }
   const { error } = await supabase.from("player_save_slots").upsert({ user_id: userId, slot, label, data: p as unknown as Json, updated_at });
   if (error) throw error;
 }
@@ -55,19 +109,21 @@ export async function listSlots(userId: string | null, current: PlayerProgressio
 
 /** Parks the current game in its slot, then loads the target slot as the live save. */
 export async function switchSlot(userId: string | null, current: PlayerProgression, target: number): Promise<PlayerProgression> {
+  assertValidSlot(target);
   const from = activeSlot();
   if (target === from) return current;
   const stored = await readSlots(userId);
   await writeSlot(userId, from, stored[from]?.label || `Slot ${from}`, current);
-  const next = stored[target] ? normalizeProgression(stored[target]!.data) : DEFAULT_PROGRESSION;
+  const next = stored[target] ? normalizeProgression(stored[target]!.data) : structuredClone(DEFAULT_PROGRESSION);
   if (cloudUser(userId)) await pushSave(userId!, next);
-  localStorage.setItem(ACTIVE_KEY, String(target));
+  storageWrite(ACTIVE_KEY, String(target));
   return next;
 }
 
 export async function renameSlot(userId: string | null, slot: number, label: string, current: PlayerProgression) {
+  assertValidSlot(slot);
   const stored = await readSlots(userId);
-  const data = slot === activeSlot() ? current : stored[slot] ? normalizeProgression(stored[slot]!.data) : DEFAULT_PROGRESSION;
+  const data = slot === activeSlot() ? current : stored[slot] ? normalizeProgression(stored[slot]!.data) : structuredClone(DEFAULT_PROGRESSION);
   await writeSlot(userId, slot, label.slice(0, 32), data);
 }
 
