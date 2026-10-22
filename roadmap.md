@@ -217,3 +217,12 @@
 - [ ] Add enterable regional storefronts and interactive outdoor window/table vendors using existing stock and prices.
 - [ ] Replace purchased home furniture with sourced detailed models while preserving saved placement and clear doorways.
 - [ ] Verify destination selection, indoor/outdoor purchases and furnished rooms; distinguish automated and browser checks.
+
+## 2026-10-22 — Asset restore, collision, volume, speech fallback (done)
+- Restored all 78 referenced assets (62 models/textures + 16 sounds) into public/__l5e/assets-v1 — no more missing-model boxes.
+- Ported swept environment collision (environment-collision.ts, collideBodySwept, model solids for city blocks/towers, floor clamp) into the live game; 11 new collision tests pass.
+- Menu volume sliders now drive the real audio buses (master + music/sfx/ambience/ability, honoring mutes) from GameCanvas.
+- Speech playback fallback with captions already in place (voice.ts 499/502 handling + caption fallback).
+- Loading overlay renders in an isolated DOM root (no more removeChild crash).
+- 1,668 tests pass, typecheck clean, build OK. Delivered world-fracture-2026-10-22.zip (1,242 files).
+- Not verified: in-browser play of the new collision in the live preview; spoken voice still needs voice config (captions stay on).

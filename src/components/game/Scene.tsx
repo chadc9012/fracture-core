@@ -149,6 +149,7 @@ import { shouldForceFootTransition, vehicleDamageStage, VEHICLE_DAMAGE_EFFECT, t
 import { exitVehicleMomentum, parkourChainBonus, vaultLunge } from "@/game/parkour";
 import { anySensorSees, detectionStateFor, lockdownStatus, nexusSensors, stepDetectionMeter, stepHackProgress, type DetectionState, type LockdownTier } from "@/game/stealth";
 import { INTERIORS, INTERIOR_ALTITUDE, doorAt, atExitMarker, interiorById, isInteriorOpen, clampHomeLocal, exitPosition } from "@/game/interiors";
+import { clampToFloor, registeredModelSolids, roomSolids, structureSolids, sweepSolids } from "@/game/environment-collision";
 import { homeById } from "@/game/housing";
 import { HomeInteriors } from "./HomeInteriors";
 import { Interiors } from "./Interiors";
@@ -591,6 +592,8 @@ function SceneImpl({
   const travelSeen = useRef(0);
   const checkpoint = useRef<{ x: number; z: number } | null>(null);
   const checkpointClock = useRef(0);
+  // last simulated body position, for swept collision; door entry/exit is a teleport, not a sweep across the world
+  const prevBodyPos = useRef<{ x: number; z: number; interior: string | null } | null>(null);
   const keys = useKeyboard();
   const sim = useMemo<WorldSim>(() => createSim(), []);
   const livingRt = useRef<LivingRuntime | null>(null);
@@ -1931,6 +1934,12 @@ function SceneImpl({
     const preCollideSpeed = s.vSpeed;
     const body = { x: s.x, z: s.z, y: s.y - 1.6, yaw: s.yaw, vSpeed: s.vSpeed, inVehicle: s.inVehicle };
     collidePlayer(sim, body);
+    const prevBody = prevBodyPos.current;
+    const bodyFrom = prevBody && prevBody.interior === (s.insideInterior ?? null) ? prevBody : { x: body.x, z: body.z };
+    const solids = interior ? roomSolids(interior, INTERIOR_ALTITUDE) : [...registeredModelSolids(), ...structureSolids(structure.nodes.values())];
+    const blockedSolid = sweepSolids(body, bodyFrom, s.y - (s.inVehicle ? 1.9 : 1.6), s.inVehicle ? 2.5 : 1.8, s.inVehicle ? 3.1 : 1, solids);
+    if (blockedSolid) { body.vSpeed *= -0.18; velocity.set(0, 0, 0); }
+    prevBodyPos.current = { x: body.x, z: body.z, interior: s.insideInterior ?? null };
     s.x = body.x;
     s.z = body.z;
     s.vSpeed = body.vSpeed;
@@ -2570,6 +2579,8 @@ function SceneImpl({
       }
     }
     restTraversal(trav.current, playerClass, dt, s.grounded);
+    // body origin must stay above the sampled support surface, even uphill or after a knockdown
+    clampToFloor(s, s.diving ? heightAt(s.x, s.z) : interior ? INTERIOR_ALTITUDE : walkHeight(s.x, s.z), s.diving ? 1.1 : s.inVehicle ? 1.9 : 1.6);
     // fracture instability tosses loose objects (and you) around
     if (playerInstability > 0.6 && s.grounded && !s.diving && Math.random() < playerInstability * dt * 1.2) {
       s.vy = 6 + playerInstability * 10;
