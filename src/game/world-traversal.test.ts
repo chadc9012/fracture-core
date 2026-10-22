@@ -20,7 +20,7 @@ describe("terrain geometry across every region", () => {
           const h = heightAt(x, z);
           expect(Number.isFinite(h)).toBe(true);
           expect(h).toBeGreaterThan(-40);
-          expect(h).toBeLessThan(120);
+          expect(h).toBeLessThan(260); // Frostspire's peaks reach ~200m
           // no tears: at 1m resolution even a mountain face rises smoothly (Frostspire reaches ~3m/m)
           const step = Math.abs(heightAt(x + 1, z) - h);
           expect(step).toBeLessThan(5);
@@ -141,7 +141,7 @@ describe("player collision", () => {
     expect(walkIns.length).toBeGreaterThan(0);
     for (const shop of walkIns) {
       clearWalls();
-      const walls = storefrontWalls(shop);
+      const walls = storefrontWalls(shop, walkHeight(shop.x, shop.z));
       expect(walls.length).toBeGreaterThan(0);
       setWalls(shop.id, walls);
       // door marker is where the game puts the "[Y] Enter" prompt
