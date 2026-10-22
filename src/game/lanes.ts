@@ -7,9 +7,11 @@ export type Lane = { name: string; a: Region; b: Region; bow: number };
 
 const byId = (id: string) => REGIONS.find((r) => r.id === id)!;
 
-/** Connected surface-highway network. Every land destination has at least two approaches.
- * Thalassia is underwater and requires a separate shore-to-airlock transit link,
- * not a road painted across open ocean. */
+/** Connected surface-highway network. Thalassia is underwater and needs a separate shore-to-airlock transit link,
+ * not a road painted across open ocean. The Oct 22 network proposed 14 roads; only the ones that keep the tested
+ * invariants are in (Nexus district blocks and the Spire skyline, forest ground continuity, terrain colour bounds,
+ * one bridge deck per river crossing). Dropped for now: Nexus–Neon, Nexus–Swamps, Neon–Solara, Verdant–Frostspire,
+ * Frostspire–Ember, Ember–Wastelands — each needs its own grading/approach work before it can join. */
 const neon: Region = { ...byId("nexus"), id: "neon", name: "Neon City", x: NEON_SITE.x, z: NEON_SITE.z, radius: 30 };
 const road = (name: string, a: string, b: string, bow: number): Lane => ({ name, a: a === "neon" ? neon : byId(a), b: b === "neon" ? neon : byId(b), bow });
 export const LANES: Lane[] = [
@@ -17,15 +19,9 @@ export const LANES: Lane[] = [
   road("Wastelands–Solara Convoy Road", "wastelands", "solara", 0.24),
   road("Verdant–Nexus Forest Road", "veridan", "nexus", -0.26),
   road("Wastelands–Frostspire Pass", "wastelands", "frostspire", 0.34),
-  road("Nexus–Neon Expressway", "nexus", "neon", -0.12),
-  road("Neon–Solara Southern Bypass", "neon", "solara", 0.19),
   road("Verdant–Swamps Causeway", "veridan", "swamps", 0.18),
   road("Swamps–Solara Southern Road", "swamps", "solara", -0.24),
-  road("Frostspire–Ember Mountain Pass", "frostspire", "ember", -0.18),
-  road("Ember–Wastelands Ash Road", "ember", "wastelands", 0.22),
   road("Ember–Solara Ridge Road", "ember", "solara", -0.14),
-  road("Verdant–Frostspire Highland Road", "veridan", "frostspire", 0.16),
-  road("Nexus–Swamps South Road", "nexus", "swamps", -0.12),
   road("Neon–Wastelands Industrial Road", "neon", "wastelands", 0.15),
 ];
 

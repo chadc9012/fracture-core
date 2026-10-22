@@ -32,7 +32,7 @@ export function advanceDungeonObjective(run: DungeonRun, actorId: string, stageI
   const completedStageIds = [...run.completedStageIds, stage.id];
   const cleared = run.stageIndex + 1 === dungeon!.stages.length;
   return { run: { ...run, stageIndex: run.stageIndex + 1, stageProgress: 0, completedStageIds,
-    status: cleared ? 'CLEARED' : 'ACTIVE' }, checkpoint: stage.checkpoint ? stage.id : undefined };
+    status: cleared ? 'CLEARED' : 'ACTIVE' }, ...(stage.checkpoint ? { checkpoint: stage.id } : {}) };
 }
 
 export function recordDungeonDeath(run: DungeonRun, actorId: string): RunUpdate {
@@ -47,7 +47,8 @@ export function restartDungeonAtCheckpoint(run: DungeonRun): DungeonRun | null {
   if (run.status !== 'WIPED') return null;
   const dungeon = DUNGEONS.find(d => d.id === run.dungeonId);
   if (!dungeon) return null;
-  const lastCheckpoint = dungeon.stages.findLastIndex(s => s.checkpoint && run.completedStageIds.includes(s.id));
+  let lastCheckpoint = -1; // findLastIndex is ES2023, past the build target
+  dungeon.stages.forEach((s, i) => { if (s.checkpoint && run.completedStageIds.includes(s.id)) lastCheckpoint = i; });
   // Discard progress past the checkpoint: replayed stages must be earned again.
   // Keep only completed stages up to the last durable checkpoint.
   const completedStageIds = lastCheckpoint < 0 ? [] : dungeon.stages.slice(0, lastCheckpoint + 1)
@@ -73,7 +74,7 @@ export function validateDungeonRunSnapshot(value: unknown): value is DungeonRun 
   if (!['ACTIVE', 'WIPED', 'CLEARED'].includes(run.status ?? '')) return false;
   if (run.status === 'CLEARED') return run.stageIndex === dungeon.stages.length && run.stageProgress === 0;
   if (run.stageIndex === dungeon.stages.length) return false;
-  if (run.stageProgress! >= dungeon.stages[run.stageIndex].target) return false;
+  if (run.stageProgress! >= (dungeon.stages[run.stageIndex!]?.target ?? 0)) return false;
   if (run.status === 'WIPED') return run.livesRemaining === 0;
   return run.livesRemaining! > 0;
 }

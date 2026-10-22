@@ -44,7 +44,7 @@ export function OrbitalDirector({ progression, onDeploy, onAtlas }: {
   const launch = () => {
     if (!selected || !landing || blocked || launching) return;
     setLaunching(true);
-    onDeploy({ id: selected.id, name: selected.name, sub: selected.sub, color: ZONE_COLOR[selected.kind], x: landing.x, z: landing.z, ...("y" in landing && landing.y !== undefined ? { y: landing.y } : {}) });
+    onDeploy({ id: selected.id, name: selected.name, sub: selected.sub, color: ZONE_COLOR[selected.kind], x: landing.x, z: landing.z, ...("y" in landing && typeof landing.y === "number" ? { y: landing.y } : {}) });
   };
   return <div className="relative flex min-h-0 flex-1 flex-col overflow-y-auto bg-[#06131d] text-white" aria-label="Planetary Destination Director">
     <header className="flex flex-wrap items-center justify-between gap-3 border-b border-white/15 px-5 py-4">

@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect } from "bun:test";
 import { emptyChainState, registerChainHit } from "./legendary-chain";
 const hit = (id: string, sourceId: string, element: "ARC" | "THERMAL", at: number, targetId = "boss") => ({ id, sourceId, element, at, targetId });
 describe("legendary chain rules", () => {

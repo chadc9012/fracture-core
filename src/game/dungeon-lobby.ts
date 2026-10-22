@@ -106,7 +106,7 @@ export function validateDungeonLaunch(lobby: DungeonLobby): boolean {
  * server must associate every action with its authenticated actor. */
 export function parseDungeonLobbySnapshot(input: unknown): DungeonLobby | null {
   if (!input || typeof input !== "object" || Array.isArray(input)) return null;
-  const value = input as Record<string, unknown>;
+  const value = input as { id?: unknown; hostId?: unknown; dungeonId?: unknown; status?: unknown; members?: unknown; invitedIds?: unknown };
   if (!validId(value.id as string) || !validId(value.hostId as string) || typeof value.dungeonId !== "string") return null;
   const dungeon = DUNGEONS.find(d => d.id === value.dungeonId && d.privateInstance);
   if (!dungeon || (value.status !== "ASSEMBLING" && value.status !== "LAUNCHED")) return null;
@@ -115,7 +115,7 @@ export function parseDungeonLobbySnapshot(input: unknown): DungeonLobby | null {
   const members: LobbyMember[] = [];
   for (const entry of value.members) {
     if (!entry || typeof entry !== "object" || Array.isArray(entry)) return null;
-    const member = entry as Record<string, unknown>;
+    const member = entry as { id?: unknown; operator?: unknown; ready?: unknown };
     if (!validId(member.id as string) || !validOperator(member.operator as string) || typeof member.ready !== "boolean") return null;
     members.push({ id: member.id as string, operator: member.operator as OperatorClass, ready: member.ready });
   }

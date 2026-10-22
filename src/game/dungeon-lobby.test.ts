@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect } from "bun:test";
 import { createDungeonLobby, inviteToDungeon, joinDungeon, setDungeonReady, launchDungeon, leaveDungeon, revokeDungeonInvite, removeDungeonMember, transferDungeonHost, disbandDungeonLobby, validateDungeonLaunch } from "./dungeon-lobby";
 
 describe("private dungeon lobby rules", () => {
@@ -48,7 +48,7 @@ describe("private dungeon lobby rules", () => {
     expect(removeDungeonMember(lobby, "host", "host").error).toBe("Host must disband the lobby");
     const updated = removeDungeonMember(lobby, "host", "guest").lobby;
     expect(updated.members.map(m => m.id)).toEqual(["host"]);
-    expect(updated.members[0].ready).toBe(false);
+    expect(updated.members[0]!.ready).toBe(false);
   });
 
   it("rejects self invitations and bounds pending invitation state", () => {
@@ -84,7 +84,7 @@ describe("private dungeon lobby rules", () => {
     const launched = launchDungeon(lobby, "host").lobby;
     expect(validateDungeonLaunch(launched)).toBe(true);
     expect(validateDungeonLaunch({ ...launched, hostId: "outsider" })).toBe(false);
-    expect(validateDungeonLaunch({ ...launched, members: [...launched.members, launched.members[0]] })).toBe(false);
+    expect(validateDungeonLaunch({ ...launched, members: [...launched.members, launched.members[0]!] })).toBe(false);
     expect(validateDungeonLaunch({ ...launched, members: launched.members.map(m => ({ ...m, ready: false })) })).toBe(false);
     expect(disbandDungeonLobby(launched, "host").closed).toBe(false);
   });
@@ -98,7 +98,7 @@ describe("private dungeon lobby rules", () => {
     expect(launched.invitedIds).toEqual([]);
     expect(validateDungeonLaunch(launched)).toBe(true);
     expect(launchDungeon({ ...lobby, hostId: "outsider" }, "outsider").error).toBe("Invalid fireteam launch state");
-    expect(launchDungeon({ ...lobby, members: [lobby.members[0], lobby.members[0]] }, "host").error).toBe("Invalid fireteam launch state");
+    expect(launchDungeon({ ...lobby, members: [lobby.members[0]!, lobby.members[0]!] }, "host").error).toBe("Invalid fireteam launch state");
     expect(validateDungeonLaunch({ ...launched, invitedIds: ["unused"] })).toBe(false);
   });
 
@@ -126,7 +126,7 @@ describe("untrusted dungeon lobby snapshots", () => {
 
 // Even when a dungeon allows solo story entry, private fireteam matchmaking
 // requires two distinct ready players before provisioning an online instance.
-import { describe as describeTwo, it as itTwo, expect as expectTwo } from 'vitest';
+import { describe as describeTwo, it as itTwo, expect as expectTwo } from 'bun:test';
 describeTwo('two-player private fireteam minimum', () => {
   itTwo('does not launch a solo ready host', () => {
     const lobby = createDungeonLobby('solo_test', 'arcology_vaults', 'host_1', 'NYX');

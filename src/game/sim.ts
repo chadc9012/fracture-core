@@ -330,6 +330,8 @@ export type WorldSim = {
   nextHitId: number;
   /** Per-simulation combo ledger. Damage and defeats still use the normal simulation pipeline. */
   chainState: ChainState;
+  /** legendary-chain hit ids; separate from nextHitId, which belongs to the Null Disruption ledger */
+  nextChainHitId: number;
   lastChainReaction: ChainReaction | null;
   /** Unique Scenario encounters (encounter-sim.ts): live hazard zones and a presentation event log. Presentation reads, never writes. */
   encounterZones: EncounterZone[];
@@ -669,7 +671,7 @@ export function createSim(): WorldSim {
     evoCharge: freshCharge(),
     nullCharge: { ...INITIAL_NULL_CHARGE },
     nullPulse: null,
-    nextHitId: 0, chainState: emptyChainState(), lastChainReaction: null,
+    nextHitId: 0, nextChainHitId: 0, chainState: emptyChainState(), lastChainReaction: null,
     encounterZones: [], encounterEvents: [], nextEncounterEventId: 1, nextEncounterZoneId: 1, hazardSpeedMult: 1,
     rounds: Array.from({ length: ROUND_POOL }, () => ({ ...fireRound(NO_ORDNANCE, { x: 0, y: 0, z: 0 }, [0, 0, 1]), alive: false, launcher: "ROCKET" as LauncherId, element: "KINETIC" as DamageElement, target: -1, knock: 1 })),
     statuses: new Map(), burstEvents: [], evoBursts: [], nextBurstId: 1, impacts: Array.from({ length: IMPACT_LOG }, () => ({ id: 0, x: 0, y: 0, z: 0, kind: "ground" as BulletHit, vx: 0, vz: 0 })), nextImpactId: 1,
@@ -1892,7 +1894,7 @@ export function stepSim(sim: WorldSim, input: SimInput) {
         if (sim.foundry === "HAKKE" && (m.elite || m.boss)) dmg *= FOUNDRY_RULES.hakkeArmored; // foundries.ts: Wall-Piercer
         const bulletElement = b.element ?? sim.equippedElement;
         const chain = registerSimChainHit(sim, m, {
-          id: `hit:${sim.nextHitId++}`, sourceId: "local-operator",
+          id: `hit:${sim.nextChainHitId++}`, sourceId: "local-operator",
           element: bulletElement, at: performance.now(),
         });
         dmg = applyMachineDamageMods(sim, m, resolveChainDamage(dmg, chain), bulletElement, px, pz);

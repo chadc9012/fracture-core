@@ -48,7 +48,7 @@ type Stored = { label: string; data: unknown; updated_at: string };
 /** Validate both browser and cloud records using the same boundary. */
 export function parseStoredSlotRecord(value: unknown): Stored | null {
   if (!value || typeof value !== "object" || Array.isArray(value)) return null;
-  const row = value as Record<string, unknown>;
+  const row = value as { label?: unknown; data?: unknown; updated_at?: unknown };
   if (typeof row.label !== "string" || typeof row.updated_at !== "string") return null;
   if (!row.data || typeof row.data !== "object" || Array.isArray(row.data)) return null;
   // A malformed timestamp should never be surfaced as a valid save date.

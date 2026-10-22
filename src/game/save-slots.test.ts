@@ -19,8 +19,8 @@ test("local slot storage retains only valid slots and records", () => {
   const record = { label: "A".repeat(40), data: { level: 5 }, updated_at: "2026-10-22" };
   const parsed = parseLocalSlots(JSON.stringify({ 1: record, 2: { label: 7 }, 4: record, "__proto__": record }));
   expect(Object.keys(parsed)).toEqual(["1"]);
-  expect(parsed[1].label).toHaveLength(32);
-  expect(parsed[1].data).toEqual({ level: 5 });
+  expect(parsed[1]!.label).toHaveLength(32);
+  expect(parsed[1]!.data).toEqual({ level: 5 });
 });
 
 
