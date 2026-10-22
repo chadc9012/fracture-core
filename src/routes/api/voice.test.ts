@@ -109,10 +109,11 @@ describe("caption fallback when spoken dialogue fails", () => {
   it("stays silent when the player cancels a line — no error, no 'unavailable'", async () => {
     const { speakVoice, stopVoice, subscribeVoice, configureVoice } = await import("@/game/voice-director");
     configureVoice({ enabled: true, volume: 0.85 });
-    globalThis.fetch = mock((( _url: string, init?: RequestInit ) =>
+    const hangingFetch = (_url: string, init?: RequestInit) =>
       new Promise<Response>((_resolve, reject) => {
         init?.signal?.addEventListener("abort", () => reject(abortError()), { once: true });
-      })) as unknown as typeof fetch;
+      });
+    globalThis.fetch = mock(hangingFetch) as unknown as typeof fetch;
 
     const statuses: Status[] = [];
     const unsubscribe = subscribeVoice((s) => statuses.push(s));
