@@ -18,13 +18,13 @@ export const Route = createFileRoute("/api/voice")({
   server: {
     handlers: {
       POST: async ({ request }) => {
-        const parsed = requestSchema.safeParse(await request.json().catch(() => null));
-        if (!parsed.success) return Response.json({ message: "This dialogue line could not be prepared." }, { status: 400 });
-        const apiKey = process.env["LOVABLE_API_KEY"];
-        if (!apiKey) return Response.json({ message: "Spoken dialogue is not configured." }, { status: 401 });
-        const speaker = (parsed.data.speaker ?? "NARRATOR").toUpperCase();
-        const prompt = `${directionFor(speaker)} Say exactly: ${parsed.data.text}`;
         try {
+          const parsed = requestSchema.safeParse(await request.json().catch(() => null));
+          if (!parsed.success) return Response.json({ message: "This dialogue line could not be prepared." }, { status: 400 });
+          const apiKey = process.env["LOVABLE_API_KEY"];
+          if (!apiKey) return Response.json({ message: "Spoken dialogue is not configured." }, { status: 401 });
+          const speaker = (parsed.data.speaker ?? "NARRATOR").toUpperCase();
+          const prompt = `${directionFor(speaker)} Say exactly: ${parsed.data.text}`;
           const upstream = await requestSpeech({
             baseURL: "https://ai.gateway.lovable.dev/v1",
             apiKey,
