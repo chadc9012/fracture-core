@@ -116,3 +116,19 @@ export function collideBody(
   }
   return result;
 }
+
+/** Follow the whole motion path, including crossed spatial cells. Stop on solid contact.
+ * Impacts retain the existing damage/break rules and are applied once per movement. */
+export function collideBodySwept(body: { x: number; z: number }, from: { x: number; z: number }, radius: number, speed: number, mass = 1): Impact {
+  const dx = body.x - from.x, dz = body.z - from.z;
+  const steps = Math.max(1, Math.ceil(Math.hypot(dx, dz) / Math.min(0.25, radius * 0.25)));
+  body.x = from.x; body.z = from.z;
+  const initial = collideBody(body, radius, speed, mass);
+  if (initial.hit) return initial;
+  for (let i = 0; i < steps; i++) {
+    body.x += dx / steps; body.z += dz / steps;
+    const impact = collideBody(body, radius, speed, mass);
+    if (impact.hit) return impact;
+  }
+  return { hit: false, damage: 0, broke: false };
+}

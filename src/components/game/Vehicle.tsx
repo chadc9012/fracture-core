@@ -4,6 +4,7 @@ import { Component, Suspense, useEffect, useMemo, useRef, type ReactNode } from 
 import * as THREE from "three";
 
 import { MODELS, type ModelKey } from "@/game/models";
+import { removeModelSolid, setModelSolid } from "@/game/environment-collision";
 import { softSprite } from "./softSprite";
 import { applyVehicleFinish } from "./VehicleFinish";
 import { perfTierVersion } from "@/game/perf-budget";
@@ -55,6 +56,14 @@ function ModelBody({
   scale?: number | [number, number, number];
 }) {
   const object = useModel(modelKey);
+  useEffect(() => {
+    if (!["block_a", "block_b", "tower_a", "tower_b"].includes(modelKey)) return;
+    object.updateWorldMatrix(true, true);
+    const box = new THREE.Box3().setFromObject(object);
+    const size = box.getSize(new THREE.Vector3()), center = box.getCenter(new THREE.Vector3());
+    if (!box.isEmpty()) setModelSolid(object.uuid, { x: center.x, y: center.y, z: center.z, w: size.x, h: size.y, d: size.z });
+    return () => removeModelSolid(object.uuid);
+  }, [object, modelKey, position, rotation, scale]);
   return <primitive object={object} position={position} rotation={rotation} scale={scale} />;
 }
 
