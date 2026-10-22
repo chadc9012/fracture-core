@@ -2579,6 +2579,8 @@ function SceneImpl({
       }
     }
     restTraversal(trav.current, playerClass, dt, s.grounded);
+    // body origin must stay above the sampled support surface, even uphill or after a knockdown
+    clampToFloor(s, s.diving ? heightAt(s.x, s.z) : interior ? INTERIOR_ALTITUDE : walkHeight(s.x, s.z), s.diving ? 1.1 : s.inVehicle ? 1.9 : 1.6);
     // fracture instability tosses loose objects (and you) around
     if (playerInstability > 0.6 && s.grounded && !s.diving && Math.random() < playerInstability * dt * 1.2) {
       s.vy = 6 + playerInstability * 10;
