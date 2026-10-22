@@ -106,14 +106,14 @@ class GamepadOnboarding(unittest.IsolatedAsyncioTestCase):
         await preview.screenshot(path=str(ARTIFACTS / f"{name}-preview.png"), timeout=90000)
 
         await self.press(0)
-        await expect(self.page.get_by_role("button", name="Approach armor forge", exact=True)).to_be_visible()
+        await expect(self.page.get_by_role("button", name="Choose body profile", exact=True)).to_be_visible()
         await self.press(13)  # choose the second subclass
         await self.press(0)
-        await expect(self.page.get_by_role("heading", name="Customize your appearance")).to_be_visible()
+        await expect(self.page.get_by_role("heading", name="Choose your silhouette")).to_be_visible()
         await self.press(13)  # male -> robot preview
         await expect(self.page.get_by_role("img", name=f"{name} robot preview", exact=True)).to_be_visible()
         await self.press(1)  # B/Circle backs out, retaining subclass/body
-        await expect(self.page.get_by_role("button", name="Approach armor forge", exact=True)).to_be_visible()
+        await expect(self.page.get_by_role("button", name="Choose body profile", exact=True)).to_be_visible()
         await self.press(0)
         await expect(self.page.get_by_role("img", name=f"{name} robot preview", exact=True)).to_be_visible()
 

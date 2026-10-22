@@ -1,3 +1,4 @@
+import { Button } from "@/components/ui/button";
 import { ArrowRight, Crosshair, Save, Map as MapIcon, Settings2, Shield } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { nextActivity } from "@/game/retention";
@@ -23,12 +24,12 @@ const MODULES: { id: HubTarget; code: string; title: string; body: string; actio
 export function MainMenuHub({ className, level, shards, completedMissions, onNavigate }: Props) {
   const next = nextActivity({ completedMissions });
   return (
-    <div className="wf-shell deployment-field fixed inset-0 z-50 flex flex-col overflow-y-auto px-5 py-5 text-foreground sm:px-10 sm:py-8">
+    <div className="wf-shell deployment-field fixed inset-0 z-50 flex flex-col overflow-y-auto bg-background px-5 py-5 text-foreground sm:px-10 sm:py-8">
       <div className="fracture-grid pointer-events-none absolute inset-0 opacity-40" />
       <header className="relative grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 border-b border-foreground/15 pb-4">
         <div className="flex min-w-0 items-center gap-3">
           <span className="h-2.5 w-2.5 shrink-0 animate-pulse bg-primary" />
-          <h1 className="truncate font-mono text-xl uppercase tracking-[0.3em] sm:text-3xl">World Fracture</h1>
+          <h1 className="truncate font-mono text-xl uppercase tracking-normal sm:text-3xl">World Fracture</h1>
         </div>
         <div className="flex items-center gap-4 border-l border-foreground/15 pl-4 font-mono text-right">
           <div className="hidden sm:block"><p className="ui-kicker">Operator</p><p className="text-sm text-primary">{className}</p></div>
@@ -37,18 +38,18 @@ export function MainMenuHub({ className, level, shards, completedMissions, onNav
         </div>
       </header>
 
-      <main className="relative mx-auto my-auto grid w-full max-w-6xl grid-cols-1 gap-3 py-8 sm:grid-cols-2 lg:grid-cols-5">
+      <main className="relative mx-auto my-auto grid w-full max-w-6xl grid-cols-1 gap-4 py-8 sm:grid-cols-2 lg:grid-cols-3">
         {MODULES.map(({ id, code, title, body, action, icon: Icon }) => (
-          <button key={id} onClick={() => onNavigate(id)} className="ui-focus ui-enter group flex min-h-56 flex-col justify-between border border-foreground/15 bg-background/60 p-5 text-left transition-colors hover:border-primary/60 hover:bg-primary/5">
+          <Button variant="ghost" key={id} onClick={() => onNavigate(id)} className="ui-focus ui-enter group flex h-auto rounded-none whitespace-normal min-h-52 flex-col justify-between border border-primary/20 bg-card/85 p-6 text-left transition-colors hover:border-primary/60 hover:bg-primary/5">
             <div>
               <div className="flex items-center justify-between"><span className="ui-kicker">Module / {code}</span><Icon className="h-4 w-4 text-muted-foreground group-hover:text-primary" /></div>
-              <h2 className="mt-3 font-mono text-2xl uppercase tracking-wide group-hover:text-primary">{title}</h2>
+              <h2 className="mt-3 font-mono text-2xl uppercase tracking-normal group-hover:text-primary">{title}</h2>
               <p className="mt-2 text-xs leading-relaxed text-muted-foreground">{body}</p>
             </div>
-            <div className="flex items-center justify-between border-t border-foreground/10 pt-3 font-mono text-[11px] uppercase tracking-[0.2em] text-primary">
+            <div className="flex items-center justify-between border-t border-foreground/10 pt-3 font-mono text-[11px] uppercase tracking-normal text-primary">
               {action}<ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
             </div>
-          </button>
+          </Button>
         ))}
       </main>
 
