@@ -137,7 +137,7 @@ describe("player collision", () => {
 
   test("every walk-in shop's doorway is actually passable while its walls block", () => {
     clearWalls();
-    const walkIns = REGIONAL_SHOPS.filter((s) => shopAccessKind(s) === "interior");
+    const walkIns = REGIONAL_SHOPS.filter((s) => shopAccessKind(s.id) === "interior");
     expect(walkIns.length).toBeGreaterThan(0);
     for (const shop of walkIns) {
       clearWalls();
