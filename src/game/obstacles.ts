@@ -100,14 +100,14 @@ export function collideBody(
   for (const o of queryObstacles(body.x, body.z)) {
     const dx = body.x - o.x;
     const dz = body.z - o.z;
-    const dist = Math.hypot(dx, dz) || 0.001;
+    const dist = Math.hypot(dx, dz);
     const min = radius + o.r;
     if (dist >= min) continue;
 
-    // separate
+    // separate (exact-center overlap pushes along +x instead of leaving the body embedded)
     const push = (min - dist) + 0.05;
-    body.x += (dx / dist) * push;
-    body.z += (dz / dist) * push;
+    body.x += (dist > 0 ? dx / dist : 1) * push;
+    body.z += (dist > 0 ? dz / dist : 0) * push;
 
     const force = Math.abs(speed) * mass;
     const broke = damageObstacle(o, force * 0.06);
