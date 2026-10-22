@@ -91,7 +91,7 @@ export function StartMenu({ onDeploy, onSaveCharacter, weaponOrder, onSettings, 
   // Esc / Backspace / controller B-Circle: previous step, or out to the main menu from the first step (never mid-save)
   const dirty = forgeDirty(start, { classId, subclassId, appearance, bodyType }) || gearDirty;
   const leave = () => { if (dirty) setConfirmLeave(true); else onExit?.(); };
-  useMenuInput(stage !== "ASSEMBLING" && !deploying && !paused && !confirmLeave, (intent, source) => {
+  const pad = useMenuInput(stage !== "ASSEMBLING" && !deploying && !paused && !confirmLeave, (intent, source) => {
     if (intent === "back") { if (stageIndex > 0) back(); else leave(); return; }
     // Keyboard keeps its existing shortcuts; pad selection updates the same live preview state.
     if (source !== "pad") return;
@@ -141,7 +141,7 @@ export function StartMenu({ onDeploy, onSaveCharacter, weaponOrder, onSettings, 
           const op = operatorByClass(item.id);
           const active = classId === item.id;
           const stats: [string, number, number][] = [["Health", op.baseStats.health, 160], ["Armor", op.baseStats.armor, 130], ["Mobility", op.baseStats.mobility, 100], ["Tech", op.baseStats.tech, 110]];
-          return <Button variant="ghost" key={item.id} type="button" onClick={() => selectClass(item.id)} className={`hud-panel pointer-events-auto h-auto rounded-none whitespace-normal relative overflow-hidden px-3 pb-3 pt-4 text-center transition ${active ? "hud-glow text-foreground" : "text-muted-foreground opacity-75 hover:opacity-100"}`}>
+          return <Button variant="ghost" key={item.id} type="button" onClick={() => selectClass(item.id)} className={`hud-panel pointer-events-auto flex-col gap-0 h-auto rounded-none whitespace-normal relative overflow-hidden px-3 pb-3 pt-4 text-center transition ${active ? "hud-glow text-foreground" : "text-muted-foreground opacity-75 hover:opacity-100"}`}>
             <CornerBrackets size={6} />
             <span className="block font-mono text-[9px] tracking-normal text-primary">0{index + 1} // {op.className.toUpperCase()} CLASS</span>
             <span className="mt-1 block font-mono text-lg font-bold tracking-normal sm:text-2xl">{op.name}</span>
@@ -160,7 +160,8 @@ export function StartMenu({ onDeploy, onSaveCharacter, weaponOrder, onSettings, 
       </div>
     </>}
 
-    {stage === "SUBCLASS" && <div className="pointer-events-auto absolute bottom-24 left-1/2 z-10 w-[min(62rem,calc(100%-2rem))] -translate-x-1/2">
+    {stage === "SUBCLASS" && <div className="pointer-events-auto absolute bottom-24 top-40 left-1/2 z-10 flex flex-col justify-end w-[min(62rem,calc(100%-2rem))] -translate-x-1/2">
+      <div className="max-h-full overflow-y-auto">
       <div className="hud-panel relative mb-2 p-3">
         <CornerBrackets size={6} />
         <div className="flex items-baseline justify-between gap-3"><span className="font-mono text-xs uppercase tracking-normal text-foreground">{operator.name}</span><span className="font-mono text-[9px] uppercase text-primary">{operator.callsign}</span></div>
@@ -179,6 +180,7 @@ export function StartMenu({ onDeploy, onSaveCharacter, weaponOrder, onSettings, 
           </Button>
         ))}
       </div>
+      </div>
     </div>}
 
     {stage === "APPEARANCE" && <section aria-label="Operator body selection" className="pointer-events-auto absolute bottom-24 left-1/2 top-40 z-10 flex w-[min(56rem,calc(100%-2rem))] -translate-x-1/2 flex-col justify-end sm:top-44">
@@ -187,7 +189,7 @@ export function StartMenu({ onDeploy, onSaveCharacter, weaponOrder, onSettings, 
         <h2 className="mt-2 text-2xl font-semibold uppercase tracking-normal text-foreground sm:text-4xl">Choose your silhouette</h2>
         <p className="mt-2 max-w-xl text-sm text-muted-foreground">{operator.name} · {subclasses.find((item) => item.id === subclassId)?.name}</p>
         <div className="mt-4 grid grid-cols-3 gap-2 sm:gap-3">
-          {BODY_TYPES.map((type) => <Button variant="ghost" key={type} type="button" onClick={() => setBodyType(type)} aria-pressed={bodyType === type} className={`h-auto rounded-none whitespace-normal min-h-24 min-w-0 border p-2 sm:p-4 text-left transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary ${bodyType === type ? "border-primary bg-primary/15 text-foreground" : "border-foreground/20 bg-foreground/5 text-muted-foreground hover:border-foreground/60"}`}>
+          {BODY_TYPES.map((type) => <Button variant="ghost" key={type} type="button" onClick={() => setBodyType(type)} aria-pressed={bodyType === type} className={`flex-col items-start gap-0 h-auto rounded-none whitespace-normal min-h-24 min-w-0 border p-2 sm:p-4 text-left transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary ${bodyType === type ? "border-primary bg-primary/15 text-foreground" : "border-foreground/20 bg-foreground/5 text-muted-foreground hover:border-foreground/60"}`}>
             <span className="block font-mono text-[10px] sm:text-xs font-bold uppercase tracking-normal">{BODY_PROFILES[type].label}</span>
             <span className="mt-2 block text-xs leading-relaxed opacity-80">{BODY_PROFILES[type].blurb}</span>
           </Button>)}
@@ -196,7 +198,7 @@ export function StartMenu({ onDeploy, onSaveCharacter, weaponOrder, onSettings, 
       {deployError && <p role="alert" className="mt-3 bg-destructive/20 p-2 text-center text-sm text-destructive">{deployError}</p>}
     </section>}
 
-    {confirmLeave && <ConfirmDialog pad={null} title="Discard changes?" body="You changed your operator but haven't saved. Leaving now discards those edits; your saved character is untouched." confirmLabel="Discard & leave" cancelLabel="Keep editing" onCancel={() => setConfirmLeave(false)} onConfirm={() => { setConfirmLeave(false); onExit?.(); }} />}
+    {confirmLeave && <ConfirmDialog pad={pad} title="Discard changes?" body="You changed your operator but haven't saved. Leaving now discards those edits; your saved character is untouched." confirmLabel="Discard & leave" cancelLabel="Keep editing" onCancel={() => setConfirmLeave(false)} onConfirm={() => { setConfirmLeave(false); onExit?.(); }} />}
 
     {stage !== "ASSEMBLING" && <footer className="pointer-events-none absolute inset-x-0 bottom-4 z-20 flex items-center justify-center gap-2">
       {stageIndex > 0 && <Button className="hud-panel pointer-events-auto border-0" variant="outline" onClick={back} disabled={deploying}><ChevronLeft />Back</Button>}
