@@ -1,3 +1,4 @@
+import { Button } from "@/components/ui/button";
 import { useEffect, useMemo, useRef, useState } from "react";
 import horizon from "@/assets/world-fracture-horizon.png.asset.json";
 import { playIntroSwell, unlockAudio } from "@/game/audio";
@@ -12,7 +13,7 @@ type Item = { id: "continue" | "new" | "character" | "settings" | "credits"; lab
 const ITEMS: Item[] = [
   { id: "continue", label: "Continue", hint: "Resume your saved game" },
   { id: "new", label: "New Game", hint: "Create an operator and deploy" },
-  { id: "character", label: "Character", hint: "Operator, class, body and appearance" },
+  { id: "character", label: "Character", hint: "Operator, subclass and body profile" },
   { id: "settings", label: "Settings", hint: "Controls, audio, display, accessibility" },
   { id: "credits", label: "Credits", hint: "Who and what made this" },
 ];
@@ -61,7 +62,7 @@ export function MainMenu({ save, classId, reducedMotion, startNotice, onContinue
 
   const pad = useMenuInput(overlay === null && !leaving, (intent) => {
     if (intent === "up" || intent === "down") setIndex((i) => moveFocus(i, intent === "down" ? 1 : -1, enabled));
-    else if (intent === "confirm") activate(ITEMS[index]!);
+    else if (intent === "confirm") { const item = ITEMS[index]; if (item) activate(item); }
     else if (intent === "back") setNotice("This is the main menu. Choose an option to continue.");
   });
   const labels = PAD_LABELS[pad ?? "generic"];
@@ -77,31 +78,33 @@ export function MainMenu({ save, classId, reducedMotion, startNotice, onContinue
       <div className="title-mist pointer-events-none absolute inset-x-0 bottom-0 h-2/5" />
       <div className="pointer-events-none absolute inset-0 title-vignette" />
 
-      <main className="relative z-10 flex h-full flex-col justify-between overflow-y-auto px-6 py-8 sm:px-14 sm:py-12">
-        <header>
-          <p className="font-mono text-[9px] uppercase tracking-[0.42em] text-primary">Signal recovered · Nexus orbit</p>
-          <h1 className="title-glow mt-4 font-mono text-4xl font-bold tracking-[0.12em] text-foreground sm:text-6xl">WORLD<br />FRACTURE</h1>
-          {save.hasSave && <p className="mt-3 font-mono text-[10px] uppercase tracking-[0.25em] text-muted-foreground">{save.name ?? cls.name} · Level {save.level} · {save.missions} mission{save.missions === 1 ? "" : "s"} complete</p>}
+      <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-background/95 via-background/65 to-transparent" />
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-primary/40" />
+      <main className="relative z-10 flex h-full min-h-0 flex-col overflow-y-auto px-6 py-8 sm:px-[7vw] sm:py-12">
+        <header className="flex items-start justify-between gap-4">
+          <div><p className="font-mono text-[10px] uppercase tracking-normal text-primary">NOVA // Command network</p>
+            <p className="mt-2 font-mono text-[10px] uppercase tracking-normal text-foreground/60">Nexus orbit · System online</p></div>
+          <p className="hidden border border-foreground/20 bg-background/30 px-3 py-2 font-mono text-[10px] uppercase tracking-normal text-foreground/70 sm:block">World status // Fractured</p>
         </header>
-
-        <nav aria-label="Main menu" className="my-8 flex w-full max-w-sm flex-col gap-1">
-          {ITEMS.map((item, i) => {
-            const active = i === index;
-            const dim = item.id === "continue" && !save.hasSave;
-            return (
-              <button key={item.id} type="button" onClick={() => { setIndex(i); activate(item); }} onMouseEnter={() => setIndex(i)} onFocus={() => setIndex(i)}
-                aria-current={active ? "true" : undefined}
-                className={`group h-12 border-l-2 pl-4 text-left font-mono text-sm uppercase tracking-[0.22em] outline-none transition-all duration-150 ${active ? "translate-x-1 border-primary bg-primary/10 text-foreground ui-focus" : "border-transparent text-muted-foreground"} ${dim ? "opacity-60" : ""} focus-visible:ring-1 focus-visible:ring-primary`}>
-                {item.label}
-                {active && <span className="ml-3 hidden font-sans text-[10px] normal-case tracking-normal text-muted-foreground sm:inline">{item.hint}</span>}
-              </button>
-            );
-          })}
-          <p className="mt-3 min-h-4 font-mono text-[10px] uppercase tracking-[0.15em] text-primary" role="status" aria-live="polite">{startNotice || notice}</p>
-        </nav>
-
-        <footer className="font-mono text-[9px] uppercase tracking-[0.22em] text-muted-foreground">
-          ↑↓ / W S / {labels.nav} Select · Enter / {labels.confirm} Confirm · Esc / {labels.back} Back
+        <div className="my-auto max-w-[45rem] py-10">
+          <p className="mb-4 border-l-2 border-primary pl-3 font-mono text-[11px] uppercase tracking-normal text-primary">A world worth reclaiming</p>
+          <h1 className="title-glow text-5xl font-black uppercase leading-[0.88] tracking-normal text-foreground sm:text-7xl lg:text-[6rem]">WORLD<br />FRACTURE</h1>
+          <p className="mt-6 max-w-lg text-sm leading-relaxed text-muted-foreground sm:text-base">The sky broke. The worlds collided. Your story begins at the edge of the Fracture.</p>
+          {save.hasSave && <p className="mt-5 border-l border-primary/70 pl-3 font-mono text-[11px] uppercase tracking-normal text-primary">{save.name ?? cls.name} · Level {save.level} · {save.missions} missions complete</p>}
+          <nav aria-label="Main menu" className="mt-9 grid w-full max-w-lg gap-2">
+            {ITEMS.map((item, i) => { const active = i === index; const dim = item.id === "continue" && !save.hasSave;
+              return <Button variant="ghost" key={item.id} type="button" onClick={() => { setIndex(i); activate(item); }} onMouseEnter={() => setIndex(i)} onFocus={() => setIndex(i)} aria-current={active ? "true" : undefined}
+                className={`group flex h-auto rounded-none whitespace-normal min-h-14 items-center justify-between gap-3 border px-5 py-3 text-left transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary ${active ? "border-primary bg-primary/15 text-foreground ui-focus" : "border-foreground/15 bg-background/35 text-muted-foreground hover:border-foreground/50"} ${dim ? "opacity-60" : ""}`}>
+                <span className="font-mono text-sm font-bold uppercase tracking-normal">{item.label}</span>
+                <span className="hidden text-right text-xs text-muted-foreground sm:block">{item.hint}</span>
+                <span aria-hidden="true" className="text-primary">{active ? "◆" : "›"}</span>
+              </Button>;
+            })}
+            <p className="min-h-5 font-mono text-xs text-primary" role="status" aria-live="polite">{startNotice || notice}</p>
+          </nav>
+        </div>
+        <footer className="flex flex-wrap justify-between gap-3 border-t border-foreground/20 pt-4 font-mono text-[10px] uppercase tracking-normal text-foreground/65">
+          <span>↑↓ / W S / {labels.nav} Navigate · Enter / {labels.confirm} Select</span><span>Esc / {labels.back} Back</span>
         </footer>
       </main>
 

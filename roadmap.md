@@ -1,6 +1,7 @@
 # Roadmap
 
 ## Current request
+- [x] Apply only the three uploaded menu/character files, using semantic colors and design-system controls; GOLIATH, NYX and CIPHER simulated-controller selection, previews and deployment pass without page errors. Desktop and 568×597 mouse flows pass; 18 save/menu rule tests pass. Physical controllers and returning-player hub navigation remain unverified.
 - [x] Add simulated Gamepad API browser tests for GOLIATH, NYX and CIPHER selection, previews and deployment; fix confirmed controller gaps (three browser flows and 18 existing menu/forge tests pass; physical controllers remain unverified).
 - [ ] Cinematic Veyra benchmark: inspect uploaded art snapshot without overwriting latest source; improve real-time forest/armor materials and lighting, fix noisy audio, rename Star Map to World Map, verify playable flows.
 - [ ] Neon mag-grind traversal and NPC robots/pets; Operator-bound small Vaelith companion with Dragonite rewards; expand unique encounter dialogue and task acceptance.
