@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "bun:test";
 import { sortOffers, comparePrice } from "./shop-compare";
 import { REGIONAL_SHOPS, shopOffers, type ShopOffer } from "./regional-shops";
 
