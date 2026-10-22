@@ -141,7 +141,7 @@ import { dialogueFor, revisitDialogueFor, type DialogueLine } from "@/game/dialo
 import { DialogueOverlay } from "./DialogueOverlay";
 import { EndingOverlay, endingTierFor } from "./EndingOverlay";
 import { DeathOverlay } from "./DeathOverlay";
-import { playEnding, playLevelUp, playNovaUnlock } from "@/game/audio";
+import { playEnding, playLevelUp, playNovaUnlock, setVolume, setMixVolumes } from "@/game/audio";
 import { Minimap } from "./Minimap";
 import { grantXP } from "@/game/xp";
 import type { WorldSim } from "@/game/sim";
@@ -311,6 +311,9 @@ export function GameCanvas() {
     try { const m = window.localStorage.getItem("world-fracture-mix"); if (m) { const p = JSON.parse(m) as { music?: number; sfx?: number; voice?: number; spoken?: boolean; amb?: number; abil?: number; mute?: GameSettings["mute"] }; const c = (n: unknown, fallback = 1) => (typeof n === "number" && Number.isFinite(n) ? Math.min(1, Math.max(0, n)) : fallback); setSettings((current) => ({ ...current, musicVolume: c(p.music), sfxVolume: c(p.sfx), voiceVolume: c(p.voice, 0.85), spokenDialogue: p.spoken ?? true, ambienceVolume: c(p.amb), abilityVolume: c(p.abil), mute: p.mute ?? {} })); } } catch { /* keep defaults */ }
     try { const b = window.localStorage.getItem("world-fracture-bindings"); if (b) setSettings((current) => ({ ...current, bindings: normalizeBindings(JSON.parse(b)) })); } catch { /* keep defaults */ }
   }, []);
+  // menu volume sliders drive the real audio buses (master + music/sfx/ambience/ability mix, honoring mute toggles)
+  useEffect(() => { setVolume(settings.volume ?? 0.7); }, [settings.volume]);
+  useEffect(() => { const m = settings.mute ?? {}; setMixVolumes(m.music ? 0 : settings.musicVolume ?? 1, m.sfx ? 0 : settings.sfxVolume ?? 1, m.ambience ? 0 : settings.ambienceVolume ?? 1, m.abilities ? 0 : settings.abilityVolume ?? 1); }, [settings.musicVolume, settings.sfxVolume, settings.ambienceVolume, settings.abilityVolume, settings.mute]);
   const updateSettings = (next: GameSettings) => {
     window.localStorage.setItem("world-fracture-settings", JSON.stringify(next));
     if (next.volume !== settings.volume && next.volume !== undefined) window.localStorage.setItem("world-fracture-volume", String(next.volume));
