@@ -9,10 +9,10 @@ const nexus = REGIONS.find((r) => r.id === "nexus")!;
 export const STORM = {
   x: (nexus.x + NEON_CENTER.x) / 2,
   z: (nexus.z + NEON_CENTER.z) / 2,
-  y: 300,
+  y: 380,
   /** inner and outer radius of the cloud band (m) */
-  inner: 120,
-  outer: 230,
+  inner: 90,
+  outer: 170,
   /** radians per second the band turns */
   spin: 0.012,
 } as const;

@@ -26,8 +26,8 @@ void main(){
   float rim = exp(-pow((r - edge) * 34.0, 2.0)) * (0.65 + 0.35 * n2(vec2(a * 40.0, uTime * 3.0)));
   float spark = step(0.985, hh(vec2(floor(a * 90.0), floor(uTime * 12.0)))) * exp(-pow((r - edge - 0.02) * 20.0, 2.0));
   vec3 violet = vec3(0.5, 0.26, 0.95), hot = vec3(0.95, 0.86, 1.0);
-  vec3 col = violet * (0.35 + ripple * 0.65) * body + hot * (rim * 1.8 + spark * 2.0 + vein * body * 0.9) + hot * uFlash * body * 0.8;
-  float alpha = body * (0.25 + ripple * 0.45 + vein * 0.6) + rim + spark;
+  vec3 col = violet * (0.3 + ripple * 0.7) * body * 0.7 + hot * (rim * 1.8 + spark * 2.0 + vein * body * 0.35) + violet * uFlash * body * 0.6;
+  float alpha = body * (0.12 + ripple * 0.3 + vein * 0.25) + rim + spark;
   gl_FragColor = vec4(col * uGlow, clamp(alpha * uGlow, 0.0, 1.0));
 }`;
 const VERT = /* glsl */ `varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`;
@@ -48,7 +48,7 @@ export function FractureStorm({ envRef }: { envRef: React.RefObject<SkyEnv> }) {
   // drifting debris field: one instanced mesh, violet rim glow so the chunks read against the night sky
   const debris = useMemo(() => stormDebris(), []);
   const rockGeo = useMemo(() => organicRock(1, 77, 1), []);
-  const rockMat = useMemo(() => new THREE.MeshStandardMaterial({ color: "#3a3446", roughness: 0.9, emissive: "#7a3cff", emissiveIntensity: 0.35, flatShading: true, fog: false }), []);
+  const rockMat = useMemo(() => new THREE.MeshStandardMaterial({ color: "#2b2733", roughness: 0.95, emissive: "#5a2bc0", emissiveIntensity: 0.12, flatShading: true, fog: false }), []);
   const rocks = useRef<THREE.InstancedMesh>(null);
   const tmp = useMemo(() => new THREE.Object3D(), []);
   useFrame(({ clock }) => {
@@ -62,7 +62,7 @@ export function FractureStorm({ envRef }: { envRef: React.RefObject<SkyEnv> }) {
         tmp.rotation.set(d.tilt + t * d.spin, t * d.spin * 0.7, 0); tmp.scale.setScalar(d.s); tmp.updateMatrix(); m.setMatrixAt(i, tmp.matrix);
       });
       m.instanceMatrix.needsUpdate = true;
-      rockMat.emissiveIntensity = 0.25 + (strike.on ? strike.k * 1.2 : 0) + (env?.night ?? 0) * 0.25;
+      rockMat.emissiveIntensity = 0.08 + (strike.on ? strike.k * 0.6 : 0) + (env?.night ?? 0) * 0.1;
     }
     mat.uniforms["uTime"]!.value = t;
     mat.uniforms["uGlow"]!.value = stormGlow(env?.night ?? 0, (env?.cloud ?? 0) > 0.75);

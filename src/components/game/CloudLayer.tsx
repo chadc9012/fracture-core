@@ -36,7 +36,8 @@ export function CloudLayer({ envRef, playerRef }: { envRef: React.RefObject<SkyE
       const sc = p.scale * (1 + cover * COVER_GROWTH);
       s.scale.set(sc, sc * 0.55, 1);
       const mat = s.material as THREE.SpriteMaterial;
-      mat.opacity = p.baseOpacity * Math.min(1, cover * 1.6 + 0.08);
+      // night puffs fade back so the sky reads dark (grey blobs over a night city looked like smoke stickers)
+      mat.opacity = p.baseOpacity * Math.min(1, cover * 1.6 + 0.08) * (1 - 0.65 * (env.night ?? 0));
       mat.color.copy(env.tint);
     });
   });

@@ -1420,6 +1420,8 @@ function SceneImpl({
     skyEnv.current.region = interior ? undefined : here?.id;
     skyEnv.current.tint.copy(lightColor).multiplyScalar(1 - cloud * 0.3);
     skyEnv.current.night = night;
+    // image-based light (region HDRIs) is daylight: dim it after dark so night scenes are lit by the moon, neon and the storm
+    (scene as THREE.Scene & { environmentIntensity?: number }).environmentIntensity = 0.85 * (1 - 0.75 * night);
     if (sky.current) {
       const m = (sky.current as unknown as { material?: THREE.ShaderMaterial }).material;
       const u = m?.uniforms;

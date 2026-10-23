@@ -6,6 +6,7 @@ import { ElevatedTrain, LightBar, ShopSign } from "./DistrictStreet";
 import { NeonTiers } from "./NeonTiers";
 import { NeonGraffiti } from "./NeonGraffiti";
 import { NeonRails } from "./NeonRails";
+import { SteamVents } from "./SteamVents";
 import { MaglevTrains } from "./MaglevTrains";
 import { NeonDistricts } from "./NeonDistricts";
 import { NeonTowerBlocks } from "./NeonTowerBlocks";
@@ -103,6 +104,7 @@ export function NeonCity() {
       <NeonTiers c={NEON_CITY_CENTER} />
       <NeonGraffiti c={NEON_CITY_CENTER} />
       <NeonRails c={NEON_CITY_CENTER} />
+      <SteamVents c={NEON_CITY_CENTER} />
       <MaglevTrains c={NEON_CITY_CENTER} />
       <NeonDistricts c={NEON_CITY_CENTER} />
       {/* street level: the whole plateau is paved */}
