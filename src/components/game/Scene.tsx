@@ -3,7 +3,7 @@ const DISCOVERY_LABEL: Record<string, string> = { flag: "Flag", beacon: "Beacon"
 const ACTIVITY_REGION: Record<string, string> = { veridan: "veridan", ember: "ember", wastelands: "wastelands", swamps: "swamps", solara: "solara", frostspire: "frostspire", thalassia: "swamps" };
 import { nearby as discoveriesNear, triggered as discoveryTriggered } from "@/game/discoveries";
 import { RaceCourse } from "./RaceCourse";
-import { raceById, raceSpeedFactor, type RaceRun } from "@/game/racing";
+import { raceById, raceObstacles, raceSpeedFactor, worldPoint, type RaceRun } from "@/game/racing";
 import { novaHint } from "@/game/encounter-journal";
 import { stepRun as stepActivity, currentTarget as activityTarget, type ActivityDef, type Run as ActivityRun } from "@/game/activities";
 import { renderCounts, setterCalls } from "@/game/perf-counters";
@@ -584,6 +584,8 @@ function SceneImpl({
    * same window, so this is the literal "world reveal" the player sees underneath it. */
   introPlayback?: { elapsed: number; totalSeconds: number } | null;
 }) {
+  /** the running activity, for dev hooks registered once (window.__dev.race) */
+  const activityLive = useRef(activity); activityLive.current = activity;
   renderCounts.scene++;
   const orderRef = useRef(weaponOrder); orderRef.current = weaponOrder;
   const travelSeen = useRef(0);
@@ -643,6 +645,9 @@ function SceneImpl({
     // dev-only test aids (?dev=1): finish the current mission wave as the player, or set hp/oxygen to exercise death and refill paths
     const wd = window as unknown as { __dev?: Record<string, (...args: never[]) => unknown> };
     wd.__dev = {
+      /** the running race: phase, next gate, penalties, and every gate/obstacle position (to drive or warp through it in a test) */
+      race: () => { const a = activityLive.current; const id = a?.def.stages[0]?.kind === "race" ? (a.def.stages[0] as { raceId: string }).raceId : null; const def = id ? raceById(id) : undefined; const r = a?.run.race as RaceRun | undefined; if (!def || !r) return null;
+        return { id, mode: def.mode, phase: r.phase, next: r.next, of: def.points.length, time: Math.round(r.time * 10) / 10, collisions: r.collisions, impact: r.impact ?? 0, notice: r.notice, result: r.result ?? null, gates: def.points.map((_, i) => { const w = worldPoint(def, i); return [Math.round(w.x), Math.round(w.z), w.depth === undefined ? null : Math.round(w.depth)]; }), obstacles: raceObstacles(def).map((o) => [Math.round(o.x), Math.round(o.z), o.segment]) }; },
       killMission: () => { let n = 0; for (const m of sim.machines) if (m.alive && m.mission) { m.hp = 0; defeatMachine(sim, m, "player"); if (!m.alive) n++; } return n; },
       hp: (n = 1) => { sim.hp = n; return sim.hp; },
       o2: (n = 0) => { state.current.oxygen = n; return n; },
