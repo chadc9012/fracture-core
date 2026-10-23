@@ -25,10 +25,12 @@ type Props = {
   lights?: boolean;
   /** parked / showroom copies skip shadows of their own when false */
   shadows?: boolean;
+  /** the model's ground plane relative to the parent (the driven car's group sits at body height, 1.9 m up) */
+  lift?: number;
 };
 
 export function AuthoredVehicle(props: Props) {
-  const fallback = <PlainHull />;
+  const fallback = <group position-y={props.lift ?? 0}><PlainHull /></group>;
   return (
     <QuietModel url={props.model.url} fallback={fallback}>
       <Suspense fallback={fallback}><VehicleBody {...props} /></Suspense>
@@ -47,7 +49,7 @@ function PlainHull() {
 
 const GLOW: Record<VehicleCosmetics["glow"], string | null> = { off: null, cyan: "#00eaff", magenta: "#ff45d4" };
 
-function VehicleBody({ model, paint, cosmetics, speedRef, steerRef, brakeRef, boundsRef, lights = false, shadows = true }: Props) {
+function VehicleBody({ model, paint, cosmetics, speedRef, steerRef, brakeRef, boundsRef, lights = false, shadows = true, lift = 0 }: Props) {
   const { scene } = useGLTF(model.url);
   const rig = useMemo(() => {
     const root = scene.clone(true);
@@ -115,9 +117,10 @@ function VehicleBody({ model, paint, cosmetics, speedRef, steerRef, brakeRef, bo
   useEffect(() => {
     if (!boundsRef) return;
     const b = new THREE.Box3().setFromObject(rig.root);
-    boundsRef.current = new THREE.Box3(b.min.clone().multiplyScalar(model.scale), b.max.clone().multiplyScalar(model.scale));
+    const up = new THREE.Vector3(0, lift, 0);
+    boundsRef.current = new THREE.Box3(b.min.clone().multiplyScalar(model.scale).add(up), b.max.clone().multiplyScalar(model.scale).add(up));
     return () => { boundsRef.current = null; };
-  }, [boundsRef, rig, model.scale]);
+  }, [boundsRef, rig, model.scale, lift]);
 
   const wasBraking = useRef(-1);
   useFrame((_, raw) => {
@@ -139,7 +142,7 @@ function VehicleBody({ model, paint, cosmetics, speedRef, steerRef, brakeRef, bo
 
   const k = kit?.box;
   return (
-    <group scale={model.scale}>
+    <group scale={model.scale} position-y={lift}>
       <primitive object={rig.root} />
       {k && cosmetics?.armor === "reinforced" && [-1, 1].map((s) => (
         <mesh key={s} position={[s * (k.max.x + 0.02), (k.min.y + k.max.y) * 0.32, (k.min.z + k.max.z) / 2]} castShadow>

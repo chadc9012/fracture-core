@@ -3129,7 +3129,7 @@ function SceneImpl({
         <VehicleDamageFx condition={condition} speedRef={carSpeed} bounds={carBounds} />
         {/* no light of its own: the one headlamp below only switches on while you drive (a parked car's lights were lit pixels all game) */}
         {/* authored fleet model (fleet-models.ts): the active build's own body, paint and cosmetics */}
-        <AuthoredVehicle model={playerCarModel.model} paint={playerCarModel.paint} cosmetics={playerCarModel.cosmetics} speedRef={carSpeed} steerRef={carSteer} brakeRef={carBrake} boundsRef={carBounds} />
+        <AuthoredVehicle model={playerCarModel.model} paint={playerCarModel.paint} cosmetics={playerCarModel.cosmetics} speedRef={carSpeed} steerRef={carSteer} brakeRef={carBrake} boundsRef={carBounds} lift={-1.9} />
         <pointLight ref={headlamp} visible={false} position={[0, 1.2, 4]} color="#ffe2b0" intensity={16} distance={44} decay={2} />
       </group>
 
