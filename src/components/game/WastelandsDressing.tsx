@@ -2,6 +2,7 @@ import { useMemo, useRef } from "react";
 import { DistrictLight } from "./DistrictLight";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
+import { scrapPanel, steelDrum, tyre } from "@/game/organic-geometry";
 import { walkHeight } from "@/game/terrain";
 import { billboards, fires, junkHeaps, pylons, ruins } from "@/game/waste-dressing";
 import type { Prop } from "@/game/dressing-kit";
@@ -111,13 +112,15 @@ function Junk() {
   const barrels = useMemo(() => items.filter((_, i) => i % 3 === 1), [items]);
   const tyres = useMemo(() => items.filter((_, i) => i % 3 === 2).flatMap((p) => [0, 1, 2].map((k) => ({ p, k }))), [items]);
   const pRef = useRef<THREE.InstancedMesh>(null), bRef = useRef<THREE.InstancedMesh>(null), tRef = useRef<THREE.InstancedMesh>(null);
+  // crumpled sheet, ribbed dented drum, treaded tyre (organic-geometry.ts) instead of a box, a 10-sided can and a 6-sided ring
+  const junkGeo = useMemo(() => ({ panel: scrapPanel(7), drum: steelDrum(3), tyre: tyre() }), []);
   useInstances<Prop>(pRef, panels, (o, p) => { o.position.set(p.x, walkHeight(p.x, p.z) + 0.5, p.z); o.rotation.set(p.tilt * 4, p.r, 0.5 + p.tilt * 3); o.scale.set(2.4 * p.s, 0.12, 1.6 * p.s); }, (_, i) => ["#6b4a33", "#5c5f5e", "#7a3f2a"][i % 3]!);
   useInstances<Prop>(bRef, barrels, (o, p, i) => { const down = i % 3 === 0; o.position.set(p.x, walkHeight(p.x, p.z) + (down ? 0.4 : 0.6), p.z); o.rotation.set(down ? Math.PI / 2 : 0, p.r, 0); o.scale.setScalar(0.85); }, (_, i) => (i % 2 ? "#8a3b22" : "#3f5240"));
   useInstances<{ p: Prop; k: number }>(tRef, tyres, (o, { p, k }) => { o.position.set(p.x, walkHeight(p.x, p.z) + 0.22 + k * 0.38, p.z); o.rotation.set(Math.PI / 2, 0, p.r + k); o.scale.setScalar(0.85); });
   return <group>
-    <instancedMesh ref={pRef} args={[undefined, undefined, panels.length]} castShadow><boxGeometry args={[1, 1, 1]} /><meshStandardMaterial roughness={0.8} metalness={0.4} /></instancedMesh>
-    <instancedMesh ref={bRef} args={[undefined, undefined, barrels.length]} castShadow><cylinderGeometry args={[0.38, 0.38, 1.1, 10]} /><meshStandardMaterial roughness={0.7} metalness={0.4} /></instancedMesh>
-    <instancedMesh ref={tRef} args={[undefined, undefined, tyres.length]} castShadow><torusGeometry args={[0.45, 0.18, 6, 14]} /><meshStandardMaterial color="#141414" roughness={1} /></instancedMesh>
+    <instancedMesh ref={pRef} args={[undefined, undefined, panels.length]} castShadow geometry={junkGeo.panel}><meshStandardMaterial roughness={0.8} metalness={0.4} /></instancedMesh>
+    <instancedMesh ref={bRef} args={[undefined, undefined, barrels.length]} castShadow geometry={junkGeo.drum}><meshStandardMaterial roughness={0.7} metalness={0.4} /></instancedMesh>
+    <instancedMesh ref={tRef} args={[undefined, undefined, tyres.length]} castShadow geometry={junkGeo.tyre}><meshStandardMaterial color="#141414" roughness={1} /></instancedMesh>
   </group>;
 }
 

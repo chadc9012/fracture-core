@@ -207,3 +207,85 @@ export function petalTint(shader: { vertexShader: string }) {
 #endif
 `);
 }
+
+/* ---------------- trees and junk (unit-sized, for instanced dressing that scales them per instance) ---------------- */
+
+/** A tree trunk of unit height centred on the origin (y -0.5..0.5) like CylinderGeometry, radius `top`..`bottom`, with
+ * a flared, root-buttressed foot, a slight wander and furrowed bark (vertical grooves + knots) instead of a 7-sided tube. */
+export function barkTrunk(seed: number, top = 0.35, bottom = 0.75, flare = 0.45): THREE.BufferGeometry {
+  const pts: THREE.Vector2[] = [];
+  for (let i = 0; i <= 16; i++) { const t = i / 16, foot = Math.pow(1 - t, 6) * flare; pts.push(new THREE.Vector2(bottom + (top - bottom) * t + foot * bottom, t - 0.5)); }
+  const g = new THREE.LatheGeometry(pts, 20);
+  const p = g.attributes["position"] as THREE.BufferAttribute;
+  for (let i = 0; i < p.count; i++) {
+    const x = p.getX(i), y = p.getY(i), z = p.getZ(i), a = Math.atan2(z, x), t = y + 0.5;
+    const groove = 1 + 0.06 * Math.sin(a * 9 + vnoise(y * 6, a, 0, seed) * 2) + 0.05 * vnoise(Math.cos(a) * 3, y * 9, Math.sin(a) * 3, seed + 1);
+    const butt = 1 + Math.pow(1 - t, 5) * 0.35 * Math.max(0, Math.cos(a * 5 + seed));
+    const wx = vnoise(y * 2.2, 0, 0, seed + 2) * 0.08, wz = vnoise(0, y * 2.2, 0, seed + 3) * 0.08;
+    p.setXYZ(i, x * groove * butt + wx, y, z * groove * butt + wz);
+  }
+  g.computeVertexNormals();
+  return g;
+}
+
+/** A spreading tree crown in a unit sphere: seven noise-lumped leaf masses around a flatter top, smooth shaded,
+ * so a canopy reads as foliage clumps rather than one faceted ball */
+export function canopyCluster(seed: number): THREE.BufferGeometry {
+  const parts: THREE.BufferGeometry[] = [];
+  for (let k = 0; k < 7; k++) {
+    const a = (k / 7) * Math.PI * 2 + seed, d = k === 0 ? 0 : 0.55, r = k === 0 ? 0.6 : 0.42 + (hash3(k, seed, 1, 2) * 0.5 + 0.5) * 0.12;
+    parts.push(organicDeform(new THREE.IcosahedronGeometry(r, 2), seed + k * 5, r * 0.25, 3).scale(1, 0.72, 1).translate(Math.cos(a) * d, k === 0 ? 0.15 : -0.05 + (k % 2) * 0.12, Math.sin(a) * d));
+  }
+  const m = mergeGeometries(parts.map((g) => { g.deleteAttribute("uv"); g.deleteAttribute("normal"); return g; }))!;
+  parts.forEach((g) => g.dispose());
+  const merged = mergeVertices(m);
+  merged.computeVertexNormals();
+  return merged;
+}
+
+/** A steel drum: 1.1 m tall, 0.38 m radius at scale 1 (CylinderGeometry-compatible, centred), with rolled rims, two
+ * rolling hoops, a dented side and a lid with bung — replaces a 10-sided cylinder */
+export function steelDrum(seed: number): THREE.BufferGeometry {
+  const prof: [number, number][] = [[0.001, -0.55], [0.36, -0.55], [0.39, -0.53], [0.38, -0.5], [0.37, -0.22], [0.395, -0.2], [0.37, -0.18], [0.37, 0.18], [0.395, 0.2], [0.37, 0.22], [0.38, 0.5], [0.39, 0.53], [0.36, 0.55], [0.34, 0.54], [0.001, 0.54]];
+  const g = new THREE.LatheGeometry(prof.map(([r, y]) => new THREE.Vector2(r, y)), 28);
+  const p = g.attributes["position"] as THREE.BufferAttribute;
+  const da = hash3(1, seed, 0, 0) * Math.PI, dy = hash3(2, seed, 0, 0) * 0.25;
+  for (let i = 0; i < p.count; i++) {
+    const x = p.getX(i), y = p.getY(i), z = p.getZ(i), a = Math.atan2(z, x);
+    let d = Math.cos(a - da); d = d > 0.7 ? (d - 0.7) / 0.3 : 0; const dent = 1 - 0.12 * d * Math.max(0, 1 - Math.abs(y - dy) / 0.25);
+    p.setXYZ(i, x * dent, y, z * dent);
+  }
+  g.computeVertexNormals();
+  return g;
+}
+
+/** A tyre (torus-compatible: major radius 0.45, tube 0.18, lying in the XY plane) with block tread across the
+ * crown and bulging sidewalls */
+export function tyre(): THREE.BufferGeometry {
+  const g = new THREE.TorusGeometry(0.45, 0.18, 12, 48);
+  const p = g.attributes["position"] as THREE.BufferAttribute, c = new THREE.Vector3(), v = new THREE.Vector3();
+  for (let i = 0; i < p.count; i++) {
+    v.fromBufferAttribute(p, i);
+    const a = Math.atan2(v.y, v.x); c.set(Math.cos(a) * 0.45, Math.sin(a) * 0.45, 0);
+    const off = v.clone().sub(c), outward = off.dot(c.clone().normalize()) / 0.18; // 1 on the tread crown
+    const tread = outward > 0.55 ? (Math.sin(a * 40) > 0.2 ? 0.025 : -0.01) * Math.min(1, (outward - 0.55) / 0.3) : 0;
+    const side = Math.abs(off.z) / 0.18 > 0.6 ? 0.02 : 0;
+    v.copy(c).add(off.multiplyScalar(1 + (tread + side) / 0.18));
+    p.setXYZ(i, v.x, v.y, v.z);
+  }
+  g.computeVertexNormals();
+  return g;
+}
+
+/** A crumpled sheet of metal for scrap piles: a unit box-compatible footprint (1 x 1 x 1, drawn thin) bent and dented */
+export function scrapPanel(seed: number): THREE.BufferGeometry {
+  const g = new THREE.BoxGeometry(1, 1, 1, 10, 1, 8);
+  const p = g.attributes["position"] as THREE.BufferAttribute;
+  for (let i = 0; i < p.count; i++) {
+    const x = p.getX(i), y = p.getY(i), z = p.getZ(i);
+    const bend = vnoise(x * 2.2, z * 2.2, 0, seed) * 1.6 + Math.sin(x * 3 + seed) * 0.7;
+    p.setXYZ(i, x + vnoise(x * 5, z * 5, 1, seed) * 0.03, y + bend, z);
+  }
+  g.computeVertexNormals();
+  return g;
+}

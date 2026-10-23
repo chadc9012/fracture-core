@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef } from "react";
 import { addObstacle } from "@/game/obstacles";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
+import { barkTrunk, canopyCluster } from "@/game/organic-geometry";
 import { walkHeight, WATER_LEVEL } from "@/game/terrain";
 import { boardwalks, cypress, fungusPatches, glowAnchors, lilyPads, logs } from "@/game/swamp-dressing";
 import { waterSurface, type Prop } from "@/game/dressing-kit";
@@ -23,6 +24,8 @@ function Cypress() {
   const moss = useMemo(() => ts.flatMap((t) => Array.from({ length: 4 }, (_, k) => ({ t, k }))), [ts]);
   const trunk = useRef<THREE.InstancedMesh>(null), root = useRef<THREE.InstancedMesh>(null), crown = useRef<THREE.InstancedMesh>(null), beard = useRef<THREE.InstancedMesh>(null);
   const H = (p: Prop) => 8 + p.s * 8;
+  // bark-furrowed, buttressed trunk; tapered roots; a clumped crown (organic-geometry.ts) instead of tube + ball
+  const trunkGeo = useMemo(() => barkTrunk(41, 0.35, 0.75, 0.6), []), rootGeo = useMemo(() => barkTrunk(43, 0.12, 0.45, 0), []), crownGeo = useMemo(() => canopyCluster(47), []);
   // cypress trunks are solid (the player, vehicles and the third-person camera stop at them instead of passing through)
   useEffect(() => { for (const t of ts) addObstacle("tree", t.x, t.z, 0.35 + 0.55 * t.s, 60, 0.8); }, [ts]);
   useInstances<Prop>(trunk, ts, (o, p) => { const h = H(p); o.position.set(p.x, walkHeight(p.x, p.z) + h / 2, p.z); o.rotation.set(p.tilt * 0.4, p.r, p.tilt * 0.3); o.scale.set(p.s, h, p.s); });
@@ -33,9 +36,9 @@ function Cypress() {
   // hanging moss beards under the canopy rim
   useInstances<{ t: Prop; k: number }>(beard, moss, (o, { t, k }) => { const h = H(t), a = t.r + k * 1.57, rr = 2.4 + t.s * 1.5; o.position.set(t.x + Math.cos(a) * rr, walkHeight(t.x, t.z) + h - 2.4, t.z + Math.sin(a) * rr); o.rotation.set(0, a, 0); o.scale.set(1.2, 3.5 + (k % 2) * 1.5, 1); });
   return <group>
-    <instancedMesh ref={trunk} args={[undefined, undefined, ts.length]} castShadow><cylinderGeometry args={[0.35, 0.75, 1, 7]} /><meshStandardMaterial color="#4a3f33" roughness={1} /></instancedMesh>
-    <instancedMesh ref={root} args={[undefined, undefined, roots.length]} castShadow><cylinderGeometry args={[0.15, 0.45, 1, 5]} /><meshStandardMaterial color="#43382d" roughness={1} /></instancedMesh>
-    <instancedMesh ref={crown} args={[undefined, undefined, ts.length]} castShadow><sphereGeometry args={[1, 10, 6]} /><meshStandardMaterial roughness={0.95} flatShading /></instancedMesh>
+    <instancedMesh ref={trunk} args={[undefined, undefined, ts.length]} castShadow geometry={trunkGeo}><meshStandardMaterial color="#4a3f33" roughness={1} /></instancedMesh>
+    <instancedMesh ref={root} args={[undefined, undefined, roots.length]} castShadow geometry={rootGeo}><meshStandardMaterial color="#43382d" roughness={1} /></instancedMesh>
+    <instancedMesh ref={crown} args={[undefined, undefined, ts.length]} castShadow geometry={crownGeo}><meshStandardMaterial roughness={0.95} /></instancedMesh>
     <instancedMesh ref={beard} args={[undefined, undefined, moss.length]}><planeGeometry args={[1, 1, 1, 3]} /><meshStandardMaterial color="#7c8a5a" roughness={1} side={THREE.DoubleSide} transparent opacity={0.85} /></instancedMesh>
   </group>;
 }

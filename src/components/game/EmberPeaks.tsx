@@ -2,6 +2,7 @@ import { useLayoutEffect, useMemo, useRef } from "react";
 import { DistrictLight } from "./DistrictLight";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
+import { barkTrunk } from "@/game/organic-geometry";
 import { walkHeight } from "@/game/terrain";
 import { basaltClusters, deadTrees, lavaFlows, obsidianSpires, vents, type FlowPoint } from "@/game/ember-dressing";
 import { softSprite } from "./softSprite";
@@ -114,11 +115,12 @@ function DeadTrees() {
   const trees = useMemo(() => deadTrees(), []);
   const trunk = useRef<THREE.InstancedMesh>(null), limb = useRef<THREE.InstancedMesh>(null);
   const limbs = useMemo(() => trees.flatMap((t) => [0, 1].map((k) => ({ ...t, r: t.r + k * 2.4, tilt: k }))), [trees]);
+  const geo = useMemo(() => ({ trunk: barkTrunk(61, 0.12, 0.28, 0.5), limb: barkTrunk(67, 0.035, 0.12, 0) }), []);
   useInstances(trunk, trees, (o, p) => { const h = 4 + p.s * 4; o.position.set(p.x, walkHeight(p.x, p.z) + h / 2 - 0.3, p.z); o.rotation.set(p.tilt * 0.5, p.r, p.tilt * 0.4); o.scale.set(p.s, h, p.s); });
   useInstances(limb, limbs, (o, p) => { const h = 4 + p.s * 4; o.position.set(p.x, walkHeight(p.x, p.z) + h * (0.55 + p.tilt * 0.2), p.z); o.rotation.set(0, p.r, 0.9 + p.tilt * 0.3); o.scale.set(p.s * 0.6, 1.8 + p.s, p.s * 0.6); o.translateY(0.6); });
   return <group>
-    <instancedMesh ref={trunk} args={[undefined, undefined, trees.length]} castShadow><cylinderGeometry args={[0.12, 0.28, 1, 6]} /><meshStandardMaterial color="#151110" roughness={1} emissive="#2a0800" emissiveIntensity={0.3} /></instancedMesh>
-    <instancedMesh ref={limb} args={[undefined, undefined, limbs.length]} castShadow><cylinderGeometry args={[0.04, 0.12, 1, 5]} /><meshStandardMaterial color="#151110" roughness={1} /></instancedMesh>
+    <instancedMesh ref={trunk} args={[undefined, undefined, trees.length]} castShadow geometry={geo.trunk}><meshStandardMaterial color="#151110" roughness={1} emissive="#2a0800" emissiveIntensity={0.3} /></instancedMesh>
+    <instancedMesh ref={limb} args={[undefined, undefined, limbs.length]} castShadow geometry={geo.limb}><meshStandardMaterial color="#151110" roughness={1} /></instancedMesh>
   </group>;
 }
 
