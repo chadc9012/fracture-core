@@ -1,3 +1,4 @@
+import { NeonStreetLights } from "./NeonStreetLights";
 import { Text } from "./SafeText";
 import { DistrictLight } from "./DistrictLight";
 import { REGIONS, NEON_OFFSET } from "@/game/world";
@@ -104,6 +105,7 @@ export function NeonCity() {
       <NeonTowerBlocks />
       <WorldPiece name="neon palms"><NeonPalms /></WorldPiece>
       <WorldPiece name="neon venues"><NeonVenues /></WorldPiece>
+      <WorldPiece name="neon street lights"><NeonStreetLights /></WorldPiece>
       <ResidentialHomes city="neon" />
       <NeonMarketStreet y={y} />
       <NeonTiers c={NEON_CITY_CENTER} />

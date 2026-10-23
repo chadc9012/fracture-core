@@ -120,3 +120,22 @@ export function neonLayoutWorld(keepOut: readonly { x: number; z: number; r: num
   const l = neonLayout(keepOut.map((k) => ({ x: k.x - NEON_SITE.x, z: k.z - NEON_SITE.z, r: k.r })));
   return { towers: l.towers.map((t) => ({ ...t, x: t.x + NEON_SITE.x, z: t.z + NEON_SITE.z })), homes: l.homes.map((h) => ({ ...h, x: h.x + NEON_SITE.x, z: h.z + NEON_SITE.z })) };
 }
+
+export type NeonLamp = { x: number; z: number; yaw: number; glow: string };
+/** Street lamps for the tower grid (local coordinates): one on each street-facing corner of every tower block, its arm reaching
+ * over the street and its pool tinted by the block's sign colour, so the wet streets between the towers are lit at night.
+ * Only where the clearance test allows a lamp post (never on the race boulevard, rails, district cores or shop doors). */
+export function neonStreetLights(keepOut: readonly { x: number; z: number; r: number }[] = []): NeonLamp[] {
+  const clear = neonClearance(keepOut);
+  const seen = new Set<string>(), out: NeonLamp[] = [];
+  const k = BLOCK * 0.36;
+  for (const t of neonLayout(keepOut).towers) for (const [sx, sz] of [[1, 1], [-1, 1], [1, -1], [-1, -1]] as const) {
+    const x = t.x + sx * k, z = t.z + sz * k, key = `${Math.round(x)},${Math.round(z)}`;
+    if (seen.has(key) || !clear(x, z, 0.6, 0.6)) continue;
+    seen.add(key);
+    out.push({ x, z, yaw: Math.atan2(sx, sz), glow: t.glow });
+  }
+  return out;
+}
+export const neonStreetLightsWorld = (keepOut: readonly { x: number; z: number; r: number }[] = []) =>
+  neonStreetLights(keepOut.map((q) => ({ x: q.x - NEON_SITE.x, z: q.z - NEON_SITE.z, r: q.r }))).map((l) => ({ ...l, x: l.x + NEON_SITE.x, z: l.z + NEON_SITE.z }));
