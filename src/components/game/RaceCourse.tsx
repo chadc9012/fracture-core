@@ -117,25 +117,25 @@ export const RaceCourse = memo(function RaceCourse({ race, run }: { race: RaceDe
   });
   return (
     <group>
-      {Array.from({ length: GATES_SHOWN }, (_, k) => <group key={k} ref={(el) => { gates.current[k] = el; }} visible={false}><Gate look={look} width={width} /></group>)}
-      <group ref={startLine} visible={false}>
+      {Array.from({ length: GATES_SHOWN }, (_, k) => <group name="race-gate" key={k} ref={(el) => { gates.current[k] = el; }} visible={false}><Gate look={look} width={width} /></group>)}
+      <group name="race-startline" ref={startLine} visible={false}>
         <mesh rotation={[-Math.PI / 2, 0, 0]}><planeGeometry args={[width, 1.2]} /><meshBasicMaterial color="#ffffff" transparent opacity={0.85} /></mesh>
         <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.01, 0.9]}><planeGeometry args={[width, 0.25]} /><meshBasicMaterial color={look.glow} /></mesh>
       </group>
       {Array.from({ length: ARROWS }, (_, k) => (
-        <group key={`a${k}`} ref={(el) => { arrows.current[k] = el; }} visible={false}>
+        <group name="race-arrow" key={`a${k}`} ref={(el) => { arrows.current[k] = el; }} visible={false} scale={race.mode === "vehicle" ? 1.7 : 1}>
           <mesh position={[0, 0.7, 0]}><cylinderGeometry args={[0.06, 0.06, 1.4, 6]} /><meshStandardMaterial color={look.post} /></mesh>
           <mesh position={[0, 1.6, 0]} rotation={[Math.PI / 2, 0, 0]}><coneGeometry args={[0.45, 0.9, 3]} /><meshStandardMaterial color={look.banner} emissive={look.glow} emissiveIntensity={0.9} /></mesh>
         </group>
       ))}
       {Array.from({ length: OBSTACLES_SHOWN }, (_, k) => (
-        <group key={`o${k}`} ref={(el) => { rocks.current[k] = el; }} visible={false}>
+        <group name="race-obstacle" key={`o${k}`} ref={(el) => { rocks.current[k] = el; }} visible={false}>
           <mesh position={[0, 0.9, 0]} rotation={[0.3, k, 0.2]}><dodecahedronGeometry args={[1.6, 0]} /><meshStandardMaterial color="#5b544c" roughness={1} flatShading /></mesh>
           <mesh position={[0, 2.9, 0]}><octahedronGeometry args={[0.35, 0]} /><meshBasicMaterial color="#ffb020" /></mesh>
         </group>
       ))}
       {Array.from({ length: rivalCount }, (_, r) => (
-        <group key={r} ref={(el) => { rivals.current[r] = el; }} visible={false}>
+        <group name="race-rival" key={r} ref={(el) => { rivals.current[r] = el; }} visible={false}>
           <RivalModel mode={race.mode} color={rivalColor(r)} />
         </group>
       ))}

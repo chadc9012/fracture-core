@@ -653,7 +653,9 @@ function SceneImpl({
     wd.__dev = {
       /** the running race: phase, next gate, penalties, and every gate/obstacle position (to drive or warp through it in a test) */
       race: () => { const a = activityLive.current; const id = a?.def.stages[0]?.kind === "race" ? (a.def.stages[0] as { raceId: string }).raceId : null; const def = id ? raceById(id) : undefined; const r = a?.run.race as RaceRun | undefined; if (!def || !r) return null;
-        return { id, mode: def.mode, phase: r.phase, next: r.next, of: def.points.length, time: Math.round(r.time * 10) / 10, collisions: r.collisions, impact: r.impact ?? 0, notice: r.notice, result: r.result ?? null, gates: def.points.map((_, i) => { const w = worldPoint(def, i); return [Math.round(w.x), Math.round(w.z), w.depth === undefined ? null : Math.round(w.depth)]; }), obstacles: raceObstacles(def).map((o) => [Math.round(o.x), Math.round(o.z), o.segment]) }; },
+        return { id, mode: def.mode, phase: r.phase, next: r.next, of: def.points.length, time: Math.round(r.time * 10) / 10, collisions: r.collisions, impact: r.impact ?? 0, notice: r.notice, result: r.result ?? null, gates: def.points.map((_, i) => { const w = worldPoint(def, i); return [Math.round(w.x), Math.round(w.z), w.depth === undefined ? null : Math.round(w.depth)]; }), obstacles: raceObstacles(def).map((o) => [Math.round(o.x), Math.round(o.z), o.segment]),
+          // what RaceCourse is showing right now: visible gates, boards, obstacles, rivals, start line (name@x,z)
+          shown: (() => { const out: string[] = []; const p = new THREE.Vector3(); scene.traverse((o) => { if (!o.name.startsWith("race-") || !o.visible) return; o.getWorldPosition(p); out.push(`${o.name}@${Math.round(p.x)},${Math.round(p.z)}`); }); return out; })() }; },
       killMission: () => { let n = 0; for (const m of sim.machines) if (m.alive && m.mission) { m.hp = 0; defeatMachine(sim, m, "player"); if (!m.alive) n++; } return n; },
       hp: (n = 1) => { sim.hp = n; return sim.hp; },
       o2: (n = 0) => { state.current.oxygen = n; return n; },
