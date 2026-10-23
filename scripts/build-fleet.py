@@ -437,6 +437,27 @@ def transport(oid, paint="#344a5a", accent="#35e7f1", rig=False):
             P.append(K.box((0.04, 5.6, 0.06), (s * 1.22, 1.1, 2.6), M["accent"], bevel=0.0, name="GlowStrip"))
         P.append(K.cyl(0.6, 0.4, (0, 1.6, 3.35), M["satin"], verts=28, name="TurretBase"))
         P.append(K.cyl(0.08, 1.6, (0, 0.8, 3.55), M["satin"], rot=(math.pi / 2, 0, 0), verts=12, name="Gun"))
+        P.append(K.box((0.7, 0.5, 0.35), (0, 1.75, 3.7), M["satin"], bevel=0.04, name="Mantlet"))
+        # armoured detailing: vision slits, storage bins, roof rails and hatch, rear door with ladder, push bar, mirrors
+        for sx in (-1, 1):
+            for k in range(3):
+                P.append(K.box((0.04, 0.55, 0.12), (sx * 1.215, -0.6 + k * 1.3, 2.55), M["glass"], bevel=0.005, name="VisionSlit"))
+            P.append(K.box((0.28, 1.6, 0.5), (sx * 1.32, 1.2, 1.35), M["satin"], bevel=0.04, name="StowBin"))
+            P.append(K.tube([(sx * 0.95, -1.6, 3.27), (sx * 0.95, 3.8, 3.27)], 0.03, M["steel"], "RoofRail"))
+            P.append(K.tube([(sx * 1.2, -3.25, 2.3), (sx * 1.48, -3.35, 2.4), (sx * 1.5, -3.35, 2.65)], 0.022, M["chrome"], "MirrorArm"))
+            P.append(K.box((0.06, 0.18, 0.4), (sx * 1.52, -3.35, 2.55), M["satin"], bevel=0.02, name="Mirror"))
+            P.append(K.box((0.42, 0.4, 0.05), (sx * 1.12, -3.0, 0.62), M["steel"], bevel=0.01, name="Step"))
+            P.append(K.tube([(sx * 0.4, 4.25, 1.0), (sx * 0.4, 4.25, 3.0)], 0.025, M["steel"], "Ladder"))
+        for k in range(6):
+            P.append(K.tube([(-0.4, 4.25, 1.15 + k * 0.33), (0.4, 4.25, 1.15 + k * 0.33)], 0.02, M["steel"], "Rung"))
+        P.append(K.box((1.5, 0.06, 1.9), (0, 4.2, 2.05), M["paint"], bevel=0.03, name="RearDoor"))
+        P.append(K.cyl(0.38, 0.1, (0, -0.6, 3.27), M["satin"], verts=20, name="Hatch"))
+        P.append(K.tube([(0.9, 3.5, 3.3), (0.9, 3.5, 5.1)], 0.012, M["satin"], "Antenna"))
+        P.append(K.tube([(-1.15, -4.75, 0.7), (-1.15, -4.95, 1.3), (1.15, -4.95, 1.3), (1.15, -4.75, 0.7)], 0.06, M["steel"], "PushBar"))
+        for k in range(6):
+            P.append(K.box((1.6, 0.05, 0.05), (0, -4.43, 1.45 + k * 0.09), M["trim"], bevel=0.0, name="GrilleSlat"))
+        for k in range(4):
+            P.append(K.box((0.16, 0.08, 0.06), (-0.36 + k * 0.24, -3.2, 3.02), M["accent"], bevel=0.01, name="LightBar"))
     P.append(K.box((2.3, 9.0, 0.35), (0, 0.0, 0.85), M["satin"], bevel=0.03, name="Chassis"))
     for s in (-1, 1):
         P.append(K.box((0.4, 0.05, 0.2), (s * 0.8, -4.42, 1.25), M["head"], bevel=0.02, name="Headlight"))
@@ -629,14 +650,27 @@ def boat(oid, kind="patrol", paint="#6b6252", accent="#e2a568"):
     if kind == "patrol":
         P.append(K.loft_shell("Hull", 7.2, M["paint"], hw=[(0, .1), (.15, .9), (.4, 1.3), (1, 1.25)], zc=[(0, .95), (.2, .7), (1, .6)], hh=[(0, .15), (.2, .45), (1, .5)],
                               sq=[(0, 3), (1, 4)], vee=[(0, .9), (.3, .8), (1, .4)], n=40, ring=32))
-        P.append(K.box((2.2, 2.2, 1.2), (0, 0.4, 1.6), M["rust"], bevel=0.05, name="Cabin"))
-        P.append(K.box((2.1, 0.08, 0.5), (0, -0.72, 1.85), M["glass"], bevel=0.01, rot=(math.radians(-15), 0, 0), name="Windscreen"))
+        # wheelhouse: tapered cabin with a raked window band, overhanging roof, radar mast and searchlight
+        P.append(K.loft_shell("Wheelhouse", 2.4, M["rust"], hw=[(0, .9), (.3, 1.02), (1, 1.05)], zc=[(0, 1.55), (1, 1.62)], hh=[(0, .45), (.3, .58), (1, .62)], sq=[(0, 5), (1, 6)], n=10, ring=32, y0=-0.8))
+        for sx in (-1, 1):
+            P.append(K.box((0.86, 0.06, 0.42), (sx * 0.46, -0.78, 1.82), M["glass"], bevel=0.01, rot=(math.radians(-22), 0, math.radians(sx * 8)), name="Windscreen"))
+            P.append(K.box((0.05, 1.3, 0.36), (sx * 1.03, 0.35, 1.84), M["glass"], bevel=0.01, name="SideWin"))
+            for k in range(4):  # fenders hung along the gunwale
+                P.append(K.cyl(0.16, 0.14, (sx * 1.3, -0.6 + k * 1.2, 0.8), M["rubber"], rot=(0, math.pi / 2, 0), verts=14, name="Fender"))
+            P.append(K.box((0.35, 0.6, 0.9), (sx * 0.45, 3.85, 0.75), M["satin"], bevel=0.05, name="Outboard"))
+            P.append(K.box((0.2, 0.25, 0.08), (sx * 0.55, -3.0, 1.1), M["steel"], bevel=0.01, name="Cleat"))
+        P.append(K.box((2.3, 2.7, 0.1), (0, 0.3, 2.24), M["satin"], bevel=0.03, name="Roof"))
+        P.append(K.tube([(0, 1.0, 2.3), (0, 1.0, 3.4)], 0.04, M["steel"], "Mast"))
+        P.append(K.box((0.9, 0.12, 0.06), (0, 1.0, 3.25), M["satin"], bevel=0.01, name="Radar"))
+        P.append(K.cyl(0.14, 0.22, (0.7, -0.6, 2.4), M["chrome"], rot=(math.pi / 2, 0, 0), verts=16, name="Searchlight"))
+        for sx in (-1, 1):
+            P.append(K.box((0.06, 4.4, 0.08), (sx * 1.27, 1.3, 1.02), M["steel"], bevel=0.0, name="RubRail"))
         P.append(K.cyl(0.4, 0.3, (0, -2.3, 1.25), M["steel"], verts=20, name="GunRing"))
         P.append(K.cyl(0.07, 1.4, (0, -3.0, 1.55), M["satin"], rot=(math.pi / 2, 0, 0), verts=10, name="Gun"))
         for s in (-1, 1):
-            P.append(K.tube([(s * 1.15, -2.5, 1.15), (s * 1.2, 3.4, 1.15)], 0.03, M["steel"], "Rail"))
+            P.append(K.tube([(s * 0.75, -2.6, 1.2), (s * 1.12, -1.0, 1.2), (s * 1.18, 3.4, 1.2)], 0.03, M["steel"], "Rail"))
         P.append(K.box((0.35, 0.06, 0.2), (0, -0.7, 2.25), M["head"], bevel=0.01, name="Headlight"))
-        P.append(K.box((1.4, 0.8, 0.7), (0, 3.2, 1.15), M["steel"], bevel=0.05, name="Engine"))
+        P.append(K.box((1.4, 0.8, 0.5), (0, 3.0, 1.1), M["steel"], bevel=0.05, name="EngineHatch"))
     elif kind == "sub":
         P.append(K.loft_shell("Hull", 6.5, M["paint"], hw=[(0, .05), (.15, .7), (.5, 1.0), (.85, .8), (1, .3)], zc=[(0, 1.0), (1, 1.1)], hh=[(0, .05), (.15, .5), (.5, .65), (.85, .5), (1, .2)], sq=[(0, 2.2), (1, 2.4)], n=40, ring=32))
         P.append(K.loft_shell("Canopy", 2.0, M["glass"], hw=[(0, .1), (.5, .55), (1, .3)], zc=[(0, 1.55), (.5, 1.75), (1, 1.7)], hh=[(0, .05), (.5, .35), (1, .15)], n=16, ring=24, y0=-1.8))
