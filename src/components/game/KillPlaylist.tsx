@@ -62,7 +62,7 @@ export function KillPlaylistPlayer({ volume, muted }: { volume: number; muted: b
     const tick = () => {
       const c = getCombatLevel(); calm = c >= 0.25 ? 0 : calm + 0.5;
       const on = !muted && volume > 0 && playlistShouldPlay(mode, c, calm);
-      if (on && !stop) { unlockAudio(); stop = startRadio(source); setExternalMusic(true); setNow(RADIO_STATIONS[source].name); setPlaying(true); }
+      if (on && !stop) { unlockAudio(); setNow(RADIO_STATIONS[source].name); stop = startRadio(source, (label) => setNow(`${RADIO_STATIONS[source].name} · ${label}`)); setExternalMusic(true); setPlaying(true); }
       if (!on && stop) { stop(); stop = null; setExternalMusic(false); setPlaying(false); }
     };
     tick(); const timer = window.setInterval(tick, 500);

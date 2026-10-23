@@ -7,7 +7,7 @@ import type { WeaponId } from "./weapons";
 import { voiceAction, type WaterMix, type WaterSource } from "./water-audio";
 import { AUDIO_FILES } from "./audio-files";
 import { BLAST_FLAVOR, SHOTS, blastAtDistance, shotKey, variation, type BlastFlavor, type ShotProfile } from "./audio-design";
-import { RADIO_STATIONS, type StationId } from "./radio-stations";
+import { RADIO_STATIONS, stationTrack, type StationId } from "./radio-stations";
 import { engineVoice } from "./vehicle-audio";
 import { AUDIO_SAFETY, envelopeAttack, unitVolume } from "./audio-safety";
 
@@ -67,8 +67,32 @@ export function setMixVolumes(music: number, effects: number, ambience = 1, abil
 }
 function applyMix() { if (ctx) { ctx.music.gain.value = externalMusic ? 0 : 0.35 * musicVol; ctx.sfx.gain.value = sfxVol; ctx.amb.gain.value = ambVol; ctx.abil.gain.value = abilVol; } }
 
+/** Plays the station's recorded rotation (STATION_TRACKS) through the master bus at the music level; if a recording
+ * cannot load or play, falls back to the procedural instrumental below. onTrack reports what is playing. */
+export function startRadio(id: StationId, onTrack?: (label: string) => void) {
+  const c = ctx;
+  if (!c) return () => {};
+  if (typeof Audio === "undefined") return startProceduralRadio(id);
+  const el = new Audio(); el.preload = "auto";
+  const bus = c.ac.createGain(); bus.gain.value = RECORDED_RADIO_GAIN * musicVol; bus.connect(c.master);
+  let source: MediaElementAudioSourceNode | null = null;
+  try { source = c.ac.createMediaElementSource(el); source.connect(bus); } catch { bus.disconnect(); return startProceduralRadio(id); }
+  let step = 0, stopped = false, fallback: (() => void) | null = null;
+  const play = () => {
+    const t = stationTrack(id, step); el.src = t.path; onTrack?.(`${t.title} — ${t.artist}`);
+    void el.play().catch(() => { /* autoplay needs a gesture; the next tick retries */ });
+  };
+  el.onended = () => { step++; play(); };
+  el.onerror = () => { if (stopped || fallback) return; fallback = startProceduralRadio(id); onTrack?.(RADIO_STATIONS[id].name); };
+  const timer = window.setInterval(() => { bus.gain.setTargetAtTime(RECORDED_RADIO_GAIN * musicVol, c.ac.currentTime, 0.1); if (!fallback && el.paused && !el.ended && el.src) void el.play().catch(() => {}); }, 1000);
+  play();
+  return () => { stopped = true; window.clearInterval(timer); el.onended = null; el.onerror = null; el.pause(); el.removeAttribute("src"); el.load(); source?.disconnect(); bus.disconnect(); fallback?.(); };
+}
+/** recorded mixes are mastered loud; this sits them near the procedural station's level */
+const RECORDED_RADIO_GAIN = 0.45;
+
 /** Schedules a small look-ahead window on the existing audio graph; one cancellable station voice. */
-export function startRadio(id: StationId) {
+function startProceduralRadio(id: StationId) {
   const c = ctx;
   if (!c) return () => {};
   const def = RADIO_STATIONS[id];
