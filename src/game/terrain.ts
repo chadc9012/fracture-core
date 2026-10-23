@@ -72,10 +72,26 @@ function baseNaturalHeightAt(nx: number, nz: number): number {
   // and the ground between them cross-fades the neighbouring landforms
   let h = 0;
   for (const s of legacyShifts(nx, nz)) h += s.w * authoredLandform(nx - s.dx, nz - s.dz);
-  // coastline: sink the terrain into the ocean at the world rim (in the new layout's coordinates)
-  const d = Math.hypot(nx, nz);
+  // coastline: sink the terrain into the ocean at the world rim (in the new layout's coordinates); bays and sounds cut in
+  // wherever no region needs the land, so the continent has a fractured, board-like shore instead of a perfect disc
+  const d = Math.hypot(nx, nz) + coastBite(nx, nz);
   const coast = 1 - smoothstep(BASE_WORLD_RADIUS * 0.78, BASE_WORLD_RADIUS * 1.02, d);
   return h * coast - (1 - coast) * 16;
+}
+
+/** how far (base units) the sea reaches in past the plain rim at (x, z): large, slow bays between regions, none within reach of a
+ * region's land (its radius plus a 30% shore), and nothing near the centre of the world. Pure. */
+export function coastBite(x: number, z: number): number {
+  let keep = 0;
+  for (const r of BASE_WORLD_REGIONS) {
+    const e = (Math.hypot(x - r.x, z - r.z) - r.radius * 1.3) / (r.radius * 0.5);
+    keep = Math.max(keep, 1 - smoothstep(0, 1, e));
+  }
+  if (keep >= 1) return 0;
+  const rim = smoothstep(BASE_WORLD_RADIUS * 0.45, BASE_WORLD_RADIUS * 0.7, Math.hypot(x, z));
+  const bay = smoothstep(0.42, 0.62, fbm(x * 0.018 + 211, z * 0.018 - 97, 3));
+  const inlet = smoothstep(0.55, 0.7, fbm(x * 0.05 - 33, z * 0.05 + 141, 2)) * 0.35;
+  return (bay + inlet) * BASE_WORLD_RADIUS * 0.32 * rim * (1 - keep);
 }
 
 /** the landform as authored (base coordinates of the original layout) */
