@@ -1,3 +1,4 @@
+import { movedWithRegion } from "./world";
 import { describe, expect, test } from "bun:test";
 import { warpedDistance, jitteredSlope, pitSoilWeight, pitRimWeight, bankFringe, hueDrift, smooth } from "./ground-blend";
 import { colorAt, heightAt, slopeAt } from "./terrain";
@@ -62,7 +63,9 @@ describe("terrain colour after polish", () => {
   });
   test("no abrupt colour boundary: neighbouring terrain vertices (2.5 m) differ by a bounded amount outside the water", () => {
     let worst = 0;
-    for (let x = -260; x < -60; x += 2.5) for (let z = -200; z < 0; z += 2.5) {
+    // the window over the Verdant Forest (authored before the forest moved east; it travels with the region)
+    const o = movedWithRegion("veridan", { x: 0, z: 0 });
+    for (let x = -260 + o.x; x < -60 + o.x; x += 2.5) for (let z = -200 + o.z; z < o.z; z += 2.5) {
       const h0 = heightAt(x, z), h1 = heightAt(x + 2.5, z);
       if (h0 < 1.8 || h1 < 1.8) continue;
       const a = colorAt(x, z, h0), b = colorAt(x + 2.5, z, h1);

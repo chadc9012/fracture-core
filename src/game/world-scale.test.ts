@@ -1,6 +1,6 @@
 import { NEON_FLAT } from "./world";
 import { describe, expect, test } from "bun:test";
-import { BASE_WORLD_REGIONS, BASE_WORLD_RADIUS, REGIONS, WORLD_RADIUS, WORLD_SCALE, HEIGHT_K, NEON_OFFSET, scaleSite, regionAt } from "./world";
+import { BASE_WORLD_REGIONS, BASE_WORLD_RADIUS, REGIONS, WORLD_RADIUS, WORLD_SCALE, HEIGHT_K, NEON_OFFSET, scaleSite, regionAt, AUTHORED_CENTRES } from "./world";
 import { BASE_FOOT_SPEED, FOOT_SCALE, SPRINT_MULT } from "./foot-speed";
 import { CRASH_SITE, ENCOUNTER, FOREST_SPAWN, TRAIL, TRAIL_LENGTH, COVER, isReserved } from "./verdant";
 import { INTERIORS } from "./interiors";
@@ -27,17 +27,20 @@ describe("world scale", () => {
       expect(Math.hypot(r.x, r.z) + r.radius).toBeLessThan(WORLD_RADIUS); // every region sits inside the playable disc
     });
   });
-  test("scaleSite: a region centre maps to the scaled centre, offsets scale (Nexus 1:1), ocean sites scale from the origin", () => {
+  test("scaleSite: an authored region centre maps to the region's (moved, scaled) centre, offsets scale (Nexus 1:1), ocean sites scale from the origin", () => {
     for (const b of BASE_WORLD_REGIONS) {
       const r = REGIONS.find((q) => q.id === b.id)!;
-      const c = scaleSite(b.x, b.z);
+      const a = AUTHORED_CENTRES[b.id]!;
+      const c = scaleSite(a.x, a.z);
       expect(c.x).toBeCloseTo(r.x, 9); expect(c.z).toBeCloseTo(r.z, 9);
-      const o = scaleSite(b.x + 5, b.z - 3);
+      const o = scaleSite(a.x + 5, a.z - 3);
       expect(o.x - r.x).toBeCloseTo(b.id === "nexus" ? 5 : 5 * WORLD_SCALE, 9);
       expect(o.z - r.z).toBeCloseTo(b.id === "nexus" ? -3 : -3 * WORLD_SCALE, 9);
     }
-    const sea = scaleSite(-97, -208);
-    expect(sea.x).toBeCloseTo(-97 * WORLD_SCALE, 9);
+    const open = scaleSite(-97, -208);
+    expect(open.x).toBeCloseTo(-97 * WORLD_SCALE, 9);
+    // Thalassia moved south with the map boards (thalassia-site.ts authors it at (-20, 225))
+    const sea = scaleSite(-20, 225);
     // Thalassia keeps the authored bearing; it is only pulled in so its reachable zone always overlaps the world disc (thalassia-site.ts)
     expect(Math.atan2(THALASSIA_CENTER.z, THALASSIA_CENTER.x)).toBeCloseTo(Math.atan2(sea.z, sea.x), 9);
     expect(Math.hypot(THALASSIA_CENTER.x, THALASSIA_CENTER.z)).toBeLessThanOrEqual(Math.hypot(sea.x, sea.z) + 1e-9);

@@ -59,8 +59,8 @@ const BASE_REGIONS: Region[] = [
     name: "Nexus City",
     sub: "Safe Zone / Hub",
     kind: "safe",
-    x: 78,
-    z: 6,
+    x: 8,
+    z: -38,
     radius: 26,
     difficulty: 0,
     ground: "#2b3a4a",
@@ -73,8 +73,8 @@ const BASE_REGIONS: Region[] = [
     name: "Verdant Forest",
     sub: "Safe Zone / Resources",
     kind: "starter",
-    x: -58,
-    z: -34,
+    x: 72,
+    z: -10,
     radius: 34,
     difficulty: 1,
     ground: "#2f6b3a",
@@ -87,8 +87,8 @@ const BASE_REGIONS: Region[] = [
     name: "Frostspire Mountains",
     sub: "High Risk / Rare Resources",
     kind: "core",
-    x: 18,
-    z: -96,
+    x: 4,
+    z: -104,
     radius: 40,
     difficulty: 5,
     ground: "#8fa8c8",
@@ -101,8 +101,8 @@ const BASE_REGIONS: Region[] = [
     name: "Ember Peaks",
     sub: "Fracture Zone / High Risk",
     kind: "fracture",
-    x: -52,
-    z: 16,
+    x: -78,
+    z: -56,
     radius: 30,
     difficulty: 5,
     ground: "#3a2320",
@@ -115,8 +115,8 @@ const BASE_REGIONS: Region[] = [
     name: "The Wastelands",
     sub: "War Zone / PvP",
     kind: "war",
-    x: 12,
-    z: -6,
+    x: -50,
+    z: 30,
     radius: 42,
     difficulty: 3,
     ground: "#c9a25f",
@@ -129,8 +129,8 @@ const BASE_REGIONS: Region[] = [
     name: "Solara Desert",
     sub: "Resources / Missions",
     kind: "war",
-    x: -18,
-    z: 76,
+    x: 30,
+    z: 80,
     radius: 44,
     difficulty: 2,
     ground: "#dcb26a",
@@ -143,8 +143,8 @@ const BASE_REGIONS: Region[] = [
     name: "The Shrouded Swamps",
     sub: "Fracture Zone / High Risk",
     kind: "fracture",
-    x: 62,
-    z: 82,
+    x: 102,
+    z: 52,
     radius: 30,
     difficulty: 4,
     ground: "#25412f",
@@ -165,14 +165,74 @@ export const REGIONS: Region[] = BASE_REGIONS.map((r) => ({ ...r, x: r.x * WORLD
 /** Maps a coordinate authored at base size to the same place in the scaled world. Points inside a base region keep
  * their offset from its centre multiplied by WORLD_SCALE (the Nexus city keeps a 1:1 offset); anything else (ocean sites)
  * scales from the origin. With WORLD_SCALE = 1 this is the identity. */
+/** Region centres as sites were first authored (base units), before the October 2026 re-layout to the owner's map boards.
+ * Authored coordinates are still written against these; scaleSite moves each point with its region. */
+export const AUTHORED_CENTRES: Record<string, { x: number; z: number }> = {
+  nexus: { x: 78, z: 6 }, veridan: { x: -58, z: -34 }, frostspire: { x: 18, z: -96 }, ember: { x: -52, z: 16 }, wastelands: { x: 12, z: -6 }, solara: { x: -18, z: 76 }, swamps: { x: 62, z: 82 },
+};
+/** Base coordinates in the new layout -> where the same ground was authored. Inside a region (and out to 1.6x its radius)
+ * the point moves with its region, so every landform, noise field and authored site keeps exactly the ground it was tuned
+ * on; between regions the shift blends, stretching the land that joins them. Pure. */
+const SHIFTS = BASE_REGIONS.map((r) => { const a = AUTHORED_CENTRES[r.id] ?? r; return { x: r.x, z: r.z, reach: r.radius, dx: r.x - a.x, dz: r.z - a.z }; });
+export function legacyBase(x: number, z: number): { x: number; z: number } {
+  // each region pulls with weight f/(1-f) (f = 1 inside it, easing to 0 at 1.6x its radius), against a unit "stay put" weight
+  // for open ground: exact inside a region, and continuous everywhere else (no seam where two blend zones meet)
+  let wx = 0, wz = 0, ws = 0;
+  for (let i = 0; i < SHIFTS.length; i++) {
+    const s = SHIFTS[i]!; const d = Math.hypot(x - s.x, z - s.z) / s.reach;
+    if (d <= 1) return { x: x - s.dx, z: z - s.dz };
+    if (d >= 1.6) continue;
+    const t = (d - 1) / 0.6, f = 1 - t * t * (3 - 2 * t), w = f / (1 - f);
+    wx += w * s.dx; wz += w * s.dz; ws += w;
+  }
+  return { x: x - wx / (1 + ws), z: z - wz / (1 + ws) };
+}
+/** The rigid moves that apply at base point (x, z), with weights summing to 1: inside a region just its own move; between
+ * regions a cross-fade of each nearby region's move and "stay put". Terrain samples its authored landform once per move
+ * and blends the heights, so land between two moved regions is faded, never squeezed (legacyBase compresses it). Pure. */
+export function legacyShifts(x: number, z: number): { dx: number; dz: number; w: number }[] {
+  const out: { dx: number; dz: number; w: number }[] = [];
+  let ws = 1;
+  for (let i = 0; i < SHIFTS.length; i++) {
+    const s = SHIFTS[i]!; const d = Math.hypot(x - s.x, z - s.z) / s.reach;
+    if (d <= 1) return [{ dx: s.dx, dz: s.dz, w: 1 }];
+    if (d >= 1.6) continue;
+    const t = (d - 1) / 0.6, f = 1 - t * t * (3 - 2 * t), w = f / (1 - f);
+    out.push({ dx: s.dx, dz: s.dz, w }); ws += w;
+  }
+  out.push({ dx: 0, dz: 0, w: 1 });
+  for (const o of out) o.w /= ws;
+  return out;
+}
+/** the same, in world metres */
+export function legacyWorld(x: number, z: number): { x: number; z: number } {
+  if (WORLD_SCALE === 1) return legacyBase(x, z);
+  const b = legacyBase(x / WORLD_SCALE, z / WORLD_SCALE);
+  return { x: b.x * WORLD_SCALE, z: b.z * WORLD_SCALE };
+}
+
+/** Inverse of legacyWorld: where authored ground now lies (fixed-point iteration on the smooth shift field). */
+export function fromLegacyWorld(x: number, z: number): { x: number; z: number } {
+  let px = x, pz = z;
+  for (let i = 0; i < 8; i++) { const l = legacyWorld(px, pz); px = x + (px - l.x); pz = z + (pz - l.z); }
+  return { x: px, z: pz };
+}
+
+/** A world position authored (in metres) around a region before the re-layout, carried along with that region. */
+export function movedWithRegion<T extends { x: number; z: number }>(regionId: string, p: T): T {
+  const r = BASE_REGIONS.find((q) => q.id === regionId), a = AUTHORED_CENTRES[regionId];
+  if (!r || !a) return p;
+  return { ...p, x: p.x + (r.x - a.x) * WORLD_SCALE, z: p.z + (r.z - a.z) * WORLD_SCALE };
+}
+
 export function scaleSite(x: number, z: number, offsetScale: number = WORLD_SCALE): { x: number; z: number } {
-  if (WORLD_SCALE === 1) return { x, z };
   let best = -1; let bestScore = Infinity;
-  BASE_REGIONS.forEach((r, i) => { const sc = Math.hypot(x - r.x, z - r.z) / r.radius; if (sc < 1.15 && sc < bestScore) { bestScore = sc; best = i; } });
+  BASE_REGIONS.forEach((r, i) => { const a = AUTHORED_CENTRES[r.id] ?? r; const sc = Math.hypot(x - a.x, z - a.z) / r.radius; if (sc < 1.15 && sc < bestScore) { bestScore = sc; best = i; } });
   if (best < 0) return { x: x * WORLD_SCALE, z: z * WORLD_SCALE };
-  const b = BASE_REGIONS[best]!, r = REGIONS[best]!;
+  if (WORLD_SCALE === 1) { const b0 = BASE_REGIONS[best]!, a0 = AUTHORED_CENTRES[b0.id] ?? b0; return { x: b0.x + (x - a0.x), z: b0.z + (z - a0.z) }; }
+  const b = BASE_REGIONS[best]!, r = REGIONS[best]!, a = AUTHORED_CENTRES[b.id] ?? b;
   const k = b.id === "nexus" ? 1 : offsetScale;
-  return { x: r.x + (x - b.x) * k, z: r.z + (z - b.z) * k };
+  return { x: r.x + (x - a.x) * k, z: r.z + (z - a.z) * k };
 }
 
 /** Distance authored at base size -> world size (use for travel distances, not object sizes). */
@@ -244,7 +304,7 @@ export function clockLabel(t: number) {
 }
 
 /** Neon City sits beside the Nexus hub, along this bearing from it */
-const NEON_DIR = { x: 82 / Math.hypot(82, 38), z: -38 / Math.hypot(82, 38) };
+const NEON_DIR = { x: -82 / Math.hypot(82, 38), z: 38 / Math.hypot(82, 38) };
 /** the authored spacing (half the wild-region scale), and the room the city plateau needs past it */
 const NEON_BASE_DIST = Math.hypot(82, 38) * Math.max(1, WORLD_SCALE / 2);
 const NEON_CLEAR = 50 + 25 + 20; // plateau fade + the hub's building ring + a gap

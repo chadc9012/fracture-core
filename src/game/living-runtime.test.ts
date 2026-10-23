@@ -77,7 +77,7 @@ describe("living runtime against the real sim", () => {
     const g = rt.guards.find((x) => x.id === "warden-north")!;
     const m = sim.machines[0]!;
     Object.assign(m, { alive: true, x: g.x + 8, z: g.z, hp: 2, boss: false, elite: false, scale: 1, cool: 5, profile: "Test", living: "ev-x" });
-    for (let i = 0; i < 60 && m.alive; i++) stepLivingRuntime(rt, sim, { dt: 0.25, now: NOW, px: C.x + 300, pz: C.z, blocked: false, living: EMPTY_LIVING, fallen: [], markers: [], rnd: () => 0 });
+    for (let i = 0; i < 60 && m.alive; i++) stepLivingRuntime(rt, sim, { dt: 0.25, now: NOW, px: C.x + 130, pz: C.z, blocked: false, living: EMPTY_LIVING, fallen: [], markers: [], rnd: () => 0 });
     expect(m.alive).toBe(false);
     expect(sim.kills).toBe(0);
     expect(sim.livingKills["ev-x"] ?? 0).toBe(0);

@@ -1,7 +1,7 @@
 import { CRASH_SITE, trailMask } from "./verdant";
 import { districtDeckAt } from "./district-decks";
 import { forestRelief, openWoods, IMPACT_PIT } from "./forest-relief";
-import { REGIONS, WORLD_RADIUS, BASE_WORLD_REGIONS, BASE_WORLD_RADIUS, WORLD_SCALE, HEIGHT_K, NEON_SITE, NEON_FLAT, NEON_FADE, NEXUS_SUBURB } from "./world";
+import { AUTHORED_CENTRES, legacyShifts, REGIONS, WORLD_RADIUS, BASE_WORLD_REGIONS, BASE_WORLD_RADIUS, WORLD_SCALE, HEIGHT_K, NEON_SITE, NEON_FLAT, NEON_FADE, NEXUS_SUBURB } from "./world";
 import { LANES, ROAD_SAMPLES, laneSamples, distanceToRoad } from "./lanes";
 import { coastShape } from "./coastline";
 import { wetnessAt, wetTint } from "./wetness";
@@ -67,12 +67,25 @@ function weight(d: number, radius: number) {
 }
 
 /** the original-size landform, evaluated in BASE coordinates (world position / WORLD_SCALE) */
-function baseNaturalHeightAt(x: number, z: number): number {
+function baseNaturalHeightAt(nx: number, nz: number): number {
+  // evaluated where this ground was authored (world.ts legacyShifts): regions moved to the map boards keep their land,
+  // and the ground between them cross-fades the neighbouring landforms
+  let h = 0;
+  for (const s of legacyShifts(nx, nz)) h += s.w * authoredLandform(nx - s.dx, nz - s.dz);
+  // coastline: sink the terrain into the ocean at the world rim (in the new layout's coordinates)
+  const d = Math.hypot(nx, nz);
+  const coast = 1 - smoothstep(BASE_WORLD_RADIUS * 0.78, BASE_WORLD_RADIUS * 1.02, d);
+  return h * coast - (1 - coast) * 16;
+}
+
+/** the landform as authored (base coordinates of the original layout) */
+function authoredLandform(x: number, z: number): number {
   // rolling base terrain
   let h = fbm(x * 0.011, z * 0.011, 4) * 16 - 2;
   h += (fbm(x * 0.05 + 40, z * 0.05 - 20, 2) - 0.5) * 3;
 
-  for (const r of BASE_WORLD_REGIONS) {
+  for (const r0 of BASE_WORLD_REGIONS) {
+    const r = { ...r0, ...(AUTHORED_CENTRES[r0.id] ?? {}) };
     const d = Math.hypot(x - r.x, z - r.z);
     if (d > r.radius * 1.1) continue;
     const w = weight(d, r.radius);
@@ -123,10 +136,6 @@ function baseNaturalHeightAt(x: number, z: number): number {
     }
   }
 
-  // coastline: sink the terrain into the ocean at the world rim
-  const d = Math.hypot(x, z);
-  const coast = 1 - smoothstep(BASE_WORLD_RADIUS * 0.78, BASE_WORLD_RADIUS * 1.02, d);
-  h = h * coast - (1 - coast) * 16;
   return h;
 }
 
@@ -246,21 +255,43 @@ export function riverAt(x: number, z: number): { dist: number; s: number; w: num
   return best;
 }
 
+/** every river segment within carving reach of (x,z) (riverAt keeps only the nearest) */
+function riverSegmentsAt(x: number, z: number): { dist: number; s: number; w: number; d: number }[] {
+  if (!carveCells) waterNetwork();
+  const list = carveCells!.get((Math.floor(x / CARVE_CELL) + CARVE_RANGE) * 4096 + (Math.floor(z / CARVE_CELL) + CARVE_RANGE));
+  if (!list) return [];
+  return list.map(({ a, b }) => {
+    const ex = b.x - a.x, ez = b.z - a.z;
+    const len2 = ex * ex + ez * ez || 1;
+    const t = Math.min(1, Math.max(0, ((x - a.x) * ex + (z - a.z) * ez) / len2));
+    return { dist: Math.hypot(a.x + ex * t - x, a.z + ez * t - z), s: a.s + (b.s - a.s) * t, w: a.w + (b.w - a.w) * t, d: a.d };
+  });
+}
+
 function rawHeightAt(x: number, z: number): number {
   const net = network ?? waterNetwork();
   const rv = riverAt(x, z);
+  const segs = rv ? riverSegmentsAt(x, z) : [];
   const sm = smoothHeightAt(x, z);
   // the small rolls fade out over river channels and lake basins, so water always sits in a carved bed with banks
   let detail = detailHeight(x, z) * (1 - neonPlateauWeight(x, z));
   if (detail !== 0) {
-    if (rv) detail *= 1 - carveWeight(rv.w, rv.dist);
+    if (rv) { let cw = 0; for (const q of segs) cw = Math.max(cw, carveWeight(q.w, q.dist)); detail *= 1 - cw; }
     for (const l of net.lakes) { const d = Math.hypot(x - l.x, z - l.z); if (d < l.r * 2) detail *= smoothstep(l.r * 0.8, l.r * 2, d); }
   }
   let h = sm + detail;
-  if (rv) h = carveTarget(h, rv.s, rv.w, rv.d, rv.dist);
+  // every nearby segment carves and the deepest wins (min of continuous profiles), so the bed never steps where the
+  // nearest segment switches (a bend, a fork, or two rivers' banks overlapping)
+  if (rv) { const h0 = h; for (const q of segs) h = Math.min(h, carveTarget(h0, q.s, q.w, q.d, q.dist)); }
   for (const l of net.lakes) {
     const d = Math.hypot(x - l.x, z - l.z);
-    if (d < l.r) h = Math.min(h, l.level - 0.4 - (1 - d / l.r) ** 2 * 1.2);
+    // the basin floor, with a sloped shore out past the rim so the ground never steps down into the lake
+    const shore = 8 * RIVER_SCALE;
+    if (d < l.r + shore) {
+      const bed = l.level - 0.4 - (1 - Math.min(d, l.r) / l.r) ** 2 * 1.2;
+      const k = smoothstep(l.r * 0.92, l.r + shore, d);
+      h = Math.min(h, bed * (1 - k) + h * k);
+    }
   }
   return h;
 }
@@ -437,21 +468,11 @@ export function groundWetnessAt(x: number, z: number): number {
 
 /** colour by elevation, then tinted by the dominant biome, then cliff-masked by slope */
 /** `slope` (0..1, as slopeAt) may be passed when the caller already has it from a height grid, saving four extra height samples */
-export function colorAt(x: number, z: number, worldH: number, slope?: number): [number, number, number] {
-  // palette bands were tuned for the original-height world: undo the HEIGHT_K stretch about the waterline
-  const h = HEIGHT_K === 1 ? worldH : WATER_LEVEL + (worldH - WATER_LEVEL) / HEIGHT_K;
-  let c: [number, number, number];
-  if (h < -6) c = [...PALETTE.deep];
-  else if (h < WATER_LEVEL) c = mix(PALETTE.deep, PALETTE.shallow, (h + 6) / 6);
-  else if (h < 1.6) c = mix(PALETTE.shallow, PALETTE.sand, Math.min(1, h / 1.6));
-  else if (h < 12) c = mix(PALETTE.sand, PALETTE.grass, (h - 1.6) / 10.4);
-  else if (h < 26) c = mix(PALETTE.grass, PALETTE.dirt, (h - 12) / 14);
-  else if (h < 44) c = mix(PALETTE.dirt, PALETTE.rock, (h - 26) / 18);
-  else c = mix(PALETTE.rock, PALETTE.snow, Math.min(1, (h - 44) / 18));
-
-  const bx = x / WORLD_SCALE, bz = z / WORLD_SCALE; // biome tints follow the landform, which lives in base space
-  const edgeNoise = fbm(x * 0.011 + 17, z * 0.011 - 53, 2); // low-frequency: region edges follow the landform, not a circle
-  for (const r of BASE_WORLD_REGIONS) {
+/** region tints at an authored base point */
+function biomeTint(c0: [number, number, number], bx: number, bz: number, h: number, edgeNoise: number): [number, number, number] {
+  let c = c0;
+  for (const r0 of BASE_WORLD_REGIONS) {
+    const r = { ...r0, ...(AUTHORED_CENTRES[r0.id] ?? {}) };
     const d = warpedDistance(Math.hypot(bx - r.x, bz - r.z), edgeNoise);
     if (d > r.radius * 1.1) continue;
     const w = weight(d, r.radius) * 0.85;
@@ -466,6 +487,29 @@ export function colorAt(x: number, z: number, worldH: number, slope?: number): [
     else if (r.id === "wastelands") c = mix(c, [0.55, 0.44, 0.28], w * 0.8);
     else if (r.id === "nexus") c = mix(c, [0.2, 0.24, 0.3], w);
   }
+  return c;
+}
+
+export function colorAt(x: number, z: number, worldH: number, slope?: number): [number, number, number] {
+  // palette bands were tuned for the original-height world: undo the HEIGHT_K stretch about the waterline
+  const h = HEIGHT_K === 1 ? worldH : WATER_LEVEL + (worldH - WATER_LEVEL) / HEIGHT_K;
+  let c: [number, number, number];
+  if (h < -6) c = [...PALETTE.deep];
+  else if (h < WATER_LEVEL) c = mix(PALETTE.deep, PALETTE.shallow, (h + 6) / 6);
+  else if (h < 1.6) c = mix(PALETTE.shallow, PALETTE.sand, Math.min(1, h / 1.6));
+  else if (h < 12) c = mix(PALETTE.sand, PALETTE.grass, (h - 1.6) / 10.4);
+  else if (h < 26) c = mix(PALETTE.grass, PALETTE.dirt, (h - 12) / 14);
+  else if (h < 44) c = mix(PALETTE.dirt, PALETTE.rock, (h - 26) / 18);
+  else c = mix(PALETTE.rock, PALETTE.snow, Math.min(1, (h - 44) / 18));
+
+  // biome tints follow the landform, which lives in authored base space: one tint per rigid move, cross-faded like the heights
+  const edgeNoise = fbm(x * 0.011 + 17, z * 0.011 - 53, 2); // low-frequency: region edges follow the landform, not a circle
+  const base = c; let acc: [number, number, number] = [0, 0, 0];
+  for (const s of legacyShifts(x / WORLD_SCALE, z / WORLD_SCALE)) {
+    const t = biomeTint(base, x / WORLD_SCALE - s.dx, z / WORLD_SCALE - s.dz, h, edgeNoise);
+    acc = [acc[0] + t[0] * s.w, acc[1] + t[1] * s.w, acc[2] + t[2] * s.w];
+  }
+  c = acc;
 
   // slope mask: steep ground sheds its grass/snow for dirt then bare rock; underwater and the
   // shoreline keep their colour so beaches and sea floors do not turn to cliff

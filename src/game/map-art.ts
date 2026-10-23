@@ -1,7 +1,7 @@
 /** Where each region sits on the illustrated "Fractured Earth" map (src/assets/fractured-earth-map-v2.jpg), as percentages of the image.
  * The art is a painting, not the terrain: it is used for the destination picker, where only the *region* matters. The in-game tactical map
  * (player position, mission markers) stays on the real terrain raster so it can never disagree with the world. */
-import { REGIONS } from "./world";
+import { REGIONS, AUTHORED_CENTRES, WORLD_SCALE, legacyWorld, fromLegacyWorld } from "./world";
 
 export const MAP_ART_ASPECT = 1158 / 791;
 export const MAP_ART_SPOTS: Readonly<Record<string, { x: number; y: number }>> = {
@@ -24,7 +24,9 @@ export function hiresArtUsable(width: number, height: number): boolean {
  * centres is within about 3% of the picture everywhere), so a world position can be placed on it without hand-picking. Least squares, derived from
  * REGIONS so it follows WORLD_SCALE. */
 function fitAffine(): { cx: [number, number, number]; cy: [number, number, number] } {
-  const rows = REGIONS.map((r) => [1, r.x, r.z] as const);
+  // the painting shows the world as it was authored: fit against the authored centres, and move world points back there first
+  const at = (r: (typeof REGIONS)[number]) => { const a = AUTHORED_CENTRES[r.id]; if (!a) return { x: r.x, z: r.z }; return r.id === "nexus" && WORLD_SCALE !== 1 ? legacyWorld(r.x, r.z) : { x: a.x * WORLD_SCALE, z: a.z * WORLD_SCALE }; };
+  const rows = REGIONS.map((r) => { const p = at(r); return [1, p.x, p.z] as const; });
   const solve = (ys: number[]): [number, number, number] => {
     const A = [[0, 0, 0], [0, 0, 0], [0, 0, 0]], b = [0, 0, 0];
     rows.forEach((r, i) => { for (let j = 0; j < 3; j++) { b[j]! += r[j]! * ys[i]!; for (let k = 0; k < 3; k++) A[j]![k]! += r[j]! * r[k]!; } });
@@ -41,14 +43,15 @@ function fitAffine(): { cx: [number, number, number]; cy: [number, number, numbe
 const FIT = fitAffine();
 
 /** Unclamped world -> painting position (percent). Used to sample the painting itself (coastline.ts); `artSpotForWorld` is the clamped marker version. */
-export function artRawForWorld(x: number, z: number): { x: number; y: number } {
+export function artRawForWorld(wx: number, wz: number): { x: number; y: number } {
+  const { x, z } = legacyWorld(wx, wz);
   return { x: FIT.cx[0] + FIT.cx[1] * x + FIT.cx[2] * z, y: FIT.cy[0] + FIT.cy[1] * x + FIT.cy[2] * z };
 }
 /** Inverse of artRawForWorld: where a painting position (percent) is in the world. */
 export function worldForArt(ax: number, ay: number): { x: number; z: number } {
   const a = FIT.cx[1], b = FIT.cx[2], c = FIT.cy[1], d = FIT.cy[2], det = a * d - b * c;
   const u = ax - FIT.cx[0], v = ay - FIT.cy[0];
-  return { x: (d * u - b * v) / det, z: (-c * u + a * v) / det };
+  return fromLegacyWorld((d * u - b * v) / det, (-c * u + a * v) / det);
 }
 /** Metres of world per painting percent along each picture axis (the painting is stretched: the same width is about 1.7x fewer metres than height). */
 export function metresPerArtPercent(): { x: number; y: number } {
@@ -62,7 +65,7 @@ export const MAP_ART_TITLE_BOTTOM = 13;
 /** Where a world position lands on the painting (percent). `clamped` is true when the real spot is off the picture or under the legend/title,
  * in which case the marker is pinned to the nearest free edge of the map and must be labelled "off chart" rather than presented as exact. */
 export function artSpotForWorld(x: number, z: number): { x: number; y: number; clamped: boolean } {
-  const rx = FIT.cx[0] + FIT.cx[1] * x + FIT.cx[2] * z, ry = FIT.cy[0] + FIT.cy[1] * x + FIT.cy[2] * z;
+  const { x: rx, y: ry } = artRawForWorld(x, z);
   const cx = Math.min(MAP_ART_LEGEND_LEFT - 2, Math.max(3, rx)), cy = Math.min(95, Math.max(MAP_ART_TITLE_BOTTOM, ry));
   return { x: cx, y: cy, clamped: Math.abs(cx - rx) > 0.01 || Math.abs(cy - ry) > 0.01 };
 }

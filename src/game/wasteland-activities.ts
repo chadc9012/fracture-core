@@ -1,3 +1,4 @@
+import { movedWithRegion } from "./world";
 /** Wastelands activities (pure), from the owner's Wastelands brief:
  *  - Defend the Vault Gates (Sub-Terra Legion defense contract): three raider waves converge on the Sub-Terra Apex gate;
  *    raiders near the gate wear its integrity down; clear all three waves before it breaks.
@@ -15,17 +16,17 @@ import { BLADES, grantBlade, type BladeId } from "./foundries";
 
 /* ------------------------------------------------------------ places ------------------------------------------------------------ */
 /** the Sub-Terra Apex vault entrance, on open flat ground east of Rust Port */
-export const VAULT_GATE = { x: 150, z: -20, radius: 9 } as const;
+export const VAULT_GATE = movedWithRegion("wastelands", { x: 150, z: -20, radius: 9 } as const);
 /** the Mash-Pit derby arena (flat salt pan on the west side) */
-export const ARENA = { x: -86, z: -24, radius: 24 } as const;
+export const ARENA = movedWithRegion("wastelands", { x: -86, z: -24, radius: 24 } as const);
 
 export type Checkpoint = { x: number; z: number };
 export const RALLY_REACH = 10;
 /** Rust Run: starts and ends at the start gate; checkpoints in order */
 export const RUST_RUN = {
   id: "rust-run", name: "Rust Run",
-  start: { x: 48, z: 77 } as Checkpoint,
-  checkpoints: [{ x: 98, z: 63 }, { x: 164, z: 43 }, { x: 182, z: -24 }, { x: 135, z: -74 }, { x: 77, z: -75 }, { x: -39, z: -74 }, { x: -53, z: -24 }, { x: -39, z: 26 }, { x: -2, z: 63 }, { x: 48, z: 77 }] as Checkpoint[],
+  start: movedWithRegion("wastelands", { x: 48, z: 77 }) as Checkpoint,
+  checkpoints: ([{ x: 98, z: 63 }, { x: 164, z: 43 }, { x: 182, z: -24 }, { x: 135, z: -74 }, { x: 77, z: -75 }, { x: -39, z: -74 }, { x: -53, z: -24 }, { x: -39, z: 26 }, { x: -2, z: 63 }, { x: 48, z: 77 }] as Checkpoint[]).map((c) => movedWithRegion("wastelands", c)),
 } as const;
 export const rallyLength = (): number => {
   let len = 0, prev = RUST_RUN.start;
