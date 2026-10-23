@@ -11,6 +11,10 @@
 import { REGIONS, NEON_OFFSET } from "./world";
 import { THALASSIA_CENTER } from "./thalassia-site";
 import { heightAt, WATER_LEVEL } from "./terrain";
+import { venueLots } from "./nightlife";
+import { STORM_ISLAND_SITES, stormSiteWorld } from "./storm-islands";
+import { neonTowersWorld } from "./neon-layout";
+import { neonKeepOut } from "./residences";
 
 export type SiteKind =
   | "district" | "shop" | "nightclub" | "lounge" | "casino" | "mall" | "metro" | "dock" | "garage" | "plaza" | "palace" | "campus" | "government" | "farm" | "research"
@@ -44,7 +48,7 @@ export const SITE_STYLE: Record<SiteKind, { glyph: string; color: string; label:
 };
 
 /** the boards' names for the game's regions */
-export const BOARD_NAME: Record<string, string> = { nexus: "Nexus City", neon: "Neon City", thalassia: "Thalassia", veridan: "Verdant Forest", wastelands: "Wastelands", frostspire: "Frost Peaks", ember: "Scorched Plains", solara: "Crystal Badlands", swamps: "Shrouded Swamps" };
+export const BOARD_NAME: Record<string, string> = { nexus: "Nexus City", neon: "Neon City", thalassia: "Thalassia", veridan: "Verdant Forest", wastelands: "Wastelands", frostspire: "Frost Peaks", ember: "Scorched Plains", solara: "Crystal Badlands", swamps: "Shrouded Swamps", storm: "Storm Islands" };
 
 const R = (id: string) => REGIONS.find((r) => r.id === id)!;
 const NEXUS = R("nexus");
@@ -156,7 +160,12 @@ function dry(x: number, z: number, cx: number, cz: number): { x: number; z: numb
 
 function build(): Site[] {
   const out: Site[] = [];
-  for (const [id, name, kind, dx, dz, radius, blurb] of NEON) out.push({ id, name, kind, regionId: "neon", x: NEON_CENTER.x + dx, z: NEON_CENTER.z + dz, radius, blurb });
+  // the nightlife venues stand on the tower lots they take over (nightlife.ts), so the map pin is on the building
+  const lots = new Map(venueLots(neonTowersWorld(neonKeepOut())).map((l) => [`neon-${l.venue.id}`, l]));
+  for (const [id, name, kind, dx, dz, radius, blurb] of NEON) {
+    const lot = lots.get(id);
+    out.push({ id, name, kind, regionId: "neon", x: lot ? lot.x : NEON_CENTER.x + dx, z: lot ? lot.z : NEON_CENTER.z + dz, radius, blurb });
+  }
   for (const [id, name, kind, dx, dz, radius, blurb] of NEXUS_SITES) out.push({ id, name, kind, regionId: "nexus", x: NEXUS.x + dx, z: NEXUS.z + dz, radius, blurb });
   for (const [id, name, kind, dx, dz, radius, blurb] of THAL) out.push({ id, name, kind, regionId: "thalassia", x: THALASSIA_CENTER.x + dx, z: THALASSIA_CENTER.z + dz, radius, blurb });
   for (const [rid, list] of Object.entries(WILD)) {
@@ -166,6 +175,8 @@ function build(): Site[] {
       out.push({ id, name, kind, regionId: rid, x: p.x, z: p.z, radius: Math.max(24, r.radius * 0.12), blurb });
     }
   }
+  const STORM_KIND: Record<string, SiteKind> = { landing: "dock", outpost: "station", ruins: "ruins", nest: "camp", temple: "temple", "storm-core": "spire" };
+  for (const st of STORM_ISLAND_SITES) { const w = stormSiteWorld(st); out.push({ id: `storm-${st.id}`, name: st.name, kind: STORM_KIND[st.kind] ?? "ruins", regionId: "storm", x: w.x, z: w.z, radius: 40, blurb: st.description }); }
   return out;
 }
 

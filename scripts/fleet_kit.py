@@ -65,7 +65,8 @@ def srgb_to_linear(hexcol):
 def standard_mats(paint_hex, paint_metal=0.55, paint_rough=0.32, accent="#38e8ff", glass_tint="#0d1218"):
     _mats.clear()
     return {
-        "paint": mat("Paint", paint_hex, paint_metal, paint_rough, coat=1.0, coat_rough=0.04),
+        # clear coat only on a polished finish: worn wasteland paint stays matte
+        "paint": mat("Paint", paint_hex, paint_metal, paint_rough, coat=1.0 if paint_rough < 0.45 else 0.0, coat_rough=0.04),
         "glass": mat("Glass", glass_tint, 0.0, 0.03, alpha=0.8, spec=1.0),
         "trim": mat("Trim", "#0b0c0e", 0.2, 0.55),
         "satin": mat("SatinBlack", "#141518", 0.6, 0.38),

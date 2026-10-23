@@ -11,6 +11,7 @@ import { MaglevTrains } from "./MaglevTrains";
 import { NeonDistricts } from "./NeonDistricts";
 import { NeonTowerBlocks } from "./NeonTowerBlocks";
 import { NeonPalms } from "./CityPalms";
+import { NeonVenues } from "./NeonVenues";
 import { ResidentialHomes } from "./ResidentialHomes";
 import { NEON_FLAT } from "@/game/world";
 
@@ -101,6 +102,7 @@ export function NeonCity() {
       {/* the skyline: authored towers on the street grid across the whole city plateau (neon-layout.ts) */}
       <NeonTowerBlocks />
       <NeonPalms />
+      <NeonVenues />
       <ResidentialHomes city="neon" />
       <NeonMarketStreet y={y} />
       <NeonTiers c={NEON_CITY_CENTER} />

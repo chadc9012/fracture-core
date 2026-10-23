@@ -194,6 +194,8 @@ import { vehicleModelFor } from "@/game/fleet-models";
 import { worldLight } from "@/game/world-light";
 import { AuthoredVehicle } from "./AuthoredVehicle";
 import { SiteMarkers } from "./SiteMarkers";
+import { StormIslands } from "./StormIslands";
+import { STORM_ISLANDS_CENTER } from "@/game/storm-islands";
 import { ResidenceGarages } from "./ResidenceGarages";
 import { reportVehicleEnter, reportVehicleExit, takeDriveOut } from "@/game/vehicle-request";
 import { deedNear, parkedAt } from "@/game/residence-deeds";
@@ -2980,6 +2982,7 @@ function SceneImpl({
       <Storefronts />
       <NearOnly playerRef={player} x={NEXUS_REGION.x} z={NEXUS_REGION.z} radius={330 * NEAR_SCALE[settings.renderTier]} name="city:nexus"><NexusCity sim={sim} />{gear && <ResidenceGarages city="nexus" progression={{ nexLedger: gear.nexLedger ?? {}, housing: gear.housing, fleet: gear.fleet }} />}</NearOnly>
       <SiteMarkers playerRef={player} />
+      <NearOnly playerRef={player} x={STORM_ISLANDS_CENTER.x} z={STORM_ISLANDS_CENTER.z} radius={1500} name="storm-islands"><StormIslands /></NearOnly>
       <NearOnly playerRef={player} x={NEON_CITY_CENTER.x} z={NEON_CITY_CENTER.z} radius={300 * NEAR_SCALE[settings.renderTier]} name="city:neon"><NeonCity />{gear && <ResidenceGarages city="neon" progression={{ nexLedger: gear.nexLedger ?? {}, housing: gear.housing, fleet: gear.fleet }} />}</NearOnly>
       {(() => { const rg = REGIONS.find((r) => r.id === "frostspire"); return rg ? <NearOnly playerRef={player} x={rg.x} z={rg.z} radius={(rg.radius + 220) * NEAR_SCALE[settings.renderTier]} name="region:frostspire"><FrostspireDressing /></NearOnly> : null; })()}
       {(() => { const rg = REGIONS.find((r) => r.id === "swamps"); return rg ? <NearOnly playerRef={player} x={rg.x} z={rg.z} radius={(rg.radius + 220) * NEAR_SCALE[settings.renderTier]} name="region:swamps"><SwampDressing /></NearOnly> : null; })()}

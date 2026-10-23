@@ -201,7 +201,7 @@ def car(oid, body_key, paint, accent="#38e8ff", metal=0.8, rough=0.22, rim_style
     # cabin interior
     floor = float(zb[len(zb) // 2]) + 0.2
     cab_y = -L / 2 + (spec["ws"][1] + 0.06) * L
-    rows = [cab_y + 0.55] + ([cab_y + 1.45] if seats > 1 else [])
+    rows = [] if hover else [cab_y + 0.55] + ([cab_y + 1.45] if seats > 1 else [])
     for ry_ in rows:
         for s in (-1, 1):
             parts.append(K.box((0.44, 0.5, 0.14), (s * maxw * 0.38, ry_, floor + 0.12), M["interior"], bevel=0.05, name="Seat"))

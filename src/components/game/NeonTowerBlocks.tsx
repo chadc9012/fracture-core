@@ -7,6 +7,7 @@ import { addObstacle } from "@/game/obstacles";
 import { neonKeepOut } from "@/game/residences";
 import { QuietModel } from "./Vehicle";
 import { InstancedGlb } from "./InstancedGlb";
+import { venueLots } from "@/game/nightlife";
 
 /**
  * Neon City's skyline: the authored towers (scripts/build-city.py) on the street grid from neon-layout.ts, standing on
@@ -20,7 +21,10 @@ const VARIANTS: TowerVariant[] = ["A", "B", "C", "D", "E", "F"];
 function usePlacements() {
   return useMemo(() => {
     // same keep-out list the residences are laid out with, so the two can never claim the same block
-    const list = neonTowersWorld(neonKeepOut());
+    // venues (nightlife.ts) take over a few tower lots: those towers are not built
+    const all = neonTowersWorld(neonKeepOut());
+    const taken = new Set(venueLots(all).map((l) => `${l.x},${l.z}`));
+    const list = all.filter((t) => !taken.has(`${t.x},${t.z}`));
     for (const t of list) {
       const [hx, hz] = TOWER_FOOTPRINT[t.variant];
       addObstacle("tower", t.x, t.z, Math.max(hx, hz) * 0.95, 400, 2);
