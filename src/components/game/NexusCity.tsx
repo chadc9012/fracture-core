@@ -9,6 +9,7 @@ import type { FleetModelId } from "@/game/fleet-models";
 import { BUILDING_MODELS, NEXUS_HUB_RINGS, type BuildingModelId } from "@/game/building-models";
 import { InstancedGlb, type GlbInstance } from "./InstancedGlb";
 import { NexusPalms } from "./CityPalms";
+import { WorldPiece } from "./WorldPiece";
 import { InstancedFleet, type FleetInstance } from "./InstancedFleet";
 import { REGIONS } from "@/game/world";
 import { walkHeight } from "@/game/terrain";
@@ -209,7 +210,7 @@ export function NexusCity({ sim }: { sim: WorldSim }) {
     <group>
       <CityBuildings />
       <NexusDistricts />
-      <NexusPalms />
+      <WorldPiece name="nexus palms"><NexusPalms /></WorldPiece>
       <ResidentialHomes city="nexus" />
       <Pedestrians />
       <CityTraffic />

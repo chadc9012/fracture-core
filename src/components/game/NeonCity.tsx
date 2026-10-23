@@ -12,6 +12,7 @@ import { NeonDistricts } from "./NeonDistricts";
 import { NeonTowerBlocks } from "./NeonTowerBlocks";
 import { NeonPalms } from "./CityPalms";
 import { NeonVenues } from "./NeonVenues";
+import { WorldPiece } from "./WorldPiece";
 import { ResidentialHomes } from "./ResidentialHomes";
 import { NEON_FLAT } from "@/game/world";
 
@@ -101,8 +102,8 @@ export function NeonCity() {
     <group>
       {/* the skyline: authored towers on the street grid across the whole city plateau (neon-layout.ts) */}
       <NeonTowerBlocks />
-      <NeonPalms />
-      <NeonVenues />
+      <WorldPiece name="neon palms"><NeonPalms /></WorldPiece>
+      <WorldPiece name="neon venues"><NeonVenues /></WorldPiece>
       <ResidentialHomes city="neon" />
       <NeonMarketStreet y={y} />
       <NeonTiers c={NEON_CITY_CENTER} />
