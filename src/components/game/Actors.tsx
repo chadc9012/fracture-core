@@ -15,6 +15,8 @@ import { isStaggeredNow, recoilAt } from "@/game/enemy-reactions";
 import { FACTIONS, laneSamples, type WorldSim } from "@/game/sim";
 import { getVoicePose, isBossSpeaker } from "@/game/voice-animation";
 import { walkHeight } from "@/game/terrain";
+import { FLEET_MODELS } from "@/game/fleet-models";
+import { AuthoredVehicle } from "./AuthoredVehicle";
 
 /* ---------------- supply lanes (roads) ---------------- */
 
@@ -304,81 +306,31 @@ export function WarMachines({ sim }: { sim: WorldSim }) {
 }
 
 
-/* ---------------- NPC convoy trucks — armoured 6x6 hauler (concept-art reference) ---------------- */
+/* ---------------- NPC convoy trucks ---------------- */
 
-function ArmoredHauler() {
-  const wheelZ = [3.1, -0.6, -2.2];
-  return (
-    <group>
-      <mesh position={[0, 1.05, 0]} castShadow>
-        <boxGeometry args={[3.1, 0.5, 10.4]} />
-        <meshStandardMaterial color={STEEL_DARK} metalness={0.6} roughness={0.6} />
-      </mesh>
-      {/* armoured cab + sloped windscreen plate */}
-      <mesh position={[0, 2.1, 3.2]} castShadow>
-        <boxGeometry args={[3.3, 2.1, 3]} />
-        <meshStandardMaterial color="#6d7176" metalness={0.4} roughness={0.6} />
-      </mesh>
-      <mesh position={[0, 2.75, 4.6]} rotation={[-0.32, 0, 0]} castShadow>
-        <boxGeometry args={[3, 1.2, 0.22]} />
-        <meshStandardMaterial color="#2b3238" metalness={0.75} roughness={0.25} />
-      </mesh>
-      {/* grille guard + headlights */}
-      <mesh position={[0, 1.6, 5]} castShadow>
-        <boxGeometry args={[3.1, 1.1, 0.3]} />
-        <meshStandardMaterial color={STEEL_DARK} metalness={0.7} roughness={0.5} />
-      </mesh>
-      {[-1.2, 1.2].map((x) => (
-        <mesh key={x} position={[x, 1.75, 5.2]}>
-          <boxGeometry args={[0.5, 0.3, 0.14]} />
-          <meshStandardMaterial color="#fff3cf" emissive="#ffd889" emissiveIntensity={2.6} toneMapped={false} />
-        </mesh>
-      ))}
-      {/* roof rack */}
-      <mesh position={[0, 3.25, 3.2]} castShadow>
-        <boxGeometry args={[3.1, 0.16, 2.4]} />
-        <meshStandardMaterial color={STEEL} metalness={0.5} roughness={0.7} />
-      </mesh>
-      {/* ribbed cargo bed with tarp cap */}
-      <mesh position={[0, 2.35, -1.6]} castShadow>
-        <boxGeometry args={[3.4, 2, 6.2]} />
-        <meshStandardMaterial color="#8b8f93" metalness={0.35} roughness={0.65} />
-      </mesh>
-      {[-3.6, -2.2, -0.8, 0.6].map((z) => (
-        <mesh key={z} position={[0, 2.35, z]} castShadow>
-          <boxGeometry args={[3.55, 1.9, 0.14]} />
-          <meshStandardMaterial color="#5f6367" metalness={0.5} roughness={0.55} />
-        </mesh>
-      ))}
-      <mesh position={[0, 3.45, -1.6]} castShadow>
-        <boxGeometry args={[3.5, 0.22, 6.3]} />
-        <meshStandardMaterial color={HULL_DARK} roughness={0.9} />
-      </mesh>
-      {/* six heavy wheels */}
-      {wheelZ.map((z) =>
-        [-1.75, 1.75].map((x) => (
-          <mesh key={`${x}:${z}`} position={[x, 0.95, z]} rotation={[0, 0, Math.PI / 2]} castShadow>
-            <cylinderGeometry args={[0.95, 0.95, 0.72, 14]} />
-            <meshStandardMaterial color="#191b1d" roughness={0.95} />
-          </mesh>
-        )),
-      )}
-    </group>
-  );
-}
-
+/** Convoy trucks are the authored war rig (public/models/fleet/war-rig.glb) with its wheels rolling at the truck's real
+ * speed (a plain hull stands in if the model can't load). Truck y is ground + 1.6 (the sim's
+ * eye-height convention for targeting), so the body sits 1.6 m lower. */
+const CONVOY_MODEL = FLEET_MODELS["war-rig"];
 export function Convoys({ sim }: { sim: WorldSim }) {
   const group = useRef<THREE.Group>(null!);
+  const speeds = useMemo(() => sim.trucks.map(() => ({ current: 0 })), [sim.trucks]);
+  const last = useRef<{ x: number; z: number }[]>([]);
 
-  useFrame(() => {
+  useFrame((_, raw) => {
     const g = group.current;
     if (!g) return;
+    const dt = Math.max(1e-3, Math.min(raw, 0.1));
     sim.trucks.forEach((t, i) => {
       const node = g.children[i] as THREE.Group | undefined;
       if (!node) return;
       node.visible = t.alive;
       if (!t.alive) return;
-      node.position.set(t.x, t.y, t.z);
+      const p = last.current[i];
+      const v = p ? Math.hypot(t.x - p.x, t.z - p.z) / dt : 0;
+      const sp = speeds[i]; if (sp) sp.current += (Math.min(v, 30) - sp.current) * Math.min(1, dt * 4);
+      last.current[i] = { x: t.x, z: t.z };
+      node.position.set(t.x, t.y - 1.6, t.z);
       node.rotation.y = t.rot;
     });
   });
@@ -387,7 +339,7 @@ export function Convoys({ sim }: { sim: WorldSim }) {
     <group ref={group}>
       {sim.trucks.map((_, i) => (
         <group key={i} visible={false}>
-          <ArmoredHauler />
+          <AuthoredVehicle model={CONVOY_MODEL} speedRef={speeds[i]!} lights />
         </group>
       ))}
     </group>

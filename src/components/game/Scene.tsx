@@ -76,6 +76,7 @@ import { Civilians } from "./Civilians";
 import { Bullets, BeaconMarkers, Convoys, HazardMarkers, SupplyLanes, WarMachines, ZoneBeacons } from "./Actors";
 import { BulletImpacts } from "./BulletFx";
 import { Roads } from "./Roads";
+import { RoadDressing } from "./RoadDressing";
 import { ScenarioBosses } from "./ScenarioBosses";
 import { NullPulseFx } from "./NullPulseFx";
 import { AbilityFx } from "./AbilityFx";
@@ -2973,6 +2974,7 @@ function SceneImpl({
 
       <group name="terrain+trees"><Terrain renderTier={settings.renderTier} /></group>
       <Roads />
+      <WorldPiece name="road-dressing"><RoadDressing /></WorldPiece>
       <group name="ground-cover"><GroundCover density={coverDensityFor(settings.renderTier)} /></group>
       <group name="iso:forest">{settings.renderTier !== "LOW" && <LightShafts sunRef={sunDir} skyEnv={skyEnv} forest={VERIDAN_REGION} />}<GlitchAnomalies /><VerdantForest density={settings.renderTier === "LOW" ? 0.5 : settings.renderTier === "MEDIUM" ? 0.75 : 1} models={settings.renderTier !== "LOW"} investigation={investigation} heavyShadow={heavyShadows(settings.renderTier)} /></group>
       <RiftTurrets sim={sim} />

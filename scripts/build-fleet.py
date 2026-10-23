@@ -447,6 +447,93 @@ def transport(oid, paint="#344a5a", accent="#35e7f1", rig=False):
     export_model(oid)
 
 
+def war_rig(oid, paint="#4a2e22", accent="#ff7a2e"):
+    """Wasteland convoy semi: long-nose tractor (hood, grille, bumper ram, sleeper cab, chrome stacks, fuel tanks, mirrors,
+    steps, roof markers, a grated windscreen) on twin chassis rails with a tandem drive axle, hauling a corrugated box
+    trailer (ribbed sides, top/bottom rails, rear doors with lock bars, underride guard, landing gear, side armour,
+    amber side markers, tail-lamp cluster, mud flaps) on its own tandem. Front is -Y (three.js +Z); 10.9 m long."""
+    K.reset(); M = K.standard_mats(paint, 0.35, 0.6, accent)
+    amber = K.mat("Marker", "#ffb02e", 0.0, 0.2, emit="#ff9a12", strength=4.0)
+    P = []; R = 0.55
+    # --- tractor
+    P.append(K.loft_shell("Hood", 2.0, M["paint"], hw=[(0, 0.92), (.5, 1.02), (1, 1.06)], zc=[(0, 1.32), (1, 1.46)], hh=[(0, 0.42), (.4, 0.55), (1, 0.62)], sq=[(0, 4.5), (1, 5.5)], n=14, ring=36, y0=-5.25))
+    P.append(K.loft_shell("Cab", 2.25, M["paint"], hw=[(0, 1.16), (1, 1.2)], zc=[(0, 2.02), (1, 2.06)], hh=[(0, 0.98), (1, 1.02)], sq=[(0, 6), (1, 6)], n=10, ring=36, y0=-3.3))
+    P.append(K.box((2.28, 1.05, 0.55), (0, -1.6, 3.28), M["paint"], bevel=0.12, name="Sleeper"))
+    for sx in (-1, 1):
+        P.append(K.box((1.02, 0.06, 0.78), (sx * 0.53, -3.33, 2.48), M["glass"], bevel=0.02, rot=(math.radians(-10), 0, 0), name="Windscreen"))
+        P.append(K.box((0.05, 1.1, 0.6), (sx * 1.21, -2.6, 2.5), M["glass"], bevel=0.01, name="SideWin"))
+        # mirrors on arms
+        P.append(K.tube([(sx * 1.18, -3.15, 2.35), (sx * 1.5, -3.3, 2.45), (sx * 1.55, -3.3, 2.75)], 0.025, M["chrome"], "MirrorArm"))
+        P.append(K.box((0.07, 0.2, 0.46), (sx * 1.57, -3.3, 2.62), M["satin"], bevel=0.02, name="Mirror"))
+        # front fenders over the steer axle, quarter fenders over the drive tandem
+        P.append(K.box((0.52, 1.5, 0.1), (sx * 1.08, -3.75, 1.2), M["paint"], bevel=0.03, name="Fender"))
+        P.append(K.box((0.5, 0.9, 0.08), (sx * 1.1, -0.38, 1.25), M["steel"], bevel=0.02, name="QuarterFender"))
+        # fuel tank with straps, cab steps
+        P.append(K.cyl(0.34, 1.2, (sx * 1.02, -2.35, 0.82), M["chrome"], rot=(math.pi / 2, 0, 0), verts=24, name="FuelTank"))
+        for dy in (-0.4, 0.4):
+            P.append(K.cyl(0.355, 0.05, (sx * 1.02, -2.35 + dy, 0.82), M["satin"], rot=(math.pi / 2, 0, 0), verts=24, name="TankStrap"))
+        P.append(K.box((0.42, 0.42, 0.05), (sx * 1.12, -3.0, 0.45), M["steel"], bevel=0.01, name="Step"))
+        # exhaust stacks with caps
+        P.append(K.tube([(sx * 1.2, -1.95, 1.0), (sx * 1.2, -1.95, 3.95)], 0.09, M["chrome"], "Stack"))
+        P.append(K.cyl(0.11, 0.12, (sx * 1.2, -1.95, 3.98), M["satin"], verts=14, name="StackCap"))
+        # air horn
+        P.append(K.cyl(0.05, 0.5, (sx * 0.35, -2.7, 3.12), M["chrome"], rot=(math.pi / 2, 0, 0), verts=10, r2=0.09, name="Horn"))
+        P.append(K.box((0.36, 0.05, 0.22), (sx * 0.82, -5.27, 1.02), M["head"], bevel=0.02, name="Headlight"))
+    # grille, slats, bumper ram with spikes, grated windscreen
+    P.append(K.box((1.5, 0.05, 0.78), (0, -5.27, 1.4), M["chrome"], bevel=0.02, name="Grille"))
+    for k in range(8):
+        P.append(K.box((1.42, 0.06, 0.035), (0, -5.3, 1.1 + k * 0.085), M["trim"], bevel=0.0, name="Slat"))
+    P.append(K.box((2.5, 0.34, 0.42), (0, -5.48, 0.75), M["steel"], bevel=0.04, name="Bumper"))
+    P.append(K.box((2.3, 0.12, 0.7), (0, -5.68, 0.9), M["rust"], bevel=0.03, rot=(math.radians(14), 0, 0), name="Ram"))
+    for k in range(7):
+        P.append(K.cyl(0.06, 0.5, (-0.96 + k * 0.32, -5.92, 0.95), M["steel"], rot=(math.pi / 2, 0, 0), verts=8, r2=0.0, name="Spike"))
+    for k in range(5):
+        P.append(K.tube([(-1.0, -3.42, 2.15 + k * 0.17), (1.0, -3.42, 2.15 + k * 0.17)], 0.018, M["satin"], "Grate"))
+    for k in range(5):
+        P.append(K.box((0.14, 0.08, 0.06), (-0.5 + k * 0.25, -3.25, 3.07), amber, bevel=0.01, name="RoofMarker"))
+    # chassis rails and fifth wheel
+    for sx in (-1, 1):
+        P.append(K.box((0.22, 10.3, 0.3), (sx * 0.55, -0.15, 0.92), M["satin"], bevel=0.02, name="Rail"))
+    P.append(K.box((1.5, 1.05, 0.12), (0, -0.4, 1.12), M["satin"], bevel=0.02, name="FifthWheel"))
+    # --- trailer: y -1.15 .. 5.45, floor z 1.25, roof z 3.7
+    y0, y1, zb, zt = -1.15, 5.45, 1.25, 3.7
+    L, yc, zc, H = y1 - y0, (y0 + y1) / 2, (zb + zt) / 2, zt - zb
+    P.append(K.box((2.44, L, H), (0, yc, zc), M["rust"], bevel=0.04, name="Container"))
+    P.append(K.box((2.32, L, 0.2), (0, yc, zb - 0.08), M["satin"], bevel=0.02, name="TrailerFloor"))
+    n = 34
+    for sx in (-1, 1):
+        for k in range(n):
+            P.append(K.box((0.05, 0.07, H - 0.18), (sx * 1.235, y0 + 0.15 + k * (L - 0.3) / (n - 1), zc), M["steel"], bevel=0.0, name="Rib"))
+        for z in (zb + 0.04, zt - 0.05):
+            P.append(K.box((0.09, L + 0.04, 0.12), (sx * 1.255, yc, z), M["steel"], bevel=0.01, name="SideRail"))
+        P.append(K.box((0.05, 3.1, 0.55), (sx * 1.2, 1.55, 0.88), M["steel"], bevel=0.02, name="SideArmour"))
+        for k, yy in enumerate((-0.8, 0.95, 2.7, 4.45)):
+            P.append(K.box((0.04, 0.12, 0.08), (sx * 1.29, yy, zt - 0.14), amber, bevel=0.005, name="SideMarker"))
+        P.append(K.box((0.5, 0.03, 0.55), (sx * 1.1, 5.12, 0.42), M["rubber"], bevel=0.0, name="MudFlap"))
+        P.append(K.box((0.5, 0.03, 0.5), (sx * 1.1, 0.85, 0.45), M["rubber"], bevel=0.0, name="MudFlap"))
+        P.append(K.cyl(0.06, 0.85, (sx * 0.9, 0.35, 0.72), M["steel"], verts=10, name="LandingLeg"))
+        P.append(K.box((0.25, 0.25, 0.05), (sx * 0.9, 0.35, 0.3), M["steel"], bevel=0.0, name="LandingPad"))
+        # rear doors: panel, hinges, two lock bars each
+        P.append(K.box((1.17, 0.05, H - 0.12), (sx * 0.6, y1 + 0.02, zc), M["rust"], bevel=0.015, name="Door"))
+        for bx in (0.3, 0.9):
+            P.append(K.cyl(0.028, H - 0.25, (sx * bx, y1 + 0.07, zc), M["chrome"], verts=8, name="LockBar"))
+            P.append(K.box((0.1, 0.05, 0.05), (sx * bx, y1 + 0.09, zc - 0.25), M["chrome"], bevel=0.0, name="Handle"))
+        for z in (zb + 0.35, zc, zt - 0.35):
+            P.append(K.box((0.12, 0.06, 0.16), (sx * 1.2, y1 + 0.04, z), M["steel"], bevel=0.0, name="Hinge"))
+        P.append(K.box((0.36, 0.05, 0.14), (sx * 0.95, y1 + 0.06, zb + 0.15), M["tail"], bevel=0.01, name="Tail"))
+        P.append(K.box((0.05, 0.06, 0.08), (sx * 1.22, y1 + 0.05, zt - 0.1), M["tail"], bevel=0.005, name="Tail"))
+    P.append(K.box((2.3, 0.12, 0.14), (0, y1 - 0.1, 0.62), M["steel"], bevel=0.02, name="Underride"))
+    for sx in (-1, 1):
+        P.append(K.box((0.08, 0.08, 0.5), (sx * 0.7, y1 - 0.15, 0.9), M["steel"], bevel=0.0, name="UnderrideStrut"))
+    P.append(K.box((2.2, 0.02, 0.22), (0, y0 - 0.01, zt - 0.4), M["paint"], bevel=0.0, name="FrontBand"))
+    K.join(P, "Body")
+    K.mount_wheels({"FL": (-1.08, -3.75, R), "FR": (1.08, -3.75, R),
+                    "D1L": (-1.08, -0.95, R), "D1R": (1.08, -0.95, R), "D2L": (-1.08, 0.2, R), "D2R": (1.08, 0.2, R),
+                    "T1L": (-1.08, 3.6, R), "T1R": (1.08, 3.6, R), "T2L": (-1.08, 4.72, R), "T2R": (1.08, 4.72, R)},
+                   R, 0.5, M, "offroad", 8, "solid", caliper=False)
+    export_model(oid)
+
+
 def helicopter(oid, paint="#39465a", accent="#59e7f9"):
     K.reset(); M = K.standard_mats(paint, 0.5, 0.45, accent)
     P = []
@@ -590,7 +677,7 @@ BUILDS = {
     "goliath-tank": lambda: tank("goliath-tank"),
     "fracture-behemoth": lambda: tank("fracture-behemoth", "#3b3b40", "#fa7c39", big=True),
     "tech-transport": lambda: transport("tech-transport"),
-    "war-rig": lambda: transport("war-rig", "#4a2e22", "#ff7a2e", rig=True),
+    "war-rig": lambda: war_rig("war-rig", "#4a2e22", "#ff7a2e"),
     "rift-helicopter": lambda: helicopter("rift-helicopter"),
     "vanguard-jet": lambda: jet("vanguard-jet"),
     "void-skimmer": lambda: skimmer("void-skimmer"),

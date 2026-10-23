@@ -3,6 +3,22 @@ import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import { walkHeight } from "@/game/terrain";
 import { raceObstacles, rivalPositions, worldPoint, type RaceDef, type RaceRun } from "@/game/racing";
+import { FLEET_MODELS, type FleetModelId } from "@/game/fleet-models";
+import { AuthoredVehicle } from "./AuthoredVehicle";
+
+/** rival cars are authored fleet models picked by the kind of race: street racers on the street circuits, buggies and
+ * trucks on rally and hazard courses, heavier muscle on pursuits */
+const RIVAL_CARS: Record<string, FleetModelId[]> = {
+  street: ["street-racer", "tuner", "muscle-car", "luxury-sedan", "street-racer", "tuner"],
+  tech: ["tuner", "street-racer", "hover-car", "muscle-car", "tuner", "luxury-sedan"],
+  relay: ["street-racer", "hover-car", "tuner", "muscle-car", "city-pod", "street-racer"],
+  pursuit: ["armored-muscle", "security-suv", "muscle-car", "armored-muscle", "security-suv", "muscle-car"],
+  rally: ["raider-buggy", "offroad-truck", "raider-buggy", "armored-muscle", "offroad-truck", "raider-buggy"],
+  endurance: ["offroad-truck", "raider-buggy", "armored-muscle", "offroad-truck", "raider-buggy", "security-suv"],
+  hazard: ["raider-buggy", "offroad-truck", "armored-muscle", "raider-buggy", "offroad-truck", "armored-muscle"],
+};
+const RIVAL_PAINT = ["Crimson", "Cobalt", "Gold", "Teal", "Violet", "Orange", "White", "Green"];
+export const rivalCar = (race: RaceDef, r: number): FleetModelId => { const list = RIVAL_CARS[race.type] ?? RIVAL_CARS["street"]!; return list[r % list.length]!; };
 
 /** In-world race dressing. Principles: the course is the world (roads, ruins, paths); only the NEXT few gates are marked, by region-appropriate objects
  * (holo gates in the city, lantern posts in forests and swamps, banner flags in the deserts, ice markers on the mountain, buoys underwater) with a faint
@@ -20,7 +36,8 @@ const GATES_SHOWN = 4;
 const ARROWS = 6;
 const OBSTACLES_SHOWN = 6;
 
-function RivalModel({ mode, color }: { mode: RaceDef["mode"]; color: THREE.Color }) {
+function RivalModel({ mode, color, car, paint, speed }: { mode: RaceDef["mode"]; color: THREE.Color; car?: FleetModelId | undefined; paint?: string | undefined; speed?: { current: number } | undefined }) {
+  if (mode === "vehicle" && car) return <AuthoredVehicle model={FLEET_MODELS[car]} paint={paint} shadows={false} lights {...(speed ? { speedRef: speed } : {})} />;
   if (mode === "vehicle") return (
     <group>
       <mesh position={[0, 0.55, 0]}><boxGeometry args={[1.9, 0.6, 4.2]} /><meshStandardMaterial color={color} metalness={0.6} roughness={0.4} /></mesh>
@@ -62,6 +79,7 @@ export const RaceCourse = memo(function RaceCourse({ race, run }: { race: RaceDe
   const gates = useRef<(THREE.Group | null)[]>([]), rivals = useRef<(THREE.Group | null)[]>([]);
   const arrows = useRef<(THREE.Group | null)[]>([]), rocks = useRef<(THREE.Group | null)[]>([]), startLine = useRef<THREE.Group | null>(null);
   const obstacles = useMemo(() => raceObstacles(race), [race]);
+  const rivalSpeed = useMemo(() => Array.from({ length: race.rivals }, () => ({ current: 0 })), [race.rivals]);
   const width = race.mode === "foot" ? 7 : race.mode === "dive" ? 14 : 16;
   const rivalCount = race.rivals;
   const rivalColors = useMemo(() => Array.from({ length: rivalCount }, (_, i) => new THREE.Color().setHSL((i * 0.17 + 0.05) % 1, 0.7, 0.55)), [rivalCount]);
@@ -113,6 +131,7 @@ export const RaceCourse = memo(function RaceCourse({ race, run }: { race: RaceDe
       g.visible = run.phase === "countdown" || run.phase === "running";
       g.position.set(p.x, p.depth !== undefined ? p.depth : walkHeight(p.x, p.z) + (race.mode === "vehicle" ? 0 : 0.4), p.z);
       const q = ahead[r]; if (q && Math.hypot(q.x - p.x, q.z - p.z) > 0.01) g.rotation.y = Math.atan2(q.x - p.x, q.z - p.z); // face the way they're going
+      const sp = rivalSpeed[r]; if (sp) sp.current = q && run.phase === "running" ? Math.hypot(q.x - p.x, q.z - p.z) / 0.15 : 0; // wheels roll at their pace
     }
   });
   return (
@@ -141,7 +160,7 @@ export const RaceCourse = memo(function RaceCourse({ race, run }: { race: RaceDe
       ))}
       {Array.from({ length: rivalCount }, (_, r) => (
         <group name="race-rival" key={r} ref={(el) => { rivals.current[r] = el; }} visible={false}>
-          <RivalModel mode={race.mode} color={rivalColor(r)} />
+          <RivalModel mode={race.mode} color={rivalColor(r)} car={race.mode === "vehicle" ? rivalCar(race, r) : undefined} paint={RIVAL_PAINT[r % RIVAL_PAINT.length]} speed={rivalSpeed[r]} />
         </group>
       ))}
     </group>
