@@ -147,7 +147,6 @@ function Venue({ name, pal }: { name: string; pal: Pal }) {
     {Array.from({ length: 14 }, (_, i) => <mesh key={i} position={[-8.5 + i * 1.3, 7.8, 6.2]} material={bulbs}><sphereGeometry args={[0.14, 6, 4]} /></mesh>)}
     <Box p={[0, 1.6, 6.05]} s={[2.6, 3.2, 0.1]} m={M("#1a0c0c", 0.6)} />
     <pointLight position={[0, 6, 9]} color={pal.accent} intensity={14} distance={26} decay={2} />
-    <title>{name}</title>
   </group>;
 }
 const WRECK_MODELS: FleetModelId[] = ["muscle-car", "offroad-truck", "luxury-sedan", "tuner", "armored-muscle", "raider-buggy"];
