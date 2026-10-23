@@ -93,11 +93,32 @@ export function groundDetailTextures() {
  * where the grain should read as rock speckle across one instance, not hundreds of tiny tiles. */
 export function propDetailTextures(repeat = 3) {
   const base = groundDetailTextures();
-  const map = base.map.clone();
+  // The ground grain is a mid-grey sRGB texture: used as a prop's `map` it multiplied every rock, trunk and canopy by ~0.22
+  // (sRGB 128 decodes to linear 0.22), which is why procedural rocks and trees rendered nearly black. Props get a brightened,
+  // linear copy instead: speckle between ~0.75 and 1.0, so the material's own colour survives.
+  const map = brightDetail(base.map);
   const normalMap = base.normalMap.clone();
   map.repeat.set(repeat, repeat);
   normalMap.repeat.set(repeat, repeat);
   map.needsUpdate = true;
   normalMap.needsUpdate = true;
   return { map, normalMap };
+}
+
+let bright: THREE.CanvasTexture | null = null;
+function brightDetail(src: THREE.CanvasTexture): THREE.CanvasTexture {
+  if (!bright) {
+    const img = src.image as HTMLCanvasElement;
+    const c = document.createElement("canvas"); c.width = img.width; c.height = img.height;
+    const g = c.getContext("2d")!; g.drawImage(img, 0, 0);
+    const d = g.getImageData(0, 0, c.width, c.height);
+    for (let i = 0; i < d.data.length; i += 4) { const v = Math.round(Math.min(255, 228 + (d.data[i]! - 128) * 0.42)); d.data[i] = d.data[i + 1] = d.data[i + 2] = v; }
+    g.putImageData(d, 0, 0);
+    bright = new THREE.CanvasTexture(c);
+    bright.wrapS = bright.wrapT = THREE.RepeatWrapping;
+    bright.colorSpace = THREE.NoColorSpace;
+  }
+  const t = bright.clone();
+  t.needsUpdate = true;
+  return t;
 }

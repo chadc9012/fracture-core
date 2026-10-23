@@ -16,7 +16,7 @@ export function ForestAssetStatus() {
   const failed = sum.failed.length > 0;
   if (sum.settled && !failed && sum.ok === sum.total) return null;
   return (
-    <div role="status" style={{ position: "fixed", left: 12, bottom: 12, zIndex: 20, pointerEvents: "none", padding: "6px 10px", borderRadius: 6, font: "12px/1.3 ui-monospace, monospace", color: failed ? "#ffd2a8" : "#bfe9ff", background: "rgba(8,14,20,0.72)", border: `1px solid ${failed ? "#ff9a4a" : "#39b6ff"}55` }}>
+    <div role="status" style={{ position: "fixed", left: "50%", transform: "translateX(-50%)", top: 64, zIndex: 20, pointerEvents: "none", padding: "6px 10px", borderRadius: 6, font: "12px/1.3 ui-monospace, monospace", color: failed ? "#ffd2a8" : "#bfe9ff", background: "rgba(8,14,20,0.72)", border: `1px solid ${failed ? "#ff9a4a" : "#39b6ff"}55` }}>
       {sum.settled
         ? `Forest assets missing: ${sum.failed.join(", ")} — using fallback scenery`
         : `Loading forest assets ${sum.ok + sum.failed.length}/${sum.total}…`}

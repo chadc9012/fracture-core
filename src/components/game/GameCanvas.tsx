@@ -137,7 +137,7 @@ import { DescentProtocolOverlay } from "./DescentProtocolOverlay";
 import { AIRLOCK_REACH, REACTOR_REACH } from "@/game/thalassia-sectors";
 import { advanceMission as advanceSystemCore, SYSTEM_CORE, type MissionEvent as SystemCoreEvent, type MissionRun as SystemCoreRun } from "@/game/missions/system-core";
 import { SystemCoreOverlay } from "./SystemCoreOverlay";
-import { gameTick, reconcileQuests, survivalTickIsNoop, QUESTS } from "@/game/quests";
+import { finishActiveQuest, gameTick, reconcileQuests, survivalTickIsNoop, QUESTS } from "@/game/quests";
 import { QuestTracker } from "./QuestTracker";
 import { dialogueFor, revisitDialogueFor, type DialogueLine } from "@/game/dialogue";
 import { DialogueOverlay } from "./DialogueOverlay";
@@ -778,7 +778,9 @@ export function GameCanvas() {
     };
     const we = window as unknown as { __missionEvent?: (id: string, event: unknown) => string };
     we.__missionEvent = (id, event) => { const r = devRecorders.current[id]; if (!r) return "unknown mission"; r(event as never); return "ok"; };
-    return () => { delete w.__missions; delete we.__missionEvent; };
+    const wq = window as unknown as { __questFinish?: () => string };
+    wq.__questFinish = () => { const q = progressionRef.current.activeQuestId; setProgression((p) => finishActiveQuest(p)); return q ?? "none"; };
+    return () => { delete w.__missions; delete we.__missionEvent; delete (window as unknown as { __questFinish?: unknown }).__questFinish; };
   }, []);
 
   /* Cross-world quest engine: HUD already reports region/heat/lockdown/hack/dive state every ~0.18s

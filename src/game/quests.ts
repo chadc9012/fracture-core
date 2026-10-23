@@ -267,6 +267,14 @@ export function updateWorldState(progression: PlayerProgression, event: QuestEve
 }
 
 /** Rewards a finished quest and advances the chain. Guarded so a quest can never pay out twice. */
+/** dev fast-track (GameCanvas `__questFinish`, ?dev=1 only): finish the active quest's objectives through the normal tick, so
+ * rewards, unlocks and the next quest follow exactly as in play */
+export function finishActiveQuest(progression: PlayerProgression): PlayerProgression {
+  const quest = activeQuest(progression);
+  if (!quest) return progression;
+  const done = { ...progression, questObjectiveProgress: { ...progression.questObjectiveProgress, [quest.id]: quest.objectives.map((o) => o.amount) } };
+  return updateWorldState(reconcileQuests(completeQuest(done, quest)), { type: "MISSION_COMPLETE", missionId: quest.id });
+}
 function completeQuest(progression: PlayerProgression, quest: Quest): PlayerProgression {
   if (progression.completedMissions.includes(quest.id)) return progression;
   let next: PlayerProgression = {
