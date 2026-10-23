@@ -177,10 +177,16 @@
  * texture, reused across HUD.tsx/Tracker.tsx/Minimap.tsx so every readout shares one frame language
  * instead of each panel drawing its own plain border. Built from the existing --primary/--destructive/
  * --warning tokens (already a cyan-family hue) rather than a new palette. */
+/* Face lift: panels are smoked glass that fades to the right (no full box outline), a single accent edge on the left,
+ * a hairline highlight on top, a soft blur behind, and the display face (Rajdhani) for anything not set in mono. */
 @utility hud-panel {
-  clip-path: polygon(9px 0, 100% 0, 100% calc(100% - 9px), calc(100% - 9px) 100%, 0 100%, 0 9px);
-  background: color-mix(in oklch, var(--background) 84%, transparent);
-  border: 1px solid color-mix(in oklch, var(--primary) 42%, transparent);
+  clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
+  background: linear-gradient(100deg, color-mix(in oklch, var(--background) 78%, transparent), color-mix(in oklch, var(--background) 46%, transparent) 72%, color-mix(in oklch, var(--background) 26%, transparent));
+  border: 0;
+  box-shadow: inset 2px 0 0 color-mix(in oklch, var(--primary) 70%, transparent), inset 0 1px 0 color-mix(in oklch, var(--foreground) 9%, transparent);
+  backdrop-filter: blur(6px) saturate(1.1);
+  font-family: var(--wf-display);
+  text-shadow: 0 1px 2px rgb(0 0 0 / 0.55);
 }
 
 @utility hud-glow {
@@ -213,8 +219,10 @@
 }
 
 @utility hud-label {
-  font-size: 9px;
-  letter-spacing: 0.22em;
+  font-family: var(--wf-display);
+  font-weight: 600;
+  font-size: 10px;
+  letter-spacing: 0.2em;
   text-transform: uppercase;
   color: color-mix(in oklch, var(--primary) 80%, var(--foreground) 20%);
 }
@@ -545,3 +553,8 @@
 
 /* title logo (trailer "title reveal"): heavy display face, white with a violet-cyan fracture glow */
 .wf-logo { font-family: var(--wf-display), ui-sans-serif, system-ui; text-shadow: 0 0 2px #fff, 0 0 18px rgba(168, 102, 255, 0.85), 0 0 42px rgba(95, 216, 255, 0.45), 3px 0 0 rgba(255, 60, 200, 0.35), -3px 0 0 rgba(60, 220, 255, 0.35); }
+
+/* cinematic subtitles: no box — speaker in the accent colour, the line in large display type with a soft shadow band */
+.voice-subtitle { text-align: center; background: radial-gradient(ellipse at center, rgb(0 0 0 / 0.45), transparent 72%); padding: 0.6rem 1.5rem 0.8rem; }
+.voice-subtitle .vs-speaker { font: 600 11px/1 var(--wf-display); letter-spacing: 0.28em; text-transform: uppercase; color: var(--wf-ice); text-shadow: 0 0 12px rgb(56 196 232 / 0.5); }
+.voice-subtitle .vs-line { margin-top: 0.35rem; font: 500 1.15rem/1.35 var(--wf-display); letter-spacing: 0.02em; color: #f3f7fa; text-shadow: 0 2px 6px rgb(0 0 0 / 0.85), 0 0 2px rgb(0 0 0 / 0.9); }

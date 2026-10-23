@@ -49,6 +49,14 @@ export function applySurfaceBlend(mat: THREE.MeshStandardMaterial, textures: THR
       .replace("#include <begin_vertex>", "#include <begin_vertex>\nvWA = wA; vWB = wB; vSurfUv = position.xy / 9.0; vGroundW = (modelMatrix * vec4(transformed, 1.0)).xyz;");
     shader.fragmentShader = shader.fragmentShader
       .replace("#include <common>", `#include <common>\n${textures.map((_, i) => `uniform sampler2D uSurf${i};${relief ? ` uniform sampler2D uSurfN${i};` : ""}`).join("\n")}\nvarying vec3 vWA; varying vec3 vWB; varying vec2 vSurfUv; varying vec3 vGroundW; uniform float uGroundTime;
+      // anti-tiling: every surface is sampled at its 9 m tile and again at a rotated ~33 m tile, mixed by a slow world
+      // noise, so the ground stops showing a repeating stamp; a broad brightness variation breaks up large flats
+      float wfHash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+      float wfNoise(vec2 p) { vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f);
+        return mix(mix(wfHash(i), wfHash(i + vec2(1.0, 0.0)), f.x), mix(wfHash(i + vec2(0.0, 1.0)), wfHash(i + vec2(1.0, 1.0)), f.x), f.y); }
+      vec3 wfSurf(sampler2D s, vec2 a, vec2 adx, vec2 ady, vec2 b, vec2 bdx, vec2 bdy, float k) {
+        return mix(textureGrad(s, a, adx, ady).rgb, textureGrad(s, b, bdx, bdy).rgb, k);
+      }
       float causticLayer(vec2 p, float t) {
         vec2 q = p + vec2(sin(p.y * 1.3 + t), cos(p.x * 1.1 - t * 0.8)) * 0.9;
         return pow(abs(sin(q.x) * sin(q.y)), 0.35);
@@ -57,13 +65,22 @@ export function applySurfaceBlend(mat: THREE.MeshStandardMaterial, textures: THR
       // branches so mip selection stays correct where neighbouring pixels take different branches
       .replace("#include <color_fragment>", `#include <color_fragment>
       vec2 sdx = dFdx(vSurfUv), sdy = dFdy(vSurfUv);
+      const mat2 wfRot = mat2(0.8, -0.6, 0.6, 0.8);
+      vec2 uvB = wfRot * vSurfUv * 0.27 + 0.37, bdx = wfRot * sdx * 0.27, bdy = wfRot * sdy * 0.27;
+      float wfK = 0.25 + 0.5 * smoothstep(0.25, 0.75, wfNoise(vGroundW.xz * 0.011));
       vec3 surf = vec3(0.0);
-      if (vWA.x > 0.004) surf += textureGrad(uSurf0, vSurfUv, sdx, sdy).rgb * vWA.x;
-      if (vWA.y > 0.004) surf += textureGrad(uSurf1, vSurfUv, sdx, sdy).rgb * vWA.y;
-      if (vWA.z > 0.004) surf += textureGrad(uSurf2, vSurfUv, sdx, sdy).rgb * vWA.z;
-      if (vWB.x > 0.004) surf += textureGrad(uSurf3, vSurfUv, sdx, sdy).rgb * vWB.x;
-      if (vWB.y > 0.004) surf += textureGrad(uSurf4, vSurfUv, sdx, sdy).rgb * vWB.y;
-      if (vWB.z > 0.004) surf += textureGrad(uSurf5, vSurfUv, sdx, sdy).rgb * vWB.z;
+      if (vWA.x > 0.004) surf += wfSurf(uSurf0, vSurfUv, sdx, sdy, uvB, bdx, bdy, wfK) * vWA.x;
+      if (vWA.y > 0.004) surf += wfSurf(uSurf1, vSurfUv, sdx, sdy, uvB, bdx, bdy, wfK) * vWA.y;
+      if (vWA.z > 0.004) surf += wfSurf(uSurf2, vSurfUv, sdx, sdy, uvB, bdx, bdy, wfK) * vWA.z;
+      if (vWB.x > 0.004) surf += wfSurf(uSurf3, vSurfUv, sdx, sdy, uvB, bdx, bdy, wfK) * vWB.x;
+      if (vWB.y > 0.004) surf += wfSurf(uSurf4, vSurfUv, sdx, sdy, uvB, bdx, bdy, wfK) * vWB.y;
+      if (vWB.z > 0.004) surf += wfSurf(uSurf5, vSurfUv, sdx, sdy, uvB, bdx, bdy, wfK) * vWB.z;
+      // steep ground shows bare rock (the rock surface) instead of stretched grass, sand or ash
+      vec3 wfN = normalize(cross(dFdx(vGroundW), dFdy(vGroundW)));
+      float wfSteep = smoothstep(0.32, 0.62, 1.0 - abs(wfN.y)) * (1.0 - vWA.y) * (1.0 - vWB.x * 0.6);
+      if (wfSteep > 0.01) surf = mix(surf, wfSurf(uSurf1, vSurfUv * 0.6, sdx * 0.6, sdy * 0.6, uvB, bdx, bdy, wfK) * vec3(0.92, 0.9, 0.88), wfSteep);
+      // broad light/dark patches (soil moisture, wear) so big flats aren't one even tone
+      surf *= 0.86 + 0.28 * wfNoise(vGroundW.xz * 0.035 + 7.0);
       // Texture albedo is authored in sRGB and decoded by the renderer. Preserve
       // the vertex biome tint without amplifying highlights into clipping.
       // Keep a little vertex colour for wet/steep transitions and distant LODs.
