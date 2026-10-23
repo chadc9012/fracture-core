@@ -10,6 +10,10 @@ import mud from "@/assets/polyhaven/brown_mud_02.jpg.asset.json";
 
 /** Poly Haven (CC0) ground surfaces, slot order matches the shader weights (wA = 0..2, wB = 3..5). */
 export const GROUND_SURFACES = [forest.url, rocks.url, sand.url, snow.url, burned.url, mud.url] as const;
+/** relief for the same six surfaces (scripts/build-textures.py: high-passed from each albedo's own detail), same slot order */
+export const GROUND_NORMALS = ["forest_ground_04", "aerial_rocks_02", "coast_sand_01", "snow_02", "burned_ground_01", "brown_mud_02"].map((n) => `/textures/ground/${n}_nrm.jpg`);
+/** per-surface roughness (forest litter, rock, dry sand, packed snow, ash, wet mud) */
+export const GROUND_ROUGHNESS = [0.96, 0.84, 0.93, 0.62, 0.9, 0.52] as const;
 export const REGION_SURFACE: Record<string, number> = { veridan: 0, nexus: 1, wastelands: 1, solara: 2, frostspire: 3, ember: 4, swamps: 5 };
 const DEFAULT_SURFACE = 1;
 
@@ -33,15 +37,18 @@ export const groundTime = { value: 0 };
 
 /** Patches a vertex-coloured standard material to blend the six surfaces by wA/wB attributes. Ground below the waterline
  * also gets sunlight caustics: two drifting interference layers, strongest just under the surface and gone by ~24 m. */
-export function applySurfaceBlend(mat: THREE.MeshStandardMaterial, textures: THREE.Texture[]) {
+export function applySurfaceBlend(mat: THREE.MeshStandardMaterial, textures: THREE.Texture[], normals: THREE.Texture[] | null = null) {
+  const relief = !!normals && normals.length === textures.length && !!mat.normalMap;
+  mat.customProgramCacheKey = () => `surface-blend|${relief ? "relief" : "flat"}`;
   mat.onBeforeCompile = (shader) => {
     textures.forEach((t, i) => { shader.uniforms[`uSurf${i}`] = { value: t }; });
+    if (relief) normals!.forEach((t, i) => { shader.uniforms[`uSurfN${i}`] = { value: t }; });
     shader.uniforms["uGroundTime"] = groundTime;
     shader.vertexShader = shader.vertexShader
       .replace("#include <common>", "#include <common>\nattribute vec3 wA; attribute vec3 wB; varying vec3 vWA; varying vec3 vWB; varying vec2 vSurfUv; varying vec3 vGroundW;")
       .replace("#include <begin_vertex>", "#include <begin_vertex>\nvWA = wA; vWB = wB; vSurfUv = position.xy / 9.0; vGroundW = (modelMatrix * vec4(transformed, 1.0)).xyz;");
     shader.fragmentShader = shader.fragmentShader
-      .replace("#include <common>", `#include <common>\n${textures.map((_, i) => `uniform sampler2D uSurf${i};`).join("\n")}\nvarying vec3 vWA; varying vec3 vWB; varying vec2 vSurfUv; varying vec3 vGroundW; uniform float uGroundTime;
+      .replace("#include <common>", `#include <common>\n${textures.map((_, i) => `uniform sampler2D uSurf${i};${relief ? ` uniform sampler2D uSurfN${i};` : ""}`).join("\n")}\nvarying vec3 vWA; varying vec3 vWB; varying vec2 vSurfUv; varying vec3 vGroundW; uniform float uGroundTime;
       float causticLayer(vec2 p, float t) {
         vec2 q = p + vec2(sin(p.y * 1.3 + t), cos(p.x * 1.1 - t * 0.8)) * 0.9;
         return pow(abs(sin(q.x) * sin(q.y)), 0.35);
@@ -70,6 +77,24 @@ export function applySurfaceBlend(mat: THREE.MeshStandardMaterial, textures: THR
         c = smoothstep(0.55, 0.95, c);
         float fade = smoothstep(0.0, 0.6, depthUnder) * (1.0 - smoothstep(6.0, 24.0, depthUnder));
         diffuseColor.rgb *= 1.0 + c * 0.9 * fade;
+      }`)
+      .replace("#include <roughnessmap_fragment>", `#include <roughnessmap_fragment>
+      roughnessFactor = dot(vWA, vec3(${GROUND_ROUGHNESS.slice(0, 3).map((r) => r.toFixed(2)).join(", ")})) + dot(vWB, vec3(${GROUND_ROUGHNESS.slice(3).map((r) => r.toFixed(2)).join(", ")}));
+      roughnessFactor = clamp(roughnessFactor, 0.4, 1.0);`);
+    if (relief) shader.fragmentShader = shader.fragmentShader.replace("#include <normal_fragment_maps>", `#include <normal_fragment_maps>
+      {
+        // surface relief: each surface's own normal map, blended by the same weights as its colour, on top of the fine detail
+        vec3 gN = vec3(0.0);
+        if (vWA.x > 0.004) gN += (textureGrad(uSurfN0, vSurfUv, sdx, sdy).xyz * 2.0 - 1.0) * vWA.x;
+        if (vWA.y > 0.004) gN += (textureGrad(uSurfN1, vSurfUv, sdx, sdy).xyz * 2.0 - 1.0) * vWA.y;
+        if (vWA.z > 0.004) gN += (textureGrad(uSurfN2, vSurfUv, sdx, sdy).xyz * 2.0 - 1.0) * vWA.z;
+        if (vWB.x > 0.004) gN += (textureGrad(uSurfN3, vSurfUv, sdx, sdy).xyz * 2.0 - 1.0) * vWB.x;
+        if (vWB.y > 0.004) gN += (textureGrad(uSurfN4, vSurfUv, sdx, sdy).xyz * 2.0 - 1.0) * vWB.y;
+        if (vWB.z > 0.004) gN += (textureGrad(uSurfN5, vSurfUv, sdx, sdy).xyz * 2.0 - 1.0) * vWB.z;
+        gN.xy *= 1.15;
+        gN.z = max(gN.z, 0.05);
+        mat3 gTbn = getTangentFrame(-vViewPosition, normal, vSurfUv);
+        normal = normalize(gTbn * normalize(gN));
       }`);
   };
   mat.needsUpdate = true;
@@ -88,4 +113,15 @@ export function loadGroundSurfaces(): Promise<THREE.Texture[] | null> {
     return null;
   });
   return pending;
+}
+
+let pendingNormals: Promise<THREE.Texture[] | null> | null = null;
+/** Loads the six relief maps once (linear data, not colour); resolves null on any failure so the ground keeps its flat look. */
+export function loadGroundNormals(): Promise<THREE.Texture[] | null> {
+  if (pendingNormals) return pendingNormals;
+  const loader = new THREE.TextureLoader();
+  pendingNormals = Promise.all(GROUND_NORMALS.map((url) => loader.loadAsync(url).then((t) => {
+    t.wrapS = t.wrapT = THREE.RepeatWrapping; t.colorSpace = THREE.NoColorSpace; t.generateMipmaps = true; t.minFilter = THREE.LinearMipmapLinearFilter; t.anisotropy = 4; return t;
+  }))).catch(() => { pendingNormals = null; return null; });
+  return pendingNormals;
 }

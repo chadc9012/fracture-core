@@ -71,7 +71,8 @@ describe("destination services", () => {
       expect(ds.length).toBeGreaterThanOrEqual(3);
       for (const k of ds) expect(Math.hypot(k.x - d.x, k.z - d.z)).toBeLessThan((d.reach ?? 400) + 10);
     }
-    expect(cityDistricts(destinationById("veridan")!).length).toBe(0);
+    // wilderness regions show the board's named sites (region-atlas.ts)
+    expect(cityDistricts(destinationById("veridan")!).map((k) => k.name)).toContain("Lumina Falls");
   });
   test("the summary adds up with the lists", () => {
     const p = fresh();

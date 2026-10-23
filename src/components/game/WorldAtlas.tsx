@@ -261,6 +261,7 @@ function RaceList({ races, progression, pick, onPick, onStart, activeId }: { rac
 /* ------------------------------------------------------------------ destination map pieces */
 const HEX = (r: number) => Array.from({ length: 6 }, (_, i) => { const a = Math.PI / 6 + (i * Math.PI) / 3; return `${(Math.cos(a) * r).toFixed(2)},${(Math.sin(a) * r).toFixed(2)}`; }).join(" ");
 const districtGlyph = (k: CityDistrict) => {
+  if (k.glyph) return k.glyph;
   const t = `${k.id} ${k.name} ${k.tagline}`.toLowerCase();
   return /market|shop|vendor|bazaar/.test(t) ? "◆" : /home|residen|housing|arcology|loft/.test(t) ? "⌂" : /dock|ship|port|harbo/.test(t) ? "⚓" : /spire|tower|core|command/.test(t) ? "▲" : /race|track|muck/.test(t) ? "⚑" : /trench|deep|ring|contain/.test(t) ? "◎" : "⬡";
 };

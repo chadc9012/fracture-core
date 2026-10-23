@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { BLOCK, CITY_INNER, CITY_OUTER, NEXUS, blocks, buildings, districtAt, lamps, parkedCars } from "./nexus-districts";
+import { BLOCK, CITY_INNER, CITY_OUTER, NEXUS, blocks, buildings, districtAt, facadeKit, lamps, parkedCars, streetLights } from "./nexus-districts";
 import { distanceToRoad, LANE_HALF_WIDTH } from "./lanes";
 import { heightAt, WATER_LEVEL } from "./terrain";
 
@@ -36,5 +36,26 @@ describe("Nexus districts", () => {
   test("lamps and parked cars are off the supply roads", () => {
     for (const l of lamps()) expect(distanceToRoad(l.x, l.z)).toBeGreaterThan(LANE_HALF_WIDTH - 3);
     for (const c of parkedCars()) expect(distanceToRoad(c.x, c.z)).toBeGreaterThanOrEqual(LANE_HALF_WIDTH);
+  });
+});
+
+describe("facade kit", () => {
+  const all = buildings;
+  test("ledges and fins stay on their building, shopfronts sit at street level, every building has a plinth", () => {
+    const bs = all(); const kit = facadeKit(bs);
+    expect(kit.plinths.length).toBe(bs.length);
+    expect(kit.ledges.length).toBeGreaterThan(20);
+    expect(kit.fins.length).toBeGreaterThan(50);
+    expect(kit.shopfronts.length).toBeGreaterThan(10);
+    for (const l of kit.ledges) expect(bs.some((b) => Math.abs(b.x - l.x) < 0.01 && Math.abs(b.z - l.z) < 0.01 && l.y < b.top)).toBe(true);
+    for (const s of kit.shopfronts) { const b = bs.find((k) => Math.abs(k.x - s.x) <= k.w / 2 + 0.2 && Math.abs(k.z - s.z) <= k.d / 2 + 0.2)!; expect(b).toBeTruthy(); expect(s.y - (b.base + 1)).toBeLessThan(3); }
+  });
+});
+
+describe("street lights", () => {
+  test("two per block face on the pavement, never on water or a supply road", () => {
+    const ls = streetLights();
+    expect(ls.length).toBeGreaterThan(blocks().length * 4);
+    for (const l of ls) { expect(heightAt(l.x, l.z)).toBeGreaterThan(WATER_LEVEL); expect(distanceToRoad(l.x, l.z)).toBeGreaterThanOrEqual(LANE_HALF_WIDTH); }
   });
 });

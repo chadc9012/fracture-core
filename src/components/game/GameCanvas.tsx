@@ -158,6 +158,7 @@ import { recapDue, recapLine } from "@/game/retention";
 import { localSavedAt } from "@/game/cloud-save";
 import { lootCaches, openCache, isOpenedToday, RARITY_HEX } from "@/game/loot-caches";
 import { HudRail, HudRails } from "./HudRail";
+import { SiteBanner } from "./SiteBanner";
 
 // Keep gameplay optics crisp: chromatic fringing is a barely-visible edge accent, not a constant blur.
 const CA_OFFSET = new THREE.Vector2(0.00025, 0.00025);
@@ -1496,6 +1497,7 @@ export function GameCanvas() {
        {shopOpen && <ShopWindow shopId={shopOpen} progression={progression} onProgression={setProgression} onClose={() => setShopOpen(null)} />}
        {characterOpen && <CharacterScreen progression={progression} onProgression={setProgression} classId={cls} subclassId={subclass} appearance={appearance} onAppearance={setAppearance} onClose={() => setCharacterOpen(false)} onInventory={() => { setCharacterOpen(false); setInventoryOpen(true); }} onSettings={() => { setCharacterOpen(false); setMenuOpen(true); }} />}
        {inventoryOpen && <InventoryWindow progression={progression} onProgression={setProgression} onClose={() => setInventoryOpen(false)} classId={cls} appearance={appearance} />}
+       {phase === "world" && <SiteBanner x={hud.px} z={hud.pz} hidden={atlasOpen || !!landmarkToast || menuOpen} />}
        {landmarkToast && !atlasOpen && <HudRail side="left" order={0}><div className="pointer-events-none absolute left-1/2 top-28 z-30 w-[min(26rem,86vw)] -translate-x-1/2 border-l-2 border-primary bg-background/80 px-3 py-2" role="status"><p className="font-mono text-[9px] uppercase tracking-[0.3em] text-primary">Landmark discovered</p><p className="text-sm font-semibold">{landmarkToast.name}</p><p className="mt-0.5 text-[11px] text-muted-foreground">{landmarkToast.history}</p></div></HudRail>}
        {atlasOpen && <WorldAtlas onStartRace={startRace} activeActivityId={activity?.def.id ?? null} progression={progression} markers={hud.markers} px={hud.px} pz={hud.pz} currentRegion={hud.region} phase={hud.phase} onClose={() => setAtlasOpen(false)} onProgression={setProgression} onTravel={(a) => { setAtlasOpen(false); startTransit({ id: a.id, name: a.name, sub: ACTIVITY_LABEL[a.kind], color: ACTIVITY_COLOR[a.kind], x: a.drop.x, z: a.drop.z, ...(a.drop.y !== undefined ? { y: a.drop.y } : {}) }); }} />}
       {awakening && <AwakeningOverlay run={awakening} onEvent={recordAwakening} />}

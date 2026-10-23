@@ -10,7 +10,8 @@ import { MODELS, type ModelKey } from "@/game/models";
 import type { PlayerProgression } from "@/game/progression";
 import { setWalls, clearWalls } from "@/game/walls";
 import { registerDeck } from "@/game/district-decks";
-import { Car, QuietModel } from "./Vehicle";
+import { AuthoredVehicle } from "./AuthoredVehicle";
+import { vehicleModelFor, type FleetModel } from "@/game/fleet-models";
 import { mergeByMat } from "./ResidentialHomes";
 
 /**
@@ -36,11 +37,11 @@ export function ResidenceGarages({ city, progression }: { city: "nexus" | "neon"
   if (!homes.length) return null;
   return <group name={`garages-${city}`}>
     {shells.map((m) => <primitive key={m.name} object={m} />)}
-    {homes.map((h) => <HomeGarage key={h.id} id={h.id} g={h.garage!} owned={ownsDeed(progression, h.id)} parked={parkedIn(progression, h.id)} />)}
+    {homes.map((h) => <HomeGarage key={h.id} id={h.id} g={h.garage!} owned={ownsDeed(progression, h.id)} parked={parkedIn(progression, h.id)} paints={progression.fleet?.paint ?? {}} />)}
   </group>;
 }
 
-function HomeGarage({ id, g, owned, parked }: { id: string; g: Garage; owned: boolean; parked: string[] }) {
+function HomeGarage({ id, g, owned, parked, paints }: { id: string; g: Garage; owned: boolean; parked: string[]; paints: Record<string, string> }) {
   const camera = useThree((s) => s.camera);
   const doors = useRef<(THREE.Group | null)[]>([]);
   const open = useRef<number[]>(Array.from({ length: g.bays }, () => 0));
@@ -77,28 +78,19 @@ function HomeGarage({ id, g, owned, parked }: { id: string; g: Garage; owned: bo
         <mesh material={owned ? okLamp : noLamp} position={[x, DOOR_H + 0.25, GARAGE_D / 2 + 0.02]}><boxGeometry args={[0.36, 0.08, 0.04]} /></mesh>
       </group>;
     })}
-    {parked.slice(0, g.bays).map((v, i) => <ParkedVehicle key={v} fleetId={v} x={bayX(g, i)} />)}
+    {parked.slice(0, g.bays).map((v, i) => <ParkedVehicle key={v} fleetId={v} x={bayX(g, i)} paint={paints[v]} />)}
   </group>;
 }
 
-/** a parked fleet vehicle, scaled down if it has to be to fit the bay (the game's drivable scales are generous) */
-function ParkedVehicle({ fleetId, x }: { fleetId: string; x: number }) {
+/** a parked fleet vehicle: its authored model with its saved paint, scaled down if it has to be to fit the bay */
+const KIND_SIZE: Record<FleetModel["kind"], [number, number]> = { car: [2.1, 5.0], bike: [1.0, 2.6], heavy: [3.6, 9.4], air: [9.6, 11], boat: [3.2, 7.4] };
+function ParkedVehicle({ fleetId, x, paint }: { fleetId: string; x: number; paint?: string | undefined }) {
   const f = fleetById(fleetId);
   if (!f) return null;
-  const v = vehicleById(f.base);
-  return <QuietModel url={MODELS[v.model]} fallback={null}><Suspense fallback={null}><Fitted body={v.model} scale={v.modelScale} x={x} /></Suspense></QuietModel>;
-}
-function Fitted({ body, scale, x }: { body: ModelKey; scale: number; x: number }) {
-  const { scene } = useGLTF(MODELS[body]);
-  const wheel = useGLTF(MODELS.wheel).scene;
-  const { fit, lift } = useMemo(() => {
-    const b = new THREE.Box3().setFromObject(scene), w = b.max.x - b.min.x, l = b.max.z - b.min.z;
-    const wb = new THREE.Box3().setFromObject(wheel);
-    const fit = Math.min(scale, (BAY_W - 0.7) / Math.max(0.01, w), (GARAGE_D - 1.2) / Math.max(0.01, l));
-    // wheels sit at the body origin (Vehicle.tsx WHEEL_OFFSETS y 0): stand them on the floor
-    return { fit, lift: Math.max(-b.min.y, -wb.min.y, 0) * fit };
-  }, [scene, wheel, scale]);
-  return <group position={[x, lift, 0.2]}><Car body={body} scale={fit} lights={false} /></group>;
+  const model = vehicleModelFor(f.base, f.id);
+  const [w, l] = KIND_SIZE[model.kind];
+  const fit = Math.min(1, (BAY_W - 0.7) / (w * model.scale), (GARAGE_D - 1.2) / (l * model.scale));
+  return <group position={[x, 0, 0.2]} scale={fit}><AuthoredVehicle model={model} paint={paint ?? null} /></group>;
 }
 
 export { bayPose, garageWidth };

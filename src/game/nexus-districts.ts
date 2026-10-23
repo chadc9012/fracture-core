@@ -128,3 +128,67 @@ export function parkedCars(): Car[] {
   }
   return out;
 }
+
+/** Facade articulation (pure): real geometry that breaks up each building box so the skyline reads as architecture,
+ * not blocks — floor ledges on concrete buildings every other floor, vertical mullion fins on glass towers, a lit
+ * shopfront band with an awning on the street faces of low/mid-rise lots, and a dark stone plinth on every building.
+ * Each piece is an axis-aligned box (x, y, z centre; sx, sy, sz size) drawn instanced by NexusDistricts.tsx. */
+export type FacadeBox = { x: number; y: number; z: number; sx: number; sy: number; sz: number; tint: number };
+export type FacadeKit = { ledges: FacadeBox[]; fins: FacadeBox[]; shopfronts: FacadeBox[]; awnings: FacadeBox[]; plinths: FacadeBox[] };
+export const SHOP_TINTS = ["#ff4fa8", "#38e8ff", "#ffb347", "#9d6bff", "#5dff9a", "#ff6a3d"] as const;
+
+export function facadeKit(list: Building[] = buildings()): FacadeKit {
+  const rnd = mulberry32(0xfaca);
+  const kit: FacadeKit = { ledges: [], fins: [], shopfronts: [], awnings: [], plinths: [] };
+  for (const b of list) {
+    const ground = b.base + 1; // buildings are sunk 1 m below their lowest corner
+    const bodyTop = b.crown ? b.base + (b.top - b.base) * 0.78 : b.top;
+    kit.plinths.push({ x: b.x, y: ground + 1.6, z: b.z, sx: b.w + 0.3, sy: 4.2, sz: b.d + 0.3, tint: 0 });
+    if (b.style === "concrete") {
+      for (let f = 2; f * FLOOR + ground < bodyTop - 1; f += 2) kit.ledges.push({ x: b.x, y: ground + f * FLOOR, z: b.z, sx: b.w + 0.6, sy: 0.28, sz: b.d + 0.6, tint: 0 });
+    }
+    if (b.style === "glass") {
+      const h = bodyTop - ground - 4.4, y = ground + 4.4 + h / 2;
+      for (const [len, fixed, alongX] of [[b.w, b.d / 2, true], [b.d, b.w / 2, false]] as const) {
+        const n = Math.max(2, Math.floor(len / 2.2));
+        for (let k = 1; k < n; k++) {
+          const t = -len / 2 + (len * k) / n;
+          for (const s of [-1, 1]) {
+            if (alongX) kit.fins.push({ x: b.x + t, y, z: b.z + s * (fixed + 0.12), sx: 0.14, sy: h, sz: 0.3, tint: 0 });
+            else kit.fins.push({ x: b.x + s * (fixed + 0.12), y, z: b.z + t, sx: 0.3, sy: h, sz: 0.14, tint: 0 });
+          }
+        }
+      }
+    }
+    // shopfronts on low and mid-rise lots outside the shipyard
+    if (b.district !== "shipyard" && b.floors <= 16) {
+      for (const [dx, dz, along] of [[0, 1, true], [0, -1, true], [1, 0, false], [-1, 0, false]] as const) {
+        if (rnd() < 0.35) continue;
+        const tint = Math.floor(rnd() * SHOP_TINTS.length);
+        const len = (along ? b.w : b.d) * (0.6 + rnd() * 0.3);
+        const ox = dx * (b.w / 2 + 0.05), oz = dz * (b.d / 2 + 0.05);
+        kit.shopfronts.push({ x: b.x + ox, y: ground + 1.5, z: b.z + oz, sx: along ? len : 0.1, sy: 2.6, sz: along ? 0.1 : len, tint });
+        const ax = dx * (b.w / 2 + 0.9), az = dz * (b.d / 2 + 0.9);
+        kit.awnings.push({ x: b.x + ax, y: ground + 3.25, z: b.z + az, sx: along ? len + 0.4 : 1.7, sy: 0.12, sz: along ? 1.7 : len + 0.4, tint });
+      }
+    }
+  }
+  return kit;
+}
+
+/** Street lights along every block face (two per side, on the pavement half a metre in from the kerb), the arm and
+ * head reaching out over the carriageway. `yaw` points from the pole toward the street. */
+export function streetLights(): Lamp[] {
+  const out: Lamp[] = [];
+  for (const b of blocks()) {
+    const h = BLOCK / 2 - 0.5;
+    for (const [nx, nz] of [[1, 0], [-1, 0], [0, 1], [0, -1]] as const) {
+      for (const along of [-BLOCK * 0.3, BLOCK * 0.3]) {
+        const x = b.x + nx * h + (nz !== 0 ? along : 0), z = b.z + nz * h + (nx !== 0 ? along : 0);
+        if (heightAt(x, z) < WATER_LEVEL + 0.5 || distanceToRoad(x, z) < LANE_HALF_WIDTH) continue;
+        out.push({ x, z, yaw: Math.atan2(nx, nz) });
+      }
+    }
+  }
+  return out;
+}

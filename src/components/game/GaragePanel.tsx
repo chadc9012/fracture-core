@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import type { PlayerProgression } from "@/game/progression";
-import { EMPTY_FLEET, FLEET, GARAGES, buyFleetVehicle, buyGarage, setActiveFleet, setPaint, tuneNode, tunedVehicle, type FleetEntry, type GarageId } from "@/game/fleet";
+import { DEFAULT_VEHICLE_COSMETICS, EMPTY_FLEET, FLEET, GARAGES, VEHICLE_COSMETIC_OPTIONS, buyFleetVehicle, buyGarage, setActiveFleet, setPaint, setVehicleCosmetic, tuneNode, tunedVehicle, type FleetEntry, type GarageId, type VehicleCosmetics } from "@/game/fleet";
+import { vehicleModelFor } from "@/game/fleet-models";
+import { GaragePreview } from "./GaragePreview";
 import { vehicleById } from "@/game/vehicles";
 import { MATERIALS, type MaterialId } from "@/game/inventory";
 import { ownedDeeds, parkVehicle, parkedAt, parkedIn } from "@/game/residence-deeds";
@@ -76,7 +78,7 @@ export function GaragePanel({ garageId, progression, onProgression, onSelectVehi
           {sel && <VehicleDetail f={sel} progression={progression} baseOwned={owned} confirm={confirm} setConfirm={setConfirm} run={run} />}
         </div>
         {notice && <p className="mt-3 font-mono text-xs text-primary" role="status">{notice}</p>}
-        <p className="mt-3 text-[11px] text-muted-foreground">Tuning changes the vehicle's real speed, hull, handling and ram. Paint is saved for later model work: the current models don't show it yet.</p>
+        <p className="mt-3 text-[11px] text-muted-foreground">Tuning changes the vehicle's real speed, hull, handling and ram. Paint and customization change only its look, on the road and in this preview.</p>
       </div>
     </div>
   );
@@ -88,7 +90,7 @@ function VehicleDetail({ f, progression, baseOwned, confirm, setConfirm, run }: 
   const homes = ownedDeeds(progression).filter((d) => d.bays > 0);
   const at = parkedAt(progression)[f.id];
   return <section className="wf-detail" aria-label={f.name}>
-    <VehicleArt category={f.category} hover={f.base === "aether-hoverbike"} className="block aspect-[16/9] w-full" />
+    <GaragePreview model={vehicleModelFor(f.base, f.id)} paint={fleet.paint[f.id] ?? null} cosmetics={fleet.cosmetics?.[f.id] ?? null} className="block aspect-[16/9] w-full" />
     <div className="p-4">
       <p className="ui-kicker">{CAT_LABEL[f.category]} · drives as {base.name}</p>
       <h3 className="mt-1 text-xl font-light uppercase tracking-[0.08em]">{f.name}</h3>
@@ -109,6 +111,11 @@ function VehicleDetail({ f, progression, baseOwned, confirm, setConfirm, run }: 
                   <span className="text-xs">{n.name} <span className="text-muted-foreground">{lvl}/{n.maxLevel} · {n.text}</span></span>
                   <Button size="sm" variant="outline" className="h-7 rounded-none px-2 text-[10px]" disabled={lvl >= n.maxLevel} onClick={() => run(tuneNode(progression, f.id, n.id))}>{lvl >= n.maxLevel ? "Max" : costText(n.cost)}</Button>
                 </div>); })}</div>
+            </div>
+            <div>
+              <p className="ui-kicker">Customize · looks only</p>
+              <div className="mt-1 grid gap-1">{(Object.keys(VEHICLE_COSMETIC_OPTIONS) as (keyof VehicleCosmetics)[]).map((key) => { const cur = (fleet.cosmetics?.[f.id] ?? DEFAULT_VEHICLE_COSMETICS)[key]; return (
+                <div key={key} className="flex flex-wrap items-center gap-1"><span className="w-16 text-[11px] capitalize text-muted-foreground">{key}</span>{(VEHICLE_COSMETIC_OPTIONS[key] as readonly string[]).map((opt) => <button key={opt} type="button" aria-pressed={cur === opt} onClick={() => run(setVehicleCosmetic(progression, f.id, key, opt as never))} className={`border px-2 py-0.5 text-[11px] capitalize ${cur === opt ? "border-[var(--wf-ice)] text-[var(--wf-ice)]" : "border-[var(--wf-line)]"}`}>{opt}</button>)}</div>); })}</div>
             </div>
             <div><p className="ui-kicker">Paint</p><div className="mt-1 flex flex-wrap gap-1">{f.paints.map((pt) => <button key={pt} type="button" onClick={() => run(setPaint(progression, f.id, pt))} className={`border px-2 py-0.5 text-[11px] ${fleet.paint[f.id] === pt ? "border-[var(--wf-ice)] text-[var(--wf-ice)]" : "border-[var(--wf-line)]"}`}>{pt}</button>)}</div></div>
             <div>

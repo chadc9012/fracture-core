@@ -6,6 +6,7 @@ import { neonPlateauLevel } from "@/game/terrain";
 import { addObstacle } from "@/game/obstacles";
 import { neonKeepOut } from "@/game/residences";
 import { QuietModel } from "./Vehicle";
+import { InstancedGlb } from "./InstancedGlb";
 
 /**
  * Neon City's skyline: the authored towers (scripts/build-city.py) on the street grid from neon-layout.ts, standing on
@@ -80,14 +81,20 @@ function MassingTowers({ list, y }: { list: TowerPlacement[]; y: number }) {
   return <primitive object={mesh} />;
 }
 
+/** the detailed skyline (scripts/build-buildings.py neon-v-*): curtain walls with mullions, floor slabs, lit windows that
+ * glow at night, neon edge strips and crowns, one instanced batch per variant on the same footprints */
+const DETAILED_URL = (v: TowerVariant) => `/models/buildings/neon-v-${v}.glb`;
+function DetailedTowers({ list, y }: { list: TowerPlacement[]; y: number }) {
+  const byVariant = useMemo(() => VARIANTS.map((v) => [v, list.filter((t) => t.variant === v).map((t) => ({ x: t.x, y, z: t.z, yaw: (t.rot * Math.PI) / 2 }))] as const), [list, y]);
+  return <group>{byVariant.map(([v, items]) => <InstancedGlb key={v} url={DETAILED_URL(v)} items={items} nightGlow={[0.25, 1.2]} />)}</group>;
+}
+
 export function NeonTowerBlocks() {
   const { list, y } = usePlacements();
   const fallback = <MassingTowers list={list} y={y} />;
   return (
-    <QuietModel url={NEON_TOWERS_URL} fallback={fallback}>
-      <Suspense fallback={fallback}><AuthoredTowers list={list} y={y} /></Suspense>
+    <QuietModel url={DETAILED_URL("A")} fallback={<QuietModel url={NEON_TOWERS_URL} fallback={fallback}><Suspense fallback={fallback}><AuthoredTowers list={list} y={y} /></Suspense></QuietModel>}>
+      <Suspense fallback={fallback}><DetailedTowers list={list} y={y} /></Suspense>
     </QuietModel>
   );
 }
-
-if (typeof window !== "undefined") useGLTF.preload(NEON_TOWERS_URL);

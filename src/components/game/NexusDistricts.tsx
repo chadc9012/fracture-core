@@ -3,7 +3,12 @@ import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import { walkHeight, WATER_LEVEL } from "@/game/terrain";
 import { addObstacle } from "@/game/obstacles";
-import { CITY_OUTER, NEXUS, buildings, lamps, parkedCars, type Building, type Style } from "@/game/nexus-districts";
+import { BLOCK, CITY_OUTER, NEXUS, PITCH, SHOP_TINTS, buildings, facadeKit, lamps, parkedCars, streetLights, type Building, type FacadeBox, type Lamp, type Style } from "@/game/nexus-districts";
+import { lampLevel, worldLight } from "@/game/world-light";
+import { softSprite } from "./softSprite";
+import { cityStreetMaterial } from "./city-surface";
+import type { FleetModelId } from "@/game/fleet-models";
+import { InstancedFleet, type FleetInstance } from "./InstancedFleet";
 import { useInstances } from "./instancing";
 
 /** Nexus City outer districts: a street grid of buildings around the safe-zone hub (layout in nexus-districts.ts).
@@ -17,8 +22,10 @@ export function NexusDistricts() {
       <Streets />
       {(["glass", "concrete", "industrial"] as const).map((s) => <Bodies key={s} style={s} list={bs.filter((b) => b.style === s)} />)}
       <Crowns list={bs.filter((b) => b.crown)} />
+      <Facades list={bs} />
       <Roofs list={bs} />
       <Lamps />
+      <StreetLights />
       <Cars />
     </group>
   );
@@ -80,6 +87,69 @@ function Bodies({ style, list }: { style: Style; list: Building[] }) {
   return <instancedMesh ref={ref} args={[undefined, undefined, Math.max(1, list.length)]} material={mat} castShadow receiveShadow><boxGeometry args={[1, 1, 1]} /></instancedMesh>;
 }
 
+/** Street lights along every block face: pole, arm over the kerb, LED head, and a soft pool of light on the pavement
+ * that fades in at dusk (worldLight). The pools are additive decals rather than real lights, so a hundred of them cost
+ * one draw call and light the street the way the trailer's wet roads look. */
+function StreetLights() {
+  const ls = useMemo(() => streetLights(), []);
+  const pole = useRef<THREE.InstancedMesh>(null), arm = useRef<THREE.InstancedMesh>(null), head = useRef<THREE.InstancedMesh>(null), pool = useRef<THREE.InstancedMesh>(null);
+  const y0 = (l: Lamp) => walkHeight(l.x, l.z);
+  useInstances<Lamp>(pole, ls, (o, l) => { o.position.set(l.x, y0(l) + 3.6, l.z); o.scale.set(0.08, 7.2, 0.08); });
+  useInstances<Lamp>(arm, ls, (o, l) => { o.position.set(l.x + Math.sin(l.yaw) * 0.9, y0(l) + 7.1, l.z + Math.cos(l.yaw) * 0.9); o.rotation.set(0, l.yaw, 0); o.scale.set(0.07, 0.07, 1.8); });
+  useInstances<Lamp>(head, ls, (o, l) => { o.position.set(l.x + Math.sin(l.yaw) * 1.7, y0(l) + 7.0, l.z + Math.cos(l.yaw) * 1.7); o.rotation.set(0, l.yaw, 0); o.scale.set(0.34, 0.08, 0.7); });
+  useInstances<Lamp>(pool, ls, (o, l) => { const x = l.x + Math.sin(l.yaw) * 1.7, z = l.z + Math.cos(l.yaw) * 1.7; o.position.set(x, walkHeight(x, z) + 0.13, z); o.rotation.set(-Math.PI / 2, 0, 0); o.scale.setScalar(7.5); });
+  const mats = useMemo(() => ({
+    pole: new THREE.MeshStandardMaterial({ color: "#22272d", metalness: 0.8, roughness: 0.35 }),
+    head: new THREE.MeshStandardMaterial({ color: "#d9e6ee", emissive: "#fff1d8", emissiveIntensity: 0, roughness: 0.3, toneMapped: false }),
+    pool: new THREE.MeshBasicMaterial({ map: softSprite("dot") ?? null, color: "#ffd9a6", transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false, polygonOffset: true, polygonOffsetFactor: -4 }),
+  }), []);
+  const seen = useRef(-1);
+  useFrame(() => {
+    const k = Math.round(lampLevel(worldLight.night) * 50) / 50;
+    if (k === seen.current) return;
+    seen.current = k;
+    mats.head.emissiveIntensity = 0.2 + k * 4.5;
+    mats.pool.opacity = k * 0.42;
+    if (pool.current) pool.current.visible = k > 0.01;
+  });
+  return <group>
+    <instancedMesh ref={pole} args={[undefined, undefined, Math.max(1, ls.length)]} material={mats.pole} castShadow><cylinderGeometry args={[1, 1.3, 1, 8]} /></instancedMesh>
+    <instancedMesh ref={arm} args={[undefined, undefined, Math.max(1, ls.length)]} material={mats.pole}><boxGeometry args={[1, 1, 1]} /></instancedMesh>
+    <instancedMesh ref={head} args={[undefined, undefined, Math.max(1, ls.length)]} material={mats.head}><boxGeometry args={[1, 1, 1]} /></instancedMesh>
+    <instancedMesh ref={pool} args={[undefined, undefined, Math.max(1, ls.length)]} material={mats.pool} frustumCulled={false} renderOrder={2}><planeGeometry args={[1, 1]} /></instancedMesh>
+  </group>;
+}
+/** facade articulation (nexus-districts.ts facadeKit): ledges, mullion fins, stone plinths, lit shopfronts and awnings */
+function KitBoxes({ list, material, tinted }: { list: FacadeBox[]; material: THREE.Material; tinted?: boolean }) {
+  const ref = useRef<THREE.InstancedMesh>(null);
+  useInstances<FacadeBox>(ref, list, (o, b) => { o.position.set(b.x, b.y, b.z); o.rotation.set(0, 0, 0); o.scale.set(b.sx, b.sy, b.sz); }, tinted ? (b) => SHOP_TINTS[b.tint]! : undefined);
+  return <instancedMesh ref={ref} args={[undefined, undefined, Math.max(1, list.length)]} material={material} castShadow receiveShadow><boxGeometry args={[1, 1, 1]} /></instancedMesh>;
+}
+/** shop glass glows in its sign colour: emissive follows the per-instance colour */
+function shopGlass() {
+  const m = new THREE.MeshStandardMaterial({ color: "#ffffff", roughness: 0.15, metalness: 0.2 });
+  m.onBeforeCompile = (sh) => { sh.fragmentShader = sh.fragmentShader.replace("#include <emissivemap_fragment>", "#include <emissivemap_fragment>\n#ifdef USE_INSTANCING_COLOR\n totalEmissiveRadiance = vColor.rgb * 1.6;\n#endif"); };
+  m.customProgramCacheKey = () => "nexus-shop-glass";
+  return m;
+}
+function Facades({ list }: { list: Building[] }) {
+  const kit = useMemo(() => facadeKit(list), [list]);
+  const mats = useMemo(() => ({
+    ledge: new THREE.MeshStandardMaterial({ color: "#b8b0a2", roughness: 0.85, metalness: 0.02 }),
+    fin: new THREE.MeshStandardMaterial({ color: "#2c3640", roughness: 0.3, metalness: 0.85 }),
+    plinth: new THREE.MeshStandardMaterial({ color: "#3a3c40", roughness: 0.55, metalness: 0.1 }),
+    // shop glass glows in its sign colour (instance colour): bright enough to light the pavement in the bloom pass
+    shop: shopGlass(),
+    awning: new THREE.MeshStandardMaterial({ color: "#ffffff", roughness: 0.7, metalness: 0.0 }),
+  }), []);
+  return <group>
+    <KitBoxes list={kit.plinths} material={mats.plinth} />
+    <KitBoxes list={kit.ledges} material={mats.ledge} />
+    <KitBoxes list={kit.fins} material={mats.fin} />
+    <KitBoxes list={kit.shopfronts} material={mats.shop} tinted />
+    <KitBoxes list={kit.awnings} material={mats.awning} tinted />
+  </group>;
+}
 /** tall towers step back into a narrower glass crown with a lit band */
 function Crowns({ list }: { list: Building[] }) {
   const mat = useMemo(() => windowMaterial("glass"), []);
@@ -133,9 +203,13 @@ function Streets() {
     }
     const g = new THREE.BufferGeometry();
     g.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3)); g.setIndex(idx); g.computeVertexNormals();
+    // asphalt tiles every 8 m in world space (city-surface.ts draws pavers and markings from the same coordinates)
+    const uv: number[] = []; for (let k = 0; k < pos.length; k += 3) uv.push(pos[k]! / 8, pos[k + 2]! / 8);
+    g.setAttribute("uv", new THREE.Float32BufferAttribute(uv, 2));
     return g;
   }, []);
-  return <mesh geometry={geo} receiveShadow><meshStandardMaterial color="#2c3138" roughness={0.92} metalness={0.05} polygonOffset polygonOffsetFactor={-1} /></mesh>;
+  const mat = useMemo(() => cityStreetMaterial({ cx: NEXUS.x, cz: NEXUS.z, pitch: PITCH, block: BLOCK, walk: 2.5 }), []);
+  return <mesh geometry={geo} material={mat} receiveShadow />;
 }
 
 function Lamps() {
@@ -149,14 +223,10 @@ function Lamps() {
   </group>;
 }
 
-const CAR_TINT = ["#7a1f1f", "#1f3a5a", "#d8d8d8", "#2a2a2a", "#c48a2a", "#3d5a3a"];
+const CAR_TINT = ["#7a1f1f", "#1f3a5a", "#d8d8d8", "#16181c", "#c48a2a", "#3d5a3a"];
+/** street parking: the authored Nexus street cars (fleet-models.ts), instanced per model with their own paint */
+const PARKED_MODELS: FleetModelId[] = ["luxury-sedan", "muscle-car", "tuner", "street-racer", "city-pod", "luxury-sedan", "tuner", "security-suv"];
 function Cars() {
-  const cs = useMemo(() => parkedCars(), []);
-  const body = useRef<THREE.InstancedMesh>(null), cab = useRef<THREE.InstancedMesh>(null);
-  useInstances<(typeof cs)[number]>(body, cs, (o, c) => { o.position.set(c.x, walkHeight(c.x, c.z) + 0.55, c.z); o.rotation.set(0, c.yaw, 0); o.scale.set(1.8, 0.7, 4.2); }, (c) => CAR_TINT[c.tint]!);
-  useInstances<(typeof cs)[number]>(cab, cs, (o, c) => { o.position.set(c.x, walkHeight(c.x, c.z) + 1.15, c.z); o.rotation.set(0, c.yaw, 0); o.scale.set(1.6, 0.55, 2.2); });
-  return <group>
-    <instancedMesh ref={body} args={[undefined, undefined, Math.max(1, cs.length)]} castShadow><boxGeometry args={[1, 1, 1]} /><meshStandardMaterial metalness={0.6} roughness={0.35} /></instancedMesh>
-    <instancedMesh ref={cab} args={[undefined, undefined, Math.max(1, cs.length)]} castShadow><boxGeometry args={[1, 1, 1]} /><meshStandardMaterial color="#1b2229" metalness={0.8} roughness={0.15} /></instancedMesh>
-  </group>;
+  const items = useMemo<FleetInstance[]>(() => parkedCars().map((c, i) => ({ model: PARKED_MODELS[(i * 7 + c.tint) % PARKED_MODELS.length]!, x: c.x, y: walkHeight(c.x, c.z), z: c.z, yaw: c.yaw, paint: CAR_TINT[c.tint]! })), []);
+  return <InstancedFleet items={items} />;
 }

@@ -101,7 +101,6 @@ import { RACE_BEST_KEY, RACE_GATES, RACE_IDLE, raceReward, stepRace, type RaceSt
 import { VAELITH, VAELITH_LAIR, dialogueDue, lairDefenseCleared, memoryNear, startLairDefense, vaelithFightable, type StoryWorldEvent } from "@/game/vaelith";
 import { EMPTY_STORY, stageOf } from "@/game/story";
 import { bossStoryFor, introDue, vaultNear, type BossStoryId } from "@/game/boss-stories";
-import { Car } from "./Vehicle";
 import { NexusCity } from "./NexusCity";
 import { NeonCity, NEON_CITY_CENTER } from "./NeonCity";
 import { Thalassia, THALASSIA_CENTER } from "./Thalassia";
@@ -190,7 +189,11 @@ import { EMPTY_LIVING } from "@/game/living-world";
 import { fallenDistricts } from "@/game/living-events";
 import { CHALLENGES } from "@/game/map-activities";
 import { HOLLOW_CROWN, VAEL, runeCombat, vaelNear } from "@/game/godforge";
-import { garageNear, sanctuariesFor, tunedVehicle } from "@/game/fleet";
+import { fleetById, garageNear, sanctuariesFor, tunedVehicle } from "@/game/fleet";
+import { vehicleModelFor } from "@/game/fleet-models";
+import { worldLight } from "@/game/world-light";
+import { AuthoredVehicle } from "./AuthoredVehicle";
+import { SiteMarkers } from "./SiteMarkers";
 import { ResidenceGarages } from "./ResidenceGarages";
 import { reportVehicleEnter, reportVehicleExit, takeDriveOut } from "@/game/vehicle-request";
 import { deedNear, parkedAt } from "@/game/residence-deeds";
@@ -738,6 +741,11 @@ function SceneImpl({
   const selectedSubclass = subclassById(subclassId);
   const activeParked = Boolean(gear?.fleet?.active && gear.housing && parkedAt(gear)[gear.fleet.active]);
   const selectedVehicle = useMemo(() => tunedVehicle(vehicleById(vehicleId), gear?.fleet), [vehicleId, gear?.fleet]); // fleet.ts tuning of the active build
+  const playerCarModel = useMemo(() => {
+    const active = gear?.fleet?.active ?? null;
+    const build = active && fleetById(active)?.base === vehicleId ? active : null;
+    return { model: vehicleModelFor(vehicleId, build), paint: build ? gear?.fleet?.paint[build] ?? null : null, cosmetics: build ? gear?.fleet?.cosmetics?.[build] ?? null : null };
+  }, [vehicleId, gear?.fleet]);
   const handling = useMemo(() => handlingFor(vehicleById(vehicleId)), [vehicleId]); // vehicle-handling.ts: jet/heli/boat/sub/tank/car each move differently
   const vh = useRef({ airborne: false, slip: 0, roll: 0, pitch: 0, skidAt: 0 });
   const condition = useRef<VehicleCondition>(FRESH_VEHICLE);
@@ -1425,6 +1433,7 @@ function SceneImpl({
     skyEnv.current.region = interior ? undefined : here?.id;
     skyEnv.current.tint.copy(lightColor).multiplyScalar(1 - cloud * 0.3);
     skyEnv.current.night = night;
+    worldLight.night = night;
     // image-based light (region HDRIs) is daylight: dim it after dark so night scenes are lit by the moon, neon and the storm
     (scene as THREE.Scene & { environmentIntensity?: number }).environmentIntensity = 0.85 * (1 - 0.75 * night);
     if (sky.current) {
@@ -2970,6 +2979,7 @@ function SceneImpl({
       <ShopStalls />
       <Storefronts />
       <NearOnly playerRef={player} x={NEXUS_REGION.x} z={NEXUS_REGION.z} radius={330 * NEAR_SCALE[settings.renderTier]} name="city:nexus"><NexusCity sim={sim} />{gear && <ResidenceGarages city="nexus" progression={{ nexLedger: gear.nexLedger ?? {}, housing: gear.housing, fleet: gear.fleet }} />}</NearOnly>
+      <SiteMarkers playerRef={player} />
       <NearOnly playerRef={player} x={NEON_CITY_CENTER.x} z={NEON_CITY_CENTER.z} radius={300 * NEAR_SCALE[settings.renderTier]} name="city:neon"><NeonCity />{gear && <ResidenceGarages city="neon" progression={{ nexLedger: gear.nexLedger ?? {}, housing: gear.housing, fleet: gear.fleet }} />}</NearOnly>
       {(() => { const rg = REGIONS.find((r) => r.id === "frostspire"); return rg ? <NearOnly playerRef={player} x={rg.x} z={rg.z} radius={(rg.radius + 220) * NEAR_SCALE[settings.renderTier]} name="region:frostspire"><FrostspireDressing /></NearOnly> : null; })()}
       {(() => { const rg = REGIONS.find((r) => r.id === "swamps"); return rg ? <NearOnly playerRef={player} x={rg.x} z={rg.z} radius={(rg.radius + 220) * NEAR_SCALE[settings.renderTier]} name="region:swamps"><SwampDressing /></NearOnly> : null; })()}
@@ -3107,42 +3117,8 @@ function SceneImpl({
       <group ref={vehicle} visible={vehicleUnlocked}>
         <VehicleDamageFx condition={condition} speedRef={carSpeed} bounds={carBounds} />
         {/* no light of its own: the one headlamp below only switches on while you drive (a parked car's lights were lit pixels all game) */}
-        <Car body={selectedVehicle.model} scale={selectedVehicle.modelScale} speedRef={carSpeed} steerRef={carSteer} brakeRef={carBrake} boundsRef={carBounds} lights={false} />
-        {/* front ram spikes */}
-        {[-1.1, -0.55, 0, 0.55, 1.1].map((x) => (
-          <mesh key={x} position={[x, 0.8, 3.5]} rotation={[Math.PI / 2, 0, 0]} castShadow>
-            <coneGeometry args={[0.16, 1.5, 6]} />
-            <meshStandardMaterial color="#6b5b45" metalness={0.65} roughness={0.7} />
-          </mesh>
-        ))}
-        {/* bull bar */}
-        <mesh position={[0, 1, 3.1]} castShadow>
-          <boxGeometry args={[2.9, 0.35, 0.3]} />
-          <meshStandardMaterial color="#4a4238" metalness={0.55} roughness={0.75} />
-        </mesh>
-        {/* side armour skirts */}
-        <mesh position={[-1.5, 1, 0]} castShadow>
-          <boxGeometry args={[0.22, 0.9, 4.4]} />
-          <meshStandardMaterial color="#8d7c58" metalness={0.3} roughness={0.8} />
-        </mesh>
-        <mesh position={[1.5, 1, 0]} castShadow>
-          <boxGeometry args={[0.22, 0.9, 4.4]} />
-          <meshStandardMaterial color="#8d7c58" metalness={0.3} roughness={0.8} />
-        </mesh>
-        {/* roof cargo rack */}
-        <mesh position={[0, 2.7, -0.6]} castShadow>
-          <boxGeometry args={[2.4, 0.18, 2.6]} />
-          <meshStandardMaterial color="#5a5040" metalness={0.4} roughness={0.85} />
-        </mesh>
-        {/* pintle-mounted gun */}
-        <mesh position={[0, 3, 0.4]} castShadow>
-          <cylinderGeometry args={[0.22, 0.28, 0.5, 8]} />
-          <meshStandardMaterial color="#2a2e33" metalness={0.8} roughness={0.35} />
-        </mesh>
-        <mesh position={[0, 3.2, 1.6]} rotation={[Math.PI / 2, 0, 0]} castShadow>
-          <cylinderGeometry args={[0.11, 0.11, 2.6, 8]} />
-          <meshStandardMaterial color="#1d2226" metalness={0.85} roughness={0.3} />
-        </mesh>
+        {/* authored fleet model (fleet-models.ts): the active build's own body, paint and cosmetics */}
+        <AuthoredVehicle model={playerCarModel.model} paint={playerCarModel.paint} cosmetics={playerCarModel.cosmetics} speedRef={carSpeed} steerRef={carSteer} brakeRef={carBrake} boundsRef={carBounds} />
         <pointLight ref={headlamp} visible={false} position={[0, 1.2, 4]} color="#ffe2b0" intensity={16} distance={44} decay={2} />
       </group>
 

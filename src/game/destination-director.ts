@@ -5,6 +5,7 @@
  * A city borrows its parent region's activity list (missions, patrols and bosses keep their real owner and rules) and
  * keeps only what stands inside the city; the parent region then leaves those out, so Neon City and Nexus never list
  * the same thing twice. Dungeon-like sites (ruins, hazards) appear only once discovered — no name, marker or "?" before. */
+import { SITE_STYLE, sitesIn } from "./region-atlas";
 import { REGIONS, NEON_FLAT, type ZoneKind } from "./world";
 import { CITY_DESTINATIONS } from "./destinations";
 import { CITY_RADIUS } from "./thalassia-sectors";
@@ -76,17 +77,23 @@ export function discoveredSites(p: Pick<PlayerProgression, "earnedRewards">, d: 
  * (housing.ts, paid in Nex), the bases and fleet vehicles (fleet.ts, paid in materials) and the walk-in residences — so
  * what the Director lists is exactly what exists and can be bought in the world. */
 
-export type CityDistrict = { id: string; name: string; tagline: string; x: number; z: number; r: number; color: string };
+export type CityDistrict = { id: string; name: string; tagline: string; x: number; z: number; r: number; color: string; /** map glyph (region-atlas.ts SITE_STYLE) */ glyph?: string };
+
+/** the board's named places for this destination (region-atlas.ts), as map districts */
+function atlasDistricts(regionId: string): CityDistrict[] {
+  return sitesIn(regionId).map((s) => ({ id: `atlas-${s.id}`, name: s.name, tagline: s.blurb, x: s.x, z: s.z, r: s.radius, color: SITE_STYLE[s.kind].color, glyph: SITE_STYLE[s.kind].glyph }));
+}
 
 /** the named districts of a city destination (Nexus City is the nexus region's city) */
 export function cityDistricts(d: Destination): CityDistrict[] {
-  if (d.id === "neon-city") return NEON_DISTRICTS.map((n) => ({ id: n.id, name: n.name, tagline: n.tagline, x: NEON_SITE.x + n.dx, z: NEON_SITE.z + n.dz, r: n.radius, color: n.color }));
+  if (d.id === "neon-city") return [...NEON_DISTRICTS.map((n) => ({ id: n.id, name: n.name, tagline: n.tagline, x: NEON_SITE.x + n.dx, z: NEON_SITE.z + n.dz, r: n.radius, color: n.color })), ...atlasDistricts("neon")];
   if (d.id === "thalassia") {
     const c = THALASSIA_CENTER;
     return [
       { id: "sentry-dock", name: "Sentry Dock", tagline: "Airlock berth · the only dry deck", x: c.x + DOCK.dx, z: c.z + DOCK.dz, r: DOCK.r, color: "#7ef2ff" },
       { id: "abyssal-ring", name: "Abyssal Ring", tagline: "Containment · electrified coolant floor", x: c.x, z: c.z - (RING.inner + RING.outer) / 2, r: (RING.outer - RING.inner) / 2 + 4, color: "#b98cff" },
       { id: "sunk-core", name: "Sunk-Core", tagline: "The deep trench · crush depth", x: c.x, z: c.z, r: CORE.r * 0.6, color: "#ff6b8a" },
+      ...atlasDistricts("thalassia"),
     ];
   }
   if (d.id === "nexus") {
@@ -94,14 +101,14 @@ export function cityDistricts(d: Destination): CityDistrict[] {
     // districts are compass quarters of the city (nexus-districts.ts districtAt: north = world -z)
     const q = (id: string, name: string, tagline: string, ang: number, color: string): CityDistrict => ({ id, name, tagline, x: NEXUS.x + Math.sin(ang) * mid, z: NEXUS.z - Math.cos(ang) * mid, r: (CITY_OUTER - CITY_INNER) / 2, color });
     return [
-      q("spire", "Spire District", "Glass towers and the command core", 0, "#9fd4ff"),
-      q("market", "Market District", "Shops, stalls and vendors", Math.PI / 2, "#ffd166"),
-      q("shipyard", "Shipyard", "Freight yards and hangars", Math.PI, "#c9b089"),
-      q("arcology", "Arcology", "Stacked housing blocks", -Math.PI / 2, "#7ef2b0"),
+      q("spire", "Capital District", "Council towers and the command core", 0, "#9fd4ff"),
+      q("market", "Business District", "Trading floors, shops and vendors", Math.PI / 2, "#ffd166"),
+      q("shipyard", "Harbor District", "Shipyards, freight yards and hangars", Math.PI, "#c9b089"),
+      q("arcology", "Residential Heights", "Terraced housing and garden towers", -Math.PI / 2, "#7ef2b0"),
       { id: "residential", name: "Residential Street", tagline: "Walk-in homes south of the city", x: NEXUS_SUBURB.x, z: NEXUS_SUBURB.z, r: NEXUS_SUBURB.r, color: "#e8c39e" },
     ];
   }
-  return [];
+  return d.city ? [] : atlasDistricts(d.id);
 }
 
 /** the region a point is relatively nearest to (distance in units of each region's radius), so sites in the wilds

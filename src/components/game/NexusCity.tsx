@@ -5,6 +5,11 @@ import * as THREE from "three";
 
 
 import { MODELS, type ModelKey } from "@/game/models";
+import type { FleetModelId } from "@/game/fleet-models";
+import { BUILDING_MODELS, NEXUS_HUB_RINGS, type BuildingModelId } from "@/game/building-models";
+import { InstancedGlb, type GlbInstance } from "./InstancedGlb";
+import { NexusPalms } from "./CityPalms";
+import { InstancedFleet, type FleetInstance } from "./InstancedFleet";
 import { REGIONS } from "@/game/world";
 import { walkHeight } from "@/game/terrain";
 import type { WorldSim } from "@/game/sim";
@@ -17,8 +22,9 @@ const NEXUS = REGIONS.find((r) => r.id === "nexus")!;
 
 /* ---------------- buildings ---------------- */
 
-type Placed = { key: ModelKey; x: number; z: number; y: number; rot: number; scale: number };
+type Placed = { model: BuildingModelId; x: number; z: number; y: number; rot: number };
 
+/** the hub's three rings of authored civic buildings (building-models.ts), each turned to face the plaza */
 function cityBlocks(): Placed[] {
   const out: Placed[] = [];
   let seed = 7;
@@ -26,53 +32,36 @@ function cityBlocks(): Placed[] {
     seed = (seed * 1103515245 + 12345) % 2147483648;
     return seed / 2147483648;
   };
-  const rings = [
-    { r: 13, count: 6, keys: ["tower_a", "tower_b"] as ModelKey[], scale: [3.4, 4.6] },
-    { r: 19.5, count: 9, keys: ["tower_b", "block_a"] as ModelKey[], scale: [2.8, 3.8] },
-    { r: 25, count: 12, keys: ["block_a", "block_b"] as ModelKey[], scale: [2.4, 3.2] },
-  ];
   const spawnX = NEXUS.x;
   const spawnZ = NEXUS.z + 22;
-  for (const ring of rings) {
+  for (const ring of NEXUS_HUB_RINGS) {
     for (let i = 0; i < ring.count; i++) {
       const a = (i / ring.count) * Math.PI * 2 + rnd() * 0.2;
       const x = NEXUS.x + Math.cos(a) * ring.r;
       const z = NEXUS.z + Math.sin(a) * ring.r;
-      const scale = ring.scale[0]! + rnd() * (ring.scale[1]! - ring.scale[0]!);
       // keep the spawn pad and its exit lane clear of geometry
       if (Math.hypot(x - spawnX, z - spawnZ) < 10) continue;
-      out.push({
-        key: ring.keys[Math.floor(rnd() * ring.keys.length)]!,
-        x,
-        z,
-        y: walkHeight(x, z),
-        rot: -a + Math.PI / 2,
-        scale,
-      });
+      out.push({ model: ring.models[Math.floor(rnd() * ring.models.length)]!, x, z, y: walkHeight(x, z) - 0.2, rot: Math.atan2(-Math.cos(a), -Math.sin(a)) });
     }
   }
   return out;
 }
 
-
 function CityBuildings() {
   const placed = useMemo(() => {
     const list = cityBlocks();
-    for (const b of list) addObstacle("tower", b.x, b.z, b.scale * 0.7, 400, 2);
+    for (const b of list) addObstacle("tower", b.x, b.z, Math.min(BUILDING_MODELS[b.model].w, BUILDING_MODELS[b.model].d) * 0.5, 400, 2);
     return list;
   }, []);
+  const byModel = useMemo(() => {
+    const m = new Map<BuildingModelId, GlbInstance[]>();
+    for (const b of placed) m.set(b.model, [...(m.get(b.model) ?? []), { x: b.x, y: b.y, z: b.z, yaw: b.rot }]);
+    return [...m.entries()];
+  }, [placed]);
 
   return (
     <group>
-      {placed.map((b, i) => (
-        <Model
-          key={i}
-          modelKey={b.key}
-          position={[b.x, b.y, b.z]}
-          rotation={[0, b.rot, 0]}
-          scale={b.scale}
-        />
-      ))}
+      {byModel.map(([id, items]) => <InstancedGlb key={id} url={BUILDING_MODELS[id].url} items={items} />)}
       {/* (the old "lit window" planes sat at fixed offsets that missed these towers' walls, so they floated round the skyline as
           cream rectangles; removed — the towers carry their own window textures) */}
       <DistrictLight range={120} position={[NEXUS.x, walkHeight(NEXUS.x, NEXUS.z) + 9, NEXUS.z]} color="#ffbf7a" intensity={22} distance={NEXUS.radius} decay={1.6} />
@@ -154,43 +143,23 @@ function Pedestrians() {
 
 /* ---------------- traffic (city cars on a loop) ---------------- */
 
+const TRAFFIC: { model: FleetModelId; paint: string }[] = [
+  { model: "street-racer", paint: "#2a0a6e" }, { model: "luxury-sedan", paint: "#0c0d10" }, { model: "security-suv", paint: "#c9ced6" },
+  { model: "muscle-car", paint: "#9aa3ad" }, { model: "tuner", paint: "#1b2e66" }, { model: "city-pod", paint: "#e8ecf2" },
+];
+/** city cars on the ring road: one authored model each, instanced, wheels in rest pose (they read as moving from the street) */
 function CityTraffic() {
-  const group = useRef<THREE.Group>(null!);
-  const cars = useMemo(
-    () =>
-      Array.from({ length: 6 }, (_, i) => ({
-        a: (i / 6) * Math.PI * 2,
-        r: NEXUS.radius * 0.72,
-        speed: 0.16 + (i % 3) * 0.03,
-        key: (["suv", "van", "police"] as ModelKey[])[i % 3]!,
-      })),
-    [],
-  );
   const t = useRef(0);
-
-  useFrame((_, raw) => {
-    t.current += Math.min(raw, 0.05);
-    const g = group.current;
-    if (!g) return;
-    cars.forEach((c, i) => {
-      const a = c.a + t.current * c.speed;
-      const x = NEXUS.x + Math.cos(a) * c.r;
-      const z = NEXUS.z + Math.sin(a) * c.r;
-      const node = g.children[i]!;
-      node.position.set(x, walkHeight(x, z) + 0.6, z);
-      node.rotation.y = -a;
-    });
-  });
-
-  return (
-    <group ref={group}>
-      {cars.map((c, i) => (
-        <group key={i}>
-          <Model modelKey={c.key} scale={2.2} />
-        </group>
-      ))}
-    </group>
-  );
+  const cars = useMemo(() => TRAFFIC.map((c, i) => ({ ...c, a: (i / TRAFFIC.length) * Math.PI * 2, r: NEXUS.radius * 0.72, speed: 0.16 + (i % 3) * 0.03 })), []);
+  const items = useMemo<FleetInstance[]>(() => cars.map((c) => ({ model: c.model, paint: c.paint, x: 0, y: 0, z: 0, yaw: 0 })), [cars]);
+  useFrame((_, raw) => { t.current += Math.min(raw, 0.05); });
+  const place = (model: FleetModelId, _i: number, o: THREE.Object3D) => {
+    const c = cars.find((k) => k.model === model)!;
+    const a = c.a + t.current * c.speed;
+    const x = NEXUS.x + Math.cos(a) * c.r, z = NEXUS.z + Math.sin(a) * c.r;
+    o.position.set(x, walkHeight(x, z), z); o.rotation.set(0, -a, 0);
+  };
+  return <InstancedFleet items={items} place={place} />;
 }
 
 /* ---------------- defence turrets ---------------- */
@@ -240,6 +209,7 @@ export function NexusCity({ sim }: { sim: WorldSim }) {
     <group>
       <CityBuildings />
       <NexusDistricts />
+      <NexusPalms />
       <ResidentialHomes city="nexus" />
       <Pedestrians />
       <CityTraffic />

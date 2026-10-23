@@ -80,8 +80,24 @@ export const FLEET: readonly FleetEntry[] = [
 ];
 export const fleetById = (id: string) => FLEET.find((f) => f.id === id);
 
-export type FleetState = { owned: string[]; garages: GarageId[]; tuning: Record<string, Record<string, number>>; paint: Record<string, string>; active: string | null };
-export const EMPTY_FLEET: FleetState = { owned: [], garages: [], tuning: {}, paint: {}, active: null };
+/** Visual-only modifications (stage 53, kept from the uploaded build): saved per owned build, shown on the authored model in
+ * the garage preview and on the road. They never change speed, hull, handling or ram. */
+export type VehicleCosmetics = { wheels: "standard" | "sport" | "offroad"; body: "stock" | "widebody" | "aero"; spoiler: "none" | "lip" | "wing"; armor: "stock" | "reinforced"; glow: "off" | "cyan" | "magenta" };
+export const DEFAULT_VEHICLE_COSMETICS: VehicleCosmetics = { wheels: "standard", body: "stock", spoiler: "none", armor: "stock", glow: "off" };
+export const VEHICLE_COSMETIC_OPTIONS: { [K in keyof VehicleCosmetics]: readonly VehicleCosmetics[K][] } = {
+  wheels: ["standard", "sport", "offroad"], body: ["stock", "widebody", "aero"], spoiler: ["none", "lip", "wing"], armor: ["stock", "reinforced"], glow: ["off", "cyan", "magenta"],
+};
+export function normalizeVehicleCosmetics(raw: unknown): VehicleCosmetics {
+  const r = raw && typeof raw === "object" ? raw as Record<string, unknown> : {};
+  const result = { ...DEFAULT_VEHICLE_COSMETICS };
+  for (const key of Object.keys(VEHICLE_COSMETIC_OPTIONS) as (keyof VehicleCosmetics)[]) {
+    const value = r[key];
+    if (typeof value === "string" && (VEHICLE_COSMETIC_OPTIONS[key] as readonly string[]).includes(value)) (result as Record<string, string>)[key] = value;
+  }
+  return result;
+}
+export type FleetState = { owned: string[]; garages: GarageId[]; tuning: Record<string, Record<string, number>>; paint: Record<string, string>; active: string | null; cosmetics?: Record<string, VehicleCosmetics> };
+export const EMPTY_FLEET: FleetState = { owned: [], garages: [], tuning: {}, paint: {}, active: null, cosmetics: {} };
 
 export function normalizeFleet(raw: unknown): FleetState {
   const r = (raw && typeof raw === "object" ? raw : {}) as Partial<FleetState>;
@@ -90,13 +106,15 @@ export function normalizeFleet(raw: unknown): FleetState {
   if (r.tuning && typeof r.tuning === "object") for (const [k, v] of Object.entries(r.tuning)) if (v && typeof v === "object") { tuning[k] = {}; for (const [n, l] of Object.entries(v)) if (typeof l === "number" && l > 0) tuning[k]![n] = Math.floor(l); }
   const paint: FleetState["paint"] = {};
   if (r.paint && typeof r.paint === "object") for (const [k, v] of Object.entries(r.paint)) if (typeof v === "string") paint[k] = v;
-  return { owned: ids(r.owned).filter((x) => fleetById(x)), garages: ids(r.garages).filter((g): g is GarageId => g in GARAGES), tuning, paint, active: typeof r.active === "string" && fleetById(r.active) ? r.active : null };
+  const cosmetics: Record<string, VehicleCosmetics> = {};
+  if (r.cosmetics && typeof r.cosmetics === "object") for (const [id, value] of Object.entries(r.cosmetics as Record<string, unknown>)) if (fleetById(id)) cosmetics[id] = normalizeVehicleCosmetics(value);
+  return { owned: ids(r.owned).filter((x) => fleetById(x)), garages: ids(r.garages).filter((g): g is GarageId => g in GARAGES), tuning, paint, active: typeof r.active === "string" && fleetById(r.active) ? r.active : null, cosmetics };
 }
 export function mergeFleet(a: FleetState, b: FleetState, aIsNewer: boolean): FleetState {
   const tuning: FleetState["tuning"] = {};
   for (const src of [a.tuning, b.tuning]) for (const [k, v] of Object.entries(src)) { tuning[k] ??= {}; for (const [n, l] of Object.entries(v)) tuning[k]![n] = Math.max(tuning[k]![n] ?? 0, l); }
   const newer = aIsNewer ? a : b, older = aIsNewer ? b : a;
-  return { owned: [...new Set([...a.owned, ...b.owned])], garages: [...new Set([...a.garages, ...b.garages])], tuning, paint: { ...older.paint, ...newer.paint }, active: newer.active ?? older.active };
+  return { owned: [...new Set([...a.owned, ...b.owned])], garages: [...new Set([...a.garages, ...b.garages])], tuning, paint: { ...older.paint, ...newer.paint }, active: newer.active ?? older.active, cosmetics: { ...(older.cosmetics ?? {}), ...(newer.cosmetics ?? {}) } };
 }
 
 type FleetSave = { fleet: FleetState; materials: Partial<Record<MaterialId, number>>; ownedVehicles: VehicleId[]; garageLoadout: VehicleId[]; selectedVehicle: VehicleId | null };
@@ -172,4 +190,13 @@ export function sanctuariesFor(p: { earnedRewards: readonly string[]; fleet?: Fl
   for (const id of p.fleet?.garages ?? []) { const g = GARAGES[id]; if (g && g.deckY === undefined) out.push({ x: g.x, z: g.z - 4, radius: SANCTUARY_RADIUS }); }
   if (p.earnedRewards.includes("godforge:heart")) out.push({ x: HOLLOW_CROWN.x, z: HOLLOW_CROWN.z, radius: HOLLOW_CROWN.radius + 4 });
   return out;
+}
+
+/** Visual-only modification of an owned build (saved in progression.fleet.cosmetics). */
+export function setVehicleCosmetic<P extends FleetSave, K extends keyof VehicleCosmetics>(p: P, id: string, key: K, value: VehicleCosmetics[K]): FleetResult<P> {
+  const e = fleetById(id), f = fleetOf(p);
+  if (!e || !f.owned.includes(id)) return { error: "Not in your fleet" };
+  if (!(VEHICLE_COSMETIC_OPTIONS[key] as readonly string[]).includes(value)) return { error: "Invalid cosmetic option" };
+  const current = normalizeVehicleCosmetics(f.cosmetics?.[id]);
+  return { progression: { ...p, fleet: { ...f, cosmetics: { ...(f.cosmetics ?? {}), [id]: { ...current, [key]: value } } } }, message: `${e.name}: ${key} set to ${value}` };
 }

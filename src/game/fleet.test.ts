@@ -120,3 +120,22 @@ describe("sanctuaries", () => {
     expect("error" in claimHeart(r.progression)).toBe(true);
   });
 });
+
+const { setVehicleCosmetic: setCos, normalizeVehicleCosmetics, DEFAULT_VEHICLE_COSMETICS } = await import("./fleet");
+describe("vehicle cosmetics", () => {
+  it("only owned builds take cosmetics, unknown options are refused, saves normalise and merge newer-wins", () => {
+    const f = FLEET[0]!;
+    const base = { ...DEFAULT_PROGRESSION, fleet: { ...EMPTY_FLEET, owned: [f.id] } };
+    const r = setCos(base, f.id, "glow", "cyan");
+    expect("error" in r).toBe(false);
+    if ("error" in r) return;
+    expect(r.progression.fleet.cosmetics?.[f.id]?.glow).toBe("cyan");
+    expect("error" in setCos(base, FLEET[1]!.id, "glow", "cyan")).toBe(true);
+    expect("error" in setCos(base, f.id, "glow", "plaid" as never)).toBe(true);
+    expect(normalizeVehicleCosmetics({ glow: "plaid", wheels: "sport" })).toEqual({ ...DEFAULT_VEHICLE_COSMETICS, wheels: "sport" });
+    const n = normalizeFleet({ owned: [f.id], cosmetics: { [f.id]: { spoiler: "wing" }, "not-a-build": { glow: "cyan" } } });
+    expect(n.cosmetics?.[f.id]?.spoiler).toBe("wing");
+    expect(n.cosmetics?.["not-a-build"]).toBeUndefined();
+    expect(normalizeFleet({}).cosmetics).toEqual({});
+  });
+});

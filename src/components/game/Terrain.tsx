@@ -13,7 +13,7 @@ import { GROVE, growGroves } from "@/game/forest-density";
 import { windSway } from "@/game/wind-sway";
 import { WATER_LEVEL, HEIGHT_K, colorAt, heightAt, slopeAt, riverAt } from "@/game/terrain";
 import { groundDetailTextures, propDetailTextures } from "@/game/detail-texture";
-import { applySurfaceBlend, groundTime, loadGroundSurfaces, surfaceWeights } from "@/game/region-materials";
+import { applySurfaceBlend, groundTime, loadGroundNormals, loadGroundSurfaces, surfaceWeights } from "@/game/region-materials";
 import { getPerfTier } from "@/game/perf-budget";
 import { RegionModels } from "./RegionModels";
 import { PolyFoliage, type Placement } from "./PolyFoliage";
@@ -131,20 +131,21 @@ function Ground() {
   useEffect(() => { for (const t of [map, normalMap]) { t.anisotropy = aniso; t.needsUpdate = true; } }, [map, normalMap, aniso]);
   // Poly Haven region surfaces; procedural grain stays if any texture fails to load.
   const [surfaces, setSurfaces] = useState<THREE.Texture[] | null>(null);
+  const [normals, setNormals] = useState<THREE.Texture[] | null>(null);
   useEffect(() => {
     let live = true;
-    void loadGroundSurfaces().then((t) => {
+    void Promise.all([loadGroundSurfaces(), loadGroundNormals()]).then(([t, n]) => {
       if (!live || !t) return;
-      for (const tex of t) if (tex.anisotropy !== aniso) { tex.anisotropy = aniso; tex.needsUpdate = true; }
-      setSurfaces(t);
+      for (const tex of [...t, ...(n ?? [])]) if (tex.anisotropy !== aniso) { tex.anisotropy = aniso; tex.needsUpdate = true; }
+      setSurfaces(t); setNormals(n);
     });
     return () => { live = false; };
   }, [aniso]);
   const material = useMemo(() => {
     const m = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.95, metalness: 0.02, map: surfaces ? null : map, normalMap, normalScale: new THREE.Vector2(0.35, 0.35) });
-    if (surfaces) applySurfaceBlend(m, surfaces);
+    if (surfaces) applySurfaceBlend(m, surfaces, normals);
     return m;
-  }, [surfaces, map, normalMap]);
+  }, [surfaces, normals, map, normalMap]);
   // existing chunk meshes pick up a replaced material (textures finishing) without rebuilding any geometry
   useEffect(() => {
     for (const { mesh } of state.current.meshes.values()) mesh.material = material;
