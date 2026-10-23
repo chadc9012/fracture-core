@@ -1,3 +1,6 @@
+import { WastelandDustHaze } from "./WastelandDustHaze";
+import { WastelandVisualUpgrade } from "./WastelandVisualUpgrade";
+import { WorldPiece } from "./WorldPiece";
 import { useMemo, useRef } from "react";
 import { DistrictLight } from "./DistrictLight";
 import { useFrame } from "@react-three/fiber";
@@ -15,7 +18,7 @@ type Ruin = ReturnType<typeof ruins>[number];
 /** Wastelands dressing — ruined city outskirts: gutted concrete shells, leaning pylons with sagging cables, junk heaps,
  * tyre piles, rusted billboards and burning debris. Layout is pure (waste-dressing.ts); procedural and instanced. */
 export function WastelandsDressing() {
-  return <group><Ruins /><Pylons /><Junk /><Billboards />{fires().map((f, i) => <Smoke key={i} x={f.x} z={f.z} seed={i} />)}</group>;
+  return <group><WorldPiece name="wasteland scatter"><WastelandVisualUpgrade /><WastelandDustHaze /></WorldPiece><Ruins /><Pylons /><Junk /><Billboards />{fires().map((f, i) => <Smoke key={i} x={f.x} z={f.z} seed={i} />)}</group>;
 }
 
 /** Each ruin is built from instanced parts: per floor, four wall slabs with window gaps implied by pillars; upper
