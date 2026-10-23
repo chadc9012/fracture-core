@@ -1,4 +1,5 @@
 import type { HudState } from "./Scene";
+import { HudRail } from "./HudRail";
 
 /** Diving readout (presentation only; numbers come from Scene's HUD snapshot): depth, rebreather oxygen, the Thalassia
  * sector, hull stress past crush depth, the Abyssal Ring coolant warning, and a short breach flash on entering the city. */
@@ -16,7 +17,7 @@ export function DiveHud({ hud }: { hud: HudState }) {
           <p className="text-sm font-bold tracking-[0.2em] text-slate-100">PRESSURIZED ZONE · {hud.sector || "THALASSIA"}</p>
         </div>
       </div>}
-      <div className="dive-gauges absolute bottom-36 right-4 w-56 space-y-2">{/* live playtest: at top-24 this sat on top of the mission tracker */}
+      <HudRail side="right" order={5}><div className="dive-gauges absolute bottom-36 right-4 w-56 space-y-2">{/* live playtest: at top-24 this sat on top of the mission tracker */}
         <div className="border border-cyan-400/40 bg-slate-950/70 px-3 py-2">
           <p className="text-[9px] tracking-[0.25em] text-cyan-300">{hud.sector ? `// ${hud.sector.toUpperCase()}` : "// SUBMERGED"}</p>
           <p className="text-lg font-black text-slate-100">DEPTH <span className="text-cyan-300">{hud.depth}m</span></p>
@@ -33,7 +34,7 @@ export function DiveHud({ hud }: { hud: HudState }) {
         {hud.coolant && hud.coolant !== "CALM" && <div className={`border px-3 py-2 ${hud.coolant === "ARC" ? "border-cyan-200 bg-cyan-900/80" : "animate-pulse border-cyan-400/70 bg-slate-950/80"}`}>
           <p className="text-[10px] font-bold tracking-[0.2em] text-cyan-200">{hud.coolant === "ARC" ? "⚡ COOLANT DISCHARGE" : "⚡ COOLANT CHARGING · RISE OFF THE FLOOR"}</p>
         </div>}
-      </div>
+      </div></HudRail>
     </div>
   );
 }

@@ -212,6 +212,7 @@ import { nearestCache, canOpen, GUARD_RADIUS, ENCRYPT_SECONDS, SCENARIO_LABEL, t
 import { skyFxAt, NO_SKY_FX } from "@/game/sky-effects";
 import { COMBAT_STANCE_HOLD, combatStance } from "@/game/combat-stance";
 import { weaponDamageMultiplier } from "@/game/inventory";
+import { boomClearance } from "@/game/camera-occlusion";
 
 export type LootView = { name: string; rarity: Rarity; power: number; mods: string[]; color: string };
 
@@ -786,6 +787,7 @@ function SceneImpl({
   const moon = useRef<THREE.DirectionalLight>(null!);
   const time = useRef(0.36); // 08:38, morning light (the clock: sunrise 06:00, noon 12:00, sunset 18:00)
   const timeFrozen = useRef(false);
+  const camHead = useMemo(() => new THREE.Vector3(), []);
   const sunDir = useRef(new THREE.Vector3(0.4, 0.9, 0.3));
   const carSpeed = useRef(0);
   const carSteer = useRef(0);
@@ -2668,6 +2670,12 @@ function SceneImpl({
       );
       // divers: the camera may go below the surface (clamp to the seabed, not the water-clamped walk height)
       camTarget.y = Math.max(camTarget.y, (interior ? INTERIOR_ALTITUDE : s.diving ? heightAt(camTarget.x, camTarget.z) + 0.6 : walkHeight(camTarget.x, camTarget.z)) + (s.diving ? 0 : 1.35)) - cameraDrop(move.current.state);
+      // third-person boom: pull the camera in front of a trunk, rock, tower or wall between it and the operator (camera-occlusion.ts)
+      if (!s.inVehicle && !interior && s.cameraBlend > 0.5) {
+        camHead.set(s.x, s.y + 1.6, s.z);
+        const clear = boomClearance(camHead, camTarget);
+        if (clear < 1) camTarget.lerpVectors(camHead, camTarget, clear);
+      }
       // a teleport (door into a pocket room and back, fast travel, respawn) snaps the camera; easing it would fly the view
       // across kilometres of world for half a second. Keyed on the player's own jump, so the intro hand-off still eases in.
       const jumped = Math.hypot(s.x - lastCamPlayer.current.x, s.y - lastCamPlayer.current.y, s.z - lastCamPlayer.current.z) > 40;

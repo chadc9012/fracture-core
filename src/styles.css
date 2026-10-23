@@ -535,10 +535,10 @@
 
 /* HUD rails (HudRail.tsx): one stacking column per side; panels inside lose their own fixed offsets */
 .wf-rail { position: fixed; z-index: 25; display: flex; flex-direction: column; gap: 0.5rem; pointer-events: none; max-height: calc(100vh - 16rem); overflow: hidden; }
-.wf-rail-right { right: 0.75rem; top: 9.5rem; width: min(20rem, calc(50vw - 1rem)); align-items: flex-end; }
-.wf-rail-left { left: 0.75rem; top: 7rem; width: min(17rem, calc(50vw - 1rem)); align-items: flex-start; }
+.wf-rail-right { right: 0.75rem; top: 9.5rem; width: min(20rem, calc(50vw - 1rem)); align-items: flex-end; max-height: max(12rem, calc(100vh - 26rem)); } /* ends above the caption bar */
+.wf-rail-left { left: 0.75rem; top: 7rem; width: min(17rem, calc(50vw - 1rem)); align-items: flex-start; max-height: max(10rem, calc(100vh - 22rem)); } /* ends above the dash meter and vitals */
 .wf-rail-item { width: 100%; display: flex; flex-direction: column; }
 .wf-rail-right .wf-rail-item { align-items: flex-end; }
-.wf-rail-item > * { position: relative !important; inset: auto !important; transform: none !important; margin: 0 !important; max-width: 100% !important; }
+.wf-rail-item > * { position: relative !important; inset: auto !important; transform: none !important; translate: none !important; margin: 0 !important; max-width: 100% !important; }
 .wf-rail-item .pointer-events-auto, .wf-rail-item button { pointer-events: auto; }
 @media (max-width: 640px) { .wf-rail-right { top: 9.5rem; width: calc(55vw); } .wf-rail-left { top: 9rem; width: 42vw; } }

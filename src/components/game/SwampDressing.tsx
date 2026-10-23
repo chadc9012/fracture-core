@@ -1,4 +1,5 @@
-import { useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
+import { addObstacle } from "@/game/obstacles";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import { walkHeight, WATER_LEVEL } from "@/game/terrain";
@@ -22,6 +23,8 @@ function Cypress() {
   const moss = useMemo(() => ts.flatMap((t) => Array.from({ length: 4 }, (_, k) => ({ t, k }))), [ts]);
   const trunk = useRef<THREE.InstancedMesh>(null), root = useRef<THREE.InstancedMesh>(null), crown = useRef<THREE.InstancedMesh>(null), beard = useRef<THREE.InstancedMesh>(null);
   const H = (p: Prop) => 8 + p.s * 8;
+  // cypress trunks are solid (the player, vehicles and the third-person camera stop at them instead of passing through)
+  useEffect(() => { for (const t of ts) addObstacle("tree", t.x, t.z, 0.35 + 0.55 * t.s, 60, 0.8); }, [ts]);
   useInstances<Prop>(trunk, ts, (o, p) => { const h = H(p); o.position.set(p.x, walkHeight(p.x, p.z) + h / 2, p.z); o.rotation.set(p.tilt * 0.4, p.r, p.tilt * 0.3); o.scale.set(p.s, h, p.s); });
   // buttress roots flare out into the water
   useInstances<{ t: Prop; k: number }>(root, roots, (o, { t, k }) => { const a = t.r + k * 1.26; o.position.set(t.x + Math.cos(a) * 0.8 * t.s, walkHeight(t.x, t.z) + 0.6, t.z + Math.sin(a) * 0.8 * t.s); o.rotation.set(Math.sin(a) * 0.9, 0, -Math.cos(a) * 0.9); o.scale.set(t.s * 0.5, 2.2 * t.s, t.s * 0.5); });
