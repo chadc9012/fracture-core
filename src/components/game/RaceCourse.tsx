@@ -2,7 +2,7 @@ import { memo, useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import { walkHeight } from "@/game/terrain";
-import { rivalPositions, worldPoint, type RaceDef, type RaceRun } from "@/game/racing";
+import { raceObstacles, rivalPositions, worldPoint, type RaceDef, type RaceRun } from "@/game/racing";
 
 /** In-world race dressing. Principles: the course is the world (roads, ruins, paths); only the NEXT few gates are marked, by region-appropriate objects
  * (holo gates in the city, lantern posts in forests and swamps, banner flags in the deserts, ice markers on the mountain, buoys underwater) with a faint
@@ -16,6 +16,25 @@ const LOOK: Record<string, Look> = {
   frostspire: { post: "#9fc4d8", glow: "#bfeaff", banner: "#e8f6ff", kind: "ice" }, thalassia: { post: "#16384a", glow: "#3fe0d0", banner: "#2fb4ff", kind: "buoy" },
 };
 const GATES_SHOWN = 4;
+/** chevron boards along the leg you are on: a few markers either side pointing the way, so a long leg is readable without a painted line */
+const ARROWS = 6;
+const OBSTACLES_SHOWN = 6;
+
+function RivalModel({ mode, color }: { mode: RaceDef["mode"]; color: THREE.Color }) {
+  if (mode === "vehicle") return (
+    <group>
+      <mesh position={[0, 0.55, 0]}><boxGeometry args={[1.9, 0.6, 4.2]} /><meshStandardMaterial color={color} metalness={0.6} roughness={0.4} /></mesh>
+      <mesh position={[0, 1.05, -0.3]}><boxGeometry args={[1.6, 0.5, 2]} /><meshStandardMaterial color="#141a22" metalness={0.3} roughness={0.2} /></mesh>
+      {[[-0.95, 1.4], [0.95, 1.4], [-0.95, -1.4], [0.95, -1.4]].map(([x, z]) => <mesh key={`${x}${z}`} position={[x!, 0.35, z!]} rotation={[0, 0, Math.PI / 2]}><cylinderGeometry args={[0.38, 0.38, 0.3, 12]} /><meshStandardMaterial color="#111" roughness={0.9} /></mesh>)}
+      {[-0.6, 0.6].map((x) => <mesh key={x} position={[x, 0.65, -2.12]}><boxGeometry args={[0.4, 0.14, 0.04]} /><meshBasicMaterial color="#ff3030" /></mesh>)}
+    </group>);
+  if (mode === "dive") return (
+    <group rotation={[Math.PI / 2, 0, 0]}>
+      <mesh><capsuleGeometry args={[0.6, 2, 6, 10]} /><meshStandardMaterial color={color} emissive={color} emissiveIntensity={0.3} /></mesh>
+      <mesh position={[0, -1.6, 0]}><coneGeometry args={[0.35, 0.6, 8]} /><meshBasicMaterial color="#bff6ff" transparent opacity={0.5} /></mesh>
+    </group>);
+  return <mesh position={[0, 0.9, 0]}><capsuleGeometry args={[0.35, 1, 4, 8]} /><meshStandardMaterial color={color} /></mesh>;
+}
 
 function Gate({ look, width }: { look: Look; width: number }) {
   const h = look.kind === "buoy" ? 0 : 4.2, half = width / 2;
@@ -41,10 +60,12 @@ function Gate({ look, width }: { look: Look; width: number }) {
 export const RaceCourse = memo(function RaceCourse({ race, run }: { race: RaceDef; run: RaceRun }) {
   const look = LOOK[race.area] ?? LOOK["neon"]!;
   const gates = useRef<(THREE.Group | null)[]>([]), rivals = useRef<(THREE.Group | null)[]>([]);
+  const arrows = useRef<(THREE.Group | null)[]>([]), rocks = useRef<(THREE.Group | null)[]>([]), startLine = useRef<THREE.Group | null>(null);
+  const obstacles = useMemo(() => raceObstacles(race), [race]);
   const width = race.mode === "foot" ? 7 : race.mode === "dive" ? 14 : 16;
   const rivalCount = race.rivals;
   const rivalColors = useMemo(() => Array.from({ length: rivalCount }, (_, i) => new THREE.Color().setHSL((i * 0.17 + 0.05) % 1, 0.7, 0.55)), [rivalCount]);
-  const rivalColor = (r: number) => rivalColors[r] ?? "#ffffff";
+  const rivalColor = (r: number) => rivalColors[r] ?? new THREE.Color("#ffffff");
   useFrame(() => {
     const first = run.phase === "staging" || run.phase === "countdown" ? 0 : run.next;
     for (let k = 0; k < GATES_SHOWN; k++) {
@@ -58,22 +79,64 @@ export const RaceCourse = memo(function RaceCourse({ race, run }: { race: RaceDe
       g.rotation.y = Math.atan2(dx, dz) + Math.PI / 2; // posts sit either side of the line of travel
       const s = k === 0 ? 1 : 0.8 - k * 0.1; g.scale.setScalar(Math.max(0.4, s));
     }
+    const live = run.phase === "running";
+    // start line: a lit strip across gate 0 while you line up and count down
+    const sl = startLine.current;
+    if (sl) {
+      sl.visible = run.phase === "staging" || run.phase === "countdown";
+      if (sl.visible) { const a = worldPoint(race, 0), b = worldPoint(race, 1); sl.position.set(a.x, (a.depth ?? walkHeight(a.x, a.z)) + 0.06, a.z); sl.rotation.y = Math.atan2(b.x - a.x, b.z - a.z); }
+    }
+    // direction boards along the current leg (both sides, every ~30 m, up to ARROWS), facing along travel
+    const seg = Math.max(1, Math.min(race.points.length - 1, live ? run.next : 1));
+    const a = worldPoint(race, seg - 1), b = worldPoint(race, seg), ldx = b.x - a.x, ldz = b.z - a.z, len = Math.hypot(ldx, ldz) || 1;
+    const per = Math.min(ARROWS / 2, Math.floor(len / 30)), off = race.mode === "foot" ? 5 : 10, nx = ldz / len, nz = -ldx / len;
+    for (let k = 0; k < ARROWS; k++) {
+      const g = arrows.current[k]; if (!g) continue;
+      const slot = k >> 1, side = k & 1 ? 1 : -1;
+      if (!live || race.mode === "dive" || slot >= per) { g.visible = false; continue; }
+      const t = (slot + 1) / (per + 1), x = a.x + ldx * t + nx * off * side, z = a.z + ldz * t + nz * off * side;
+      g.visible = true; g.position.set(x, walkHeight(x, z), z); g.rotation.y = Math.atan2(ldx, ldz);
+    }
+    // obstacles on this leg and the next
+    let n = 0;
+    for (const o of obstacles) {
+      if (n >= OBSTACLES_SHOWN) break;
+      if (!live || o.segment < run.next || o.segment > run.next + 1 || run.hitObstacles?.includes(o.id)) continue;
+      const g = rocks.current[n++]; if (!g) continue;
+      g.visible = true; g.position.set(o.x, walkHeight(o.x, o.z), o.z);
+    }
+    for (; n < OBSTACLES_SHOWN; n++) { const g = rocks.current[n]; if (g) g.visible = false; }
     const time = run.phase === "running" ? run.time : run.phase === "finished" || run.phase === "failed" ? run.time : 0;
-    const pos = rivalPositions(race, run.difficulty, time);
+    const pos = rivalPositions(race, run.difficulty, time), ahead = rivalPositions(race, run.difficulty, time + 0.15);
     for (let r = 0; r < rivalCount; r++) {
       const g = rivals.current[r], p = pos[r]; if (!g || !p) continue;
       g.visible = run.phase === "countdown" || run.phase === "running";
-      g.position.set(p.x, p.depth !== undefined ? p.depth : walkHeight(p.x, p.z) + 0.4, p.z);
+      g.position.set(p.x, p.depth !== undefined ? p.depth : walkHeight(p.x, p.z) + (race.mode === "vehicle" ? 0 : 0.4), p.z);
+      const q = ahead[r]; if (q && Math.hypot(q.x - p.x, q.z - p.z) > 0.01) g.rotation.y = Math.atan2(q.x - p.x, q.z - p.z); // face the way they're going
     }
   });
   return (
     <group>
       {Array.from({ length: GATES_SHOWN }, (_, k) => <group key={k} ref={(el) => { gates.current[k] = el; }} visible={false}><Gate look={look} width={width} /></group>)}
+      <group ref={startLine} visible={false}>
+        <mesh rotation={[-Math.PI / 2, 0, 0]}><planeGeometry args={[width, 1.2]} /><meshBasicMaterial color="#ffffff" transparent opacity={0.85} /></mesh>
+        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.01, 0.9]}><planeGeometry args={[width, 0.25]} /><meshBasicMaterial color={look.glow} /></mesh>
+      </group>
+      {Array.from({ length: ARROWS }, (_, k) => (
+        <group key={`a${k}`} ref={(el) => { arrows.current[k] = el; }} visible={false}>
+          <mesh position={[0, 0.7, 0]}><cylinderGeometry args={[0.06, 0.06, 1.4, 6]} /><meshStandardMaterial color={look.post} /></mesh>
+          <mesh position={[0, 1.6, 0]} rotation={[Math.PI / 2, 0, 0]}><coneGeometry args={[0.45, 0.9, 3]} /><meshStandardMaterial color={look.banner} emissive={look.glow} emissiveIntensity={0.9} /></mesh>
+        </group>
+      ))}
+      {Array.from({ length: OBSTACLES_SHOWN }, (_, k) => (
+        <group key={`o${k}`} ref={(el) => { rocks.current[k] = el; }} visible={false}>
+          <mesh position={[0, 0.9, 0]} rotation={[0.3, k, 0.2]}><dodecahedronGeometry args={[1.6, 0]} /><meshStandardMaterial color="#5b544c" roughness={1} flatShading /></mesh>
+          <mesh position={[0, 2.9, 0]}><octahedronGeometry args={[0.35, 0]} /><meshBasicMaterial color="#ffb020" /></mesh>
+        </group>
+      ))}
       {Array.from({ length: rivalCount }, (_, r) => (
         <group key={r} ref={(el) => { rivals.current[r] = el; }} visible={false}>
-          {race.mode === "vehicle" ? <mesh position={[0, 0.5, 0]}><boxGeometry args={[1.8, 0.8, 4]} /><meshStandardMaterial color={rivalColor(r)} metalness={0.6} roughness={0.4} /></mesh>
-            : race.mode === "dive" ? <mesh><capsuleGeometry args={[0.6, 2, 6, 10]} /><meshStandardMaterial color={rivalColor(r)} emissive={rivalColor(r)} emissiveIntensity={0.3} /></mesh>
-            : <mesh position={[0, 0.9, 0]}><capsuleGeometry args={[0.35, 1, 4, 8]} /><meshStandardMaterial color={rivalColor(r)} /></mesh>}
+          <RivalModel mode={race.mode} color={rivalColor(r)} />
         </group>
       ))}
     </group>

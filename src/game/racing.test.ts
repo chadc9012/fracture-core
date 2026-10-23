@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { CHAMPIONSHIPS, CHECKPOINT_RADIUS, COUNTDOWN_S, CORRIDOR, DIFFICULTIES, POINTS_BY_PLACE, RACES, applyRaceResult, bestMedal, championshipPoints, difficultyLocked, hiddenUnlocked, newRaceRun, personalBest, rankIndex, rivalPositions, rivalTimes, raceById, racesIn, tickRace, timeLimit, windowOpen, worldPoint, type RaceDef, type RaceRun } from "./racing";
+import { CHAMPIONSHIPS, CHECKPOINT_RADIUS, COUNTDOWN_S, CORRIDOR, DIFFICULTIES, POINTS_BY_PLACE, RACES, applyRaceResult, bestMedal, championshipPoints, difficultyLocked, hiddenUnlocked, newRaceRun, raceObstacles, raceSpeedFactor, personalBest, rankIndex, rivalPositions, rivalTimes, raceById, racesIn, tickRace, timeLimit, windowOpen, worldPoint, type RaceDef, type RaceRun } from "./racing";
 import { ACTIVITIES, AREAS, activityById, activityState, completeActivity, startActivity, stepRun, currentTarget, type Run } from "./activities";
 import { DISCOVERIES, nearby } from "./discoveries";
 import { DEFAULT_PROGRESSION } from "./progression";
@@ -268,5 +268,27 @@ describe("laps", () => {
     for (let i = sc.skipTo; i < def.points.length; i++) { const w = worldPoint(def, i); tick2(def, run, { x: w.x, z: w.z, dt: 0.1, now: 0, mode: "vehicle" }); }
     expect(run.phase).toBe("finished");
     expect(run.result?.valid).toBe(true);
+  });
+});
+
+describe("race track obstacles", () => {
+  const def = RACES.find((r) => r.mode === "vehicle" && r.hazards.length && raceObstacles(r).length)!;
+  test("hazard vehicle courses have obstacles off the line, on drivable ground; foot and dive courses have none", () => {
+    expect(def).toBeDefined();
+    for (const r of RACES) if (r.mode !== "vehicle") expect(raceObstacles(r)).toEqual([]);
+    for (const o of raceObstacles(def)) { const a = worldPoint(def, o.segment - 1), b = worldPoint(def, o.segment); expect(Math.hypot(o.x - a.x, o.z - a.z)).toBeGreaterThan(CHECKPOINT_RADIUS.vehicle); expect(Math.hypot(o.x - b.x, o.z - b.z)).toBeGreaterThan(CHECKPOINT_RADIUS.vehicle); }
+  });
+  test("hitting one costs a collision once and slows the car, which recovers", () => {
+    const run = newRaceRun(def, "standard", T0), s = worldPoint(def, 0);
+    tick(def, run, s.x, s.z); for (let i = 0; i < COUNTDOWN_S * 10 + 2; i++) tick(def, run, s.x, s.z);
+    expect(run.phase).toBe("running");
+    const o = raceObstacles(def)[0]!;
+    for (let i = 1; i < o.segment; i++) { const w = worldPoint(def, i); tick(def, run, w.x, w.z); }
+    expect(run.next).toBe(o.segment);
+    tick(def, run, o.x, o.z); tick(def, run, o.x, o.z);
+    expect(run.collisions).toBe(1);
+    expect(raceSpeedFactor(run.impact)).toBeLessThan(0.6);
+    for (let i = 0; i < 30; i++) tick(def, run, o.x + 30, o.z + 30);
+    expect(raceSpeedFactor(run.impact)).toBe(1);
   });
 });

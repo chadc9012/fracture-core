@@ -17,6 +17,7 @@ import type { MaterialId } from "./inventory";
 import { BAKED_ROUTES } from "./race-routes.generated";
 import { WORLD_SCALE } from "./world";
 import { WATER_LEVEL, heightAt } from "./terrain";
+import { drivablePoint } from "./race-routing";
 
 export type RaceMode = "foot" | "vehicle" | "dive";
 export type Difficulty = "standard" | "advanced" | "legendary";
@@ -257,7 +258,7 @@ export function difficultyLocked(p: Store, id: string, d: Difficulty): string | 
 export type RaceResult = { valid: boolean; time: number; penalties: number; par: number; medal: Medal | null; place: number; field: number; style: number; difficulty: Difficulty };
 export type RaceRun = {
   raceId: string; difficulty: Difficulty; phase: "staging" | "countdown" | "running" | "finished" | "failed"; wall0: number; countdown: number; time: number; next: number; passed: number[];
-  penalties: number; collisions: number; recoveries: number; outside: number; style: number; notice: string | null; failReason?: string; viaShortcut: boolean;
+  penalties: number; collisions: number; /** track obstacles already struck (each counts once) */ hitObstacles?: string[]; /** 0..1, decays: a fresh obstacle hit caps the car's speed (raceSpeedFactor) */ impact?: number; recoveries: number; outside: number; style: number; notice: string | null; failReason?: string; viaShortcut: boolean;
   /** set when the player must be put back on the course; the host teleports and clears it */ recover: { x: number; z: number; depth?: number } | null; result?: RaceResult;
 };
 export const newRaceRun = (def: RaceDef, difficulty: Difficulty, now: number): RaceRun => ({ raceId: def.id, difficulty, phase: "staging", wall0: now, countdown: COUNTDOWN_S, time: 0, next: 1, passed: [], penalties: 0, collisions: 0, recoveries: 0, outside: 0, style: 0, notice: null, viaShortcut: false, recover: null });
@@ -287,6 +288,15 @@ export function tickRace(def: RaceDef, run: RaceRun, t: Pick<Tick, "x" | "z" | "
   run.time += dt;
   if (run.time > limit) { fail("Out of time"); return run; }
   run.collisions += t.collisions ?? 0;
+  // track obstacles (hazard courses): striking one is a collision penalty and a moment of lost speed, once per obstacle
+  run.impact = Math.max(0, (run.impact ?? 0) - dt * 0.55);
+  if (modeOk && def.mode === "vehicle") {
+    const hits = (run.hitObstacles ??= []);
+    for (const o of raceObstacles(def)) {
+      if (o.segment !== run.next || hits.includes(o.id) || Math.hypot(t.x - o.x, t.z - o.z) > o.radius) continue;
+      hits.push(o.id); run.collisions++; run.impact = 1; run.notice = "Hit a track obstacle: collision penalty";
+    }
+  }
   run.style += Math.max(0, t.style ?? 0);
   const collisionPenalty = Math.min(COLLISION_CAP, run.collisions * COLLISION_PENALTY);
   const recover = (penalty: number, why: string) => { if (++run.recoveries > MAX_RECOVERIES) { fail("Too many recoveries"); return; } run.penalties += penalty; const back = worldPoint(def, run.next > 1 ? run.next - 1 : 0); run.recover = { x: back.x, z: back.z, ...(back.depth !== undefined ? { depth: back.depth } : {}) }; run.notice = why; run.outside = 0; };
@@ -436,3 +446,26 @@ export function livePlace(def: RaceDef, run: RaceRun, x: number, z: number): { p
   const me = courseProgress(def, run.next, x, z), rivals = rivalPositions(def, run.difficulty, run.time);
   return { place: 1 + rivals.filter((r) => r.progress > me).length, field: rivals.length + 1 };
 }
+
+/* ------------------------------ track obstacles ------------------------------ */
+/** Hazard courses put an obstacle (boulder, debris, barrier) a little off the line on each long leg: steer round it or
+ * take a collision penalty and lose speed for a moment. Deterministic per course; the renderer (RaceCourse.tsx) and
+ * tickRace use the same list. Only on drivable ground (race-routing.ts), so one never sits in a river or a wall. */
+export type RaceObstacle = { id: string; x: number; z: number; radius: number; segment: number };
+const obstacleCache = new Map<string, RaceObstacle[]>();
+export function raceObstacles(def: RaceDef): RaceObstacle[] {
+  const hit = obstacleCache.get(def.id);
+  if (hit) return hit;
+  const out: RaceObstacle[] = [];
+  if (def.mode === "vehicle" && def.hazards.length) for (let i = 1; i < def.points.length; i++) {
+    const a = worldPoint(def, i - 1), b = worldPoint(def, i), dx = b.x - a.x, dz = b.z - a.z, len = Math.hypot(dx, dz);
+    if (len < 40) continue;
+    const side = hash(`${def.id}:${i}`) & 1 ? 1 : -1, x = a.x + dx * 0.52 + (side * dz / len) * 4.5, z = a.z + dz * 0.52 - (side * dx / len) * 4.5;
+    if (!drivablePoint(x, z)) continue;
+    out.push({ id: `${def.id}:ob:${i}`, x, z, radius: 2.8, segment: i });
+  }
+  obstacleCache.set(def.id, out);
+  return out;
+}
+/** the car's speed ceiling while recovering from an obstacle hit: 55% at the moment of impact, back to full as it fades */
+export const raceSpeedFactor = (impact: number | undefined) => 1 - 0.45 * Math.max(0, Math.min(1, impact ?? 0));

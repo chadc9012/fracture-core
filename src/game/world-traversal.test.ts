@@ -152,7 +152,8 @@ describe("player collision", () => {
       // the middle of a solid wall segment must block
       const w = walls.find((w) => Math.hypot(w.bx - w.ax, w.bz - w.az) > 3)!;
       const mid = { x: (w.ax + w.bx) / 2, z: (w.az + w.bz) / 2 + w.half + 0.2 };
-      expect(collideWalls(mid, 0.4, walkHeight(mid.x, mid.z))).toBe(true);
+      // probed at the shop's floor height: on a slope the ground just outside a back wall can sit below the wall's base
+      expect(collideWalls(mid, 0.4, walkHeight(shop.x, shop.z))).toBe(true);
     }
     clearWalls();
   });

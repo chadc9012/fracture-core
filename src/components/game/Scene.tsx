@@ -3,7 +3,7 @@ const DISCOVERY_LABEL: Record<string, string> = { flag: "Flag", beacon: "Beacon"
 const ACTIVITY_REGION: Record<string, string> = { veridan: "veridan", ember: "ember", wastelands: "wastelands", swamps: "swamps", solara: "solara", frostspire: "frostspire", thalassia: "swamps" };
 import { nearby as discoveriesNear, triggered as discoveryTriggered } from "@/game/discoveries";
 import { RaceCourse } from "./RaceCourse";
-import { raceById, type RaceRun } from "@/game/racing";
+import { raceById, raceSpeedFactor, type RaceRun } from "@/game/racing";
 import { novaHint } from "@/game/encounter-journal";
 import { stepRun as stepActivity, currentTarget as activityTarget, type ActivityDef, type Run as ActivityRun } from "@/game/activities";
 import { renderCounts, setterCalls } from "@/game/perf-counters";
@@ -1770,7 +1770,10 @@ function SceneImpl({
     if (s.inVehicle) {
        const vehicleGear = gear?.inventory.find((item) => item.id === gear.equippedGear.vehicle);
        // Neon City vehicle-combat: a damaged car tops out slower and steers worse, per VEHICLE_DAMAGE_EFFECT.
-       const maxSpeed = 62 * biomeGrip * (boost ? 1.5 : 1) * sim.mods.vehicleSpeed * selectedVehicle.speed * (vehicleGear ? 1 + vehicleGear.level * 0.04 : 1) * damageFx.speed;
+       // a race obstacle you just hit holds your top speed down for a moment (racing.ts raceSpeedFactor); 1 outside a race
+       const raceRun = activity?.run.status === "active" && activity.def.stages[0]?.kind === "race" ? (activity.run.race as RaceRun | undefined) : undefined;
+       const raceSlow = raceRun?.phase === "running" ? raceSpeedFactor(raceRun.impact) : 1;
+       const maxSpeed = 62 * biomeGrip * (boost ? 1.5 : 1) * sim.mods.vehicleSpeed * selectedVehicle.speed * (vehicleGear ? 1 + vehicleGear.level * 0.04 : 1) * damageFx.speed * raceSlow;
       const ax = pad?.axes ?? [];
       const dz = (v: number | undefined) => (v && Math.abs(v) > 0.15 ? v : 0);
       const trig = (i: number) => pad?.buttons[i]?.value ?? 0;
@@ -2067,10 +2070,13 @@ function SceneImpl({
     if (!tutorial) {
         if (activity && activity.run.status === "active") {
           const r = activity.run, rsig = () => { const rr = r.race as { phase?: string; next?: number; recoveries?: number; notice?: string | null; countdown?: number } | undefined; return `${r.stage}|${r.progress}|${r.status}|${r.cp}|${r.carrying}|${rr?.phase}|${rr?.next}|${rr?.recoveries}|${rr?.notice}|${rr?.phase === "countdown" ? Math.ceil(rr.countdown ?? 0) : ""}`; }, sig0 = rsig();
+          const hitsBefore = (r.race as RaceRun | undefined)?.hitObstacles?.length ?? 0;
           stepActivity(activity.def, r, { x: s.x, z: s.z, dt, now: Date.now(), kills: sim.kills, elites: sim.eliteKills, bosses: sim.bossKills, hp: sim.hp, deaths: sim.deaths, rivalKills: sim.rivalKills, mode: s.inVehicle ? "vehicle" : s.diving ? "dive" : "foot", y: s.y, vehicleDisabled: s.inVehicle && conditionEffects(condition.current).disabled });
           // a race asked to put the player back on the course (wreck, fall, or lost): same place as the last checkpoint, race clock keeps running
           const back = (r.race as { recover?: { x: number; z: number; depth?: number } | null } | undefined)?.recover;
           if (back) { s.x = back.x; s.z = back.z; s.vSpeed = 0; s.vy = 0; if (back.depth !== undefined) s.y = back.depth; else s.y = walkHeight(back.x, back.z) + 0.2; (r.race as { recover: unknown }).recover = null; }
+          // first contact with a track obstacle costs momentum straight away
+          if (s.inVehicle && ((r.race as RaceRun | undefined)?.hitObstacles?.length ?? 0) > hitsBefore) s.vSpeed *= 0.55;
           if (sig0 !== rsig()) onActivityChange?.();
         }
     }
