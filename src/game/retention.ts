@@ -51,6 +51,12 @@ export function recapLine(p: Pick<PlayerProgression, "completedMissions">): stri
 }
 
 /** Repeat-activity reward factor: full for the first 10 runs today, tapering to 25%; first-ever clear pays 1.5×. */
+/** Wasteland side activities (ids "side-…": rally, derby, vault defense) take a minute, not a mission's quarter hour, so they pay a
+ * fraction of a mission: half on the very first run, a quarter for the first three runs a day, then a token 5%. */
+export function sideRewardFactor(runsToday: number, firstEver: boolean): number {
+  if (firstEver) return 0.5;
+  return runsToday < 3 ? 0.25 : 0.05;
+}
 export function repeatRewardFactor(runsToday: number, firstEver: boolean): number {
   if (firstEver) return 1.5;
   if (runsToday < 10) return 1;

@@ -56,6 +56,9 @@ export const course = (points: [number, number][], timeLimit: number, label: str
 export const collect = (points: [number, number][], timeLimit: number, label: string): Objective => ({ kind: "collect", points, timeLimit, label });
 export const NO_DMG: OptionalChallenge = { id: "no-damage", label: "Finish without taking damage" }, FAST: OptionalChallenge = { id: "fast", label: "Finish in under 60% of the time limit" }, NO_DEATH: OptionalChallenge = { id: "no-death", label: "Finish without dying" };
 
+/** Killbox matches stay unlimited, but only the first KILLBOX_FULL_PAY wins a day pay in full; later wins pay KILLBOX_TAPER
+ * (unlimited full pay out-earned every other source ~40×). */
+export const KILLBOX_FULL_PAY = 5, KILLBOX_TAPER = 0.1;
 export const ACTIVITIES: readonly ActivityDef[] = [
   // Verdant Forest
   { id: "vf-rescue", area: "veridan", name: "Lost Survey Team", kind: "side", difficulty: 1, faction: "wardens", brief: "A survey team vanished in the canopy. Reach their beacons and bring them back.", attempts: 3, cooldownMin: 20, stages: [collect(ring(3, 0.55, 0.4), 420, "Reach the three survivor beacons")], challenge: NO_DEATH, rewards: R(90, 60, 12, { sporeFiber: 3, scrapMetal: 4 }) },
@@ -69,7 +72,7 @@ export const ACTIVITIES: readonly ActivityDef[] = [
   // Nexus City
   { id: "nx-grid", area: "nexus", name: "Grid Restoration", kind: "side", difficulty: 2, faction: "wardens", brief: "Reboot three failed grid nodes around the city.", attempts: 3, cooldownMin: 20, stages: [collect(ring(3, 0.6, 0.3), 360, "Reach the three grid nodes")], rewards: R(100, 60, 12, { microCircuits: 3, scrapMetal: 3 }) },
   { id: "nx-contract", area: "nexus", name: "Guild Contract", kind: "contract", difficulty: 2, faction: "guild", brief: "Escort a guild courier across the market district.", attempts: 3, cooldownMin: 25, stages: [deliver([-0.6, 0], [0.6, 0], 150, "Deliver the package")], rewards: R(110, 60, 14, { reinforcedAlloy: 2 }) },
-  // Killbox (PvP; id prefix "crucible" kept for saves) vs AI rival operators in the Wastelands arena (crucible.ts); unlimited matches, paid on a win
+  // Killbox (PvP; id prefix "crucible" kept for saves) vs AI rival operators in the Wastelands arena (crucible.ts); unlimited matches; the first few wins a day pay in full
   { id: "crucible-duel", area: "wastelands", name: "Killbox · Duel", kind: "crucible", difficulty: 2, faction: "guild", brief: CRUCIBLE_MODES.duel.brief, attempts: Infinity, cooldownMin: 0, stages: [{ kind: "crucible", mode: "duel", target: CRUCIBLE_MODES.duel.target, label: "Eliminate the rival operator" }], rewards: R(120, 180, 2, { scrapMetal: 3 }) },
   { id: "crucible-skirmish", area: "wastelands", name: "Killbox · Skirmish", kind: "crucible", difficulty: 3, faction: "guild", brief: CRUCIBLE_MODES.skirmish.brief, attempts: Infinity, cooldownMin: 0, stages: [{ kind: "crucible", mode: "skirmish", target: CRUCIBLE_MODES.skirmish.target, label: "Win the skirmish" }], rewards: R(260, 400, 4, { scrapMetal: 6 }) },
   { id: "nx-sentinel", area: "nexus", name: "Rogue Sentinel", kind: "bounty", difficulty: 3, faction: "wardens", brief: "A Sentinel has gone rogue near the Spire. Stop it.", attempts: 3, cooldownMin: 35, stages: [kills(1, "Destroy the rogue Sentinel", "elite"), kills(4, "Clear its escorts")], challenge: NO_DMG, rewards: R(160, 100, 18, { gearParts: 2, reinforcedAlloy: 2 }) },
@@ -274,26 +277,33 @@ export function challengeMet(def: ActivityDef, run: Run, now: number): boolean {
   return limit > 0 && (now - run.startedAt) / 1000 <= limit * 0.6;
 }
 
+/** the MISSION grant base (xp.ts: 800 × 1.5) the listed activity XP is scaled against */
+export const ACTIVITY_XP_BASE = 1200;
 export type Payout = { nex: number; xp: number; rep: number; materials: Partial<Record<MaterialId, number>>; shader: string | null; bonus: boolean; featured?: boolean };
 /** complete a run: pays Nex, XP, reputation, materials and a possible earned-only shader; the optional challenge adds 25% and a better shader chance.
  * Starts the cooldown. Pays at most once per run (the run must be "complete"; callers drop it afterwards). */
 export function completeActivity(p: PlayerProgression, def: ActivityDef, run: Run, now = Date.now(), rng: () => number = Math.random): { progression: PlayerProgression; payout: Payout } | { error: string } {
   if (run.status !== "complete" || run.id !== def.id) return { error: "Not complete" };
   const bonus = challengeMet(def, run, now), featured = isFeatured(def.id, run.startedAt);
-  const mult = (bonus ? 1.25 : 1) * (featured ? FEATURED_BONUS : 1);
   const r = def.rewards;
   const rec = p.missionRuns[recKey(def.id)];
+  const taper = def.kind === "crucible" && (rec?.count ?? 1) > KILLBOX_FULL_PAY ? KILLBOX_TAPER : 1;
+  const mult = (bonus ? 1.25 : 1) * (featured ? FEATURED_BONUS : 1) * taper;
   // one payout per attempt: the ledger key is the attempt itself, so a repeated claim for the same run pays nothing
   const claimKey = `activity:${def.id}:${rec?.day ?? periodKey(def, now)}:${rec?.count ?? 1}`;
   if (p.nexLedger[claimKey] !== undefined) return { error: "Already claimed" };
   let next: PlayerProgression = { ...p, missionRuns: { ...p.missionRuns, [recKey(def.id)]: { ...(rec ?? { day: periodKey(def, now), count: 1 }), last: now } } } as PlayerProgression;
   const nex = Math.round(r.nex * mult), rep = Math.round(r.rep * mult);
   next = { ...next, nexLedger: { ...next.nexLedger, [claimKey]: nex } };
-  next = grantXP(next, "MISSION", { scale: (r.xp / 100) * mult }).progression;
+  // pays exactly the listed XP (× challenge/featured): a MISSION grant is 800 × 1.5 = 1,200 base, so scale by r.xp / 1,200
+  next = grantXP(next, "MISSION", { scale: (r.xp / ACTIVITY_XP_BASE) * mult }).progression;
   const materials: Payout["materials"] = {};
   const mats = { ...next.materials };
-  for (const [id, n] of Object.entries(r.materials) as [MaterialId, number][]) { const amt = Math.round(n * mult); if (amt > 0) { materials[id] = amt; mats[id] = (mats[id] ?? 0) + amt; } }
-  next = { ...next, materials: mats };
+  // forgeCatalyst is the earned-only upgrade gate: an activity pays it on its first completion only
+  const firstCatalyst = `activity-first-catalyst:${def.id}`;
+  const catalystPaid = next.earnedRewards.includes(firstCatalyst);
+  for (const [id, n] of Object.entries(r.materials) as [MaterialId, number][]) { if (id === "forgeCatalyst" && catalystPaid) continue; const amt = id === "forgeCatalyst" ? n : Math.round(n * mult); if (amt > 0) { materials[id] = amt; mats[id] = (mats[id] ?? 0) + amt; } }
+  next = { ...next, materials: mats, earnedRewards: materials.forgeCatalyst && !catalystPaid ? [...next.earnedRewards, firstCatalyst] : next.earnedRewards };
   next = addReputation(next, def.faction, rep);
   let shader: string | null = null;
   if (rng() < r.shaderChance * (bonus ? 2 : 1)) {

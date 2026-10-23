@@ -26,7 +26,11 @@ export const REGION_SKY_MOOD: Readonly<Record<string, SkyMood>> = {
   nexus: { golden: { zenith: hex("#97647c"), horizon: hex("#e67c48") } },     // sunset - Nexus City
   wastelands: { golden: { zenith: hex("#a57886"), horizon: hex("#c08574") } },// sunset - The Wastelands
   frostspire: { night: { zenith: hex("#0c3475"), horizon: hex("#134897") } }, // night - Frostspire Mountains
-  ember: { night: { zenith: hex("#1d3a66"), horizon: hex("#324f83") } },      // storm - Ember Peaks
+  // storm - Ember Peaks at night; by day and at dusk an ash-choked sky, bruised brown overhead and burning orange at the horizon
+  // (reference "volcano" / "storm - Ember Peaks"): the clear-blue noon gradient never suited a volcano
+  ember: { night: { zenith: hex("#1d3a66"), horizon: hex("#324f83") }, day: { zenith: hex("#4b3a40"), horizon: hex("#c76a3e") }, golden: { zenith: hex("#3a1c28"), horizon: hex("#ff5a22") } },
+  // the Shrouded Swamps: a low, murky green-grey overcast
+  swamps: { day: { zenith: hex("#64786f"), horizon: hex("#a3b090") } },
   solara: { day: { zenith: hex("#abcbf6"), horizon: hex("#7c97be") } },       // day - Solara Desert
 };
 /** How far the sky moves toward the reference colours (never all the way: the clock-driven gradient stays underneath). */

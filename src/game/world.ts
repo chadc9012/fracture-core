@@ -200,14 +200,33 @@ export function hourOf(t: number): number {
   return (((t % 1) + 1) % 1) * 24;
 }
 
+/** The sun (Scene.tsx) rises at t 0.25 (06:00), peaks at 0.5 (12:00) and sets at 0.75 (18:00): `sunElevation`. The sky palette
+ * and the phase used to be a quarter day off (noon painted as sunset, a 35°-high sun under a night sky, dawn at midnight); both
+ * now follow the same clock. */
+export function sunElevation(t: number): number {
+  return Math.sin((((t % 1) + 1) % 1) * Math.PI * 2 - Math.PI / 2);
+}
 export function phaseFor(t: number): Phase {
   const h = hourOf(t) / 24;
-  if (h < 0.12) return "Dawn";
-  if (h < 0.42) return "Day";
-  if (h < 0.55) return "Sunset";
-  if (h < 0.8) return "Night";
+  if (h < 0.22) return "Moonlight";
+  if (h < 0.3) return "Dawn";
+  if (h < 0.7) return "Day";
+  if (h < 0.79) return "Sunset";
+  if (h < 0.92) return "Night";
   return "Moonlight";
 }
+/** sky palette keyframes along the same clock (Scene blends between neighbours) */
+export const SKY_STOPS: readonly { t: number; key: Phase }[] = [
+  { t: 0, key: "Moonlight" },
+  { t: 0.2, key: "Moonlight" },
+  { t: 0.26, key: "Dawn" },
+  { t: 0.34, key: "Day" },
+  { t: 0.68, key: "Day" },
+  { t: 0.75, key: "Sunset" },
+  { t: 0.82, key: "Night" },
+  { t: 0.93, key: "Moonlight" },
+  { t: 1, key: "Moonlight" },
+];
 
 export const SKY: Record<Phase, { top: string; bottom: string; fog: string; light: string; intensity: number }> = {
   Dawn: { top: "#2f4d7a", bottom: "#f2a25c", fog: "#9fb6cf", light: "#ffcf9b", intensity: 1.1 },

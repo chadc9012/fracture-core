@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable";
 import { hasBackup, listRestorePoints, loadRestorePoint, localSavedAt, pullAndMerge, pushSave, restoreBackup, setRemoteMergeHandler, type RestorePoint } from "@/game/cloud-save";
 import type { PlayerProgression } from "@/game/progression";
+import { HudRail } from "./HudRail";
 
 type Status = "offline" | "syncing" | "synced" | "merged" | "error";
 
@@ -88,9 +89,9 @@ export function CloudSavePanel({ progression, onProgression }: { progression: Pl
 
   return (
     <>
-      <button onClick={() => setOpen((o) => !o)} className={`fixed left-4 top-[18.5rem] z-30 border border-border bg-card/80 px-3 py-1.5 text-[9px] uppercase tracking-[0.2em] ${tone}`}>
+      <HudRail side="left" order={9}><button onClick={() => setOpen((o) => !o)} className={`fixed left-4 top-[18.5rem] z-30 border border-border bg-card/80 px-3 py-1.5 text-[9px] uppercase tracking-[0.2em] ${tone}`}>
         ☁ {isTestProfile() ? "Test profile · cloud sync off" : user ? LABEL[status] : "Cloud save · sign in"}
-      </button>
+      </button></HudRail>
       {open && (
         <section className="fixed left-4 top-[21rem] z-40 w-72 border border-border bg-card/95 p-4 text-xs">
           <h2 className="text-[10px] uppercase tracking-[0.25em] text-primary">Cloud save</h2>

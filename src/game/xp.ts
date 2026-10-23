@@ -31,9 +31,11 @@ export function comboMultiplier(combatHeat: number): number {
 
 export const RARE_EVENT_MULTIPLIER: Record<string, number> = { CORRUPTION_ZONE_CLEAR: 3 };
 
-/** Simple, readable power curve: level N needs N*100 XP to clear. */
+/** Simple, readable power curve: level N needs N*400 XP to clear. At ×100 the tutorial alone reached level 6 and the
+ * level-12 shop gate fell before mission 4; at ×400 story completions end the campaign near level 11 and kills add the rest. */
+export const XP_PER_LEVEL = 400;
 export function xpRequiredForLevel(level: number): number {
-  return level * 100;
+  return level * XP_PER_LEVEL;
 }
 
 export const NOVA_UNLOCK_THRESHOLDS: readonly { novaLevel: number; ability: string }[] = [

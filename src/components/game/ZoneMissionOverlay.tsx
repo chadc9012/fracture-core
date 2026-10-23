@@ -7,6 +7,7 @@ import {
   MATCH_LOCKS, MATCH_CODES, matchStart, matchSignature, pickCode, matchProgress, type MatchState,
 } from "@/game/missions/zone-missions";
 import { useVoiceLine } from "./useVoiceLine";
+import { HudRail } from "./HudRail";
 
 type Props = { mission: MissionRun; onEvent: (e: MissionEvent) => void };
 
@@ -21,16 +22,13 @@ export function ZoneMissionOverlay({ mission, onEvent }: Props) {
   const hacking = mission.state === "HACKING";
 
   return <>
-    {mission.state !== "WORLD_UPDATE" && <div className="pointer-events-none mission-tracker fixed right-3 top-24 z-20 max-w-xs border-l-2 p-3" style={{ borderColor: accent, background: "color-mix(in oklch, var(--card) 80%, transparent)" }}>
+    {mission.state !== "WORLD_UPDATE" && <HudRail side="right" order={1}><div className="pointer-events-none mission-tracker fixed right-3 top-24 z-20 max-w-xs border-l-2 p-3" style={{ borderColor: accent, background: "color-mix(in oklch, var(--card) 80%, transparent)" }}>
       <p className="font-mono text-[10px] uppercase tracking-[0.25em]" style={{ color: accent }}>{spec.title}</p>
       <p className="mt-1 text-sm">{spec.objective[mission.state]}</p>
       {hacking && <p className="mt-1 font-mono text-[10px] text-muted-foreground">{spec.hackLabel.toUpperCase()} {Math.round(mission.hack)}%</p>}
       {mission.state === "BOSS" && <p className="mt-1 font-mono text-[10px] text-muted-foreground">{spec.bossHint}</p>}
-    </div>}
-    {mission.nova && <div className="pointer-events-none fixed bottom-24 left-3 z-20 flex max-w-sm items-start gap-3 border p-3" style={{ borderColor: `color-mix(in oklch, ${accent} 40%, transparent)`, background: "color-mix(in oklch, var(--card) 80%, transparent)" }}>
-      <span className="mt-1 size-3 shrink-0 animate-pulse rounded-full" style={{ background: accent, boxShadow: `0 0 12px ${accent}` }} />
-      <p className="text-sm"><span className="font-mono text-[10px] uppercase" style={{ color: accent }}>NOVA · </span>{mission.nova}</p>
-    </div>}
+    </div></HudRail>}
+    {/* NOVA's line is shown once, in the shared caption bar (VoiceSubtitle via useVoiceLine); the old copy here overlapped the ability bar */}
     {hacking && mission.hack < 100 && <div className="fixed inset-0 z-30 grid place-items-center bg-background/40">
       <section className="w-[min(30rem,calc(100%-2rem))] border bg-card/90 p-5" style={{ borderColor: accent }}>
         <p className="font-mono text-[10px] uppercase tracking-[0.25em]" style={{ color: accent }}>{spec.hackLabel}</p>

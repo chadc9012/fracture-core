@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { QUESTS, objectiveProgress } from "@/game/quests";
 import type { PlayerProgression } from "@/game/progression";
+import { HudRail } from "./HudRail";
 
 /**
  * Surfaces the real "Fracture Descent" quest chain (@/game/quests) to the player — gameTick()
@@ -28,7 +29,7 @@ export function QuestTracker({ progression }: { progression: PlayerProgression }
   if (!quest) return null;
 
   return (
-    <div className="quest-hud pointer-events-none fixed right-3 top-64 z-20 w-[min(88vw,320px)] text-right">
+    <HudRail side="right" order={3}><div className="quest-hud pointer-events-none fixed right-3 top-64 z-20 w-[min(88vw,320px)] text-right">
       <p className="font-mono text-[9px] uppercase tracking-[0.25em] text-primary">The Fracture Descent</p>
       <p className="mt-0.5 text-sm font-semibold uppercase tracking-wide text-foreground">{quest.title}</p>
       <div className="mt-1.5 space-y-1">
@@ -43,6 +44,6 @@ export function QuestTracker({ progression }: { progression: PlayerProgression }
         })}
       </div>
       {showLine && <p className="mt-2 border-t border-border/40 pt-2 text-xs italic text-muted-foreground">"{quest.line}"</p>}
-    </div>
+    </div></HudRail>
   );
 }

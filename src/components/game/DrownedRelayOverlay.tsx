@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { OBJECTIVE, PURGE_CHANNELS, PURGE_FREQUENCIES, PURGE_START, carrierFor, pickFrequency, purgeProgress, type MissionEvent, type MissionRun, type PurgeState } from "@/game/missions/drowned-relay";
 import { useVoiceLine } from "./useVoiceLine";
+import { HudRail } from "./HudRail";
 
 const ACCENT = "#63d6a8"; // the swamps' own region accent (world.ts)
 const CHANNELS = Array.from({ length: PURGE_CHANNELS }, (_, i) => i);
@@ -26,16 +27,13 @@ export function DrownedRelayOverlay({ mission, onEvent }: { mission: MissionRun;
   };
 
   return <>
-    {mission.state !== "WORLD_UPDATE" && <div className="pointer-events-none mission-tracker fixed right-3 top-24 z-20 max-w-xs border-l-2 p-3" style={{ borderColor: ACCENT, background: "color-mix(in oklch, var(--card) 80%, transparent)" }}>
+    {mission.state !== "WORLD_UPDATE" && <HudRail side="right" order={1}><div className="pointer-events-none mission-tracker fixed right-3 top-24 z-20 max-w-xs border-l-2 p-3" style={{ borderColor: ACCENT, background: "color-mix(in oklch, var(--card) 80%, transparent)" }}>
       <p className="font-mono text-[10px] uppercase tracking-[0.25em]" style={{ color: ACCENT }}>The Drowned Relay</p>
       <p className="mt-1 text-sm">{OBJECTIVE[mission.state]}</p>
       {purging && <p className="mt-1 font-mono text-[10px] text-muted-foreground">CHANNELS {Math.round(mission.hack)}%</p>}
       {mission.state === "BOSS" && <p className="mt-1 font-mono text-[10px] text-muted-foreground">Tentacles rise before the sweep. Move when they do.</p>}
-    </div>}
-    {mission.nova && <div className="pointer-events-none fixed bottom-24 left-3 z-20 flex max-w-sm items-start gap-3 border p-3" style={{ borderColor: `color-mix(in oklch, ${ACCENT} 40%, transparent)`, background: "color-mix(in oklch, var(--card) 80%, transparent)" }}>
-      <span className="mt-1 size-3 shrink-0 animate-pulse rounded-full" style={{ background: ACCENT, boxShadow: `0 0 12px ${ACCENT}` }} />
-      <p className="text-sm"><span className="font-mono text-[10px] uppercase" style={{ color: ACCENT }}>NOVA · </span>{mission.nova}</p>
-    </div>}
+    </div></HudRail>}
+    {/* NOVA's line is shown once, in the shared caption bar (VoiceSubtitle via useVoiceLine); the old copy here overlapped the ability bar */}
     {purging && channel >= 0 && <div className="fixed inset-0 z-30 grid place-items-center bg-background/40">
       <section className="w-[min(28rem,calc(100%-2rem))] border bg-card/90 p-5" style={{ borderColor: ACCENT }}>
         <p className="font-mono text-[10px] uppercase tracking-[0.25em]" style={{ color: ACCENT }}>Relay purge · channel {channel + 1} of {PURGE_CHANNELS}</p>

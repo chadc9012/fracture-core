@@ -532,3 +532,13 @@
 .wf-op-stage { position: relative; background: radial-gradient(ellipse at 50% 85%, rgba(146, 233, 245, 0.16), transparent 55%); }
 .wf-op-stage::after { content: ""; position: absolute; left: 18%; right: 18%; bottom: 6%; height: 14%; border-radius: 50%; border: 1px solid rgba(146, 233, 245, 0.35); box-shadow: 0 0 30px rgba(56, 196, 232, 0.35), inset 0 0 24px rgba(56, 196, 232, 0.25); pointer-events: none; }
 @media (prefers-reduced-motion: reduce) { .wf-tile, .wf-op-btn { transition: none; } }
+
+/* HUD rails (HudRail.tsx): one stacking column per side; panels inside lose their own fixed offsets */
+.wf-rail { position: fixed; z-index: 25; display: flex; flex-direction: column; gap: 0.5rem; pointer-events: none; max-height: calc(100vh - 16rem); overflow: hidden; }
+.wf-rail-right { right: 0.75rem; top: 9.5rem; width: min(20rem, calc(50vw - 1rem)); align-items: flex-end; }
+.wf-rail-left { left: 0.75rem; top: 7rem; width: min(17rem, calc(50vw - 1rem)); align-items: flex-start; }
+.wf-rail-item { width: 100%; display: flex; flex-direction: column; }
+.wf-rail-right .wf-rail-item { align-items: flex-end; }
+.wf-rail-item > * { position: relative !important; inset: auto !important; transform: none !important; margin: 0 !important; max-width: 100% !important; }
+.wf-rail-item .pointer-events-auto, .wf-rail-item button { pointer-events: auto; }
+@media (max-width: 640px) { .wf-rail-right { top: 9.5rem; width: calc(55vw); } .wf-rail-left { top: 9rem; width: 42vw; } }

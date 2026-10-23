@@ -1,14 +1,22 @@
 /** Weapon loot from every source the player explores: regular/elite/boss kills, dungeon clears and main-mission first clears (open-world
  * caches already drop weapons and armor in loot-caches.ts; armor-set pieces drop from kills in armor-sets.ts). Weapons are real named
  * entries of the master manifest (equipment.ts) turned into ordinary GearItems, so they equip, upgrade, sell and save like any other.
- * Power stays inside the established bands (80 / 95 / 110 / 125): nothing here inflates rewards. Pure; Math.random only at the call site. */
+ * Power sits on the shop ladder (regional-shops.ts: T1 90 · T2 140 · T3 190 · T4 260 · T5 340): a regular drop matches a T2 buy, an elite a
+ * T3, a boss or dungeon a T4, and story missions climb from 140 to 330 through the campaign, so loot is always worth picking up over
+ * the 135-power starting rifle. (The old 80 / 95 / 110 bands were all below the starting gear.) Pure; Math.random only at the call site. */
 import { WEAPON_MANIFEST, type WeaponManifestItem } from "./equipment";
 import { catalogFrom } from "./weapon-catalog";
 import type { GearItem, GearSlot, MaterialId } from "./inventory";
 
 export type LootSource = "enemy-regular" | "enemy-elite" | "enemy-boss" | "dungeon" | "mission";
 export const WEAPON_DROP_CHANCE: Record<Extract<LootSource, `enemy-${string}`>, number> = { "enemy-regular": 0.02, "enemy-elite": 0.08, "enemy-boss": 0.35 };
-export const SOURCE_POWER: Record<LootSource, number> = { "enemy-regular": 80, "enemy-elite": 95, "enemy-boss": 110, dungeon: 110, mission: 95 };
+export const SOURCE_POWER: Record<LootSource, number> = { "enemy-regular": 140, "enemy-elite": 190, "enemy-boss": 260, dungeon: 260, mission: 140 };
+/** story missions in campaign order: each first-clear weapon is 140 + 17 per step (awakening 140 … system-core 327); others 190 */
+const CAMPAIGN = ["awakening", "broken-signal", "drowned-relay", "blackout-protocol", "stitched-neon-core", "solar-array", "core-node", "frozen-beacon", "failure-core", "convoy-breaker", "descent-protocol", "system-core"];
+export function missionWeaponPower(missionId: string): number {
+  const i = CAMPAIGN.indexOf(missionId);
+  return i < 0 ? 190 : 140 + 17 * i;
+}
 const ELEMENT: Record<WeaponManifestItem["element"], GearItem["element"]> = { KINETIC: "KINETIC", PLASMA: "ARC", CRYO: "CRYO", ARC: "ARC", THERMAL: "THERMAL", VOID: "BIO" };
 const SLOT_OF = (w: WeaponManifestItem): GearSlot => (w.archetype === "HEAVY" ? "heavy" : w.archetype === "SIDEARM" ? "secondary" : "primary");
 /** only ordinary tiers can drop: T4+/S weapons stay behind forges, raids and signature rewards */
@@ -18,8 +26,8 @@ const ENEMY_POOL: WeaponManifestItem[] = [...DROPPABLE, ...catalogFrom("loot")];
 const BOSS_POOL: WeaponManifestItem[] = [...ENEMY_POOL, ...catalogFrom("boss")];
 const hash = (s: string) => { let h = 2166136261 >>> 0; for (const ch of s) { h ^= ch.charCodeAt(0); h = Math.imul(h, 16777619) >>> 0; } return h >>> 0; };
 
-function build(source: LootSource, w: WeaponManifestItem, id: string, label: string): GearItem {
-  return { id, name: w.name, slot: SLOT_OF(w), power: SOURCE_POWER[source], level: 1, element: ELEMENT[w.element], source: label };
+function build(source: LootSource, w: WeaponManifestItem, id: string, label: string, power = SOURCE_POWER[source]): GearItem {
+  return { id, name: w.name, slot: SLOT_OF(w), power, level: 1, element: ELEMENT[w.element], source: label };
 }
 /** `roll` is one uniform [0,1): the low end decides whether it drops, the same number then picks the weapon (like rollSetDrop). */
 export function rollWeaponLoot(source: Extract<LootSource, `enemy-${string}`>, zone: string, roll: number, uniqueSuffix: string): GearItem | null {
@@ -32,7 +40,7 @@ export function rollWeaponLoot(source: Extract<LootSource, `enemy-${string}`>, z
 /** One guaranteed, stable-id weapon per clear (dungeon or main mission): granting twice is impossible because the id is the key. */
 export function completionWeapon(source: "dungeon" | "mission", key: string): GearItem {
   const pick = DROPPABLE[hash(`${source}:${key}`) % DROPPABLE.length]!;
-  return build(source, pick, `reward-weapon:${source}:${key}`, source === "dungeon" ? "Dungeon clear reward" : "Mission reward");
+  return build(source, pick, `reward-weapon:${source}:${key}`, source === "dungeon" ? "Dungeon clear reward" : "Mission reward", source === "mission" ? missionWeaponPower(key) : SOURCE_POWER.dungeon);
 }
 export function grantCompletionWeapon<P extends { inventory: GearItem[] }>(p: P, source: "dungeon" | "mission", key: string): P {
   const item = completionWeapon(source, key);

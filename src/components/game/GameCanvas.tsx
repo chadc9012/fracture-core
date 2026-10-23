@@ -157,6 +157,7 @@ import { configureVoice, speakVoice, stopVoice } from "@/game/voice-director";
 import { recapDue, recapLine } from "@/game/retention";
 import { localSavedAt } from "@/game/cloud-save";
 import { lootCaches, openCache, isOpenedToday, RARITY_HEX } from "@/game/loot-caches";
+import { HudRail, HudRails } from "./HudRail";
 
 // Keep gameplay optics crisp: chromatic fringing is a barely-visible edge accent, not a constant blur.
 const CA_OFFSET = new THREE.Vector2(0.00025, 0.00025);
@@ -298,7 +299,10 @@ export function GameCanvas() {
   const [autoCap, setAutoCap] = useCountedState<RenderTier | null>("autoCap", null);
   const lastStepAt = useRef(0);
   const [qualityNotice, setQualityNotice] = useCountedState<string | null>("qualityNotice", null);
-  const liveTier = effectiveTier(settings.renderTier, autoCap);
+  // dev-only (?dev=1&tier=HIGH): pin the render tier and switch off the automatic step-down, so screenshots from a software renderer
+  // show what a real GPU at that tier draws instead of the governor's emergency LOW
+  const devTier = useMemo<RenderTier | null>(() => { if (typeof window === "undefined") return null; const q = new URLSearchParams(window.location.search); const t = q.get("tier"); return q.get("dev") === "1" && (t === "LOW" || t === "MEDIUM" || t === "HIGH" || t === "ULTRA") ? t : null; }, []);
+  const liveTier = devTier ?? effectiveTier(settings.renderTier, autoCap);
   const liveSettings = useMemo(() => ({ ...settings, renderTier: liveTier }), [settings, liveTier]);
   useEffect(() => {
     try {
@@ -759,6 +763,24 @@ export function GameCanvas() {
     return () => window.clearTimeout(timer);
   }, [systemCore?.state, progression.completedMissions]);
 
+  // dev-only (?dev=1): every scripted mission's live phase and target, plus completed missions and progression
+  // totals, so a browser run can fast-track the campaign (warp to target, clear the wave) and check the payouts.
+  const missionsNow = useRef<Record<string, unknown>>({});
+  const devRecorders = useRef<Record<string, (event: never) => void>>({});
+  missionsNow.current = { awakening, "broken-signal": mission, "drowned-relay": relay, "blackout-protocol": blackout, "stitched-neon-core": neonCore, "solar-array": solarArray, "core-node": coreNode, ...zoneRuns, "descent-protocol": descent, "system-core": systemCore };
+  useEffect(() => {
+    if (typeof window === "undefined" || new URLSearchParams(window.location.search).get("dev") !== "1") return;
+    const w = window as unknown as { __missions?: () => unknown };
+    w.__missions = () => {
+      const p = progressionRef.current;
+      const live = Object.entries(missionsNow.current).filter(([, r]) => r).map(([id, r]) => { const run = r as { state: string; target?: { x: number; z: number } | null; hack?: number; hold?: number }; return { id, state: run.state, target: run.target ?? null, hack: run.hack ?? null, hold: run.hold ?? null }; });
+      return { live, completed: p.completedMissions, quest: p.activeQuestId, level: p.level, xp: p.xp, nex: p.nexLedger, shards: p.fractureShards, gear: p.inventory.length, materials: p.materials };
+    };
+    const we = window as unknown as { __missionEvent?: (id: string, event: unknown) => string };
+    we.__missionEvent = (id, event) => { const r = devRecorders.current[id]; if (!r) return "unknown mission"; r(event as never); return "ok"; };
+    return () => { delete w.__missions; delete we.__missionEvent; };
+  }, []);
+
   /* Cross-world quest engine: HUD already reports region/heat/lockdown/hack/dive state every ~0.18s
    * (see Scene.tsx's onHud), so that cadence — not Scene's 60fps loop — is what drives gameTick here. */
   const questSignals = useRef({ signals: NEW_QUEST_SIGNALS, at: 0 });
@@ -926,6 +948,9 @@ export function GameCanvas() {
   };
   const recordTutorial = (event: TutorialEvent) => setTutorial((current) => current ? advanceTutorial(current, event) : current);
   const recordMission = (event: MissionEvent) => setMission((current) => current ? advanceMission(current, event) : current);
+  // dev-only fast-track (?dev=1, window.__missionEvent): the same recorders the overlays call, so a browser run can finish a
+  // mission's puzzle step (HACK 100, ACK) without solving the minigame; payouts still go through applyMissionCompletion.
+  devRecorders.current = { awakening: recordAwakening, "broken-signal": recordMission, "drowned-relay": recordRelay, "blackout-protocol": recordBlackout, "stitched-neon-core": recordNeonCore, "solar-array": recordSolarArray, "core-node": recordCoreNode, "descent-protocol": recordDescent, "system-core": recordSystemCore, ...Object.fromEntries(ZONE_MISSION_IDS.map((id) => [id, (e: ZoneEvent) => recordZone(id, e)])) } as Record<string, (event: never) => void>;
   // Unique Scenario clears: show what the (idempotent) grant actually did. The grant itself runs inside claimDrops; this only describes it.
   const [rewardCards, setRewardCards] = useCountedState<{ title: string; cards: RewardCard[] } | null>("rewardCards", null);
   const shownRewardRuns = useRef(new Set<string>());
@@ -1328,6 +1353,7 @@ export function GameCanvas() {
           bounds={() => [45, 58]}
           flipflops={6}
           onDecline={() => {
+            if (devTier) return;
             const cap = governDecline({ dpr: adaptiveDpr, chosen: settings.renderTier, cap: autoCap, secondsSinceLastStep: (performance.now() - lastStepAt.current) / 1000 });
             if (cap) { lastStepAt.current = performance.now(); setAutoCap(cap); setQualityNotice(`Frame rate was low, so graphics quality was lowered to ${cap}. You can change it in Settings.`); window.setTimeout(() => setQualityNotice(null), 6000); }
             setAdaptiveDpr((d) => { const next = Math.max(DPR_FLOOR, Math.round((d - 0.25) * 100) / 100); if (next <= 1) setLowPerf(true); return next; });
@@ -1343,6 +1369,7 @@ export function GameCanvas() {
        <PerfOverlay />
       <ForestAssetStatus />
        {savedFlash > 0 && <p className="pointer-events-none fixed right-4 top-4 z-30 font-mono text-[10px] uppercase tracking-[0.25em] text-primary" role="status">◌ Auto-saved</p>}
+       <HudRails />
        <VoiceSubtitle hidden={atlasOpen} />
        <Profiler id="hud" onRender={onProf}><HUD hud={hud} level={{ level: progression.level, xp: progression.xp }} tutorialActive={Boolean(tutorial && tutorial.step !== "VICTORY")} onMenu={() => { setInventoryOpen(false); setAtlasOpen(false); setOperationsView(null); setMenuOpen(true); }} onStrategy={() => setStrategyOpen(true)} onGarage={() => setGarageOpen(true)} onAnalyze={() => setAnalysisOpen(true)} onOperations={(view) => { setInventoryOpen(false); setAtlasOpen(false); setOperationsView(view); }} onInventory={() => { setAtlasOpen(false); setOperationsView(null); setCharacterOpen(true); }} onAtlas={() => { setInventoryOpen(false); setOperationsView(null); setAtlasOpen(true); }} /></Profiler>
        {!tutorial && !hud.insideInterior && <Profiler id="minimap" onRender={onProf}><Minimap hud={hud} known={(id) => isLandmarkKnown(progression, id)} /></Profiler>}
@@ -1467,7 +1494,7 @@ export function GameCanvas() {
        {shopOpen && <ShopWindow shopId={shopOpen} progression={progression} onProgression={setProgression} onClose={() => setShopOpen(null)} />}
        {characterOpen && <CharacterScreen progression={progression} onProgression={setProgression} classId={cls} subclassId={subclass} appearance={appearance} onAppearance={setAppearance} onClose={() => setCharacterOpen(false)} onInventory={() => { setCharacterOpen(false); setInventoryOpen(true); }} onSettings={() => { setCharacterOpen(false); setMenuOpen(true); }} />}
        {inventoryOpen && <InventoryWindow progression={progression} onProgression={setProgression} onClose={() => setInventoryOpen(false)} classId={cls} appearance={appearance} />}
-       {landmarkToast && !atlasOpen && <div className="pointer-events-none absolute left-1/2 top-28 z-30 w-[min(26rem,86vw)] -translate-x-1/2 border-l-2 border-primary bg-background/80 px-3 py-2" role="status"><p className="font-mono text-[9px] uppercase tracking-[0.3em] text-primary">Landmark discovered</p><p className="text-sm font-semibold">{landmarkToast.name}</p><p className="mt-0.5 text-[11px] text-muted-foreground">{landmarkToast.history}</p></div>}
+       {landmarkToast && !atlasOpen && <HudRail side="left" order={0}><div className="pointer-events-none absolute left-1/2 top-28 z-30 w-[min(26rem,86vw)] -translate-x-1/2 border-l-2 border-primary bg-background/80 px-3 py-2" role="status"><p className="font-mono text-[9px] uppercase tracking-[0.3em] text-primary">Landmark discovered</p><p className="text-sm font-semibold">{landmarkToast.name}</p><p className="mt-0.5 text-[11px] text-muted-foreground">{landmarkToast.history}</p></div></HudRail>}
        {atlasOpen && <WorldAtlas onStartRace={startRace} activeActivityId={activity?.def.id ?? null} progression={progression} markers={hud.markers} px={hud.px} pz={hud.pz} currentRegion={hud.region} phase={hud.phase} onClose={() => setAtlasOpen(false)} onProgression={setProgression} onTravel={(a) => { setAtlasOpen(false); startTransit({ id: a.id, name: a.name, sub: ACTIVITY_LABEL[a.kind], color: ACTIVITY_COLOR[a.kind], x: a.drop.x, z: a.drop.z, ...(a.drop.y !== undefined ? { y: a.drop.y } : {}) }); }} />}
       {awakening && <AwakeningOverlay run={awakening} onEvent={recordAwakening} />}
       {mission && <BrokenSignalOverlay mission={mission} onEvent={recordMission} />}

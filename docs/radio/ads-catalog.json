@@ -1,0 +1,27 @@
+[
+  {
+    "id": "nexus-noodle",
+    "name": "Nexus Noodle Express",
+    "script": "Hungry after a twelve hour boss fight? Nexus Noodle Express delivers hot noodles to your checkpoint. Disclaimer: delivery drivers do not enter active fracture zones. Nexus Noodle Express. Slurp responsibly."
+  },
+  {
+    "id": "vyrak-insurance",
+    "name": "WyrmShield Insurance",
+    "script": "Has a dragon landed on your vehicle? Ask WyrmShield Insurance about our new accidental dragon coverage. Fire damage, claw damage, and mysterious glowing ash are not covered under the basic plan. WyrmShield. We read the fine print so you do not have to."
+  },
+  {
+    "id": "portal-mart",
+    "name": "Portal Mart",
+    "script": "Portal Mart has everything an Operator needs. Batteries, bandages, mystery keys, and suspiciously affordable armor. This week only: buy two energy cells, get a third cell of unknown origin absolutely free. Portal Mart. Probably safe."
+  },
+  {
+    "id": "nexus-transit",
+    "name": "Nexus Transit Authority",
+    "script": "Attention commuters. The Nexus Transit Authority regrets to announce that platform seven is temporarily in another dimension. Please stand behind the yellow line and do not feed the portals. Thank you for riding with us."
+  },
+  {
+    "id": "rusty-ride",
+    "name": "Rusty Ride Motors",
+    "script": "Need wheels for the wasteland? Rusty Ride Motors has vehicles with at least three working tires. Every purchase comes with a complimentary wrench and a heartfelt apology. Rusty Ride Motors. Drive like you mean it."
+  }
+]

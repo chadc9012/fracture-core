@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { grantDungeonFirstClear } from "@/game/weapon-loot";
+import { canClaimDungeon, claimDungeonClear } from "@/game/dungeon-claims";
 import { Activity, Anvil, Check, ChevronRight, Coins, Compass, Copy, Crosshair, Gauge, GitBranch, Globe2, LockKeyhole, Network, PackageOpen, Shield, Skull, Snowflake, Sparkles, Swords, Timer, Users, X } from "lucide-react";
 import { hubStopFor, markHubStopSeen, type HubView } from "@/game/hub-tour";
 
@@ -15,14 +15,13 @@ import { CLASS_MISSIONS } from "@/game/class-missions";
 import { ARMOR_MANIFEST, EQUIPMENT_COUNTS, WEAPON_MANIFEST, type WeaponTier } from "@/game/equipment";
 import { STARTING_WALLET, UPGRADE_RECIPES, canAfford, spend, transformGear, type ForgeMode, type Wallet } from "@/game/economy";
 import { applySales, todaysBundle } from "@/game/vendor-sales";
-import { VENDOR_DEFS, vendorStock, purchaseListing, sellGear, sellValue, type VendorListing } from "@/game/vendors";
+import { VENDOR_DEFS, vendorStock, sellValue, type VendorListing } from "@/game/vendors";
 import { xpRequiredForLevel } from "@/game/xp";
 import { shapeLoot, type LootItem } from "@/game/loot";
 import { advanceEncounter, chooseEncounterRoute, createEncounterRun, loseEncounterLife } from "@/game/raid-stages";
 import { grantAbilityMastery, selectAbilityBranch, type PlayerProgression } from "@/game/progression";
 import { dungeonModifiers } from "@/game/dungeon-build";
-import { FUEL_KING_ENCOUNTER_ID, WASTELAND_GATE_DUNGEONS, fuelKingGateStatus, gatherWastelandFuel, grantFuelKingVictoryRewards } from "@/game/wasteland";
-import { gameTick } from "@/game/quests";
+import { FUEL_KING_ENCOUNTER_ID, fuelKingGateStatus } from "@/game/wasteland";
 import { BIOMES, COSMETIC_CATEGORIES, FRACTURE_RAID, PVP_MODES, PVP_RANKS, WORLD_LAYERS, directWorld, guildLevel, guildUnlocks } from "@/game/system-foundations";
 import type { ClassId } from "@/game/loadout";
 
@@ -103,19 +102,10 @@ function DungeonOperations({ progression, onProgression }: { progression: Player
         {stage?.routes && !run.selectedRoute && <div className="mt-4 grid gap-2 sm:grid-cols-2">{stage.routes.map((route) => <Button key={route.id} variant="outline" className="h-auto justify-start rounded-none p-3 text-left whitespace-normal" onClick={() => setRun(chooseEncounterRoute(run, route.id))}><span><b className="block text-xs">{route.name}</b><span className="mt-1 block text-[10px] text-muted-foreground">{route.tradeoff}</span></span></Button>)}</div>}
         {stage?.bossPhases?.[run.bossPhase] && <div className="mt-4 border-l-2 border-primary bg-primary/5 p-3"><p className="font-mono text-[10px] text-primary">{stage.bossPhases[run.bossPhase]?.name}</p><p className="mt-1 text-xs">{stage.bossPhases[run.bossPhase]?.mechanic}</p><p className="mt-1 text-[10px] text-muted-foreground">Counter · {stage.bossPhases[run.bossPhase]?.counter}</p></div>}
         <div className="mt-4 flex flex-wrap gap-2">{run.status === "READY" && <Button disabled={!allReady} onClick={() => setRun({ ...run, status: "ACTIVE", message: `Entered ${stage?.name ?? dungeon.name}.` })}>{allReady ? "Launch fireteam" : "Waiting for ready checks"} <ChevronRight /></Button>}{run.status === "ACTIVE" && <><Button onClick={() => setRun(advanceEncounter(dungeon, run))} disabled={Boolean(stage?.routes && !run.selectedRoute)}>Advance objective <ChevronRight /></Button><Button variant="outline" onClick={() => setRun(loseEncounterLife(dungeon, run))}><Skull /> Lose shared life</Button></>}{(run.status === "COMPLETE" || run.status === "WIPED") && <Button onClick={reset}>{run.status === "COMPLETE" ? "Run again" : "Retry checkpoint"}</Button>}</div>
-        {run.status === "COMPLETE" && <div className="mt-5 border border-primary bg-primary/5 p-4"><p className="font-mono text-[9px] uppercase text-primary">Completion summary · clear {(progression.dungeonClears[dungeon.id] ?? 0) + (claimed ? 0 : 1)}</p><div className="mt-3 grid grid-cols-3 gap-2 text-center font-mono text-[10px]"><span className="border border-border p-2">{run.damage}<br />DAMAGE</span><span className="border border-border p-2">{run.support}<br />SUPPORT</span><span className="border border-border p-2">{run.livesUsed}<br />LIVES USED</span></div><div className="mt-3 space-y-1 text-[10px]">{run.stagePerformance.map((item) => <p key={item.name}>{item.name} · {item.objectives} objectives · {item.hazard}% hazard</p>)}</div><p className="mt-3 text-xs">Reward · {dungeon.signature.name} · repeat perk: {dungeon.signature.repeatTraits[(progression.dungeonClears[dungeon.id] ?? 0) % dungeon.signature.repeatTraits.length]}</p><Button className="mt-3" size="sm" disabled={claimed} onClick={() => {
-                const cleared: PlayerProgression = { ...grantDungeonFirstClear(progression, dungeon.id), dungeonClears: { ...progression.dungeonClears, [dungeon.id]: (progression.dungeonClears[dungeon.id] ?? 0) + 1 }, fractureShards: progression.fractureShards + 35, earnedRewards: Array.from(new Set([...progression.earnedRewards, dungeon.signature.name])) };
-                const rewarded = dungeon.id === FUEL_KING_ENCOUNTER_ID
-                  ? grantFuelKingVictoryRewards(cleared)
-                  : (WASTELAND_GATE_DUNGEONS as readonly string[]).includes(dungeon.id)
-                    ? gatherWastelandFuel(cleared, 100)
-                    : cleared;
-                const withQuest = dungeon.id === FUEL_KING_ENCOUNTER_ID
-                  ? gameTick(gameTick(rewarded, { type: "DUNGEON_CLEARED", dungeonId: dungeon.id }), { type: "BOSS_DEFEATED", encounterId: dungeon.id })
-                  : gameTick(rewarded, { type: "DUNGEON_CLEARED", dungeonId: dungeon.id });
-                onProgression(withQuest);
+        {run.status === "COMPLETE" && <div className="mt-5 border border-primary bg-primary/5 p-4"><p className="font-mono text-[9px] uppercase text-primary">Completion summary · clear {(progression.dungeonClears[dungeon.id] ?? 0) + (claimed ? 0 : 1)}</p><div className="mt-3 grid grid-cols-3 gap-2 text-center font-mono text-[10px]"><span className="border border-border p-2">{run.damage}<br />DAMAGE</span><span className="border border-border p-2">{run.support}<br />SUPPORT</span><span className="border border-border p-2">{run.livesUsed}<br />LIVES USED</span></div><div className="mt-3 space-y-1 text-[10px]">{run.stagePerformance.map((item) => <p key={item.name}>{item.name} · {item.objectives} objectives · {item.hazard}% hazard</p>)}</div><p className="mt-3 text-xs">Reward · {dungeon.signature.name} · repeat perk: {dungeon.signature.repeatTraits[(progression.dungeonClears[dungeon.id] ?? 0) % dungeon.signature.repeatTraits.length]}</p><Button className="mt-3" size="sm" disabled={claimed || !canClaimDungeon(progression, dungeon.id)} onClick={() => {
+                onProgression(claimDungeonClear(progression, dungeon.id, dungeon.signature.name));
                 setClaimed(true);
-              }}>{claimed ? "Reward claimed" : "Claim rewards"}</Button></div>}
+              }}>{claimed ? "Reward claimed" : canClaimDungeon(progression, dungeon.id) ? "Claim rewards" : "Claimed today · back tomorrow"}</Button></div>}
       </div>
     </section>
   </main>;
@@ -140,27 +130,13 @@ function Arsenal({ progression, onProgression }: { progression: PlayerProgressio
   const vendor = VENDOR_DEFS.find((entry) => entry.id === vendorId) ?? VENDOR_DEFS[0]!;
   const stock = useMemo(() => applySales(vendorStock(vendor), vendor, { day: Math.floor(Date.now() / 86_400_000) }), [vendor]);
   const bundle = useMemo(() => todaysBundle(stock, vendor), [stock, vendor]);
-  const buy = (listing: VendorListing) => {
-    const result = purchaseListing(progression, wallet, listing, vendor.name);
-    if (!result) { setNotice("Insufficient currency for that offer."); return; }
-    setWallet(result.wallet);
-    onProgression(result.progression);
-    setNotice(`${listing.item.name} added to inventory.`);
-  };
-  const buyBundle = () => {
-    if (!bundle) return;
-    const a = purchaseListing(progression, wallet, { ...bundle.weapon, price: Math.round(bundle.weapon.price * 0.9) }, vendor.name);
-    const b = a && purchaseListing(a.progression, a.wallet, { ...bundle.armor, price: Math.round(bundle.armor.price * 0.9) }, vendor.name);
-    if (!b) { setNotice("Insufficient currency for that bundle."); return; }
-    setWallet(b.wallet); onProgression(b.progression); setNotice(`${bundle.weapon.item.name} + ${bundle.armor.item.name} bundle bought.`);
-  };
-  const sell = (itemId: string, name: string) => {
-    const result = sellGear(progression, wallet, itemId);
-    if (!result) { setNotice("That item is equipped — unequip it first."); return; }
-    setWallet(result.wallet);
-    onProgression(result.progression);
-    setNotice(`${name} sold.`);
-  };
+  // Preview terminal: its wallet is a local simulation that refills every time the tab opens, so it must never add gear to or
+  // remove gear from the real save (it was a free 340-power T5 every visit). Real purchases happen at the regional city shops,
+  // which spend the saved NΞ and materials; selling is Dismantle in the Inventory.
+  const PREVIEW = "Preview terminal: buy gear at a regional city shop (it spends your saved NΞ and materials). Dismantle gear from the Inventory.";
+  const buy = (listing: VendorListing) => { void listing; setNotice(PREVIEW); };
+  const buyBundle = () => setNotice(PREVIEW);
+  const sell = (itemId: string, name: string) => { void itemId; void name; setNotice(PREVIEW); };
   const [mode, setMode] = useState<ForgeMode>("GUARD");
   const [gear, setGear] = useState<LootItem>(() => shapeLoot({ name: "Resonant Field Frame", slot: "ARMOR", rarity: "RARE", power: 280, mods: [{ name: "Anchor Field", effect: "Utility", value: 18 }], life: 9 }, { blocks: 5, dashes: 2, hacks: 1, combos: 3 }));
   const recipe = UPGRADE_RECIPES.find((entry) => entry.from === tier);

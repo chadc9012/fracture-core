@@ -89,8 +89,11 @@ function jitter(hex: string, seed: number, hueAmt = 0.02, lightAmt = 0.08): THRE
 /** Chunked, distance-LOD heightmap (terrain-chunks.ts): each tile is built lazily at the resolution its distance needs, nearest first,
  * under a small per-frame time budget. Meshes are managed imperatively so no React re-render happens as the player moves. */
 const GROUND_SAMPLERS: ChunkSamplers = { height: heightAt, color: colorAt, weights: surfaceWeights };
-const BUILD_BUDGET_MS = 4;
-const WARMUP_BUDGET_MS = 14;
+/** dev-only (?dev=1&tier=…): a software renderer draws ~2 frames a second, so screenshots would show unstreamed ground; give the
+ * stream a big per-frame budget there instead */
+const DEV_FAST_STREAM = typeof window !== "undefined" && (() => { const q = new URLSearchParams(window.location.search); return q.get("dev") === "1" && q.has("tier"); })();
+const BUILD_BUDGET_MS = DEV_FAST_STREAM ? 250 : 4;
+const WARMUP_BUDGET_MS = DEV_FAST_STREAM ? 250 : 14;
 const WARMUP_FRAMES = 120;
 const REPLAN_DISTANCE = 6;
 
@@ -589,7 +592,7 @@ export function Terrain({ renderTier = "HIGH" }: { renderTier?: RenderTier } = {
         <DistrictLight range={170 * Math.max(1, craterScale / 2)} position={[0, craterY + 6, 0]} color="#ff6a1f" intensity={220} distance={120 * Math.max(1, craterScale / 2)} decay={2} />
       </group>
       <Instances limit={liveEmber.length} castShadow receiveShadow geometry={emberRockGeo}>
-        <meshStandardMaterial color="#3b2622" emissive="#ff3d00" emissiveIntensity={0.35} roughness={1} map={rockDetail.map} normalMap={rockDetail.normalMap} normalScale={new THREE.Vector2(0.4, 0.4)} />
+        <meshStandardMaterial color="#332a28" emissive="#ff3d00" emissiveIntensity={0.07} roughness={0.95} map={rockDetail.map} normalMap={rockDetail.normalMap} normalScale={new THREE.Vector2(0.4, 0.4)} />
         {liveEmber.map((r, i) => (
           <Instance
             key={i}

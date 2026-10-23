@@ -14,7 +14,7 @@ for (const op of ["cipher", "goliath", "nyx"]) describe(`authored ${op.toUpperCa
   test("has the walk and run clips the stride driver scrubs", () => {
     const names = (json.animations as { name: string }[]).map((a) => a.name);
     expect(names).toContain("walk"); expect(names).toContain("run");
-    for (const n of names) expect(["walk", "run", "idle", "showcase", "slide"]).toContain(n);
+    for (const n of names) expect(["walk", "run", "idle", "showcase", "slide", "combat", "taunt"]).toContain(n);
   });
   test("keeps the Mixamo bones that weapons, armor mounts and root pinning look up", () => {
     const joints = new Set((json.skins[0].joints as number[]).map((i) => json.nodes[i].name));

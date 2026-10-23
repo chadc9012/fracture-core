@@ -7,6 +7,7 @@ import { billboards, fires, junkHeaps, pylons, ruins } from "@/game/waste-dressi
 import type { Prop } from "@/game/dressing-kit";
 import { useInstances } from "./instancing";
 import { softSprite } from "./softSprite";
+import { applyWorldTriplanar, weatheredConcreteTexture } from "@/game/weathered-surface";
 
 type Ruin = ReturnType<typeof ruins>[number];
 
@@ -55,12 +56,15 @@ function Ruins() {
     return { walls, slabs, rebar };
   }, [rs]);
   const wRef = useRef<THREE.InstancedMesh>(null), sRef = useRef<THREE.InstancedMesh>(null), bRef = useRef<THREE.InstancedMesh>(null);
+  // weathered concrete in world space (weathered-surface.ts): formwork lines, rain streaks, cracks and rust bleed instead of flat grey
+  const wallMat = useMemo(() => applyWorldTriplanar(new THREE.MeshStandardMaterial({ roughness: 0.95 }), weatheredConcreteTexture()), []);
+  const slabMat = useMemo(() => applyWorldTriplanar(new THREE.MeshStandardMaterial({ color: "#77726a", roughness: 1 }), weatheredConcreteTexture(), 4), []);
   useInstances<(typeof parts.walls)[number]>(wRef, parts.walls, (o, p) => { o.position.set(p.x, p.y, p.z); o.rotation.set(0, p.yaw, 0); o.scale.set(p.w, p.h, p.t); }, (_, i) => ["#8d877d", "#7b766d", "#9a9488", "#6f6a62"][i % 4]!);
   useInstances<(typeof parts.slabs)[number]>(sRef, parts.slabs, (o, p) => { o.position.set(p.x, p.y, p.z); o.rotation.set(0, p.yaw, p.tilt); o.scale.set(p.w, 0.3, p.d); });
   useInstances<(typeof parts.rebar)[number]>(bRef, parts.rebar, (o, p) => { o.position.set(p.x, p.y, p.z); o.rotation.set(p.lean, p.yaw, p.lean * 0.5); o.scale.set(0.05, 2.2, 0.05); });
   return <group>
-    <instancedMesh ref={wRef} args={[undefined, undefined, parts.walls.length]} castShadow receiveShadow><boxGeometry args={[1, 1, 1]} /><meshStandardMaterial roughness={0.95} /></instancedMesh>
-    <instancedMesh ref={sRef} args={[undefined, undefined, parts.slabs.length]} castShadow receiveShadow><boxGeometry args={[1, 1, 1]} /><meshStandardMaterial color="#77726a" roughness={1} /></instancedMesh>
+    <instancedMesh ref={wRef} args={[undefined, undefined, parts.walls.length]} castShadow receiveShadow material={wallMat}><boxGeometry args={[1, 1, 1]} /></instancedMesh>
+    <instancedMesh ref={sRef} args={[undefined, undefined, parts.slabs.length]} castShadow receiveShadow material={slabMat}><boxGeometry args={[1, 1, 1]} /></instancedMesh>
     <instancedMesh ref={bRef} args={[undefined, undefined, parts.rebar.length]}><cylinderGeometry args={[1, 1, 1, 4]} /><meshStandardMaterial color="#5a3a26" roughness={0.8} metalness={0.5} /></instancedMesh>
   </group>;
 }

@@ -3,7 +3,6 @@ import { rollSetDrop, setById, type SetDrop } from "./armor-sets";
 import { stratagemById, type StratagemId } from "./stratagems";
 import { NO_BACKPACK, type BackpackDef } from "./backpacks";
 import { createEnvState, STRIKE_MACHINE_DAMAGE, STRIKE_PLAYER_DAMAGE, type EnvState, type Strike } from "./environment";
-import { familyFor, rollRaidDrop } from "./raid-loot";
 import { squadMove, squadRole } from "./enemy-intelligence";
 import { createAi, pickCover, shouldTakeCover, sightRange, stepAwareness, type EnemyAi } from "./enemy-perception";
 import type { AbilityEvent } from "./ability-effects";
@@ -34,7 +33,7 @@ import {
   type SimStats,
   type SimTier,
 } from "./lod";
-import { generateLoot, type LootContext, type LootItem } from "./loot";
+import type { LootItem } from "./loot";
 import {
   createDirector,
   directorEvent,
@@ -408,22 +407,15 @@ const MAX_AIMING = 3;
 export const HEAT_PER_SHOT_FOOT = 7;
 export const HEAT_PER_SHOT_VEHICLE = 11;
 
-/** roll an AI-generated drop from the live world state */
-function dropLoot(sim: WorldSim, zone: ZoneState | undefined, enemyType: string) {
-  const ctx: LootContext = {
-    enemyType,
-    zoneState: zone?.contested ? "Contested" : (zone?.instability ?? 0) > 0.5 ? "Fractured" : "Stable",
-    difficulty: zone?.region.difficulty ?? 3,
-    isRaid: (zone?.region.kind ?? "war") === "core",
-    corruption: Math.round((zone?.instability ?? 0.2) * 100),
-    playstyle: dominantBehavior(sim.adaptation.playstyle),
-  };
-  const item = generateLoot(ctx);
+/** the HUD loot feed: only items the player keeps (weapon and armor drops that claimDrops saves). It used to show a separately
+ * generated "AI drop" per kill, plus guaranteed EXOTIC raid drops on bosses, none of which ever reached the inventory. */
+function feedEntry(gear: Pick<GearItem, "name" | "power" | "rarity" | "slot">): LootItem {
+  const rarity: LootItem["rarity"] = gear.rarity ?? (gear.power >= 300 ? "LEGENDARY" : gear.power >= 250 ? "EPIC" : gear.power >= 180 ? "RARE" : "COMMON");
+  return { name: gear.name, slot: gear.slot === "primary" || gear.slot === "secondary" || gear.slot === "heavy" ? "WEAPON" : gear.slot === "classItem" ? "CORE" : "ARMOR", rarity, power: gear.power, mods: [], life: 1 };
+}
+function feedLoot(sim: WorldSim, item: LootItem) {
   sim.loot.unshift(item);
-  if (sim.loot.length > 5) sim.loot.pop();
-  sim.vault.push(item);
-  sim.credits += Math.round(item.power * 0.12);
-  alert(sim, `${item.rarity} drop — ${item.name}`);
+  if (sim.loot.length > 5) sim.loot.length = 5;
 }
 
 /** Who gets the kill. "world" = ambient defences (the safe-zone stability field and perimeter turrets): the machine dies but nothing is paid,
@@ -495,17 +487,12 @@ export function defeatMachine(sim: WorldSim, m: Machine, credit: KillCredit = "p
   const dropId = sim.nextDropId++;
   const weaponDrop = rollWeaponLoot(m.boss ? "enemy-boss" : m.elite ? "enemy-elite" : "enemy-regular", m.zone, Math.random(), `${dropId}-${Math.random().toString(36).slice(2, 8)}`) ?? undefined;
   sim.drops.push({ id: dropId, material, amount, enemy: m.profile, ...(weaponDrop ? { weaponDrop } : {}), ...(setDrop ? { setDrop } : {}), ...(scenarioClaim ? { scenarioClaim } : {}) });
-  if (weaponDrop) alert(sim, `Weapon drop — ${weaponDrop.name}`);
-  if (setDrop) alert(sim, `Armor drop — ${setById(setDrop.setId)?.pieces[setDrop.slot] ?? "set piece"}`);
+  if (weaponDrop) { alert(sim, `Weapon drop — ${weaponDrop.name}`); feedLoot(sim, feedEntry(weaponDrop)); }
+  if (setDrop) { const name = setById(setDrop.setId)?.pieces[setDrop.slot] ?? "set piece"; alert(sim, `Armor drop — ${name}`); feedLoot(sim, { name, slot: "ARMOR", rarity: "EPIC", power: 0, mods: [], life: 1 }); }
   sim.xpEvents.push({ type: m.boss ? "BOSS_KILL" : m.elite ? "ELITE_KILL" : "KILL", enemyLevel: 1 + Math.floor(sim.combatHeat / 25), combatHeat: sim.combatHeat });
-  dropLoot(sim, zoneOf(sim, m.zone), m.boss ? "ELITE" : m.profile);
-  if (m.boss) {
-    const fight = sim.raidFight ?? { start: performance.now() / 1000, hurt: 50, region: m.zone };
-    const drops = rollRaidDrop(familyFor(fight.region), { phasesCleared: 3, damageTaken: fight.hurt, seconds: performance.now() / 1000 - fight.start });
-    for (const item of drops) { sim.vault.push(item); sim.loot.unshift(item); alert(sim, `${item.rarity} raid drop — ${item.name}`); }
-    if (sim.loot.length > 5) sim.loot.length = 5;
-    sim.raidFight = undefined;
-  }
+  // bosses pay through real drops only (35% T4 weapon, set pieces, scenario rewards); the old raid roll announced EXOTIC/LEGENDARY
+  // items that never reached the save, so it is gone
+  if (m.boss) sim.raidFight = undefined;
   if (m.eq) {
     sim.emergencyQuest = completeEmergencyQuest(sim.emergencyQuest);
     sim.credits += 400;
@@ -698,6 +685,9 @@ export function createSim(): WorldSim {
 }
 
 export function alert(sim: WorldSim, text: string) {
+  // the same line while it is still on screen only refreshes it (repeating hazards stacked two identical banners)
+  const live = sim.alerts.find((a) => a.text === text);
+  if (live) { live.life = 6; return; }
   sim.alerts.unshift({ text, life: 6 });
   if (sim.alerts.length > 4) sim.alerts.pop();
 }
@@ -961,7 +951,6 @@ function damageTruck(sim: WorldSim, tr: Truck, dmg: number) {
     logBehavior(sim.adaptation, "logistics", tr.cargo * 2);
     directorEvent(sim.director, { type: "CARGO", amount: tr.cargo });
     alert(sim, `Convoy ambushed — ${tr.cargo} crate${tr.cargo > 1 ? "s" : ""} seized`);
-    dropLoot(sim, sim.zones.find((z) => Math.hypot(tr.x - z.region.x, tr.z - z.region.z) < z.region.radius), "CONVOY");
   }
 }
 

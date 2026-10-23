@@ -74,7 +74,8 @@ export function gearCost(item: GearItem): { material: MaterialId; amount: number
 export function upgradeGear(progress: PlayerProgression, id: string): PlayerProgression {
   const item = progress.inventory.find((entry) => entry.id === id);
   if (!item) return progress;
-  if (item.setId && item.level >= ARMOR_LEVEL_MAX) return progress;
+  // every item stops at level 10 (+135 power): uncapped upgrades let a level-30 starting rifle hit 570 power
+  if (item.level >= (item.setId ? ARMOR_LEVEL_MAX : GEAR_LEVEL_MAX)) return progress;
   const { material, amount } = gearCost(item);
   const gate = upgradeGate(item);
   if ((progress.materials[material] ?? 0) < amount) return progress;
@@ -84,6 +85,13 @@ export function upgradeGear(progress: PlayerProgression, id: string): PlayerProg
   if (gate) materials[gate.material] = (materials[gate.material] ?? 0) - gate.amount;
   return { ...progress, materials, inventory: progress.inventory.map((entry) => entry.id === id ? { ...entry, level: entry.level + 1, power: entry.power + 15 } : entry) };
 }
+/** weapon damage from gear power: +1% per 5 power above 100, capped at ×1.7 (an S-tier 420 weapon fully upgraded) */
+export const WEAPON_DAMAGE_CAP = 1.7;
+export function weaponDamageMultiplier(power: number): number {
+  return Math.min(WEAPON_DAMAGE_CAP, 1 + Math.max(0, power - 100) / 500);
+}
+/** upgrade ceiling for every non-set item (set pieces use armor-sets ARMOR_LEVEL_MAX) */
+export const GEAR_LEVEL_MAX = 10;
 export function infuseGear(progress: PlayerProgression, id: string, element: GearItem["element"]): PlayerProgression {
   const item = progress.inventory.find((entry) => entry.id === id);
   if (!item || item.evolution || element === "KINETIC" || element === item.element) return progress;

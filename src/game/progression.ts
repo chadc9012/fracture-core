@@ -14,7 +14,7 @@ import { STARTER_GEAR, STARTER_SLOTS, type GearItem, type GearSlot, type Materia
 import { FIRST_QUEST_ID } from "./quests";
 import { safeStorageRead, safeStorageWrite } from "./safe-state";
 import { grantXP } from "./xp";
-import { repeatRewardFactor } from "./retention";
+import { repeatRewardFactor, sideRewardFactor } from "./retention";
 import { FIRST_CLEAR_SPECIAL, isSideContract } from "./upgrade-gates";
 import { grantCompletionWeapon } from "./weapon-loot";
 import { grantSetPiece } from "./armor-sets";
@@ -275,12 +275,17 @@ export function rewardVehicle(progression: PlayerProgression, vehicleId: Vehicle
 const dayKey = (now: number) => new Date(now).toISOString().slice(0, 10);
 
 /** Mission payout: first-ever clear pays 1.5x, repeats pay full for 10 runs a day then taper to 25%. */
+/** story missions pay NΞ 1,000 (×1.5 on the first clear): at 100 the whole campaign paid NΞ 1,950 against homes from NΞ 14,000.
+ * Now finishing the story affords a first apartment; houses and condos stay longer goals. Replays of story missions never repay
+ * (applyMissionCompletion), so this cannot be farmed. */
+export const STORY_NEX = 1000;
+const STORY_MISSIONS = new Set(["mission-01", "awakening", "broken-signal", "drowned-relay", "blackout-protocol", "stitched-neon-core", "solar-array", "core-node", "frozen-beacon", "failure-core", "convoy-breaker", "descent-protocol", "system-core"]);
 export function rewardMission(progression: PlayerProgression, missionId: string, materials: Partial<Record<MaterialId, number>>, now = Date.now()): PlayerProgression {
   const firstClear = !progression.completedMissions.includes(missionId);
   const day = dayKey(now);
   const prev = progression.missionRuns[missionId];
   const runsToday = prev && prev.day === day ? prev.count : 0;
-  const factor = repeatRewardFactor(runsToday, firstClear);
+  const factor = isSideContract(missionId) ? sideRewardFactor(runsToday, firstClear) : repeatRewardFactor(runsToday, firstClear);
   const { progression: withXp, gained } = grantXP(progression, "MISSION", { scale: factor });
   const paid: Partial<Record<MaterialId, number>> = {};
   const nextMaterials = { ...withXp.materials };
@@ -302,7 +307,7 @@ export function rewardMission(progression: PlayerProgression, missionId: string,
     inventory: granted ? granted.progress.inventory : inventory,
     completedMissions: firstClear ? [...withXp.completedMissions, missionId] : withXp.completedMissions,
     materials: nextMaterials,
-    nexLedger: { ...withXp.nexLedger, [`mission:${missionId}:${day}:${runsToday + 1}`]: Math.round(100 * factor) },
+    nexLedger: { ...withXp.nexLedger, [`mission:${missionId}:${day}:${runsToday + 1}`]: Math.round((STORY_MISSIONS.has(missionId) ? STORY_NEX : 100) * factor) },
     missionRuns: { ...withXp.missionRuns, [missionId]: { day, count: runsToday + 1 } },
     lastMissionReward: { missionId, factor, firstClear, xp: gained, materials: paid, box },
   };

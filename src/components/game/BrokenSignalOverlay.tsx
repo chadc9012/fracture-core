@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { OBJECTIVE, type MissionEvent, type MissionRun } from "@/game/missions/broken-signal";
 import { ADAPTIVE_TUTORIAL_INIT, maybeReteach, recordStruggle, recordSuccess } from "@/game/adaptive-tutorial";
 import { useVoiceLine } from "./useVoiceLine";
+import { HudRail } from "./HudRail";
 
 const NODES = [0, 1, 2, 3];
 
@@ -48,16 +49,13 @@ export function BrokenSignalOverlay({ mission, onEvent }: { mission: MissionRun;
     {glitch && <div className="pointer-events-none fixed inset-x-0 top-24 z-30 mx-auto w-fit animate-pulse border border-destructive bg-background/70 px-6 py-3 font-mono text-lg uppercase tracking-[0.3em] text-destructive">
       <span className="line-through opacity-60">Neon Core ad network active</span><br />Unauthorized signal detected
     </div>}
-    {mission.state !== "WORLD_UPDATE" && <div className="pointer-events-none mission-tracker fixed right-3 top-24 z-20 max-w-xs border-l-2 border-primary bg-card/80 p-3">
+    {mission.state !== "WORLD_UPDATE" && <HudRail side="right" order={1}><div className="pointer-events-none mission-tracker fixed right-3 top-24 z-20 max-w-xs border-l-2 border-primary bg-card/80 p-3">
       <p className="font-mono text-[10px] uppercase tracking-[0.25em] text-primary">Broken Signal</p>
       <p className="mt-1 text-sm">{OBJECTIVE[mission.state]}</p>
       {(hacking || mission.state === "COMBAT_2") && <p className="mt-1 font-mono text-[10px] text-muted-foreground">DATA NODE {Math.round(mission.hack)}%</p>}
       {CONTROL_HINT[mission.state] && <p className="mt-2 border-t border-border/50 pt-2 text-[11px] text-primary">{CONTROL_HINT[mission.state]}</p>}
-    </div>}
-    {mission.nova && <div className="pointer-events-none fixed bottom-24 left-3 z-20 flex max-w-sm items-start gap-3 border border-primary/40 bg-card/80 p-3">
-      <span className="mt-1 size-3 shrink-0 animate-pulse rounded-full bg-primary shadow-[0_0_12px_hsl(var(--primary))]" />
-      <p className="text-sm"><span className="font-mono text-[10px] uppercase text-primary">NOVA · </span>{mission.nova}</p>
-    </div>}
+    </div></HudRail>}
+    {/* NOVA's line is shown once, in the shared caption bar (VoiceSubtitle via useVoiceLine); the old copy here overlapped the ability bar */}
     {hacking && <div className="fixed inset-0 z-30 grid place-items-center bg-background/40">
       <section className="w-[min(26rem,calc(100%-2rem))] border border-primary bg-card/90 p-5">
         <p className="font-mono text-[10px] uppercase tracking-[0.25em] text-primary">Neon terminal · route clean data</p>

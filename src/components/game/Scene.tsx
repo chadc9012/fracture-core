@@ -21,7 +21,7 @@ import { memo, useEffect, useMemo, useRef, type ComponentProps } from "react";
 import * as THREE from "three";
 import { softSprite } from "./softSprite";
 
-import { REGIONS, SKY, ZONE_COLOR, clockLabel, phaseFor, regionAt, WORLD_RADIUS, WORLD_SCALE } from "@/game/world";
+import { REGIONS, SKY, SKY_STOPS, ZONE_COLOR, clockLabel, phaseFor, regionAt, WORLD_RADIUS, WORLD_SCALE } from "@/game/world";
 import { BASE_FOOT_SPEED, SPRINT_MULT } from "@/game/foot-speed";
 import { useKeyboard } from "@/game/useKeyboard";
 import { touch, getEquippedBoots, activeBuffs, dashHud, dragoniteHud } from "@/game/client-input";
@@ -210,6 +210,8 @@ import { Rivers } from "./Rivers";
 import { LootCaches } from "./LootCaches";
 import { nearestCache, canOpen, GUARD_RADIUS, ENCRYPT_SECONDS, SCENARIO_LABEL, type CacheRarity } from "@/game/loot-caches";
 import { skyFxAt, NO_SKY_FX } from "@/game/sky-effects";
+import { COMBAT_STANCE_HOLD, combatStance } from "@/game/combat-stance";
+import { weaponDamageMultiplier } from "@/game/inventory";
 
 export type LootView = { name: string; rarity: Rarity; power: number; mods: string[]; color: string };
 
@@ -381,14 +383,7 @@ const FOG_CAP = { LOW: 480, MEDIUM: 700, HIGH: Infinity, ULTRA: Infinity } as co
 export const SPAWN = new THREE.Vector3(SPAWN_REGION?.x ?? -58, 0, (SPAWN_REGION?.z ?? -34) + 12);
 const NEXUS_REGION = REGIONS.find((r) => r.id === "nexus")!;
 
-const stops: { t: number; key: keyof typeof SKY }[] = [
-  { t: 0, key: "Dawn" },
-  { t: 0.25, key: "Day" },
-  { t: 0.5, key: "Sunset" },
-  { t: 0.65, key: "Night" },
-  { t: 0.85, key: "Moonlight" },
-  { t: 1, key: "Dawn" },
-];
+const stops = SKY_STOPS;
 
 function segment(t: number) {
   const h = ((t % 1) + 1) % 1;
@@ -658,6 +653,10 @@ function SceneImpl({
       three: () => ({ ...getThree(), tier: getPerfTier() }),
       /** presentation test: log bullet impacts of each kind in an arc 6-9 m ahead of the player (no damage, nothing hit) */
       impacts: () => { const st = state.current; const kinds = ["ground", "cover", "truck", "machine"] as const; kinds.forEach((k, i) => { const a = st.yaw + (i - 1.5) * 0.25, d = 7; const x = st.x + Math.sin(a) * d, z = st.z + Math.cos(a) * d; logImpact(sim, { x, y: walkHeight(x, z) + (k === "ground" ? 0.3 : 1.2), z, vx: Math.sin(a) * 130, vz: Math.cos(a) * 130 }, k); }); return "ok"; },
+      /** set the time of day (0-24 h) and optionally hold it there (frozen) for screenshots */
+      time: (hour = 12, freeze = true) => { time.current = (((hour / 24) % 1) + 1) % 1; timeFrozen.current = freeze; return hour; },
+      /** third-person (false) or first-person (true) camera */
+      fp: (on = false) => { state.current.firstPerson = on; return on; },
       look: (yawDeg = 0, pitchDeg = 0) => { state.current.yaw = (yawDeg * Math.PI) / 180; state.current.pitch = (pitchDeg * Math.PI) / 180; return "ok"; },
       // what the camera can actually see around the player: named scene groups within `r` metres (verifies set pieces mounted)
       near: (r = 60) => { const out: string[] = []; const p = new THREE.Vector3(); scene.traverse((o) => { if (!o.name || out.length > 60) return; o.getWorldPosition(p); const st = state.current; if (Math.hypot(p.x - st.x, p.z - st.z) < r) out.push(`${o.name}@${Math.round(p.x)},${Math.round(p.y)},${Math.round(p.z)}`); }); return out; },
@@ -785,7 +784,8 @@ function SceneImpl({
     return list;
   };
   const moon = useRef<THREE.DirectionalLight>(null!);
-  const time = useRef(0.28);
+  const time = useRef(0.36); // 08:38, morning light (the clock: sunrise 06:00, noon 12:00, sunset 18:00)
+  const timeFrozen = useRef(false);
   const sunDir = useRef(new THREE.Vector3(0.4, 0.9, 0.3));
   const carSpeed = useRef(0);
   const carSteer = useRef(0);
@@ -798,9 +798,9 @@ function SceneImpl({
   const hemi = useRef<THREE.HemisphereLight>(null!);
   /** stride shared by camera bob, viewmodel sway and the Operator's limbs (movement-feel.ts) */
   const feel = useRef((() => {
-    const motion = { phase: 0, intensity: 0, swing: 0.35, lean: 0.04, air: false, stance: "STAND" as Stance, slideT: 0 };
+    const motion = { phase: 0, intensity: 0, swing: 0.35, lean: 0.04, air: false, stance: "STAND" as Stance, slideT: 0, combat: false };
     // Operator reads a ref-shaped `{ current }`, so the same live object is also exposed boxed
-    return { stride: createStride(), view: null as FeelView | null, motion, motionRef: { current: motion } };
+    return { stride: createStride(), view: null as FeelView | null, motion, motionRef: { current: motion }, lastShots: 0, combatUntil: 0 };
   })());
   /** class movement kit (movement.ts): air jumps, glide, slide + previous-frame jump/slide key state for edge detection */
   const move = useRef({ state: createMoveState(), jumpHeld: false, slideHeld: false, proneHeld: false });
@@ -1105,7 +1105,7 @@ function SceneImpl({
     { const bf = buffEffect(activeBuffs.current, Date.now()); sim.armorResist = Math.min(0.75, armorFxRef.current.resist + bf.resist); sim.armorRegen = armorFxRef.current.regen + bf.regen; sim.consumableDamageMult = bf.damageMult; }
 
     /* ---------------- day / night ---------------- */
-    time.current += dt * (held.has("KeyT") ? 0.06 : 0.008);
+    if (!timeFrozen.current) time.current += dt * (held.has("KeyT") ? 0.06 : 0.008);
     const night = nightFactor(time.current);
 
     blend(time.current, "bottom", skyColor);
@@ -1425,7 +1425,7 @@ function SceneImpl({
         const horizonBoost = Math.max(0, 1 - Math.abs(Math.sin(theta)));
         // regional haze (atmosphere.ts): ember smoke / swamp mist / wasteland grit thicken the sky
         const haze = atmo.current.haze;
-        if (u["turbidity"]) u["turbidity"].value = 3.5 + horizonBoost * 6 + cloud * 5 + (1 - visibility) * 7 + haze;
+        if (u["turbidity"]) u["turbidity"].value = 3.5 + horizonBoost * 6 + cloud * 5 + (1 - visibility) * 7 + haze * 0.5; // high turbidity bleaches the physical sky white, so regional haze only adds half; the colour comes from the sky mood (sky-dome.ts)
         if (u["rayleigh"]) u["rayleigh"].value = 1.4 + horizonBoost * 1.4 + night * 0.4;
         if (u["mieCoefficient"]) u["mieCoefficient"].value = 0.004 + cloud * 0.01 + (1 - visibility) * 0.01 + haze * 0.002;
         if (u["mieDirectionalG"]) u["mieDirectionalG"].value = 0.8;
@@ -1583,7 +1583,7 @@ function SceneImpl({
     keyPrev.current = new Set(held);
     const wpn = s.inVehicle ? WEAPONS.AUTO : WEAPONS[s.weapon];
     const equippedWeapon = gear?.inventory.find((item) => item.id === gear.equippedGear[s.inVehicle ? "vehicle" : s.weapon === "HEAVY" || WEAPONS[s.weapon].kind === "launcher" ? "heavy" : s.weapon === "PULSE" ? "secondary" : "primary"]);
-    const gearPower = equippedWeapon ? 1 + Math.max(0, equippedWeapon.power - 100) / 500 : 1;
+    const gearPower = equippedWeapon ? weaponDamageMultiplier(equippedWeapon.power) : 1;
     // foundries.ts: the equipped weapon's foundry is a real rule (Häkke/Black Armory in sim.ts, Omolon/SUROS/Tex here)
     const foundry = s.inVehicle ? null : foundryOf(equippedWeapon);
     sim.foundry = foundry;
@@ -2117,7 +2117,7 @@ function SceneImpl({
           const r = raceReward(ev.time, best);
           sim.credits += r.credits;
           if (r.newBest) try { localStorage.setItem(RACE_BEST_KEY, String(ev.time)); } catch { /* storage off */ }
-          alert(sim, `FINISH ${ev.time.toFixed(1)}s${r.newBest ? " · NEW BEST" : ""} · +${r.credits} credits`);
+          alert(sim, `FINISH ${ev.time.toFixed(1)}s${r.newBest ? " · NEW BEST" : ""}`);
           sfx.playLevelUp();
         }
       }
@@ -2652,7 +2652,7 @@ function SceneImpl({
         const hSpeed = s.inVehicle ? 0 : Math.hypot(velocity.x, velocity.z);
         const strafe = (velocity.x * Math.cos(s.yaw) - velocity.z * Math.sin(s.yaw)) / RUN_SPEED;
         f.view = stepStride(f.stride, { speed: hSpeed, grounded: s.grounded && !s.diving && !s.inVehicle, sliding: move.current.state.slideLeft > 0, vy: s.vy, dt }, strafe);
-        f.motion.phase = f.view.phase; f.motion.intensity = f.view.intensity; f.motion.swing = f.view.swing; f.motion.lean = f.view.lean; f.motion.air = !s.grounded && !s.diving; f.motion.stance = move.current.state.stance; f.motion.slideT = move.current.state.slideLeft > 0 ? 1 - move.current.state.slideLeft / SLIDE_SECONDS : -1;
+        f.motion.phase = f.view.phase; f.motion.intensity = f.view.intensity; f.motion.swing = f.view.swing; f.motion.lean = f.view.lean; f.motion.air = !s.grounded && !s.diving; f.motion.stance = move.current.state.stance; if (s.shots !== f.lastShots) { f.lastShots = s.shots; f.combatUntil = performance.now() / 1000 + COMBAT_STANCE_HOLD; } f.motion.combat = combatStance(Boolean(mouse.current.aim || padState.current.aim), performance.now() / 1000, f.combatUntil); f.motion.slideT = move.current.state.slideLeft > 0 ? 1 - move.current.state.slideLeft / SLIDE_SECONDS : -1;
       }
       const override = !s.inVehicle && (s.meleeTime > 0 || s.specialTime > 0);
       // vehicles always use the chase camera: a first-person blend put the camera at the vehicle's centre, inside its body

@@ -120,7 +120,8 @@ export function rollCache(c: LootCache, now = Date.now()): Partial<Record<Materi
 /** Chance a cache also holds one weapon or armor piece; Legendary boxes always do. */
 export const GEAR_CHANCE: Record<CacheRarity, number> = { COMMON: 0.1, RARE: 0.25, EPIC: 0.45, LEGENDARY: 1 };
 /** Power by box rarity — sits just above starter gear so boxes help without outclassing mission/raid rewards. */
-export const GEAR_POWER: Record<CacheRarity, number> = { COMMON: 80, RARE: 95, EPIC: 110, LEGENDARY: 125 };
+/** cache gear on the shop ladder (regional-shops.ts), just above the matching buy since it is found, not bought */
+export const GEAR_POWER: Record<CacheRarity, number> = { COMMON: 120, RARE: 150, EPIC: 200, LEGENDARY: 260 };
 const WEAPON_SLOTS: GearSlot[] = ["primary", "secondary", "heavy"];
 const ARMOR_SLOTS: GearSlot[] = ["helmet", "chest", "gauntlets", "legs"];
 const REGION_ELEMENT: Record<string, GearItem["element"]> = { nexus: "ARC", veridan: "BIO", frostspire: "CRYO", ember: "THERMAL", wastelands: "KINETIC", solara: "THERMAL", swamps: "BIO" };

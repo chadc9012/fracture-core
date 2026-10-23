@@ -6,6 +6,9 @@ import { windStrength } from "./wind";
  * its own phase from its world position, and bend grows with height up the mesh. Strength follows the
  * live weather wind (weather-cycle.ts windX/windZ), so storms thrash the canopy and fog hangs still.
  */
+/** foliage closer than this to the camera dissolves (metres) */
+export const NEAR_FADE = 2.6;
+
 export const windUniforms = {
   uWindTime: { value: 0 },
   uWindDir: { value: new THREE.Vector2(1, 0) },
@@ -29,12 +32,26 @@ export function windSway(geometry: THREE.BufferGeometry, amount: number) {
   const box = geometry.boundingBox!;
   const base = -box.min.y;
   const span = Math.max(0.001, box.max.y - box.min.y);
-  return (shader: { uniforms: Record<string, { value: unknown }>; vertexShader: string }) => {
+  return (shader: { uniforms: Record<string, { value: unknown }>; vertexShader: string; fragmentShader?: string }) => {
     Object.assign(shader.uniforms, windUniforms, { uWindBase: { value: base }, uWindSpan: { value: span }, uWindAmount: { value: amount } });
+    // near-camera dissolve: leaves, fronds and bushes within NEAR_FADE metres of the camera break up in a screen-door pattern, so a
+    // third-person camera pushed into a tree or a fern shows the operator instead of a wall of leaf
+    if (shader.fragmentShader) shader.fragmentShader = shader.fragmentShader
+      .replace("#include <common>", `#include <common>
+varying float vWfCamDist;`)
+      .replace("#include <clipping_planes_fragment>", `#include <clipping_planes_fragment>
+if (vWfCamDist < ${NEAR_FADE.toFixed(2)}) {
+  vec2 cell = mod(floor(gl_FragCoord.xy), 4.0);
+  float bayer = mod(cell.x * 4.0 + cell.y * 9.0 + cell.x * cell.y * 3.0, 16.0) / 16.0;
+  if (bayer > smoothstep(${(NEAR_FADE * 0.35).toFixed(2)}, ${NEAR_FADE.toFixed(2)}, vWfCamDist)) discard;
+}`);
     shader.vertexShader = shader.vertexShader
       .replace("#include <common>", `#include <common>
+varying float vWfCamDist;
 uniform float uWindTime; uniform vec2 uWindDir; uniform float uWindStrength;
 uniform float uWindBase; uniform float uWindSpan; uniform float uWindAmount;`)
+      .replace("#include <project_vertex>", `#include <project_vertex>
+vWfCamDist = -mvPosition.z;`)
       .replace("#include <begin_vertex>", `#include <begin_vertex>
 {
   #ifdef USE_INSTANCING

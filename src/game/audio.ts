@@ -7,7 +7,7 @@ import type { WeaponId } from "./weapons";
 import { voiceAction, type WaterMix, type WaterSource } from "./water-audio";
 import { AUDIO_FILES } from "./audio-files";
 import { BLAST_FLAVOR, SHOTS, blastAtDistance, shotKey, variation, type BlastFlavor, type ShotProfile } from "./audio-design";
-import { RADIO_STATIONS, stationTrack, type StationId } from "./radio-stations";
+import { BROADCAST_START, RADIO_STATIONS, nextOnAir, onAir, type StationId } from "./radio-stations";
 import { engineVoice } from "./vehicle-audio";
 import { AUDIO_SAFETY, envelopeAttack, unitVolume } from "./audio-safety";
 
@@ -67,8 +67,9 @@ export function setMixVolumes(music: number, effects: number, ambience = 1, abil
 }
 function applyMix() { if (ctx) { ctx.music.gain.value = externalMusic ? 0 : 0.35 * musicVol; ctx.sfx.gain.value = sfxVol; ctx.amb.gain.value = ambVol; ctx.abil.gain.value = abilVol; } }
 
-/** Plays the station's recorded rotation (STATION_TRACKS) through the master bus at the music level; if a recording
- * cannot load or play, falls back to the procedural instrumental below. onTrack reports what is playing. */
+/** Plays the station as a linear broadcast (radio-stations.ts: its recorded rotation with a commercial after every AD_EVERY
+ * programs) through the master bus at the music level; if a recording cannot load or play, falls back to the procedural
+ * instrumental below. onTrack reports what is on air; the same line goes out as a `wf-radio-now-playing` window event. */
 export function startRadio(id: StationId, onTrack?: (label: string) => void) {
   const c = ctx;
   if (!c) return () => {};
@@ -77,13 +78,20 @@ export function startRadio(id: StationId, onTrack?: (label: string) => void) {
   const bus = c.ac.createGain(); bus.gain.value = RECORDED_RADIO_GAIN * musicVol; bus.connect(c.master);
   let source: MediaElementAudioSourceNode | null = null;
   try { source = c.ac.createMediaElementSource(el); source.connect(bus); } catch { bus.disconnect(); return startProceduralRadio(id); }
-  let step = 0, stopped = false, fallback: (() => void) | null = null;
+  let broadcast = BROADCAST_START, adBreak = false, stopped = false, fallback: (() => void) | null = null;
   const play = () => {
-    const t = stationTrack(id, step); el.src = t.path; onTrack?.(`${t.title} — ${t.artist}`);
+    const t = onAir(id, broadcast, adBreak); el.src = t.path;
+    const label = t.advertisement ? `Commercial · ${t.title}` : `${t.title} — ${t.artist}`;
+    onTrack?.(label);
+    window.dispatchEvent(new CustomEvent("wf-radio-now-playing", { detail: { station: id, title: label, advertisement: t.advertisement } }));
     void el.play().catch(() => { /* autoplay needs a gesture; the next tick retries */ });
   };
-  el.onended = () => { step++; play(); };
-  el.onerror = () => { if (stopped || fallback) return; fallback = startProceduralRadio(id); onTrack?.(RADIO_STATIONS[id].name); };
+  el.onended = () => { const next = nextOnAir(broadcast, adBreak); broadcast = next.broadcast; adBreak = next.adBreak; play(); };
+  el.onerror = () => {
+    if (stopped || fallback) return;
+    if (adBreak) { const next = nextOnAir(broadcast, true); broadcast = next.broadcast; adBreak = false; play(); return; } // a missing ad never silences the station
+    fallback = startProceduralRadio(id); onTrack?.(RADIO_STATIONS[id].name);
+  };
   const timer = window.setInterval(() => { bus.gain.setTargetAtTime(RECORDED_RADIO_GAIN * musicVol, c.ac.currentTime, 0.1); if (!fallback && el.paused && !el.ended && el.src) void el.play().catch(() => {}); }, 1000);
   play();
   return () => { stopped = true; window.clearInterval(timer); el.onended = null; el.onerror = null; el.pause(); el.removeAttribute("src"); el.load(); source?.disconnect(); bus.disconnect(); fallback?.(); };

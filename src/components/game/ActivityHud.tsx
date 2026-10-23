@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { AREAS, type ActivityDef, type Payout, type Run } from "@/game/activities";
 import { lapOf, livePlace, raceById, rivalPositions, timeLimit, worldPoint, type RaceDef, type RaceReward, type RaceResult, type RaceRun } from "@/game/racing";
+import { HudRail } from "./HudRail";
 
 /** In-world tracker for the running activity: objective, progress and the stage clock. */
 export function ActivityTracker({ def, run, onAbandon, px, pz }: { def: ActivityDef; run: Run; onAbandon: () => void; /** where you are, for the race map and your live place */ px?: number; pz?: number }) {
@@ -19,7 +20,7 @@ export function ActivityTracker({ def, run, onAbandon, px, pz }: { def: Activity
     const standing = rr && px !== undefined && pz !== undefined ? livePlace(race, rr, px, pz) : null;
     return <>
       {/* reference: the sample track view — position and checkpoint top left, the race clock top right, the course map bottom left */}
-      <div className="pointer-events-auto absolute left-3 top-28 z-30 w-64 border-l-2 border-[var(--wf-ice)] bg-gradient-to-r from-background/85 to-background/30 p-3 font-mono text-[10px] backdrop-blur" role="status" aria-label="Active race">
+      <HudRail side="left" order={1}><div className="pointer-events-auto absolute left-3 top-28 z-30 w-64 border-l-2 border-[var(--wf-ice)] bg-gradient-to-r from-background/85 to-background/30 p-3 font-mono text-[10px] backdrop-blur" role="status" aria-label="Active race">
         <p className="text-[9px] uppercase tracking-[0.25em] text-[var(--wf-ice)]">{AREAS[def.area]?.name} · {race.type} · {rr?.difficulty ?? "standard"}</p>
         <p className="mt-1 text-sm font-semibold uppercase tracking-wider">{race.name}</p>
         {rr?.phase === "running" && standing ? <div className="mt-2 flex gap-5">
@@ -31,7 +32,7 @@ export function ActivityTracker({ def, run, onAbandon, px, pz }: { def: Activity
         {race.style && rr && rr.style > 0 && <p className="mt-1 text-primary">Style {Math.round(rr.style)}</p>}
         <p className="mt-1 text-[9px] text-muted-foreground">{race.hazards.join(" · ")}</p>
         <Button size="sm" variant="outline" className="mt-2 h-6 text-[9px]" onClick={onAbandon}>Abandon (attempt is not refunded)</Button>
-      </div>
+      </div></HudRail>
       {rr?.phase === "running" && <div className="pointer-events-none absolute right-4 top-24 z-30 text-right font-mono" aria-hidden="true">
         <p className="text-3xl font-bold tabular-nums tracking-wider drop-shadow">{fmtT(t + rr.penalties)}</p>
         <p className="text-[10px] text-muted-foreground">par {fmtT(race.par)} · limit {fmtT(lim)}{rr.penalties > 0 && <span className="ml-1 text-destructive">+{rr.penalties.toFixed(1)}s</span>}</p>
@@ -40,14 +41,14 @@ export function ActivityTracker({ def, run, onAbandon, px, pz }: { def: Activity
       {px !== undefined && pz !== undefined && <RaceMap race={race} run={rr} px={px} pz={pz} />}
     </>;
   }
-  return <div className="pointer-events-auto absolute left-3 top-28 z-30 w-64 border border-primary/60 bg-background/80 p-3 font-mono text-[10px] backdrop-blur" role="status" aria-label="Active activity">
+  return <HudRail side="left" order={1}><div className="pointer-events-auto absolute left-3 top-28 z-30 w-64 border border-primary/60 bg-background/80 p-3 font-mono text-[10px] backdrop-blur" role="status" aria-label="Active activity">
     <p className="text-[9px] uppercase tracking-[0.25em] text-primary">{AREAS[def.area]?.name} · {def.kind === "crucible" ? "killbox" : def.kind}</p>
     <p className="mt-1 text-sm font-semibold">{def.name}</p>
     <p className="mt-1 text-muted-foreground">Stage {run.stage + 1}/{def.stages.length} · {o.label}</p>
     <p className="mt-1">{o.kind === "deliver" ? (run.carrying ? "Cargo picked up — deliver it" : "Go to the pickup") : `${Math.min(run.progress, need)} / ${need}`}{left !== null && <span className={`ml-2 ${left < 15 ? "text-destructive" : "text-primary"}`}>{Math.floor(left / 60)}:{String(left % 60).padStart(2, "0")}</span>}</p>
     {def.challenge && <p className="mt-1 text-[9px] text-primary/80">Bonus: {def.challenge.label}</p>}
     <Button size="sm" variant="outline" className="mt-2 h-6 text-[9px]" onClick={onAbandon}>Abandon (attempt is not refunded)</Button>
-  </div>;
+  </div></HudRail>;
 }
 
 export type ActivityResult = { def: ActivityDef; ok: boolean; reason?: string; payout?: Payout; race?: { result: RaceResult; reward: RaceReward; name: string }; /** hidden discoveries a beacon just revealed */ revealed?: number };

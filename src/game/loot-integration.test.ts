@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 import { DEFAULT_PROGRESSION, rewardMission, type PlayerProgression } from "./progression";
 import { claimDrops, upgradeGear, MATERIALS, type GearItem } from "./inventory";
 import { upgradeGate } from "./upgrade-gates";
-import { completionWeapon, grantCompletionWeapon, grantDungeonFirstClear, rollWeaponLoot, WEAPON_DROP_CHANCE } from "./weapon-loot";
+import { completionWeapon, grantCompletionWeapon, grantDungeonFirstClear, rollWeaponLoot, WEAPON_DROP_CHANCE, SOURCE_POWER } from "./weapon-loot";
 import { evaluateGear } from "./gear-evaluation";
 import { playerPowerScore } from "./balance";
 
@@ -92,7 +92,8 @@ describe("weapon drops and power honesty", () => {
   test("drop chance gates by rank and the item is a real GearItem inside the power bands", () => {
     expect(rollWeaponLoot("enemy-regular", "z", 0.5, "s")).toBeNull();
     const w = rollWeaponLoot("enemy-boss", "z", WEAPON_DROP_CHANCE["enemy-boss"] - 0.01, "s")!;
-    expect([80, 95, 110, 125]).toContain(w.power);
+    expect(w.power).toBe(SOURCE_POWER["enemy-boss"]); // on the shop ladder (T4 260), above the 135 starting rifle
+    expect(w.power).toBeLessThanOrEqual(340);
     expect(["primary", "secondary", "heavy"]).toContain(w.slot);
   });
   test("claimDrops creates a real inventory item once per drop id", () => {
@@ -108,7 +109,7 @@ describe("weapon drops and power honesty", () => {
     const after = grantCompletionWeapon(p, "mission", "m");
     expect(playerPowerScore(after)).toBe(playerPowerScore(p));
     expect(after.equippedGear).toEqual(p.equippedGear);
-    expect(item.power).toBeLessThanOrEqual(125);
+    expect(item.power).toBeLessThanOrEqual(340);
   });
   test("rating compares against the worn item only; inventory items never raise the equipped power", () => {
     const p = base();

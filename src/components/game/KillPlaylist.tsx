@@ -19,6 +19,13 @@ function useTracks() {
 /** Settings → Audio: add songs from the device, remove them, choose when they play. */
 export function KillPlaylistPanel() {
   const { tracks, mode, source } = useTracks();
+  // live "now playing" from startRadio's wf-radio-now-playing event (song, episode or commercial)
+  const [onAirNow, setOnAirNow] = useState<{ station: string; title: string } | null>(null);
+  useEffect(() => {
+    const onRadio = (e: Event) => { const d = (e as CustomEvent<{ station: string; title: string }>).detail; if (d && typeof d.title === "string") setOnAirNow(d); };
+    window.addEventListener("wf-radio-now-playing", onRadio);
+    return () => window.removeEventListener("wf-radio-now-playing", onRadio);
+  }, []);
   const add = async (files: FileList | null) => {
     for (const f of Array.from(files ?? [])) await saveTrack({ id: `${Date.now()}-${f.name}`, name: f.name.replace(/\.[^.]+$/, ""), blob: f });
     notifyChanged();
@@ -30,6 +37,11 @@ export function KillPlaylistPanel() {
         {Object.entries(RADIO_STATIONS).map(([id, station]) => <Button key={id} variant={source === id ? "default" : "outline"} className="h-auto min-h-12 justify-start py-2 text-left" onClick={() => { unlockAudio(); setMusicSource(id as MusicSource); }}><span><span className="block text-xs">{station.name}</span><span className="block text-[10px] opacity-75">{station.genre}</span></span></Button>)}
         <Button variant={source === "playlist" ? "default" : "outline"} onClick={() => setMusicSource("playlist")}>My songs</Button>
       </div>
+      {source !== "playlist" && <div className="mt-2 border border-border/70 bg-background/50 px-3 py-2 text-xs" aria-live="polite">
+        <p className="font-semibold">Live radio · {RADIO_STATIONS[source].name}</p>
+        <p className="text-muted-foreground">{onAirNow?.station === source ? onAirNow.title : "Tuning in…"}</p>
+        <p className="text-[10px] text-muted-foreground">Full songs and episodes play through without skipping; commercials air between programs.</p>
+      </div>}
       <div className="mt-2 flex flex-wrap gap-2">
         {(["COMBAT", "ALWAYS", "OFF"] as const).map((m) => (
           <Button key={m} size="sm" variant={mode === m ? "default" : "outline"} onClick={() => setMode(m)}>{m === "COMBAT" ? "During fights" : m === "ALWAYS" ? "Always" : "Off"}</Button>

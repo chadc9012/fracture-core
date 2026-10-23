@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { OBJECTIVE, type MissionEvent, type MissionRun } from "@/game/missions/descent-protocol";
 import { useVoiceLine } from "./useVoiceLine";
+import { HudRail } from "./HudRail";
 
 const NODES = [0, 1, 2, 3];
 const ACCENT = "#5fd8ff"; // Thalassia's own glow color (see Thalassia.tsx's dome lights)
@@ -30,15 +31,12 @@ export function DescentProtocolOverlay({ mission, onEvent, near = true }: { miss
   };
 
   return <>
-    {mission.state !== "WORLD_UPDATE" && <div className="pointer-events-none mission-tracker fixed right-3 top-24 z-20 max-w-xs border-l-2 p-3" style={{ borderColor: ACCENT, background: "color-mix(in oklch, var(--card) 80%, transparent)" }}>
+    {mission.state !== "WORLD_UPDATE" && <HudRail side="right" order={1}><div className="pointer-events-none mission-tracker fixed right-3 top-24 z-20 max-w-xs border-l-2 p-3" style={{ borderColor: ACCENT, background: "color-mix(in oklch, var(--card) 80%, transparent)" }}>
       <p className="font-mono text-[10px] uppercase tracking-[0.25em]" style={{ color: ACCENT }}>Descent Protocol</p>
       <p className="mt-1 text-sm">{OBJECTIVE[mission.state]}</p>
       {(mission.state === "TRACING" || airlock) && <p className="mt-1 font-mono text-[10px] text-muted-foreground">{airlock ? "AIRLOCK REROUTE" : "SIGNAL LOCK"} {Math.round(mission.hack)}%{near ? "" : " · get to the marker"}</p>}
-    </div>}
-    {mission.nova && <div className="pointer-events-none fixed bottom-24 left-3 z-20 flex max-w-sm items-start gap-3 border p-3" style={{ borderColor: `color-mix(in oklch, ${ACCENT} 40%, transparent)`, background: "color-mix(in oklch, var(--card) 80%, transparent)" }}>
-      <span className="mt-1 size-3 shrink-0 animate-pulse rounded-full" style={{ background: ACCENT, boxShadow: `0 0 12px ${ACCENT}` }} />
-      <p className="text-sm"><span className="font-mono text-[10px] uppercase" style={{ color: ACCENT }}>NOVA · </span>{mission.nova}</p>
-    </div>}
+    </div></HudRail>}
+    {/* NOVA's line is shown once, in the shared caption bar (VoiceSubtitle via useVoiceLine); the old copy here overlapped the ability bar */}
     {tracing && <div className="fixed inset-0 z-30 grid place-items-center bg-background/40">
       <section className="w-[min(26rem,calc(100%-2rem))] border bg-card/90 p-5" style={{ borderColor: ACCENT }}>
         <p className="font-mono text-[10px] uppercase tracking-[0.25em]" style={{ color: ACCENT }}>{airlock ? "Airlock controller · reroute the seals" : "Signal trace · triangulate the core"}</p>

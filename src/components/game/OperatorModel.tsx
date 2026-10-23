@@ -19,6 +19,7 @@ import { attachSkates } from "./skate-attachments";
 import { bootStats } from "@/game/skate-boots";
 import { getEquippedBoots } from "@/game/client-input";
 import { cinematicImported, createCinematicMaterial } from "@/game/cinematic-materials";
+import { standingClip } from "@/game/combat-stance";
 
 /** the weapon the operator is currently holding; read every frame so a weapon swap needs no rebuild */
 export type HeldWeapon = { current: { weapon: WeaponId } };
@@ -101,7 +102,7 @@ function attachWeapons(object: THREE.Object3D, height: number, modelScale: numbe
   return { groups, dispose: () => { Object.values(groups).forEach((g) => g?.removeFromParent()); geos.forEach((x) => x.dispose()); mats.forEach((m) => m.dispose()); } };
 }
 
-/** Authored (Meshy) operator models, served from /public. GOLIATH, NYX and CIPHER are rigged (Mixamo skeleton; walk/run for all, plus showcase for GOLIATH and idle for NYX); Anything missing or failing to load falls back to the procedural Operator. */
+/** Authored (Meshy) operator models, served from /public. GOLIATH, NYX and CIPHER are rigged (Mixamo skeleton; walk/run for all, idle for NYX and GOLIATH, the owner's combat-stance clip for NYX and GOLIATH, flex showcase and chest-pound taunt for GOLIATH); Anything missing or failing to load falls back to the procedural Operator. */
 export const OPERATOR_MODELS: Partial<Record<ClassId, { url: string; tint: boolean; rigged: boolean }>> = {
   // All three ship their own authored textures (Meshy from the owner's concept art, rigged with walk/run, re-encoded by
   // scripts/build-operator-authored.py): no runtime paint, no procedural plates on top. The *-hd.glb bodies stay as paint sources.
@@ -111,7 +112,7 @@ export const OPERATOR_MODELS: Partial<Record<ClassId, { url: string; tint: boole
   HUNTER: { url: "/models/operators/nyx-authored.glb", tint: false, rigged: true },
 };
 
-export type ModelMotion = { current: { phase: number; intensity: number; air: boolean; stance?: "STAND" | "CROUCH" | "PRONE"; /** 0..1 progress through a slide, -1 when not sliding */ slideT?: number } };
+export type ModelMotion = { current: { phase: number; intensity: number; air: boolean; stance?: "STAND" | "CROUCH" | "PRONE"; /** 0..1 progress through a slide, -1 when not sliding */ slideT?: number; /** aiming or fired recently: stand in the combat stance */ combat?: boolean } };
 
 class Quiet extends Component<{ children: ReactNode; fallback: ReactNode }, { failed: boolean }> {
   override state = { failed: false };
@@ -253,8 +254,10 @@ function Model({ url, tint, height, feetY, color, trim, pose, motion, bodyType, 
     for (const key of Object.keys(actions)) { const a = actions[key]; if (a) a.weight = 0; }
     if (pose === "showcase") {
       // flex clip (GOLIATH) > idle clip (NYX) > walk held at mid-stance (CIPHER), a relaxed standing pose
-      const loop = actions["showcase"] ?? actions["idle"];
-      if (loop) set(actions["showcase"] ? "showcase" : "idle", 1, clock.elapsedTime / loop.getClip().duration);
+      // GOLIATH alternates the flex with the owner's chest-pound taunt every other loop
+      const showName = actions["showcase"] && actions["taunt"] && Math.floor(clock.elapsedTime / 9) % 2 === 1 ? "taunt" : actions["showcase"] ? "showcase" : actions["idle"] ? "idle" : null;
+      const loop = showName ? actions[showName] : undefined;
+      if (showName && loop) set(showName, 1, clock.elapsedTime / loop.getClip().duration);
       else set("walk", 1, 0.25);
     } else if (sliding && actions["slide"]) {
       // authored slide clip (NYX) scrubbed by slide progress
@@ -264,11 +267,12 @@ function Model({ url, tint, height, feetY, color, trim, pose, motion, bodyType, 
       const cycle = m ? m.phase / (Math.PI * 2) : 0;
       const i = m?.intensity ?? 0;
       const run = smooth(0.4, 0.62, i);
-      // with an idle clip, standing still plays it; without one the stride simply freezes mid-step
-      const moving = actions["idle"] ? Math.min(1, i * 5) : 1;
+      // standing still plays the combat stance (aiming / just fired) or the idle (combat-stance.ts); with neither the stride freezes mid-step
+      const stand = standingClip((n) => Boolean(actions[n]), Boolean(m?.combat));
+      const moving = stand ? Math.min(1, i * 5) : 1;
       set("walk", moving * (1 - run), cycle);
       set("run", moving * run, cycle);
-      if (actions["idle"]) set("idle", 1 - moving, clock.elapsedTime / actions["idle"].getClip().duration);
+      if (stand) set(stand, 1 - moving, clock.elapsedTime / actions[stand]!.getClip().duration);
     }
     mixer.update(0);
   });
