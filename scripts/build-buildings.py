@@ -53,6 +53,38 @@ def window_texture(path=TEX, n=512, cells=16, seed=7, lit=0.34):
     return path
 
 
+def ad_texture(path="/tmp/wf-ad.png"):
+    """A vertical holo billboard: violet-to-cyan field, a stylised visor face of light lines, EVOLIO · PLAY BEYOND."""
+    from PIL import ImageDraw, ImageFont
+    W, H = 256, 640
+    y = np.linspace(0, 1, H)[:, None, None]
+    img = (np.array([0.42, 0.12, 0.9]) * (1 - y) + np.array([0.05, 0.75, 0.95]) * y) * 0.85
+    img = np.broadcast_to(img, (H, W, 3)).copy()
+    for k in range(0, H, 4):
+        img[k] *= 0.82  # scanlines
+    im = Image.fromarray((img * 255).astype(np.uint8)); d = ImageDraw.Draw(im)
+    for r in range(6):
+        d.ellipse([60 - r * 6, 120 - r * 8, 196 + r * 6, 330 + r * 6], outline=(255, 255, 255), width=1)
+    d.rectangle([70, 200, 186, 232], fill=(20, 230, 255))
+    try:
+        f1 = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 46); f2 = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 20)
+    except Exception:
+        f1 = f2 = ImageFont.load_default()
+    d.text((128, 470), "EVOLIO", fill=(255, 255, 255), font=f1, anchor="mm")
+    d.text((128, 520), "PLAY BEYOND", fill=(220, 250, 255), font=f2, anchor="mm")
+    im.save(path)
+    return path
+
+
+def ad_material():
+    m = bpy.data.materials.new("Holo"); m.use_nodes = True
+    nt = m.node_tree; b = nt.nodes["Principled BSDF"]
+    tx = nt.nodes.new("ShaderNodeTexImage"); tx.image = bpy.data.images.load(ad_texture())
+    nt.links.new(tx.outputs["Color"], b.inputs["Base Color"]); nt.links.new(tx.outputs["Color"], b.inputs["Emission Color"])
+    b.inputs["Emission Strength"].default_value = 3.0; b.inputs["Roughness"].default_value = 0.3
+    return m
+
+
 def footprint(kind, w, d, segs=24, chamfer=0.18):
     if kind == "rect":
         return [(-w / 2, -d / 2), (w / 2, -d / 2), (w / 2, d / 2), (-w / 2, d / 2)]
@@ -209,8 +241,11 @@ def tower(oid, style, tiers, podium=None, crown="ring", fp_kind="chamfer", accen
     # holo panel on Neon towers
     if style == "neon":
         w = max(abs(p[0]) for p in prev)
-        holo = K.mat("Holo", "#38e8ff", 0.0, 0.3, emit="#7a3cff", strength=3.5)
-        parts.append(K.box((0.2, base_d * 0.5, 10), (w * 1.02 + 0.2, 0, z * 0.6), holo, bevel=0, name="HoloPanel"))
+        holo = ad_material()
+        bpy.ops.mesh.primitive_plane_add(size=1, location=(w * 1.02 + 0.25, 0, z * 0.6), rotation=(math.pi / 2, 0, math.pi / 2))
+        hp = bpy.context.object; hp.name = "HoloPanel"; hp.scale = (base_d * 0.5, 10 * 2.5 / 2.5 * 1.0 if False else 16, 1)
+        bpy.ops.object.transform_apply(scale=True); hp.data.materials.append(holo)
+        parts.append(hp)
     K.join([p for p in parts if p], "Building")
     os.makedirs(OUT, exist_ok=True)
     path = os.path.join(OUT, oid + ".glb")
