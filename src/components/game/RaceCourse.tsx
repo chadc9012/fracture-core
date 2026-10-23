@@ -130,8 +130,13 @@ export const RaceCourse = memo(function RaceCourse({ race, run }: { race: RaceDe
       ))}
       {Array.from({ length: OBSTACLES_SHOWN }, (_, k) => (
         <group name="race-obstacle" key={`o${k}`} ref={(el) => { rocks.current[k] = el; }} visible={false}>
-          <mesh position={[0, 0.9, 0]} rotation={[0.3, k, 0.2]}><dodecahedronGeometry args={[1.6, 0]} /><meshStandardMaterial color="#5b544c" roughness={1} flatShading /></mesh>
-          <mesh position={[0, 2.9, 0]}><octahedronGeometry args={[0.35, 0]} /><meshBasicMaterial color="#ffb020" /></mesh>
+          {/* a race-crew hazard barrier, not a natural rock: it must read as "part of the course, steer round it" against any region's own boulders */}
+          <group rotation={[0, k * 1.3, 0]}>
+            <mesh position={[0, 0.6, 0]}><boxGeometry args={[3.2, 1.2, 1]} /><meshStandardMaterial color="#d8d2c4" roughness={0.9} /></mesh>
+            {[-1.1, 0, 1.1].map((x) => <mesh key={x} position={[x, 0.75, 0.51]}><planeGeometry args={[0.5, 0.9]} /><meshStandardMaterial color="#ff7a10" emissive="#ff5a00" emissiveIntensity={0.8} /></mesh>)}
+            {[-1.1, 0, 1.1].map((x) => <mesh key={x} position={[x, 0.75, -0.51]} rotation={[0, Math.PI, 0]}><planeGeometry args={[0.5, 0.9]} /><meshStandardMaterial color="#ff7a10" emissive="#ff5a00" emissiveIntensity={0.8} /></mesh>)}
+          </group>
+          <mesh position={[0, 3, 0]}><octahedronGeometry args={[0.45, 0]} /><meshBasicMaterial color="#ffb020" /></mesh>
         </group>
       ))}
       {Array.from({ length: rivalCount }, (_, r) => (
