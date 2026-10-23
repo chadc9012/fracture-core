@@ -5,6 +5,7 @@ import { walkHeight } from "@/game/terrain";
 import { devilAt, dustDevils, hoodoos, mesas, oasis, pillars, ribcage, type Palm, type Prop } from "@/game/solara-dressing";
 import { windUniforms } from "@/game/wind-sway";
 import { softSprite } from "./softSprite";
+import { InstancedGlb } from "./InstancedGlb";
 
 /** Solara Desert dressing: sandstone mesas and hoodoos, a palm oasis, a giant ribcage, half-buried arcology pillars and
  * wandering dust devils. Layout is pure (solara-dressing.ts); everything is procedural and instanced. */
@@ -88,43 +89,14 @@ function Oasis() {
   </group>;
 }
 
-/** palms: a curved trunk (6 tapered segments) and a crown of drooping fronds that sway with the live wind */
+/** oasis palms: the authored palm models (public/models/foliage/palm-a/b/c.glb, scripts/build-palms.py), one instanced
+ * batch per variant, sized to each palm's height and leaning the way the layout says */
+const PALM_URLS = ["/models/foliage/palm-a.glb", "/models/foliage/palm-b.glb", "/models/foliage/palm-c.glb"] as const;
+const PALM_H = [10.6, 13.1, 8.6];
 function Palms({ palms }: { palms: readonly Palm[] }) {
-  const segs = useMemo(() => palms.flatMap((p) => Array.from({ length: 6 }, (_, i) => ({ p, i }))), [palms]);
-  const fronds = useMemo(() => palms.flatMap((p) => Array.from({ length: 8 }, (_, i) => ({ p, i }))), [palms]);
-  const trunk = useRef<THREE.InstancedMesh>(null), leaf = useRef<THREE.InstancedMesh>(null), crown = useRef<THREE.Group>(null);
-  const top = (p: Palm) => {
-    const y0 = walkHeight(p.x, p.z), dx = Math.sin(p.r), dz = Math.cos(p.r);
-    // a gently curving lean: offset grows with the square of height
-    return { x: p.x + dx * p.lean * p.h, y: y0 + p.h, z: p.z + dz * p.lean * p.h };
-  };
-  useInstances<{ p: Palm; i: number }>(trunk, segs, (o, { p, i }) => {
-    const y0 = walkHeight(p.x, p.z), f0 = i / 6, f1 = (i + 1) / 6, dx = Math.sin(p.r), dz = Math.cos(p.r);
-    const a = new THREE.Vector3(p.x + dx * p.lean * p.h * f0 * f0, y0 + p.h * f0, p.z + dz * p.lean * p.h * f0 * f0);
-    const b = new THREE.Vector3(p.x + dx * p.lean * p.h * f1 * f1, y0 + p.h * f1, p.z + dz * p.lean * p.h * f1 * f1);
-    o.position.copy(a).lerp(b, 0.5); o.lookAt(b); o.rotateX(Math.PI / 2);
-    const w = 0.42 - f0 * 0.16; o.scale.set(w, a.distanceTo(b) * 1.04, w);
-  });
-  useInstances<{ p: Palm; i: number }>(leaf, fronds, (o, { p, i }) => {
-    const t = top(p); o.position.set(t.x, t.y, t.z);
-    o.rotation.set(0, (i / 8) * Math.PI * 2 + p.r, 0); o.rotateX(1.05 + (i % 2) * 0.25); o.translateY(2.4);
-    o.scale.set(1, 1, 1);
-  });
-  // sway the whole crown layer a little with the shared wind strength (no per-instance work)
-  useFrame(({ clock }) => {
-    const g = crown.current; if (!g) return;
-    const w = windUniforms.uWindStrength.value;
-    g.rotation.z = Math.sin(clock.elapsedTime * 1.1) * 0.006 * (0.5 + w);
-  });
-  return <group>
-    <instancedMesh ref={trunk} args={[undefined, undefined, segs.length]} castShadow><cylinderGeometry args={[0.85, 1, 1, 7]} /><meshStandardMaterial color="#7a5e3e" roughness={1} flatShading /></instancedMesh>
-    <group ref={crown}>
-      <instancedMesh ref={leaf} args={[undefined, undefined, fronds.length]} castShadow>
-        <planeGeometry args={[1.1, 5, 1, 4]} />
-        <meshStandardMaterial color="#4f7d2e" roughness={0.8} side={THREE.DoubleSide} />
-      </instancedMesh>
-    </group>
-  </group>;
+  const byVariant = useMemo(() => PALM_URLS.map((_, v) => palms.map((p, i) => ({ p, i })).filter(({ i }) => i % 3 === v)
+    .map(({ p }) => ({ x: p.x, y: walkHeight(p.x, p.z) - 0.1, z: p.z, yaw: p.r, scale: p.h / PALM_H[v]! }))), [palms]);
+  return <group>{byVariant.map((items, v) => <InstancedGlb key={v} url={PALM_URLS[v]!} items={items} />)}</group>;
 }
 
 function Scrub({ cx, cz, r }: { cx: number; cz: number; r: number }) {

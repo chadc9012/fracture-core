@@ -1,5 +1,6 @@
 import { useFrame } from "@react-three/fiber";
 import { DistrictLight } from "./DistrictLight";
+import { FactionEnemy } from "./EnemyModel";
 import { useMemo, useRef } from "react";
 import * as THREE from "three";
 import { heightAt } from "@/game/terrain";
@@ -25,11 +26,10 @@ const NPC_DRAW = 150;
 
 function GuardView({ id, faction, runtime, playerRef }: { id: string; faction: FactionId; runtime: React.RefObject<LivingRuntime | null>; playerRef: React.RefObject<THREE.Object3D> }) {
   const group = useRef<THREE.Group>(null!);
-  const legs = useRef<THREE.Group>(null!);
+  const drive = useRef({ speed: 0, aiming: false });
   const flash = useRef<THREE.Mesh>(null!);
   const tracer = useRef<THREE.Mesh>(null!);
   const phase = useRef(0);
-  const color = FACTIONS[faction].color;
   const tmp = useMemo(() => ({ a: new THREE.Vector3(), b: new THREE.Vector3(), mid: new THREE.Vector3(), q: new THREE.Quaternion(), fwd: new THREE.Vector3(0, 1, 0) }), []);
   useFrame((_, dt) => {
     const g: Guard | undefined = runtime.current?.guards.find((x) => x.id === id);
@@ -42,9 +42,8 @@ function GuardView({ id, faction, runtime, playerRef }: { id: string; faction: F
     const y = heightAt(g.x, g.z);
     group.current.position.set(g.x, y, g.z);
     group.current.quaternion.setFromAxisAngle(UP, g.yaw);
-    phase.current += dt * Math.min(12, g.speed * 2.2);
-    const swing = g.speed > 0.2 ? Math.sin(phase.current) * 0.5 : 0;
-    legs.current.children.forEach((leg, i) => { leg.rotation.x = i === 0 ? swing : -swing; });
+    phase.current += dt;
+    drive.current.speed = g.speed; drive.current.aiming = g.flash > 0;
     flash.current.visible = g.flash > 0;
     if (g.flash > 0 && g.shotTo) {
       tmp.a.set(g.x, y + 1.25, g.z);
@@ -60,18 +59,9 @@ function GuardView({ id, faction, runtime, playerRef }: { id: string; faction: F
   return (
     <>
       <group ref={group}>
-        <mesh position={[0, 1.05, 0]} castShadow><boxGeometry args={[0.55, 0.75, 0.34]} /><meshStandardMaterial color="#1d242c" roughness={0.5} metalness={0.6} /></mesh>
-        <mesh position={[0, 1.12, 0.18]}><boxGeometry args={[0.36, 0.08, 0.02]} /><meshStandardMaterial color={color} emissive={color} emissiveIntensity={2} toneMapped={false} /></mesh>
-        <mesh position={[0, 1.62, 0]} castShadow><sphereGeometry args={[0.22, 12, 10]} /><meshStandardMaterial color="#2a323b" roughness={0.35} metalness={0.7} /></mesh>
-        <mesh position={[0, 1.64, 0.17]}><boxGeometry args={[0.3, 0.07, 0.06]} /><meshStandardMaterial color={color} emissive={color} emissiveIntensity={2.4} toneMapped={false} /></mesh>
-        <mesh position={[-0.34, 1.32, 0]}><boxGeometry args={[0.22, 0.18, 0.36]} /><meshStandardMaterial color="#2a323b" metalness={0.6} roughness={0.4} /></mesh>
-        <mesh position={[0.34, 1.32, 0]}><boxGeometry args={[0.22, 0.18, 0.36]} /><meshStandardMaterial color="#2a323b" metalness={0.6} roughness={0.4} /></mesh>
-        <mesh position={[0.18, 1.12, 0.45]}><boxGeometry args={[0.09, 0.12, 0.8]} /><meshStandardMaterial color="#0d1014" metalness={0.8} roughness={0.3} /></mesh>
+        {/* authored Vanguard trooper (enemy-visuals.ts), animated by the guard's own speed and firing state */}
+        <FactionEnemy kind="VANGUARD" role="standard" drive={drive} />
         <mesh ref={flash} position={[0.18, 1.14, 0.9]} visible={false}><sphereGeometry args={[0.12, 8, 6]} /><meshBasicMaterial color="#fff2b0" toneMapped={false} /></mesh>
-        <group ref={legs} position={[0, 0.68, 0]}>
-          <mesh position={[-0.15, -0.33, 0]} castShadow><capsuleGeometry args={[0.1, 0.62, 4, 6]} /><meshStandardMaterial color="#161b21" roughness={0.6} /></mesh>
-          <mesh position={[0.15, -0.33, 0]} castShadow><capsuleGeometry args={[0.1, 0.62, 4, 6]} /><meshStandardMaterial color="#161b21" roughness={0.6} /></mesh>
-        </group>
       </group>
       <mesh ref={tracer} visible={false}><cylinderGeometry args={[0.025, 0.025, 1, 4]} /><meshBasicMaterial color="#ffe08a" transparent opacity={0.85} toneMapped={false} /></mesh>
     </>

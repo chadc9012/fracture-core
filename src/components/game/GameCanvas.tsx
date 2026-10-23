@@ -4,7 +4,9 @@ const onProf: ProfilerOnRenderCallback = (id, _phase, actualMs) => recordSubtree
 import { Canvas } from "@react-three/fiber";
 import { PerformanceMonitor } from "@react-three/drei";
 import { WorldLoading } from "./WorldLoading";
-import { Bloom, BrightnessContrast, ChromaticAberration, DepthOfField, EffectComposer, HueSaturation, Noise, SSAO, Vignette } from "@react-three/postprocessing";
+import { Bloom, ChromaticAberration, DepthOfField, EffectComposer, Noise, SSAO } from "@react-three/postprocessing";
+import { GritGrade } from "./GritGrade";
+import { cssGrade, gradeFor, gradeRegionAt } from "@/game/color-grade";
 import * as THREE from "three";
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
@@ -1310,9 +1312,9 @@ export function GameCanvas() {
         return (
       <>
       {transit && <TransitOverlay startedAt={transit.startedAt} plan={transit.plan} reduced={transit.reduced} name={transit.target.name} sub={transit.target.sub} color={transit.target.color} />}
-      {liteGrade && <div aria-hidden className="pointer-events-none fixed inset-0 z-[1]" style={{ background: "radial-gradient(ellipse at center, transparent 55%, rgba(4,8,14,0.42) 100%)" }} />}
+      {liteGrade && <div aria-hidden className="pointer-events-none fixed inset-0 z-[1]" style={{ background: "radial-gradient(ellipse at center, transparent 50%, rgba(4,6,10,0.55) 100%)" }} />}
       <Canvas
-        style={liteGrade ? { filter: "contrast(1.08) saturate(1.06) brightness(0.98)" } : undefined}
+        style={liteGrade ? { filter: cssGrade(gradeFor(gradeRegionAt(hud.px, hud.pz), hud.phase === "Night" || hud.phase === "Moonlight" ? 1 : hud.phase === "Sunset" || hud.phase === "Dawn" ? 0.5 : 0)), transition: "filter 2.5s ease" } : undefined}
         onCreated={onCreated}
         onPointerDown={(event) => {
           if (event.button === 0 || event.button === 2) event.currentTarget.requestPointerLock?.();
@@ -1337,15 +1339,13 @@ export function GameCanvas() {
           // depth-of-field (the costly passes) only mount on `premium` so this stays a flat
           // cost increase, not a new tier of budget risk, on MEDIUM/HIGH.
           <Profiler id="post" onRender={onProf}><EffectComposer multisampling={0}>
-            {!flags.fxOff.has("grade") && <HueSaturation hue={-0.012} saturation={0.045} />}
-            {!flags.fxOff.has("grade") && <BrightnessContrast brightness={-0.005} contrast={0.085} />}
+            {!flags.fxOff.has("grade") && <GritGrade grain={!flags.fxOff.has("noise")} vignette={!flags.fxOff.has("vignette")} />}
             {!flags.fxOff.has("bloom") && <Bloom intensity={0.36} luminanceThreshold={1.0} luminanceSmoothing={0.2} mipmapBlur />}
             {premium && <SSAO intensity={6} radius={0.12} luminanceInfluence={0.42} bias={0.03} />}
             {/* depth of field only during cinematics: gameplay stays sharp */}
             {premium && (showIntro || Boolean(cineId)) && <DepthOfField focusDistance={0.018} focalLength={0.035} bokehScale={1.1} />}
             {/* colour fringing and film grain only in cinematics; live gameplay stays crisp */}
             {!flags.fxOff.has("ca") && (showIntro || Boolean(cineId)) && <ChromaticAberration offset={CA_OFFSET} />}
-            {!flags.fxOff.has("vignette") && <Vignette offset={0.4} darkness={0.22} />}
             {!flags.fxOff.has("noise") && (showIntro || Boolean(cineId)) && <Noise opacity={0.012} premultiply />}
           </EffectComposer></Profiler>
         )}

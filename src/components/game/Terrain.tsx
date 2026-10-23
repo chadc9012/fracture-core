@@ -20,7 +20,13 @@ import { PolyFoliage, type Placement } from "./PolyFoliage";
 import { reportAsset } from "@/game/forest-assets";
 import { isReserved, trailInfo, FOREST_SPAWN } from "@/game/verdant";
 import { CHUNK, startChunkBuild, chunkKey, chunksNear, distanceToChunk, lodForDistance, planBuilds, type BuildRequest, type ChunkBuild, type ChunkMesh, type ChunkSamplers } from "@/game/terrain-chunks";
-import { organicCanopy, organicRock } from "@/game/organic-geometry";
+import { flowerClump, organicCanopy, organicRock, petalTint, saguaro } from "@/game/organic-geometry";
+import type { FleetModelId } from "@/game/fleet-models";
+import { InstancedFleet, type FleetInstance } from "./InstancedFleet";
+import { WorldPiece } from "./WorldPiece";
+
+const WRECK_CARS: FleetModelId[] = ["muscle-car", "offroad-truck", "luxury-sedan", "armored-muscle", "raider-buggy", "security-suv"];
+const WRECK_RUST = ["#5a3b2a", "#6a4a30", "#4a3a30", "#3a3530", "#70503a"];
 import { LANE_HALF_WIDTH, distanceToRoad } from "@/game/lanes";
 import {
   addObstacle,
@@ -484,6 +490,9 @@ export function Terrain({ renderTier = "HIGH" }: { renderTier?: RenderTier } = {
   const swayReed = useMemo(() => windSway(reedGeo, 0.5), [reedGeo]);
   const reeds = useMemo(() => scatter(swamp, dO(240), 33, { min: -2.2, max: 3.5, maxSlope: 0.5 }), [swamp, density]);
   const emberRockGeo = useMemo(() => organicRock(1.6, 44, 1, 0.5), []);
+  const flowerGeo = useMemo(() => flowerClump(5), []);
+  const cactusGeo = useMemo(() => saguaro(3), []);
+  const wreckCars = useMemo<FleetInstance[]>(() => liveWrecks.map((w, i) => ({ model: WRECK_CARS[i % WRECK_CARS.length]!, x: w.x, y: w.y - 0.15, z: w.z, yaw: w.r, paint: WRECK_RUST[i % WRECK_RUST.length]! })), [liveWrecks.map((w) => `${w.x | 0},${w.z | 0}`).join("|")]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <group>
@@ -545,12 +554,12 @@ export function Terrain({ renderTier = "HIGH" }: { renderTier?: RenderTier } = {
           return <Instance key={i} position={[u.x, y + (sapling ? 0.9 : 0.35) * u.s, u.z]} scale={sapling ? [0.3 * u.s, 0.42 * u.s, 0.3 * u.s] : [0.38 * u.s, 0.2 * u.s, 0.38 * u.s]} rotation-y={u.r} color={jitter(sapling ? "#3f9a4f" : "#2a6b3a", i + 7, 0.04, 0.14)} />;
         })}
       </Instances>
-      <Instances limit={flowers.length}>
-        <sphereGeometry args={[0.4, 6, 5]} />
-        <meshStandardMaterial color="#e8639c" roughness={0.8} />
+      {/* wildflower clumps: stems + star heads (organic-geometry.ts flowerClump), muted wild colours */}
+      <Instances limit={Math.max(1, flowers.length)} geometry={flowerGeo}>
+        <meshStandardMaterial vertexColors roughness={0.85} side={THREE.DoubleSide} onBeforeCompile={petalTint} />
         {flowers.map((f, i) => {
-          const palette = ["#e8639c", "#f0d24a", "#f4f4f4", "#b478e0"];
-          return <Instance key={i} position={[f.x, f.y + 0.4, f.z]} scale={f.s * 0.7} color={palette[i % palette.length] ?? "#f4f4f4"} />;
+          const palette = ["#c9587e", "#d8b84a", "#e8e4da", "#9a72b8", "#c8743e"];
+          return <Instance key={i} position={[f.x, f.y - 0.02, f.z]} scale={1.4 + f.s * 0.9} rotation-y={i * 2.4} color={palette[i % palette.length] ?? "#e8e4da"} />;
         })}
       </Instances>
 
@@ -634,20 +643,14 @@ export function Terrain({ renderTier = "HIGH" }: { renderTier?: RenderTier } = {
           ) : null,
         )}
       </Instances>
-      <Instances limit={liveWrecks.length} castShadow receiveShadow>
-        <boxGeometry args={[5, 2.2, 2.6]} />
-        <meshStandardMaterial color="#5b4a3f" metalness={0.4} roughness={0.65} map={rockDetail.map} normalMap={rockDetail.normalMap} normalScale={new THREE.Vector2(0.5, 0.5)} />
-        {liveWrecks.map((w, i) => (
-          <Instance key={i} position={[w.x, w.y + 1.1, w.z]} rotation-y={w.r} color={jitter("#5b4a3f", i, 0.02, 0.12)} />
-        ))}
-      </Instances>
+      {/* wasteland wrecks: rusted authored cars (fleet models), not boxes */}
+      <WorldPiece name="wasteland wrecks"><InstancedFleet items={wreckCars} shadows={false} /></WorldPiece>
 
       {/* desert cacti */}
-      <Instances limit={liveCacti.length} castShadow receiveShadow>
-        <capsuleGeometry args={[0.7, 3.4, 4, 8]} />
+      <Instances limit={Math.max(1, liveCacti.length)} castShadow receiveShadow geometry={cactusGeo}>
         <meshStandardMaterial color="#4f7a45" roughness={0.9} map={leafDetail.map} normalMap={leafDetail.normalMap} normalScale={new THREE.Vector2(0.5, 0.5)} />
         {liveCacti.map((c, i) => (
-          <Instance key={i} position={[c.x, c.y + 2.4 * c.s, c.z]} scale={c.s} />
+          <Instance key={i} position={[c.x, c.y - 0.15, c.z]} scale={c.s * 1.05} rotation-y={i * 1.7} color={jitter("#5f7f4c", i, 0.02, 0.1)} />
         ))}
       </Instances>
 

@@ -1,10 +1,11 @@
-import { useMemo, useRef } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import { walkHeight } from "@/game/terrain";
 import { camps, drifts, frozenFall, iceCrystals, pines } from "@/game/frost-dressing";
 import type { Prop } from "@/game/dressing-kit";
 import { useInstances } from "./instancing";
+import { PolyFoliage } from "./PolyFoliage";
 
 /** Frostspire dressing: snow-laden pines, ice crystal clusters, snow drifts, frozen survey camps and a frozen waterfall.
  * Layout is pure (frost-dressing.ts); procedural and instanced. */
@@ -12,8 +13,19 @@ export function FrostspireDressing() {
   return <group><Pines /><Crystals /><Drifts /><Camps /><FrozenFall /></group>;
 }
 
-/** pine = 3 stacked cones (dark needles) + a snow cap cone per tier, and a trunk */
+/** pines: the authored conifer (scripts/build-trees.py, three variants) as GPU instances; the stacked-cone pine below
+ * only stands in while it loads, or if it can't */
 function Pines() {
+  const ps = useMemo(() => pines(), []);
+  const [ready, setReady] = useState(false);
+  const items = useMemo(() => ps.map((p) => ({ x: p.x, y: walkHeight(p.x, p.z) - 0.2, z: p.z, s: (6 + p.s * 7) / 11, r: p.r })), [ps]);
+  return <group>
+    <PolyFoliage kind="fir" items={items} height={11} sway={0.25} variants onReady={() => setReady(true)} />
+    {!ready && <ConePines />}
+  </group>;
+}
+
+function ConePines() {
   const ps = useMemo(() => pines(), []);
   const tiers = useMemo(() => ps.flatMap((p) => [0, 1, 2].map((k) => ({ p, k }))), [ps]);
   const trunk = useRef<THREE.InstancedMesh>(null), needles = useRef<THREE.InstancedMesh>(null), snow = useRef<THREE.InstancedMesh>(null);

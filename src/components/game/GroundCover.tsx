@@ -3,7 +3,7 @@ import * as THREE from "three";
 import { mergeGeometries, mergeVertices } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import { groundCover, type CoverItem, type CoverKind } from "@/game/ground-cover";
 import { windSway } from "@/game/wind-sway";
-import { organicRock } from "@/game/organic-geometry";
+import { organicDeform, organicRock } from "@/game/organic-geometry";
 
 /** Reed blades on a transparent card (canvas, no asset). */
 function reedTexture(): THREE.Texture | null {
@@ -38,7 +38,8 @@ const cards = (w: number, h: number) => {
 /** a shrub as four leaf masses rather than one ball: same triangle count as the old single icosahedron (it is drawn ~1,200 times) */
 function shrubCanopy(): THREE.BufferGeometry {
   const lobes: [number, number, number, number][] = [[0, 0.4, 0, 0.5], [-0.36, 0.3, 0.08, 0.34], [0.33, 0.32, -0.1, 0.36], [0.02, 0.56, -0.26, 0.32]];
-  const parts = lobes.map(([x, y, z, r], i) => new THREE.IcosahedronGeometry(r, 0).scale(1.08, 0.74 + (i % 2) * 0.1, 1.04).rotateY(i * 1.3).translate(x, y, z));
+  // detail-2 lobes, lumped with noise: rounded leaf masses instead of 20-face gems (≈4x the old triangles, still ~1k a bush)
+  const parts = lobes.map(([x, y, z, r], i) => organicDeform(new THREE.IcosahedronGeometry(r, 2), 13 + i, r * 0.22, 3.2).scale(1.08, 0.74 + (i % 2) * 0.1, 1.04).rotateY(i * 1.3).translate(x, y, z));
   const g = mergeVertices(mergeGeometries(parts)!.deleteAttribute("normal").deleteAttribute("uv"));
   parts.forEach((p) => p.dispose());
   g.computeVertexNormals();

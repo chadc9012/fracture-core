@@ -1139,7 +1139,9 @@ function SceneImpl({
     const theta = (((time.current % 1) + 1) % 1) * Math.PI * 2 - Math.PI / 2;
     if (sun.current) {
       sun.current.position.set(Math.cos(theta) * 140, Math.sin(theta) * 150 + 8, 70);
-      sun.current.intensity = Math.max(0, intensityAt(time.current));
+      // gritty key/fill ratio: a stronger sun over a dimmer sky fill, so forms model with real shadow sides instead of the
+      // flat, evenly lit "plastic" read a bright hemisphere + bright IBL gave every surface
+      sun.current.intensity = Math.max(0, intensityAt(time.current)) * 1.2;
       sun.current.color.copy(lightColor);
       // golden hour: low sun warms toward amber, high sun stays near-white for a natural daylight read
       const elev = Math.sin(theta);
@@ -1441,7 +1443,8 @@ function SceneImpl({
     skyEnv.current.night = night;
     worldLight.night = night;
     // image-based light (region HDRIs) is daylight: dim it after dark so night scenes are lit by the moon, neon and the storm
-    (scene as THREE.Scene & { environmentIntensity?: number }).environmentIntensity = 0.85 * (1 - 0.75 * night);
+    (scene as THREE.Scene & { environmentIntensity?: number }).environmentIntensity = 0.62 * (1 - 0.75 * night);
+    if (hemi.current) hemi.current.intensity = 0.12 + 0.46 * (1 - night);
     if (sky.current) {
       const m = (sky.current as unknown as { material?: THREE.ShaderMaterial }).material;
       const u = m?.uniforms;
