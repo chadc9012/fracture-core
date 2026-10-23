@@ -65,7 +65,10 @@ export function MainMenu({ save, classId, reducedMotion, startNotice, onContinue
     <div className={`fixed inset-0 overflow-hidden bg-background transition-opacity duration-200 ${leaving ? "opacity-0" : "opacity-100"}`}>
       {/* cinematic backdrop: the Fractured Earth horizon on a slow push-in, drifting light and shadow sweeps and low mist; pure CSS, so it needs no WebGL and costs no draw calls.
           Reduced motion freezes every layer (styles.css). */}
+      {/* the owner's trailer footage (public/menu, re-encoded 720p, silent) loops behind the menu; the painted horizon shows if it cannot play */}
       <img src={horizon.url} alt="" className="title-landscape absolute inset-0 h-full w-full object-cover object-center" />
+      {!reducedMotion ? <video className="absolute inset-0 h-full w-full object-cover" src="/menu/fracture-city.mp4" poster="/menu/fracture-city.jpg" autoPlay muted loop playsInline aria-hidden /> : <img src="/menu/fracture-city.jpg" alt="" className="absolute inset-0 h-full w-full object-cover" />}
+      <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-[#07040f]/85 via-[#07040f]/35 to-transparent" />
       <div className="title-sunlight pointer-events-none absolute inset-0" />
       <div className="title-shadows pointer-events-none absolute inset-0" />
       <div className="title-mist pointer-events-none absolute inset-x-0 bottom-0 h-2/5" />
@@ -74,7 +77,8 @@ export function MainMenu({ save, classId, reducedMotion, startNotice, onContinue
       <main className="relative z-10 flex h-full flex-col justify-between overflow-y-auto px-6 py-8 sm:px-14 sm:py-12">
         <header>
           <p className="font-mono text-[9px] uppercase tracking-[0.42em] text-primary">Signal recovered · Nexus orbit</p>
-          <h1 className="title-glow mt-4 font-mono text-4xl font-bold tracking-[0.12em] text-foreground sm:text-6xl">WORLD<br />FRACTURE</h1>
+          <h1 className="wf-logo mt-4 text-5xl font-bold uppercase leading-[0.9] tracking-[0.06em] text-white sm:text-7xl">World<br />Fracture</h1>
+          <p className="mt-3 text-sm font-semibold uppercase tracking-[0.28em] text-white/85" style={{ fontFamily: "var(--wf-display)" }}>Every world. Every race. <span className="text-[#5fd8ff]">Your legend.</span></p>
           {save.hasSave && <p className="mt-3 font-mono text-[10px] uppercase tracking-[0.25em] text-muted-foreground">{save.name ?? cls.name} · Level {save.level} · {save.missions} mission{save.missions === 1 ? "" : "s"} complete</p>}
         </header>
 

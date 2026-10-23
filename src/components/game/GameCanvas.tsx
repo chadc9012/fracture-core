@@ -1338,7 +1338,7 @@ export function GameCanvas() {
           <Profiler id="post" onRender={onProf}><EffectComposer multisampling={0}>
             {!flags.fxOff.has("grade") && <HueSaturation hue={-0.012} saturation={0.045} />}
             {!flags.fxOff.has("grade") && <BrightnessContrast brightness={-0.005} contrast={0.085} />}
-            {!flags.fxOff.has("bloom") && <Bloom intensity={0.23} luminanceThreshold={1.05} luminanceSmoothing={0.18} mipmapBlur />}
+            {!flags.fxOff.has("bloom") && <Bloom intensity={0.36} luminanceThreshold={1.0} luminanceSmoothing={0.2} mipmapBlur />}
             {premium && <SSAO intensity={6} radius={0.12} luminanceInfluence={0.42} bias={0.03} />}
             {/* depth of field only during cinematics: gameplay stays sharp */}
             {premium && (showIntro || Boolean(cineId)) && <DepthOfField focusDistance={0.018} focalLength={0.035} bokehScale={1.1} />}

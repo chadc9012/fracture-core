@@ -8,6 +8,7 @@ import { addObstacle } from "@/game/obstacles";
 import { VORTEX, facadeArc, CHECKPOINT, DECK, DRONE_LANES, HOLOGRAMS, PIPES, SKYBRIDGES, SPIRE, deckPillars, laneAt, lanePerimeter, neonWeather, undercity, type Holo } from "@/game/neon-tiers";
 import { LightBar } from "./DistrictStreet";
 import { softSprite } from "./softSprite";
+import { stormStrike } from "@/game/fracture-storm";
 
 /** Neon City's vertical tiers (layout in neon-tiers.ts): the Aegis Spire with its quarantine checkpoint and deployment
  * pad, the Grid deck ring with skybridges and drone traffic, the Undercity's pipes, CRT banks, dens and steam, flickering
@@ -25,6 +26,8 @@ export function NeonTiers({ c }: { c: { x: number; z: number } }) {
       {HOLOGRAMS.map((h, i) => <Hologram key={i} h={h} seed={i} />)}
       <NeonWeather c={c} y0={y0} />
       <FractureVortex />
+      <SignalRings />
+      <SkylineArcs />
       <FacadeArcs />
     </group>
   );
@@ -261,6 +264,49 @@ void main(){
   gl_FragColor = vec4(col, clamp(body * 0.8 + eye, 0.0, 1.0) * smoothstep(1.0, 0.8, r));
 }`;
 const VORTEX_VERT = /* glsl */ `varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`;
+
+/** the Spire's broadcast (trailer "communications tower"): violet rings of signal pulse out from the mast and fade, three in
+ * flight at once. Additive tori sharing one material each, no per-frame allocation. */
+const RING_COUNT = 3, RING_PERIOD = 2.7, RING_MAX = 70;
+function SignalRings() {
+  const mats = useMemo(() => Array.from({ length: RING_COUNT }, () => new THREE.MeshBasicMaterial({ color: "#b47bff", transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false, fog: false })), []);
+  const refs = useRef<(THREE.Mesh | null)[]>([]);
+  useFrame(({ clock }) => {
+    for (let i = 0; i < RING_COUNT; i++) {
+      const k = ((clock.elapsedTime / RING_PERIOD) + i / RING_COUNT) % 1;
+      const m = refs.current[i]; if (!m) continue;
+      m.scale.setScalar(4 + k * RING_MAX);
+      mats[i]!.opacity = (1 - k) * (1 - k) * 0.9;
+    }
+  });
+  return <group position={[SPIRE.x, SPIRE.height + 6, SPIRE.z]}>
+    {mats.map((m, i) => <mesh key={i} ref={(el) => { refs.current[i] = el; }} material={m} rotation-x={Math.PI / 2}><torusGeometry args={[1, 0.012, 6, 96]} /></mesh>)}
+  </group>;
+}
+
+/** violet lightning leaping from the Spire's crown across to the surrounding skyline (trailer "a vast nighttime city"): two pooled,
+ * jittered lines on the Fracture Storm's strike clock (fracture-storm.ts stormStrike), offset so they rarely fire together */
+const ARC_PTS = 20;
+function SkylineArcs() {
+  const lines = useMemo(() => [0, 1].map(() => { const g = new THREE.BufferGeometry(); g.setAttribute("position", new THREE.BufferAttribute(new Float32Array(ARC_PTS * 3), 3)); const l = new THREE.Line(g, new THREE.LineBasicMaterial({ color: "#d9b8ff", transparent: true, toneMapped: false, fog: false })); l.frustumCulled = false; l.visible = false; return l; }), []);
+  useFrame(({ clock }) => {
+    lines.forEach((line, n) => {
+      const st = stormStrike(clock.elapsedTime * 1.3 + n * 1.7);
+      line.visible = st.on;
+      if (!st.on) return;
+      const pos = line.geometry.getAttribute("position") as THREE.BufferAttribute;
+      const a = st.angle, reach = 70 + (st.seed % 5) * 12;
+      const sx = SPIRE.x, sy = SPIRE.height * 0.96, sz = SPIRE.z, ex = SPIRE.x + Math.cos(a) * reach, ey = 45 + (st.seed % 4) * 9, ez = SPIRE.z + Math.sin(a) * reach;
+      for (let i = 0; i < ARC_PTS; i++) {
+        const f = i / (ARC_PTS - 1), sag = Math.sin(f * Math.PI) * 10, j = Math.sin(f * Math.PI) * 6;
+        pos.setXYZ(i, sx + (ex - sx) * f + (Math.random() - 0.5) * j, sy + (ey - sy) * f + sag + (Math.random() - 0.5) * j, sz + (ez - sz) * f + (Math.random() - 0.5) * j);
+      }
+      pos.needsUpdate = true;
+      (line.material as THREE.LineBasicMaterial).opacity = st.k;
+    });
+  });
+  return <>{lines.map((l, i) => <primitive key={i} object={l} />)}</>;
+}
 
 /** the sky spiralling open above the Spire (neon-tiers.ts VORTEX) — one additive disc facing down */
 function FractureVortex() {

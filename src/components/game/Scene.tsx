@@ -213,6 +213,7 @@ import { skyFxAt, NO_SKY_FX } from "@/game/sky-effects";
 import { COMBAT_STANCE_HOLD, combatStance } from "@/game/combat-stance";
 import { weaponDamageMultiplier } from "@/game/inventory";
 import { boomClearance } from "@/game/camera-occlusion";
+import { FractureStorm } from "./FractureStorm";
 
 export type LootView = { name: string; rarity: Rarity; power: number; mods: string[]; color: string };
 
@@ -1350,7 +1351,7 @@ function SceneImpl({
     }
     // regional atmosphere: ease toward this region's air (fog tint/thickness, sun + skylight tint)
     {
-      const target: Atmosphere = interior ? NEUTRAL_ATMOSPHERE : atmosphereAt(here?.id, wx?.state, night);
+      const target: Atmosphere = interior ? NEUTRAL_ATMOSPHERE : atmosphereAt(here?.id ?? (Math.hypot(s.x - NEON_CITY_CENTER.x, s.z - NEON_CITY_CENTER.z) < 160 ? "neon" : undefined), wx?.state, night);
       const a = atmo.current;
       const k = 1 - Math.exp(-0.9 * dt);
       a.fogMix += (target.fogMix - a.fogMix) * k;
@@ -1418,6 +1419,7 @@ function SceneImpl({
     skyEnv.current.cloud = cloud;
     skyEnv.current.region = interior ? undefined : here?.id;
     skyEnv.current.tint.copy(lightColor).multiplyScalar(1 - cloud * 0.3);
+    skyEnv.current.night = night;
     if (sky.current) {
       const m = (sky.current as unknown as { material?: THREE.ShaderMaterial }).material;
       const u = m?.uniforms;
@@ -2935,6 +2937,7 @@ function SceneImpl({
         mieDirectionalG={0.82}
       />
       <group ref={skyDomeGroup}><SkyDome sunDirRef={sunDir} envRef={skyEnv} playerRef={player} tier={settings.renderTier} /><BrokenHorizon playerRef={player} /></group>
+      <FractureStorm envRef={skyEnv} />
       <SkyBodies timeRef={time} sunDirRef={sunDir} envRef={skyEnv} playerRef={player} />
       <CloudLayer envRef={skyEnv} playerRef={player} />
       {settings.renderTier !== "LOW" && <SkyFx fxRef={skyFx} envRef={skyEnv} playerRef={player} />}

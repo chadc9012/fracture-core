@@ -6,7 +6,7 @@ import { cloudPuffs, COVER_GROWTH } from "@/game/cloud-layout";
 
 /** Written once a frame by Scene.tsx's day/weather block and read here — same imperative shared-ref
  * pattern as Weather.tsx's fxRef, so updating ~18 sprites a frame never triggers a React re-render. */
-export type SkyEnv = { cloud: number; tint: THREE.Color; /** region the player is in (sky mood), if any */ region?: string | undefined };
+export type SkyEnv = { cloud: number; tint: THREE.Color; /** region the player is in (sky mood), if any */ region?: string | undefined; /** 0 day .. 1 night (FractureStorm glow) */ night?: number };
 
 /** A high, far-out ring of soft billboard cloud puffs, invisible in clear weather and building up
  * with the region's live weather-cycle cloud cover. Sits past the ground fog's far distance but inside the camera far plane
