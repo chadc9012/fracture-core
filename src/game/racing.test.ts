@@ -292,3 +292,14 @@ describe("race track obstacles", () => {
     expect(raceSpeedFactor(run.impact)).toBe(1);
   });
 });
+
+test("a slow trip to the start line doesn't eat the race's wall-clock allowance", () => {
+  const def = RACES.find((r) => r.mode === "vehicle")!, run = newRaceRun(def, "standard", T0), s = worldPoint(def, 0);
+  tickRace(def, run, { x: s.x + 500, z: s.z, dt: 0.1, now: T0, mode: "vehicle" });
+  const late = T0 + 5 * 60_000; // five minutes to get there
+  tickRace(def, run, { x: s.x, z: s.z, dt: 0.1, now: late, mode: "vehicle" });
+  for (let i = 0; i < COUNTDOWN_S * 10 + 2; i++) tickRace(def, run, { x: s.x, z: s.z, dt: 0.1, now: late + i * 100, mode: "vehicle" });
+  expect(run.phase).toBe("running");
+  tickRace(def, run, { x: s.x, z: s.z, dt: 0.1, now: late + 10_000, mode: "vehicle" });
+  expect(run.phase).toBe("running");
+});

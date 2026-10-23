@@ -279,7 +279,7 @@ export function tickRace(def: RaceDef, run: RaceRun, t: Pick<Tick, "x" | "z" | "
   const modeOk = (t.mode ?? def.mode) === def.mode;
   run.notice = modeOk ? null : WRONG_MODE_NOTE;
   const start = worldPoint(def, 0);
-  if (run.phase === "staging") { if (modeOk && Math.hypot(t.x - start.x, t.z - start.z) <= START_RADIUS) { run.phase = "countdown"; run.countdown = COUNTDOWN_S; } return run; }
+  if (run.phase === "staging") { if (modeOk && Math.hypot(t.x - start.x, t.z - start.z) <= START_RADIUS) { run.phase = "countdown"; run.countdown = COUNTDOWN_S; run.wall0 = t.now; } return run; } // the wall-clock guard counts from the line, not from signing up
   if (run.phase === "countdown") {
     if (!modeOk || Math.hypot(t.x - start.x, t.z - start.z) > START_RADIUS) { run.phase = "staging"; run.notice = modeOk ? "Stay on the start line" : WRONG_MODE_NOTE; return run; }
     run.countdown -= dt; if (run.countdown <= 0) { run.phase = "running"; run.countdown = 0; } return run;
