@@ -10,6 +10,8 @@ import { DESTINATION_PINS, destinationInfo, type DestinationId, type Rect } from
 import { INTERIORS, type InteriorDef } from "./interiors";
 import { LANDMARKS, isLandmarkKnown } from "./landmarks";
 import { ACTIVITIES, AREAS, activityState, type ActivityDef } from "./activities";
+import { STORM_ISLANDS_CENTER, STORM_ISLAND_SITES, stormSiteWorld } from "./storm-islands";
+import { FOUND_KEY as STORM_FOUND } from "./storm-quests";
 import type { PlayerProgression } from "./progression";
 import "./venue-doors"; // the nightlife venues' doors join INTERIORS
 
@@ -32,6 +34,8 @@ export type Location = {
   layer: LocationLayer;
   /** hidden until this landmark is discovered (landmarks.ts isLandmarkKnown) */
   discoverKey?: string;
+  /** hidden until this earnedRewards key exists (secret areas such as the Storm Islands' `storm:found`) */
+  revealKey?: string;
   /** destinations only: the hotspot on the painted planet (destination-map.ts) */
   art?: Rect;
   /** areas only: how far the district reaches (m) */
@@ -83,6 +87,9 @@ function build() {
     if (!o) continue;
     list.push({ id: `lm:${l.id}`, parentId: o.parentId, destinationId: o.dest, level: "landmark", name: l.name, sub: l.type, world: { x: l.x, z: l.z }, layer: o.dest === "thalassia" ? "underwater" : "surface", discoverKey: l.id });
   }
+  // the Storm Islands: a secret sub-area of Nexus (never a tenth destination), hidden until the chain is sighted
+  list.push({ id: "area:nexus:storm-islands", parentId: destKey("nexus"), destinationId: "nexus", level: "area", name: "Storm Islands", sub: "Floating islands past the north-east rim", world: { x: STORM_ISLANDS_CENTER.x, z: STORM_ISLANDS_CENTER.z }, layer: "surface", radius: 520, revealKey: STORM_FOUND });
+  for (const st of STORM_ISLAND_SITES) { const w = stormSiteWorld(st); list.push({ id: `lm:storm-${st.id}`, parentId: "area:nexus:storm-islands", destinationId: "nexus", level: "landmark", name: st.name, sub: st.description, world: { x: w.x, z: w.z, y: w.y + 4.5 }, layer: "surface", revealKey: STORM_FOUND }); }
   for (const a of ACTIVITIES) {
     const dest = DESTINATION_ALIAS[a.area], area = AREAS[a.area];
     if (!dest || !area) continue;
@@ -117,7 +124,7 @@ export function locationPath(id: string): Location[] {
 
 /** Discovery: a place with a discovery key does not exist on any map until it is found — no name, marker or "?". */
 export function isLocationVisible(p: Pick<PlayerProgression, "earnedRewards">, l: Location): boolean {
-  return !l.discoverKey || isLandmarkKnown(p, l.discoverKey);
+  return (!l.discoverKey || isLandmarkKnown(p, l.discoverKey)) && (!l.revealKey || p.earnedRewards.includes(l.revealKey));
 }
 
 /** What an activity location asks for and pays, read from its real definition (activities.ts) and the save. */

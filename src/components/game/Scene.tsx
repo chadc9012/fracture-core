@@ -198,7 +198,7 @@ import { AuthoredVehicle } from "./AuthoredVehicle";
 import { SiteMarkers } from "./SiteMarkers";
 import { WorldPiece } from "./WorldPiece";
 import { StormIslands } from "./StormIslands";
-import { STORM_ISLANDS_CENTER, stormSiteWorld } from "@/game/storm-islands";
+import { STORM_ISLANDS_CENTER, stormSiteById, stormSiteWorld } from "@/game/storm-islands";
 import { inStormAirspace, islandTop, sighted, stormGroundAt, stormQuests, stormSiteAt } from "@/game/storm-quests";
 import { ResidenceGarages } from "./ResidenceGarages";
 import { reportVehicleEnter, reportVehicleExit, takeDriveOut } from "@/game/vehicle-request";
@@ -796,6 +796,8 @@ function SceneImpl({
     // open-world discoveries (discoveries.ts): only ones the player can see or hear from here; hidden ones appear once a beacon has revealed them
     if (gear && !tutorial && px !== undefined && pz !== undefined) for (const f of discoveriesNear(gear, px, pz, Date.now())) list.push({ id: `disc-${f.discovery.id}`, kind: "MISSION", label: `${DISCOVERY_LABEL[f.discovery.kind]} · ${f.discovery.name}`, x: f.x, z: f.z, regionId: ACTIVITY_REGION[f.discovery.area] ?? "nexus" });
     { const tg = activity ? activityTarget(activity.def, activity.run) : null; if (tg) list.push({ id: "m-activity", kind: "MISSION", label: `${activity!.def.name} · ${tg.label}`, x: tg.x, z: tg.z, regionId: ACTIVITY_REGION[activity!.def.area] ?? "nexus" }); }
+    // Storm Islands (storm-quests.ts): each active quest's next objective, once the chain has been sighted
+    if (gear && !tutorial) for (const st of stormQuests({ earnedRewards: gear.earnedRewards ?? [] })) if (st.state === "ACTIVE" && st.next) { const site = stormSiteById(st.next.siteId); if (site) { const w = stormSiteWorld(site); list.push({ id: `storm-${st.quest.id}`, kind: "MISSION", label: `${st.quest.title} · ${st.next.description}`, x: w.x, z: w.z, regionId: "storm" }); } }
     if (!investigation.current.done) list.push({ id: "forest-crash-site", kind: "MISSION", label: CRASH_SITE.label, x: CRASH_SITE.x, z: CRASH_SITE.z, regionId: "veridan" });
     for (const site of RESOURCE_SITES) list.push({ ...site, ready: (depleted.current[site.id] ?? 0) <= now });
     for (const lair of BOSS_LAIRS) list.push(lair);

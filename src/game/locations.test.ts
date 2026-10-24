@@ -23,7 +23,7 @@ describe("one location registry", () => {
   });
   test("every door, landmark and activity is placed under a destination, nothing is dropped", () => {
     expect(all.filter((l) => l.level === "entrance").length).toBe(INTERIORS.length);
-    expect(all.filter((l) => l.level === "landmark").length).toBe(LANDMARKS.length);
+    expect(all.filter((l) => l.level === "landmark" && !l.id.startsWith("lm:storm-")).length).toBe(LANDMARKS.length);
     expect(all.filter((l) => l.level === "activity").length).toBe(ACTIVITIES.filter((a) => DESTINATION_ALIAS[a.area]).length);
     for (const l of all) expect(Number.isFinite(l.world.x) && Number.isFinite(l.world.z)).toBe(true);
   });
@@ -53,5 +53,13 @@ describe("street view contents", () => {
     const plaza = childrenOf("area:nexus:plaza");
     expect(plaza.some((l) => l.id === "door:nexus-apartment")).toBe(true);
     expect(plaza.filter((l) => l.level === "entrance").length).toBeGreaterThan(3);
+  });
+});
+describe("secret areas", () => {
+  test("the Storm Islands sit under Nexus and stay hidden until sighted", () => {
+    const area = locationById("area:nexus:storm-islands")!;
+    expect(isLocationVisible(DEFAULT_PROGRESSION, area)).toBe(false);
+    expect(isLocationVisible({ earnedRewards: ["storm:found"] }, area)).toBe(true);
+    expect(childrenOf(area.id).length).toBe(6);
   });
 });
