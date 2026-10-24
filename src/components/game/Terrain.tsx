@@ -650,9 +650,10 @@ export function Terrain({ renderTier = "HIGH" }: { renderTier?: RenderTier } = {
 
       {/* desert cacti */}
       <Instances limit={Math.max(1, liveCacti.length)} castShadow receiveShadow geometry={cactusGeo}>
-        <meshStandardMaterial color="#ffffff" roughness={0.9} map={leafDetail.map} normalMap={leafDetail.normalMap} normalScale={new THREE.Vector2(0.5, 0.5)} />
+        {/* no leaf albedo map: leaf texture x green instance colour rendered the saguaros near-black; the ribs carry the form */}
+        <meshStandardMaterial color="#ffffff" roughness={0.85} normalMap={leafDetail.normalMap} normalScale={new THREE.Vector2(0.35, 0.35)} />
         {liveCacti.map((c, i) => (
-          <Instance key={i} position={[c.x, c.y - 0.15, c.z]} scale={c.s * 1.05} rotation-y={i * 1.7} color={jitter("#5f7f4c", i, 0.02, 0.1)} />
+          <Instance key={i} position={[c.x, c.y - 0.15, c.z]} scale={c.s * 1.05} rotation-y={i * 1.7} color={jitter("#6b8a55", i, 0.02, 0.1)} />
         ))}
       </Instances>
 
