@@ -1,3 +1,5 @@
+import { enemyBodyScale } from "@/game/enemy-visuals";
+import { OPERATOR_HEIGHT } from "@/game/operators";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import { FactionEnemy, type DriveRef } from "./EnemyModel";
 import { scenarioModelReady } from "./ScenarioBosses";
@@ -264,13 +266,13 @@ export function WarMachines({ sim }: { sim: WorldSim }) {
       const bob = drive?.current.procedural === false ? 0 : 1;
       // hit reaction (enemy-reactions.ts): thrown back along the shot, hardest on a stagger, easing out
       const nowS = performance.now() / 1000, kick = recoilAt(m.react, nowS), staggered = isStaggeredNow(m.react, nowS);
-      const back = kick * (staggered ? 0.55 : 0.18) * m.scale, rx = m.react?.dx ?? 0, rz = m.react?.dz ?? 0;
+      const back = kick * (staggered ? 0.55 : 0.18) * enemyBodyScale(m.scale), rx = m.react?.dx ?? 0, rz = m.react?.dz ?? 0;
       node.position.set(m.x + rx * back, m.y - 2.2 * m.scale + Math.abs(Math.sin(gait)) * 0.28 * bob, m.z + rz * back);
       // lean: pitch away from the hit in the enemy's own frame
       const c = Math.cos(m.rot), sn = Math.sin(m.rot), fwd = rx * sn + rz * c, side = rx * c - rz * sn, lean = kick * (staggered ? 0.32 : 0.1);
       node.rotation.set(Math.sin(gait) * 0.03 * bob + fwd * lean, m.rot, Math.sin(gait * 0.5) * 0.05 * bob - side * lean);
       // attack telegraph: a fast pulse while the machine winds up a ranged shot (a stagger cancels it)
-      node.scale.setScalar(m.scale * ((m.aim ?? 0) > 0 && !staggered ? 1 + Math.abs(Math.sin(t * 28)) * 0.1 : 1));
+      node.scale.setScalar(enemyBodyScale(m.scale) * ((m.aim ?? 0) > 0 && !staggered ? 1 + Math.abs(Math.sin(t * 28)) * 0.1 : 1));
     });
   });
 
@@ -294,7 +296,7 @@ export function WarMachines({ sim }: { sim: WorldSim }) {
           {/* Crucible rival operators in their hostile colourways (crucible.ts) */}
           {(["TITAN", "HUNTER", "WARLOCK"] as RivalClass[]).map((cls) => (
             <group key={cls} name={`rival-${cls}`} visible={false} position={[0, 2.2, 0]}>
-              {need(i, `rival-${cls}`) && <OperatorModel classId={cls} height={2.75} feetY={-2.2} pose="locomotion" motion={strides[i]} color={RIVAL_COLORS[cls].armor} trim={RIVAL_COLORS[cls].trim} cloth={RIVAL_COLORS[cls].cloth} fallback={<RegionalEnemy kind="VANGUARD" boss={false} drive={drives[i]!} />} />}
+              {need(i, `rival-${cls}`) && <OperatorModel classId={cls} height={OPERATOR_HEIGHT} feetY={-2.2} pose="locomotion" motion={strides[i]} color={RIVAL_COLORS[cls].armor} trim={RIVAL_COLORS[cls].trim} cloth={RIVAL_COLORS[cls].cloth} fallback={<RegionalEnemy kind="VANGUARD" boss={false} drive={drives[i]!} />} />}
             </group>
           ))}
           {/* loot cue: elites (better drops) wear a glowing amber ring at their feet, like Diablo's elite tell */}

@@ -6,7 +6,7 @@ import * as THREE from "three";
 
 import { MODELS, type ModelKey } from "@/game/models";
 import type { FleetModelId } from "@/game/fleet-models";
-import { BUILDING_MODELS, NEXUS_HUB_RINGS, type BuildingModelId } from "@/game/building-models";
+import { BUILDING_MODELS, NEXUS_HUB_PROMENADE, NEXUS_HUB_ROAD_R, nexusHubTowers, type BuildingModelId } from "@/game/building-models";
 import { InstancedGlb, type GlbInstance } from "./InstancedGlb";
 import { NexusPalms } from "./CityPalms";
 import { WorldPiece } from "./WorldPiece";
@@ -25,27 +25,9 @@ const NEXUS = REGIONS.find((r) => r.id === "nexus")!;
 
 type Placed = { model: BuildingModelId; x: number; z: number; y: number; rot: number };
 
-/** the hub's three rings of authored civic buildings (building-models.ts), each turned to face the plaza */
+/** the hub's ring of authored civic towers (building-models.ts nexusHubTowers), each turned to face the plaza */
 function cityBlocks(): Placed[] {
-  const out: Placed[] = [];
-  let seed = 7;
-  const rnd = () => {
-    seed = (seed * 1103515245 + 12345) % 2147483648;
-    return seed / 2147483648;
-  };
-  const spawnX = NEXUS.x;
-  const spawnZ = NEXUS.z + 22;
-  for (const ring of NEXUS_HUB_RINGS) {
-    for (let i = 0; i < ring.count; i++) {
-      const a = (i / ring.count) * Math.PI * 2 + rnd() * 0.2;
-      const x = NEXUS.x + Math.cos(a) * ring.r;
-      const z = NEXUS.z + Math.sin(a) * ring.r;
-      // keep the spawn pad and its exit lane clear of geometry
-      if (Math.hypot(x - spawnX, z - spawnZ) < 10) continue;
-      out.push({ model: ring.models[Math.floor(rnd() * ring.models.length)]!, x, z, y: walkHeight(x, z) - 0.2, rot: Math.atan2(-Math.cos(a), -Math.sin(a)) });
-    }
-  }
-  return out;
+  return nexusHubTowers(NEXUS).map((t) => ({ model: t.model, x: t.x, z: t.z, y: walkHeight(t.x, t.z) - 0.2, rot: t.rot }));
 }
 
 function CityBuildings() {
@@ -91,6 +73,8 @@ function Pedestrian({ ped }: { ped: Ped }) {
   const group = useRef<THREE.Group>(null!);
   const body = useRef<THREE.Group>(null!);
   const model = useModel(ped.key);
+  // hosted models come in at their own size: normalise to a life-size 1.65-1.85 m adult
+  const norm = useMemo(() => { const size = new THREE.Box3().setFromObject(model).getSize(new THREE.Vector3()); return size.y > 0.01 ? 1.72 / size.y : 1; }, [model]);
   const angle = useRef(ped.a);
   const gait = useRef(ped.phase);
 
@@ -113,7 +97,7 @@ function Pedestrian({ ped }: { ped: Ped }) {
   });
 
   return (
-    <group ref={group} scale={ped.height}>
+    <group ref={group} scale={ped.height * norm}>
       <group ref={body}>
         <primitive object={model} />
       </group>
@@ -125,10 +109,10 @@ function Pedestrians() {
   const peds = useMemo<Ped[]>(() => {
     return Array.from({ length: 14 }, (_, i) => ({
       a: (i / 14) * Math.PI * 2,
-      r: 10 + (i % 4) * 3.4,
+      r: NEXUS_HUB_PROMENADE[0] + (i % 3) * ((NEXUS_HUB_PROMENADE[1] - NEXUS_HUB_PROMENADE[0]) / 2),
       speed: (i % 2 ? 1 : -1) * (1.6 + (i % 3) * 0.5),
       key: NPC_KEYS[i % NPC_KEYS.length]!,
-      height: 0.95 + (i % 3) * 0.07,
+      height: 0.96 + (i % 3) * 0.04,
       phase: Math.random() * 6,
     }));
   }, []);
@@ -151,7 +135,7 @@ const TRAFFIC: { model: FleetModelId; paint: string }[] = [
 /** city cars on the ring road: one authored model each, instanced, wheels in rest pose (they read as moving from the street) */
 function CityTraffic() {
   const t = useRef(0);
-  const cars = useMemo(() => TRAFFIC.map((c, i) => ({ ...c, a: (i / TRAFFIC.length) * Math.PI * 2, r: NEXUS.radius * 0.72, speed: 0.16 + (i % 3) * 0.03 })), []);
+  const cars = useMemo(() => TRAFFIC.map((c, i) => ({ ...c, a: (i / TRAFFIC.length) * Math.PI * 2, r: NEXUS_HUB_ROAD_R + (i % 2 ? 1.5 : -1.5), speed: 0.16 + (i % 3) * 0.03 })), []);
   const items = useMemo<FleetInstance[]>(() => cars.map((c) => ({ model: c.model, paint: c.paint, x: 0, y: 0, z: 0, yaw: 0 })), [cars]);
   useFrame((_, raw) => { t.current += Math.min(raw, 0.05); });
   const place = (model: FleetModelId, _i: number, o: THREE.Object3D) => {

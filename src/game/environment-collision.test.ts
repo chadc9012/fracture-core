@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 import { addObstacle, collideBodySwept, resetObstacles } from "./obstacles";
 import { clampToFloor, registeredModelSolids, removeModelSolid, roomSolids, setModelSolid, structureSolids, sweepSolids } from "./environment-collision";
 import { buildInterior } from "./destruction";
-import { INTERIORS, INTERIOR_ALTITUDE } from "./interiors";
+import { DOOR_RADIUS, INTERIORS, INTERIOR_ALTITUDE } from "./interiors";
 import { REGIONS } from "./world";
 import { walkHeight } from "./terrain";
 
@@ -70,5 +70,23 @@ describe("player and vehicle environment collision", () => {
     expect(structureSolids(s.nodes.values())).toContain(wall);
     wall.isDestroyed = true;
     expect(structureSolids(s.nodes.values())).not.toContain(wall);
+  });
+});
+describe("pocket rooms at life size", () => {
+  test("every interior spawns the player clear of its own exit marker", () => {
+    for (const i of INTERIORS) expect(Math.hypot(i.spawnOffset.x - i.exitOffset.x, i.spawnOffset.z - i.exitOffset.z)).toBeGreaterThan(DOOR_RADIUS + 0.5);
+  });
+  test("a three-room home: every room is reachable through the internal doorways, and the outer shell still holds", () => {
+    const room = INTERIORS.find((i) => i.kind === "HOME")!;
+    const boxes = roomSolids(room, INTERIOR_ALTITUDE, 3);
+    const o = room.origin;
+    const walker = { x: o.x + 20, z: o.z };
+    expect(sweepSolids(walker, { x: o.x, z: o.z }, INTERIOR_ALTITUDE, 1.85, 0.5, boxes)).toBe(false);
+    expect(walker.x).toBeCloseTo(o.x + 20);
+    const wall = { x: o.x + 10, z: o.z - 4 };
+    expect(sweepSolids(wall, { x: o.x, z: o.z - 4 }, INTERIOR_ALTITUDE, 1.85, 0.5, boxes)).toBe(true);
+    const out = { x: o.x + 40, z: o.z };
+    expect(sweepSolids(out, { x: o.x + 20, z: o.z }, INTERIOR_ALTITUDE, 1.85, 0.5, boxes)).toBe(true);
+    expect(out.x).toBeLessThan(o.x + 25);
   });
 });

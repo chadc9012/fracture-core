@@ -20,25 +20,25 @@ export type EnemyVisual = { id: string; url: string; height: number; motion: "bi
 
 const M = (f: string) => `/models/enemies/${f}.glb`;
 const V = {
-  raiderRegular: { id: "raider-regular", url: M("raider-regular"), height: 3.9, motion: "biped", note: "Raider (Wastelands) from the faction sheet; rigged" },
-  raiderElite: { id: "raider-elite", url: M("raider-elite"), height: 4.1, motion: "biped", note: "Raider Skirmisher; rigged" },
-  raiderBoss: { id: "raider-boss", url: M("raider-boss"), height: 4.6, motion: "biped", note: "Raider Warbringer; rigged" },
-  ocRegular: { id: "overclocked-regular", url: M("overclocked-regular"), height: 3.9, motion: "biped", note: "Overclocked Operative (Nexus); rigged" },
-  ocElite: { id: "overclocked-elite", url: M("overclocked-elite"), height: 4.1, motion: "biped", note: "Overclocked Augmented; rigged" },
-  ocBoss: { id: "overclocked-boss", url: M("overclocked-boss"), height: 4.6, motion: "biped", note: "Overclocked Executor; rigged" },
-  vgRegular: { id: "vanguard-regular", url: M("vanguard-regular"), height: 4.0, motion: "biped", note: "Vanguard Enforcer (Frostspire); rigged" },
-  vgElite: { id: "vanguard-elite", url: M("vanguard-elite"), height: 4.3, motion: "biped", note: "Vanguard Juggernaut; rigged" },
-  vgBoss: { id: "vanguard-boss", url: M("vanguard-boss"), height: 4.7, motion: "biped", note: "Vanguard Champion; rigged" },
-  abRegular: { id: "aberration-regular", url: M("aberration-regular"), height: 2.8, motion: "creature", note: "Aberration Crawler (Swamps) from the faction sheet; static mesh (Smart Rig, no clips), display base stripped" },
-  abElite: { id: "aberration-elite", url: M("aberration-elite"), height: 3.8, motion: "biped", note: "Aberration Viper; rigged walk/run/alert/attack" },
-  abBoss: { id: "aberration-boss", url: M("aberration-boss"), height: 5.4, motion: "creature", note: "Aberration Queen; static mesh" },
-  raider: { id: "ember-raider", url: ch3.url, height: 3.9, motion: "biped", note: "orange/black scavenger trooper" },
-  overclocked: { id: "nexus-overclocked", url: ch2.url, height: 3.9, motion: "biped", note: "black/red/cyan cyber trooper" },
-  vanguard: { id: "frost-crystal-brute", url: ch1.url, height: 4.4, motion: "biped", note: "wide cyan crystal heavy" },
-  sandElite: { id: "solara-shard-elite", url: ch4.url, height: 4.1, motion: "biped", note: "tan/blue crystal elite" },
-  craw: { id: "fracture-craw", url: craw.url, height: 2.6, motion: "creature", note: "green mutated crawler (static mesh)" },
-  viper: { id: "silicon-viper", url: viper.url, height: 3.2, motion: "creature", note: "silicon-fused viper (static mesh)" },
-  warrior: { id: "armored-warlord", url: warrior.url, height: 5.4, motion: "biped", note: "armored warrior boss (static mesh)" },
+  raiderRegular: { id: "raider-regular", url: M("raider-regular"), height: 1.85, motion: "biped", note: "Raider (Wastelands) from the faction sheet; rigged" },
+  raiderElite: { id: "raider-elite", url: M("raider-elite"), height: 1.95, motion: "biped", note: "Raider Skirmisher; rigged" },
+  raiderBoss: { id: "raider-boss", url: M("raider-boss"), height: 2.18, motion: "biped", note: "Raider Warbringer; rigged" },
+  ocRegular: { id: "overclocked-regular", url: M("overclocked-regular"), height: 1.85, motion: "biped", note: "Overclocked Operative (Nexus); rigged" },
+  ocElite: { id: "overclocked-elite", url: M("overclocked-elite"), height: 1.95, motion: "biped", note: "Overclocked Augmented; rigged" },
+  ocBoss: { id: "overclocked-boss", url: M("overclocked-boss"), height: 2.18, motion: "biped", note: "Overclocked Executor; rigged" },
+  vgRegular: { id: "vanguard-regular", url: M("vanguard-regular"), height: 1.9, motion: "biped", note: "Vanguard Enforcer (Frostspire); rigged" },
+  vgElite: { id: "vanguard-elite", url: M("vanguard-elite"), height: 2.04, motion: "biped", note: "Vanguard Juggernaut; rigged" },
+  vgBoss: { id: "vanguard-boss", url: M("vanguard-boss"), height: 2.23, motion: "biped", note: "Vanguard Champion; rigged" },
+  abRegular: { id: "aberration-regular", url: M("aberration-regular"), height: 1.33, motion: "creature", note: "Aberration Crawler (Swamps) from the faction sheet; static mesh (Smart Rig, no clips), display base stripped" },
+  abElite: { id: "aberration-elite", url: M("aberration-elite"), height: 1.8, motion: "biped", note: "Aberration Viper; rigged walk/run/alert/attack" },
+  abBoss: { id: "aberration-boss", url: M("aberration-boss"), height: 2.56, motion: "creature", note: "Aberration Queen; static mesh" },
+  raider: { id: "ember-raider", url: ch3.url, height: 1.85, motion: "biped", note: "orange/black scavenger trooper" },
+  overclocked: { id: "nexus-overclocked", url: ch2.url, height: 1.85, motion: "biped", note: "black/red/cyan cyber trooper" },
+  vanguard: { id: "frost-crystal-brute", url: ch1.url, height: 2.09, motion: "biped", note: "wide cyan crystal heavy" },
+  sandElite: { id: "solara-shard-elite", url: ch4.url, height: 1.95, motion: "biped", note: "tan/blue crystal elite" },
+  craw: { id: "fracture-craw", url: craw.url, height: 1.23, motion: "creature", note: "green mutated crawler (static mesh)" },
+  viper: { id: "silicon-viper", url: viper.url, height: 1.52, motion: "creature", note: "silicon-fused viper (static mesh)" },
+  warrior: { id: "armored-warlord", url: warrior.url, height: 2.56, motion: "biped", note: "armored warrior boss (static mesh)" },
 } satisfies Record<string, EnemyVisual>;
 
 export const ENEMY_VISUALS: Record<EnemyKind, Record<EnemyRole, EnemyVisual>> = {
@@ -52,3 +52,8 @@ export const roleOf = (m: { elite: boolean; boss: boolean }): EnemyRole => (m.bo
 export const enemyVisual = (kind: EnemyKind, role: EnemyRole) => ENEMY_VISUALS[kind][role];
 /** distinct model ids, for preloading and the asset inspector */
 export const ENEMY_MODEL_URLS = [...new Set(Object.values(ENEMY_VISUALS).flatMap((r) => Object.values(r).map((v) => v.url)))];
+
+/** Life size (October 2026 scale pass): trooper heights above are real metres (a regular 1.85 m, elites about 2 m, faction
+ * bosses 2.2–2.6 m). The sim's `scale` (0.8–2.5) still drives hit and push radii; on screen it only adds a little bulk, so an
+ * elite is a head taller and a region boss towers at about 3.5 m instead of 12 m. */
+export const enemyBodyScale = (simScale: number) => 1 + (simScale - 1) * 0.35;

@@ -76,7 +76,7 @@ export const UNIQUE_SCENARIOS: readonly UniqueScenario[] = [
     tell: "Its spine-crystals flare teal and the glow sinks into its ribs right before it lunges.",
     outsideWindowMult: 0.07,
     rewardCredits: 900,
-    model: { url: "/models/bosses/frost-wolf.glb", height: 5.2, glow: 0.45, gait: "quadruped" },
+    model: { url: "/models/bosses/frost-wolf.glb", height: 2.4, glow: 0.45, gait: "quadruped" },
     lair: { dx: -0.5, dz: 0.45 },
   },
   {
@@ -91,7 +91,7 @@ export const UNIQUE_SCENARIOS: readonly UniqueScenario[] = [
     tell: "The chest reactor and arm-guards flash red as the knight raises its staff, then the reactor vents.",
     outsideWindowMult: 0.05,
     rewardCredits: 1000,
-    model: { url: "/models/bosses/dark-knight.glb", height: 7.4, glow: 0.3 },
+    model: { url: "/models/bosses/dark-knight.glb", height: 2.7, glow: 0.3 },
     lair: { dx: -0.5, dz: 0.45 },
   },
   {

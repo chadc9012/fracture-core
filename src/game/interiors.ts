@@ -14,6 +14,7 @@
 import { NEON_SITE, REGIONS, hourOf, scaleSite } from "./world";
 import { HOMES } from "./housing";
 import { REGIONAL_SHOPS } from "./regional-shops";
+import { nexusHubLobby } from "./building-models";
 import { shopAccessKind } from "./shop-access";
 
 export const INTERIOR_ALTITUDE = 600;
@@ -53,13 +54,16 @@ export type InteriorDef = {
   closeHour?: number;
 };
 
+/** Nexus doors open from the plaza into a hub tower's lobby (building-models.ts), not into the side of a tower */
+const NEXUS_HUB = REGIONS.find((r) => r.id === "nexus")!;
+
 export const INTERIORS: InteriorDef[] = [
   {
     id: "nexus-apartment",
     name: "Warrens Apartment 4B",
     kind: "APARTMENT",
     regionId: "nexus",
-    doorPos: scaleSite(62, -4),
+    doorPos: nexusHubLobby(NEXUS_HUB, Math.atan2(-10, -16)),
     origin: { x: 2000, z: 0 },
     spawnOffset: { x: 0, z: -2.5 },
     exitOffset: { x: 0, z: 4 },
@@ -70,7 +74,7 @@ export const INTERIORS: InteriorDef[] = [
     name: "Scrap-Market Storefront",
     kind: "SHOP",
     regionId: "nexus",
-    doorPos: scaleSite(98, 0),
+    doorPos: nexusHubLobby(NEXUS_HUB, Math.atan2(-6, 20)),
     origin: { x: 2000, z: 60 },
     spawnOffset: { x: 0, z: -2.5 },
     exitOffset: { x: 0, z: 4 },
@@ -172,7 +176,7 @@ export const SHOP_INTERIORS: readonly InteriorDef[] = REGIONAL_SHOPS.filter((s) 
   id: `store-${s.id}`, name: s.name, kind: "SHOP" as const,
   regionId: s.id.startsWith("neon") || s.id.startsWith("nexus") ? "nexus" : s.id.startsWith("frost") ? "frostspire" : s.id.startsWith("ember") ? "ember" : s.id.startsWith("veridan") ? "veridan" : s.id.startsWith("swamp") ? "swamps" : s.id.startsWith("solara") ? "solara" : "wastelands",
   doorPos: { x: s.x, z: s.z + 3 }, origin: { x: 2800, z: i * 60 },
-  spawnOffset: { x: 0, z: 1.5 }, exitOffset: { x: 0, z: 4 },
+  spawnOffset: { x: 0, z: 0.5 }, exitOffset: { x: 0, z: 4 },
   npcName: `${s.name} specialist`, shopId: s.id,
 }));
 INTERIORS.push(...SHOP_INTERIORS);
@@ -195,7 +199,8 @@ export const HOME_INTERIORS: readonly InteriorDef[] = HOMES.map((h, i) => ({
   regionId: h.regionId,
   doorPos: homeDoor(h.id, h.regionId, i),
   origin: { x: 2400, z: i * 80 },
-  spawnOffset: { x: 0, z: 2 },
+  // arrive well clear of the exit marker (DOOR_RADIUS 2.2): at 2 m apart the next frame walked the owner straight back out
+  spawnOffset: { x: 0, z: 0.5 },
   exitOffset: { x: 0, z: 4 },
   homeId: h.id,
 }));

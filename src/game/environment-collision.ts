@@ -12,16 +12,24 @@ export function structureSolids(nodes: Iterable<StructuralNode>): SolidBox[] {
   return Array.from(nodes).filter(n => !n.isDestroyed && n.type !== "FLOOR" && n.type !== "CEILING");
 }
 
-export function roomSolids(room: InteriorDef, altitude: number): SolidBox[] {
+/** Walls of a pocket room. A HOME is `rooms` 10 m rooms side by side along +X (HOME_ROOM_SIZE): one outer shell around all of
+ * them and an internal wall between each pair with a doorway (|z| < 1.6) — a single shop-sized box would wall off every room
+ * past the first. */
+export function roomSolids(room: InteriorDef, altitude: number, rooms = 1): SolidBox[] {
   const { x, z } = room.origin;
   const y = altitude + 1.9;
+  const n = Math.max(1, Math.floor(rooms)), span = n * 10, mid = x + (n - 1) * 5;
   const boxes: SolidBox[] = [
-    { x, y, z: z - 5, w: 10, h: 3.8, d: 0.3 },
+    { x: mid, y, z: z - 5, w: span, h: 3.8, d: 0.3 },
     { x: x - 5, y, z, w: 0.3, h: 3.8, d: 10 },
-    { x: x + 5, y, z, w: 0.3, h: 3.8, d: 10 },
+    { x: x + (n - 1) * 10 + 5, y, z, w: 0.3, h: 3.8, d: 10 },
     { x: x - 3, y, z: z + 5, w: 3.4, h: 3.8, d: 0.3 },
-    { x: x + 3, y, z: z + 5, w: 3.4, h: 3.8, d: 0.3 },
+    { x: x + 1.3 + (span - 6.6) / 2, y, z: z + 5, w: span - 6.6, h: 3.8, d: 0.3 },
   ];
+  for (let k = 0; k < n - 1; k++) {
+    const wx = x + k * 10 + 5;
+    boxes.push({ x: wx, y, z: z - 3.3, w: 0.3, h: 3.8, d: 3.4 }, { x: wx, y, z: z + 3.3, w: 0.3, h: 3.8, d: 3.4 });
+  }
   if (room.kind === "SHOP") boxes.push({ x, y: altitude + 0.55, z: z - 1.5, w: 3.4, h: 1.1, d: 0.8 });
   return boxes;
 }

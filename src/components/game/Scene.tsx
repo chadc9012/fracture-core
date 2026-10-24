@@ -130,7 +130,7 @@ import { LANDMARKS, isLandmarkKnown } from "@/game/landmarks";
 import { RiftTurrets } from "./RiftTurrets";
 import { NearOnly } from "./NearOnly";
 import { PerfProbe } from "./PerfProbe";
-import type { BodyType } from "@/game/operators";
+import { OPERATOR_CAMERA, OPERATOR_HEIGHT, type BodyType } from "@/game/operators";
 import { SIEGE_BLOOM_MULT, VEIL_BREAK_TIME, siegeMoveMult } from "@/game/operator-abilities";
 import type { ActiveBuild } from "@/game/ability-network";
 import { buildSynergy } from "@/game/ability-network";
@@ -1968,8 +1968,8 @@ function SceneImpl({
     collidePlayer(sim, body);
     const prevBody = prevBodyPos.current;
     const bodyFrom = prevBody && prevBody.interior === (s.insideInterior ?? null) ? prevBody : { x: body.x, z: body.z };
-    const solids = interior ? roomSolids(interior, INTERIOR_ALTITUDE) : [...registeredModelSolids(), ...structureSolids(structure.nodes.values())];
-    const blockedSolid = sweepSolids(body, bodyFrom, s.y - (s.inVehicle ? 1.9 : 1.6), s.inVehicle ? 2.5 : 1.8, s.inVehicle ? 3.1 : 1, solids);
+    const solids = interior ? roomSolids(interior, INTERIOR_ALTITUDE, interior.homeId ? homeById(interior.homeId)?.rooms.length ?? 1 : 1) : [...registeredModelSolids(), ...structureSolids(structure.nodes.values())];
+    const blockedSolid = sweepSolids(body, bodyFrom, s.y - (s.inVehicle ? 1.9 : 1.6), s.inVehicle ? 2.2 : OPERATOR_HEIGHT, s.inVehicle ? 2.6 : 0.5, solids);
     if (blockedSolid) { body.vSpeed *= -0.18; velocity.set(0, 0, 0); }
     prevBodyPos.current = { x: body.x, z: body.z, interior: s.insideInterior ?? null };
     s.x = body.x;
@@ -2693,19 +2693,19 @@ function SceneImpl({
       // vehicles always use the chase camera: a first-person blend put the camera at the vehicle's centre, inside its body
       const targetBlend = override || !s.firstPerson || s.inVehicle ? 1 : 0;
       s.cameraBlend += (targetBlend - s.cameraBlend) * (1 - Math.exp(-15 * dt));
-      const shoulder = s.inVehicle ? 0 : 1.3 * lockRt.current.state.shoulderSide;
+      const shoulder = s.inVehicle ? 0 : OPERATOR_CAMERA.shoulder * lockRt.current.state.shoulderSide;
       const vcam = vehicleCamera(handling);
-      const distance = s.inVehicle ? vcam.distance : 5.8;
+      const distance = s.inVehicle ? vcam.distance : interior ? OPERATOR_CAMERA.indoorDistance : OPERATOR_CAMERA.distance;
       camTarget.set(
         s.x + Math.sin(s.yaw) * (s.inVehicle ? 1 : 0.15) + (Math.cos(s.yaw) * shoulder - Math.sin(s.yaw) * distance) * s.cameraBlend,
-        s.y + (s.inVehicle ? 1.5 : 0.95) + (s.inVehicle ? vcam.height : 2.2) * s.cameraBlend,
+        s.y + (s.inVehicle ? 1.5 : OPERATOR_CAMERA.eye) + (s.inVehicle ? vcam.height : interior ? OPERATOR_CAMERA.indoorRise : OPERATOR_CAMERA.rise) * s.cameraBlend,
         s.z + Math.cos(s.yaw) * (s.inVehicle ? 1 : 0.15) + (-Math.sin(s.yaw) * shoulder - Math.cos(s.yaw) * distance) * s.cameraBlend,
       );
       // divers: the camera may go below the surface (clamp to the seabed, not the water-clamped walk height)
       camTarget.y = Math.max(camTarget.y, (interior ? INTERIOR_ALTITUDE : s.diving ? heightAt(camTarget.x, camTarget.z) + 0.6 : walkHeight(camTarget.x, camTarget.z)) + (s.diving ? 0 : 1.35)) - cameraDrop(move.current.state);
       // third-person boom: pull the camera in front of a trunk, rock, tower or wall between it and the operator (camera-occlusion.ts)
       if (!s.inVehicle && !interior && s.cameraBlend > 0.5) {
-        camHead.set(s.x, s.y + 1.6, s.z);
+        camHead.set(s.x, s.y + OPERATOR_CAMERA.eye, s.z);
         const clear = boomClearance(camHead, camTarget);
         if (clear < 1) camTarget.lerpVectors(camHead, camTarget, clear);
       }
@@ -3091,8 +3091,8 @@ function SceneImpl({
       {activity && activity.def.stages[0]?.kind === "race" && activity.run.race ? <RaceCourse race={raceById((activity.def.stages[0] as { raceId: string }).raceId)!} run={activity.run.race as RaceRun} /> : null}
       {/* player on foot */}
       <group ref={player} position={SPAWN.toArray()}>
-        <OperatorModel colorway held={state} gear={gear} bodyType={bodyType} classId={playerClass} height={2.75} feetY={-1.55} color={appearance.armor} trim={appearance.visor} cloth={appearance.cloth} look={worn} pose="locomotion" motion={feel.current.motionRef} fallback={
-  <Operator bodyType={bodyType} armor={appearance.armor} cloth={appearance.cloth} visor={appearance.visor} trim={appearance.trim} classId={playerClass} motion={feel.current.motionRef} visualState={armorState} chestLevel={armorLevels.chest} helmetLevel={armorLevels.helmet} legsLevel={armorLevels.legs} look={worn} />
+        <OperatorModel colorway held={state} gear={gear} bodyType={bodyType} classId={playerClass} height={OPERATOR_HEIGHT} feetY={-1.55} color={appearance.armor} trim={appearance.visor} cloth={appearance.cloth} look={worn} pose="locomotion" motion={feel.current.motionRef} fallback={
+  <group scale={OPERATOR_HEIGHT / 2.75} position={[0, -1.55 * (1 - OPERATOR_HEIGHT / 2.75), 0]}><Operator bodyType={bodyType} armor={appearance.armor} cloth={appearance.cloth} visor={appearance.visor} trim={appearance.trim} classId={playerClass} motion={feel.current.motionRef} visualState={armorState} chestLevel={armorLevels.chest} helmetLevel={armorLevels.helmet} legsLevel={armorLevels.legs} look={worn} /></group>
         } />
         {playerClass === "TITAN" && sim.titan.blocking && (
           // Chevron-angled holographic panels + a glowing rim edge instead of one flat box —

@@ -17,8 +17,8 @@ export type FleetModelId =
 
 export type FleetModel = { id: FleetModelId; url: string; /** world scale on top of real metres */ scale: number; kind: "car" | "bike" | "heavy" | "air" | "boat"; label: string };
 
-/** cars read a touch larger than life next to armoured operators; everything else is built at its own size */
-export const VEHICLE_WORLD_SCALE = 1.15;
+/** every vehicle is built in real metres and shown at life size (cars were 1.15x while operators stood 2.8 m; both are life-size now) */
+export const VEHICLE_WORLD_SCALE = 1;
 
 const m = (id: FleetModelId, kind: FleetModel["kind"], label: string, scale = VEHICLE_WORLD_SCALE): FleetModel => ({ id, url: `/models/fleet/${id}.glb`, scale, kind, label });
 

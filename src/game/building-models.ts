@@ -25,9 +25,34 @@ export const BUILDING_MODELS: Record<BuildingModelId, BuildingModel> = {
 
 export const footprintRadius = (m: BuildingModel) => Math.hypot(m.w, m.d) / 2;
 
-/** the Nexus hub's three rings (inner civic towers, mid terraces and civic blocks, outer terraces), replacing the old kit blocks */
-export const NEXUS_HUB_RINGS: { r: number; count: number; models: BuildingModelId[] }[] = [
-  { r: 13, count: 6, models: ["nexus-civic-a", "nexus-spire", "nexus-civic-c"] },
-  { r: 19.5, count: 9, models: ["nexus-civic-b", "nexus-terrace-b", "nexus-civic-a"] },
-  { r: 25, count: 12, models: ["nexus-terrace-a", "nexus-terrace-b", "nexus-civic-b"] },
-];
+/** The Nexus hub (October 2026 scale pass): one ring of civic towers round a life-size plaza. Inside it, from the centre out:
+ * the walk-in storefronts (r about 7, regional-shops.ts), a pedestrian promenade (r 12.8-13.8) and the hub ring road (r 17, two lanes);
+ * the towers stand at r 27 with their lobbies facing in, clear of the road and of the district blocks (from r 35). Evenly
+ * spaced so no two footprints touch (the old three jittered rings overlapped each other, the shops and the road). */
+export const NEXUS_HUB_RING = { r: 27, count: 9, models: ["nexus-civic-a", "nexus-spire", "nexus-civic-c", "nexus-civic-b", "nexus-terrace-b"] as BuildingModelId[] } as const;
+export const NEXUS_HUB_ROAD_R = 17;
+export const NEXUS_HUB_PROMENADE: readonly [number, number] = [12.8, 13.8];
+/** spawn pad offset from the hub centre (Scene SPAWN): the tower in front of it is left out so the pad opens onto the plaza */
+export const NEXUS_HUB_SPAWN = { x: 0, z: 22 } as const;
+
+export type HubTower = { model: BuildingModelId; x: number; z: number; a: number; rot: number };
+/** the hub towers in world coordinates around `c` (pure) */
+export function nexusHubTowers(c: { x: number; z: number }): HubTower[] {
+  const out: HubTower[] = [];
+  const { r, count, models } = NEXUS_HUB_RING;
+  for (let i = 0; i < count; i++) {
+    const a = (i / count) * Math.PI * 2 + 0.17;
+    const x = c.x + Math.cos(a) * r, z = c.z + Math.sin(a) * r;
+    if (Math.hypot(x - (c.x + NEXUS_HUB_SPAWN.x), z - (c.z + NEXUS_HUB_SPAWN.z)) < 14) continue;
+    out.push({ model: models[i % models.length]!, x, z, a, rot: Math.atan2(-Math.cos(a), -Math.sin(a)) });
+  }
+  return out;
+}
+/** a lobby door on the plaza face of the hub tower nearest `bearing` (radians, atan2(z, x) from the centre) */
+export function nexusHubLobby(c: { x: number; z: number }, bearing: number): { x: number; z: number } {
+  const towers = nexusHubTowers(c);
+  const ang = (t: HubTower) => Math.abs(Math.atan2(Math.sin(t.a - bearing), Math.cos(t.a - bearing)));
+  const t = towers.reduce((best, q) => (ang(q) < ang(best) ? q : best), towers[0]!);
+  const m = BUILDING_MODELS[t.model], rr = NEXUS_HUB_RING.r - Math.max(m.w, m.d) / 2 - 1.2;
+  return { x: c.x + Math.cos(t.a) * rr, z: c.z + Math.sin(t.a) * rr };
+}

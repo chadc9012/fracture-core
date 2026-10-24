@@ -61,3 +61,10 @@ export const BODY_PROFILES: Readonly<Record<BodyType, BodyProfile>> = {
   robot: { label: "Robot", blurb: "Segmented glowing chassis.", height: 1.04, shoulders: 1.0, waist: 0.92, limb: 1.1, segmented: true },
 };
 export const bodyProfile = (t: unknown): BodyProfile => BODY_PROFILES[bodyTypeOr(t)];
+
+/** Life size (October 2026 scale pass): an operator stands 1.85 m (×0.96–1.04 by body type), so 2.5 m doors, 3.4–3.6 m storeys
+ * and 1.5 m car roofs read at their real proportions. The player's body centre (Scene `s.y`) stays 1.6 m above the ground. */
+export const OPERATOR_HEIGHT = 1.85;
+/** Camera offsets from the body centre: first-person eye (1.7 m above the ground), third-person rise/distance/shoulder, and a
+ * tighter boom indoors so the view stays under 3.6 m ceilings and inside 10 m rooms. */
+export const OPERATOR_CAMERA = { eye: 0.1, rise: 0.75, distance: 3.8, shoulder: 0.65, indoorRise: 0.3, indoorDistance: 2.1 } as const;
