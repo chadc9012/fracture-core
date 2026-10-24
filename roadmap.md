@@ -12,7 +12,7 @@
 - [ ] Test audio/radio playback and add vehicle-specific engine/startup profiles linked to existing tuning.
 - [ ] Integrate story and boss cutscene playback, including dungeon and raid coverage.
 - [ ] Test building entry, shop purchase and confirmed duplicate sales.
-- [ ] Improve vehicle telemetry and tuning presentation on the existing fleet system.
+- [x] Improve vehicle telemetry and tuning presentation on the existing fleet system: the Vehicle HUD now reads a pure `fleetTuningSummary` (fleet.ts) off the active build's real tuning levels and shows per-stat upgrade bars (SPEED/HANDLING/ARMOR/RAM, filled segments = levels bought, with the live % bonus) plus the build's ability name, instead of only speed/RPM/hull/load.
 - [ ] Show four distinct equipped skate-boot designs on all Operators.
 - [ ] Add world-vendor duplicate sales with prices and confirmation.
 - [ ] Make Ruin Stones usable with a combat boost and HUD timer.

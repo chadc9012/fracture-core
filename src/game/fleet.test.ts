@@ -3,7 +3,7 @@ import { describe, expect, it, mock } from "bun:test";
 mock.module("@/integrations/supabase/client", () => ({ supabase: {} }));
 const { mergeProgression } = await import("./cloud-save");
 const { DEFAULT_PROGRESSION, normalizeProgression } = await import("./progression");
-const { EMPTY_FLEET, FLEET, GARAGES, buyFleetVehicle, buyGarage, garageNear, mergeFleet, normalizeFleet, setActiveFleet, setPaint, tuneNode, tunedVehicle } = await import("./fleet");
+const { EMPTY_FLEET, FLEET, GARAGES, buyFleetVehicle, buyGarage, fleetTuningSummary, garageNear, mergeFleet, normalizeFleet, setActiveFleet, setPaint, tuneNode, tunedVehicle } = await import("./fleet");
 const { VEHICLES, vehicleById } = await import("./vehicles");
 const { regionActivities } = await import("./map-activities");
 const { REGIONS } = await import("./world");
@@ -56,6 +56,20 @@ describe("fleet", () => {
     p = ok(setPaint(p, "goliath-4x4", "Stealth Black"));
     expect(p.fleet.paint["goliath-4x4"]).toBe("Stealth Black");
     expect("error" in setPaint(p, "goliath-4x4", "Hot Pink")).toBe(true);
+  });
+  it("tuning summary reports every stat the active build has nodes for, maxed or not", () => {
+    expect(fleetTuningSummary(EMPTY_FLEET)).toBeNull();
+    let p = ok(buyFleetVehicle(ok(buyGarage(rich(), "base-01")), "goliath-4x4"));
+    let summary = fleetTuningSummary(p.fleet)!;
+    expect(summary.buildName).toBe("Goliath-4x4 Apex");
+    expect(summary.ability).toBe("Fracture Overcharge (nitro)");
+    // goliath-4x4 has engine(speed, max3), armor(hull, max3), grill(ram, max2) but no handling node
+    expect(summary.stats.map((s) => s.stat)).toEqual(["speed", "hull", "ram"]);
+    expect(summary.stats.find((s) => s.stat === "speed")).toEqual({ stat: "speed", level: 0, maxLevel: 3, bonus: 0 });
+    for (let i = 0; i < 3; i++) p = ok(tuneNode(p, "goliath-4x4", "engine"));
+    summary = fleetTuningSummary(p.fleet)!;
+    expect(summary.stats.find((s) => s.stat === "speed")).toEqual({ stat: "speed", level: 3, maxLevel: 3, bonus: 0.18 });
+    expect(summary.stats.find((s) => s.stat === "hull")).toEqual({ stat: "hull", level: 0, maxLevel: 3, bonus: 0 });
   });
   it("switching the active build switches the driven vehicle", () => {
     let p = ok(buyGarage(ok(buyGarage(rich(), "base-01")), "base-02"));

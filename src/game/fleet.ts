@@ -182,6 +182,26 @@ export function tunedVehicle(def: VehicleDefinition, fleet: FleetState | undefin
   return { ...def, name: active.name, speed: def.speed * mult.speed, hull: def.hull * mult.hull, handling: def.handling * mult.handling, ram: def.ram * mult.ram };
 }
 
+export type FleetStatTuning = { stat: TuneStat; level: number; maxLevel: number; bonus: number };
+export type FleetTuningSummary = { buildName: string; category: FleetEntry["category"]; ability: string; stats: FleetStatTuning[] };
+/** Telemetry-only read of the active build's tuning (no handling math here; `tunedVehicle` remains the one place that
+ * applies stat multipliers). Levels/bonuses are summed across every node that upgrades the same stat, so a build with
+ * two speed nodes shows one SPEED row. Only stats the active build actually has nodes for are returned. */
+export function fleetTuningSummary(fleet: FleetState | undefined): FleetTuningSummary | null {
+  const active = fleet?.active ? fleetById(fleet.active) : undefined;
+  if (!active) return null;
+  const t = fleet!.tuning[active.id] ?? {};
+  const byStat = new Map<TuneStat, FleetStatTuning>();
+  for (const n of active.nodes) {
+    const level = t[n.id] ?? 0;
+    const row = byStat.get(n.stat) ?? { stat: n.stat, level: 0, maxLevel: 0, bonus: 0 };
+    row.level += level; row.maxLevel += n.maxLevel; row.bonus += n.perLevel * level;
+    byStat.set(n.stat, row);
+  }
+  const order: TuneStat[] = ["speed", "handling", "hull", "ram"];
+  return { buildName: active.name, category: active.category, ability: active.ability, stats: order.map((s) => byStat.get(s)).filter((s): s is FleetStatTuning => !!s) };
+}
+
 /** Small player sanctuaries: owned garage bases and Vael's forge once its Heart is claimed. Hostiles are pushed out
  * (sim.ts `sanctuaries`) and the player heals as in a safe zone, so a menu opened there is never a death trap. */
 export const SANCTUARY_RADIUS = 16;

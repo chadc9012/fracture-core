@@ -193,7 +193,7 @@ import { EMPTY_LIVING } from "@/game/living-world";
 import { fallenDistricts } from "@/game/living-events";
 import { CHALLENGES } from "@/game/map-activities";
 import { HOLLOW_CROWN, VAEL, runeCombat, vaelNear } from "@/game/godforge";
-import { fleetById, garageNear, sanctuariesFor, tunedVehicle } from "@/game/fleet";
+import { fleetById, fleetTuningSummary, garageNear, sanctuariesFor, tunedVehicle, type FleetTuningSummary } from "@/game/fleet";
 import { vehicleModelFor } from "@/game/fleet-models";
 import { worldLight } from "@/game/world-light";
 import { AuthoredVehicle } from "./AuthoredVehicle";
@@ -243,7 +243,7 @@ export type HudState = {
   speed: number;
   /* systems */
   mode: "foot" | "vehicle";
-  vehicle?: { name: string; rpm: number; load: number; reverse: boolean; hull: number };
+  vehicle?: { name: string; rpm: number; load: number; reverse: boolean; hull: number; tuning: FleetTuningSummary | null };
   owner: Faction;
   challenger: Faction;
   progress: number;
@@ -2814,7 +2814,7 @@ function SceneImpl({
         clock: clockLabel(time.current),
         speed: Math.round(s.inVehicle ? Math.abs(s.vSpeed) * 2.4 : velocity.length() * 2.4),
         mode: s.inVehicle ? "vehicle" : "foot",
-        ...(s.inVehicle ? { vehicle: { name: selectedVehicle.name, ...driveTelemetry(vehicleId, Math.abs(s.vSpeed) / 45, keys.current.has("KeyW") || keys.current.has("KeyS") ? 1 : 0, selectedVehicle.speed / vehicleById(vehicleId).speed), load: Math.min(1, Math.abs(s.vSpeed) / 45), reverse: s.vSpeed < -0.1, hull: selectedVehicle.hull } } : {}),
+        ...(s.inVehicle ? { vehicle: { name: selectedVehicle.name, ...driveTelemetry(vehicleId, Math.abs(s.vSpeed) / 45, keys.current.has("KeyW") || keys.current.has("KeyS") ? 1 : 0, selectedVehicle.speed / vehicleById(vehicleId).speed), load: Math.min(1, Math.abs(s.vSpeed) / 45), reverse: s.vSpeed < -0.1, hull: selectedVehicle.hull, tuning: fleetTuningSummary(gear?.fleet) } } : {}),
         owner: zone?.owner ?? "syndicate",
         challenger: zone?.challenger ?? "vanguard",
         progress: zone?.progress ?? 0,
