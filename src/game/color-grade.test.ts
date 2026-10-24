@@ -3,14 +3,13 @@ import { cssGrade, gradeFor, gradeRegionAt, REGION_GRADE } from "./color-grade";
 import { NEON_SITE, REGIONS } from "./world";
 
 describe("colour grade", () => {
-  test("the wilds keep their colour (the references are lush, not washed out) with firm contrast; Neon City is the most saturated", () => {
+  test("owner direction: the wilds and cities are gritty (held-back colour, firm contrast); Neon City is the one saturated cyberpunk grade", () => {
     for (const id of Object.keys(REGION_GRADE)) {
       const g = gradeFor(id);
       expect(g.contrast).toBeGreaterThan(1.05);
-      if (id === "neon") { expect(g.contrast).toBeGreaterThan(1.2); continue; }
-      expect(g.saturation).toBeGreaterThan(0.9); expect(g.saturation).toBeLessThan(gradeFor("neon").saturation);
+      if (id === "neon") { expect(g.saturation).toBeGreaterThan(1.1); expect(g.contrast).toBeGreaterThan(1.2); continue; }
+      expect(g.saturation).toBeLessThan(0.95); expect(g.saturation).toBeGreaterThan(0.7); // muted, not drained
     }
-    expect(gradeFor("veridan").saturation).toBeGreaterThan(gradeFor("swamps").saturation); // the forest is the lush one
   });
   test("nights get firmer and darker at the edges", () => {
     expect(gradeFor("veridan", 1).contrast).toBeGreaterThan(gradeFor("veridan", 0).contrast);

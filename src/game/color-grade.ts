@@ -26,24 +26,25 @@ export type Grade = {
   vignette: number;
 };
 
-/** Stage 46 (cinematic pass): the world reference photographs (docs/reference/world-photos) are rich and saturated — lush greens,
- * burning sunsets, deep blue nights — so the base grade now keeps colour (it used to mute every region to 0.7–0.84) and leans on
- * contrast, a gentle teal/amber split and a light vignette for the filmic read instead of desaturation and heavy grain. */
-const GRIT: Grade = { saturation: 1.02, contrast: 1.1, exposure: 1.0, shadowTint: "#1f3440", highlightTint: "#ffdcb4", split: 0.12, crush: 0.03, grain: 0.018, vignette: 0.22 };
+/** Owner direction (Oct 24, asked directly, over the stage-46 "lush" pass): GRITTY REALISTIC in the wilds and the cities,
+ * NEON CYBERPUNK in Neon City. Colour is held back (not drained: sunsets and lava still read warm), contrast is firm, darks
+ * are crushed a little, shadows lean cool and highlights warm, with fine grain and a vignette. Don't re-saturate the wilds
+ * without the owner saying so. */
+const GRIT: Grade = { saturation: 0.86, contrast: 1.12, exposure: 0.98, shadowTint: "#20343d", highlightTint: "#ffd9b0", split: 0.14, crush: 0.035, grain: 0.03, vignette: 0.3 };
 
 export const REGION_GRADE: Record<string, Partial<Grade>> = {
-  // lush forest: the richest greens on the map, warm sunlight
-  veridan: { saturation: 1.14, contrast: 1.1, shadowTint: "#173326", highlightTint: "#ffe2a0", split: 0.13 },
-  swamps: { saturation: 0.95, contrast: 1.1, shadowTint: "#26301c", highlightTint: "#d9e0a0", split: 0.16 },
-  // sunset desert of rust and gold
-  wastelands: { saturation: 1.04, contrast: 1.14, shadowTint: "#2e2522", highlightTint: "#ffc282", split: 0.16 },
-  solara: { saturation: 1.06, contrast: 1.08, exposure: 1.02, shadowTint: "#33302c", highlightTint: "#fff0c8", split: 0.1 },
-  // volcanic: hot oranges against bruised shadows
-  ember: { saturation: 1.1, contrast: 1.18, exposure: 0.97, shadowTint: "#2a1418", highlightTint: "#ffa070", split: 0.2, crush: 0.045 },
-  frostspire: { saturation: 1.0, contrast: 1.1, shadowTint: "#1a2e4c", highlightTint: "#eaf4ff", split: 0.14 },
-  nexus: { saturation: 1.06, contrast: 1.12, shadowTint: "#1c2c40", highlightTint: "#ffe6c8", split: 0.12 },
-  // Neon City: cyberpunk — the richest colour, hard contrast, violet shadows, cyan highlights, darker overall so the neon pops
-  neon: { saturation: 1.18, contrast: 1.22, exposure: 0.94, shadowTint: "#2a1050", highlightTint: "#5fe6ff", split: 0.24, crush: 0.05, grain: 0.02, vignette: 0.34 },
+  // forest: deep, earthy greens rather than candy green; warm low sun
+  veridan: { saturation: 0.9, shadowTint: "#1a3328", highlightTint: "#ffe2a8" },
+  swamps: { saturation: 0.78, contrast: 1.1, shadowTint: "#26301c", highlightTint: "#d9e0a0", split: 0.18 },
+  // dust bowl: rust and grit
+  wastelands: { saturation: 0.82, contrast: 1.16, shadowTint: "#2e2a26", highlightTint: "#ffc98a", split: 0.18 },
+  solara: { saturation: 0.84, contrast: 1.1, exposure: 1, shadowTint: "#3a2e24", highlightTint: "#fff0c8" },
+  // volcanic: the lava keeps its heat, the rock goes to soot
+  ember: { saturation: 0.9, contrast: 1.2, exposure: 0.95, shadowTint: "#2a1414", highlightTint: "#ffa070", split: 0.2, crush: 0.05 },
+  frostspire: { saturation: 0.8, contrast: 1.1, shadowTint: "#1e3048", highlightTint: "#eaf4ff", split: 0.12 },
+  nexus: { saturation: 0.86, contrast: 1.12, shadowTint: "#1c2c3a", highlightTint: "#f4ecdc", split: 0.12 },
+  // Neon City: cyberpunk — the one rich, saturated grade: hard contrast, violet shadows, cyan highlights, darker so neon pops
+  neon: { saturation: 1.18, contrast: 1.22, exposure: 0.92, shadowTint: "#2a1050", highlightTint: "#5fe6ff", split: 0.24, crush: 0.06, grain: 0.03, vignette: 0.42 },
 };
 
 /** the grade for a region at a night factor (0 day .. 1 night): nights get firmer and a touch cooler */
