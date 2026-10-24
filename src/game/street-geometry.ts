@@ -88,3 +88,24 @@ export function antennaMast(h = 12): THREE.BufferGeometry {
   parts.push(new THREE.SphereGeometry(0.45, 12, 6, 0, Math.PI * 2, 0, Math.PI / 3).rotateX(Math.PI / 2).translate(0, h * 0.7, 0.3));
   return mergeGeometries(parts.map(clean))!;
 }
+
+/** steel lattice power pylon in metres, base at y = 0, `h` tall: four tapered angle-iron legs, X bracing per panel,
+ * a braced cross-arm (local X) with three hanging insulator strings at x = -3.5, 0, 3.5 */
+export function latticePylon(h = 18): THREE.BufferGeometry {
+  const parts: THREE.BufferGeometry[] = [];
+  const strut = (a: THREE.Vector3, b: THREE.Vector3, rad: number) => { const d = b.clone().sub(a), g = new THREE.BoxGeometry(rad * 2, d.length(), rad * 2); g.applyQuaternion(new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), d.clone().normalize())); return g.translate((a.x + b.x) / 2, (a.y + b.y) / 2, (a.z + b.z) / 2); };
+  const w0 = 1.3, w1 = 0.35, corner = (k: number, y: number) => { const w = w0 + (w1 - w0) * (y / (h - 1.5)); return new THREE.Vector3((k % 2 ? 1 : -1) * w, y, (k < 2 ? 1 : -1) * w); };
+  const order = [0, 1, 3, 2];
+  for (let k = 0; k < 4; k++) parts.push(strut(corner(k, 0), corner(k, h - 1.5), 0.06));
+  const panels = 6, ph = (h - 1.5) / panels;
+  for (let i = 0; i < panels; i++) for (let s = 0; s < 4; s++) {
+    const a = order[s]!, b = order[(s + 1) % 4]!, y0 = i * ph, y1 = (i + 1) * ph;
+    parts.push(strut(corner(a, y0), corner(b, y1), 0.025), strut(corner(b, y0), corner(a, y1), 0.025), strut(corner(a, y1), corner(b, y1), 0.03));
+  }
+  // cross arm with a lower chord and diagonals, insulator strings hanging off it
+  const ya = h - 1.2;
+  parts.push(strut(new THREE.Vector3(-4, ya, 0), new THREE.Vector3(4, ya, 0), 0.07), strut(new THREE.Vector3(-4, ya, 0), new THREE.Vector3(-0.4, ya - 1.1, 0), 0.04), strut(new THREE.Vector3(4, ya, 0), new THREE.Vector3(0.4, ya - 1.1, 0), 0.04));
+  parts.push(strut(new THREE.Vector3(-0.5, h - 1.5, 0), new THREE.Vector3(0, h, 0), 0.05), strut(new THREE.Vector3(0.5, h - 1.5, 0), new THREE.Vector3(0, h, 0), 0.05));
+  for (const x of [-3.5, 0, 3.5]) for (let d = 0; d < 4; d++) parts.push(new THREE.CylinderGeometry(0.11, 0.11, 0.05, 8).translate(x, ya - 0.25 - d * 0.14, 0));
+  return mergeGeometries(parts.map(clean))!;
+}

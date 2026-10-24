@@ -13,6 +13,7 @@ import { useInstances } from "./instancing";
 import { softSprite } from "./softSprite";
 import { applyWorldTriplanar, weatheredConcreteTexture } from "@/game/weathered-surface";
 import { brokenPier } from "@/game/wild-geometry";
+import { latticePylon } from "@/game/street-geometry";
 import { chippedBlock } from "@/game/organic-geometry";
 
 const RUIN = { pier: brokenPier(4), intact: chippedBlock(1, 1, 1, 3), slab: chippedBlock(1, 1, 1, 9) };
@@ -87,13 +88,10 @@ function Ruins() {
 function Pylons() {
   const ps = useMemo(() => pylons(), []);
   const H = 18;
-  const legs = useMemo(() => ps.flatMap((p) => [0, 1, 2, 3].map((k) => ({ p, k }))), [ps]);
-  const lRef = useRef<THREE.InstancedMesh>(null), aRef = useRef<THREE.InstancedMesh>(null);
-  useInstances<{ p: Prop; k: number }>(lRef, legs, (o, { p, k }) => {
-    const sx = k % 2 ? 1 : -1, sz = k < 2 ? 1 : -1, y = walkHeight(p.x, p.z);
-    o.position.set(p.x + sx * 1.1, y + H / 2, p.z + sz * 1.1); o.rotation.set(-sz * 0.06 + p.tilt, 0, sx * 0.06); o.scale.set(0.12, H, 0.12);
-  });
-  useInstances<Prop>(aRef, ps, (o, p) => { o.position.set(p.x, walkHeight(p.x, p.z) + H - 1, p.z); o.rotation.set(0, p.r, p.tilt * 0.5); o.scale.set(8, 0.3, 0.3); });
+  const tRef = useRef<THREE.InstancedMesh>(null);
+  const towerGeo = useMemo(() => latticePylon(H), []);
+  // one lattice tower per pylon (street-geometry.ts): angle-iron legs, X bracing, braced arm with insulators
+  useInstances<Prop>(tRef, ps, (o, p) => { o.position.set(p.x, walkHeight(p.x, p.z) - 0.2, p.z); o.rotation.set(p.tilt * 0.5, p.r, p.tilt * 0.3); });
   const cables = useMemo(() => {
     const geo = new THREE.BufferGeometry(), pts: number[] = [];
     for (let i = 0; i + 1 < ps.length; i++) {
@@ -112,8 +110,7 @@ function Pylons() {
     return geo;
   }, [ps]);
   return <group>
-    <instancedMesh ref={lRef} args={[undefined, undefined, legs.length]} castShadow><boxGeometry args={[1, 1, 1]} /><meshStandardMaterial color="#4b4a48" metalness={0.6} roughness={0.6} /></instancedMesh>
-    <instancedMesh ref={aRef} args={[undefined, undefined, ps.length]} castShadow><boxGeometry args={[1, 1, 1]} /><meshStandardMaterial color="#4b4a48" metalness={0.6} roughness={0.6} /></instancedMesh>
+    <instancedMesh ref={tRef} args={[towerGeo, undefined, Math.max(1, ps.length)]} castShadow><meshStandardMaterial color="#56534e" metalness={0.55} roughness={0.7} /></instancedMesh>
     <lineSegments geometry={cables}><lineBasicMaterial color="#1a1a1a" /></lineSegments>
   </group>;
 }
