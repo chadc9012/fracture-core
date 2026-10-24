@@ -1,3 +1,5 @@
+import { DANCE_VENUES, danceBest, recordDance } from "@/game/dance";
+import { DanceFloor } from "./DanceFloor";
 import "@/game/venue-doors";
 import { recordVenueVisit, venueDialogue, venueStanding } from "@/game/nightlife";
 import { renderCounts, canvasWhy, setterCalls, recordSubtree } from "@/game/perf-counters";
@@ -808,6 +810,8 @@ export function GameCanvas() {
    * reacting to the zone's live instability tier and territory-control owner (sim.ts, the same data
    * RegionLabels/Minimap already surface) and whichever Fracture Descent quest is active, so an NPC
    * you've already met has something new to say rather than going silent forever. */
+  const [dancing, setDancing] = useState<string | null>(null);
+  useEffect(() => { if (!hud.insideInterior) setDancing(null); }, [hud.insideInterior]);
   const visitCounts = useRef(new Map<string, number>());
   const [activeDialogue, setActiveDialogue] = useCountedState<DialogueLine[] | null>("activeDialogue", null);
   useEffect(() => {
@@ -1404,6 +1408,13 @@ export function GameCanvas() {
            <Button className="pointer-events-auto" variant="outline" onClick={() => { if (hud.insideInterior === "neon-property-office") setRealty({ start: null }); else setHousingOpen("DECORATE"); }}>{hud.insideInterior === "neon-property-office" ? "Talk to the agent · Buy homes" : interiorById(hud.insideInterior)?.homeId ? "Decorate this home" : "Decorate my homes"}</Button>
          </div>
        )}
+       {/* nightclub dance floor (dance.ts): Pulse Array and Afterglow */}
+       {hud.insideInterior && !dancing && DANCE_VENUES[interiorById(hud.insideInterior)?.venueId ?? ""] && (
+         <div className="pointer-events-none absolute bottom-64 left-1/2 z-[61] -translate-x-1/2">
+           <Button className="pointer-events-auto" variant="outline" onClick={() => setDancing(interiorById(hud.insideInterior)!.venueId!)}>Hit the dance floor{danceBest(progression, interiorById(hud.insideInterior)!.venueId!) ? ` · best ${danceBest(progression, interiorById(hud.insideInterior)!.venueId!).toLocaleString()}` : ""}</Button>
+         </div>
+       )}
+       {dancing && hud.insideInterior && <DanceFloor venueId={dancing} progression={progression} onProgression={(next) => setProgression((cur) => recordDance(cur, dancing, danceBest(next, dancing)))} onClose={() => setDancing(null)} />}
        {housingOpen && <HousingPanel progression={progression} startTab={housingOpen} startHome={interiorById(hud.insideInterior ?? null)?.homeId} onProgression={setProgression} onClose={() => setHousingOpen(null)} />}
        {hud.insideInterior && hud.interiorName && hud.sub.startsWith("Shop") && !interiorById(hud.insideInterior)?.shopId && (
          <div className="pointer-events-none absolute bottom-24 left-1/2 -translate-x-1/2 text-center">
