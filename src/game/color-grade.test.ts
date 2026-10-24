@@ -16,8 +16,8 @@ describe("colour grade", () => {
   });
   test("Neon City's plateau picks the neon grade, a region centre picks its own", () => {
     expect(gradeRegionAt(NEON_SITE.x, NEON_SITE.z)).toBe("neon");
-    const w = REGIONS.find((r) => r.id === "wastelands")!;
-    expect(gradeRegionAt(w.x, w.z)).toBe("wastelands");
+    // any region centre off Neon City's plateau grades as that region
+    for (const r of REGIONS) if (Math.hypot(r.x - NEON_SITE.x, r.z - NEON_SITE.z) > 400) expect(gradeRegionAt(r.x, r.z)).toBe(r.id);
   });
   test("the CSS fallback is a valid filter that desaturates the wilds", () => {
     const css = cssGrade(gradeFor("wastelands"));

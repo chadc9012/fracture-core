@@ -114,9 +114,19 @@ export function organicRock(radius: number, seed: number, detail = 1, amplitude 
 /** An irregular foliage clump for tree canopies — a squashed, noise-displaced icosahedron
  * instead of a clean cone, so a treeline reads as leaf mass rather than stacked party hats. */
 export function organicCanopy(radiusXZ: number, heightScale: number, seed: number, amplitude = radiusXZ * 0.3): THREE.BufferGeometry {
-  const geo = new THREE.IcosahedronGeometry(radiusXZ, 1);
+  // subdivided and welded, so the lumps shade smoothly instead of as 80 flat facets (this is what the forest shows
+  // while its tree models stream in, and on LOW)
+  let geo: THREE.BufferGeometry = new THREE.IcosahedronGeometry(radiusXZ, 2);
+  geo.deleteAttribute("normal"); geo.deleteAttribute("uv");
+  geo = mergeVertices(geo);
   geo.scale(1, heightScale, 1);
-  return organicDeform(geo, seed, amplitude, 1.1);
+  organicDeform(geo, seed, amplitude, 1.1);
+  // second, finer layer of leaf-clump bumps
+  organicDeform(geo, seed + 13, amplitude * 0.35, 3.4);
+  const p = geo.attributes["position"] as THREE.BufferAttribute, uv = new Float32Array(p.count * 2);
+  for (let i = 0; i < p.count; i++) { uv[i * 2] = Math.atan2(p.getZ(i), p.getX(i)) * radiusXZ * 0.5; uv[i * 2 + 1] = p.getY(i) * 0.5; }
+  geo.setAttribute("uv", new THREE.BufferAttribute(uv, 2));
+  return geo;
 }
 
 /* ---------------- small plants ---------------- */
