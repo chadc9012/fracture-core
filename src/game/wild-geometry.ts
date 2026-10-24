@@ -125,3 +125,22 @@ export function deadSnag(seed = 1): THREE.BufferGeometry {
   const keep = (g: THREE.BufferGeometry) => { const n = g.index ? g.toNonIndexed() : g; for (const k of Object.keys(n.attributes)) if (k !== "position" && k !== "normal" && k !== "uv") n.deleteAttribute(k); return n; };
   return mergeGeometries([keep(trunk), ...limbs.map(keep)])!;
 }
+
+/** a blown-out concrete wall pier, unit like BoxGeometry(1,1,1) centred: the top edge is broken into a jagged line
+ * (one corner often torn down further), edges are chipped and the faces carry shallow spalls. Instanced with a
+ * non-uniform scale (pier width x storey height x wall thickness). */
+export function brokenPier(seed = 1): THREE.BufferGeometry {
+  const g = new THREE.BoxGeometry(1, 1, 1, 4, 8, 1).toNonIndexed();
+  const p = g.attributes["position"] as THREE.BufferAttribute;
+  for (let i = 0; i < p.count; i++) {
+    const x = p.getX(i), y = p.getY(i), z = p.getZ(i);
+    let ny = y, nx = x;
+    if (y > 0.49) { const col = Math.round((x + 0.5) * 4); ny = 0.5 - 0.18 * h1(col + seed * 11) - (x > 0.2 ? 0.22 * h1(seed) : 0); }
+    else if (y > 0.2) { ny = y - 0.06 * h1(Math.round((x + 0.5) * 4) + Math.round(y * 8) * 7 + seed); }
+    if (Math.abs(Math.abs(x) - 0.5) < 1e-4 && y > -0.45) nx = x - Math.sign(x) * 0.06 * h1(Math.round(y * 8) * 3 + seed + (x > 0 ? 5 : 0));
+    const spall = Math.abs(Math.abs(z) - 0.5) < 1e-4 ? -Math.sign(z) * 0.12 * Math.max(0, h1(Math.round((x + 0.5) * 4) * 13 + Math.round(y * 8) + seed) - 0.7) : 0;
+    p.setXYZ(i, nx, ny, z + spall);
+  }
+  g.computeVertexNormals();
+  return g;
+}

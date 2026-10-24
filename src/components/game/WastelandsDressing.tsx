@@ -12,6 +12,10 @@ import type { Prop } from "@/game/dressing-kit";
 import { useInstances } from "./instancing";
 import { softSprite } from "./softSprite";
 import { applyWorldTriplanar, weatheredConcreteTexture } from "@/game/weathered-surface";
+import { brokenPier } from "@/game/wild-geometry";
+import { chippedBlock } from "@/game/organic-geometry";
+
+const RUIN = { pier: brokenPier(4), intact: chippedBlock(1, 1, 1, 3), slab: chippedBlock(1, 1, 1, 9) };
 
 type Ruin = ReturnType<typeof ruins>[number];
 
@@ -26,7 +30,7 @@ export function WastelandsDressing() {
 function Ruins() {
   const rs = useMemo(() => ruins(), []);
   const parts = useMemo(() => {
-    const walls: { x: number; y: number; z: number; w: number; h: number; t: number; yaw: number }[] = [];
+    const walls: { x: number; y: number; z: number; w: number; h: number; t: number; yaw: number; broken: boolean }[] = [];
     const slabs: { x: number; y: number; z: number; w: number; d: number; yaw: number; tilt: number }[] = [];
     const rebar: { x: number; y: number; z: number; yaw: number; lean: number }[] = [];
     const FH = 3.4;
@@ -45,7 +49,8 @@ function Ruins() {
           for (let pier = 0; pier < 3; pier++) {
             const off = (pier - 1) * len / 3, px = lx + Math.cos(yaw) * off, pz = lz - Math.sin(yaw) * off;
             const p = at(px, pz);
-            walls.push({ x: p.x, y: y + FH / 2, z: p.z, w: len / 3 * 0.62, h: f === 0 || pier !== 1 ? FH : FH * 0.45, t: 0.35, yaw: r.r + yaw });
+            const short = !(f === 0 || pier !== 1);
+            walls.push({ x: p.x, y: y + FH / 2, z: p.z, w: len / 3 * 0.62, h: short ? FH * 0.45 : FH, t: 0.35, yaw: r.r + yaw, broken: short || (top && r.broken > 0.2) });
           }
         });
         if (f > 0 && !(top && r.broken > 0.35)) { const p = at(0, 0); slabs.push({ x: p.x, y, z: p.z, w: r.w, d: r.d, yaw: r.r, tilt: 0 }); }
@@ -57,18 +62,23 @@ function Ruins() {
         for (let k = 0; k < 6; k++) { const q = at((k / 5 - 0.5) * r.w * 0.9, r.d / 2); rebar.push({ x: q.x, y: base + (r.floors - 1) * FH + 1, z: q.z, yaw: r.r, lean: (k % 3 - 1) * 0.35 }); }
       }
     }
-    return { walls, slabs, rebar };
+    return { walls: walls.filter((w) => !w.broken), torn: walls.filter((w) => w.broken), slabs, rebar };
   }, [rs]);
-  const wRef = useRef<THREE.InstancedMesh>(null), sRef = useRef<THREE.InstancedMesh>(null), bRef = useRef<THREE.InstancedMesh>(null);
+  const wRef = useRef<THREE.InstancedMesh>(null), tRef = useRef<THREE.InstancedMesh>(null), sRef = useRef<THREE.InstancedMesh>(null), bRef = useRef<THREE.InstancedMesh>(null);
   // weathered concrete in world space (weathered-surface.ts): formwork lines, rain streaks, cracks and rust bleed instead of flat grey
   const wallMat = useMemo(() => applyWorldTriplanar(new THREE.MeshStandardMaterial({ roughness: 0.95 }), weatheredConcreteTexture()), []);
   const slabMat = useMemo(() => applyWorldTriplanar(new THREE.MeshStandardMaterial({ color: "#77726a", roughness: 1 }), weatheredConcreteTexture(), 4), []);
-  useInstances<(typeof parts.walls)[number]>(wRef, parts.walls, (o, p) => { o.position.set(p.x, p.y, p.z); o.rotation.set(0, p.yaw, 0); o.scale.set(p.w, p.h, p.t); }, (_, i) => ["#8d877d", "#7b766d", "#9a9488", "#6f6a62"][i % 4]!);
+  const placeWall = (o: THREE.Object3D, p: (typeof parts.walls)[number]) => { o.position.set(p.x, p.y, p.z); o.rotation.set(0, p.yaw, 0); o.scale.set(p.w, p.h, p.t); };
+  const wallTint = (_: unknown, i: number) => ["#8d877d", "#7b766d", "#9a9488", "#6f6a62"][i % 4]!;
+  useInstances<(typeof parts.walls)[number]>(wRef, parts.walls, placeWall, wallTint);
+  useInstances<(typeof parts.walls)[number]>(tRef, parts.torn, placeWall, wallTint);
   useInstances<(typeof parts.slabs)[number]>(sRef, parts.slabs, (o, p) => { o.position.set(p.x, p.y, p.z); o.rotation.set(0, p.yaw, p.tilt); o.scale.set(p.w, 0.3, p.d); });
   useInstances<(typeof parts.rebar)[number]>(bRef, parts.rebar, (o, p) => { o.position.set(p.x, p.y, p.z); o.rotation.set(p.lean, p.yaw, p.lean * 0.5); o.scale.set(0.05, 2.2, 0.05); });
   return <group>
-    <instancedMesh ref={wRef} args={[undefined, undefined, parts.walls.length]} castShadow receiveShadow material={wallMat}><boxGeometry args={[1, 1, 1]} /></instancedMesh>
-    <instancedMesh ref={sRef} args={[undefined, undefined, parts.slabs.length]} castShadow receiveShadow material={slabMat}><boxGeometry args={[1, 1, 1]} /></instancedMesh>
+    {/* broken piers with jagged tops and chipped edges, chipped slabs (wild-geometry / organic-geometry), not clean boxes */}
+    <instancedMesh ref={wRef} args={[RUIN.intact, undefined, Math.max(1, parts.walls.length)]} castShadow receiveShadow material={wallMat} />
+    <instancedMesh ref={tRef} args={[RUIN.pier, undefined, Math.max(1, parts.torn.length)]} castShadow receiveShadow material={wallMat} />
+    <instancedMesh ref={sRef} args={[RUIN.slab, undefined, parts.slabs.length]} castShadow receiveShadow material={slabMat} />
     <instancedMesh ref={bRef} args={[undefined, undefined, parts.rebar.length]}><cylinderGeometry args={[1, 1, 1, 4]} /><meshStandardMaterial color="#5a3a26" roughness={0.8} metalness={0.5} /></instancedMesh>
   </group>;
 }
