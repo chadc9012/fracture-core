@@ -70,7 +70,7 @@ import { armorLook } from "@/game/armor-look";
 import { createStride, stepStride, RUN_SPEED, type FeelView } from "@/game/movement-feel";
 import { updateWind } from "@/game/wind-sway";
 import { waterStyleAt } from "@/game/water-style";
-import { atmosphereAt, cityNightFill, cityPresence, NEUTRAL_ATMOSPHERE, type Atmosphere } from "@/game/atmosphere";
+import { atmosphereAt, cityNightFill, cityPresence, INSTABILITY_FOG, instabilityBleed, NEUTRAL_ATMOSPHERE, type Atmosphere } from "@/game/atmosphere";
 import { closeStratagems, createStratagemState, inputDirection, openStratagems, releaseStratagems, stratagemById, stratagemHud, tickStratagems, type StratagemHud } from "@/game/stratagems";
 import { Wildlife } from "./Wildlife";
 import { Civilians } from "./Civilians";
@@ -1078,7 +1078,7 @@ function SceneImpl({
   const deepWater = useMemo(() => new THREE.Color("#0a4f63"), []);
   const waterTint = useMemo(() => new THREE.Color(), []);
   const underK = useRef(0);
-  const instabilityColor = useMemo(() => new THREE.Color("#ff2d55"), []);
+  const instabilityColor = useMemo(() => new THREE.Color(INSTABILITY_FOG.color), []);
   const lightColor = useMemo(() => new THREE.Color(), []);
   const skyEnv = useRef<SkyEnv>({ cloud: 0, tint: new THREE.Color("#ffffff") });
   const scene = useThree((s) => s.scene); const gl = useThree((s) => s.gl); const getThree = useThree((s) => s.get); // selectors: a selector-less useThree call re-renders this whole tree on every R3F store change (Canvas reconfigures on each parent render)
@@ -2549,10 +2549,7 @@ function SceneImpl({
     // Zones already toss the player around above 0.6 instability (below); this is the visual half of
     // that same signal — the fog bleeds toward red and the sun flickers as a fracturing zone gets worse,
     // instead of the instability being felt only through physics with no on-screen cue at all.
-    if (scene.fog instanceof THREE.Fog && playerInstability > 0.2) {
-      const bleed = Math.min(1, (playerInstability - 0.2) / 0.6);
-      scene.fog.color.lerp(instabilityColor, bleed * 0.35);
-    }
+    if (scene.fog instanceof THREE.Fog && playerInstability > INSTABILITY_FOG.from) scene.fog.color.lerp(instabilityColor, instabilityBleed(playerInstability));
     if (sun.current && playerInstability > 0.4) {
       const flicker = Math.min(1, (playerInstability - 0.4) / 0.4);
       sun.current.intensity *= 1 - Math.abs(Math.sin(performance.now() * 0.012 + s.x)) * 0.2 * flicker;

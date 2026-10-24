@@ -95,3 +95,10 @@ export const CITY_NIGHT_FILL = 0.42;
 export const cityNightFill = (inCity: number, night: number) => CITY_NIGHT_FILL * Math.max(0, Math.min(1, inCity)) * Math.max(0, Math.min(1, night));
 /** 1 inside `radius`, fading to 0 over `fade` metres beyond it */
 export const cityPresence = (dist: number, radius: number, fade = 60) => Math.max(0, Math.min(1, 1 - (dist - radius) / fade));
+
+/** The fog bleed that tells the player a zone is fracturing (Scene: above 0.2 instability, full at 0.8). It is the Fracture's own
+ * violet (the storm, the rift, the trailers), not the hot pink-red it used to be: at 35% that turned whole landscapes mauve at night
+ * against a blue sky. */
+export const INSTABILITY_FOG = { color: "#6a3cff", max: 0.24, from: 0.2, span: 0.6 } as const;
+export const instabilityBleed = (instability: number) =>
+  instability <= INSTABILITY_FOG.from ? 0 : Math.min(1, (instability - INSTABILITY_FOG.from) / INSTABILITY_FOG.span) * INSTABILITY_FOG.max;
