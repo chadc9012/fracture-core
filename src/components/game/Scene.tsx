@@ -82,6 +82,7 @@ import { ScenarioBosses } from "./ScenarioBosses";
 import { NullPulseFx } from "./NullPulseFx";
 import { AbilityFx } from "./AbilityFx";
 import { ShardGainFx } from "./ShardGainFx";
+import { SkylineLookout } from "./SkylineLookout";
 import { Squad } from "./Squad";
 import { CoreNodePod } from "./CoreNodePod";
 import { ThalassiaSectors } from "./ThalassiaSectors";
@@ -3054,6 +3055,7 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
       <CombatFx sim={sim} reducedMotion={!!settings.reducedMotion} />
       <AbilityFx sim={sim} reducedMotion={!!settings.reducedMotion} />
       {!settings.reducedMotion && <ShardGainFx shards={gear?.fractureShards} playerRef={player} />}
+      <SkylineLookout />
       <Squad sim={sim} />
       {coreNode?.target && <CoreNodePod run={coreNode} />}
       <NullPulseFx sim={sim} tier={settings.renderTier} reducedMotion={!!settings.reducedMotion || (typeof window !== "undefined" && typeof window.matchMedia === "function" && window.matchMedia("(prefers-reduced-motion: reduce)").matches)} />
