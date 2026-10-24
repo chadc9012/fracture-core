@@ -15,6 +15,8 @@ import { equippedPieces, piecesKey, type ArmorPiece } from "@/game/armor-pieces"
 import type { GearItem, GearSlot } from "@/game/inventory";
 import { HAND_BONE, WEAPON_PROPS } from "@/game/weapon-props";
 import { WEAPONS, WEAPON_ORDER, type WeaponId } from "@/game/weapons";
+import { handlingClass, type HandlingClass } from "@/game/weapon-handling";
+import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { attachSkates } from "./skate-attachments";
 import { bootStats } from "@/game/skate-boots";
 import { getEquippedBoots } from "@/game/client-input";
@@ -99,7 +101,44 @@ function attachWeapons(object: THREE.Object3D, height: number, modelScale: numbe
     bone.add(g);
     groups[id] = g;
   }
-  return { groups, dispose: () => { Object.values(groups).forEach((g) => g?.removeFromParent()); geos.forEach((x) => x.dispose()); mats.forEach((m) => m.dispose()); } };
+  // swap each procedural stand-in for the authored weapon model (the same GLBs the first-person view uses) once it loads;
+  // the box-built prop stays if a file is unreachable. Viewmodels grip at the origin with the barrel along -Z, the
+  // hand-bone frame wants +Z, so the model is turned half a turn.
+  let live = true;
+  const accents: THREE.Material[] = [];
+  for (const id of WEAPON_ORDER) {
+    const spec = HELD_MODEL[handlingClass(id)];
+    heldModel(spec.url).then((scene) => {
+      const g = groups[id];
+      if (!live || !g || !scene) return;
+      const glow = ELEMENT_GLOW[WEAPONS[id].element ?? ""] ?? "#ffb347";
+      const accent = new THREE.MeshStandardMaterial({ color: "#10151c", emissive: new THREE.Color(glow), emissiveIntensity: 1.1, roughness: 0.3 });
+      accents.push(accent);
+      const model = new THREE.Group(); model.rotation.y = Math.PI;
+      for (const part of ["Body", "Blade", "Mag", "Action", "Bolt", "Accent"]) {
+        const node = scene.getObjectByName(spec.prefix + part); if (!node) continue;
+        const c = node.clone(true);
+        c.traverse((o) => { const m = o as THREE.Mesh; if (!m.isMesh) return; m.castShadow = true; m.receiveShadow = false; if ((m.material as THREE.Material).name === `${spec.prefix}Accent`) m.material = accent; });
+        model.add(c);
+      }
+      if (!model.children.length) return;
+      g.clear(); g.add(model);
+    });
+  }
+  return { groups, dispose: () => { live = false; Object.values(groups).forEach((g) => g?.removeFromParent()); geos.forEach((x) => x.dispose()); mats.forEach((m) => m.dispose()); accents.forEach((m) => m.dispose()); } };
+}
+
+/** held-weapon models by handling class: the first-person GLBs (ViewWeapon.tsx), one load each, shared by every operator */
+const HELD_MODEL: Record<HandlingClass, { url: string; prefix: string }> = {
+  rifle: { url: "/models/weapons/rifle.glb", prefix: "Rifle" }, pistol: { url: "/models/weapons/pistol.glb", prefix: "Pistol" },
+  shotgun: { url: "/models/weapons/shotgun.glb", prefix: "Shotgun" }, heavy: { url: "/models/weapons/heavy.glb", prefix: "Heavy" },
+  launcher: { url: "/models/weapons/launcher.glb", prefix: "Launcher" }, sword: { url: "/models/weapons/sword.glb", prefix: "Sword" },
+};
+const heldCache = new Map<string, Promise<THREE.Object3D | null>>();
+function heldModel(url: string): Promise<THREE.Object3D | null> {
+  let p = heldCache.get(url);
+  if (!p) { p = new GLTFLoader().loadAsync(url).then((g) => g.scene).catch(() => null); heldCache.set(url, p); }
+  return p;
 }
 
 /** Authored (Meshy) operator models, served from /public. GOLIATH, NYX and CIPHER are rigged (Mixamo skeleton; walk/run for all, idle for NYX and GOLIATH, the owner's combat-stance clip for NYX and GOLIATH, flex showcase and chest-pound taunt for GOLIATH); Anything missing or failing to load falls back to the procedural Operator. */
