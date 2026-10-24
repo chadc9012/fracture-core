@@ -1,5 +1,6 @@
+import { nexusPalms } from "./city-palms";
 import { describe, expect, test } from "bun:test";
-import { BUILDING_MODELS, NEXUS_HUB_PROMENADE, NEXUS_HUB_RING, NEXUS_HUB_ROAD_R, footprintRadius, nexusHubTowers } from "./building-models";
+import { BUILDING_MODELS, NEXUS_HUB_PROMENADE, NEXUS_HUB_RING, NEXUS_HUB_ROAD_R, NEXUS_HUB_ROAD_HALF, footprintRadius, nexusHubTowers } from "./building-models";
 import { INTERIORS, SHOP_INTERIORS } from "./interiors";
 import { REGIONAL_SHOPS } from "./regional-shops";
 import { REGIONS } from "./world";
@@ -15,8 +16,14 @@ describe("Nexus hub at life size", () => {
     }
   });
   test("towers stand outside the ring road, which runs outside the promenade and the storefronts", () => {
-    for (const t of towers) { const m = BUILDING_MODELS[t.model]; expect(NEXUS_HUB_RING.r - Math.max(m.w, m.d) / 2).toBeGreaterThan(NEXUS_HUB_ROAD_R + 2.5); }
-    expect(NEXUS_HUB_ROAD_R - 2.5).toBeGreaterThan(NEXUS_HUB_PROMENADE[1]);
+    for (const t of towers) { const m = BUILDING_MODELS[t.model]; expect(NEXUS_HUB_RING.r - Math.max(m.w, m.d) / 2).toBeGreaterThan(NEXUS_HUB_ROAD_R + NEXUS_HUB_ROAD_HALF); }
+    expect(NEXUS_HUB_ROAD_R - NEXUS_HUB_ROAD_HALF).toBeGreaterThan(NEXUS_HUB_PROMENADE[1]);
+    // traffic never drives through a door or a plaza palm
+    for (const d of [...INTERIORS.filter((i) => i.regionId === "nexus"), ...SHOP_INTERIORS.filter((i) => i.shopId?.startsWith("nexus"))]) {
+      const r = Math.hypot(d.doorPos.x - C.x, d.doorPos.z - C.z);
+      expect(r < NEXUS_HUB_ROAD_R - NEXUS_HUB_ROAD_HALF - 0.3 || r > NEXUS_HUB_ROAD_R + NEXUS_HUB_ROAD_HALF + 0.3).toBe(true);
+    }
+    for (const p of nexusPalms()) { const r = Math.hypot(p.x - C.x, p.z - C.z); expect(r < NEXUS_HUB_ROAD_R - NEXUS_HUB_ROAD_HALF || r > NEXUS_HUB_ROAD_R + NEXUS_HUB_ROAD_HALF + 1).toBe(true); }
     for (const s of REGIONAL_SHOPS.filter((q) => q.id.startsWith("nexus"))) expect(Math.hypot(s.x - C.x, s.z - C.z) + 5.7).toBeLessThan(NEXUS_HUB_PROMENADE[0] + 0.2);
   });
   test("every Nexus door can be walked up to: none sits inside a tower", () => {

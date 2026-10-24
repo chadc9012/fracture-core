@@ -135,7 +135,7 @@ const TRAFFIC: { model: FleetModelId; paint: string }[] = [
 /** city cars on the ring road: one authored model each, instanced, wheels in rest pose (they read as moving from the street) */
 function CityTraffic() {
   const t = useRef(0);
-  const cars = useMemo(() => TRAFFIC.map((c, i) => ({ ...c, a: (i / TRAFFIC.length) * Math.PI * 2, r: NEXUS_HUB_ROAD_R + (i % 2 ? 1.5 : -1.5), speed: 0.16 + (i % 3) * 0.03 })), []);
+  const cars = useMemo(() => TRAFFIC.map((c, i) => ({ ...c, a: (i / TRAFFIC.length) * Math.PI * 2, r: NEXUS_HUB_ROAD_R + (i % 2 ? 1.1 : -1.1), speed: 0.16 + (i % 3) * 0.03 })), []);
   const items = useMemo<FleetInstance[]>(() => cars.map((c) => ({ model: c.model, paint: c.paint, x: 0, y: 0, z: 0, yaw: 0 })), [cars]);
   useFrame((_, raw) => { t.current += Math.min(raw, 0.05); });
   const place = (model: FleetModelId, _i: number, o: THREE.Object3D) => {

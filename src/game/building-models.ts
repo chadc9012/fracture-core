@@ -30,7 +30,10 @@ export const footprintRadius = (m: BuildingModel) => Math.hypot(m.w, m.d) / 2;
  * the towers stand at r 27 with their lobbies facing in, clear of the road and of the district blocks (from r 35). Evenly
  * spaced so no two footprints touch (the old three jittered rings overlapped each other, the shops and the road). */
 export const NEXUS_HUB_RING = { r: 27, count: 9, models: ["nexus-civic-a", "nexus-spire", "nexus-civic-c", "nexus-civic-b", "nexus-terrace-b"] as BuildingModelId[] } as const;
-export const NEXUS_HUB_ROAD_R = 17;
+/** ring-road centreline and half-width: two ~2 m car lanes at ±1.1 m (15.2 and 17.4 m), clear of the promenade and plaza palms inside and
+ * the lobby doors (~18.8 m+) outside */
+export const NEXUS_HUB_ROAD_R = 16.3;
+export const NEXUS_HUB_ROAD_HALF = 2.2;
 export const NEXUS_HUB_PROMENADE: readonly [number, number] = [12.8, 13.8];
 /** spawn pad offset from the hub centre (Scene SPAWN): the tower in front of it is left out so the pad opens onto the plaza */
 export const NEXUS_HUB_SPAWN = { x: 0, z: 22 } as const;

@@ -1,6 +1,7 @@
 /** City palms (public/models/foliage/palm-a/b/c.glb, scripts/build-palms.py): the reference boards line every boulevard
  * with them. Pure placement: Nexus hub plaza ring, the middle of every Nexus district block face (between the street
  * lights, on the pavement), and the two street-front corners of every Neon City tower. Nothing lands inside a building. */
+import { NEXUS_HUB_PROMENADE } from "./building-models";
 import { NEXUS, BLOCK, blocks } from "./nexus-districts";
 import { TOWER_FOOTPRINT, type TowerPlacement } from "./neon-layout";
 import { heightAt, WATER_LEVEL } from "./terrain";
@@ -16,7 +17,8 @@ export function nexusPalms(): Palm[] {
   const out: Palm[] = [];
   const pick = (): Palm["variant"] => (Math.floor(rnd() * 3) as Palm["variant"]);
   // plaza ring inside the hub, clear of the spawn lane to the south
-  const r = NEXUS.radius * 0.62;
+  // just inside the promenade, on the plaza side: the old 0.62 x radius ring (~16 m) stood in the ring road's inner lane
+  const r = NEXUS_HUB_PROMENADE[0] - 0.9;
   for (let k = 0; k < 14; k++) {
     const a = (k / 14) * Math.PI * 2;
     const x = NEXUS.x + Math.cos(a) * r, z = NEXUS.z + Math.sin(a) * r;
