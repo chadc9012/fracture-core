@@ -48,3 +48,10 @@ describe("one location registry", () => {
     expect(b.attemptsLeft).toBeGreaterThan(0);
   });
 });
+describe("street view contents", () => {
+  test("the Nexus plaza holds its walk-in shops and tower lobby doors", () => {
+    const plaza = childrenOf("area:nexus:plaza");
+    expect(plaza.some((l) => l.id === "door:nexus-apartment")).toBe(true);
+    expect(plaza.filter((l) => l.level === "entrance").length).toBeGreaterThan(3);
+  });
+});

@@ -101,6 +101,7 @@ export function cityDistricts(d: Destination): CityDistrict[] {
     // districts are compass quarters of the city (nexus-districts.ts districtAt: north = world -z)
     const q = (id: string, name: string, tagline: string, ang: number, color: string): CityDistrict => ({ id, name, tagline, x: NEXUS.x + Math.sin(ang) * mid, z: NEXUS.z - Math.cos(ang) * mid, r: (CITY_OUTER - CITY_INNER) / 2, color });
     return [
+      { id: "plaza", name: "Nexus Plaza", tagline: "Storefronts, tower lobbies and the ring road", x: NEXUS.x, z: NEXUS.z, r: 30, color: "#66e0ff", glyph: "◆" },
       q("spire", "Capital District", "Council towers and the command core", 0, "#9fd4ff"),
       q("market", "Business District", "Trading floors, shops and vendors", Math.PI / 2, "#ffd166"),
       q("shipyard", "Harbor District", "Shipyards, freight yards and hangars", Math.PI, "#c9b089"),
