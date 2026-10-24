@@ -1,10 +1,26 @@
 import { useFrame } from "@react-three/fiber";
-import { useRef } from "react";
+import { Suspense, useRef } from "react";
+import { CivilianModel, Quiet } from "./Civilians";
+import type { Civilian, CivilianRole } from "@/game/civilians";
 import * as THREE from "three";
 import { getVoicePose } from "@/game/voice-animation";
 
-/** Interior NPC whose jaw, head and arm follow the voice director's live envelope. */
-export function SpeakingFigure({ name, color }: { name: string; color: string }) {
+/** Interior NPC: the authored, rigged civilian body (Civilians.tsx, idle clip) at life size, leaning and nodding with the
+ * voice director's live envelope while they talk. The procedural figure below stays as the stand-in while the model
+ * loads or if it fails. */
+export function SpeakingFigure({ name, color, role = "VENDOR" }: { name: string; color: string; role?: CivilianRole }) {
+  const body = useRef<THREE.Group>(null!);
+  const live = useRef({ state: "IDLE", far: false, hidden: false } as unknown as Civilian);
+  const key = name.toUpperCase();
+  useFrame((state) => {
+    const pose = getVoicePose((s) => s === key, state.clock.elapsedTime);
+    if (body.current) body.current.rotation.set(pose.lean * 0.6 + pose.nod * 0.3, 0, pose.tilt * 0.5);
+  });
+  const fallback = <ProceduralFigure name={name} color={color} />;
+  return <group ref={body}><Quiet fallback={fallback}><Suspense fallback={fallback}><CivilianModel role={role} live={live} /></Suspense></Quiet></group>;
+}
+
+function ProceduralFigure({ name, color }: { name: string; color: string }) {
   const head = useRef<THREE.Group>(null!);
   const jaw = useRef<THREE.Mesh>(null!);
   const arm = useRef<THREE.Group>(null!);

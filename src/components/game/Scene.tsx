@@ -1446,7 +1446,7 @@ function SceneImpl({
     // image-based light (region HDRIs) is daylight: dim it after dark so night scenes are lit by the moon, neon and the storm
 
     // cities after dark keep a glow-bounce fill (atmosphere.ts cityNightFill), so their streets read between the lamps
-    const inCity = interior ? 0 : Math.max(cityPresence(Math.hypot(s.x - NEON_CITY_CENTER.x, s.z - NEON_CITY_CENTER.z), NEON_FLAT), cityPresence(Math.hypot(s.x - NEXUS_REGION.x, s.z - NEXUS_REGION.z), 95));
+    const inCity = interior ? 1 : Math.max(cityPresence(Math.hypot(s.x - NEON_CITY_CENTER.x, s.z - NEON_CITY_CENTER.z), NEON_FLAT), cityPresence(Math.hypot(s.x - NEXUS_REGION.x, s.z - NEXUS_REGION.z), 95));
     if (hemi.current) hemi.current.intensity = 0.12 + 0.46 * (1 - night) + cityNightFill(inCity, night);
     // metal and glass are lit by reflections, not the hemisphere: keep some city glow in the reflections too, or Neon's
     // metal stalls and decks render pure black at night

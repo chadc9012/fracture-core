@@ -36,7 +36,7 @@ export function Interiors() {
     if (!best) return;
     l.position.set(best.origin.x, INTERIOR_ALTITUDE + WALL_HEIGHT - 0.4, best.origin.z);
     l.color.set(best.kind === "SHOP" ? "#ffd9a0" : best.kind === "VENUE" ? "#d06bff" : "#cfe6ff");
-    l.intensity = 14;
+    l.intensity = best.kind === "VENUE" ? 26 : 20;
   });
   return (
     <group>
@@ -99,8 +99,8 @@ export function Interiors() {
 
           {/* the NPC standee — a simple readable figure, not a full character model */}
           {interior.npcName && (
-            <group position={interior.kind === "VENUE" ? [-3, 0, -3.4] : [0, 0, interior.kind === "SHOP" ? -1.5 : -2]}>
-              <SpeakingFigure name={interior.npcName} color={interior.kind === "SHOP" ? "#c98a4a" : interior.kind === "VENUE" ? "#c46bff" : "#6d8fc9"} />
+            <group position={interior.kind === "VENUE" ? [-1.5, 0, -4.6] : interior.kind === "SHOP" ? [0, 0, -2.3] : [2.4, 0, -3.6]}>
+              <SpeakingFigure name={interior.npcName} color={interior.kind === "SHOP" ? "#c98a4a" : interior.kind === "VENUE" ? "#c46bff" : "#6d8fc9"} role={interior.kind === "SHOP" || interior.kind === "VENUE" ? "VENDOR" : "MEDIC"} />
             </group>
           )}
 
