@@ -252,7 +252,7 @@ export function DestinationView({ dest, progression, phase, markers, px, pz, onP
 }
 /* ------------------------------------------------------------------ street view (locations.ts) */
 const LAYER_LABEL: Record<LocationLayer, string> = { surface: "Street level", underground: "Underground", underwater: "Underwater", interior: "Indoors" };
-const LEVEL_GLYPH: Partial<Record<Location["level"], string>> = { entrance: "▯", landmark: "◈", activity: "◎", area: "⬡" };
+const LEVEL_GLYPH: Partial<Record<Location["level"], string>> = { entrance: "⌂", landmark: "◈", activity: "◎", area: "⬡" };
 /** the street view's list: every door, discovered landmark and activity in the district, grouped by layer */
 function StreetPanel({ area, progression, onWaypoint, onGo }: { area: Location; progression: PlayerProgression; onWaypoint: (id: string, label: string, x: number, z: number) => void; onGo?: ((id: string, name: string, x: number, z: number) => void) | undefined }) {
   const here = useMemo(() => {
