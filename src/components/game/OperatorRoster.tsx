@@ -1,9 +1,9 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { ArrowLeft, Play, Plus, Shield, Sparkles } from "lucide-react";
 import { activeSlot, currentUserId, listSlots, SLOT_COUNT, switchSlot, type SlotSummary } from "@/game/save-slots";
 import { launchDestination } from "@/game/launch-flow";
 import { operatorByClass } from "@/game/loadout";
-import { applyVariant, currentVariant, rookieSetForClass } from "@/game/rookie-armor";
+import { rookieSetForClass } from "@/game/rookie-armor";
 import { OperatorStage } from "./OperatorStage";
 import type { PlayerProgression } from "@/game/progression";
 
@@ -42,12 +42,6 @@ export function OperatorRoster({ progression, onSelect, onBack, onProgression }:
   const empty = !character && (record?.empty ?? !isActive);
   const set = character ? rookieSetForClass(character.classId) : null;
   const op = character ? operatorByClass(character.classId) : null;
-  const variant = useMemo(() => (set && character ? currentVariant(set, character.appearance) : null), [set, character]);
-  const wearVariant = (id: string) => {
-    if (!set || !progression.character || !onProgression) return;
-    const v = set.variants.find((x) => x.id === id);
-    if (v) onProgression({ ...progression, character: { ...progression.character, appearance: applyVariant(progression.character.appearance, v) } });
-  };
 
   return (
     <main className="operator-roster-scene fixed inset-0 overflow-hidden bg-background text-foreground" aria-label="Select operator">
@@ -80,17 +74,8 @@ export function OperatorRoster({ progression, onSelect, onBack, onProgression }:
               <ul className="mt-3 space-y-1 text-xs text-foreground/80">{set.pieces.map((p) => <li key={p} className="flex gap-2"><span className="text-primary">▸</span>{p}</li>)}</ul>
             </div>
             <div className="mt-4 border-t border-foreground/10 pt-4">
-              <p className="font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground">Colour variation{variant ? ` · ${variant.name}` : " · Custom"}</p>
-              <div className="mt-2 flex gap-2" role="radiogroup" aria-label="Colour variation">
-                {set.variants.map((v) => {
-                  const on = variant?.id === v.id;
-                  return <button key={v.id} type="button" role="radio" aria-checked={on} disabled={!isActive || !onProgression} onClick={() => wearVariant(v.id)}
-                    className={`flex min-h-11 flex-1 flex-col items-center gap-1 border px-2 py-2 font-mono text-[10px] uppercase tracking-widest transition ${on ? "border-primary bg-primary/15" : "border-foreground/20 hover:border-primary/70"} disabled:cursor-not-allowed disabled:opacity-60`}>
-                    <span className="flex h-5 w-full overflow-hidden"><span className="flex-[3]" style={{ background: v.armor }} /><span className="flex-[2]" style={{ background: v.cloth }} /><span className="flex-1" style={{ background: v.visor }} /></span>{v.name}
-                  </button>;
-                })}
-              </div>
-              {!isActive && <p className="mt-2 text-[11px] text-muted-foreground">Select this operator to change their colours.</p>}
+              <p className="font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground">Colourways · found or bought in the world</p>
+              <p className="mt-2 text-[11px] text-muted-foreground">You start in {set.variants[0]!.name.toLowerCase()} colours. {set.variants.slice(1).map((v) => v.name).join(" and ")} {set.variants.length > 2 ? "are" : "is"} unlocked later as shaders from shops, contracts and hidden encounters, and can be applied to any piece.</p>
               <p className="mt-3 text-[11px] text-muted-foreground">Higher-tier armor found in the world replaces rookie pieces as you equip it.</p>
             </div>
           </> : <>

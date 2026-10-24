@@ -1,6 +1,6 @@
 import type { AppearanceDefinition, ClassId, OperatorId, SubclassId } from "../loadout";
 import type { BodyType } from "../operators";
-import { isBodyType } from "../operators";
+import { isBodyType, isFaceFor } from "../operators";
 
 /** Everything the Identity Forge decides, in one saveable shape. */
 export type PlayerCharacter = {
@@ -10,6 +10,8 @@ export type PlayerCharacter = {
   classId: ClassId;
   subclassId: SubclassId;
   bodyType: BodyType;
+  /** chosen face (operators.ts FACES); absent on older saves */
+  face?: string;
   displayName: string;
   appearance: Pick<AppearanceDefinition, "armor" | "cloth" | "visor" | "trim" | "callsign">;
   loadout: { weaponOrder: readonly string[] };
@@ -27,6 +29,7 @@ export function validateCharacter(character: PlayerCharacter): string | null {
   if (!character.displayName.trim()) return "Enter a callsign before deployment.";
   if (!character.operatorId || !character.classId) return "Complete your operator selection first.";
   if (!isBodyType(character.bodyType)) return "Choose a body type first.";
+  if (character.face !== undefined && !isFaceFor(character.bodyType, character.face)) return "Choose a face that matches your body type.";
   return null;
 }
 

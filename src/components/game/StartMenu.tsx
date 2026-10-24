@@ -5,7 +5,7 @@ import { moveFocus } from "@/game/menu-nav";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { CLASSES, CUSTOMIZATION_PALETTE, DEFAULT_SUBCLASS, SUBCLASSES, appearanceById, operatorByClass, type AppearanceDefinition, type ClassId, type OperatorId, type SubclassId } from "@/game/loadout";
-import { BODY_PROFILES, BODY_TYPES, type BodyType } from "@/game/operators";
+import { BODY_PROFILES, BODY_TYPES, FACES, OPERATOR_START_BODY, faceOr, type BodyType } from "@/game/operators";
 import { createDeployGuard, deployCharacter, newDeploymentId, type PlayerCharacter } from "@/game/deployment/deployCharacter";
 import { armorLook } from "@/game/armor-look";
 import { armorSummary, cyclePiece, defaultAppearance, forgeDirty, forgeInitial, slotOptions, SLOT_LABEL } from "@/game/deployment/forgeState";
@@ -23,22 +23,15 @@ type Stage = "CLASS" | "SUBCLASS" | "APPEARANCE" | "ASSEMBLING";
  * as the rest of deployment (never synced to player_saves). */
 export type Deployment = { classId: ClassId; subclassId: SubclassId; appearance: AppearanceDefinition; bodyType: BodyType; deploymentId: string; operatorId: OperatorId };
 const STAGES: Stage[] = ["CLASS", "SUBCLASS", "APPEARANCE"];
-const CHANNELS: { key: "armor" | "cloth" | "visor" | "trim"; label: string }[] = [
-  { key: "armor", label: "Armor plate" },
-  { key: "cloth", label: "Undersuit" },
-  { key: "visor", label: "Visor line" },
-  { key: "trim", label: "Trim accent" },
-];
 
 /** Default field colors + callsign for a freshly-picked class: that class's one named Operator's
  * signature preset, with their callsign pre-filled (the player can still edit both). Subclass
  * doesn't factor in here — all 3 of an Operator's subclasses are the same character. */
 const APPEARANCE_FOR = defaultAppearance;
 
-type Tab = "body" | "gear" | "armor" | "cloth" | "visor" | "trim" | "callsign";
+type Tab = "body" | "face" | "gear" | "callsign";
 const TABS: { key: Tab; label: string }[] = [
-  { key: "body", label: "Body" }, { key: "gear", label: "Gear" }, { key: "armor", label: "Armor" }, { key: "cloth", label: "Undersuit" },
-  { key: "visor", label: "Visor" }, { key: "trim", label: "Trim" }, { key: "callsign", label: "Callsign" },
+  { key: "body", label: "Body" }, { key: "face", label: "Face" }, { key: "gear", label: "Gear" }, { key: "callsign", label: "Callsign" },
 ];
 
 const GUIDE: Record<Stage, string> = {
@@ -56,7 +49,10 @@ export function StartMenu({ onDeploy, onSaveCharacter, weaponOrder, onSettings, 
   const [appearance, setAppearance] = useState<AppearanceDefinition>(start.appearance);
   const [confirmLeave, setConfirmLeave] = useState(false);
   const [stage, setStage] = useState<Stage>("CLASS");
-  const [bodyType, setBodyType] = useState<BodyType>(start.bodyType);
+  const [bodyType, setBodyTypeRaw] = useState<BodyType>(start.bodyType);
+  const [face, setFace] = useState<string>(start.face);
+  // a face belongs to a body type: switching body keeps the face only when it exists there, else that body's first face
+  const setBodyType = (type: BodyType) => { setBodyTypeRaw(type); setFace((current) => faceOr(type, current)); };
   const [deployError, setDeployError] = useState("");
   const [deploying, setDeploying] = useState(false);
   const [tab, setTab] = useState<Tab>("body");
@@ -73,11 +69,11 @@ export function StartMenu({ onDeploy, onSaveCharacter, weaponOrder, onSettings, 
   // Subclass is a respec of the same Operator, so it never touches appearance; only switching
   // Operator (class) resets colors/callsign back to that Operator's signature.
   const applySubclass = (id: SubclassId) => { setSubclassId(id); };
-  const selectClass = (id: ClassId) => { setClassId(id); applySubclass(DEFAULT_SUBCLASS[id]); setAppearance(APPEARANCE_FOR(id)); };
+  const selectClass = (id: ClassId) => { setClassId(id); applySubclass(DEFAULT_SUBCLASS[id]); setAppearance(APPEARANCE_FOR(id)); setBodyType(OPERATOR_START_BODY[operatorByClass(id).id]); };
   const confirmIdentity = async () => {
     const deploymentId = newDeploymentId();
     const character: PlayerCharacter = {
-      deploymentId, operatorId: operator.id, classId, subclassId, bodyType, displayName: appearance.callsign,
+      deploymentId, operatorId: operator.id, classId, subclassId, bodyType, face, displayName: appearance.callsign,
       appearance: { armor: appearance.armor, cloth: appearance.cloth, visor: appearance.visor, trim: appearance.trim, callsign: appearance.callsign },
       loadout: { weaponOrder: weaponOrder ?? [] },
     };
@@ -106,7 +102,7 @@ export function StartMenu({ onDeploy, onSaveCharacter, weaponOrder, onSettings, 
   const back = () => { const previous = STAGES[stageIndex - 1]; if (previous) setStage(previous); };
 
   // Esc / Backspace / controller B-Circle: previous step, or out to the main menu from the first step (never mid-save)
-  const dirty = forgeDirty(start, { classId, subclassId, appearance, bodyType }) || gearDirty;
+  const dirty = forgeDirty(start, { classId, subclassId, appearance, bodyType, face }) || gearDirty;
   const leave = () => { if (dirty) setConfirmLeave(true); else onExit?.(); };
   useMenuInput(stage !== "ASSEMBLING" && !deploying && !paused && !confirmLeave, (intent, source) => {
     if (intent === "back") { if (stageIndex > 0) back(); else leave(); return; }
@@ -215,6 +211,10 @@ export function StartMenu({ onDeploy, onSaveCharacter, weaponOrder, onSettings, 
             {tab === "body" && <div className="grid gap-2">
               {BODY_TYPES.map((type) => <button key={type} type="button" onClick={() => setBodyType(type)} className={`border px-3 py-2 text-left transition ${bodyType === type ? "border-primary bg-primary/15 text-foreground" : "border-border text-muted-foreground hover:text-foreground"}`}><span className="block font-mono text-[11px] uppercase tracking-[0.12em]">{BODY_PROFILES[type].label}</span><span className="block text-[9px]">{BODY_PROFILES[type].blurb}</span></button>)}
             </div>}
+            {tab === "face" && <div className="grid gap-2" role="radiogroup" aria-label="Face">
+              {FACES[bodyType].map((f) => <button key={f.id} type="button" role="radio" aria-checked={face === f.id} onClick={() => setFace(f.id)} className={`border px-3 py-2 text-left transition ${face === f.id ? "border-primary bg-primary/15 text-foreground" : "border-border text-muted-foreground hover:text-foreground"}`}><span className="block font-mono text-[11px] uppercase tracking-[0.14em]">{f.label}</span><span className="block text-[10px] leading-snug">{f.blurb}</span></button>)}
+              <p className="text-[9px] leading-snug text-muted-foreground">Saved with your operator for {BODY_PROFILES[bodyType].label.toLowerCase()} frames. Bare-face head models are still being authored, so the helmet or hood stays on for now.</p>
+            </div>}
             {tab === "gear" && <div className="grid gap-1.5" role="group" aria-label="Worn armor by slot">
               {SET_SLOTS.map((slot) => {
                 const options = slotOptions(worn, slot);
@@ -228,21 +228,13 @@ export function StartMenu({ onDeploy, onSaveCharacter, weaponOrder, onSettings, 
                   {options.length < 2 && <p className="text-center text-[9px] text-muted-foreground">No {SLOT_LABEL[slot].toLowerCase()} pieces owned yet — earn them from regional drops.</p>}
                 </div>;
               })}
-              <p className="text-[9px] leading-snug text-muted-foreground">Pieces mix freely across sets. Totals at right come from the worn items; colour motifs show on the model only for set pieces that have a motif.</p>
+              <p className="text-[9px] leading-snug text-muted-foreground">Pieces mix freely across sets. Totals at right come from the worn items. Armour colour is not chosen here: find or buy shaders in the world to recolour your gear.</p>
             </div>}
             {tab === "callsign" && <label className="block">
               <span className="hud-label">Callsign</span>
               <Input value={appearance.callsign} maxLength={24} onChange={(event) => setAppearance((current) => ({ ...current, callsign: event.target.value.toUpperCase() }))} className="mt-1 h-9 rounded-none border-primary/30 bg-background/60 font-mono text-xs uppercase tracking-[0.12em]" />
               <p className="mt-2 text-[10px] italic leading-relaxed text-muted-foreground">{operator.bio}</p>
             </label>}
-            {CHANNELS.filter((c) => c.key === tab).map(({ key, label }) => <div key={key}>
-              <span className="hud-label">{label}</span>
-              <div className="mt-2 grid grid-cols-7 gap-1.5">
-                {CUSTOMIZATION_PALETTE.map((color) => (
-                  <button key={color} type="button" aria-label={`${label} ${color}`} onClick={() => setAppearance((current) => ({ ...current, [key]: color }))} className="aspect-square border transition" style={{ backgroundColor: color, borderColor: appearance[key] === color ? "var(--primary)" : "color-mix(in oklch, var(--primary) 30%, transparent)", boxShadow: appearance[key] === color ? `0 0 8px ${color}` : "none" }} />
-                ))}
-              </div>
-            </div>)}
           </div>
         </div>
       </div>
@@ -250,7 +242,7 @@ export function StartMenu({ onDeploy, onSaveCharacter, weaponOrder, onSettings, 
       <p className="mt-2 text-center hud-label"><Cpu className="mr-1 inline size-3" style={{ filter: "drop-shadow(0 0 3px var(--primary))" }} />Live material projection · changes apply instantly</p>
     </div>}
 
-    {summary && stage !== "ASSEMBLING" && <aside className="pointer-events-none absolute right-4 top-24 z-10 hidden w-56 border border-primary/30 bg-background/70 p-3 backdrop-blur-sm md:block" aria-label="Equipped armor and stats">
+    {summary && stage !== "ASSEMBLING" && <aside className="pointer-events-none absolute left-4 top-28 z-10 hidden w-56 border border-primary/30 bg-background/70 p-3 backdrop-blur-sm md:block" aria-label="Equipped armor and stats">
       <p className="hud-label">Equipped armor</p>
       <ul className="mt-2 space-y-1 font-mono text-[10px] uppercase tracking-[0.12em]">
         {summary.slots.map((slot) => <li key={slot.slot} className="flex justify-between gap-2"><span className="text-muted-foreground">{slot.label}</span><span className={slot.name ? "truncate text-foreground" : "text-muted-foreground/50"}>{slot.name ?? "Empty"}</span></li>)}

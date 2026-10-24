@@ -62,6 +62,30 @@ export const BODY_PROFILES: Readonly<Record<BodyType, BodyProfile>> = {
 };
 export const bodyProfile = (t: unknown): BodyProfile => BODY_PROFILES[bodyTypeOr(t)];
 
+/** The body each operator is introduced with (the rookie armor concept sheet: Goliath and Cipher male, Nyx female); the player can switch to any body type. */
+export const OPERATOR_START_BODY: Readonly<Record<"goliath" | "nyx" | "cipher", BodyType>> = { goliath: "male", nyx: "female", cipher: "male" };
+
+/** Faces: a selectable face per body type, saved with the character (PlayerCharacter.face). Data and selection only: the
+ * operator meshes are helmeted/hooded, so a face shows once head models with a bare-face variant are authored. */
+export type FaceDef = { id: string; label: string; blurb: string };
+export const FACES: Readonly<Record<BodyType, readonly FaceDef[]>> = {
+  female: [
+    { id: "f-veteran", label: "Veteran", blurb: "Weathered, steady eyes." }, { id: "f-scout", label: "Scout", blurb: "Sharp and watchful." },
+    { id: "f-ember", label: "Ember", blurb: "Scarred brow, quick grin." }, { id: "f-calm", label: "Calm", blurb: "Composed and open." },
+  ],
+  male: [
+    { id: "m-veteran", label: "Veteran", blurb: "Square jaw, hard stare." }, { id: "m-scout", label: "Scout", blurb: "Lean and alert." },
+    { id: "m-ember", label: "Ember", blurb: "Old scar, short beard." }, { id: "m-calm", label: "Calm", blurb: "Even, thoughtful." },
+  ],
+  robot: [
+    { id: "r-mono", label: "Mono-lens", blurb: "Single wide optic." }, { id: "r-twin", label: "Twin-lens", blurb: "Paired sensors." },
+    { id: "r-slit", label: "Slit visor", blurb: "Narrow scanning band." }, { id: "r-mask", label: "Mask plate", blurb: "Blank faceplate." },
+  ],
+};
+export const isFaceFor = (body: BodyType, id: unknown): id is string => typeof id === "string" && FACES[body].some((f) => f.id === id);
+/** the face to use for a body type: the given one when it belongs to that body, otherwise that body's first face */
+export const faceOr = (body: BodyType, id: unknown): string => (isFaceFor(body, id) ? id : FACES[body][0]!.id);
+
 /** Life size (October 2026 scale pass): an operator stands 1.85 m (×0.96–1.04 by body type), so 2.5 m doors, 3.4–3.6 m storeys
  * and 1.5 m car roofs read at their real proportions. The player's body centre (Scene `s.y`) stays 1.6 m above the ground. */
 export const OPERATOR_HEIGHT = 1.85;

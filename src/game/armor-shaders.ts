@@ -19,6 +19,12 @@ export const ARMOR_SHADERS: readonly ArmorShader[] = [
   { id: "deep-current", name: "Deep Current", rarity: "rare", base: "#0c2230", accent: "#3fd0c9", emissive: "#2fb4ff", metalness: 0.5, roughness: 0.4, tintsEmissive: true, slots: ALL, source: "Thalassia hunts" },
   { id: "dune-glass", name: "Dune Glass", rarity: "rare", base: "#5b4630", accent: "#ffd27a", emissive: "#ffb347", metalness: 0.45, roughness: 0.5, tintsEmissive: false, slots: ALL, source: "Solara contracts" },
   { id: "whiteout", name: "Whiteout", rarity: "rare", base: "#cfd8e0", accent: "#8fd3ff", emissive: "#bfeaff", metalness: 0.4, roughness: 0.55, tintsEmissive: true, slots: ALL, source: "Frost Spire rescues" },
+  // the rookie sheet's colour variations (rookie-armor.ts): operators start in Standard and unlock these here instead of choosing a colour at creation
+  { id: "rookie-desert", name: "Desert Sand", rarity: "common", base: "#a8916b", accent: "#ffb357", emissive: "#ffb357", metalness: 0.45, roughness: 0.7, tintsEmissive: false, slots: ALL, price: { material: "scrapMetal", amount: 40 }, source: "Solara and Wastelands traders" },
+  { id: "rookie-snow", name: "Snow Camo", rarity: "common", base: "#d6dbe0", accent: "#9fd8ff", emissive: "#9fd8ff", metalness: 0.4, roughness: 0.6, tintsEmissive: false, slots: ALL, price: { material: "reinforcedAlloy", amount: 15 }, source: "Frost Spire outposts" },
+  { id: "rookie-urban", name: "Urban Slate", rarity: "common", base: "#34404f", accent: "#3d7bff", emissive: "#3d7bff", metalness: 0.55, roughness: 0.5, tintsEmissive: false, slots: ALL, price: { material: "microCircuits", amount: 25 }, source: "Neon City street markets" },
+  { id: "rookie-forest", name: "Forest Drab", rarity: "common", base: "#3b4a30", accent: "#7ccf4a", emissive: "#7ccf4a", metalness: 0.4, roughness: 0.75, tintsEmissive: false, slots: ALL, price: { material: "scrapMetal", amount: 40 }, source: "Verdant Forest camps" },
+  { id: "rookie-void", name: "Void Violet", rarity: "common", base: "#3a2a5c", accent: "#a060ff", emissive: "#a060ff", metalness: 0.6, roughness: 0.45, tintsEmissive: true, slots: ALL, price: { material: "microCircuits", amount: 30 }, source: "Nexus City vendors" },
 ];
 export const shaderById = (id: string) => ARMOR_SHADERS.find((s) => s.id === id);
 export const ownsShader = (p: Pick<PlayerProgression, "earnedRewards">, id: string) => p.earnedRewards.includes(`shader:${id}`);
