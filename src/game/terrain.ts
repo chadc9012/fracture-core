@@ -4,6 +4,7 @@ import { forestRelief, openWoods, IMPACT_PIT } from "./forest-relief";
 import { AUTHORED_CENTRES, legacyShifts, REGIONS, WORLD_RADIUS, BASE_WORLD_REGIONS, BASE_WORLD_RADIUS, WORLD_SCALE, HEIGHT_K, NEON_SITE, NEON_FLAT, NEON_FADE, NEXUS_SUBURB } from "./world";
 import { LANES, ROAD_SAMPLES, laneSamples, distanceToRoad } from "./lanes";
 import { coastShape } from "./coastline";
+import { THALASSIA_CENTER } from "./thalassia-site";
 import { wetnessAt, wetTint } from "./wetness";
 import { warpedDistance, jitteredSlope, pitSoilWeight, pitRimWeight, PIT_SOIL, PIT_RIM, bankFringe, hueDrift } from "./ground-blend";
 import { buildWaterNetwork, carveTarget, carveWeight, RIVER_SCALE, type RiverPoint, type WaterNetwork } from "./rivers";
@@ -202,9 +203,22 @@ export function suburbGroundLevel(): number {
   return suburbLevel;
 }
 
+/** Thalassia stands on a seabed shelf at THALASSIA_SEABED: the open ocean floor there is ~-40 m, and the city (authored on a
+ * -16 m floor: domes, street slab, core column, dock) hung 21-26 m above it in open water. Flat over the city, easing back to the
+ * natural seabed over THALASSIA_SHELF_FADE. */
+export const THALASSIA_SEABED = -16;
+const THALASSIA_SHELF = 110, THALASSIA_SHELF_FADE = 140;
+export function thalassiaShelfWeight(x: number, z: number): number {
+  const d = Math.hypot(x - THALASSIA_CENTER.x, z - THALASSIA_CENTER.z);
+  return d >= THALASSIA_SHELF + THALASSIA_SHELF_FADE ? 0 : 1 - smoothstep(THALASSIA_SHELF, THALASSIA_SHELF + THALASSIA_SHELF_FADE, d);
+}
+
 /** the landform with Neon City's plateau (and the Nexus residential street) levelled in, so rivers are traced around them */
 function smoothHeightAt(x: number, z: number): number {
   let h = landformAt(x, z);
+  const th = thalassiaShelfWeight(x, z);
+  // only ever raises a deeper seabed to the shelf (never cuts into land or a shallower floor)
+  if (th > 0 && h < THALASSIA_SEABED) h += (THALASSIA_SEABED - h) * th;
   const w = neonPlateauWeight(x, z);
   if (w > 0) h += (neonPlateauLevel() - h) * w;
   const s = suburbWeight(x, z);
@@ -316,7 +330,7 @@ function rawHeightAt(x: number, z: number): number {
   const segs = rv ? riverSegmentsAt(x, z) : [];
   const sm = smoothHeightAt(x, z);
   // the small rolls fade out over river channels and lake basins, so water always sits in a carved bed with banks
-  let detail = detailHeight(x, z) * (1 - neonPlateauWeight(x, z));
+  let detail = detailHeight(x, z) * (1 - neonPlateauWeight(x, z)) * (1 - thalassiaShelfWeight(x, z));
   if (detail !== 0) {
     if (rv) { let cw = 0; for (const q of segs) cw = Math.max(cw, carveWeight(q.w, q.dist)); detail *= 1 - cw; }
     for (const l of net.lakes) { const d = Math.hypot(x - l.x, z - l.z); if (d < l.r * 2) detail *= smoothstep(l.r * 0.8, l.r * 2, d); }
