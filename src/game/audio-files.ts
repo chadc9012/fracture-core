@@ -17,6 +17,11 @@ import a_vehicle_engine_start from "@/assets/audio/vehicle-engine-start.wav.asse
 import a_wasteland_wind from "@/assets/audio/wasteland-wind.wav.asset.json";
 import a_waterfall_river from "@/assets/audio/waterfall-river.wav.asset.json";
 
+/** Regional ambience beds built by scripts/build-ambience.py (designed, seamless 30 s loops) — they replace the old
+ * 12 s flat-noise WAVs, which players heard as static. */
+const AMBIENCE_BEDS = ["ember-peaks", "forest-wilds", "frost-spire", "nexus-hum", "solara-dunes", "swamp-marsh", "underwater-city", "wasteland-wind"] as const;
+export const AMBIENCE_BED_URLS: Record<string, string> = Object.fromEntries(AMBIENCE_BEDS.map((n) => [n, `/audio/ambience/${n}.mp3`]));
+
 export const AUDIO_FILES: Record<string, string> = {
   "ember-peaks": a_ember_peaks.url,
   "forest-wilds": a_forest_wilds.url,
@@ -35,4 +40,5 @@ export const AUDIO_FILES: Record<string, string> = {
   "vehicle-engine-start": a_vehicle_engine_start.url,
   "wasteland-wind": a_wasteland_wind.url,
   "waterfall-river": a_waterfall_river.url,
+  ...AMBIENCE_BED_URLS,
 };

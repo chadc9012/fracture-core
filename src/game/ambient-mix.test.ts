@@ -1,5 +1,7 @@
 import { expect, test } from "bun:test";
+import { existsSync, statSync } from "node:fs";
 import { AMBIENT_MIX, WEATHER_BEDS, crossfadeLoop } from "./ambient-mix";
+import { AMBIENCE_BED_URLS, AUDIO_FILES } from "./audio-files";
 
 /** Regression: idle audio measured ~-16 dBFS RMS in a real browser — a full-level held sine pad (an "engine" drone)
  * over flat noise beds and recordings that clicked at the loop seam ("a plane taking off, with static"). */
@@ -8,7 +10,7 @@ test("background beds sit well below the action and the old drone/hiss levels", 
   expect(AMBIENT_MIX.pad).toBeLessThanOrEqual(0.15); // was 0.5 held
   expect(AMBIENT_MIX.padCombat).toBeLessThan(AMBIENT_MIX.pad);
   expect(AMBIENT_MIX.padCutoff).toBeLessThanOrEqual(1200);
-  expect(AMBIENT_MIX.sampleGain).toBeLessThan(0.22); // the old recording level
+  expect(AMBIENT_MIX.sampleGain).toBeLessThanOrEqual(0.6); // beds are mastered to -21 dBFS RMS (the old noise WAVs were -16.6 at 0.22)
   expect(AMBIENT_MIX.noiseSeconds).toBeGreaterThanOrEqual(3); // a 1 s loop repeats audibly
   expect(AMBIENT_MIX.waterPeak.fall).toBeLessThan(0.22);
 });
@@ -43,4 +45,14 @@ test("crossfadeLoop handles degenerate inputs", () => {
   const d = new Float32Array([1, 2, 3, 4]);
   expect(Array.from(crossfadeLoop(d, 0))).toEqual([1, 2, 3, 4]);
   expect(crossfadeLoop(d, 99).length).toBe(2); // fade capped at half
+});
+
+test("every region's ambience is a designed bed from scripts/build-ambience.py, shipped with the game", () => {
+  for (const name of ["forest-wilds", "swamp-marsh", "nexus-hum", "underwater-city", "frost-spire", "solara-dunes", "wasteland-wind", "ember-peaks"]) {
+    const url = AMBIENCE_BED_URLS[name]!;
+    expect(AUDIO_FILES[name]).toBe(url); // not the old flat-noise WAV on the asset CDN
+    const file = `public${url}`;
+    expect(existsSync(file)).toBe(true);
+    expect(statSync(file).size).toBeGreaterThan(100_000);
+  }
 });

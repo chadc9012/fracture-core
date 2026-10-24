@@ -7,16 +7,16 @@
  * well under the action, breathe instead of droning, and loop without a seam.
  */
 export const AMBIENT_MIX = {
-  /** music ambient pad (on the 0.35 music bus): was 0.5 sustained; now a quiet swell */
-  pad: 0.12,
+  /** music ambient pad (on the 0.35 music bus): was 0.5 sustained; now a quiet swell under the region ambience */
+  pad: 0.06,
   /** pad level while in combat (the tension/drums layers take over) */
-  padCombat: 0.06,
+  padCombat: 0.03,
   /** the pad sits behind a lowpass so it is a warm chord, not a hum */
   padCutoff: 900,
   /** seconds per pad swell (fades in and out instead of holding one tone forever) */
   padSwellSeconds: 18,
-  /** regional ambience recordings on the ambience bus: was 0.22 */
-  sampleGain: 0.09,
+  /** regional ambience beds (scripts/build-ambience.py, mastered to -21 dBFS RMS) on the ambience bus */
+  sampleGain: 0.55,
   /** depth (0..1) of the slow gust swell on noise beds and recordings, so wind moves instead of hissing */
   gustDepth: 0.45,
   /** gust rate range in Hz */
