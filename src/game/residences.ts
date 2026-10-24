@@ -205,6 +205,26 @@ export function homeBoxes(style: HomeStyle, sink = 1): Box[] {
     box(s * (w / 2), 1.6, -d * 0.05, WALL + 0.03, 1.2, Math.min(2.4, d * 0.22), p.glass, "glass");
   }
   box(0, 2.56, front + 0.02, DOOR + 0.24, 0.12, WALL + 0.06, p.trim);
+  // exterior detail (face-lift: the homes read as flat boxes): framed windows with sills, shutters on the flanks, a porch lamp
+  for (const s of [-1, 1]) {
+    const fw = Math.min(1.8, wing * 0.6), fx = s * (DOOR / 2 + wing / 2);
+    box(fx, 0.97, front + 0.04, fw + 0.22, 0.08, WALL + 0.18, p.trim); // sill
+    box(fx, 2.23, front + 0.03, fw + 0.14, 0.07, WALL + 0.1, p.trim); // head
+    for (const j of [-1, 1]) box(fx + j * (fw / 2 + 0.035), 1.6, front + 0.03, 0.07, 1.26, WALL + 0.1, p.trim); // jambs
+    box(fx, 1.6, front + 0.03, 0.045, 1.2, WALL + 0.08, p.trim); // mullion
+    const fz = -d * 0.05, fd = Math.min(2.4, d * 0.22);
+    box(s * (w / 2 + 0.04), 0.97, fz, WALL + 0.18, 0.08, fd + 0.22, p.trim);
+    box(s * (w / 2 + 0.03), 2.23, fz, WALL + 0.1, 0.07, fd + 0.14, p.trim);
+    for (const j of [-1, 1]) box(s * (w / 2 + 0.07), 1.6, fz + j * (fd / 2 + 0.32), 0.05, 1.3, 0.55, p.accent); // shutters
+  }
+  // back wall: a bedroom window over the headboard and a small bathroom window (frosted), framed like the front
+  for (const [bx, bw, bh, by] of [[-w * 0.27, 1.5, 0.8, 1.85], [w * 0.36, 0.7, 0.55, 1.95]] as const) {
+    box(bx, by, -front - 0.005, bw, bh, WALL + 0.03, bx > 0 ? "#b9c4c8" : p.glass, "glass");
+    box(bx, by - bh / 2 - 0.04, -front - 0.04, bw + 0.2, 0.08, WALL + 0.18, p.trim);
+    box(bx, by + bh / 2 + 0.035, -front - 0.03, bw + 0.12, 0.07, WALL + 0.1, p.trim);
+  }
+  box(DOOR / 2 + 0.38, 2.15, front + 0.1, 0.16, 0.24, 0.12, "#2b2b2b");
+  box(DOOR / 2 + 0.38, 2.12, front + 0.17, 0.1, 0.14, 0.02, "#ffe2b0", "lamp");
   // ceiling and a ceiling light
   box(0, h - 0.06, 0, w - WALL * 2, 0.12, d - WALL * 2, "#e8e2d6");
   box(0, h - 0.13, d * 0.12, 1.1, 0.03, 1.1, "#fff1d6", "lamp");
@@ -259,11 +279,17 @@ export function homeBoxes(style: HomeStyle, sink = 1): Box[] {
     }
     if (style === "condo" || style === "villa") box(0, y0 + 0.25, d / 2 + 0.75, w * 0.6, 0.12, 1.5, p.trim); // balcony
   }
-  if (p.roof === "gable") out.push({ x: 0, y: top + 0.9, z: 0, sx: w + 0.6, sy: 1.8, sz: d + 0.6, color: p.trim, mat: "solid", prism: true });
+  if (p.roof === "gable") {
+    out.push({ x: 0, y: top + 0.9, z: 0, sx: w + 0.6, sy: 1.8, sz: d + 0.6, color: p.trim, mat: "solid", prism: true });
+    box(w * 0.28, top + 1.3, -d * 0.12, 0.75, 2.6, 0.75, "#6f5a4c"); // brick chimney through the roof
+    box(w * 0.28, top + 2.65, -d * 0.12, 0.9, 0.12, 0.9, "#4a3c33");
+    for (const s of [-1, 1]) box(0, top + 0.02, s * (d / 2 + 0.28), w + 0.6, 0.12, 0.12, "#3c3f42"); // gutters along both eaves
+  }
   else {
     box(0, top + 0.12, 0, w + 0.3, 0.24, d + 0.3, p.trim);
     if (p.roof === "parapet") for (const s of [-1, 1]) { box(0, top + 0.55, s * (d / 2 + 0.05), w + 0.3, 0.6, 0.2, p.trim); box(s * (w / 2 + 0.05), top + 0.55, 0, 0.2, 0.6, d + 0.3, p.trim); }
   }
+  for (const [sx, sz] of [[-1, 1], [1, 1], [-1, -1], [1, -1]] as const) box(sx * (w / 2 + 0.06), top / 2, sz * (d / 2 + 0.06), 0.09, top, 0.09, "#3c3f42"); // downpipes
   return out;
 }
 
