@@ -15,6 +15,7 @@ import {
 import { grassCardTexture, hullDamageTexture, leafLitterTexture, mossTexture, scorchTexture, smokeTexture, soilTexture } from "./forest-textures";
 import { REGIONS } from "@/game/world";
 import { windSway, windUniforms } from "@/game/wind-sway";
+import { groundLitFragment } from "@/game/ground-lit";
 import { DistrictLight } from "./DistrictLight";
 import { PolyFoliage, type Placement } from "./PolyFoliage";
 import { CrashedTransport, Crates, ScoutWreck, TrailWear } from "./CrashHull";
@@ -197,7 +198,7 @@ function GrassCards({ items }: { items: GrassItem[] }) {
     for (let i = 0; i < n.count; i++) n.setXYZ(i, 0, 1, 0);
     return g;
   }, []);
-  const sway = useMemo(() => windSway(geometry, 0.2), [geometry]);
+  const sway = useMemo(() => { const w = windSway(geometry, 0.2); return (shader: Parameters<typeof w>[0] & { fragmentShader: string }) => { w(shader); shader.fragmentShader = groundLitFragment(shader.fragmentShader, THREE.ShaderChunk.normal_fragment_begin); }; }, [geometry]);
   useLayoutEffect(() => {
     const m = ref.current;
     if (!m) return;

@@ -4,6 +4,7 @@ import * as THREE from "three";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import { GRASS_REACH, chunkClumps, chunkOf, chunksAround, type Clump } from "@/game/grass-field";
 import { windSway } from "@/game/wind-sway";
+import { groundLitFragment } from "@/game/ground-lit";
 import type { RenderTier } from "@/game/performance";
 
 /** Grass blades on a transparent card (canvas, no asset): many thin tapered blades, dark at the root and sun-bleached at the tips,
@@ -52,7 +53,9 @@ export function GrassField({ tier }: { tier: RenderTier }) {
   const texture = useMemo(() => bladeTexture(), []);
   const material = useMemo(() => {
     const m = new THREE.MeshStandardMaterial({ map: texture, alphaTest: 0.45, side: THREE.DoubleSide, roughness: 0.95 });
-    m.onBeforeCompile = windSway(geometry, 0.18);
+    const sway = windSway(geometry, 0.18);
+    // normals point up on both faces (ground-lit.ts): without this every card seen from behind rendered near-black
+    m.onBeforeCompile = (shader) => { sway(shader); shader.fragmentShader = groundLitFragment(shader.fragmentShader, THREE.ShaderChunk.normal_fragment_begin); };
     return m;
   }, [geometry, texture]);
   useEffect(() => () => { geometry.dispose(); material.dispose(); texture?.dispose(); }, [geometry, material, texture]);
