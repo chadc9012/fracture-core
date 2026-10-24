@@ -264,7 +264,8 @@ const MODELS: Record<HandlingClass, (p: { m: Mats; rig: Rig }) => ReactElement> 
 /** support hand rest positions per class: foregrip, and magazine well while reloading (null = one-handed) */
 const SUPPORT: Record<HandlingClass, { grip: [number, number, number]; well: [number, number, number] } | null> = {
   rifle: { grip: [0, -0.04, -0.4], well: [0, -0.06, -0.18] },
-  pistol: { grip: [-0.01, -0.035, 0.01], well: [0, -0.09, 0.02] },
+  // the support hand cups the firing hand from below-left instead of sitting inside it
+  pistol: { grip: [-0.035, -0.06, 0.03], well: [0, -0.09, 0.02] },
   shotgun: { grip: [0, 0.01, -0.38], well: [0, -0.01, -0.12] },
   heavy: { grip: [0, -0.04, -0.36], well: [0, -0.08, -0.2] },
   launcher: { grip: [0, 0.03, -0.3], well: [0, 0.1, 0.25] },
@@ -299,7 +300,8 @@ function ArmAuthored({ m, side }: { m: Mats; side: 1 | -1 }) {
   return <group scale={[side, 1, 1]}>
     {parts.hand && <primitive object={parts.hand} />}
     {/* the forearm drops steeply toward the bottom of the screen (same angle as the procedural arm) */}
-    <group rotation={[1.05, -0.3, 0]}>{parts.fore && <primitive object={parts.fore} />}</group>
+    {/* stretched to ~0.55 m: the authored 0.28 m forearm ended on screen (a floating elbow pad) at the hip/sprint/slide FOVs */}
+    <group rotation={[1.05, -0.3, 0]}>{parts.fore && <primitive object={parts.fore} scale={[1, 1, 1.95]} />}</group>
   </group>;
 }
 
@@ -315,8 +317,8 @@ function ArmProcedural({ m, side }: { m: Mats; side: 1 | -1 }) {
     <Part geo="box" size={[0.065, 0.06, 0.04]} at={[0, 0.012, 0.06]} mat={m.armor} />
     {/* the forearm drops steeply toward the bottom of the screen; a shallow angle ran it through the near plane as a huge dark slab */}
     <group rotation={[1.05, side * -0.3, 0]}>
-      <Part geo="cyl" size={[0.03, 0.03, 0.2]} at={[0, -0.01, 0.14]} mat={m.sleeve} />
-      <Part geo="box" size={[0.06, 0.055, 0.11]} at={[0, 0.005, 0.12]} mat={m.armor} />
+      <Part geo="cyl" size={[0.03, 0.03, 0.5]} at={[0, -0.01, 0.29]} mat={m.sleeve} />
+      <Part geo="box" size={[0.06, 0.055, 0.2]} at={[0, 0.005, 0.15]} mat={m.armor} />
       <Part geo="box" size={[0.01, 0.01, 0.08]} at={[side * 0.033, 0.018, 0.12]} mat={m.accent} />
     </group>
   </group>;

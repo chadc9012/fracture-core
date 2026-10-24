@@ -1062,6 +1062,7 @@ function SceneImpl({
   const look = useMemo(() => new THREE.Vector3(), []);
   const cameraDirection = useMemo(() => new THREE.Vector3(), []);
   const viewmodel = useRef<THREE.Group>(null);
+  const vmBaseFov = useRef(78);
   // first-person weapon presentation (weapon-handling.ts): state stepped each frame, pose read by ViewWeapon
   const viewState = useRef<ViewState | null>(null);
   const viewPoseRef = useRef<ViewPose | null>(null);
@@ -2860,6 +2861,15 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
         viewmodel.current.visible = !s.inVehicle && s.cameraBlend < 0.22;
         viewmodel.current.position.copy(camera.position);
         viewmodel.current.quaternion.copy(camera.quaternion);
+        // sprint/slide widen the FOV; scaling the viewmodel's x/y by the same ratio keeps the gun and hands where they sit
+        // at the hip (or aim) FOV, instead of sliding apart and stretching on every FOV kick
+        if (camera instanceof THREE.PerspectiveCamera) {
+          // the baseline eases exactly like the camera does, so aiming in/out is untouched and only the kicks are cancelled
+          const want = movementFov(Boolean(mouse.current.aim || padState.current.aim), false, false, "STAND");
+          vmBaseFov.current += (want - vmBaseFov.current) * (1 - Math.exp(-12 * dt));
+          const k = Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) / Math.tan(THREE.MathUtils.degToRad(vmBaseFov.current / 2));
+          viewmodel.current.scale.set(k, k, 1);
+        }
         // one shared handling system: draw/holster, ADS, recoil spring, sprint, reload choreography, slide/pump/bolt, melee arcs
         const vdef = WEAPONS[s.weapon];
         const vfeel = { mobility: armorFxRef.current.moveSpeed * 10, defense: armorFxRef.current.resist * 4 };
@@ -3222,7 +3232,7 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
       {activity && activity.def.stages[0]?.kind === "race" && activity.run.race ? <RaceCourse race={raceById((activity.def.stages[0] as { raceId: string }).raceId)!} run={activity.run.race as RaceRun} /> : null}
       {/* player on foot */}
       <group ref={player} position={SPAWN.toArray()}>
-        <OperatorModel colorway held={state} gear={gear} bodyType={bodyType} classId={playerClass} height={OPERATOR_HEIGHT} feetY={-1.55} color={appearance.armor} trim={appearance.visor} cloth={appearance.cloth} look={worn} pose="locomotion" motion={feel.current.motionRef} fallback={
+        <OperatorModel colorway held={state} gear={gear} bodyType={bodyType} classId={playerClass} height={OPERATOR_HEIGHT} feetY={-1.6} color={appearance.armor} trim={appearance.visor} cloth={appearance.cloth} look={worn} pose="locomotion" motion={feel.current.motionRef} fallback={
   <group scale={OPERATOR_HEIGHT / 2.75} position={[0, -1.55 * (1 - OPERATOR_HEIGHT / 2.75), 0]}><Operator bodyType={bodyType} armor={appearance.armor} cloth={appearance.cloth} visor={appearance.visor} trim={appearance.trim} classId={playerClass} motion={feel.current.motionRef} visualState={armorState} chestLevel={armorLevels.chest} helmetLevel={armorLevels.helmet} legsLevel={armorLevels.legs} look={worn} /></group>
         } />
         {playerClass === "TITAN" && sim.titan.blocking && (

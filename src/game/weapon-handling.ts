@@ -41,12 +41,14 @@ export type HandlingProfile = {
   sprintRot: V3;
 };
 
+/** ADS z keeps every gun's rear edge (plus its full recoil kick) beyond the camera's 0.04 m near plane; closer, the stock was
+ * cut open on screen while aiming. */
 export const HANDLING: Record<HandlingClass, HandlingProfile> = {
-  rifle: { cls: "rifle", hip: [0.2, -0.2, -0.48], ads: [0, -0.115, -0.36], draw: 0.42, holster: 0.22, adsTime: 0.18, kickBack: 0.035, kickPitch: 0.035, kickRoll: 0.025, recover: 18, sway: 1, reload: "mag", cycle: "none", cycleTime: 0, sprintPos: [0.08, -0.12, 0.06], sprintRot: [-0.35, 0.7, 0.25] },
+  rifle: { cls: "rifle", hip: [0.2, -0.2, -0.48], ads: [0, -0.115, -0.4], draw: 0.42, holster: 0.22, adsTime: 0.18, kickBack: 0.035, kickPitch: 0.035, kickRoll: 0.025, recover: 18, sway: 1, reload: "mag", cycle: "none", cycleTime: 0, sprintPos: [0.08, -0.12, 0.06], sprintRot: [-0.35, 0.7, 0.25] },
   pistol: { cls: "pistol", hip: [0.18, -0.18, -0.42], ads: [0, -0.1, -0.38], draw: 0.25, holster: 0.15, adsTime: 0.12, kickBack: 0.03, kickPitch: 0.16, kickRoll: 0.04, recover: 14, sway: 1.2, reload: "mag", cycle: "slide", cycleTime: 0.08, sprintPos: [0.02, -0.2, 0.12], sprintRot: [-0.9, 0.2, 0.1] },
-  shotgun: { cls: "shotgun", hip: [0.21, -0.22, -0.46], ads: [0, -0.12, -0.34], draw: 0.5, holster: 0.26, adsTime: 0.22, kickBack: 0.09, kickPitch: 0.12, kickRoll: 0.05, recover: 9, sway: 0.9, reload: "shell", cycle: "pump", cycleTime: 0.32, sprintPos: [0.1, -0.12, 0.05], sprintRot: [-0.3, 0.85, 0.3] },
-  heavy: { cls: "heavy", hip: [0.24, -0.26, -0.5], ads: [0.02, -0.15, -0.4], draw: 0.6, holster: 0.32, adsTime: 0.28, kickBack: 0.11, kickPitch: 0.09, kickRoll: 0.03, recover: 7, sway: 0.7, reload: "cell", cycle: "bolt", cycleTime: 0.45, sprintPos: [0.12, -0.14, 0.05], sprintRot: [-0.25, 0.9, 0.3] },
-  launcher: { cls: "launcher", hip: [0.25, -0.2, -0.45], ads: [0.05, -0.13, -0.38], draw: 0.65, holster: 0.35, adsTime: 0.3, kickBack: 0.13, kickPitch: 0.1, kickRoll: 0.02, recover: 6, sway: 0.6, reload: "cell", cycle: "none", cycleTime: 0, sprintPos: [0.12, -0.15, 0.05], sprintRot: [-0.25, 0.8, 0.3] },
+  shotgun: { cls: "shotgun", hip: [0.21, -0.22, -0.46], ads: [0, -0.12, -0.44], draw: 0.5, holster: 0.26, adsTime: 0.22, kickBack: 0.09, kickPitch: 0.12, kickRoll: 0.05, recover: 9, sway: 0.9, reload: "shell", cycle: "pump", cycleTime: 0.32, sprintPos: [0.1, -0.12, 0.05], sprintRot: [-0.3, 0.85, 0.3] },
+  heavy: { cls: "heavy", hip: [0.24, -0.26, -0.5], ads: [0.02, -0.15, -0.47], draw: 0.6, holster: 0.32, adsTime: 0.28, kickBack: 0.11, kickPitch: 0.09, kickRoll: 0.03, recover: 7, sway: 0.7, reload: "cell", cycle: "bolt", cycleTime: 0.45, sprintPos: [0.12, -0.14, 0.05], sprintRot: [-0.25, 0.9, 0.3] },
+  launcher: { cls: "launcher", hip: [0.25, -0.2, -0.45], ads: [0.05, -0.13, -0.5], draw: 0.65, holster: 0.35, adsTime: 0.3, kickBack: 0.13, kickPitch: 0.1, kickRoll: 0.02, recover: 6, sway: 0.6, reload: "cell", cycle: "none", cycleTime: 0, sprintPos: [0.12, -0.15, 0.05], sprintRot: [-0.25, 0.8, 0.3] },
   sword: { cls: "sword", hip: [0.28, -0.3, -0.45], ads: [0.28, -0.3, -0.45], draw: 0.35, holster: 0.2, adsTime: 0.2, kickBack: 0, kickPitch: 0, kickRoll: 0, recover: 10, sway: 1.1, reload: "none", cycle: "none", cycleTime: 0, sprintPos: [0.05, -0.12, 0.1], sprintRot: [-0.4, 0.2, -0.3] },
 };
 

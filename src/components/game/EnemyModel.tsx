@@ -177,6 +177,9 @@ function Authored({ visual, headRef, drive, onBuilt }: { visual: EnemyVisual; he
 
 /** Real enemy model for this faction/role; procedural trooper while loading or if the model fails. */
 export function FactionEnemy({ kind, role, visorRef, headRef, drive, onBuilt }: { kind: EnemyKind; role: EnemyRole; visorRef?: React.Ref<THREE.MeshStandardMaterial>; headRef?: React.Ref<THREE.Group>; drive?: DriveRef; onBuilt?: (obj: THREE.Object3D) => void }) {
-  const fallback = <EnemyModel kind={kind} boss={role === "boss"} {...(drive ? { drive } : {})} {...(visorRef ? { visorRef } : {})} {...(headRef ? { headRef } : {})} />;
+  // the procedural stand-in is built ~3.9 units tall with boots ~0.18 below its origin: scale it to the authored height and
+  // stand its boots on the ground, so a loading or failed model never shows a 3.9 m trooper sunk into the floor
+  const k = enemyVisual(kind, role).height / 3.9;
+  const fallback = <group scale={k} position={[0, 0.18 * k, 0]}><EnemyModel kind={kind} boss={role === "boss"} {...(drive ? { drive } : {})} {...(visorRef ? { visorRef } : {})} {...(headRef ? { headRef } : {})} /></group>;
   return <QuietBoundary fallback={fallback}><Suspense fallback={fallback}><Authored visual={enemyVisual(kind, role)} {...(headRef ? { headRef } : {})} {...(drive ? { drive } : {})} {...(onBuilt ? { onBuilt } : {})} /></Suspense></QuietBoundary>;
 }

@@ -90,7 +90,11 @@ function VehicleBody({ model, paint, cosmetics, speedRef, steerRef, brakeRef, bo
     });
     const baseColor = paintMat ? (paintMat as THREE.MeshStandardMaterial).color.clone() : null;
     const baseRim = rimMat ? (rimMat as THREE.MeshStandardMaterial).color.clone() : null;
-    return { root, wheels, steer, rotors, tailRotors, tails, heads, paintMat: paintMat as THREE.MeshStandardMaterial | null, rimMat: rimMat as THREE.MeshStandardMaterial | null, baseColor, baseRim, wing: wing as THREE.Object3D | null, underglow: underglow as THREE.Object3D | null };
+    // aircraft were built without landing gear and their lowest point sits ~1 m above the model origin, so a landed jet
+    // floated; seat any body whose underside is that high on its own underside (cars sit at ~0 and hover bikes at ~0.2 keep theirs)
+    const under = localBounds(root).min.y;
+    const seat = under > 0.4 ? under : 0;
+    return { seat, root, wheels, steer, rotors, tailRotors, tails, heads, paintMat: paintMat as THREE.MeshStandardMaterial | null, rimMat: rimMat as THREE.MeshStandardMaterial | null, baseColor, baseRim, wing: wing as THREE.Object3D | null, underglow: underglow as THREE.Object3D | null };
   }, [scene, shadows]);
 
   // garage paint
@@ -118,7 +122,7 @@ function VehicleBody({ model, paint, cosmetics, speedRef, steerRef, brakeRef, bo
   useEffect(() => {
     if (!boundsRef) return;
     const b = localBounds(rig.root); // root-local, not world: see vehicle-bounds.ts
-    const up = new THREE.Vector3(0, lift, 0);
+    const up = new THREE.Vector3(0, lift - rig.seat * model.scale, 0);
     boundsRef.current = new THREE.Box3(b.min.clone().multiplyScalar(model.scale).add(up), b.max.clone().multiplyScalar(model.scale).add(up));
     return () => { boundsRef.current = null; };
   }, [boundsRef, rig, model.scale, lift]);
@@ -143,7 +147,7 @@ function VehicleBody({ model, paint, cosmetics, speedRef, steerRef, brakeRef, bo
 
   const k = kit?.box;
   return (
-    <group scale={model.scale} position-y={lift}>
+    <group scale={model.scale} position-y={lift - rig.seat * model.scale}>
       <primitive object={rig.root} />
       {k && cosmetics?.armor === "reinforced" && [-1, 1].map((s) => (
         <mesh key={s} position={[s * (k.max.x + 0.02), (k.min.y + k.max.y) * 0.32, (k.min.z + k.max.z) / 2]} castShadow>

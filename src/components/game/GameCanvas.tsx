@@ -1372,6 +1372,8 @@ export function GameCanvas() {
         camera={{
           position: [START.x, walkHeight(START.x, START.z) + 30, START.z + 46],
           fov: 55,
+          // near 0.04 (three's default is 0.1): the first-person gun and arms sit 5-15 cm from the eye and were clipped open
+          near: 0.04,
           far: 1800,
         }}
       >

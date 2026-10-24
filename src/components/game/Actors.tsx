@@ -262,12 +262,13 @@ export function WarMachines({ sim }: { sim: WorldSim }) {
       for (const child of node.children) child.visible = child.name === "elite-ring" ? m.elite && !m.boss : child.name === modelName;
       // walking gait: subtle body bob + roll so the legs read as striding
       const gait = t * 3 + i;
-      // rigged models walk with their own clips; only clip-less ones get the procedural bob/roll
-      const bob = drive?.current.procedural === false ? 0 : 1;
+      // rigged models walk with their own clips; only clip-less ones get the procedural bob/roll, and only while moving
+      // (a 28 cm hop on a clock made standing crawlers bounce off the ground)
+      const bob = drive?.current.procedural === false ? 0 : Math.min(1, (drive?.current.speed ?? 0) / 1.2);
       // hit reaction (enemy-reactions.ts): thrown back along the shot, hardest on a stagger, easing out
       const nowS = performance.now() / 1000, kick = recoilAt(m.react, nowS), staggered = isStaggeredNow(m.react, nowS);
       const back = kick * (staggered ? 0.55 : 0.18) * enemyBodyScale(m.scale), rx = m.react?.dx ?? 0, rz = m.react?.dz ?? 0;
-      node.position.set(m.x + rx * back, m.y - 2.2 * m.scale + Math.abs(Math.sin(gait)) * 0.28 * bob, m.z + rz * back);
+      node.position.set(m.x + rx * back, m.y - 2.2 * m.scale + Math.abs(Math.sin(gait)) * 0.06 * bob, m.z + rz * back);
       // lean: pitch away from the hit in the enemy's own frame
       const c = Math.cos(m.rot), sn = Math.sin(m.rot), fwd = rx * sn + rz * c, side = rx * c - rz * sn, lean = kick * (staggered ? 0.32 : 0.1);
       node.rotation.set(Math.sin(gait) * 0.03 * bob + fwd * lean, m.rot, Math.sin(gait * 0.5) * 0.05 * bob - side * lean);

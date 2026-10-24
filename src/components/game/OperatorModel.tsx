@@ -236,7 +236,17 @@ function Model({ url, tint, height, feetY, color, trim, pose, motion, bodyType, 
     const mixer = skinned && animations.length ? new THREE.AnimationMixer(object) : null;
     const actions: Record<string, THREE.AnimationAction> = {};
     if (mixer) for (const clip of animations) { const a = mixer.clipAction(pinRootMotion(clip)); a.timeScale = 0; a.play(); a.weight = 0; actions[clip.name] = a; }
-    return { object, scale, material, authoredMaterials, skins, mixer, actions, offset: new THREE.Vector3(-centre.x * scale, feetY - box.min.y * scale, -centre.z * scale) };
+    // stand the feet on the ground as the body actually stands (its idle pose), not as it was bound: the clips lift the feet
+    // 4-9 cm above the bind pose, which left NYX hovering
+    let floorY = box.min.y;
+    const idle = mixer ? Object.entries(actions).find(([n]) => /idle/i.test(n))?.[1] : undefined;
+    if (mixer && idle) {
+      idle.weight = 1; idle.time = 0; mixer.update(0); object.updateMatrixWorld(true);
+      const posed = new THREE.Box3().setFromObject(object, true);
+      if (Number.isFinite(posed.min.y) && Math.abs(posed.min.y - box.min.y) < size.y * 0.15) floorY = posed.min.y;
+      idle.weight = 0; mixer.update(0);
+    }
+    return { object, scale, material, authoredMaterials, skins, mixer, actions, offset: new THREE.Vector3(-centre.x * scale, feetY - floorY * scale, -centre.z * scale) };
   }, [scene, animations, height, feetY, tint, color, trim, bodyType, look, cloth, pose, recolor, classId]);
   const armorKey = piecesKey(gear, classId);
   useEffect(() => {
