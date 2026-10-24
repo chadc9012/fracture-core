@@ -5,7 +5,7 @@
  *  - shop  (common):  in every weapons shop's weekly rotation (weeklyCatalogStock, Monday 00:00 UTC)
  *  - loot  (rare):    join the enemy drop pool (weapon-loot.ts)
  *  - boss  (epic):    join the boss drop pool
- *  - mission / quest: listed with their source; granted by the reward that names them (not wired yet) */
+ *  - mission / quest: the twelve exotics, one per story mission first clear (weapon-loot.ts CAMPAIGN_EXOTIC) */
 import type { DamageElement, WeaponManifestItem, WeaponTier } from "./equipment";
 
 export type CatalogRarity = "common" | "uncommon" | "rare" | "epic" | "exotic";

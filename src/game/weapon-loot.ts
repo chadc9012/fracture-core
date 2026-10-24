@@ -5,7 +5,7 @@
  * T3, a boss or dungeon a T4, and story missions climb from 140 to 330 through the campaign, so loot is always worth picking up over
  * the 135-power starting rifle. (The old 80 / 95 / 110 bands were all below the starting gear.) Pure; Math.random only at the call site. */
 import { WEAPON_MANIFEST, type WeaponManifestItem } from "./equipment";
-import { catalogFrom } from "./weapon-catalog";
+import { catalogFrom, WEAPON_CATALOG } from "./weapon-catalog";
 import type { GearItem, GearSlot, MaterialId } from "./inventory";
 
 export type LootSource = "enemy-regular" | "enemy-elite" | "enemy-boss" | "dungeon" | "mission";
@@ -45,6 +45,31 @@ export function completionWeapon(source: "dungeon" | "mission", key: string): Ge
 export function grantCompletionWeapon<P extends { inventory: GearItem[] }>(p: P, source: "dungeon" | "mission", key: string): P {
   const item = completionWeapon(source, key);
   return p.inventory.some((g) => g.id === item.id) ? p : { ...p, inventory: [...p.inventory, item] };
+}
+
+/** The catalogue's twelve exotics (the "mission" and "quest" rows of weapon-catalog.ts) are the campaign's signature rewards:
+ * each story mission's first clear grants its own, on top of the regular completion weapon, at that mission's power + 20.
+ * The id `exotic:<catalogue id>` is the idempotence key; saves that cleared a mission before this existed get theirs on their
+ * next mission reward (backfillCampaignExotics). */
+export const CAMPAIGN_EXOTIC: Record<string, string> = {
+  awakening: "Soulpiercer", "broken-signal": "Eclipse SMG", "drowned-relay": "Doombringer", "blackout-protocol": "Lightbringer",
+  "stitched-neon-core": "Worldbreaker", "solar-array": "Light of Solara", "core-node": "Silent Horizon", "frozen-beacon": "Thunder Lord",
+  "failure-core": "Solara Blade", "convoy-breaker": "Dominator", "descent-protocol": "Gravity Lance", "system-core": "World Ender",
+};
+export function campaignExotic(missionId: string): GearItem | null {
+  const name = CAMPAIGN_EXOTIC[missionId];
+  const w = name ? WEAPON_CATALOG.find((c) => c.name === name) : undefined;
+  if (!w) return null;
+  return { ...build("mission", w, `exotic:${w.id}`, `Exotic · ${w.source}`, missionWeaponPower(missionId) + 20), rarity: "EXOTIC" };
+}
+/** grant every cleared campaign mission's exotic that the inventory is missing */
+export function backfillCampaignExotics<P extends { inventory: GearItem[]; completedMissions: string[] }>(p: P): P {
+  let inventory = p.inventory;
+  for (const id of p.completedMissions) {
+    const item = campaignExotic(id);
+    if (item && !inventory.some((g) => g.id === item.id)) inventory = [...inventory, item];
+  }
+  return inventory === p.inventory ? p : { ...p, inventory };
 }
 
 /** Dungeon first clear: one forgeCatalyst (weapon upgrade gate) + one guaranteed weapon. Repeat clears pay neither; the weapon id is the idempotence key. */
