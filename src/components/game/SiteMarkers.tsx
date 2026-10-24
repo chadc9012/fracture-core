@@ -4,7 +4,8 @@ import * as THREE from "three";
 import { SITES, type Site } from "@/game/region-atlas";
 import { walkHeight } from "@/game/terrain";
 import { mulberry32 } from "@/game/rng";
-import { organicRock } from "@/game/organic-geometry";
+import { chippedBlock, flutedColumn, organicRock, saggingTent } from "@/game/organic-geometry";
+import { applyWorldTriplanar, weatheredConcreteTexture } from "@/game/weathered-surface";
 import { NearOnly } from "./NearOnly";
 import { InstancedFleet, type FleetInstance } from "./InstancedFleet";
 import type { FleetModelId } from "@/game/fleet-models";
@@ -30,17 +31,28 @@ const mats = new Map<string, THREE.MeshStandardMaterial>();
 function M(color: string, rough = 0.85, metal = 0.05, emissive?: string, ei = 0): THREE.MeshStandardMaterial {
   const k = `${color}|${rough}|${metal}|${emissive}|${ei}`;
   let m = mats.get(k);
-  if (!m) { m = new THREE.MeshStandardMaterial({ color, roughness: rough, metalness: metal, ...(emissive ? { emissive, emissiveIntensity: ei } : {}) }); mats.set(k, m); }
+  if (!m) {
+    m = new THREE.MeshStandardMaterial({ color, roughness: rough, metalness: metal, ...(emissive ? { emissive, emissiveIntensity: ei } : {}) });
+    // matte, unlit surfaces (stone, timber, canvas) carry the world-space weathering detail: stains, streaks, cracks
+    if (!emissive && rough >= 0.7) applyWorldTriplanar(m, weatheredConcreteTexture(), 4);
+    mats.set(k, m);
+  }
   return m;
 }
+/* worked-stone geometry, cached by size: chipped blocks and fluted columns instead of raw boxes and 10-sided tubes */
+const blocks = new Map<string, THREE.BufferGeometry>();
+const blockGeo = (w: number, h: number, d: number) => { const k = `${w.toFixed(1)}|${h.toFixed(1)}|${d.toFixed(1)}`; let g = blocks.get(k); if (!g) { g = chippedBlock(w, h, d, Math.round(w * 13 + h * 7 + d * 3)); blocks.set(k, g); } return g; };
+const columns = new Map<string, THREE.BufferGeometry>();
+const columnGeo = (h: number, rad: number) => { const k = `${h.toFixed(1)}|${rad.toFixed(2)}`; let g = columns.get(k); if (!g) { g = flutedColumn(h, rad, Math.round(h * 10)); columns.set(k, g); } return g; };
+const tentGeo = saggingTent(2.4, 2.8);
 const rocks = new Map<string, THREE.BufferGeometry>();
 const rockGeo = (seed: number, r: number) => { const k = `${seed}|${r.toFixed(2)}`; let g = rocks.get(k); if (!g) { g = organicRock(r, seed, 1); rocks.set(k, g); } return g; };
 
 function Box({ p, s, m, r = 0 }: { p: [number, number, number]; s: [number, number, number]; m: THREE.Material; r?: number }) {
-  return <mesh position={p} rotation-y={r} material={m} castShadow receiveShadow><boxGeometry args={s} /></mesh>;
+  return <mesh position={p} rotation-y={r} material={m} geometry={blockGeo(s[0], s[1], s[2])} castShadow receiveShadow />;
 }
 function Col({ p, h, rad, m, tilt = 0 }: { p: [number, number, number]; h: number; rad: number; m: THREE.Material; tilt?: number }) {
-  return <mesh position={[p[0], p[1] + h / 2, p[2]]} rotation-z={tilt} material={m} castShadow receiveShadow><cylinderGeometry args={[rad * 0.9, rad, h, 10]} /></mesh>;
+  return <mesh position={p} rotation-z={tilt} material={m} geometry={columnGeo(h, rad)} castShadow receiveShadow />;
 }
 
 function Temple({ pal }: { pal: Pal }) {
@@ -95,7 +107,7 @@ function Spire({ pal, regionId }: { pal: Pal; regionId: string }) {
 function Camp({ pal, seed }: { pal: Pal; seed: number }) {
   const r = mulberry32(seed), cloth = M("#6a4a32", 0.9), wood = M("#3a2a1e", 0.9), fire = M("#ffb347", 0.5, 0, "#ff6a1a", 4), steel = M("#5b6066", 0.5, 0.8);
   return <group>
-    {Array.from({ length: 5 }, (_, i) => { const a = (i / 5) * Math.PI * 2, x = Math.cos(a) * 8, z = Math.sin(a) * 8; return <mesh key={i} position={[x, 1.4, z]} rotation-y={a} material={cloth} castShadow><coneGeometry args={[2.4, 2.8, 4]} /></mesh>; })}
+    {Array.from({ length: 5 }, (_, i) => { const a = (i / 5) * Math.PI * 2, x = Math.cos(a) * 8, z = Math.sin(a) * 8; return <mesh key={i} position={[x, 1.4, z]} rotation-y={a} material={cloth} geometry={tentGeo} castShadow />; })}
     <mesh position={[0, 0.4, 0]} material={fire}><coneGeometry args={[0.7, 1.2, 7]} /></mesh>
     <pointLight position={[0, 1.6, 0]} color="#ff8a3a" intensity={12} distance={22} decay={2} />
     {Array.from({ length: 16 }, (_, i) => { const a = (i / 16) * Math.PI * 2; return <mesh key={`s${i}`} position={[Math.cos(a) * 14, 1.6, Math.sin(a) * 14]} rotation={[0, -a, 0.15 * (r() - 0.5)]} material={i % 3 ? wood : steel} castShadow><cylinderGeometry args={[0.18, 0.26, 3.2, 6]} /></mesh>; })}

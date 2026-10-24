@@ -377,3 +377,70 @@ export function erodedColumn(seed: number, top = 0.55, bottom = 1): THREE.Buffer
   g.computeVertexNormals();
   return g;
 }
+
+/* ---------------- worked stone and canvas (set pieces) ---------------- */
+
+/** A w×h×d stone block (centred, like BoxGeometry) with chipped, worn edges and a slightly uneven face: corners and
+ * edges lose material at random, faces bulge a few centimetres. Faces stay flat-normalled so the block keeps crisp,
+ * cut-stone shading. */
+export function chippedBlock(w: number, h: number, d: number, seed: number): THREE.BufferGeometry {
+  const sx = Math.max(2, Math.round(w / 0.8)), sy = Math.max(2, Math.round(h / 0.8)), sz = Math.max(2, Math.round(d / 0.8));
+  const g = new THREE.BoxGeometry(w, h, d, sx, sy, sz).toNonIndexed();
+  const p = g.attributes["position"] as THREE.BufferAttribute, hw = w / 2, hh = h / 2, hd = d / 2;
+  const chip = Math.min(0.35, Math.min(w, h, d) * 0.12);
+  for (let i = 0; i < p.count; i++) {
+    const x = p.getX(i), y = p.getY(i), z = p.getZ(i);
+    // how many faces this vertex sits on (2+ = an edge or corner)
+    const ex = Math.abs(Math.abs(x) - hw) < 1e-4 ? 1 : 0, ey = Math.abs(Math.abs(y) - hh) < 1e-4 ? 1 : 0, ez = Math.abs(Math.abs(z) - hd) < 1e-4 ? 1 : 0;
+    const n = vnoise(x * 1.7, y * 1.7, z * 1.7, seed) * 0.5 + 0.5;
+    const k = ex + ey + ez >= 2 ? chip * (0.3 + n) : 0;
+    const bulge = 0.025 * vnoise(x * 2.3, y * 2.3, z * 2.3, seed + 5);
+    // pull edge vertices in from each face they sit on (so the edge rounds off), then bulge faces a touch
+    const nx = x - (ey || ez ? Math.sign(x) * k * ex : 0);
+    const ny = y - (ex || ez ? Math.sign(y) * k * ey : 0);
+    const nz = z - (ex || ey ? Math.sign(z) * k * ez : 0);
+    p.setXYZ(i, nx + (ex ? Math.sign(x) * bulge : 0), ny + (ey ? Math.sign(y) * bulge : 0), nz + (ez ? Math.sign(z) * bulge : 0));
+  }
+  g.computeVertexNormals();
+  return g;
+}
+
+/** A classical column of height h and radius rad, base at y = 0: a stepped plinth, a fluted shaft with entasis (it
+ * swells slightly below the middle) and a capital, with a little seeded wear on the flutes. */
+export function flutedColumn(h: number, rad: number, seed = 1): THREE.BufferGeometry {
+  const pts: THREE.Vector2[] = [];
+  const base = Math.min(0.5, h * 0.08), cap = Math.min(0.6, h * 0.09);
+  pts.push(new THREE.Vector2(0.001, 0), new THREE.Vector2(rad * 1.45, 0), new THREE.Vector2(rad * 1.45, base * 0.5), new THREE.Vector2(rad * 1.25, base * 0.6), new THREE.Vector2(rad * 1.18, base));
+  const shaftH = h - base - cap;
+  for (let i = 0; i <= 12; i++) { const t = i / 12, ent = 1 + 0.06 * Math.sin(Math.min(1, t * 1.6) * Math.PI) - 0.1 * t; pts.push(new THREE.Vector2(rad * ent, base + t * shaftH)); }
+  pts.push(new THREE.Vector2(rad * 1.15, h - cap * 0.6), new THREE.Vector2(rad * 1.4, h - cap * 0.25), new THREE.Vector2(rad * 1.5, h - cap * 0.25), new THREE.Vector2(rad * 1.5, h), new THREE.Vector2(0.001, h));
+  const g = new THREE.LatheGeometry(pts, 24);
+  const p = g.attributes["position"] as THREE.BufferAttribute;
+  for (let i = 0; i < p.count; i++) {
+    const x = p.getX(i), y = p.getY(i), z = p.getZ(i);
+    if (y <= base + 0.01 || y >= h - cap * 0.6 - 0.01) continue;
+    const a = Math.atan2(z, x), k = 1 - 0.05 * Math.pow(Math.abs(Math.cos(a * 10)), 0.5) - 0.025 * Math.max(0, vnoise(a * 3, y * 2, 0, seed));
+    p.setXYZ(i, x * k, y, z * k);
+  }
+  g.computeVertexNormals();
+  return g;
+}
+
+/** A canvas tent (ConeGeometry-compatible: radius r, height hgt, centred): four sagging panels between the corner
+ * poles, a ridge that dips, and a pole tip poking out of the top */
+export function saggingTent(r: number, hgt: number): THREE.BufferGeometry {
+  const g = new THREE.ConeGeometry(r, hgt, 4, 6, true).toNonIndexed();
+  const p = g.attributes["position"] as THREE.BufferAttribute;
+  for (let i = 0; i < p.count; i++) {
+    const x = p.getX(i), y = p.getY(i), z = p.getZ(i), rr = Math.hypot(x, z);
+    if (rr < 1e-4) continue;
+    const a = Math.atan2(z, x), t = (y + hgt / 2) / hgt;
+    // panels sag between the four corners (corners at 0/90/180/270 after the cone's own rotation)
+    const panel = Math.abs(Math.sin(a * 2)), sag = 1 - 0.16 * panel * Math.sin(t * Math.PI) - 0.04 * panel;
+    p.setXYZ(i, x * sag, y, z * sag);
+  }
+  g.computeVertexNormals();
+  const pole = new THREE.CylinderGeometry(0.04, 0.05, 0.6, 6).translate(0, hgt / 2 + 0.25, 0).toNonIndexed();
+  g.deleteAttribute("uv"); pole.deleteAttribute("uv");
+  return mergeGeometries([g, pole])!;
+}
