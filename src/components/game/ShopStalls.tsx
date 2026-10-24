@@ -1,4 +1,7 @@
-import { useMemo } from "react";
+import { Suspense, useMemo } from "react";
+import { useGLTF } from "@react-three/drei";
+import * as THREE from "three";
+import { QuietModel } from "./Vehicle";
 import { REGIONAL_SHOPS } from "@/game/regional-shops";
 import { shopAccessKind } from "@/game/shop-access";
 import { walkHeight } from "@/game/terrain";
@@ -14,21 +17,10 @@ export function ShopStalls() {
     <group>
       {stalls.map((s) => (
         <group key={s.id} position={[s.x, s.y, s.z]}>
-          <mesh position={[0, 0.55, 0]} castShadow receiveShadow>
-            <boxGeometry args={[2.4, 1.1, 1]} />
-            <meshStandardMaterial color="#2d3744" metalness={0.5} roughness={0.5} />
-          </mesh>
-          {[-1.1, 1.1].map((x) => (
-            <mesh key={x} position={[x, 1.5, -0.4]}>
-              <cylinderGeometry args={[0.06, 0.06, 3, 6]} />
-              <meshStandardMaterial color="#1a2129" metalness={0.7} roughness={0.3} />
-            </mesh>
-          ))}
-          <mesh position={[0, 3, 0]} rotation-x={0.15}>
-            <boxGeometry args={[2.8, 0.08, 1.8]} />
-            <meshStandardMaterial color="#39424f" roughness={0.8} />
-          </mesh>
-          <mesh position={[0, 2.55, 0.5]}>
+          <QuietModel url={STALL_URL} fallback={<PrimitiveStall />}>
+            <Suspense fallback={<PrimitiveStall />}><Stall tint={KIND_COLOR[s.kind] ?? "#2f7f96"} /></Suspense>
+          </QuietModel>
+          <mesh position={[0, 2.38, 0.98]}>
             <boxGeometry args={[1.8, 0.35, 0.05]} />
             <meshBasicMaterial color={KIND_COLOR[s.kind]} toneMapped={false} />
           </mesh>
@@ -40,4 +32,30 @@ export function ShopStalls() {
       ))}
     </group>
   );
+}
+
+/** the authored market stall (scripts/build-stall.py): plank counter, steel posts, a sagging striped canopy with a
+ * scalloped valance, produce crates, a jar shelf and a lantern. Its coloured stripes ("Paint") take the shop kind's
+ * colour, muted toward canvas so a street of stalls reads as dyed cloth, not neon. */
+const STALL_URL = "/models/props/market-stall.glb";
+const canvasTone = new THREE.Color("#8d8370");
+function Stall({ tint }: { tint: string }) {
+  const { scene } = useGLTF(STALL_URL);
+  const root = useMemo(() => {
+    const r = scene.clone(true);
+    r.traverse((o) => {
+      const m = o as THREE.Mesh; if (!m.isMesh) return;
+      m.castShadow = true; m.receiveShadow = true;
+      const swap = (mat: THREE.Material) => { if (mat.name !== "Paint") return mat; const c = (mat as THREE.MeshStandardMaterial).clone(); c.color.set(tint).lerp(canvasTone, 0.35); return c; };
+      m.material = Array.isArray(m.material) ? m.material.map(swap) : swap(m.material);
+    });
+    return r;
+  }, [scene, tint]);
+  return <primitive object={root} />;
+}
+function PrimitiveStall() {
+  return <group>
+    <mesh position={[0, 0.55, 0]} castShadow receiveShadow><boxGeometry args={[2.4, 1.1, 1]} /><meshStandardMaterial color="#2d3744" metalness={0.5} roughness={0.5} /></mesh>
+    <mesh position={[0, 3, 0]} rotation-x={0.15}><boxGeometry args={[2.8, 0.08, 1.8]} /><meshStandardMaterial color="#39424f" roughness={0.8} /></mesh>
+  </group>;
 }

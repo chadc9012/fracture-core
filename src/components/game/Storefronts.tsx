@@ -4,6 +4,8 @@ import { shopAccessKind } from "@/game/shop-access";
 import { STOREFRONT, WINDOW_FRONT, shopWalls } from "@/game/storefronts";
 import { walkHeight } from "@/game/terrain";
 import { setWalls, clearWalls } from "@/game/walls";
+import * as THREE from "three";
+import { applyWorldTriplanar, weatheredConcreteTexture } from "@/game/weathered-surface";
 import { DistrictLight } from "./DistrictLight";
 import { ShopSign, LightBar } from "./DistrictStreet";
 
@@ -13,26 +15,40 @@ export const KIND_COLOR: Record<ShopKind, string> = {
 
 /** A walk-in shop's street building: solid walls with a real door gap (the glowing door marker from
  * Interiors.tsx stands just in front of it), a lit sign and a soft glow behind the doorway. */
+/** weathered rendered-concrete walls (world-space stains, streaks and cracks) shared by every shop shell */
+let wallMat: THREE.MeshStandardMaterial | null = null;
+const shellMaterial = () => (wallMat ??= applyWorldTriplanar(new THREE.MeshStandardMaterial({ color: "#6b6e72", roughness: 0.88, metalness: 0.08 }), weatheredConcreteTexture(), 3));
+
 function Storefront({ shop, y }: { shop: RegionalShop; y: number }) {
   const { w, d, h, doorW, frontZ, backZ } = STOREFRONT;
   const color = KIND_COLOR[shop.kind];
   const cz = (frontZ + backZ) / 2; // building centre between front and back walls
-  const wall = { color: "#242b34", roughness: 0.6, metalness: 0.45 } as const;
   return (
     <group position={[shop.x, y, shop.z]}>
-      <mesh position={[0, h / 2, backZ]} castShadow receiveShadow><boxGeometry args={[w, h, 0.3]} /><meshStandardMaterial {...wall} /></mesh>
-      <mesh position={[-w / 2, h / 2, cz]} castShadow receiveShadow><boxGeometry args={[0.3, h, d]} /><meshStandardMaterial {...wall} /></mesh>
-      <mesh position={[w / 2, h / 2, cz]} castShadow receiveShadow><boxGeometry args={[0.3, h, d]} /><meshStandardMaterial {...wall} /></mesh>
+      <mesh position={[0, h / 2, backZ]} castShadow receiveShadow material={shellMaterial()}><boxGeometry args={[w, h, 0.3]} /></mesh>
+      <mesh position={[-w / 2, h / 2, cz]} castShadow receiveShadow material={shellMaterial()}><boxGeometry args={[0.3, h, d]} /></mesh>
+      <mesh position={[w / 2, h / 2, cz]} castShadow receiveShadow material={shellMaterial()}><boxGeometry args={[0.3, h, d]} /></mesh>
       {/* front wall in two pieces + lintel: the gap between them is the door */}
       {[-1, 1].map((s) => (
-        <mesh key={s} position={[s * (doorW / 2 + (w - doorW) / 4), h / 2, frontZ]} castShadow receiveShadow>
-          <boxGeometry args={[(w - doorW) / 2, h, 0.3]} /><meshStandardMaterial {...wall} />
+        <mesh key={s} position={[s * (doorW / 2 + (w - doorW) / 4), h / 2, frontZ]} castShadow receiveShadow material={shellMaterial()}>
+          <boxGeometry args={[(w - doorW) / 2, h, 0.3]} />
         </mesh>
       ))}
-      <mesh position={[0, 2.6 + (h - 2.6) / 2, frontZ]} castShadow><boxGeometry args={[doorW, h - 2.6, 0.3]} /><meshStandardMaterial {...wall} /></mesh>
+      <mesh position={[0, 2.6 + (h - 2.6) / 2, frontZ]} castShadow material={shellMaterial()}><boxGeometry args={[doorW, h - 2.6, 0.3]} /></mesh>
       <mesh position={[0, h + 0.15, cz]} castShadow><boxGeometry args={[w + 0.4, 0.3, d + 0.4]} /><meshStandardMaterial color="#161b22" metalness={0.6} roughness={0.4} /></mesh>
       {/* the doorway glows faintly with the shop's kind colour — you can't see the pocket room, but it reads as open */}
       <mesh position={[0, 1.3, frontZ - 0.1]}><planeGeometry args={[doorW - 0.15, 2.5]} /><meshBasicMaterial color={color} transparent opacity={0.14} side={2} depthWrite={false} /></mesh>
+      {/* facade detail: corner pilasters, a cornice band, lit display windows either side of the door, a fabric awning */}
+      {[-1, 1].map((sx) => <mesh key={`pl${sx}`} position={[sx * (w / 2 - 0.2), h / 2, frontZ + 0.12]} castShadow material={shellMaterial()}><boxGeometry args={[0.5, h, 0.45]} /></mesh>)}
+      <mesh position={[0, h - 0.15, frontZ + 0.2]} castShadow><boxGeometry args={[w + 0.2, 0.3, 0.5]} /><meshStandardMaterial color="#3a3d42" roughness={0.7} metalness={0.3} /></mesh>
+      {[-1, 1].map((sx) => (
+        <group key={`win${sx}`} position={[sx * (doorW / 2 + (w - doorW) / 4), 1.75, frontZ + 0.16]}>
+          <mesh><boxGeometry args={[(w - doorW) / 2 - 1.1, 1.7, 0.06]} /><meshStandardMaterial color="#1a1f25" roughness={0.5} metalness={0.6} /></mesh>
+          <mesh position={[0, 0, 0.035]}><planeGeometry args={[(w - doorW) / 2 - 1.3, 1.5]} /><meshStandardMaterial color="#0e1418" roughness={0.08} metalness={0.4} emissive="#ffcf96" emissiveIntensity={0.35} /></mesh>
+          <mesh position={[0, 0, 0.04]}><planeGeometry args={[0.04, 1.5]} /><meshStandardMaterial color="#1a1f25" /></mesh>
+        </group>
+      ))}
+      <mesh position={[0, 2.95, frontZ + 0.75]} rotation-x={0.32} castShadow><boxGeometry args={[doorW + 1.4, 0.05, 1.3]} /><meshStandardMaterial color={new THREE.Color(color).lerp(new THREE.Color("#5a5248"), 0.55)} roughness={0.9} /></mesh>
       <LightBar position={[0, 0.06, frontZ + 0.25]} size={[w - 0.6, 0.05, 0.08]} color={color} />
       <ShopSign label={shop.name.toUpperCase()} color={color} position={[0, h - 0.4, frontZ + 0.3]} />
       <DistrictLight range={40} position={[0, 2.8, frontZ + 1.2]} color={color} intensity={4} distance={8} decay={2} />
@@ -49,9 +65,9 @@ function WindowFront({ shop, y }: { shop: RegionalShop; y: number }) {
     <group position={[shop.x, y, shop.z]}>
       {/* facade: two pillars, a header and a sill leave the service window open */}
       {[-1, 1].map((s) => (
-        <mesh key={s} position={[s * (w / 2 - 0.6), h / 2, 0]} castShadow receiveShadow><boxGeometry args={[1.2, h, 0.3]} /><meshStandardMaterial color="#242b34" metalness={0.45} roughness={0.6} /></mesh>
+        <mesh key={s} position={[s * (w / 2 - 0.6), h / 2, 0]} castShadow receiveShadow material={shellMaterial()}><boxGeometry args={[1.2, h, 0.3]} /></mesh>
       ))}
-      <mesh position={[0, h - 0.5, 0]} castShadow><boxGeometry args={[w, 1, 0.3]} /><meshStandardMaterial color="#242b34" metalness={0.45} roughness={0.6} /></mesh>
+      <mesh position={[0, h - 0.5, 0]} castShadow material={shellMaterial()}><boxGeometry args={[w, 1, 0.3]} /></mesh>
       <mesh position={[0, 1.0, 0]}><boxGeometry args={[w - 2.4, 0.5, 0.35]} /><meshStandardMaterial color="#39424f" metalness={0.6} roughness={0.4} /></mesh>
       <mesh position={[0, 2.05, 0]}><planeGeometry args={[w - 2.4, 1.6]} /><meshBasicMaterial color={color} transparent opacity={0.18} side={2} depthWrite={false} /></mesh>
       {/* counter to browse from, awning over it */}
