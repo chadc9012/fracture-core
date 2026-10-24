@@ -604,7 +604,7 @@ export function Terrain({ renderTier = "HIGH" }: { renderTier?: RenderTier } = {
         <DistrictLight range={170 * Math.max(1, craterScale / 2)} position={[0, craterY + 6, 0]} color="#ff6a1f" intensity={220} distance={120 * Math.max(1, craterScale / 2)} decay={2} />
       </group>
       <Instances limit={liveEmber.length} castShadow receiveShadow geometry={emberRockGeo}>
-        <meshStandardMaterial color="#ffffff" emissive="#ff3d00" emissiveIntensity={0.07} roughness={0.95} map={rockDetail.map} normalMap={rockDetail.normalMap} normalScale={new THREE.Vector2(0.4, 0.4)} />
+        <meshStandardMaterial color="#ffffff" emissive="#7a1a06" emissiveIntensity={0.025} roughness={0.95} map={rockDetail.map} normalMap={rockDetail.normalMap} normalScale={new THREE.Vector2(0.4, 0.4)} />
         {liveEmber.map((r, i) => (
           <Instance
             key={i}
