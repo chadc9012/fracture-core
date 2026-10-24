@@ -10,7 +10,7 @@ test("background beds sit well below the action and the old drone/hiss levels", 
   expect(AMBIENT_MIX.pad).toBeLessThanOrEqual(0.15); // was 0.5 held
   expect(AMBIENT_MIX.padCombat).toBeLessThan(AMBIENT_MIX.pad);
   expect(AMBIENT_MIX.padCutoff).toBeLessThanOrEqual(1200);
-  expect(AMBIENT_MIX.sampleGain).toBeLessThanOrEqual(0.6); // beds are mastered to -21 dBFS RMS (the old noise WAVs were -16.6 at 0.22)
+  expect(AMBIENT_MIX.sampleGain).toBeLessThanOrEqual(0.85); // beds are mastered to -21 dBFS RMS (the old noise WAVs were -16.6 at 0.22)
   expect(AMBIENT_MIX.noiseSeconds).toBeGreaterThanOrEqual(3); // a 1 s loop repeats audibly
   expect(AMBIENT_MIX.waterPeak.fall).toBeLessThan(0.22);
 });

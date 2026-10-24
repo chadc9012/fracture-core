@@ -16,7 +16,7 @@ export const AMBIENT_MIX = {
   /** seconds per pad swell (fades in and out instead of holding one tone forever) */
   padSwellSeconds: 18,
   /** regional ambience beds (scripts/build-ambience.py, mastered to -21 dBFS RMS) on the ambience bus */
-  sampleGain: 0.55,
+  sampleGain: 0.78,
   /** depth (0..1) of the slow gust swell on noise beds and recordings, so wind moves instead of hissing */
   gustDepth: 0.45,
   /** gust rate range in Hz */
