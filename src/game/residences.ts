@@ -270,14 +270,29 @@ export function homeBoxes(style: HomeStyle, sink = 1): Box[] {
     const n = Math.max(2, Math.round(w / 3.4));
     for (let k = 0; k < n; k++) {
       const x = -w / 2 + (k + 0.5) * (w / n);
-      for (const s of [-1, 1]) box(x, y0 + 1.75, s * (d / 2 + 0.01), Math.min(2.0, (w / n) * 0.62), 1.4, 0.06, p.glass, "glass");
+      const ww = Math.min(2.0, (w / n) * 0.62);
+      for (const s of [-1, 1]) {
+        box(x, y0 + 1.75, s * (d / 2 + 0.01), ww, 1.4, 0.06, p.glass, "glass");
+        box(x, y0 + 1.0, s * (d / 2 + 0.07), ww + 0.2, 0.08, 0.16, p.trim); // sill
+        box(x, y0 + 2.49, s * (d / 2 + 0.05), ww + 0.12, 0.07, 0.1, p.trim); // head
+      }
     }
     const m = Math.max(2, Math.round(d / 3.6));
     for (let k = 0; k < m; k++) {
       const z = -d / 2 + (k + 0.5) * (d / m);
-      for (const s of [-1, 1]) box(s * (w / 2 + 0.01), y0 + 1.75, z, 0.06, 1.4, Math.min(2.0, (d / m) * 0.62), p.glass, "glass");
+      const wd = Math.min(2.0, (d / m) * 0.62);
+      for (const s of [-1, 1]) {
+        box(s * (w / 2 + 0.01), y0 + 1.75, z, 0.06, 1.4, wd, p.glass, "glass");
+        box(s * (w / 2 + 0.07), y0 + 1.0, z, 0.16, 0.08, wd + 0.2, p.trim);
+        box(s * (w / 2 + 0.05), y0 + 2.49, z, 0.1, 0.07, wd + 0.12, p.trim);
+      }
     }
-    if (style === "condo" || style === "villa") box(0, y0 + 0.25, d / 2 + 0.75, w * 0.6, 0.12, 1.5, p.trim); // balcony
+    if (style === "condo" || style === "villa") {
+      box(0, y0 + 0.25, d / 2 + 0.75, w * 0.6, 0.12, 1.5, p.trim); // balcony
+      box(0, y0 + 0.8, d / 2 + 1.47, w * 0.6, 0.05, 0.05, "#2f3236"); // railing: top rail, posts
+      for (let k = 0; k <= 6; k++) box(-w * 0.3 + (k / 6) * w * 0.6, y0 + 0.55, d / 2 + 1.47, 0.04, 0.5, 0.04, "#2f3236");
+      for (const sx of [-1, 1]) box(sx * w * 0.3, y0 + 0.8, d / 2 + 0.75, 0.05, 0.05, 1.45, "#2f3236");
+    }
   }
   if (p.roof === "gable") {
     out.push({ x: 0, y: top + 0.9, z: 0, sx: w + 0.6, sy: 1.8, sz: d + 0.6, color: p.trim, mat: "solid", prism: true });
