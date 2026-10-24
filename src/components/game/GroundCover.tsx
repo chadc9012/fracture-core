@@ -1,7 +1,9 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
+import { movedEnough, nearIndices } from "@/game/foliage-cull";
 import { mergeGeometries, mergeVertices } from "three/examples/jsm/utils/BufferGeometryUtils.js";
-import { groundCover, type CoverItem, type CoverKind } from "@/game/ground-cover";
+import { COVER_CULL_RADIUS, COVER_RESELECT_SECONDS, groundCover, type CoverItem, type CoverKind } from "@/game/ground-cover";
 import { windSway } from "@/game/wind-sway";
 import { organicDeform, organicRock } from "@/game/organic-geometry";
 
@@ -70,25 +72,52 @@ function shade(geo: THREE.BufferGeometry, lo: number, hi: number, minY: number, 
   return geo;
 }
 
-function Batch({ items, geometry, material, scale, yLift = 0 }: { items: CoverItem[]; geometry: THREE.BufferGeometry; material: THREE.Material; scale: (it: CoverItem) => [number, number, number]; yLift?: number }) {
+/** Draws only the items within `radius` of the camera (ground-cover-cull.ts). Matrices and colours for the whole world are computed once;
+ * the live instance buffer is refilled with the near ones when the camera has moved far enough. Instanced meshes otherwise draw every
+ * instance in the world every frame (and again in the shadow pass): ~1M triangles of shrubs and rocks nobody could see. */
+function Batch({ items, geometry, material, scale, yLift = 0, radius }: { items: CoverItem[]; geometry: THREE.BufferGeometry; material: THREE.Material; scale: (it: CoverItem) => [number, number, number]; yLift?: number; radius: number }) {
   const ref = useRef<THREE.InstancedMesh>(null);
-  useLayoutEffect(() => {
-    const m = ref.current;
-    if (!m) return;
+  const camera = useThree((s) => s.camera);
+  const all = useMemo(() => {
     const o = new THREE.Object3D(), c = new THREE.Color();
+    const mats = new Float32Array(items.length * 16), cols = new Float32Array(items.length * 3);
     items.forEach((it, i) => {
       o.position.set(it.x, it.y + yLift - (it.sink ?? 0), it.z);
       o.rotation.set(0, it.r, 0);
       o.scale.set(...scale(it));
       o.updateMatrix();
-      m.setMatrixAt(i, o.matrix);
-      m.setColorAt(i, c.set(it.color));
+      o.matrix.toArray(mats, i * 16);
+      c.set(it.color).toArray(cols, i * 3);
     });
-    m.count = items.length;
+    return { mats, cols };
+  }, [items, scale, yLift]);
+  const last = useRef<{ x: number; z: number; t: number } | null>(null);
+  const refill = (cx: number, cz: number) => {
+    const m = ref.current; if (!m) return;
+    const near = nearIndices(items, cx, cz, radius);
+    const im = m.instanceMatrix.array as Float32Array, ic = m.instanceColor?.array as Float32Array | undefined;
+    near.forEach((src, dst) => { im.set(all.mats.subarray(src * 16, src * 16 + 16), dst * 16); ic?.set(all.cols.subarray(src * 3, src * 3 + 3), dst * 3); });
+    m.count = near.length;
     m.instanceMatrix.needsUpdate = true;
     if (m.instanceColor) m.instanceColor.needsUpdate = true;
-    m.computeBoundingSphere();
-  }, [items, scale, yLift]);
+  };
+  useLayoutEffect(() => {
+    const m = ref.current; if (!m) return;
+    // make sure the colour attribute exists before the first refill (setColorAt allocates it)
+    if (!m.instanceColor && items.length) m.setColorAt(0, new THREE.Color(1, 1, 1));
+    last.current = { x: camera.position.x, z: camera.position.z, t: 0 };
+    refill(camera.position.x, camera.position.z);
+  }, [all]); // eslint-disable-line react-hooks/exhaustive-deps
+  useFrame((state) => {
+    const l = last.current; if (!l) return;
+    const t = state.clock.elapsedTime;
+    if (t - l.t < COVER_RESELECT_SECONDS) return;
+    l.t = t;
+    const { x, z } = camera.position;
+    if (!movedEnough(l.x, l.z, x, z)) return;
+    l.x = x; l.z = z;
+    refill(x, z);
+  });
   if (!items.length) return null;
   return <instancedMesh ref={ref} args={[geometry, material, items.length]} frustumCulled={false} />;
 }
@@ -137,11 +166,11 @@ export function GroundCover({ density }: { density: number }) {
   if (!ready) return null;
   return (
     <group>
-      <Batch items={by.flower} geometry={assets.stem} material={assets.stemMat} scale={s1} />
-      <Batch items={by.flower} geometry={assets.head} material={assets.headMat} scale={s1} />
-      <Batch items={by.bush} geometry={assets.bush} material={assets.bushMat} scale={sBush} />
-      <Batch items={by.rock} geometry={assets.rock} material={assets.rockMat} scale={sRock} yLift={0.08} />
-      <Batch items={by.reed} geometry={assets.reed} material={assets.reedMat} scale={s1} />
+      <Batch items={by.flower} geometry={assets.stem} material={assets.stemMat} scale={s1} radius={COVER_CULL_RADIUS.flower} />
+      <Batch items={by.flower} geometry={assets.head} material={assets.headMat} scale={s1} radius={COVER_CULL_RADIUS.flower} />
+      <Batch items={by.bush} geometry={assets.bush} material={assets.bushMat} scale={sBush} radius={COVER_CULL_RADIUS.bush} />
+      <Batch items={by.rock} geometry={assets.rock} material={assets.rockMat} scale={sRock} yLift={0.08} radius={COVER_CULL_RADIUS.rock} />
+      <Batch items={by.reed} geometry={assets.reed} material={assets.reedMat} scale={s1} radius={COVER_CULL_RADIUS.reed} />
     </group>
   );
 }

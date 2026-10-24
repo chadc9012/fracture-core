@@ -4,6 +4,8 @@ import { REGIONS } from "./world";
 import { WATER_LEVEL, heightAt } from "./terrain";
 import { distanceToRoad, LANE_HALF_WIDTH } from "./lanes";
 import { isReserved } from "./verdant";
+import { COVER_CULL_RADIUS, COVER_RESELECT_SECONDS } from "./ground-cover";
+import { CULL_RADIUS, nearIndices } from "./foliage-cull";
 
 describe("ground cover", () => {
   const items = groundCover(0.7);
@@ -40,5 +42,25 @@ describe("ground cover", () => {
   test("the placement rule rejects road and trail positions", () => {
     const v = REGIONS.find((r) => r.id === "veridan")!;
     expect(placeable(v.x, v.z + 12, "flower", v)).toBe(false);
+  });
+});
+
+describe("ground cover draw distance", () => {
+  // Regression: GroundCover drew every shrub, rock, flower and reed in the world each frame (~1M triangles at HIGH).
+  test("from anywhere in a region only a small share of the world's cover is inside its draw radius", () => {
+    const all = groundCover(1);
+    for (const r of REGIONS) {
+      let near = 0;
+      for (const kind of ["flower", "reed", "bush", "rock"] as const) {
+        const items = all.filter((i) => i.kind === kind);
+        near += nearIndices(items, r.x, r.z, COVER_CULL_RADIUS[kind]).length;
+      }
+      expect(near / all.length).toBeLessThan(0.25);
+    }
+  });
+  test("small things fade first; every radius stays inside the trees' draw distance", () => {
+    expect(COVER_CULL_RADIUS.flower).toBeLessThan(COVER_CULL_RADIUS.rock);
+    for (const v of Object.values(COVER_CULL_RADIUS)) expect(v).toBeLessThanOrEqual(CULL_RADIUS.fir);
+    expect(COVER_RESELECT_SECONDS).toBeLessThanOrEqual(0.5);
   });
 });

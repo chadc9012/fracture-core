@@ -127,3 +127,9 @@ export function groundCover(density: number): CoverItem[] {
   return all;
 }
 export const coverDensityFor = (tier: "LOW" | "MEDIUM" | "HIGH" | "ULTRA") => (tier === "LOW" ? 0.35 : tier === "MEDIUM" ? 0.7 : tier === "HIGH" ? 1 : 1.3);
+
+/** Draw radius per kind (metres). GroundCover keeps the whole world's instances but only draws those near the camera; small things
+ * vanish into grass and fog well inside these distances. Why: drawn whole, the world's shrubs and rocks cost ~1M triangles a frame. */
+export const COVER_CULL_RADIUS: Record<CoverKind, number> = { flower: 70, reed: 90, bush: 110, rock: 130 };
+/** how often (s) GroundCover checks whether the camera moved far enough to re-pick the near instances */
+export const COVER_RESELECT_SECONDS = 0.25;
