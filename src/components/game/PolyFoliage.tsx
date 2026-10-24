@@ -25,7 +25,7 @@ export type Placement = { x: number; y: number; z: number; s: number; r: number;
 class Quiet extends Component<{ children: ReactNode; onFail: () => void }, { failed: boolean }> {
   override state = { failed: false };
   static getDerivedStateFromError() { return { failed: true }; }
-  override componentDidCatch() { this.props.onFail(); }
+  override componentDidCatch(error: unknown) { if (typeof console !== "undefined") console.warn(`[forest] model error: ${error instanceof Error ? error.message : String(error)}`); this.props.onFail(); }
   override render() { return this.state.failed ? null : this.props.children; }
 }
 

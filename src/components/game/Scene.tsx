@@ -188,6 +188,7 @@ import { GlitchAnomalies } from "./GlitchAnomalies";
 import { GroundCover } from "./GroundCover";
 import { coverDensityFor } from "@/game/ground-cover";
 import { GrassField } from "./GrassField";
+import { assetDetails, getAssetSummary } from "@/game/forest-assets";
 import { EmberLightning } from "./EmberLightning";
 import { Badlands } from "./Badlands";
 import { moonAngle, moonlight } from "@/game/celestial";
@@ -683,6 +684,8 @@ function SceneImpl({
       three: () => ({ ...getThree(), tier: getPerfTier() }),
       /** presentation test: log bullet impacts of each kind in an arc 6-9 m ahead of the player (no damage, nothing hit) */
       impacts: () => { const st = state.current; const kinds = ["ground", "cover", "truck", "machine"] as const; kinds.forEach((k, i) => { const a = st.yaw + (i - 1.5) * 0.25, d = 7; const x = st.x + Math.sin(a) * d, z = st.z + Math.cos(a) * d; logImpact(sim, { x, y: walkHeight(x, z) + (k === "ground" ? 0.3 : 1.2), z, vx: Math.sin(a) * 130, vz: Math.cos(a) * 130 }, k); }); return "ok"; },
+      /** which decorative models loaded, are loading or failed (forest-assets.ts), with per-model detail */
+      assets: () => ({ summary: getAssetSummary(), details: assetDetails() }),
       /** set the time of day (0-24 h) and optionally hold it there (frozen) for screenshots */
       time: (hour = 12, freeze = true) => { time.current = (((hour / 24) % 1) + 1) % 1; timeFrozen.current = freeze; return hour; },
       /** third-person (false) or first-person (true) camera */
