@@ -17,7 +17,8 @@ export function getMusicSource(): MusicSource { try { const id = localStorage.ge
 export function setMusicSource(source: MusicSource) { try { localStorage.setItem(RADIO_KEY, source); } catch { /* device storage unavailable */ } window.dispatchEvent(new Event("wf-playlist-changed")); }
 /** Recorded rotation per station (stages 42-49 from the owner): Block Signal rotates four Kinggg Dream songs, Keep Moving opens Neon
  * Frequency, Neon Frequency / Golden Era 94 / Instrumental Dimensions add the stage 49 night instrumentals, and Fracture FM airs
- * Episode 1 plus the stage 49 caller shows (06-08). Tuning in opens with the station's short ID (STATION_IDS, stage 47).
+ * only the episodes that passed the spoiler review (docs/radio/SPOILER_REVIEW.md): 03 and the stage 49 caller shows (06-08).
+ * Tuning in opens with the station's short ID (STATION_IDS, stage 47).
  * Broadcasts are linear: every program plays through, no skip or shuffle. After every AD_EVERY programs one original fictional
  * commercial airs (rotating through RADIO_ADS), never mid-song. */
 export type StationTrack = { title: string; artist: string; path: string };
@@ -45,19 +46,22 @@ export const STATION_TRACKS: Record<StationId, StationTrack[]> = {
     { title: "Night Drive", artist: "Instrumental Dimensions", path: "/audio/radio/instrumental-night-drive.ogg" },
   ],
   comedy: [
-    { title: "Off the Rails · Episode 1", artist: "Fracture FM", path: "/audio/radio/fracture-fm-episode-01.ogg" },
+    { title: "Off the Rails · Episode 3: Wasteland Mechanics", artist: "Fracture FM", path: "/audio/radio/fracture-fm-episode-03.ogg" },
     { title: "Off the Rails · Council Hotline", artist: "Fracture FM", path: "/audio/radio/fracture-fm-episode-06.ogg" },
     { title: "Off the Rails · Faction Open Line", artist: "Fracture FM", path: "/audio/radio/fracture-fm-episode-07.ogg" },
     { title: "Off the Rails · Fracture Weather Watch", artist: "Fracture FM", path: "/audio/radio/fracture-fm-episode-08.ogg" },
   ],
 };
-/** Off the Rails episodes 02-05 (stages 47-48) ship but are not on air: stage 49 held them back pending a spoiler/editorial
- * review (docs/radio/STAGE49_SPOILER_SAFE_RADIO.md). Moving one into STATION_TRACKS.comedy is the owner's call. */
-export const FRACTURE_FM_ARCHIVE: StationTrack[] = [
-  { title: "Off the Rails · Episode 2: Pothole Protection", artist: "Fracture FM", path: "/audio/radio/fracture-fm-episode-02.ogg" },
-  { title: "Off the Rails · Episode 3: Wasteland Mechanics", artist: "Fracture FM", path: "/audio/radio/fracture-fm-episode-03.ogg" },
-  { title: "Off the Rails · Episode 4: The Dragon Parking Ticket", artist: "Fracture FM", path: "/audio/radio/fracture-fm-episode-04.ogg" },
-  { title: "Off the Rails · Episode 5: The Dungeon Landlord", artist: "Fracture FM", path: "/audio/radio/fracture-fm-episode-05.ogg" },
+/** a recording that ships but never airs, with the reason it was withheld */
+export type ArchivedTrack = StationTrack & { withheld: string };
+/** Off the Rails episodes held off air because they spoil the story (owner: "remove any spoilers"; review in
+ * docs/radio/SPOILER_REVIEW.md). The files stay in public/audio/radio; nothing in the broadcast reads this list. Re-airing one
+ * needs a re-recorded episode without the spoiling line, not just a move into STATION_TRACKS. */
+export const FRACTURE_FM_ARCHIVE: ArchivedTrack[] = [
+  { title: "Off the Rails · Episode 1", artist: "Fracture FM", path: "/audio/radio/fracture-fm-episode-01.ogg", withheld: "a Titan parking a dragon: reveals the hidden dragon encounter (Vyrak) and its Wyrmling bond" },
+  { title: "Off the Rails · Episode 2: Pothole Protection", artist: "Fracture FM", path: "/audio/radio/fracture-fm-episode-02.ogg", withheld: "a giant dragon blocking the Solara highway: gives away Vyrak's hidden Solara lair" },
+  { title: "Off the Rails · Episode 4: The Dragon Parking Ticket", artist: "Fracture FM", path: "/audio/radio/fracture-fm-episode-04.ogg", withheld: "a dragon parked in Solara Desert, plus dragon insurance and 'reboot wildlife': Vyrak's lair and the simulation reveal" },
+  { title: "Off the Rails · Episode 5: The Dungeon Landlord", artist: "Fracture FM", path: "/audio/radio/fracture-fm-episode-05.ogg", withheld: "'procedurally generated dungeons' and rent paid in experience points: tells the player the world is generated (simulation reveal)" },
 ];
 /** the short station ID that opens every tuning session (stage 47, public/audio/radio/ids) */
 export const STATION_IDS: Record<StationId, StationTrack> = {
@@ -71,7 +75,6 @@ export const STATION_IDS: Record<StationId, StationTrack> = {
 };
 export const RADIO_ADS: StationTrack[] = [
   { title: "Nexus Noodle Express", artist: "Commercial", path: "/audio/radio/ads/nexus-noodle.ogg" },
-  { title: "WyrmShield Insurance", artist: "Commercial", path: "/audio/radio/ads/vyrak-insurance.ogg" },
   { title: "Portal Mart", artist: "Commercial", path: "/audio/radio/ads/portal-mart.ogg" },
   { title: "Nexus Transit Authority", artist: "Commercial", path: "/audio/radio/ads/nexus-transit.ogg" },
   { title: "Rusty Ride Motors", artist: "Commercial", path: "/audio/radio/ads/rusty-ride.ogg" },
@@ -81,6 +84,10 @@ export const RADIO_ADS: StationTrack[] = [
   { title: "Circuit Cafe", artist: "Commercial", path: "/audio/radio/ads/circuit-cafe.ogg" },
   { title: "Patchwork Repairs", artist: "Commercial", path: "/audio/radio/ads/patchwork-repairs.ogg" },
   { title: "Nexus Community Board", artist: "Commercial", path: "/audio/radio/ads/community-board.ogg" },
+];
+/** commercials held off air for spoilers (docs/radio/SPOILER_REVIEW.md); the files stay in public/audio/radio/ads */
+export const RADIO_ADS_ARCHIVE: ArchivedTrack[] = [
+  { title: "WyrmShield Insurance", artist: "Commercial", path: "/audio/radio/ads/vyrak-insurance.ogg", withheld: "'Has a dragon landed on your vehicle?' and 'mysterious glowing ash': reveals Vyrak, the Ashen Covenant" },
 ];
 export const AD_EVERY = 2;
 /** the broadcast position: whether the station ID is still to play (`intro`), which program is next, how many programs have

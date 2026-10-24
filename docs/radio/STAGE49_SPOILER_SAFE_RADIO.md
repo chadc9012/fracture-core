@@ -1,5 +1,7 @@
 # Stage 49 — Spoiler-Safe In-World Radio
 
+> Superseded by [SPOILER_REVIEW.md](SPOILER_REVIEW.md): the per-file on/off-air decisions now live there.
+
 ## Broadcast policy
 Fracture FM now airs only **Episodes 06–08**, new original caller shows focused on ordinary civic issues, competing neighborhood factions and uncertain Fracture-related weather. They use fictional characters and fictional reports, NOT verified live simulation events. The presenters distinguish government statements, callers' allegations and unknowns. **No main quest outcomes, hidden encounters, boss identities, bond rewards, locations of secrets, or explanations of the Fracture are disclosed.**
 
