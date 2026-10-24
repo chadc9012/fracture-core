@@ -20,7 +20,7 @@ Status words: **built** (code, tests), **live-checked** (seen in the running pre
 | 3–5 s | A glowing tear in the sky leaking lines of code, sun on the horizon | Sky Rift in the sky dome (`sky-dome.ts` `SKY_RIFT`/`riftGlow`, `SkyDome.tsx`): white-hot seam, shattered-glass cracks, leaking code, violet edge; brighter at night and in storms. Replaces the old billboard tear (`FracturePortal`), which also showed through the sea at Thalassia: built |
 | 5–7 s | Giant redwoods, god rays, a leaf frozen mid-fall with ripples | Time-glitch anomalies beside the Verdant trail (`glitch-anomalies.ts`, `GlitchAnomalies.tsx`): built. Forest light shafts already existed (`LightShafts`) |
 | 8–10 s | Looking up a vertical city canyon, light streaks, a vortex in the sky | Fracture vortex over the Aegis Spire (`neon-tiers.ts` `VORTEX`, `FractureVortex`): built |
-| 10–11 s | A glass shard tumbling through light streaks | Planned: shard pickups as the visual for fracture shards (currency) |
+| 10–11 s | A glass shard tumbling through light streaks | Whenever fracture shards are gained, glass shards burst from the Operator, tumble upward and fade, each trailing a light streak (`shard-gain.ts`, `ShardGainFx.tsx`; off with reduced motion): built |
 | 12–15 s | An inverted city hanging upside down, sky crack | Inverted island in the broken horizon: built (distant scenery only) |
 
 The intro flythrough (`intro-camera.ts`) now opens on the broken horizon under the Sky Rift and tilts up the tear before sweeping to spawn,

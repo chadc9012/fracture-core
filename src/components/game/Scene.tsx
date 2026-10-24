@@ -81,6 +81,7 @@ import { RoadDressing } from "./RoadDressing";
 import { ScenarioBosses } from "./ScenarioBosses";
 import { NullPulseFx } from "./NullPulseFx";
 import { AbilityFx } from "./AbilityFx";
+import { ShardGainFx } from "./ShardGainFx";
 import { Squad } from "./Squad";
 import { CoreNodePod } from "./CoreNodePod";
 import { ThalassiaSectors } from "./ThalassiaSectors";
@@ -568,7 +569,7 @@ function SceneImpl({
   onVehicleCondition?: (id: string, condition: VehicleCondition) => void;
   /** Wastelands activity results (wasteland-runtime.ts); GameCanvas resolves them into the save */
   onWaste?: (event: WasteEmit) => void;
-  gear?: Pick<PlayerProgression, "inventory" | "equippedGear" | "dungeonClears" | "completedMissions" | "story" | "earnedRewards" | "missionRuns"> & Partial<Pick<PlayerProgression, "living" | "challenge" | "nemeses" | "fleet" | "blade" | "vehicleConditions" | "nexLedger" | "housing">>;
+  gear?: Pick<PlayerProgression, "inventory" | "equippedGear" | "dungeonClears" | "completedMissions" | "story" | "earnedRewards" | "missionRuns"> & Partial<Pick<PlayerProgression, "living" | "challenge" | "nemeses" | "fleet" | "blade" | "vehicleConditions" | "nexLedger" | "housing" | "fractureShards">>;
   /** nemesis.ts: a nemesis the player picked on the map; it ambushes right after arrival */
   summonNemesis?: string | null;
   mission?: MissionRun | null;
@@ -3052,6 +3053,7 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
       <ScenarioBosses sim={sim} />
       <CombatFx sim={sim} reducedMotion={!!settings.reducedMotion} />
       <AbilityFx sim={sim} reducedMotion={!!settings.reducedMotion} />
+      {!settings.reducedMotion && <ShardGainFx shards={gear?.fractureShards} playerRef={player} />}
       <Squad sim={sim} />
       {coreNode?.target && <CoreNodePod run={coreNode} />}
       <NullPulseFx sim={sim} tier={settings.renderTier} reducedMotion={!!settings.reducedMotion || (typeof window !== "undefined" && typeof window.matchMedia === "function" && window.matchMedia("(prefers-reduced-motion: reduce)").matches)} />
