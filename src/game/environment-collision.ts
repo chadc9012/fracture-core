@@ -48,6 +48,19 @@ export function sweepSolids(body: { x: number; z: number }, from: { x: number; z
   return hit;
 }
 
+/** The highest box top under (x, z) — within `radius` of its footprint — that is no more than `reach` above `feet`, or
+ * -Infinity. Lets the player stand on crates, walls and cover (reach ~0.45, a step) and mantle onto them (reach = mantle/climb
+ * height, probed just ahead): the boxes used to block sideways movement only, so their tops were never ground. */
+export function solidTopAt(x: number, z: number, feet: number, boxes: readonly SolidBox[], reach: number, radius = 0): number {
+  let best = -Infinity;
+  for (const b of boxes) {
+    if (Math.abs(x - b.x) >= b.w / 2 + radius || Math.abs(z - b.z) >= b.d / 2 + radius) continue;
+    const top = b.y + b.h / 2;
+    if (top <= feet + reach && top > best) best = top;
+  }
+  return best;
+}
+
 /** Camera/body origin must remain above the sampled support surface, even uphill. */
 export function clampToFloor(body: { y: number; vy: number }, floor: number, offset: number): boolean {
   if (body.y >= floor + offset) return false;

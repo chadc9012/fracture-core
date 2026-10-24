@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { addObstacle, collideBodySwept, resetObstacles } from "./obstacles";
-import { clampToFloor, registeredModelSolids, removeModelSolid, roomSolids, setModelSolid, structureSolids, sweepSolids } from "./environment-collision";
+import { clampToFloor, registeredModelSolids, removeModelSolid, roomSolids, setModelSolid, solidTopAt, structureSolids, sweepSolids } from "./environment-collision";
 import { buildInterior } from "./destruction";
 import { DOOR_RADIUS, INTERIORS, INTERIOR_ALTITUDE } from "./interiors";
 import { REGIONS } from "./world";
@@ -88,5 +88,24 @@ describe("pocket rooms at life size", () => {
     const out = { x: o.x + 40, z: o.z };
     expect(sweepSolids(out, { x: o.x + 20, z: o.z }, INTERIOR_ALTITUDE, 1.85, 0.5, boxes)).toBe(true);
     expect(out.x).toBeLessThan(o.x + 25);
+  });
+});
+
+describe("box tops are ground (stand on and mantle onto crates)", () => {
+  const crate = { x: 0, y: 0.6, z: 0, w: 2, h: 1.2, d: 2 };
+  test("standing on a crate: its top is ground within a step", () => {
+    expect(solidTopAt(0, 0, 1.2, [crate], 0.45)).toBeCloseTo(1.2, 6);
+    expect(solidTopAt(0, 0, 1.0, [crate], 0.45)).toBeCloseTo(1.2, 6);
+    expect(solidTopAt(0, 0, 0, [crate], 0.45)).toBe(-Infinity);
+    expect(solidTopAt(3, 0, 1.2, [crate], 0.45)).toBe(-Infinity);
+  });
+  test("a ledge ahead is found within mantle reach, not beyond it", () => {
+    expect(solidTopAt(0.9, 0, 0.3, [crate], 2.6)).toBeCloseTo(1.2, 6);
+    expect(solidTopAt(0.9, 0, 0.3, [{ ...crate, h: 8, y: 4 }], 2.6)).toBe(-Infinity);
+  });
+  test("with your feet on top, the crate no longer blocks walking across it", () => {
+    const body = { x: 0, z: 0 };
+    sweepSolids(body, { x: -0.5, z: 0 }, 1.2, 1.85, 0.5, [crate]);
+    expect(body.x).toBeCloseTo(0, 6);
   });
 });

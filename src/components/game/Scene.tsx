@@ -62,7 +62,7 @@ import { environmentAt, stepEnvironment } from "@/game/environment";
 import { backpackFor } from "@/game/backpacks";
 import { createReticle, markHit, stepReticle, type Motion, type ReticleView, EMPTY_RETICLE } from "@/game/crosshair";
 import { createGrind, isGrinding, leaveGrind, stepGrind, tryLatch, worldRails } from "@/game/maggrind";
-import { createTraversal, restTraversal, startTraversal, stepTraversal } from "@/game/traversal";
+import { CLIMB_MAX, createTraversal, MANTLE_MAX, restTraversal, startTraversal, stepTraversal } from "@/game/traversal";
 import { VyrakClueSites } from "./VyrakClueSites";
 import { VYRAK_CLUE_SITES, lairRevealed, nearClueSite, nearHiddenLair } from "@/game/vyrak-site";
 import { createPersonality, furyBonus, maybeIdle, react as vyrakReact, stepMood as vyrakStepMood } from "@/game/vyrak-personality";
@@ -158,7 +158,7 @@ import { shouldForceFootTransition, vehicleDamageStage, VEHICLE_DAMAGE_EFFECT, t
 import { exitVehicleMomentum, parkourChainBonus, vaultLunge } from "@/game/parkour";
 import { anySensorSees, detectionStateFor, lockdownStatus, nexusSensors, stepDetectionMeter, stepHackProgress, type DetectionState, type LockdownTier } from "@/game/stealth";
 import { INTERIORS, INTERIOR_ALTITUDE, doorAt, atExitMarker, interiorById, isInteriorOpen, clampHomeLocal, exitPosition } from "@/game/interiors";
-import { clampToFloor, registeredModelSolids, roomSolids, structureSolids, sweepSolids } from "@/game/environment-collision";
+import { clampToFloor, registeredModelSolids, roomSolids, solidTopAt, structureSolids, sweepSolids } from "@/game/environment-collision";
 import { homeById } from "@/game/housing";
 import { HomeInteriors } from "./HomeInteriors";
 import { Interiors } from "./Interiors";
@@ -1044,6 +1044,7 @@ function SceneImpl({
   const bootDash = useRef({ held: false, readyAt: 0 });
   /** Operator dash (dash.ts): per-class dash with perks from abilityBranches */
   const trav = useRef(createTraversal(playerClass));
+  const travTop = useRef<{ y: number; onto: boolean } | null>(null);
   /** Mag-Grind Boots rail grinding (maggrind.ts) */
   const grindRt = useRef({ state: createGrind(), jumpPrev: false });
   const grindRails = useMemo(() => worldRails(NEON_CITY_CENTER, walkHeight), []);
@@ -2644,7 +2645,9 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
     /* ---------------- vertical: gravity + terrain follow, or buoyancy + pressure diving ---------------- */
     // the Storm Islands' caps are ground too, for whoever stands on or drops onto them (storm-quests.ts)
     const skyGround = interior ? -Infinity : stormGroundAt(s.x, s.z, s.y - (s.inVehicle ? 1.9 : 1.6));
-    const standY = (interior ? INTERIOR_ALTITUDE : Math.max(walkHeight(s.x, s.z), skyGround)) + (s.inVehicle ? 1.9 : 1.6);
+    // crates, walls and cover tops are ground too once your feet are on (or a step below) them
+    const boxTop = interior || s.inVehicle ? -Infinity : solidTopAt(s.x, s.z, s.y - 1.6, solids, 0.45, 0.2);
+    const standY = (interior ? INTERIOR_ALTITUDE : Math.max(walkHeight(s.x, s.z), skyGround, boxTop)) + (s.inVehicle ? 1.9 : 1.6);
     if (s.inVehicle && handling.mode !== "GROUND") {
       s.grounded = !vh.current.airborne; // stepVehicle owns height for aircraft and boats
     } else if (!s.inVehicle && submerged && (s.diving || held.has("KeyZ"))) {
@@ -2696,14 +2699,29 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
       let travActive = false;
       if (!s.inVehicle && !submerged && !interior && !s.diving) {
         const tv = trav.current, climbHeld = held.has("KeyC");
-        if (tv.mode === "NONE" && standY > s.y && startTraversal(tv, playerClass, s.y, standY, { forward: throttleF, climbHeld })) { s.vy = 0; s.punch += 0.15; sfx.playReload("end"); }
+        if (tv.mode === "NONE") {
+          // the surface to pull onto: higher ground under you, or the top of a box just ahead (a ledge you are pressing into)
+          let top = standY, onto = false;
+          if (throttleF && !s.grounded) { // jump at a ledge to grab it; walking into a crate never auto-climbs
+            const ax = s.x + Math.sin(s.yaw) * 0.8, az = s.z + Math.cos(s.yaw) * 0.8;
+            const ledge = solidTopAt(ax, az, s.y - 1.6, solids, climbHeld ? CLIMB_MAX : MANTLE_MAX, 0) + 1.6;
+            if (ledge > top) { top = ledge; onto = true; }
+          }
+          if (top > s.y && startTraversal(tv, playerClass, s.y, top, { forward: throttleF, climbHeld })) { s.vy = 0; s.punch += 0.15; sfx.playReload("end"); travTop.current = { y: top, onto }; }
+        }
         if (tv.mode !== "NONE") {
-          const r = stepTraversal(tv, playerClass, dt, standY, climbHeld);
+          const goal = travTop.current?.onto ? travTop.current.y : standY;
+          const r = stepTraversal(tv, playerClass, dt, goal, climbHeld);
           travActive = !r.fell;
           if (!r.fell) {
             s.y = r.y; s.vy = 0; velocity.x *= r.steer; velocity.z *= r.steer;
-            if (r.done) { s.y = standY; s.grounded = true; land(move.current.state, playerClass); move.current.state.airJumpsLeft += boots.extraAirJumps; }
-          }
+            if (r.done) {
+              // over the lip: step onto the top you pulled up to
+              if (travTop.current?.onto) { s.x += Math.sin(s.yaw) * 0.9; s.z += Math.cos(s.yaw) * 0.9; }
+              s.y = goal; s.grounded = true; land(move.current.state, playerClass); move.current.state.airJumpsLeft += boots.extraAirJumps;
+              travTop.current = null;
+            }
+          } else travTop.current = null;
         }
       }
       if (!travActive) {
