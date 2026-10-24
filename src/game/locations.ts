@@ -11,6 +11,7 @@ import { INTERIORS, type InteriorDef } from "./interiors";
 import { LANDMARKS, isLandmarkKnown } from "./landmarks";
 import { ACTIVITIES, AREAS, activityState, type ActivityDef } from "./activities";
 import type { PlayerProgression } from "./progression";
+import "./venue-doors"; // the nightlife venues' doors join INTERIORS
 
 export type LocationLevel = "destination" | "area" | "entrance" | "landmark" | "activity";
 /** where the place is: the open surface, a submerged city, the undercity, or a pocket room behind a door */
@@ -98,6 +99,7 @@ const reg = () => (cache ??= build());
 function entranceSub(i: InteriorDef): string {
   if (i.kind === "HOME") return "Home · owners only";
   if (i.kind === "SHOP") return i.npcName ? `Walk-in shop · ${i.npcName}` : "Walk-in shop";
+  if (i.kind === "VENUE") return `Nightlife · ${i.openHour === 0 && i.closeHour === 24 ? "open all hours" : `${fmtHour(i.openHour ?? 0)}–${fmtHour(i.closeHour ?? 24)}`}${i.npcName ? ` · ${i.npcName}` : ""}`;
   return i.npcName ? `Indoors · ${i.npcName}` : "Indoors";
 }
 
@@ -126,3 +128,5 @@ export function activityBrief(p: Pick<PlayerProgression, "missionRuns" | "earned
   const st = activityState(p, def, now);
   return { def, available: st.available, reason: st.reason ?? null, attemptsLeft: st.attemptsLeft, difficulty: def.difficulty };
 }
+
+const fmtHour = (h: number) => (h === 24 || h === 0 ? (h === 0 ? "00:00" : "24:00") : `${String(h).padStart(2, "0")}:00`);

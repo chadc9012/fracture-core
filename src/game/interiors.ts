@@ -25,7 +25,7 @@ export const DOOR_RADIUS = 2.2;
  * in Nexus City, Rust-Muck's near Veridan and the penthouse's on a mountainside once the map grew and Neon moved. */
 const neon = (dx: number, dz: number) => ({ x: NEON_SITE.x + dx, z: NEON_SITE.z + dz });
 
-export type InteriorKind = "APARTMENT" | "SHOP" | "HOME";
+export type InteriorKind = "APARTMENT" | "SHOP" | "HOME" | "VENUE";
 /** HOME interiors: one 10m room per entry in the home's rooms list, laid side by side along +X with doorways */
 export const HOME_ROOM_SIZE = 10;
 
@@ -44,6 +44,8 @@ export type InteriorDef = {
   /** the exit door's position inside the room, relative to origin — walk up to it to leave */
   exitOffset: { x: number; z: number };
   npcName?: string;
+  /** VENUE only: nightlife.ts venue id */
+  venueId?: string;
   /** HOME only: housing.ts home id; the door only opens for its owner */
   homeId?: string;
   /** SHOP only: vendor id from economy.ts's VENDORS, and the hours (0-24) it's actually open */
@@ -242,8 +244,9 @@ export function atExitMarker(interior: InteriorDef, localX: number, localZ: numb
 
 /** SHOP interiors keep real hours off the same day-cycle clock the HUD already shows; APARTMENTs are always open. */
 export function isInteriorOpen(interior: InteriorDef, worldTime: number): boolean {
-  if (interior.kind !== "SHOP" || interior.openHour === undefined || interior.closeHour === undefined) return true;
+  if ((interior.kind !== "SHOP" && interior.kind !== "VENUE") || interior.openHour === undefined || interior.closeHour === undefined) return true;
   const hour = hourOf(worldTime);
+  if (interior.openHour === 0 && interior.closeHour === 24) return true;
   return interior.openHour < interior.closeHour ? hour >= interior.openHour && hour < interior.closeHour : hour >= interior.openHour || hour < interior.closeHour;
 }
 

@@ -1,3 +1,5 @@
+import "@/game/venue-doors";
+import { recordVenueVisit, venueDialogue, venueStanding } from "@/game/nightlife";
 import { renderCounts, canvasWhy, setterCalls, recordSubtree } from "@/game/perf-counters";
 import { Profiler, type ProfilerOnRenderCallback } from "react";
 const onProf: ProfilerOnRenderCallback = (id, _phase, actualMs) => recordSubtree(id, actualMs);
@@ -810,6 +812,14 @@ export function GameCanvas() {
   const [activeDialogue, setActiveDialogue] = useCountedState<DialogueLine[] | null>("activeDialogue", null);
   useEffect(() => {
     if (!hud.insideInterior) return;
+    // nightlife venues (nightlife.ts): greet by standing and tonight's event, and count tonight's visit
+    const venue = interiorById(hud.insideInterior)?.venueId;
+    if (venue) {
+      const hour = Number.parseInt(hud.clock, 10) || 0;
+      setActiveDialogue(venueDialogue(venue, venueStanding(progressionRef.current, venue), hour));
+      setProgression((current) => recordVenueVisit(current, venue));
+      return;
+    }
     const visits = visitCounts.current.get(hud.insideInterior) ?? 0;
     const lines =
       visits === 0

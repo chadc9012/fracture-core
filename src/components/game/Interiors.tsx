@@ -1,5 +1,6 @@
+import "@/game/venue-doors";
 import { useFrame } from "@react-three/fiber";
-import { useRef } from "react";
+import { useMemo, useRef } from "react";
 import * as THREE from "three";
 import { INTERIOR_ALTITUDE, INTERIORS, SHOP_INTERIORS } from "@/game/interiors";
 import { DoorMarker } from "./HomeInteriors";
@@ -34,7 +35,7 @@ export function Interiors() {
     }
     if (!best) return;
     l.position.set(best.origin.x, INTERIOR_ALTITUDE + WALL_HEIGHT - 0.4, best.origin.z);
-    l.color.set(best.kind === "SHOP" ? "#ffd9a0" : "#cfe6ff");
+    l.color.set(best.kind === "SHOP" ? "#ffd9a0" : best.kind === "VENUE" ? "#d06bff" : "#cfe6ff");
     l.intensity = 14;
   });
   return (
@@ -93,10 +94,13 @@ export function Interiors() {
             </mesh>
           )}
 
+          {/* nightlife venue: a lit bar, a dance floor that glows in the venue's colours, booths and neon strips round the walls */}
+          {interior.kind === "VENUE" && <VenueRoom venueId={interior.venueId ?? ""} />}
+
           {/* the NPC standee — a simple readable figure, not a full character model */}
           {interior.npcName && (
-            <group position={[0, 0, interior.kind === "SHOP" ? -1.5 : -2]}>
-              <SpeakingFigure name={interior.npcName} color={interior.kind === "SHOP" ? "#c98a4a" : "#6d8fc9"} />
+            <group position={interior.kind === "VENUE" ? [-3, 0, -3.4] : [0, 0, interior.kind === "SHOP" ? -1.5 : -2]}>
+              <SpeakingFigure name={interior.npcName} color={interior.kind === "SHOP" ? "#c98a4a" : interior.kind === "VENUE" ? "#c46bff" : "#6d8fc9"} />
             </group>
           )}
 
@@ -109,4 +113,23 @@ export function Interiors() {
       ))}
     </group>
   );
+}
+
+const VENUE_TINT: Record<string, [string, string]> = { "pulse-array": ["#35efff", "#7a5cff"], afterglow: ["#ff3b9d", "#ff7a3a"], "velvet-circuit": ["#c040ff", "#ff4fa8"], "crown-casino": ["#ffc247", "#ff8a2a"] };
+function VenueRoom({ venueId }: { venueId: string }) {
+  const [a, b] = VENUE_TINT[venueId] ?? ["#c040ff", "#35efff"];
+  // no extra lights here: every light costs every lit pixel in the world (the room shares Interiors' one light)
+  const cache = useMemo(() => new Map<string, THREE.MeshBasicMaterial>(), []);
+  const glow = (c: string, k = 1.8) => { const key = `${c}:${k}`; let m = cache.get(key); if (!m) cache.set(key, (m = new THREE.MeshBasicMaterial({ color: new THREE.Color(c).multiplyScalar(k), toneMapped: false }))); return m; };
+  return <group>
+    {/* bar along the back wall, lit from beneath */}
+    <mesh position={[-1.5, 0.55, -3.9]} castShadow><boxGeometry args={[5.2, 1.1, 0.8]} /><meshStandardMaterial color="#14121a" metalness={0.6} roughness={0.3} /></mesh>
+    <mesh position={[-1.5, 0.08, -3.48]} material={glow(a)}><boxGeometry args={[5.2, 0.06, 0.04]} /></mesh>
+    <mesh position={[-1.5, 2.6, -4.82]} material={glow(b, 1.2)}><boxGeometry args={[5, 0.9, 0.04]} /></mesh>
+    {/* dance floor: a checker of glowing tiles */}
+    {Array.from({ length: 16 }, (_, i) => { const x = (i % 4) - 1.5, z = Math.floor(i / 4) - 1.5; return <mesh key={i} rotation-x={-Math.PI / 2} position={[1.6 + x * 1.05, 0.015, 0.2 + z * 1.05]} material={glow((i + Math.floor(i / 4)) % 2 ? a : b, 0.7)}><planeGeometry args={[0.98, 0.98]} /></mesh>; })}
+    {/* booths and neon wall strips */}
+    {[-1, 1].map((sz) => <mesh key={sz} position={[-3.9, 0.45, sz * 2]} castShadow><boxGeometry args={[1.2, 0.9, 2.2]} /><meshStandardMaterial color="#2a1630" roughness={0.8} /></mesh>)}
+    {[-4.84, 4.84].map((x) => <mesh key={x} position={[x, 3.2, 0]} material={glow(x < 0 ? a : b)}><boxGeometry args={[0.04, 0.08, 9.4]} /></mesh>)}
+  </group>;
 }

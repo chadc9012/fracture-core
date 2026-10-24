@@ -1,3 +1,4 @@
+import "@/game/venue-doors";
 import { accessibleShop } from "@/game/shop-access";
 const DISCOVERY_LABEL: Record<string, string> = { flag: "Flag", beacon: "Beacon", patrol: "Patrol", fracture: "Rift Fracture", distress: "Distress Signal", cache: "Cache", movement: "Movement Route", anomaly: "Anomaly" };
 const ACTIVITY_REGION: Record<string, string> = { veridan: "veridan", ember: "ember", wastelands: "wastelands", swamps: "swamps", solara: "solara", frostspire: "frostspire", thalassia: "swamps" };
@@ -1917,7 +1918,8 @@ function SceneImpl({
 
     /* ---------------- interiors: walk up to a door to go in, walk up to the exit marker to come back out ---------------- */
     if (!interior && !s.inVehicle) {
-      const door = doorAt(s.x, s.z, (d) => !d.homeId || `home:${d.homeId}` in (gearLive.current?.nexLedger ?? {}));
+      // homes open for their owner only; nightlife venues only during their hours (nightlife.ts VENUE_HOURS)
+      const door = doorAt(s.x, s.z, (d) => (!d.homeId || `home:${d.homeId}` in (gearLive.current?.nexLedger ?? {})) && (d.kind !== "VENUE" || isInteriorOpen(d, time.current)));
       if (door) {
         s.interiorReturnPos = { x: s.x, y: s.y, z: s.z };
         s.insideInterior = door.id;
@@ -2777,7 +2779,7 @@ function SceneImpl({
       const zone = sim.zones.find((z) => z.region.id === (interior ? interior.regionId : here?.id));
       const hudSnapshot: HudState = {
         region: interior ? interior.name : here?.name ?? "Open Wilds",
-        sub: interior ? (interior.kind === "SHOP" ? (isInteriorOpen(interior, time.current) ? "Shop — open" : "Shop — closed for the night") : "Private residence") : here?.sub ?? "Unclaimed / no cover",
+        sub: interior ? (interior.kind === "SHOP" ? (isInteriorOpen(interior, time.current) ? "Shop — open" : "Shop — closed for the night") : interior.kind === "VENUE" ? "Nightlife venue" : "Private residence") : here?.sub ?? "Unclaimed / no cover",
         kind: interior ? "safe" : here?.kind ?? "war",
         difficulty: interior ? 0 : here?.difficulty ?? 2,
         rules: interior ? ["Indoors — hostiles can't follow", "Walk to the door to head back out"] : here?.rules ?? ["No stability field", "AI patrols roam freely"],

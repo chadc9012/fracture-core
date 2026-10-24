@@ -90,7 +90,7 @@ function nexusLots(): { x: number; z: number; rot: number }[] {
 
 /** the keep-out list Neon City's grid is laid out with (shop counters and interior doors) — shared with NeonTowerBlocks */
 export function neonKeepOut() {
-  return [...REGIONAL_SHOPS.map((s) => ({ x: s.x, z: s.z, r: 8 })), ...INTERIORS.map((i) => ({ x: i.doorPos.x, z: i.doorPos.z, r: 6 }))];
+  return [...REGIONAL_SHOPS.map((s) => ({ x: s.x, z: s.z, r: 8 })), ...INTERIORS.filter((i) => i.kind !== "VENUE").map((i) => ({ x: i.doorPos.x, z: i.doorPos.z, r: 6 }))];
 }
 
 function build(): Residence[] {
