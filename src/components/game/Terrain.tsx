@@ -24,6 +24,7 @@ import { flowerClump, organicCanopy, organicRock, petalTint, saguaro } from "@/g
 import type { FleetModelId } from "@/game/fleet-models";
 import { InstancedFleet, type FleetInstance } from "./InstancedFleet";
 import { WorldPiece } from "./WorldPiece";
+import { deadSnag } from "@/game/wild-geometry";
 
 const WRECK_CARS: FleetModelId[] = ["muscle-car", "offroad-truck", "luxury-sedan", "armored-muscle", "raider-buggy", "security-suv"];
 const WRECK_RUST = ["#5a3b2a", "#6a4a30", "#4a3a30", "#3a3530", "#70503a"];
@@ -483,7 +484,7 @@ export function Terrain({ renderTier = "HIGH" }: { renderTier?: RenderTier } = {
   const rockA = useMemo(() => organicRock(2.2, 23, 1, 0.65), []);
   const rockB = useMemo(() => organicRock(2.2, 31, 1, 0.65), []);
   const trunkGeo = useMemo(() => new THREE.CylinderGeometry(0.32, 0.55, 4, 7), []);
-  const deadTrunkGeo = useMemo(() => new THREE.CylinderGeometry(0.15, 0.5, 8, 6), []);
+  const deadTrunkGeo = useMemo(() => deadSnag(5), []);
   const reedGeo = useMemo(() => new THREE.CylinderGeometry(0.03, 0.07, 2.2, 4, 1, true).translate(0, 1.1, 0), []);
   const swayTrunk = useMemo(() => windSway(trunkGeo, 0.18), [trunkGeo]);
   const swayDeadTrunk = useMemo(() => windSway(deadTrunkGeo, 0.1), [deadTrunkGeo]);
@@ -516,8 +517,7 @@ export function Terrain({ renderTier = "HIGH" }: { renderTier?: RenderTier } = {
 
       {/* forest: trunk + two staggered canopy layers, hue-jittered per instance so the
           treeline reads as a forest instead of one stamped-out cone repeated 120 times */}
-      <Instances limit={Math.max(1, liveTrees.length)} castShadow receiveShadow>
-        <primitive object={trunkGeo} attach="geometry" />
+      <Instances limit={Math.max(1, liveTrees.length)} castShadow receiveShadow geometry={trunkGeo}>
         <meshStandardMaterial onBeforeCompile={swayTrunk} color="#ffffff" roughness={0.95} map={barkDetail.map} normalMap={barkDetail.normalMap} normalScale={new THREE.Vector2(0.6, 0.6)} />
         {procTrees.map((t, i) => (
           <Instance key={i} position={[t.x, t.y + 2 * t.s, t.z]} scale={[1, t.s, 1]} color={jitter("#4a3524", i, 0.02, 0.1)} />
@@ -657,11 +657,11 @@ export function Terrain({ renderTier = "HIGH" }: { renderTier?: RenderTier } = {
       </Instances>
 
       {/* swamp dead trees */}
-      <Instances limit={Math.max(1, liveSwamp.length)} castShadow receiveShadow>
-        <primitive object={deadTrunkGeo} attach="geometry" />
-        <meshStandardMaterial onBeforeCompile={swayDeadTrunk} color="#1d2b22" roughness={1} map={barkDetail.map} normalMap={barkDetail.normalMap} normalScale={new THREE.Vector2(0.6, 0.6)} />
+      {/* weathered grey snags (wild-geometry deadSnag), not black cones */}
+      <Instances limit={Math.max(1, liveSwamp.length)} castShadow receiveShadow geometry={deadTrunkGeo}>
+        <meshStandardMaterial onBeforeCompile={swayDeadTrunk} color="#6a6152" roughness={1} map={barkDetail.map} normalMap={barkDetail.normalMap} normalScale={new THREE.Vector2(0.6, 0.6)} />
         {liveSwamp.map((t, i) => (
-          <Instance key={i} position={[t.x, t.y + 4 * t.s, t.z]} scale={[1, t.s, 1]} rotation-z={(t.r - 3) * 0.03} />
+          <Instance key={i} position={[t.x, t.y + 4 * t.s - 0.2, t.z]} scale={[0.8 + t.s * 0.2, t.s, 0.8 + t.s * 0.2]} rotation={[0, t.r * 1.7, (t.r - 3) * 0.03]} />
         ))}
       </Instances>
 

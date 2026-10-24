@@ -3,6 +3,7 @@
  * glass shard. Each keeps the unit footprint of the primitive it replaced, so the instancing placement is unchanged. */
 import * as THREE from "three";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
+import { barkTrunk } from "./organic-geometry";
 
 const clean = (g: THREE.BufferGeometry) => { const n = g.index ? g.toNonIndexed() : g; for (const k of Object.keys(n.attributes)) if (k !== "position" && k !== "normal") n.deleteAttribute(k); return n; };
 const h1 = (n: number) => { const s = Math.sin(n * 127.1 + 311.7) * 43758.5453; return s - Math.floor(s); };
@@ -107,4 +108,20 @@ export function obsidianShard(seed = 1): THREE.BufferGeometry {
     clean(blade(0.45, 0.55, 4, seed + 3).rotateZ(0.5).translate(0.55, -0.22, 0.1)),
     clean(blade(0.35, 0.4, 4, seed + 7).rotateX(-0.6).translate(-0.3, -0.3, 0.45)),
   ])!;
+}
+
+/** a dead swamp snag in metres, centred like CylinderGeometry(0.15, 0.5, 8) (y -4..4): furrowed bark trunk with a
+ * buttressed foot, a jagged broken crown and three bare limbs reaching up and out. Keeps uv (the bark map uses it). */
+export function deadSnag(seed = 1): THREE.BufferGeometry {
+  const trunk = barkTrunk(seed, 0.16, 0.5, 0.6).scale(1, 8, 1);
+  const p = trunk.attributes["position"] as THREE.BufferAttribute;
+  for (let i = 0; i < p.count; i++) { const y = p.getY(i); if (y > 3.6) { const a = Math.atan2(p.getZ(i), p.getX(i)); p.setY(i, y - 0.9 * h1(Math.round(a * 3.2) + seed * 7)); } }
+  trunk.computeVertexNormals();
+  const limbs = [[1.2, 0.4, 1.6], [2.5, 2.4, 1.2], [0.3, 4.1, 1.0]].map(([y, a, len], i) => {
+    const dir = new THREE.Vector3(Math.cos(a!), 1.1 - i * 0.2, Math.sin(a!)).normalize();
+    const c = new THREE.QuadraticBezierCurve3(new THREE.Vector3(0, y!, 0), new THREE.Vector3(dir.x * len! * 0.5, y! + dir.y * len! * 0.4, dir.z * len! * 0.5), new THREE.Vector3(dir.x * len!, y! + dir.y * len! * 0.9, dir.z * len!));
+    return new THREE.TubeGeometry(c, 6, 0.07 - i * 0.012, 5, false);
+  });
+  const keep = (g: THREE.BufferGeometry) => { const n = g.index ? g.toNonIndexed() : g; for (const k of Object.keys(n.attributes)) if (k !== "position" && k !== "normal" && k !== "uv") n.deleteAttribute(k); return n; };
+  return mergeGeometries([keep(trunk), ...limbs.map(keep)])!;
 }
