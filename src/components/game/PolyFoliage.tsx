@@ -194,6 +194,8 @@ function Mesh({ name, kind, share, trisPerInstance, part, items, scale, shadows,
 }
 
 const verified = new Map<string, boolean>();
+/** waits (ms) before each re-check of a model file that could not be reached */
+const VERIFY_RETRIES = [3000, 10000, 30000, 60000] as const;
 
 /** Renders `items` as a Poly Haven species; calls onReady once visible so the caller can hide its fallback. */
 export function PolyFoliage({ kind, items, scale = 1, onReady, onFail, shadows = true, height, sway, variants, radius }: { radius?: number; kind: FoliageKind; items: Placement[]; scale?: number; onReady?: () => void; onFail?: () => void; shadows?: boolean; height?: number; sway?: number; variants?: boolean }) {
@@ -203,9 +205,31 @@ export function PolyFoliage({ kind, items, scale = 1, onReady, onFail, shadows =
   useEffect(() => {
     reportAsset(`foliage:${kind}`, LABEL[kind], "loading");
     if (verified.has(url)) { if (verified.get(url)) setOk(true); else fail(); return; }
-    fetch(url, { method: "HEAD" }).then((r) => { verified.set(url, r.ok); setOk(r.ok); if (!r.ok) fail(); }).catch(() => { verified.set(url, false); fail(); });
+    // a single dropped request (busy page, flaky network) used to mark the model failed for the whole session and leave the
+    // forest as procedural stand-ins: retry with backoff, and only a definite 404-style answer or the last attempt gives up
+    let live = true, timer = 0;
+    const attempt = (n: number) => fetch(url, { method: "HEAD" }).then((r) => {
+      if (!live) return;
+      if (r.ok) { verified.set(url, true); setOk(true); return; }
+      if (r.status >= 500 && n < VERIFY_RETRIES.length) { timer = window.setTimeout(() => attempt(n + 1), VERIFY_RETRIES[n]); return; }
+      verified.set(url, false); fail();
+    }).catch(() => {
+      if (!live) return;
+      if (n < VERIFY_RETRIES.length) timer = window.setTimeout(() => attempt(n + 1), VERIFY_RETRIES[n]);
+      else { verified.set(url, false); fail(); }
+    });
+    void attempt(0);
+    return () => { live = false; window.clearTimeout(timer); };
   }, [url, kind, fail]);
   const ready = useMemo(() => () => { reportAsset(`foliage:${kind}`, LABEL[kind], "ok"); onReady?.(); }, [kind, onReady]);
+  // a model whose download failed is retried twice (the loader caches the failure, so clear it first) before the caller's
+  // procedural fallback is kept for good
+  const [tries, setTries] = useState(0);
+  const loadFailed = useMemo(() => () => {
+    if (tries >= 2) { fail(); return; }
+    useGLTF.clear(url);
+    window.setTimeout(() => setTries((t) => t + 1), 12000);
+  }, [tries, url, fail]);
   if (!ok || !items.length) return null;
-  return <Quiet onFail={fail}><Suspense fallback={null}><Instanced kind={kind} url={url} items={items} scale={scale} onReady={ready} shadows={shadows} height={height} sway={sway} variants={variants} radius={radius ?? CULL_RADIUS[kind]} /></Suspense></Quiet>;
+  return <Quiet key={tries} onFail={loadFailed}><Suspense fallback={null}><Instanced kind={kind} url={url} items={items} scale={scale} onReady={ready} shadows={shadows} height={height} sway={sway} variants={variants} radius={radius ?? CULL_RADIUS[kind]} /></Suspense></Quiet>;
 }
