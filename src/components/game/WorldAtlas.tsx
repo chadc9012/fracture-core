@@ -21,6 +21,7 @@ import { RealEstateStore } from "./RealEstateStore";
 import { ActivityPanel, KIND_GLYPH } from "./ActivityPanel";
 import { ACTIVITY_COLOR, ACTIVITY_LABEL, startPatrol, type Activity } from "@/game/map-activities";
 import { useMenuInput } from "./useMenuInput";
+import { CURSOR, edgePan, stepCursor, type MapCursor } from "@/game/map-cursor";
 import { MAP_FONT, MAP_VIEWBOX, MapLayers } from "./MapLayers";
 import { useDetailMap, useTerrainMap } from "./useTerrainMap";
 import { DIFFICULTIES, RANKS, bestMedal, difficultyLocked, personalBest, racesIn, rankIndex, rankName, worldPoint, type Difficulty, type RaceDef } from "@/game/racing";
@@ -192,7 +193,9 @@ export function DestinationView({ dest, progression, phase, markers, px, pz, onP
   const act = <P,>(r: { progression: P; message: string } | { error: string }) => { if ("error" in r) setNotice(r.error); else { onProgression?.(r.progression as PlayerProgression); setNotice(r.message); } };
   const fleetState = progression.fleet ?? { owned: [], garages: [], active: null };
   // controller / keyboard: up-down steps through the activities on the map, confirm launches the picked one
+  const cursorHover = useRef<string | null>(null);
   useMenuInput(padActive, (intent) => {
+    if (intent === "confirm" && cursorHover.current) return; // A belongs to the map cursor while it rests on a marker
     const list = tab === "ACTIVITIES" ? shown : [];
     if (!list.length) return;
     const i = list.findIndex((a) => a.id === pick);
@@ -210,7 +213,8 @@ export function DestinationView({ dest, progression, phase, markers, px, pz, onP
         <div><p className="font-mono text-[10px] uppercase tracking-[0.22em]" style={{ color: REGION_CARTOGRAPHY[dest.id]?.accent ?? dest.accent }}>{REGION_CARTOGRAPHY[dest.id]?.terrain ?? "Regional survey"} / local chart</p><p className="text-sm font-semibold">{dest.name}</p><p className="text-xs text-muted-foreground">{REGION_CARTOGRAPHY[dest.id]?.subtitle ?? dest.sub}</p></div>
         <div className="flex gap-3 font-mono text-[10px] uppercase"><span className="text-cyan-300">⌂ Safe zone</span><span className="text-amber-300">◆ Reached story</span></div>
       </div>
-      <TacticalMap key={areaId ?? "destination"} chartRegionId={dest.id} markers={markers} px={px} pz={pz} selected={region.id} onSelect={() => {}} progression={progression} focus={focus} activities={tab === "ACTIVITIES" ? shown : []} sites={sites} districts={districts} plan={plan} course={course} pickedActivity={pick} onActivity={(id) => { setTab("ACTIVITIES"); setPick(id); }} />
+      <TacticalMap key={areaId ?? "destination"} chartRegionId={dest.id} markers={markers} px={px} pz={pz} selected={region.id} onSelect={() => {}} progression={progression} focus={focus} activities={tab === "ACTIVITIES" ? shown : []} sites={sites} districts={districts} plan={plan} course={course} pickedActivity={pick} onActivity={(id) => { setTab("ACTIVITIES"); setPick(id); }}
+        padCursor={padActive} cursorHover={cursorHover} onDistrict={onArea ? (id) => { if (locationById(`area:${dest.id}:${id}`)) onArea(`area:${dest.id}:${id}`); } : undefined} />
       {/* folded here: on a narrow screen the full legend pushed the destination's tabs far below the map */}
       <details className="mt-2"><summary className="ui-focus cursor-pointer font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Map legend</summary><MapLegend phase={phase} /></details>
     </section>
@@ -373,7 +377,14 @@ const [VB_X, VB_Y, VB_W] = MAP_VIEWBOX.split(" ").map(Number) as [number, number
 
 /** Live tactical map: zoom (wheel / buttons), drag to pan, layer filters, and click any marker or point to set a
  * waypoint that the HUD compass and tracker follow (map-pin.ts). */
-function TacticalMap({ chartRegionId, markers, px, pz, selected, onSelect, progression, focus, activities = [], sites = [], pickedActivity, onActivity, districts = [], plan, course }: { chartRegionId: string; markers: TrackedMarker[]; px: number; pz: number; selected: string; onSelect: (id: string) => void; progression: PlayerProgression;
+function TacticalMap({ chartRegionId, markers, px, pz, selected, onSelect, progression, focus, activities = [], sites = [], pickedActivity, onActivity, districts = [], plan, course, padCursor = false, onDistrict, cursorHover }: {
+  /** gamepad cursor (map-cursor.ts): right stick moves it with friction near markers, A selects, LT/RT zoom */
+  padCursor?: boolean;
+  /** A on a district badge opens its street view */
+  onDistrict?: ((id: string) => void) | undefined;
+  /** the Director reads this to know A belongs to the cursor, not the activity list */
+  cursorHover?: { current: string | null };
+  chartRegionId: string; markers: TrackedMarker[]; px: number; pz: number; selected: string; onSelect: (id: string) => void; progression: PlayerProgression;
   /** open centred on this area (a destination), fitted to its radius */
   focus?: { x: number; z: number; radius: number };
   /** the destination's activities, drawn as rings in their kind's colour; clicking one picks it in the side panel */
@@ -440,6 +451,50 @@ function TacticalMap({ chartRegionId, markers, px, pz, selected, onSelect, progr
     else if (e.key === "-") { e.preventDefault(); zoomBy(1 / 1.5); }
     else if (e.key === "0") { e.preventDefault(); fullWorld(); }
   };
+  // ---- gamepad cursor (map-cursor.ts) -------------------------------------------------------------------------------
+  const reticle = useRef<SVGGElement>(null);
+  const cursor = useRef<MapCursor>({ x: view.cx, z: view.cz, hover: null });
+  const [cursorOn, setCursorOn] = useState(false);
+  const [hoverId, setHoverId] = useState<string | null>(null);
+  const viewRef = useRef(view); viewRef.current = view;
+  const targetsRef = useRef<{ id: string; x: number; z: number; act: () => void; label: string }[]>([]);
+  targetsRef.current = [
+    ...activities.map((a) => ({ id: `act-${a.id}`, x: a.x, z: a.z, label: a.name, act: () => pickActivity(a) })),
+    ...live.filter((m) => legend[m.kind as (typeof LAYERS)[number]]).map((m) => ({ id: m.id, x: m.x, z: m.z, label: m.label, act: () => { setInspectId(m.id); pickPin(m); } })),
+    ...districts.map((k) => ({ id: `dist-${k.id}`, x: k.x, z: k.z, label: k.name, act: () => onDistrict?.(k.id) })),
+  ];
+  useEffect(() => {
+    if (!padCursor) return;
+    let raf = 0, last = performance.now(), prev: boolean[] = [];
+    const tick = (now: number) => {
+      raf = requestAnimationFrame(tick);
+      const dt = Math.min(0.05, (now - last) / 1000); last = now;
+      const gp = navigator.getGamepads ? Array.from(navigator.getGamepads()).find((g): g is Gamepad => !!g && g.connected) : undefined;
+      if (!gp) return;
+      const btn = gp.buttons.map((b) => b.pressed), v = viewRef.current, span = VB_W / v.zoom;
+      const stick = { x: gp.axes[2] ?? 0, y: gp.axes[3] ?? 0 };
+      const moving = Math.hypot(stick.x, stick.y) > CURSOR.deadzone;
+      if (moving && !cursorRefOn.current) { cursorRefOn.current = true; cursor.current = { x: v.cx, z: v.cz, hover: null }; setCursorOn(true); }
+      if (cursorRefOn.current) {
+        const next = stepCursor(cursor.current, stick, dt, span, targetsRef.current);
+        cursor.current = next;
+        reticle.current?.setAttribute("transform", `translate(${next.x} ${next.z}) scale(${WORLD_SCALE / Math.sqrt(v.zoom)})`);
+        const pan = edgePan(next, { cx: v.cx, cz: v.cz }, span);
+        if (pan.dx || pan.dz) setView((w) => clampView({ ...w, cx: w.cx + pan.dx, cz: w.cz + pan.dz }));
+        if (next.hover !== (cursorHover?.current ?? null)) { if (cursorHover) cursorHover.current = next.hover; setHoverId(next.hover); }
+        if (btn[0] && !prev[0] && next.hover) targetsRef.current.find((t) => t.id === next.hover)?.act();
+      }
+      // triggers zoom toward the cursor (or the centre)
+      if (btn[7] && !prev[7]) zoomRef.current(1.5, cursorRefOn.current ? cursor.current : undefined);
+      if (btn[6] && !prev[6]) zoomRef.current(1 / 1.5);
+      prev = btn;
+    };
+    raf = requestAnimationFrame(tick);
+    return () => { cancelAnimationFrame(raf); if (cursorHover) cursorHover.current = null; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [padCursor]);
+  const cursorRefOn = useRef(false);
+  const hovered = hoverId ? targetsRef.current.find((t) => t.id === hoverId) : undefined;
   return <div className={focus ? "wf-director-zoom" : undefined}>
     {!map.full && <p className="mb-1 font-mono text-[10px] uppercase tracking-widest text-muted-foreground" role="status">Surveying terrain… {Math.round(map.progress * 100)}%</p>}
     <div className="mb-2 flex flex-wrap gap-2 text-xs">{LAYERS.map((k) => <Button key={k} size="sm" variant="ghost" aria-pressed={legend[k]} onClick={() => setLegend((l) => ({ ...l, [k]: !l[k] }))} className={`rounded-none border-b px-2 py-1 font-mono uppercase ${legend[k] ? "border-current" : "border-transparent opacity-40"}`} style={{ color: MARKER_COLOR[k] }}>{MARKER_GLYPH[k]} {LAYER_NAME[k]}</Button>)}<Button size="sm" variant="ghost" aria-pressed={hazards} onClick={() => setHazards((v) => !v)} className={`rounded-none border-b px-2 py-1 font-mono uppercase text-destructive ${hazards ? "border-current" : "border-transparent opacity-40"}`}>⚠ Hazards</Button></div>
@@ -478,6 +533,10 @@ function TacticalMap({ chartRegionId, markers, px, pz, selected, onSelect, progr
         {pin && legend.WAYPOINT && <g transform={`translate(${pin.x} ${pin.z}) scale(${scaleK})`} pointerEvents="none">{Number.isFinite(px) && <line x1={(px - pin.x) / scaleK} y1={(pz - pin.z) / scaleK} x2={0} y2={0} stroke="#ffffff" strokeOpacity={0.55} strokeWidth={0.5} strokeDasharray="2 2" />}<circle r={3.2} fill="none" stroke="#ffffff" strokeWidth={0.8} /><text y={1.8} textAnchor="middle" fontSize={5} fill="#ffffff" stroke="#000" strokeWidth={0.9} paintOrder="stroke">{MARKER_GLYPH.WAYPOINT}</text></g>}
         {/* the player's dot (the hub Director passes NaN: you are in orbit, not on the map) */}
         {Number.isFinite(px) && <circle cx={px} cy={pz} r={u(2.6) / Math.sqrt(view.zoom)} fill="#ffffff" stroke="#000000" strokeWidth={u(0.6) / Math.sqrt(view.zoom)} />}
+        {cursorOn && <g ref={reticle} pointerEvents="none" transform={`translate(${cursor.current.x} ${cursor.current.z}) scale(${scaleK})`}>
+          <circle r={hoverId ? 5.6 : 3.4} fill="none" stroke={hoverId ? "#92e9f5" : "#ffffff"} strokeWidth={0.7} />
+          {[0, 90, 180, 270].map((a) => <line key={a} x1={0} y1={hoverId ? -7.4 : -5} x2={0} y2={hoverId ? -6 : -3.8} stroke="#ffffff" strokeWidth={0.6} transform={`rotate(${a})`} />)}
+        </g>}
         </MapLayers>
       </svg>
       <div className="absolute right-2 top-2 flex flex-col gap-1">
@@ -487,6 +546,7 @@ function TacticalMap({ chartRegionId, markers, px, pz, selected, onSelect, progr
         <Button size="icon" variant="outline" aria-label="Focus selected region" title="Focus selected region" onClick={focusRegion}><Focus /></Button>
         <Button size="icon" variant="outline" aria-label="Full world" title="Full world" onClick={fullWorld}><Globe2 /></Button>
       </div>
+      {cursorOn && hovered && <p className="absolute left-2 top-2 border border-[#92e9f5]/60 bg-black/70 px-2 py-1 font-mono text-[11px] uppercase tracking-widest text-[#92e9f5]" role="status">Ⓐ {hovered.label}</p>}
       <p className="absolute bottom-2 left-2 font-mono text-[10px] uppercase tracking-widest text-foreground/80" style={{ textShadow: "0 0 4px #000" }}>{Math.round(view.zoom * 100)}% · drag to pan · click a marker or double-click the map for a waypoint</p>
     </div>
     {inspected && <div className="mt-2 border-l-2 bg-card/40 px-2 py-2 text-xs" style={{ borderColor: MARKER_COLOR[inspected.kind] }} aria-live="polite">
