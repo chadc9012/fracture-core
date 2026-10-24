@@ -185,6 +185,7 @@ import { GlitchAnomalies } from "./GlitchAnomalies";
 import { GroundCover } from "./GroundCover";
 import { coverDensityFor } from "@/game/ground-cover";
 import { GrassField } from "./GrassField";
+import { EmberLightning } from "./EmberLightning";
 import { moonAngle, moonlight } from "@/game/celestial";
 import { shopNear } from "@/game/regional-shops";
 import { createLivingRuntime, stepLivingRuntime, type LivingEmit, type LivingHud, type LivingRuntime } from "@/game/living-runtime";
@@ -1455,7 +1456,7 @@ function SceneImpl({
 
     // cities after dark keep a glow-bounce fill (atmosphere.ts cityNightFill), so their streets read between the lamps
     const inCity = interior ? 1 : Math.max(cityPresence(Math.hypot(s.x - NEON_CITY_CENTER.x, s.z - NEON_CITY_CENTER.z), NEON_FLAT), cityPresence(Math.hypot(s.x - NEXUS_REGION.x, s.z - NEXUS_REGION.z), 95));
-    if (hemi.current) hemi.current.intensity = 0.12 + 0.46 * (1 - night) + cityNightFill(inCity, night);
+    if (hemi.current) hemi.current.intensity = 0.2 + 0.38 * (1 - night) + cityNightFill(inCity, night); // a moonlit sky fill at night: the reference nights read blue, not black
     // metal and glass are lit by reflections, not the hemisphere: keep some city glow in the reflections too, or Neon's
     // metal stalls and decks render pure black at night
     (scene as THREE.Scene & { environmentIntensity?: number }).environmentIntensity = 0.62 * (1 - 0.75 * night) + cityNightFill(inCity, night) * 0.9;
@@ -3030,7 +3031,7 @@ function SceneImpl({
       {(() => { const rg = REGIONS.find((r) => r.id === "swamps"); return rg ? <NearOnly playerRef={player} x={rg.x} z={rg.z} radius={(rg.radius + 220) * NEAR_SCALE[settings.renderTier]} name="region:swamps"><SwampDressing /></NearOnly> : null; })()}
       {(() => { const rg = REGIONS.find((r) => r.id === "wastelands"); return rg ? <NearOnly playerRef={player} x={rg.x} z={rg.z} radius={(rg.radius + 220) * NEAR_SCALE[settings.renderTier]} name="region:wastelands"><WastelandsDressing /></NearOnly> : null; })()}
       {(() => { const so = REGIONS.find((r) => r.id === "solara"); return so ? <NearOnly playerRef={player} x={so.x} z={so.z} radius={(so.radius + 220) * NEAR_SCALE[settings.renderTier]} name="region:solara"><SolaraDesert /></NearOnly> : null; })()}
-      {(() => { const em = REGIONS.find((r) => r.id === "ember"); return em ? <NearOnly playerRef={player} x={em.x} z={em.z} radius={(em.radius + 220) * NEAR_SCALE[settings.renderTier]} name="region:ember"><EmberPeaks /></NearOnly> : null; })()}
+      {(() => { const em = REGIONS.find((r) => r.id === "ember"); return em ? <NearOnly playerRef={player} x={em.x} z={em.z} radius={(em.radius + 220) * NEAR_SCALE[settings.renderTier]} name="region:ember"><EmberPeaks /><EmberLightning /></NearOnly> : null; })()}
       {LANDMARKS.filter((l) => l.id === "convoy-sprint" || l.id === "smoldering-trench").map((l) => (
         <NearOnly key={l.id} playerRef={player} x={l.x} z={l.z} radius={260 * NEAR_SCALE[settings.renderTier]} name={`set:${l.id}`}>{l.id === "convoy-sprint" ? <WreckField /> : <LavaTrench />}</NearOnly>
       ))}

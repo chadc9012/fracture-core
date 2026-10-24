@@ -531,7 +531,7 @@ export function Terrain({ renderTier = "HIGH" }: { renderTier?: RenderTier } = {
             position={[t.x, t.y + 3.6 * t.s + 1.1, t.z]}
             scale={[t.s * (0.94 + (i % 5) * 0.02), t.s * 1.05, t.s * (0.94 + (i % 3) * 0.03)]}
             rotation-y={t.r}
-            color={jitter("#2c7a41", i, 0.035, 0.12)}
+            color={jitter("#4f9440", i, 0.035, 0.12)}
           />
         ))}
       </Instances>
@@ -543,7 +543,7 @@ export function Terrain({ renderTier = "HIGH" }: { renderTier?: RenderTier } = {
             position={[t.x, t.y + 5.9 * t.s + 1.6, t.z]}
             scale={[t.s * (0.9 + (i % 4) * 0.03), t.s * 0.95, t.s * (0.9 + (i % 6) * 0.02)]}
             rotation-y={t.r + 0.6}
-            color={jitter("#3a8f4d", i + 41, 0.035, 0.12)}
+            color={jitter("#64a64a", i + 41, 0.035, 0.12)}
           />
         ))}
       </Instances>

@@ -42,7 +42,7 @@ function ribbon(pts: FlowPoint[], widthK: number, lift: number): THREE.BufferGeo
 }
 
 function LavaFlows() {
-  const geos = useMemo(() => lavaFlows().map((f) => ({ crust: ribbon(f, 1.9, 0.1), lava: ribbon(f, 0.9, 0.16), head: f[0]! })), []);
+  const geos = useMemo(() => lavaFlows().map((f) => ({ crust: ribbon(f, 4.2, 0.1), lava: ribbon(f, 2.4, 0.16), head: f[0]! })) /* wide enough to read as rivers of lava from across the region (reference "storm - Ember Peaks") */, []);
   const mat = useMemo(() => new THREE.ShaderMaterial({
     uniforms: { t: { value: 0 } },
     transparent: true, depthWrite: false, side: THREE.DoubleSide, toneMapped: false,

@@ -292,8 +292,9 @@ export const SKY: Record<Phase, { top: string; bottom: string; fog: string; ligh
   Dawn: { top: "#2f4d7a", bottom: "#f2a25c", fog: "#9fb6cf", light: "#ffcf9b", intensity: 1.1 },
   Day: { top: "#4aa3d8", bottom: "#bfe4f2", fog: "#c6e2ee", light: "#fff6e2", intensity: 1.6 },
   Sunset: { top: "#3b2a5c", bottom: "#ff7a3c", fog: "#c98a6a", light: "#ff9a52", intensity: 1.2 },
-  Night: { top: "#070d1c", bottom: "#16233d", fog: "#121c30", light: "#8fb6ff", intensity: 0.35 },
-  Moonlight: { top: "#0a1430", bottom: "#1d3358", fog: "#1a2a49", light: "#b9d4ff", intensity: 0.6 },
+  // nights are deep blue and readable (reference "night - Frostspire"), not black: bluer air and a brighter moon key
+  Night: { top: "#081430", bottom: "#17305a", fog: "#132a52", light: "#9cc0ff", intensity: 0.5 },
+  Moonlight: { top: "#0a1838", bottom: "#1d3c6a", fog: "#1a3664", light: "#b9d4ff", intensity: 0.75 },
 };
 
 export function clockLabel(t: number) {

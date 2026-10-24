@@ -191,6 +191,14 @@ export function Water({
             vec3 h = normalize(normalize(uSun) + view);
             float spec = pow(clamp(dot(n, h), 0.0, 1.0), 220.0);
             col += vec3(1.0, 0.96, 0.85) * spec * 1.6 * (1.0 - uMurk * 0.7);
+            // the sun's path on the water (reference "sunset - Nexus City"): a broad reflected streak that widens and warms as the
+            // sun drops, broken into glitter by the wave facets; gone once the sun is below the horizon
+            vec3 sd = normalize(uSun);
+            float lowSun = 1.0 - smoothstep(0.05, 0.5, sd.y);
+            float path = pow(clamp(dot(reflect(-view, n), sd), 0.0, 1.0), mix(380.0, 34.0, lowSun));
+            float glit = fract(sin(dot(floor(vPosW.xz * 1.6 + vec2(uTime * 0.6, -uTime * 0.4)), vec2(12.9898, 78.233))) * 43758.5453);
+            vec3 sunCol = mix(vec3(1.0, 0.95, 0.82), vec3(1.0, 0.52, 0.18), lowSun);
+            col += sunCol * path * (0.35 + 1.5 * lowSun) * (0.45 + 0.9 * step(0.55, glit)) * smoothstep(-0.03, 0.05, sd.y) * (1.0 - uMurk * 0.7);
 
             // shoreline foam: an animated band where the water meets the land, plus whitecaps on crests
             // a ring between roughly 10 cm and 50 cm of depth: it traces the waterline instead of whitening flats the

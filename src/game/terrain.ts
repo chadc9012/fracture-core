@@ -500,12 +500,13 @@ function biomeTint(c0: [number, number, number], bx: number, bz: number, h: numb
       c = mix(c, PALETTE.ash, w);
       if (h > 34) c = mix(c, PALETTE.lava, smoothstep(34, 48, h) * 0.8);
     } else if (r.id === "frostspire") c = mix(c, PALETTE.snow, w * smoothstep(24, 48, h));
-    else if (r.id === "wastelands") c = mix(c, [0.55, 0.44, 0.28], w * 0.8);
+    else if (r.id === "wastelands") c = mix(c, [0.62, 0.39, 0.22], w * 0.88); // rust-orange desert (reference "sunset - The Wastelands"), not khaki
     else if (r.id === "nexus") c = mix(c, [0.2, 0.24, 0.3], w);
   }
   return c;
 }
 
+const FROST_REGION = REGIONS.find((r) => r.id === "frostspire");
 export function colorAt(x: number, z: number, worldH: number, slope?: number): [number, number, number] {
   // palette bands were tuned for the original-height world: undo the HEIGHT_K stretch about the waterline
   const h = HEIGHT_K === 1 ? worldH : WATER_LEVEL + (worldH - WATER_LEVEL) / HEIGHT_K;
@@ -534,6 +535,20 @@ export function colorAt(x: number, z: number, worldH: number, slope?: number): [
     const cliff = (fbm(x * 0.12, z * 0.12, 2) - 0.5) * 0.1; // strata variation
     c = mix(c, [PALETTE.dirt[0] + cliff, PALETTE.dirt[1] + cliff, PALETTE.dirt[2] + cliff], dirt * 0.75);
     c = mix(c, [PALETTE.rock[0] + cliff, PALETTE.rock[1] + cliff, PALETTE.rock[2] + cliff], rock * 0.9);
+    // Frostspire's snowpack (reference "night - Frostspire"): above the valley floors the mountains stay white on all but sheer
+    // cliffs; the slope mask above would otherwise strip the snow off nearly every mountain face (only ~3% of the region was white)
+    const fr = FROST_REGION;
+    if (fr) {
+      const fd = warpedDistance(Math.hypot(x - fr.x, z - fr.z), edgeNoise);
+      const fw = fd < fr.radius * 1.15 ? 1 - smoothstep(fr.radius * 0.8, fr.radius * 1.15, fd) : 0;
+      if (fw > 0) {
+        // steep faces keep snow in streaks (gullies and ledges) rather than going bare: real snow peaks are white with dark rock ribs
+        const steep = smoothstep(0.75, 1.0, slope ?? slopeAt(x, z)), streak = fbm(x * 0.09 + 41, z * 0.035 - 17, 3);
+        const pack = fw * smoothstep(8, 20, h) * (1 - steep * smoothstep(0.38, 0.62, streak) * 0.8);
+        const drift = (fbm(x * 0.05 + 3, z * 0.05 - 8, 2) - 0.5) * 0.06; // wind-packed drifts: faintly blue-grey hollows
+        c = mix(c, [PALETTE.snow[0] - 0.04 + drift, PALETTE.snow[1] - 0.02 + drift, PALETTE.snow[2] + drift * 0.5], pack);
+      }
+    }
   }
 
   // Verdant trail: worn dirt along the path, scorched ground at the crash site
