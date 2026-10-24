@@ -135,9 +135,9 @@ void main(){
       vec2 gc = floor(g), gf = fract(g);
       float on = step(0.55, h21(gc + floor(time * 2.0 + h21(gc) * 9.0) * 0.37)) * step(0.35, h21(vec2(gc.y, 4.0)));
       float glyph = on * step(0.12, gf.x) * step(gf.x, 0.88) * step(0.4, gf.y) * step(gf.y, 0.62);
-      float stream = smoothstep(w * 18.0, w * 2.0, x) * step(w * 1.4, x) * taper * smoothstep(0.25, 0.6, vn(vec2(along * 9.0, 2.0)));
-      vec3 rc = vec3(1.0, 0.98, 0.94) * seam * 2.6 * taper + mix(vec3(0.85, 0.93, 1.0), vec3(1.0, 0.9, 0.75), 0.35) * gash * 1.6 * taper * (0.85 + 0.3 * vn(vec2(along * 40.0, time * 0.4))) + mix(vec3(0.35, 0.68, 1.0), vec3(0.62, 0.38, 1.0), vn(vec2(along * 5.0, 11.0))) * edge * 0.6 + vec3(0.7, 0.85, 1.0) * br * 0.75 + vec3(0.5, 0.95, 1.0) * glyph * stream * 1.3;
-      float ra2 = clamp((seam + gash) * taper + edge * 0.4 + br * 0.55 + glyph * stream, 0.0, 1.0) * riftGlow;
+      float stream = smoothstep(w * 7.0, w * 2.0, x) * step(w * 1.4, x) * taper * fadeOut * smoothstep(0.25, 0.6, vn(vec2(along * 9.0, 2.0))); // a narrow margin: wide streams stretched into big white blocks near the zenith
+      vec3 rc = vec3(1.0, 0.98, 0.94) * seam * 2.6 * taper + mix(vec3(0.85, 0.93, 1.0), vec3(1.0, 0.9, 0.75), 0.35) * gash * 1.6 * taper * (0.85 + 0.3 * vn(vec2(along * 40.0, time * 0.4))) + mix(vec3(0.35, 0.68, 1.0), vec3(0.62, 0.38, 1.0), vn(vec2(along * 5.0, 11.0))) * edge * 0.6 + vec3(0.7, 0.85, 1.0) * br * 0.75 + vec3(0.5, 0.95, 1.0) * glyph * stream * 0.8;
+      float ra2 = clamp((seam + gash) * taper + edge * 0.4 + br * 0.55 + glyph * stream * 0.6, 0.0, 1.0) * riftGlow;
       // live check: by day the white gash vanished into a pale sky. A shadowed torn margin around it (violet-dark) gives it contrast,
       // and the soft outer glow only blooms at night.
       float shade = pow(smoothstep(w * 5.5, w * 1.0, abs(x)), 1.3) * (1.0 - gash) * taper;

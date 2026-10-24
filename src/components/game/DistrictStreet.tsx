@@ -13,7 +13,8 @@ export function ShopSign({ label, color, position, face = 1 }: { label: string; 
     <group position={position} rotation-y={face === 1 ? 0 : Math.PI}>
       <mesh><boxGeometry args={[5.2, 1.2, 0.22]} /><meshStandardMaterial color="#101923" metalness={0.65} roughness={0.35} /></mesh>
       <mesh position={[0, 0, 0.13]}><planeGeometry args={[4.95, 0.96]} /><meshBasicMaterial color={color} transparent opacity={0.18} side={THREE.DoubleSide} depthWrite={false} /></mesh>
-      <Text position={[0, 0, 0.16]} fontSize={0.52} maxWidth={4.7} color={color} anchorX="center" anchorY="middle" outlineWidth={0.018} outlineColor="#050d13">{label}</Text>
+      {/* one line, sized to the panel: a wrapped name spilled two lines past the board and read as a giant billboard */}
+      <Text position={[0, 0, 0.16]} fontSize={Math.min(0.52, 4.5 / Math.max(1, label.length * 0.66))} whiteSpace="nowrap" color={color} anchorX="center" anchorY="middle" outlineWidth={0.018} outlineColor="#050d13">{label}</Text>
       <LightBar position={[0, -0.64, 0.17]} size={[5.1, 0.07, 0.09]} color={color} />
     </group>
   );

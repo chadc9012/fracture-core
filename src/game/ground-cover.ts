@@ -18,7 +18,7 @@ export const COVER_SPEC: Record<string, Spec> = {
   nexus: { flower: 90, bush: 50, rock: 20, reed: 0, flowers: ["#ffffff", "#9fe8ff", "#ffd84a"], bushes: ["#35704a", "#2f6444"], rocks: ["#8a909a", "#757b86"] },
   wastelands: { flower: 90, bush: 190, rock: 240, reed: 20, flowers: ["#ff9a3c", "#ffd84a", "#d9534f"], bushes: ["#7d7a45", "#8e8650", "#6a6a3c"], rocks: ["#9b8564", "#85735a", "#a8946f"] },
   solara: { flower: 130, bush: 170, rock: 190, reed: 0, flowers: ["#ffd84a", "#ff7a3c", "#e94f6c"], bushes: ["#a39a55", "#b3a864", "#8c8a4a"], rocks: ["#b9794a", "#a5683f", "#c98b58"] },
-  frostspire: { flower: 70, bush: 140, rock: 300, reed: 10, flowers: ["#bfe6ff", "#ffffff", "#9ec8ff"], bushes: ["#c8dce6", "#a9c2cf", "#dbe8ee"], rocks: ["#8a97a6", "#737f8e", "#a2adb9"] },
+  frostspire: { flower: 70, bush: 140, rock: 300, reed: 10, flowers: ["#bfe6ff", "#ffffff", "#9ec8ff"], bushes: ["#3c4e46", "#33453f", "#4a5c52"], rocks: ["#8a97a6", "#737f8e", "#a2adb9"] },
   ember: { flower: 60, bush: 110, rock: 320, reed: 0, flowers: ["#ff5a1f", "#ffb347"], bushes: ["#3a2a28", "#4a302a", "#2c2220"], rocks: ["#2c2a2e", "#3a363a", "#4a3a36"] },
   swamps: { flower: 170, bush: 230, rock: 60, reed: 650, flowers: ["#9be8d8", "#ffffff", "#d6a8ff"], bushes: ["#25412f", "#2f5a3c", "#1f3a2a"], rocks: ["#4a5a4c", "#3c4a3f"] },
 };
