@@ -194,7 +194,9 @@ describe("flying and shooting", () => {
     const alt = r.y - RIDE - walkHeight(r.x, r.z);
     expect(alt).toBeGreaterThan(25);
     // the gunner keeps the chin gun on the grunt (it walks in under the helicopter during the climb)
+    const hold = { x: m.x, z: m.z };
     for (let f = 0; f < 60 * 3 && m.alive; f++) {
+      m.x = hold.x; m.z = hold.z; m.kx = 0; m.kz = 0; // a stationary target for a deterministic run
       const d = Math.max(1, Math.hypot(m.x - r.x, m.z - r.z) - 2.6);
       r.camPitch = -Math.atan2(r.y - RIDE + 0.55 - (walkHeight(m.x, m.z) + 1.1), d);
       frame(sim, r, none, true);

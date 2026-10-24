@@ -3,7 +3,7 @@ import { DistrictLight } from "./DistrictLight";
 import { useFrame } from "@react-three/fiber";
 import { useMemo, useRef } from "react";
 import * as THREE from "three";
-import { WATER_LEVEL } from "@/game/terrain";
+import { WATER_LEVEL, heightAt } from "@/game/terrain";
 import { addObstacle } from "@/game/obstacles";
 import { ElevatedTrain, LightBar, ShopSign } from "./DistrictStreet";
 
@@ -27,6 +27,8 @@ import { THALASSIA_CENTER } from "@/game/thalassia-site";
 export { THALASSIA_CENTER };
 const SEA_FLOOR_Y = -16;
 const CORE_Y = SEA_FLOOR_Y + 26;
+/** the spire's column runs through the city deck down to the real ocean floor */
+const CORE_BED = Math.min(SEA_FLOOR_Y, heightAt(THALASSIA_CENTER.x, THALASSIA_CENTER.z) - 0.5);
 
 /** Dry, enclosed street at the seabed. Its long axis points toward the central spire. */
 export const THALASSIA_STREET = { x: THALASSIA_CENTER.x + 17, z: THALASSIA_CENTER.z + 34, halfWidth: 6, halfLength: 27, floor: SEA_FLOOR_Y + 0.28 };
@@ -190,8 +192,8 @@ function CoreSpire() {
   return (
     <group position={[THALASSIA_CENTER.x, CORE_Y, THALASSIA_CENTER.z]}>
       {/* support column from the sea floor */}
-      <mesh position-y={-(CORE_Y - SEA_FLOOR_Y) / 2}>
-        <cylinderGeometry args={[2.2, 3, CORE_Y - SEA_FLOOR_Y, 10]} />
+      <mesh position-y={-(CORE_Y - CORE_BED) / 2}>
+        <cylinderGeometry args={[2.2, 3.4, CORE_Y - CORE_BED, 16]} />
         <meshStandardMaterial color="#333c44" metalness={0.5} roughness={0.5} />
       </mesh>
       {/* industrial power sector ring */}
@@ -217,6 +219,47 @@ function CoreSpire() {
         <meshStandardMaterial color="#7d8894" metalness={0.6} roughness={0.35} />
       </mesh>
       <DistrictLight position={[0, 2, 0]} color="#7fd6ff" intensity={26} distance={45} decay={2} />
+    </group>
+  );
+}
+
+/** The ark's foundation. The city is built on an engineered deck at SEA_FLOOR_Y (-16 m) while the real ocean floor here is
+ * 21-26 m deeper (and the dive races run down to it), so the deck is held up by braced pylons and caissons anchored on the
+ * seabed — otherwise the domes, street and spire hung in open water with nothing under them. */
+function ArkFoundation({ domes }: { domes: { x: number; z: number; radius: number }[] }) {
+  const parts = useMemo(() => {
+    const deckY = SEA_FLOOR_Y - 0.6;
+    const pylons: { x: number; z: number; top: number; bottom: number; r: number }[] = [];
+    const ring = (radius: number, n: number, r: number, phase = 0) => {
+      for (let i = 0; i < n; i++) {
+        const a = phase + (i / n) * Math.PI * 2, x = THALASSIA_CENTER.x + Math.cos(a) * radius, z = THALASSIA_CENTER.z + Math.sin(a) * radius;
+        pylons.push({ x, z, top: deckY, bottom: Math.min(deckY - 1, heightAt(x, z) - 0.5), r });
+      }
+    };
+    ring(22, 6, 1.4); ring(48, 10, 1.1, 0.3);
+    // under the street slab and every dome
+    const st = THALASSIA_STREET;
+    for (const f of [-0.8, -0.3, 0.2, 0.7]) { const x = st.x, z = st.z + f * st.halfLength; for (const sx of [-1, 1]) pylons.push({ x: x + sx * st.halfWidth * 0.8, z, top: deckY, bottom: Math.min(deckY - 1, heightAt(x + sx * st.halfWidth * 0.8, z) - 0.5), r: 0.8 }); }
+    const caissons = domes.map((d) => ({ x: d.x, z: d.z, top: SEA_FLOOR_Y - 0.3, bottom: Math.min(SEA_FLOOR_Y - 2, heightAt(d.x, d.z) - 0.5), r: d.radius * 0.5 }));
+    return { deckY, pylons, caissons };
+  }, [domes]);
+  const metal = useMemo(() => new THREE.MeshStandardMaterial({ color: "#2b333a", metalness: 0.6, roughness: 0.55 }), []);
+  const deck = useMemo(() => new THREE.MeshStandardMaterial({ color: "#1d262c", metalness: 0.45, roughness: 0.7 }), []);
+  return (
+    <group name="thalassia:foundation">
+      {/* the engineered deck the city stands on, with a lit edge so it reads from the dark water below */}
+      <mesh position={[THALASSIA_CENTER.x, parts.deckY, THALASSIA_CENTER.z]} material={deck}><cylinderGeometry args={[60, 58, 1.2, 48]} /></mesh>
+      <mesh position={[THALASSIA_CENTER.x, parts.deckY - 0.7, THALASSIA_CENTER.z]} rotation-x={Math.PI / 2}><torusGeometry args={[58.5, 0.12, 6, 64]} /><meshBasicMaterial color="#3fa9c9" toneMapped={false} /></mesh>
+      {parts.pylons.map((p, i) => (
+        <group key={i} position={[p.x, (p.top + p.bottom) / 2, p.z]}>
+          <mesh material={metal}><cylinderGeometry args={[p.r * 0.8, p.r * 1.1, p.top - p.bottom, 14]} /></mesh>
+          {/* anchor footing on the seabed */}
+          <mesh position-y={-(p.top - p.bottom) / 2 + 0.4} material={metal}><cylinderGeometry args={[p.r * 1.8, p.r * 2.2, 0.8, 14]} /></mesh>
+        </group>
+      ))}
+      {parts.caissons.map((c, i) => (
+        <mesh key={`c${i}`} position={[c.x, (c.top + c.bottom) / 2, c.z]} material={metal}><cylinderGeometry args={[c.r, c.r * 1.25, c.top - c.bottom, 20]} /></mesh>
+      ))}
     </group>
   );
 }
@@ -284,6 +327,7 @@ export function Thalassia() {
 
   return (
     <group>
+      <ArkFoundation domes={domes} />
       <CoreSpire />
       <UnderwaterStreet />
       <DefenseRing />
