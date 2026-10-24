@@ -64,7 +64,7 @@ export const isCity = (regionId: string | undefined) => regionId === "nexus" || 
 export function atmosphereAt(regionId: string | undefined, weather: WeatherState | undefined, night: number): Atmosphere {
   const day = dayAtmosphere(regionId, weather, night);
   if (!isCity(regionId)) return day;
-  const k = Math.min(1, Math.max(0, (night - 0.15) / 0.6));
+  const k = Math.min(1, Math.max(0, (night - 0.35) / 0.5)); // only after the sun is down: at sunset the city keeps its orange sky
   if (k <= 0) return day;
   const mix = (a: number, b: number) => a + (b - a) * k;
   return { ...day, fogTint: k > 0.5 ? CITY_NIGHT.fogTint : day.fogTint, fogMix: mix(day.fogMix, CITY_NIGHT.fogMix), fogScale: mix(day.fogScale, CITY_NIGHT.fogScale),

@@ -1469,7 +1469,7 @@ function SceneImpl({
         const horizonBoost = Math.max(0, 1 - Math.abs(Math.sin(theta)));
         // regional haze (atmosphere.ts): ember smoke / swamp mist / wasteland grit thicken the sky
         const haze = atmo.current.haze;
-        if (u["turbidity"]) u["turbidity"].value = 3.5 + horizonBoost * 6 + cloud * 5 + (1 - visibility) * 7 + haze * 0.5; // high turbidity bleaches the physical sky white, so regional haze only adds half; the colour comes from the sky mood (sky-dome.ts)
+        if (u["turbidity"]) u["turbidity"].value = 3.5 + horizonBoost * 2.5 + cloud * 5 + (1 - visibility) * 7 + haze * 0.5; // high turbidity bleaches the physical sky white, so regional haze only adds half; the colour comes from the sky mood (sky-dome.ts)
         if (u["rayleigh"]) u["rayleigh"].value = 1.4 + horizonBoost * 1.4 + night * 0.4;
         if (u["mieCoefficient"]) u["mieCoefficient"].value = 0.004 + cloud * 0.01 + (1 - visibility) * 0.01 + haze * 0.002;
         if (u["mieDirectionalG"]) u["mieDirectionalG"].value = 0.8;

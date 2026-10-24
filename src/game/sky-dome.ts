@@ -61,7 +61,7 @@ export function skyParams(sunY: number, envCloud: number, regionId?: string | nu
   const mood = regionId ? REGION_SKY_MOOD[regionId] : undefined;
   const graded = mood ? gradeSky(zenith, horizon, mood, low, night) : { zenith, horizon };
   return {
-    zenith: graded.zenith, horizon: graded.horizon, wash: 0.5 + low * (1 - night) * 0.18 - night * 0.15, // golden hour paints more of the sky
+    zenith: graded.zenith, horizon: graded.horizon, wash: 0.5 + low * (1 - night) * 0.36 - night * 0.15, // golden hour: the authored sunset gradient dominates the bleached physical sky
     night,
     cover: 0.38 + clamp01(envCloud) * 0.5,
     sunStrength: smooth(-0.08, 0.06, sunY),
