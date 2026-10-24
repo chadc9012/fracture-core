@@ -79,3 +79,23 @@ Measured by the user (Intel / ANGLE Metal, 900x464, dpr 0.75): triangles fell fr
 - Title menu operator now receives the saved appearance/body type (it was painted with the class UI colour, hence pale blue).
 - Destination map uses the painted terrain with compass rose, legend and known landmarks.
 Status: unit-tested pure parts only; none of this has been seen in a browser.
+
+## Oct 24 vision-gap pass (checked in the owner's browser on the live preview, Intel / ANGLE Metal)
+
+Found by looking at the game on the owner's laptop, fixed, and (where the preview had rebuilt) re-checked there:
+
+| Gap seen | Cause | Fix | Verified |
+|---|---|---|---|
+| Idle audio "a plane taking off, with static" | full-level held sine pad + flat-noise ambience WAVs with clicking loop seams | `ambient-mix.ts` levels, breathing pad, designed beds from `scripts/build-ambience.py` | live: −15.9 → −35.7 dBFS idle, no drone/hiss band; then ambience +3 dB |
+| Nights went flat mauve-pink (Frostspire, Ember) | instability cue lerped fog 35% toward #ff2d55 | `INSTABILITY_FOG`: Fracture violet, max 24% | live: fog #a05374 → #6e6cac |
+| Flat cyan ocean band at the horizon | Water.tsx ShaderMaterial had no fog chunks | fog uniforms + fog_vertex/fog_fragment | live |
+| Half the grass near-black (Solara noon) | up-normals on a DoubleSide material get flipped per face | `ground-lit.ts` drops the flip for GrassField and the Verdant grass cards | live |
+| Palm trunk filling the third-person view | palms never in the obstacle grid | `palmSolids` registered while the city is mounted | unit test |
+| Ground cover ~1M tris every frame | whole-world instancing, no distance limit | `COVER_CULL_RADIUS` reselect like the trees | live: Verdant MEDIUM 3.8M → 2.7M tris |
+| Ruin sites ~230 meshes (draw calls) | one mesh per stone | six instanced batches | headless: 50 → 8 draws for a ruin view |
+| Homes as flat boxes | vertex colour only, bare panes | plaster triplanar, framed windows, shutters, chimney, gutters, railings | headless renders |
+| Swamp moss as flat rectangles, black crowns | untextured planes; crowns #2f4a2a under the gritty grade | strand cut-out texture; murky olive crowns | headless renders |
+
+Trailer shots built: shard-gain burst (`ShardGainFx`), skyline lookout above Nexus (`SkylineLookout`).
+
+Open, for the owner to decide: the jungle-reclaimed city ruins from the trailer (no site on the map boards for it), the 52 m floating region-name labels (world-space text vs the gritty-realistic look; `zoneLabels` setting), and the soft billboard cloud puffs (`CloudLayer`) next to the analytic cloud dome.
