@@ -68,7 +68,7 @@ export function setMixVolumes(music: number, effects: number, ambience = 1, abil
 }
 function applyMix() { if (ctx) { ctx.music.gain.value = externalMusic ? 0 : 0.35 * musicVol; ctx.sfx.gain.value = sfxVol; ctx.amb.gain.value = ambVol; ctx.abil.gain.value = abilVol; } }
 
-/** Plays the station as a linear broadcast (radio-stations.ts: its recorded rotation with a commercial after every AD_EVERY
+/** Plays the station as a linear broadcast (radio-stations.ts: its station ID, then its recorded rotation with a commercial after every AD_EVERY
  * programs) through the master bus at the music level; if a recording cannot load or play, falls back to the procedural
  * instrumental below. onTrack reports what is on air; the same line goes out as a `wf-radio-now-playing` window event. */
 export function startRadio(id: StationId, onTrack?: (label: string) => void) {
@@ -82,7 +82,7 @@ export function startRadio(id: StationId, onTrack?: (label: string) => void) {
   let broadcast = BROADCAST_START, adBreak = false, stopped = false, fallback: (() => void) | null = null;
   const play = () => {
     const t = onAir(id, broadcast, adBreak); el.src = t.path;
-    const label = t.advertisement ? `Commercial · ${t.title}` : `${t.title} — ${t.artist}`;
+    const label = t.advertisement ? `Commercial · ${t.title}` : t.ident ? `${t.artist} · ${t.title}` : `${t.title} — ${t.artist}`;
     onTrack?.(label);
     window.dispatchEvent(new CustomEvent("wf-radio-now-playing", { detail: { station: id, title: label, advertisement: t.advertisement } }));
     void el.play().catch(() => { /* autoplay needs a gesture; the next tick retries */ });
@@ -90,7 +90,7 @@ export function startRadio(id: StationId, onTrack?: (label: string) => void) {
   el.onended = () => { const next = nextOnAir(broadcast, adBreak); broadcast = next.broadcast; adBreak = next.adBreak; play(); };
   el.onerror = () => {
     if (stopped || fallback) return;
-    if (adBreak) { const next = nextOnAir(broadcast, true); broadcast = next.broadcast; adBreak = false; play(); return; } // a missing ad never silences the station
+    if (adBreak || broadcast.intro) { const next = nextOnAir(broadcast, adBreak); broadcast = next.broadcast; adBreak = next.adBreak; play(); return; } // a missing ad or station ID never silences the station
     fallback = startProceduralRadio(id); onTrack?.(RADIO_STATIONS[id].name);
   };
   const timer = window.setInterval(() => { bus.gain.setTargetAtTime(RECORDED_RADIO_GAIN * musicVol, c.ac.currentTime, 0.1); if (!fallback && el.paused && !el.ended && el.src) void el.play().catch(() => {}); }, 1000);

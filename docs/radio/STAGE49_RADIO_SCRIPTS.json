@@ -1,0 +1,193 @@
+{
+  "episodes": [
+    {
+      "number": "06",
+      "title": "Council Hotline",
+      "dialogue": [
+        {
+          "speaker": "glitch",
+          "line": "Welcome back to Off the Rails. Tonight we open the lines for the city council's latest public transit debate."
+        },
+        {
+          "speaker": "mina",
+          "line": "The council says the portal transit review is ongoing. They have published no timetable, and the public meeting is still open."
+        },
+        {
+          "speaker": "caller",
+          "line": "I am Nessa from the east market. I have waited forty minutes for a bus that apparently exists in two districts."
+        },
+        {
+          "speaker": "glitch",
+          "line": "That's still better than the number nine. It exists only in our imagination."
+        },
+        {
+          "speaker": "mina",
+          "line": "A council spokesperson says no route changes are confirmed. Listeners should check public notices before traveling."
+        },
+        {
+          "speaker": "caller",
+          "line": "And can someone tell them to fix the streetlights? My stall closes when the lights flicker."
+        },
+        {
+          "speaker": "glitch",
+          "line": "You heard it. Government accountability, brought to you by a woman who just wants to sell soup."
+        },
+        {
+          "speaker": "mina",
+          "line": "In other news, residents have submitted a petition requesting public hearings on Fracture-zone safety."
+        },
+        {
+          "speaker": "caller",
+          "line": "I'm Jori. My neighborhood wants warning signs that make sense. Last week a sign said caution: unusual."
+        },
+        {
+          "speaker": "glitch",
+          "line": "That describes my entire career."
+        },
+        {
+          "speaker": "mina",
+          "line": "For clarity, no official cause of the Fracture has been established in this broadcast. We will not speculate."
+        },
+        {
+          "speaker": "glitch",
+          "line": "Next caller. What would you ask the council? Please say potholes. I already wrote a song about potholes."
+        }
+      ]
+    },
+    {
+      "number": "07",
+      "title": "Faction Open Line",
+      "dialogue": [
+        {
+          "speaker": "glitch",
+          "line": "Off the Rails is taking calls about neighborhood factions, trading groups, and who gets to paint the bridge."
+        },
+        {
+          "speaker": "mina",
+          "line": "Reminder: factions have competing interests, and this program does not endorse any of them."
+        },
+        {
+          "speaker": "caller",
+          "line": "I'm Vale, a market courier. Two neighborhood groups want to sponsor our delivery route. Neither offered working brakes."
+        },
+        {
+          "speaker": "glitch",
+          "line": "A bold new definition of community support."
+        },
+        {
+          "speaker": "mina",
+          "line": "We have received conflicting accounts of a dispute over supply access. No agreement or confrontation is confirmed."
+        },
+        {
+          "speaker": "caller",
+          "line": "I'm Tess. We just want the groups to stop arguing outside the bakery. The bread is getting nervous."
+        },
+        {
+          "speaker": "glitch",
+          "line": "Is that sourdough or political commentary?"
+        },
+        {
+          "speaker": "mina",
+          "line": "Both sides have been invited to respond on air. We have not independently verified the callers' allegations."
+        },
+        {
+          "speaker": "caller",
+          "line": "This is an anonymous mechanic. Whoever painted the bridge can come paint my garage next."
+        },
+        {
+          "speaker": "glitch",
+          "line": "Finally, a diplomatic breakthrough."
+        },
+        {
+          "speaker": "mina",
+          "line": "Listeners: do not treat rumors about hidden faction leaders, secret bases, or future battles as facts."
+        },
+        {
+          "speaker": "glitch",
+          "line": "Exactly. We cover what people know today, not what might be waiting in somebody's quest log."
+        }
+      ]
+    },
+    {
+      "number": "08",
+      "title": "Fracture Weather Watch",
+      "dialogue": [
+        {
+          "speaker": "mina",
+          "line": "This is Fracture Weather Watch. Reports of unusual lights near several roads are under review."
+        },
+        {
+          "speaker": "glitch",
+          "line": "Our meteorologist has described the forecast as cloudy with a chance of absolutely not."
+        },
+        {
+          "speaker": "caller",
+          "line": "I'm Ada from the repair depot. The compass on my dashboard spun in circles for a minute."
+        },
+        {
+          "speaker": "mina",
+          "line": "That report is unconfirmed. If you encounter unstable conditions, follow posted safety notices and avoid restricted areas."
+        },
+        {
+          "speaker": "glitch",
+          "line": "And do not use your compass as a ceiling fan."
+        },
+        {
+          "speaker": "caller",
+          "line": "I'm Bo from the lakeside. My radio got static, then played my own voice saying I should pay the electric bill."
+        },
+        {
+          "speaker": "mina",
+          "line": "That sounds like a billing reminder, not a scientific finding."
+        },
+        {
+          "speaker": "glitch",
+          "line": "A reminder that the Fracture is mysterious, but overdue bills are not."
+        },
+        {
+          "speaker": "mina",
+          "line": "The government has not released a definitive explanation of the Fracture. Public advisories can change."
+        },
+        {
+          "speaker": "caller",
+          "line": "So we don't know what's causing it?"
+        },
+        {
+          "speaker": "mina",
+          "line": "Correct. We can report what residents observe, but not claim to know what has not been established."
+        },
+        {
+          "speaker": "glitch",
+          "line": "That's tonight's news. No secrets revealed, no maps spoiled, and somehow the phone bill is still enormous."
+        }
+      ]
+    }
+  ],
+  "ads": [
+    {
+      "id": "fracture-safety",
+      "title": "Public Safety Office",
+      "script": "This is a public service announcement from the Nexus City Safety Office. Fracture activity can disrupt roads and communications. Follow posted advisories and keep emergency supplies nearby. Official notices are updated as conditions change."
+    },
+    {
+      "id": "market-mile",
+      "title": "Market Mile",
+      "script": "Market Mile has food, tools and a place to meet your neighbors. Visit the stalls this weekend for everyday deals. Market Mile. Good people. Good prices. Mostly good directions."
+    },
+    {
+      "id": "circuit-cafe",
+      "title": "Circuit Cafe",
+      "script": "At Circuit Cafe, our coffee is hot, our chargers are fast, and our Wi Fi is only occasionally in another dimension. Circuit Cafe. Recharge before the next journey."
+    },
+    {
+      "id": "patchwork-repairs",
+      "title": "Patchwork Repairs",
+      "script": "Armor cracked? Engine rattling? Bring it to Patchwork Repairs. We fix what we can and explain the rest with confidence. Patchwork Repairs. Every bolt counts."
+    },
+    {
+      "id": "community-board",
+      "title": "Nexus Community Board",
+      "script": "Want to know what your district is discussing? Visit the Nexus Community Board for meeting notices, volunteer drives and local updates. The Board posts confirmed announcements, not tavern rumors."
+    }
+  ]
+}

@@ -1,0 +1,190 @@
+{
+  "title": "Stage 48 \u2014 Off the Rails expansion",
+  "episodes": [
+    {
+      "number": 4,
+      "title": "The Dragon Parking Ticket",
+      "segments": 18
+    },
+    {
+      "number": 5,
+      "title": "The Dungeon Landlord",
+      "segments": 22
+    }
+  ],
+  "notes": "Two new original multi-character comedy radio episodes. Synthesized voice demos. Existing linear broadcast, station introductions and every-two-program ad breaks preserved. No skip or shuffle controls added. Production build and browser playback unverified.",
+  "scripts": [
+    {
+      "episode": "04",
+      "title": "The Dragon Parking Ticket",
+      "dialogue": [
+        {
+          "speaker": "glitch",
+          "line": "Welcome to Off the Rails, where the traffic is imaginary and the parking fines are painfully real."
+        },
+        {
+          "speaker": "mina",
+          "line": "Our first story. A dragon has received a parking ticket in Solara Desert. The ticketing officer has requested a transfer to somewhere less flammable."
+        },
+        {
+          "speaker": "glitch",
+          "line": "What exactly counts as a parked dragon?"
+        },
+        {
+          "speaker": "mina",
+          "line": "According to the city code, any winged vehicle that remains stationary for more than six minutes. There is no size exemption."
+        },
+        {
+          "speaker": "caller",
+          "line": "Hello. I am calling from the desert. I was parked beside the dragon, and now my car is technically a shadow."
+        },
+        {
+          "speaker": "glitch",
+          "line": "Did you try turning the dragon off and back on?"
+        },
+        {
+          "speaker": "caller",
+          "line": "I tried. The dragon turned me off and back on."
+        },
+        {
+          "speaker": "mina",
+          "line": "Please do not attempt to reboot wildlife. The operator handbook is very clear on this point."
+        },
+        {
+          "speaker": "glitch",
+          "line": "Coming up next, our financial correspondent explains why dragon insurance costs more than a dragon."
+        },
+        {
+          "speaker": "mina",
+          "line": "We spoke to an insurance agent who says the premiums are based on fire risk and the likelihood of the policyholder being eaten."
+        },
+        {
+          "speaker": "glitch",
+          "line": "So the discount is for customers who never make a claim."
+        },
+        {
+          "speaker": "mina",
+          "line": "The discount is for customers who never make it home."
+        },
+        {
+          "speaker": "caller",
+          "line": "I would like to report that my windshield is now a decorative window in a volcano."
+        },
+        {
+          "speaker": "glitch",
+          "line": "That is excellent resale value. Open plan living."
+        },
+        {
+          "speaker": "mina",
+          "line": "In other news, Nexus City installed a new smart traffic light. It has become self aware and is currently refusing to turn green."
+        },
+        {
+          "speaker": "glitch",
+          "line": "Finally, a machine that understands how I feel on Monday."
+        },
+        {
+          "speaker": "mina",
+          "line": "The traffic light says it will resume service once drivers stop calling it a lamp."
+        },
+        {
+          "speaker": "glitch",
+          "line": "This is Off the Rails. Keep both hands on the wheel and absolutely no dragons in the loading zone."
+        }
+      ]
+    },
+    {
+      "episode": "05",
+      "title": "The Dungeon Landlord",
+      "dialogue": [
+        {
+          "speaker": "glitch",
+          "line": "Good evening Operators. You are listening to Off the Rails, the only station broadcasting from a studio with an emergency portal under the desk."
+        },
+        {
+          "speaker": "mina",
+          "line": "Today we investigate rising rent in procedurally generated dungeons."
+        },
+        {
+          "speaker": "glitch",
+          "line": "I rented a studio dungeon last month. Yesterday it added three rooms and a boss without telling me."
+        },
+        {
+          "speaker": "caller",
+          "line": "I am a dungeon landlord. We provide premium amenities including mood lighting, free fog, and a skeleton concierge."
+        },
+        {
+          "speaker": "mina",
+          "line": "The concierge attacked a tenant."
+        },
+        {
+          "speaker": "caller",
+          "line": "That is the welcome experience."
+        },
+        {
+          "speaker": "glitch",
+          "line": "Does the dungeon have laundry facilities?"
+        },
+        {
+          "speaker": "caller",
+          "line": "There is a washing machine on floor seven. It is also a mimic."
+        },
+        {
+          "speaker": "mina",
+          "line": "Our consumer reporter has advised tenants not to put socks inside any furniture with teeth."
+        },
+        {
+          "speaker": "glitch",
+          "line": "How about the security deposit?"
+        },
+        {
+          "speaker": "caller",
+          "line": "We return the deposit when the tenant defeats the final boss."
+        },
+        {
+          "speaker": "mina",
+          "line": "That sounds illegal."
+        },
+        {
+          "speaker": "caller",
+          "line": "It is in the lease. Paragraph four hundred and two. Written in ancient runes."
+        },
+        {
+          "speaker": "glitch",
+          "line": "I knew I should have asked for the translation."
+        },
+        {
+          "speaker": "mina",
+          "line": "A new survey finds ninety percent of Operators want affordable housing. The other ten percent are currently trapped behind a puzzle door."
+        },
+        {
+          "speaker": "glitch",
+          "line": "We asked a developer why the stairwell keeps moving."
+        },
+        {
+          "speaker": "mina",
+          "line": "He said it is a dynamic floor plan and charged another fee."
+        },
+        {
+          "speaker": "caller",
+          "line": "For a small monthly payment we can upgrade your dungeon to include a window."
+        },
+        {
+          "speaker": "glitch",
+          "line": "What does the window look out on?"
+        },
+        {
+          "speaker": "caller",
+          "line": "Another dungeon."
+        },
+        {
+          "speaker": "mina",
+          "line": "Thank you for listening. Remember to read the lease before opening a treasure chest."
+        },
+        {
+          "speaker": "glitch",
+          "line": "This is Off the Rails. Your security deposit has been converted to experience points."
+        }
+      ]
+    }
+  ]
+}
