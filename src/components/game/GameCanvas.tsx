@@ -1,6 +1,8 @@
 import { FOUND_KEY as STORM_FOUND, stormPrompt, stormStep } from "@/game/storm-quests";
 import { DANCE_VENUES, danceBest, recordDance } from "@/game/dance";
 import { DanceFloor } from "./DanceFloor";
+import { ARCADE_VENUES, arcadeBest, recordArcade } from "@/game/arcade";
+import { ArcadeCabinet } from "./ArcadeCabinet";
 import "@/game/venue-doors";
 import { recordVenueVisit, venueDialogue, venueStanding } from "@/game/nightlife";
 import { renderCounts, canvasWhy, setterCalls, recordSubtree } from "@/game/perf-counters";
@@ -840,6 +842,8 @@ export function GameCanvas() {
   }, [stormHere?.text, hud.stormSite, stormAct]); // eslint-disable-line react-hooks/exhaustive-deps
   const [dancing, setDancing] = useState<string | null>(null);
   useEffect(() => { if (!hud.insideInterior) setDancing(null); }, [hud.insideInterior]);
+  const [arcadeAt, setArcadeAt] = useState<string | null>(null);
+  useEffect(() => { if (!hud.insideInterior) setArcadeAt(null); }, [hud.insideInterior]);
   const visitCounts = useRef(new Map<string, number>());
   const [activeDialogue, setActiveDialogue] = useCountedState<DialogueLine[] | null>("activeDialogue", null);
   useEffect(() => {
@@ -1449,6 +1453,16 @@ export function GameCanvas() {
          </div>
        )}
        {dancing && hud.insideInterior && <DanceFloor venueId={dancing} progression={progression} onProgression={(next) => setProgression((cur) => recordDance(cur, dancing, danceBest(next, dancing)))} onClose={() => setDancing(null)} />}
+       {/* Pixel Pit reflex cabinet (arcade.ts): Crown Casino */}
+       {hud.insideInterior && !arcadeAt && !dancing && ARCADE_VENUES[interiorById(hud.insideInterior)?.venueId ?? ""] && (() => {
+         const id = interiorById(hud.insideInterior)!.venueId!, best = arcadeBest(progression, id);
+         return (
+           <div className="pointer-events-none absolute bottom-64 left-1/2 z-[61] -translate-x-1/2">
+             <Button className="pointer-events-auto" variant="outline" onClick={() => setArcadeAt(id)}>Play {ARCADE_VENUES[id]!.cabinet}{best ? ` · best ${best.toLocaleString()}` : ""}</Button>
+           </div>
+         );
+       })()}
+       {arcadeAt && hud.insideInterior && <ArcadeCabinet venueId={arcadeAt} progression={progression} onProgression={(next) => setProgression((cur) => recordArcade(cur, arcadeAt, arcadeBest(next, arcadeAt)))} onClose={() => setArcadeAt(null)} />}
        {housingOpen && <HousingPanel progression={progression} startTab={housingOpen} startHome={interiorById(hud.insideInterior ?? null)?.homeId} onProgression={setProgression} onClose={() => setHousingOpen(null)} />}
        {hud.insideInterior && hud.interiorName && hud.sub.startsWith("Shop") && !interiorById(hud.insideInterior)?.shopId && (
          <div className="pointer-events-none absolute bottom-24 left-1/2 -translate-x-1/2 text-center">
