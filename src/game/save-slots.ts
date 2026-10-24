@@ -19,7 +19,9 @@ export function assertValidSlot(slot: number): void {
   }
 }
 
-export type SlotSummary = { slot: number; label: string; empty: boolean; updatedAt: string | null; summary: string; active: boolean };
+export type SlotSummary = { slot: number; label: string; empty: boolean; updatedAt: string | null; summary: string; active: boolean;
+  /** the slot's operator as saved (for the roster portrait); absent for empty slots or saves made before character creation */
+  character?: PlayerProgression["character"] };
 
 /** Storage may throw in privacy mode or when the browser blocks site data. */
 function storageRead(key: string): string | null {
@@ -101,9 +103,10 @@ export async function listSlots(userId: string | null, current: PlayerProgressio
   const act = activeSlot();
   return Array.from({ length: SLOT_COUNT }, (_, i) => {
     const slot = i + 1, row = stored[slot];
-    if (slot === act) return { slot, label: row?.label || `Slot ${slot}`, empty: false, updatedAt: new Date().toISOString(), summary: describe(current), active: true };
+    if (slot === act) return { slot, label: row?.label || `Slot ${slot}`, empty: false, updatedAt: new Date().toISOString(), summary: describe(current), active: true, ...(current.character ? { character: current.character } : {}) };
     if (!row) return { slot, label: `Slot ${slot}`, empty: true, updatedAt: null, summary: "Empty — starts a new game", active: false };
-    return { slot, label: row.label || `Slot ${slot}`, empty: false, updatedAt: row.updated_at, summary: describe(normalizeProgression(row.data)), active: false };
+    const saved = normalizeProgression(row.data);
+    return { slot, label: row.label || `Slot ${slot}`, empty: false, updatedAt: row.updated_at, summary: describe(saved), active: false, ...(saved.character ? { character: saved.character } : {}) };
   });
 }
 

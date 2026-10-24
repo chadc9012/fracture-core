@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { ArrowLeft, Play, Plus, Shield, Compass, Sparkles } from "lucide-react";
 import { activeSlot, currentUserId, listSlots, SLOT_COUNT, switchSlot, type SlotSummary } from "@/game/save-slots";
 import { launchDestination } from "@/game/launch-flow";
+import { RosterPortrait } from "./RosterPortrait";
 import type { PlayerProgression } from "@/game/progression";
 
 /** Character-first launch screen: slots are isolated saves, not shared character skins. */
@@ -42,7 +43,8 @@ export function OperatorRoster({ progression, onSelect, onBack }: {
             const current = slot === activeSlot();
             return <button key={slot} type="button" disabled={busy || slots.length === 0} onClick={() => void select(slot)} className="operator-roster-card group relative flex min-h-80 flex-col justify-between overflow-hidden border border-foreground/20 bg-background/65 p-6 text-left backdrop-blur-md transition duration-200 hover:-translate-y-1 hover:border-primary hover:bg-primary/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary disabled:opacity-50">
               <div><div className="flex items-center justify-between"><span className="font-mono text-[11px] uppercase tracking-[0.3em] text-primary">Operator {String(slot).padStart(2, "0")}</span>{empty ? <Plus size={22} /> : <Shield size={22} />}</div>
-                <div className="mt-8 flex h-24 items-center justify-center border-y border-foreground/10 bg-gradient-to-r from-transparent via-primary/10 to-transparent"><span className="font-mono text-5xl font-light tracking-[0.2em] text-primary/60">{empty ? <Sparkles size={48} strokeWidth={1} /> : <Shield size={54} strokeWidth={1} />}</span></div><h2 className="mt-6 font-mono text-xl font-semibold uppercase">{empty ? "Create operator" : record?.label || `Operator ${slot}`}</h2>
+                {!empty && record?.character ? <div className="mt-4 border-y border-foreground/10 bg-gradient-to-b from-transparent via-primary/10 to-transparent"><RosterPortrait character={record.character} active={current} /></div>
+                  : <div className="mt-8 flex h-24 items-center justify-center border-y border-foreground/10 bg-gradient-to-r from-transparent via-primary/10 to-transparent"><span className="font-mono text-5xl font-light tracking-[0.2em] text-primary/60">{empty ? <Sparkles size={48} strokeWidth={1} /> : <Shield size={54} strokeWidth={1} />}</span></div>}<h2 className="mt-6 font-mono text-xl font-semibold uppercase">{empty ? "Create operator" : record?.character?.appearance.callsign || record?.character?.displayName || record?.label || `Operator ${slot}`}</h2>
                 <p className="mt-2 text-xs text-muted-foreground">{empty ? "Fresh mission / separate save" : record?.summary}</p><p className="mt-3 flex items-center gap-2 font-mono text-[10px] uppercase tracking-widest text-primary/80"><Compass size={12}/>{empty ? "First Resonance · New Journey" : current ? "Current operator · Resume or Director" : "Load this operator’s journey"}</p>
               </div>
               <div className="mt-8 flex items-center justify-between border-t border-foreground/15 pt-4 font-mono text-[11px] uppercase tracking-widest"><span>{current ? "Active save" : `Save slot ${slot}`}</span><span className="flex items-center gap-2 text-primary"><Play size={14} /> {empty ? "Create" : "Select"}</span></div>
