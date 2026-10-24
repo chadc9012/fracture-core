@@ -129,7 +129,7 @@ function Ground() {
   const camera = useThree((s) => s.camera);
   const scene = useThree((s) => s.scene);
   const group = useRef<THREE.Group>(null);
-  const state = useRef({ meshes: new Map<string, { lod: number; mesh: THREE.Mesh }>(), queue: [] as BuildRequest[], active: null as { req: BuildRequest; build: ChunkBuild } | null, fx: NaN, fz: NaN, frames: 0,
+  const state = useRef({ meshes: new Map<string, { lod: number; mesh: THREE.Mesh }>(), queue: [] as BuildRequest[], active: null as { req: BuildRequest; build: ChunkBuild } | null, fx: NaN, fz: NaN, frames: 0, lastX: NaN, lastZ: NaN,
     // far chunks merged into SUPER x SUPER tiles: one draw per tile instead of one per chunk
     merged: new Map<string, { mesh: THREE.Mesh; members: string[] }>(), mergeDirty: false, lastMerge: 0 });
 
@@ -245,6 +245,9 @@ function Ground() {
       const px = camera.position.x, pz = camera.position.z;
       // pocket-dimension interiors sit far outside the map: keep the streamed ground as it is so leaving one is instant
       if (Math.hypot(px, pz) > WORLD_RADIUS * 1.4) return;
+      // a jump (fast travel, respawn, door) restarts the warm-up budget so the new ground fills in quickly
+      if (Number.isFinite(st.lastX) && Math.hypot(px - st.lastX, pz - st.lastZ) > 40) st.frames = 0;
+      st.lastX = px; st.lastZ = pz;
       if (!Number.isFinite(st.fx) || Math.hypot(px - st.fx, pz - st.fz) >= REPLAN_DISTANCE) {
         st.fx = px; st.fz = pz;
         const fog = scene.fog instanceof THREE.Fog ? scene.fog.far : 600;

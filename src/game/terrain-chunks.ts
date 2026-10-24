@@ -86,7 +86,7 @@ export const DETAIL_TILE_M = 399 / 240;
 export const SLOPE_PER_GRADIENT = 5 / 5.5;
 
 /** how far the edge skirts drop: enough to hide the height mismatch between neighbouring LODs */
-export const skirtDepth = (spacing: number) => 1.5 + spacing * 0.9;
+export const skirtDepth = (spacing: number) => 1.5 + spacing * 1.8; // 0.9 left 8 m cracks where LOD 2 meets LOD 3
 
 /** Resumable chunk build: LOD 0 is ~4.5k vertices of noise sampling (tens of ms), far too much for one frame, so the work is cut into
  * rows and `step(budgetMs)` does as many as fit. `buildChunk` runs it to completion for tests and tools. */
@@ -210,10 +210,15 @@ export function buildChunk(c: ChunkCoord, lod: number, s: ChunkSamplers): ChunkM
 export interface BuildRequest { cx: number; cz: number; lod: number; priority: number }
 export function planBuilds(wanted: readonly (ChunkCoord & { lod: number; dist: number })[], have: (key: string) => number | undefined, pending: ReadonlySet<string>): BuildRequest[] {
   const out: BuildRequest[] = [];
+  const coarse = LOD_COUNT - 1;
   for (const w of wanted) {
     const key = chunkKey(w.cx, w.cz);
-    if (have(key) === w.lod) continue;
+    const has = have(key);
+    if (has === w.lod) continue;
     if (pending.has(`${key}@${w.lod}`)) continue;
+    // ground that is missing entirely (first load, fast travel) gets a coarse stand-in first: every wanted chunk at the
+    // coarsest LOD costs ~0.5 s in all, where building the near ring straight at full detail left holes for ~16 s
+    if (has === undefined && w.lod < coarse && !pending.has(`${key}@${coarse}`)) out.push({ cx: w.cx, cz: w.cz, lod: coarse, priority: -1e6 + w.dist });
     out.push({ cx: w.cx, cz: w.cz, lod: w.lod, priority: w.dist });
   }
   return out.sort((a, b) => a.priority - b.priority);
