@@ -18,6 +18,27 @@ export function SwampDressing() {
   return <group><Cypress /><Lilies /><Logs /><Fungus /><Boardwalks /><Fireflies /></group>;
 }
 
+/** Spanish-moss beard on a cut-out card (canvas, no asset): many thin strands hanging from a ragged top edge, each a different
+ * length so the bottom edge is torn, greyer and thinner toward the tips. Why: the beards were solid flat planes in one green,
+ * which read as rectangles hanging from every cypress. */
+let mossTex: THREE.CanvasTexture | null = null;
+function mossTexture(): THREE.CanvasTexture | null {
+  if (mossTex) return mossTex;
+  if (typeof document === "undefined") return null;
+  const c = document.createElement("canvas"); c.width = 64; c.height = 256;
+  const g = c.getContext("2d"); if (!g) return null;
+  let s = 311; const rnd = () => { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; };
+  for (let i = 0; i < 70; i++) {
+    const x = 3 + rnd() * 58, top = rnd() * 22, len = 60 + rnd() * 190, w = 0.8 + rnd() * 1.8, sway = (rnd() - 0.5) * 10;
+    const grad = g.createLinearGradient(0, top, 0, top + len);
+    grad.addColorStop(0, "rgba(120,132,88,1)"); grad.addColorStop(0.6, "rgba(150,158,118,0.95)"); grad.addColorStop(1, "rgba(176,180,150,0)");
+    g.strokeStyle = grad; g.lineWidth = w; g.lineCap = "round";
+    g.beginPath(); g.moveTo(x, top); g.bezierCurveTo(x + sway, top + len * 0.35, x - sway, top + len * 0.7, x + sway * 0.5, top + len); g.stroke();
+  }
+  mossTex = new THREE.CanvasTexture(c); mossTex.colorSpace = THREE.SRGBColorSpace; mossTex.anisotropy = 4;
+  return mossTex;
+}
+
 /** where a prop stands: on the ground, or on the water surface when the ground is below it */
 const surface = (x: number, z: number) => Math.max(walkHeight(x, z), waterSurface(x, z) ?? -Infinity);
 
@@ -42,7 +63,7 @@ function Cypress() {
     <instancedMesh ref={trunk} args={[undefined, undefined, ts.length]} castShadow geometry={trunkGeo}><meshStandardMaterial color="#4a3f33" roughness={1} /></instancedMesh>
     <instancedMesh ref={root} args={[undefined, undefined, roots.length]} castShadow geometry={rootGeo}><meshStandardMaterial color="#43382d" roughness={1} /></instancedMesh>
     <instancedMesh ref={crown} args={[undefined, undefined, ts.length]} castShadow geometry={crownGeo}><meshStandardMaterial roughness={0.95} /></instancedMesh>
-    <instancedMesh ref={beard} args={[undefined, undefined, moss.length]}><planeGeometry args={[1, 1, 1, 3]} /><meshStandardMaterial color="#7c8a5a" roughness={1} side={THREE.DoubleSide} transparent opacity={0.85} /></instancedMesh>
+    <instancedMesh ref={beard} args={[undefined, undefined, moss.length]}><planeGeometry args={[1, 1, 1, 3]} /><meshStandardMaterial map={mossTexture()} color="#ffffff" roughness={1} side={THREE.DoubleSide} alphaTest={0.35} /></instancedMesh>
   </group>;
 }
 
