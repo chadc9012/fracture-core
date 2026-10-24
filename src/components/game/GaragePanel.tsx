@@ -8,6 +8,8 @@ import { vehicleById } from "@/game/vehicles";
 import { MATERIALS, type MaterialId } from "@/game/inventory";
 import { ownedDeeds, parkVehicle, parkedAt, parkedIn } from "@/game/residence-deeds";
 import { VehicleArt } from "./StoreArt";
+import { normalizeCondition, repairCost, repairVehicle } from "@/game/vehicle-condition";
+import { formatNex, nexBalance } from "@/game/nex";
 
 const costText = (c: Partial<Record<MaterialId, number>>) => Object.entries(c).map(([k, v]) => `${v} ${MATERIALS[k as MaterialId]?.name ?? k}`).join(" · ");
 const CAT_LABEL: Record<FleetEntry["category"], string> = { LAND: "Cars & bikes", AIR: "Air", HEAVY: "Heavy armour", AQUATIC: "Aquatic" };
@@ -104,6 +106,7 @@ function VehicleDetail({ f, progression, baseOwned, confirm, setConfirm, run }: 
           : <Button className="wf-cta w-full rounded-none" onClick={() => setConfirm(true)}>Buy vehicle</Button>)
           : <div className="space-y-3">
             {active ? <p className="font-mono text-[11px] uppercase tracking-widest text-emerald-300">Active · summon with V</p> : <Button size="sm" className="rounded-none" onClick={() => run(setActiveFleet(progression, f.id), true)}>Make active</Button>}
+            <ConditionRepair progression={progression} vehicleId={f.base} run={run} />
             <div>
               <p className="ui-kicker">Tuning</p>
               <div className="mt-1 grid gap-1">{f.nodes.map((n) => { const lvl = fleet.tuning[f.id]?.[n.id] ?? 0; return (
@@ -127,4 +130,21 @@ function VehicleDetail({ f, progression, baseOwned, confirm, setConfirm, run }: 
       </div>
     </div>
   </section>;
+}
+
+/** Real wear (vehicle-condition.ts), paid off in Nex — separate from the fleet's material purchases and tuning
+ * nodes above. Keyed by the base vehicle id, the same key Scene.tsx reads live condition from, so a repair here
+ * is a repair of the vehicle you actually drive, whichever fleet build currently uses that chassis. */
+function ConditionRepair({ progression, vehicleId, run }: { progression: PlayerProgression; vehicleId: string; run: (r: { progression: PlayerProgression; message: string } | { error: string }) => void }) {
+  const condition = normalizeCondition(progression.vehicleConditions[vehicleId]);
+  const worst = Math.max(condition.body, condition.engine, condition.tires, condition.suspension);
+  const price = repairCost(condition);
+  return <div>
+    <p className="ui-kicker">Condition</p>
+    <div className="mt-1 wf-stat"><i style={{ width: `${Math.max(0, 100 - worst)}%` }} /></div>
+    {price > 0 ? <div className="mt-1.5 flex flex-wrap items-center justify-between gap-2">
+      <span className="text-[11px] text-muted-foreground">Body {Math.round(100 - condition.body)}% · Engine {Math.round(100 - condition.engine)}% · Tires {Math.round(100 - condition.tires)}% · Suspension {Math.round(100 - condition.suspension)}%</span>
+      <Button size="sm" variant="outline" className="h-7 shrink-0 rounded-none px-2 text-[10px]" disabled={nexBalance(progression.nexLedger) < price} onClick={() => run(repairVehicle(progression, vehicleId, Date.now()))}>Repair · {formatNex(price)}</Button>
+    </div> : <p className="mt-1 text-[11px] text-emerald-300">Good condition</p>}
+  </div>;
 }
