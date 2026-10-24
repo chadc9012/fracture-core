@@ -1,6 +1,7 @@
 import { useEffect, useMemo } from "react";
 import * as THREE from "three";
 
+import { delineator, lampHead, lampLens, lampPole, railPost, wBeam } from "@/game/street-geometry";
 import { worldRoadDressing, type Bridge, type Sign } from "@/game/road-dressing";
 
 /**
@@ -24,23 +25,22 @@ function Furniture() {
     const { posts, rails, lamps } = worldRoadDressing().dressing;
     const white = new THREE.MeshStandardMaterial({ color: "#e6e6e0", roughness: 0.6 });
     const reflector = new THREE.MeshStandardMaterial({ color: "#ff8a1a", emissive: "#ff6a00", emissiveIntensity: 0.9, roughness: 0.3 });
-    const galv = new THREE.MeshStandardMaterial({ color: "#b3b9bd", metalness: 0.6, roughness: 0.4 });
+    const galv = new THREE.MeshStandardMaterial({ color: "#9ea4a7", metalness: 0.55, roughness: 0.58 });
     const pole = new THREE.MeshStandardMaterial({ color: "#3a3f45", metalness: 0.7, roughness: 0.45 });
     const bulb = new THREE.MeshStandardMaterial({ color: "#fff2d0", emissive: "#ffd79a", emissiveIntensity: 2.4, toneMapped: false });
     const geos: THREE.BufferGeometry[] = [];
     const g = <T extends THREE.BufferGeometry>(x: T) => { geos.push(x); return x; };
     const meshes: THREE.Object3D[] = [
-      // reflector posts: 1.1 m white post, orange reflector band near the top facing traffic both ways
-      instanced(g(new THREE.BoxGeometry(0.12, 1.1, 0.12).translate(0, 0.55, 0)), white, posts, "road-posts"),
-      instanced(g(new THREE.BoxGeometry(0.13, 0.16, 0.13).translate(0, 0.9, 0)), reflector, posts, "road-reflectors", false),
-      // guard rail: a W-beam (two stacked strips) on a post every segment, stretched to each segment's length
-      instanced(g(new THREE.BoxGeometry(0.06, 0.32, 1).translate(0, 0.62, 0)), galv, rails.map((r) => ({ ...r, sz: r.length + 0.1 })), "road-rails"),
-      instanced(g(new THREE.BoxGeometry(0.1, 0.06, 1).translate(0.03, 0.8, 0)), galv, rails.map((r) => ({ ...r, sz: r.length + 0.1 })), "road-rail-lips", false),
-      instanced(g(new THREE.BoxGeometry(0.12, 0.85, 0.12).translate(-0.08, 0.42, 0)), pole, rails, "road-rail-posts"),
-      // lamps: 8 m pole, 2.2 m arm over the road (local +Z), a lit head
-      instanced(g(new THREE.CylinderGeometry(0.09, 0.14, 8, 8).translate(0, 4, 0)), pole, lamps, "road-lamp-poles"),
-      instanced(g(new THREE.BoxGeometry(0.1, 0.1, 2.2).translate(0, 7.9, 1.05)), pole, lamps, "road-lamp-arms", false),
-      instanced(g(new THREE.BoxGeometry(0.34, 0.12, 0.7).translate(0, 7.8, 2.05)), bulb, lamps, "road-lamp-heads", false),
+      // reflector posts: 1.1 m flexible delineator, orange reflector band near the top facing traffic both ways
+      instanced(g(delineator()), white, posts, "road-posts"),
+      instanced(g(new THREE.CylinderGeometry(0.068, 0.068, 0.16, 8).translate(0, 0.9, 0)), reflector, posts, "road-reflectors", false),
+      // guard rail: a pressed W-beam on a C-channel post every segment, stretched to each segment's length
+      instanced(g(wBeam()), galv, rails.map((r) => ({ ...r, sz: r.length + 0.1 })), "road-rails"),
+      instanced(g(railPost()), pole, rails, "road-rail-posts"),
+      // lamps: tapered 8 m pole on a plinth, curved outreach arm over the road (local +Z), a cobra head with a lit lens
+      instanced(g(lampPole()), pole, lamps, "road-lamp-poles"),
+      instanced(g(lampHead()), pole, lamps, "road-lamp-heads", false),
+      instanced(g(lampLens()), bulb, lamps, "road-lamp-lens", false),
     ];
     return { meshes, geos, mats: [white, reflector, galv, pole, bulb] };
   }, []);
@@ -71,7 +71,7 @@ function RoadSign({ s }: { s: Sign }) {
   const paved = s.kind === "asphalt", post = paved ? "#8d949a" : "#5a3d22";
   return (
     <group position={[s.x, s.y, s.z]} rotation={[0, s.yaw, 0]}>
-      {[-1.3, 1.3].map((x) => <mesh key={x} position={[x, 1.6, 0]} castShadow><boxGeometry args={[0.12, 3.2, 0.12]} /><meshStandardMaterial color={post} metalness={paved ? 0.7 : 0} roughness={paved ? 0.45 : 0.9} /></mesh>)}
+      {[-1.3, 1.3].map((x) => <mesh key={x} position={[x, 1.6, 0]} castShadow>{paved ? <cylinderGeometry args={[0.06, 0.07, 3.2, 8]} /> : <boxGeometry args={[0.14, 3.2, 0.14]} />}<meshStandardMaterial color={post} metalness={paved ? 0.7 : 0} roughness={paved ? 0.45 : 0.9} /></mesh>)}
       <mesh position={[0, 2.6, 0.08]} castShadow><boxGeometry args={[3.3, 1.45, 0.06]} /><meshStandardMaterial color={post} roughness={0.8} /></mesh>
       <mesh position={[0, 2.6, 0.115]}><planeGeometry args={[3.2, 1.4]} />{map ? <meshStandardMaterial map={map} roughness={0.55} /> : <meshStandardMaterial color={paved ? "#0d6a3c" : "#6b4a2a"} />}</mesh>
     </group>

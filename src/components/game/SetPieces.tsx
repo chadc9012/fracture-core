@@ -5,36 +5,22 @@ import * as THREE from "three";
 import { walkHeight } from "@/game/terrain";
 import { debrisPose, floatingDebris, lavaFissures, lavaPulse, wreckField, type Wreck } from "@/game/set-pieces";
 import { softSprite } from "./softSprite";
+import { InstancedFleet, type FleetInstance } from "./InstancedFleet";
+import { WorldPiece } from "./WorldPiece";
+import type { FleetModelId } from "@/game/fleet-models";
 
-/** Burned convoy wrecks with smoke columns (The Convoy Sprint). Procedural, so it can never fail to load. */
+/** Burned convoy wrecks with smoke columns (The Convoy Sprint): the authored fleet cars, burnt and rusted (InstancedFleet),
+ * tipped on their roll; a plain primitive hulk only stands in if a model can't load. */
+const WRECK_MODEL: Record<Wreck["kind"], FleetModelId> = { sedan: "luxury-sedan", pickup: "offroad-truck", van: "security-suv" };
+const BURNT = ["#2a2522", "#3a2a22", "#4a3424", "#2e2a28"];
 export function WreckField() {
   const wrecks = useMemo(() => wreckField(), []);
+  const items = useMemo<FleetInstance[]>(() => wrecks.map((w, i) => ({ model: WRECK_MODEL[w.kind], x: w.x, y: walkHeight(w.x, w.z) - 0.1, z: w.z, yaw: w.yaw, paint: BURNT[i % BURNT.length]! })), [wrecks]);
   return (
     <group>
-      {wrecks.map((w, i) => <CarWreck key={i} w={w} />)}
+      <WorldPiece name="convoy wrecks"><InstancedFleet items={items} shadows={false} /></WorldPiece>
+      {wrecks.filter((w) => w.burning).map((w, i) => <group key={i} position={[w.x, walkHeight(w.x, w.z) + 0.35, w.z]} rotation={[0, w.yaw, 0]}><Embers wd={1.8} len={4.2} h={1} /></group>)}
       {wrecks.filter((w) => w.smoke).map((w, i) => <SmokeColumn key={i} x={w.x} z={w.z} seed={i} fire={w.burning} />)}
-    </group>
-  );
-}
-
-const SIZE: Record<Wreck["kind"], [number, number, number, number]> = { sedan: [1.8, 0.7, 4.2, 0.55], pickup: [1.9, 0.8, 5, 0.65], van: [2, 1.2, 4.8, 1.1] };
-
-function CarWreck({ w }: { w: Wreck }) {
-  const [wd, h, len, cab] = SIZE[w.kind];
-  const y = walkHeight(w.x, w.z);
-  const char = <meshStandardMaterial color="#2a2522" roughness={0.95} metalness={0.25} />;
-  const rust = <meshStandardMaterial color="#5a3424" roughness={0.9} metalness={0.3} />;
-  const tyre = <meshStandardMaterial color="#111" roughness={1} />;
-  return (
-    <group position={[w.x, y + 0.35, w.z]} rotation={[0, w.yaw, w.roll]}>
-      <mesh castShadow receiveShadow position={[0, h / 2 + 0.15, 0]}><boxGeometry args={[wd, h, len]} />{rust}</mesh>
-      {w.kind !== "van" && <mesh castShadow position={[0, h + 0.15 + cab / 2, w.kind === "pickup" ? 0.6 : -0.2]}><boxGeometry args={[wd * 0.9, cab, len * (w.kind === "pickup" ? 0.35 : 0.5)]} />{char}</mesh>}
-      {/* blown-out windows: dark recess */}
-      <mesh position={[0, h + 0.15 + (w.kind === "van" ? -0.25 : cab / 2), len * 0.26]}><boxGeometry args={[wd * 0.82, 0.32, 0.05]} /><meshBasicMaterial color="#050505" /></mesh>
-      {[[-1, -1], [1, -1], [-1, 1], [1, 1]].map(([sx, sz], k) => (
-        <mesh key={k} position={[(sx! * wd) / 2, 0.05, (sz! * len) / 3]} rotation={[0, 0, Math.PI / 2]}><cylinderGeometry args={[0.32, 0.32, 0.22, 10]} />{tyre}</mesh>
-      ))}
-      {w.burning && <Embers wd={wd} len={len} h={h} />}
     </group>
   );
 }
