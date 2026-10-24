@@ -43,7 +43,7 @@ export function VehicleBodyDamage({ condition, seed, bounds }: { condition: { cu
   sootMat.opacity = look.soot * 0.7;
   const glassY = box.min.y + h * 0.78, glassZ = box.max.z - l * 0.36;
 
-  return <group>
+  return <group name="vehicle-body-damage" userData={{ dents: look.dents.length, glass: look.glass, key: look.key }}>
     {look.dents.map((d, i) => {
       const r = d.r * h, depth = 0.02 + d.depth * 0.03, y = box.min.y + d.v * h;
       const flank = d.face === "L" || d.face === "R";

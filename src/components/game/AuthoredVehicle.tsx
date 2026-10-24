@@ -2,6 +2,7 @@ import { useGLTF } from "@react-three/drei";
 import { useFrame } from "@react-three/fiber";
 import { Suspense, useEffect, useMemo, useRef, type MutableRefObject } from "react";
 import * as THREE from "three";
+import { localBounds } from "@/game/vehicle-bounds";
 
 import { FLEET_MODELS, paintColor, type FleetModel } from "@/game/fleet-models";
 import type { VehicleCosmetics } from "@/game/fleet";
@@ -116,7 +117,7 @@ function VehicleBody({ model, paint, cosmetics, speedRef, steerRef, brakeRef, bo
 
   useEffect(() => {
     if (!boundsRef) return;
-    const b = new THREE.Box3().setFromObject(rig.root);
+    const b = localBounds(rig.root); // root-local, not world: see vehicle-bounds.ts
     const up = new THREE.Vector3(0, lift, 0);
     boundsRef.current = new THREE.Box3(b.min.clone().multiplyScalar(model.scale).add(up), b.max.clone().multiplyScalar(model.scale).add(up));
     return () => { boundsRef.current = null; };
