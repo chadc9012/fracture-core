@@ -40,7 +40,7 @@ function Island({ site, index }: { site: StormIslandSite; index: number }) {
   }), [radius, index]);
   const r = mulberry32(index * 97 + 5);
   const drift = useMemo(() => Array.from({ length: 7 }, () => ({ a: r() * Math.PI * 2, d: radius * (0.8 + r() * 0.6), y: -radius * (0.3 + r() * 0.9) })), [radius]); // eslint-disable-line react-hooks/exhaustive-deps
-  useFrame(({ clock }) => { if (group.current) group.current.position.y = w.y + Math.sin(clock.elapsedTime * 0.25 + index) * 1.4; });
+  // the islands hang still: their caps are walkable ground (storm-quests.ts stormGroundAt), so they must not bob under your feet
   return (
     <group ref={group} position={[w.x, w.y, w.z]} name={`storm-island:${site.id}`}>
       <mesh geometry={geo.under} material={rockMat} position={[0, -radius * 0.8, 0]} castShadow />

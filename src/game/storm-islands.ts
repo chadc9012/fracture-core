@@ -1,7 +1,7 @@
 /** Storm Islands is an optional hidden sub-area, not a tenth destination (uploaded storm-islands quest foundation +
  * world pass, 2026-10-23). The chain floats over the north-east ocean at STORM_ISLANDS_CENTER; site positions are
- * offsets from it (y is absolute height). StormIslands.tsx builds the islands; the quests below are data only until
- * they are wired into the mission events.
+ * offsets from it (y is absolute height). StormIslands.tsx builds the islands; storm-quests.ts makes them standable and
+ * runs the quests below (progress in earnedRewards, payouts through rewardMission).
  * This module defines discovery points and quest content without creating a
  * competing progression/reward pipeline. Quest completion must be routed through
  * the existing mission/quest events when the area is wired into gameplay. */

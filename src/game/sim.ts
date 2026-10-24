@@ -1,3 +1,4 @@
+import { stormGroundAt } from "./storm-quests";
 import { emptyChainState, registerChainHit, resolveChainDamage, type ChainState, type ChainReaction } from "./legendary-chain";
 import { rollSetDrop, setById, type SetDrop } from "./armor-sets";
 import { stratagemById, type StratagemId } from "./stratagems";
@@ -1403,7 +1404,7 @@ export function stepSim(sim: WorldSim, input: SimInput) {
       const pred = predictPosition(m, 4, sdt);
       m.x = pred.x;
       m.z = pred.z;
-      m.y = walkHeight(m.x, m.z) + 2.2 * m.scale;
+      m.y = Math.max(walkHeight(m.x, m.z), stormGroundAt(m.x, m.z, m.y - 2.2 * m.scale)) + 2.2 * m.scale;
       if (!m.mission && !m.living && Math.hypot(px - m.x, pz - m.z) > 340) m.alive = false; // scripted mission machines are never leashed away: missions wait on their defeat
       sim.stats.dormant++;
       continue;
@@ -1565,7 +1566,7 @@ export function stepSim(sim: WorldSim, input: SimInput) {
       // swimmers stay submerged: between the seabed and just under the surface
       const bed = heightAt(m.x, m.z) + 1.5;
       m.y += (Math.max(bed, Math.min(WATER_LEVEL - 1.5, m.swimY)) - m.y) * Math.min(1, dt * 2);
-    } else m.y = walkHeight(m.x, m.z) + 2.2 * m.scale;
+    } else m.y = Math.max(walkHeight(m.x, m.z), stormGroundAt(m.x, m.z, m.y - 2.2 * m.scale)) + 2.2 * m.scale; // Storm Islands' caps hold their guardians up
   }
 
   // ---------- subclass-verb volatile zones (Void Warlock's Corrosion Field, see subclass-verbs.ts) ----------
@@ -1982,4 +1983,11 @@ export function stepSim(sim: WorldSim, input: SimInput) {
   endStats(sim.stats, performance.now() - t0);
 
   return { playerInstability };
+}
+
+/** the Thunder Nest's guardian pack (storm-quests.ts): spawned on the island cap, tagged so it is never leashed away */
+export function spawnStormGuardians(sim: WorldSim, x: number, z: number, top: number): number {
+  const n = spawnEventSquad(sim, "storm:nest", x, z, 6, 2, "frostspire", 10);
+  for (const m of sim.machines) if (m.alive && m.living === "storm:nest") m.y = top + 2.2 * m.scale;
+  return n;
 }

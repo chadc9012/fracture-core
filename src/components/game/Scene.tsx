@@ -33,7 +33,7 @@ import { waterMix } from "@/game/water-audio";
 /** water audio is eased in the audio graph, so it only needs a pose update ~8x/s */
 let lastWaterAudioAt = 0;
 import { flavorFor } from "@/game/audio-design";
-import { alert, applyLightning, chipPlayer, collidePlayer, createSim, defeatMachine, logImpact, FACTIONS, fireBullet, fireLauncher, hurtPlayer, throwBeacon, instabilityTier, spawnMissionDrones, spawnEventSquad, stepSim, summonBoss, summonScenarioBoss, type Faction, type InstabilityTier, type WorldSim, type ZoneState } from "@/game/sim";
+import { alert, applyLightning, chipPlayer, collidePlayer, createSim, defeatMachine, logImpact, FACTIONS, fireBullet, fireLauncher, hurtPlayer, throwBeacon, instabilityTier, spawnMissionDrones, spawnEventSquad, spawnStormGuardians, stepSim, summonBoss, summonScenarioBoss, type Faction, type InstabilityTier, type WorldSim, type ZoneState } from "@/game/sim";
 import type { MissionEvent, MissionRun } from "@/game/missions/broken-signal";
 import type { MissionEvent as BlackoutEvent, MissionRun as BlackoutRun } from "@/game/missions/blackout-protocol";
 import type { MissionEvent as NeonCoreEvent, MissionRun as NeonCoreRun } from "@/game/missions/stitched-neon-core";
@@ -198,7 +198,8 @@ import { AuthoredVehicle } from "./AuthoredVehicle";
 import { SiteMarkers } from "./SiteMarkers";
 import { WorldPiece } from "./WorldPiece";
 import { StormIslands } from "./StormIslands";
-import { STORM_ISLANDS_CENTER } from "@/game/storm-islands";
+import { STORM_ISLANDS_CENTER, stormSiteWorld } from "@/game/storm-islands";
+import { inStormAirspace, islandTop, sighted, stormGroundAt, stormQuests, stormSiteAt } from "@/game/storm-quests";
 import { ResidenceGarages } from "./ResidenceGarages";
 import { reportVehicleEnter, reportVehicleExit, takeDriveOut } from "@/game/vehicle-request";
 import { deedNear, parkedAt } from "@/game/residence-deeds";
@@ -249,6 +250,9 @@ export type HudState = {
   credits: number;
   cargo: number;
   kills: number;
+  /** the Storm Island under the player (storm-quests.ts), and whether the chain is in sight */
+  stormSite?: string | null;
+  stormSighted?: boolean;
   elevation: number;
   traction: number;
   alerts: string[];
@@ -608,6 +612,7 @@ function SceneImpl({
   const wasteHud = useRef<WasteHud>(null);
   // fleet.ts / godforge.ts: Vael's opened forge and owned garage bases are small sanctuaries (sim.ts pushes hostiles out)
   const sanctuaries = useMemo(() => sanctuariesFor({ earnedRewards: gear?.earnedRewards ?? [], fleet: gear?.fleet }), [gear?.earnedRewards, gear?.fleet]);
+  const stormNest = useRef(false);
   const gearLive = useRef(gear); gearLive.current = gear; // dev hooks read the latest save, not the one at mount
   const runeKeyRef = useRef("");
   const relicIdRef = useRef<string | null>(null);
@@ -1474,7 +1479,7 @@ function SceneImpl({
     }
     // Interiors are flat pocket rooms far outside the terrain's authored bounds, so slope/height/water sampling there would just be noise — treat them as dry, flat, and out of the water entirely.
     const slope = interior ? 0 : slopeAt(s.x, s.z);
-    const ground = interior ? INTERIOR_ALTITUDE : walkHeight(s.x, s.z);
+    const ground = interior ? INTERIOR_ALTITUDE : Math.max(walkHeight(s.x, s.z), stormGroundAt(s.x, s.z, s.y - 1.6));
     let submerged = interior ? false : heightAt(s.x, s.z) < WATER_LEVEL - 0.2; // re-read after a teleport below, or the first frame snaps a diver to the surface
     if (submerged && !s.wasSubmerged) sfx.playSplash(Math.min(1, (s.inVehicle ? Math.abs(s.vSpeed) : velocity.length()) / 20));
     s.wasSubmerged = submerged;
@@ -1916,6 +1921,19 @@ function SceneImpl({
       if (tutorial?.step === "MOVEMENT") { const travel = Math.hypot(s.x - SPAWN.x, s.z - SPAWN.z); if (travel >= (lastGate.current + 1) * 10 && lastGate.current < 3) { lastGate.current++; onTutorialEvent?.("GATE"); } }
     }
 
+    /* ---------------- Storm Islands: the Thunder Nest's guardian pack lands when you stand on the nest with its hunt active ---------------- */
+    if (!interior && gearLive.current) {
+      const site = stormSiteAt(s.x, s.z, s.y - 1.6);
+      if (site?.id === "thunder-nest") {
+        const hunt = stormQuests({ earnedRewards: gearLive.current.earnedRewards ?? [] }).find((q) => q.quest.id === "storm-side-01");
+        if (hunt?.state === "ACTIVE" && hunt.next?.event === "defeat" && !stormNest.current && !sim.machines.some((m) => m.alive && m.living === "storm:nest")) {
+          const w = stormSiteWorld(site);
+          spawnStormGuardians(sim, w.x, w.z, islandTop(site));
+          stormNest.current = true;
+          alert(sim, "Stormborne guardians rise from the nest");
+        }
+      } else stormNest.current = false;
+    }
     /* ---------------- interiors: walk up to a door to go in, walk up to the exit marker to come back out ---------------- */
     if (!interior && !s.inVehicle) {
       // homes open for their owner only; nightlife venues only during their hours (nightlife.ts VENUE_HOURS)
@@ -1960,7 +1978,8 @@ function SceneImpl({
 
     // world bounds — skipped inside a pocket-dimension interior, which lives far outside WORLD_RADIUS by design
     // Thalassia sits past the world disc in open ocean: its city radius (plus an approach lane) is inside the bounds too
-    if (!interior && Math.hypot(s.x - THALASSIA_CENTER.x, s.z - THALASSIA_CENTER.z) > CITY_RADIUS + 80) {
+    // and the Storm Islands hang over the ocean past the rim: high in the air near the chain is in bounds (storm-quests.ts)
+    if (!interior && Math.hypot(s.x - THALASSIA_CENTER.x, s.z - THALASSIA_CENTER.z) > CITY_RADIUS + 80 && !inStormAirspace(s.x, s.y, s.z)) {
       const d = Math.hypot(s.x, s.z);
       if (d > WORLD_RADIUS - 6) {
         s.x *= (WORLD_RADIUS - 6) / d;
@@ -2546,7 +2565,9 @@ function SceneImpl({
     holdDisabledField(sim, live.current, { x: s.x, z: s.z, yaw: s.yaw });
 
     /* ---------------- vertical: gravity + terrain follow, or buoyancy + pressure diving ---------------- */
-    const standY = (interior ? INTERIOR_ALTITUDE : walkHeight(s.x, s.z)) + (s.inVehicle ? 1.9 : 1.6);
+    // the Storm Islands' caps are ground too, for whoever stands on or drops onto them (storm-quests.ts)
+    const skyGround = interior ? -Infinity : stormGroundAt(s.x, s.z, s.y - (s.inVehicle ? 1.9 : 1.6));
+    const standY = (interior ? INTERIOR_ALTITUDE : Math.max(walkHeight(s.x, s.z), skyGround)) + (s.inVehicle ? 1.9 : 1.6);
     if (s.inVehicle && handling.mode !== "GROUND") {
       s.grounded = !vh.current.airborne; // stepVehicle owns height for aircraft and boats
     } else if (!s.inVehicle && submerged && (s.diving || held.has("KeyZ"))) {
@@ -2622,7 +2643,7 @@ function SceneImpl({
     }
     restTraversal(trav.current, playerClass, dt, s.grounded);
     // body origin must stay above the sampled support surface, even uphill or after a knockdown
-    clampToFloor(s, s.diving ? heightAt(s.x, s.z) : interior ? INTERIOR_ALTITUDE : walkHeight(s.x, s.z), s.diving ? 1.1 : s.inVehicle ? 1.9 : 1.6);
+    clampToFloor(s, s.diving ? heightAt(s.x, s.z) : interior ? INTERIOR_ALTITUDE : Math.max(walkHeight(s.x, s.z), stormGroundAt(s.x, s.z, s.y - (s.inVehicle ? 1.9 : 1.6))), s.diving ? 1.1 : s.inVehicle ? 1.9 : 1.6);
     // fracture instability tosses loose objects (and you) around
     if (playerInstability > 0.6 && s.grounded && !s.diving && Math.random() < playerInstability * dt * 1.2) {
       s.vy = 6 + playerInstability * 10;
@@ -2798,6 +2819,8 @@ function SceneImpl({
         credits: sim.credits,
         cargo: sim.cargo,
         kills: sim.kills,
+        stormSite: interior ? null : stormSiteAt(s.x, s.z, s.y - 1.6)?.id ?? null,
+        stormSighted: !interior && sighted(s.x, s.z),
         elevation: interior ? 0 : Math.round(heightAt(s.x, s.z)),
         traction,
         alerts: sim.alerts.map((a) => a.text),

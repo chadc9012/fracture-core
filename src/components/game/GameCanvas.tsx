@@ -1,3 +1,4 @@
+import { FOUND_KEY as STORM_FOUND, stormPrompt, stormStep } from "@/game/storm-quests";
 import { DANCE_VENUES, danceBest, recordDance } from "@/game/dance";
 import { DanceFloor } from "./DanceFloor";
 import "@/game/venue-doors";
@@ -810,6 +811,33 @@ export function GameCanvas() {
    * reacting to the zone's live instability tier and territory-control owner (sim.ts, the same data
    * RegionLabels/Minimap already surface) and whichever Fracture Descent quest is active, so an NPC
    * you've already met has something new to say rather than going silent forever. */
+  /* Storm Islands (storm-quests.ts): sighting the chain reveals it; standing on an island advances its quests; the guardian
+   * pack at the Thunder Nest counts kills made while on the nest; objectives that need a hand get a prompt (E or the button) */
+  useEffect(() => {
+    if (!hud.stormSighted) return;
+    setProgression((p) => (p.earnedRewards.includes(STORM_FOUND) ? p : { ...p, earnedRewards: [...p.earnedRewards, STORM_FOUND] }));
+  }, [hud.stormSighted]);
+  const nestBase = useRef<number | null>(null);
+  const stormAct = useCallback((ctx: Parameters<typeof stormStep>[1]) => {
+    const r = stormStep(progressionRef.current, ctx);
+    if (r.progression === progressionRef.current) return;
+    setProgression(r.progression);
+    r.messages.forEach((m) => showLivingToast(m));
+  }, [showLivingToast]);
+  useEffect(() => {
+    nestBase.current = hud.stormSite === "thunder-nest" ? hud.kills : null;
+    if (hud.stormSite) stormAct({ site: hud.stormSite, action: "arrive" });
+  }, [hud.stormSite]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (hud.stormSite === "thunder-nest" && nestBase.current !== null) stormAct({ site: "thunder-nest", action: "kills", nestKills: hud.kills - nestBase.current });
+  }, [hud.kills]); // eslint-disable-line react-hooks/exhaustive-deps
+  const stormHere = stormPrompt(progression, hud.stormSite ?? null);
+  useEffect(() => {
+    if (!stormHere) return;
+    const onKey = (e: KeyboardEvent) => { if (e.code === "KeyE") stormAct({ site: hud.stormSite ?? null, action: "interact" }); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [stormHere?.text, hud.stormSite, stormAct]); // eslint-disable-line react-hooks/exhaustive-deps
   const [dancing, setDancing] = useState<string | null>(null);
   useEffect(() => { if (!hud.insideInterior) setDancing(null); }, [hud.insideInterior]);
   const visitCounts = useRef(new Map<string, number>());
@@ -1406,6 +1434,12 @@ export function GameCanvas() {
        {hud.insideInterior && !housingOpen && !realty && (hud.insideInterior === "neon-property-office" || interiorById(hud.insideInterior)?.kind === "APARTMENT" || interiorById(hud.insideInterior)?.kind === "HOME") && (
          <div className="pointer-events-none absolute bottom-36 left-1/2 -translate-x-1/2">
            <Button className="pointer-events-auto" variant="outline" onClick={() => { if (hud.insideInterior === "neon-property-office") setRealty({ start: null }); else setHousingOpen("DECORATE"); }}>{hud.insideInterior === "neon-property-office" ? "Talk to the agent · Buy homes" : interiorById(hud.insideInterior)?.homeId ? "Decorate this home" : "Decorate my homes"}</Button>
+         </div>
+       )}
+       {stormHere && !hud.insideInterior && (
+         <div className="pointer-events-none absolute bottom-64 left-1/2 z-[61] -translate-x-1/2 text-center">
+           <p className="mb-1 font-mono text-[10px] uppercase tracking-[0.25em] text-[#8ab5ff]">{stormHere.quest}</p>
+           <Button className="pointer-events-auto" variant="outline" onClick={() => stormAct({ site: hud.stormSite ?? null, action: "interact" })}>E · {stormHere.text}</Button>
          </div>
        )}
        {/* nightclub dance floor (dance.ts): Pulse Array and Afterglow */}

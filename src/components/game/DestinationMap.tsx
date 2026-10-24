@@ -1,3 +1,4 @@
+import { SKY_DOCK_DROP, islandsFound } from "@/game/storm-quests";
 import { useEffect, useMemo, useState } from "react";
 import { Compass, Lock, Settings2, Play, X } from "lucide-react";
 import { ZONE_COLOR, REGIONS } from "@/game/world";
@@ -80,7 +81,9 @@ export function DestinationMap({ progression, onDeploy, onProgression, onAtlas, 
     const known = LANDMARKS.filter((l) => isLandmarkKnown(progression, l.id) && l.id !== info.id && Math.hypot(l.x - centre.x, l.z - centre.z) <= reach).slice(0, 7);
     return [{ id: "primary", name: "Primary landing zone", x: info.drop.x, z: info.drop.z, ...(info.drop.y !== undefined ? { y: info.drop.y } : {}) },
       // a submerged city is only reached by its submersible; landmarks there are not separate drops
-      ...(info.drop.y !== undefined ? [] : known.map((l) => ({ id: l.id, name: l.name, x: l.x, z: l.z + 6 })))];
+      ...(info.drop.y !== undefined ? [] : known.map((l) => ({ id: l.id, name: l.name, x: l.x, z: l.z + 6 }))),
+      // the Storm Islands are a secret sub-area: once sighted, the Sky Dock is a landing zone from Nexus (storm-quests.ts)
+      ...(info.id === "nexus" && islandsFound(progression) ? [{ id: "sky-dock", name: "Broken Sky Dock · Storm Islands", ...SKY_DOCK_DROP }] : [])];
   }, [info, region, progression]);
   const landing = landings.find((l) => l.id === landingId) ?? landings[0];
 
