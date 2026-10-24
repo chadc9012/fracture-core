@@ -873,6 +873,8 @@ export function fireBullet(
   heat = 1,
   element?: DamageElement,
   cause?: GoreCause,
+  /** vehicle guns (vehicle-weapons.ts): muzzle velocity and the shooter's own velocity, which the round keeps */
+  shot?: { speed?: number; inherit?: { vx: number; vy: number; vz: number }; heat?: "VEHICLE" | "FOOT" },
 ) {
   if (sim.overheated) return false;
   const b = sim.bullets.find((v) => !v.alive);
@@ -887,10 +889,11 @@ export function fireBullet(
   b.x = x;
   b.y = y;
   b.z = z;
-  b.vx = Math.sin(yaw) * Math.cos(pitch) * 130;
-  b.vy = Math.sin(pitch) * 130;
-  b.vz = Math.cos(yaw) * Math.cos(pitch) * 130;
-  b.life = 1.4;
+  const speed = shot?.speed ?? 130;
+  b.vx = Math.sin(yaw) * Math.cos(pitch) * speed + (shot?.inherit?.vx ?? 0);
+  b.vy = Math.sin(pitch) * speed + (shot?.inherit?.vy ?? 0);
+  b.vz = Math.cos(yaw) * Math.cos(pitch) * speed + (shot?.inherit?.vz ?? 0);
+  b.life = 1.4 * Math.max(1, speed / 130); // the same reach scales with muzzle velocity (~180 m), longer for fast guns
   b.dmg = dmg;
   b.knock = knock;
   b.element = element;
@@ -913,6 +916,23 @@ export function fireLauncher(sim: WorldSim, id: LauncherId, x: number, y: number
   const aim: [number, number, number] = [Math.sin(yaw) * Math.cos(pitch), Math.sin(pitch), Math.cos(yaw) * Math.cos(pitch)];
   Object.assign(r, fireRound({ ...L.ordnance, damage: dmg * sim.mods.bulletDamage * sim.verbDamageMult }, { x, y, z }, aim), { launcher: id, element: L.element, target: lock, knock });
   logBehavior(sim.adaptation, "combat", 0.6);
+  return true;
+}
+
+/** vehicle ordnance (vehicle-weapons.ts secondary fire): a rocket/missile/torpedo from ordnance.ts flying from a hardpoint.
+ * Guided rounds lock the nearest machine in a forward cone. Shares heat/noise with every other weapon; drawn and splashed like
+ * the Breacher rocket. `carry` adds the vehicle's forward speed so a jet never outruns its own missiles. */
+export function fireOrdnance(sim: WorldSim, def: OrdnanceDef, x: number, y: number, z: number, yaw: number, pitch: number, dmg: number, carry = 0, knock = 2): boolean {
+  if (sim.overheated) return false;
+  const r = sim.rounds.find((v) => !v.alive);
+  if (!r) return false;
+  sim.weaponHeat = Math.min(100, sim.weaponHeat + HEAT_PER_SHOT_VEHICLE * 2);
+  sim.playerNoise = 1;
+  if (sim.weaponHeat >= 100) { sim.overheated = true; alert(sim, "WEAPON OVERHEAT — venting"); }
+  const lock = def.turnRate > 0 ? pickLockTarget({ x, z }, yaw, sim.machines, 0.5, def.kind === "MISSILE" ? 260 : 120) : -1;
+  const aim: [number, number, number] = [Math.sin(yaw) * Math.cos(pitch), Math.sin(pitch), Math.cos(yaw) * Math.cos(pitch)];
+  Object.assign(r, fireRound({ ...def, speed: def.speed + Math.max(0, carry), damage: dmg * sim.mods.bulletDamage * sim.verbDamageMult }, { x, y, z }, aim), { launcher: "ROCKET" as LauncherId, element: "KINETIC" as DamageElement, target: lock, knock });
+  logBehavior(sim.adaptation, "vehicles", 0.6);
   return true;
 }
 

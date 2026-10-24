@@ -30,12 +30,15 @@ import { buffEffect } from "@/game/stash";
 import { bootStats, SKATE_SHOP_OFFSET, SKATE_SHOP_RADIUS } from "@/game/skate-boots";
 import { walkHeight, slopeAt, heightAt, waterNetwork, WATER_LEVEL } from "@/game/terrain";
 import { normalizeGore } from "@/game/gore";
+import { aimFor, armamentFor, vehiclePoint, vehicleVelocity } from "@/game/vehicle-weapons";
+import { ordnanceById } from "@/game/ordnance";
+import { MuzzleFlash, type MuzzleFlashState } from "./VehicleGunFx";
 import { GoreFx } from "./GoreFx";
 import { waterMix } from "@/game/water-audio";
 /** water audio is eased in the audio graph, so it only needs a pose update ~8x/s */
 let lastWaterAudioAt = 0;
 import { flavorFor } from "@/game/audio-design";
-import { alert, applyLightning, chipPlayer, collidePlayer, createSim, defeatMachine, logImpact, markGoreHit, FACTIONS, fireBullet, fireLauncher, hurtPlayer, throwBeacon, instabilityTier, spawnMissionDrones, spawnEventSquad, spawnStormGuardians, stepSim, summonBoss, summonScenarioBoss, type Faction, type InstabilityTier, type WorldSim, type ZoneState } from "@/game/sim";
+import { alert, applyLightning, chipPlayer, collidePlayer, createSim, defeatMachine, logImpact, markGoreHit, fireOrdnance, FACTIONS, fireBullet, fireLauncher, hurtPlayer, throwBeacon, instabilityTier, spawnMissionDrones, spawnEventSquad, spawnStormGuardians, stepSim, summonBoss, summonScenarioBoss, type Faction, type InstabilityTier, type WorldSim, type ZoneState } from "@/game/sim";
 import type { MissionEvent, MissionRun } from "@/game/missions/broken-signal";
 import type { MissionEvent as BlackoutEvent, MissionRun as BlackoutRun } from "@/game/missions/blackout-protocol";
 import type { MissionEvent as NeonCoreEvent, MissionRun as NeonCoreRun } from "@/game/missions/stitched-neon-core";
@@ -772,7 +775,11 @@ function SceneImpl({
     return { model: vehicleModelFor(vehicleId, build), paint: build ? gear?.fleet?.paint[build] ?? null : null, cosmetics: build ? gear?.fleet?.cosmetics?.[build] ?? null : null };
   }, [vehicleId, gear?.fleet]);
   const handling = useMemo(() => handlingFor(vehicleById(vehicleId)), [vehicleId]); // vehicle-handling.ts: jet/heli/boat/sub/tank/car each move differently
-  const vh = useRef({ airborne: false, slip: 0, roll: 0, pitch: 0, skidAt: 0 });
+  const vh = useRef({ airborne: false, slip: 0, roll: 0, pitch: 0, skidAt: 0, groundPitch: 0, groundRoll: 0 });
+  // vehicle-weapons.ts: what this vehicle's hardpoints fire, and the secondary salvo in progress
+  const armament = useMemo(() => armamentFor(vehicleId, handling.kind), [vehicleId, handling.kind]);
+  const muzzleFlash = useRef<MuzzleFlashState | null>(null);
+  const vFire = useRef({ cool: 0, secCool: 0, salvoLeft: 0, salvoCool: 0, barrel: 0, podBarrel: 0 });
   const condition = useRef<VehicleCondition>(FRESH_VEHICLE);
   useEffect(() => { condition.current = normalizeCondition(gear?.vehicleConditions?.[vehicleId]); }, [vehicleId, gear?.vehicleConditions]);
   const player = useRef<THREE.Group>(null!);
@@ -1685,7 +1692,9 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
     s.swing = Math.max(0, s.swing - dt);
     s.comboTime = Math.max(0, s.comboTime - dt);
     if (s.comboTime <= 0) s.combo = 0;
-    const trigger = held.has("Space") || mouse.current.fire || padState.current.fire;
+    // in a vehicle Space is the handbrake and the pad's RT is the throttle, so neither fires: mouse or pad X (2) fires the guns, RMB / pad Y (3) the ordnance
+    const trigger = s.inVehicle ? mouse.current.fire || !!padNow[2] : held.has("Space") || mouse.current.fire || padState.current.fire;
+    const secondaryTrigger = s.inVehicle && (mouse.current.aim || !!padNow[3]);
     const shoot = () => {
       if (!s.inVehicle && wpn.mag > 0) {
         if (s.reload > 0) return;
@@ -1770,7 +1779,53 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
            defeatMachine(sim, enemy);
         }
       }
-    } else if (!sim.overheated && !(s.inVehicle && vehicleEffect.weaponsDisabled)) {
+    } else if (s.inVehicle) {
+      // vehicle hardpoints (vehicle-weapons.ts): rounds leave the real barrels, carry the vehicle's velocity, and turrets follow the camera
+      const vf = vFire.current;
+      vf.cool -= dt; vf.secCool -= dt; vf.salvoCool -= dt;
+      if (!sim.overheated && !vehicleEffect.weaponsDisabled) {
+        const air = handling.mode === "AIR";
+        const pose = { x: s.x, y: s.y - 1.9, z: s.z, yaw: s.yaw, pitch: air ? vh.current.pitch : vh.current.groundPitch, roll: air ? vh.current.roll : vh.current.groundRoll };
+        const bounds = carBounds.current;
+        // keep authored offsets on the model: never above its roof (+0.5 m) or past its nose (+0.6 m)
+        const fit = (o: readonly [number, number, number]): [number, number, number] => bounds ? [o[0], Math.min(o[1], bounds.max.y + 1.9 + 0.5), Math.min(o[2], bounds.max.z + 0.6)] : [o[0], o[1], o[2]];
+        const carry = vehicleVelocity(s.yaw, s.vSpeed, air || handling.mode === "WATER" ? s.vy : 0);
+        const g = armament.primary;
+        if (trigger && vf.cool <= 0) {
+          vf.cool = g.rate / sim.mods.fireRate;
+          const muzzle = vehiclePoint(pose, fit(g.muzzles[vf.barrel++ % g.muzzles.length]!));
+          const aim = aimFor(g.mount, pose, s.yaw, s.pitch + s.recoil, g.pitchAssist, muzzle, g.converge);
+          const jy = (Math.random() - 0.5) * 2 * g.spread, jp = (Math.random() - 0.5) * 2 * g.spread;
+          const dmg = g.damage * gearPower * (1 + armorFxRef.current.weaponDamage);
+          let fired = false;
+          if (g.shell) {
+            // a cannon shell is ordnance: it flies flat and fast and bursts with splash on what it meets
+            fired = fireOrdnance(sim, { id: "cannon-shell", kind: "ROCKET", name: g.name, speed: g.speed, turnRate: 0, life: 3, splashRadius: g.shell, damage: 1, proximity: 1.6, domain: "ANY", fits: [vehicleId] }, muzzle.x, muzzle.y, muzzle.z, aim.yaw + jy, aim.pitch + jp, dmg, Math.max(0, s.vSpeed), g.knock);
+          } else fired = fireBullet(sim, muzzle.x, muzzle.y, muzzle.z, aim.yaw + jy, true, aim.pitch + jp, dmg, g.knock, g.heat, undefined, g.damage >= 3 ? "PELLET" : "BULLET", { speed: g.speed, inherit: carry });
+          if (fired) {
+            s.shots++;
+            bossActionLog.current = logAction(bossActionLog.current, "RANGED", performance.now() / 1000);
+            sfx.playShot(g.sound === "VEHICLE" ? "VEHICLE" : g.sound === "PULSE" ? "PULSE" : "AUTO");
+            s.recoil += g.shell ? 0.03 : 0.004; s.punch += g.shell ? 0.9 : 0.12; s.bloom = Math.min(1, s.bloom + 0.05);
+            muzzleFlash.current = { x: muzzle.x, y: muzzle.y, z: muzzle.z, t: performance.now() / 1000, big: !!g.shell };
+          }
+        }
+        const sec = armament.secondary;
+        if (sec) {
+          if (secondaryTrigger && vf.secCool <= 0 && vf.salvoLeft <= 0) { vf.secCool = sec.rate; vf.salvoLeft = sec.salvo; vf.salvoCool = 0; }
+          if (vf.salvoLeft > 0 && vf.salvoCool <= 0) {
+            const def = ordnanceById(sec.ordnance);
+            const muzzle = vehiclePoint(pose, fit(sec.muzzles[vf.podBarrel++ % sec.muzzles.length]!));
+            const aim = aimFor(sec.mount, pose, s.yaw, s.pitch, 0.25, muzzle, 0);
+            if (def && fireOrdnance(sim, def, muzzle.x, muzzle.y, muzzle.z, aim.yaw + (Math.random() - 0.5) * 0.02, aim.pitch + (Math.random() - 0.5) * 0.02, sec.damage * gearPower, Math.max(0, s.vSpeed))) {
+              sfx.playShot("VEHICLE"); s.punch += 0.3;
+              muzzleFlash.current = { x: muzzle.x, y: muzzle.y, z: muzzle.z, t: performance.now() / 1000, big: true };
+            }
+            vf.salvoLeft--; vf.salvoCool = sec.salvoGap;
+          }
+        }
+      }
+    } else if (!sim.overheated) {
       if (s.burstLeft > 0) {
         s.burstCool -= dt;
         if (s.burstCool <= 0) { s.burstLeft--; s.burstCool = wpn.burstGap; shoot(); }
@@ -2707,9 +2762,25 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
         v.visible = vehicleUnlocked && s.inVehicle;
       if (s.inVehicle) {
         v.position.set(s.x, s.y, s.z);
+        // yaw, then pitch and roll about the vehicle's own axes (the default XYZ order pitched aircraft about the world X axis,
+        // so a jet heading east rolled instead of climbing)
+        v.rotation.order = "YXZ";
         v.rotation.y = s.yaw;
-        v.rotation.x = handling.mode === "AIR" ? -vh.current.pitch : -slopeAt(s.x, s.z) * 0.25;
-        v.rotation.z = vh.current.roll;
+        if (handling.mode === "GROUND") {
+          // sit on the ground under the wheels: pitch from the ground ahead/behind, roll from left/right (one centre sample
+          // left wheels floating or buried on every slope)
+          const L = 1.8, W = 0.9, fx = Math.sin(s.yaw), fz = Math.cos(s.yaw);
+          const gp = Math.atan2(walkHeight(s.x + fx * L, s.z + fz * L) - walkHeight(s.x - fx * L, s.z - fz * L), 2 * L);
+          const gr = Math.atan2(walkHeight(s.x + fz * W, s.z - fx * W) - walkHeight(s.x - fz * W, s.z + fx * W), 2 * W);
+          const k = 1 - Math.exp(-10 * dt);
+          vh.current.groundPitch += (gp - vh.current.groundPitch) * k;
+          vh.current.groundRoll += (gr - vh.current.groundRoll) * k;
+          v.rotation.x = -vh.current.groundPitch;
+          v.rotation.z = vh.current.roll + vh.current.groundRoll;
+        } else {
+          v.rotation.x = handling.mode === "AIR" ? -vh.current.pitch : 0;
+          v.rotation.z = vh.current.roll;
+        }
       } else {
         // parked at the spawn pad when on foot
         v.position.set(SPAWN.x + 8, walkHeight(SPAWN.x + 8, SPAWN.z + 6) + 1.9, SPAWN.z + 6);
@@ -3137,6 +3208,7 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
       )}
       <Bullets sim={sim} />
       <GoreFx sim={sim} level={normalizeGore(settings.gore)} />
+      <MuzzleFlash flash={muzzleFlash} />
       <BulletImpacts sim={sim} />
       <WorldMarkers depleted={depleted} />
       <Interior structure={structure} />
