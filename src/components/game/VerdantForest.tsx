@@ -6,7 +6,7 @@ import { heightAt, slopeAt, WATER_LEVEL } from "@/game/terrain";
 import { mulberry32 } from "@/game/rng";
 import { addObstacle, allObstacles, type Obstacle } from "@/game/obstacles";
 import { clusterAround } from "@/game/foliage";
-import { organicRock } from "@/game/organic-geometry";
+import { chippedBlock, organicRock, scrapPanel } from "@/game/organic-geometry";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import {
   COVER, CRASH_SITE, DEBRIS, ENCOUNTER, FURROW, patchNoise, TRAIL_HALF_WIDTH, aroundScatter, forestScatter, furrowFrame, trailEdgeScatter, trailInfo, vegetationOk, UNDERSTORY_K,
@@ -20,6 +20,10 @@ import { DistrictLight } from "./DistrictLight";
 import { PolyFoliage, type Placement } from "./PolyFoliage";
 import { CrashedTransport, Crates, ScoutWreck, TrailWear } from "./CrashHull";
 import { HULL_SOLIDS, SCOUT } from "@/game/crash-layout";
+import { crystalShard } from "@/game/camp-geometry";
+
+/** crash debris: dented hull chunks and buckled plates (unit size, scaled per piece), terminated crystals, not boxes */
+const CRASH_GEO = { block: [1, 2, 3].map((k) => chippedBlock(1, 1, 1, 30 + k)), plate: [1, 2, 3].map((k) => scrapPanel(40 + k)), shard: crystalShard(12) };
 
 /* Verdant Forest upgrade (Phase 4.1): the authored layer on top of Terrain's scatter.
  *  - real Poly Haven GLBs (ferns, shrubs, mossy rocks, fallen logs) lining the trail and ringing the ambush clearing
@@ -420,14 +424,14 @@ function CrashSite({ investigation }: { investigation: MutableRefObject<Investig
         const y = heightAt(CRASH_SITE.x + b.dx, CRASH_SITE.z + b.dz) - baseY;
         return (
           <group key={i} position={[b.dx, y + b.h * 0.4, b.dz]} rotation={[b.tilt, b.yaw, b.tilt * 0.5]}>
-            <mesh castShadow receiveShadow material={hullMat}><boxGeometry args={[b.w, b.h, b.d]} /></mesh>
+            <mesh castShadow receiveShadow material={hullMat} geometry={CRASH_GEO.block[i % 3]!} scale={[b.w, b.h, b.d]} />
             <mesh material={seamMat} position={[0, b.h * 0.51, 0]}><boxGeometry args={[b.w * 0.82, 0.06, 0.1]} /></mesh>
           </group>
         );
       })}
       {/* torn plates and broken struts thrown off the hull */}
       {TORN.map((p, i) => (
-        <mesh key={i} position={[p.x, heightAt(CRASH_SITE.x + p.x, CRASH_SITE.z + p.z) - baseY + p.h * 0.45, p.z]} rotation={[p.rx, p.ry, p.rz]} material={hullMat} castShadow receiveShadow><boxGeometry args={[p.w, p.h, p.d]} /></mesh>
+        <mesh key={i} position={[p.x, heightAt(CRASH_SITE.x + p.x, CRASH_SITE.z + p.z) - baseY + p.h * 0.45, p.z]} rotation={[p.rx, p.ry, p.rz]} material={hullMat} castShadow receiveShadow geometry={CRASH_GEO.plate[i % 3]!} scale={[p.w, p.h, p.d]} />
       ))}
       {smokeTex && (
         <group ref={smoke}>
@@ -436,7 +440,7 @@ function CrashSite({ investigation }: { investigation: MutableRefObject<Investig
       )}
       <group ref={crystals}>
         {[[-2.2, 2.4], [2.8, 1.2], [0.8, -2.6], [-3.2, -1.6]].map(([x, z], i) => (
-          <mesh key={i} position={[x!, 1.6, z!]} scale={[0.35, 0.8 + (i % 2) * 0.4, 0.35]} material={crystalMat}><octahedronGeometry args={[1, 0]} /></mesh>
+          <mesh key={i} position={[x!, 1.6, z!]} scale={[0.5, 1.6 + (i % 2) * 0.8, 0.5]} material={crystalMat} geometry={CRASH_GEO.shard} />
         ))}
       </group>
       <mesh ref={beam} position={[0, 22, 0]}><cylinderGeometry args={[0.18, 0.5, 44, 10, 1, true]} /><meshBasicMaterial color="#39b6ff" transparent opacity={0.3} depthWrite={false} blending={THREE.AdditiveBlending} side={THREE.DoubleSide} /></mesh>
