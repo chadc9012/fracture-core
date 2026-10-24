@@ -2,7 +2,7 @@ import { useFrame } from "@react-three/fiber";
 import { useEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
-import { GRASS_REACH, chunkClumps, chunkOf, chunksAround, type Clump } from "@/game/grass-field";
+import { CHUNK, GRASS_REACH, chunkClumps, chunkOf, chunksAround, type Clump } from "@/game/grass-field";
 import { windSway } from "@/game/wind-sway";
 import { groundLitFragment } from "@/game/ground-lit";
 import type { RenderTier } from "@/game/performance";
@@ -18,7 +18,7 @@ function bladeTexture(): THREE.Texture | null {
     const x = 8 + rnd() * 112, tipX = x + (rnd() - 0.5) * 40, tipY = 4 + rnd() * 70, w = 1.4 + rnd() * 2.6;
     const grad = g.createLinearGradient(x, 128, tipX, tipY);
     const v = 0.78 + rnd() * 0.22;
-    grad.addColorStop(0, `rgb(${Math.round(70 * v)},${Math.round(84 * v)},${Math.round(60 * v)})`);
+    grad.addColorStop(0, `rgb(${Math.round(118 * v)},${Math.round(132 * v)},${Math.round(100 * v)})`); // roots darker than the tips, but not black: dark roots read as cardboard at a distance
     grad.addColorStop(0.55, `rgb(${Math.round(205 * v)},${Math.round(220 * v)},${Math.round(190 * v)})`);
     grad.addColorStop(1, `rgb(${Math.round(248 * v)},${Math.round(246 * v)},${Math.round(220 * v)})`);
     g.fillStyle = grad;
@@ -53,11 +53,22 @@ export function GrassField({ tier }: { tier: RenderTier }) {
   const texture = useMemo(() => bladeTexture(), []);
   const material = useMemo(() => {
     const m = new THREE.MeshStandardMaterial({ map: texture, alphaTest: 0.45, side: THREE.DoubleSide, roughness: 0.95 });
-    const sway = windSway(geometry, 0.18);
-    // normals point up on both faces (ground-lit.ts): without this every card seen from behind rendered near-black
-    m.onBeforeCompile = (shader) => { sway(shader); shader.fragmentShader = groundLitFragment(shader.fragmentShader, THREE.ShaderChunk.normal_fragment_begin); };
+    const sway = windSway(geometry, 0.18), far = reach.chunks * CHUNK;
+    m.onBeforeCompile = (shader) => {
+      sway(shader);
+      // normals point up on both faces (ground-lit.ts): without this every card seen from behind rendered near-black
+      shader.fragmentShader = groundLitFragment(shader.fragmentShader, THREE.ShaderChunk.normal_fragment_begin);
+      // the field's outer ring sinks into the ground over its last ~14 m, so the edge of the grass never shows as a hard line
+      shader.vertexShader = shader.vertexShader.replace("#include <begin_vertex>", `#include <begin_vertex>
+      {
+        vec2 gOrigin = vec2(instanceMatrix[3][0], instanceMatrix[3][2]);
+        float gFade = 1.0 - smoothstep(${(far - 16).toFixed(1)}, ${(far - 2).toFixed(1)}, distance(gOrigin, cameraPosition.xz));
+        transformed.y *= gFade;
+      }`);
+    };
+    m.customProgramCacheKey = () => `grass-field|${far}`;
     return m;
-  }, [geometry, texture]);
+  }, [geometry, texture, reach.chunks]);
   useEffect(() => () => { geometry.dispose(); material.dispose(); texture?.dispose(); }, [geometry, material, texture]);
   const mesh = useRef<THREE.InstancedMesh>(null);
   const cache = useRef(new Map<string, Clump[]>());
