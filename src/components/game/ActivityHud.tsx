@@ -65,6 +65,7 @@ export function ActivityResultPanel({ result, onDone }: { result: ActivityResult
       {result.race && result.race.reward.nexBonus > 0 && <li>+{result.race.reward.nexBonus} Nex placement bonus</li>}
       {result.race?.reward.championshipPoints ? <li>Championship points: +{result.race.reward.championshipPoints}{result.race.reward.championshipDone ? " · CHAMPIONSHIP COMPLETE" : ""}</li> : null}
       {result.race?.reward.rankUp ? <li className="text-primary">Racing rank up: {result.race.reward.rankUp}</li> : null}
+      {result.race && result.race.reward.rivalsFirstBeaten.length > 0 && <li className="text-primary">First win over {result.race.reward.rivalsFirstBeaten.join(", ")}</li>}
       {p.featured && <li className="text-primary">Featured contract bonus (+50%)</li>}
       {result.revealed ? <li className="text-primary">{result.revealed} hidden signal{result.revealed > 1 ? "s" : ""} marked on your map when you get near</li> : null}
       {p.shader && <li className="text-primary">Shader unlocked: {p.shader}</li>}

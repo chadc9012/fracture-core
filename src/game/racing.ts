@@ -18,6 +18,7 @@ import { BAKED_ROUTES } from "./race-routes.generated";
 import { WORLD_SCALE } from "./world";
 import { WATER_LEVEL, heightAt } from "./terrain";
 import { drivablePoint } from "./race-routing";
+import { personaForSlot } from "./rival-personas";
 
 export type RaceMode = "foot" | "vehicle" | "dive";
 export type Difficulty = "standard" | "advanced" | "legendary";
@@ -336,7 +337,8 @@ export function rivalPositions(def: RaceDef, d: Difficulty, time: number): { x: 
   const legs: number[] = []; let total = 0;
   for (let i = 1; i < def.points.length; i++) { const a = worldPoint(def, i - 1), b = worldPoint(def, i); const l = Math.hypot(a.x - b.x, a.z - b.z); legs.push(l); total += l; }
   return rivalTimes(def, d).map((rt, k) => {
-    let dist = Math.min(1, time / rt) * total, i = 0; while (i < legs.length - 1 && dist > legs[i]!) { dist -= legs[i]!; i++; }
+    // position only: each rival's own pacing personality bows the mid-race curve, never the finish time (`progress` below stays linear)
+    let dist = Math.min(1, personaForSlot(def.id, d, k).shape(time / rt)) * total, i = 0; while (i < legs.length - 1 && dist > legs[i]!) { dist -= legs[i]!; i++; }
     const a = worldPoint(def, i), b = worldPoint(def, i + 1), u = legs[i] ? Math.min(1, dist / legs[i]!) : 0, lateral = (k % 2 ? 1 : -1) * (3 + k);
     const nx = -(b.z - a.z) / (legs[i] || 1), nz = (b.x - a.x) / (legs[i] || 1);
     return { x: a.x + (b.x - a.x) * u + nx * lateral, z: a.z + (b.z - a.z) * u + nz * lateral, ...(a.depth !== undefined && b.depth !== undefined ? { depth: a.depth + (b.depth - a.depth) * u } : {}), progress: Math.min(1, time / rt) };
@@ -351,9 +353,19 @@ export function evaluate(def: RaceDef, run: RaceRun, collisionPenalty: number): 
   return { valid, time: Math.round(total * 1000) / 1000, penalties: Math.round((run.penalties + collisionPenalty) * 1000) / 1000, par: def.par, medal, place, field: field.length + 1, style: Math.round(run.style), difficulty: d };
 }
 
+/* ------------------------------ rival persistence ------------------------------ */
+/** One tag per (race, difficulty, rival slot) — never per run, so beating "Rabbit" on nc-circuit/standard is recorded
+ * once and stays recorded, with no unbounded growth from replays. */
+const rivalBeatKey = (raceId: string, d: Difficulty, slot: number) => `rival-beat:${raceId}:${d}:${slot}`;
+export function rivalBeaten(p: Store, raceId: string, d: Difficulty, slot: number): boolean { return p.earnedRewards.includes(rivalBeatKey(raceId, d, slot)); }
+/** Every rival slot in this field, named by its persona, with whether you've ever finished ahead of them here. */
+export function rivalField(p: Store, def: RaceDef, d: Difficulty): { slot: number; name: string; tagline: string; beaten: boolean }[] {
+  return rivalTimes(def, d).map((_, slot) => { const persona = personaForSlot(def.id, d, slot); return { slot, name: persona.name, tagline: persona.tagline, beaten: rivalBeaten(p, def.id, d, slot) }; });
+}
+
 /* ------------------------------ saving a result ------------------------------ */
 const PLACE_BONUS = [0.5, 0.3, 0.15] as const;
-export type RaceReward = { nexBonus: number; personalBest: boolean; medal: Medal | null; newMedal: boolean; championshipPoints: number | null; championshipDone: boolean; rankUp: string | null };
+export type RaceReward = { nexBonus: number; personalBest: boolean; medal: Medal | null; newMedal: boolean; championshipPoints: number | null; championshipDone: boolean; rankUp: string | null; rivalsFirstBeaten: string[] };
 /** Apply a finished race to the save. Idempotent per run: the Nex ledger key is the run itself, so a repeated completion event pays and records nothing twice.
  * The activity engine has already paid the base reward; this adds placement/medal Nex and the racing records. */
 export function applyRaceResult(p: PlayerProgression, def: ActivityDef, run: Run): { progression: PlayerProgression; reward: RaceReward } | { error: string } {
@@ -367,6 +379,13 @@ export function applyRaceResult(p: PlayerProgression, def: ActivityDef, run: Run
   if (isPb) earned = [...earned.filter((e) => !e.startsWith(pbKey(race.id, d))), `${pbKey(race.id, d)}${Math.round(res.time * 1000)}`];
   let newMedal = false;
   if (res.medal) for (const m of ["gold", "silver", "bronze"] as const) if (MEDAL_VALUE[m] <= MEDAL_VALUE[res.medal] && !earned.includes(medalKey(race.id, d, m))) { earned.push(medalKey(race.id, d, m)); if (m === res.medal) newMedal = true; }
+  // rival persistence: a slot is "beaten" the moment you finish ahead of its (sorted, so stable) time, recorded once per race+difficulty+slot
+  const rivalsFirstBeaten: string[] = [];
+  rivalTimes(race, d).forEach((rt, slot) => {
+    if (rt <= res.time || earned.includes(rivalBeatKey(race.id, d, slot))) return;
+    earned.push(rivalBeatKey(race.id, d, slot));
+    rivalsFirstBeaten.push(personaForSlot(race.id, d, slot).name);
+  });
   const bonusMult = (PLACE_BONUS[res.place - 1] ?? 0) + (res.medal === "gold" ? 0.3 : res.medal === "silver" ? 0.15 : 0) + (DIFF_REWARD[d] - 1);
   const nexBonus = Math.round(def.rewards.nex * bonusMult);
   let next: PlayerProgression = { ...p, earnedRewards: earned, nexLedger: { ...p.nexLedger, [key]: nexBonus } };
@@ -383,7 +402,7 @@ export function applyRaceResult(p: PlayerProgression, def: ActivityDef, run: Run
     }
   }
   const after = rankIndex(next);
-  return { progression: next, reward: { nexBonus, personalBest: isPb, medal: res.medal, newMedal, championshipPoints: champPts, championshipDone: champDone, rankUp: after > before ? RANKS[after]! : null } };
+  return { progression: next, reward: { nexBonus, personalBest: isPb, medal: res.medal, newMedal, championshipPoints: champPts, championshipDone: champDone, rankUp: after > before ? RANKS[after]! : null, rivalsFirstBeaten } };
 }
 
 /* ------------------------------ activities, discoveries, hooks ------------------------------ */

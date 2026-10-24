@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { CHAMPIONSHIPS, CHECKPOINT_RADIUS, COUNTDOWN_S, CORRIDOR, DIFFICULTIES, POINTS_BY_PLACE, RACES, applyRaceResult, bestMedal, championshipPoints, difficultyLocked, hiddenUnlocked, newRaceRun, raceObstacles, raceSpeedFactor, personalBest, rankIndex, rivalPositions, rivalTimes, raceById, racesIn, tickRace, timeLimit, windowOpen, worldPoint, type RaceDef, type RaceRun } from "./racing";
+import { CHAMPIONSHIPS, CHECKPOINT_RADIUS, COUNTDOWN_S, CORRIDOR, DIFFICULTIES, POINTS_BY_PLACE, RACES, applyRaceResult, bestMedal, championshipPoints, difficultyLocked, hiddenUnlocked, newRaceRun, raceObstacles, raceSpeedFactor, personalBest, rankIndex, rivalBeaten, rivalField, rivalPositions, rivalTimes, raceById, racesIn, tickRace, timeLimit, windowOpen, worldPoint, type RaceDef, type RaceRun } from "./racing";
 import { ACTIVITIES, AREAS, activityById, activityState, completeActivity, startActivity, stepRun, currentTarget, type Run } from "./activities";
 import { DISCOVERIES, nearby } from "./discoveries";
 import { DEFAULT_PROGRESSION } from "./progression";
@@ -153,6 +153,14 @@ describe("rivals, medals, difficulty", () => {
     expect(drive(def, newRaceRun(def, "standard", T0), 0.9).result!.place).toBe(1);
     expect(drive(def, newRaceRun(def, "standard", T0), 1.3).result!.place).toBeGreaterThan(1);
   });
+  test("rival personas reshape the mid-race position but never the finish time, place or `progress`", () => {
+    const plain = rivalPositions(def, "standard", def.par * 0.5), far = rivalPositions(def, "standard", 10_000);
+    // mid-race: at least one rival's on-course position differs from the raw-linear dist (the whole point of a persona),
+    // while every rival still sits on the same course geometry and progress is still the plain linear ratio
+    const rts = rivalTimes(def, "standard");
+    for (let k = 0; k < plain.length; k++) expect(plain[k]!.progress).toBeCloseTo(Math.min(1, (def.par * 0.5) / rts[k]!), 6);
+    for (const r of far) expect(r.progress).toBe(1); // unaffected by shaping once everyone has finished
+  });
   test("medal thresholds tighten with difficulty and an invalid run earns none", () => {
     const std = drive(def, newRaceRun(def, "standard", T0), 1.0).result!, leg = drive(def, newRaceRun(def, "legendary", T0), 1.0).result!;
     expect(std.medal).toBe("gold"); expect(leg.medal).not.toBe("gold");
@@ -179,15 +187,23 @@ describe("through the activity engine: start → complete → reward", () => {
     expect(run.status).toBe("complete"); expect(currentTarget(def, run)).toBeNull();
     const paid = completeActivity(p, def, run, T0 + 60_000, () => 0.99) as any; expect(paid.payout.nex).toBeGreaterThan(0);
     const rec = applyRaceResult(paid.progression, def, run) as any; expect(rec.reward.personalBest).toBe(true); expect(rec.reward.medal).toBe("gold");
+    // a clean gold run (pace 0.9 against a 0.98-1.35x field) beats every rival the first time
+    const race = raceById("nc-circuit")!;
+    expect(rec.reward.rivalsFirstBeaten.length).toBe(race.rivals);
+    for (let slot = 0; slot < race.rivals; slot++) expect(rivalBeaten(rec.progression, "nc-circuit", "standard", slot)).toBe(true);
+    expect(rivalField(rec.progression, race, "standard").every((r) => r.beaten)).toBe(true);
     const again = applyRaceResult(rec.progression, def, run) as any; expect(again.error).toBe("Already recorded");
     const saved = JSON.parse(JSON.stringify(rec.progression)); expect(personalBest(saved, "nc-circuit", "standard")).toBeGreaterThan(0); expect(bestMedal(saved, "nc-circuit", "standard")).toBe("gold");
     expect(activityState(saved, def, T0 + 120_000).reason).toBe("On cooldown");
     expect((completeActivity(rec.progression, def, run, T0 + 61_000) as any).error).toBe("Already claimed");
   });
   test("a slower replay keeps the better best; a failed run still costs the attempt", () => {
-    let a = playThrough(fresh(), "nc-circuit", T0, 0.9); let p = (completeActivity(a.p, a.def, a.run, T0 + 60_000, () => 0.99) as any).progression; p = (applyRaceResult(p, a.def, a.run) as any).progression;
+    let a = playThrough(fresh(), "nc-circuit", T0, 0.9); let p = (completeActivity(a.p, a.def, a.run, T0 + 60_000, () => 0.99) as any).progression; const rec0 = applyRaceResult(p, a.def, a.run) as any; p = rec0.progression;
+    expect(rec0.reward.rivalsFirstBeaten.length).toBeGreaterThan(0);
     const best = personalBest(p, "nc-circuit", "standard")!;
-    const b = playThrough(p, "nc-circuit", T0 + 4 * 3_600_000, 1.2); let q = (completeActivity(b.p, b.def, b.run, T0 + 4 * 3_600_000 + 60_000, () => 0.99) as any).progression; q = (applyRaceResult(q, b.def, b.run) as any).progression;
+    const b = playThrough(p, "nc-circuit", T0 + 4 * 3_600_000, 1.2); let q = (completeActivity(b.p, b.def, b.run, T0 + 4 * 3_600_000 + 60_000, () => 0.99) as any).progression; const rec1 = applyRaceResult(q, b.def, b.run) as any; q = rec1.progression;
+    // every rival beaten by the fast run was already recorded, so a slower replay reports no *new* first wins
+    expect(rec1.reward.rivalsFirstBeaten.length).toBe(0);
     expect(personalBest(q, "nc-circuit", "standard")).toBe(best);
     const f = startActivity(fresh(), "nc-circuit", T0) as any; f.run.status = "failed"; expect(activityState(f.progression, activityById("nc-circuit")!, T0).attemptsLeft).toBe(2);
   });
