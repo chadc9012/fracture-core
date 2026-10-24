@@ -1,13 +1,14 @@
 import { useFrame } from "@react-three/fiber";
 import { RoundedBox, useGLTF } from "@react-three/drei";
-import { Component, Suspense, useMemo, useRef, type ReactNode } from "react";
+import { Component, Suspense, useEffect, useMemo, useRef, type ReactNode } from "react";
 import { clone as cloneSkinned } from "three/examples/jsm/utils/SkeletonUtils.js";
 import { enemyVisual, type EnemyRole, type EnemyVisual } from "@/game/enemy-visuals";
 import { prepareWorldAsset } from "@/game/asset-render-quality";
 import { enemyClipWeights, strideRate, type ClipWeights, type EnemyDrive } from "@/game/enemy-anim";
 
 /** Per-machine motion the renderer reads (WarMachines writes it each frame). `procedural` is set by the model: true while it has no clips. */
-export type DriveRef = { current: EnemyDrive & { procedural?: boolean } };
+/** `frozen`: hold the current pose (a corpse); the mixer and procedural motion stop */
+export type DriveRef = { current: EnemyDrive & { procedural?: boolean; frozen?: boolean } };
 import * as THREE from "three";
 import { SURFACES, regionLook } from "@/game/visual-standard";
 
@@ -100,7 +101,7 @@ class QuietBoundary extends Component<{ children: ReactNode; fallback: ReactNode
 
 const CLIP_NAMES: (keyof ClipWeights)[] = ["idle", "walk", "run", "shoot"];
 
-function Authored({ visual, headRef, drive }: { visual: EnemyVisual; headRef?: React.Ref<THREE.Group>; drive?: DriveRef }) {
+function Authored({ visual, headRef, drive, onBuilt }: { visual: EnemyVisual; headRef?: React.Ref<THREE.Group>; drive?: DriveRef; onBuilt?: (obj: THREE.Object3D) => void }) {
   const { scene, animations } = useGLTF(visual.url);
   const built = useMemo(() => {
     const obj = cloneSkinned(scene);
@@ -136,12 +137,25 @@ function Authored({ visual, headRef, drive }: { visual: EnemyVisual; headRef?: R
   }, [scene, animations, visual.height]);
   const body = useRef<THREE.Group>(null);
   const seed = useRef(Math.random() * 10);
+  const posed = useRef(false);
+  useEffect(() => { onBuilt?.(built.obj); }, [built, onBuilt]);
   useFrame(({ clock }, dt) => {
     const b = body.current;
     if (!b) return;
     // only the variant actually shown in its pooled slot animates (and reports whether it needs the procedural bob)
     for (let o: THREE.Object3D | null = b; o; o = o.parent) if (!o.visible) return;
     if (drive) drive.current.procedural = !built.mixer;
+    if (drive?.current.frozen) {
+      // a body: settle into the rest pose once (never the bind/T-pose), then hold it
+      if (!posed.current && built.mixer) {
+        for (const name of CLIP_NAMES) { const a = built.clips[name]; if (a) { a.weight = name === "idle" || (!built.clips.idle && name === "walk") ? 1 : 0; a.time = 0; } }
+        built.mixer.update(0);
+        b.rotation.set(0, 0, 0);
+      }
+      posed.current = true;
+      return;
+    }
+    posed.current = false;
     if (built.mixer) {
       const d = drive?.current ?? { speed: 0, aiming: false };
       const has = { idle: !!built.clips.idle, walk: !!built.clips.walk, run: !!built.clips.run, shoot: !!built.clips.shoot };
@@ -162,7 +176,7 @@ function Authored({ visual, headRef, drive }: { visual: EnemyVisual; headRef?: R
 }
 
 /** Real enemy model for this faction/role; procedural trooper while loading or if the model fails. */
-export function FactionEnemy({ kind, role, visorRef, headRef, drive }: { kind: EnemyKind; role: EnemyRole; visorRef?: React.Ref<THREE.MeshStandardMaterial>; headRef?: React.Ref<THREE.Group>; drive?: DriveRef }) {
+export function FactionEnemy({ kind, role, visorRef, headRef, drive, onBuilt }: { kind: EnemyKind; role: EnemyRole; visorRef?: React.Ref<THREE.MeshStandardMaterial>; headRef?: React.Ref<THREE.Group>; drive?: DriveRef; onBuilt?: (obj: THREE.Object3D) => void }) {
   const fallback = <EnemyModel kind={kind} boss={role === "boss"} {...(drive ? { drive } : {})} {...(visorRef ? { visorRef } : {})} {...(headRef ? { headRef } : {})} />;
-  return <QuietBoundary fallback={fallback}><Suspense fallback={fallback}><Authored visual={enemyVisual(kind, role)} {...(headRef ? { headRef } : {})} {...(drive ? { drive } : {})} /></Suspense></QuietBoundary>;
+  return <QuietBoundary fallback={fallback}><Suspense fallback={fallback}><Authored visual={enemyVisual(kind, role)} {...(headRef ? { headRef } : {})} {...(drive ? { drive } : {})} {...(onBuilt ? { onBuilt } : {})} /></Suspense></QuietBoundary>;
 }

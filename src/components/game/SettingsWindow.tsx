@@ -16,6 +16,8 @@ export type GameSettings = {
   spokenDialogue?: boolean;
   reducedMotion?: boolean;
   highContrastHud?: boolean;
+  /** gore.ts: blood, dismemberment and gibs (OFF still lets bodies fall) */
+  gore?: GoreLevel;
 };
 
 export const DEFAULT_SETTINGS: GameSettings = {
@@ -32,6 +34,7 @@ export const DEFAULT_SETTINGS: GameSettings = {
   spokenDialogue: true,
   reducedMotion: false,
   highContrastHud: false,
+  gore: DEFAULT_GORE,
 };
 
 function Toggle({ label, on, onChange }: { label: string; on: boolean; onChange: (v: boolean) => void }) {
@@ -59,6 +62,7 @@ import { DEFAULT_BINDINGS, type Bindings } from "@/game/bindings";
 import { CHRONICLE, ROADMAP, nextActivity } from "@/game/retention";
 import { speakVoice } from "@/game/voice-director";
 import { ControlsPanel } from "./ControlsPanel";
+import { DEFAULT_GORE, GORE_LEVELS, normalizeGore, type GoreLevel } from "@/game/gore";
 
 type SettingsSection = "NEXT" | "CHRONICLE" | "ROADMAP" | "GAMEPLAY" | "DISPLAY" | "AUDIO" | "INTERFACE" | "CONTROLS" | "ACCESSIBILITY";
 const SECTIONS: { id: SettingsSection; label: string; icon: typeof Gamepad2 }[] = [
@@ -113,7 +117,7 @@ export function SettingsWindow({
               {section === "NEXT" && <div className="border-l-2 border-primary bg-primary/5 p-5"><p className="ui-kicker">Recommended</p><p className="mt-2 text-2xl font-light">{next.title}</p><p className="mt-1 font-mono text-xs uppercase text-muted-foreground">{next.region}</p><p className="mt-4 text-sm">{next.why}</p><p className="mt-1 text-xs text-muted-foreground">Reward: {next.reward}</p></div>}
               {section === "CHRONICLE" && <><p className="text-xs text-muted-foreground">Every chapter stays here forever. Replay any story you have finished.</p>{CHRONICLE.map((c) => { const done = completedMissions.includes(c.id); return <div key={c.id} className="flex items-start justify-between gap-4 border-b border-foreground/10 py-3"><div><p className="font-mono text-xs uppercase">{c.title} <span className="text-muted-foreground">/ {c.region}</span></p><p className="mt-1 text-sm text-muted-foreground">{done ? c.summary : "Locked until played."}</p></div>{done && <Button size="sm" variant="ghost" onClick={() => speakVoice({ id: `chronicle-${c.id}-${Date.now()}`, scope: "chronicle", speaker: "NOVA", text: c.summary, priority: "story" })}><Play />Replay</Button>}</div>; })}</>}
               {section === "ROADMAP" && <>{ROADMAP.map((r) => <div key={r.label} className="flex justify-between border-b border-foreground/10 py-3"><span className="text-sm">{r.label}</span><span className={`font-mono text-[10px] ${r.status === "LIVE" ? "text-primary" : "text-muted-foreground"}`}>{r.status}</span></div>)}<p className="text-xs text-muted-foreground">No content is ever removed. Progress never resets.</p></>}
-              {section === "GAMEPLAY" && <><Toggle label="Predictive aim assist" on={settings.aimAssist} onChange={(v) => set({ aimAssist: v })} /><Toggle label="First-person camera" on={settings.firstPersonDefault} onChange={(v) => set({ firstPersonDefault: v })} /></>}
+              {section === "GAMEPLAY" && <><Toggle label="Predictive aim assist" on={settings.aimAssist} onChange={(v) => set({ aimAssist: v })} /><Toggle label="First-person camera" on={settings.firstPersonDefault} onChange={(v) => set({ firstPersonDefault: v })} /><p className="ui-kicker">Gore</p><div className="grid grid-cols-3 gap-2">{GORE_LEVELS.map((lvl) => <Button key={lvl} variant={normalizeGore(settings.gore) === lvl ? "default" : "outline"} onClick={() => set({ gore: lvl })} className="rounded-none">{lvl === "REDUCED" ? "Reduced" : lvl === "FULL" ? "Full" : "Off"}</Button>)}</div><p className="text-xs text-muted-foreground">Full: blood, pooling, severed limbs and gibs. Reduced: light blood, no dismemberment. Off: no blood; bodies still fall.</p></>}
               {section === "DISPLAY" && <><p className="ui-kicker">Rendering quality</p><div className="grid grid-cols-2 gap-2 sm:grid-cols-4">{(["LOW", "MEDIUM", "HIGH", "ULTRA"] as const).map((tier) => <Button key={tier} variant={settings.renderTier === tier ? "default" : "outline"} onClick={() => set({ renderTier: tier })} className="rounded-none">{tier}</Button>)}</div><p className="text-xs text-muted-foreground">Simulation and combat remain identical at every quality.</p></>}
               {section === "AUDIO" && <><Volume label="Master volume" value={settings.volume ?? 0.7} onChange={(value) => set({ volume: value })} />{([["Music", "musicVolume", "music"], ["Region ambience", "ambienceVolume", "ambience"], ["Weapon sound effects", "sfxVolume", "sfx"], ["Ability sound effects", "abilityVolume", "abilities"]] as const).map(([label, key, mk]) => <div key={key} className="grid grid-cols-[minmax(0,1fr)_auto] items-end gap-3"><Volume label={label} value={settings[key] ?? 1} onChange={(value) => set({ [key]: value })} /><Toggle label="Mute" on={!!settings.mute?.[mk]} onChange={(v) => set({ mute: { ...settings.mute, [mk]: v } })} /></div>)}<Volume label="Voice volume" value={settings.voiceVolume ?? 0.85} onChange={(value) => set({ voiceVolume: value })} /><Toggle label="Spoken dialogue" on={settings.spokenDialogue ?? true} onChange={(v) => set({ spokenDialogue: v })} /><KillPlaylistPanel /></>}
               {section === "INTERFACE" && <><Toggle label="Zone name markers" on={settings.zoneLabels} onChange={(v) => set({ zoneLabels: v })} /><Toggle label="Full HUD panels" on={settings.hudDensity === "full"} onChange={(v) => set({ hudDensity: v ? "full" : "lean" })} /></>}

@@ -29,11 +29,13 @@ import { touch, getEquippedBoots, activeBuffs, dashHud, dragoniteHud } from "@/g
 import { buffEffect } from "@/game/stash";
 import { bootStats, SKATE_SHOP_OFFSET, SKATE_SHOP_RADIUS } from "@/game/skate-boots";
 import { walkHeight, slopeAt, heightAt, waterNetwork, WATER_LEVEL } from "@/game/terrain";
+import { normalizeGore } from "@/game/gore";
+import { GoreFx } from "./GoreFx";
 import { waterMix } from "@/game/water-audio";
 /** water audio is eased in the audio graph, so it only needs a pose update ~8x/s */
 let lastWaterAudioAt = 0;
 import { flavorFor } from "@/game/audio-design";
-import { alert, applyLightning, chipPlayer, collidePlayer, createSim, defeatMachine, logImpact, FACTIONS, fireBullet, fireLauncher, hurtPlayer, throwBeacon, instabilityTier, spawnMissionDrones, spawnEventSquad, spawnStormGuardians, stepSim, summonBoss, summonScenarioBoss, type Faction, type InstabilityTier, type WorldSim, type ZoneState } from "@/game/sim";
+import { alert, applyLightning, chipPlayer, collidePlayer, createSim, defeatMachine, logImpact, markGoreHit, FACTIONS, fireBullet, fireLauncher, hurtPlayer, throwBeacon, instabilityTier, spawnMissionDrones, spawnEventSquad, spawnStormGuardians, stepSim, summonBoss, summonScenarioBoss, type Faction, type InstabilityTier, type WorldSim, type ZoneState } from "@/game/sim";
 import type { MissionEvent, MissionRun } from "@/game/missions/broken-signal";
 import type { MissionEvent as BlackoutEvent, MissionRun as BlackoutRun } from "@/game/missions/blackout-protocol";
 import type { MissionEvent as NeonCoreEvent, MissionRun as NeonCoreRun } from "@/game/missions/stitched-neon-core";
@@ -1200,6 +1202,7 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
         for (const machine of sim.machines) {
           if (!machine.alive || Math.hypot(machine.x - s.x, machine.z - s.z) > 10) continue;
           machine.hp -= damage;
+          markGoreHit(sim, machine, machine.x - s.x || 0.01, machine.z - s.z, damage * 1.5, "CRUSH");
           const distance = Math.hypot(machine.x - s.x, machine.z - s.z) || 1;
           machine.kx += ((machine.x - s.x) / distance) * 24;
           machine.kz += ((machine.z - s.z) / distance) * 24;
@@ -1545,6 +1548,7 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
         const dz = enemy.z - s.z;
         if (Math.hypot(dx, dz) > 7 || dx * Math.sin(s.yaw) + dz * Math.cos(s.yaw) < 0) continue;
         enemy.hp -= 2.4;
+        markGoreHit(sim, enemy, dx || 0.01, dz, 2.4, "CRUSH");
         enemy.cool = Math.max(enemy.cool, 0.5);
          defeatMachine(sim, enemy);
       }
@@ -1709,7 +1713,7 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
       const pellets = s.inVehicle ? 1 : wpn.pellets ?? 1;
       for (let pi = 0; pi < pellets; pi++) {
         const py = pi === 0 ? yawJ : (Math.random() - 0.5) * 2 * spread, pp = pi === 0 ? pitchJ : (Math.random() - 0.5) * 2 * spread;
-        if (fireBullet(sim, s.x, s.y + (s.inVehicle ? 1.5 : 0.95), s.z, s.yaw + py, s.inVehicle, s.pitch + s.recoil + pp, wpn.damage * gearPower * hipMult * (1 + armorFxRef.current.weaponDamage), wpn.knock / pellets, (wpn.heat * heatMult) / pellets, s.inVehicle ? undefined : wpn.element)) fired = true;
+        if (fireBullet(sim, s.x, s.y + (s.inVehicle ? 1.5 : 0.95), s.z, s.yaw + py, s.inVehicle, s.pitch + s.recoil + pp, wpn.damage * gearPower * hipMult * (1 + armorFxRef.current.weaponDamage), wpn.knock / pellets, (wpn.heat * heatMult) / pellets, s.inVehicle ? undefined : wpn.element, pellets > 1 ? "PELLET" : "BULLET")) fired = true;
       }
        if (fired) {
         s.shots++;
@@ -1743,6 +1747,7 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
           for (const enemy of sim.machines) {
             if (!enemy.alive || enemy.decoy || !inShockwave(sw, s.x, s.z, s.yaw, enemy.x, enemy.z)) continue;
             enemy.hp -= sw.damage;
+            markGoreHit(sim, enemy, enemy.x - s.x || 0.01, enemy.z - s.z, sw.damage * 2, "BLADE");
             sim.lastHit = performance.now();
             if (enemy.hp <= 0) { if (enemy.boss) enemy.hp = 0.01; else defeatMachine(sim, enemy); }
           }
@@ -1756,6 +1761,8 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
           if (d > reach * enemy.scale + 1 || dx * Math.sin(s.yaw) + dz * Math.cos(s.yaw) < 0) continue;
           const dmg = swingStats(blade, s.combo, { damage: wpn.damage, reach }, enemy.elite || enemy.boss).damage;
           enemy.hp -= dmg;
+          // gore.ts: a blade cuts across the swing (left/right by combo step), the finisher drives through
+          { const across = s.combo === 2 ? -1 : 1, fx = Math.sin(s.yaw), fz = Math.cos(s.yaw); markGoreHit(sim, enemy, s.combo === 3 ? fx : fz * across * 0.8 + fx * 0.6, s.combo === 3 ? fz : -fx * across * 0.8 + fz * 0.6, dmg * (s.combo === 3 ? 2 : 1.3), "BLADE"); }
           enemy.kx += (dx / Math.max(d, 0.1)) * wpn.knock * 8;
           enemy.kz += (dz / Math.max(d, 0.1)) * wpn.knock * 8;
           enemy.cool = Math.max(enemy.cool, 0.6);
@@ -3028,7 +3035,7 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
       <RiftTurrets sim={sim} />
       <PerfProbe />
       <group name="iso:weather"><Weather playerRef={player} weatherRef={weatherKind} fxRef={weatherFx} /></group>
-      <group name="iso:life"><Wildlife playerRef={player} /><Civilians playerRef={player} threatsRef={livingThreats} /><LivingCity runtime={livingRt} playerRef={player} gear={gear as PlayerProgression | undefined} /><WastelandSites runtime={wasteRt} playerRef={player} /></group>
+      <group name="iso:life"><Wildlife playerRef={player} sim={sim} /><Civilians playerRef={player} threatsRef={livingThreats} /><LivingCity runtime={livingRt} playerRef={player} gear={gear as PlayerProgression | undefined} /><WastelandSites runtime={wasteRt} playerRef={player} /></group>
       <group name="iso:water"><Water size={WORLD_RADIUS * 4} sunRef={sunDir} styleRef={waterStyle} tier={settings.renderTier} /><Rivers sunRef={sunDir} /></group>
       <LootCaches opened={openedCaches} />
       <ShopStalls />
@@ -3129,6 +3136,7 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
         </group>
       )}
       <Bullets sim={sim} />
+      <GoreFx sim={sim} level={normalizeGore(settings.gore)} />
       <BulletImpacts sim={sim} />
       <WorldMarkers depleted={depleted} />
       <Interior structure={structure} />

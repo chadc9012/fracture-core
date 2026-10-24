@@ -66,6 +66,7 @@ import { stepHealth } from "./health";
 import { FOUNDRY_RULES, type FoundryId } from "./foundries";
 import { AWAKENED_MULT, DEVOUR_EVERY, DEVOUR_MULT, NO_RUNES, REAP_HEAL, RIFT_MULT, WARD_MULT, type RuneCombat } from "./godforge";
 import { nemesisStats, WEAK_ELEMENT, type KillerSnapshot, type Nemesis } from "./nemesis";
+import { bloodOf, critterBlood, GORE_LOG, emptyGoreEvent, type GoreCause, type GoreEvent } from "./gore";
 import { applyElementHit, isChilled, burnDamage, freshStatuses, mergeVuln, statusSpeedMult, type MachineStatuses } from "./weapon-elements";
 
 /* ------------------------------------------------------------------
@@ -95,6 +96,8 @@ export type ZoneState = {
 };
 
 export type Machine = {
+  /** gore presentation only (gore.ts): direction, cause and size of the last hit, read when the machine dies */
+  goreHit?: { dx: number; dz: number; dmg: number; cause: GoreCause; y: number } | undefined;
   /** crucible.ts: a rival operator in a Crucible match (renders as that operator; kills score the match, no loot) */
   rival?: "TITAN" | "HUNTER" | "WARLOCK" | undefined;
   /** performance.now()/1000 of the last damage the PLAYER (or the player's own abilities/vehicle/stratagems) dealt; environmental deaths only pay if this is recent */
@@ -221,6 +224,8 @@ export type Bullet = {
   knock: number;
   /** set only by weapons that carry an element (Pulse, Heavy): drives on-hit status and the gimmick element; undefined = legacy behaviour */
   element?: DamageElement | undefined;
+  /** gore presentation only: a shotgun pellet tears, a single round punches */
+  cause?: GoreCause | undefined;
 };
 export type BulletHit = "ground" | "cover" | "machine" | "truck";
 /** presentation log of where bullets struck (a fixed ring, IMPACT_LOG slots; impact effects read it, combat never does) */
@@ -231,6 +236,23 @@ export function logImpact(sim: WorldSim, b: Pick<Bullet, "x" | "y" | "z" | "vx" 
   const e = sim.impacts[id % IMPACT_LOG]!;
   e.id = id; e.x = b.x; e.y = b.y; e.z = b.z; e.kind = kind; e.vx = b.vx; e.vz = b.vz;
 }
+
+/** presentation log for gore.ts: what bled, where, which way and how hard (combat never reads it) */
+export function logGore(sim: WorldSim, e: Omit<GoreEvent, "id">) {
+  const id = sim.nextGoreId++;
+  const slot = sim.gore[id % GORE_LOG]!;
+  Object.assign(slot, e, { id });
+  if (!e.body) slot.body = undefined;
+  if (!e.critter) slot.critter = undefined;
+}
+/** remember how a machine was just hurt (for its gore, and how its body falls if this hit kills it) */
+export function markGoreHit(sim: WorldSim, m: Machine, dx: number, dz: number, dmg: number, cause: GoreCause, y = m.y - 2.2 * m.scale + 1.25 * enemyBodyScaleOf(m.scale), hitLog = true) {
+  const d = Math.hypot(dx, dz) || 1;
+  m.goreHit = { dx: dx / d, dz: dz / d, dmg, cause, y };
+  if (hitLog && m.hp > 0 && !m.decoy) logGore(sim, { kind: "HIT", blood: bloodOf(m), cause, x: m.x - (dx / d) * 0.3 * m.scale, y, z: m.z - (dz / d) * 0.3 * m.scale, dx: dx / d, dz: dz / d, power: Math.min(1, dmg / Math.max(0.5, m.maxHp ?? (m.elite ? 7 : 3.5))), size: enemyBodyScaleOf(m.scale) });
+}
+/** on-screen bulk of a machine (enemy-visuals.ts enemyBodyScale, repeated so the sim does not import presentation data) */
+const enemyBodyScaleOf = (simScale: number) => 1 + (simScale - 1) * 0.35;
 
 /** a launcher round in flight (ordnance.ts rules) plus what the burst needs; pooled, never allocated per frame */
 export type SimRound = Round & { launcher: LauncherId; element: DamageElement; /** index into sim.machines for guided rounds, -1 = unguided */ target: number; knock: number };
@@ -348,6 +370,13 @@ export type WorldSim = {
   /** bullet impact ring (presentation only, see logImpact) */
   impacts: ImpactEvent[];
   nextImpactId: number;
+  /** gore presentation ring (gore.ts / GoreFx.tsx read it; combat never does) */
+  gore: GoreEvent[];
+  nextGoreId: number;
+  /** live wildlife the bullets can strike (published by Wildlife.tsx each frame; presentation creatures, not combat targets) */
+  fauna: { id: string; x: number; y: number; z: number; r: number; species: string }[];
+  /** critters struck since Wildlife last read them */
+  faunaHits: string[];
   /** 0..1 on-foot speed multiplier from slowing zones this step (Scene applies it) */
   hazardSpeedMult: number;
   materials: Partial<Record<MaterialId, number>>;
@@ -457,6 +486,14 @@ export function defeatMachine(sim: WorldSim, m: Machine, credit: KillCredit = "p
   const floor = encounterHpFloor(m, performance.now() / 1000);
   if (floor > 0) { m.hp = floor; return; }
   m.alive = false;
+  {
+    // gore.ts: lay the body down where it fell (presentation only)
+    const g = m.goreHit, body = enemyBodyScaleOf(m.scale), feet = m.y - 2.2 * m.scale;
+    logGore(sim, { kind: "KILL", blood: bloodOf(m), cause: g?.cause ?? "BULLET", x: m.x, y: g?.y ?? feet + 1.25 * body, z: m.z, dx: g?.dx ?? 0, dz: g?.dz ?? 0,
+      power: Math.min(1, (g?.dmg ?? 1) / Math.max(0.5, m.maxHp ?? (m.elite ? 7 : 3.5)) + (m.hp < 0 ? -m.hp / Math.max(0.5, m.maxHp ?? 3.5) : 0)), size: body,
+      body: m.rival ? undefined : { kind: m.kind, role: m.boss ? "boss" : m.elite ? "elite" : "standard", rot: m.rot, groundY: feet, scale: body } });
+    m.goreHit = undefined;
+  }
   if (m.rival) { // Crucible rival: scores the match; the match result pays out, not a drop
     const who = m.rival;
     delete m.rival; delete m.living; delete m.lastPlayerDamage;
@@ -662,7 +699,7 @@ export function createSim(): WorldSim {
     nextHitId: 0, nextChainHitId: 0, chainState: emptyChainState(), lastChainReaction: null,
     encounterZones: [], encounterEvents: [], nextEncounterEventId: 1, nextEncounterZoneId: 1, hazardSpeedMult: 1,
     rounds: Array.from({ length: ROUND_POOL }, () => ({ ...fireRound(NO_ORDNANCE, { x: 0, y: 0, z: 0 }, [0, 0, 1]), alive: false, launcher: "ROCKET" as LauncherId, element: "KINETIC" as DamageElement, target: -1, knock: 1 })),
-    statuses: new Map(), burstEvents: [], evoBursts: [], nextBurstId: 1, impacts: Array.from({ length: IMPACT_LOG }, () => ({ id: 0, x: 0, y: 0, z: 0, kind: "ground" as BulletHit, vx: 0, vz: 0 })), nextImpactId: 1,
+    statuses: new Map(), burstEvents: [], evoBursts: [], nextBurstId: 1, impacts: Array.from({ length: IMPACT_LOG }, () => ({ id: 0, x: 0, y: 0, z: 0, kind: "ground" as BulletHit, vx: 0, vz: 0 })), nextImpactId: 1, gore: Array.from({ length: GORE_LOG }, emptyGoreEvent), nextGoreId: 1, fauna: [], faunaHits: [],
     materials: {}, drops: [], armorResist: 0, armorRegen: 0, consumableDamageMult: 1, enemyShots: [], bossPhaseFlares: [], xpEvents: [], nextDropId: 0,
     emergencyQuest: EMERGENCY_QUEST_INIT,
     bossCounter: counterTuningFor(null),
@@ -835,6 +872,7 @@ export function fireBullet(
   knock = 1,
   heat = 1,
   element?: DamageElement,
+  cause?: GoreCause,
 ) {
   if (sim.overheated) return false;
   const b = sim.bullets.find((v) => !v.alive);
@@ -856,6 +894,7 @@ export function fireBullet(
   b.dmg = dmg;
   b.knock = knock;
   b.element = element;
+  b.cause = cause;
   logBehavior(sim.adaptation, "combat", 0.35);
   return true;
 }
@@ -966,6 +1005,7 @@ function detonateRound(sim: WorldSim, r: SimRound, b: Burst, px: number, pz: num
     if (base <= 0) continue;
     const dmg = applyMachineDamageMods(sim, m, base, r.element, px, pz);
     m.hp -= dmg;
+    markGoreHit(sim, m, dx || 0.01, dz, dmg * 2.2, "BLAST", undefined, false);
     const fall = 1 - Math.min(1, dist / b.radius), n = planar || 1;
     m.kx += (dx / n) * 7 * r.knock * fall;
     m.kz += (dz / n) * 7 * r.knock * fall;
@@ -1032,6 +1072,7 @@ function detonateBeacon(sim: WorldSim, b: Beacon, px: number, pz: number) {
       if (!m.alive || !inRange(m.x, m.z, m.scale)) continue;
       markPlayerDamage(m);
       m.hp -= m.boss ? 8 : 14;
+      markGoreHit(sim, m, m.x - b.x || 0.01, m.z - b.z, 99, "BLAST", undefined, false);
       if (m.hp <= 0) defeatMachine(sim, m);
     }
     // friendly fire: the strike does not care who is standing in it
@@ -1075,6 +1116,7 @@ export function applyLightning(sim: WorldSim, strike: Strike, px: number, pz: nu
     if (!m.alive) continue;
     if (Math.hypot(m.x - strike.x, m.z - strike.z) <= strike.radius + m.scale) {
       m.hp -= STRIKE_MACHINE_DAMAGE;
+      markGoreHit(sim, m, m.x - strike.x || 0.01, m.z - strike.z, STRIKE_MACHINE_DAMAGE * 3, "BLAST", undefined, false);
       if (m.hp <= 0) defeatMachine(sim, m, envCredit(m));
     }
   }
@@ -1193,6 +1235,7 @@ export function collidePlayer(sim: WorldSim, body: PlayerBody) {
       sim.impactCool = 0.6;
       markPlayerDamage(m);
       m.hp -= Math.round((force / 30) * sim.mods.ramDamage);
+      markGoreHit(sim, m, -dx / dist, -dz / dist, (force / 30) * sim.mods.ramDamage * 2, "CRUSH");
       logBehavior(sim.adaptation, body.inVehicle ? "vehicles" : "combat", 2);
       body.vSpeed *= 0.4;
       sim.combatHeat += 4;
@@ -1872,6 +1915,20 @@ export function stepSim(sim: WorldSim, input: SimInput) {
       logImpact(sim, b, "cover");
       continue;
     }
+    // wildlife (gore.ts): a round that meets an animal stops there and drops it; no credit, loot or heat
+    if (sim.fauna.length) {
+      let struck = false;
+      for (const f of sim.fauna) {
+        if (Math.abs(f.y - b.y) > f.r + 0.6 || Math.hypot(f.x - b.x, f.z - b.z) > f.r) continue;
+        b.alive = false; struck = true;
+        const sp = Math.hypot(b.vx, b.vz) || 1;
+        logGore(sim, { kind: "KILL", blood: critterBlood(f.species), cause: b.cause ?? "BULLET", x: f.x, y: f.y, z: f.z, dx: b.vx / sp, dz: b.vz / sp, power: 0.8, size: Math.max(0.35, f.r), critter: f.id });
+        sim.faunaHits.push(f.id);
+        f.r = -1; // one round per animal
+        break;
+      }
+      if (struck) continue;
+    }
     for (const m of sim.machines) {
       if (!m.alive) continue;
       if (Math.hypot(m.x - b.x, m.z - b.z) < 3.4 * m.scale) {
@@ -1889,6 +1946,7 @@ export function stepSim(sim: WorldSim, input: SimInput) {
         });
         dmg = applyMachineDamageMods(sim, m, resolveChainDamage(dmg, chain), bulletElement, px, pz);
         m.hp -= dmg;
+        markGoreHit(sim, m, b.vx, b.vz, dmg, b.cause ?? "BULLET", Math.min(Math.max(b.y, m.y - 2.2 * m.scale + 0.4), m.y - 2.2 * m.scale + 1.7 * enemyBodyScaleOf(m.scale)));
         if (b.element) applyWeaponElement(sim, m, b.element);
         if (sim.equippedEvolution) evolutionHit(sim, m, dmg, px, pz);
         if (sim.runes.bursts.length) runeHits(sim, m, dmg, px, pz);

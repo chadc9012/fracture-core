@@ -5,7 +5,8 @@ import * as THREE from "three";
 import { clone as cloneSkinned } from "three/examples/jsm/utils/SkeletonUtils.js";
 import { heightAt } from "@/game/terrain";
 import { mulberry32 } from "@/game/rng";
-import { SPECIES_PROFILE, stepCritter, type Alarms, type Critter } from "@/game/wildlife";
+import { CRITTER_BODY, CRITTER_DOWN_TIME, CRITTER_RESPAWN, SPECIES_PROFILE, stepCritter, type Alarms, type Critter } from "@/game/wildlife";
+import type { WorldSim } from "@/game/sim";
 import { buildPopulation, HABITAT, lakeSurfaceAt } from "@/game/wildlife-habitat";
 import { getPerfTier } from "@/game/perf-budget";
 import type { RenderTier } from "@/game/performance";
@@ -340,6 +341,7 @@ function FoxModel({ c }: { c: Critter }) {
 function CritterView({ c, camera }: { c: Critter; camera: React.RefObject<THREE.Vector3> }) {
   const group = useRef<THREE.Group>(null!);
   const lastHeading = useRef(c.heading);
+  const fallAlt = useRef(0);
   const bank = useRef(0);
   const loco = SPECIES_PROFILE[c.species].locomotion;
   useFrame((_, dt) => {
@@ -347,7 +349,7 @@ function CritterView({ c, camera }: { c: Critter; camera: React.RefObject<THREE.
     if (!g) return;
     const cam = camera.current;
     const range = loco === "soar" ? skyRange() : viewRange();
-    const visible = !cam || Math.hypot(c.x - cam.x, c.z - cam.z) < range;
+    const visible = (c.down === undefined || c.down < CRITTER_DOWN_TIME) && (!cam || Math.hypot(c.x - cam.x, c.z - cam.z) < range);
     g.visible = visible;
     if (!visible) return;
     let y = heightAt(c.x, c.z);
@@ -369,6 +371,17 @@ function CritterView({ c, camera }: { c: Critter; camera: React.RefObject<THREE.
       pitch = Math.atan2(heightAt(c.x - fx, c.z - fz) - heightAt(c.x + fx, c.z + fz), len * 2);
     }
     lastHeading.current = c.heading;
+    if (c.down !== undefined) {
+      // shot: falls onto its side (birds drop out of the sky), then sinks away before it is hidden
+      const t = Math.min(1, c.down / 0.45), ground = heightAt(c.x, c.z);
+      fallAlt.current = c.down < dt * 1.5 ? y : fallAlt.current;
+      if (loco === "bird" || loco === "soar") { fallAlt.current = Math.max(ground, fallAlt.current - (4 + c.down * 9.8) * dt); y = fallAlt.current; }
+      else if (loco === "fish") y = Math.max(ground + 0.1, y - c.down * 0.4);
+      else y = ground;
+      const sink = Math.max(0, (c.down - (CRITTER_DOWN_TIME - 2)) / 2) * 0.4;
+      roll = (Math.PI / 2) * t * t; pitch = 0;
+      y -= sink;
+    }
     g.position.set(c.x, y, c.z);
     euler.set(pitch, c.heading, roll);
     g.quaternion.setFromEuler(euler);
@@ -389,8 +402,10 @@ function CritterView({ c, camera }: { c: Critter; camera: React.RefObject<THREE.
   );
 }
 
-export function Wildlife({ playerRef }: { playerRef: React.RefObject<THREE.Object3D> }) {
+export function Wildlife({ playerRef, sim }: { playerRef: React.RefObject<THREE.Object3D>; sim?: WorldSim }) {
   const critters = useMemo(() => buildPopulation(), []);
+  const byId = useMemo(() => new Map(critters.map((c) => [c.id, c])), [critters]);
+  useEffect(() => () => { if (sim) sim.fauna.length = 0; }, [sim]);
   const rnd = useRef(mulberry32(909));
   const alarms = useRef<Alarms>(new Map());
   const last = useRef<{ x: number; z: number } | null>(null);
@@ -408,11 +423,33 @@ export function Wildlife({ playerRef }: { playerRef: React.RefObject<THREE.Objec
     last.current = { x: p.position.x, z: p.position.z };
     // teleports (fast travel, respawn) are not running
     const threat = { x: p.position.x, z: p.position.z, speed: speed > 60 ? 0 : speed, sprinting: speed > 5.5 && speed <= 60 };
-    for (const c of critters) {
-      const range = SPECIES_PROFILE[c.species].locomotion === "soar" ? skyRange() : viewRange() + 40;
-      if (Math.hypot(c.x - p.position.x, c.z - p.position.z) > range) continue;
-      stepCritter(c, dt, threat, rnd.current, HABITAT, alarms.current, clock.current);
+    // gore.ts: animals the bullets struck go down; downed ones lie there, then a fresh one appears back home
+    if (sim && sim.faunaHits.length) {
+      for (const id of sim.faunaHits) { const c = byId.get(id); if (c && c.down === undefined) { c.down = 0; c.speed = 0; } }
+      sim.faunaHits.length = 0;
     }
+    let nf = 0;
+    for (const c of critters) {
+      if (c.down !== undefined) {
+        c.down += dt;
+        if (c.down > CRITTER_RESPAWN) { c.down = undefined; c.x = c.homeX; c.z = c.homeZ; c.state = "IDLE"; c.speed = 0; }
+        continue;
+      }
+      const range = SPECIES_PROFILE[c.species].locomotion === "soar" ? skyRange() : viewRange() + 40;
+      const d = Math.hypot(c.x - p.position.x, c.z - p.position.z);
+      if (d > range) continue;
+      stepCritter(c, dt, threat, rnd.current, HABITAT, alarms.current, clock.current);
+      // publish the nearby live animals as soft targets for the bullets (sim.ts)
+      if (sim && d < 160) {
+        const body = CRITTER_BODY[c.species], loco = SPECIES_PROFILE[c.species].locomotion;
+        const ground = heightAt(c.x, c.z);
+        const y = loco === "fish" ? (lakeSurfaceAt(c.x, c.z) ?? ground) + c.alt : ground + (loco === "bird" || loco === "soar" ? c.alt : 0) + body.h * c.size;
+        const slot = sim.fauna[nf] ?? (sim.fauna[nf] = { id: "", x: 0, y: 0, z: 0, r: 0, species: "" });
+        slot.id = c.id; slot.x = c.x; slot.y = y; slot.z = c.z; slot.r = body.r * c.size; slot.species = c.species;
+        nf++;
+      }
+    }
+    if (sim) sim.fauna.length = nf;
   });
 
   return <group>{critters.map((c) => <CritterView key={c.id} c={c} camera={camera} />)}</group>;

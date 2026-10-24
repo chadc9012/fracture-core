@@ -50,7 +50,17 @@ export type Critter = {
   look: number;
   /** body scale variation, 0.85..1.15 */
   size: number;
+  /** gore.ts: seconds since this animal was shot (undefined = alive); it lies where it fell, then a new one wanders home */
+  down?: number | undefined;
 };
+/** body radius (m) a bullet must pass within, and its centre above the ground */
+export const CRITTER_BODY: Record<Species, { r: number; h: number }> = {
+  DEER: { r: 0.9, h: 1.0 }, DOG: { r: 0.55, h: 0.45 }, FOX: { r: 0.5, h: 0.3 }, CAT: { r: 0.4, h: 0.22 }, RABBIT: { r: 0.35, h: 0.15 },
+  SONGBIRD: { r: 0.3, h: 0.08 }, VULTURE: { r: 0.85, h: 0.3 }, FISH: { r: 0.4, h: 0 }, SNAKE: { r: 0.45, h: 0.06 },
+};
+/** how long a downed animal lies there, and when a fresh one appears back at its home */
+export const CRITTER_DOWN_TIME = 40;
+export const CRITTER_RESPAWN = 150;
 
 export type SpeciesProfile = {
   locomotion: Locomotion;

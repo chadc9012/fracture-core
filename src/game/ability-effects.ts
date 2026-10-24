@@ -16,7 +16,7 @@ import { VERB_LABEL } from "./subclass-verbs";
 import { knockbackFrom, siegeDamageMult, strikeDamage, strikeLanding, veilSightMult } from "./operator-abilities";
 import { queryObstacles } from "./obstacles";
 import { INITIAL_POISE, hitPoise } from "./boss-poise";
-import { alert, applyMachineDamageMods, applyVulnPulse, defeatMachine, placeRiftTurret, spawnVolatileZone, stunMachine, type Machine, type WorldSim } from "./sim";
+import { alert, applyMachineDamageMods, applyVulnPulse, defeatMachine, markGoreHit, placeRiftTurret, spawnVolatileZone, stunMachine, type Machine, type WorldSim } from "./sim";
 
 export type RejectReason = "COOLDOWN" | "ENERGY" | "NO_TARGET" | "NO_ABILITY" | "IN_VEHICLE";
 export type AbilityEventKind = "CAST" | "REJECTED" | "CANCELLED";
@@ -135,7 +135,9 @@ export function castAbility(sim: WorldSim, live: LiveBuild, slot: AbilitySlot, p
   const duration = effect?.duration ?? 0;
   const px = pose.x, pz = pose.z;
   const hurt = (m: Machine, dmg: number, stun: number, interrupt: boolean) => {
-    m.hp -= applyMachineDamageMods(sim, m, dmg, "KINETIC", px, pz);
+    const dealt = applyMachineDamageMods(sim, m, dmg, "KINETIC", px, pz);
+    m.hp -= dealt;
+    markGoreHit(sim, m, m.x - px || 0.01, m.z - pz, dealt * 2, "ABILITY");
     stunMachine(m, stun);
     if (interrupt && !m.boss) m.aim = 0;
     hits++; if (m.boss) bossHits++;
