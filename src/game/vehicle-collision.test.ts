@@ -2,7 +2,7 @@
  * order Scene.tsx uses (step -> move -> sweep against solids -> bounce -> impactVehicle -> forced exit). Nothing here is
  * rendered; it proves the rules, not the look. */
 import { describe, expect, test } from "bun:test";
-import { HANDLING, canExitVehicle, stepVehicle, type HandlingKind, type VehicleInput, type VehicleState } from "./vehicle-handling";
+import { HANDLING, canExitVehicle, stepVehicle, type HandlingKind, type StepResult, type VehicleInput } from "./vehicle-handling";
 import { sweepSolids, type SolidBox } from "./environment-collision";
 import { FRESH_VEHICLE, conditionEffects, impactVehicle, recoverVehicle, repairPrice, type VehicleCondition } from "./vehicle-condition";
 import { damageLook } from "./vehicle-damage-render";
@@ -10,7 +10,7 @@ import { damageLook } from "./vehicle-damage-render";
 const DT = 1 / 60;
 const GROUND = { grip: 1, slope: 0, floor: 0, water: -5, overWater: false };
 const none: VehicleInput = { throttle: 0, brake: 0, steer: 0, ascend: 0, descend: 0, handbrake: false, boost: false };
-type Car = { x: number; z: number; yaw: number; speed: number; st: VehicleState; cond: VehicleCondition; hits: number; maxSpeed: number; forcedOut: boolean };
+type Car = { x: number; z: number; yaw: number; speed: number; st: Pick<StepResult, "speed" | "yaw" | "y" | "vy" | "airborne" | "slip" | "roll" | "pitch"> & Partial<StepResult>; cond: VehicleCondition; hits: number; maxSpeed: number; forcedOut: boolean };
 const car = (o: Partial<Car> = {}): Car => ({ x: 0, z: 0, yaw: 0, speed: 0, st: { speed: 0, yaw: 0, y: 1.9, vy: 0, airborne: false, slip: 0, roll: 0, pitch: 0 }, cond: FRESH_VEHICLE, hits: 0, maxSpeed: 0, forcedOut: false, ...o });
 const wall = (z: number, w = 40, d = 0.6): SolidBox => ({ x: 0, y: 2, z, w, h: 6, d });
 
