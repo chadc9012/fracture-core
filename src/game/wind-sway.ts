@@ -41,9 +41,11 @@ export function windSway(geometry: THREE.BufferGeometry, amount: number) {
 varying float vWfCamDist;`)
       .replace("#include <clipping_planes_fragment>", `#include <clipping_planes_fragment>
 if (vWfCamDist < ${NEAR_FADE.toFixed(2)}) {
-  vec2 cell = mod(floor(gl_FragCoord.xy), 4.0);
-  float bayer = mod(cell.x * 4.0 + cell.y * 9.0 + cell.x * cell.y * 3.0, 16.0) / 16.0;
-  if (bayer > smoothstep(${(NEAR_FADE * 0.35).toFixed(2)}, ${NEAR_FADE.toFixed(2)}, vWfCamDist)) discard;
+  // fully gone inside the inner radius (a sparse grid of surviving pixels used to hang in front of the lens), then an
+  // interleaved-gradient-noise dissolve out to NEAR_FADE: no regular screen-door grid, and it stays stable per pixel
+  if (vWfCamDist < ${(NEAR_FADE * 0.4).toFixed(2)}) discard;
+  float ign = fract(52.9829189 * fract(dot(floor(gl_FragCoord.xy), vec2(0.06711056, 0.00583715))));
+  if (ign >= smoothstep(${(NEAR_FADE * 0.4).toFixed(2)}, ${NEAR_FADE.toFixed(2)}, vWfCamDist)) discard;
 }`);
     shader.vertexShader = shader.vertexShader
       .replace("#include <common>", `#include <common>
