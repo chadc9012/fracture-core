@@ -1,6 +1,6 @@
 import * as THREE from "three";
 import { REGIONS } from "./world";
-import { WATER_LEVEL } from "./terrain";
+import { WATER_LEVEL, solaraValley } from "./terrain";
 import forest from "@/assets/polyhaven/forest_ground_04.jpg.asset.json";
 import rocks from "@/assets/polyhaven/aerial_rocks_02.jpg.asset.json";
 import sand from "@/assets/polyhaven/coast_sand_01.jpg.asset.json";
@@ -29,7 +29,10 @@ export function surfaceWeights(x: number, z: number): number[] {
     w[slot]! += k; total += k;
   }
   if (total < 1) { w[DEFAULT_SURFACE]! += 1 - total; total = 1; }
-  return w.map((v) => v / total);
+  const out = w.map((v) => v / total);
+  // Solara's river valley grows forest-floor ground through the sand
+  const v = solaraValley(x, z);
+  return v > 0 ? out.map((x0, i) => x0 * (1 - v) + (i === 0 ? v : 0)) : out;
 }
 
 /** seconds, shared by every ground material: drives the seabed caustics (Terrain advances it each frame) */

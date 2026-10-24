@@ -444,3 +444,95 @@ export function saggingTent(r: number, hgt: number): THREE.BufferGeometry {
   g.deleteAttribute("uv"); pole.deleteAttribute("uv");
   return mergeGeometries([g, pole])!;
 }
+
+/* ---------------- sandstone formations (Stage 45 terrain pass) ---------------- */
+
+/** strata palette for sandstone formations: deep red base, orange, buff and a pale cap (reference "sunset - The Wastelands") */
+export const SANDSTONE = ["#7a3a22", "#9c4e2c", "#b8693a", "#c98352", "#a85a33", "#d9a46e", "#e6c08e"] as const;
+const hexRgb = (h: string): [number, number, number] => [parseInt(h.slice(1, 3), 16) / 255, parseInt(h.slice(3, 5), 16) / 255, parseInt(h.slice(5, 7), 16) / 255];
+
+/**
+ * A sculpted sandstone formation, unit size (base radius ~1, height 1, base at y=0), with its own vertex colours:
+ *  - "butte": near-vertical walls over a flared rubble apron, stepped strata ledges with undercuts, vertical rain gullies,
+ *    an uneven flat top — the tall towers in the Wastelands reference;
+ *  - "mesa": the same, broad and low (instance it wide);
+ *  - "spire": a tapering hoodoo with a pinched waist and a wider caprock.
+ * ~5k triangles; instanced, so one draw per kind. Colours are banded strata, darker in the gullies, dusty on the apron.
+ */
+export function sandstoneFormation(seed: number, kind: "butte" | "mesa" | "spire" = "butte"): THREE.BufferGeometry {
+  const NA = 64, NY = 48, bands = kind === "spire" ? 9 : 7;
+  const flutes = 9 + (seed % 5);
+  const pal = SANDSTONE.map(hexRgb);
+  const pos: number[] = [], col: number[] = [], idx: number[] = [];
+  const radius = (t: number) => {
+    if (kind === "spire") {
+      const waist = 1 - 0.38 * Math.sin(Math.min(1, t / 0.85) * Math.PI) * 0.9;
+      const taper = 1 - 0.35 * t;
+      const cap = t > 0.84 ? 1 + 0.55 * Math.sin(((t - 0.84) / 0.16) * Math.PI * 0.8) : 1;
+      return (t < 0.08 ? 1.25 - (t / 0.08) * 0.25 : 1) * waist * taper * cap;
+    }
+    const apron = kind === "mesa" ? 0.1 : 0.15;
+    if (t < apron) return 1.32 - 0.32 * Math.pow(t / apron, 0.6);
+    return 1 - 0.12 * (t - apron);
+  };
+  for (let j = 0; j <= NY; j++) {
+    const t = j / NY;
+    for (let i = 0; i <= NA; i++) {
+      const a = (i / NA) * Math.PI * 2, ca = Math.cos(a), sa = Math.sin(a);
+      const n = fbm3(ca * 1.6, t * 3.2, sa * 1.6, seed, 4);
+      // strata: each band ends in a ledge with an undercut beneath it
+      const bt = t * bands + (n - 0.5) * 0.9, band = Math.floor(bt), fb = bt - band;
+      const ledge = t > 0.12 ? 1 - 0.075 * smooth01(0.78, 1, fb) + 0.03 * smooth01(0, 0.12, fb) * (1 - smooth01(0.12, 0.3, fb)) : 1;
+      // vertical gullies cut by rain, wandering with the noise; strongest on the walls, not the apron
+      const wall = smooth01(0.1, 0.25, t) * (1 - smooth01(0.93, 1, t));
+      const gully = Math.sin(a * flutes + n * 5 + Math.sin(t * 6 + seed) * 0.6);
+      const flute = 1 + wall * (0.06 * gully - 0.05 * Math.max(0, -gully) * (n > 0.5 ? 1.4 : 0.6));
+      const lump = 1 + (n - 0.5) * 0.28 + (fbm3(ca * 5, t * 9, sa * 5, seed + 7, 3) - 0.5) * 0.08;
+      // plan shape: lobed and elongated, the same all the way up, so a formation has buttresses and bays rather than a round barrel
+      const plan = 1 + ((fbm3(ca * 0.9 + seed, 0.5, sa * 0.9, seed + 11, 2) - 0.5) * 0.9 + 0.18 * Math.cos(2 * a + seed)) * (kind === "spire" ? 0.35 : 1);
+      const r = radius(t) * ledge * flute * lump * plan;
+      // the top is not dead flat: a little rim wander
+      const y = t + (j === NY ? (fbm3(ca * 2, 9, sa * 2, seed + 3, 2) - 0.5) * 0.04 : 0);
+      pos.push(ca * r, y, sa * r);
+      // colour: the band's stratum, darker in gully floors, a dusty apron, a paler weathered cap
+      const c0 = pal[((band % pal.length) + pal.length) % pal.length]!, c1 = pal[(((band + 1) % pal.length) + pal.length) % pal.length]!;
+      const mixK = smooth01(0.85, 1, fb) * 0.5;
+      let cr = c0[0] + (c1[0] - c0[0]) * mixK, cg = c0[1] + (c1[1] - c0[1]) * mixK, cb = c0[2] + (c1[2] - c0[2]) * mixK;
+      const shade = 1 - wall * Math.max(0, -gully) * 0.28 - (1 - ledge) * 2.2;
+      const dust = t < 0.16 ? 1.08 : 1, cap = t > 0.97 ? 1.1 : 1;
+      const k = shade * dust * cap * (0.92 + (n - 0.5) * 0.25);
+      col.push(Math.min(1, cr * k), Math.min(1, cg * k), Math.min(1, cb * k));
+    }
+  }
+  const row = NA + 1;
+  for (let j = 0; j < NY; j++) for (let i = 0; i < NA; i++) {
+    const a = j * row + i, b = a + 1, c = a + row, d = c + 1;
+    idx.push(a, c, b, b, c, d);
+  }
+  // cap: three inner rings of rough, weathered rock (not a single fan, which shaded like a pie) closing to a centre point
+  const capCol: [number, number, number] = kind === "spire" ? [0.36, 0.2, 0.13] : pal[pal.length - 1]!;
+  let prev = NY * row;
+  for (let k = 1; k <= 3; k++) {
+    const f = 1 - k / 4, start = pos.length / 3;
+    for (let i = 0; i <= NA; i++) {
+      const rx = pos[(NY * row + i) * 3]!, rz = pos[(NY * row + i) * 3 + 2]!, a = (i / NA) * Math.PI * 2;
+      const bump = (fbm3(Math.cos(a) * 2 * f + k, 7, Math.sin(a) * 2 * f, seed + 5, 3) - 0.5) * (kind === "spire" ? 0.05 : 0.025);
+      pos.push(rx * f, 1 + 0.008 * k + bump, rz * f);
+      const v = 0.94 + bump * 3;
+      col.push(capCol[0] * v, capCol[1] * v, capCol[2] * v);
+    }
+    for (let i = 0; i < NA; i++) { const a = prev + i, b = a + 1, c = start + i, d = c + 1; idx.push(a, c, b, b, c, d); }
+    prev = start;
+  }
+  const centre = pos.length / 3;
+  pos.push(0, 1 + 0.03, 0); col.push(capCol[0], capCol[1], capCol[2]);
+  for (let i = 0; i < NA; i++) idx.push(prev + i, centre, prev + i + 1);
+  let g: THREE.BufferGeometry = new THREE.BufferGeometry();
+  g.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
+  g.setAttribute("color", new THREE.Float32BufferAttribute(col, 3));
+  g.setIndex(idx);
+  g = mergeVertices(g, 1e-4);
+  g.computeVertexNormals();
+  return g;
+}
+function smooth01(a: number, b: number, x: number) { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); }

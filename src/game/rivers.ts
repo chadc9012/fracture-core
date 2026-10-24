@@ -36,6 +36,7 @@ const RIVER_SPEC: { regionId: string; w: number; d: number; dry: boolean }[] = [
   { regionId: "ember", w: 2.2, d: 1.2, dry: false },      // dark mineral stream off the cone
   { regionId: "swamps", w: 4.2, d: 0.9, dry: false },     // slow, wide bog channel
   { regionId: "wastelands", w: 3, d: 1.1, dry: true },    // dry wash
+  { regionId: "solara", w: 3.4, d: 1.3, dry: false },     // the green river valley through part of the desert (owner, Stage 45)
 ];
 
 export const STEP = 3 * RS;

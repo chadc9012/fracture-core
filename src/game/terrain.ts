@@ -271,6 +271,32 @@ export function riverAt(x: number, z: number): { dist: number; s: number; w: num
   return best;
 }
 
+/** Solara's green river valley (owner: "add a river valley and grass to part of it and the rest of it desert"): 1 on the banks of
+ * the Solara river and around the pool it feeds, fading to 0 by ~60 m out, with a ragged noisy edge, so a lush green strip
+ * winds through the dunes. 0 everywhere else. Drives the ground colour, ground surface, grass and bank trees. */
+let valleySegs: { ax: number; az: number; bx: number; bz: number }[] | null = null, valleyLakes: { x: number; z: number; r: number }[] = [];
+export function solaraValley(x: number, z: number): number {
+  if (!valleySegs) {
+    const net = waterNetwork(), r = net.rivers.find((v) => v.regionId === "solara" && !v.dry);
+    valleySegs = [];
+    if (r) {
+      for (let i = 0; i < r.points.length - 1; i++) valleySegs.push({ ax: r.points[i]!.x, az: r.points[i]!.z, bx: r.points[i + 1]!.x, bz: r.points[i + 1]!.z });
+      const end = r.points[r.points.length - 1]!;
+      valleyLakes = net.lakes.filter((l) => Math.hypot(l.x - end.x, l.z - end.z) < l.r + 30).map((l) => ({ x: l.x, z: l.z, r: l.r }));
+    }
+  }
+  if (!valleySegs.length) return 0;
+  let d = Infinity;
+  for (const g of valleySegs) {
+    const ex = g.bx - g.ax, ez = g.bz - g.az, l2 = ex * ex + ez * ez || 1, t = Math.min(1, Math.max(0, ((x - g.ax) * ex + (z - g.az) * ez) / l2));
+    d = Math.min(d, Math.hypot(g.ax + ex * t - x, g.az + ez * t - z));
+  }
+  for (const l of valleyLakes) d = Math.min(d, Math.max(0, Math.hypot(x - l.x, z - l.z) - l.r));
+  if (d > 95) return 0;
+  const edge = 34 + 52 * fbm(x * 0.02 + 5, z * 0.02 - 9, 2); // the green spills further out in places
+  return 1 - smoothstep(edge * 0.45, edge, d);
+}
+
 /** every river segment within carving reach of (x,z) (riverAt keeps only the nearest) */
 function riverSegmentsAt(x: number, z: number): { dist: number; s: number; w: number; d: number }[] {
   if (!carveCells) waterNetwork();
@@ -535,6 +561,9 @@ export function colorAt(x: number, z: number, worldH: number, slope?: number): [
     const cliff = (fbm(x * 0.12, z * 0.12, 2) - 0.5) * 0.1; // strata variation
     c = mix(c, [PALETTE.dirt[0] + cliff, PALETTE.dirt[1] + cliff, PALETTE.dirt[2] + cliff], dirt * 0.75);
     c = mix(c, [PALETTE.rock[0] + cliff, PALETTE.rock[1] + cliff, PALETTE.rock[2] + cliff], rock * 0.9);
+    // Solara's river valley: lush grass on the banks, ragged into the sand (steep banks keep their dirt/rock)
+    const sv = solaraValley(x, z);
+    if (sv > 0) c = mix(c, [0.25 + (fbm(x * 0.09, z * 0.09, 2) - 0.5) * 0.06, 0.47, 0.2], sv * 0.85 * (1 - rock * 0.8));
     // Frostspire's snowpack (reference "night - Frostspire"): above the valley floors the mountains stay white on all but sheer
     // cliffs; the slope mask above would otherwise strip the snow off nearly every mountain face (only ~3% of the region was white)
     const fr = FROST_REGION;

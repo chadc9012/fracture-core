@@ -2,11 +2,12 @@ import { useLayoutEffect, useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import { walkHeight } from "@/game/terrain";
-import { devilAt, dustDevils, hoodoos, mesas, oasis, pillars, ribcage, type Palm, type Prop } from "@/game/solara-dressing";
+import { devilAt, dustDevils, hoodoos, mesas, oasis, pillars, ribcage, valleyTrees, type Palm, type Prop } from "@/game/solara-dressing";
+import { PolyFoliage } from "./PolyFoliage";
 import { windUniforms } from "@/game/wind-sway";
 import { softSprite } from "./softSprite";
 import { InstancedGlb } from "./InstancedGlb";
-import { canopyCluster, erodedColumn, organicRock } from "@/game/organic-geometry";
+import { canopyCluster, organicRock, sandstoneFormation } from "@/game/organic-geometry";
 
 /** Solara Desert dressing: sandstone mesas and hoodoos, a palm oasis, a giant ribcage, half-buried arcology pillars and
  * wandering dust devils. Layout is pure (solara-dressing.ts); everything is procedural and instanced. */
@@ -14,6 +15,7 @@ export function SolaraDesert() {
   return (
     <group>
       <Mesas />
+      <ValleyTrees />
       <Hoodoos />
       <Oasis />
       <Ribcage />
@@ -48,40 +50,29 @@ function useInstances<T>(ref: React.RefObject<THREE.InstancedMesh | null>, items
 /** strata: banded sandstone colours, darker low, pale cap */
 const STRATA = ["#9a5a34", "#b8743f", "#c98b58", "#a8653a", "#d7a46d", "#e2bd88"];
 
-/** mesas: 4–6 stacked, slightly stepped tiers per mesa, each tier its own stratum colour */
+/** mesas: broad sculpted sandstone tables (organic-geometry.ts sandstoneFormation "mesa": lobed footprint, strata ledges with
+ * undercuts, rain gullies, a rubble apron), sunk into the dunes so the apron meets the sand */
 function Mesas() {
   const ms = useMemo(() => mesas(), []);
-  const tiers = useMemo(() => ms.flatMap((m, k) => {
-    const n = 4 + (k % 3), out: { x: number; z: number; y: number; rad: number; h: number; r: number; band: number }[] = [];
-    let y = walkHeight(m.x, m.z) - 2, rad = (16 + m.s * 12) * 1.0;
-    for (let i = 0; i < n; i++) {
-      const h = 4 + ((k + i) % 3) * 2.5;
-      out.push({ x: m.x, z: m.z, y: y + h / 2, rad, h, r: m.r + i * 0.4, band: (k + i) % STRATA.length });
-      y += h; rad *= i === n - 2 ? 0.97 : 0.9;
-    }
-    return out;
-  }), [ms]);
+  const groups = useMemo(() => [ms.filter((_, i) => i % 2 === 0), ms.filter((_, i) => i % 2 === 1)], [ms]);
+  return <group>{groups.map((g, gi) => <MesaBatch key={gi} seed={gi ? 71 : 53} items={g} />)}</group>;
+}
+function MesaBatch({ seed, items }: { seed: number; items: readonly Prop[] }) {
+  const geo = useMemo(() => sandstoneFormation(seed, "mesa"), [seed]);
   const ref = useRef<THREE.InstancedMesh>(null);
-  useInstances<{ x: number; z: number; y: number; rad: number; h: number; r: number; band: number }>(ref, tiers, (o, t) => { o.position.set(t.x, t.y, t.z); o.rotation.set(0, t.r, 0); o.scale.set(t.rad, t.h, t.rad * 0.8); }, (t) => STRATA[t.band]!);
-  // eroded, banded tiers instead of 9-sided flat-shaded discs (organic-geometry.ts erodedColumn)
-  const tierGeo = useMemo(() => erodedColumn(53, 0.92, 1), []);
-  return <instancedMesh ref={ref} args={[undefined, undefined, tiers.length]} castShadow receiveShadow geometry={tierGeo}>
-    <meshStandardMaterial roughness={0.95} />
-  </instancedMesh>;
+  useInstances<Prop>(ref, items, (o, m) => { const rad = 16 + m.s * 12; o.position.set(m.x, walkHeight(m.x, m.z) - 2.5, m.z); o.rotation.set(0, m.r, 0); o.scale.set(rad, 24 + m.s * 14, rad * 0.85); });
+  if (!items.length) return null;
+  return <instancedMesh ref={ref} args={[geo, undefined, items.length]} castShadow receiveShadow><meshStandardMaterial vertexColors roughness={0.94} /></instancedMesh>;
 }
 
-/** hoodoos: a tall eroded column with a darker caprock balanced on top */
+/** hoodoos: slender sandstone spires with a darker caprock (sandstoneFormation "spire") */
 function Hoodoos() {
   const hs = useMemo(() => hoodoos(), []);
-  const col = useRef<THREE.InstancedMesh>(null), cap = useRef<THREE.InstancedMesh>(null);
-  const height = (p: Prop) => 5 + p.s * 7;
-  const geo = useMemo(() => ({ col: erodedColumn(31), cap: organicRock(1, 37, 1, 0.3) }), []);
-  useInstances<Prop>(col, hs, (o, p) => { const h = height(p); o.position.set(p.x, walkHeight(p.x, p.z) + h / 2 - 0.5, p.z); o.rotation.set(p.tilt, p.r, p.tilt); o.scale.set(p.s * 1.1, h, p.s * 1.1); }, (_, i) => STRATA[i % 4]!);
-  useInstances<Prop>(cap, hs, (o, p) => { const h = height(p); o.position.set(p.x + p.tilt * h, walkHeight(p.x, p.z) + h - 0.3, p.z); o.rotation.set(0, p.r, 0); o.scale.set(p.s * 1.9, p.s * 0.9, p.s * 1.6); });
-  return <group>
-    <instancedMesh ref={col} args={[undefined, undefined, hs.length]} castShadow geometry={geo.col}><meshStandardMaterial roughness={1} /></instancedMesh>
-    <instancedMesh ref={cap} args={[undefined, undefined, hs.length]} castShadow geometry={geo.cap}><meshStandardMaterial color="#6e4027" roughness={1} /></instancedMesh>
-  </group>;
+  const col = useRef<THREE.InstancedMesh>(null);
+  const height = (p: Prop) => 7 + p.s * 9;
+  const geo = useMemo(() => sandstoneFormation(31, "spire"), []);
+  useInstances<Prop>(col, hs, (o, p) => { const h = height(p); o.position.set(p.x, walkHeight(p.x, p.z) - 0.6, p.z); o.rotation.set(p.tilt, p.r, p.tilt); o.scale.set(p.s * 1.5, h, p.s * 1.5); });
+  return <instancedMesh ref={col} args={[geo, undefined, hs.length]} castShadow geometry={geo}><meshStandardMaterial vertexColors roughness={0.95} /></instancedMesh>;
 }
 
 function Oasis() {
@@ -188,4 +179,10 @@ function DustDevils() {
   return <group ref={ref}>
     {ds.map((_, k) => <group key={k}>{Array.from({ length: N }, (_, i) => <sprite key={i}><spriteMaterial map={tex ?? null} color="#d9b27a" transparent depthWrite={false} fog /></sprite>)}</group>)}
   </group>;
+}
+
+/** the river valley's trees: the authored broadleaf/birch models (PolyFoliage, distance-culled and budgeted like the forest) */
+function ValleyTrees() {
+  const items = useMemo(() => valleyTrees().map((t) => ({ x: t.x, y: walkHeight(t.x, t.z), z: t.z, s: t.s, r: t.r })), []);
+  return <PolyFoliage kind="broadleaf" items={items} height={13} sway={0.4} variants />;
 }

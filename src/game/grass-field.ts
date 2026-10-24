@@ -7,7 +7,7 @@
  *
  * Pure and deterministic: a chunk always grows the same clumps, so walking away and back changes nothing. GrassField.tsx draws it. */
 import { regionAt } from "./world";
-import { WATER_LEVEL, heightAt, neonPlateauWeight } from "./terrain";
+import { WATER_LEVEL, heightAt, neonPlateauWeight, solaraValley } from "./terrain";
 import { placeable } from "./ground-cover";
 import type { RenderTier } from "./performance";
 
@@ -20,6 +20,8 @@ export const GRASS: Readonly<Record<string, GrassSpec>> = {
   swamps: { perChunk: 140, h: [0.7, 1.4], w: [0.7, 1.2], colors: ["#5f7a3a", "#6f8a42", "#4f6a34", "#7a8f48"], patchy: 0.2, maxSlope: 0.5 },
   ember: { perChunk: 14, h: [0.25, 0.5], w: [0.4, 0.8], colors: ["#5a4a3a", "#6a5440", "#4a3c30"], patchy: 0.7, maxSlope: 0.5 },
   frostspire: { perChunk: 40, h: [0.25, 0.5], w: [0.5, 0.9], colors: ["#8a9a72", "#a2ae86", "#7c8c6a"], patchy: 0.55, maxSlope: 0.5, maxH: 22 },
+  // Solara's green river valley: lush, tall grass by the water
+  "solara-valley": { perChunk: 160, h: [0.5, 1.05], w: [0.8, 1.3], colors: ["#6fa83c", "#86b848", "#7aa944", "#9ac35a", "#a7b05e"], patchy: 0.15, maxSlope: 0.7 },
   nexus: { perChunk: 60, h: [0.18, 0.35], w: [0.6, 1.0], colors: ["#6fa040", "#7cae4a", "#62923a"], patchy: 0.3, maxSlope: 0.4 },
 };
 /** how far the field reaches and how dense it is, per tier (LOW draws none) */
@@ -50,7 +52,8 @@ export function chunkClumps(cx: number, cz: number, density = 1): Clump[] {
   const r = rng(chunkSeed(cx, cz)), out: Clump[] = [];
   const x0 = cx * CHUNK, z0 = cz * CHUNK;
   const mid = regionAt(x0 + CHUNK / 2, z0 + CHUNK / 2);
-  const want = Math.round((GRASS[mid?.id ?? ""]?.perChunk ?? 0) * density);
+  const specAt = (x: number, z: number, id: string | undefined) => (id === "solara" && solaraValley(x, z) > 0.45 ? GRASS["solara-valley"] : GRASS[id ?? ""]);
+  const want = Math.round((specAt(x0 + CHUNK / 2, z0 + CHUNK / 2, mid?.id)?.perChunk ?? 0) * density);
   if (!want) return out;
   if (neonPlateauWeight(x0 + CHUNK / 2, z0 + CHUNK / 2) > 0.5) return out;
   const hs = new Float32Array(H_N * H_N);
@@ -64,7 +67,7 @@ export function chunkClumps(cx: number, cz: number, density = 1): Clump[] {
   };
   for (let i = 0; i < want; i++) {
     const x = x0 + r() * CHUNK, z = z0 + r() * CHUNK, roll = r(), hk = r(), wk = r(), rot = r(), ck = r();
-    const region = regionAt(x, z), spec = region ? GRASS[region.id] : undefined;
+    const region = regionAt(x, z), spec = region ? specAt(x, z, region.id) : undefined;
     if (!spec) continue;
     if (patch(x, z) < spec.patchy && roll < 0.8) continue; // bare ground between the meadows
     if (!ok[Math.min(OK_N - 1, Math.floor((z - z0) / OK_STEP)) * OK_N + Math.min(OK_N - 1, Math.floor((x - x0) / OK_STEP))]) continue;

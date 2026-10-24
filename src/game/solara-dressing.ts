@@ -3,7 +3,7 @@
  * SolaraDesert.tsx draws it. Everything keeps off supply roads, out of the drifting quicksand basin (its whole orbit),
  * away from the Solar Array mission site and off any water. Presentation only: no collision, hazards or rewards. */
 import { REGIONS, WORLD_SCALE } from "./world";
-import { heightAt, slopeAt, WATER_LEVEL } from "./terrain";
+import { heightAt, riverAt, slopeAt, solaraValley, WATER_LEVEL } from "./terrain";
 import { distanceToRoad, LANE_HALF_WIDTH } from "./lanes";
 import { mulberry32 } from "./rng";
 import { LANDMARKS } from "./landmarks";
@@ -45,6 +45,7 @@ function scatter(count: number, seed: number, opts: { inner: number; outer: numb
     const a = rnd() * Math.PI * 2, d = opts.inner + Math.sqrt(rnd()) * (opts.outer - opts.inner);
     const x = c.x + Math.cos(a) * d, z = c.z + Math.sin(a) * d;
     if (!placeable(x, z, opts.clear ?? 3) || slopeAt(x, z) > opts.maxSlope) continue;
+    if (solaraValley(x, z) > 0.2) continue; // the river valley stays green and open: rock formations stand in the desert
     if (out.some((p) => Math.hypot(p.x - x, p.z - z) < opts.gap)) continue;
     out.push({ x, z, s: 0.7 + rnd() * 0.8, r: rnd() * Math.PI * 2, tilt: (rnd() - 0.5) * 0.12 });
   }
@@ -99,3 +100,20 @@ export function dustDevils(): Devil[] {
   }));
 }
 export const devilAt = (d: Devil, t: number) => ({ x: d.cx + Math.cos(d.phase + t * d.speed) * d.orbit, z: d.cz + Math.sin(d.phase + t * d.speed * 1.3) * d.orbit * 0.7 });
+
+/** trees along Solara's green river valley (terrain.ts solaraValley): broadleaf and birch clumps on the banks, never in the
+ * water, on a road or in a keep-out; the rest of the region stays open desert */
+export function valleyTrees(): Prop[] {
+  const r = solara(), rnd = mulberry32(0x5a11e7), out: Prop[] = [];
+  for (let guard = 0; guard < 9000 && out.length < 120; guard++) {
+    const a = rnd() * Math.PI * 2, d = Math.sqrt(rnd()) * r.radius * 0.95;
+    const x = r.x + Math.cos(a) * d, z = r.z + Math.sin(a) * d;
+    if (solaraValley(x, z) < 0.55 + rnd() * 0.3) continue;
+    const rv = riverAt(x, z);
+    if (rv && rv.dist < rv.w + 3) continue;
+    if (!placeable(x, z, 2) || slopeAt(x, z) > 0.5 || heightAt(x, z) < WATER_LEVEL + 0.8) continue;
+    if (out.some((p) => Math.hypot(p.x - x, p.z - z) < 8)) continue;
+    out.push({ x, z, s: 0.75 + rnd() * 0.5, r: rnd() * Math.PI * 2, tilt: 0 });
+  }
+  return out;
+}
