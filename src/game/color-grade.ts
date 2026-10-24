@@ -43,15 +43,17 @@ export const REGION_GRADE: Record<string, Partial<Grade>> = {
   ember: { saturation: 0.9, contrast: 1.2, exposure: 0.95, shadowTint: "#2a1414", highlightTint: "#ffa070", split: 0.2, crush: 0.05 },
   frostspire: { saturation: 0.8, contrast: 1.1, shadowTint: "#1e3048", highlightTint: "#eaf4ff", split: 0.12 },
   nexus: { saturation: 0.86, contrast: 1.12, shadowTint: "#1c2c3a", highlightTint: "#f4ecdc", split: 0.12 },
-  // Neon City: cyberpunk — the one rich, saturated grade: hard contrast, violet shadows, cyan highlights, darker so neon pops
-  neon: { saturation: 1.18, contrast: 1.22, exposure: 0.92, shadowTint: "#2a1050", highlightTint: "#5fe6ff", split: 0.24, crush: 0.06, grain: 0.03, vignette: 0.42 },
+  // Neon City: cyberpunk — the one rich, saturated grade: violet shadows, cyan highlights. The city is already dark at
+  // night, so contrast stays moderate and exposure neutral: a harder grade crushed the streets (and the operator) to
+  // black and left only the tubes. Colour, not darkness, is what makes the neon pop.
+  neon: { saturation: 1.24, contrast: 1.1, exposure: 1.02, shadowTint: "#2a1050", highlightTint: "#5fe6ff", split: 0.24, crush: 0.02, grain: 0.03, vignette: 0.36 },
 };
 
 /** the grade for a region at a night factor (0 day .. 1 night): nights get firmer and a touch cooler */
 export function gradeFor(regionId: string | undefined, night = 0, underwater = false): Grade {
   const g: Grade = { ...GRIT, ...(regionId ? REGION_GRADE[regionId] : undefined) };
   const n = Math.max(0, Math.min(1, night));
-  g.contrast += 0.05 * n;
+  g.contrast += 0.02 * n;
   g.vignette = Math.min(0.6, g.vignette + 0.1 * n);
   if (underwater) { g.saturation *= 0.85; g.split = Math.max(g.split, 0.2); g.shadowTint = "#0c2a33"; g.highlightTint = "#9fe8e0"; }
   return g;

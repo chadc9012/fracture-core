@@ -1074,7 +1074,7 @@ function SceneImpl({
   useEffect(() => { const m = settings.mute ?? {}; sfx.setMixVolumes(m.music ? 0 : settings.musicVolume ?? 1, m.sfx ? 0 : settings.sfxVolume ?? 1, m.ambience ? 0 : settings.ambienceVolume ?? 1, m.abilities ? 0 : settings.abilityVolume ?? 1); }, [settings.musicVolume, settings.sfxVolume, settings.ambienceVolume, settings.abilityVolume, settings.mute]);
   const skyColor = useMemo(() => new THREE.Color(), []);
   const fogColor = useMemo(() => new THREE.Color(), []);
-  const atmoScratch = useMemo(() => new THREE.Color(), []);
+const atmoScratch = useMemo(() => new THREE.Color(), []);
   const deepWater = useMemo(() => new THREE.Color("#0a4f63"), []);
   const waterTint = useMemo(() => new THREE.Color(), []);
   const underK = useRef(0);
@@ -1461,6 +1461,10 @@ function SceneImpl({
     // cities after dark keep a glow-bounce fill (atmosphere.ts cityNightFill), so their streets read between the lamps
     const inCity = interior ? 1 : Math.max(cityPresence(Math.hypot(s.x - NEON_CITY_CENTER.x, s.z - NEON_CITY_CENTER.z), NEON_FLAT), cityPresence(Math.hypot(s.x - NEXUS_REGION.x, s.z - NEXUS_REGION.z), 95));
     if (hemi.current) hemi.current.intensity = 0.2 + 0.38 * (1 - night) + cityNightFill(inCity, night); // a moonlit sky fill at night: the reference nights read blue, not black
+    // Neon City after dark: the glow bounce takes the signage's violet-cyan cast instead of grey moonlight (owner: neon cyberpunk)
+    const inNeon = interior ? 0 : cityPresence(Math.hypot(s.x - NEON_CITY_CENTER.x, s.z - NEON_CITY_CENTER.z), NEON_FLAT);
+    if (hemi.current) hemi.current.groundColor.copy(HEMI_GROUND); // the sky colour is re-based every frame above; the ground colour is here
+    if (hemi.current && inNeon > 0.01 && night > 0.01) { hemi.current.color.lerp(NEON_SKY_GLOW, 0.55 * inNeon * night); hemi.current.groundColor.lerp(NEON_GROUND_GLOW, 0.5 * inNeon * night); }
     // metal and glass are lit by reflections, not the hemisphere: keep some city glow in the reflections too, or Neon's
     // metal stalls and decks render pure black at night
     (scene as THREE.Scene & { environmentIntensity?: number }).environmentIntensity = 0.62 * (1 - 0.75 * night) + cityNightFill(inCity, night) * 0.9;
@@ -3220,6 +3224,7 @@ export const scenePropsEqual = (a: Record<string, unknown>, b: Record<string, un
 };
 const SceneMemo = memo(SceneImpl, (a, b) => scenePropsEqual(a as Record<string, unknown>, b as Record<string, unknown>));
 
+const NEON_SKY_GLOW = new THREE.Color("#7a5cff"), NEON_GROUND_GLOW = new THREE.Color("#1d5c6e"), HEMI_GROUND = new THREE.Color("#3b3326");
 export function Scene(props: SceneProps) {
   const latest = useRef(props);
   latest.current = props;

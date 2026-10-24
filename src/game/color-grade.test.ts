@@ -7,9 +7,14 @@ describe("colour grade", () => {
     for (const id of Object.keys(REGION_GRADE)) {
       const g = gradeFor(id);
       expect(g.contrast).toBeGreaterThan(1.05);
-      if (id === "neon") { expect(g.saturation).toBeGreaterThan(1.1); expect(g.contrast).toBeGreaterThan(1.2); continue; }
+      if (id === "neon") { expect(g.saturation).toBeGreaterThan(1.1); continue; }
       expect(g.saturation).toBeLessThan(0.95); expect(g.saturation).toBeGreaterThan(0.7); // muted, not drained
     }
+  });
+  test("Neon City at night stays readable: colour carries the look, not crushed darks (the hard grade blacked out the streets)", () => {
+    const g = gradeFor("neon", 1);
+    expect(g.exposure - g.crush * 0.6).toBeGreaterThanOrEqual(0.98);
+    expect(g.contrast).toBeLessThan(1.16);
   });
   test("nights get firmer and darker at the edges", () => {
     expect(gradeFor("veridan", 1).contrast).toBeGreaterThan(gradeFor("veridan", 0).contrast);
