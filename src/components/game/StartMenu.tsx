@@ -16,6 +16,8 @@ import { CLASS_LABEL, IdentityForge } from "./IdentityForge";
 import { CornerBrackets } from "./HudChrome";
 import { useVoiceLine } from "./useVoiceLine";
 
+const WARM_MODELS = ["/models/foliage/conifer.glb", "/models/foliage/broadleaf.glb"];
+
 export type { ClassId } from "@/game/loadout";
 type Stage = "CLASS" | "SUBCLASS" | "APPEARANCE" | "ASSEMBLING";
 /** `appearance` is the fully-resolved, possibly-customized identity — a signature preset by
@@ -123,6 +125,13 @@ export function StartMenu({ onDeploy, onSaveCharacter, weaponOrder, onSettings, 
   });
   const summary = gear ? armorSummary(worn) : null;
   const look = armorLook(worn, classId);
+
+  // warm the HTTP cache with the two tree models while the player is still in the menu: in the world they queue behind
+  // several MB of NPC/enemy models, and the stand-in cone forest showed for a minute after deploy
+  useEffect(() => {
+    const t = window.setTimeout(() => { for (const href of WARM_MODELS) { if (document.querySelector(`link[data-warm="${href}"]`)) continue; const l = document.createElement("link"); l.rel = "prefetch"; l.as = "fetch"; l.href = href; l.dataset["warm"] = href; document.head.appendChild(l); } }, 1500);
+    return () => window.clearTimeout(t);
+  }, []);
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
