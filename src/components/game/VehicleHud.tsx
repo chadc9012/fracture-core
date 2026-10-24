@@ -23,5 +23,6 @@ export function VehicleHud({ hud }: { hud: HudState }) {
         <span className="w-9 shrink-0 text-right text-[8px] tabular-nums text-muted-foreground">+{Math.round(s.bonus * 100)}%</span>
       </div>)}
     </div>}
+    {v.primary && <div className="mt-2 border-t border-foreground/15 pt-1 text-[9px] uppercase"><p className="flex justify-between"><span className="text-muted-foreground">LMB · X</span><span>{v.primary}</span></p>{v.secondary && <><p className="flex justify-between"><span className="text-muted-foreground">RMB · Y</span><span>{v.secondary}</span></p><div className="mt-0.5 h-0.5 bg-foreground/15"><div className="h-full bg-primary" style={{ width: `${Math.round((v.secondaryReady ?? 1) * 100)}%` }} /></div></>}</div>}
   </section>;
 }
