@@ -75,6 +75,9 @@ export function Water({
 
   const uniforms = useMemo(
     () => ({
+      // the scene fog (Fog/FogExp2 uniforms, refreshed by the renderer because the material has fog on): without it the ocean stayed
+      // bright cyan out to the horizon while the land faded into fog, a flat band seen from every hill and summit
+      ...THREE.UniformsUtils.clone(THREE.UniformsLib.fog),
       uTime: { value: 0 },
       uSun: { value: new THREE.Vector3(0.4, 0.8, 0.3) },
       uDeep: { value: new THREE.Color("#062a44") },
@@ -111,6 +114,7 @@ export function Water({
       <shaderMaterial
         ref={mat}
         transparent
+        fog
         uniforms={uniforms}
         vertexShader={/* glsl */ `
           uniform float uTime;
@@ -119,6 +123,7 @@ export function Water({
           varying vec3 vNormalW;
           varying vec3 vPosW;
           varying float vFoam;
+          #include <fog_pars_vertex>
 
           float wave(vec2 p, vec2 dir, float freq, float speed, float amp) {
             return sin(dot(p, dir) * freq + uTime * speed) * amp;
@@ -145,7 +150,9 @@ export function Water({
             vec4 world = modelMatrix * vec4(pos, 1.0);
             vPosW = world.xyz;
             vFoam = smoothstep(0.55, 0.95, h);
-            gl_Position = projectionMatrix * viewMatrix * world;
+            vec4 mvPosition = viewMatrix * world;
+            gl_Position = projectionMatrix * mvPosition;
+            #include <fog_vertex>
           }
         `}
         fragmentShader={/* glsl */ `
@@ -161,6 +168,7 @@ export function Water({
           varying vec3 vNormalW;
           varying vec3 vPosW;
           varying float vFoam;
+          #include <fog_pars_fragment>
 
           void main() {
             vec3 view = normalize(cameraPosition - vPosW);
@@ -212,6 +220,7 @@ export function Water({
 
             float alpha = mix(0.82, 0.96, max(uMurk, depth * 0.6));
             gl_FragColor = vec4(col, alpha);
+            #include <fog_fragment>
           }
         `}
       />
