@@ -1,7 +1,9 @@
 import { useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
-import { neonStreetLightsWorld, type NeonLamp } from "@/game/neon-layout";
+import { neonCorePools, neonStreetLightsWorld, type NeonLamp } from "@/game/neon-layout";
+import { NEON_SITE } from "@/game/world";
+import { neonPlateauLevel } from "@/game/terrain";
 import { neonKeepOut } from "@/game/residences";
 import { walkHeight } from "@/game/terrain";
 import { lampLevel, worldLight } from "@/game/world-light";
@@ -13,6 +15,11 @@ import { softSprite } from "./softSprite";
  * because the city's signage keeps its streets lit even by day, and they swell at night. */
 export function NeonStreetLights() {
   const ls = useMemo(() => neonStreetLightsWorld(neonKeepOut()), []);
+  // the core (market avenue and under the Grid deck) gets pools only: its stalls and pillars carry their own fixtures
+  const core = useMemo(() => neonCorePools().map((l) => ({ ...l, x: l.x + NEON_SITE.x, z: l.z + NEON_SITE.z })), []);
+  const corePool = useRef<THREE.InstancedMesh>(null);
+  const plateau = useMemo(() => neonPlateauLevel(), []);
+  useInstances<NeonLamp>(corePool, core, (o, l) => { o.position.set(l.x, plateau + 0.42, l.z); o.rotation.set(-Math.PI / 2, 0, 0); o.scale.setScalar(8); }, (l) => l.glow);
   const pole = useRef<THREE.InstancedMesh>(null), arm = useRef<THREE.InstancedMesh>(null), head = useRef<THREE.InstancedMesh>(null), pool = useRef<THREE.InstancedMesh>(null);
   const y0 = (l: NeonLamp) => walkHeight(l.x, l.z);
   const tip = (l: NeonLamp) => ({ x: l.x + Math.sin(l.yaw) * 2.1, z: l.z + Math.cos(l.yaw) * 2.1 });
@@ -38,5 +45,6 @@ export function NeonStreetLights() {
     <instancedMesh ref={arm} args={[undefined, undefined, ls.length]} material={mats.pole}><boxGeometry args={[1, 1, 1]} /></instancedMesh>
     <instancedMesh ref={head} args={[undefined, undefined, ls.length]} material={mats.head}><boxGeometry args={[1, 1, 1]} /></instancedMesh>
     <instancedMesh ref={pool} args={[undefined, undefined, ls.length]} material={mats.pool} frustumCulled={false} renderOrder={2}><planeGeometry args={[1, 1]} /></instancedMesh>
+    <instancedMesh ref={corePool} args={[undefined, undefined, core.length]} material={mats.pool} frustumCulled={false} renderOrder={2}><planeGeometry args={[1, 1]} /></instancedMesh>
   </group>;
 }

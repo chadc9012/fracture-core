@@ -29,3 +29,12 @@ describe("atmosphereAt", () => {
     expect(atmosphereAt("wastelands", "CLEAR", 1).skyMix).toBeLessThan(atmosphereAt("wastelands", "CLEAR", 0).skyMix);
   });
 });
+
+import { cityNightFill, cityPresence, CITY_NIGHT_FILL } from "./atmosphere";
+describe("city glow bounce", () => {
+  it("lights a city's streets at night only, fading out past its edge", () => {
+    expect(cityNightFill(1, 1)).toBeCloseTo(CITY_NIGHT_FILL);
+    expect(cityNightFill(1, 0)).toBe(0);
+    expect(cityPresence(50, 100)).toBe(1); expect(cityPresence(130, 100)).toBeCloseTo(0.5); expect(cityPresence(400, 100)).toBe(0);
+  });
+});

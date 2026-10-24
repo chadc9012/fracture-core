@@ -423,9 +423,12 @@
 /* Destination Director: each stage eases in; the selected city node breathes. Off under reduced motion. */
 @keyframes wf-director-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
 .wf-director-in { animation: wf-director-in 0.32s ease-out both; }
+/* the Director diving into a map: the chart scales down into place from slightly too close, like a camera zoom */
+@keyframes wf-director-zoom { from { opacity: 0; transform: scale(1.12); filter: blur(3px); } to { opacity: 1; transform: none; filter: none; } }
+.wf-director-zoom { animation: wf-director-zoom 0.42s cubic-bezier(0.2, 0.8, 0.2, 1) both; transform-origin: 50% 50%; }
 @keyframes wf-pulse { 0%, 100% { stroke-opacity: 0.95; } 50% { stroke-opacity: 0.35; } }
 .wf-pulse { animation: wf-pulse 1.6s ease-in-out infinite; }
-@media (prefers-reduced-motion: reduce) { .wf-director-in, .wf-pulse { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .wf-director-in, .wf-director-zoom, .wf-pulse { animation: none; } }
 
 /* ------------------------------------------------------------------------------------------------------------
  * World Fracture menu shell: one look for every full-screen and store screen (title, hub, inventory, character,

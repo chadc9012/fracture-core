@@ -46,7 +46,7 @@ export function useTerrainMap(): State {
 /** A sharp close-up of one destination (a city, a region), painted the same way as the world map but over a small
  * square, so zooming into Neon City shows its streets' ground instead of a few blurred pixels of the world image.
  * Painted progressively a few ms per frame and cached per destination for the session. */
-const DETAIL = 384;
+const DETAIL = 640;
 type Detail = { url: string | null; bounds: MapBounds; full: boolean };
 const details = new Map<string, Detail>();
 const detailListeners = new Map<string, Set<(d: Detail) => void>>();

@@ -21,7 +21,7 @@ import { memo, useEffect, useMemo, useRef, type ComponentProps } from "react";
 import * as THREE from "three";
 import { softSprite } from "./softSprite";
 
-import { REGIONS, SKY, SKY_STOPS, ZONE_COLOR, clockLabel, phaseFor, regionAt, WORLD_RADIUS, WORLD_SCALE } from "@/game/world";
+import { REGIONS, SKY, SKY_STOPS, ZONE_COLOR, clockLabel, phaseFor, regionAt, WORLD_RADIUS, WORLD_SCALE, NEON_FLAT } from "@/game/world";
 import { BASE_FOOT_SPEED, SPRINT_MULT } from "@/game/foot-speed";
 import { useKeyboard } from "@/game/useKeyboard";
 import { touch, getEquippedBoots, activeBuffs, dashHud, dragoniteHud } from "@/game/client-input";
@@ -69,7 +69,7 @@ import { armorLook } from "@/game/armor-look";
 import { createStride, stepStride, RUN_SPEED, type FeelView } from "@/game/movement-feel";
 import { updateWind } from "@/game/wind-sway";
 import { waterStyleAt } from "@/game/water-style";
-import { atmosphereAt, NEUTRAL_ATMOSPHERE, type Atmosphere } from "@/game/atmosphere";
+import { atmosphereAt, cityNightFill, cityPresence, NEUTRAL_ATMOSPHERE, type Atmosphere } from "@/game/atmosphere";
 import { closeStratagems, createStratagemState, inputDirection, openStratagems, releaseStratagems, stratagemById, stratagemHud, tickStratagems, type StratagemHud } from "@/game/stratagems";
 import { Wildlife } from "./Wildlife";
 import { Civilians } from "./Civilians";
@@ -1443,8 +1443,13 @@ function SceneImpl({
     skyEnv.current.night = night;
     worldLight.night = night;
     // image-based light (region HDRIs) is daylight: dim it after dark so night scenes are lit by the moon, neon and the storm
-    (scene as THREE.Scene & { environmentIntensity?: number }).environmentIntensity = 0.62 * (1 - 0.75 * night);
-    if (hemi.current) hemi.current.intensity = 0.12 + 0.46 * (1 - night);
+
+    // cities after dark keep a glow-bounce fill (atmosphere.ts cityNightFill), so their streets read between the lamps
+    const inCity = interior ? 0 : Math.max(cityPresence(Math.hypot(s.x - NEON_CITY_CENTER.x, s.z - NEON_CITY_CENTER.z), NEON_FLAT), cityPresence(Math.hypot(s.x - NEXUS_REGION.x, s.z - NEXUS_REGION.z), 95));
+    if (hemi.current) hemi.current.intensity = 0.12 + 0.46 * (1 - night) + cityNightFill(inCity, night);
+    // metal and glass are lit by reflections, not the hemisphere: keep some city glow in the reflections too, or Neon's
+    // metal stalls and decks render pure black at night
+    (scene as THREE.Scene & { environmentIntensity?: number }).environmentIntensity = 0.62 * (1 - 0.75 * night) + cityNightFill(inCity, night) * 0.9;
     if (sky.current) {
       const m = (sky.current as unknown as { material?: THREE.ShaderMaterial }).material;
       const u = m?.uniforms;

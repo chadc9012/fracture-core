@@ -19,7 +19,8 @@ import type { PlayerProgression } from "@/game/progression";
 import { NextActivityCard } from "./NextActivityCard";
 import { RealEstateStore } from "./RealEstateStore";
 import { ActivityPanel, KIND_GLYPH } from "./ActivityPanel";
-import { ACTIVITY_COLOR, ACTIVITY_LABEL, type Activity } from "@/game/map-activities";
+import { ACTIVITY_COLOR, ACTIVITY_LABEL, startPatrol, type Activity } from "@/game/map-activities";
+import { useMenuInput } from "./useMenuInput";
 import { MAP_FONT, MAP_VIEWBOX, MapLayers } from "./MapLayers";
 import { useDetailMap, useTerrainMap } from "./useTerrainMap";
 import { DIFFICULTIES, RANKS, bestMedal, difficultyLocked, personalBest, racesIn, rankIndex, rankName, worldPoint, type Difficulty, type RaceDef } from "@/game/racing";
@@ -60,7 +61,7 @@ export function WorldAtlas({ progression, currentRegion, phase, onClose, markers
         <div className="flex gap-1">{dest && areaId && <Button variant="outline" className="rounded-none" onClick={() => setAreaId(null)} aria-label={`Back to ${dest.name}`}><ArrowLeft />{dest.name}</Button>}{dest && <Button variant="outline" className="rounded-none" onClick={() => setDestId(null)} aria-label="Back to destinations"><ArrowLeft />Destinations</Button>}<Button size="icon" variant="ghost" onClick={onClose} aria-label="Close world map"><X /></Button></div>
       </header>
       {!dest ? <DestinationOverview progression={progression} here={here} px={px} pz={pz} onPick={setDestId} onTravel={onTravel ? (a) => onTravel(a) : undefined} />
-        : <DestinationView key={dest.id} dest={dest} progression={progression} phase={phase} markers={markers} px={px} pz={pz} onProgression={onProgression} onTravel={onTravel} onStartRace={onStartRace} activeActivityId={activeActivityId} onClose={onClose} areaId={areaId} onArea={setAreaId} />}
+        : <DestinationView key={dest.id} dest={dest} progression={progression} phase={phase} markers={markers} px={px} pz={pz} onProgression={onProgression} onTravel={onTravel} onStartRace={onStartRace} activeActivityId={activeActivityId} onClose={onClose} areaId={areaId} onArea={setAreaId} padActive />}
     </div>
   </div>;
 }
@@ -147,13 +148,15 @@ const fmtCost = (cost: Partial<Record<MaterialId, number>>) => Object.entries(co
 
 /** stage 2: one destination (the Director's regional map); with `areaId` it is the street view of one district: the map
  * zooms to the district and the side panel lists its doors, discovered landmarks and activities (locations.ts) */
-export function DestinationView({ dest, progression, phase, markers, px, pz, onProgression, onTravel, onStartRace, activeActivityId, onClose, areaId = null, onArea, initialPick = null, onPickChange }: { dest: Destination; progression: PlayerProgression; phase: string; markers: TrackedMarker[]; px: number; pz: number; onProgression?: ((next: PlayerProgression) => void) | undefined; onTravel?: ((a: Activity) => void) | undefined; onStartRace?: ((id: string, d: Difficulty) => void) | undefined; activeActivityId?: string | null; onClose: () => void;
+export function DestinationView({ dest, progression, phase, markers, px, pz, onProgression, onTravel, onStartRace, activeActivityId, onClose, areaId = null, onArea, initialPick = null, onPickChange, padActive = false }: { dest: Destination; progression: PlayerProgression; phase: string; markers: TrackedMarker[]; px: number; pz: number; onProgression?: ((next: PlayerProgression) => void) | undefined; onTravel?: ((a: Activity) => void) | undefined; onStartRace?: ((id: string, d: Difficulty) => void) | undefined; activeActivityId?: string | null; onClose: () => void;
   /** street view: a locations.ts area id */
   areaId?: string | null;
   /** open a district's street view (the Director pushes it on its history) */
   onArea?: ((id: string) => void) | undefined;
   /** the activity picked when this screen was last open (Director history) */
-  initialPick?: string | null; onPickChange?: ((id: string | null) => void) | undefined }) {
+  initialPick?: string | null; onPickChange?: ((id: string | null) => void) | undefined;
+  /** take keyboard/controller list input (the Director turns this on while this screen is on top) */
+  padActive?: boolean }) {
   const region = REGIONS.find((r) => r.id === dest.regionId)!;
   const encounter = ENCOUNTERS.find((e) => e.regionId === dest.regionId);
   const [filter, setFilter] = useState<DirectorFilter>("ALL");
@@ -188,6 +191,19 @@ export function DestinationView({ dest, progression, phase, markers, px, pz, onP
   const travelTo = (id: string, name: string, x: number, z: number, ahead = 4) => onTravel?.({ id, kind: "SAFE_ZONE", name, detail: "", regionId: dest.regionId, x, z, status: "AVAILABLE", drop: { x, z: z + ahead } });
   const act = <P,>(r: { progression: P; message: string } | { error: string }) => { if ("error" in r) setNotice(r.error); else { onProgression?.(r.progression as PlayerProgression); setNotice(r.message); } };
   const fleetState = progression.fleet ?? { owned: [], garages: [], active: null };
+  // controller / keyboard: up-down steps through the activities on the map, confirm launches the picked one
+  useMenuInput(padActive, (intent) => {
+    const list = tab === "ACTIVITIES" ? shown : [];
+    if (!list.length) return;
+    const i = list.findIndex((a) => a.id === pick);
+    if (intent === "up" || intent === "down") { setTab("ACTIVITIES"); const d = intent === "down" ? 1 : -1; setPick(list[i < 0 ? (d > 0 ? 0 : list.length - 1) : (i + d + list.length) % list.length]!.id); }
+    else if (intent === "confirm" && i >= 0) {
+      const a = list[i]!;
+      if (a.status === "LOCKED" || !onTravel) return;
+      if (a.kind === "PATROL") { const r = startPatrol(progression, a.regionId); if ("error" in r) { setNotice(r.error); return; } onProgression?.(r.progression); }
+      onTravel(a);
+    }
+  }, ["up", "down", "confirm"], ["confirm"]);
   return <div className="mt-5 grid gap-6 lg:grid-cols-[minmax(0,1.6fr)_minmax(18rem,0.7fr)] wf-director-in">
     <section className="min-w-0">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2 border-l-2 bg-background/60 px-3 py-2" style={{ borderColor: REGION_CARTOGRAPHY[dest.id]?.accent ?? dest.accent ?? "#8ddaff" }}>
@@ -424,7 +440,7 @@ function TacticalMap({ chartRegionId, markers, px, pz, selected, onSelect, progr
     else if (e.key === "-") { e.preventDefault(); zoomBy(1 / 1.5); }
     else if (e.key === "0") { e.preventDefault(); fullWorld(); }
   };
-  return <div>
+  return <div className={focus ? "wf-director-zoom" : undefined}>
     {!map.full && <p className="mb-1 font-mono text-[10px] uppercase tracking-widest text-muted-foreground" role="status">Surveying terrain… {Math.round(map.progress * 100)}%</p>}
     <div className="mb-2 flex flex-wrap gap-2 text-xs">{LAYERS.map((k) => <Button key={k} size="sm" variant="ghost" aria-pressed={legend[k]} onClick={() => setLegend((l) => ({ ...l, [k]: !l[k] }))} className={`rounded-none border-b px-2 py-1 font-mono uppercase ${legend[k] ? "border-current" : "border-transparent opacity-40"}`} style={{ color: MARKER_COLOR[k] }}>{MARKER_GLYPH[k]} {LAYER_NAME[k]}</Button>)}<Button size="sm" variant="ghost" aria-pressed={hazards} onClick={() => setHazards((v) => !v)} className={`rounded-none border-b px-2 py-1 font-mono uppercase text-destructive ${hazards ? "border-current" : "border-transparent opacity-40"}`}>⚠ Hazards</Button></div>
     <div className="relative">

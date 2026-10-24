@@ -88,3 +88,10 @@ function dayAtmosphere(regionId: string | undefined, weather: WeatherState | und
     haze: base.haze + weatherHaze,
   };
 }
+
+/** City glow bounce after dark: signage, street lamps and lit windows throw light back onto the streets, so a city at night
+ * is never pitch black between its lamps. Extra hemisphere intensity for a point `inCity` (0 outside .. 1 inside a city). */
+export const CITY_NIGHT_FILL = 0.42;
+export const cityNightFill = (inCity: number, night: number) => CITY_NIGHT_FILL * Math.max(0, Math.min(1, inCity)) * Math.max(0, Math.min(1, night));
+/** 1 inside `radius`, fading to 0 over `fade` metres beyond it */
+export const cityPresence = (dist: number, radius: number, fade = 60) => Math.max(0, Math.min(1, 1 - (dist - radius) / fade));

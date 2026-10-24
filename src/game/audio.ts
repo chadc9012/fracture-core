@@ -3,6 +3,7 @@
  * spatial panning/muffling by distance, and a combat-intensity music mixer.
  * Browser-only — every entry point is a no-op until unlocked by a user gesture.
  */
+import { CUE_SHAPE, directorCue, type CueAction } from "./director-cues";
 import type { WeaponId } from "./weapons";
 import { voiceAction, type WaterMix, type WaterSource } from "./water-audio";
 import { AUDIO_FILES } from "./audio-files";
@@ -705,4 +706,13 @@ export function where(lx: number, lz: number, yaw: number, x: number, z: number)
   const dist = Math.hypot(dx, dz);
   const ang = Math.atan2(dx, dz) - yaw;
   return { dist, pan: -Math.sin(ang) };
+}
+
+/** Director UI cues (director-cues.ts): a short region-voiced blip on select, a rising sweep when a map opens, a falling one on Back. */
+export function playDirectorCue(action: CueAction, destinationId?: string | null) {
+  const c = ctx; if (!c) return;
+  const cue = directorCue(destinationId), shape = CUE_SHAPE[action], o = out(c);
+  const [a, b] = shape.up > 0 ? [cue.f0, cue.f1] : [cue.f1, cue.f0];
+  tone(c, o, { f0: a, f1: b, dur: shape.dur, type: cue.wave, gain: 0.07 });
+  if (cue.band > 0 && cue.noise > 0) burst(c, o, { dur: shape.dur * 0.8, freq: cue.band, q: 3, gain: cue.noise * 0.5 });
 }

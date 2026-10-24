@@ -4,7 +4,8 @@
  *  - Neon City: the tower grid (neon-layout.ts) and its walk-in homes
  *  - both: shop counters and the garages of the walk-in homes
  *  - Thalassia: the dome rings and the dock (thalassia-sectors.ts), drawn as rings */
-import { buildings } from "./nexus-districts";
+import { NEXUS, buildings } from "./nexus-districts";
+import { BUILDING_MODELS, nexusHubTowers } from "./building-models";
 import { neonLayoutWorld, TOWER_FOOTPRINT } from "./neon-layout";
 import { footprint, garageRect, neonKeepOut, residences } from "./residences";
 import { REGIONAL_SHOPS } from "./regional-shops";
@@ -27,7 +28,11 @@ export function cityPlan(d: Destination, reach: number): CityPlan {
   const key = `${d.id}@${Math.round(reach)}`, hit = cache.get(key);
   if (hit) return hit;
   const rects: PlanRect[] = [], rings: PlanRing[] = [];
-  if (d.id === "nexus") for (const b of buildings()) rects.push({ x: b.x, z: b.z, hx: b.w / 2, hz: b.d / 2, kind: "tower", h: Math.min(1, (b.top - b.base) / 120), yaw: b.yaw });
+  if (d.id === "nexus") {
+    for (const b of buildings()) rects.push({ x: b.x, z: b.z, hx: b.w / 2, hz: b.d / 2, kind: "tower", h: Math.min(1, (b.top - b.base) / 120), yaw: b.yaw });
+    // the hub's civic ring round the plaza (building-models.ts), turned to face the plaza like the models
+    for (const t of nexusHubTowers(NEXUS)) { const m = BUILDING_MODELS[t.model]; rects.push({ x: t.x, z: t.z, hx: m.w / 2, hz: m.d / 2, kind: "tower", h: Math.min(1, m.height / 60), yaw: t.rot }); }
+  }
   if (d.id === "neon-city") for (const t of neonLayoutWorld(neonKeepOut()).towers) { const [hx, hz] = TOWER_FOOTPRINT[t.variant]; rects.push({ x: t.x, z: t.z, hx: t.rot % 2 ? hz : hx, hz: t.rot % 2 ? hx : hz, kind: "tower", h: 0.8, glow: t.glow }); }
   if (d.id === "thalassia") {
     const c = THALASSIA_CENTER;

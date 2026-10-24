@@ -11,6 +11,7 @@ import type { PlayerProgression } from "@/game/progression";
 import { DestinationMap, type DestinationChrome } from "./DestinationMap";
 import { DestinationView } from "./WorldAtlas";
 import { useMenuInput } from "./useMenuInput";
+import { playDirectorCue } from "@/game/audio";
 import type { DeployTarget } from "./StarMap";
 
 /** The Destination Director (Stages 39–41): one navigation stack over the painted planet (DestinationMap), a destination's
@@ -18,6 +19,8 @@ import type { DeployTarget } from "./StarMap";
  * in-world map uses), all reading one location registry (locations.ts). Back (Esc / B-Circle / the breadcrumb) returns to
  * the previous map with its selection intact (director-nav.ts). Launch and fast travel go through the normal transit
  * (onDeploy), and waypoints set here are the same client-local pin the compass follows once you are in the world. */
+const destIdOf = (s: DirectorScreen): string | null => (s.level === "planet" ? null : s.level === "destination" ? s.id : s.destinationId);
+
 export function DestinationDirector({ progression, onDeploy, onProgression, onAtlas, chrome }: {
   progression: PlayerProgression;
   onDeploy: (target: DeployTarget) => void;
@@ -28,8 +31,8 @@ export function DestinationDirector({ progression, onDeploy, onProgression, onAt
   const [nav, setNav] = useState<DirectorNav>(NEW_DIRECTOR_NAV);
   const [launching, setLaunching] = useState(false);
   const top = current(nav);
-  const go = (s: DirectorScreen) => setNav((n) => push(n, s));
-  const back = () => setNav((n) => pop(n));
+  const go = (s: DirectorScreen) => { playDirectorCue("open", s.level === "planet" ? null : s.level === "destination" ? s.id : s.destinationId); setNav((n) => push(n, s)); };
+  const back = () => { if (nav.stack.length > 1) playDirectorCue("back", destIdOf(current(nav))); setNav((n) => pop(n)); };
   const deeper = top.level !== "planet";
   const destId: DestinationId | null = top.level === "planet" ? null : top.level === "destination" ? top.id : top.destinationId;
   const dest = destId ? destinationById(destId) ?? null : null;
@@ -63,8 +66,8 @@ export function DestinationDirector({ progression, onDeploy, onProgression, onAt
       <div aria-hidden={deeper} className={deeper ? "pointer-events-none invisible" : undefined}>
         <DestinationMap progression={progression} onDeploy={onDeploy} {...(onProgression ? { onProgression } : {})} onAtlas={onAtlas} {...(chrome ? { chrome } : {})}
           active={!deeper} initial={recall(nav, { level: "planet" }) as DestinationId | null}
-          onSelect={(id) => setNav((n) => remember(n, { level: "planet" }, id))}
-          onOpen={(id) => { setNav((n) => push(remember(n, { level: "planet" }, id), { level: "destination", id })); }} />
+          onSelect={(id) => { playDirectorCue("select", id); setNav((n) => remember(n, { level: "planet" }, id)); }}
+          onOpen={(id) => { playDirectorCue("open", id); setNav((n) => push(remember(n, { level: "planet" }, id), { level: "destination", id })); }} />
       </div>
       {deeper && dest && (
         <div className="wf-shell fixed inset-0 z-[62] overflow-y-auto bg-background/95 text-foreground wf-director-in" role="dialog" aria-modal="true" aria-label={`${dest.name} director`}>
@@ -86,7 +89,7 @@ export function DestinationDirector({ progression, onDeploy, onProgression, onAt
             <DestinationView key={dest.id} dest={dest} progression={progression} phase="orbit" markers={[]} px={Number.NaN} pz={Number.NaN}
               {...(onProgression ? { onProgression } : {})} onTravel={travel} onClose={back}
               areaId={areaId} onArea={(id) => go({ level: "area", id, destinationId: dest.id as DestinationId })}
-              initialPick={destScreen ? recall(nav, top) : null}
+              initialPick={destScreen ? recall(nav, top) : null} padActive
               onPickChange={(id) => setNav((n) => remember(n, current(n), id))} />
           </div>
         </div>

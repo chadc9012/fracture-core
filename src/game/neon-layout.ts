@@ -139,3 +139,14 @@ export function neonStreetLights(keepOut: readonly { x: number; z: number; r: nu
 }
 export const neonStreetLightsWorld = (keepOut: readonly { x: number; z: number; r: number }[] = []) =>
   neonStreetLights(keepOut.map((q) => ({ x: q.x - NEON_SITE.x, z: q.z - NEON_SITE.z, r: q.r }))).map((l) => ({ ...l, x: l.x + NEON_SITE.x, z: l.z + NEON_SITE.z }));
+
+/** Pools of light for the city core the tower grid leaves out (local coordinates): both kerbs of the market avenue and
+ * round the inside of the Grid deck, whose span shades the streets below it at night. Colours alternate magenta/cyan. */
+export function neonCorePools(): NeonLamp[] {
+  const out: NeonLamp[] = [];
+  for (let z = -30; z <= 30; z += 6) for (const x of [-5.5, 5.5]) out.push({ x, z, yaw: x < 0 ? Math.PI / 2 : -Math.PI / 2, glow: x < 0 ? "#ff2ea6" : "#38e8ff" });
+  const hx = DECK.halfX - 3, hz = DECK.halfZ - 3;
+  for (let x = -hx; x <= hx; x += 10) for (const z of [-hz, hz]) out.push({ x, z, yaw: 0, glow: GLOWS[(Math.round(x / 10) + 10) % GLOWS.length]! });
+  for (let z = -hz + 10; z <= hz - 10; z += 10) for (const x of [-hx, hx]) out.push({ x, z, yaw: 0, glow: GLOWS[(Math.round(z / 10) + 12) % GLOWS.length]! });
+  return out;
+}

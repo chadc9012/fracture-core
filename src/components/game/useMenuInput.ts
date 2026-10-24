@@ -4,11 +4,13 @@ import { NEW_PAD_NAV, keyIntent, padIntent, padKind, type MenuIntent, type PadKi
 /** Keyboard + standard-mapping gamepad intents for UI screens. Handlers are read through a ref so
  * the listeners and the rAF poll are attached once and cleaned up on unmount or when `active` flips.
  * Reports which pad family last produced input so prompts can show PlayStation or Xbox labels. */
-export function useMenuInput(active: boolean, onIntent: (intent: MenuIntent, source: "keyboard" | "pad") => void, only?: readonly MenuIntent[]) {
+export function useMenuInput(active: boolean, onIntent: (intent: MenuIntent, source: "keyboard" | "pad") => void, only?: readonly MenuIntent[], /** intents taken from the pad only (the keyboard keeps its native meaning, e.g. Enter on a focused button) */ padOnly?: readonly MenuIntent[]) {
   const handler = useRef(onIntent);
   handler.current = onIntent;
   const filter = useRef(only);
   filter.current = only;
+  const padOnlyRef = useRef(padOnly);
+  padOnlyRef.current = padOnly;
   const [pad, setPad] = useState<PadKind | null>(null);
 
   useEffect(() => {
@@ -18,7 +20,7 @@ export function useMenuInput(active: boolean, onIntent: (intent: MenuIntent, sou
       const t = e.target as HTMLElement | null;
       if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.tagName === "SELECT" || t.isContentEditable)) return; // never steal typing
       const intent = keyIntent(e.code);
-      if (!intent || (filter.current && !filter.current.includes(intent))) return;
+      if (!intent || (filter.current && !filter.current.includes(intent)) || padOnlyRef.current?.includes(intent)) return;
       // let buttons/links keep native Enter/Space; the menu handles those itself via focus index
       e.preventDefault();
       setPad(null);
