@@ -38,6 +38,15 @@ describe("fleet", () => {
     expect(p.materials.vehicleParts).toBe(52);
     expect("error" in buyFleetVehicle(p, "goliath-4x4")).toBe(true);
   });
+  it("void-skimmer (EXOTIC, previously no acquisition path) is now a real, buyable, drivable fleet build", () => {
+    const skimmer = FLEET.find((f) => f.base === "void-skimmer");
+    expect(skimmer).toBeDefined();
+    let p = ok(buyGarage(rich(), skimmer!.garage));
+    p = ok(buyFleetVehicle(p, skimmer!.id));
+    expect(p.ownedVehicles).toContain("void-skimmer");
+    expect(p.selectedVehicle).toBe("void-skimmer");
+    expect(p.fleet.active).toBe(skimmer!.id);
+  });
   it("refuses what you can't afford and changes nothing", () => {
     const p = { ...rich(), materials: {} };
     const r = buyGarage(p, "base-02");

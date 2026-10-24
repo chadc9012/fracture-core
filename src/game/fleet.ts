@@ -77,6 +77,11 @@ export const FLEET: readonly FleetEntry[] = [
     nodes: [node("wing", "Swept Wings", "+8% handling per stage", "handling", 0.08, 2, { reinforcedAlloy: 4 }), node("burner", "Rift Afterburner", "+6% top speed per stage", "speed", 0.06, 3, { fuel: 8 })] },
   { id: "solara-falcon", name: "Solara Falcon", category: "AIR", base: "vanguard-jet", garage: "base-01", cost: { vehicleParts: 10, fuel: 14, microCircuits: 8 }, hardpoints: ["Nose: solar beam", "Wings: rocket rails"], ability: "Sunstrike Dive", paints: ["Desert Gold", "Sunset", "Bone White"],
     nodes: [node("cells", "Solar Cells", "+6% top speed per stage", "speed", 0.06, 3, { microCircuits: 3 }), node("frame", "Heat-Shield Frame", "+10% hull per stage", "hull", 0.1, 2, { reinforcedAlloy: 4 })] },
+  // void-skimmer (vehicles.ts) was a real, fully-driveable EXOTIC craft with its own handling profile (JET, vehicle-handling.ts)
+  // and engine voice (vehicle-audio.ts) that no fleet build ever unlocked — the rarest chassis in the game had no acquisition
+  // path at all. One steep, top-of-the-vault build fixes that.
+  { id: "void-skimmer-prototype", name: "Void-Skimmer Prototype", category: "AIR", base: "void-skimmer", garage: "base-02", cost: { microCircuits: 28, aegisCore: 2, vehicleParts: 18 }, hardpoints: ["Bow: void lance array", "Hull: boundary-breach thruster"], ability: "Sub-Orbital Breach", paints: ["Prism White", "Event Horizon Black", "Resonant Violet"],
+    nodes: [node("lance", "Void Lance Coils", "+6% top speed per stage", "speed", 0.06, 3, { microCircuits: 5, aegisCore: 1 }), node("stabilizer", "Breach Stabilizer", "+8% handling per stage", "handling", 0.08, 2, { reinforcedAlloy: 5 })] },
 ];
 export const fleetById = (id: string) => FLEET.find((f) => f.id === id);
 
