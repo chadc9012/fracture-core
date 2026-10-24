@@ -111,7 +111,8 @@ export function lamps(): Lamp[] {
     const d = Math.hypot(x - NEXUS.x, z - NEXUS.z);
     if (d < CITY_INNER || d > CITY_OUTER) continue;
     if (heightAt(x, z) < WATER_LEVEL + 0.5 || distanceToRoad(x, z) < LANE_HALF_WIDTH) continue;
-    out.push({ x: x - STREET * 0.35, z: z - STREET * 0.35, yaw: Math.PI / 4 });
+    // on the corner pavement just inside both kerbs (it used to stand 1 m out in the junction box)
+    out.push({ x: x - (STREET / 2 + 0.6), z: z - (STREET / 2 + 0.6), yaw: Math.PI / 4 });
   }
   return out;
 }

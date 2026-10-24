@@ -3,8 +3,8 @@ import * as THREE from "three";
 /**
  * City street surface (public/textures, scripts/build-textures.py): asphalt with aggregate, tar seams, patches and cracks
  * on the carriageways, offset concrete pavers on the sidewalks and lots, painted markings — a dashed centre line, solid
- * edge lines, zebra crossings at every intersection, a dark gutter at the kerb — all decided in world space from the
- * district's street grid, so one draped mesh carries the whole city in a single draw call. Asphalt is a little glossy so
+ * edge lines and a dark gutter at the kerb — all decided in world space from the district's street grid (the zebra
+ * crossings, stop lines and kerbs are geometry from src/game/city-streets.ts, CityStreets.tsx), so one draped mesh carries the whole city in a single draw call. Asphalt is a little glossy so
  * street lights and neon smear across it at night like the trailer's wet streets.
  *
  * Grid: block centres at `center + k * pitch`; a block is `block` metres square, streets fill the rest.
@@ -13,7 +13,7 @@ export type StreetGrid = { cx: number; cz: number; pitch: number; block: number;
 
 const loader = typeof document !== "undefined" ? new THREE.TextureLoader() : null;
 const cache = new Map<string, THREE.Texture>();
-function tex(url: string, color: boolean): THREE.Texture | null {
+export function streetTexture(url: string, color: boolean): THREE.Texture | null {
   if (!loader) return null;
   let t = cache.get(url);
   if (!t) {
@@ -26,8 +26,8 @@ function tex(url: string, color: boolean): THREE.Texture | null {
 }
 
 export function cityStreetMaterial(grid: StreetGrid): THREE.MeshStandardMaterial {
-  const asphalt = tex("/textures/asphalt_col.jpg", true), asphaltN = tex("/textures/asphalt_nrm.jpg", false), asphaltR = tex("/textures/asphalt_rough.jpg", false);
-  const pav = tex("/textures/pavers_col.jpg", true), pavN = tex("/textures/pavers_nrm.jpg", false), pavR = tex("/textures/pavers_rough.jpg", false);
+  const asphalt = streetTexture("/textures/asphalt_col.jpg", true), asphaltN = streetTexture("/textures/asphalt_nrm.jpg", false), asphaltR = streetTexture("/textures/asphalt_rough.jpg", false);
+  const pav = streetTexture("/textures/pavers_col.jpg", true), pavN = streetTexture("/textures/pavers_nrm.jpg", false), pavR = streetTexture("/textures/pavers_rough.jpg", false);
   const m = new THREE.MeshStandardMaterial({ color: "#ffffff", roughness: 1, metalness: 0.02, map: asphalt, normalMap: asphaltN, roughnessMap: asphaltR, normalScale: new THREE.Vector2(1, 1), polygonOffset: true, polygonOffsetFactor: -1 });
   if (!asphalt || !pav) return m;
   const wet = grid.wet ?? 0.35;
@@ -61,13 +61,9 @@ float cityStreet; float cityPaint; vec2 cityPavUv;`)
   float dashZ = step(0.5, fract(vCityW.z / 6.0)), dashX = step(0.5, fract(vCityW.x / 6.0));
   float centre = inX * (1.0 - smoothstep(0.06, 0.1, abs(a.x - mid))) * dashZ + inZ * (1.0 - smoothstep(0.06, 0.1, abs(a.y - mid))) * dashX;
   float edge = inX * (1.0 - smoothstep(0.05, 0.09, abs(a.x - half_ - 0.6))) + inZ * (1.0 - smoothstep(0.05, 0.09, abs(a.y - half_ - 0.6)));
-  // zebra crossings on each approach to an intersection
-  float zebraZ = inZ * step(a.y, half_ + 2.6) * step(half_ + 0.8, a.y) * step(0.5, fract(vCityW.x / 1.2));
-  float zebraX = inX * step(a.x, half_ + 2.6) * step(half_ + 0.8, a.x) * step(0.5, fract(vCityW.z / 1.2));
-  float zebra = (zebraZ + zebraX) * (1.0 - cross_);
   // painted lines wear: break them up with the asphalt's own aggregate
   float wear = smoothstep(0.12, 0.22, diffuseColor.r);
-  cityPaint = clamp(centre + edge + zebra, 0.0, 1.0) * (0.75 + 0.25 * wear);
+  cityPaint = clamp(centre + edge, 0.0, 1.0) * (0.75 + 0.25 * wear);
   vec3 street = diffuseColor.rgb * (1.0 - gutter * 0.35);
   street = mix(street, vec3(0.78, 0.76, 0.7), cityPaint * (1.0 - cross_ * 0.0));
   street = mix(street, vec3(0.85, 0.66, 0.2), centre * 0.0);
@@ -84,4 +80,19 @@ if (cityStreet < 0.5) {
 }`);
   };
   return m;
+}
+
+/** Neon City's plateau asphalt (NeonCity.tsx): the same aggregate, seams and cracks as the Nexus carriageways, tiled every
+ * 8 m across the disc and kept dark and glossy (acid rain), so the lane paint and puddles (CityStreets.tsx) sit on a real
+ * road surface instead of a flat colour. `diameter` is the disc's, metres. */
+export function wetAsphaltMaterial(diameter: number): THREE.MeshStandardMaterial {
+  const rep = (t: THREE.Texture | null) => {
+    if (!t) return null;
+    const c = t.clone(); c.repeat.set(diameter / 8, diameter / 8); c.needsUpdate = true;
+    return c;
+  };
+  return new THREE.MeshStandardMaterial({
+    color: "#4c3f60", roughness: 0.3, metalness: 0.38,
+    map: rep(streetTexture("/textures/asphalt_col.jpg", true)), normalMap: rep(streetTexture("/textures/asphalt_nrm.jpg", false)), normalScale: new THREE.Vector2(0.8, 0.8),
+  });
 }

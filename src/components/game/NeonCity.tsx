@@ -1,3 +1,5 @@
+import { useEffect, useMemo } from "react";
+import { wetAsphaltMaterial } from "./city-surface";
 import { NeonStreetLights } from "./NeonStreetLights";
 import { Text } from "./SafeText";
 import { DistrictLight } from "./DistrictLight";
@@ -99,6 +101,8 @@ function NeonMarketStreet({ y }: { y: number }) {
 
 export function NeonCity() {
   const y = walkHeight(NEON_CITY_CENTER.x, NEON_CITY_CENTER.z);
+  const asphalt = useMemo(() => wetAsphaltMaterial((NEON_FLAT - 2) * 2), []);
+  useEffect(() => () => asphalt.dispose(), [asphalt]);
   return (
     <group>
       {/* the skyline: authored towers on the street grid across the whole city plateau (neon-layout.ts) */}
@@ -115,10 +119,9 @@ export function NeonCity() {
       <MaglevTrains c={NEON_CITY_CENTER} />
       <NeonDistricts c={NEON_CITY_CENTER} />
       {/* street level: the whole plateau is paved */}
-      <mesh position={[NEON_CITY_CENTER.x, y + 0.04, NEON_CITY_CENTER.z]} rotation-x={-Math.PI / 2} receiveShadow>
+      {/* wet asphalt under the acid rain: glossy so the neon smears across it (kerbs, paint and puddles: CityStreets.tsx) */}
+      <mesh position={[NEON_CITY_CENTER.x, y + 0.04, NEON_CITY_CENTER.z]} rotation-x={-Math.PI / 2} receiveShadow material={asphalt}>
         <circleGeometry args={[NEON_FLAT - 2, 96]} />
-        {/* wet asphalt under the acid rain: glossy so the neon smears across it */}
-        <meshStandardMaterial color="#120a1c" roughness={0.28} metalness={0.4} />
       </mesh>
       <DistrictLight position={[NEON_CITY_CENTER.x, y + 8, NEON_CITY_CENTER.z]} color="#ffb36b" intensity={18} distance={60} decay={2} />
       <DistrictLight position={[NEON_CITY_CENTER.x - 20, y + 8, NEON_CITY_CENTER.z + 15]} color="#ffc98a" intensity={16} distance={50} decay={2} />
