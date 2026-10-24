@@ -1269,7 +1269,7 @@ export function GameCanvas() {
   }
 
   if (phase === "roster") {
-    return <OperatorRoster progression={progression} onBack={() => setPhase("title")}
+    return <OperatorRoster progression={progression} onBack={() => setPhase("title")} onProgression={(next) => setProgression(next)}
       onSelect={(save, route) => {
         adoptProgression(save, true);
         setLast(null);

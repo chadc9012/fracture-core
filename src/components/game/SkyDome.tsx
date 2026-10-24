@@ -61,7 +61,9 @@ void main(){
         vec3 crackCol = mix(vec3(1.0, 0.62, 0.25), vec3(0.4, 0.95, 1.0), night);
         body += crackCol * crack * (0.35 + 0.9 * night);
         body = mix(body, haloCol * 3.0, pow(rr, 4.0) * 0.7);                // atmosphere rim
-        col = mix(col, body, 1.0); alpha = 1.0;
+        // by day the moon is a pale disc the blue sky shows through (a real moon in daylight); at night it is solid
+        float bodyA = mix(0.42, 1.0, night);
+        col = mix(col, body, bodyA); alpha = max(alpha, bodyA);
       }
     }
   }

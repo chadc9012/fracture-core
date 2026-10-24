@@ -33,3 +33,12 @@ describe("operator colorway", () => {
     expect(black[0]).toBeGreaterThan(black[1]); // tinted toward the armor colour
   });
 });
+
+describe("light armour colours", () => {
+  test("a white coat on a dark authored suit reads light, and stays shaded", () => {
+    const w = colorwayFor("WARLOCK", { armor: "#d4d4cf", visor: "#2f7dff" })!;
+    const dark = recolorTexel([0.12, 0.12, 0.14], w).color, mid = recolorTexel([0.3, 0.3, 0.32], w).color;
+    expect(Math.max(...dark)).toBeGreaterThan(0.45);
+    expect(mid[0]).toBeGreaterThan(dark[0]);
+  });
+});

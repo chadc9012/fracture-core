@@ -184,6 +184,7 @@ import { Wyrmling } from "./Wyrmling";
 import { GlitchAnomalies } from "./GlitchAnomalies";
 import { GroundCover } from "./GroundCover";
 import { coverDensityFor } from "@/game/ground-cover";
+import { GrassField } from "./GrassField";
 import { moonAngle, moonlight } from "@/game/celestial";
 import { shopNear } from "@/game/regional-shops";
 import { createLivingRuntime, stepLivingRuntime, type LivingEmit, type LivingHud, type LivingRuntime } from "@/game/living-runtime";
@@ -3011,6 +3012,7 @@ function SceneImpl({
       <Roads />
       <WorldPiece name="road-dressing"><RoadDressing /></WorldPiece>
       <group name="ground-cover"><GroundCover density={coverDensityFor(settings.renderTier)} /></group>
+      <GrassField tier={settings.renderTier} />
       <group name="iso:forest">{settings.renderTier !== "LOW" && <LightShafts sunRef={sunDir} skyEnv={skyEnv} forest={VERIDAN_REGION} />}<GlitchAnomalies /><VerdantForest density={settings.renderTier === "LOW" ? 0.5 : settings.renderTier === "MEDIUM" ? 0.75 : 1} models={settings.renderTier !== "LOW"} investigation={investigation} heavyShadow={heavyShadows(settings.renderTier)} /></group>
       <RiftTurrets sim={sim} />
       <PerfProbe />

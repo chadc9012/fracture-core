@@ -1,6 +1,6 @@
 """
 Builds the forest trees used by PolyFoliage: public/models/foliage/broadleaf.glb and conifer.glb.
-Each file holds three variants side by side (PolyFoliage's `variants` picks one per instance).
+Each file holds four variants side by side (broadleaf: three oaks + a birch; conifer: three firs + a tall pine) (PolyFoliage's `variants` picks one per instance).
 
     pip install bpy && python3 scripts/build-trees.py [outdir]
 
@@ -70,24 +70,26 @@ def leaf_cluster_texture(path, seed, conifer=False):
     if conifer:
         # a drooping fir spray: central twig with dense needles both sides, side twigs
         def spray(x0, y0, ang, length, width):
-            steps = 60
+            steps = 110
             for i in range(steps):
                 t = i / steps
                 x = x0 + math.cos(ang) * length * t
                 y = y0 + math.sin(ang) * length * t + (t ** 2) * length * 0.15
                 nl = width * (1 - t * 0.6)
                 for side in (-1, 1):
-                    a = ang + side * (1.0 + rng.uniform(-0.2, 0.2))
-                    g = rng.uniform(0.55, 1.0)
-                    c = (int(28 * g), int(70 * g + rng.randint(0, 12)), int(32 * g), 255)
-                    d.line([(x, y), (x + math.cos(a) * nl, y + math.sin(a) * nl)], fill=c, width=5)
+                    a = ang + side * (0.85 + rng.uniform(-0.45, 0.45))  # irregular needles: an even comb read as a feather
+                    g = rng.uniform(0.7, 1.15)
+                    sun = rng.random() < 0.18  # sunlit needle tips: the yellow-green flecks a real fir shows in light
+                    c = (int((52 if sun else 34) * g), int((118 if sun else 96) * g + rng.randint(0, 14)), int((40 if sun else 46) * g), 255)
+                    nl2 = nl * rng.uniform(0.55, 1.1)
+                    d.line([(x, y), (x + math.cos(a) * nl2, y + math.sin(a) * nl2)], fill=c, width=3)
             d.line([(x0, y0), (x0 + math.cos(ang) * length, y0 + math.sin(ang) * length)], fill=(60, 45, 30, 255), width=7)
-        spray(80, s * 0.15, math.radians(40), s * 1.05, 120)
-        for k in range(7):
-            t = 0.12 + k * 0.11
-            bx, by = 80 + math.cos(math.radians(40)) * s * 1.05 * t, s * 0.15 + math.sin(math.radians(40)) * s * 1.05 * t
+        spray(90, s * 0.14, math.radians(42), s * 0.86, 110)  # stays inside the card: a spray cut by the card edge drew straight lines
+        for k in range(10):
+            t = 0.08 + k * 0.085
+            bx, by = 90 + math.cos(math.radians(42)) * s * 0.86 * t, s * 0.14 + math.sin(math.radians(42)) * s * 0.86 * t
             for side in (-1, 1):
-                spray(bx, by, math.radians(40 + side * 55), s * 0.38 * (1 - t * 0.5), 70)
+                spray(bx, by, math.radians(42 + side * rng.uniform(40, 70)), s * rng.uniform(0.22, 0.32) * (1 - t * 0.5), 58)
     else:
         # broadleaf: ~260 overlapping ovate leaves on short stems, clustered toward the centre
         cx, cy = s / 2, s / 2
@@ -100,12 +102,14 @@ def leaf_cluster_texture(path, seed, conifer=False):
             L = rng.uniform(55, 95)
             W = L * rng.uniform(0.42, 0.55)
             ang = a + rng.uniform(-0.6, 0.6)
-            g = rng.uniform(0.6, 1.1)
+            g = rng.uniform(0.75, 1.15)
             hue = rng.uniform(-1, 1)
-            col = (int((40 + 14 * hue) * g), int((82 + 20 * hue) * g), int((26 + 6 * hue) * g), 255)
+            outer = min(1.0, r / (s * 0.32))
+            # outer leaves catch the sun (lighter, yellower), inner ones are deeper green: the reference forests are bright and varied
+            col = (int((58 + 16 * hue + 40 * outer) * g), int((112 + 22 * hue + 40 * outer) * g), int((30 + 6 * hue) * g), 255)
             leaf = Image.new("RGBA", (int(L * 2), int(L * 2)), (0, 0, 0, 0))
             ld = ImageDraw.Draw(leaf)
-            shade = 0.55 + 0.45 * min(1.0, r / (s * 0.3))  # inner leaves sit in the cluster's own shade
+            shade = 0.68 + 0.32 * min(1.0, r / (s * 0.3))  # inner leaves sit in the cluster's own shade
             col = (int(col[0] * shade), int(col[1] * shade), int(col[2] * shade), 255)
             pts = [(L - L * 0.5 + L * u, L + side * W / 2 * math.sin(math.pi * u) ** 0.8 * (1 - 0.35 * u)) for side in (-1, 1) for u in ([i / 12 for i in range(13)] if side < 0 else [1 - i / 12 for i in range(13)])]
             ld.polygon(pts, fill=col)
@@ -132,6 +136,7 @@ def leaf_cluster_texture(path, seed, conifer=False):
 
 
 bark_texture(f"{TMP}/bark_col.png", f"{TMP}/bark_nrm.png", 3, (0.15, 0.115, 0.085))
+bark_texture(f"{TMP}/birch_col.png", f"{TMP}/birch_nrm.png", 5, (0.62, 0.6, 0.56))
 leaf_cluster_texture(f"{TMP}/leaf.png", 7)
 leaf_cluster_texture(f"{TMP}/needle.png", 11, conifer=True)
 
@@ -145,15 +150,15 @@ def image(path, noncolor=False):
     return img
 
 
-def bark_material():
-    m = bpy.data.materials.new("Bark")
+def bark_material(name="Bark", col="bark_col", nrm="bark_nrm"):
+    m = bpy.data.materials.new(name)
     nt = m.node_tree if m.node_tree else None
     m.use_nodes = True
     nt = m.node_tree
     b = next(n for n in nt.nodes if n.type == "BSDF_PRINCIPLED")
-    t = nt.nodes.new("ShaderNodeTexImage"); t.image = image(f"{TMP}/bark_col.png")
+    t = nt.nodes.new("ShaderNodeTexImage"); t.image = image(f"{TMP}/{col}.png")
     nt.links.new(t.outputs["Color"], b.inputs["Base Color"])
-    tn = nt.nodes.new("ShaderNodeTexImage"); tn.image = image(f"{TMP}/bark_nrm.png", True)
+    tn = nt.nodes.new("ShaderNodeTexImage"); tn.image = image(f"{TMP}/{nrm}.png", True)
     nm = nt.nodes.new("ShaderNodeNormalMap")
     nt.links.new(tn.outputs["Color"], nm.inputs["Color"]); nt.links.new(nm.outputs["Normal"], b.inputs["Normal"])
     b.inputs["Roughness"].default_value = 0.92
@@ -260,14 +265,14 @@ def cards_mesh(name, quads, loop_uvs, mat, canopy_center):
 
 
 # ------------------------------------------------------------------ species
-def broadleaf(seed, offset):
+def broadleaf(seed, offset, birch=False):
     rng = random.Random(seed)
     verts, faces, uvs = [], [], []
     quads, luv = [], []
-    H = rng.uniform(9, 11.5)
+    H = rng.uniform(12, 15) if birch else rng.uniform(9.5, 12)
     lean = Vector((rng.uniform(-0.4, 0.4), rng.uniform(-0.4, 0.4), 0))
     trunk = [offset + Vector((0, 0, 0)) + lean * (t ** 2) + Vector((0, 0, H * 0.55 * t)) for t in np.linspace(0, 1, 7)]
-    base_r = H * 0.035
+    base_r = H * (0.024 if birch else 0.036)
     tube(trunk, [base_r * (1.25 - 0.55 * t) for t in np.linspace(0, 1, 7)], 9, verts, faces, uvs, 0.5)
     crown_c = offset + lean + Vector((0, 0, H * 0.72))
 
@@ -287,9 +292,9 @@ def broadleaf(seed, offset):
                 branch(q, nd, length * rng.uniform(0.45, 0.65), rad[int(t * 4)] * 0.6, depth + 1)
         # leaf clusters along the outer half and at the tip
         for i in (2, 3, 4):
-            for _ in range(2 if depth else 1):
-                c = pts[i] + Vector((rng.uniform(-0.5, 0.5), rng.uniform(-0.5, 0.5), rng.uniform(-0.2, 0.6)))
-                card(c, d, rng.uniform(1.8, 2.8), rng, quads, luv)
+            for _ in range(3 if depth else 2):
+                c = pts[i] + Vector((rng.uniform(-0.7, 0.7), rng.uniform(-0.7, 0.7), rng.uniform(-0.2, 0.7)))
+                card(c, d, rng.uniform(1.6, 2.6) * (0.8 if birch else 1), rng, quads, luv)
 
     n_main = rng.randint(5, 7)
     for i in range(n_main):
@@ -301,29 +306,30 @@ def broadleaf(seed, offset):
     # leader continues up through the crown
     branch(trunk[-1], Vector((0, 0, 1)) + lean * 0.1, H * 0.4, base_r * 0.5, 0)
     # fill the crown interior so it never reads see-through
-    for _ in range(26):
-        c = crown_c + Vector((rng.gauss(0, H * 0.16), rng.gauss(0, H * 0.16), rng.gauss(0, H * 0.1)))
+    for _ in range(22 if birch else 36):
+        c = crown_c + Vector((rng.gauss(0, H * (0.12 if birch else 0.17)), rng.gauss(0, H * (0.12 if birch else 0.17)), rng.gauss(0, H * 0.11)))
         card(c, Vector((0, 0, 1)), rng.uniform(2.2, 3.2), rng, quads, luv)
-    wood = make_mesh(f"broadleaf_wood_{seed}", verts, faces, uvs, BARK)
+    wood = make_mesh(f"broadleaf_wood_{seed}", verts, faces, uvs, BIRCH if birch else BARK)
     leaves = cards_mesh(f"broadleaf_leaves_{seed}", quads, luv, LEAF, crown_c)
     return [wood, leaves]
 
 
-def conifer(seed, offset):
+def conifer(seed, offset, pine=False):
     rng = random.Random(seed)
     verts, faces, uvs = [], [], []
     quads, luv = [], []
-    H = rng.uniform(13, 17)
+    H = rng.uniform(18, 22) if pine else rng.uniform(13, 17)
     trunk = [offset + Vector((rng.uniform(-0.05, 0.05) * t, 0, H * t)) for t in np.linspace(0, 1, 8)]
     base_r = H * 0.022
     tube(trunk, [base_r * (1.2 - 1.12 * t) + 0.01 for t in np.linspace(0, 1, 8)], 8, verts, faces, uvs, 0.5)
     crown_c = offset + Vector((0, 0, H * 0.55))
     # whorls of drooping branches, longest near the bottom of the crown
-    whorls = 11
+    whorls = 9 if pine else 14
+    start = 0.5 if pine else 0.16  # a tall pine keeps a bare lower trunk and carries its crown high
     for w in range(whorls):
-        t = 0.18 + 0.8 * w / whorls
+        t = start + (0.97 - start) * w / whorls
         z = H * t
-        reach = H * 0.26 * (1 - t) ** 0.9 + 0.5
+        reach = (H * 0.26 * (1 - t) ** 0.55 + 1.0) if pine else (H * 0.26 * (1 - t) ** 0.9 + 0.5)
         n = 5 + int(3 * (1 - t))
         for i in range(n):
             a = i / n * math.tau + w * 0.7 + rng.uniform(-0.2, 0.2)
@@ -332,8 +338,8 @@ def conifer(seed, offset):
             pts = [p0, p0.lerp(tip, 0.5) + Vector((0, 0, reach * 0.06)), tip]
             tube(pts, [base_r * 0.25 * (1 - t) + 0.015, 0.02, 0.008], 3, verts, faces, uvs, 0.5)
             # sprays laid along the branch, drooping outward
-            for k in range(2 if reach > 1.5 else 1):
-                c = p0.lerp(tip, 0.45 + 0.4 * k) + Vector((0, 0, -0.05))
+            for k in range(3 if reach > 1.5 else 1):
+                c = p0.lerp(tip, 0.35 + 0.3 * k) + Vector((0, 0, -0.05))
                 card(c, tip - p0, reach * rng.uniform(0.8, 1.05) + 0.6, rng, quads, luv, tilt_down=0.35)
     # tip
     for _ in range(3):
@@ -366,7 +372,7 @@ def export(name, builder, seeds, spacing):
 
 
 bpy.ops.wm.read_factory_settings(use_empty=True)
-BARK = bark_material(); LEAF = leaf_material("Leaves", f"{TMP}/leaf.png"); NEEDLE = leaf_material("Needles", f"{TMP}/needle.png")
-export("broadleaf", broadleaf, [3, 8, 21], 30)
-BARK = bark_material(); LEAF = leaf_material("Leaves", f"{TMP}/leaf.png"); NEEDLE = leaf_material("Needles", f"{TMP}/needle.png")
-export("conifer", conifer, [4, 9, 16], 30)
+BARK = bark_material(); BIRCH = bark_material("Birch", "birch_col", "birch_nrm"); LEAF = leaf_material("Leaves", f"{TMP}/leaf.png"); NEEDLE = leaf_material("Needles", f"{TMP}/needle.png")
+export("broadleaf", lambda s, o: broadleaf(s, o, birch=s == 33), [3, 8, 21, 33], 30)
+BARK = bark_material(); BIRCH = bark_material("Birch", "birch_col", "birch_nrm"); LEAF = leaf_material("Leaves", f"{TMP}/leaf.png"); NEEDLE = leaf_material("Needles", f"{TMP}/needle.png")
+export("conifer", lambda s, o: conifer(s, o, pine=s == 27), [4, 9, 16, 27], 30)

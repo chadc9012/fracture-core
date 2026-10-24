@@ -6,13 +6,14 @@ import { loadoutAttributes, type Attributes } from "../armor-attributes";
 import { SET_SLOTS, type SetSlot } from "../armor-sets";
 import type { PlayerProgression } from "../progression";
 import type { PlayerCharacter } from "./deployCharacter";
+import { rookieStartColors } from "../rookie-armor";
 
 export type ForgeState = { classId: ClassId; subclassId: SubclassId; appearance: AppearanceDefinition; bodyType: BodyType };
 
-/** The Operator's signature look with their callsign pre-filled. */
+/** A new Operator's look: their rookie armor (rookie-armor.ts, Standard variant) with their callsign pre-filled. */
 export function defaultAppearance(classId: ClassId): AppearanceDefinition {
   const op = operatorByClass(classId);
-  return { ...appearanceById(op.appearanceId), callsign: op.callsign };
+  return { ...appearanceById(op.appearanceId), ...rookieStartColors(op.id), callsign: op.callsign };
 }
 
 const isClass = (v: unknown): v is ClassId => v === "TITAN" || v === "HUNTER" || v === "WARLOCK";

@@ -22,14 +22,20 @@ const same = (a: string, b: string) => a.toLowerCase() === b.toLowerCase();
 /** how strongly plate and accents follow the chosen colours (0..1) */
 export const PLATE_STRENGTH = 0.65, GLOW_STRENGTH = 0.9;
 
+const smooth = (a: number, b: number, x: number) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
+/** how light an armor colour is (0 dark or saturated .. 1 near-white), by luminance */
+export const lightness = (c: RGB) => smooth(0.45, 0.75, 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2]);
+
 export function colorwayFor(classId: ClassId, appearance: Pick<AppearanceDefinition, "armor" | "visor">): Colorway | null {
   const preset = appearanceById(operatorByClass(classId).appearanceId);
   const plateChanged = !same(appearance.armor, preset.armor), accentChanged = !same(appearance.visor, preset.visor);
   if (!plateChanged && !accentChanged) return null;
-  return { armor: hexToRgb(appearance.armor), accent: hexToRgb(appearance.visor), plate: plateChanged ? PLATE_STRENGTH : 0, glow: accentChanged ? GLOW_STRENGTH : 0 };
+  const armor = hexToRgb(appearance.armor);
+  // light armour needs more of the recolour to cover a dark authored suit (a white coat, snow plate)
+  const plate = PLATE_STRENGTH + 0.25 * lightness(armor);
+  return { armor, accent: hexToRgb(appearance.visor), plate: plateChanged ? plate : 0, glow: accentChanged ? GLOW_STRENGTH : 0 };
 }
 
-const smooth = (a: number, b: number, x: number) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
 
 /** CPU mirror of the shader (display space): coloured texels take the accent hue with their own saturation and value;
  * neutral texels take the armor colour, lifted a little toward its brightness so dark suits still read the colour; near-white
@@ -42,7 +48,9 @@ export function recolorTexel(c: RGB, w: Colorway): { color: RGB; glow: number } 
   let out = c.map((v, i) => v + (hue[i]! - v) * hueMask * w.glow) as RGB;
   const plateMask = (1 - hueMask) * (1 - smooth(0.85, 0.97, mx));
   const av = Math.max(...w.armor, 1e-4);
-  const value = Math.max(mx, mx + (av * 0.55 - mx) * 0.35);
+  // light armour (a white field coat, snow plate) has to read light on a dark authored suit: the lift grows with the armor's brightness
+  const lk = lightness(w.armor), lift = 0.35 + 0.4 * lk, target = av * (0.55 + 0.25 * lk);
+  const value = Math.max(mx, mx + (target - mx) * lift);
   const plate = w.armor.map((v) => value * (v / av)) as RGB;
   out = out.map((v, i) => v + (plate[i]! - v) * plateMask * w.plate) as RGB;
   return { color: out, glow: hueMask * smooth(0.35, 0.6, mx) * w.glow * 0.5 };
@@ -61,7 +69,8 @@ export const COLORWAY_MAP = `
   c = mix(c, mx * (1.0 - s * (1.0 - an)), hueMask * wfGlow);
   float plateMask = (1.0 - hueMask) * (1.0 - smoothstep(0.85, 0.97, mx));
   float av = max(max(wfArmor.r, max(wfArmor.g, wfArmor.b)), 1e-4);
-  float value = max(mx, mx + (av * 0.55 - mx) * 0.35);
+  float lightK = smoothstep(0.45, 0.75, dot(wfArmor, vec3(0.2126, 0.7152, 0.0722)));
+  float value = max(mx, mx + (av * (0.55 + 0.25 * lightK) - mx) * (0.35 + 0.4 * lightK));
   c = mix(c, value * (wfArmor / av), plateMask * wfPlate);
   wfAccentMask = hueMask * smoothstep(0.35, 0.6, mx);
   diffuseColor.rgb = pow(c, vec3(2.2));

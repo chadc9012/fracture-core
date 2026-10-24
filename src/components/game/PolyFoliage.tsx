@@ -15,7 +15,7 @@ import { NEAR_TREE_MAX, NEAR_TREE_RADIUS, PROXY_COLOR, PROXY_MAX, PROXY_RADIUS, 
 /** Poly Haven (CC0) foliage, simplified + texture-resized offline, rendered as GPU instances
  * (one draw call per sub-mesh). Each species is verified and isolated: on failure the caller
  * keeps its procedural fallback, and the world scene never suspends. */
-/** Trees are authored for this game (scripts/build-trees.py, three variants each); the rest is Poly Haven. */
+/** Trees are authored for this game (scripts/build-trees.py, four variants each: oaks + a birch, firs + a tall pine); the rest is Poly Haven. */
 export const FOLIAGE = { fir: "/models/foliage/conifer.glb", broadleaf: "/models/foliage/broadleaf.glb", shrub: shrub.url, fern: fern.url, log: deadLog.url, rock: mossRock.url } as const;
 const LABEL: Record<keyof typeof FOLIAGE, string> = { fir: "Fir tree", broadleaf: "Broadleaf tree", shrub: "Shrub", fern: "Fern", log: "Fallen log", rock: "Mossy rock" };
 export type FoliageKind = keyof typeof FOLIAGE;

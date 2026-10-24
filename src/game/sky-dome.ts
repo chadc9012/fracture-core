@@ -18,13 +18,13 @@ const SHADE_DAY: RGB = [0.46, 0.55, 0.7], SHADE_DUSK: RGB = [0.5, 0.3, 0.4], SHA
 const hex = (h: string): RGB => [parseInt(h.slice(1, 3), 16) / 255, parseInt(h.slice(3, 5), 16) / 255, parseInt(h.slice(5, 7), 16) / 255];
 export type SkyMoodColors = { zenith: RGB; horizon: RGB };
 export type SkyMood = { golden?: SkyMoodColors; night?: SkyMoodColors; day?: SkyMoodColors };
-/** Per-region sky colour, sampled from the reference photographs in docs/reference/world-photos (average of the top and upper sky bands; see
- * docs/reference-world-brief.md). `golden` is the sunrise/sunset look, `night` and `day` the other two. Regions without a reference photo for a
+/** Per-region sky colour from the reference photographs in docs/reference/world-photos. The golden-hour moods are the photos' clear-sky zenith
+ * and the glow at the horizon, not band averages (averaging a pink-cloud, blue-sky band gave every sunset a flat mauve; Stage 46). `golden` is the sunrise/sunset look, `night` and `day` the other two. Regions without a reference photo for a
  * phase keep the authored global gradient for it. */
 export const REGION_SKY_MOOD: Readonly<Record<string, SkyMood>> = {
-  veridan: { golden: { zenith: hex("#8995cf"), horizon: hex("#c3b4bd") } },   // sunrise - Verdant Forest
-  nexus: { golden: { zenith: hex("#97647c"), horizon: hex("#e67c48") } },     // sunset - Nexus City
-  wastelands: { golden: { zenith: hex("#a57886"), horizon: hex("#c08574") } },// sunset - The Wastelands
+  veridan: { golden: { zenith: hex("#5f86cf"), horizon: hex("#ffc488") } },   // sunrise - Verdant Forest: clear blue overhead, peach-gold dawn low
+  nexus: { golden: { zenith: hex("#36407e"), horizon: hex("#ff7a30") } },     // sunset - Nexus City: deep blue-violet overhead, burning orange at the horizon
+  wastelands: { golden: { zenith: hex("#4a4278"), horizon: hex("#ff6e3a") } },// sunset - The Wastelands: dusk violet over a red-orange horizon
   frostspire: { night: { zenith: hex("#0c3475"), horizon: hex("#134897") } }, // night - Frostspire Mountains
   // storm - Ember Peaks at night; by day and at dusk an ash-choked sky, bruised brown overhead and burning orange at the horizon
   // (reference "volcano" / "storm - Ember Peaks"): the clear-blue noon gradient never suited a volcano
@@ -34,7 +34,7 @@ export const REGION_SKY_MOOD: Readonly<Record<string, SkyMood>> = {
   solara: { day: { zenith: hex("#abcbf6"), horizon: hex("#7c97be") } },       // day - Solara Desert
 };
 /** How far the sky moves toward the reference colours (never all the way: the clock-driven gradient stays underneath). */
-export const SKY_MOOD_STRENGTH = 0.55;
+export const SKY_MOOD_STRENGTH = 0.65;
 function gradeSky(zenith: RGB, horizon: RGB, mood: SkyMood, low: number, night: number): { zenith: RGB; horizon: RGB } {
   const wGolden = low * (1 - night), wNight = night, wDay = (1 - low) * (1 - night);
   let z = zenith, h = horizon;
@@ -56,12 +56,12 @@ export function skyParams(sunY: number, envCloud: number, regionId?: string | nu
   const shade = mix(mix(SHADE_DAY, SHADE_DUSK, low * 0.8), SHADE_NIGHT, night);
   // sky wash: a colour grade drawn over the atmospheric sky so the look is authored, not just physical. Teal-blue noon, molten gold and magenta at the
   // horizon at golden hour, deep indigo with a violet band at night
-  const zenith = mix(mix([0.16, 0.42, 0.74], [0.3, 0.2, 0.5], low * 0.85), [0.03, 0.04, 0.14], night);
-  const horizon = mix(mix([1.0, 0.86, 0.62], [1.0, 0.42, 0.22], low), [0.2, 0.12, 0.34], night);
+  const zenith = mix(mix([0.16, 0.42, 0.74], [0.2, 0.22, 0.5], low * 0.85), [0.03, 0.04, 0.14], night);
+  const horizon = mix(mix([1.0, 0.86, 0.62], [1.0, 0.46, 0.16], low), [0.2, 0.12, 0.34], night);
   const mood = regionId ? REGION_SKY_MOOD[regionId] : undefined;
   const graded = mood ? gradeSky(zenith, horizon, mood, low, night) : { zenith, horizon };
   return {
-    zenith: graded.zenith, horizon: graded.horizon, wash: 0.5 - night * 0.15,
+    zenith: graded.zenith, horizon: graded.horizon, wash: 0.5 + low * (1 - night) * 0.18 - night * 0.15, // golden hour paints more of the sky
     night,
     cover: 0.38 + clamp01(envCloud) * 0.5,
     sunStrength: smooth(-0.08, 0.06, sunY),
