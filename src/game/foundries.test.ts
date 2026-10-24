@@ -33,7 +33,7 @@ describe("foundries", () => {
       const sim = createSim();
       for (const m of sim.machines) m.alive = false;
       const m = sim.machines[0]!;
-      const X = W.VAULT_GATE.x - 40, Z = W.VAULT_GATE.z, Y = heightAt(X, Z) + 3;
+      const X = W.VAULT_GATE.x - 40, Z = W.VAULT_GATE.z, Y = heightAt(X, Z) + 1.2; // chest height: rounds above a trooper's head now miss
       Object.assign(m, { alive: true, x: X, z: Z + 5, y: Y, hp: 100, elite, boss: false, scale: 1, cool: 9, profile: "T", zone: "wastelands" });
       sim.foundry = foundry;
       fireBullet(sim, X, Y, Z, 0, false, 0, 2, 0, 0);

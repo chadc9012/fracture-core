@@ -63,12 +63,12 @@ const BY_KIND: Record<HandlingKind, VehicleArmament> = {
     secondary: { ordnance: "guided-missile", name: "Guided anti-armor missile", rate: 6, salvo: 1, salvoGap: 0, damage: 22, muzzles: [[0.9, 2.6, 0.5]], mount: "TURRET" },
   },
   JET: {
-    primary: gun({ name: "Arc cannon", rate: 0.07, damage: 1.2, spread: 0.008, speed: 260, muzzles: [[1.1, 0.2, 3.2], [-1.1, 0.2, 3.2]], converge: 220, pitchAssist: 0.12, sound: "PULSE" }),
-    secondary: { ordnance: "air-missile", name: "Missiles", rate: 2.2, salvo: 2, salvoGap: 0.18, damage: 16, muzzles: [[2.4, -0.4, 0.6], [-2.4, -0.4, 0.6]], mount: "FIXED" },
+    primary: gun({ name: "Arc cannon", rate: 0.07, damage: 1.2, spread: 0.008, speed: 260, muzzles: [[1.1, 0.8, 3.2], [-1.1, 0.8, 3.2]], converge: 220, pitchAssist: 0.12, sound: "PULSE", heat: 0.45 }),
+    secondary: { ordnance: "air-missile", name: "Missiles", rate: 2.2, salvo: 2, salvoGap: 0.18, damage: 16, muzzles: [[2.4, 0.6, 0.6], [-2.4, 0.6, 0.6]], mount: "FIXED" },
   },
   HELI: {
-    primary: gun({ name: "Chin chain gun", rate: 0.065, damage: 0.9, spread: 0.02, speed: 200, muzzles: [[0, -0.9, 2.6]], mount: "TURRET", sound: "AUTO" }),
-    secondary: { ordnance: "rocket-pod", name: "Rocket pods", rate: 2.6, salvo: 6, salvoGap: 0.09, damage: 8, muzzles: [[1.6, -0.5, 0.8], [-1.6, -0.5, 0.8]], mount: "FIXED" },
+    primary: gun({ name: "Chin chain gun", rate: 0.065, damage: 0.9, spread: 0.02, speed: 200, heat: 0.35, muzzles: [[0, 0.55, 2.6]], mount: "TURRET", sound: "AUTO" }),
+    secondary: { ordnance: "rocket-pod", name: "Rocket pods", rate: 2.6, salvo: 6, salvoGap: 0.09, damage: 8, muzzles: [[1.6, 0.9, 0.8], [-1.6, 0.9, 0.8]], mount: "FIXED" },
   },
   BOAT: { primary: gun({ name: "Heavy deck gun", rate: 0.16, damage: 1.6, spread: 0.014, speed: 170, knock: 2, heat: 0.9, muzzles: [[0, 2.2, 2.2]], mount: "TURRET" }), secondary: null },
   SUB: {
@@ -82,8 +82,8 @@ const BY_ID: Partial<Record<VehicleId, { primary?: Partial<VehicleGun>; secondar
   "scrap-interceptor": { primary: { name: "Roof repeater", rate: 0.1, damage: 1 } },
   "raider-buggy": { primary: { name: "Ram-cage SMGs", rate: 0.08, damage: 0.7, spread: 0.022, mount: "FIXED", muzzles: [[0.6, 1.1, 1.6], [-0.6, 1.1, 1.6]], converge: 40 } },
   "tech-transport": { primary: { name: "Pulse-laser array", rate: 0.09, damage: 1.1, spread: 0.008, speed: 220, muzzles: [[0, 3.2, 1.5]], mount: "TURRET", sound: "PULSE" } },
-  "void-skimmer": { primary: { name: "Void lance", rate: 0.35, damage: 4, spread: 0.002, speed: 320, muzzles: [[0, 0, 4]], sound: "PULSE" } },
-  "ai-interceptor": { primary: { name: "Continuous laser", rate: 0.05, damage: 0.7, spread: 0.003, speed: 300, muzzles: [[0, 0, 2.5]], sound: "PULSE" } },
+  "void-skimmer": { primary: { name: "Void lance", rate: 0.35, damage: 4, spread: 0.002, speed: 320, muzzles: [[0, 0.7, 4]], sound: "PULSE" } },
+  "ai-interceptor": { primary: { name: "Continuous laser", rate: 0.05, damage: 0.7, spread: 0.003, speed: 300, heat: 0.3, muzzles: [[0, 0.7, 2.5]], sound: "PULSE" } },
   leviathan: { primary: { name: "Heavy energy batteries", rate: 0.3, damage: 3, spread: 0.01, speed: 200, knock: 3, muzzles: [[2.5, 4, 6], [-2.5, 4, 6]], mount: "TURRET", sound: "PULSE" } },
 };
 
@@ -114,10 +114,10 @@ export function aimFor(mount: "TURRET" | "FIXED", pose: VehiclePose, camYaw: num
   if (mount === "TURRET") return { yaw: camYaw, pitch: camPitch };
   const pitch = pose.pitch + Math.max(-pitchAssist, Math.min(pitchAssist, camPitch));
   if (converge <= 0) return { yaw: pose.yaw, pitch };
-  // aim from this barrel at the convergence point straight ahead of the vehicle's centre
-  const fx = Math.sin(pose.yaw) * Math.cos(pitch), fy = Math.sin(pitch), fz = Math.cos(pose.yaw) * Math.cos(pitch);
-  const tx = pose.x + fx * converge - muzzle.x, ty = pose.y + fy * converge - muzzle.y, tz = pose.z + fz * converge - muzzle.z;
-  return { yaw: Math.atan2(tx, tz), pitch: Math.atan2(ty, Math.hypot(tx, tz)) };
+  // wing/bumper guns toe in sideways to meet on the centre line ahead; they keep the nose's pitch (converging on the
+  // vehicle's ground-level origin aimed every car and bike gun into the dirt 28-59 m ahead)
+  const tx = pose.x + Math.sin(pose.yaw) * converge - muzzle.x, tz = pose.z + Math.cos(pose.yaw) * converge - muzzle.z;
+  return { yaw: Math.atan2(tx, tz), pitch };
 }
 
 /** the vehicle's world velocity from its handling state (forward speed along yaw, climb rate) */

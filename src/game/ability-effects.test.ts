@@ -6,7 +6,7 @@ import { addObstacle, resetObstacles } from "./obstacles";
 import { classBuild, createLiveBuild, rebindLiveBuild, tickLiveBuild, type LiveBuild } from "./live-build";
 import { ABILITY_CONFIGS } from "./combat-engine";
 import { INITIAL_POISE } from "./boss-poise";
-import { heightAt } from "./terrain";
+import { heightAt, walkHeight } from "./terrain";
 import { scenarioById } from "./unique-scenarios";
 import { NULL_PERK, NULL_PULSE_STUN_SECONDS } from "./null-disruption";
 import { abilityChord, DEFAULT_BINDINGS, maskChord } from "./bindings";
@@ -98,7 +98,7 @@ describe("GOLIATH · Siege Mode (Q) and Bastion Shield (R)", () => {
     const p = build("TITAN", { "siege-mode": "hold-fast" }); cast(world(), p, "PRIMARY"); expect(p.siegeBoost).toBeCloseTo(1.18);
   });
   it("Siege really changes a real bullet's damage", () => {
-    const hit = (mult: number) => { const sim = world(); sim.verbDamageMult = mult; const m = put(sim, 0, 0, { cool: 99, hp: 1e6 }); clock += 0.016; fireBullet(sim, m.x, heightAt(m.x, m.z) + 3, m.z, 0); step(sim, 0.016); return 1e6 - m.hp; };
+    const hit = (mult: number) => { const sim = world(); sim.verbDamageMult = mult; const m = put(sim, 0, 0, { cool: 99, hp: 1e6 }); clock += 0.016; fireBullet(sim, m.x, walkHeight(m.x, m.z) + 1.2, m.z, 0); step(sim, 0.016); return 1e6 - m.hp; };
     expect(hit(1.3)).toBeCloseTo(hit(1) * 1.3, 3);
   });
   it("Bastion Shield: while up every hit is absorbed (any class), then damage resumes; Control extends it to 12.5 s", () => {
@@ -308,7 +308,7 @@ describe("compatibility with Null Disruption, bosses and weapons", () => {
   });
   it("bullets still go through the same modifier path: boss poise and participation behave as before after the refactor", () => {
     const sim = world(); const boss = knight(sim, 0); boss.cool = 99; clock += 0.016;
-    fireBullet(sim, boss.x, heightAt(boss.x, boss.z) + 3, boss.z, 0); step(sim, 0.016);
+    fireBullet(sim, boss.x, walkHeight(boss.x, boss.z) + 1.2, boss.z, 0); step(sim, 0.016);
     expect(boss.playerHits).toBe(1); expect(boss.poiseState!.poise).toBeGreaterThan(0);
   });
   it("Frost Wolf (poise scenario) takes slam poise and keeps its own rules", () => {

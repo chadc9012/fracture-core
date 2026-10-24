@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, spyOn } from "bun:test";
 import { createSim, fireBullet, stepSim, summonScenarioBoss, type Machine, type WorldSim } from "./sim";
 import { NULL_CHARGE_THRESHOLD, NULL_COOLDOWN_SECONDS, NULL_DECAY_SECONDS, NULL_PERK, NULL_PULSE_POISE, NULL_PULSE_RADIUS, NULL_PULSE_STUN_SECONDS, resetNullCharge } from "./null-disruption";
 import { INITIAL_POISE } from "./boss-poise";
-import { heightAt } from "./terrain";
+import { heightAt, walkHeight } from "./terrain";
 import { scenarioById } from "./unique-scenarios";
 
 /** These tests drive the REAL bullet loop in stepSim (fireBullet -> stepSim -> hit -> perk), with performance.now() under test control.
@@ -34,7 +34,7 @@ function shoot(sim: WorldSim, m: Machine, dt = 0.016) {
   clock += dt;
   sim.weaponHeat = 0; sim.overheated = false; // heat is a separate system; keep the harness firing
   const h = home.get(m); if (h && m.alive) { m.x = h.x; m.z = h.z; m.kx = 0; m.kz = 0; }
-  expect(fireBullet(sim, m.x, heightAt(m.x, m.z) + 3, m.z, 0)).toBe(true);
+  expect(fireBullet(sim, m.x, walkHeight(m.x, m.z) + 1.2, m.z, 0)).toBe(true);
   stepSim(sim, { px: PX, pz: PZ, dt, night: 0.5, inVehicle: false });
 }
 const timedOrdinary = (m: Machine) => { m.aim = 50; m.cool = 99; }; // wind-up in progress = interrupt = timed
@@ -54,7 +54,7 @@ describe("Null Disruption through the real bullet-hit loop", () => {
   it("a missed shot adds no charge and spends no hit event", () => {
     const sim = makeSim(); const m = put(sim, 0); timedOrdinary(m);
     clock += 0.016;
-    fireBullet(sim, m.x + 60, heightAt(m.x + 60, m.z) + 3, m.z, 0); // fired well wide of the target
+    fireBullet(sim, m.x + 60, walkHeight(m.x + 60, m.z) + 1.2, m.z, 0); // fired well wide of the target
     stepSim(sim, { px: PX, pz: PZ, dt: 0.016, night: 0.5, inVehicle: false });
     expect(charge(sim)).toBe(0);
     expect(sim.nextHitId).toBe(0);
@@ -80,7 +80,8 @@ describe("Null Disruption through the real bullet-hit loop", () => {
     expect(charge(sim)).toBe(0);
   });
   it("one bullet can produce at most one pulse even with many enemies in range", () => {
-    const sim = makeSim(); const a = put(sim, 0); for (let i = 1; i < 6; i++) put(sim, i);
+    // spaced so crowd separation never shoves the target out from under the bullet (hits are a body-sized cylinder now)
+    const sim = makeSim(); const a = put(sim, 0); for (let i = 1; i < 6; i++) { const m = put(sim, i, { x: TX + i * 5 }); home.set(m, { x: TX + i * 5, z: TZ }); }
     timedOrdinary(a);
     for (let i = 0; i < NULL_CHARGE_THRESHOLD + 1; i++) shoot(sim, a);
     expect(sim.nullPulse?.id).toBe(1);

@@ -251,6 +251,43 @@ export function markGoreHit(sim: WorldSim, m: Machine, dx: number, dz: number, d
   m.goreHit = { dx: dx / d, dz: dz / d, dmg, cause, y };
   if (hitLog && m.hp > 0 && !m.decoy) logGore(sim, { kind: "HIT", blood: bloodOf(m), cause, x: m.x - (dx / d) * 0.3 * m.scale, y, z: m.z - (dz / d) * 0.3 * m.scale, dx: dx / d, dz: dz / d, power: Math.min(1, dmg / Math.max(0.5, m.maxHp ?? (m.elite ? 7 : 3.5))), size: enemyBodyScaleOf(m.scale) });
 }
+/** the bullet hit-cylinder of a machine: feet (the ground under it, or its swim depth), top and radius */
+function bodySpan(m: Machine): { feet: number; top: number; r: number } {
+  const feet = m.swimY !== undefined ? m.y - 2.2 * m.scale : Math.max(walkHeight(m.x, m.z), m.y - 2.2 * m.scale);
+  return { feet: feet - 0.2, top: feet + 2.05 * enemyBodyScaleOf(m.scale) + 0.35, r: Math.max(1, 1.5 * m.scale) };
+}
+function bodyOnPath(sim: WorldSim, b: Bullet, dt: number): boolean {
+  for (const m of sim.machines) {
+    if (!m.alive) continue;
+    const c = bodySpan(m);
+    if (segmentHitsBody(b.x - b.vx * dt, b.y - b.vy * dt, b.z - b.vz * dt, b.x, b.y, b.z, m.x, m.z, c.r, c.feet, c.top) >= 0) return true;
+  }
+  return false;
+}
+/** first point (0..1 along the segment a->b) inside the vertical cylinder at (cx, cz), radius r, from y0 to y1; -1 if none */
+export function segmentHitsBody(ax: number, ay: number, az: number, bx: number, by: number, bz: number, cx: number, cz: number, r: number, y0: number, y1: number): number {
+  const dx = bx - ax, dz = bz - az, fx = ax - cx, fz = az - cz;
+  const A = dx * dx + dz * dz, B = 2 * (fx * dx + fz * dz), C = fx * fx + fz * fz - r * r;
+  let t0: number, t1: number;
+  if (A < 1e-9) { if (C > 0) return -1; t0 = 0; t1 = 1; }
+  else {
+    const disc = B * B - 4 * A * C;
+    if (disc < 0) return -1;
+    const q = Math.sqrt(disc);
+    t0 = (-B - q) / (2 * A); t1 = (-B + q) / (2 * A);
+  }
+  const lo = Math.max(0, t0), hi = Math.min(1, t1);
+  if (lo > hi) return -1;
+  // clip [lo, hi] to the cylinder's height span
+  const dy = by - ay;
+  let a = lo, b = hi;
+  if (Math.abs(dy) < 1e-9) { if (ay < y0 || ay > y1) return -1; }
+  else {
+    const ta = (y0 - ay) / dy, tb = (y1 - ay) / dy;
+    a = Math.max(a, Math.min(ta, tb)); b = Math.min(b, Math.max(ta, tb));
+  }
+  return a <= b ? a : -1;
+}
 /** on-screen bulk of a machine (enemy-visuals.ts enemyBodyScale, repeated so the sim does not import presentation data) */
 const enemyBodyScaleOf = (simScale: number) => 1 + (simScale - 1) * 0.35;
 
@@ -926,7 +963,8 @@ export function fireOrdnance(sim: WorldSim, def: OrdnanceDef, x: number, y: numb
   if (sim.overheated) return false;
   const r = sim.rounds.find((v) => !v.alive);
   if (!r) return false;
-  sim.weaponHeat = Math.min(100, sim.weaponHeat + HEAT_PER_SHOT_VEHICLE * 2);
+  // a rocket from a pod is cheap (a full 6-rocket ripple must not vent the guns), a missile or shell costs more
+  sim.weaponHeat = Math.min(100, sim.weaponHeat + HEAT_PER_SHOT_VEHICLE * (def.kind === "ROCKET" && def.splashRadius <= 5 ? 0.5 : 1.5));
   sim.playerNoise = 1;
   if (sim.weaponHeat >= 100) { sim.overheated = true; alert(sim, "WEAPON OVERHEAT — venting"); }
   const lock = def.turnRate > 0 ? pickLockTarget({ x, z }, yaw, sim.machines, 0.5, def.kind === "MISSILE" ? 260 : 120) : -1;
@@ -1919,7 +1957,8 @@ export function stepSim(sim: WorldSim, input: SimInput) {
     b.y += b.vy * dt;
     b.z += b.vz * dt;
     b.life -= dt;
-    if (b.y < heightAt(b.x, b.z) + 0.35) {
+    // a round that met a body on its way down this step hits the body, not the dirt at its feet (resolved below)
+    if (b.y < heightAt(b.x, b.z) + 0.35 && !bodyOnPath(sim, b, dt)) {
       b.alive = false;
       logImpact(sim, b, "ground");
       continue;
@@ -1939,7 +1978,7 @@ export function stepSim(sim: WorldSim, input: SimInput) {
     if (sim.fauna.length) {
       let struck = false;
       for (const f of sim.fauna) {
-        if (Math.abs(f.y - b.y) > f.r + 0.6 || Math.hypot(f.x - b.x, f.z - b.z) > f.r) continue;
+        if (f.r <= 0 || segmentHitsBody(b.x - b.vx * dt, b.y - b.vy * dt, b.z - b.vz * dt, b.x, b.y, b.z, f.x, f.z, f.r, f.y - f.r, f.y + f.r) < 0) continue;
         b.alive = false; struck = true;
         const sp = Math.hypot(b.vx, b.vz) || 1;
         logGore(sim, { kind: "KILL", blood: critterBlood(f.species), cause: b.cause ?? "BULLET", x: f.x, y: f.y, z: f.z, dx: b.vx / sp, dz: b.vz / sp, power: 0.8, size: Math.max(0.35, f.r), critter: f.id });
@@ -1951,8 +1990,19 @@ export function stepSim(sim: WorldSim, input: SimInput) {
     }
     for (const m of sim.machines) {
       if (!m.alive) continue;
-      if (Math.hypot(m.x - b.x, m.z - b.z) < 3.4 * m.scale) {
+      // the body is a standing cylinder (feet to head, a generous 1.5 m x scale radius) and the round is the segment it
+      // travelled this step: the old flat 3.4 m circle ignored height and direction (a shot into the sky, or from a
+      // helicopter 100 m up, killed a grunt below) and fast rounds stepped straight through targets
+      const half = Math.hypot(b.vx, b.vz) * dt * 0.5;
+      if (Math.hypot(m.x - (b.x - b.vx * dt * 0.5), m.z - (b.z - b.vz * dt * 0.5)) > half + Math.max(1, 1.5 * m.scale)) continue; // cheap reject
+      const c = bodySpan(m); // feet on the ground under it (or a storm cap it stands on); swimmers hold their own depth
+      const t = segmentHitsBody(b.x - b.vx * dt, b.y - b.vy * dt, b.z - b.vz * dt, b.x, b.y, b.z, m.x, m.z, c.r, c.feet, c.top);
+      // a round that starts inside the generous body radius only hits a body that is ahead of it (never one at your back)
+      if (t === 0 && ((m.x - (b.x - b.vx * dt)) * b.vx + (m.z - (b.z - b.vz * dt)) * b.vz) / (Math.hypot(b.vx, b.vz) || 1) < -0.75) continue;
+      if (t >= 0) {
         b.alive = false;
+        // report the strike where it met the body, not where the step ended
+        b.x -= b.vx * dt * (1 - t); b.y -= b.vy * dt * (1 - t); b.z -= b.vz * dt * (1 - t);
         logImpact(sim, b, "machine");
         let dmg = sim.mods.bulletDamage * b.dmg * sim.verbDamageMult;
         if (sim.equippedElement !== "KINETIC") dmg += 0.35;

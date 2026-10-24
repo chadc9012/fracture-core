@@ -30,6 +30,7 @@ import { buffEffect } from "@/game/stash";
 import { bootStats, SKATE_SHOP_OFFSET, SKATE_SHOP_RADIUS } from "@/game/skate-boots";
 import { walkHeight, slopeAt, heightAt, waterNetwork, WATER_LEVEL } from "@/game/terrain";
 import { normalizeGore } from "@/game/gore";
+import { inSwordArc } from "@/game/melee-arc";
 import { aimFor, armamentFor, vehiclePoint, vehicleVelocity } from "@/game/vehicle-weapons";
 import { ordnanceById } from "@/game/ordnance";
 import { MuzzleFlash, type MuzzleFlashState } from "./VehicleGunFx";
@@ -38,7 +39,7 @@ import { waterMix } from "@/game/water-audio";
 /** water audio is eased in the audio graph, so it only needs a pose update ~8x/s */
 let lastWaterAudioAt = 0;
 import { flavorFor } from "@/game/audio-design";
-import { alert, applyLightning, chipPlayer, collidePlayer, createSim, defeatMachine, logImpact, markGoreHit, fireOrdnance, FACTIONS, fireBullet, fireLauncher, hurtPlayer, throwBeacon, instabilityTier, spawnMissionDrones, spawnEventSquad, spawnStormGuardians, stepSim, summonBoss, summonScenarioBoss, type Faction, type InstabilityTier, type WorldSim, type ZoneState } from "@/game/sim";
+import { alert, applyLightning, chipPlayer, collidePlayer, createSim, defeatMachine, logImpact, markGoreHit, fireOrdnance, applyMachineDamageMods, FACTIONS, fireBullet, fireLauncher, hurtPlayer, throwBeacon, instabilityTier, spawnMissionDrones, spawnEventSquad, spawnStormGuardians, stepSim, summonBoss, summonScenarioBoss, type Faction, type InstabilityTier, type WorldSim, type ZoneState } from "@/game/sim";
 import type { MissionEvent, MissionRun } from "@/game/missions/broken-signal";
 import type { MissionEvent as BlackoutEvent, MissionRun as BlackoutRun } from "@/game/missions/blackout-protocol";
 import type { MissionEvent as NeonCoreEvent, MissionRun as NeonCoreRun } from "@/game/missions/stitched-neon-core";
@@ -1697,6 +1698,9 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
     // in a vehicle Space is the handbrake and the pad's RT is the throttle, so neither fires: mouse or pad X (2) fires the guns, RMB / pad Y (3) the ordnance
     const trigger = s.inVehicle ? mouse.current.fire || !!padNow[2] : held.has("Space") || mouse.current.fire || padState.current.fire;
     const secondaryTrigger = s.inVehicle && (mouse.current.aim || !!padNow[3]);
+    // rounds leave from just under the eye, along the camera ray: the old +0.95 (2.55 m up, from before the life-size pass)
+    // flew over a standing trooper's head and drew first-person tracers ~5 degrees above the crosshair, never crossing it
+    const SHOT_EYE = OPERATOR_CAMERA.eye - 0.05;
     const shoot = () => {
       if (!s.inVehicle && wpn.mag > 0) {
         if (s.reload > 0) return;
@@ -1707,7 +1711,7 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
       const pitchJ = (Math.random() - 0.5) * 2 * spread;
       if (!s.inVehicle && wpn.kind === "launcher" && isLauncherId(wpn.id)) {
         // launcher rounds are sim.rounds (ordnance rules): splash damage and elemental status are resolved in stepSim, never here
-        if (fireLauncher(sim, wpn.id, s.x + Math.sin(s.yaw) * 0.6, s.y + 0.95, s.z + Math.cos(s.yaw) * 0.6, s.yaw + yawJ, s.pitch + s.recoil + pitchJ, wpn.damage * gearPower * (1 + armorFxRef.current.weaponDamage), wpn.knock, wpn.heat * heatMult)) {
+        if (fireLauncher(sim, wpn.id, s.x + Math.sin(s.yaw) * 0.6, s.y + SHOT_EYE, s.z + Math.cos(s.yaw) * 0.6, s.yaw + yawJ, s.pitch + s.recoil + pitchJ, wpn.damage * gearPower * (1 + armorFxRef.current.weaponDamage), wpn.knock, wpn.heat * heatMult)) {
           bossActionLog.current = logAction(bossActionLog.current, "RANGED", performance.now() / 1000);
           sfx.playShot(s.weapon);
           s.shots++;
@@ -1724,7 +1728,7 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
       const pellets = s.inVehicle ? 1 : wpn.pellets ?? 1;
       for (let pi = 0; pi < pellets; pi++) {
         const py = pi === 0 ? yawJ : (Math.random() - 0.5) * 2 * spread, pp = pi === 0 ? pitchJ : (Math.random() - 0.5) * 2 * spread;
-        if (fireBullet(sim, s.x, s.y + (s.inVehicle ? 1.5 : 0.95), s.z, s.yaw + py, s.inVehicle, s.pitch + s.recoil + pp, wpn.damage * gearPower * hipMult * (1 + armorFxRef.current.weaponDamage), wpn.knock / pellets, (wpn.heat * heatMult) / pellets, s.inVehicle ? undefined : wpn.element, pellets > 1 ? "PELLET" : "BULLET")) fired = true;
+        if (fireBullet(sim, s.x, s.y + SHOT_EYE, s.z, s.yaw + py, s.inVehicle, s.pitch + s.recoil + pp, wpn.damage * gearPower * hipMult * (1 + armorFxRef.current.weaponDamage), wpn.knock / pellets, (wpn.heat * heatMult) / pellets, s.inVehicle ? undefined : wpn.element, pellets > 1 ? "PELLET" : "BULLET")) fired = true;
       }
        if (fired) {
         s.shots++;
@@ -1757,8 +1761,9 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
           const sw = swing.shockwave;
           for (const enemy of sim.machines) {
             if (!enemy.alive || enemy.decoy || !inShockwave(sw, s.x, s.z, s.yaw, enemy.x, enemy.z)) continue;
-            enemy.hp -= sw.damage;
-            markGoreHit(sim, enemy, enemy.x - s.x || 0.01, enemy.z - s.z, sw.damage * 2, "BLADE");
+            const swd = applyMachineDamageMods(sim, enemy, sw.damage, "ARC", s.x, s.z);
+            enemy.hp -= swd;
+            markGoreHit(sim, enemy, enemy.x - s.x || 0.01, enemy.z - s.z, swd * 2, "BLADE");
             sim.lastHit = performance.now();
             if (enemy.hp <= 0) { if (enemy.boss) enemy.hp = 0.01; else defeatMachine(sim, enemy); }
           }
@@ -1769,8 +1774,9 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
           const dx = enemy.x - s.x;
           const dz = enemy.z - s.z;
           const d = Math.hypot(dx, dz);
-          if (d > reach * enemy.scale + 1 || dx * Math.sin(s.yaw) + dz * Math.cos(s.yaw) < 0) continue;
-          const dmg = swingStats(blade, s.combo, { damage: wpn.damage, reach }, enemy.elite || enemy.boss).damage;
+          if (!inSwordArc({ x: s.x, z: s.z, feet: s.y - 1.6, yaw: s.yaw }, { x: enemy.x, z: enemy.z, feet: Math.max(walkHeight(enemy.x, enemy.z), enemy.y - 2.2 * enemy.scale), scale: enemy.scale }, reach)) continue;
+          // the one shared damage path (Weaken/Marked, boss poise, scenario gimmicks, reward participation, player credit)
+          const dmg = applyMachineDamageMods(sim, enemy, swingStats(blade, s.combo, { damage: wpn.damage, reach }, enemy.elite || enemy.boss).damage, "KINETIC", s.x, s.z);
           enemy.hp -= dmg;
           // gore.ts: a blade cuts across the swing (left/right by combo step), the finisher drives through
           { const across = s.combo === 2 ? -1 : 1, fx = Math.sin(s.yaw), fz = Math.cos(s.yaw); markGoreHit(sim, enemy, s.combo === 3 ? fx : fz * across * 0.8 + fx * 0.6, s.combo === 3 ? fz : -fx * across * 0.8 + fz * 0.6, dmg * (s.combo === 3 ? 2 : 1.3), "BLADE"); }

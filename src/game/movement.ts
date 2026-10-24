@@ -1,3 +1,4 @@
+import { BASE_FOOT_SPEED } from "./foot-speed";
 import type { ClassId } from "./loadout";
 
 /**
@@ -21,7 +22,9 @@ export const GLIDE_THRUST = 14;
 export const SLIDE_SECONDS = 0.85;
 export const SLIDE_COOLDOWN = 0.6;
 /** minimum horizontal speed (units/s) needed to start a slide */
-export const SLIDE_MIN_SPEED = 26;
+/** sprint speed needed to slide: 26 m/s was the original-world number; at the life-size foot speed (14 m/s base) a full
+ * sprint in the Verdant Forest tops out at ~24.7, so nobody could slide. 1.2 x base walk = a sprint, never a walk. */
+export const SLIDE_MIN_SPEED = Math.min(26, BASE_FOOT_SPEED * 1.2);
 export const SLIDE_START_MULT = 1.3;
 export const SLIDE_END_MULT = 0.5;
 
