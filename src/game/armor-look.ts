@@ -1,6 +1,7 @@
 import { COLLECTIONS } from "./armor-collections";
 import { SET_SLOTS, setById, type SetSlot } from "./armor-sets";
 import type { BodyType } from "./operators";
+import type { ClassId } from "./loadout";
 import type { PlayerProgression } from "./progression";
 
 /**
@@ -42,7 +43,18 @@ export const SPECIAL_LOOKS: Readonly<Record<string, SlotLook>> = {
   "mantle-null-sovereign": { motif: "mantle", color: "#19e6ff" },
 };
 
-export function armorLook(progress: Pick<PlayerProgression, "inventory" | "equippedGear">): ArmorLook {
+/** Common-tier rookie identity. Visual-only: no set bonuses, power or save migration.
+ * Only the three original field pieces receive these motifs, so loot replaces them naturally. */
+export const ROOKIE_ARMOR: Readonly<Record<ClassId, { name: string; color: string; motifs: Partial<Record<SetSlot, Motif>> }>> = {
+  TITAN: { name: "Rookie Bulwark", color: "#79818a", motifs: { helmet: "slit", chest: "plates", legs: "greaves" } },
+  HUNTER: { name: "Rookie Shadow", color: "#a84950", motifs: { helmet: "slit", chest: "spine", legs: "fins" } },
+  WARLOCK: { name: "Rookie Arcanist", color: "#4a9cc5", motifs: { helmet: "crest", chest: "core", legs: "greaves" } },
+};
+const STARTER_ARMOR_IDS: Partial<Record<SetSlot, string>> = {
+  helmet: "field-helmet", chest: "field-chest", legs: "field-legs",
+};
+
+export function armorLook(progress: Pick<PlayerProgression, "inventory" | "equippedGear">, classId?: ClassId): ArmorLook {
   const look: ArmorLook = {};
   for (const slot of SET_SLOTS) {
     const item = progress.inventory.find((entry) => entry.id === progress.equippedGear[slot]);
@@ -50,6 +62,9 @@ export function armorLook(progress: Pick<PlayerProgression, "inventory" | "equip
     const motif = set ? SET_MOTIFS[set.id]?.[slot] : undefined;
     if (set && motif) look[slot] = { motif, color: set.color };
     else if (item && SPECIAL_LOOKS[item.id] && item.slot === slot) look[slot] = SPECIAL_LOOKS[item.id]!;
+    else if (classId && item?.id === STARTER_ARMOR_IDS[slot] && ROOKIE_ARMOR[classId].motifs[slot]) {
+      look[slot] = { motif: ROOKIE_ARMOR[classId].motifs[slot]!, color: ROOKIE_ARMOR[classId].color };
+    }
   }
   return look;
 }

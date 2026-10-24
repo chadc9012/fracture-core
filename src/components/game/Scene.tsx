@@ -630,7 +630,7 @@ function SceneImpl({
     helmet: gear?.inventory.find((item) => item.id === gear.equippedGear.helmet)?.level ?? 1,
     legs: gear?.inventory.find((item) => item.id === gear.equippedGear.legs)?.level ?? 1,
   }), [gear?.inventory, gear?.equippedGear]);
-  const worn = useMemo(() => armorLook({ inventory: gear?.inventory ?? [], equippedGear: gear?.equippedGear ?? {} }), [gear?.inventory, gear?.equippedGear]);
+  const worn = useMemo(() => armorLook({ inventory: gear?.inventory ?? [], equippedGear: gear?.equippedGear ?? {} }, playerClass), [gear?.inventory, gear?.equippedGear, playerClass]);
   // Equipped armor-set bonuses (armor-sets.ts): recomputed only when gear changes; the frame loop reads the ref.
   const armorFx = useMemo(() => loadoutEffects({ inventory: gear?.inventory ?? [], equippedGear: gear?.equippedGear ?? {} }), [gear?.inventory, gear?.equippedGear]);
   const armorFxRef = useRef(armorFx);

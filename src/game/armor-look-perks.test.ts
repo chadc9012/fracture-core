@@ -2,7 +2,7 @@
 import { describe, expect, it } from "bun:test";
 import { ARMOR_SETS, SET_SLOTS, makeSetPiece } from "./armor-sets";
 import { ARMOR_PERKS, perkEffects, perkScale, wornPerks } from "./armor-perks";
-import { BODY_FIT, SET_MOTIFS, armorLook, fitFor } from "./armor-look";
+import { BODY_FIT, SET_MOTIFS, ROOKIE_ARMOR, armorLook, fitFor } from "./armor-look";
 import { loadoutEffects } from "./armor-attributes";
 import { BODY_TYPES } from "./operators";
 
@@ -51,5 +51,20 @@ describe("look and body fit", () => {
     for (const body of BODY_TYPES) for (const slot of SET_SLOTS) expect(BODY_FIT[body][slot]).toBeTruthy();
     expect(fitFor("female", "chest").w).toBeLessThan(fitFor("male", "chest").w);
     expect(fitFor("robot", "chest").d).toBeGreaterThan(fitFor("male", "chest").d);
+  });
+});
+
+describe("rookie operator armor", () => {
+  it("shows distinct common-tier field armor per class without changing stats", () => {
+    const starter = { inventory: [
+      { id: "field-helmet", slot: "helmet" }, { id: "field-chest", slot: "chest" }, { id: "field-legs", slot: "legs" },
+    ] as never, equippedGear: { helmet: "field-helmet", chest: "field-chest", legs: "field-legs" } };
+    for (const cls of ["TITAN", "HUNTER", "WARLOCK"] as const) {
+      const look = armorLook(starter, cls);
+      expect(look.chest?.color).toBe(ROOKIE_ARMOR[cls].color);
+      expect(look.helmet?.motif).toBe(ROOKIE_ARMOR[cls].motifs.helmet);
+    }
+    expect(armorLook(starter).chest).toBeUndefined();
+    expect(armorLook({ inventory: [], equippedGear: {} }, "TITAN").chest).toBeUndefined();
   });
 });

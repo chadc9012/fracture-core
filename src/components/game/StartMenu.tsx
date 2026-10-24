@@ -126,7 +126,7 @@ export function StartMenu({ onDeploy, onSaveCharacter, weaponOrder, onSettings, 
     }
   });
   const summary = gear ? armorSummary(worn) : null;
-  const look = armorLook(worn);
+  const look = armorLook(worn, classId);
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
