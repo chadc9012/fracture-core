@@ -11,6 +11,7 @@ import { BLAST_FLAVOR, SHOTS, blastAtDistance, shotKey, variation, type BlastFla
 import { BROADCAST_START, RADIO_STATIONS, nextOnAir, onAir, type StationId } from "./radio-stations";
 import { engineVoice } from "./vehicle-audio";
 import { AUDIO_SAFETY, envelopeAttack, unitVolume } from "./audio-safety";
+import { AMBIENT_MIX, WEATHER_BEDS, crossfadeLoop } from "./ambient-mix";
 
 type Ctx = { ac: AudioContext; master: GainNode; sfx: GainNode; music: GainNode; amb: GainNode; abil: GainNode; noise: AudioBuffer; brown: AudioBuffer; verb: GainNode; drive: Map<number, Float32Array>; layers: { ambient: GainNode; tension: GainNode; drums: GainNode; motif: GainNode } | null; ambientOscs: OscillatorNode[]; musicRegion: string; beat: number };
 let ctx: Ctx | null = null;
@@ -26,11 +27,12 @@ export function unlockAudio() {
   const master = ac.createGain(); master.gain.value = volume; master.connect(ac.destination);
   // underwater: the whole mix passes one lowpass that setUnderwaterMuffle() closes down while diving
   muffle = ac.createBiquadFilter(); muffle.type = "lowpass"; muffle.frequency.value = 18000; muffle.Q.value = 0.7; muffle.connect(master);
-  const comp = ac.createDynamicsCompressor(); comp.threshold.value = -12; comp.ratio.value = 8; comp.attack.value = 0.003; comp.release.value = 0.18; comp.connect(muffle);
+  // gentler bus compression: a hard 8:1 at -12 dB pumped the ambience up and down around every shot
+  const comp = ac.createDynamicsCompressor(); comp.threshold.value = -14; comp.ratio.value = 4; comp.attack.value = 0.003; comp.release.value = 0.25; comp.connect(muffle);
   const sfx = ac.createGain(); sfx.connect(comp);
   const music = ac.createGain(); music.gain.value = 0.35; music.connect(comp);
   const amb = ac.createGain(); amb.connect(comp); const abil = ac.createGain(); abil.connect(comp);
-  const noise = ac.createBuffer(1, ac.sampleRate, ac.sampleRate);
+  const noise = ac.createBuffer(1, Math.floor(ac.sampleRate * AMBIENT_MIX.noiseSeconds), ac.sampleRate);
   const d = noise.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
   // brown noise (integrated white): the rolling low rumble of explosions and heavy tails
   const brown = ac.createBuffer(1, ac.sampleRate * 2, ac.sampleRate);
@@ -219,10 +221,26 @@ function loadSample(c: Ctx, id: string, file: string) {
   sampleLoads.add(id);
   fetch(url).then((r) => { if (!r.ok) throw new Error(String(r.status)); return r.arrayBuffer(); })
     .then((b) => c.ac.decodeAudioData(b)).then((buf) => {
-      sampleBuffers.set(id, buf);
+      sampleBuffers.set(id, id.startsWith("ambient:") ? seamlessLoop(c, buf) : buf);
       if (id === `ambient:${activeBiomeRegion}` && biomeVoice) { biomeVoice.stop(); biomeVoice = null; updateBiomeAmbient(activeBiomeRegion); }
     })
     .catch(() => { /* keep the procedural sound */ }).finally(() => sampleLoads.delete(id));
+}
+/** ambience recordings loop: blend the seam once at load so the loop never clicks (ambient-mix.ts crossfadeLoop) */
+function seamlessLoop(c: Ctx, buf: AudioBuffer): AudioBuffer {
+  const fade = Math.floor(AMBIENT_MIX.loopCrossfadeSeconds * buf.sampleRate);
+  if (buf.length < fade * 4) return buf;
+  const out = c.ac.createBuffer(buf.numberOfChannels, buf.length - fade, buf.sampleRate);
+  for (let ch = 0; ch < buf.numberOfChannels; ch++) out.copyToChannel(new Float32Array(crossfadeLoop(buf.getChannelData(ch), fade)), ch);
+  return out;
+}
+/** a slow random-rate swell on a gain param (±depth around its level): wind gusts instead of a flat hiss */
+function gust(c: Ctx, param: AudioParam, level: number): OscillatorNode {
+  const lfo = c.ac.createOscillator(); lfo.type = "sine";
+  const [lo, hi] = AMBIENT_MIX.gustHz; lfo.frequency.value = lo + Math.random() * (hi - lo);
+  const depth = c.ac.createGain(); depth.gain.value = level * AMBIENT_MIX.gustDepth;
+  lfo.connect(depth).connect(param); lfo.start(c.ac.currentTime + Math.random() * 3);
+  return lfo;
 }
 function preloadSamples(c: Ctx) {
   for (const [id, f] of Object.entries(SAMPLE_FILES)) loadSample(c, id, f);
@@ -236,19 +254,22 @@ function playSample(id: SampleId, w: Where = {}, gain = 0.8, rate = 1) {
   src.connect(g).connect(o); src.start();
   return true;
 }
-let ambientSample: { source: AudioBufferSourceNode; gain: GainNode } | null = null;
+let ambientSample: { source: AudioBufferSourceNode; gain: GainNode; lfo: OscillatorNode } | null = null;
 function stopAmbientSample() {
   const c = ctx, a = ambientSample; if (!c || !a) return; ambientSample = null;
   a.gain.gain.setTargetAtTime(0, c.ac.currentTime, 0.45);
-  setTimeout(() => { try { a.source.stop(); } catch { /* stopped */ } }, 1800);
+  setTimeout(() => { try { a.source.stop(); a.lfo.stop(); } catch { /* stopped */ } }, 1800);
 }
 function startAmbientSample(regionId: string) {
   const c = ctx; const buf = sampleBuffers.get(`ambient:${regionId}`); if (!c || !buf) return false;
   stopAmbientSample();
   const source = c.ac.createBufferSource(); source.buffer = buf; source.loop = true;
-  const gain = c.ac.createGain(); gain.gain.value = 0; source.connect(gain).connect(c.amb); source.start();
-  gain.gain.setTargetAtTime(0.22, c.ac.currentTime, 1.2);
-  ambientSample = { source, gain }; return true;
+  const gain = c.ac.createGain(); gain.gain.value = 0;
+  const swell = c.ac.createGain(); swell.gain.value = 1; // the gust rides on a separate stage so the fade in/out stays clean
+  source.connect(swell).connect(gain).connect(c.amb); source.start(c.ac.currentTime, Math.random() * buf.duration);
+  const lfo = gust(c, swell.gain, 1);
+  gain.gain.setTargetAtTime(AMBIENT_MIX.sampleGain, c.ac.currentTime, 1.2);
+  ambientSample = { source, gain, lfo }; return true;
 }
 export function playVehicleEngineStart(vehicleId = "scrap-interceptor", speedRatio = 1) {
   const c = ctx; if (!c) return; const o = out(c);
@@ -380,10 +401,25 @@ function noiseBed(c: Ctx, dest: AudioNode, { cutoff, type = "lowpass", gain = 0.
   const src = c.ac.createBufferSource(); src.buffer = c.noise; src.loop = true;
   const f = c.ac.createBiquadFilter(); f.type = type; f.frequency.value = cutoff; f.Q.value = q;
   const g = c.ac.createGain(); g.gain.value = 0;
-  src.connect(f).connect(g).connect(dest);
-  src.start();
+  const swell = c.ac.createGain(); swell.gain.value = 1;
+  src.connect(f).connect(swell).connect(g).connect(dest);
+  src.start(c.ac.currentTime, Math.random() * AMBIENT_MIX.noiseSeconds);
+  const lfo = gust(c, swell.gain, 1);
+  // the filter drifts a little with the gust too, so the bed changes colour rather than sitting on one hiss
+  const drift = c.ac.createGain(); drift.gain.value = cutoff * 0.25; lfo.connect(drift).connect(f.frequency);
   g.gain.setTargetAtTime(gain, c.ac.currentTime, 1.2);
-  return { stop: () => { g.gain.setTargetAtTime(0, c.ac.currentTime, 0.6); setTimeout(() => src.stop(), 1500); } };
+  return { stop: () => { g.gain.setTargetAtTime(0, c.ac.currentTime, 0.6); setTimeout(() => { src.stop(); lfo.stop(); }, 1500); } };
+}
+/** A bird call: a short tonal chirp (two quick upward sweeps), not a burst of filtered noise. */
+function birdChirp(c: Ctx, dest: AudioNode) {
+  const f = 2300 + Math.random() * 1600, n = 1 + Math.floor(Math.random() * 3);
+  const p = c.ac.createStereoPanner(); p.pan.value = Math.random() * 1.6 - 0.8; p.connect(dest);
+  for (let k = 0; k < n; k++) tone(c, p, { f0: f, f1: f * (1.25 + Math.random() * 0.2), dur: 0.07 + Math.random() * 0.05, type: "sine", gain: 0.03 + Math.random() * 0.02, at: k * 0.11 });
+}
+/** Swamp frogs/insects: a low wooden croak or a high cricket pulse. */
+function marshCall(c: Ctx, dest: AudioNode) {
+  if (Math.random() < 0.5) { const f = 180 + Math.random() * 120; for (let k = 0; k < 3; k++) tone(c, dest, { f0: f, f1: f * 0.8, dur: 0.06, type: "triangle", gain: 0.035, at: k * 0.09 }); }
+  else { const f = 4200 + Math.random() * 800; for (let k = 0; k < 4; k++) tone(c, dest, { f0: f, f1: f, dur: 0.025, type: "sine", gain: 0.015, at: k * 0.05 }); }
 }
 /** Fires `spawn` on a randomized interval — birds, insects, embers — until stopped. */
 function periodicTexture(spawn: () => void, everyMs: readonly [number, number]) {
@@ -400,13 +436,13 @@ let weatherVoice: AmbientVoice | null = null;
 type BiomeAmbientDef = { bedCutoff: number; bedGain: number; bedType?: BiquadFilterType; hum?: number; textureEvery?: readonly [number, number]; texture?: (c: Ctx, dest: AudioNode) => void };
 /** One bed + optional texture per region — Nexus hums low and electronic, the wilds get wind, Ember rumbles and cracks. */
 const BIOME_AMBIENT: Record<string, BiomeAmbientDef> = {
-  veridan: { bedCutoff: 900, bedGain: 0.05, textureEvery: [900, 2400], texture: (c, dest) => burst(c, dest, { dur: 0.12, freq: 2200 + Math.random() * 1400, q: 7, gain: 0.06 }) },
-  swamps: { bedCutoff: 450, bedGain: 0.07, textureEvery: [400, 1300], texture: (c, dest) => burst(c, dest, { dur: 0.06, freq: 3200 + Math.random() * 900, q: 10, gain: 0.04 }) },
-  nexus: { bedCutoff: 260, bedGain: 0.03, hum: 118 },
-  frostspire: { bedCutoff: 1500, bedGain: 0.11 },
-  solara: { bedCutoff: 1300, bedGain: 0.09 },
-  wastelands: { bedCutoff: 800, bedGain: 0.06 },
-  ember: { bedCutoff: 220, bedGain: 0.1, textureEvery: [1300, 2600], texture: (c, dest) => burst(c, dest, { dur: 0.25, freq: 500, type: "lowpass", gain: 0.1 }) },
+  veridan: { bedCutoff: 700, bedGain: 0.03, textureEvery: [1400, 4200], texture: birdChirp },
+  swamps: { bedCutoff: 420, bedGain: 0.035, textureEvery: [900, 2600], texture: marshCall },
+  nexus: { bedCutoff: 260, bedGain: 0.02, hum: 118 },
+  frostspire: { bedCutoff: 1100, bedGain: 0.05 },
+  solara: { bedCutoff: 1000, bedGain: 0.045 },
+  wastelands: { bedCutoff: 700, bedGain: 0.04 },
+  ember: { bedCutoff: 220, bedGain: 0.05, textureEvery: [1800, 3600], texture: (c, dest) => burst(c, dest, { dur: 0.25, freq: 500, type: "lowpass", gain: 0.06 }) },
 };
 
 /** Called once per HUD tick with the current region id; only rebuilds voices when the region actually changes. */
@@ -415,8 +451,13 @@ export function updateBiomeAmbient(regionId: string) {
   activeBiomeRegion = regionId;
   if (biomeVoice?.key === regionId) return;
   biomeVoice?.stop(); biomeVoice = null;
-  if (startAmbientSample(regionId)) { biomeVoice = { key: regionId, stop: stopAmbientSample }; return; }
   const def = BIOME_AMBIENT[regionId];
+  if (startAmbientSample(regionId)) {
+    // the recordings are steady beds; the region's calls (birds, frogs) still play on top so the place sounds alive
+    const stopTexture = def?.texture && def.textureEvery ? periodicTexture(() => def.texture!(c, c.amb), def.textureEvery) : null;
+    biomeVoice = { key: regionId, stop: () => { stopAmbientSample(); stopTexture?.(); } };
+    return;
+  }
   if (!def) return;
   const dest = c.amb;
   const stops: (() => void)[] = [noiseBed(c, dest, { cutoff: def.bedCutoff, gain: def.bedGain, ...(def.bedType ? { type: def.bedType } : {}) }).stop];
@@ -430,20 +471,17 @@ export function updateBiomeAmbient(regionId: string) {
   biomeVoice = { key: regionId, stop: () => stops.forEach((fn) => fn()) };
 }
 
-const WEATHER_AMBIENT: Record<string, { cutoff: number; gain: number; type?: BiquadFilterType }> = {
-  "Rain mist": { cutoff: 4200, gain: 0.1, type: "highpass" },
-  Ashfall: { cutoff: 300, gain: 0.06 },
-  "Snow haze": { cutoff: 1100, gain: 0.04 },
-  "Dust front": { cutoff: 1900, gain: 0.08 },
-};
-/** Same swap-only-on-change pattern as updateBiomeAmbient, keyed on the HUD's existing `weather` label ("Clear shield" gets no bed). */
+/** Same swap-only-on-change pattern as updateBiomeAmbient, keyed on the HUD's existing `weather` label ("Clear shield" gets no bed).
+ * Levels and filters live in ambient-mix.ts WEATHER_BEDS; rain also gets sparse droplet ticks so it reads as rain, not static. */
 export function updateWeatherAmbient(weather: string) {
   const c = ctx; if (!c) return;
   if (weatherVoice?.key === weather) return;
   weatherVoice?.stop(); weatherVoice = null;
-  const def = WEATHER_AMBIENT[weather];
+  const def = WEATHER_BEDS[weather];
   if (!def) return;
-  weatherVoice = { key: weather, stop: noiseBed(c, c.amb, { cutoff: def.cutoff, gain: def.gain, type: def.type ?? "lowpass" }).stop };
+  const bed = noiseBed(c, c.amb, { cutoff: def.cutoff, gain: def.gain, type: def.type, q: def.q });
+  const drops = weather === "Rain mist" ? periodicTexture(() => { for (let k = 0; k < 3; k++) tone(c, c.amb, { f0: 1800 + Math.random() * 2400, f1: 900, dur: 0.02, type: "sine", gain: 0.012, at: Math.random() * 0.25 }); }, [120, 380]) : null;
+  weatherVoice = { key: weather, stop: () => { bed.stop(); drops?.(); } };
 }
 
 /* ---------------- running water: one stream voice + one waterfall voice (water-audio.ts decides gains) ---------------- */
@@ -451,7 +489,7 @@ export function updateWeatherAmbient(weather: string) {
 type WaterVoice = { gain: GainNode; pan: StereoPannerNode; nodes: AudioScheduledSourceNode[]; silentSince: number };
 const waterVoices: { stream: WaterVoice | null; fall: WaterVoice | null } = { stream: null, fall: null };
 /** peak loudness of each voice at gain 1 (below the combat mix; nature stays a bed) */
-const WATER_PEAK = { stream: 0.13, fall: 0.22 };
+const WATER_PEAK = AMBIENT_MIX.waterPeak;
 
 function loopNoise(c: Ctx, dest: AudioNode, type: BiquadFilterType, freq: number, q: number, level: number): { gain: GainNode; src: AudioBufferSourceNode } {
   const src = c.ac.createBufferSource(); src.buffer = c.noise; src.loop = true;
@@ -539,15 +577,20 @@ export function updateEngine(active: boolean, vehicleId: string, speed01: number
 function startMusic(c: Ctx) {
   const mk = () => { const g = c.ac.createGain(); g.gain.value = 0; g.connect(c.music); return g; };
   const ambient = mk(), tension = mk(), drums = mk(), motif = mk();
-  ambient.gain.value = 0.5;
+  ambient.gain.value = AMBIENT_MIX.pad;
   motif.gain.value = 1;
-  for (const f of [55, 82.4, 110.2]) {
+  // The pad used to be three full-level sines held forever (an idling-engine drone). Now: a warm, lowpassed chord whose
+  // voices swell in and out on their own slow cycles, so the bed breathes and never sits on one steady tone.
+  const padTone = c.ac.createBiquadFilter(); padTone.type = "lowpass"; padTone.frequency.value = AMBIENT_MIX.padCutoff; padTone.Q.value = 0.5; padTone.connect(ambient);
+  [55, 82.4, 110.2].forEach((f, i) => {
     const o = c.ac.createOscillator(); o.type = "sine"; o.frequency.value = f;
-    const lfo = c.ac.createOscillator(); lfo.frequency.value = 0.07 + f / 5000; const lg = c.ac.createGain(); lg.gain.value = 0.8; lfo.connect(lg).connect(o.detune);
-    o.connect(ambient); o.start(); lfo.start();
+    const voice = c.ac.createGain(); voice.gain.value = 0.5;
+    const swell = c.ac.createOscillator(); swell.frequency.value = 1 / (AMBIENT_MIX.padSwellSeconds * (1 + i * 0.37));
+    const depth = c.ac.createGain(); depth.gain.value = 0.5; swell.connect(depth).connect(voice.gain); // voice level rides 0..1
+    o.connect(voice).connect(padTone); o.start(); swell.start(c.ac.currentTime + i * 4);
     c.ambientOscs.push(o);
-  }
-  const t = c.ac.createOscillator(); t.type = "sawtooth"; t.frequency.value = 110; const tf = c.ac.createBiquadFilter(); tf.type = "lowpass"; tf.frequency.value = 500;
+  });
+  const t = c.ac.createOscillator(); t.type = "triangle"; t.frequency.value = 110; const tf = c.ac.createBiquadFilter(); tf.type = "lowpass"; tf.frequency.value = 500;
   const trem = c.ac.createGain(); trem.gain.value = 0.3; const tl = c.ac.createOscillator(); tl.frequency.value = 4; const tlg = c.ac.createGain(); tlg.gain.value = 0.3; tl.connect(tlg).connect(trem.gain);
   t.connect(tf).connect(trem).connect(tension); t.start(); tl.start();
   c.layers = { ambient, tension, drums, motif };
@@ -563,7 +606,7 @@ export function updateCombatAudio(intensity: number, boss = false) {
   const now = c.ac.currentTime;
   const eff = boss ? Math.max(intensity, 0.72) : intensity;
   const grid = boss ? 0.2 : 0.25;
-  c.layers.ambient.gain.setTargetAtTime(eff < 0.3 ? 0.5 : 0.25, now, 0.8);
+  c.layers.ambient.gain.setTargetAtTime(eff < 0.3 ? AMBIENT_MIX.pad : AMBIENT_MIX.padCombat, now, 0.8);
   c.layers.tension.gain.setTargetAtTime(eff > 0.4 ? (boss ? 0.2 : 0.12) * Math.min(1, (eff - 0.4) * 3) : 0, now, 0.8);
   c.layers.drums.gain.setTargetAtTime(eff > 0.65 ? (boss ? 1.1 : 0.9) : 0, now, 0.5);
   if (eff > 0.65 && now >= c.beat) {
