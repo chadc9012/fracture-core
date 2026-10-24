@@ -299,3 +299,81 @@ export function scrapPanel(seed: number): THREE.BufferGeometry {
   g.computeVertexNormals();
   return g;
 }
+
+/* ---------------- floating islands and ruins ---------------- */
+
+/** ConeGeometry-compatible (radius 1, height 1, centred, apex up) craggy rock spike: the underside of a floating island.
+ * Radial noise in layers, horizontal strata and a few hanging fins — smooth shaded rock instead of a 7-sided cone. */
+export function craggyCone(seed: number): THREE.BufferGeometry {
+  let g: THREE.BufferGeometry = new THREE.ConeGeometry(1, 1, 40, 16, false);
+  g.deleteAttribute("normal"); g.deleteAttribute("uv");
+  g = mergeVertices(g);
+  const p = g.attributes["position"] as THREE.BufferAttribute;
+  for (let i = 0; i < p.count; i++) {
+    const x = p.getX(i), y = p.getY(i), z = p.getZ(i), r = Math.hypot(x, z);
+    if (r < 1e-4) continue;
+    const a = Math.atan2(z, x), t = y + 0.5; // 0 at the wide end, 1 at the apex
+    const n = fbm3(Math.cos(a) * 1.8, t * 3.2, Math.sin(a) * 1.8, seed, 4);
+    const fins = Math.pow(Math.max(0, Math.sin(a * 5 + seed) * 0.5 + 0.5), 6) * 0.25 * (1 - t);
+    const strata = Math.round(t * 9) / 9 - t;
+    const k = 1 + n * 0.45 + fins + strata * 0.35;
+    p.setXYZ(i, (x / r) * r * k, y + n * 0.05, (z / r) * r * k);
+  }
+  g.computeVertexNormals();
+  g.computeBoundingSphere();
+  return g;
+}
+
+/** CylinderGeometry-compatible (radius 1, height 1, centred) island top: an uneven, eroded rim with a gently domed,
+ * lumpy surface, instead of a 9-sided disc */
+export function islandCap(seed: number): THREE.BufferGeometry {
+  let g: THREE.BufferGeometry = new THREE.CylinderGeometry(1, 0.92, 1, 40, 2, false);
+  g.deleteAttribute("normal"); g.deleteAttribute("uv");
+  g = mergeVertices(g);
+  const p = g.attributes["position"] as THREE.BufferAttribute;
+  for (let i = 0; i < p.count; i++) {
+    const x = p.getX(i), y = p.getY(i), z = p.getZ(i), r = Math.hypot(x, z), a = Math.atan2(z, x);
+    const rim = 1 + fbm3(Math.cos(a) * 2, 0, Math.sin(a) * 2, seed, 3) * 0.28;
+    const top = y > 0 ? 0.35 * (1 - r * r) + fbm3(x * 3, 1, z * 3, seed + 4, 2) * 0.4 : 0;
+    p.setXYZ(i, x * rim, y + top, z * rim);
+  }
+  g.computeVertexNormals();
+  return g;
+}
+
+/** BoxGeometry-compatible (1 x 1 x 1, centred) ruined tower: subdivided, its top broken into a jagged, collapsed
+ * crown and its walls slightly bowed, so a skyline of them doesn't read as clean boxes */
+export function brokenTower(seed: number): THREE.BufferGeometry {
+  let g: THREE.BufferGeometry = new THREE.BoxGeometry(1, 1, 1, 3, 8, 3);
+  g.deleteAttribute("normal"); g.deleteAttribute("uv");
+  g = mergeVertices(g);
+  const p = g.attributes["position"] as THREE.BufferAttribute;
+  for (let i = 0; i < p.count; i++) {
+    const x = p.getX(i), y = p.getY(i), z = p.getZ(i);
+    let ny = y;
+    if (y > 0.3) ny = y - Math.max(0, hash3(Math.round(x * 6), Math.round(z * 6), 1, seed) * 0.5 + 0.1) * (y - 0.3) * 1.6;
+    const bow = 1 + 0.03 * Math.sin(y * 7 + seed);
+    p.setXYZ(i, x * bow, ny, z * bow);
+  }
+  g.computeVertexNormals();
+  return g;
+}
+
+/** CylinderGeometry-compatible (unit height, centred) eroded rock column: the 0.55..1 taper of a hoodoo with deep
+ * horizontal weathering bands, notches and lumpy flanks — for desert hoodoos and sea stacks */
+export function erodedColumn(seed: number, top = 0.55, bottom = 1): THREE.BufferGeometry {
+  let g: THREE.BufferGeometry = new THREE.CylinderGeometry(top, bottom, 1, 32, 18, false);
+  g.deleteAttribute("normal"); g.deleteAttribute("uv");
+  g = mergeVertices(g);
+  const p = g.attributes["position"] as THREE.BufferAttribute;
+  for (let i = 0; i < p.count; i++) {
+    const x = p.getX(i), y = p.getY(i), z = p.getZ(i), r = Math.hypot(x, z);
+    if (r < 1e-4) continue;
+    const a = Math.atan2(z, x);
+    const bands = 1 - 0.14 * Math.pow(Math.abs(Math.sin((y + 0.5) * 22 + vnoise(a * 2, y, 0, seed) * 1.5)), 3);
+    const lump = 1 + fbm3(Math.cos(a) * 1.5, y * 2.5, Math.sin(a) * 1.5, seed, 3) * 0.3;
+    p.setXYZ(i, x * bands * lump, y, z * bands * lump);
+  }
+  g.computeVertexNormals();
+  return g;
+}

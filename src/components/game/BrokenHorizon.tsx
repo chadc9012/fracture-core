@@ -3,6 +3,7 @@ import { useMemo, useRef } from "react";
 import * as THREE from "three";
 import { brokenHorizon, type HorizonIsland } from "@/game/broken-horizon";
 import { useInstances } from "./instancing";
+import { brokenTower, craggyCone, islandCap, organicRock } from "@/game/organic-geometry";
 
 /** Aerial perspective: emissive slate-blue tints so they read as far away against the sky instead of black cut-outs (live check).
  * Floating shards of the old world on the horizon (layout: broken-horizon.ts). Three instanced draws (rock, towers, debris) plus one for
@@ -10,6 +11,8 @@ import { useInstances } from "./instancing";
  * Presentation only, no collision. */
 export function BrokenHorizon({ playerRef }: { playerRef: React.RefObject<THREE.Object3D | null> }) {
   const islands = useMemo(() => brokenHorizon(), []);
+  // craggy rock undersides, eroded tops, broken-crowned towers and real rock debris (organic-geometry.ts)
+  const geo = useMemo(() => ({ rock: craggyCone(17), cap: islandCap(19), tower: brokenTower(23), debris: organicRock(1, 29, 1, 0.3) }), []);
   const root = useRef<THREE.Group>(null);
   const rock = useRef<THREE.InstancedMesh>(null), cap = useRef<THREE.InstancedMesh>(null);
   const towers = useRef<THREE.InstancedMesh>(null), lit = useRef<THREE.InstancedMesh>(null), debris = useRef<THREE.InstancedMesh>(null);
@@ -33,24 +36,24 @@ export function BrokenHorizon({ playerRef }: { playerRef: React.RefObject<THREE.
   return (
     <group ref={root}>
       <instancedMesh ref={rock} args={[undefined, undefined, islands.length]} frustumCulled={false}>
-        <coneGeometry args={[1, 1, 7, 3]} />
-        <meshStandardMaterial color="#7a8798" emissive="#4f5b6c" emissiveIntensity={0.55} roughness={0.95} fog={false} flatShading />
+        <primitive object={geo.rock} attach="geometry" />
+        <meshStandardMaterial color="#7a8798" emissive="#4f5b6c" emissiveIntensity={0.55} roughness={0.95} fog={false} />
       </instancedMesh>
       <instancedMesh ref={cap} args={[undefined, undefined, islands.length]} frustumCulled={false}>
-        <cylinderGeometry args={[1, 0.92, 1, 9]} />
-        <meshStandardMaterial color="#87958a" emissive="#4f5c55" emissiveIntensity={0.5} roughness={1} fog={false} flatShading />
+        <primitive object={geo.cap} attach="geometry" />
+        <meshStandardMaterial color="#87958a" emissive="#4f5c55" emissiveIntensity={0.5} roughness={1} fog={false} />
       </instancedMesh>
       <instancedMesh ref={towers} args={[undefined, undefined, Math.max(1, dark.length)]} frustumCulled={false}>
-        <boxGeometry args={[1, 1, 1]} />
+        <primitive object={geo.tower} attach="geometry" />
         <meshStandardMaterial color="#748094" emissive="#47515f" emissiveIntensity={0.5} roughness={0.8} fog={false} />
       </instancedMesh>
       <instancedMesh ref={lit} args={[undefined, undefined, Math.max(1, bright.length)]} frustumCulled={false}>
-        <boxGeometry args={[1, 1, 1]} />
+        <primitive object={geo.tower} attach="geometry" />
         <meshStandardMaterial color="#748094" roughness={0.8} emissive="#d9a070" emissiveIntensity={0.45} fog={false} />
       </instancedMesh>
       <instancedMesh ref={debris} args={[undefined, undefined, Math.max(1, chunks.length)]} frustumCulled={false}>
-        <dodecahedronGeometry args={[1, 0]} />
-        <meshStandardMaterial color="#7a8798" emissive="#4f5b6c" emissiveIntensity={0.55} roughness={0.95} fog={false} flatShading />
+        <primitive object={geo.debris} attach="geometry" />
+        <meshStandardMaterial color="#7a8798" emissive="#4f5b6c" emissiveIntensity={0.55} roughness={0.95} fog={false} />
       </instancedMesh>
     </group>
   );

@@ -6,6 +6,7 @@ import { devilAt, dustDevils, hoodoos, mesas, oasis, pillars, ribcage, type Palm
 import { windUniforms } from "@/game/wind-sway";
 import { softSprite } from "./softSprite";
 import { InstancedGlb } from "./InstancedGlb";
+import { canopyCluster, erodedColumn, organicRock } from "@/game/organic-geometry";
 
 /** Solara Desert dressing: sandstone mesas and hoodoos, a palm oasis, a giant ribcage, half-buried arcology pillars and
  * wandering dust devils. Layout is pure (solara-dressing.ts); everything is procedural and instanced. */
@@ -55,9 +56,10 @@ function Mesas() {
   }), [ms]);
   const ref = useRef<THREE.InstancedMesh>(null);
   useInstances<{ x: number; z: number; y: number; rad: number; h: number; r: number; band: number }>(ref, tiers, (o, t) => { o.position.set(t.x, t.y, t.z); o.rotation.set(0, t.r, 0); o.scale.set(t.rad, t.h, t.rad * 0.8); }, (t) => STRATA[t.band]!);
-  return <instancedMesh ref={ref} args={[undefined, undefined, tiers.length]} castShadow receiveShadow>
-    <cylinderGeometry args={[0.92, 1, 1, 9, 1]} />
-    <meshStandardMaterial roughness={0.95} flatShading />
+  // eroded, banded tiers instead of 9-sided flat-shaded discs (organic-geometry.ts erodedColumn)
+  const tierGeo = useMemo(() => erodedColumn(53, 0.92, 1), []);
+  return <instancedMesh ref={ref} args={[undefined, undefined, tiers.length]} castShadow receiveShadow geometry={tierGeo}>
+    <meshStandardMaterial roughness={0.95} />
   </instancedMesh>;
 }
 
@@ -66,11 +68,12 @@ function Hoodoos() {
   const hs = useMemo(() => hoodoos(), []);
   const col = useRef<THREE.InstancedMesh>(null), cap = useRef<THREE.InstancedMesh>(null);
   const height = (p: Prop) => 5 + p.s * 7;
+  const geo = useMemo(() => ({ col: erodedColumn(31), cap: organicRock(1, 37, 1, 0.3) }), []);
   useInstances<Prop>(col, hs, (o, p) => { const h = height(p); o.position.set(p.x, walkHeight(p.x, p.z) + h / 2 - 0.5, p.z); o.rotation.set(p.tilt, p.r, p.tilt); o.scale.set(p.s * 1.1, h, p.s * 1.1); }, (_, i) => STRATA[i % 4]!);
   useInstances<Prop>(cap, hs, (o, p) => { const h = height(p); o.position.set(p.x + p.tilt * h, walkHeight(p.x, p.z) + h - 0.3, p.z); o.rotation.set(0, p.r, 0); o.scale.set(p.s * 1.9, p.s * 0.9, p.s * 1.6); });
   return <group>
-    <instancedMesh ref={col} args={[undefined, undefined, hs.length]} castShadow><cylinderGeometry args={[0.55, 1, 1, 7]} /><meshStandardMaterial roughness={1} flatShading /></instancedMesh>
-    <instancedMesh ref={cap} args={[undefined, undefined, hs.length]} castShadow><dodecahedronGeometry args={[1, 0]} /><meshStandardMaterial color="#6e4027" roughness={1} flatShading /></instancedMesh>
+    <instancedMesh ref={col} args={[undefined, undefined, hs.length]} castShadow geometry={geo.col}><meshStandardMaterial roughness={1} /></instancedMesh>
+    <instancedMesh ref={cap} args={[undefined, undefined, hs.length]} castShadow geometry={geo.cap}><meshStandardMaterial color="#6e4027" roughness={1} /></instancedMesh>
   </group>;
 }
 
@@ -100,10 +103,11 @@ function Palms({ palms }: { palms: readonly Palm[] }) {
 }
 
 function Scrub({ cx, cz, r }: { cx: number; cz: number; r: number }) {
+  const scrubGeo = useMemo(() => canopyCluster(59), []); // lumpy desert scrub, not a 20-face gem
   const items = useMemo(() => Array.from({ length: 26 }, (_, i) => { const a = i * 2.39996, d = r + (i % 5) * 1.6; return { x: cx + Math.cos(a) * d, z: cz + Math.sin(a) * d, s: 0.6 + (i % 4) * 0.25 }; }), [cx, cz, r]);
   const ref = useRef<THREE.InstancedMesh>(null);
   useInstances<{ x: number; z: number; s: number }>(ref, items, (o, p) => { o.position.set(p.x, walkHeight(p.x, p.z) + 0.3 * p.s, p.z); o.scale.set(p.s * 1.3, p.s * 0.8, p.s * 1.3); }, (_, i) => (i % 3 ? "#5f8a34" : "#7a9a3c"));
-  return <instancedMesh ref={ref} args={[undefined, undefined, items.length]} castShadow><icosahedronGeometry args={[1, 0]} /><meshStandardMaterial roughness={0.9} flatShading /></instancedMesh>;
+  return <instancedMesh ref={ref} args={[undefined, undefined, items.length]} castShadow geometry={scrubGeo}><meshStandardMaterial roughness={0.9} /></instancedMesh>;
 }
 
 /** a spine half-buried along the dune and 11 pairs of curved ribs arching over it, plus a skull at one end */
