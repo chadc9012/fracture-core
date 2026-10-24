@@ -10,7 +10,15 @@ import { PolyFoliage } from "./PolyFoliage";
 /** Frostspire dressing: snow-laden pines, ice crystal clusters, snow drifts, frozen survey camps and a frozen waterfall.
  * Layout is pure (frost-dressing.ts); procedural and instanced. */
 export function FrostspireDressing() {
-  return <group><Pines /><Crystals /><Drifts /><Camps /><FrozenFall /></group>;
+  return <group><Pines /><Crystals /><Drifts /><Camps /><FrozenFall />
+    {/* Ice-blue reflective collars at selected preexisting crystal landmarks. */}
+    {iceCrystals().filter((_, i) => i % 6 === 0).map((p, i) => (
+      <mesh key={`crystal-halo-${i}`} position={[p.x, walkHeight(p.x, p.z) + 0.06, p.z]} rotation={[-Math.PI / 2, 0, 0]}>
+        <ringGeometry args={[0.9, 1.22, 16]} />
+        <meshStandardMaterial color="#8ac8db" emissive="#185366" emissiveIntensity={0.22} roughness={0.36} side={THREE.DoubleSide} />
+      </mesh>
+    ))}
+  </group>;
 }
 
 /** pines: the authored conifer (scripts/build-trees.py, three variants) as GPU instances; the stacked-cone pine below

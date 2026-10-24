@@ -16,6 +16,13 @@ export function EmberPeaks() {
       <Basalt />
       <Obsidian />
       <DeadTrees />
+      {/* Scorched mineral rings at selected preexisting vent sites; visual-only. */}
+      {vents().filter((_, i) => i % 3 === 0).map((v, i) => (
+        <mesh key={`vent-crust-${i}`} position={[v.x, walkHeight(v.x, v.z) + 0.07, v.z]} rotation={[-Math.PI / 2, 0, 0]}>
+          <ringGeometry args={[1.25, 1.7, 18]} />
+          <meshStandardMaterial color="#382e2b" emissive="#64220b" emissiveIntensity={0.26} roughness={0.88} side={THREE.DoubleSide} />
+        </mesh>
+      ))}
       {vents().map((v, i) => <Plume key={i} x={v.x} z={v.z} big={v.big} seed={i} />)}
     </group>
   );

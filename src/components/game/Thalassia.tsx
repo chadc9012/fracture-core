@@ -31,6 +31,63 @@ const CORE_Y = SEA_FLOOR_Y + 26;
 /** Dry, enclosed street at the seabed. Its long axis points toward the central spire. */
 export const THALASSIA_STREET = { x: THALASSIA_CENTER.x + 17, z: THALASSIA_CENTER.z + 34, halfWidth: 6, halfLength: 27, floor: SEA_FLOOR_Y + 0.28 };
 
+
+/** Shared-geometry promenade fixtures; visual-only, no collision or world-state writes. */
+function PromenadeFixtureDetail() {
+  const lamps = useMemo(() => {
+    const dummy = new THREE.Object3D();
+    const matrices: THREE.Matrix4[] = [];
+    for (let i = 0; i < 15; i++) {
+      const z = -28 + i * 4;
+      for (const x of [-3.65, 3.65]) {
+        dummy.position.set(x, 7.76, z);
+        dummy.rotation.set(0, 0, 0);
+        dummy.scale.set(1, 1, 1);
+        dummy.updateMatrix();
+        matrices.push(dummy.matrix.clone());
+      }
+    }
+    return matrices;
+  }, []);
+  const seams = useMemo(() => {
+    const dummy = new THREE.Object3D();
+    const matrices: THREE.Matrix4[] = [];
+    for (let i = 0; i < 15; i++) {
+      dummy.position.set(0, 0.135, -28 + i * 4);
+      dummy.rotation.set(0, 0, 0);
+      dummy.scale.set(1, 1, 1);
+      dummy.updateMatrix();
+      matrices.push(dummy.matrix.clone());
+    }
+    return matrices;
+  }, []);
+  const lampRef = useRef<THREE.InstancedMesh>(null);
+  const seamRef = useRef<THREE.InstancedMesh>(null);
+  // Refs are populated after mount; React callback refs avoid a per-frame update.
+  const setLamps = (mesh: THREE.InstancedMesh | null) => {
+    lampRef.current = mesh;
+    if (!mesh) return;
+    lamps.forEach((matrix, i) => mesh.setMatrixAt(i, matrix));
+    mesh.instanceMatrix.needsUpdate = true;
+  };
+  const setSeams = (mesh: THREE.InstancedMesh | null) => {
+    seamRef.current = mesh;
+    if (!mesh) return;
+    seams.forEach((matrix, i) => mesh.setMatrixAt(i, matrix));
+    mesh.instanceMatrix.needsUpdate = true;
+  };
+  return <>
+    <instancedMesh ref={setLamps} args={[undefined, undefined, lamps.length]} frustumCulled={false}>
+      <boxGeometry args={[1.4, 0.07, 0.2]} />
+      <meshStandardMaterial color="#83e7f1" emissive="#36a8bc" emissiveIntensity={1.35} toneMapped={false} />
+    </instancedMesh>
+    <instancedMesh ref={setSeams} args={[undefined, undefined, seams.length]} frustumCulled={false}>
+      <boxGeometry args={[8.7, 0.014, 0.05]} />
+      <meshStandardMaterial color="#66818b" metalness={0.65} roughness={0.4} />
+    </instancedMesh>
+  </>;
+}
+
 function UnderwaterStreet() {
   const { x, z, floor } = THALASSIA_STREET;
   return (
@@ -46,6 +103,7 @@ function UnderwaterStreet() {
           <LightBar position={[0, 0.13, 0]} size={[1.3, 0.015, 0.06]} color="#7c9caa" />
         </group>;
       })}
+      <PromenadeFixtureDetail />
       {/* Ribbed glass vault. A largely open arch on the right frames the ocean rather than hiding it. */}
       {Array.from({ length: 12 }, (_, i) => {
         const zz = -29 + i * 5.3;
@@ -93,6 +151,15 @@ function ResidentialDome({ x, z, radius, glow }: { x: number; z: number; radius:
       <mesh>
         <sphereGeometry args={[radius, 20, 14, 0, Math.PI * 2, 0, Math.PI * 0.55]} />
         <meshStandardMaterial color="#2c5566" transparent opacity={0.35} roughness={0.15} metalness={0.2} side={THREE.DoubleSide} />
+      </mesh>
+      {/* Exterior pressure-shell rim: retains the original dome footprint and collision. */}
+      <mesh rotation-x={Math.PI / 2} position-y={-radius * 0.04}>
+        <torusGeometry args={[radius * 0.91, 0.14, 6, 36]} />
+        <meshStandardMaterial color="#7399a6" metalness={0.82} roughness={0.3} />
+      </mesh>
+      <mesh rotation-x={Math.PI / 2} position-y={-radius * 0.04}>
+        <torusGeometry args={[radius * 0.91, 0.045, 4, 36]} />
+        <meshBasicMaterial color={glow} toneMapped={false} />
       </mesh>
       <mesh position-y={-radius * 0.3}>
         <cylinderGeometry args={[radius * 0.55, radius * 0.6, radius * 0.5, 16]} />
@@ -172,10 +239,31 @@ function TransitTunnel({ fromX, fromZ, toX, toZ }: { fromX: number; fromZ: numbe
     ]);
     return new THREE.TubeGeometry(curve, 20, 1, 8, false);
   }, [fromX, fromZ, toX, toZ]);
+  const beacons = useMemo(() => {
+    const points = [];
+    for (let i = 1; i <= 5; i++) {
+      const t = i / 6;
+      points.push([
+        fromX + (toX - fromX) * t,
+        SEA_FLOOR_Y + 3 + 2 * Math.sin(Math.PI * t) + 1.12,
+        fromZ + (toZ - fromZ) * t,
+      ] as [number, number, number]);
+    }
+    return points;
+  }, [fromX, fromZ, toX, toZ]);
   return (
-    <mesh geometry={geometry}>
-      <meshStandardMaterial color="#3a5560" transparent opacity={0.5} roughness={0.2} metalness={0.3} />
-    </mesh>
+    <group>
+      <mesh geometry={geometry}>
+        <meshStandardMaterial color="#3a5560" transparent opacity={0.5} roughness={0.2} metalness={0.3} />
+      </mesh>
+      {/* Exterior transit guide lights, visual-only and fixed to the existing tunnel route. */}
+      {beacons.map((position, i) => (
+        <mesh key={i} position={position}>
+          <sphereGeometry args={[0.16, 6, 4]} />
+          <meshBasicMaterial color="#79dbea" toneMapped={false} />
+        </mesh>
+      ))}
+    </group>
   );
 }
 

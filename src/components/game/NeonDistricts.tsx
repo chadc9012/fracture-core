@@ -1,4 +1,4 @@
-import { useMemo, useRef } from "react";
+import { useLayoutEffect, useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import { Text } from "./SafeText";
 import * as THREE from "three";
@@ -25,6 +25,58 @@ function DistrictLabel({ x, y, z, text, sub, color }: { x: number; y: number; z:
   </group>;
 }
 
+/** GPU-instanced architectural window strips for the existing Aegis tower.
+ * Decorative only: no collision, deck, mission, or world-coordinate changes.
+ */
+function AegisFacadeDetails({ color }: { color: string }) {
+  const windows = useRef<THREE.InstancedMesh>(null);
+  const count = useMemo(() => {
+    const tierWidths = [12, 10, 8, 6];
+    const tierHeights = [22, 20, 18, 16];
+    let total = 0;
+    tierWidths.forEach((width, tier) => {
+      const rows = Math.floor((tierHeights[tier]! - 4) / 3.5);
+      const columns = Math.max(2, Math.floor((width - 2) / 2.1));
+      total += rows * columns * 4;
+    });
+    return total;
+  }, []);
+  useLayoutEffect(() => {
+    const mesh = windows.current;
+    if (!mesh) return;
+    const obj = new THREE.Object3D();
+    let idx = 0;
+    let base = 0;
+    [12, 10, 8, 6].forEach((width, tier) => {
+      const height = [22, 20, 18, 16][tier]!;
+      const rows = Math.floor((height - 4) / 3.5);
+      const columns = Math.max(2, Math.floor((width - 2) / 2.1));
+      for (let row = 0; row < rows; row++) {
+        const yy = base + 2.4 + row * 3.5;
+        for (let col = 0; col < columns; col++) {
+          const offset = (col - (columns - 1) / 2) * 2.1;
+          for (let face = 0; face < 4; face++) {
+            const verticalFace = face < 2;
+            const sign = face % 2 ? -1 : 1;
+            obj.position.set(verticalFace ? offset : sign * (width / 2 + 0.045), yy, verticalFace ? sign * (width / 2 + 0.045) : offset);
+            obj.rotation.set(0, verticalFace ? 0 : Math.PI / 2, 0);
+            obj.scale.set(1, 1, 1);
+            obj.updateMatrix();
+            mesh.setMatrixAt(idx++, obj.matrix);
+          }
+        }
+      }
+      base += height;
+    });
+    mesh.instanceMatrix.needsUpdate = true;
+    mesh.computeBoundingSphere();
+  }, []);
+  return <instancedMesh ref={windows} args={[undefined, undefined, count]} frustumCulled>
+    <boxGeometry args={[1.15, 0.16, 0.06]} />
+    <meshStandardMaterial color={color} emissive={color} emissiveIntensity={1.4} metalness={0.55} roughness={0.35} toneMapped={false} />
+  </instancedMesh>;
+}
+
 /** Aegis Spire: a glass corporate tower over a raised, lit plaza. */
 function AegisSpire({ c }: { c: C }) {
   const { x, z, d } = at(c, "aegis-spire");
@@ -45,6 +97,7 @@ function AegisSpire({ c }: { c: C }) {
         <mesh position={[0, yy, 0]} castShadow><boxGeometry args={[w, th, w]} /><meshPhysicalMaterial color="#1b2a3a" metalness={0.9} roughness={0.27} clearcoat={0.55} clearcoatRoughness={0.2} /></mesh>
         {[-1, 1].map((s) => <LightBar key={s} position={[s * (w / 2 + 0.02), yy, 0]} size={[0.06, th * 0.96, 0.25]} color={d.color} />)}
       </group>; })}
+      <AegisFacadeDetails color={d.color} />
       <mesh position={[0, h + 6, 0]}><coneGeometry args={[3, 12, 4]} /><meshStandardMaterial ref={crown} color="#cfefff" emissive={d.color} emissiveIntensity={1.3} /></mesh>
       <DistrictLight position={[0, h + 4, 0]} color={d.color} intensity={30} distance={90} decay={2} />
     </group>
@@ -105,6 +158,7 @@ function RustMuck({ c }: { c: C }) {
     <mesh position={[0, 8.3, 0]} receiveShadow><boxGeometry args={[31, 0.6, 46]} /><meshStandardMaterial color="#2a1a14" metalness={0.5} roughness={0.85} /></mesh>
     {Array.from({ length: 6 }, (_, i) => <mesh key={i} position={[0, 7.7, -20 + i * 8]}><boxGeometry args={[30, 0.5, 0.5]} /><meshStandardMaterial {...rust} /></mesh>)}
     <mesh position={[0, 0.03, 0]} rotation-x={-Math.PI / 2} receiveShadow><planeGeometry args={[30, 46]} /><meshStandardMaterial {...WET} color="#1a0f0a" /></mesh>
+    <RustMuckStreetDetails />
     {/* market stalls along the walls */}
     {[-1, 1].flatMap((s) => [-14, -2, 10].map((zz) => <group key={`${s}${zz}`} position={[s * 11.5, 0, zz]}>
       <mesh position={[0, 1.1, 0]} castShadow><boxGeometry args={[3.5, 2.2, 3]} /><meshStandardMaterial color="#3a2a22" roughness={0.8} /></mesh>
@@ -115,6 +169,45 @@ function RustMuck({ c }: { c: C }) {
     {[-15, 0, 15].map((zz) => <DistrictLight key={zz} position={[0, 6.5, zz]} color="#ff9a4a" intensity={14} distance={24} decay={2} />)}
     <mesh ref={steam} position={[0, 3, 0]}><boxGeometry args={[28, 6, 44]} /><meshBasicMaterial color="#ffb07a" transparent opacity={0.12} depthWrite={false} /></mesh>
     <DistrictLabel x={0} y={11} z={24} text="RUST-MUCK" sub="THE UNDERCITY · UNDERGROUND RACES" color={d.color} />
+  </group>;
+}
+
+/** Lightweight market dressing. All elements are visual-only, instanced, and local to Rust-Muck. */
+function RustMuckStreetDetails() {
+  const lamps = useRef<THREE.InstancedMesh>(null);
+  const panels = useRef<THREE.InstancedMesh>(null);
+  const markings = useRef<THREE.InstancedMesh>(null);
+  useLayoutEffect(() => {
+    const obj = new THREE.Object3D();
+    const place = (mesh: THREE.InstancedMesh | null, items: Array<[number, number, number, number, number, number]>) => {
+      if (!mesh) return;
+      items.forEach(([x, y, z, sx, sy, sz], i) => {
+        obj.position.set(x, y, z);
+        obj.rotation.set(0, 0, 0);
+        obj.scale.set(sx, sy, sz);
+        obj.updateMatrix();
+        mesh.setMatrixAt(i, obj.matrix);
+      });
+      mesh.instanceMatrix.needsUpdate = true;
+      mesh.computeBoundingSphere();
+    };
+    place(lamps.current, [-1, 1].flatMap(side => [-14, -2, 10].map(z => [side * 11.5, 2.45, z, 2.8, 0.09, 0.12] as [number, number, number, number, number, number])));
+    place(panels.current, [-1, 1].flatMap(side => [-17, -9, -1, 7, 15].map(z => [side * 14.28, 4.1, z, 0.08, 3.1, 4.7] as [number, number, number, number, number, number])));
+    place(markings.current, Array.from({ length: 10 }, (_, i) => [0, 0.065, -20 + i * 4.4, 4.6, 0.015, 0.13] as [number, number, number, number, number, number]));
+  }, []);
+  return <group>
+    <instancedMesh ref={lamps} args={[undefined, undefined, 6]}>
+      <boxGeometry args={[1, 1, 1]} />
+      <meshBasicMaterial color="#ffb866" toneMapped={false} />
+    </instancedMesh>
+    <instancedMesh ref={panels} args={[undefined, undefined, 10]}>
+      <boxGeometry args={[1, 1, 1]} />
+      <meshStandardMaterial color="#53616d" metalness={0.65} roughness={0.45} />
+    </instancedMesh>
+    <instancedMesh ref={markings} args={[undefined, undefined, 10]}>
+      <boxGeometry args={[1, 1, 1]} />
+      <meshBasicMaterial color="#d5a654" toneMapped={false} />
+    </instancedMesh>
   </group>;
 }
 

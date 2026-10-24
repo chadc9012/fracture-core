@@ -19,6 +19,13 @@ export function SolaraDesert() {
       <Ribcage />
       <Pillars />
       <DustDevils />
+      {/* Decorative sandstone strata around existing hoodoo landmarks. */}
+      {hoodoos().filter((_, i) => i % 5 === 0).map((p, i) => (
+        <mesh key={`strata-${i}`} position={[p.x, walkHeight(p.x, p.z) + 0.08, p.z]} rotation={[-Math.PI / 2, 0, 0]}>
+          <ringGeometry args={[1.6, 2.1, 16]} />
+          <meshStandardMaterial color="#b68a55" roughness={0.95} side={THREE.DoubleSide} />
+        </mesh>
+      ))}
     </group>
   );
 }
