@@ -6,6 +6,9 @@ import { camps, drifts, frozenFall, iceCrystals, pines } from "@/game/frost-dres
 import type { Prop } from "@/game/dressing-kit";
 import { useInstances } from "./instancing";
 import { PolyFoliage } from "./PolyFoliage";
+import { cargoSled, crystalShard, equipmentCase, ridgeTent } from "@/game/camp-geometry";
+
+const geo = { tent: ridgeTent(), case: equipmentCase(), sled: cargoSled(3), shard: crystalShard(5) };
 
 /** Frostspire dressing: snow-laden pines, ice crystal clusters, snow drifts, frozen survey camps and a frozen waterfall.
  * Layout is pure (frost-dressing.ts); procedural and instanced. */
@@ -64,8 +67,7 @@ function Crystals() {
     o.rotation.set(Math.cos(a) * (j ? 0.45 : 0.08), a, Math.sin(a) * (j ? 0.45 : 0.08));
     o.scale.set(0.5 * c.s, h, 0.5 * c.s);
   });
-  return <instancedMesh ref={ref} args={[undefined, undefined, shards.length]} castShadow>
-    <cylinderGeometry args={[0.55, 0.8, 1, 6]} />
+  return <instancedMesh ref={ref} args={[geo.shard, undefined, shards.length]} castShadow>
     <meshPhysicalMaterial color="#9fdcff" emissive="#2a7fb8" emissiveIntensity={0.35} roughness={0.1} metalness={0} transmission={0.4} thickness={1} transparent opacity={0.85} flatShading />
   </instancedMesh>;
 }
@@ -86,16 +88,16 @@ function Camps() {
   const crates = useMemo(() => items.filter((i) => i.kind === 1).map((i) => i.p), [items]);
   const sleds = useMemo(() => items.filter((i) => i.kind === 2).map((i) => i.p), [items]);
   const tRef = useRef<THREE.InstancedMesh>(null), cRef = useRef<THREE.InstancedMesh>(null), sRef = useRef<THREE.InstancedMesh>(null);
-  useInstances<Prop>(tRef, tents, (o, p) => { o.position.set(p.x, walkHeight(p.x, p.z) + 0.9, p.z); o.rotation.set(0, p.r, 0); o.scale.set(1.6, 1.8, 2.4); }, (_, i) => (i % 2 ? "#b8462e" : "#c98a2e"));
+  useInstances<Prop>(tRef, tents, (o, p) => { o.position.set(p.x, walkHeight(p.x, p.z) + 0.9, p.z); o.rotation.set(0, p.r, 0); o.scale.set(1.6, 1.8, 2.4); }, (_, i) => (i % 2 ? "#8e4030" : "#a8803e"));
   useInstances<Prop>(cRef, crates, (o, p) => { o.position.set(p.x, walkHeight(p.x, p.z) + 0.45 * p.s, p.z); o.rotation.set(0, p.r, 0); o.scale.setScalar(0.9 * p.s); });
-  useInstances<Prop>(sRef, sleds, (o, p) => { o.position.set(p.x, walkHeight(p.x, p.z) + 0.25, p.z); o.rotation.set(0, p.r, p.tilt); o.scale.set(0.9, 0.3, 2.4); });
+  useInstances<Prop>(sRef, sleds, (o, p) => { o.position.set(p.x, walkHeight(p.x, p.z) - 0.02, p.z); o.rotation.set(0, p.r, p.tilt * 0.3); o.scale.setScalar(1); });
   const blink = useRef<THREE.MeshBasicMaterial>(null);
   useFrame(({ clock }) => { if (blink.current) blink.current.opacity = clock.elapsedTime % 2 < 0.25 ? 1 : 0.1; });
   return <group>
-    {/* a three-sided cone reads as an A-frame tent */}
-    <instancedMesh ref={tRef} args={[undefined, undefined, tents.length]} castShadow><coneGeometry args={[1, 1, 3]} /><meshStandardMaterial roughness={0.9} /></instancedMesh>
-    <instancedMesh ref={cRef} args={[undefined, undefined, crates.length]} castShadow><boxGeometry args={[1, 1, 1]} /><meshStandardMaterial color="#4c5562" roughness={0.7} metalness={0.3} /></instancedMesh>
-    <instancedMesh ref={sRef} args={[undefined, undefined, sleds.length]} castShadow><boxGeometry args={[1, 1, 1]} /><meshStandardMaterial color="#6d4b2f" roughness={0.9} /></instancedMesh>
+    {/* canvas ridge tents, ribbed equipment cases, runner sleds with lashed tarps (camp-geometry.ts) */}
+    <instancedMesh ref={tRef} args={[geo.tent, undefined, tents.length]} castShadow receiveShadow><meshStandardMaterial roughness={0.95} side={THREE.DoubleSide} /></instancedMesh>
+    <instancedMesh ref={cRef} args={[geo.case, undefined, crates.length]} castShadow receiveShadow><meshStandardMaterial color="#4c5562" roughness={0.72} metalness={0.3} /></instancedMesh>
+    <instancedMesh ref={sRef} args={[geo.sled, undefined, sleds.length]} castShadow receiveShadow><meshStandardMaterial color="#5e4a36" roughness={0.92} /></instancedMesh>
     {cs.map((c, i) => (
       <group key={i} position={[c.at.x, walkHeight(c.at.x, c.at.z), c.at.z]}>
         <mesh castShadow position-y={4}><cylinderGeometry args={[0.1, 0.16, 8, 6]} /><meshStandardMaterial color="#5a6470" metalness={0.6} roughness={0.5} /></mesh>
