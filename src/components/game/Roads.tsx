@@ -123,7 +123,15 @@ export function Roads() {
     const mats = new Map<RoadKind, { map: THREE.CanvasTexture; material: THREE.MeshStandardMaterial }>();
     for (const k of kinds) {
       const map = TEXTURE[k]();
-      if (map) mats.set(k, { map, material: new THREE.MeshStandardMaterial({ map, transparent: true, depthWrite: false, roughness: ROUGH[k], metalness: 0, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 }) });
+      if (!map) continue;
+      const material = new THREE.MeshStandardMaterial({ map, transparent: true, depthWrite: false, roughness: ROUGH[k], metalness: 0, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 });
+      // past ~600 m the terrain is drawn at 12 m spacing (up to 6 m off the true height), so a strip that follows the true
+      // ground dives under the coarse hills or floats over the dips: fade the road out there, the corridor tint carries on
+      material.onBeforeCompile = (sh) => {
+        sh.fragmentShader = sh.fragmentShader.replace("#include <clipping_planes_fragment>", "#include <clipping_planes_fragment>\n  float roadFar = smoothstep(520.0, 600.0, length(vViewPosition));\n  if (roadFar >= 1.0) discard;");
+        sh.fragmentShader = sh.fragmentShader.replace("#include <dithering_fragment>", "#include <dithering_fragment>\n  gl_FragColor.a *= 1.0 - roadFar;");
+      };
+      mats.set(k, { map, material });
     }
     if (!mats.size) return null;
     const meshes = allRoadRibbons().map((r, i) => ({ r, i, kind: roadKind(LANES[i]!) })).filter(({ r, kind }) => r.indices.length && mats.has(kind)).map(({ r, i, kind }) => {
