@@ -35,24 +35,19 @@ export function BrokenHorizon({ playerRef }: { playerRef: React.RefObject<THREE.
   useFrame(() => { const p = playerRef.current?.position; if (root.current && p) root.current.position.set(p.x, Math.max(0, p.y), p.z); });
   return (
     <group ref={root}>
-      <instancedMesh ref={rock} args={[undefined, undefined, islands.length]} frustumCulled={false}>
-        <primitive object={geo.rock} attach="geometry" />
+      <instancedMesh ref={rock} args={[undefined, undefined, islands.length]} frustumCulled={false} geometry={geo.rock}>
         <meshStandardMaterial color="#7a8798" emissive="#4f5b6c" emissiveIntensity={0.55} roughness={0.95} fog={false} />
       </instancedMesh>
-      <instancedMesh ref={cap} args={[undefined, undefined, islands.length]} frustumCulled={false}>
-        <primitive object={geo.cap} attach="geometry" />
+      <instancedMesh ref={cap} args={[undefined, undefined, islands.length]} frustumCulled={false} geometry={geo.cap}>
         <meshStandardMaterial color="#87958a" emissive="#4f5c55" emissiveIntensity={0.5} roughness={1} fog={false} />
       </instancedMesh>
-      <instancedMesh ref={towers} args={[undefined, undefined, Math.max(1, dark.length)]} frustumCulled={false}>
-        <primitive object={geo.tower} attach="geometry" />
+      <instancedMesh ref={towers} args={[undefined, undefined, Math.max(1, dark.length)]} frustumCulled={false} geometry={geo.tower}>
         <meshStandardMaterial color="#748094" emissive="#47515f" emissiveIntensity={0.5} roughness={0.8} fog={false} />
       </instancedMesh>
-      <instancedMesh ref={lit} args={[undefined, undefined, Math.max(1, bright.length)]} frustumCulled={false}>
-        <primitive object={geo.tower} attach="geometry" />
+      <instancedMesh ref={lit} args={[undefined, undefined, Math.max(1, bright.length)]} frustumCulled={false} geometry={geo.tower}>
         <meshStandardMaterial color="#748094" roughness={0.8} emissive="#d9a070" emissiveIntensity={0.45} fog={false} />
       </instancedMesh>
-      <instancedMesh ref={debris} args={[undefined, undefined, Math.max(1, chunks.length)]} frustumCulled={false}>
-        <primitive object={geo.debris} attach="geometry" />
+      <instancedMesh ref={debris} args={[undefined, undefined, Math.max(1, chunks.length)]} frustumCulled={false} geometry={geo.debris}>
         <meshStandardMaterial color="#7a8798" emissive="#4f5b6c" emissiveIntensity={0.55} roughness={0.95} fog={false} />
       </instancedMesh>
     </group>
