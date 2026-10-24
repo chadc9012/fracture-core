@@ -52,6 +52,39 @@ export function weatheredConcreteTexture(): THREE.CanvasTexture | null {
   return concrete;
 }
 
+let plaster: THREE.CanvasTexture | null = null;
+/** Painted render/plaster for homes and garages: the same ×2 detail convention as the concrete, but gentler — soft mottling,
+ * fine grain and faint grime streaks under sills, with no formwork lines or rust (homes are lived in, not ruined). Why: the
+ * residences were flat vertex-coloured boxes, the "Roblox" read the owner's gritty-realistic direction rules out. */
+export function weatheredPlasterTexture(): THREE.CanvasTexture | null {
+  if (plaster) return plaster;
+  if (typeof document === "undefined") return null;
+  const size = 256;
+  const c = document.createElement("canvas"); c.width = c.height = size;
+  const g = c.getContext("2d"); if (!g) return null;
+  let seed = 7717; const rnd = () => { seed = (seed * 1664525 + 1013904223) >>> 0; return seed / 4294967296; };
+  g.fillStyle = "#808080"; g.fillRect(0, 0, size, size);
+  for (let i = 0; i < 700; i++) { // soft patchy paint
+    const x = rnd() * size, y = rnd() * size, r = 4 + rnd() * 20, v = 116 + Math.round(rnd() * 24);
+    g.fillStyle = `rgba(${v},${v},${v},0.2)`; g.beginPath(); g.arc(x, y, r, 0, Math.PI * 2); g.fill();
+  }
+  const img = g.getImageData(0, 0, size, size), d = img.data; // fine render grain
+  for (let i = 0; i < d.length; i += 4) { const n = (rnd() - 0.5) * 30; d[i] = d[i]! + n; d[i + 1] = d[i + 1]! + n; d[i + 2] = d[i + 2]! + n; }
+  g.putImageData(img, 0, 0);
+  for (let i = 0; i < 26; i++) { // faint grime streaks
+    const x = rnd() * size, y = rnd() * size, len = 14 + rnd() * 40, w = 2 + rnd() * 5;
+    const grad = g.createLinearGradient(0, y, 0, y + len); grad.addColorStop(0, "rgba(52,48,42,0.32)"); grad.addColorStop(1, "rgba(52,48,42,0)");
+    g.fillStyle = grad; g.fillRect(x, y, w, len);
+  }
+  plaster = new THREE.CanvasTexture(c);
+  plaster.wrapS = plaster.wrapT = THREE.RepeatWrapping;
+  plaster.colorSpace = THREE.NoColorSpace;
+  plaster.anisotropy = 4;
+  return plaster;
+}
+/** metres per plaster tile on homes */
+export const PLASTER_TILE = 2.5;
+
 /** world-space metres per texture tile */
 export const CONCRETE_TILE = 6;
 

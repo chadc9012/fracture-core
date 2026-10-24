@@ -5,6 +5,7 @@ import { DESIGNS, homeBoxes, homeDecks, homeWalls, residences, type Box, type Ma
 import { DistrictLight } from "./DistrictLight";
 import { setWalls, clearWalls } from "@/game/walls";
 import { registerDeck } from "@/game/district-decks";
+import { applyWorldTriplanar, PLASTER_TILE, weatheredPlasterTexture } from "@/game/weathered-surface";
 
 /**
  * Walk-in residences (layout and geometry in residences.ts): every home in a city merged into one mesh per material —
@@ -43,7 +44,8 @@ export function mergeByMat(pieces: { b: Box; at: Pick<Residence, "x" | "z" | "fl
   const by: Record<Mat, THREE.BufferGeometry[]> = { solid: [], glass: [], lamp: [] };
   for (const { b, at } of pieces) by[b.mat].push(piece(b, at));
   const mats: Record<Mat, THREE.Material> = {
-    solid: new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.82, metalness: 0.02 }),
+    // painted render in world space (weathered-surface.ts): the paint colour rides on the vertex colours, the plaster adds grain and grime
+    solid: applyWorldTriplanar(new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.86, metalness: 0.02 }), weatheredPlasterTexture(), PLASTER_TILE),
     glass: new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.18, metalness: 0.35, envMapIntensity: 1.4 }),
     lamp: new THREE.MeshBasicMaterial({ vertexColors: true, toneMapped: false, color: new THREE.Color(1.6, 1.5, 1.35) }),
   };
