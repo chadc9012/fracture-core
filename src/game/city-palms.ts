@@ -47,3 +47,11 @@ export function neonPalms(towers: readonly TowerPlacement[]): Palm[] {
   }
   return out;
 }
+
+/** trunk radius (m) at scale 1: the authored palm trunks are ~0.5 m across at the base */
+export const PALM_TRUNK_RADIUS = 0.3;
+/** the solid trunk of each palm (obstacle grid): players and vehicles stop at it and the third-person camera pulls in before it
+ * (camera-occlusion.ts) instead of filling the screen with bark. Palms are street furniture, so they do not break. */
+export function palmSolids(list: readonly Palm[]): { x: number; z: number; r: number }[] {
+  return list.map((p) => ({ x: p.x, z: p.z, r: PALM_TRUNK_RADIUS * p.scale }));
+}
