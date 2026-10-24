@@ -8,6 +8,9 @@ import { boardwalks, cypress, fungusPatches, glowAnchors, lilyPads, logs } from 
 import { waterSurface, type Prop } from "@/game/dressing-kit";
 import { useInstances } from "./instancing";
 import { softSprite } from "./softSprite";
+import { boardwalkSection, fallenLog, lilyPad, lotusBloom, mushroomCap, mushroomStem } from "@/game/wild-geometry";
+
+const WG = { log: fallenLog(2), stem: mushroomStem(), cap: mushroomCap(), pad: lilyPad(), bloom: lotusBloom(), deck: boardwalkSection(4) };
 
 /** Swamps dressing: moss-hung cypress with flared roots, lily pads and floating logs, glowing fungus, plank boardwalks
  * from the Airboat Hub, and fireflies. Layout is pure (swamp-dressing.ts); procedural and instanced. */
@@ -47,12 +50,12 @@ function Lilies() {
   const ls = useMemo(() => lilyPads(), []);
   const pad = useRef<THREE.InstancedMesh>(null), bloom = useRef<THREE.InstancedMesh>(null);
   const flowers = useMemo(() => ls.filter((_, i) => i % 7 === 0), [ls]);
-  useInstances<Prop>(pad, ls, (o, p) => { o.position.set(p.x, (waterSurface(p.x, p.z) ?? WATER_LEVEL) + 0.03, p.z); o.rotation.set(-Math.PI / 2, 0, p.r); o.scale.setScalar(0.5 + p.s * 0.5); }, (_, i) => (i % 4 ? "#3f6b2a" : "#5a7d33"));
-  useInstances<Prop>(bloom, flowers, (o, p) => { o.position.set(p.x, (waterSurface(p.x, p.z) ?? WATER_LEVEL) + 0.15, p.z); o.scale.setScalar(0.18); }, (_, i) => (i % 2 ? "#f3d6ec" : "#fff6f0"));
+  useInstances<Prop>(pad, ls, (o, p) => { o.position.set(p.x, (waterSurface(p.x, p.z) ?? WATER_LEVEL) + 0.03, p.z); o.rotation.set(-Math.PI / 2, 0, p.r); o.scale.setScalar(0.5 + p.s * 0.5); }, (_, i) => (i % 4 ? "#3a5a28" : "#4d6a30"));
+  useInstances<Prop>(bloom, flowers, (o, p) => { o.position.set(p.x, (waterSurface(p.x, p.z) ?? WATER_LEVEL) + 0.04, p.z); o.scale.setScalar(0.3); }, (_, i) => (i % 2 ? "#d9b8cc" : "#e8ddd2"));
   return <group>
     {/* a circle with a notch reads as a lily pad */}
-    <instancedMesh ref={pad} args={[undefined, undefined, ls.length]}><circleGeometry args={[1, 14, 0.3, Math.PI * 2 - 0.3]} /><meshStandardMaterial roughness={0.6} side={THREE.DoubleSide} polygonOffset polygonOffsetFactor={-2} /></instancedMesh>
-    <instancedMesh ref={bloom} args={[undefined, undefined, flowers.length]}><dodecahedronGeometry args={[1, 0]} /><meshStandardMaterial roughness={0.5} /></instancedMesh>
+    <instancedMesh ref={pad} args={[WG.pad, undefined, ls.length]} receiveShadow><meshStandardMaterial roughness={0.6} side={THREE.DoubleSide} polygonOffset polygonOffsetFactor={-2} /></instancedMesh>
+    <instancedMesh ref={bloom} args={[WG.bloom, undefined, flowers.length]}><meshStandardMaterial roughness={0.6} /></instancedMesh>
   </group>;
 }
 
@@ -60,7 +63,7 @@ function Logs() {
   const ls = useMemo(() => logs(), []);
   const ref = useRef<THREE.InstancedMesh>(null);
   useInstances<Prop>(ref, ls, (o, p) => { o.position.set(p.x, surface(p.x, p.z) + 0.15, p.z); o.rotation.set(Math.PI / 2, 0, p.r); o.scale.set(0.45 * p.s, 5 + p.s * 4, 0.45 * p.s); });
-  return <instancedMesh ref={ref} args={[undefined, undefined, ls.length]} castShadow><cylinderGeometry args={[1, 1, 1, 8]} /><meshStandardMaterial color="#3a3026" roughness={1} /></instancedMesh>;
+  return <instancedMesh ref={ref} args={[WG.log, undefined, ls.length]} castShadow receiveShadow><meshStandardMaterial color="#3a3026" roughness={1} /></instancedMesh>;
 }
 
 /** bioluminescent mushrooms: pale stems, glowing caps that pulse slowly */
@@ -71,8 +74,8 @@ function Fungus() {
   useInstances<Prop>(cap, ps, (o, p) => { const h = 0.4 + p.s * 0.9; o.position.set(p.x, walkHeight(p.x, p.z) + h, p.z); o.scale.set(0.45 * p.s, 0.25 * p.s, 0.45 * p.s); }, (_, i) => (i % 3 ? "#57e0c6" : "#b07cff"));
   useFrame(({ clock }) => { if (mat.current) mat.current.emissiveIntensity = 0.9 + 0.4 * Math.sin(clock.elapsedTime * 0.8); });
   return <group>
-    <instancedMesh ref={stem} args={[undefined, undefined, ps.length]}><cylinderGeometry args={[0.8, 1, 1, 6]} /><meshStandardMaterial color="#d8d2c0" roughness={0.8} /></instancedMesh>
-    <instancedMesh ref={cap} args={[undefined, undefined, ps.length]}><sphereGeometry args={[1, 10, 6, 0, Math.PI * 2, 0, Math.PI / 2]} /><meshStandardMaterial ref={mat} color="#ffffff" emissive="#3fbfa8" emissiveIntensity={1} roughness={0.5} toneMapped={false} /></instancedMesh>
+    <instancedMesh ref={stem} args={[WG.stem, undefined, ps.length]}><meshStandardMaterial color="#d8d2c0" roughness={0.8} /></instancedMesh>
+    <instancedMesh ref={cap} args={[WG.cap, undefined, ps.length]}><meshStandardMaterial ref={mat} color="#ffffff" emissive="#3fbfa8" emissiveIntensity={1} roughness={0.5} toneMapped={false} /></instancedMesh>
   </group>;
 }
 
@@ -87,12 +90,14 @@ function Boardwalks() {
   useInstances<{ x: number; z: number; yaw: number }>(deck, planks, (o, p, i) => { o.position.set(p.x, deckY(p.x, p.z), p.z); o.rotation.set((i % 3 - 1) * 0.02, p.yaw, (i % 2 ? 1 : -1) * 0.015); o.scale.set(2.2, 0.12, 2.5); }, (_, i) => (i % 4 ? "#6a5440" : "#5a4636"));
   useInstances<{ p: { x: number; z: number; yaw: number }; side: number }>(post, posts, (o, { p, side }) => { const x = p.x + Math.cos(p.yaw) * side, z = p.z - Math.sin(p.yaw) * side, top = deckY(p.x, p.z); const bot = walkHeight(x, z) - 0.5; o.position.set(x, (top + bot) / 2, z); o.scale.set(0.12, Math.max(0.5, top - bot), 0.12); });
   return <group>
-    <instancedMesh ref={deck} args={[undefined, undefined, planks.length]} castShadow receiveShadow><boxGeometry args={[1, 1, 1]} /><meshStandardMaterial roughness={1} /></instancedMesh>
-    <instancedMesh ref={post} args={[undefined, undefined, posts.length]} castShadow><cylinderGeometry args={[1, 1, 1, 5]} /><meshStandardMaterial color="#3e3127" roughness={1} /></instancedMesh>
+    <instancedMesh ref={deck} args={[WG.deck, undefined, planks.length]} castShadow receiveShadow><meshStandardMaterial roughness={1} /></instancedMesh>
+    <instancedMesh ref={post} args={[undefined, undefined, posts.length]} castShadow><cylinderGeometry args={[1, 0.85, 1, 7]} /><meshStandardMaterial color="#3e3127" roughness={1} /></instancedMesh>
     {lamps.map((p, i) => (
       <group key={i} position={[p.x + Math.cos(p.yaw) * 1.1, deckY(p.x, p.z), p.z - Math.sin(p.yaw) * 1.1]}>
-        <mesh position-y={1}><cylinderGeometry args={[0.05, 0.05, 2, 4]} /><meshStandardMaterial color="#2c2620" /></mesh>
-        <mesh position-y={2.05}><sphereGeometry args={[0.16, 8, 6]} /><meshBasicMaterial color="#ffd27a" toneMapped={false} /></mesh>
+        <mesh position-y={1}><cylinderGeometry args={[0.05, 0.06, 2, 7]} /><meshStandardMaterial color="#2c2620" roughness={0.9} /></mesh>
+        <mesh position={[0, 2.02, 0.12]} rotation-x={Math.PI / 2}><cylinderGeometry args={[0.02, 0.02, 0.26, 5]} /><meshStandardMaterial color="#2c2620" /></mesh>
+        {/* hanging storm lantern: cage, glass, cap */}
+        <group position={[0, 1.8, 0.24]}><mesh><cylinderGeometry args={[0.09, 0.09, 0.2, 8]} /><meshBasicMaterial color="#ffc870" toneMapped={false} /></mesh><mesh position-y={0.13}><coneGeometry args={[0.12, 0.08, 8]} /><meshStandardMaterial color="#2c2620" metalness={0.5} roughness={0.6} /></mesh><mesh position-y={-0.11}><cylinderGeometry args={[0.1, 0.1, 0.03, 8]} /><meshStandardMaterial color="#2c2620" metalness={0.5} roughness={0.6} /></mesh></group>
       </group>
     ))}
   </group>;

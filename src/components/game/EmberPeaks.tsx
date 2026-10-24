@@ -6,6 +6,9 @@ import { barkTrunk } from "@/game/organic-geometry";
 import { walkHeight } from "@/game/terrain";
 import { basaltClusters, deadTrees, lavaFlows, obsidianSpires, vents, type FlowPoint } from "@/game/ember-dressing";
 import { softSprite } from "./softSprite";
+import { basaltColumn, obsidianShard } from "@/game/wild-geometry";
+
+const EG = { basalt: basaltColumn(3), obsidian: obsidianShard(6) };
 
 /** Ember Peaks dressing: glowing lava flows down the cone, basalt columns, obsidian spires, burnt trees and fumaroles.
  * Layout is pure (ember-dressing.ts); everything here is procedural and instanced, so it can never fail to load. */
@@ -101,8 +104,7 @@ function Basalt() {
   })), [clusters]);
   const ref = useRef<THREE.InstancedMesh>(null);
   useInstances(ref, cols, (o, p) => { const h = 3 + p.s * 4; o.position.set(p.x, walkHeight(p.x, p.z) + h / 2 - 0.6, p.z); o.rotation.set(p.tilt, p.r, 0); o.scale.set(p.s, h, p.s); });
-  return <instancedMesh ref={ref} args={[undefined, undefined, cols.length]} castShadow receiveShadow>
-    <cylinderGeometry args={[0.8, 0.85, 1, 6]} />
+  return <instancedMesh ref={ref} args={[EG.basalt, undefined, cols.length]} castShadow receiveShadow>
     <meshStandardMaterial color="#242226" roughness={0.9} metalness={0.1} flatShading />
   </instancedMesh>;
 }
@@ -111,8 +113,7 @@ function Obsidian() {
   const spires = useMemo(() => obsidianSpires(), []);
   const ref = useRef<THREE.InstancedMesh>(null);
   useInstances(ref, spires, (o, p) => { const h = 2.5 + p.s * 5; o.position.set(p.x, walkHeight(p.x, p.z) + h / 2 - 0.4, p.z); o.rotation.set(p.tilt, p.r, p.tilt * 0.6); o.scale.set(p.s * 0.9, h, p.s * 0.7); });
-  return <instancedMesh ref={ref} args={[undefined, undefined, spires.length]} castShadow>
-    <coneGeometry args={[0.9, 1, 5]} />
+  return <instancedMesh ref={ref} args={[EG.obsidian, undefined, spires.length]} castShadow>
     <meshStandardMaterial color="#0d0b12" roughness={0.08} metalness={0.6} emissive="#3a0f5a" emissiveIntensity={0.25} flatShading />
   </instancedMesh>;
 }
