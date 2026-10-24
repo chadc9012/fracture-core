@@ -56,12 +56,12 @@ function Cypress() {
   // buttress roots flare out into the water
   useInstances<{ t: Prop; k: number }>(root, roots, (o, { t, k }) => { const a = t.r + k * 1.26; o.position.set(t.x + Math.cos(a) * 0.8 * t.s, walkHeight(t.x, t.z) + 0.6, t.z + Math.sin(a) * 0.8 * t.s); o.rotation.set(Math.sin(a) * 0.9, 0, -Math.cos(a) * 0.9); o.scale.set(t.s * 0.5, 2.2 * t.s, t.s * 0.5); });
   // flat, spreading canopy
-  useInstances<Prop>(crown, ts, (o, p) => { const h = H(p); o.position.set(p.x, walkHeight(p.x, p.z) + h, p.z); o.rotation.set(0, p.r, 0); o.scale.set(3.2 + p.s * 2, 1.4 + p.s * 0.6, 3 + p.s * 2); }, (_, i) => (i % 3 ? "#2f4a2a" : "#3a5530"));
+  useInstances<Prop>(crown, ts, (o, p) => { const h = H(p); o.position.set(p.x, walkHeight(p.x, p.z) + h, p.z); o.rotation.set(0, p.r, 0); o.scale.set(3.2 + p.s * 2, 1.4 + p.s * 0.6, 3 + p.s * 2); }, (_, i) => (i % 3 ? "#4a6438" : "#587244")); // murky olive: the old #2f4a2a/#3a5530 crushed to black silhouettes under the gritty grade
   // hanging moss beards under the canopy rim
   useInstances<{ t: Prop; k: number }>(beard, moss, (o, { t, k }) => { const h = H(t), a = t.r + k * 1.57, rr = 2.4 + t.s * 1.5; o.position.set(t.x + Math.cos(a) * rr, walkHeight(t.x, t.z) + h - 2.4, t.z + Math.sin(a) * rr); o.rotation.set(0, a, 0); o.scale.set(1.2, 3.5 + (k % 2) * 1.5, 1); });
   return <group>
-    <instancedMesh ref={trunk} args={[undefined, undefined, ts.length]} castShadow geometry={trunkGeo}><meshStandardMaterial color="#4a3f33" roughness={1} /></instancedMesh>
-    <instancedMesh ref={root} args={[undefined, undefined, roots.length]} castShadow geometry={rootGeo}><meshStandardMaterial color="#43382d" roughness={1} /></instancedMesh>
+    <instancedMesh ref={trunk} args={[undefined, undefined, ts.length]} castShadow geometry={trunkGeo}><meshStandardMaterial color="#5c4e3f" roughness={1} /></instancedMesh>
+    <instancedMesh ref={root} args={[undefined, undefined, roots.length]} castShadow geometry={rootGeo}><meshStandardMaterial color="#534538" roughness={1} /></instancedMesh>
     <instancedMesh ref={crown} args={[undefined, undefined, ts.length]} castShadow geometry={crownGeo}><meshStandardMaterial roughness={0.95} /></instancedMesh>
     <instancedMesh ref={beard} args={[undefined, undefined, moss.length]}><planeGeometry args={[1, 1, 1, 3]} /><meshStandardMaterial map={mossTexture()} color="#ffffff" roughness={1} side={THREE.DoubleSide} alphaTest={0.35} /></instancedMesh>
   </group>;
