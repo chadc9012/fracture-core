@@ -9,6 +9,7 @@ import { FRACTURE_RAID, PVP_RANKS } from "@/game/system-foundations";
 import { StarMap, type DeployTarget } from "./StarMap";
 import { ArsenalLoadouts } from "./ArsenalLoadouts";
 import { SaveManager } from "./SaveManager";
+import { cycle, padTabIntent, tabKeyIntent } from "@/game/director-nav";
 
 /** Destiny-style director: the world map is home, with the Killbox (PvP; "crucible" in code and saves), Raid and the gear/save screens as tabs along the
  * top. Destinations deploy through the map's own transit; Killbox matches start an activity and drop you in the arena. */
@@ -36,17 +37,27 @@ type Props = {
 
 export function Director({ progression, onProgression, onDeploy, onCrucible, onResume, onSystem, operatorName, playerClass, notice }: Props) {
   const [tab, setTab] = useState<DirectorTab>("map");
-  // keyboard: Q / E cycle tabs like a controller's bumpers
+  // Q / E on the keyboard, L1 / R1 on a pad cycle the tabs (director-nav.ts)
   useEffect(() => {
+    const ids = TABS.map((t) => t.id);
     const onKey = (e: KeyboardEvent) => {
       if ((e.target as HTMLElement | null)?.closest("input, textarea")) return;
-      const i = TABS.findIndex((t) => t.id === tab);
-      if (e.code === "KeyQ") setTab(TABS[(i + TABS.length - 1) % TABS.length]!.id);
-      if (e.code === "KeyE") setTab(TABS[(i + 1) % TABS.length]!.id);
+      const intent = tabKeyIntent(e.code);
+      if (intent) setTab((t) => cycle(ids, t, intent));
     };
     window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [tab]);
+    let raf = 0, prev: boolean[] = [];
+    const poll = () => {
+      raf = requestAnimationFrame(poll);
+      const gp = typeof navigator !== "undefined" && navigator.getGamepads ? Array.from(navigator.getGamepads()).find((p): p is Gamepad => !!p && p.connected) : undefined;
+      const now = gp ? gp.buttons.map((b) => b.pressed) : [];
+      const intent = padTabIntent(prev, now);
+      prev = now;
+      if (intent) setTab((t) => cycle(ids, t, intent));
+    };
+    raf = requestAnimationFrame(poll);
+    return () => { window.removeEventListener("keydown", onKey); cancelAnimationFrame(raf); };
+  }, []);
 
   return (
     <>

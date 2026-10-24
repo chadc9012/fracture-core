@@ -98,7 +98,7 @@ export function destinationActivities(p: PlayerProgression, id: DestinationId, n
   if (id === "neon-city") return all.filter((a) => cityAt(a.x, a.z) === "neon" || a.id === "city:neon-city");
   if (id === "thalassia") { const c = CITY_DESTINATIONS.find((x) => x.id === "thalassia")!; return all.filter((a) => Math.hypot(a.x - c.x, a.z - c.z) < NEAR_THALASSIA || a.id === "city:thalassia"); }
   if (id === "nexus") return all.filter((a) => cityAt(a.x, a.z) !== "neon" && a.id !== "city:neon-city");
-  if (id === "swamps") { const c = CITY_DESTINATIONS.find((x) => x.id === "thalassia")!; return all.filter((a) => Math.hypot(a.x - c.x, a.z - c.z) >= NEAR_THALASSIA && a.id !== "city:thalassia"); }
+  if (id === "veridan") { const c = CITY_DESTINATIONS.find((x) => x.id === "thalassia")!; return all.filter((a) => Math.hypot(a.x - c.x, a.z - c.z) >= NEAR_THALASSIA && a.id !== "city:thalassia"); }
   return all;
 }
 

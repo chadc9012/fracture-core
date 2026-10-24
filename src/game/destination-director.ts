@@ -121,6 +121,11 @@ function belongs(d: Destination, x: number, z: number): boolean {
   return ownerRegion(x, z) === d.id;
 }
 
+/** the destination a world point belongs to: a city when it stands inside one, otherwise the region it leans toward */
+export function destinationAt(x: number, z: number): Destination | undefined {
+  return DESTINATIONS.find((d) => d.city && inside(d, x, z)) ?? DESTINATIONS.find((d) => !d.city && d.id === ownerRegion(x, z));
+}
+
 export const destinationShops = (d: Destination): RegionalShop[] => REGIONAL_SHOPS.filter((s) => belongs(d, s.x, s.z));
 export const destinationGarages = (d: Destination): GarageId[] => (Object.values(GARAGES)).filter((g) => belongs(d, g.x, g.z)).map((g) => g.id);
 /** fleet vehicles sold at this destination's bases */

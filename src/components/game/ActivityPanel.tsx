@@ -5,7 +5,8 @@ import { ChevronRight, Lock } from "lucide-react";
 export const KIND_GLYPH: Record<Activity["kind"], string> = { STORY: "★", SAFE_ZONE: "⛨", BOSS: "☠", NEMESIS: "☠", RESOURCE: "◆", CONTRACT: "✉", STASH: "▣", PATROL: "⟲", ACTIVITY: "◎" };
 import { Button } from "@/components/ui/button";
 import type { PlayerProgression } from "@/game/progression";
-import { ACTIVITY_COLOR, ACTIVITY_LABEL, CHALLENGES, CHALLENGE_ORDER, PATROL_DAILY_CAP, patrolsToday, regionActivities, setChallenge, startPatrol, type Activity } from "@/game/map-activities";
+import { ACTIVITY_COLOR, ACTIVITY_LABEL, CHALLENGES, CHALLENGE_ORDER, PATROL_DAILY_CAP, activityRewards, patrolsToday, regionActivities, setChallenge, startPatrol, type Activity } from "@/game/map-activities";
+import { MATERIALS, type MaterialId } from "@/game/inventory";
 
 /** Map game flow (map-activities.ts): the activities in one region, then a pre-launch card for the chosen one with the
  * challenge level, then Launch, which drops the player next to it through the normal transit. Shared by the star map
@@ -58,6 +59,8 @@ export function ActivityPanel({ progression, regionId, onProgression, onLaunch, 
             <h3 className="font-mono text-lg uppercase leading-tight">{chosen.name}</h3>
             <p className="ui-kicker" style={{ color: ACTIVITY_COLOR[chosen.kind] }}>{ACTIVITY_LABEL[chosen.kind]}{chosen.status === "DONE" ? " · completed" : chosen.status === "NEXT" ? " · next" : ""}</p>
             <p className="mt-2 text-xs text-muted-foreground">{chosen.detail}</p>
+            {chosen.status === "LOCKED" && <p className="mt-2 text-[11px] text-amber-400">Requires: {chosen.lockReason ?? "not available yet"}</p>}
+            {(() => { const r = activityRewards(progression, chosen); return r && <p className="mt-2 text-[11px]">Rewards: <b className="text-amber-300">{[r.nex ? `${r.nex.toLocaleString()} NΞ` : null, ...Object.entries(r.materials ?? {}).map(([k, v]) => `${v} ${MATERIALS[k as MaterialId]?.name ?? k}`)].filter(Boolean).join(" · ")}</b>{r.note && <span className="text-muted-foreground"> · {r.note}</span>}</p>; })()}
             {recommendedLevel !== undefined && <p className="mt-2 text-[11px]">Recommended level: <b style={{ color: progression.level >= recommendedLevel ? "#7ef2b0" : "#ffb23e" }}>{recommendedLevel}</b><span className="text-muted-foreground"> · you are {progression.level}</span></p>}
           </div>
         </div>

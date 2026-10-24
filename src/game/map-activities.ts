@@ -12,7 +12,7 @@ import { BOSS_LAIRS, RESOURCE_SITES, SCENARIO_LAIRS } from "./waypoints";
 import { CITY_DESTINATIONS, dropPoint } from "./destinations";
 import { CITIES, cityAt } from "./living-world";
 import { livingMarkers } from "./living-npcs";
-import { rewardMission, type PlayerProgression } from "./progression";
+import { STORY_NEX, rewardMission, type PlayerProgression } from "./progression";
 import type { MaterialId } from "./inventory";
 import { TRAITS } from "./nemesis";
 import { HOLLOW_CROWN, forgeStage } from "./godforge";
@@ -151,4 +151,21 @@ export function regionActivities(p: PlayerProgression, regionId: string, now = D
 export function regionSummary(p: PlayerProgression, r: Region, now = Date.now()) {
   const acts = regionActivities(p, r.id, now);
   return { next: acts.some((a) => a.status === "NEXT"), bosses: acts.filter((a) => a.kind === "BOSS").length, open: acts.filter((a) => a.status !== "LOCKED" && a.status !== "DONE").length };
+}
+
+/** What an activity pays, for the Director's activity card: only what the reward code really grants (rewardMission for story
+ * chapters and patrols); null when the payout depends on what happens in the fight (bosses, contracts, sites). */
+export type ActivityRewards = { nex?: number; materials?: Partial<Record<MaterialId, number>>; note?: string };
+export function activityRewards(p: Pick<PlayerProgression, "challenge" | "completedMissions">, a: Activity): ActivityRewards | null {
+  if (a.kind === "STORY") {
+    const id = a.id.slice("story:".length), done = p.completedMissions.includes(id);
+    return { nex: done ? STORY_NEX : Math.round(STORY_NEX * 1.5), note: done ? "Replay: daily payout tapers" : "First clear ×1.5" };
+  }
+  if (a.kind === "PATROL") {
+    const mult = CHALLENGES[p.challenge ?? "STANDARD"].reward;
+    const mats: Partial<Record<MaterialId, number>> = {};
+    for (const [k, v] of Object.entries(PATROL_MATERIALS[a.regionId] ?? { scrapMetal: 6 }) as [MaterialId, number][]) mats[k] = Math.round(v * mult);
+    return { materials: mats, note: `${PATROL_KILLS} hostiles · challenge ×${mult}` };
+  }
+  return null;
 }

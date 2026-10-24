@@ -79,3 +79,15 @@ describe("challenge", () => {
     expect(regionAt(r0.x, r0.z)?.id).toBe(r0.id);
   });
 });
+
+import { activityRewards } from "./map-activities";
+import { STORY_NEX } from "./progression";
+describe("activity card rewards come from the reward code", () => {
+  it("a story chapter shows its real payout and first-clear bonus; a patrol its materials; a boss nothing invented", () => {
+    const p = { challenge: "STANDARD" as const, completedMissions: [] as string[] };
+    expect(activityRewards(p, { id: "story:x", kind: "STORY", name: "", detail: "", regionId: "veridan", x: 0, z: 0, status: "NEXT", drop: { x: 0, z: 0 } })!.nex).toBe(STORY_NEX * 1.5);
+    expect(activityRewards({ ...p, completedMissions: ["x"] }, { id: "story:x", kind: "STORY", name: "", detail: "", regionId: "veridan", x: 0, z: 0, status: "DONE", drop: { x: 0, z: 0 } })!.nex).toBe(STORY_NEX);
+    expect(Object.keys(activityRewards(p, { id: "patrol:ember", kind: "PATROL", name: "", detail: "", regionId: "ember", x: 0, z: 0, status: "AVAILABLE", drop: { x: 0, z: 0 } })!.materials!).length).toBeGreaterThan(0);
+    expect(activityRewards(p, { id: "boss:x", kind: "BOSS", name: "", detail: "", regionId: "ember", x: 0, z: 0, status: "AVAILABLE", drop: { x: 0, z: 0 } })).toBeNull();
+  });
+});

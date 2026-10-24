@@ -42,17 +42,25 @@ const LEGEND: { glyph: string; color: string; label: string }[] = [
 
 /** Destination Map (destination-map.ts): the painted planet from the owner's reference with every control live.
  * Select a destination on the art or in the list, inspect its card, open its activities or landing zones, launch. */
-export function DestinationMap({ progression, onDeploy, onProgression, onAtlas, chrome }: {
+export function DestinationMap({ progression, onDeploy, onProgression, onAtlas, chrome, active = true, onOpen, initial, onSelect }: {
   progression: PlayerProgression;
   onDeploy: (target: DeployTarget) => void;
   onProgression?: (next: PlayerProgression) => void;
   /** open the geographic terrain atlas */
   onAtlas: () => void;
   chrome?: DestinationChrome;
+  /** false while a deeper Director screen sits on top: this screen keeps its selection but takes no input */
+  active?: boolean;
+  /** open the destination's regional map (the Director's next level); without it Z shows the painted close-up */
+  onOpen?: (id: DestinationId) => void;
+  /** the destination to show selected on mount (the Director remembers it across screens) */
+  initial?: DestinationId | null;
+  /** reports the selection so the Director can remember it */
+  onSelect?: (id: DestinationId | null) => void;
 }) {
   const statuses = useMemo(() => Object.fromEntries(DESTINATION_PINS.map((p) => [p.id, destinationStatus(progression, p.id)])), [progression]);
   const firstRecommended = DESTINATION_PINS.find((p) => statuses[p.id]?.recommended)?.id ?? "veridan";
-  const [selected, setSelected] = useState<DestinationId | null>(null);
+  const [selected, setSelected] = useState<DestinationId | null>(initial ?? null);
   const [drawer, setDrawer] = useState<Drawer>(null);
   const [zoom, setZoom] = useState(false);
   const [landingId, setLandingId] = useState("primary");
@@ -76,7 +84,7 @@ export function DestinationMap({ progression, onDeploy, onProgression, onAtlas, 
   }, [info, region, progression]);
   const landing = landings.find((l) => l.id === landingId) ?? landings[0];
 
-  const select = (id: DestinationId) => { setSelected(id); setLandingId("primary"); setLaunching(false); if (drawer === "landing" || drawer === "activities") setDrawer(drawer); };
+  const select = (id: DestinationId) => { setSelected(id); onSelect?.(id); setLandingId("primary"); setLaunching(false); if (drawer === "landing" || drawer === "activities") setDrawer(drawer); };
   const launch = () => {
     if (!info || !landing || !info.deployable || launching) return;
     setLaunching(true);
@@ -84,22 +92,24 @@ export function DestinationMap({ progression, onDeploy, onProgression, onAtlas, 
   };
   const back = () => { if (zoom) setZoom(false); else if (drawer) setDrawer(null); else if (selected) setSelected(null); else chrome?.onSystem(); };
 
-  useMenuInput(true, (intent) => {
+  const open = () => { if (selected && onOpen) onOpen(selected); else if (selected) setZoom((z) => !z); };
+  useMenuInput(active, (intent) => {
     if (intent === "up" || intent === "down") { if (!drawer && !zoom) select(stepDestination(focus, intent === "up" ? -1 : 1)); }
     else if (intent === "confirm") { if (!selected) select(focus); else if (!drawer || drawer === "landing") launch(); }
     else if (intent === "back") back();
   });
   useEffect(() => {
+    if (!active) return;
     const onKey = (e: KeyboardEvent) => {
       if ((e.target as HTMLElement | null)?.closest("input, textarea")) return;
-      if (e.code === "KeyZ" && selected) setZoom((z) => !z);
+      if (e.code === "KeyZ" && selected) open();
       if (e.code === "KeyX" && selected) setDrawer((d) => (d === "activities" ? null : "activities"));
       if (e.code === "KeyC" && selected) setDrawer((d) => (d === "landing" ? null : "landing"));
       if (e.code === "KeyG") setDrawer((d) => (d === "legend" ? null : "legend"));
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [selected]);
+  }, [selected, active, onOpen]);
 
   const boss = region ? ENCOUNTERS.find((e) => e.regionId === region.id)?.boss : undefined;
   const hazard = region ? REGION_HAZARD[region.id] : undefined;
@@ -144,9 +154,9 @@ export function DestinationMap({ progression, onDeploy, onProgression, onAtlas, 
         </div>
         <button type="button" onClick={() => setSelected(null)} className="ml-auto text-white/60 hover:text-white" aria-label="Close destination"><X className="size-[1.2cqw]" /></button>
       </div>
-      <button type="button" onClick={() => setZoom(true)} className="group relative h-[4.6cqw] shrink-0 overflow-hidden border border-white/20" aria-label={`Open the ${info.name} close-up`}>
+      <button type="button" onClick={() => (onOpen ? onOpen(info.id) : setZoom(true))} className="group relative h-[4.6cqw] shrink-0 overflow-hidden border border-white/20" aria-label={onOpen ? `Open the ${info.name} map` : `Open the ${info.name} close-up`}>
         <img src={art(`${pin.id}.jpg`)} alt="" className="size-full object-cover transition-transform duration-300 group-hover:scale-105" draggable={false} />
-        <span className="absolute bottom-[0.3cqw] right-[0.4cqw] bg-black/70 px-[0.4cqw] text-[0.75cqw] font-semibold uppercase tracking-[0.2em]">Z · Close-up</span>
+        <span className="absolute bottom-[0.3cqw] right-[0.4cqw] bg-black/70 px-[0.4cqw] text-[0.75cqw] font-semibold uppercase tracking-[0.2em]">{onOpen ? "Z · Open map" : "Z · Close-up"}</span>
       </button>
       <p className="line-clamp-2 text-[0.92cqw] leading-snug text-[#d6e6ee]">{pin.blurb}</p>
       <p className="flex flex-wrap gap-x-[0.9cqw] text-[0.82cqw] font-semibold uppercase tracking-[0.14em] text-[#9fc3d3]">
@@ -199,7 +209,7 @@ export function DestinationMap({ progression, onDeploy, onProgression, onAtlas, 
 
   const hints = (
     <>
-      <button type="button" className="wf-dest-hint" disabled={!selected} onClick={() => setZoom((z) => !z)}><span className="wf-dest-cap">Z</span>Close-up</button>
+      <button type="button" className="wf-dest-hint" disabled={!selected} onClick={open}><span className="wf-dest-cap">Z</span>{onOpen ? "Open map" : "Close-up"}</button>
       <button type="button" className="wf-dest-hint" disabled={!selected} onClick={() => setDrawer((d) => (d === "activities" ? null : "activities"))}><span className="wf-dest-cap">X</span>Activities</button>
       <button type="button" className="wf-dest-hint" disabled={!selected} onClick={() => setDrawer((d) => (d === "landing" ? null : "landing"))}><span className="wf-dest-cap">C</span>Landing zones</button>
       <button type="button" className="wf-dest-hint" onClick={() => setDrawer((d) => (d === "legend" ? null : "legend"))}><span className="wf-dest-cap">G</span>Show legend</button>
@@ -302,6 +312,7 @@ export function DestinationMap({ progression, onDeploy, onProgression, onAtlas, 
           {info && <div className="flex flex-wrap gap-2">
             <button type="button" className="border border-white/25 px-3 py-2 uppercase tracking-widest" onClick={() => setDrawer(drawer === "activities" ? null : "activities")}>Activities</button>
             <button type="button" className="border border-white/25 px-3 py-2 uppercase tracking-widest" onClick={() => setDrawer(drawer === "landing" ? null : "landing")}>Landing zones</button>
+            {onOpen && <button type="button" className="border border-[#92e9f5]/60 px-3 py-2 uppercase tracking-widest" onClick={() => onOpen(info.id)}>Open map</button>}
             <button type="button" className="border border-white/25 px-3 py-2 uppercase tracking-widest" onClick={onAtlas}>Terrain atlas</button>
           </div>}
           {drawer && drawer !== "legend" && <div className="border border-white/15 [&_*]:!text-[13px]">{drawerBody}</div>}

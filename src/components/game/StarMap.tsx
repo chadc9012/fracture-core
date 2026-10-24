@@ -1,5 +1,6 @@
 import { OrbitalDirector } from "./OrbitalDirector";
-import { DestinationMap, type DestinationChrome } from "./DestinationMap";
+import type { DestinationChrome } from "./DestinationMap";
+import { DestinationDirector } from "./DestinationDirector";
 import { REGION_HAZARD } from "@/game/region-hazards";
 import { useState } from "react";
 import { ArrowLeft, ChevronRight, Skull } from "lucide-react";
@@ -52,7 +53,7 @@ export function StarMap({ progression, onBack, onDeploy, onProgression, embedded
   };
 
   // destination-map.ts: the painted planet from the owner's reference is home; the geographic director and atlas sit behind it
-  if (view === "destination") return <DestinationMap progression={progression} onDeploy={onDeploy} {...(onProgression ? { onProgression } : {})} onAtlas={() => setView("director")} {...(chrome ? { chrome } : {})} />;
+  if (view === "destination") return <DestinationDirector progression={progression} onDeploy={onDeploy} {...(onProgression ? { onProgression } : {})} onAtlas={() => setView("director")} {...(chrome ? { chrome } : {})} />;
   if (view === "director") return <div className={`deployment-field fixed ${embedded ? "inset-x-0 bottom-0 top-14" : "inset-0"} z-50 flex flex-col overflow-hidden text-foreground`}><OrbitalDirector progression={progression} onDeploy={onDeploy} onAtlas={() => setView("terrain")} onBack={() => setView("destination")} /></div>;
 
   return (

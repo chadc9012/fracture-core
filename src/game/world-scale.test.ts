@@ -39,8 +39,8 @@ describe("world scale", () => {
     }
     const open = scaleSite(-97, -208);
     expect(open.x).toBeCloseTo(-97 * WORLD_SCALE, 9);
-    // Thalassia moved south with the map boards (thalassia-site.ts authors it at (-20, 225))
-    const sea = scaleSite(-20, 225);
+    // Thalassia lies offshore from the Verdant Forest (thalassia-site.ts authors it at (225, -25))
+    const sea = scaleSite(225, -25);
     // Thalassia keeps the authored bearing; it is only pulled in so its reachable zone always overlaps the world disc (thalassia-site.ts)
     expect(Math.atan2(THALASSIA_CENTER.z, THALASSIA_CENTER.x)).toBeCloseTo(Math.atan2(sea.z, sea.x), 9);
     expect(Math.hypot(THALASSIA_CENTER.x, THALASSIA_CENTER.z)).toBeLessThanOrEqual(Math.hypot(sea.x, sea.z) + 1e-9);

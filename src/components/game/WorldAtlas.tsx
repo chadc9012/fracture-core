@@ -30,6 +30,7 @@ import { LANDMARK_GLYPH, MARKER_GLYPH } from "@/game/map-symbols";
 import { LANDMARKS, landmarkRoutes, isLandmarkKnown } from "@/game/landmarks";
 import { HAZARD_ZONES, zoneCenter } from "@/game/hazard-zones";
 import { regionHistory, regionStory, discoveredCount } from "@/game/world-story";
+import { activityBrief, isLocationVisible, locationById, locationsIn, type Location, type LocationLayer } from "@/game/locations";
 
 /**
  * The world map is a Destination Director in two stages (destination-director.ts):
@@ -41,23 +42,25 @@ import { regionHistory, regionStory, discoveredCount } from "@/game/world-story"
  * Back (or Escape) steps out one stage; close leaves the map.
  */
 export function WorldAtlas({ progression, currentRegion, phase, onClose, markers = [], px = 0, pz = 0, onProgression, onTravel, onStartRace, activeActivityId = null }: { progression: PlayerProgression; currentRegion: string; phase: string; onClose: () => void; markers?: TrackedMarker[]; px?: number; pz?: number ; onProgression?: (next: PlayerProgression) => void; onTravel?: (a: Activity) => void; /** sign up for a race and go to its start line */ onStartRace?: (id: string, difficulty: Difficulty) => void; activeActivityId?: string | null }) {
-  const [destId, setDestId] = useState<string | null>(null);
+  const [destId, setDestIdRaw] = useState<string | null>(null);
+  const [areaId, setAreaId] = useState<string | null>(null);
+  const setDestId = (id: string | null) => { setDestIdRaw(id); setAreaId(null); };
   const dest = destId ? destinationById(destId) ?? null : null;
   const here = REGIONS.find((r) => r.name === currentRegion)?.id;
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape" && destId) { e.preventDefault(); e.stopPropagation(); setDestId(null); } };
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape" && destId) { e.preventDefault(); e.stopPropagation(); if (areaId) setAreaId(null); else setDestId(null); } };
     window.addEventListener("keydown", onKey, true);
     return () => window.removeEventListener("keydown", onKey, true);
-  }, [destId]);
+  }, [destId, areaId]);
   return <div className="wf-shell fixed inset-0 z-50 overflow-y-auto bg-background/95 text-foreground" role="dialog" aria-modal="true" aria-label="Destination director">
     <div className="mx-auto max-w-7xl px-4 py-5 sm:px-7">
       <header className="flex items-start justify-between gap-4 border-b border-foreground/15 pb-5">
         <div><p className="ui-kicker">Director / The Fractured Earth / {phase}</p><h2 className="mt-1 font-mono text-3xl font-light uppercase sm:text-4xl">{dest ? dest.name : "Destinations"}</h2>
           <p className="mt-1 text-xs text-muted-foreground">{dest ? `${dest.sub}${dest.difficulty ? ` · Risk ${dest.difficulty}` : ""}${dest.city ? ` · part of ${REGIONS.find((r) => r.id === dest.regionId)?.name}` : ""}` : "Pick a destination to see its missions, patrols, bosses and safe zones"}</p></div>
-        <div className="flex gap-1">{dest && <Button variant="outline" className="rounded-none" onClick={() => setDestId(null)} aria-label="Back to destinations"><ArrowLeft />Destinations</Button>}<Button size="icon" variant="ghost" onClick={onClose} aria-label="Close world map"><X /></Button></div>
+        <div className="flex gap-1">{dest && areaId && <Button variant="outline" className="rounded-none" onClick={() => setAreaId(null)} aria-label={`Back to ${dest.name}`}><ArrowLeft />{dest.name}</Button>}{dest && <Button variant="outline" className="rounded-none" onClick={() => setDestId(null)} aria-label="Back to destinations"><ArrowLeft />Destinations</Button>}<Button size="icon" variant="ghost" onClick={onClose} aria-label="Close world map"><X /></Button></div>
       </header>
       {!dest ? <DestinationOverview progression={progression} here={here} px={px} pz={pz} onPick={setDestId} onTravel={onTravel ? (a) => onTravel(a) : undefined} />
-        : <DestinationView key={dest.id} dest={dest} progression={progression} phase={phase} markers={markers} px={px} pz={pz} onProgression={onProgression} onTravel={onTravel} onStartRace={onStartRace} activeActivityId={activeActivityId} onClose={onClose} />}
+        : <DestinationView key={dest.id} dest={dest} progression={progression} phase={phase} markers={markers} px={px} pz={pz} onProgression={onProgression} onTravel={onTravel} onStartRace={onStartRace} activeActivityId={activeActivityId} onClose={onClose} areaId={areaId} onArea={setAreaId} />}
     </div>
   </div>;
 }
@@ -142,15 +145,26 @@ function DestinationCard({ dest, summary, here, onOpen, onTravel }: { dest: Dest
 type ViewTab = "ACTIVITIES" | "RACES" | "SHOPS" | "HOMES" | "VEHICLES";
 const fmtCost = (cost: Partial<Record<MaterialId, number>>) => Object.entries(cost).map(([k, v]) => `${v} ${MATERIALS[k as MaterialId]?.name ?? k}`).join(" · ");
 
-/** stage 2: one destination */
-function DestinationView({ dest, progression, phase, markers, px, pz, onProgression, onTravel, onStartRace, activeActivityId, onClose }: { dest: Destination; progression: PlayerProgression; phase: string; markers: TrackedMarker[]; px: number; pz: number; onProgression?: ((next: PlayerProgression) => void) | undefined; onTravel?: ((a: Activity) => void) | undefined; onStartRace?: ((id: string, d: Difficulty) => void) | undefined; activeActivityId?: string | null; onClose: () => void }) {
+/** stage 2: one destination (the Director's regional map); with `areaId` it is the street view of one district: the map
+ * zooms to the district and the side panel lists its doors, discovered landmarks and activities (locations.ts) */
+export function DestinationView({ dest, progression, phase, markers, px, pz, onProgression, onTravel, onStartRace, activeActivityId, onClose, areaId = null, onArea, initialPick = null, onPickChange }: { dest: Destination; progression: PlayerProgression; phase: string; markers: TrackedMarker[]; px: number; pz: number; onProgression?: ((next: PlayerProgression) => void) | undefined; onTravel?: ((a: Activity) => void) | undefined; onStartRace?: ((id: string, d: Difficulty) => void) | undefined; activeActivityId?: string | null; onClose: () => void;
+  /** street view: a locations.ts area id */
+  areaId?: string | null;
+  /** open a district's street view (the Director pushes it on its history) */
+  onArea?: ((id: string) => void) | undefined;
+  /** the activity picked when this screen was last open (Director history) */
+  initialPick?: string | null; onPickChange?: ((id: string | null) => void) | undefined }) {
   const region = REGIONS.find((r) => r.id === dest.regionId)!;
   const encounter = ENCOUNTERS.find((e) => e.regionId === dest.regionId);
   const [filter, setFilter] = useState<DirectorFilter>("ALL");
   const [tab, setTab] = useState<ViewTab>("ACTIVITIES");
-  const [pick, setPick] = useState<string | null>(null);
+  const [pick, setPickRaw] = useState<string | null>(initialPick);
+  const setPick = (id: string | null) => { setPickRaw(id); onPickChange?.(id); };
   const [notice, setNotice] = useState("");
-  const acts = useMemo(() => destinationActivities(progression, dest), [progression, dest]);
+  const area = areaId ? locationById(areaId) ?? null : null;
+  const allActs = useMemo(() => destinationActivities(progression, dest), [progression, dest]);
+  // street view keeps only what stands inside the district
+  const acts = useMemo(() => (area ? allActs.filter((a) => Math.hypot(a.x - area.world.x, a.z - area.world.z) <= (area.radius ?? 40) * 1.2) : allActs), [allActs, area]);
   // Destination maps begin with only safe arrival points and revealed main-story chapters.
   // Other activity categories are opt-in through the Director filters.
   const [showOther, setShowOther] = useState(false);
@@ -163,7 +177,7 @@ function DestinationView({ dest, progression, phase, markers, px, pz, onProgress
   const walkIns = useMemo(() => destinationResidences(dest), [dest]);
   const garages = useMemo(() => destinationGarages(dest), [dest]);
   const fleet = useMemo(() => destinationFleet(dest), [dest]);
-  const focus = { x: dest.x, z: dest.z, radius: dest.reach ?? region.radius };
+  const focus = area ? { x: area.world.x, z: area.world.z, radius: Math.max(36, (area.radius ?? 30) * 1.3) } : { x: dest.x, z: dest.z, radius: dest.reach ?? region.radius };
   const plan = useMemo(() => (dest.city || dest.id === "nexus" ? cityPlan(dest, focus.radius * 1.35) : undefined), [dest, focus.radius]);
   const races = useMemo(() => racesFor(dest), [dest]);
   const [raceId, setRaceId] = useState<string | null>(null);
@@ -180,11 +194,12 @@ function DestinationView({ dest, progression, phase, markers, px, pz, onProgress
         <div><p className="font-mono text-[10px] uppercase tracking-[0.22em]" style={{ color: REGION_CARTOGRAPHY[dest.id]?.accent ?? dest.accent }}>{REGION_CARTOGRAPHY[dest.id]?.terrain ?? "Regional survey"} / local chart</p><p className="text-sm font-semibold">{dest.name}</p><p className="text-xs text-muted-foreground">{REGION_CARTOGRAPHY[dest.id]?.subtitle ?? dest.sub}</p></div>
         <div className="flex gap-3 font-mono text-[10px] uppercase"><span className="text-cyan-300">⌂ Safe zone</span><span className="text-amber-300">◆ Reached story</span></div>
       </div>
-      <TacticalMap chartRegionId={dest.id} markers={markers} px={px} pz={pz} selected={region.id} onSelect={() => {}} progression={progression} focus={focus} activities={tab === "ACTIVITIES" ? shown : []} sites={sites} districts={districts} plan={plan} course={course} pickedActivity={pick} onActivity={(id) => { setTab("ACTIVITIES"); setPick(id); }} />
+      <TacticalMap key={areaId ?? "destination"} chartRegionId={dest.id} markers={markers} px={px} pz={pz} selected={region.id} onSelect={() => {}} progression={progression} focus={focus} activities={tab === "ACTIVITIES" ? shown : []} sites={sites} districts={districts} plan={plan} course={course} pickedActivity={pick} onActivity={(id) => { setTab("ACTIVITIES"); setPick(id); }} />
       {/* folded here: on a narrow screen the full legend pushed the destination's tabs far below the map */}
       <details className="mt-2"><summary className="ui-focus cursor-pointer font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Map legend</summary><MapLegend phase={phase} /></details>
     </section>
     <aside className="min-w-0">
+      {area && <StreetPanel area={area} progression={progression} onWaypoint={waypoint} onGo={onTravel ? (id, name, x, z) => travelTo(id, name, x, z) : undefined} />}
       <ul className="grid grid-cols-2 gap-px border border-foreground/15 bg-foreground/10 text-xs" aria-label="What's here">
         {COUNT_ROWS.filter((r) => summary[r.key] > 0).map((r) => { const on = r.filter ? filter === r.filter && tab === "ACTIVITIES" : tab === (r.key === "shops" ? "SHOPS" : r.key === "homes" ? "HOMES" : "VEHICLES");
           return <li key={r.key}><button type="button" aria-pressed={on} onClick={() => { setPick(null); setNotice(""); if (r.filter) { setTab("ACTIVITIES"); setFilter(on ? "ALL" : r.filter); if (r.filter !== "STORY" && r.filter !== "SAFE_ZONE") setShowOther(true); } else setTab(on ? "ACTIVITIES" : r.key === "shops" ? "SHOPS" : r.key === "homes" ? "HOMES" : "VEHICLES"); }}
@@ -226,7 +241,7 @@ function DestinationView({ dest, progression, phase, markers, px, pz, onProgress
         <p className="font-mono text-xs uppercase text-primary">{ZONE_LABEL[dest.kind]}{dest.difficulty ? ` · Risk ${dest.difficulty}` : ""} · Recommended level {recommendedLevel(dest)}</p>
         {dest.city ? <ul className="mt-2 space-y-1 text-xs text-muted-foreground">{CITY_DESTINATIONS.find((c) => c.id === dest.id)?.rules.map((r) => <li key={r}>· {r}</li>)}</ul>
           : <p className="mt-2 border-l-2 border-primary/60 pl-3 text-xs">{regionHistory(region.id)}</p>}
-        {districts.length > 0 && <div className="mt-3"><p className="ui-kicker">Districts</p><ul className="mt-1 space-y-1">{districts.map((k) => <li key={k.id} className="flex items-center justify-between gap-2 text-xs"><span><span style={{ color: k.color }}>●</span> <b>{k.name}</b> <span className="text-muted-foreground">· {k.tagline}</span></span><button type="button" className="ui-focus shrink-0 font-mono text-[10px] uppercase text-primary" onClick={() => waypoint(`district-${k.id}`, k.name, k.x, k.z)}>Waypoint</button></li>)}</ul></div>}
+        {districts.length > 0 && <div className="mt-3"><p className="ui-kicker">Districts</p><ul className="mt-1 space-y-1">{districts.map((k) => <li key={k.id} className="flex items-center justify-between gap-2 text-xs"><span><span style={{ color: k.color }}>●</span> <b>{k.name}</b> <span className="text-muted-foreground">· {k.tagline}</span></span><span className="flex shrink-0 gap-2">{onArea && locationById(`area:${dest.id}:${k.id}`) && <button type="button" className="ui-focus font-mono text-[10px] uppercase text-cyan-300" onClick={() => onArea(`area:${dest.id}:${k.id}`)}>Street view</button>}<button type="button" className="ui-focus font-mono text-[10px] uppercase text-primary" onClick={() => waypoint(`district-${k.id}`, k.name, k.x, k.z)}>Waypoint</button></span></li>)}</ul></div>}
         {!dest.city && <div className="mt-3"><p className="ui-kicker">Landmarks · {discoveredCount(progression)}/{LANDMARKS.length} found</p><ul className="mt-1 space-y-1.5">{regionStory(progression, region.id).map(({ landmark, known }) => <li key={landmark.id} className={`text-xs ${known ? "" : "opacity-50"}`}><span className="text-primary">{known ? LANDMARK_GLYPH[landmark.type] : "?"}</span> <b>{known ? landmark.name : "Undiscovered landmark"}</b>{known && <span className="block text-muted-foreground">{landmark.history}</span>}</li>)}</ul></div>}
         <Button className="mt-3 w-full justify-between rounded-none" onClick={onClose}><Navigation />Track destination<Crosshair /></Button>
         {!dest.city && <><div className="mt-5 flex items-center gap-2 text-xs uppercase text-primary"><Shield className="size-4" /> Field units</div><ul className="mt-2 divide-y divide-border">{encounter?.troops.map((troop) => <li key={troop.name} className="py-2"><strong className="block text-sm">{troop.name}</strong><span className="text-xs text-muted-foreground">{troop.role} · {troop.kind.toLowerCase()}</span></li>)}</ul>
@@ -235,6 +250,31 @@ function DestinationView({ dest, progression, phase, markers, px, pz, onProgress
     </aside>
   </div>;
 }
+/* ------------------------------------------------------------------ street view (locations.ts) */
+const LAYER_LABEL: Record<LocationLayer, string> = { surface: "Street level", underground: "Underground", underwater: "Underwater", interior: "Indoors" };
+const LEVEL_GLYPH: Partial<Record<Location["level"], string>> = { entrance: "▯", landmark: "◈", activity: "◎", area: "⬡" };
+/** the street view's list: every door, discovered landmark and activity in the district, grouped by layer */
+function StreetPanel({ area, progression, onWaypoint, onGo }: { area: Location; progression: PlayerProgression; onWaypoint: (id: string, label: string, x: number, z: number) => void; onGo?: ((id: string, name: string, x: number, z: number) => void) | undefined }) {
+  const here = useMemo(() => {
+    const inside = (l: Location) => Math.hypot(l.world.x - area.world.x, l.world.z - area.world.z) <= (area.radius ?? 40) * 1.15;
+    return locationsIn(area.destinationId).filter((l) => l.id !== area.id && (l.parentId === area.id || (l.level !== "area" && inside(l))) && isLocationVisible(progression, l));
+  }, [area, progression]);
+  const layers = [...new Set(here.map((l) => l.layer))];
+  const [layer, setLayer] = useState<LocationLayer | "all">("all");
+  const shown = here.filter((l) => layer === "all" || l.layer === layer);
+  return <div className="mb-4 border border-cyan-700/60 bg-background/70 p-3" aria-label={`Street view: ${area.name}`}>
+    <p className="ui-kicker text-cyan-300">Street view · {LAYER_LABEL[area.layer]}</p>
+    <strong className="block text-base">{area.name}</strong><p className="text-xs text-muted-foreground">{area.sub}</p>
+    {layers.length > 1 && <div className="mt-2 flex flex-wrap gap-1" role="group" aria-label="Layer">{(["all", ...layers] as const).map((k) => <button key={k} type="button" aria-pressed={layer === k} onClick={() => setLayer(k)} className={`ui-focus border px-2 py-0.5 font-mono text-[10px] uppercase ${layer === k ? "border-primary bg-primary/15" : "border-foreground/20"}`}>{k === "all" ? "All" : LAYER_LABEL[k]}</button>)}</div>}
+    {shown.length === 0 ? <p className="mt-2 text-xs text-muted-foreground">Nothing charted here yet. Explore the district to discover more.</p>
+      : <ul className="mt-2 max-h-[34vh] space-y-1 overflow-y-auto pr-1">{shown.map((l) => { const brief = l.level === "activity" ? activityBrief(progression, l) : null; return <li key={l.id} className="border-l-2 border-cyan-500/60 bg-background/60 px-2 py-1.5 text-xs">
+        <div className="flex items-start justify-between gap-2"><span className="min-w-0"><b>{LEVEL_GLYPH[l.level] ?? "·"} {l.name}</b><span className="block truncate text-muted-foreground">{l.level === "landmark" ? `Landmark · ${l.sub}` : l.sub}</span>
+          {brief && <span className="block font-mono text-[10px] text-amber-300">Difficulty {brief.difficulty} · {brief.def.rewards.nex} NΞ · {brief.def.rewards.xp} XP · {brief.available ? `${Number.isFinite(brief.attemptsLeft) ? `${brief.attemptsLeft} attempts left` : "unlimited"}` : brief.reason ?? "unavailable"}</span>}</span>
+          <span className="flex shrink-0 flex-col items-end gap-0.5"><button type="button" className="ui-focus font-mono text-[10px] uppercase text-primary" onClick={() => onWaypoint(`loc-${l.id}`, l.name, l.world.x, l.world.z)}>Waypoint</button>{onGo && <button type="button" className="ui-focus font-mono text-[10px] uppercase text-cyan-300" onClick={() => onGo(`loc-${l.id}`, l.name, l.world.x, l.world.z)}>{l.level === "entrance" ? "Go to door" : "Go there"}</button>}</span></div>
+      </li>; })}</ul>}
+  </div>;
+}
+
 /* ------------------------------------------------------------------ races (racing.ts) */
 /** which racing areas (activities.ts AREAS) a destination holds */
 const RACE_AREAS: Record<string, string[]> = { "neon-city": ["neon", "neon-core"], nexus: ["nexus"], veridan: ["veridan"], thalassia: ["thalassia"], ember: ["ember"], wastelands: ["wastelands"], swamps: ["swamps"], solara: ["solara"], frostspire: ["frostspire"] };
@@ -305,7 +345,7 @@ const districtOf = (ds: CityDistrict[], x: number, z: number) => ds.find((k) => 
 
 /** map sizes are authored in original-world units; positions are world units, so sizes grow with the map */
 const u = (n: number) => n * WORLD_SCALE;
-const fmt = (d: number) => (d >= 1000 ? `${(d / 1000).toFixed(1)}km` : `${Math.round(d)}m`);
+const fmt = (d: number) => (!Number.isFinite(d) ? "—" : d >= 1000 ? `${(d / 1000).toFixed(1)}km` : `${Math.round(d)}m`);
 
 /** atlas-only layers: every vendor and every fast-travel drop point (regions + cities), in world coordinates */
 const VENDOR_MARKERS: Marker[] = REGIONAL_SHOPS.map((sh) => ({ id: `shop-${sh.id}`, kind: "VENDOR", label: `${sh.name} · ${SHOP_KIND_LABEL[sh.kind]}`, x: sh.x, z: sh.z, regionId: "" }));
@@ -419,14 +459,15 @@ function TacticalMap({ chartRegionId, markers, px, pz, selected, onSelect, progr
           <text y={1.6} textAnchor="middle" fontSize={4.2} fill={ACTIVITY_COLOR[a.kind]} fillOpacity={a.status === "LOCKED" ? 0.5 : 1}>{a.status === "LOCKED" ? "🔒" : a.status === "DONE" ? "✓" : KIND_GLYPH[a.kind]}</text>
           {(on || view.zoom >= labelZoom * 0.8) && <text y={8} textAnchor="middle" fontSize={3.1} fill="#ffffff" stroke="#000" strokeWidth={0.6} paintOrder="stroke">{a.name}</text>}
         </g>; })}
-        {pin && legend.WAYPOINT && <g transform={`translate(${pin.x} ${pin.z}) scale(${scaleK})`} pointerEvents="none"><line x1={(px - pin.x) / scaleK} y1={(pz - pin.z) / scaleK} x2={0} y2={0} stroke="#ffffff" strokeOpacity={0.55} strokeWidth={0.5} strokeDasharray="2 2" /><circle r={3.2} fill="none" stroke="#ffffff" strokeWidth={0.8} /><text y={1.8} textAnchor="middle" fontSize={5} fill="#ffffff" stroke="#000" strokeWidth={0.9} paintOrder="stroke">{MARKER_GLYPH.WAYPOINT}</text></g>}
-        <circle cx={px} cy={pz} r={u(2.6) / Math.sqrt(view.zoom)} fill="#ffffff" stroke="#000000" strokeWidth={u(0.6) / Math.sqrt(view.zoom)} />
+        {pin && legend.WAYPOINT && <g transform={`translate(${pin.x} ${pin.z}) scale(${scaleK})`} pointerEvents="none">{Number.isFinite(px) && <line x1={(px - pin.x) / scaleK} y1={(pz - pin.z) / scaleK} x2={0} y2={0} stroke="#ffffff" strokeOpacity={0.55} strokeWidth={0.5} strokeDasharray="2 2" />}<circle r={3.2} fill="none" stroke="#ffffff" strokeWidth={0.8} /><text y={1.8} textAnchor="middle" fontSize={5} fill="#ffffff" stroke="#000" strokeWidth={0.9} paintOrder="stroke">{MARKER_GLYPH.WAYPOINT}</text></g>}
+        {/* the player's dot (the hub Director passes NaN: you are in orbit, not on the map) */}
+        {Number.isFinite(px) && <circle cx={px} cy={pz} r={u(2.6) / Math.sqrt(view.zoom)} fill="#ffffff" stroke="#000000" strokeWidth={u(0.6) / Math.sqrt(view.zoom)} />}
         </MapLayers>
       </svg>
       <div className="absolute right-2 top-2 flex flex-col gap-1">
         <Button size="icon" variant="outline" aria-label="Zoom in" onClick={() => zoomBy(1.5)}>+</Button>
         <Button size="icon" variant="outline" aria-label="Zoom out" onClick={() => zoomBy(1 / 1.5)}>−</Button>
-        <Button size="icon" variant="outline" aria-label="Centre on you" title="Centre on you" onClick={() => centreOn(px, pz)}><Crosshair /></Button>
+        {Number.isFinite(px) && <Button size="icon" variant="outline" aria-label="Centre on you" title="Centre on you" onClick={() => centreOn(px, pz)}><Crosshair /></Button>}
         <Button size="icon" variant="outline" aria-label="Focus selected region" title="Focus selected region" onClick={focusRegion}><Focus /></Button>
         <Button size="icon" variant="outline" aria-label="Full world" title="Full world" onClick={fullWorld}><Globe2 /></Button>
       </div>

@@ -12,7 +12,7 @@ describe("destination director", () => {
     for (const r of REGIONS) expect(destinationById(r.id)?.city).toBe(false);
     expect(destinationById("neon-city")?.city).toBe(true);
     expect(destinationById("neon-city")?.regionId).toBe("nexus");
-    expect(destinationById("thalassia")?.regionId).toBe("swamps");
+    expect(destinationById("thalassia")?.regionId).toBe("veridan") // offshore from the Verdant Forest;
     expect(new Set(DESTINATIONS.map((d) => d.id)).size).toBe(DESTINATIONS.length);
   });
   test("a city and its parent region never list the same activity", () => {
