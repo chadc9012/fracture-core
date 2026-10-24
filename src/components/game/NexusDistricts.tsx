@@ -10,6 +10,9 @@ import { cityStreetMaterial } from "./city-surface";
 import type { FleetModelId } from "@/game/fleet-models";
 import { InstancedFleet, type FleetInstance } from "./InstancedFleet";
 import { useInstances } from "./instancing";
+import { antennaMast, hvacUnit, lampHead, lampLens, lampPole, waterTank } from "@/game/street-geometry";
+
+const SL = { pole: lampPole(7.4, 1.8), housing: lampHead(7.4, 1.8), lens: lampLens(7.4, 1.8), pole6: lampPole(6.2, 1.2), head6: lampLens(6.2, 1.2), tank: waterTank(), hvac: hvacUnit(), mast: antennaMast(12) };
 
 /** Nexus City outer districts: a street grid of buildings around the safe-zone hub (layout in nexus-districts.ts).
  * Building bodies are instanced boxes per style; windows are drawn by the shader in world space (so they never stretch
@@ -94,9 +97,9 @@ function StreetLights() {
   const ls = useMemo(() => streetLights(), []);
   const pole = useRef<THREE.InstancedMesh>(null), arm = useRef<THREE.InstancedMesh>(null), head = useRef<THREE.InstancedMesh>(null), pool = useRef<THREE.InstancedMesh>(null);
   const y0 = (l: Lamp) => walkHeight(l.x, l.z);
-  useInstances<Lamp>(pole, ls, (o, l) => { o.position.set(l.x, y0(l) + 3.6, l.z); o.scale.set(0.08, 7.2, 0.08); });
-  useInstances<Lamp>(arm, ls, (o, l) => { o.position.set(l.x + Math.sin(l.yaw) * 0.9, y0(l) + 7.1, l.z + Math.cos(l.yaw) * 0.9); o.rotation.set(0, l.yaw, 0); o.scale.set(0.07, 0.07, 1.8); });
-  useInstances<Lamp>(head, ls, (o, l) => { o.position.set(l.x + Math.sin(l.yaw) * 1.7, y0(l) + 7.0, l.z + Math.cos(l.yaw) * 1.7); o.rotation.set(0, l.yaw, 0); o.scale.set(0.34, 0.08, 0.7); });
+  useInstances<Lamp>(pole, ls, (o, l) => { o.position.set(l.x, y0(l), l.z); o.rotation.set(0, l.yaw, 0); });
+  useInstances<Lamp>(arm, ls, (o, l) => { o.position.set(l.x, y0(l), l.z); o.rotation.set(0, l.yaw, 0); });
+  useInstances<Lamp>(head, ls, (o, l) => { o.position.set(l.x, y0(l), l.z); o.rotation.set(0, l.yaw, 0); });
   useInstances<Lamp>(pool, ls, (o, l) => { const x = l.x + Math.sin(l.yaw) * 1.7, z = l.z + Math.cos(l.yaw) * 1.7; o.position.set(x, walkHeight(x, z) + 0.13, z); o.rotation.set(-Math.PI / 2, 0, 0); o.scale.setScalar(7.5); });
   const mats = useMemo(() => ({
     pole: new THREE.MeshStandardMaterial({ color: "#22272d", metalness: 0.8, roughness: 0.35 }),
@@ -113,9 +116,10 @@ function StreetLights() {
     if (pool.current) pool.current.visible = k > 0.01;
   });
   return <group>
-    <instancedMesh ref={pole} args={[undefined, undefined, Math.max(1, ls.length)]} material={mats.pole} castShadow><cylinderGeometry args={[1, 1.3, 1, 8]} /></instancedMesh>
-    <instancedMesh ref={arm} args={[undefined, undefined, Math.max(1, ls.length)]} material={mats.pole}><boxGeometry args={[1, 1, 1]} /></instancedMesh>
-    <instancedMesh ref={head} args={[undefined, undefined, Math.max(1, ls.length)]} material={mats.head}><boxGeometry args={[1, 1, 1]} /></instancedMesh>
+    {/* tapered pole with a curved outreach arm, a cobra-head housing (arm instance) and its lit lens (head instance) */}
+    <instancedMesh ref={pole} args={[SL.pole, undefined, Math.max(1, ls.length)]} material={mats.pole} castShadow />
+    <instancedMesh ref={arm} args={[SL.housing, undefined, Math.max(1, ls.length)]} material={mats.pole} />
+    <instancedMesh ref={head} args={[SL.lens, undefined, Math.max(1, ls.length)]} material={mats.head} />
     <instancedMesh ref={pool} args={[undefined, undefined, Math.max(1, ls.length)]} material={mats.pool} frustumCulled={false} renderOrder={2}><planeGeometry args={[1, 1]} /></instancedMesh>
   </group>;
 }
@@ -170,16 +174,16 @@ function Roofs({ list }: { list: Building[] }) {
   const cx = (b: Building) => (b.crown ? 0.7 : 1);
   useInstances<Building>(r1, tanks, (o, b) => { o.position.set(b.x + b.w * 0.2 * cx(b), b.top + 1.6, b.z - b.d * 0.15 * cx(b)); o.scale.set(1.4, 3.2, 1.4); });
   useInstances<Building>(r2, hvac, (o, b) => { o.position.set(b.x - b.w * 0.18, b.top + 0.7, b.z + b.d * 0.12); o.scale.set(b.w * 0.3, 1.4, b.d * 0.25); });
-  useInstances<Building>(r3, ant, (o, b) => { o.position.set(b.x, b.top + 6, b.z); o.scale.set(0.15, 12, 0.15); });
-  useInstances<Building>(r4, ant, (o, b) => { o.position.set(b.x, b.top + 12.2, b.z); o.scale.setScalar(0.35); });
+  useInstances<Building>(r3, ant, (o, b) => { o.position.set(b.x, b.top, b.z); o.rotation.set(0, b.x * 0.37, 0); });
+  useInstances<Building>(r4, ant, (o, b) => { o.position.set(b.x, b.top + 14.1, b.z); o.scale.setScalar(0.18); });
   useInstances<Building>(r5, heli, (o, b) => { o.position.set(b.x, b.top + 0.15, b.z); o.rotation.set(-Math.PI / 2, 0, 0); o.scale.setScalar(Math.min(b.w, b.d) * 0.35 * cx(b)); });
   useInstances<Building>(r6, garden, (o, b) => { o.position.set(b.x, b.top + 0.35, b.z); o.scale.set(b.w * 0.8, 0.7, b.d * 0.8); });
   const blink = useRef<THREE.MeshBasicMaterial>(null);
   useFrame(({ clock }) => { if (blink.current) blink.current.opacity = Math.sin(clock.elapsedTime * 3) > 0.6 ? 1 : 0.15; });
   return <group>
-    <instancedMesh ref={r1} args={[undefined, undefined, Math.max(1, tanks.length)]} castShadow><cylinderGeometry args={[1, 1, 1, 10]} /><meshStandardMaterial color="#6a5a4a" roughness={0.9} /></instancedMesh>
-    <instancedMesh ref={r2} args={[undefined, undefined, Math.max(1, hvac.length)]} castShadow><boxGeometry args={[1, 1, 1]} /><meshStandardMaterial color="#8a8f94" metalness={0.5} roughness={0.5} /></instancedMesh>
-    <instancedMesh ref={r3} args={[undefined, undefined, Math.max(1, ant.length)]}><cylinderGeometry args={[1, 1, 1, 5]} /><meshStandardMaterial color="#3a3f45" metalness={0.7} /></instancedMesh>
+    <instancedMesh ref={r1} args={[SL.tank, undefined, Math.max(1, tanks.length)]} castShadow><meshStandardMaterial color="#6a5a4a" roughness={0.9} /></instancedMesh>
+    <instancedMesh ref={r2} args={[SL.hvac, undefined, Math.max(1, hvac.length)]} castShadow><meshStandardMaterial color="#8a8f94" metalness={0.5} roughness={0.5} /></instancedMesh>
+    <instancedMesh ref={r3} args={[SL.mast, undefined, Math.max(1, ant.length)]}><meshStandardMaterial color="#3a3f45" metalness={0.7} /></instancedMesh>
     <instancedMesh ref={r4} args={[undefined, undefined, Math.max(1, ant.length)]}><sphereGeometry args={[1, 8, 6]} /><meshBasicMaterial ref={blink} color="#ff3030" transparent toneMapped={false} /></instancedMesh>
     <instancedMesh ref={r5} args={[undefined, undefined, Math.max(1, heli.length)]}><ringGeometry args={[0.75, 1, 32]} /><meshBasicMaterial color="#ffd27a" toneMapped={false} side={THREE.DoubleSide} /></instancedMesh>
     <instancedMesh ref={r6} args={[undefined, undefined, Math.max(1, garden.length)]}><boxGeometry args={[1, 1, 1]} /><meshStandardMaterial color="#4f7a3a" roughness={1} /></instancedMesh>
@@ -215,11 +219,11 @@ function Streets() {
 function Lamps() {
   const ls = useMemo(() => lamps(), []);
   const pole = useRef<THREE.InstancedMesh>(null), head = useRef<THREE.InstancedMesh>(null);
-  useInstances<(typeof ls)[number]>(pole, ls, (o, l) => { o.position.set(l.x, walkHeight(l.x, l.z) + 3, l.z); o.scale.set(0.09, 6, 0.09); });
-  useInstances<(typeof ls)[number]>(head, ls, (o, l) => { o.position.set(l.x + Math.sin(l.yaw) * 0.8, walkHeight(l.x, l.z) + 6, l.z + Math.cos(l.yaw) * 0.8); o.rotation.set(0, l.yaw, 0); o.scale.set(0.35, 0.12, 1.2); });
+  useInstances<(typeof ls)[number]>(pole, ls, (o, l) => { o.position.set(l.x, walkHeight(l.x, l.z), l.z); o.rotation.set(0, l.yaw, 0); });
+  useInstances<(typeof ls)[number]>(head, ls, (o, l) => { o.position.set(l.x, walkHeight(l.x, l.z), l.z); o.rotation.set(0, l.yaw, 0); });
   return <group>
-    <instancedMesh ref={pole} args={[undefined, undefined, Math.max(1, ls.length)]} castShadow><cylinderGeometry args={[1, 1, 1, 6]} /><meshStandardMaterial color="#2a3036" metalness={0.7} roughness={0.4} /></instancedMesh>
-    <instancedMesh ref={head} args={[undefined, undefined, Math.max(1, ls.length)]}><boxGeometry args={[1, 1, 1]} /><meshStandardMaterial color="#fff2d6" emissive="#ffd9a0" emissiveIntensity={2.2} toneMapped={false} /></instancedMesh>
+    <instancedMesh ref={pole} args={[SL.pole6, undefined, Math.max(1, ls.length)]} castShadow><meshStandardMaterial color="#2a3036" metalness={0.7} roughness={0.4} /></instancedMesh>
+    <instancedMesh ref={head} args={[SL.head6, undefined, Math.max(1, ls.length)]}><meshStandardMaterial color="#fff2d6" emissive="#ffd9a0" emissiveIntensity={2.2} toneMapped={false} /></instancedMesh>
   </group>;
 }
 
