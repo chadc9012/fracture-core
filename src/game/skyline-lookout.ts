@@ -9,6 +9,11 @@ import { placeable } from "./ground-cover";
 import { inResidence } from "./residences";
 import { regionAt } from "./world";
 import type { Deck } from "./district-decks";
+import { SITES } from "./region-atlas";
+
+/** clear space kept between the ledge and any named map site's own set piece (m, beyond the site radius) */
+export const SITE_CLEARANCE = 25;
+const nearSite = (x: number, z: number) => SITES.some((st) => Math.hypot(st.x - x, st.z - z) < st.radius + SITE_CLEARANCE);
 
 export const LEDGE = { length: 7, width: 3.4, lift: 0.45, ramp: 0.9 } as const;
 export type Lookout = { x: number; z: number; y: number; dirX: number; dirZ: number };
@@ -26,6 +31,7 @@ export function skylineLookout(): Lookout | null {
       if (y < WATER_LEVEL + 6) continue;
       if (neonPlateauWeight(x, z) > 0.05 || distanceToRoad(x, z) < LANE_HALF_WIDTH + 6 || inResidence(x, z, 6)) continue;
       if (!placeable(x, z, "rock", regionAt(x, z))) continue;
+      if (nearSite(x, z)) continue;
       const dirX = (NEXUS.x - x) / r, dirZ = (NEXUS.z - z) / r;
       // the ledge must stand on open ground along its whole length, and the land must fall away in front of it
       let ok = true;

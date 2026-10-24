@@ -4,6 +4,8 @@ import { NEXUS } from "./nexus-districts";
 import { heightAt, walkHeight } from "./terrain";
 import { distanceToRoad, LANE_HALF_WIDTH } from "./lanes";
 import { clearDecks, registerDeck } from "./district-decks";
+import { SITES } from "./region-atlas";
+import { SITE_CLEARANCE } from "./skyline-lookout";
 
 describe("skyline lookout", () => {
   const l = skylineLookout();
@@ -24,6 +26,9 @@ describe("skyline lookout", () => {
     const tipX = l!.x + l!.dirX * LEDGE.length * 0.7, tipZ = l!.z + l!.dirZ * LEDGE.length * 0.7;
     expect(walkHeight(tipX, tipZ)).toBeGreaterThanOrEqual(deck.top - 1e-6);
     clearDecks();
+  });
+  test("keeps clear of every named map site's set piece", () => {
+    for (const st of SITES) expect(Math.hypot(st.x - l!.x, st.z - l!.z)).toBeGreaterThanOrEqual(st.radius + SITE_CLEARANCE);
   });
   test("fissures stay on the ledge", () => {
     for (const f of fissures()) for (const [al, ac] of [f.a, f.b]) {
