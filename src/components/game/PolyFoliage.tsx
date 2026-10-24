@@ -17,6 +17,9 @@ import { NEAR_TREE_MAX, NEAR_TREE_RADIUS, PROXY_COLOR, PROXY_MAX, PROXY_RADIUS, 
  * keeps its procedural fallback, and the world scene never suspends. */
 /** Trees are authored for this game (scripts/build-trees.py, four variants each: oaks + a birch, firs + a tall pine); the rest is Poly Haven. */
 export const FOLIAGE = { fir: "/models/foliage/conifer.glb", broadleaf: "/models/foliage/broadleaf.glb", shrub: shrub.url, fern: fern.url, log: deadLog.url, rock: mossRock.url } as const;
+// the forest is the first thing a new player sees: start fetching the two tree models when the game bundle loads (title screen,
+// operator select) instead of after spawning, so the procedural stand-in trees are gone by the time the world appears
+if (typeof window !== "undefined") { useGLTF.preload(FOLIAGE.fir); useGLTF.preload(FOLIAGE.broadleaf); }
 const LABEL: Record<keyof typeof FOLIAGE, string> = { fir: "Fir tree", broadleaf: "Broadleaf tree", shrub: "Shrub", fern: "Fern", log: "Fallen log", rock: "Mossy rock" };
 export type FoliageKind = keyof typeof FOLIAGE;
 /** `tilt` lays a model on its side (radians about Z) before yawing — used for fallen logs */
