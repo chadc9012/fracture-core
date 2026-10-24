@@ -207,6 +207,8 @@ import { reportVehicleEnter, reportVehicleExit, takeDriveOut } from "@/game/vehi
 import { deedNear, parkedAt } from "@/game/residence-deeds";
 import { conditionEffects, FRESH_VEHICLE, impactVehicle, normalizeCondition, recoverVehicle, type VehicleCondition } from "@/game/vehicle-condition";
 import { VehicleDamageFx } from "./VehicleDamageFx";
+import { VehicleBodyDamage } from "./VehicleBodyDamage";
+import { hashSeed } from "@/game/vehicle-damage-render";
 import { driveTelemetry } from "@/game/vehicle-audio";
 import { FOUNDRY_RULES, activeBlade, foundryOf, inShockwave, swingStats } from "@/game/foundries";
 import { LIVING_NPCS, PLEDGE_KEY, livingMarkers, npcNear, npcWorld } from "@/game/living-npcs";
@@ -3162,6 +3164,7 @@ function SceneImpl({
       {/* drivable wasteland raider — armour plate, ram spikes, roof gun */}
       <group ref={vehicle} visible={vehicleUnlocked}>
         <VehicleDamageFx condition={condition} speedRef={carSpeed} bounds={carBounds} />
+        <VehicleBodyDamage condition={condition} seed={hashSeed(vehicleId)} bounds={carBounds} />
         {/* no light of its own: the one headlamp below only switches on while you drive (a parked car's lights were lit pixels all game) */}
         {/* authored fleet model (fleet-models.ts): the active build's own body, paint and cosmetics */}
         <AuthoredVehicle model={playerCarModel.model} paint={playerCarModel.paint} cosmetics={playerCarModel.cosmetics} speedRef={carSpeed} steerRef={carSteer} brakeRef={carBrake} boundsRef={carBounds} lift={-1.9} />
