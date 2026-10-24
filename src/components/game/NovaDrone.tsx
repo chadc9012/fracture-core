@@ -35,7 +35,7 @@ export function NovaDrone({ held }: { held: Held }) {
     g.position.set(p.x, p.y, p.z);
     g.rotation.set(Math.sin(t * 1.3) * 0.08, p.yaw, Math.cos(t * 1.1) * 0.08);
     camera.getWorldPosition(_cam);
-    g.visible = _cam.distanceTo(g.position) > 2.2; // a third-person camera swinging past it never gets a lens full of drone
+    g.visible = _cam.distanceTo(g.position) > 3; // a third-person camera swinging past it never gets a lens full of drone
     props.current.forEach((m, i) => { if (m) m.rotation.y = t * (38 + i * 3); });
   });
   return (

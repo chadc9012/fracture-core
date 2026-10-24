@@ -14,6 +14,19 @@ import { softSprite } from "./softSprite";
 import { applyWorldTriplanar, weatheredConcreteTexture } from "@/game/weathered-surface";
 import { brokenPier } from "@/game/wild-geometry";
 import { latticePylon } from "@/game/street-geometry";
+import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
+
+/** billboard kit: an I-beam post (base at y = 0, 8 m), a buckled sheet-metal face with a torn corner, and its angle frame + catwalk */
+const BOARD = (() => {
+  const post = mergeGeometries([new THREE.BoxGeometry(0.05, 8.2, 0.3).translate(0, 4.1, 0), new THREE.BoxGeometry(0.32, 8.2, 0.04).translate(0, 4.1, 0.15), new THREE.BoxGeometry(0.32, 8.2, 0.04).translate(0, 4.1, -0.15)].map((g) => g.toNonIndexed()))!;
+  const panel = scrapPanel(17).scale(10, 0.12, 4.5).rotateX(Math.PI / 2);
+  const p = panel.attributes["position"] as THREE.BufferAttribute;
+  for (let i = 0; i < p.count; i++) if (p.getX(i) > 3.2 && p.getY(i) > 1.0) p.setY(i, p.getY(i) - (p.getX(i) - 3.2) * 0.6); // torn, drooping corner
+  panel.computeVertexNormals();
+  const bar = (w: number, h: number, d: number, x: number, y: number, z: number) => new THREE.BoxGeometry(w, h, d).translate(x, y, z).toNonIndexed();
+  const frame = mergeGeometries([bar(10.2, 0.12, 0.12, 0, 2.3, -0.12), bar(10.2, 0.12, 0.12, 0, -2.3, -0.12), bar(0.12, 4.6, 0.12, -5.05, 0, -0.12), bar(0.12, 4.6, 0.12, 5.05, 0, -0.12), bar(9, 0.05, 0.8, 0, -2.45, 0.35), bar(9, 0.04, 0.04, 0, -1.6, 0.72)])!;
+  return { post, panel, frame };
+})();
 import { chippedBlock } from "@/game/organic-geometry";
 
 const RUIN = { pier: brokenPier(4), intact: chippedBlock(1, 1, 1, 3), slab: chippedBlock(1, 1, 1, 9) };
@@ -140,9 +153,12 @@ function Billboards() {
   return <group>{bs.map((b, i) => {
     const y = walkHeight(b.x, b.z);
     return <group key={i} position={[b.x, y, b.z]} rotation-y={b.r}>
-      {[-3.4, 3.4].map((x) => <mesh key={x} castShadow position={[x, 4, 0]}><cylinderGeometry args={[0.18, 0.22, 8, 6]} /><meshStandardMaterial color="#3d3b38" metalness={0.6} roughness={0.6} /></mesh>)}
-      <mesh castShadow position={[0, 9, 0]} rotation-z={b.tilt * 0.6}><boxGeometry args={[10, 4.5, 0.2]} /><meshStandardMaterial color={["#a8623a", "#3f6f7a", "#9a8a4a"][i % 3]!} roughness={0.9} /></mesh>
-      <mesh position={[-1.5, 9.2, 0.12]}><planeGeometry args={[5, 1.2]} /><meshStandardMaterial color="#e8dcc0" roughness={1} /></mesh>
+      {[-3.4, 3.4].map((x) => <mesh key={x} castShadow position={[x, 0, -0.25]} geometry={BOARD.post}><meshStandardMaterial color="#3d3b38" metalness={0.6} roughness={0.65} /></mesh>)}
+      <group position={[0, 9, 0]} rotation-z={b.tilt * 0.6}>
+        <mesh castShadow geometry={BOARD.panel}><meshStandardMaterial color={["#a8623a", "#3f6f7a", "#9a8a4a"][i % 3]!} roughness={0.9} metalness={0.25} /></mesh>
+        <mesh geometry={BOARD.frame}><meshStandardMaterial color="#2e2c2a" metalness={0.6} roughness={0.6} /></mesh>
+      </group>
+      <mesh position={[-1.5, 9.2, 0.34]}><planeGeometry args={[5, 1.2]} /><meshStandardMaterial color="#e8dcc0" roughness={1} /></mesh>
     </group>;
   })}</group>;
 }
