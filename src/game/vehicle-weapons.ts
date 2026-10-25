@@ -50,7 +50,9 @@ export type VehicleOrdnance = {
   muzzles: readonly (readonly [number, number, number])[];
   mount: "TURRET" | "FIXED";
 };
-export type VehicleArmament = { primary: VehicleGun; secondary: VehicleOrdnance | null };
+/** `primary` null = unarmed (a city runabout). `secondaryGun`: a build whose second hardpoint is a gun (a pintle MG, trailer nests)
+ * fires it on the secondary trigger instead of ordnance. */
+export type VehicleArmament = { primary: VehicleGun | null; secondary: VehicleOrdnance | null; secondaryGun?: VehicleGun | null };
 
 const gun = (g: Partial<VehicleGun> & Pick<VehicleGun, "name" | "muzzles">): VehicleGun => ({ rate: 0.12, damage: 1, spread: 0.012, speed: 160, knock: 1, heat: 0.6, mount: "FIXED", pitchAssist: 0.18, converge: 0, sound: "VEHICLE", ...g });
 
@@ -87,11 +89,69 @@ const BY_ID: Partial<Record<VehicleId, { primary?: Partial<VehicleGun>; secondar
   leviathan: { primary: { name: "Heavy energy batteries", rate: 0.3, damage: 3, spread: 0.01, speed: 200, knock: 3, muzzles: [[2.5, 4, 6], [-2.5, 4, 6]], mount: "TURRET", sound: "PULSE" } },
 };
 
-export function armamentFor(id: VehicleId | string, kind: HandlingKind): VehicleArmament {
-  const base = BY_KIND[kind];
-  const o = BY_ID[id as VehicleId];
+type Override = { primary?: Partial<VehicleGun> | null; secondary?: VehicleOrdnance | null; secondaryGun?: Partial<VehicleGun> & Pick<VehicleGun, "name" | "muzzles"> };
+
+/** Fleet builds (fleet.ts) fire what their own hardpoint list names, on top of their chassis. Hardpoints with no weapon system
+ * behind them yet (mine and caltrop droppers, flare pods, flame jets, the Remora drone dock, the breach thruster, a ramming
+ * grill) stay listed in the garage only — they are not faked as guns. */
+const pulse = "PULSE" as const;
+export const BY_BUILD: Record<string, Override> = {
+  "goliath-4x4": { primary: { name: "12.7mm auto-turret", rate: 0.09, damage: 1.2, spread: 0.014, knock: 1.4, muzzles: [[0, 2.15, 0.2]], mount: "TURRET" } },
+  "behemoth-v16": { primary: { name: "20mm autocannon", rate: 0.18, damage: 2.2, spread: 0.012, speed: 180, knock: 2.2, heat: 0.9, muzzles: [[0, 1.9, 0.6]], mount: "TURRET", converge: 0 } },
+  "dune-stalker": { primary: { name: "Front twin heavy MGs", rate: 0.1, damage: 1.1, spread: 0.016, muzzles: [[0.35, 0.8, 1.2], [-0.35, 0.8, 1.2]], converge: 60, sound: "AUTO" } },
+  "aegis-siege": {
+    primary: { name: "120mm plasma smoothbore", sound: pulse },
+    secondary: null,
+    secondaryGun: { name: "Pintle: pulse machine gun", rate: 0.08, damage: 0.9, spread: 0.016, speed: 220, heat: 0.4, muzzles: [[-0.7, 3.0, 0.8]], mount: "TURRET", sound: pulse },
+  },
+  "valkyrie-vtol": {
+    primary: { name: "30mm rotary cannon", rate: 0.08, damage: 1.4, spread: 0.018, speed: 210, heat: 0.4, muzzles: [[0, 0.5, 3.2]] },
+    secondary: { ordnance: "guided-missile", name: "Lock-on rocket pods", rate: 3, salvo: 4, salvoGap: 0.12, damage: 9, muzzles: [[1.7, 0.9, 0.8], [-1.7, 0.9, 0.8]], mount: "FIXED" },
+  },
+  "ghost-ray": { primary: { name: "Thermal sniper / pulse array", rate: 0.6, damage: 4.5, spread: 0.001, speed: 320, knock: 2, heat: 1.4, muzzles: [[0, 0.85, 1.2]], converge: 0, sound: pulse } },
+  "f39-jupiter": { primary: { name: "Arc cannon" }, secondary: null },
+  "nautilus-abyss": {
+    primary: { name: "Hull: mining laser", rate: 0.05, damage: 0.6, spread: 0.002, speed: 260, heat: 0.3, sound: pulse },
+    secondary: { ordnance: "phase-torpedo", name: "Sonic torpedoes", rate: 3.5, salvo: 1, salvoGap: 0, damage: 20, muzzles: [[0, -0.3, 3]], mount: "FIXED" },
+  },
+  "triton-hydrospear": {
+    primary: { name: "Plasma arc turret", rate: 0.12, damage: 1.3, spread: 0.012, speed: 220, sound: pulse },
+    secondary: { ordnance: "phase-torpedo", name: "Micro torpedo racks", rate: 3, salvo: 3, salvoGap: 0.15, damage: 10, muzzles: [[1, 0.4, 2], [-1, 0.4, 2]], mount: "FIXED" },
+  },
+  "nomad-bike": { primary: { name: "Bar-mounted twin SMGs", rate: 0.07, damage: 0.65, spread: 0.02, muzzles: [[0.3, 0.85, 1], [-0.3, 0.85, 1]], converge: 45, sound: "AUTO" } },
+  "rift-runner": { primary: { name: "Hood: rift-shot cannon", rate: 0.45, damage: 3, spread: 0.004, speed: 220, knock: 2.5, heat: 1.2, muzzles: [[0, 1, 2]], converge: 0, sound: pulse } },
+  "sandstalker-atv": { primary: { name: "Roll bar: light machine gun", rate: 0.1, damage: 0.9 } },
+  "void-chaser": { primary: { name: "Twin void lances", rate: 0.3, damage: 2.6, spread: 0.002, speed: 320, knock: 1.8, heat: 0.9, muzzles: [[0.6, 0.7, 2.2], [-0.6, 0.7, 2.2]], converge: 120, sound: pulse } },
+  "civic-rover": { primary: null, secondary: null },
+  "neon-drift": { primary: { name: "Underglow arc emitters", rate: 0.08, damage: 0.8, spread: 0.03, speed: 110, heat: 0.5, muzzles: [[0.8, 0.4, 1.6], [-0.8, 0.4, 1.6]], converge: 30, sound: pulse } },
+  "war-rig": {
+    primary: { name: "Cab: flak turret", rate: 0.22, damage: 1.8, spread: 0.03, speed: 170, knock: 2, heat: 0.8, muzzles: [[0, 3.4, 2]], mount: "TURRET" },
+    secondaryGun: { name: "Trailer: twin heavy MG nests", rate: 0.08, damage: 1, spread: 0.018, speed: 170, heat: 0.4, muzzles: [[1.2, 3.1, -3.5], [-1.2, 3.1, -3.5]], mount: "TURRET", sound: "AUTO" },
+  },
+  "apex-hauler": { primary: { name: "Roof: point-defence laser", rate: 0.06, damage: 0.7, spread: 0.002, speed: 300, heat: 0.3, muzzles: [[0, 3.4, 1]], mount: "TURRET", sound: pulse } },
+  skyhawk: { primary: { name: "Chin: 20mm gun", rate: 0.1, damage: 1.2, spread: 0.016 }, secondary: null },
+  riftwing: { primary: { name: "Wing-root rift cannons", rate: 0.12, damage: 1.8, spread: 0.006, speed: 280, muzzles: [[1.6, 0.8, 1.5], [-1.6, 0.8, 1.5]], converge: 200 }, secondary: null },
+  "solara-falcon": {
+    primary: { name: "Nose: solar beam", rate: 0.05, damage: 0.8, spread: 0.002, speed: 320, heat: 0.35, muzzles: [[0, 0.8, 4]], converge: 0, sound: pulse },
+    secondary: { ordnance: "rocket-pod", name: "Wing rocket rails", rate: 2.4, salvo: 4, salvoGap: 0.1, damage: 9, muzzles: [[2.4, 0.6, 0.6], [-2.4, 0.6, 0.6]], mount: "FIXED" },
+  },
+  "void-skimmer-prototype": { primary: { name: "Bow: void lance array", rate: 0.25, damage: 4, spread: 0.002, speed: 320, muzzles: [[0.8, 0.7, 4], [0, 0.9, 4.2], [-0.8, 0.7, 4]], converge: 160 }, secondary: null },
+};
+
+function apply(base: VehicleArmament, o: Override | undefined): VehicleArmament {
   if (!o) return base;
-  return { primary: { ...base.primary, ...(o.primary ?? {}) }, secondary: o.secondary === undefined ? base.secondary : o.secondary };
+  const primary = o.primary === null ? null : o.primary === undefined ? base.primary : base.primary ? { ...base.primary, ...o.primary } : gun({ name: "Gun", muzzles: [[0, 1, 1]], ...o.primary });
+  return {
+    primary,
+    secondary: o.secondary === undefined ? base.secondary : o.secondary,
+    secondaryGun: o.secondaryGun === undefined ? (base.secondaryGun ?? null) : o.secondaryGun && gun(o.secondaryGun),
+  };
+}
+
+/** a chassis's armament, refined by the fleet build being driven when one is given (fleet.ts id) */
+export function armamentFor(id: VehicleId | string, kind: HandlingKind, buildId?: string | null): VehicleArmament {
+  const chassis = apply(BY_KIND[kind], BY_ID[id as VehicleId] as Override | undefined);
+  return buildId ? apply(chassis, BY_BUILD[buildId]) : chassis;
 }
 
 export type VehiclePose = { x: number; y: number; z: number; yaw: number; pitch: number; roll: number };

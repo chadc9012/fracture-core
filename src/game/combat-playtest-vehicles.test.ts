@@ -58,7 +58,7 @@ function frame(sim: WorldSim, r: Ride, input: VehicleInput, fire = false, second
     const air = p.mode === "AIR";
     const pose = { x: r.x, y: r.y - RIDE, z: r.z, yaw: r.yaw, pitch: air ? r.st.pitch : 0, roll: air ? r.st.roll : 0 };
     const carry = vehicleVelocity(r.yaw, r.speed, air || p.mode === "WATER" ? r.vy : 0);
-    const g = arm.primary;
+    const g = arm.primary!; // every catalogue chassis is armed (only the Civic Rover build is unarmed)
     if (fire && vf.cool <= 0) {
       vf.cool = g.rate / sim.mods.fireRate;
       const muzzle = vehiclePoint(pose, g.muzzles[vf.barrel++ % g.muzzles.length]!);
@@ -110,7 +110,7 @@ describe("driving and shooting (every drivable land vehicle)", () => {
       // 2 s straight run-up firing; a fresh round is always ahead of the moving vehicle (it keeps pace)
       for (let f = 0; f < 120; f++) frame(sim, r, { ...none, throttle: 1 }, true);
       expect(r.speed).toBeGreaterThan(10);
-      if (!arm.primary.shell) for (const b of live(sim)) expect(rel(r, b).along).toBeGreaterThan(-1);
+      if (!arm.primary!.shell) for (const b of live(sim)) expect(rel(r, b).along).toBeGreaterThan(-1);
       // then a 1.5 s hard left turn, still firing
       for (let f = 0; f < 90; f++) frame(sim, r, { ...none, throttle: 1, steer: 1 }, true);
       expect(r.shots.length).toBeGreaterThan(2);
@@ -127,7 +127,7 @@ describe("driving and shooting (every drivable land vehicle)", () => {
       const m = grunt(sim2, PX, PZ + 22, { mission: true });
       const r2 = ride(id);
       // the driver puts the crosshair on the grunt's chest (a tall turret aimed at the horizon rightly passes over it)
-      const mz = arm.primary.muzzles[0]!;
+      const mz = arm.primary!.muzzles[0]!;
       r2.camPitch = -Math.atan2(walkHeight(PX, PZ) + mz[1] - (walkHeight(PX, PZ + 22) + 1.1), 22 - mz[2]);
       for (let f = 0; f < 60 * 5 && m.alive; f++) { m.x = PX; m.z = PZ + 22; frame(sim2, r2, none, true); }
       expect(m.alive).toBe(false);
@@ -154,7 +154,7 @@ describe("driving and shooting (every drivable land vehicle)", () => {
     for (const b of sim.bullets) b.alive = false;
     frame(sim, r, { ...none, throttle: 1 }, true);
     const b = live(sim)[0]!;
-    const g = armamentFor("scrap-interceptor", "RACER").primary;
+    const g = armamentFor("scrap-interceptor", "RACER").primary!;
     expect(Math.hypot(b.vx, b.vz)).toBeGreaterThan(g.speed + r.speed * 0.95);
   });
 
@@ -219,7 +219,7 @@ describe("flying and shooting", () => {
     for (const b of sim.bullets) b.alive = false;
     frame(sim, r, { ...none, throttle: 1, ascend: 1 }, true);
     const b = live(sim)[0]!, shot = r.shots.at(-1)!;
-    const g = armamentFor("vanguard-jet", "JET").primary;
+    const g = armamentFor("vanguard-jet", "JET").primary!;
     // the round's own (muzzle) direction = heading + aircraft pitch; the climb rate rides on top
     const own = { vx: b.vx - Math.sin(shot.vehicle.yaw) * r.speed, vy: b.vy - r.vy, vz: b.vz - Math.cos(shot.vehicle.yaw) * r.speed };
     expect(Math.hypot(own.vx, own.vy, own.vz)).toBeCloseTo(g.speed, 0);

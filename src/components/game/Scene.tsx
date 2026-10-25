@@ -31,7 +31,7 @@ import { bootStats, SKATE_SHOP_OFFSET, SKATE_SHOP_RADIUS } from "@/game/skate-bo
 import { walkHeight, slopeAt, heightAt, waterNetwork, WATER_LEVEL } from "@/game/terrain";
 import { normalizeGore } from "@/game/gore";
 import { inSwordArc } from "@/game/melee-arc";
-import { aimFor, armamentFor, vehiclePoint, vehicleVelocity } from "@/game/vehicle-weapons";
+import { aimFor, armamentFor, vehiclePoint, vehicleVelocity, type VehicleGun } from "@/game/vehicle-weapons";
 import { ordnanceById } from "@/game/ordnance";
 import { MuzzleFlash, type MuzzleFlashState } from "./VehicleGunFx";
 import { GoreFx } from "./GoreFx";
@@ -780,9 +780,11 @@ function SceneImpl({
   const handling = useMemo(() => handlingFor(vehicleById(vehicleId)), [vehicleId]); // vehicle-handling.ts: jet/heli/boat/sub/tank/car each move differently
   const vh = useRef({ airborne: false, slip: 0, roll: 0, pitch: 0, skidAt: 0, groundPitch: 0, groundRoll: 0 });
   // vehicle-weapons.ts: what this vehicle's hardpoints fire, and the secondary salvo in progress
-  const armament = useMemo(() => armamentFor(vehicleId, handling.kind), [vehicleId, handling.kind]);
+  // the fleet build being driven fires its own hardpoints (fleet.ts / vehicle-weapons.ts BY_BUILD), else the chassis's
+  const activeBuildId = gear?.fleet?.active && fleetById(gear.fleet.active)?.base === vehicleId ? gear.fleet.active : null;
+  const armament = useMemo(() => armamentFor(vehicleId, handling.kind, activeBuildId), [vehicleId, handling.kind, activeBuildId]);
   const muzzleFlash = useRef<MuzzleFlashState | null>(null);
-  const vFire = useRef({ cool: 0, secCool: 0, salvoLeft: 0, salvoCool: 0, barrel: 0, podBarrel: 0 });
+  const vFire = useRef({ cool: 0, gunCool: 0, secCool: 0, salvoLeft: 0, salvoCool: 0, barrel: 0, gunBarrel: 0, podBarrel: 0 });
   const condition = useRef<VehicleCondition>(FRESH_VEHICLE);
   useEffect(() => { condition.current = normalizeCondition(gear?.vehicleConditions?.[vehicleId]); }, [vehicleId, gear?.vehicleConditions]);
   const player = useRef<THREE.Group>(null!);
@@ -1792,7 +1794,7 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
     } else if (s.inVehicle) {
       // vehicle hardpoints (vehicle-weapons.ts): rounds leave the real barrels, carry the vehicle's velocity, and turrets follow the camera
       const vf = vFire.current;
-      vf.cool -= dt; vf.secCool -= dt; vf.salvoCool -= dt;
+      vf.cool -= dt; vf.gunCool -= dt; vf.secCool -= dt; vf.salvoCool -= dt;
       if (!sim.overheated && !vehicleEffect.weaponsDisabled) {
         const air = handling.mode === "AIR";
         const pose = { x: s.x, y: s.y - 1.9, z: s.z, yaw: s.yaw, pitch: air ? vh.current.pitch : vh.current.groundPitch, roll: air ? vh.current.roll : vh.current.groundRoll };
@@ -1800,10 +1802,11 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
         // keep authored offsets on the model: never above its roof (+0.5 m) or past its nose (+0.6 m)
         const fit = (o: readonly [number, number, number]): [number, number, number] => bounds ? [o[0], Math.min(o[1], bounds.max.y + 1.9 + 0.5), Math.min(o[2], bounds.max.z + 0.6)] : [o[0], o[1], o[2]];
         const carry = vehicleVelocity(s.yaw, s.vSpeed, air || handling.mode === "WATER" ? s.vy : 0);
-        const g = armament.primary;
-        if (trigger && vf.cool <= 0) {
-          vf.cool = g.rate / sim.mods.fireRate;
-          const muzzle = vehiclePoint(pose, fit(g.muzzles[vf.barrel++ % g.muzzles.length]!));
+        // one gun on one trigger: rounds from the next barrel, toward the camera (turret) or along the nose (fixed)
+        const fireGun = (g: VehicleGun, slot: "cool" | "gunCool", barrel: "barrel" | "gunBarrel") => {
+          if (vf[slot] > 0) return;
+          vf[slot] = g.rate / sim.mods.fireRate;
+          const muzzle = vehiclePoint(pose, fit(g.muzzles[vf[barrel]++ % g.muzzles.length]!));
           const aim = aimFor(g.mount, pose, s.yaw, s.pitch + s.recoil, g.pitchAssist, muzzle, g.converge);
           const jy = (Math.random() - 0.5) * 2 * g.spread, jp = (Math.random() - 0.5) * 2 * g.spread;
           const dmg = g.damage * gearPower * (1 + armorFxRef.current.weaponDamage);
@@ -1819,7 +1822,9 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
             s.recoil += g.shell ? 0.03 : 0.004; s.punch += g.shell ? 0.9 : 0.12; s.bloom = Math.min(1, s.bloom + 0.05);
             muzzleFlash.current = { x: muzzle.x, y: muzzle.y, z: muzzle.z, t: performance.now() / 1000, big: !!g.shell };
           }
-        }
+        };
+        if (trigger && armament.primary) fireGun(armament.primary, "cool", "barrel");
+        if (secondaryTrigger && armament.secondaryGun) fireGun(armament.secondaryGun, "gunCool", "gunBarrel");
         const sec = armament.secondary;
         if (sec) {
           if (secondaryTrigger && vf.secCool <= 0 && vf.salvoLeft <= 0) { vf.secCool = sec.rate; vf.salvoLeft = sec.salvo; vf.salvoCool = 0; }
@@ -2936,7 +2941,7 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
         clock: clockLabel(time.current),
         speed: Math.round(s.inVehicle ? Math.abs(s.vSpeed) * 2.4 : velocity.length() * 2.4),
         mode: s.inVehicle ? "vehicle" : "foot",
-        ...(s.inVehicle ? { vehicle: { name: selectedVehicle.name, ...driveTelemetry(vehicleId, Math.abs(s.vSpeed) / 45, keys.current.has("KeyW") || keys.current.has("KeyS") ? 1 : 0, selectedVehicle.speed / vehicleById(vehicleId).speed), load: Math.min(1, Math.abs(s.vSpeed) / 45), reverse: s.vSpeed < -0.1, hull: selectedVehicle.hull, tuning: fleetTuningSummary(gear?.fleet), primary: armament.primary.name, ...(armament.secondary ? { secondary: armament.secondary.name, secondaryReady: Math.max(0, Math.min(1, 1 - vFire.current.secCool / armament.secondary.rate)) } : {}) } } : {}),
+        ...(s.inVehicle ? { vehicle: { name: selectedVehicle.name, ...driveTelemetry(vehicleId, Math.abs(s.vSpeed) / 45, keys.current.has("KeyW") || keys.current.has("KeyS") ? 1 : 0, selectedVehicle.speed / vehicleById(vehicleId).speed), load: Math.min(1, Math.abs(s.vSpeed) / 45), reverse: s.vSpeed < -0.1, hull: selectedVehicle.hull, tuning: fleetTuningSummary(gear?.fleet), primary: armament.primary?.name ?? "Unarmed", ...(armament.secondary ? { secondary: armament.secondary.name, secondaryReady: Math.max(0, Math.min(1, 1 - vFire.current.secCool / armament.secondary.rate)) } : armament.secondaryGun ? { secondary: armament.secondaryGun.name, secondaryReady: 1 } : {}) } } : {}),
         owner: zone?.owner ?? "syndicate",
         challenger: zone?.challenger ?? "vanguard",
         progress: zone?.progress ?? 0,
