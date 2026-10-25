@@ -132,11 +132,18 @@ cmake -S . -B build -G Ninja && cmake --build build && ctest --test-dir build --
 | HousingCoreTest | housing.ts, residence-deeds.ts | 4,500 operations, 80 normalized saves, 9,821 checks |
 | DragonCoreTest | dragonite.ts, dragonite-cast.ts statsFor, vyrak-trust.ts | 2,099 states, 23,789 checks |
 
-Regenerate goldens after changing the web build's rules (from the repo root):
+The golden files (`Plugins/WorldFractureCore/Tests/<name>_golden.txt`) are **generated, not committed**: together they run to ~60 MB,
+which broke the Lovable preview build. Record all of them from the repo root before configuring the tests (and again after changing
+the web build's rules):
 
-    npx esbuild unreal/tools/<tool>.ts --bundle --platform=node --format=esm --alias:@=./src --outfile=/tmp/t.mjs && node /tmp/t.mjs
+    node unreal/tools/gen-goldens.mjs            # all fourteen
+    node unreal/tools/gen-goldens.mjs race shop  # just these
 
-for `export-datatables`, `gen-quest-golden`, `gen-reward-golden`, `gen-mission-golden`, `gen-missionreward-golden`, `gen-dragon-golden`, `gen-vehicle-golden`, `gen-race-golden`, `gen-vweapons-golden`, `gen-shop-golden`, `gen-fleet-golden`, `gen-housing-golden`; the encounter, Dragonite-cast and ability recorders (`gen-encounter-golden`, `gen-dragoncast-golden`, `gen-ability-golden`) run through `node unreal/tools/build-golden.mjs unreal/tools/<tool>.ts`, which routes their world calls to recording shims.
+`export-datatables` (the DataTables, which are committed) still runs on its own:
+
+    npx esbuild unreal/tools/export-datatables.ts --bundle --platform=node --format=esm --alias:@=./src --outfile=/tmp/t.mjs && node /tmp/t.mjs
+
+The encounter, Dragonite-cast and ability recorders route their world calls to recording shims (`build-golden.mjs`); `gen-goldens.mjs` handles that.
 
 ## Not ported yet
 Boss models and attack effects (zones are debug circles, decoys are stand-ins), mid-mission saves, ability mastery XP and armor ability-recharge,
