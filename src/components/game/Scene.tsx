@@ -22,7 +22,7 @@ import { memo, useEffect, useMemo, useRef, type ComponentProps } from "react";
 import * as THREE from "three";
 import { softSprite } from "./softSprite";
 
-import { REGIONS, SKY, SKY_STOPS, ZONE_COLOR, clockLabel, phaseFor, regionAt, WORLD_RADIUS, WORLD_SCALE, NEON_FLAT } from "@/game/world";
+import { REGIONS, SKY, SKY_STOPS, ZONE_COLOR, clockLabel, hourOf, phaseFor, regionAt, WORLD_RADIUS, WORLD_SCALE, NEON_FLAT } from "@/game/world";
 import { BASE_FOOT_SPEED, SPRINT_MULT } from "@/game/foot-speed";
 import { useKeyboard } from "@/game/useKeyboard";
 import { touch, getEquippedBoots, activeBuffs, dashHud, dragoniteHud } from "@/game/client-input";
@@ -109,6 +109,7 @@ import { EncounterFx } from "./EncounterFx";
 import { COMBAT_FEEDBACK, impactFor, rumble } from "@/game/combat-feedback";
 import { encounterFor } from "@/game/scenario-encounters";
 import { windupHud } from "@/game/encounter-sim";
+import { setShopClockHour } from "@/game/shop-hours";
 import { threatTicks, type ThreatTick } from "@/game/threat-indicators";
 const feedbackPad = () => (typeof navigator !== "undefined" && navigator.getGamepads ? Array.from(navigator.getGamepads()).find(Boolean) ?? null : null);
 import { raceLive } from "./NeonDistricts";
@@ -3011,7 +3012,7 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
         difficulty: interior ? 0 : here?.difficulty ?? 2,
         rules: interior ? ["Indoors — hostiles can't follow", "Walk to the door to head back out"] : here?.rules ?? ["No stability field", "AI patrols roam freely"],
         phase: phaseFor(time.current),
-        clock: clockLabel(time.current),
+        clock: (setShopClockHour(hourOf(time.current)), clockLabel(time.current)), // shop-hours.ts reads the same world clock
         speed: Math.round(s.inVehicle ? Math.abs(s.vSpeed) * 2.4 : velocity.length() * 2.4),
         mode: s.inVehicle ? "vehicle" : "foot",
         ...(s.inVehicle ? { vehicle: { name: selectedVehicle.name, ...driveTelemetry(vehicleId, Math.abs(s.vSpeed) / 45, keys.current.has("KeyW") || keys.current.has("KeyS") ? 1 : 0, selectedVehicle.speed / vehicleById(vehicleId).speed), load: Math.min(1, Math.abs(s.vSpeed) / 45), reverse: s.vSpeed < -0.1, hull: selectedVehicle.hull, tuning: fleetTuningSummary(gear?.fleet), primary: armament.primary?.name ?? "Unarmed", ...(armament.secondary ? { secondary: armament.secondary.name, secondaryReady: Math.max(0, Math.min(1, 1 - vFire.current.secCool / armament.secondary.rate)) } : armament.secondaryGun ? { secondary: armament.secondaryGun.name, secondaryReady: 1 } : gadget ? { secondary: gadget.name, secondaryReady: gadget.cooldown > 0 ? Math.max(0, Math.min(1, 1 - vFire.current.gadgetCool / gadget.cooldown)) : 1 } : {}) } } : {}),

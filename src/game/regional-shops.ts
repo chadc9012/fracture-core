@@ -2,6 +2,7 @@
  * category, priced in region-flavoured materials from progression.materials (persisted), and gated
  * by player level and story progress. Pure logic; Scene detects proximity, ShopWindow draws it. */
 import { mulberry32 } from "./rng";
+import { shopClockHour, shopClosedReason } from "./shop-hours";
 import { livingShopTerms, type RepTier } from "./living-world";
 import { VAULT_GATE } from "./wasteland-activities";
 import { REGIONS, NEON_OFFSET, scaleSite } from "./world";
@@ -80,6 +81,8 @@ export function shopNear(x: number, z: number): RegionalShop | null {
 export function shopLock(shop: RegionalShop, p: Pick<PlayerProgression, "level" | "completedMissions"> & { living?: PlayerProgression["living"] }, now = Date.now()): string | null {
   if (p.level < shop.minLevel) return `Requires level ${shop.minLevel}`;
   if (shop.requires && !p.completedMissions.includes(shop.requires.missionId)) return shop.requires.label;
+  const closed = shopClosedReason(shop, shopClockHour()); // shop-hours.ts: null until the world clock is set
+  if (closed) return closed;
   return livingShopTerms(p.living, shop, now).lock; // living-world.ts: faction standing and district status (city shops only)
 }
 

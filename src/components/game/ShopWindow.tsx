@@ -1,3 +1,4 @@
+import { shopHours, shopHoursLabel } from "@/game/shop-hours";
 import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import type { PlayerProgression } from "@/game/progression";
@@ -41,7 +42,7 @@ export function ShopWindow({ shopId, progression, onProgression, onClose }: { sh
           <div>
             <p className="font-mono text-[9px] uppercase tracking-[0.3em] text-primary">{SHOP_KIND_LABEL[shop.kind]} · {shop.place}</p>
             <h3 className="mt-1 text-2xl font-semibold">{shop.name}</h3>
-            <p className="text-xs text-muted-foreground">{shop.blurb} · stock rotates daily</p>
+            <p className="text-xs text-muted-foreground">{shop.blurb} · stock rotates daily · Hours {shopHoursLabel(shopHours(shop))}</p>
             {owner && ownerTier && <p className="mt-1 font-mono text-[10px] uppercase tracking-[0.2em]" style={{ color: TIER_RULES[ownerTier].color }}>{FACTIONS[owner].name} · {TIER_RULES[ownerTier].label}{Math.abs(mult - 1) > 0.001 ? ` · prices ×${mult.toFixed(2)}` : ""}</p>}
           </div>
           <div className="text-right">
