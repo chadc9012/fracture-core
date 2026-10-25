@@ -21,6 +21,8 @@ export const ENEMY_ARMS: Record<EnemyKind, Record<EnemyRole, HandlingClass | nul
   VANGUARD: { standard: "rifle", elite: "heavy", boss: "heavy" },
   // avian legion: legionaries carry rifles, the Axiom fights with an energy blade, the Harbinger commands with a staff (no gun)
   SKYBORN: { standard: "rifle", elite: "sword", boss: null },
+  // ancient constructs: no hand weapons, they fire fracture energy from the core
+  GUARDIAN: { standard: null, elite: null, boss: null },
   // creatures: no weapons
   ABERRATION: { standard: null, elite: null, boss: null },
 };

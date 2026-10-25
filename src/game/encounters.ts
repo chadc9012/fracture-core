@@ -2,14 +2,15 @@
 /** Faction per region follows the owner's faction sheet (public/refs/factions-sheet.png): Raiders = Wastelands, Overclocked = Nexus,
  * Vanguard = Frostspire, Aberrations = Swamps; the Skyborn sheet adds the Skyborn to Ember Peaks' troops (its region boss, Overseer
  * Kael, is a human reactor operator and keeps the Raider boss body). Regions the sheets do not cover keep their themed mix. */
-export type EnemyKind = "RAIDER" | "OVERCLOCKED" | "ABERRATION" | "VANGUARD" | "SKYBORN";
+export type EnemyKind = "RAIDER" | "OVERCLOCKED" | "ABERRATION" | "VANGUARD" | "SKYBORN" | "GUARDIAN";
 export type EnemyProfile = { name: string; kind: EnemyKind; role: string; drop: string };
 export type RegionalEncounter = { regionId: string; troops: readonly EnemyProfile[]; boss?: { name: string; lair: string; drop: string; tell: string } };
 
 export const ENCOUNTERS: readonly RegionalEncounter[] = [
   { regionId: "veridan", troops: [
     { name: "Spore-Stalker Tracker", kind: "ABERRATION", role: "Four-legged heat tracker", drop: "sporeFiber" },
-    { name: "Overgrowth Sentinel", kind: "RAIDER", role: "Root-bound heavy, liquid-plasma repeater", drop: "sporeFiber" },
+    // Ancient Guardians (owner's enemies sheet) wake to defend the forest ruins; elites of this troop are Arc Wardens
+    { name: "Ruin Sentinel", kind: "GUARDIAN", role: "Moss-grown guardian construct, core-fired energy bolts", drop: "sporeFiber" },
     { name: "Veridan Corruptor", kind: "ABERRATION", role: "Spore support", drop: "bioCatalyst" },
   ], boss: { name: "Veridan Effigy", lair: "Corrupted Spore-Grove", drop: "bioCatalyst", tell: "Roots spread before a ground slam" } },
   { regionId: "ember", troops: [
