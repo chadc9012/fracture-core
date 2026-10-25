@@ -266,7 +266,7 @@ export function WarMachines({ sim }: { sim: WorldSim }) {
         mountedRef.current = next;
         setMounted(next);
       }
-      for (const child of node.children) child.visible = child.name === "elite-ring" ? m.elite && !m.boss : child.name === modelName;
+      for (const child of node.children) child.visible = child.name === "elite-ring" ? m.elite && !m.boss : child.name === "summon-ring" ? Boolean(m.summoned) : child.name === modelName;
       // walking gait: subtle body bob + roll so the legs read as striding
       const gait = t * 3 + i;
       // rigged models walk with their own clips; only clip-less ones get the procedural bob/roll, and only while moving
@@ -321,6 +321,7 @@ export function WarMachines({ sim }: { sim: WorldSim }) {
             </group>
           ))}
           {/* loot cue: elites (better drops) wear a glowing amber ring at their feet, like Diablo's elite tell */}
+          <mesh name="summon-ring" visible={false} rotation={[-Math.PI / 2, 0, 0]} position={[0, -1.85, 0]}><ringGeometry args={[2.2, 3.4, 40]} /><meshBasicMaterial color="#a463ff" transparent opacity={0.9} depthWrite={false} /></mesh>
           <mesh name="elite-ring" visible={false} rotation={[-Math.PI / 2, 0, 0]} position={[0, -1.9, 0]}><ringGeometry args={[2.6, 3.1, 40]} /><meshBasicMaterial color="#ffb357" transparent opacity={0.85} depthWrite={false} /></mesh>
         </group>
       ))}
