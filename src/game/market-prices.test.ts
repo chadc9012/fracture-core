@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { FLEET, GARAGES, buyFleetVehicle, buyGarage, EMPTY_FLEET } from "./fleet";
-import { FLEET_NEX_PRICE, fleetNexPrice, USD_PER_NEX } from "./market-prices";
+import { FLEET_BASE_PRICE, FLEET_NEX_PRICE, MARKUP, fleetNexPrice, USD_PER_NEX } from "./market-prices";
 import { DEFAULT_PROGRESSION } from "./progression";
 import { nexBalance } from "./nex";
 import { HOMES } from "./housing";
@@ -17,22 +17,25 @@ describe("market prices", () => {
     const all = FLEET.map((f) => fleetNexPrice(f.id));
     expect(fleetNexPrice("void-skimmer-prototype")).toBe(Math.max(...all));
   });
-  test("anchored to the reference scale: helicopter $1.75M, VTOL $3.99M, fighter $6.5M, luxury jet $10M", () => {
-    expect(fleetNexPrice("skyhawk") * USD_PER_NEX).toBe(1_750_000);
-    expect(fleetNexPrice("valkyrie-vtol") * USD_PER_NEX).toBe(3_990_000);
-    expect(fleetNexPrice("f39-jupiter") * USD_PER_NEX).toBe(6_500_000);
-    expect(fleetNexPrice("void-skimmer-prototype") * USD_PER_NEX).toBe(10_000_000);
+  test("anchored to the reference scale (before markup): helicopter $1.75M, VTOL $3.99M, fighter $6.5M, luxury jet $10M", () => {
+    expect(FLEET_BASE_PRICE["skyhawk"]! * USD_PER_NEX).toBe(1_750_000);
+    expect(FLEET_BASE_PRICE["valkyrie-vtol"]! * USD_PER_NEX).toBe(3_990_000);
+    expect(FLEET_BASE_PRICE["f39-jupiter"]! * USD_PER_NEX).toBe(6_500_000);
+    expect(FLEET_BASE_PRICE["void-skimmer-prototype"]! * USD_PER_NEX).toBe(10_000_000);
   });
-  test("housing sits on the same scale: no home costs more than a $20M mansion", () => {
-    expect(Math.max(...HOMES.map((h) => h.price)) * USD_PER_NEX).toBeLessThanOrEqual(20_000_000);
+  test("every price is the reference price marked up", () => {
+    for (const [id, base] of Object.entries(FLEET_BASE_PRICE)) { expect(fleetNexPrice(id)).toBeGreaterThan(base); expect(Math.abs(fleetNexPrice(id) / base - MARKUP)).toBeLessThan(0.06); }
+  });
+  test("housing sits on the marked-up scale: no home costs more than a $30M mansion (a $20M one plus markup)", () => {
+    expect(Math.max(...HOMES.map((h) => h.price)) * USD_PER_NEX).toBeLessThanOrEqual(30_000_000);
   });
   test("buying a build charges its Nex once, on top of parts; short of Nex it refuses and keeps the parts", () => {
     const base = { ...DEFAULT_PROGRESSION, ownedVehicles: [], garageLoadout: [], selectedVehicle: null, fleet: EMPTY_FLEET, materials: { scrapMetal: 500, vehicleParts: 100, fuel: 60, reinforcedAlloy: 80, microCircuits: 80, cryoCrystal: 20, dataShards: 30, bioCatalyst: 20 } };
     const g = buyGarage({ ...base, nexLedger: { seed: 10000 } }, "base-01"); if ("error" in g) throw new Error(g.error);
     const broke = buyFleetVehicle({ ...g.progression, nexLedger: { seed: 100 } }, "goliath-4x4");
-    expect("error" in broke && broke.error).toContain("Needs 4,500 Nex");
+    expect("error" in broke && broke.error).toContain("Needs 6,800 Nex");
     const ok = buyFleetVehicle({ ...g.progression, nexLedger: { seed: 10000 } }, "goliath-4x4"); if ("error" in ok) throw new Error(ok.error);
-    expect(nexBalance(ok.progression.nexLedger)).toBe(10000 - 4500);
+    expect(nexBalance(ok.progression.nexLedger)).toBe(10000 - 6800);
     expect(GARAGES["base-01"]).toBeDefined();
   });
 });
