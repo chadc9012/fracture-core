@@ -278,3 +278,12 @@ export function endEncounter(sim: WorldSim, m: Machine) {
   sim.hazardSpeedMult = 1;
   emit(sim, m, { kind: "VICTORY", text: ENCOUNTERS[m.scenarioId]!.victory, x: m.x, z: m.z, radius: 0, duration: 0 });
 }
+
+/** HUD view of a boss wind-up: the attack's label and 0..1 progress to impact while the encounter is in its TELL state, else null.
+ * Read-only: it never touches the timer the fight itself runs on. */
+export function windupHud(enc: EncounterState | undefined, scenarioId: string | undefined): { label: string; progress: number } | null {
+  if (!enc || enc.state !== "TELL" || !enc.atk || enc.tellTotal <= 0) return null;
+  const atk = encounterFor(scenarioId)?.attacks[enc.atk];
+  if (!atk) return null;
+  return { label: atk.label, progress: Math.min(1, Math.max(0, 1 - enc.timer / enc.tellTotal)) };
+}

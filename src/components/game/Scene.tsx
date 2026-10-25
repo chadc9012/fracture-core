@@ -108,6 +108,7 @@ import { ejectCasing } from "@/game/casings";
 import { EncounterFx } from "./EncounterFx";
 import { COMBAT_FEEDBACK, impactFor, rumble } from "@/game/combat-feedback";
 import { encounterFor } from "@/game/scenario-encounters";
+import { windupHud } from "@/game/encounter-sim";
 const feedbackPad = () => (typeof navigator !== "undefined" && navigator.getGamepads ? Array.from(navigator.getGamepads()).find(Boolean) ?? null : null);
 import { raceLive } from "./NeonDistricts";
 import { RACE_BEST_KEY, RACE_GATES, RACE_IDLE, raceReward, stepRace, type RaceState } from "@/game/neon-districts";
@@ -401,6 +402,8 @@ export type HudState = {
     staggered: boolean;
     adaptedTell: string;
     scenario: boolean;
+    /** the boss's wind-up in progress (encounter TELL state): attack label and 0..1 progress to impact; null between attacks */
+    windup: { label: string; progress: number } | null;
   } | null;
   /** Emergency Quest world event — see emergency-quest.ts; null while fully dormant */
   emergencyQuest: { state: "WARNING" | "ACTIVE" | "COMPLETE" | "FAILED"; bossName: string; regionId: string; timer: number } | null;
@@ -3136,6 +3139,7 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
             staggered: poise ? isStaggered(poise, nowSec) : false,
             adaptedTell: bossAdaptedPattern.current ? sim.bossCounter.tell : "",
             scenario: Boolean(b.scenarioId),
+            windup: windupHud(b.encounter, b.scenarioId),
           };
         })(),
         emergencyQuest: sim.emergencyQuest.state === "DORMANT" ? null : {

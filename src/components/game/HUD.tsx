@@ -107,6 +107,7 @@ function BossHealthBar({ boss }: { boss: HudState["bossHud"] }) {
         <div className="mt-1 h-1.5 overflow-hidden border border-foreground/10 bg-background/60">
           <div className={`h-full hud-ticks ${poiseColor}`} style={{ width: `${boss.staggered ? 100 : boss.poisePct}%`, transition: "width 150ms linear" }} />
         </div>
+        {boss.windup && <div className="mt-1" aria-label="Boss attack incoming"><div className="flex items-center justify-between text-[8px] uppercase tracking-[0.18em] text-warning"><span>Incoming · {boss.windup.label}</span><span>{Math.round(boss.windup.progress * 100)}%</span></div><div className="mt-0.5 h-1 overflow-hidden bg-foreground/15"><div className="h-full bg-warning" style={{ width: `${Math.round(boss.windup.progress * 100)}%` }} /></div></div>}
         <div className="mt-1 flex items-center justify-between text-[8px] uppercase tracking-[0.18em] text-muted-foreground">
           <span>{boss.staggered ? "STAGGERED · CRITICAL WINDOW OPEN" : boss.weakPointOpen ? "WEAK POINT EXPOSED" : "Poise"}</span>
           {boss.adaptedTell && <span className="text-warning">Adapting · {boss.adaptedTell}</span>}
