@@ -203,6 +203,7 @@ import { Storefronts } from "./Storefronts";
 import { SkyBodies } from "./SkyBodies";
 import { SkyDome } from "./SkyDome";
 import { HorizonRidges } from "./HorizonRidges";
+import { DustTrails } from "./DustTrails";
 import { BrokenHorizon } from "./BrokenHorizon";
 import { NovaDrone } from "./NovaDrone";
 import { Wyrmling } from "./Wyrmling";
@@ -3376,6 +3377,7 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
       <group name="terrain+trees"><Terrain renderTier={settings.renderTier} /></group>
       <Roads />
       <WorldPiece name="road-dressing"><RoadDressing /></WorldPiece>
+      {!settings.reducedMotion && <WorldPiece name="dust trails"><DustTrails sim={sim} vehicle={state} /></WorldPiece>}
       <group name="ground-cover"><GroundCover density={coverDensityFor(settings.renderTier)} /></group>
       <GrassField tier={settings.renderTier} />
       <group name="iso:forest">{settings.renderTier !== "LOW" && <LightShafts sunRef={sunDir} skyEnv={skyEnv} forest={VERIDAN_REGION} />}<GlitchAnomalies /><VerdantForest density={settings.renderTier === "LOW" ? 0.5 : settings.renderTier === "MEDIUM" ? 0.75 : 1} models={settings.renderTier !== "LOW"} investigation={investigation} heavyShadow={heavyShadows(settings.renderTier)} /></group>
