@@ -1,4 +1,5 @@
 import { useFrame } from "@react-three/fiber";
+import { ARM_RELAX, armBones, relaxArm } from "@/game/rest-pose";
 import { HELD_MODEL, heldModel } from "./heldModels";
 import { COLORWAY_EMISSIVE, COLORWAY_MAP, COLORWAY_UNIFORMS, colorwayFor, type Colorway } from "@/game/operator-colorway";
 import { useGLTF } from "@react-three/drei";
@@ -259,6 +260,8 @@ function Model({ url, tint, height, feetY, color, trim, pose, motion, bodyType, 
 
   const rig = useRef<THREE.Group>(null);
   const body = useRef({ crouch: 0, prone: 0, lean: 0 });
+  // rest-pose.ts: bodies with no idle clip relax their A-pose arms while standing
+  const arms = useMemo(() => armBones(built.object), [built]);
   useFrame(({ clock }, dt) => {
     const boots = bootStats(gear?.earnedRewards ?? [], getEquippedBoots()).id;
     if (boots !== skate.current.id) { skate.current.dispose(); skate.current = { id: boots, dispose: attachSkates(built.object, boots, classId, built.scale) }; }
@@ -288,13 +291,14 @@ function Model({ url, tint, height, feetY, color, trim, pose, motion, bodyType, 
       a.time = ((cycle % 1) + 1) % 1 * a.getClip().duration;
     };
     for (const key of Object.keys(actions)) { const a = actions[key]; if (a) a.weight = 0; }
+    let relax = 0;
     if (pose === "showcase") {
       // flex clip (GOLIATH) > idle clip (NYX) > walk held at mid-stance (CIPHER), a relaxed standing pose
       // GOLIATH alternates the flex with the owner's chest-pound taunt every other loop
       const showName = actions["showcase"] && actions["taunt"] && Math.floor(clock.elapsedTime / 9) % 2 === 1 ? "taunt" : actions["showcase"] ? "showcase" : actions["idle"] ? "idle" : null;
       const loop = showName ? actions[showName] : undefined;
       if (showName && loop) set(showName, 1, clock.elapsedTime / loop.getClip().duration);
-      else set("walk", 1, 0.25);
+      else { set("walk", 1, 0.25); relax = 1; }
     } else if (sliding && actions["slide"]) {
       // authored slide clip (NYX) scrubbed by slide progress
       set("slide", 1, Math.min(0.999, Math.max(0, m0?.slideT ?? 0)));
@@ -309,8 +313,10 @@ function Model({ url, tint, height, feetY, color, trim, pose, motion, bodyType, 
       set("walk", moving * (1 - run), cycle);
       set("run", moving * run, cycle);
       if (stand) set(stand, 1 - moving, clock.elapsedTime / actions[stand]!.getClip().duration);
+      else relax = 1 - Math.min(1, i * 5);
     }
     mixer.update(0);
+    if (relax > 0) for (const { arm, elbow } of arms) relaxArm(arm, elbow, built.object, ARM_RELAX * relax);
   });
   return <group ref={rig} position={[0, feetY, 0]}><primitive object={built.object} scale={built.scale} position={[built.offset.x, built.offset.y - feetY, built.offset.z]} /></group>;
 }
