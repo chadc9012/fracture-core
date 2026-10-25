@@ -285,7 +285,7 @@ function startAmbientSample(regionId: string) {
   const swell = c.ac.createGain(); swell.gain.value = 1; // the gust rides on a separate stage so the fade in/out stays clean
   source.connect(swell).connect(gain).connect(c.amb); source.start(c.ac.currentTime, Math.random() * buf.duration);
   const lfo = gust(c, swell.gain, 1);
-  gain.gain.setTargetAtTime(AMBIENT_MIX.sampleGain, c.ac.currentTime, 1.2);
+  gain.gain.setTargetAtTime(AMBIENT_MIX.sampleGain * (AMBIENT_MIX.regionTrim[regionId] ?? 1), c.ac.currentTime, 1.2);
   ambientSample = { source, gain, lfo }; return true;
 }
 export function playVehicleEngineStart(vehicleId = "scrap-interceptor", speedRatio = 1) {
@@ -318,16 +318,21 @@ export function playShot(weapon: WeaponId | "VEHICLE" | "CANNON") {
 export function playSwing(finisher: boolean) {
   if (playSample("melee", {}, finisher ? 0.9 : 0.62, finisher ? 0.86 : 1.08)) return;
   const c = ctx; if (!c) return; const o = out(c);
-  burst(c, o, { dur: finisher ? 0.35 : 0.22, freq: finisher ? 900 : 1400, q: 2, gain: 0.5 });
-  tone(c, o, { f0: finisher ? 500 : 800, f1: 120, dur: 0.25, type: "triangle", gain: 0.12 });
+  noiseLayer(c, o, { dur: finisher ? 0.32 : 0.2, freq: finisher ? 700 : 1100, q: 1.4, gain: finisher ? 1 : 0.8, attack: 0.04, sweepTo: finisher ? 350 : 500 });
+  tone(c, o, { f0: finisher ? 420 : 640, f1: 140, dur: 0.22, type: "triangle", gain: 0.16 });
+  if (finisher) tone(c, o, { f0: 90, f1: 40, dur: 0.3, gain: 0.5, at: 0.12 });
 }
 export function playReload(phase: "start" | "end") {
   const c = ctx; if (!c) return; const o = out(c);
-  if (phase === "start") { burst(c, o, { dur: 0.03, freq: 3500, q: 6, gain: 0.5 }); burst(c, o, { dur: 0.05, freq: 1800, q: 5, gain: 0.4, at: 0.14 }); }
-  else { burst(c, o, { dur: 0.04, freq: 2600, q: 6, gain: 0.6 }); tone(c, o, { f0: 220, f1: 180, dur: 0.06, type: "square", gain: 0.08, at: 0.06 }); }
+  if (phase === "start") { // mag release, mag out
+    noiseLayer(c, o, { dur: 0.035, freq: 3000, q: 2.5, gain: 0.7, drive: 1.5 }); noiseLayer(c, o, { dur: 0.06, freq: 1500, q: 2, gain: 0.6, at: 0.14 }); tone(c, o, { f0: 180, f1: 120, dur: 0.06, gain: 0.25, at: 0.14 });
+  } else { // mag seated, bolt home
+    noiseLayer(c, o, { dur: 0.045, freq: 2200, q: 2.5, gain: 0.8, drive: 1.5 }); tone(c, o, { f0: 160, f1: 100, dur: 0.07, gain: 0.35 });
+    noiseLayer(c, o, { dur: 0.05, freq: 3200, q: 2, gain: 0.6, at: 0.12 });
+  }
 }
-export function playDryFire() { const c = ctx; if (!c) return; burst(c, out(c), { dur: 0.02, freq: 4200, q: 8, gain: 0.4 }); }
-export function playSwitch() { const c = ctx; if (!c) return; const o = out(c); burst(c, o, { dur: 0.04, freq: 2000, q: 4, gain: 0.3 }); burst(c, o, { dur: 0.04, freq: 3000, q: 4, gain: 0.3, at: 0.08 }); }
+export function playDryFire() { const c = ctx; if (!c) return; noiseLayer(c, out(c), { dur: 0.025, freq: 3600, q: 3, gain: 0.6 }); }
+export function playSwitch() { const c = ctx; if (!c) return; const o = out(c); noiseLayer(c, o, { dur: 0.05, freq: 1800, q: 2, gain: 0.5 }); noiseLayer(c, o, { dur: 0.04, freq: 2800, q: 2.5, gain: 0.45, at: 0.08 }); tone(c, o, { f0: 150, f1: 110, dur: 0.06, gain: 0.2, at: 0.08 }); }
 
 /** Material impact: enemies are machines (metal clang) or aberrations (organic thud). */
 function hitTick(c: Ctx) { if (gate("hit-tick", 0.07)) tone(c, out(c), { f0: 2600, f1: 2600, dur: 0.03, type: "sine", gain: 0.06 }); }
@@ -337,8 +342,8 @@ export function playImpact(material: "METAL" | "ORGANIC" | "TECH", w: Where) {
   const o = out(c, w);
   if (material === "METAL" && playSample("melee", w, 0.42, 1.12)) { hitTick(c); return; }
   if (material === "METAL") { tone(c, o, { f0: 1800, f1: 1500, dur: 0.12, type: "triangle", gain: 0.18 }); burst(c, o, { dur: 0.05, freq: 5000, q: 3, gain: 0.25 }); }
-  else if (material === "TECH") { burst(c, o, { dur: 0.1, freq: 7000, type: "highpass", gain: 0.25 }); tone(c, o, { f0: 2400, f1: 600, dur: 0.08, type: "sawtooth", gain: 0.06 }); }
-  else { burst(c, o, { dur: 0.1, freq: 300, type: "lowpass", gain: 0.5 }); }
+  else if (material === "TECH") { noiseLayer(c, o, { dur: 0.06, freq: 3800, q: 2, gain: 0.4 }); tone(c, o, { f0: 1900, f1: 700, dur: 0.07, type: "triangle", gain: 0.1 }); }
+  else { noiseLayer(c, o, { dur: 0.1, freq: 380, type: "lowpass", gain: 0.8 }); tone(c, o, { f0: 120, f1: 60, dur: 0.08, gain: 0.3 }); }
   hitTick(c); // hit-marker tick, always centered
 }
 /** A real explosion: initial crack, a saturated sub thump, a brown-noise rumble whose filter closes over seconds, scattered debris ticks and
@@ -378,10 +383,33 @@ export function playKill(boss: boolean, w: Where) {
 export function playAbility(kind: string) {
   if ((kind === "RIFT" || kind === "PORTAL" || kind === "TELEPORT") && playSample("portal", {}, 0.72)) return;
   const c = ctx; if (!c) return; const o = out(c, {}, c.abil);
-  if (kind === "DASH") burst(c, o, { dur: 0.22, freq: 900, q: 2, gain: 0.45 });
-  else if (kind === "DOME" || kind === "SHIELD") { tone(c, o, { f0: 200, f1: 400, dur: 0.6, type: "triangle", gain: 0.25 }); tone(c, o, { f0: 300, f1: 600, dur: 0.6, type: "sine", gain: 0.2 }); }
-  else { tone(c, o, { f0: 300, f1: 1800, dur: 0.35, type: "sawtooth", gain: 0.1 }); burst(c, o, { dur: 0.4, freq: 3000, q: 1, gain: 0.3 }); }
-  tone(c, o, { f0: 60, f1: 30, dur: 0.4, gain: 0.5 });
+  // one voice per ability effect kind (combat-engine.ts effects[0].kind): eight of them used to share one generic sweep
+  if (kind === "DASH") { burst(c, o, { dur: 0.22, freq: 900, q: 2, gain: 0.45 }); tone(c, o, { f0: 60, f1: 30, dur: 0.3, gain: 0.45 }); }
+  else if (kind === "DOME" || kind === "SHIELD") { tone(c, o, { f0: 200, f1: 400, dur: 0.6, type: "triangle", gain: 0.25 }); tone(c, o, { f0: 300, f1: 600, dur: 0.6, type: "sine", gain: 0.2 }); tone(c, o, { f0: 60, f1: 30, dur: 0.4, gain: 0.5 }); }
+  else if (kind === "MARK") { // target lock: two bright pings and a soft confirm
+    tone(c, o, { f0: 1760, f1: 1760, dur: 0.07, type: "sine", gain: 0.35 }); tone(c, o, { f0: 2350, f1: 2350, dur: 0.09, type: "sine", gain: 0.3, at: 0.09 });
+    tone(c, o, { f0: 440, f1: 330, dur: 0.25, type: "triangle", gain: 0.25, at: 0.2 }); tone(c, o, { f0: 90, f1: 50, dur: 0.2, gain: 0.3, at: 0.2 });
+  } else if (kind === "TURRET") { // deploy: a clank, servos spinning up, a ready beep
+    noiseLayer(c, o, { dur: 0.08, freq: 1300, q: 2, gain: 0.5, drive: 2 }); tone(c, o, { f0: 120, f1: 70, dur: 0.15, gain: 0.5 });
+    tone(c, o, { f0: 180, f1: 520, dur: 0.45, type: "square", gain: 0.05, at: 0.12 }); tone(c, o, { f0: 1320, f1: 1320, dur: 0.08, type: "sine", gain: 0.14, at: 0.62 });
+  } else if (kind === "VEIL") { // going dark: the world's sound folds away, a low shimmer
+    tone(c, o, { f0: 900, f1: 260, dur: 0.6, type: "sine", gain: 0.26 }); tone(c, o, { f0: 1350, f1: 390, dur: 0.6, type: "sine", gain: 0.13, at: 0.03 });
+    noiseLayer(c, o, { dur: 0.5, freq: 700, q: 1.5, gain: 0.2, attack: 0.15 }); tone(c, o, { f0: 70, f1: 40, dur: 0.5, gain: 0.3 });
+  } else if (kind === "STRIKE") { // called-in strike: an incoming whistle, then the hit
+    tone(c, o, { f0: 1500, f1: 480, dur: 0.55, type: "sine", gain: 0.12 });
+    tone(c, o, { f0: 110, f1: 32, dur: 0.5, gain: 0.8, at: 0.55 }); noiseLayer(c, o, { dur: 0.3, freq: 800, q: 0.7, gain: 0.6, drive: 2.5, at: 0.55, sweepTo: 250 });
+  } else if (kind === "SIEGE") { // heavy stance: a charging hum, then the plates lock
+    tone(c, o, { f0: 70, f1: 150, dur: 0.6, type: "sawtooth", gain: 0.08 }); tone(c, o, { f0: 55, f1: 40, dur: 0.6, gain: 0.5 });
+    noiseLayer(c, o, { dur: 0.06, freq: 1800, q: 3, gain: 0.45, at: 0.6, drive: 2 }); noiseLayer(c, o, { dur: 0.06, freq: 1400, q: 3, gain: 0.4, at: 0.7, drive: 2 });
+  } else if (kind === "SILENCE") { // suppression pulse: a deep drop and a short crackle
+    tone(c, o, { f0: 240, f1: 45, dur: 0.45, gain: 0.55 });
+    for (let k = 0; k < 6; k++) noiseLayer(c, o, { dur: 0.02, freq: 2600, q: 2, gain: 0.12, at: 0.05 + Math.random() * 0.35 });
+  } else if (kind === "DAMAGE") { // a raw energy hit: punch and crunch
+    tone(c, o, { f0: 140, f1: 38, dur: 0.35, gain: 0.8 }); noiseLayer(c, o, { dur: 0.18, freq: 650, q: 0.8, gain: 0.6, drive: 3, sweepTo: 220 });
+  } else if (kind === "RIFT" || kind === "PORTAL" || kind === "TELEPORT") { // (the recorded portal plays when loaded)
+    tone(c, o, { f0: 220, f1: 660, dur: 0.5, type: "sine", gain: 0.18 }); tone(c, o, { f0: 227, f1: 680, dur: 0.5, type: "sine", gain: 0.14 });
+    tone(c, o, { f0: 70, f1: 35, dur: 0.5, gain: 0.5, at: 0.1 });
+  } else { tone(c, o, { f0: 300, f1: 1400, dur: 0.3, type: "triangle", gain: 0.12 }); noiseLayer(c, o, { dur: 0.3, freq: 1500, q: 1.2, gain: 0.2 }); tone(c, o, { f0: 60, f1: 30, dur: 0.4, gain: 0.5 }); }
 }
 export function playHurt() { const c = ctx; if (!c) return; const o = out(c); tone(c, o, { f0: 180, f1: 60, dur: 0.2, type: "square", gain: 0.12 }); burst(c, o, { dur: 0.12, freq: 800, type: "lowpass", gain: 0.4 }); }
 /** Enemy telegraph: shot from a hostile, positioned in space. */
@@ -634,7 +662,7 @@ export function updateCombatAudio(intensity: number, boss = false) {
   const grid = boss ? 0.2 : 0.25;
   c.layers.ambient.gain.setTargetAtTime(eff < 0.3 ? AMBIENT_MIX.pad : AMBIENT_MIX.padCombat, now, 0.8);
   c.layers.tension.gain.setTargetAtTime(eff > 0.4 ? (boss ? 0.2 : 0.12) * Math.min(1, (eff - 0.4) * 3) : 0, now, 0.8);
-  c.layers.drums.gain.setTargetAtTime(eff > 0.65 ? (boss ? 1.1 : 0.9) : 0, now, 0.5);
+  c.layers.drums.gain.setTargetAtTime(eff > 0.65 ? (boss ? 0.45 : 0.38) : 0, now, 0.5); // drums peaked above the player's own gun
   if (eff > 0.65 && now >= c.beat) {
     c.beat = Math.max(now, c.beat) + grid;
     const step = Math.round(c.beat / grid) % 8;
