@@ -38,11 +38,14 @@ export function NexusDistricts() {
 }
 
 const LOOK: Record<Style, { color: string; glass: string; lit: number; cell: [number, number]; win: [number, number]; metal: number; rough: number }> = {
-  glass: { color: "#5d7486", glass: "#1b2b3a", lit: 0.42, cell: [2.2, 3.4], win: [0.86, 0.78], metal: 0.32, rough: 0.36 },
-  concrete: { color: "#a39a8c", glass: "#1d2229", lit: 0.35, cell: [3.0, 3.4], win: [0.5, 0.5], metal: 0.05, rough: 0.9 },
-  industrial: { color: "#4f5458", glass: "#1a1d20", lit: 0.2, cell: [6.0, 4.2], win: [0.35, 0.25], metal: 0.5, rough: 0.7 },
+  // owner's night target (Nexus street): dense, mostly lit facades. Narrower bays and taller glazing than before, more rooms lit
+  glass: { color: "#5d7486", glass: "#1b2b3a", lit: 0.56, cell: [1.6, 3.4], win: [0.84, 0.72], metal: 0.32, rough: 0.36 },
+  concrete: { color: "#a39a8c", glass: "#1d2229", lit: 0.5, cell: [2.0, 3.4], win: [0.62, 0.62], metal: 0.05, rough: 0.9 },
+  industrial: { color: "#4f5458", glass: "#1a1d20", lit: 0.3, cell: [4.0, 4.2], win: [0.45, 0.35], metal: 0.5, rough: 0.7 },
 };
 
+/** one shared window-glow level for every district facade: dim by day, bright at night (Bodies updates it each frame) */
+const glowUniform = { value: 1 };
 /** a MeshStandardMaterial whose faces get a world-space window grid; roofs and floors (|n.y| > 0.5) stay solid */
 function windowMaterial(style: Style): THREE.MeshStandardMaterial {
   const L = LOOK[style];
@@ -52,11 +55,12 @@ function windowMaterial(style: Style): THREE.MeshStandardMaterial {
     sh.uniforms["uCell"] = { value: new THREE.Vector2(...L.cell) };
     sh.uniforms["uWin"] = { value: new THREE.Vector2(...L.win) };
     sh.uniforms["uLit"] = { value: L.lit };
+    sh.uniforms["uGlow"] = glowUniform;
     sh.vertexShader = sh.vertexShader
       .replace("#include <common>", "#include <common>\nvarying vec3 vWp; varying vec3 vWn;")
       .replace("#include <begin_vertex>", "#include <begin_vertex>\n#ifdef USE_INSTANCING\n mat4 wfIm = modelMatrix * instanceMatrix;\n#else\n mat4 wfIm = modelMatrix;\n#endif\n vWp = (wfIm * vec4(transformed, 1.0)).xyz; vWn = normalize(mat3(wfIm) * objectNormal);");
     sh.fragmentShader = sh.fragmentShader
-      .replace("#include <common>", "#include <common>\nvarying vec3 vWp; varying vec3 vWn; uniform vec3 uGlass; uniform vec2 uCell; uniform vec2 uWin; uniform float uLit;\nfloat wHash(vec2 p){ return fract(sin(dot(p, vec2(41.3, 289.1))) * 43758.5453); }")
+      .replace("#include <common>", "#include <common>\nvarying vec3 vWp; varying vec3 vWn; uniform vec3 uGlass; uniform vec2 uCell; uniform vec2 uWin; uniform float uLit; uniform float uGlow;\nfloat wHash(vec2 p){ return fract(sin(dot(p, vec2(41.3, 289.1))) * 43758.5453); }")
       .replace("#include <emissivemap_fragment>", `#include <emissivemap_fragment>
         if (abs(vWn.y) < 0.5) {
           vec3 t = normalize(vec3(-vWn.z, 0.0, vWn.x));
@@ -77,8 +81,10 @@ function windowMaterial(style: Style): THREE.MeshStandardMaterial {
           diffuseColor.rgb = mix(diffuseColor.rgb, uGlass, inside * 0.91);
           diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.085, 0.105, 0.12), mullion * 0.7);
           float lit = max(0.0, inside - mullion) * step(h, uLit);
-          vec3 warm = mix(vec3(1.0, 0.72, 0.38), vec3(0.75, 0.88, 1.0), step(0.8, fract(h * 7.0)));
-          totalEmissiveRadiance += warm * lit * (0.42 + 0.38 * fract(h * 13.0));
+          // mostly cool office white with warm rooms (the towers' facade map uses the same mix), brighter at night
+          float hc = fract(h * 7.0);
+          vec3 warm = hc < 0.56 ? vec3(0.86, 0.93, 1.0) : hc < 0.9 ? vec3(1.0, 0.8, 0.55) : vec3(0.4, 0.9, 1.0);
+          totalEmissiveRadiance += warm * lit * (0.42 + 0.38 * fract(h * 13.0)) * uGlow;
         }`);
   };
   return m;
@@ -86,6 +92,7 @@ function windowMaterial(style: Style): THREE.MeshStandardMaterial {
 
 function Bodies({ style, list }: { style: Style; list: Building[] }) {
   const mat = useMemo(() => windowMaterial(style), [style]);
+  useFrame(() => { glowUniform.value = 0.55 + 1.65 * lampLevel(worldLight.night); });
   const ref = useRef<THREE.InstancedMesh>(null);
   useInstances<Building>(ref, list, (o, b) => {
     const top = b.crown ? b.base + (b.top - b.base) * 0.78 : b.top;

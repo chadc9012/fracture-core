@@ -120,6 +120,7 @@ import { VAELITH, VAELITH_LAIR, dialogueDue, lairDefenseCleared, memoryNear, sta
 import { EMPTY_STORY, stageOf } from "@/game/story";
 import { bossStoryFor, introDue, vaultNear, type BossStoryId } from "@/game/boss-stories";
 import { NexusCity } from "./NexusCity";
+import { NexusSkyRail } from "./NexusSkyRail";
 import { NeonCity, NEON_CITY_CENTER } from "./NeonCity";
 import { casinoElevatorNear, casinoFloorAt, casinoLevels, casinoLocation } from "@/game/casino-access";
 import { casinoCombatGate3D } from "@/game/casino-safe-zone";
@@ -3318,7 +3319,7 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
       <LootCaches opened={openedCaches} />
       <ShopStalls />
       <Storefronts />
-      <NearOnly playerRef={player} x={NEXUS_REGION.x} z={NEXUS_REGION.z} radius={330 * NEAR_SCALE[settings.renderTier]} name="city:nexus"><NexusCity sim={sim} />{gear && <ResidenceGarages city="nexus" progression={{ nexLedger: gear.nexLedger ?? {}, housing: gear.housing, fleet: gear.fleet }} />}</NearOnly>
+      <NearOnly playerRef={player} x={NEXUS_REGION.x} z={NEXUS_REGION.z} radius={330 * NEAR_SCALE[settings.renderTier]} name="city:nexus"><NexusCity sim={sim} /><NexusSkyRail />{gear && <ResidenceGarages city="nexus" progression={{ nexLedger: gear.nexLedger ?? {}, housing: gear.housing, fleet: gear.fleet }} />}</NearOnly>
       {/* street level (kerbs, crossings, furniture, signals; src/game/city-streets.ts): only near enough to read */}
       <NearOnly playerRef={player} x={NEXUS_REGION.x} z={NEXUS_REGION.z} radius={190 * NEAR_SCALE[settings.renderTier]} name="streets:nexus"><WorldPiece name="nexus streets"><CityStreets city="nexus" tier={settings.renderTier} /></WorldPiece></NearOnly>
       <NearOnly playerRef={player} x={NEON_CITY_CENTER.x} z={NEON_CITY_CENTER.z} radius={240 * NEAR_SCALE[settings.renderTier]} name="streets:neon"><WorldPiece name="neon streets"><CityStreets city="neon" tier={settings.renderTier} /></WorldPiece></NearOnly>
