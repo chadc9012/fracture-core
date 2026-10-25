@@ -8,6 +8,7 @@ import { NEON_CENTER } from "./living-world";
 import { heightAt, WATER_LEVEL, riverAt } from "./terrain";
 import { LANES, ROAD_SAMPLES, distanceToRoad, laneSamples, ROAD_FAR } from "./lanes";
 import { THALASSIA_CENTER } from "./thalassia-site";
+import { CITY_OUTER, NEXUS as NEXUS_CITY } from "./nexus-districts";
 
 describe("world scale", () => {
   test("scale is within bounds and radius follows it", () => {
@@ -82,8 +83,10 @@ describe("authored sites survive the rescale", () => {
     for (const i of INTERIORS) {
       // Neon City is its own district beside Nexus, outside the region circles: its storefront doors count if they're in the city
       const inNeon = Math.hypot(i.doorPos.x - NEON_CENTER.x, i.doorPos.z - NEON_CENTER.z) < NEON_FLAT;
+      // likewise Nexus City's districts ring the hub past the region circle (the Grid Line Diner's door is out there)
+      const inNexusCity = i.regionId === "nexus" && Math.hypot(i.doorPos.x - NEXUS_CITY.x, i.doorPos.z - NEXUS_CITY.z) < CITY_OUTER;
       const r = regionAt(i.doorPos.x, i.doorPos.z);
-      expect(r !== null || inNeon).toBe(true);
+      expect(r !== null || inNeon || inNexusCity).toBe(true);
       expect(heightAt(i.doorPos.x, i.doorPos.z)).toBeGreaterThan(WATER_LEVEL);
     }
   });

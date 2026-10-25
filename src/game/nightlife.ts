@@ -42,6 +42,8 @@ export function venueLots(towers: readonly TowerPlacement[]): VenueLot[] {
 /** opening hours on the day clock (0-24); a close earlier than the open runs past midnight */
 export const VENUE_HOURS: Readonly<Record<string, { open: number; close: number }>> = {
   "pulse-array": { open: 20, close: 4 }, afterglow: { open: 21, close: 5 }, "velvet-circuit": { open: 18, close: 2 }, "crown-casino": { open: 0, close: 24 },
+  // Nexus City's late-night diner (venue-life.ts NEXUS_DINER)
+  "grid-line-diner": { open: 17, close: 7 },
 };
 export const inHours = (open: number, close: number, hour: number) => (open === close || (open === 0 && close === 24) ? true : open < close ? hour >= open && hour < close : hour >= open || hour < close);
 export const venueOpen = (id: string, hour: number) => { const h = VENUE_HOURS[id]; return h ? inHours(h.open, h.close, hour) : false; };
@@ -68,7 +70,7 @@ export function recordVenueVisit<P extends { earnedRewards: string[] }>(p: P, id
 }
 
 /** who greets you inside, and what they say by how well they know you (new / regular / VIP) */
-export const VENUE_HOST: Readonly<Record<string, string>> = { "pulse-array": "Kade, door host", afterglow: "Sable, bartender", "velvet-circuit": "Mirelle, hostess", "crown-casino": "Dorian, pit boss" };
+export const VENUE_HOST: Readonly<Record<string, string>> = { "pulse-array": "Kade, door host", afterglow: "Sable, bartender", "velvet-circuit": "Mirelle, hostess", "crown-casino": "Dorian, pit boss", "grid-line-diner": "Ma Ruiz, owner" };
 const LINES: Readonly<Record<string, readonly [string[], string[], string[]]>> = {
   "pulse-array": [
     ["First time at Pulse Array? Keep your hands where the bouncers can see them and your eyes on the lights.", "The floor shakes on the drop. That's the building, not you."],
@@ -84,6 +86,11 @@ const LINES: Readonly<Record<string, readonly [string[], string[], string[]]>> =
     ["Welcome to the Velvet Circuit. Seats near the stage are earned, not bought.", "The show starts when the lights go violet."],
     ["Nice to see a familiar face. The performers notice who comes back.", "Tonight's showcase has a new act. Don't leave early."],
     ["Your table's ready, VIP. Front row.", "The house remembers its friends."],
+  ],
+  "grid-line-diner": [
+    ["Grid Line Diner. Counter, booths, coffee that's been on since sundown. Sit.", "Night Shift Special's on the board. It fixes most things."],
+    ["Back again. The coffee remembers you.", "Late shift's been rough on the Grid. Everyone's eating double."],
+    ["Your stool's waiting. You're family here now, God help you.", "Regulars eat first. That's the rule, and I made it."],
   ],
   "crown-casino": [
     ["Crown Casino never sleeps. House rules: no weapons drawn, no debts left unpaid.", "Watch the tables before you play them. The house always watches you."],

@@ -5,6 +5,7 @@ import * as THREE from "three";
 import { INTERIOR_ALTITUDE, INTERIORS, SHOP_INTERIORS } from "@/game/interiors";
 import { DoorMarker } from "./HomeInteriors";
 import { SpeakingFigure } from "./SpeakingFigure";
+import { castAt, NEXUS_DINER } from "@/game/venue-life";
 
 const ROOM_HALF = 5;
 const WALL_HEIGHT = 4;
@@ -95,7 +96,13 @@ export function Interiors() {
           )}
 
           {/* nightlife venue: a lit bar, a dance floor that glows in the venue's colours, booths and neon strips round the walls */}
-          {interior.kind === "VENUE" && <VenueRoom venueId={interior.venueId ?? ""} />}
+          {interior.kind === "VENUE" && (interior.venueId === NEXUS_DINER.id ? <DinerRoom /> : <VenueRoom venueId={interior.venueId ?? ""} />)}
+          {/* the people inside (venue-life.ts CAST): bouncer by the door, bartender behind the bar, regulars at booths and on the floor */}
+          {interior.kind === "VENUE" && castAt(interior.venueId ?? "").filter((c) => c.name !== interior.npcName?.split(",")[0]).map((c) => (
+            <group key={c.id} position={[c.spot.x, 0, c.spot.z]} rotation-y={c.role === "bouncer" ? Math.PI : 0}>
+              <SpeakingFigure name={c.name} color={c.role === "bouncer" ? "#3a3f48" : c.role === "bartender" ? "#a0563a" : CAST_TINT[c.id.length % CAST_TINT.length]!} role={c.role === "bouncer" ? "OBSERVER" : c.role === "bartender" ? "VENDOR" : c.id.length % 2 ? "ARTISAN" : "SCAVENGER"} />
+            </group>
+          ))}
 
           {/* the NPC standee — a simple readable figure, not a full character model */}
           {interior.npcName && (
@@ -115,6 +122,42 @@ export function Interiors() {
   );
 }
 
+const CAST_TINT = ["#5f6f8a", "#7a5f8a", "#8a6f5a", "#4f7a6f"];
+/** the Grid Line Diner (venue-life.ts NEXUS_DINER): a long counter with stools, booths under a window strip, warm light */
+function DinerRoom() {
+  const cache = useMemo(() => new Map<string, THREE.MeshBasicMaterial>(), []);
+  const glow = (c: string, k = 1.6) => { const key = `${c}:${k}`; let m = cache.get(key); if (!m) cache.set(key, (m = new THREE.MeshBasicMaterial({ color: new THREE.Color(c).multiplyScalar(k), toneMapped: false }))); return m; };
+  return <group>
+    {/* counter with a steel top, stools in front */}
+    <mesh position={[-1.5, 0.52, -3.9]} castShadow><boxGeometry args={[6, 1.04, 0.8]} /><meshStandardMaterial color="#6a3b2a" roughness={0.7} /></mesh>
+    <mesh position={[-1.5, 1.06, -3.9]}><boxGeometry args={[6.1, 0.05, 0.9]} /><meshStandardMaterial color="#b9bec4" metalness={0.8} roughness={0.3} /></mesh>
+    {[-3.6, -2.4, -1.2, 0, 1.2].map((x) => <group key={x} position={[x, 0, -3.0]}>
+      <mesh position-y={0.36}><cylinderGeometry args={[0.04, 0.06, 0.72, 8]} /><meshStandardMaterial color="#9aa0a6" metalness={0.8} roughness={0.3} /></mesh>
+      <mesh position-y={0.74}><cylinderGeometry args={[0.2, 0.2, 0.08, 14]} /><meshStandardMaterial color="#b0302a" roughness={0.6} /></mesh>
+    </group>)}
+    {/* menu board and pass-through glow */}
+    <mesh position={[-1.5, 2.5, -4.82]} material={glow(NEXUS_DINER.color, 0.9)}><boxGeometry args={[4.2, 1, 0.04]} /></mesh>
+    <mesh position={[-1.5, 1.7, -4.8]} material={glow("#ffe2b0", 0.7)}><boxGeometry args={[2.2, 0.5, 0.04]} /></mesh>
+    {/* booths along the left wall, tables between */}
+    {[-1.8, 1.8].map((z) => <group key={z} position={[-3.9, 0, z]}>
+      <mesh position-y={0.45} castShadow><boxGeometry args={[1.1, 0.9, 1.9]} /><meshStandardMaterial color="#8a2a24" roughness={0.75} /></mesh>
+      <mesh position={[1.2, 0.74, 0]}><boxGeometry args={[0.9, 0.05, 1.4]} /><meshStandardMaterial color="#d8d2c4" roughness={0.5} /></mesh>
+    </group>)}
+    {/* checker floor strip and a jukebox in the corner */}
+    {Array.from({ length: 10 }, (_, i) => <mesh key={i} rotation-x={-Math.PI / 2} position={[-4 + i * 0.9, 0.012, -2.2]}><planeGeometry args={[0.9, 0.9]} /><meshStandardMaterial color={i % 2 ? "#e8e2d4" : "#1c1c1e"} roughness={0.6} /></mesh>)}
+    <group position={[3.8, 0, -3.8]}>
+      <mesh position-y={0.8} castShadow><boxGeometry args={[0.9, 1.6, 0.6]} /><meshStandardMaterial color="#3a2418" roughness={0.6} /></mesh>
+      <mesh position={[0, 1.05, 0.31]} material={glow(NEXUS_DINER.accent, 1.2)}><boxGeometry args={[0.6, 0.6, 0.02]} /></mesh>
+    </group>
+    {[-4.84, 4.84].map((x) => <mesh key={x} position={[x, 3.2, 0]} material={glow(x < 0 ? NEXUS_DINER.color : NEXUS_DINER.accent, 1.2)}><boxGeometry args={[0.04, 0.06, 9.4]} /></mesh>)}
+    {/* warm pendant lamps over the counter and booths (emissive only: the room shares Interiors' one light) */}
+    {[[-3.6, -3.4], [-1.5, -3.4], [0.6, -3.4], [-3.0, -1.8], [-3.0, 1.8]].map(([x, z]) => <group key={`${x},${z}`} position={[x!, 2.6, z!]}>
+      <mesh position-y={0.55}><cylinderGeometry args={[0.01, 0.01, 1.1, 4]} /><meshStandardMaterial color="#222" /></mesh>
+      <mesh><coneGeometry args={[0.22, 0.2, 14, 1, true]} /><meshStandardMaterial color="#2a2018" side={THREE.DoubleSide} /></mesh>
+      <mesh position-y={-0.06} material={glow("#ffd59a", 2.2)}><sphereGeometry args={[0.07, 10, 8]} /></mesh>
+    </group>)}
+  </group>;
+}
 const VENUE_TINT: Record<string, [string, string]> = { "pulse-array": ["#35efff", "#7a5cff"], afterglow: ["#ff3b9d", "#ff7a3a"], "velvet-circuit": ["#c040ff", "#ff4fa8"], "crown-casino": ["#ffc247", "#ff8a2a"] };
 function VenueRoom({ venueId }: { venueId: string }) {
   const [a, b] = VENUE_TINT[venueId] ?? ["#c040ff", "#35efff"];

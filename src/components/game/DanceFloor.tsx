@@ -10,7 +10,7 @@ const SCROLL = 1.6; // seconds an arrow takes to fall to the line
 
 /** The dance floor overlay (dance.ts): tonight's set scrolls down four lanes; hit each arrow on the line with the arrow
  * keys / WASD or the d-pad. Keys are captured while it is open so the operator doesn't walk off. Esc / B leaves. */
-export function DanceFloor({ venueId, progression, onProgression, onClose }: { venueId: string; progression: PlayerProgression; onProgression: (p: PlayerProgression) => void; onClose: () => void }) {
+export function DanceFloor({ venueId, progression, onProgression, onClose, onFinish }: { onFinish?: (r: DanceResult) => void; venueId: string; progression: PlayerProgression; onProgression: (p: PlayerProgression) => void; onClose: () => void }) {
   const venue = VENUES.find((v) => v.id === venueId);
   const beats = useRef<Beat[]>(danceSet(venueId, new Date().toISOString().slice(0, 10)));
   const start = useRef(performance.now());
@@ -44,6 +44,7 @@ export function DanceFloor({ venueId, progression, onProgression, onClose }: { v
         cancelAnimationFrame(raf);
         const r = result(beats.current);
         setDone(r);
+        onFinish?.(r);
         const next = recordDance(progRef.current, venueId, r.score);
         if (next !== progRef.current) onProgression(next);
         return;

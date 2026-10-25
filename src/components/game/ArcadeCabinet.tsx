@@ -10,7 +10,7 @@ const SIGNAL_TEXT = { READY: "Get ready", WAIT: "Wait…", HIT: "Hit!", JACKPOT:
 /** The Pixel Pit reflex cabinet overlay (arcade.ts): hit each signal while it is lit with Space, a click / tap on the screen or
  * gamepad A; pressing early is a miss, two misses end the run. Space is captured while it is open so the operator doesn't
  * jump; held repeats and typing in a field are ignored. Esc / B leaves. */
-export function ArcadeCabinet({ venueId, progression, onProgression, onClose }: { venueId: string; progression: PlayerProgression; onProgression: (p: PlayerProgression) => void; onClose: () => void }) {
+export function ArcadeCabinet({ venueId, progression, onProgression, onClose, onFinish }: { onFinish?: (run: ArcadeRun) => void; venueId: string; progression: PlayerProgression; onProgression: (p: PlayerProgression) => void; onClose: () => void }) {
   const venue = VENUES.find((v) => v.id === venueId);
   const cabinet = ARCADE_VENUES[venueId]?.cabinet ?? "Arcade";
   const run = useRef<ArcadeRun>(startArcade(venueId, new Date().toISOString().slice(0, 10), performance.now()));
@@ -20,6 +20,7 @@ export function ArcadeCabinet({ venueId, progression, onProgression, onClose }: 
   const progRef = useRef(progression); progRef.current = progression;
   const finish = (s: ArcadeRun) => {
     setDone(s);
+    onFinish?.(s);
     const next = recordArcade(progRef.current, venueId, s.score);
     if (next !== progRef.current) onProgression(next);
   };

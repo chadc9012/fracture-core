@@ -18,6 +18,7 @@ import { addObstacle } from "@/game/obstacles";
 import { Model, QuietModel, useModel } from "./Vehicle";
 import { NexusDistricts } from "./NexusDistricts";
 import { ResidentialHomes } from "./ResidentialHomes";
+import { NexusDiner } from "./NexusDiner";
 
 const NEXUS = REGIONS.find((r) => r.id === "nexus")!;
 
@@ -194,6 +195,8 @@ export function NexusCity({ sim }: { sim: WorldSim }) {
     <group>
       <CityBuildings />
       <NexusDistricts />
+      {/* Grid Line Diner frontage (venue-life.ts): Nexus City's late-night venue */}
+      <WorldPiece name="nexus diner"><NexusDiner /></WorldPiece>
       <WorldPiece name="nexus palms"><NexusPalms /></WorldPiece>
       <ResidentialHomes city="nexus" />
       <Pedestrians />

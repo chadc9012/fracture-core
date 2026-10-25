@@ -169,6 +169,10 @@ import { localSavedAt } from "@/game/cloud-save";
 import { lootCaches, openCache, isOpenedToday, RARITY_HEX } from "@/game/loot-caches";
 import { HudRail, HudRails } from "./HudRail";
 import { SiteBanner } from "./SiteBanner";
+import { VenuePanel } from "./VenuePanel";
+import { VenueTalk } from "./VenueTalk";
+import { FourBeatDance } from "./FourBeatDance";
+import { CAST, FOURBEAT_BPM, NEXUS_DINER, claimChallenges, claimDiscovery, orderSpecial, recordFact, recordTalk, rewardText, type Topic } from "@/game/venue-life";
 
 // Keep gameplay optics crisp: chromatic fringing is a barely-visible edge accent, not a constant blur.
 const CA_OFFSET = new THREE.Vector2(0.00025, 0.00025);
@@ -846,6 +850,17 @@ export function GameCanvas() {
   useEffect(() => { if (!hud.insideInterior) setDancing(null); }, [hud.insideInterior]);
   const [arcadeAt, setArcadeAt] = useState<string | null>(null);
   useEffect(() => { if (!hud.insideInterior) setArcadeAt(null); }, [hud.insideInterior]);
+  // venue life (venue-life.ts): conversations, house specials, the Four-Beat Dance and venue challenges
+  const [talkWith, setTalkWith] = useState<string | null>(null);
+  const [fourBeatAt, setFourBeatAt] = useState<string | null>(null);
+  useEffect(() => { if (!hud.insideInterior) { setTalkWith(null); setFourBeatAt(null); } }, [hud.insideInterior]);
+  /** apply a venue change to the save, then pay any challenge it finished (claims are idempotent ledger keys) */
+  const venueSave = (change: (p: PlayerProgression) => PlayerProgression) => {
+    const claimed = claimChallenges(change(progressionRef.current));
+    progressionRef.current = claimed.progression;
+    setProgression(claimed.progression);
+    if (claimed.paid.length) setCaptionQueue((q) => [...q, ...claimed.paid.map((c) => ({ speaker: "Challenge complete", text: `${c.title} · ${rewardText(c.reward)}` }))]);
+  };
   const visitCounts = useRef(new Map<string, number>());
   const [activeDialogue, setActiveDialogue] = useCountedState<DialogueLine[] | null>("activeDialogue", null);
   useEffect(() => {
@@ -1470,7 +1485,7 @@ export function GameCanvas() {
            <Button className="pointer-events-auto" variant="outline" onClick={() => setDancing(interiorById(hud.insideInterior)!.venueId!)}>Hit the dance floor{danceBest(progression, interiorById(hud.insideInterior)!.venueId!) ? ` · best ${danceBest(progression, interiorById(hud.insideInterior)!.venueId!).toLocaleString()}` : ""}</Button>
          </div>
        )}
-       {dancing && hud.insideInterior && <DanceFloor venueId={dancing} progression={progression} onProgression={(next) => setProgression((cur) => recordDance(cur, dancing, danceBest(next, dancing)))} onClose={() => setDancing(null)} />}
+       {dancing && hud.insideInterior && <DanceFloor venueId={dancing} progression={progression} onProgression={(next) => setProgression((cur) => recordDance(cur, dancing, danceBest(next, dancing)))} onFinish={(r) => { const v = dancing; venueSave((p) => recordFact(recordDance(p, v, r.score), v, "danced")); }} onClose={() => setDancing(null)} />}
        {/* Pixel Pit reflex cabinet (arcade.ts): Crown Casino */}
        {hud.insideInterior && !arcadeAt && !dancing && ARCADE_VENUES[interiorById(hud.insideInterior)?.venueId ?? ""] && (() => {
          const id = interiorById(hud.insideInterior)!.venueId!, best = arcadeBest(progression, id);
@@ -1480,7 +1495,29 @@ export function GameCanvas() {
            </div>
          );
        })()}
-       {arcadeAt && hud.insideInterior && <ArcadeCabinet venueId={arcadeAt} progression={progression} onProgression={(next) => setProgression((cur) => recordArcade(cur, arcadeAt, arcadeBest(next, arcadeAt)))} onClose={() => setArcadeAt(null)} />}
+       {arcadeAt && hud.insideInterior && <ArcadeCabinet venueId={arcadeAt} progression={progression} onProgression={(next) => setProgression((cur) => recordArcade(cur, arcadeAt, arcadeBest(next, arcadeAt)))} onFinish={(r) => { if (r.won) { const v = arcadeAt; venueSave((p) => recordFact(p, v, "jackpot")); } }} onClose={() => setArcadeAt(null)} />}
+       {/* venue life: talk to the people inside, order tonight's special, the Four-Beat Dance, the venue's challenges */}
+       {hud.insideInterior && !dancing && !arcadeAt && !fourBeatAt && (() => {
+         const inside = interiorById(hud.insideInterior); const venue = inside?.kind === "VENUE" ? inside.venueId : undefined;
+         if (!inside || !venue) return null;
+         const hour = Number.parseInt(hud.clock, 10) || 0;
+         const near = CAST.filter((c) => c.venue === venue && Math.hypot(hud.px - (inside.origin.x + c.spot.x), hud.pz - (inside.origin.z + c.spot.z)) < 2.6 && c.name !== inside.npcName?.split(",")[0]);
+         return <VenuePanel venueId={venue} name={inside.name} progression={progression} hour={hour} near={talkWith ? [] : near}
+           onTalk={(id) => { setTalkWith(id); }}
+           onSpecial={() => {
+             const r = orderSpecial(progressionRef.current, activeBuffs.current, venue, hour);
+             if ("error" in r) { setCaptionQueue((q) => [...q, { speaker: inside.name, text: r.error }]); return; }
+             activeBuffs.current = r.buffs;
+             venueSave(() => r.progression);
+             setCaptionQueue((q) => [...q, { speaker: inside.npcName?.split(",")[0] ?? inside.name, text: `One ${r.special.name}. ${r.special.blurb}` }]);
+           }}
+           onFourBeat={FOURBEAT_BPM[venue] ? () => setFourBeatAt(venue) : null} />;
+       })()}
+       {talkWith && hud.insideInterior && <VenueTalk key={talkWith} npc={talkWith} progression={progression}
+         onTopic={(t: Topic) => { const d = claimDiscovery(progressionRef.current, t); if (d.paid) { venueSave(() => d.progression); setCaptionQueue((q) => [...q, { speaker: "Discovery", text: `${d.paid!.title} · ${rewardText(d.paid!.reward)}` }]); } }}
+         onClose={() => { const id = talkWith; setTalkWith(null); venueSave((p) => recordTalk(p, id)); }} />}
+       {fourBeatAt && hud.insideInterior && <FourBeatDance venueId={fourBeatAt} color={fourBeatAt === NEXUS_DINER.id ? NEXUS_DINER.color : "#35efff"}
+         onFinish={(won) => { if (won) { const v = fourBeatAt; venueSave((p) => recordFact(p, v, "fourbeat")); } }} onClose={() => setFourBeatAt(null)} />}
        {housingOpen && <HousingPanel progression={progression} startTab={housingOpen} startHome={interiorById(hud.insideInterior ?? null)?.homeId} onProgression={setProgression} onClose={() => setHousingOpen(null)} />}
        {hud.insideInterior && hud.interiorName && hud.sub.startsWith("Shop") && !interiorById(hud.insideInterior)?.shopId && (
          <div className="pointer-events-none absolute bottom-24 left-1/2 -translate-x-1/2 text-center">
