@@ -136,7 +136,7 @@ export function RoadDressing() {
 /* rocks and dry scrub crowding the road edges (owner's target frame "wilds by day"); only the items near the camera are drawn,
  * reselected twice a second, so the world-wide scatter costs two instanced draws */
 const ROCK_TINT: Record<string, string> = { wastelands: "#9b8564", solara: "#c4a582", ember: "#3e3639", frostspire: "#9aa3ad", swamps: "#5e6656", veridan: "#7c7a6c" };
-const SCRUB_TINT: Record<string, string> = { wastelands: "#7d7a45", solara: "#8e8650", ember: "#4a4030", frostspire: "#56665c", swamps: "#4d5e3a", veridan: "#55703a" };
+const SCRUB_TINT: Record<string, string> = { wastelands: "#86794e", solara: "#968758", ember: "#4a4030", frostspire: "#56665c", swamps: "#4d5e3a", veridan: "#55703a" };
 const CAP = 900;
 function Verge() {
   const [items, setItems] = useState<VergeItem[] | null>(null);
@@ -162,7 +162,7 @@ function Verge() {
         o.updateMatrix(); r.setMatrixAt(nr, o.matrix); r.setColorAt(nr, col.set(ROCK_TINT[it.region] ?? "#8a8478").multiplyScalar(0.85 + (it.r % 1) * 0.3)); nr++;
       } else {
         if (ns >= CAP) continue;
-        o.position.set(it.x, y + it.s * 0.25, it.z); o.rotation.set(0, it.r, 0); o.scale.set(it.s, it.s * 0.6, it.s);
+        o.position.set(it.x, y + it.s * 0.4, it.z); o.rotation.set(0, it.r, 0); o.scale.set(it.s * 0.72, it.s * 0.95, it.s * 0.72); // upright dry bushes (they read as flat pancakes at 0.6)
         o.updateMatrix(); s.setMatrixAt(ns, o.matrix); s.setColorAt(ns, col.set(SCRUB_TINT[it.region] ?? "#6a6a3c").multiplyScalar(0.8 + (it.r % 1) * 0.35)); ns++;
       }
     }
