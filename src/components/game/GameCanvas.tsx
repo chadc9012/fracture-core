@@ -121,6 +121,10 @@ import { ACTIVITY_COLOR, ACTIVITY_LABEL, CHALLENGES, recordPatrolKills } from "@
 import { applyNemesisKill, applyPlayerDeath } from "@/game/nemesis";
 import type { LivingEmit } from "@/game/living-runtime";
 import type { WasteEmit } from "@/game/wasteland-runtime";
+import type { DescentEmit } from "@/game/descent-runtime";
+import { claimDescentClear, claimTierLoot } from "@/game/descent-run";
+import { dungeonById } from "@/game/fracture-gates";
+import { DescentTracker } from "./DescentTracker";
 import { resolveDerby, resolveRally, resolveVault } from "@/game/wasteland-activities";
 import { InventoryWindow } from "./InventoryWindow";
 import { CharacterScreen } from "./CharacterScreen";
@@ -1169,6 +1173,21 @@ export function GameCanvas() {
     else if (event.type === "RALLY") apply((p) => resolveRally(p, event.id, event.time));
     else apply((p) => resolveDerby(p, event.run, event.wrecks));
   }, [showLivingToast]);
+  /** Fracture Gate descents (descent-runtime.ts): tier chests pay once per tier per week, a clear once per dungeon per day */
+  const recordFractureDescent = useCallback((event: DescentEmit) => {
+    const now = Date.now();
+    const name = dungeonById(event.run.dungeonId)?.name ?? "Descent";
+    if (event.type === "TIER_LOOT") {
+      const paid = claimTierLoot(progressionRef.current, event.run, event.tier, now).paid;
+      if (Object.keys(paid).length) showLivingToast(`${name} · tier chest: ${Object.entries(paid).map(([k, v]) => `${k.replace(/([A-Z])/g, " $1").toLowerCase()} +${v}`).join(", ")}`);
+      setProgression((current) => claimTierLoot(current, event.run, event.tier, now).progression);
+      return;
+    }
+    if (event.run.status !== "CLEARED") { showLivingToast(`${name} · ${event.run.reason ?? "descent ended"}`); return; }
+    const { seals } = claimDescentClear(progressionRef.current, event.run, now);
+    showLivingToast(seals.length ? `Legendary Recognition · ${name}: ${seals.map((x) => x.replace("_", " ").toLowerCase()).join(", ")} seal${seals.length > 1 ? "s" : ""} earned` : `${name} cleared`);
+    setProgression((current) => claimDescentClear(current, event.run, now).progression);
+  }, [showLivingToast]);
   const recordLiving = useCallback((event: LivingEmit) => {
     if (event.type === "KILLS") { setProgression((current) => recordCityKills(current, event.city, event.count)); return; }
     if (event.type === "FORGE_HEART") {
@@ -1427,7 +1446,7 @@ export function GameCanvas() {
       >
         <color attach="background" args={["#bfe4f2"]} />
         <Suspense fallback={<WorldLoading />}>
-            <Profiler id="scene" onRender={onProf}><Scene onDiscovery={onDiscovery} vyrakRematch={rematchReady} onVyrakRematch={spendRematch} activity={activity} onActivityChange={onActivityChange} onEncounterClue={(enc, clue) => setProgression((cur) => recordClue(cur, enc, clue).progression)} openedCaches={openedToday} onStoryEvent={recordStory} onLiving={recordLiving} onWaste={recordWaste} summonNemesis={summonNemesis} onHud={setHud} onDrops={(drops) => { showScenarioRewards(drops); setProgression((current) => claimDrops(current, drops)); }} gear={progression} settings={liveSettings} onCameraPreference={(firstPerson) => { window.localStorage.setItem("world-fracture-camera", firstPerson ? "first" : "third"); setSettings((current) => ({ ...current, firstPersonDefault: firstPerson })); }} playerClass={cls} subclassId={subclass} bonded={isBonded(progression, cls)} appearance={appearance} bodyType={bodyType} vehicleId={vehicleId} vehicleUnlocked={vehicleUnlocked} activeBuild={progression.activeBuild} abilityBranches={progression.abilityBranches} tutorial={tutorial} onTutorialEvent={recordTutorial} mission={mission} onMissionEvent={recordMission} relay={relay} onRelayEvent={recordRelay} blackout={blackout} onBlackoutEvent={recordBlackout} neonCore={neonCore} onNeonCoreEvent={recordNeonCore} solarArray={solarArray} onSolarArrayEvent={recordSolarArray} coreNode={coreNode} onCoreNodeEvent={recordCoreNode} zoneRuns={zoneRuns} onZoneEvent={recordZone} descent={descent} onDescentEvent={recordDescent} systemCore={systemCore} onSystemCoreEvent={recordSystemCore} awakening={awakening} onAwakeningEvent={recordAwakening} onXP={recordXP} weaponOrder={carriedWeapons(activeLoadout(progression, progression.identityClass ?? cls).slots)} travelTo={travelTo} introPlayback={showIntro ? { elapsed: introElapsed, totalSeconds: introTotalSeconds() } : cineId ? { elapsed: cineProgress * introTotalSeconds(), totalSeconds: introTotalSeconds() } : null} armorState={hud.hp < 35 ? "FRACTURE" : hud.heat > 65 ? "ASCENDANT" : hud.heat > 15 ? "ACTIVE" : "STABLE"} /></Profiler>
+            <Profiler id="scene" onRender={onProf}><Scene onDiscovery={onDiscovery} vyrakRematch={rematchReady} onVyrakRematch={spendRematch} activity={activity} onActivityChange={onActivityChange} onEncounterClue={(enc, clue) => setProgression((cur) => recordClue(cur, enc, clue).progression)} openedCaches={openedToday} onStoryEvent={recordStory} onLiving={recordLiving} onWaste={recordWaste} onDescent={recordFractureDescent} summonNemesis={summonNemesis} onHud={setHud} onDrops={(drops) => { showScenarioRewards(drops); setProgression((current) => claimDrops(current, drops)); }} gear={progression} settings={liveSettings} onCameraPreference={(firstPerson) => { window.localStorage.setItem("world-fracture-camera", firstPerson ? "first" : "third"); setSettings((current) => ({ ...current, firstPersonDefault: firstPerson })); }} playerClass={cls} subclassId={subclass} bonded={isBonded(progression, cls)} appearance={appearance} bodyType={bodyType} vehicleId={vehicleId} vehicleUnlocked={vehicleUnlocked} activeBuild={progression.activeBuild} abilityBranches={progression.abilityBranches} tutorial={tutorial} onTutorialEvent={recordTutorial} mission={mission} onMissionEvent={recordMission} relay={relay} onRelayEvent={recordRelay} blackout={blackout} onBlackoutEvent={recordBlackout} neonCore={neonCore} onNeonCoreEvent={recordNeonCore} solarArray={solarArray} onSolarArrayEvent={recordSolarArray} coreNode={coreNode} onCoreNodeEvent={recordCoreNode} zoneRuns={zoneRuns} onZoneEvent={recordZone} descent={descent} onDescentEvent={recordDescent} systemCore={systemCore} onSystemCoreEvent={recordSystemCore} awakening={awakening} onAwakeningEvent={recordAwakening} onXP={recordXP} weaponOrder={carriedWeapons(activeLoadout(progression, progression.identityClass ?? cls).slots)} travelTo={travelTo} introPlayback={showIntro ? { elapsed: introElapsed, totalSeconds: introTotalSeconds() } : cineId ? { elapsed: cineProgress * introTotalSeconds(), totalSeconds: introTotalSeconds() } : null} armorState={hud.hp < 35 ? "FRACTURE" : hud.heat > 65 ? "ASCENDANT" : hud.heat > 15 ? "ACTIVE" : "STABLE"} /></Profiler>
         </Suspense>
         {post && (
           // cinematic grade: cool-leaning teal shadows, a touch more punch, so the HUD's cyan
@@ -1585,6 +1604,7 @@ export function GameCanvas() {
            <Button className="pointer-events-auto" variant="outline" onClick={() => setNpcOpen(hud.npcNear?.id ?? null)}>[Y] Talk · {hud.npcNear.name} <span className="ml-2 text-muted-foreground">{hud.npcNear.title}</span></Button>
          </div>
        )}
+       <DescentTracker descent={hud.descent ?? undefined} />
        <LivingTracker living={hud.living} px={hud.px} pz={hud.pz} toast={livingToast} patrol={progression.patrol} waste={hud.waste ?? null} />
        {npcOpen && <LivingNpcPanel npcId={npcOpen} progression={progression} eventTitle={hud.living?.event && hud.living.event.phase !== "WON" && hud.living.event.phase !== "FAILED" ? hud.living.event.title : null} onProgression={setProgression} onClose={() => setNpcOpen(null)} />}
        {hud.shopNearId && !shopOpen && (

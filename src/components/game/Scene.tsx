@@ -239,6 +239,9 @@ import { SECRETS, secretPoint, type SecretContext } from "@/game/secrets";
 import { LivingCity } from "./LivingCity";
 import { WastelandSites } from "./WastelandSites";
 import { createWasteRuntime, stepWasteRuntime, type WasteEmit, type WasteHud, type WasteRuntime } from "@/game/wasteland-runtime";
+import { createDescentRuntime, descentDeath, drainEndedRuns, stepDescentRuntime, type DescentEmit, type DescentHud, type DescentRuntime } from "@/game/descent-runtime";
+import { activeDescent, descentSolids, dungeonById, gatesForDay, inDescentSpace, liveDescentGroundAt } from "@/game/fracture-gates";
+import { DescentDungeon } from "./DescentDungeon";
 import type { ArmorVisualState } from "./Scavenger";
 import type { PlayerProgression } from "@/game/progression";
 import { SkyFx, type SkyFxLive } from "./SkyFx";
@@ -386,6 +389,8 @@ export type HudState = {
   skateShopNear?: boolean;
   /** wasteland-runtime.ts: the running Wastelands activity (vault defense / rally / derby) */
   waste?: WasteHud;
+  /** descent-runtime.ts: the Fracture Gate descent you are in, or a gate within sight */
+  descent?: DescentHud;
   /** godforge.ts: Vael is in reach (her forge is open) */
   vaelNear?: boolean;
   /** talkable Living World NPC within reach (living-npcs.ts) */
@@ -528,6 +533,7 @@ function SceneImpl({
   onLiving,
   onVehicleCondition,
   onWaste,
+  onDescent,
   summonNemesis = null,
   gear,
   mission,
@@ -595,6 +601,8 @@ function SceneImpl({
   onVehicleCondition?: (id: string, condition: VehicleCondition) => void;
   /** Wastelands activity results (wasteland-runtime.ts); GameCanvas resolves them into the save */
   onWaste?: (event: WasteEmit) => void;
+  /** Fracture Gate descents (descent-runtime.ts): tier chests and run results; GameCanvas resolves them into the save */
+  onDescent?: (event: DescentEmit) => void;
   gear?: Pick<PlayerProgression, "inventory" | "equippedGear" | "dungeonClears" | "completedMissions" | "story" | "earnedRewards" | "missionRuns"> & Partial<Pick<PlayerProgression, "living" | "challenge" | "nemeses" | "fleet" | "blade" | "vehicleConditions" | "nexLedger" | "housing" | "fractureShards">>;
   /** nemesis.ts: a nemesis the player picked on the map; it ambushes right after arrival */
   summonNemesis?: string | null;
@@ -644,6 +652,8 @@ function SceneImpl({
   const sim = useMemo<WorldSim>(() => createSim(), []);
   const livingRt = useRef<LivingRuntime | null>(null);
   const wasteRt = useRef<WasteRuntime | null>(null);
+  const descentRt = useRef<DescentRuntime>(createDescentRuntime());
+  const descentHud = useRef<DescentHud>(null);
   const wasteHud = useRef<WasteHud>(null);
   // fleet.ts / godforge.ts: Vael's opened forge and owned garage bases are small sanctuaries (sim.ts pushes hostiles out)
   const sanctuaries = useMemo(() => sanctuariesFor({ earnedRewards: gear?.earnedRewards ?? [], fleet: gear?.fleet }), [gear?.earnedRewards, gear?.fleet]);
@@ -1196,6 +1206,10 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
     syncTutorialSpawns();
     /* Interior Building system — non-null while the player is inside a pocket-dimension room (see @/game/interiors) */
     let interior = interiorById(s.insideInterior);
+    /* Fracture Gate descent (fracture-gates.ts): a column of floors parked far outside the world disc; inside it there is no
+     * terrain, water or weather, only its floors, walls and air */
+    let riftInside = (() => { const d = activeDescent(); return !!d && inDescentSpace(d.layout, s.x, s.z, s.y); })();
+    let riftShaft = false;
     live.current = rebindLiveBuild(live.current, activeBuild, abilityBranches);
     tickLiveBuild(live.current, dt, armorFxRef.current.abilityRecharge);
     tutorialClock.current += dt;
@@ -1452,7 +1466,8 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
     }
     // regional atmosphere: ease toward this region's air (fog tint/thickness, sun + skylight tint)
     {
-      const target: Atmosphere = interior ? NEUTRAL_ATMOSPHERE : atmosphereAt(here?.id ?? (Math.hypot(s.x - NEON_CITY_CENTER.x, s.z - NEON_CITY_CENTER.z) < 160 ? "neon" : undefined), wx?.state, night);
+      const riftTheme = riftInside ? dungeonById(activeDescent()?.layout.dungeonId ?? "")?.theme : undefined;
+      const target: Atmosphere = interior ? NEUTRAL_ATMOSPHERE : riftTheme ? { fogTint: riftTheme.fog, fogMix: 1, fogScale: 0.35, lightTint: riftTheme.light, lightMix: 0.85, skyTint: riftTheme.fog, skyMix: 1, haze: 0.6 } : atmosphereAt(here?.id ?? (Math.hypot(s.x - NEON_CITY_CENTER.x, s.z - NEON_CITY_CENTER.z) < 160 ? "neon" : undefined), wx?.state, night);
       const a = atmo.current;
       const k = 1 - Math.exp(-0.9 * dt);
       a.fogMix += (target.fogMix - a.fogMix) * k;
@@ -1467,6 +1482,8 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
       // regional sky colour: the horizon/background picks up this region's own sky tint
       scene.background instanceof THREE.Color && scene.background.lerp(a.fogTint, a.fogMix * 0.35).lerp(a.skyTint, a.skyMix);
       if (sun.current) sun.current.color.lerp(a.lightTint, a.lightMix);
+      // a descent is underground: the sky barely reaches it; its own torches and glyphs light the rooms (DescentDungeon.tsx)
+      if (riftInside && sun.current) sun.current.intensity *= 0.12;
       if (hemi.current) hemi.current.color.copy(a.hemiBase).lerp(a.lightTint, a.lightMix * 0.8);
       // regional water: ease the ocean toward this region's colours, murk and wave chop
       const wTarget = waterStyleAt(here?.id, wx?.state);
@@ -1527,6 +1544,7 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
     // cities after dark keep a glow-bounce fill (atmosphere.ts cityNightFill), so their streets read between the lamps
     const inCity = interior ? 1 : Math.max(cityPresence(Math.hypot(s.x - NEON_CITY_CENTER.x, s.z - NEON_CITY_CENTER.z), NEON_FLAT), cityPresence(Math.hypot(s.x - NEXUS_REGION.x, s.z - NEXUS_REGION.z), 95));
     if (hemi.current) hemi.current.intensity = 0.2 + 0.38 * (1 - night) + cityNightFill(inCity, night); // a moonlit sky fill at night: the reference nights read blue, not black
+    if (riftInside && hemi.current) hemi.current.intensity *= 0.35; // underground in a descent
     // Neon City after dark: the glow bounce takes the signage's violet-cyan cast instead of grey moonlight (owner: neon cyberpunk)
     const inNeon = interior ? 0 : cityPresence(Math.hypot(s.x - NEON_CITY_CENTER.x, s.z - NEON_CITY_CENTER.z), NEON_FLAT);
     if (hemi.current) hemi.current.groundColor.copy(HEMI_GROUND); // the sky colour is re-based every frame above; the ground colour is here
@@ -1556,9 +1574,9 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
       if (lightning.current > 0 && sun.current) { sun.current.intensity += 3.5; sun.current.color.set("#d9c4ff"); /* fracture storms flash violet (trailer reference) */ }
     }
     // Interiors are flat pocket rooms far outside the terrain's authored bounds, so slope/height/water sampling there would just be noise — treat them as dry, flat, and out of the water entirely.
-    const slope = interior ? 0 : slopeAt(s.x, s.z);
-    const ground = interior ? INTERIOR_ALTITUDE : Math.max(walkHeight(s.x, s.z), stormGroundAt(s.x, s.z, s.y - 1.6));
-    let submerged = interior ? false : heightAt(s.x, s.z) < WATER_LEVEL - 0.2; // re-read after a teleport below, or the first frame snaps a diver to the surface
+    const slope = interior || riftInside ? 0 : slopeAt(s.x, s.z);
+    const ground = interior ? INTERIOR_ALTITUDE : Math.max(walkHeight(s.x, s.z), stormGroundAt(s.x, s.z, s.y - 1.6), liveDescentGroundAt(s.x, s.z, s.y - 1.6));
+    let submerged = interior || riftInside ? false : heightAt(s.x, s.z) < WATER_LEVEL - 0.2; // re-read after a teleport below, or the first frame snaps a diver to the surface
     if (submerged && !s.wasSubmerged) sfx.playSplash(Math.min(1, (s.inVehicle ? Math.abs(s.vSpeed) : velocity.length()) / 20));
     s.wasSubmerged = submerged;
     if (!submerged) s.diving = false;
@@ -2164,10 +2182,24 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
       }
     }
 
+    /* ---------------- Fracture Gates: walk into a gate to start a descent, fall floor by floor to the boss (descent-runtime.ts) ---------------- */
+    {
+      const dr = stepDescentRuntime(descentRt.current, sim, { now: Date.now(), px: s.x, py: s.y, pz: s.z, inVehicle: s.inVehicle, blocked: !!tutorial || !!interior || !!introPlayback || sim.machines.some((m) => m.alive && m.mission), earnedRewards: gear?.earnedRewards ?? [], gates: () => gatesForDay(Date.now()) });
+      descentHud.current = dr.hud;
+      for (const e of dr.emits) onDescent?.(e);
+      for (const run of drainEndedRuns()) onDescent?.({ type: "END", run });
+      if (dr.teleport) {
+        s.x = dr.teleport.x; s.y = dr.teleport.y; s.z = dr.teleport.z;
+        if (dr.teleport.yaw !== undefined) s.yaw = dr.teleport.yaw;
+        s.vy = 0; s.vSpeed = 0; s.inVehicle = false; s.diving = false; s.grounded = true; velocity.set(0, 0, 0);
+      }
+      riftInside = dr.inside; riftShaft = dr.shaft;
+      if (riftInside) submerged = false;
+    }
     // world bounds — skipped inside a pocket-dimension interior, which lives far outside WORLD_RADIUS by design
     // Thalassia sits past the world disc in open ocean: its city radius (plus an approach lane) is inside the bounds too
     // and the Storm Islands hang over the ocean past the rim: high in the air near the chain is in bounds (storm-quests.ts)
-    if (!interior && Math.hypot(s.x - THALASSIA_CENTER.x, s.z - THALASSIA_CENTER.z) > CITY_RADIUS + 80 && !inStormAirspace(s.x, s.y, s.z)) {
+    if (!interior && !riftInside && Math.hypot(s.x - THALASSIA_CENTER.x, s.z - THALASSIA_CENTER.z) > CITY_RADIUS + 80 && !inStormAirspace(s.x, s.y, s.z)) {
       const d = Math.hypot(s.x, s.z);
       if (d > WORLD_RADIUS - 6) {
         s.x *= (WORLD_RADIUS - 6) / d;
@@ -2183,7 +2215,8 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
     collidePlayer(sim, body);
     const prevBody = prevBodyPos.current;
     const bodyFrom = prevBody && prevBody.interior === (s.insideInterior ?? null) ? prevBody : { x: body.x, z: body.z };
-    const solids = interior ? roomSolids(interior, INTERIOR_ALTITUDE, interior.homeId ? homeById(interior.homeId)?.rooms.length ?? 1 : 1) : [...registeredModelSolids(), ...structureSolids(structure.nodes.values())];
+    const riftLive = riftInside ? activeDescent() : null;
+    const solids = interior ? roomSolids(interior, INTERIOR_ALTITUDE, interior.homeId ? homeById(interior.homeId)?.rooms.length ?? 1 : 1) : riftLive ? descentSolids(riftLive.layout, riftLive.open.nested) : [...registeredModelSolids(), ...structureSolids(structure.nodes.values())];
     const blockedSolid = sweepSolids(body, bodyFrom, s.y - (s.inVehicle ? 1.9 : 1.6), s.inVehicle ? 2.2 : OPERATOR_HEIGHT, s.inVehicle ? 2.6 : 0.5, solids);
     if (blockedSolid) { body.vSpeed *= -0.18; velocity.set(0, 0, 0); }
     prevBodyPos.current = { x: body.x, z: body.z, interior: s.insideInterior ?? null };
@@ -2658,7 +2691,7 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
       livingRt.current ??= createLivingRuntime(sim);
       const ch = CHALLENGES[gear?.challenge ?? "STANDARD"];
       sim.challenge.enemyHp = ch.enemyHp; sim.challenge.enemyDamage = ch.enemyDamage;
-      const blocked = !!tutorial || !!interior || !!introPlayback || sim.machines.some((m) => m.alive && m.mission);
+      const blocked = !!tutorial || !!interior || riftInside || !!introPlayback || sim.machines.some((m) => m.alive && m.mission);
       const secretCtx = livingSecretCtx(gear, night > 0.5, wx?.state === "STORM");
       const lv = stepLivingRuntime(livingRt.current, sim, { dt, now: Date.now(), px: s.x, pz: s.z, blocked, living: gear?.living ?? EMPTY_LIVING, fallen: livingFallen, markers: livingMarks, rnd: Math.random, nemeses: gear?.nemeses ?? [], summonedNemesis: summonNemesis, secrets: secretCtx, forge: { earned: gear?.earnedRewards ?? [], relicId: relicIdRef.current } });
       livingHud.current = lv.hud;
@@ -2719,35 +2752,44 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
       deathSeen.current = sim.lastDeath;
       s.ammo = restockAll(s.ammo); // ammo.ts: you come back armed
       live.current = cancelAbilities(sim, live.current, { x: s.x, z: s.z, yaw: s.yaw });
-      const arena = crucible.current && activity ? pointWorld(activity.def.area, ARENA_POINT) : null;
-      // in a Crucible match you come back at the arena edge, opposite where you fell, not at a distant checkpoint
-      const spot = arena ? { x: arena.x - Math.sign(s.x - arena.x || 1) * ARENA_RADIUS * 0.7, z: arena.z, label: "the arena edge" } : chooseRespawn({ x: s.x, z: s.z }, checkpoint.current, hostiles);
-      // Thalassia descent checkpoint: dying in the city during the mission returns you to the dock berth
-      const inCity = Math.hypot(s.x - dockSite().x, s.z - dockSite().z) < CITY_RADIUS + 60;
-      // live playtest: before this, a death at the dock (pre-airlock) respawned the diver ~1 km away in the Verdant Forest. The berth is
-      // the checkpoint from arrival on; restoring the airlock adds the air station there.
-      const dockCheckpoint = inCity && !!descent && descent.state !== "TRIGGERED" && descent.state !== "DIVE" && descent.state !== "WORLD_UPDATE";
-      if (dockCheckpoint && descent?.state === "COMBAT_1") {
-        // the wave that killed you stands down (no kill credit) and re-wakes a few seconds after you are back on the berth
-        for (const m of sim.machines) if (m.alive && m.mission) m.alive = false;
-        descentSpawned.current = "";
+      const riftBack = descentDeath(descentRt.current, sim);
+      if (riftBack) {
+        // a death in a descent spends a shared life and puts you back on your tier (or, on the last life, back out at the gate)
+        s.x = riftBack.respawn.x; s.y = riftBack.respawn.y; s.z = riftBack.respawn.z;
+        s.vy = 0; s.vSpeed = 0; s.grounded = true; s.diving = false; s.inVehicle = false; s.insideInterior = null; s.interiorReturnPos = null; interior = null;
+        velocity.set(0, 0, 0);
+        submerged = false;
+      } else {
+        const arena = crucible.current && activity ? pointWorld(activity.def.area, ARENA_POINT) : null;
+        // in a Crucible match you come back at the arena edge, opposite where you fell, not at a distant checkpoint
+        const spot = arena ? { x: arena.x - Math.sign(s.x - arena.x || 1) * ARENA_RADIUS * 0.7, z: arena.z, label: "the arena edge" } : chooseRespawn({ x: s.x, z: s.z }, checkpoint.current, hostiles);
+        // Thalassia descent checkpoint: dying in the city during the mission returns you to the dock berth
+        const inCity = Math.hypot(s.x - dockSite().x, s.z - dockSite().z) < CITY_RADIUS + 60;
+        // live playtest: before this, a death at the dock (pre-airlock) respawned the diver ~1 km away in the Verdant Forest. The berth is
+        // the checkpoint from arrival on; restoring the airlock adds the air station there.
+        const dockCheckpoint = inCity && !!descent && descent.state !== "TRIGGERED" && descent.state !== "DIVE" && descent.state !== "WORLD_UPDATE";
+        if (dockCheckpoint && descent?.state === "COMBAT_1") {
+          // the wave that killed you stands down (no kill credit) and re-wakes a few seconds after you are back on the berth
+          for (const m of sim.machines) if (m.alive && m.mission) m.alive = false;
+          descentSpawned.current = "";
+        }
+        const a = airlockSite();
+        alert(sim, dockCheckpoint ? "Respawned at the Sentry Dock airlock" : `Respawned at ${spot.label} — away from active combat`);
+        s.x = dockCheckpoint ? a.x + 5 : spot.x;
+        s.z = dockCheckpoint ? a.z : spot.z;
+        s.y = dockCheckpoint ? DOCK_DECK_Y + 1.6 : walkHeight(s.x, s.z) + 1.6;
+        s.vy = 0;
+        s.vSpeed = 0;
+        s.grounded = !dockCheckpoint;
+        s.diving = dockCheckpoint;
+        if (dockCheckpoint) { s.oxygen = OXYGEN_MAX; s.hull = 0; }
+        s.inVehicle = false;
+        s.insideInterior = null;
+        s.interiorReturnPos = null;
+        interior = null;
+        velocity.set(0, 0, 0);
+        submerged = heightAt(s.x, s.z) < WATER_LEVEL - 0.2;
       }
-      const a = airlockSite();
-      alert(sim, dockCheckpoint ? "Respawned at the Sentry Dock airlock" : `Respawned at ${spot.label} — away from active combat`);
-      s.x = dockCheckpoint ? a.x + 5 : spot.x;
-      s.z = dockCheckpoint ? a.z : spot.z;
-      s.y = dockCheckpoint ? DOCK_DECK_Y + 1.6 : walkHeight(s.x, s.z) + 1.6;
-      s.vy = 0;
-      s.vSpeed = 0;
-      s.grounded = !dockCheckpoint;
-      s.diving = dockCheckpoint;
-      if (dockCheckpoint) { s.oxygen = OXYGEN_MAX; s.hull = 0; }
-      s.inVehicle = false;
-      s.insideInterior = null;
-      s.interiorReturnPos = null;
-      interior = null;
-      velocity.set(0, 0, 0);
-      submerged = heightAt(s.x, s.z) < WATER_LEVEL - 0.2;
       sfx.playDeath();
     }
     // Zones already toss the player around above 0.6 instability (below); this is the visual half of
@@ -2779,7 +2821,8 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
     // crates, walls and cover tops are ground too once your feet are on (or a step below) them
     const boxTop = interior || s.inVehicle ? -Infinity : solidTopAt(s.x, s.z, s.y - 1.6, solids, 0.45, 0.2);
     const casinoGround = interior || s.inVehicle ? -Infinity : casinoFloorAt(s.x, s.z, s.y, NEON_CITY_CENTER);
-    const standY = (interior ? INTERIOR_ALTITUDE : Math.max(walkHeight(s.x, s.z), skyGround, boxTop, casinoGround)) + (s.inVehicle ? 1.9 : 1.6);
+    const riftGround = riftInside ? liveDescentGroundAt(s.x, s.z, s.y - (s.inVehicle ? 1.9 : 1.6)) : -Infinity;
+    const standY = (interior ? INTERIOR_ALTITUDE : Math.max(walkHeight(s.x, s.z), skyGround, boxTop, casinoGround, riftGround)) + (s.inVehicle ? 1.9 : 1.6);
     if (s.inVehicle && handling.mode !== "GROUND") {
       s.grounded = !vh.current.airborne; // stepVehicle owns height for aircraft and boats
     } else if (!s.inVehicle && submerged && (s.diving || held.has("KeyZ"))) {
@@ -2859,6 +2902,7 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
       if (!travActive) {
       s.vy -= sim.gravity * dt;
       if (dragoniteRt.current.rt.glide > 0 && s.vy < -2.5) s.vy = -2.5; // Wyrmwing glide
+      if (riftShaft && s.vy < -14) s.vy = -14; // a descent's drop shaft lowers you like a gravity lift
       s.y += s.vy * dt;
       if (s.y <= standY) {
         s.y = standY;
@@ -2870,7 +2914,7 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
     }
     restTraversal(trav.current, playerClass, dt, s.grounded);
     // body origin must stay above the sampled support surface, even uphill or after a knockdown
-    clampToFloor(s, s.diving ? heightAt(s.x, s.z) : interior ? INTERIOR_ALTITUDE : Math.max(walkHeight(s.x, s.z), stormGroundAt(s.x, s.z, s.y - (s.inVehicle ? 1.9 : 1.6))), s.diving ? 1.1 : s.inVehicle ? 1.9 : 1.6);
+    clampToFloor(s, s.diving ? heightAt(s.x, s.z) : interior ? INTERIOR_ALTITUDE : Math.max(walkHeight(s.x, s.z), stormGroundAt(s.x, s.z, s.y - (s.inVehicle ? 1.9 : 1.6)), riftGround), s.diving ? 1.1 : s.inVehicle ? 1.9 : 1.6);
     // fracture instability tosses loose objects (and you) around
     if (playerInstability > 0.6 && s.grounded && !s.diving && Math.random() < playerInstability * dt * 1.2) {
       s.vy = 6 + playerInstability * 10;
@@ -3164,6 +3208,7 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
         residenceNear: !interior && !s.inVehicle ? deedNear(s.x, s.z) : null,
         skateShopNear: !interior && Math.hypot(s.x - NEON_CITY_CENTER.x - SKATE_SHOP_OFFSET.x, s.z - NEON_CITY_CENTER.z - SKATE_SHOP_OFFSET.z) < SKATE_SHOP_RADIUS,
         waste: wasteHud.current,
+        descent: descentHud.current,
         vaelNear: !interior && !s.inVehicle && vaelNear({ earnedRewards: gear?.earnedRewards ?? [] }, s.x, s.z),
         npcNear: !interior && !s.inVehicle ? (() => { const n = npcNear(s.x, s.z); return n ? { id: n.id, name: n.name, title: n.title } : null; })() : null,
         shopNearId: !s.inVehicle && (!interior || isInteriorOpen(interior, time.current)) ? accessibleShop(s.x, s.z, interior)?.id ?? null : null,
@@ -3381,6 +3426,7 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
       <WorldMarkers depleted={depleted} />
       <Interior structure={structure} />
       <Interiors />
+      <DescentDungeon runtime={descentRt} playerRef={player} />
       <HomeInteriors housing={gear?.housing} nexLedger={gear?.nexLedger} />
       {settings.zoneLabels && <RegionLabels zones={sim.zones} />}
 
