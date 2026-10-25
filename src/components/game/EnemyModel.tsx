@@ -5,10 +5,21 @@ import { clone as cloneSkinned } from "three/examples/jsm/utils/SkeletonUtils.js
 import { enemyVisual, type EnemyRole, type EnemyVisual } from "@/game/enemy-visuals";
 import { prepareWorldAsset } from "@/game/asset-render-quality";
 import { enemyClipWeights, strideRate, type ClipWeights, type EnemyDrive } from "@/game/enemy-anim";
+import { collapseBlend, deathPoseFor, enemyWeapon, HELD_MUZZLE, heldPitch, PALM, RAISE_RATE } from "@/game/enemy-weapons";
+import type { HandlingClass } from "@/game/weapon-handling";
+import { heldWeaponCopy } from "./heldModels";
+
+/** a Mixamo bone by name, whichever way the loader spelled the prefix ("mixamorig:Head" or "mixamorigHead") */
+function rigBone(root: THREE.Object3D, name: string): THREE.Object3D | null {
+  return root.getObjectByName(`mixamorig:${name}`) ?? root.getObjectByName(`mixamorig${name}`) ?? root.getObjectByName(name) ?? null;
+}
 
 /** Per-machine motion the renderer reads (WarMachines writes it each frame). `procedural` is set by the model: true while it has no clips. */
-/** `frozen`: hold the current pose (a corpse); the mixer and procedural motion stop */
-export type DriveRef = { current: EnemyDrive & { procedural?: boolean; frozen?: boolean } };
+/** `frozen`: hold the current pose (a corpse); the mixer and procedural motion stop. `death`: a corpse collapsing (enemy-weapons.ts
+ * deathPoseFor / collapseBlend). `muzzle`: where this enemy's held gun's barrel was last frame (world), for shots and flashes. */
+/** each pooled machine slot's drive (WarMachines registers them): Scene reads `muzzle` to fire enemy shots from the held gun */
+export const enemyDrives: (DriveRef | undefined)[] = [];
+export type DriveRef = { current: EnemyDrive & { procedural?: boolean; frozen?: boolean; death?: { age: number; seed: number }; muzzle?: { x: number; y: number; z: number; t: number } } };
 import * as THREE from "three";
 import { SURFACES, regionLook } from "@/game/visual-standard";
 
@@ -101,7 +112,7 @@ class QuietBoundary extends Component<{ children: ReactNode; fallback: ReactNode
 
 const CLIP_NAMES: (keyof ClipWeights)[] = ["idle", "walk", "run", "shoot"];
 
-function Authored({ visual, headRef, drive, onBuilt }: { visual: EnemyVisual; headRef?: React.Ref<THREE.Group>; drive?: DriveRef; onBuilt?: (obj: THREE.Object3D) => void }) {
+function Authored({ visual, headRef, drive, onBuilt, weapon }: { visual: EnemyVisual; headRef?: React.Ref<THREE.Group>; drive?: DriveRef; onBuilt?: (obj: THREE.Object3D) => void; weapon?: HandlingClass | null }) {
   const { scene, animations } = useGLTF(visual.url);
   const built = useMemo(() => {
     const obj = cloneSkinned(scene);
@@ -133,8 +144,21 @@ function Authored({ visual, headRef, drive, onBuilt }: { visual: EnemyVisual; he
       }
       if (!Object.keys(clips).length) mixer = null;
     }
-    return { obj, k, offset: [-c.x * k, -box.min.y * k, -c.z * k] as [number, number, number], mixer, clips };
+    const hand = rigBone(obj, "RightHand"), knuckle = rigBone(obj, "RightHandMiddle1") ?? hand;
+    return { obj, k, offset: [-c.x * k, -box.min.y * k, -c.z * k] as [number, number, number], mixer, clips, hand, knuckle };
   }, [scene, animations, visual.height]);
+  // held weapon (enemy-weapons.ts): only rigged bodies with a hand carry one; placed every frame at the palm
+  const holder = useMemo(() => { const g = new THREE.Group(); g.name = "enemy:weapon"; g.visible = false; return g; }, []);
+  const aimW = useRef(0);
+  useEffect(() => {
+    if (!weapon || !built.hand || !built.mixer) return;
+    let live = true;
+    void heldWeaponCopy(weapon).then((m) => { if (live && m) { holder.clear(); holder.add(m); } });
+    return () => { live = false; holder.clear(); };
+  }, [weapon, built, holder]);
+  // corpse collapse: this body's pose deltas and the resting quaternions they are applied on top of
+  const collapse = useRef<{ seed: number; base: [THREE.Object3D, THREE.Quaternion, THREE.Euler][] } | null>(null);
+  const tmp = useMemo(() => ({ v: new THREE.Vector3(), w: new THREE.Vector3(), q: new THREE.Quaternion(), e: new THREE.Euler() }), []);
   const body = useRef<THREE.Group>(null);
   const seed = useRef(Math.random() * 10);
   const posed = useRef(false);
@@ -146,15 +170,33 @@ function Authored({ visual, headRef, drive, onBuilt }: { visual: EnemyVisual; he
     for (let o: THREE.Object3D | null = b; o; o = o.parent) if (!o.visible) return;
     if (drive) drive.current.procedural = !built.mixer;
     if (drive?.current.frozen) {
-      // a body: settle into the rest pose once (never the bind/T-pose), then hold it
+      holder.visible = false; // a body drops its gun (GoreFx throws a copy)
+      // a body: settle into the rest pose once (never the bind/T-pose), then collapse from it
       if (!posed.current && built.mixer) {
         for (const name of CLIP_NAMES) { const a = built.clips[name]; if (a) { a.weight = name === "idle" || (!built.clips.idle && name === "walk") ? 1 : 0; a.time = 0; } }
         built.mixer.update(0);
         b.rotation.set(0, 0, 0);
+        collapse.current = null;
       }
       posed.current = true;
+      const death = drive.current.death;
+      if (death && built.mixer) {
+        if (!collapse.current || collapse.current.seed !== death.seed) {
+          // a new body in this pooled slot: back to the rest pose, then take this one's collapse
+          if (collapse.current) for (const [bone, q] of collapse.current.base) bone.quaternion.copy(q);
+          const pose = deathPoseFor(death.seed);
+          collapse.current = { seed: death.seed, base: [] };
+          for (const [name, e] of Object.entries(pose)) { const bone = rigBone(built.obj, name); if (bone) collapse.current.base.push([bone, bone.quaternion.clone(), new THREE.Euler(...e)]); }
+        }
+        const k = collapseBlend(death.age);
+        for (const [bone, base, full] of collapse.current.base) {
+          tmp.e.set(full.x * k, full.y * k, full.z * k);
+          bone.quaternion.copy(base).multiply(tmp.q.setFromEuler(tmp.e));
+        }
+      }
       return;
     }
+    if (collapse.current) { for (const [bone, q] of collapse.current.base) bone.quaternion.copy(q); collapse.current = null; }
     posed.current = false;
     if (built.mixer) {
       const d = drive?.current ?? { speed: 0, aiming: false };
@@ -165,6 +207,20 @@ function Authored({ visual, headRef, drive, onBuilt }: { visual: EnemyVisual; he
       if (built.clips.run) built.clips.run.timeScale = strideRate(d.speed, "run");
       built.mixer.update(Math.min(dt, 0.1));
       b.rotation.set(0, 0, 0);
+      // the gun: gripped at the palm, pointing where the body faces (+Z), up to aim while winding up or firing, low ready
+      // otherwise (the hand bone twists through the clips, so following it pointed the barrel at the sky)
+      if (weapon && built.hand && holder.children.length) {
+        aimW.current += ((d.aiming ? 1 : 0) - aimW.current) * Math.min(1, dt * RAISE_RATE);
+        built.obj.updateMatrixWorld(true);
+        built.hand.getWorldPosition(tmp.v); (built.knuckle ?? built.hand).getWorldPosition(tmp.w);
+        tmp.v.lerp(tmp.w, PALM);
+        b.worldToLocal(tmp.v);
+        holder.position.copy(tmp.v);
+        holder.rotation.set(heldPitch(weapon, aimW.current), 0, 0);
+        holder.visible = true;
+        const mz = HELD_MUZZLE[weapon];
+        if (mz && drive) { holder.updateMatrixWorld(true); tmp.w.set(mz[0], mz[1], mz[2]); holder.localToWorld(tmp.w); drive.current.muzzle = { x: tmp.w.x, y: tmp.w.y, z: tmp.w.z, t: performance.now() / 1000 }; }
+      }
       return;
     }
     const t = clock.elapsedTime * 3 + seed.current;
@@ -172,14 +228,14 @@ function Authored({ visual, headRef, drive, onBuilt }: { visual: EnemyVisual; he
     if (visual.motion === "creature") { b.rotation.set(0, Math.sin(t * 0.7) * 0.12, Math.sin(t) * 0.05); b.scale.set(1, 1 + Math.sin(t * 2) * 0.03, 1); }
     else b.rotation.set(0.06 + Math.sin(t * 2) * 0.03, Math.sin(t) * 0.06, Math.sin(t) * 0.04);
   });
-  return <group ref={body}><group ref={headRef ?? null}><primitive object={built.obj} scale={built.k} position={built.offset} /></group></group>;
+  return <group ref={body}><group ref={headRef ?? null}><primitive object={built.obj} scale={built.k} position={built.offset} /></group><primitive object={holder} /></group>;
 }
 
 /** Real enemy model for this faction/role; procedural trooper while loading or if the model fails. */
-export function FactionEnemy({ kind, role, visorRef, headRef, drive, onBuilt }: { kind: EnemyKind; role: EnemyRole; visorRef?: React.Ref<THREE.MeshStandardMaterial>; headRef?: React.Ref<THREE.Group>; drive?: DriveRef; onBuilt?: (obj: THREE.Object3D) => void }) {
+export function FactionEnemy({ kind, role, visorRef, headRef, drive, onBuilt, armed = true }: { kind: EnemyKind; role: EnemyRole; visorRef?: React.Ref<THREE.MeshStandardMaterial>; headRef?: React.Ref<THREE.Group>; drive?: DriveRef; onBuilt?: (obj: THREE.Object3D) => void; /** carry the faction/rank weapon (enemy-weapons.ts); bodies (GoreFx) pass false */ armed?: boolean }) {
   // the procedural stand-in is built ~3.9 units tall with boots ~0.18 below its origin: scale it to the authored height and
   // stand its boots on the ground, so a loading or failed model never shows a 3.9 m trooper sunk into the floor
   const k = enemyVisual(kind, role).height / 3.9;
   const fallback = <group scale={k} position={[0, 0.18 * k, 0]}><EnemyModel kind={kind} boss={role === "boss"} {...(drive ? { drive } : {})} {...(visorRef ? { visorRef } : {})} {...(headRef ? { headRef } : {})} /></group>;
-  return <QuietBoundary fallback={fallback}><Suspense fallback={fallback}><Authored visual={enemyVisual(kind, role)} {...(headRef ? { headRef } : {})} {...(drive ? { drive } : {})} {...(onBuilt ? { onBuilt } : {})} /></Suspense></QuietBoundary>;
+  return <QuietBoundary fallback={fallback}><Suspense fallback={fallback}><Authored visual={enemyVisual(kind, role)} weapon={armed ? enemyWeapon(kind, role) : null} {...(headRef ? { headRef } : {})} {...(drive ? { drive } : {})} {...(onBuilt ? { onBuilt } : {})} /></Suspense></QuietBoundary>;
 }

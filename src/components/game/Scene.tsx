@@ -33,8 +33,9 @@ import { normalizeGore } from "@/game/gore";
 import { inSwordArc } from "@/game/melee-arc";
 import { aimFor, armamentFor, vehiclePoint, vehicleVelocity, type VehicleGun } from "@/game/vehicle-weapons";
 import { ordnanceById } from "@/game/ordnance";
-import { MuzzleFlash, type MuzzleFlashState } from "./VehicleGunFx";
+import { EnemyMuzzleFlashes, flashEnemyMuzzle, MuzzleFlash, type MuzzleFlashState } from "./VehicleGunFx";
 import { GoreFx } from "./GoreFx";
+import { enemyDrives } from "./EnemyModel";
 import { waterMix } from "@/game/water-audio";
 /** water audio is eased in the audio graph, so it only needs a pose update ~8x/s */
 let lastWaterAudioAt = 0;
@@ -2293,7 +2294,11 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
       for (const shot of sim.enemyShots.splice(0)) {
         sfx.playEnemyShot(shot.kind, shot.boss || shot.elite, sfx.where(s.x, s.z, s.yaw, shot.x, shot.z));
         // visual flight only (the hit chance and damage are unchanged): troops shoot the element of the region they stand in
-        launch(fxBus.flights, zoneElement(shot.zone, shot.kind), [shot.x, walkHeight(shot.x, shot.z) + 1.9, shot.z], [s.x, s.y + 1, s.z], shot.boss ? 2 : shot.elite ? 1.4 : 1);
+        // from the barrel of the enemy's held gun when it has one (enemy-weapons.ts; muzzle reported by EnemyModel this frame), else its chest
+        const mz = shot.slot !== undefined ? enemyDrives[shot.slot]?.current.muzzle : undefined;
+        const from: [number, number, number] = mz && performance.now() / 1000 - mz.t < 0.5 && Math.hypot(mz.x - shot.x, mz.z - shot.z) < 4 ? [mz.x, mz.y, mz.z] : [shot.x, walkHeight(shot.x, shot.z) + 1.4, shot.z];
+        if (mz && from[0] === mz.x) flashEnemyMuzzle(mz.x, mz.y, mz.z, shot.boss || shot.elite);
+        launch(fxBus.flights, zoneElement(shot.zone, shot.kind), from, [s.x, s.y + 1, s.z], shot.boss ? 2 : shot.elite ? 1.4 : 1);
       }
       for (const flare of sim.bossPhaseFlares.splice(0)) { sfx.playBossPhaseChange(flare.phase); s.punch += 1.4 + flare.phase * 0.6; }
       for (const event of sim.xpEvents.splice(0)) onXP?.(event);
@@ -3250,6 +3255,7 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
       <Bullets sim={sim} />
       <GoreFx sim={sim} level={normalizeGore(settings.gore)} />
       <MuzzleFlash flash={muzzleFlash} />
+      <EnemyMuzzleFlashes />
       <BulletImpacts sim={sim} />
       <WorldMarkers depleted={depleted} />
       <Interior structure={structure} />

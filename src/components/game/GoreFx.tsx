@@ -8,6 +8,12 @@ import {
 } from "@/game/gore";
 import { walkHeight } from "@/game/terrain";
 import { FactionEnemy, type DriveRef } from "./EnemyModel";
+import { collapseBlend, COLLAPSE_DROP, DROP_HEIGHT, DROP_SIDE, enemyWeapon } from "@/game/enemy-weapons";
+import type { HandlingClass } from "@/game/weapon-handling";
+import { heldWeaponCopy } from "./heldModels";
+
+/** a gun a body let go of: thrown with the fall, tumbles, comes to rest on its side, sinks away with the body */
+type Dropped = { cls: HandlingClass | null; x: number; y: number; z: number; vx: number; vy: number; vz: number; rx: number; ry: number; rz: number; spin: number; rest: boolean };
 import { softSprite } from "./softSprite";
 
 /**
@@ -141,6 +147,24 @@ export function GoreFx({ sim, level }: { sim: WorldSim; level: GoreLevel }) {
   const rigs = useRef<Map<string, THREE.Object3D>[]>(corpses.map(() => new Map()));
   const severed = useRef<({ bone: THREE.Object3D; scale: THREE.Vector3 } | null)[]>(corpses.map(() => null));
   const drives = useMemo<DriveRef[]>(() => corpses.map(() => ({ current: { speed: 0, aiming: false, frozen: true } })), [corpses]);
+  // dropped guns: one per body slot, models loaded per class on first need and kept
+  const dropped = useRef<Dropped[]>(corpses.map(() => ({ cls: null, x: 0, y: 0, z: 0, vx: 0, vy: 0, vz: 0, rx: 0, ry: 0, rz: 0, spin: 0, rest: true })));
+  const dropGroups = useMemo(() => corpses.map(() => { const g = new THREE.Group(); g.name = "gore:dropped-weapon"; g.visible = false; return g; }), [corpses]);
+  const dropModels = useRef(corpses.map(() => new Map<HandlingClass, THREE.Object3D>()));
+  const throwWeapon = (i: number, c: Corpse) => {
+    const cls = enemyWeapon(c.kind, c.role), d = dropped.current[i]!;
+    d.cls = cls;
+    if (!cls) return;
+    const cos = Math.cos(c.rot), sin = Math.sin(c.rot);
+    // from the right hand (to the body's right), thrown along the fall with a little lift and a tumble
+    d.x = c.x - cos * DROP_SIDE * c.scale; d.z = c.z + sin * DROP_SIDE * c.scale; d.y = c.groundY + DROP_HEIGHT * c.scale;
+    d.vx = c.fx * (1.5 + Math.random() * 1.5) - cos * 0.8; d.vz = c.fz * (1.5 + Math.random() * 1.5) + sin * 0.8; d.vy = 1.2 + Math.random() * 1.5;
+    d.rx = 0; d.ry = c.rot; d.rz = 0; d.spin = (Math.random() < 0.5 ? -1 : 1) * (4 + Math.random() * 5); d.rest = false;
+    const models = dropModels.current[i]!, g = dropGroups[i]!;
+    const show = () => { for (const [k, m] of models) m.visible = k === cls; };
+    if (models.has(cls)) show();
+    else void heldWeaponCopy(cls).then((m) => { if (!m || models.has(cls)) return; models.set(cls, m); g.add(m); show(); });
+  };
   const builtCbs = useMemo(() => corpses.map((_, i) => new Map<string, (o: THREE.Object3D) => void>()), [corpses]);
   const onBuilt = useCallback((i: number, key: string) => {
     let cb = builtCbs[i]!.get(key);
@@ -185,6 +209,8 @@ export function GoreFx({ sim, level }: { sim: WorldSim; level: GoreLevel }) {
           const i = corpses.indexOf(c), key = `${c.kind}:${c.role}`;
           if (!mountedRef.current[i]!.includes(key)) { const next = mountedRef.current.map((l, k) => (k === i ? [...l, key] : l)); mountedRef.current = next; setMounted(next); }
           sever(i, c, spray.sever);
+          drives[i]!.current.death = { age: 0, seed: Math.random() };
+          throwWeapon(i, c);
           // the body bleeds out into a slowly spreading pool where its chest lands
           if (GORE_TUNE[lvl].pool && c.blood !== "MACHINE") { const h = 1.1 * c.scale; addDecal(pools, c.x + c.fx * h, ground(c.x + c.fx * h, c.z + c.fz * h), c.z + c.fz * h, 0.5 * c.scale, c.blood, lvl, Math.random, 1.4 * c.scale); }
           if (c.blood === "MACHINE" && lvl !== "OFF") { const h = 1.1 * c.scale; addDecal(pools, c.x + c.fx * h, ground(c.x + c.fx * h, c.z + c.fz * h), c.z + c.fz * h, 0.4 * c.scale, "MACHINE", lvl, Math.random, 0.8 * c.scale); }
@@ -292,6 +318,21 @@ export function GoreFx({ sim, level }: { sim: WorldSim; level: GoreLevel }) {
       inner.rotation.set(0, c.rot - fallYaw, 0);
       inner.scale.setScalar(c.scale);
       for (const child of inner.children) child.visible = child.name === `${c.kind}:${c.role}`;
+      // the knees go as it falls (enemy-weapons.ts collapse): blend the pose and drop the hips while the body is still upright
+      const death = drives[i]!.current.death;
+      if (death) { death.age = c.age; inner.position.y = -COLLAPSE_DROP * 1.85 * collapseBlend(c.age) * (1 - Math.min(1, tip)); }
+      // its gun: tumbles to the ground, lies on its side, sinks with the body
+      const d = dropped.current[i]!, g = dropGroups[i]!;
+      g.visible = Boolean(d.cls);
+      if (!d.cls) return;
+      if (!d.rest) {
+        d.vy -= 9.8 * dt; d.x += d.vx * dt; d.y += d.vy * dt; d.z += d.vz * dt; d.rx += d.spin * dt * 0.6; d.rz += d.spin * dt;
+        const floor = ground(d.x, d.z) + 0.05;
+        if (d.y <= floor) { d.y = floor; if (Math.abs(d.vy) < 2) { d.rest = true; d.rx = 0; d.rz = Math.PI / 2 * Math.sign(Math.sin(d.rz) || 1); } else { d.vy = -d.vy * 0.3; d.vx *= 0.5; d.vz *= 0.5; d.spin *= 0.5; } }
+      }
+      g.position.set(d.x, d.y - sink * 0.3, d.z);
+      g.rotation.set(d.rx, d.ry, d.rz, "YXZ");
+      g.scale.setScalar(c.scale);
     });
   });
 
@@ -302,13 +343,14 @@ export function GoreFx({ sim, level }: { sim: WorldSim; level: GoreLevel }) {
       <primitive object={fx.mists} />
       <primitive object={fx.sparks} />
       {Object.values(fx.gibs).map((m) => <primitive key={m.name} object={m} />)}
+      {dropGroups.map((g, i) => <primitive key={`w${i}`} object={g} />)}
       {corpses.map((_, i) => (
         <group key={i} name="gore:corpse" visible={false} ref={(g) => { slotGroups.current[i] = g; }}>
           <group>
             <group>
               {mounted[i]!.map((key) => {
                 const [kind, role] = key.split(":") as [Corpse["kind"], Corpse["role"]];
-                return <group key={key} name={key} visible={false}><FactionEnemy kind={kind} role={role} drive={drives[i]!} onBuilt={onBuilt(i, key)} /></group>;
+                return <group key={key} name={key} visible={false}><FactionEnemy kind={kind} role={role} armed={false} drive={drives[i]!} onBuilt={onBuilt(i, key)} /></group>;
               })}
             </group>
           </group>

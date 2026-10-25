@@ -1,4 +1,5 @@
 import { useFrame } from "@react-three/fiber";
+import { HELD_MODEL, heldModel } from "./heldModels";
 import { COLORWAY_EMISSIVE, COLORWAY_MAP, COLORWAY_UNIFORMS, colorwayFor, type Colorway } from "@/game/operator-colorway";
 import { useGLTF } from "@react-three/drei";
 import { prepareWorldAsset } from "@/game/asset-render-quality";
@@ -16,7 +17,6 @@ import type { GearItem, GearSlot } from "@/game/inventory";
 import { HAND_BONE, WEAPON_PROPS } from "@/game/weapon-props";
 import { WEAPONS, WEAPON_ORDER, type WeaponId } from "@/game/weapons";
 import { handlingClass, type HandlingClass } from "@/game/weapon-handling";
-import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { attachSkates } from "./skate-attachments";
 import { bootStats } from "@/game/skate-boots";
 import { getEquippedBoots } from "@/game/client-input";
@@ -126,19 +126,6 @@ function attachWeapons(object: THREE.Object3D, height: number, modelScale: numbe
     });
   }
   return { groups, dispose: () => { live = false; Object.values(groups).forEach((g) => g?.removeFromParent()); geos.forEach((x) => x.dispose()); mats.forEach((m) => m.dispose()); accents.forEach((m) => m.dispose()); } };
-}
-
-/** held-weapon models by handling class: the first-person GLBs (ViewWeapon.tsx), one load each, shared by every operator */
-const HELD_MODEL: Record<HandlingClass, { url: string; prefix: string }> = {
-  rifle: { url: "/models/weapons/rifle.glb", prefix: "Rifle" }, pistol: { url: "/models/weapons/pistol.glb", prefix: "Pistol" },
-  shotgun: { url: "/models/weapons/shotgun.glb", prefix: "Shotgun" }, heavy: { url: "/models/weapons/heavy.glb", prefix: "Heavy" },
-  launcher: { url: "/models/weapons/launcher.glb", prefix: "Launcher" }, sword: { url: "/models/weapons/sword.glb", prefix: "Sword" },
-};
-const heldCache = new Map<string, Promise<THREE.Object3D | null>>();
-function heldModel(url: string): Promise<THREE.Object3D | null> {
-  let p = heldCache.get(url);
-  if (!p) { p = new GLTFLoader().loadAsync(url).then((g) => g.scene).catch(() => null); heldCache.set(url, p); }
-  return p;
 }
 
 /** Authored (Meshy) operator models, served from /public. GOLIATH, NYX and CIPHER are rigged (Mixamo skeleton; walk/run for all, idle for NYX and GOLIATH, the owner's combat-stance clip for NYX and GOLIATH, flex showcase and chest-pound taunt for GOLIATH); Anything missing or failing to load falls back to the procedural Operator. */

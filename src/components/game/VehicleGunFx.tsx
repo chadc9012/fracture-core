@@ -25,3 +25,29 @@ export function MuzzleFlash({ flash }: { flash: React.MutableRefObject<MuzzleFla
   });
   return <primitive object={parts.sprite} />;
 }
+
+/** enemy muzzle flashes (Scene pushes one per enemy shot fired from a held gun): a small ring of additive sprites */
+const ENEMY_FLASHES = 8;
+const enemyFlashRing: MuzzleFlashState[] = [];
+let enemyFlashNext = 0;
+export function flashEnemyMuzzle(x: number, y: number, z: number, big = false) {
+  enemyFlashRing[enemyFlashNext++ % ENEMY_FLASHES] = { x, y, z, t: performance.now() / 1000, big };
+}
+export function EnemyMuzzleFlashes() {
+  const sprites = useMemo(() => Array.from({ length: ENEMY_FLASHES }, () => {
+    const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: softSprite("ember") ?? null, color: "#ffcf86", transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false }));
+    s.visible = false; return s;
+  }), []);
+  useFrame(() => {
+    const now = performance.now() / 1000;
+    sprites.forEach((sp, i) => {
+      const f = enemyFlashRing[i];
+      const k = f ? 1 - (now - f.t) / (f.big ? LIFE * 2.5 : LIFE * 1.5) : 0;
+      sp.visible = k > 0;
+      if (k <= 0 || !f) return;
+      sp.position.set(f.x, f.y, f.z);
+      sp.scale.setScalar((f.big ? 1.8 : 0.9) * (0.6 + 0.4 * k));
+    });
+  });
+  return <>{sprites.map((sp, i) => <primitive key={i} object={sp} />)}</>;
+}

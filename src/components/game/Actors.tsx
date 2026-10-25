@@ -1,13 +1,13 @@
 import { enemyBodyScale } from "@/game/enemy-visuals";
 import { OPERATOR_HEIGHT } from "@/game/operators";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
-import { FactionEnemy, type DriveRef } from "./EnemyModel";
+import { enemyDrives, FactionEnemy, type DriveRef } from "./EnemyModel";
 import { scenarioModelReady } from "./ScenarioBosses";
 import { OperatorModel, type ModelMotion } from "./OperatorModel";
 import { RIVAL_COLORS, type RivalClass } from "@/game/crucible";
 import { RoundedBox } from "@react-three/drei";
 import { useFrame } from "@react-three/fiber";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 import { isStaggeredNow, recoilAt } from "@/game/enemy-reactions";
 
@@ -227,6 +227,7 @@ export function WarMachines({ sim }: { sim: WorldSim }) {
   const group = useRef<THREE.Group>(null!);
   // one motion record per pooled machine slot, shared by that slot's faction variants
   const drives = useMemo<DriveRef[]>(() => sim.machines.map(() => ({ current: { speed: 0, aiming: false } })), [sim.machines]);
+  useEffect(() => { drives.forEach((d, i) => { enemyDrives[i] = d; }); return () => { enemyDrives.length = 0; }; }, [drives]);
   const last = useMemo(() => sim.machines.map(() => ({ x: NaN, z: NaN })), [sim.machines]);
   // Crucible rivals walk/run on the operator rig's own clips, driven from their real ground speed
   const strides = useMemo<ModelMotion[]>(() => sim.machines.map(() => ({ current: { phase: 0, intensity: 0, air: false } })), [sim.machines]);
