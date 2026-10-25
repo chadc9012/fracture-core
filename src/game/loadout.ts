@@ -69,14 +69,14 @@ export const SUBCLASSES: readonly SubclassDefinition[] = [
  * briefing and HUD — free text, not locked to a preset, same as the color channels. */
 export type AppearanceDefinition = { id: AppearanceId; name: string; armor: string; cloth: string; visor: string; trim: string; callsign: string };
 
-const DEFAULT_APPEARANCE: AppearanceDefinition = { id: "BASTION", name: "Goliath Destroyer", armor: "#4a4036", cloth: "#1c1815", visor: "#ff7a1a", trim: "#2a2420", callsign: "GOLIATH-01" };
+const DEFAULT_APPEARANCE: AppearanceDefinition = { id: "BASTION", name: "Goliath Rookie Bulwark", armor: "#5b5e63", cloth: "#1b1d20", visor: "#ff8a2a", trim: "#2b2d31", callsign: "GOLIATH-01" };
 /** One signature appearance per Operator (see OPERATORS) — a real starting identity to customize
  * from, not an arbitrary color swatch. Stays the same across that Operator's 3 subclasses. */
 export const APPEARANCES: readonly AppearanceDefinition[] = [
   DEFAULT_APPEARANCE,
   // Nyx's body is the Rookie Shadow model (Meshy, from the rookie sheet): her signature colours are its Standard variation, so it renders as modelled
   { id: "SHADE", name: "Nyx Rookie Shadow", armor: "#2a2a2f", cloth: "#121215", visor: "#d81f2e", trim: "#c9c9cc", callsign: "NYX-13" },
-  { id: "CIPHER", name: "Cipher Tech", armor: "#3d3a5c", cloth: "#121018", visor: "#ffc864", trim: "#15131d", callsign: "CIPHER-02" },
+  { id: "CIPHER", name: "Cipher Rookie Arcanist", armor: "#d4d4cf", cloth: "#1a1c22", visor: "#2f7dff", trim: "#8a8d93", callsign: "CIPHER-02" },
 ];
 /** Swatch rows offered when freely customizing each color channel in the Identity Forge — every
  * preset's colors plus a few neutrals, so a custom look can still land on a clean, tested value. */

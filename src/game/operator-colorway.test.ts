@@ -36,7 +36,7 @@ describe("operator colorway", () => {
 
 describe("light armour colours", () => {
   test("a white coat on a dark authored suit reads light, and stays shaded", () => {
-    const w = colorwayFor("WARLOCK", { armor: "#d4d4cf", visor: "#2f7dff" })!;
+    const w = colorwayFor("TITAN", { armor: "#e2e2dc", visor: "#2f7dff" })!; // a light colourway on a dark suit (not the preset, which needs no recolour)
     const dark = recolorTexel([0.12, 0.12, 0.14], w).color, mid = recolorTexel([0.3, 0.3, 0.32], w).color;
     expect(Math.max(...dark)).toBeGreaterThan(0.45);
     expect(mid[0]).toBeGreaterThan(dark[0]);
