@@ -23,6 +23,8 @@ export const ENEMY_ARMS: Record<EnemyKind, Record<EnemyRole, HandlingClass | nul
   SKYBORN: { standard: "rifle", elite: "sword", boss: null },
   // ancient constructs: no hand weapons, they fire fracture energy from the core
   GUARDIAN: { standard: null, elite: null, boss: null },
+  // sea creatures: teeth, tentacles and sonic shrieks
+  ABYSSAL: { standard: null, elite: null, boss: null },
   // creatures: no weapons
   ABERRATION: { standard: null, elite: null, boss: null },
 };
