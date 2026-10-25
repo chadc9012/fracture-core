@@ -67,6 +67,9 @@ describe("enemies in the sim respect cover", () => {
     return { sim, m };
   }
   const run = (withWall: boolean) => {
+    // enemy fire rolls Math.random; a seeded stream keeps "some rounds land" from flaking on an unlucky streak
+    const realRandom = Math.random; let seed = 12345; Math.random = () => { seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0; return seed / 4294967296; };
+    try {
     const { sim, m } = setup(withWall);
     let fired = 0, hits = 0, blocked = 0;
     for (let f = 0; f < 60 * 40; f++) {
@@ -76,6 +79,7 @@ describe("enemies in the sim respect cover", () => {
     }
     removeModelSolid("los-test-wall");
     return { fired, hits, blocked };
+    } finally { Math.random = realRandom; }
   };
   test("in the open, a mission trooper fires and some rounds land", () => {
     const r = run(false);
