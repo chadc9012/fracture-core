@@ -161,8 +161,38 @@ const VYRAK: EncounterDef = {
   ],
 };
 
+/** Raid 01's final boss (hollow-star-raid.ts holds the raid rules; this is the 3D fight). Phases follow the raid design: Awakening,
+ * Star Collapse, Fractured Reality, Final Stand. Not modelled in this single-player build: separate teams, per-player realities and
+ * minion waves as individual enemies (they appear as hazard pits and orbiting void energy instead). */
+const ASTRAVORE: EncounterDef = {
+  scenarioId: "astravore",
+  victory: "Survive the overload and strike the exposed core to end the Hollow Star.",
+  attacks: {
+    "void-slam": A({ id: "void-slam", kind: "SLAM", label: "Void Slam", tell: "A fist rises over the platform - a massive strike. Leave the circle.", tellTime: 1.6, damage: 18, minRange: 0, maxRange: 26, radius: 16, recovery: 2.2, window: 2.4 }),
+    "star-beam": A({ id: "star-beam", kind: "FAN", label: "Star Beam", tell: "The star narrows to a point - a beam will track you. Break the line.", tellTime: 1.2, damage: 12, minRange: 14, maxRange: 80, arc: 0.22, reach: 78, recovery: 1.6, window: 1.8 }),
+    "gravity-pull": A({ id: "gravity-pull", kind: "FIELD", label: "Gravity Pull", tell: "Space bends toward the core - the pale wells will drag and crush.", tellTime: 1.3, damage: 0, minRange: 0, maxRange: 90, recovery: 1.4, window: 1.6,
+      zones: { kind: "SLOW", radius: 9, dps: 6, slow: 0.45, count: 3, arm: 1.2, life: 10, place: "PLAYER", ringRadius: 14, name: "Gravity well" } }),
+    "dimensional-rifts": A({ id: "dimensional-rifts", kind: "FIELD", label: "Dimensional Rifts", tell: "Reality tears open around the platform - the rifts are about to burn.", tellTime: 1.5, damage: 0, minRange: 0, maxRange: 90, recovery: 1.4, window: 1.6,
+      zones: { kind: "DAMAGE", radius: 7, dps: 12, count: 4, arm: 1.6, life: 9, place: "RING", ringRadius: 26, name: "Dimensional rift" } }),
+    summons: A({ id: "summons", kind: "FIELD", label: "Summons", tell: "Void spawn claw out of the floor - the dark pits are about to erupt.", tellTime: 1.4, damage: 0, minRange: 0, maxRange: 90, recovery: 1.5, window: 1.8,
+      zones: { kind: "DAMAGE", radius: 6, dps: 10, count: 3, arm: 1.8, life: 8, place: "PLAYER", ringRadius: 18, name: "Void spawn pit" } }),
+    "star-collapse": A({ id: "star-collapse", kind: "FIELD", label: "Star Collapse", tell: "The star destabilizes - orbiting rings of energy sweep the platform. Move with the gaps.", tellTime: 1.3, damage: 0, minRange: 0, maxRange: 90, recovery: 1.4, window: 1.8,
+      zones: { kind: "DAMAGE", radius: 7, dps: 13, count: 3, arm: 1.2, life: 12, place: "ORBIT", ringRadius: 20, orbitSpeed: 0.45, name: "Collapsing energy" } }),
+    overload: A({ id: "overload", kind: "SLAM", label: "Overload", tell: "OVERLOAD - the machine is tearing itself apart. Run to the edge!", tellTime: 2.6, damage: 30, minRange: 0, maxRange: 120, radius: 28, recovery: 0.8, window: 0 }),
+  },
+  phases: [
+    { id: "awakening", name: "Awakening", below: 1, nova: "NOVA: It is only testing us. Read the slam and the beam, then hit the opening.", attacks: ["void-slam", "star-beam", "summons"], gap: 1.8 },
+    { id: "star-collapse", name: "Star Collapse", below: 0.7, nova: "NOVA: The star is unstable. The energy rings sweep the whole platform - stay in the gaps.", attacks: ["star-collapse", "void-slam", "star-beam", "summons"], gap: 1.5 },
+    { id: "fractured-reality", name: "Fractured Reality", below: 0.4, nova: "NOVA: Reality is splitting. Gravity wells and rifts - keep moving, keep to clear ground.", attacks: ["gravity-pull", "dimensional-rifts", "star-beam", "void-slam"], gap: 1.3,
+      arena: { kind: "DAMAGE", radius: 8, dps: 6, count: 4, arm: 2.5, life: 1e9, place: "RING", ringRadius: 38, name: "Fractured ground" } },
+    { id: "final-stand", name: "Final Stand", below: 0.15, nova: "NOVA: The arena is coming apart. Survive the overload and the core is open.", attacks: ["star-beam", "dimensional-rifts", "void-slam"], gap: 1.1,
+      arena: { kind: "DAMAGE", radius: 9, dps: 8, count: 5, arm: 2.0, life: 1e9, place: "RING", ringRadius: 38, name: "Collapsing ground" },
+      finale: { attack: "overload", window: 6, floorHp: 3, nova: "NOVA: THE CORE IS EXPOSED - everything into it, now!" } },
+  ],
+};
+
 export const ENCOUNTERS: Readonly<Record<string, EncounterDef>> = {
-  "dark-knight": DARK_KNIGHT, "rime-alpha": RIME_ALPHA, "drowned-monarch": DROWNED_MONARCH, "hollow-saint": HOLLOW_SAINT, vaelith: VAELITH, vyrak: VYRAK,
+  "dark-knight": DARK_KNIGHT, "rime-alpha": RIME_ALPHA, "drowned-monarch": DROWNED_MONARCH, "hollow-saint": HOLLOW_SAINT, vaelith: VAELITH, vyrak: VYRAK, astravore: ASTRAVORE,
 };
 export const encounterFor = (scenarioId: string | undefined): EncounterDef | undefined => (scenarioId ? ENCOUNTERS[scenarioId] : undefined);
 

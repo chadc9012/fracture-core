@@ -38,6 +38,8 @@ export const EMBER_LANCE: GearItem = { id: "ember-lance", name: "Ember Lance", s
 export const DRAGON_SCALE_MANTLE: GearItem = { id: "dragon-scale-mantle", name: "Dragon-Scale Mantle", slot: "classItem", power: 245, level: 1, element: "THERMAL", rarity: "LEGENDARY", source: "Vaelith" };
 
 // Special encounters (design doc 05-08). Plain power + element like the other scenario gear; no new perks.
+export const HOLLOW_STAR_LENS: GearItem = { id: "hollow-star-lens", name: "Hollow Star Lens", slot: "primary", power: 340, level: 1, element: "ARC", rarity: "EXOTIC", source: "Astravore, the Hollow Star" };
+export const STARBREAKER_PLATE: GearItem = { id: "starbreaker-plate", name: "Starbreaker Plate", slot: "chest", power: 270, level: 1, element: "ARC", rarity: "LEGENDARY", source: "Astravore, the Hollow Star" };
 export const COLOSSUS_PLATING: GearItem = { id: "colossus-plating", name: "Colossus Plating", slot: "chest", power: 240, level: 1, element: "KINETIC", rarity: "LEGENDARY", source: "The Hollow Colossus" };
 export const QUAKEBREAKER_MAUL: GearItem = { id: "quakebreaker-maul", name: "Quakebreaker Maul", slot: "heavy", power: 315, level: 1, element: "KINETIC", rarity: "LEGENDARY", source: "The Hollow Colossus" };
 export const ARCHITECTS_SIGNET: GearItem = { id: "architects-signet", name: "Architect's Signet", slot: "classItem", power: 245, level: 1, element: "ARC", rarity: "EXOTIC", source: "The Exiled Architect" };
@@ -53,6 +55,8 @@ export const SIEGE_CANNON: GearItem = { id: "siege-cannon", name: "Behemoth Sieg
 export const PHANTOM_RACING_SUIT: GearItem = { id: "phantom-racing-suit", name: "Phantom Racing Suit", slot: "chest", power: 235, level: 1, element: "ARC", rarity: "LEGENDARY", source: "The Black Market Phantom" };
 
 export const ITEM_BLURB: Record<string, string> = {
+  "hollow-star-lens": "Precision finishers collapse a short-lived singularity that drags nearby targets inward.",
+  "starbreaker-plate": "Plate cut from Astravore's shell. The armor appearance is unlocked by the raid.",
   "colossus-plating": "Legendary chest piece of ruin-stone plates — strong Defense; works with any other armor.",
   "quakebreaker-maul": "Legendary heavy weapon built for stagger. Plain power and KINETIC element; no special perk.",
   "architects-signet": "Exotic class item from the Exiled Architect. Strong Intellect and Mobility; works with any other armor.",
@@ -96,6 +100,7 @@ export const SCENARIO_LOOT: Readonly<Record<string, ScenarioLootEntry>> = {
   "clockwork-saint": { guaranteed: [CHRONO_GAUNTLETS], chance: [] },
   "abyssal-leviathan": { guaranteed: [ABYSSAL_PLATE], chance: [] },
   "eternal-huntress": { guaranteed: [SHADOWSTALKER_GREAVES], chance: [{ item: PHANTOM_BOW, chance: 0.15 }] },
+  astravore: { guaranteed: [HOLLOW_STAR_LENS, STARBREAKER_PLATE], chance: [] },
   "iron-behemoth": { guaranteed: [TITANBREAKER_PLATE], chance: [{ item: SIEGE_CANNON, chance: 0.2 }] },
 };
 

@@ -1,4 +1,5 @@
 import "./text-font";
+import { ASTRAVORE_SCENARIO_ID, applyAstravoreKill } from "@/game/hollow-star-raid";
 import { FOUND_KEY as STORM_FOUND, stormPrompt, stormStep } from "@/game/storm-quests";
 import { DANCE_VENUES, danceBest, recordDance } from "@/game/dance";
 import { DanceFloor } from "./DanceFloor";
@@ -1110,7 +1111,10 @@ export function GameCanvas() {
   const showScenarioRewards = (drops: { scenarioClaim?: Parameters<typeof grantScenarioReward>[1] }[]) => {
     const plan = planScenarioRewardCards(progressionRef.current, drops, shownRewardRuns.current);
     const last = plan[plan.length - 1];
-    if (last) setRewardCards({ title: scenarioById(last.scenarioId)?.name ?? "Scenario", cards: plan.flatMap((p) => p.cards) });
+    // Raid 01's boss: the raid's own rewards (Starbreaker on the first kill) ride on the same confirmed claim
+    let first = false;
+    if (plan.some((p) => p.scenarioId === ASTRAVORE_SCENARIO_ID)) { const r = applyAstravoreKill(progressionRef.current); first = r.firstKill; setProgression((current) => applyAstravoreKill(current).progress); }
+    if (last) setRewardCards({ title: `${scenarioById(last.scenarioId)?.name ?? "Scenario"}${first ? " · Title earned: Starbreaker" : ""}`, cards: plan.flatMap((p) => p.cards) });
   };
   // Story scenarios (vaelith.ts): branching conversations never block play (Esc / B skips); every effect goes through the pure story reducers
   const [storyGraph, setStoryGraph] = useCountedState<DialogueGraph | null>("storyGraph", null);

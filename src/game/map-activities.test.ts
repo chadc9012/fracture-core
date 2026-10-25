@@ -16,7 +16,7 @@ describe("map activities", () => {
     for (const r of REGIONS) {
       const acts = regionActivities(p, r.id, NOW);
       expect(acts.length).toBeGreaterThan(0);
-      for (const a of acts) expect(Math.hypot(a.drop.x - r.x, a.drop.z - r.z) < r.radius * 1.2 || cityAt(a.drop.x, a.drop.z) !== null || a.drop.y !== undefined).toBe(true);
+      for (const a of acts) expect(Math.hypot(a.drop.x - r.x, a.drop.z - r.z) < r.radius * 1.2 || cityAt(a.drop.x, a.drop.z) !== null || a.drop.y !== undefined || (a.kind === "BOSS" && Math.hypot(a.drop.x - r.x, a.drop.z - r.z) < r.radius + 250)) /* a boss lair on a city's outskirts (Astravore's site) */.toBe(true);
       nexts += acts.filter((a) => a.status === "NEXT").length;
     }
     expect(nexts).toBe(1);
