@@ -5,6 +5,9 @@ import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import { walkHeight } from "@/game/terrain";
 import { addObstacle } from "@/game/obstacles";
+import { HOVER_FLEET, hoverVehiclePose, type HoverVehicle } from "@/game/hover-traffic";
+import { InstancedFleet, type FleetInstance } from "./InstancedFleet";
+import type { FleetModelId } from "@/game/fleet-models";
 import { VORTEX, facadeArc, CHECKPOINT, DECK, DRONE_LANES, HOLOGRAMS, PIPES, SKYBRIDGES, SPIRE, deckPillars, laneAt, lanePerimeter, neonWeather, undercity, type Holo } from "@/game/neon-tiers";
 import { LightBar } from "./DistrictStreet";
 import { softSprite } from "./softSprite";
@@ -22,6 +25,7 @@ export function NeonTiers({ c }: { c: { x: number; z: number } }) {
       <Checkpoint />
       <Deck />
       <Drones />
+      <HoverTraffic />
       <Undercity />
       {HOLOGRAMS.map((h, i) => <Hologram key={i} h={h} seed={i} />)}
       <NeonWeather c={c} y0={y0} />
@@ -110,6 +114,25 @@ function Deck() {
       </group>
     ))}
   </group>;
+}
+
+/** authored hover cars, pods, lightcycles, shuttles and a gunship on three lanes (hover-traffic.ts); local to the district centre */
+function HoverTraffic() {
+  const t = useRef(0);
+  const { items, byModel } = useMemo(() => {
+    const byModel = new Map<FleetModelId, HoverVehicle[]>();
+    for (const v of HOVER_FLEET) byModel.set(v.model, [...(byModel.get(v.model) ?? []), v]);
+    return { items: HOVER_FLEET.map((v) => ({ model: v.model, ...(v.paint ? { paint: v.paint } : {}), x: 0, y: 0, z: 0, yaw: 0 })) as FleetInstance[], byModel };
+  }, []);
+  useFrame((_, raw) => { t.current += Math.min(raw, 0.05); });
+  const place = (model: FleetModelId, i: number, o: THREE.Object3D) => {
+    const veh = byModel.get(model)?.[i];
+    if (!veh) return;
+    const p = hoverVehiclePose(veh, t.current);
+    o.position.set(p.x, p.y, p.z);
+    o.rotation.set(0, p.yaw, 0);
+  };
+  return <InstancedFleet items={items} place={place} shadows={false} />;
 }
 
 /** automated drone traffic: small craft with nav lights circulating on two lanes */
