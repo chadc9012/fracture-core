@@ -1,3 +1,4 @@
+import { PAYOUTS } from "./activity-payouts";
 /** Economy balance guards (the October audit): every number here was a player-facing exploit or a dead reward before. */
 import { describe, expect, test } from "bun:test";
 import { ACTIVITIES, KILLBOX_FULL_PAY, activityById, completeActivity, startActivity, type Run } from "./activities";
@@ -94,6 +95,6 @@ describe("dungeon claims", () => {
     const day2 = claimDungeonClear(day1, d.id, d.signature.name, T0 + 86_400_000);
     expect(day2.dungeonClears[d.id]).toBe(2);
     expect(day2.fractureShards - day1.fractureShards).toBeLessThan(day1.fractureShards - fresh().fractureShards);
-    expect(nexBalance(day2.nexLedger)).toBe(nexBalance(day1.nexLedger));
+    expect(nexBalance(day2.nexLedger) - nexBalance(day1.nexLedger)).toBe(PAYOUTS.dungeon.repeat); // repeat bounty, less than the first
   });
 });

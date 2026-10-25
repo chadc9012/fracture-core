@@ -12,6 +12,7 @@
 import { HOLLOW_STAR, HOLLOW_STAR_ID } from "./hollow-star-data";
 import type { PlayerProgression } from "./progression";
 import { canClaimDungeon, claimDungeonClear } from "./dungeon-claims";
+import { CHALLENGE_RAID_MULT, payoutFor } from "./activity-payouts";
 
 export { HOLLOW_STAR, HOLLOW_STAR_ID };
 export const STARBREAKER_TITLE = "Starbreaker";
@@ -141,7 +142,9 @@ export function hollowStarExtras(earned: readonly string[], dungeonClears: numbe
 export function claimHollowStarClear(p: PlayerProgression, variant: RaidVariant, secretsFound: readonly string[], now = Date.now()): PlayerProgression {
   if (!canClaimDungeon(p, HOLLOW_STAR_ID, now)) return p;
   const extras = hollowStarExtras(p.earnedRewards, p.dungeonClears[HOLLOW_STAR_ID] ?? 0, variant, secretsFound);
-  const base = claimDungeonClear(p, HOLLOW_STAR_ID, HOLLOW_STAR.signature.name, now);
+  const pay = payoutFor(p.nexLedger, "raid", HOLLOW_STAR_ID, now); // what claimDungeonClear is about to pay; the 12-player variant adds half again
+  const base0 = claimDungeonClear(p, HOLLOW_STAR_ID, HOLLOW_STAR.signature.name, now);
+  const base = pay && variant === "CHALLENGE" ? { ...base0, nexLedger: { ...base0.nexLedger, [`${pay.key}:challenge`]: Math.round(pay.nex * (CHALLENGE_RAID_MULT - 1)) } } : base0;
   const earned = Array.from(new Set([
     ...base.earnedRewards,
     ...extras.appearances,

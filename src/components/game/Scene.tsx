@@ -2333,6 +2333,7 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
           // boss stories: captions follow the encounter's own phases; BOSS_DEFEATED comes only from the real-kill VICTORY event (never a truce, reset or death)
           if (e.kind === "PHASE" && bossStoryFor(e.scenarioId)) onStoryEvent?.({ type: "BOSS_PHASE", scenarioId: e.scenarioId, phase: e.phase });
           if (e.kind === "VICTORY" && bossStoryFor(e.scenarioId)) onStoryEvent?.({ type: "BOSS_DEFEATED", scenarioId: e.scenarioId });
+          if (e.kind === "VICTORY" && e.scenarioId) onStoryEvent?.({ type: "BOSS_BOUNTY", scenarioId: e.scenarioId });
         }
         if (stageOf(story, VAELITH) === "memories") {
           const nearLair = Math.hypot(VAELITH_LAIR.x - s.x, VAELITH_LAIR.z - s.z) < 30;

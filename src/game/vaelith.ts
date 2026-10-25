@@ -115,7 +115,9 @@ export function memoryNear(s: StoryState, x: number, z: number): string | null {
 export type StoryWorldEvent =
   | { type: "LAIR_ENTER" } | VaelithEvent
   /** the four existing boss stories (boss-stories.ts): lair intro request, phase caption, vault terminal, and the real-kill events */
-  | { type: "BOSS_LAIR_ENTER"; scenarioId: string } | { type: "BOSS_PHASE"; scenarioId: string; phase: number } | { type: "VAULT_ENTER"; scenarioId: string } | BossStoryEvent;
+  | { type: "BOSS_LAIR_ENTER"; scenarioId: string } | { type: "BOSS_PHASE"; scenarioId: string; phase: number } | { type: "VAULT_ENTER"; scenarioId: string } | BossStoryEvent
+  /** any boss encounter's real-kill VICTORY (story boss or not): pays the boss bounty (activity-payouts.ts) */
+  | { type: "BOSS_BOUNTY"; scenarioId: string };
 export type VaelithEvent =
   | { type: "TRIAL_SURVIVED" }
   | { type: "MEMORY"; id: string }

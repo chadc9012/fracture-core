@@ -72,6 +72,7 @@ import { TransitOverlay } from "./TransitOverlay";
 import { swapAt, totalSeconds, transitPlan, type TransitPlan } from "@/game/transit";
 import { ArsenalLoadouts } from "./ArsenalLoadouts";
 import { SaveManager } from "./SaveManager";
+import { claimBossBounty } from "@/game/activity-payouts";
 import { buyPenthouseNex, ownsPenthouseNex, publishPenthouse } from "@/game/casino-property";
 import { nexBalance } from "@/game/nex";
 import { buyPenthouseUpgrade, ownedUpgrades } from "@/game/penthouse-upgrades";
@@ -1250,6 +1251,11 @@ export function GameCanvas() {
     return true;
   }, []);
   const recordStory = useCallback((event: StoryWorldEvent) => {
+    if (event.type === "BOSS_BOUNTY") {
+      const paid = claimBossBounty(progressionRef.current, event.scenarioId);
+      if (paid.paid > 0) { progressionRef.current = paid.progression; setProgression((current) => claimBossBounty(current, event.scenarioId).progression); showLivingToast(`${paid.first ? "Boss bounty" : "Daily boss bounty"} paid: NΞ ${paid.paid.toLocaleString("en-US")}`); }
+      return;
+    }
     if (event.type === "LAIR_ENTER") { setStoryGraph((current) => current ?? dialogueDue(progressionRef.current.story)?.graph ?? null); return; }
     if (event.type === "BOSS_LAIR_ENTER" || event.type === "VAULT_ENTER") {
       const id = event.scenarioId as BossStoryId;
