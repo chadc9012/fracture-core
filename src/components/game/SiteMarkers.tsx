@@ -7,6 +7,8 @@ import { mulberry32 } from "@/game/rng";
 import { chippedBlock, flutedColumn, organicRock, saggingTent } from "@/game/organic-geometry";
 import { applyWorldTriplanar, weatheredConcreteTexture } from "@/game/weathered-surface";
 import { NearOnly } from "./NearOnly";
+import { ReclaimedCity } from "./ReclaimedCity";
+import { CITY } from "@/game/reclaimed-city";
 import { InstancedFleet, type FleetInstance } from "./InstancedFleet";
 import type { FleetModelId } from "@/game/fleet-models";
 
@@ -202,6 +204,7 @@ export function SiteMarkers({ playerRef }: { playerRef: RefObject<THREE.Object3D
     let body: ReactNode = <group position={[s.x, y, s.z]} rotation-y={(s.x * 0.013) % (Math.PI * 2)}><Piece site={s} /></group>;
     if (s.kind === "scrapyard") body = <Wrecks site={s} count={18} spread={40} />;
     if (s.kind === "highway") body = <Wrecks site={s} count={8} spread={0} line />;
+    if (s.id === CITY.siteId) body = <ReclaimedCity />; // the trailer's jungle-reclaimed city stands on the Ancient Ruins
     return <NearOnly key={s.id} playerRef={playerRef} x={s.x} z={s.z} radius={420} name={`site:${s.id}`}>{body}</NearOnly>;
   })}</group>;
 }

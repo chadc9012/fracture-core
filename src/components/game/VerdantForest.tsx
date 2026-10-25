@@ -1,3 +1,4 @@
+import { inReclaimedCity } from "@/game/reclaimed-city";
 import { useFrame } from "@react-three/fiber";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type MutableRefObject } from "react";
 import * as THREE from "three";
@@ -40,7 +41,7 @@ type Solid = { x: number; z: number; r: number; kind: "rock" | "tree" | "wreck";
 
 const dry = (x: number, z: number) => heightAt(x, z) > WATER_LEVEL + 2 && slopeAt(x, z) < 0.6;
 /** where low plants may root: dry, gentle (no floating on slopes), off the trail/clearings/crash pad/furrow */
-const plantable = (x: number, z: number) => heightAt(x, z) > WATER_LEVEL + 2 && slopeAt(x, z) < 0.45 && vegetationOk(x, z);
+const plantable = (x: number, z: number) => heightAt(x, z) > WATER_LEVEL + 2 && slopeAt(x, z) < 0.45 && vegetationOk(x, z) && !inReclaimedCity(x, z, 1);
 const LEAF_TINTS = ["#ffffff", "#e8d2a8", "#c9b080", "#b6a070"];
 const MOSS_TINTS = ["#ffffff", "#d8f0b0", "#b8d890"];
 const FURROW_YAW = Math.atan2(FURROW.dz, -FURROW.dx); // log orientation (see lying()) that lies along the skid
@@ -128,7 +129,7 @@ export function VerdantForest({ density, models, investigation, heavyShadow = fa
     if (!trees.length) return null;
     const rnd = mulberry32(401);
     const parents = trees.map((t) => ({ x: t.x, z: t.z, s: 1 }));
-    const flat = (x: number, z: number) => heightAt(x, z) > WATER_LEVEL + 2 && slopeAt(x, z) < 0.35 && vegetationOk(x, z);
+    const flat = (x: number, z: number) => heightAt(x, z) > WATER_LEVEL + 2 && slopeAt(x, z) < 0.35 && vegetationOk(x, z) && !inReclaimedCity(x, z, 1);
     const leaves = [
       ...clusterAround(parents, dd(2), rnd, flat, { minRadius: 0.6, maxRadius: 4.2, minScale: 1.3, maxScale: 2.8 }),
       ...trailEdgeScatter(d(34), mulberry32(402), TRAIL_HALF_WIDTH + 0.1, TRAIL_HALF_WIDTH + 3.5, flat).map((f) => ({ ...f, s: 1.1 + (f.s - 0.7) * 1.2 })),

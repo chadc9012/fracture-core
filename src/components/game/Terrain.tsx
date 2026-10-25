@@ -1,3 +1,4 @@
+import { inReclaimedCity } from "@/game/reclaimed-city";
 import { Instance, Instances } from "@react-three/drei";
 import { DistrictLight } from "./DistrictLight";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
@@ -65,7 +66,7 @@ function scatter(
     // Keep the first insertion and immediate aiming lanes free of giant canopies.
     if (keepSpawnLaneClear && Math.hypot(x - region.x, z - (region.z + 12)) < 16) continue;
     // Verdant Forest: the mission trail, spawn clearing, ambush clearing and crash pad stay open (verdant.ts)
-    if (region.id === "veridan" && isReserved(x, z, 1.5)) continue;
+    if (region.id === "veridan" && (isReserved(x, z, 1.5) || inReclaimedCity(x, z, 2.5))) continue; // ...and the reclaimed city's shells
     // keep supply roads clear so convoys have a crash-free corridor
     if (distanceToRoad(x, z) < LANE_HALF_WIDTH) continue;
     // keep river channels and their banks open (rivers.ts)
@@ -379,7 +380,7 @@ export function Terrain({ renderTier = "HIGH" }: { renderTier?: RenderTier } = {
       if (Math.hypot(x - forest.x, z - forest.z) > forest.radius * 0.95) return false;
       const y = heightAt(x, z);
       if (y < 1.5 || y > treeMax || slopeAt(x, z) > 0.55) return false;
-      if (Math.hypot(x - forest.x, z - (forest.z + 12)) < 16 || isReserved(x, z, 1.5) || distanceToRoad(x, z) < LANE_HALF_WIDTH) return false;
+      if (Math.hypot(x - forest.x, z - (forest.z + 12)) < 16 || isReserved(x, z, 1.5) || inReclaimedCity(x, z, 2.5) || distanceToRoad(x, z) < LANE_HALF_WIDTH) return false;
       const rv = riverAt(x, z);
       return !(rv && rv.dist < rv.w + 2);
     };

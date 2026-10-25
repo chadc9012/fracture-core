@@ -4,6 +4,7 @@ import * as THREE from "three";
 import { movedEnough, nearIndices } from "@/game/foliage-cull";
 import { mergeGeometries, mergeVertices } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import { COVER_CULL_RADIUS, COVER_RESELECT_SECONDS, groundCover, type CoverItem, type CoverKind } from "@/game/ground-cover";
+import { inReclaimedCity } from "@/game/reclaimed-city";
 import { windSway } from "@/game/wind-sway";
 import { organicDeform, organicRock } from "@/game/organic-geometry";
 
@@ -128,7 +129,8 @@ function Batch({ items, geometry, material, scale, yLift = 0, radius }: { items:
 export function GroundCover({ density }: { density: number }) {
   const [ready, setReady] = useState(false);
   useEffect(() => { const t = window.setTimeout(() => setReady(true), 4500); return () => window.clearTimeout(t); }, []);
-  const items = useMemo(() => (ready ? groundCover(density) : []), [ready, density]);
+  // nothing grows through the reclaimed city's concrete shells (reclaimed-city.ts imports ground-cover, so the filter lives here)
+  const items = useMemo(() => (ready ? groundCover(density).filter((i) => !inReclaimedCity(i.x, i.z, 0.5)) : []), [ready, density]);
   const by = useMemo(() => { const m: Record<CoverKind, CoverItem[]> = { flower: [], bush: [], rock: [], reed: [] }; for (const i of items) m[i.kind].push(i); return m; }, [items]);
 
   const assets = useMemo(() => {

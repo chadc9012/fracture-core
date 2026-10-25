@@ -9,7 +9,7 @@ Status words: **built** (code, tests), **live-checked** (seen in the running pre
 |---|---|---|
 | 0–3 s | A city block torn loose, floating over a storm sea, violet lightning crawling through it | Broken horizon islands (`broken-horizon.ts`, `BrokenHorizon.tsx`): built. Violet fracture lightning: storm bolts are now jagged violet with a fork, and storm flashes tint violet (`Actors.tsx` HazardMarkers, Scene storm flash): built |
 | 4–7 s | Rain-slick neon street, cars, violet lightning crawling over a facade | Neon City wet asphalt, rain and fog already exist (`neon-tiers.ts`). Violet arcs crawling down the Aegis Spire every ~5.5 s (`facadeArc`, `FacadeArcs`): built |
-| 8–11 s | Jungle-reclaimed city, armoured Operator, hovering drone, violet strike | NOVA field drone keeps station at the Operator's shoulder (`nova-drone.ts`, `NovaDrone.tsx`): built. Overgrown city ruins: planned (Wastelands/Verdant edge district) |
+| 8–11 s | Jungle-reclaimed city, armoured Operator, hovering drone, violet strike | NOVA field drone keeps station at the Operator's shoulder (`nova-drone.ts`, `NovaDrone.tsx`): built. Overgrown city ruins: built on Verdant's Ancient Ruins site (`reclaimed-city.ts`, `ReclaimedCity.tsx`): broken concrete tower shells, one leaning, vine curtains, moss on every top face, roof and street trees, an elder tree cracking the plaza, rusted cars in the old streets |
 | 12–15 s | Operator on a cracked ledge over the skyline, violet energy, drone | Same drone; the skyline lookout: a walkable cracked rock ledge on the highest open ground facing Nexus (~144 m up, ~290 m out), violet Fracture fissures pulsing across it and fracture crystals at its root (`skyline-lookout.ts`, `SkylineLookout.tsx`): built |
 
 ## Video B — "Opening shots" (Seedance, 15 s)
