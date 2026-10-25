@@ -15,6 +15,7 @@
 #include "WFProgressionSubsystem.h"
 #include "WFQuestSubsystem.h"
 #include "WFRaceSubsystem.h"
+#include "WFShopSubsystem.h"
 
 namespace
 {
@@ -89,6 +90,30 @@ void AWFHUD::DrawHUD()
 			if (!Windup.IsEmpty()) Line(FString::Printf(TEXT("%s  [%s]"), *Windup.ToUpper(), *Bar(Progress, 20)), X, 74, FLinearColor(1.f, 0.3f, 0.25f), 1.05f);
 		}
 	}
+
+	// shop counter: today's stock of the open shop (regional-shops.ts shopOffers), its gate, and what you can pay with
+	if (const UWFShopSubsystem* Shops = GetGameInstance() ? GetGameInstance()->GetSubsystem<UWFShopSubsystem>() : nullptr)
+		if (const wf::shop::FShop* Shop = Shops->GetOpenShop())
+		{
+			const float X = 40.f;
+			float Y = 110.f;
+			DrawRect(FLinearColor(0.02f, 0.03f, 0.05f, 0.78f), X - 12, Y - 10, 760, 470);
+			Line(FString::Printf(TEXT("%s  -  %s, %s"), UTF8_TO_TCHAR(Shop->Name.c_str()), UTF8_TO_TCHAR(Shop->Kind.c_str()), UTF8_TO_TCHAR(Shop->Place.c_str())), X, Y, Gold, 1.1f);
+			Y += 26;
+			const FString Lock = Shops->GetLock();
+			Line(Lock.IsEmpty() ? FString::Printf(TEXT("You have %d %s   [Buy <n>  Service <itemId> [element]  CloseShop]"), FMath::RoundToInt32(Shops->GetCurrencyBalance()), UTF8_TO_TCHAR(Shop->Currency.c_str()))
+				: FString::Printf(TEXT("CLOSED TO YOU: %s"), *Lock), X, Y, Lock.IsEmpty() ? Soft : Warn, 0.9f);
+			Y += 28;
+			const std::vector<wf::shop::FOffer> Offers = Shops->GetOffers();
+			for (int32 I = 0; I < static_cast<int32>(Offers.size()) && I < 14; ++I)
+			{
+				const wf::shop::FOffer& O = Offers[static_cast<size_t>(I)];
+				Line(FString::Printf(TEXT("%2d  %-34s %5d   lv %d"), I, UTF8_TO_TCHAR(O.Name.c_str()), FMath::RoundToInt32(O.Price), FMath::RoundToInt32(O.MinLevel)), X, Y, O.Detail.rfind("DAILY", 0) == 0 ? Gold : Cyan, 0.9f);
+				Line(UTF8_TO_TCHAR(O.Detail.c_str()), X + 420, Y + 2, Soft, 0.7f);
+				Y += 22;
+			}
+			if (Offers.empty()) Line(Shop->Kind == "gunsmith" ? TEXT("Services only: Service <itemId> upgrades a weapon") : TEXT("Nothing in stock today"), X, Y, Soft, 0.9f);
+		}
 
 	// race panel: phase, clock, gate, live place (racing.ts livePlace), penalties
 	if (const UWFRaceSubsystem* Racing = GetGameInstance() ? GetGameInstance()->GetSubsystem<UWFRaceSubsystem>() : nullptr)

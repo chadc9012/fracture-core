@@ -1,0 +1,978 @@
+[
+  {
+    "Name": "weapon-t1-01",
+    "Id": "weapon-t1-01",
+    "DisplayName": "Scrap-Slugger",
+    "Tier": "T1",
+    "Archetype": "ASSAULT RIFLE",
+    "Element": "KINETIC"
+  },
+  {
+    "Name": "weapon-t1-02",
+    "Id": "weapon-t1-02",
+    "DisplayName": "Pipe-Rail Pistol",
+    "Tier": "T1",
+    "Archetype": "SIDEARM",
+    "Element": "PLASMA"
+  },
+  {
+    "Name": "weapon-t1-03",
+    "Id": "weapon-t1-03",
+    "DisplayName": "Rebar Crossbow",
+    "Tier": "T1",
+    "Archetype": "SHOTGUN",
+    "Element": "CRYO"
+  },
+  {
+    "Name": "weapon-t1-04",
+    "Id": "weapon-t1-04",
+    "DisplayName": "Makeshift Sub-Carbine",
+    "Tier": "T1",
+    "Archetype": "SMG",
+    "Element": "ARC"
+  },
+  {
+    "Name": "weapon-t1-05",
+    "Id": "weapon-t1-05",
+    "DisplayName": "Scrap-Slugger · Pattern 05",
+    "Tier": "T1",
+    "Archetype": "DMR",
+    "Element": "THERMAL"
+  },
+  {
+    "Name": "weapon-t1-06",
+    "Id": "weapon-t1-06",
+    "DisplayName": "Pipe-Rail Pistol · Pattern 06",
+    "Tier": "T1",
+    "Archetype": "HEAVY",
+    "Element": "VOID"
+  },
+  {
+    "Name": "weapon-t1-07",
+    "Id": "weapon-t1-07",
+    "DisplayName": "Rebar Crossbow · Pattern 07",
+    "Tier": "T1",
+    "Archetype": "BLADE",
+    "Element": "KINETIC"
+  },
+  {
+    "Name": "weapon-t1-08",
+    "Id": "weapon-t1-08",
+    "DisplayName": "Makeshift Sub-Carbine · Pattern 08",
+    "Tier": "T1",
+    "Archetype": "CASTER",
+    "Element": "PLASMA"
+  },
+  {
+    "Name": "weapon-t1-09",
+    "Id": "weapon-t1-09",
+    "DisplayName": "Scrap-Slugger · Pattern 09",
+    "Tier": "T1",
+    "Archetype": "ASSAULT RIFLE",
+    "Element": "CRYO"
+  },
+  {
+    "Name": "weapon-t1-10",
+    "Id": "weapon-t1-10",
+    "DisplayName": "Pipe-Rail Pistol · Pattern 10",
+    "Tier": "T1",
+    "Archetype": "SIDEARM",
+    "Element": "ARC"
+  },
+  {
+    "Name": "weapon-t1-11",
+    "Id": "weapon-t1-11",
+    "DisplayName": "Rebar Crossbow · Pattern 11",
+    "Tier": "T1",
+    "Archetype": "SHOTGUN",
+    "Element": "THERMAL"
+  },
+  {
+    "Name": "weapon-t1-12",
+    "Id": "weapon-t1-12",
+    "DisplayName": "Makeshift Sub-Carbine · Pattern 12",
+    "Tier": "T1",
+    "Archetype": "SMG",
+    "Element": "VOID"
+  },
+  {
+    "Name": "weapon-t1-13",
+    "Id": "weapon-t1-13",
+    "DisplayName": "Scrap-Slugger · Pattern 13",
+    "Tier": "T1",
+    "Archetype": "DMR",
+    "Element": "KINETIC"
+  },
+  {
+    "Name": "weapon-t1-14",
+    "Id": "weapon-t1-14",
+    "DisplayName": "Pipe-Rail Pistol · Pattern 14",
+    "Tier": "T1",
+    "Archetype": "HEAVY",
+    "Element": "PLASMA"
+  },
+  {
+    "Name": "weapon-t1-15",
+    "Id": "weapon-t1-15",
+    "DisplayName": "Rebar Crossbow · Pattern 15",
+    "Tier": "T1",
+    "Archetype": "BLADE",
+    "Element": "CRYO"
+  },
+  {
+    "Name": "weapon-t1-16",
+    "Id": "weapon-t1-16",
+    "DisplayName": "Makeshift Sub-Carbine · Pattern 16",
+    "Tier": "T1",
+    "Archetype": "CASTER",
+    "Element": "ARC"
+  },
+  {
+    "Name": "weapon-t1-17",
+    "Id": "weapon-t1-17",
+    "DisplayName": "Scrap-Slugger · Pattern 17",
+    "Tier": "T1",
+    "Archetype": "ASSAULT RIFLE",
+    "Element": "THERMAL"
+  },
+  {
+    "Name": "weapon-t1-18",
+    "Id": "weapon-t1-18",
+    "DisplayName": "Pipe-Rail Pistol · Pattern 18",
+    "Tier": "T1",
+    "Archetype": "SIDEARM",
+    "Element": "VOID"
+  },
+  {
+    "Name": "weapon-t1-19",
+    "Id": "weapon-t1-19",
+    "DisplayName": "Rebar Crossbow · Pattern 19",
+    "Tier": "T1",
+    "Archetype": "SHOTGUN",
+    "Element": "KINETIC"
+  },
+  {
+    "Name": "weapon-t1-20",
+    "Id": "weapon-t1-20",
+    "DisplayName": "Makeshift Sub-Carbine · Pattern 20",
+    "Tier": "T1",
+    "Archetype": "SMG",
+    "Element": "PLASMA"
+  },
+  {
+    "Name": "weapon-t1-21",
+    "Id": "weapon-t1-21",
+    "DisplayName": "Scrap-Slugger · Pattern 21",
+    "Tier": "T1",
+    "Archetype": "DMR",
+    "Element": "CRYO"
+  },
+  {
+    "Name": "weapon-t1-22",
+    "Id": "weapon-t1-22",
+    "DisplayName": "Pipe-Rail Pistol · Pattern 22",
+    "Tier": "T1",
+    "Archetype": "HEAVY",
+    "Element": "ARC"
+  },
+  {
+    "Name": "weapon-t1-23",
+    "Id": "weapon-t1-23",
+    "DisplayName": "Rebar Crossbow · Pattern 23",
+    "Tier": "T1",
+    "Archetype": "BLADE",
+    "Element": "THERMAL"
+  },
+  {
+    "Name": "weapon-t1-24",
+    "Id": "weapon-t1-24",
+    "DisplayName": "Makeshift Sub-Carbine · Pattern 24",
+    "Tier": "T1",
+    "Archetype": "CASTER",
+    "Element": "VOID"
+  },
+  {
+    "Name": "weapon-t1-25",
+    "Id": "weapon-t1-25",
+    "DisplayName": "Scrap-Slugger · Pattern 25",
+    "Tier": "T1",
+    "Archetype": "ASSAULT RIFLE",
+    "Element": "KINETIC"
+  },
+  {
+    "Name": "weapon-t2-01",
+    "Id": "weapon-t2-01",
+    "DisplayName": "Resonant MK-IV Assault Rifle",
+    "Tier": "T2",
+    "Archetype": "SIDEARM",
+    "Element": "PLASMA"
+  },
+  {
+    "Name": "weapon-t2-02",
+    "Id": "weapon-t2-02",
+    "DisplayName": "Enforcer SMG",
+    "Tier": "T2",
+    "Archetype": "SHOTGUN",
+    "Element": "CRYO"
+  },
+  {
+    "Name": "weapon-t2-03",
+    "Id": "weapon-t2-03",
+    "DisplayName": "Kinetic DMR",
+    "Tier": "T2",
+    "Archetype": "SMG",
+    "Element": "ARC"
+  },
+  {
+    "Name": "weapon-t2-04",
+    "Id": "weapon-t2-04",
+    "DisplayName": "Standard-Issue Sidearm",
+    "Tier": "T2",
+    "Archetype": "DMR",
+    "Element": "THERMAL"
+  },
+  {
+    "Name": "weapon-t2-05",
+    "Id": "weapon-t2-05",
+    "DisplayName": "Resonant MK-IV Assault Rifle · Pattern 05",
+    "Tier": "T2",
+    "Archetype": "HEAVY",
+    "Element": "VOID"
+  },
+  {
+    "Name": "weapon-t2-06",
+    "Id": "weapon-t2-06",
+    "DisplayName": "Enforcer SMG · Pattern 06",
+    "Tier": "T2",
+    "Archetype": "BLADE",
+    "Element": "KINETIC"
+  },
+  {
+    "Name": "weapon-t2-07",
+    "Id": "weapon-t2-07",
+    "DisplayName": "Kinetic DMR · Pattern 07",
+    "Tier": "T2",
+    "Archetype": "CASTER",
+    "Element": "PLASMA"
+  },
+  {
+    "Name": "weapon-t2-08",
+    "Id": "weapon-t2-08",
+    "DisplayName": "Standard-Issue Sidearm · Pattern 08",
+    "Tier": "T2",
+    "Archetype": "ASSAULT RIFLE",
+    "Element": "CRYO"
+  },
+  {
+    "Name": "weapon-t2-09",
+    "Id": "weapon-t2-09",
+    "DisplayName": "Resonant MK-IV Assault Rifle · Pattern 09",
+    "Tier": "T2",
+    "Archetype": "SIDEARM",
+    "Element": "ARC"
+  },
+  {
+    "Name": "weapon-t2-10",
+    "Id": "weapon-t2-10",
+    "DisplayName": "Enforcer SMG · Pattern 10",
+    "Tier": "T2",
+    "Archetype": "SHOTGUN",
+    "Element": "THERMAL"
+  },
+  {
+    "Name": "weapon-t2-11",
+    "Id": "weapon-t2-11",
+    "DisplayName": "Kinetic DMR · Pattern 11",
+    "Tier": "T2",
+    "Archetype": "SMG",
+    "Element": "VOID"
+  },
+  {
+    "Name": "weapon-t2-12",
+    "Id": "weapon-t2-12",
+    "DisplayName": "Standard-Issue Sidearm · Pattern 12",
+    "Tier": "T2",
+    "Archetype": "DMR",
+    "Element": "KINETIC"
+  },
+  {
+    "Name": "weapon-t2-13",
+    "Id": "weapon-t2-13",
+    "DisplayName": "Resonant MK-IV Assault Rifle · Pattern 13",
+    "Tier": "T2",
+    "Archetype": "HEAVY",
+    "Element": "PLASMA"
+  },
+  {
+    "Name": "weapon-t2-14",
+    "Id": "weapon-t2-14",
+    "DisplayName": "Enforcer SMG · Pattern 14",
+    "Tier": "T2",
+    "Archetype": "BLADE",
+    "Element": "CRYO"
+  },
+  {
+    "Name": "weapon-t2-15",
+    "Id": "weapon-t2-15",
+    "DisplayName": "Kinetic DMR · Pattern 15",
+    "Tier": "T2",
+    "Archetype": "CASTER",
+    "Element": "ARC"
+  },
+  {
+    "Name": "weapon-t2-16",
+    "Id": "weapon-t2-16",
+    "DisplayName": "Standard-Issue Sidearm · Pattern 16",
+    "Tier": "T2",
+    "Archetype": "ASSAULT RIFLE",
+    "Element": "THERMAL"
+  },
+  {
+    "Name": "weapon-t2-17",
+    "Id": "weapon-t2-17",
+    "DisplayName": "Resonant MK-IV Assault Rifle · Pattern 17",
+    "Tier": "T2",
+    "Archetype": "SIDEARM",
+    "Element": "VOID"
+  },
+  {
+    "Name": "weapon-t2-18",
+    "Id": "weapon-t2-18",
+    "DisplayName": "Enforcer SMG · Pattern 18",
+    "Tier": "T2",
+    "Archetype": "SHOTGUN",
+    "Element": "KINETIC"
+  },
+  {
+    "Name": "weapon-t2-19",
+    "Id": "weapon-t2-19",
+    "DisplayName": "Kinetic DMR · Pattern 19",
+    "Tier": "T2",
+    "Archetype": "SMG",
+    "Element": "PLASMA"
+  },
+  {
+    "Name": "weapon-t2-20",
+    "Id": "weapon-t2-20",
+    "DisplayName": "Standard-Issue Sidearm · Pattern 20",
+    "Tier": "T2",
+    "Archetype": "DMR",
+    "Element": "CRYO"
+  },
+  {
+    "Name": "weapon-t2-21",
+    "Id": "weapon-t2-21",
+    "DisplayName": "Resonant MK-IV Assault Rifle · Pattern 21",
+    "Tier": "T2",
+    "Archetype": "HEAVY",
+    "Element": "ARC"
+  },
+  {
+    "Name": "weapon-t2-22",
+    "Id": "weapon-t2-22",
+    "DisplayName": "Enforcer SMG · Pattern 22",
+    "Tier": "T2",
+    "Archetype": "BLADE",
+    "Element": "THERMAL"
+  },
+  {
+    "Name": "weapon-t2-23",
+    "Id": "weapon-t2-23",
+    "DisplayName": "Kinetic DMR · Pattern 23",
+    "Tier": "T2",
+    "Archetype": "CASTER",
+    "Element": "VOID"
+  },
+  {
+    "Name": "weapon-t2-24",
+    "Id": "weapon-t2-24",
+    "DisplayName": "Standard-Issue Sidearm · Pattern 24",
+    "Tier": "T2",
+    "Archetype": "ASSAULT RIFLE",
+    "Element": "KINETIC"
+  },
+  {
+    "Name": "weapon-t2-25",
+    "Id": "weapon-t2-25",
+    "DisplayName": "Resonant MK-IV Assault Rifle · Pattern 25",
+    "Tier": "T2",
+    "Archetype": "SIDEARM",
+    "Element": "PLASMA"
+  },
+  {
+    "Name": "weapon-t2-26",
+    "Id": "weapon-t2-26",
+    "DisplayName": "Enforcer SMG · Pattern 26",
+    "Tier": "T2",
+    "Archetype": "SHOTGUN",
+    "Element": "CRYO"
+  },
+  {
+    "Name": "weapon-t2-27",
+    "Id": "weapon-t2-27",
+    "DisplayName": "Kinetic DMR · Pattern 27",
+    "Tier": "T2",
+    "Archetype": "SMG",
+    "Element": "ARC"
+  },
+  {
+    "Name": "weapon-t2-28",
+    "Id": "weapon-t2-28",
+    "DisplayName": "Standard-Issue Sidearm · Pattern 28",
+    "Tier": "T2",
+    "Archetype": "DMR",
+    "Element": "THERMAL"
+  },
+  {
+    "Name": "weapon-t2-29",
+    "Id": "weapon-t2-29",
+    "DisplayName": "Resonant MK-IV Assault Rifle · Pattern 29",
+    "Tier": "T2",
+    "Archetype": "HEAVY",
+    "Element": "VOID"
+  },
+  {
+    "Name": "weapon-t2-30",
+    "Id": "weapon-t2-30",
+    "DisplayName": "Enforcer SMG · Pattern 30",
+    "Tier": "T2",
+    "Archetype": "BLADE",
+    "Element": "KINETIC"
+  },
+  {
+    "Name": "weapon-t3-01",
+    "Id": "weapon-t3-01",
+    "DisplayName": "Magma-Core Heavy Repeater",
+    "Tier": "T3",
+    "Archetype": "SHOTGUN",
+    "Element": "CRYO"
+  },
+  {
+    "Name": "weapon-t3-02",
+    "Id": "weapon-t3-02",
+    "DisplayName": "Cryo-Pulse Carbine",
+    "Tier": "T3",
+    "Archetype": "SMG",
+    "Element": "ARC"
+  },
+  {
+    "Name": "weapon-t3-03",
+    "Id": "weapon-t3-03",
+    "DisplayName": "Bio-Luminescent Arc-Caster",
+    "Tier": "T3",
+    "Archetype": "DMR",
+    "Element": "THERMAL"
+  },
+  {
+    "Name": "weapon-t3-04",
+    "Id": "weapon-t3-04",
+    "DisplayName": "Magma-Core Heavy Repeater · Pattern 04",
+    "Tier": "T3",
+    "Archetype": "HEAVY",
+    "Element": "VOID"
+  },
+  {
+    "Name": "weapon-t3-05",
+    "Id": "weapon-t3-05",
+    "DisplayName": "Cryo-Pulse Carbine · Pattern 05",
+    "Tier": "T3",
+    "Archetype": "BLADE",
+    "Element": "KINETIC"
+  },
+  {
+    "Name": "weapon-t3-06",
+    "Id": "weapon-t3-06",
+    "DisplayName": "Bio-Luminescent Arc-Caster · Pattern 06",
+    "Tier": "T3",
+    "Archetype": "CASTER",
+    "Element": "PLASMA"
+  },
+  {
+    "Name": "weapon-t3-07",
+    "Id": "weapon-t3-07",
+    "DisplayName": "Magma-Core Heavy Repeater · Pattern 07",
+    "Tier": "T3",
+    "Archetype": "ASSAULT RIFLE",
+    "Element": "CRYO"
+  },
+  {
+    "Name": "weapon-t3-08",
+    "Id": "weapon-t3-08",
+    "DisplayName": "Cryo-Pulse Carbine · Pattern 08",
+    "Tier": "T3",
+    "Archetype": "SIDEARM",
+    "Element": "ARC"
+  },
+  {
+    "Name": "weapon-t3-09",
+    "Id": "weapon-t3-09",
+    "DisplayName": "Bio-Luminescent Arc-Caster · Pattern 09",
+    "Tier": "T3",
+    "Archetype": "SHOTGUN",
+    "Element": "THERMAL"
+  },
+  {
+    "Name": "weapon-t3-10",
+    "Id": "weapon-t3-10",
+    "DisplayName": "Magma-Core Heavy Repeater · Pattern 10",
+    "Tier": "T3",
+    "Archetype": "SMG",
+    "Element": "VOID"
+  },
+  {
+    "Name": "weapon-t3-11",
+    "Id": "weapon-t3-11",
+    "DisplayName": "Cryo-Pulse Carbine · Pattern 11",
+    "Tier": "T3",
+    "Archetype": "DMR",
+    "Element": "KINETIC"
+  },
+  {
+    "Name": "weapon-t3-12",
+    "Id": "weapon-t3-12",
+    "DisplayName": "Bio-Luminescent Arc-Caster · Pattern 12",
+    "Tier": "T3",
+    "Archetype": "HEAVY",
+    "Element": "PLASMA"
+  },
+  {
+    "Name": "weapon-t3-13",
+    "Id": "weapon-t3-13",
+    "DisplayName": "Magma-Core Heavy Repeater · Pattern 13",
+    "Tier": "T3",
+    "Archetype": "BLADE",
+    "Element": "CRYO"
+  },
+  {
+    "Name": "weapon-t3-14",
+    "Id": "weapon-t3-14",
+    "DisplayName": "Cryo-Pulse Carbine · Pattern 14",
+    "Tier": "T3",
+    "Archetype": "CASTER",
+    "Element": "ARC"
+  },
+  {
+    "Name": "weapon-t3-15",
+    "Id": "weapon-t3-15",
+    "DisplayName": "Bio-Luminescent Arc-Caster · Pattern 15",
+    "Tier": "T3",
+    "Archetype": "ASSAULT RIFLE",
+    "Element": "THERMAL"
+  },
+  {
+    "Name": "weapon-t3-16",
+    "Id": "weapon-t3-16",
+    "DisplayName": "Magma-Core Heavy Repeater · Pattern 16",
+    "Tier": "T3",
+    "Archetype": "SIDEARM",
+    "Element": "VOID"
+  },
+  {
+    "Name": "weapon-t3-17",
+    "Id": "weapon-t3-17",
+    "DisplayName": "Cryo-Pulse Carbine · Pattern 17",
+    "Tier": "T3",
+    "Archetype": "SHOTGUN",
+    "Element": "KINETIC"
+  },
+  {
+    "Name": "weapon-t3-18",
+    "Id": "weapon-t3-18",
+    "DisplayName": "Bio-Luminescent Arc-Caster · Pattern 18",
+    "Tier": "T3",
+    "Archetype": "SMG",
+    "Element": "PLASMA"
+  },
+  {
+    "Name": "weapon-t3-19",
+    "Id": "weapon-t3-19",
+    "DisplayName": "Magma-Core Heavy Repeater · Pattern 19",
+    "Tier": "T3",
+    "Archetype": "DMR",
+    "Element": "CRYO"
+  },
+  {
+    "Name": "weapon-t3-20",
+    "Id": "weapon-t3-20",
+    "DisplayName": "Cryo-Pulse Carbine · Pattern 20",
+    "Tier": "T3",
+    "Archetype": "HEAVY",
+    "Element": "ARC"
+  },
+  {
+    "Name": "weapon-t3-21",
+    "Id": "weapon-t3-21",
+    "DisplayName": "Bio-Luminescent Arc-Caster · Pattern 21",
+    "Tier": "T3",
+    "Archetype": "BLADE",
+    "Element": "THERMAL"
+  },
+  {
+    "Name": "weapon-t3-22",
+    "Id": "weapon-t3-22",
+    "DisplayName": "Magma-Core Heavy Repeater · Pattern 22",
+    "Tier": "T3",
+    "Archetype": "CASTER",
+    "Element": "VOID"
+  },
+  {
+    "Name": "weapon-t3-23",
+    "Id": "weapon-t3-23",
+    "DisplayName": "Cryo-Pulse Carbine · Pattern 23",
+    "Tier": "T3",
+    "Archetype": "ASSAULT RIFLE",
+    "Element": "KINETIC"
+  },
+  {
+    "Name": "weapon-t3-24",
+    "Id": "weapon-t3-24",
+    "DisplayName": "Bio-Luminescent Arc-Caster · Pattern 24",
+    "Tier": "T3",
+    "Archetype": "SIDEARM",
+    "Element": "PLASMA"
+  },
+  {
+    "Name": "weapon-t3-25",
+    "Id": "weapon-t3-25",
+    "DisplayName": "Magma-Core Heavy Repeater · Pattern 25",
+    "Tier": "T3",
+    "Archetype": "SHOTGUN",
+    "Element": "CRYO"
+  },
+  {
+    "Name": "weapon-t3-26",
+    "Id": "weapon-t3-26",
+    "DisplayName": "Cryo-Pulse Carbine · Pattern 26",
+    "Tier": "T3",
+    "Archetype": "SMG",
+    "Element": "ARC"
+  },
+  {
+    "Name": "weapon-t3-27",
+    "Id": "weapon-t3-27",
+    "DisplayName": "Bio-Luminescent Arc-Caster · Pattern 27",
+    "Tier": "T3",
+    "Archetype": "DMR",
+    "Element": "THERMAL"
+  },
+  {
+    "Name": "weapon-t3-28",
+    "Id": "weapon-t3-28",
+    "DisplayName": "Magma-Core Heavy Repeater · Pattern 28",
+    "Tier": "T3",
+    "Archetype": "HEAVY",
+    "Element": "VOID"
+  },
+  {
+    "Name": "weapon-t4-01",
+    "Id": "weapon-t4-01",
+    "DisplayName": "West Frontline MG",
+    "Tier": "T4",
+    "Archetype": "SMG",
+    "Element": "ARC"
+  },
+  {
+    "Name": "weapon-t4-02",
+    "Id": "weapon-t4-02",
+    "DisplayName": "Overclocked Phase-Disruptor",
+    "Tier": "T4",
+    "Archetype": "DMR",
+    "Element": "THERMAL"
+  },
+  {
+    "Name": "weapon-t4-03",
+    "Id": "weapon-t4-03",
+    "DisplayName": "Ash-Born Thermal-Blade Sword",
+    "Tier": "T4",
+    "Archetype": "HEAVY",
+    "Element": "VOID"
+  },
+  {
+    "Name": "weapon-t4-04",
+    "Id": "weapon-t4-04",
+    "DisplayName": "Ash-Born Thermal-Slade Maul",
+    "Tier": "T4",
+    "Archetype": "BLADE",
+    "Element": "KINETIC"
+  },
+  {
+    "Name": "weapon-t4-05",
+    "Id": "weapon-t4-05",
+    "DisplayName": "Heavy Mag-Cannon",
+    "Tier": "T4",
+    "Archetype": "CASTER",
+    "Element": "PLASMA"
+  },
+  {
+    "Name": "weapon-t4-06",
+    "Id": "weapon-t4-06",
+    "DisplayName": "West Frontline MG · Pattern 06",
+    "Tier": "T4",
+    "Archetype": "ASSAULT RIFLE",
+    "Element": "CRYO"
+  },
+  {
+    "Name": "weapon-t4-07",
+    "Id": "weapon-t4-07",
+    "DisplayName": "Overclocked Phase-Disruptor · Pattern 07",
+    "Tier": "T4",
+    "Archetype": "SIDEARM",
+    "Element": "ARC"
+  },
+  {
+    "Name": "weapon-t4-08",
+    "Id": "weapon-t4-08",
+    "DisplayName": "Ash-Born Thermal-Blade Sword · Pattern 08",
+    "Tier": "T4",
+    "Archetype": "SHOTGUN",
+    "Element": "THERMAL"
+  },
+  {
+    "Name": "weapon-t4-09",
+    "Id": "weapon-t4-09",
+    "DisplayName": "Ash-Born Thermal-Slade Maul · Pattern 09",
+    "Tier": "T4",
+    "Archetype": "SMG",
+    "Element": "VOID"
+  },
+  {
+    "Name": "weapon-t4-10",
+    "Id": "weapon-t4-10",
+    "DisplayName": "Heavy Mag-Cannon · Pattern 10",
+    "Tier": "T4",
+    "Archetype": "DMR",
+    "Element": "KINETIC"
+  },
+  {
+    "Name": "weapon-t4-11",
+    "Id": "weapon-t4-11",
+    "DisplayName": "West Frontline MG · Pattern 11",
+    "Tier": "T4",
+    "Archetype": "HEAVY",
+    "Element": "PLASMA"
+  },
+  {
+    "Name": "weapon-t4-12",
+    "Id": "weapon-t4-12",
+    "DisplayName": "Overclocked Phase-Disruptor · Pattern 12",
+    "Tier": "T4",
+    "Archetype": "BLADE",
+    "Element": "CRYO"
+  },
+  {
+    "Name": "weapon-t4-13",
+    "Id": "weapon-t4-13",
+    "DisplayName": "Ash-Born Thermal-Blade Sword · Pattern 13",
+    "Tier": "T4",
+    "Archetype": "CASTER",
+    "Element": "ARC"
+  },
+  {
+    "Name": "weapon-t4-14",
+    "Id": "weapon-t4-14",
+    "DisplayName": "Ash-Born Thermal-Slade Maul · Pattern 14",
+    "Tier": "T4",
+    "Archetype": "ASSAULT RIFLE",
+    "Element": "THERMAL"
+  },
+  {
+    "Name": "weapon-t4-15",
+    "Id": "weapon-t4-15",
+    "DisplayName": "Heavy Mag-Cannon · Pattern 15",
+    "Tier": "T4",
+    "Archetype": "SIDEARM",
+    "Element": "VOID"
+  },
+  {
+    "Name": "weapon-t4-16",
+    "Id": "weapon-t4-16",
+    "DisplayName": "West Frontline MG · Pattern 16",
+    "Tier": "T4",
+    "Archetype": "SHOTGUN",
+    "Element": "KINETIC"
+  },
+  {
+    "Name": "weapon-t4-17",
+    "Id": "weapon-t4-17",
+    "DisplayName": "Overclocked Phase-Disruptor · Pattern 17",
+    "Tier": "T4",
+    "Archetype": "SMG",
+    "Element": "PLASMA"
+  },
+  {
+    "Name": "weapon-t4-18",
+    "Id": "weapon-t4-18",
+    "DisplayName": "Ash-Born Thermal-Blade Sword · Pattern 18",
+    "Tier": "T4",
+    "Archetype": "DMR",
+    "Element": "CRYO"
+  },
+  {
+    "Name": "weapon-t4-19",
+    "Id": "weapon-t4-19",
+    "DisplayName": "Ash-Born Thermal-Slade Maul · Pattern 19",
+    "Tier": "T4",
+    "Archetype": "HEAVY",
+    "Element": "ARC"
+  },
+  {
+    "Name": "weapon-t4-20",
+    "Id": "weapon-t4-20",
+    "DisplayName": "Heavy Mag-Cannon · Pattern 20",
+    "Tier": "T4",
+    "Archetype": "BLADE",
+    "Element": "THERMAL"
+  },
+  {
+    "Name": "weapon-t4-21",
+    "Id": "weapon-t4-21",
+    "DisplayName": "West Frontline MG · Pattern 21",
+    "Tier": "T4",
+    "Archetype": "CASTER",
+    "Element": "VOID"
+  },
+  {
+    "Name": "weapon-t4-22",
+    "Id": "weapon-t4-22",
+    "DisplayName": "Overclocked Phase-Disruptor · Pattern 22",
+    "Tier": "T4",
+    "Archetype": "ASSAULT RIFLE",
+    "Element": "KINETIC"
+  },
+  {
+    "Name": "weapon-t5-01",
+    "Id": "weapon-t5-01",
+    "DisplayName": "The Event Horizon",
+    "Tier": "T5",
+    "Archetype": "DMR",
+    "Element": "THERMAL"
+  },
+  {
+    "Name": "weapon-t5-02",
+    "Id": "weapon-t5-02",
+    "DisplayName": "Singularity-Core Minigun",
+    "Tier": "T5",
+    "Archetype": "HEAVY",
+    "Element": "VOID"
+  },
+  {
+    "Name": "weapon-t5-03",
+    "Id": "weapon-t5-03",
+    "DisplayName": "Void-Shard Blade",
+    "Tier": "T5",
+    "Archetype": "BLADE",
+    "Element": "KINETIC"
+  },
+  {
+    "Name": "weapon-t5-04",
+    "Id": "weapon-t5-04",
+    "DisplayName": "The Event Horizon · Pattern 04",
+    "Tier": "T5",
+    "Archetype": "CASTER",
+    "Element": "PLASMA"
+  },
+  {
+    "Name": "weapon-t5-05",
+    "Id": "weapon-t5-05",
+    "DisplayName": "Singularity-Core Minigun · Pattern 05",
+    "Tier": "T5",
+    "Archetype": "ASSAULT RIFLE",
+    "Element": "CRYO"
+  },
+  {
+    "Name": "weapon-t5-06",
+    "Id": "weapon-t5-06",
+    "DisplayName": "Void-Shard Blade · Pattern 06",
+    "Tier": "T5",
+    "Archetype": "SIDEARM",
+    "Element": "ARC"
+  },
+  {
+    "Name": "weapon-t5-07",
+    "Id": "weapon-t5-07",
+    "DisplayName": "The Event Horizon · Pattern 07",
+    "Tier": "T5",
+    "Archetype": "SHOTGUN",
+    "Element": "THERMAL"
+  },
+  {
+    "Name": "weapon-t5-08",
+    "Id": "weapon-t5-08",
+    "DisplayName": "Singularity-Core Minigun · Pattern 08",
+    "Tier": "T5",
+    "Archetype": "SMG",
+    "Element": "VOID"
+  },
+  {
+    "Name": "weapon-t5-09",
+    "Id": "weapon-t5-09",
+    "DisplayName": "Void-Shard Blade · Pattern 09",
+    "Tier": "T5",
+    "Archetype": "DMR",
+    "Element": "KINETIC"
+  },
+  {
+    "Name": "weapon-t5-10",
+    "Id": "weapon-t5-10",
+    "DisplayName": "The Event Horizon · Pattern 10",
+    "Tier": "T5",
+    "Archetype": "HEAVY",
+    "Element": "PLASMA"
+  },
+  {
+    "Name": "weapon-t5-11",
+    "Id": "weapon-t5-11",
+    "DisplayName": "Singularity-Core Minigun · Pattern 11",
+    "Tier": "T5",
+    "Archetype": "BLADE",
+    "Element": "CRYO"
+  },
+  {
+    "Name": "weapon-t5-12",
+    "Id": "weapon-t5-12",
+    "DisplayName": "Void-Shard Blade · Pattern 12",
+    "Tier": "T5",
+    "Archetype": "CASTER",
+    "Element": "ARC"
+  },
+  {
+    "Name": "weapon-s-01",
+    "Id": "weapon-s-01",
+    "DisplayName": "The Anomaly's Grasp",
+    "Tier": "S",
+    "Archetype": "HEAVY",
+    "Element": "VOID"
+  },
+  {
+    "Name": "weapon-s-02",
+    "Id": "weapon-s-02",
+    "DisplayName": "Eternity's Edge",
+    "Tier": "S",
+    "Archetype": "BLADE",
+    "Element": "KINETIC"
+  },
+  {
+    "Name": "weapon-s-03",
+    "Id": "weapon-s-03",
+    "DisplayName": "Genesis-Zero",
+    "Tier": "S",
+    "Archetype": "CASTER",
+    "Element": "PLASMA"
+  },
+  {
+    "Name": "weapon-s-04",
+    "Id": "weapon-s-04",
+    "DisplayName": "Hourglass Protocol",
+    "Tier": "S",
+    "Archetype": "ASSAULT RIFLE",
+    "Element": "CRYO"
+  },
+  {
+    "Name": "weapon-s-05",
+    "Id": "weapon-s-05",
+    "DisplayName": "Antiphon's Refrain",
+    "Tier": "S",
+    "Archetype": "SIDEARM",
+    "Element": "ARC"
+  }
+]

@@ -40,7 +40,9 @@ import { RACES, CHAMPIONSHIPS, worldPoint, raceObstacles } from "../../src/game/
 import { activityById, pointWorld } from "../../src/game/activities";
 import { HOMES, DECOR } from "../../src/game/housing";
 import { ACTIVITIES, ELITES, VYRAK_REMATCH } from "../../src/game/activities";
-import { WEAPON_MANIFEST } from "../../src/game/equipment";
+import { WEAPON_MANIFEST, ARMOR_MANIFEST } from "../../src/game/equipment";
+import { WEAPON_CATALOG } from "../../src/game/weapon-catalog";
+import { SHOP_FACTION, districtOf } from "../../src/game/living-world";
 import { catalogFrom } from "../../src/game/weapon-catalog";
 import { campaignExotic } from "../../src/game/weapon-loot";
 import { STORY_MISSIONS } from "../../src/game/progression";
@@ -144,7 +146,12 @@ table("Operators", OPERATORS);
 table("AbilityNodes", ABILITY_NODES);
 table("ArmorSets", ARMOR_SETS);
 table("Materials", MATERIALS);
-table("RegionalShops", REGIONAL_SHOPS);
+// shops carry the faction that runs them and the district they stand in (living-world.ts), so the port needs no city geometry
+table("RegionalShops", REGIONAL_SHOPS.map((s) => ({ ...s, faction: SHOP_FACTION[s.id] ?? "", district: districtOf(s.x, s.z)?.id ?? "", districtName: districtOf(s.x, s.z)?.name ?? "" })));
+// the gear the shops stock: the master manifest (equipment.ts) and the named catalogue (weapon-catalog.ts), in order
+table("WeaponManifest", WEAPON_MANIFEST.map((w) => ({ id: w.id, name: w.name, tier: w.tier, archetype: w.archetype, element: w.element })));
+table("ArmorManifest", ARMOR_MANIFEST.map((a) => ({ id: a.id, name: a.name, tier: a.tier, slot: a.slot, classId: a.classId })));
+table("WeaponCatalog", WEAPON_CATALOG.map((w) => ({ id: w.id, name: w.name, tier: w.tier, archetype: w.archetype, element: w.element, rarity: w.rarity, via: w.via, cls: w.cls })));
 table("ClassMissions", CLASS_MISSIONS);
 table("SkyPhases", SKY);
 // Unique encounters, Vyrak's covenant and dragonite, racing, housing and activities (the preserve list).

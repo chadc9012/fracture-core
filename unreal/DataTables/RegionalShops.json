@@ -11,6 +11,9 @@
     "Currency": "scrapMetal",
     "PriceMult": 1,
     "MinLevel": 1,
+    "Faction": "wardens",
+    "District": "nexus:market",
+    "DistrictName": "Market District",
     "VendorTier": 0,
     "RequiresJson": "",
     "MinStanding": ""
@@ -27,6 +30,9 @@
     "Currency": "reinforcedAlloy",
     "PriceMult": 1,
     "MinLevel": 1,
+    "Faction": "wardens",
+    "District": "nexus:shipyard",
+    "DistrictName": "Shipyard",
     "VendorTier": 2,
     "RequiresJson": "",
     "MinStanding": ""
@@ -43,6 +49,9 @@
     "Currency": "scrapMetal",
     "PriceMult": 0.9,
     "MinLevel": 2,
+    "Faction": "guild",
+    "District": "nexus:arcology",
+    "DistrictName": "Arcology",
     "VendorTier": 0,
     "RequiresJson": "",
     "MinStanding": ""
@@ -59,6 +68,9 @@
     "Currency": "scrapMetal",
     "PriceMult": 1,
     "MinLevel": 1,
+    "Faction": "guild",
+    "District": "nexus:spire",
+    "DistrictName": "Spire District",
     "VendorTier": 0,
     "RequiresJson": "",
     "MinStanding": ""
@@ -75,6 +87,9 @@
     "Currency": "microCircuits",
     "PriceMult": 1.1,
     "MinLevel": 3,
+    "Faction": "syndicate",
+    "District": "neon:market",
+    "DistrictName": "Neon Market",
     "VendorTier": 0,
     "RequiresJson": "",
     "MinStanding": ""
@@ -91,6 +106,9 @@
     "Currency": "microCircuits",
     "PriceMult": 1,
     "MinLevel": 3,
+    "Faction": "syndicate",
+    "District": "neon:market",
+    "DistrictName": "Neon Market",
     "VendorTier": 0,
     "RequiresJson": "",
     "MinStanding": ""
@@ -107,6 +125,9 @@
     "Currency": "dataShards",
     "PriceMult": 1.2,
     "MinLevel": 6,
+    "Faction": "",
+    "District": "",
+    "DistrictName": "",
     "VendorTier": 4,
     "RequiresJson": "{\"missionId\":\"system-core\",\"label\":\"Reach Thalassia in the story\"}",
     "MinStanding": ""
@@ -123,6 +144,9 @@
     "Currency": "scrapMetal",
     "PriceMult": 0.85,
     "MinLevel": 1,
+    "Faction": "",
+    "District": "",
+    "DistrictName": "",
     "VendorTier": 0,
     "RequiresJson": "",
     "MinStanding": ""
@@ -139,6 +163,9 @@
     "Currency": "fuel",
     "PriceMult": 1,
     "MinLevel": 2,
+    "Faction": "",
+    "District": "",
+    "DistrictName": "",
     "VendorTier": 0,
     "RequiresJson": "",
     "MinStanding": ""
@@ -155,6 +182,9 @@
     "Currency": "sporeFiber",
     "PriceMult": 1,
     "MinLevel": 2,
+    "Faction": "",
+    "District": "",
+    "DistrictName": "",
     "VendorTier": 0,
     "RequiresJson": "",
     "MinStanding": ""
@@ -171,6 +201,9 @@
     "Currency": "bioCatalyst",
     "PriceMult": 1.1,
     "MinLevel": 5,
+    "Faction": "",
+    "District": "",
+    "DistrictName": "",
     "VendorTier": 3,
     "RequiresJson": "",
     "MinStanding": ""
@@ -187,6 +220,9 @@
     "Currency": "microCircuits",
     "PriceMult": 1.5,
     "MinLevel": 10,
+    "Faction": "",
+    "District": "neon:undercity",
+    "DistrictName": "Undercity",
     "VendorTier": 5,
     "RequiresJson": "{\"missionId\":\"stitched-neon-core\",\"label\":\"Complete Stitched Neon Core\"}",
     "MinStanding": ""
@@ -203,6 +239,9 @@
     "Currency": "anomalyCarbon",
     "PriceMult": 1,
     "MinLevel": 4,
+    "Faction": "",
+    "District": "",
+    "DistrictName": "",
     "VendorTier": 0,
     "RequiresJson": "",
     "MinStanding": ""
@@ -219,6 +258,9 @@
     "Currency": "vehicleParts",
     "PriceMult": 1,
     "MinLevel": 4,
+    "Faction": "",
+    "District": "",
+    "DistrictName": "",
     "VendorTier": 0,
     "RequiresJson": "",
     "MinStanding": ""
@@ -235,6 +277,9 @@
     "Currency": "cryoCrystal",
     "PriceMult": 1,
     "MinLevel": 6,
+    "Faction": "",
+    "District": "",
+    "DistrictName": "",
     "VendorTier": 0,
     "RequiresJson": "",
     "MinStanding": ""
@@ -251,6 +296,9 @@
     "Currency": "thermalShards",
     "PriceMult": 1.3,
     "MinLevel": 8,
+    "Faction": "",
+    "District": "",
+    "DistrictName": "",
     "VendorTier": 0,
     "RequiresJson": "{\"missionId\":\"awakening\",\"label\":\"Complete Neon Core: Awakening\"}",
     "MinStanding": ""
@@ -267,6 +315,9 @@
     "Currency": "reinforcedAlloy",
     "PriceMult": 1.1,
     "MinLevel": 3,
+    "Faction": "",
+    "District": "nexus:shipyard",
+    "DistrictName": "Shipyard",
     "VendorTier": 3,
     "RequiresJson": "",
     "MinStanding": ""
@@ -283,6 +334,9 @@
     "Currency": "vehicleParts",
     "PriceMult": 1.05,
     "MinLevel": 2,
+    "Faction": "",
+    "District": "nexus:spire",
+    "DistrictName": "Spire District",
     "VendorTier": 0,
     "RequiresJson": "",
     "MinStanding": ""
@@ -299,6 +353,9 @@
     "Currency": "anomalyCarbon",
     "PriceMult": 1.2,
     "MinLevel": 5,
+    "Faction": "",
+    "District": "",
+    "DistrictName": "",
     "VendorTier": 0,
     "RequiresJson": "",
     "MinStanding": ""
@@ -315,6 +372,9 @@
     "Currency": "microCircuits",
     "PriceMult": 1.15,
     "MinLevel": 6,
+    "Faction": "aegis",
+    "District": "neon:spire",
+    "DistrictName": "Aegis Spire",
     "VendorTier": 3,
     "RequiresJson": "",
     "MinStanding": "TRUSTED"
@@ -331,6 +391,9 @@
     "Currency": "scrapMetal",
     "PriceMult": 0.9,
     "MinLevel": 3,
+    "Faction": "",
+    "District": "",
+    "DistrictName": "",
     "VendorTier": 0,
     "RequiresJson": "{\"missionId\":\"side-vault-defense\",\"label\":\"Hold the Sub-Terra vault gates once\"}",
     "MinStanding": ""

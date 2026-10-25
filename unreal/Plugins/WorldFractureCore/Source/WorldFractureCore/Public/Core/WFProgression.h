@@ -72,6 +72,18 @@ namespace wf
 		std::string ActiveBuildMode = "HYBRID";
 		std::map<std::string, std::string> ActiveBuildSlots{{"PRIMARY", "siege-mode"}, {"TACTICAL", "rift-dash"}, {"ULTIMATE", "rift-turret"}};
 		std::map<std::string, std::string> AbilityBranches;
+		/** Living World (living-world.ts): city faction standing (gain / loss counters per faction), district outcomes,
+		 *  contracts and intel. Standing gates and prices the city shops. */
+		struct FLiving
+		{
+			std::map<std::string, double> Gain, Loss;
+			struct FDistrict { double SecuredAt = 0, FallenAt = 0; };
+			std::map<std::string, FDistrict> Districts;
+			struct FContract { double Progress = 0, AcceptedAt = 0; };
+			std::map<std::string, FContract> Contracts;
+			std::vector<std::string> Intel;
+		};
+		FLiving Living;
 		/** Per-activity / per-mission run records (missionRuns): day key, runs that day, last completion (ms since epoch). */
 		struct FRunRecord
 		{

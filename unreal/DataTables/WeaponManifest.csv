@@ -1,0 +1,123 @@
+Name,Id,DisplayName,Tier,Archetype,Element
+weapon-t1-01,weapon-t1-01,Scrap-Slugger,T1,ASSAULT RIFLE,KINETIC
+weapon-t1-02,weapon-t1-02,Pipe-Rail Pistol,T1,SIDEARM,PLASMA
+weapon-t1-03,weapon-t1-03,Rebar Crossbow,T1,SHOTGUN,CRYO
+weapon-t1-04,weapon-t1-04,Makeshift Sub-Carbine,T1,SMG,ARC
+weapon-t1-05,weapon-t1-05,Scrap-Slugger · Pattern 05,T1,DMR,THERMAL
+weapon-t1-06,weapon-t1-06,Pipe-Rail Pistol · Pattern 06,T1,HEAVY,VOID
+weapon-t1-07,weapon-t1-07,Rebar Crossbow · Pattern 07,T1,BLADE,KINETIC
+weapon-t1-08,weapon-t1-08,Makeshift Sub-Carbine · Pattern 08,T1,CASTER,PLASMA
+weapon-t1-09,weapon-t1-09,Scrap-Slugger · Pattern 09,T1,ASSAULT RIFLE,CRYO
+weapon-t1-10,weapon-t1-10,Pipe-Rail Pistol · Pattern 10,T1,SIDEARM,ARC
+weapon-t1-11,weapon-t1-11,Rebar Crossbow · Pattern 11,T1,SHOTGUN,THERMAL
+weapon-t1-12,weapon-t1-12,Makeshift Sub-Carbine · Pattern 12,T1,SMG,VOID
+weapon-t1-13,weapon-t1-13,Scrap-Slugger · Pattern 13,T1,DMR,KINETIC
+weapon-t1-14,weapon-t1-14,Pipe-Rail Pistol · Pattern 14,T1,HEAVY,PLASMA
+weapon-t1-15,weapon-t1-15,Rebar Crossbow · Pattern 15,T1,BLADE,CRYO
+weapon-t1-16,weapon-t1-16,Makeshift Sub-Carbine · Pattern 16,T1,CASTER,ARC
+weapon-t1-17,weapon-t1-17,Scrap-Slugger · Pattern 17,T1,ASSAULT RIFLE,THERMAL
+weapon-t1-18,weapon-t1-18,Pipe-Rail Pistol · Pattern 18,T1,SIDEARM,VOID
+weapon-t1-19,weapon-t1-19,Rebar Crossbow · Pattern 19,T1,SHOTGUN,KINETIC
+weapon-t1-20,weapon-t1-20,Makeshift Sub-Carbine · Pattern 20,T1,SMG,PLASMA
+weapon-t1-21,weapon-t1-21,Scrap-Slugger · Pattern 21,T1,DMR,CRYO
+weapon-t1-22,weapon-t1-22,Pipe-Rail Pistol · Pattern 22,T1,HEAVY,ARC
+weapon-t1-23,weapon-t1-23,Rebar Crossbow · Pattern 23,T1,BLADE,THERMAL
+weapon-t1-24,weapon-t1-24,Makeshift Sub-Carbine · Pattern 24,T1,CASTER,VOID
+weapon-t1-25,weapon-t1-25,Scrap-Slugger · Pattern 25,T1,ASSAULT RIFLE,KINETIC
+weapon-t2-01,weapon-t2-01,Resonant MK-IV Assault Rifle,T2,SIDEARM,PLASMA
+weapon-t2-02,weapon-t2-02,Enforcer SMG,T2,SHOTGUN,CRYO
+weapon-t2-03,weapon-t2-03,Kinetic DMR,T2,SMG,ARC
+weapon-t2-04,weapon-t2-04,Standard-Issue Sidearm,T2,DMR,THERMAL
+weapon-t2-05,weapon-t2-05,Resonant MK-IV Assault Rifle · Pattern 05,T2,HEAVY,VOID
+weapon-t2-06,weapon-t2-06,Enforcer SMG · Pattern 06,T2,BLADE,KINETIC
+weapon-t2-07,weapon-t2-07,Kinetic DMR · Pattern 07,T2,CASTER,PLASMA
+weapon-t2-08,weapon-t2-08,Standard-Issue Sidearm · Pattern 08,T2,ASSAULT RIFLE,CRYO
+weapon-t2-09,weapon-t2-09,Resonant MK-IV Assault Rifle · Pattern 09,T2,SIDEARM,ARC
+weapon-t2-10,weapon-t2-10,Enforcer SMG · Pattern 10,T2,SHOTGUN,THERMAL
+weapon-t2-11,weapon-t2-11,Kinetic DMR · Pattern 11,T2,SMG,VOID
+weapon-t2-12,weapon-t2-12,Standard-Issue Sidearm · Pattern 12,T2,DMR,KINETIC
+weapon-t2-13,weapon-t2-13,Resonant MK-IV Assault Rifle · Pattern 13,T2,HEAVY,PLASMA
+weapon-t2-14,weapon-t2-14,Enforcer SMG · Pattern 14,T2,BLADE,CRYO
+weapon-t2-15,weapon-t2-15,Kinetic DMR · Pattern 15,T2,CASTER,ARC
+weapon-t2-16,weapon-t2-16,Standard-Issue Sidearm · Pattern 16,T2,ASSAULT RIFLE,THERMAL
+weapon-t2-17,weapon-t2-17,Resonant MK-IV Assault Rifle · Pattern 17,T2,SIDEARM,VOID
+weapon-t2-18,weapon-t2-18,Enforcer SMG · Pattern 18,T2,SHOTGUN,KINETIC
+weapon-t2-19,weapon-t2-19,Kinetic DMR · Pattern 19,T2,SMG,PLASMA
+weapon-t2-20,weapon-t2-20,Standard-Issue Sidearm · Pattern 20,T2,DMR,CRYO
+weapon-t2-21,weapon-t2-21,Resonant MK-IV Assault Rifle · Pattern 21,T2,HEAVY,ARC
+weapon-t2-22,weapon-t2-22,Enforcer SMG · Pattern 22,T2,BLADE,THERMAL
+weapon-t2-23,weapon-t2-23,Kinetic DMR · Pattern 23,T2,CASTER,VOID
+weapon-t2-24,weapon-t2-24,Standard-Issue Sidearm · Pattern 24,T2,ASSAULT RIFLE,KINETIC
+weapon-t2-25,weapon-t2-25,Resonant MK-IV Assault Rifle · Pattern 25,T2,SIDEARM,PLASMA
+weapon-t2-26,weapon-t2-26,Enforcer SMG · Pattern 26,T2,SHOTGUN,CRYO
+weapon-t2-27,weapon-t2-27,Kinetic DMR · Pattern 27,T2,SMG,ARC
+weapon-t2-28,weapon-t2-28,Standard-Issue Sidearm · Pattern 28,T2,DMR,THERMAL
+weapon-t2-29,weapon-t2-29,Resonant MK-IV Assault Rifle · Pattern 29,T2,HEAVY,VOID
+weapon-t2-30,weapon-t2-30,Enforcer SMG · Pattern 30,T2,BLADE,KINETIC
+weapon-t3-01,weapon-t3-01,Magma-Core Heavy Repeater,T3,SHOTGUN,CRYO
+weapon-t3-02,weapon-t3-02,Cryo-Pulse Carbine,T3,SMG,ARC
+weapon-t3-03,weapon-t3-03,Bio-Luminescent Arc-Caster,T3,DMR,THERMAL
+weapon-t3-04,weapon-t3-04,Magma-Core Heavy Repeater · Pattern 04,T3,HEAVY,VOID
+weapon-t3-05,weapon-t3-05,Cryo-Pulse Carbine · Pattern 05,T3,BLADE,KINETIC
+weapon-t3-06,weapon-t3-06,Bio-Luminescent Arc-Caster · Pattern 06,T3,CASTER,PLASMA
+weapon-t3-07,weapon-t3-07,Magma-Core Heavy Repeater · Pattern 07,T3,ASSAULT RIFLE,CRYO
+weapon-t3-08,weapon-t3-08,Cryo-Pulse Carbine · Pattern 08,T3,SIDEARM,ARC
+weapon-t3-09,weapon-t3-09,Bio-Luminescent Arc-Caster · Pattern 09,T3,SHOTGUN,THERMAL
+weapon-t3-10,weapon-t3-10,Magma-Core Heavy Repeater · Pattern 10,T3,SMG,VOID
+weapon-t3-11,weapon-t3-11,Cryo-Pulse Carbine · Pattern 11,T3,DMR,KINETIC
+weapon-t3-12,weapon-t3-12,Bio-Luminescent Arc-Caster · Pattern 12,T3,HEAVY,PLASMA
+weapon-t3-13,weapon-t3-13,Magma-Core Heavy Repeater · Pattern 13,T3,BLADE,CRYO
+weapon-t3-14,weapon-t3-14,Cryo-Pulse Carbine · Pattern 14,T3,CASTER,ARC
+weapon-t3-15,weapon-t3-15,Bio-Luminescent Arc-Caster · Pattern 15,T3,ASSAULT RIFLE,THERMAL
+weapon-t3-16,weapon-t3-16,Magma-Core Heavy Repeater · Pattern 16,T3,SIDEARM,VOID
+weapon-t3-17,weapon-t3-17,Cryo-Pulse Carbine · Pattern 17,T3,SHOTGUN,KINETIC
+weapon-t3-18,weapon-t3-18,Bio-Luminescent Arc-Caster · Pattern 18,T3,SMG,PLASMA
+weapon-t3-19,weapon-t3-19,Magma-Core Heavy Repeater · Pattern 19,T3,DMR,CRYO
+weapon-t3-20,weapon-t3-20,Cryo-Pulse Carbine · Pattern 20,T3,HEAVY,ARC
+weapon-t3-21,weapon-t3-21,Bio-Luminescent Arc-Caster · Pattern 21,T3,BLADE,THERMAL
+weapon-t3-22,weapon-t3-22,Magma-Core Heavy Repeater · Pattern 22,T3,CASTER,VOID
+weapon-t3-23,weapon-t3-23,Cryo-Pulse Carbine · Pattern 23,T3,ASSAULT RIFLE,KINETIC
+weapon-t3-24,weapon-t3-24,Bio-Luminescent Arc-Caster · Pattern 24,T3,SIDEARM,PLASMA
+weapon-t3-25,weapon-t3-25,Magma-Core Heavy Repeater · Pattern 25,T3,SHOTGUN,CRYO
+weapon-t3-26,weapon-t3-26,Cryo-Pulse Carbine · Pattern 26,T3,SMG,ARC
+weapon-t3-27,weapon-t3-27,Bio-Luminescent Arc-Caster · Pattern 27,T3,DMR,THERMAL
+weapon-t3-28,weapon-t3-28,Magma-Core Heavy Repeater · Pattern 28,T3,HEAVY,VOID
+weapon-t4-01,weapon-t4-01,West Frontline MG,T4,SMG,ARC
+weapon-t4-02,weapon-t4-02,Overclocked Phase-Disruptor,T4,DMR,THERMAL
+weapon-t4-03,weapon-t4-03,Ash-Born Thermal-Blade Sword,T4,HEAVY,VOID
+weapon-t4-04,weapon-t4-04,Ash-Born Thermal-Slade Maul,T4,BLADE,KINETIC
+weapon-t4-05,weapon-t4-05,Heavy Mag-Cannon,T4,CASTER,PLASMA
+weapon-t4-06,weapon-t4-06,West Frontline MG · Pattern 06,T4,ASSAULT RIFLE,CRYO
+weapon-t4-07,weapon-t4-07,Overclocked Phase-Disruptor · Pattern 07,T4,SIDEARM,ARC
+weapon-t4-08,weapon-t4-08,Ash-Born Thermal-Blade Sword · Pattern 08,T4,SHOTGUN,THERMAL
+weapon-t4-09,weapon-t4-09,Ash-Born Thermal-Slade Maul · Pattern 09,T4,SMG,VOID
+weapon-t4-10,weapon-t4-10,Heavy Mag-Cannon · Pattern 10,T4,DMR,KINETIC
+weapon-t4-11,weapon-t4-11,West Frontline MG · Pattern 11,T4,HEAVY,PLASMA
+weapon-t4-12,weapon-t4-12,Overclocked Phase-Disruptor · Pattern 12,T4,BLADE,CRYO
+weapon-t4-13,weapon-t4-13,Ash-Born Thermal-Blade Sword · Pattern 13,T4,CASTER,ARC
+weapon-t4-14,weapon-t4-14,Ash-Born Thermal-Slade Maul · Pattern 14,T4,ASSAULT RIFLE,THERMAL
+weapon-t4-15,weapon-t4-15,Heavy Mag-Cannon · Pattern 15,T4,SIDEARM,VOID
+weapon-t4-16,weapon-t4-16,West Frontline MG · Pattern 16,T4,SHOTGUN,KINETIC
+weapon-t4-17,weapon-t4-17,Overclocked Phase-Disruptor · Pattern 17,T4,SMG,PLASMA
+weapon-t4-18,weapon-t4-18,Ash-Born Thermal-Blade Sword · Pattern 18,T4,DMR,CRYO
+weapon-t4-19,weapon-t4-19,Ash-Born Thermal-Slade Maul · Pattern 19,T4,HEAVY,ARC
+weapon-t4-20,weapon-t4-20,Heavy Mag-Cannon · Pattern 20,T4,BLADE,THERMAL
+weapon-t4-21,weapon-t4-21,West Frontline MG · Pattern 21,T4,CASTER,VOID
+weapon-t4-22,weapon-t4-22,Overclocked Phase-Disruptor · Pattern 22,T4,ASSAULT RIFLE,KINETIC
+weapon-t5-01,weapon-t5-01,The Event Horizon,T5,DMR,THERMAL
+weapon-t5-02,weapon-t5-02,Singularity-Core Minigun,T5,HEAVY,VOID
+weapon-t5-03,weapon-t5-03,Void-Shard Blade,T5,BLADE,KINETIC
+weapon-t5-04,weapon-t5-04,The Event Horizon · Pattern 04,T5,CASTER,PLASMA
+weapon-t5-05,weapon-t5-05,Singularity-Core Minigun · Pattern 05,T5,ASSAULT RIFLE,CRYO
+weapon-t5-06,weapon-t5-06,Void-Shard Blade · Pattern 06,T5,SIDEARM,ARC
+weapon-t5-07,weapon-t5-07,The Event Horizon · Pattern 07,T5,SHOTGUN,THERMAL
+weapon-t5-08,weapon-t5-08,Singularity-Core Minigun · Pattern 08,T5,SMG,VOID
+weapon-t5-09,weapon-t5-09,Void-Shard Blade · Pattern 09,T5,DMR,KINETIC
+weapon-t5-10,weapon-t5-10,The Event Horizon · Pattern 10,T5,HEAVY,PLASMA
+weapon-t5-11,weapon-t5-11,Singularity-Core Minigun · Pattern 11,T5,BLADE,CRYO
+weapon-t5-12,weapon-t5-12,Void-Shard Blade · Pattern 12,T5,CASTER,ARC
+weapon-s-01,weapon-s-01,The Anomaly's Grasp,S,HEAVY,VOID
+weapon-s-02,weapon-s-02,Eternity's Edge,S,BLADE,KINETIC
+weapon-s-03,weapon-s-03,Genesis-Zero,S,CASTER,PLASMA
+weapon-s-04,weapon-s-04,Hourglass Protocol,S,ASSAULT RIFLE,CRYO
+weapon-s-05,weapon-s-05,Antiphon's Refrain,S,SIDEARM,ARC

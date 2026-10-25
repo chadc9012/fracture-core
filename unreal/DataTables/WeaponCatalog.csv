@@ -1,0 +1,46 @@
+Name,Id,DisplayName,Tier,Archetype,Element,Rarity,Via,Cls
+cat-razor-fang,cat-razor-fang,Razor Fang,T1,BLADE,KINETIC,common,shop,melee
+cat-storm-katana,cat-storm-katana,Storm Katana,T3,BLADE,ARC,rare,loot,melee
+cat-void-saber,cat-void-saber,Void Saber,T4,BLADE,VOID,epic,boss,melee
+cat-solara-blade,cat-solara-blade,Solara Blade,T5,BLADE,THERMAL,exotic,quest,melee
+cat-r-9-sidearm,cat-r-9-sidearm,R-9 Sidearm,T1,SIDEARM,KINETIC,common,shop,pistol
+cat-nova-handcannon,cat-nova-handcannon,Nova Handcannon,T3,SIDEARM,THERMAL,rare,loot,pistol
+cat-shadowbite,cat-shadowbite,Shadowbite,T4,SIDEARM,VOID,epic,boss,pistol
+cat-lightbringer,cat-lightbringer,Lightbringer,T5,SIDEARM,PLASMA,exotic,quest,pistol
+cat-viper-smg,cat-viper-smg,Viper SMG,T1,SMG,KINETIC,common,shop,smg
+cat-neon-smg,cat-neon-smg,Neon SMG,T3,SMG,ARC,rare,loot,smg
+cat-dark-current,cat-dark-current,Dark Current,T4,SMG,VOID,epic,boss,smg
+cat-eclipse-smg,cat-eclipse-smg,Eclipse SMG,T5,SMG,THERMAL,exotic,quest,smg
+cat-axiom-ar,cat-axiom-ar,Axiom AR,T1,ASSAULT RIFLE,KINETIC,common,shop,ar
+cat-valkyrie-ar,cat-valkyrie-ar,Valkyrie AR,T3,ASSAULT RIFLE,ARC,rare,loot,ar
+cat-riftwalker,cat-riftwalker,Riftwalker,T4,ASSAULT RIFLE,VOID,epic,boss,ar
+cat-worldbreaker,cat-worldbreaker,Worldbreaker,T5,ASSAULT RIFLE,THERMAL,exotic,quest,ar
+cat-sentinel-auto,cat-sentinel-auto,Sentinel Auto,T1,ASSAULT RIFLE,KINETIC,common,shop,auto
+cat-titan-auto,cat-titan-auto,Titan Auto,T3,ASSAULT RIFLE,KINETIC,rare,loot,auto
+cat-ashfall-auto,cat-ashfall-auto,Ashfall Auto,T4,ASSAULT RIFLE,THERMAL,epic,boss,auto
+cat-dominator,cat-dominator,Dominator,T5,ASSAULT RIFLE,PLASMA,exotic,quest,auto
+cat-bulwark-lmg,cat-bulwark-lmg,Bulwark LMG,T1,HEAVY,KINETIC,common,shop,lmg
+cat-ravager-lmg,cat-ravager-lmg,Ravager LMG,T3,HEAVY,CRYO,rare,loot,lmg
+cat-storm-forged,cat-storm-forged,Storm Forged,T4,HEAVY,ARC,epic,boss,lmg
+cat-thunder-lord,cat-thunder-lord,Thunder Lord,T5,HEAVY,ARC,exotic,quest,lmg
+cat-scout-sniper,cat-scout-sniper,Scout Sniper,T1,DMR,KINETIC,common,shop,sniper
+cat-glacier-sniper,cat-glacier-sniper,Glacier Sniper,T3,DMR,CRYO,rare,loot,sniper
+cat-void-stalker,cat-void-stalker,Void Stalker,T4,DMR,VOID,epic,boss,sniper
+cat-silent-horizon,cat-silent-horizon,Silent Horizon,T5,DMR,PLASMA,exotic,mission,sniper
+cat-phase-fusion,cat-phase-fusion,Phase Fusion,T3,CASTER,ARC,rare,loot,fusion
+cat-starfire-fusion,cat-starfire-fusion,Starfire Fusion,T4,CASTER,THERMAL,epic,boss,fusion
+cat-gravity-lance,cat-gravity-lance,Gravity Lance,T5,CASTER,VOID,exotic,mission,fusion
+cat-riot-shotgun,cat-riot-shotgun,Riot Shotgun,T1,SHOTGUN,KINETIC,common,shop,shotgun
+cat-hellfire-sg,cat-hellfire-sg,Hellfire SG,T3,SHOTGUN,THERMAL,rare,loot,shotgun
+cat-oblivion-sg,cat-oblivion-sg,Oblivion SG,T4,SHOTGUN,VOID,epic,boss,shotgun
+cat-doombringer,cat-doombringer,Doombringer,T5,SHOTGUN,THERMAL,exotic,quest,shotgun
+cat-nomad-crossbow,cat-nomad-crossbow,Nomad Crossbow,T3,DMR,KINETIC,rare,loot,crossbow
+cat-frostbow,cat-frostbow,Frostbow,T4,DMR,CRYO,epic,boss,crossbow
+cat-soulpiercer,cat-soulpiercer,Soulpiercer,T5,DMR,VOID,exotic,quest,crossbow
+cat-breach-gl,cat-breach-gl,Breach GL,T3,HEAVY,KINETIC,rare,loot,launcher
+cat-cataclysm,cat-cataclysm,Cataclysm,T4,HEAVY,THERMAL,epic,boss,launcher
+cat-world-ender,cat-world-ender,World Ender,T5,HEAVY,PLASMA,exotic,quest,launcher
+cat-arc-disruptor,cat-arc-disruptor,Arc Disruptor,T3,CASTER,ARC,rare,loot,special
+cat-solar-eruption,cat-solar-eruption,Solar Eruption,T4,CASTER,THERMAL,epic,boss,special
+cat-void-reaper,cat-void-reaper,Void Reaper,T4,CASTER,VOID,epic,boss,special
+cat-light-of-solara,cat-light-of-solara,Light of Solara,T5,CASTER,PLASMA,exotic,quest,special

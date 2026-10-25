@@ -2,6 +2,9 @@
 
 #include "Core/WFAbilityCore.h"
 
+#include <algorithm>
+#include <cmath>
+
 #include "Dom/JsonObject.h"
 #include "Dom/JsonValue.h"
 #include "Serialization/JsonReader.h"
@@ -141,6 +144,20 @@ namespace WFProgressionJson
 		OptionalString(O, TEXT("identityClass"), P.IdentityClass);
 		O->SetStringField(TEXT("challenge"), ToF(P.Challenge));
 		O->SetArrayField(TEXT("earnedRewards"), StringArray(P.EarnedRewards));
+		{
+			// living-world.ts LivingState
+			TSharedRef<FJsonObject> L = MakeShared<FJsonObject>();
+			L->SetObjectField(TEXT("gain"), NumberObject(P.Living.Gain));
+			L->SetObjectField(TEXT("loss"), NumberObject(P.Living.Loss));
+			TSharedRef<FJsonObject> D = MakeShared<FJsonObject>();
+			for (const auto& [Id, V] : P.Living.Districts) { TSharedRef<FJsonObject> X = MakeShared<FJsonObject>(); X->SetNumberField(TEXT("securedAt"), V.SecuredAt); X->SetNumberField(TEXT("fallenAt"), V.FallenAt); D->SetObjectField(ToF(Id), X); }
+			L->SetObjectField(TEXT("districts"), D);
+			TSharedRef<FJsonObject> K = MakeShared<FJsonObject>();
+			for (const auto& [Id, V] : P.Living.Contracts) { TSharedRef<FJsonObject> X = MakeShared<FJsonObject>(); X->SetNumberField(TEXT("progress"), V.Progress); X->SetNumberField(TEXT("acceptedAt"), V.AcceptedAt); K->SetObjectField(ToF(Id), X); }
+			L->SetObjectField(TEXT("contracts"), K);
+			L->SetArrayField(TEXT("intel"), StringArray(P.Living.Intel));
+			O->SetObjectField(TEXT("living"), L);
+		}
 		O->SetArrayField(TEXT("unlockedAbilities"), StringArray(P.UnlockedAbilities));
 		TSharedRef<FJsonObject> Build = MakeShared<FJsonObject>();
 		Build->SetStringField(TEXT("mode"), ToF(P.ActiveBuildMode));
@@ -266,6 +283,48 @@ namespace WFProgressionJson
 		P.IdentityClass = ReadOptionalString(O, TEXT("identityClass"));
 		if (std::optional<std::string> Challenge = ReadOptionalString(O, TEXT("challenge"))) P.Challenge = *Challenge;
 		P.EarnedRewards = ReadStrings(O, TEXT("earnedRewards"));
+		{
+			// living-world.ts normalizeLiving: non-negative counters for the four factions, district and contract records, intel
+			P.Living = {};
+			const TSharedPtr<FJsonObject>* L = nullptr;
+			if (O->TryGetObjectField(TEXT("living"), L) && L && L->IsValid())
+			{
+				auto Counters = [&L](const TCHAR* Field, std::map<std::string, double>& Out) {
+					const TSharedPtr<FJsonObject>* C = nullptr;
+					if (!(*L)->TryGetObjectField(Field, C) || !C || !C->IsValid()) return;
+					for (const TCHAR* F : {TEXT("wardens"), TEXT("guild"), TEXT("syndicate"), TEXT("aegis")})
+					{
+						double V = 0;
+						if ((*C)->TryGetNumberField(F, V) && std::isfinite(V) && V > 0) Out[ToStd(F)] = V;
+					}
+				};
+				Counters(TEXT("gain"), P.Living.Gain);
+				Counters(TEXT("loss"), P.Living.Loss);
+				const TSharedPtr<FJsonObject>* D = nullptr;
+				if ((*L)->TryGetObjectField(TEXT("districts"), D) && D && D->IsValid())
+					for (const auto& Pair : (*D)->Values)
+					{
+						const TSharedPtr<FJsonObject> X = Pair.Value.IsValid() ? Pair.Value->AsObject() : nullptr;
+						if (!X.IsValid()) continue;
+						double Sec = 0, Fal = 0;
+						X->TryGetNumberField(TEXT("securedAt"), Sec);
+						X->TryGetNumberField(TEXT("fallenAt"), Fal);
+						P.Living.Districts[ToStd(Pair.Key)] = {std::max(0.0, Sec), std::max(0.0, Fal)};
+					}
+				const TSharedPtr<FJsonObject>* K = nullptr;
+				if ((*L)->TryGetObjectField(TEXT("contracts"), K) && K && K->IsValid())
+					for (const auto& Pair : (*K)->Values)
+					{
+						const TSharedPtr<FJsonObject> X = Pair.Value.IsValid() ? Pair.Value->AsObject() : nullptr;
+						if (!X.IsValid()) continue;
+						double Pr = 0, At = 0;
+						X->TryGetNumberField(TEXT("progress"), Pr);
+						X->TryGetNumberField(TEXT("acceptedAt"), At);
+						P.Living.Contracts[ToStd(Pair.Key)] = {std::max(0.0, Pr), std::max(0.0, At)};
+					}
+				P.Living.Intel = ReadStrings(*L, TEXT("intel"));
+			}
+		}
 		P.UnlockedAbilities = ReadStrings(O, TEXT("unlockedAbilities"));
 		// progression.ts load: activeBuild through migrateBuild (legacy ability ids), abilityBranches through migrateBranches
 		{

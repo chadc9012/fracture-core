@@ -26,6 +26,7 @@
 #include "WFProgressionSubsystem.h"
 #include "WFQuestSubsystem.h"
 #include "WFRaceSubsystem.h"
+#include "WFShopSubsystem.h"
 #include "WFVehicle.h"
 
 AWFGameMode::AWFGameMode()
@@ -498,4 +499,52 @@ void AWFGameMode::DrawRace() const
 	if (Run->Phase == "running")
 		for (const wf::race::FRivalPos& R : wf::race::RivalPositions(*Def, Run->Difficulty, Run->Time))
 			DrawDebugSphere(World, At(R.X, R.Z) + FVector(0, 0, 120), 90.f, 10, FColor(255, 90, 160), false, -1.f, 0, 4.f);
+}
+
+// --- merchants ----------------------------------------------------------------------------------------------------------
+
+void AWFGameMode::ListShops()
+{
+	const UWFShopSubsystem* Shops = GetGameInstance()->GetSubsystem<UWFShopSubsystem>();
+	if (!Shops) return;
+	const TArray<FString> Lines = Shops->DescribeShops();
+	for (const FString& L : Lines) UE_LOG(LogTemp, Display, TEXT("  %s"), *L);
+	Toast(FString::Printf(TEXT("%d shops listed in the output log - Shop <id> opens one"), Lines.Num()), FLinearColor(0.45f, 0.9f, 1.f));
+}
+
+void AWFGameMode::Shop(const FString& ShopId)
+{
+	UWFShopSubsystem* Shops = GetGameInstance()->GetSubsystem<UWFShopSubsystem>();
+	if (!Shops) return;
+	const FString Error = Shops->OpenShop(ShopId);
+	if (!Error.IsEmpty()) Toast(Error, FLinearColor(1.f, 0.55f, 0.3f));
+}
+
+void AWFGameMode::CloseShop()
+{
+	if (UWFShopSubsystem* Shops = GetGameInstance()->GetSubsystem<UWFShopSubsystem>()) Shops->CloseShop();
+}
+
+void AWFGameMode::Buy(int32 OfferIndex)
+{
+	if (UWFShopSubsystem* Shops = GetGameInstance()->GetSubsystem<UWFShopSubsystem>()) Toast(Shops->Buy(OfferIndex), FLinearColor(1.f, 0.82f, 0.35f));
+}
+
+void AWFGameMode::Service(const FString& ItemId, const FString& Element)
+{
+	if (UWFShopSubsystem* Shops = GetGameInstance()->GetSubsystem<UWFShopSubsystem>()) Toast(Shops->Service(ItemId, Element), FLinearColor(1.f, 0.82f, 0.35f));
+}
+
+void AWFGameMode::Inventory()
+{
+	const UWFProgressionSubsystem* Progression = GetGameInstance()->GetSubsystem<UWFProgressionSubsystem>();
+	if (!Progression) return;
+	for (const wf::FGearItem& G : Progression->Get().Inventory)
+		UE_LOG(LogTemp, Display, TEXT("  %-34s %-28s %-10s lv %2d  power %3d  %s"), *WFData::ToF(G.Id), *WFData::ToF(G.Name), *WFData::ToF(G.Slot), FMath::RoundToInt32(G.Level), FMath::RoundToInt32(G.Power), *WFData::ToF(G.Element));
+	Toast(FString::Printf(TEXT("%d items listed in the output log"), static_cast<int32>(Progression->Get().Inventory.size())), FLinearColor(0.45f, 0.9f, 1.f));
+}
+
+void AWFGameMode::ShopHour(float Hour)
+{
+	if (UWFShopSubsystem* Shops = GetGameInstance()->GetSubsystem<UWFShopSubsystem>()) Shops->SetWorldHour(Hour);
 }

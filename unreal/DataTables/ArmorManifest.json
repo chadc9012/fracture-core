@@ -1,0 +1,738 @@
+[
+  {
+    "Name": "armor-t12-01",
+    "Id": "armor-t12-01",
+    "DisplayName": "Scavenger Plate helm · 01",
+    "Tier": "T1-2",
+    "Slot": "HELM",
+    "ClassId": "UNIVERSAL"
+  },
+  {
+    "Name": "armor-t12-02",
+    "Id": "armor-t12-02",
+    "DisplayName": "Outpost Harness chest · 02",
+    "Tier": "T1-2",
+    "Slot": "CHEST",
+    "ClassId": "TITAN"
+  },
+  {
+    "Name": "armor-t12-03",
+    "Id": "armor-t12-03",
+    "DisplayName": "Dustwalker Rig arms · 03",
+    "Tier": "T1-2",
+    "Slot": "ARMS",
+    "ClassId": "HUNTER"
+  },
+  {
+    "Name": "armor-t12-04",
+    "Id": "armor-t12-04",
+    "DisplayName": "Scavenger Plate legs · 04",
+    "Tier": "T1-2",
+    "Slot": "LEGS",
+    "ClassId": "WARLOCK"
+  },
+  {
+    "Name": "armor-t12-05",
+    "Id": "armor-t12-05",
+    "DisplayName": "Outpost Harness back · 05",
+    "Tier": "T1-2",
+    "Slot": "BACK",
+    "ClassId": "UNIVERSAL"
+  },
+  {
+    "Name": "armor-t12-06",
+    "Id": "armor-t12-06",
+    "DisplayName": "Dustwalker Rig core · 06",
+    "Tier": "T1-2",
+    "Slot": "CORE",
+    "ClassId": "TITAN"
+  },
+  {
+    "Name": "armor-t12-07",
+    "Id": "armor-t12-07",
+    "DisplayName": "Scavenger Plate helm · 07",
+    "Tier": "T1-2",
+    "Slot": "HELM",
+    "ClassId": "HUNTER"
+  },
+  {
+    "Name": "armor-t12-08",
+    "Id": "armor-t12-08",
+    "DisplayName": "Outpost Harness chest · 08",
+    "Tier": "T1-2",
+    "Slot": "CHEST",
+    "ClassId": "WARLOCK"
+  },
+  {
+    "Name": "armor-t12-09",
+    "Id": "armor-t12-09",
+    "DisplayName": "Dustwalker Rig arms · 09",
+    "Tier": "T1-2",
+    "Slot": "ARMS",
+    "ClassId": "UNIVERSAL"
+  },
+  {
+    "Name": "armor-t12-10",
+    "Id": "armor-t12-10",
+    "DisplayName": "Scavenger Plate legs · 10",
+    "Tier": "T1-2",
+    "Slot": "LEGS",
+    "ClassId": "TITAN"
+  },
+  {
+    "Name": "armor-t12-11",
+    "Id": "armor-t12-11",
+    "DisplayName": "Outpost Harness back · 11",
+    "Tier": "T1-2",
+    "Slot": "BACK",
+    "ClassId": "HUNTER"
+  },
+  {
+    "Name": "armor-t12-12",
+    "Id": "armor-t12-12",
+    "DisplayName": "Dustwalker Rig core · 12",
+    "Tier": "T1-2",
+    "Slot": "CORE",
+    "ClassId": "WARLOCK"
+  },
+  {
+    "Name": "armor-t12-13",
+    "Id": "armor-t12-13",
+    "DisplayName": "Scavenger Plate helm · 13",
+    "Tier": "T1-2",
+    "Slot": "HELM",
+    "ClassId": "UNIVERSAL"
+  },
+  {
+    "Name": "armor-t12-14",
+    "Id": "armor-t12-14",
+    "DisplayName": "Outpost Harness chest · 14",
+    "Tier": "T1-2",
+    "Slot": "CHEST",
+    "ClassId": "TITAN"
+  },
+  {
+    "Name": "armor-t12-15",
+    "Id": "armor-t12-15",
+    "DisplayName": "Dustwalker Rig arms · 15",
+    "Tier": "T1-2",
+    "Slot": "ARMS",
+    "ClassId": "HUNTER"
+  },
+  {
+    "Name": "armor-t12-16",
+    "Id": "armor-t12-16",
+    "DisplayName": "Scavenger Plate legs · 16",
+    "Tier": "T1-2",
+    "Slot": "LEGS",
+    "ClassId": "WARLOCK"
+  },
+  {
+    "Name": "armor-t12-17",
+    "Id": "armor-t12-17",
+    "DisplayName": "Outpost Harness back · 17",
+    "Tier": "T1-2",
+    "Slot": "BACK",
+    "ClassId": "UNIVERSAL"
+  },
+  {
+    "Name": "armor-t12-18",
+    "Id": "armor-t12-18",
+    "DisplayName": "Dustwalker Rig core · 18",
+    "Tier": "T1-2",
+    "Slot": "CORE",
+    "ClassId": "TITAN"
+  },
+  {
+    "Name": "armor-t12-19",
+    "Id": "armor-t12-19",
+    "DisplayName": "Scavenger Plate helm · 19",
+    "Tier": "T1-2",
+    "Slot": "HELM",
+    "ClassId": "HUNTER"
+  },
+  {
+    "Name": "armor-t12-20",
+    "Id": "armor-t12-20",
+    "DisplayName": "Outpost Harness chest · 20",
+    "Tier": "T1-2",
+    "Slot": "CHEST",
+    "ClassId": "WARLOCK"
+  },
+  {
+    "Name": "armor-t12-21",
+    "Id": "armor-t12-21",
+    "DisplayName": "Dustwalker Rig arms · 21",
+    "Tier": "T1-2",
+    "Slot": "ARMS",
+    "ClassId": "UNIVERSAL"
+  },
+  {
+    "Name": "armor-t12-22",
+    "Id": "armor-t12-22",
+    "DisplayName": "Scavenger Plate legs · 22",
+    "Tier": "T1-2",
+    "Slot": "LEGS",
+    "ClassId": "TITAN"
+  },
+  {
+    "Name": "armor-t12-23",
+    "Id": "armor-t12-23",
+    "DisplayName": "Outpost Harness back · 23",
+    "Tier": "T1-2",
+    "Slot": "BACK",
+    "ClassId": "HUNTER"
+  },
+  {
+    "Name": "armor-t12-24",
+    "Id": "armor-t12-24",
+    "DisplayName": "Dustwalker Rig core · 24",
+    "Tier": "T1-2",
+    "Slot": "CORE",
+    "ClassId": "WARLOCK"
+  },
+  {
+    "Name": "armor-t34-01",
+    "Id": "armor-t34-01",
+    "DisplayName": "Faction Tactical helm · 01",
+    "Tier": "T3-4",
+    "Slot": "HELM",
+    "ClassId": "TITAN"
+  },
+  {
+    "Name": "armor-t34-02",
+    "Id": "armor-t34-02",
+    "DisplayName": "Thermal Ward chest · 02",
+    "Tier": "T3-4",
+    "Slot": "CHEST",
+    "ClassId": "HUNTER"
+  },
+  {
+    "Name": "armor-t34-03",
+    "Id": "armor-t34-03",
+    "DisplayName": "Cryogenic Weave arms · 03",
+    "Tier": "T3-4",
+    "Slot": "ARMS",
+    "ClassId": "WARLOCK"
+  },
+  {
+    "Name": "armor-t34-04",
+    "Id": "armor-t34-04",
+    "DisplayName": "Arc Conduit legs · 04",
+    "Tier": "T3-4",
+    "Slot": "LEGS",
+    "ClassId": "UNIVERSAL"
+  },
+  {
+    "Name": "armor-t34-05",
+    "Id": "armor-t34-05",
+    "DisplayName": "Faction Tactical back · 05",
+    "Tier": "T3-4",
+    "Slot": "BACK",
+    "ClassId": "TITAN"
+  },
+  {
+    "Name": "armor-t34-06",
+    "Id": "armor-t34-06",
+    "DisplayName": "Thermal Ward core · 06",
+    "Tier": "T3-4",
+    "Slot": "CORE",
+    "ClassId": "HUNTER"
+  },
+  {
+    "Name": "armor-t34-07",
+    "Id": "armor-t34-07",
+    "DisplayName": "Cryogenic Weave helm · 07",
+    "Tier": "T3-4",
+    "Slot": "HELM",
+    "ClassId": "WARLOCK"
+  },
+  {
+    "Name": "armor-t34-08",
+    "Id": "armor-t34-08",
+    "DisplayName": "Arc Conduit chest · 08",
+    "Tier": "T3-4",
+    "Slot": "CHEST",
+    "ClassId": "UNIVERSAL"
+  },
+  {
+    "Name": "armor-t34-09",
+    "Id": "armor-t34-09",
+    "DisplayName": "Faction Tactical arms · 09",
+    "Tier": "T3-4",
+    "Slot": "ARMS",
+    "ClassId": "TITAN"
+  },
+  {
+    "Name": "armor-t34-10",
+    "Id": "armor-t34-10",
+    "DisplayName": "Thermal Ward legs · 10",
+    "Tier": "T3-4",
+    "Slot": "LEGS",
+    "ClassId": "HUNTER"
+  },
+  {
+    "Name": "armor-t34-11",
+    "Id": "armor-t34-11",
+    "DisplayName": "Cryogenic Weave back · 11",
+    "Tier": "T3-4",
+    "Slot": "BACK",
+    "ClassId": "WARLOCK"
+  },
+  {
+    "Name": "armor-t34-12",
+    "Id": "armor-t34-12",
+    "DisplayName": "Arc Conduit core · 12",
+    "Tier": "T3-4",
+    "Slot": "CORE",
+    "ClassId": "UNIVERSAL"
+  },
+  {
+    "Name": "armor-t34-13",
+    "Id": "armor-t34-13",
+    "DisplayName": "Faction Tactical helm · 13",
+    "Tier": "T3-4",
+    "Slot": "HELM",
+    "ClassId": "TITAN"
+  },
+  {
+    "Name": "armor-t34-14",
+    "Id": "armor-t34-14",
+    "DisplayName": "Thermal Ward chest · 14",
+    "Tier": "T3-4",
+    "Slot": "CHEST",
+    "ClassId": "HUNTER"
+  },
+  {
+    "Name": "armor-t34-15",
+    "Id": "armor-t34-15",
+    "DisplayName": "Cryogenic Weave arms · 15",
+    "Tier": "T3-4",
+    "Slot": "ARMS",
+    "ClassId": "WARLOCK"
+  },
+  {
+    "Name": "armor-t34-16",
+    "Id": "armor-t34-16",
+    "DisplayName": "Arc Conduit legs · 16",
+    "Tier": "T3-4",
+    "Slot": "LEGS",
+    "ClassId": "UNIVERSAL"
+  },
+  {
+    "Name": "armor-t34-17",
+    "Id": "armor-t34-17",
+    "DisplayName": "Faction Tactical back · 17",
+    "Tier": "T3-4",
+    "Slot": "BACK",
+    "ClassId": "TITAN"
+  },
+  {
+    "Name": "armor-t34-18",
+    "Id": "armor-t34-18",
+    "DisplayName": "Thermal Ward core · 18",
+    "Tier": "T3-4",
+    "Slot": "CORE",
+    "ClassId": "HUNTER"
+  },
+  {
+    "Name": "armor-t34-19",
+    "Id": "armor-t34-19",
+    "DisplayName": "Cryogenic Weave helm · 19",
+    "Tier": "T3-4",
+    "Slot": "HELM",
+    "ClassId": "WARLOCK"
+  },
+  {
+    "Name": "armor-t34-20",
+    "Id": "armor-t34-20",
+    "DisplayName": "Arc Conduit chest · 20",
+    "Tier": "T3-4",
+    "Slot": "CHEST",
+    "ClassId": "UNIVERSAL"
+  },
+  {
+    "Name": "armor-t34-21",
+    "Id": "armor-t34-21",
+    "DisplayName": "Faction Tactical arms · 21",
+    "Tier": "T3-4",
+    "Slot": "ARMS",
+    "ClassId": "TITAN"
+  },
+  {
+    "Name": "armor-t34-22",
+    "Id": "armor-t34-22",
+    "DisplayName": "Thermal Ward legs · 22",
+    "Tier": "T3-4",
+    "Slot": "LEGS",
+    "ClassId": "HUNTER"
+  },
+  {
+    "Name": "armor-t34-23",
+    "Id": "armor-t34-23",
+    "DisplayName": "Cryogenic Weave back · 23",
+    "Tier": "T3-4",
+    "Slot": "BACK",
+    "ClassId": "WARLOCK"
+  },
+  {
+    "Name": "armor-t34-24",
+    "Id": "armor-t34-24",
+    "DisplayName": "Arc Conduit core · 24",
+    "Tier": "T3-4",
+    "Slot": "CORE",
+    "ClassId": "UNIVERSAL"
+  },
+  {
+    "Name": "armor-t34-25",
+    "Id": "armor-t34-25",
+    "DisplayName": "Faction Tactical helm · 25",
+    "Tier": "T3-4",
+    "Slot": "HELM",
+    "ClassId": "TITAN"
+  },
+  {
+    "Name": "armor-t34-26",
+    "Id": "armor-t34-26",
+    "DisplayName": "Thermal Ward chest · 26",
+    "Tier": "T3-4",
+    "Slot": "CHEST",
+    "ClassId": "HUNTER"
+  },
+  {
+    "Name": "armor-t34-27",
+    "Id": "armor-t34-27",
+    "DisplayName": "Cryogenic Weave arms · 27",
+    "Tier": "T3-4",
+    "Slot": "ARMS",
+    "ClassId": "WARLOCK"
+  },
+  {
+    "Name": "armor-t34-28",
+    "Id": "armor-t34-28",
+    "DisplayName": "Arc Conduit legs · 28",
+    "Tier": "T3-4",
+    "Slot": "LEGS",
+    "ClassId": "UNIVERSAL"
+  },
+  {
+    "Name": "armor-t34-29",
+    "Id": "armor-t34-29",
+    "DisplayName": "Faction Tactical back · 29",
+    "Tier": "T3-4",
+    "Slot": "BACK",
+    "ClassId": "TITAN"
+  },
+  {
+    "Name": "armor-t34-30",
+    "Id": "armor-t34-30",
+    "DisplayName": "Thermal Ward core · 30",
+    "Tier": "T3-4",
+    "Slot": "CORE",
+    "ClassId": "HUNTER"
+  },
+  {
+    "Name": "armor-t34-31",
+    "Id": "armor-t34-31",
+    "DisplayName": "Cryogenic Weave helm · 31",
+    "Tier": "T3-4",
+    "Slot": "HELM",
+    "ClassId": "WARLOCK"
+  },
+  {
+    "Name": "armor-t34-32",
+    "Id": "armor-t34-32",
+    "DisplayName": "Arc Conduit chest · 32",
+    "Tier": "T3-4",
+    "Slot": "CHEST",
+    "ClassId": "UNIVERSAL"
+  },
+  {
+    "Name": "armor-t34-33",
+    "Id": "armor-t34-33",
+    "DisplayName": "Faction Tactical arms · 33",
+    "Tier": "T3-4",
+    "Slot": "ARMS",
+    "ClassId": "TITAN"
+  },
+  {
+    "Name": "armor-t34-34",
+    "Id": "armor-t34-34",
+    "DisplayName": "Thermal Ward legs · 34",
+    "Tier": "T3-4",
+    "Slot": "LEGS",
+    "ClassId": "HUNTER"
+  },
+  {
+    "Name": "armor-t34-35",
+    "Id": "armor-t34-35",
+    "DisplayName": "Cryogenic Weave back · 35",
+    "Tier": "T3-4",
+    "Slot": "BACK",
+    "ClassId": "WARLOCK"
+  },
+  {
+    "Name": "armor-t34-36",
+    "Id": "armor-t34-36",
+    "DisplayName": "Arc Conduit core · 36",
+    "Tier": "T3-4",
+    "Slot": "CORE",
+    "ClassId": "UNIVERSAL"
+  },
+  {
+    "Name": "armor-t5-01",
+    "Id": "armor-t5-01",
+    "DisplayName": "Singularity-Woven helm · 01",
+    "Tier": "T5",
+    "Slot": "HELM",
+    "ClassId": "HUNTER"
+  },
+  {
+    "Name": "armor-t5-02",
+    "Id": "armor-t5-02",
+    "DisplayName": "Reality-Stable chest · 02",
+    "Tier": "T5",
+    "Slot": "CHEST",
+    "ClassId": "WARLOCK"
+  },
+  {
+    "Name": "armor-t5-03",
+    "Id": "armor-t5-03",
+    "DisplayName": "Gravitic Anchor arms · 03",
+    "Tier": "T5",
+    "Slot": "ARMS",
+    "ClassId": "UNIVERSAL"
+  },
+  {
+    "Name": "armor-t5-04",
+    "Id": "armor-t5-04",
+    "DisplayName": "Singularity-Woven legs · 04",
+    "Tier": "T5",
+    "Slot": "LEGS",
+    "ClassId": "TITAN"
+  },
+  {
+    "Name": "armor-t5-05",
+    "Id": "armor-t5-05",
+    "DisplayName": "Reality-Stable back · 05",
+    "Tier": "T5",
+    "Slot": "BACK",
+    "ClassId": "HUNTER"
+  },
+  {
+    "Name": "armor-t5-06",
+    "Id": "armor-t5-06",
+    "DisplayName": "Gravitic Anchor core · 06",
+    "Tier": "T5",
+    "Slot": "CORE",
+    "ClassId": "WARLOCK"
+  },
+  {
+    "Name": "armor-t5-07",
+    "Id": "armor-t5-07",
+    "DisplayName": "Singularity-Woven helm · 07",
+    "Tier": "T5",
+    "Slot": "HELM",
+    "ClassId": "UNIVERSAL"
+  },
+  {
+    "Name": "armor-t5-08",
+    "Id": "armor-t5-08",
+    "DisplayName": "Reality-Stable chest · 08",
+    "Tier": "T5",
+    "Slot": "CHEST",
+    "ClassId": "TITAN"
+  },
+  {
+    "Name": "armor-t5-09",
+    "Id": "armor-t5-09",
+    "DisplayName": "Gravitic Anchor arms · 09",
+    "Tier": "T5",
+    "Slot": "ARMS",
+    "ClassId": "HUNTER"
+  },
+  {
+    "Name": "armor-t5-10",
+    "Id": "armor-t5-10",
+    "DisplayName": "Singularity-Woven legs · 10",
+    "Tier": "T5",
+    "Slot": "LEGS",
+    "ClassId": "WARLOCK"
+  },
+  {
+    "Name": "armor-t5-11",
+    "Id": "armor-t5-11",
+    "DisplayName": "Reality-Stable back · 11",
+    "Tier": "T5",
+    "Slot": "BACK",
+    "ClassId": "UNIVERSAL"
+  },
+  {
+    "Name": "armor-t5-12",
+    "Id": "armor-t5-12",
+    "DisplayName": "Gravitic Anchor core · 12",
+    "Tier": "T5",
+    "Slot": "CORE",
+    "ClassId": "TITAN"
+  },
+  {
+    "Name": "armor-t5-13",
+    "Id": "armor-t5-13",
+    "DisplayName": "Singularity-Woven helm · 13",
+    "Tier": "T5",
+    "Slot": "HELM",
+    "ClassId": "HUNTER"
+  },
+  {
+    "Name": "armor-t5-14",
+    "Id": "armor-t5-14",
+    "DisplayName": "Reality-Stable chest · 14",
+    "Tier": "T5",
+    "Slot": "CHEST",
+    "ClassId": "WARLOCK"
+  },
+  {
+    "Name": "armor-t5-15",
+    "Id": "armor-t5-15",
+    "DisplayName": "Gravitic Anchor arms · 15",
+    "Tier": "T5",
+    "Slot": "ARMS",
+    "ClassId": "UNIVERSAL"
+  },
+  {
+    "Name": "armor-t5-16",
+    "Id": "armor-t5-16",
+    "DisplayName": "Singularity-Woven legs · 16",
+    "Tier": "T5",
+    "Slot": "LEGS",
+    "ClassId": "TITAN"
+  },
+  {
+    "Name": "armor-t5-17",
+    "Id": "armor-t5-17",
+    "DisplayName": "Reality-Stable back · 17",
+    "Tier": "T5",
+    "Slot": "BACK",
+    "ClassId": "HUNTER"
+  },
+  {
+    "Name": "armor-t5-18",
+    "Id": "armor-t5-18",
+    "DisplayName": "Gravitic Anchor core · 18",
+    "Tier": "T5",
+    "Slot": "CORE",
+    "ClassId": "WARLOCK"
+  },
+  {
+    "Name": "armor-t5-19",
+    "Id": "armor-t5-19",
+    "DisplayName": "Singularity-Woven helm · 19",
+    "Tier": "T5",
+    "Slot": "HELM",
+    "ClassId": "UNIVERSAL"
+  },
+  {
+    "Name": "armor-t5-20",
+    "Id": "armor-t5-20",
+    "DisplayName": "Reality-Stable chest · 20",
+    "Tier": "T5",
+    "Slot": "CHEST",
+    "ClassId": "TITAN"
+  },
+  {
+    "Name": "armor-s-01",
+    "Id": "armor-s-01",
+    "DisplayName": "Fracture Veteran helm · 01",
+    "Tier": "S",
+    "Slot": "HELM",
+    "ClassId": "WARLOCK"
+  },
+  {
+    "Name": "armor-s-02",
+    "Id": "armor-s-02",
+    "DisplayName": "System Breaker chest · 02",
+    "Tier": "S",
+    "Slot": "CHEST",
+    "ClassId": "UNIVERSAL"
+  },
+  {
+    "Name": "armor-s-03",
+    "Id": "armor-s-03",
+    "DisplayName": "Reality Anchor arms · 03",
+    "Tier": "S",
+    "Slot": "ARMS",
+    "ClassId": "TITAN"
+  },
+  {
+    "Name": "armor-s-04",
+    "Id": "armor-s-04",
+    "DisplayName": "Echo Master legs · 04",
+    "Tier": "S",
+    "Slot": "LEGS",
+    "ClassId": "HUNTER"
+  },
+  {
+    "Name": "armor-s-05",
+    "Id": "armor-s-05",
+    "DisplayName": "Fracture Veteran back · 05",
+    "Tier": "S",
+    "Slot": "BACK",
+    "ClassId": "WARLOCK"
+  },
+  {
+    "Name": "armor-s-06",
+    "Id": "armor-s-06",
+    "DisplayName": "System Breaker core · 06",
+    "Tier": "S",
+    "Slot": "CORE",
+    "ClassId": "UNIVERSAL"
+  },
+  {
+    "Name": "armor-s-07",
+    "Id": "armor-s-07",
+    "DisplayName": "Reality Anchor helm · 07",
+    "Tier": "S",
+    "Slot": "HELM",
+    "ClassId": "TITAN"
+  },
+  {
+    "Name": "armor-s-08",
+    "Id": "armor-s-08",
+    "DisplayName": "Echo Master chest · 08",
+    "Tier": "S",
+    "Slot": "CHEST",
+    "ClassId": "HUNTER"
+  },
+  {
+    "Name": "armor-s-09",
+    "Id": "armor-s-09",
+    "DisplayName": "Fracture Veteran arms · 09",
+    "Tier": "S",
+    "Slot": "ARMS",
+    "ClassId": "WARLOCK"
+  },
+  {
+    "Name": "armor-s-10",
+    "Id": "armor-s-10",
+    "DisplayName": "System Breaker legs · 10",
+    "Tier": "S",
+    "Slot": "LEGS",
+    "ClassId": "UNIVERSAL"
+  },
+  {
+    "Name": "armor-s-11",
+    "Id": "armor-s-11",
+    "DisplayName": "Reality Anchor back · 11",
+    "Tier": "S",
+    "Slot": "BACK",
+    "ClassId": "TITAN"
+  },
+  {
+    "Name": "armor-s-12",
+    "Id": "armor-s-12",
+    "DisplayName": "Echo Master core · 12",
+    "Tier": "S",
+    "Slot": "CORE",
+    "ClassId": "HUNTER"
+  }
+]

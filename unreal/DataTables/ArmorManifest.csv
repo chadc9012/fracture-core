@@ -1,0 +1,93 @@
+Name,Id,DisplayName,Tier,Slot,ClassId
+armor-t12-01,armor-t12-01,Scavenger Plate helm · 01,T1-2,HELM,UNIVERSAL
+armor-t12-02,armor-t12-02,Outpost Harness chest · 02,T1-2,CHEST,TITAN
+armor-t12-03,armor-t12-03,Dustwalker Rig arms · 03,T1-2,ARMS,HUNTER
+armor-t12-04,armor-t12-04,Scavenger Plate legs · 04,T1-2,LEGS,WARLOCK
+armor-t12-05,armor-t12-05,Outpost Harness back · 05,T1-2,BACK,UNIVERSAL
+armor-t12-06,armor-t12-06,Dustwalker Rig core · 06,T1-2,CORE,TITAN
+armor-t12-07,armor-t12-07,Scavenger Plate helm · 07,T1-2,HELM,HUNTER
+armor-t12-08,armor-t12-08,Outpost Harness chest · 08,T1-2,CHEST,WARLOCK
+armor-t12-09,armor-t12-09,Dustwalker Rig arms · 09,T1-2,ARMS,UNIVERSAL
+armor-t12-10,armor-t12-10,Scavenger Plate legs · 10,T1-2,LEGS,TITAN
+armor-t12-11,armor-t12-11,Outpost Harness back · 11,T1-2,BACK,HUNTER
+armor-t12-12,armor-t12-12,Dustwalker Rig core · 12,T1-2,CORE,WARLOCK
+armor-t12-13,armor-t12-13,Scavenger Plate helm · 13,T1-2,HELM,UNIVERSAL
+armor-t12-14,armor-t12-14,Outpost Harness chest · 14,T1-2,CHEST,TITAN
+armor-t12-15,armor-t12-15,Dustwalker Rig arms · 15,T1-2,ARMS,HUNTER
+armor-t12-16,armor-t12-16,Scavenger Plate legs · 16,T1-2,LEGS,WARLOCK
+armor-t12-17,armor-t12-17,Outpost Harness back · 17,T1-2,BACK,UNIVERSAL
+armor-t12-18,armor-t12-18,Dustwalker Rig core · 18,T1-2,CORE,TITAN
+armor-t12-19,armor-t12-19,Scavenger Plate helm · 19,T1-2,HELM,HUNTER
+armor-t12-20,armor-t12-20,Outpost Harness chest · 20,T1-2,CHEST,WARLOCK
+armor-t12-21,armor-t12-21,Dustwalker Rig arms · 21,T1-2,ARMS,UNIVERSAL
+armor-t12-22,armor-t12-22,Scavenger Plate legs · 22,T1-2,LEGS,TITAN
+armor-t12-23,armor-t12-23,Outpost Harness back · 23,T1-2,BACK,HUNTER
+armor-t12-24,armor-t12-24,Dustwalker Rig core · 24,T1-2,CORE,WARLOCK
+armor-t34-01,armor-t34-01,Faction Tactical helm · 01,T3-4,HELM,TITAN
+armor-t34-02,armor-t34-02,Thermal Ward chest · 02,T3-4,CHEST,HUNTER
+armor-t34-03,armor-t34-03,Cryogenic Weave arms · 03,T3-4,ARMS,WARLOCK
+armor-t34-04,armor-t34-04,Arc Conduit legs · 04,T3-4,LEGS,UNIVERSAL
+armor-t34-05,armor-t34-05,Faction Tactical back · 05,T3-4,BACK,TITAN
+armor-t34-06,armor-t34-06,Thermal Ward core · 06,T3-4,CORE,HUNTER
+armor-t34-07,armor-t34-07,Cryogenic Weave helm · 07,T3-4,HELM,WARLOCK
+armor-t34-08,armor-t34-08,Arc Conduit chest · 08,T3-4,CHEST,UNIVERSAL
+armor-t34-09,armor-t34-09,Faction Tactical arms · 09,T3-4,ARMS,TITAN
+armor-t34-10,armor-t34-10,Thermal Ward legs · 10,T3-4,LEGS,HUNTER
+armor-t34-11,armor-t34-11,Cryogenic Weave back · 11,T3-4,BACK,WARLOCK
+armor-t34-12,armor-t34-12,Arc Conduit core · 12,T3-4,CORE,UNIVERSAL
+armor-t34-13,armor-t34-13,Faction Tactical helm · 13,T3-4,HELM,TITAN
+armor-t34-14,armor-t34-14,Thermal Ward chest · 14,T3-4,CHEST,HUNTER
+armor-t34-15,armor-t34-15,Cryogenic Weave arms · 15,T3-4,ARMS,WARLOCK
+armor-t34-16,armor-t34-16,Arc Conduit legs · 16,T3-4,LEGS,UNIVERSAL
+armor-t34-17,armor-t34-17,Faction Tactical back · 17,T3-4,BACK,TITAN
+armor-t34-18,armor-t34-18,Thermal Ward core · 18,T3-4,CORE,HUNTER
+armor-t34-19,armor-t34-19,Cryogenic Weave helm · 19,T3-4,HELM,WARLOCK
+armor-t34-20,armor-t34-20,Arc Conduit chest · 20,T3-4,CHEST,UNIVERSAL
+armor-t34-21,armor-t34-21,Faction Tactical arms · 21,T3-4,ARMS,TITAN
+armor-t34-22,armor-t34-22,Thermal Ward legs · 22,T3-4,LEGS,HUNTER
+armor-t34-23,armor-t34-23,Cryogenic Weave back · 23,T3-4,BACK,WARLOCK
+armor-t34-24,armor-t34-24,Arc Conduit core · 24,T3-4,CORE,UNIVERSAL
+armor-t34-25,armor-t34-25,Faction Tactical helm · 25,T3-4,HELM,TITAN
+armor-t34-26,armor-t34-26,Thermal Ward chest · 26,T3-4,CHEST,HUNTER
+armor-t34-27,armor-t34-27,Cryogenic Weave arms · 27,T3-4,ARMS,WARLOCK
+armor-t34-28,armor-t34-28,Arc Conduit legs · 28,T3-4,LEGS,UNIVERSAL
+armor-t34-29,armor-t34-29,Faction Tactical back · 29,T3-4,BACK,TITAN
+armor-t34-30,armor-t34-30,Thermal Ward core · 30,T3-4,CORE,HUNTER
+armor-t34-31,armor-t34-31,Cryogenic Weave helm · 31,T3-4,HELM,WARLOCK
+armor-t34-32,armor-t34-32,Arc Conduit chest · 32,T3-4,CHEST,UNIVERSAL
+armor-t34-33,armor-t34-33,Faction Tactical arms · 33,T3-4,ARMS,TITAN
+armor-t34-34,armor-t34-34,Thermal Ward legs · 34,T3-4,LEGS,HUNTER
+armor-t34-35,armor-t34-35,Cryogenic Weave back · 35,T3-4,BACK,WARLOCK
+armor-t34-36,armor-t34-36,Arc Conduit core · 36,T3-4,CORE,UNIVERSAL
+armor-t5-01,armor-t5-01,Singularity-Woven helm · 01,T5,HELM,HUNTER
+armor-t5-02,armor-t5-02,Reality-Stable chest · 02,T5,CHEST,WARLOCK
+armor-t5-03,armor-t5-03,Gravitic Anchor arms · 03,T5,ARMS,UNIVERSAL
+armor-t5-04,armor-t5-04,Singularity-Woven legs · 04,T5,LEGS,TITAN
+armor-t5-05,armor-t5-05,Reality-Stable back · 05,T5,BACK,HUNTER
+armor-t5-06,armor-t5-06,Gravitic Anchor core · 06,T5,CORE,WARLOCK
+armor-t5-07,armor-t5-07,Singularity-Woven helm · 07,T5,HELM,UNIVERSAL
+armor-t5-08,armor-t5-08,Reality-Stable chest · 08,T5,CHEST,TITAN
+armor-t5-09,armor-t5-09,Gravitic Anchor arms · 09,T5,ARMS,HUNTER
+armor-t5-10,armor-t5-10,Singularity-Woven legs · 10,T5,LEGS,WARLOCK
+armor-t5-11,armor-t5-11,Reality-Stable back · 11,T5,BACK,UNIVERSAL
+armor-t5-12,armor-t5-12,Gravitic Anchor core · 12,T5,CORE,TITAN
+armor-t5-13,armor-t5-13,Singularity-Woven helm · 13,T5,HELM,HUNTER
+armor-t5-14,armor-t5-14,Reality-Stable chest · 14,T5,CHEST,WARLOCK
+armor-t5-15,armor-t5-15,Gravitic Anchor arms · 15,T5,ARMS,UNIVERSAL
+armor-t5-16,armor-t5-16,Singularity-Woven legs · 16,T5,LEGS,TITAN
+armor-t5-17,armor-t5-17,Reality-Stable back · 17,T5,BACK,HUNTER
+armor-t5-18,armor-t5-18,Gravitic Anchor core · 18,T5,CORE,WARLOCK
+armor-t5-19,armor-t5-19,Singularity-Woven helm · 19,T5,HELM,UNIVERSAL
+armor-t5-20,armor-t5-20,Reality-Stable chest · 20,T5,CHEST,TITAN
+armor-s-01,armor-s-01,Fracture Veteran helm · 01,S,HELM,WARLOCK
+armor-s-02,armor-s-02,System Breaker chest · 02,S,CHEST,UNIVERSAL
+armor-s-03,armor-s-03,Reality Anchor arms · 03,S,ARMS,TITAN
+armor-s-04,armor-s-04,Echo Master legs · 04,S,LEGS,HUNTER
+armor-s-05,armor-s-05,Fracture Veteran back · 05,S,BACK,WARLOCK
+armor-s-06,armor-s-06,System Breaker core · 06,S,CORE,UNIVERSAL
+armor-s-07,armor-s-07,Reality Anchor helm · 07,S,HELM,TITAN
+armor-s-08,armor-s-08,Echo Master chest · 08,S,CHEST,HUNTER
+armor-s-09,armor-s-09,Fracture Veteran arms · 09,S,ARMS,WARLOCK
+armor-s-10,armor-s-10,System Breaker legs · 10,S,LEGS,UNIVERSAL
+armor-s-11,armor-s-11,Reality Anchor back · 11,S,BACK,TITAN
+armor-s-12,armor-s-12,Echo Master core · 12,S,CORE,HUNTER

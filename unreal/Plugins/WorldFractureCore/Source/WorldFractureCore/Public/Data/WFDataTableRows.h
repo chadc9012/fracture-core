@@ -304,9 +304,51 @@ struct FRegionalShopsRow : public FTableRowBase
 	UPROPERTY(EditAnywhere, BlueprintReadWrite) FString Currency;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite) double PriceMult = 0.0;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite) int32 MinLevel = 0;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite) FString Faction;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite) FString District;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite) FString DistrictName;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite) int32 VendorTier = 0;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite) FString RequiresJson;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite) FString MinStanding;
+};
+
+/** WeaponManifest: 122 rows, exported from the web build. */
+USTRUCT(BlueprintType)
+struct FWeaponManifestRow : public FTableRowBase
+{
+	GENERATED_BODY()
+	UPROPERTY(EditAnywhere, BlueprintReadWrite) FString Id;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite) FString DisplayName;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite) FString Tier;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite) FString Archetype;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite) FString Element;
+};
+
+/** ArmorManifest: 92 rows, exported from the web build. */
+USTRUCT(BlueprintType)
+struct FArmorManifestRow : public FTableRowBase
+{
+	GENERATED_BODY()
+	UPROPERTY(EditAnywhere, BlueprintReadWrite) FString Id;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite) FString DisplayName;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite) FString Tier;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite) FString Slot;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite) FString ClassId;
+};
+
+/** WeaponCatalog: 45 rows, exported from the web build. */
+USTRUCT(BlueprintType)
+struct FWeaponCatalogRow : public FTableRowBase
+{
+	GENERATED_BODY()
+	UPROPERTY(EditAnywhere, BlueprintReadWrite) FString Id;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite) FString DisplayName;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite) FString Tier;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite) FString Archetype;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite) FString Element;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite) FString Rarity;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite) FString Via;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite) FString Cls;
 };
 
 /** ClassMissions: 3 rows, exported from the web build. */

@@ -50,6 +50,21 @@ public:
 	/** Prints the courses (id, name, mode, area, rank gate, attempts, best medal) to the log and the screen. */
 	UFUNCTION(Exec) void ListRaces();
 
+	// ---- merchants (ported regional-shops.ts, UWFShopSubsystem) ----
+	/** Prints the 21 shops (id, kind, place, currency, and why one is closed to you). */
+	UFUNCTION(Exec) void ListShops();
+	/** Shop <id>: opens a shop's counter; its stock shows on screen. */
+	UFUNCTION(Exec) void Shop(const FString& ShopId);
+	UFUNCTION(Exec) void CloseShop();
+	/** Buy <n>: buys offer n of the open shop. */
+	UFUNCTION(Exec) void Buy(int32 OfferIndex);
+	/** Service <itemId> [THERMAL|CRYO|ARC|BIO]: upgrade (gunsmith, armorsmith, vehicle shop) or infuse (mod shop). */
+	UFUNCTION(Exec) void Service(const FString& ItemId, const FString& Element);
+	/** Prints the inventory with item ids, levels and power. */
+	UFUNCTION(Exec) void Inventory();
+	/** ShopHour <0-24>: the world clock the shop hours use (-1 = unset, all open). */
+	UFUNCTION(Exec) void ShopHour(float Hour);
+
 	// ---- boss encounters (ported encounter-sim.ts) ----
 	const wf::encounter::FCatalog& GetEncounterCatalog() const { return EncounterCatalog; }
 	bool HasEncounter(const FString& ScenarioId) const;
