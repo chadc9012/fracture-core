@@ -75,6 +75,8 @@ import { SaveManager } from "./SaveManager";
 import { claimBossBounty } from "@/game/activity-payouts";
 import { buyPenthouseNex, ownsPenthouseNex, publishPenthouse } from "@/game/casino-property";
 import { nexBalance } from "@/game/nex";
+import { attend, happeningAt } from "@/game/city-happenings";
+import { adjustRep, EMPTY_LIVING } from "@/game/living-world";
 import { buyPenthouseUpgrade, ownedUpgrades } from "@/game/penthouse-upgrades";
 import { activeLoadout, rewardMission, loadProgression, rewardVehicle, saveProgression, type PlayerProgression } from "@/game/progression";
 import { RENDER_PRESETS, defaultTierForGpu, detectGpuRenderer } from "@/game/performance";
@@ -200,6 +202,7 @@ const initial: HudState = {
   rules: START.rules,
   phase: "Day",
   clock: "06:43",
+  dayT: 0.36,
   speed: 0,
   mode: "foot",
   owner: "vanguard",
@@ -897,6 +900,23 @@ export function GameCanvas() {
     setProgression(claimed.progression);
     if (claimed.paid.length) setCaptionQueue((q) => [...q, ...claimed.paid.map((c) => ({ speaker: "Challenge complete", text: `${c.title} · ${rewardText(c.reward)}` }))]);
   };
+  // city happenings (city-happenings.ts): walking into a district while its market / busker set / car meet is on announces it and
+  // counts a once-per-real-day visit with the district's faction
+  const happeningSeen = useRef("");
+  useEffect(() => {
+    const live = happeningAt(hud.px, hud.pz, hud.dayT);
+    const key = live ? `${live.district.id}@${live.day}` : "";
+    if (key === happeningSeen.current) return;
+    happeningSeen.current = key;
+    if (!live) return;
+    const today = new Date().toISOString().slice(0, 10);
+    const res = attend(progressionRef.current, live, today);
+    showLivingToast(`${live.happening.title} · ${live.district.name} — ${live.happening.blurb}`);
+    if (!res.rep || !res.faction) return;
+    const faction = res.faction;
+    progressionRef.current = res.progression;
+    setProgression((current) => { const r = attend(current, live, today); return r.rep ? { ...r.progression, living: adjustRep(r.progression.living ?? EMPTY_LIVING, faction, r.rep) } : current; });
+  }, [hud.px, hud.pz, hud.dayT, showLivingToast]);
   const visitCounts = useRef(new Map<string, number>());
   const [activeDialogue, setActiveDialogue] = useCountedState<DialogueLine[] | null>("activeDialogue", null);
   useEffect(() => {
