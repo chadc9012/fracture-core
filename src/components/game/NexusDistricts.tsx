@@ -3,7 +3,7 @@ import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import { walkHeight, WATER_LEVEL } from "@/game/terrain";
 import { addObstacle } from "@/game/obstacles";
-import { BLOCK, CITY_OUTER, NEXUS, PITCH, SHOP_TINTS, buildings, facadeKit, lamps, parkedCars, streetLights, type Building, type FacadeBox, type Lamp, type Style } from "@/game/nexus-districts";
+import { BLOCK, CITY_OUTER, blocks, NEXUS, PITCH, SHOP_TINTS, buildings, facadeKit, lamps, parkedCars, streetLights, type Building, type FacadeBox, type Lamp, type Style } from "@/game/nexus-districts";
 import { lampLevel, worldLight } from "@/game/world-light";
 import { softSprite } from "./softSprite";
 import { cityStreetMaterial } from "./city-surface";
@@ -23,10 +23,13 @@ export function NexusDistricts() {
   return (
     <group>
       <Streets />
+      <RaisedSidewalks />
       {(["glass", "concrete", "industrial"] as const).map((s) => <Bodies key={s} style={s} list={bs.filter((b) => b.style === s)} />)}
       <Crowns list={bs.filter((b) => b.crown)} />
       <Facades list={bs} />
       <Roofs list={bs} />
+      <DistrictArchitecture list={bs} />
+      <RooftopSolarArrays list={bs} />
       <Lamps />
       <StreetLights />
       <Cars />
@@ -68,7 +71,8 @@ function windowMaterial(style: Style): THREE.MeshStandardMaterial {
           float frame = max(0.0, outer - inside);
           float mullion = inside * (1.0 - step(0.016, abs(f.x - 0.5)));
           float seam = 1.0 - smoothstep(0.0, 0.025, min(f.y, 1.0 - f.y));
-          diffuseColor.rgb *= (0.95 + 0.1 * wHash(mod(floor(id * 0.5), 1024.0))) * (1.0 - seam * 0.12);
+          float verticalJoint = 1.0 - smoothstep(0.0, 0.018, min(f.x, 1.0 - f.x));
+          diffuseColor.rgb *= (0.95 + 0.1 * wHash(mod(floor(id * 0.5), 1024.0))) * (1.0 - seam * 0.12 - verticalJoint * 0.09);
           diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.055, 0.071, 0.084), frame * 0.88);
           diffuseColor.rgb = mix(diffuseColor.rgb, uGlass, inside * 0.91);
           diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.085, 0.105, 0.12), mullion * 0.7);
@@ -191,6 +195,91 @@ function Roofs({ list }: { list: Building[] }) {
 }
 
 /** paved streets: a ground-hugging grid mesh over the district ring (skipped over water) */
+/** Low-cost facade detail: instanced crown trim and street-facing shop canopies.
+ * All placements derive from the existing building layout, so no navigation,
+ * collision, world-coordinate or mission state changes are required. */
+function DistrictArchitecture({ list }: { list: Building[] }) {
+  const crown = useMemo(() => list.filter((b) => b.floors >= 8 && b.style !== "industrial"), [list]);
+  const shops = useMemo(() => list.filter((b) => b.district === "market" && b.floors <= 13), [list]);
+  const crownRef = useRef<THREE.InstancedMesh>(null);
+  const canopyRef = useRef<THREE.InstancedMesh>(null);
+  useInstances<Building>(crownRef, crown, (o, b) => {
+    o.position.set(b.x, b.top - 0.8, b.z + b.d / 2 + 0.12);
+    o.scale.set(b.w * (b.crown ? 0.72 : 0.96), 0.32, 0.22);
+  });
+  useInstances<Building>(canopyRef, shops, (o, b) => {
+    const streetY = Math.min(b.base + 4.6, b.top - 0.4);
+    o.position.set(b.x, streetY, b.z + b.d / 2 + 0.9);
+    o.scale.set(b.w * 0.72, 0.16, 1.8);
+  });
+  return <group>
+    <instancedMesh ref={crownRef} args={[undefined, undefined, Math.max(1, crown.length)]}>
+      <boxGeometry args={[1, 1, 1]} />
+      <meshStandardMaterial color="#c6d9e0" metalness={0.72} roughness={0.3} />
+    </instancedMesh>
+    <instancedMesh ref={canopyRef} args={[undefined, undefined, Math.max(1, shops.length)]} castShadow>
+      <boxGeometry args={[1, 1, 1]} />
+      <meshStandardMaterial color="#466c83" metalness={0.55} roughness={0.42} />
+    </instancedMesh>
+  </group>;
+}
+
+/** Rooftop solar-glass arrays: one instanced mesh, decorative and no collision changes. */
+function RooftopSolarArrays({ list }: { list: Building[] }) {
+  const sites = useMemo(() => list.filter((b, i) => b.style !== "industrial" && b.floors >= 6 && i % 3 === 0), [list]);
+  const ref = useRef<THREE.InstancedMesh>(null);
+  useInstances<Building>(ref, sites, (o, b) => {
+    o.position.set(b.x, b.top + 0.18, b.z);
+    o.rotation.set(0, b.yaw, 0);
+    o.scale.set(Math.max(1.2, b.w * 0.5), 0.12, Math.max(1.2, b.d * 0.46));
+  });
+  return <instancedMesh ref={ref} args={[undefined, undefined, Math.max(1, sites.length)]}>
+    <boxGeometry args={[1, 1, 1]} />
+    <meshStandardMaterial color="#243f54" metalness={0.78} roughness={0.21} emissive="#0b2336" emissiveIntensity={0.12} />
+  </instancedMesh>;
+}
+
+/** Raised concrete sidewalks only around authored, buildable city blocks.
+ * A terrain-conforming strip follows each block perimeter; no sidewalks are
+ * placed over the hub, water, highways, or unbuildable terrain.
+ * This is visual-only: gameplay walkability still follows the terrain system. */
+function RaisedSidewalks() {
+  const geo = useMemo(() => {
+    const pos: number[] = [], idx: number[] = [];
+    const half = BLOCK / 2, inner = half - 2.15;
+    const segments = 7;
+    const addStrip = (x: number, z: number, axis: "x" | "z", sign: number) => {
+      for (let i = 0; i < segments; i++) {
+        const t0 = -half + (2 * half * i) / segments;
+        const t1 = -half + (2 * half * (i + 1)) / segments;
+        const corners = axis === "x"
+          ? [[t0, sign * inner], [t0, sign * half], [t1, sign * inner], [t1, sign * half]]
+          : [[sign * inner, t0], [sign * half, t0], [sign * inner, t1], [sign * half, t1]];
+        const offset = pos.length / 3;
+        for (const [dx, dz] of corners) {
+          const wx = x + (dx ?? 0), wz = z + (dz ?? 0);
+          pos.push(wx, walkHeight(wx, wz) + 0.17, wz);
+        }
+        // Winding is corrected by DoubleSide, keeping normals consistent with uneven ground.
+        idx.push(offset, offset + 1, offset + 2, offset + 2, offset + 1, offset + 3);
+      }
+    };
+    for (const b of blocks()) {
+      addStrip(b.x, b.z, "x", -1);
+      addStrip(b.x, b.z, "x", 1);
+      addStrip(b.x, b.z, "z", -1);
+      addStrip(b.x, b.z, "z", 1);
+    }
+    const g = new THREE.BufferGeometry();
+    g.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
+    g.setIndex(idx); g.computeVertexNormals();
+    return g;
+  }, []);
+  return <mesh geometry={geo} receiveShadow>
+    <meshStandardMaterial color="#92999a" roughness={0.91} metalness={0.02} side={THREE.DoubleSide} polygonOffset polygonOffsetFactor={-2} />
+  </mesh>;
+}
+
 function Streets() {
   const geo = useMemo(() => {
     const step = 4, n = Math.ceil(CITY_OUTER / step), pos: number[] = [], idx: number[] = [], keep: boolean[] = [];

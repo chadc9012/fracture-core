@@ -98,6 +98,23 @@ function AegisSpire({ c }: { c: C }) {
         {[-1, 1].map((s) => <LightBar key={s} position={[s * (w / 2 + 0.02), yy, 0]} size={[0.06, th * 0.96, 0.25]} color={d.color} />)}
       </group>; })}
       <AegisFacadeDetails color={d.color} />
+      {/* Tier break accent bands, aligned with the four-sided tower. */}
+      {[{ h: 22, w: 10 }, { h: 42, w: 8 }, { h: 60, w: 6 }].map(({ h: level, w }, i) => (
+        <group key={`tier-trim-${i}`} position={[0, level, 0]}>
+          {[-1, 1].map((side) => (
+            <group key={side}>
+              <mesh position={[0, 0, side * (w / 2 + 0.09)]}>
+                <boxGeometry args={[w + 0.2, 0.13, 0.16]} />
+                <meshStandardMaterial color={d.color} emissive={d.color} emissiveIntensity={0.6} />
+              </mesh>
+              <mesh position={[side * (w / 2 + 0.09), 0, 0]}>
+                <boxGeometry args={[0.16, 0.13, w + 0.2]} />
+                <meshStandardMaterial color={d.color} emissive={d.color} emissiveIntensity={0.6} />
+              </mesh>
+            </group>
+          ))}
+        </group>
+      ))}
       <mesh position={[0, h + 6, 0]}><coneGeometry args={[3, 12, 4]} /><meshStandardMaterial ref={crown} color="#cfefff" emissive={d.color} emissiveIntensity={1.3} /></mesh>
       <DistrictLight position={[0, h + 4, 0]} color={d.color} intensity={30} distance={90} decay={2} />
     </group>

@@ -63,8 +63,12 @@ float cityStreet; float cityPaint; vec2 cityPavUv;`)
   float edge = inX * (1.0 - smoothstep(0.05, 0.09, abs(a.x - half_ - 0.6))) + inZ * (1.0 - smoothstep(0.05, 0.09, abs(a.y - half_ - 0.6)));
   // painted lines wear: break them up with the asphalt's own aggregate
   float wear = smoothstep(0.12, 0.22, diffuseColor.r);
+  // Subtle aggregate breakup and repaired asphalt panels in world coordinates.
+  float patchCell = fract(sin(dot(floor(vCityW.xz / 7.0), vec2(127.1, 311.7))) * 43758.5453);
+  float patched = step(0.84, patchCell) * cityStreet * (1.0 - cross_);
+  float asphaltVariation = 0.965 + 0.035 * sin(vCityW.x * 1.7) * sin(vCityW.z * 1.3);
   cityPaint = clamp(centre + edge, 0.0, 1.0) * (0.75 + 0.25 * wear);
-  vec3 street = diffuseColor.rgb * (1.0 - gutter * 0.35);
+  vec3 street = diffuseColor.rgb * asphaltVariation * (1.0 - gutter * 0.35) * (1.0 - patched * 0.075);
   street = mix(street, vec3(0.78, 0.76, 0.7), cityPaint * (1.0 - cross_ * 0.0));
   street = mix(street, vec3(0.85, 0.66, 0.2), centre * 0.0);
   diffuseColor.rgb = mix(pavers, street, cityStreet);
