@@ -17,6 +17,8 @@ import { NeonDistricts } from "./NeonDistricts";
 import { NeonTowerBlocks } from "./NeonTowerBlocks";
 import { NeonPalms } from "./CityPalms";
 import { NeonVenues } from "./NeonVenues";
+import { NeonConcertComplex } from "./NeonConcertComplex";
+import { NeonSkylineCasino } from "./NeonSkylineCasino";
 import { WorldPiece } from "./WorldPiece";
 import { ResidentialHomes } from "./ResidentialHomes";
 import { NEON_FLAT } from "@/game/world";
@@ -121,6 +123,8 @@ export function NeonCity() {
       <NeonTowerBlocks />
       <WorldPiece name="neon palms"><NeonPalms /></WorldPiece>
       <WorldPiece name="neon venues"><NeonVenues /></WorldPiece>
+      <WorldPiece name="neon secondary music venue"><NeonConcertComplex center={NEON_CITY_CENTER} /></WorldPiece>
+      <WorldPiece name="neon skyline casino"><NeonSkylineCasino center={NEON_CITY_CENTER} /></WorldPiece>
       <WorldPiece name="neon street lights"><NeonStreetLights /></WorldPiece>
       <ResidentialHomes city="neon" />
       <NeonMarketStreet y={y} />
