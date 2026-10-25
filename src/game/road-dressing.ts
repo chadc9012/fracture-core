@@ -12,7 +12,8 @@
  * Nothing is placed in water, on a bridge span (except the bridge itself), inside a hub, or on the 7.2 m surfaced strip. */
 import { LANES, ROAD_SAMPLES, distanceToRoad, laneSamples, type Lane } from "./lanes";
 import { ROAD_HALF } from "./road-ribbon";
-import { WATER_LEVEL, heightAt, riverCrossings, type Crossing } from "./terrain";
+import { WATER_LEVEL, heightAt, neonPlateauWeight, riverCrossings, type Crossing } from "./terrain";
+import { REGIONS } from "./world";
 
 export type RoadKind = "asphalt" | "gravel" | "dirt";
 
@@ -130,6 +131,10 @@ export function worldRoadDressing() {
   return cache;
 }
 
+/** inside a city's streets (the Neon plateau, downtown Nexus): no wild scrub there (live check: it lined Neon's kerbs) */
+const NEXUS_C = REGIONS.find((r) => r.id === "nexus")!, NEXUS_CITY_R = 125;
+const inCity = (x: number, z: number) => neonPlateauWeight(x, z) > 0.01 || Math.hypot(x - NEXUS_C.x, z - NEXUS_C.z) < NEXUS_CITY_R;
+
 /* ---------------- verge scatter (owner's target frame "wilds by day": rocks and dry scrub crowd the road edges) ---------------- */
 
 /** `y` is NaN until vergeGround resolves it */
@@ -144,7 +149,7 @@ export function vergeScatter(lane: Lane, regionAt: (x: number, z: number) => str
   const s = walk(lane), out: VergeItem[] = [];
   let regionCache = "";
   // ground height is the costly query (~30 us), so it is resolved lazily for the few items near the camera (vergeGround)
-  const ok = (x: number, z: number) => !inHub(lane, x, z) && distanceToRoad(x, z) > ROAD_HALF + 0.9 && !nearBridge(x, z, 2);
+  const ok = (x: number, z: number) => !inHub(lane, x, z) && !inCity(x, z) && distanceToRoad(x, z) > ROAD_HALF + 0.9 && !nearBridge(x, z, 2);
   let n = 0;
   for (let i = 1; i < s.length; i++) {
     const a = s[i - 1]!, b = s[i]!, seg = b.along - a.along;

@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
+import { NEON_POSTERS, NEXUS_POSTERS, posterTexture } from "./posters";
 import { cityStreets, propsForTier, puddlesForTier, signalPhase, streetWalls, type Kerb, type Paint, type PaintKind, type PropKind, type Puddle, type Rect, type StreetCity, type StreetProp } from "@/game/city-streets";
 import {
   NEON_PALETTE, NEXUS_PALETTE, benchGeometry, binGeometry, bollardGeometry, hydrantGeometry, planterFoliageGeometry, planterGeometry,
-  shelterAdGeometry, shelterGeometry, shelterGlassGeometry, signPostGeometry, signalHeadGeometry, signalMastGeometry, signalPoleGeometry,
+  shelterAdGeometry, shelterPosterGeometry, shelterGeometry, shelterGlassGeometry, signPostGeometry, signalHeadGeometry, signalMastGeometry, signalPoleGeometry,
 } from "@/game/street-prop-geometry";
 import { neonPlateauLevel, walkHeight } from "@/game/terrain";
 import { clearWalls, setWalls } from "@/game/walls";
@@ -206,7 +207,7 @@ export function CityStreets({ city, tier }: { city: StreetCity; tier: RenderTier
   const pal = neon ? NEON_PALETTE : NEXUS_PALETTE;
   const geo = useMemo(() => ({
     bench: benchGeometry(pal), bin: binGeometry(pal), bollard: bollardGeometry(pal), planter: planterGeometry(pal), foliage: planterFoliageGeometry(),
-    hydrant: hydrantGeometry(pal), shelter: shelterGeometry(pal), glass: shelterGlassGeometry(), ad: shelterAdGeometry(),
+    hydrant: hydrantGeometry(pal), shelter: shelterGeometry(pal), glass: shelterGlassGeometry(), ad: shelterAdGeometry(), poster: shelterPosterGeometry(),
     pole: signalPoleGeometry(pal), mast: signalMastGeometry(pal), head: signalHeadGeometry(pal), lens: new THREE.CircleGeometry(0.1, 20),
     post: signPostGeometry(pal), ring: new THREE.CylinderGeometry(0.103, 0.103, 0.05, 20, 1, true),
     paint: paintGeometry(s.paint, look, ground),
@@ -264,6 +265,10 @@ export function CityStreets({ city, tier }: { city: StreetCity; tier: RenderTier
     m.count = signals.length; m.instanceMatrix.needsUpdate = true; if (m.instanceColor) m.instanceColor.needsUpdate = true; m.computeBoundingSphere();
   });
 
+  // printed posters on both faces of each shelter advert (owner's Neon target frame), one design per shelter, stable by position
+  const posterMats = useMemo(() => (neon ? NEON_POSTERS : NEXUS_POSTERS).map((d) => new THREE.MeshBasicMaterial({ map: posterTexture(d), toneMapped: false })), [neon]);
+  useEffect(() => () => { for (const m of posterMats) m.dispose(); }, [posterMats]);
+  const posterSets = useMemo(() => posterMats.map((_, k) => byKind.shelter.filter((p) => Math.abs(Math.round(p.x * 7.3 + p.z * 3.1)) % posterMats.length === k)), [byKind.shelter, posterMats]);
   // shelter adverts glow a little brighter at night
   const ad = useRef<THREE.InstancedMesh>(null);
   const adTints = neon ? ["#ff3fb4", "#38e8ff", "#b968ff", "#ff7a3a"] : ["#fff1d6", "#dff3ff", "#ffe3c4"];
@@ -274,6 +279,7 @@ export function CityStreets({ city, tier }: { city: StreetCity; tier: RenderTier
     if (k === seen.current) return;
     seen.current = k;
     mat.ad.color.setScalar(neon ? 0.3 + k * 0.6 : 0.45 + k * 0.5);
+    for (const m of posterMats) m.color.setScalar(0.55 + k * 0.85); // posters glow past white at night so the bloom catches them
   });
 
   // Neon bollards carry a lit ring
@@ -304,6 +310,7 @@ export function CityStreets({ city, tier }: { city: StreetCity; tier: RenderTier
       <Props items={byKind.shelter} cap={all.shelter.length} geo={geo.shelter} mat={mat.iron} y={baseY} shadow={shadow} />
       <Props items={byKind.shelter} cap={all.shelter.length} geo={geo.glass} mat={mat.glass} y={baseY} shadow={false} glass />
       {all.shelter.length > 0 && <instancedMesh ref={ad} args={[geo.ad, mat.ad, all.shelter.length]} />}
+      {all.shelter.length > 0 && posterMats.map((m, k) => <Props key={`poster${k}`} items={posterSets[k]!} cap={all.shelter.length} geo={geo.poster} mat={m} y={baseY} shadow={false} />)}
       <Props items={poles} cap={allPoles} geo={geo.pole} mat={mat.iron} y={baseY} shadow={shadow} />
       {nSignals > 0 && <>
         <instancedMesh ref={mast} args={[geo.mast, mat.iron, nSignals]} castShadow={shadow} />

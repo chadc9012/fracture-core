@@ -45,7 +45,7 @@ import { vergeScatter, vergeGround, VERGE as VERGE_EDGE } from "./road-dressing"
 import { LANES as ALL_LANES, distanceToRoad as roadDist } from "./lanes";
 import { ROAD_HALF as HALF } from "./road-ribbon";
 import { regionAt as region } from "./world";
-import { WATER_LEVEL as WL } from "./terrain";
+import { WATER_LEVEL as WL, neonPlateauWeight as plateau } from "./terrain";
 
 describe("verge scatter (wilds target frame)", () => {
   const at = (x: number, z: number) => region(x, z)?.id;
@@ -70,4 +70,7 @@ describe("verge scatter (wilds target frame)", () => {
     expect(Number.isNaN(it.y)).toBe(false);
   });
   test("deterministic", () => { expect(vergeScatter(ALL_LANES[0]!, at).slice(0, 20)).toEqual(vergeScatter(ALL_LANES[0]!, at).slice(0, 20)); });
+  test("no wild scrub inside the cities (Neon plateau, downtown Nexus)", () => {
+    expect(all.filter((i) => plateau(i.x, i.z) > 0.01).length).toBe(0);
+  });
 });

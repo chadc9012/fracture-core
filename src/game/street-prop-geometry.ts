@@ -165,3 +165,18 @@ export function signPostGeometry(p: StreetPalette): THREE.BufferGeometry {
     { g: cyl(0.09, 0.1, 0.06, 14), color: p.iron, m: T(0, 0.03, 0) },
   ]);
 }
+
+/** the two printable faces of the shelter advert (shelterAdGeometry is a baked box without UVs): planes just proud of each side, UV
+ * 0..1 over the 1.04 m x 1.85 m panel, so a poster texture maps on the right way up from both sides */
+export function shelterPosterGeometry(): THREE.BufferGeometry {
+  const faces = [1, -1].map((side) => {
+    const g = new THREE.PlaneGeometry(1.0, 1.8);
+    g.rotateY(side * Math.PI / 2);
+    g.translate(1.75 + side * 0.052, 1.2, -0.08);
+    return g;
+  });
+  const out = mergeGeometries(faces, false)!;
+  for (const g of faces) g.dispose();
+  out.computeBoundingSphere();
+  return out;
+}
