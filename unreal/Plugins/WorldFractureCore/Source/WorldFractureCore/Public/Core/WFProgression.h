@@ -8,6 +8,8 @@
 // Level and XP are account-wide there, and stay account-wide here.
 #pragma once
 
+#include "Core/WFCoreApi.h"
+
 #include <map>
 #include <optional>
 #include <string>

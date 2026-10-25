@@ -1,5 +1,7 @@
 #include "WFEnemy.h"
 
+#include "Engine/GameInstance.h"
+
 #include "AIController.h"
 #include "Components/CapsuleComponent.h"
 #include "DrawDebugHelpers.h"
@@ -187,7 +189,7 @@ void AWFEnemy::TryAttack(AWFCharacter* Player, double Distance, float DeltaSecon
 	if (RangedCooldown <= 0) Windup = Tier(0.6, 0.42, 0.25); // telegraph, then shoot
 }
 
-double AWFEnemy::ReceiveHit(double Damage, AActor* Instigator, const FString& Element)
+double AWFEnemy::TakeHit(double Damage, AActor* DamageInstigator, const FString& Element)
 {
 	if (IsDead()) return 0;
 	const double Now = GetWorld()->GetTimeSeconds();
@@ -203,7 +205,7 @@ double AWFEnemy::ReceiveHit(double Damage, AActor* Instigator, const FString& El
 	}
 	Health -= Damage;
 	bAggro = true;
-	if (Cast<AWFCharacter>(Instigator)) SincePlayerHit = 0;
+	if (Cast<AWFCharacter>(DamageInstigator)) SincePlayerHit = 0;
 	if (Health > 0) return Damage;
 	if (bBoss && Mode && !bDecoy)
 	{

@@ -11,6 +11,8 @@
 // Not ported: the saved mid-mission run (activeMissions) that applyMissionCompletion also clears.
 #pragma once
 
+#include "Core/WFCoreApi.h"
+
 #include "Core/WFProgression.h"
 #include "Core/WFRewardCore.h"
 
@@ -59,16 +61,16 @@ namespace wf::missionreward
 	inline constexpr double OtherNex = 100;
 	inline constexpr double PityRuns = 3;
 
-	bool IsSideContract(const std::string& MissionId);
-	double RepeatRewardFactor(double RunsToday, bool bFirstEver);
-	double SideRewardFactor(double RunsToday, bool bFirstEver);
-	double MissionWeaponPower(const FCatalog& C, const std::string& MissionId);
-	FGearItem CompletionWeapon(const FCatalog& C, const std::string& Source, const std::string& Key);
-	std::optional<FGearItem> CampaignExotic(const FCatalog& C, const std::string& MissionId);
-	std::optional<reward::FSetDrop> CollectionReward(const FCatalog& C, const std::string& Activity, const std::string& Key, double Run, bool bFirstClear);
+	WORLDFRACTURECORE_API bool IsSideContract(const std::string& MissionId);
+	WORLDFRACTURECORE_API double RepeatRewardFactor(double RunsToday, bool bFirstEver);
+	WORLDFRACTURECORE_API double SideRewardFactor(double RunsToday, bool bFirstEver);
+	WORLDFRACTURECORE_API double MissionWeaponPower(const FCatalog& C, const std::string& MissionId);
+	WORLDFRACTURECORE_API FGearItem CompletionWeapon(const FCatalog& C, const std::string& Source, const std::string& Key);
+	WORLDFRACTURECORE_API std::optional<FGearItem> CampaignExotic(const FCatalog& C, const std::string& MissionId);
+	WORLDFRACTURECORE_API std::optional<reward::FSetDrop> CollectionReward(const FCatalog& C, const std::string& Activity, const std::string& Key, double Run, bool bFirstClear);
 
 	/** progression.ts rewardMission. NowMs picks the UTC day for the repeat counter and the NEX ledger key. */
-	FProgression RewardMission(const reward::FCatalog& Rewards, const FCatalog& C, FProgression P, const std::string& MissionId, const std::map<std::string, double>& Materials, double NowMs);
+	WORLDFRACTURECORE_API FProgression RewardMission(const reward::FCatalog& Rewards, const FCatalog& C, FProgression P, const std::string& MissionId, const std::map<std::string, double>& Materials, double NowMs);
 
 	struct FCompletionResult
 	{
@@ -77,8 +79,8 @@ namespace wf::missionreward
 		std::optional<FCompletion> QuestEvent; // the caller feeds it to the quest chain (quests.ts gameTick) after the payout
 	};
 	/** persistence.ts applyMissionCompletion minus the quest tick, which the caller applies with the returned event. */
-	FCompletionResult ApplyMissionCompletion(const reward::FCatalog& Rewards, const FCatalog& C, FProgression P, const std::string& MissionId, double NowMs);
+	WORLDFRACTURECORE_API FCompletionResult ApplyMissionCompletion(const reward::FCatalog& Rewards, const FCatalog& C, FProgression P, const std::string& MissionId, double NowMs);
 
 	/** Stable text for tests: reward::DescribeLoot plus completed missions, NEX ledger and the last mission reward. */
-	std::string Describe(const FProgression& P);
+	WORLDFRACTURECORE_API std::string Describe(const FProgression& P);
 }

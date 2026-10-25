@@ -9,6 +9,8 @@
 // rules, vulnerability) and IWorld::Defeat when a machine's hp reaches 0.
 #pragma once
 
+#include "Core/WFCoreApi.h"
+
 #include "Core/WFDragonCore.h"
 #include "Core/WFProgression.h"
 
@@ -46,10 +48,10 @@ namespace wf::dragoncast
 		virtual void Noise() {}
 	};
 
-	void StunMachine(FMachine& M, double Seconds);
-	void ApplyVulnPulse(std::vector<FMachine>& Machines, double X, double Z, double Radius, double Mult, double Duration, double Now);
+	WORLDFRACTURECORE_API void StunMachine(FMachine& M, double Seconds);
+	WORLDFRACTURECORE_API void ApplyVulnPulse(std::vector<FMachine>& Machines, double X, double Z, double Radius, double Mult, double Duration, double Now);
 	/** live-build.ts tickLiveBuild: energy refills 9 per second up to 100 (Rate: haste / ability-recharge factor). */
-	double RegenEnergy(double Energy, double Dt, double Rate = 1);
+	WORLDFRACTURECORE_API double RegenEnergy(double Energy, double Dt, double Rate = 1);
 
 	struct FSkyfall
 	{
@@ -64,7 +66,7 @@ namespace wf::dragoncast
 		std::optional<dragon::FStats> HideStats;
 		double Glide = 0, AirDashes = 0, LandingStrike = 0;
 		dragon::FWyrm Wyrm;
-		FRuntime();
+		WORLDFRACTURECORE_API FRuntime();
 	};
 	struct FPose
 	{
@@ -82,14 +84,14 @@ namespace wf::dragoncast
 		std::string Text;
 		std::optional<double> LaunchVy, GlideSeconds, AirDashes;
 	};
-	const char* AbilityName(const std::string& Id);
+	WORLDFRACTURECORE_API const char* AbilityName(const std::string& Id);
 
-	FCastOutcome CastDragonite(FRuntime& Rt, IWorld& World, std::vector<FMachine>& Machines, double& Energy, const std::string& Id, const FPose& Pose, bool bGrounded, const FContext& Ctx, double Now);
+	WORLDFRACTURECORE_API FCastOutcome CastDragonite(FRuntime& Rt, IWorld& World, std::vector<FMachine>& Machines, double& Energy, const std::string& Id, const FPose& Pose, bool bGrounded, const FContext& Ctx, double Now);
 
 	struct FStepResult
 	{
 		double Resist = 0, Stagger = 0;
 		bool bGliding = false;
 	};
-	FStepResult StepDragonite(FRuntime& Rt, IWorld& World, std::vector<FMachine>& Machines, double Dt, const FPose& Pose, const FContext& Ctx);
+	WORLDFRACTURECORE_API FStepResult StepDragonite(FRuntime& Rt, IWorld& World, std::vector<FMachine>& Machines, double Dt, const FPose& Pose, const FContext& Ctx);
 }

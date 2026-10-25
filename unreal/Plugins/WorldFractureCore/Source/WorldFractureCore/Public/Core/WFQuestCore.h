@@ -9,6 +9,8 @@
 // and keeps a Progression on the game instance.
 #pragma once
 
+#include "Core/WFCoreApi.h"
+
 #include "Core/WFProgression.h"
 
 #include <map>
@@ -32,7 +34,7 @@ namespace wf::quest
 	};
 
 	/** "ENTER_WORLD" -> EnterWorld etc. (the web build's spelling, as exported). Returns false if unknown. */
-	bool ParseObjectiveType(const std::string& Text, EObjectiveType& Out);
+	WORLDFRACTURECORE_API bool ParseObjectiveType(const std::string& Text, EObjectiveType& Out);
 
 	struct FObjective
 	{
@@ -95,8 +97,8 @@ namespace wf::quest
 	class FCatalog
 	{
 	public:
-		void Add(FQuest Quest);
-		const FQuest* Find(const std::string& Id) const;
+		WORLDFRACTURECORE_API void Add(FQuest Quest);
+		WORLDFRACTURECORE_API const FQuest* Find(const std::string& Id) const;
 		size_t Num() const { return Quests.size(); }
 
 	private:
@@ -109,20 +111,20 @@ namespace wf::quest
 	inline constexpr double WastelandCorruptionThreshold = 45;
 	inline constexpr const char* FirstQuestId = "fd-01";
 
-	const FQuest* ActiveQuest(const FCatalog& Catalog, const FProgression& P);
-	double ObjectiveDelta(const FObjective& Objective, const FEvent& Event);
-	bool ObjectiveAlreadyDone(const FProgression& P, const FObjective& Objective);
-	FProgression UnlockWorld(FProgression P, const std::string& World);
-	FProgression UpdateWorldState(FProgression P, const FEvent& Event);
-	FProgression ReconcileQuests(const FCatalog& Catalog, FProgression P);
+	WORLDFRACTURECORE_API const FQuest* ActiveQuest(const FCatalog& Catalog, const FProgression& P);
+	WORLDFRACTURECORE_API double ObjectiveDelta(const FObjective& Objective, const FEvent& Event);
+	WORLDFRACTURECORE_API bool ObjectiveAlreadyDone(const FProgression& P, const FObjective& Objective);
+	WORLDFRACTURECORE_API FProgression UnlockWorld(FProgression P, const std::string& World);
+	WORLDFRACTURECORE_API FProgression UpdateWorldState(FProgression P, const FEvent& Event);
+	WORLDFRACTURECORE_API FProgression ReconcileQuests(const FCatalog& Catalog, FProgression P);
 
 	/** The single loop: progress the active quest off this event; on completion reward it, advance the chain and
 	 *  unlock its world; then reconcile against persisted completions and roll world state forward. */
-	FProgression GameTick(const FCatalog& Catalog, FProgression P, const FEvent& Event);
+	WORLDFRACTURECORE_API FProgression GameTick(const FCatalog& Catalog, FProgression P, const FEvent& Event);
 
 	/** Dev fast-track: completes the active quest's objectives through the normal path. */
-	FProgression FinishActiveQuest(const FCatalog& Catalog, FProgression P);
+	WORLDFRACTURECORE_API FProgression FinishActiveQuest(const FCatalog& Catalog, FProgression P);
 
 	/** Stable text form used by the golden test (and handy in logs). */
-	std::string ToCanonicalString(const FProgression& P);
+	WORLDFRACTURECORE_API std::string ToCanonicalString(const FProgression& P);
 }

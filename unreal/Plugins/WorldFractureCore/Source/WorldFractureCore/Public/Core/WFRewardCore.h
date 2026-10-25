@@ -13,6 +13,8 @@
 // Gore and alert text are presentation and stay out of the rules.
 #pragma once
 
+#include "Core/WFCoreApi.h"
+
 #include "Core/WFProgression.h"
 #include "Core/WFScenarioCore.h"
 
@@ -54,7 +56,7 @@ namespace wf::reward
 	inline constexpr double ArmorLevelMax = 10;
 	inline constexpr double SetPowerPerLevel = 15;
 	inline constexpr double XpPerLevel = 400;
-	extern const char* const SetSlots[5]; // helmet, gauntlets, chest, legs, classItem
+	extern WORLDFRACTURECORE_API const char* const SetSlots[5]; // helmet, gauntlets, chest, legs, classItem
 
 	enum class ETier { Normal, Elite, Boss };
 	enum class ECredit { Player, World };
@@ -143,19 +145,19 @@ namespace wf::reward
 	};
 
 	/** sim.ts defeatMachine's reward half. Marks the machine dead and pays into the tally exactly as the web build does. */
-	EDefeatResult DefeatMachine(const FCatalog& Catalog, FMachine& M, ECredit Credit, FSimTally& Sim, IRandom& Random);
+	WORLDFRACTURECORE_API EDefeatResult DefeatMachine(const FCatalog& Catalog, FMachine& M, ECredit Credit, FSimTally& Sim, IRandom& Random);
 
-	std::optional<FSetDrop> RollSetDrop(const FCatalog& Catalog, const std::string& RegionId, ETier Tier, double Roll);
-	std::optional<FGearItem> RollWeaponLoot(const FCatalog& Catalog, ETier Tier, const std::string& Zone, double Roll, const std::string& UniqueSuffix);
-	std::optional<FGearItem> MakeSetPiece(const FCatalog& Catalog, const std::string& SetId, const std::string& Slot, double Level = 1);
+	WORLDFRACTURECORE_API std::optional<FSetDrop> RollSetDrop(const FCatalog& Catalog, const std::string& RegionId, ETier Tier, double Roll);
+	WORLDFRACTURECORE_API std::optional<FGearItem> RollWeaponLoot(const FCatalog& Catalog, ETier Tier, const std::string& Zone, double Roll, const std::string& UniqueSuffix);
+	WORLDFRACTURECORE_API std::optional<FGearItem> MakeSetPiece(const FCatalog& Catalog, const std::string& SetId, const std::string& Slot, double Level = 1);
 	/** A new piece joins the inventory; a duplicate levels the owned piece up to the cap. */
-	FProgression GrantSetPiece(const FCatalog& Catalog, FProgression P, const FSetDrop& Drop);
+	WORLDFRACTURECORE_API FProgression GrantSetPiece(const FCatalog& Catalog, FProgression P, const FSetDrop& Drop);
 
-	double PlayerPowerScore(const FProgression& P);
-	double RewardPacing(double Power);
+	WORLDFRACTURECORE_API double PlayerPowerScore(const FProgression& P);
+	WORLDFRACTURECORE_API double RewardPacing(double Power);
 
 	/** inventory.ts claimDrops, scenario claims included. NowMs stamps the Vyrak rematch cooldown (Date.now in the web build). */
-	FProgression ClaimDrops(const FCatalog& Catalog, FProgression P, const std::vector<FDrop>& Drops, double NowMs);
+	WORLDFRACTURECORE_API FProgression ClaimDrops(const FCatalog& Catalog, FProgression P, const std::vector<FDrop>& Drops, double NowMs);
 
 	struct FGrantXpResult
 	{
@@ -165,12 +167,12 @@ namespace wf::reward
 		double NewLevel = 1;
 		std::vector<std::string> NovaUnlocked;
 	};
-	double BaseXpFor(const std::string& Type, double EnemyLevel);
+	WORLDFRACTURECORE_API double BaseXpFor(const std::string& Type, double EnemyLevel);
 	/** xp.ts grantXP. Scale is the difficulty challenge's reward factor (map-activities.ts CHALLENGES). */
-	FGrantXpResult GrantXP(FProgression P, const std::string& Type, std::optional<double> EnemyLevel, std::optional<double> CombatHeat, std::optional<std::string> RareEvent, double Scale);
+	WORLDFRACTURECORE_API FGrantXpResult GrantXP(FProgression P, const std::string& Type, std::optional<double> EnemyLevel, std::optional<double> CombatHeat, std::optional<std::string> RareEvent, double Scale);
 
 	/** Stable text for tests and logs. */
-	std::string DescribeGear(const FGearItem& G);
-	std::string DescribeLoot(const FProgression& P);
-	std::string DescribeTally(const FSimTally& S);
+	WORLDFRACTURECORE_API std::string DescribeGear(const FGearItem& G);
+	WORLDFRACTURECORE_API std::string DescribeLoot(const FProgression& P);
+	WORLDFRACTURECORE_API std::string DescribeTally(const FSimTally& S);
 }

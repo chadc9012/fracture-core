@@ -39,7 +39,7 @@ public:
 
 	/** Element is the hit's damage element (KINETIC, THERMAL, CRYO, ARC, BIO): scenario gimmicks read it. */
 	/** Returns the damage the hit really dealt (after vulnerability and the boss rules). */
-	double ReceiveHit(double Damage, AActor* Instigator, const FString& Element = TEXT("KINETIC"));
+	double TakeHit(double Damage, AActor* DamageInstigator, const FString& Element = TEXT("KINETIC"));
 	// Dragonite casts (ported dragonite-cast.ts) read and change these
 	double GetAim() const { return Windup >= 0 ? 1.0 : 0.0; }
 	void CancelWindup() { Windup = -1; }

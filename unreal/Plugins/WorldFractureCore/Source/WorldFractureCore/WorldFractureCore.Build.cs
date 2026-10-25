@@ -12,11 +12,7 @@ public class WorldFractureCore : ModuleRules
 			"CoreUObject",
 			"Engine",
 			"DeveloperSettings",
-		});
-
-		PrivateDependencyModuleNames.AddRange(new string[]
-		{
-			"Json",
+			"Json", // public headers (WFDataFiles.h, WFProgressionJson.h) include Dom/JsonObject.h
 		});
 	}
 }

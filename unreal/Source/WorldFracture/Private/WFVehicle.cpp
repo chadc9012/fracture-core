@@ -1,5 +1,7 @@
 #include "WFVehicle.h"
 
+#include "Engine/GameInstance.h"
+
 #include "Camera/CameraComponent.h"
 #include "Components/BoxComponent.h"
 #include "Components/StaticMeshComponent.h"
@@ -115,7 +117,7 @@ void AWFVehicle::BeginPlay()
 		Body->SetMaterial(0, Paint);
 	}
 	const FRotator R = GetActorRotation();
-	State.Yaw = HALF_PI - FMath::DegreesToRadians(static_cast<double>(R.Yaw)); // rules yaw: forward (sin, cos) on (X, Y)
+	State.Yaw = UE_DOUBLE_HALF_PI - FMath::DegreesToRadians(static_cast<double>(R.Yaw)); // rules yaw: forward (sin, cos) on (X, Y)
 	State.Y = GetActorLocation().Z / VehCmPerM;
 }
 
@@ -130,6 +132,7 @@ void AWFVehicle::Enter(AWFCharacter* InDriver)
 	APlayerController* PC = InDriver ? Cast<APlayerController>(InDriver->GetController()) : nullptr;
 	if (!PC) return;
 	Driver = InDriver;
+	InDriver->SetInVehicle(true);
 	InDriver->SetActorHiddenInGame(true);
 	InDriver->SetActorEnableCollision(false);
 	InDriver->AttachToActor(this, FAttachmentTransformRules::KeepWorldTransform);
@@ -209,6 +212,7 @@ void AWFVehicle::Exit(const FInputActionValue& Value)
 	D->SetActorLocation(GetActorLocation() - GetActorRightVector() * (Box->GetUnscaledBoxExtent().Y + 120.f) + FVector(0, 0, 60), false, nullptr, ETeleportType::TeleportPhysics);
 	D->SetActorHiddenInGame(false);
 	D->SetActorEnableCollision(true);
+	D->SetInVehicle(false);
 	PC->Possess(D);
 	Driver.Reset();
 	if (UWFProgressionSubsystem* P = GetGameInstance()->GetSubsystem<UWFProgressionSubsystem>()) P->MutableGarage().Conditions[WFData::ToStd(Def.Id)] = Condition;
@@ -269,7 +273,7 @@ void AWFVehicle::Tick(float DeltaSeconds)
 		const double Lost = FMath::Abs(State.Speed) * 0.7;
 		State.Speed *= 0.3;
 		Condition = wf::vehicle::ImpactVehicle(Condition, Lost);
-		Notify(FString::Printf(TEXT("Impact - body %d%%  engine %d%%"), FMath::RoundToInt(Condition.Body), FMath::RoundToInt(Condition.Engine)), FLinearColor(1.f, 0.55f, 0.3f));
+		Notify(FString::Printf(TEXT("Impact - body %d%%  engine %d%%"), FMath::RoundToInt32(Condition.Body), FMath::RoundToInt32(Condition.Engine)), FLinearColor(1.f, 0.55f, 0.3f));
 	}
 	SetActorRotation(FRotator(static_cast<float>(FMath::RadiansToDegrees(State.Pitch)), static_cast<float>(90.0 - FMath::RadiansToDegrees(State.Yaw)), static_cast<float>(FMath::RadiansToDegrees(-State.Roll))));
 	if (UWFProgressionSubsystem* P = GetGameInstance()->GetSubsystem<UWFProgressionSubsystem>()) P->MutableGarage().Conditions[WFData::ToStd(Def.Id)] = Condition;

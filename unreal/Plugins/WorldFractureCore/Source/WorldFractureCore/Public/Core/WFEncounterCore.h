@@ -15,6 +15,8 @@
 // for the decoys it lists, and calls ResetEncounters when the player dies.
 #pragma once
 
+#include "Core/WFCoreApi.h"
+
 #include <map>
 #include <optional>
 #include <string>
@@ -29,9 +31,9 @@ namespace wf::encounter
 	{
 		double Poise = 0, StaggerUntil = 0, WeakPointUntil = 0;
 	};
-	FPoise DecayPoise(const FPoise& S, double Dt, double Now);
-	FPoise HitPoise(const FPoise& S, double PoiseDamage, double Now, double& OutDamageMult);
-	FPoise OpenWeakPoint(const FPoise& S, double Now);
+	WORLDFRACTURECORE_API FPoise DecayPoise(const FPoise& S, double Dt, double Now);
+	WORLDFRACTURECORE_API FPoise HitPoise(const FPoise& S, double PoiseDamage, double Now, double& OutDamageMult);
+	WORLDFRACTURECORE_API FPoise OpenWeakPoint(const FPoise& S, double Now);
 	inline bool IsStaggered(const FPoise& S, double Now) { return Now < S.StaggerUntil; }
 	inline bool IsWeakPointOpen(const FPoise& S, double Now) { return Now < S.WeakPointUntil; }
 
@@ -42,14 +44,14 @@ namespace wf::encounter
 		const char* Telegraph;
 		double SpeedMult, DamageMult, CooldownMult;
 	};
-	int PhaseForHpFraction(double Fraction);
-	const FPhaseTuning& TuningFor(int Phase);
+	WORLDFRACTURECORE_API int PhaseForHpFraction(double Fraction);
+	WORLDFRACTURECORE_API const FPhaseTuning& TuningFor(int Phase);
 
 	// ---- gimmicks (scenario-gimmicks.ts) ----
 	inline constexpr double AttuneSeconds = 9, CloseRange = 14, FarRange = 34;
 	inline constexpr size_t HistoryLength = 6;
-	std::string AttunedElement(double NowSec);
-	double GimmickMultiplier(const std::string& Gimmick, const std::string& Element, double NowSec, double Distance, std::vector<std::string>& InOutHistory);
+	WORLDFRACTURECORE_API std::string AttunedElement(double NowSec);
+	WORLDFRACTURECORE_API double GimmickMultiplier(const std::string& Gimmick, const std::string& Element, double NowSec, double Distance, std::vector<std::string>& InOutHistory);
 
 	// ---- authored encounters (scenario-encounters.ts) ----
 	struct FZoneSpec
@@ -106,13 +108,13 @@ namespace wf::encounter
 	{
 		std::map<std::string, FEncounterDef> Encounters;
 		std::map<std::string, FScenarioRule> Scenarios;
-		const FEncounterDef* Find(const std::string& Id) const;
+		WORLDFRACTURECORE_API const FEncounterDef* Find(const std::string& Id) const;
 	};
 
-	int PhaseIndexFor(const FEncounterDef& Def, double HpFraction);
-	bool InCircle(double Px, double Pz, double Cx, double Cz, double R);
-	double DistToSegment(double Px, double Pz, double Ax, double Az, double Bx, double Bz);
-	bool InFan(double Px, double Pz, double Ox, double Oz, double Tx, double Tz, double Arc, double Reach);
+	WORLDFRACTURECORE_API int PhaseIndexFor(const FEncounterDef& Def, double HpFraction);
+	WORLDFRACTURECORE_API bool InCircle(double Px, double Pz, double Cx, double Cz, double R);
+	WORLDFRACTURECORE_API double DistToSegment(double Px, double Pz, double Ax, double Az, double Bx, double Bz);
+	WORLDFRACTURECORE_API bool InFan(double Px, double Pz, double Ox, double Oz, double Tx, double Tz, double Arc, double Reach);
 
 	// ---- the fight ----
 	inline constexpr double EngageRange = 90;
@@ -194,21 +196,21 @@ namespace wf::encounter
 	};
 
 	/** encounter-sim.ts stepEncounters: every live boss with an authored encounter, then the zones. */
-	void StepEncounters(const FCatalog& C, std::vector<FBoss*>& Bosses, FArena& A, double Dt, double Px, double Pz, double Now);
+	WORLDFRACTURECORE_API void StepEncounters(const FCatalog& C, std::vector<FBoss*>& Bosses, FArena& A, double Dt, double Px, double Pz, double Now);
 	/** The hp a boss cannot be brought under until its finale window opens (0 = none). */
-	double EncounterHpFloor(const FCatalog& C, const FBoss& B, double Now);
+	WORLDFRACTURECORE_API double EncounterHpFloor(const FCatalog& C, const FBoss& B, double Now);
 	/** The player died: every encounter boss back to full health, phase 0 and its arena centre. */
-	void ResetEncounters(const FCatalog& C, std::vector<FBoss*>& Bosses, FArena& A, double Now);
+	WORLDFRACTURECORE_API void ResetEncounters(const FCatalog& C, std::vector<FBoss*>& Bosses, FArena& A, double Now);
 	/** The boss died: clear its zones and decoys, announce the victory. */
-	void EndEncounter(const FCatalog& C, const FBoss& B, FArena& A, double Now);
+	WORLDFRACTURECORE_API void EndEncounter(const FCatalog& C, const FBoss& B, FArena& A, double Now);
 	/** A False Saint was destroyed (no kill or loot); the last one exposes the real Saint. */
-	void OnDecoyShattered(const FCatalog& C, std::vector<FBoss*>& Bosses, FArena& A, double DecoyId, double Now);
+	WORLDFRACTURECORE_API void OnDecoyShattered(const FCatalog& C, std::vector<FBoss*>& Bosses, FArena& A, double DecoyId, double Now);
 
 	/** sim.ts applyMachineDamageMods, boss half: dmg already includes vulnerability; returns the damage to subtract. */
-	double ApplyBossDamage(const FCatalog& C, FBoss& B, double Dmg, const std::string& Element, double Distance, double Now);
+	WORLDFRACTURECORE_API double ApplyBossDamage(const FCatalog& C, FBoss& B, double Dmg, const std::string& Element, double Distance, double Now);
 	/** Regional boss phase step (sim.ts): decays poise; returns the new phase when it changed (its weak point opens). */
-	std::optional<int> StepRegionalPhase(FBoss& B, double Dt, double Now);
+	WORLDFRACTURECORE_API std::optional<int> StepRegionalPhase(FBoss& B, double Dt, double Now);
 
 	/** HUD: the attack being wound up and 0..1 progress, if any. */
-	bool WindupHud(const FCatalog& C, const FBoss& B, std::string& OutLabel, double& OutProgress);
+	WORLDFRACTURECORE_API bool WindupHud(const FCatalog& C, const FBoss& B, std::string& OutLabel, double& OutProgress);
 }

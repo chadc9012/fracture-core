@@ -1,5 +1,9 @@
 #include "WFGameMode.h"
 
+#include "Engine/GameInstance.h"
+#include "GameFramework/PlayerController.h"
+#include "Dom/JsonValue.h"
+
 #include "Components/DirectionalLightComponent.h"
 #include "Components/SkyLightComponent.h"
 #include "Components/StaticMeshComponent.h"
@@ -60,6 +64,7 @@ void AWFGameMode::EnsurePlayableWorld()
 			Sky->GetLightComponent()->SetMobility(EComponentMobility::Movable);
 			Sky->GetLightComponent()->SetIntensity(1.f);
 			Sky->GetLightComponent()->bRealTimeCapture = true;
+			Sky->GetLightComponent()->MarkRenderStateDirty(); // the component is already registered
 		}
 
 	// A floor under the player if the level has nothing to stand on.
@@ -347,7 +352,7 @@ void AWFGameMode::SpawnTrooper()
 	if (!World || !Player) return;
 
 	// A ring 25-45 m out, dropped onto the ground.
-	const float Angle = FMath::FRandRange(0.f, 2.f * PI);
+	const float Angle = FMath::FRandRange(0.f, 2.f * UE_PI);
 	const float Distance = FMath::FRandRange(2500.f, 4500.f);
 	const FVector Around = Player->GetActorLocation() + FVector(FMath::Cos(Angle) * Distance, FMath::Sin(Angle) * Distance, 0.f);
 	FHitResult Ground;

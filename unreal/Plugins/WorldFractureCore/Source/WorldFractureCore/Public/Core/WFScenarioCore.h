@@ -9,6 +9,8 @@
 // Every claim lives in the progression's EarnedRewards ledger, keyed exactly as the web build keys it, so saves agree.
 #pragma once
 
+#include "Core/WFCoreApi.h"
+
 #include "Core/WFProgression.h"
 
 #include <map>
@@ -61,25 +63,25 @@ namespace wf::scenario
 		EGrantStatus Status = EGrantStatus::Invalid;
 		std::vector<std::string> ItemIds; // what was granted (new, levelled or converted)
 	};
-	FGrantResult GrantScenarioReward(const FCatalog& C, FProgression P, const FClaim& Claim);
+	WORLDFRACTURECORE_API FGrantResult GrantScenarioReward(const FCatalog& C, FProgression P, const FClaim& Claim);
 
-	FProgression RecordEncounterClear(const FCatalog& C, FProgression P, const std::optional<std::string>& Class, const std::string& EncounterId);
+	WORLDFRACTURECORE_API FProgression RecordEncounterClear(const FCatalog& C, FProgression P, const std::optional<std::string>& Class, const std::string& EncounterId);
 
-	std::vector<FGearItem> DragoniteGear(const std::string& Class);
-	bool IsBonded(const FProgression& P, const std::optional<std::string>& Class);
+	WORLDFRACTURECORE_API std::vector<FGearItem> DragoniteGear(const std::string& Class);
+	WORLDFRACTURECORE_API bool IsBonded(const FProgression& P, const std::optional<std::string>& Class);
 	/** The Vyrak bond for the winning class: Dragonite set, 5 Dragonite, the class's covenant ability. Once per class. */
-	FProgression ClaimCovenant(const FCatalog& C, FProgression P, const std::optional<std::string>& Class, bool& bOutBonded);
+	WORLDFRACTURECORE_API FProgression ClaimCovenant(const FCatalog& C, FProgression P, const std::optional<std::string>& Class, bool& bOutBonded);
 
-	std::vector<std::string> ChallengesMet(const FClaim& Claim);
-	double ClearCount(const FProgression& P, const std::string& Class);
+	WORLDFRACTURECORE_API std::vector<std::string> ChallengesMet(const FClaim& Claim);
+	WORLDFRACTURECORE_API double ClearCount(const FProgression& P, const std::string& Class);
 	/** A Vyrak clear for this class: first is the bond; later ones pay 3 Dragonite and every 2nd a rolled Covenant piece; challenges once. */
-	FProgression RecordVyrakClear(const FCatalog& C, FProgression P, const std::optional<std::string>& Class, const std::string& RunId, const std::vector<std::string>& Challenges);
+	WORLDFRACTURECORE_API FProgression RecordVyrakClear(const FCatalog& C, FProgression P, const std::optional<std::string>& Class, const std::string& RunId, const std::vector<std::string>& Challenges);
 
 	/** activities.ts dayKeyUtc: "YYYY-MM-DD" of a UTC millisecond timestamp. */
-	std::string DayKeyUtc(double NowMs);
+	WORLDFRACTURECORE_API std::string DayKeyUtc(double NowMs);
 	/** activities.ts markCompleted: stamps an activity's last completion (starts its cooldown). */
-	FProgression MarkCompleted(FProgression P, const std::string& ActivityId, double NowMs);
+	WORLDFRACTURECORE_API FProgression MarkCompleted(FProgression P, const std::string& ActivityId, double NowMs);
 
 	/** claimDrops' scenario half, in the web build's order: loot, journal clear, then Vyrak's covenant and rematch stamp. */
-	FProgression ClaimScenario(const FCatalog& C, FProgression P, const FClaim& Claim, double NowMs);
+	WORLDFRACTURECORE_API FProgression ClaimScenario(const FCatalog& C, FProgression P, const FClaim& Claim, double NowMs);
 }

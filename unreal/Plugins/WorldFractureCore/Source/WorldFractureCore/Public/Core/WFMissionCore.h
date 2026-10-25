@@ -7,6 +7,8 @@
 // keyed "FROM>TO"), so the logic here never retypes story text. Golden-tested in Tests/MissionCoreTest.cpp.
 #pragma once
 
+#include "Core/WFCoreApi.h"
+
 #include <map>
 #include <optional>
 #include <string>
@@ -58,8 +60,8 @@ namespace wf::mission
 	{
 	public:
 		/** Field: nova | line | alert. Key: "FROM>TO", "FROM>TO:<faction>", or "alert:FROM>TO". */
-		void Add(const std::string& Mission, const std::string& Field, const std::string& Key, const std::string& Text);
-		const std::string* Find(const std::string& Mission, const std::string& Field, const std::string& Key) const;
+		WORLDFRACTURECORE_API void Add(const std::string& Mission, const std::string& Field, const std::string& Key, const std::string& Text);
+		WORLDFRACTURECORE_API const std::string* Find(const std::string& Mission, const std::string& Field, const std::string& Key) const;
 		size_t Num() const { return Lines.size(); }
 
 	private:
@@ -67,13 +69,13 @@ namespace wf::mission
 	};
 
 	/** The missions this core runs, in campaign order. */
-	const std::vector<std::string>& MissionIds();
-	bool IsKnown(const std::string& Id);
-	FRun Initial(const std::string& Id);
+	WORLDFRACTURECORE_API const std::vector<std::string>& MissionIds();
+	WORLDFRACTURECORE_API bool IsKnown(const std::string& Id);
+	WORLDFRACTURECORE_API FRun Initial(const std::string& Id);
 
 	/** One world event. Returns the run unchanged when the event doesn't apply to its state. */
-	FRun Advance(const FLines& Lines, const FContext& Context, const FRun& Run, const FEvent& Event);
+	WORLDFRACTURECORE_API FRun Advance(const FLines& Lines, const FContext& Context, const FRun& Run, const FEvent& Event);
 
 	/** Stable text for tests and logs (fields separated by \x1f). */
-	std::string Describe(const FRun& Run);
+	WORLDFRACTURECORE_API std::string Describe(const FRun& Run);
 }

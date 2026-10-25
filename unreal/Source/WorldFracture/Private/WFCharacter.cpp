@@ -1,5 +1,7 @@
 #include "WFCharacter.h"
 
+#include "Engine/GameInstance.h"
+
 #include "Camera/CameraComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "Components/StaticMeshComponent.h"
@@ -303,12 +305,12 @@ namespace
 		double DamageMods(std::vector<wf::dragoncast::FMachine>& Machines, size_t I, double Dmg, const std::string& Element, double X, double Z) override
 		{
 			(void)Machines; (void)X; (void)Z;
-			return Enemies[static_cast<int32>(I)]->ReceiveHit(Dmg, Player, WFData::ToF(Element)); // applies it; a kill pays as the player's
+			return Enemies[static_cast<int32>(I)]->TakeHit(Dmg, Player, WFData::ToF(Element)); // applies it; a kill pays as the player's
 		}
 		void Defeat(std::vector<wf::dragoncast::FMachine>& Machines, size_t I) override
 		{
 			const AWFEnemy* E = Enemies[static_cast<int32>(I)];
-			Machines[I].bAlive = !E->IsDead(); // the enemy already died (or held an encounter hp floor) in ReceiveHit
+			Machines[I].bAlive = !E->IsDead(); // the enemy already died (or held an encounter hp floor) in TakeHit
 			Machines[I].Hp = E->GetHealth();
 		}
 		void Alert(const std::string& Text) override { Alerts.Add(WFData::ToF(Text)); }
@@ -347,7 +349,7 @@ namespace
 	};
 
 	/** Rules yaw: forward is (sin yaw, cos yaw) on the (Unreal X, Unreal Y) plane, so yaw = 90 degrees - Unreal yaw. */
-	double RulesYaw(float UnrealYawDegrees) { return HALF_PI - FMath::DegreesToRadians(static_cast<double>(UnrealYawDegrees)); }
+	double RulesYaw(float UnrealYawDegrees) { return UE_DOUBLE_HALF_PI - FMath::DegreesToRadians(static_cast<double>(UnrealYawDegrees)); }
 }
 
 void AWFCharacter::CastAbility(const FString& Ability)
@@ -368,9 +370,9 @@ void AWFCharacter::CastAbility(const FString& Ability)
 		if (R.LaunchVy) LaunchCharacter(FVector(0, 0, *R.LaunchVy * CmPerMeter), false, true); // Wyrmwing launch
 		else if (Ability == TEXT("wyrmwing")) LaunchCharacter(GetActorForwardVector() * 18 * CmPerMeter, true, false); // air dash
 	}
-	const FLinearColor Violet(0.7f, 0.4f, 1.f), Warn(1.f, 0.55f, 0.3f);
+	const FLinearColor Violet(0.7f, 0.4f, 1.f), WarnColor(1.f, 0.55f, 0.3f);
 	if (!World.Alerts.IsEmpty()) for (const FString& A : World.Alerts) Notify(A, Violet);
-	else Notify(WFData::ToF(R.Text), R.bOk ? Violet : Warn);
+	else Notify(WFData::ToF(R.Text), R.bOk ? Violet : WarnColor);
 }
 
 void AWFCharacter::TickDragon(float DeltaSeconds)
@@ -528,6 +530,16 @@ void AWFCharacter::RepairVehicle()
 	Notify(Progression->RepairVehicle(WFData::ToF(*Progression->GetGarage().Selected)), FLinearColor(0.45f, 0.9f, 1.f));
 }
 
+void AWFCharacter::SetInVehicle(bool bIn)
+{
+	bInVehicle = bIn;
+	bFireHeld = false;
+	bAiming = false;
+	bSprinting = false;
+	if (bIn) GetCharacterMovement()->DisableMovement();
+	else GetCharacterMovement()->SetMovementMode(MOVE_Walking);
+}
+
 void AWFCharacter::UpgradeDragonite(const FString& Ability)
 {
 	if (UWFDragonSubsystem* Dragon = GetGameInstance()->GetSubsystem<UWFDragonSubsystem>())
@@ -542,7 +554,7 @@ void AWFCharacter::VyrakTrust(const FString& Kind, const FString& SourceId)
 	if (UWFDragonSubsystem* Dragon = GetGameInstance()->GetSubsystem<UWFDragonSubsystem>())
 	{
 		Dragon->RecordTrust(Kind, SourceId);
-		Notify(FString::Printf(TEXT("Vyrak trust %d / 100 - %s"), FMath::RoundToInt(Dragon->GetTrust()), *Dragon->GetTrustStageName()), FLinearColor(0.7f, 0.4f, 1.f));
+		Notify(FString::Printf(TEXT("Vyrak trust %d / 100 - %s"), FMath::RoundToInt32(Dragon->GetTrust()), *Dragon->GetTrustStageName()), FLinearColor(0.7f, 0.4f, 1.f));
 	}
 }
 
@@ -570,6 +582,7 @@ void AWFCharacter::EternalCovenant()
 void AWFCharacter::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
+	if (bInVehicle) return; // carried by a vehicle: hidden, not simulating
 	TickWeapon(DeltaSeconds);
 	TickDragon(DeltaSeconds);
 	if (bRiding) TickRide(DeltaSeconds);
@@ -648,7 +661,7 @@ void AWFCharacter::FireRound()
 		const bool bHit = World->LineTraceSingleByChannel(Hit, Start, End, ECC_Visibility, Params);
 		DrawDebugLine(World, Start + Dir * 60.f, bHit ? Hit.ImpactPoint : End, FColor(255, 214, 120), false, 0.05f, 0, 1.2f);
 		if (bHit)
-			if (AWFEnemy* Enemy = Cast<AWFEnemy>(Hit.GetActor())) Enemy->ReceiveHit(W->Damage * WFWeapons::BaseBulletDamage, this, W->Element);
+			if (AWFEnemy* Enemy = Cast<AWFEnemy>(Hit.GetActor())) Enemy->TakeHit(W->Damage * WFWeapons::BaseBulletDamage, this, W->Element);
 	}
 
 	// recoil: pitch kick in radians (weapons.ts), applied to the view

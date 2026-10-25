@@ -53,7 +53,7 @@ public:
 	virtual void PawnClientRestart() override;
 
 	/** The character gets in: it is hidden and carried; the controller drives this pawn. */
-	void Enter(AWFCharacter* Driver);
+	void Enter(AWFCharacter* InDriver);
 	const FWFVehicleDef& GetDef() const { return Def; }
 	const wf::vehicle::FState& GetState() const { return State; }
 	const wf::vehicle::FCondition& GetCondition() const { return Condition; }

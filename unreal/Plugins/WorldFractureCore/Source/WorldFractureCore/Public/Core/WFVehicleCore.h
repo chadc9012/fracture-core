@@ -10,6 +10,8 @@
 // The 14 vehicles' stats come from DataTables/Vehicles.json. Golden-tested (Tests/VehicleCoreTest.cpp).
 #pragma once
 
+#include "Core/WFCoreApi.h"
+
 #include "Core/WFProgression.h"
 
 #include <map>
@@ -30,9 +32,9 @@ namespace wf::vehicle
 		bool bPivot = false;
 		double Grip = 0.9, Takeoff = 0, Climb = 0, SafeExit = 6;
 	};
-	const FProfile& ProfileFor(const std::string& Kind);
+	WORLDFRACTURECORE_API const FProfile& ProfileFor(const std::string& Kind);
 	/** The handling kind of a vehicle id, falling back by domain (LAND AIR WATER AMPHIBIOUS SPACE). */
-	std::string KindFor(const std::string& VehicleId, const std::string& Domain);
+	WORLDFRACTURECORE_API std::string KindFor(const std::string& VehicleId, const std::string& Domain);
 	inline const FProfile& HandlingFor(const std::string& VehicleId, const std::string& Domain) { return ProfileFor(KindFor(VehicleId, Domain)); }
 
 	struct FInput
@@ -56,44 +58,44 @@ namespace wf::vehicle
 		bool bLanded = false, bHardLanding = false, bBlocked = false, bSkidding = false;
 	};
 	/** One frame. TopSpeed is the tuned max (TopSpeedFor) without the boost factor; Input.bBoost adds x1.4 here. */
-	FStepResult StepVehicle(const FProfile& P, const FState& St, const FInput& In, const FEnv& Env, double TopSpeed, double Dt);
+	WORLDFRACTURECORE_API FStepResult StepVehicle(const FProfile& P, const FState& St, const FInput& In, const FEnv& Env, double TopSpeed, double Dt);
 
 	struct FExitCheck
 	{
 		bool bOk = false;
 		std::string Reason;
 	};
-	FExitCheck CanExitVehicle(const FProfile& P, const FState& St, bool bDeepWater);
-	void VehicleCamera(const FProfile& P, double& OutDistance, double& OutHeight);
+	WORLDFRACTURECORE_API FExitCheck CanExitVehicle(const FProfile& P, const FState& St, bool bDeepWater);
+	WORLDFRACTURECORE_API void VehicleCamera(const FProfile& P, double& OutDistance, double& OutHeight);
 
-	std::string SurfaceAt(const std::string& RegionId, double Height, double WaterLevel);
-	double SurfaceGrip(const std::string& Surface, double Slope);
+	WORLDFRACTURECORE_API std::string SurfaceAt(const std::string& RegionId, double Height, double WaterLevel);
+	WORLDFRACTURECORE_API double SurfaceGrip(const std::string& Surface, double Slope);
 
 	struct FCondition
 	{
 		double Body = 0, Engine = 0, Tires = 0, Suspension = 0;
 	};
-	FCondition NormalizeCondition(const FCondition& C);
+	WORLDFRACTURECORE_API FCondition NormalizeCondition(const FCondition& C);
 	/** A collision that cost SpeedLost m/s. Mode: world | casual | competitive. */
-	FCondition ImpactVehicle(const FCondition& C, double SpeedLost, const std::string& Mode = "world");
+	WORLDFRACTURECORE_API FCondition ImpactVehicle(const FCondition& C, double SpeedLost, const std::string& Mode = "world");
 	struct FConditionEffects
 	{
 		double Speed = 1, Acceleration = 1, Grip = 1, Stability = 1;
 		bool bDisabled = false;
 	};
-	FConditionEffects ConditionEffects(const FCondition& C);
-	double RepairPrice(const FCondition& C);
-	FCondition RecoverVehicle(const FCondition& C, bool bCalm, bool bStopped);
+	WORLDFRACTURECORE_API FConditionEffects ConditionEffects(const FCondition& C);
+	WORLDFRACTURECORE_API double RepairPrice(const FCondition& C);
+	WORLDFRACTURECORE_API FCondition RecoverVehicle(const FCondition& C, bool bCalm, bool bStopped);
 	inline constexpr double RepairNexPerPoint = 3;
-	double RepairCost(const FCondition& C);
-	double NexBalance(const std::map<std::string, double>& Ledger);
+	WORLDFRACTURECORE_API double RepairCost(const FCondition& C);
+	WORLDFRACTURECORE_API double NexBalance(const std::map<std::string, double>& Ledger);
 	/** nex.ts spendNex: a new negative entry, or false (bad price, used id, not enough Nex). */
-	bool SpendNex(std::map<std::string, double>& Ledger, const std::string& Id, double Price);
+	WORLDFRACTURECORE_API bool SpendNex(std::map<std::string, double>& Ledger, const std::string& Id, double Price);
 
 	/** Scene.tsx: the vehicle's top speed before the boost factor stepVehicle applies itself. */
-	double TopSpeedFor(double BiomeGrip, double VehicleSpeedMod, double VehicleSpeed, std::optional<double> GearLevel, double DamageSpeed, double RaceSlow);
+	WORLDFRACTURECORE_API double TopSpeedFor(double BiomeGrip, double VehicleSpeedMod, double VehicleSpeed, std::optional<double> GearLevel, double DamageSpeed, double RaceSlow);
 	/** Scene.tsx venv.grip: surface grip x damage grip x stability x the vehicle's handling stat. */
-	double EnvGrip(double SurfaceGripValue, const FConditionEffects& Fx, double VehicleHandling);
+	WORLDFRACTURECORE_API double EnvGrip(double SurfaceGripValue, const FConditionEffects& Fx, double VehicleHandling);
 }
 
 namespace wf
@@ -109,8 +111,8 @@ namespace wf
 	};
 	namespace vehicle
 	{
-		FGarage RewardVehicle(FGarage G, const std::string& VehicleId);
+		WORLDFRACTURECORE_API FGarage RewardVehicle(FGarage G, const std::string& VehicleId);
 		/** vehicle-condition.ts repairVehicle: pays Nex to restore a vehicle; Error says why not. */
-		bool RepairVehicle(FGarage& G, std::map<std::string, double>& NexLedger, const std::string& VehicleId, double NowMs, std::string& OutMessage);
+		WORLDFRACTURECORE_API bool RepairVehicle(FGarage& G, std::map<std::string, double>& NexLedger, const std::string& VehicleId, double NowMs, std::string& OutMessage);
 	}
 }
