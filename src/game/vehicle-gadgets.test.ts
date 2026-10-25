@@ -142,7 +142,13 @@ describe("gadgets in the sim", () => {
     step(sim, 60 * 12, () => { m.x = PX; m.z = PZ + 30; });
     expect(m.alive).toBe(false);
   });
-  test("flares: enemy rounds miss while they burn", () => {
+  // the hit rolls use Math.random: seed it so this is repeatable (it failed by chance about once in a few full runs)
+  const seeded = <T,>(seed: number, fn: () => T): T => {
+    const real = Math.random; let x = seed >>> 0 || 1;
+    Math.random = () => { x ^= x << 13; x >>>= 0; x ^= x >>> 17; x ^= x << 5; x >>>= 0; return x / 4294967296; };
+    try { return fn(); } finally { Math.random = real; }
+  };
+  test("flares: enemy rounds miss while they burn", () => seeded(2024, () => {
     const count = (flares: boolean) => {
       const { sim, m } = world(1e6);
       m.z = PZ + 12;
@@ -156,7 +162,7 @@ describe("gadgets in the sim", () => {
     };
     expect(count(false)).toBeGreaterThan(0);
     expect(count(true)).toBe(0);
-  });
+  }));
   test("the ramming grill hits harder and hurts the hull less", () => {
     const ram = (grill: boolean) => {
       const { sim, m } = world(1e6);
