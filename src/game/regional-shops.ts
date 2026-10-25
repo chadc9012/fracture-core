@@ -96,8 +96,8 @@ export type ShopOffer =
 
 const WEAPON_LEVEL: Record<WeaponTier, number> = { T1: 1, T2: 3, T3: 6, T4: 9, T5: 12, S: 99 };
 const ARMOR_LEVEL: Record<ArmorTier, number> = { "T1-2": 1, "T3-4": 5, T5: 10, S: 99 };
-const WEAPON_PRICE: Record<WeaponTier, number> = { T1: 30, T2: 60, T3: 110, T4: 180, T5: 280, S: 0 };
-const ARMOR_PRICE: Record<ArmorTier, number> = { "T1-2": 25, "T3-4": 90, T5: 220, S: 0 };
+export const WEAPON_PRICE: Record<WeaponTier, number> = { T1: 30, T2: 80, T3: 180, T4: 360, T5: 700, S: 0 };
+export const ARMOR_PRICE: Record<ArmorTier, number> = { "T1-2": 25, "T3-4": 110, T5: 400, S: 0 };
 const WEAPON_POWER: Record<WeaponTier, number> = { T1: 90, T2: 140, T3: 190, T4: 260, T5: 340, S: 420 };
 const ARMOR_POWER: Record<ArmorTier, number> = { "T1-2": 90, "T3-4": 150, T5: 240, S: 340 };
 

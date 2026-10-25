@@ -15,6 +15,7 @@ import type { Gimmick } from "./scenario-gimmicks";
 import { THALASSIA_CENTER } from "./thalassia-site";
 import { VYRAK } from "./dragon-covenant";
 import { NEON_CENTER } from "./living-world";
+import { HOLLOW_STAR_SITE } from "./hollow-star-site";
 
 export type UniqueScenario = {
   id: string;
@@ -307,7 +308,7 @@ export const UNIQUE_SCENARIOS: readonly UniqueScenario[] = [
     tell: "The star in its chest flares violet-white and the arena lights lean toward it before every strike.",
     outsideWindowMult: 0.1,
     rewardCredits: 6000,
-    lairAt: { x: 48, z: -68 },
+    lairAt: { x: HOLLOW_STAR_SITE.x, z: HOLLOW_STAR_SITE.z },
     mapRegion: "nexus",
   },
 ];

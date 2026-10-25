@@ -49,7 +49,7 @@ describe("Astravore in the world", () => {
     expect(Math.hypot(lair.x - NEON_SITE.x, lair.z - NEON_SITE.z)).toBeGreaterThan(NEON_FLAT + 40);
     let lo = 1e9, hi = -1e9;
     for (let i = 0; i < 16; i++) { const h = heightAt(lair.x + 60 * Math.cos(i * 0.3927), lair.z + 60 * Math.sin(i * 0.3927)); lo = Math.min(lo, h); hi = Math.max(hi, h); }
-    expect(hi - lo, "the 60 m arena disc should sit on level ground").toBeLessThan(3);
+    expect(hi - lo, "the arena is graded level (terrain.ts hollowStarWeight)").toBeLessThan(0.5);
   });
   it("has hidden-discovery clues, and a fight whose phases match the raid design", () => {
     expect(cluesFor("astravore").length).toBeGreaterThanOrEqual(4);

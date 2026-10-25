@@ -21,10 +21,10 @@ export const VENDOR_DEFS: readonly VendorDef[] = [
 
 const WEAPON_TIER_INDEX: Record<WeaponTier, number> = { T1: 0, T2: 1, T3: 2, T4: 3, T5: 4, S: 5 };
 const ARMOR_TIER_INDEX: Record<ArmorTier, number> = { "T1-2": 0, "T3-4": 1, T5: 2, S: 3 };
-const CREDIT_PRICE = [150, 320, 650, 1200, 2000, 3400] as const;
+export const CREDIT_PRICE = [150, 400, 1000, 2400, 5500, 11000] as const; // T1..S: steep like a real arms market (T5 is ~35x a T1)
 const DATA_PRICE = [4, 7, 11, 16, 22, 30] as const;
 const CORE_PRICE = [1, 1, 2, 3, 4, 6] as const;
-const ARMOR_CREDIT_PRICE = [140, 600, 1800, 3200] as const;
+export const ARMOR_CREDIT_PRICE = [140, 700, 2400, 5000] as const;
 const ARMOR_DATA_PRICE = [4, 10, 20, 28] as const;
 const ARMOR_CORE_PRICE = [1, 2, 4, 6] as const;
 const WEAPON_POWER = [90, 140, 190, 260, 340, 420] as const;
