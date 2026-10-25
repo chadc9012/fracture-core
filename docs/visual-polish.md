@@ -99,3 +99,5 @@ Found by looking at the game on the owner's laptop, fixed, and (where the previe
 Trailer shots built: shard-gain burst (`ShardGainFx`), skyline lookout above Nexus (`SkylineLookout`).
 
 Open, for the owner to decide: the jungle-reclaimed city ruins from the trailer (no site on the map boards for it), the 52 m floating region-name labels (world-space text vs the gritty-realistic look; `zoneLabels` setting), and the soft billboard cloud puffs (`CloudLayer`) next to the analytic cloud dome.
+
+Owner answers (Oct 24, asked directly): keep the floating region-name labels as they are; no jungle-reclaimed city ruins site for now.
