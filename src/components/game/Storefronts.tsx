@@ -15,6 +15,7 @@ import { corrugatedSheet, rollerShutter } from "@/game/street-geometry";
 const wfCache = new Map<string, THREE.BufferGeometry>();
 const wfGeo = (key: string, make: () => THREE.BufferGeometry) => { let g = wfCache.get(key); if (!g) { g = make(); wfCache.set(key, g); } return g; };
 const WF = {
+  wall: (w: number, h: number, d: number) => wfGeo(`w${w}x${h}x${d}`, () => chippedBlock(w, h, d, Math.round(w * 7 + d * 3))),
   pillar: (h: number) => wfGeo(`p${h}`, () => chippedBlock(1.2, h, 0.3, 5)),
   header: (w: number) => wfGeo(`h${w}`, () => chippedBlock(w, 1, 0.3, 8)),
   shutter: (w: number) => wfGeo(`s${w}`, () => rollerShutter(w - 2.4, 0.55)),
@@ -38,16 +39,14 @@ function Storefront({ shop, y }: { shop: RegionalShop; y: number }) {
   const cz = (frontZ + backZ) / 2; // building centre between front and back walls
   return (
     <group position={[shop.x, y, shop.z]}>
-      <mesh position={[0, h / 2, backZ]} castShadow receiveShadow material={shellMaterial()}><boxGeometry args={[w, h, 0.3]} /></mesh>
-      <mesh position={[-w / 2, h / 2, cz]} castShadow receiveShadow material={shellMaterial()}><boxGeometry args={[0.3, h, d]} /></mesh>
-      <mesh position={[w / 2, h / 2, cz]} castShadow receiveShadow material={shellMaterial()}><boxGeometry args={[0.3, h, d]} /></mesh>
+      <mesh position={[0, h / 2, backZ]} castShadow receiveShadow material={shellMaterial()} geometry={WF.wall(w, h, 0.3)} />
+      <mesh position={[-w / 2, h / 2, cz]} castShadow receiveShadow material={shellMaterial()} geometry={WF.wall(0.3, h, d)} />
+      <mesh position={[w / 2, h / 2, cz]} castShadow receiveShadow material={shellMaterial()} geometry={WF.wall(0.3, h, d)} />
       {/* front wall in two pieces + lintel: the gap between them is the door */}
       {[-1, 1].map((s) => (
-        <mesh key={s} position={[s * (doorW / 2 + (w - doorW) / 4), h / 2, frontZ]} castShadow receiveShadow material={shellMaterial()}>
-          <boxGeometry args={[(w - doorW) / 2, h, 0.3]} />
-        </mesh>
+        <mesh key={s} position={[s * (doorW / 2 + (w - doorW) / 4), h / 2, frontZ]} castShadow receiveShadow material={shellMaterial()} geometry={WF.wall((w - doorW) / 2, h, 0.3)} />
       ))}
-      <mesh position={[0, 2.6 + (h - 2.6) / 2, frontZ]} castShadow material={shellMaterial()}><boxGeometry args={[doorW, h - 2.6, 0.3]} /></mesh>
+      <mesh position={[0, 2.6 + (h - 2.6) / 2, frontZ]} castShadow material={shellMaterial()} geometry={WF.wall(doorW, h - 2.6, 0.3)} />
       <mesh position={[0, h + 0.15, cz]} castShadow><boxGeometry args={[w + 0.4, 0.3, d + 0.4]} /><meshStandardMaterial color="#161b22" metalness={0.6} roughness={0.4} /></mesh>
       {/* the doorway glows faintly with the shop's kind colour — you can't see the pocket room, but it reads as open */}
       <mesh position={[0, 1.3, frontZ - 0.1]}><planeGeometry args={[doorW - 0.15, 2.5]} /><meshBasicMaterial color={color} transparent opacity={0.14} side={2} depthWrite={false} /></mesh>
