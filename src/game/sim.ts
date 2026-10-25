@@ -7,6 +7,7 @@ import { createEnvState, STRIKE_MACHINE_DAMAGE, STRIKE_PLAYER_DAMAGE, type EnvSt
 import { squadMove, squadRole } from "./enemy-intelligence";
 import { createAi, pickCover, shouldTakeCover, sightRange, stepAwareness, type EnemyAi } from "./enemy-perception";
 import { enemyHitChance, sightLine } from "./line-of-sight";
+import { COVER_CHEST, COVER_HOLD, coverCandidates, coverPhase, findCover, HIDE_SECONDS } from "./enemy-cover";
 import { registeredModelSolids } from "./environment-collision";
 /** seconds between line-of-sight refreshes per machine */
 const LOS_REFRESH = 0.25;
@@ -1589,31 +1590,24 @@ export function stepSim(sim: WorldSim, input: SimInput) {
     const aiState = forced && d < aggro ? (ai.state = "ALERT", ai.awareness = 1, ai.lastX = px, ai.lastZ = pz, "ALERT")
       : stepAwareness(ai, { distance: d, sight, noise: Math.min(1, (sim.playerNoise ?? 0) + sim.combatHeat / 120), damaged, facing: facingDot > 0.3, inView }, px, pz, dt);
     if (aiState === "ALERT" && ai.coverTime <= 0 && shouldTakeCover(m.hp / Math.max(1, m.maxHp ?? (m.elite ? 6 : 3)), ai.coverTime, m.boss) && d < 45 && damaged) {
-      const c = pickCover(m.x, m.z, px, pz, i % 2 ? 1 : -1);
-      ai.coverX = c.x; ai.coverZ = c.z; ai.coverTime = 3.5;
+      // real cover first (enemy-cover.ts): behind a rock, wreck, wall or building the player cannot see through
+      const near = coverCandidates(queryObstacles(m.x, m.z), registeredModelSolids(), walkHeight);
+      const real = near.length ? findCover(m.x, m.z, { x: px, y: playerEye, z: pz }, near, { ground: walkHeight, obstaclesNear: queryObstacles, solids: registeredModelSolids() }) : null;
+      if (real) { ai.coverX = real.x; ai.coverZ = real.z; ai.peekX = real.peekX; ai.peekZ = real.peekZ; ai.hideLeft = HIDE_SECONDS; ai.coverTime = COVER_HOLD; m.aim = 0; }
+      else { const c = pickCover(m.x, m.z, px, pz, i % 2 ? 1 : -1); ai.coverX = c.x; ai.coverZ = c.z; delete ai.peekX; delete ai.peekZ; ai.coverTime = 3.5; }
     }
     ai.coverTime -= dt;
+    // the player walked round the cover: it no longer hides anything, break off and fight
+    if (ai.peekX !== undefined && ai.coverTime > 0 && (ai.hideLeft ?? 0) > 0 && (m.aim ?? 0) <= 0 && Math.hypot(ai.coverX - m.x, ai.coverZ - m.z) < 0.6
+      && !sightLine({ x: px, y: playerEye, z: pz }, { x: m.x, y: walkHeight(m.x, m.z) + COVER_CHEST, z: m.z }, { ground: walkHeight, obstaclesNear: queryObstacles, solids: registeredModelSolids() }).blocked) ai.coverTime = 0;
 
-    if (aiState === "ALERT" && ai.coverTime > 1.2) {
-      // break line of fire: sprint to cover, no shooting while relocating
-      const cx = ai.coverX - m.x, cz = ai.coverZ - m.z, cd = Math.hypot(cx, cz);
-      if (cd > 1.5) { m.x += (cx / cd) * speed * 1.25 * dt; m.z += (cz / cd) * speed * 1.25 * dt; m.rot = Math.atan2(cx, cz); }
-      else m.rot = Math.atan2(dx, dz);
-      m.cool = Math.max(m.cool, 0.4);
-    } else if (aiState === "ALERT") {
-      // squad role + threat drive positioning instead of a straight chase
-      const i = sim.machines.indexOf(m);
-      const move = squadMove(squadRole(i, m.elite, m.boss), d, sim.hp / 100, sim.combatHeat, performance.now() / 1000 + i, sim.mods.squadArchetype, sim.mods.rangedHoldFire, sim.mods.branchPosture);
-      const nx = dx / d, nz = dz / d;
-      m.x += (nx * move.forward + -nz * move.strafe) * speed * dt;
-      m.z += (nz * move.forward + nx * move.strafe) * speed * dt;
-      m.rot = Math.atan2(dx, dz);
-      m.cool -= dt;
+    // shared engage step: melee up close, resolve a wind-up, or start one (ranged fire is resolved against the line of sight)
+    const engage = () => {
       if (!scripted && d < 6 && m.cool <= 0) {
         m.cool = ENEMY_TUNING.meleeCooldown * (bossTuning?.cooldownMult ?? 1);
         sim.combatHeat += 2;
         sim.lastHitBy = { profile: m.profile, zone: m.zone, elite: m.elite, boss: m.boss, nemesis: m.nemesis };
-         hurtPlayer(sim, ((m.boss ? 17 : m.elite ? 12 : 7) * (bossTuning?.damageMult ?? 1) * (m.nemesisDamage ?? 1)) / sim.mods.hullDurability, m.profile);
+        hurtPlayer(sim, ((m.boss ? 17 : m.elite ? 12 : 7) * (bossTuning?.damageMult ?? 1) * (m.nemesisDamage ?? 1)) / sim.mods.hullDurability, m.profile);
         // machines besieging Nexus chew the city core
         if (Math.hypot(m.x - byId("nexus").x, m.z - byId("nexus").z) < byId("nexus").radius) {
           sim.coreHp = Math.max(0, sim.coreHp - 2);
@@ -1630,12 +1624,43 @@ export function stepSim(sim: WorldSim, input: SimInput) {
           sim.enemyShots.push({ x: m.x, z: m.z, kind: m.kind, boss: m.boss, elite: m.elite, zone: m.zone, slot: sim.machines.indexOf(m), hit, ...(blocked ? { blockAt: blocked } : {}) });
           if (sim.enemyShots.length > 24) sim.enemyShots.shift();
           if (hit) { sim.lastHitBy = { profile: m.profile, zone: m.zone, elite: m.elite, boss: m.boss, nemesis: m.nemesis }; hurtPlayer(sim, ((m.boss ? 6 : m.elite ? 4 : 2) * (bossTuning?.damageMult ?? 1) * (m.nemesisDamage ?? 1)) / sim.mods.hullDurability, m.profile); }
+          ai.hideLeft = HIDE_SECONDS; // from cover: duck back after the shot
         }
       } else if (!scripted && d < ENEMY_TUNING.rangedRange && m.cool <= 0 && (m.boss || aimTickets < MAX_AIMING)) {
         // ranged suppressing fire: take a ticket and start the telegraph; elites/bosses wind up faster
         m.aim = windupFor(m);
         aimTickets++;
       }
+    };
+
+    if (aiState === "ALERT" && ai.coverTime > 0 && ai.peekX !== undefined && ai.peekZ !== undefined) {
+      // fighting from real cover: run there, then hide, lean out to fire, duck back
+      const atCover = Math.hypot(ai.coverX - m.x, ai.coverZ - m.z) < 1.5 || Math.hypot(ai.peekX - m.x, ai.peekZ - m.z) < 1.2;
+      const phase = atCover ? coverPhase(ai.hideLeft ?? 0, (m.aim ?? 0) > 0, m.cool) : "RUN";
+      const tx = phase === "PEEK" ? ai.peekX : ai.coverX, tz = phase === "PEEK" ? ai.peekZ : ai.coverZ;
+      const cx = tx - m.x, cz = tz - m.z, cd = Math.hypot(cx, cz);
+      if (cd > 0.4) { const k = phase === "RUN" ? 1.25 : 0.8; m.x += (cx / cd) * Math.min(cd / dt, speed * k) * dt; m.z += (cz / cd) * Math.min(cd / dt, speed * k) * dt; }
+      m.rot = phase === "RUN" ? Math.atan2(cx, cz) : Math.atan2(dx, dz);
+      if (phase === "HIDE") ai.hideLeft = Math.max(0, (ai.hideLeft ?? 0) - dt);
+      m.cool -= dt;
+      if (phase === "PEEK" && cd < 0.6) engage();
+      else if (phase === "RUN") m.cool = Math.max(m.cool, 0.4);
+    } else if (aiState === "ALERT" && ai.coverTime > 1.2) {
+      // break line of fire: sprint to cover, no shooting while relocating
+      const cx = ai.coverX - m.x, cz = ai.coverZ - m.z, cd = Math.hypot(cx, cz);
+      if (cd > 1.5) { m.x += (cx / cd) * speed * 1.25 * dt; m.z += (cz / cd) * speed * 1.25 * dt; m.rot = Math.atan2(cx, cz); }
+      else m.rot = Math.atan2(dx, dz);
+      m.cool = Math.max(m.cool, 0.4);
+    } else if (aiState === "ALERT") {
+      // squad role + threat drive positioning instead of a straight chase
+      const i = sim.machines.indexOf(m);
+      const move = squadMove(squadRole(i, m.elite, m.boss), d, sim.hp / 100, sim.combatHeat, performance.now() / 1000 + i, sim.mods.squadArchetype, sim.mods.rangedHoldFire, sim.mods.branchPosture);
+      const nx = dx / d, nz = dz / d;
+      m.x += (nx * move.forward + -nz * move.strafe) * speed * dt;
+      m.z += (nz * move.forward + nx * move.strafe) * speed * dt;
+      m.rot = Math.atan2(dx, dz);
+      m.cool -= dt;
+      engage();
     } else if (aiState === "SUSPICIOUS" || aiState === "SEARCH") {
       // investigate last known position; turn to face it, move cautiously
       const lx = ai.lastX - m.x, lz = ai.lastZ - m.z, ld = Math.hypot(lx, lz);

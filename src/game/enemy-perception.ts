@@ -22,6 +22,10 @@ export type EnemyAi = {
   coverX: number;
   coverZ: number;
   coverTime: number;
+  /** real cover (enemy-cover.ts): where to lean out from, and how long to stay hidden before the next lean */
+  peekX?: number;
+  peekZ?: number;
+  hideLeft?: number;
   lastHp: number;
 };
 
