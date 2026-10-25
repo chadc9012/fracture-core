@@ -147,6 +147,9 @@ const IDLE_LINES: Record<string, string[]> = {
   ],
 };
 
+/** said to a Starbreaker (Raid 01 first clear) on alternating revisits, so it lands without becoming the only thing anyone says */
+export const STARBREAKER_LINE = "Starbreaker. The ground has been still since you went down there. Whatever you need, it's yours.";
+
 /**
  * Picks what an interior's NPC has to say on a revisit, in priority order: a severe zone-instability
  * warning, a faction-control shift, a light nod to whatever Fracture Descent quest is active, a milder
@@ -154,7 +157,7 @@ const IDLE_LINES: Record<string, string[]> = {
  */
 export function revisitDialogueFor(
   interiorId: string,
-  ctx: { questTitle: string | null; zoneTier: InstabilityTier; owner: Faction; regionId: string; visitCount: number },
+  ctx: { questTitle: string | null; zoneTier: InstabilityTier; owner: Faction; regionId: string; visitCount: number; starbreaker?: boolean },
 ): DialogueLine[] | null {
   const speaker = SPEAKER[interiorId];
   if (!speaker) return null;
@@ -163,6 +166,7 @@ export function revisitDialogueFor(
     const line = SEVERE_LINE[interiorId];
     if (line) return [{ speaker, text: line }];
   }
+  if (ctx.starbreaker && ctx.visitCount % 2 === 1) return [{ speaker, text: STARBREAKER_LINE }];
   const startingOwner = STARTING_OWNER[ctx.regionId];
   if (startingOwner && ctx.owner !== startingOwner) {
     return [factionShiftLine(speaker, ctx.owner)];

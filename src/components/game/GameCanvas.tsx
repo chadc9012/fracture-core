@@ -1,5 +1,5 @@
 import "./text-font";
-import { ASTRAVORE_SCENARIO_ID, applyAstravoreKill } from "@/game/hollow-star-raid";
+import { ASTRAVORE_SCENARIO_ID, applyAstravoreKill, hasStarbreaker } from "@/game/hollow-star-raid";
 import { FOUND_KEY as STORM_FOUND, stormPrompt, stormStep } from "@/game/storm-quests";
 import { DANCE_VENUES, danceBest, recordDance } from "@/game/dance";
 import { DanceFloor } from "./DanceFloor";
@@ -939,6 +939,7 @@ export function GameCanvas() {
             owner: hud.owner,
             regionId: hud.regionId,
             visitCount: visits,
+            starbreaker: hasStarbreaker(progression),
           });
     if (!lines) return;
     visitCounts.current.set(hud.insideInterior, visits + 1);
