@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
+#include "Core/WFDragonCore.h"
 #include "WFWeapons.h"
 #include "WFCharacter.generated.h"
 
@@ -40,6 +41,16 @@ public:
 	int32 GetAmmoReserve() const { return Reserve.IsValidIndex(WeaponIndex) ? Reserve[WeaponIndex] : 0; }
 	bool IsReloading() const { return ReloadLeft > 0; }
 	const FString& GetLastDamageSource() const { return LastDamageSource; }
+	bool IsRiding() const { return bRiding; }
+	double GetRideSpeed() const { return Flight.Speed; }
+
+	// Console commands for the dragon progression (no menu yet)
+	/** UpgradeDragonite dragonfire|wyrmwing|dragonhide|wyrmcall|roar|scalebreaker|skyfall */
+	UFUNCTION(Exec) void UpgradeDragonite(const FString& Ability);
+	/** VyrakTrust ruin|puzzle|protect <id> */
+	UFUNCTION(Exec) void VyrakTrust(const FString& Kind, const FString& SourceId);
+	UFUNCTION(Exec) void AncientBond();
+	UFUNCTION(Exec) void EternalCovenant();
 
 	// health.ts
 	static constexpr double MaxHealth = 100;
@@ -69,6 +80,11 @@ private:
 	void DevFinishQuest(const FInputActionValue& Value);
 	void CycleClass(const FInputActionValue& Value);
 	void SummonScenario(const FInputActionValue& Value);
+	void CastWyrmcall(const FInputActionValue& Value);
+	void ToggleRide(const FInputActionValue& Value);
+	void TickDragon(float DeltaSeconds);
+	void TickRide(float DeltaSeconds);
+	void Notify(const FString& Text, const FLinearColor& Color) const;
 
 	void TickWeapon(float DeltaSeconds);
 	void FireRound();
@@ -89,6 +105,14 @@ private:
 	UPROPERTY() TObjectPtr<UInputAction> DevQuestAction;
 	UPROPERTY() TObjectPtr<UInputAction> ClassAction;
 	UPROPERTY() TObjectPtr<UInputAction> ScenarioAction;
+	UPROPERTY() TObjectPtr<UInputAction> WyrmAction;
+	UPROPERTY() TObjectPtr<UInputAction> RideAction;
+	/** Stand-in mount under the Operator while riding, until Vyrak's model is imported. */
+	UPROPERTY(VisibleAnywhere, Category = "Dragon") TObjectPtr<UStaticMeshComponent> MountMesh;
+
+	bool bRiding = false;
+	wf::dragon::FFlight Flight;
+	FVector2D RideInput = FVector2D::ZeroVector; // A/D turn, W/S throttle, gathered from Move each frame
 
 	TArray<FWFWeaponStats> Weapons;
 	TArray<int32> Ammo;

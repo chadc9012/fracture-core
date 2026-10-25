@@ -24,7 +24,9 @@ unreal/
    `WorldFractureEditor` (Development Editor, Win64), then run.
 3. Press Play. The game loads `DataTables/*.json` directly, so no import step is needed. Controls: WASD, mouse,
    Space/C jump, Shift sprint, LMB fire, RMB aim, R/G reload, 1-5 / wheel weapons, F5 save, F6 cycle Operator class
-   (Titan / Hunter / Warlock), F8 summon a Unique Scenario boss, F9 finish the active quest.
+   (Titan / Hunter / Warlock), F7 Wyrmcall, V ride Vyrak, F8 summon a Unique Scenario boss, F9 finish the active quest.
+   Console (~): `UpgradeDragonite <ability>`, `VyrakTrust ruin|puzzle|protect <id>`, `AncientBond`, `EternalCovenant`,
+   `SpawnScenarioBoss <id>`.
 
 The default level is the engine's template map; the game mode adds a floor and lights if a level has none.
 
@@ -40,6 +42,13 @@ The default level is the engine's template map; the game mode adds a floor and l
   encounter journal, and Vyrak clears pay the per-class covenant bond, Dragonite, rolled Covenant pieces and the
   measurable challenges, stamping the rematch cooldown. Scenario gimmicks and Vyrak's three phases are not in yet:
   they fight as plain bosses.
+- **Vyrak and Dragonite (per class):** ability upgrades for Dragonite (3/6/10/15) and every ability's numbers from
+  upgrades and worn Covenant armor; trust from challenges, encounters, ruins, puzzles and protected runs with its
+  stages; the Ancient Bond (unlocks riding, Wingmantle) and Eternal Covenant (Eternal Crest) ceremonies; Wyrmcall (F7)
+  runs the ported ally state machine and its strafes, breath, interrupts and boss finisher hit real enemies; riding
+  (V) uses the ported flight model with terrain skimming and the no-fly rules (Nexus, Neon, dungeons, missions,
+  indoors). The other six Dragonite casts, ability energy, and Vyrak's model and voice lines are not in yet; the
+  mount is a stand-in block.
 - **Quests:** the Fracture Descent chain (fd-01 to fd-18) with world unlocks and corruption.
 - **Missions:** all twelve story mission machines with their NOVA lines. A finished mission pays once through the
   ported rewardMission / applyMissionCompletion (XP, materials, loot box, first-clear weapon and campaign exotic, armor
@@ -57,15 +66,16 @@ cmake -S . -B build -G Ninja && cmake --build build && ctest --test-dir build --
 | RewardCoreTest | sim.ts defeatMachine, inventory.ts claimDrops, xp.ts grantXP (Math.random replayed) incl. 18 scenarios + Vyrak covenant | 754 kills (319 scenario), 2,936 checks |
 | MissionCoreTest | src/game/missions/* (12 machines) | 28,800 states |
 | MissionRewardCoreTest | progression.ts rewardMission, persistence.ts applyMissionCompletion | 1,224 payouts, 1,576 checks |
+| DragonCoreTest | dragonite.ts, dragonite-cast.ts statsFor, vyrak-trust.ts | 2,099 states, 23,789 checks |
 
 Regenerate goldens after changing the web build's rules (from the repo root):
 
     npx esbuild unreal/tools/<tool>.ts --bundle --platform=node --format=esm --alias:@=./src --outfile=/tmp/t.mjs && node /tmp/t.mjs
 
-for `export-datatables`, `gen-quest-golden`, `gen-reward-golden`, `gen-mission-golden`, `gen-missionreward-golden`.
+for `export-datatables`, `gen-quest-golden`, `gen-reward-golden`, `gen-mission-golden`, `gen-missionreward-golden`, `gen-dragon-golden`.
 
 ## Not ported yet
-Unique Scenario fights (gimmicks, Vyrak's three phases), Dragonite upgrades, the Wyrmling and dragon riding (rewardMission/applyMissionCompletion) and mid-mission saves, abilities (Q/E/R),
+Unique Scenario fights (gimmicks, Vyrak's three phases), the six other Dragonite casts and ability energy, mid-mission saves, abilities (Q/E/R),
 armor effects on combat, enemy perception/cover/line-of-sight, launchers and the sword, vehicles and racing,
 merchants and housing, cloud save merge, the world itself (regions, Neon City, Thalassia). Their data is already in
 `DataTables/`.

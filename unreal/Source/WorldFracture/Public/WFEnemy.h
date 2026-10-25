@@ -35,6 +35,11 @@ public:
 	void ReceiveHit(double Damage, AActor* Instigator);
 	bool IsDead() const { return Health <= 0; }
 	const FString& GetProfile() const { return Profile; }
+	bool IsBoss() const { return bBoss; }
+	/** Telegraphing a shot (the Wyrm interrupts these first). */
+	bool IsWindingUp() const { return Windup >= 0; }
+	/** Cancels the wind-up and stuns (Wyrm interrupt, sim.ts stunMachine). */
+	void Interrupt(double Seconds) { Windup = -1; StunLeft = FMath::Max(StunLeft, Seconds); }
 
 	/** Fixed for the simplified ranged model (see class comment). */
 	static constexpr double RangedHitChance = 0.4;
@@ -61,6 +66,7 @@ private:
 	double MeleeCooldown = 0;
 	double SincePlayerHit = 1000; // seconds since the player last damaged it (sim.ts kill-credit window)
 	FString ScenarioId;
+	double StunLeft = 0;
 	FString ScenarioRun;
 	int32 PlayerHits = 0;
 	double SummonedAt = 0;        // world seconds

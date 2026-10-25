@@ -85,6 +85,7 @@ void AWFEnemy::Tick(float DeltaSeconds)
 	Super::Tick(DeltaSeconds);
 	if (IsDead()) return;
 	SincePlayerHit += DeltaSeconds;
+	if (StunLeft > 0) { StunLeft -= DeltaSeconds; return; }
 	AWFCharacter* Player = Cast<AWFCharacter>(UGameplayStatics::GetPlayerPawn(this, 0));
 	if (!Player) return;
 
