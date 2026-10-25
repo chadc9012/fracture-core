@@ -11,6 +11,7 @@ import { getPin, pinAt, pinFromMarker, setPin, subscribePin } from "@/game/map-p
 import { REGIONAL_SHOPS, SHOP_KIND_LABEL, shopLock } from "@/game/regional-shops";
 import { CITY_DESTINATIONS, dropPoint } from "@/game/destinations";
 import { DESTINATIONS, FILTER_LABEL, cityDistricts, destinationActivities, destinationById, destinationFleet, destinationGarages, destinationHomes, destinationResidences, destinationShops, destinationSummary, discoveredSites, matchesFilter, type CityDistrict, type Destination, type DestinationSummary, type DirectorFilter } from "@/game/destination-director";
+import { fleetNexPrice } from "@/game/market-prices";
 import { GARAGES, buyFleetVehicle, buyGarage, setActiveFleet } from "@/game/fleet";
 import { shopAccessKind } from "@/game/shop-access";
 import { MATERIALS, type MaterialId } from "@/game/inventory";
@@ -252,7 +253,7 @@ export function DestinationView({ dest, progression, phase, markers, px, pz, onP
             <div className="mt-2 flex items-center justify-between gap-2"><span className="font-mono text-[11px] text-amber-300">{fmtCost(g.cost)}</span>{ownedBase ? <span className="font-mono text-[10px] uppercase text-primary">Owned</span> : <Button size="sm" className="rounded-none" disabled={!onProgression} onClick={() => act(buyGarage(progression, gid))}>Buy base</Button>}</div></div>
           <ul className="mt-1 space-y-1">{fleet.filter((f) => f.garage === gid).map((f) => { const owned = fleetState.owned.includes(f.id); return <li key={f.id} className="border border-foreground/15 bg-background/60 p-3">
             <p className="ui-kicker">{f.category.toLowerCase()} · {f.ability}</p><strong className="block text-sm">{f.name}</strong><p className="text-xs text-muted-foreground">{f.hardpoints.join(" · ")}</p>
-            <div className="mt-2 flex items-center justify-between gap-2"><span className="font-mono text-[11px] text-amber-300">{fmtCost(f.cost)}</span>
+            <div className="mt-2 flex items-center justify-between gap-2"><span className="font-mono text-[11px] text-amber-300">{fleetNexPrice(f.id).toLocaleString()} Nex · {fmtCost(f.cost)}</span>
               {owned ? (fleetState.active === f.id ? <span className="font-mono text-[10px] uppercase text-primary">Active · the car you drive</span> : <Button size="sm" variant="outline" className="rounded-none" disabled={!onProgression} onClick={() => act(setActiveFleet(progression, f.id))}>Make active</Button>) : <Button size="sm" className="rounded-none" disabled={!onProgression || !ownedBase} title={ownedBase ? undefined : `Needs the ${g.name}`} onClick={() => act(buyFleetVehicle(progression, f.id))}>{ownedBase ? "Buy" : "Needs base"}</Button>}</div>
           </li>; })}</ul>
         </div>; })}

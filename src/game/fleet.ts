@@ -11,6 +11,8 @@ import { DOCK_DECK_Y, airlockSite } from "./thalassia-sectors";
 import type { MaterialId } from "./inventory";
 import { HOLLOW_CROWN } from "./godforge";
 import type { VehicleDefinition, VehicleId } from "./vehicles";
+import { fleetLedgerKey, fleetNexPrice } from "./market-prices";
+import { nexBalance, spendNex, type NexLedger } from "./nex";
 
 export type GarageId = "base-01" | "base-02" | "base-03" | "base-04";
 const frost = REGIONS.find((r) => r.id === "frostspire")!;
@@ -122,7 +124,7 @@ export function mergeFleet(a: FleetState, b: FleetState, aIsNewer: boolean): Fle
   return { owned: [...new Set([...a.owned, ...b.owned])], garages: [...new Set([...a.garages, ...b.garages])], tuning, paint: { ...older.paint, ...newer.paint }, active: newer.active ?? older.active, cosmetics: { ...(older.cosmetics ?? {}), ...(newer.cosmetics ?? {}) } };
 }
 
-type FleetSave = { fleet: FleetState; materials: Partial<Record<MaterialId, number>>; ownedVehicles: VehicleId[]; garageLoadout: VehicleId[]; selectedVehicle: VehicleId | null };
+type FleetSave = { nexLedger: NexLedger; fleet: FleetState; materials: Partial<Record<MaterialId, number>>; ownedVehicles: VehicleId[]; garageLoadout: VehicleId[]; selectedVehicle: VehicleId | null };
 export type FleetResult<P> = { progression: P; message: string } | { error: string };
 function pay<P extends FleetSave>(p: P, cost: Partial<Record<MaterialId, number>>): P | string {
   for (const [k, v] of Object.entries(cost) as [MaterialId, number][]) if ((p.materials[k] ?? 0) < v) return `Needs ${v} ${k} (you have ${p.materials[k] ?? 0})`;
@@ -146,8 +148,13 @@ export function buyFleetVehicle<P extends FleetSave>(p: P, id: string): FleetRes
   if (!e) return { error: "Unknown vehicle" };
   if (f.owned.includes(id)) return { error: "Already in your fleet" };
   if (!f.garages.includes(e.garage)) return { error: `Needs the ${GARAGES[e.garage].name}` };
-  const paid = pay(p, e.cost);
-  if (typeof paid === "string") return { error: paid };
+  const price = fleetNexPrice(id);
+  if (price > 0 && nexBalance(p.nexLedger) < price) return { error: `Needs ${price.toLocaleString()} Nex (you have ${nexBalance(p.nexLedger).toLocaleString()})` };
+  const parts = pay(p, e.cost);
+  if (typeof parts === "string") return { error: parts };
+  const ledger = price > 0 ? spendNex(parts.nexLedger, fleetLedgerKey(id), price) : parts.nexLedger;
+  if (!ledger) return { error: "Purchase already recorded" };
+  const paid = { ...parts, nexLedger: ledger };
   const ownedVehicles = paid.ownedVehicles.includes(e.base) ? paid.ownedVehicles : [...paid.ownedVehicles, e.base];
   const garageLoadout = paid.garageLoadout.includes(e.base) ? paid.garageLoadout : [...paid.garageLoadout, e.base].slice(-3);
   return { progression: { ...paid, ownedVehicles, garageLoadout, selectedVehicle: e.base, fleet: { ...f, owned: [...f.owned, id], active: id } }, message: `${e.name} added to your fleet and set as your active vehicle` };

@@ -2,15 +2,15 @@ import { describe, expect, test } from "bun:test";
 import { buyPenthouseNex, ownsPenthouseNex, PENTHOUSE_PRICE, publishPenthouse, penthouseLive, subscribePenthouse } from "./casino-property";
 import { nexBalance } from "./nex";
 
-const rich = { nexLedger: { seed: 40000 } }, poor = { nexLedger: { seed: 100 } };
+const rich = { nexLedger: { seed: 90000 } }, poor = { nexLedger: { seed: 100 } };
 describe("penthouse purchase through the real Nex ledger", () => {
   test("charges once and records ownership", () => {
     const r = buyPenthouseNex(rich);
     if ("error" in r) throw new Error(r.error);
-    expect(nexBalance(r.progression.nexLedger)).toBe(40000 - PENTHOUSE_PRICE);
+    expect(nexBalance(r.progression.nexLedger)).toBe(90000 - PENTHOUSE_PRICE);
     expect(ownsPenthouseNex(r.progression.nexLedger)).toBe(true);
     expect("error" in buyPenthouseNex(r.progression)).toBe(true);
-    expect(nexBalance(r.progression.nexLedger)).toBe(40000 - PENTHOUSE_PRICE);
+    expect(nexBalance(r.progression.nexLedger)).toBe(90000 - PENTHOUSE_PRICE);
   });
   test("refuses without the Nex and leaves the ledger alone", () => {
     const r = buyPenthouseNex(poor);

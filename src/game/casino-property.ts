@@ -1,6 +1,6 @@
 import { canAfford, spend, type Wallet } from "./economy";
 /** Use the player's actual wallet, and commit the returned wallet via the central game save/reward pipeline. */
-export const PENTHOUSE_PRICE=25000;
+export const PENTHOUSE_PRICE=65000; // casino-penthouse tier of the market scale (market-prices.ts)
 export type PropertyPurchase = {ok:true; wallet:Wallet; reason:string}|{ok:false;reason:string};
 export function buyPenthouse(wallet:Wallet|undefined,alreadyOwned=false):PropertyPurchase {
  if(alreadyOwned)return {ok:false,reason:"Penthouse already owned"};
