@@ -55,9 +55,12 @@ export function neonTowers(keepOut: readonly { x: number; z: number; r: number }
 /** the clearance test the grid is laid out with (local coordinates): a rectangle of half-extents ex, ez centred at x, z
  * stays on the plateau and clear of the market core, district cores, spire, skate shop, race loop, rails, maglev and
  * the caller's keep-out points. Also used to fit things in after the grid (residence garages). */
-export function neonClearance(keepOut: readonly { x: number; z: number; r: number }[] = []) {
+/** the Skyline Casino's plot (casino-access.ts casinoLocation, a 50 x 56 m footprint), local to the city centre: no tower, lamp or palm goes on it */
+export const CASINO_PLOT = { x: -NEON_FLAT * 0.49, z: NEON_FLAT * 0.36, r: 38 };
+export function neonClearance(keepOut: readonly { x: number; z: number; r: number }[] = [], casino = true) {
   const segs = paths();
   const discs = [
+    ...(casino ? [CASINO_PLOT] : []),
     ...NEON_DISTRICTS.map((d) => ({ x: d.dx, z: d.dz, r: d.radius + MARGIN })),
     { x: SPIRE.x, z: SPIRE.z, r: SPIRE.base + 12 },
     { x: SKATE_SHOP_OFFSET.x, z: SKATE_SHOP_OFFSET.z, r: 12 },
@@ -75,7 +78,7 @@ export function neonClearance(keepOut: readonly { x: number; z: number; r: numbe
 
 /** the whole grid: towers, plus a few outer blocks (spread round the city) that hold residences instead */
 export function neonLayout(keepOut: readonly { x: number; z: number; r: number }[] = []): { towers: TowerPlacement[]; homes: HomeLot[] } {
-  const clear = neonClearance(keepOut);
+  const clear = neonClearance(keepOut), clearHome = neonClearance(keepOut, false); // residence lots are picked as before the casino existed, so baked race routes stay valid
   const out: TowerPlacement[] = [];
   const lim = NEON_FLAT - 10;
   const n = Math.floor(lim / BLOCK);
@@ -84,7 +87,7 @@ export function neonLayout(keepOut: readonly { x: number; z: number; r: number }
   const spots: { x: number; z: number; a: number }[] = [];
   for (let i = -n; i <= n; i++) for (let j = -n; j <= n; j++) {
     const x = i * BLOCK, z = j * BLOCK;
-    if (Math.hypot(x, z) >= 70 && clear(x, z, HOME_REACH / Math.SQRT2, HOME_REACH / Math.SQRT2)) spots.push({ x, z, a: Math.atan2(z, x) });
+    if (Math.hypot(x, z) >= 70 && clearHome(x, z, HOME_REACH / Math.SQRT2, HOME_REACH / Math.SQRT2)) spots.push({ x, z, a: Math.atan2(z, x) });
   }
   spots.sort((p, q) => p.a - q.a);
   const homes: HomeLot[] = [];

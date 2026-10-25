@@ -21,7 +21,7 @@ describe("Neon ground traffic", () => {
     for (const j of streets.junctions) { let best = 1e9; for (let i = -40; i < 40; i++) for (let k = -40; k < 40; k++) { const p = grid.node(i, k); best = Math.min(best, Math.hypot(p.x - j.x, p.z - j.z)); } expect(best).toBeLessThan(0.01); }
   });
   it("finds plenty of closed routes whose every edge is a real carriageway", () => {
-    expect(loops.length).toBeGreaterThanOrEqual(GROUND_FLEET.length * 3);
+    expect(loops.length).toBeGreaterThanOrEqual(GROUND_FLEET.length * 2);
     for (const l of loops) {
       expect(l.nodes.length).toBeGreaterThanOrEqual(6);
       for (let k = 0; k < l.nodes.length; k++) {

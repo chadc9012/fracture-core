@@ -120,6 +120,8 @@ import { EMPTY_STORY, stageOf } from "@/game/story";
 import { bossStoryFor, introDue, vaultNear, type BossStoryId } from "@/game/boss-stories";
 import { NexusCity } from "./NexusCity";
 import { NeonCity, NEON_CITY_CENTER } from "./NeonCity";
+import { casinoElevatorNear, casinoFloorAt, casinoLevels, casinoLocation } from "@/game/casino-access";
+import { casinoCombatGate3D } from "@/game/casino-safe-zone";
 import { CityStreets } from "./CityStreets";
 import { NeonGroundTraffic } from "./NeonGroundTraffic";
 import { NeonPedestrians } from "./NeonPedestrians";
@@ -903,6 +905,7 @@ function SceneImpl({
   const live = useRef(createLiveBuild(activeBuild, abilityBranches));
   const abilityHeld = useRef<Record<string, boolean>>({});
   const cameraToggleHeld = useRef(false);
+  const casinoElevatorLatch = useRef(false);
   const bossHeld = useRef(false);
   const tutorialClock = useRef(0);
   const lastGate = useRef(0);
@@ -1586,7 +1589,19 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
     }
 
     s.viewCool -= dt;
-    if (held.has("KeyF") && !cameraToggleHeld.current) {
+    // Skyline Casino lift: F cycles Lobby / Event Gallery / Sky Deck while standing at the lift (otherwise F is the camera toggle)
+    const atCasinoLift = !s.inVehicle && !s.insideInterior && casinoElevatorNear(s.x, s.z, NEON_CITY_CENTER);
+    if (!held.has("KeyF")) casinoElevatorLatch.current = false;
+    if (atCasinoLift && held.has("KeyF") && !casinoElevatorLatch.current) {
+      casinoElevatorLatch.current = true;
+      const p = casinoLocation(NEON_CITY_CENTER);
+      const level = casinoLevels.findIndex((l) => Math.abs(s.y - (p.baseY + l.elevation + 1.6)) < 6);
+      const next = casinoLevels[(level + 1) % casinoLevels.length]!;
+      s.x = p.x; s.z = p.z - 21.7; s.y = p.baseY + next.elevation + 1.6;
+      s.vy = 0; s.vSpeed = 0; s.grounded = true; velocity.set(0, 0, 0);
+      alert(sim, `SKYLINE CASINO: ${next.label} - F to change floor`);
+    }
+    if (held.has("KeyF") && !cameraToggleHeld.current && !atCasinoLift) {
       s.firstPerson = !s.firstPerson;
       onCameraPreference?.(s.firstPerson);
     }
@@ -1746,6 +1761,9 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
     // flew over a standing trooper's head and drew first-person tracers ~5 degrees above the crosshair, never crossing it
     const SHOT_EYE = OPERATOR_CAMERA.eye - 0.05;
     const shoot = () => {
+      // Skyline Casino is a no-weapons zone: one gate at the shared fire entry point (mouse, pad, touch, keys); no ammo is spent
+      const casinoCenter = casinoLocation(NEON_CITY_CENTER);
+      if (!casinoCombatGate3D("shoot", { x: s.x, y: s.y, z: s.z }, casinoCenter, casinoCenter.baseY).allowed) return;
       if (!s.inVehicle && wpn.mag > 0) {
         if (s.reload > 0) return;
         if (clip.mag <= 0) { s.burstLeft = 0; if (clip.reserve <= 0) sfx.playDryFire(); startReload(); return; }
@@ -2757,7 +2775,8 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
     const skyGround = interior ? -Infinity : stormGroundAt(s.x, s.z, s.y - (s.inVehicle ? 1.9 : 1.6));
     // crates, walls and cover tops are ground too once your feet are on (or a step below) them
     const boxTop = interior || s.inVehicle ? -Infinity : solidTopAt(s.x, s.z, s.y - 1.6, solids, 0.45, 0.2);
-    const standY = (interior ? INTERIOR_ALTITUDE : Math.max(walkHeight(s.x, s.z), skyGround, boxTop)) + (s.inVehicle ? 1.9 : 1.6);
+    const casinoGround = interior || s.inVehicle ? -Infinity : casinoFloorAt(s.x, s.z, s.y, NEON_CITY_CENTER);
+    const standY = (interior ? INTERIOR_ALTITUDE : Math.max(walkHeight(s.x, s.z), skyGround, boxTop, casinoGround)) + (s.inVehicle ? 1.9 : 1.6);
     if (s.inVehicle && handling.mode !== "GROUND") {
       s.grounded = !vh.current.airborne; // stepVehicle owns height for aircraft and boats
     } else if (!s.inVehicle && submerged && (s.diving || held.has("KeyZ"))) {

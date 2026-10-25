@@ -14,9 +14,10 @@ import { WATER_LEVEL, heightAt, riverAt, riverCrossings } from "./terrain";
 import { distanceToRoad, LANE_HALF_WIDTH } from "./lanes";
 import { buildings } from "./nexus-districts";
 import { neonLayoutWorld, TOWER_FOOTPRINT } from "./neon-layout";
+import { casinoLocation } from "./casino-access";
 import { footprint, garageRect, neonKeepOut, residences } from "./residences";
 import { REGIONAL_SHOPS } from "./regional-shops";
-import { WORLD_RADIUS } from "./world";
+import { NEON_SITE, WORLD_RADIUS } from "./world";
 
 export const CELL = 6;              // grid spacing, metres
 /** a cell steeper than this (rise over run) is a cliff; cars climb anything less, slowly (vehicle-handling.ts slope drag) */
@@ -34,6 +35,7 @@ function built() {
   const add = (x: number, z: number, hx: number, hz: number, yaw = 0, pad = 2.5) => rects.push({ x, z, hx: hx + pad, hz: hz + pad, c: Math.cos(yaw), s: Math.sin(yaw) });
   for (const b of buildings()) add(b.x, b.z, b.w / 2, b.d / 2, b.yaw);
   for (const t of neonLayoutWorld(neonKeepOut()).towers) { const [hx, hz] = TOWER_FOOTPRINT[t.variant]; add(t.x, t.z, t.rot % 2 ? hz : hx, t.rot % 2 ? hx : hz); }
+  { const c = casinoLocation(NEON_SITE); add(c.x, c.z, 25, 28); } // the Skyline Casino (casino-access.ts) is a building too
   for (const r of residences()) { const f = footprint(r); add(r.x, r.z, f.hx, f.hz); if (r.garage) { const g = garageRect(r.garage); add(g.x, g.z, g.hx, g.hz); } }
   return (structures = { rects, circles: REGIONAL_SHOPS.map((s) => ({ x: s.x, z: s.z, r: 5 })) });
 }
