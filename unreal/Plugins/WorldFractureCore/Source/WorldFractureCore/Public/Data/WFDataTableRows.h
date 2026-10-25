@@ -517,3 +517,17 @@ struct FActivitiesRow : public FTableRowBase
 	UPROPERTY(EditAnywhere, BlueprintReadWrite) FString GateJson;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite) FString Period;
 };
+
+/** WeaponLootPools: 203 rows, exported from the web build. */
+USTRUCT(BlueprintType)
+struct FWeaponLootPoolsRow : public FTableRowBase
+{
+	GENERATED_BODY()
+	UPROPERTY(EditAnywhere, BlueprintReadWrite) FString Id;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite) FString Pool;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite) int32 Order = 0;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite) FString WeaponId;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite) FString DisplayName;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite) FString Slot;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite) FString Element;
+};

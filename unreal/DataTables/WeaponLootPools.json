@@ -1,0 +1,2032 @@
+[
+  {
+    "Name": "enemy-0",
+    "Id": "enemy-0",
+    "Pool": "enemy",
+    "Order": 0,
+    "WeaponId": "weapon-t1-01",
+    "DisplayName": "Scrap-Slugger",
+    "Slot": "primary",
+    "Element": "KINETIC"
+  },
+  {
+    "Name": "enemy-1",
+    "Id": "enemy-1",
+    "Pool": "enemy",
+    "Order": 1,
+    "WeaponId": "weapon-t1-02",
+    "DisplayName": "Pipe-Rail Pistol",
+    "Slot": "secondary",
+    "Element": "ARC"
+  },
+  {
+    "Name": "enemy-2",
+    "Id": "enemy-2",
+    "Pool": "enemy",
+    "Order": 2,
+    "WeaponId": "weapon-t1-03",
+    "DisplayName": "Rebar Crossbow",
+    "Slot": "primary",
+    "Element": "CRYO"
+  },
+  {
+    "Name": "enemy-3",
+    "Id": "enemy-3",
+    "Pool": "enemy",
+    "Order": 3,
+    "WeaponId": "weapon-t1-04",
+    "DisplayName": "Makeshift Sub-Carbine",
+    "Slot": "primary",
+    "Element": "ARC"
+  },
+  {
+    "Name": "enemy-4",
+    "Id": "enemy-4",
+    "Pool": "enemy",
+    "Order": 4,
+    "WeaponId": "weapon-t1-05",
+    "DisplayName": "Scrap-Slugger · Pattern 05",
+    "Slot": "primary",
+    "Element": "THERMAL"
+  },
+  {
+    "Name": "enemy-5",
+    "Id": "enemy-5",
+    "Pool": "enemy",
+    "Order": 5,
+    "WeaponId": "weapon-t1-06",
+    "DisplayName": "Pipe-Rail Pistol · Pattern 06",
+    "Slot": "heavy",
+    "Element": "BIO"
+  },
+  {
+    "Name": "enemy-6",
+    "Id": "enemy-6",
+    "Pool": "enemy",
+    "Order": 6,
+    "WeaponId": "weapon-t1-07",
+    "DisplayName": "Rebar Crossbow · Pattern 07",
+    "Slot": "primary",
+    "Element": "KINETIC"
+  },
+  {
+    "Name": "enemy-7",
+    "Id": "enemy-7",
+    "Pool": "enemy",
+    "Order": 7,
+    "WeaponId": "weapon-t1-08",
+    "DisplayName": "Makeshift Sub-Carbine · Pattern 08",
+    "Slot": "primary",
+    "Element": "ARC"
+  },
+  {
+    "Name": "enemy-8",
+    "Id": "enemy-8",
+    "Pool": "enemy",
+    "Order": 8,
+    "WeaponId": "weapon-t1-09",
+    "DisplayName": "Scrap-Slugger · Pattern 09",
+    "Slot": "primary",
+    "Element": "CRYO"
+  },
+  {
+    "Name": "enemy-9",
+    "Id": "enemy-9",
+    "Pool": "enemy",
+    "Order": 9,
+    "WeaponId": "weapon-t1-10",
+    "DisplayName": "Pipe-Rail Pistol · Pattern 10",
+    "Slot": "secondary",
+    "Element": "ARC"
+  },
+  {
+    "Name": "enemy-10",
+    "Id": "enemy-10",
+    "Pool": "enemy",
+    "Order": 10,
+    "WeaponId": "weapon-t1-11",
+    "DisplayName": "Rebar Crossbow · Pattern 11",
+    "Slot": "primary",
+    "Element": "THERMAL"
+  },
+  {
+    "Name": "enemy-11",
+    "Id": "enemy-11",
+    "Pool": "enemy",
+    "Order": 11,
+    "WeaponId": "weapon-t1-12",
+    "DisplayName": "Makeshift Sub-Carbine · Pattern 12",
+    "Slot": "primary",
+    "Element": "BIO"
+  },
+  {
+    "Name": "enemy-12",
+    "Id": "enemy-12",
+    "Pool": "enemy",
+    "Order": 12,
+    "WeaponId": "weapon-t1-13",
+    "DisplayName": "Scrap-Slugger · Pattern 13",
+    "Slot": "primary",
+    "Element": "KINETIC"
+  },
+  {
+    "Name": "enemy-13",
+    "Id": "enemy-13",
+    "Pool": "enemy",
+    "Order": 13,
+    "WeaponId": "weapon-t1-14",
+    "DisplayName": "Pipe-Rail Pistol · Pattern 14",
+    "Slot": "heavy",
+    "Element": "ARC"
+  },
+  {
+    "Name": "enemy-14",
+    "Id": "enemy-14",
+    "Pool": "enemy",
+    "Order": 14,
+    "WeaponId": "weapon-t1-15",
+    "DisplayName": "Rebar Crossbow · Pattern 15",
+    "Slot": "primary",
+    "Element": "CRYO"
+  },
+  {
+    "Name": "enemy-15",
+    "Id": "enemy-15",
+    "Pool": "enemy",
+    "Order": 15,
+    "WeaponId": "weapon-t1-16",
+    "DisplayName": "Makeshift Sub-Carbine · Pattern 16",
+    "Slot": "primary",
+    "Element": "ARC"
+  },
+  {
+    "Name": "enemy-16",
+    "Id": "enemy-16",
+    "Pool": "enemy",
+    "Order": 16,
+    "WeaponId": "weapon-t1-17",
+    "DisplayName": "Scrap-Slugger · Pattern 17",
+    "Slot": "primary",
+    "Element": "THERMAL"
+  },
+  {
+    "Name": "enemy-17",
+    "Id": "enemy-17",
+    "Pool": "enemy",
+    "Order": 17,
+    "WeaponId": "weapon-t1-18",
+    "DisplayName": "Pipe-Rail Pistol · Pattern 18",
+    "Slot": "secondary",
+    "Element": "BIO"
+  },
+  {
+    "Name": "enemy-18",
+    "Id": "enemy-18",
+    "Pool": "enemy",
+    "Order": 18,
+    "WeaponId": "weapon-t1-19",
+    "DisplayName": "Rebar Crossbow · Pattern 19",
+    "Slot": "primary",
+    "Element": "KINETIC"
+  },
+  {
+    "Name": "enemy-19",
+    "Id": "enemy-19",
+    "Pool": "enemy",
+    "Order": 19,
+    "WeaponId": "weapon-t1-20",
+    "DisplayName": "Makeshift Sub-Carbine · Pattern 20",
+    "Slot": "primary",
+    "Element": "ARC"
+  },
+  {
+    "Name": "enemy-20",
+    "Id": "enemy-20",
+    "Pool": "enemy",
+    "Order": 20,
+    "WeaponId": "weapon-t1-21",
+    "DisplayName": "Scrap-Slugger · Pattern 21",
+    "Slot": "primary",
+    "Element": "CRYO"
+  },
+  {
+    "Name": "enemy-21",
+    "Id": "enemy-21",
+    "Pool": "enemy",
+    "Order": 21,
+    "WeaponId": "weapon-t1-22",
+    "DisplayName": "Pipe-Rail Pistol · Pattern 22",
+    "Slot": "heavy",
+    "Element": "ARC"
+  },
+  {
+    "Name": "enemy-22",
+    "Id": "enemy-22",
+    "Pool": "enemy",
+    "Order": 22,
+    "WeaponId": "weapon-t1-23",
+    "DisplayName": "Rebar Crossbow · Pattern 23",
+    "Slot": "primary",
+    "Element": "THERMAL"
+  },
+  {
+    "Name": "enemy-23",
+    "Id": "enemy-23",
+    "Pool": "enemy",
+    "Order": 23,
+    "WeaponId": "weapon-t1-24",
+    "DisplayName": "Makeshift Sub-Carbine · Pattern 24",
+    "Slot": "primary",
+    "Element": "BIO"
+  },
+  {
+    "Name": "enemy-24",
+    "Id": "enemy-24",
+    "Pool": "enemy",
+    "Order": 24,
+    "WeaponId": "weapon-t1-25",
+    "DisplayName": "Scrap-Slugger · Pattern 25",
+    "Slot": "primary",
+    "Element": "KINETIC"
+  },
+  {
+    "Name": "enemy-25",
+    "Id": "enemy-25",
+    "Pool": "enemy",
+    "Order": 25,
+    "WeaponId": "weapon-t2-01",
+    "DisplayName": "Resonant MK-IV Assault Rifle",
+    "Slot": "secondary",
+    "Element": "ARC"
+  },
+  {
+    "Name": "enemy-26",
+    "Id": "enemy-26",
+    "Pool": "enemy",
+    "Order": 26,
+    "WeaponId": "weapon-t2-02",
+    "DisplayName": "Enforcer SMG",
+    "Slot": "primary",
+    "Element": "CRYO"
+  },
+  {
+    "Name": "enemy-27",
+    "Id": "enemy-27",
+    "Pool": "enemy",
+    "Order": 27,
+    "WeaponId": "weapon-t2-03",
+    "DisplayName": "Kinetic DMR",
+    "Slot": "primary",
+    "Element": "ARC"
+  },
+  {
+    "Name": "enemy-28",
+    "Id": "enemy-28",
+    "Pool": "enemy",
+    "Order": 28,
+    "WeaponId": "weapon-t2-04",
+    "DisplayName": "Standard-Issue Sidearm",
+    "Slot": "primary",
+    "Element": "THERMAL"
+  },
+  {
+    "Name": "enemy-29",
+    "Id": "enemy-29",
+    "Pool": "enemy",
+    "Order": 29,
+    "WeaponId": "weapon-t2-05",
+    "DisplayName": "Resonant MK-IV Assault Rifle · Pattern 05",
+    "Slot": "heavy",
+    "Element": "BIO"
+  },
+  {
+    "Name": "enemy-30",
+    "Id": "enemy-30",
+    "Pool": "enemy",
+    "Order": 30,
+    "WeaponId": "weapon-t2-06",
+    "DisplayName": "Enforcer SMG · Pattern 06",
+    "Slot": "primary",
+    "Element": "KINETIC"
+  },
+  {
+    "Name": "enemy-31",
+    "Id": "enemy-31",
+    "Pool": "enemy",
+    "Order": 31,
+    "WeaponId": "weapon-t2-07",
+    "DisplayName": "Kinetic DMR · Pattern 07",
+    "Slot": "primary",
+    "Element": "ARC"
+  },
+  {
+    "Name": "enemy-32",
+    "Id": "enemy-32",
+    "Pool": "enemy",
+    "Order": 32,
+    "WeaponId": "weapon-t2-08",
+    "DisplayName": "Standard-Issue Sidearm · Pattern 08",
+    "Slot": "primary",
+    "Element": "CRYO"
+  },
+  {
+    "Name": "enemy-33",
+    "Id": "enemy-33",
+    "Pool": "enemy",
+    "Order": 33,
+    "WeaponId": "weapon-t2-09",
+    "DisplayName": "Resonant MK-IV Assault Rifle · Pattern 09",
+    "Slot": "secondary",
+    "Element": "ARC"
+  },
+  {
+    "Name": "enemy-34",
+    "Id": "enemy-34",
+    "Pool": "enemy",
+    "Order": 34,
+    "WeaponId": "weapon-t2-10",
+    "DisplayName": "Enforcer SMG · Pattern 10",
+    "Slot": "primary",
+    "Element": "THERMAL"
+  },
+  {
+    "Name": "enemy-35",
+    "Id": "enemy-35",
+    "Pool": "enemy",
+    "Order": 35,
+    "WeaponId": "weapon-t2-11",
+    "DisplayName": "Kinetic DMR · Pattern 11",
+    "Slot": "primary",
+    "Element": "BIO"
+  },
+  {
+    "Name": "enemy-36",
+    "Id": "enemy-36",
+    "Pool": "enemy",
+    "Order": 36,
+    "WeaponId": "weapon-t2-12",
+    "DisplayName": "Standard-Issue Sidearm · Pattern 12",
+    "Slot": "primary",
+    "Element": "KINETIC"
+  },
+  {
+    "Name": "enemy-37",
+    "Id": "enemy-37",
+    "Pool": "enemy",
+    "Order": 37,
+    "WeaponId": "weapon-t2-13",
+    "DisplayName": "Resonant MK-IV Assault Rifle · Pattern 13",
+    "Slot": "heavy",
+    "Element": "ARC"
+  },
+  {
+    "Name": "enemy-38",
+    "Id": "enemy-38",
+    "Pool": "enemy",
+    "Order": 38,
+    "WeaponId": "weapon-t2-14",
+    "DisplayName": "Enforcer SMG · Pattern 14",
+    "Slot": "primary",
+    "Element": "CRYO"
+  },
+  {
+    "Name": "enemy-39",
+    "Id": "enemy-39",
+    "Pool": "enemy",
+    "Order": 39,
+    "WeaponId": "weapon-t2-15",
+    "DisplayName": "Kinetic DMR · Pattern 15",
+    "Slot": "primary",
+    "Element": "ARC"
+  },
+  {
+    "Name": "enemy-40",
+    "Id": "enemy-40",
+    "Pool": "enemy",
+    "Order": 40,
+    "WeaponId": "weapon-t2-16",
+    "DisplayName": "Standard-Issue Sidearm · Pattern 16",
+    "Slot": "primary",
+    "Element": "THERMAL"
+  },
+  {
+    "Name": "enemy-41",
+    "Id": "enemy-41",
+    "Pool": "enemy",
+    "Order": 41,
+    "WeaponId": "weapon-t2-17",
+    "DisplayName": "Resonant MK-IV Assault Rifle · Pattern 17",
+    "Slot": "secondary",
+    "Element": "BIO"
+  },
+  {
+    "Name": "enemy-42",
+    "Id": "enemy-42",
+    "Pool": "enemy",
+    "Order": 42,
+    "WeaponId": "weapon-t2-18",
+    "DisplayName": "Enforcer SMG · Pattern 18",
+    "Slot": "primary",
+    "Element": "KINETIC"
+  },
+  {
+    "Name": "enemy-43",
+    "Id": "enemy-43",
+    "Pool": "enemy",
+    "Order": 43,
+    "WeaponId": "weapon-t2-19",
+    "DisplayName": "Kinetic DMR · Pattern 19",
+    "Slot": "primary",
+    "Element": "ARC"
+  },
+  {
+    "Name": "enemy-44",
+    "Id": "enemy-44",
+    "Pool": "enemy",
+    "Order": 44,
+    "WeaponId": "weapon-t2-20",
+    "DisplayName": "Standard-Issue Sidearm · Pattern 20",
+    "Slot": "primary",
+    "Element": "CRYO"
+  },
+  {
+    "Name": "enemy-45",
+    "Id": "enemy-45",
+    "Pool": "enemy",
+    "Order": 45,
+    "WeaponId": "weapon-t2-21",
+    "DisplayName": "Resonant MK-IV Assault Rifle · Pattern 21",
+    "Slot": "heavy",
+    "Element": "ARC"
+  },
+  {
+    "Name": "enemy-46",
+    "Id": "enemy-46",
+    "Pool": "enemy",
+    "Order": 46,
+    "WeaponId": "weapon-t2-22",
+    "DisplayName": "Enforcer SMG · Pattern 22",
+    "Slot": "primary",
+    "Element": "THERMAL"
+  },
+  {
+    "Name": "enemy-47",
+    "Id": "enemy-47",
+    "Pool": "enemy",
+    "Order": 47,
+    "WeaponId": "weapon-t2-23",
+    "DisplayName": "Kinetic DMR · Pattern 23",
+    "Slot": "primary",
+    "Element": "BIO"
+  },
+  {
+    "Name": "enemy-48",
+    "Id": "enemy-48",
+    "Pool": "enemy",
+    "Order": 48,
+    "WeaponId": "weapon-t2-24",
+    "DisplayName": "Standard-Issue Sidearm · Pattern 24",
+    "Slot": "primary",
+    "Element": "KINETIC"
+  },
+  {
+    "Name": "enemy-49",
+    "Id": "enemy-49",
+    "Pool": "enemy",
+    "Order": 49,
+    "WeaponId": "weapon-t2-25",
+    "DisplayName": "Resonant MK-IV Assault Rifle · Pattern 25",
+    "Slot": "secondary",
+    "Element": "ARC"
+  },
+  {
+    "Name": "enemy-50",
+    "Id": "enemy-50",
+    "Pool": "enemy",
+    "Order": 50,
+    "WeaponId": "weapon-t2-26",
+    "DisplayName": "Enforcer SMG · Pattern 26",
+    "Slot": "primary",
+    "Element": "CRYO"
+  },
+  {
+    "Name": "enemy-51",
+    "Id": "enemy-51",
+    "Pool": "enemy",
+    "Order": 51,
+    "WeaponId": "weapon-t2-27",
+    "DisplayName": "Kinetic DMR · Pattern 27",
+    "Slot": "primary",
+    "Element": "ARC"
+  },
+  {
+    "Name": "enemy-52",
+    "Id": "enemy-52",
+    "Pool": "enemy",
+    "Order": 52,
+    "WeaponId": "weapon-t2-28",
+    "DisplayName": "Standard-Issue Sidearm · Pattern 28",
+    "Slot": "primary",
+    "Element": "THERMAL"
+  },
+  {
+    "Name": "enemy-53",
+    "Id": "enemy-53",
+    "Pool": "enemy",
+    "Order": 53,
+    "WeaponId": "weapon-t2-29",
+    "DisplayName": "Resonant MK-IV Assault Rifle · Pattern 29",
+    "Slot": "heavy",
+    "Element": "BIO"
+  },
+  {
+    "Name": "enemy-54",
+    "Id": "enemy-54",
+    "Pool": "enemy",
+    "Order": 54,
+    "WeaponId": "weapon-t2-30",
+    "DisplayName": "Enforcer SMG · Pattern 30",
+    "Slot": "primary",
+    "Element": "KINETIC"
+  },
+  {
+    "Name": "enemy-55",
+    "Id": "enemy-55",
+    "Pool": "enemy",
+    "Order": 55,
+    "WeaponId": "weapon-t3-01",
+    "DisplayName": "Magma-Core Heavy Repeater",
+    "Slot": "primary",
+    "Element": "CRYO"
+  },
+  {
+    "Name": "enemy-56",
+    "Id": "enemy-56",
+    "Pool": "enemy",
+    "Order": 56,
+    "WeaponId": "weapon-t3-02",
+    "DisplayName": "Cryo-Pulse Carbine",
+    "Slot": "primary",
+    "Element": "ARC"
+  },
+  {
+    "Name": "enemy-57",
+    "Id": "enemy-57",
+    "Pool": "enemy",
+    "Order": 57,
+    "WeaponId": "weapon-t3-03",
+    "DisplayName": "Bio-Luminescent Arc-Caster",
+    "Slot": "primary",
+    "Element": "THERMAL"
+  },
+  {
+    "Name": "enemy-58",
+    "Id": "enemy-58",
+    "Pool": "enemy",
+    "Order": 58,
+    "WeaponId": "weapon-t3-04",
+    "DisplayName": "Magma-Core Heavy Repeater · Pattern 04",
+    "Slot": "heavy",
+    "Element": "BIO"
+  },
+  {
+    "Name": "enemy-59",
+    "Id": "enemy-59",
+    "Pool": "enemy",
+    "Order": 59,
+    "WeaponId": "weapon-t3-05",
+    "DisplayName": "Cryo-Pulse Carbine · Pattern 05",
+    "Slot": "primary",
+    "Element": "KINETIC"
+  },
+  {
+    "Name": "enemy-60",
+    "Id": "enemy-60",
+    "Pool": "enemy",
+    "Order": 60,
+    "WeaponId": "weapon-t3-06",
+    "DisplayName": "Bio-Luminescent Arc-Caster · Pattern 06",
+    "Slot": "primary",
+    "Element": "ARC"
+  },
+  {
+    "Name": "enemy-61",
+    "Id": "enemy-61",
+    "Pool": "enemy",
+    "Order": 61,
+    "WeaponId": "weapon-t3-07",
+    "DisplayName": "Magma-Core Heavy Repeater · Pattern 07",
+    "Slot": "primary",
+    "Element": "CRYO"
+  },
+  {
+    "Name": "enemy-62",
+    "Id": "enemy-62",
+    "Pool": "enemy",
+    "Order": 62,
+    "WeaponId": "weapon-t3-08",
+    "DisplayName": "Cryo-Pulse Carbine · Pattern 08",
+    "Slot": "secondary",
+    "Element": "ARC"
+  },
+  {
+    "Name": "enemy-63",
+    "Id": "enemy-63",
+    "Pool": "enemy",
+    "Order": 63,
+    "WeaponId": "weapon-t3-09",
+    "DisplayName": "Bio-Luminescent Arc-Caster · Pattern 09",
+    "Slot": "primary",
+    "Element": "THERMAL"
+  },
+  {
+    "Name": "enemy-64",
+    "Id": "enemy-64",
+    "Pool": "enemy",
+    "Order": 64,
+    "WeaponId": "weapon-t3-10",
+    "DisplayName": "Magma-Core Heavy Repeater · Pattern 10",
+    "Slot": "primary",
+    "Element": "BIO"
+  },
+  {
+    "Name": "enemy-65",
+    "Id": "enemy-65",
+    "Pool": "enemy",
+    "Order": 65,
+    "WeaponId": "weapon-t3-11",
+    "DisplayName": "Cryo-Pulse Carbine · Pattern 11",
+    "Slot": "primary",
+    "Element": "KINETIC"
+  },
+  {
+    "Name": "enemy-66",
+    "Id": "enemy-66",
+    "Pool": "enemy",
+    "Order": 66,
+    "WeaponId": "weapon-t3-12",
+    "DisplayName": "Bio-Luminescent Arc-Caster · Pattern 12",
+    "Slot": "heavy",
+    "Element": "ARC"
+  },
+  {
+    "Name": "enemy-67",
+    "Id": "enemy-67",
+    "Pool": "enemy",
+    "Order": 67,
+    "WeaponId": "weapon-t3-13",
+    "DisplayName": "Magma-Core Heavy Repeater · Pattern 13",
+    "Slot": "primary",
+    "Element": "CRYO"
+  },
+  {
+    "Name": "enemy-68",
+    "Id": "enemy-68",
+    "Pool": "enemy",
+    "Order": 68,
+    "WeaponId": "weapon-t3-14",
+    "DisplayName": "Cryo-Pulse Carbine · Pattern 14",
+    "Slot": "primary",
+    "Element": "ARC"
+  },
+  {
+    "Name": "enemy-69",
+    "Id": "enemy-69",
+    "Pool": "enemy",
+    "Order": 69,
+    "WeaponId": "weapon-t3-15",
+    "DisplayName": "Bio-Luminescent Arc-Caster · Pattern 15",
+    "Slot": "primary",
+    "Element": "THERMAL"
+  },
+  {
+    "Name": "enemy-70",
+    "Id": "enemy-70",
+    "Pool": "enemy",
+    "Order": 70,
+    "WeaponId": "weapon-t3-16",
+    "DisplayName": "Magma-Core Heavy Repeater · Pattern 16",
+    "Slot": "secondary",
+    "Element": "BIO"
+  },
+  {
+    "Name": "enemy-71",
+    "Id": "enemy-71",
+    "Pool": "enemy",
+    "Order": 71,
+    "WeaponId": "weapon-t3-17",
+    "DisplayName": "Cryo-Pulse Carbine · Pattern 17",
+    "Slot": "primary",
+    "Element": "KINETIC"
+  },
+  {
+    "Name": "enemy-72",
+    "Id": "enemy-72",
+    "Pool": "enemy",
+    "Order": 72,
+    "WeaponId": "weapon-t3-18",
+    "DisplayName": "Bio-Luminescent Arc-Caster · Pattern 18",
+    "Slot": "primary",
+    "Element": "ARC"
+  },
+  {
+    "Name": "enemy-73",
+    "Id": "enemy-73",
+    "Pool": "enemy",
+    "Order": 73,
+    "WeaponId": "weapon-t3-19",
+    "DisplayName": "Magma-Core Heavy Repeater · Pattern 19",
+    "Slot": "primary",
+    "Element": "CRYO"
+  },
+  {
+    "Name": "enemy-74",
+    "Id": "enemy-74",
+    "Pool": "enemy",
+    "Order": 74,
+    "WeaponId": "weapon-t3-20",
+    "DisplayName": "Cryo-Pulse Carbine · Pattern 20",
+    "Slot": "heavy",
+    "Element": "ARC"
+  },
+  {
+    "Name": "enemy-75",
+    "Id": "enemy-75",
+    "Pool": "enemy",
+    "Order": 75,
+    "WeaponId": "weapon-t3-21",
+    "DisplayName": "Bio-Luminescent Arc-Caster · Pattern 21",
+    "Slot": "primary",
+    "Element": "THERMAL"
+  },
+  {
+    "Name": "enemy-76",
+    "Id": "enemy-76",
+    "Pool": "enemy",
+    "Order": 76,
+    "WeaponId": "weapon-t3-22",
+    "DisplayName": "Magma-Core Heavy Repeater · Pattern 22",
+    "Slot": "primary",
+    "Element": "BIO"
+  },
+  {
+    "Name": "enemy-77",
+    "Id": "enemy-77",
+    "Pool": "enemy",
+    "Order": 77,
+    "WeaponId": "weapon-t3-23",
+    "DisplayName": "Cryo-Pulse Carbine · Pattern 23",
+    "Slot": "primary",
+    "Element": "KINETIC"
+  },
+  {
+    "Name": "enemy-78",
+    "Id": "enemy-78",
+    "Pool": "enemy",
+    "Order": 78,
+    "WeaponId": "weapon-t3-24",
+    "DisplayName": "Bio-Luminescent Arc-Caster · Pattern 24",
+    "Slot": "secondary",
+    "Element": "ARC"
+  },
+  {
+    "Name": "enemy-79",
+    "Id": "enemy-79",
+    "Pool": "enemy",
+    "Order": 79,
+    "WeaponId": "weapon-t3-25",
+    "DisplayName": "Magma-Core Heavy Repeater · Pattern 25",
+    "Slot": "primary",
+    "Element": "CRYO"
+  },
+  {
+    "Name": "enemy-80",
+    "Id": "enemy-80",
+    "Pool": "enemy",
+    "Order": 80,
+    "WeaponId": "weapon-t3-26",
+    "DisplayName": "Cryo-Pulse Carbine · Pattern 26",
+    "Slot": "primary",
+    "Element": "ARC"
+  },
+  {
+    "Name": "enemy-81",
+    "Id": "enemy-81",
+    "Pool": "enemy",
+    "Order": 81,
+    "WeaponId": "weapon-t3-27",
+    "DisplayName": "Bio-Luminescent Arc-Caster · Pattern 27",
+    "Slot": "primary",
+    "Element": "THERMAL"
+  },
+  {
+    "Name": "enemy-82",
+    "Id": "enemy-82",
+    "Pool": "enemy",
+    "Order": 82,
+    "WeaponId": "weapon-t3-28",
+    "DisplayName": "Magma-Core Heavy Repeater · Pattern 28",
+    "Slot": "heavy",
+    "Element": "BIO"
+  },
+  {
+    "Name": "enemy-83",
+    "Id": "enemy-83",
+    "Pool": "enemy",
+    "Order": 83,
+    "WeaponId": "cat-storm-katana",
+    "DisplayName": "Storm Katana",
+    "Slot": "primary",
+    "Element": "ARC"
+  },
+  {
+    "Name": "enemy-84",
+    "Id": "enemy-84",
+    "Pool": "enemy",
+    "Order": 84,
+    "WeaponId": "cat-nova-handcannon",
+    "DisplayName": "Nova Handcannon",
+    "Slot": "secondary",
+    "Element": "THERMAL"
+  },
+  {
+    "Name": "enemy-85",
+    "Id": "enemy-85",
+    "Pool": "enemy",
+    "Order": 85,
+    "WeaponId": "cat-neon-smg",
+    "DisplayName": "Neon SMG",
+    "Slot": "primary",
+    "Element": "ARC"
+  },
+  {
+    "Name": "enemy-86",
+    "Id": "enemy-86",
+    "Pool": "enemy",
+    "Order": 86,
+    "WeaponId": "cat-valkyrie-ar",
+    "DisplayName": "Valkyrie AR",
+    "Slot": "primary",
+    "Element": "ARC"
+  },
+  {
+    "Name": "enemy-87",
+    "Id": "enemy-87",
+    "Pool": "enemy",
+    "Order": 87,
+    "WeaponId": "cat-titan-auto",
+    "DisplayName": "Titan Auto",
+    "Slot": "primary",
+    "Element": "KINETIC"
+  },
+  {
+    "Name": "enemy-88",
+    "Id": "enemy-88",
+    "Pool": "enemy",
+    "Order": 88,
+    "WeaponId": "cat-ravager-lmg",
+    "DisplayName": "Ravager LMG",
+    "Slot": "heavy",
+    "Element": "CRYO"
+  },
+  {
+    "Name": "enemy-89",
+    "Id": "enemy-89",
+    "Pool": "enemy",
+    "Order": 89,
+    "WeaponId": "cat-glacier-sniper",
+    "DisplayName": "Glacier Sniper",
+    "Slot": "primary",
+    "Element": "CRYO"
+  },
+  {
+    "Name": "enemy-90",
+    "Id": "enemy-90",
+    "Pool": "enemy",
+    "Order": 90,
+    "WeaponId": "cat-phase-fusion",
+    "DisplayName": "Phase Fusion",
+    "Slot": "primary",
+    "Element": "ARC"
+  },
+  {
+    "Name": "enemy-91",
+    "Id": "enemy-91",
+    "Pool": "enemy",
+    "Order": 91,
+    "WeaponId": "cat-hellfire-sg",
+    "DisplayName": "Hellfire SG",
+    "Slot": "primary",
+    "Element": "THERMAL"
+  },
+  {
+    "Name": "enemy-92",
+    "Id": "enemy-92",
+    "Pool": "enemy",
+    "Order": 92,
+    "WeaponId": "cat-nomad-crossbow",
+    "DisplayName": "Nomad Crossbow",
+    "Slot": "primary",
+    "Element": "KINETIC"
+  },
+  {
+    "Name": "enemy-93",
+    "Id": "enemy-93",
+    "Pool": "enemy",
+    "Order": 93,
+    "WeaponId": "cat-breach-gl",
+    "DisplayName": "Breach GL",
+    "Slot": "heavy",
+    "Element": "KINETIC"
+  },
+  {
+    "Name": "enemy-94",
+    "Id": "enemy-94",
+    "Pool": "enemy",
+    "Order": 94,
+    "WeaponId": "cat-arc-disruptor",
+    "DisplayName": "Arc Disruptor",
+    "Slot": "primary",
+    "Element": "ARC"
+  },
+  {
+    "Name": "boss-0",
+    "Id": "boss-0",
+    "Pool": "boss",
+    "Order": 0,
+    "WeaponId": "weapon-t1-01",
+    "DisplayName": "Scrap-Slugger",
+    "Slot": "primary",
+    "Element": "KINETIC"
+  },
+  {
+    "Name": "boss-1",
+    "Id": "boss-1",
+    "Pool": "boss",
+    "Order": 1,
+    "WeaponId": "weapon-t1-02",
+    "DisplayName": "Pipe-Rail Pistol",
+    "Slot": "secondary",
+    "Element": "ARC"
+  },
+  {
+    "Name": "boss-2",
+    "Id": "boss-2",
+    "Pool": "boss",
+    "Order": 2,
+    "WeaponId": "weapon-t1-03",
+    "DisplayName": "Rebar Crossbow",
+    "Slot": "primary",
+    "Element": "CRYO"
+  },
+  {
+    "Name": "boss-3",
+    "Id": "boss-3",
+    "Pool": "boss",
+    "Order": 3,
+    "WeaponId": "weapon-t1-04",
+    "DisplayName": "Makeshift Sub-Carbine",
+    "Slot": "primary",
+    "Element": "ARC"
+  },
+  {
+    "Name": "boss-4",
+    "Id": "boss-4",
+    "Pool": "boss",
+    "Order": 4,
+    "WeaponId": "weapon-t1-05",
+    "DisplayName": "Scrap-Slugger · Pattern 05",
+    "Slot": "primary",
+    "Element": "THERMAL"
+  },
+  {
+    "Name": "boss-5",
+    "Id": "boss-5",
+    "Pool": "boss",
+    "Order": 5,
+    "WeaponId": "weapon-t1-06",
+    "DisplayName": "Pipe-Rail Pistol · Pattern 06",
+    "Slot": "heavy",
+    "Element": "BIO"
+  },
+  {
+    "Name": "boss-6",
+    "Id": "boss-6",
+    "Pool": "boss",
+    "Order": 6,
+    "WeaponId": "weapon-t1-07",
+    "DisplayName": "Rebar Crossbow · Pattern 07",
+    "Slot": "primary",
+    "Element": "KINETIC"
+  },
+  {
+    "Name": "boss-7",
+    "Id": "boss-7",
+    "Pool": "boss",
+    "Order": 7,
+    "WeaponId": "weapon-t1-08",
+    "DisplayName": "Makeshift Sub-Carbine · Pattern 08",
+    "Slot": "primary",
+    "Element": "ARC"
+  },
+  {
+    "Name": "boss-8",
+    "Id": "boss-8",
+    "Pool": "boss",
+    "Order": 8,
+    "WeaponId": "weapon-t1-09",
+    "DisplayName": "Scrap-Slugger · Pattern 09",
+    "Slot": "primary",
+    "Element": "CRYO"
+  },
+  {
+    "Name": "boss-9",
+    "Id": "boss-9",
+    "Pool": "boss",
+    "Order": 9,
+    "WeaponId": "weapon-t1-10",
+    "DisplayName": "Pipe-Rail Pistol · Pattern 10",
+    "Slot": "secondary",
+    "Element": "ARC"
+  },
+  {
+    "Name": "boss-10",
+    "Id": "boss-10",
+    "Pool": "boss",
+    "Order": 10,
+    "WeaponId": "weapon-t1-11",
+    "DisplayName": "Rebar Crossbow · Pattern 11",
+    "Slot": "primary",
+    "Element": "THERMAL"
+  },
+  {
+    "Name": "boss-11",
+    "Id": "boss-11",
+    "Pool": "boss",
+    "Order": 11,
+    "WeaponId": "weapon-t1-12",
+    "DisplayName": "Makeshift Sub-Carbine · Pattern 12",
+    "Slot": "primary",
+    "Element": "BIO"
+  },
+  {
+    "Name": "boss-12",
+    "Id": "boss-12",
+    "Pool": "boss",
+    "Order": 12,
+    "WeaponId": "weapon-t1-13",
+    "DisplayName": "Scrap-Slugger · Pattern 13",
+    "Slot": "primary",
+    "Element": "KINETIC"
+  },
+  {
+    "Name": "boss-13",
+    "Id": "boss-13",
+    "Pool": "boss",
+    "Order": 13,
+    "WeaponId": "weapon-t1-14",
+    "DisplayName": "Pipe-Rail Pistol · Pattern 14",
+    "Slot": "heavy",
+    "Element": "ARC"
+  },
+  {
+    "Name": "boss-14",
+    "Id": "boss-14",
+    "Pool": "boss",
+    "Order": 14,
+    "WeaponId": "weapon-t1-15",
+    "DisplayName": "Rebar Crossbow · Pattern 15",
+    "Slot": "primary",
+    "Element": "CRYO"
+  },
+  {
+    "Name": "boss-15",
+    "Id": "boss-15",
+    "Pool": "boss",
+    "Order": 15,
+    "WeaponId": "weapon-t1-16",
+    "DisplayName": "Makeshift Sub-Carbine · Pattern 16",
+    "Slot": "primary",
+    "Element": "ARC"
+  },
+  {
+    "Name": "boss-16",
+    "Id": "boss-16",
+    "Pool": "boss",
+    "Order": 16,
+    "WeaponId": "weapon-t1-17",
+    "DisplayName": "Scrap-Slugger · Pattern 17",
+    "Slot": "primary",
+    "Element": "THERMAL"
+  },
+  {
+    "Name": "boss-17",
+    "Id": "boss-17",
+    "Pool": "boss",
+    "Order": 17,
+    "WeaponId": "weapon-t1-18",
+    "DisplayName": "Pipe-Rail Pistol · Pattern 18",
+    "Slot": "secondary",
+    "Element": "BIO"
+  },
+  {
+    "Name": "boss-18",
+    "Id": "boss-18",
+    "Pool": "boss",
+    "Order": 18,
+    "WeaponId": "weapon-t1-19",
+    "DisplayName": "Rebar Crossbow · Pattern 19",
+    "Slot": "primary",
+    "Element": "KINETIC"
+  },
+  {
+    "Name": "boss-19",
+    "Id": "boss-19",
+    "Pool": "boss",
+    "Order": 19,
+    "WeaponId": "weapon-t1-20",
+    "DisplayName": "Makeshift Sub-Carbine · Pattern 20",
+    "Slot": "primary",
+    "Element": "ARC"
+  },
+  {
+    "Name": "boss-20",
+    "Id": "boss-20",
+    "Pool": "boss",
+    "Order": 20,
+    "WeaponId": "weapon-t1-21",
+    "DisplayName": "Scrap-Slugger · Pattern 21",
+    "Slot": "primary",
+    "Element": "CRYO"
+  },
+  {
+    "Name": "boss-21",
+    "Id": "boss-21",
+    "Pool": "boss",
+    "Order": 21,
+    "WeaponId": "weapon-t1-22",
+    "DisplayName": "Pipe-Rail Pistol · Pattern 22",
+    "Slot": "heavy",
+    "Element": "ARC"
+  },
+  {
+    "Name": "boss-22",
+    "Id": "boss-22",
+    "Pool": "boss",
+    "Order": 22,
+    "WeaponId": "weapon-t1-23",
+    "DisplayName": "Rebar Crossbow · Pattern 23",
+    "Slot": "primary",
+    "Element": "THERMAL"
+  },
+  {
+    "Name": "boss-23",
+    "Id": "boss-23",
+    "Pool": "boss",
+    "Order": 23,
+    "WeaponId": "weapon-t1-24",
+    "DisplayName": "Makeshift Sub-Carbine · Pattern 24",
+    "Slot": "primary",
+    "Element": "BIO"
+  },
+  {
+    "Name": "boss-24",
+    "Id": "boss-24",
+    "Pool": "boss",
+    "Order": 24,
+    "WeaponId": "weapon-t1-25",
+    "DisplayName": "Scrap-Slugger · Pattern 25",
+    "Slot": "primary",
+    "Element": "KINETIC"
+  },
+  {
+    "Name": "boss-25",
+    "Id": "boss-25",
+    "Pool": "boss",
+    "Order": 25,
+    "WeaponId": "weapon-t2-01",
+    "DisplayName": "Resonant MK-IV Assault Rifle",
+    "Slot": "secondary",
+    "Element": "ARC"
+  },
+  {
+    "Name": "boss-26",
+    "Id": "boss-26",
+    "Pool": "boss",
+    "Order": 26,
+    "WeaponId": "weapon-t2-02",
+    "DisplayName": "Enforcer SMG",
+    "Slot": "primary",
+    "Element": "CRYO"
+  },
+  {
+    "Name": "boss-27",
+    "Id": "boss-27",
+    "Pool": "boss",
+    "Order": 27,
+    "WeaponId": "weapon-t2-03",
+    "DisplayName": "Kinetic DMR",
+    "Slot": "primary",
+    "Element": "ARC"
+  },
+  {
+    "Name": "boss-28",
+    "Id": "boss-28",
+    "Pool": "boss",
+    "Order": 28,
+    "WeaponId": "weapon-t2-04",
+    "DisplayName": "Standard-Issue Sidearm",
+    "Slot": "primary",
+    "Element": "THERMAL"
+  },
+  {
+    "Name": "boss-29",
+    "Id": "boss-29",
+    "Pool": "boss",
+    "Order": 29,
+    "WeaponId": "weapon-t2-05",
+    "DisplayName": "Resonant MK-IV Assault Rifle · Pattern 05",
+    "Slot": "heavy",
+    "Element": "BIO"
+  },
+  {
+    "Name": "boss-30",
+    "Id": "boss-30",
+    "Pool": "boss",
+    "Order": 30,
+    "WeaponId": "weapon-t2-06",
+    "DisplayName": "Enforcer SMG · Pattern 06",
+    "Slot": "primary",
+    "Element": "KINETIC"
+  },
+  {
+    "Name": "boss-31",
+    "Id": "boss-31",
+    "Pool": "boss",
+    "Order": 31,
+    "WeaponId": "weapon-t2-07",
+    "DisplayName": "Kinetic DMR · Pattern 07",
+    "Slot": "primary",
+    "Element": "ARC"
+  },
+  {
+    "Name": "boss-32",
+    "Id": "boss-32",
+    "Pool": "boss",
+    "Order": 32,
+    "WeaponId": "weapon-t2-08",
+    "DisplayName": "Standard-Issue Sidearm · Pattern 08",
+    "Slot": "primary",
+    "Element": "CRYO"
+  },
+  {
+    "Name": "boss-33",
+    "Id": "boss-33",
+    "Pool": "boss",
+    "Order": 33,
+    "WeaponId": "weapon-t2-09",
+    "DisplayName": "Resonant MK-IV Assault Rifle · Pattern 09",
+    "Slot": "secondary",
+    "Element": "ARC"
+  },
+  {
+    "Name": "boss-34",
+    "Id": "boss-34",
+    "Pool": "boss",
+    "Order": 34,
+    "WeaponId": "weapon-t2-10",
+    "DisplayName": "Enforcer SMG · Pattern 10",
+    "Slot": "primary",
+    "Element": "THERMAL"
+  },
+  {
+    "Name": "boss-35",
+    "Id": "boss-35",
+    "Pool": "boss",
+    "Order": 35,
+    "WeaponId": "weapon-t2-11",
+    "DisplayName": "Kinetic DMR · Pattern 11",
+    "Slot": "primary",
+    "Element": "BIO"
+  },
+  {
+    "Name": "boss-36",
+    "Id": "boss-36",
+    "Pool": "boss",
+    "Order": 36,
+    "WeaponId": "weapon-t2-12",
+    "DisplayName": "Standard-Issue Sidearm · Pattern 12",
+    "Slot": "primary",
+    "Element": "KINETIC"
+  },
+  {
+    "Name": "boss-37",
+    "Id": "boss-37",
+    "Pool": "boss",
+    "Order": 37,
+    "WeaponId": "weapon-t2-13",
+    "DisplayName": "Resonant MK-IV Assault Rifle · Pattern 13",
+    "Slot": "heavy",
+    "Element": "ARC"
+  },
+  {
+    "Name": "boss-38",
+    "Id": "boss-38",
+    "Pool": "boss",
+    "Order": 38,
+    "WeaponId": "weapon-t2-14",
+    "DisplayName": "Enforcer SMG · Pattern 14",
+    "Slot": "primary",
+    "Element": "CRYO"
+  },
+  {
+    "Name": "boss-39",
+    "Id": "boss-39",
+    "Pool": "boss",
+    "Order": 39,
+    "WeaponId": "weapon-t2-15",
+    "DisplayName": "Kinetic DMR · Pattern 15",
+    "Slot": "primary",
+    "Element": "ARC"
+  },
+  {
+    "Name": "boss-40",
+    "Id": "boss-40",
+    "Pool": "boss",
+    "Order": 40,
+    "WeaponId": "weapon-t2-16",
+    "DisplayName": "Standard-Issue Sidearm · Pattern 16",
+    "Slot": "primary",
+    "Element": "THERMAL"
+  },
+  {
+    "Name": "boss-41",
+    "Id": "boss-41",
+    "Pool": "boss",
+    "Order": 41,
+    "WeaponId": "weapon-t2-17",
+    "DisplayName": "Resonant MK-IV Assault Rifle · Pattern 17",
+    "Slot": "secondary",
+    "Element": "BIO"
+  },
+  {
+    "Name": "boss-42",
+    "Id": "boss-42",
+    "Pool": "boss",
+    "Order": 42,
+    "WeaponId": "weapon-t2-18",
+    "DisplayName": "Enforcer SMG · Pattern 18",
+    "Slot": "primary",
+    "Element": "KINETIC"
+  },
+  {
+    "Name": "boss-43",
+    "Id": "boss-43",
+    "Pool": "boss",
+    "Order": 43,
+    "WeaponId": "weapon-t2-19",
+    "DisplayName": "Kinetic DMR · Pattern 19",
+    "Slot": "primary",
+    "Element": "ARC"
+  },
+  {
+    "Name": "boss-44",
+    "Id": "boss-44",
+    "Pool": "boss",
+    "Order": 44,
+    "WeaponId": "weapon-t2-20",
+    "DisplayName": "Standard-Issue Sidearm · Pattern 20",
+    "Slot": "primary",
+    "Element": "CRYO"
+  },
+  {
+    "Name": "boss-45",
+    "Id": "boss-45",
+    "Pool": "boss",
+    "Order": 45,
+    "WeaponId": "weapon-t2-21",
+    "DisplayName": "Resonant MK-IV Assault Rifle · Pattern 21",
+    "Slot": "heavy",
+    "Element": "ARC"
+  },
+  {
+    "Name": "boss-46",
+    "Id": "boss-46",
+    "Pool": "boss",
+    "Order": 46,
+    "WeaponId": "weapon-t2-22",
+    "DisplayName": "Enforcer SMG · Pattern 22",
+    "Slot": "primary",
+    "Element": "THERMAL"
+  },
+  {
+    "Name": "boss-47",
+    "Id": "boss-47",
+    "Pool": "boss",
+    "Order": 47,
+    "WeaponId": "weapon-t2-23",
+    "DisplayName": "Kinetic DMR · Pattern 23",
+    "Slot": "primary",
+    "Element": "BIO"
+  },
+  {
+    "Name": "boss-48",
+    "Id": "boss-48",
+    "Pool": "boss",
+    "Order": 48,
+    "WeaponId": "weapon-t2-24",
+    "DisplayName": "Standard-Issue Sidearm · Pattern 24",
+    "Slot": "primary",
+    "Element": "KINETIC"
+  },
+  {
+    "Name": "boss-49",
+    "Id": "boss-49",
+    "Pool": "boss",
+    "Order": 49,
+    "WeaponId": "weapon-t2-25",
+    "DisplayName": "Resonant MK-IV Assault Rifle · Pattern 25",
+    "Slot": "secondary",
+    "Element": "ARC"
+  },
+  {
+    "Name": "boss-50",
+    "Id": "boss-50",
+    "Pool": "boss",
+    "Order": 50,
+    "WeaponId": "weapon-t2-26",
+    "DisplayName": "Enforcer SMG · Pattern 26",
+    "Slot": "primary",
+    "Element": "CRYO"
+  },
+  {
+    "Name": "boss-51",
+    "Id": "boss-51",
+    "Pool": "boss",
+    "Order": 51,
+    "WeaponId": "weapon-t2-27",
+    "DisplayName": "Kinetic DMR · Pattern 27",
+    "Slot": "primary",
+    "Element": "ARC"
+  },
+  {
+    "Name": "boss-52",
+    "Id": "boss-52",
+    "Pool": "boss",
+    "Order": 52,
+    "WeaponId": "weapon-t2-28",
+    "DisplayName": "Standard-Issue Sidearm · Pattern 28",
+    "Slot": "primary",
+    "Element": "THERMAL"
+  },
+  {
+    "Name": "boss-53",
+    "Id": "boss-53",
+    "Pool": "boss",
+    "Order": 53,
+    "WeaponId": "weapon-t2-29",
+    "DisplayName": "Resonant MK-IV Assault Rifle · Pattern 29",
+    "Slot": "heavy",
+    "Element": "BIO"
+  },
+  {
+    "Name": "boss-54",
+    "Id": "boss-54",
+    "Pool": "boss",
+    "Order": 54,
+    "WeaponId": "weapon-t2-30",
+    "DisplayName": "Enforcer SMG · Pattern 30",
+    "Slot": "primary",
+    "Element": "KINETIC"
+  },
+  {
+    "Name": "boss-55",
+    "Id": "boss-55",
+    "Pool": "boss",
+    "Order": 55,
+    "WeaponId": "weapon-t3-01",
+    "DisplayName": "Magma-Core Heavy Repeater",
+    "Slot": "primary",
+    "Element": "CRYO"
+  },
+  {
+    "Name": "boss-56",
+    "Id": "boss-56",
+    "Pool": "boss",
+    "Order": 56,
+    "WeaponId": "weapon-t3-02",
+    "DisplayName": "Cryo-Pulse Carbine",
+    "Slot": "primary",
+    "Element": "ARC"
+  },
+  {
+    "Name": "boss-57",
+    "Id": "boss-57",
+    "Pool": "boss",
+    "Order": 57,
+    "WeaponId": "weapon-t3-03",
+    "DisplayName": "Bio-Luminescent Arc-Caster",
+    "Slot": "primary",
+    "Element": "THERMAL"
+  },
+  {
+    "Name": "boss-58",
+    "Id": "boss-58",
+    "Pool": "boss",
+    "Order": 58,
+    "WeaponId": "weapon-t3-04",
+    "DisplayName": "Magma-Core Heavy Repeater · Pattern 04",
+    "Slot": "heavy",
+    "Element": "BIO"
+  },
+  {
+    "Name": "boss-59",
+    "Id": "boss-59",
+    "Pool": "boss",
+    "Order": 59,
+    "WeaponId": "weapon-t3-05",
+    "DisplayName": "Cryo-Pulse Carbine · Pattern 05",
+    "Slot": "primary",
+    "Element": "KINETIC"
+  },
+  {
+    "Name": "boss-60",
+    "Id": "boss-60",
+    "Pool": "boss",
+    "Order": 60,
+    "WeaponId": "weapon-t3-06",
+    "DisplayName": "Bio-Luminescent Arc-Caster · Pattern 06",
+    "Slot": "primary",
+    "Element": "ARC"
+  },
+  {
+    "Name": "boss-61",
+    "Id": "boss-61",
+    "Pool": "boss",
+    "Order": 61,
+    "WeaponId": "weapon-t3-07",
+    "DisplayName": "Magma-Core Heavy Repeater · Pattern 07",
+    "Slot": "primary",
+    "Element": "CRYO"
+  },
+  {
+    "Name": "boss-62",
+    "Id": "boss-62",
+    "Pool": "boss",
+    "Order": 62,
+    "WeaponId": "weapon-t3-08",
+    "DisplayName": "Cryo-Pulse Carbine · Pattern 08",
+    "Slot": "secondary",
+    "Element": "ARC"
+  },
+  {
+    "Name": "boss-63",
+    "Id": "boss-63",
+    "Pool": "boss",
+    "Order": 63,
+    "WeaponId": "weapon-t3-09",
+    "DisplayName": "Bio-Luminescent Arc-Caster · Pattern 09",
+    "Slot": "primary",
+    "Element": "THERMAL"
+  },
+  {
+    "Name": "boss-64",
+    "Id": "boss-64",
+    "Pool": "boss",
+    "Order": 64,
+    "WeaponId": "weapon-t3-10",
+    "DisplayName": "Magma-Core Heavy Repeater · Pattern 10",
+    "Slot": "primary",
+    "Element": "BIO"
+  },
+  {
+    "Name": "boss-65",
+    "Id": "boss-65",
+    "Pool": "boss",
+    "Order": 65,
+    "WeaponId": "weapon-t3-11",
+    "DisplayName": "Cryo-Pulse Carbine · Pattern 11",
+    "Slot": "primary",
+    "Element": "KINETIC"
+  },
+  {
+    "Name": "boss-66",
+    "Id": "boss-66",
+    "Pool": "boss",
+    "Order": 66,
+    "WeaponId": "weapon-t3-12",
+    "DisplayName": "Bio-Luminescent Arc-Caster · Pattern 12",
+    "Slot": "heavy",
+    "Element": "ARC"
+  },
+  {
+    "Name": "boss-67",
+    "Id": "boss-67",
+    "Pool": "boss",
+    "Order": 67,
+    "WeaponId": "weapon-t3-13",
+    "DisplayName": "Magma-Core Heavy Repeater · Pattern 13",
+    "Slot": "primary",
+    "Element": "CRYO"
+  },
+  {
+    "Name": "boss-68",
+    "Id": "boss-68",
+    "Pool": "boss",
+    "Order": 68,
+    "WeaponId": "weapon-t3-14",
+    "DisplayName": "Cryo-Pulse Carbine · Pattern 14",
+    "Slot": "primary",
+    "Element": "ARC"
+  },
+  {
+    "Name": "boss-69",
+    "Id": "boss-69",
+    "Pool": "boss",
+    "Order": 69,
+    "WeaponId": "weapon-t3-15",
+    "DisplayName": "Bio-Luminescent Arc-Caster · Pattern 15",
+    "Slot": "primary",
+    "Element": "THERMAL"
+  },
+  {
+    "Name": "boss-70",
+    "Id": "boss-70",
+    "Pool": "boss",
+    "Order": 70,
+    "WeaponId": "weapon-t3-16",
+    "DisplayName": "Magma-Core Heavy Repeater · Pattern 16",
+    "Slot": "secondary",
+    "Element": "BIO"
+  },
+  {
+    "Name": "boss-71",
+    "Id": "boss-71",
+    "Pool": "boss",
+    "Order": 71,
+    "WeaponId": "weapon-t3-17",
+    "DisplayName": "Cryo-Pulse Carbine · Pattern 17",
+    "Slot": "primary",
+    "Element": "KINETIC"
+  },
+  {
+    "Name": "boss-72",
+    "Id": "boss-72",
+    "Pool": "boss",
+    "Order": 72,
+    "WeaponId": "weapon-t3-18",
+    "DisplayName": "Bio-Luminescent Arc-Caster · Pattern 18",
+    "Slot": "primary",
+    "Element": "ARC"
+  },
+  {
+    "Name": "boss-73",
+    "Id": "boss-73",
+    "Pool": "boss",
+    "Order": 73,
+    "WeaponId": "weapon-t3-19",
+    "DisplayName": "Magma-Core Heavy Repeater · Pattern 19",
+    "Slot": "primary",
+    "Element": "CRYO"
+  },
+  {
+    "Name": "boss-74",
+    "Id": "boss-74",
+    "Pool": "boss",
+    "Order": 74,
+    "WeaponId": "weapon-t3-20",
+    "DisplayName": "Cryo-Pulse Carbine · Pattern 20",
+    "Slot": "heavy",
+    "Element": "ARC"
+  },
+  {
+    "Name": "boss-75",
+    "Id": "boss-75",
+    "Pool": "boss",
+    "Order": 75,
+    "WeaponId": "weapon-t3-21",
+    "DisplayName": "Bio-Luminescent Arc-Caster · Pattern 21",
+    "Slot": "primary",
+    "Element": "THERMAL"
+  },
+  {
+    "Name": "boss-76",
+    "Id": "boss-76",
+    "Pool": "boss",
+    "Order": 76,
+    "WeaponId": "weapon-t3-22",
+    "DisplayName": "Magma-Core Heavy Repeater · Pattern 22",
+    "Slot": "primary",
+    "Element": "BIO"
+  },
+  {
+    "Name": "boss-77",
+    "Id": "boss-77",
+    "Pool": "boss",
+    "Order": 77,
+    "WeaponId": "weapon-t3-23",
+    "DisplayName": "Cryo-Pulse Carbine · Pattern 23",
+    "Slot": "primary",
+    "Element": "KINETIC"
+  },
+  {
+    "Name": "boss-78",
+    "Id": "boss-78",
+    "Pool": "boss",
+    "Order": 78,
+    "WeaponId": "weapon-t3-24",
+    "DisplayName": "Bio-Luminescent Arc-Caster · Pattern 24",
+    "Slot": "secondary",
+    "Element": "ARC"
+  },
+  {
+    "Name": "boss-79",
+    "Id": "boss-79",
+    "Pool": "boss",
+    "Order": 79,
+    "WeaponId": "weapon-t3-25",
+    "DisplayName": "Magma-Core Heavy Repeater · Pattern 25",
+    "Slot": "primary",
+    "Element": "CRYO"
+  },
+  {
+    "Name": "boss-80",
+    "Id": "boss-80",
+    "Pool": "boss",
+    "Order": 80,
+    "WeaponId": "weapon-t3-26",
+    "DisplayName": "Cryo-Pulse Carbine · Pattern 26",
+    "Slot": "primary",
+    "Element": "ARC"
+  },
+  {
+    "Name": "boss-81",
+    "Id": "boss-81",
+    "Pool": "boss",
+    "Order": 81,
+    "WeaponId": "weapon-t3-27",
+    "DisplayName": "Bio-Luminescent Arc-Caster · Pattern 27",
+    "Slot": "primary",
+    "Element": "THERMAL"
+  },
+  {
+    "Name": "boss-82",
+    "Id": "boss-82",
+    "Pool": "boss",
+    "Order": 82,
+    "WeaponId": "weapon-t3-28",
+    "DisplayName": "Magma-Core Heavy Repeater · Pattern 28",
+    "Slot": "heavy",
+    "Element": "BIO"
+  },
+  {
+    "Name": "boss-83",
+    "Id": "boss-83",
+    "Pool": "boss",
+    "Order": 83,
+    "WeaponId": "cat-storm-katana",
+    "DisplayName": "Storm Katana",
+    "Slot": "primary",
+    "Element": "ARC"
+  },
+  {
+    "Name": "boss-84",
+    "Id": "boss-84",
+    "Pool": "boss",
+    "Order": 84,
+    "WeaponId": "cat-nova-handcannon",
+    "DisplayName": "Nova Handcannon",
+    "Slot": "secondary",
+    "Element": "THERMAL"
+  },
+  {
+    "Name": "boss-85",
+    "Id": "boss-85",
+    "Pool": "boss",
+    "Order": 85,
+    "WeaponId": "cat-neon-smg",
+    "DisplayName": "Neon SMG",
+    "Slot": "primary",
+    "Element": "ARC"
+  },
+  {
+    "Name": "boss-86",
+    "Id": "boss-86",
+    "Pool": "boss",
+    "Order": 86,
+    "WeaponId": "cat-valkyrie-ar",
+    "DisplayName": "Valkyrie AR",
+    "Slot": "primary",
+    "Element": "ARC"
+  },
+  {
+    "Name": "boss-87",
+    "Id": "boss-87",
+    "Pool": "boss",
+    "Order": 87,
+    "WeaponId": "cat-titan-auto",
+    "DisplayName": "Titan Auto",
+    "Slot": "primary",
+    "Element": "KINETIC"
+  },
+  {
+    "Name": "boss-88",
+    "Id": "boss-88",
+    "Pool": "boss",
+    "Order": 88,
+    "WeaponId": "cat-ravager-lmg",
+    "DisplayName": "Ravager LMG",
+    "Slot": "heavy",
+    "Element": "CRYO"
+  },
+  {
+    "Name": "boss-89",
+    "Id": "boss-89",
+    "Pool": "boss",
+    "Order": 89,
+    "WeaponId": "cat-glacier-sniper",
+    "DisplayName": "Glacier Sniper",
+    "Slot": "primary",
+    "Element": "CRYO"
+  },
+  {
+    "Name": "boss-90",
+    "Id": "boss-90",
+    "Pool": "boss",
+    "Order": 90,
+    "WeaponId": "cat-phase-fusion",
+    "DisplayName": "Phase Fusion",
+    "Slot": "primary",
+    "Element": "ARC"
+  },
+  {
+    "Name": "boss-91",
+    "Id": "boss-91",
+    "Pool": "boss",
+    "Order": 91,
+    "WeaponId": "cat-hellfire-sg",
+    "DisplayName": "Hellfire SG",
+    "Slot": "primary",
+    "Element": "THERMAL"
+  },
+  {
+    "Name": "boss-92",
+    "Id": "boss-92",
+    "Pool": "boss",
+    "Order": 92,
+    "WeaponId": "cat-nomad-crossbow",
+    "DisplayName": "Nomad Crossbow",
+    "Slot": "primary",
+    "Element": "KINETIC"
+  },
+  {
+    "Name": "boss-93",
+    "Id": "boss-93",
+    "Pool": "boss",
+    "Order": 93,
+    "WeaponId": "cat-breach-gl",
+    "DisplayName": "Breach GL",
+    "Slot": "heavy",
+    "Element": "KINETIC"
+  },
+  {
+    "Name": "boss-94",
+    "Id": "boss-94",
+    "Pool": "boss",
+    "Order": 94,
+    "WeaponId": "cat-arc-disruptor",
+    "DisplayName": "Arc Disruptor",
+    "Slot": "primary",
+    "Element": "ARC"
+  },
+  {
+    "Name": "boss-95",
+    "Id": "boss-95",
+    "Pool": "boss",
+    "Order": 95,
+    "WeaponId": "cat-void-saber",
+    "DisplayName": "Void Saber",
+    "Slot": "primary",
+    "Element": "BIO"
+  },
+  {
+    "Name": "boss-96",
+    "Id": "boss-96",
+    "Pool": "boss",
+    "Order": 96,
+    "WeaponId": "cat-shadowbite",
+    "DisplayName": "Shadowbite",
+    "Slot": "secondary",
+    "Element": "BIO"
+  },
+  {
+    "Name": "boss-97",
+    "Id": "boss-97",
+    "Pool": "boss",
+    "Order": 97,
+    "WeaponId": "cat-dark-current",
+    "DisplayName": "Dark Current",
+    "Slot": "primary",
+    "Element": "BIO"
+  },
+  {
+    "Name": "boss-98",
+    "Id": "boss-98",
+    "Pool": "boss",
+    "Order": 98,
+    "WeaponId": "cat-riftwalker",
+    "DisplayName": "Riftwalker",
+    "Slot": "primary",
+    "Element": "BIO"
+  },
+  {
+    "Name": "boss-99",
+    "Id": "boss-99",
+    "Pool": "boss",
+    "Order": 99,
+    "WeaponId": "cat-ashfall-auto",
+    "DisplayName": "Ashfall Auto",
+    "Slot": "primary",
+    "Element": "THERMAL"
+  },
+  {
+    "Name": "boss-100",
+    "Id": "boss-100",
+    "Pool": "boss",
+    "Order": 100,
+    "WeaponId": "cat-storm-forged",
+    "DisplayName": "Storm Forged",
+    "Slot": "heavy",
+    "Element": "ARC"
+  },
+  {
+    "Name": "boss-101",
+    "Id": "boss-101",
+    "Pool": "boss",
+    "Order": 101,
+    "WeaponId": "cat-void-stalker",
+    "DisplayName": "Void Stalker",
+    "Slot": "primary",
+    "Element": "BIO"
+  },
+  {
+    "Name": "boss-102",
+    "Id": "boss-102",
+    "Pool": "boss",
+    "Order": 102,
+    "WeaponId": "cat-starfire-fusion",
+    "DisplayName": "Starfire Fusion",
+    "Slot": "primary",
+    "Element": "THERMAL"
+  },
+  {
+    "Name": "boss-103",
+    "Id": "boss-103",
+    "Pool": "boss",
+    "Order": 103,
+    "WeaponId": "cat-oblivion-sg",
+    "DisplayName": "Oblivion SG",
+    "Slot": "primary",
+    "Element": "BIO"
+  },
+  {
+    "Name": "boss-104",
+    "Id": "boss-104",
+    "Pool": "boss",
+    "Order": 104,
+    "WeaponId": "cat-frostbow",
+    "DisplayName": "Frostbow",
+    "Slot": "primary",
+    "Element": "CRYO"
+  },
+  {
+    "Name": "boss-105",
+    "Id": "boss-105",
+    "Pool": "boss",
+    "Order": 105,
+    "WeaponId": "cat-cataclysm",
+    "DisplayName": "Cataclysm",
+    "Slot": "heavy",
+    "Element": "THERMAL"
+  },
+  {
+    "Name": "boss-106",
+    "Id": "boss-106",
+    "Pool": "boss",
+    "Order": 106,
+    "WeaponId": "cat-solar-eruption",
+    "DisplayName": "Solar Eruption",
+    "Slot": "primary",
+    "Element": "THERMAL"
+  },
+  {
+    "Name": "boss-107",
+    "Id": "boss-107",
+    "Pool": "boss",
+    "Order": 107,
+    "WeaponId": "cat-void-reaper",
+    "DisplayName": "Void Reaper",
+    "Slot": "primary",
+    "Element": "BIO"
+  }
+]

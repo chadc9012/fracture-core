@@ -9,6 +9,8 @@
 // and keeps a Progression on the game instance.
 #pragma once
 
+#include "Core/WFProgression.h"
+
 #include <map>
 #include <optional>
 #include <string>
@@ -87,22 +89,8 @@ namespace wf::quest
 		static FEvent HackComplete() { return {EEventType::HackComplete, {}, {}, 0}; }
 	};
 
-	/** The quest-relevant slice of PlayerProgression. Lists keep insertion order, as in the web build. */
-	struct FProgression
-	{
-		std::optional<std::string> ActiveQuestId;
-		std::vector<std::string> CompletedMissions;
-		std::map<std::string, std::vector<double>> QuestObjectiveProgress;
-		std::vector<std::string> UnlockedWorlds;
-		std::map<std::string, bool> WorldFlags;
-		std::string CurrentWorld;
-		double CorruptionLevel = 0;
-		double FractureShards = 0;
-		std::map<std::string, double> Materials;
-		std::map<std::string, double> DungeonClears;
-
-		bool operator==(const FProgression& Other) const;
-	};
+	/** The shared save (Core/WFProgression.h); quests read and write its story-spine fields. */
+	using FProgression = wf::FProgression;
 
 	class FCatalog
 	{

@@ -1,0 +1,204 @@
+#include "WFProgressionJson.h"
+
+#include "Dom/JsonObject.h"
+#include "Dom/JsonValue.h"
+#include "Serialization/JsonReader.h"
+#include "Serialization/JsonSerializer.h"
+#include "Serialization/JsonWriter.h"
+#include "WFDataFiles.h"
+
+using WFData::ToF;
+using WFData::ToStd;
+
+namespace
+{
+	TArray<TSharedPtr<FJsonValue>> StringArray(const std::vector<std::string>& Items)
+	{
+		TArray<TSharedPtr<FJsonValue>> Out;
+		for (const std::string& Item : Items) Out.Add(MakeShared<FJsonValueString>(ToF(Item)));
+		return Out;
+	}
+
+	TSharedRef<FJsonObject> NumberObject(const std::map<std::string, double>& Items)
+	{
+		TSharedRef<FJsonObject> Out = MakeShared<FJsonObject>();
+		for (const auto& [Key, Value] : Items) Out->SetNumberField(ToF(Key), Value);
+		return Out;
+	}
+
+	void OptionalString(const TSharedRef<FJsonObject>& O, const TCHAR* Field, const std::optional<std::string>& Value)
+	{
+		if (Value) O->SetStringField(Field, ToF(*Value));
+		else O->SetField(Field, MakeShared<FJsonValueNull>());
+	}
+
+	std::vector<std::string> ReadStrings(const TSharedPtr<FJsonObject>& O, const TCHAR* Field)
+	{
+		std::vector<std::string> Out;
+		const TArray<TSharedPtr<FJsonValue>>* Values = nullptr;
+		if (O->TryGetArrayField(Field, Values))
+			for (const TSharedPtr<FJsonValue>& V : *Values)
+			{
+				FString S;
+				if (V.IsValid() && V->TryGetString(S)) Out.push_back(ToStd(S));
+			}
+		return Out;
+	}
+
+	std::map<std::string, double> ReadNumbers(const TSharedPtr<FJsonObject>& O, const TCHAR* Field)
+	{
+		std::map<std::string, double> Out;
+		const TSharedPtr<FJsonObject>* Object = nullptr;
+		if (O->TryGetObjectField(Field, Object) && Object && Object->IsValid())
+			for (const auto& Pair : (*Object)->Values)
+			{
+				double Number = 0;
+				if (Pair.Value.IsValid() && Pair.Value->TryGetNumber(Number)) Out[ToStd(Pair.Key)] = Number;
+			}
+		return Out;
+	}
+
+	std::optional<std::string> ReadOptionalString(const TSharedPtr<FJsonObject>& O, const TCHAR* Field)
+	{
+		FString S;
+		if (O->TryGetStringField(Field, S)) return ToStd(S);
+		return std::nullopt;
+	}
+}
+
+namespace WFProgressionJson
+{
+	FString ToJson(const wf::FProgression& P)
+	{
+		TSharedRef<FJsonObject> O = MakeShared<FJsonObject>();
+		OptionalString(O, TEXT("activeQuestId"), P.ActiveQuestId);
+		O->SetArrayField(TEXT("completedMissions"), StringArray(P.CompletedMissions));
+		TSharedRef<FJsonObject> Progress = MakeShared<FJsonObject>();
+		for (const auto& [Quest, Values] : P.QuestObjectiveProgress)
+		{
+			TArray<TSharedPtr<FJsonValue>> Array;
+			for (const double V : Values) Array.Add(MakeShared<FJsonValueNumber>(V));
+			Progress->SetArrayField(ToF(Quest), Array);
+		}
+		O->SetObjectField(TEXT("questObjectiveProgress"), Progress);
+		O->SetArrayField(TEXT("unlockedWorlds"), StringArray(P.UnlockedWorlds));
+		TSharedRef<FJsonObject> Flags = MakeShared<FJsonObject>();
+		for (const auto& [World, Flag] : P.WorldFlags) Flags->SetBoolField(ToF(World), Flag);
+		O->SetObjectField(TEXT("worldFlags"), Flags);
+		O->SetStringField(TEXT("currentWorld"), ToF(P.CurrentWorld));
+		O->SetNumberField(TEXT("corruptionLevel"), P.CorruptionLevel);
+		O->SetNumberField(TEXT("fractureShards"), P.FractureShards);
+		O->SetObjectField(TEXT("materials"), NumberObject(P.Materials));
+		O->SetObjectField(TEXT("dungeonClears"), NumberObject(P.DungeonClears));
+
+		TArray<TSharedPtr<FJsonValue>> Inventory;
+		for (const wf::FGearItem& G : P.Inventory)
+		{
+			TSharedRef<FJsonObject> Item = MakeShared<FJsonObject>();
+			Item->SetStringField(TEXT("id"), ToF(G.Id));
+			Item->SetStringField(TEXT("name"), ToF(G.Name));
+			Item->SetStringField(TEXT("slot"), ToF(G.Slot));
+			Item->SetNumberField(TEXT("power"), G.Power);
+			Item->SetNumberField(TEXT("level"), G.Level);
+			Item->SetStringField(TEXT("element"), ToF(G.Element));
+			Item->SetStringField(TEXT("source"), ToF(G.Source));
+			if (G.SetId) Item->SetStringField(TEXT("setId"), ToF(*G.SetId));
+			if (G.Rarity) Item->SetStringField(TEXT("rarity"), ToF(*G.Rarity));
+			Inventory.Add(MakeShared<FJsonValueObject>(Item));
+		}
+		O->SetArrayField(TEXT("inventory"), Inventory);
+		TSharedRef<FJsonObject> Equipped = MakeShared<FJsonObject>();
+		for (const auto& [Slot, Id] : P.EquippedGear) Equipped->SetStringField(ToF(Slot), ToF(Id));
+		O->SetObjectField(TEXT("equippedGear"), Equipped);
+
+		O->SetNumberField(TEXT("level"), P.Level);
+		O->SetNumberField(TEXT("xp"), P.Xp);
+		O->SetNumberField(TEXT("calibrationTokens"), P.CalibrationTokens);
+		O->SetNumberField(TEXT("novaLevel"), P.NovaLevel);
+		O->SetArrayField(TEXT("novaUnlocks"), StringArray(P.NovaUnlocks));
+		OptionalString(O, TEXT("identityClass"), P.IdentityClass);
+		O->SetStringField(TEXT("challenge"), ToF(P.Challenge));
+
+		FString Out;
+		const TSharedRef<TJsonWriter<>> Writer = TJsonWriterFactory<>::Create(&Out);
+		FJsonSerializer::Serialize(O, Writer);
+		return Out;
+	}
+
+	bool FromJson(const FString& Json, wf::FProgression& Out, FString& OutError)
+	{
+		TSharedPtr<FJsonObject> O;
+		if (!FJsonSerializer::Deserialize(TJsonReaderFactory<>::Create(Json), O) || !O.IsValid())
+		{
+			OutError = TEXT("save is not a JSON object");
+			return false;
+		}
+		wf::FProgression P = Out; // start from the caller's defaults
+		P.ActiveQuestId = ReadOptionalString(O, TEXT("activeQuestId"));
+		P.CompletedMissions = ReadStrings(O, TEXT("completedMissions"));
+		P.QuestObjectiveProgress.clear();
+		const TSharedPtr<FJsonObject>* Progress = nullptr;
+		if (O->TryGetObjectField(TEXT("questObjectiveProgress"), Progress) && Progress && Progress->IsValid())
+			for (const auto& Pair : (*Progress)->Values)
+			{
+				std::vector<double> Values;
+				const TArray<TSharedPtr<FJsonValue>>* Array = nullptr;
+				if (Pair.Value.IsValid() && Pair.Value->TryGetArray(Array))
+					for (const TSharedPtr<FJsonValue>& V : *Array) Values.push_back(V.IsValid() ? V->AsNumber() : 0.0);
+				P.QuestObjectiveProgress[ToStd(Pair.Key)] = Values;
+			}
+		if (O->HasField(TEXT("unlockedWorlds"))) P.UnlockedWorlds = ReadStrings(O, TEXT("unlockedWorlds"));
+		P.WorldFlags.clear();
+		const TSharedPtr<FJsonObject>* Flags = nullptr;
+		if (O->TryGetObjectField(TEXT("worldFlags"), Flags) && Flags && Flags->IsValid())
+			for (const auto& Pair : (*Flags)->Values)
+			{
+				bool Flag = false;
+				if (Pair.Value.IsValid() && Pair.Value->TryGetBool(Flag)) P.WorldFlags[ToStd(Pair.Key)] = Flag;
+			}
+		if (std::optional<std::string> World = ReadOptionalString(O, TEXT("currentWorld"))) P.CurrentWorld = *World;
+		O->TryGetNumberField(TEXT("corruptionLevel"), P.CorruptionLevel);
+		O->TryGetNumberField(TEXT("fractureShards"), P.FractureShards);
+		P.Materials = ReadNumbers(O, TEXT("materials"));
+		P.DungeonClears = ReadNumbers(O, TEXT("dungeonClears"));
+
+		P.Inventory.clear();
+		const TArray<TSharedPtr<FJsonValue>>* Inventory = nullptr;
+		if (O->TryGetArrayField(TEXT("inventory"), Inventory))
+			for (const TSharedPtr<FJsonValue>& V : *Inventory)
+			{
+				const TSharedPtr<FJsonObject> Item = V.IsValid() ? V->AsObject() : nullptr;
+				if (!Item.IsValid()) continue;
+				wf::FGearItem G;
+				G.Id = ToStd(WFData::Str(Item, TEXT("id")));
+				if (G.Id.empty()) continue;
+				G.Name = ToStd(WFData::Str(Item, TEXT("name")));
+				G.Slot = ToStd(WFData::Str(Item, TEXT("slot")));
+				G.Power = WFData::Num(Item, TEXT("power"));
+				G.Level = WFData::Num(Item, TEXT("level"), 1.0);
+				G.Element = ToStd(WFData::Str(Item, TEXT("element")));
+				G.Source = ToStd(WFData::Str(Item, TEXT("source")));
+				G.SetId = ReadOptionalString(Item, TEXT("setId"));
+				G.Rarity = ReadOptionalString(Item, TEXT("rarity"));
+				P.Inventory.push_back(G);
+			}
+		P.EquippedGear.clear();
+		const TSharedPtr<FJsonObject>* Equipped = nullptr;
+		if (O->TryGetObjectField(TEXT("equippedGear"), Equipped) && Equipped && Equipped->IsValid())
+			for (const auto& Pair : (*Equipped)->Values)
+			{
+				FString Id;
+				if (Pair.Value.IsValid() && Pair.Value->TryGetString(Id) && !Id.IsEmpty()) P.EquippedGear[ToStd(Pair.Key)] = ToStd(Id);
+			}
+
+		O->TryGetNumberField(TEXT("level"), P.Level);
+		O->TryGetNumberField(TEXT("xp"), P.Xp);
+		O->TryGetNumberField(TEXT("calibrationTokens"), P.CalibrationTokens);
+		O->TryGetNumberField(TEXT("novaLevel"), P.NovaLevel);
+		P.NovaUnlocks = ReadStrings(O, TEXT("novaUnlocks"));
+		P.IdentityClass = ReadOptionalString(O, TEXT("identityClass"));
+		if (std::optional<std::string> Challenge = ReadOptionalString(O, TEXT("challenge"))) P.Challenge = *Challenge;
+		Out = std::move(P);
+		return true;
+	}
+}

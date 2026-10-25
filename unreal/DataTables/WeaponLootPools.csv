@@ -1,0 +1,204 @@
+Name,Id,Pool,Order,WeaponId,DisplayName,Slot,Element
+enemy-0,enemy-0,enemy,0,weapon-t1-01,Scrap-Slugger,primary,KINETIC
+enemy-1,enemy-1,enemy,1,weapon-t1-02,Pipe-Rail Pistol,secondary,ARC
+enemy-2,enemy-2,enemy,2,weapon-t1-03,Rebar Crossbow,primary,CRYO
+enemy-3,enemy-3,enemy,3,weapon-t1-04,Makeshift Sub-Carbine,primary,ARC
+enemy-4,enemy-4,enemy,4,weapon-t1-05,Scrap-Slugger · Pattern 05,primary,THERMAL
+enemy-5,enemy-5,enemy,5,weapon-t1-06,Pipe-Rail Pistol · Pattern 06,heavy,BIO
+enemy-6,enemy-6,enemy,6,weapon-t1-07,Rebar Crossbow · Pattern 07,primary,KINETIC
+enemy-7,enemy-7,enemy,7,weapon-t1-08,Makeshift Sub-Carbine · Pattern 08,primary,ARC
+enemy-8,enemy-8,enemy,8,weapon-t1-09,Scrap-Slugger · Pattern 09,primary,CRYO
+enemy-9,enemy-9,enemy,9,weapon-t1-10,Pipe-Rail Pistol · Pattern 10,secondary,ARC
+enemy-10,enemy-10,enemy,10,weapon-t1-11,Rebar Crossbow · Pattern 11,primary,THERMAL
+enemy-11,enemy-11,enemy,11,weapon-t1-12,Makeshift Sub-Carbine · Pattern 12,primary,BIO
+enemy-12,enemy-12,enemy,12,weapon-t1-13,Scrap-Slugger · Pattern 13,primary,KINETIC
+enemy-13,enemy-13,enemy,13,weapon-t1-14,Pipe-Rail Pistol · Pattern 14,heavy,ARC
+enemy-14,enemy-14,enemy,14,weapon-t1-15,Rebar Crossbow · Pattern 15,primary,CRYO
+enemy-15,enemy-15,enemy,15,weapon-t1-16,Makeshift Sub-Carbine · Pattern 16,primary,ARC
+enemy-16,enemy-16,enemy,16,weapon-t1-17,Scrap-Slugger · Pattern 17,primary,THERMAL
+enemy-17,enemy-17,enemy,17,weapon-t1-18,Pipe-Rail Pistol · Pattern 18,secondary,BIO
+enemy-18,enemy-18,enemy,18,weapon-t1-19,Rebar Crossbow · Pattern 19,primary,KINETIC
+enemy-19,enemy-19,enemy,19,weapon-t1-20,Makeshift Sub-Carbine · Pattern 20,primary,ARC
+enemy-20,enemy-20,enemy,20,weapon-t1-21,Scrap-Slugger · Pattern 21,primary,CRYO
+enemy-21,enemy-21,enemy,21,weapon-t1-22,Pipe-Rail Pistol · Pattern 22,heavy,ARC
+enemy-22,enemy-22,enemy,22,weapon-t1-23,Rebar Crossbow · Pattern 23,primary,THERMAL
+enemy-23,enemy-23,enemy,23,weapon-t1-24,Makeshift Sub-Carbine · Pattern 24,primary,BIO
+enemy-24,enemy-24,enemy,24,weapon-t1-25,Scrap-Slugger · Pattern 25,primary,KINETIC
+enemy-25,enemy-25,enemy,25,weapon-t2-01,Resonant MK-IV Assault Rifle,secondary,ARC
+enemy-26,enemy-26,enemy,26,weapon-t2-02,Enforcer SMG,primary,CRYO
+enemy-27,enemy-27,enemy,27,weapon-t2-03,Kinetic DMR,primary,ARC
+enemy-28,enemy-28,enemy,28,weapon-t2-04,Standard-Issue Sidearm,primary,THERMAL
+enemy-29,enemy-29,enemy,29,weapon-t2-05,Resonant MK-IV Assault Rifle · Pattern 05,heavy,BIO
+enemy-30,enemy-30,enemy,30,weapon-t2-06,Enforcer SMG · Pattern 06,primary,KINETIC
+enemy-31,enemy-31,enemy,31,weapon-t2-07,Kinetic DMR · Pattern 07,primary,ARC
+enemy-32,enemy-32,enemy,32,weapon-t2-08,Standard-Issue Sidearm · Pattern 08,primary,CRYO
+enemy-33,enemy-33,enemy,33,weapon-t2-09,Resonant MK-IV Assault Rifle · Pattern 09,secondary,ARC
+enemy-34,enemy-34,enemy,34,weapon-t2-10,Enforcer SMG · Pattern 10,primary,THERMAL
+enemy-35,enemy-35,enemy,35,weapon-t2-11,Kinetic DMR · Pattern 11,primary,BIO
+enemy-36,enemy-36,enemy,36,weapon-t2-12,Standard-Issue Sidearm · Pattern 12,primary,KINETIC
+enemy-37,enemy-37,enemy,37,weapon-t2-13,Resonant MK-IV Assault Rifle · Pattern 13,heavy,ARC
+enemy-38,enemy-38,enemy,38,weapon-t2-14,Enforcer SMG · Pattern 14,primary,CRYO
+enemy-39,enemy-39,enemy,39,weapon-t2-15,Kinetic DMR · Pattern 15,primary,ARC
+enemy-40,enemy-40,enemy,40,weapon-t2-16,Standard-Issue Sidearm · Pattern 16,primary,THERMAL
+enemy-41,enemy-41,enemy,41,weapon-t2-17,Resonant MK-IV Assault Rifle · Pattern 17,secondary,BIO
+enemy-42,enemy-42,enemy,42,weapon-t2-18,Enforcer SMG · Pattern 18,primary,KINETIC
+enemy-43,enemy-43,enemy,43,weapon-t2-19,Kinetic DMR · Pattern 19,primary,ARC
+enemy-44,enemy-44,enemy,44,weapon-t2-20,Standard-Issue Sidearm · Pattern 20,primary,CRYO
+enemy-45,enemy-45,enemy,45,weapon-t2-21,Resonant MK-IV Assault Rifle · Pattern 21,heavy,ARC
+enemy-46,enemy-46,enemy,46,weapon-t2-22,Enforcer SMG · Pattern 22,primary,THERMAL
+enemy-47,enemy-47,enemy,47,weapon-t2-23,Kinetic DMR · Pattern 23,primary,BIO
+enemy-48,enemy-48,enemy,48,weapon-t2-24,Standard-Issue Sidearm · Pattern 24,primary,KINETIC
+enemy-49,enemy-49,enemy,49,weapon-t2-25,Resonant MK-IV Assault Rifle · Pattern 25,secondary,ARC
+enemy-50,enemy-50,enemy,50,weapon-t2-26,Enforcer SMG · Pattern 26,primary,CRYO
+enemy-51,enemy-51,enemy,51,weapon-t2-27,Kinetic DMR · Pattern 27,primary,ARC
+enemy-52,enemy-52,enemy,52,weapon-t2-28,Standard-Issue Sidearm · Pattern 28,primary,THERMAL
+enemy-53,enemy-53,enemy,53,weapon-t2-29,Resonant MK-IV Assault Rifle · Pattern 29,heavy,BIO
+enemy-54,enemy-54,enemy,54,weapon-t2-30,Enforcer SMG · Pattern 30,primary,KINETIC
+enemy-55,enemy-55,enemy,55,weapon-t3-01,Magma-Core Heavy Repeater,primary,CRYO
+enemy-56,enemy-56,enemy,56,weapon-t3-02,Cryo-Pulse Carbine,primary,ARC
+enemy-57,enemy-57,enemy,57,weapon-t3-03,Bio-Luminescent Arc-Caster,primary,THERMAL
+enemy-58,enemy-58,enemy,58,weapon-t3-04,Magma-Core Heavy Repeater · Pattern 04,heavy,BIO
+enemy-59,enemy-59,enemy,59,weapon-t3-05,Cryo-Pulse Carbine · Pattern 05,primary,KINETIC
+enemy-60,enemy-60,enemy,60,weapon-t3-06,Bio-Luminescent Arc-Caster · Pattern 06,primary,ARC
+enemy-61,enemy-61,enemy,61,weapon-t3-07,Magma-Core Heavy Repeater · Pattern 07,primary,CRYO
+enemy-62,enemy-62,enemy,62,weapon-t3-08,Cryo-Pulse Carbine · Pattern 08,secondary,ARC
+enemy-63,enemy-63,enemy,63,weapon-t3-09,Bio-Luminescent Arc-Caster · Pattern 09,primary,THERMAL
+enemy-64,enemy-64,enemy,64,weapon-t3-10,Magma-Core Heavy Repeater · Pattern 10,primary,BIO
+enemy-65,enemy-65,enemy,65,weapon-t3-11,Cryo-Pulse Carbine · Pattern 11,primary,KINETIC
+enemy-66,enemy-66,enemy,66,weapon-t3-12,Bio-Luminescent Arc-Caster · Pattern 12,heavy,ARC
+enemy-67,enemy-67,enemy,67,weapon-t3-13,Magma-Core Heavy Repeater · Pattern 13,primary,CRYO
+enemy-68,enemy-68,enemy,68,weapon-t3-14,Cryo-Pulse Carbine · Pattern 14,primary,ARC
+enemy-69,enemy-69,enemy,69,weapon-t3-15,Bio-Luminescent Arc-Caster · Pattern 15,primary,THERMAL
+enemy-70,enemy-70,enemy,70,weapon-t3-16,Magma-Core Heavy Repeater · Pattern 16,secondary,BIO
+enemy-71,enemy-71,enemy,71,weapon-t3-17,Cryo-Pulse Carbine · Pattern 17,primary,KINETIC
+enemy-72,enemy-72,enemy,72,weapon-t3-18,Bio-Luminescent Arc-Caster · Pattern 18,primary,ARC
+enemy-73,enemy-73,enemy,73,weapon-t3-19,Magma-Core Heavy Repeater · Pattern 19,primary,CRYO
+enemy-74,enemy-74,enemy,74,weapon-t3-20,Cryo-Pulse Carbine · Pattern 20,heavy,ARC
+enemy-75,enemy-75,enemy,75,weapon-t3-21,Bio-Luminescent Arc-Caster · Pattern 21,primary,THERMAL
+enemy-76,enemy-76,enemy,76,weapon-t3-22,Magma-Core Heavy Repeater · Pattern 22,primary,BIO
+enemy-77,enemy-77,enemy,77,weapon-t3-23,Cryo-Pulse Carbine · Pattern 23,primary,KINETIC
+enemy-78,enemy-78,enemy,78,weapon-t3-24,Bio-Luminescent Arc-Caster · Pattern 24,secondary,ARC
+enemy-79,enemy-79,enemy,79,weapon-t3-25,Magma-Core Heavy Repeater · Pattern 25,primary,CRYO
+enemy-80,enemy-80,enemy,80,weapon-t3-26,Cryo-Pulse Carbine · Pattern 26,primary,ARC
+enemy-81,enemy-81,enemy,81,weapon-t3-27,Bio-Luminescent Arc-Caster · Pattern 27,primary,THERMAL
+enemy-82,enemy-82,enemy,82,weapon-t3-28,Magma-Core Heavy Repeater · Pattern 28,heavy,BIO
+enemy-83,enemy-83,enemy,83,cat-storm-katana,Storm Katana,primary,ARC
+enemy-84,enemy-84,enemy,84,cat-nova-handcannon,Nova Handcannon,secondary,THERMAL
+enemy-85,enemy-85,enemy,85,cat-neon-smg,Neon SMG,primary,ARC
+enemy-86,enemy-86,enemy,86,cat-valkyrie-ar,Valkyrie AR,primary,ARC
+enemy-87,enemy-87,enemy,87,cat-titan-auto,Titan Auto,primary,KINETIC
+enemy-88,enemy-88,enemy,88,cat-ravager-lmg,Ravager LMG,heavy,CRYO
+enemy-89,enemy-89,enemy,89,cat-glacier-sniper,Glacier Sniper,primary,CRYO
+enemy-90,enemy-90,enemy,90,cat-phase-fusion,Phase Fusion,primary,ARC
+enemy-91,enemy-91,enemy,91,cat-hellfire-sg,Hellfire SG,primary,THERMAL
+enemy-92,enemy-92,enemy,92,cat-nomad-crossbow,Nomad Crossbow,primary,KINETIC
+enemy-93,enemy-93,enemy,93,cat-breach-gl,Breach GL,heavy,KINETIC
+enemy-94,enemy-94,enemy,94,cat-arc-disruptor,Arc Disruptor,primary,ARC
+boss-0,boss-0,boss,0,weapon-t1-01,Scrap-Slugger,primary,KINETIC
+boss-1,boss-1,boss,1,weapon-t1-02,Pipe-Rail Pistol,secondary,ARC
+boss-2,boss-2,boss,2,weapon-t1-03,Rebar Crossbow,primary,CRYO
+boss-3,boss-3,boss,3,weapon-t1-04,Makeshift Sub-Carbine,primary,ARC
+boss-4,boss-4,boss,4,weapon-t1-05,Scrap-Slugger · Pattern 05,primary,THERMAL
+boss-5,boss-5,boss,5,weapon-t1-06,Pipe-Rail Pistol · Pattern 06,heavy,BIO
+boss-6,boss-6,boss,6,weapon-t1-07,Rebar Crossbow · Pattern 07,primary,KINETIC
+boss-7,boss-7,boss,7,weapon-t1-08,Makeshift Sub-Carbine · Pattern 08,primary,ARC
+boss-8,boss-8,boss,8,weapon-t1-09,Scrap-Slugger · Pattern 09,primary,CRYO
+boss-9,boss-9,boss,9,weapon-t1-10,Pipe-Rail Pistol · Pattern 10,secondary,ARC
+boss-10,boss-10,boss,10,weapon-t1-11,Rebar Crossbow · Pattern 11,primary,THERMAL
+boss-11,boss-11,boss,11,weapon-t1-12,Makeshift Sub-Carbine · Pattern 12,primary,BIO
+boss-12,boss-12,boss,12,weapon-t1-13,Scrap-Slugger · Pattern 13,primary,KINETIC
+boss-13,boss-13,boss,13,weapon-t1-14,Pipe-Rail Pistol · Pattern 14,heavy,ARC
+boss-14,boss-14,boss,14,weapon-t1-15,Rebar Crossbow · Pattern 15,primary,CRYO
+boss-15,boss-15,boss,15,weapon-t1-16,Makeshift Sub-Carbine · Pattern 16,primary,ARC
+boss-16,boss-16,boss,16,weapon-t1-17,Scrap-Slugger · Pattern 17,primary,THERMAL
+boss-17,boss-17,boss,17,weapon-t1-18,Pipe-Rail Pistol · Pattern 18,secondary,BIO
+boss-18,boss-18,boss,18,weapon-t1-19,Rebar Crossbow · Pattern 19,primary,KINETIC
+boss-19,boss-19,boss,19,weapon-t1-20,Makeshift Sub-Carbine · Pattern 20,primary,ARC
+boss-20,boss-20,boss,20,weapon-t1-21,Scrap-Slugger · Pattern 21,primary,CRYO
+boss-21,boss-21,boss,21,weapon-t1-22,Pipe-Rail Pistol · Pattern 22,heavy,ARC
+boss-22,boss-22,boss,22,weapon-t1-23,Rebar Crossbow · Pattern 23,primary,THERMAL
+boss-23,boss-23,boss,23,weapon-t1-24,Makeshift Sub-Carbine · Pattern 24,primary,BIO
+boss-24,boss-24,boss,24,weapon-t1-25,Scrap-Slugger · Pattern 25,primary,KINETIC
+boss-25,boss-25,boss,25,weapon-t2-01,Resonant MK-IV Assault Rifle,secondary,ARC
+boss-26,boss-26,boss,26,weapon-t2-02,Enforcer SMG,primary,CRYO
+boss-27,boss-27,boss,27,weapon-t2-03,Kinetic DMR,primary,ARC
+boss-28,boss-28,boss,28,weapon-t2-04,Standard-Issue Sidearm,primary,THERMAL
+boss-29,boss-29,boss,29,weapon-t2-05,Resonant MK-IV Assault Rifle · Pattern 05,heavy,BIO
+boss-30,boss-30,boss,30,weapon-t2-06,Enforcer SMG · Pattern 06,primary,KINETIC
+boss-31,boss-31,boss,31,weapon-t2-07,Kinetic DMR · Pattern 07,primary,ARC
+boss-32,boss-32,boss,32,weapon-t2-08,Standard-Issue Sidearm · Pattern 08,primary,CRYO
+boss-33,boss-33,boss,33,weapon-t2-09,Resonant MK-IV Assault Rifle · Pattern 09,secondary,ARC
+boss-34,boss-34,boss,34,weapon-t2-10,Enforcer SMG · Pattern 10,primary,THERMAL
+boss-35,boss-35,boss,35,weapon-t2-11,Kinetic DMR · Pattern 11,primary,BIO
+boss-36,boss-36,boss,36,weapon-t2-12,Standard-Issue Sidearm · Pattern 12,primary,KINETIC
+boss-37,boss-37,boss,37,weapon-t2-13,Resonant MK-IV Assault Rifle · Pattern 13,heavy,ARC
+boss-38,boss-38,boss,38,weapon-t2-14,Enforcer SMG · Pattern 14,primary,CRYO
+boss-39,boss-39,boss,39,weapon-t2-15,Kinetic DMR · Pattern 15,primary,ARC
+boss-40,boss-40,boss,40,weapon-t2-16,Standard-Issue Sidearm · Pattern 16,primary,THERMAL
+boss-41,boss-41,boss,41,weapon-t2-17,Resonant MK-IV Assault Rifle · Pattern 17,secondary,BIO
+boss-42,boss-42,boss,42,weapon-t2-18,Enforcer SMG · Pattern 18,primary,KINETIC
+boss-43,boss-43,boss,43,weapon-t2-19,Kinetic DMR · Pattern 19,primary,ARC
+boss-44,boss-44,boss,44,weapon-t2-20,Standard-Issue Sidearm · Pattern 20,primary,CRYO
+boss-45,boss-45,boss,45,weapon-t2-21,Resonant MK-IV Assault Rifle · Pattern 21,heavy,ARC
+boss-46,boss-46,boss,46,weapon-t2-22,Enforcer SMG · Pattern 22,primary,THERMAL
+boss-47,boss-47,boss,47,weapon-t2-23,Kinetic DMR · Pattern 23,primary,BIO
+boss-48,boss-48,boss,48,weapon-t2-24,Standard-Issue Sidearm · Pattern 24,primary,KINETIC
+boss-49,boss-49,boss,49,weapon-t2-25,Resonant MK-IV Assault Rifle · Pattern 25,secondary,ARC
+boss-50,boss-50,boss,50,weapon-t2-26,Enforcer SMG · Pattern 26,primary,CRYO
+boss-51,boss-51,boss,51,weapon-t2-27,Kinetic DMR · Pattern 27,primary,ARC
+boss-52,boss-52,boss,52,weapon-t2-28,Standard-Issue Sidearm · Pattern 28,primary,THERMAL
+boss-53,boss-53,boss,53,weapon-t2-29,Resonant MK-IV Assault Rifle · Pattern 29,heavy,BIO
+boss-54,boss-54,boss,54,weapon-t2-30,Enforcer SMG · Pattern 30,primary,KINETIC
+boss-55,boss-55,boss,55,weapon-t3-01,Magma-Core Heavy Repeater,primary,CRYO
+boss-56,boss-56,boss,56,weapon-t3-02,Cryo-Pulse Carbine,primary,ARC
+boss-57,boss-57,boss,57,weapon-t3-03,Bio-Luminescent Arc-Caster,primary,THERMAL
+boss-58,boss-58,boss,58,weapon-t3-04,Magma-Core Heavy Repeater · Pattern 04,heavy,BIO
+boss-59,boss-59,boss,59,weapon-t3-05,Cryo-Pulse Carbine · Pattern 05,primary,KINETIC
+boss-60,boss-60,boss,60,weapon-t3-06,Bio-Luminescent Arc-Caster · Pattern 06,primary,ARC
+boss-61,boss-61,boss,61,weapon-t3-07,Magma-Core Heavy Repeater · Pattern 07,primary,CRYO
+boss-62,boss-62,boss,62,weapon-t3-08,Cryo-Pulse Carbine · Pattern 08,secondary,ARC
+boss-63,boss-63,boss,63,weapon-t3-09,Bio-Luminescent Arc-Caster · Pattern 09,primary,THERMAL
+boss-64,boss-64,boss,64,weapon-t3-10,Magma-Core Heavy Repeater · Pattern 10,primary,BIO
+boss-65,boss-65,boss,65,weapon-t3-11,Cryo-Pulse Carbine · Pattern 11,primary,KINETIC
+boss-66,boss-66,boss,66,weapon-t3-12,Bio-Luminescent Arc-Caster · Pattern 12,heavy,ARC
+boss-67,boss-67,boss,67,weapon-t3-13,Magma-Core Heavy Repeater · Pattern 13,primary,CRYO
+boss-68,boss-68,boss,68,weapon-t3-14,Cryo-Pulse Carbine · Pattern 14,primary,ARC
+boss-69,boss-69,boss,69,weapon-t3-15,Bio-Luminescent Arc-Caster · Pattern 15,primary,THERMAL
+boss-70,boss-70,boss,70,weapon-t3-16,Magma-Core Heavy Repeater · Pattern 16,secondary,BIO
+boss-71,boss-71,boss,71,weapon-t3-17,Cryo-Pulse Carbine · Pattern 17,primary,KINETIC
+boss-72,boss-72,boss,72,weapon-t3-18,Bio-Luminescent Arc-Caster · Pattern 18,primary,ARC
+boss-73,boss-73,boss,73,weapon-t3-19,Magma-Core Heavy Repeater · Pattern 19,primary,CRYO
+boss-74,boss-74,boss,74,weapon-t3-20,Cryo-Pulse Carbine · Pattern 20,heavy,ARC
+boss-75,boss-75,boss,75,weapon-t3-21,Bio-Luminescent Arc-Caster · Pattern 21,primary,THERMAL
+boss-76,boss-76,boss,76,weapon-t3-22,Magma-Core Heavy Repeater · Pattern 22,primary,BIO
+boss-77,boss-77,boss,77,weapon-t3-23,Cryo-Pulse Carbine · Pattern 23,primary,KINETIC
+boss-78,boss-78,boss,78,weapon-t3-24,Bio-Luminescent Arc-Caster · Pattern 24,secondary,ARC
+boss-79,boss-79,boss,79,weapon-t3-25,Magma-Core Heavy Repeater · Pattern 25,primary,CRYO
+boss-80,boss-80,boss,80,weapon-t3-26,Cryo-Pulse Carbine · Pattern 26,primary,ARC
+boss-81,boss-81,boss,81,weapon-t3-27,Bio-Luminescent Arc-Caster · Pattern 27,primary,THERMAL
+boss-82,boss-82,boss,82,weapon-t3-28,Magma-Core Heavy Repeater · Pattern 28,heavy,BIO
+boss-83,boss-83,boss,83,cat-storm-katana,Storm Katana,primary,ARC
+boss-84,boss-84,boss,84,cat-nova-handcannon,Nova Handcannon,secondary,THERMAL
+boss-85,boss-85,boss,85,cat-neon-smg,Neon SMG,primary,ARC
+boss-86,boss-86,boss,86,cat-valkyrie-ar,Valkyrie AR,primary,ARC
+boss-87,boss-87,boss,87,cat-titan-auto,Titan Auto,primary,KINETIC
+boss-88,boss-88,boss,88,cat-ravager-lmg,Ravager LMG,heavy,CRYO
+boss-89,boss-89,boss,89,cat-glacier-sniper,Glacier Sniper,primary,CRYO
+boss-90,boss-90,boss,90,cat-phase-fusion,Phase Fusion,primary,ARC
+boss-91,boss-91,boss,91,cat-hellfire-sg,Hellfire SG,primary,THERMAL
+boss-92,boss-92,boss,92,cat-nomad-crossbow,Nomad Crossbow,primary,KINETIC
+boss-93,boss-93,boss,93,cat-breach-gl,Breach GL,heavy,KINETIC
+boss-94,boss-94,boss,94,cat-arc-disruptor,Arc Disruptor,primary,ARC
+boss-95,boss-95,boss,95,cat-void-saber,Void Saber,primary,BIO
+boss-96,boss-96,boss,96,cat-shadowbite,Shadowbite,secondary,BIO
+boss-97,boss-97,boss,97,cat-dark-current,Dark Current,primary,BIO
+boss-98,boss-98,boss,98,cat-riftwalker,Riftwalker,primary,BIO
+boss-99,boss-99,boss,99,cat-ashfall-auto,Ashfall Auto,primary,THERMAL
+boss-100,boss-100,boss,100,cat-storm-forged,Storm Forged,heavy,ARC
+boss-101,boss-101,boss,101,cat-void-stalker,Void Stalker,primary,BIO
+boss-102,boss-102,boss,102,cat-starfire-fusion,Starfire Fusion,primary,THERMAL
+boss-103,boss-103,boss,103,cat-oblivion-sg,Oblivion SG,primary,BIO
+boss-104,boss-104,boss,104,cat-frostbow,Frostbow,primary,CRYO
+boss-105,boss-105,boss,105,cat-cataclysm,Cataclysm,heavy,THERMAL
+boss-106,boss-106,boss,106,cat-solar-eruption,Solar Eruption,primary,THERMAL
+boss-107,boss-107,boss,107,cat-void-reaper,Void Reaper,primary,BIO

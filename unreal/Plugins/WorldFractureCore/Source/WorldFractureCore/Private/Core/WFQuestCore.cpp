@@ -95,14 +95,6 @@ namespace wf::quest
 		return true;
 	}
 
-	bool FProgression::operator==(const FProgression& Other) const
-	{
-		return ActiveQuestId == Other.ActiveQuestId && CompletedMissions == Other.CompletedMissions
-			&& QuestObjectiveProgress == Other.QuestObjectiveProgress && UnlockedWorlds == Other.UnlockedWorlds
-			&& WorldFlags == Other.WorldFlags && CurrentWorld == Other.CurrentWorld && CorruptionLevel == Other.CorruptionLevel
-			&& FractureShards == Other.FractureShards && Materials == Other.Materials && DungeonClears == Other.DungeonClears;
-	}
-
 	void FCatalog::Add(FQuest Quest)
 	{
 		std::string Id = Quest.Id;

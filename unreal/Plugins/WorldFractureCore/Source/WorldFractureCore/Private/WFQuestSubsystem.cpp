@@ -5,16 +5,19 @@
 #include "Engine/DataTable.h"
 #include "Serialization/JsonReader.h"
 #include "Serialization/JsonSerializer.h"
+#include "Engine/GameInstance.h"
 #include "WFCoreSettings.h"
+#include "WFDataFiles.h"
+#include "WFProgressionSubsystem.h"
 #include "WorldFractureCoreModule.h"
 
 #include <algorithm>
 
+using WFData::ToF;
+using WFData::ToStd;
+
 namespace
 {
-	std::string ToStd(const FString& S) { return std::string(TCHAR_TO_UTF8(*S)); }
-	FString ToF(const std::string& S) { return FString(UTF8_TO_TCHAR(S.c_str())); }
-
 	bool Contains(const std::vector<std::string>& List, const std::string& Value)
 	{
 		return std::find(List.begin(), List.end(), Value) != List.end();
@@ -78,18 +81,41 @@ namespace
 
 void UWFQuestSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 {
+	Collection.InitializeDependency<UWFProgressionSubsystem>();
 	Super::Initialize(Collection);
-	ResetProgression();
 
-	const UWFCoreSettings* Settings = GetDefault<UWFCoreSettings>();
-	if (Settings->QuestTable.IsNull())
-	{
-		UE_LOG(LogWorldFracture, Warning, TEXT("No quest table set in Project Settings > Game > World Fracture; quests are inactive until LoadQuestTable is called."));
-		return;
-	}
 	FString Error;
-	if (!LoadQuestTable(Settings->QuestTable.LoadSynchronous(), Error))
-		UE_LOG(LogWorldFracture, Error, TEXT("Quest table failed to load: %s"), *Error);
+	const UWFCoreSettings* Settings = GetDefault<UWFCoreSettings>();
+	const bool bLoaded = !Settings->QuestTable.IsNull() ? LoadQuestTable(Settings->QuestTable.LoadSynchronous(), Error) : LoadQuestJson(Error);
+	if (!bLoaded) UE_LOG(LogWorldFracture, Error, TEXT("Quests failed to load: %s"), *Error);
+	ReconcileAfterLoad();
+}
+
+bool UWFQuestSubsystem::LoadQuestJson(FString& OutError)
+{
+	TArray<TSharedPtr<FJsonObject>> Rows;
+	if (!WFData::LoadRows(TEXT("Quests"), Rows, OutError)) return false;
+	wf::quest::FCatalog Next;
+	for (const TSharedPtr<FJsonObject>& Row : Rows)
+	{
+		FQuestsRow Parsed;
+		Parsed.Id = WFData::Str(Row, TEXT("Id"));
+		Parsed.Title = WFData::Str(Row, TEXT("Title"));
+		Parsed.World = WFData::Str(Row, TEXT("World"));
+		Parsed.Line = WFData::Str(Row, TEXT("Line"));
+		Parsed.ObjectivesJson = WFData::Str(Row, TEXT("ObjectivesJson"));
+		Parsed.RewardShards = static_cast<int32>(WFData::Num(Row, TEXT("RewardShards")));
+		Parsed.RewardMaterialsJson = WFData::Str(Row, TEXT("RewardMaterialsJson"));
+		Parsed.UnlocksWorld = WFData::Str(Row, TEXT("UnlocksWorld"));
+		Parsed.NextQuestId = WFData::Str(Row, TEXT("NextQuestId"));
+		Parsed.Corruption = WFData::Num(Row, TEXT("Corruption"));
+		wf::quest::FQuest Quest;
+		if (!ToCoreQuest(Parsed, Quest, OutError)) return false;
+		Next.Add(std::move(Quest));
+	}
+	Catalog = std::move(Next);
+	UE_LOG(LogWorldFracture, Log, TEXT("Loaded %d quests from %s"), Rows.Num(), *WFData::TablePath(TEXT("Quests")));
+	return true;
 }
 
 bool UWFQuestSubsystem::LoadQuestTable(UDataTable* Table, FString& OutError)
@@ -115,20 +141,19 @@ bool UWFQuestSubsystem::LoadQuestTable(UDataTable* Table, FString& OutError)
 	return true;
 }
 
-void UWFQuestSubsystem::ResetProgression()
+const wf::FProgression& UWFQuestSubsystem::St() const
 {
-	const UWFCoreSettings* Settings = GetDefault<UWFCoreSettings>();
-	wf::quest::FProgression Fresh;
-	Fresh.ActiveQuestId = std::string(wf::quest::FirstQuestId);
-	for (const FString& World : Settings->StartingUnlockedWorlds) Fresh.UnlockedWorlds.push_back(ToStd(World));
-	Fresh.CurrentWorld = ToStd(Settings->StartingWorld);
-	Fresh.FractureShards = Settings->StartingShards;
-	State = std::move(Fresh);
+	return GetGameInstance()->GetSubsystem<UWFProgressionSubsystem>()->Get();
 }
 
-void UWFQuestSubsystem::SetProgression(const wf::quest::FProgression& Saved)
+wf::FProgression& UWFQuestSubsystem::MutableSt()
 {
-	State = wf::quest::ReconcileQuests(Catalog, Saved);
+	return GetGameInstance()->GetSubsystem<UWFProgressionSubsystem>()->Mutable();
+}
+
+void UWFQuestSubsystem::ReconcileAfterLoad()
+{
+	MutableSt() = wf::quest::ReconcileQuests(Catalog, St());
 }
 
 void UWFQuestSubsystem::ReportEnterWorld(const FString& World) { Apply(wf::quest::FEvent::EnterWorld(ToStd(World))); }
@@ -143,62 +168,65 @@ void UWFQuestSubsystem::ReportHackComplete() { Apply(wf::quest::FEvent::HackComp
 
 void UWFQuestSubsystem::DevFinishActiveQuest()
 {
-	Commit(wf::quest::FinishActiveQuest(Catalog, State));
+	Commit(wf::quest::FinishActiveQuest(Catalog, St()));
 }
 
 void UWFQuestSubsystem::Apply(const wf::quest::FEvent& Event)
 {
-	Commit(wf::quest::GameTick(Catalog, State, Event));
+	Commit(wf::quest::GameTick(Catalog, St(), Event));
 }
 
 void UWFQuestSubsystem::Commit(wf::quest::FProgression Next)
 {
-	const wf::quest::FProgression Before = State;
-	State = std::move(Next);
+	const wf::FProgression Before = St();
+	MutableSt() = std::move(Next);
+	const wf::FProgression& After = St();
 
-	for (const std::string& Id : State.CompletedMissions)
+	for (const std::string& Id : After.CompletedMissions)
 		if (!Contains(Before.CompletedMissions, Id) && Catalog.Find(Id)) OnQuestCompleted.Broadcast(ToF(Id));
-	for (const std::string& World : State.UnlockedWorlds)
+	for (const std::string& World : After.UnlockedWorlds)
 		if (!Contains(Before.UnlockedWorlds, World)) OnWorldUnlocked.Broadcast(ToF(World));
-	if (State.ActiveQuestId != Before.ActiveQuestId) OnActiveQuestChanged.Broadcast(GetActiveQuestId());
+	if (After.ActiveQuestId != Before.ActiveQuestId) OnActiveQuestChanged.Broadcast(GetActiveQuestId());
+	GetGameInstance()->GetSubsystem<UWFProgressionSubsystem>()->NotifyChanged();
 }
 
 FString UWFQuestSubsystem::GetActiveQuestId() const
 {
-	return State.ActiveQuestId ? ToF(*State.ActiveQuestId) : FString();
+	return St().ActiveQuestId ? ToF(*St().ActiveQuestId) : FString();
 }
 
 FString UWFQuestSubsystem::GetActiveQuestTitle() const
 {
-	const wf::quest::FQuest* Quest = wf::quest::ActiveQuest(Catalog, State);
+	const wf::quest::FQuest* Quest = wf::quest::ActiveQuest(Catalog, St());
 	return Quest ? ToF(Quest->Title) : FString();
 }
 
 FString UWFQuestSubsystem::GetActiveQuestLine() const
 {
-	const wf::quest::FQuest* Quest = wf::quest::ActiveQuest(Catalog, State);
+	const wf::quest::FQuest* Quest = wf::quest::ActiveQuest(Catalog, St());
 	return Quest ? ToF(Quest->Line) : FString();
 }
 
 TArray<FWFObjectiveView> UWFQuestSubsystem::GetActiveObjectives() const
 {
 	TArray<FWFObjectiveView> Out;
-	const wf::quest::FQuest* Quest = wf::quest::ActiveQuest(Catalog, State);
+	const wf::quest::FQuest* Quest = wf::quest::ActiveQuest(Catalog, St());
 	if (!Quest) return Out;
-	const auto Found = State.QuestObjectiveProgress.find(Quest->Id);
+	const wf::FProgression& P = St();
+	const auto Found = P.QuestObjectiveProgress.find(Quest->Id);
 	for (size_t I = 0; I < Quest->Objectives.size(); ++I)
 	{
 		FWFObjectiveView View;
 		View.Label = ToF(Quest->Objectives[I].Label);
 		View.Amount = Quest->Objectives[I].Amount;
-		View.Progress = Found != State.QuestObjectiveProgress.end() && I < Found->second.size() ? Found->second[I] : 0.0;
+		View.Progress = Found != P.QuestObjectiveProgress.end() && I < Found->second.size() ? Found->second[I] : 0.0;
 		View.bComplete = View.Progress >= View.Amount;
 		Out.Add(View);
 	}
 	return Out;
 }
 
-bool UWFQuestSubsystem::IsQuestComplete(const FString& QuestId) const { return Contains(State.CompletedMissions, ToStd(QuestId)); }
-bool UWFQuestSubsystem::IsWorldUnlocked(const FString& World) const { return Contains(State.UnlockedWorlds, ToStd(World)); }
-FString UWFQuestSubsystem::GetCurrentWorld() const { return ToF(State.CurrentWorld); }
-FString UWFQuestSubsystem::DescribeState() const { return ToF(wf::quest::ToCanonicalString(State)); }
+bool UWFQuestSubsystem::IsQuestComplete(const FString& QuestId) const { return Contains(St().CompletedMissions, ToStd(QuestId)); }
+bool UWFQuestSubsystem::IsWorldUnlocked(const FString& World) const { return Contains(St().UnlockedWorlds, ToStd(World)); }
+FString UWFQuestSubsystem::GetCurrentWorld() const { return ToF(St().CurrentWorld); }
+FString UWFQuestSubsystem::DescribeState() const { return ToF(wf::quest::ToCanonicalString(St())); }

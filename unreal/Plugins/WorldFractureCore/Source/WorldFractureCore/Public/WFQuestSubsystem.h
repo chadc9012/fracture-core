@@ -29,7 +29,8 @@ struct WORLDFRACTURECORE_API FWFObjectiveView
  * world corruption exactly as the web build does — the rules live in wf::quest (Core/WFQuestCore.h), which is
  * golden-tested against the TypeScript engine.
  *
- * Loads the quest table from Project Settings > Game > World Fracture on startup, or call LoadQuestTable.
+ * Loads the quest table from Project Settings > Game > World Fracture on startup, falling back to the exported
+ * DataTables/Quests.json, or call LoadQuestTable.
  */
 UCLASS()
 class WORLDFRACTURECORE_API UWFQuestSubsystem : public UGameInstanceSubsystem
@@ -43,9 +44,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "World Fracture|Quests")
 	bool LoadQuestTable(UDataTable* Table, FString& OutError);
 
-	/** A fresh save: first quest active, starting worlds unlocked (see UWFCoreSettings). */
+	/** Loads Quests.json from <Project>/DataTables (the exported table) when no DataTable asset is configured. */
 	UFUNCTION(BlueprintCallable, Category = "World Fracture|Quests")
-	void ResetProgression();
+	bool LoadQuestJson(FString& OutError);
 
 	// --- World events. Call these from gameplay; each runs one game tick. ---
 	UFUNCTION(BlueprintCallable, Category = "World Fracture|Quests|Events") void ReportEnterWorld(const FString& World);
@@ -69,8 +70,8 @@ public:
 	UFUNCTION(BlueprintPure, Category = "World Fracture|Quests") TArray<FWFObjectiveView> GetActiveObjectives() const;
 	UFUNCTION(BlueprintPure, Category = "World Fracture|Quests") bool IsQuestComplete(const FString& QuestId) const;
 	UFUNCTION(BlueprintPure, Category = "World Fracture|Quests") bool IsWorldUnlocked(const FString& World) const;
-	UFUNCTION(BlueprintPure, Category = "World Fracture|Quests") double GetCorruptionLevel() const { return State.CorruptionLevel; }
-	UFUNCTION(BlueprintPure, Category = "World Fracture|Quests") double GetFractureShards() const { return State.FractureShards; }
+	UFUNCTION(BlueprintPure, Category = "World Fracture|Quests") double GetCorruptionLevel() const { return St().CorruptionLevel; }
+	UFUNCTION(BlueprintPure, Category = "World Fracture|Quests") double GetFractureShards() const { return St().FractureShards; }
 	UFUNCTION(BlueprintPure, Category = "World Fracture|Quests") FString GetCurrentWorld() const;
 	/** The whole quest state as one line of text, for logs and debugging. */
 	UFUNCTION(BlueprintPure, Category = "World Fracture|Quests") FString DescribeState() const;
@@ -79,15 +80,17 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "World Fracture|Quests") FWFActiveQuestChanged OnActiveQuestChanged;
 	UPROPERTY(BlueprintAssignable, Category = "World Fracture|Quests") FWFWorldUnlocked OnWorldUnlocked;
 
-	const wf::quest::FProgression& GetProgression() const { return State; }
-	/** Restores a saved progression (from a SaveGame), then reconciles it like the web build does on load. */
-	void SetProgression(const wf::quest::FProgression& Saved);
+	/** Reconciles the shared save against the quest chain, as the web build does after a load. */
+	void ReconcileAfterLoad();
 
 private:
 	void Apply(const wf::quest::FEvent& Event);
 	/** Swaps in the new state and fires delegates for whatever changed. */
 	void Commit(wf::quest::FProgression Next);
 
+	/** The shared save lives in UWFProgressionSubsystem; quests read and write its story-spine fields. */
+	const wf::FProgression& St() const;
+	wf::FProgression& MutableSt();
+
 	wf::quest::FCatalog Catalog;
-	wf::quest::FProgression State;
 };
