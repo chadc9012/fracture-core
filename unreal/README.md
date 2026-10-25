@@ -1,52 +1,63 @@
-# Unreal migration kit
+# World Fracture — Unreal Engine 5 project
 
-World Fracture is moving to Unreal Engine 5.8 (Windows, C++ project on Lyra Starter Game).
-The web build stays as the playable spec; this folder carries its data and rules across.
+UE 5.8, Windows, C++. The web build in `../src` stays the reference implementation: every rule ported here is
+golden-tested against the TypeScript code it came from, and that code stays authoritative until the port matches it.
 
-## What's here
+## Layout
 
-- `DataTables/` — every authored table from `src/game` as Unreal DataTable JSON (import these),
-  a CSV of each for review, and `MANIFEST.tsv` with row counts.
-- `Plugins/WorldFractureCore/` — an Unreal plugin to drop into the project's `Plugins/` folder:
-  - `Public/Data/WFDataTableRows.h` — the `F<Table>Row` structs every DataTable imports against.
-  - `Public/Core/WFQuestCore.h` + `Private/Core/WFQuestCore.cpp` — the Fracture Descent quest engine,
-    ported line for line from `src/game/quests.ts` in plain C++ (no engine types).
-  - `UWFQuestSubsystem` — the game-instance subsystem gameplay talks to: `ReportKill`, `ReportMissionComplete`,
-    `ReportBossDefeated`… plus the active quest's title, story line and objectives for the HUD, and
-    `OnQuestCompleted` / `OnActiveQuestChanged` / `OnWorldUnlocked` events.
-  - `UWFCoreSettings` — Project Settings → Game → World Fracture: which DataTable holds the quests,
-    starting worlds and shards.
-  - `Tests/` — a standalone golden test (below).
-- `tools/` — `export-datatables.ts` (regenerates `DataTables/` and the row-struct header) and
-  `gen-quest-golden.ts` (records quest states from the TypeScript engine for the C++ test).
+```
+unreal/
+  WorldFracture.uproject          UE 5.8 project (Enhanced Input enabled)
+  Config/                          DefaultEngine/Game/Input.ini
+  Source/WorldFracture/            game module: AWFGameMode, AWFCharacter, AWFEnemy, AWFHUD, weapon loader
+  Plugins/WorldFractureCore/       rules plugin
+    Source/.../Public/Core/        engine-free C++ (quests, rewards, missions, shared save) — compiles anywhere
+    Source/.../Public/*.h          Unreal subsystems over the core: progression + rewards, quests, missions, save
+    Tests/                         CMake golden tests for the core, recorded from the web build
+  DataTables/                      every authored table from src/game as Unreal DataTable JSON (+ CSV)
+  tools/                           exporters and golden recorders (TypeScript, bundled with esbuild)
+```
 
-## Setting it up in Unreal
-1. Create the project from Lyra Starter Game (Fab → Add to My Library → Create Project), as a C++ project.
-2. Copy `Plugins/WorldFractureCore` into the project's `Plugins/` folder and regenerate project files; build.
-3. Content Browser → Import → `DataTables/Quests.json` → row struct `QuestsRow`. Import the other tables the same way.
-4. Project Settings → Game → World Fracture → set **Quest Table** to the imported Quests table.
-5. From gameplay (Blueprint or C++): `GetGameInstance()->GetSubsystem<UWFQuestSubsystem>()->ReportKill("veridan")` etc.
+## Opening it
+1. Install Unreal Engine 5.8 and Visual Studio 2022 17.14+ or 2026 with the *Game development with C++* workload.
+2. Right-click `WorldFracture.uproject` → *Generate Visual Studio project files*, open the `.sln`, build
+   `WorldFractureEditor` (Development Editor, Win64), then run.
+3. Press Play. The game loads `DataTables/*.json` directly, so no import step is needed. Controls: WASD, mouse,
+   Space/C jump, Shift sprint, LMB fire, RMB aim, R/G reload, 1-5 / wheel weapons, F5 save, F9 finish the active quest.
 
-Row names are the web build's ids (`AUTO`, `fd-01`, `scrap-interceptor`). Fields ending in `Json` hold nested
-data (objectives, rewards, positions) as JSON text until they get their own structs. A data field called `name`
-is exported as `DisplayName`, because Unreal reserves `Name` for the row key.
+The default level is the engine's template map; the game mode adds a floor and lights if a level has none.
 
-## Keeping it in sync with the web build
-Re-run after any tuning or quest change in `src/game` (from the repo root):
+## What runs
+- **Combat loop:** first-person Operator, five guns with the exported tuning (fire rate, bursts, spread, recoil,
+  magazines, reload, shotgun pellets), health 100 with health.ts regeneration, respawn on death.
+- **Enemies:** the current region's troopers (RegionalEncounters.json), health from sim.ts spawnMachine scaled by
+  difficulty challenge, aggro/speed/wind-up/cooldowns from enemy-tuning.ts, ranged 2/4/6 and melee 7/12/17 damage.
+- **Rewards:** every kill pays through the ported sim.ts defeatMachine → claimDrops → grantXP: credits, region
+  materials with power pacing, armor set drops and upgrades, weapon drops, boss relics, XP with challenge scaling.
+- **Quests:** the Fracture Descent chain (fd-01 to fd-18) with world unlocks and corruption.
+- **Missions:** all twelve story mission machines with their NOVA lines, reporting completions to the quest chain.
+- **Save:** one slot, JSON in the web build's PlayerProgression field names.
 
-    npx esbuild unreal/tools/export-datatables.ts --bundle --platform=node --format=esm \
-      --alias:@=./src --outfile=/tmp/wf-export.mjs && node /tmp/wf-export.mjs
-    npx esbuild unreal/tools/gen-quest-golden.ts --bundle --platform=node --format=esm \
-      --alias:@=./src --outfile=/tmp/wf-golden.mjs && node /tmp/wf-golden.mjs
+## Tests
+```
+cd Plugins/WorldFractureCore/Tests
+cmake -S . -B build -G Ninja && cmake --build build && ctest --test-dir build --output-on-failure
+```
+| Suite | Recorded from | Checks |
+| --- | --- | --- |
+| QuestCoreTest | quests.ts gameTick / reconcileQuests / finishActiveQuest | 4,200 states |
+| RewardCoreTest | sim.ts defeatMachine, inventory.ts claimDrops, xp.ts grantXP (Math.random replayed) | 672 kills, 2,412 checks |
+| MissionCoreTest | src/game/missions/* (12 machines) | 28,800 states |
 
-## Quest engine test
-The C++ quest core is checked against 4,200 states recorded from the TypeScript engine (105 cases covering every
-quest, pre-filled saves that cascade, the Wastelands corruption unlock, and the end of the chain). From
-`Plugins/WorldFractureCore/Tests`:
+Regenerate goldens after changing the web build's rules (from the repo root):
 
-    g++ -std=c++17 -I../Source/WorldFractureCore/Public QuestCoreTest.cpp \
-      ../Source/WorldFractureCore/Private/Core/WFQuestCore.cpp -o quest_test && ./quest_test quest_golden.txt
+    npx esbuild unreal/tools/<tool>.ts --bundle --platform=node --format=esm --alias:@=./src --outfile=/tmp/t.mjs && node /tmp/t.mjs
 
-Expected: `18 quests, 105 cases, 4200 states checked, 0 mismatches`. The Unreal-facing classes
-(`UWFQuestSubsystem`, settings, module) have not been compiled inside Unreal yet; the first build on the new PC
-is their check.
+for `export-datatables`, `gen-quest-golden`, `gen-reward-golden`, `gen-mission-golden`.
+
+## Not ported yet
+Unique Scenario encounters and their claims (scenario-loot, encounter journal, Vyrak covenant, Dragonite, Wyrmling,
+dragon riding), mission payouts (rewardMission/applyMissionCompletion) and mid-mission saves, abilities (Q/E/R),
+armor effects on combat, enemy perception/cover/line-of-sight, launchers and the sword, vehicles and racing,
+merchants and housing, cloud save merge, the world itself (regions, Neon City, Thalassia). Their data is already in
+`DataTables/`.

@@ -14,6 +14,7 @@ public class WorldFracture : ModuleRules
 			"Engine",
 			"InputCore",
 			"EnhancedInput",
+			"AIModule",
 			"WorldFractureCore",
 		});
 	}

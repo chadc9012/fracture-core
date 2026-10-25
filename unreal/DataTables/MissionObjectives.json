@@ -1,0 +1,602 @@
+[
+  {
+    "Name": "awakening_IDLE",
+    "Mission": "awakening",
+    "State": "IDLE",
+    "Objective": ""
+  },
+  {
+    "Name": "awakening_DROP",
+    "Mission": "awakening",
+    "State": "DROP",
+    "Objective": "Deploying to Neon Core"
+  },
+  {
+    "Name": "awakening_PATROL",
+    "Mission": "awakening",
+    "State": "PATROL",
+    "Objective": "Clear the patrol"
+  },
+  {
+    "Name": "awakening_ESCALATION",
+    "Mission": "awakening",
+    "State": "ESCALATION",
+    "Objective": "Faction elite inbound — survive"
+  },
+  {
+    "Name": "awakening_LOOT",
+    "Mission": "awakening",
+    "State": "LOOT",
+    "Objective": "Collect recovered gear"
+  },
+  {
+    "Name": "awakening_CAPTURE",
+    "Mission": "awakening",
+    "State": "CAPTURE",
+    "Objective": "Reach the capture point"
+  },
+  {
+    "Name": "awakening_HOLD",
+    "Mission": "awakening",
+    "State": "HOLD",
+    "Objective": "Hold the capture point"
+  },
+  {
+    "Name": "awakening_EXTRACT",
+    "Mission": "awakening",
+    "State": "EXTRACT",
+    "Objective": "Reach extraction"
+  },
+  {
+    "Name": "awakening_COMPLETE",
+    "Mission": "awakening",
+    "State": "COMPLETE",
+    "Objective": "Sector stabilized"
+  },
+  {
+    "Name": "broken-signal_IDLE",
+    "Mission": "broken-signal",
+    "State": "IDLE",
+    "Objective": ""
+  },
+  {
+    "Name": "broken-signal_TRIGGERED",
+    "Mission": "broken-signal",
+    "State": "TRIGGERED",
+    "Objective": "Unauthorized signal detected"
+  },
+  {
+    "Name": "broken-signal_DISCOVERY",
+    "Mission": "broken-signal",
+    "State": "DISCOVERY",
+    "Objective": "Follow the drone beacon"
+  },
+  {
+    "Name": "broken-signal_TRAVERSAL",
+    "Mission": "broken-signal",
+    "State": "TRAVERSAL",
+    "Objective": "Enter the corrupted industrial sector"
+  },
+  {
+    "Name": "broken-signal_COMBAT_1",
+    "Mission": "broken-signal",
+    "State": "COMBAT_1",
+    "Objective": "Eliminate the data drone scouts"
+  },
+  {
+    "Name": "broken-signal_HACKING",
+    "Mission": "broken-signal",
+    "State": "HACKING",
+    "Objective": "Restore data node connection"
+  },
+  {
+    "Name": "broken-signal_COMBAT_2",
+    "Mission": "broken-signal",
+    "State": "COMBAT_2",
+    "Objective": "Survive the escalation wave"
+  },
+  {
+    "Name": "broken-signal_COMPLETE",
+    "Mission": "broken-signal",
+    "State": "COMPLETE",
+    "Objective": "Signal traced"
+  },
+  {
+    "Name": "broken-signal_WORLD_UPDATE",
+    "Mission": "broken-signal",
+    "State": "WORLD_UPDATE",
+    "Objective": "Subway entrance unlocked"
+  },
+  {
+    "Name": "drowned-relay_IDLE",
+    "Mission": "drowned-relay",
+    "State": "IDLE",
+    "Objective": ""
+  },
+  {
+    "Name": "drowned-relay_TRIGGERED",
+    "Mission": "drowned-relay",
+    "State": "TRIGGERED",
+    "Objective": "The trace ends somewhere in the fog"
+  },
+  {
+    "Name": "drowned-relay_WADING",
+    "Mission": "drowned-relay",
+    "State": "WADING",
+    "Objective": "Wade out to the drowned relay"
+  },
+  {
+    "Name": "drowned-relay_COMBAT_1",
+    "Mission": "drowned-relay",
+    "State": "COMBAT_1",
+    "Objective": "The reeds are moving — survive the ambush"
+  },
+  {
+    "Name": "drowned-relay_PURGING",
+    "Mission": "drowned-relay",
+    "State": "PURGING",
+    "Objective": "Purge the spore-mass from the relay channels"
+  },
+  {
+    "Name": "drowned-relay_BOSS",
+    "Mission": "drowned-relay",
+    "State": "BOSS",
+    "Objective": "Bring down the Kraken-Vanguard"
+  },
+  {
+    "Name": "drowned-relay_COMPLETE",
+    "Mission": "drowned-relay",
+    "State": "COMPLETE",
+    "Objective": "Relay purged"
+  },
+  {
+    "Name": "drowned-relay_WORLD_UPDATE",
+    "Mission": "drowned-relay",
+    "State": "WORLD_UPDATE",
+    "Objective": "The signal runs on toward Neon City"
+  },
+  {
+    "Name": "blackout-protocol_IDLE",
+    "Mission": "blackout-protocol",
+    "State": "IDLE",
+    "Objective": ""
+  },
+  {
+    "Name": "blackout-protocol_TRIGGERED",
+    "Mission": "blackout-protocol",
+    "State": "TRIGGERED",
+    "Objective": "Neon City grid signature matches the trace"
+  },
+  {
+    "Name": "blackout-protocol_INFILTRATION",
+    "Mission": "blackout-protocol",
+    "State": "INFILTRATION",
+    "Objective": "Reach the Neon City substation"
+  },
+  {
+    "Name": "blackout-protocol_COMBAT_1",
+    "Mission": "blackout-protocol",
+    "State": "COMBAT_1",
+    "Objective": "Clear the substation guard"
+  },
+  {
+    "Name": "blackout-protocol_HACKING",
+    "Mission": "blackout-protocol",
+    "State": "HACKING",
+    "Objective": "Cut the surveillance relays"
+  },
+  {
+    "Name": "blackout-protocol_COMBAT_2",
+    "Mission": "blackout-protocol",
+    "State": "COMBAT_2",
+    "Objective": "Hold the relay against the enforcer wave"
+  },
+  {
+    "Name": "blackout-protocol_COMPLETE",
+    "Mission": "blackout-protocol",
+    "State": "COMPLETE",
+    "Objective": "Grid down — district blacked out"
+  },
+  {
+    "Name": "blackout-protocol_WORLD_UPDATE",
+    "Mission": "blackout-protocol",
+    "State": "WORLD_UPDATE",
+    "Objective": "Stitched Neon Core signal detected"
+  },
+  {
+    "Name": "stitched-neon-core_IDLE",
+    "Mission": "stitched-neon-core",
+    "State": "IDLE",
+    "Objective": ""
+  },
+  {
+    "Name": "stitched-neon-core_TRIGGERED",
+    "Mission": "stitched-neon-core",
+    "State": "TRIGGERED",
+    "Objective": "Stitched Neon Core signal pinpointed"
+  },
+  {
+    "Name": "stitched-neon-core_DESCENT",
+    "Mission": "stitched-neon-core",
+    "State": "DESCENT",
+    "Objective": "Descend to the fused relay chamber"
+  },
+  {
+    "Name": "stitched-neon-core_COMBAT_1",
+    "Mission": "stitched-neon-core",
+    "State": "COMBAT_1",
+    "Objective": "Clear the chamber's defense grid"
+  },
+  {
+    "Name": "stitched-neon-core_STABILIZING",
+    "Mission": "stitched-neon-core",
+    "State": "STABILIZING",
+    "Objective": "Stabilize the three resonance nodes"
+  },
+  {
+    "Name": "stitched-neon-core_BOSS",
+    "Mission": "stitched-neon-core",
+    "State": "BOSS",
+    "Objective": "Bring down Aegis-Prime"
+  },
+  {
+    "Name": "stitched-neon-core_COMPLETE",
+    "Mission": "stitched-neon-core",
+    "State": "COMPLETE",
+    "Objective": "Core breached"
+  },
+  {
+    "Name": "stitched-neon-core_WORLD_UPDATE",
+    "Mission": "stitched-neon-core",
+    "State": "WORLD_UPDATE",
+    "Objective": "The signal beneath the signal"
+  },
+  {
+    "Name": "solar-array_IDLE",
+    "Mission": "solar-array",
+    "State": "IDLE",
+    "Objective": ""
+  },
+  {
+    "Name": "solar-array_TRIGGERED",
+    "Mission": "solar-array",
+    "State": "TRIGGERED",
+    "Objective": "Follow the grid's power upstream"
+  },
+  {
+    "Name": "solar-array_CROSSING",
+    "Mission": "solar-array",
+    "State": "CROSSING",
+    "Objective": "Cross the Glass Flats to Solar Array Alpha"
+  },
+  {
+    "Name": "solar-array_COMBAT_1",
+    "Mission": "solar-array",
+    "State": "COMBAT_1",
+    "Objective": "Ash-born raiders hold the array: clear them"
+  },
+  {
+    "Name": "solar-array_REALIGNING",
+    "Mission": "solar-array",
+    "State": "REALIGNING",
+    "Objective": "Realign the array's mirrors"
+  },
+  {
+    "Name": "solar-array_BOSS",
+    "Mission": "solar-array",
+    "State": "BOSS",
+    "Objective": "Break the Unbroken Glass"
+  },
+  {
+    "Name": "solar-array_COMPLETE",
+    "Mission": "solar-array",
+    "State": "COMPLETE",
+    "Objective": "Beam realigned"
+  },
+  {
+    "Name": "solar-array_WORLD_UPDATE",
+    "Mission": "solar-array",
+    "State": "WORLD_UPDATE",
+    "Objective": "The beam leads to Nexus City"
+  },
+  {
+    "Name": "core-node_IDLE",
+    "Mission": "core-node",
+    "State": "IDLE",
+    "Objective": ""
+  },
+  {
+    "Name": "core-node_TRIGGERED",
+    "Mission": "core-node",
+    "State": "TRIGGERED",
+    "Objective": "Follow the beam into Nexus City"
+  },
+  {
+    "Name": "core-node_INFILTRATE",
+    "Mission": "core-node",
+    "State": "INFILTRATE",
+    "Objective": "Reach the Core Node"
+  },
+  {
+    "Name": "core-node_COMBAT_1",
+    "Mission": "core-node",
+    "State": "COMBAT_1",
+    "Objective": "Authority response team: hold the node"
+  },
+  {
+    "Name": "core-node_HACKING",
+    "Mission": "core-node",
+    "State": "HACKING",
+    "Objective": "Open the Core Node's archive"
+  },
+  {
+    "Name": "core-node_REVEAL",
+    "Mission": "core-node",
+    "State": "REVEAL",
+    "Objective": "Hear NOVA out"
+  },
+  {
+    "Name": "core-node_COMPLETE",
+    "Mission": "core-node",
+    "State": "COMPLETE",
+    "Objective": "Allegiance chosen"
+  },
+  {
+    "Name": "core-node_WORLD_UPDATE",
+    "Mission": "core-node",
+    "State": "WORLD_UPDATE",
+    "Objective": "The road to the System Core is open"
+  },
+  {
+    "Name": "frozen-beacon_IDLE",
+    "Mission": "frozen-beacon",
+    "State": "IDLE",
+    "Objective": ""
+  },
+  {
+    "Name": "frozen-beacon_TRIGGERED",
+    "Mission": "frozen-beacon",
+    "State": "TRIGGERED",
+    "Objective": "Find where the purge order came from"
+  },
+  {
+    "Name": "frozen-beacon_TRAVEL",
+    "Mission": "frozen-beacon",
+    "State": "TRAVEL",
+    "Objective": "Climb to the beacon on the high pass"
+  },
+  {
+    "Name": "frozen-beacon_COMBAT_1",
+    "Mission": "frozen-beacon",
+    "State": "COMBAT_1",
+    "Objective": "Frost-hardened guards: clear the pass"
+  },
+  {
+    "Name": "frozen-beacon_HACKING",
+    "Mission": "frozen-beacon",
+    "State": "HACKING",
+    "Objective": "Re-key the frozen beacon"
+  },
+  {
+    "Name": "frozen-beacon_BOSS",
+    "Mission": "frozen-beacon",
+    "State": "BOSS",
+    "Objective": "Bring down Subject Zero"
+  },
+  {
+    "Name": "frozen-beacon_COMPLETE",
+    "Mission": "frozen-beacon",
+    "State": "COMPLETE",
+    "Objective": "Beacon re-keyed"
+  },
+  {
+    "Name": "frozen-beacon_WORLD_UPDATE",
+    "Mission": "frozen-beacon",
+    "State": "WORLD_UPDATE",
+    "Objective": "The order came from Ember Peaks"
+  },
+  {
+    "Name": "failure-core_IDLE",
+    "Mission": "failure-core",
+    "State": "IDLE",
+    "Objective": ""
+  },
+  {
+    "Name": "failure-core_TRIGGERED",
+    "Mission": "failure-core",
+    "State": "TRIGGERED",
+    "Objective": "Find the source of the purge order"
+  },
+  {
+    "Name": "failure-core_TRAVEL",
+    "Mission": "failure-core",
+    "State": "TRAVEL",
+    "Objective": "Reach the failed reactor in the caldera"
+  },
+  {
+    "Name": "failure-core_COMBAT_1",
+    "Mission": "failure-core",
+    "State": "COMBAT_1",
+    "Objective": "Reactor guard drones: clear the caldera"
+  },
+  {
+    "Name": "failure-core_HACKING",
+    "Mission": "failure-core",
+    "State": "HACKING",
+    "Objective": "Vent the reactor before it spikes"
+  },
+  {
+    "Name": "failure-core_BOSS",
+    "Mission": "failure-core",
+    "State": "BOSS",
+    "Objective": "Bring down Overseer Kael"
+  },
+  {
+    "Name": "failure-core_COMPLETE",
+    "Mission": "failure-core",
+    "State": "COMPLETE",
+    "Objective": "Reactor vented"
+  },
+  {
+    "Name": "failure-core_WORLD_UPDATE",
+    "Mission": "failure-core",
+    "State": "WORLD_UPDATE",
+    "Objective": "The fuel came up the Grid-Iron Highway"
+  },
+  {
+    "Name": "convoy-breaker_IDLE",
+    "Mission": "convoy-breaker",
+    "State": "IDLE",
+    "Objective": ""
+  },
+  {
+    "Name": "convoy-breaker_TRIGGERED",
+    "Mission": "convoy-breaker",
+    "State": "TRIGGERED",
+    "Objective": "Follow the fuel line out of Ember"
+  },
+  {
+    "Name": "convoy-breaker_TRAVEL",
+    "Mission": "convoy-breaker",
+    "State": "TRAVEL",
+    "Objective": "Intercept the convoy on the highway"
+  },
+  {
+    "Name": "convoy-breaker_COMBAT_1",
+    "Mission": "convoy-breaker",
+    "State": "COMBAT_1",
+    "Objective": "Convoy escorts: break them"
+  },
+  {
+    "Name": "convoy-breaker_HACKING",
+    "Mission": "convoy-breaker",
+    "State": "HACKING",
+    "Objective": "Crack the convoy override"
+  },
+  {
+    "Name": "convoy-breaker_BOSS",
+    "Mission": "convoy-breaker",
+    "State": "BOSS",
+    "Objective": "Bring down the Rust-King Gant"
+  },
+  {
+    "Name": "convoy-breaker_COMPLETE",
+    "Mission": "convoy-breaker",
+    "State": "COMPLETE",
+    "Objective": "Convoy stopped"
+  },
+  {
+    "Name": "convoy-breaker_WORLD_UPDATE",
+    "Mission": "convoy-breaker",
+    "State": "WORLD_UPDATE",
+    "Objective": "The buyer is the Fuel King"
+  },
+  {
+    "Name": "descent-protocol_IDLE",
+    "Mission": "descent-protocol",
+    "State": "IDLE",
+    "Objective": ""
+  },
+  {
+    "Name": "descent-protocol_TRIGGERED",
+    "Mission": "descent-protocol",
+    "State": "TRIGGERED",
+    "Objective": "Source triangulated — it's below the waterline"
+  },
+  {
+    "Name": "descent-protocol_DIVE",
+    "Mission": "descent-protocol",
+    "State": "DIVE",
+    "Objective": "Take the submersible down to Thalassia's Sentry Dock"
+  },
+  {
+    "Name": "descent-protocol_COMBAT_1",
+    "Mission": "descent-protocol",
+    "State": "COMBAT_1",
+    "Objective": "Dock security is awake — clear the Sentry Dock"
+  },
+  {
+    "Name": "descent-protocol_AIRLOCK",
+    "Mission": "descent-protocol",
+    "State": "AIRLOCK",
+    "Objective": "Restore the dock airlock"
+  },
+  {
+    "Name": "descent-protocol_RING",
+    "Mission": "descent-protocol",
+    "State": "RING",
+    "Objective": "Cross the Abyssal Ring — stay off the coolant when it charges"
+  },
+  {
+    "Name": "descent-protocol_CORE",
+    "Mission": "descent-protocol",
+    "State": "CORE",
+    "Objective": "Descend into the Sunk-Core to the damaged reactor"
+  },
+  {
+    "Name": "descent-protocol_TRACING",
+    "Mission": "descent-protocol",
+    "State": "TRACING",
+    "Objective": "Trace the signal through the reactor"
+  },
+  {
+    "Name": "descent-protocol_COMPLETE",
+    "Mission": "descent-protocol",
+    "State": "COMPLETE",
+    "Objective": "First sight of the control core"
+  },
+  {
+    "Name": "descent-protocol_WORLD_UPDATE",
+    "Mission": "descent-protocol",
+    "State": "WORLD_UPDATE",
+    "Objective": "The Deepmind is still awake"
+  },
+  {
+    "Name": "system-core_IDLE",
+    "Mission": "system-core",
+    "State": "IDLE",
+    "Objective": ""
+  },
+  {
+    "Name": "system-core_TRIGGERED",
+    "Mission": "system-core",
+    "State": "TRIGGERED",
+    "Objective": "The Deepmind has noticed you — it isn't hiding anymore"
+  },
+  {
+    "Name": "system-core_DIVE",
+    "Mission": "system-core",
+    "State": "DIVE",
+    "Objective": "Dive back to the control core"
+  },
+  {
+    "Name": "system-core_COMBAT_1",
+    "Mission": "system-core",
+    "State": "COMBAT_1",
+    "Objective": "Break through its last line of defense"
+  },
+  {
+    "Name": "system-core_STABILIZING",
+    "Mission": "system-core",
+    "State": "STABILIZING",
+    "Objective": "Collapse the three containment locks"
+  },
+  {
+    "Name": "system-core_BOSS",
+    "Mission": "system-core",
+    "State": "BOSS",
+    "Objective": "Confront the System Core"
+  },
+  {
+    "Name": "system-core_COMPLETE",
+    "Mission": "system-core",
+    "State": "COMPLETE",
+    "Objective": "The System Core is down"
+  },
+  {
+    "Name": "system-core_WORLD_UPDATE",
+    "Mission": "system-core",
+    "State": "WORLD_UPDATE",
+    "Objective": "The Fracture, answered"
+  }
+]

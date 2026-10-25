@@ -1,0 +1,660 @@
+[
+  {
+    "Name": "awakening_line_IDLE_DROP",
+    "Mission": "awakening",
+    "Key": "IDLE>DROP",
+    "Field": "line",
+    "Text": "Identity stabilized… Deploying subject to live conflict zone. Welcome to Neon Core."
+  },
+  {
+    "Name": "awakening_line_DROP_PATROL",
+    "Mission": "awakening",
+    "Key": "DROP>PATROL",
+    "Field": "line",
+    "Text": "Hostiles on your position. Move and shoot."
+  },
+  {
+    "Name": "awakening_line_PATROL_ESCALATION",
+    "Mission": "awakening",
+    "Key": "PATROL>ESCALATION",
+    "Field": "line",
+    "Text": "Something bigger is coming. Use cover."
+  },
+  {
+    "Name": "awakening_alert_alert_PATROL_ESCALATION",
+    "Mission": "awakening",
+    "Key": "alert:PATROL>ESCALATION",
+    "Field": "alert",
+    "Text": "NEON CORE DISTRICT ALERT: Faction activity detected"
+  },
+  {
+    "Name": "awakening_line_ESCALATION_LOOT",
+    "Mission": "awakening",
+    "Key": "ESCALATION>LOOT",
+    "Field": "line",
+    "Text": "Gear recovered. Everything you do improves your build."
+  },
+  {
+    "Name": "awakening_alert_alert_ESCALATION_LOOT",
+    "Mission": "awakening",
+    "Key": "alert:ESCALATION>LOOT",
+    "Field": "alert",
+    "Text": ""
+  },
+  {
+    "Name": "awakening_line_LOOT_CAPTURE",
+    "Mission": "awakening",
+    "Key": "LOOT>CAPTURE",
+    "Field": "line",
+    "Text": "Capture point marked. Secure it."
+  },
+  {
+    "Name": "awakening_line_CAPTURE_HOLD",
+    "Mission": "awakening",
+    "Key": "CAPTURE>HOLD",
+    "Field": "line",
+    "Text": "Hold position. New wave incoming."
+  },
+  {
+    "Name": "awakening_line_HOLD_EXTRACT",
+    "Mission": "awakening",
+    "Key": "HOLD>EXTRACT",
+    "Field": "line",
+    "Text": "Point held. Extraction route unlocked."
+  },
+  {
+    "Name": "awakening_line_EXTRACT_COMPLETE",
+    "Mission": "awakening",
+    "Key": "EXTRACT>COMPLETE",
+    "Field": "line",
+    "Text": "Sector stabilized. Returning to command interface."
+  },
+  {
+    "Name": "broken-signal_nova_IDLE_TRIGGERED",
+    "Mission": "broken-signal",
+    "Key": "IDLE>TRIGGERED",
+    "Field": "nova",
+    "Text": "That wasn't supposed to happen… something is interfering with the ad network."
+  },
+  {
+    "Name": "broken-signal_nova_TRIGGERED_DISCOVERY",
+    "Mission": "broken-signal",
+    "Key": "TRIGGERED>DISCOVERY",
+    "Field": "nova",
+    "Text": "Follow that signal. It's moving toward the industrial zone."
+  },
+  {
+    "Name": "broken-signal_nova_DISCOVERY_TRAVERSAL",
+    "Mission": "broken-signal",
+    "Key": "DISCOVERY>TRAVERSAL",
+    "Field": "nova",
+    "Text": "We're entering a corrupted sector. Stay alert."
+  },
+  {
+    "Name": "broken-signal_nova_TRAVERSAL_COMBAT_1",
+    "Mission": "broken-signal",
+    "Key": "TRAVERSAL>COMBAT_1",
+    "Field": "nova",
+    "Text": "These drones are scanning for corrupted data… take them out."
+  },
+  {
+    "Name": "broken-signal_nova_COMBAT_1_HACKING",
+    "Mission": "broken-signal",
+    "Key": "COMBAT_1>HACKING",
+    "Field": "nova",
+    "Text": "Stabilize the data stream. Think of it like routing clean data through broken systems."
+  },
+  {
+    "Name": "broken-signal_nova_HACKING_COMBAT_2",
+    "Mission": "broken-signal",
+    "Key": "HACKING>COMBAT_2",
+    "Field": "nova",
+    "Text": "They've noticed you. Incoming wave."
+  },
+  {
+    "Name": "broken-signal_nova_COMBAT_2_HACKING",
+    "Mission": "broken-signal",
+    "Key": "COMBAT_2>HACKING",
+    "Field": "nova",
+    "Text": "Wave down. Finish the route."
+  },
+  {
+    "Name": "broken-signal_nova_HACKING_COMPLETE",
+    "Mission": "broken-signal",
+    "Key": "HACKING>COMPLETE",
+    "Field": "nova",
+    "Text": "Signal traced… it's coming from deeper in the system. We're not alone in here."
+  },
+  {
+    "Name": "broken-signal_nova_COMPLETE_WORLD_UPDATE",
+    "Mission": "broken-signal",
+    "Key": "COMPLETE>WORLD_UPDATE",
+    "Field": "nova",
+    "Text": "The wall's open. Undercore subway is live — and the city's signage is still glitching."
+  },
+  {
+    "Name": "drowned-relay_nova_IDLE_TRIGGERED",
+    "Mission": "drowned-relay",
+    "Key": "IDLE>TRIGGERED",
+    "Field": "nova",
+    "Text": "The relay you fixed pointed past the treeline. I followed it into the swamp and lost it in the fog. Something out there is soaking up the signal."
+  },
+  {
+    "Name": "drowned-relay_nova_TRIGGERED_WADING",
+    "Mission": "drowned-relay",
+    "Key": "TRIGGERED>WADING",
+    "Field": "nova",
+    "Text": "Got it. An old Vanguard relay mast, half sunk. The swamp grew over it and it's still drawing power. Watch the reeds on the way in."
+  },
+  {
+    "Name": "drowned-relay_nova_WADING_COMBAT_1",
+    "Mission": "drowned-relay",
+    "Key": "WADING>COMBAT_1",
+    "Field": "nova",
+    "Text": "Contact, all around you. The spore-walkers nest on the relay's power. Hold your ground."
+  },
+  {
+    "Name": "drowned-relay_nova_COMBAT_1_PURGING",
+    "Mission": "drowned-relay",
+    "Key": "COMBAT_1>PURGING",
+    "Field": "nova",
+    "Text": "They're down. The relay's channels are choked with spore-mass. Match each channel to the carrier pulse and burn it clean."
+  },
+  {
+    "Name": "drowned-relay_nova_PURGING_BOSS",
+    "Mission": "drowned-relay",
+    "Key": "PURGING>BOSS",
+    "Field": "nova",
+    "Text": "Channels are clear, and something under the water just lost its food. That's what was watching you. Kraken-Vanguard, incoming."
+  },
+  {
+    "Name": "drowned-relay_nova_BOSS_COMPLETE",
+    "Mission": "drowned-relay",
+    "Key": "BOSS>COMPLETE",
+    "Field": "nova",
+    "Text": "It's down. It used to be a Vanguard war-frame before the swamp took it. The relay's transmitting clean now."
+  },
+  {
+    "Name": "drowned-relay_nova_COMPLETE_WORLD_UPDATE",
+    "Mission": "drowned-relay",
+    "Key": "COMPLETE>WORLD_UPDATE",
+    "Field": "nova",
+    "Text": "The signal didn't start here. The relay was only passing it along, straight to Neon City. Whoever is sending it is in there."
+  },
+  {
+    "Name": "blackout-protocol_nova_IDLE_TRIGGERED",
+    "Mission": "blackout-protocol",
+    "Key": "IDLE>TRIGGERED",
+    "Field": "nova",
+    "Text": "That trace didn't dead-end — it led straight into Neon City's own grid. Somebody's hiding behind the Syndicate's noise."
+  },
+  {
+    "Name": "blackout-protocol_nova_TRIGGERED_INFILTRATION",
+    "Mission": "blackout-protocol",
+    "Key": "TRIGGERED>INFILTRATION",
+    "Field": "nova",
+    "Text": "Get into the district. Keep your profile low until we're past their first scanners."
+  },
+  {
+    "Name": "blackout-protocol_nova_INFILTRATION_COMBAT_1",
+    "Mission": "blackout-protocol",
+    "Key": "INFILTRATION>COMBAT_1",
+    "Field": "nova",
+    "Text": "Substation's guarded. Clear them before anyone calls it in."
+  },
+  {
+    "Name": "blackout-protocol_nova_COMBAT_1_HACKING",
+    "Mission": "blackout-protocol",
+    "Key": "COMBAT_1>HACKING",
+    "Field": "nova",
+    "Text": "Three relays feed the surveillance net. Cut them in sequence, or it just reroutes around you."
+  },
+  {
+    "Name": "blackout-protocol_nova_HACKING_COMBAT_2",
+    "Mission": "blackout-protocol",
+    "Key": "HACKING>COMBAT_2",
+    "Field": "nova",
+    "Text": "Grid noticed the cut. Enforcer wave inbound — hold the relay."
+  },
+  {
+    "Name": "blackout-protocol_nova_COMBAT_2_HACKING",
+    "Mission": "blackout-protocol",
+    "Key": "COMBAT_2>HACKING",
+    "Field": "nova",
+    "Text": "Wave down. Finish the cut."
+  },
+  {
+    "Name": "blackout-protocol_nova_HACKING_COMPLETE",
+    "Mission": "blackout-protocol",
+    "Key": "HACKING>COMPLETE",
+    "Field": "nova",
+    "Text": "Grid's down. Whole district just went dark — and under all that dead signal, something else just lit up."
+  },
+  {
+    "Name": "blackout-protocol_nova_COMPLETE_WORLD_UPDATE",
+    "Mission": "blackout-protocol",
+    "Key": "COMPLETE>WORLD_UPDATE",
+    "Field": "nova",
+    "Text": "They're calling whatever's underneath the Stitched Neon Core. That's not on any map NOVA has."
+  },
+  {
+    "Name": "stitched-neon-core_nova_IDLE_TRIGGERED",
+    "Mission": "stitched-neon-core",
+    "Key": "IDLE>TRIGGERED",
+    "Field": "nova",
+    "Text": "That dead grid under the blackout isn't dead — it's stitched into something older. NOVA's got a fix on it. Go."
+  },
+  {
+    "Name": "stitched-neon-core_nova_TRIGGERED_DESCENT",
+    "Mission": "stitched-neon-core",
+    "Key": "TRIGGERED>DESCENT",
+    "Field": "nova",
+    "Text": "Access point's below the substation. Whatever's down there has been running quiet for a long time — don't wake it early."
+  },
+  {
+    "Name": "stitched-neon-core_nova_DESCENT_COMBAT_1",
+    "Mission": "stitched-neon-core",
+    "Key": "DESCENT>COMBAT_1",
+    "Field": "nova",
+    "Text": "You're in the chamber. Defense grid's active — clear it before it locks the room down."
+  },
+  {
+    "Name": "stitched-neon-core_nova_COMBAT_1_STABILIZING",
+    "Mission": "stitched-neon-core",
+    "Key": "COMBAT_1>STABILIZING",
+    "Field": "nova",
+    "Text": "Three resonance nodes are keeping this thing fused in place. Stabilize all three or it destabilizes the whole chamber."
+  },
+  {
+    "Name": "stitched-neon-core_nova_STABILIZING_BOSS",
+    "Mission": "stitched-neon-core",
+    "Key": "STABILIZING>BOSS",
+    "Field": "nova",
+    "Text": "Nodes are stable — and that just woke it up. Aegis-Prime, fully online. Fight."
+  },
+  {
+    "Name": "stitched-neon-core_nova_BOSS_COMPLETE",
+    "Mission": "stitched-neon-core",
+    "Key": "BOSS>COMPLETE",
+    "Field": "nova",
+    "Text": "Aegis-Prime's down. The core's exposed — and it's still transmitting."
+  },
+  {
+    "Name": "stitched-neon-core_nova_COMPLETE_WORLD_UPDATE",
+    "Mission": "stitched-neon-core",
+    "Key": "COMPLETE>WORLD_UPDATE",
+    "Field": "nova",
+    "Text": "That signal wasn't coming from Neon City. It was coming through it — from somewhere under Thalassia."
+  },
+  {
+    "Name": "solar-array_nova_IDLE_TRIGGERED",
+    "Mission": "solar-array",
+    "Key": "IDLE>TRIGGERED",
+    "Field": "nova",
+    "Text": "Neon's grid doesn't make its own power. It's beamed in from the desert. Let's find out who's holding the other end."
+  },
+  {
+    "Name": "solar-array_nova_TRIGGERED_CROSSING",
+    "Mission": "solar-array",
+    "Key": "TRIGGERED>CROSSING",
+    "Field": "nova",
+    "Text": "Solar Array Alpha, out on the Glass Flats. Keep moving out there. The heat will cook you if you stand still."
+  },
+  {
+    "Name": "solar-array_nova_CROSSING_COMBAT_1",
+    "Mission": "solar-array",
+    "Key": "CROSSING>COMBAT_1",
+    "Field": "nova",
+    "Text": "Raiders dug in around the mirrors. They're stripping it for parts. Clear them out."
+  },
+  {
+    "Name": "solar-array_nova_COMBAT_1_REALIGNING",
+    "Mission": "solar-array",
+    "Key": "COMBAT_1>REALIGNING",
+    "Field": "nova",
+    "Text": "The mirrors have drifted, so all that heat is pooling at the focal point. Turn each one back onto the collector."
+  },
+  {
+    "Name": "solar-array_nova_REALIGNING_BOSS",
+    "Mission": "solar-array",
+    "Key": "REALIGNING>BOSS",
+    "Field": "nova",
+    "Text": "Beam's back on the collector, and something at the focal point just lost its meal. The anomaly's hardening. Hit it only when the light cracks across its shell."
+  },
+  {
+    "Name": "solar-array_nova_BOSS_COMPLETE",
+    "Mission": "solar-array",
+    "Key": "BOSS>COMPLETE",
+    "Field": "nova",
+    "Text": "It shattered. The array's running clean for the first time in years."
+  },
+  {
+    "Name": "solar-array_nova_COMPLETE_WORLD_UPDATE",
+    "Mission": "solar-array",
+    "Key": "COMPLETE>WORLD_UPDATE",
+    "Field": "nova",
+    "Text": "I traced the beam. It doesn't stop at Neon. It runs straight into Nexus City, into the Authority's Core Node. They've been powering the whole war from out here."
+  },
+  {
+    "Name": "core-node_nova_IDLE_TRIGGERED",
+    "Mission": "core-node",
+    "Key": "IDLE>TRIGGERED",
+    "Field": "nova",
+    "Text": "The beam from Solara ends in Nexus City, at the Authority's Core Node. Everything we've chased runs through that building."
+  },
+  {
+    "Name": "core-node_nova_TRIGGERED_INFILTRATE",
+    "Mission": "core-node",
+    "Key": "TRIGGERED>INFILTRATE",
+    "Field": "nova",
+    "Text": "Core Node's at the center of the grid. The Authority will see us coming. That's fine. We just need to get there first."
+  },
+  {
+    "Name": "core-node_nova_INFILTRATE_COMBAT_1",
+    "Mission": "core-node",
+    "Key": "INFILTRATE>COMBAT_1",
+    "Field": "nova",
+    "Text": "Response team inbound. Hold the node while I find the archive."
+  },
+  {
+    "Name": "core-node_nova_COMBAT_1_HACKING",
+    "Mission": "core-node",
+    "Key": "COMBAT_1>HACKING",
+    "Field": "nova",
+    "Text": "They're down. The archive wants a handshake. Repeat the pattern and I'll do the rest."
+  },
+  {
+    "Name": "core-node_nova_HACKING_REVEAL",
+    "Mission": "core-node",
+    "Key": "HACKING>REVEAL",
+    "Field": "nova",
+    "Text": "I'm in. Before you read this, there's something I have to tell you."
+  },
+  {
+    "Name": "core-node_nova_REVEAL_COMPLETE_controllers",
+    "Mission": "core-node",
+    "Key": "REVEAL>COMPLETE:controllers",
+    "Field": "nova",
+    "Text": "The Controllers, then. Fine. If locking it down is what keeps people alive, I'll help you hold the key steady."
+  },
+  {
+    "Name": "core-node_nova_REVEAL_COMPLETE_breakers",
+    "Mission": "core-node",
+    "Key": "REVEAL>COMPLETE:breakers",
+    "Field": "nova",
+    "Text": "The Breakers. You want it all to break open. I can't say I'm not afraid of that. I'll still take you there."
+  },
+  {
+    "Name": "core-node_nova_REVEAL_COMPLETE_resonants",
+    "Mission": "core-node",
+    "Key": "REVEAL>COMPLETE:resonants",
+    "Field": "nova",
+    "Text": "The Resonants. Thank you. I think that's what I was hoping you'd say, and I didn't dare ask."
+  },
+  {
+    "Name": "core-node_nova_COMPLETE_WORLD_UPDATE",
+    "Mission": "core-node",
+    "Key": "COMPLETE>WORLD_UPDATE",
+    "Field": "nova",
+    "Text": "The Authority will lock Nexus down over this. Let them. We know where the Core is now, and they don't know what we chose."
+  },
+  {
+    "Name": "frozen-beacon_nova_IDLE_TRIGGERED",
+    "Mission": "frozen-beacon",
+    "Key": "IDLE>TRIGGERED",
+    "Field": "nova",
+    "Text": "That purge in Nexus didn't start in Nexus. The order was relayed in from the north, from the Frostspire passes."
+  },
+  {
+    "Name": "frozen-beacon_nova_TRIGGERED_TRAVEL",
+    "Mission": "frozen-beacon",
+    "Key": "TRIGGERED>TRAVEL",
+    "Field": "nova",
+    "Text": "There's a relay beacon up on the high pass, iced over but still live. Keep moving. The cold here gets into your head."
+  },
+  {
+    "Name": "frozen-beacon_nova_TRAVEL_COMBAT_1",
+    "Mission": "frozen-beacon",
+    "Key": "TRAVEL>COMBAT_1",
+    "Field": "nova",
+    "Text": "Guards, frozen into position until something walked in. That's you. Clear them."
+  },
+  {
+    "Name": "frozen-beacon_nova_COMBAT_1_HACKING",
+    "Mission": "frozen-beacon",
+    "Key": "COMBAT_1>HACKING",
+    "Field": "nova",
+    "Text": "The beacon's key is scrambled. I'll show you the pattern; you put it back in the right order."
+  },
+  {
+    "Name": "frozen-beacon_nova_HACKING_BOSS",
+    "Mission": "frozen-beacon",
+    "Key": "HACKING>BOSS",
+    "Field": "nova",
+    "Text": "Re-keying it cracked the ice around something big. That's Subject Zero, the Authority's first Resonant experiment. They froze it up here to guard this."
+  },
+  {
+    "Name": "frozen-beacon_nova_BOSS_COMPLETE",
+    "Mission": "frozen-beacon",
+    "Key": "BOSS>COMPLETE",
+    "Field": "nova",
+    "Text": "Subject Zero's down. The beacon's open, and it still has the purge order in its buffer."
+  },
+  {
+    "Name": "frozen-beacon_nova_COMPLETE_WORLD_UPDATE",
+    "Mission": "frozen-beacon",
+    "Key": "COMPLETE>WORLD_UPDATE",
+    "Field": "nova",
+    "Text": "The order wasn't the Authority's. It came up from Ember Peaks, from the reactor where containment failed the first time."
+  },
+  {
+    "Name": "failure-core_nova_IDLE_TRIGGERED",
+    "Mission": "failure-core",
+    "Key": "IDLE>TRIGGERED",
+    "Field": "nova",
+    "Text": "The purge order traced back here, to the reactor in the caldera. Something down there is still giving orders."
+  },
+  {
+    "Name": "failure-core_nova_TRIGGERED_TRAVEL",
+    "Mission": "failure-core",
+    "Key": "TRIGGERED>TRAVEL",
+    "Field": "nova",
+    "Text": "The reactor's still running, and it's way past safe. Get to the control ring before it spikes again."
+  },
+  {
+    "Name": "failure-core_nova_TRAVEL_COMBAT_1",
+    "Mission": "failure-core",
+    "Key": "TRAVEL>COMBAT_1",
+    "Field": "nova",
+    "Text": "Guard drones, still on the original containment protocol. They think you're the breach."
+  },
+  {
+    "Name": "failure-core_nova_COMBAT_1_HACKING",
+    "Mission": "failure-core",
+    "Key": "COMBAT_1>HACKING",
+    "Field": "nova",
+    "Text": "Pressure's climbing. Set each vent valve to what the core can hold, or this whole caldera goes."
+  },
+  {
+    "Name": "failure-core_nova_HACKING_BOSS",
+    "Mission": "failure-core",
+    "Key": "HACKING>BOSS",
+    "Field": "nova",
+    "Text": "Venting it woke the operator. Overseer Kael. He's been down here since the first failure, trying to restart containment."
+  },
+  {
+    "Name": "failure-core_nova_BOSS_COMPLETE",
+    "Mission": "failure-core",
+    "Key": "BOSS>COMPLETE",
+    "Field": "nova",
+    "Text": "Kael's down. Reactor's stable. And its logs are open."
+  },
+  {
+    "Name": "failure-core_nova_COMPLETE_WORLD_UPDATE",
+    "Mission": "failure-core",
+    "Key": "COMPLETE>WORLD_UPDATE",
+    "Field": "nova",
+    "Text": "It was never containing the Fracture. It was feeding it. And the fuel came in by convoy, up the Grid-Iron Highway."
+  },
+  {
+    "Name": "convoy-breaker_nova_IDLE_TRIGGERED",
+    "Mission": "convoy-breaker",
+    "Key": "IDLE>TRIGGERED",
+    "Field": "nova",
+    "Text": "The reactor's fuel came in by convoy. There's one running the Grid-Iron Highway right now."
+  },
+  {
+    "Name": "convoy-breaker_nova_TRIGGERED_TRAVEL",
+    "Mission": "convoy-breaker",
+    "Key": "TRIGGERED>TRAVEL",
+    "Field": "nova",
+    "Text": "Convoy's stopped at a junction on the highway. That's your window."
+  },
+  {
+    "Name": "convoy-breaker_nova_TRAVEL_COMBAT_1",
+    "Mission": "convoy-breaker",
+    "Key": "TRAVEL>COMBAT_1",
+    "Field": "nova",
+    "Text": "Rebellion escorts, running stolen Fracture tech. They're not going to let you near those tankers."
+  },
+  {
+    "Name": "convoy-breaker_nova_COMBAT_1_HACKING",
+    "Mission": "convoy-breaker",
+    "Key": "COMBAT_1>HACKING",
+    "Field": "nova",
+    "Text": "The tankers are on an override lock. Match each lock's code to its signature and they're ours."
+  },
+  {
+    "Name": "convoy-breaker_nova_HACKING_BOSS",
+    "Mission": "convoy-breaker",
+    "Key": "HACKING>BOSS",
+    "Field": "nova",
+    "Text": "The override was keyed to someone. The Rust-King Gant, and he wants his convoy back."
+  },
+  {
+    "Name": "convoy-breaker_nova_BOSS_COMPLETE",
+    "Mission": "convoy-breaker",
+    "Key": "BOSS>COMPLETE",
+    "Field": "nova",
+    "Text": "Gant's down. The manifests are open."
+  },
+  {
+    "Name": "convoy-breaker_nova_COMPLETE_WORLD_UPDATE",
+    "Mission": "convoy-breaker",
+    "Key": "COMPLETE>WORLD_UPDATE",
+    "Field": "nova",
+    "Text": "Every tanker was going to one buyer. Not the Rebellion, not the Authority. The Fuel King."
+  },
+  {
+    "Name": "descent-protocol_nova_IDLE_TRIGGERED",
+    "Mission": "descent-protocol",
+    "Key": "IDLE>TRIGGERED",
+    "Field": "nova",
+    "Text": "I traced it as far as I can over the grid. Past that it's open ocean, and then it's gone dark — straight down. Whatever's under there has been quiet a very long time."
+  },
+  {
+    "Name": "descent-protocol_nova_TRIGGERED_DIVE",
+    "Mission": "descent-protocol",
+    "Key": "TRIGGERED>DIVE",
+    "Field": "nova",
+    "Text": "That's not seabed out there. That's architecture — and a docking ring still blinking. Take us to the Sentry Dock. Hull's going to complain on the way down."
+  },
+  {
+    "Name": "descent-protocol_nova_DIVE_COMBAT_1",
+    "Mission": "descent-protocol",
+    "Key": "DIVE>COMBAT_1",
+    "Field": "nova",
+    "Text": "We're through the outer seal and the dock's security frames just woke up. Clear them — then we can get that airlock breathing again."
+  },
+  {
+    "Name": "descent-protocol_nova_COMBAT_1_AIRLOCK",
+    "Mission": "descent-protocol",
+    "Key": "COMBAT_1>AIRLOCK",
+    "Field": "nova",
+    "Text": "Dock's quiet. The airlock controller is fried but not dead — reroute it and the dock air station comes back with it."
+  },
+  {
+    "Name": "descent-protocol_nova_AIRLOCK_RING",
+    "Mission": "descent-protocol",
+    "Key": "AIRLOCK>RING",
+    "Field": "nova",
+    "Text": "Airlock's holding and the station's pumping air — that's our checkpoint. Next is the Abyssal Ring. The floor's flooded with live coolant: when it charges, get up off the floor."
+  },
+  {
+    "Name": "descent-protocol_nova_RING_CORE",
+    "Mission": "descent-protocol",
+    "Key": "RING>CORE",
+    "Field": "nova",
+    "Text": "You made the far side. Below us is the Sunk-Core — the rupture. Past crush depth your suit starts to give, so go down, get the reactor, come back up."
+  },
+  {
+    "Name": "descent-protocol_nova_CORE_TRACING",
+    "Mission": "descent-protocol",
+    "Key": "CORE>TRACING",
+    "Field": "nova",
+    "Text": "That's the reactor — or what's left of it. Something's feeding it from the rift below. Trace the signal before the patrols close in."
+  },
+  {
+    "Name": "descent-protocol_nova_TRACING_COMPLETE",
+    "Mission": "descent-protocol",
+    "Key": "TRACING>COMPLETE",
+    "Field": "nova",
+    "Text": "There. That's it — the Deepmind's control core. Whatever the Fracture actually is, it started right there. And it just noticed you."
+  },
+  {
+    "Name": "descent-protocol_nova_COMPLETE_WORLD_UPDATE",
+    "Mission": "descent-protocol",
+    "Key": "COMPLETE>WORLD_UPDATE",
+    "Field": "nova",
+    "Text": "It's not responding to the trace anymore. It's responding to you. Next time we go down there, we're not finding it by accident."
+  },
+  {
+    "Name": "system-core_nova_IDLE_TRIGGERED",
+    "Mission": "system-core",
+    "Key": "IDLE>TRIGGERED",
+    "Field": "nova",
+    "Text": "Every world you've touched — Veridan, Neon City, the Wastelands, all of it — routes back to the same place. Thalassia's core isn't a ruin anymore. It's awake, and it's been waiting for you."
+  },
+  {
+    "Name": "system-core_nova_TRIGGERED_DIVE",
+    "Mission": "system-core",
+    "Key": "TRIGGERED>DIVE",
+    "Field": "nova",
+    "Text": "That's not architecture down there anymore — it's a nervous system, and it's lit up end to end. Go straight to the center."
+  },
+  {
+    "Name": "system-core_nova_DIVE_COMBAT_1",
+    "Mission": "system-core",
+    "Key": "DIVE>COMBAT_1",
+    "Field": "nova",
+    "Text": "You're at the heart of the Deepmind. It already knows you're inside its perimeter — everything down here is about to answer to it."
+  },
+  {
+    "Name": "system-core_nova_COMBAT_1_STABILIZING",
+    "Mission": "system-core",
+    "Key": "COMBAT_1>STABILIZING",
+    "Field": "nova",
+    "Text": "Perimeter's down. It's not hiding anymore — three containment locks are all that's keeping its real core sealed off. Break them and it has nowhere left to retreat."
+  },
+  {
+    "Name": "system-core_nova_STABILIZING_BOSS",
+    "Mission": "system-core",
+    "Key": "STABILIZING>BOSS",
+    "Field": "nova",
+    "Text": "Locks are down. The System Core — the thing every Fracture Architect, every world, every one of them, has been answering to — just opened its eyes."
+  },
+  {
+    "Name": "system-core_nova_BOSS_COMPLETE",
+    "Mission": "system-core",
+    "Key": "BOSS>COMPLETE",
+    "Field": "nova",
+    "Text": "The System Core is down. Whatever the Fracture actually was, it just lost whatever was holding it together."
+  },
+  {
+    "Name": "system-core_nova_COMPLETE_WORLD_UPDATE",
+    "Mission": "system-core",
+    "Key": "COMPLETE>WORLD_UPDATE",
+    "Field": "nova",
+    "Text": "It's quiet down here now. Really quiet, for the first time since any of this started. I think that's it. I think it's over."
+  }
+]
