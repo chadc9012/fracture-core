@@ -1,5 +1,5 @@
 import "./text-font";
-import { ASTRAVORE_SCENARIO_ID, applyAstravoreKill, hasStarbreaker } from "@/game/hollow-star-raid";
+import { ASTRAVORE_SCENARIO_ID, applyAstravoreKill, hasStarbreaker, hollowStarNews } from "@/game/hollow-star-raid";
 import { FOUND_KEY as STORM_FOUND, stormPrompt, stormStep } from "@/game/storm-quests";
 import { DANCE_VENUES, danceBest, recordDance } from "@/game/dance";
 import { DanceFloor } from "./DanceFloor";
@@ -544,6 +544,8 @@ export function GameCanvas() {
   const [last, setLast] = useCountedState<{ credits: number; kills: number } | null>("last", null);
   const [progression, setProgression] = useCountedState<PlayerProgression>("progression", () => loadProgression());
   // landmark discovery (landmarks.ts): ledger-only, idempotent, shows the landmark's history once
+  const [worldNews, setWorldNews] = useState<string | null>(null);
+  useEffect(() => { if (!worldNews) return; const id = window.setTimeout(() => setWorldNews(null), 10000); return () => window.clearTimeout(id); }, [worldNews]);
   const [landmarkToast, setLandmarkToast] = useCountedState<{ name: string; history: string } | null>("landmarkToast", null);
   useEffect(() => {
     if (!hud.px && !hud.pz) return;
@@ -1159,6 +1161,7 @@ export function GameCanvas() {
     // Raid 01's boss: the raid's own rewards (Starbreaker on the first kill) ride on the same confirmed claim
     let first = false;
     if (plan.some((p) => p.scenarioId === ASTRAVORE_SCENARIO_ID)) { const r = applyAstravoreKill(progressionRef.current); first = r.firstKill; setProgression((current) => applyAstravoreKill(current).progress); }
+    if (first) setWorldNews(hollowStarNews(classById(progressionRef.current.identityClass ?? cls).name));
     if (last) setRewardCards({ title: `${scenarioById(last.scenarioId)?.name ?? "Scenario"}${first ? " · Title earned: Starbreaker" : ""}`, cards: plan.flatMap((p) => p.cards) });
   };
   // Story scenarios (vaelith.ts): branching conversations never block play (Esc / B skips); every effect goes through the pure story reducers
@@ -1719,7 +1722,8 @@ export function GameCanvas() {
        {characterOpen && <CharacterScreen progression={progression} onProgression={setProgression} classId={cls} subclassId={subclass} appearance={appearance} onAppearance={setAppearance} onClose={() => setCharacterOpen(false)} onInventory={() => { setCharacterOpen(false); setInventoryOpen(true); }} onSettings={() => { setCharacterOpen(false); setMenuOpen(true); }} />}
        {inventoryOpen && <InventoryWindow progression={progression} onProgression={setProgression} onClose={() => setInventoryOpen(false)} classId={cls} appearance={appearance} />}
        {phase === "world" && <SiteBanner x={hud.px} z={hud.pz} hidden={atlasOpen || !!landmarkToast || menuOpen} />}
-       {landmarkToast && !atlasOpen && <HudRail side="left" order={0}><div className="pointer-events-none absolute left-1/2 top-28 z-30 w-[min(26rem,86vw)] -translate-x-1/2 border-l-2 border-primary bg-background/80 px-3 py-2" role="status"><p className="font-mono text-[9px] uppercase tracking-[0.3em] text-primary">Landmark discovered</p><p className="text-sm font-semibold">{landmarkToast.name}</p><p className="mt-0.5 text-[11px] text-muted-foreground">{landmarkToast.history}</p></div></HudRail>}
+       {worldNews && <div className="pointer-events-none absolute left-1/2 top-16 z-30 w-[min(30rem,90vw)] -translate-x-1/2 border-l-2 border-primary bg-background/85 px-3 py-2" role="status"><p className="font-mono text-[9px] uppercase tracking-[0.3em] text-primary">World news</p><p className="text-xs">{worldNews}</p></div>}
+      {landmarkToast && !atlasOpen && <HudRail side="left" order={0}><div className="pointer-events-none absolute left-1/2 top-28 z-30 w-[min(26rem,86vw)] -translate-x-1/2 border-l-2 border-primary bg-background/80 px-3 py-2" role="status"><p className="font-mono text-[9px] uppercase tracking-[0.3em] text-primary">Landmark discovered</p><p className="text-sm font-semibold">{landmarkToast.name}</p><p className="mt-0.5 text-[11px] text-muted-foreground">{landmarkToast.history}</p></div></HudRail>}
        {atlasOpen && <WorldAtlas onStartRace={startRace} activeActivityId={activity?.def.id ?? null} progression={progression} markers={hud.markers} px={hud.px} pz={hud.pz} currentRegion={hud.region} phase={hud.phase} onClose={() => setAtlasOpen(false)} onProgression={setProgression} onTravel={(a) => { setAtlasOpen(false); startTransit({ id: a.id, name: a.name, sub: ACTIVITY_LABEL[a.kind], color: ACTIVITY_COLOR[a.kind], x: a.drop.x, z: a.drop.z, ...(a.drop.y !== undefined ? { y: a.drop.y } : {}) }); }} />}
       {awakening && <AwakeningOverlay run={awakening} onEvent={recordAwakening} />}
       {mission && <BrokenSignalOverlay mission={mission} onEvent={recordMission} />}
