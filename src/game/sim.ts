@@ -57,7 +57,7 @@ import { ENEMY_TUNING, aggroRadius, rangedCooldownFor, trooperSpeed, windupFor }
 import type { MaterialId } from "./inventory";
 import type { GearItem } from "./inventory";
 import { phaseForHpFraction, tuningFor, type BossPhaseIndex } from "./boss-phases";
-import { decayPoise, hitPoise, INITIAL_POISE, isStaggered, isWeakPointOpen, openWeakPoint, type PoiseState } from "./boss-poise";
+import { decayPoise, hitPoise, INITIAL_POISE, isStaggered, isWeakPointOpen, openWeakPoint, type PoiseState, BOSS_HP, POISE_PER_DAMAGE, BOSS_KNOCK_MASS } from "./boss-poise";
 import { counterTuningFor, type CounterTuning } from "./boss-adaptive-ai";
 import { completeEmergencyQuest, EMERGENCY_QUEST_INIT, stepEmergencyQuest, type EmergencyQuest } from "./emergency-quest";
 import { scenarioById, scenarioFor, type UniqueScenario } from "./unique-scenarios";
@@ -917,7 +917,7 @@ export function summonBoss(sim: WorldSim, regionId: string, x: number, z: number
   }
   const m = sim.machines.find((candidate) => !candidate.alive);
   if (!m) return false;
-  Object.assign(m, { alive: true, react: undefined, x, z, y: walkHeight(x, z) + 5, hp: 28 * (sim.challenge?.enemyHp ?? 1), maxHp: 28 * (sim.challenge?.enemyHp ?? 1), phase: 0 as BossPhaseIndex, rot: 0, scale: 2.3, zone: regionId, cool: 2, elite: true, boss: true, profile: boss.name, kind: factionOf(regionId), drop: boss.drop, kx: 0, kz: 0, poiseState: INITIAL_POISE, scenarioId: undefined, gimmickHistory: undefined, attuned: undefined, scenarioRun: undefined, playerHits: undefined, encounter: undefined, decoy: undefined, living: undefined, nemesis: undefined, nemesisWeak: undefined, nemesisDamage: undefined, vulnUntil: 0, vulnMult: 1, ...extra });
+  Object.assign(m, { alive: true, react: undefined, x, z, y: walkHeight(x, z) + 5, hp: BOSS_HP.regional * (sim.challenge?.enemyHp ?? 1), maxHp: BOSS_HP.regional * (sim.challenge?.enemyHp ?? 1), phase: 0 as BossPhaseIndex, rot: 0, scale: 2.3, zone: regionId, cool: 2, elite: true, boss: true, profile: boss.name, kind: factionOf(regionId), drop: boss.drop, kx: 0, kz: 0, poiseState: INITIAL_POISE, scenarioId: undefined, gimmickHistory: undefined, attuned: undefined, scenarioRun: undefined, playerHits: undefined, encounter: undefined, decoy: undefined, living: undefined, nemesis: undefined, nemesisWeak: undefined, nemesisDamage: undefined, vulnUntil: 0, vulnMult: 1, ...extra });
   sim.raidFight = { start: performance.now() / 1000, hurt: 0, region: regionId };
   alert(sim, `${boss.name} · ${boss.tell}`);
   return true;
@@ -928,7 +928,7 @@ export function summonBoss(sim: WorldSim, regionId: string, x: number, z: number
 export function summonScenarioBoss(sim: WorldSim, scenario: UniqueScenario, x: number, z: number, extra?: Partial<Machine>): boolean {
   const m = sim.machines.find((candidate) => !candidate.alive);
   if (!m) return false;
-  Object.assign(m, { alive: true, react: undefined, x, z, y: walkHeight(x, z) + 5, hp: 34 * (sim.challenge?.enemyHp ?? 1), maxHp: 34 * (sim.challenge?.enemyHp ?? 1), phase: 0 as BossPhaseIndex, rot: 0, scale: 2.5, zone: scenario.regionId, cool: 2, elite: true, boss: true, profile: scenario.bossName, kind: factionOf(scenario.regionId), drop: scenario.drop as MaterialId, kx: 0, kz: 0, poiseState: INITIAL_POISE, scenarioId: scenario.id, scenarioRun: `${scenario.id}-${Date.now().toString(36)}-${(sim.nextHitId++).toString(36)}-${Math.random().toString(36).slice(2, 8)}`, playerHits: 0, gimmickHistory: [], attuned: undefined, encounter: undefined, decoy: undefined, living: undefined, nemesis: undefined, nemesisWeak: undefined, nemesisDamage: undefined, vulnUntil: 0, vulnMult: 1, ...extra });
+  Object.assign(m, { alive: true, react: undefined, x, z, y: walkHeight(x, z) + 5, hp: BOSS_HP.scenario * (sim.challenge?.enemyHp ?? 1), maxHp: BOSS_HP.scenario * (sim.challenge?.enemyHp ?? 1), phase: 0 as BossPhaseIndex, rot: 0, scale: 2.5, zone: scenario.regionId, cool: 2, elite: true, boss: true, profile: scenario.bossName, kind: factionOf(scenario.regionId), drop: scenario.drop as MaterialId, kx: 0, kz: 0, poiseState: INITIAL_POISE, scenarioId: scenario.id, scenarioRun: `${scenario.id}-${Date.now().toString(36)}-${(sim.nextHitId++).toString(36)}-${Math.random().toString(36).slice(2, 8)}`, playerHits: 0, gimmickHistory: [], attuned: undefined, encounter: undefined, decoy: undefined, living: undefined, nemesis: undefined, nemesisWeak: undefined, nemesisDamage: undefined, vulnUntil: 0, vulnMult: 1, ...extra });
   m.scenarioT0 = performance.now() / 1000; m.scenarioDeaths0 = sim.deaths;
   sim.raidFight = { start: performance.now() / 1000, hurt: 0, region: scenario.regionId };
   alert(sim, `${scenario.name} · ${scenario.briefing}`);
@@ -1352,7 +1352,7 @@ export function applyMachineDamageMods(sim: WorldSim, m: Machine, dmg: number, e
   if (m.nemesisWeak && element === m.nemesisWeak) dmg *= 2; // nemesis.ts: a scarred nemesis takes double damage from its weak element
   if (!m.boss) return dmg;
   if (!m.poiseState) m.poiseState = INITIAL_POISE;
-  const result = hitPoise(m.poiseState, dmg * 9, nowSec);
+  const result = hitPoise(m.poiseState, dmg * POISE_PER_DAMAGE, nowSec);
   m.poiseState = result.state;
   let mult = result.damageMult;
   // Unique Scenario gimmick: near-immune outside the weak-point/stagger window it just got
@@ -1908,8 +1908,11 @@ export function stepSim(sim: WorldSim, input: SimInput) {
       if (d > 260 && !m.mission && !m.living) m.alive = false; // live playtest: a respawn 1 km away leashed the dock wave away and the mission counted it as cleared
     }
     // knockback from impacts, damped frame-rate independently
-    m.x += m.kx * dt;
-    m.z += m.kz * dt;
+    // bosses are heavy: knockback barely moves them (under sustained fire every bullet's shove added up to ~20 m/s and
+    // carried a boss out of its own fight, beyond ENGAGE_RANGE, so it never attacked; see boss-poise.ts BOSS_KNOCK_MASS)
+    const mass = m.boss ? BOSS_KNOCK_MASS : 1;
+    m.x += (m.kx / mass) * dt;
+    m.z += (m.kz / mass) * dt;
     m.kx *= Math.exp(-3 * dt);
     m.kz *= Math.exp(-3 * dt);
 

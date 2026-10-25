@@ -134,13 +134,17 @@ describe("sword vs bosses", () => {
     const boss = sim.machines.find((m) => m.alive && m.boss)!;
     stepSim(sim, { px: PX, pz: PZ, dt: DT, night: 0, inVehicle: false, yaw: 0 }); // creates the encounter state
     // jump the fight to its last phase (Last Oath) before its finale has played
-    boss.hp = 1;
+    boss.hp = 0.2; // a sliver: the swings take it past zero, where the floor must catch it
     boss.encounter!.phase = 3;
     const s = fighter();
     for (let f = 0; f < 120; f++) { swordFrame(sim, s, true); boss.x = PX; boss.z = PZ + 4; }
     expect(boss.alive).toBe(true);
-    expect(boss.hp).toBe(encounterHpFloor(boss, performance.now() / 1000));
-    expect(boss.hp).toBe(3);
+    // it could not die: each time the swings took it past zero the floor put it back (later swings may chip it under the floor
+    // again without killing it — the floor only stops a death before the finale)
+    const floor = encounterHpFloor(boss, performance.now() / 1000);
+    expect(floor).toBeGreaterThan(0);
+    expect(boss.hp).toBeGreaterThan(0);
+    expect(boss.hp).toBeLessThanOrEqual(floor);
   });
 
   test("sword damage on a scenario boss goes through applyMachineDamageMods (poise, gimmick, participation)", () => {

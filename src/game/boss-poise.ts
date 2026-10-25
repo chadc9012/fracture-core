@@ -7,6 +7,20 @@
  */
 
 export const POISE_MAX = 100;
+/**
+ * Boss pacing (Oct 25 2026, measured with a fight audit against every boss: a stationary player with an auto rifle):
+ * bosses had 28 (regional) / 34 (scenario) hull, so they died in 3-8 seconds of rifle fire without starting one attack,
+ * and each rifle hit fed 9× its damage into poise, so poise broke every second and a boss spent ~80% of a fight staggered
+ * (finale-gated encounters then never attacked, never opened their finale and stalled at their hp floor forever).
+ * Now: bosses have enough hull for a fight of about a minute (regional ~30-45 s), poise builds from sustained fire at
+ * `POISE_PER_DAMAGE` and cannot build again for `POISE_REFRACTORY` s after a stagger, so a stagger is a reward every
+ * ~20 s, not a lock.
+ */
+export const BOSS_HP = { regional: 360, scenario: 520 } as const;
+export const POISE_PER_DAMAGE = 1.6;
+export const POISE_REFRACTORY = 6;
+/** knockback on a boss is divided by this (sim.ts): bullets used to shove bosses out of their own arena */
+export const BOSS_KNOCK_MASS = 14;
 const POISE_DECAY_PER_SEC = 4;
 const WEAK_POINT_DURATION = 5;
 const STAGGER_DURATION = 4;
@@ -37,6 +51,8 @@ export function hitPoise(state: PoiseState, poiseDamage: number, now: number): {
   const weakPointOpen = !staggered && now < state.weakPointUntil;
   const damageMult = staggered ? STAGGER_DAMAGE_MULT : weakPointOpen ? WEAK_POINT_DAMAGE_MULT : 1;
   if (staggered) return { state, damageMult };
+  // just out of a stagger: the boss has its feet back, no poise builds for a moment
+  if (now < state.staggerUntil + POISE_REFRACTORY) return { state, damageMult };
   const poise = state.poise + poiseDamage;
   if (poise >= POISE_MAX) {
     return { state: { poise: 0, staggerUntil: now + STAGGER_DURATION, weakPointUntil: now + STAGGER_DURATION }, damageMult };
