@@ -1,7 +1,7 @@
 import { useFrame } from "@react-three/fiber";
 import { useMemo, useRef } from "react";
 import * as THREE from "three";
-import { SKY_BODY, SKY_RIFT, riftGlow, skyParams } from "@/game/sky-dome";
+import { SKY_BODY, SKY_RIFT, riftGlow, skyParams, type SkyLookId } from "@/game/sky-dome";
 import type { SkyEnv } from "./CloudLayer";
 import type { RenderTier } from "@/game/performance";
 
@@ -17,10 +17,23 @@ uniform vec3 sunDir, sunColor, cloudLit, cloudShade, zenith, horizonCol, bodyDir
 uniform float wash, bodyRadius;
 uniform float time, cover, night, sunStrength, starStrength, milkyWay;
 uniform vec3 riftA, riftB; uniform float riftWidth, riftJag, riftGlow;
-float h21(vec2 p){ p = fract(p * vec2(123.34, 456.21)); p += dot(p, p + 45.32); return fract(p.x * p.y); }
-float vn(vec2 p){ vec2 i = floor(p), f = fract(p); f = f*f*(3.0-2.0*f);
-  return mix(mix(h21(i), h21(i+vec2(1,0)), f.x), mix(h21(i+vec2(0,1)), h21(i+vec2(1,1)), f.x), f.y); }
-float fbm(vec2 p){ float s = 0.0, a = 0.5; for(int i=0;i<${octaves};i++){ s += vn(p)*a; p = p*2.03 + 7.1; a *= 0.5; } return s; }
+uniform float absorb, cirrusK, cloudScale, moonDay, riftK;
+float h21(vec2 p){ vec3 p3 = fract(vec3(p.xyx) * 0.1031); p3 += dot(p3, p3.yzx + 33.33); return fract((p3.x + p3.y) * p3.z); }
+float vn(vec2 p){ vec2 i = floor(p), f = fract(p); vec2 u = f*f*f*(f*(f*6.0-15.0)+10.0);
+  return mix(mix(h21(i), h21(i+vec2(1,0)), u.x), mix(h21(i+vec2(0,1)), h21(i+vec2(1,1)), u.x), u.y); }
+const mat2 ROT = mat2(1.6, 1.2, -1.2, 1.6); // x2 scale and a 37 degree turn per octave, so no octave lines up with the last (no square blocks)
+float fbm(vec2 p){ float s = 0.0, a = 0.5; for(int i=0;i<${octaves};i++){ s += vn(p)*a; p = ROT * p + 7.1; a *= 0.5; } return s; }
+float fbm3(vec2 p){ float s = 0.0, a = 0.5; for(int i=0;i<3;i++){ s += vn(p)*a; p = ROT * p + 3.3; a *= 0.5; } return s; }
+// cumulus density on the cloud plane: low-frequency coverage clusters the clouds into fields with clear gaps, a domain warp
+// billows the edges, and a cauliflower detail erodes them
+float cloudDens(vec2 p, float cov){
+  float field = fbm3(p * 0.18 + 11.0);
+  vec2 w = vec2(fbm3(p * 0.6), fbm3(p * 0.6 + 5.2)) - 0.5;
+  float shape = fbm(p + w * 1.6);
+  float c = shape * 0.62 + field * 0.48 - (fbm3(p * 4.3 + w * 3.0) - 0.45) * 0.16; // small billows eat into the edges
+  float thr = 0.71 - cov * 0.4;                    // cover 0.3 ~ a few fair-weather clouds, 0.9 ~ overcast
+  return smoothstep(thr, thr + 0.09, c);
+}
 float h31(vec3 p){ p = fract(p * 0.1031); p += dot(p, p.zyx + 31.32); return fract((p.x + p.y) * p.z); }
 
 void main(){
@@ -46,7 +59,7 @@ void main(){
       float rr = length(uv0);
       float halo = smoothstep(bodyRadius * 1.5, bodyRadius * 0.95, ang);
       vec3 haloCol = mix(vec3(0.55, 0.7, 1.0), vec3(1.0, 0.75, 0.5), 1.0 - night) * (0.18 + 0.2 * night);
-      col = mix(col, haloCol, halo * 0.5); alpha = max(alpha, halo * 0.35);
+      float haloK = mix(moonDay * 1.4, 1.0, night); col = mix(col, haloCol, halo * 0.5 * haloK); alpha = max(alpha, halo * 0.35 * haloK);
       if (rr < 1.0) {
         vec3 n = t1 * uv0.x + t2 * uv0.y + bd * sqrt(1.0 - rr * rr);   // sphere normal in world space
         float surf = fbm(n.xy * 5.0 + n.z * 3.0);
@@ -62,7 +75,7 @@ void main(){
         body += crackCol * crack * (0.35 + 0.9 * night);
         body = mix(body, haloCol * 3.0, pow(rr, 4.0) * 0.7);                // atmosphere rim
         // by day the moon is a pale disc the blue sky shows through (a real moon in daylight); at night it is solid
-        float bodyA = mix(0.42, 1.0, night);
+        float bodyA = mix(moonDay, 1.0, night);
         col = mix(col, body, bodyA); alpha = max(alpha, bodyA);
       }
     }
@@ -89,27 +102,37 @@ void main(){
   col += sunColor * (disc * 4.0 + glow) * sunStrength;
   alpha = max(alpha, clamp((disc + glow * 0.8) * sunStrength, 0.0, 1.0));
 
-  // ---- clouds: a layer projected onto a plane overhead, lit from the sun side ----
+  // ---- clouds: cumulus on a plane ~1.5 km up over a gently curved earth, lit by marching two steps toward the sun ----
   if (d.y > 0.0) {
-    vec2 uv = d.xz / (d.y + 0.14) * 1.35 + vec2(time * 0.012, time * 0.006);
-    float base = fbm(uv * 0.9);
-    float dens = smoothstep(1.0 - cover, 1.0 - cover + 0.28, base);
-    // second sample shifted toward the sun: thinner on the sun side means a bright rim, thicker means shadow
-    vec2 toSun = normalize(sunDir.xz + 1e-4) * 0.09;
-    float base2 = fbm((uv + toSun) * 0.9);
-    float thick = clamp((base - base2) * 5.0 + 0.5, 0.0, 1.0);
-    float depth = clamp(dens * 1.4, 0.0, 1.0);
-    vec3 cc = mix(cloudLit, cloudShade, clamp(thick * 0.8 + depth * 0.45 - 0.2, 0.0, 1.0));
-    cc += sunColor * pow(sd, 6.0) * 0.5 * (1.0 - thick) * sunStrength;       // silver lining toward the sun
-    // thin high cirrus streaks
-    float cir = smoothstep(0.55, 0.85, fbm(vec2(uv.x * 0.35, uv.y * 2.4) + 3.0)) * 0.35;
-    float fade = smoothstep(0.0, 0.2, d.y);                                 // clouds melt into the horizon haze
-    float ca = clamp(dens + cir * (1.0 - dens), 0.0, 1.0) * fade * (1.0 - night * 0.55);
-    col = mix(col, mix(cc, cloudLit, cir * (1.0 - dens)), ca);
+    float t = 1.0 / (d.y + 0.045);                                      // distance to the cloud plane (curvature keeps the horizon finite)
+    vec2 wind = vec2(time * 0.010, time * 0.004);
+    vec2 p = d.xz * t * 0.9 * cloudScale + wind;
+    float dens = cloudDens(p, cover);
+    vec2 sxz = normalize(sunDir.xz + 1e-4) * (0.35 + 0.65 * (1.0 - clamp(sunDir.y, 0.0, 1.0)));
+    float l1 = cloudDens(p + sxz * 0.18, cover), l2 = cloudDens(p + sxz * 0.45, cover);
+    float lightT = exp(-(l1 * 0.6 + l2 * 0.4) * absorb * (0.45 + dens * 0.6)); // light that reaches this point through the cloud toward the sun
+    vec3 amb = mix(zenith, horizonCol, 0.4) * 0.35 + cloudShade * 0.45 + cloudLit * 0.22; // the sky's own light (and light bounced inside the cloud) fills the shadow side
+    vec3 cc = mix(amb * mix(1.0, 0.72, dens), cloudLit, lightT);
+    float powder = 1.0 - exp(-dens * 4.0);                                 // thin edges stay dim, dense cores bright: soft cumulus, not cotton
+    cc *= 0.82 + 0.18 * powder;
+    cc += sunColor * pow(sd, 12.0) * (1.0 - dens) * 1.2 * sunStrength + sunColor * pow(sd, 3.0) * lightT * 0.15 * sunStrength; // silver lining toward the sun
+    // high cirrus: long wind-combed streaks, very thin, far above the cumulus
+    vec2 cp = d.xz / (d.y + 0.1) * 0.25 + wind * 0.6;
+    vec2 cr = mat2(0.86, 0.5, -0.5, 0.86) * cp;
+    float cir = smoothstep(0.52, 0.82, fbm3(vec2(cr.x * 0.6, cr.y * 5.0) + fbm3(cr * 1.3) * 0.8)) * cirrusK * 0.4;
+    vec3 cirCol = mix(cloudLit, sunColor, 0.25);
+    // aerial perspective: distant cloud melts into the horizon colour
+    float near = smoothstep(0.015, 0.32, d.y);
+    cc = mix(mix(horizonCol, cloudLit, 0.25), cc, 0.35 + 0.65 * near);
+    float ca = clamp(dens * (0.55 + 0.45 * near), 0.0, 1.0) * smoothstep(0.0, 0.05, d.y) * (1.0 - night * 0.45);
+    float cia = cir * (1.0 - dens) * smoothstep(0.02, 0.25, d.y) * (1.0 - night * 0.6);
+    col = mix(col, cirCol, cia);
+    alpha = max(alpha, cia);
+    col = mix(col, cc, ca);
     alpha = max(alpha, ca);
   }
   // ---- the Sky Rift: a jagged tear across the sky, a white-hot seam with branching cracks and "code" leaking off one edge (sky-dome.ts SKY_RIFT) ----
-  if (riftGlow > 0.01) {
+  if (riftGlow * riftK > 0.01) {
     vec3 ra = normalize(riftA), rb = normalize(riftB);
     vec3 rn = normalize(cross(ra, rb));
     float om = acos(clamp(dot(ra, rb), -1.0, 1.0));
@@ -137,14 +160,14 @@ void main(){
       float glyph = on * step(0.12, gf.x) * step(gf.x, 0.88) * step(0.4, gf.y) * step(gf.y, 0.62);
       float stream = smoothstep(w * 7.0, w * 2.0, x) * step(w * 1.4, x) * taper * fadeOut * smoothstep(0.25, 0.6, vn(vec2(along * 9.0, 2.0))); // a narrow margin: wide streams stretched into big white blocks near the zenith
       vec3 rc = vec3(1.0, 0.98, 0.94) * seam * 2.6 * taper + mix(vec3(0.85, 0.93, 1.0), vec3(1.0, 0.9, 0.75), 0.35) * gash * 1.6 * taper * (0.85 + 0.3 * vn(vec2(along * 40.0, time * 0.4))) + mix(vec3(0.35, 0.68, 1.0), vec3(0.62, 0.38, 1.0), vn(vec2(along * 5.0, 11.0))) * edge * 0.6 + vec3(0.7, 0.85, 1.0) * br * 0.75 + vec3(0.5, 0.95, 1.0) * glyph * stream * 0.8;
-      float ra2 = clamp((seam + gash) * taper + edge * 0.4 + br * 0.55 + glyph * stream * 0.6, 0.0, 1.0) * riftGlow;
+      float ra2 = clamp((seam + gash) * taper + edge * 0.4 + br * 0.55 + glyph * stream * 0.6, 0.0, 1.0) * riftGlow * riftK;
       // live check: by day the white gash vanished into a pale sky. A shadowed torn margin around it (violet-dark) gives it contrast,
       // and the soft outer glow only blooms at night.
       float shade = pow(smoothstep(w * 5.5, w * 1.0, abs(x)), 1.3) * (1.0 - gash) * taper;
-      col = mix(col, vec3(0.12, 0.1, 0.22), shade * 0.85);
-      alpha = max(alpha, shade * 0.85);
+      col = mix(col, vec3(0.12, 0.1, 0.22), shade * 0.85 * riftK);
+      alpha = max(alpha, shade * 0.85 * riftK);
       rc -= mix(vec3(0.35, 0.68, 1.0), vec3(0.62, 0.38, 1.0), vn(vec2(along * 5.0, 11.0))) * edge * 0.6 * (1.0 - night) * 0.75;
-      vec3 pre = col * alpha + rc * riftGlow;          // additive light on top of whatever the dome already drew
+      vec3 pre = col * alpha + rc * riftGlow * riftK;          // additive light on top of whatever the dome already drew
       alpha = max(alpha, ra2);
       col = pre / max(alpha, 1e-3);
     }
@@ -152,7 +175,7 @@ void main(){
   gl_FragColor = vec4(col, clamp(alpha, 0.0, 1.0));
 }`;
 
-export function SkyDome({ sunDirRef, envRef, playerRef, tier }: { sunDirRef: React.RefObject<THREE.Vector3>; envRef: React.RefObject<SkyEnv>; playerRef: React.RefObject<THREE.Object3D | null>; tier: RenderTier }) {
+export function SkyDome({ sunDirRef, envRef, playerRef, tier, look }: { sunDirRef: React.RefObject<THREE.Vector3>; envRef: React.RefObject<SkyEnv>; playerRef: React.RefObject<THREE.Object3D | null>; tier: RenderTier; look?: SkyLookId }) {
   const root = useRef<THREE.Group>(null!);
   const octaves = tier === "LOW" ? 3 : tier === "MEDIUM" ? 4 : 5;
   const material = useMemo(() => new THREE.ShaderMaterial({
@@ -161,6 +184,7 @@ export function SkyDome({ sunDirRef, envRef, playerRef, tier }: { sunDirRef: Rea
     uniforms: {
       sunDir: { value: new THREE.Vector3(0, 1, 0) }, zenith: { value: new THREE.Vector3(0.16, 0.42, 0.74) }, horizonCol: { value: new THREE.Vector3(1, 0.86, 0.62) }, bodyDir: { value: new THREE.Vector3(...SKY_BODY.dir).normalize() }, wash: { value: 0.5 }, bodyRadius: { value: SKY_BODY.radius }, sunColor: { value: new THREE.Vector3(1, 0.95, 0.86) }, cloudLit: { value: new THREE.Vector3(1, 1, 1) }, cloudShade: { value: new THREE.Vector3(0.5, 0.55, 0.7) },
       riftA: { value: new THREE.Vector3(...SKY_RIFT.from).normalize() }, riftB: { value: new THREE.Vector3(...SKY_RIFT.to).normalize() }, riftWidth: { value: SKY_RIFT.width }, riftJag: { value: SKY_RIFT.jag }, riftGlow: { value: 0.6 },
+      absorb: { value: 1.6 }, cirrusK: { value: 0.5 }, cloudScale: { value: 1 }, moonDay: { value: 0.1 }, riftK: { value: 0.6 },
       time: { value: 0 }, cover: { value: 0.4 }, night: { value: 0 }, sunStrength: { value: 1 }, starStrength: { value: 0 }, milkyWay: { value: 0 },
     },
     side: THREE.BackSide, transparent: true, depthWrite: false, fog: false,
@@ -171,7 +195,7 @@ export function SkyDome({ sunDirRef, envRef, playerRef, tier }: { sunDirRef: Rea
     const sd = sunDirRef.current, env = envRef.current;
     const p = playerRef.current?.position;
     if (root.current && p) root.current.position.set(p.x, 0, p.z);
-    const params = skyParams(sd?.y ?? 0.6, env?.cloud ?? 0, env?.region);
+    const params = skyParams(sd?.y ?? 0.6, env?.cloud ?? 0, env?.region, look);
     // ease the graded colours so crossing a region border blends over ~2 s instead of popping
     const k = 1 - Math.exp(-Math.min(delta, 0.1) * 1.5);
     if (!eased.current) eased.current = { zenith: [...params.zenith], horizon: [...params.horizon] };
@@ -191,6 +215,7 @@ export function SkyDome({ sunDirRef, envRef, playerRef, tier }: { sunDirRef: Rea
     u["sunStrength"]!.value = params.sunStrength;
     u["starStrength"]!.value = params.starStrength;
     u["milkyWay"]!.value = params.milkyWay;
+    u["absorb"]!.value = params.absorb; u["cirrusK"]!.value = params.cirrus; u["cloudScale"]!.value = params.cloudScale; u["moonDay"]!.value = params.moonDay; u["riftK"]!.value = params.riftK;
     u["riftGlow"]!.value = riftGlow(params.night, env?.cloud ?? 0, (env?.cloud ?? 0) > 0.8);
   });
 

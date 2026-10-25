@@ -56,7 +56,7 @@ import { isStaggered, isWeakPointOpen, POISE_MAX } from "@/game/boss-poise";
 import { tuningFor } from "@/game/boss-phases";
 import { counterTuningFor, dominantPattern, logAction, type ActionLogEntry, type PlayerAction } from "@/game/boss-adaptive-ai";
 import { Terrain } from "./Terrain";
-import { CloudLayer, type SkyEnv } from "./CloudLayer";
+import type { SkyEnv } from "./CloudLayer";
 import { Weather } from "./Weather";
 import { weatherName as weatherLabel } from "@/game/weather-cycle";
 import { environmentAt, stepEnvironment } from "@/game/environment";
@@ -3133,7 +3133,7 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
       <group ref={skyDomeGroup}><SkyDome sunDirRef={sunDir} envRef={skyEnv} playerRef={player} tier={settings.renderTier} /><BrokenHorizon playerRef={player} /></group>
       <FractureStorm envRef={skyEnv} />
       <SkyBodies timeRef={time} sunDirRef={sunDir} envRef={skyEnv} playerRef={player} />
-      <CloudLayer envRef={skyEnv} playerRef={player} />
+      {/* the billboard cloud puffs (CloudLayer) are retired: the sky dome draws real lit cumulus now, and the owner disliked the puffs */}
       {settings.renderTier !== "LOW" && <SkyFx fxRef={skyFx} envRef={skyEnv} playerRef={player} />}
       </group>
       <RegionLighting playerRef={player} tier={settings.renderTier} />

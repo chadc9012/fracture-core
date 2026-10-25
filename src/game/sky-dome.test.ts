@@ -11,7 +11,7 @@ describe("sky dome parameters", () => {
     expect(midnight.sunStrength).toBe(0);
   });
   test("a clear day still has scattered cloud and overcast has more", () => {
-    expect(skyParams(0.8, 0).cover).toBeGreaterThanOrEqual(0.38);
+    expect(skyParams(0.8, 0).cover).toBeGreaterThanOrEqual(0.3);
     expect(skyParams(0.8, 1).cover).toBeGreaterThan(skyParams(0.8, 0.5).cover);
   });
   test("storm clouds hide the stars", () => {

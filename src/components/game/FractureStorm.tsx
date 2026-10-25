@@ -10,10 +10,11 @@ import type { SkyEnv } from "./CloudLayer";
 const FRAG = /* glsl */ `
 uniform float uTime; uniform float uGlow; uniform float uFlash;
 varying vec2 vUv;
-float hh(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+// arithmetic hash (the sin() hash lost precision on some GPUs and drew the lens as a tiled grid seen from below)
+float hh(vec2 p){ vec3 p3 = fract(vec3(p.xyx) * 0.1031); p3 += dot(p3, p3.yzx + 33.33); return fract((p3.x + p3.y) * p3.z); }
 float n2(vec2 p){ vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f);
   return mix(mix(hh(i), hh(i + vec2(1, 0)), f.x), mix(hh(i + vec2(0, 1)), hh(i + vec2(1, 1)), f.x), f.y); }
-float fbm(vec2 p){ float s = 0.0, a = 0.5; for (int i = 0; i < 5; i++) { s += a * n2(p); p *= 2.03; a *= 0.5; } return s; }
+float fbm(vec2 p){ float s = 0.0, a = 0.5; for (int i = 0; i < 5; i++) { s += a * n2(p); p = mat2(1.6, 1.2, -1.2, 1.6) * p + 3.1; a *= 0.5; } return s; }
 void main(){
   // a vast flat lens of storm hanging over the city (trailer reference): filled, rippling violet, with a jagged white-hot rim
   vec2 p = vUv * 2.0 - 1.0;
@@ -51,7 +52,7 @@ export function FractureStorm({ envRef }: { envRef: React.RefObject<SkyEnv> }) {
   const rockMat = useMemo(() => new THREE.MeshStandardMaterial({ color: "#2b2733", roughness: 0.95, emissive: "#5a2bc0", emissiveIntensity: 0.12, fog: false }), []);
   const rocks = useRef<THREE.InstancedMesh>(null);
   const tmp = useMemo(() => new THREE.Object3D(), []);
-  useFrame(({ clock }) => {
+  useFrame(({ clock, camera }) => {
     const t = clock.elapsedTime, env = envRef.current;
     const strike = stormStrike(t);
     const m = rocks.current;
@@ -65,7 +66,10 @@ export function FractureStorm({ envRef }: { envRef: React.RefObject<SkyEnv> }) {
       rockMat.emissiveIntensity = 0.08 + (strike.on ? strike.k * 0.6 : 0) + (env?.night ?? 0) * 0.1;
     }
     mat.uniforms["uTime"]!.value = t;
-    mat.uniforms["uGlow"]!.value = stormGlow(env?.night ?? 0, (env?.cloud ?? 0) > 0.75);
+    // from underneath, the lens is a ceiling rather than a storm on the horizon: it fades to a faint tint while the camera is under it
+    const under = Math.hypot(camera.position.x - STORM.x, camera.position.z - STORM.z);
+    const fromAfar = 0.12 + 0.88 * Math.min(1, Math.max(0, (under - STORM.outer * 0.9) / (STORM.outer * 0.9)));
+    mat.uniforms["uGlow"]!.value = stormGlow(env?.night ?? 0, (env?.cloud ?? 0) > 0.75) * fromAfar;
     mat.uniforms["uFlash"]!.value = strike.on ? strike.k : 0;
     if (ring.current) ring.current.rotation.z = t * STORM.spin;
     bolt.visible = strike.on;

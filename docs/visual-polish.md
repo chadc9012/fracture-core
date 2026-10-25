@@ -98,6 +98,15 @@ Found by looking at the game on the owner's laptop, fixed, and (where the previe
 
 Trailer shots built: shard-gain burst (`ShardGainFx`), skyline lookout above Nexus (`SkylineLookout`).
 
-Open, for the owner to decide: the jungle-reclaimed city ruins from the trailer (no site on the map boards for it), the 52 m floating region-name labels (world-space text vs the gritty-realistic look; `zoneLabels` setting), and the soft billboard cloud puffs (`CloudLayer`) next to the analytic cloud dome.
+Owner decisions (Oct 24-25): the jungle-reclaimed city is built (`reclaimed-city.ts`); the 52 m region labels stay; the billboard cloud puffs (`CloudLayer`) are retired.
+
+## Sky rebuild: the gritty war sky (Oct 25)
+
+The owner disliked the sky and clouds. Three looks were rendered (`SKY_LOOKS` in `sky-dome.ts`: clear / gritty / fracture) and the owner picked **gritty**, now `DEFAULT_SKY_LOOK`.
+
+- Clouds (`SkyDome.tsx`): cumulus on a curved plane with a coverage field (cloud fields with clear gaps), domain-warped billows and edge erosion, lit by two samples toward the sun (dark bases, bright sunlit tops, silver lining), aerial perspective into the horizon. Noise uses an arithmetic hash and rotated octaves: the old grid-aligned value noise drew square blocks.
+- Noon horizon is pale blue-white (the cream noon horizon read as smog); the gritty look desaturates the sky and cloud colours.
+- The Fracture Moon is a faint ghost by day (`moonDay`) and solid at night; the Sky Rift is dimmed by `riftK`.
+- Fracture Storm: from underneath, the lens read as a tiled ceiling over Nexus (sin hash precision + aligned octaves). Fixed hash and rotated octaves, and the lens fades to a faint tint while the camera is under it.
 
 Owner answers (Oct 24, asked directly): keep the floating region-name labels as they are; no jungle-reclaimed city ruins site for now.
