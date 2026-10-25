@@ -33,8 +33,8 @@ namespace wf::shop
 
 		double ShWeaponLevel(const std::string& T) { return T == "T1" ? 1 : T == "T2" ? 3 : T == "T3" ? 6 : T == "T4" ? 9 : T == "T5" ? 12 : 99; }
 		double ShArmorLevel(const std::string& T) { return T == "T1-2" ? 1 : T == "T3-4" ? 5 : T == "T5" ? 10 : 99; }
-		double ShWeaponPrice(const std::string& T) { return T == "T1" ? 30 : T == "T2" ? 60 : T == "T3" ? 110 : T == "T4" ? 180 : T == "T5" ? 280 : 0; }
-		double ShArmorPrice(const std::string& T) { return T == "T1-2" ? 25 : T == "T3-4" ? 90 : T == "T5" ? 220 : 0; }
+		double ShWeaponPrice(const std::string& T) { return T == "T1" ? 30 : T == "T2" ? 80 : T == "T3" ? 180 : T == "T4" ? 360 : T == "T5" ? 700 : 0; } // regional-shops.ts WEAPON_PRICE
+		double ShArmorPrice(const std::string& T) { return T == "T1-2" ? 25 : T == "T3-4" ? 110 : T == "T5" ? 400 : 0; } // regional-shops.ts ARMOR_PRICE
 		double ShWeaponPower(const std::string& T) { return T == "T1" ? 90 : T == "T2" ? 140 : T == "T3" ? 190 : T == "T4" ? 260 : T == "T5" ? 340 : 420; }
 		double ShArmorPower(const std::string& T) { return T == "T1-2" ? 90 : T == "T3-4" ? 150 : T == "T5" ? 240 : 340; }
 		double ShPiecePrice(int T) { static const double P[6] = {0, 30, 55, 95, 150, 220}; return P[std::clamp(T, 1, 5)]; }
