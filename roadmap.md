@@ -183,7 +183,7 @@
 - [ ] Playable city district: connected roads, building footprints, street detail, paths fitted to terrain/water.
 - [ ] City safe hub: mission access, trading, upgrades, protected spawns.
 - [ ] Replayable regional mission scenarios using each region's hazards, enemies, traversal.
-- [ ] Weapon models in hand (from the modular armor/weapon document).
+- [x] Weapon models in hand (from the modular armor/weapon document). (Found already done on audit: public/models/weapons has authored rifle, pistol, shotgun, heavy, launcher and sword GLBs plus arms; ViewWeapon.tsx draws them first-person with moving mag/bolt parts, and OperatorModel.tsx attaches the same models to every Operator's hands. Not visually checked here.)
 - [x] User's seven Meshy enemy models optimized and wired per faction/role (procedural motion; rigs have no clips).
 - [ ] Shopkeeper models + idle animations (no merchant models supplied yet).
 - [ ] Civilian variety + ambient routines and combat reactions across regions.
