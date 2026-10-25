@@ -247,6 +247,7 @@ import { createWasteRuntime, stepWasteRuntime, type WasteEmit, type WasteHud, ty
 import { createDescentRuntime, descentDeath, drainEndedRuns, stepDescentRuntime, type DescentEmit, type DescentHud, type DescentRuntime } from "@/game/descent-runtime";
 import { activeDescent, descentSolids, dungeonById, gatesForDay, inDescentSpace, liveDescentGroundAt } from "@/game/fracture-gates";
 import { DescentDungeon } from "./DescentDungeon";
+import { launchGate } from "@/game/director-activities";
 import { borderBlocks, worldAt, worldName, type WorldId } from "@/game/planet";
 import { ELEVATOR_RIDE_S, dockArrival, elevatorDown, elevatorGroundAt, elevatorUp, platformArrival, terminalAt } from "@/game/travel";
 import { ContinentTransit } from "./ContinentTransit";
@@ -647,7 +648,8 @@ function SceneImpl({
   /** active class loadout: weapon slot order for keys 1-3, cycling and HUD */
   weaponOrder?: WeaponId[];
   /** star map deployment target; nonce changes trigger the drop */
-  travelTo?: { x: number; z: number; nonce: number; y?: number } | null;
+  /** `descend`: a dungeon the Director map launched (director-activities.ts); its descent starts once you arrive */
+  travelTo?: { x: number; z: number; nonce: number; y?: number; descend?: string } | null;
   onCheckpoint?: (p: { x: number; z: number }) => void;
   /** Opening cinematic: while set, the camera follows intro-camera.ts's scripted flythrough
    * instead of the normal player follow-cam — IntroCinematic.tsx's overlay fades out over this
@@ -669,6 +671,7 @@ function SceneImpl({
   const sim = useMemo<WorldSim>(() => createSim(), []);
   const livingRt = useRef<LivingRuntime | null>(null);
   const wasteRt = useRef<WasteRuntime | null>(null);
+  const pendingDescend = useRef<string | null>(null);
   const descentRt = useRef<DescentRuntime>(createDescentRuntime());
   const descentHud = useRef<DescentHud>(null);
   /** continental borders (planet.ts): last position that passed the check, and when the warning last showed */
@@ -2212,7 +2215,9 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
 
     /* ---------------- Fracture Gates: walk into a gate to start a descent, fall floor by floor to the boss (descent-runtime.ts) ---------------- */
     {
-      const dr = stepDescentRuntime(descentRt.current, sim, { now: Date.now(), px: s.x, py: s.y, pz: s.z, inVehicle: s.inVehicle, blocked: !!tutorial || !!interior || !!introPlayback || sim.machines.some((m) => m.alive && m.mission), earnedRewards: gear?.earnedRewards ?? [], gates: () => gatesForDay(Date.now()) });
+      const descend = pendingDescend.current; pendingDescend.current = null;
+      const dr = stepDescentRuntime(descentRt.current, sim, { now: Date.now(), px: s.x, py: s.y, pz: s.z, inVehicle: s.inVehicle, blocked: !!tutorial || !!interior || !!introPlayback || sim.machines.some((m) => m.alive && m.mission), earnedRewards: gear?.earnedRewards ?? [], gates: () => gatesForDay(Date.now()),
+        launch: descend ? launchGate(descend, Date.now()) : null });
       descentHud.current = dr.hud;
       for (const e of dr.emits) onDescent?.(e);
       for (const run of drainEndedRuns()) onDescent?.({ type: "END", run });
@@ -2835,6 +2840,7 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
     }
     if (travelTo && travelTo.nonce !== travelSeen.current) {
       travelSeen.current = travelTo.nonce;
+      pendingDescend.current = travelTo.descend ?? null;
       s.x = travelTo.x; s.z = travelTo.z; s.y = walkHeight(s.x, s.z) + 1.6; s.vy = 0; s.vSpeed = 0; s.inVehicle = false; s.insideInterior = null; interior = null; velocity.set(0, 0, 0);
       // submersible arrival (Thalassia): the sub breaches the dock seal and you exit at depth, diving, full rebreather
       if (travelTo.y !== undefined) { s.y = travelTo.y; s.diving = true; s.grounded = false; s.oxygen = OXYGEN_MAX; s.hull = 0; s.breachAt = performance.now() / 1000; s.sector = sectorAt(s.x, s.y, s.z); }

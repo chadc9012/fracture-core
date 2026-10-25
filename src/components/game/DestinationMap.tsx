@@ -13,6 +13,9 @@ import {
 import type { PlayerProgression } from "@/game/progression";
 import { useMenuInput } from "./useMenuInput";
 import { ActivityPanel } from "./ActivityPanel";
+import { ActivityLaunch, ActivityList, ActivityNodes } from "./ActivityNodes";
+import { nodesFor, type MapNode } from "@/game/director-activities";
+import { useIsMobile } from "@/hooks/use-mobile";
 import type { DeployTarget } from "./StarMap";
 
 /** Art built by scripts/build-destination-art.py from docs/reference/destination-map. */
@@ -66,6 +69,10 @@ export function DestinationMap({ progression, onDeploy, onProgression, onAtlas, 
   const [zoom, setZoom] = useState(false);
   const [landingId, setLandingId] = useState("primary");
   const [launching, setLaunching] = useState(false);
+  /** the dungeon / raid launch screen on top of the map (Destiny's activity launch) */
+  const [node, setNode] = useState<MapNode | null>(null);
+  const live = active && !node;
+  const phone = useIsMobile();
   const focus = selected ?? firstRecommended;
 
   const info = selected ? destinationInfo(selected) : null;
@@ -96,15 +103,16 @@ export function DestinationMap({ progression, onDeploy, onProgression, onAtlas, 
   const back = () => { if (zoom) setZoom(false); else if (drawer) setDrawer(null); else if (selected) setSelected(null); else chrome?.onSystem(); };
 
   const open = () => { if (selected && onOpen) onOpen(selected); else if (selected) setZoom((z) => !z); };
-  useMenuInput(active, (intent) => {
+  useMenuInput(live, (intent) => {
     if (intent === "up" || intent === "down") { if (!drawer && !zoom) select(stepDestination(focus, intent === "up" ? -1 : 1)); }
     else if (intent === "confirm") { if (!selected) select(focus); else if (!drawer || drawer === "landing") launch(); }
     else if (intent === "back") back();
   });
   useEffect(() => {
-    if (!active) return;
+    if (!live) return;
     const onKey = (e: KeyboardEvent) => {
       if ((e.target as HTMLElement | null)?.closest("input, textarea")) return;
+      if (e.code === "KeyV" && selected) { const n = nodesFor(selected)[0]; if (n) setNode(n); }
       if (e.code === "KeyZ" && selected) open();
       if (e.code === "KeyX" && selected) setDrawer((d) => (d === "activities" ? null : "activities"));
       if (e.code === "KeyC" && selected) setDrawer((d) => (d === "landing" ? null : "landing"));
@@ -112,7 +120,7 @@ export function DestinationMap({ progression, onDeploy, onProgression, onAtlas, 
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [selected, active, onOpen]);
+  }, [selected, live, onOpen]);
 
   const boss = region ? ENCOUNTERS.find((e) => e.regionId === region.id)?.boss : undefined;
   const hazard = region ? REGION_HAZARD[region.id] : undefined;
@@ -215,6 +223,7 @@ export function DestinationMap({ progression, onDeploy, onProgression, onAtlas, 
       <button type="button" className="wf-dest-hint" disabled={!selected} onClick={open}><span className="wf-dest-cap">Z</span>{onOpen ? "Open map" : "Close-up"}</button>
       <button type="button" className="wf-dest-hint" disabled={!selected} onClick={() => setDrawer((d) => (d === "activities" ? null : "activities"))}><span className="wf-dest-cap">X</span>Activities</button>
       <button type="button" className="wf-dest-hint" disabled={!selected} onClick={() => setDrawer((d) => (d === "landing" ? null : "landing"))}><span className="wf-dest-cap">C</span>Landing zones</button>
+      <button type="button" className="wf-dest-hint" disabled={!selected || nodesFor(selected).length === 0} onClick={() => { const n = selected ? nodesFor(selected)[0] : undefined; if (n) setNode(n); }}><span className="wf-dest-cap">V</span>{selected && nodesFor(selected)[0]?.kind === "RAID" ? "Raid" : "Dungeon"}</button>
       <button type="button" className="wf-dest-hint" onClick={() => setDrawer((d) => (d === "legend" ? null : "legend"))}><span className="wf-dest-cap">G</span>Show legend</button>
     </>
   );
@@ -243,6 +252,7 @@ export function DestinationMap({ progression, onDeploy, onProgression, onAtlas, 
       <div className="wf-dest-stage hidden md:block">
         <img src={art("planet.jpg")} alt="World Fracture: the planet and its nine destinations" className="wf-dest-art" draggable={false} />
         {pins}
+        <ActivityNodes progression={progression} focus={selected} dim={!!selected} onOpen={(n) => { select(n.destination); setNode(n); }} />
 
         <div className="absolute flex flex-col justify-center" style={pct(STAGE_PANELS.title)}>
           <p className="text-[2.6cqw] font-bold uppercase leading-none tracking-[0.06em] text-white [text-shadow:0_0_1.2cqw_rgba(146,233,245,0.45)]">World Fracture</p>
@@ -272,6 +282,8 @@ export function DestinationMap({ progression, onDeploy, onProgression, onAtlas, 
           <button type="button" onClick={() => setDrawer(null)} className="absolute right-[0.6cqw] top-[0.6cqw] z-10 text-white/60 hover:text-white" aria-label="Close panel"><X className="size-[1.2cqw]" /></button>
           {drawerBody}
         </aside>}
+
+        {node && !phone && <ActivityLaunch node={node} progression={progression} onDeploy={onDeploy} onBack={() => setNode(null)} active={active} />}
 
         {closeup && <section className="wf-dest-panel overflow-hidden" style={pct(CLOSEUP_RECT)} aria-label="Destination close-up">{closeup}</section>}
 
@@ -319,6 +331,9 @@ export function DestinationMap({ progression, onDeploy, onProgression, onAtlas, 
             <button type="button" className="border border-white/25 px-3 py-2 uppercase tracking-widest" onClick={onAtlas}>Terrain atlas</button>
           </div>}
           {drawer && drawer !== "legend" && <div className="border border-white/15 [&_*]:!text-[13px]">{drawerBody}</div>}
+          <p className="wf-dest-kicker !text-[11px]">Dungeons &amp; raids</p>
+          <ActivityList progression={progression} onOpen={(n) => { select(n.destination); setNode(n); }} />
+          {node && phone && <ActivityLaunch node={node} progression={progression} onDeploy={onDeploy} onBack={() => setNode(null)} active={active} />}
         </div>
       </div>
     </div>

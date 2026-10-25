@@ -114,7 +114,9 @@ export type DescentStep = {
   inside: boolean;
 };
 
-export function stepDescentRuntime(rt: DescentRuntime, sim: WorldSim, inp: { now: number; px: number; py: number; pz: number; inVehicle: boolean; blocked: boolean; earnedRewards: readonly string[]; gates: () => FractureGate[] }): DescentStep {
+export function stepDescentRuntime(rt: DescentRuntime, sim: WorldSim, inp: { now: number; px: number; py: number; pz: number; inVehicle: boolean; blocked: boolean; earnedRewards: readonly string[]; gates: () => FractureGate[];
+  /** the Director map launched this dungeon (director-activities.ts): enter its gate from where you stand */
+  launch?: FractureGate | null }): DescentStep {
   const emits: DescentEmit[] = [];
   const day = dayOf(inp.now);
   if (rt.gatesDay !== day) { rt.gatesDay = day; rt.gates = inp.gates(); }
@@ -137,9 +139,11 @@ export function stepDescentRuntime(rt: DescentRuntime, sim: WorldSim, inp: { now
       }
       if (dist < 60 && dist < nearest) { nearest = dist; const d = dungeonById(g.dungeonId); gateNear = { name: d?.name ?? "Fracture Gate", rank: g.shownRank, sealed: g.sealed, dist: Math.round(dist), breaking }; }
     }
-    const g = gateAt(rt.gates, inp.px, inp.pz);
-    if (!g || Math.abs(feet - g.y) > 6) rt.rearm = true;
-    if (g && rt.rearm && !inp.inVehicle && !inp.blocked && sim.hp > 0 && Math.abs(feet - g.y) <= 6) {
+    const launched = inp.launch && !inp.blocked && sim.hp > 0 ? inp.launch : null;
+    const walked = launched ? null : gateAt(rt.gates, inp.px, inp.pz);
+    if (!walked || Math.abs(feet - walked.y) > 6) rt.rearm = true;
+    const g = launched ?? (walked && rt.rearm && !inp.inVehicle && !inp.blocked && sim.hp > 0 && Math.abs(feet - walked.y) <= 6 ? walked : null);
+    if (g) {
       const run = startDescent(g, inp.now, 1);
       rt.run = run;
       rt.rearm = false;
@@ -147,7 +151,8 @@ export function stepDescentRuntime(rt: DescentRuntime, sim: WorldSim, inp: { now
       // you come back out just in front of the gate, not inside its trigger
       const dx = inp.px - g.x, dz = inp.pz - g.z, away = Math.hypot(dx, dz), r = gateRadius(g.shownRank) + 3;
       const ux = away > 0.5 ? dx / away : 1, uz = away > 0.5 ? dz / away : 0;
-      rt.returnPos = { x: g.x + ux * r, y: inp.py, z: g.z + uz * r };
+      // launched from the map: you come back where you stood (beside the gate, or the destination's landing zone)
+      rt.returnPos = launched ? { x: inp.px, y: inp.py, z: inp.pz } : { x: g.x + ux * r, y: inp.py, z: g.z + uz * r };
       setActiveDescent({ layout: run.layout, open: openWays(run) });
       const d = dungeonById(g.dungeonId)!;
       alert(sim, `${d.name} · ${g.shownRank}-rank${g.sealed ? " · SEALED: the only way out is the bottom" : ""}`);

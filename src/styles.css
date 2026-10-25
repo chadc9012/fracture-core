@@ -540,6 +540,32 @@
 .wf-dest-launch:disabled { opacity: 0.45; cursor: not-allowed; }
 .wf-dest-in { animation: wf-director-in 0.28s ease-out both; }
 @media (prefers-reduced-motion: reduce) { .wf-dest-ring, .wf-dest-in { animation: none; } }
+/* Destination map activity nodes + launch screen (ActivityNodes.tsx): Destiny's dungeon / raid nodes, hover card and launch. */
+.wf-node-hit { position: absolute; border-radius: 50%; outline: none; cursor: pointer; }
+.wf-node-hit:focus-visible { box-shadow: 0 0 0 2px #fff; }
+.wf-node-pulse { transform-box: fill-box; transform-origin: center; animation: wf-node-pulse 2.2s ease-out infinite; }
+@keyframes wf-node-pulse { 0% { transform: scale(0.85); opacity: 0.9; } 100% { transform: scale(1.7); opacity: 0; } }
+.wf-node-card { position: absolute; z-index: 5; width: 19cqw; pointer-events: none; background: rgba(8, 12, 18, 0.93); border: 1px solid rgba(255, 255, 255, 0.16); box-shadow: 0 0.8cqw 2.4cqw rgba(0, 0, 0, 0.6); }
+.wf-node-card-band { padding: 0.6cqw 0.9cqw 0.7cqw; color: #fff; background: linear-gradient(90deg, color-mix(in srgb, var(--node) 42%, #0b1118), color-mix(in srgb, var(--node) 14%, #0b1118)); border-bottom: 2px solid var(--node); }
+.wf-launch { --u: 1cqw; position: absolute; inset: 0; z-index: 30; overflow: hidden; background: #03070c; color: #fff; }
+.wf-launch-shade { position: absolute; inset: 0; background: linear-gradient(90deg, rgba(3, 6, 10, 0.94) 0%, rgba(3, 6, 10, 0.78) 38%, rgba(3, 6, 10, 0.2) 66%, rgba(3, 6, 10, 0.55) 100%), linear-gradient(0deg, rgba(3, 6, 10, 0.92) 0%, transparent 30%), linear-gradient(180deg, rgba(3, 6, 10, 0.7) 0%, transparent 18%); }
+.wf-launch-chip { display: inline-flex; align-items: center; gap: calc(var(--u) * 0.35); padding: calc(var(--u) * 0.2) calc(var(--u) * 0.6); border: 1px solid rgba(255, 255, 255, 0.3); background: rgba(0, 0, 0, 0.45); }
+.wf-launch-path { display: flex; flex-direction: column; gap: calc(var(--u) * 0.35); font-size: calc(var(--u) * 1); font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; }
+.wf-launch-path li { padding: calc(var(--u) * 0.35) calc(var(--u) * 0.6); background: linear-gradient(90deg, rgba(255, 255, 255, 0.07), transparent); border-left: 2px solid rgba(255, 255, 255, 0.18); }
+.wf-launch-step { display: inline-grid; place-items: center; width: calc(var(--u) * 1.6); height: calc(var(--u) * 1.6); border: 1.5px solid; transform: rotate(45deg); font-size: calc(var(--u) * 0.85); font-weight: 700; }
+.wf-launch-step > * , .wf-launch-step { line-height: 1; }
+.wf-launch-label { font-size: calc(var(--u) * 0.85); font-weight: 700; letter-spacing: 0.32em; text-transform: uppercase; color: rgba(255, 255, 255, 0.75); border-bottom: 1px solid rgba(255, 255, 255, 0.25); padding-bottom: calc(var(--u) * 0.3); }
+.wf-launch-tile { position: relative; display: grid; place-items: center; width: calc(var(--u) * 3.2); height: calc(var(--u) * 3.2); font-size: calc(var(--u) * 1.5); background: rgba(8, 12, 18, 0.8); border: 1px solid rgba(255, 255, 255, 0.25); transition: border-color .15s, box-shadow .15s; }
+.wf-launch-tile:hover, .wf-launch-tile:focus-visible { outline: none; border-color: #fff; box-shadow: 0 0 calc(var(--u) * 0.9) rgba(255, 255, 255, 0.3); }
+.wf-launch-reward { color: #e9c77b; }
+.wf-launch-reward[data-earned="true"] { color: rgba(233, 199, 123, 0.55); }
+.wf-launch-go { display: inline-flex; align-items: center; gap: calc(var(--u) * 0.9); height: calc(var(--u) * 3.4); min-width: calc(var(--u) * 16); justify-content: center; padding: 0 calc(var(--u) * 1.6); font-weight: 700; font-size: calc(var(--u) * 1.4); letter-spacing: 0.34em; text-transform: uppercase; color: #fff;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--node) 38%, rgba(8, 14, 20, 0.9)), rgba(8, 14, 20, 0.92)); border: 1px solid var(--node); box-shadow: inset 0 0 calc(var(--u) * 1.2) color-mix(in srgb, var(--node) 30%, transparent); transition: filter .15s; }
+.wf-launch-go:hover:not(:disabled) { filter: brightness(1.25); }
+.wf-launch-go:disabled { opacity: 0.5; }
+@media (max-width: 767px) { .wf-launch { --u: 2.3vw; position: fixed; z-index: 60; overflow-y: auto; } .wf-launch > .relative { min-height: 100%; } .wf-launch > .relative > div:first-child { flex-direction: column; } .wf-launch > .relative > div:first-child > div { width: 100%; } .wf-launch .wf-dest-hint { font-size: 14px; } .wf-launch .wf-dest-cap { font-size: 11px; height: 18px; min-width: 24px; } }
+@media (prefers-reduced-motion: reduce) { .wf-node-pulse { animation: none; } }
+
 
 /* Operator menus (Inventory, Character): the same panel language as the Destination Map, Destiny-style rarity tiles and item cards. */
 .wf-op { font-family: var(--wf-display); color: #eaf6fb; background: radial-gradient(ellipse at 50% 30%, rgba(48, 92, 112, 0.55), transparent 60%), linear-gradient(160deg, #13232f, #070d15 70%); }
