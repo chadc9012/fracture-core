@@ -16,6 +16,7 @@ import { MaglevTrains } from "./MaglevTrains";
 import { NeonDistricts } from "./NeonDistricts";
 import { NeonTowerBlocks } from "./NeonTowerBlocks";
 import { NeonPalms } from "./CityPalms";
+import { NeonRoadworks } from "./NeonRoadworks";
 import { NeonVenues } from "./NeonVenues";
 import { NeonConcertComplex } from "./NeonConcertComplex";
 import { NeonSkylineCasino } from "./NeonSkylineCasino";
@@ -126,6 +127,7 @@ export function NeonCity() {
       <WorldPiece name="neon secondary music venue"><NeonConcertComplex center={NEON_CITY_CENTER} /></WorldPiece>
       <WorldPiece name="neon skyline casino"><NeonSkylineCasino center={NEON_CITY_CENTER} /></WorldPiece>
       <WorldPiece name="neon street lights"><NeonStreetLights /></WorldPiece>
+      <WorldPiece name="neon roadworks"><NeonRoadworks /></WorldPiece>
       <ResidentialHomes city="neon" />
       <NeonMarketStreet y={y} />
       <NeonTiers c={NEON_CITY_CENTER} />
