@@ -1,9 +1,11 @@
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 
-import { chippedBlock } from "@/game/organic-geometry";
+import { canopyCluster, chippedBlock, organicRock } from "@/game/organic-geometry";
+import { regionAt } from "@/game/world";
 import { delineator, lampHead, lampLens, lampPole, railPost, wBeam } from "@/game/street-geometry";
-import { worldRoadDressing, type Bridge, type Sign } from "@/game/road-dressing";
+import { VERGE_SCATTER, vergeGround, worldRoadDressing, worldVerge, type Bridge, type Sign, type VergeItem } from "@/game/road-dressing";
 
 /**
  * Roadside furniture and bridges for the supply roads (placement in src/game/road-dressing.ts):
@@ -124,8 +126,51 @@ export function RoadDressing() {
   return (
     <group name="road-dressing">
       <Furniture />
+      <Verge />
       {dressing.signs.map((s, i) => <RoadSign key={i} s={s} />)}
       {bridges.map((b, i) => <BridgeModel key={i} b={b} />)}
     </group>
   );
+}
+
+/* rocks and dry scrub crowding the road edges (owner's target frame "wilds by day"); only the items near the camera are drawn,
+ * reselected twice a second, so the world-wide scatter costs two instanced draws */
+const ROCK_TINT: Record<string, string> = { wastelands: "#9b8564", solara: "#c4a582", ember: "#3e3639", frostspire: "#9aa3ad", swamps: "#5e6656", veridan: "#7c7a6c" };
+const SCRUB_TINT: Record<string, string> = { wastelands: "#7d7a45", solara: "#8e8650", ember: "#4a4030", frostspire: "#56665c", swamps: "#4d5e3a", veridan: "#55703a" };
+const CAP = 900;
+function Verge() {
+  const [items, setItems] = useState<VergeItem[] | null>(null);
+  // placement takes ~0.2 s: done after the world is up rather than inside the first frame
+  useEffect(() => { const id = setTimeout(() => setItems(worldVerge((x, z) => regionAt(x, z)?.id)), 1500); return () => clearTimeout(id); }, []);
+  const geo = useMemo(() => ({ rock: organicRock(0.6, 91, 1, 0.18), scrub: canopyCluster(93) }), []);
+  const mats = useMemo(() => ({ rock: new THREE.MeshStandardMaterial({ roughness: 0.95 }), scrub: new THREE.MeshStandardMaterial({ roughness: 1 }) }), []);
+  useEffect(() => () => { Object.values(geo).forEach((g) => g.dispose()); Object.values(mats).forEach((m) => m.dispose()); }, [geo, mats]);
+  const rock = useRef<THREE.InstancedMesh>(null), scrub = useRef<THREE.InstancedMesh>(null);
+  const next = useRef(0), o = useMemo(() => new THREE.Object3D(), []), col = useMemo(() => new THREE.Color(), []);
+  useFrame(({ camera, clock }) => {
+    if (!items || clock.elapsedTime < next.current) return;
+    next.current = clock.elapsedTime + 0.5;
+    const r = rock.current, s = scrub.current; if (!r || !s) return;
+    const R2 = VERGE_SCATTER.drawRadius ** 2, cx = camera.position.x, cz = camera.position.z;
+    let nr = 0, ns = 0;
+    for (const it of items) {
+      const dx = it.x - cx, dz = it.z - cz; if (dx * dx + dz * dz > R2) continue;
+      const y = vergeGround(it); if (y === null) continue;
+      if (it.kind === "rock") {
+        if (nr >= CAP) continue;
+        o.position.set(it.x, y + it.s * 0.12, it.z); o.rotation.set(it.r * 0.3, it.r, it.r * 0.2); o.scale.set(it.s * 1.2, it.s * 0.7, it.s);
+        o.updateMatrix(); r.setMatrixAt(nr, o.matrix); r.setColorAt(nr, col.set(ROCK_TINT[it.region] ?? "#8a8478").multiplyScalar(0.85 + (it.r % 1) * 0.3)); nr++;
+      } else {
+        if (ns >= CAP) continue;
+        o.position.set(it.x, y + it.s * 0.25, it.z); o.rotation.set(0, it.r, 0); o.scale.set(it.s, it.s * 0.6, it.s);
+        o.updateMatrix(); s.setMatrixAt(ns, o.matrix); s.setColorAt(ns, col.set(SCRUB_TINT[it.region] ?? "#6a6a3c").multiplyScalar(0.8 + (it.r % 1) * 0.35)); ns++;
+      }
+    }
+    r.count = nr; s.count = ns;
+    for (const m of [r, s]) { m.instanceMatrix.needsUpdate = true; if (m.instanceColor) m.instanceColor.needsUpdate = true; m.computeBoundingSphere(); }
+  });
+  return <group name="road-verge">
+    <instancedMesh ref={(m) => { rock.current = m; if (m && !items) m.count = 0; }} args={[geo.rock, mats.rock, CAP]} castShadow receiveShadow frustumCulled={false} />
+    <instancedMesh ref={(m) => { scrub.current = m; if (m && !items) m.count = 0; }} args={[geo.scrub, mats.scrub, CAP]} castShadow frustumCulled={false} />
+  </group>;
 }

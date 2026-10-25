@@ -129,3 +129,54 @@ export function worldRoadDressing() {
   cache = { dressing, bridges: resolved().map(bridgeOf) };
   return cache;
 }
+
+/* ---------------- verge scatter (owner's target frame "wilds by day": rocks and dry scrub crowd the road edges) ---------------- */
+
+/** `y` is NaN until vergeGround resolves it */
+export type VergeItem = { x: number; y: number; z: number; kind: "rock" | "scrub"; s: number; r: number; region: string };
+/** spacing along the road between verge clusters (m), how far out from the verge they reach, and the draw radius around the camera */
+export const VERGE_SCATTER = { every: 6, reach: 7, drawRadius: 190 } as const;
+const hash = (n: number) => { const v = Math.sin(n * 127.1 + 311.7) * 43758.5453; return v - Math.floor(v); };
+
+/** rocks and scrub clustered along both verges of every open-country road (none in the city cores, on bridges, in water or on
+ * another road's strip). Rocks sit nearer the edge, scrub further out; denser in the dry regions. Deterministic. */
+export function vergeScatter(lane: Lane, regionAt: (x: number, z: number) => string | undefined): VergeItem[] {
+  const s = walk(lane), out: VergeItem[] = [];
+  let regionCache = "";
+  // ground height is the costly query (~30 us), so it is resolved lazily for the few items near the camera (vergeGround)
+  const ok = (x: number, z: number) => !inHub(lane, x, z) && distanceToRoad(x, z) > ROAD_HALF + 0.9 && !nearBridge(x, z, 2);
+  let n = 0;
+  for (let i = 1; i < s.length; i++) {
+    const a = s[i - 1]!, b = s[i]!, seg = b.along - a.along;
+    for (let d = 0; d < seg; d += VERGE_SCATTER.every) {
+      const t = d / Math.max(seg, 1e-6), x0 = a.x + (b.x - a.x) * t, z0 = a.z + (b.z - a.z) * t;
+      const region = d === 0 || !regionCache ? (regionCache = regionAt(x0, z0) ?? "") : regionCache;
+      const dryLand = region === "wastelands" || region === "solara" || region === "ember";
+      for (const side of [-1, 1]) {
+        n++;
+        if (hash(n) > (dryLand ? 0.85 : 0.45)) continue; // patchy, thicker in the dry regions
+        const items = 1 + Math.floor(hash(n * 3.1) * 3);
+        for (let k = 0; k < items; k++) {
+          const rock = hash(n * 7 + k) < (dryLand ? 0.55 : 0.35);
+          const off = VERGE + (rock ? 0.3 + hash(n * 11 + k) * 3 : 1.5 + hash(n * 13 + k) * (VERGE_SCATTER.reach - 1.5));
+          const slide = (hash(n * 17 + k) - 0.5) * VERGE_SCATTER.every;
+          const x = x0 + a.nx * off * side + (b.x - a.x) / Math.max(seg, 1e-6) * slide, z = z0 + a.nz * off * side + (b.z - a.z) / Math.max(seg, 1e-6) * slide;
+          if (!ok(x, z)) continue;
+          out.push({ x, y: NaN, z, kind: rock ? "rock" : "scrub", s: rock ? 0.35 + Math.pow(hash(n * 19 + k), 2) * 1.4 : 0.5 + hash(n * 23 + k) * 0.9, r: hash(n * 29 + k) * Math.PI * 2, region });
+        }
+      }
+    }
+  }
+  return out;
+}
+
+let vergeCache: VergeItem[] | null = null;
+export function worldVerge(regionAt: (x: number, z: number) => string | undefined): VergeItem[] {
+  return (vergeCache ??= LANES.flatMap((l) => vergeScatter(l, regionAt)));
+}
+
+/** the item's ground height, resolved once; null when it stands in water (it is then never drawn) */
+export function vergeGround(it: VergeItem): number | null {
+  if (Number.isNaN(it.y)) it.y = heightAt(it.x, it.z);
+  return it.y > WATER_LEVEL + 0.4 ? it.y : null;
+}
