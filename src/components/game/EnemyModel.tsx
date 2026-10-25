@@ -9,6 +9,7 @@ import { enemyWeapon, HELD_MUZZLE, heldPitch, PALM, RAISE_RATE } from "@/game/en
 import { DEATH_BONES, deathBonesAt, type DeathStyle } from "@/game/death-animations";
 import type { HandlingClass } from "@/game/weapon-handling";
 import { heldWeaponCopy } from "./heldModels";
+import { SWIM_GLSL, swimAmp, swimRate } from "@/game/abyssal-swim";
 
 /** a Mixamo bone by name, whichever way the loader spelled the prefix ("mixamorig:Head" or "mixamorigHead") */
 const boneCache = new WeakMap<THREE.Object3D, Map<string, THREE.Object3D | null>>();
@@ -35,7 +36,7 @@ import type { EnemyKind } from "@/game/enemy-visuals";
 export type { EnemyKind };
 
 /** Which region's look each enemy faction wears (visual-standard REGION_LOOK). */
-export const KIND_REGION: Record<EnemyKind, string> = { RAIDER: "wastelands", OVERCLOCKED: "nexus", ABERRATION: "swamps", VANGUARD: "frostspire", SKYBORN: "ember", GUARDIAN: "veridan" };
+export const KIND_REGION: Record<EnemyKind, string> = { RAIDER: "wastelands", OVERCLOCKED: "nexus", ABERRATION: "swamps", VANGUARD: "frostspire", SKYBORN: "ember", GUARDIAN: "veridan", ABYSSAL: "thalassia" };
 
 type Mats = { plate: string; under: string; accent: string; plateKind: keyof typeof SURFACES };
 
@@ -139,7 +140,29 @@ function Authored({ visual, headRef, drive, onBuilt, weapon }: { visual: EnemyVi
     obj.updateMatrixWorld(true);
     const box = new THREE.Box3().setFromObject(obj);
     const size = box.getSize(new THREE.Vector3()), c = box.getCenter(new THREE.Vector3());
-    const k = visual.height / Math.max(size.y, 1e-3);
+    // swimmers are sized by body length (head along +Z); everyone else by standing height
+    const k = visual.motion === "swim" && visual.length ? visual.length / Math.max(size.z, 1e-3) : visual.height / Math.max(size.y, 1e-3);
+    // swimmers bend with a travelling wave in the vertex shader (abyssal-swim.ts): per-mesh head/length, shared phase/amp
+    const swim = visual.motion === "swim" ? { uSwimPhase: { value: 0 }, uSwimAmp: { value: 0 } } : null;
+    if (swim) obj.traverse((o) => {
+      const m = o as THREE.Mesh;
+      if (!m.isMesh) return;
+      m.geometry.computeBoundingBox();
+      const bb = m.geometry.boundingBox!;
+      const head = { value: bb.max.z }, len = { value: Math.max(bb.max.z - bb.min.z, 1e-3) };
+      m.frustumCulled = false;
+      m.material = (Array.isArray(m.material) ? m.material : [m.material]).map((src) => {
+        const mat = (src as THREE.MeshStandardMaterial).clone();
+        mat.onBeforeCompile = (sh) => {
+          Object.assign(sh.uniforms, { uSwimHead: head, uSwimLen: len, uSwimPhase: swim.uSwimPhase, uSwimAmp: swim.uSwimAmp });
+          sh.vertexShader = "uniform float uSwimHead; uniform float uSwimLen; uniform float uSwimPhase; uniform float uSwimAmp;\n" +
+            sh.vertexShader.replace("#include <begin_vertex>", "#include <begin_vertex>\n" + SWIM_GLSL);
+        };
+        mat.customProgramCacheKey = () => "abyssal-swim";
+        return mat;
+      }) as unknown as THREE.Material;
+      if (Array.isArray(m.material) && (m.material as THREE.Material[]).length === 1) m.material = (m.material as THREE.Material[])[0]!;
+    });
     // rigged models with authored clips get their own mixer; clip names are idle/walk/run/shoot (build-enemy-rigged.py)
     const clips: Partial<Record<keyof ClipWeights, THREE.AnimationAction>> = {};
     let mixer: THREE.AnimationMixer | null = null;
@@ -153,7 +176,7 @@ function Authored({ visual, headRef, drive, onBuilt, weapon }: { visual: EnemyVi
       if (!Object.keys(clips).length) mixer = null;
     }
     const hand = rigBone(obj, "RightHand"), knuckle = rigBone(obj, "RightHandMiddle1") ?? hand;
-    return { obj, k, offset: [-c.x * k, -box.min.y * k, -c.z * k] as [number, number, number], mixer, clips, hand, knuckle };
+    return { obj, k, offset: [-c.x * k, -box.min.y * k, -c.z * k] as [number, number, number], mixer, clips, hand, knuckle, swim };
   }, [scene, animations, visual.height]);
   // held weapon (enemy-weapons.ts): only rigged bodies with a hand carry one; placed every frame at the palm
   const holder = useMemo(() => { const g = new THREE.Group(); g.name = "enemy:weapon"; g.visible = false; return g; }, []);
@@ -237,7 +260,14 @@ function Authored({ visual, headRef, drive, onBuilt, weapon }: { visual: EnemyVi
     }
     const t = clock.elapsedTime * 3 + seed.current;
     // procedural motion for models without clips: bipeds sway/lean into the stride, creatures undulate
-    if (visual.motion === "creature") { b.rotation.set(0, Math.sin(t * 0.7) * 0.12, Math.sin(t) * 0.05); b.scale.set(1, 1 + Math.sin(t * 2) * 0.03, 1); }
+    if (built.swim) {
+      // swimming: the wave beats faster and wider with speed; the body bobs, rolls and pitches gently in the water
+      const speed = drive?.current.speed ?? 0;
+      built.swim.uSwimPhase.value = (built.swim.uSwimPhase.value + swimRate(speed) * Math.min(dt, 0.1)) % (Math.PI * 2000);
+      built.swim.uSwimAmp.value = swimAmp(speed);
+      b.rotation.set(Math.sin(t * 0.31) * 0.06, 0, Math.sin(t * 0.47) * 0.07);
+      b.position.y = Math.sin(t * 0.4) * 0.12;
+    } else if (visual.motion === "creature") { b.rotation.set(0, Math.sin(t * 0.7) * 0.12, Math.sin(t) * 0.05); b.scale.set(1, 1 + Math.sin(t * 2) * 0.03, 1); }
     else b.rotation.set(0.06 + Math.sin(t * 2) * 0.03, Math.sin(t) * 0.06, Math.sin(t) * 0.04);
   });
   return <group ref={body}><group ref={headRef ?? null}><primitive object={built.obj} scale={built.k} position={built.offset} /></group><primitive object={holder} /></group>;
