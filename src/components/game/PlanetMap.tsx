@@ -1,131 +1,197 @@
-import { useMemo, useRef, useState } from "react";
-import { ChevronLeft, ChevronRight, LockKeyhole, Plane, Waves } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
+import { Anchor, LockKeyhole, Minus, Plane, Plus, TrainFront, Waves } from "lucide-react";
 import type { PlayerProgression } from "@/game/progression";
-import { CONTINENTS, NATIONS, OCEANS, PLANET, hash32, type Continent } from "@/game/planet";
+import { AIR_ROUTES, BOARD, CONTINENTS, NATIONS, THALASSIA_PIN, type Continent, type ContinentId, type WorldId } from "@/game/planet";
 import { REGIONS } from "@/game/world";
 import { TERMINALS, arrivalPoint, hasVisited, START_WORLD } from "@/game/travel";
+import boardArt from "@/assets/planet/planet-board.jpg";
 import type { DeployTarget } from "./StarMap";
 
 /**
- * The planet view (Stage 150): Veyra as a globe you can turn, its 12 continents (lit when playable, dim while they are
- * only on the map), the 7 oceans, the flight routes between playable continents, and Thalassia as a marker off Veyloria's
- * east coast in the Meridian Ocean — not on any continent. Pick a continent to read its nations and look, and fly to it once
- * you have made landfall there (your start continent is always open). Data: planet.ts and travel.ts.
+ * The planetary map (Stage 150), built on the owner's planetary map board: the painted globe is the map, and the live game is
+ * drawn over it — air routes between the playable continents with planes on them, the sea lane from Veyloria to Thalassia,
+ * an emblem ring on every continent (lit when you can fly there, locked until you have made landfall, dim while the land is
+ * only on the map), your location, and the board's own legend and info panel (nations, major cities, size, climate, travel
+ * options) filled from planet.ts. A, B, X and Y on a pad (Enter, Escape, L and N on a keyboard) select, back, toggle the legend
+ * and list the nations; RT / LT (+ / −) zoom and the map pans by dragging. Raids are never on this map: they launch from the
+ * Raid tab.
  */
-const SIZE = 560, C = SIZE / 2, RAD = SIZE * 0.44;
-const toRad = (d: number) => (d * Math.PI) / 180;
-
-/** orthographic projection of (lat, lon) with the globe turned to `lon0`; z < 0 is the far side */
-function project(lat: number, lon: number, lon0: number, lat0 = 0) {
-  const p = toRad(lat), l = toRad(lon - lon0), p0 = toRad(lat0);
-  const x = Math.cos(p) * Math.sin(l);
-  const y = Math.cos(p0) * Math.sin(p) - Math.sin(p0) * Math.cos(p) * Math.cos(l);
-  const z = Math.sin(p0) * Math.sin(p) + Math.cos(p0) * Math.cos(p) * Math.cos(l);
-  return { x: C + x * RAD, y: C - y * RAD, z };
+const CARDS = import.meta.glob("../../assets/planet/card-*.jpg", { eager: true, import: "default" }) as Record<string, string>;
+const card = (id: string) => CARDS[`../../assets/planet/card-${id}.jpg`] ?? "";
+const byId = (id: ContinentId) => CONTINENTS.find((c) => c.id === id)!;
+/** a gentle arc between two board points, bulging away from the board's centre like the board's own routes */
+function arcPath(a: { x: number; y: number }, b: { x: number; y: number }) {
+  const mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2, dx = b.x - a.x, dy = b.y - a.y, len = Math.hypot(dx, dy) || 1;
+  let nx = -dy / len, ny = dx / len;
+  if ((mx - BOARD.w / 2) * nx + (my - BOARD.h / 2) * ny < 0) { nx = -nx; ny = -ny; }
+  const k = len * 0.16, cx = mx + nx * k, cy = my + ny * k;
+  return { d: `M${a.x} ${a.y} Q${cx} ${cy} ${b.x} ${b.y}`, mid: { x: 0.25 * a.x + 0.5 * cx + 0.25 * b.x, y: 0.25 * a.y + 0.5 * cy + 0.25 * b.y }, angle: (Math.atan2(b.y - a.y, b.x - a.x) * 180) / Math.PI };
 }
 
-/** an irregular coastline around a continent's heart: a seeded outline in degrees */
-function outline(c: Continent): { lat: number; lon: number }[] {
-  const n = 72, seed = hash32(c.id), pts: { lat: number; lon: number }[] = [];
-  for (let i = 0; i < n; i++) {
-    const a = (i / n) * Math.PI * 2;
-    // broad lobes plus a little coastline grain: reads as a landmass, not a star
-    const wob = 0.82 + 0.16 * Math.sin(a * 2 + (seed % 7)) + 0.09 * Math.sin(a * 3 + (seed % 11)) + 0.04 * Math.sin(a * 9 + (seed % 5)) + 0.02 * Math.sin(a * 17 + (seed % 3));
-    const r = (c.size / 2) * wob;
-    pts.push({ lat: c.lat + Math.sin(a) * r * 0.75, lon: c.lon + (Math.cos(a) * r) / Math.max(0.35, Math.cos(toRad(c.lat))) });
-  }
-  return pts;
-}
-
-/** points along the great circle between two globe positions */
-function arc(a: { lat: number; lon: number }, b: { lat: number; lon: number }, steps = 24) {
-  const v = (q: { lat: number; lon: number }) => [Math.cos(toRad(q.lat)) * Math.cos(toRad(q.lon)), Math.cos(toRad(q.lat)) * Math.sin(toRad(q.lon)), Math.sin(toRad(q.lat))] as const;
-  const A = v(a), B = v(b), out: { lat: number; lon: number }[] = [];
-  for (let i = 0; i <= steps; i++) {
-    const t = i / steps, x = A[0] * (1 - t) + B[0] * t, y = A[1] * (1 - t) + B[1] * t, z = A[2] * (1 - t) + B[2] * t, m = Math.hypot(x, y, z);
-    out.push({ lat: (Math.asin(z / m) * 180) / Math.PI, lon: (Math.atan2(y, x) * 180) / Math.PI });
-  }
-  return out;
-}
-
-/** Thalassia: off Veyloria's east coast, as on the owner's planetary board */
-const THALASSIA_GLOBE = { lat: -6, lon: -12 };
-
-export function PlanetMap({ progression, onDeploy }: { progression: PlayerProgression; onDeploy: (target: DeployTarget) => void }) {
-  const [lon0, setLon0] = useState(0);
-  const [selectedId, setSelectedId] = useState<string>(START_WORLD);
-  const drag = useRef<{ x: number; lon: number } | null>(null);
-  const selected = CONTINENTS.find((c) => c.id === selectedId) ?? CONTINENTS[0]!;
-  const outlines = useMemo(() => new Map(CONTINENTS.map((c) => [c.id, outline(c)])), []);
-  const core = CONTINENTS.filter((c) => c.tier === "CORE");
-  const routes = useMemo(() => {
-    const hub = CONTINENTS.find((c) => c.id === "aetheria")!;
-    return core.filter((c) => c.id !== hub.id).map((c) => ({ id: c.id, pts: arc(hub, c) }));
-  }, [core]);
-  const visited = (id: string) => id === START_WORLD || hasVisited(progression, id as Parameters<typeof hasVisited>[1]);
+export function PlanetMap({ progression, onDeploy, currentWorld = null }: { progression: PlayerProgression; onDeploy: (target: DeployTarget) => void; currentWorld?: WorldId | null }) {
+  const here = currentWorld === "thalassia" ? "veyloria" : currentWorld;
+  const [selectedId, setSelectedId] = useState<ContinentId>((here as ContinentId | null) ?? START_WORLD);
+  const [legend, setLegend] = useState(true);
+  const [nationsOpen, setNationsOpen] = useState(false);
+  const [zoom, setZoom] = useState(1);
+  const [pan, setPan] = useState({ x: 0, y: 0 });
+  const drag = useRef<{ x: number; y: number; px: number; py: number } | null>(null);
+  const selected = byId(selectedId);
+  const visited = (id: ContinentId) => id === START_WORLD || hasVisited(progression, id);
   const terminal = TERMINALS.find((t) => t.world === selected.id);
-  const path = (pts: { lat: number; lon: number }[], closed: boolean) => {
-    const proj = pts.map((p) => project(p.lat, p.lon, lon0));
-    if (proj.every((p) => p.z < 0)) return null;
-    let d = "", pen = false;
-    for (const p of proj) { if (p.z < 0) { pen = false; continue; } d += `${pen ? "L" : "M"}${p.x.toFixed(1)} ${p.y.toFixed(1)}`; pen = true; }
-    return closed && proj.every((p) => p.z >= 0) ? `${d}Z` : d;
-  };
-  const deploy = () => {
-    if (!terminal) return;
+  const canFly = !!terminal && selected.tier === "CORE" && visited(selected.id) && selected.id !== here;
+  const fly = () => {
+    if (!terminal || !canFly) return;
     const a = arrivalPoint(terminal);
     onDeploy({ id: terminal.id, name: terminal.name, sub: `${selected.name} · flight`, color: selected.color, x: a.x, z: a.z });
   };
   const nations = NATIONS.filter((n) => n.continent === selected.id);
   const regionNames = selected.regions.map((id) => (id === "neon" ? "Neon City" : id === "storm-islands" ? "The Storm Islands" : REGIONS.find((r) => r.id === id)?.name ?? id));
+  const setZ = (z: number) => { const nz = Math.min(2.5, Math.max(1, z)); setZoom(nz); if (nz === 1) setPan({ x: 0, y: 0 }); };
+
+  // pad / keyboard: X legend, Y nations, RT/LT zoom, A fly, arrows cycle continents (Q/E stay the director's tab keys)
+  useEffect(() => {
+    const order = CONTINENTS.map((c) => c.id);
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.target as HTMLElement | null)?.closest("input, textarea")) return;
+      if (e.code === "KeyL") setLegend((v) => !v);
+      else if (e.code === "KeyN") setNationsOpen((v) => !v);
+      else if (e.code === "Equal" || e.code === "NumpadAdd") setZ(zoom + 0.5);
+      else if (e.code === "Minus" || e.code === "NumpadSubtract") setZ(zoom - 0.5);
+      else if (e.code === "ArrowRight" || e.code === "ArrowDown") setSelectedId((id) => order[(order.indexOf(id) + 1) % order.length]!);
+      else if (e.code === "ArrowLeft" || e.code === "ArrowUp") setSelectedId((id) => order[(order.indexOf(id) + order.length - 1) % order.length]!);
+      else if (e.code === "Enter") fly();
+    };
+    window.addEventListener("keydown", onKey);
+    let raf = 0, prev: boolean[] = [];
+    const poll = () => {
+      raf = requestAnimationFrame(poll);
+      const gp = typeof navigator !== "undefined" && navigator.getGamepads ? Array.from(navigator.getGamepads()).find((p): p is Gamepad => !!p && p.connected) : undefined;
+      const now = gp ? gp.buttons.map((b) => b.pressed) : [];
+      const hit = (i: number) => now[i] && !prev[i];
+      if (hit(0)) fly();
+      if (hit(2)) setLegend((v) => !v);
+      if (hit(3)) setNationsOpen((v) => !v);
+      if (hit(7)) setZ(zoom + 0.5);
+      if (hit(6)) setZ(zoom - 0.5);
+      if (hit(15) || hit(13)) setSelectedId((id) => order[(order.indexOf(id) + 1) % order.length]!);
+      if (hit(14) || hit(12)) setSelectedId((id) => order[(order.indexOf(id) + order.length - 1) % order.length]!);
+      prev = now;
+    };
+    raf = requestAnimationFrame(poll);
+    return () => { window.removeEventListener("keydown", onKey); cancelAnimationFrame(raf); };
+  });
+
+  const onDown = (e: ReactPointerEvent) => { if (zoom > 1) drag.current = { x: e.clientX, y: e.clientY, px: pan.x, py: pan.y }; };
+  const onMove = (e: ReactPointerEvent) => { const d = drag.current; if (!d) return; setPan({ x: d.px + (e.clientX - d.x) / zoom, y: d.py + (e.clientY - d.y) / zoom }); };
+  const pinOf = (c: Continent) => c.pin;
+  const ring = (c: Continent) => (c.tier === "BACKDROP" ? "#8a97a3" : visited(c.id) ? "#7ee8ff" : "#ffc860");
+
   return (
-    <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
-      <div className="relative select-none">
-        <svg viewBox={`0 0 ${SIZE} ${SIZE}`} className="mx-auto aspect-square w-full max-w-[min(72vh,100%)] cursor-grab active:cursor-grabbing" role="group" aria-label={`The planet ${PLANET.name}: continents, oceans and flight routes`}
-          onPointerDown={(e) => { drag.current = { x: e.clientX, lon: lon0 }; (e.target as Element).setPointerCapture?.(e.pointerId); }}
-          onPointerMove={(e) => { if (drag.current) setLon0(drag.current.lon - (e.clientX - drag.current.x) * 0.35); }}
-          onPointerUp={() => { drag.current = null; }}>
-          <defs>
-            <radialGradient id="planet-sea" cx="40%" cy="35%" r="70%"><stop offset="0%" stopColor="#1d5a86" /><stop offset="70%" stopColor="#0b2c4a" /><stop offset="100%" stopColor="#04121f" /></radialGradient>
-            <radialGradient id="planet-rim" cx="50%" cy="50%" r="50%"><stop offset="88%" stopColor="#7fd8ff" stopOpacity="0" /><stop offset="100%" stopColor="#7fd8ff" stopOpacity="0.35" /></radialGradient>
-          </defs>
-          <circle cx={C} cy={C} r={RAD} fill="url(#planet-sea)" />
-          {CONTINENTS.map((c) => {
-            const d = path(outlines.get(c.id)!, true);
-            if (!d) return null;
-            const playable = c.tier !== "BACKDROP", sel = c.id === selected.id;
-            return <path key={c.id} d={d} fill={c.color} fillOpacity={playable ? 0.85 : 0.35} stroke={sel ? "#ffffff" : "#0a1a26"} strokeWidth={sel ? 2.5 : 1} className="cursor-pointer" onClick={() => setSelectedId(c.id)}><title>{c.name}</title></path>;
-          })}
-          {routes.map((r) => { const d = path(r.pts, false); return d ? <path key={r.id} d={d} fill="none" stroke="#ffd27a" strokeOpacity={0.55} strokeWidth={1.2} strokeDasharray="4 4" /> : null; })}
-          {OCEANS.map((o) => { const p = project(o.lat, o.lon, lon0); return p.z > 0.15 ? <text key={o.id} x={p.x} y={p.y} textAnchor="middle" fontSize={10} fill="#9fd7ff" fillOpacity={0.7} fontStyle="italic">{o.name}</text> : null; })}
-          {CONTINENTS.map((c) => { const p = project(c.lat, c.lon, lon0); return p.z > 0.1 ? <text key={c.id} x={p.x} y={p.y + 4} textAnchor="middle" fontSize={11} fontWeight={600} fill="#ffffff" pointerEvents="none" style={{ textTransform: "uppercase", letterSpacing: "0.12em" }}>{c.name}</text> : null; })}
-          {(() => { const p = project(THALASSIA_GLOBE.lat, THALASSIA_GLOBE.lon, lon0); return p.z > 0 ? <g pointerEvents="none"><circle cx={p.x} cy={p.y} r={6} fill="none" stroke="#3fd0ff" strokeWidth={2} /><circle cx={p.x} cy={p.y} r={2} fill="#3fd0ff" /><text x={p.x + 9} y={p.y + 4} fontSize={10} fill="#bfefff">Thalassia</text></g> : null; })()}
-          <circle cx={C} cy={C} r={RAD} fill="url(#planet-rim)" pointerEvents="none" />
-        </svg>
-        <div className="mt-2 flex items-center justify-center gap-2">
-          <Button size="sm" variant="outline" onClick={() => setLon0((l) => l - 30)} aria-label="Turn west"><ChevronLeft /></Button>
-          <span className="font-mono text-[10px] uppercase tracking-[0.25em] text-muted-foreground">{PLANET.name} · {PLANET.diameterKm.toLocaleString()} km · drag to turn</span>
-          <Button size="sm" variant="outline" onClick={() => setLon0((l) => l + 30)} aria-label="Turn east"><ChevronRight /></Button>
+    <div className="mx-auto max-w-[1100px]">
+      <div className="relative overflow-hidden border border-cyan-200/20 bg-[#050b14]" style={{ aspectRatio: `${BOARD.w} / ${BOARD.h}` }}>
+        <div className="absolute inset-0 origin-center transition-transform duration-200" style={{ transform: `scale(${zoom}) translate(${pan.x}px, ${pan.y}px)` }}
+          onPointerDown={onDown} onPointerMove={onMove} onPointerUp={() => { drag.current = null; }} onPointerLeave={() => { drag.current = null; }}>
+          <img src={boardArt} alt="" draggable={false} className="absolute inset-0 size-full select-none object-cover" />
+          <svg viewBox={`0 0 ${BOARD.w} ${BOARD.h}`} className="absolute inset-0 size-full" role="group" aria-label="Planetary map: continents, air and sea routes">
+            <defs>
+              <filter id="pm-glow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="2.2" result="b" /><feMerge><feMergeNode in="b" /><feMergeNode in="SourceGraphic" /></feMerge></filter>
+            </defs>
+            {/* air routes, dashed white with a plane on each, as on the worldbuild board */}
+            {AIR_ROUTES.map(([a, b]) => {
+              const r = arcPath(pinOf(byId(a)), pinOf(byId(b)));
+              const open = visited(a) && visited(b);
+              return (
+                <g key={`${a}-${b}`} opacity={open ? 0.95 : 0.45}>
+                  <path d={r.d} fill="none" stroke="#ffffff" strokeWidth={1.6} strokeDasharray="6 6" filter="url(#pm-glow)" />
+                  <g transform={`translate(${r.mid.x} ${r.mid.y}) rotate(${r.angle})`}><path d="M-9 0 L6 -1.6 L9 0 L6 1.6 Z M-1 0 L-5 -7 L-2 -7 L4 0 L-2 7 L-5 7 Z M-8 0 L-10 -3.5 L-8.5 -3.5 L-6 0 L-8.5 3.5 L-10 3.5 Z" fill="#ffffff" /></g>
+                </g>
+              );
+            })}
+            {/* the sea lane: Veyloria's elevator platform out to Thalassia */}
+            {(() => { const r = arcPath(byId("veyloria").pin, THALASSIA_PIN); return <path d={r.d} fill="none" stroke="#5ee7ff" strokeWidth={1.6} strokeDasharray="3 5" filter="url(#pm-glow)" />; })()}
+            <g transform={`translate(${THALASSIA_PIN.x} ${THALASSIA_PIN.y})`} filter="url(#pm-glow)">
+              <circle r={10} fill="#04202e" fillOpacity={0.85} stroke="#5ee7ff" strokeWidth={2} />
+              <path d="M-5 2 Q-2.5 -1 0 2 Q2.5 5 5 2 M-5 -2 Q-2.5 -5 0 -2 Q2.5 1 5 -2" stroke="#9ff3ff" strokeWidth={1.4} fill="none" />
+              <text x={14} y={4} fontSize={13} fontWeight={600} fill="#bff4ff" stroke="#03121c" strokeWidth={3} paintOrder="stroke">Thalassia</text>
+              <text x={14} y={17} fontSize={9.5} fill="#8fd8ee" stroke="#03121c" strokeWidth={2.5} paintOrder="stroke">(Underwater City)</text>
+            </g>
+            {/* an emblem ring on every continent; the selected one is highlighted; a pulse where you are */}
+            {CONTINENTS.map((c) => {
+              const p = c.pin, sel = c.id === selected.id;
+              return (
+                <g key={c.id} transform={`translate(${p.x} ${p.y})`} className="cursor-pointer" onClick={() => setSelectedId(c.id)}>
+                  <circle r={46} fill="transparent" />
+                  <circle r={sel ? 25 : 21} fill="none" stroke={ring(c)} strokeWidth={sel ? 3 : 1.6} opacity={sel ? 1 : 0.75} filter="url(#pm-glow)" />
+                  {c.tier === "CORE" && !visited(c.id) && <g transform="translate(17 -19)"><circle r={8} fill="#1a1205" stroke="#ffc860" /><path d="M-3 0 v3.5 h6 V0 Z M-2 0 v-2 a2 2 0 0 1 4 0 V0" stroke="#ffc860" fill="none" strokeWidth={1.2} /></g>}
+                  {here === c.id && <><circle r={30} fill="none" stroke="#ffe066" strokeWidth={2}><animate attributeName="r" values="26;36;26" dur="2.4s" repeatCount="indefinite" /><animate attributeName="opacity" values="1;0.2;1" dur="2.4s" repeatCount="indefinite" /></circle><circle cx={-24} cy={-22} r={5} fill="#ffe066" stroke="#3a2a00" /></>}
+                  <title>{c.name}</title>
+                </g>
+              );
+            })}
+          </svg>
+        </div>
+
+        {/* legend: drawn where the board has its own */}
+        {legend && (
+          <div className="absolute bottom-0 left-0 top-[74.2%] w-[15.4%] min-w-[150px] border border-cyan-200/25 bg-[#06101b] p-2 font-mono text-[10px] leading-5 text-slate-200" aria-label="Map legend">
+            <p className="text-[9px] uppercase tracking-[0.2em] text-cyan-300">Legend</p>
+            <p><span className="mr-1.5 inline-block size-2.5 rounded-full bg-[#ffe066]" />Your location</p>
+            <p><span className="mr-1.5 inline-block size-2.5 rounded-full border-2 border-[#7ee8ff]" />Open to flights</p>
+            <p><span className="mr-1.5 inline-block size-2.5 rounded-full border-2 border-[#ffc860]" />Make landfall first</p>
+            <p><span className="mr-1.5 inline-block size-2.5 rounded-full border-2 border-[#8a97a3]" />Not yet explorable</p>
+            <p><Plane className="mr-1 inline size-3" />Air route</p>
+            <p><span className="mr-1.5 inline-block w-3 border-t-2 border-dashed border-[#5ee7ff] align-middle" />Sea lane · elevator</p>
+          </div>
+        )}
+
+        {/* info panel: where the board has its own */}
+        <div className="absolute bottom-0 right-0 top-[77.4%] flex w-[22.8%] min-w-[200px] flex-col border border-cyan-200/30 bg-[#06101b] text-slate-100" aria-label={`${selected.name} details`}>
+          <div className="relative min-h-0 flex-1 overflow-hidden">
+            <img src={card(selected.id)} alt="" className="size-full object-cover" draggable={false} />
+            <p className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-[#06101b] to-transparent px-2 pt-4 text-center font-mono text-xs font-semibold uppercase tracking-[0.25em]">{selected.name}</p>
+          </div>
+          <dl className="grid grid-cols-[1fr_auto] gap-x-2 px-2.5 py-1 font-mono text-[10.5px] leading-[18px]">
+            <dt className="text-slate-400">Nations</dt><dd>{nations.length}</dd>
+            <dt className="text-slate-400">Major Cities</dt><dd>{selected.majorCities}</dd>
+            <dt className="text-slate-400">Region Size</dt><dd>{selected.scale}</dd>
+            <dt className="text-slate-400">Climate</dt><dd>{selected.climate}</dd>
+          </dl>
+          <div className="flex items-center justify-between border-t border-cyan-200/15 px-2.5 py-0.5">
+            <span className="font-mono text-[10px] text-slate-400">Travel Options</span>
+            <span className="flex items-center gap-1.5">
+              <button type="button" onClick={fly} disabled={!canFly} title={canFly ? `Fly to ${terminal?.name}` : selected.id === here ? "You are here" : selected.tier !== "CORE" ? "No scheduled service" : "Make landfall first"} className="ui-focus rounded-sm p-1 enabled:text-cyan-200 enabled:hover:bg-cyan-400/20 disabled:text-slate-600"><Plane className="size-4" /></button>
+              <span title={selected.id === "veyloria" ? "Sea lane and elevator to Thalassia" : "No ferry service yet"} className={selected.id === "veyloria" ? "p-1 text-cyan-200" : "p-1 text-slate-600"}><Anchor className="size-4" /></span>
+              <span title="No rail service yet" className="p-1 text-slate-600"><TrainFront className="size-4" /></span>
+            </span>
+          </div>
+        </div>
+
+        {nationsOpen && (
+          <div className="absolute right-[1%] top-[2%] max-h-[70%] w-[21.5%] min-w-[200px] overflow-y-auto border border-cyan-200/30 bg-[#06101b]/95 p-2.5 font-mono text-[11px] text-slate-100" aria-label={`Nations of ${selected.name}`}>
+            <p className="text-[9px] uppercase tracking-[0.2em] text-cyan-300">Nations · {selected.name}</p>
+            <ul className="mt-1 space-y-0.5">{nations.map((n) => <li key={n.id}>{n.name}{n.playable ? <span className="text-cyan-300"> · explorable</span> : null}</li>)}</ul>
+            {regionNames.length > 0 && <p className="mt-2 text-slate-400">Regions · {regionNames.join(", ")}</p>}
+            <p className="mt-2 leading-snug text-slate-300">{selected.look}</p>
+            {selected.id === "veyloria" && <p className="mt-2 flex gap-1.5 text-cyan-100"><Waves className="size-3.5 shrink-0" /> Thalassia lies off this east coast, on no continent: take the elevator platform out past the shore, or an underwater vehicle.</p>}
+          </div>
+        )}
+
+        <div className="absolute right-[1%] top-[44%] flex flex-col gap-1">
+          <button type="button" onClick={() => setZ(zoom + 0.5)} aria-label="Zoom in" className="ui-focus border border-cyan-200/30 bg-[#06101b]/90 p-1.5 text-cyan-100"><Plus className="size-3.5" /></button>
+          <button type="button" onClick={() => setZ(zoom - 0.5)} aria-label="Zoom out" className="ui-focus border border-cyan-200/30 bg-[#06101b]/90 p-1.5 text-cyan-100"><Minus className="size-3.5" /></button>
         </div>
       </div>
-      <aside className="border border-border bg-card/40 p-4">
-        <p className="font-mono text-[9px] uppercase tracking-[0.3em]" style={{ color: selected.color }}>{selected.tier === "CORE" ? "Playable" : selected.tier === "EXPANSION" ? "Partly playable" : "On the map · not yet walkable"}</p>
-        <h3 className="mt-1 text-2xl font-semibold uppercase tracking-wider">{selected.name}</h3>
-        <p className="text-sm text-muted-foreground">{selected.epithet} · capital {selected.capital}</p>
-        <p className="mt-3 text-sm leading-6">{selected.look}</p>
-        {regionNames.length > 0 && <p className="mt-3 font-mono text-[11px]">Regions · {regionNames.join(", ")}</p>}
-        <p className="mt-3 font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground">Nations</p>
-        <ul className="mt-1 space-y-0.5 text-[12px]">{nations.map((n) => <li key={n.id}>{n.name}{n.playable ? " · you can walk here" : ""}</li>)}</ul>
-        {selected.id === "veyloria" && <p className="mt-3 flex items-start gap-2 border-l-2 border-cyan-300/60 pl-2 text-[12px] text-cyan-100"><Waves className="mt-0.5 size-3.5 shrink-0" /> Thalassia lies off this east coast, on no continent. Take the elevator platform out past the shore, or an underwater vehicle.</p>}
-        <div className="mt-4">
-          {terminal && selected.tier === "CORE" ? (
-            visited(selected.id)
-              ? <Button className="w-full" onClick={deploy}><Plane /> Fly to {terminal.name}</Button>
-              : <p className="flex items-center gap-2 font-mono text-[11px] text-muted-foreground"><LockKeyhole className="size-3.5" /> Make landfall first: fly there from a transit terminal.</p>
-          ) : <p className="font-mono text-[11px] text-muted-foreground">No scheduled service yet.</p>}
-        </div>
-      </aside>
+
+      {/* the board's control strip */}
+      <div className="mt-2 flex flex-wrap items-center justify-center gap-x-5 gap-y-1 font-mono text-[10px] uppercase tracking-[0.18em] text-slate-300">
+        {([["A", "#3ec46d", "Select · fly"], ["B", "#e5484d", "Back"], ["X", "#3b82f6", "Legend"], ["Y", "#e9b949", "Nations"]] as const).map(([k, c, label]) => (
+          <span key={k} className="flex items-center gap-1.5"><span className="flex size-5 items-center justify-center rounded-full border-2 text-[9px] font-bold" style={{ borderColor: c, color: c }}>{k}</span>{label}</span>
+        ))}
+        <span>RT / LT · zoom</span>
+        <span className="text-slate-500">Keyboard: arrows · Enter · L · N · + / −</span>
+      </div>
+      {selected.tier === "CORE" && !visited(selected.id) && <p className="mt-1 flex items-center justify-center gap-1.5 font-mono text-[11px] text-amber-200"><LockKeyhole className="size-3.5" /> {selected.name}: fly there from a transit terminal once to open map flights.</p>}
     </div>
   );
 }

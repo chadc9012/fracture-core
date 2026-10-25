@@ -1389,6 +1389,7 @@ export function GameCanvas() {
             operatorName={classById(progression.identityClass ?? cls).name}
             playerClass={progression.identityClass ?? cls}
             notice={menuNotice}
+            currentWorld={hud.world ?? null}
           />
         )}
         {menuOpen && <SettingsWindow completedMissions={progression.completedMissions} settings={settings} onChange={updateSettings} onClose={() => setMenuOpen(false)} onOrbit={() => { setMenuOpen(false); setPhase("title"); }} />}

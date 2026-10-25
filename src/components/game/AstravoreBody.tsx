@@ -4,6 +4,7 @@ import * as THREE from "three";
 import { DistrictLight } from "./DistrictLight";
 import { scenarioById } from "@/game/unique-scenarios";
 import { walkHeight } from "@/game/terrain";
+import { RAID_INSTANCES, raidExitPad } from "@/game/raid-instances";
 import type { WorldSim } from "@/game/sim";
 
 /** Raid 01's final boss, built procedurally (no authored model yet): a colossal armored upper body rising from the arena floor with
@@ -12,6 +13,8 @@ import type { WorldSim } from "@/game/sim";
  * About 24 m tall at the shoulders-and-crown; the design sheet's 150 m upper body is scaled down so the fight fits a 60 m arena. */
 const PHASE_COLOR = ["#a463ff", "#ff9a3c", "#4fc3ff", "#ff4a3a"] as const;
 const ARENA = scenarioById("astravore")?.lairAt ?? { x: 0, z: 0 };
+/** the raid's exit pad, relative to the arena centre (raid-instances.ts raidExitPad) */
+const EXIT = (() => { const r = RAID_INSTANCES.find((x) => x.scenarioId === "astravore"); if (!r) return { x: 0, z: 0 }; const p = raidExitPad(r); return { x: p.x - ARENA.x, z: p.z - ARENA.z }; })();
 
 const armor = new THREE.MeshStandardMaterial({ color: "#3a3150", metalness: 0.5, roughness: 0.4, emissive: "#2b1650", emissiveIntensity: 0.55 });
 const trim = new THREE.MeshStandardMaterial({ color: "#5a4a80", metalness: 0.5, roughness: 0.35, emissive: "#6a3cc0", emissiveIntensity: 0.9 });
@@ -121,6 +124,15 @@ export function HollowStarArena() {
       </group>; })}
       <group ref={shards}>{shardSpots.map((s, i) => <mesh key={i} position={[s.x, 16, s.z]} scale={s.s}><octahedronGeometry args={[1.2]} /><meshBasicMaterial color={i % 3 === 0 ? "#9ffcff" : "#8c5bff"} toneMapped={false} /></mesh>)}</group>
       <DistrictLight range={500} position={[0, 6, 0]} color="#8c5bff" intensity={40} distance={90} />
+      {/* the raid is an instance far out to sea (raid-instances.ts): a cavern dome and a dark rock floor past the pillars hide the
+          ocean, so the arena reads as the bottom of the descent under Nexus, not a raft */}
+      <mesh rotation-x={-Math.PI / 2} position={[0, -0.25, 0]}><ringGeometry args={[60, 230, 96]} /><meshStandardMaterial color="#0d0a14" roughness={0.95} /></mesh>
+      <mesh position={[0, -1, 0]}><sphereGeometry args={[230, 48, 24, 0, Math.PI * 2, 0, Math.PI / 2]} /><meshBasicMaterial color="#07040e" side={THREE.BackSide} fog={false} /></mesh>
+      {/* the exit pad beside the arrival point: dim until the boss is down (Scene checks the pad) */}
+      <group position={[EXIT.x, 0.08, EXIT.z]} rotation-x={-Math.PI / 2}>
+        <mesh><ringGeometry args={[2.6, 3, 48]} /><meshBasicMaterial color="#7ee8ff" toneMapped={false} /></mesh>
+        <mesh><circleGeometry args={[2.6, 48]} /><meshBasicMaterial color="#123a48" transparent opacity={0.7} /></mesh>
+      </group>
     </group>
   );
 }

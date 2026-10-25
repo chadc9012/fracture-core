@@ -41,6 +41,8 @@ export type UniqueScenario = {
   lairAt?: { x: number; z: number };
   /** the region the map files a lairAt marker under (default: the nearest-region fallback "swamps"); for sites just outside a city */
   mapRegion?: string;
+  /** a raid boss: its arena is an instance launched from the Raid tab (raid-instances.ts), so it has no walk-in lair and no map marker */
+  raid?: boolean;
 };
 
 export const UNIQUE_SCENARIOS: readonly UniqueScenario[] = [
@@ -310,15 +312,16 @@ export const UNIQUE_SCENARIOS: readonly UniqueScenario[] = [
     rewardCredits: 6000,
     lairAt: { x: HOLLOW_STAR_SITE.x, z: HOLLOW_STAR_SITE.z },
     mapRegion: "nexus",
+    raid: true,
   },
 ];
 
 /** Scenarios that have their own lair marker (the rest are summoned by a region, the debug key or a mission). */
-export const LAIR_SCENARIOS = UNIQUE_SCENARIOS.filter((s) => s.lair || s.lairAt);
+export const LAIR_SCENARIOS = UNIQUE_SCENARIOS.filter((s) => (s.lair || s.lairAt) && !s.raid);
 
 export function scenarioFor(regionId: string): UniqueScenario | undefined {
   // lair scenarios are summoned from their lair, not as a region's fallback boss
-  return UNIQUE_SCENARIOS.find((s) => s.regionId === regionId && !s.lair && !s.lairAt);
+  return UNIQUE_SCENARIOS.find((s) => s.regionId === regionId && !s.lair && !s.lairAt && !s.raid);
 }
 
 export function scenarioById(id: string): UniqueScenario | undefined {

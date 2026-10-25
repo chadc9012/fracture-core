@@ -9,7 +9,8 @@ import { HOLLOW_STAR_LENS, STARBREAKER_PLATE, SCENARIO_LOOT, grantScenarioReward
 import { scenarioById } from "./unique-scenarios";
 import { SCENARIO_LAIRS } from "./waypoints";
 import { heightAt, WATER_LEVEL } from "./terrain";
-import { regionAt, NEON_SITE, NEON_FLAT } from "./world";
+import { WORLD_RADIUS } from "./world";
+import { regionAt } from "./world";
 import { cluesFor } from "./encounter-journal";
 import { HOLLOW_STAR, STARBREAKER_KEY, DIMENSIONAL_BLUEPRINT_KEY, FIRST_CLEAR_APPEARANCE, applyAstravoreKill, ASTRAVORE_ATTACKS } from "./hollow-star-raid";
 
@@ -38,15 +39,15 @@ function arena(dist = 45) {
 }
 
 describe("Astravore in the world", () => {
-  it("is a registered scenario with a lair on dry, flat ground outside every region and away from Neon City", () => {
+  it("is a raid instance: no walk-in lair, no map marker, its arena far off the map on level dry ground", () => {
     const sc = scenarioById("astravore")!;
     expect(sc.bossName).toContain("Astravore");
-    const lair = SCENARIO_LAIRS.find((l) => l.scenarioId === "astravore")!;
-    expect(lair).toBeDefined();
-    expect(lair.regionId).toBe("nexus");
-    expect(heightAt(lair.x, lair.z)).toBeGreaterThan(WATER_LEVEL + 5);
+    expect(sc.raid).toBe(true);
+    expect(SCENARIO_LAIRS.find((l) => l.scenarioId === "astravore")).toBeUndefined();
+    const lair = sc.lairAt!;
     expect(regionAt(lair.x, lair.z)).toBeNull();
-    expect(Math.hypot(lair.x - NEON_SITE.x, lair.z - NEON_SITE.z)).toBeGreaterThan(NEON_FLAT + 40);
+    expect(Math.hypot(lair.x, lair.z)).toBeGreaterThan(WORLD_RADIUS * 1.5);
+    expect(heightAt(lair.x, lair.z)).toBeGreaterThan(WATER_LEVEL + 1);
     let lo = 1e9, hi = -1e9;
     for (let i = 0; i < 16; i++) { const h = heightAt(lair.x + 60 * Math.cos(i * 0.3927), lair.z + 60 * Math.sin(i * 0.3927)); lo = Math.min(lo, h); hi = Math.max(hi, h); }
     expect(hi - lo, "the arena is graded level (terrain.ts hollowStarWeight)").toBeLessThan(0.5);

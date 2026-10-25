@@ -40,32 +40,38 @@ export type Continent = {
   capital: string;
   look: string;
   color: string;
+  /** the info-panel facts on the owner's planetary map board (Aetheria: 6 nations, 8 major cities, large, temperate) */
+  majorCities: number;
+  scale: "Large" | "Medium" | "Small";
+  climate: string;
+  /** where its emblem sits on the planetary map board art (pixels in the 971×772 board) */
+  pin: { x: number; y: number };
 };
 
 export const CONTINENTS: readonly Continent[] = [
-  { id: "veyloria", name: "Veyloria", epithet: "The Living Wilds", lat: -4, lon: -27, size: 30, tier: "CORE", regions: ["veridan"], capital: "Rootholm", color: "#3f8f4e",
+  { id: "veyloria", name: "Veyloria", epithet: "The Living Wilds", lat: -4, lon: -27, size: 30, tier: "CORE", regions: ["veridan"], capital: "Rootholm", color: "#3f8f4e", majorCities: 4, scale: "Large", climate: "Tropical", pin: { x: 305, y: 405 },
     look: "Real old-growth forest and rivers, grounded and damp; glow only at Fracture tears. The game starts here." },
-  { id: "aetheria", name: "Aetheria", epithet: "The Central Civilization", lat: 16, lon: -8, size: 28, tier: "CORE", regions: ["nexus"], capital: "Meridian", color: "#5aa8d8",
+  { id: "aetheria", name: "Aetheria", epithet: "The Central Civilization", lat: 16, lon: -8, size: 28, tier: "CORE", regions: ["nexus"], capital: "Meridian", color: "#5aa8d8", majorCities: 8, scale: "Large", climate: "Temperate", pin: { x: 432, y: 285 },
     look: "A grounded modern metropolis on the surface. Meridian is the public capital; Nexus City sits inside it." },
-  { id: "noctyra", name: "Noctyra", epithet: "The Neon Dominion", lat: 6, lon: 74, size: 22, tier: "CORE", regions: ["neon"], capital: "Neon City", color: "#b45cff",
+  { id: "noctyra", name: "Noctyra", epithet: "The Neon Dominion", lat: 6, lon: 74, size: 22, tier: "CORE", regions: ["neon"], capital: "Neon City", color: "#b45cff", majorCities: 7, scale: "Medium", climate: "Temperate · rain", pin: { x: 862, y: 348 },
     look: "The one place for full neon cyberpunk saturation: wet streets, signage, haze." },
-  { id: "kharos", name: "Kharos", epithet: "The Burning Expanse", lat: 0, lon: 34, size: 28, tier: "CORE", regions: ["solara", "wastelands"], capital: "Sandreach", color: "#d9973f",
+  { id: "kharos", name: "Kharos", epithet: "The Burning Expanse", lat: 0, lon: 34, size: 28, tier: "CORE", regions: ["solara", "wastelands"], capital: "Sandreach", color: "#d9973f", majorCities: 6, scale: "Large", climate: "Arid", pin: { x: 703, y: 393 },
     look: "Sun-bleached sandstone in Solara to the south; rust, scrap and burned highways in the Wastelands to the north." },
-  { id: "frosthelm", name: "Frosthelm", epithet: "The Frozen Crown", lat: 60, lon: 0, size: 30, tier: "CORE", regions: ["frostspire"], capital: "Hallowmere", color: "#a9d3ee",
+  { id: "frosthelm", name: "Frosthelm", epithet: "The Frozen Crown", lat: 60, lon: 0, size: 30, tier: "CORE", regions: ["frostspire"], capital: "Hallowmere", color: "#a9d3ee", majorCities: 3, scale: "Large", climate: "Polar", pin: { x: 490, y: 78 },
     look: "Hard blue-grey ice, military outposts, whiteout storms." },
-  { id: "pyrrath", name: "Pyrrath", epithet: "The Molten Frontier", lat: -25, lon: 30, size: 26, tier: "CORE", regions: ["ember"], capital: "Cinderforge", color: "#e0522a",
+  { id: "pyrrath", name: "Pyrrath", epithet: "The Molten Frontier", lat: -25, lon: 30, size: 26, tier: "CORE", regions: ["ember"], capital: "Cinderforge", color: "#e0522a", majorCities: 3, scale: "Medium", climate: "Volcanic", pin: { x: 657, y: 565 },
     look: "Black basalt, ash fall, lava glow as the only warm light." },
-  { id: "sylvaris", name: "Sylvaris", epithet: "The Emerald Depths", lat: -28, lon: -28, size: 24, tier: "CORE", regions: ["swamps"], capital: "Mirewatch", color: "#2f9c86",
+  { id: "sylvaris", name: "Sylvaris", epithet: "The Emerald Depths", lat: -28, lon: -28, size: 24, tier: "CORE", regions: ["swamps"], capital: "Mirewatch", color: "#2f9c86", majorCities: 3, scale: "Medium", climate: "Wetland", pin: { x: 315, y: 580 },
     look: "Murky, fog-heavy wetlands; faint, sickly bioluminescence, not neon." },
-  { id: "zephyria", name: "Zephyria", epithet: "The Storm Frontier", lat: 48, lon: 70, size: 20, tier: "EXPANSION", regions: ["storm-islands"], capital: "Skyhold", color: "#7f8fd8",
+  { id: "zephyria", name: "Zephyria", epithet: "The Storm Frontier", lat: 48, lon: 70, size: 20, tier: "EXPANSION", regions: ["storm-islands"], capital: "Skyhold", color: "#7f8fd8", majorCities: 2, scale: "Small", climate: "Storm · alpine", pin: { x: 762, y: 128 },
     look: "Real storm plateaus first; the floating Storm Islands are its first playable ground." },
-  { id: "elyndra", name: "Elyndra", epithet: "The Sapphire Coast", lat: -16, lon: -74, size: 18, tier: "BACKDROP", regions: [], capital: "Port Azure", color: "#3fb6c9",
+  { id: "elyndra", name: "Elyndra", epithet: "The Sapphire Coast", lat: -16, lon: -74, size: 18, tier: "BACKDROP", regions: [], capital: "Port Azure", color: "#3fb6c9", majorCities: 5, scale: "Small", climate: "Tropical", pin: { x: 113, y: 500 },
     look: "Realistic tropical coast and working harbours." },
-  { id: "valdoria", name: "Valdoria", epithet: "The Great Plains", lat: 28, lon: 35, size: 26, tier: "BACKDROP", regions: [], capital: "Harrowfield", color: "#9cbf52",
+  { id: "valdoria", name: "Valdoria", epithet: "The Great Plains", lat: 28, lon: 35, size: 26, tier: "BACKDROP", regions: [], capital: "Harrowfield", color: "#9cbf52", majorCities: 5, scale: "Large", climate: "Continental", pin: { x: 686, y: 225 },
     look: "Open grassland under big skies; the cracked moon reads clearly here." },
-  { id: "myrathis", name: "Myrathis", epithet: "The Forgotten Lands", lat: 14, lon: -50, size: 20, tier: "BACKDROP", regions: [], capital: "Vel'Sora", color: "#8a9a7a",
+  { id: "myrathis", name: "Myrathis", epithet: "The Forgotten Lands", lat: 14, lon: -50, size: 20, tier: "BACKDROP", regions: [], capital: "Vel'Sora", color: "#8a9a7a", majorCities: 2, scale: "Medium", climate: "Highland mist", pin: { x: 191, y: 305 },
     look: "Weathered stone and mist; the most mythic look, still photographic." },
-  { id: "drakoria", name: "Drakoria", epithet: "The Shattered Peaks", lat: 38, lon: -48, size: 22, tier: "BACKDROP", regions: [], capital: "Cragmouth", color: "#8e8a86",
+  { id: "drakoria", name: "Drakoria", epithet: "The Shattered Peaks", lat: 38, lon: -48, size: 22, tier: "BACKDROP", regions: [], capital: "Cragmouth", color: "#8e8a86", majorCities: 3, scale: "Medium", climate: "Alpine", pin: { x: 250, y: 185 },
     look: "Raw rock faces, industrial scaffolding, rough weather." },
 ];
 
@@ -80,20 +86,20 @@ export const OCEANS: readonly { id: OceanId; name: string; lat: number; lon: num
   { id: "fractured-abyss", name: "Fractured Abyss", lat: -24, lon: 82, character: "Underwater anomalies and late-game mysteries" },
 ];
 
-/** 48 nations, four per continent. The first nation of each CORE continent holds its playable ground. */
+/** 48 nations (Aetheria's six as on the owner's board, three to five elsewhere). The first nation of each CORE continent holds its playable ground. */
 const NATIONS_BY: Record<ContinentId, readonly string[]> = {
-  veyloria: ["Free Wilds of Veyloria", "Thornmarch", "Riverhold Compact", "Greenmantle"],
-  aetheria: ["Meridian Republic", "Aether Concord", "Lumen Provinces", "Halcyon Reach"],
+  aetheria: ["Meridian Republic", "Aether Concord", "Lumen Provinces", "Halcyon Reach", "Concord of Vale", "Skyline Accord"],
+  veyloria: ["Free Wilds of Veyloria", "Thornmarch", "Riverhold Compact", "Greenmantle", "Canopy Kingdoms"],
+  kharos: ["Kharosi Sun Dominion", "Wasteland Free Clans", "Dune Gate Emirates", "Canyon Accord", "Ashen Caravans"],
+  elyndra: ["Sapphire Coast Federation", "Isle Kingdoms of Elyndra", "Coralport", "Tidewell", "Pearl Strand"],
   noctyra: ["Neon Syndicate Charter", "Noctyran Directorate", "Blacklight Free Port", "Voltmarch"],
-  kharos: ["Kharosi Sun Dominion", "Wasteland Free Clans", "Dune Gate Emirates", "Canyon Accord"],
-  frosthelm: ["Crown of Frosthelm", "Rimeguard", "Northern Ice Pact", "Hallow Steppes"],
-  pyrrath: ["Pyrrathi Forge Union", "Cinder Marches", "Basalt Thanes", "Emberline"],
   sylvaris: ["Sylvari Mire Council", "Mangrove Leagues", "Lantern Delta", "Fenreach"],
-  zephyria: ["Zephyrian Highcourt", "Stormward Isles", "Thunderhold", "Gale Reaches"],
-  elyndra: ["Sapphire Coast Federation", "Isle Kingdoms of Elyndra", "Coralport", "Tidewell"],
   valdoria: ["Valdorian Commonwealth", "Grainmarch", "Ironrail Freehold", "Sweeping Steppe"],
-  myrathis: ["Remnant of Myrathis", "Mistveil", "Temple Cantons", "Old Sora"],
-  drakoria: ["Drakorian Highlands", "Shatterpeak Holds", "Miner's Guildlands", "Cragwatch"],
+  frosthelm: ["Crown of Frosthelm", "Rimeguard", "Northern Ice Pact"],
+  pyrrath: ["Pyrrathi Forge Union", "Cinder Marches", "Basalt Thanes"],
+  zephyria: ["Zephyrian Highcourt", "Stormward Isles", "Thunderhold"],
+  myrathis: ["Remnant of Myrathis", "Mistveil", "Temple Cantons"],
+  drakoria: ["Drakorian Highlands", "Shatterpeak Holds", "Miner's Guildlands"],
 };
 export type Nation = { id: string; name: string; continent: ContinentId; playable: boolean };
 export const NATIONS: readonly Nation[] = CONTINENTS.flatMap((c) =>
@@ -157,3 +163,15 @@ export function borderBlocks(x0: number, z0: number, x1: number, z1: number): { 
 
 /** the region ids (REGIONS + "neon") inside a world, for UI */
 export const worldName = (w: WorldId): string => (w === "thalassia" ? "Thalassia · off Veyloria" : continentById(w)?.name ?? w);
+
+/* ---------------- the planetary map board ---------------- */
+
+/** the board art's size; pins and routes are drawn in its pixel space */
+export const BOARD = { w: 971, h: 772 } as const;
+/** Thalassia's marker on the board: in the sea just off Veyloria's east coast */
+export const THALASSIA_PIN = { x: 392, y: 470 } as const;
+/** air routes drawn on the planet map: every playable continent to its neighbours, Aetheria as the hub (as on the worldbuild board) */
+export const AIR_ROUTES: readonly (readonly [ContinentId, ContinentId])[] = [
+  ["aetheria", "veyloria"], ["aetheria", "frosthelm"], ["aetheria", "kharos"], ["aetheria", "noctyra"], ["aetheria", "sylvaris"],
+  ["veyloria", "sylvaris"], ["kharos", "pyrrath"], ["kharos", "noctyra"],
+];

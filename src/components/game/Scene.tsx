@@ -250,6 +250,7 @@ import { DescentDungeon } from "./DescentDungeon";
 import { borderBlocks, worldAt, worldName, type WorldId } from "@/game/planet";
 import { ELEVATOR_RIDE_S, dockArrival, elevatorDown, elevatorGroundAt, elevatorUp, platformArrival, terminalAt } from "@/game/travel";
 import { ContinentTransit } from "./ContinentTransit";
+import { EXIT_PAD_R, clampToArena, raidAt, raidExitPad, raidReturn, type RaidInstance } from "@/game/raid-instances";
 import type { ArmorVisualState } from "./Scavenger";
 import type { PlayerProgression } from "@/game/progression";
 import { SkyFx, type SkyFxLive } from "./SkyFx";
@@ -674,6 +675,8 @@ function SceneImpl({
   /** the Thalassia elevator ride (travel.ts): you are held in the car until it arrives */
   const elevatorRide = useRef<{ down: boolean; left: number; hold: { x: number; y: number; z: number } } | null>(null);
   const elevatorRearm = useRef(true);
+  /** the raid instance you are in (raid-instances.ts): its boss has woken; `cleared` once it is down */
+  const raidRun = useRef<{ id: string; woke: boolean; cleared?: boolean } | null>(null);
   const wasteHud = useRef<WasteHud>(null);
   // fleet.ts / godforge.ts: Vael's opened forge and owned garage bases are small sanctuaries (sim.ts pushes hostiles out)
   const sanctuaries = useMemo(() => sanctuariesFor({ earnedRewards: gear?.earnedRewards ?? [], fleet: gear?.fleet }), [gear?.earnedRewards, gear?.fleet]);
@@ -1231,6 +1234,8 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
      * terrain, water or weather, only its floors, walls and air */
     let riftInside = (() => { const d = activeDescent(); return !!d && inDescentSpace(d.layout, s.x, s.z, s.y); })();
     let riftShaft = false;
+    /* a raid arena (raid-instances.ts): an instance off the map, entered only from the Raid tab */
+    const raidZone: RaidInstance | null = interior ? null : raidAt(s.x, s.z);
     live.current = rebindLiveBuild(live.current, activeBuild, abilityBranches);
     tickLiveBuild(live.current, dt, armorFxRef.current.abilityRecharge);
     tutorialClock.current += dt;
@@ -1488,7 +1493,7 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
     // regional atmosphere: ease toward this region's air (fog tint/thickness, sun + skylight tint)
     {
       const riftTheme = riftInside ? dungeonById(activeDescent()?.layout.dungeonId ?? "")?.theme : undefined;
-      const target: Atmosphere = interior ? NEUTRAL_ATMOSPHERE : riftTheme ? { fogTint: riftTheme.fog, fogMix: 1, fogScale: 0.35, lightTint: riftTheme.light, lightMix: 0.85, skyTint: riftTheme.fog, skyMix: 1, haze: 0.6 } : atmosphereAt(here?.id ?? (Math.hypot(s.x - NEON_CITY_CENTER.x, s.z - NEON_CITY_CENTER.z) < 160 ? "neon" : undefined), wx?.state, night);
+      const target: Atmosphere = interior ? NEUTRAL_ATMOSPHERE : raidZone ? { fogTint: "#120a22", fogMix: 1, fogScale: 0.5, lightTint: "#9a7bff", lightMix: 0.8, skyTint: "#0b0616", skyMix: 1, haze: 0.5 } : riftTheme ? { fogTint: riftTheme.fog, fogMix: 1, fogScale: 0.35, lightTint: riftTheme.light, lightMix: 0.85, skyTint: riftTheme.fog, skyMix: 1, haze: 0.6 } : atmosphereAt(here?.id ?? (Math.hypot(s.x - NEON_CITY_CENTER.x, s.z - NEON_CITY_CENTER.z) < 160 ? "neon" : undefined), wx?.state, night);
       const a = atmo.current;
       const k = 1 - Math.exp(-0.9 * dt);
       a.fogMix += (target.fogMix - a.fogMix) * k;
@@ -1504,7 +1509,7 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
       scene.background instanceof THREE.Color && scene.background.lerp(a.fogTint, a.fogMix * 0.35).lerp(a.skyTint, a.skyMix);
       if (sun.current) sun.current.color.lerp(a.lightTint, a.lightMix);
       // a descent is underground: the sky barely reaches it; its own torches and glyphs light the rooms (DescentDungeon.tsx)
-      if (riftInside && sun.current) sun.current.intensity *= 0.12;
+      if ((riftInside || raidZone) && sun.current) sun.current.intensity *= 0.12;
       if (hemi.current) hemi.current.color.copy(a.hemiBase).lerp(a.lightTint, a.lightMix * 0.8);
       // regional water: ease the ocean toward this region's colours, murk and wave chop
       const wTarget = waterStyleAt(here?.id, wx?.state);
@@ -1565,7 +1570,7 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
     // cities after dark keep a glow-bounce fill (atmosphere.ts cityNightFill), so their streets read between the lamps
     const inCity = interior ? 1 : Math.max(cityPresence(Math.hypot(s.x - NEON_CITY_CENTER.x, s.z - NEON_CITY_CENTER.z), NEON_FLAT), cityPresence(Math.hypot(s.x - NEXUS_REGION.x, s.z - NEXUS_REGION.z), 95));
     if (hemi.current) hemi.current.intensity = 0.2 + 0.38 * (1 - night) + cityNightFill(inCity, night); // a moonlit sky fill at night: the reference nights read blue, not black
-    if (riftInside && hemi.current) hemi.current.intensity *= 0.35; // underground in a descent
+    if ((riftInside || raidZone) && hemi.current) hemi.current.intensity *= 0.35; // underground in a descent or a raid
     // Neon City after dark: the glow bounce takes the signage's violet-cyan cast instead of grey moonlight (owner: neon cyberpunk)
     const inNeon = interior ? 0 : cityPresence(Math.hypot(s.x - NEON_CITY_CENTER.x, s.z - NEON_CITY_CENTER.z), NEON_FLAT);
     if (hemi.current) hemi.current.groundColor.copy(HEMI_GROUND); // the sky colour is re-based every frame above; the ground colour is here
@@ -2244,7 +2249,7 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
     // world bounds — skipped inside a pocket-dimension interior, which lives far outside WORLD_RADIUS by design
     // Thalassia sits past the world disc in open ocean: its city radius (plus an approach lane) is inside the bounds too
     // and the Storm Islands hang over the ocean past the rim: high in the air near the chain is in bounds (storm-quests.ts)
-    if (!interior && !riftInside && Math.hypot(s.x - THALASSIA_CENTER.x, s.z - THALASSIA_CENTER.z) > CITY_RADIUS + 80 && !inStormAirspace(s.x, s.y, s.z)) {
+    if (!interior && !riftInside && !raidZone && Math.hypot(s.x - THALASSIA_CENTER.x, s.z - THALASSIA_CENTER.z) > CITY_RADIUS + 80 && !inStormAirspace(s.x, s.y, s.z)) {
       const d = Math.hypot(s.x, s.z);
       if (d > WORLD_RADIUS - 6) {
         s.x *= (WORLD_RADIUS - 6) / d;
@@ -2274,7 +2279,7 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
      * more than 30 m is a teleport (travel, respawn, warp) and is never blocked. */
     {
       const prevB = borderPrev.current;
-      const exempt = !!interior || riftInside || !!activity || !!tutorial || inStormAirspace(s.x, s.y, s.z) || sim.machines.some((m) => m.alive && m.mission);
+      const exempt = !!interior || riftInside || !!raidZone || !!activity || !!tutorial || inStormAirspace(s.x, s.y, s.z) || sim.machines.some((m) => m.alive && m.mission);
       if (prevB && !exempt && Math.hypot(s.x - prevB.x, s.z - prevB.z) < 30) {
         const b = borderBlocks(prevB.x, prevB.z, s.x, s.z);
         if (b.blocked) {
@@ -2285,6 +2290,26 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
       }
       borderPrev.current = { x: s.x, z: s.z };
     }
+    /* ---------------- raid instance: held inside the arena; the boss wakes when you arrive; the exit pad opens when it falls ---------------- */
+    if (raidZone) {
+      const c = clampToArena(raidZone, s.x, s.z);
+      if (c.x !== s.x || c.z !== s.z) { s.x = c.x; s.z = c.z; s.vSpeed = 0; }
+      const boss = sim.machines.find((m) => m.alive && m.boss && m.scenarioId === raidZone.scenarioId);
+      const run = raidRun.current;
+      if (!run || run.id !== raidZone.id) {
+        const sc = scenarioById(raidZone.scenarioId);
+        if (sc && !boss && summonScenarioBoss(sim, sc, raidZone.site.x, raidZone.site.z)) { raidRun.current = { id: raidZone.id, woke: true }; alert(sim, `${raidZone.name} · ${sc.bossName} wakes`); }
+      } else if (!boss) {
+        const pad = raidExitPad(raidZone);
+        if (!run.cleared) { run.cleared = true; alert(sim, "The arena falls quiet · the exit pad is open"); }
+        if (Math.hypot(s.x - pad.x, s.z - pad.z) < EXIT_PAD_R) {
+          const back = raidReturn(raidZone);
+          s.x = back.x; s.z = back.z; s.y = walkHeight(back.x, back.z) + 1.6; s.vy = 0; s.vSpeed = 0; s.inVehicle = false; velocity.set(0, 0, 0);
+          borderPrev.current = null; raidRun.current = null;
+          alert(sim, `Back at ${raidZone.entrance.split(" · ")[0]}`);
+        }
+      }
+    } else if (raidRun.current) raidRun.current = null; // left the raid (death, travel): it resets
     if (s.inVehicle && Math.abs(preCollideSpeed - s.vSpeed) > 2) { condition.current = impactVehicle(condition.current, Math.abs(preCollideSpeed - s.vSpeed)); onVehicleCondition?.(vehicleId, condition.current); }
 
     // Neon City vehicle-combat: a wreck-level car forces you out on foot; a heavily damaged one only does when the collision actually stopped it.
@@ -2758,7 +2783,7 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
       livingRt.current ??= createLivingRuntime(sim);
       const ch = CHALLENGES[gear?.challenge ?? "STANDARD"];
       sim.challenge.enemyHp = ch.enemyHp; sim.challenge.enemyDamage = ch.enemyDamage;
-      const blocked = !!tutorial || !!interior || riftInside || !!introPlayback || sim.machines.some((m) => m.alive && m.mission);
+      const blocked = !!tutorial || !!interior || riftInside || !!raidZone || !!introPlayback || sim.machines.some((m) => m.alive && m.mission);
       const secretCtx = livingSecretCtx(gear, night > 0.5, wx?.state === "STORM");
       const lv = stepLivingRuntime(livingRt.current, sim, { dt, now: Date.now(), px: s.x, pz: s.z, blocked, living: gear?.living ?? EMPTY_LIVING, fallen: livingFallen, markers: livingMarks, rnd: Math.random, nemeses: gear?.nemeses ?? [], summonedNemesis: summonNemesis, secrets: secretCtx, forge: { earned: gear?.earnedRewards ?? [], relicId: relicIdRef.current } });
       livingHud.current = lv.hud;
