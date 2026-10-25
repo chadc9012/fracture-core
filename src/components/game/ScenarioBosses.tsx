@@ -8,6 +8,7 @@ import { UNIQUE_SCENARIOS, type UniqueScenario } from "@/game/unique-scenarios";
 import { walkHeight } from "@/game/terrain";
 import type { WorldSim } from "@/game/sim";
 import { DragonModel } from "./DragonModel";
+import { vyrakFire } from "@/game/dragon-look";
 import { findQuadrupedLegs, legAngles, type Leg, type RestBone } from "@/game/skeleton-gait";
 
 type GaitJoint = { bone: THREE.Bone; rest: THREE.Quaternion; axis: THREE.Vector3 };
@@ -110,6 +111,9 @@ function VyrakBody({ sim }: { sim: WorldSim }) {
   const wingL = useRef<THREE.Group>(null), wingR = useRef<THREE.Group>(null), head = useRef<THREE.Group>(null);
   const jaw = useRef<THREE.Mesh>(null), core = useRef<THREE.MeshStandardMaterial>(null), mouth = useRef<THREE.MeshBasicMaterial>(null), weak = useRef<THREE.Mesh>(null);
   const flash = useRef(0); const lastPhase = useRef(0);
+  // the reference sheet: orange fire through phases 1-2, white-hot gold in phase 3 (Covenant Trial); state so the model re-tints
+  const [phase, setPhase] = useState(0);
+  const look = vyrakFire(phase), fireRef = useRef(look.fire); fireRef.current = look.fire;
   useEffect(() => { scenarioModelReady.add("vyrak"); return () => { scenarioModelReady.delete("vyrak"); }; }, []);
   useFrame(({ clock }, dt) => {
     const g = group.current; if (!g) return;
@@ -119,7 +123,7 @@ function VyrakBody({ sim }: { sim: WorldSim }) {
     const telling = enc?.state === "TELL", tellK = telling ? 1 - enc!.timer / Math.max(0.01, enc!.tellTotal) : 0;
     const finale = (enc?.finaleUntil ?? 0) > now;
     const open = finale || (m.poiseState?.weakPointUntil ?? 0) > now;
-    if (enc && enc.phase !== lastPhase.current) { lastPhase.current = enc.phase; flash.current = 1; }
+    if (enc && enc.phase !== lastPhase.current) { lastPhase.current = enc.phase; flash.current = 1; setPhase(enc.phase); }
     flash.current = Math.max(0, flash.current - dt * 0.8);
     const hover = 3 + Math.sin(t * 1.4) * 0.6 + (enc?.phase === 0 ? 2 : 0);
     g.position.set(m.x, walkHeight(m.x, m.z) + hover, m.z);
@@ -128,12 +132,12 @@ function VyrakBody({ sim }: { sim: WorldSim }) {
     if (wingL.current) wingL.current.rotation.z = flap; if (wingR.current) wingR.current.rotation.z = -flap;
     if (head.current) head.current.rotation.x = -tellK * 0.5;
     if (jaw.current) jaw.current.rotation.x = tellK * 0.5;
-    if (mouth.current) { mouth.current.opacity = 0.2 + tellK * 0.8; mouth.current.color.set(finale ? "#fff1a8" : "#ff6a1f"); }
-    if (core.current) { core.current.emissive.set(open ? "#9ffcff" : "#ff6a1f"); core.current.emissiveIntensity = open ? 6 + Math.sin(t * 14) * 2 : 1.5 + flash.current * 6; }
+    if (mouth.current) { mouth.current.opacity = 0.2 + tellK * 0.8; mouth.current.color.set(finale ? "#fff1a8" : fireRef.current); }
+    if (core.current) { core.current.emissive.set(open ? "#9ffcff" : fireRef.current); core.current.emissiveIntensity = open ? 6 + Math.sin(t * 14) * 2 : 1.5 + flash.current * 6; }
     if (weak.current) { weak.current.visible = open; weak.current.scale.setScalar(1 + Math.sin(t * 8) * 0.15); }
   });
-  return <group ref={group} visible={false}><group scale={2.6}><DragonModel refs={{ wingL, wingR, head, jaw, core, mouth, weak }} /></group>
-    <DistrictLight range={90} position={[0, 1.4, 1.6]} color="#ff7a2e" intensity={30} distance={22} /></group>;
+  return <group ref={group} visible={false}><group scale={2.6}><DragonModel refs={{ wingL, wingR, head, jaw, core, mouth, weak }} fire={look.fire} glow={look.glow} /></group>
+    <DistrictLight range={90} position={[0, 1.4, 1.6]} color={look.fire} intensity={30} distance={22} /></group>;
 }
 
 /** Authored GLB bodies for Unique Scenario bosses. Each model is downloaded only once its boss has actually been summoned. */
