@@ -15,7 +15,7 @@ import craw from "@/assets/models/enemies/enemy-fracture-mutated-craw.glb.asset.
 import warrior from "@/assets/models/enemies/enemy-scifi-armored-warrior.glb.asset.json";
 import viper from "@/assets/models/enemies/enemy-silicon-fused-viper.glb.asset.json";
 
-export type EnemyKind = "RAIDER" | "OVERCLOCKED" | "ABERRATION" | "VANGUARD" | "SKYBORN";
+export type EnemyKind = "RAIDER" | "OVERCLOCKED" | "ABERRATION" | "VANGUARD" | "SKYBORN" | "GUARDIAN";
 export type EnemyRole = "standard" | "elite" | "boss";
 export type EnemyVisual = { id: string; url: string; height: number; motion: "biped" | "creature" | "hover"; note: string };
 
@@ -35,6 +35,9 @@ const V = {
   skyRegular: { id: "skyborn-regular", url: M("skyborn-regular"), height: 2.0, motion: "biped", note: "Skyborn Legionary (Ember Peaks) from the Skyborn sheet; rigged" },
   skyElite: { id: "skyborn-elite", url: M("skyborn-elite"), height: 2.05, motion: "biped", note: "Skyborn Axiom; rigged" },
   skyBoss: { id: "skyborn-boss", url: M("skyborn-boss"), height: 2.3, motion: "biped", note: "Skyborn Harbinger (commander); rigged" },
+  gdRegular: { id: "guardian-regular", url: M("guardian-regular"), height: 2.1, motion: "biped", note: "Ruin Sentinel (Verdant Forest) from the Ancient Guardians sheet; rigged" },
+  gdElite: { id: "guardian-elite", url: M("guardian-elite"), height: 2.2, motion: "biped", note: "Arc Warden; rigged" },
+  gdBoss: { id: "guardian-boss", url: M("guardian-boss"), height: 2.5, motion: "biped", note: "Stone Colossus (commander); rigged" },
   abBoss: { id: "aberration-boss", url: M("aberration-boss"), height: 2.56, motion: "creature", note: "Aberration Queen; static mesh" },
   raider: { id: "ember-raider", url: ch3.url, height: 1.85, motion: "biped", note: "orange/black scavenger trooper" },
   overclocked: { id: "nexus-overclocked", url: ch2.url, height: 1.85, motion: "biped", note: "black/red/cyan cyber trooper" },
@@ -51,6 +54,7 @@ export const ENEMY_VISUALS: Record<EnemyKind, Record<EnemyRole, EnemyVisual>> = 
   ABERRATION: { standard: V.abRegular, elite: V.abElite, boss: V.abBoss },
   VANGUARD: { standard: V.vgRegular, elite: V.vgElite, boss: V.vgBoss },
   SKYBORN: { standard: V.skyRegular, elite: V.skyElite, boss: V.skyBoss },
+  GUARDIAN: { standard: V.gdRegular, elite: V.gdElite, boss: V.gdBoss },
 };
 
 export const roleOf = (m: { elite: boolean; boss: boolean }): EnemyRole => (m.boss ? "boss" : m.elite ? "elite" : "standard");
