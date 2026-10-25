@@ -143,3 +143,21 @@ Supersedes the Oct 24 "gritty, held-back colour" grade direction.
   cyan light strips up the tall towers' corners; dim by day, overdriven at night so the bloom catches them.
 - Atmosphere (`atmosphere.ts`): city nights are deep blue air instead of violet; the Wastelands by day are clear and warm.
 - Fracture Storm debris: lit rock slabs instead of flat navy blobs.
+
+## Target frames, pass 2 (Oct 25 afternoon)
+
+Checked against the three target frames using headless captures of the real game (`window.__warp` + `__dev` at the same spots and times):
+
+- Tower facades (`facade-windows.ts`, swapped in by `InstancedGlb.tsx` for every "WindowsLit" material): one room per bay per floor,
+  floors banded dark / part lit / busy, mostly cool office white with warm rooms and rare cyan/magenta, ceiling falloff, blinds, pane
+  mullions, faint blue unlit glass. Night glow raised so the bloom catches it.
+- Nexus district blocks (`NexusDistricts.tsx`): narrower bays, taller glazing, about half the rooms lit, the same colour mix, a
+  shared glow that brightens at night. Taller downtown (`nexus-districts.ts` FLOORS).
+- Nexus sky-rail (`nexus-skyrail.ts`, `NexusSkyRail.tsx`): two elevated guideways over street lines with kerb-side portal legs, LED
+  underside strips and a shuttling train, as in both city frames.
+- Wilds verge scatter (`road-dressing.ts` `vergeScatter`, drawn in `RoadDressing.tsx`): rocks and dry scrub line every open-country road,
+  distance-culled to 190 m.
+- Floating islands: lighter sky-haze tint by day (they had washed out to pale ghosts) and a larger near set.
+- Capture note: the headless captures lack the Lovable-hosted assets (`/__l5e/...`: ground textures, the sky HDR, NPCs), so the real
+  game looks better than they do. The Neon "cyan beams" were the glowing edges of a street shelter above the spawn point, not a bug.
+- Unreal art plan: `docs/unreal-art-target.md`.
