@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
+#include "Core/WFAbilityCore.h"
 #include "Core/WFDragonCore.h"
 #include "WFWeapons.h"
 #include "WFCharacter.generated.h"
@@ -62,6 +63,25 @@ public:
 	/** RepairVehicle: pays Nex to repair the selected vehicle. */
 	UFUNCTION(Exec) void RepairVehicle();
 	UFUNCTION(Exec) void EternalCovenant();
+	// Class abilities (ported ability-effects.ts): the build and branches are saved, the subclass is per session
+	/** Subclass SHIELD_TITAN|BERSERKER_TITAN|BULWARK_TITAN|SHADOW_HUNTER|TRACKER_HUNTER|FRACTURE_RUNNER|CODE_WARLOCK|VOID_WARLOCK|ORACLE_WARLOCK */
+	UFUNCTION(Exec) void Subclass(const FString& SubclassId);
+	/** EquipAbility <id>: puts an unlocked ability in its slot (the Covenant ones need the Vyrak bond). */
+	UFUNCTION(Exec) void EquipAbility(const FString& AbilityId);
+	/** AbilityBranch <ability> <branch>: spends a calibration token on an evolution branch. */
+	UFUNCTION(Exec) void AbilityBranch(const FString& AbilityId, const FString& BranchId);
+	/** ClassBuild: equips the current class's own three abilities (classBuild). */
+	UFUNCTION(Exec) void ClassBuild();
+
+	// HUD reads (abilities)
+	const wf::ability::FLiveBuild& GetLiveBuild() const { return Live; }
+	const FString& GetSubclass() const { return SubclassId; }
+	double GetBarrier() const { return BarrierLeft; }
+	int32 GetRiftTurretCount() const { return RiftTurrets.Num(); }
+	/** Phase Veil: how far enemies see the Operator (operator-abilities.ts veilSightMult). */
+	double GetStealthMult() const { return SimMods.StealthMult; }
+	/** Key labels of the three slots in this layout (E is the vehicle key here). */
+	static const TCHAR* AbilityKey(int32 Slot);
 
 	// health.ts
 	static constexpr double MaxHealth = 100;
@@ -93,6 +113,11 @@ private:
 	void SummonScenario(const FInputActionValue& Value);
 	/** Casts a Dragonite ability through the ported dragonite-cast.ts rules (bond, cooldown and energy checked there). */
 	void CastAbility(const FString& Ability);
+	/** Casts the class ability in a slot (PRIMARY / TACTICAL / ULTIMATE) through the ported castAbility. */
+	void CastClassAbility(const char* Slot);
+	void TickAbilities(float DeltaSeconds);
+	wf::ability::FBuild SavedBuild() const;
+	void CancelAbilities();
 	void Interact(const FInputActionValue& Value);
 	void CallVehicle(const FInputActionValue& Value);
 	class AWFVehicle* SpawnVehicleAhead(const FString& VehicleId);
@@ -126,10 +151,21 @@ private:
 	UPROPERTY() TObjectPtr<UInputAction> CallVehicleAction;
 	TWeakObjectPtr<class AWFVehicle> CalledVehicle;
 	UPROPERTY() TObjectPtr<UInputAction> RideAction;
+	UPROPERTY() TArray<TObjectPtr<UInputAction>> ClassAbilityActions; // Q / F / X
 	/** Stand-in mount under the Operator while riding, until Vyrak's model is imported. */
 	UPROPERTY(VisibleAnywhere, Category = "Dragon") TObjectPtr<UStaticMeshComponent> MountMesh;
 
 	bool bRiding = false;
+	// class abilities: the live build (cooldowns, timers, verbs; energy is the pool shared with Dragonite) and its world
+	wf::ability::FLiveBuild Live;
+	wf::ability::FEventLog AbilityLog;
+	wf::ability::FSimMods SimMods;
+	FString SubclassId;
+	struct FRiftTurretActor { wf::ability::FRiftTurret Rules; };
+	TArray<FRiftTurretActor> RiftTurrets;
+	struct FVolatileZone { double X = 0, Z = 0, Radius = 0, Dps = 0, Until = 0; };
+	TArray<FVolatileZone> VolatileZones;
+	double IframesLeft = 0, BarrierLeft = 0, DomeLeft = 0;
 	bool bSprinting = false;
 	bool bInVehicle = false;
 	double DragonhideResist = 0;

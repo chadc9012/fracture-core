@@ -67,6 +67,11 @@ namespace wf
 		 *  covenant:vyrak:<CLASS>, dragonite-up:<CLASS>:<ability>:<n>. Order is kept. */
 		std::vector<std::string> EarnedRewards;
 		std::vector<std::string> UnlockedAbilities;
+		/** The equipped class abilities (activeBuild: mode + slots PRIMARY / TACTICAL / ULTIMATE -> ability id; account-wide
+		 *  as in the web build) and the evolution branch picked per ability (abilityBranches). */
+		std::string ActiveBuildMode = "HYBRID";
+		std::map<std::string, std::string> ActiveBuildSlots{{"PRIMARY", "siege-mode"}, {"TACTICAL", "rift-dash"}, {"ULTIMATE", "rift-turret"}};
+		std::map<std::string, std::string> AbilityBranches;
 		/** Per-activity / per-mission run records (missionRuns): day key, runs that day, last completion (ms since epoch). */
 		struct FRunRecord
 		{

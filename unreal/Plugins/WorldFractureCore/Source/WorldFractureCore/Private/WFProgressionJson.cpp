@@ -1,5 +1,7 @@
 #include "WFProgressionJson.h"
 
+#include "Core/WFAbilityCore.h"
+
 #include "Dom/JsonObject.h"
 #include "Dom/JsonValue.h"
 #include "Serialization/JsonReader.h"
@@ -140,6 +142,15 @@ namespace WFProgressionJson
 		O->SetStringField(TEXT("challenge"), ToF(P.Challenge));
 		O->SetArrayField(TEXT("earnedRewards"), StringArray(P.EarnedRewards));
 		O->SetArrayField(TEXT("unlockedAbilities"), StringArray(P.UnlockedAbilities));
+		TSharedRef<FJsonObject> Build = MakeShared<FJsonObject>();
+		Build->SetStringField(TEXT("mode"), ToF(P.ActiveBuildMode));
+		TSharedRef<FJsonObject> BuildSlots = MakeShared<FJsonObject>();
+		for (const auto& [Slot, Id] : P.ActiveBuildSlots) BuildSlots->SetStringField(ToF(Slot), ToF(Id));
+		Build->SetObjectField(TEXT("slots"), BuildSlots);
+		O->SetObjectField(TEXT("activeBuild"), Build);
+		TSharedRef<FJsonObject> Branches = MakeShared<FJsonObject>();
+		for (const auto& [Id, Branch] : P.AbilityBranches) Branches->SetStringField(ToF(Id), ToF(Branch));
+		O->SetObjectField(TEXT("abilityBranches"), Branches);
 		TSharedRef<FJsonObject> Runs = MakeShared<FJsonObject>();
 		for (const auto& [Key, Run] : P.MissionRuns)
 		{
@@ -256,6 +267,37 @@ namespace WFProgressionJson
 		if (std::optional<std::string> Challenge = ReadOptionalString(O, TEXT("challenge"))) P.Challenge = *Challenge;
 		P.EarnedRewards = ReadStrings(O, TEXT("earnedRewards"));
 		P.UnlockedAbilities = ReadStrings(O, TEXT("unlockedAbilities"));
+		// progression.ts load: activeBuild through migrateBuild (legacy ability ids), abilityBranches through migrateBranches
+		{
+			const TSharedPtr<FJsonObject>* Build = nullptr;
+			const TSharedPtr<FJsonObject>* BuildSlots = nullptr;
+			if (O->TryGetObjectField(TEXT("activeBuild"), Build) && Build && Build->IsValid() && (*Build)->TryGetObjectField(TEXT("slots"), BuildSlots) && BuildSlots && BuildSlots->IsValid())
+			{
+				wf::ability::FBuild B;
+				FString Mode;
+				if ((*Build)->TryGetStringField(TEXT("mode"), Mode)) B.Mode = ToStd(Mode);
+				for (const char* Slot : wf::ability::Slots)
+				{
+					FString Id;
+					B.Slots[Slot] = (*BuildSlots)->TryGetStringField(UTF8_TO_TCHAR(Slot), Id) ? ToStd(Id) : std::string();
+				}
+				B = wf::ability::MigrateBuild(B);
+				P.ActiveBuildMode = B.Mode;
+				P.ActiveBuildSlots = B.Slots;
+			}
+			const TSharedPtr<FJsonObject>* Branches = nullptr;
+			P.AbilityBranches.clear();
+			if (O->TryGetObjectField(TEXT("abilityBranches"), Branches) && Branches && Branches->IsValid())
+			{
+				std::map<std::string, std::string> Raw;
+				for (const auto& Pair : (*Branches)->Values)
+				{
+					FString Pick;
+					if (Pair.Value.IsValid() && Pair.Value->TryGetString(Pick)) Raw[ToStd(Pair.Key)] = ToStd(Pick);
+				}
+				P.AbilityBranches = wf::ability::MigrateBranches(Raw);
+			}
+		}
 		P.MissionRuns.clear();
 		const TSharedPtr<FJsonObject>* Runs = nullptr;
 		if (O->TryGetObjectField(TEXT("missionRuns"), Runs) && Runs && Runs->IsValid())

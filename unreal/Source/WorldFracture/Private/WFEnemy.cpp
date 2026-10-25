@@ -145,7 +145,8 @@ void AWFEnemy::Tick(float DeltaSeconds)
 
 	const FVector ToPlayer = Player->GetActorLocation() - GetActorLocation();
 	const double Distance = ToPlayer.Size2D() / CmPerM;
-	if (!bAggro && Distance <= AggroBase * (bElite ? AggroElite : 1.0)) bAggro = true;
+	// sight scales with the Operator's concealment (sim.ts sightRange x stealthMult: Phase Veil sees you at 15%)
+	if (!bAggro && Distance <= AggroBase * (bElite ? AggroElite : 1.0) * Player->GetStealthMult()) bAggro = true;
 	if (!bAggro) return;
 
 	const FVector Flat = FVector(ToPlayer.X, ToPlayer.Y, 0).GetSafeNormal();

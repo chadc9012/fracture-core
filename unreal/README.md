@@ -24,10 +24,11 @@ unreal/
    `WorldFractureEditor` (Development Editor, Win64), then run.
 3. Press Play. The game loads `DataTables/*.json` directly, so no import step is needed. Controls: WASD, mouse,
    Space/C jump, Shift sprint, LMB fire, RMB aim, R/G reload, 1-5 / wheel weapons, F5 save, F6 cycle Operator class
-   (Titan / Hunter / Warlock), 8 9 0 - = \ ; the seven Dragonite abilities (F7 also Wyrmcall), V ride Vyrak, E enter / exit a vehicle (driving: LMB / RMB fire its hardpoints, mouse aims), T call your vehicle, F8 summon a Unique Scenario boss, F9 finish the active quest.
+   (Titan / Hunter / Warlock), 8 9 0 - = \ ; the seven Dragonite abilities (F7 also Wyrmcall), Q / F / X the class abilities (the web build's Q / E / R: E is the vehicle key here and R reloads), V ride Vyrak, E enter / exit a vehicle (driving: LMB / RMB fire its hardpoints, mouse aims), T call your vehicle, F8 summon a Unique Scenario boss, F9 finish the active quest.
    Console (~): `UpgradeDragonite <ability>`, `VyrakTrust ruin|puzzle|protect <id>`, `AncientBond`, `EternalCovenant`,
    `SpawnScenarioBoss <id>`, `ChooseStarterVehicle scrap-interceptor|wasteland-jeep`, `SpawnVehicle <id>`, `RepairVehicle`,
-   `ListRaces`, `StartRace <id> [standard|advanced|legendary]`, `AbandonRace`.
+   `ListRaces`, `StartRace <id> [standard|advanced|legendary]`, `AbandonRace`,
+   `Subclass <id>`, `EquipAbility <id>`, `AbilityBranch <ability> <branch>`, `ClassBuild`.
 
 The default level is the engine's template map; the game mode adds a floor and lights if a level has none.
 
@@ -66,6 +67,15 @@ The default level is the engine's template map; the game mode adds a floor and l
   offsets, carry the vehicle's velocity and fly as projectiles; cannon shells and ordnance burst with splash falloff,
   guided rounds lock the nearest enemy in a forward cone and steer at their turn rate. The shared weapon heat
   overheats and vents as in sim.ts, and a vehicle at 65%+ body damage has its weapons offline (chase-ai.ts).
+- **Class abilities:** the equipped build (saved, account-wide as in the web build; `ClassBuild` equips your class's
+  own three) casts through the ported ability-effects.ts: Siege Mode (+30% damage, slower, steadier), Kinetic Slam
+  (shockwave, knockback, interrupt), Bastion Shield (barrier), Phase Veil (enemies see you at 15% range until you fire),
+  Rift Dash (dash with i-frames, stops at obstacles), Shadow Strike (lands behind the nearest enemy, doubled from the
+  veil), Recon Swarm (marks: +25% damage taken), Disruption Pulse (stuns, holds ordinary enemies' fire, poise on
+  bosses), Rift Turret (up to two, 1 damage every 0.45 s), and the bonded Covenant abilities Ember Bulwark, Wyrm Dash
+  and Ash Nova. Evolution branches (+18% power / +25% duration / -15% cost, a calibration token each), cross-class
+  synergy, subclass verbs (Weaken, Marked, Volatile, Suppress, Rage, Overshield, Haste), costs from the energy pool
+  shared with Dragonite, and death cancelling everything in flight all follow the web rules.
 - **Racing:** the 68 courses (street circuits, off-road, hazard and foot courses, hidden runs once their markers are
   found) on the ported racing.ts / activities.ts rules: attempts per day and cooldowns, racing-rank and difficulty gates,
   staging and countdown, ordered checkpoints, timed reality gates, shortcuts, off-course recovery, track obstacles that
@@ -95,16 +105,18 @@ cmake -S . -B build -G Ninja && cmake --build build && ctest --test-dir build --
 | VehicleCoreTest | vehicle-handling.ts, vehicle-surface.ts, vehicle-condition.ts, rewardVehicle | 15,120 handling steps, 17,938 checks |
 | RaceCoreTest | racing.ts, activities.ts (all 68 courses, attempts, payouts, records) | 286 runs, 41,602 ticks, 15,255 checks |
 | VehicleWeaponsCoreTest | vehicle-weapons.ts, ordnance.ts, launchers.ts, sim.ts fireBullet / fireOrdnance, Scene.tsx fire loop | 2,310 armaments, 160 flights, 14,400 fire frames, 135,166 checks |
+| AbilityCoreTest | ability-effects.ts, live-build.ts, ability-hud.ts, branch-effects.ts, subclass-verbs.ts, operator-abilities.ts | 8,000 operations (3,256 casts), 2,400 turret steps, 39,106 checks |
 | DragonCoreTest | dragonite.ts, dragonite-cast.ts statsFor, vyrak-trust.ts | 2,099 states, 23,789 checks |
 
 Regenerate goldens after changing the web build's rules (from the repo root):
 
     npx esbuild unreal/tools/<tool>.ts --bundle --platform=node --format=esm --alias:@=./src --outfile=/tmp/t.mjs && node /tmp/t.mjs
 
-for `export-datatables`, `gen-quest-golden`, `gen-reward-golden`, `gen-mission-golden`, `gen-missionreward-golden`, `gen-dragon-golden`, `gen-vehicle-golden`, `gen-race-golden`, `gen-vweapons-golden`; the encounter and Dragonite-cast recorders (`gen-encounter-golden`, `gen-dragoncast-golden`) run through `node unreal/tools/build-golden.mjs unreal/tools/<tool>.ts`, which routes their world calls to recording shims.
+for `export-datatables`, `gen-quest-golden`, `gen-reward-golden`, `gen-mission-golden`, `gen-missionreward-golden`, `gen-dragon-golden`, `gen-vehicle-golden`, `gen-race-golden`, `gen-vweapons-golden`; the encounter, Dragonite-cast and ability recorders (`gen-encounter-golden`, `gen-dragoncast-golden`, `gen-ability-golden`) run through `node unreal/tools/build-golden.mjs unreal/tools/<tool>.ts`, which routes their world calls to recording shims.
 
 ## Not ported yet
-Boss models and attack effects (zones are debug circles, decoys are stand-ins), mid-mission saves, abilities (Q/E/R),
+Boss models and attack effects (zones are debug circles, decoys are stand-ins), mid-mission saves, ability mastery XP and armor ability-recharge,
+region kinds for abilities (the map counts as a war zone),
 armor effects on combat, enemy perception/cover/line-of-sight, launchers and the sword, vehicle gadgets and fleet builds, gear power and armor damage bonuses on vehicle guns, knockback, the featured-activity rotation and
 activity shader drops,
 merchants and housing, cloud save merge, the world itself (regions, Neon City, Thalassia). Their data is already in

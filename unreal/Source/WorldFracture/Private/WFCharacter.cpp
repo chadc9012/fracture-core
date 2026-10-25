@@ -1,5 +1,7 @@
 #include "WFCharacter.h"
 
+#include <algorithm>
+
 #include "Engine/GameInstance.h"
 
 #include "Camera/CameraComponent.h"
@@ -85,6 +87,12 @@ void AWFCharacter::BeginPlay()
 		Reserve.Add(W.Reserve);
 	}
 	AddMappingContext();
+	if (const UWFProgressionSubsystem* Progression = GetGameInstance()->GetSubsystem<UWFProgressionSubsystem>())
+	{
+		const std::vector<std::string> Subs = wf::ability::SubclassesOf(WFData::ToStd(Progression->GetIdentityClass()));
+		SubclassId = Subs.empty() ? FString() : WFData::ToF(Subs[0]);
+		Live = wf::ability::CreateLiveBuild(SavedBuild(), Progression->Get().AbilityBranches);
+	}
 }
 
 // --- Input, built in code -------------------------------------------------------------------------------------------
@@ -151,6 +159,14 @@ void AWFCharacter::BuildInput()
 		DragoniteActions.Add(A);
 	}
 	Mapping->MapKey(RideAction, EKeys::V);
+	// class abilities: the web build's Q / E / R, moved to Q / F / X here (E is the vehicle key, R reloads)
+	const FKey AbilityKeys[3] = {EKeys::Q, EKeys::F, EKeys::X};
+	for (const FKey& Key : AbilityKeys)
+	{
+		UInputAction* A = Make(EInputActionValueType::Boolean);
+		Mapping->MapKey(A, Key);
+		ClassAbilityActions.Add(A);
+	}
 	const FKey SlotKeys[] = {EKeys::One, EKeys::Two, EKeys::Three, EKeys::Four, EKeys::Five};
 	for (const FKey& Key : SlotKeys)
 	{
@@ -210,6 +226,8 @@ void AWFCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 		Input->BindActionValueLambda(DragoniteActions[I], ETriggerEvent::Started, [this, Id](const FInputActionValue&) { CastAbility(Id); });
 	}
 	Input->BindAction(RideAction, ETriggerEvent::Started, this, &AWFCharacter::ToggleRide);
+	for (int32 I = 0; I < ClassAbilityActions.Num(); ++I)
+		Input->BindActionValueLambda(ClassAbilityActions[I], ETriggerEvent::Started, [this, I](const FInputActionValue&) { CastClassAbility(wf::ability::Slots[I]); });
 	for (int32 I = 0; I < SlotActions.Num(); ++I)
 		Input->BindActionValueLambda(SlotActions[I], ETriggerEvent::Started, [this, I](const FInputActionValue&) { SelectWeapon(I); });
 }
@@ -268,6 +286,8 @@ void AWFCharacter::CycleClass(const FInputActionValue& Value)
 	const FString Current = Progression->GetIdentityClass();
 	const FString Next = Current == TEXT("TITAN") ? TEXT("HUNTER") : Current == TEXT("HUNTER") ? TEXT("WARLOCK") : TEXT("TITAN");
 	Progression->SetIdentityClass(Next);
+	const std::vector<std::string> Subs = wf::ability::SubclassesOf(WFData::ToStd(Next));
+	SubclassId = Subs.empty() ? FString() : WFData::ToF(Subs[0]); // a new class deploys as its first subclass
 	if (const APlayerController* PC = Cast<APlayerController>(GetController()))
 		if (AWFHUD* Hud = PC->GetHUD<AWFHUD>()) Hud->Toast(FString::Printf(TEXT("Operator class - %s"), *Next), FLinearColor(0.45f, 0.9f, 1.f));
 }
@@ -386,7 +406,7 @@ void AWFCharacter::TickDragon(float DeltaSeconds)
 	const FVector L = GetActorLocation() / CmPerMeter;
 	const wf::dragoncast::FStepResult R = wf::dragoncast::StepDragonite(Dragon->Runtime(), World, Machines, DeltaSeconds, wf::dragoncast::FPose{L.X, L.Y, 0}, Dragon->MakeContext());
 	World.WriteBack(Before, Machines);
-	Dragon->EnergyPool() = wf::dragoncast::RegenEnergy(Dragon->EnergyPool(), DeltaSeconds);
+	// energy refills in TickAbilities (live-build.ts tickLiveBuild): one pool for class and Dragonite abilities
 	DragonhideResist = R.Resist;
 	// Wyrmwing glide: a slow, controlled descent while it lasts (the web build's gliding flag)
 	if (R.bGliding && GetCharacterMovement()->IsFalling() && GetCharacterMovement()->Velocity.Z < -GlideSinkCmPerSec)
@@ -582,11 +602,13 @@ void AWFCharacter::EternalCovenant()
 void AWFCharacter::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
+	TickAbilities(DeltaSeconds); // cooldowns, energy, turrets and zones keep running while driving
 	if (bInVehicle) return; // carried by a vehicle: hidden, not simulating
 	TickWeapon(DeltaSeconds);
 	TickDragon(DeltaSeconds);
 	if (bRiding) TickRide(DeltaSeconds);
-	else GetCharacterMovement()->MaxWalkSpeed = static_cast<float>((bSprinting ? SprintSpeed : WalkSpeed) * HazardSpeedMult);
+	else // Scene.tsx walk speed: Rift Dash x1.4, Siege Mode x0.8 (operator-abilities.ts siegeMoveMult)
+		GetCharacterMovement()->MaxWalkSpeed = static_cast<float>((bSprinting ? SprintSpeed : WalkSpeed) * HazardSpeedMult * (Live.DashTime > 0 ? 1.4 : 1.0) * wf::ability::SiegeMoveMult(Live.SiegeTime));
 
 	// health.ts stepHealth: after RegenDelay seconds without damage, recover RegenRate per second.
 	SinceDamage += DeltaSeconds;
@@ -661,8 +683,9 @@ void AWFCharacter::FireRound()
 		const bool bHit = World->LineTraceSingleByChannel(Hit, Start, End, ECC_Visibility, Params);
 		DrawDebugLine(World, Start + Dir * 60.f, bHit ? Hit.ImpactPoint : End, FColor(255, 214, 120), false, 0.05f, 0, 1.2f);
 		if (bHit)
-			if (AWFEnemy* Enemy = Cast<AWFEnemy>(Hit.GetActor())) Enemy->TakeHit(W->Damage * WFWeapons::BaseBulletDamage, this, W->Element);
+			if (AWFEnemy* Enemy = Cast<AWFEnemy>(Hit.GetActor())) Enemy->TakeHit(W->Damage * WFWeapons::BaseBulletDamage * SimMods.VerbDamageMult, this, W->Element); // Rage / Siege (syncSimFromLive)
 	}
+	if (Live.VeilTime > wf::ability::VeilBreakTime) Live.VeilTime = wf::ability::VeilBreakTime; // firing breaks Phase Veil
 
 	// recoil: pitch kick in radians (weapons.ts), applied to the view
 	if (AController* C = GetController())
@@ -686,6 +709,8 @@ void AWFCharacter::StartReload()
 void AWFCharacter::ApplyHit(double Damage, const FString& Source)
 {
 	if (Health <= 0) return;
+	if (IframesLeft > 0 || BarrierLeft > 0) return; // sim.ts hurtPlayer: Rift Dash i-frames and Bastion barriers absorb the hit
+	Damage *= SimMods.VerbIncomingMult; // Overshield (syncSimFromLive)
 	Damage *= 1 - wf::dragon::CappedResist(0, DragonhideResist); // Dragonhide (armor resistance not modelled yet)
 	Health = FMath::Max(0.0, Health - Damage);
 	SinceDamage = 0;
@@ -694,6 +719,7 @@ void AWFCharacter::ApplyHit(double Damage, const FString& Source)
 	{
 		if (UWFProgressionSubsystem* Progression = GetGameInstance()->GetSubsystem<UWFProgressionSubsystem>()) Progression->RecordPlayerDeath();
 		if (AWFGameMode* Mode = GetWorld()->GetAuthGameMode<AWFGameMode>()) Mode->OnPlayerDied(); // encounter bosses reset
+		CancelAbilities(); // ability-effects.ts cancelAbilities: nothing in flight survives into the next life
 		Respawn();
 	}
 }
@@ -711,4 +737,214 @@ void AWFCharacter::Respawn()
 	Health = MaxHealth;
 	SinceDamage = 100;
 	for (int32 I = 0; I < Weapons.Num(); ++I) Ammo[I] = Weapons[I].Mag;
+}
+
+// --- Class abilities (ported ability-effects.ts / live-build.ts) ----------------------------------------------------
+
+namespace
+{
+	/** The world as ability-effects.ts sees it: the enemies (through FDragonWorld's slots), obstacles, and the Operator's
+	 *  own defences, turrets and zones, which the character keeps. */
+	class FAbilityWorld final : public wf::ability::IWorld
+	{
+	public:
+		FDragonWorld Bodies;
+		UWorld* World = nullptr;
+		AActor* Self = nullptr;
+		double NowS = 0, GroundZ = 0;
+		double Iframes_ = 0, Barrier_ = 0, Dome_ = 0;
+		bool bNoise = false, bCleared = false;
+		struct FSpawn { bool bTurret = false; double X = 0, Z = 0, Radius = 0, Dps = 0, Duration = 0; };
+		TArray<FSpawn> Spawns;
+		double Now() const override { return NowS; }
+		double DamageMods(std::vector<wf::ability::FMachine>& Machines, size_t I, double Dmg, const std::string& Element, double X, double Z) override { return Bodies.DamageMods(Machines, I, Dmg, Element, X, Z); }
+		void Defeat(std::vector<wf::ability::FMachine>& Machines, size_t I) override { Bodies.Defeat(Machines, I); }
+		void Alert(const std::string& Text) override { Bodies.Alert(Text); }
+		bool Blocked(double X, double Z) const override
+		{
+			// obstacles.ts: a solid body within ~1 m of the ground point at the Operator's height
+			FCollisionQueryParams Params(SCENE_QUERY_STAT(WFAbilityDash), false, Self);
+			return World->OverlapAnyTestByChannel(FVector(X * CmPerMeter, Z * CmPerMeter, GroundZ), FQuat::Identity, ECC_WorldStatic, FCollisionShape::MakeSphere(100.f), Params);
+		}
+		void BossPoise(std::vector<wf::ability::FMachine>&, size_t I, double Amount) override
+		{
+			AWFEnemy* E = Bodies.Enemies[static_cast<int32>(I)];
+			double Mult = 1;
+			if (IsValid(E) && E->IsBoss()) E->Rules().Poise = wf::encounter::HitPoise(E->Rules().Poise, Amount, NowS, Mult); // boss-poise.ts hitPoise
+		}
+		void SpawnVolatileZone(double X, double Z, double Radius, double Dps, double Duration) override { Spawns.Add({false, X, Z, Radius, Dps, Duration}); }
+		void PlaceRiftTurret(double X, double Z, double Duration) override { Spawns.Add({true, X, Z, 0, 0, Duration}); }
+		void Iframes(double S) override { Iframes_ = FMath::Max(Iframes_, S); }
+		void Barrier(double S) override { Barrier_ = FMath::Max(Barrier_, S); }
+		void Dome(double S) override { Dome_ = FMath::Max(Dome_, S); }
+		void Noise() override { bNoise = true; }
+		void ClearDefences() override { bCleared = true; }
+	};
+}
+
+const TCHAR* AWFCharacter::AbilityKey(int32 Slot)
+{
+	static const TCHAR* const Keys[3] = {TEXT("Q"), TEXT("F"), TEXT("X")};
+	return Keys[FMath::Clamp(Slot, 0, 2)];
+}
+
+wf::ability::FBuild AWFCharacter::SavedBuild() const
+{
+	const UWFProgressionSubsystem* Progression = GetGameInstance()->GetSubsystem<UWFProgressionSubsystem>();
+	if (!Progression) return wf::ability::DefaultBuild();
+	return {Progression->Get().ActiveBuildMode, Progression->Get().ActiveBuildSlots};
+}
+
+void AWFCharacter::CastClassAbility(const char* Slot)
+{
+	UWFDragonSubsystem* Dragon = GetGameInstance()->GetSubsystem<UWFDragonSubsystem>();
+	FAbilityWorld World;
+	World.World = GetWorld();
+	World.Self = this;
+	World.NowS = GetWorld()->GetTimeSeconds();
+	World.GroundZ = GetActorLocation().Z;
+	World.Iframes_ = IframesLeft; World.Barrier_ = BarrierLeft; World.Dome_ = DomeLeft;
+	World.Bodies.Player = this;
+	std::vector<wf::ability::FMachine> Machines = World.Bodies.Gather(GetWorld());
+	const std::vector<wf::ability::FMachine> Before = Machines;
+	const FVector L = GetActorLocation() / CmPerMeter;
+	if (Dragon) Live.Energy = Dragon->EnergyPool();
+	wf::ability::FCastContext Ctx;
+	Ctx.Environment = "war"; // region kinds (war / safe / fracture) are not ported; the prototype map is a war zone
+	Ctx.SubclassId = WFData::ToStd(SubclassId);
+	Ctx.bInVehicle = bInVehicle;
+	const wf::ability::FCastResult R = wf::ability::CastAbility(World, Machines, Live, AbilityLog, Slot, {L.X, L.Y, RulesYaw(GetControlRotation().Yaw)}, Ctx);
+	World.Bodies.WriteBack(Before, Machines);
+	if (Dragon) Dragon->EnergyPool() = Live.Energy;
+	IframesLeft = World.Iframes_; BarrierLeft = World.Barrier_; DomeLeft = World.Dome_;
+	for (const FAbilityWorld::FSpawn& S : World.Spawns)
+	{
+		if (S.bTurret)
+		{
+			// operator-abilities.ts deployRiftTurret: at most two, the oldest goes
+			std::vector<wf::ability::FRiftTurret> List;
+			for (const FRiftTurretActor& T : RiftTurrets) List.push_back(T.Rules);
+			List = wf::ability::DeployRiftTurret(List, S.X, S.Z, World.NowS, S.Duration);
+			RiftTurrets.Reset();
+			for (const wf::ability::FRiftTurret& T : List) RiftTurrets.Add({T});
+		}
+		else VolatileZones.Add({S.X, S.Z, S.Radius, S.Dps, World.NowS + S.Duration});
+	}
+	if (R.bOk && (R.Pose.X != L.X || R.Pose.Z != L.Y))
+	{
+		// Rift Dash / Wyrm Dash / Shadow Strike move the Operator; Shadow Strike also turns them to face the target
+		TeleportTo(FVector(R.Pose.X * CmPerMeter, R.Pose.Z * CmPerMeter, GetActorLocation().Z), GetActorRotation(), false, true);
+		if (AController* C = GetController())
+			if (R.Pose.Yaw != RulesYaw(GetControlRotation().Yaw)) { FRotator Rot = C->GetControlRotation(); Rot.Yaw = static_cast<float>(90.0 - FMath::RadiansToDegrees(R.Pose.Yaw)); C->SetControlRotation(Rot); }
+	}
+	const FLinearColor Cyan(0.45f, 0.9f, 1.f), WarnColor(1.f, 0.55f, 0.3f);
+	if (!R.bOk) Notify(WFData::ToF(R.Text), WarnColor);
+	else for (const FString& A : World.Bodies.Alerts) Notify(A, Cyan);
+}
+
+void AWFCharacter::TickAbilities(float DeltaSeconds)
+{
+	UWFDragonSubsystem* Dragon = GetGameInstance()->GetSubsystem<UWFDragonSubsystem>();
+	const UWFProgressionSubsystem* Progression = GetGameInstance()->GetSubsystem<UWFProgressionSubsystem>();
+	if (Progression) Live = wf::ability::RebindLiveBuild(Live, SavedBuild(), Progression->Get().AbilityBranches); // a no-op unless the build changed
+	if (Dragon) Live.Energy = Dragon->EnergyPool();
+	wf::ability::TickLiveBuild(Live, DeltaSeconds, 0); // armor INTELLECT recharge is not modelled yet
+	if (Dragon) Dragon->EnergyPool() = Live.Energy;
+	SimMods = wf::ability::SyncSimFromLive(Live);
+	IframesLeft = FMath::Max(0.0, IframesLeft - DeltaSeconds);
+	BarrierLeft = FMath::Max(0.0, BarrierLeft - DeltaSeconds);
+	DomeLeft = FMath::Max(0.0, DomeLeft - DeltaSeconds);
+
+	const double Now = GetWorld()->GetTimeSeconds();
+	FDragonWorld Bodies;
+	Bodies.Player = this;
+	std::vector<wf::ability::FMachine> Machines = Bodies.Gather(GetWorld());
+	const std::vector<wf::ability::FMachine> Before = Machines;
+	const FVector L = GetActorLocation() / CmPerMeter;
+	wf::ability::HoldDisabledField(Machines, Live, {L.X, L.Y, 0}); // Disruption Pulse keeps ordinary enemies from firing
+	Bodies.WriteBack(Before, Machines);
+
+	// Rift Turrets (sim.ts): each fires 1 damage every 0.45 s at the nearest enemy within 34 m
+	RiftTurrets.RemoveAll([Now](const FRiftTurretActor& T) { return T.Rules.Until <= Now; });
+	for (FRiftTurretActor& T : RiftTurrets)
+	{
+		const int32 Hit = wf::ability::StepRiftTurret(T.Rules, Machines, DeltaSeconds);
+		const FVector At(T.Rules.X * CmPerMeter, T.Rules.Z * CmPerMeter, GetActorLocation().Z - 60);
+		DrawDebugCylinder(GetWorld(), At, At + FVector(0, 0, 140), 35.f, 12, FColor(120, 200, 255), false, -1.f, 0, 3.f);
+		if (Hit >= 0 && Bodies.Enemies.IsValidIndex(Hit))
+		{
+			AWFEnemy* E = Bodies.Enemies[Hit];
+			DrawDebugLine(GetWorld(), At + FVector(0, 0, 120), E->GetActorLocation(), FColor(120, 200, 255), false, 0.08f, 0, 2.f);
+			E->TakeHit(wf::ability::RiftTurretDamage, this);
+			if (E->IsDead()) Notify(TEXT("Rift Turret neutralized a hostile"), FLinearColor(0.45f, 0.9f, 1.f));
+		}
+	}
+	// Volatile zones (Void Tech's Corrosion Field): damage per second to every enemy inside
+	VolatileZones.RemoveAll([Now](const FVolatileZone& Z) { return Z.Until <= Now; });
+	for (const FVolatileZone& Z : VolatileZones)
+	{
+		DrawDebugCircle(GetWorld(), FVector(Z.X * CmPerMeter, Z.Z * CmPerMeter, GetActorLocation().Z - 80), static_cast<float>(Z.Radius * CmPerMeter), 32, FColor(170, 90, 255), false, -1.f, 0, 3.f, FVector(1, 0, 0), FVector(0, 1, 0), false);
+		for (AWFEnemy* E : Bodies.Enemies)
+			if (IsValid(E) && !E->IsDead() && FVector::Dist2D(E->GetActorLocation() / CmPerMeter, FVector(Z.X, Z.Z, 0)) <= Z.Radius) E->TakeHit(Z.Dps * DeltaSeconds, this);
+	}
+	if (BarrierLeft > 0) DrawDebugSphere(GetWorld(), GetActorLocation(), 500.f, 16, FColor(255, 200, 90), false, -1.f, 0, 2.f);
+}
+
+void AWFCharacter::CancelAbilities()
+{
+	FAbilityWorld World;
+	World.World = GetWorld();
+	World.Self = this;
+	World.NowS = GetWorld()->GetTimeSeconds();
+	const FVector L = GetActorLocation() / CmPerMeter;
+	Live = wf::ability::CancelAbilities(World, Live, AbilityLog, {L.X, L.Y, 0});
+	if (UWFDragonSubsystem* Dragon = GetGameInstance()->GetSubsystem<UWFDragonSubsystem>()) Dragon->EnergyPool() = Live.Energy; // a fresh life starts full
+	IframesLeft = BarrierLeft = DomeLeft = 0;
+	RiftTurrets.Reset();
+	VolatileZones.Reset();
+}
+
+void AWFCharacter::Subclass(const FString& InSubclassId)
+{
+	const UWFProgressionSubsystem* Progression = GetGameInstance()->GetSubsystem<UWFProgressionSubsystem>();
+	const std::vector<std::string> Subs = wf::ability::SubclassesOf(Progression ? WFData::ToStd(Progression->GetIdentityClass()) : std::string());
+	const std::string Id = WFData::ToStd(InSubclassId.ToUpper());
+	if (std::find(Subs.begin(), Subs.end(), Id) == Subs.end()) { Notify(TEXT("Not a subclass of this Operator class (F6 switches class)"), FLinearColor(1.f, 0.55f, 0.3f)); return; }
+	SubclassId = WFData::ToF(Id);
+	Notify(FString::Printf(TEXT("Subclass - %s"), *SubclassId), FLinearColor(0.45f, 0.9f, 1.f));
+}
+
+void AWFCharacter::EquipAbility(const FString& AbilityId)
+{
+	UWFProgressionSubsystem* Progression = GetGameInstance()->GetSubsystem<UWFProgressionSubsystem>();
+	if (!Progression) return;
+	std::string Error;
+	if (!wf::ability::EquipAbility(Progression->Mutable(), WFData::ToStd(AbilityId), Error)) { Notify(WFData::ToF(Error), FLinearColor(1.f, 0.55f, 0.3f)); return; }
+	Progression->NotifyChanged();
+	Notify(FString::Printf(TEXT("%s equipped"), *WFData::ToF(wf::ability::NodeById(WFData::ToStd(AbilityId)).Name)), FLinearColor(0.45f, 0.9f, 1.f));
+}
+
+void AWFCharacter::AbilityBranch(const FString& AbilityId, const FString& BranchId)
+{
+	UWFProgressionSubsystem* Progression = GetGameInstance()->GetSubsystem<UWFProgressionSubsystem>();
+	if (!Progression) return;
+	const wf::ability::FNode& Node = wf::ability::NodeById(WFData::ToStd(AbilityId));
+	if (Node.Id != WFData::ToStd(AbilityId) || std::find(Node.Branches.begin(), Node.Branches.end(), WFData::ToStd(BranchId)) == Node.Branches.end())
+	{
+		Notify(TEXT("Unknown ability or branch"), FLinearColor(1.f, 0.55f, 0.3f));
+		return;
+	}
+	if (!wf::ability::SelectAbilityBranch(Progression->Mutable(), Node.Id, WFData::ToStd(BranchId))) { Notify(TEXT("Needs a calibration token"), FLinearColor(1.f, 0.55f, 0.3f)); return; }
+	Progression->NotifyChanged();
+	Notify(FString::Printf(TEXT("%s - %s (%s)"), *WFData::ToF(Node.Name), *BranchId, *WFData::ToF(wf::ability::BranchTier(Node.Id, WFData::ToStd(BranchId)))), FLinearColor(0.45f, 0.9f, 1.f));
+}
+
+void AWFCharacter::ClassBuild()
+{
+	UWFProgressionSubsystem* Progression = GetGameInstance()->GetSubsystem<UWFProgressionSubsystem>();
+	if (!Progression) return;
+	const wf::ability::FBuild B = wf::ability::ClassBuild(WFData::ToStd(Progression->GetIdentityClass()));
+	Progression->Mutable().ActiveBuildMode = B.Mode;
+	Progression->Mutable().ActiveBuildSlots = B.Slots;
+	Progression->NotifyChanged();
 }

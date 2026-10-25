@@ -190,6 +190,31 @@ void AWFHUD::DrawHUD()
 		Line(FString::Printf(TEXT("KILLS %d   CREDITS %d   GEAR %d"), Progression->GetSessionKills(), FMath::RoundToInt32(Progression->GetSessionCredits()), Progression->GetInventoryCount()), 32, H - 50, Soft, 0.9f);
 	}
 
+	// bottom centre: the class abilities (ability-hud.ts abilityHud: usable = off cooldown and enough energy)
+	if (Player)
+	{
+		const wf::ability::FLiveBuild& Live = Player->GetLiveBuild();
+		const std::vector<wf::ability::FHudRow> Rows = wf::ability::AbilityHud(Live);
+		float X = W * 0.5f - 330.f;
+		for (int32 I = 0; I < static_cast<int32>(Rows.size()); ++I)
+		{
+			const wf::ability::FHudRow& R = Rows[I];
+			const FString State = R.State == "COOLDOWN" ? FString::Printf(TEXT("%.1fs"), R.Cooldown) : R.State == "NO_ENERGY" ? FString(TEXT("no energy")) : FString(UTF8_TO_TCHAR(R.State.c_str()));
+			Line(FString::Printf(TEXT("[%s] %s  %s"), AWFCharacter::AbilityKey(I), UTF8_TO_TCHAR(R.Name.c_str()), *State), X, H - 96, R.bReady ? Cyan : R.State == "ACTIVE" ? Gold : Soft, 0.9f);
+			X += 225.f;
+		}
+		FString Timers;
+		if (Live.SiegeTime > 0) Timers += FString::Printf(TEXT("  SIEGE %.0fs"), Live.SiegeTime);
+		if (Live.VeilTime > 0) Timers += FString::Printf(TEXT("  VEILED %.0fs"), Live.VeilTime);
+		if (Live.HackTime > 0) Timers += FString::Printf(TEXT("  DISRUPTION %.0fs"), Live.HackTime);
+		if (Player->GetBarrier() > 0) Timers += FString::Printf(TEXT("  BARRIER %.0fs"), Player->GetBarrier());
+		if (Player->GetRiftTurretCount() > 0) Timers += FString::Printf(TEXT("  TURRETS %d"), Player->GetRiftTurretCount());
+		if (!Live.VerbKind.empty()) Timers += FString::Printf(TEXT("  %s %.0fs"), UTF8_TO_TCHAR(wf::ability::VerbLabel(Live.VerbKind).c_str()), Live.VerbTime);
+		const FString Sub = Player->GetSubclass();
+		Line(FString::Printf(TEXT("ENERGY %d%s%s%s"), FMath::RoundToInt32(Live.Energy), Sub.IsEmpty() ? TEXT("") : *FString::Printf(TEXT("   %s"), *Sub), *Timers,
+			Live.EffectTime > 0 ? *FString::Printf(TEXT("   %s"), UTF8_TO_TCHAR(Live.Effect.c_str())) : TEXT("")), W * 0.5f - 330.f, H - 72, Soft, 0.85f);
+	}
+
 	// bottom right: weapon
 	if (Player)
 		if (const FWFWeaponStats* Weapon = Player->GetWeapon())
