@@ -34,9 +34,9 @@ is exported as `DisplayName`, because Unreal reserves `Name` for the row key.
 ## Keeping it in sync with the web build
 Re-run after any tuning or quest change in `src/game` (from the repo root):
 
-    npx esbuild unreal-migration/tools/export-datatables.ts --bundle --platform=node --format=esm \
+    npx esbuild unreal/tools/export-datatables.ts --bundle --platform=node --format=esm \
       --alias:@=./src --outfile=/tmp/wf-export.mjs && node /tmp/wf-export.mjs
-    npx esbuild unreal-migration/tools/gen-quest-golden.ts --bundle --platform=node --format=esm \
+    npx esbuild unreal/tools/gen-quest-golden.ts --bundle --platform=node --format=esm \
       --alias:@=./src --outfile=/tmp/wf-golden.mjs && node /tmp/wf-golden.mjs
 
 ## Quest engine test

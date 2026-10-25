@@ -1,0 +1,146 @@
+[
+  {
+    "Name": "ch-neon-gp",
+    "Id": "ch-neon-gp",
+    "Area": "neon",
+    "DisplayName": "Neon Grand Prix",
+    "Rank": 1,
+    "Rounds": [
+      "nc-circuit",
+      "r-nc-blacktop",
+      "r-nc-lastexit",
+      "r-nc-fracture"
+    ]
+  },
+  {
+    "Name": "ch-nexus",
+    "Id": "ch-nexus",
+    "Area": "nexus",
+    "DisplayName": "Nexus Championship",
+    "Rank": 1,
+    "Rounds": [
+      "r-nx-gridlock",
+      "r-nx-sentinel",
+      "r-nx-powergrid",
+      "r-nx-vertical"
+    ]
+  },
+  {
+    "Name": "ch-core-apex",
+    "Id": "ch-core-apex",
+    "Area": "neon-core",
+    "DisplayName": "Aegis Apex Championship",
+    "Rank": 3,
+    "Rounds": [
+      "r-ncd-coreline",
+      "r-ncd-aegisdrop",
+      "r-ncd-redline",
+      "r-ncd-flux"
+    ]
+  },
+  {
+    "Name": "ch-verdant",
+    "Id": "ch-verdant",
+    "Area": "veridan",
+    "DisplayName": "Verdant Rally Championship",
+    "Rank": 1,
+    "Rounds": [
+      "r-vf-wildroot",
+      "r-vf-canopy",
+      "r-vf-riverbreak",
+      "r-vf-ruin"
+    ]
+  },
+  {
+    "Name": "ch-thalassia",
+    "Id": "ch-thalassia",
+    "Area": "thalassia",
+    "DisplayName": "Thalassia Deep Championship",
+    "Rank": 1,
+    "Rounds": [
+      "r-th-abyssal",
+      "r-th-trench",
+      "r-th-pressure",
+      "r-th-sunken"
+    ]
+  },
+  {
+    "Name": "ch-ember",
+    "Id": "ch-ember",
+    "Area": "ember",
+    "DisplayName": "Ember Apex Championship",
+    "Rank": 1,
+    "Rounds": [
+      "r-em-ashfall",
+      "r-em-cinder",
+      "r-em-foundry",
+      "r-em-magma"
+    ]
+  },
+  {
+    "Name": "ch-wastes",
+    "Id": "ch-wastes",
+    "Area": "wastelands",
+    "DisplayName": "Black-Market Grand Prix",
+    "Rank": 2,
+    "Rounds": [
+      "wl-devil",
+      "r-wl-rust",
+      "r-wl-canyon",
+      "r-wl-rebelroad"
+    ]
+  },
+  {
+    "Name": "ch-swamp",
+    "Id": "ch-swamp",
+    "Area": "swamps",
+    "DisplayName": "Swamp King Championship",
+    "Rank": 1,
+    "Rounds": [
+      "r-sw-mire",
+      "r-sw-fogline",
+      "r-sw-bog",
+      "r-sw-causeway"
+    ]
+  },
+  {
+    "Name": "ch-solara",
+    "Id": "ch-solara",
+    "Area": "solara",
+    "DisplayName": "Solara Grand Championship",
+    "Rank": 1,
+    "Rounds": [
+      "r-so-sunfire",
+      "r-so-dunedevil",
+      "r-so-sandstone",
+      "r-so-mirage"
+    ]
+  },
+  {
+    "Name": "ch-frost",
+    "Id": "ch-frost",
+    "Area": "frostspire",
+    "DisplayName": "Frost Spire Championship",
+    "Rank": 1,
+    "Rounds": [
+      "r-fs-whiteout",
+      "r-fs-glacier",
+      "r-fs-frostline",
+      "fs-vertical"
+    ]
+  },
+  {
+    "Name": "ch-world-rally",
+    "Id": "ch-world-rally",
+    "Area": "wastelands",
+    "DisplayName": "World Rally Series",
+    "Rank": 2,
+    "Rounds": [
+      "r-vf-wildroot",
+      "r-em-ashfall",
+      "r-so-sunfire",
+      "r-fs-whiteout",
+      "r-wl-endurance"
+    ]
+  }
+]

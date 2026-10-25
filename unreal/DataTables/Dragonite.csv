@@ -1,0 +1,8 @@
+Name,Id,DisplayName,Kind,Cooldown,Energy,Windup,Blurb,Upgrades
+dragonfire,dragonfire,Dragonfire,OFFENSE,18,25,0.6,A forward cone of violet fire that leaves Fracture Burn.,"[""Longer range"",""Wider cone"",""More damage to corrupted enemies"",""Eruption at the end of the breath""]"
+wyrmwing,wyrmwing,Wyrmwing,MOBILITY,22,20,0.2,"Spectral wings: a launch, a controlled glide and one air dash.","[""Higher launch"",""Longer glide"",""Second air dash"",""Aerial strike on landing""]"
+dragonhide,dragonhide,Dragonhide,DEFENSE,30,30,0,Spectral scales: damage resistance and less stagger. Time it for a bonus.,"[""More resistance"",""Less stagger"",""Wider perfect-timing window"",""Shares a smaller shield with nearby allies""]"
+wyrmcall,wyrmcall,Wyrmcall,SUMMON,120,60,0.8,"Vyrak answers: strafing runs, dragonfire on a group, interrupts, a finishing assault.","[""Longer stay"",""Shorter cooldown"",""Another strafing run"",""Finishing assault on bosses""]"
+roar,roar,Roar of Ruin,CONTROL,26,28,0.4,Vyrak bellows: nearby enemies are staggered and their next attack is delayed. Bosses only lose poise.,"[""Wider roar"",""Longer stagger"",""Enemies take extra damage while staggered"",""Shockwave knocks smaller enemies back""]"
+scalebreaker,scalebreaker,Scalebreaker,OFFENSE,20,22,0.3,A tail-and-claw slam in front of you that shatters armor and hits boss poise hard.,"[""More damage"",""Larger arc"",""Strips enemy shields"",""Second strike""]"
+skyfall,skyfall,Skyfall,ULTIMATE,150,80,1,"Vyrak climbs, then dives onto the target area in a violet impact. Needs room above and is a late-game finisher.","[""Larger impact"",""Shorter cooldown"",""Leaves Fracture Burn"",""Furious Vyrak hits harder""]"

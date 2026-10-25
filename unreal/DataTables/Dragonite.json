@@ -1,0 +1,114 @@
+[
+  {
+    "Name": "dragonfire",
+    "Id": "dragonfire",
+    "DisplayName": "Dragonfire",
+    "Kind": "OFFENSE",
+    "Cooldown": 18,
+    "Energy": 25,
+    "Windup": 0.6,
+    "Blurb": "A forward cone of violet fire that leaves Fracture Burn.",
+    "Upgrades": [
+      "Longer range",
+      "Wider cone",
+      "More damage to corrupted enemies",
+      "Eruption at the end of the breath"
+    ]
+  },
+  {
+    "Name": "wyrmwing",
+    "Id": "wyrmwing",
+    "DisplayName": "Wyrmwing",
+    "Kind": "MOBILITY",
+    "Cooldown": 22,
+    "Energy": 20,
+    "Windup": 0.2,
+    "Blurb": "Spectral wings: a launch, a controlled glide and one air dash.",
+    "Upgrades": [
+      "Higher launch",
+      "Longer glide",
+      "Second air dash",
+      "Aerial strike on landing"
+    ]
+  },
+  {
+    "Name": "dragonhide",
+    "Id": "dragonhide",
+    "DisplayName": "Dragonhide",
+    "Kind": "DEFENSE",
+    "Cooldown": 30,
+    "Energy": 30,
+    "Windup": 0,
+    "Blurb": "Spectral scales: damage resistance and less stagger. Time it for a bonus.",
+    "Upgrades": [
+      "More resistance",
+      "Less stagger",
+      "Wider perfect-timing window",
+      "Shares a smaller shield with nearby allies"
+    ]
+  },
+  {
+    "Name": "wyrmcall",
+    "Id": "wyrmcall",
+    "DisplayName": "Wyrmcall",
+    "Kind": "SUMMON",
+    "Cooldown": 120,
+    "Energy": 60,
+    "Windup": 0.8,
+    "Blurb": "Vyrak answers: strafing runs, dragonfire on a group, interrupts, a finishing assault.",
+    "Upgrades": [
+      "Longer stay",
+      "Shorter cooldown",
+      "Another strafing run",
+      "Finishing assault on bosses"
+    ]
+  },
+  {
+    "Name": "roar",
+    "Id": "roar",
+    "DisplayName": "Roar of Ruin",
+    "Kind": "CONTROL",
+    "Cooldown": 26,
+    "Energy": 28,
+    "Windup": 0.4,
+    "Blurb": "Vyrak bellows: nearby enemies are staggered and their next attack is delayed. Bosses only lose poise.",
+    "Upgrades": [
+      "Wider roar",
+      "Longer stagger",
+      "Enemies take extra damage while staggered",
+      "Shockwave knocks smaller enemies back"
+    ]
+  },
+  {
+    "Name": "scalebreaker",
+    "Id": "scalebreaker",
+    "DisplayName": "Scalebreaker",
+    "Kind": "OFFENSE",
+    "Cooldown": 20,
+    "Energy": 22,
+    "Windup": 0.3,
+    "Blurb": "A tail-and-claw slam in front of you that shatters armor and hits boss poise hard.",
+    "Upgrades": [
+      "More damage",
+      "Larger arc",
+      "Strips enemy shields",
+      "Second strike"
+    ]
+  },
+  {
+    "Name": "skyfall",
+    "Id": "skyfall",
+    "DisplayName": "Skyfall",
+    "Kind": "ULTIMATE",
+    "Cooldown": 150,
+    "Energy": 80,
+    "Windup": 1,
+    "Blurb": "Vyrak climbs, then dives onto the target area in a violet impact. Needs room above and is a late-game finisher.",
+    "Upgrades": [
+      "Larger impact",
+      "Shorter cooldown",
+      "Leaves Fracture Burn",
+      "Furious Vyrak hits harder"
+    ]
+  }
+]

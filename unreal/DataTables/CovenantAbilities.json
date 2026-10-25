@@ -1,0 +1,23 @@
+[
+  {
+    "Name": "TITAN",
+    "Id": "ember-bulwark",
+    "DisplayName": "Ember Bulwark",
+    "Description": "The Wyrmling breathes a wall of flame in front of you that blocks shots and burns enemies who cross it.",
+    "Cooldown": 45
+  },
+  {
+    "Name": "HUNTER",
+    "Id": "wyrm-dash",
+    "DisplayName": "Wyrm Dash",
+    "Description": "Dash through enemies trailing dragonfire; each enemy hit refunds dodge energy.",
+    "Cooldown": 30
+  },
+  {
+    "Name": "WARLOCK",
+    "Id": "ash-nova",
+    "DisplayName": "Ash Nova",
+    "Description": "The Wyrmling dives and detonates an ash nova that weakens enemies by 15%.",
+    "Cooldown": 40
+  }
+]

@@ -1,0 +1,198 @@
+[
+  {
+    "Name": "paint-slate",
+    "Id": "paint-slate",
+    "DisplayName": "Slate paint",
+    "Slot": "paint",
+    "Price": 150,
+    "Rooms": [
+      "living",
+      "bedroom",
+      "bathroom",
+      "kitchen",
+      "garage"
+    ]
+  },
+  {
+    "Name": "paint-neon-violet",
+    "Id": "paint-neon-violet",
+    "DisplayName": "Neon violet paint",
+    "Slot": "paint",
+    "Price": 300,
+    "Rooms": [
+      "living",
+      "bedroom",
+      "bathroom",
+      "kitchen",
+      "garage"
+    ]
+  },
+  {
+    "Name": "wall-circuit",
+    "Id": "wall-circuit",
+    "DisplayName": "Circuit wallpaper",
+    "Slot": "wallpaper",
+    "Price": 600,
+    "Rooms": [
+      "living",
+      "bedroom",
+      "kitchen"
+    ]
+  },
+  {
+    "Name": "wall-veyran-silk",
+    "Id": "wall-veyran-silk",
+    "DisplayName": "Veyran silk wallpaper",
+    "Slot": "wallpaper",
+    "Price": 1800,
+    "Rooms": [
+      "living",
+      "bedroom"
+    ]
+  },
+  {
+    "Name": "floor-concrete",
+    "Id": "floor-concrete",
+    "DisplayName": "Polished concrete",
+    "Slot": "floor",
+    "Price": 400,
+    "Rooms": [
+      "living",
+      "bedroom",
+      "bathroom",
+      "kitchen",
+      "garage"
+    ]
+  },
+  {
+    "Name": "floor-oak",
+    "Id": "floor-oak",
+    "DisplayName": "Veridan oak boards",
+    "Slot": "floor",
+    "Price": 1500,
+    "Rooms": [
+      "living",
+      "bedroom",
+      "kitchen"
+    ]
+  },
+  {
+    "Name": "sofa-street",
+    "Id": "sofa-street",
+    "DisplayName": "Street-salvage sofa",
+    "Slot": "furniture",
+    "Price": 500,
+    "Rooms": [
+      "living",
+      "garage"
+    ]
+  },
+  {
+    "Name": "sofa-aegis",
+    "Id": "sofa-aegis",
+    "DisplayName": "Aegis lounge set",
+    "Slot": "furniture",
+    "Price": 6000,
+    "Rooms": [
+      "living"
+    ]
+  },
+  {
+    "Name": "art-fracture",
+    "Id": "art-fracture",
+    "DisplayName": "Fracture print",
+    "Slot": "art",
+    "Price": 800,
+    "Rooms": [
+      "living",
+      "bedroom"
+    ]
+  },
+  {
+    "Name": "art-vyrak",
+    "Id": "art-vyrak",
+    "DisplayName": "Vyrak oil painting",
+    "Slot": "art",
+    "Price": 4000,
+    "Rooms": [
+      "living",
+      "bedroom"
+    ]
+  },
+  {
+    "Name": "tv-wall",
+    "Id": "tv-wall",
+    "DisplayName": "Wall-screen TV",
+    "Slot": "tv",
+    "Price": 1200,
+    "Rooms": [
+      "living",
+      "bedroom",
+      "garage"
+    ]
+  },
+  {
+    "Name": "tv-holo",
+    "Id": "tv-holo",
+    "DisplayName": "Holo-theatre",
+    "Slot": "tv",
+    "Price": 9000,
+    "Rooms": [
+      "living"
+    ]
+  },
+  {
+    "Name": "bed-bunk",
+    "Id": "bed-bunk",
+    "DisplayName": "Bunk bed",
+    "Slot": "bed",
+    "Price": 400,
+    "Rooms": [
+      "bedroom"
+    ]
+  },
+  {
+    "Name": "bed-king",
+    "Id": "bed-king",
+    "DisplayName": "King float bed",
+    "Slot": "bed",
+    "Price": 5000,
+    "Rooms": [
+      "bedroom"
+    ]
+  },
+  {
+    "Name": "bath-shower",
+    "Id": "bath-shower",
+    "DisplayName": "Steam shower",
+    "Slot": "bath",
+    "Price": 700,
+    "Rooms": [
+      "bathroom"
+    ]
+  },
+  {
+    "Name": "bath-soak",
+    "Id": "bath-soak",
+    "DisplayName": "Mineral soak tub",
+    "Slot": "bath",
+    "Price": 3500,
+    "Rooms": [
+      "bathroom"
+    ]
+  },
+  {
+    "Name": "light-neon",
+    "Id": "light-neon",
+    "DisplayName": "Neon strip lights",
+    "Slot": "lighting",
+    "Price": 350,
+    "Rooms": [
+      "living",
+      "bedroom",
+      "bathroom",
+      "kitchen",
+      "garage"
+    ]
+  }
+]

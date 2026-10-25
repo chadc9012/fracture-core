@@ -1,0 +1,12 @@
+Name,Id,Area,DisplayName,Rank,Rounds
+ch-neon-gp,ch-neon-gp,neon,Neon Grand Prix,1,"[""nc-circuit"",""r-nc-blacktop"",""r-nc-lastexit"",""r-nc-fracture""]"
+ch-nexus,ch-nexus,nexus,Nexus Championship,1,"[""r-nx-gridlock"",""r-nx-sentinel"",""r-nx-powergrid"",""r-nx-vertical""]"
+ch-core-apex,ch-core-apex,neon-core,Aegis Apex Championship,3,"[""r-ncd-coreline"",""r-ncd-aegisdrop"",""r-ncd-redline"",""r-ncd-flux""]"
+ch-verdant,ch-verdant,veridan,Verdant Rally Championship,1,"[""r-vf-wildroot"",""r-vf-canopy"",""r-vf-riverbreak"",""r-vf-ruin""]"
+ch-thalassia,ch-thalassia,thalassia,Thalassia Deep Championship,1,"[""r-th-abyssal"",""r-th-trench"",""r-th-pressure"",""r-th-sunken""]"
+ch-ember,ch-ember,ember,Ember Apex Championship,1,"[""r-em-ashfall"",""r-em-cinder"",""r-em-foundry"",""r-em-magma""]"
+ch-wastes,ch-wastes,wastelands,Black-Market Grand Prix,2,"[""wl-devil"",""r-wl-rust"",""r-wl-canyon"",""r-wl-rebelroad""]"
+ch-swamp,ch-swamp,swamps,Swamp King Championship,1,"[""r-sw-mire"",""r-sw-fogline"",""r-sw-bog"",""r-sw-causeway""]"
+ch-solara,ch-solara,solara,Solara Grand Championship,1,"[""r-so-sunfire"",""r-so-dunedevil"",""r-so-sandstone"",""r-so-mirage""]"
+ch-frost,ch-frost,frostspire,Frost Spire Championship,1,"[""r-fs-whiteout"",""r-fs-glacier"",""r-fs-frostline"",""fs-vertical""]"
+ch-world-rally,ch-world-rally,wastelands,World Rally Series,2,"[""r-vf-wildroot"",""r-em-ashfall"",""r-so-sunfire"",""r-fs-whiteout"",""r-wl-endurance""]"

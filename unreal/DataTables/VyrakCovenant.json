@@ -1,0 +1,14 @@
+[
+  {
+    "Name": "vyrak",
+    "Id": "vyrak",
+    "DisplayName": "Vyrak, the Ashen Covenant",
+    "RegionId": "solara",
+    "MinLevel": 12,
+    "Briefing": "Vyrak has ruled the thermals over the Glass Flats since before the Fracture. Its scale armor turns almost everything — it only opens in the moments after its own attacks, and again when the chest plates crack. Survive the trial and it may choose you.",
+    "Tell": "Its wings flare gold before a strafing run, its chest plates glow before they burst, and the whole lair shakes before the Covenant roar.",
+    "PhasesJson": "[{\"at\":1,\"name\":\"Sky Sovereign\",\"telegraph\":\"Wings flare gold before a strafing fire run\"},{\"at\":0.6,\"name\":\"Scale Shedding\",\"telegraph\":\"Chest plates glow and crack — the weak point opens\"},{\"at\":0.25,\"name\":\"Covenant Trial\",\"telegraph\":\"Vyrak lands, roars, and offers the bond if you hold your ground\"}]",
+    "IntroJson": "[{\"speaker\":\"Vyrak\",\"text\":\"Another small thing with a borrowed spark. Show me why the Fracture chose you.\"},{\"speaker\":\"NOVA\",\"text\":\"Its armor sheds under heat. Break the chest plates and the core is exposed.\"}]",
+    "BondJson": "[{\"speaker\":\"Vyrak\",\"text\":\"Enough. You fight like one who will not be ruled. Then I will not rule you — I will walk beside you.\"},{\"speaker\":\"NOVA\",\"text\":\"Its mass is collapsing… it's choosing a smaller form. I think it just joined us.\"}]"
+  }
+]

@@ -3,7 +3,7 @@
  * (Plugins/WorldFractureCore/Tests/QuestCoreTest.cpp) to replay and match exactly.
  *
  * Run from the repo root:
- *   npx esbuild unreal-migration/tools/gen-quest-golden.ts --bundle --platform=node --format=esm \
+ *   npx esbuild unreal/tools/gen-quest-golden.ts --bundle --platform=node --format=esm \
  *     --alias:@=./src --outfile=/tmp/wf-golden.mjs && node /tmp/wf-golden.mjs
  *
  * Writes Plugins/WorldFractureCore/Tests/quest_golden.txt:
@@ -19,7 +19,7 @@ import { join } from "node:path";
 import { QUESTS, gameTick, finishActiveQuest, type QuestEvent } from "../../src/game/quests";
 import { DEFAULT_PROGRESSION, type PlayerProgression } from "../../src/game/progression";
 
-const OUT = join(process.cwd(), "unreal-migration", "Plugins", "WorldFractureCore", "Tests", "quest_golden.txt");
+const OUT = join(process.cwd(), "unreal", "Plugins", "WorldFractureCore", "Tests", "quest_golden.txt");
 const NONE = "~";
 
 const num = (n: number) => String(n);

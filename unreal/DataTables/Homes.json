@@ -1,0 +1,121 @@
+[
+  {
+    "Name": "rustmuck-capsule",
+    "Id": "rustmuck-capsule",
+    "DisplayName": "Rust-Muck Capsule Flat",
+    "Kind": "APARTMENT",
+    "District": "Rust-Muck Undercity",
+    "RegionId": "nexus",
+    "Price": 2500,
+    "Rooms": [
+      "living",
+      "bathroom"
+    ],
+    "Blurb": "One room over the black market. Cheap, loud, yours.",
+    "Garage": ""
+  },
+  {
+    "Name": "grid-loft",
+    "Id": "grid-loft",
+    "DisplayName": "Grid Transit Loft",
+    "Kind": "APARTMENT",
+    "District": "The Grid",
+    "RegionId": "nexus",
+    "Price": 18000,
+    "Rooms": [
+      "living",
+      "bedroom",
+      "bathroom",
+      "kitchen"
+    ],
+    "Blurb": "Open loft above the walkways. Trains hum through the floor.",
+    "Garage": ""
+  },
+  {
+    "Name": "veridan-cabin",
+    "Id": "veridan-cabin",
+    "DisplayName": "Verdant Forest Cabin",
+    "Kind": "HOUSE",
+    "District": "Verdant Wilds",
+    "RegionId": "veridan",
+    "Price": 32000,
+    "Rooms": [
+      "living",
+      "bedroom",
+      "bathroom",
+      "kitchen"
+    ],
+    "Blurb": "Timber and solar glass under the canopy.",
+    "Garage": ""
+  },
+  {
+    "Name": "solara-villa",
+    "Id": "solara-villa",
+    "DisplayName": "Solara Dune Villa",
+    "Kind": "HOUSE",
+    "District": "Solara Desert",
+    "RegionId": "solara",
+    "Price": 85000,
+    "Rooms": [
+      "living",
+      "bedroom",
+      "bedroom",
+      "bathroom",
+      "kitchen"
+    ],
+    "Blurb": "Shaded courtyard villa facing the Glass Flats.",
+    "Garage": ""
+  },
+  {
+    "Name": "aegis-penthouse",
+    "Id": "aegis-penthouse",
+    "DisplayName": "Aegis Spire Penthouse",
+    "Kind": "PENTHOUSE",
+    "District": "Aegis Spire",
+    "RegionId": "nexus",
+    "Price": 250000,
+    "Rooms": [
+      "living",
+      "bedroom",
+      "bedroom",
+      "bathroom",
+      "bathroom",
+      "kitchen"
+    ],
+    "Blurb": "The top of the city. Glass walls, sky deck, private lift.",
+    "Garage": ""
+  },
+  {
+    "Name": "wastes-hangar-bunk",
+    "Id": "wastes-hangar-bunk",
+    "DisplayName": "Scrap-Hangar Bunkroom",
+    "Kind": "GARAGE_QUARTERS",
+    "District": "Rust Port",
+    "RegionId": "wastelands",
+    "Price": 6000,
+    "Rooms": [
+      "garage",
+      "bedroom",
+      "bathroom"
+    ],
+    "Blurb": "Living quarters built into your Wastelands hangar.",
+    "Garage": "base-01"
+  },
+  {
+    "Name": "frost-bunker-suite",
+    "Id": "frost-bunker-suite",
+    "DisplayName": "Frostspire Bunker Suite",
+    "Kind": "GARAGE_QUARTERS",
+    "District": "Frostspire Mountains",
+    "RegionId": "frostspire",
+    "Price": 22000,
+    "Rooms": [
+      "garage",
+      "living",
+      "bedroom",
+      "bathroom"
+    ],
+    "Blurb": "Heated quarters behind the blast doors.",
+    "Garage": "base-03"
+  }
+]

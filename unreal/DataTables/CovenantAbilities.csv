@@ -1,0 +1,4 @@
+Name,Id,DisplayName,Description,Cooldown
+TITAN,ember-bulwark,Ember Bulwark,The Wyrmling breathes a wall of flame in front of you that blocks shots and burns enemies who cross it.,45
+HUNTER,wyrm-dash,Wyrm Dash,Dash through enemies trailing dragonfire; each enemy hit refunds dodge energy.,30
+WARLOCK,ash-nova,Ash Nova,The Wyrmling dives and detonates an ash nova that weakens enemies by 15%.,40

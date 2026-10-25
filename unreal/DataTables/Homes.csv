@@ -1,0 +1,8 @@
+Name,Id,DisplayName,Kind,District,RegionId,Price,Rooms,Blurb,Garage
+rustmuck-capsule,rustmuck-capsule,Rust-Muck Capsule Flat,APARTMENT,Rust-Muck Undercity,nexus,2500,"[""living"",""bathroom""]","One room over the black market. Cheap, loud, yours.",
+grid-loft,grid-loft,Grid Transit Loft,APARTMENT,The Grid,nexus,18000,"[""living"",""bedroom"",""bathroom"",""kitchen""]",Open loft above the walkways. Trains hum through the floor.,
+veridan-cabin,veridan-cabin,Verdant Forest Cabin,HOUSE,Verdant Wilds,veridan,32000,"[""living"",""bedroom"",""bathroom"",""kitchen""]",Timber and solar glass under the canopy.,
+solara-villa,solara-villa,Solara Dune Villa,HOUSE,Solara Desert,solara,85000,"[""living"",""bedroom"",""bedroom"",""bathroom"",""kitchen""]",Shaded courtyard villa facing the Glass Flats.,
+aegis-penthouse,aegis-penthouse,Aegis Spire Penthouse,PENTHOUSE,Aegis Spire,nexus,250000,"[""living"",""bedroom"",""bedroom"",""bathroom"",""bathroom"",""kitchen""]","The top of the city. Glass walls, sky deck, private lift.",
+wastes-hangar-bunk,wastes-hangar-bunk,Scrap-Hangar Bunkroom,GARAGE_QUARTERS,Rust Port,wastelands,6000,"[""garage"",""bedroom"",""bathroom""]",Living quarters built into your Wastelands hangar.,base-01
+frost-bunker-suite,frost-bunker-suite,Frostspire Bunker Suite,GARAGE_QUARTERS,Frostspire Mountains,frostspire,22000,"[""garage"",""living"",""bedroom"",""bathroom""]",Heated quarters behind the blast doors.,base-03

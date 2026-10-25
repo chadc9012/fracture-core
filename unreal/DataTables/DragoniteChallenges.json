@@ -1,0 +1,23 @@
+[
+  {
+    "Name": "unbroken-covenant",
+    "DisplayName": "The Unbroken Covenant",
+    "How": "Defeat Vyrak in a rematch without dying.",
+    "Ornament": "Unbroken Crest",
+    "Title": "Unbroken"
+  },
+  {
+    "Name": "wings-of-the-ancient",
+    "DisplayName": "Wings of the Ancient",
+    "How": "Defeat Vyrak in a rematch within 5 minutes of the summons.",
+    "Ornament": "Ancient Wingtips",
+    "Title": "Wingbound"
+  },
+  {
+    "Name": "dragons-patience",
+    "DisplayName": "The Dragon's Patience",
+    "How": "Answer each hidden attack pattern correctly.",
+    "Ornament": "Patient Scale",
+    "Title": "Patient One"
+  }
+]

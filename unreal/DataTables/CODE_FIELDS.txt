@@ -1,0 +1,2 @@
+Fields holding functions in the web build (rules to port as code, exported empty):
+Activities.gate

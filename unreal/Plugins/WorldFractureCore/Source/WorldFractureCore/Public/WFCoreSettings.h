@@ -15,7 +15,7 @@ class WORLDFRACTURECORE_API UWFCoreSettings : public UDeveloperSettings
 public:
 	UWFCoreSettings();
 
-	/** The Quests table imported from unreal-migration/DataTables/Quests.json (row struct FQuestsRow). */
+	/** The Quests table imported from unreal/DataTables/Quests.json (row struct FQuestsRow). */
 	UPROPERTY(Config, EditAnywhere, Category = "Quests", meta = (RequiredAssetDataTags = "RowStructure=/Script/WorldFractureCore.QuestsRow"))
 	TSoftObjectPtr<UDataTable> QuestTable;
 
