@@ -10,6 +10,8 @@
 #include "Kismet/GameplayStatics.h"
 #include "Materials/MaterialInstanceDynamic.h"
 #include "WFCharacter.h"
+#include "WFDataFiles.h"
+#include "WFGameMode.h"
 #include "WFProgressionSubsystem.h"
 
 namespace
@@ -60,6 +62,42 @@ void AWFEnemy::Configure(const FString& InProfile, const FString& InZone, const 
 	bElite = bInElite;
 	bBoss = bInBoss;
 	MaxHealth = Health = InMaxHealth;
+	BossRules.bBoss = bInBoss;
+	BossRules.Profile = WFData::ToStd(InProfile);
+	BossRules.MaxHp = BossRules.Hp = InMaxHealth;
+}
+
+void AWFEnemy::SyncRules()
+{
+	const FVector L = GetActorLocation() / CmPerM; // rules plane: x = Unreal X, z = Unreal Y (metres)
+	BossRules.X = L.X;
+	BossRules.Z = L.Y;
+	BossRules.Hp = Health;
+	BossRules.MaxHp = MaxHealth;
+	BossRules.Cool = StunLeft;
+	BossRules.bAlive = !IsDead();
+}
+
+void AWFEnemy::ApplyRules()
+{
+	const FVector L = GetActorLocation();
+	const FVector Target(BossRules.X * CmPerM, BossRules.Z * CmPerM, L.Z);
+	if (FVector::Dist2D(Target, L) > 1.0) // a pounce or lunge moved it: land on the ground there
+	{
+		FHitResult Ground;
+		FCollisionQueryParams Params(SCENE_QUERY_STAT(WFBossLand), false, this);
+		const bool bGround = GetWorld()->LineTraceSingleByChannel(Ground, Target + FVector(0, 0, 5000), Target - FVector(0, 0, 20000), ECC_Visibility, Params);
+		SetActorLocation(bGround ? Ground.ImpactPoint + FVector(0, 0, GetCapsuleComponent()->GetScaledCapsuleHalfHeight()) : Target, false, nullptr, ETeleportType::TeleportPhysics);
+	}
+	Health = BossRules.Hp; // truce floors and resets
+	StunLeft = BossRules.Cool;
+}
+
+void AWFEnemy::Depart()
+{
+	Health = 0;
+	ScenarioId.Empty();
+	Destroy();
 }
 
 void AWFEnemy::BeginPlay()
@@ -85,6 +123,20 @@ void AWFEnemy::Tick(float DeltaSeconds)
 	Super::Tick(DeltaSeconds);
 	if (IsDead()) return;
 	SincePlayerHit += DeltaSeconds;
+	if (bDecoy) return; // False Saints never fight
+	if (bBoss)
+	{
+		// sim.ts: every boss decays poise and escalates through three phases; a phase change opens the weak point
+		BossRules.Hp = Health;
+		BossRules.MaxHp = MaxHealth;
+		if (const std::optional<int> Changed = wf::encounter::StepRegionalPhase(BossRules, DeltaSeconds, GetWorld()->GetTimeSeconds()))
+			if (AWFGameMode* Mode = GetWorld()->GetAuthGameMode<AWFGameMode>()) Mode->OnBossPhase(this, *Changed);
+		const wf::encounter::FPhaseTuning& T = wf::encounter::TuningFor(BossRules.RegionalPhase);
+		PhaseSpeedMult = T.SpeedMult;
+		PhaseDamageMult = T.DamageMult;
+		PhaseCooldownMult = T.CooldownMult;
+		GetCharacterMovement()->MaxWalkSpeed = static_cast<float>(SpeedBase * (bElite ? SpeedElite : 1.0) * CmPerM * PhaseSpeedMult);
+	}
 	if (StunLeft > 0) { StunLeft -= DeltaSeconds; return; }
 	AWFCharacter* Player = Cast<AWFCharacter>(UGameplayStatics::GetPlayerPawn(this, 0));
 	if (!Player) return;
@@ -98,6 +150,9 @@ void AWFEnemy::Tick(float DeltaSeconds)
 	if (Distance > PreferredRange) AddMovementInput(Flat, 1.f);
 	else if (Distance < PreferredRange * 0.5 && Distance > MeleeRange) AddMovementInput(-Flat, 0.5f);
 	SetActorRotation(FRotator(0.f, Flat.Rotation().Yaw, 0.f));
+	// an authored encounter boss attacks only through its encounter (AWFGameMode::TickEncounters)
+	const AWFGameMode* Mode = GetWorld()->GetAuthGameMode<AWFGameMode>();
+	if (bBoss && Mode && Mode->HasEncounter(ScenarioId)) return;
 	TryAttack(Player, Distance, DeltaSeconds);
 }
 
@@ -106,8 +161,8 @@ void AWFEnemy::TryAttack(AWFCharacter* Player, double Distance, float DeltaSecon
 	MeleeCooldown = FMath::Max(0.0, MeleeCooldown - DeltaSeconds);
 	if (Distance <= MeleeRange && MeleeCooldown <= 0)
 	{
-		Player->ApplyHit(Tier(7, 12, 17), Profile);
-		MeleeCooldown = MeleeCooldownS;
+		Player->ApplyHit(Tier(7, 12, 17) * PhaseDamageMult, Profile);
+		MeleeCooldown = MeleeCooldownS * PhaseCooldownMult;
 		return;
 	}
 	if (Distance > RangedRange) { Windup = -1; return; }
@@ -117,7 +172,7 @@ void AWFEnemy::TryAttack(AWFCharacter* Player, double Distance, float DeltaSecon
 		Windup -= DeltaSeconds;
 		if (Windup > 0) return;
 		Windup = -1;
-		RangedCooldown = Tier(2.6, 1.9, 1.3);
+		RangedCooldown = Tier(2.6, 1.9, 1.3) * PhaseCooldownMult;
 		// a clear line from the muzzle to the player's chest, then a fixed hit chance (simplified; see header)
 		const FVector From = GetActorLocation() + FVector(0, 0, 60);
 		const FVector To = Player->GetActorLocation() + FVector(0, 0, 40);
@@ -125,26 +180,45 @@ void AWFEnemy::TryAttack(AWFCharacter* Player, double Distance, float DeltaSecon
 		FCollisionQueryParams Params(SCENE_QUERY_STAT(WFEnemyShot), false, this);
 		const bool bBlocked = GetWorld()->LineTraceSingleByChannel(Hit, From, To, ECC_Visibility, Params) && Hit.GetActor() != Player;
 		DrawDebugLine(GetWorld(), From, bBlocked ? Hit.ImpactPoint : To, FColor(255, 70, 50), false, 0.08f, 0, 1.f);
-		if (!bBlocked && FMath::FRand() < RangedHitChance) Player->ApplyHit(Tier(2, 4, 6), Profile);
+		if (!bBlocked && FMath::FRand() < RangedHitChance) Player->ApplyHit(Tier(2, 4, 6) * PhaseDamageMult, Profile);
 		return;
 	}
 	RangedCooldown -= DeltaSeconds;
 	if (RangedCooldown <= 0) Windup = Tier(0.6, 0.42, 0.25); // telegraph, then shoot
 }
 
-void AWFEnemy::ReceiveHit(double Damage, AActor* Instigator)
+void AWFEnemy::ReceiveHit(double Damage, AActor* Instigator, const FString& Element)
 {
 	if (IsDead()) return;
+	const double Now = GetWorld()->GetTimeSeconds();
+	const AWFGameMode* Mode = GetWorld()->GetAuthGameMode<AWFGameMode>();
+	if (bBoss && Mode)
+	{
+		// sim.ts applyMachineDamageMods: poise windows, scenario immunity outside them, gimmicks, participation hits
+		SyncRules();
+		double Distance = 0;
+		if (const APawn* Player = UGameplayStatics::GetPlayerPawn(this, 0)) Distance = FVector::Dist2D(Player->GetActorLocation(), GetActorLocation()) / CmPerM;
+		Damage = wf::encounter::ApplyBossDamage(Mode->GetEncounterCatalog(), BossRules, Damage, WFData::ToStd(Element), Distance, Now);
+	}
 	Health -= Damage;
 	bAggro = true;
-	if (Cast<AWFCharacter>(Instigator)) { SincePlayerHit = 0; ++PlayerHits; }
-	if (Health <= 0) Die();
+	if (Cast<AWFCharacter>(Instigator)) SincePlayerHit = 0;
+	if (Health > 0) return;
+	if (bBoss && Mode && !bDecoy)
+	{
+		// sim.ts defeatMachine: an encounter boss cannot die before its finale window opens
+		BossRules.Hp = Health;
+		const double Floor = wf::encounter::EncounterHpFloor(Mode->GetEncounterCatalog(), BossRules, Now);
+		if (Floor > 0) { Health = Floor; return; }
+	}
+	Die();
 }
 
 void AWFEnemy::ConfigureScenario(const FString& InScenarioId)
 {
 	ScenarioId = InScenarioId;
-	PlayerHits = 0;
+	BossRules.ScenarioId = WFData::ToStd(InScenarioId);
+	BossRules.PlayerHits = 0;
 	SummonedAt = GetWorld() ? GetWorld()->GetTimeSeconds() : 0;
 	if (UWFProgressionSubsystem* Progression = GetGameInstance() ? GetGameInstance()->GetSubsystem<UWFProgressionSubsystem>() : nullptr)
 	{
@@ -161,6 +235,13 @@ void AWFEnemy::Die()
 	GetCharacterMovement()->DisableMovement();
 	SetActorRotation(GetActorRotation() + FRotator(0.f, 0.f, 80.f)); // topple
 	SetLifeSpan(3.f);
+	AWFGameMode* Mode = GetWorld()->GetAuthGameMode<AWFGameMode>();
+	if (bDecoy) // a False Saint: no kill, credit, loot or progress
+	{
+		if (Mode) Mode->OnDecoyShattered(this);
+		return;
+	}
+	if (bBoss && Mode && Mode->HasEncounter(ScenarioId)) Mode->OnEncounterBossDefeated(this);
 
 	FWFEnemyRewardInfo Info;
 	Info.bBoss = bBoss;
@@ -175,7 +256,7 @@ void AWFEnemy::Die()
 	{
 		Info.ScenarioId = ScenarioId;
 		Info.ScenarioRun = ScenarioRun;
-		Info.PlayerHits = PlayerHits;
+		Info.PlayerHits = static_cast<int32>(BossRules.PlayerHits);
 		Info.FightSeconds = GetWorld()->GetTimeSeconds() - SummonedAt;
 		Info.FightDeaths = Progression->GetPlayerDeaths() - DeathsAtSummon;
 	}

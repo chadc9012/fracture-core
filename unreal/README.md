@@ -40,8 +40,11 @@ The default level is the engine's template map; the game mode adds a floor and l
 - **Unique Scenarios:** the 18 scenario bosses can be summoned (F8 or `SpawnScenarioBoss <id>`); a kill with 5+ player
   hits pays its signature loot once per run (duplicates level up, then turn into shards), records the class's
   encounter journal, and Vyrak clears pay the per-class covenant bond, Dragonite, rolled Covenant pieces and the
-  measurable challenges, stamping the rematch cooldown. Scenario gimmicks and Vyrak's three phases are not in yet:
-  they fight as plain bosses.
+  measurable challenges, stamping the rematch cooldown. The six authored encounters (Dark Knight, Rime
+  Alpha, Drowned Monarch, Hollow Saint, Vaelith, Vyrak's three phases) run the ported fight: tells, slams, lunges,
+  pounces, fans, hazard zones, False Saint decoys, Vaelith's truce, the finale window and its hp floor, and a reset
+  when you die. All bosses take damage through the ported poise / weak point / stagger rules, each scenario's gimmick
+  (adaptive, attune, closing) and its near-immunity outside the openings, and escalate through three phases.
 - **Vyrak and Dragonite (per class):** ability upgrades for Dragonite (3/6/10/15) and every ability's numbers from
   upgrades and worn Covenant armor; trust from challenges, encounters, ruins, puzzles and protected runs with its
   stages; the Ancient Bond (unlocks riding, Wingmantle) and Eternal Covenant (Eternal Crest) ceremonies; Wyrmcall (F7)
@@ -66,16 +69,17 @@ cmake -S . -B build -G Ninja && cmake --build build && ctest --test-dir build --
 | RewardCoreTest | sim.ts defeatMachine, inventory.ts claimDrops, xp.ts grantXP (Math.random replayed) incl. 18 scenarios + Vyrak covenant | 754 kills (319 scenario), 2,936 checks |
 | MissionCoreTest | src/game/missions/* (12 machines) | 28,800 states |
 | MissionRewardCoreTest | progression.ts rewardMission, persistence.ts applyMissionCompletion | 1,224 payouts, 1,576 checks |
+| EncounterCoreTest | encounter-sim.ts, boss-poise.ts, boss-phases.ts, scenario-gimmicks.ts, sim.ts boss damage | 112 fights, 27,149 steps, 32,056 checks |
 | DragonCoreTest | dragonite.ts, dragonite-cast.ts statsFor, vyrak-trust.ts | 2,099 states, 23,789 checks |
 
 Regenerate goldens after changing the web build's rules (from the repo root):
 
     npx esbuild unreal/tools/<tool>.ts --bundle --platform=node --format=esm --alias:@=./src --outfile=/tmp/t.mjs && node /tmp/t.mjs
 
-for `export-datatables`, `gen-quest-golden`, `gen-reward-golden`, `gen-mission-golden`, `gen-missionreward-golden`, `gen-dragon-golden`.
+for `export-datatables`, `gen-quest-golden`, `gen-reward-golden`, `gen-mission-golden`, `gen-missionreward-golden`, `gen-dragon-golden`; the encounter recorder runs through `node unreal/tools/build-golden.mjs unreal/tools/gen-encounter-golden.ts`.
 
 ## Not ported yet
-Unique Scenario fights (gimmicks, Vyrak's three phases), the six other Dragonite casts and ability energy, mid-mission saves, abilities (Q/E/R),
+Boss models and attack effects (zones are debug circles, decoys are stand-ins), the six other Dragonite casts and ability energy, mid-mission saves, abilities (Q/E/R),
 armor effects on combat, enemy perception/cover/line-of-sight, launchers and the sword, vehicles and racing,
 merchants and housing, cloud save merge, the world itself (regions, Neon City, Thalassia). Their data is already in
 `DataTables/`.

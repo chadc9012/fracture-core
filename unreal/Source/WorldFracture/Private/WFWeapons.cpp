@@ -30,6 +30,8 @@ namespace WFWeapons
 				W.Reserve = static_cast<int32>(WFData::Num(Row, TEXT("Reserve"), 120));
 				W.Reload = WFData::Num(Row, TEXT("Reload"), 1.6);
 				W.Pellets = FMath::Max(1, static_cast<int32>(WFData::Num(Row, TEXT("Pellets"), 1)));
+				const FString Element = WFData::Str(Row, TEXT("Element"));
+				if (!Element.IsEmpty()) W.Element = Element;
 				Out.Add(W);
 			}
 		if (Out.IsEmpty()) OutError = TEXT("Weapons.json has none of AUTO, PULSE, SIDEARM, SHOTGUN, HEAVY");

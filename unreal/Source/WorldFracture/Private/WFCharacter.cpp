@@ -207,8 +207,8 @@ void AWFCharacter::Look(const FInputActionValue& Value)
 	AddControllerPitchInput(static_cast<float>(-Axis.Y));
 }
 
-void AWFCharacter::SprintStarted(const FInputActionValue& Value) { GetCharacterMovement()->MaxWalkSpeed = SprintSpeed; }
-void AWFCharacter::SprintStopped(const FInputActionValue& Value) { GetCharacterMovement()->MaxWalkSpeed = WalkSpeed; }
+void AWFCharacter::SprintStarted(const FInputActionValue& Value) { bSprinting = true; }
+void AWFCharacter::SprintStopped(const FInputActionValue& Value) { bSprinting = false; }
 
 void AWFCharacter::NextWeapon(const FInputActionValue& Value)
 {
@@ -306,7 +306,7 @@ void AWFCharacter::TickDragon(float DeltaSeconds)
 			const FVector From = E->GetActorLocation() + FVector(0, 0, 1500);
 			DrawDebugLine(GetWorld(), From, E->GetActorLocation(), Action.Kind == TEXT("interrupt") ? FColor(120, 200, 255) : FColor(170, 60, 255), false, 0.4f, 0, Action.Kind == TEXT("finisher") ? 12.f : 5.f);
 			if (Action.Kind == TEXT("interrupt")) E->Interrupt(1.5);
-			else E->ReceiveHit(Action.Damage, this); // the Wyrm's kills are the player's
+			else E->ReceiveHit(Action.Damage, this, TEXT("THERMAL")); // the Wyrm's kills are the player's
 		}
 	if (bWithdrew) Notify(TEXT("Vyrak withdraws"), FLinearColor(0.7f, 0.4f, 1.f));
 }
@@ -410,6 +410,7 @@ void AWFCharacter::Tick(float DeltaSeconds)
 	TickWeapon(DeltaSeconds);
 	TickDragon(DeltaSeconds);
 	if (bRiding) TickRide(DeltaSeconds);
+	else GetCharacterMovement()->MaxWalkSpeed = static_cast<float>((bSprinting ? SprintSpeed : WalkSpeed) * HazardSpeedMult);
 
 	// health.ts stepHealth: after RegenDelay seconds without damage, recover RegenRate per second.
 	SinceDamage += DeltaSeconds;
@@ -484,7 +485,7 @@ void AWFCharacter::FireRound()
 		const bool bHit = World->LineTraceSingleByChannel(Hit, Start, End, ECC_Visibility, Params);
 		DrawDebugLine(World, Start + Dir * 60.f, bHit ? Hit.ImpactPoint : End, FColor(255, 214, 120), false, 0.05f, 0, 1.2f);
 		if (bHit)
-			if (AWFEnemy* Enemy = Cast<AWFEnemy>(Hit.GetActor())) Enemy->ReceiveHit(W->Damage * WFWeapons::BaseBulletDamage, this);
+			if (AWFEnemy* Enemy = Cast<AWFEnemy>(Hit.GetActor())) Enemy->ReceiveHit(W->Damage * WFWeapons::BaseBulletDamage, this, W->Element);
 	}
 
 	// recoil: pitch kick in radians (weapons.ts), applied to the view
@@ -515,6 +516,7 @@ void AWFCharacter::ApplyHit(double Damage, const FString& Source)
 	if (Health <= 0)
 	{
 		if (UWFProgressionSubsystem* Progression = GetGameInstance()->GetSubsystem<UWFProgressionSubsystem>()) Progression->RecordPlayerDeath();
+		if (AWFGameMode* Mode = GetWorld()->GetAuthGameMode<AWFGameMode>()) Mode->OnPlayerDied(); // encounter bosses reset
 		Respawn();
 	}
 }

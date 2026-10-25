@@ -71,6 +71,21 @@ void AWFHUD::DrawHUD()
 	if (!Canvas) return;
 	const float W = Canvas->ClipX, H = Canvas->ClipY;
 
+	// boss panel: name, health, encounter phase, and the attack being wound up (encounter-sim.ts windupHud)
+	if (const AWFGameMode* Mode = GetWorld()->GetAuthGameMode<AWFGameMode>())
+	{
+		FString Name, Phase, Windup;
+		double HpFrac = 0, Progress = 0;
+		if (Mode->GetBossHud(Name, HpFrac, Phase, Windup, Progress))
+		{
+			auto Bar = [](double Fraction, int32 Cells) { FString B; const int32 Full = FMath::Clamp(FMath::RoundToInt(Fraction * Cells), 0, Cells); for (int32 I = 0; I < Cells; ++I) B += I < Full ? TEXT("#") : TEXT("-"); return B; };
+			const float X = W * 0.5f - 230.f;
+			Line(FString::Printf(TEXT("%s  -  %s"), *Name.ToUpper(), *Phase), X, 28, Gold, 1.1f);
+			Line(FString::Printf(TEXT("[%s] %d%%"), *Bar(HpFrac, 40), FMath::RoundToInt(HpFrac * 100)), X, 52, Warn);
+			if (!Windup.IsEmpty()) Line(FString::Printf(TEXT("%s  [%s]"), *Windup.ToUpper(), *Bar(Progress, 20)), X, 74, FLinearColor(1.f, 0.3f, 0.25f), 1.05f);
+		}
+	}
+
 	// crosshair
 	DrawLine(W / 2 - 10, H / 2, W / 2 - 3, H / 2, Soft, 1.5f);
 	DrawLine(W / 2 + 3, H / 2, W / 2 + 10, H / 2, Soft, 1.5f);

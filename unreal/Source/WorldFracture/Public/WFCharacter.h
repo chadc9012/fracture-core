@@ -42,6 +42,8 @@ public:
 	bool IsReloading() const { return ReloadLeft > 0; }
 	const FString& GetLastDamageSource() const { return LastDamageSource; }
 	bool IsRiding() const { return bRiding; }
+	/** Encounter SLOW zones (frost patches, shroud mist) scale movement speed while the player stands in them. */
+	void SetHazardSpeedMult(double Mult) { HazardSpeedMult = Mult; }
 	double GetRideSpeed() const { return Flight.Speed; }
 
 	// Console commands for the dragon progression (no menu yet)
@@ -111,6 +113,8 @@ private:
 	UPROPERTY(VisibleAnywhere, Category = "Dragon") TObjectPtr<UStaticMeshComponent> MountMesh;
 
 	bool bRiding = false;
+	bool bSprinting = false;
+	double HazardSpeedMult = 1;
 	wf::dragon::FFlight Flight;
 	FVector2D RideInput = FVector2D::ZeroVector; // A/D turn, W/S throttle, gathered from Move each frame
 

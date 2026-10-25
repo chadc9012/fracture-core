@@ -1,6 +1,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Core/WFEncounterCore.h"
 #include "GameFramework/Character.h"
 #include "WFEnemy.generated.h"
 
@@ -11,6 +12,10 @@ class AWFCharacter;
  * A regional trooper. Numbers come from the web build: health from sim.ts spawnMachine ((3 or 7 elite) + region
  * difficulty x0.8, x challenge), aggro radius, speed, wind-up and cooldowns from enemy-tuning.ts, damage from
  * sim.ts (ranged 2/4/6, melee 7/12/17 by tier). Its death pays through UWFProgressionSubsystem::ReportEnemyDefeated.
+ *
+ * Bosses take damage through the ported boss rules (poise, weak point, stagger, Unique Scenario gimmicks and
+ * outside-window immunity, the finale hp floor) and escalate through the three regional phases. A boss with an
+ * authored encounter does not shoot or melee on its own: AWFGameMode runs its encounter (tells, attacks, zones).
  *
  * Simplified for now: no perception states, cover, line-of-sight cache or hit-chance model (enemy-perception.ts,
  * enemy-cover.ts, line-of-sight.ts) — a ranged shot hits if the line to the player is clear, with a fixed 40% chance.
@@ -32,7 +37,21 @@ public:
 	virtual void BeginPlay() override;
 	virtual void Tick(float DeltaSeconds) override;
 
-	void ReceiveHit(double Damage, AActor* Instigator);
+	/** Element is the hit's damage element (KINETIC, THERMAL, CRYO, ARC, BIO): scenario gimmicks read it. */
+	void ReceiveHit(double Damage, AActor* Instigator, const FString& Element = TEXT("KINETIC"));
+	/** A False Saint (Hollow Saint decoy): never attacks, pays nothing, and reports its shattering to the encounter. */
+	void ConfigureDecoy(double InDecoyId) { bDecoy = true; DecoyId = InDecoyId; }
+	bool IsDecoy() const { return bDecoy; }
+	double GetDecoyId() const { return DecoyId; }
+	double GetHealth() const { return Health; }
+	double GetMaxHealth() const { return MaxHealth; }
+	/** The boss as the encounter rules see it. SyncRules copies the actor's state in; ApplyRules writes the rules' results back. */
+	wf::encounter::FBoss& Rules() { return BossRules; }
+	const wf::encounter::FBoss& Rules() const { return BossRules; }
+	void SyncRules();
+	void ApplyRules();
+	/** The boss left without dying (Vaelith's truce): no kill, no reward. */
+	void Depart();
 	bool IsDead() const { return Health <= 0; }
 	const FString& GetProfile() const { return Profile; }
 	bool IsBoss() const { return bBoss; }
@@ -67,8 +86,11 @@ private:
 	double SincePlayerHit = 1000; // seconds since the player last damaged it (sim.ts kill-credit window)
 	FString ScenarioId;
 	double StunLeft = 0;
+	bool bDecoy = false;
+	double DecoyId = 0;
+	wf::encounter::FBoss BossRules;
+	double PhaseSpeedMult = 1, PhaseDamageMult = 1, PhaseCooldownMult = 1; // regional boss phase tuning
 	FString ScenarioRun;
-	int32 PlayerHits = 0;
 	double SummonedAt = 0;        // world seconds
 	int32 DeathsAtSummon = 0;
 };

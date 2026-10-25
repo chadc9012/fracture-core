@@ -1,6 +1,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Core/WFEncounterCore.h"
 #include "GameFramework/GameModeBase.h"
 #include "WFGameMode.generated.h"
 
@@ -41,6 +42,17 @@ public:
 	UFUNCTION(Exec) void SpawnScenarioBoss(const FString& ScenarioId);
 	/** Summons the next Unique Scenario of the current region (all regions when it has none). Returns its id. */
 	FString SummonNextScenario();
+
+	// ---- boss encounters (ported encounter-sim.ts) ----
+	const wf::encounter::FCatalog& GetEncounterCatalog() const { return EncounterCatalog; }
+	bool HasEncounter(const FString& ScenarioId) const;
+	/** The player died: encounter bosses reset to full health and phase 0 (encounter-sim.ts resetEncounters). */
+	void OnPlayerDied();
+	void OnEncounterBossDefeated(AWFEnemy* Boss);
+	void OnDecoyShattered(AWFEnemy* Decoy);
+	void OnBossPhase(AWFEnemy* Boss, int32 Phase);
+	/** HUD: the nearest live encounter boss, its hp fraction, encounter phase, and the attack being wound up (if any). */
+	bool GetBossHud(FString& OutName, double& OutHpFraction, FString& OutPhase, FString& OutWindup, double& OutWindupProgress) const;
 	const FString& GetRegionName() const { return RegionName; }
 
 private:
@@ -48,6 +60,17 @@ private:
 	bool LoadRoster();
 	void SpawnTrooper();
 	void LoadScenarios();
+	void TickEncounters(float DeltaSeconds);
+	void SyncDecoys();
+	void ShowEncounterEvents();
+	void DrawZones() const;
+	TArray<AWFEnemy*> EncounterBosses() const;
+	void Toast(const FString& Text, const FLinearColor& Color) const;
+
+	wf::encounter::FCatalog EncounterCatalog;
+	wf::encounter::FArena Arena;
+	double SeenEventId = 0;
+	TMap<int64, TWeakObjectPtr<AWFEnemy>> DecoyActors; // decoy id -> actor
 
 	struct FScenarioBoss
 	{
