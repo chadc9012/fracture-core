@@ -18,6 +18,7 @@ import { diveBones } from "@/game/enemy-evasion";
 import { FACTIONS, laneSamples, type WorldSim } from "@/game/sim";
 import { getVoicePose, isBossSpeaker } from "@/game/voice-animation";
 import { walkHeight } from "@/game/terrain";
+import { enemyVisible } from "@/game/actor-cull";
 import { FLEET_MODELS } from "@/game/fleet-models";
 import { AuthoredVehicle } from "./AuthoredVehicle";
 
@@ -244,7 +245,8 @@ export function WarMachines({ sim }: { sim: WorldSim }) {
     sim.machines.forEach((m, i) => {
       const node = g.children[i] as THREE.Group | undefined;
       if (!node) return;
-      node.visible = m.alive;
+      const cdx = m.x - state.camera.position.x, cdz = m.z - state.camera.position.z;
+      node.visible = enemyVisible(m, cdx * cdx + cdz * cdz);
       const prev = last[i], drive = drives[i];
       if (!m.alive) { if (prev) prev.x = NaN; return; }
       if (prev && drive) {
