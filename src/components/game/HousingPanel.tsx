@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import type { PlayerProgression } from "@/game/progression";
 import { DECOR, HOMES, buyDecor, buyHome, decorById, homeById, ownsDecor, ownsHome, placeDecor, type DecorSlot } from "@/game/housing";
 import { nexBalance } from "@/game/nex";
+import { PENTHOUSES, buyPenthouseUpgrade, maxedPrice, ownsUpgrade, type PenthouseId } from "@/game/penthouse-upgrades";
 
 const SLOTS: DecorSlot[] = ["paint", "wallpaper", "floor", "furniture", "art", "tv", "bed", "bath", "lighting"];
 const ROOM_NAME = { living: "Living room", bedroom: "Bedroom", bathroom: "Bathroom", kitchen: "Kitchen", garage: "Garage" } as const;
@@ -47,6 +48,11 @@ export function HousingPanel({ progression, onProgression, onClose, startTab = "
                   <p className="text-lg">{h.name}</p>
                   <p className="text-[11px] text-muted-foreground">{h.blurb}</p>
                   <p className="mt-1 text-[11px] text-muted-foreground">{h.rooms.map((r) => ROOM_NAME[r]).join(" · ")}</p>
+                  {mine && h.id in PENTHOUSES && <div className="mt-2 space-y-1 border-t border-border/60 pt-2">
+                    <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Upgrades · fully fitted {maxedPrice(h.id as PenthouseId).toLocaleString()} Nex</p>
+                    {PENTHOUSES[h.id as PenthouseId].upgrades.map((u) => { const has = ownsUpgrade(progression.nexLedger, h.id as PenthouseId, u.id);
+                      return <div key={u.id} className="flex items-center justify-between gap-2 text-[11px]"><span>{u.name} <span className="text-muted-foreground">· {u.text}</span></span>{has ? <span className="font-mono text-primary">Installed</span> : <Button size="sm" variant="outline" onClick={() => run(buyPenthouseUpgrade(progression, h.id as PenthouseId, u.id))}>{u.price.toLocaleString()} Nex</Button>}</div>; })}
+                  </div>}
                   <div className="mt-2">
                     {mine ? <Button size="sm" variant="outline" onClick={() => { setHomeId(h.id); setRoom(0); setTab("DECORATE"); }}>Owned · Decorate</Button>
                       : confirm === h.id ? <div className="flex gap-2"><Button size="sm" onClick={() => { run(buyHome(progression, h.id)); setConfirm(null); }}>Confirm {h.price.toLocaleString()} Nex</Button><Button size="sm" variant="outline" onClick={() => setConfirm(null)}>Cancel</Button></div>

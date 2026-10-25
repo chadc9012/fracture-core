@@ -7,7 +7,7 @@ const base = (nex: number, garages: string[] = []) => ({ nexLedger: { grant: nex
 describe("housing", () => {
   test("cheap Undercity flat vs expensive Aegis penthouse", () => {
     expect(homeById("rustmuck-capsule")!.price).toBe(2500);
-    expect(homeById("aegis-penthouse")!.price).toBe(300000);
+    expect(homeById("aegis-penthouse")!.price).toBe(15000);
   });
   test("buying charges once and refuses a second buy", () => {
     const r = buyHome(base(3000), "rustmuck-capsule");
@@ -18,7 +18,7 @@ describe("housing", () => {
   test("can own several homes", () => {
     let p = base(30000);
     for (const id of ["rustmuck-capsule", "grid-loft"]) { const r = buyHome(p, id); if ("error" in r) throw new Error(r.error); p = r.progression; }
-    expect(nexBalance(p.nexLedger)).toBe(9500);
+    expect(nexBalance(p.nexLedger)).toBe(18500);
   });
   test("not enough Nex is refused", () => expect("error" in buyHome(base(100), "grid-loft")).toBe(true));
   test("garage quarters need the garage", () => {

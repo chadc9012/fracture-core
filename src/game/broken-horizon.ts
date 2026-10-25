@@ -56,7 +56,7 @@ export function brokenHorizon(seed = 7): HorizonIsland[] {
     const ang = rnd() * Math.PI * 2;
     const dm = Math.atan2(Math.sin(ang - moon), Math.cos(ang - moon));
     if (Math.abs(dm) < 0.55) continue;
-    const dist = 620 + rnd() * 720, r = 12 + Math.pow(rnd(), 1.5) * 34;
+    const dist = 620 + rnd() * 720, r = 18 + Math.pow(rnd(), 1.5) * 44; // target frame: big enough to read as islands with buildings, not specks
     const y = Math.max(150, dist * (0.22 + rnd() * 0.3));
     if (out.some((o) => Math.hypot(o.x - Math.cos(ang) * dist, o.y - y, o.z - Math.sin(ang) * dist) < (o.r + r) * 1.6)) continue;
     const towers: HorizonTower[] = [];

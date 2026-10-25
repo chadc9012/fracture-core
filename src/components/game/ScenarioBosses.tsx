@@ -8,6 +8,7 @@ import { UNIQUE_SCENARIOS, type UniqueScenario } from "@/game/unique-scenarios";
 import { walkHeight } from "@/game/terrain";
 import type { WorldSim } from "@/game/sim";
 import { DragonModel } from "./DragonModel";
+import { AstravoreBody, HollowStarArena } from "./AstravoreBody";
 import { vyrakFire } from "@/game/dragon-look";
 import { findQuadrupedLegs, legAngles, type Leg, type RestBone } from "@/game/skeleton-gait";
 
@@ -147,11 +148,11 @@ export function ScenarioBosses({ sim }: { sim: WorldSim }) {
     for (const m of sim.machines) {
       if (m.alive && m.scenarioId && !wanted.includes(m.scenarioId)) {
         const id = m.scenarioId;
-        if (id === "vyrak" || UNIQUE_SCENARIOS.find((s) => s.id === id)?.model) setWanted((list) => (list.includes(id) ? list : [...list, id]));
+        if (id === "vyrak" || id === "astravore" || UNIQUE_SCENARIOS.find((s) => s.id === id)?.model) setWanted((list) => (list.includes(id) ? list : [...list, id]));
       }
     }
   });
-  return <>{wanted.includes("vyrak") && <VyrakBody sim={sim} />}{UNIQUE_SCENARIOS.filter((s) => s.model && wanted.includes(s.id)).map((s) => (
+  return <><HollowStarArena />{wanted.includes("astravore") && <AstravoreBody sim={sim} ready={scenarioModelReady} />}{wanted.includes("vyrak") && <VyrakBody sim={sim} />}{UNIQUE_SCENARIOS.filter((s) => s.model && wanted.includes(s.id)).map((s) => (
     <Quiet key={s.id} id={s.id}><Suspense fallback={null}><BossModel scenario={s} sim={sim} /></Suspense></Quiet>
   ))}</>;
 }

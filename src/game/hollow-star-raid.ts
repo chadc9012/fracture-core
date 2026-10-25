@@ -169,3 +169,21 @@ export const hollowStarNews = (operatorName: string) => `HOLLOW STAR SILENT — 
 export function starbreakerRecognition(p: Pick<PlayerProgression, "earnedRewards">, npcName: string): string | null {
   return hasStarbreaker(p) ? `${npcName}: "Starbreaker. The ground's been still since you went down. Whatever you need, it's yours."` : null;
 }
+
+/* ------------------------------------------------------------ the 3D fight ------------------------------------------------------------ */
+export const ASTRAVORE_SCENARIO_ID = "astravore";
+/** Killing Astravore in the world (the unique-scenario fight, scenario-encounters.ts) pays the raid's own extras on top of its
+ * signature gear: Starbreaker, the blueprint and the regalia on the first kill, a smaller repeat payout after. Call it once per
+ * confirmed kill (the reward plan already guarantees one call per run id). */
+export function applyAstravoreKill(p: PlayerProgression): { progress: PlayerProgression; firstKill: boolean } {
+  const firstKill = !p.earnedRewards.includes(STARBREAKER_KEY);
+  const extras = hollowStarExtras(p.earnedRewards, firstKill ? 0 : 1, "STANDARD", []);
+  const earned = Array.from(new Set([
+    ...p.earnedRewards, ...extras.appearances,
+    ...(extras.blueprint ? [DIMENSIONAL_BLUEPRINT_KEY] : []), ...(extras.title ? [STARBREAKER_KEY] : []),
+  ]));
+  return {
+    firstKill,
+    progress: { ...p, earnedRewards: earned, fractureShards: p.fractureShards + extras.fractureShards, materials: { ...p.materials, anomalyCarbon: (p.materials.anomalyCarbon ?? 0) + extras.anomalyCarbon } },
+  };
+}

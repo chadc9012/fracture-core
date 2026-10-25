@@ -26,7 +26,7 @@ export function zoneElement(zone: string | undefined, kind?: string): Element {
 
 /** how a Unique Scenario boss fights visually: the Dark Knight casts void magic with his staff, Rime Alpha breathes frost, the Drowned
  * Monarch spits corrosive tide, the Hollow Saint throws light */
-export const BOSS_ELEMENT: Record<string, Element> = { "dark-knight": "VOID", "rime-alpha": "ICE", "drowned-monarch": "ACID", "hollow-saint": "HOLY", vyrak: "FIRE" };
+export const BOSS_ELEMENT: Record<string, Element> = { "dark-knight": "VOID", "rime-alpha": "ICE", "drowned-monarch": "ACID", "hollow-saint": "HOLY", vyrak: "FIRE", astravore: "VOID" };
 
 export type AttackFxMode = "volley" | "spell" | "none";
 export type AttackFx = { element: Element; mode: AttackFxMode; /** bolts in a volley */ count: number; /** spread across the cone, radians, when no cone is given */ spread: number };
@@ -36,10 +36,10 @@ const NONE: AttackFx = { element: "BALLISTIC", mode: "none", count: 0, spread: 0
 export function attackFx(scenarioId: string, attackId: string, kind: string): AttackFx {
   const element = BOSS_ELEMENT[scenarioId];
   if (!element) return NONE;
-  if (kind === "FAN") return { element, mode: "volley", count: attackId === "breath" ? 9 : 5, spread: attackId === "breath" ? 0.42 : 0.26 };
+  if (kind === "FAN") return { element, mode: "volley", count: attackId === "breath" ? 9 : attackId === "star-beam" ? 3 : 5, spread: attackId === "breath" ? 0.42 : attackId === "star-beam" ? 0.1 : 0.26 };
   // the Drowned Monarch has no ranged attack: its field attacks are shown as corrosive globs lobbed onto the player's area (the zones themselves are unchanged)
   if (scenarioId === "drowned-monarch" && kind === "FIELD") return { element, mode: "volley", count: 4, spread: 0.2 };
-  if (scenarioId === "dark-knight" && (kind === "SLAM" || kind === "FIELD")) return { element, mode: "spell", count: 0, spread: 0 };
+  if ((scenarioId === "dark-knight" || scenarioId === "astravore") && (kind === "SLAM" || kind === "FIELD")) return { element, mode: "spell", count: 0, spread: 0 };
   return NONE;
 }
 

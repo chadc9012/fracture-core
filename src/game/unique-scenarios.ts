@@ -38,6 +38,8 @@ export type UniqueScenario = {
   lair?: { dx: number; dz: number };
   /** a lair at an absolute world position, for scenarios whose site is not a region (Thalassia) */
   lairAt?: { x: number; z: number };
+  /** the region the map files a lairAt marker under (default: the nearest-region fallback "swamps"); for sites just outside a city */
+  mapRegion?: string;
 };
 
 export const UNIQUE_SCENARIOS: readonly UniqueScenario[] = [
@@ -292,6 +294,21 @@ export const UNIQUE_SCENARIOS: readonly UniqueScenario[] = [
     outsideWindowMult: 0.06,
     rewardCredits: 1500,
     lair: { dx: 0.5, dz: -0.45 },
+  },
+  {
+    id: "astravore",
+    gimmick: "poise",
+    taunt: "\"Reality is just another layer.\"",
+    name: "Raid Boss: Astravore, the Hollow Star",
+    regionId: "nexus",
+    bossName: "Astravore, the Hollow Star",
+    drop: "anomalyCarbon",
+    briefing: "A colossal armored intelligence with a miniature star in its chest, the thing that woke under Nexus City. Its armor barely registers damage until the star destabilizes and the core is exposed. Read each tell, survive, and strike the core in the opening.",
+    tell: "The star in its chest flares violet-white and the arena lights lean toward it before every strike.",
+    outsideWindowMult: 0.1,
+    rewardCredits: 6000,
+    lairAt: { x: 48, z: -68 },
+    mapRegion: "nexus",
   },
 ];
 

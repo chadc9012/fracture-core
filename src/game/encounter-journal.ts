@@ -47,6 +47,12 @@ const AUTHORED: Record<string, readonly Clue[]> = {
     { id: "tracks", route: "world", text: "Tread marks wider than a road lead into an abandoned Wastelands military complex." },
     { id: "legion", route: "npc", text: "The Sub-Terra Legion keeps a gate sealed against a machine that is still running." },
   ],
+  astravore: [
+    { id: "tremors", route: "world", text: "The tremors under Nexus City keep a rhythm that is too regular to be geology." },
+    { id: "star-glass", route: "world", text: "Pale glass shards from nowhere lie in the south road, warm to the touch and pointing the same way." },
+    { id: "engineer", route: "npc", text: "An old Nexus engineer says the city was built on a machine that held the dimensions apart, and that it has started to breathe." },
+    { id: "pulse", route: "combat", text: "Something below answers when you fire a heavy weapon near the south road: a slow violet pulse in the ground." },
+  ],
   vyrak: [
     { id: "inscription", route: "world", text: "An inscription in Solara describes a sky sovereign that tests courage, not strength." },
     { id: "ember", route: "npc", text: "A ranger remembers a dragon that remembers the world before the Fracture." },

@@ -1,4 +1,5 @@
 import "./text-font";
+import { ASTRAVORE_SCENARIO_ID, applyAstravoreKill } from "@/game/hollow-star-raid";
 import { FOUND_KEY as STORM_FOUND, stormPrompt, stormStep } from "@/game/storm-quests";
 import { DANCE_VENUES, danceBest, recordDance } from "@/game/dance";
 import { DanceFloor } from "./DanceFloor";
@@ -73,6 +74,7 @@ import { ArsenalLoadouts } from "./ArsenalLoadouts";
 import { SaveManager } from "./SaveManager";
 import { buyPenthouseNex, ownsPenthouseNex, publishPenthouse } from "@/game/casino-property";
 import { nexBalance } from "@/game/nex";
+import { buyPenthouseUpgrade, ownedUpgrades } from "@/game/penthouse-upgrades";
 import { activeLoadout, rewardMission, loadProgression, rewardVehicle, saveProgression, type PlayerProgression } from "@/game/progression";
 import { RENDER_PRESETS, defaultTierForGpu, detectGpuRenderer } from "@/game/performance";
 import { classBuild } from "@/game/live-build";
@@ -545,6 +547,8 @@ export function GameCanvas() {
     publishPenthouse({
       owned: ownsPenthouseNex(progression.nexLedger), balance: nexBalance(progression.nexLedger),
       buy: () => { const r = buyPenthouseNex(progressionRef.current); if ("error" in r) return { ok: false, reason: r.error }; progressionRef.current = r.progression; setProgression(r.progression); return { ok: true, reason: r.message }; },
+      upgrades: ownedUpgrades(progression.nexLedger, "skyline-penthouse").map((u) => u.id),
+      buyUpgrade: (id) => { const r = buyPenthouseUpgrade(progressionRef.current, "skyline-penthouse", id); if ("error" in r) return { ok: false, reason: r.error }; progressionRef.current = r.progression; setProgression(r.progression); return { ok: true, reason: r.message }; },
     });
   }, [progression.nexLedger]);
   useEffect(() => () => publishPenthouse(null), []);
@@ -1107,7 +1111,10 @@ export function GameCanvas() {
   const showScenarioRewards = (drops: { scenarioClaim?: Parameters<typeof grantScenarioReward>[1] }[]) => {
     const plan = planScenarioRewardCards(progressionRef.current, drops, shownRewardRuns.current);
     const last = plan[plan.length - 1];
-    if (last) setRewardCards({ title: scenarioById(last.scenarioId)?.name ?? "Scenario", cards: plan.flatMap((p) => p.cards) });
+    // Raid 01's boss: the raid's own rewards (Starbreaker on the first kill) ride on the same confirmed claim
+    let first = false;
+    if (plan.some((p) => p.scenarioId === ASTRAVORE_SCENARIO_ID)) { const r = applyAstravoreKill(progressionRef.current); first = r.firstKill; setProgression((current) => applyAstravoreKill(current).progress); }
+    if (last) setRewardCards({ title: `${scenarioById(last.scenarioId)?.name ?? "Scenario"}${first ? " · Title earned: Starbreaker" : ""}`, cards: plan.flatMap((p) => p.cards) });
   };
   // Story scenarios (vaelith.ts): branching conversations never block play (Esc / B skips); every effect goes through the pure story reducers
   const [storyGraph, setStoryGraph] = useCountedState<DialogueGraph | null>("storyGraph", null);
