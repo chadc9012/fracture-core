@@ -13,8 +13,8 @@ import type { WorldSim } from "@/game/sim";
 const PHASE_COLOR = ["#a463ff", "#ff9a3c", "#4fc3ff", "#ff4a3a"] as const;
 const ARENA = scenarioById("astravore")?.lairAt ?? { x: 0, z: 0 };
 
-const armor = new THREE.MeshStandardMaterial({ color: "#3a3150", metalness: 0.8, roughness: 0.38, emissive: "#2b1650", emissiveIntensity: 0.55 });
-const trim = new THREE.MeshStandardMaterial({ color: "#5a4a80", metalness: 0.8, roughness: 0.3, emissive: "#6a3cc0", emissiveIntensity: 0.9 });
+const armor = new THREE.MeshStandardMaterial({ color: "#3a3150", metalness: 0.5, roughness: 0.4, emissive: "#2b1650", emissiveIntensity: 0.55 });
+const trim = new THREE.MeshStandardMaterial({ color: "#5a4a80", metalness: 0.5, roughness: 0.35, emissive: "#6a3cc0", emissiveIntensity: 0.9 });
 /** glowing seams so the silhouette reads against a dark sky: bright, unlit, always visible */
 const seam = new THREE.MeshBasicMaterial({ color: "#c9a8ff", toneMapped: false });
 
@@ -112,7 +112,7 @@ export function HollowStarArena() {
   const shardSpots = useMemo(() => Array.from({ length: 22 }, (_, i) => { const a = i * 2.399, r = 20 + ((i * 13) % 50); return { x: Math.cos(a) * r, z: Math.sin(a) * r, s: 0.8 + (i % 4) * 0.5 }; }), []);
   return (
     <group ref={group} position={[ARENA.x, y, ARENA.z]}>
-      <mesh rotation-x={-Math.PI / 2} position={[0, 0.06, 0]}><circleGeometry args={[62, 64]} /><meshStandardMaterial color="#0c0a14" metalness={0.8} roughness={0.55} /></mesh>
+      <mesh rotation-x={-Math.PI / 2} position={[0, 0.06, 0]}><circleGeometry args={[62, 64]} /><meshStandardMaterial color="#1a1626" metalness={0.4} roughness={0.55} emissive="#0d0820" emissiveIntensity={0.5} /></mesh>
       {[20, 38, 58].map((r, i) => <mesh key={r} rotation-x={-Math.PI / 2} position={[0, 0.09 + i * 0.01, 0]}><ringGeometry args={[r - 0.35, r, 72]} /><meshBasicMaterial color={i === 1 ? "#7ee8ff" : "#a463ff"} toneMapped={false} /></mesh>)}
       {pillars.map((p, i) => <mesh key={i} material={armor} position={[p.x, p.h / 2, p.z]} rotation={[p.tilt, -p.a, p.tilt * 0.6]}><boxGeometry args={[4.5, p.h, 4.5]} /></mesh>)}
       {[0, 1, 2, 3].map((i) => { const a = (i / 4) * Math.PI * 2 + Math.PI / 4; return <group key={i} position={[Math.cos(a) * 44, 0, Math.sin(a) * 44]}>

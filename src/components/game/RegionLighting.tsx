@@ -16,10 +16,18 @@ const REGION_HDRI: Record<string, string> = {
   wastelands: plains.url, solara: puresky.url, swamps: forest.url,
 };
 
+/** The stand-in sky used on the LOW tier, Safari, and while a region's HDRI loads. Metals (metalness 0.7-0.9: glass towers, poles,
+ * armor) show only what they reflect, so a thin environment left them near-black. This one is a full dome: a bright zenith, four
+ * horizon walls (cool sky, warm city glow) and a ground bounce, so every metal surface reflects something broad and soft. It is
+ * rendered to a cube map once, so it costs nothing per frame. */
 const Fallback = () => (
-  <Environment>
-    <Lightformer intensity={1.3} position={[0, 60, 0]} scale={[80, 80, 1]} />
-    <Lightformer intensity={0.6} color="#7fb6d9" position={[-80, 20, -30]} rotation-y={Math.PI / 2} scale={[90, 10, 1]} />
+  <Environment resolution={128}>
+    <Lightformer intensity={2.4} position={[0, 80, 0]} rotation-x={Math.PI / 2} scale={[220, 220, 1]} />
+    <Lightformer intensity={1.5} color="#8fc4e8" position={[0, 14, -120]} scale={[260, 50, 1]} />
+    <Lightformer intensity={1.5} color="#8fc4e8" position={[0, 14, 120]} rotation-y={Math.PI} scale={[260, 50, 1]} />
+    <Lightformer intensity={1.3} color="#ffd9a8" position={[-120, 14, 0]} rotation-y={Math.PI / 2} scale={[260, 50, 1]} />
+    <Lightformer intensity={1.3} color="#c9d6ff" position={[120, 14, 0]} rotation-y={-Math.PI / 2} scale={[260, 50, 1]} />
+    <Lightformer intensity={0.7} color="#6b6258" position={[0, -30, 0]} rotation-x={-Math.PI / 2} scale={[260, 260, 1]} />
   </Environment>
 );
 
