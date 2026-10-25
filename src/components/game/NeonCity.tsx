@@ -1,4 +1,6 @@
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
+import { useFrame } from "@react-three/fiber";
+import * as THREE from "three";
 import { wetAsphaltMaterial } from "./city-surface";
 import { NeonStreetLights } from "./NeonStreetLights";
 import { Text } from "./SafeText";
@@ -33,6 +35,16 @@ const NEXUS = REGIONS.find((r) => r.id === "nexus")!;
 export const NEON_CITY_CENTER = { x: NEXUS.x + NEON_OFFSET.x, z: NEXUS.z + NEON_OFFSET.z };
 
 function Billboard({ x, z, y, rotY, label, sub, color }: { x: number; z: number; y: number; rotY: number; label: string; sub?: string; color: string }) {
+  // a slow neon breath plus the odd tube flicker, desynced per sign by its position; no extra lights (a pulsing point light
+  // per sign would cost every lit pixel in the district)
+  const panel = useRef<THREE.MeshStandardMaterial>(null);
+  const phase = (x * 0.37 + z * 0.21) % (Math.PI * 2);
+  useFrame(({ clock }) => {
+    const m = panel.current; if (!m) return;
+    const t = clock.elapsedTime + phase;
+    const flicker = Math.sin(t * 0.7) > 0.985 && Math.sin(t * 47) > 0 ? 0.35 : 1;
+    m.emissiveIntensity = (0.85 + Math.sin(t * 2.2) * 0.18) * flicker;
+  });
   return (
     <group position={[x, y, z]} rotation-y={rotY}>
       <mesh>
@@ -41,7 +53,7 @@ function Billboard({ x, z, y, rotY, label, sub, color }: { x: number; z: number;
       </mesh>
       <mesh position={[0, 0, 0.09]}>
         <planeGeometry args={[6, 2.8]} />
-        <meshStandardMaterial color={color} emissive={color} emissiveIntensity={0.85} transparent opacity={0.28} />
+        <meshStandardMaterial ref={panel} color={color} emissive={color} emissiveIntensity={0.85} transparent opacity={0.28} />
       </mesh>
       <Text position={[0, sub ? 0.5 : 0, 0.12]} fontSize={0.62} color={color} anchorX="center" anchorY="middle" outlineWidth={0.02} outlineColor="#000000">
         {label}
