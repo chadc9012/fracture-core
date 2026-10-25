@@ -201,7 +201,7 @@
 - [x] Combat feedback tiers + per-frame particle budget + controller rumble helper (rules only; not wired to Scene VFX yet)
 - [x] Armor shaders: own once, apply/remove, appearance-only, exotic glow rule (rules only; no UI yet)
 - [x] Neon City First Arrival cinematic data with NOVA line and handoff
-- [ ] Wire combat feedback/rumble into Scene hits; enemy stagger/armor-break visuals
+- [x] Wire combat feedback/rumble into Scene hits; enemy stagger/armor-break visuals (Found already done on audit: Scene.tsx scales camera kick + controller rumble per impact class on hits, kills, damage taken, boss phases and abilities; Actors.tsx throws enemies back along the shot, hardest on a stagger (enemy-reactions.ts). No separate armor-break visual exists beyond the stagger recoil.)
 - [ ] Shader UI in inventory + renderer using shaderLook
 - [ ] Vyrak/Wyrmling authored dragon models (both currently procedural bodies)
 - [ ] Neon districts (Aegis Spire / Grid / Rust-Muck), underground racing loop, arrival trigger in Scene
