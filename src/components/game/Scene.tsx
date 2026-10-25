@@ -109,6 +109,7 @@ import { EncounterFx } from "./EncounterFx";
 import { COMBAT_FEEDBACK, impactFor, rumble } from "@/game/combat-feedback";
 import { encounterFor } from "@/game/scenario-encounters";
 import { windupHud } from "@/game/encounter-sim";
+import { threatTicks, type ThreatTick } from "@/game/threat-indicators";
 const feedbackPad = () => (typeof navigator !== "undefined" && navigator.getGamepads ? Array.from(navigator.getGamepads()).find(Boolean) ?? null : null);
 import { raceLive } from "./NeonDistricts";
 import { RACE_BEST_KEY, RACE_GATES, RACE_IDLE, raceReward, stepRace, type RaceState } from "@/game/neon-districts";
@@ -334,6 +335,8 @@ export type HudState = {
   inspector: InspectorView | null;
   /* tracking */
   markers: TrackedMarker[];
+  /** enemies that have noticed or engaged the player, for the compass threat ticks (threat-indicators.ts) */
+  threats: ThreatTick[];
   px: number;
   pz: number;
   yaw: number;
@@ -3084,6 +3087,7 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
         })),
         inspector: s.showInspector ? buildInspector() : null,
         markers: track(markerList(s.x, s.z), s.x, s.z, s.yaw),
+        threats: threatTicks(sim.machines, s.x, s.z, s.yaw),
         px: s.x, pz: s.z, yaw: s.yaw,
         diving: s.diving,
         oxygen: Math.round(s.oxygen),

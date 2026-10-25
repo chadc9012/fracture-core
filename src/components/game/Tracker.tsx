@@ -4,6 +4,7 @@ import { CornerBrackets } from "./HudChrome";
 import { WORLD_SCALE } from "@/game/world";
 import { headingFromYaw, headingLabel, relativeDeg } from "@/game/compass";
 import { HudRail } from "./HudRail";
+import type { ThreatTick } from "@/game/threat-indicators";
 
 const ICON = MARKER_GLYPH;
 /** compass marker ranges grow with the map */
@@ -11,7 +12,7 @@ const REACH = Math.max(1, WORLD_SCALE / 2);
 const fmt = (d: number) => (d >= 1000 ? `${(d / 1000).toFixed(1)}km` : `${Math.round(d)}m`);
 
 /** Top compass strip: markers slide by bearing within a ±90° field; closest ones get labels. */
-export function Compass({ markers, yaw }: { markers: TrackedMarker[]; yaw: number }) {
+export function Compass({ markers, yaw, threats = [] }: { markers: TrackedMarker[]; yaw: number; threats?: ThreatTick[] }) {
   const visible = markers.filter((m) => Math.abs(m.bearing) < Math.PI / 2 && (m.kind !== "RESOURCE" || (m.ready !== false && m.dist < 220 * REACH)) && (m.kind !== "LANDMARK" || m.dist < 260 * REACH));
   const heading = headingFromYaw(yaw); // compass.ts: north = world -z, matching the map and minimap
   const dirs = [["N", 0], ["NE", 45], ["E", 90], ["SE", 135], ["S", 180], ["SW", 225], ["W", 270], ["NW", 315]] as const;
@@ -24,6 +25,9 @@ export function Compass({ markers, yaw }: { markers: TrackedMarker[]; yaw: numbe
       })}
       <span className="absolute left-1/2 top-[34px] -translate-x-1/2 font-mono text-[9px] tracking-widest text-primary/90">{headingLabel(heading)}</span>
       <span className="absolute left-1/2 top-0 h-2 w-px bg-primary" style={{ boxShadow: "0 0 4px var(--primary)" }} />
+      {threats.map((t) => (
+        <span key={`threat-${t.id}`} data-threat={t.level} className={`absolute top-[26px] -translate-x-1/2 text-[10px] font-bold leading-none ${t.level === "ALERT" ? "text-destructive" : "text-warning"} ${t.offscreen ? "opacity-60" : ""}`} style={{ left: `${50 + (t.bearing / (Math.PI / 2)) * 50}%`, textShadow: "0 0 5px currentColor" }} aria-label={`${t.level === "ALERT" ? "Enemy engaged" : "Enemy suspicious"} ${Math.round(t.dist)} metres${t.offscreen ? " off-screen" : ""}`}>{t.level === "ALERT" ? "!" : "?"}</span>
+      ))}
       {visible.slice(0, 10).map((m, i) => (
         <span key={m.id} className="absolute top-4 flex -translate-x-1/2 flex-col items-center leading-none" style={{ left: `${50 + (m.bearing / (Math.PI / 2)) * 50}%`, color: MARKER_COLOR[m.kind] }}>
           <span className="text-sm" style={{ filter: `drop-shadow(0 0 4px ${MARKER_COLOR[m.kind]})` }}>{ICON[m.kind]}</span>

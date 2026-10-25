@@ -205,6 +205,7 @@ const initial: HudState = {
   missions: [],
   inspector: null,
   markers: [],
+  threats: [],
   px: 0,
   pz: 0,
   yaw: 0,
