@@ -258,6 +258,7 @@ void AWFEnemy::Die()
 		return;
 	}
 	if (bBoss && Mode && Mode->HasEncounter(ScenarioId)) Mode->OnEncounterBossDefeated(this);
+	if (SummonId > 0 && Mode) Mode->OnSummonDefeated(this);
 
 	FWFEnemyRewardInfo Info;
 	Info.bBoss = bBoss;

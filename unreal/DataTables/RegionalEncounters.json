@@ -2,13 +2,13 @@
   {
     "Name": "veridan",
     "RegionId": "veridan",
-    "TroopsJson": "[{\"name\":\"Spore-Stalker Tracker\",\"kind\":\"ABERRATION\",\"role\":\"Four-legged heat tracker\",\"drop\":\"sporeFiber\"},{\"name\":\"Overgrowth Sentinel\",\"kind\":\"RAIDER\",\"role\":\"Root-bound heavy, liquid-plasma repeater\",\"drop\":\"sporeFiber\"},{\"name\":\"Veridan Corruptor\",\"kind\":\"ABERRATION\",\"role\":\"Spore support\",\"drop\":\"bioCatalyst\"}]",
+    "TroopsJson": "[{\"name\":\"Spore-Stalker Tracker\",\"kind\":\"ABERRATION\",\"role\":\"Four-legged heat tracker\",\"drop\":\"sporeFiber\"},{\"name\":\"Ruin Sentinel\",\"kind\":\"GUARDIAN\",\"role\":\"Moss-grown guardian construct, core-fired energy bolts\",\"drop\":\"sporeFiber\"},{\"name\":\"Veridan Corruptor\",\"kind\":\"ABERRATION\",\"role\":\"Spore support\",\"drop\":\"bioCatalyst\"}]",
     "BossJson": "{\"name\":\"Veridan Effigy\",\"lair\":\"Corrupted Spore-Grove\",\"drop\":\"bioCatalyst\",\"tell\":\"Roots spread before a ground slam\"}"
   },
   {
     "Name": "ember",
     "RegionId": "ember",
-    "TroopsJson": "[{\"name\":\"Breaker Magma Berserker\",\"kind\":\"RAIDER\",\"role\":\"Thermal blade frontline\",\"drop\":\"thermalShards\"},{\"name\":\"Crater Crawler\",\"kind\":\"ABERRATION\",\"role\":\"Lava-wading arachnid mech\",\"drop\":\"thermalShards\"},{\"name\":\"Breaker Slag-Thrower\",\"kind\":\"OVERCLOCKED\",\"role\":\"Area-denial lava bombs\",\"drop\":\"microCircuits\"}]",
+    "TroopsJson": "[{\"name\":\"Skyborn Legionary\",\"kind\":\"SKYBORN\",\"role\":\"Armored frontline infantry\",\"drop\":\"thermalShards\"},{\"name\":\"Breaker Magma Berserker\",\"kind\":\"RAIDER\",\"role\":\"Thermal blade frontline\",\"drop\":\"thermalShards\"},{\"name\":\"Skyborn Axiom\",\"kind\":\"SKYBORN\",\"role\":\"Elite blade enforcer\",\"drop\":\"thermalShards\"},{\"name\":\"Crater Crawler\",\"kind\":\"ABERRATION\",\"role\":\"Lava-wading arachnid mech\",\"drop\":\"thermalShards\"},{\"name\":\"Breaker Slag-Thrower\",\"kind\":\"OVERCLOCKED\",\"role\":\"Area-denial lava bombs\",\"drop\":\"microCircuits\"}]",
     "BossJson": "{\"name\":\"Overseer Kael\",\"lair\":\"Ember Peaks Volcanic\",\"drop\":\"magmaCore\",\"tell\":\"Hammer glows before the shockwave\"}"
   },
   {
@@ -50,7 +50,7 @@
   {
     "Name": "thalassia",
     "RegionId": "thalassia",
-    "TroopsJson": "[{\"name\":\"Abyssal Drowner\",\"kind\":\"ABERRATION\",\"role\":\"Phasing sonic attacker\",\"drop\":\"bioCatalyst\"},{\"name\":\"Sub-Surface Guardian\",\"kind\":\"VANGUARD\",\"role\":\"Waterjet plasma-arc mech\",\"drop\":\"reinforcedAlloy\"}]",
+    "TroopsJson": "[{\"name\":\"Reef Hunter\",\"kind\":\"ABYSSAL\",\"role\":\"Fast eel-shark ambusher\",\"drop\":\"bioCatalyst\"},{\"name\":\"Abyssal Drowner\",\"kind\":\"ABYSSAL\",\"role\":\"Phasing sonic attacker\",\"drop\":\"bioCatalyst\"},{\"name\":\"Sub-Surface Guardian\",\"kind\":\"VANGUARD\",\"role\":\"Waterjet plasma-arc mech\",\"drop\":\"reinforcedAlloy\"}]",
     "BossJson": ""
   }
 ]

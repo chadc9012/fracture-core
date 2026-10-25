@@ -171,6 +171,7 @@ void AWFGameMode::TickEncounters(float DeltaSeconds)
 	std::vector<wf::encounter::FBoss*> Rules;
 	for (AWFEnemy* B : Bosses) { B->SyncRules(); Rules.push_back(&B->Rules()); }
 	const FVector P = Player->GetActorLocation() / EncCmPerM;
+	if (const UWFProgressionSubsystem* Progression = GetGameInstance()->GetSubsystem<UWFProgressionSubsystem>()) Arena.EnemyHpScale = Progression->GetChallengeEnemyHealthScale();
 	wf::encounter::StepEncounters(EncounterCatalog, Rules, Arena, DeltaSeconds, P.X, P.Y, Now);
 	for (AWFEnemy* B : Bosses)
 	{
@@ -178,6 +179,7 @@ void AWFGameMode::TickEncounters(float DeltaSeconds)
 		B->ApplyRules();
 	}
 	SyncDecoys();
+	SyncSummons();
 	ShowEncounterEvents();
 	DrawZones();
 	Player->SetHazardSpeedMult(Arena.HazardSpeedMult);
@@ -215,6 +217,41 @@ void AWFGameMode::SyncDecoys()
 		}
 }
 
+void AWFGameMode::SyncSummons()
+{
+	TSet<int64> Live;
+	for (const wf::encounter::FSummon& S : Arena.Summons)
+	{
+		const int64 Id = static_cast<int64>(S.Id);
+		Live.Add(Id);
+		if (SummonActors.Contains(Id)) continue;
+		const FVector Around(S.X * EncCmPerM, S.Z * EncCmPerM, 0);
+		FHitResult Ground;
+		const FVector At = GetWorld()->LineTraceSingleByChannel(Ground, Around + FVector(0, 0, 5000), Around - FVector(0, 0, 20000), ECC_Visibility) ? Ground.ImpactPoint + FVector(0, 0, 150) : Around;
+		const FTransform Spawn(FRotator::ZeroRotator, At, FVector(S.Scale));
+		if (AWFEnemy* Trooper = GetWorld()->SpawnActorDeferred<AWFEnemy>(AWFEnemy::StaticClass(), Spawn, nullptr, nullptr, ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn))
+		{
+			Trooper->Configure(WFData::ToF(S.Profile), RegionId, TEXT("dataShards"), S.bElite, false, S.Hp); // hp already x challenge
+			Trooper->ConfigureSummon(S.Id);
+			Trooper->FinishSpawning(Spawn);
+			SummonActors.Add(Id, Trooper);
+		}
+	}
+	// the fight ended or reset: called-in troops leave with the boss, paying nothing
+	for (auto It = SummonActors.CreateIterator(); It; ++It)
+		if (!Live.Contains(It.Key()))
+		{
+			if (It.Value().IsValid() && !It.Value()->IsDead()) It.Value()->Destroy();
+			It.RemoveCurrent();
+		}
+}
+
+void AWFGameMode::OnSummonDefeated(AWFEnemy* Summon)
+{
+	SummonActors.Remove(static_cast<int64>(Summon->GetSummonId()));
+	wf::encounter::OnSummonDefeated(Arena, Summon->GetSummonId());
+}
+
 void AWFGameMode::ShowEncounterEvents()
 {
 	for (const wf::encounter::FEvent& E : Arena.Events)
@@ -223,6 +260,7 @@ void AWFGameMode::ShowEncounterEvents()
 		SeenEventId = E.Id;
 		const FString Text = WFData::ToF(E.Text);
 		if (E.Kind == "TELL") Toast(Text, EncWarn);
+		else if (E.Kind == "SUMMON") Toast(FString::Printf(TEXT("%s joins the fight"), *Text), EncWarn);
 		else if (E.Kind == "PHASE" || E.Kind == "TRUCE" || E.Kind == "RESET" || E.Kind == "DEPART" || E.Kind == "DECOY_SHATTER") Toast(Text, EncCyan);
 		else if (E.Kind == "FINALE" || E.Kind == "VICTORY") Toast(Text, EncGold);
 		else if (E.Kind == "IMPACT" && E.Hit && *E.Hit) Toast(FString::Printf(TEXT("%s hit you"), *Text), EncWarn);
@@ -251,6 +289,7 @@ void AWFGameMode::OnPlayerDied()
 	wf::encounter::ResetEncounters(EncounterCatalog, Rules, Arena, GetWorld()->GetTimeSeconds());
 	for (AWFEnemy* B : Bosses) B->ApplyRules();
 	SyncDecoys();
+	SyncSummons();
 	ShowEncounterEvents();
 }
 
@@ -259,6 +298,7 @@ void AWFGameMode::OnEncounterBossDefeated(AWFEnemy* Boss)
 	Boss->SyncRules();
 	wf::encounter::EndEncounter(EncounterCatalog, Boss->Rules(), Arena, GetWorld()->GetTimeSeconds());
 	SyncDecoys();
+	SyncSummons();
 	ShowEncounterEvents();
 }
 
@@ -338,9 +378,9 @@ void AWFGameMode::SpawnScenarioBoss(const FString& ScenarioId)
 	FHitResult Ground;
 	const FVector At = World->LineTraceSingleByChannel(Ground, Ahead + FVector(0, 0, 5000), Ahead - FVector(0, 0, 20000), ECC_Visibility) ? Ground.ImpactPoint + FVector(0, 0, 150) : Ahead;
 	const UWFProgressionSubsystem* Progression = GetGameInstance()->GetSubsystem<UWFProgressionSubsystem>();
-	// sim.ts summonScenario: hp 34 x challenge enemyHp, elite boss of the scenario's region; its encounter rules (poise
+	// sim.ts summonScenario: hp boss-poise.ts BOSS_HP.scenario x challenge enemyHp, elite boss of the scenario's region; its encounter rules (poise
 	// windows, phases, gimmicks) run in TickEncounters.
-	const double MaxHealth = 34.0 * (Progression ? Progression->GetChallengeEnemyHealthScale() : 1.0);
+	const double MaxHealth = wf::encounter::BossHpScenario * (Progression ? Progression->GetChallengeEnemyHealthScale() : 1.0);
 	const FTransform Spawn(FRotator::ZeroRotator, At);
 	if (AWFEnemy* Boss = World->SpawnActorDeferred<AWFEnemy>(AWFEnemy::StaticClass(), Spawn, nullptr, nullptr, ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn))
 	{

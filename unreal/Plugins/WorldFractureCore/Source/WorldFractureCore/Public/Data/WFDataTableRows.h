@@ -418,6 +418,7 @@ struct FUniqueScenariosRow : public FTableRowBase
 	UPROPERTY(EditAnywhere, BlueprintReadWrite) FString Taunt;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite) FString LairAtJson;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite) FString MapRegion;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite) bool Raid = false;
 };
 
 /** ScenarioEncounters: 7 rows, exported from the web build. */

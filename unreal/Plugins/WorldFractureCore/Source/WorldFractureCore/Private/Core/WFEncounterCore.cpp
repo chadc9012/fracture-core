@@ -127,6 +127,31 @@ namespace wf::encounter
 			}
 		}
 
+		/** the boss calls in real troops, spread around it at 18 m (outside machine separation, inside the arena) */
+		void SpawnSummons(const FCatalog& C, FArena& A, const FBoss& Boss, const FEncounterState& Enc, const std::vector<FSummonGroup>& Groups, double Now)
+		{
+			size_t Live = A.Summons.size();
+			int Made = 0;
+			double Total = 0;
+			for (const FSummonGroup& G : Groups) Total += G.Count;
+			for (const FSummonGroup& G : Groups)
+				for (int I = 0; I < static_cast<int>(G.Count) && Live < static_cast<size_t>(MaxSummoned); ++I)
+				{
+					const double Ang = ((Made + 0.5) / Total) * EncounterPi * 2 + Enc.Cursor * 1.3;
+					FSummon S;
+					S.Id = A.NextSummonId++;
+					S.ScenarioId = Boss.ScenarioId.value_or("");
+					S.Profile = G.Profile; S.Kind = G.Kind; S.Scale = G.Scale; S.bElite = G.bElite;
+					S.X = Boss.X + std::sin(Ang) * 18; S.Z = Boss.Z + std::cos(Ang) * 18;
+					S.Hp = G.Hp * A.EnemyHpScale;
+					A.Summons.push_back(S);
+					FEmit E;
+					E.Kind = "SUMMON"; E.Text = G.Profile; E.X = S.X; E.Z = S.Z;
+					Emit(C, A, &Boss, E, Now);
+					++Live; ++Made;
+				}
+		}
+
 		/** Resolves an attack at the end of its tell. */
 		void Impact(const FCatalog& C, FArena& A, FBoss& M, FEncounterState& Enc, const FAttackDef& Atk, double Now, double Px, double Pz)
 		{
@@ -155,8 +180,9 @@ namespace wf::encounter
 			}
 			else if (Atk.Kind == "FIELD") { if (Atk.Zones) SpawnZones(C, A, M, Enc, *Atk.Zones, "attack", Now, Px, Pz); }
 			else if (Atk.Kind == "CLONES") SpawnDecoys(C, A, M, Enc, Atk.Decoys.value_or(3), Now);
+			else if (Atk.Kind == "SUMMON") { if (!Atk.Summon.empty()) SpawnSummons(C, A, M, Enc, Atk.Summon, Now); }
 			if (bHit && Atk.Damage > 0) A.Hits.push_back({Atk.Damage, Atk.Label});
-			if (Atk.Kind != "FIELD" && Atk.Kind != "CLONES")
+			if (Atk.Kind != "FIELD" && Atk.Kind != "CLONES" && Atk.Kind != "SUMMON")
 			{
 				FEmit E;
 				E.Kind = "IMPACT"; E.Attack = Atk.Id; E.Text = Atk.Label; E.X = X; E.Z = Z; E.Radius = Radius; E.Hit = bHit;
@@ -311,6 +337,8 @@ namespace wf::encounter
 		const bool bWeak = !bStaggered && Now < S.WeakPointUntil;
 		OutDamageMult = bStaggered ? StaggerDamageMult : bWeak ? WeakPointDamageMult : 1;
 		if (bStaggered) return S;
+		// just out of a stagger: the boss has its feet back, no poise builds for a moment
+		if (Now < S.StaggerUntil + PoiseRefractory) return S;
 		const double Poise = S.Poise + PoiseDamage;
 		if (Poise >= PoiseMax) return FPoise{0, Now + StaggerDuration, Now + StaggerDuration};
 		FPoise Out = S;
@@ -408,6 +436,7 @@ namespace wf::encounter
 			// no live encounter boss: nothing may keep damaging, slowing or masquerading as the boss
 			A.Zones.clear();
 			A.Decoys.clear();
+			A.Summons.clear(); // called-in troops leave with the boss, paying nothing
 		}
 		StepZones(A, Dt, Px, Pz, Now);
 	}
@@ -425,6 +454,7 @@ namespace wf::encounter
 	void ResetEncounters(const FCatalog& C, std::vector<FBoss*>& Bosses, FArena& A, double Now)
 	{
 		A.Decoys.clear();
+		A.Summons.clear();
 		for (FBoss* M : Bosses)
 		{
 			if (!M || !M->bAlive || !M->bBoss || !HasEncounter(C, *M)) continue;
@@ -448,10 +478,16 @@ namespace wf::encounter
 		if (!Def) return;
 		RemoveZones(A, *B.ScenarioId, false);
 		A.Decoys.clear();
+		A.Summons.clear();
 		A.HazardSpeedMult = 1;
 		FEmit E;
 		E.Kind = "VICTORY"; E.Text = Def->Victory; E.X = B.X; E.Z = B.Z;
 		Emit(C, A, &B, E, Now);
+	}
+
+	void OnSummonDefeated(FArena& A, double SummonId)
+	{
+		A.Summons.erase(std::remove_if(A.Summons.begin(), A.Summons.end(), [SummonId](const FSummon& S) { return S.Id == SummonId; }), A.Summons.end());
 	}
 
 	void OnDecoyShattered(const FCatalog& C, std::vector<FBoss*>& Bosses, FArena& A, double DecoyId, double Now)
@@ -475,7 +511,7 @@ namespace wf::encounter
 	double ApplyBossDamage(const FCatalog& C, FBoss& B, double Dmg, const std::string& Element, double Distance, double Now)
 	{
 		double Mult = 1;
-		B.Poise = HitPoise(B.Poise, Dmg * 9, Now, Mult);
+		B.Poise = HitPoise(B.Poise, Dmg * PoisePerDamage, Now, Mult);
 		const FScenarioRule* Rule = nullptr;
 		if (B.ScenarioId)
 		{

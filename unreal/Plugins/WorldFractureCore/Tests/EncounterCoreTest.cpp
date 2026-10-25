@@ -7,6 +7,7 @@
 #include "Core/WFJsCompat.h"
 
 #include <cctype>
+#include <algorithm>
 #include <charconv>
 #include <cmath>
 #include <cstdio>
@@ -86,7 +87,12 @@ namespace
 		for (const FPlayerHit& H : A.Hits) { if (!Hurts.empty()) Hurts += ";"; Hurts += N(H.Damage) + "|" + H.Label; }
 		A.Hits.clear();
 		for (const FDecoy& D : A.Decoys) { if (!Decoys.empty()) Decoys += ";"; Decoys += N(D.Id) + "|" + N(D.X) + "|" + N(D.Z); }
-		return "boss=" + Boss + ";enc=" + Enc + ";zones=[" + Zones + "];events=[" + Events + "];hurts=[" + Hurts + "];hazard=" + N(A.HazardSpeedMult) + ";decoys=[" + Decoys + "]";
+		std::vector<std::string> Sum;
+		for (const FSummon& S : A.Summons) Sum.push_back(N(S.X) + "|" + N(S.Z) + "|" + S.Profile + "|" + S.Kind + "|" + N(S.Hp) + "|" + N(S.Scale) + "|" + (S.bElite ? "1" : "0"));
+		std::sort(Sum.begin(), Sum.end());
+		std::string Summons;
+		for (const std::string& X : Sum) { if (!Summons.empty()) Summons += ";"; Summons += X; }
+		return "boss=" + Boss + ";enc=" + Enc + ";zones=[" + Zones + "];events=[" + Events + "];hurts=[" + Hurts + "];hazard=" + N(A.HazardSpeedMult) + ";decoys=[" + Decoys + "];summons=[" + Summons + "]";
 	}
 
 	/** Splits text into number and non-number tokens. A '-' starts a number only after a non-alphanumeric character. */
@@ -176,6 +182,12 @@ int main(int Argc, char** Argv)
 			A.Id = F.at(2); A.Kind = F.at(3); A.Label = F.at(4); A.Tell = F.at(5); A.TellTime = Num(F.at(6)); A.Damage = Num(F.at(7)); A.MinRange = Num(F.at(8)); A.MaxRange = Num(F.at(9));
 			A.Radius = OptNum(F.at(10)); A.Width = OptNum(F.at(11)); A.Arc = OptNum(F.at(12)); A.Reach = OptNum(F.at(13)); A.Decoys = OptNum(F.at(14));
 			A.Recovery = Num(F.at(15)); A.Window = Num(F.at(16)); A.Zones = ParseZone(F.at(17));
+			if (F.size() > 18 && F.at(18) != None)
+				for (const std::string& G : Split(F.at(18), ','))
+				{
+					const auto P = Split(G, ':');
+					A.Summon.push_back(FSummonGroup{P.at(0), P.at(1), Num(P.at(2)), Num(P.at(3)), Num(P.at(4)), P.at(5) == "1"});
+				}
 			C.Encounters[F.at(1)].Attacks[A.Id] = A;
 		}
 		else if (K == "PH")
@@ -236,6 +248,12 @@ int main(int Argc, char** Argv)
 		{
 			const FPoise P = DecayPoise(FPoise{Num(F.at(1)), Num(F.at(2)), Num(F.at(3))}, Num(F.at(4)), Num(F.at(5)));
 			Expect("decayPoise", F.at(6), PoiseText(P), LineNo);
+		}
+		else if (K == "HP")
+		{
+			double Mult = 0;
+			const FPoise P = HitPoise(FPoise{Num(F.at(1)), Num(F.at(2)), Num(F.at(3))}, Num(F.at(4)), Num(F.at(5)), Mult);
+			Expect("hitPoise", F.at(6), PoiseText(P) + "|" + N(Mult), LineNo);
 		}
 		else throw std::runtime_error("unknown line kind: " + K);
 	}

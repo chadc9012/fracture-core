@@ -124,7 +124,7 @@
     "Id": "tv-wall",
     "DisplayName": "Wall-screen TV",
     "Slot": "tv",
-    "Price": 1200,
+    "Price": 800,
     "Rooms": [
       "living",
       "bedroom",
@@ -136,7 +136,7 @@
     "Id": "tv-holo",
     "DisplayName": "Holo-theatre",
     "Slot": "tv",
-    "Price": 9000,
+    "Price": 6000,
     "Rooms": [
       "living"
     ]

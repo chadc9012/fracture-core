@@ -99,6 +99,8 @@ public:
 	void OnPlayerDied();
 	void OnEncounterBossDefeated(AWFEnemy* Boss);
 	void OnDecoyShattered(AWFEnemy* Decoy);
+	/** a called-in trooper was killed (it pays like any enemy; the fight just stops counting it) */
+	void OnSummonDefeated(AWFEnemy* Summon);
 	void OnBossPhase(AWFEnemy* Boss, int32 Phase);
 	/** HUD: the nearest live encounter boss, its hp fraction, encounter phase, and the attack being wound up (if any). */
 	bool GetBossHud(FString& OutName, double& OutHpFraction, FString& OutPhase, FString& OutWindup, double& OutWindupProgress) const;
@@ -116,6 +118,8 @@ private:
 	void DrawRace() const;
 	double GroundZ(double XCm, double YCm, double FallbackCm) const;
 	void SyncDecoys();
+	/** encounter-sim.ts spawnSummons: a real enemy for every called-in trooper; dismissed ones leave without paying */
+	void SyncSummons();
 	void ShowEncounterEvents();
 	void DrawZones() const;
 	TArray<AWFEnemy*> EncounterBosses() const;
@@ -127,6 +131,7 @@ private:
 	FString RaceNotice;
 	int32 SeenRaceFinishes = 0;
 	TMap<int64, TWeakObjectPtr<AWFEnemy>> DecoyActors; // decoy id -> actor
+	TMap<int64, TWeakObjectPtr<AWFEnemy>> SummonActors; // summon id -> actor
 
 	struct FScenarioBoss
 	{

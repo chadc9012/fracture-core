@@ -36,6 +36,9 @@ unreal/
 The default level is the engine's template map; the game mode adds a floor and lights if a level has none.
 
 ## What runs
+- **Boss pacing:** scenario bosses have 520 hull (x challenge), poise builds at 1.6 per damage and not at all for 6 s
+  after a stagger (boss-poise.ts). Astravore calls in real troops (Void Hounds, a Dimensional Knight with Reality
+  Mages, a Star Sentinel; at most six at once) that fight and pay like any enemy and leave when the fight ends or resets.
 - **Separate operators:** Titan, Hunter and Warlock each have their own level, XP, Nex, fracture shards and materials
   (operator-pockets.ts); F6 switches operator and loads that operator's pocket. Gear, vehicles, homes, story and
   one-time claims stay shared. Old saves give everything to the operator being played. `Operators` lists all three.
@@ -124,7 +127,7 @@ cmake -S . -B build -G Ninja && cmake --build build && ctest --test-dir build --
 | RewardCoreTest | sim.ts defeatMachine, inventory.ts claimDrops, xp.ts grantXP (Math.random replayed) incl. 18 scenarios + Vyrak covenant | 734 kills, 2,846 checks |
 | MissionCoreTest | src/game/missions/* (12 machines) | 28,800 states |
 | MissionRewardCoreTest | progression.ts rewardMission, persistence.ts applyMissionCompletion | 1,224 payouts, 1,576 checks |
-| EncounterCoreTest | encounter-sim.ts, boss-poise.ts, boss-phases.ts, scenario-gimmicks.ts, sim.ts boss damage | 112 fights, 27,870 steps, 32,774 checks |
+| EncounterCoreTest | encounter-sim.ts (incl. summoned troops), boss-poise.ts (pacing, post-stagger gap), boss-phases.ts, scenario-gimmicks.ts, sim.ts boss damage | 112 fights, 27,871 steps, 32,852 checks |
 | DragoniteCastCoreTest | dragonite-cast.ts castDragonite / stepDragonite, live-build.ts energy | 9,600 operations, 35,122 checks |
 | VehicleCoreTest | vehicle-handling.ts, vehicle-surface.ts, vehicle-condition.ts, rewardVehicle | 15,120 handling steps, 17,938 checks |
 | RaceCoreTest | racing.ts, activities.ts (all 68 courses, attempts, payouts, records) | 286 runs, 49,814 ticks, 17,120 checks |

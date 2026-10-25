@@ -56,6 +56,9 @@ public:
 	void MoveToGround(double XMetres, double YMetres);
 	/** A False Saint (Hollow Saint decoy): never attacks, pays nothing, and reports its shattering to the encounter. */
 	void ConfigureDecoy(double InDecoyId) { bDecoy = true; DecoyId = InDecoyId; }
+	/** a trooper an encounter boss called in (encounter-sim.ts SUMMON) */
+	void ConfigureSummon(double InSummonId) { SummonId = InSummonId; }
+	double GetSummonId() const { return SummonId; }
 	bool IsDecoy() const { return bDecoy; }
 	double GetDecoyId() const { return DecoyId; }
 	double GetHealth() const { return Health; }
@@ -105,6 +108,7 @@ private:
 	double SnareUntil = 0, SnareMult = 1;
 	bool bDecoy = false;
 	double DecoyId = 0;
+	double SummonId = 0; // 0 = not called in
 	wf::encounter::FBoss BossRules;
 	double PhaseSpeedMult = 1, PhaseDamageMult = 1, PhaseCooldownMult = 1; // regional boss phase tuning
 	FString ScenarioRun;

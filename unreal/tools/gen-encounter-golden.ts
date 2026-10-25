@@ -10,7 +10,8 @@
  *
  * Lines (tab-separated, "~" = absent):
  *   ENC id victory truce            truce = below|floorFrac|nova
- *   ATK enc id kind label tell tellTime damage minRange maxRange radius width arc reach decoys recovery window zone
+ *   ATK enc id kind label tell tellTime damage minRange maxRange radius width arc reach decoys recovery window zone summon
+ *                                                          summon = profile:kind:count:hp:scale:elite,...
  *   PH enc id name below nova attacks gap arena finale     zone = kind|radius|dps|slow|count|arm|life|place|ringRadius|orbitSpeed|name
  *                                                          finale = attack|window|floorHp|nova
  *   SCR id outsideWindowMult gimmick
@@ -21,14 +22,15 @@
  *     X state          state after the step (fuzzy compare: numbers to 1e-9 relative)
  *   DB scenarioId x z  a boss for the damage rules; then  H dmg element px pz now -> HR out|poise|history|hits
  *   PP fraction -> phase      DP poise staggerUntil weakUntil dt now -> poise
+ *   HP poise staggerUntil weakUntil poiseDamage now -> poise|damageMult
  */
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { createSim, applyMachineDamageMods, type Machine } from "../../src/game/sim";
-import { stepEncounters, resetEncounters, encounterHpFloor, endEncounter, onDecoyShattered } from "../../src/game/encounter-sim";
+import { stepEncounters, resetEncounters, encounterHpFloor, endEncounter, onDecoyShattered, isSummoned } from "../../src/game/encounter-sim";
 import { ENCOUNTERS, type ZoneSpec } from "../../src/game/scenario-encounters";
 import { UNIQUE_SCENARIOS } from "../../src/game/unique-scenarios";
-import { INITIAL_POISE, decayPoise, type PoiseState } from "../../src/game/boss-poise";
+import { INITIAL_POISE, decayPoise, hitPoise, type PoiseState } from "../../src/game/boss-poise";
 import { phaseForHpFraction } from "../../src/game/boss-phases";
 
 const OUT = join(process.cwd(), "unreal", "Plugins", "WorldFractureCore", "Tests", "encounter_golden.txt");
@@ -49,7 +51,7 @@ const zoneText = (z: ZoneSpec | undefined) => (z ? [z.kind, n(z.radius), n(z.dps
 for (const def of Object.values(ENCOUNTERS)) {
   lines.push(["ENC", def.scenarioId, def.victory, def.truce ? [n(def.truce.below), n(def.truce.floorFrac), def.truce.nova].join("|") : NONE].join("\t"));
   for (const a of Object.values(def.attacks))
-    lines.push(["ATK", def.scenarioId, a.id, a.kind, a.label, a.tell, n(a.tellTime), n(a.damage), n(a.minRange), n(a.maxRange), o(a.radius), o(a.width), o(a.arc), o(a.reach), o(a.decoys), n(a.recovery), n(a.window), zoneText(a.zones)].join("\t"));
+    lines.push(["ATK", def.scenarioId, a.id, a.kind, a.label, a.tell, n(a.tellTime), n(a.damage), n(a.minRange), n(a.maxRange), o(a.radius), o(a.width), o(a.arc), o(a.reach), o(a.decoys), n(a.recovery), n(a.window), zoneText(a.zones), a.summon ? a.summon.map((g) => [g.profile, g.kind, n(g.count), n(g.hp), n(g.scale), g.elite ? "1" : "0"].join(":")).join(",") : NONE].join("\t"));
   for (const p of def.phases)
     lines.push(["PH", def.scenarioId, p.id, p.name, n(p.below), p.nova, p.attacks.join(","), n(p.gap), zoneText(p.arena), p.finale ? [p.finale.attack, n(p.finale.window), n(p.finale.floorHp), p.finale.nova].join("|") : NONE].join("\t"));
 }
@@ -67,7 +69,8 @@ function stateText(sim: Sim, m: Machine, decoys: Map<Machine, number>, seenEvent
   const hurt = hurts().map(([d, l]) => `${n(d)}|${l}`).join(";");
   hurts().length = 0;
   const dec = [...decoys.entries()].sort((a, b) => a[1] - b[1]).map(([mm, id]) => `${n(id)}|${n(mm.x)}|${n(mm.z)}`).join(";");
-  return `boss=${boss};enc=${enc};zones=[${zones}];events=[${events}];hurts=[${hurt}];hazard=${n(sim.hazardSpeedMult)};decoys=[${dec}]`;
+  const sum = sim.machines.filter(isSummoned).map((x) => [n(x.x), n(x.z), x.profile, x.kind, n(x.hp), n(x.scale), x.elite ? "1" : "0"].join("|")).sort().join(";");
+  return `boss=${boss};enc=${enc};zones=[${zones}];events=[${events}];hurts=[${hurt}];hazard=${n(sim.hazardSpeedMult)};decoys=[${dec}];summons=[${sum}]`;
 }
 
 /** decoy machines get ids in spawn order, matched to their DECOY events by position */
@@ -176,6 +179,14 @@ for (let i = 0; i < 60; i++) {
   const dt = pick([0.1, 1, 30]), now = pick([5, 50, 150]);
   const q = decayPoise(p, dt, now);
   lines.push(["DP", n(p.poise), n(p.staggerUntil), n(p.weakPointUntil), n(dt), n(now), poiseText(q)].join("\t"));
+}
+// hitPoise around a stagger: staggered, the refractory gap after it, and building again
+for (let i = 0; i < 80; i++) {
+  const until = pick([10, 50]);
+  const p: PoiseState = { poise: pick([0, 40, 95]), staggerUntil: until, weakPointUntil: pick([0, until, until + 3]) };
+  const dmg = pick([1, 6, 70]), now = until + pick([-1, 0, 3.9, 5.5, 5.99, 6, 6.01, 9, -until]);
+  const r = hitPoise(p, dmg, now);
+  lines.push(["HP", n(p.poise), n(p.staggerUntil), n(p.weakPointUntil), n(dmg), n(now), `${poiseText(r.state)}|${n(r.damageMult)}`].join("\t"));
 }
 
 writeFileSync(OUT, lines.join("\n") + "\n");

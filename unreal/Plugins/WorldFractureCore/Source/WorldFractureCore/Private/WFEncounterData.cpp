@@ -76,6 +76,16 @@ namespace WFEncounterData
 					Atk.Reach = EncOptNum(A, TEXT("reach"));
 					Atk.Decoys = EncOptNum(A, TEXT("decoys"));
 					Atk.Zones = EncZone(A, TEXT("zones"));
+					const TArray<TSharedPtr<FJsonValue>>* Summon = nullptr;
+					if (A->TryGetArrayField(TEXT("summon"), Summon))
+						for (const TSharedPtr<FJsonValue>& G : *Summon)
+						{
+							const TSharedPtr<FJsonObject> GO = G->AsObject();
+							if (!GO.IsValid()) continue;
+							bool bElite = false;
+							GO->TryGetBoolField(TEXT("elite"), bElite);
+							Atk.Summon.push_back(wf::encounter::FSummonGroup{ToStd(WFData::Str(GO, TEXT("profile"))), ToStd(WFData::Str(GO, TEXT("kind"))), WFData::Num(GO, TEXT("count")), WFData::Num(GO, TEXT("hp")), WFData::Num(GO, TEXT("scale"), 1.0), bElite});
+						}
 					Atk.Recovery = WFData::Num(A, TEXT("recovery"));
 					Atk.Window = WFData::Num(A, TEXT("window"));
 					Def.Attacks[Atk.Id] = Atk;

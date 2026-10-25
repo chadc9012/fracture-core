@@ -15,7 +15,8 @@
     "LairJson": "",
     "Taunt": "",
     "LairAtJson": "",
-    "MapRegion": ""
+    "MapRegion": "",
+    "Raid": false
   },
   {
     "Name": "system-core",
@@ -33,7 +34,8 @@
     "LairJson": "",
     "Taunt": "",
     "LairAtJson": "",
-    "MapRegion": ""
+    "MapRegion": "",
+    "Raid": false
   },
   {
     "Name": "rime-alpha",
@@ -51,7 +53,8 @@
     "LairJson": "{\"dx\":-0.5,\"dz\":0.45}",
     "Taunt": "",
     "LairAtJson": "",
-    "MapRegion": ""
+    "MapRegion": "",
+    "Raid": false
   },
   {
     "Name": "dark-knight",
@@ -69,7 +72,8 @@
     "LairJson": "{\"dx\":-0.5,\"dz\":0.45}",
     "Taunt": "\"Show me what your world calls strength.\"",
     "LairAtJson": "",
-    "MapRegion": ""
+    "MapRegion": "",
+    "Raid": false
   },
   {
     "Name": "hollow-saint",
@@ -87,7 +91,8 @@
     "LairJson": "{\"dx\":0.45,\"dz\":-0.4}",
     "Taunt": "\"Every power you carry was borrowed. I only collect the debt.\"",
     "LairAtJson": "",
-    "MapRegion": ""
+    "MapRegion": "",
+    "Raid": false
   },
   {
     "Name": "drowned-monarch",
@@ -105,7 +110,8 @@
     "LairJson": "",
     "Taunt": "\"The court is drowned. Kneel, or be counted among it.\"",
     "LairAtJson": "{\"x\":1281.2996219540862,\"z\":-165.0332913282318}",
-    "MapRegion": ""
+    "MapRegion": "",
+    "Raid": false
   },
   {
     "Name": "vaelith",
@@ -123,7 +129,8 @@
     "LairJson": "{\"dx\":0.5,\"dz\":0.45}",
     "Taunt": "\"Show me whether your courage is your own.\"",
     "LairAtJson": "",
-    "MapRegion": ""
+    "MapRegion": "",
+    "Raid": false
   },
   {
     "Name": "red-ronin",
@@ -141,7 +148,8 @@
     "LairJson": "{\"dx\":-0.45,\"dz\":-0.4}",
     "Taunt": "\"Distance is a coward's weapon. Come within my reach.\"",
     "LairAtJson": "",
-    "MapRegion": ""
+    "MapRegion": "",
+    "Raid": false
   },
   {
     "Name": "vyrak",
@@ -159,7 +167,8 @@
     "LairJson": "{\"dx\":0.45,\"dz\":0.5}",
     "Taunt": "Its armor sheds under heat. Break the chest plates and the core is exposed.",
     "LairAtJson": "",
-    "MapRegion": ""
+    "MapRegion": "",
+    "Raid": false
   },
   {
     "Name": "hollow-colossus",
@@ -177,7 +186,8 @@
     "LairJson": "{\"dx\":-0.4,\"dz\":0.5}",
     "Taunt": "\"...\" (the chamber floor groans as something enormous turns over)",
     "LairAtJson": "",
-    "MapRegion": ""
+    "MapRegion": "",
+    "Raid": false
   },
   {
     "Name": "exiled-architect",
@@ -195,7 +205,8 @@
     "LairJson": "{\"dx\":-0.5,\"dz\":-0.35}",
     "Taunt": "\"Do not solve it the way I taught you. Solve it the way I never imagined.\"",
     "LairAtJson": "",
-    "MapRegion": ""
+    "MapRegion": "",
+    "Raid": false
   },
   {
     "Name": "verdant-sovereign",
@@ -213,7 +224,8 @@
     "LairJson": "{\"dx\":0.4,\"dz\":-0.45}",
     "Taunt": "\"The forest hears everything you do in it.\"",
     "LairAtJson": "",
-    "MapRegion": ""
+    "MapRegion": "",
+    "Raid": false
   },
   {
     "Name": "black-market-phantom",
@@ -231,7 +243,8 @@
     "LairJson": "",
     "Taunt": "\"Catch me, or keep running the route everyone else runs.\"",
     "LairAtJson": "{\"x\":-211.99999999999997,\"z\":-94.00000000000001}",
-    "MapRegion": ""
+    "MapRegion": "",
+    "Raid": false
   },
   {
     "Name": "king-beneath",
@@ -249,7 +262,8 @@
     "LairJson": "",
     "Taunt": "\"Every pattern you repeat, I have already compiled.\"",
     "LairAtJson": "{\"x\":-219.99999999999997,\"z\":-121.00000000000001}",
-    "MapRegion": ""
+    "MapRegion": "",
+    "Raid": false
   },
   {
     "Name": "clockwork-saint",
@@ -267,7 +281,8 @@
     "LairJson": "{\"dx\":-0.3,\"dz\":0.05}",
     "Taunt": "\"You are early. You are also late. Both are true here.\"",
     "LairAtJson": "",
-    "MapRegion": ""
+    "MapRegion": "",
+    "Raid": false
   },
   {
     "Name": "abyssal-leviathan",
@@ -285,7 +300,8 @@
     "LairJson": "",
     "Taunt": "\"...\" (the water itself pulls toward the trench)",
     "LairAtJson": "{\"x\":1217.2996219540862,\"z\":-111.0332913282318}",
-    "MapRegion": ""
+    "MapRegion": "",
+    "Raid": false
   },
   {
     "Name": "eternal-huntress",
@@ -303,7 +319,8 @@
     "LairJson": "{\"dx\":-0.45,\"dz\":0.4}",
     "Taunt": "\"Run, and I will only enjoy it longer.\"",
     "LairAtJson": "",
-    "MapRegion": ""
+    "MapRegion": "",
+    "Raid": false
   },
   {
     "Name": "iron-behemoth",
@@ -321,7 +338,8 @@
     "LairJson": "{\"dx\":0.5,\"dz\":-0.45}",
     "Taunt": "\"TARGET ACQUIRED. ALL BATTERIES.\"",
     "LairAtJson": "",
-    "MapRegion": ""
+    "MapRegion": "",
+    "Raid": false
   },
   {
     "Name": "astravore",
@@ -338,7 +356,8 @@
     "ModelJson": "",
     "LairJson": "",
     "Taunt": "\"Reality is just another layer.\"",
-    "LairAtJson": "{\"x\":48,\"z\":-68}",
-    "MapRegion": "nexus"
+    "LairAtJson": "{\"x\":-2600,\"z\":2600}",
+    "MapRegion": "nexus",
+    "Raid": true
   }
 ]

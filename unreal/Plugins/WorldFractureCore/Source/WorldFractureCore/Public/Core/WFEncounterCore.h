@@ -26,6 +26,9 @@ namespace wf::encounter
 {
 	// ---- poise (boss-poise.ts) ----
 	inline constexpr double PoiseMax = 100, PoiseDecayPerSec = 4, WeakPointDuration = 5, StaggerDuration = 4;
+	/** Boss pacing (boss-poise.ts): hull for a fight of about a minute, poise from sustained fire, no poise for a few
+	 *  seconds after a stagger, and bosses barely shoved by knockback. */
+	inline constexpr double BossHpRegional = 360, BossHpScenario = 520, PoisePerDamage = 1.6, PoiseRefractory = 6, BossKnockMass = 14;
 	inline constexpr double WeakPointDamageMult = 1.6, StaggerDamageMult = 2.25;
 	struct FPoise
 	{
@@ -62,12 +65,20 @@ namespace wf::encounter
 		std::optional<double> RingRadius, OrbitSpeed;
 		std::string Name;
 	};
+	/** Troops an encounter boss calls in (scenario-encounters.ts SummonGroup): ordinary hostile enemies. */
+	struct FSummonGroup
+	{
+		std::string Profile, Kind; // Kind: RAIDER | OVERCLOCKED | ABERRATION | VANGUARD
+		double Count = 0, Hp = 0, Scale = 1;
+		bool bElite = false;
+	};
 	struct FAttackDef
 	{
-		std::string Id, Kind, Label, Tell; // Kind: SLAM | LUNGE | POUNCE | FAN | FIELD | CLONES
+		std::string Id, Kind, Label, Tell; // Kind: SLAM | LUNGE | POUNCE | FAN | FIELD | CLONES | SUMMON
 		double TellTime = 0, Damage = 0, MinRange = 0, MaxRange = 0;
 		std::optional<double> Radius, Width, Arc, Reach, Decoys;
 		std::optional<FZoneSpec> Zones;
+		std::vector<FSummonGroup> Summon;
 		double Recovery = 0, Window = 0;
 	};
 	struct FFinale
@@ -121,6 +132,8 @@ namespace wf::encounter
 	inline constexpr double TruceDepartSeconds = 20;
 	inline constexpr size_t MaxEvents = 40;
 	inline constexpr int MaxDecoys = 4;
+	/** most called-in troops alive at once (encounter-sim.ts MAX_SUMMONED) */
+	inline constexpr int MaxSummoned = 6;
 
 	struct FEncounterState
 	{
@@ -162,7 +175,7 @@ namespace wf::encounter
 	struct FEvent
 	{
 		double Id = 0;
-		std::string Kind; // TRUCE DEPART TELL IMPACT INTERRUPT PHASE ZONE FINALE DECOY DECOY_SHATTER RESET VICTORY
+		std::string Kind; // TRUCE DEPART TELL IMPACT INTERRUPT PHASE ZONE FINALE DECOY DECOY_SHATTER SUMMON RESET VICTORY
 		std::string ScenarioId;
 		int Phase = 0;
 		std::string PhaseName;
@@ -184,6 +197,15 @@ namespace wf::encounter
 		double Id = 0, X = 0, Z = 0;
 	};
 
+	/** A called-in trooper (encounter-sim.ts spawnSummons). The engine spawns a real enemy for each and reports its death. */
+	struct FSummon
+	{
+		double Id = 0;
+		std::string ScenarioId, Profile, Kind;
+		double X = 0, Z = 0, Hp = 0, Scale = 1;
+		bool bElite = false;
+	};
+
 	/** Everything an encounter leaves in the world besides the boss. Hits and new events are for the engine to drain. */
 	struct FArena
 	{
@@ -191,7 +213,9 @@ namespace wf::encounter
 		std::vector<FEvent> Events;     // last MaxEvents
 		std::vector<FPlayerHit> Hits;   // drained by the engine each frame
 		std::vector<FDecoy> Decoys;     // live False Saints
-		double NextEventId = 1, NextZoneId = 1, NextDecoyId = 1;
+		std::vector<FSummon> Summons;   // live called-in troops (cleared when the fight ends or resets)
+		double NextEventId = 1, NextZoneId = 1, NextDecoyId = 1, NextSummonId = 1;
+		double EnemyHpScale = 1;        // the difficulty challenge's enemy health (sim.challenge.enemyHp)
 		double HazardSpeedMult = 1;     // the player's speed multiplier from SLOW zones this frame
 	};
 
@@ -205,6 +229,9 @@ namespace wf::encounter
 	WORLDFRACTURECORE_API void EndEncounter(const FCatalog& C, const FBoss& B, FArena& A, double Now);
 	/** A False Saint was destroyed (no kill or loot); the last one exposes the real Saint. */
 	WORLDFRACTURECORE_API void OnDecoyShattered(const FCatalog& C, std::vector<FBoss*>& Bosses, FArena& A, double DecoyId, double Now);
+
+	/** A called-in trooper was killed: it leaves the fight's count. */
+	WORLDFRACTURECORE_API void OnSummonDefeated(FArena& A, double SummonId);
 
 	/** sim.ts applyMachineDamageMods, boss half: dmg already includes vulnerability; returns the damage to subtract. */
 	WORLDFRACTURECORE_API double ApplyBossDamage(const FCatalog& C, FBoss& B, double Dmg, const std::string& Element, double Distance, double Now);
