@@ -28,6 +28,7 @@ void AWFHUD::BeginPlay()
 	{
 		Progression->OnLootGained.AddDynamic(this, &AWFHUD::HandleLoot);
 		Progression->OnLevelUp.AddDynamic(this, &AWFHUD::HandleLevelUp);
+		Progression->OnScenarioClaimed.AddDynamic(this, &AWFHUD::HandleScenarioClaimed);
 	}
 	if (UWFQuestSubsystem* Quests = Game->GetSubsystem<UWFQuestSubsystem>()) Quests->OnQuestCompleted.AddDynamic(this, &AWFHUD::HandleQuestCompleted);
 }
@@ -41,6 +42,12 @@ void AWFHUD::Toast(const FString& Text, const FLinearColor& Color)
 void AWFHUD::HandleLoot(const FString& ItemName, const FString& Rarity)
 {
 	Toast(FString::Printf(TEXT("Drop - %s%s"), *ItemName, Rarity.IsEmpty() ? TEXT("") : *FString::Printf(TEXT(" (%s)"), *Rarity)), Gold);
+}
+
+void AWFHUD::HandleScenarioClaimed(const FString& ScenarioId, bool bPaid)
+{
+	Toast(bPaid ? FString::Printf(TEXT("SCENARIO CLEARED - %s: signature reward claimed"), *ScenarioId)
+		: FString::Printf(TEXT("%s down - no signature reward (needs 5 hits, once per run)"), *ScenarioId), bPaid ? Gold : Warn);
 }
 
 void AWFHUD::HandleLevelUp(int32 NewLevel) { Toast(FString::Printf(TEXT("LEVEL UP - %d"), NewLevel), Cyan); }
@@ -79,6 +86,9 @@ void AWFHUD::DrawHUD()
 	}
 	if (Progression)
 	{
+		const FString Class = Progression->GetIdentityClass();
+		Line(FString::Printf(TEXT("%s%s   DRAGONITE %d   [F6 class  F8 scenario]"), Class.IsEmpty() ? TEXT("NO CLASS") : *Class, Progression->IsBondedToVyrak() ? TEXT(" (Vyrak bond)") : TEXT(""),
+			FMath::RoundToInt(Progression->GetMaterial(TEXT("dragonite")))), 32, H - 94, Soft, 0.9f);
 		Line(FString::Printf(TEXT("LEVEL %d   %d / %d XP"), Progression->GetLevel(), FMath::RoundToInt(Progression->GetXp()), FMath::RoundToInt(Progression->GetXpToNextLevel())), 32, H - 72, Soft);
 		Line(FString::Printf(TEXT("KILLS %d   CREDITS %d   GEAR %d"), Progression->GetSessionKills(), FMath::RoundToInt(Progression->GetSessionCredits()), Progression->GetInventoryCount()), 32, H - 50, Soft, 0.9f);
 	}

@@ -27,11 +27,12 @@ namespace wf
 		std::string Source;
 		std::optional<std::string> SetId;
 		std::optional<std::string> Rarity; // LEGENDARY | EXOTIC; absent = ordinary gear
+		std::optional<std::string> Perk;   // unique weapon perk, e.g. NULL_DISRUPTION
 
 		bool operator==(const FGearItem& O) const
 		{
 			return Id == O.Id && Name == O.Name && Slot == O.Slot && Power == O.Power && Level == O.Level && Element == O.Element
-				&& Source == O.Source && SetId == O.SetId && Rarity == O.Rarity;
+				&& Source == O.Source && SetId == O.SetId && Rarity == O.Rarity && Perk == O.Perk;
 		}
 	};
 
@@ -59,6 +60,20 @@ namespace wf
 		double CalibrationTokens = 0;
 		double NovaLevel = 0;
 		std::vector<std::string> NovaUnlocks;
+
+		/** The claim ledger (earnedRewards): one-time keys such as scenario-run:<id>, enc-done:<CLASS>:<id>,
+		 *  covenant:vyrak:<CLASS>, dragonite-up:<CLASS>:<ability>:<n>. Order is kept. */
+		std::vector<std::string> EarnedRewards;
+		std::vector<std::string> UnlockedAbilities;
+		/** Per-activity / per-mission run records (missionRuns): day key, runs that day, last completion (ms since epoch). */
+		struct FRunRecord
+		{
+			std::string Day;
+			double Count = 0;
+			std::optional<double> Last;
+			bool operator==(const FRunRecord& O) const { return Day == O.Day && Count == O.Count && Last == O.Last; }
+		};
+		std::map<std::string, FRunRecord> MissionRuns;
 
 		std::optional<std::string> IdentityClass; // TITAN | HUNTER | WARLOCK
 		/** Difficulty picked before launch (map-activities.ts CHALLENGES): STANDARD | HARD | VERY_HARD. */

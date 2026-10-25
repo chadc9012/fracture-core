@@ -67,6 +67,8 @@ private:
 	void SelectWeapon(int32 Index);
 	void SaveGamePressed(const FInputActionValue& Value);
 	void DevFinishQuest(const FInputActionValue& Value);
+	void CycleClass(const FInputActionValue& Value);
+	void SummonScenario(const FInputActionValue& Value);
 
 	void TickWeapon(float DeltaSeconds);
 	void FireRound();
@@ -85,6 +87,8 @@ private:
 	UPROPERTY() TArray<TObjectPtr<UInputAction>> SlotActions;
 	UPROPERTY() TObjectPtr<UInputAction> SaveAction;
 	UPROPERTY() TObjectPtr<UInputAction> DevQuestAction;
+	UPROPERTY() TObjectPtr<UInputAction> ClassAction;
+	UPROPERTY() TObjectPtr<UInputAction> ScenarioAction;
 
 	TArray<FWFWeaponStats> Weapons;
 	TArray<int32> Ammo;

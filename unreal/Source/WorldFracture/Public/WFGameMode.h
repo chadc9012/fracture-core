@@ -36,12 +36,28 @@ public:
 	UPROPERTY(EditAnywhere, Category = "World Fracture") float SpawnInterval = 2.0f;
 
 	const FString& GetRegionId() const { return RegionId; }
+
+	/** Summons a Unique Scenario boss ~30 m in front of the player (console: SpawnScenarioBoss dark-knight). */
+	UFUNCTION(Exec) void SpawnScenarioBoss(const FString& ScenarioId);
+	/** Summons the next Unique Scenario of the current region (all regions when it has none). Returns its id. */
+	FString SummonNextScenario();
 	const FString& GetRegionName() const { return RegionName; }
 
 private:
 	void EnsurePlayableWorld();
 	bool LoadRoster();
 	void SpawnTrooper();
+	void LoadScenarios();
+
+	struct FScenarioBoss
+	{
+		FString Id;
+		FString BossName;
+		FString RegionId;
+		FString Drop;
+	};
+	TArray<FScenarioBoss> Scenarios;
+	int32 NextScenario = 0;
 
 	FString RegionId;
 	FString RegionName;

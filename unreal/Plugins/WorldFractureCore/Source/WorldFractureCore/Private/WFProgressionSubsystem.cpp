@@ -13,6 +13,9 @@
 #include "WFSaveGame.h"
 #include "WorldFractureCoreModule.h"
 
+#include <algorithm>
+#include <cmath>
+
 using WFData::ToF;
 using WFData::ToStd;
 
@@ -70,9 +73,43 @@ bool UWFProgressionSubsystem::LoadRewardCatalog(FString& OutError)
 		wf::reward::FWeaponTemplate W{ToStd(WFData::Str(Row, TEXT("WeaponId"))), ToStd(WFData::Str(Row, TEXT("DisplayName"))), ToStd(WFData::Str(Row, TEXT("Slot"))), ToStd(WFData::Str(Row, TEXT("Element")))};
 		(WFData::Str(Row, TEXT("Pool")) == TEXT("boss") ? Next.BossPool : Next.EnemyPool).push_back(W);
 	}
+	// Unique Scenarios: reward credits and regions (unique-scenarios.ts), signature loot (scenario-loot.ts), covenant abilities (dragon-covenant.ts)
+	ScenarioRegions.Reset();
+	ScenarioOrder.Reset();
+	if (!WFData::LoadRows(TEXT("UniqueScenarios"), Rows, OutError)) return false;
+	for (const TSharedPtr<FJsonObject>& Row : Rows)
+	{
+		const FString Id = WFData::Str(Row, TEXT("Id"));
+		Next.Scenarios.RewardCredits[ToStd(Id)] = WFData::Num(Row, TEXT("RewardCredits"));
+		ScenarioRegions.Add(Id, WFData::Str(Row, TEXT("RegionId")));
+		ScenarioOrder.Add(Id);
+	}
+	if (!WFData::LoadRows(TEXT("ScenarioLoot"), Rows, OutError)) return false;
+	for (const TSharedPtr<FJsonObject>& Row : Rows)
+	{
+		wf::scenario::FLootEntry& Entry = Next.Scenarios.Loot[ToStd(WFData::Str(Row, TEXT("Name")))];
+		TArray<TSharedPtr<FJsonValue>> Items;
+		if (FJsonSerializer::Deserialize(TJsonReaderFactory<>::Create(WFData::Str(Row, TEXT("GuaranteedJson"))), Items))
+			for (const TSharedPtr<FJsonValue>& V : Items)
+				if (V.IsValid() && V->AsObject().IsValid()) Entry.Guaranteed.push_back(WFProgressionJson::GearFromJson(V->AsObject()));
+		Items.Reset();
+		if (FJsonSerializer::Deserialize(TJsonReaderFactory<>::Create(WFData::Str(Row, TEXT("ChanceJson"))), Items))
+			for (const TSharedPtr<FJsonValue>& V : Items)
+			{
+				const TSharedPtr<FJsonObject> O = V.IsValid() ? V->AsObject() : nullptr;
+				const TSharedPtr<FJsonObject>* Item = nullptr;
+				if (O.IsValid() && O->TryGetObjectField(TEXT("item"), Item) && Item && Item->IsValid())
+					Entry.Chance.push_back({WFProgressionJson::GearFromJson(*Item), WFData::Num(O, TEXT("chance"))});
+			}
+	}
+	if (!WFData::LoadRows(TEXT("CovenantAbilities"), Rows, OutError)) return false;
+	for (const TSharedPtr<FJsonObject>& Row : Rows)
+		Next.Scenarios.CovenantAbility[ToStd(WFData::Str(Row, TEXT("Name")))] = ToStd(WFData::Str(Row, TEXT("Id")));
+
 	Catalog = std::move(Next);
-	UE_LOG(LogWorldFracture, Log, TEXT("Reward catalog: %d armor sets, %d/%d weapons in the enemy/boss pools"),
-		static_cast<int32>(Catalog.Sets.size()), static_cast<int32>(Catalog.EnemyPool.size()), static_cast<int32>(Catalog.BossPool.size()));
+	UE_LOG(LogWorldFracture, Log, TEXT("Reward catalog: %d armor sets, %d/%d weapons in the enemy/boss pools, %d unique scenarios, %d loot tables"),
+		static_cast<int32>(Catalog.Sets.size()), static_cast<int32>(Catalog.EnemyPool.size()), static_cast<int32>(Catalog.BossPool.size()),
+		static_cast<int32>(Catalog.Scenarios.RewardCredits.size()), static_cast<int32>(Catalog.Scenarios.Loot.size()));
 	return true;
 }
 
@@ -145,19 +182,32 @@ EWFDefeatOutcome UWFProgressionSubsystem::ReportEnemyDefeated(const FWFEnemyRewa
 	M.Living = NonEmpty(Enemy.Living);
 	M.Nemesis = NonEmpty(Enemy.Nemesis);
 	M.ScenarioId = NonEmpty(Enemy.ScenarioId);
+	M.ScenarioRun = NonEmpty(Enemy.ScenarioRun);
+	M.PlayerHits = Enemy.PlayerHits;
+	if (Enemy.FightSeconds >= 0) M.Elapsed = Enemy.FightSeconds;
+	if (Enemy.FightDeaths >= 0) M.Deaths = Enemy.FightDeaths;
 
 	static FWFRandom Random; // one stream for the session: re-seeding per kill would repeat rolls within a clock tick
 	const wf::reward::EDefeatResult Result = wf::reward::DefeatMachine(Catalog, M, Enemy.bKilledByWorld ? wf::reward::ECredit::World : wf::reward::ECredit::Player, Tally, Random);
-	if (Result == wf::reward::EDefeatResult::NotPorted)
-		UE_LOG(LogWorldFracture, Warning, TEXT("%s is a Unique Scenario boss; its rewards are not ported yet, nothing was paid."), *Enemy.Profile);
 	if (Result != wf::reward::EDefeatResult::Paid) return static_cast<EWFDefeatOutcome>(Result);
 
 	// The web build drains sim.drops into claimDrops and sim.xpEvents into grantXP every frame (Scene/GameCanvas);
 	// a defeat here drains straight away.
 	const size_t InventoryBefore = State.Inventory.size();
-	State = wf::reward::ClaimDrops(Catalog, std::move(State), Tally.Drops);
+	std::vector<std::pair<std::string, std::string>> Claims; // scenario id, its run's reward key
+	for (const wf::reward::FDrop& Drop : Tally.Drops)
+		if (Drop.ScenarioClaim) Claims.emplace_back(Drop.ScenarioClaim->ScenarioId, "scenario-run:" + Drop.ScenarioClaim->RunId);
+	const std::vector<std::string> EarnedBefore = State.EarnedRewards;
+	const double NowMs = static_cast<double>((FDateTime::UtcNow() - FDateTime(1970, 1, 1)).GetTotalMilliseconds());
+	State = wf::reward::ClaimDrops(Catalog, std::move(State), Tally.Drops, std::floor(NowMs));
 	for (size_t I = InventoryBefore; I < State.Inventory.size(); ++I)
 		OnLootGained.Broadcast(ToF(State.Inventory[I].Name), ToF(State.Inventory[I].Rarity.value_or("")));
+	for (const auto& [ScenarioId, Key] : Claims)
+	{
+		const bool bPaid = std::find(EarnedBefore.begin(), EarnedBefore.end(), Key) == EarnedBefore.end()
+			&& std::find(State.EarnedRewards.begin(), State.EarnedRewards.end(), Key) != State.EarnedRewards.end();
+		OnScenarioClaimed.Broadcast(ToF(ScenarioId), bPaid);
+	}
 	Tally.Drops.clear();
 
 	const double Scale = GetChallengeRewardScale();
@@ -172,6 +222,37 @@ EWFDefeatOutcome UWFProgressionSubsystem::ReportEnemyDefeated(const FWFEnemyRewa
 	if (UWFQuestSubsystem* Quests = GetGameInstance()->GetSubsystem<UWFQuestSubsystem>()) Quests->ReportKill(Enemy.Zone);
 	NotifyChanged();
 	return EWFDefeatOutcome::Paid;
+}
+
+bool UWFProgressionSubsystem::SetIdentityClass(const FString& ClassId)
+{
+	if (ClassId != TEXT("TITAN") && ClassId != TEXT("HUNTER") && ClassId != TEXT("WARLOCK")) return false;
+	State.IdentityClass = ToStd(ClassId);
+	NotifyChanged();
+	return true;
+}
+
+FString UWFProgressionSubsystem::MintScenarioRun(const FString& ScenarioId)
+{
+	// sim.ts: `${id}-${Date.now().toString(36)}-${hitId.toString(36)}-${random base36}`
+	const int64 NowMs = static_cast<int64>((FDateTime::UtcNow() - FDateTime(1970, 1, 1)).GetTotalMilliseconds());
+	auto Base36 = [](int64 V) { FString Out; do { const int32 D = static_cast<int32>(V % 36); Out.InsertAt(0, static_cast<TCHAR>(D < 10 ? TEXT('0') + D : TEXT('a') + D - 10)); V /= 36; } while (V > 0); return Out; };
+	return FString::Printf(TEXT("%s-%s-%s-%s"), *ScenarioId, *Base36(NowMs), *Base36(NextRunSerial++), *FGuid::NewGuid().ToString(EGuidFormats::Digits).Left(6).ToLower());
+}
+
+bool UWFProgressionSubsystem::HasClearedScenario(const FString& ScenarioId) const
+{
+	if (!State.IdentityClass) return false;
+	const std::string Key = "enc-done:" + *State.IdentityClass + ":" + ToStd(ScenarioId);
+	return std::find(State.EarnedRewards.begin(), State.EarnedRewards.end(), Key) != State.EarnedRewards.end();
+}
+
+TArray<FString> UWFProgressionSubsystem::GetScenariosInRegion(const FString& RegionId) const
+{
+	TArray<FString> Out;
+	for (const FString& Id : ScenarioOrder)
+		if (const FString* Region = ScenarioRegions.Find(Id); Region && *Region == RegionId) Out.Add(Id);
+	return Out;
 }
 
 double UWFProgressionSubsystem::GetMaterial(const FString& Material) const

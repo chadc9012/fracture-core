@@ -23,7 +23,8 @@ unreal/
 2. Right-click `WorldFracture.uproject` → *Generate Visual Studio project files*, open the `.sln`, build
    `WorldFractureEditor` (Development Editor, Win64), then run.
 3. Press Play. The game loads `DataTables/*.json` directly, so no import step is needed. Controls: WASD, mouse,
-   Space/C jump, Shift sprint, LMB fire, RMB aim, R/G reload, 1-5 / wheel weapons, F5 save, F9 finish the active quest.
+   Space/C jump, Shift sprint, LMB fire, RMB aim, R/G reload, 1-5 / wheel weapons, F5 save, F6 cycle Operator class
+   (Titan / Hunter / Warlock), F8 summon a Unique Scenario boss, F9 finish the active quest.
 
 The default level is the engine's template map; the game mode adds a floor and lights if a level has none.
 
@@ -34,6 +35,11 @@ The default level is the engine's template map; the game mode adds a floor and l
   difficulty challenge, aggro/speed/wind-up/cooldowns from enemy-tuning.ts, ranged 2/4/6 and melee 7/12/17 damage.
 - **Rewards:** every kill pays through the ported sim.ts defeatMachine → claimDrops → grantXP: credits, region
   materials with power pacing, armor set drops and upgrades, weapon drops, boss relics, XP with challenge scaling.
+- **Unique Scenarios:** the 18 scenario bosses can be summoned (F8 or `SpawnScenarioBoss <id>`); a kill with 5+ player
+  hits pays its signature loot once per run (duplicates level up, then turn into shards), records the class's
+  encounter journal, and Vyrak clears pay the per-class covenant bond, Dragonite, rolled Covenant pieces and the
+  measurable challenges, stamping the rematch cooldown. Scenario gimmicks and Vyrak's three phases are not in yet:
+  they fight as plain bosses.
 - **Quests:** the Fracture Descent chain (fd-01 to fd-18) with world unlocks and corruption.
 - **Missions:** all twelve story mission machines with their NOVA lines, reporting completions to the quest chain.
 - **Save:** one slot, JSON in the web build's PlayerProgression field names.
@@ -46,7 +52,7 @@ cmake -S . -B build -G Ninja && cmake --build build && ctest --test-dir build --
 | Suite | Recorded from | Checks |
 | --- | --- | --- |
 | QuestCoreTest | quests.ts gameTick / reconcileQuests / finishActiveQuest | 4,200 states |
-| RewardCoreTest | sim.ts defeatMachine, inventory.ts claimDrops, xp.ts grantXP (Math.random replayed) | 672 kills, 2,412 checks |
+| RewardCoreTest | sim.ts defeatMachine, inventory.ts claimDrops, xp.ts grantXP (Math.random replayed) incl. 18 scenarios + Vyrak covenant | 754 kills (319 scenario), 2,936 checks |
 | MissionCoreTest | src/game/missions/* (12 machines) | 28,800 states |
 
 Regenerate goldens after changing the web build's rules (from the repo root):
@@ -56,8 +62,7 @@ Regenerate goldens after changing the web build's rules (from the repo root):
 for `export-datatables`, `gen-quest-golden`, `gen-reward-golden`, `gen-mission-golden`.
 
 ## Not ported yet
-Unique Scenario encounters and their claims (scenario-loot, encounter journal, Vyrak covenant, Dragonite, Wyrmling,
-dragon riding), mission payouts (rewardMission/applyMissionCompletion) and mid-mission saves, abilities (Q/E/R),
+Unique Scenario fights (gimmicks, Vyrak's three phases), Dragonite upgrades, the Wyrmling and dragon riding, mission payouts (rewardMission/applyMissionCompletion) and mid-mission saves, abilities (Q/E/R),
 armor effects on combat, enemy perception/cover/line-of-sight, launchers and the sword, vehicles and racing,
 merchants and housing, cloud save merge, the world itself (regions, Neon City, Thalassia). Their data is already in
 `DataTables/`.

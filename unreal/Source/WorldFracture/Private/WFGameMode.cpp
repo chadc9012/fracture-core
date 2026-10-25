@@ -117,6 +117,52 @@ void AWFGameMode::Tick(float DeltaSeconds)
 	}
 }
 
+void AWFGameMode::LoadScenarios()
+{
+	Scenarios.Reset();
+	TArray<TSharedPtr<FJsonObject>> Rows;
+	FString Error;
+	if (!WFData::LoadRows(TEXT("UniqueScenarios"), Rows, Error)) return;
+	for (const TSharedPtr<FJsonObject>& Row : Rows)
+		Scenarios.Add({WFData::Str(Row, TEXT("Id")), WFData::Str(Row, TEXT("BossName")), WFData::Str(Row, TEXT("RegionId")), WFData::Str(Row, TEXT("Drop"))});
+}
+
+FString AWFGameMode::SummonNextScenario()
+{
+	if (Scenarios.IsEmpty()) LoadScenarios();
+	TArray<const FScenarioBoss*> Here;
+	for (const FScenarioBoss& S : Scenarios) if (S.RegionId == RegionId) Here.Add(&S);
+	if (Here.IsEmpty()) for (const FScenarioBoss& S : Scenarios) Here.Add(&S);
+	if (Here.IsEmpty()) return FString();
+	const FScenarioBoss* Pick = Here[NextScenario++ % Here.Num()];
+	SpawnScenarioBoss(Pick->Id);
+	return Pick->Id;
+}
+
+void AWFGameMode::SpawnScenarioBoss(const FString& ScenarioId)
+{
+	if (Scenarios.IsEmpty()) LoadScenarios();
+	const FScenarioBoss* Found = Scenarios.FindByPredicate([&ScenarioId](const FScenarioBoss& S) { return S.Id == ScenarioId; });
+	UWorld* World = GetWorld();
+	APawn* Player = UGameplayStatics::GetPlayerPawn(this, 0);
+	if (!Found || !World || !Player) return;
+
+	const FVector Ahead = Player->GetActorLocation() + Player->GetActorForwardVector() * 3000.f;
+	FHitResult Ground;
+	const FVector At = World->LineTraceSingleByChannel(Ground, Ahead + FVector(0, 0, 5000), Ahead - FVector(0, 0, 20000), ECC_Visibility) ? Ground.ImpactPoint + FVector(0, 0, 150) : Ahead;
+	const UWFProgressionSubsystem* Progression = GetGameInstance()->GetSubsystem<UWFProgressionSubsystem>();
+	// sim.ts summonScenario: hp 34 x challenge enemyHp, elite boss of the scenario's region. Its gimmick (poise windows,
+	// phases) is not ported yet, so it fights as a plain boss.
+	const double MaxHealth = 34.0 * (Progression ? Progression->GetChallengeEnemyHealthScale() : 1.0);
+	const FTransform Spawn(FRotator::ZeroRotator, At);
+	if (AWFEnemy* Boss = World->SpawnActorDeferred<AWFEnemy>(AWFEnemy::StaticClass(), Spawn, nullptr, nullptr, ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn))
+	{
+		Boss->Configure(Found->BossName, Found->RegionId, Found->Drop, true, true, MaxHealth);
+		Boss->FinishSpawning(Spawn);
+		Boss->ConfigureScenario(Found->Id);
+	}
+}
+
 void AWFGameMode::SpawnTrooper()
 {
 	UWorld* World = GetWorld();

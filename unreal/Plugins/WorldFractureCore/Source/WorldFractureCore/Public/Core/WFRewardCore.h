@@ -8,12 +8,13 @@
 //   xp.ts grantXP
 // Golden-tested against those functions (Tests/RewardCoreTest.cpp), with both engines fed the same random numbers.
 //
-// Not ported yet (DefeatMachine reports them instead of guessing): Unique Scenario claims (scenario-loot.ts, the
-// encounter journal and Vyrak's covenant in claimDrops), encounter finale hp floors, Black Armory nanite bursts and
-// the Reap rune heal. Gore and alert text are presentation and stay out of the rules.
+// Unique Scenario claims (signature loot, encounter journal, Vyrak's covenant) go through Core/WFScenarioCore.h.
+// Not ported yet: encounter finale hp floors (encounter-sim.ts), Black Armory nanite bursts and the Reap rune heal.
+// Gore and alert text are presentation and stay out of the rules.
 #pragma once
 
 #include "Core/WFProgression.h"
+#include "Core/WFScenarioCore.h"
 
 #include <map>
 #include <optional>
@@ -46,6 +47,7 @@ namespace wf::reward
 		std::vector<FWeaponTemplate> EnemyPool;
 		std::vector<FWeaponTemplate> BossPool;
 		std::vector<FArmorSet> Sets;
+		scenario::FCatalog Scenarios;
 	};
 
 	// Tuning (armor-sets.ts, weapon-loot.ts, sim.ts, xp.ts).
@@ -72,6 +74,7 @@ namespace wf::reward
 		std::string Enemy;
 		std::optional<FGearItem> WeaponDrop;
 		std::optional<FSetDrop> SetDrop;
+		std::optional<scenario::FClaim> ScenarioClaim;
 	};
 
 	struct FXpEvent
@@ -98,6 +101,10 @@ namespace wf::reward
 		std::optional<std::string> Living;   // Living World event tag
 		std::optional<std::string> Nemesis;  // nemesis id
 		std::optional<std::string> ScenarioId;
+		std::optional<std::string> ScenarioRun; // run id minted when the boss was summoned
+		double PlayerHits = 0;                  // the local player's hits on it (participation)
+		std::optional<double> Elapsed;          // seconds since it was summoned
+		std::optional<double> Deaths;           // player deaths since it was summoned
 	};
 
 	/** Random numbers in the order defeatMachine draws them; the suffix only makes weapon-drop ids unique. */
@@ -133,7 +140,6 @@ namespace wf::reward
 		RivalScored,     // Killbox rival: counts for the match only
 		Unpaid,          // killed by the world (safe-zone field, turrets): no reward
 		Paid,
-		NotPorted,       // a Unique Scenario boss: its claim path is not ported yet; nothing was changed
 	};
 
 	/** sim.ts defeatMachine's reward half. Marks the machine dead and pays into the tally exactly as the web build does. */
@@ -148,8 +154,8 @@ namespace wf::reward
 	double PlayerPowerScore(const FProgression& P);
 	double RewardPacing(double Power);
 
-	/** inventory.ts claimDrops. Drops carrying a scenario claim are not accepted here (see header note). */
-	FProgression ClaimDrops(const FCatalog& Catalog, FProgression P, const std::vector<FDrop>& Drops);
+	/** inventory.ts claimDrops, scenario claims included. NowMs stamps the Vyrak rematch cooldown (Date.now in the web build). */
+	FProgression ClaimDrops(const FCatalog& Catalog, FProgression P, const std::vector<FDrop>& Drops, double NowMs);
 
 	struct FGrantXpResult
 	{

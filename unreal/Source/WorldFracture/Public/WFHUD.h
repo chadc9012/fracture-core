@@ -17,13 +17,14 @@ class WORLDFRACTURE_API AWFHUD : public AHUD
 public:
 	virtual void BeginPlay() override;
 	virtual void DrawHUD() override;
+	void Toast(const FString& Text, const FLinearColor& Color);
 
 private:
+	UFUNCTION() void HandleScenarioClaimed(const FString& ScenarioId, bool bPaid);
 	UFUNCTION() void HandleLoot(const FString& ItemName, const FString& Rarity);
 	UFUNCTION() void HandleLevelUp(int32 NewLevel);
 	UFUNCTION() void HandleQuestCompleted(const FString& QuestId);
 
-	void Toast(const FString& Text, const FLinearColor& Color);
 	void Line(const FString& Text, float X, float Y, const FLinearColor& Color, float Scale = 1.f);
 
 	struct FToast

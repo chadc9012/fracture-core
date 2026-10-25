@@ -136,8 +136,21 @@ void AWFEnemy::ReceiveHit(double Damage, AActor* Instigator)
 	if (IsDead()) return;
 	Health -= Damage;
 	bAggro = true;
-	if (Cast<AWFCharacter>(Instigator)) SincePlayerHit = 0;
+	if (Cast<AWFCharacter>(Instigator)) { SincePlayerHit = 0; ++PlayerHits; }
 	if (Health <= 0) Die();
+}
+
+void AWFEnemy::ConfigureScenario(const FString& InScenarioId)
+{
+	ScenarioId = InScenarioId;
+	PlayerHits = 0;
+	SummonedAt = GetWorld() ? GetWorld()->GetTimeSeconds() : 0;
+	if (UWFProgressionSubsystem* Progression = GetGameInstance() ? GetGameInstance()->GetSubsystem<UWFProgressionSubsystem>() : nullptr)
+	{
+		ScenarioRun = Progression->MintScenarioRun(InScenarioId);
+		DeathsAtSummon = Progression->GetPlayerDeaths();
+	}
+	bAggro = true;
 }
 
 void AWFEnemy::Die()
@@ -155,5 +168,15 @@ void AWFEnemy::Die()
 	Info.DropMaterial = DropMaterial;
 	Info.Profile = Profile;
 	Info.bKilledByWorld = SincePlayerHit > PlayerCreditWindowS;
-	if (UWFProgressionSubsystem* Progression = GetGameInstance()->GetSubsystem<UWFProgressionSubsystem>()) Progression->ReportEnemyDefeated(Info);
+	UWFProgressionSubsystem* Progression = GetGameInstance()->GetSubsystem<UWFProgressionSubsystem>();
+	if (!Progression) return;
+	if (!ScenarioId.IsEmpty())
+	{
+		Info.ScenarioId = ScenarioId;
+		Info.ScenarioRun = ScenarioRun;
+		Info.PlayerHits = PlayerHits;
+		Info.FightSeconds = GetWorld()->GetTimeSeconds() - SummonedAt;
+		Info.FightDeaths = Progression->GetPlayerDeaths() - DeathsAtSummon;
+	}
+	Progression->ReportEnemyDefeated(Info);
 }

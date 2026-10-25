@@ -25,6 +25,9 @@ public:
 
 	/** Called by the spawner before the enemy enters play. */
 	void Configure(const FString& InProfile, const FString& InZone, const FString& InDropMaterial, bool bInElite, bool bInBoss, double InMaxHealth);
+	/** Makes this a Unique Scenario boss: mints its run id and starts the fight clock and death count (sim.ts summonScenario). */
+	void ConfigureScenario(const FString& InScenarioId);
+	const FString& GetScenarioId() const { return ScenarioId; }
 
 	virtual void BeginPlay() override;
 	virtual void Tick(float DeltaSeconds) override;
@@ -57,4 +60,9 @@ private:
 	double Windup = -1;      // counting down while telegraphing a shot
 	double MeleeCooldown = 0;
 	double SincePlayerHit = 1000; // seconds since the player last damaged it (sim.ts kill-credit window)
+	FString ScenarioId;
+	FString ScenarioRun;
+	int32 PlayerHits = 0;
+	double SummonedAt = 0;        // world seconds
+	int32 DeathsAtSummon = 0;
 };

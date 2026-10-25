@@ -167,7 +167,6 @@ namespace wf::reward
 			M.bDecoy = false;
 			return EDefeatResult::Shattered;
 		}
-		if (M.ScenarioId) return EDefeatResult::NotPorted;
 		M.bAlive = false;
 
 		if (M.Rival)
@@ -189,7 +188,7 @@ namespace wf::reward
 			M.Living.reset();
 		}
 		// a Living World boss that dies to the world pays nobody, unlike catalog bosses
-		if (Credit == ECredit::World && !M.bEmergencyQuest && (!M.bBoss || LivingTag)) return EDefeatResult::Unpaid;
+		if (Credit == ECredit::World && !M.bEmergencyQuest && !M.ScenarioId && (!M.bBoss || LivingTag)) return EDefeatResult::Unpaid;
 
 		Sim.Kills += 1;
 		if (M.bBoss) Sim.BossKills += 1;
@@ -202,6 +201,19 @@ namespace wf::reward
 
 		const ETier Tier = TierOf(M);
 		const std::optional<FSetDrop> SetDrop = RollSetDrop(Catalog, M.Zone, Tier, Random.Uniform());
+		// a Unique Scenario kill carries its claim: chance rolls drawn now, participation from the player's own hits
+		std::optional<scenario::FClaim> Claim;
+		const auto Loot = M.ScenarioId ? Catalog.Scenarios.Loot.find(*M.ScenarioId) : Catalog.Scenarios.Loot.end();
+		if (Loot != Catalog.Scenarios.Loot.end() && M.ScenarioRun && !M.ScenarioRun->empty())
+		{
+			Claim = scenario::FClaim{};
+			Claim->ScenarioId = *M.ScenarioId;
+			Claim->RunId = *M.ScenarioRun;
+			Claim->bParticipated = M.PlayerHits >= scenario::ParticipationHits;
+			for (size_t I = 0; I < Loot->second.Chance.size(); ++I) Claim->Rolls.push_back(Random.Uniform());
+			Claim->Elapsed = M.Elapsed;
+			Claim->Deaths = M.Deaths;
+		}
 		const double DropId = Sim.NextDropId;
 		Sim.NextDropId += 1;
 		const double WeaponRoll = Random.Uniform(); // drawn before the suffix, as the web build evaluates its arguments
@@ -215,6 +227,7 @@ namespace wf::reward
 		Drop.Enemy = M.Profile;
 		Drop.WeaponDrop = WeaponDrop;
 		Drop.SetDrop = SetDrop;
+		Drop.ScenarioClaim = Claim;
 		Sim.Drops.push_back(Drop);
 
 		FXpEvent Xp;
@@ -224,6 +237,11 @@ namespace wf::reward
 		Sim.XpEvents.push_back(Xp);
 
 		if (M.bEmergencyQuest) Sim.Credits += 400;
+		if (M.ScenarioId)
+		{
+			const auto Credits = Catalog.Scenarios.RewardCredits.find(*M.ScenarioId);
+			if (Credits != Catalog.Scenarios.RewardCredits.end()) Sim.Credits += Credits->second;
+		}
 		return EDefeatResult::Paid;
 	}
 
@@ -249,7 +267,7 @@ namespace wf::reward
 		return LerpCurve(Power, {{0, 1.35}, {150, 1}, {300, 0.75}});
 	}
 
-	FProgression ClaimDrops(const FCatalog& Catalog, FProgression P, const std::vector<FDrop>& Drops)
+	FProgression ClaimDrops(const FCatalog& Catalog, FProgression P, const std::vector<FDrop>& Drops, double NowMs)
 	{
 		static const std::vector<std::string> RelicMaterials = {"magmaCore", "zeroCore", "abyssCore", "aegisCore", "anomalyCore", "vehicleParts", "fractureCore"};
 		const double Pacing = RewardPacing(PlayerPowerScore(P));
@@ -257,6 +275,7 @@ namespace wf::reward
 		{
 			if (Drop.SetDrop) P = GrantSetPiece(Catalog, std::move(P), *Drop.SetDrop);
 			if (Drop.WeaponDrop && !HasItem(P, Drop.WeaponDrop->Id)) P.Inventory.push_back(*Drop.WeaponDrop);
+			if (Drop.ScenarioClaim) P = scenario::ClaimScenario(Catalog.Scenarios, std::move(P), *Drop.ScenarioClaim, NowMs);
 			P.Materials[Drop.Material] += std::max(1.0, js::Round(Drop.Amount * Pacing));
 			P.Materials["energyToken"] += 1;
 			if (Drop.Amount >= 3) P.Materials["relicFragment"] += 1;
@@ -328,7 +347,7 @@ namespace wf::reward
 
 	std::string DescribeGear(const FGearItem& G)
 	{
-		return G.Id + "|" + G.Name + "|" + G.Slot + "|" + N(G.Power) + "|" + N(G.Level) + "|" + G.Element + "|" + G.Source + "|" + G.SetId.value_or("") + "|" + G.Rarity.value_or("");
+		return G.Id + "|" + G.Name + "|" + G.Slot + "|" + N(G.Power) + "|" + N(G.Level) + "|" + G.Element + "|" + G.Source + "|" + G.SetId.value_or("") + "|" + G.Rarity.value_or("") + "|" + G.Perk.value_or("");
 	}
 
 	namespace
@@ -352,7 +371,19 @@ namespace wf::reward
 		Out += "};materials=" + NumberMap(P.Materials);
 		Out += ";xp=" + N(P.Xp) + ";level=" + N(P.Level) + ";tokens=" + N(P.CalibrationTokens) + ";nova=" + N(P.NovaLevel) + ";novaUnlocks=[";
 		for (size_t I = 0; I < P.NovaUnlocks.size(); ++I) { if (I) Out += ","; Out += P.NovaUnlocks[I]; }
-		return Out + "]";
+		Out += "];shards=" + N(P.FractureShards) + ";earned=[";
+		for (size_t I = 0; I < P.EarnedRewards.size(); ++I) { if (I) Out += ","; Out += P.EarnedRewards[I]; }
+		Out += "];abilities=[";
+		for (size_t I = 0; I < P.UnlockedAbilities.size(); ++I) { if (I) Out += ","; Out += P.UnlockedAbilities[I]; }
+		Out += "];runs={";
+		bool FirstRun = true;
+		for (const auto& [Key, R] : P.MissionRuns)
+		{
+			if (!FirstRun) Out += ",";
+			FirstRun = false;
+			Out += Key + ":" + R.Day + "/" + N(R.Count) + "/" + (R.Last ? N(*R.Last) : std::string("~"));
+		}
+		return Out + "}";
 	}
 
 	std::string DescribeTally(const FSimTally& S)
@@ -366,6 +397,13 @@ namespace wf::reward
 			const FDrop& D = S.Drops[I];
 			if (I) Out += ";";
 			Out += N(D.Id) + "/" + D.Material + "/" + N(D.Amount) + "/" + D.Enemy + "/" + (D.SetDrop ? D.SetDrop->SetId + ":" + D.SetDrop->Slot : "") + "/" + (D.WeaponDrop ? DescribeGear(*D.WeaponDrop) : "");
+			if (D.ScenarioClaim)
+			{
+				const scenario::FClaim& C = *D.ScenarioClaim;
+				Out += "/claim:" + C.ScenarioId + ":" + C.RunId + ":" + (C.bParticipated ? "1" : "0") + ":";
+				for (size_t R = 0; R < C.Rolls.size(); ++R) { if (R) Out += ","; Out += N(C.Rolls[R]); }
+				Out += ":" + (C.Elapsed ? N(*C.Elapsed) : std::string("~")) + ":" + (C.Deaths ? N(*C.Deaths) : std::string("~"));
+			}
 		}
 		Out += "];xp=[";
 		for (size_t I = 0; I < S.XpEvents.size(); ++I) { if (I) Out += ";"; Out += S.XpEvents[I].Type + "/" + N(S.XpEvents[I].EnemyLevel) + "/" + N(S.XpEvents[I].CombatHeat); }

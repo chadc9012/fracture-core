@@ -40,6 +40,18 @@ namespace
 	}
 
 	std::optional<std::string> Opt(const std::string& S) { return S == None ? std::nullopt : std::optional<std::string>(S); }
+	std::optional<std::string> OptEmpty(const std::string& S) { return S.empty() ? std::nullopt : std::optional<std::string>(S); }
+
+	/** "id|name|slot|power|level|element|source|setId|rarity|perk", empty optional fields absent */
+	FGearItem ParseGear(const std::string& S)
+	{
+		const std::vector<std::string> F = Split(S, '|');
+		if (F.size() != 10) throw std::runtime_error("bad gear: " + S);
+		FGearItem G;
+		G.Id = F[0]; G.Name = F[1]; G.Slot = F[2]; G.Power = Num(F[3]); G.Level = Num(F[4]); G.Element = F[5]; G.Source = F[6];
+		G.SetId = OptEmpty(F[7]); G.Rarity = OptEmpty(F[8]); G.Perk = OptEmpty(F[9]);
+		return G;
+	}
 
 	class FReplayRandom : public IRandom
 	{
@@ -87,6 +99,7 @@ int main(int Argc, char** Argv)
 	std::string Line;
 	size_t LineNo = 0, Cases = 0, Kills = 0;
 	bool AfterClaim = false;
+	double NowMs = 0;
 
 	while (std::getline(In, Line))
 	{
@@ -102,19 +115,34 @@ int main(int Argc, char** Argv)
 		}
 		else if (K == "POOLE") Catalog.EnemyPool.push_back({F.at(1), F.at(2), F.at(3), F.at(4)});
 		else if (K == "POOLB") Catalog.BossPool.push_back({F.at(1), F.at(2), F.at(3), F.at(4)});
-		else if (K == "C") { CaseName = F.at(1); ++Cases; P = FProgression{}; P.Inventory.clear(); Sim = FSimTally{}; AfterClaim = false; }
-		else if (K == "PI")
+		else if (K == "SCU") Catalog.Scenarios.RewardCredits[F.at(1)] = Num(F.at(2));
+		else if (K == "SCL") Catalog.Scenarios.Loot[F.at(1)];
+		else if (K == "SCG") Catalog.Scenarios.Loot[F.at(1)].Guaranteed.push_back(ParseGear(F.at(2)));
+		else if (K == "SCC") Catalog.Scenarios.Loot[F.at(1)].Chance.push_back({ParseGear(F.at(3)), Num(F.at(2))});
+		else if (K == "CA") Catalog.Scenarios.CovenantAbility[F.at(1)] = F.at(2);
+		else if (K == "C")
 		{
-			FGearItem G;
-			G.Id = F.at(1); G.Name = F.at(2); G.Slot = F.at(3); G.Power = Num(F.at(4)); G.Level = Num(F.at(5)); G.Element = F.at(6); G.Source = F.at(7);
-			G.SetId = Opt(F.at(8)); G.Rarity = Opt(F.at(9));
-			P.Inventory.push_back(G);
+			CaseName = F.at(1); ++Cases;
+			P = FProgression{}; P.Inventory.clear(); P.EarnedRewards.clear(); P.UnlockedAbilities.clear(); P.MissionRuns.clear(); P.IdentityClass.reset(); P.FractureShards = 0;
+			Sim = FSimTally{}; AfterClaim = false;
+		}
+		else if (K == "NOW") NowMs = Num(F.at(1));
+		else if (K == "PI") P.Inventory.push_back(ParseGear(F.at(1)));
+		else if (K == "PCL") P.IdentityClass = F.at(1);
+		else if (K == "PER") P.EarnedRewards.push_back(F.at(1));
+		else if (K == "PAB") P.UnlockedAbilities.push_back(F.at(1));
+		else if (K == "PRUN")
+		{
+			FProgression::FRunRecord R;
+			R.Day = F.at(2); R.Count = Num(F.at(3));
+			if (F.at(4) != None) R.Last = Num(F.at(4));
+			P.MissionRuns[F.at(1)] = R;
 		}
 		else if (K == "PE") P.EquippedGear[F.at(1)] = F.at(2);
 		else if (K == "PM") P.Materials[F.at(1)] = Num(F.at(2));
 		else if (K == "PD") P.DungeonClears[F.at(1)] = Num(F.at(2));
 		else if (K == "PC") P.CompletedMissions.push_back(F.at(1));
-		else if (K == "PX") { P.Xp = Num(F.at(1)); P.Level = Num(F.at(2)); P.CalibrationTokens = Num(F.at(3)); P.NovaLevel = Num(F.at(4)); }
+		else if (K == "PX") { P.Xp = Num(F.at(1)); P.Level = Num(F.at(2)); P.CalibrationTokens = Num(F.at(3)); P.NovaLevel = Num(F.at(4)); P.FractureShards = Num(F.at(5)); }
 		else if (K == "PN") P.NovaUnlocks.push_back(F.at(1));
 		else if (K == "S")
 		{
@@ -129,15 +157,19 @@ int main(int Argc, char** Argv)
 			M.Zone = F.at(8); M.DropMaterial = F.at(9); M.Profile = F.at(10);
 			M.Rival = Opt(F.at(11)); M.Living = Opt(F.at(12)); M.Nemesis = Opt(F.at(13));
 			const ECredit Credit = F.at(14) == "world" ? ECredit::World : ECredit::Player;
+			M.ScenarioId = Opt(F.at(15)); M.ScenarioRun = Opt(F.at(16)); M.PlayerHits = Num(F.at(17));
+			if (F.at(18) != None) M.Elapsed = Num(F.at(18));
+			if (F.at(19) != None) M.Deaths = Num(F.at(19));
 			FReplayRandom Random;
-			if (F.at(15) != None) { Random.Uniforms = {Num(F.at(15)), Num(F.at(16))}; Random.Suffixes = {F.at(17)}; }
+			if (F.at(20) != None) for (const std::string& U : Split(F.at(20), ',')) Random.Uniforms.push_back(Num(U));
+			if (F.at(21) != None) Random.Suffixes = {F.at(21)};
 			try { DefeatMachine(Catalog, M, Credit, Sim, Random); }
 			catch (const std::exception& E) { Expect("draws", "same draws as the web build", E.what(), LineNo); }
 			Expect("draw count", "0", std::to_string(Random.Uniforms.size() + Random.Suffixes.size()), LineNo);
 			++Kills;
 		}
 		else if (K == "T") Expect("tally", F.at(1), DescribeTally(Sim), LineNo);
-		else if (K == "CLAIM") { Q = ClaimDrops(Catalog, P, Sim.Drops); AfterClaim = true; }
+		else if (K == "CLAIM") { Q = ClaimDrops(Catalog, P, Sim.Drops, NowMs); AfterClaim = true; }
 		else if (K == "L") Expect(AfterClaim ? "loot" : "loot?", F.at(1), DescribeLoot(Q), LineNo);
 		else if (K == "X")
 		{

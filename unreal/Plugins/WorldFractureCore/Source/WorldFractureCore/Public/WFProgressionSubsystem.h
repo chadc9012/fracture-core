@@ -14,7 +14,6 @@ enum class EWFDefeatOutcome : uint8
 	RivalScored, // a Killbox rival: counts for the match only
 	Unpaid,      // killed by the world, not the player
 	Paid,
-	NotPorted,   // a Unique Scenario boss: its reward path is not in Unreal yet
 };
 
 /** What a defeated enemy is, for the reward rules (sim.ts Machine fields that decide the payout). */
@@ -37,6 +36,14 @@ struct WORLDFRACTURECORE_API FWFEnemyRewardInfo
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Reward") FString Living;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Reward") FString Nemesis;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Reward") FString ScenarioId;
+	/** Run id minted when the scenario boss was summoned (MintScenarioRun); a run pays its signature loot once. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Reward") FString ScenarioRun;
+	/** The player's hits on it: a scenario kill pays only after 5 (scenario-loot.ts PARTICIPATION_HITS). */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Reward") int32 PlayerHits = 0;
+	/** Seconds from summon to kill, negative when unknown (Vyrak's "Wings of the Ancient" challenge). */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Reward") double FightSeconds = -1;
+	/** Player deaths during the fight, negative when unknown (Vyrak's "Unbroken Covenant" challenge). */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Reward") int32 FightDeaths = -1;
 	/** True when the world killed it (safe-zone field, turrets) and the player had not hurt it recently. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Reward") bool bKilledByWorld = false;
 };
@@ -44,6 +51,7 @@ struct WORLDFRACTURECORE_API FWFEnemyRewardInfo
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FWFLevelUp, int32, NewLevel);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FWFLootGained, const FString&, ItemName, const FString&, Rarity);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FWFProgressionChanged);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FWFScenarioClaimed, const FString&, ScenarioId, bool, bPaid);
 
 /**
  * The save and the reward pipeline. Owns the one wf::FProgression every system reads (quests included), pays kills
@@ -66,6 +74,21 @@ public:
 	/** Pays a defeated enemy (sim.ts defeatMachine), then claims its drops and XP into the save, and tells the quest chain. */
 	UFUNCTION(BlueprintCallable, Category = "World Fracture|Rewards") EWFDefeatOutcome ReportEnemyDefeated(const FWFEnemyRewardInfo& Enemy);
 
+	/** The Operator class (TITAN, HUNTER, WARLOCK): scenario journal, covenant bond and class rewards are kept per class. */
+	UFUNCTION(BlueprintCallable, Category = "World Fracture|Progression") bool SetIdentityClass(const FString& ClassId);
+	UFUNCTION(BlueprintPure, Category = "World Fracture|Progression") FString GetIdentityClass() const { return State.IdentityClass ? FString(UTF8_TO_TCHAR(State.IdentityClass->c_str())) : FString(); }
+
+	/** A run id for a newly summoned Unique Scenario boss, in the web build's format (sim.ts summonScenario). */
+	UFUNCTION(BlueprintCallable, Category = "World Fracture|Rewards") FString MintScenarioRun(const FString& ScenarioId);
+	/** Counts a player death (sim.deaths); scenario fights measure deaths from the count at summon. */
+	UFUNCTION(BlueprintCallable, Category = "World Fracture|Rewards") void RecordPlayerDeath() { ++PlayerDeaths; }
+	UFUNCTION(BlueprintPure, Category = "World Fracture|Rewards") int32 GetPlayerDeaths() const { return PlayerDeaths; }
+	/** Encounter journal: has this class cleared the scenario (enc-done:<class>:<id>)? */
+	UFUNCTION(BlueprintPure, Category = "World Fracture|Rewards") bool HasClearedScenario(const FString& ScenarioId) const;
+	UFUNCTION(BlueprintPure, Category = "World Fracture|Rewards") bool IsBondedToVyrak() const { return wf::scenario::IsBonded(State, State.IdentityClass); }
+	/** Unique Scenarios in a region (UniqueScenarios table), in table order. */
+	UFUNCTION(BlueprintPure, Category = "World Fracture|Rewards") TArray<FString> GetScenariosInRegion(const FString& RegionId) const;
+
 	UFUNCTION(BlueprintPure, Category = "World Fracture|Progression") int32 GetLevel() const { return static_cast<int32>(State.Level); }
 	UFUNCTION(BlueprintPure, Category = "World Fracture|Progression") double GetXp() const { return State.Xp; }
 	UFUNCTION(BlueprintPure, Category = "World Fracture|Progression") double GetXpToNextLevel() const { return State.Level * wf::reward::XpPerLevel; }
@@ -82,6 +105,8 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "World Fracture|Progression") FWFLevelUp OnLevelUp;
 	UPROPERTY(BlueprintAssignable, Category = "World Fracture|Progression") FWFLootGained OnLootGained;
 	UPROPERTY(BlueprintAssignable, Category = "World Fracture|Progression") FWFProgressionChanged OnProgressionChanged;
+	/** A scenario kill was claimed: Paid says whether the run paid its signature loot (participation, first claim). */
+	UPROPERTY(BlueprintAssignable, Category = "World Fracture|Rewards") FWFScenarioClaimed OnScenarioClaimed;
 
 	const wf::FProgression& Get() const { return State; }
 	/** For other core systems (quests, missions) that change the save; call NotifyChanged after. */
@@ -97,4 +122,8 @@ private:
 	wf::FProgression State;
 	wf::reward::FCatalog Catalog;
 	wf::reward::FSimTally Tally;
+	int32 PlayerDeaths = 0;
+	int32 NextRunSerial = 0;
+	TMap<FString, FString> ScenarioRegions; // scenario id -> region id, table order kept in ScenarioOrder
+	TArray<FString> ScenarioOrder;
 };

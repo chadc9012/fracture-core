@@ -15,6 +15,8 @@
 #include "InputMappingContext.h"
 #include "InputModifiers.h"
 #include "WFEnemy.h"
+#include "WFGameMode.h"
+#include "WFHUD.h"
 #include "WFProgressionSubsystem.h"
 #include "WFQuestSubsystem.h"
 
@@ -88,6 +90,8 @@ void AWFCharacter::BuildInput()
 	NextWeaponAction = Make(EInputActionValueType::Axis1D);
 	SaveAction = Make(EInputActionValueType::Boolean);
 	DevQuestAction = Make(EInputActionValueType::Boolean);
+	ClassAction = Make(EInputActionValueType::Boolean);
+	ScenarioAction = Make(EInputActionValueType::Boolean);
 
 	// WASD -> 2D move: W/S on Y (swizzled), A/D on X, negated where needed.
 	auto MapMove = [this](const FKey& Key, bool bSwizzle, bool bNegate) {
@@ -111,6 +115,8 @@ void AWFCharacter::BuildInput()
 	Mapping->MapKey(NextWeaponAction, EKeys::MouseWheelAxis);
 	Mapping->MapKey(SaveAction, EKeys::F5);
 	Mapping->MapKey(DevQuestAction, EKeys::F9);
+	Mapping->MapKey(ClassAction, EKeys::F6);
+	Mapping->MapKey(ScenarioAction, EKeys::F8);
 	const FKey SlotKeys[] = {EKeys::One, EKeys::Two, EKeys::Three, EKeys::Four, EKeys::Five};
 	for (const FKey& Key : SlotKeys)
 	{
@@ -159,6 +165,8 @@ void AWFCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 	Input->BindAction(NextWeaponAction, ETriggerEvent::Triggered, this, &AWFCharacter::NextWeapon);
 	Input->BindAction(SaveAction, ETriggerEvent::Started, this, &AWFCharacter::SaveGamePressed);
 	Input->BindAction(DevQuestAction, ETriggerEvent::Started, this, &AWFCharacter::DevFinishQuest);
+	Input->BindAction(ClassAction, ETriggerEvent::Started, this, &AWFCharacter::CycleClass);
+	Input->BindAction(ScenarioAction, ETriggerEvent::Started, this, &AWFCharacter::SummonScenario);
 	for (int32 I = 0; I < SlotActions.Num(); ++I)
 		Input->BindActionValueLambda(SlotActions[I], ETriggerEvent::Started, [this, I](const FInputActionValue&) { SelectWeapon(I); });
 }
@@ -207,6 +215,25 @@ void AWFCharacter::SaveGamePressed(const FInputActionValue& Value)
 void AWFCharacter::DevFinishQuest(const FInputActionValue& Value)
 {
 	if (UWFQuestSubsystem* Quests = GetGameInstance()->GetSubsystem<UWFQuestSubsystem>()) Quests->DevFinishActiveQuest();
+}
+
+void AWFCharacter::CycleClass(const FInputActionValue& Value)
+{
+	UWFProgressionSubsystem* Progression = GetGameInstance()->GetSubsystem<UWFProgressionSubsystem>();
+	if (!Progression) return;
+	const FString Current = Progression->GetIdentityClass();
+	const FString Next = Current == TEXT("TITAN") ? TEXT("HUNTER") : Current == TEXT("HUNTER") ? TEXT("WARLOCK") : TEXT("TITAN");
+	Progression->SetIdentityClass(Next);
+	if (const APlayerController* PC = Cast<APlayerController>(GetController()))
+		if (AWFHUD* Hud = PC->GetHUD<AWFHUD>()) Hud->Toast(FString::Printf(TEXT("Operator class - %s"), *Next), FLinearColor(0.45f, 0.9f, 1.f));
+}
+
+void AWFCharacter::SummonScenario(const FInputActionValue& Value)
+{
+	AWFGameMode* Mode = GetWorld()->GetAuthGameMode<AWFGameMode>();
+	const FString Id = Mode ? Mode->SummonNextScenario() : FString();
+	if (const APlayerController* PC = Cast<APlayerController>(GetController()))
+		if (AWFHUD* Hud = PC->GetHUD<AWFHUD>()) Hud->Toast(Id.IsEmpty() ? TEXT("No Unique Scenario to summon") : FString::Printf(TEXT("Unique Scenario summoned - %s"), *Id), FLinearColor(1.f, 0.55f, 0.3f));
 }
 
 // --- Weapons ------------------------------------------------------------------------------------------------------------
@@ -317,7 +344,11 @@ void AWFCharacter::ApplyHit(double Damage, const FString& Source)
 	Health = FMath::Max(0.0, Health - Damage);
 	SinceDamage = 0;
 	LastDamageSource = Source;
-	if (Health <= 0) Respawn();
+	if (Health <= 0)
+	{
+		if (UWFProgressionSubsystem* Progression = GetGameInstance()->GetSubsystem<UWFProgressionSubsystem>()) Progression->RecordPlayerDeath();
+		Respawn();
+	}
 }
 
 void AWFCharacter::Respawn()

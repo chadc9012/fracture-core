@@ -68,6 +68,39 @@ namespace
 
 namespace WFProgressionJson
 {
+	wf::FGearItem GearFromJson(const TSharedPtr<FJsonObject>& Item)
+	{
+		wf::FGearItem G;
+		if (!Item.IsValid()) return G;
+		G.Id = ToStd(WFData::Str(Item, TEXT("id")));
+		G.Name = ToStd(WFData::Str(Item, TEXT("name")));
+		G.Slot = ToStd(WFData::Str(Item, TEXT("slot")));
+		G.Power = WFData::Num(Item, TEXT("power"));
+		G.Level = WFData::Num(Item, TEXT("level"), 1.0);
+		G.Element = ToStd(WFData::Str(Item, TEXT("element")));
+		G.Source = ToStd(WFData::Str(Item, TEXT("source")));
+		G.SetId = ReadOptionalString(Item, TEXT("setId"));
+		G.Rarity = ReadOptionalString(Item, TEXT("rarity"));
+		G.Perk = ReadOptionalString(Item, TEXT("perk"));
+		return G;
+	}
+
+	TSharedRef<FJsonObject> GearToJson(const wf::FGearItem& G)
+	{
+		TSharedRef<FJsonObject> Item = MakeShared<FJsonObject>();
+		Item->SetStringField(TEXT("id"), ToF(G.Id));
+		Item->SetStringField(TEXT("name"), ToF(G.Name));
+		Item->SetStringField(TEXT("slot"), ToF(G.Slot));
+		Item->SetNumberField(TEXT("power"), G.Power);
+		Item->SetNumberField(TEXT("level"), G.Level);
+		Item->SetStringField(TEXT("element"), ToF(G.Element));
+		Item->SetStringField(TEXT("source"), ToF(G.Source));
+		if (G.SetId) Item->SetStringField(TEXT("setId"), ToF(*G.SetId));
+		if (G.Rarity) Item->SetStringField(TEXT("rarity"), ToF(*G.Rarity));
+		if (G.Perk) Item->SetStringField(TEXT("perk"), ToF(*G.Perk));
+		return Item;
+	}
+
 	FString ToJson(const wf::FProgression& P)
 	{
 		TSharedRef<FJsonObject> O = MakeShared<FJsonObject>();
@@ -92,20 +125,7 @@ namespace WFProgressionJson
 		O->SetObjectField(TEXT("dungeonClears"), NumberObject(P.DungeonClears));
 
 		TArray<TSharedPtr<FJsonValue>> Inventory;
-		for (const wf::FGearItem& G : P.Inventory)
-		{
-			TSharedRef<FJsonObject> Item = MakeShared<FJsonObject>();
-			Item->SetStringField(TEXT("id"), ToF(G.Id));
-			Item->SetStringField(TEXT("name"), ToF(G.Name));
-			Item->SetStringField(TEXT("slot"), ToF(G.Slot));
-			Item->SetNumberField(TEXT("power"), G.Power);
-			Item->SetNumberField(TEXT("level"), G.Level);
-			Item->SetStringField(TEXT("element"), ToF(G.Element));
-			Item->SetStringField(TEXT("source"), ToF(G.Source));
-			if (G.SetId) Item->SetStringField(TEXT("setId"), ToF(*G.SetId));
-			if (G.Rarity) Item->SetStringField(TEXT("rarity"), ToF(*G.Rarity));
-			Inventory.Add(MakeShared<FJsonValueObject>(Item));
-		}
+		for (const wf::FGearItem& G : P.Inventory) Inventory.Add(MakeShared<FJsonValueObject>(GearToJson(G)));
 		O->SetArrayField(TEXT("inventory"), Inventory);
 		TSharedRef<FJsonObject> Equipped = MakeShared<FJsonObject>();
 		for (const auto& [Slot, Id] : P.EquippedGear) Equipped->SetStringField(ToF(Slot), ToF(Id));
@@ -118,6 +138,18 @@ namespace WFProgressionJson
 		O->SetArrayField(TEXT("novaUnlocks"), StringArray(P.NovaUnlocks));
 		OptionalString(O, TEXT("identityClass"), P.IdentityClass);
 		O->SetStringField(TEXT("challenge"), ToF(P.Challenge));
+		O->SetArrayField(TEXT("earnedRewards"), StringArray(P.EarnedRewards));
+		O->SetArrayField(TEXT("unlockedAbilities"), StringArray(P.UnlockedAbilities));
+		TSharedRef<FJsonObject> Runs = MakeShared<FJsonObject>();
+		for (const auto& [Key, Run] : P.MissionRuns)
+		{
+			TSharedRef<FJsonObject> R = MakeShared<FJsonObject>();
+			R->SetStringField(TEXT("day"), ToF(Run.Day));
+			R->SetNumberField(TEXT("count"), Run.Count);
+			if (Run.Last) R->SetNumberField(TEXT("last"), *Run.Last);
+			Runs->SetObjectField(ToF(Key), R);
+		}
+		O->SetObjectField(TEXT("missionRuns"), Runs);
 
 		FString Out;
 		const TSharedRef<TJsonWriter<>> Writer = TJsonWriterFactory<>::Create(&Out);
@@ -169,17 +201,8 @@ namespace WFProgressionJson
 			{
 				const TSharedPtr<FJsonObject> Item = V.IsValid() ? V->AsObject() : nullptr;
 				if (!Item.IsValid()) continue;
-				wf::FGearItem G;
-				G.Id = ToStd(WFData::Str(Item, TEXT("id")));
+				wf::FGearItem G = GearFromJson(Item);
 				if (G.Id.empty()) continue;
-				G.Name = ToStd(WFData::Str(Item, TEXT("name")));
-				G.Slot = ToStd(WFData::Str(Item, TEXT("slot")));
-				G.Power = WFData::Num(Item, TEXT("power"));
-				G.Level = WFData::Num(Item, TEXT("level"), 1.0);
-				G.Element = ToStd(WFData::Str(Item, TEXT("element")));
-				G.Source = ToStd(WFData::Str(Item, TEXT("source")));
-				G.SetId = ReadOptionalString(Item, TEXT("setId"));
-				G.Rarity = ReadOptionalString(Item, TEXT("rarity"));
 				P.Inventory.push_back(G);
 			}
 		P.EquippedGear.clear();
@@ -198,6 +221,22 @@ namespace WFProgressionJson
 		P.NovaUnlocks = ReadStrings(O, TEXT("novaUnlocks"));
 		P.IdentityClass = ReadOptionalString(O, TEXT("identityClass"));
 		if (std::optional<std::string> Challenge = ReadOptionalString(O, TEXT("challenge"))) P.Challenge = *Challenge;
+		P.EarnedRewards = ReadStrings(O, TEXT("earnedRewards"));
+		P.UnlockedAbilities = ReadStrings(O, TEXT("unlockedAbilities"));
+		P.MissionRuns.clear();
+		const TSharedPtr<FJsonObject>* Runs = nullptr;
+		if (O->TryGetObjectField(TEXT("missionRuns"), Runs) && Runs && Runs->IsValid())
+			for (const auto& Pair : (*Runs)->Values)
+			{
+				const TSharedPtr<FJsonObject> R = Pair.Value.IsValid() ? Pair.Value->AsObject() : nullptr;
+				if (!R.IsValid()) continue;
+				wf::FProgression::FRunRecord Run;
+				Run.Day = ToStd(WFData::Str(R, TEXT("day")));
+				Run.Count = WFData::Num(R, TEXT("count"));
+				double Last = 0;
+				if (R->TryGetNumberField(TEXT("last"), Last)) Run.Last = Last;
+				P.MissionRuns[ToStd(Pair.Key)] = Run;
+			}
 		Out = std::move(P);
 		return true;
 	}
