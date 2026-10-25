@@ -10,6 +10,7 @@ import { useFrame } from "@react-three/fiber";
 import { useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 import { isStaggeredNow, reactionBones, recoilAt } from "@/game/enemy-reactions";
+import { diveBones } from "@/game/enemy-evasion";
 
 
 
@@ -250,7 +251,9 @@ export function WarMachines({ sim }: { sim: WorldSim }) {
         const v = Number.isNaN(prev.x) || dt <= 0 ? 0 : Math.hypot(m.x - prev.x, m.z - prev.z) / dt;
         drive.current.speed += (Math.min(v, 12) - drive.current.speed) * Math.min(1, dt * 8);
         drive.current.aiming = (m.aim ?? 0) > 0;
-        drive.current.hit = reactionBones(m.react, performance.now() / 1000, m.rot);
+        const nowD = performance.now() / 1000, ev = m.evade && m.evade.dive && nowD < m.evade.until ? m.evade : null;
+        // diving out of a blast (enemy-evasion.ts) takes over the limbs; otherwise any hit reaction plays over the clip
+        drive.current.hit = ev ? diveBones((nowD - ev.start) / (ev.until - ev.start)).bones : reactionBones(m.react, nowD, m.rot);
         prev.x = m.x; prev.z = m.z;
       }
       const stride = strides[i];
@@ -270,10 +273,14 @@ export function WarMachines({ sim }: { sim: WorldSim }) {
       // hit reaction (enemy-reactions.ts): thrown back along the shot, hardest on a stagger, easing out
       const nowS = performance.now() / 1000, kick = recoilAt(m.react, nowS), staggered = isStaggeredNow(m.react, nowS);
       const back = kick * (staggered ? 0.55 : 0.18) * enemyBodyScale(m.scale), rx = m.react?.dx ?? 0, rz = m.react?.dz ?? 0;
-      node.position.set(m.x + rx * back, m.y - 2.2 * m.scale + Math.abs(Math.sin(gait)) * 0.06 * bob, m.z + rz * back);
+      // a dive drops the body low and pitches it toward the way it is going
+      const ev = m.evade && m.evade.dive && nowS < m.evade.until ? m.evade : null;
+      const dip = ev ? diveBones((nowS - ev.start) / (ev.until - ev.start)).dip : 0;
+      node.position.set(m.x + rx * back, m.y - 2.2 * m.scale + Math.abs(Math.sin(gait)) * 0.06 * bob - dip * 0.45 * enemyBodyScale(m.scale), m.z + rz * back);
       // lean: pitch away from the hit in the enemy's own frame
       const c = Math.cos(m.rot), sn = Math.sin(m.rot), fwd = rx * sn + rz * c, side = rx * c - rz * sn, lean = kick * (staggered ? 0.32 : 0.1);
-      node.rotation.set(Math.sin(gait) * 0.03 * bob + fwd * lean, m.rot, Math.sin(gait * 0.5) * 0.05 * bob - side * lean);
+      const evl = ev ? Math.hypot(ev.vx, ev.vz) || 1 : 1, eFwd = ev ? (ev.vx * sn + ev.vz * c) / evl : 0, eSide = ev ? (ev.vx * c - ev.vz * sn) / evl : 0;
+      node.rotation.set(Math.sin(gait) * 0.03 * bob + fwd * lean + eFwd * dip * 0.5, m.rot, Math.sin(gait * 0.5) * 0.05 * bob - side * lean - eSide * dip * 0.6);
       // attack telegraph: a fast pulse while the machine winds up a ranged shot (a stagger cancels it)
       node.scale.setScalar(enemyBodyScale(m.scale) * ((m.aim ?? 0) > 0 && !staggered ? 1 + Math.abs(Math.sin(t * 28)) * 0.1 : 1));
     });

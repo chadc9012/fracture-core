@@ -34,7 +34,7 @@ function arena(): WorldSim {
 /** a plain grunt (Scene's ambient hp 3.5, scale 0.95) parked at (x,z); cool high so it does not wander into melee mid-test */
 function grunt(sim: WorldSim, x: number, z: number, o: Partial<Machine> = {}): Machine {
   const m = sim.machines.find((e) => !e.alive)!;
-  Object.assign(m, { alive: true, x, z, y: walkHeight(x, z), hp: 3.5, maxHp: 3.5, rot: Math.PI, scale: 0.95, zone: "wastelands", cool: 99, elite: false, boss: false, profile: "Test Grunt", kind: "RAIDER", drop: "scrapMetal", kx: 0, kz: 0, vulnUntil: 0, vulnMult: 1, mission: true, react: undefined }, o);
+  Object.assign(m, { alive: true, x, z, y: walkHeight(x, z), hp: 3.5, maxHp: 3.5, rot: Math.PI, scale: 0.95, zone: "wastelands", cool: 99, elite: false, boss: false, profile: "Test Grunt", kind: "RAIDER", drop: "scrapMetal", kx: 0, kz: 0, vulnUntil: 0, vulnMult: 1, mission: true, react: undefined, evadeCool: Infinity /* gun tests: the grunt stands still (enemy-evasion.ts would dive out of rockets) */ }, o);
   delete m.ai; delete m.lastPlayerDamage;
   return m;
 }

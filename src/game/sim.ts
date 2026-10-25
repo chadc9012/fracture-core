@@ -8,6 +8,7 @@ import { createEnvState, STRIKE_MACHINE_DAMAGE, STRIKE_PLAYER_DAMAGE, type EnvSt
 import { squadMove, squadRole } from "./enemy-intelligence";
 import { createAi, pickCover, shouldTakeCover, sightRange, stepAwareness, type EnemyAi } from "./enemy-perception";
 import { enemyHitChance, sightLine } from "./line-of-sight";
+import { DIVE, diveDirection, FLEE, fleeDirection, reactsInTime, roundThreat } from "./enemy-evasion";
 import { FLANK_AFTER, FLANK_GIVE_UP, findFlankSpot, GRENADE, GRENADE_AFTER, grenadeDamage, lobVelocity, MAX_FLANKERS, stepGrenade, throwsGrenades, type Grenade } from "./enemy-tactics";
 import { freshGadgets, GADGET, inCaltrops, inFlames, droneTarget, mineTriggered, slowFor, spoofed, stepDrone, stepFlares, type GadgetState } from "./vehicle-gadgets";
 import { COVER_CHEST, COVER_HOLD, coverCandidates, coverPhase, findCover, HIDE_SECONDS } from "./enemy-cover";
@@ -104,6 +105,10 @@ export type ZoneState = {
 };
 
 export type Machine = {
+  /** enemy-evasion.ts: diving out of a rocket's blast or running out of a strike circle (no shooting meanwhile); when it may dive again; the last strike beacon it rolled to notice */
+  evade?: { vx: number; vz: number; start: number; until: number; dive: boolean } | undefined;
+  evadeCool?: number | undefined;
+  strikeSeen?: string | undefined;
   /** enemy-tactics.ts: seconds the player has been out of this machine's sight while it is alert; a flank it is running; when it may throw again */
   hiddenFor?: number | undefined;
   flank?: { x: number; z: number; until: number } | undefined;
@@ -1739,6 +1744,38 @@ export function stepSim(sim: WorldSim, input: SimInput) {
     const forced = m.boss || m.mission || sim.hp < 35 && d < 40;
     const aiState = forced && d < aggro ? (ai.state = "ALERT", ai.awareness = 1, ai.lastX = px, ai.lastZ = pz, "ALERT")
       : stepAwareness(ai, { distance: d, sight, noise: Math.min(1, (sim.playerNoise ?? 0) + sim.combatHeat / 120), damaged, facing: facingDot > 0.3, inView }, px, pz, dt);
+    // ---- getting out of the way (enemy-evasion.ts): dive from an incoming round's blast, run out of a strike circle ----
+    {
+      const nowE = performance.now() / 1000, canEvade = !m.boss && !scripted && !m.decoy && !m.rival && d < 90;
+      if (canEvade && !(m.evade && nowE < m.evade.until) && nowE >= (m.evadeCool ?? 0)) {
+        for (const r of sim.rounds) {
+          if (!r.alive) continue;
+          const th = roundThreat(r, m.x, m.z, walkHeight, 1.5 * m.scale);
+          if (!th) continue;
+          // one reaction roll per threat (a miss waits out the cooldown, so it isn't re-rolled every frame)
+          if (!reactsInTime(th.t, m.elite, Math.random())) { m.evadeCool = nowE + DIVE.cooldown; break; }
+          const dir = diveDirection(m.x, m.z, th, r.dx, r.dz, sim.machines.indexOf(m) % 2 ? 1 : -1);
+          m.evade = { vx: dir.x * DIVE.speed, vz: dir.z * DIVE.speed, start: nowE, until: nowE + DIVE.seconds, dive: true };
+          m.evadeCool = nowE + DIVE.cooldown; m.aim = 0;
+          break;
+        }
+      }
+      if (canEvade && aiState === "ALERT" && !(m.evade && nowE < m.evade.until)) {
+        sim.beacons.forEach((b, bi) => {
+          if (!b.alive || b.kind !== "ORBITAL_STRIKE" || b.state !== "ARMED") return;
+          if (Math.hypot(m.x - b.x, m.z - b.z) > b.radius + m.scale) return;
+          const key = `${bi}:${Math.round(b.x)}:${Math.round(b.z)}`;
+          if (m.strikeSeen === key) return;
+          m.strikeSeen = key;
+          const roll = Math.random();
+          if (roll >= FLEE.notice) return;
+          const dir = fleeDirection(m.x, m.z, b.x, b.z, roll);
+          const dist = b.radius + FLEE.pad - Math.hypot(m.x - b.x, m.z - b.z);
+          m.evade = { vx: dir.x * (dist / FLEE.seconds) * 1.2, vz: dir.z * (dist / FLEE.seconds) * 1.2, start: nowE, until: nowE + FLEE.seconds, dive: false };
+          m.aim = 0;
+        });
+      }
+    }
     if (aiState === "ALERT" && ai.coverTime <= 0 && shouldTakeCover(m.hp / Math.max(1, m.maxHp ?? (m.elite ? 6 : 3)), ai.coverTime, m.boss) && d < 45 && damaged) {
       // real cover first (enemy-cover.ts): behind a rock, wreck, wall or building the player cannot see through
       const near = coverCandidates(queryObstacles(m.x, m.z), registeredModelSolids(), walkHeight);
@@ -1783,7 +1820,13 @@ export function stepSim(sim: WorldSim, input: SimInput) {
       }
     };
 
-    if (aiState === "ALERT" && ai.coverTime > 0 && ai.peekX !== undefined && ai.peekZ !== undefined) {
+    if (m.evade && performance.now() / 1000 < m.evade.until) {
+      // diving or running clear: all movement, no shots (a dive ends low and slows at the end)
+      const e = m.evade, p = (performance.now() / 1000 - e.start) / Math.max(1e-6, e.until - e.start), ease = e.dive ? 1 - p * 0.6 : 1;
+      m.x += e.vx * ease * dt; m.z += e.vz * ease * dt;
+      m.rot = e.dive ? Math.atan2(dx, dz) : Math.atan2(e.vx, e.vz);
+      m.cool = Math.max(m.cool, 0.35);
+    } else if (aiState === "ALERT" && ai.coverTime > 0 && ai.peekX !== undefined && ai.peekZ !== undefined) {
       // fighting from real cover: run there, then hide, lean out to fire, duck back
       const atCover = Math.hypot(ai.coverX - m.x, ai.coverZ - m.z) < 1.5 || Math.hypot(ai.peekX - m.x, ai.peekZ - m.z) < 1.2;
       const phase = atCover ? coverPhase(ai.hideLeft ?? 0, (m.aim ?? 0) > 0, m.cool) : "RUN";
