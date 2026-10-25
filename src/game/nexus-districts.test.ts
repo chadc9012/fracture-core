@@ -52,6 +52,36 @@ describe("facade kit", () => {
   });
 });
 
+describe("facade kit: modular architecture pieces", () => {
+  const bs = buildings(); const kit = facadeKit(bs);
+  const owner = (x: number, z: number, slack: number) => bs.find((k) => Math.abs(k.x - x) <= k.w / 2 + slack && Math.abs(k.z - z) <= k.d / 2 + slack);
+  test("balconies, rails, portals, lobbies and blades all exist and belong to a building", () => {
+    for (const list of [kit.balconies, kit.rails, kit.portals, kit.lobbies, kit.blades]) {
+      expect(list.length).toBeGreaterThan(10);
+      for (const f of list) expect(owner(f.x, f.z, 1.6)).toBeTruthy();
+    }
+  });
+  test("balconies hang on tall-enough residential bodies, below the roof", () => {
+    for (const b of kit.balconies) { const o = owner(b.x, b.z, 1.6)!; expect(o.floors).toBeGreaterThanOrEqual(6); expect(b.y).toBeLessThan(o.top); expect(o.style === "concrete" || o.style === "glass").toBe(true); }
+    expect(kit.rails.length).toBe(kit.balconies.length);
+  });
+  test("every lobby entrance is at street level and matches a portal frame", () => {
+    expect(kit.lobbies.length).toBe(kit.portals.length);
+    kit.lobbies.forEach((l, i) => { const o = owner(l.x, l.z, 1.6)!; expect(l.y - (o.base + 1)).toBeLessThan(2.5); expect(Math.abs(l.x - kit.portals[i]!.x)).toBeLessThan(0.3); });
+  });
+  test("an entrance never sits on a face that already has a shopfront", () => {
+    for (const p of kit.portals) for (const s of kit.shopfronts) {
+      const near = Math.abs(p.x - s.x) < 0.3 && Math.abs(p.z - s.z) < 0.3;
+      expect(near).toBe(false);
+    }
+  });
+  test("adding architecture left the shopfront layout and the original pieces alone", () => {
+    const again = facadeKit(bs);
+    expect(again.shopfronts).toEqual(kit.shopfronts);
+    expect(again.balconies).toEqual(kit.balconies);
+  });
+});
+
 describe("street lights", () => {
   test("two per block face on the pavement, never on water or a supply road", () => {
     const ls = streetLights();

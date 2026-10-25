@@ -149,6 +149,11 @@ function Facades({ list }: { list: Building[] }) {
     // shop glass glows in its sign colour (instance colour): bright enough to light the pavement in the bloom pass
     shop: shopGlass(),
     awning: new THREE.MeshStandardMaterial({ color: "#ffffff", roughness: 0.7, metalness: 0.0 }),
+    balcony: new THREE.MeshStandardMaterial({ color: "#a9aaa6", roughness: 0.8, metalness: 0.05 }),
+    rail: new THREE.MeshPhysicalMaterial({ color: "#cfe6ee", roughness: 0.08, metalness: 0.1, transparent: true, opacity: 0.45 }),
+    portal: new THREE.MeshStandardMaterial({ color: "#1d2228", roughness: 0.4, metalness: 0.8 }),
+    lobby: new THREE.MeshStandardMaterial({ color: "#ffe9c4", emissive: "#ffcf8a", emissiveIntensity: 1.6, roughness: 0.3, toneMapped: false }),
+    blade: shopGlass(),
   }), []);
   return <group>
     <KitBoxes list={kit.plinths} material={mats.plinth} />
@@ -156,6 +161,11 @@ function Facades({ list }: { list: Building[] }) {
     <KitBoxes list={kit.fins} material={mats.fin} />
     <KitBoxes list={kit.shopfronts} material={mats.shop} tinted />
     <KitBoxes list={kit.awnings} material={mats.awning} tinted />
+    <KitBoxes list={kit.balconies} material={mats.balcony} />
+    <KitBoxes list={kit.rails} material={mats.rail} />
+    <KitBoxes list={kit.portals} material={mats.portal} />
+    <KitBoxes list={kit.lobbies} material={mats.lobby} />
+    <KitBoxes list={kit.blades} material={mats.blade} tinted />
   </group>;
 }
 /** tall towers step back into a narrower glass crown with a lit band */

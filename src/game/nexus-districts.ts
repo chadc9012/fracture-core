@@ -135,13 +135,19 @@ export function parkedCars(): Car[] {
  * shopfront band with an awning on the street faces of low/mid-rise lots, and a dark stone plinth on every building.
  * Each piece is an axis-aligned box (x, y, z centre; sx, sy, sz size) drawn instanced by NexusDistricts.tsx. */
 export type FacadeBox = { x: number; y: number; z: number; sx: number; sy: number; sz: number; tint: number };
-export type FacadeKit = { ledges: FacadeBox[]; fins: FacadeBox[]; shopfronts: FacadeBox[]; awnings: FacadeBox[]; plinths: FacadeBox[] };
+export type FacadeKit = {
+  ledges: FacadeBox[]; fins: FacadeBox[]; shopfronts: FacadeBox[]; awnings: FacadeBox[]; plinths: FacadeBox[];
+  /** modular architecture pieces (Stage 130 foundation): balcony slabs + rails on residential floors, lit lobby entrances, vertical blade signs */
+  balconies: FacadeBox[]; rails: FacadeBox[]; portals: FacadeBox[]; lobbies: FacadeBox[]; blades: FacadeBox[];
+};
 export const SHOP_TINTS = ["#ff4fa8", "#38e8ff", "#ffb347", "#9d6bff", "#5dff9a", "#ff6a3d"] as const;
 
 export function facadeKit(list: Building[] = buildings()): FacadeKit {
   const rnd = mulberry32(0xfaca);
-  const kit: FacadeKit = { ledges: [], fins: [], shopfronts: [], awnings: [], plinths: [] };
+  const kit: FacadeKit = { ledges: [], fins: [], shopfronts: [], awnings: [], plinths: [], balconies: [], rails: [], portals: [], lobbies: [], blades: [] };
+  const arch = mulberry32(0xa4c7); // separate stream: adding architecture never reshuffles the shopfront layout above
   for (const b of list) {
+    const shopFaces = new Set<string>();
     const ground = b.base + 1; // buildings are sunk 1 m below their lowest corner
     const bodyTop = b.crown ? b.base + (b.top - b.base) * 0.78 : b.top;
     kit.plinths.push({ x: b.x, y: ground + 1.6, z: b.z, sx: b.w + 0.3, sy: 4.2, sz: b.d + 0.3, tint: 0 });
@@ -165,12 +171,42 @@ export function facadeKit(list: Building[] = buildings()): FacadeKit {
     if (b.district !== "shipyard" && b.floors <= 16) {
       for (const [dx, dz, along] of [[0, 1, true], [0, -1, true], [1, 0, false], [-1, 0, false]] as const) {
         if (rnd() < 0.35) continue;
+        shopFaces.add(`${dx},${dz}`);
         const tint = Math.floor(rnd() * SHOP_TINTS.length);
         const len = (along ? b.w : b.d) * (0.6 + rnd() * 0.3);
         const ox = dx * (b.w / 2 + 0.05), oz = dz * (b.d / 2 + 0.05);
         kit.shopfronts.push({ x: b.x + ox, y: ground + 1.5, z: b.z + oz, sx: along ? len : 0.1, sy: 2.6, sz: along ? 0.1 : len, tint });
         const ax = dx * (b.w / 2 + 0.9), az = dz * (b.d / 2 + 0.9);
         kit.awnings.push({ x: b.x + ax, y: ground + 3.25, z: b.z + az, sx: along ? len + 0.4 : 1.7, sy: 0.12, sz: along ? 1.7 : len + 0.4, tint });
+        // a vertical blade sign at the shop's end, lit in the shop colour
+        if (arch() < 0.6) {
+          const bx = along ? b.x + (len / 2) * (arch() < 0.5 ? 1 : -1) : b.x + ox + dx * 0.55;
+          const bz = along ? b.z + oz + dz * 0.55 : b.z + (len / 2) * (arch() < 0.5 ? 1 : -1);
+          kit.blades.push({ x: bx, y: ground + 5.2, z: bz, sx: 0.22, sy: 2.4, sz: 0.9, tint });
+        }
+      }
+    }
+    // a lobby entrance on the first face with no shopfront (street level, lit doorway in a dark portal frame)
+    if (b.district !== "shipyard" && b.style !== "industrial") {
+      const face = ([[0, 1], [0, -1], [1, 0], [-1, 0]] as const).find(([dx, dz]) => !shopFaces.has(`${dx},${dz}`));
+      if (face) {
+        const [dx, dz] = face, along = dz !== 0;
+        const ox = dx * (b.w / 2 + 0.08), oz = dz * (b.d / 2 + 0.08);
+        kit.portals.push({ x: b.x + ox, y: ground + 1.7, z: b.z + oz, sx: along ? 3.2 : 0.3, sy: 3.4, sz: along ? 0.3 : 3.2, tint: 0 });
+        kit.lobbies.push({ x: b.x + ox + dx * 0.06, y: ground + 1.45, z: b.z + oz + dz * 0.06, sx: along ? 2.5 : 0.1, sy: 2.9, sz: along ? 0.1 : 2.5, tint: 0 });
+      }
+    }
+    // balconies on residential-scale floors: a slab and a rail every third floor on two faces, never across a shopfront
+    if ((b.style === "concrete" || b.style === "glass") && b.floors >= 6 && b.floors <= 24) {
+      for (const [dx, dz] of [[0, 1], [0, -1]] as const) {
+        if (shopFaces.has(`${dx},${dz}`) && b.floors <= 10) continue;
+        const wide = b.w * 0.5, oz = dz * (b.d / 2 + 0.55);
+        for (let f = 3; f * FLOOR + ground < bodyTop - 3; f += 3) {
+          if (arch() < 0.3) continue;
+          const y = ground + f * FLOOR;
+          kit.balconies.push({ x: b.x, y, z: b.z + oz, sx: wide, sy: 0.16, sz: 1.1, tint: 0 });
+          kit.rails.push({ x: b.x, y: y + 0.5, z: b.z + dz * (b.d / 2 + 1.05), sx: wide, sy: 0.9, sz: 0.06, tint: 0 });
+        }
       }
     }
   }
