@@ -49,9 +49,9 @@ const AUTHORED: Record<string, readonly Clue[]> = {
   ],
   astravore: [
     { id: "tremors", route: "world", text: "The tremors under Nexus City keep a rhythm that is too regular to be geology." },
-    { id: "star-glass", route: "world", text: "Pale glass shards from nowhere lie in the south road, warm to the touch and pointing the same way." },
+    { id: "star-glass", route: "world", text: "Pale glass shards from nowhere lie on the road out of Nexus, warm to the touch and pointing the same way." },
     { id: "engineer", route: "npc", text: "An old Nexus engineer says the city was built on a machine that held the dimensions apart, and that it has started to breathe." },
-    { id: "pulse", route: "combat", text: "Something below answers when you fire a heavy weapon near the south road: a slow violet pulse in the ground." },
+    { id: "pulse", route: "combat", text: "Something below answers when you fire a heavy weapon out past Nexus: a slow violet pulse in the ground." },
   ],
   vyrak: [
     { id: "inscription", route: "world", text: "An inscription in Solara describes a sky sovereign that tests courage, not strength." },
