@@ -1,6 +1,7 @@
 import { useEffect, useMemo } from "react";
 import * as THREE from "three";
 
+import { chippedBlock } from "@/game/organic-geometry";
 import { delineator, lampHead, lampLens, lampPole, railPost, wBeam } from "@/game/street-geometry";
 import { worldRoadDressing, type Bridge, type Sign } from "@/game/road-dressing";
 
@@ -78,6 +79,10 @@ function RoadSign({ s }: { s: Sign }) {
   );
 }
 
+/** worked-concrete bridge parts, cached by size (a handful of bridges share a few sizes) */
+const bridgeCache = new Map<string, THREE.BufferGeometry>();
+const bridgeGeo = (key: string, make: () => THREE.BufferGeometry) => { let g = bridgeCache.get(key); if (!g) { g = make(); bridgeCache.set(key, g); } return g; };
+
 /** a bridge on exactly the deck the player walks on (terrain.ts deckAt): slab + surfacing, kerbs, parapets, piers to the bed */
 function BridgeModel({ b }: { b: Bridge }) {
   const concrete = b.kind === "asphalt";
@@ -87,17 +92,17 @@ function BridgeModel({ b }: { b: Bridge }) {
   return (
     <group name="road-bridge" position={[b.x, 0, b.z]} rotation={[0, b.yaw, 0]}>
       {/* deck slab; its top is the walkable deck */}
-      <mesh position={[0, deckTop - 0.35, 0]} castShadow receiveShadow><boxGeometry args={[b.width, 0.7, L]} /><meshStandardMaterial color={slab} roughness={0.85} /></mesh>
+      <mesh position={[0, deckTop - 0.35, 0]} castShadow receiveShadow geometry={bridgeGeo(`s${b.width}x${L}`, () => chippedBlock(b.width, 0.7, L, 3))}><meshStandardMaterial color={slab} roughness={0.85} /></mesh>
       {concrete
         ? <mesh position={[0, deckTop + 0.012, 0]} receiveShadow><boxGeometry args={[b.width - 1.2, 0.02, L]} /><meshStandardMaterial color="#3a3c40" roughness={0.8} /></mesh>
         : Array.from({ length: Math.round(L / 0.6) }, (_, i) => <mesh key={i} position={[0, deckTop + 0.02, -L / 2 + 0.3 + i * 0.6]} receiveShadow><boxGeometry args={[b.width - 0.2, 0.05, 0.52]} /><meshStandardMaterial color={i % 3 ? "#7a5534" : "#6a472a"} roughness={0.95} /></mesh>)}
       {/* kerbs */}
-      {[-1, 1].map((s) => <mesh key={`k${s}`} position={[s * (half - 0.3), deckTop + 0.12, 0]} castShadow><boxGeometry args={[0.6, 0.25, L]} /><meshStandardMaterial color={concrete ? "#b5b2a8" : "#5c3b20"} roughness={0.85} /></mesh>)}
+      {[-1, 1].map((s) => <mesh key={`k${s}`} position={[s * (half - 0.3), deckTop + 0.12, 0]} castShadow geometry={bridgeGeo(`k${L}`, () => chippedBlock(0.6, 0.25, L, 7))}><meshStandardMaterial color={concrete ? "#b5b2a8" : "#5c3b20"} roughness={0.85} /></mesh>)}
       {/* parapets: posts and two rails */}
       {[-1, 1].map((s) => (
         <group key={`p${s}`} position={[s * (half - 0.25), deckTop + 0.25, 0]}>
           {Array.from({ length: railPosts + 1 }, (_, i) => <mesh key={i} position={[0, 0.5, -L / 2 + (i * L) / railPosts]} castShadow><boxGeometry args={[0.12, 1, 0.12]} /><meshStandardMaterial color={rail} metalness={concrete ? 0.8 : 0} roughness={concrete ? 0.4 : 0.9} /></mesh>)}
-          {[0.95, 0.5].map((y) => <mesh key={y} position={[0, y, 0]} castShadow><boxGeometry args={[concrete ? 0.08 : 0.14, concrete ? 0.08 : 0.16, L]} /><meshStandardMaterial color={rail} metalness={concrete ? 0.8 : 0} roughness={concrete ? 0.4 : 0.9} /></mesh>)}
+          {[0.95, 0.5].map((y) => <mesh key={y} position={[0, y, 0]} rotation-x={concrete ? Math.PI / 2 : 0} castShadow>{concrete ? <cylinderGeometry args={[0.045, 0.045, L, 10]} /> : <boxGeometry args={[0.14, 0.16, L]} />}<meshStandardMaterial color={rail} metalness={concrete ? 0.8 : 0} roughness={concrete ? 0.4 : 0.9} /></mesh>)}
         </group>
       ))}
       {/* piers down to the river bed */}
@@ -109,7 +114,7 @@ function BridgeModel({ b }: { b: Bridge }) {
         </mesh>;
       })}
       {/* abutments where the deck meets the bank */}
-      {[-1, 1].map((s) => <mesh key={`a${s}`} position={[0, deckTop - 1.4, s * (L / 2 - 0.6)]} castShadow receiveShadow><boxGeometry args={[b.width + 0.6, 2.2, 1.4]} /><meshStandardMaterial color={concrete ? "#86847c" : "#6d6a62"} roughness={0.95} /></mesh>)}
+      {[-1, 1].map((s) => <mesh key={`a${s}`} position={[0, deckTop - 1.4, s * (L / 2 - 0.6)]} castShadow receiveShadow geometry={bridgeGeo(`a${b.width}`, () => chippedBlock(b.width + 0.6, 2.2, 1.4, 11))}><meshStandardMaterial color={concrete ? "#86847c" : "#6d6a62"} roughness={0.95} /></mesh>)}
     </group>
   );
 }
