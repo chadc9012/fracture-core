@@ -122,6 +122,7 @@ import { NexusCity } from "./NexusCity";
 import { NeonCity, NEON_CITY_CENTER } from "./NeonCity";
 import { CityStreets } from "./CityStreets";
 import { NeonGroundTraffic } from "./NeonGroundTraffic";
+import { NeonPedestrians } from "./NeonPedestrians";
 import { Thalassia, THALASSIA_CENTER } from "./Thalassia";
 import { Water } from "./Water";
 import { Operator } from "./Operator";
@@ -3255,6 +3256,7 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
       <NearOnly playerRef={player} x={NEXUS_REGION.x} z={NEXUS_REGION.z} radius={190 * NEAR_SCALE[settings.renderTier]} name="streets:nexus"><WorldPiece name="nexus streets"><CityStreets city="nexus" tier={settings.renderTier} /></WorldPiece></NearOnly>
       <NearOnly playerRef={player} x={NEON_CITY_CENTER.x} z={NEON_CITY_CENTER.z} radius={240 * NEAR_SCALE[settings.renderTier]} name="streets:neon"><WorldPiece name="neon streets"><CityStreets city="neon" tier={settings.renderTier} /></WorldPiece></NearOnly>
       <NearOnly playerRef={player} x={NEON_CITY_CENTER.x} z={NEON_CITY_CENTER.z} radius={240 * NEAR_SCALE[settings.renderTier]} name="traffic:neon"><WorldPiece name="neon ground traffic"><NeonGroundTraffic /></WorldPiece></NearOnly>
+      <NearOnly playerRef={player} x={NEON_CITY_CENTER.x} z={NEON_CITY_CENTER.z} radius={240 * NEAR_SCALE[settings.renderTier]} name="pedestrians:neon"><WorldPiece name="neon pedestrians"><NeonPedestrians /></WorldPiece></NearOnly>
       <WorldPiece name="atlas sites"><SiteMarkers playerRef={player} /></WorldPiece>
       <WorldPiece name="wet street reflections"><WetReflections /></WorldPiece>
       <NearOnly playerRef={player} x={(NEXUS_REGION.x + NEON_CITY_CENTER.x) / 2} z={(NEXUS_REGION.z + NEON_CITY_CENTER.z) / 2} radius={1100} name="sky-traffic"><WorldPiece name="sky traffic"><SkyTraffic /></WorldPiece></NearOnly>

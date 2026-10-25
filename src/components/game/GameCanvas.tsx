@@ -1,3 +1,4 @@
+import "./text-font";
 import { FOUND_KEY as STORM_FOUND, stormPrompt, stormStep } from "@/game/storm-quests";
 import { DANCE_VENUES, danceBest, recordDance } from "@/game/dance";
 import { DanceFloor } from "./DanceFloor";

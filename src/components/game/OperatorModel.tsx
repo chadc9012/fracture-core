@@ -1,4 +1,5 @@
 import { useFrame } from "@react-three/fiber";
+import { tierBodyFor } from "@/game/operator-tier";
 import { ARM_RELAX, IDLE_RELAX, armBones, relaxArm } from "@/game/rest-pose";
 import { HELD_MODEL, heldModel } from "./heldModels";
 import { COLORWAY_EMISSIVE, COLORWAY_MAP, COLORWAY_UNIFORMS, colorwayFor, type Colorway } from "@/game/operator-colorway";
@@ -351,5 +352,8 @@ export function OperatorModel({ classId, height, feetY, fallback, color, trim, p
   const entry = OPERATOR_MODELS[classId];
   // a static mesh would just slide across the ground, so the world only uses rigged models
   if (!entry || (pose === "locomotion" && !entry.rigged)) return <>{fallback}</>;
-  return <Quiet fallback={fallback}><Suspense fallback={fallback}><Model url={entry.url} tint={entry.tint} height={height} feetY={feetY} color={color} trim={trim} pose={pose} motion={motion} bodyType={bodyType} look={look} cloth={cloth} gear={gear} classId={classId} held={held} colorway={colorway} /></Suspense></Quiet>;
+  // operator-tier.ts: worn armor power picks the rookie / veteran / elite body; tier bodies wear their own colours
+  const tiered = gear ? tierBodyFor(classId, gear) : null;
+  const url = tiered?.body.url ?? entry.url;
+  return <Quiet key={url} fallback={fallback}><Suspense fallback={fallback}><Model url={url} tint={entry.tint} height={height} feetY={feetY} color={color} trim={trim} pose={pose} motion={motion} bodyType={bodyType} look={look} cloth={cloth} gear={gear} classId={classId} held={held} colorway={colorway && (tiered?.body.colorway ?? true)} /></Suspense></Quiet>;
 }
