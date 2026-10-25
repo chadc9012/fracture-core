@@ -71,7 +71,8 @@ export function blocks(): Block[] {
 }
 
 const STYLE: Record<District, Style[]> = { spire: ["glass", "glass", "concrete"], market: ["concrete", "glass", "concrete"], arcology: ["concrete", "concrete", "glass"], shipyard: ["industrial", "industrial", "concrete"] };
-const FLOORS: Record<District, [number, number]> = { spire: [10, 34], market: [4, 14], arcology: [6, 18], shipyard: [2, 5] };
+// owner's night target (Nexus street): towers line the downtown streets, so market and arcology blocks rise higher than before
+const FLOORS: Record<District, [number, number]> = { spire: [12, 38], market: [7, 22], arcology: [9, 26], shipyard: [2, 5] };
 
 export function buildings(): Building[] {
   const rnd = mulberry32(0x7e5c);
