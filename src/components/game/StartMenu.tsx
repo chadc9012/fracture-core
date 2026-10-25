@@ -251,7 +251,7 @@ export function StartMenu({ onDeploy, onSaveCharacter, weaponOrder, onSettings, 
       <p className="mt-2 text-center hud-label"><Cpu className="mr-1 inline size-3" style={{ filter: "drop-shadow(0 0 3px var(--primary))" }} />Live material projection · changes apply instantly</p>
     </div>}
 
-    {summary && stage !== "ASSEMBLING" && <aside className="pointer-events-none absolute left-4 top-28 z-10 hidden w-56 border border-primary/30 bg-background/70 p-3 backdrop-blur-sm md:block" aria-label="Equipped armor and stats">
+    {summary && stage !== "ASSEMBLING" && <aside className="pointer-events-none absolute left-4 top-28 z-10 wf-armor-aside w-56 border border-primary/30 bg-background/70 p-3 backdrop-blur-sm" aria-label="Equipped armor and stats">
       <p className="hud-label">Equipped armor</p>
       <ul className="mt-2 space-y-1 font-mono text-[10px] uppercase tracking-[0.12em]">
         {summary.slots.map((slot) => <li key={slot.slot} className="flex justify-between gap-2"><span className="text-muted-foreground">{slot.label}</span><span className={slot.name ? "truncate text-foreground" : "text-muted-foreground/50"}>{slot.name ?? "Empty"}</span></li>)}

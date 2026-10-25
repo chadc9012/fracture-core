@@ -582,3 +582,6 @@
 .voice-subtitle { text-align: center; background: radial-gradient(ellipse at center, rgb(0 0 0 / 0.45), transparent 72%); padding: 0.6rem 1.5rem 0.8rem; }
 .voice-subtitle .vs-speaker { font: 600 11px/1 var(--wf-display); letter-spacing: 0.28em; text-transform: uppercase; color: var(--wf-ice); text-shadow: 0 0 12px rgb(56 196 232 / 0.5); }
 .voice-subtitle .vs-line { margin-top: 0.35rem; font: 500 1.15rem/1.35 var(--wf-display); letter-spacing: 0.02em; color: #f3f7fa; text-shadow: 0 2px 6px rgb(0 0 0 / 0.85), 0 0 2px rgb(0 0 0 / 0.9); }
+/* creator armor summary: only where it cannot cover the specialization cards (wide AND tall enough) */
+.wf-armor-aside { display: none; }
+@media (min-width: 768px) and (min-height: 700px) { .wf-armor-aside { display: block; } }
