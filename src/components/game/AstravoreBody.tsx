@@ -13,8 +13,10 @@ import type { WorldSim } from "@/game/sim";
 const PHASE_COLOR = ["#a463ff", "#ff9a3c", "#4fc3ff", "#ff4a3a"] as const;
 const ARENA = scenarioById("astravore")?.lairAt ?? { x: 0, z: 0 };
 
-const armor = new THREE.MeshStandardMaterial({ color: "#1b1626", metalness: 0.9, roughness: 0.42 });
-const trim = new THREE.MeshStandardMaterial({ color: "#3b2f55", metalness: 0.85, roughness: 0.35, emissive: "#2a1550", emissiveIntensity: 0.4 });
+const armor = new THREE.MeshStandardMaterial({ color: "#3a3150", metalness: 0.8, roughness: 0.38, emissive: "#2b1650", emissiveIntensity: 0.55 });
+const trim = new THREE.MeshStandardMaterial({ color: "#5a4a80", metalness: 0.8, roughness: 0.3, emissive: "#6a3cc0", emissiveIntensity: 0.9 });
+/** glowing seams so the silhouette reads against a dark sky: bright, unlit, always visible */
+const seam = new THREE.MeshBasicMaterial({ color: "#c9a8ff", toneMapped: false });
 
 function Arm({ side, refGroup }: { side: 1 | -1; refGroup: React.RefObject<THREE.Group | null> }) {
   return (
@@ -65,19 +67,24 @@ function AstravoreBody({ sim, ready }: { sim: WorldSim; /** the shared set that 
       <mesh material={armor} position={[0, 4, 0]}><cylinderGeometry args={[8.5, 11, 8, 12]} /></mesh>
       <mesh material={trim} position={[0, 11.5, 0]}><cylinderGeometry args={[7.6, 8.8, 8, 12]} /></mesh>
       <mesh material={armor} position={[0, 16, 0]}><boxGeometry args={[17, 4.6, 8]} /></mesh>
+      {/* glowing seams down the torso and across the shoulders, and two eyes, so the colossus reads in the dark */}
+      {[-5.2, 5.2].map((x) => <mesh key={x} material={seam} position={[x, 9, 5.4]} rotation={[0, x > 0 ? 0.45 : -0.45, 0]}><boxGeometry args={[0.25, 17, 0.2]} /></mesh>)}
+      <mesh material={seam} position={[0, 18.4, 4.1]}><boxGeometry args={[16, 0.3, 0.2]} /></mesh>
+      <mesh material={seam} position={[0, 2.4, 10.6]}><boxGeometry args={[18, 0.3, 0.2]} /></mesh>
       {/* chest cage and the star */}
       <group position={[0, 11.5, 6.4]}>
         <mesh><sphereGeometry args={[3, 24, 18]} /><meshStandardMaterial ref={core} color="#120a22" emissive="#a463ff" emissiveIntensity={2} /></mesh>
         <mesh ref={ringA}><torusGeometry args={[4.6, 0.3, 8, 40]} /><meshBasicMaterial color="#c9a8ff" toneMapped={false} /></mesh>
         <mesh ref={ringB} rotation={[Math.PI / 2, 0, 0]}><torusGeometry args={[5.6, 0.22, 8, 40]} /><meshBasicMaterial color="#7ee8ff" toneMapped={false} /></mesh>
         <mesh ref={weak} visible={false}><sphereGeometry args={[4.2, 18, 12]} /><meshBasicMaterial color="#9ffcff" transparent opacity={0.28} depthWrite={false} toneMapped={false} /></mesh>
-        <DistrictLight range={140} position={[0, 0, 3]} color="#a463ff" intensity={60} distance={70} />
+        <DistrictLight range={140} position={[0, 0, 3]} color="#a463ff" intensity={110} distance={90} />
       </group>
       <Arm side={1} refGroup={armR} /><Arm side={-1} refGroup={armL} />
       {/* head and crown */}
       <group ref={head} position={[0, 21.5, 0.6]}>
         <mesh material={armor}><icosahedronGeometry args={[3.2, 1]} /></mesh>
-        <mesh position={[0, 0, 2.6]}><sphereGeometry args={[0.55, 10, 8]} /><meshBasicMaterial color="#d9b8ff" toneMapped={false} /></mesh>
+        {[-1.1, 1.1].map((x) => <mesh key={x} position={[x, 0.3, 2.9]}><sphereGeometry args={[0.5, 10, 8]} /><meshBasicMaterial color="#e8d0ff" toneMapped={false} /></mesh>)}
+        <DistrictLight range={140} position={[0, 0, 4]} color="#c9a8ff" intensity={25} distance={40} />
         {Array.from({ length: 7 }, (_, i) => { const a = (i / 7) * Math.PI - Math.PI / 2; return <mesh key={i} material={trim} position={[Math.sin(a) * 3.4, 2.6 + Math.cos(a) * 1.6, -0.4]} rotation={[0, 0, -a * 0.6]}><coneGeometry args={[0.7, 4.2 + (i % 2) * 1.6, 5]} /></mesh>; })}
       </group>
       {/* a broken halo of armor plates orbiting behind the shoulders */}
