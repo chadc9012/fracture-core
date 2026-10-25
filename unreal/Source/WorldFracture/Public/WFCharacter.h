@@ -82,7 +82,8 @@ private:
 	void DevFinishQuest(const FInputActionValue& Value);
 	void CycleClass(const FInputActionValue& Value);
 	void SummonScenario(const FInputActionValue& Value);
-	void CastWyrmcall(const FInputActionValue& Value);
+	/** Casts a Dragonite ability through the ported dragonite-cast.ts rules (bond, cooldown and energy checked there). */
+	void CastAbility(const FString& Ability);
 	void ToggleRide(const FInputActionValue& Value);
 	void TickDragon(float DeltaSeconds);
 	void TickRide(float DeltaSeconds);
@@ -108,12 +109,15 @@ private:
 	UPROPERTY() TObjectPtr<UInputAction> ClassAction;
 	UPROPERTY() TObjectPtr<UInputAction> ScenarioAction;
 	UPROPERTY() TObjectPtr<UInputAction> WyrmAction;
+	UPROPERTY() TArray<TObjectPtr<UInputAction>> DragoniteActions;
 	UPROPERTY() TObjectPtr<UInputAction> RideAction;
 	/** Stand-in mount under the Operator while riding, until Vyrak's model is imported. */
 	UPROPERTY(VisibleAnywhere, Category = "Dragon") TObjectPtr<UStaticMeshComponent> MountMesh;
 
 	bool bRiding = false;
 	bool bSprinting = false;
+	double DragonhideResist = 0;
+	static constexpr double GlideSinkCmPerSec = 250; // Unreal-side glide feel: the web build only flags gliding
 	double HazardSpeedMult = 1;
 	wf::dragon::FFlight Flight;
 	FVector2D RideInput = FVector2D::ZeroVector; // A/D turn, W/S throttle, gathered from Move each frame

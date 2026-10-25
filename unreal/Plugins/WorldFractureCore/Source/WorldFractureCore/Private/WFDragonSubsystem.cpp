@@ -112,35 +112,16 @@ bool UWFDragonSubsystem::CanRide(const FString& RegionId, bool bInDungeon, bool 
 	return R.bOk;
 }
 
-FString UWFDragonSubsystem::CastWyrmcall(bool& bOutOk)
+float UWFDragonSubsystem::GetCooldown(const FString& Ability) const
 {
-	bOutOk = false;
-	if (!OperatorClass() || !IsBonded()) return TEXT("Bond with Vyrak to use Dragonite");
-	if (WyrmcallCooldown > 0) return FString::Printf(TEXT("Wyrmcall - %ds"), FMath::CeilToInt(WyrmcallCooldown));
-	const wf::dragon::FStats St0 = wf::dragon::StatsFor(St(), *OperatorClass(), "wyrmcall");
-	if (!wf::dragon::SummonWyrm(Wyrm, St0)) return TEXT("Vyrak is still recovering");
-	WyrmcallCooldown = St0.at("cooldown");
-	bOutOk = true;
-	return TEXT("WYRMCALL - Vyrak answers");
+	const auto Found = CastRuntime.Cd.find(ToStd(Ability));
+	return Found == CastRuntime.Cd.end() ? 0.f : static_cast<float>(Found->second);
 }
 
-FWFWyrmAction UWFDragonSubsystem::TickDragon(float DeltaSeconds, const TArray<FWFWyrmTarget>& Targets, bool& bOutWithdrew)
+wf::dragoncast::FContext UWFDragonSubsystem::MakeContext() const
 {
-	bOutWithdrew = false;
-	FWFWyrmAction Out;
-	WyrmcallCooldown = FMath::Max(0.0, WyrmcallCooldown - DeltaSeconds);
-	const std::optional<std::string> C = OperatorClass();
-	if (!C || Wyrm.State == wf::dragon::EWyrmState::Bonded) return Out;
-	const wf::dragon::FStats Stats = wf::dragon::StatsFor(St(), *C, "wyrmcall");
-	std::vector<wf::dragon::FWyrmTarget> In;
-	for (const FWFWyrmTarget& T : Targets) In.push_back({static_cast<double>(T.Id), T.DistanceMeters, T.bBoss, T.bWindingUp});
-	if (const std::optional<wf::dragon::FWyrmAction> A = wf::dragon::StepWyrm(Wyrm, DeltaSeconds, In, Stats))
-	{
-		Out.Kind = ToF(A->Kind);
-		Out.TargetId = static_cast<int32>(A->Target);
-		const double Base = Stats.at("damage");
-		Out.Damage = A->Kind == "finisher" ? Base * 3 : A->Kind == "breath" ? Base * 1.5 : A->Kind == "interrupt" ? 0 : Base;
-	}
-	if (Wyrm.bFinished) { Wyrm.bFinished = false; bOutWithdrew = true; }
-	return Out;
+	wf::dragoncast::FContext Ctx;
+	Ctx.Progression = &St();
+	Ctx.Class = OperatorClass();
+	return Ctx;
 }

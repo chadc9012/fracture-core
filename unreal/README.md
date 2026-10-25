@@ -24,7 +24,7 @@ unreal/
    `WorldFractureEditor` (Development Editor, Win64), then run.
 3. Press Play. The game loads `DataTables/*.json` directly, so no import step is needed. Controls: WASD, mouse,
    Space/C jump, Shift sprint, LMB fire, RMB aim, R/G reload, 1-5 / wheel weapons, F5 save, F6 cycle Operator class
-   (Titan / Hunter / Warlock), F7 Wyrmcall, V ride Vyrak, F8 summon a Unique Scenario boss, F9 finish the active quest.
+   (Titan / Hunter / Warlock), 8 9 0 - = \ ; the seven Dragonite abilities (F7 also Wyrmcall), V ride Vyrak, F8 summon a Unique Scenario boss, F9 finish the active quest.
    Console (~): `UpgradeDragonite <ability>`, `VyrakTrust ruin|puzzle|protect <id>`, `AncientBond`, `EternalCovenant`,
    `SpawnScenarioBoss <id>`.
 
@@ -50,8 +50,10 @@ The default level is the engine's template map; the game mode adds a floor and l
   stages; the Ancient Bond (unlocks riding, Wingmantle) and Eternal Covenant (Eternal Crest) ceremonies; Wyrmcall (F7)
   runs the ported ally state machine and its strafes, breath, interrupts and boss finisher hit real enemies; riding
   (V) uses the ported flight model with terrain skimming and the no-fly rules (Nexus, Neon, dungeons, missions,
-  indoors). The other six Dragonite casts, ability energy, and Vyrak's model and voice lines are not in yet; the
-  mount is a stand-in block.
+  indoors). All seven Dragonite abilities cast through the ported dragonite-cast.ts: Dragonfire cones (and the eruption),
+  Wyrmwing launch / glide / air dash, Dragonhide resistance, Roar of Ruin stagger / knockback / vulnerability,
+  Scalebreaker strikes and shield break, Skyfall's delayed dive, Wyrmcall; they spend ability energy (100, +9/s).
+  Vyrak's model and voice lines are not in yet; the mount is a stand-in block.
 - **Quests:** the Fracture Descent chain (fd-01 to fd-18) with world unlocks and corruption.
 - **Missions:** all twelve story mission machines with their NOVA lines. A finished mission pays once through the
   ported rewardMission / applyMissionCompletion (XP, materials, loot box, first-clear weapon and campaign exotic, armor
@@ -70,6 +72,7 @@ cmake -S . -B build -G Ninja && cmake --build build && ctest --test-dir build --
 | MissionCoreTest | src/game/missions/* (12 machines) | 28,800 states |
 | MissionRewardCoreTest | progression.ts rewardMission, persistence.ts applyMissionCompletion | 1,224 payouts, 1,576 checks |
 | EncounterCoreTest | encounter-sim.ts, boss-poise.ts, boss-phases.ts, scenario-gimmicks.ts, sim.ts boss damage | 112 fights, 27,149 steps, 32,056 checks |
+| DragoniteCastCoreTest | dragonite-cast.ts castDragonite / stepDragonite, live-build.ts energy | 9,600 operations, 35,122 checks |
 | DragonCoreTest | dragonite.ts, dragonite-cast.ts statsFor, vyrak-trust.ts | 2,099 states, 23,789 checks |
 
 Regenerate goldens after changing the web build's rules (from the repo root):
@@ -79,7 +82,7 @@ Regenerate goldens after changing the web build's rules (from the repo root):
 for `export-datatables`, `gen-quest-golden`, `gen-reward-golden`, `gen-mission-golden`, `gen-missionreward-golden`, `gen-dragon-golden`; the encounter recorder runs through `node unreal/tools/build-golden.mjs unreal/tools/gen-encounter-golden.ts`.
 
 ## Not ported yet
-Boss models and attack effects (zones are debug circles, decoys are stand-ins), the six other Dragonite casts and ability energy, mid-mission saves, abilities (Q/E/R),
+Boss models and attack effects (zones are debug circles, decoys are stand-ins), mid-mission saves, abilities (Q/E/R),
 armor effects on combat, enemy perception/cover/line-of-sight, launchers and the sword, vehicles and racing,
 merchants and housing, cloud save merge, the world itself (regions, Neon City, Thalassia). Their data is already in
 `DataTables/`.

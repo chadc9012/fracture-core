@@ -38,7 +38,19 @@ public:
 	virtual void Tick(float DeltaSeconds) override;
 
 	/** Element is the hit's damage element (KINETIC, THERMAL, CRYO, ARC, BIO): scenario gimmicks read it. */
-	void ReceiveHit(double Damage, AActor* Instigator, const FString& Element = TEXT("KINETIC"));
+	/** Returns the damage the hit really dealt (after vulnerability and the boss rules). */
+	double ReceiveHit(double Damage, AActor* Instigator, const FString& Element = TEXT("KINETIC"));
+	// Dragonite casts (ported dragonite-cast.ts) read and change these
+	double GetAim() const { return Windup >= 0 ? 1.0 : 0.0; }
+	void CancelWindup() { Windup = -1; }
+	double GetStun() const { return StunLeft; }
+	void SetStun(double Seconds) { StunLeft = Seconds; }
+	double GetVulnUntil() const { return VulnUntil; }
+	double GetVulnMult() const { return VulnMult; }
+	/** Weaken / Marked / Roar: hits are multiplied by Mult until world time Until (sim.ts vulnUntil / vulnMult). */
+	void SetVulnerable(double Until, double Mult) { VulnUntil = Until; VulnMult = Mult; }
+	/** Knockback: moves the enemy to a ground-plane point (metres), landing on the ground. */
+	void MoveToGround(double XMetres, double YMetres);
 	/** A False Saint (Hollow Saint decoy): never attacks, pays nothing, and reports its shattering to the encounter. */
 	void ConfigureDecoy(double InDecoyId) { bDecoy = true; DecoyId = InDecoyId; }
 	bool IsDecoy() const { return bDecoy; }
@@ -86,6 +98,7 @@ private:
 	double SincePlayerHit = 1000; // seconds since the player last damaged it (sim.ts kill-credit window)
 	FString ScenarioId;
 	double StunLeft = 0;
+	double VulnUntil = 0, VulnMult = 1;
 	bool bDecoy = false;
 	double DecoyId = 0;
 	wf::encounter::FBoss BossRules;

@@ -187,10 +187,11 @@ void AWFEnemy::TryAttack(AWFCharacter* Player, double Distance, float DeltaSecon
 	if (RangedCooldown <= 0) Windup = Tier(0.6, 0.42, 0.25); // telegraph, then shoot
 }
 
-void AWFEnemy::ReceiveHit(double Damage, AActor* Instigator, const FString& Element)
+double AWFEnemy::ReceiveHit(double Damage, AActor* Instigator, const FString& Element)
 {
-	if (IsDead()) return;
+	if (IsDead()) return 0;
 	const double Now = GetWorld()->GetTimeSeconds();
+	if (VulnUntil > Now) Damage *= VulnMult; // sim.ts applyMachineDamageMods: Weaken / Marked / Roar vulnerability
 	const AWFGameMode* Mode = GetWorld()->GetAuthGameMode<AWFGameMode>();
 	if (bBoss && Mode)
 	{
@@ -203,15 +204,25 @@ void AWFEnemy::ReceiveHit(double Damage, AActor* Instigator, const FString& Elem
 	Health -= Damage;
 	bAggro = true;
 	if (Cast<AWFCharacter>(Instigator)) SincePlayerHit = 0;
-	if (Health > 0) return;
+	if (Health > 0) return Damage;
 	if (bBoss && Mode && !bDecoy)
 	{
 		// sim.ts defeatMachine: an encounter boss cannot die before its finale window opens
 		BossRules.Hp = Health;
 		const double Floor = wf::encounter::EncounterHpFloor(Mode->GetEncounterCatalog(), BossRules, Now);
-		if (Floor > 0) { Health = Floor; return; }
+		if (Floor > 0) { Health = Floor; return Damage; }
 	}
 	Die();
+	return Damage;
+}
+
+void AWFEnemy::MoveToGround(double XMetres, double YMetres)
+{
+	const FVector Target(XMetres * CmPerM, YMetres * CmPerM, GetActorLocation().Z);
+	FHitResult Ground;
+	FCollisionQueryParams Params(SCENE_QUERY_STAT(WFKnockback), false, this);
+	const bool bGround = GetWorld()->LineTraceSingleByChannel(Ground, Target + FVector(0, 0, 5000), Target - FVector(0, 0, 20000), ECC_Visibility, Params);
+	SetActorLocation(bGround ? Ground.ImpactPoint + FVector(0, 0, GetCapsuleComponent()->GetScaledCapsuleHalfHeight()) : Target, false, nullptr, ETeleportType::TeleportPhysics);
 }
 
 void AWFEnemy::ConfigureScenario(const FString& InScenarioId)

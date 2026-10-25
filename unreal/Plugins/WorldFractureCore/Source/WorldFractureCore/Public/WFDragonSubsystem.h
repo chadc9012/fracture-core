@@ -2,38 +2,17 @@
 
 #include "CoreMinimal.h"
 #include "Core/WFDragonCore.h"
+#include "Core/WFDragoniteCastCore.h"
 #include "Subsystems/GameInstanceSubsystem.h"
 #include "WFDragonSubsystem.generated.h"
 
 class UWFProgressionSubsystem;
 
-/** An enemy the Wyrm can see this frame. Id must stay the same for the same enemy across frames. */
-USTRUCT(BlueprintType)
-struct WORLDFRACTURECORE_API FWFWyrmTarget
-{
-	GENERATED_BODY()
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wyrm") int32 Id = 0;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wyrm") double DistanceMeters = 0;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wyrm") bool bBoss = false;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wyrm") bool bWindingUp = false;
-};
-
-/** What the Wyrm does this frame. Kind is empty when it does nothing. */
-USTRUCT(BlueprintType)
-struct WORLDFRACTURECORE_API FWFWyrmAction
-{
-	GENERATED_BODY()
-	/** strafe | breath | finisher (damage) or interrupt (stun 1.5 s). */
-	UPROPERTY(BlueprintReadOnly, Category = "Wyrm") FString Kind;
-	UPROPERTY(BlueprintReadOnly, Category = "Wyrm") int32 TargetId = 0;
-	/** Damage to apply: wyrmcall damage, x1.5 for breath, x3 for the finisher, 0 for an interrupt (dragonite-cast.ts). */
-	UPROPERTY(BlueprintReadOnly, Category = "Wyrm") double Damage = 0;
-};
-
 /**
  * Dragonite and Vyrak for the current Operator class (ported dragonite.ts / vyrak-trust.ts rules, state in the save's
  * earnedRewards and materials): ability upgrades and numbers, trust and its stages, the Ancient Bond (riding) and Eternal
- * Covenant ceremonies, the riding gate, and the Wyrmcall ally's state machine.
+ * Covenant ceremonies, the riding gate, and the cast runtime (cooldowns, energy, Dragonhide, Skyfall's dive, the Wyrm)
+ * that AWFCharacter drives through the ported dragonite-cast.ts rules.
  */
 UCLASS()
 class WORLDFRACTURECORE_API UWFDragonSubsystem : public UGameInstanceSubsystem
@@ -61,18 +40,23 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "World Fracture|Dragon") bool ClaimEternalCovenant();
 	UFUNCTION(BlueprintPure, Category = "World Fracture|Dragon") bool CanRide(const FString& RegionId, bool bInDungeon, bool bInStoryMission, bool bIndoors, FString& OutReason) const;
 
-	/** Casts Wyrmcall: bond and cooldown checked (energy is not modelled in Unreal yet). Returns the HUD text. */
-	UFUNCTION(BlueprintCallable, Category = "World Fracture|Dragon") FString CastWyrmcall(bool& bOutOk);
-	/** Advances cooldowns and the Wyrm. Call every frame with the enemies within 40 m. */
-	UFUNCTION(BlueprintCallable, Category = "World Fracture|Dragon") FWFWyrmAction TickDragon(float DeltaSeconds, const TArray<FWFWyrmTarget>& Targets, bool& bOutWithdrew);
-	UFUNCTION(BlueprintPure, Category = "World Fracture|Dragon") FString GetWyrmState() const { return FString(wf::dragon::WyrmStateName(Wyrm.State)); }
-	UFUNCTION(BlueprintPure, Category = "World Fracture|Dragon") float GetWyrmcallCooldown() const { return static_cast<float>(WyrmcallCooldown); }
+	UFUNCTION(BlueprintPure, Category = "World Fracture|Dragon") FString GetWyrmState() const { return FString(wf::dragon::WyrmStateName(CastRuntime.Wyrm.State)); }
+	/** Seconds left on an ability's cooldown. */
+	UFUNCTION(BlueprintPure, Category = "World Fracture|Dragon") float GetCooldown(const FString& Ability) const;
+	/** Ability energy, 0..100: Dragonite casts spend it, it refills 9 per second (live-build.ts). */
+	UFUNCTION(BlueprintPure, Category = "World Fracture|Dragon") float GetEnergy() const { return static_cast<float>(Energy); }
+
+	/** The cast runtime and energy pool the character's casts run on. */
+	wf::dragoncast::FRuntime& Runtime() { return CastRuntime; }
+	double& EnergyPool() { return Energy; }
+	/** Rules context: this save's earned keys, gear and class. Valid until the save changes. */
+	wf::dragoncast::FContext MakeContext() const;
 
 private:
 	const wf::FProgression& St() const;
 	std::optional<std::string> OperatorClass() const;
 	UWFProgressionSubsystem* Progression() const;
 
-	wf::dragon::FWyrm Wyrm;
-	double WyrmcallCooldown = 0; // cast cooldown (dragonite-cast.ts rt.cd.wyrmcall)
+	wf::dragoncast::FRuntime CastRuntime;
+	double Energy = wf::dragoncast::EnergyMax;
 };

@@ -19,6 +19,7 @@
 #include "WFEnemy.h"
 #include "WFGameMode.h"
 #include "WFHUD.h"
+#include "WFDataFiles.h"
 #include "WFDragonSubsystem.h"
 #include "WFProgressionSubsystem.h"
 #include "WFQuestSubsystem.h"
@@ -134,6 +135,14 @@ void AWFCharacter::BuildInput()
 	Mapping->MapKey(ClassAction, EKeys::F6);
 	Mapping->MapKey(ScenarioAction, EKeys::F8);
 	Mapping->MapKey(WyrmAction, EKeys::F7);
+	// the web build's default Dragonite keys (bindings.ts): 8 9 0 - = \ ;  in dragonite.ts order
+	const FKey DragoniteKeys[7] = {EKeys::Eight, EKeys::Nine, EKeys::Zero, EKeys::Hyphen, EKeys::Equals, EKeys::Backslash, EKeys::Semicolon};
+	for (const FKey& Key : DragoniteKeys)
+	{
+		UInputAction* A = Make(EInputActionValueType::Boolean);
+		Mapping->MapKey(A, Key);
+		DragoniteActions.Add(A);
+	}
 	Mapping->MapKey(RideAction, EKeys::V);
 	const FKey SlotKeys[] = {EKeys::One, EKeys::Two, EKeys::Three, EKeys::Four, EKeys::Five};
 	for (const FKey& Key : SlotKeys)
@@ -185,7 +194,12 @@ void AWFCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 	Input->BindAction(DevQuestAction, ETriggerEvent::Started, this, &AWFCharacter::DevFinishQuest);
 	Input->BindAction(ClassAction, ETriggerEvent::Started, this, &AWFCharacter::CycleClass);
 	Input->BindAction(ScenarioAction, ETriggerEvent::Started, this, &AWFCharacter::SummonScenario);
-	Input->BindAction(WyrmAction, ETriggerEvent::Started, this, &AWFCharacter::CastWyrmcall);
+	Input->BindActionValueLambda(WyrmAction, ETriggerEvent::Started, [this](const FInputActionValue&) { CastAbility(TEXT("wyrmcall")); });
+	for (int32 I = 0; I < DragoniteActions.Num(); ++I)
+	{
+		const FString Id = UTF8_TO_TCHAR(wf::dragon::AbilityIds[I]);
+		Input->BindActionValueLambda(DragoniteActions[I], ETriggerEvent::Started, [this, Id](const FInputActionValue&) { CastAbility(Id); });
+	}
 	Input->BindAction(RideAction, ETriggerEvent::Started, this, &AWFCharacter::ToggleRide);
 	for (int32 I = 0; I < SlotActions.Num(); ++I)
 		Input->BindActionValueLambda(SlotActions[I], ETriggerEvent::Started, [this, I](const FInputActionValue&) { SelectWeapon(I); });
@@ -261,7 +275,6 @@ void AWFCharacter::SummonScenario(const FInputActionValue& Value)
 
 namespace
 {
-	constexpr double WyrmRangeM = 40; // dragonite-cast.ts: the Wyrm sees enemies within 40 m
 	constexpr double CmPerMeter = 100.0;
 }
 
@@ -271,44 +284,105 @@ void AWFCharacter::Notify(const FString& Text, const FLinearColor& Color) const
 		if (AWFHUD* Hud = PC->GetHUD<AWFHUD>()) Hud->Toast(Text, Color);
 }
 
-void AWFCharacter::CastWyrmcall(const FInputActionValue& Value)
+namespace
+{
+	/** The world as dragonite-cast.ts sees it: every live enemy, by slot. Hits go through the enemy's own damage rules. */
+	class FDragonWorld final : public wf::dragoncast::IWorld
+	{
+	public:
+		TArray<AWFEnemy*> Enemies;
+		AWFCharacter* Player = nullptr;
+		TArray<FString> Alerts;
+		double DamageMods(std::vector<wf::dragoncast::FMachine>& Machines, size_t I, double Dmg, const std::string& Element, double X, double Z) override
+		{
+			(void)Machines; (void)X; (void)Z;
+			return Enemies[static_cast<int32>(I)]->ReceiveHit(Dmg, Player, WFData::ToF(Element)); // applies it; a kill pays as the player's
+		}
+		void Defeat(std::vector<wf::dragoncast::FMachine>& Machines, size_t I) override
+		{
+			const AWFEnemy* E = Enemies[static_cast<int32>(I)];
+			Machines[I].bAlive = !E->IsDead(); // the enemy already died (or held an encounter hp floor) in ReceiveHit
+			Machines[I].Hp = E->GetHealth();
+		}
+		void Alert(const std::string& Text) override { Alerts.Add(WFData::ToF(Text)); }
+
+		std::vector<wf::dragoncast::FMachine> Gather(UWorld* World)
+		{
+			std::vector<wf::dragoncast::FMachine> Out;
+			for (TActorIterator<AWFEnemy> It(World); It; ++It)
+			{
+				if (It->IsDead()) continue;
+				const FVector L = It->GetActorLocation() / CmPerMeter;
+				wf::dragoncast::FMachine M;
+				M.X = L.X; M.Z = L.Y; M.Hp = It->GetHealth(); M.bBoss = It->IsBoss(); M.Aim = It->GetAim();
+				M.Cool = It->GetStun(); M.VulnUntil = It->GetVulnUntil(); M.VulnMult = It->GetVulnMult();
+				Enemies.Add(*It);
+				Out.push_back(M);
+			}
+			return Out;
+		}
+
+		/** Knockback, cancelled wind-ups, stuns and vulnerability back onto the enemies. */
+		void WriteBack(const std::vector<wf::dragoncast::FMachine>& Before, const std::vector<wf::dragoncast::FMachine>& After)
+		{
+			for (int32 I = 0; I < Enemies.Num(); ++I)
+			{
+				AWFEnemy* E = Enemies[I];
+				const auto& B = Before[static_cast<size_t>(I)];
+				const auto& A = After[static_cast<size_t>(I)];
+				if (!IsValid(E) || E->IsDead()) continue;
+				if (FMath::Abs(A.X - B.X) + FMath::Abs(A.Z - B.Z) > 0.001) E->MoveToGround(A.X, A.Z);
+				if (B.Aim > 0 && A.Aim <= 0) E->CancelWindup();
+				if (A.Cool != B.Cool) E->SetStun(A.Cool);
+				if (A.VulnUntil != B.VulnUntil || A.VulnMult != B.VulnMult) E->SetVulnerable(A.VulnUntil, A.VulnMult);
+			}
+		}
+	};
+
+	/** Rules yaw: forward is (sin yaw, cos yaw) on the (Unreal X, Unreal Y) plane, so yaw = 90 degrees - Unreal yaw. */
+	double RulesYaw(float UnrealYawDegrees) { return HALF_PI - FMath::DegreesToRadians(static_cast<double>(UnrealYawDegrees)); }
+}
+
+void AWFCharacter::CastAbility(const FString& Ability)
 {
 	UWFDragonSubsystem* Dragon = GetGameInstance()->GetSubsystem<UWFDragonSubsystem>();
 	if (!Dragon) return;
-	bool bOk = false;
-	const FString Text = Dragon->CastWyrmcall(bOk);
-	Notify(Text, bOk ? FLinearColor(0.7f, 0.4f, 1.f) : FLinearColor(1.f, 0.55f, 0.3f));
+	FDragonWorld World;
+	World.Player = this;
+	std::vector<wf::dragoncast::FMachine> Machines = World.Gather(GetWorld());
+	const std::vector<wf::dragoncast::FMachine> Before = Machines;
+	const FVector L = GetActorLocation() / CmPerMeter;
+	const bool bGrounded = !GetCharacterMovement()->IsFalling();
+	const wf::dragoncast::FCastOutcome R = wf::dragoncast::CastDragonite(Dragon->Runtime(), World, Machines, Dragon->EnergyPool(), WFData::ToStd(Ability),
+		wf::dragoncast::FPose{L.X, L.Y, RulesYaw(GetControlRotation().Yaw)}, bGrounded, Dragon->MakeContext(), GetWorld()->GetTimeSeconds());
+	World.WriteBack(Before, Machines);
+	if (R.bOk)
+	{
+		if (R.LaunchVy) LaunchCharacter(FVector(0, 0, *R.LaunchVy * CmPerMeter), false, true); // Wyrmwing launch
+		else if (Ability == TEXT("wyrmwing")) LaunchCharacter(GetActorForwardVector() * 18 * CmPerMeter, true, false); // air dash
+	}
+	const FLinearColor Violet(0.7f, 0.4f, 1.f), Warn(1.f, 0.55f, 0.3f);
+	if (!World.Alerts.IsEmpty()) for (const FString& A : World.Alerts) Notify(A, Violet);
+	else Notify(WFData::ToF(R.Text), R.bOk ? Violet : Warn);
 }
 
 void AWFCharacter::TickDragon(float DeltaSeconds)
 {
 	UWFDragonSubsystem* Dragon = GetGameInstance()->GetSubsystem<UWFDragonSubsystem>();
 	if (!Dragon) return;
-	TArray<FWFWyrmTarget> Targets;
-	TMap<int32, AWFEnemy*> ById;
-	if (Dragon->GetWyrmState() != TEXT("BONDED"))
-		for (TActorIterator<AWFEnemy> It(GetWorld()); It; ++It)
-		{
-			AWFEnemy* E = *It;
-			if (E->IsDead()) continue;
-			const double Dist = FVector::Dist2D(E->GetActorLocation(), GetActorLocation()) / CmPerMeter;
-			if (Dist >= WyrmRangeM) continue;
-			const int32 Id = static_cast<int32>(E->GetUniqueID()); // stable for the enemy's lifetime
-			Targets.Add({Id, Dist, E->IsBoss(), E->IsWindingUp()});
-			ById.Add(Id, E);
-		}
-	bool bWithdrew = false;
-	const FWFWyrmAction Action = Dragon->TickDragon(DeltaSeconds, Targets, bWithdrew);
-	if (!Action.Kind.IsEmpty())
-		if (AWFEnemy** Found = ById.Find(Action.TargetId); Found && *Found && !(*Found)->IsDead())
-		{
-			AWFEnemy* E = *Found;
-			const FVector From = E->GetActorLocation() + FVector(0, 0, 1500);
-			DrawDebugLine(GetWorld(), From, E->GetActorLocation(), Action.Kind == TEXT("interrupt") ? FColor(120, 200, 255) : FColor(170, 60, 255), false, 0.4f, 0, Action.Kind == TEXT("finisher") ? 12.f : 5.f);
-			if (Action.Kind == TEXT("interrupt")) E->Interrupt(1.5);
-			else E->ReceiveHit(Action.Damage, this, TEXT("THERMAL")); // the Wyrm's kills are the player's
-		}
-	if (bWithdrew) Notify(TEXT("Vyrak withdraws"), FLinearColor(0.7f, 0.4f, 1.f));
+	FDragonWorld World;
+	World.Player = this;
+	std::vector<wf::dragoncast::FMachine> Machines = World.Gather(GetWorld());
+	const std::vector<wf::dragoncast::FMachine> Before = Machines;
+	const FVector L = GetActorLocation() / CmPerMeter;
+	const wf::dragoncast::FStepResult R = wf::dragoncast::StepDragonite(Dragon->Runtime(), World, Machines, DeltaSeconds, wf::dragoncast::FPose{L.X, L.Y, 0}, Dragon->MakeContext());
+	World.WriteBack(Before, Machines);
+	Dragon->EnergyPool() = wf::dragoncast::RegenEnergy(Dragon->EnergyPool(), DeltaSeconds);
+	DragonhideResist = R.Resist;
+	// Wyrmwing glide: a slow, controlled descent while it lasts (the web build's gliding flag)
+	if (R.bGliding && GetCharacterMovement()->IsFalling() && GetCharacterMovement()->Velocity.Z < -GlideSinkCmPerSec)
+		GetCharacterMovement()->Velocity.Z = -GlideSinkCmPerSec;
+	for (const FString& A : World.Alerts) Notify(A, FLinearColor(0.7f, 0.4f, 1.f));
 }
 
 void AWFCharacter::ToggleRide(const FInputActionValue& Value)
@@ -510,6 +584,7 @@ void AWFCharacter::StartReload()
 void AWFCharacter::ApplyHit(double Damage, const FString& Source)
 {
 	if (Health <= 0) return;
+	Damage *= 1 - wf::dragon::CappedResist(0, DragonhideResist); // Dragonhide (armor resistance not modelled yet)
 	Health = FMath::Max(0.0, Health - Damage);
 	SinceDamage = 0;
 	LastDamageSource = Source;

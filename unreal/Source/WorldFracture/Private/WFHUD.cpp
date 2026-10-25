@@ -111,13 +111,18 @@ void AWFHUD::DrawHUD()
 		if (const UWFDragonSubsystem* Dragon = GetGameInstance()->GetSubsystem<UWFDragonSubsystem>(); Dragon && Dragon->IsBonded())
 		{
 			const AWFCharacter* Rider = Cast<AWFCharacter>(GetOwningPawn());
-			Line(FString::Printf(TEXT("VYRAK  %s  trust %d/100   wyrm %s%s   %s"), *Dragon->GetTrustStageName(), FMath::RoundToInt(Dragon->GetTrust()), *Dragon->GetWyrmState(),
-				Dragon->GetWyrmcallCooldown() > 0 ? *FString::Printf(TEXT(" (%ds)"), FMath::CeilToInt(Dragon->GetWyrmcallCooldown())) : TEXT(""),
-				Rider && Rider->IsRiding() ? *FString::Printf(TEXT("RIDING %d m/s"), FMath::RoundToInt(Rider->GetRideSpeed())) : TEXT("[F7 Wyrmcall  V ride]")), 32, H - 116, FLinearColor(0.75f, 0.55f, 1.f), 0.9f);
+			FString Cds;
+			for (const char* Id : wf::dragon::AbilityIds)
+			{
+				const float Cd = Dragon->GetCooldown(UTF8_TO_TCHAR(Id));
+				if (Cd > 0) Cds += FString::Printf(TEXT(" %s %ds"), UTF8_TO_TCHAR(Id), FMath::CeilToInt(Cd));
+			}
+			Line(FString::Printf(TEXT("VYRAK  %s  trust %d/100   energy %d   wyrm %s%s   %s"), *Dragon->GetTrustStageName(), FMath::RoundToInt(Dragon->GetTrust()), FMath::RoundToInt(Dragon->GetEnergy()), *Dragon->GetWyrmState(), *Cds,
+				Rider && Rider->IsRiding() ? *FString::Printf(TEXT("RIDING %d m/s"), FMath::RoundToInt(Rider->GetRideSpeed())) : TEXT("[8 9 0 - = \\ ; Dragonite  F7 Wyrmcall  V ride]")), 32, H - 166, FLinearColor(0.75f, 0.55f, 1.f), 0.9f);
 		}
 		const FString Class = Progression->GetIdentityClass();
 		Line(FString::Printf(TEXT("%s%s   NEX %d   DRAGONITE %d   [F6 class  F8 scenario]"), Class.IsEmpty() ? TEXT("NO CLASS") : *Class, Progression->IsBondedToVyrak() ? TEXT(" (Vyrak bond)") : TEXT(""),
-			FMath::RoundToInt(Progression->GetNexBalance()), FMath::RoundToInt(Progression->GetMaterial(TEXT("dragonite")))), 32, H - 94, Soft, 0.9f);
+			FMath::RoundToInt(Progression->GetNexBalance()), FMath::RoundToInt(Progression->GetMaterial(TEXT("dragonite")))), 32, H - 142, Soft, 0.9f);
 		Line(FString::Printf(TEXT("LEVEL %d   %d / %d XP"), Progression->GetLevel(), FMath::RoundToInt(Progression->GetXp()), FMath::RoundToInt(Progression->GetXpToNextLevel())), 32, H - 72, Soft);
 		Line(FString::Printf(TEXT("KILLS %d   CREDITS %d   GEAR %d"), Progression->GetSessionKills(), FMath::RoundToInt(Progression->GetSessionCredits()), Progression->GetInventoryCount()), 32, H - 50, Soft, 0.9f);
 	}
