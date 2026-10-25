@@ -12,6 +12,7 @@ import { useEffect, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
+import { registerOfflineCache } from "../game/offline-register";
 
 function NotFoundComponent() {
   return (
@@ -116,6 +117,7 @@ function RootShell({ children }: { children: ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+  useEffect(() => { registerOfflineCache(); }, []);
 
   return (
     <QueryClientProvider client={queryClient}>
