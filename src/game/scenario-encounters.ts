@@ -10,7 +10,8 @@ export type AttackKind =
   | "POUNCE"  // boss leaps to the snapshot point; hits the player inside `radius` of the landing
   | "FAN"     // ranged cone toward the snapshot point: half-angle `arc`, reach `reach`
   | "FIELD"   // spawns hazard zones (no direct hit)
-  | "CLONES"; // spawns False Saint decoys (no direct hit)
+  | "CLONES"  // spawns False Saint decoys (no direct hit)
+  | "SUMMON";  // calls in real hostile troops around the boss (no direct hit)
 
 export type ZoneKind = "DAMAGE" | "SLOW";
 export type ZoneSpec = {
@@ -21,11 +22,13 @@ export type ZoneSpec = {
   name: string;
 };
 
+/** troops an encounter boss calls in: ordinary hostile machines (they shoot, chase, drop a little) tagged so the fight can clear them */
+export type SummonGroup = { profile: string; kind: "RAIDER" | "OVERCLOCKED" | "ABERRATION" | "VANGUARD"; count: number; hp: number; scale: number; elite?: boolean };
 export type AttackDef = {
   id: string; kind: AttackKind; label: string; /** text shown when the tell starts */ tell: string;
   tellTime: number; damage: number;
   /** valid boss-to-player distance for the attack to be chosen */ minRange: number; maxRange: number;
-  radius?: number; width?: number; arc?: number; reach?: number; zones?: ZoneSpec; decoys?: number;
+  radius?: number; width?: number; arc?: number; reach?: number; zones?: ZoneSpec; decoys?: number; summon?: readonly SummonGroup[];
   recovery: number; /** seconds the weak point stays open after the attack */ window: number;
 };
 
@@ -174,18 +177,22 @@ const ASTRAVORE: EncounterDef = {
       zones: { kind: "SLOW", radius: 9, dps: 6, slow: 0.45, count: 3, arm: 1.2, life: 10, place: "PLAYER", ringRadius: 14, name: "Gravity well" } }),
     "dimensional-rifts": A({ id: "dimensional-rifts", kind: "FIELD", label: "Dimensional Rifts", tell: "Reality tears open around the platform - the rifts are about to burn.", tellTime: 1.5, damage: 0, minRange: 0, maxRange: 90, recovery: 1.4, window: 1.6,
       zones: { kind: "DAMAGE", radius: 7, dps: 12, count: 4, arm: 1.6, life: 9, place: "RING", ringRadius: 26, name: "Dimensional rift" } }),
-    summons: A({ id: "summons", kind: "FIELD", label: "Summons", tell: "Void spawn claw out of the floor - the dark pits are about to erupt.", tellTime: 1.4, damage: 0, minRange: 0, maxRange: 90, recovery: 1.5, window: 1.8,
-      zones: { kind: "DAMAGE", radius: 6, dps: 10, count: 3, arm: 1.8, life: 8, place: "PLAYER", ringRadius: 18, name: "Void spawn pit" } }),
+    summons: A({ id: "summons", kind: "SUMMON", label: "Summons", tell: "Void spawn claw out of the floor - a pack of Void Hounds is coming.", tellTime: 1.4, damage: 0, minRange: 0, maxRange: 90, recovery: 1.5, window: 1.8,
+      summon: [{ profile: "Void Hound", kind: "OVERCLOCKED", count: 3, hp: 3, scale: 0.9 }] }),
+    "call-guardians": A({ id: "call-guardians", kind: "SUMMON", label: "Call the Guardians", tell: "A rift splits open - a Dimensional Knight and Reality Mages step through.", tellTime: 1.6, damage: 0, minRange: 0, maxRange: 90, recovery: 1.6, window: 1.8,
+      summon: [{ profile: "Dimensional Knight", kind: "VANGUARD", count: 1, hp: 12, scale: 1.7, elite: true }, { profile: "Reality Mage", kind: "RAIDER", count: 2, hp: 4, scale: 1.1 }] }),
+    "call-sentinel": A({ id: "call-sentinel", kind: "SUMMON", label: "Call a Sentinel", tell: "The floor lifts - a Star Sentinel rises to guard the core.", tellTime: 1.8, damage: 0, minRange: 0, maxRange: 90, recovery: 1.8, window: 2.0,
+      summon: [{ profile: "Star Sentinel", kind: "VANGUARD", count: 1, hp: 22, scale: 2.6, elite: true }] }),
     "star-collapse": A({ id: "star-collapse", kind: "FIELD", label: "Star Collapse", tell: "The star destabilizes - orbiting rings of energy sweep the platform. Move with the gaps.", tellTime: 1.3, damage: 0, minRange: 0, maxRange: 90, recovery: 1.4, window: 1.8,
       zones: { kind: "DAMAGE", radius: 7, dps: 13, count: 3, arm: 1.2, life: 12, place: "ORBIT", ringRadius: 20, orbitSpeed: 0.45, name: "Collapsing energy" } }),
     overload: A({ id: "overload", kind: "SLAM", label: "Overload", tell: "OVERLOAD - the machine is tearing itself apart. Run to the edge!", tellTime: 2.6, damage: 30, minRange: 0, maxRange: 120, radius: 28, recovery: 0.8, window: 0 }),
   },
   phases: [
     { id: "awakening", name: "Awakening", below: 1, nova: "NOVA: It is only testing us. Read the slam and the beam, then hit the opening.", attacks: ["void-slam", "star-beam", "summons"], gap: 1.8 },
-    { id: "star-collapse", name: "Star Collapse", below: 0.7, nova: "NOVA: The star is unstable. The energy rings sweep the whole platform - stay in the gaps.", attacks: ["star-collapse", "void-slam", "star-beam", "summons"], gap: 1.5 },
-    { id: "fractured-reality", name: "Fractured Reality", below: 0.4, nova: "NOVA: Reality is splitting. Gravity wells and rifts - keep moving, keep to clear ground.", attacks: ["gravity-pull", "dimensional-rifts", "star-beam", "void-slam"], gap: 1.3,
+    { id: "star-collapse", name: "Star Collapse", below: 0.7, nova: "NOVA: The star is unstable. The energy rings sweep the whole platform - stay in the gaps.", attacks: ["star-collapse", "void-slam", "summons", "star-beam", "call-guardians"], gap: 1.5 },
+    { id: "fractured-reality", name: "Fractured Reality", below: 0.4, nova: "NOVA: Reality is splitting. Gravity wells and rifts - keep moving, keep to clear ground.", attacks: ["gravity-pull", "call-guardians", "dimensional-rifts", "star-beam", "void-slam", "call-sentinel"], gap: 1.3,
       arena: { kind: "DAMAGE", radius: 8, dps: 6, count: 4, arm: 2.5, life: 1e9, place: "RING", ringRadius: 38, name: "Fractured ground" } },
-    { id: "final-stand", name: "Final Stand", below: 0.15, nova: "NOVA: The arena is coming apart. Survive the overload and the core is open.", attacks: ["star-beam", "dimensional-rifts", "void-slam"], gap: 1.1,
+    { id: "final-stand", name: "Final Stand", below: 0.15, nova: "NOVA: The arena is coming apart. Survive the overload and the core is open.", attacks: ["star-beam", "dimensional-rifts", "call-guardians", "void-slam"], gap: 1.1,
       arena: { kind: "DAMAGE", radius: 9, dps: 8, count: 5, arm: 2.0, life: 1e9, place: "RING", ringRadius: 38, name: "Collapsing ground" },
       finale: { attack: "overload", window: 6, floorHp: 3, nova: "NOVA: THE CORE IS EXPOSED - everything into it, now!" } },
   ],

@@ -166,6 +166,8 @@ export type Machine = {
   encounter?: EncounterState | undefined;
   /** Hollow Saint false copy: inert, shatters without kills/credit/loot (encounter-sim.ts) */
   decoy?: boolean | undefined;
+  /** called in by an encounter boss (encounter-sim.ts SUMMON): ordinary hostile troops that vanish when the fight ends */
+  summoned?: boolean | undefined;
   /** Living World event id (living-events.ts) this machine belongs to; never leashed away, cleared when the slot is freed */
   living?: string | undefined;
   /** nemesis.ts: this machine is a nemesis (id), its weak element and its damage multiplier; cleared when the slot is freed */
@@ -530,7 +532,7 @@ export function defeatMachine(sim: WorldSim, m: Machine, credit: KillCredit = "p
     m.alive = false;
     delete m.living;
     onDecoyShattered(sim, m);
-    delete m.decoy;
+    delete m.decoy; delete m.summoned;
     return;
   }
   // encounter bosses cannot die before their authored finale window opens (Last Oath / Drowning / Last Benediction)
@@ -557,7 +559,7 @@ export function defeatMachine(sim: WorldSim, m: Machine, credit: KillCredit = "p
   // a Living World boss that dies to the world (a wall, the patrols) pays nobody, unlike catalog bosses
   if (credit === "world" && !m.eq && !m.scenarioId && (!m.boss || livingTag)) { // ambient kill: no kill, credit, XP, drop or director event
     endEncounter(sim, m);
-    delete m.gimmickHistory; delete m.attuned; delete m.scenarioRun; delete m.playerHits; delete m.encounter; delete m.decoy; delete m.lastPlayerDamage;
+    delete m.gimmickHistory; delete m.attuned; delete m.scenarioRun; delete m.playerHits; delete m.encounter; delete m.decoy; delete m.summoned; delete m.lastPlayerDamage;
     return;
   }
   sim.kills++;
@@ -597,7 +599,7 @@ export function defeatMachine(sim: WorldSim, m: Machine, credit: KillCredit = "p
   alert(sim, `${m.profile} defeated · ${material.replace(/([A-Z])/g, " $1")} +${amount}`);
   // pooled slots are reused: never let the next occupant inherit this fight's scenario state
   endEncounter(sim, m);
-  delete m.scenarioId; delete m.gimmickHistory; delete m.attuned; delete m.scenarioRun; delete m.playerHits; delete m.encounter; delete m.decoy; delete m.lastPlayerDamage;
+  delete m.scenarioId; delete m.gimmickHistory; delete m.attuned; delete m.scenarioRun; delete m.playerHits; delete m.encounter; delete m.decoy; delete m.summoned; delete m.lastPlayerDamage;
 }
 
 const byId = (id: string) => REGIONS.find((r) => r.id === id)!;
@@ -823,7 +825,7 @@ function spawnMachine(sim: WorldSim, zone: ZoneState, elite = false) {
   delete m.lastPlayerDamage;
   m.vulnMult = 1;
   m.aim = 0;
-  delete m.encounter; delete m.decoy; delete m.living; delete m.nemesis; delete m.nemesisWeak; delete m.nemesisDamage;
+  delete m.encounter; delete m.decoy; delete m.summoned; delete m.living; delete m.nemesis; delete m.nemesisWeak; delete m.nemesisDamage;
 }
 
 /** Spawn Broken Signal data drones around a point; tagged so the mission can count them. */

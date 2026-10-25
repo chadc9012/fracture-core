@@ -2,7 +2,7 @@
 import { afterEach, beforeEach, describe, expect, it, spyOn } from "bun:test";
 import { ENCOUNTERS } from "./scenario-encounters";
 import { createSim, defeatMachine, stepSim, summonScenarioBoss } from "./sim";
-import { encounterHpFloor } from "./encounter-sim";
+import { MAX_SUMMONED, encounterHpFloor, isSummoned, resetEncounters } from "./encounter-sim";
 import { isStaggered } from "./boss-poise";
 import { DEFAULT_PROGRESSION } from "./progression";
 import { HOLLOW_STAR_LENS, STARBREAKER_PLATE, SCENARIO_LOOT, grantScenarioReward } from "./scenario-loot";
@@ -120,5 +120,51 @@ describe("Astravore rewards", () => {
     const claims = sim.drops.filter((d) => d.scenarioClaim);
     expect(claims).toHaveLength(1);
     expect(claims[0]!.scenarioClaim!.scenarioId).toBe("astravore");
+  });
+});
+
+function forceTell(boss: ReturnType<typeof arena>["boss"], atk: string) {
+  Object.assign(boss.encounter!, { state: "TELL", atk, timer: 0.04, tx: BX + 45, tz: BZ, tellTotal: 0.04 });
+}
+describe("Astravore calls in real troops", () => {
+  it("Summons brings three Void Hounds; the guardians call brings a Knight and two Mages; a Sentinel is one big elite", () => {
+    const { sim, boss, step } = arena();
+    forceTell(boss, "summons"); step(0.2);
+    let live = sim.machines.filter(isSummoned);
+    expect(live.map((m) => m.profile)).toEqual(["Void Hound", "Void Hound", "Void Hound"]);
+    expect(live.every((m) => m.hp > 0 && !m.boss && m.summoned)).toBe(true);
+    forceTell(boss, "call-guardians"); boss.encounter!.timer = 0.04; step(0.2);
+    live = sim.machines.filter(isSummoned);
+    expect(live.map((m) => m.profile).sort()).toEqual(["Dimensional Knight", "Reality Mage", "Reality Mage", "Void Hound", "Void Hound", "Void Hound"].sort());
+    expect(live.find((m) => m.profile === "Dimensional Knight")!.elite).toBe(true);
+    expect(sim.encounterEvents.filter((e) => e.kind === "SUMMON").length).toBe(6);
+  });
+  it("never more than the cap alive at once, however many calls", () => {
+    const { sim, boss, step } = arena();
+    for (let i = 0; i < 6; i++) { forceTell(boss, i % 2 ? "call-guardians" : "summons"); step(0.2); }
+    expect(sim.machines.filter(isSummoned).length).toBeLessThanOrEqual(MAX_SUMMONED);
+    expect(sim.machines.filter(isSummoned).length).toBeGreaterThan(0);
+  });
+  it("they leave when the encounter resets, and when the boss dies, without a kill or loot", () => {
+    const a = arena();
+    forceTell(a.boss, "summons"); a.step(0.2);
+    expect(a.sim.machines.filter(isSummoned).length).toBe(3);
+    resetEncounters(a.sim);
+    expect(a.sim.machines.filter(isSummoned).length).toBe(0);
+    const b = arena();
+    forceTell(b.boss, "summons"); b.step(0.2);
+    const kills = b.sim.kills;
+    b.boss.hp = b.boss.maxHp! * 0.1; b.step(0.1);
+    b.boss.encounter!.sinceFinale = 99; b.boss.encounter!.state = "IDLE"; b.boss.encounter!.timer = 0; b.boss.cool = 0; b.step(3.2);
+    (b.boss as unknown as { playerHits?: number }).playerHits = 99;
+    b.boss.hp = -1; defeatMachine(b.sim, b.boss);
+    expect(b.sim.machines.filter(isSummoned).length).toBe(0);
+    expect(b.sim.kills).toBe(kills + 1); // only the boss counted
+  });
+  it("a recycled machine slot is not mistaken for a summon", () => {
+    const { sim } = arena();
+    const m = sim.machines.find((x) => !x.alive)!;
+    Object.assign(m, { alive: true, summoned: true, profile: "Regional Raider" });
+    expect(isSummoned(m)).toBe(false);
   });
 });

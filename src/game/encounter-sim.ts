@@ -19,7 +19,7 @@ export type EncounterZone = {
   id: number; scenarioId: string; name: string; kind: ZoneKind; x: number; z: number; radius: number; dps: number; slow: number;
   armAt: number; until: number; orbit?: { cx: number; cz: number; r: number; ang: number; speed: number }; /** "phase" zones live until the phase ends */ scope: "attack" | "phase";
 };
-export type EncounterEventKind = "TRUCE" | "DEPART" | "TELL" | "IMPACT" | "INTERRUPT" | "PHASE" | "ZONE" | "FINALE" | "DECOY" | "DECOY_SHATTER" | "RESET" | "VICTORY";
+export type EncounterEventKind = "TRUCE" | "DEPART" | "TELL" | "IMPACT" | "INTERRUPT" | "PHASE" | "ZONE" | "FINALE" | "DECOY" | "DECOY_SHATTER" | "SUMMON" | "RESET" | "VICTORY";
 export type EncounterEvent = {
   id: number; kind: EncounterEventKind; scenarioId: string; phase: number; phaseName: string; attack?: string; text: string;
   x: number; z: number; radius: number; duration: number; /** IMPACT: did it actually hit the player */ hit?: boolean; at: number;
@@ -103,12 +103,37 @@ function impact(sim: WorldSim, m: Machine, enc: EncounterState, atk: AttackDef, 
     case "FAN": hit = inFan(px, pz, m.x, m.z, enc.tx, enc.tz, atk.arc ?? 0.3, atk.reach ?? 40); radius = atk.reach ?? 40; break;
     case "FIELD": if (atk.zones) spawnZones(sim, m, enc, atk.zones, "attack", now, px, pz); break;
     case "CLONES": spawnDecoys(sim, m, enc, atk.decoys ?? 3); break;
+    case "SUMMON": if (atk.summon) spawnSummons(sim, m, enc, atk.summon); break;
   }
   dealDamage(sim, atk, hit);
-  if (atk.kind !== "FIELD" && atk.kind !== "CLONES") emit(sim, m, { kind: "IMPACT", attack: atk.id, text: atk.label, x, z, radius, duration: 0, hit });
+  if (atk.kind !== "FIELD" && atk.kind !== "CLONES" && atk.kind !== "SUMMON") emit(sim, m, { kind: "IMPACT", attack: atk.id, text: atk.label, x, z, radius, duration: 0, hit });
   void phase;
   return hit;
 }
+
+/** most called-in troops alive at once; a pack that is ignored does not snowball into an unwinnable room */
+export const MAX_SUMMONED = 6;
+const SUMMON_PROFILES = new Set(["Void Hound", "Dimensional Knight", "Reality Mage", "Star Sentinel"]);
+export const isSummoned = (x: Machine) => Boolean(x.alive && x.summoned && SUMMON_PROFILES.has(x.profile));
+/** the boss calls in real troops, spread around it at 18 m (outside machine separation, inside the arena). Returns how many arrived. */
+function spawnSummons(sim: WorldSim, boss: Machine, enc: EncounterState, groups: readonly import("./scenario-encounters").SummonGroup[]): number {
+  let live = sim.machines.filter(isSummoned).length, made = 0;
+  const total = groups.reduce((n, g) => n + g.count, 0);
+  for (const g of groups) for (let i = 0; i < g.count && live < MAX_SUMMONED; i++) {
+    const slot = sim.machines.find((x) => !x.alive);
+    if (!slot) return made;
+    const a = ((made + 0.5) / total) * Math.PI * 2 + enc.cursor * 1.3;
+    const x = boss.x + Math.sin(a) * 18, z = boss.z + Math.cos(a) * 18;
+    const hp = g.hp * (sim.challenge?.enemyHp ?? 1);
+    Object.assign(slot, { alive: true, react: undefined, x, z, y: walkHeightFor(x, z), hp, maxHp: hp, rot: 0, scale: g.scale, zone: boss.zone, cool: 1.2, elite: Boolean(g.elite), boss: false, mission: false, profile: g.profile, kind: g.kind, drop: "dataShards", kx: 0, kz: 0, vulnUntil: 0, vulnMult: 1, aim: 0, summoned: true });
+    delete slot.encounter; delete slot.decoy; delete slot.living; delete slot.nemesis; delete slot.scenarioId; delete slot.lastPlayerDamage;
+    emit(sim, boss, { kind: "SUMMON", text: g.profile, x, z, radius: 0, duration: 0 });
+    live++; made++;
+  }
+  return made;
+}
+/** the fight is over (or reset): called-in troops leave with the boss, paying nothing */
+function dismissSummoned(sim: WorldSim) { for (const x of sim.machines) if (isSummoned(x)) { x.alive = false; delete x.summoned; } }
 
 function spawnDecoys(sim: WorldSim, boss: Machine, enc: EncounterState, count: number) {
   const live = sim.machines.filter((x) => x.alive && x.decoy).length;
@@ -237,6 +262,7 @@ export function stepEncounters(sim: WorldSim, dt: number, px: number, pz: number
     // no live encounter boss: nothing may keep damaging, slowing or masquerading as the boss
     if (sim.encounterZones.length) sim.encounterZones = [];
     for (const x of sim.machines) if (x.alive && x.decoy) { x.alive = false; delete x.decoy; }
+    dismissSummoned(sim);
   } else {
     for (const x of sim.machines) if (x.alive && x.decoy) x.cool = Math.max(x.cool, DECOY_COOL); // decoys never fight
   }
@@ -258,6 +284,7 @@ export function encounterHpFloor(m: Machine, now: number): number {
 export function resetEncounters(sim: WorldSim) {
   for (const m of sim.machines) {
     if (m.alive && m.decoy) { m.alive = false; delete m.decoy; continue; }
+    if (isSummoned(m)) { m.alive = false; delete m.summoned; continue; }
     if (!m.alive || !m.boss || !m.scenarioId || !ENCOUNTERS[m.scenarioId]) continue;
     const old = m.encounter;
     m.hp = m.maxHp ?? 34; m.poiseState = INITIAL_POISE; m.cool = Math.max(m.cool, 2); m.aim = 0;
@@ -275,6 +302,7 @@ export function endEncounter(sim: WorldSim, m: Machine) {
   if (!m.scenarioId || !ENCOUNTERS[m.scenarioId]) return;
   sim.encounterZones = sim.encounterZones.filter((z) => z.scenarioId !== m.scenarioId);
   for (const x of sim.machines) if (x.alive && x.decoy) { x.alive = false; delete x.decoy; }
+  dismissSummoned(sim);
   sim.hazardSpeedMult = 1;
   emit(sim, m, { kind: "VICTORY", text: ENCOUNTERS[m.scenarioId]!.victory, x: m.x, z: m.z, radius: 0, duration: 0 });
 }
