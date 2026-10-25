@@ -676,10 +676,10 @@ function SceneImpl({
   const neonCoreSpawned = useRef("");
   const descentSpawned = useRef("");
   const burstHeard = useRef(0);
-  const devWarp = useRef<{ x: number; z: number; y?: number } | null>(null);
+  const devWarp = useRef<{ x: number; z: number; y?: number; keepInterior?: boolean } | null>(null);
   useEffect(() => {
     if (typeof window === "undefined" || new URLSearchParams(window.location.search).get("dev") !== "1") return;
-    const w = window as unknown as { __warp?: (to: string | { x: number; z: number; y?: number }) => string };
+    const w = window as unknown as { __warp?: (to: string | { x: number; z: number; y?: number; keepInterior?: boolean }) => string };
     w.__warp = (to) => {
       if (typeof to !== "string") { devWarp.current = to; return "ok"; }
       const r = REGIONS.find((g) => g.id === to);
@@ -2699,9 +2699,11 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
     // dev warp (?dev=1): window.__warp("neon" | "thalassia" | "nexus" | "ember" | ...) — a testing aid for checking places in the real game
     if (devWarp.current) {
       const w = devWarp.current; devWarp.current = null;
+      if (w.keepInterior && interior) { s.x = w.x; s.z = w.z; s.vy = 0; velocity.set(0, 0, 0); } else {
       s.x = w.x; s.z = w.z; s.y = w.y ?? walkHeight(s.x, s.z) + 1.6; s.vy = 0; s.vSpeed = 0; s.inVehicle = false; s.insideInterior = null; interior = null; velocity.set(0, 0, 0);
       if (w.y !== undefined) { s.diving = true; s.grounded = false; s.oxygen = OXYGEN_MAX; s.hull = 0; }
       submerged = heightAt(s.x, s.z) < WATER_LEVEL - 0.2;
+      }
     }
     if (travelTo && travelTo.nonce !== travelSeen.current) {
       travelSeen.current = travelTo.nonce;

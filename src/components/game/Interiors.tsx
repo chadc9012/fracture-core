@@ -1,7 +1,6 @@
 import "@/game/venue-doors";
 import { merchantModelUrl } from "@/game/merchant-models";
 import { useFrame } from "@react-three/fiber";
-import { Text } from "@react-three/drei";
 import { useMemo, useRef } from "react";
 import * as THREE from "three";
 import { INTERIOR_ALTITUDE, INTERIORS, SHOP_INTERIORS } from "@/game/interiors";
@@ -117,8 +116,7 @@ export function Interiors() {
           {interior.lift && <group position={[interior.lift.pad.x, 0, interior.lift.pad.z]}>
             <mesh rotation-x={-Math.PI / 2} position={[0, 0.025, 0]}><circleGeometry args={[1, 32]} /><meshStandardMaterial color="#1b2330" metalness={0.8} roughness={0.3} /></mesh>
             <mesh rotation-x={-Math.PI / 2} position={[0, 0.035, 0]}><ringGeometry args={[0.78, 1, 32]} /><meshBasicMaterial color="#6fd8ff" toneMapped={false} /></mesh>
-            <mesh position={[0, 2.4, -1.1]}><boxGeometry args={[1.6, 0.4, 0.06]} /><meshBasicMaterial color="#6fd8ff" toneMapped={false} /></mesh>
-            <Text position={[0, 2.4, -1.06]} fontSize={0.14} color="#04121a" anchorX="center" anchorY="middle" maxWidth={1.5}>{interior.lift.label}</Text>
+            <LiftSign label={interior.lift.label} />
           </group>}
           {/* exit marker — a faint glowing seam in the floor, so the door out is readable at a glance */}
           <mesh rotation-x={-Math.PI / 2} position={[interior.exitOffset.x, 0.02, interior.exitOffset.z]}>
@@ -184,4 +182,22 @@ function VenueRoom({ venueId }: { venueId: string }) {
     {[-1, 1].map((sz) => <mesh key={sz} position={[-3.9, 0.45, sz * 2]} castShadow><boxGeometry args={[1.2, 0.9, 2.2]} /><meshStandardMaterial color="#2a1630" roughness={0.8} /></mesh>)}
     {[-4.84, 4.84].map((x) => <mesh key={x} position={[x, 3.2, 0]} material={glow(x < 0 ? a : b)}><boxGeometry args={[0.04, 0.08, 9.4]} /></mesh>)}
   </group>;
+}
+
+/** the lift call sign: label drawn onto a canvas, so it needs no font download (a CDN font fetch held the whole world back offline) */
+function LiftSign({ label }: { label: string }) {
+  const tex = useMemo(() => {
+    const c = document.createElement("canvas");
+    c.width = 512; c.height = 128;
+    const g = c.getContext("2d");
+    if (g) {
+      g.fillStyle = "#6fd8ff"; g.fillRect(0, 0, 512, 128);
+      g.fillStyle = "#04121a"; g.font = "bold 40px sans-serif"; g.textAlign = "center"; g.textBaseline = "middle";
+      g.fillText(label, 256, 64, 480);
+    }
+    const t = new THREE.CanvasTexture(c);
+    t.colorSpace = THREE.SRGBColorSpace;
+    return t;
+  }, [label]);
+  return <mesh position={[0, 2.4, -1.1]}><planeGeometry args={[1.6, 0.4]} /><meshBasicMaterial map={tex} toneMapped={false} /></mesh>;
 }
