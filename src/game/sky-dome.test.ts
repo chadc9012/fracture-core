@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { SKY_BODY, skyBodyElevation, skyParams } from "./sky-dome";
+import { SKY_BODY, skyBodyElevation, skyParams, DEFAULT_SKY_LOOK, skyKeyAt } from "./sky-dome";
 
 describe("sky dome parameters", () => {
   test("day has no night/stars, midnight is fully dark with stars", () => {
@@ -79,4 +79,43 @@ test("the sky rift sits above the horizon, away from the Fracture Moon, and glow
   expect(riftGlow(1, 0, false)).toBeGreaterThan(riftGlow(0, 0, false));
   expect(riftGlow(0, 0.5, true)).toBeGreaterThan(riftGlow(0, 0.5, false));
   expect(SKY_RIFT.width).toBeGreaterThan(0);
+});
+
+describe("the owner's sky board (vivid look, keyed by hour)", () => {
+  const at = (h: number, cloud = 0) => skyParams(Math.sin(((h - 6) / 12) * Math.PI), cloud, null, "vivid", h);
+  test("noon is a deep saturated blue with white cloud; the board is the default", () => {
+    expect(DEFAULT_SKY_LOOK).toBe("vivid");
+    const noon = at(12);
+    expect(noon.zenith[2]).toBeGreaterThan(noon.zenith[0] * 3);
+    expect(Math.min(...noon.cloudLit)).toBeGreaterThan(0.95);
+  });
+  test("sunset burns: a red-orange horizon and glowing orange cracks; night cracks glow violet under a nebula", () => {
+    const sunset = at(18), night = at(21.5);
+    expect(sunset.horizon[0]).toBeGreaterThan(sunset.horizon[2] * 3);
+    expect(sunset.crackGlow).toBeGreaterThan(1);
+    expect(sunset.crack[0]).toBeGreaterThan(sunset.crack[2]);
+    expect(night.crack[2]).toBeGreaterThan(night.crack[1]);
+    expect(night.nebula).toBeGreaterThan(0.9);
+    expect(at(12).nebula).toBe(0);
+  });
+  test("the moon is solid all day and its cracks are dark at noon", () => {
+    expect(at(12).moonDay).toBeGreaterThan(0.9);
+    expect(at(12).crackGlow).toBeLessThan(0.15);
+  });
+  test("keys ease continuously through the whole cycle, including midnight, and stay in range", () => {
+    let prev = skyKeyAt(0);
+    for (let h = 0.05; h <= 24.001; h += 0.05) {
+      const k = skyKeyAt(h);
+      for (const f of ["zenith", "horizon", "lit"] as const) for (let i = 0; i < 3; i++) {
+        expect(Math.abs(k[f][i]! - prev[f][i]!)).toBeLessThan(0.08);
+        expect(k[f][i]!).toBeGreaterThanOrEqual(0); expect(k[f][i]!).toBeLessThanOrEqual(1);
+      }
+      prev = k;
+    }
+  });
+  test("overcast greys the board", () => {
+    const clear = at(12), storm = at(12, 1);
+    const sat = (c: number[]) => Math.max(...c) - Math.min(...c);
+    expect(sat(storm.zenith)).toBeLessThan(sat(clear.zenith));
+  });
 });

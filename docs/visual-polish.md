@@ -110,3 +110,17 @@ The owner disliked the sky and clouds. Three looks were rendered (`SKY_LOOKS` in
 - Fracture Storm: from underneath, the lens read as a tiled ceiling over Nexus (sin hash precision + aligned octaves). Fixed hash and rotated octaves, and the lens fades to a faint tint while the camera is under it.
 
 Owner answers (Oct 24, asked directly): keep the floating region-name labels as they are; no jungle-reclaimed city ruins site for now.
+
+## The sky board (Oct 25, supersedes the gritty pick)
+
+The owner sent a sky board (`docs/reference/sky-cycle.png`: morning, noon, sunset, night and a 9-step strip dawn → late night) and said
+"the sky transitions should look like this". It is now the `vivid` look and `DEFAULT_SKY_LOOK`:
+
+- `SKY_KEYS` / `skyKeyAt(hour)` in `sky-dome.ts`: zenith, horizon, sun, cloud lit/shade, moon tint, crack colour and glow, nebula for each of the
+  nine phases, eased continuously through midnight. `SkyDome` reads the game hour from `timeRef`. Weather greys the board colours.
+- The Fracture Moon is solid all day and drawn in front of all but the lowest cloud banks; plate fractures (3D cell borders) are dark chasms
+  by day, burn orange at sunset, pink at dusk, violet at night and blue-violet late at night. Rock shards break off its lower-right limb.
+  SkyBodies' ordinary moon is hidden under this look (the board has one moon).
+- Night: a violet/electric-blue nebula along the galactic band with denser stars.
+- Clouds: separate heaped cumulus with cauliflower billows that catch the sun, bright white at noon, fiery at sunset; banks toward the horizon.
+- The Sky Rift is nearly off (`riftK` 0.12): the board has no white tear.

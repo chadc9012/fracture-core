@@ -6,23 +6,54 @@ export type RGB = [number, number, number];
 export const SKY_BODY = { dir: [-0.58, 0.5, -0.64] as RGB, radius: 0.42 } as const;
 export const skyBodyElevation = () => { const [x, y, z] = SKY_BODY.dir; return Math.asin(y / Math.hypot(x, y, z)); };
 
+const hex = (h: string): RGB => [parseInt(h.slice(1, 3), 16) / 255, parseInt(h.slice(3, 5), 16) / 255, parseInt(h.slice(5, 7), 16) / 255];
 export type SkyParams = { zenith: RGB; horizon: RGB; wash: number; night: number; cover: number; sunStrength: number; sunColor: RGB; cloudLit: RGB; cloudShade: RGB; starStrength: number; milkyWay: number;
   /** how dark cloud bases get (light absorbed through the cloud) */ absorb: number; /** high cirrus amount 0..1 */ cirrus: number;
   /** cloud feature size: higher = smaller, busier clouds */ cloudScale: number; /** how much of the Fracture Moon shows by day (0 hidden .. 1 solid) */ moonDay: number;
-  /** Sky Rift brightness multiplier */ riftK: number };
+  /** Sky Rift brightness multiplier */ riftK: number;
+  /** the Fracture Moon: crack colour and glow, surface tint, and the night nebula strength */ crack: RGB; crackGlow: number; moonTint: RGB; nebula: number };
 
 /** Sky looks (owner's style call: "gritty realistic overall"). Each is a full recipe for the clouds and how loud the Fracture sky elements are.
  * - clear: a real fair-weather sky, deep blue, scattered sunlit cumulus, the Fracture Moon only a ghost by day
  * - gritty: broken war-sky overcast, heavy dark-based cloud with bright sunlit tops, desaturated (Battlefield / Warzone tone)
  * - fracture: the cinematic one, real cumulus but the moon and the rift stay loud and the cloud shadows lean violet */
-export type SkyLookId = "clear" | "gritty" | "fracture";
-export type SkyLook = { cover: number; absorb: number; cirrus: number; cloudScale: number; moonDay: number; riftK: number; shadeTint: RGB; desat: number };
+export type SkyLookId = "clear" | "gritty" | "fracture" | "vivid";
+export type SkyLook = { cover: number; absorb: number; cirrus: number; cloudScale: number; moonDay: number; riftK: number; shadeTint: RGB; desat: number; /** colours come from the time-of-day keyframes (SKY_KEYS) */ keyed?: boolean };
 export const SKY_LOOKS: Readonly<Record<SkyLookId, SkyLook>> = {
   clear: { cover: 0.32, absorb: 1.6, cirrus: 0.5, cloudScale: 1, moonDay: 0.1, riftK: 0.3, shadeTint: [1, 1, 1], desat: 0 },
   gritty: { cover: 0.54, absorb: 2.4, cirrus: 0.25, cloudScale: 0.8, moonDay: 0.06, riftK: 0.3, shadeTint: [0.92, 0.94, 1], desat: 0.35 },
   fracture: { cover: 0.42, absorb: 2, cirrus: 0.6, cloudScale: 0.9, moonDay: 0.38, riftK: 1, shadeTint: [1.05, 0.9, 1.15], desat: 0.1 },
+  // the owner's sky board (docs/reference/sky-cycle.png): saturated and cinematic, bright white cumulus, the cracked moon always huge
+  vivid: { cover: 0.36, absorb: 0.9, cirrus: 0.7, cloudScale: 0.85, moonDay: 0.96, riftK: 0.12, shadeTint: [1, 1, 1], desat: 0, keyed: true },
 };
-export const DEFAULT_SKY_LOOK: SkyLookId = "gritty"; // owner picked the gritty war sky (Oct 25)
+/** owner's sky board (Oct 25, "the sky transitions should look like this") replaced the gritty pick */
+export const DEFAULT_SKY_LOOK: SkyLookId = "vivid";
+
+/** Time-of-day keyframes from the owner's sky board: dawn, morning, mid-morning, noon, afternoon, sunset, dusk, night, late night.
+ * `h` is the hour (sunrise 6, sunset 18). Between keys the colours ease smoothly; the cycle wraps through midnight. */
+export type SkyKey = { h: number; zenith: RGB; horizon: RGB; sun: RGB; lit: RGB; shade: RGB; crack: RGB; crackGlow: number; moon: RGB; nebula: number };
+const K = (h: number, zenith: string, horizon: string, sun: string, lit: string, shade: string, crack: string, crackGlow: number, moon: string, nebula: number): SkyKey =>
+  ({ h, zenith: hex(zenith), horizon: hex(horizon), sun: hex(sun), lit: hex(lit), shade: hex(shade), crack: hex(crack), crackGlow, moon: hex(moon), nebula });
+export const SKY_KEYS: readonly SkyKey[] = [
+  K(2, "#05081f", "#121842", "#8090c0", "#3c4478", "#0e1230", "#6f7dff", 1.2, "#34407a", 1),     // late night: deep navy, blue-violet cracks
+  K(5.6, "#232a66", "#ff8a5c", "#ffa060", "#f0907a", "#4a3a6a", "#ff8a4a", 0.7, "#8a7a9a", 0.25), // dawn: indigo overhead, a pink-orange band
+  K(7.2, "#3d6cc0", "#ffc48a", "#ffd096", "#ffe0b8", "#8d93bb", "#ff9a4a", 0.35, "#b0b4c8", 0),  // morning: blue sky, gold horizon, peach-lit cloud
+  K(9.5, "#2b68d2", "#b9d6f2", "#fff2dc", "#fff8ee", "#9fb1d0", "#3a3446", 0.1, "#b8c4da", 0),   // mid-morning
+  K(12, "#1b5bcc", "#a6cdf4", "#fffaf0", "#ffffff", "#a4b6d6", "#36303f", 0.06, "#bcc8de", 0),   // noon: deep blue, bright white cumulus
+  K(15, "#2560c6", "#c0d6ee", "#fff0d6", "#fff4e4", "#9caacb", "#3c3444", 0.1, "#b8c2d8", 0),    // afternoon
+  K(18, "#4a2858", "#ff5a1c", "#ff7426", "#ff8c40", "#5c2c4a", "#ff5a14", 1.25, "#c48468", 0),  // sunset: red-orange horizon, fiery clouds, burning cracks
+  K(19.2, "#1c1848", "#b83e5a", "#ff6040", "#c4586a", "#2a1f46", "#ff4a7a", 1.1, "#6a4a7a", 0.35), // dusk: violet overhead, a red ember band
+  K(21, "#080c2c", "#1a1e56", "#8090c0", "#46508e", "#121638", "#9a5cff", 1.4, "#3a4a8a", 1),    // night: navy and violet, glowing violet cracks, nebula
+];
+/** the sky board's colours at `hour` (0..24), eased between keys */
+export function skyKeyAt(hour: number): Omit<SkyKey, "h"> {
+  const h = ((hour % 24) + 24) % 24, n = SKY_KEYS.length;
+  let i = n - 1;
+  for (let k = 0; k < n; k++) if (SKY_KEYS[k]!.h <= h) i = k;
+  const a = SKY_KEYS[i]!, b = SKY_KEYS[(i + 1) % n]!;
+  const span = ((b.h - a.h) + 24) % 24 || 24, t0 = (((h - a.h) + 24) % 24) / span, t = t0 * t0 * (3 - 2 * t0);
+  return { zenith: mix(a.zenith, b.zenith, t), horizon: mix(a.horizon, b.horizon, t), sun: mix(a.sun, b.sun, t), lit: mix(a.lit, b.lit, t), shade: mix(a.shade, b.shade, t), crack: mix(a.crack, b.crack, t), crackGlow: a.crackGlow + (b.crackGlow - a.crackGlow) * t, moon: mix(a.moon, b.moon, t), nebula: a.nebula + (b.nebula - a.nebula) * t };
+}
 
 const clamp01 = (x: number) => Math.min(1, Math.max(0, x));
 const smooth = (a: number, b: number, x: number) => { const t = clamp01((x - a) / (b - a)); return t * t * (3 - 2 * t); };
@@ -31,7 +62,6 @@ const mix = (a: RGB, b: RGB, t: number): RGB => [a[0] + (b[0] - a[0]) * t, a[1] 
 const GOLD: RGB = [1.0, 0.52, 0.2], NOON: RGB = [1.0, 0.95, 0.86], MOONLIT: RGB = [0.42, 0.5, 0.72];
 const SHADE_DAY: RGB = [0.5, 0.58, 0.72], SHADE_DUSK: RGB = [0.42, 0.34, 0.5], SHADE_NIGHT: RGB = [0.05, 0.07, 0.12];
 
-const hex = (h: string): RGB => [parseInt(h.slice(1, 3), 16) / 255, parseInt(h.slice(3, 5), 16) / 255, parseInt(h.slice(5, 7), 16) / 255];
 export type SkyMoodColors = { zenith: RGB; horizon: RGB };
 export type SkyMood = { golden?: SkyMoodColors; night?: SkyMoodColors; day?: SkyMoodColors };
 /** Per-region sky colour from the reference photographs in docs/reference/world-photos. The golden-hour moods are the photos' clear-sky zenith
@@ -63,25 +93,29 @@ function gradeSky(zenith: RGB, horizon: RGB, mood: SkyMood, low: number, night: 
 
 /** `sunY` is the sun's height as a unit-vector y (-1..1); `envCloud` is the live regional weather cloud cover 0..1.
  * Even a clear day keeps scattered cumulus (cover >= 0.38) so the sky is never an empty gradient. */
-export function skyParams(sunY: number, envCloud: number, regionId?: string | null, lookId: SkyLookId = DEFAULT_SKY_LOOK): SkyParams {
+export function skyParams(sunY: number, envCloud: number, regionId?: string | null, lookId: SkyLookId = DEFAULT_SKY_LOOK, hour?: number): SkyParams {
   const look = SKY_LOOKS[lookId];
+  // keyed looks need the hour; without it (old callers) fall back to the hour implied by the sun height in the morning
+  const key = look.keyed ? skyKeyAt(hour ?? (sunY < 0 ? Math.max(2, 5.6 + sunY * 12) : 6 + (Math.asin(Math.min(1, sunY)) / (Math.PI / 2)) * 6)) : null;
   const night = smooth(0.06, -0.14, sunY);
   const low = 1 - smooth(0.05, 0.45, sunY); // 1 at the horizon (golden hour), 0 high in the sky
-  const sunColor = mix(NOON, GOLD, low);
+  const sunColor = key ? key.sun : mix(NOON, GOLD, low);
   const day = smooth(-0.1, 0.35, sunY);
-  const lit = mix(mix(sunColor, [1, 1, 1], 0.12 + 0.2 * (1 - low)), MOONLIT, night).map((c) => c * (0.6 + 0.4 * Math.max(day, 0.15)) * (1 - 0.55 * night)) as RGB; // sunset clouds glow, they do not go muddy
-  const shade = mix(mix(SHADE_DAY, SHADE_DUSK, low * 0.8), SHADE_NIGHT, night);
+  const lit0 = mix(mix(sunColor, [1, 1, 1], 0.12 + 0.2 * (1 - low)), MOONLIT, night).map((c) => c * (0.6 + 0.4 * Math.max(day, 0.15)) * (1 - 0.55 * night)) as RGB; // sunset clouds glow, they do not go muddy
+  const overcast = (c: RGB): RGB => mix(c, [0.62, 0.64, 0.68].map((v) => v * (1 - 0.8 * night)) as RGB, clamp01(envCloud) * 0.45); // weather greys the board colours
+  const lit = key ? overcast(key.lit) : lit0;
+  const shade = key ? overcast(key.shade) : mix(mix(SHADE_DAY, SHADE_DUSK, low * 0.8), SHADE_NIGHT, night);
   // sky wash: a colour grade drawn over the atmospheric sky so the look is authored, not just physical. Teal-blue noon, molten gold and magenta at the
   // horizon at golden hour, deep indigo with a violet band at night
-  const zenith = mix(mix([0.1, 0.32, 0.68], [0.2, 0.22, 0.5], low * 0.85), [0.03, 0.04, 0.14], night);
-  const horizon = mix(mix([0.74, 0.84, 0.94], [1.0, 0.46, 0.16], low), [0.2, 0.12, 0.34], night); // noon: pale blue-white haze (a cream noon horizon read as smog)
+  const zenith = key ? overcast(key.zenith) : mix(mix([0.1, 0.32, 0.68], [0.2, 0.22, 0.5], low * 0.85), [0.03, 0.04, 0.14], night);
+  const horizon = key ? overcast(key.horizon) : mix(mix([0.74, 0.84, 0.94], [1.0, 0.46, 0.16], low), [0.2, 0.12, 0.34], night); // noon: pale blue-white haze (a cream noon horizon read as smog)
   const mood = regionId ? REGION_SKY_MOOD[regionId] : undefined;
   // a desaturated look greys the clock-driven gradient; the regions' reference-photo moods are graded on top, so they keep their colour
   const grey = (c: RGB): RGB => { const l = c[0] * 0.3 + c[1] * 0.55 + c[2] * 0.15; return mix(c, [l, l, l], look.desat); };
   const graded = mood ? gradeSky(grey(zenith), grey(horizon), mood, low, night) : { zenith: grey(zenith), horizon: grey(horizon) };
   const tint = (c: RGB): RGB => c.map((v, i) => clamp01(v * look.shadeTint[i]!)) as RGB;
   return {
-    zenith: graded.zenith, horizon: graded.horizon, wash: 0.66 + low * (1 - night) * 0.2 - night * 0.3, // golden hour: the authored sunset gradient dominates the bleached physical sky
+    zenith: graded.zenith, horizon: graded.horizon, wash: key ? 0.9 : 0.66 + low * (1 - night) * 0.2 - night * 0.3, // golden hour: the authored sunset gradient dominates the bleached physical sky
     night,
     cover: Math.min(0.95, look.cover + clamp01(envCloud) * 0.5),
     sunStrength: smooth(-0.08, 0.06, sunY),
@@ -91,6 +125,8 @@ export function skyParams(sunY: number, envCloud: number, regionId?: string | nu
     starStrength: night * (1 - clamp01(envCloud) * 0.85),
     milkyWay: night * (1 - clamp01(envCloud)),
     absorb: look.absorb, cirrus: look.cirrus, cloudScale: look.cloudScale, moonDay: look.moonDay, riftK: look.riftK,
+    crack: key ? key.crack : mix([1, 0.62, 0.25], [0.4, 0.95, 1], night), crackGlow: key ? key.crackGlow : 0.35 + 0.9 * night,
+    moonTint: key ? key.moon : [0.66, 0.62, 0.62], nebula: key ? key.nebula * (1 - clamp01(envCloud) * 0.9) : night * (1 - clamp01(envCloud)),
   };
 }
 

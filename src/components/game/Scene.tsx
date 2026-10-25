@@ -3145,7 +3145,7 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
         mieCoefficient={0.006}
         mieDirectionalG={0.82}
       />
-      <group ref={skyDomeGroup}><SkyDome sunDirRef={sunDir} envRef={skyEnv} playerRef={player} tier={settings.renderTier} /><BrokenHorizon playerRef={player} /></group>
+      <group ref={skyDomeGroup}><SkyDome sunDirRef={sunDir} envRef={skyEnv} playerRef={player} tier={settings.renderTier} timeRef={time} /><BrokenHorizon playerRef={player} /></group>
       <FractureStorm envRef={skyEnv} />
       <SkyBodies timeRef={time} sunDirRef={sunDir} envRef={skyEnv} playerRef={player} />
       {/* the billboard cloud puffs (CloudLayer) are retired: the sky dome draws real lit cumulus now, and the owner disliked the puffs */}

@@ -2,6 +2,7 @@ import { useFrame } from "@react-three/fiber";
 import { useMemo, useRef } from "react";
 import * as THREE from "three";
 import { moonAngle, starVisibility, lunarIllumination } from "@/game/celestial";
+import { DEFAULT_SKY_LOOK, SKY_LOOKS } from "@/game/sky-dome";
 import type { SkyEnv } from "./CloudLayer";
 
 const MOON_R = 520;
@@ -69,7 +70,7 @@ export function SkyBodies({ timeRef, sunDirRef, envRef, playerRef }: { timeRef: 
     const mx = -Math.cos(a) * MOON_R, my = Math.sin(a) * MOON_R * 0.8, mz = -200;
     if (moon.current) {
       moon.current.position.set(mx, my, mz);
-      moon.current.visible = my > -30;
+      moon.current.visible = my > -30 && !SKY_LOOKS[DEFAULT_SKY_LOOK].keyed; // the sky board has one moon: the Fracture Moon
       if (sd) moonMat.uniforms["sunDir"]!.value.copy(sd);
       moonMat.uniforms["fade"]!.value = Math.max(0.15, 1 - cloud * 0.85);
     }
@@ -77,7 +78,7 @@ export function SkyBodies({ timeRef, sunDirRef, envRef, playerRef }: { timeRef: 
       halo.current.position.set(mx, my, mz);
       const night = sd ? Math.max(0, -sd.y * 3) : 0;
       (halo.current.material as THREE.SpriteMaterial).opacity = Math.min(1, night) * lunarIllumination(t) * (1 - cloud) * 0.9;
-      halo.current.visible = my > 0;
+      halo.current.visible = my > 0 && !SKY_LOOKS[DEFAULT_SKY_LOOK].keyed;
     }
     if (stars.current) {
       const v = starVisibility(sd?.y ?? 1, cloud);
