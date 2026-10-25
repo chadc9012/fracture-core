@@ -32,6 +32,7 @@ import { discoveryById, discoveryOfDef, reveal as revealDiscoveries } from "@/ga
 import { VYRAK_REMATCH, activityState, activityById, pointWorld, startActivity, completeActivity, abandonRun, type ActivityDef, type Run as ActivityRun } from "@/game/activities";
 import { ActivityTracker, ActivityResultPanel, type ActivityResult } from "./ActivityHud";
 import { CAMPAIGN_CHAIN } from "@/game/campaign-cinematics";
+import { bossCineFor, BOSS_CINE_CHAIN, type BossCineMoment } from "@/game/campaign-cine-triggers";
 import { shouldPlay as shouldPlayCine, markPlayed as markCinePlayed } from "@/game/cinematics";
 import { undiscoveredNear, discoverLandmarks, isLandmarkKnown } from "@/game/landmarks";
 import { ruinById, discoverNearby, canEvolve, evolveWeapon, isWeapon, ABILITY_RULES, EVOLVE_POWER_BONUS, EVOLVE_MIN_LEVEL, EVOLVE_CATALYSTS, EVOLVE_ELEMENT_AMOUNT } from "@/game/weapon-evolution";
@@ -1186,11 +1187,22 @@ export function GameCanvas() {
     if (preview.messages.length) showLivingToast(preview.messages.join(" · "));
     setProgression((current) => recordReach(current, event.x, event.z).progression);
   }, [showLivingToast]);
+  // boss cinematics (campaign-cine-triggers.ts): the once-only scene plays first, the boss's own dialogue graph waits and opens when it ends
+  const pendingBossGraph = useRef<ReturnType<typeof bossDialogueDue>>(null);
+  const playBossCine = useCallback((scenarioId: string, moment: BossCineMoment, graph: ReturnType<typeof bossDialogueDue>): boolean => {
+    const id = bossCineFor(scenarioId, moment);
+    if (!id || !shouldPlayCine(progressionRef.current.story, id)) return false;
+    pendingBossGraph.current = graph;
+    setCineProgress(0); setCineId((cur) => cur ?? id);
+    return true;
+  }, []);
   const recordStory = useCallback((event: StoryWorldEvent) => {
     if (event.type === "LAIR_ENTER") { setStoryGraph((current) => current ?? dialogueDue(progressionRef.current.story)?.graph ?? null); return; }
     if (event.type === "BOSS_LAIR_ENTER" || event.type === "VAULT_ENTER") {
       const id = event.scenarioId as BossStoryId;
-      setStoryGraph((current) => current ?? (bossStoryFor(id) ? bossDialogueDue(progressionRef.current.story, id, event.type === "VAULT_ENTER" ? "vault" : "lair") : null));
+      const graph = bossStoryFor(id) ? bossDialogueDue(progressionRef.current.story, id, event.type === "VAULT_ENTER" ? "vault" : "lair") : null;
+      if (event.type === "BOSS_LAIR_ENTER" && playBossCine(event.scenarioId, "intro", graph)) return;
+      setStoryGraph((current) => current ?? graph);
       return;
     }
     if (event.type === "BOSS_PHASE") { const lines = bossStoryFor(event.scenarioId)?.phaseLines[event.phase]; if (lines?.length) setCaptionQueue([...lines]); return; }
@@ -1199,7 +1211,7 @@ export function GameCanvas() {
       const after = applyBossStoryEvent(before, event);
       if (after !== before) { setProgression((current) => ({ ...current, story: applyBossStoryEvent(current.story, event) })); progressionRef.current = { ...progressionRef.current, story: after }; }
       // the kill opens the boss's last-words conversation straight away (if it has one); the vault conversation waits for the player to walk there
-      if (event.type === "BOSS_DEFEATED") setStoryGraph((current) => current ?? bossDialogueDue(after, event.scenarioId as BossStoryId, "defeat"));
+      if (event.type === "BOSS_DEFEATED") { const graph = bossDialogueDue(after, event.scenarioId as BossStoryId, "defeat"); if (!playBossCine(event.scenarioId, "defeat", graph)) setStoryGraph((current) => current ?? graph); }
       return;
     }
     const before = progressionRef.current.story;
@@ -1590,7 +1602,7 @@ export function GameCanvas() {
         />
       )}
       {qualityNotice && <div className="pointer-events-none absolute left-1/2 top-16 z-50 -translate-x-1/2 border border-border/60 bg-background/80 px-4 py-2 font-mono text-[11px] uppercase tracking-[0.15em]">{qualityNotice}</div>}
-      {cineId && <MissionCinematic id={cineId} onProgress={setCineProgress} onDone={(_handoff, _skipped) => { const id = cineId; const played = markCinePlayed(progressionRef.current.story, id); const next = CAMPAIGN_CHAIN[id]; setCineProgress(0); setCineId(next && shouldPlayCine(played, next) ? next : null); setProgression((cur) => ({ ...cur, story: markCinePlayed(cur.story, id) })); }} />}
+      {cineId && <MissionCinematic id={cineId} onProgress={setCineProgress} onDone={(_handoff, _skipped) => { const id = cineId; const played = markCinePlayed(progressionRef.current.story, id); const next = CAMPAIGN_CHAIN[id] ?? BOSS_CINE_CHAIN[id]; setCineProgress(0); setCineId(next && shouldPlayCine(played, next) ? next : null); if (!(next && shouldPlayCine(played, next)) && pendingBossGraph.current) { const g = pendingBossGraph.current; pendingBossGraph.current = null; setStoryGraph((cur) => cur ?? g); } setProgression((cur) => ({ ...cur, story: markCinePlayed(cur.story, id) })); }} />}
       {showIntro && <IntroCinematic onComplete={() => setShowIntro(false)} onTick={setIntroElapsed} />}
       {strategyOpen && <RaidStrategyPanel onClose={() => setStrategyOpen(false)} />}
       {analysisOpen && <ZoneAnalysisPanel zoneName={hud.region} onClose={() => setAnalysisOpen(false)} />}
