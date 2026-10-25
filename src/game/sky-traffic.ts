@@ -1,5 +1,5 @@
 /** Flying traffic over the cities (owner's target frame "Neon at night": hover vehicles streaming between the towers with lit
- * engines). Vehicles fly fixed loops over Nexus and Neon City and a corridor between them, at heights above the tallest towers'
+ * engines). Vehicles fly fixed loops over Nexus and a corridor to Neon City (Neon's own lanes: hover-traffic.ts), at heights above the tallest towers'
  * shoulders, so they never clip a building. Pure: positions are a function of time; SkyTraffic.tsx draws them instanced. */
 import { NEXUS } from "./nexus-districts";
 import { NEON_SITE } from "./world";
@@ -15,8 +15,7 @@ export const SKY_LANES: readonly SkyLane[] = (() => {
   return [
     { cx: NEXUS.x, cz: NEXUS.z, rx: 170, rz: 130, rot: 0.3, y: nexusY + 78, dir: 1, count: 10, speed: 34, color: "#7fe8ff" },
     { cx: NEXUS.x, cz: NEXUS.z, rx: 230, rz: 190, rot: -0.4, y: nexusY + 104, dir: -1, count: 12, speed: 40, color: "#ffb36b" },
-    { cx: NEON_SITE.x, cz: NEON_SITE.z, rx: 150, rz: 120, rot: 0.8, y: neonY + 108, dir: -1, count: 12, speed: 36, color: "#ff5ad8" },
-    { cx: NEON_SITE.x, cz: NEON_SITE.z, rx: 210, rz: 170, rot: -0.2, y: neonY + 134, dir: 1, count: 12, speed: 44, color: "#6ad8ff" },
+    // Neon City flies its own air lanes (hover-traffic.ts, NeonTiers.tsx); only Nexus and the corridor between the cities are here
     // the commuter corridor between the two cities: a long thin loop, both directions at once
     { cx: mx, cz: mz, rx: span + 40, rz: 26, rot, y: Math.max(nexusY, neonY) + 140, dir: 1, count: 14, speed: 52, color: "#ffffff" },
   ];
