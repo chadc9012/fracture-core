@@ -84,6 +84,26 @@ namespace wf
 			std::vector<std::string> Intel;
 		};
 		FLiving Living;
+		/** fleet.ts FleetState: owned fleet builds, owned garage bases, tuning levels, paint, the active build, cosmetics. */
+		struct FFleet
+		{
+			std::vector<std::string> Owned, Garages;
+			std::map<std::string, std::map<std::string, double>> Tuning; // build -> node -> level
+			std::map<std::string, std::string> Paint;
+			std::optional<std::string> Active;
+			struct FCosmetics { std::string Wheels = "standard", Body = "stock", Spoiler = "none", Armor = "stock", Glow = "off"; };
+			std::map<std::string, FCosmetics> Cosmetics;
+		};
+		FFleet Fleet;
+		/** housing.ts HousingState: placed decor per home ("roomIndex:slot" -> decor id), the home you live in, and which
+		 *  fleet build is parked at which residence ("" = taken out again). Ownership lives in the Nex ledger. */
+		struct FHousing
+		{
+			std::map<std::string, std::map<std::string, std::string>> Placed;
+			std::optional<std::string> Home;
+			std::map<std::string, std::string> Parked;
+		};
+		FHousing Housing;
 		/** Per-activity / per-mission run records (missionRuns): day key, runs that day, last completion (ms since epoch). */
 		struct FRunRecord
 		{

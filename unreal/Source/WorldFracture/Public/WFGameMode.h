@@ -65,6 +65,19 @@ public:
 	/** ShopHour <0-24>: the world clock the shop hours use (-1 = unset, all open). */
 	UFUNCTION(Exec) void ShopHour(float Hour);
 
+	// ---- the fleet (ported fleet.ts, UWFFleetSubsystem) ----
+	/** Prints the four garage bases and the 21 fleet builds with costs, ownership and tuning. */
+	UFUNCTION(Exec) void Fleet();
+	UFUNCTION(Exec) void BuyGarage(const FString& GarageId);
+	/** BuyFleet <build>: at its home base, for materials and Nex; it becomes your active vehicle (T calls it). */
+	UFUNCTION(Exec) void BuyFleet(const FString& BuildId);
+	UFUNCTION(Exec) void FleetActive(const FString& BuildId);
+	UFUNCTION(Exec) void Tune(const FString& BuildId, const FString& NodeId);
+	/** Paint <build> "<paint name>" */
+	UFUNCTION(Exec) void Paint(const FString& BuildId, const FString& PaintName);
+	/** Cosmetic <build> wheels|body|spoiler|armor|glow <value> */
+	UFUNCTION(Exec) void Cosmetic(const FString& BuildId, const FString& Key, const FString& Value);
+
 	// ---- boss encounters (ported encounter-sim.ts) ----
 	const wf::encounter::FCatalog& GetEncounterCatalog() const { return EncounterCatalog; }
 	bool HasEncounter(const FString& ScenarioId) const;

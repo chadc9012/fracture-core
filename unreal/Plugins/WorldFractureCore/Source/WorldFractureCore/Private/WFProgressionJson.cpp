@@ -158,6 +158,46 @@ namespace WFProgressionJson
 			L->SetArrayField(TEXT("intel"), StringArray(P.Living.Intel));
 			O->SetObjectField(TEXT("living"), L);
 		}
+		{
+			// fleet.ts FleetState and housing.ts HousingState
+			TSharedRef<FJsonObject> Fl = MakeShared<FJsonObject>();
+			Fl->SetArrayField(TEXT("owned"), StringArray(P.Fleet.Owned));
+			Fl->SetArrayField(TEXT("garages"), StringArray(P.Fleet.Garages));
+			TSharedRef<FJsonObject> Tuning = MakeShared<FJsonObject>();
+			for (const auto& [Build, Nodes] : P.Fleet.Tuning) Tuning->SetObjectField(ToF(Build), NumberObject(Nodes));
+			Fl->SetObjectField(TEXT("tuning"), Tuning);
+			TSharedRef<FJsonObject> Paint = MakeShared<FJsonObject>();
+			for (const auto& [Build, Name] : P.Fleet.Paint) Paint->SetStringField(ToF(Build), ToF(Name));
+			Fl->SetObjectField(TEXT("paint"), Paint);
+			if (P.Fleet.Active) Fl->SetStringField(TEXT("active"), ToF(*P.Fleet.Active)); else Fl->SetField(TEXT("active"), MakeShared<FJsonValueNull>());
+			TSharedRef<FJsonObject> Cos = MakeShared<FJsonObject>();
+			for (const auto& [Build, C] : P.Fleet.Cosmetics)
+			{
+				TSharedRef<FJsonObject> X = MakeShared<FJsonObject>();
+				X->SetStringField(TEXT("wheels"), ToF(C.Wheels)); X->SetStringField(TEXT("body"), ToF(C.Body)); X->SetStringField(TEXT("spoiler"), ToF(C.Spoiler)); X->SetStringField(TEXT("armor"), ToF(C.Armor)); X->SetStringField(TEXT("glow"), ToF(C.Glow));
+				Cos->SetObjectField(ToF(Build), X);
+			}
+			Fl->SetObjectField(TEXT("cosmetics"), Cos);
+			O->SetObjectField(TEXT("fleet"), Fl);
+
+			TSharedRef<FJsonObject> Ho = MakeShared<FJsonObject>();
+			TSharedRef<FJsonObject> Placed = MakeShared<FJsonObject>();
+			for (const auto& [Home, Rooms] : P.Housing.Placed)
+			{
+				TSharedRef<FJsonObject> R = MakeShared<FJsonObject>();
+				for (const auto& [Key, Decor] : Rooms) R->SetStringField(ToF(Key), ToF(Decor));
+				Placed->SetObjectField(ToF(Home), R);
+			}
+			Ho->SetObjectField(TEXT("placed"), Placed);
+			if (P.Housing.Home) Ho->SetStringField(TEXT("home"), ToF(*P.Housing.Home)); else Ho->SetField(TEXT("home"), MakeShared<FJsonValueNull>());
+			if (!P.Housing.Parked.empty())
+			{
+				TSharedRef<FJsonObject> Parked = MakeShared<FJsonObject>();
+				for (const auto& [Build, At] : P.Housing.Parked) Parked->SetStringField(ToF(Build), ToF(At));
+				Ho->SetObjectField(TEXT("parked"), Parked);
+			}
+			O->SetObjectField(TEXT("housing"), Ho);
+		}
 		O->SetArrayField(TEXT("unlockedAbilities"), StringArray(P.UnlockedAbilities));
 		TSharedRef<FJsonObject> Build = MakeShared<FJsonObject>();
 		Build->SetStringField(TEXT("mode"), ToF(P.ActiveBuildMode));
@@ -323,6 +363,67 @@ namespace WFProgressionJson
 						P.Living.Contracts[ToStd(Pair.Key)] = {std::max(0.0, Pr), std::max(0.0, At)};
 					}
 				P.Living.Intel = ReadStrings(*L, TEXT("intel"));
+			}
+		}
+		{
+			// fleet.ts normalizeFleet (ids are validated against the catalogue where the fleet is used) and housing.ts normalizeHousing
+			P.Fleet = {};
+			const TSharedPtr<FJsonObject>* Fl = nullptr;
+			if (O->TryGetObjectField(TEXT("fleet"), Fl) && Fl && Fl->IsValid())
+			{
+				auto Unique = [](std::vector<std::string> V) { std::vector<std::string> Out; for (std::string& X : V) if (std::find(Out.begin(), Out.end(), X) == Out.end()) Out.push_back(std::move(X)); return Out; };
+				P.Fleet.Owned = Unique(ReadStrings(*Fl, TEXT("owned")));
+				P.Fleet.Garages = Unique(ReadStrings(*Fl, TEXT("garages")));
+				const TSharedPtr<FJsonObject>* Tuning = nullptr;
+				if ((*Fl)->TryGetObjectField(TEXT("tuning"), Tuning) && Tuning && Tuning->IsValid())
+					for (const auto& Build : (*Tuning)->Values)
+					{
+						const TSharedPtr<FJsonObject> Nodes = Build.Value.IsValid() ? Build.Value->AsObject() : nullptr;
+						if (!Nodes.IsValid()) continue;
+						auto& Out = P.Fleet.Tuning[ToStd(Build.Key)];
+						for (const auto& Nd : Nodes->Values) { double L = 0; if (Nd.Value.IsValid() && Nd.Value->TryGetNumber(L) && L > 0) Out[ToStd(Nd.Key)] = std::floor(L); }
+					}
+				const TSharedPtr<FJsonObject>* Paint = nullptr;
+				if ((*Fl)->TryGetObjectField(TEXT("paint"), Paint) && Paint && Paint->IsValid())
+					for (const auto& X : (*Paint)->Values) { FString V; if (X.Value.IsValid() && X.Value->TryGetString(V)) P.Fleet.Paint[ToStd(X.Key)] = ToStd(V); }
+				P.Fleet.Active = ReadOptionalString(*Fl, TEXT("active"));
+				const TSharedPtr<FJsonObject>* Cos = nullptr;
+				if ((*Fl)->TryGetObjectField(TEXT("cosmetics"), Cos) && Cos && Cos->IsValid())
+					for (const auto& X : (*Cos)->Values)
+					{
+						const TSharedPtr<FJsonObject> C = X.Value.IsValid() ? X.Value->AsObject() : nullptr;
+						if (!C.IsValid()) continue;
+						wf::FProgression::FFleet::FCosmetics Out;
+						auto Pick = [&C](const TCHAR* Field, std::string& Into, std::initializer_list<const char*> Allowed) {
+							FString V;
+							if (!C->TryGetStringField(Field, V)) return;
+							for (const char* A : Allowed) if (ToStd(V) == A) Into = A;
+						};
+						Pick(TEXT("wheels"), Out.Wheels, {"standard", "sport", "offroad"});
+						Pick(TEXT("body"), Out.Body, {"stock", "widebody", "aero"});
+						Pick(TEXT("spoiler"), Out.Spoiler, {"none", "lip", "wing"});
+						Pick(TEXT("armor"), Out.Armor, {"stock", "reinforced"});
+						Pick(TEXT("glow"), Out.Glow, {"off", "cyan", "magenta"});
+						P.Fleet.Cosmetics[ToStd(X.Key)] = Out;
+					}
+			}
+			P.Housing = {};
+			const TSharedPtr<FJsonObject>* Ho = nullptr;
+			if (O->TryGetObjectField(TEXT("housing"), Ho) && Ho && Ho->IsValid())
+			{
+				const TSharedPtr<FJsonObject>* Placed = nullptr;
+				if ((*Ho)->TryGetObjectField(TEXT("placed"), Placed) && Placed && Placed->IsValid())
+					for (const auto& Home : (*Placed)->Values)
+					{
+						const TSharedPtr<FJsonObject> Rooms = Home.Value.IsValid() ? Home.Value->AsObject() : nullptr;
+						if (!Rooms.IsValid()) continue;
+						auto& Out = P.Housing.Placed[ToStd(Home.Key)];
+						for (const auto& R : Rooms->Values) { FString V; if (R.Value.IsValid() && R.Value->TryGetString(V)) Out[ToStd(R.Key)] = ToStd(V); }
+					}
+				P.Housing.Home = ReadOptionalString(*Ho, TEXT("home"));
+				const TSharedPtr<FJsonObject>* Parked = nullptr;
+				if ((*Ho)->TryGetObjectField(TEXT("parked"), Parked) && Parked && Parked->IsValid())
+					for (const auto& X : (*Parked)->Values) { FString V; if (X.Value.IsValid() && X.Value->TryGetString(V)) P.Housing.Parked[ToStd(X.Key)] = ToStd(V); }
 			}
 		}
 		P.UnlockedAbilities = ReadStrings(O, TEXT("unlockedAbilities"));

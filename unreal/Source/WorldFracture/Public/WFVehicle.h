@@ -3,6 +3,7 @@
 #include "CoreMinimal.h"
 #include "Core/WFVehicleCore.h"
 #include "Core/WFVehicleWeaponsCore.h"
+#include "Core/WFFleetCore.h"
 #include "GameFramework/Pawn.h"
 #include "WFVehicle.generated.h"
 
@@ -65,6 +66,10 @@ public:
 	const wf::vweapons::FHeat& GetHeat() const { return Heat; }
 	/** Race recovery: puts the vehicle at a point (cm), stopped, facing as it was. */
 	void Recover(const FVector& At);
+	/** The fleet build being driven (fleet.ts active build on this chassis), its gadget hardpoint, and the gadgets out. */
+	const FString& GetBuildId() const { return BuildId; }
+	const std::optional<wf::gadget::FGadget>& GetGadget() const { return Gadget; }
+	double GetGadgetCooldown() const { return GadgetCool; }
 	bool AreWeaponsDisabled() const { return wf::vweapons::WeaponsDisabled(Condition.Body); }
 
 	/** World water surface in metres for boats and the sub (no water in the prototype map). */
@@ -84,6 +89,9 @@ private:
 	wf::vweapons::FPose WeaponPose() const;
 	void TickWeapons(double Dt);
 	void TickProjectiles(double Dt);
+	void UseGadget(const wf::vweapons::FPose& Pose);
+	void TickGadgets(double Dt);
+	void GadgetBlast(double X, double Y, double Z, double Radius, double Damage, const FString& Element);
 	void Detonate(const wf::vweapons::FBurst& Burst);
 	double GroundMeters(double X, double Z, double FallbackM) const;
 
@@ -103,6 +111,12 @@ private:
 	TArray<wf::vweapons::FBullet> Bullets;
 	struct FLiveRound { wf::vweapons::FRound Round; TWeakObjectPtr<AActor> Target; };
 	TArray<FLiveRound> Rounds;
+	FString BuildId;
+	std::optional<wf::gadget::FGadget> Gadget;
+	wf::gadget::FState Gadgets;
+	double GadgetCool = 0;
+	bool bGadgetHeld = false, bFlameLit = false;
+	double RamCoolUntil = 0;
 
 	UPROPERTY() TObjectPtr<UInputMappingContext> Mapping;
 	UPROPERTY() TObjectPtr<UInputAction> ThrottleAction;

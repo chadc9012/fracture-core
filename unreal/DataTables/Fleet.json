@@ -17,7 +17,8 @@
       "Stealth Black",
       "Desert Camo"
     ],
-    "NodesJson": "[{\"id\":\"engine\",\"name\":\"Supercharger\",\"text\":\"+6% top speed per stage\",\"stat\":\"speed\",\"perLevel\":0.06,\"maxLevel\":3,\"cost\":{\"vehicleParts\":3,\"fuel\":4}},{\"id\":\"armor\",\"name\":\"Composite Shell\",\"text\":\"+12% hull per stage\",\"stat\":\"hull\",\"perLevel\":0.12,\"maxLevel\":3,\"cost\":{\"reinforcedAlloy\":4}},{\"id\":\"grill\",\"name\":\"Ram Grill\",\"text\":\"+10% ram per stage\",\"stat\":\"ram\",\"perLevel\":0.1,\"maxLevel\":2,\"cost\":{\"scrapMetal\":10}}]"
+    "NodesJson": "[{\"id\":\"engine\",\"name\":\"Supercharger\",\"text\":\"+6% top speed per stage\",\"stat\":\"speed\",\"perLevel\":0.06,\"maxLevel\":3,\"cost\":{\"vehicleParts\":3,\"fuel\":4}},{\"id\":\"armor\",\"name\":\"Composite Shell\",\"text\":\"+12% hull per stage\",\"stat\":\"hull\",\"perLevel\":0.12,\"maxLevel\":3,\"cost\":{\"reinforcedAlloy\":4}},{\"id\":\"grill\",\"name\":\"Ram Grill\",\"text\":\"+10% ram per stage\",\"stat\":\"ram\",\"perLevel\":0.1,\"maxLevel\":2,\"cost\":{\"scrapMetal\":10}}]",
+    "NexPrice": 6800
   },
   {
     "Name": "behemoth-v16",
@@ -36,7 +37,8 @@
       "Rust King Red",
       "Bone White"
     ],
-    "NodesJson": "[{\"id\":\"hydraulics\",\"name\":\"Hydraulic Lift\",\"text\":\"+15% ram per stage\",\"stat\":\"ram\",\"perLevel\":0.15,\"maxLevel\":3,\"cost\":{\"vehicleParts\":3}},{\"id\":\"plate\",\"name\":\"Scrap Plating\",\"text\":\"+10% hull per stage\",\"stat\":\"hull\",\"perLevel\":0.1,\"maxLevel\":3,\"cost\":{\"scrapMetal\":12}}]"
+    "NodesJson": "[{\"id\":\"hydraulics\",\"name\":\"Hydraulic Lift\",\"text\":\"+15% ram per stage\",\"stat\":\"ram\",\"perLevel\":0.15,\"maxLevel\":3,\"cost\":{\"vehicleParts\":3}},{\"id\":\"plate\",\"name\":\"Scrap Plating\",\"text\":\"+10% hull per stage\",\"stat\":\"hull\",\"perLevel\":0.1,\"maxLevel\":3,\"cost\":{\"scrapMetal\":12}}]",
+    "NexPrice": 14300
   },
   {
     "Name": "dune-stalker",
@@ -55,7 +57,8 @@
       "Sand",
       "Night Raid"
     ],
-    "NodesJson": "[{\"id\":\"boost\",\"name\":\"Rocket Boost\",\"text\":\"+7% top speed per stage\",\"stat\":\"speed\",\"perLevel\":0.07,\"maxLevel\":3,\"cost\":{\"fuel\":6}},{\"id\":\"steer\",\"name\":\"Dune Steering\",\"text\":\"+8% handling per stage\",\"stat\":\"handling\",\"perLevel\":0.08,\"maxLevel\":2,\"cost\":{\"vehicleParts\":2}}]"
+    "NodesJson": "[{\"id\":\"boost\",\"name\":\"Rocket Boost\",\"text\":\"+7% top speed per stage\",\"stat\":\"speed\",\"perLevel\":0.07,\"maxLevel\":3,\"cost\":{\"fuel\":6}},{\"id\":\"steer\",\"name\":\"Dune Steering\",\"text\":\"+8% handling per stage\",\"stat\":\"handling\",\"perLevel\":0.08,\"maxLevel\":2,\"cost\":{\"vehicleParts\":2}}]",
+    "NexPrice": 8300
   },
   {
     "Name": "aegis-siege",
@@ -75,7 +78,8 @@
       "Winter Camo",
       "Fracture Gold"
     ],
-    "NodesJson": "[{\"id\":\"treads\",\"name\":\"All-Terrain Treads\",\"text\":\"+8% handling per stage\",\"stat\":\"handling\",\"perLevel\":0.08,\"maxLevel\":2,\"cost\":{\"vehicleParts\":4}},{\"id\":\"armor\",\"name\":\"Reactive Plating\",\"text\":\"+10% hull per stage\",\"stat\":\"hull\",\"perLevel\":0.1,\"maxLevel\":3,\"cost\":{\"reinforcedAlloy\":6}},{\"id\":\"drive\",\"name\":\"Turbine Drive\",\"text\":\"+6% top speed per stage\",\"stat\":\"speed\",\"perLevel\":0.06,\"maxLevel\":2,\"cost\":{\"fuel\":8}}]"
+    "NodesJson": "[{\"id\":\"treads\",\"name\":\"All-Terrain Treads\",\"text\":\"+8% handling per stage\",\"stat\":\"handling\",\"perLevel\":0.08,\"maxLevel\":2,\"cost\":{\"vehicleParts\":4}},{\"id\":\"armor\",\"name\":\"Reactive Plating\",\"text\":\"+10% hull per stage\",\"stat\":\"hull\",\"perLevel\":0.1,\"maxLevel\":3,\"cost\":{\"reinforcedAlloy\":6}},{\"id\":\"drive\",\"name\":\"Turbine Drive\",\"text\":\"+6% top speed per stage\",\"stat\":\"speed\",\"perLevel\":0.06,\"maxLevel\":2,\"cost\":{\"fuel\":8}}]",
+    "NexPrice": 33000
   },
   {
     "Name": "valkyrie-vtol",
@@ -95,7 +99,8 @@
       "Syndicate White",
       "Cobalt Blue"
     ],
-    "NodesJson": "[{\"id\":\"ion\",\"name\":\"Ion Afterburner\",\"text\":\"+7% top speed per stage\",\"stat\":\"speed\",\"perLevel\":0.07,\"maxLevel\":3,\"cost\":{\"microCircuits\":4,\"fuel\":4}},{\"id\":\"gyro\",\"name\":\"Gyro Stabiliser\",\"text\":\"+8% handling per stage\",\"stat\":\"handling\",\"perLevel\":0.08,\"maxLevel\":2,\"cost\":{\"microCircuits\":3}}]"
+    "NodesJson": "[{\"id\":\"ion\",\"name\":\"Ion Afterburner\",\"text\":\"+7% top speed per stage\",\"stat\":\"speed\",\"perLevel\":0.07,\"maxLevel\":3,\"cost\":{\"microCircuits\":4,\"fuel\":4}},{\"id\":\"gyro\",\"name\":\"Gyro Stabiliser\",\"text\":\"+8% handling per stage\",\"stat\":\"handling\",\"perLevel\":0.08,\"maxLevel\":2,\"cost\":{\"microCircuits\":3}}]",
+    "NexPrice": 59900
   },
   {
     "Name": "ghost-ray",
@@ -113,7 +118,8 @@
       "Ghost Grey",
       "Neon Magenta"
     ],
-    "NodesJson": "[{\"id\":\"lift\",\"name\":\"Anti-Grav Coils\",\"text\":\"+6% top speed per stage\",\"stat\":\"speed\",\"perLevel\":0.06,\"maxLevel\":3,\"cost\":{\"microCircuits\":3}},{\"id\":\"frame\",\"name\":\"Carbon Frame\",\"text\":\"+12% hull per stage\",\"stat\":\"hull\",\"perLevel\":0.12,\"maxLevel\":2,\"cost\":{\"reinforcedAlloy\":3}}]"
+    "NodesJson": "[{\"id\":\"lift\",\"name\":\"Anti-Grav Coils\",\"text\":\"+6% top speed per stage\",\"stat\":\"speed\",\"perLevel\":0.06,\"maxLevel\":3,\"cost\":{\"microCircuits\":3}},{\"id\":\"frame\",\"name\":\"Carbon Frame\",\"text\":\"+12% hull per stage\",\"stat\":\"hull\",\"perLevel\":0.12,\"maxLevel\":2,\"cost\":{\"reinforcedAlloy\":3}}]",
+    "NexPrice": 18000
   },
   {
     "Name": "f39-jupiter",
@@ -132,7 +138,8 @@
       "Picket Grey",
       "Strike White"
     ],
-    "NodesJson": "[{\"id\":\"intake\",\"name\":\"Scramjet Intake\",\"text\":\"+5% top speed per stage\",\"stat\":\"speed\",\"perLevel\":0.05,\"maxLevel\":3,\"cost\":{\"fuel\":8}},{\"id\":\"airframe\",\"name\":\"Airframe Bracing\",\"text\":\"+10% handling per stage\",\"stat\":\"handling\",\"perLevel\":0.1,\"maxLevel\":2,\"cost\":{\"reinforcedAlloy\":4}}]"
+    "NodesJson": "[{\"id\":\"intake\",\"name\":\"Scramjet Intake\",\"text\":\"+5% top speed per stage\",\"stat\":\"speed\",\"perLevel\":0.05,\"maxLevel\":3,\"cost\":{\"fuel\":8}},{\"id\":\"airframe\",\"name\":\"Airframe Bracing\",\"text\":\"+10% handling per stage\",\"stat\":\"handling\",\"perLevel\":0.1,\"maxLevel\":2,\"cost\":{\"reinforcedAlloy\":4}}]",
+    "NexPrice": 97500
   },
   {
     "Name": "nautilus-abyss",
@@ -151,7 +158,8 @@
       "Abyssal Yellow",
       "Deep Sea Navy"
     ],
-    "NodesJson": "[{\"id\":\"bulkheads\",\"name\":\"Titanium Bulkheads\",\"text\":\"+12% hull per stage\",\"stat\":\"hull\",\"perLevel\":0.12,\"maxLevel\":3,\"cost\":{\"reinforcedAlloy\":5}},{\"id\":\"jets\",\"name\":\"Waterjet Turbines\",\"text\":\"+7% top speed per stage\",\"stat\":\"speed\",\"perLevel\":0.07,\"maxLevel\":2,\"cost\":{\"vehicleParts\":3}}]"
+    "NodesJson": "[{\"id\":\"bulkheads\",\"name\":\"Titanium Bulkheads\",\"text\":\"+12% hull per stage\",\"stat\":\"hull\",\"perLevel\":0.12,\"maxLevel\":3,\"cost\":{\"reinforcedAlloy\":5}},{\"id\":\"jets\",\"name\":\"Waterjet Turbines\",\"text\":\"+7% top speed per stage\",\"stat\":\"speed\",\"perLevel\":0.07,\"maxLevel\":2,\"cost\":{\"vehicleParts\":3}}]",
+    "NexPrice": 33000
   },
   {
     "Name": "triton-hydrospear",
@@ -170,7 +178,8 @@
       "Canal Green",
       "Harbour Grey"
     ],
-    "NodesJson": "[{\"id\":\"foils\",\"name\":\"Hydrofoils\",\"text\":\"+8% top speed per stage\",\"stat\":\"speed\",\"perLevel\":0.08,\"maxLevel\":3,\"cost\":{\"vehicleParts\":3}},{\"id\":\"rudder\",\"name\":\"Twin Rudders\",\"text\":\"+8% handling per stage\",\"stat\":\"handling\",\"perLevel\":0.08,\"maxLevel\":2,\"cost\":{\"scrapMetal\":10}}]"
+    "NodesJson": "[{\"id\":\"foils\",\"name\":\"Hydrofoils\",\"text\":\"+8% top speed per stage\",\"stat\":\"speed\",\"perLevel\":0.08,\"maxLevel\":3,\"cost\":{\"vehicleParts\":3}},{\"id\":\"rudder\",\"name\":\"Twin Rudders\",\"text\":\"+8% handling per stage\",\"stat\":\"handling\",\"perLevel\":0.08,\"maxLevel\":2,\"cost\":{\"scrapMetal\":10}}]",
+    "NexPrice": 21000
   },
   {
     "Name": "nomad-bike",
@@ -189,7 +198,8 @@
       "Dust Rider",
       "Chrome"
     ],
-    "NodesJson": "[{\"id\":\"throttle\",\"name\":\"Short-Shift Throttle\",\"text\":\"+7% top speed per stage\",\"stat\":\"speed\",\"perLevel\":0.07,\"maxLevel\":3,\"cost\":{\"fuel\":4}},{\"id\":\"forks\",\"name\":\"Long-Travel Forks\",\"text\":\"+8% handling per stage\",\"stat\":\"handling\",\"perLevel\":0.08,\"maxLevel\":2,\"cost\":{\"vehicleParts\":2}}]"
+    "NodesJson": "[{\"id\":\"throttle\",\"name\":\"Short-Shift Throttle\",\"text\":\"+7% top speed per stage\",\"stat\":\"speed\",\"perLevel\":0.07,\"maxLevel\":3,\"cost\":{\"fuel\":4}},{\"id\":\"forks\",\"name\":\"Long-Travel Forks\",\"text\":\"+8% handling per stage\",\"stat\":\"handling\",\"perLevel\":0.08,\"maxLevel\":2,\"cost\":{\"vehicleParts\":2}}]",
+    "NexPrice": 1400
   },
   {
     "Name": "rift-runner",
@@ -209,7 +219,8 @@
       "Matte Black",
       "Hazard Orange"
     ],
-    "NodesJson": "[{\"id\":\"nitro\",\"name\":\"Rift Nitro\",\"text\":\"+6% top speed per stage\",\"stat\":\"speed\",\"perLevel\":0.06,\"maxLevel\":3,\"cost\":{\"fuel\":5}},{\"id\":\"cage\",\"name\":\"Roll Cage\",\"text\":\"+10% hull per stage\",\"stat\":\"hull\",\"perLevel\":0.1,\"maxLevel\":3,\"cost\":{\"scrapMetal\":10}}]"
+    "NodesJson": "[{\"id\":\"nitro\",\"name\":\"Rift Nitro\",\"text\":\"+6% top speed per stage\",\"stat\":\"speed\",\"perLevel\":0.06,\"maxLevel\":3,\"cost\":{\"fuel\":5}},{\"id\":\"cage\",\"name\":\"Roll Cage\",\"text\":\"+10% hull per stage\",\"stat\":\"hull\",\"perLevel\":0.1,\"maxLevel\":3,\"cost\":{\"scrapMetal\":10}}]",
+    "NexPrice": 9800
   },
   {
     "Name": "sandstalker-atv",
@@ -228,7 +239,8 @@
       "Scorpion",
       "Ash"
     ],
-    "NodesJson": "[{\"id\":\"tyres\",\"name\":\"Paddle Tyres\",\"text\":\"+10% handling per stage\",\"stat\":\"handling\",\"perLevel\":0.1,\"maxLevel\":2,\"cost\":{\"vehicleParts\":2}},{\"id\":\"bash\",\"name\":\"Bash Plate\",\"text\":\"+10% ram per stage\",\"stat\":\"ram\",\"perLevel\":0.1,\"maxLevel\":3,\"cost\":{\"scrapMetal\":10}}]"
+    "NodesJson": "[{\"id\":\"tyres\",\"name\":\"Paddle Tyres\",\"text\":\"+10% handling per stage\",\"stat\":\"handling\",\"perLevel\":0.1,\"maxLevel\":2,\"cost\":{\"vehicleParts\":2}},{\"id\":\"bash\",\"name\":\"Bash Plate\",\"text\":\"+10% ram per stage\",\"stat\":\"ram\",\"perLevel\":0.1,\"maxLevel\":3,\"cost\":{\"scrapMetal\":10}}]",
+    "NexPrice": 1800
   },
   {
     "Name": "void-chaser",
@@ -248,7 +260,8 @@
       "Neon Teal",
       "White Noise"
     ],
-    "NodesJson": "[{\"id\":\"core\",\"name\":\"Void Core\",\"text\":\"+6% top speed per stage\",\"stat\":\"speed\",\"perLevel\":0.06,\"maxLevel\":3,\"cost\":{\"microCircuits\":4}},{\"id\":\"shell\",\"name\":\"Phase Shell\",\"text\":\"+10% hull per stage\",\"stat\":\"hull\",\"perLevel\":0.1,\"maxLevel\":2,\"cost\":{\"reinforcedAlloy\":4}}]"
+    "NodesJson": "[{\"id\":\"core\",\"name\":\"Void Core\",\"text\":\"+6% top speed per stage\",\"stat\":\"speed\",\"perLevel\":0.06,\"maxLevel\":3,\"cost\":{\"microCircuits\":4}},{\"id\":\"shell\",\"name\":\"Phase Shell\",\"text\":\"+10% hull per stage\",\"stat\":\"hull\",\"perLevel\":0.1,\"maxLevel\":2,\"cost\":{\"reinforcedAlloy\":4}}]",
+    "NexPrice": 27000
   },
   {
     "Name": "civic-rover",
@@ -267,7 +280,8 @@
       "Civic Blue",
       "Pearl"
     ],
-    "NodesJson": "[{\"id\":\"eco\",\"name\":\"City Tune\",\"text\":\"+8% handling per stage\",\"stat\":\"handling\",\"perLevel\":0.08,\"maxLevel\":2,\"cost\":{\"vehicleParts\":2}},{\"id\":\"bumper\",\"name\":\"Reinforced Bumpers\",\"text\":\"+8% hull per stage\",\"stat\":\"hull\",\"perLevel\":0.08,\"maxLevel\":2,\"cost\":{\"scrapMetal\":8}}]"
+    "NodesJson": "[{\"id\":\"eco\",\"name\":\"City Tune\",\"text\":\"+8% handling per stage\",\"stat\":\"handling\",\"perLevel\":0.08,\"maxLevel\":2,\"cost\":{\"vehicleParts\":2}},{\"id\":\"bumper\",\"name\":\"Reinforced Bumpers\",\"text\":\"+8% hull per stage\",\"stat\":\"hull\",\"perLevel\":0.08,\"maxLevel\":2,\"cost\":{\"scrapMetal\":8}}]",
+    "NexPrice": 900
   },
   {
     "Name": "neon-drift",
@@ -286,7 +300,8 @@
       "Cyan Glow",
       "Gold Chrome"
     ],
-    "NodesJson": "[{\"id\":\"diff\",\"name\":\"Drift Diff\",\"text\":\"+10% handling per stage\",\"stat\":\"handling\",\"perLevel\":0.1,\"maxLevel\":3,\"cost\":{\"microCircuits\":3}},{\"id\":\"turbo\",\"name\":\"Twin Turbo\",\"text\":\"+6% top speed per stage\",\"stat\":\"speed\",\"perLevel\":0.06,\"maxLevel\":3,\"cost\":{\"fuel\":5}}]"
+    "NodesJson": "[{\"id\":\"diff\",\"name\":\"Drift Diff\",\"text\":\"+10% handling per stage\",\"stat\":\"handling\",\"perLevel\":0.1,\"maxLevel\":3,\"cost\":{\"microCircuits\":3}},{\"id\":\"turbo\",\"name\":\"Twin Turbo\",\"text\":\"+6% top speed per stage\",\"stat\":\"speed\",\"perLevel\":0.06,\"maxLevel\":3,\"cost\":{\"fuel\":5}}]",
+    "NexPrice": 5300
   },
   {
     "Name": "war-rig",
@@ -306,7 +321,8 @@
       "Gunmetal",
       "Raider Stripes"
     ],
-    "NodesJson": "[{\"id\":\"plates\",\"name\":\"Slab Armor\",\"text\":\"+12% hull per stage\",\"stat\":\"hull\",\"perLevel\":0.12,\"maxLevel\":3,\"cost\":{\"reinforcedAlloy\":6}},{\"id\":\"ramguard\",\"name\":\"Cow Catcher\",\"text\":\"+12% ram per stage\",\"stat\":\"ram\",\"perLevel\":0.12,\"maxLevel\":3,\"cost\":{\"scrapMetal\":14}}]"
+    "NodesJson": "[{\"id\":\"plates\",\"name\":\"Slab Armor\",\"text\":\"+12% hull per stage\",\"stat\":\"hull\",\"perLevel\":0.12,\"maxLevel\":3,\"cost\":{\"reinforcedAlloy\":6}},{\"id\":\"ramguard\",\"name\":\"Cow Catcher\",\"text\":\"+12% ram per stage\",\"stat\":\"ram\",\"perLevel\":0.12,\"maxLevel\":3,\"cost\":{\"scrapMetal\":14}}]",
+    "NexPrice": 12800
   },
   {
     "Name": "apex-hauler",
@@ -325,7 +341,8 @@
       "Industrial Yellow",
       "Tech Grey"
     ],
-    "NodesJson": "[{\"id\":\"drive\",\"name\":\"Six-Wheel Drive\",\"text\":\"+8% handling per stage\",\"stat\":\"handling\",\"perLevel\":0.08,\"maxLevel\":2,\"cost\":{\"vehicleParts\":4}},{\"id\":\"engine\",\"name\":\"Diesel-Fracture Hybrid\",\"text\":\"+5% top speed per stage\",\"stat\":\"speed\",\"perLevel\":0.05,\"maxLevel\":3,\"cost\":{\"fuel\":6}}]"
+    "NodesJson": "[{\"id\":\"drive\",\"name\":\"Six-Wheel Drive\",\"text\":\"+8% handling per stage\",\"stat\":\"handling\",\"perLevel\":0.08,\"maxLevel\":2,\"cost\":{\"vehicleParts\":4}},{\"id\":\"engine\",\"name\":\"Diesel-Fracture Hybrid\",\"text\":\"+5% top speed per stage\",\"stat\":\"speed\",\"perLevel\":0.05,\"maxLevel\":3,\"cost\":{\"fuel\":6}}]",
+    "NexPrice": 16500
   },
   {
     "Name": "skyhawk",
@@ -345,7 +362,8 @@
       "Rescue Orange",
       "Night"
     ],
-    "NodesJson": "[{\"id\":\"rotor\",\"name\":\"Composite Rotors\",\"text\":\"+7% top speed per stage\",\"stat\":\"speed\",\"perLevel\":0.07,\"maxLevel\":3,\"cost\":{\"microCircuits\":3}},{\"id\":\"armor\",\"name\":\"Cockpit Armour\",\"text\":\"+10% hull per stage\",\"stat\":\"hull\",\"perLevel\":0.1,\"maxLevel\":2,\"cost\":{\"reinforcedAlloy\":4}}]"
+    "NodesJson": "[{\"id\":\"rotor\",\"name\":\"Composite Rotors\",\"text\":\"+7% top speed per stage\",\"stat\":\"speed\",\"perLevel\":0.07,\"maxLevel\":3,\"cost\":{\"microCircuits\":3}},{\"id\":\"armor\",\"name\":\"Cockpit Armour\",\"text\":\"+10% hull per stage\",\"stat\":\"hull\",\"perLevel\":0.1,\"maxLevel\":2,\"cost\":{\"reinforcedAlloy\":4}}]",
+    "NexPrice": 26300
   },
   {
     "Name": "riftwing",
@@ -364,7 +382,8 @@
       "Rift Violet",
       "Carbon"
     ],
-    "NodesJson": "[{\"id\":\"wing\",\"name\":\"Swept Wings\",\"text\":\"+8% handling per stage\",\"stat\":\"handling\",\"perLevel\":0.08,\"maxLevel\":2,\"cost\":{\"reinforcedAlloy\":4}},{\"id\":\"burner\",\"name\":\"Rift Afterburner\",\"text\":\"+6% top speed per stage\",\"stat\":\"speed\",\"perLevel\":0.06,\"maxLevel\":3,\"cost\":{\"fuel\":8}}]"
+    "NodesJson": "[{\"id\":\"wing\",\"name\":\"Swept Wings\",\"text\":\"+8% handling per stage\",\"stat\":\"handling\",\"perLevel\":0.08,\"maxLevel\":2,\"cost\":{\"reinforcedAlloy\":4}},{\"id\":\"burner\",\"name\":\"Rift Afterburner\",\"text\":\"+6% top speed per stage\",\"stat\":\"speed\",\"perLevel\":0.06,\"maxLevel\":3,\"cost\":{\"fuel\":8}}]",
+    "NexPrice": 45000
   },
   {
     "Name": "solara-falcon",
@@ -384,7 +403,8 @@
       "Sunset",
       "Bone White"
     ],
-    "NodesJson": "[{\"id\":\"cells\",\"name\":\"Solar Cells\",\"text\":\"+6% top speed per stage\",\"stat\":\"speed\",\"perLevel\":0.06,\"maxLevel\":3,\"cost\":{\"microCircuits\":3}},{\"id\":\"frame\",\"name\":\"Heat-Shield Frame\",\"text\":\"+10% hull per stage\",\"stat\":\"hull\",\"perLevel\":0.1,\"maxLevel\":2,\"cost\":{\"reinforcedAlloy\":4}}]"
+    "NodesJson": "[{\"id\":\"cells\",\"name\":\"Solar Cells\",\"text\":\"+6% top speed per stage\",\"stat\":\"speed\",\"perLevel\":0.06,\"maxLevel\":3,\"cost\":{\"microCircuits\":3}},{\"id\":\"frame\",\"name\":\"Heat-Shield Frame\",\"text\":\"+10% hull per stage\",\"stat\":\"hull\",\"perLevel\":0.1,\"maxLevel\":2,\"cost\":{\"reinforcedAlloy\":4}}]",
+    "NexPrice": 54000
   },
   {
     "Name": "void-skimmer-prototype",
@@ -404,6 +424,7 @@
       "Event Horizon Black",
       "Resonant Violet"
     ],
-    "NodesJson": "[{\"id\":\"lance\",\"name\":\"Void Lance Coils\",\"text\":\"+6% top speed per stage\",\"stat\":\"speed\",\"perLevel\":0.06,\"maxLevel\":3,\"cost\":{\"microCircuits\":5,\"aegisCore\":1}},{\"id\":\"stabilizer\",\"name\":\"Breach Stabilizer\",\"text\":\"+8% handling per stage\",\"stat\":\"handling\",\"perLevel\":0.08,\"maxLevel\":2,\"cost\":{\"reinforcedAlloy\":5}}]"
+    "NodesJson": "[{\"id\":\"lance\",\"name\":\"Void Lance Coils\",\"text\":\"+6% top speed per stage\",\"stat\":\"speed\",\"perLevel\":0.06,\"maxLevel\":3,\"cost\":{\"microCircuits\":5,\"aegisCore\":1}},{\"id\":\"stabilizer\",\"name\":\"Breach Stabilizer\",\"text\":\"+8% handling per stage\",\"stat\":\"handling\",\"perLevel\":0.08,\"maxLevel\":2,\"cost\":{\"reinforcedAlloy\":5}}]",
+    "NexPrice": 150000
   }
 ]

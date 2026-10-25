@@ -49,6 +49,9 @@ public:
 	double GetVulnMult() const { return VulnMult; }
 	/** Weaken / Marked / Roar: hits are multiplied by Mult until world time Until (sim.ts vulnUntil / vulnMult). */
 	void SetVulnerable(double Until, double Mult) { VulnUntil = Until; VulnMult = Mult; }
+	/** Caltrops / EMP mines: movement is multiplied by Mult until world time Until (sim.ts snareUntil / snareMult). */
+	void SetSnare(double Until, double Mult) { SnareUntil = Until; SnareMult = Mult; }
+	double GetSnareUntil() const { return SnareUntil; }
 	/** Knockback: moves the enemy to a ground-plane point (metres), landing on the ground. */
 	void MoveToGround(double XMetres, double YMetres);
 	/** A False Saint (Hollow Saint decoy): never attacks, pays nothing, and reports its shattering to the encounter. */
@@ -99,6 +102,7 @@ private:
 	FString ScenarioId;
 	double StunLeft = 0;
 	double VulnUntil = 0, VulnMult = 1;
+	double SnareUntil = 0, SnareMult = 1;
 	bool bDecoy = false;
 	double DecoyId = 0;
 	wf::encounter::FBoss BossRules;

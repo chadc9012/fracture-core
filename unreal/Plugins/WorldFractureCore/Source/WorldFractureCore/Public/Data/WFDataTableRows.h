@@ -89,6 +89,7 @@ struct FFleetRow : public FTableRowBase
 	UPROPERTY(EditAnywhere, BlueprintReadWrite) FString Ability;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite) TArray<FString> Paints;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite) FString NodesJson;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite) int32 NexPrice = 0;
 };
 
 /** Garages: 4 rows, exported from the web build. */

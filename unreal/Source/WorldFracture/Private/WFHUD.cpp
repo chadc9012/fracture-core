@@ -151,12 +151,15 @@ void AWFHUD::DrawHUD()
 			FMath::RoundToInt32(C.Body), FMath::RoundToInt32(C.Engine), FMath::RoundToInt32(C.Tires)), 32, H - 92, Soft, 1.2f);
 		// hardpoints and the shared weapon heat (vehicle-weapons.ts, sim.ts weaponHeat)
 		const wf::vweapons::FArmament& Arm = Vehicle->GetArmament();
-		if (Arm.Primary || Arm.Secondary || Arm.SecondaryGun)
+		if (Arm.Primary || Arm.Secondary || Arm.SecondaryGun || Vehicle->GetGadget())
 		{
 			const wf::vweapons::FHeat& Heat = Vehicle->GetHeat();
 			FString Guns = Arm.Primary ? FString::Printf(TEXT("LMB %s"), UTF8_TO_TCHAR(Arm.Primary->Name.c_str())) : FString();
 			if (Arm.SecondaryGun) Guns += FString::Printf(TEXT("   RMB %s"), UTF8_TO_TCHAR(Arm.SecondaryGun->Name.c_str()));
 			else if (Arm.Secondary) Guns += FString::Printf(TEXT("   RMB %s x%d"), UTF8_TO_TCHAR(Arm.Secondary->Name.c_str()), Arm.Secondary->Salvo);
+			else if (const std::optional<wf::gadget::FGadget>& G = Vehicle->GetGadget())
+				Guns += G->Use == "PASSIVE" ? FString::Printf(TEXT("   %s"), UTF8_TO_TCHAR(G->Name.c_str()))
+					: FString::Printf(TEXT("   RMB %s%s"), UTF8_TO_TCHAR(G->Name.c_str()), Vehicle->GetGadgetCooldown() > 0 ? *FString::Printf(TEXT(" %.0fs"), Vehicle->GetGadgetCooldown()) : TEXT(""));
 			FString Bar;
 			for (int32 I = 0; I < 20; ++I) Bar += I < FMath::RoundToInt32(Heat.Heat / 5) ? TEXT("#") : TEXT("-");
 			const TCHAR* State = Vehicle->AreWeaponsDisabled() ? TEXT("   WEAPONS OFFLINE") : Heat.bOverheated ? TEXT("   OVERHEAT") : TEXT("");

@@ -29,7 +29,8 @@ unreal/
    `SpawnScenarioBoss <id>`, `ChooseStarterVehicle scrap-interceptor|wasteland-jeep`, `SpawnVehicle <id>`, `RepairVehicle`,
    `ListRaces`, `StartRace <id> [standard|advanced|legendary]`, `AbandonRace`,
    `Subclass <id>`, `EquipAbility <id>`, `AbilityBranch <ability> <branch>`, `ClassBuild`,
-   `ListShops`, `Shop <id>`, `Buy <n>`, `Service <itemId> [element]`, `Inventory`, `ShopHour <h>`, `CloseShop`.
+   `ListShops`, `Shop <id>`, `Buy <n>`, `Service <itemId> [element]`, `Inventory`, `ShopHour <h>`, `CloseShop`,
+   `Fleet`, `BuyGarage <base>`, `BuyFleet <build>`, `FleetActive <build>`, `Tune <build> <node>`, `Paint <build> "<paint>"`, `Cosmetic <build> <key> <value>`.
 
 The default level is the engine's template map; the game mode adds a floor and lights if a level has none.
 
@@ -84,6 +85,12 @@ The default level is the engine's template map; the game mode adds a floor and l
   place. A valid finish pays the activity (Nex, XP, reputation, materials, challenge bonus) and then the race records
   (placement Nex, medals, personal bests, championship points, racing rank). The web world is not ported, so
   `StartRace` lays a course out with its start line just ahead of you; dive courses need water and are refused.
+- **Fleet and gadgets:** the four garage bases and the 21 fleet builds (fleet.ts): bought at their home base for
+  materials and Nex, each unlocks its chassis and becomes the active vehicle; tuning nodes raise speed / hull / handling /
+  ram, plus paint and cosmetics, all saved. Driving the active build's chassis uses its tuned stats, its own hardpoints
+  and its gadget on RMB: mine and EMP-mine droppers (EMP stuns and slows), caltrops (slow and chew), flame jets (burn
+  and build heat), flare pods, the Remora drone (orbits and shoots what it can see), the ramming grill and the breach
+  thruster (more ram damage, less self-damage, a speed burst). Ramming an enemy follows sim.ts's force rule.
 - **Merchants:** the 21 regional shops (weapon dealers, armor shops, the Bastion armorsmith, gunsmiths, mod shops,
   outfitters, vehicle workshops, the Dune Gate exotic trader, the Underlink black market, faction quartermasters) on the
   ported regional-shops.ts rules: daily stock per shop, this week's named catalogue weapons, armor collection pieces up
@@ -116,18 +123,19 @@ cmake -S . -B build -G Ninja && cmake --build build && ctest --test-dir build --
 | VehicleWeaponsCoreTest | vehicle-weapons.ts, ordnance.ts, launchers.ts, sim.ts fireBullet / fireOrdnance, Scene.tsx fire loop | 2,310 armaments, 160 flights, 14,400 fire frames, 135,166 checks |
 | AbilityCoreTest | ability-effects.ts, live-build.ts, ability-hud.ts, branch-effects.ts, subclass-verbs.ts, operator-abilities.ts | 8,000 operations (3,256 casts), 2,400 turret steps, 39,106 checks |
 | ShopCoreTest | regional-shops.ts, weapon-catalog.ts, shop-hours.ts, living-world.ts, inventory.ts upgrade / infuse | 1,087 stock checks, 924 purchases, 702 services, 14,566 checks |
+| FleetCoreTest | fleet.ts, vehicle-gadgets.ts | 2,400 fleet operations, 2,100 gadget operations, 13,060 checks |
 | DragonCoreTest | dragonite.ts, dragonite-cast.ts statsFor, vyrak-trust.ts | 2,099 states, 23,789 checks |
 
 Regenerate goldens after changing the web build's rules (from the repo root):
 
     npx esbuild unreal/tools/<tool>.ts --bundle --platform=node --format=esm --alias:@=./src --outfile=/tmp/t.mjs && node /tmp/t.mjs
 
-for `export-datatables`, `gen-quest-golden`, `gen-reward-golden`, `gen-mission-golden`, `gen-missionreward-golden`, `gen-dragon-golden`, `gen-vehicle-golden`, `gen-race-golden`, `gen-vweapons-golden`, `gen-shop-golden`; the encounter, Dragonite-cast and ability recorders (`gen-encounter-golden`, `gen-dragoncast-golden`, `gen-ability-golden`) run through `node unreal/tools/build-golden.mjs unreal/tools/<tool>.ts`, which routes their world calls to recording shims.
+for `export-datatables`, `gen-quest-golden`, `gen-reward-golden`, `gen-mission-golden`, `gen-missionreward-golden`, `gen-dragon-golden`, `gen-vehicle-golden`, `gen-race-golden`, `gen-vweapons-golden`, `gen-shop-golden`, `gen-fleet-golden`; the encounter, Dragonite-cast and ability recorders (`gen-encounter-golden`, `gen-dragoncast-golden`, `gen-ability-golden`) run through `node unreal/tools/build-golden.mjs unreal/tools/<tool>.ts`, which routes their world calls to recording shims.
 
 ## Not ported yet
 Boss models and attack effects (zones are debug circles, decoys are stand-ins), mid-mission saves, ability mastery XP and armor ability-recharge,
 region kinds for abilities (the map counts as a war zone),
-armor effects on combat, enemy perception/cover/line-of-sight, launchers and the sword, vehicle gadgets and fleet builds, gear power and armor damage bonuses on vehicle guns, knockback, the featured-activity rotation and
+armor effects on combat, enemy perception/cover/line-of-sight, launchers and the sword, gear power and armor damage bonuses on vehicle guns, knockback, the featured-activity rotation and
 activity shader drops,
 the Operations Hub preview marketplace (its wallet is not saved in the web build either), housing, cloud save merge, the world itself (regions, Neon City, Thalassia). Their data is already in
 `DataTables/`.

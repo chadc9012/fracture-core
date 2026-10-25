@@ -22,6 +22,9 @@
 #include "WFHUD.h"
 #include "WFProgressionSubsystem.h"
 #include "WFRaceSubsystem.h"
+#include "WFFleetSubsystem.h"
+#include "Core/WFDragoniteCastCore.h"
+#include "Core/WFJsCompat.h"
 #include "WFEnemy.h"
 #include "WFWeapons.h"
 #include "DrawDebugHelpers.h"
@@ -100,7 +103,19 @@ void AWFVehicle::Configure(const FWFVehicleDef& InDef, const wf::vehicle::FCondi
 	Def = InDef;
 	Condition = InCondition;
 	Profile = &wf::vehicle::HandlingFor(WFData::ToStd(Def.Id), WFData::ToStd(Def.Domain));
-	Armament = wf::vweapons::ArmamentFor(WFData::ToStd(Def.Id), Profile->Kind); // no fleet builds in the prototype garage
+	// fleet.ts: when the active fleet build is built on this chassis, its tuning, name, hardpoints and gadget apply
+	std::string Build;
+	if (const UWorld* W = GetWorld())
+		if (const UWFFleetSubsystem* Fleet = W->GetGameInstance() ? W->GetGameInstance()->GetSubsystem<UWFFleetSubsystem>() : nullptr)
+			if (const UWFProgressionSubsystem* P = W->GetGameInstance()->GetSubsystem<UWFProgressionSubsystem>())
+			{
+				Build = Fleet->BuildFor(WFData::ToStd(Def.Id));
+				const wf::fleet::FVehicleStats T = wf::fleet::TunedVehicle(Fleet->Catalog(), {WFData::ToStd(Def.Id), WFData::ToStd(Def.Name), Def.Speed, Def.Hull, Def.Handling, Def.Ram}, P->Get().Fleet);
+				Def.Name = WFData::ToF(T.Name); Def.Speed = T.Speed; Def.Hull = T.Hull; Def.Handling = T.Handling; Def.Ram = T.Ram;
+			}
+	BuildId = WFData::ToF(Build);
+	Armament = wf::vweapons::ArmamentFor(WFData::ToStd(Def.Id), Profile->Kind, Build);
+	Gadget = wf::gadget::GadgetFor(Build);
 	const float R = static_cast<float>(Def.CollisionRadius * VehCmPerM);
 	Box->SetBoxExtent(FVector(R, R * 0.45f, 80.f));
 	double Distance = 14, Height = 5;
@@ -147,7 +162,7 @@ void AWFVehicle::Enter(AWFCharacter* InDriver)
 	Notify(FString::Printf(TEXT("%s - W/S drive, A/D steer, Space handbrake, Shift boost%s, E exit"), *Def.Name, Profile->Mode == "AIR" ? TEXT(", C/Z climb") : Profile->Kind == "SUB" ? TEXT(", C/Z surface / dive") : TEXT("")), FLinearColor(0.45f, 0.9f, 1.f));
 	if (Armament.Primary || Armament.Secondary || Armament.SecondaryGun)
 	{
-		const FString Rmb = Armament.SecondaryGun ? WFData::ToF(Armament.SecondaryGun->Name) : Armament.Secondary ? WFData::ToF(Armament.Secondary->Name) : FString();
+		const FString Rmb = Armament.SecondaryGun ? WFData::ToF(Armament.SecondaryGun->Name) : Armament.Secondary ? WFData::ToF(Armament.Secondary->Name) : Gadget && Gadget->Use != "PASSIVE" ? WFData::ToF(Gadget->Name) : FString();
 		Notify(FString::Printf(TEXT("LMB %s%s%s - mouse aims"), Armament.Primary ? *WFData::ToF(Armament.Primary->Name) : TEXT("-"), Rmb.IsEmpty() ? TEXT("") : TEXT("   RMB "), *Rmb), FLinearColor(1.f, 0.82f, 0.35f));
 	}
 }
@@ -252,7 +267,7 @@ void AWFVehicle::Tick(float DeltaSeconds)
 	Super::Tick(DeltaSeconds);
 	UWorld* World = GetWorld();
 	const double Dt = FMath::Min(static_cast<double>(DeltaSeconds), 0.1);
-	if (World) TickProjectiles(Dt); // rounds already fired keep flying after the driver gets out
+	if (World) { TickProjectiles(Dt); TickGadgets(Dt); } // rounds and gadgets already out keep working after the driver gets out
 	if (wf::vweapons::CoolHeat(Heat, Dt)) Notify(TEXT("Weapon cooled - ready"), FLinearColor(0.45f, 0.9f, 1.f));
 	if (!Driver.IsValid() || !World) return; // parked
 	const FVector Loc = GetActorLocation();
@@ -280,7 +295,10 @@ void AWFVehicle::Tick(float DeltaSeconds)
 	// Scene.tsx raceSlow: a track obstacle hit costs top speed for a moment (racing.ts raceSpeedFactor)
 	const UWFRaceSubsystem* Racing = GetGameInstance()->GetSubsystem<UWFRaceSubsystem>();
 	const double RaceSlow = Racing ? Racing->GetSpeedFactor() : 1.0;
-	const double Top = wf::vehicle::TopSpeedFor(BiomeGrip, 1, Def.Speed, std::nullopt, Fx.Speed, RaceSlow);
+	// Scene.tsx: the breach thruster lifts the speed cap for its window
+	const double NowS = World->GetTimeSeconds();
+	const double BreachLift = 1 + (wf::gadget::BreachImpulse - 1) * FMath::Clamp((Gadgets.BreachUntil - NowS) / wf::gadget::BreachWindow + 0.5, 0.0, 1.0);
+	const double Top = wf::vehicle::TopSpeedFor(BiomeGrip, 1, Def.Speed, std::nullopt, Fx.Speed, RaceSlow) * (Gadgets.BreachUntil > 0 ? BreachLift : 1.0);
 
 	wf::vehicle::FInput In = Input;
 	if (Fx.bDisabled) { In.Throttle = 0; In.bBoost = false; } // a wrecked engine stops it (vehicle-condition.ts disabled)
@@ -305,8 +323,16 @@ void AWFVehicle::Tick(float DeltaSeconds)
 	{
 		// a crash: most of the speed is lost and the vehicle wears (vehicle-condition.ts impactVehicle)
 		const double Lost = FMath::Abs(State.Speed) * 0.7;
+		const wf::gadget::FRam Ram = wf::gadget::RamFor(Gadget, Gadgets.BreachUntil, NowS); // the grill and the breach take the hit for the hull
+		// sim.ts collidePlayer, vehicle vs war machine: force = speed x 2.4; above 30 the machine takes round(force / 30 x ram)
+		const double Force = FMath::Abs(State.Speed) * 2.4;
+		if (AWFEnemy* Rammed = Cast<AWFEnemy>(Hit.GetActor()); Rammed && Force > 30 && NowS >= RamCoolUntil)
+		{
+			RamCoolUntil = NowS + 0.6;
+			Rammed->TakeHit(wf::js::Round(Force / 30 * Ram.DamageMult), Gunner.IsValid() ? static_cast<AActor*>(Gunner.Get()) : this);
+		}
 		State.Speed *= 0.3;
-		Condition = wf::vehicle::ImpactVehicle(Condition, Lost);
+		Condition = wf::vehicle::ImpactVehicle(Condition, Lost * Ram.SelfMult);
 		Notify(FString::Printf(TEXT("Impact - body %d%%  engine %d%%"), FMath::RoundToInt32(Condition.Body), FMath::RoundToInt32(Condition.Engine)), FLinearColor(1.f, 0.55f, 0.3f));
 	}
 	SetActorRotation(FRotator(static_cast<float>(FMath::RadiansToDegrees(State.Pitch)), static_cast<float>(90.0 - FMath::RadiansToDegrees(State.Yaw)), static_cast<float>(FMath::RadiansToDegrees(-State.Roll))));
@@ -346,8 +372,11 @@ void AWFVehicle::TickWeapons(double Dt)
 	using namespace wf::vweapons;
 	const bool bBlocked = Heat.bOverheated || AreWeaponsDisabled(); // Scene.tsx: !sim.overheated && !weaponsDisabled
 	const std::vector<FShot> Shots = StepFire(Armament, Fire, bTrigger, bSecondaryTrigger, Dt, 1.0, bBlocked);
-	if (Shots.empty()) return;
 	const FPose Pose = WeaponPose();
+	GadgetCool -= Dt;
+	if (!bBlocked && Gadget && !Armament.Secondary && !Armament.SecondaryGun) UseGadget(Pose); // the build's gadget hardpoint
+	bGadgetHeld = bSecondaryTrigger;
+	if (Shots.empty()) return;
 	const bool bAir = Profile->Mode == "AIR";
 	const FVec Carry = VehicleVelocity(State.Yaw, State.Speed, bAir || Profile->Mode == "WATER" ? State.Vy : 0);
 	const double CamYaw = State.Yaw + AimYaw, CamPitch = AimPitch;
@@ -472,4 +501,120 @@ void AWFVehicle::Recover(const FVector& At)
 	State.Speed = 0;
 	State.Vy = 0;
 	SetActorLocation(At, false, nullptr, ETeleportType::TeleportPhysics);
+}
+
+// --- gadgets (vehicle-gadgets.ts, sim.ts stepGadgets) -------------------------------------------------------------------
+
+void AWFVehicle::UseGadget(const wf::vweapons::FPose& Pose)
+{
+	using namespace wf::gadget;
+	const double Now = GetWorld()->GetTimeSeconds();
+	const bool bPressed = bSecondaryTrigger && !bGadgetHeld;
+	const double RearZ = -Box->GetUnscaledBoxExtent().X / VehCmPerM - 0.9; // just behind the hull
+	bFlameLit = Gadget->Use == "HELD" && bSecondaryTrigger;
+	if (Gadget->Use != "PRESS" || !bPressed || GadgetCool > 0) return;
+	GadgetCool = Gadget->Cooldown;
+	const wf::vweapons::FVec Rear = wf::vweapons::VehiclePoint(Pose, {0, 0.4, RearZ});
+	if (Gadget->Kind == "MINE" || Gadget->Kind == "EMP_MINE") { DropMine(Gadgets, Gadget->Kind, Rear.X, GroundMeters(Rear.X, Rear.Z, Rear.Y), Rear.Z, Now); Notify(TEXT("Mine dropped"), FLinearColor(1.f, 0.82f, 0.35f)); }
+	else if (Gadget->Kind == "CALTROPS") { const wf::vweapons::FVec Back = wf::vweapons::VehiclePoint(Pose, {0, 0, RearZ - CaltropBack}); LaunchCaltrops(Gadgets, Back.X, Back.Z, Now); }
+	else if (Gadget->Kind == "FLARES") { const wf::vweapons::FVec At = wf::vweapons::VehiclePoint(Pose, {0, 0.2, 0}); PopFlares(Gadgets, At.X, At.Y, At.Z, State.Yaw, Now); }
+	else if (Gadget->Kind == "DRONE") { const wf::vweapons::FVec Top = wf::vweapons::VehiclePoint(Pose, {0, 2.4, 0}); LaunchDrone(Gadgets, Top.X, Top.Y, Top.Z, Now); Notify(TEXT("RQ-44 Remora launched"), FLinearColor(0.45f, 0.9f, 1.f)); }
+	else if (Gadget->Kind == "BREACH") { State.Speed = FMath::Max(State.Speed, 0.0) + 45; Gadgets.BreachUntil = Now + BreachWindow; } // the cap is raised for the window
+}
+
+void AWFVehicle::GadgetBlast(double X, double Y, double Z, double Radius, double Damage, const FString& Element)
+{
+	// sim.ts gadgetBlast: splash to the body's edge (1.5 m), linear falloff
+	const wf::vweapons::FBurst B{X, Y, Z, Radius, Damage, "PROXIMITY"};
+	AActor* Shooter = Gunner.IsValid() ? static_cast<AActor*>(Gunner.Get()) : this;
+	TArray<AWFEnemy*> Live;
+	for (TActorIterator<AWFEnemy> It(GetWorld()); It; ++It) if (!It->IsDead()) Live.Add(*It);
+	for (AWFEnemy* E : Live)
+	{
+		const FVector P = E->GetActorLocation() / VehCmPerM;
+		const double Dmg = wf::vweapons::SplashDamage(B, FMath::Max(0.0, FMath::Sqrt(FMath::Square(P.X - X) + FMath::Square(P.Y - Z)) - 1.5));
+		if (Dmg > 0) E->TakeHit(Dmg, Shooter, Element);
+	}
+	DrawDebugSphere(GetWorld(), FVector(X * VehCmPerM, Z * VehCmPerM, Y * VehCmPerM), static_cast<float>(Radius * VehCmPerM), 16, Element == TEXT("ARC") ? FColor(110, 200, 255) : FColor(255, 140, 50), false, 0.4f, 0, 4.f);
+}
+
+void AWFVehicle::TickGadgets(double Dt)
+{
+	using namespace wf::gadget;
+	UWorld* World = GetWorld();
+	const double Now = World->GetTimeSeconds();
+	AActor* Shooter = Gunner.IsValid() ? static_cast<AActor*>(Gunner.Get()) : this;
+	TArray<AWFEnemy*> Live;
+	std::vector<FPoint> Points;
+	for (TActorIterator<AWFEnemy> It(World); It; ++It)
+		if (!It->IsDead()) { Live.Add(*It); const FVector P = It->GetActorLocation() / VehCmPerM; Points.push_back({P.X, P.Y, true}); }
+	// mines: armed, something steps on one, it goes off (an EMP mine stuns and slows instead of shredding)
+	Gadgets.Mines.erase(std::remove_if(Gadgets.Mines.begin(), Gadgets.Mines.end(), [Now](const FMine& M) { return !(M.Until > Now); }), Gadgets.Mines.end());
+	for (size_t I = 0; I < Gadgets.Mines.size();)
+	{
+		const FMine M = Gadgets.Mines[I];
+		DrawDebugSphere(World, FVector(M.X * VehCmPerM, M.Z * VehCmPerM, M.Y * VehCmPerM + 20), 25.f, 8, Now >= M.ArmAt ? FColor(255, 60, 60) : FColor(120, 120, 120), false, -1.f, 0, 2.f);
+		if (!MineTriggered(M, Now, Points)) { ++I; continue; }
+		Gadgets.Mines.erase(Gadgets.Mines.begin() + static_cast<std::ptrdiff_t>(I));
+		const FMineTuning& T = MineTuning(M.Kind);
+		if (M.Kind == "MINE") GadgetBlast(M.X, M.Y + 0.5, M.Z, T.Radius, T.Damage, TEXT("KINETIC"));
+		else
+		{
+			for (AWFEnemy* E : Live)
+			{
+				const FVector P = E->GetActorLocation() / VehCmPerM;
+				if (FMath::Sqrt(FMath::Square(P.X - M.X) + FMath::Square(P.Y - M.Z)) > T.Radius) continue;
+				E->Interrupt(E->IsBoss() ? FMath::Min(T.Stun, wf::dragoncast::BossStunCap) : T.Stun); // stunMachine (bosses capped); the wind-up is lost
+				E->SetSnare(Now + T.SlowFor, SlowFor(T.Slow, E->IsBoss()));
+			}
+			GadgetBlast(M.X, M.Y + 0.5, M.Z, T.Radius, T.Damage, TEXT("ARC"));
+		}
+	}
+	// caltrops: anything crossing the field is slowed and chewed
+	Gadgets.Caltrops.erase(std::remove_if(Gadgets.Caltrops.begin(), Gadgets.Caltrops.end(), [Now](const FCaltrops& C) { return !(C.Until > Now); }), Gadgets.Caltrops.end());
+	for (const FCaltrops& C : Gadgets.Caltrops) DrawDebugCircle(World, FVector(C.X * VehCmPerM, C.Z * VehCmPerM, GroundMeters(C.X, C.Z, 0) * VehCmPerM + 10), static_cast<float>(C.R * VehCmPerM), 24, FColor(200, 200, 200), false, -1.f, 0, 2.f, FVector(1, 0, 0), FVector(0, 1, 0), false);
+	if (!Gadgets.Caltrops.empty())
+		for (AWFEnemy* E : Live)
+		{
+			const FVector P = E->GetActorLocation() / VehCmPerM;
+			if (!InCaltrops(Gadgets, P.X, P.Y, Now)) continue;
+			E->SetSnare(FMath::Max(E->GetSnareUntil(), Now + 0.3), SlowFor(CaltropSlow, E->IsBoss()));
+			E->TakeHit(CaltropDps * Dt, Shooter);
+		}
+	// flame jets: burn what is around the hull while the trigger is held; heat builds toward an overheat
+	if (bFlameLit && Driver.IsValid() && !Heat.bOverheated)
+	{
+		const FVector L = GetActorLocation() / VehCmPerM;
+		for (AWFEnemy* E : Live)
+		{
+			const FVector P = E->GetActorLocation() / VehCmPerM;
+			if (InFlames(L.X, L.Y, State.Yaw, P.X, P.Y, 1.2)) E->TakeHit(FlameDps * Dt, Shooter, TEXT("THERMAL"));
+		}
+		if (wf::vweapons::AddHeat(Heat, FlameHeat * Dt)) Notify(TEXT("FLAME JETS OVERHEAT - venting"), FLinearColor(1.f, 0.3f, 0.25f));
+		DrawDebugCylinder(World, GetActorLocation(), GetActorLocation() + FVector(0, 0, 60), static_cast<float>(FlameReach * VehCmPerM), 20, FColor(255, 120, 30), false, -1.f, 0, 3.f);
+	}
+	// the Remora drone: orbits over the driver and picks off the nearest hostile it can see
+	Gadgets.Drones.erase(std::remove_if(Gadgets.Drones.begin(), Gadgets.Drones.end(), [Now](const FDrone& D) { return !(D.Until > Now); }), Gadgets.Drones.end());
+	const FVector Eye = GetActorLocation() / VehCmPerM;
+	for (FDrone& D : Gadgets.Drones)
+	{
+		StepDrone(D, Eye.X, Eye.Z + 1.9, Eye.Y, Dt);
+		const FVector At(D.X * VehCmPerM, D.Z * VehCmPerM, D.Y * VehCmPerM);
+		DrawDebugBox(World, At, FVector(40, 40, 15), FColor(120, 200, 255), false, -1.f, 0, 2.f);
+		if (D.Cool > 0) continue;
+		std::vector<bool> Visible;
+		FCollisionQueryParams Params(SCENE_QUERY_STAT(WFDroneSight), false, this);
+		for (AWFEnemy* E : Live) { FHitResult H; Visible.push_back(!World->LineTraceSingleByChannel(H, At, E->GetActorLocation(), ECC_WorldStatic, Params)); }
+		const int Target = DroneTarget(D, Points, Visible);
+		if (Target < 0) { D.Cool = 0.3; continue; }
+		D.Cool = DroneRate;
+		AWFEnemy* E = Live[Target];
+		DrawDebugLine(World, At, E->GetActorLocation(), FColor(150, 220, 255), false, 0.08f, 0, 2.f);
+		E->TakeHit(DroneDamage, Shooter);
+	}
+	if (!Gadgets.Flares.empty())
+	{
+		StepFlares(Gadgets, Now, Dt);
+		for (const FFlare& F : Gadgets.Flares) DrawDebugSphere(World, FVector(F.X * VehCmPerM, F.Z * VehCmPerM, F.Y * VehCmPerM), 30.f, 6, FColor(255, 170, 60), false, -1.f, 0, 2.f);
+	}
 }

@@ -27,6 +27,7 @@
 #include "WFQuestSubsystem.h"
 #include "WFRaceSubsystem.h"
 #include "WFShopSubsystem.h"
+#include "WFFleetSubsystem.h"
 #include "WFVehicle.h"
 
 AWFGameMode::AWFGameMode()
@@ -548,3 +549,25 @@ void AWFGameMode::ShopHour(float Hour)
 {
 	if (UWFShopSubsystem* Shops = GetGameInstance()->GetSubsystem<UWFShopSubsystem>()) Shops->SetWorldHour(Hour);
 }
+
+// --- the fleet -----------------------------------------------------------------------------------------------------------
+
+namespace
+{
+	const FLinearColor FleetGold(1.f, 0.82f, 0.35f);
+}
+
+void AWFGameMode::Fleet()
+{
+	const UWFFleetSubsystem* F = GetGameInstance()->GetSubsystem<UWFFleetSubsystem>();
+	if (!F) return;
+	const TArray<FString> Lines = F->DescribeFleet();
+	for (const FString& L : Lines) UE_LOG(LogTemp, Display, TEXT("  %s"), *L);
+	Toast(TEXT("Garage bases and fleet builds listed in the output log"), FLinearColor(0.45f, 0.9f, 1.f));
+}
+void AWFGameMode::BuyGarage(const FString& Id) { if (UWFFleetSubsystem* F = GetGameInstance()->GetSubsystem<UWFFleetSubsystem>()) Toast(F->BuyGarage(Id), FleetGold); }
+void AWFGameMode::BuyFleet(const FString& Id) { if (UWFFleetSubsystem* F = GetGameInstance()->GetSubsystem<UWFFleetSubsystem>()) Toast(F->BuyBuild(Id), FleetGold); }
+void AWFGameMode::FleetActive(const FString& Id) { if (UWFFleetSubsystem* F = GetGameInstance()->GetSubsystem<UWFFleetSubsystem>()) Toast(F->SetActive(Id), FleetGold); }
+void AWFGameMode::Tune(const FString& Id, const FString& Node) { if (UWFFleetSubsystem* F = GetGameInstance()->GetSubsystem<UWFFleetSubsystem>()) Toast(F->Tune(Id, Node), FleetGold); }
+void AWFGameMode::Paint(const FString& Id, const FString& PaintName) { if (UWFFleetSubsystem* F = GetGameInstance()->GetSubsystem<UWFFleetSubsystem>()) Toast(F->Paint(Id, PaintName), FleetGold); }
+void AWFGameMode::Cosmetic(const FString& Id, const FString& Key, const FString& Value) { if (UWFFleetSubsystem* F = GetGameInstance()->GetSubsystem<UWFFleetSubsystem>()) Toast(F->Cosmetic(Id, Key, Value), FleetGold); }

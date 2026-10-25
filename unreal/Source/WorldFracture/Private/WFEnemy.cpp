@@ -137,8 +137,10 @@ void AWFEnemy::Tick(float DeltaSeconds)
 		PhaseSpeedMult = T.SpeedMult;
 		PhaseDamageMult = T.DamageMult;
 		PhaseCooldownMult = T.CooldownMult;
-		GetCharacterMovement()->MaxWalkSpeed = static_cast<float>(SpeedBase * (bElite ? SpeedElite : 1.0) * CmPerM * PhaseSpeedMult);
 	}
+	// vehicle gadgets (vehicle-gadgets.ts): caltrops and EMP mines slow it to SnareMult until SnareUntil
+	const double Snare = GetWorld()->GetTimeSeconds() < SnareUntil ? SnareMult : 1.0;
+	GetCharacterMovement()->MaxWalkSpeed = static_cast<float>(SpeedBase * (bElite ? SpeedElite : 1.0) * CmPerM * PhaseSpeedMult * Snare);
 	if (StunLeft > 0) { StunLeft -= DeltaSeconds; return; }
 	AWFCharacter* Player = Cast<AWFCharacter>(UGameplayStatics::GetPlayerPawn(this, 0));
 	if (!Player) return;
