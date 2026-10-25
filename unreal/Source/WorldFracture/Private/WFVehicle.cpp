@@ -21,6 +21,7 @@
 #include "WFGameMode.h"
 #include "WFHUD.h"
 #include "WFProgressionSubsystem.h"
+#include "WFRaceSubsystem.h"
 
 #include <cmath>
 
@@ -246,7 +247,10 @@ void AWFVehicle::Tick(float DeltaSeconds)
 	Env.Floor = FloorM;
 	Env.Water = Water;
 	Env.bOverWater = FloorM < Water - 0.3;
-	const double Top = wf::vehicle::TopSpeedFor(BiomeGrip, 1, Def.Speed, std::nullopt, Fx.Speed, 1);
+	// Scene.tsx raceSlow: a track obstacle hit costs top speed for a moment (racing.ts raceSpeedFactor)
+	const UWFRaceSubsystem* Racing = GetGameInstance()->GetSubsystem<UWFRaceSubsystem>();
+	const double RaceSlow = Racing ? Racing->GetSpeedFactor() : 1.0;
+	const double Top = wf::vehicle::TopSpeedFor(BiomeGrip, 1, Def.Speed, std::nullopt, Fx.Speed, RaceSlow);
 
 	wf::vehicle::FInput In = Input;
 	if (Fx.bDisabled) { In.Throttle = 0; In.bBoost = false; } // a wrecked engine stops it (vehicle-condition.ts disabled)

@@ -25,6 +25,8 @@
 #include "WFHUD.h"
 #include "WFProgressionSubsystem.h"
 #include "WFQuestSubsystem.h"
+#include "WFRaceSubsystem.h"
+#include "WFVehicle.h"
 
 AWFGameMode::AWFGameMode()
 {
@@ -120,6 +122,7 @@ void AWFGameMode::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
 	TickEncounters(DeltaSeconds);
+	TickRace(DeltaSeconds);
 	Squad.RemoveAll([](const TWeakObjectPtr<AWFEnemy>& E) { return !E.IsValid() || E->IsDead(); });
 	SpawnTimer -= DeltaSeconds;
 	if (SpawnTimer <= 0 && Squad.Num() < SquadSize && !Roster.IsEmpty())
@@ -332,8 +335,8 @@ void AWFGameMode::SpawnScenarioBoss(const FString& ScenarioId)
 	FHitResult Ground;
 	const FVector At = World->LineTraceSingleByChannel(Ground, Ahead + FVector(0, 0, 5000), Ahead - FVector(0, 0, 20000), ECC_Visibility) ? Ground.ImpactPoint + FVector(0, 0, 150) : Ahead;
 	const UWFProgressionSubsystem* Progression = GetGameInstance()->GetSubsystem<UWFProgressionSubsystem>();
-	// sim.ts summonScenario: hp 34 x challenge enemyHp, elite boss of the scenario's region. Its gimmick (poise windows,
-	// phases) is not ported yet, so it fights as a plain boss.
+	// sim.ts summonScenario: hp 34 x challenge enemyHp, elite boss of the scenario's region; its encounter rules (poise
+	// windows, phases, gimmicks) run in TickEncounters.
 	const double MaxHealth = 34.0 * (Progression ? Progression->GetChallengeEnemyHealthScale() : 1.0);
 	const FTransform Spawn(FRotator::ZeroRotator, At);
 	if (AWFEnemy* Boss = World->SpawnActorDeferred<AWFEnemy>(AWFEnemy::StaticClass(), Spawn, nullptr, nullptr, ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn))
@@ -373,4 +376,124 @@ void AWFGameMode::SpawnTrooper()
 		Enemy->FinishSpawning(At);
 		Squad.Add(Enemy);
 	}
+}
+
+// --- racing -----------------------------------------------------------------------------------------------------------
+
+namespace
+{
+	constexpr double RaceCmPerM = 100.0;
+	const FLinearColor RaceCyan(0.45f, 0.9f, 1.f), RaceGold(1.f, 0.82f, 0.35f), RaceWarn(1.f, 0.55f, 0.3f);
+}
+
+double AWFGameMode::GroundZ(double XCm, double YCm, double FallbackCm) const
+{
+	FHitResult Hit;
+	const UWorld* World = GetWorld();
+	FCollisionQueryParams Params(SCENE_QUERY_STAT(WFRaceGround), false);
+	Params.AddIgnoredActor(UGameplayStatics::GetPlayerPawn(this, 0));
+	if (World && World->LineTraceSingleByChannel(Hit, FVector(XCm, YCm, FallbackCm + 20000), FVector(XCm, YCm, FallbackCm - 50000), ECC_Visibility, Params))
+		return Hit.ImpactPoint.Z;
+	return FallbackCm;
+}
+
+void AWFGameMode::StartRace(const FString& RaceId, const FString& Difficulty)
+{
+	UWFRaceSubsystem* Racing = GetGameInstance()->GetSubsystem<UWFRaceSubsystem>();
+	APawn* Player = UGameplayStatics::GetPlayerPawn(this, 0);
+	if (!Racing || !Player) return;
+	const wf::race::FRaceDef* Def = Racing->Catalog().Find(WFData::ToStd(RaceId));
+	if (!Def) { Toast(FString::Printf(TEXT("Unknown race %s - ListRaces shows them"), *RaceId), RaceWarn); return; }
+	if (Def->Mode == "dive") { Toast(TEXT("Dive courses need water - the prototype map has none"), RaceWarn); return; }
+	// the web world is not ported: keep the course's own layout and put its start line 12 m ahead of the player
+	const FVector Ahead = (Player->GetActorLocation() + Player->GetActorForwardVector() * 1200.f) / RaceCmPerM;
+	const FString Error = Racing->StartRace(RaceId, Difficulty, Ahead.X - Def->Points[0].X, Ahead.Y - Def->Points[0].Z);
+	if (!Error.IsEmpty()) { Toast(Error, RaceWarn); return; }
+	RaceNotice.Reset();
+	SeenRaceFinishes = Racing->GetFinishedCount();
+	Toast(FString::Printf(TEXT("%s - %s course, %d checkpoints. Get to the start line%s"), *WFData::ToF(Def->Name), *WFData::ToF(Def->Mode),
+		static_cast<int32>(Def->Points.size()) - 1, Def->Mode == "vehicle" ? TEXT(" in a vehicle (T calls one, E boards)") : TEXT("")), RaceGold);
+}
+
+void AWFGameMode::AbandonRace()
+{
+	if (UWFRaceSubsystem* Racing = GetGameInstance()->GetSubsystem<UWFRaceSubsystem>()) Racing->AbandonRace();
+}
+
+void AWFGameMode::ListRaces()
+{
+	const UWFRaceSubsystem* Racing = GetGameInstance()->GetSubsystem<UWFRaceSubsystem>();
+	if (!Racing) return;
+	const TArray<FString> Lines = Racing->DescribeRaces();
+	UE_LOG(LogTemp, Display, TEXT("Racing rank %s (score %g), %d courses:"), *Racing->GetRankName(), Racing->GetRacingScore(), Lines.Num());
+	for (const FString& L : Lines) UE_LOG(LogTemp, Display, TEXT("  %s"), *L);
+	Toast(FString::Printf(TEXT("%d courses listed in the output log - StartRace <id> [difficulty]"), Lines.Num()), RaceCyan);
+}
+
+void AWFGameMode::TickRace(float DeltaSeconds)
+{
+	UWFRaceSubsystem* Racing = GetGameInstance()->GetSubsystem<UWFRaceSubsystem>();
+	APawn* Pawn = UGameplayStatics::GetPlayerPawn(this, 0);
+	if (!Racing || !Pawn) return;
+	if (Racing->IsRacing())
+	{
+		const AWFVehicle* Vehicle = Cast<AWFVehicle>(Pawn);
+		const bool bDisabled = Vehicle && wf::vehicle::ConditionEffects(Vehicle->GetCondition()).bDisabled;
+		const FVector P = Pawn->GetActorLocation() / RaceCmPerM;
+		// Scene.tsx stepActivity: mode from whether the Operator is driving; no diving in the prototype
+		Racing->Tick(P.X, P.Y, P.Z, DeltaSeconds, Vehicle ? "vehicle" : "foot", bDisabled);
+		double RX = 0, RZ = 0;
+		if (Racing->TakeRecovery(RX, RZ))
+		{
+			const double Z = GroundZ(RX * RaceCmPerM, RZ * RaceCmPerM, Pawn->GetActorLocation().Z) + (Vehicle ? 120.0 : 100.0);
+			Pawn->SetActorLocation(FVector(RX * RaceCmPerM, RZ * RaceCmPerM, Z), false, nullptr, ETeleportType::TeleportPhysics);
+		}
+		if (const wf::race::FRun* Run = Racing->ActiveRun())
+		{
+			const FString Notice = Run->Notice ? WFData::ToF(*Run->Notice) : FString();
+			if (Notice != RaceNotice && !Notice.IsEmpty()) Toast(Notice, RaceWarn);
+			RaceNotice = Notice;
+		}
+		DrawRace();
+	}
+	if (Racing->GetFinishedCount() != SeenRaceFinishes)
+	{
+		SeenRaceFinishes = Racing->GetFinishedCount();
+		for (const FString& L : Racing->GetLastSummary()) Toast(L, RaceGold);
+	}
+}
+
+void AWFGameMode::DrawRace() const
+{
+	const UWFRaceSubsystem* Racing = GetGameInstance()->GetSubsystem<UWFRaceSubsystem>();
+	const wf::race::FRaceDef* Def = Racing ? Racing->ActiveDef() : nullptr;
+	const wf::race::FRun* Run = Racing ? Racing->ActiveRun() : nullptr;
+	const APawn* Pawn = UGameplayStatics::GetPlayerPawn(this, 0);
+	UWorld* World = GetWorld();
+	if (!Def || !Run || !Pawn || !World) return;
+	const double Base = Pawn->GetActorLocation().Z;
+	auto At = [&](double X, double Z) { const double WX = (X + Racing->OffsetX()) * RaceCmPerM, WY = (Z + Racing->OffsetZ()) * RaceCmPerM; return FVector(WX, WY, GroundZ(WX, WY, Base)); };
+	const bool bStaging = Run->Phase == "staging" || Run->Phase == "countdown";
+	const int32 Last = static_cast<int32>(Def->Points.size()) - 1;
+	const float Radius = static_cast<float>((bStaging ? wf::race::StartRadius : wf::race::CheckpointRadius(Def->Mode)) * RaceCmPerM);
+	// the gate to make, and a faint one after it
+	const int32 Target = bStaging ? 0 : FMath::Clamp(Run->Next, 0, Last);
+	for (int32 I = Target; I <= FMath::Min(Target + 1, Last); ++I)
+	{
+		const wf::race::FPoint& Pt = Def->Points[I];
+		const bool bShut = Pt.WindowPeriod && !wf::race::WindowOpen(Pt, Run->Time);
+		const FColor C = I == Target ? (bShut ? FColor(255, 70, 60) : I == Last ? FColor(255, 210, 90) : FColor(110, 230, 255)) : FColor(60, 110, 140);
+		const FVector G = At(Pt.X, Pt.Z);
+		DrawDebugCylinder(World, G, G + FVector(0, 0, 600), I == Target ? Radius : static_cast<float>(wf::race::CheckpointRadius(Def->Mode) * RaceCmPerM), 32, C, false, -1.f, 0, I == Target ? 8.f : 3.f);
+	}
+	// shortcuts available from this gate
+	for (const wf::race::FShortcut& S : Def->Shortcuts)
+		if (!bStaging && S.At == Run->Next) { const FVector G = At(S.ViaX, S.ViaZ); DrawDebugCylinder(World, G, G + FVector(0, 0, 400), static_cast<float>(wf::race::CheckpointRadius(Def->Mode) * RaceCmPerM), 24, FColor(190, 120, 255), false, -1.f, 0, 4.f); }
+	// track obstacles on the current leg
+	for (const wf::race::FObstacle& O : Def->Obstacles)
+		if (O.Segment == Run->Next) { const FVector G = At(O.X, O.Z); DrawDebugBox(World, G + FVector(0, 0, 100), FVector(O.Radius * 70, O.Radius * 70, 100), FColor(255, 120, 40), false, -1.f, 0, 6.f); }
+	// rivals on their deterministic pace (racing.ts rivalPositions)
+	if (Run->Phase == "running")
+		for (const wf::race::FRivalPos& R : wf::race::RivalPositions(*Def, Run->Difficulty, Run->Time))
+			DrawDebugSphere(World, At(R.X, R.Z) + FVector(0, 0, 120), 90.f, 10, FColor(255, 90, 160), false, -1.f, 0, 4.f);
 }

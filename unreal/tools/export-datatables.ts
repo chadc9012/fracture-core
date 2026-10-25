@@ -36,7 +36,8 @@ import { ENCOUNTERS as SCENARIO_ENCOUNTERS } from "../../src/game/scenario-encou
 import { SCENARIO_LOOT } from "../../src/game/scenario-loot";
 import { VYRAK, COVENANT_ABILITY } from "../../src/game/dragon-covenant";
 import { DRAGONITE, CHALLENGES as DRAGONITE_CHALLENGES } from "../../src/game/dragonite";
-import { RACES, CHAMPIONSHIPS } from "../../src/game/racing";
+import { RACES, CHAMPIONSHIPS, worldPoint, raceObstacles } from "../../src/game/racing";
+import { activityById, pointWorld } from "../../src/game/activities";
 import { HOMES, DECOR } from "../../src/game/housing";
 import { ACTIVITIES, ELITES, VYRAK_REMATCH } from "../../src/game/activities";
 import { WEAPON_MANIFEST } from "../../src/game/equipment";
@@ -166,6 +167,20 @@ table("Activities", [...ACTIVITIES, ...ELITES, VYRAK_REMATCH]);
   const enemyPool = [...WEAPON_MANIFEST.filter((w) => w.tier === "T1" || w.tier === "T2" || w.tier === "T3"), ...catalogFrom("loot")];
   const bossPool = [...enemyPool, ...catalogFrom("boss")];
   const row = (pool: string) => (w: { id: string; name: string; archetype: string; element: string }, order: number) => ({ id: `${pool}-${order}`, pool, order, weaponId: w.id, name: w.name, slot: slotOf(w.archetype), element: element[w.element] });
+  // Courses in world coordinates with their shortcuts, track obstacles and activity rules (racing.ts RACES, activities.ts)
+  table("RaceCourses", RACES.map((r) => {
+    const act = activityById(r.id)!;
+    return {
+      id: r.id, area: r.area, name: r.name, type: r.type, mode: r.mode, par: r.par, rivals: r.rivals, rank: r.rank, laps: r.laps,
+      hiddenNeed: r.hidden?.need ?? 0, hiddenMarkers: JSON.stringify(r.hidden?.markers ?? []),
+      pointsJson: JSON.stringify(r.points.map((pt, i) => { const w = worldPoint(r, i); return { x: w.x, z: w.z, ...(pt.depth !== undefined ? { depth: pt.depth } : {}), ...(pt.window ? { period: pt.window.period, open: pt.window.open } : {}) }; })),
+      shortcutsJson: JSON.stringify(r.shortcuts.map((sc) => { const v = pointWorld(r.area, sc.via); return { at: sc.at, x: v.x, z: v.z, skipTo: sc.skipTo }; })),
+      obstaclesJson: JSON.stringify(raceObstacles(r)),
+      activityKind: act.kind, faction: act.faction, attempts: act.attempts, cooldownMin: act.cooldownMin, challenge: act.challenge?.id ?? "",
+      timeLimitSum: act.stages.reduce((n, st) => n + ("timeLimit" in st ? (st as { timeLimit: number }).timeLimit : 0), 0),
+      rewardNex: act.rewards.nex, rewardXp: act.rewards.xp, rewardRep: act.rewards.rep, shaderChance: act.rewards.shaderChance, rewardMaterials: JSON.stringify(act.rewards.materials),
+    };
+  }));
   table("WeaponLootPools", [...enemyPool.map(row("enemy")), ...bossPool.map(row("boss"))]);
   // Mission payouts (progression.ts rewardMission, missions/persistence.ts COMPLETION). The completion-weapon pool is
   // weapon-loot.ts DROPPABLE (the enemy pool's manifest prefix) and picks by index, so its order is data too.

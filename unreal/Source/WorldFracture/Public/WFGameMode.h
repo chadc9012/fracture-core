@@ -43,6 +43,13 @@ public:
 	/** Summons the next Unique Scenario of the current region (all regions when it has none). Returns its id. */
 	FString SummonNextScenario();
 
+	// ---- racing (ported racing.ts / activities.ts, UWFRaceSubsystem) ----
+	/** StartRace nc-circuit [standard|advanced|legendary]: lays the course out with its start line just ahead of the player. */
+	UFUNCTION(Exec) void StartRace(const FString& RaceId, const FString& Difficulty);
+	UFUNCTION(Exec) void AbandonRace();
+	/** Prints the courses (id, name, mode, area, rank gate, attempts, best medal) to the log and the screen. */
+	UFUNCTION(Exec) void ListRaces();
+
 	// ---- boss encounters (ported encounter-sim.ts) ----
 	const wf::encounter::FCatalog& GetEncounterCatalog() const { return EncounterCatalog; }
 	bool HasEncounter(const FString& ScenarioId) const;
@@ -63,6 +70,9 @@ private:
 	void SpawnTrooper();
 	void LoadScenarios();
 	void TickEncounters(float DeltaSeconds);
+	void TickRace(float DeltaSeconds);
+	void DrawRace() const;
+	double GroundZ(double XCm, double YCm, double FallbackCm) const;
 	void SyncDecoys();
 	void ShowEncounterEvents();
 	void DrawZones() const;
@@ -72,6 +82,8 @@ private:
 	wf::encounter::FCatalog EncounterCatalog;
 	wf::encounter::FArena Arena;
 	double SeenEventId = 0;
+	FString RaceNotice;
+	int32 SeenRaceFinishes = 0;
 	TMap<int64, TWeakObjectPtr<AWFEnemy>> DecoyActors; // decoy id -> actor
 
 	struct FScenarioBoss

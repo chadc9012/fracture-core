@@ -518,6 +518,38 @@ struct FActivitiesRow : public FTableRowBase
 	UPROPERTY(EditAnywhere, BlueprintReadWrite) FString Period;
 };
 
+/** RaceCourses: 68 rows, exported from the web build. */
+USTRUCT(BlueprintType)
+struct FRaceCoursesRow : public FTableRowBase
+{
+	GENERATED_BODY()
+	UPROPERTY(EditAnywhere, BlueprintReadWrite) FString Id;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite) FString Area;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite) FString DisplayName;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite) FString Type;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite) FString Mode;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite) int32 Par = 0;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite) int32 Rivals = 0;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite) int32 Rank = 0;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite) int32 Laps = 0;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite) int32 HiddenNeed = 0;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite) FString HiddenMarkers;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite) FString PointsJson;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite) FString ShortcutsJson;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite) FString ObstaclesJson;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite) FString ActivityKind;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite) FString Faction;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite) int32 Attempts = 0;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite) int32 CooldownMin = 0;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite) FString Challenge;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite) int32 TimeLimitSum = 0;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite) int32 RewardNex = 0;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite) int32 RewardXp = 0;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite) int32 RewardRep = 0;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite) double ShaderChance = 0.0;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite) FString RewardMaterials;
+};
+
 /** WeaponLootPools: 203 rows, exported from the web build. */
 USTRUCT(BlueprintType)
 struct FWeaponLootPoolsRow : public FTableRowBase

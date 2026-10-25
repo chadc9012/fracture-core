@@ -14,6 +14,7 @@
 #include "WFGameMode.h"
 #include "WFProgressionSubsystem.h"
 #include "WFQuestSubsystem.h"
+#include "WFRaceSubsystem.h"
 
 namespace
 {
@@ -88,6 +89,33 @@ void AWFHUD::DrawHUD()
 			if (!Windup.IsEmpty()) Line(FString::Printf(TEXT("%s  [%s]"), *Windup.ToUpper(), *Bar(Progress, 20)), X, 74, FLinearColor(1.f, 0.3f, 0.25f), 1.05f);
 		}
 	}
+
+	// race panel: phase, clock, gate, live place (racing.ts livePlace), penalties
+	if (const UWFRaceSubsystem* Racing = GetGameInstance() ? GetGameInstance()->GetSubsystem<UWFRaceSubsystem>() : nullptr)
+		if (const wf::race::FRun* Run = Racing->ActiveRun())
+			if (const wf::race::FRaceDef* Def = Racing->ActiveDef())
+			{
+				const float X = W - 360.f;
+				const int32 Gates = static_cast<int32>(Def->Points.size()) - 1;
+				Line(FString::Printf(TEXT("%s  (%s)"), UTF8_TO_TCHAR(Def->Name.c_str()), UTF8_TO_TCHAR(Run->Difficulty.c_str())), X, 120, Gold, 1.1f);
+				if (Run->Phase == "staging") Line(TEXT("Get to the start line"), X, 144, Soft);
+				else if (Run->Phase == "countdown") Line(FString::Printf(TEXT("%d"), FMath::CeilToInt32(Run->Countdown)), X, 144, Gold, 2.f);
+				else
+				{
+					const double Limit = wf::race::TimeLimit(*Def, Run->Difficulty);
+					Line(FString::Printf(TEXT("%.1f s / %.0f   par %.0f"), Run->Time, Limit, Def->Par), X, 144, Soft, 1.2f);
+					Line(FString::Printf(TEXT("Checkpoint %d / %d"), FMath::Clamp(Run->Next, 0, Gates), Gates), X, 168, Cyan);
+					if (const APawn* Pawn = GetOwningPawn())
+					{
+						const FVector P = Pawn->GetActorLocation() / 100.0;
+						int32 Place = 1, Field = 1;
+						wf::race::LivePlace(*Def, *Run, P.X - Racing->OffsetX(), P.Y - Racing->OffsetZ(), Place, Field);
+						Line(FString::Printf(TEXT("P%d / %d"), Place, Field), X, 192, Gold, 1.3f);
+					}
+					if (Run->Penalties > 0 || Run->Collisions > 0)
+						Line(FString::Printf(TEXT("+%.1f s penalties   %g collisions"), Run->Penalties, Run->Collisions), X, 220, Warn);
+				}
+			}
 
 	if (const AWFVehicle* Vehicle = Cast<AWFVehicle>(GetOwningPawn()))
 	{
