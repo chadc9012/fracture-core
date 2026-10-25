@@ -91,9 +91,9 @@ const BY_ID: Partial<Record<VehicleId, { primary?: Partial<VehicleGun>; secondar
 
 type Override = { primary?: Partial<VehicleGun> | null; secondary?: VehicleOrdnance | null; secondaryGun?: Partial<VehicleGun> & Pick<VehicleGun, "name" | "muzzles"> };
 
-/** Fleet builds (fleet.ts) fire what their own hardpoint list names, on top of their chassis. Hardpoints with no weapon system
- * behind them yet (mine and caltrop droppers, flare pods, flame jets, the Remora drone dock, the breach thruster, a ramming
- * grill) stay listed in the garage only — they are not faked as guns. */
+/** Fleet builds (fleet.ts) fire what their own hardpoint list names, on top of their chassis. Non-gun hardpoints (mine and
+ * caltrop droppers, flare pods, flame jets, the Remora drone dock, the breach thruster, the ramming grill) are gadgets in
+ * vehicle-gadgets.ts on the secondary trigger, so those builds carry no secondary ordnance here. */
 const pulse = "PULSE" as const;
 export const BY_BUILD: Record<string, Override> = {
   "goliath-4x4": { primary: { name: "12.7mm auto-turret", rate: 0.09, damage: 1.2, spread: 0.014, knock: 1.4, muzzles: [[0, 2.15, 0.2]], mount: "TURRET" } },
@@ -121,7 +121,7 @@ export const BY_BUILD: Record<string, Override> = {
   "nomad-bike": { primary: { name: "Bar-mounted twin SMGs", rate: 0.07, damage: 0.65, spread: 0.02, muzzles: [[0.3, 0.85, 1], [-0.3, 0.85, 1]], converge: 45, sound: "AUTO" } },
   "rift-runner": { primary: { name: "Hood: rift-shot cannon", rate: 0.45, damage: 3, spread: 0.004, speed: 220, knock: 2.5, heat: 1.2, muzzles: [[0, 1, 2]], converge: 0, sound: pulse } },
   "sandstalker-atv": { primary: { name: "Roll bar: light machine gun", rate: 0.1, damage: 0.9 } },
-  "void-chaser": { primary: { name: "Twin void lances", rate: 0.3, damage: 2.6, spread: 0.002, speed: 320, knock: 1.8, heat: 0.9, muzzles: [[0.6, 0.7, 2.2], [-0.6, 0.7, 2.2]], converge: 120, sound: pulse } },
+  "void-chaser": { primary: { name: "Twin void lances", rate: 0.3, damage: 2.6, spread: 0.002, speed: 320, knock: 1.8, heat: 0.9, muzzles: [[0.6, 0.7, 2.2], [-0.6, 0.7, 2.2]], converge: 120, sound: pulse }, secondary: null },
   "civic-rover": { primary: null, secondary: null },
   "neon-drift": { primary: { name: "Underglow arc emitters", rate: 0.08, damage: 0.8, spread: 0.03, speed: 110, heat: 0.5, muzzles: [[0.8, 0.4, 1.6], [-0.8, 0.4, 1.6]], converge: 30, sound: pulse } },
   "war-rig": {

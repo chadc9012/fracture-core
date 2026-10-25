@@ -140,7 +140,7 @@ export function CombatFx({ sim, reducedMotion }: { sim: WorldSim; reducedMotion:
     for (const e of sim.burstEvents) {
       if (e.id <= seenBoom.current) continue;
       seenBoom.current = e.id;
-      booms.current[boomNext.current++ % BURST_SLOTS] = { start: now, x: e.x, y: e.y, z: e.z, radius: e.radius, element: LAUNCHERS[e.launcher].fx };
+      booms.current[boomNext.current++ % BURST_SLOTS] = { start: now, x: e.x, y: e.y, z: e.z, radius: e.radius, element: e.fx ?? LAUNCHERS[e.launcher].fx };
     }
     const boomLife = reducedMotion ? 0.25 : 0.6;
     booms.current.forEach((b, i) => {

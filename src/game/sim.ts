@@ -7,6 +7,7 @@ import { createEnvState, STRIKE_MACHINE_DAMAGE, STRIKE_PLAYER_DAMAGE, type EnvSt
 import { squadMove, squadRole } from "./enemy-intelligence";
 import { createAi, pickCover, shouldTakeCover, sightRange, stepAwareness, type EnemyAi } from "./enemy-perception";
 import { enemyHitChance, sightLine } from "./line-of-sight";
+import { freshGadgets, GADGET, inCaltrops, inFlames, droneTarget, mineTriggered, slowFor, spoofed, stepDrone, stepFlares, type GadgetState } from "./vehicle-gadgets";
 import { COVER_CHEST, COVER_HOLD, coverCandidates, coverPhase, findCover, HIDE_SECONDS } from "./enemy-cover";
 import { registeredModelSolids } from "./environment-collision";
 /** seconds between line-of-sight refreshes per machine */
@@ -101,6 +102,9 @@ export type ZoneState = {
 };
 
 export type Machine = {
+  /** vehicle gadgets (vehicle-gadgets.ts): caltrops and EMP mines slow it to snareMult until snareUntil */
+  snareUntil?: number | undefined;
+  snareMult?: number | undefined;
   /** line of sight to the player (line-of-sight.ts), refreshed a few times a second: clear, or where it is blocked */
   los?: { t: number; clear: boolean; at?: { x: number; y: number; z: number } | undefined } | undefined;
   /** gore presentation only (gore.ts): direction, cause and size of the last hit, read when the machine dies */
@@ -301,7 +305,7 @@ const enemyBodyScaleOf = (simScale: number) => 1 + (simScale - 1) * 0.35;
 /** a launcher round in flight (ordnance.ts rules) plus what the burst needs; pooled, never allocated per frame */
 export type SimRound = Round & { launcher: LauncherId; element: DamageElement; /** index into sim.machines for guided rounds, -1 = unguided */ target: number; knock: number };
 /** presentation log of rocket detonations (CombatFx reads it; it never decides anything) */
-export type BurstEvent = { id: number; x: number; y: number; z: number; radius: number; element: DamageElement; launcher: LauncherId };
+export type BurstEvent = { id: number; x: number; y: number; z: number; radius: number; element: DamageElement; launcher: LauncherId; /** draw style override (an EMP mine is ARC blue) */ fx?: "ARC" | "FIRE" | "BALLISTIC" | undefined };
 const ROUND_POOL = 12;
 const NO_ORDNANCE: OrdnanceDef = { id: "none", kind: "ROCKET", name: "", speed: 0, turnRate: 0, life: 0, splashRadius: 0, damage: 0, proximity: 0, domain: "ANY", fits: [] };
 
@@ -450,6 +454,8 @@ export type WorldSim = {
   volatileZones: { x: number; z: number; radius: number; dps: number; until: number }[];
   /** CIPHER Rift Turrets (operator-abilities.ts): temporary deployables, expire on their own */
   riftTurrets: RiftTurret[];
+  /** vehicle gadgets (vehicle-gadgets.ts): mines, caltrops, drones, flares, flame jets, ram multipliers */
+  gadgets: GadgetState;
   /** ability-effects.ts: stable outcome log (activation / rejection / cancellation) consumed by HUD, animation and VFX; never written by presentation */
   abilityEvents: AbilityEvent[];
   nextAbilityEventId: number;
@@ -749,6 +755,7 @@ export function createSim(): WorldSim {
     bossCounter: counterTuningFor(null),
     volatileZones: [],
     riftTurrets: [],
+    gadgets: freshGadgets(),
     abilityEvents: [],
     nextAbilityEventId: 1,
     iframes: 0,
@@ -1060,6 +1067,108 @@ function damageTruck(sim: WorldSim, tr: Truck, dmg: number) {
 }
 
 /** splash damage for one detonation. Never hurts the player; every machine goes through applyMachineDamageMods exactly once. */
+/** a gadget blast (mines): splash through the shared damage path, drawn and heard like a rocket burst */
+export function gadgetBlast(sim: WorldSim, x: number, y: number, z: number, radius: number, damage: number, knock: number, element: DamageElement, px: number, pz: number, fx?: BurstEvent["fx"]) {
+  const b: Burst = { x, y, z, radius, damage, reason: "PROXIMITY" };
+  for (const m of sim.machines) {
+    if (!m.alive) continue;
+    const dx = m.x - x, dz = m.z - z, planar = Math.hypot(dx, dz);
+    const base = splashDamage(b, Math.max(0, planar - 1.5 * m.scale));
+    if (base <= 0) continue;
+    const dmg = applyMachineDamageMods(sim, m, base, element, px, pz);
+    m.hp -= dmg;
+    markGoreHit(sim, m, dx || 0.01, dz, dmg * 2.2, "BLAST", undefined, false);
+    const fall = 1 - Math.min(1, planar / radius), n = planar || 1;
+    m.kx += (dx / n) * 7 * knock * fall; m.kz += (dz / n) * 7 * knock * fall;
+    applyWeaponElement(sim, m, element);
+    sim.lastHit = performance.now();
+    defeatMachine(sim, m);
+  }
+  for (const tr of sim.trucks) {
+    if (!tr.alive) continue;
+    const base = splashDamage(b, Math.max(0, Math.hypot(tr.x - x, tr.z - z) - 3));
+    if (base > 0) damageTruck(sim, tr, Math.min(base, 4));
+  }
+  sim.combatHeat += 3;
+  sim.burstEvents.push({ id: sim.nextBurstId++, x, y, z, radius, element, launcher: "ROCKET", ...(fx ? { fx } : {}) });
+  if (sim.burstEvents.length > 8) sim.burstEvents.splice(0, sim.burstEvents.length - 8);
+}
+
+/** vehicle gadgets each step (vehicle-gadgets.ts rules): mines, caltrop fields, flame jets, the Remora drone, flares */
+function stepGadgets(sim: WorldSim, dt: number, px: number, pz: number, playerEye: number) {
+  const st = sim.gadgets, now = performance.now() / 1000;
+  const live = sim.machines.filter((m) => m.alive);
+  // mines: armed, something steps on one, it goes off (an EMP mine stuns and slows instead of shredding)
+  if (st.mines.length) {
+    st.mines = st.mines.filter((mn) => mn.until > now);
+    for (const mn of [...st.mines]) {
+      if (!mineTriggered(mn, now, [...live, ...sim.trucks.filter((t) => t.alive)])) continue;
+      st.mines.splice(st.mines.indexOf(mn), 1);
+      if (mn.kind === "MINE") gadgetBlast(sim, mn.x, mn.y + 0.5, mn.z, GADGET.MINE.radius, GADGET.MINE.damage, GADGET.MINE.knock, "KINETIC", px, pz);
+      else {
+        const e = GADGET.EMP_MINE;
+        for (const m of live) {
+          if (Math.hypot(m.x - mn.x, m.z - mn.z) > e.radius) continue;
+          stunMachine(m, e.stun);
+          if ((m.aim ?? 0) > 0) m.aim = 0; // the wind-up is lost
+          m.snareUntil = now + e.slowFor; m.snareMult = slowFor(e.slow, m.boss);
+        }
+        gadgetBlast(sim, mn.x, mn.y + 0.5, mn.z, e.radius, e.damage, 0.4, "ARC", px, pz, "ARC");
+      }
+    }
+  }
+  // caltrops: anything crossing the field is slowed and chewed
+  if (st.caltrops.length) {
+    st.caltrops = st.caltrops.filter((c) => c.until > now);
+    for (const m of live) {
+      if (!inCaltrops(st, m.x, m.z, now)) continue;
+      m.snareUntil = Math.max(m.snareUntil ?? 0, now + 0.3); m.snareMult = slowFor(GADGET.CALTROPS.slow, m.boss);
+      m.hp -= applyMachineDamageMods(sim, m, GADGET.CALTROPS.dps * dt, "KINETIC", px, pz);
+      defeatMachine(sim, m);
+    }
+  }
+  // flame jets: burn what is around the hull while the trigger is held (Scene sets st.flame each step it is lit)
+  if (st.flame) {
+    for (const m of live) {
+      if (!inFlames(st.flame, m, 1.2 * m.scale)) continue;
+      const dmg = applyMachineDamageMods(sim, m, GADGET.FLAME.dps * dt, "THERMAL", px, pz);
+      m.hp -= dmg;
+      applyWeaponElement(sim, m, "THERMAL");
+      markGoreHit(sim, m, m.x - st.flame.x || 0.01, m.z - st.flame.z, dmg * 2, "ABILITY", undefined, false);
+      sim.lastHit = performance.now();
+      defeatMachine(sim, m);
+    }
+    sim.weaponHeat = Math.min(100, sim.weaponHeat + GADGET.FLAME.heat * dt);
+    if (sim.weaponHeat >= 100 && !sim.overheated) { sim.overheated = true; alert(sim, "FLAME JETS OVERHEAT — venting"); }
+    sim.combatHeat += dt * 2;
+    st.flameLit = { ...st.flame, t: now };
+    st.flame = null;
+  }
+  // the Remora drone: orbits over the player and picks off the nearest hostile it can see
+  st.droneShots.length = 0;
+  if (st.drones.length) {
+    st.drones = st.drones.filter((d) => d.until > now);
+    const world = { ground: walkHeight, obstaclesNear: queryObstacles, solids: registeredModelSolids() };
+    for (const d of st.drones) {
+      stepDrone(d, { x: px, y: playerEye, z: pz }, dt);
+      if (d.cool > 0) continue;
+      const chest = (m: Machine) => ({ x: m.x, y: walkHeight(m.x, m.z) + 1.3 * enemyBodyScaleOf(m.scale), z: m.z });
+      const i = droneTarget(d, sim.machines, (k) => !sightLine(d, chest(sim.machines[k]!), world).blocked);
+      const m = i >= 0 ? sim.machines[i] : undefined;
+      if (!m) { d.cool = 0.3; continue; }
+      d.cool = GADGET.DRONE.rate;
+      const dmg = applyMachineDamageMods(sim, m, GADGET.DRONE.damage, "KINETIC", px, pz);
+      m.hp -= dmg;
+      const c = chest(m);
+      markGoreHit(sim, m, m.x - d.x || 0.01, m.z - d.z, dmg, "BULLET", c.y);
+      st.droneShots.push({ x: d.x, y: d.y, z: d.z, tx: c.x, ty: c.y, tz: c.z, id: st.nextId++ });
+      sim.lastHit = performance.now();
+      defeatMachine(sim, m);
+    }
+  }
+  if (st.flares.length) stepFlares(st, now, dt);
+}
+
 function detonateRound(sim: WorldSim, r: SimRound, b: Burst, px: number, pz: number) {
   r.alive = false;
   for (const m of sim.machines) {
@@ -1299,13 +1408,14 @@ export function collidePlayer(sim: WorldSim, body: PlayerBody) {
     if (force > 30 && sim.impactCool <= 0) {
       sim.impactCool = 0.6;
       markPlayerDamage(m);
-      m.hp -= Math.round((force / 30) * sim.mods.ramDamage);
-      markGoreHit(sim, m, -dx / dist, -dz / dist, (force / 30) * sim.mods.ramDamage * 2, "CRUSH");
+      const ram = body.inVehicle ? sim.gadgets.ram : { damageMult: 1, selfMult: 1 };
+      m.hp -= Math.round((force / 30) * sim.mods.ramDamage * ram.damageMult);
+      markGoreHit(sim, m, -dx / dist, -dz / dist, (force / 30) * sim.mods.ramDamage * ram.damageMult * 2, "CRUSH");
       logBehavior(sim.adaptation, body.inVehicle ? "vehicles" : "combat", 2);
       body.vSpeed *= 0.4;
       sim.combatHeat += 4;
        defeatMachine(sim, m);
-      hurtPlayer(sim, (force * 0.12) / sim.mods.hullDurability, "vehicle collision");
+      hurtPlayer(sim, (force * 0.12 * ram.selfMult) / sim.mods.hullDurability, "vehicle collision");
     } else {
       hurtPlayer(sim, (force * 0.02) / sim.mods.hullDurability, "vehicle collision");
     }
@@ -1568,7 +1678,7 @@ export function stepSim(sim: WorldSim, input: SimInput) {
 
     const aggro =
       aggroRadius(night, m.elite, sim.mods.aggroRadius, sim.adaptation.influence.aiAggression); // enemy-tuning.ts
-    const speed = trooperSpeed(night, m.elite) * (bossTuning?.speedMult ?? 1) * statusSpeedMult(sim.statuses.get(m), performance.now() / 1000);
+    const speed = trooperSpeed(night, m.elite) * (bossTuning?.speedMult ?? 1) * statusSpeedMult(sim.statuses.get(m), performance.now() / 1000) * ((m.snareUntil ?? 0) > performance.now() / 1000 ? m.snareMult ?? 1 : 1);
     if (d < 120) hostileNear++;
 
     // ---- awareness: patrol → suspicious → alert → search (enemy-perception.ts) ----
@@ -1620,7 +1730,7 @@ export function stepSim(sim: WorldSim, input: SimInput) {
           m.cool = rangedCooldownFor(m) * (bossTuning?.cooldownMult ?? 1);
           // the shot resolves against the line it travels: cover takes it, otherwise range, the player's speed and stance decide
           const blocked = m.los && !m.los.clear ? m.los.at : undefined;
-          const hit = !blocked && Math.random() < enemyHitChance(d, ENEMY_TUNING.rangedRange, input.pspeed ?? 0, input.stance);
+          const hit = !blocked && !spoofed(sim.gadgets, performance.now() / 1000) && Math.random() < enemyHitChance(d, ENEMY_TUNING.rangedRange, input.pspeed ?? 0, input.stance);
           sim.enemyShots.push({ x: m.x, z: m.z, kind: m.kind, boss: m.boss, elite: m.elite, zone: m.zone, slot: sim.machines.indexOf(m), hit, ...(blocked ? { blockAt: blocked } : {}) });
           if (sim.enemyShots.length > 24) sim.enemyShots.shift();
           if (hit) { sim.lastHitBy = { profile: m.profile, zone: m.zone, elite: m.elite, boss: m.boss, nemesis: m.nemesis }; hurtPlayer(sim, ((m.boss ? 6 : m.elite ? 4 : 2) * (bossTuning?.damageMult ?? 1) * (m.nemesisDamage ?? 1)) / sim.mods.hullDurability, m.profile); }
@@ -1735,6 +1845,7 @@ export function stepSim(sim: WorldSim, input: SimInput) {
   }
 
   stepBeacons(sim, dt, px, pz);
+  stepGadgets(sim, dt, px, pz, playerEye);
 
 // stealth: surviving close to hostiles without opening fire
   if (!input.inVehicle && hostileNear > 0 && sim.combatHeat < 2) {

@@ -32,7 +32,9 @@ import { walkHeight, slopeAt, heightAt, waterNetwork, WATER_LEVEL } from "@/game
 import { normalizeGore } from "@/game/gore";
 import { inSwordArc } from "@/game/melee-arc";
 import { aimFor, armamentFor, vehiclePoint, vehicleVelocity, type VehicleGun } from "@/game/vehicle-weapons";
+import { dropMine, GADGET, gadgetFor, launchCaltrops, launchDrone, popFlares, ramFor } from "@/game/vehicle-gadgets";
 import { ordnanceById } from "@/game/ordnance";
+import { GadgetFx } from "./GadgetFx";
 import { EnemyMuzzleFlashes, flashEnemyMuzzle, MuzzleFlash, type MuzzleFlashState } from "./VehicleGunFx";
 import { GoreFx } from "./GoreFx";
 import { enemyDrives } from "./EnemyModel";
@@ -681,6 +683,13 @@ function SceneImpl({
           shown: (() => { const out: string[] = []; const p = new THREE.Vector3(); scene.traverse((o) => { if (!o.name.startsWith("race-") || !o.visible) return; o.getWorldPosition(p); out.push(`${o.name}@${Math.round(p.x)},${Math.round(p.z)}`); }); return out; })() }; },
       /** gore check (?dev=1): kill the nearest live enemy as if by `cause` from the player's position (BULLET, PELLET, BLADE, BLAST, CRUSH) */
       killNear: (cause: "BULLET" | "PELLET" | "BLADE" | "BLAST" | "CRUSH" = "BULLET") => { const st = state.current; let best = null as null | (typeof sim.machines)[number], bd = 1e9; for (const m of sim.machines) { if (!m.alive) continue; const d = Math.hypot(m.x - st.x, m.z - st.z); if (d < bd) { bd = d; best = m; } } if (!best) return "none"; const dmg = (best.maxHp ?? 3.5) * 2; best.hp -= dmg; markGoreHit(sim, best, best.x - st.x, best.z - st.z, dmg, cause); defeatMachine(sim, best, "player"); return `${best.profile} ${best.alive ? "survived" : "down"} at ${Math.round(bd)} m`; },
+      /** gadget check (?dev=1): lay out every vehicle gadget around the player (mines, EMP mine, caltrops, drone, flares, 5 s of flame) */
+      gadgets: () => { const st = state.current, gs = sim.gadgets, now = performance.now() / 1000, fx = Math.sin(st.yaw), fz = Math.cos(st.yaw);
+        dropMine(gs, "MINE", st.x + fx * 6 - fz * 2, walkHeight(st.x + fx * 6 - fz * 2, st.z + fz * 6 + fx * 2), st.z + fz * 6 + fx * 2, now);
+        dropMine(gs, "EMP_MINE", st.x + fx * 6 + fz * 2, walkHeight(st.x + fx * 6 + fz * 2, st.z + fz * 6 - fx * 2), st.z + fz * 6 - fx * 2, now);
+        launchCaltrops(gs, st.x + fx * 14, st.z + fz * 14, now); launchDrone(gs, st.x, st.y + 1, st.z, now); popFlares(gs, st.x, st.y + 8, st.z, st.yaw, now);
+        gs.flameLit = { x: st.x - fx * 12, z: st.z - fz * 12, yaw: st.yaw, t: now + 5 };
+        return { mines: gs.mines.length, caltrops: gs.caltrops.length, drones: gs.drones.length, flares: gs.flares.length }; },
       killMission: () => { let n = 0; for (const m of sim.machines) if (m.alive && m.mission) { m.hp = 0; defeatMachine(sim, m, "player"); if (!m.alive) n++; } return n; },
       hp: (n = 1) => { sim.hp = n; return sim.hp; },
       o2: (n = 0) => { state.current.oxygen = n; return n; },
@@ -784,8 +793,10 @@ function SceneImpl({
   // the fleet build being driven fires its own hardpoints (fleet.ts / vehicle-weapons.ts BY_BUILD), else the chassis's
   const activeBuildId = gear?.fleet?.active && fleetById(gear.fleet.active)?.base === vehicleId ? gear.fleet.active : null;
   const armament = useMemo(() => armamentFor(vehicleId, handling.kind, activeBuildId), [vehicleId, handling.kind, activeBuildId]);
+  // the build's non-gun hardpoint (vehicle-gadgets.ts): mines, caltrops, flames, flares, drone dock, grill, breach thruster
+  const gadget = useMemo(() => gadgetFor(activeBuildId), [activeBuildId]);
   const muzzleFlash = useRef<MuzzleFlashState | null>(null);
-  const vFire = useRef({ cool: 0, gunCool: 0, secCool: 0, salvoLeft: 0, salvoCool: 0, barrel: 0, gunBarrel: 0, podBarrel: 0 });
+  const vFire = useRef({ cool: 0, gunCool: 0, secCool: 0, salvoLeft: 0, salvoCool: 0, barrel: 0, gunBarrel: 0, podBarrel: 0, gadgetCool: 0, gadgetHeld: false });
   const condition = useRef<VehicleCondition>(FRESH_VEHICLE);
   useEffect(() => { condition.current = normalizeCondition(gear?.vehicleConditions?.[vehicleId]); }, [vehicleId, gear?.vehicleConditions]);
   const player = useRef<THREE.Group>(null!);
@@ -1795,7 +1806,7 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
     } else if (s.inVehicle) {
       // vehicle hardpoints (vehicle-weapons.ts): rounds leave the real barrels, carry the vehicle's velocity, and turrets follow the camera
       const vf = vFire.current;
-      vf.cool -= dt; vf.gunCool -= dt; vf.secCool -= dt; vf.salvoCool -= dt;
+      vf.cool -= dt; vf.gunCool -= dt; vf.secCool -= dt; vf.salvoCool -= dt; vf.gadgetCool -= dt;
       if (!sim.overheated && !vehicleEffect.weaponsDisabled) {
         const air = handling.mode === "AIR";
         const pose = { x: s.x, y: s.y - 1.9, z: s.z, yaw: s.yaw, pitch: air ? vh.current.pitch : vh.current.groundPitch, roll: air ? vh.current.roll : vh.current.groundRoll };
@@ -1840,6 +1851,29 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
             vf.salvoLeft--; vf.salvoCool = sec.salvoGap;
           }
         }
+        // gadget hardpoint on the secondary trigger when the build has no second gun or ordnance
+        if (gadget && !sec && !armament.secondaryGun) {
+          const now = performance.now() / 1000, gs = sim.gadgets;
+          const pressed = secondaryTrigger && !vf.gadgetHeld;
+          const rearZ = (bounds ? bounds.min.z : -2.4) - 0.9;
+          if (gadget.use === "HELD" && secondaryTrigger) {
+            gs.flame = { x: s.x, z: s.z, yaw: s.yaw };
+          } else if (gadget.use === "PRESS" && pressed && vf.gadgetCool <= 0) {
+            vf.gadgetCool = gadget.cooldown;
+            const rear = vehiclePoint(pose, [0, 0.4, rearZ]);
+            if (gadget.kind === "MINE" || gadget.kind === "EMP_MINE") { dropMine(gs, gadget.kind, rear.x, walkHeight(rear.x, rear.z), rear.z, now); sfx.playReload("end"); }
+            else if (gadget.kind === "CALTROPS") {
+              const back = vehiclePoint(pose, [0, 0, rearZ - GADGET.CALTROPS.back]);
+              launchCaltrops(gs, back.x, back.z, now); sfx.playShot("VEHICLE");
+            } else if (gadget.kind === "FLARES") { const at = vehiclePoint(pose, [0, 0.2, 0]); popFlares(gs, at.x, at.y, at.z, s.yaw, now); sfx.playShot("PULSE"); }
+            else if (gadget.kind === "DRONE") { const top = vehiclePoint(pose, [0, 2.4, 0]); launchDrone(gs, top.x, top.y, top.z, now); alert(sim, "RQ-44 Remora launched"); }
+            else if (gadget.kind === "BREACH") {
+              s.vSpeed = Math.max(s.vSpeed, 0) + 45; // the cap is raised for the window below
+              gs.breachUntil = now + GADGET.BREACH.window; s.punch += 1.2; sfx.playExplosion(false, sfx.where(s.x, s.z, s.yaw, s.x, s.z));
+            }
+          }
+        }
+        vf.gadgetHeld = secondaryTrigger;
       }
     } else if (!sim.overheated) {
       if (s.burstLeft > 0) {
@@ -1917,7 +1951,7 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
       const floorH = handling.mode === "WATER" ? heightAt(s.x, s.z) : walkHeight(s.x, s.z);
       const venv = { grip: surfaceGrip(gSurface, slope) * damageFx.grip * damageFx.stability * selectedVehicle.handling, slope, floor: floorH, water: WATER_LEVEL, overWater: heightAt(s.x, s.z) < WATER_LEVEL - 0.3 };
       const before = { x: s.x, z: s.z };
-      const r = stepVehicle(handling, { speed: s.vSpeed, yaw: s.yaw, y: s.y, vy: s.vy, ...vh.current }, vin, venv, maxSpeed / (boost ? 1.5 : 1), dt);
+      const r = stepVehicle(handling, { speed: s.vSpeed, yaw: s.yaw, y: s.y, vy: s.vy, ...vh.current }, vin, venv, (maxSpeed / (boost ? 1.5 : 1)) * (1 + (GADGET.BREACH.impulse - 1) * Math.max(0, Math.min(1, (sim.gadgets.breachUntil - performance.now() / 1000) / GADGET.BREACH.window + 0.5))), dt);
       s.vSpeed = r.speed; s.yaw = r.yaw;
       vh.current.airborne = r.airborne; vh.current.slip = r.slip; vh.current.roll = r.roll; vh.current.pitch = r.pitch;
       if (handling.mode !== "GROUND") { s.y = r.y; s.vy = r.vy; }
@@ -2084,6 +2118,7 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
     }
 
     /* ---------------- collisions (physics before sim) ---------------- */
+    sim.gadgets.ram = s.inVehicle ? ramFor(gadget, sim.gadgets.breachUntil, performance.now() / 1000) : { damageMult: 1, selfMult: 1 };
     const preCollideSpeed = s.vSpeed;
     const body = { x: s.x, z: s.z, y: s.y - 1.6, yaw: s.yaw, vSpeed: s.vSpeed, inVehicle: s.inVehicle };
     collidePlayer(sim, body);
@@ -2956,7 +2991,7 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
         clock: clockLabel(time.current),
         speed: Math.round(s.inVehicle ? Math.abs(s.vSpeed) * 2.4 : velocity.length() * 2.4),
         mode: s.inVehicle ? "vehicle" : "foot",
-        ...(s.inVehicle ? { vehicle: { name: selectedVehicle.name, ...driveTelemetry(vehicleId, Math.abs(s.vSpeed) / 45, keys.current.has("KeyW") || keys.current.has("KeyS") ? 1 : 0, selectedVehicle.speed / vehicleById(vehicleId).speed), load: Math.min(1, Math.abs(s.vSpeed) / 45), reverse: s.vSpeed < -0.1, hull: selectedVehicle.hull, tuning: fleetTuningSummary(gear?.fleet), primary: armament.primary?.name ?? "Unarmed", ...(armament.secondary ? { secondary: armament.secondary.name, secondaryReady: Math.max(0, Math.min(1, 1 - vFire.current.secCool / armament.secondary.rate)) } : armament.secondaryGun ? { secondary: armament.secondaryGun.name, secondaryReady: 1 } : {}) } } : {}),
+        ...(s.inVehicle ? { vehicle: { name: selectedVehicle.name, ...driveTelemetry(vehicleId, Math.abs(s.vSpeed) / 45, keys.current.has("KeyW") || keys.current.has("KeyS") ? 1 : 0, selectedVehicle.speed / vehicleById(vehicleId).speed), load: Math.min(1, Math.abs(s.vSpeed) / 45), reverse: s.vSpeed < -0.1, hull: selectedVehicle.hull, tuning: fleetTuningSummary(gear?.fleet), primary: armament.primary?.name ?? "Unarmed", ...(armament.secondary ? { secondary: armament.secondary.name, secondaryReady: Math.max(0, Math.min(1, 1 - vFire.current.secCool / armament.secondary.rate)) } : armament.secondaryGun ? { secondary: armament.secondaryGun.name, secondaryReady: 1 } : gadget ? { secondary: gadget.name, secondaryReady: gadget.cooldown > 0 ? Math.max(0, Math.min(1, 1 - vFire.current.gadgetCool / gadget.cooldown)) : 1 } : {}) } } : {}),
         owner: zone?.owner ?? "syndicate",
         challenger: zone?.challenger ?? "vanguard",
         progress: zone?.progress ?? 0,
@@ -3266,6 +3301,7 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
       <GoreFx sim={sim} level={normalizeGore(settings.gore)} />
       <MuzzleFlash flash={muzzleFlash} />
       <EnemyMuzzleFlashes />
+      <GadgetFx sim={sim} />
       <BulletImpacts sim={sim} />
       <WorldMarkers depleted={depleted} />
       <Interior structure={structure} />
