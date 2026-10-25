@@ -299,9 +299,11 @@ function ArmAuthored({ m, side }: { m: Mats; side: 1 | -1 }) {
   }, [scene, m]);
   return <group scale={[side, 1, 1]}>
     {parts.hand && <primitive object={parts.hand} />}
-    {/* the forearm drops steeply toward the bottom of the screen (same angle as the procedural arm) */}
-    {/* stretched to ~0.55 m: the authored 0.28 m forearm ended on screen (a floating elbow pad) at the hip/sprint/slide FOVs */}
-    <group rotation={[1.05, -0.3, 0]}>{parts.fore && <primitive object={parts.fore} scale={[1, 1, 1.95]} />}</group>
+    {/* the forearm drops steeply toward the bottom of the screen, stretched to ~0.55 m so it never ends on screen (a floating
+        elbow pad) at the hip/sprint/slide FOVs. It hinges at the WRIST (the back of the fist), not the middle of the fist: hinged
+        there, it started below and behind the glove and left an open notch with the cuff standing 6 cm proud. Checked by eye in a
+        three.js render of this exact rig, side view and the 90° first-person view. */}
+    <group position={[0, 0.016, 0.047]} rotation={[0.95, -0.28, 0]}>{parts.fore && <primitive object={parts.fore} position={[0, 0, -0.04]} scale={[1, 1, 1.95]} />}</group>
   </group>;
 }
 

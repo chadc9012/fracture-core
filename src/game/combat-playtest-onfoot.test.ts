@@ -161,14 +161,15 @@ describe("on-foot gunfight: every gun class kills a grunt standing 30 m ahead", 
     });
   }
 
-  test("Vitriol's one-rocket splash leaves a basic 3.5 hp grunt on 0.02 hp (balance note: needs a second rocket)", () => {
+  test("one Vitriol rocket kills a basic 3.5 hp grunt (it used to leave it on 0.02 hp)", () => {
     const sim = arena();
     const m = grunt(sim, PX, PZ + 40);
-    triggerFrame(sim, shooter("VITRIOL"), true);
-    for (let f = 0; f < 90; f++) step(sim);
-    expect(m.alive).toBe(true);
-    expect(m.hp).toBeGreaterThan(0);
-    expect(m.hp).toBeLessThan(0.05);
+    const s = shooter("VITRIOL");
+    aimAt(s, m);
+    triggerFrame(sim, s, true);
+    for (let f = 0; f < 90 && m.alive; f++) step(sim);
+    expect(m.alive).toBe(false);
+    expect(s.shots).toBe(1);
   });
 
   test("a missed volley lands on the ground and logs dust impacts that bullet-impacts turns into particles", () => {
