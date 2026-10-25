@@ -358,7 +358,10 @@ function buildGrade() {
   const segs: { a: GradePoint; b: GradePoint }[] = [];
   for (const lane of LANES) {
     const start = pts.length;
-    const raw = laneSamples(lane, ROAD_SAMPLES).map((p) => ({ ...p, h: rawHeightAt(p.x, p.z) }));
+    // over a river channel the road is graded at bridge-deck height, not down into the carved bed, so the approach ramps
+    // meet the deck (riverCrossings) instead of dipping into the gully either side of it
+    const deckLevel = (x: number, z: number) => { const rv = riverAt(x, z); return rv && rv.dist < rv.w + 4 ? rv.s + 1.1 : -Infinity; };
+    const raw = laneSamples(lane, ROAD_SAMPLES).map((p) => ({ ...p, h: Math.max(rawHeightAt(p.x, p.z), deckLevel(p.x, p.z)) }));
     raw.forEach((p, i) => {
       let sum = 0, n = 0;
       for (let k = -GRADE_WINDOW; k <= GRADE_WINDOW; k++) { const q = raw[i + k]; if (q) { sum += q.h; n++; } }
