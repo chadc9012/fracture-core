@@ -9,6 +9,8 @@
 #include "WFProgressionSubsystem.h"
 #include "WorldFractureCoreModule.h"
 
+#include <algorithm>
+
 using WFData::ToF;
 using WFData::ToStd;
 

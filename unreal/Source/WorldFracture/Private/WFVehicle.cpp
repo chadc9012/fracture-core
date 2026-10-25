@@ -30,6 +30,7 @@
 #include "DrawDebugHelpers.h"
 #include "EngineUtils.h"
 
+#include <algorithm>
 #include <cmath>
 
 namespace
@@ -582,7 +583,7 @@ void AWFVehicle::TickGadgets(double Dt)
 			E->TakeHit(CaltropDps * Dt, Shooter);
 		}
 	// flame jets: burn what is around the hull while the trigger is held; heat builds toward an overheat
-	if (bFlameLit && Driver.IsValid() && !Heat.bOverheated)
+	if (bFlameLit && Driver.IsValid() && !Heat.bOverheated && !AreWeaponsDisabled())
 	{
 		const FVector L = GetActorLocation() / VehCmPerM;
 		for (AWFEnemy* E : Live)
@@ -604,7 +605,7 @@ void AWFVehicle::TickGadgets(double Dt)
 		if (D.Cool > 0) continue;
 		std::vector<bool> Visible;
 		FCollisionQueryParams Params(SCENE_QUERY_STAT(WFDroneSight), false, this);
-		for (AWFEnemy* E : Live) { FHitResult H; Visible.push_back(!World->LineTraceSingleByChannel(H, At, E->GetActorLocation(), ECC_WorldStatic, Params)); }
+		for (AWFEnemy* E : Live) Visible.push_back(!World->LineTraceTestByObjectType(At, E->GetActorLocation(), FCollisionObjectQueryParams(ECC_WorldStatic), Params));
 		const int Target = DroneTarget(D, Points, Visible);
 		if (Target < 0) { D.Cool = 0.3; continue; }
 		D.Cool = DroneRate;

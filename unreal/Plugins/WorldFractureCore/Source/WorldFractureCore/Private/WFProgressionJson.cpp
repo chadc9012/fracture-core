@@ -329,13 +329,13 @@ namespace WFProgressionJson
 			const TSharedPtr<FJsonObject>* L = nullptr;
 			if (O->TryGetObjectField(TEXT("living"), L) && L && L->IsValid())
 			{
-				auto Counters = [&L](const TCHAR* Field, std::map<std::string, double>& Out) {
+				auto Counters = [&L](const TCHAR* Field, std::map<std::string, double>& Into) {
 					const TSharedPtr<FJsonObject>* C = nullptr;
 					if (!(*L)->TryGetObjectField(Field, C) || !C || !C->IsValid()) return;
 					for (const TCHAR* F : {TEXT("wardens"), TEXT("guild"), TEXT("syndicate"), TEXT("aegis")})
 					{
 						double V = 0;
-						if ((*C)->TryGetNumberField(F, V) && std::isfinite(V) && V > 0) Out[ToStd(F)] = V;
+						if ((*C)->TryGetNumberField(F, V) && std::isfinite(V) && V > 0) Into[ToStd(F)] = V;
 					}
 				};
 				Counters(TEXT("gain"), P.Living.Gain);
@@ -371,7 +371,7 @@ namespace WFProgressionJson
 			const TSharedPtr<FJsonObject>* Fl = nullptr;
 			if (O->TryGetObjectField(TEXT("fleet"), Fl) && Fl && Fl->IsValid())
 			{
-				auto Unique = [](std::vector<std::string> V) { std::vector<std::string> Out; for (std::string& X : V) if (std::find(Out.begin(), Out.end(), X) == Out.end()) Out.push_back(std::move(X)); return Out; };
+				auto Unique = [](std::vector<std::string> V) { std::vector<std::string> UniqOut; for (std::string& X : V) if (std::find(UniqOut.begin(), UniqOut.end(), X) == UniqOut.end()) UniqOut.push_back(std::move(X)); return UniqOut; };
 				P.Fleet.Owned = Unique(ReadStrings(*Fl, TEXT("owned")));
 				P.Fleet.Garages = Unique(ReadStrings(*Fl, TEXT("garages")));
 				const TSharedPtr<FJsonObject>* Tuning = nullptr;
@@ -380,8 +380,8 @@ namespace WFProgressionJson
 					{
 						const TSharedPtr<FJsonObject> Nodes = Build.Value.IsValid() ? Build.Value->AsObject() : nullptr;
 						if (!Nodes.IsValid()) continue;
-						auto& Out = P.Fleet.Tuning[ToStd(Build.Key)];
-						for (const auto& Nd : Nodes->Values) { double L = 0; if (Nd.Value.IsValid() && Nd.Value->TryGetNumber(L) && L > 0) Out[ToStd(Nd.Key)] = std::floor(L); }
+						auto& Levels = P.Fleet.Tuning[ToStd(Build.Key)];
+						for (const auto& Nd : Nodes->Values) { double L = 0; if (Nd.Value.IsValid() && Nd.Value->TryGetNumber(L) && L > 0) Levels[ToStd(Nd.Key)] = std::floor(L); }
 					}
 				const TSharedPtr<FJsonObject>* Paint = nullptr;
 				if ((*Fl)->TryGetObjectField(TEXT("paint"), Paint) && Paint && Paint->IsValid())
@@ -393,18 +393,18 @@ namespace WFProgressionJson
 					{
 						const TSharedPtr<FJsonObject> C = X.Value.IsValid() ? X.Value->AsObject() : nullptr;
 						if (!C.IsValid()) continue;
-						wf::FProgression::FFleet::FCosmetics Out;
+						wf::FProgression::FFleet::FCosmetics Cos;
 						auto Pick = [&C](const TCHAR* Field, std::string& Into, std::initializer_list<const char*> Allowed) {
 							FString V;
 							if (!C->TryGetStringField(Field, V)) return;
 							for (const char* A : Allowed) if (ToStd(V) == A) Into = A;
 						};
-						Pick(TEXT("wheels"), Out.Wheels, {"standard", "sport", "offroad"});
-						Pick(TEXT("body"), Out.Body, {"stock", "widebody", "aero"});
-						Pick(TEXT("spoiler"), Out.Spoiler, {"none", "lip", "wing"});
-						Pick(TEXT("armor"), Out.Armor, {"stock", "reinforced"});
-						Pick(TEXT("glow"), Out.Glow, {"off", "cyan", "magenta"});
-						P.Fleet.Cosmetics[ToStd(X.Key)] = Out;
+						Pick(TEXT("wheels"), Cos.Wheels, {"standard", "sport", "offroad"});
+						Pick(TEXT("body"), Cos.Body, {"stock", "widebody", "aero"});
+						Pick(TEXT("spoiler"), Cos.Spoiler, {"none", "lip", "wing"});
+						Pick(TEXT("armor"), Cos.Armor, {"stock", "reinforced"});
+						Pick(TEXT("glow"), Cos.Glow, {"off", "cyan", "magenta"});
+						P.Fleet.Cosmetics[ToStd(X.Key)] = Cos;
 					}
 			}
 			P.Housing = {};
@@ -417,8 +417,8 @@ namespace WFProgressionJson
 					{
 						const TSharedPtr<FJsonObject> Rooms = Home.Value.IsValid() ? Home.Value->AsObject() : nullptr;
 						if (!Rooms.IsValid()) continue;
-						auto& Out = P.Housing.Placed[ToStd(Home.Key)];
-						for (const auto& R : Rooms->Values) { FString V; if (R.Value.IsValid() && R.Value->TryGetString(V)) Out[ToStd(R.Key)] = ToStd(V); }
+						auto& Slots = P.Housing.Placed[ToStd(Home.Key)];
+						for (const auto& R : Rooms->Values) { FString V; if (R.Value.IsValid() && R.Value->TryGetString(V)) Slots[ToStd(R.Key)] = ToStd(V); }
 					}
 				P.Housing.Home = ReadOptionalString(*Ho, TEXT("home"));
 				const TSharedPtr<FJsonObject>* Parked = nullptr;
