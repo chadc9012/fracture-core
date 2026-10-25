@@ -52,21 +52,11 @@ export function BrokenHorizon({ playerRef }: { playerRef: React.RefObject<THREE.
   });
   return (
     <group ref={root}>
-      <instancedMesh ref={rock} args={[undefined, undefined, islands.length]} frustumCulled={false} geometry={geo.rock}>
-        <primitive object={mats.rock} attach="material" />
-      </instancedMesh>
-      <instancedMesh ref={cap} args={[undefined, undefined, islands.length]} frustumCulled={false} geometry={geo.cap}>
-        <primitive object={mats.cap} attach="material" />
-      </instancedMesh>
-      <instancedMesh ref={towers} args={[undefined, undefined, Math.max(1, dark.length)]} frustumCulled={false} geometry={geo.tower}>
-        <primitive object={mats.tower} attach="material" />
-      </instancedMesh>
-      <instancedMesh ref={lit} args={[undefined, undefined, Math.max(1, bright.length)]} frustumCulled={false} geometry={geo.tower}>
-        <primitive object={mats.lit} attach="material" />
-      </instancedMesh>
-      <instancedMesh ref={debris} args={[undefined, undefined, Math.max(1, chunks.length)]} frustumCulled={false} geometry={geo.debris}>
-        <primitive object={mats.rock} attach="material" />
-      </instancedMesh>
+      <instancedMesh ref={rock} args={[undefined, undefined, islands.length]} frustumCulled={false} geometry={geo.rock} material={mats.rock} />
+      <instancedMesh ref={cap} args={[undefined, undefined, islands.length]} frustumCulled={false} geometry={geo.cap} material={mats.cap} />
+      <instancedMesh ref={towers} args={[undefined, undefined, Math.max(1, dark.length)]} frustumCulled={false} geometry={geo.tower} material={mats.tower} />
+      <instancedMesh ref={lit} args={[undefined, undefined, Math.max(1, bright.length)]} frustumCulled={false} geometry={geo.tower} material={mats.lit} />
+      <instancedMesh ref={debris} args={[undefined, undefined, Math.max(1, chunks.length)]} frustumCulled={false} geometry={geo.debris} material={mats.rock} />
     </group>
   );
 }
