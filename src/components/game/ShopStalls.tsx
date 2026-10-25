@@ -1,4 +1,5 @@
-import { Suspense, useMemo } from "react";
+import { Suspense, useMemo, useRef, useState, type ReactNode } from "react";
+import { useFrame } from "@react-three/fiber";
 import { useGLTF } from "@react-three/drei";
 import * as THREE from "three";
 import { QuietModel } from "./Vehicle";
@@ -31,7 +32,7 @@ export function ShopStalls() {
           <DistrictLight range={45} position={[0, 2.6, 0.4]} color="#ffb867" intensity={6} distance={9} decay={2} />
           <DistrictLight range={45} position={[0, 2.4, 1.1]} color={KIND_COLOR[s.kind]} intensity={2.2} distance={5} decay={2} />
           {/* the keeper behind the counter: the shop's sheet merchant when modelled, else the civilian vendor */}
-          <group position={[0, 0, -0.95]}><SpeakingFigure name={keeperName(s.id, s.name)} color={KIND_COLOR[s.kind] ?? "#c98a4a"} modelUrl={merchantModelUrl(s.id)} /></group>
+          <NearKeeper x={s.x} z={s.z}><group position={[0, 0, -0.95]}><SpeakingFigure name={keeperName(s.id, s.name)} color={KIND_COLOR[s.kind] ?? "#c98a4a"} modelUrl={merchantModelUrl(s.id)} /></group></NearKeeper>
         </group>
       ))}
     </group>
@@ -62,4 +63,19 @@ function PrimitiveStall() {
     <mesh position={[0, 0.55, 0]} castShadow receiveShadow><boxGeometry args={[2.4, 1.1, 1]} /><meshStandardMaterial color="#2d3744" metalness={0.5} roughness={0.5} /></mesh>
     <mesh position={[0, 3, 0]} rotation-x={0.15}><boxGeometry args={[2.8, 0.08, 1.8]} /><meshStandardMaterial color="#39424f" roughness={0.8} /></mesh>
   </group>;
+}
+
+/** Only mounts the keeper (and so only loads their ~5 MB rigged body) while the camera is near the stall: a keeper a district
+ * away costs nothing, and the world never waits on six merchant models at start-up. Hysteresis stops it flickering at the edge. */
+export const KEEPER_SHOW = 45, KEEPER_HIDE = 60;
+function NearKeeper({ x, z, children }: { x: number; z: number; children: ReactNode }) {
+  const [near, setNear] = useState(false);
+  const last = useRef(0);
+  useFrame(({ camera, clock }) => {
+    if (clock.elapsedTime - last.current < 0.5) return; // twice a second is plenty
+    last.current = clock.elapsedTime;
+    const d = Math.hypot(camera.position.x - x, camera.position.z - z);
+    if (!near && d < KEEPER_SHOW) setNear(true); else if (near && d > KEEPER_HIDE) setNear(false);
+  });
+  return near ? <Suspense fallback={null}>{children}</Suspense> : null;
 }
