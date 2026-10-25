@@ -100,6 +100,8 @@ public:
 	/** Unique Scenarios in a region (UniqueScenarios table), in table order. */
 	UFUNCTION(BlueprintPure, Category = "World Fracture|Rewards") TArray<FString> GetScenariosInRegion(const FString& RegionId) const;
 
+	/** Titan, Hunter and Warlock each have their own level, XP, Nex, shards and materials (operator-pockets.ts); one line each */
+	UFUNCTION(BlueprintPure, Category = "World Fracture|Progression") FString DescribeOperators() const;
 	UFUNCTION(BlueprintPure, Category = "World Fracture|Progression") int32 GetLevel() const { return static_cast<int32>(State.Level); }
 	UFUNCTION(BlueprintPure, Category = "World Fracture|Progression") double GetXp() const { return State.Xp; }
 	UFUNCTION(BlueprintPure, Category = "World Fracture|Progression") double GetXpToNextLevel() const { return State.Level * wf::reward::XpPerLevel; }

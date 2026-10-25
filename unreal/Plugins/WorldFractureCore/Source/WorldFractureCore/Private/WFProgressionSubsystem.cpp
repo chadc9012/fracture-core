@@ -11,6 +11,7 @@
 #include "WFProgressionJson.h"
 #include "WFQuestSubsystem.h"
 #include "WFSaveGame.h"
+#include "Core/WFOperatorCore.h"
 #include "WorldFractureCoreModule.h"
 
 #include <algorithm>
@@ -206,6 +207,7 @@ bool UWFProgressionSubsystem::LoadGame()
 	}
 	State = std::move(Loaded);
 	Garage = std::move(LoadedGarage);
+	if (State.IdentityClass) wf::operators::SwitchOperator(State, *State.IdentityClass); // the live pocket follows the played class
 	NotifyChanged();
 	return true;
 }
@@ -272,6 +274,7 @@ bool UWFProgressionSubsystem::SetIdentityClass(const FString& ClassId)
 {
 	if (ClassId != TEXT("TITAN") && ClassId != TEXT("HUNTER") && ClassId != TEXT("WARLOCK")) return false;
 	State.IdentityClass = ToStd(ClassId);
+	wf::operators::SwitchOperator(State, State.IdentityClass.value()); // each operator has their own level, XP and money
 	NotifyChanged();
 	return true;
 }
@@ -377,4 +380,9 @@ double UWFProgressionSubsystem::GetChallengeEnemyHealthScale() const
 FString UWFProgressionSubsystem::DescribeLoot() const
 {
 	return ToF(wf::reward::DescribeLoot(State));
+}
+
+FString UWFProgressionSubsystem::DescribeOperators() const
+{
+	return UTF8_TO_TCHAR(wf::operators::DescribeOperators(State).c_str());
 }

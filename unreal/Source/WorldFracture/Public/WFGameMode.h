@@ -81,6 +81,8 @@ public:
 	// ---- housing (ported housing.ts / residence-deeds.ts, UWFHousingSubsystem) ----
 	/** Prints the homes, residences and decor with prices, ownership, placed decor and parked vehicles. */
 	UFUNCTION(Exec) void Homes();
+	/** each operator's own level, XP, Nex, shards and materials */
+	UFUNCTION(Exec) void Operators();
 	/** BuyHome <id>: a listed home (grid-loft, aegis-penthouse...) or a city residence (nexus-home-3...), for Nex. */
 	UFUNCTION(Exec) void BuyHome(const FString& Id);
 	UFUNCTION(Exec) void BuyDecor(const FString& DecorId);

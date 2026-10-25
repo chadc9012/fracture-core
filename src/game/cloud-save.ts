@@ -1,3 +1,4 @@
+import { mergePockets, switchOperator } from "./operator-pockets";
 import { mergeStash } from "./stash";
 import { EMPTY_LIVING, mergeLiving } from "./living-world";
 import { mergeNemeses } from "./nemesis";
@@ -43,6 +44,9 @@ function maxRecord<T>(a: Record<string, T>, b: Record<string, T>, pick: (x: T, y
  * best of every counter. Choices (selected vehicle, garage, build) come from the newer copy.
  */
 export function mergeProgression(local: PlayerProgression, cloud: PlayerProgression, localIsNewer: boolean): PlayerProgression {
+  // both copies hold the live values of their own played operator: line them up on the newer copy's first
+  const pocketClass = (localIsNewer ? local : cloud).pocketClass;
+  local = switchOperator(local, pocketClass); cloud = switchOperator(cloud, pocketClass);
   const newer = localIsNewer ? local : cloud;
   const ownedVehicles = union(local.ownedVehicles, cloud.ownedVehicles);
   const garage = newer.garageLoadout.filter((v) => ownedVehicles.includes(v));
@@ -53,6 +57,7 @@ export function mergeProgression(local: PlayerProgression, cloud: PlayerProgress
 function mergeInner(local: PlayerProgression, cloud: PlayerProgression, localIsNewer: boolean, newer: PlayerProgression, ownedVehicles: PlayerProgression["ownedVehicles"], garage: PlayerProgression["garageLoadout"]): PlayerProgression {
   return {
     ...newer,
+    operators: mergePockets(newer, localIsNewer ? cloud : local),
     nexLedger: { ...cloud.nexLedger, ...local.nexLedger },
     vehicleConditions: newer.vehicleConditions,
     completedMissions: union(local.completedMissions, cloud.completedMissions),

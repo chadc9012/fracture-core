@@ -4,8 +4,9 @@
 // or write. One struct, so the quest engine and the reward pipeline can never disagree about materials,
 // completed missions or dungeon clears. Plain standard C++; Unreal wraps it in UWFProgressionSubsystem.
 //
-// Per-class state in the web build is the arsenal (per-class loadouts), encounter clears and the Vyrak covenant.
-// Level and XP are account-wide there, and stay account-wide here.
+// Per-class state in the web build is the arsenal (per-class loadouts), encounter clears, the Vyrak covenant, and each
+// operator's pocket (operator-pockets.ts): level, XP, Nex, fracture shards and materials. The live fields (Level, Xp,
+// Materials, FractureShards and the Nex balance) belong to PocketClass; the other operators wait in Operators.
 #pragma once
 
 #include "Core/WFCoreApi.h"
@@ -130,6 +131,21 @@ namespace wf
 		std::optional<FMissionReward> LastMissionReward;
 
 		std::optional<std::string> IdentityClass; // TITAN | HUNTER | WARLOCK
+
+		/** One operator's own progress and money (operator-pockets.ts OperatorPocket). */
+		struct FOperatorPocket
+		{
+			double Level = 1;
+			double Xp = 0;
+			double Nex = 0;
+			double FractureShards = 120;
+			std::map<std::string, double> Materials;
+			bool operator==(const FOperatorPocket& O) const { return Level == O.Level && Xp == O.Xp && Nex == O.Nex && FractureShards == O.FractureShards && Materials == O.Materials; }
+		};
+		/** whose values the live fields hold */
+		std::string PocketClass = "TITAN";
+		/** TITAN / HUNTER / WARLOCK: the stored pockets (the played operator's entry is refreshed when it is switched away) */
+		std::map<std::string, FOperatorPocket> Operators = { { "TITAN", {} }, { "HUNTER", {} }, { "WARLOCK", {} } };
 		/** Difficulty picked before launch (map-activities.ts CHALLENGES): STANDARD | HARD | VERY_HARD. */
 		std::string Challenge = "STANDARD";
 	};

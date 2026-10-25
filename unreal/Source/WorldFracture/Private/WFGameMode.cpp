@@ -575,6 +575,15 @@ void AWFGameMode::Cosmetic(const FString& Id, const FString& Key, const FString&
 
 // --- housing ---------------------------------------------------------------------------------------------------------
 
+void AWFGameMode::Operators()
+{
+	const UWFProgressionSubsystem* P = GetGameInstance()->GetSubsystem<UWFProgressionSubsystem>();
+	if (!P) return;
+	TArray<FString> Rows;
+	P->DescribeOperators().ParseIntoArrayLines(Rows);
+	for (const FString& L : Rows) UE_LOG(LogTemp, Display, TEXT("  %s"), *L);
+	Toast(TEXT("Each operator's level and money listed in the output log"), FLinearColor(0.45f, 0.9f, 1.f));
+}
 void AWFGameMode::Homes()
 {
 	const UWFHousingSubsystem* H = GetGameInstance()->GetSubsystem<UWFHousingSubsystem>();

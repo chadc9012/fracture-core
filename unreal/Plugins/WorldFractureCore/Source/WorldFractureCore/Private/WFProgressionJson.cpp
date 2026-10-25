@@ -219,6 +219,22 @@ namespace WFProgressionJson
 		}
 		O->SetObjectField(TEXT("missionRuns"), Runs);
 		O->SetObjectField(TEXT("nexLedger"), NumberObject(P.NexLedger));
+		{
+			// operator-pockets.ts: the played operator, and the stored pockets of all three
+			O->SetStringField(TEXT("pocketClass"), ToF(P.PocketClass));
+			TSharedRef<FJsonObject> Ops = MakeShared<FJsonObject>();
+			for (const auto& [Cls, K] : P.Operators)
+			{
+				TSharedRef<FJsonObject> J = MakeShared<FJsonObject>();
+				J->SetNumberField(TEXT("level"), K.Level);
+				J->SetNumberField(TEXT("xp"), K.Xp);
+				J->SetNumberField(TEXT("nex"), K.Nex);
+				J->SetNumberField(TEXT("fractureShards"), K.FractureShards);
+				J->SetObjectField(TEXT("materials"), NumberObject(K.Materials));
+				Ops->SetObjectField(ToF(Cls), J);
+			}
+			O->SetObjectField(TEXT("operators"), Ops);
+		}
 		if (Garage)
 		{
 			O->SetArrayField(TEXT("ownedVehicles"), StringArray(Garage->Owned));
@@ -473,6 +489,28 @@ namespace WFProgressionJson
 				P.MissionRuns[ToStd(Pair.Key)] = Run;
 			}
 		P.NexLedger = ReadNumbers(O, TEXT("nexLedger"));
+		{
+			// operator-pockets.ts normalizePockets: a save from before per-operator pockets keeps its one level and
+			// wallet on the operator being played; the other two start fresh
+			FString Pocket;
+			const auto IsCls = [](const std::string& C) { return C == "TITAN" || C == "HUNTER" || C == "WARLOCK"; };
+			if (O->TryGetStringField(TEXT("pocketClass"), Pocket) && IsCls(ToStd(Pocket))) P.PocketClass = ToStd(Pocket);
+			else P.PocketClass = P.IdentityClass && IsCls(*P.IdentityClass) ? *P.IdentityClass : "TITAN";
+			P.Operators = { { "TITAN", {} }, { "HUNTER", {} }, { "WARLOCK", {} } };
+			const TSharedPtr<FJsonObject>* Ops = nullptr;
+			if (O->TryGetObjectField(TEXT("operators"), Ops))
+				for (auto& [Cls, K] : P.Operators)
+				{
+					const TSharedPtr<FJsonObject>* J = nullptr;
+					if (!(*Ops)->TryGetObjectField(ToF(Cls), J)) continue;
+					double V = 0;
+					if ((*J)->TryGetNumberField(TEXT("level"), V) && std::isfinite(V) && V >= 1) K.Level = std::floor(V);
+					if ((*J)->TryGetNumberField(TEXT("xp"), V) && std::isfinite(V) && V >= 0) K.Xp = V;
+					if ((*J)->TryGetNumberField(TEXT("nex"), V) && std::isfinite(V) && V >= 0) K.Nex = std::floor(V);
+					if ((*J)->TryGetNumberField(TEXT("fractureShards"), V) && std::isfinite(V) && V >= 0) K.FractureShards = V;
+					for (const auto& [Id, Count] : ReadNumbers(*J, TEXT("materials"))) if (std::isfinite(Count) && Count >= 0) K.Materials[Id] = Count;
+				}
+		}
 		if (OutGarage)
 		{
 			wf::FGarage G;

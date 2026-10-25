@@ -169,6 +169,7 @@ import { DeathOverlay } from "./DeathOverlay";
 import { playEnding, playLevelUp, playNovaUnlock, setVolume, setMixVolumes } from "@/game/audio";
 import { Minimap } from "./Minimap";
 import { grantXP } from "@/game/xp";
+import { switchOperator } from "@/game/operator-pockets";
 import type { WorldSim } from "@/game/sim";
 import { LevelUpOverlay } from "./LevelUpOverlay";
 import { PerfOverlay, PerfSampler } from "./PerfOverlay";
@@ -561,6 +562,8 @@ export function GameCanvas() {
   const [subclass, setSubclass] = useCountedState<SubclassId>("subclass", session0.subclass);
   const [appearance, setAppearance] = useCountedState<AppearanceDefinition>("appearance", session0.appearance);
   const [bodyType, setBodyType] = useCountedState<BodyType>("bodyType", session0.bodyType);
+  // operator-pockets.ts: level, XP, Nex, shards and materials belong to the operator in the world
+  useEffect(() => { setProgression((current) => switchOperator(current, cls)); }, [cls, progression.pocketClass]);
   const progressionRef = useRef(progression);
   progressionRef.current = progression;
   // the Skyline Casino penthouse (3D scene) buys through the live Nex ledger and the same save as every other property

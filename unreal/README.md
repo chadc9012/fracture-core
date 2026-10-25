@@ -36,6 +36,9 @@ unreal/
 The default level is the engine's template map; the game mode adds a floor and lights if a level has none.
 
 ## What runs
+- **Separate operators:** Titan, Hunter and Warlock each have their own level, XP, Nex, fracture shards and materials
+  (operator-pockets.ts); F6 switches operator and loads that operator's pocket. Gear, vehicles, homes, story and
+  one-time claims stay shared. Old saves give everything to the operator being played. `Operators` lists all three.
 - **Combat loop:** first-person Operator, five guns with the exported tuning (fire rate, bursts, spread, recoil,
   magazines, reload, shotgun pellets), health 100 with health.ts regeneration, respawn on death.
 - **Enemies:** the current region's troopers (RegionalEncounters.json), health from sim.ts spawnMachine scaled by
@@ -131,12 +134,13 @@ cmake -S . -B build -G Ninja && cmake --build build && ctest --test-dir build --
 | FleetCoreTest | fleet.ts, vehicle-gadgets.ts | 2,400 fleet operations, 2,100 gadget operations, 13,060 checks |
 | HousingCoreTest | housing.ts, residence-deeds.ts | 4,500 operations, 80 normalized saves, 9,821 checks |
 | DragonCoreTest | dragonite.ts, dragonite-cast.ts statsFor, vyrak-trust.ts | 2,099 states, 23,789 checks |
+| OperatorCoreTest | operator-pockets.ts switchOperator, xp.ts grantXP, nex.ts spendNex | 6,400 operations (846 switches), 25,600 checks |
 
 The golden files (`Plugins/WorldFractureCore/Tests/<name>_golden.txt`) are **generated, not committed**: together they run to ~60 MB,
 which broke the Lovable preview build. Record all of them from the repo root before configuring the tests (and again after changing
 the web build's rules):
 
-    node unreal/tools/gen-goldens.mjs            # all fourteen
+    node unreal/tools/gen-goldens.mjs            # all fifteen
     node unreal/tools/gen-goldens.mjs race shop  # just these
 
 `export-datatables` (the DataTables, which are committed) still runs on its own:

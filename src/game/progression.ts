@@ -23,6 +23,7 @@ import type { WeaponId } from "./weapons";
 import { normalizeNex, type NexLedger } from "./nex";
 import { EMPTY_HOUSING, normalizeHousing, type HousingState } from "./housing";
 import { normalizeCondition, type VehicleCondition } from "./vehicle-condition";
+import { freshPockets, normalizePockets, type OperatorPocket } from "./operator-pockets";
 
 export type ClassId = "TITAN" | "HUNTER" | "WARLOCK";
 export type WeaponLoadout = { name: string; slots: [WeaponId, WeaponId, WeaponId] };
@@ -111,6 +112,10 @@ export type PlayerProgression = {
   missionRuns: Record<string, { day: string; count: number; /** real-time ms of the last completion (activities.ts cooldowns) */ last?: number }>;
   lastMissionReward: MissionReward | null;
   arsenal: Record<ClassId, ClassArsenal>;
+  /** operator-pockets.ts: level, xp, materials, fractureShards and the Nex balance above belong to this operator;
+   * the other two operators' values are kept in `operators` until they are played */
+  pocketClass: ClassId;
+  operators: Record<ClassId, OperatorPocket>;
 };
 
 const STORAGE_KEY_BASE = "world-fracture.progression.v1";
@@ -168,6 +173,8 @@ export const DEFAULT_PROGRESSION: PlayerProgression = {
   missionRuns: {},
   lastMissionReward: null,
   arsenal: DEFAULT_ARSENAL,
+  pocketClass: "TITAN",
+  operators: freshPockets(),
 };
 
 export function loadProgression(): PlayerProgression {
@@ -235,6 +242,7 @@ export function normalizeProgression(raw: unknown): PlayerProgression {
       missionRuns: parsed.missionRuns && typeof parsed.missionRuns === "object" ? parsed.missionRuns : {},
       lastMissionReward: parsed.lastMissionReward ?? null,
       arsenal: parsed.arsenal && typeof parsed.arsenal === "object" ? { ...DEFAULT_ARSENAL, ...parsed.arsenal } : DEFAULT_ARSENAL,
+      ...normalizePockets(parsed),
     };
   } catch {
     return DEFAULT_PROGRESSION;
