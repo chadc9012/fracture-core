@@ -73,6 +73,7 @@ import { ArsenalLoadouts } from "./ArsenalLoadouts";
 import { SaveManager } from "./SaveManager";
 import { buyPenthouseNex, ownsPenthouseNex, publishPenthouse } from "@/game/casino-property";
 import { nexBalance } from "@/game/nex";
+import { buyPenthouseUpgrade, ownedUpgrades } from "@/game/penthouse-upgrades";
 import { activeLoadout, rewardMission, loadProgression, rewardVehicle, saveProgression, type PlayerProgression } from "@/game/progression";
 import { RENDER_PRESETS, defaultTierForGpu, detectGpuRenderer } from "@/game/performance";
 import { classBuild } from "@/game/live-build";
@@ -545,6 +546,8 @@ export function GameCanvas() {
     publishPenthouse({
       owned: ownsPenthouseNex(progression.nexLedger), balance: nexBalance(progression.nexLedger),
       buy: () => { const r = buyPenthouseNex(progressionRef.current); if ("error" in r) return { ok: false, reason: r.error }; progressionRef.current = r.progression; setProgression(r.progression); return { ok: true, reason: r.message }; },
+      upgrades: ownedUpgrades(progression.nexLedger, "skyline-penthouse").map((u) => u.id),
+      buyUpgrade: (id) => { const r = buyPenthouseUpgrade(progressionRef.current, "skyline-penthouse", id); if ("error" in r) return { ok: false, reason: r.error }; progressionRef.current = r.progression; setProgression(r.progression); return { ok: true, reason: r.message }; },
     });
   }, [progression.nexLedger]);
   useEffect(() => () => publishPenthouse(null), []);

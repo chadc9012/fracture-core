@@ -1,7 +1,6 @@
-import { marked } from "./market-prices";
 import { canAfford, spend, type Wallet } from "./economy";
 /** Use the player's actual wallet, and commit the returned wallet via the central game save/reward pipeline. */
-export const PENTHOUSE_PRICE=marked(65000); // casino-penthouse tier of the market scale (market-prices.ts)
+export const PENTHOUSE_PRICE=35000; // $3.5M on the market scale (market-prices.ts); fully upgraded it is 100,000 (penthouse-upgrades.ts)
 export type PropertyPurchase = {ok:true; wallet:Wallet; reason:string}|{ok:false;reason:string};
 export function buyPenthouse(wallet:Wallet|undefined,alreadyOwned=false):PropertyPurchase {
  if(alreadyOwned)return {ok:false,reason:"Penthouse already owned"};
@@ -36,7 +35,7 @@ export function buyPenthouseNex<P extends { nexLedger: NexLedger }>(p: P): { pro
 }
 
 /** the running game publishes its current ledger and a buy action here; the penthouse in the 3D scene (a separate React root) reads it */
-export type PenthouseLive = { owned: boolean; balance: number; buy: () => { ok: boolean; reason: string } };
+export type PenthouseLive = { owned: boolean; balance: number; buy: () => { ok: boolean; reason: string }; /** ids of installed upgrades (penthouse-upgrades.ts) and the action to install one */ upgrades: readonly string[]; buyUpgrade: (id: string) => { ok: boolean; reason: string } };
 let live: PenthouseLive | null = null;
 const listeners = new Set<() => void>();
 export const publishPenthouse = (next: PenthouseLive | null) => { live = next; listeners.forEach((l) => l()); };

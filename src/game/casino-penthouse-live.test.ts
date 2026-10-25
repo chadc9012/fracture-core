@@ -19,7 +19,7 @@ describe("penthouse purchase through the real Nex ledger", () => {
   });
   test("the live host notifies the scene and can be withdrawn", () => {
     let n = 0; const off = subscribePenthouse(() => n++);
-    publishPenthouse({ owned: false, balance: 5, buy: () => ({ ok: false, reason: "no" }) });
+    publishPenthouse({ owned: false, balance: 5, buy: () => ({ ok: false, reason: "no" }), upgrades: [], buyUpgrade: () => ({ ok: false, reason: "no" }) });
     expect(penthouseLive()?.balance).toBe(5);
     publishPenthouse(null); off();
     expect(n).toBe(2); expect(penthouseLive()).toBeNull();

@@ -4,7 +4,6 @@
  * Prices scale with location: Undercity cheap, Aegis Spire penthouses very expensive. */
 import { nexBalance, spendNex, type NexLedger } from "./nex";
 import type { GarageId } from "./fleet";
-import { marked } from "./market-prices";
 
 export type HomeKind = "APARTMENT" | "HOUSE" | "PENTHOUSE" | "GARAGE_QUARTERS";
 export type RoomId = "living" | "bedroom" | "bathroom" | "kitchen" | "garage";
@@ -15,12 +14,12 @@ export type DecorDef = { id: string; name: string; slot: DecorSlot; price: numbe
 
 export const HOMES: readonly HomeDef[] = [
   { id: "rustmuck-capsule", name: "Rust-Muck Capsule Flat", kind: "APARTMENT", district: "Rust-Muck Undercity", regionId: "nexus", price: 2500, rooms: ["living", "bathroom"], blurb: "One room over the black market. Cheap, loud, yours." },
-  { id: "grid-loft", name: "Grid Transit Loft", kind: "APARTMENT", district: "The Grid", regionId: "nexus", price: 18000, rooms: ["living", "bedroom", "bathroom", "kitchen"], blurb: "Open loft above the walkways. Trains hum through the floor." },
+  { id: "grid-loft", name: "Grid Transit Loft", kind: "APARTMENT", district: "The Grid", regionId: "nexus", price: 9000, rooms: ["living", "bedroom", "bathroom", "kitchen"], blurb: "Open loft above the walkways. Trains hum through the floor." },
   { id: "veridan-cabin", name: "Verdant Forest Cabin", kind: "HOUSE", district: "Verdant Wilds", regionId: "veridan", price: 32000, rooms: ["living", "bedroom", "bathroom", "kitchen"], blurb: "Timber and solar glass under the canopy." },
   { id: "solara-villa", name: "Solara Dune Villa", kind: "HOUSE", district: "Solara Desert", regionId: "solara", price: 85000, rooms: ["living", "bedroom", "bedroom", "bathroom", "kitchen"], blurb: "Shaded courtyard villa facing the Glass Flats." },
-  { id: "aegis-penthouse", name: "Aegis Spire Penthouse", kind: "PENTHOUSE", district: "Aegis Spire", regionId: "nexus", price: marked(200000), rooms: ["living", "bedroom", "bedroom", "bathroom", "bathroom", "kitchen"], blurb: "The top of the city. Glass walls, sky deck, private lift." },
+  { id: "aegis-penthouse", name: "Aegis Spire Penthouse", kind: "PENTHOUSE", district: "Aegis Spire", regionId: "nexus", price: 15000, rooms: ["living", "bedroom", "bedroom", "bathroom", "bathroom", "kitchen"], blurb: "The top of the city. Glass walls, sky deck, private lift." },
   { id: "wastes-hangar-bunk", name: "Scrap-Hangar Bunkroom", kind: "GARAGE_QUARTERS", district: "Rust Port", regionId: "wastelands", price: 6000, rooms: ["garage", "bedroom", "bathroom"], garage: "base-01", blurb: "Living quarters built into your Wastelands hangar." },
-  { id: "frost-bunker-suite", name: "Frostspire Bunker Suite", kind: "GARAGE_QUARTERS", district: "Frostspire Mountains", regionId: "frostspire", price: 22000, rooms: ["garage", "living", "bedroom", "bathroom"], garage: "base-03", blurb: "Heated quarters behind the blast doors." },
+  { id: "frost-bunker-suite", name: "Frostspire Bunker Suite", kind: "GARAGE_QUARTERS", district: "Frostspire Mountains", regionId: "frostspire", price: 10000, rooms: ["garage", "living", "bedroom", "bathroom"], garage: "base-03", blurb: "Heated quarters behind the blast doors." },
 ];
 
 const ALL: readonly RoomId[] = ["living", "bedroom", "bathroom", "kitchen", "garage"];

@@ -16,15 +16,15 @@ const STYLE: Record<HomeStyle, { kind: DeedKind; name: string; price: number; bl
   townhouse: { kind: "HOUSE", name: "Townhouse", price: 30000, blurb: "Three storeys of brick on a quiet row." },
   duplex: { kind: "HOUSE", name: "Duplex", price: 36000, blurb: "Wide two-storey home with a double garage." },
   courtyard: { kind: "HOUSE", name: "Courtyard House", price: 48000, blurb: "Built round a planted courtyard; double garage." },
-  apartment: { kind: "APARTMENT", name: "Apartment", price: 14000, blurb: "Ground-floor flat in a four-storey block, one parking bay." },
-  condo: { kind: "CONDO", name: "Condominium", price: 60000, blurb: "Corner condo with balconies and two parking bays." },
-  loft: { kind: "APARTMENT", name: "Industrial Loft", price: 42000, blurb: "Double-height warehouse loft, two bays below." },
+  apartment: { kind: "APARTMENT", name: "Apartment", price: 5000, blurb: "Ground-floor flat in a four-storey block, one parking bay." },
+  condo: { kind: "CONDO", name: "Condominium", price: 11000, blurb: "Corner condo with balconies and two parking bays." },
+  loft: { kind: "APARTMENT", name: "Industrial Loft", price: 8000, blurb: "Double-height warehouse loft, two bays below." },
   villa: { kind: "HOUSE", name: "Skyline Villa", price: 160000, blurb: "Glass villa over the city lights; three-car garage." },
 };
 const NEXUS_STREETS = ["Cedar Lane", "Foundry Row", "Courtyard Square", "Exchange Walk"];
 const NEON_STREETS = ["Lumen Row", "Chrome Way", "Skyline Vista", "Arc Street"];
 /** Neon prices carry the city premium */
-const NEON_PREMIUM = 1.6;
+const NEON_PREMIUM = 1.25;
 
 function build(): Deed[] {
   return residences().map((r) => {
