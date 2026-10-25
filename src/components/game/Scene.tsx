@@ -3258,7 +3258,7 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
       {settings.zoneLabels && <RegionLabels zones={sim.zones} />}
 
       <NovaDrone held={state} />
-      {bonded && <Wyrmling held={state} />}
+      {bonded && <Wyrmling held={state} hurtAt={audioSeen} />}
       <VyrakClueSites />
       {activity && activity.def.stages[0]?.kind === "race" && activity.run.race ? <RaceCourse race={raceById((activity.def.stages[0] as { raceId: string }).raceId)!} run={activity.run.race as RaceRun} /> : null}
       {/* player on foot */}

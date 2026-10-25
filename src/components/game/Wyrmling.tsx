@@ -10,15 +10,16 @@ type Held = { current: { x: number; y: number; z: number; yaw: number; inVehicle
 
 /** Vyrak's bonded form (dragon-covenant.ts): the small chibi Wyrmling from the owner's reference sheet, floating at the
  * Operator's shoulder. Presentation only — the bond itself lives in progression.earnedRewards; hidden while driving.
- * Its mood (dragon-look.ts wyrmlingMood) follows what the Operator is doing: idle = happy, sprinting = alert, in a fight =
- * aggressive, and drives the eyes, brows, jaw and wing-beat speed. */
-export function Wyrmling({ held }: { held: Held }) {
+ * It perches on the shoulder when you stand still and lifts off otherwise. Its mood (dragon-look.ts wyrmlingMood)
+ * follows what the Operator is doing: idle = happy, sprinting or just hit (1.5 s) = alert, in a fight = aggressive, and drives the eyes, brows, jaw and wing-beat speed. */
+export function Wyrmling({ held, hurtAt }: { held: Held; /** performance.now() of the Operator's last hit (Scene's audioSeen.hurtAt) */ hurtAt?: { current: { hurtAt: number } } }) {
   const root = useRef<THREE.Group>(null);
   const wingL = useRef<THREE.Group>(null);
   const wingR = useRef<THREE.Group>(null);
   const pos = useRef<THREE.Vector3 | null>(null);
   const last = useRef<{ x: number; z: number } | null>(null);
   const speed = useRef(0);
+  const perch = useRef(0);
   const moodRef = useRef<WyrmlingMood>("neutral");
   const [mood, setMood] = useState<WyrmlingMood>("neutral");
   useFrame(({ clock }, delta) => {
@@ -29,10 +30,11 @@ export function Wyrmling({ held }: { held: Held }) {
     const t = clock.elapsedTime;
     if (last.current && delta > 0) speed.current += (Math.hypot(s.x - last.current.x, s.z - last.current.z) / delta - speed.current) * Math.min(1, delta * 6);
     last.current = { x: s.x, z: s.z };
-    const next = wyrmlingMood({ speed: speed.current, inCombat: getCombatLevel() >= 0.25 });
+    const next = wyrmlingMood({ speed: speed.current, inCombat: getCombatLevel() >= 0.25, hurt: !!hurtAt && performance.now() - hurtAt.current.hurtAt < 1500 });
     if (next !== moodRef.current) { moodRef.current = next; setMood(next); }
     const m = WYRMLING_MOODS[next];
-    const [ox, oy, oz] = wyrmlingOffset(t, s.yaw);
+    perch.current += ((next === "happy" ? 1 : 0) - perch.current) * Math.min(1, delta * 2.5);
+    const [ox, oy, oz] = wyrmlingOffset(t, s.yaw, perch.current);
     const target = new THREE.Vector3(s.x + ox, s.y + oy, s.z + oz);
     if (!pos.current) pos.current = target.clone();
     pos.current.lerp(target, Math.min(1, delta * 4));

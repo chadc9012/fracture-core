@@ -23,3 +23,14 @@ test("mood follows what the Operator is doing", () => {
   expect(wyrmlingMood({ speed: 0, hurt: true })).toBe("alert");
   expect(wyrmlingMood({ speed: 12, inCombat: true })).toBe("aggressive");
 });
+
+import { wyrmlingOffset } from "./dragon-covenant";
+test("perch blends the companion from hovering high to settled on the shoulder", () => {
+  const hover = wyrmlingOffset(0, 0, 0), perched = wyrmlingOffset(0, 0, 1), half = wyrmlingOffset(0, 0, 0.5);
+  expect(perched[1]).toBeLessThan(0);
+  expect(hover[1]).toBeGreaterThan(2);
+  expect(half[1]).toBeGreaterThan(perched[1]);
+  expect(half[1]).toBeLessThan(hover[1]);
+  expect(wyrmlingOffset(1, 0, 1)[1]).toBe(wyrmlingOffset(2, 0, 1)[1]);
+  expect(wyrmlingOffset(0, 0, Number.NaN)).toEqual(hover);
+});

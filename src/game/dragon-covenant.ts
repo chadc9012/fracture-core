@@ -71,8 +71,10 @@ export function claimWyrmlingGift(p: PlayerProgression, cls: ClassId | null, now
   return { ...p, earnedRewards: [...p.earnedRewards, key], materials: { ...p.materials, dragonite: (p.materials.dragonite ?? 0) + GIFT_AMOUNT } };
 }
 
-/** Floating companion pose relative to the Operator: hovers behind the shoulder and bobs. Scene adds this to the player position. */
-export function wyrmlingOffset(t: number, yaw: number): [number, number, number] {
-  const side = 0.9, back = 0.7, bob = Math.sin(t * 1.6) * 0.15;
-  return [Math.cos(yaw) * side - Math.sin(yaw) * back, 2.1 + bob, -Math.sin(yaw) * side - Math.cos(yaw) * back];
+/** Companion pose relative to the Operator. perch 0 = hovering high behind the shoulder and bobbing; perch 1 = settled on the
+ * shoulder (the reference sheet's "Perches on Shoulder"), no bob. Values between blend, so Wyrmling.tsx can ease in and out. */
+export function wyrmlingOffset(t: number, yaw: number, perch = 0): [number, number, number] {
+  const k = Math.max(0, Math.min(1, Number.isFinite(perch) ? perch : 0));
+  const side = 0.9 + (0.42 - 0.9) * k, back = 0.7 + (0.02 - 0.7) * k, bob = Math.sin(t * 1.6) * 0.15 * (1 - k);
+  return [Math.cos(yaw) * side - Math.sin(yaw) * back, 2.1 + (-0.3 - 2.1) * k + bob, -Math.sin(yaw) * side - Math.cos(yaw) * back];
 }
