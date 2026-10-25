@@ -38,7 +38,7 @@ export function unlockAudio() {
   const brown = ac.createBuffer(1, ac.sampleRate * 2, ac.sampleRate);
   { const b = brown.getChannelData(0); let last = 0; for (let i = 0; i < b.length; i++) { last = (last + 0.02 * (Math.random() * 2 - 1)) / 1.02; b[i] = last * 3.5; } }
   // outdoor reverb: a generated impulse (early slap-back off terrain + a long diffuse decay), shared by every shot and blast through one send bus
-  const verbNode = ac.createConvolver(); verbNode.buffer = outdoorImpulse(ac, 2.4);
+  const verbNode = ac.createConvolver(); verbNode.buffer = outdoorImpulse(ac, 1.5);
   const verb = ac.createGain(); verb.gain.value = AUDIO_SAFETY.reverbGain; verb.connect(verbNode).connect(comp);
   ctx = { ac, master, sfx, music, amb, abil, noise, brown, verb, drive: new Map(), layers: null, ambientOscs: [], musicRegion: "", beat: 0 };
   preloadSamples(ctx);
@@ -174,7 +174,14 @@ function outdoorImpulse(ac: AudioContext, seconds: number): AudioBuffer {
   const len = Math.floor(ac.sampleRate * seconds), buf = ac.createBuffer(2, len, ac.sampleRate);
   for (let ch = 0; ch < 2; ch++) {
     const d = buf.getChannelData(ch);
-    for (let i = 0; i < len; i++) { const t = i / ac.sampleRate; d[i] = (Math.random() * 2 - 1) * Math.pow(1 - t / seconds, 3.2) * (t < 0.012 ? 0 : 0.6); }
+    // the tail is noise through a one-pole lowpass that closes as it decays (outdoors the air eats the top first), so the
+    // reverb reads as distance and slap-back, never as a hiss of wind after each shot
+    let lp = 0;
+    for (let i = 0; i < len; i++) {
+      const t = i / ac.sampleRate, k = 0.35 * Math.exp(-t * 2.2) + 0.03; // ~2.6 kHz at the start, a few hundred Hz by the end
+      lp += k * ((Math.random() * 2 - 1) - lp);
+      d[i] = lp * Math.pow(1 - t / seconds, 4) * (t < 0.012 ? 0 : 1.4);
+    }
     for (const [at, g] of [[0.045 + ch * 0.007, 0.5], [0.11 + ch * 0.013, 0.32], [0.19, 0.2]] as const) { const i = Math.floor(at * ac.sampleRate); if (i < len) d[i] = (d[i] ?? 0) + g; }
   }
   return buf;
@@ -208,11 +215,13 @@ function noiseLayer(c: Ctx, dest: AudioNode, opts: { buf?: AudioBuffer; dur: num
   node.connect(g).connect(dest);
   src.start(t, Math.random() * Math.max(0, (src.buffer?.duration ?? 0) - opts.dur - 0.05)); src.stop(t + opts.dur + 0.05);
 }
+/** shot tails were up to 1.3 s of brown noise per round; under auto fire they merged into a constant roar ("wind") */
+const TAIL_SCALE = 0.45;
 function shotLayers(c: Ctx, dest: AudioNode, p: ShotProfile, v: { pitch: number; gain: number }) {
   noiseLayer(c, dest, { dur: p.crack.dur, freq: p.crack.freq * v.pitch, type: "highpass", q: 0.7, gain: p.crack.gain * v.gain, attack: 0.0008 });
   noiseLayer(c, dest, { dur: p.blast.dur, freq: p.blast.freq * v.pitch, q: p.blast.q, gain: p.blast.gain * v.gain, drive: p.blast.drive, attack: 0.001 });
   tone(c, dest, { f0: p.thump.f0 * v.pitch, f1: p.thump.f1, dur: p.thump.dur, gain: p.thump.gain * v.gain });
-  noiseLayer(c, dest, { buf: c.brown, dur: p.tail.dur, freq: p.tail.cutoff, type: "lowpass", q: 0.5, gain: p.tail.gain, at: 0.015, attack: 0.02 });
+  if (gate("shot-tail", 0.15)) noiseLayer(c, dest, { buf: c.brown, dur: p.tail.dur * TAIL_SCALE, freq: Math.min(900, p.tail.cutoff), type: "lowpass", q: 0.5, gain: p.tail.gain * 0.6, at: 0.015, attack: 0.02 });
   if (p.zap) tone(c, dest, { f0: p.zap.f0 * v.pitch, f1: p.zap.f1, dur: p.zap.dur, type: p.zap.type, gain: p.zap.gain });
   for (const m of p.mech ?? []) noiseLayer(c, dest, { dur: 0.035, freq: m.freq, q: 6, gain: m.gain, at: m.at });
 }
@@ -302,7 +311,7 @@ export function playShot(weapon: WeaponId | "VEHICLE" | "CANNON") {
   shotLayers(c, o, p, variation(Math.random));
   if (key === "LAUNCHER") {
     // rocket motor: a rushing exhaust that fades as the round leaves; the element shades its colour
-    noiseLayer(c, o, { dur: 0.7, freq: weapon === "FROSTBITE" ? 3200 : weapon === "VITRIOL" ? 1500 : 900, q: 0.6, type: weapon === "FROSTBITE" ? "highpass" : "lowpass", gain: 0.45, at: 0.03, attack: 0.04, sweepTo: 300 });
+    noiseLayer(c, o, { dur: 0.4, freq: weapon === "FROSTBITE" ? 2200 : weapon === "VITRIOL" ? 1300 : 800, q: 0.8, type: weapon === "FROSTBITE" ? "bandpass" : "lowpass", gain: 0.3, at: 0.03, attack: 0.04, sweepTo: 300 });
     if (weapon === "CINDER") tone(c, o, { f0: 300, f1: 90, dur: 0.4, type: "sawtooth", gain: 0.12 });
   }
 }
@@ -345,13 +354,13 @@ export function playExplosion(big: boolean, w: Where = {}, flavor: BlastFlavor =
   noiseLayer(c, g, { dur: 0.05, freq: 3500, type: "highpass", gain: big ? 0.9 : 0.65, attack: 0.0008 });
   noiseLayer(c, g, { dur: big ? 0.5 : 0.3, freq: 900, q: 0.5, gain: big ? 1 : 0.8, drive: 3.5, attack: 0.002, sweepTo: 200 });
   tone(c, sub, { f0: big ? 75 : 95, f1: 22, dur: big ? 1.5 : 0.8, gain: big ? 1 : 0.75 });
-  noiseLayer(c, sub, { buf: c.brown, dur: big ? 3.2 : 1.7, freq: big ? 1600 : 2200, type: "lowpass", q: 0.6, gain: big ? 0.9 : 0.6, attack: 0.01, sweepTo: 120 });
+  noiseLayer(c, sub, { buf: c.brown, dur: big ? 2.0 : 1.1, freq: big ? 900 : 1100, type: "lowpass", q: 0.6, gain: big ? 0.9 : 0.6, attack: 0.01, sweepTo: 90 });
   const ticks = big ? 14 : 7;
   for (let k = 0; k < ticks; k++) noiseLayer(c, g, { dur: 0.02 + Math.random() * 0.03, freq: 2500 + Math.random() * 4000, q: 4, gain: 0.12 + Math.random() * 0.15, at: 0.15 + Math.random() * (big ? 1.4 : 0.8) });
   const fl = BLAST_FLAVOR[flavor];
-  if (fl.kind === "roar") noiseLayer(c, g, { dur: 1.4, freq: 600, q: 0.7, gain: fl.gain, at: 0.05, attack: 0.15, drive: 2 });
+  if (fl.kind === "roar") noiseLayer(c, g, { dur: 0.9, freq: 500, q: 0.9, gain: fl.gain, at: 0.05, attack: 0.1, drive: 2 });
   else if (fl.kind === "shatter") for (let k = 0; k < 9; k++) tone(c, g, { f0: 2600 + Math.random() * 3000, f1: 1800, dur: 0.18, type: "triangle", gain: fl.gain * 0.4, at: 0.05 + Math.random() * 0.4 });
-  else if (fl.kind === "hiss") noiseLayer(c, g, { dur: 1.8, freq: 5000, type: "highpass", q: 0.5, gain: fl.gain, at: 0.1, attack: 0.2 });
+  else if (fl.kind === "hiss") noiseLayer(c, g, { dur: 1.0, freq: 3000, q: 1.2, gain: fl.gain * 0.6, at: 0.1, attack: 0.15 });
   else if (fl.kind === "crackle") for (let k = 0; k < 12; k++) noiseLayer(c, g, { dur: 0.015, freq: 6000, type: "highpass", gain: fl.gain, at: Math.random() * 0.9 });
 }
 /** a machine dying: a small mechanical blast (smaller than a full explosion) plus the confirm chime */
@@ -369,7 +378,7 @@ export function playKill(boss: boolean, w: Where) {
 export function playAbility(kind: string) {
   if ((kind === "RIFT" || kind === "PORTAL" || kind === "TELEPORT") && playSample("portal", {}, 0.72)) return;
   const c = ctx; if (!c) return; const o = out(c, {}, c.abil);
-  if (kind === "DASH") burst(c, o, { dur: 0.3, freq: 1200, q: 1.5, gain: 0.6 });
+  if (kind === "DASH") burst(c, o, { dur: 0.22, freq: 900, q: 2, gain: 0.45 });
   else if (kind === "DOME" || kind === "SHIELD") { tone(c, o, { f0: 200, f1: 400, dur: 0.6, type: "triangle", gain: 0.25 }); tone(c, o, { f0: 300, f1: 600, dur: 0.6, type: "sine", gain: 0.2 }); }
   else { tone(c, o, { f0: 300, f1: 1800, dur: 0.35, type: "sawtooth", gain: 0.1 }); burst(c, o, { dur: 0.4, freq: 3000, q: 1, gain: 0.3 }); }
   tone(c, o, { f0: 60, f1: 30, dur: 0.4, gain: 0.5 });
@@ -587,7 +596,7 @@ export function updateEngine(active: boolean, vehicleId: string, speed01: number
   engine.sub.frequency.setTargetAtTime(rpm / 2, t, 0.08);
   engine.filter.frequency.setTargetAtTime(Math.min(ENGINE_MAX_CUTOFF, v.cutoff * (1 + throttle * 0.8 + speed01 * 0.6)), t, 0.1);
   engine.gain.gain.setTargetAtTime((0.06 + throttle * 0.08 + speed01 * 0.05) * ENGINE_LEVEL, t, 0.1);
-  engine.brake.gain.setTargetAtTime(braking && speed01 > 0.15 ? 0.05 * speed01 : 0, t, 0.05);
+  engine.brake.gain.setTargetAtTime(braking && speed01 > 0.15 ? 0.03 * speed01 : 0, t, 0.05);
 }
 
 /** Music: ambient pad always; tension pulse and combat drums fade in with intensity (0–1). */

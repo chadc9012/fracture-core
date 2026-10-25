@@ -2,6 +2,7 @@
 """
 Builds the eight regional ambience beds (public/audio/ambience/<name>.mp3) that audio.ts loops per region.
 
+Oct 25: the wind floor is now low (under ~500 Hz) and quiet; places read through their creatures and objects, not a gale.
 Why: the bundled ambience WAVs were 12 s of flat filtered noise (no events, envelope variation under 12%) that clicked
 at every loop seam, which players heard as "static". These beds are designed sound: gusting wind with leaf rustle,
 birds, frogs and crickets, city traffic and murmur, underwater bubbles and moans, ice wind and creaks, desert wind and a
@@ -201,15 +202,16 @@ def scatter(rng, buf, make, per_minute, level, pan=0.9, jitter=None):
 
 def forest(rng):
     g = gusts(rng)
-    out = bed(rng, pink_band(60, 1100), 0.22, g)                                   # wind through the canopy
-    out += grains(rng, band(1200, 4000, 4), g ** 2, 22, (0.03, 0.09), level=0.03)  # leaf rustle, only on the stronger gusts
+    out = bed(rng, pink_band(40, 420), 0.05, 0.6 + 0.4 * g)                          # a low breath of air, not a gale
+    out += grains(rng, band(1200, 3200, 4), g ** 3, 10, (0.03, 0.09), level=0.008)  # leaves stir on the odd gust
     birds = np.zeros((2, N)); scatter(rng, birds, bird_song, 16, 0.16)             # songbirds, mostly distant
     out += reverb(lowpass(birds, 6000), 1.8, 0.45, 5000, rng)
-    out += bed(rng, band(3800, 5200, 6), 0.012, lfo(3, 1.0) ** 2)                  # faint insects
+    bugs = np.zeros((2, N)); scatter(rng, bugs, lambda r: cricket(r, r.uniform(4200, 4800)), 20, 0.008)
+    out += bugs                                                                     # a few insects (chirps, not a hiss band)
     return out
 
 def swamp(rng):
-    out = bed(rng, pink_band(40, 500), 0.12, gusts(rng, (2, 3, 5)))                # heavy still air
+    out = bed(rng, pink_band(30, 320), 0.05, gusts(rng, (2, 3, 5)))                # heavy still air
     frogs = np.zeros((2, N)); scatter(rng, frogs, frog, 70, 0.10)
     out += reverb(frogs, 1.4, 0.35, 3000, rng)
     crick = np.zeros((2, N))
@@ -223,7 +225,7 @@ def swamp(rng):
     return out
 
 def nexus(rng):
-    out = bed(rng, pink_band(30, 650), 0.20, gusts(rng, (2, 3, 4), 1.0))           # traffic and city rumble
+    out = bed(rng, pink_band(30, 450), 0.12, gusts(rng, (2, 3, 4), 1.0))           # traffic and city rumble
     hum = sum(np.sin(2 * np.pi * h * 60 * T) / h for h in (2, 3, 4, 6))             # mains hum from the towers
     out += np.array([hum, hum]) * 0.012 * lfo(1, 0.5)
     cars = np.zeros((2, N))
@@ -247,29 +249,29 @@ def underwater(rng):
 
 def frost(rng):
     g = gusts(rng, (2, 3, 5, 7), 2.0)
-    out = bed(rng, pink_band(80, 1400), 0.20, g)                                    # cold wind
-    for c, cyc in ((700, 3), (1050, 5), (1500, 4)):                                 # whistle over the ridges
-        whistle = bed(rng, lambda f, c=c: np.exp(-((f - c) / 35) ** 2), 0.05, lfo(cyc, rng.uniform(0, 6)) ** 3 * g)
+    out = bed(rng, pink_band(50, 520), 0.06, 0.5 + 0.5 * g)                         # cold air, low
+    for c, cyc in ((700, 3), (1050, 5)):                                            # a faint whistle over the ridges now and then
+        whistle = bed(rng, lambda f, c=c: np.exp(-((f - c) / 35) ** 2), 0.012, lfo(cyc, rng.uniform(0, 6)) ** 5 * g)
         out += whistle
-    out += grains(rng, band(2500, 6000, 4), g ** 2, 12, (0.03, 0.08), level=0.012)  # blown snow
-    ice = np.zeros((2, N)); scatter(rng, ice, lambda r: creak(r, 140, 320, (0.6, 1.4)), 3, 0.05, 0.5)
+    ice = np.zeros((2, N)); scatter(rng, ice, lambda r: creak(r, 140, 320, (0.6, 1.4)), 5, 0.05, 0.5)
     out += reverb(ice, 2.0, 0.5, 2000, rng)
     return out
 
 def dunes(rng):
     g = gusts(rng, (2, 3, 5), 1.4)
-    out = bed(rng, pink_band(50, 800), 0.20, g)                                    # warm, low wind
-    out += grains(rng, band(2500, 5500, 4), g ** 2, 30, (0.02, 0.05), level=0.012)  # sand on the move
-    hk = np.zeros((2, N)); scatter(rng, hk, hawk, 2, 0.05, 0.7)
+    out = bed(rng, pink_band(40, 420), 0.06, 0.5 + 0.5 * g)                        # warm, still air
+    crick = np.zeros((2, N)); scatter(rng, crick, lambda r: cricket(r, r.uniform(3600, 4200)), 14, 0.012)
+    out += crick                                                                    # a few desert insects
+    hk = np.zeros((2, N)); scatter(rng, hk, hawk, 3, 0.05, 0.7)
     out += reverb(hk, 2.5, 0.55, 4500, rng)
     return out
 
 def wasteland(rng):
     g = gusts(rng, (2, 3, 5, 9), 2.2)
-    out = bed(rng, pink_band(60, 1000), 0.22, g)                                   # dry gusting wind
-    metal = np.zeros((2, N)); scatter(rng, metal, creak, 5, 0.035, 0.8)
+    out = bed(rng, pink_band(40, 480), 0.07, 0.5 + 0.5 * g)                        # dry air, low
+    metal = np.zeros((2, N)); scatter(rng, metal, creak, 7, 0.035, 0.8)
     out += reverb(metal, 1.6, 0.4, 3000, rng)
-    rattle = grains(rng, band(1500, 4000, 4), g ** 3, 6, (0.01, 0.02), level=0.05)  # loose debris in the gusts
+    rattle = grains(rng, band(1200, 3000, 4), g ** 3, 4, (0.01, 0.02), level=0.02)  # loose debris in the odd gust
     out += rattle
     th = np.zeros((2, N)); scatter(rng, th, thunder, 2, 0.12, 0.5)
     out += lowpass(th, 180)
@@ -283,14 +285,16 @@ def ember(rng):
         place(blurps, np.sin(ph) * np.exp(-np.linspace(0, 5, n)) * 0.10, int(rng.uniform(0, N)), rng.uniform(-0.7, 0.7))
     out += reverb(blurps, 1.2, 0.3, 1500, rng)
     out += grains(rng, band(2000, 6000, 3), np.ones(N), 5, (0.002, 0.006), level=0.05)  # crackling rock
-    out += bed(rng, band(1500, 3500, 4), 0.005, lfo(2, 0.7) ** 6)                   # a vent hissing now and then
+    out += bed(rng, band(400, 1400, 4), 0.003, lfo(2, 0.7) ** 8)                    # a vent breathing now and then
     return out
 
 REGIONS = {
     "forest-wilds": (forest, 11), "swamp-marsh": (swamp, 12), "nexus-hum": (nexus, 13), "underwater-city": (underwater, 14),
     "frost-spire": (frost, 15), "solara-dunes": (dunes, 16), "wasteland-wind": (wasteland, 17), "ember-peaks": (ember, 18),
 }
-TARGET_RMS_DB = -21.0
+# Oct 25: the wind/noise layer used to be most of every outdoor bed and mastering pushed it to -21 dBFS, which players heard as
+# constant wind. Beds are now mostly their events over a quiet low floor, mastered a little lower.
+TARGET_RMS_DB = -24.0
 
 def master(x):
     x = x - x.mean(axis=1, keepdims=True)

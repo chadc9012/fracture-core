@@ -35,8 +35,8 @@ export const WEATHER_BEDS: Record<string, { cutoff: number; gain: number; type: 
   // a wide band at 2.4 kHz still reached 16 kHz and read as static; a lowpassed wash reads as rain on leaves
   "Rain mist": { cutoff: 1300, gain: 0.03, type: "lowpass", q: 0.5 },
   Ashfall: { cutoff: 300, gain: 0.04, type: "lowpass", q: 0.5 },
-  "Snow haze": { cutoff: 1100, gain: 0.03, type: "lowpass", q: 0.5 },
-  "Dust front": { cutoff: 1600, gain: 0.05, type: "lowpass", q: 0.5 },
+  "Snow haze": { cutoff: 600, gain: 0.025, type: "lowpass", q: 0.5 },
+  "Dust front": { cutoff: 700, gain: 0.032, type: "lowpass", q: 0.5 },
 };
 
 /**
