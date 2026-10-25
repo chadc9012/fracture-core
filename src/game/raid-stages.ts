@@ -9,6 +9,8 @@ export type EncounterStage = {
   target: number;
   checkpoint: boolean;
   hazardLabel?: string;
+  /** hazard gained per objective step, replacing the stage type's default (long raid stages need a gentler rate) */
+  hazardPerStep?: number;
   room?: string;
   enemies?: readonly string[];
   triggers?: readonly string[];
@@ -53,7 +55,7 @@ export function advanceEncounter(definition: EncounterDefinition, run: Encounter
   if (!stage) return { ...run, status: "COMPLETE", message: "Encounter complete." };
   const nextProgress = Math.min(stage.target, run.progress + 1);
   const hazardGain: Record<EncounterStageType, number> = { SYNC_TRAVERSAL: 11, COMBAT: 8, PUZZLE_COMBAT: 14, TRAVERSAL_COMBAT: 12, BOSS_FIGHT: 9 };
-  const nextHazard = Math.min(100, run.hazard + hazardGain[stage.type]);
+  const nextHazard = Math.min(100, run.hazard + (stage.hazardPerStep ?? hazardGain[stage.type]));
   const contributions = { damage: run.damage + (stage.type === "BOSS_FIGHT" || stage.type === "COMBAT" ? 140 : 45), support: run.support + (stage.type === "PUZZLE_COMBAT" || stage.type === "SYNC_TRAVERSAL" ? 85 : 25) };
   if (nextHazard >= 100) return { ...run, hazard: 100, status: "WIPED", message: "Sand entombment reached critical pressure. Fireteam lost." };
   if (nextProgress < stage.target) {
