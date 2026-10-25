@@ -796,6 +796,7 @@ function SceneImpl({
   // the build's non-gun hardpoint (vehicle-gadgets.ts): mines, caltrops, flames, flares, drone dock, grill, breach thruster
   const gadget = useMemo(() => gadgetFor(activeBuildId), [activeBuildId]);
   const muzzleFlash = useRef<MuzzleFlashState | null>(null);
+  const droneShotHeard = useRef(0);
   const vFire = useRef({ cool: 0, gunCool: 0, secCool: 0, salvoLeft: 0, salvoCool: 0, barrel: 0, gunBarrel: 0, podBarrel: 0, gadgetCool: 0, gadgetHeld: false });
   const condition = useRef<VehicleCondition>(FRESH_VEHICLE);
   useEffect(() => { condition.current = normalizeCondition(gear?.vehicleConditions?.[vehicleId]); }, [vehicleId, gear?.vehicleConditions]);
@@ -1101,7 +1102,7 @@ function SceneImpl({
     const unlock = () => sfx.unlockAudio();
     window.addEventListener("pointerdown", unlock);
     window.addEventListener("keydown", unlock);
-    return () => { window.removeEventListener("pointerdown", unlock); window.removeEventListener("keydown", unlock); sfx.updateEngine(false, "", 0, 0, false); sfx.stopWaterAudio(); };
+    return () => { window.removeEventListener("pointerdown", unlock); window.removeEventListener("keydown", unlock); sfx.updateEngine(false, "", 0, 0, false); sfx.updateGadgetAudio(false, null); sfx.stopWaterAudio(); };
   }, []);
   useEffect(() => sfx.setVolume(settings.volume ?? 0.7), [settings.volume]);
   useEffect(() => { const m = settings.mute ?? {}; sfx.setMixVolumes(m.music ? 0 : settings.musicVolume ?? 1, m.sfx ? 0 : settings.sfxVolume ?? 1, m.ambience ? 0 : settings.ambienceVolume ?? 1, m.abilities ? 0 : settings.abilityVolume ?? 1); }, [settings.musicVolume, settings.sfxVolume, settings.ambienceVolume, settings.abilityVolume, settings.mute]);
@@ -1861,15 +1862,15 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
           } else if (gadget.use === "PRESS" && pressed && vf.gadgetCool <= 0) {
             vf.gadgetCool = gadget.cooldown;
             const rear = vehiclePoint(pose, [0, 0.4, rearZ]);
-            if (gadget.kind === "MINE" || gadget.kind === "EMP_MINE") { dropMine(gs, gadget.kind, rear.x, walkHeight(rear.x, rear.z), rear.z, now); sfx.playReload("end"); }
+            if (gadget.kind === "MINE" || gadget.kind === "EMP_MINE") { dropMine(gs, gadget.kind, rear.x, walkHeight(rear.x, rear.z), rear.z, now); sfx.playGadget("MINE_DROP"); }
             else if (gadget.kind === "CALTROPS") {
               const back = vehiclePoint(pose, [0, 0, rearZ - GADGET.CALTROPS.back]);
-              launchCaltrops(gs, back.x, back.z, now); sfx.playShot("VEHICLE");
-            } else if (gadget.kind === "FLARES") { const at = vehiclePoint(pose, [0, 0.2, 0]); popFlares(gs, at.x, at.y, at.z, s.yaw, now); sfx.playShot("PULSE"); }
-            else if (gadget.kind === "DRONE") { const top = vehiclePoint(pose, [0, 2.4, 0]); launchDrone(gs, top.x, top.y, top.z, now); alert(sim, "RQ-44 Remora launched"); }
+              launchCaltrops(gs, back.x, back.z, now); sfx.playGadget("CALTROPS");
+            } else if (gadget.kind === "FLARES") { const at = vehiclePoint(pose, [0, 0.2, 0]); popFlares(gs, at.x, at.y, at.z, s.yaw, now); sfx.playGadget("FLARES"); }
+            else if (gadget.kind === "DRONE") { const top = vehiclePoint(pose, [0, 2.4, 0]); launchDrone(gs, top.x, top.y, top.z, now); sfx.playGadget("DRONE_LAUNCH"); alert(sim, "RQ-44 Remora launched"); }
             else if (gadget.kind === "BREACH") {
               s.vSpeed = Math.max(s.vSpeed, 0) + 45; // the cap is raised for the window below
-              gs.breachUntil = now + GADGET.BREACH.window; s.punch += 1.2; sfx.playExplosion(false, sfx.where(s.x, s.z, s.yaw, s.x, s.z));
+              gs.breachUntil = now + GADGET.BREACH.window; s.punch += 1.2; sfx.playGadget("BREACH");
             }
           }
         }
@@ -2349,6 +2350,13 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
         if (a.stepT <= 0) { a.stepT = 1; const rid = here?.id; sfx.playFootstep(interior ? "HARD" : submerged ? "WATER" : rid === "frostspire" ? "SNOW" : rid === "solara" ? "SAND" : rid === "nexus" ? "HARD" : "GRASS", held.has("ShiftLeft") || held.has("ShiftRight")); }
       }
       const fwd = held.has("KeyW") || held.has("ArrowUp"), rev = held.has("KeyS") || held.has("ArrowDown");
+      {
+        // gadget audio: the flame roar while the jets burn, the drone's rotors where it flies, a crack per drone round
+        const gs = sim.gadgets, nowG = performance.now() / 1000;
+        const drone = gs.drones.find((d) => d.until > nowG);
+        sfx.updateGadgetAudio(!!gs.flameLit && nowG - gs.flameLit.t < 0.1, drone ? sfx.where(s.x, s.z, s.yaw, drone.x, drone.z) : null);
+        for (const sh of gs.droneShots) { if (sh.id <= droneShotHeard.current) continue; droneShotHeard.current = sh.id; sfx.playGadget("DRONE_SHOT", sfx.where(s.x, s.z, s.yaw, sh.x, sh.z)); }
+      }
       sfx.updateEngine(s.inVehicle, vehicleId, Math.min(1, Math.abs(s.vSpeed) / 45), fwd || rev ? 1 : 0, rev && s.vSpeed > 2, selectedVehicle.speed / vehicleById(vehicleId).speed);
     }
 

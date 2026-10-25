@@ -759,3 +759,80 @@ export function playDirectorCue(action: CueAction, destinationId?: string | null
   tone(c, o, { f0: a, f1: b, dur: shape.dur, type: cue.wave, gain: 0.07 });
   if (cue.band > 0 && cue.noise > 0) burst(c, o, { dur: shape.dur * 0.8, freq: cue.band, q: 3, gain: cue.noise * 0.5 });
 }
+
+/* ---------------- vehicle gadgets (vehicle-gadgets.ts): one-shots and two positional loops ---------------- */
+export type GadgetSound = "MINE_DROP" | "CALTROPS" | "FLARES" | "DRONE_LAUNCH" | "DRONE_SHOT" | "BREACH";
+/** Drop clank then the arming beeps; the caltrop canister's thump and a scatter of steel; flare pops with a fizz; the drone
+ * spinning up off its dock; the drone's light gun; the breach thruster's ignition kick and rush. */
+export function playGadget(kind: GadgetSound, w: Where = {}) {
+  const c = ctx; if (!c) return;
+  const o = outVerb(c, w, 0.2);
+  if (kind === "MINE_DROP") {
+    noiseLayer(c, o, { dur: 0.09, freq: 1400, q: 3, gain: 0.5, drive: 2 });           // steel on dirt
+    tone(c, o, { f0: 180, f1: 90, dur: 0.12, gain: 0.35 });
+    for (let k = 0; k < 2; k++) tone(c, o, { f0: 2200, f1: 2200, dur: 0.05, type: "square", gain: 0.05, at: 0.55 + k * 0.18 }); // arming
+    tone(c, o, { f0: 3000, f1: 3000, dur: 0.09, type: "square", gain: 0.06, at: 0.92 });
+  } else if (kind === "CALTROPS") {
+    tone(c, o, { f0: 140, f1: 60, dur: 0.18, gain: 0.5 });
+    noiseLayer(c, o, { dur: 0.12, freq: 700, q: 0.8, gain: 0.5, drive: 2.5 });
+    for (let k = 0; k < 16; k++) noiseLayer(c, o, { dur: 0.02, freq: 3500 + Math.random() * 3500, q: 7, gain: 0.08 + Math.random() * 0.08, at: 0.35 + Math.random() * 0.5 }); // spikes landing
+  } else if (kind === "FLARES") {
+    for (let k = 0; k < 8; k++) {
+      noiseLayer(c, o, { dur: 0.04, freq: 1800, q: 1.2, gain: 0.35, at: k * 0.06, drive: 2 });
+      noiseLayer(c, o, { dur: 0.9, freq: 4500, type: "highpass", q: 0.5, gain: 0.05, at: k * 0.06 + 0.03, attack: 0.05 }); // fizz
+    }
+  } else if (kind === "DRONE_LAUNCH") {
+    noiseLayer(c, o, { dur: 0.08, freq: 900, q: 2, gain: 0.35 }); // release latch
+    tone(c, o, { f0: 60, f1: 420, dur: 1.1, type: "sawtooth", gain: 0.06, at: 0.05 });
+    noiseLayer(c, o, { dur: 1.2, freq: 1200, q: 0.9, gain: 0.18, at: 0.05, attack: 0.4, sweepTo: 2400 });
+  } else if (kind === "DRONE_SHOT") {
+    noiseLayer(c, o, { dur: 0.03, freq: 5200, type: "highpass", gain: 0.35, attack: 0.0008 });
+    noiseLayer(c, o, { dur: 0.07, freq: 1600, q: 1.4, gain: 0.3, drive: 2 });
+    tone(c, o, { f0: 320, f1: 140, dur: 0.06, gain: 0.15 });
+  } else {
+    tone(c, o, { f0: 90, f1: 30, dur: 0.6, gain: 0.8 });
+    noiseLayer(c, o, { dur: 0.06, freq: 2600, type: "highpass", gain: 0.6, attack: 0.0008 });
+    noiseLayer(c, o, { buf: c.brown, dur: 1.4, freq: 2200, type: "lowpass", q: 0.6, gain: 0.7, attack: 0.03, sweepTo: 400, drive: 2 });
+  }
+}
+
+type LoopVoice = { gain: GainNode; pan: StereoPannerNode; nodes: AudioScheduledSourceNode[] };
+const gadgetLoops: { flame: LoopVoice | null; drone: LoopVoice | null } = { flame: null, drone: null };
+function startGadgetLoop(c: Ctx, kind: "flame" | "drone"): LoopVoice {
+  const gain = c.ac.createGain(); gain.gain.value = 0;
+  const pan = c.ac.createStereoPanner();
+  gain.connect(pan).connect(c.sfx);
+  const nodes: AudioScheduledSourceNode[] = [];
+  if (kind === "flame") {
+    // a gas roar: a low rumble, a mid "whoomph" band that gusts, and a hiss of the jets
+    nodes.push(loopNoise(c, gain, "lowpass", 260, 0.6, 0.9).src);
+    const mid = loopNoise(c, gain, "bandpass", 700, 0.7, 0.5); nodes.push(mid.src);
+    nodes.push(loopNoise(c, gain, "highpass", 3800, 0.5, 0.12).src);
+    nodes.push(gust(c, mid.gain.gain, 0.5));
+  } else {
+    // four rotors: two slightly detuned buzzes through a band, with a flutter
+    const band = c.ac.createBiquadFilter(); band.type = "bandpass"; band.frequency.value = 520; band.Q.value = 1.2; band.connect(gain);
+    for (const f of [178, 183.5]) { const os = c.ac.createOscillator(); os.type = "sawtooth"; os.frequency.value = f; const g = c.ac.createGain(); g.gain.value = 0.35; os.connect(g).connect(band); os.start(); nodes.push(os); }
+    nodes.push(loopNoise(c, gain, "bandpass", 1500, 1, 0.25).src);
+    const lfo = c.ac.createOscillator(); lfo.frequency.value = 11; const d = c.ac.createGain(); d.gain.value = 0.25; lfo.connect(d).connect(gain.gain); lfo.start(); nodes.push(lfo);
+  }
+  return { gain, pan, nodes };
+}
+/** every frame: the flame jets' roar while they burn (on the player's own hull) and the drone's rotors where it flies */
+export function updateGadgetAudio(flame: boolean, drone: Where | null) {
+  const c = ctx; if (!c) return;
+  const t = c.ac.currentTime;
+  for (const [kind, on, w, peak] of [["flame", flame, {} as Where, 0.5], ["drone", !!drone, drone ?? {}, 0.16]] as const) {
+    let v = gadgetLoops[kind];
+    if (on) v ??= gadgetLoops[kind] = startGadgetLoop(c, kind);
+    if (!v) continue;
+    if (!on) {
+      v.gain.gain.setTargetAtTime(0, t, 0.12);
+      const dead = v; gadgetLoops[kind] = null;
+      window.setTimeout(() => { for (const n of dead.nodes) { try { n.stop(); } catch { /* stopped */ } } dead.gain.disconnect(); dead.pan.disconnect(); }, 900);
+      continue;
+    }
+    v.gain.gain.setTargetAtTime(peak / ((w.dist ?? 0) * 0.06 + 1), t, kind === "flame" ? 0.05 : 0.2);
+    v.pan.pan.setTargetAtTime(Math.max(-0.85, Math.min(0.85, w.pan ?? 0)), t, 0.15);
+  }
+}
