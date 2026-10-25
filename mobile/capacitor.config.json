@@ -1,0 +1,14 @@
+{
+  "appId": "com.chadc9012.worldfracture",
+  "appName": "World Fracture",
+  "webDir": "www",
+  "server": {
+    "url": "https://id-preview--3af6c220-de4d-430c-9ded-5ab13b5df67f.lovable.app/",
+    "androidScheme": "https",
+    "cleartext": false
+  },
+  "android": {
+    "allowMixedContent": false,
+    "backgroundColor": "#05060c"
+  }
+}

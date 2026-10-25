@@ -1,0 +1,58 @@
+# Builds the World Fracture Android app (mobile/, a Capacitor shell that runs the game full screen in landscape) and publishes the APK
+# as the "android-latest" GitHub release, so it can be downloaded and installed straight from a phone.
+name: Android APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "mobile/**"
+      - ".github/workflows/android-apk.yml"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: android-apk
+  cancel-in-progress: true
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install Capacitor
+        working-directory: mobile
+        run: npm ci
+
+      - name: Sync the Android project
+        working-directory: mobile
+        run: npx cap sync android
+
+      - name: Build the debug APK
+        working-directory: mobile/android
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleDebug --no-daemon
+          cp app/build/outputs/apk/debug/app-debug.apk "$GITHUB_WORKSPACE/WorldFracture.apk"
+
+      - name: Publish the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release delete android-latest --yes --cleanup-tag || true
+          gh release create android-latest WorldFracture.apk \
+            --title "World Fracture for Android (latest)" \
+            --notes "Built from ${GITHUB_SHA::7}. Open this page on your Android phone, tap WorldFracture.apk, and allow installs from your browser when asked. The app runs the live game full screen in landscape, so it always has the newest visuals." \
+            --prerelease

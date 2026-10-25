@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">World Fracture</string>
+    <string name="title_activity_main">World Fracture</string>
+    <string name="package_name">com.chadc9012.worldfracture</string>
+    <string name="custom_url_scheme">com.chadc9012.worldfracture</string>
+</resources>

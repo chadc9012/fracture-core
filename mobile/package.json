@@ -1,0 +1,17 @@
+{
+  "name": "world-fracture-mobile",
+  "private": true,
+  "version": "0.1.0",
+  "description": "World Fracture for Android: a Capacitor shell that runs the game full-screen in landscape",
+  "scripts": {
+    "sync": "cap sync android",
+    "apk": "cap sync android && cd android && ./gradlew assembleDebug"
+  },
+  "dependencies": {
+    "@capacitor/android": "^7.0.0",
+    "@capacitor/core": "^7.0.0"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^7.0.0"
+  }
+}
