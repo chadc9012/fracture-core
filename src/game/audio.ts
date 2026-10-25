@@ -892,3 +892,9 @@ export function updateGadgetAudio(flame: boolean, drone: Where | null) {
     v.pan.pan.setTargetAtTime(Math.max(-0.85, Math.min(0.85, w.pan ?? 0)), t, 0.15);
   }
 }
+
+/** an enemy grenade's fuse beep (positional, short, cutting through the mix so the player hears where it is) */
+export function playGrenadeBeep(w: Where = {}) {
+  const c = ctx; if (!c) return;
+  tone(c, out(c, w), { f0: 2900, f1: 2900, dur: 0.05, type: "square", gain: 0.09 });
+}

@@ -36,6 +36,8 @@ import { aimFor, armamentFor, vehiclePoint, vehicleVelocity, type VehicleGun } f
 import { dropMine, GADGET, gadgetFor, launchCaltrops, launchDrone, popFlares, ramFor } from "@/game/vehicle-gadgets";
 import { ordnanceById } from "@/game/ordnance";
 import { GadgetFx } from "./GadgetFx";
+import { GrenadeFx } from "./GrenadeFx";
+import { beepEvery } from "@/game/enemy-tactics";
 import { EnemyMuzzleFlashes, flashEnemyMuzzle, MuzzleFlash, type MuzzleFlashState } from "./VehicleGunFx";
 import { GoreFx } from "./GoreFx";
 import { enemyDrives } from "./EnemyModel";
@@ -827,6 +829,7 @@ function SceneImpl({
   const gadget = useMemo(() => gadgetFor(activeBuildId), [activeBuildId]);
   const muzzleFlash = useRef<MuzzleFlashState | null>(null);
   const droneShotHeard = useRef(0);
+  const grenadeBeeps = useRef(new Map<number, number>());
   const vFire = useRef({ cool: 0, gunCool: 0, secCool: 0, salvoLeft: 0, salvoCool: 0, barrel: 0, gunBarrel: 0, podBarrel: 0, gadgetCool: 0, gadgetHeld: false });
   const condition = useRef<VehicleCondition>(FRESH_VEHICLE);
   useEffect(() => { condition.current = normalizeCondition(gear?.vehicleConditions?.[vehicleId]); }, [vehicleId, gear?.vehicleConditions]);
@@ -2447,6 +2450,10 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
         const gs = sim.gadgets, nowG = performance.now() / 1000;
         const drone = gs.drones.find((d) => d.until > nowG);
         sfx.updateGadgetAudio(!!gs.flameLit && nowG - gs.flameLit.t < 0.1, drone ? sfx.where(s.x, s.z, s.yaw, drone.x, drone.z) : null);
+        // enemy grenades: a beep from where each one lies, faster as its fuse runs out
+        const beeps = grenadeBeeps.current;
+        for (const gr of sim.grenades) { const last = beeps.get(gr.id) ?? -1; if (nowG - last >= beepEvery(gr.fuse)) { beeps.set(gr.id, nowG); sfx.playGrenadeBeep(sfx.where(s.x, s.z, s.yaw, gr.x, gr.z)); } }
+        if (beeps.size > 8) for (const id of [...beeps.keys()]) if (!sim.grenades.some((g) => g.id === id)) beeps.delete(id);
         for (const sh of gs.droneShots) { if (sh.id <= droneShotHeard.current) continue; droneShotHeard.current = sh.id; sfx.playGadget("DRONE_SHOT", sfx.where(s.x, s.z, s.yaw, sh.x, sh.z)); }
       }
       sfx.updateEngine(s.inVehicle, vehicleId, Math.min(1, Math.abs(s.vSpeed) / 45), fwd || rev ? 1 : 0, rev && s.vSpeed > 2, selectedVehicle.speed / vehicleById(vehicleId).speed);
@@ -3423,6 +3430,7 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
       <MuzzleFlash flash={muzzleFlash} />
       <EnemyMuzzleFlashes />
       <GadgetFx sim={sim} />
+      <GrenadeFx sim={sim} />
       <BulletImpacts sim={sim} />
       <WorldMarkers depleted={depleted} />
       <Interior structure={structure} />

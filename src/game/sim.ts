@@ -8,6 +8,7 @@ import { createEnvState, STRIKE_MACHINE_DAMAGE, STRIKE_PLAYER_DAMAGE, type EnvSt
 import { squadMove, squadRole } from "./enemy-intelligence";
 import { createAi, pickCover, shouldTakeCover, sightRange, stepAwareness, type EnemyAi } from "./enemy-perception";
 import { enemyHitChance, sightLine } from "./line-of-sight";
+import { FLANK_AFTER, FLANK_GIVE_UP, findFlankSpot, GRENADE, GRENADE_AFTER, grenadeDamage, lobVelocity, MAX_FLANKERS, stepGrenade, throwsGrenades, type Grenade } from "./enemy-tactics";
 import { freshGadgets, GADGET, inCaltrops, inFlames, droneTarget, mineTriggered, slowFor, spoofed, stepDrone, stepFlares, type GadgetState } from "./vehicle-gadgets";
 import { COVER_CHEST, COVER_HOLD, coverCandidates, coverPhase, findCover, HIDE_SECONDS } from "./enemy-cover";
 import { registeredModelSolids } from "./environment-collision";
@@ -103,6 +104,10 @@ export type ZoneState = {
 };
 
 export type Machine = {
+  /** enemy-tactics.ts: seconds the player has been out of this machine's sight while it is alert; a flank it is running; when it may throw again */
+  hiddenFor?: number | undefined;
+  flank?: { x: number; z: number; until: number } | undefined;
+  grenadeAt?: number | undefined;
   /** vehicle gadgets (vehicle-gadgets.ts): caltrops and EMP mines slow it to snareMult until snareUntil */
   snareUntil?: number | undefined;
   snareMult?: number | undefined;
@@ -459,6 +464,10 @@ export type WorldSim = {
   riftTurrets: RiftTurret[];
   /** vehicle gadgets (vehicle-gadgets.ts): mines, caltrops, drones, flares, flame jets, ram multipliers */
   gadgets: GadgetState;
+  /** enemy grenades in flight or on the ground (enemy-tactics.ts), and the squad cooldown between throws */
+  grenades: Grenade[];
+  grenadeCool: number;
+  nextGrenadeId: number;
   /** ability-effects.ts: stable outcome log (activation / rejection / cancellation) consumed by HUD, animation and VFX; never written by presentation */
   abilityEvents: AbilityEvent[];
   nextAbilityEventId: number;
@@ -759,6 +768,7 @@ export function createSim(): WorldSim {
     volatileZones: [],
     riftTurrets: [],
     gadgets: freshGadgets(),
+    grenades: [], grenadeCool: 0, nextGrenadeId: 1,
     abilityEvents: [],
     nextAbilityEventId: 1,
     iframes: 0,
@@ -1095,6 +1105,25 @@ export function gadgetBlast(sim: WorldSim, x: number, y: number, z: number, radi
   sim.combatHeat += 3;
   sim.burstEvents.push({ id: sim.nextBurstId++, x, y, z, radius, element, launcher: "ROCKET", ...(fx ? { fx } : {}) });
   if (sim.burstEvents.length > 8) sim.burstEvents.splice(0, sim.burstEvents.length - 8);
+}
+
+/** enemy grenades (enemy-tactics.ts): fly, bounce, roll, then go off; cover between the blast and the player softens it */
+function stepEnemyGrenades(sim: WorldSim, dt: number, px: number, pz: number, playerEye: number) {
+  sim.grenadeCool = Math.max(0, sim.grenadeCool - dt);
+  if (!sim.grenades.length) return;
+  for (const gr of [...sim.grenades]) {
+    stepGrenade(gr, dt, walkHeight);
+    if (gr.fuse > 0) continue;
+    sim.grenades.splice(sim.grenades.indexOf(gr), 1);
+    const chest = { x: px, y: playerEye - 0.4, z: pz };
+    const dist = Math.hypot(chest.x - gr.x, chest.y - gr.y, chest.z - gr.z);
+    const covered = sightLine({ x: gr.x, y: gr.y + 0.4, z: gr.z }, chest, { ground: walkHeight, obstaclesNear: queryObstacles, solids: registeredModelSolids() }).blocked;
+    const dmg = grenadeDamage(dist, covered);
+    if (dmg > 0) hurtPlayer(sim, dmg / sim.mods.hullDurability, "grenade");
+    sim.combatHeat += 3;
+    sim.burstEvents.push({ id: sim.nextBurstId++, x: gr.x, y: gr.y + 0.3, z: gr.z, radius: GRENADE.radius, element: "KINETIC", launcher: "ROCKET" });
+    if (sim.burstEvents.length > 8) sim.burstEvents.splice(0, sim.burstEvents.length - 8);
+  }
 }
 
 /** vehicle gadgets each step (vehicle-gadgets.ts rules): mines, caltrop fields, flame jets, the Remora drone, flares */
@@ -1697,6 +1726,7 @@ export function stepSim(sim: WorldSim, input: SimInput) {
       const line = sightLine({ x: m.x, y: feet + 1.55 * enemyBodyScaleOf(m.scale), z: m.z }, { x: px, y: playerEye - 0.35, z: pz }, { ground: walkHeight, obstaclesNear: queryObstacles, solids: registeredModelSolids() });
       m.los = { t: nowLos, clear: !line.blocked, at: line.blocked ? line.at : undefined };
     }
+    m.hiddenFor = m.los && !m.los.clear && d < 160 ? (m.hiddenFor ?? 0) + dt : 0;
     const inView = d >= 160 || (m.los?.clear ?? true);
     const sight = sightRange(night, sim.envVisibility ?? 1, m.elite) * (sim.stealthMult ?? 1) * (aggro / 70 > 1 ? Math.min(1.6, aggro / 70) : 1);
     const forced = m.boss || m.mission || sim.hp < 35 && d < 40;
@@ -1765,15 +1795,46 @@ export function stepSim(sim: WorldSim, input: SimInput) {
       else m.rot = Math.atan2(dx, dz);
       m.cool = Math.max(m.cool, 0.4);
     } else if (aiState === "ALERT") {
-      // squad role + threat drive positioning instead of a straight chase
       const i = sim.machines.indexOf(m);
-      const move = squadMove(squadRole(i, m.elite, m.boss), d, sim.hp / 100, sim.combatHeat, performance.now() / 1000 + i, sim.mods.squadArchetype, sim.mods.rangedHoldFire, sim.mods.branchPosture);
+      const nowT = performance.now() / 1000;
+      const role = squadRole(i, m.elite, m.boss);
+      // the player has gone to ground (enemy-tactics.ts): lob a grenade over the cover at where they were last seen…
+      if (!scripted && throwsGrenades(m.kind) && (m.hiddenFor ?? 0) >= GRENADE_AFTER && d >= GRENADE.minRange && d <= GRENADE.maxRange
+        && sim.grenades.length < GRENADE.maxLive && sim.grenadeCool <= 0 && nowT >= (m.grenadeAt ?? 0) && (m.aim ?? 0) <= 0) {
+        const feetG = walkHeight(m.x, m.z), guess = { x: px + (Math.random() - 0.5) * 3, z: pz + (Math.random() - 0.5) * 3 };
+        const from = { x: m.x, y: feetG + 1.7 * enemyBodyScaleOf(m.scale), z: m.z };
+        const v = lobVelocity(from, { x: guess.x, y: walkHeight(guess.x, guess.z), z: guess.z });
+        sim.grenades.push({ ...from, vx: v.vx, vy: v.vy, vz: v.vz, fuse: GRENADE.fuse, id: sim.nextGrenadeId++, rest: false });
+        sim.grenadeCool = GRENADE.squadCooldown; m.grenadeAt = nowT + GRENADE.ownCooldown;
+        m.cool = Math.max(m.cool, 0.9); m.rot = Math.atan2(dx, dz);
+        if (d < 26) alert(sim, "GRENADE — move!");
+      }
+      // …and send a couple of troopers round the side to find a line on them
+      if (!m.flank && !scripted && !m.boss && role !== "LEADER" && (m.hiddenFor ?? 0) >= FLANK_AFTER && ai.peekX === undefined) {
+        const running = sim.machines.filter((o) => o.alive && o.flank && o.flank.until > nowT).length;
+        if (running < MAX_FLANKERS) {
+          const spot = findFlankSpot(m.x, m.z, { x: px, y: playerEye, z: pz }, i % 2 ? 1 : -1, { ground: walkHeight, obstaclesNear: queryObstacles, solids: registeredModelSolids() });
+          if (spot) m.flank = { ...spot, until: nowT + FLANK_GIVE_UP };
+        }
+      }
+      if (m.flank && (nowT > m.flank.until || m.los?.clear || Math.hypot(m.flank.x - m.x, m.flank.z - m.z) < 1.5)) m.flank = undefined;
+      if (m.flank) {
+        // running the flank: move round to the spot, guns up, firing the moment there is a line
+        const fx = m.flank.x - m.x, fz = m.flank.z - m.z, fd = Math.hypot(fx, fz) || 1;
+        m.x += (fx / fd) * speed * 1.15 * dt; m.z += (fz / fd) * speed * 1.15 * dt;
+        m.rot = Math.atan2(fx, fz);
+        m.cool -= dt;
+        if (m.los?.clear) { m.rot = Math.atan2(dx, dz); engage(); }
+      } else {
+      // squad role + threat drive positioning instead of a straight chase
+      const move = squadMove(role, d, sim.hp / 100, sim.combatHeat, nowT + i, sim.mods.squadArchetype, sim.mods.rangedHoldFire, sim.mods.branchPosture);
       const nx = dx / d, nz = dz / d;
       m.x += (nx * move.forward + -nz * move.strafe) * speed * dt;
       m.z += (nz * move.forward + nx * move.strafe) * speed * dt;
       m.rot = Math.atan2(dx, dz);
       m.cool -= dt;
       engage();
+      }
     } else if (aiState === "SUSPICIOUS" || aiState === "SEARCH") {
       // investigate last known position; turn to face it, move cautiously
       const lx = ai.lastX - m.x, lz = ai.lastZ - m.z, ld = Math.hypot(lx, lz);
@@ -1849,6 +1910,7 @@ export function stepSim(sim: WorldSim, input: SimInput) {
 
   stepBeacons(sim, dt, px, pz);
   stepGadgets(sim, dt, px, pz, playerEye);
+  stepEnemyGrenades(sim, dt, px, pz, playerEye);
 
 // stealth: surviving close to hostiles without opening fire
   if (!input.inVehicle && hostileNear > 0 && sim.combatHeat < 2) {
