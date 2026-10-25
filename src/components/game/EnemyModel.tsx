@@ -5,7 +5,8 @@ import { clone as cloneSkinned } from "three/examples/jsm/utils/SkeletonUtils.js
 import { enemyVisual, type EnemyRole, type EnemyVisual } from "@/game/enemy-visuals";
 import { prepareWorldAsset } from "@/game/asset-render-quality";
 import { enemyClipWeights, strideRate, type ClipWeights, type EnemyDrive } from "@/game/enemy-anim";
-import { collapseBlend, deathPoseFor, enemyWeapon, HELD_MUZZLE, heldPitch, PALM, RAISE_RATE } from "@/game/enemy-weapons";
+import { enemyWeapon, HELD_MUZZLE, heldPitch, PALM, RAISE_RATE } from "@/game/enemy-weapons";
+import { DEATH_BONES, deathBonesAt, type DeathStyle } from "@/game/death-animations";
 import type { HandlingClass } from "@/game/weapon-handling";
 import { heldWeaponCopy } from "./heldModels";
 
@@ -15,11 +16,11 @@ function rigBone(root: THREE.Object3D, name: string): THREE.Object3D | null {
 }
 
 /** Per-machine motion the renderer reads (WarMachines writes it each frame). `procedural` is set by the model: true while it has no clips. */
-/** `frozen`: hold the current pose (a corpse); the mixer and procedural motion stop. `death`: a corpse collapsing (enemy-weapons.ts
- * deathPoseFor / collapseBlend). `muzzle`: where this enemy's held gun's barrel was last frame (world), for shots and flashes. */
+/** `frozen`: hold the current pose (a corpse); the mixer and procedural motion stop. `death`: a corpse playing its death animation
+ * (death-animations.ts: style, seed for its variation, mirror for falls to the right). `muzzle`: where this enemy's held gun's barrel was last frame (world), for shots and flashes. */
 /** each pooled machine slot's drive (WarMachines registers them): Scene reads `muzzle` to fire enemy shots from the held gun */
 export const enemyDrives: (DriveRef | undefined)[] = [];
-export type DriveRef = { current: EnemyDrive & { procedural?: boolean; frozen?: boolean; death?: { age: number; seed: number }; muzzle?: { x: number; y: number; z: number; t: number } } };
+export type DriveRef = { current: EnemyDrive & { procedural?: boolean; frozen?: boolean; death?: { age: number; seed: number; style: DeathStyle; mirror: boolean }; muzzle?: { x: number; y: number; z: number; t: number } } };
 import * as THREE from "three";
 import { SURFACES, regionLook } from "@/game/visual-standard";
 
@@ -157,7 +158,7 @@ function Authored({ visual, headRef, drive, onBuilt, weapon }: { visual: EnemyVi
     return () => { live = false; holder.clear(); };
   }, [weapon, built, holder]);
   // corpse collapse: this body's pose deltas and the resting quaternions they are applied on top of
-  const collapse = useRef<{ seed: number; base: [THREE.Object3D, THREE.Quaternion, THREE.Euler][] } | null>(null);
+  const collapse = useRef<{ seed: number; base: [string, THREE.Object3D, THREE.Quaternion][] } | null>(null);
   const tmp = useMemo(() => ({ v: new THREE.Vector3(), w: new THREE.Vector3(), q: new THREE.Quaternion(), e: new THREE.Euler() }), []);
   const body = useRef<THREE.Group>(null);
   const seed = useRef(Math.random() * 10);
@@ -183,20 +184,21 @@ function Authored({ visual, headRef, drive, onBuilt, weapon }: { visual: EnemyVi
       if (death && built.mixer) {
         if (!collapse.current || collapse.current.seed !== death.seed) {
           // a new body in this pooled slot: back to the rest pose, then take this one's collapse
-          if (collapse.current) for (const [bone, q] of collapse.current.base) bone.quaternion.copy(q);
-          const pose = deathPoseFor(death.seed);
+          if (collapse.current) for (const [, bone, q] of collapse.current.base) bone.quaternion.copy(q);
           collapse.current = { seed: death.seed, base: [] };
-          for (const [name, e] of Object.entries(pose)) { const bone = rigBone(built.obj, name); if (bone) collapse.current.base.push([bone, bone.quaternion.clone(), new THREE.Euler(...e)]); }
+          for (const name of DEATH_BONES) { const bone = rigBone(built.obj, name); if (bone) collapse.current.base.push([name, bone, bone.quaternion.clone()]); }
         }
-        const k = collapseBlend(death.age);
-        for (const [bone, base, full] of collapse.current.base) {
-          tmp.e.set(full.x * k, full.y * k, full.z * k);
-          bone.quaternion.copy(base).multiply(tmp.q.setFromEuler(tmp.e));
+        // the death animation: additive on this rig's own rest pose (death-animations.ts)
+        const pose = deathBonesAt(death.style, death.age, death.seed, death.mirror);
+        for (const [name, bone, base] of collapse.current.base) {
+          bone.quaternion.copy(base);
+          const e = pose[name];
+          if (e) { tmp.e.set(e[0], e[1], e[2]); bone.quaternion.multiply(tmp.q.setFromEuler(tmp.e)); }
         }
       }
       return;
     }
-    if (collapse.current) { for (const [bone, q] of collapse.current.base) bone.quaternion.copy(q); collapse.current = null; }
+    if (collapse.current) { for (const [, bone, q] of collapse.current.base) bone.quaternion.copy(q); collapse.current = null; }
     posed.current = false;
     if (built.mixer) {
       const d = drive?.current ?? { speed: 0, aiming: false };

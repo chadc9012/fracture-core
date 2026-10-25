@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import {
-  addCorpse, bloodOf, corpsePose, critterBlood, emptyGoreEvent, FALL_TIME, GORE_TUNE, makeCorpses, makeGorePools, normalizeGore, severBone,
+  addCorpse, bloodOf, corpsePose, critterBlood, emptyGoreEvent, GORE_TUNE, makeCorpses, makeGorePools, normalizeGore, severBone,
   severOf, spawnSpray, sprayFor, stepGore, type GoreEvent,
 } from "./gore";
 import { createSim, defeatMachine, fireBullet, stepSim } from "./sim";
@@ -89,13 +89,16 @@ describe("particles land and stain the ground", () => {
 });
 
 describe("bodies", () => {
-  test("a killed body falls away from the shot, lies still, then sinks and frees its slot", () => {
+  test("a killed body plays its death animation, lies still, then sinks and frees its slot", () => {
     const corpses = makeCorpses();
-    const c = addCorpse(corpses, ev({ kind: "KILL", dx: 0, dz: -1, body: { kind: "RAIDER", role: "standard", rot: 0, groundY: 2, scale: 1 } }), "FULL", { sever: null, gib: false, stumpSpurt: 0 })!;
-    expect(c.fz).toBe(-1);
-    expect(corpsePose({ age: 0, life: c.life }).tip).toBe(0);
-    expect(corpsePose({ age: FALL_TIME + 1, life: c.life }).tip).toBeCloseTo(1, 5);
-    expect(corpsePose({ age: c.life - 0.01, life: c.life }).sink).toBeGreaterThan(0.9);
+    // a blast from the front throws it onto its back, away from the blast
+    const c = addCorpse(corpses, ev({ kind: "KILL", cause: "BLAST", dx: 0, dz: -1, body: { kind: "RAIDER", role: "standard", rot: 0, groundY: 2, scale: 1 } }), "FULL", { sever: null, gib: false, stumpSpurt: 0 })!;
+    expect(c.style).toBe("BLOWN_BACK");
+    expect(c.fz).toBeLessThan(-0.9);
+    expect(corpsePose({ age: 0, life: c.life, style: c.style }).tip).toBe(0);
+    expect(corpsePose({ age: 3, life: c.life, style: c.style }).tip).toBeCloseTo(1, 5);
+    expect(corpsePose({ age: 3, life: c.life, style: c.style }).root.slide).toBeGreaterThan(1);
+    expect(corpsePose({ age: c.life - 0.01, life: c.life, style: c.style }).sink).toBeGreaterThan(0.9);
     expect(GORE_TUNE.OFF.corpseLife).toBeGreaterThan(0); // bodies fall even with gore off
   });
   test("a gibbed body leaves no corpse", () => {

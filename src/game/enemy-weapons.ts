@@ -7,9 +7,7 @@
  * gripped at the palm, pointed where the body faces — level while aiming/firing, angled down at a low ready otherwise.
  * (The hand bone twists through the clips, so a fixed hand-bone offset pointed the barrel at the sky.)
  *
- * Death: bodies (GoreFx corpses) blend from their standing pose into a collapse — knees buckle forward, the spine curls,
- * the head drops, the arms go limp — while the body topples; each body gets its own variation from a seed.
- * Checked by eye on the authored raider rig in a three.js render (front/side) before shipping.
+ * Death: bodies (GoreFx corpses) play one of six keyframed death animations (death-animations.ts).
  */
 import type { HandlingClass } from "./weapon-handling";
 import type { EnemyKind, EnemyRole } from "./enemy-visuals";
@@ -42,35 +40,7 @@ export const RAISE_RATE = 9;
 export const heldPitch = (cls: HandlingClass, aim: number) => (cls === "sword" ? LOW_READY.sword : LOW_READY[cls] * (1 - Math.min(1, Math.max(0, aim)))); // a blade is never levelled like a gun
 
 /* ---------------- death ---------------- */
-
-/** bone-local additive rotations (radians, Euler XYZ) of the full collapse, Mixamo bone names without the prefix */
-export const DEATH_POSE: Record<string, [number, number, number]> = {
-  Spine: [0.35, 0, 0], Spine1: [0.3, 0, 0], Spine2: [0.2, 0, 0], Neck: [0.35, 0, 0], Head: [0.3, 0.2, 0],
-  LeftUpLeg: [0.5, 0, 0], RightUpLeg: [0.3, 0, 0], LeftLeg: [1.0, 0, 0], RightLeg: [0.7, 0, 0],
-  LeftArm: [-0.2, 0, -0.35], RightArm: [-0.2, 0, 0.35], LeftForeArm: [0, 0, -0.4], RightForeArm: [0, 0, 0.4],
-};
-/** the collapse finishes slightly before the topple lands (corpsePose FALL_TIME 0.55 s) */
-export const COLLAPSE_TIME = 0.45;
-/** how far the hips drop as the knees buckle (body heights) — the standing rig keeps its hips where they were */
-export const COLLAPSE_DROP = 0.17;
-
-/** this body's own collapse: the pose scaled per limb by a seeded wobble (0.7..1.25) and the head turned left or right */
-export function deathPoseFor(seed: number): Record<string, [number, number, number]> {
-  let s = (Math.floor(seed * 2654435761) >>> 0) || 1;
-  const rnd = () => { s ^= s << 13; s >>>= 0; s ^= s >>> 17; s ^= s << 5; s >>>= 0; return s / 4294967296; };
-  const out: Record<string, [number, number, number]> = {};
-  const headSide = rnd() < 0.5 ? -1 : 1;
-  for (const [bone, e] of Object.entries(DEATH_POSE)) {
-    const k = 0.7 + rnd() * 0.55;
-    out[bone] = bone === "Head" ? [e[0] * k, e[1] * headSide * (0.5 + rnd()), e[2]] : [e[0] * k, e[1] * k, e[2] * k];
-  }
-  return out;
-}
-/** 0..1 through the collapse: quick at first (the legs go), easing into the ground */
-export function collapseBlend(age: number): number {
-  const t = Math.min(1, Math.max(0, age / COLLAPSE_TIME));
-  return 1 - (1 - t) * (1 - t);
-}
+// Death animations live in death-animations.ts (six keyframed styles chosen from the killing hit).
 
 /* ---------------- dropped weapons ---------------- */
 

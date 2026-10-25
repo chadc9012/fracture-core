@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { collapseBlend, COLLAPSE_TIME, DEATH_POSE, deathPoseFor, ENEMY_ARMS, enemyWeapon, heldPitch, HELD_MUZZLE, LOW_READY } from "./enemy-weapons";
+import { ENEMY_ARMS, enemyWeapon, heldPitch, HELD_MUZZLE, LOW_READY } from "./enemy-weapons";
 import { HELD_MODEL } from "../components/game/heldModels";
 import { existsSync } from "fs";
 
@@ -35,28 +35,3 @@ describe("carry and aim", () => {
   });
 });
 
-describe("death collapse", () => {
-  test("the blend starts at the standing pose, finishes before the topple lands, and never overshoots", () => {
-    expect(collapseBlend(0)).toBe(0);
-    expect(collapseBlend(COLLAPSE_TIME)).toBe(1);
-    expect(collapseBlend(99)).toBe(1);
-    expect(COLLAPSE_TIME).toBeLessThan(0.55);
-    for (let t = 0; t < COLLAPSE_TIME; t += 0.05) expect(collapseBlend(t + 0.05)).toBeGreaterThanOrEqual(collapseBlend(t));
-  });
-  test("each body gets its own variation of the same collapse (deterministic per seed)", () => {
-    const a = deathPoseFor(0.12), b = deathPoseFor(0.87);
-    expect(deathPoseFor(0.12)).toEqual(a);
-    expect(a).not.toEqual(b);
-    for (const [bone, e] of Object.entries(DEATH_POSE)) {
-      // same direction as the authored collapse, 0.7..1.25 of its size (the head may turn either way)
-      for (let i = 0; i < 3; i++) {
-        if (bone === "Head" && i === 1) continue;
-        const want = e[i]!, got = a[bone]![i]!;
-        if (want === 0) { expect(got).toBe(0); continue; }
-        expect(Math.sign(got)).toBe(Math.sign(want));
-        expect(Math.abs(got / want)).toBeGreaterThanOrEqual(0.7 - 1e-9);
-        expect(Math.abs(got / want)).toBeLessThanOrEqual(1.25 + 1e-9);
-      }
-    }
-  });
-});

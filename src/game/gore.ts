@@ -12,6 +12,7 @@
  * small, short-lived decals, no dismemberment), FULL (heavy spray, pooling decals, severed limbs and gibs).
  * Everything here is pure and takes an injectable `rnd` so the rules are testable.
  */
+import { DEATHS, deathFall, deathRoot, deathStyleFor, type DeathStyle, type RootKey } from "./death-animations";
 
 export type GoreLevel = "OFF" | "REDUCED" | "FULL";
 export const GORE_LEVELS: GoreLevel[] = ["OFF", "REDUCED", "FULL"];
@@ -278,26 +279,26 @@ export function stepGore(pools: GorePools, dt: number, ground: (x: number, z: nu
 export const CORPSE_POOL = 8;
 export type Corpse = {
   alive: boolean; age: number; life: number;
+  /** its death animation (death-animations.ts), the seed that varies it, and whether it is mirrored (a fall to the right) */
+  style: DeathStyle; seed: number; mirror: boolean;
   kind: "RAIDER" | "OVERCLOCKED" | "ABERRATION" | "VANGUARD"; role: "standard" | "elite" | "boss";
   x: number; z: number; groundY: number; rot: number; scale: number;
-  /** fall direction (world, normalised) */
+  /** fall direction (world, normalised): which way the death animation carries the body */
   fx: number; fz: number;
   sever: SeverPart | null; blood: BloodType; spurt: number;
 };
-export const makeCorpses = (): Corpse[] => Array.from({ length: CORPSE_POOL }, () => ({ alive: false, age: 0, life: 0, kind: "RAIDER", role: "standard", x: 0, z: 0, groundY: 0, rot: 0, scale: 1, fx: 0, fz: 1, sever: null, blood: "RED", spurt: 0 }));
+export const makeCorpses = (): Corpse[] => Array.from({ length: CORPSE_POOL }, () => ({ alive: false, age: 0, life: 0, style: "CRUMPLE" as DeathStyle, seed: 0, mirror: false, kind: "RAIDER", role: "standard", x: 0, z: 0, groundY: 0, rot: 0, scale: 1, fx: 0, fz: 1, sever: null, blood: "RED", spurt: 0 }));
 
-/** the fall: 0..1 over FALL_TIME with a small settle bounce; afterwards the body lies still, then sinks away */
-export const FALL_TIME = 0.55;
+/** the fall comes from the body's death animation (death-animations.ts): tip, hip drop, slide, lift and twist over its
+ * duration, with a small settle bounce when it lands; afterwards the body lies still, then sinks away */
 export const SINK_TIME = 1.6;
-export function corpsePose(c: Pick<Corpse, "age" | "life">): { tip: number; sink: number } {
-  const t = Math.min(1, c.age / FALL_TIME);
-  // ease-in fall (gravity) then a little bounce at the end
-  const fall = t * t;
-  const bounce = t >= 1 ? Math.max(0, Math.sin(Math.min(1, (c.age - FALL_TIME) / 0.25) * Math.PI) * 0.06) : 0;
-  const tip = Math.min(1, fall) - bounce;
+export function corpsePose(c: Pick<Corpse, "age" | "life" | "style">): { tip: number; sink: number; root: RootKey } {
+  const root = deathRoot(c.style, c.age), end = DEATHS[c.style].duration;
+  const bounce = c.age >= end ? Math.max(0, Math.sin(Math.min(1, (c.age - end) / 0.25) * Math.PI) * 0.04) : 0;
+  const tip = root.tip - bounce;
   const sinkStart = c.life - SINK_TIME;
   const sink = c.age > sinkStart ? Math.min(1, (c.age - sinkStart) / SINK_TIME) : 0;
-  return { tip, sink };
+  return { tip, sink, root };
 }
 
 /** lay a body down from a KILL event (gibbed bodies leave no corpse: the gibs are the body) */
@@ -305,10 +306,12 @@ export function addCorpse(corpses: Corpse[], e: GoreEvent, level: GoreLevel, spr
   if (!e.body || spray.gib) return null;
   let c = corpses.find((k) => !k.alive);
   if (!c) c = corpses.reduce((a, b) => (b.age / b.life > a.age / a.life ? b : a));
-  const dl = Math.hypot(e.dx, e.dz);
-  // falls away from the shooter, along the hit
-  const fx = dl > 1e-3 ? e.dx / dl : Math.sin(e.body.rot + Math.PI), fz = dl > 1e-3 ? e.dz / dl : Math.cos(e.body.rot + Math.PI);
-  Object.assign(c, { alive: true, age: 0, life: GORE_TUNE[level].corpseLife * (e.body.role === "boss" ? 2 : 1), kind: e.body.kind, role: e.body.role, x: e.x, z: e.z, groundY: e.body.groundY, rot: e.body.rot, scale: e.body.scale, fx, fz, sever: spray.sever, blood: e.blood, spurt: spray.stumpSpurt });
+  // which death: from the cause, the killing blow's power and where it came from relative to the way the body faced
+  const seed = Math.random();
+  const { style, mirror } = deathStyleFor(e.cause, e.power, e.dx, e.dz, e.body.rot, seed);
+  const fall = e.body.rot + deathFall(style, seed, mirror);
+  const fx = Math.sin(fall), fz = Math.cos(fall);
+  Object.assign(c, { alive: true, age: 0, style, seed, mirror, life: Math.max(DEATHS[style].duration + SINK_TIME + 1, GORE_TUNE[level].corpseLife * (e.body.role === "boss" ? 2 : 1)), kind: e.body.kind, role: e.body.role, x: e.x, z: e.z, groundY: e.body.groundY, rot: e.body.rot, scale: e.body.scale, fx, fz, sever: spray.sever, blood: e.blood, spurt: spray.stumpSpurt });
   return c;
 }
 export function stepCorpses(corpses: Corpse[], dt: number) {

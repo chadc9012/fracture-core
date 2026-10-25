@@ -8,7 +8,8 @@ import {
 } from "@/game/gore";
 import { walkHeight } from "@/game/terrain";
 import { FactionEnemy, type DriveRef } from "./EnemyModel";
-import { collapseBlend, COLLAPSE_DROP, DROP_HEIGHT, DROP_SIDE, enemyWeapon } from "@/game/enemy-weapons";
+import { DROP_HEIGHT, DROP_SIDE, enemyWeapon } from "@/game/enemy-weapons";
+import { DEATHS, deathRoot, deathTwistSign } from "@/game/death-animations";
 import type { HandlingClass } from "@/game/weapon-handling";
 import { heldWeaponCopy } from "./heldModels";
 
@@ -209,11 +210,13 @@ export function GoreFx({ sim, level }: { sim: WorldSim; level: GoreLevel }) {
           const i = corpses.indexOf(c), key = `${c.kind}:${c.role}`;
           if (!mountedRef.current[i]!.includes(key)) { const next = mountedRef.current.map((l, k) => (k === i ? [...l, key] : l)); mountedRef.current = next; setMounted(next); }
           sever(i, c, spray.sever);
-          drives[i]!.current.death = { age: 0, seed: Math.random() };
+          drives[i]!.current.death = { age: 0, seed: c.seed, style: c.style, mirror: c.mirror };
           throwWeapon(i, c);
           // the body bleeds out into a slowly spreading pool where its chest lands
-          if (GORE_TUNE[lvl].pool && c.blood !== "MACHINE") { const h = 1.1 * c.scale; addDecal(pools, c.x + c.fx * h, ground(c.x + c.fx * h, c.z + c.fz * h), c.z + c.fz * h, 0.5 * c.scale, c.blood, lvl, Math.random, 1.4 * c.scale); }
-          if (c.blood === "MACHINE" && lvl !== "OFF") { const h = 1.1 * c.scale; addDecal(pools, c.x + c.fx * h, ground(c.x + c.fx * h, c.z + c.fz * h), c.z + c.fz * h, 0.4 * c.scale, "MACHINE", lvl, Math.random, 0.8 * c.scale); }
+          // (where it comes to rest: the animation's slide plus the chest's distance from the feet)
+          const rest = deathRoot(c.style, DEATHS[c.style].duration).slide * c.scale;
+          if (GORE_TUNE[lvl].pool && c.blood !== "MACHINE") { const h = 1.1 * c.scale + rest; addDecal(pools, c.x + c.fx * h, ground(c.x + c.fx * h, c.z + c.fz * h), c.z + c.fz * h, 0.5 * c.scale, c.blood, lvl, Math.random, 1.4 * c.scale); }
+          if (c.blood === "MACHINE" && lvl !== "OFF") { const h = 1.1 * c.scale + rest; addDecal(pools, c.x + c.fx * h, ground(c.x + c.fx * h, c.z + c.fz * h), c.z + c.fz * h, 0.4 * c.scale, "MACHINE", lvl, Math.random, 0.8 * c.scale); }
         } else if (e.body && spray.gib) {
           // gibbed: the gibs are the body; a wide splash marks where it stood
           if (lvl !== "OFF") addDecal(pools, e.x, ground(e.x, e.z), e.z, 1.6 * e.size, e.blood, lvl);
@@ -307,20 +310,22 @@ export function GoreFx({ sim, level }: { sim: WorldSim; level: GoreLevel }) {
       if (!node) return;
       node.visible = c.alive;
       if (!c.alive) return;
-      const { tip, sink } = corpsePose(c);
+      const { tip, sink, root } = corpsePose(c);
       const fallYaw = Math.atan2(c.fx, c.fz);
-      node.position.set(c.x, c.groundY + 0.14 * c.scale * Math.min(1, tip) - sink * 0.5 * c.scale, c.z);
+      // the death animation carries the body: slid and thrown along the fall, tipped over at the feet, twisted, hips dropping
+      node.position.set(c.x + c.fx * root.slide * c.scale, c.groundY + (root.lift + 0.14 * Math.min(1, tip)) * c.scale - sink * 0.5 * c.scale, c.z + c.fz * root.slide * c.scale);
       node.rotation.set(0, fallYaw, 0);
       const pivot = node.children[0] as THREE.Group;
       pivot.rotation.set(tip * (Math.PI / 2) * 0.97, 0, 0);
       const inner = pivot.children[0] as THREE.Group;
       // the body keeps facing the way it stood (rot), relative to the fall direction
-      inner.rotation.set(0, c.rot - fallYaw, 0);
+      inner.rotation.set(0, c.rot - fallYaw + root.twist * deathTwistSign(c.mirror), 0);
       inner.scale.setScalar(c.scale);
       for (const child of inner.children) child.visible = child.name === `${c.kind}:${c.role}`;
-      // the knees go as it falls (enemy-weapons.ts collapse): blend the pose and drop the hips while the body is still upright
+      // the limbs play the same animation (EnemyModel reads drive.death); the hips sink while the body is still upright
       const death = drives[i]!.current.death;
-      if (death) { death.age = c.age; inner.position.y = -COLLAPSE_DROP * 1.85 * collapseBlend(c.age) * (1 - Math.min(1, tip)); }
+      if (death) death.age = c.age;
+      inner.position.y = -root.drop * 1.85 * c.scale * (1 - Math.min(1, tip));
       // its gun: tumbles to the ground, lies on its side, sinks with the body
       const d = dropped.current[i]!, g = dropGroups[i]!;
       g.visible = Boolean(d.cls);
