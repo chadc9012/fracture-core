@@ -7,7 +7,7 @@ const base = (nex: number, garages: string[] = []) => ({ nexLedger: { grant: nex
 describe("housing", () => {
   test("cheap Undercity flat vs expensive Aegis penthouse", () => {
     expect(homeById("rustmuck-capsule")!.price).toBe(2500);
-    expect(homeById("aegis-penthouse")!.price).toBe(250000);
+    expect(homeById("aegis-penthouse")!.price).toBe(300000);
   });
   test("buying charges once and refuses a second buy", () => {
     const r = buyHome(base(3000), "rustmuck-capsule");

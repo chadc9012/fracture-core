@@ -15,7 +15,7 @@ const { createSim, stepSim } = await import("./sim");
 
 type P = typeof DEFAULT_PROGRESSION;
 const ok = (r: { progression: P; message: string } | { error: string }) => { if ("error" in r) throw new Error(r.error); return r.progression; };
-const rich = (): P => ({ ...DEFAULT_PROGRESSION, ownedVehicles: [], garageLoadout: [], selectedVehicle: null, fleet: EMPTY_FLEET, materials: { scrapMetal: 200, vehicleParts: 60, fuel: 60, reinforcedAlloy: 80, microCircuits: 80, cryoCrystal: 20, dataShards: 30, bioCatalyst: 20, aegisCore: 3 } });
+const rich = (): P => ({ ...DEFAULT_PROGRESSION, nexLedger: { seed: 1_000_000 }, ownedVehicles: [], garageLoadout: [], selectedVehicle: null, fleet: EMPTY_FLEET, materials: { scrapMetal: 200, vehicleParts: 60, fuel: 60, reinforcedAlloy: 80, microCircuits: 80, cryoCrystal: 20, dataShards: 30, bioCatalyst: 20, aegisCore: 3 } });
 
 describe("fleet", () => {
   it("every fleet build drives as a real vehicle and lives in a real garage", () => {

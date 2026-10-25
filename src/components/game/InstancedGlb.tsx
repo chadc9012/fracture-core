@@ -2,6 +2,7 @@ import { useGLTF } from "@react-three/drei";
 import { useFrame } from "@react-three/fiber";
 import { Suspense, useLayoutEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
+import { FACADE, facadePixels } from "@/game/facade-windows";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 
 import { lampLevel, worldLight } from "@/game/world-light";
@@ -55,6 +56,8 @@ export function flattenGlb(scene: THREE.Object3D): Part[] {
     const paint = material.name === "Paint", windows = material.name === "WindowsLit";
     if (paint) (mat as THREE.MeshStandardMaterial).color.set("#ffffff");
     if (material.name === "Glass") { mat.transparent = true; mat.depthWrite = false; }
+    // the owner's night target frames: dense banded office light instead of the baked map's big warm blocks (facade-windows.ts)
+    if (windows) { const tex = facadeTexture(); if (tex) { const m = mat as THREE.MeshStandardMaterial; m.emissiveMap = tex; m.emissive.set("#ffffff"); m.needsUpdate = true; } }
     parts.push({ geometry: merged, material: mat, paint, windows });
   }
   flatCache.set(scene, parts);
@@ -62,6 +65,17 @@ export function flattenGlb(scene: THREE.Object3D): Part[] {
 }
 
 const tmp = new THREE.Object3D(), col = new THREE.Color();
+
+let facadeTex: THREE.DataTexture | null = null;
+/** one shared facade map for every tower's lit windows (uploaded once) */
+function facadeTexture(): THREE.DataTexture | null {
+  if (facadeTex) return facadeTex;
+  const t = new THREE.DataTexture(facadePixels(), FACADE.size, FACADE.size, THREE.RGBAFormat);
+  t.colorSpace = THREE.SRGBColorSpace; t.wrapS = t.wrapT = THREE.RepeatWrapping; t.flipY = false;
+  t.generateMipmaps = true; t.minFilter = THREE.LinearMipmapLinearFilter; t.magFilter = THREE.LinearFilter; t.anisotropy = 8;
+  t.needsUpdate = true;
+  return (facadeTex = t);
+}
 
 function Batch({ url, items, place, shadows, nightGlow }: { url: string; items: GlbInstance[]; place?: ((i: number, o: THREE.Object3D) => void) | undefined; shadows: boolean; nightGlow: [number, number] }) {
   const { scene } = useGLTF(url);
@@ -99,7 +113,7 @@ function Batch({ url, items, place, shadows, nightGlow }: { url: string; items: 
 }
 
 /** `nightGlow`: lit-window emissive multiplier [by day, at night] */
-export function InstancedGlb({ url, items, place, shadows = true, nightGlow = [0.08, 1] }: { url: string; items: GlbInstance[]; place?: (i: number, o: THREE.Object3D) => void; shadows?: boolean; nightGlow?: [number, number] }) {
+export function InstancedGlb({ url, items, place, shadows = true, nightGlow = [0.08, 1.8] }: { url: string; items: GlbInstance[]; place?: (i: number, o: THREE.Object3D) => void; shadows?: boolean; nightGlow?: [number, number] }) {
   if (!items.length) return null;
   return (
     <QuietModel url={url} fallback={null}>

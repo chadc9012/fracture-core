@@ -9,6 +9,7 @@ import { REGIONS } from "@/game/world";
 import { NEON_CENTER as NEON } from "@/game/living-world";
 import { heightAt } from "@/game/terrain";
 import { mulberry32 } from "@/game/rng";
+import { ambientCivilianSpecs, beachgoerSpecs } from "@/game/ambient-population";
 import {
   spawnCivilian,
   stepCivilian,
@@ -46,7 +47,9 @@ function buildRoster(): CivilianSpec[] {
     { id: "ne-tourist", name: "Spire Visitor", role: "OBSERVER", title: "Checkpoint Queue", lore: "Waiting on clearance, again.", homeX: NEON.x + 2, homeZ: NEON.z - 22 },
     { id: "ne-tech", name: "Grid Tech", role: "ENGINEER", title: "Grid Maintenance", lore: "Climbs the deck pillars all day.", homeX: NEON.x + 30, homeZ: NEON.z + 20 },
   ];
-  return specs;
+  // everyday people across the destinations and on the beaches (ambient-population.ts), never on top of the named roster
+  const ambient = ambientCivilianSpecs(specs);
+  return [...specs, ...ambient, ...beachgoerSpecs()];
 }
 
 const UP = new THREE.Vector3(0, 1, 0);

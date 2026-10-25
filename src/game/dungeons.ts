@@ -1,4 +1,5 @@
 import type { EncounterDefinition } from "./raid-stages";
+import { HOLLOW_STAR } from "./hollow-star-data";
 
 export type DungeonDefinition = EncounterDefinition & {
   region: string;
@@ -65,4 +66,5 @@ export const DUNGEONS: readonly DungeonDefinition[] = [
       ], reward: "King's Ransom" },
     ],
   },
+  HOLLOW_STAR,
 ];

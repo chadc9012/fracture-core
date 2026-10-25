@@ -98,3 +98,24 @@ describe("water sheet covers the carved channel", () => {
     expect(protectedPlaces.filter((p) => wetAt(p.x, p.z)).map((p) => p.n)).toEqual([]);
   });
 });
+
+describe("water sheet faces the sky", () => {
+  it("river triangles are wound to face up, so the single-sided water is drawn when seen from above", async () => {
+    const { waterNetwork } = await import("./terrain");
+    const { riverMeshArrays } = await import("./rivers");
+    for (const r of waterNetwork().rivers) {
+      const { pos, idx } = riverMeshArrays(r);
+      const ribbonTris = (r.points.length - 1) * 2;
+      let up = 0, down = 0;
+      for (let t = 0; t < idx.length; t += 3) {
+        const P = (i: number) => [pos[i * 3]!, pos[i * 3 + 2]!] as const;
+        const a = P(idx[t]!), b = P(idx[t + 1]!), c = P(idx[t + 2]!);
+        const ny = (b[1] - a[1]) * (c[0] - a[0]) - (b[0] - a[0]) * (c[1] - a[1]); // y of (b-a)×(c-a)
+        if (t / 3 >= ribbonTris) expect(ny).toBeGreaterThan(0); // every cap triangle faces up
+        else if (ny > 0) up++; else if (ny < 0) down++;
+      }
+      // a ribbon quad can fold over itself on a sharp bend (the caps fill those); the sheet as a whole faces up
+      expect(down).toBeLessThan(Math.max(1, up * 0.08));
+    }
+  });
+});

@@ -1,3 +1,4 @@
+import { fleetNexPrice } from "@/game/market-prices";
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import type { PlayerProgression } from "@/game/progression";
@@ -102,8 +103,8 @@ function VehicleDetail({ f, progression, baseOwned, confirm, setConfirm, run }: 
       <p className="text-xs text-muted-foreground">Ability: {f.ability}</p>
       <div className="mt-4">
         {!has ? (!baseOwned ? <p className="text-xs text-amber-400">Buy the base first.</p>
-          : confirm ? <div className="flex gap-2"><Button className="wf-cta flex-1 rounded-none" onClick={() => { run(buyFleetVehicle(progression, f.id), true); setConfirm(false); }}>Confirm purchase</Button><Button variant="outline" className="rounded-none" onClick={() => setConfirm(false)}>Cancel</Button></div>
-          : <Button className="wf-cta w-full rounded-none" onClick={() => setConfirm(true)}>Buy vehicle</Button>)
+          : confirm ? <div className="flex gap-2"><Button className="wf-cta flex-1 rounded-none" onClick={() => { run(buyFleetVehicle(progression, f.id), true); setConfirm(false); }}>Confirm · {fleetNexPrice(f.id).toLocaleString()} Nex</Button><Button variant="outline" className="rounded-none" onClick={() => setConfirm(false)}>Cancel</Button></div>
+          : <Button className="wf-cta w-full rounded-none" onClick={() => setConfirm(true)}>Buy vehicle · {fleetNexPrice(f.id).toLocaleString()} Nex</Button>)
           : <div className="space-y-3">
             {active ? <p className="font-mono text-[11px] uppercase tracking-widest text-emerald-300">Active · summon with V</p> : <Button size="sm" className="rounded-none" onClick={() => run(setActiveFleet(progression, f.id), true)}>Make active</Button>}
             <ConditionRepair progression={progression} vehicleId={f.base} run={run} />

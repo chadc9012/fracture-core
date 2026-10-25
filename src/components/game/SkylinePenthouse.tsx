@@ -1,14 +1,16 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import { Html } from "@react-three/drei";
 import { Text } from "./SafeText";
 import { profileKey } from "../../game/save-profile";
-import { PENTHOUSE_PRICE, purchasePenthouseThroughHost, type PropertyPurchaseHost } from "../../game/casino-property";
+import { PENTHOUSE_PRICE, penthouseLive, purchasePenthouseThroughHost, subscribePenthouse, type PropertyPurchaseHost } from "../../game/casino-property";
 
 type SuiteStyle = {wall:string;floor:string;lighting:string;sofa:string;art:string; bed:string; kitchen:string; window:string; carpet:string};
 const DEFAULT:SuiteStyle={wall:"#29384e",floor:"#514336",lighting:"#9bdfff",sofa:"#633e67",art:"#e0a95d",bed:"#d7d2d0",kitchen:"#727b86",window:"#68b4c5",carpet:"#b4a3b8"};
 const STORAGE=profileKey("wf.skyline.penthouse.v2");
 export function SkylinePenthouse({purchaseHost}:{purchaseHost?:PropertyPurchaseHost}={}){
- const [owned,setOwned]=useState(false);
+ const liveHost=useSyncExternalStore(subscribePenthouse,penthouseLive,()=>null);
+ const [ownedLocal,setOwned]=useState(false);
+ const owned=liveHost?liveHost.owned:ownedLocal;
  const [style,setStyle]=useState<SuiteStyle>(DEFAULT);
  const [open,setOpen]=useState(false);
  const [notice,setNotice]=useState("");
@@ -39,7 +41,7 @@ export function SkylinePenthouse({purchaseHost}:{purchaseHost?:PropertyPurchaseH
   <Html position={[0,3,23]} center distanceFactor={22}>
    <div style={{fontFamily:"system-ui",background:"#12182af2",border:"1px solid #d7b57b",padding:12,borderRadius:9,color:"white",width:270,pointerEvents:"auto"}} onPointerDown={e=>e.stopPropagation()}>
     <strong>Skyline Residences</strong><p style={{fontSize:12}}>Penthouse residence. Purchase requires a connected World Fracture credits wallet.</p>
-    {!owned?<button onClick={()=>{if(!purchaseHost){setNotice("Property purchase requires a connected game save and wallet");return;}const result=purchasePenthouseThroughHost(purchaseHost);setNotice(result.reason);if(result.ok)setOwned(true);}}>Buy penthouse — {PENTHOUSE_PRICE.toLocaleString()} credits</button>:<button onClick={()=>setOpen(v=>!v)}>{open?"Close editor":"Customize suite"}</button>}
+    {!owned?<button onClick={()=>{if(liveHost){const r=liveHost.buy();setNotice(r.reason);return;}if(!purchaseHost){setNotice("Property purchase requires a connected game save and wallet");return;}const result=purchasePenthouseThroughHost(purchaseHost);setNotice(result.reason);if(result.ok)setOwned(true);}}>Buy penthouse — {PENTHOUSE_PRICE.toLocaleString()} {liveHost?"Nex":"credits"}</button>:<button onClick={()=>setOpen(v=>!v)}>{open?"Close editor":"Customize suite"}</button>}
     {notice&&<p role="status" style={{fontSize:11}}>{notice}</p>}
     {owned&&open&&<div style={{display:"grid",gap:7,marginTop:9}}>
       <div style={{display:"flex",gap:5}}>{(["lounge","bedroom","kitchen"] as const).map(r=><button key={r} onClick={()=>setRoom(r)} style={{opacity:room===r?1:0.6}}>{r}</button>)}</div>

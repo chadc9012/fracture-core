@@ -90,7 +90,7 @@ function MassingTowers({ list, y }: { list: TowerPlacement[]; y: number }) {
 const DETAILED_URL = (v: TowerVariant) => `/models/buildings/neon-v-${v}.glb`;
 function DetailedTowers({ list, y }: { list: TowerPlacement[]; y: number }) {
   const byVariant = useMemo(() => VARIANTS.map((v) => [v, list.filter((t) => t.variant === v).map((t) => ({ x: t.x, y, z: t.z, yaw: (t.rot * Math.PI) / 2 }))] as const), [list, y]);
-  return <group>{byVariant.map(([v, items]) => <InstancedGlb key={v} url={DETAILED_URL(v)} items={items} nightGlow={[0.25, 1.2]} />)}</group>;
+  return <group>{byVariant.map(([v, items]) => <InstancedGlb key={v} url={DETAILED_URL(v)} items={items} nightGlow={[0.25, 2]} />)}</group>;
 }
 
 export function NeonTowerBlocks() {

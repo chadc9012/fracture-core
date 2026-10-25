@@ -253,3 +253,26 @@ export function ribbonCovers(sections: readonly RibbonSection[], x: number, z: n
   }
   return false;
 }
+
+/** The water sheet's vertex/index arrays (Rivers.tsx only wraps them in a BufferGeometry): the ribbon along the sections plus a
+ * round cap fan per section that fills bend wedges and the blunt ends. Every triangle is wound to face UP (+y): the material is
+ * single-sided, and a downward-facing sheet is culled from above, which left every river looking like a dry channel. */
+export const CAP_SEG = 10;
+export function riverMeshArrays(r: River): { pos: number[]; uv: number[]; spd: number[]; idx: number[] } {
+  const pos: number[] = [], uv: number[] = [], spd: number[] = [], idx: number[] = [];
+  const sections = riverRibbon(r);
+  sections.forEach((c, i) => {
+    for (const side of [0, 1]) { const e = side ? c.right : c.left; pos.push(e[0], c.y, e[1]); uv.push(side, c.run / 4); spd.push(c.speed); }
+    if (i > 0) { const k = i * 2; idx.push(k - 2, k - 1, k, k - 1, k + 1, k); }
+  });
+  sections.forEach((c) => {
+    const centre = pos.length / 3;
+    pos.push(c.cx, c.y, c.cz); uv.push(0.5, c.run / 4); spd.push(c.speed);
+    for (let k = 0; k < CAP_SEG; k++) {
+      const a = (k / CAP_SEG) * Math.PI * 2;
+      pos.push(c.cx + Math.cos(a) * c.r, c.y, c.cz + Math.sin(a) * c.r); uv.push(k % 2 ? 1 : 0, c.run / 4); spd.push(c.speed);
+    }
+    for (let k = 0; k < CAP_SEG; k++) idx.push(centre, centre + 1 + ((k + 1) % CAP_SEG), centre + 1 + k);
+  });
+  return { pos, uv, spd, idx };
+}
