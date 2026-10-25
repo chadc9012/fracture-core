@@ -277,6 +277,8 @@ export type HudState = {
   rules: string[];
   phase: string;
   clock: string;
+  /** the day cycle's running clock (whole part = in-game days elapsed this session) */
+  dayT: number;
   speed: number;
   /* systems */
   mode: "foot" | "vehicle";
@@ -3194,6 +3196,7 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
         rules: interior ? ["Indoors — hostiles can't follow", "Walk to the door to head back out"] : here?.rules ?? ["No stability field", "AI patrols roam freely"],
         phase: phaseFor(time.current),
         clock: (setShopClockHour(hourOf(time.current)), clockLabel(time.current)), // shop-hours.ts reads the same world clock
+        dayT: time.current,
         speed: Math.round(s.inVehicle ? Math.abs(s.vSpeed) * 2.4 : velocity.length() * 2.4),
         mode: s.inVehicle ? "vehicle" : "foot",
         ...(s.inVehicle ? { vehicle: { name: selectedVehicle.name, ...driveTelemetry(vehicleId, Math.abs(s.vSpeed) / 45, keys.current.has("KeyW") || keys.current.has("KeyS") ? 1 : 0, selectedVehicle.speed / vehicleById(vehicleId).speed), load: Math.min(1, Math.abs(s.vSpeed) / 45), reverse: s.vSpeed < -0.1, hull: selectedVehicle.hull, tuning: fleetTuningSummary(gear?.fleet), primary: armament.primary?.name ?? "Unarmed", ...(armament.secondary ? { secondary: armament.secondary.name, secondaryReady: Math.max(0, Math.min(1, 1 - vFire.current.secCool / armament.secondary.rate)) } : armament.secondaryGun ? { secondary: armament.secondaryGun.name, secondaryReady: 1 } : gadget ? { secondary: gadget.name, secondaryReady: gadget.cooldown > 0 ? Math.max(0, Math.min(1, 1 - vFire.current.gadgetCool / gadget.cooldown)) : 1 } : {}) } } : {}),

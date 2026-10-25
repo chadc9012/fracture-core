@@ -1,5 +1,6 @@
-# Builds the World Fracture Android app (mobile/, a Capacitor shell that runs the game full screen in landscape) and publishes the APK
-# as the "android-latest" GitHub release, so it can be downloaded and installed straight from a phone.
+# Builds the World Fracture Android app and publishes the APK as the "android-latest" GitHub release, so it can be installed straight
+# from a phone. The whole game is built as a static single-page app (WF_MOBILE=1) and shipped inside the APK (mobile/, Capacitor), so
+# it plays without a server or a Lovable login; cloud saves still sync over the network when you sign in.
 name: Android APK
 
 on:
@@ -9,6 +10,9 @@ on:
     paths:
       - "mobile/**"
       - ".github/workflows/android-apk.yml"
+  # a fresh build of the newest game every night (the game itself changes many times a day)
+  schedule:
+    - cron: "17 7 * * *"
 
 permissions:
   contents: write
@@ -32,6 +36,17 @@ jobs:
         with:
           node-version: "22"
 
+      - uses: oven-sh/setup-bun@v2
+
+      - name: Build the game as a static app
+        run: |
+          bun install --frozen-lockfile
+          WF_MOBILE=1 npx vite build
+          rm -rf mobile/www && cp -r .output/public mobile/www
+          rm -rf mobile/www/refs mobile/www/server
+          cp mobile/www/_shell.html mobile/www/index.html
+          du -sh mobile/www
+
       - name: Install Capacitor
         working-directory: mobile
         run: npm ci
@@ -54,5 +69,5 @@ jobs:
           gh release delete android-latest --yes --cleanup-tag || true
           gh release create android-latest WorldFracture.apk \
             --title "World Fracture for Android (latest)" \
-            --notes "Built from ${GITHUB_SHA::7}. Open this page on your Android phone, tap WorldFracture.apk, and allow installs from your browser when asked. The app runs the live game full screen in landscape, so it always has the newest visuals." \
+            --notes "Built from ${GITHUB_SHA::7}. Open this page on your Android phone, tap WorldFracture.apk, and allow installs from your browser when asked. The whole game is inside the app (about 250 MB): it plays full screen in landscape without a server; sign in from the menu to sync your cloud save. A new build is published every night." \
             --prerelease

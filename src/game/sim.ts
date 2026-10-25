@@ -135,7 +135,7 @@ export type Machine = {
   cool: number;
   elite: boolean;
   profile: string;
-  kind: "RAIDER" | "OVERCLOCKED" | "ABERRATION" | "VANGUARD" | "SKYBORN" | "GUARDIAN";
+  kind: "RAIDER" | "OVERCLOCKED" | "ABERRATION" | "VANGUARD" | "SKYBORN" | "GUARDIAN" | "ABYSSAL";
   drop: MaterialId;
   boss: boolean;
   /** spawned by an authored mission (Broken Signal) */

@@ -2,7 +2,7 @@
 /** Faction per region follows the owner's faction sheet (public/refs/factions-sheet.png): Raiders = Wastelands, Overclocked = Nexus,
  * Vanguard = Frostspire, Aberrations = Swamps; the Skyborn sheet adds the Skyborn to Ember Peaks' troops (its region boss, Overseer
  * Kael, is a human reactor operator and keeps the Raider boss body). Regions the sheets do not cover keep their themed mix. */
-export type EnemyKind = "RAIDER" | "OVERCLOCKED" | "ABERRATION" | "VANGUARD" | "SKYBORN" | "GUARDIAN";
+export type EnemyKind = "RAIDER" | "OVERCLOCKED" | "ABERRATION" | "VANGUARD" | "SKYBORN" | "GUARDIAN" | "ABYSSAL";
 export type EnemyProfile = { name: string; kind: EnemyKind; role: string; drop: string };
 export type RegionalEncounter = { regionId: string; troops: readonly EnemyProfile[]; boss?: { name: string; lair: string; drop: string; tell: string } };
 
@@ -53,7 +53,9 @@ export const ENCOUNTERS: readonly RegionalEncounter[] = [
     { name: "Spire Interceptor Drone", kind: "OVERCLOCKED", role: "Target-lock spotter", drop: "dataShards" },
   ] },
   { regionId: "thalassia", troops: [
-    { name: "Abyssal Drowner", kind: "ABERRATION", role: "Phasing sonic attacker", drop: "bioCatalyst" },
+    // the Abyssal (owner's enemies sheet) hunt Thalassia's waters; they swim (abyssal-swim.ts), elites are Siren Stalkers
+    { name: "Reef Hunter", kind: "ABYSSAL", role: "Fast eel-shark ambusher", drop: "bioCatalyst" },
+    { name: "Abyssal Drowner", kind: "ABYSSAL", role: "Phasing sonic attacker", drop: "bioCatalyst" },
     { name: "Sub-Surface Guardian", kind: "VANGUARD", role: "Waterjet plasma-arc mech", drop: "reinforcedAlloy" },
   ] },
 ];
@@ -72,5 +74,5 @@ export const troopFor = (regionId: string, index: number) => {
   return troops?.[Math.abs(index) % troops.length] ?? EXTRA_ENEMIES[0];
 };
 /** the faction a region's bosses (and boss models) belong to, from the faction sheet; uncovered regions use their main troop faction */
-export const REGION_FACTION: Record<string, EnemyKind> = { wastelands: "RAIDER", nexus: "OVERCLOCKED", frostspire: "VANGUARD", swamps: "ABERRATION", neon: "OVERCLOCKED", thalassia: "ABERRATION", veridan: "ABERRATION", ember: "RAIDER", solara: "RAIDER" };
+export const REGION_FACTION: Record<string, EnemyKind> = { wastelands: "RAIDER", nexus: "OVERCLOCKED", frostspire: "VANGUARD", swamps: "ABERRATION", neon: "OVERCLOCKED", thalassia: "ABYSSAL", veridan: "ABERRATION", ember: "RAIDER", solara: "RAIDER" };
 export const factionOf = (regionId: string | undefined): EnemyKind => REGION_FACTION[regionId ?? ""] ?? "OVERCLOCKED";

@@ -69,3 +69,34 @@ describe("dungeon and raid clears", () => {
     expect(payoutFor(a.nexLedger, "raid", HOLLOW_STAR_ID, T)).toBeNull();
   });
 });
+
+import { claimSecret, SECRETS } from "./secrets";
+import { openCache, lootCaches } from "./loot-caches";
+import { EXPLORE_PAYOUTS, payFlat } from "./activity-payouts";
+describe("exploration payouts", () => {
+  test("flat payouts are idempotent by key", () => {
+    const a = payFlat(fresh(), "payout:x", 10);
+    expect(nexBalance(a.nexLedger)).toBe(10);
+    expect(payFlat(a, "payout:x", 10)).toBe(a);
+  });
+  test("exploration pays less than any dungeon or boss clear", () => {
+    expect(EXPLORE_PAYOUTS.secret).toBeLessThan(PAYOUTS.boss.first);
+    expect(EXPLORE_PAYOUTS.cache).toBeLessThan(PAYOUTS.boss.repeat);
+  });
+  test("opening a cache pays once per cache per day", () => {
+    const c = lootCaches()[0]!;
+    const a = openCache(fresh(), c, T)!;
+    expect(nexBalance(a.progression.nexLedger)).toBe(EXPLORE_PAYOUTS.cache);
+    expect(openCache(a.progression, c, T + 1000)).toBeNull();
+    const b = openCache(a.progression, c, T + DAY)!;
+    expect(nexBalance(b.progression.nexLedger)).toBe(EXPLORE_PAYOUTS.cache * 2);
+  });
+  test("a secret pays once when claimed", () => {
+    const open = SECRETS.find((x) => x.condition === "ALWAYS")!;
+    const ctx = { night: false, storm: false } as never;
+    const r = claimSecret(fresh(), open.id, ctx);
+    if ("error" in r) throw new Error(r.error);
+    expect(nexBalance(r.progression.nexLedger)).toBe(EXPLORE_PAYOUTS.secret);
+    expect("error" in claimSecret(r.progression, open.id, ctx)).toBe(true);
+  });
+});

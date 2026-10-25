@@ -29,6 +29,9 @@ export default defineConfig({
     // Redirect TanStack Start's bundled server entry to src/server.ts (our SSR error wrapper).
     // nitro/vite builds from this
     server: { entry: "server" },
+    // WF_MOBILE=1 builds the game as a static single-page app (a prerendered shell + client bundle) for the Android app in mobile/,
+    // which ships the game inside the APK instead of loading it from a server
+    ...(process.env["WF_MOBILE"] ? { spa: { enabled: true } } : {}),
   },
   vite: { plugins: [stripSourceTagsFrom3D()] },
 });

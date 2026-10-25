@@ -44,3 +44,11 @@ export function payInto<P extends { nexLedger: NexLedger }>(p: P, cls: PayoutCla
   return { progression: { ...p, nexLedger: { ...p.nexLedger, [pay.key]: pay.nex } }, paid: pay.nex, first: pay.first };
 }
 export const claimBossBounty = <P extends { nexLedger: NexLedger }>(p: P, scenarioId: string, now = Date.now()) => payInto(p, "boss", scenarioId, now);
+
+/** exploration pays too, smaller than the three big classes: a hidden secret once (400), a loot cache once per cache per day (60) */
+export const EXPLORE_PAYOUTS = { secret: 400, cache: 60 } as const;
+/** record one flat Nex payout under `key` (unchanged if the key is already in the ledger) */
+export function payFlat<P extends { nexLedger?: NexLedger }>(p: P, key: string, nex: number): P {
+  const ledger = p.nexLedger ?? {};
+  return key in ledger ? p : { ...p, nexLedger: { ...ledger, [key]: nex } };
+}
