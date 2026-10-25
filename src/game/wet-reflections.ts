@@ -5,6 +5,8 @@
 import { streetLights } from "./nexus-districts";
 import { neonStreetLightsWorld } from "./neon-layout";
 import { neonKeepOut } from "./residences";
+import { nexusSigns } from "./nexus-signs";
+import { walkHeight } from "./terrain";
 
 export type Glint = { x: number; z: number; /** light height above its ground (m) */ h: number; color: string; /** streak width (m) */ w: number };
 
@@ -13,6 +15,12 @@ export function cityGlints(): Glint[] {
   const out: Glint[] = [];
   for (const l of streetLights()) out.push({ x: l.x + Math.sin(l.yaw) * 1.8, z: l.z + Math.cos(l.yaw) * 1.8, h: 7.3, color: "#ffc98e", w: 1.1 });
   for (const l of neonStreetLightsWorld(neonKeepOut())) out.push({ x: l.x + Math.sin(l.yaw) * 2.1, z: l.z + Math.cos(l.yaw) * 2.1, h: 6.6, color: l.glow, w: 1.2 });
+  // Nexus banners and holo screens smear their colour down the street too (wider, softer streaks from higher up)
+  const { banners, screens } = nexusSigns();
+  for (const b of [...banners, ...screens]) {
+    const h = b.y - b.h * 0.3 - walkHeight(b.x, b.z);
+    if (h < 25) out.push({ x: b.x + Math.sin(b.yaw) * 2, z: b.z + Math.cos(b.yaw) * 2, h, color: b.color, w: Math.min(3.2, b.w * 0.8) });
+  }
   return out;
 }
 
