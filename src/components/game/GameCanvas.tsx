@@ -1596,7 +1596,7 @@ export function GameCanvas() {
       {ZONE_MISSION_IDS.map((id) => { const run = zoneRuns[id]; return run ? <ZoneMissionOverlay key={id} mission={run} onEvent={(e) => recordZone(id, e)} /> : null; })}
       {descent && <DescentProtocolOverlay mission={descent} onEvent={recordDescent} near={!descent.target || Math.hypot(descent.target.x - (hud.px ?? 0), descent.target.z - (hud.pz ?? 0)) < (descent.state === "TRACING" ? REACTOR_REACH : AIRLOCK_REACH)} />}
       {systemCore && <SystemCoreOverlay mission={systemCore} onEvent={recordSystemCore} />}
-      {tutorial && <OnboardingSignal tutorial={tutorial} classId={cls} onOpenHub={() => { setTutorial(null); setOperationsView("ABILITIES"); }} />}
+      {tutorial && <HudRail side="left" order={0}><OnboardingSignal tutorial={tutorial} classId={cls} onOpenHub={() => { setTutorial(null); setOperationsView("ABILITIES"); }} /></HudRail>}
       {tutorial?.step === "VICTORY" && (
         <VictoryReport
           classId={cls}

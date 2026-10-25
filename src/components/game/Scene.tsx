@@ -963,8 +963,10 @@ function SceneImpl({
     interiorPrevX: null as number | null,
   });
 
-  /** snapshot of every live engine system for the dev inspector */
-  const buildInspector = (): InspectorView => {
+  /** Spawns the tutorial's training drones / Sentinel when the step changes. Runs every frame from the
+   * main loop — it used to live only inside buildInspector, so with the inspector closed (every real
+   * player) FIRST CONTACT never spawned its drones and the tutorial soft-locked. */
+  const syncTutorialSpawns = () => {
     const s = state.current;
     if (tutorial && tutorial.step !== tutorialStage.current) {
       tutorialStage.current = tutorial.step;
@@ -987,6 +989,12 @@ function SceneImpl({
         tutorialKills.current = sim.kills;
       }
     }
+  };
+
+  /** snapshot of every live engine system for the dev inspector */
+  const buildInspector = (): InspectorView => {
+    const s = state.current;
+    syncTutorialSpawns();
     const st = sim.stats;
     let alive = 0;
     let elite = 0;
@@ -1164,6 +1172,7 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
     if (!s || !sim) return;
     if (!isValidPlayerState(s)) { Object.assign(s, sanitizePlayerState(s)); }
     try {
+    syncTutorialSpawns();
     /* Interior Building system — non-null while the player is inside a pocket-dimension room (see @/game/interiors) */
     let interior = interiorById(s.insideInterior);
     live.current = rebindLiveBuild(live.current, activeBuild, abilityBranches);
