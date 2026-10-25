@@ -71,6 +71,8 @@ import { TransitOverlay } from "./TransitOverlay";
 import { swapAt, totalSeconds, transitPlan, type TransitPlan } from "@/game/transit";
 import { ArsenalLoadouts } from "./ArsenalLoadouts";
 import { SaveManager } from "./SaveManager";
+import { buyPenthouseNex, ownsPenthouseNex, publishPenthouse } from "@/game/casino-property";
+import { nexBalance } from "@/game/nex";
 import { activeLoadout, rewardMission, loadProgression, rewardVehicle, saveProgression, type PlayerProgression } from "@/game/progression";
 import { RENDER_PRESETS, defaultTierForGpu, detectGpuRenderer } from "@/game/performance";
 import { classBuild } from "@/game/live-build";
@@ -538,6 +540,14 @@ export function GameCanvas() {
   const [bodyType, setBodyType] = useCountedState<BodyType>("bodyType", session0.bodyType);
   const progressionRef = useRef(progression);
   progressionRef.current = progression;
+  // the Skyline Casino penthouse (3D scene) buys through the live Nex ledger and the same save as every other property
+  useEffect(() => {
+    publishPenthouse({
+      owned: ownsPenthouseNex(progression.nexLedger), balance: nexBalance(progression.nexLedger),
+      buy: () => { const r = buyPenthouseNex(progressionRef.current); if ("error" in r) return { ok: false, reason: r.error }; progressionRef.current = r.progression; setProgression(r.progression); return { ok: true, reason: r.message }; },
+    });
+  }, [progression.nexLedger]);
+  useEffect(() => () => publishPenthouse(null), []);
   const useConsumable = useCallback((id: ConsumableId) => {
     const result = useStim(progressionRef.current, activeBuffs.current, id, Date.now());
     if (!result) return;
