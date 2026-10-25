@@ -89,7 +89,7 @@ export function CloudSavePanel({ progression, onProgression }: { progression: Pl
 
   return (
     <>
-      <HudRail side="left" order={9}><button onClick={() => setOpen((o) => !o)} className={`fixed left-4 top-[18.5rem] z-30 border border-border bg-card/80 px-3 py-1.5 text-[9px] uppercase tracking-[0.2em] ${tone}`}>
+      <HudRail side="left" order={9}><button onClick={() => setOpen((o) => !o)} className={`wf-cloud-chip fixed left-4 top-[18.5rem] z-30 border border-border bg-card/80 px-3 py-1.5 text-[9px] uppercase tracking-[0.2em] ${tone}`}>
         ☁ {isTestProfile() ? "Test profile · cloud sync off" : user ? LABEL[status] : "Cloud save · sign in"}
       </button></HudRail>
       {open && (
