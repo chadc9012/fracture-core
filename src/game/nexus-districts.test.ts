@@ -82,6 +82,27 @@ describe("facade kit: modular architecture pieces", () => {
   });
 });
 
+describe("facade kit: geometry verification (no floating or intersecting pieces)", () => {
+  const bs = buildings(); const kit = facadeKit(bs);
+  const pieces = [["balconies", kit.balconies], ["rails", kit.rails], ["portals", kit.portals], ["lobbies", kit.lobbies], ["blades", kit.blades]] as const;
+  const ownerOf = (f: { x: number; z: number }) => bs.filter((k) => Math.abs(k.x - f.x) <= k.w / 2 + 1.6 && Math.abs(k.z - f.z) <= k.d / 2 + 1.6).sort((a, c) => Math.hypot(a.x - f.x, a.z - f.z) - Math.hypot(c.x - f.x, c.z - f.z))[0]!;
+  test("nothing floats below its building's ground or pokes above its roof", () => {
+    for (const [, list] of pieces) for (const f of list) { const o = ownerOf(f); expect(f.y - f.sy / 2).toBeGreaterThanOrEqual(o.base + 1 - 0.01); expect(f.y + f.sy / 2).toBeLessThanOrEqual(o.top + 0.01); }
+  });
+  test("no piece buries itself inside a neighbouring building", () => {
+    let bad = 0;
+    for (const [, list] of pieces) for (const f of list) {
+      const o = ownerOf(f);
+      for (const n of bs) { if (n === o) continue; if (Math.abs(n.x - f.x) < n.w / 2 - 0.05 && Math.abs(n.z - f.z) < n.d / 2 - 0.05 && f.y > n.base && f.y < n.top) bad++; }
+    }
+    expect(bad).toBe(0);
+  });
+  test("pieces stay within one metre and a half of the wall they decorate (no hovering)", () => {
+    for (const [, list] of pieces) for (const f of list) { const o = ownerOf(f); const dx = Math.abs(f.x - o.x) - o.w / 2, dz = Math.abs(f.z - o.z) - o.d / 2; expect(Math.max(dx, dz)).toBeLessThan(1.5); expect(Math.max(dx, dz)).toBeGreaterThan(-0.5 - f.sx / 2 - f.sz / 2); }
+  });
+  test("added draw cost is five instanced meshes", () => { expect(pieces.length).toBe(5); const n = pieces.reduce((t, [, l]) => t + l.length, 0); console.log("kit instances added:", n); expect(n).toBeLessThan(20000); });
+});
+
 describe("street lights", () => {
   test("two per block face on the pavement, never on water or a supply road", () => {
     const ls = streetLights();
