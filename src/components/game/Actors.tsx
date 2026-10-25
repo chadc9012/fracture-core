@@ -9,7 +9,7 @@ import { RoundedBox } from "@react-three/drei";
 import { useFrame } from "@react-three/fiber";
 import { useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
-import { isStaggeredNow, recoilAt } from "@/game/enemy-reactions";
+import { isStaggeredNow, reactionBones, recoilAt } from "@/game/enemy-reactions";
 
 
 
@@ -250,6 +250,7 @@ export function WarMachines({ sim }: { sim: WorldSim }) {
         const v = Number.isNaN(prev.x) || dt <= 0 ? 0 : Math.hypot(m.x - prev.x, m.z - prev.z) / dt;
         drive.current.speed += (Math.min(v, 12) - drive.current.speed) * Math.min(1, dt * 8);
         drive.current.aiming = (m.aim ?? 0) > 0;
+        drive.current.hit = reactionBones(m.react, performance.now() / 1000, m.rot);
         prev.x = m.x; prev.z = m.z;
       }
       const stride = strides[i];

@@ -64,7 +64,7 @@ import { INITIAL_NULL_CHARGE, NULL_PERK, NULL_PULSE_POISE, NULL_PULSE_RADIUS, NU
 import { ENCOUNTERS } from "./scenario-encounters";
 import { encounterHpFloor, endEncounter, onDecoyShattered, resetEncounters, stepEncounters, type EncounterEvent, type EncounterState, type EncounterZone } from "./encounter-sim";
 import { rollWeaponLoot } from "./weapon-loot";
-import { isStaggeredNow, reactTo } from "./enemy-reactions";
+import { isStaggeredNow, reactTo, hitPart } from "./enemy-reactions";
 import { PARTICIPATION_HITS, SCENARIO_LOOT, rollScenario, type ScenarioClaim } from "./scenario-loot";
 import { attunedElement, gimmickMultiplier, type DamageElement } from "./scenario-gimmicks";
 import { fireRound, splashDamage, stepRound, type Burst, type OrdnanceDef, type Round } from "./ordnance";
@@ -268,6 +268,13 @@ export function logGore(sim: WorldSim, e: Omit<GoreEvent, "id">) {
 export function markGoreHit(sim: WorldSim, m: Machine, dx: number, dz: number, dmg: number, cause: GoreCause, y = m.y - 2.2 * m.scale + 1.25 * enemyBodyScaleOf(m.scale), hitLog = true) {
   const d = Math.hypot(dx, dz) || 1;
   m.goreHit = { dx: dx / d, dz: dz / d, dmg, cause, y };
+  // blasts, blades, rams and abilities make the body react too (bullets react in the bullet loop, which also staggers);
+  // presentation only here: the gore damage numbers are inflated, so no stun comes from this
+  if (cause !== "BULLET" && cause !== "PELLET" && m.hp > 0 && !m.rival && !m.decoy) {
+    const prev = m.react;
+    const r = reactTo(prev, { damage: dmg / 2, maxHp: m.maxHp ?? (m.elite ? 7 : 3.5), elite: m.elite, boss: m.boss, now: performance.now() / 1000, dx, dz, part: cause === "BLAST" ? "TORSO" : hitPart(y, m.y - 2.2 * m.scale, 1.85 * enemyBodyScaleOf(m.scale)) });
+    if (r && r !== prev) m.react = r;
+  }
   if (hitLog && m.hp > 0 && !m.decoy) logGore(sim, { kind: "HIT", blood: bloodOf(m), cause, x: m.x - (dx / d) * 0.3 * m.scale, y, z: m.z - (dz / d) * 0.3 * m.scale, dx: dx / d, dz: dz / d, power: Math.min(1, dmg / Math.max(0.5, m.maxHp ?? (m.elite ? 7 : 3.5))), size: enemyBodyScaleOf(m.scale) });
 }
 /** the bullet hit-cylinder of a machine: feet (the ground under it, or its swim depth), top and radius */
@@ -2282,7 +2289,7 @@ export function stepSim(sim: WorldSim, input: SimInput) {
         // (after the perks read the wind-up) flinch / stagger (enemy-reactions.ts): a stagger knocks a ranged wind-up back to the start (the shot is delayed, the telegraph stays readable) and holds the next attack
         if (!m.rival && !m.decoy) {
           const nowR = performance.now() / 1000, prevR = m.react;
-          m.react = reactTo(m.react, { damage: dmg, maxHp: m.maxHp ?? (m.elite ? 7 : 3.5), elite: m.elite, boss: m.boss, now: nowR, dx: m.x - px, dz: m.z - pz });
+          m.react = reactTo(m.react, { damage: dmg, maxHp: m.maxHp ?? (m.elite ? 7 : 3.5), elite: m.elite, boss: m.boss, now: nowR, dx: m.x - px, dz: m.z - pz, part: hitPart(m.goreHit?.y ?? b.y, m.y - 2.2 * m.scale, 1.85 * enemyBodyScaleOf(m.scale)) });
           if (m.react !== prevR && isStaggeredNow(m.react, nowR)) { if ((m.aim ?? 0) > 0) m.aim = Math.max(m.aim ?? 0, windupFor(m)); stunMachine(m, m.react!.until - nowR + 0.25); }
         }
         if (!b.element && (sim.equippedElement === "CRYO" || sim.equippedElement === "ARC")) m.cool = Math.max(m.cool, sim.equippedElement === "CRYO" ? 0.9 : 0.6);

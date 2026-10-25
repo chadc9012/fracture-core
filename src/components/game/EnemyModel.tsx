@@ -11,8 +11,15 @@ import type { HandlingClass } from "@/game/weapon-handling";
 import { heldWeaponCopy } from "./heldModels";
 
 /** a Mixamo bone by name, whichever way the loader spelled the prefix ("mixamorig:Head" or "mixamorigHead") */
+const boneCache = new WeakMap<THREE.Object3D, Map<string, THREE.Object3D | null>>();
+/** a rig's bone by Mixamo name (both prefix spellings), cached per rig: hit reactions look bones up every frame */
 function rigBone(root: THREE.Object3D, name: string): THREE.Object3D | null {
-  return root.getObjectByName(`mixamorig:${name}`) ?? root.getObjectByName(`mixamorig${name}`) ?? root.getObjectByName(name) ?? null;
+  let m = boneCache.get(root);
+  if (!m) { m = new Map(); boneCache.set(root, m); }
+  if (m.has(name)) return m.get(name)!;
+  const b = root.getObjectByName(`mixamorig:${name}`) ?? root.getObjectByName(`mixamorig${name}`) ?? root.getObjectByName(name) ?? null;
+  m.set(name, b);
+  return b;
 }
 
 /** Per-machine motion the renderer reads (WarMachines writes it each frame). `procedural` is set by the model: true while it has no clips. */
@@ -20,7 +27,7 @@ function rigBone(root: THREE.Object3D, name: string): THREE.Object3D | null {
  * (death-animations.ts: style, seed for its variation, mirror for falls to the right). `muzzle`: where this enemy's held gun's barrel was last frame (world), for shots and flashes. */
 /** each pooled machine slot's drive (WarMachines registers them): Scene reads `muzzle` to fire enemy shots from the held gun */
 export const enemyDrives: (DriveRef | undefined)[] = [];
-export type DriveRef = { current: EnemyDrive & { procedural?: boolean; frozen?: boolean; death?: { age: number; seed: number; style: DeathStyle; mirror: boolean }; muzzle?: { x: number; y: number; z: number; t: number } } };
+export type DriveRef = { current: EnemyDrive & { procedural?: boolean; frozen?: boolean; death?: { age: number; seed: number; style: DeathStyle; mirror: boolean }; /** hit reaction laid over the clips (enemy-reactions.ts reactionBones) */ hit?: Record<string, [number, number, number]> | null; muzzle?: { x: number; y: number; z: number; t: number } } };
 import * as THREE from "three";
 import { SURFACES, regionLook } from "@/game/visual-standard";
 
@@ -208,6 +215,9 @@ function Authored({ visual, headRef, drive, onBuilt, weapon }: { visual: EnemyVi
       if (built.clips.walk) built.clips.walk.timeScale = strideRate(d.speed, "walk");
       if (built.clips.run) built.clips.run.timeScale = strideRate(d.speed, "run");
       built.mixer.update(Math.min(dt, 0.1));
+      // hit reaction: additive on top of whatever clip is playing (the mixer rewrites the bones every frame, so this never accumulates)
+      const hit = drive?.current.hit;
+      if (hit) for (const [name, e] of Object.entries(hit)) { const bone = rigBone(built.obj, name); if (bone) { tmp.e.set(e[0], e[1], e[2]); bone.quaternion.multiply(tmp.q.setFromEuler(tmp.e)); } }
       b.rotation.set(0, 0, 0);
       // the gun: gripped at the palm, pointing where the body faces (+Z), up to aim while winding up or firing, low ready
       // otherwise (the hand bone twists through the clips, so following it pointed the barrel at the sky)
