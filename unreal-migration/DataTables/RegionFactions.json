@@ -1,0 +1,47 @@
+[
+  {
+    "Name": "wastelands",
+    "Region": "wastelands",
+    "Faction": "RAIDER"
+  },
+  {
+    "Name": "nexus",
+    "Region": "nexus",
+    "Faction": "OVERCLOCKED"
+  },
+  {
+    "Name": "frostspire",
+    "Region": "frostspire",
+    "Faction": "VANGUARD"
+  },
+  {
+    "Name": "swamps",
+    "Region": "swamps",
+    "Faction": "ABERRATION"
+  },
+  {
+    "Name": "neon",
+    "Region": "neon",
+    "Faction": "OVERCLOCKED"
+  },
+  {
+    "Name": "thalassia",
+    "Region": "thalassia",
+    "Faction": "ABERRATION"
+  },
+  {
+    "Name": "veridan",
+    "Region": "veridan",
+    "Faction": "ABERRATION"
+  },
+  {
+    "Name": "ember",
+    "Region": "ember",
+    "Faction": "RAIDER"
+  },
+  {
+    "Name": "solara",
+    "Region": "solara",
+    "Faction": "RAIDER"
+  }
+]

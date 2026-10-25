@@ -1,0 +1,35 @@
+[
+  {
+    "Name": "TITAN",
+    "Id": "TITAN",
+    "DisplayName": "Destroyer",
+    "Title": "Wardens of the Fracture",
+    "Role": "Heavy Weapons · Durability · Area Damage",
+    "Fantasy": "A heavily armored frontline fighter built to absorb damage and overwhelm enemy positions.",
+    "Color": "#66e0ff",
+    "Adaptation": "Defensive specialization",
+    "AbilitiesJson": "[{\"slot\":\"PRIMARY\",\"name\":\"Siege Mode\",\"description\":\"Increase weapon stability and firepower.\"},{\"slot\":\"TACTICAL\",\"name\":\"Kinetic Slam\",\"description\":\"Release a shockwave around you.\"},{\"slot\":\"ULTIMATE\",\"name\":\"Bastion Shield\",\"description\":\"Deploy temporary defensive protection.\"}]"
+  },
+  {
+    "Name": "HUNTER",
+    "Id": "HUNTER",
+    "DisplayName": "Assassin",
+    "Title": "Fracture Rogues",
+    "Role": "Mobility · Stealth · Precision",
+    "Fantasy": "A fast, stealth-focused operator built for flanking enemies and striking vulnerable targets.",
+    "Color": "#ff6f61",
+    "Adaptation": "Momentum specialization",
+    "AbilitiesJson": "[{\"slot\":\"PRIMARY\",\"name\":\"Phase Veil\",\"description\":\"Briefly conceal yourself.\"},{\"slot\":\"TACTICAL\",\"name\":\"Rift Dash\",\"description\":\"Quickly teleport a short distance.\"},{\"slot\":\"ULTIMATE\",\"name\":\"Shadow Strike\",\"description\":\"Deliver a powerful close-range attack.\"}]"
+  },
+  {
+    "Name": "WARLOCK",
+    "Id": "WARLOCK",
+    "DisplayName": "Tech",
+    "Title": "Oracles of the System",
+    "Role": "Tactical Support · Control · Technology",
+    "Fantasy": "A tactical specialist who uses drones, battlefield intelligence, and reality-manipulation technology.",
+    "Color": "#c86bff",
+    "Adaptation": "System specialization",
+    "AbilitiesJson": "[{\"slot\":\"PRIMARY\",\"name\":\"Recon Swarm\",\"description\":\"Reveal nearby enemies.\"},{\"slot\":\"TACTICAL\",\"name\":\"Disruption Pulse\",\"description\":\"Temporarily disable enemy technology.\"},{\"slot\":\"ULTIMATE\",\"name\":\"Rift Turret\",\"description\":\"Deploy an automated combat device.\"}]"
+  }
+]

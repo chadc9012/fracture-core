@@ -1,0 +1,50 @@
+[
+  {
+    "Name": "burial-gates",
+    "Id": "burial-gates",
+    "ClassId": "TITAN",
+    "DisplayName": "Burial Gates",
+    "Subtitle": "Mission 01 · Defensive prototype",
+    "Location": "Sunken Arcology entrance",
+    "Mechanic": "Read attacks, time Bastion Shield, then break the siege line.",
+    "Objectives": [
+      "Hold the western gate",
+      "Perfect-block the Architect strike",
+      "Kinetic Slam the exposed Brute",
+      "Project a dome over the relay"
+    ],
+    "Reward": "Bulwark Calibration"
+  },
+  {
+    "Name": "velocity-protocol",
+    "Id": "velocity-protocol",
+    "ClassId": "HUNTER",
+    "DisplayName": "Velocity Protocol",
+    "Subtitle": "Mission 01B · Momentum trial",
+    "Location": "Archive transit spine",
+    "Mechanic": "Chain phase gates without losing momentum, then mark the moving target.",
+    "Objectives": [
+      "Cross three collapsing lanes",
+      "Phase through a suppression sweep",
+      "Reveal the route commander with Recon Swarm",
+      "Trigger Shadow Strike at full momentum"
+    ],
+    "Reward": "Velocity Catalyst"
+  },
+  {
+    "Name": "synthesis-fracture",
+    "Id": "synthesis-fracture",
+    "ClassId": "WARLOCK",
+    "DisplayName": "Synthesis Fracture",
+    "Subtitle": "Mission 01C · Systems trial",
+    "Location": "Data Flood chamber",
+    "Mechanic": "Read the chamber logic, silence defenders, and rewrite the node sequence.",
+    "Objectives": [
+      "Reveal the hidden system path",
+      "Silence two sentries",
+      "Stabilize the gravity field",
+      "Override the synthesis core"
+    ],
+    "Reward": "Synthesis Lattice"
+  }
+]

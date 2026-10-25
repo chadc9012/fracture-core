@@ -1,0 +1,135 @@
+[
+  {
+    "Name": "nexus",
+    "Id": "nexus",
+    "DisplayName": "Nexus City",
+    "Sub": "Safe Zone / Hub",
+    "Kind": "safe",
+    "X": 48,
+    "Z": -228,
+    "Radius": 26,
+    "Difficulty": 0,
+    "Ground": "#2b3a4a",
+    "Accent": "#66e0ff",
+    "Speed": 1.1,
+    "Rules": [
+      "No PvP — stability field active",
+      "Trade, upgrades, contracts",
+      "Fast travel gate"
+    ]
+  },
+  {
+    "Name": "veridan",
+    "Id": "veridan",
+    "DisplayName": "Verdant Forest",
+    "Sub": "Safe Zone / Resources",
+    "Kind": "starter",
+    "X": 432,
+    "Z": -60,
+    "Radius": 204,
+    "Difficulty": 1,
+    "Ground": "#2f6b3a",
+    "Accent": "#8fe08a",
+    "Speed": 0.82,
+    "Rules": [
+      "Trees give cover and resources",
+      "Low combat — learn the basics",
+      "Movement slowed by undergrowth"
+    ]
+  },
+  {
+    "Name": "frostspire",
+    "Id": "frostspire",
+    "DisplayName": "Frostspire Mountains",
+    "Sub": "High Risk / Rare Resources",
+    "Kind": "core",
+    "X": 24,
+    "Z": -624,
+    "Radius": 240,
+    "Difficulty": 5,
+    "Ground": "#8fa8c8",
+    "Accent": "#e8f4ff",
+    "Speed": 0.7,
+    "Rules": [
+      "Vertical traversal challenge",
+      "Snow slows movement",
+      "Endgame raids near The Overseer"
+    ]
+  },
+  {
+    "Name": "ember",
+    "Id": "ember",
+    "DisplayName": "Ember Peaks",
+    "Sub": "Fracture Zone / High Risk",
+    "Kind": "fracture",
+    "X": -468,
+    "Z": -336,
+    "Radius": 180,
+    "Difficulty": 5,
+    "Ground": "#3a2320",
+    "Accent": "#ff6a1f",
+    "Speed": 0.9,
+    "Rules": [
+      "Lava damage zones",
+      "Eruption events reshape terrain",
+      "Ash falls — reduced visibility"
+    ]
+  },
+  {
+    "Name": "wastelands",
+    "Id": "wastelands",
+    "DisplayName": "The Wastelands",
+    "Sub": "War Zone / PvP",
+    "Kind": "war",
+    "X": -300,
+    "Z": 180,
+    "Radius": 252,
+    "Difficulty": 3,
+    "Ground": "#c9a25f",
+    "Accent": "#ffd27a",
+    "Speed": 1,
+    "Rules": [
+      "Faction wars and convoy raids",
+      "Ownership shifts over time",
+      "Open ground — high exposure"
+    ]
+  },
+  {
+    "Name": "solara",
+    "Id": "solara",
+    "DisplayName": "Solara Desert",
+    "Sub": "Resources / Missions",
+    "Kind": "war",
+    "X": 180,
+    "Z": 480,
+    "Radius": 264,
+    "Difficulty": 2,
+    "Ground": "#dcb26a",
+    "Accent": "#ffe8a8",
+    "Speed": 1.25,
+    "Rules": [
+      "Fast travel on foot and wheels",
+      "Heat drains stamina",
+      "Dust storms cut visibility"
+    ]
+  },
+  {
+    "Name": "swamps",
+    "Id": "swamps",
+    "DisplayName": "The Shrouded Swamps",
+    "Sub": "Fracture Zone / High Risk",
+    "Kind": "fracture",
+    "X": 612,
+    "Z": 312,
+    "Radius": 180,
+    "Difficulty": 4,
+    "Ground": "#25412f",
+    "Accent": "#63d6a8",
+    "Speed": 0.62,
+    "Rules": [
+      "Stealth gameplay — fog cover",
+      "Ambush AI in the reeds",
+      "Vehicles bog down"
+    ]
+  }
+]

@@ -1,0 +1,50 @@
+[
+  {
+    "Name": "base-01",
+    "Id": "base-01",
+    "DisplayName": "Wastelands Scrap-Hangar",
+    "Region": "The Wastelands",
+    "MapRegion": "wastelands",
+    "X": -280,
+    "Z": 172,
+    "CostJson": "{\"scrapMetal\":40}",
+    "Blurb": "Corrugated hangar at Rust Port. Trucks, buggies and rigs.",
+    "DeckY": 0
+  },
+  {
+    "Name": "base-02",
+    "Id": "base-02",
+    "DisplayName": "Neon City Spire Vault",
+    "Region": "Neon City",
+    "MapRegion": "nexus",
+    "X": -179.99999999999997,
+    "Z": -136,
+    "CostJson": "{\"microCircuits\":20,\"reinforcedAlloy\":10}",
+    "Blurb": "A sealed vault under the Aegis Spire. Aircraft and hover bikes.",
+    "DeckY": 0
+  },
+  {
+    "Name": "base-03",
+    "Id": "base-03",
+    "DisplayName": "Frostspire Bunkered Base",
+    "Region": "Frostspire Mountains",
+    "MapRegion": "frostspire",
+    "X": -24,
+    "Z": -540,
+    "CostJson": "{\"reinforcedAlloy\":25,\"cryoCrystal\":10}",
+    "Blurb": "Blast-proof bays cut into the mountain. Heavy armor.",
+    "DeckY": 0
+  },
+  {
+    "Name": "base-04",
+    "Id": "base-04",
+    "DisplayName": "Thalassia Sub-Dock",
+    "Region": "Thalassia",
+    "MapRegion": "swamps",
+    "X": 1288.2996219540862,
+    "Z": -143.0332913282318,
+    "CostJson": "{\"dataShards\":12,\"bioCatalyst\":6}",
+    "Blurb": "A pressure dock on the Thalassia shelf. Boats and submersibles.",
+    "DeckY": -10
+  }
+]

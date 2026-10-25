@@ -1,0 +1,42 @@
+[
+  {
+    "Name": "Dawn",
+    "Top": "#2f4d7a",
+    "Bottom": "#f2a25c",
+    "Fog": "#9fb6cf",
+    "Light": "#ffcf9b",
+    "Intensity": 1.1
+  },
+  {
+    "Name": "Day",
+    "Top": "#4aa3d8",
+    "Bottom": "#bfe4f2",
+    "Fog": "#c6e2ee",
+    "Light": "#fff6e2",
+    "Intensity": 1.6
+  },
+  {
+    "Name": "Sunset",
+    "Top": "#3b2a5c",
+    "Bottom": "#ff7a3c",
+    "Fog": "#c98a6a",
+    "Light": "#ff9a52",
+    "Intensity": 1.2
+  },
+  {
+    "Name": "Night",
+    "Top": "#081430",
+    "Bottom": "#17305a",
+    "Fog": "#132a52",
+    "Light": "#9cc0ff",
+    "Intensity": 0.5
+  },
+  {
+    "Name": "Moonlight",
+    "Top": "#0a1838",
+    "Bottom": "#1d3c6a",
+    "Fog": "#1a3664",
+    "Light": "#b9d4ff",
+    "Intensity": 0.75
+  }
+]

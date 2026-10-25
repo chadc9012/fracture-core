@@ -1,0 +1,409 @@
+[
+  {
+    "Name": "goliath-4x4",
+    "Id": "goliath-4x4",
+    "DisplayName": "Goliath-4x4 Apex",
+    "Category": "LAND",
+    "Base": "wasteland-jeep",
+    "Garage": "base-01",
+    "CostJson": "{\"vehicleParts\":8,\"scrapMetal\":30}",
+    "Hardpoints": [
+      "Roof: 12.7mm auto-turret",
+      "Bumper: kinetic ramming grill"
+    ],
+    "Ability": "Fracture Overcharge (nitro)",
+    "Paints": [
+      "Rust-Orange Matte",
+      "Stealth Black",
+      "Desert Camo"
+    ],
+    "NodesJson": "[{\"id\":\"engine\",\"name\":\"Supercharger\",\"text\":\"+6% top speed per stage\",\"stat\":\"speed\",\"perLevel\":0.06,\"maxLevel\":3,\"cost\":{\"vehicleParts\":3,\"fuel\":4}},{\"id\":\"armor\",\"name\":\"Composite Shell\",\"text\":\"+12% hull per stage\",\"stat\":\"hull\",\"perLevel\":0.12,\"maxLevel\":3,\"cost\":{\"reinforcedAlloy\":4}},{\"id\":\"grill\",\"name\":\"Ram Grill\",\"text\":\"+10% ram per stage\",\"stat\":\"ram\",\"perLevel\":0.1,\"maxLevel\":2,\"cost\":{\"scrapMetal\":10}}]"
+  },
+  {
+    "Name": "behemoth-v16",
+    "Id": "behemoth-v16",
+    "DisplayName": "Behemoth-Crusher V16",
+    "Category": "LAND",
+    "Base": "raider-buggy",
+    "Garage": "base-01",
+    "CostJson": "{\"vehicleParts\":10,\"reinforcedAlloy\":8}",
+    "Hardpoints": [
+      "Top: 20mm autocannon",
+      "Under-chassis flame jets"
+    ],
+    "Ability": "Crush & Trample",
+    "Paints": [
+      "Rust King Red",
+      "Bone White"
+    ],
+    "NodesJson": "[{\"id\":\"hydraulics\",\"name\":\"Hydraulic Lift\",\"text\":\"+15% ram per stage\",\"stat\":\"ram\",\"perLevel\":0.15,\"maxLevel\":3,\"cost\":{\"vehicleParts\":3}},{\"id\":\"plate\",\"name\":\"Scrap Plating\",\"text\":\"+10% hull per stage\",\"stat\":\"hull\",\"perLevel\":0.1,\"maxLevel\":3,\"cost\":{\"scrapMetal\":12}}]"
+  },
+  {
+    "Name": "dune-stalker",
+    "Id": "dune-stalker",
+    "DisplayName": "Dune-Stalker Trike",
+    "Category": "LAND",
+    "Base": "aether-hoverbike",
+    "Garage": "base-01",
+    "CostJson": "{\"vehicleParts\":6,\"fuel\":10}",
+    "Hardpoints": [
+      "Front twin heavy MGs",
+      "Rear mine dropper"
+    ],
+    "Ability": "Dune Leap",
+    "Paints": [
+      "Sand",
+      "Night Raid"
+    ],
+    "NodesJson": "[{\"id\":\"boost\",\"name\":\"Rocket Boost\",\"text\":\"+7% top speed per stage\",\"stat\":\"speed\",\"perLevel\":0.07,\"maxLevel\":3,\"cost\":{\"fuel\":6}},{\"id\":\"steer\",\"name\":\"Dune Steering\",\"text\":\"+8% handling per stage\",\"stat\":\"handling\",\"perLevel\":0.08,\"maxLevel\":2,\"cost\":{\"vehicleParts\":2}}]"
+  },
+  {
+    "Name": "aegis-siege",
+    "Id": "aegis-siege",
+    "DisplayName": "Aegis Siege Breaker",
+    "Category": "HEAVY",
+    "Base": "goliath-tank",
+    "Garage": "base-03",
+    "CostJson": "{\"reinforcedAlloy\":20,\"vehicleParts\":12,\"aegisCore\":1}",
+    "Hardpoints": [
+      "Turret: 120mm plasma smoothbore",
+      "Pintle: pulse machine gun"
+    ],
+    "Ability": "Fortress Protocol",
+    "Paints": [
+      "Standard Olive",
+      "Winter Camo",
+      "Fracture Gold"
+    ],
+    "NodesJson": "[{\"id\":\"treads\",\"name\":\"All-Terrain Treads\",\"text\":\"+8% handling per stage\",\"stat\":\"handling\",\"perLevel\":0.08,\"maxLevel\":2,\"cost\":{\"vehicleParts\":4}},{\"id\":\"armor\",\"name\":\"Reactive Plating\",\"text\":\"+10% hull per stage\",\"stat\":\"hull\",\"perLevel\":0.1,\"maxLevel\":3,\"cost\":{\"reinforcedAlloy\":6}},{\"id\":\"drive\",\"name\":\"Turbine Drive\",\"text\":\"+6% top speed per stage\",\"stat\":\"speed\",\"perLevel\":0.06,\"maxLevel\":2,\"cost\":{\"fuel\":8}}]"
+  },
+  {
+    "Name": "valkyrie-vtol",
+    "Id": "valkyrie-vtol",
+    "DisplayName": "Valkyrie VTOL-MkII",
+    "Category": "AIR",
+    "Base": "rift-helicopter",
+    "Garage": "base-02",
+    "CostJson": "{\"microCircuits\":14,\"vehicleParts\":10}",
+    "Hardpoints": [
+      "Nose: 30mm rotary cannon",
+      "Pylons: lock-on rocket pods"
+    ],
+    "Ability": "Vector Thruster Pivot",
+    "Paints": [
+      "Stealth Anodized Black",
+      "Syndicate White",
+      "Cobalt Blue"
+    ],
+    "NodesJson": "[{\"id\":\"ion\",\"name\":\"Ion Afterburner\",\"text\":\"+7% top speed per stage\",\"stat\":\"speed\",\"perLevel\":0.07,\"maxLevel\":3,\"cost\":{\"microCircuits\":4,\"fuel\":4}},{\"id\":\"gyro\",\"name\":\"Gyro Stabiliser\",\"text\":\"+8% handling per stage\",\"stat\":\"handling\",\"perLevel\":0.08,\"maxLevel\":2,\"cost\":{\"microCircuits\":3}}]"
+  },
+  {
+    "Name": "ghost-ray",
+    "Id": "ghost-ray",
+    "DisplayName": "Ghost-Ray Hover Bike",
+    "Category": "LAND",
+    "Base": "aether-hoverbike",
+    "Garage": "base-02",
+    "CostJson": "{\"microCircuits\":10,\"vehicleParts\":6}",
+    "Hardpoints": [
+      "Thermal sniper / pulse array"
+    ],
+    "Ability": "Optical Cloak",
+    "Paints": [
+      "Ghost Grey",
+      "Neon Magenta"
+    ],
+    "NodesJson": "[{\"id\":\"lift\",\"name\":\"Anti-Grav Coils\",\"text\":\"+6% top speed per stage\",\"stat\":\"speed\",\"perLevel\":0.06,\"maxLevel\":3,\"cost\":{\"microCircuits\":3}},{\"id\":\"frame\",\"name\":\"Carbon Frame\",\"text\":\"+12% hull per stage\",\"stat\":\"hull\",\"perLevel\":0.12,\"maxLevel\":2,\"cost\":{\"reinforcedAlloy\":3}}]"
+  },
+  {
+    "Name": "f39-jupiter",
+    "Id": "f39-jupiter",
+    "DisplayName": "F-39 Jupiter",
+    "Category": "AIR",
+    "Base": "vanguard-jet",
+    "Garage": "base-02",
+    "CostJson": "{\"microCircuits\":20,\"aegisCore\":1,\"vehicleParts\":12}",
+    "Hardpoints": [
+      "Arc cannon",
+      "RQ-44 Remora drone dock"
+    ],
+    "Ability": "Suborbital Interdiction",
+    "Paints": [
+      "Picket Grey",
+      "Strike White"
+    ],
+    "NodesJson": "[{\"id\":\"intake\",\"name\":\"Scramjet Intake\",\"text\":\"+5% top speed per stage\",\"stat\":\"speed\",\"perLevel\":0.05,\"maxLevel\":3,\"cost\":{\"fuel\":8}},{\"id\":\"airframe\",\"name\":\"Airframe Bracing\",\"text\":\"+10% handling per stage\",\"stat\":\"handling\",\"perLevel\":0.1,\"maxLevel\":2,\"cost\":{\"reinforcedAlloy\":4}}]"
+  },
+  {
+    "Name": "nautilus-abyss",
+    "Id": "nautilus-abyss",
+    "DisplayName": "Nautilus Abyss-01",
+    "Category": "AQUATIC",
+    "Base": "hydro-sub-skiff",
+    "Garage": "base-04",
+    "CostJson": "{\"dataShards\":10,\"vehicleParts\":10,\"bioCatalyst\":4}",
+    "Hardpoints": [
+      "Torpedo bay: sonic torpedoes",
+      "Hull: mining laser"
+    ],
+    "Ability": "Crush-Depth Cavitation",
+    "Paints": [
+      "Abyssal Yellow",
+      "Deep Sea Navy"
+    ],
+    "NodesJson": "[{\"id\":\"bulkheads\",\"name\":\"Titanium Bulkheads\",\"text\":\"+12% hull per stage\",\"stat\":\"hull\",\"perLevel\":0.12,\"maxLevel\":3,\"cost\":{\"reinforcedAlloy\":5}},{\"id\":\"jets\",\"name\":\"Waterjet Turbines\",\"text\":\"+7% top speed per stage\",\"stat\":\"speed\",\"perLevel\":0.07,\"maxLevel\":2,\"cost\":{\"vehicleParts\":3}}]"
+  },
+  {
+    "Name": "triton-hydrospear",
+    "Id": "triton-hydrospear",
+    "DisplayName": "Triton Hydrospear-9",
+    "Category": "AQUATIC",
+    "Base": "scrap-patrol-boat",
+    "Garage": "base-04",
+    "CostJson": "{\"vehicleParts\":8,\"fuel\":10}",
+    "Hardpoints": [
+      "Micro torpedo racks",
+      "Plasma arc turret"
+    ],
+    "Ability": "Sub-Surface Dive",
+    "Paints": [
+      "Canal Green",
+      "Harbour Grey"
+    ],
+    "NodesJson": "[{\"id\":\"foils\",\"name\":\"Hydrofoils\",\"text\":\"+8% top speed per stage\",\"stat\":\"speed\",\"perLevel\":0.08,\"maxLevel\":3,\"cost\":{\"vehicleParts\":3}},{\"id\":\"rudder\",\"name\":\"Twin Rudders\",\"text\":\"+8% handling per stage\",\"stat\":\"handling\",\"perLevel\":0.08,\"maxLevel\":2,\"cost\":{\"scrapMetal\":10}}]"
+  },
+  {
+    "Name": "nomad-bike",
+    "Id": "nomad-bike",
+    "DisplayName": "Nomad Bike",
+    "Category": "LAND",
+    "Base": "aether-hoverbike",
+    "Garage": "base-01",
+    "CostJson": "{\"vehicleParts\":4,\"fuel\":6}",
+    "Hardpoints": [
+      "Bar-mounted twin SMGs"
+    ],
+    "Ability": "Slipstream Lean",
+    "Paints": [
+      "Rust",
+      "Dust Rider",
+      "Chrome"
+    ],
+    "NodesJson": "[{\"id\":\"throttle\",\"name\":\"Short-Shift Throttle\",\"text\":\"+7% top speed per stage\",\"stat\":\"speed\",\"perLevel\":0.07,\"maxLevel\":3,\"cost\":{\"fuel\":4}},{\"id\":\"forks\",\"name\":\"Long-Travel Forks\",\"text\":\"+8% handling per stage\",\"stat\":\"handling\",\"perLevel\":0.08,\"maxLevel\":2,\"cost\":{\"vehicleParts\":2}}]"
+  },
+  {
+    "Name": "rift-runner",
+    "Id": "rift-runner",
+    "DisplayName": "Rift Runner",
+    "Category": "LAND",
+    "Base": "scrap-interceptor",
+    "Garage": "base-01",
+    "CostJson": "{\"vehicleParts\":6,\"scrapMetal\":20}",
+    "Hardpoints": [
+      "Hood: rift-shot cannon",
+      "Rear: caltrop launcher"
+    ],
+    "Ability": "Rift Boost",
+    "Paints": [
+      "Rift Violet",
+      "Matte Black",
+      "Hazard Orange"
+    ],
+    "NodesJson": "[{\"id\":\"nitro\",\"name\":\"Rift Nitro\",\"text\":\"+6% top speed per stage\",\"stat\":\"speed\",\"perLevel\":0.06,\"maxLevel\":3,\"cost\":{\"fuel\":5}},{\"id\":\"cage\",\"name\":\"Roll Cage\",\"text\":\"+10% hull per stage\",\"stat\":\"hull\",\"perLevel\":0.1,\"maxLevel\":3,\"cost\":{\"scrapMetal\":10}}]"
+  },
+  {
+    "Name": "sandstalker-atv",
+    "Id": "sandstalker-atv",
+    "DisplayName": "Sandstalker ATV",
+    "Category": "LAND",
+    "Base": "wasteland-jeep",
+    "Garage": "base-01",
+    "CostJson": "{\"vehicleParts\":5,\"fuel\":8}",
+    "Hardpoints": [
+      "Roll bar: light machine gun"
+    ],
+    "Ability": "Dune Grip",
+    "Paints": [
+      "Sand",
+      "Scorpion",
+      "Ash"
+    ],
+    "NodesJson": "[{\"id\":\"tyres\",\"name\":\"Paddle Tyres\",\"text\":\"+10% handling per stage\",\"stat\":\"handling\",\"perLevel\":0.1,\"maxLevel\":2,\"cost\":{\"vehicleParts\":2}},{\"id\":\"bash\",\"name\":\"Bash Plate\",\"text\":\"+10% ram per stage\",\"stat\":\"ram\",\"perLevel\":0.1,\"maxLevel\":3,\"cost\":{\"scrapMetal\":10}}]"
+  },
+  {
+    "Name": "void-chaser",
+    "Id": "void-chaser",
+    "DisplayName": "Void Chaser",
+    "Category": "LAND",
+    "Base": "ai-interceptor",
+    "Garage": "base-02",
+    "CostJson": "{\"microCircuits\":12,\"vehicleParts\":8}",
+    "Hardpoints": [
+      "Twin void lances",
+      "EMP mine dispenser"
+    ],
+    "Ability": "Phase Dash",
+    "Paints": [
+      "Void Black",
+      "Neon Teal",
+      "White Noise"
+    ],
+    "NodesJson": "[{\"id\":\"core\",\"name\":\"Void Core\",\"text\":\"+6% top speed per stage\",\"stat\":\"speed\",\"perLevel\":0.06,\"maxLevel\":3,\"cost\":{\"microCircuits\":4}},{\"id\":\"shell\",\"name\":\"Phase Shell\",\"text\":\"+10% hull per stage\",\"stat\":\"hull\",\"perLevel\":0.1,\"maxLevel\":2,\"cost\":{\"reinforcedAlloy\":4}}]"
+  },
+  {
+    "Name": "civic-rover",
+    "Id": "civic-rover",
+    "DisplayName": "Civic Rover",
+    "Category": "LAND",
+    "Base": "wasteland-jeep",
+    "Garage": "base-02",
+    "CostJson": "{\"vehicleParts\":3,\"scrapMetal\":15}",
+    "Hardpoints": [
+      "None — a city runabout"
+    ],
+    "Ability": "Courier Lane",
+    "Paints": [
+      "Taxi Yellow",
+      "Civic Blue",
+      "Pearl"
+    ],
+    "NodesJson": "[{\"id\":\"eco\",\"name\":\"City Tune\",\"text\":\"+8% handling per stage\",\"stat\":\"handling\",\"perLevel\":0.08,\"maxLevel\":2,\"cost\":{\"vehicleParts\":2}},{\"id\":\"bumper\",\"name\":\"Reinforced Bumpers\",\"text\":\"+8% hull per stage\",\"stat\":\"hull\",\"perLevel\":0.08,\"maxLevel\":2,\"cost\":{\"scrapMetal\":8}}]"
+  },
+  {
+    "Name": "neon-drift",
+    "Id": "neon-drift",
+    "DisplayName": "Neon Drift",
+    "Category": "LAND",
+    "Base": "scrap-interceptor",
+    "Garage": "base-02",
+    "CostJson": "{\"microCircuits\":8,\"vehicleParts\":6}",
+    "Hardpoints": [
+      "Underglow arc emitters"
+    ],
+    "Ability": "Drift Charge",
+    "Paints": [
+      "Magenta Glow",
+      "Cyan Glow",
+      "Gold Chrome"
+    ],
+    "NodesJson": "[{\"id\":\"diff\",\"name\":\"Drift Diff\",\"text\":\"+10% handling per stage\",\"stat\":\"handling\",\"perLevel\":0.1,\"maxLevel\":3,\"cost\":{\"microCircuits\":3}},{\"id\":\"turbo\",\"name\":\"Twin Turbo\",\"text\":\"+6% top speed per stage\",\"stat\":\"speed\",\"perLevel\":0.06,\"maxLevel\":3,\"cost\":{\"fuel\":5}}]"
+  },
+  {
+    "Name": "war-rig",
+    "Id": "war-rig",
+    "DisplayName": "War Rig",
+    "Category": "HEAVY",
+    "Base": "tech-transport",
+    "Garage": "base-03",
+    "CostJson": "{\"reinforcedAlloy\":16,\"vehicleParts\":12}",
+    "Hardpoints": [
+      "Cab: flak turret",
+      "Trailer: twin heavy MG nests"
+    ],
+    "Ability": "Convoy Wall",
+    "Paints": [
+      "Rust Red",
+      "Gunmetal",
+      "Raider Stripes"
+    ],
+    "NodesJson": "[{\"id\":\"plates\",\"name\":\"Slab Armor\",\"text\":\"+12% hull per stage\",\"stat\":\"hull\",\"perLevel\":0.12,\"maxLevel\":3,\"cost\":{\"reinforcedAlloy\":6}},{\"id\":\"ramguard\",\"name\":\"Cow Catcher\",\"text\":\"+12% ram per stage\",\"stat\":\"ram\",\"perLevel\":0.12,\"maxLevel\":3,\"cost\":{\"scrapMetal\":14}}]"
+  },
+  {
+    "Name": "apex-hauler",
+    "Id": "apex-hauler",
+    "DisplayName": "Apex Hauler",
+    "Category": "HEAVY",
+    "Base": "tech-transport",
+    "Garage": "base-03",
+    "CostJson": "{\"reinforcedAlloy\":12,\"vehicleParts\":10,\"cryoCrystal\":4}",
+    "Hardpoints": [
+      "Roof: point-defence laser"
+    ],
+    "Ability": "Cold-Chain Haul",
+    "Paints": [
+      "Frost White",
+      "Industrial Yellow",
+      "Tech Grey"
+    ],
+    "NodesJson": "[{\"id\":\"drive\",\"name\":\"Six-Wheel Drive\",\"text\":\"+8% handling per stage\",\"stat\":\"handling\",\"perLevel\":0.08,\"maxLevel\":2,\"cost\":{\"vehicleParts\":4}},{\"id\":\"engine\",\"name\":\"Diesel-Fracture Hybrid\",\"text\":\"+5% top speed per stage\",\"stat\":\"speed\",\"perLevel\":0.05,\"maxLevel\":3,\"cost\":{\"fuel\":6}}]"
+  },
+  {
+    "Name": "skyhawk",
+    "Id": "skyhawk",
+    "DisplayName": "Skyhawk",
+    "Category": "AIR",
+    "Base": "rift-helicopter",
+    "Garage": "base-02",
+    "CostJson": "{\"microCircuits\":12,\"vehicleParts\":8}",
+    "Hardpoints": [
+      "Chin: 20mm gun",
+      "Pylons: flare pods"
+    ],
+    "Ability": "Hover Lock",
+    "Paints": [
+      "Sky Grey",
+      "Rescue Orange",
+      "Night"
+    ],
+    "NodesJson": "[{\"id\":\"rotor\",\"name\":\"Composite Rotors\",\"text\":\"+7% top speed per stage\",\"stat\":\"speed\",\"perLevel\":0.07,\"maxLevel\":3,\"cost\":{\"microCircuits\":3}},{\"id\":\"armor\",\"name\":\"Cockpit Armour\",\"text\":\"+10% hull per stage\",\"stat\":\"hull\",\"perLevel\":0.1,\"maxLevel\":2,\"cost\":{\"reinforcedAlloy\":4}}]"
+  },
+  {
+    "Name": "riftwing",
+    "Id": "riftwing",
+    "DisplayName": "Riftwing",
+    "Category": "AIR",
+    "Base": "vanguard-jet",
+    "Garage": "base-03",
+    "CostJson": "{\"microCircuits\":16,\"vehicleParts\":10,\"cryoCrystal\":6}",
+    "Hardpoints": [
+      "Wing-root rift cannons"
+    ],
+    "Ability": "Rift Slipstream",
+    "Paints": [
+      "Glacier",
+      "Rift Violet",
+      "Carbon"
+    ],
+    "NodesJson": "[{\"id\":\"wing\",\"name\":\"Swept Wings\",\"text\":\"+8% handling per stage\",\"stat\":\"handling\",\"perLevel\":0.08,\"maxLevel\":2,\"cost\":{\"reinforcedAlloy\":4}},{\"id\":\"burner\",\"name\":\"Rift Afterburner\",\"text\":\"+6% top speed per stage\",\"stat\":\"speed\",\"perLevel\":0.06,\"maxLevel\":3,\"cost\":{\"fuel\":8}}]"
+  },
+  {
+    "Name": "solara-falcon",
+    "Id": "solara-falcon",
+    "DisplayName": "Solara Falcon",
+    "Category": "AIR",
+    "Base": "vanguard-jet",
+    "Garage": "base-01",
+    "CostJson": "{\"vehicleParts\":10,\"fuel\":14,\"microCircuits\":8}",
+    "Hardpoints": [
+      "Nose: solar beam",
+      "Wings: rocket rails"
+    ],
+    "Ability": "Sunstrike Dive",
+    "Paints": [
+      "Desert Gold",
+      "Sunset",
+      "Bone White"
+    ],
+    "NodesJson": "[{\"id\":\"cells\",\"name\":\"Solar Cells\",\"text\":\"+6% top speed per stage\",\"stat\":\"speed\",\"perLevel\":0.06,\"maxLevel\":3,\"cost\":{\"microCircuits\":3}},{\"id\":\"frame\",\"name\":\"Heat-Shield Frame\",\"text\":\"+10% hull per stage\",\"stat\":\"hull\",\"perLevel\":0.1,\"maxLevel\":2,\"cost\":{\"reinforcedAlloy\":4}}]"
+  },
+  {
+    "Name": "void-skimmer-prototype",
+    "Id": "void-skimmer-prototype",
+    "DisplayName": "Void-Skimmer Prototype",
+    "Category": "AIR",
+    "Base": "void-skimmer",
+    "Garage": "base-02",
+    "CostJson": "{\"microCircuits\":28,\"aegisCore\":2,\"vehicleParts\":18}",
+    "Hardpoints": [
+      "Bow: void lance array",
+      "Hull: boundary-breach thruster"
+    ],
+    "Ability": "Sub-Orbital Breach",
+    "Paints": [
+      "Prism White",
+      "Event Horizon Black",
+      "Resonant Violet"
+    ],
+    "NodesJson": "[{\"id\":\"lance\",\"name\":\"Void Lance Coils\",\"text\":\"+6% top speed per stage\",\"stat\":\"speed\",\"perLevel\":0.06,\"maxLevel\":3,\"cost\":{\"microCircuits\":5,\"aegisCore\":1}},{\"id\":\"stabilizer\",\"name\":\"Breach Stabilizer\",\"text\":\"+8% handling per stage\",\"stat\":\"handling\",\"perLevel\":0.08,\"maxLevel\":2,\"cost\":{\"reinforcedAlloy\":5}}]"
+  }
+]

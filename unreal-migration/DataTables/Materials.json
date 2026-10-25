@@ -1,0 +1,177 @@
+[
+  {
+    "Name": "dataChip",
+    "DisplayName": "Data Chips",
+    "Source": "Collectible: mission loot boxes and world caches"
+  },
+  {
+    "Name": "energyToken",
+    "DisplayName": "Energy Tokens",
+    "Source": "Collectible: every enemy drop"
+  },
+  {
+    "Name": "relicFragment",
+    "DisplayName": "Relic Fragments",
+    "Source": "Collectible: bosses and first clears"
+  },
+  {
+    "Name": "ruinStone",
+    "DisplayName": "Ruin Stones",
+    "Source": "Crafted: 5 data chips + 5 energy tokens + 3 relic fragments"
+  },
+  {
+    "Name": "gearParts",
+    "DisplayName": "Gear Parts",
+    "Source": "Dismantled weapons and armor; upgrades gear"
+  },
+  {
+    "Name": "armorStim",
+    "DisplayName": "Armor Stim",
+    "Source": "Crafted; carry up to 3; +10% resistance per stack for 60 s"
+  },
+  {
+    "Name": "healStim",
+    "DisplayName": "Heal Stim",
+    "Source": "Crafted; carry up to 3; +5 health/s per stack for 30 s"
+  },
+  {
+    "Name": "scrapMetal",
+    "DisplayName": "Scrap Metal",
+    "Source": "Raiders and convoy salvage"
+  },
+  {
+    "Name": "reinforcedAlloy",
+    "DisplayName": "Reinforced Alloy",
+    "Source": "Warlords and armored patrols"
+  },
+  {
+    "Name": "microCircuits",
+    "DisplayName": "Micro-Circuits",
+    "Source": "Overclocked units and city defenses"
+  },
+  {
+    "Name": "thermalShards",
+    "DisplayName": "Thermal Shards",
+    "Source": "Ember Peaks"
+  },
+  {
+    "Name": "cryoCrystal",
+    "DisplayName": "Cryo Crystals",
+    "Source": "Frostspire Mountains"
+  },
+  {
+    "Name": "sporeFiber",
+    "DisplayName": "Spore Fiber",
+    "Source": "Verdant Forest and the Swamps"
+  },
+  {
+    "Name": "bioCatalyst",
+    "DisplayName": "Bio Catalyst",
+    "Source": "Corrupted forest and swamp bosses"
+  },
+  {
+    "Name": "vehicleParts",
+    "DisplayName": "Vehicle Parts",
+    "Source": "Rust-Runners and the Junkyard Citadel"
+  },
+  {
+    "Name": "anomalyCarbon",
+    "DisplayName": "Anomaly Carbon",
+    "Source": "Solara Desert"
+  },
+  {
+    "Name": "dataShards",
+    "DisplayName": "Data Shards",
+    "Source": "Fracture Architects"
+  },
+  {
+    "Name": "magmaCore",
+    "DisplayName": "Magma Core",
+    "Source": "Overseer Kael"
+  },
+  {
+    "Name": "zeroCore",
+    "DisplayName": "Zero Core",
+    "Source": "Subject Zero"
+  },
+  {
+    "Name": "abyssCore",
+    "DisplayName": "Abyss Core",
+    "Source": "Kraken-Vanguard"
+  },
+  {
+    "Name": "aegisCore",
+    "DisplayName": "Aegis Core",
+    "Source": "Aegis-Prime"
+  },
+  {
+    "Name": "forgeCatalyst",
+    "DisplayName": "Forge Catalyst",
+    "Source": "First clear of a main mission or dungeon"
+  },
+  {
+    "Name": "tuningCore",
+    "DisplayName": "Tuning Core",
+    "Source": "Side contracts, or bought at mod shops"
+  },
+  {
+    "Name": "anomalyCore",
+    "DisplayName": "Anomaly Core",
+    "Source": "The Anomaly Prime"
+  },
+  {
+    "Name": "fuel",
+    "DisplayName": "Fuel",
+    "Source": "Wasteland convoy raids and the Underground City Fuel Depot"
+  },
+  {
+    "Name": "fuelKingCore",
+    "DisplayName": "Fuel King Core",
+    "Source": "The Fuel King"
+  },
+  {
+    "Name": "fractureCore",
+    "DisplayName": "Fracture Core",
+    "Source": "The System Core"
+  },
+  {
+    "Name": "glacierFang",
+    "DisplayName": "Glacier Fang",
+    "Source": "The Rime Alpha"
+  },
+  {
+    "Name": "nullPlate",
+    "DisplayName": "Null Plate",
+    "Source": "The Dark Knight"
+  },
+  {
+    "Name": "hollowHalo",
+    "DisplayName": "Hollow Halo",
+    "Source": "The Hollow Saint"
+  },
+  {
+    "Name": "roninEdge",
+    "DisplayName": "Ronin Edge",
+    "Source": "The Red Ronin"
+  },
+  {
+    "Name": "tideCrown",
+    "DisplayName": "Tide Crown Shard",
+    "Source": "The Drowned Monarch"
+  },
+  {
+    "Name": "crownHeart",
+    "DisplayName": "Heart of the Hollow Crown",
+    "Source": "The Furnace Guardian (godforge.ts)"
+  },
+  {
+    "Name": "dragonite",
+    "DisplayName": "Dragonite",
+    "Source": "Vyrak's Covenant and your Wyrmling's daily gift"
+  },
+  {
+    "Name": "runeDust",
+    "DisplayName": "Rune Dust",
+    "Source": "Slain nemeses and secrets; spent at the Godforge"
+  }
+]

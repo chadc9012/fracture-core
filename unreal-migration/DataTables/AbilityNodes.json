@@ -1,0 +1,191 @@
+[
+  {
+    "Name": "siege-mode",
+    "Id": "siege-mode",
+    "DisplayName": "Siege Mode",
+    "ClassId": "TITAN",
+    "Slot": "PRIMARY",
+    "Stream": "COMBAT",
+    "Cost": 0,
+    "Cooldown": 25,
+    "Resource": 25,
+    "Description": "Increase weapon stability and firepower.",
+    "Links": [
+      "rift-dash",
+      "kinetic-slam"
+    ],
+    "BranchesJson": "[{\"id\":\"hold-fast\",\"name\":\"Hold Fast\",\"role\":\"Power\",\"modifier\":\"+18% primary effect\",\"synergy\":\"Amplifies matching class effects\"},{\"id\":\"suppressor\",\"name\":\"Suppressor\",\"role\":\"Control\",\"modifier\":\"+25% effect duration\",\"synergy\":\"Extends linked status effects\"},{\"id\":\"shared-stance\",\"name\":\"Shared Stance\",\"role\":\"Utility\",\"modifier\":\"−15% resource cost\",\"synergy\":\"Shares part of the benefit with allies\"}]"
+  },
+  {
+    "Name": "kinetic-slam",
+    "Id": "kinetic-slam",
+    "DisplayName": "Kinetic Slam",
+    "ClassId": "TITAN",
+    "Slot": "TACTICAL",
+    "Stream": "COMBAT",
+    "Cost": 12,
+    "Cooldown": 18,
+    "Resource": 20,
+    "Description": "Release a shockwave around you.",
+    "Links": [
+      "disruption-pulse"
+    ],
+    "BranchesJson": "[{\"id\":\"fault-line\",\"name\":\"Fault Line\",\"role\":\"Power\",\"modifier\":\"+18% primary effect\",\"synergy\":\"Amplifies matching class effects\"},{\"id\":\"aftershock\",\"name\":\"Aftershock\",\"role\":\"Control\",\"modifier\":\"+25% effect duration\",\"synergy\":\"Extends linked status effects\"},{\"id\":\"safeguard\",\"name\":\"Safeguard\",\"role\":\"Utility\",\"modifier\":\"−15% resource cost\",\"synergy\":\"Shares part of the benefit with allies\"}]"
+  },
+  {
+    "Name": "bastion-shield",
+    "Id": "bastion-shield",
+    "DisplayName": "Bastion Shield",
+    "ClassId": "TITAN",
+    "Slot": "ULTIMATE",
+    "Stream": "SYSTEMS",
+    "Cost": 28,
+    "Cooldown": 24,
+    "Resource": 40,
+    "Description": "Deploy temporary defensive protection.",
+    "Links": [
+      "rift-turret"
+    ],
+    "BranchesJson": "[{\"id\":\"citadel\",\"name\":\"Citadel\",\"role\":\"Power\",\"modifier\":\"+18% primary effect\",\"synergy\":\"Amplifies matching class effects\"},{\"id\":\"mirror-plate\",\"name\":\"Mirror Plate\",\"role\":\"Control\",\"modifier\":\"+25% effect duration\",\"synergy\":\"Extends linked status effects\"},{\"id\":\"sanctuary\",\"name\":\"Sanctuary\",\"role\":\"Utility\",\"modifier\":\"−15% resource cost\",\"synergy\":\"Shares part of the benefit with allies\"}]"
+  },
+  {
+    "Name": "phase-veil",
+    "Id": "phase-veil",
+    "DisplayName": "Phase Veil",
+    "ClassId": "HUNTER",
+    "Slot": "PRIMARY",
+    "Stream": "EXPLORATION",
+    "Cost": 0,
+    "Cooldown": 18,
+    "Resource": 15,
+    "Description": "Briefly conceal yourself.",
+    "Links": [
+      "rift-dash",
+      "recon-swarm"
+    ],
+    "BranchesJson": "[{\"id\":\"deep-cover\",\"name\":\"Deep Cover\",\"role\":\"Power\",\"modifier\":\"+18% primary effect\",\"synergy\":\"Amplifies matching class effects\"},{\"id\":\"afterglow\",\"name\":\"Afterglow\",\"role\":\"Control\",\"modifier\":\"+25% effect duration\",\"synergy\":\"Extends linked status effects\"},{\"id\":\"shared-veil\",\"name\":\"Shared Veil\",\"role\":\"Utility\",\"modifier\":\"−15% resource cost\",\"synergy\":\"Shares part of the benefit with allies\"}]"
+  },
+  {
+    "Name": "rift-dash",
+    "Id": "rift-dash",
+    "DisplayName": "Rift Dash",
+    "ClassId": "HUNTER",
+    "Slot": "TACTICAL",
+    "Stream": "EXPLORATION",
+    "Cost": 10,
+    "Cooldown": 10,
+    "Resource": 12,
+    "Description": "Quickly teleport a short distance.",
+    "Links": [
+      "siege-mode"
+    ],
+    "BranchesJson": "[{\"id\":\"kinetic-edge\",\"name\":\"Kinetic Edge\",\"role\":\"Power\",\"modifier\":\"+18% primary effect\",\"synergy\":\"Amplifies matching class effects\"},{\"id\":\"ghost-step\",\"name\":\"Ghost Step\",\"role\":\"Control\",\"modifier\":\"+25% effect duration\",\"synergy\":\"Extends linked status effects\"},{\"id\":\"slipstream\",\"name\":\"Slipstream\",\"role\":\"Utility\",\"modifier\":\"−15% resource cost\",\"synergy\":\"Shares part of the benefit with allies\"}]"
+  },
+  {
+    "Name": "shadow-strike",
+    "Id": "shadow-strike",
+    "DisplayName": "Shadow Strike",
+    "ClassId": "HUNTER",
+    "Slot": "ULTIMATE",
+    "Stream": "COMBAT",
+    "Cost": 30,
+    "Cooldown": 22,
+    "Resource": 35,
+    "Description": "Deliver a powerful close-range attack.",
+    "Links": [
+      "rift-turret"
+    ],
+    "BranchesJson": "[{\"id\":\"killing-edge\",\"name\":\"Killing Edge\",\"role\":\"Power\",\"modifier\":\"+18% primary effect\",\"synergy\":\"Amplifies matching class effects\"},{\"id\":\"echo-blade\",\"name\":\"Echo Blade\",\"role\":\"Control\",\"modifier\":\"+25% effect duration\",\"synergy\":\"Extends linked status effects\"},{\"id\":\"zero-hour\",\"name\":\"Zero Hour\",\"role\":\"Utility\",\"modifier\":\"−15% resource cost\",\"synergy\":\"Shares part of the benefit with allies\"}]"
+  },
+  {
+    "Name": "recon-swarm",
+    "Id": "recon-swarm",
+    "DisplayName": "Recon Swarm",
+    "ClassId": "WARLOCK",
+    "Slot": "PRIMARY",
+    "Stream": "SYSTEMS",
+    "Cost": 0,
+    "Cooldown": 20,
+    "Resource": 18,
+    "Description": "Reveal nearby enemies.",
+    "Links": [
+      "phase-veil"
+    ],
+    "BranchesJson": "[{\"id\":\"deep-scan\",\"name\":\"Deep Scan\",\"role\":\"Power\",\"modifier\":\"+18% primary effect\",\"synergy\":\"Amplifies matching class effects\"},{\"id\":\"hunter-swarm\",\"name\":\"Hunter Swarm\",\"role\":\"Control\",\"modifier\":\"+25% effect duration\",\"synergy\":\"Extends linked status effects\"},{\"id\":\"relay\",\"name\":\"Relay\",\"role\":\"Utility\",\"modifier\":\"−15% resource cost\",\"synergy\":\"Shares part of the benefit with allies\"}]"
+  },
+  {
+    "Name": "disruption-pulse",
+    "Id": "disruption-pulse",
+    "DisplayName": "Disruption Pulse",
+    "ClassId": "WARLOCK",
+    "Slot": "TACTICAL",
+    "Stream": "SYSTEMS",
+    "Cost": 14,
+    "Cooldown": 18,
+    "Resource": 24,
+    "Description": "Temporarily disable enemy technology.",
+    "Links": [
+      "kinetic-slam"
+    ],
+    "BranchesJson": "[{\"id\":\"blackout\",\"name\":\"Blackout\",\"role\":\"Power\",\"modifier\":\"+18% primary effect\",\"synergy\":\"Amplifies matching class effects\"},{\"id\":\"null-zone\",\"name\":\"Null Zone\",\"role\":\"Control\",\"modifier\":\"+25% effect duration\",\"synergy\":\"Extends linked status effects\"},{\"id\":\"feedback\",\"name\":\"Feedback\",\"role\":\"Utility\",\"modifier\":\"−15% resource cost\",\"synergy\":\"Shares part of the benefit with allies\"}]"
+  },
+  {
+    "Name": "rift-turret",
+    "Id": "rift-turret",
+    "DisplayName": "Rift Turret",
+    "ClassId": "WARLOCK",
+    "Slot": "ULTIMATE",
+    "Stream": "SYSTEMS",
+    "Cost": 32,
+    "Cooldown": 30,
+    "Resource": 45,
+    "Description": "Deploy an automated combat device.",
+    "Links": [
+      "bastion-shield",
+      "shadow-strike"
+    ],
+    "BranchesJson": "[{\"id\":\"overclock\",\"name\":\"Overclock\",\"role\":\"Power\",\"modifier\":\"+18% primary effect\",\"synergy\":\"Amplifies matching class effects\"},{\"id\":\"twin-mount\",\"name\":\"Twin Mount\",\"role\":\"Control\",\"modifier\":\"+25% effect duration\",\"synergy\":\"Extends linked status effects\"},{\"id\":\"shared-clock\",\"name\":\"Shared Clock\",\"role\":\"Utility\",\"modifier\":\"−15% resource cost\",\"synergy\":\"Shares part of the benefit with allies\"}]"
+  },
+  {
+    "Name": "ember-bulwark",
+    "Id": "ember-bulwark",
+    "DisplayName": "Ember Bulwark",
+    "ClassId": "TITAN",
+    "Slot": "TACTICAL",
+    "Stream": "COMBAT",
+    "Cost": 999,
+    "Cooldown": 45,
+    "Resource": 30,
+    "Description": "The Wyrmling breathes a wall of flame that blocks shots and burns enemies who cross it.",
+    "Links": [],
+    "BranchesJson": "[{\"id\":\"searing-wall\",\"name\":\"Searing Wall\",\"role\":\"Power\",\"modifier\":\"+18% primary effect\",\"synergy\":\"Amplifies matching class effects\"},{\"id\":\"long-burn\",\"name\":\"Long Burn\",\"role\":\"Control\",\"modifier\":\"+25% effect duration\",\"synergy\":\"Extends linked status effects\"},{\"id\":\"shared-hearth\",\"name\":\"Shared Hearth\",\"role\":\"Utility\",\"modifier\":\"−15% resource cost\",\"synergy\":\"Shares part of the benefit with allies\"}]"
+  },
+  {
+    "Name": "wyrm-dash",
+    "Id": "wyrm-dash",
+    "DisplayName": "Wyrm Dash",
+    "ClassId": "HUNTER",
+    "Slot": "TACTICAL",
+    "Stream": "COMBAT",
+    "Cost": 999,
+    "Cooldown": 30,
+    "Resource": 20,
+    "Description": "Dash through enemies trailing dragonfire; each enemy hit refunds dodge energy.",
+    "Links": [],
+    "BranchesJson": "[{\"id\":\"wildfire-trail\",\"name\":\"Wildfire Trail\",\"role\":\"Power\",\"modifier\":\"+18% primary effect\",\"synergy\":\"Amplifies matching class effects\"},{\"id\":\"long-glide\",\"name\":\"Long Glide\",\"role\":\"Control\",\"modifier\":\"+25% effect duration\",\"synergy\":\"Extends linked status effects\"},{\"id\":\"shared-wings\",\"name\":\"Shared Wings\",\"role\":\"Utility\",\"modifier\":\"−15% resource cost\",\"synergy\":\"Shares part of the benefit with allies\"}]"
+  },
+  {
+    "Name": "ash-nova",
+    "Id": "ash-nova",
+    "DisplayName": "Ash Nova",
+    "ClassId": "WARLOCK",
+    "Slot": "TACTICAL",
+    "Stream": "SYSTEMS",
+    "Cost": 999,
+    "Cooldown": 40,
+    "Resource": 28,
+    "Description": "The Wyrmling dives and detonates an ash nova that weakens enemies by 15%.",
+    "Links": [],
+    "BranchesJson": "[{\"id\":\"heavy-ash\",\"name\":\"Heavy Ash\",\"role\":\"Power\",\"modifier\":\"+18% primary effect\",\"synergy\":\"Amplifies matching class effects\"},{\"id\":\"wide-nova\",\"name\":\"Wide Nova\",\"role\":\"Control\",\"modifier\":\"+25% effect duration\",\"synergy\":\"Extends linked status effects\"},{\"id\":\"shared-embers\",\"name\":\"Shared Embers\",\"role\":\"Utility\",\"modifier\":\"−15% resource cost\",\"synergy\":\"Shares part of the benefit with allies\"}]"
+  }
+]

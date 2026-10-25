@@ -1,0 +1,4 @@
+Name,Id,DisplayName,Callsign,ClassName,ClassId,AppearanceId,Description,Bio,BaseStatsJson
+goliath,goliath,GOLIATH,GOLIATH,Destroyer,TITAN,BASTION,A heavy frontline combat specialist.,"A heavily armored frontline fighter built to absorb damage and overwhelm enemy positions. Heavy weapons, durability, area damage.","{""health"":160,""armor"":130,""mobility"":45,""tech"":55}"
+nyx,nyx,NYX,NYX,Assassin,HUNTER,SHADE,A stealth-focused Rift operative.,"A fast, stealth-focused operator built for flanking enemies and striking vulnerable targets. Mobility, stealth, precision.","{""health"":100,""armor"":70,""mobility"":100,""tech"":65}"
+cipher,cipher,CIPHER,CIPHER,Tech,WARLOCK,CIPHER,A tactical operator specializing in battlefield control.,"A tactical specialist who uses drones, battlefield intelligence, and reality-manipulation technology. Tactical support, control, technology.","{""health"":110,""armor"":75,""mobility"":70,""tech"":110}"

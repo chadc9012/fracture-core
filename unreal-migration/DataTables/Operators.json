@@ -1,0 +1,38 @@
+[
+  {
+    "Name": "goliath",
+    "Id": "goliath",
+    "DisplayName": "GOLIATH",
+    "Callsign": "GOLIATH",
+    "ClassName": "Destroyer",
+    "ClassId": "TITAN",
+    "AppearanceId": "BASTION",
+    "Description": "A heavy frontline combat specialist.",
+    "Bio": "A heavily armored frontline fighter built to absorb damage and overwhelm enemy positions. Heavy weapons, durability, area damage.",
+    "BaseStatsJson": "{\"health\":160,\"armor\":130,\"mobility\":45,\"tech\":55}"
+  },
+  {
+    "Name": "nyx",
+    "Id": "nyx",
+    "DisplayName": "NYX",
+    "Callsign": "NYX",
+    "ClassName": "Assassin",
+    "ClassId": "HUNTER",
+    "AppearanceId": "SHADE",
+    "Description": "A stealth-focused Rift operative.",
+    "Bio": "A fast, stealth-focused operator built for flanking enemies and striking vulnerable targets. Mobility, stealth, precision.",
+    "BaseStatsJson": "{\"health\":100,\"armor\":70,\"mobility\":100,\"tech\":65}"
+  },
+  {
+    "Name": "cipher",
+    "Id": "cipher",
+    "DisplayName": "CIPHER",
+    "Callsign": "CIPHER",
+    "ClassName": "Tech",
+    "ClassId": "WARLOCK",
+    "AppearanceId": "CIPHER",
+    "Description": "A tactical operator specializing in battlefield control.",
+    "Bio": "A tactical specialist who uses drones, battlefield intelligence, and reality-manipulation technology. Tactical support, control, technology.",
+    "BaseStatsJson": "{\"health\":110,\"armor\":75,\"mobility\":70,\"tech\":110}"
+  }
+]

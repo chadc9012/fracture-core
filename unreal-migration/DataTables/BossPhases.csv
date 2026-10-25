@@ -1,0 +1,4 @@
+Name,Label,Telegraph,SpeedMult,DamageMult,CooldownMult
+Row0,ENGAGED,Reading your approach.,1,1,1
+Row1,OVERDRIVEN,"Systems overdriving — faster, harder hits.",1.2,1.3,0.85
+Row2,OVERLOADED,"Critical overload — maximum output, slower recovery.",1.4,1.6,1.3

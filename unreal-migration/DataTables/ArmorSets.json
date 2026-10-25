@@ -1,0 +1,624 @@
+[
+  {
+    "Name": "verdant-warden",
+    "Id": "verdant-warden",
+    "DisplayName": "Verdant Warden",
+    "RegionId": "veridan",
+    "Element": "BIO",
+    "Color": "#6fd06a",
+    "Tagline": "Forest sentinels who never break cover.",
+    "PiecesJson": "{\"helmet\":\"Warden Hood\",\"gauntlets\":\"Warden Grips\",\"chest\":\"Warden Cuirass\",\"legs\":\"Warden Greaves\",\"classItem\":\"Warden Sash\"}",
+    "TwoJson": "{\"name\":\"Canopy Ward\",\"description\":\"Incoming damage reduced by 8%.\",\"effects\":{\"resist\":0.08}}",
+    "FourJson": "{\"name\":\"Rootbound Recovery\",\"description\":\"Hull slowly regenerates, and resistance rises another 4%.\",\"effects\":{\"regen\":1.2,\"resist\":0.04}}",
+    "Family": "",
+    "Sources": [],
+    "VendorTier": 0
+  },
+  {
+    "Name": "mire-stalker",
+    "Id": "mire-stalker",
+    "DisplayName": "Mire Stalker",
+    "RegionId": "swamps",
+    "Element": "BIO",
+    "Color": "#8fbf5a",
+    "Tagline": "Light armor for wading through the Swamps.",
+    "PiecesJson": "{\"helmet\":\"Stalker Mask\",\"gauntlets\":\"Stalker Wraps\",\"chest\":\"Stalker Vest\",\"legs\":\"Stalker Waders\",\"classItem\":\"Stalker Cloak\"}",
+    "TwoJson": "{\"name\":\"Bog Stride\",\"description\":\"Move 6% faster.\",\"effects\":{\"moveSpeed\":0.06}}",
+    "FourJson": "{\"name\":\"Spore Mend\",\"description\":\"Regenerate hull, and resist 5% of incoming damage.\",\"effects\":{\"regen\":1,\"resist\":0.05}}",
+    "Family": "",
+    "Sources": [],
+    "VendorTier": 0
+  },
+  {
+    "Name": "cinder-vanguard",
+    "Id": "cinder-vanguard",
+    "DisplayName": "Cinder Vanguard",
+    "RegionId": "ember",
+    "Element": "THERMAL",
+    "Color": "#ff7a3a",
+    "Tagline": "Forged in the Ember Peaks, built to hit back.",
+    "PiecesJson": "{\"helmet\":\"Cinder Visor\",\"gauntlets\":\"Cinder Fists\",\"chest\":\"Cinder Plate\",\"legs\":\"Cinder Treads\",\"classItem\":\"Cinder Mark\"}",
+    "TwoJson": "{\"name\":\"Heat Sink\",\"description\":\"Weapon damage +8%.\",\"effects\":{\"weaponDamage\":0.08}}",
+    "FourJson": "{\"name\":\"Ashfall Fury\",\"description\":\"Weapon damage +14% more, and resist 4%.\",\"effects\":{\"weaponDamage\":0.14,\"resist\":0.04}}",
+    "Family": "",
+    "Sources": [],
+    "VendorTier": 0
+  },
+  {
+    "Name": "frostwrought-aegis",
+    "Id": "frostwrought-aegis",
+    "DisplayName": "Frostwrought Aegis",
+    "RegionId": "frostspire",
+    "Element": "CRYO",
+    "Color": "#7fd8ff",
+    "Tagline": "Rime-plated armor that shrugs off punishment.",
+    "PiecesJson": "{\"helmet\":\"Aegis Crown\",\"gauntlets\":\"Aegis Gauntlets\",\"chest\":\"Aegis Carapace\",\"legs\":\"Aegis Sabatons\",\"classItem\":\"Aegis Banner\"}",
+    "TwoJson": "{\"name\":\"Rime Plating\",\"description\":\"Incoming damage reduced by 10%.\",\"effects\":{\"resist\":0.1}}",
+    "FourJson": "{\"name\":\"Glacier Bulwark\",\"description\":\"Resist 10% more, and slides carry further.\",\"effects\":{\"resist\":0.1,\"slideBoost\":0.12}}",
+    "Family": "",
+    "Sources": [],
+    "VendorTier": 0
+  },
+  {
+    "Name": "scrapborn-raider",
+    "Id": "scrapborn-raider",
+    "DisplayName": "Scrapborn Raider",
+    "RegionId": "wastelands",
+    "Element": "KINETIC",
+    "Color": "#d8b25a",
+    "Tagline": "Salvage turned into armor, built for the open road.",
+    "PiecesJson": "{\"helmet\":\"Raider Goggles\",\"gauntlets\":\"Raider Mitts\",\"chest\":\"Raider Jacket\",\"legs\":\"Raider Chaps\",\"classItem\":\"Raider Scarf\"}",
+    "TwoJson": "{\"name\":\"Salvager's Edge\",\"description\":\"Weapon damage +5%, move 4% faster.\",\"effects\":{\"weaponDamage\":0.05,\"moveSpeed\":0.04}}",
+    "FourJson": "{\"name\":\"Road Warrior\",\"description\":\"Move 8% faster and slide 15% further.\",\"effects\":{\"moveSpeed\":0.08,\"slideBoost\":0.15}}",
+    "Family": "",
+    "Sources": [],
+    "VendorTier": 0
+  },
+  {
+    "Name": "dune-seeker",
+    "Id": "dune-seeker",
+    "DisplayName": "Dune Seeker",
+    "RegionId": "solara",
+    "Element": "ARC",
+    "Color": "#ffd25a",
+    "Tagline": "Sun-baked scouts who never stop moving.",
+    "PiecesJson": "{\"helmet\":\"Seeker Veil\",\"gauntlets\":\"Seeker Bracers\",\"chest\":\"Seeker Tunic\",\"legs\":\"Seeker Wraps\",\"classItem\":\"Seeker Mantle\"}",
+    "TwoJson": "{\"name\":\"Mirage Step\",\"description\":\"Move 7% faster.\",\"effects\":{\"moveSpeed\":0.07}}",
+    "FourJson": "{\"name\":\"Sun Surge\",\"description\":\"Weapon damage +10%, move 6% faster.\",\"effects\":{\"weaponDamage\":0.1,\"moveSpeed\":0.06}}",
+    "Family": "",
+    "Sources": [],
+    "VendorTier": 0
+  },
+  {
+    "Name": "ironwatch",
+    "Id": "ironwatch",
+    "DisplayName": "Ironwatch",
+    "RegionId": "",
+    "Element": "KINETIC",
+    "Color": "#8a9aa6",
+    "Tagline": "Ceramic plates and utility pouches.",
+    "PiecesJson": "{\"helmet\":\"Ironwatch Helmet\",\"gauntlets\":\"Ironwatch Gauntlets\",\"chest\":\"Ironwatch Plate Carrier\",\"legs\":\"Ironwatch Fatigues\",\"classItem\":\"Ironwatch Rig\"}",
+    "TwoJson": "{\"name\":\"Steady Hands\",\"description\":\"Weapon damage +5%, Incoming damage −3%.\",\"effects\":{\"weaponDamage\":0.05,\"resist\":0.03}}",
+    "FourJson": "{\"name\":\"Hold the Line\",\"description\":\"Incoming damage −8%.\",\"effects\":{\"resist\":0.08}}",
+    "Family": "military",
+    "Sources": [
+      "patrol",
+      "public-event"
+    ],
+    "VendorTier": 1
+  },
+  {
+    "Name": "ghost-recon",
+    "Id": "ghost-recon",
+    "DisplayName": "Ghost Recon",
+    "RegionId": "",
+    "Element": "KINETIC",
+    "Color": "#3c4650",
+    "Tagline": "Lightweight black suppressed-tech kit.",
+    "PiecesJson": "{\"helmet\":\"Ghost Recon Helmet\",\"gauntlets\":\"Ghost Recon Gauntlets\",\"chest\":\"Ghost Recon Plate Carrier\",\"legs\":\"Ghost Recon Fatigues\",\"classItem\":\"Ghost Recon Rig\"}",
+    "TwoJson": "{\"name\":\"Quiet Step\",\"description\":\"Move 6% faster.\",\"effects\":{\"moveSpeed\":0.06}}",
+    "FourJson": "{\"name\":\"Phantom Push\",\"description\":\"Move 5% faster, Slides 10% further.\",\"effects\":{\"moveSpeed\":0.05,\"slideBoost\":0.1}}",
+    "Family": "military",
+    "Sources": [
+      "patrol",
+      "elite"
+    ],
+    "VendorTier": 2
+  },
+  {
+    "Name": "vanguard-siege",
+    "Id": "vanguard-siege",
+    "DisplayName": "Vanguard Siege",
+    "RegionId": "",
+    "Element": "KINETIC",
+    "Color": "#6d7b5a",
+    "Tagline": "Heavy plated military armor.",
+    "PiecesJson": "{\"helmet\":\"Vanguard Siege Helmet\",\"gauntlets\":\"Vanguard Siege Gauntlets\",\"chest\":\"Vanguard Siege Plate Carrier\",\"legs\":\"Vanguard Siege Fatigues\",\"classItem\":\"Vanguard Siege Rig\"}",
+    "TwoJson": "{\"name\":\"Siege Plating\",\"description\":\"Incoming damage −8%.\",\"effects\":{\"resist\":0.08}}",
+    "FourJson": "{\"name\":\"Unbroken\",\"description\":\"Incoming damage −10%.\",\"effects\":{\"resist\":0.1}}",
+    "Family": "military",
+    "Sources": [
+      "elite",
+      "public-event"
+    ],
+    "VendorTier": 3
+  },
+  {
+    "Name": "wasteland-ranger",
+    "Id": "wasteland-ranger",
+    "DisplayName": "Wasteland Ranger",
+    "RegionId": "",
+    "Element": "KINETIC",
+    "Color": "#a07a4a",
+    "Tagline": "Scavenged armor and ammo belts.",
+    "PiecesJson": "{\"helmet\":\"Wasteland Ranger Helmet\",\"gauntlets\":\"Wasteland Ranger Gauntlets\",\"chest\":\"Wasteland Ranger Plate Carrier\",\"legs\":\"Wasteland Ranger Fatigues\",\"classItem\":\"Wasteland Ranger Rig\"}",
+    "TwoJson": "{\"name\":\"Make Do\",\"description\":\"Regenerate 0.8 hull/s.\",\"effects\":{\"regen\":0.8}}",
+    "FourJson": "{\"name\":\"Long Haul\",\"description\":\"Regenerate 1 hull/s, Move 4% faster.\",\"effects\":{\"regen\":1,\"moveSpeed\":0.04}}",
+    "Family": "military",
+    "Sources": [
+      "patrol",
+      "story"
+    ],
+    "VendorTier": 1
+  },
+  {
+    "Name": "nightfall-operator",
+    "Id": "nightfall-operator",
+    "DisplayName": "Nightfall Operator",
+    "RegionId": "",
+    "Element": "ARC",
+    "Color": "#20262e",
+    "Tagline": "Matte black with low-profile lighting.",
+    "PiecesJson": "{\"helmet\":\"Nightfall Operator Helmet\",\"gauntlets\":\"Nightfall Operator Gauntlets\",\"chest\":\"Nightfall Operator Plate Carrier\",\"legs\":\"Nightfall Operator Fatigues\",\"classItem\":\"Nightfall Operator Rig\"}",
+    "TwoJson": "{\"name\":\"Dead Eye\",\"description\":\"Weapon damage +7%.\",\"effects\":{\"weaponDamage\":0.07}}",
+    "FourJson": "{\"name\":\"Lights Out\",\"description\":\"Weapon damage +8%, Move 3% faster.\",\"effects\":{\"weaponDamage\":0.08,\"moveSpeed\":0.03}}",
+    "Family": "military",
+    "Sources": [
+      "elite",
+      "secret"
+    ],
+    "VendorTier": 3
+  },
+  {
+    "Name": "aegis-battalion",
+    "Id": "aegis-battalion",
+    "DisplayName": "Aegis Battalion",
+    "RegionId": "",
+    "Element": "ARC",
+    "Color": "#b0b8c0",
+    "Tagline": "Advanced military exoskeleton.",
+    "PiecesJson": "{\"helmet\":\"Aegis Battalion Helmet\",\"gauntlets\":\"Aegis Battalion Gauntlets\",\"chest\":\"Aegis Battalion Plate Carrier\",\"legs\":\"Aegis Battalion Fatigues\",\"classItem\":\"Aegis Battalion Rig\"}",
+    "TwoJson": "{\"name\":\"Battalion Shield\",\"description\":\"Incoming damage −6%.\",\"effects\":{\"resist\":0.06}}",
+    "FourJson": "{\"name\":\"Heavy Support\",\"description\":\"Incoming damage −6%, Weapon damage +8%.\",\"effects\":{\"resist\":0.06,\"weaponDamage\":0.08}}",
+    "Family": "military",
+    "Sources": [
+      "public-event",
+      "elite"
+    ],
+    "VendorTier": 4
+  },
+  {
+    "Name": "shadow-veil",
+    "Id": "shadow-veil",
+    "DisplayName": "Shadow Veil",
+    "RegionId": "",
+    "Element": "ARC",
+    "Color": "#1a1c24",
+    "Tagline": "Layered black fabric, hidden plates.",
+    "PiecesJson": "{\"helmet\":\"Shadow Veil Mask\",\"gauntlets\":\"Shadow Veil Wraps\",\"chest\":\"Shadow Veil Garb\",\"legs\":\"Shadow Veil Leggings\",\"classItem\":\"Shadow Veil Sash\"}",
+    "TwoJson": "{\"name\":\"Unseen\",\"description\":\"Move 5% faster.\",\"effects\":{\"moveSpeed\":0.05}}",
+    "FourJson": "{\"name\":\"Veil Walk\",\"description\":\"Move 5% faster, Slides 12% further.\",\"effects\":{\"moveSpeed\":0.05,\"slideBoost\":0.12}}",
+    "Family": "ninja",
+    "Sources": [
+      "secret",
+      "patrol"
+    ],
+    "VendorTier": 2
+  },
+  {
+    "Name": "crimson-ronin",
+    "Id": "crimson-ronin",
+    "DisplayName": "Crimson Ronin",
+    "RegionId": "",
+    "Element": "THERMAL",
+    "Color": "#b0222e",
+    "Tagline": "Futuristic samurai plates and coat.",
+    "PiecesJson": "{\"helmet\":\"Crimson Ronin Mask\",\"gauntlets\":\"Crimson Ronin Wraps\",\"chest\":\"Crimson Ronin Garb\",\"legs\":\"Crimson Ronin Leggings\",\"classItem\":\"Crimson Ronin Sash\"}",
+    "TwoJson": "{\"name\":\"Blade Discipline\",\"description\":\"Weapon damage +7%.\",\"effects\":{\"weaponDamage\":0.07}}",
+    "FourJson": "{\"name\":\"Ronin's Oath\",\"description\":\"Weapon damage +10%, Incoming damage −4%.\",\"effects\":{\"weaponDamage\":0.1,\"resist\":0.04}}",
+    "Family": "ninja",
+    "Sources": [
+      "dungeon",
+      "story"
+    ],
+    "VendorTier": 0
+  },
+  {
+    "Name": "phantom-circuit",
+    "Id": "phantom-circuit",
+    "DisplayName": "Phantom Circuit",
+    "RegionId": "",
+    "Element": "ARC",
+    "Color": "#29e0ff",
+    "Tagline": "Flexible armor with energy channels.",
+    "PiecesJson": "{\"helmet\":\"Phantom Circuit Mask\",\"gauntlets\":\"Phantom Circuit Wraps\",\"chest\":\"Phantom Circuit Garb\",\"legs\":\"Phantom Circuit Leggings\",\"classItem\":\"Phantom Circuit Sash\"}",
+    "TwoJson": "{\"name\":\"Energy Flow\",\"description\":\"Abilities recharge 8% faster.\",\"effects\":{\"abilityRecharge\":0.08}}",
+    "FourJson": "{\"name\":\"Circuit Trail\",\"description\":\"Abilities recharge 8% faster, Move 5% faster.\",\"effects\":{\"abilityRecharge\":0.08,\"moveSpeed\":0.05}}",
+    "Family": "ninja",
+    "Sources": [
+      "elite",
+      "parkour"
+    ],
+    "VendorTier": 3
+  },
+  {
+    "Name": "void-serpent",
+    "Id": "void-serpent",
+    "DisplayName": "Void Serpent",
+    "RegionId": "",
+    "Element": "ARC",
+    "Color": "#5a2a8a",
+    "Tagline": "Segmented armor, serpent motifs.",
+    "PiecesJson": "{\"helmet\":\"Void Serpent Mask\",\"gauntlets\":\"Void Serpent Wraps\",\"chest\":\"Void Serpent Garb\",\"legs\":\"Void Serpent Leggings\",\"classItem\":\"Void Serpent Sash\"}",
+    "TwoJson": "{\"name\":\"Coil\",\"description\":\"Slides 12% further.\",\"effects\":{\"slideBoost\":0.12}}",
+    "FourJson": "{\"name\":\"Strike Back\",\"description\":\"Weapon damage +8%, Move 4% faster.\",\"effects\":{\"weaponDamage\":0.08,\"moveSpeed\":0.04}}",
+    "Family": "ninja",
+    "Sources": [
+      "dungeon"
+    ],
+    "VendorTier": 0
+  },
+  {
+    "Name": "silent-lotus",
+    "Id": "silent-lotus",
+    "DisplayName": "Silent Lotus",
+    "RegionId": "",
+    "Element": "BIO",
+    "Color": "#d8c8d0",
+    "Tagline": "Light hood, armored wraps.",
+    "PiecesJson": "{\"helmet\":\"Silent Lotus Mask\",\"gauntlets\":\"Silent Lotus Wraps\",\"chest\":\"Silent Lotus Garb\",\"legs\":\"Silent Lotus Leggings\",\"classItem\":\"Silent Lotus Sash\"}",
+    "TwoJson": "{\"name\":\"Soft Step\",\"description\":\"Move 6% faster.\",\"effects\":{\"moveSpeed\":0.06}}",
+    "FourJson": "{\"name\":\"Bloom\",\"description\":\"Regenerate 1 hull/s, Move 3% faster.\",\"effects\":{\"regen\":1,\"moveSpeed\":0.03}}",
+    "Family": "ninja",
+    "Sources": [
+      "secret",
+      "patrol"
+    ],
+    "VendorTier": 2
+  },
+  {
+    "Name": "eclipse-stalker",
+    "Id": "eclipse-stalker",
+    "DisplayName": "Eclipse Stalker",
+    "RegionId": "",
+    "Element": "ARC",
+    "Color": "#30303a",
+    "Tagline": "Dark reflective angular armor.",
+    "PiecesJson": "{\"helmet\":\"Eclipse Stalker Mask\",\"gauntlets\":\"Eclipse Stalker Wraps\",\"chest\":\"Eclipse Stalker Garb\",\"legs\":\"Eclipse Stalker Leggings\",\"classItem\":\"Eclipse Stalker Sash\"}",
+    "TwoJson": "{\"name\":\"Precision\",\"description\":\"Weapon damage +8%.\",\"effects\":{\"weaponDamage\":0.08}}",
+    "FourJson": "{\"name\":\"Totality\",\"description\":\"Weapon damage +10%.\",\"effects\":{\"weaponDamage\":0.1}}",
+    "Family": "ninja",
+    "Sources": [
+      "raid"
+    ],
+    "VendorTier": 0
+  },
+  {
+    "Name": "solar-sentinel",
+    "Id": "solar-sentinel",
+    "DisplayName": "Solar Sentinel",
+    "RegionId": "",
+    "Element": "THERMAL",
+    "Color": "#ff4a2a",
+    "Tagline": "Red and gold energy armor.",
+    "PiecesJson": "{\"helmet\":\"Solar Sentinel Visor Helm\",\"gauntlets\":\"Solar Sentinel Gauntlets\",\"chest\":\"Solar Sentinel Core Plate\",\"legs\":\"Solar Sentinel Greaves\",\"classItem\":\"Solar Sentinel Emblem\"}",
+    "TwoJson": "{\"name\":\"Solar Charge\",\"description\":\"Weapon damage +8%.\",\"effects\":{\"weaponDamage\":0.08}}",
+    "FourJson": "{\"name\":\"Flare Burst\",\"description\":\"Weapon damage +10%, Abilities recharge 4% faster.\",\"effects\":{\"weaponDamage\":0.1,\"abilityRecharge\":0.04}}",
+    "Family": "sentinel",
+    "Sources": [
+      "public-event",
+      "story"
+    ],
+    "VendorTier": 4
+  },
+  {
+    "Name": "frost-sentinel",
+    "Id": "frost-sentinel",
+    "DisplayName": "Frost Sentinel",
+    "RegionId": "",
+    "Element": "CRYO",
+    "Color": "#4aa8ff",
+    "Tagline": "Blue and silver control armor.",
+    "PiecesJson": "{\"helmet\":\"Frost Sentinel Visor Helm\",\"gauntlets\":\"Frost Sentinel Gauntlets\",\"chest\":\"Frost Sentinel Core Plate\",\"legs\":\"Frost Sentinel Greaves\",\"classItem\":\"Frost Sentinel Emblem\"}",
+    "TwoJson": "{\"name\":\"Chill Guard\",\"description\":\"Incoming damage −7%.\",\"effects\":{\"resist\":0.07}}",
+    "FourJson": "{\"name\":\"Permafrost\",\"description\":\"Incoming damage −6%, Abilities recharge 6% faster.\",\"effects\":{\"resist\":0.06,\"abilityRecharge\":0.06}}",
+    "Family": "sentinel",
+    "Sources": [
+      "public-event",
+      "elite"
+    ],
+    "VendorTier": 4
+  },
+  {
+    "Name": "verdant-sentinel",
+    "Id": "verdant-sentinel",
+    "DisplayName": "Verdant Sentinel",
+    "RegionId": "",
+    "Element": "BIO",
+    "Color": "#3ccf5a",
+    "Tagline": "Green armor, organic details.",
+    "PiecesJson": "{\"helmet\":\"Verdant Sentinel Visor Helm\",\"gauntlets\":\"Verdant Sentinel Gauntlets\",\"chest\":\"Verdant Sentinel Core Plate\",\"legs\":\"Verdant Sentinel Greaves\",\"classItem\":\"Verdant Sentinel Emblem\"}",
+    "TwoJson": "{\"name\":\"Photosynthesis\",\"description\":\"Regenerate 1 hull/s.\",\"effects\":{\"regen\":1}}",
+    "FourJson": "{\"name\":\"Overgrowth\",\"description\":\"Regenerate 1.4 hull/s.\",\"effects\":{\"regen\":1.4}}",
+    "Family": "sentinel",
+    "Sources": [
+      "public-event",
+      "patrol"
+    ],
+    "VendorTier": 4
+  },
+  {
+    "Name": "eclipse-sentinel",
+    "Id": "eclipse-sentinel",
+    "DisplayName": "Eclipse Sentinel",
+    "RegionId": "",
+    "Element": "ARC",
+    "Color": "#7a3aff",
+    "Tagline": "Black and violet void armor.",
+    "PiecesJson": "{\"helmet\":\"Eclipse Sentinel Visor Helm\",\"gauntlets\":\"Eclipse Sentinel Gauntlets\",\"chest\":\"Eclipse Sentinel Core Plate\",\"legs\":\"Eclipse Sentinel Greaves\",\"classItem\":\"Eclipse Sentinel Emblem\"}",
+    "TwoJson": "{\"name\":\"Umbra\",\"description\":\"Weapon damage +6%.\",\"effects\":{\"weaponDamage\":0.06}}",
+    "FourJson": "{\"name\":\"Event Horizon\",\"description\":\"Weapon damage +6%, Incoming damage −6%.\",\"effects\":{\"weaponDamage\":0.06,\"resist\":0.06}}",
+    "Family": "sentinel",
+    "Sources": [
+      "elite",
+      "dungeon"
+    ],
+    "VendorTier": 0
+  },
+  {
+    "Name": "nova-sentinel",
+    "Id": "nova-sentinel",
+    "DisplayName": "Nova Sentinel",
+    "RegionId": "",
+    "Element": "ARC",
+    "Color": "#d8faff",
+    "Tagline": "White and cyan amplifier armor.",
+    "PiecesJson": "{\"helmet\":\"Nova Sentinel Visor Helm\",\"gauntlets\":\"Nova Sentinel Gauntlets\",\"chest\":\"Nova Sentinel Core Plate\",\"legs\":\"Nova Sentinel Greaves\",\"classItem\":\"Nova Sentinel Emblem\"}",
+    "TwoJson": "{\"name\":\"Amplify\",\"description\":\"Abilities recharge 10% faster.\",\"effects\":{\"abilityRecharge\":0.1}}",
+    "FourJson": "{\"name\":\"Supernova\",\"description\":\"Abilities recharge 12% faster.\",\"effects\":{\"abilityRecharge\":0.12}}",
+    "Family": "sentinel",
+    "Sources": [
+      "story",
+      "elite"
+    ],
+    "VendorTier": 4
+  },
+  {
+    "Name": "prismatic-vanguard",
+    "Id": "prismatic-vanguard",
+    "DisplayName": "Prismatic Vanguard",
+    "RegionId": "",
+    "Element": "ARC",
+    "Color": "#ff7ad8",
+    "Tagline": "Multicolor reactive plating.",
+    "PiecesJson": "{\"helmet\":\"Prismatic Vanguard Visor Helm\",\"gauntlets\":\"Prismatic Vanguard Gauntlets\",\"chest\":\"Prismatic Vanguard Core Plate\",\"legs\":\"Prismatic Vanguard Greaves\",\"classItem\":\"Prismatic Vanguard Emblem\"}",
+    "TwoJson": "{\"name\":\"Spectrum\",\"description\":\"Abilities recharge 5% faster, Weapon damage +4%.\",\"effects\":{\"abilityRecharge\":0.05,\"weaponDamage\":0.04}}",
+    "FourJson": "{\"name\":\"Full Spectrum\",\"description\":\"Abilities recharge 6% faster, Incoming damage −5%, Move 3% faster.\",\"effects\":{\"abilityRecharge\":0.06,\"resist\":0.05,\"moveSpeed\":0.03}}",
+    "Family": "sentinel",
+    "Sources": [
+      "raid"
+    ],
+    "VendorTier": 0
+  },
+  {
+    "Name": "neon-phantom",
+    "Id": "neon-phantom",
+    "DisplayName": "Neon Phantom",
+    "RegionId": "",
+    "Element": "ARC",
+    "Color": "#ff2fd0",
+    "Tagline": "Technical streetwear, luminous piping.",
+    "PiecesJson": "{\"helmet\":\"Neon Phantom Cap\",\"gauntlets\":\"Neon Phantom Gloves\",\"chest\":\"Neon Phantom Jacket\",\"legs\":\"Neon Phantom Joggers\",\"classItem\":\"Neon Phantom Bag\"}",
+    "TwoJson": "{\"name\":\"Night Sprint\",\"description\":\"Move 7% faster.\",\"effects\":{\"moveSpeed\":0.07}}",
+    "FourJson": "{\"name\":\"Rooftop Flow\",\"description\":\"Move 6% faster, Slides 15% further.\",\"effects\":{\"moveSpeed\":0.06,\"slideBoost\":0.15}}",
+    "Family": "street",
+    "Sources": [
+      "parkour",
+      "patrol"
+    ],
+    "VendorTier": 2
+  },
+  {
+    "Name": "blackmarket-runner",
+    "Id": "blackmarket-runner",
+    "DisplayName": "Blackmarket Runner",
+    "RegionId": "",
+    "Element": "KINETIC",
+    "Color": "#4a4048",
+    "Tagline": "Hoodies and concealed armor.",
+    "PiecesJson": "{\"helmet\":\"Blackmarket Runner Cap\",\"gauntlets\":\"Blackmarket Runner Gloves\",\"chest\":\"Blackmarket Runner Jacket\",\"legs\":\"Blackmarket Runner Joggers\",\"classItem\":\"Blackmarket Runner Bag\"}",
+    "TwoJson": "{\"name\":\"Smuggler\",\"description\":\"Move 5% faster.\",\"effects\":{\"moveSpeed\":0.05}}",
+    "FourJson": "{\"name\":\"Clean Getaway\",\"description\":\"Move 5% faster, Incoming damage −5%.\",\"effects\":{\"moveSpeed\":0.05,\"resist\":0.05}}",
+    "Family": "street",
+    "Sources": [
+      "black-market"
+    ],
+    "VendorTier": 5
+  },
+  {
+    "Name": "overdrive",
+    "Id": "overdrive",
+    "DisplayName": "Overdrive",
+    "RegionId": "",
+    "Element": "KINETIC",
+    "Color": "#ffb000",
+    "Tagline": "Racing jacket and protective helmet.",
+    "PiecesJson": "{\"helmet\":\"Overdrive Cap\",\"gauntlets\":\"Overdrive Gloves\",\"chest\":\"Overdrive Jacket\",\"legs\":\"Overdrive Joggers\",\"classItem\":\"Overdrive Bag\"}",
+    "TwoJson": "{\"name\":\"Pit Crew\",\"description\":\"Incoming damage −5%.\",\"effects\":{\"resist\":0.05}}",
+    "FourJson": "{\"name\":\"Redline\",\"description\":\"Move 7% faster, Incoming damage −4%.\",\"effects\":{\"moveSpeed\":0.07,\"resist\":0.04}}",
+    "Family": "street",
+    "Sources": [
+      "race"
+    ],
+    "VendorTier": 0
+  },
+  {
+    "Name": "chrome-rebel",
+    "Id": "chrome-rebel",
+    "DisplayName": "Chrome Rebel",
+    "RegionId": "",
+    "Element": "KINETIC",
+    "Color": "#c8d0dc",
+    "Tagline": "Metallic streetwear, custom plates.",
+    "PiecesJson": "{\"helmet\":\"Chrome Rebel Cap\",\"gauntlets\":\"Chrome Rebel Gloves\",\"chest\":\"Chrome Rebel Jacket\",\"legs\":\"Chrome Rebel Joggers\",\"classItem\":\"Chrome Rebel Bag\"}",
+    "TwoJson": "{\"name\":\"Quick Draw\",\"description\":\"Weapon damage +5%, Move 3% faster.\",\"effects\":{\"weaponDamage\":0.05,\"moveSpeed\":0.03}}",
+    "FourJson": "{\"name\":\"Rebel Yell\",\"description\":\"Weapon damage +7%, Move 4% faster.\",\"effects\":{\"weaponDamage\":0.07,\"moveSpeed\":0.04}}",
+    "Family": "street",
+    "Sources": [
+      "patrol",
+      "race"
+    ],
+    "VendorTier": 2
+  },
+  {
+    "Name": "ghostline",
+    "Id": "ghostline",
+    "DisplayName": "Ghostline",
+    "RegionId": "",
+    "Element": "ARC",
+    "Color": "#9aa4b0",
+    "Tagline": "Minimalist urban tactical clothing.",
+    "PiecesJson": "{\"helmet\":\"Ghostline Cap\",\"gauntlets\":\"Ghostline Gloves\",\"chest\":\"Ghostline Jacket\",\"legs\":\"Ghostline Joggers\",\"classItem\":\"Ghostline Bag\"}",
+    "TwoJson": "{\"name\":\"Blend In\",\"description\":\"Slides 10% further.\",\"effects\":{\"slideBoost\":0.1}}",
+    "FourJson": "{\"name\":\"Gone\",\"description\":\"Move 6% faster, Slides 10% further.\",\"effects\":{\"moveSpeed\":0.06,\"slideBoost\":0.1}}",
+    "Family": "street",
+    "Sources": [
+      "parkour",
+      "secret"
+    ],
+    "VendorTier": 3
+  },
+  {
+    "Name": "aftershock",
+    "Id": "aftershock",
+    "DisplayName": "Aftershock",
+    "RegionId": "",
+    "Element": "KINETIC",
+    "Color": "#e0502a",
+    "Tagline": "Heavy streetwear, impact protection.",
+    "PiecesJson": "{\"helmet\":\"Aftershock Cap\",\"gauntlets\":\"Aftershock Gloves\",\"chest\":\"Aftershock Jacket\",\"legs\":\"Aftershock Joggers\",\"classItem\":\"Aftershock Bag\"}",
+    "TwoJson": "{\"name\":\"Brace\",\"description\":\"Incoming damage −7%.\",\"effects\":{\"resist\":0.07}}",
+    "FourJson": "{\"name\":\"Shockwave\",\"description\":\"Incoming damage −6%, Weapon damage +6%.\",\"effects\":{\"resist\":0.06,\"weaponDamage\":0.06}}",
+    "Family": "street",
+    "Sources": [
+      "public-event",
+      "black-market"
+    ],
+    "VendorTier": 5
+  },
+  {
+    "Name": "null-sovereign",
+    "Id": "null-sovereign",
+    "DisplayName": "Null Sovereign",
+    "RegionId": "",
+    "Element": "ARC",
+    "Color": "#00e0ff",
+    "Tagline": "Black armor, cyan reactor.",
+    "PiecesJson": "{\"helmet\":\"Null Sovereign Crown\",\"gauntlets\":\"Null Sovereign Grasps\",\"chest\":\"Null Sovereign Core\",\"legs\":\"Null Sovereign Striders\",\"classItem\":\"Null Sovereign Relic\"}",
+    "TwoJson": "{\"name\":\"Null Field\",\"description\":\"Abilities recharge 8% faster.\",\"effects\":{\"abilityRecharge\":0.08}}",
+    "FourJson": "{\"name\":\"Sovereign Stun\",\"description\":\"Abilities recharge 8% faster, Incoming damage −6%.\",\"effects\":{\"abilityRecharge\":0.08,\"resist\":0.06}}",
+    "Family": "exotic",
+    "Sources": [
+      "raid"
+    ],
+    "VendorTier": 0
+  },
+  {
+    "Name": "rime-alpha",
+    "Id": "rime-alpha",
+    "DisplayName": "Rime Alpha",
+    "RegionId": "",
+    "Element": "CRYO",
+    "Color": "#a8eaff",
+    "Tagline": "Frost-covered crystalline plating.",
+    "PiecesJson": "{\"helmet\":\"Rime Alpha Crown\",\"gauntlets\":\"Rime Alpha Grasps\",\"chest\":\"Rime Alpha Core\",\"legs\":\"Rime Alpha Striders\",\"classItem\":\"Rime Alpha Relic\"}",
+    "TwoJson": "{\"name\":\"Crystal Skin\",\"description\":\"Incoming damage −9%.\",\"effects\":{\"resist\":0.09}}",
+    "FourJson": "{\"name\":\"Absolute Zero\",\"description\":\"Incoming damage −8%, Abilities recharge 6% faster.\",\"effects\":{\"resist\":0.08,\"abilityRecharge\":0.06}}",
+    "Family": "exotic",
+    "Sources": [
+      "dungeon"
+    ],
+    "VendorTier": 0
+  },
+  {
+    "Name": "fractureborn",
+    "Id": "fractureborn",
+    "DisplayName": "Fractureborn",
+    "RegionId": "",
+    "Element": "ARC",
+    "Color": "#ff3aa0",
+    "Tagline": "Armor splitting between realities.",
+    "PiecesJson": "{\"helmet\":\"Fractureborn Crown\",\"gauntlets\":\"Fractureborn Grasps\",\"chest\":\"Fractureborn Core\",\"legs\":\"Fractureborn Striders\",\"classItem\":\"Fractureborn Relic\"}",
+    "TwoJson": "{\"name\":\"Phase Shift\",\"description\":\"Move 6% faster.\",\"effects\":{\"moveSpeed\":0.06}}",
+    "FourJson": "{\"name\":\"Reality Tear\",\"description\":\"Weapon damage +10%, Abilities recharge 5% faster.\",\"effects\":{\"weaponDamage\":0.1,\"abilityRecharge\":0.05}}",
+    "Family": "exotic",
+    "Sources": [
+      "secret",
+      "raid"
+    ],
+    "VendorTier": 0
+  },
+  {
+    "Name": "starfall-monarch",
+    "Id": "starfall-monarch",
+    "DisplayName": "Starfall Monarch",
+    "RegionId": "",
+    "Element": "ARC",
+    "Color": "#ffe08a",
+    "Tagline": "Cosmic metal and floating fragments.",
+    "PiecesJson": "{\"helmet\":\"Starfall Monarch Crown\",\"gauntlets\":\"Starfall Monarch Grasps\",\"chest\":\"Starfall Monarch Core\",\"legs\":\"Starfall Monarch Striders\",\"classItem\":\"Starfall Monarch Relic\"}",
+    "TwoJson": "{\"name\":\"Starlight\",\"description\":\"Abilities recharge 10% faster.\",\"effects\":{\"abilityRecharge\":0.1}}",
+    "FourJson": "{\"name\":\"Monarch's Fall\",\"description\":\"Abilities recharge 12% faster, Weapon damage +5%.\",\"effects\":{\"abilityRecharge\":0.12,\"weaponDamage\":0.05}}",
+    "Family": "exotic",
+    "Sources": [
+      "raid"
+    ],
+    "VendorTier": 0
+  },
+  {
+    "Name": "abyssal-warden",
+    "Id": "abyssal-warden",
+    "DisplayName": "Abyssal Warden",
+    "RegionId": "",
+    "Element": "CRYO",
+    "Color": "#1a5a7a",
+    "Tagline": "Pressure-resistant deep-sea armor.",
+    "PiecesJson": "{\"helmet\":\"Abyssal Warden Crown\",\"gauntlets\":\"Abyssal Warden Grasps\",\"chest\":\"Abyssal Warden Core\",\"legs\":\"Abyssal Warden Striders\",\"classItem\":\"Abyssal Warden Relic\"}",
+    "TwoJson": "{\"name\":\"Pressure Seal\",\"description\":\"Incoming damage −8%.\",\"effects\":{\"resist\":0.08}}",
+    "FourJson": "{\"name\":\"Abyss Hunter\",\"description\":\"Incoming damage −6%, Regenerate 1 hull/s.\",\"effects\":{\"resist\":0.06,\"regen\":1}}",
+    "Family": "exotic",
+    "Sources": [
+      "dungeon",
+      "secret"
+    ],
+    "VendorTier": 0
+  },
+  {
+    "Name": "chrono-revenant",
+    "Id": "chrono-revenant",
+    "DisplayName": "Chrono Revenant",
+    "RegionId": "",
+    "Element": "ARC",
+    "Color": "#b0ff6a",
+    "Tagline": "Time-distorted armor with trails.",
+    "PiecesJson": "{\"helmet\":\"Chrono Revenant Crown\",\"gauntlets\":\"Chrono Revenant Grasps\",\"chest\":\"Chrono Revenant Core\",\"legs\":\"Chrono Revenant Striders\",\"classItem\":\"Chrono Revenant Relic\"}",
+    "TwoJson": "{\"name\":\"Borrowed Time\",\"description\":\"Abilities recharge 10% faster.\",\"effects\":{\"abilityRecharge\":0.1}}",
+    "FourJson": "{\"name\":\"Rewind\",\"description\":\"Abilities recharge 10% faster, Regenerate 1 hull/s.\",\"effects\":{\"abilityRecharge\":0.1,\"regen\":1}}",
+    "Family": "exotic",
+    "Sources": [
+      "raid",
+      "secret"
+    ],
+    "VendorTier": 0
+  }
+]

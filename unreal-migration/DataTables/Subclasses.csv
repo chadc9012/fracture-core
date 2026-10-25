@@ -1,0 +1,10 @@
+Name,Id,ClassId,DisplayName,Role,Description,SpecialAbility
+SHIELD_TITAN,SHIELD_TITAN,TITAN,Shield Destroyer,Mobile Guard,Carry the line forward and absorb fire.,Reflect Break — release everything the shield absorbed as one directional blast.
+BERSERKER_TITAN,BERSERKER_TITAN,TITAN,Berserker Destroyer,Impact Assault,Build rage through close combat and destructible terrain.,Rage Engine — every hit taken and landed charges a melee that cracks cover apart.
+BULWARK_TITAN,BULWARK_TITAN,TITAN,Bulwark Destroyer,Zone Anchor,"Become slow, unstoppable armor that holds ground for allies.","Safe Ground — plant down into armor immune to stagger, projecting a zone allies can heal in."
+SHADOW_HUNTER,SHADOW_HUNTER,HUNTER,Shadow Assassin,Infiltration,Chain brief invisibility into back-line strikes.,"Blackout Strike — vanish for a beat, reappear inside an enemy's guard for a guaranteed critical."
+TRACKER_HUNTER,TRACKER_HUNTER,HUNTER,Tracker Assassin,Recon,Predict routes and mark threats through cover.,Dead Reckoning — paint a target through walls; the next shot that lands on it never misses.
+FRACTURE_RUNNER,FRACTURE_RUNNER,HUNTER,Fracture Runner,Momentum,Link parkour and perfect dodges into combat windows.,Time Skip — a perfect dodge freezes the field for a half-second only you move through.
+CODE_WARLOCK,CODE_WARLOCK,WARLOCK,Code Tech,Systems,Hack objects and disable hostile intelligence.,Machine Whisper — seize a hostile system or turret and turn it on its own side.
+VOID_WARLOCK,VOID_WARLOCK,WARLOCK,Void Tech,Anomaly,Shape pulls and volatile corruption fields.,Corrosion Field — drop a zone that pulls enemies together and eats their armor over time.
+ORACLE_WARLOCK,ORACLE_WARLOCK,WARLOCK,Oracle Tech,Prediction,Visualize enemy intent before it happens.,"Foresight — see every enemy's next three seconds of movement and attacks, for everyone."

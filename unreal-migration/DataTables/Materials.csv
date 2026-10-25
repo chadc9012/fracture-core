@@ -1,0 +1,36 @@
+Name,DisplayName,Source
+dataChip,Data Chips,Collectible: mission loot boxes and world caches
+energyToken,Energy Tokens,Collectible: every enemy drop
+relicFragment,Relic Fragments,Collectible: bosses and first clears
+ruinStone,Ruin Stones,Crafted: 5 data chips + 5 energy tokens + 3 relic fragments
+gearParts,Gear Parts,Dismantled weapons and armor; upgrades gear
+armorStim,Armor Stim,Crafted; carry up to 3; +10% resistance per stack for 60 s
+healStim,Heal Stim,Crafted; carry up to 3; +5 health/s per stack for 30 s
+scrapMetal,Scrap Metal,Raiders and convoy salvage
+reinforcedAlloy,Reinforced Alloy,Warlords and armored patrols
+microCircuits,Micro-Circuits,Overclocked units and city defenses
+thermalShards,Thermal Shards,Ember Peaks
+cryoCrystal,Cryo Crystals,Frostspire Mountains
+sporeFiber,Spore Fiber,Verdant Forest and the Swamps
+bioCatalyst,Bio Catalyst,Corrupted forest and swamp bosses
+vehicleParts,Vehicle Parts,Rust-Runners and the Junkyard Citadel
+anomalyCarbon,Anomaly Carbon,Solara Desert
+dataShards,Data Shards,Fracture Architects
+magmaCore,Magma Core,Overseer Kael
+zeroCore,Zero Core,Subject Zero
+abyssCore,Abyss Core,Kraken-Vanguard
+aegisCore,Aegis Core,Aegis-Prime
+forgeCatalyst,Forge Catalyst,First clear of a main mission or dungeon
+tuningCore,Tuning Core,"Side contracts, or bought at mod shops"
+anomalyCore,Anomaly Core,The Anomaly Prime
+fuel,Fuel,Wasteland convoy raids and the Underground City Fuel Depot
+fuelKingCore,Fuel King Core,The Fuel King
+fractureCore,Fracture Core,The System Core
+glacierFang,Glacier Fang,The Rime Alpha
+nullPlate,Null Plate,The Dark Knight
+hollowHalo,Hollow Halo,The Hollow Saint
+roninEdge,Ronin Edge,The Red Ronin
+tideCrown,Tide Crown Shard,The Drowned Monarch
+crownHeart,Heart of the Hollow Crown,The Furnace Guardian (godforge.ts)
+dragonite,Dragonite,Vyrak's Covenant and your Wyrmling's daily gift
+runeDust,Rune Dust,Slain nemeses and secrets; spent at the Godforge

@@ -1,0 +1,6 @@
+Name,Top,Bottom,Fog,Light,Intensity
+Dawn,#2f4d7a,#f2a25c,#9fb6cf,#ffcf9b,1.1
+Day,#4aa3d8,#bfe4f2,#c6e2ee,#fff6e2,1.6
+Sunset,#3b2a5c,#ff7a3c,#c98a6a,#ff9a52,1.2
+Night,#081430,#17305a,#132a52,#9cc0ff,0.5
+Moonlight,#0a1838,#1d3c6a,#1a3664,#b9d4ff,0.75

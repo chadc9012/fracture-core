@@ -1,0 +1,272 @@
+[
+  {
+    "Name": "vanguard-outpost",
+    "Id": "vanguard-outpost",
+    "DisplayName": "Vanguard Outpost Alpha",
+    "RegionId": "veridan",
+    "Type": "outpost",
+    "X": 503.4,
+    "Z": 52.2,
+    "History": "The first survey camp raised after the Fracture. Its crew went into the canopy to map the tears and the radio has only carried birdsong since."
+  },
+  {
+    "Name": "whispering-canopies",
+    "Id": "whispering-canopies",
+    "DisplayName": "Whispering Canopies",
+    "RegionId": "veridan",
+    "Type": "forest",
+    "X": 319.8,
+    "Z": -100.80000000000001,
+    "History": "Old growth that kept growing while the sky broke. Hunters say the leaves repeat the last words spoken beneath them."
+  },
+  {
+    "Name": "fracture-grottos",
+    "Id": "fracture-grottos",
+    "DisplayName": "Fracture-Tear Grottos",
+    "RegionId": "veridan",
+    "Type": "hazard",
+    "X": 452.4,
+    "Z": -182.39999999999998,
+    "History": "Where the ground split cleanly and the caves inside do not match the hill above them."
+  },
+  {
+    "Name": "magma-forge",
+    "Id": "magma-forge",
+    "DisplayName": "Magma-Forge Caldera",
+    "RegionId": "ember",
+    "Type": "volcano",
+    "X": -468,
+    "Z": -336,
+    "History": "The Foundry Guild forged the first Anchor plating here before the mountain woke. The forges still run; nobody is left to stoke them."
+  },
+  {
+    "Name": "obsidian-ridge",
+    "Id": "obsidian-ridge",
+    "DisplayName": "Obsidian Ridge",
+    "RegionId": "ember",
+    "Type": "mountain",
+    "X": -567,
+    "Z": -273,
+    "History": "A black glass spine cooled in a single night. Scavengers cut blades from it and do not say what the blades remember."
+  },
+  {
+    "Name": "smoldering-trench",
+    "Id": "smoldering-trench",
+    "DisplayName": "Smoldering Trench",
+    "RegionId": "ember",
+    "Type": "hazard",
+    "X": -378,
+    "Z": -408,
+    "History": "A fault line that never stopped burning. Convoys detour a day's drive around it."
+  },
+  {
+    "Name": "summit-array",
+    "Id": "summit-array",
+    "DisplayName": "Summit Communication Array",
+    "RegionId": "frostspire",
+    "Type": "outpost",
+    "X": 24,
+    "Z": -648,
+    "History": "The last tower to answer the Fracture signal. It still transmits, on a frequency no one assigned."
+  },
+  {
+    "Name": "glacial-crevasse",
+    "Id": "glacial-crevasse",
+    "DisplayName": "Glacial Crevasse Network",
+    "RegionId": "frostspire",
+    "Type": "hazard",
+    "X": -96,
+    "Z": -528,
+    "History": "Ice that split along the Fracture lines and froze open. The blue depths hold wrecked expedition sleds."
+  },
+  {
+    "Name": "avalanche-run",
+    "Id": "avalanche-run",
+    "DisplayName": "Avalanche Danger Zone",
+    "RegionId": "frostspire",
+    "Type": "hazard",
+    "X": 132,
+    "Z": -540,
+    "History": "A slope loosened by the array's pulses. It lets go without warning to anyone not listening for it."
+  },
+  {
+    "Name": "aether-lift",
+    "Id": "aether-lift",
+    "DisplayName": "Aether-Lift Station",
+    "RegionId": "frostspire",
+    "Type": "outpost",
+    "X": 96,
+    "Z": -744,
+    "History": "A cable lift built to carry cargo to the summit. It now carries only the cold."
+  },
+  {
+    "Name": "scrap-outpost",
+    "Id": "scrap-outpost",
+    "DisplayName": "Scrap-Outpost Alpha",
+    "RegionId": "wastelands",
+    "Type": "outpost",
+    "X": -375.6,
+    "Z": 255.6,
+    "History": "Raiders and honest salvagers share this wall under an uneasy truce, and both sell the same scrap back to the Nexus."
+  },
+  {
+    "Name": "grid-iron-highway",
+    "Id": "grid-iron-highway",
+    "DisplayName": "Grid-Iron Highway",
+    "RegionId": "wastelands",
+    "Type": "river",
+    "X": -199.2,
+    "Z": 205.2,
+    "History": "The old trunk road, flattened by the Fracture and re-laid by whoever needed it most."
+  },
+  {
+    "Name": "convoy-sprint",
+    "Id": "convoy-sprint",
+    "DisplayName": "The Convoy Sprint",
+    "RegionId": "wastelands",
+    "Type": "resource",
+    "X": -300,
+    "Z": 54,
+    "History": "A long straight where supply runs race the dust storms. The wrecks along it mark the runs that lost."
+  },
+  {
+    "Name": "solar-array",
+    "Id": "solar-array",
+    "DisplayName": "Solar Array Alpha",
+    "RegionId": "solara",
+    "Type": "resource",
+    "X": 206.4,
+    "Z": 400.8,
+    "History": "Mirror fields that once powered half the coast. They still gather light, and now they aim it."
+  },
+  {
+    "Name": "glass-flats",
+    "Id": "glass-flats",
+    "DisplayName": "The Glass Flats",
+    "RegionId": "solara",
+    "Type": "desert",
+    "X": 48,
+    "Z": 585.6,
+    "History": "Sand fused by a single flare. Footprints from before the Fracture are still pressed into it."
+  },
+  {
+    "Name": "sunken-arcology",
+    "Id": "sunken-arcology",
+    "DisplayName": "Sunken Arcology Vaults",
+    "RegionId": "solara",
+    "Type": "ruin",
+    "X": 312,
+    "Z": 572.4,
+    "History": "A habitat tower that sank in the dunes, vault doors still sealed from inside."
+  },
+  {
+    "Name": "quicksand-basin",
+    "Id": "quicksand-basin",
+    "DisplayName": "Moving Quicksand Basin",
+    "RegionId": "solara",
+    "Type": "hazard",
+    "X": 127.19999999999999,
+    "Z": 638.4,
+    "History": "Dunes that shift on a schedule nobody has worked out. Maps of it go stale within a day."
+  },
+  {
+    "Name": "airboat-hub",
+    "Id": "airboat-hub",
+    "DisplayName": "Airboat Transit Hub",
+    "RegionId": "swamps",
+    "Type": "outpost",
+    "X": 522,
+    "Z": 258,
+    "History": "Boardwalk stations strung across the bog. The boats still run to a timetable written before the water rose."
+  },
+  {
+    "Name": "weeping-mangroves",
+    "Id": "weeping-mangroves",
+    "DisplayName": "Weeping Mangroves",
+    "RegionId": "swamps",
+    "Type": "forest",
+    "X": 666,
+    "Z": 384,
+    "History": "Roots that bleed amber sap into the mire. The sap is a catalyst, and it is also a lure."
+  },
+  {
+    "Name": "temple-of-echoes",
+    "Id": "temple-of-echoes",
+    "DisplayName": "Sunken Temple of Echoes",
+    "RegionId": "swamps",
+    "Type": "ruin",
+    "X": 630,
+    "Z": 222,
+    "History": "A shrine that predates the Fracture and answers questions no one asked aloud."
+  },
+  {
+    "Name": "spatial-sink",
+    "Id": "spatial-sink",
+    "DisplayName": "Spatial Sink",
+    "RegionId": "swamps",
+    "Type": "hazard",
+    "X": 702,
+    "Z": 294,
+    "History": "A place where distance folds. Things dropped in arrive somewhere else, usually somewhere worse."
+  },
+  {
+    "Name": "transit-plaza",
+    "Id": "transit-plaza",
+    "DisplayName": "Central Transit Plaza",
+    "RegionId": "nexus",
+    "Type": "hub",
+    "X": 48,
+    "Z": -228,
+    "History": "The first place the Fracture refugees gathered. Every route out of the safe zone starts under its clock."
+  },
+  {
+    "Name": "spire-district",
+    "Id": "spire-district",
+    "DisplayName": "Spire District",
+    "RegionId": "nexus",
+    "Type": "hub",
+    "X": 55.8,
+    "Z": -238.4,
+    "History": "Tower blocks of the old council. The Director governs from the top floor."
+  },
+  {
+    "Name": "scrapyard-bazaar",
+    "Id": "scrapyard-bazaar",
+    "DisplayName": "Scrapyard Bazaar",
+    "RegionId": "nexus",
+    "Type": "resource",
+    "X": 37.6,
+    "Z": -215,
+    "History": "A market built on whatever the Wastelands send back. Everything has a price and a story."
+  },
+  {
+    "Name": "aqua-shipyard",
+    "Id": "aqua-shipyard",
+    "DisplayName": "Aqua-Tech Shipyard",
+    "RegionId": "nexus",
+    "Type": "outpost",
+    "X": 53.2,
+    "Z": -209.8,
+    "History": "Hulls laid down for a sea that moved. The slipways face a coast that is no longer there."
+  },
+  {
+    "Name": "neon-city",
+    "Id": "neon-city",
+    "DisplayName": "Neon City",
+    "RegionId": "neon",
+    "Type": "hub",
+    "X": -197.99999999999997,
+    "Z": -114.00000000000001,
+    "History": "The district that kept its lights on through the Fracture, for reasons its owners will not explain."
+  },
+  {
+    "Name": "thalassia",
+    "Id": "thalassia",
+    "DisplayName": "Thalassia",
+    "RegionId": "thalassia",
+    "Type": "ocean",
+    "X": 1251.2996219540862,
+    "Z": -139.0332913282318,
+    "History": "A drowned city below the surface, still lit. Whatever keeps it lit does not want visitors."
+  }
+]

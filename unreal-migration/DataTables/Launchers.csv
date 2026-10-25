@@ -1,0 +1,5 @@
+Name,Id,Element,Fx,Guided,LockCone,LockRange,OrdnanceJson
+ROCKET,ROCKET,KINETIC,BALLISTIC,false,0,0,"{""id"":""launcher-rocket"",""kind"":""ROCKET"",""name"":""Breacher rocket"",""speed"":75,""turnRate"":0,""life"":4,""splashRadius"":7,""damage"":1,""proximity"":1.4,""domain"":""ANY"",""fits"":[""foot-heavy""]}"
+CINDER,CINDER,THERMAL,FIRE,false,0,0,"{""id"":""launcher-cinder"",""kind"":""ROCKET"",""name"":""Cinder incendiary rocket"",""speed"":62,""turnRate"":0,""life"":4,""splashRadius"":8,""damage"":1,""proximity"":1.4,""domain"":""ANY"",""fits"":[""foot-heavy""]}"
+FROSTBITE,FROSTBITE,CRYO,ICE,true,0.45,90,"{""id"":""launcher-frostbite"",""kind"":""MISSILE"",""name"":""Frostbite guided missile"",""speed"":58,""turnRate"":1.3,""life"":6,""splashRadius"":6,""damage"":1,""proximity"":2,""domain"":""ANY"",""fits"":[""foot-heavy""]}"
+VITRIOL,VITRIOL,BIO,ACID,false,0,0,"{""id"":""launcher-vitriol"",""kind"":""ROCKET"",""name"":""Vitriol corrosive rocket"",""speed"":55,""turnRate"":0,""life"":4.5,""splashRadius"":9,""damage"":1,""proximity"":1.4,""domain"":""ANY"",""fits"":[""foot-heavy""]}"

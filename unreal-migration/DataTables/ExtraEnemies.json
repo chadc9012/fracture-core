@@ -1,0 +1,37 @@
+[
+  {
+    "Name": "Ash-Born_Warlord",
+    "DisplayName": "Ash-Born Warlord",
+    "Kind": "RAIDER",
+    "Role": "Armored field leader",
+    "Drop": "reinforcedAlloy"
+  },
+  {
+    "Name": "Wasteland_Grunt",
+    "DisplayName": "Wasteland Grunt",
+    "Kind": "RAIDER",
+    "Role": "Frontline scavenger",
+    "Drop": "scrapMetal"
+  },
+  {
+    "Name": "Fracture_Architect",
+    "DisplayName": "Fracture Architect",
+    "Kind": "OVERCLOCKED",
+    "Role": "System manipulator",
+    "Drop": "dataShards"
+  },
+  {
+    "Name": "Cyber-Corrupted_Drone",
+    "DisplayName": "Cyber-Corrupted Drone",
+    "Kind": "OVERCLOCKED",
+    "Role": "Sensor swarm",
+    "Drop": "microCircuits"
+  },
+  {
+    "Name": "Fracture-Mutated_Crawler",
+    "DisplayName": "Fracture-Mutated Crawler",
+    "Kind": "ABERRATION",
+    "Role": "Ground ambush",
+    "Drop": "bioCatalyst"
+  }
+]

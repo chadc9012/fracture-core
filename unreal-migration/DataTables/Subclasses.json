@@ -1,0 +1,83 @@
+[
+  {
+    "Name": "SHIELD_TITAN",
+    "Id": "SHIELD_TITAN",
+    "ClassId": "TITAN",
+    "DisplayName": "Shield Destroyer",
+    "Role": "Mobile Guard",
+    "Description": "Carry the line forward and absorb fire.",
+    "SpecialAbility": "Reflect Break — release everything the shield absorbed as one directional blast."
+  },
+  {
+    "Name": "BERSERKER_TITAN",
+    "Id": "BERSERKER_TITAN",
+    "ClassId": "TITAN",
+    "DisplayName": "Berserker Destroyer",
+    "Role": "Impact Assault",
+    "Description": "Build rage through close combat and destructible terrain.",
+    "SpecialAbility": "Rage Engine — every hit taken and landed charges a melee that cracks cover apart."
+  },
+  {
+    "Name": "BULWARK_TITAN",
+    "Id": "BULWARK_TITAN",
+    "ClassId": "TITAN",
+    "DisplayName": "Bulwark Destroyer",
+    "Role": "Zone Anchor",
+    "Description": "Become slow, unstoppable armor that holds ground for allies.",
+    "SpecialAbility": "Safe Ground — plant down into armor immune to stagger, projecting a zone allies can heal in."
+  },
+  {
+    "Name": "SHADOW_HUNTER",
+    "Id": "SHADOW_HUNTER",
+    "ClassId": "HUNTER",
+    "DisplayName": "Shadow Assassin",
+    "Role": "Infiltration",
+    "Description": "Chain brief invisibility into back-line strikes.",
+    "SpecialAbility": "Blackout Strike — vanish for a beat, reappear inside an enemy's guard for a guaranteed critical."
+  },
+  {
+    "Name": "TRACKER_HUNTER",
+    "Id": "TRACKER_HUNTER",
+    "ClassId": "HUNTER",
+    "DisplayName": "Tracker Assassin",
+    "Role": "Recon",
+    "Description": "Predict routes and mark threats through cover.",
+    "SpecialAbility": "Dead Reckoning — paint a target through walls; the next shot that lands on it never misses."
+  },
+  {
+    "Name": "FRACTURE_RUNNER",
+    "Id": "FRACTURE_RUNNER",
+    "ClassId": "HUNTER",
+    "DisplayName": "Fracture Runner",
+    "Role": "Momentum",
+    "Description": "Link parkour and perfect dodges into combat windows.",
+    "SpecialAbility": "Time Skip — a perfect dodge freezes the field for a half-second only you move through."
+  },
+  {
+    "Name": "CODE_WARLOCK",
+    "Id": "CODE_WARLOCK",
+    "ClassId": "WARLOCK",
+    "DisplayName": "Code Tech",
+    "Role": "Systems",
+    "Description": "Hack objects and disable hostile intelligence.",
+    "SpecialAbility": "Machine Whisper — seize a hostile system or turret and turn it on its own side."
+  },
+  {
+    "Name": "VOID_WARLOCK",
+    "Id": "VOID_WARLOCK",
+    "ClassId": "WARLOCK",
+    "DisplayName": "Void Tech",
+    "Role": "Anomaly",
+    "Description": "Shape pulls and volatile corruption fields.",
+    "SpecialAbility": "Corrosion Field — drop a zone that pulls enemies together and eats their armor over time."
+  },
+  {
+    "Name": "ORACLE_WARLOCK",
+    "Id": "ORACLE_WARLOCK",
+    "ClassId": "WARLOCK",
+    "DisplayName": "Oracle Tech",
+    "Role": "Prediction",
+    "Description": "Visualize enemy intent before it happens.",
+    "SpecialAbility": "Foresight — see every enemy's next three seconds of movement and attacks, for everyone."
+  }
+]

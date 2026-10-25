@@ -1,0 +1,42 @@
+[
+  {
+    "Name": "ROCKET",
+    "Id": "ROCKET",
+    "Element": "KINETIC",
+    "Fx": "BALLISTIC",
+    "Guided": false,
+    "LockCone": 0,
+    "LockRange": 0,
+    "OrdnanceJson": "{\"id\":\"launcher-rocket\",\"kind\":\"ROCKET\",\"name\":\"Breacher rocket\",\"speed\":75,\"turnRate\":0,\"life\":4,\"splashRadius\":7,\"damage\":1,\"proximity\":1.4,\"domain\":\"ANY\",\"fits\":[\"foot-heavy\"]}"
+  },
+  {
+    "Name": "CINDER",
+    "Id": "CINDER",
+    "Element": "THERMAL",
+    "Fx": "FIRE",
+    "Guided": false,
+    "LockCone": 0,
+    "LockRange": 0,
+    "OrdnanceJson": "{\"id\":\"launcher-cinder\",\"kind\":\"ROCKET\",\"name\":\"Cinder incendiary rocket\",\"speed\":62,\"turnRate\":0,\"life\":4,\"splashRadius\":8,\"damage\":1,\"proximity\":1.4,\"domain\":\"ANY\",\"fits\":[\"foot-heavy\"]}"
+  },
+  {
+    "Name": "FROSTBITE",
+    "Id": "FROSTBITE",
+    "Element": "CRYO",
+    "Fx": "ICE",
+    "Guided": true,
+    "LockCone": 0.45,
+    "LockRange": 90,
+    "OrdnanceJson": "{\"id\":\"launcher-frostbite\",\"kind\":\"MISSILE\",\"name\":\"Frostbite guided missile\",\"speed\":58,\"turnRate\":1.3,\"life\":6,\"splashRadius\":6,\"damage\":1,\"proximity\":2,\"domain\":\"ANY\",\"fits\":[\"foot-heavy\"]}"
+  },
+  {
+    "Name": "VITRIOL",
+    "Id": "VITRIOL",
+    "Element": "BIO",
+    "Fx": "ACID",
+    "Guided": false,
+    "LockCone": 0,
+    "LockRange": 0,
+    "OrdnanceJson": "{\"id\":\"launcher-vitriol\",\"kind\":\"ROCKET\",\"name\":\"Vitriol corrosive rocket\",\"speed\":55,\"turnRate\":0,\"life\":4.5,\"splashRadius\":9,\"damage\":1,\"proximity\":1.4,\"domain\":\"ANY\",\"fits\":[\"foot-heavy\"]}"
+  }
+]
