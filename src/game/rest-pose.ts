@@ -8,6 +8,9 @@ import * as THREE from "three";
 
 /** how far the arm swings toward hanging straight down (0 = untouched, 1 = straight down) */
 export const ARM_RELAX = 0.72;
+/** Meshy's idle clips still hold the arms well out from the body (~27 degrees from vertical against ~38 in the A-pose), which reads
+ * stiff on the hero select and at shop counters: a lighter relax is layered on top of the idle for those bodies */
+export const IDLE_RELAX = 0.5;
 /** the hanging direction keeps a slight outward splay so the hands clear the hips (radians from vertical) */
 export const ARM_SPLAY = 0.16;
 

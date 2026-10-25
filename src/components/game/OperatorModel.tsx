@@ -1,5 +1,5 @@
 import { useFrame } from "@react-three/fiber";
-import { ARM_RELAX, armBones, relaxArm } from "@/game/rest-pose";
+import { ARM_RELAX, IDLE_RELAX, armBones, relaxArm } from "@/game/rest-pose";
 import { HELD_MODEL, heldModel } from "./heldModels";
 import { COLORWAY_EMISSIVE, COLORWAY_MAP, COLORWAY_UNIFORMS, colorwayFor, type Colorway } from "@/game/operator-colorway";
 import { useGLTF } from "@react-three/drei";
@@ -260,7 +260,7 @@ function Model({ url, tint, height, feetY, color, trim, pose, motion, bodyType, 
 
   const rig = useRef<THREE.Group>(null);
   const body = useRef({ crouch: 0, prone: 0, lean: 0 });
-  // rest-pose.ts: bodies with no idle clip relax their A-pose arms while standing
+  // rest-pose.ts: standing bodies relax their arms (fully with no idle clip, lightly on top of an idle clip)
   const arms = useMemo(() => armBones(built.object), [built]);
   useFrame(({ clock }, dt) => {
     const boots = bootStats(gear?.earnedRewards ?? [], getEquippedBoots()).id;
@@ -297,7 +297,7 @@ function Model({ url, tint, height, feetY, color, trim, pose, motion, bodyType, 
       // GOLIATH alternates the flex with the owner's chest-pound taunt every other loop
       const showName = actions["showcase"] && actions["taunt"] && Math.floor(clock.elapsedTime / 9) % 2 === 1 ? "taunt" : actions["showcase"] ? "showcase" : actions["idle"] ? "idle" : null;
       const loop = showName ? actions[showName] : undefined;
-      if (showName && loop) set(showName, 1, clock.elapsedTime / loop.getClip().duration);
+      if (showName && loop) { set(showName, 1, clock.elapsedTime / loop.getClip().duration); if (showName === "idle") relax = IDLE_RELAX; }
       else { set("walk", 1, 0.25); relax = 1; }
     } else if (sliding && actions["slide"]) {
       // authored slide clip (NYX) scrubbed by slide progress
@@ -312,7 +312,7 @@ function Model({ url, tint, height, feetY, color, trim, pose, motion, bodyType, 
       const moving = stand ? Math.min(1, i * 5) : 1;
       set("walk", moving * (1 - run), cycle);
       set("run", moving * run, cycle);
-      if (stand) set(stand, 1 - moving, clock.elapsedTime / actions[stand]!.getClip().duration);
+      if (stand) { set(stand, 1 - moving, clock.elapsedTime / actions[stand]!.getClip().duration); if (stand === "idle") relax = IDLE_RELAX * (1 - moving); }
       else relax = 1 - Math.min(1, i * 5);
     }
     mixer.update(0);

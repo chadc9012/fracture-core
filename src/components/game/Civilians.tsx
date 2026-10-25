@@ -1,5 +1,5 @@
 import { useFrame } from "@react-three/fiber";
-import { ARM_RELAX, armBones, relaxArm } from "@/game/rest-pose";
+import { ARM_RELAX, IDLE_RELAX, armBones, relaxArm } from "@/game/rest-pose";
 import { useGLTF } from "@react-three/drei";
 import { Component, Suspense, useMemo, useRef, type ReactNode } from "react";
 import * as THREE from "three";
@@ -130,10 +130,11 @@ export function CivilianModel({ role, live, url }: { role: CivilianRole; live: R
       const clip = animations.find((a) => a.name === name);
       if (clip) { const a = mixer.clipAction(clip); a.play(); a.weight = name === "idle" ? 1 : 0; a.time = Math.random() * clip.duration; actions[name] = a; }
     }
-    // a body with no idle clip would hold its rig's A-pose: relax the arms instead (rest-pose.ts)
-    const relaxArms = actions.idle ? [] : armBones(obj);
+    // a body with no idle clip would hold its rig's A-pose: relax the arms instead; a sheet merchant's Meshy idle still holds
+    // them out, so those get the lighter idle relax on top (rest-pose.ts)
+    const relaxArms = actions.idle && !url ? [] : armBones(obj);
     return { obj, k, offset: [-c.x * k, -box.min.y * k, -c.z * k] as [number, number, number], mixer, actions, relaxArms };
-  }, [scene, animations]);
+  }, [scene, animations, url]);
   const weights = useRef<Record<CivilianClip, number>>({ idle: 1, walk: 0, wave: 0 });
   useFrame((_, dt) => {
     built.obj.visible = !live.current?.far;
@@ -148,7 +149,8 @@ export function CivilianModel({ role, live, url }: { role: CivilianRole; live: R
       else if (a) a.weight = Math.max(a.weight, w[name]);
     }
     built.mixer.update(Math.min(dt, 0.1));
-    for (const { arm, elbow } of built.relaxArms) relaxArm(arm, elbow, built.obj, ARM_RELAX);
+    const relaxBy = built.actions.idle ? IDLE_RELAX * weights.current.idle : ARM_RELAX;
+    for (const { arm, elbow } of built.relaxArms) relaxArm(arm, elbow, built.obj, relaxBy);
   });
   return <primitive object={built.obj} scale={built.k} position={built.offset} />;
 }
