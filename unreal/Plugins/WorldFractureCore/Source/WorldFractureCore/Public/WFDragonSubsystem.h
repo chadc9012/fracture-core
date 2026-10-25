@@ -70,7 +70,7 @@ public:
 
 private:
 	const wf::FProgression& St() const;
-	std::optional<std::string> Class() const;
+	std::optional<std::string> OperatorClass() const;
 	UWFProgressionSubsystem* Progression() const;
 
 	wf::dragon::FWyrm Wyrm;

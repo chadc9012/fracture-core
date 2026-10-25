@@ -25,16 +25,16 @@ const wf::FProgression& UWFDragonSubsystem::St() const
 	return P ? P->Get() : Empty;
 }
 
-std::optional<std::string> UWFDragonSubsystem::Class() const { return St().IdentityClass; }
+std::optional<std::string> UWFDragonSubsystem::OperatorClass() const { return St().IdentityClass; }
 
-bool UWFDragonSubsystem::IsBonded() const { return wf::scenario::IsBonded(St(), Class()); }
+bool UWFDragonSubsystem::IsBonded() const { return wf::scenario::IsBonded(St(), OperatorClass()); }
 
 FString UWFDragonSubsystem::UpgradeAbility(const FString& Ability)
 {
 	UWFProgressionSubsystem* P = Progression();
 	if (!P) return TEXT("No save");
 	if (!wf::dragon::FindAbility(ToStd(Ability))) return FString::Printf(TEXT("Unknown ability %s"), *Ability);
-	wf::dragon::FUpgradeResult R = wf::dragon::UpgradeDragonite(P->Get(), Class(), ToStd(Ability));
+	wf::dragon::FUpgradeResult R = wf::dragon::UpgradeDragonite(P->Get(), OperatorClass(), ToStd(Ability));
 	if (R.Error) return ToF(*R.Error);
 	P->Mutable() = std::move(R.Progression);
 	P->NotifyChanged();
@@ -43,13 +43,13 @@ FString UWFDragonSubsystem::UpgradeAbility(const FString& Ability)
 
 int32 UWFDragonSubsystem::GetUpgradeLevel(const FString& Ability) const
 {
-	const std::optional<std::string> C = Class();
+	const std::optional<std::string> C = OperatorClass();
 	return C ? wf::dragon::UpgradeLevel(St(), *C, ToStd(Ability)) : 0;
 }
 
 double UWFDragonSubsystem::GetAbilityStat(const FString& Ability, const FString& Stat) const
 {
-	const wf::dragon::FStats S = wf::dragon::StatsFor(St(), Class().value_or("null"), ToStd(Ability));
+	const wf::dragon::FStats S = wf::dragon::StatsFor(St(), OperatorClass().value_or("null"), ToStd(Ability));
 	const auto Found = S.find(ToStd(Stat));
 	return Found == S.end() ? 0.0 : Found->second;
 }
@@ -58,12 +58,12 @@ void UWFDragonSubsystem::RecordTrust(const FString& Kind, const FString& SourceI
 {
 	UWFProgressionSubsystem* P = Progression();
 	if (!P) return;
-	P->Mutable() = wf::dragon::RecordTrust(P->Get(), Class(), ToStd(Kind), ToStd(SourceId));
+	P->Mutable() = wf::dragon::RecordTrust(P->Get(), OperatorClass(), ToStd(Kind), ToStd(SourceId));
 	P->NotifyChanged();
 }
 
-double UWFDragonSubsystem::GetTrust() const { return wf::dragon::TrustOf(St(), Class()).Total; }
-int32 UWFDragonSubsystem::GetTrustStage() const { return wf::dragon::TrustStage(St(), Class()); }
+double UWFDragonSubsystem::GetTrust() const { return wf::dragon::TrustOf(St(), OperatorClass()).Total; }
+int32 UWFDragonSubsystem::GetTrustStage() const { return wf::dragon::TrustStage(St(), OperatorClass()); }
 
 FString UWFDragonSubsystem::GetTrustStageName() const
 {
@@ -78,7 +78,7 @@ bool UWFDragonSubsystem::ClaimAncientBond(FString& OutReason)
 	UWFProgressionSubsystem* P = Progression();
 	if (!P) { OutReason = TEXT("No save"); return false; }
 	const size_t Before = P->Get().Inventory.size();
-	wf::dragon::FClaimResult R = wf::dragon::ClaimAncientBond(P->Get(), Class());
+	wf::dragon::FClaimResult R = wf::dragon::ClaimAncientBond(P->Get(), OperatorClass());
 	OutReason = R.Reason ? ToF(*R.Reason) : FString();
 	if (!R.bOk) return false;
 	P->Mutable() = std::move(R.Progression);
@@ -92,7 +92,7 @@ bool UWFDragonSubsystem::ClaimEternalCovenant()
 	UWFProgressionSubsystem* P = Progression();
 	if (!P) return false;
 	const size_t Before = P->Get().Inventory.size();
-	wf::dragon::FClaimResult R = wf::dragon::ClaimEternalCovenant(P->Get(), Class());
+	wf::dragon::FClaimResult R = wf::dragon::ClaimEternalCovenant(P->Get(), OperatorClass());
 	if (!R.bOk) return false;
 	P->Mutable() = std::move(R.Progression);
 	for (size_t I = Before; I < P->Get().Inventory.size(); ++I) P->OnLootGained.Broadcast(ToF(P->Get().Inventory[I].Name), ToF(P->Get().Inventory[I].Rarity.value_or("")));
@@ -107,7 +107,7 @@ bool UWFDragonSubsystem::CanRide(const FString& RegionId, bool bInDungeon, bool 
 	Ctx.bInDungeon = bInDungeon;
 	Ctx.bInStoryMission = bInStoryMission;
 	Ctx.bIndoors = bIndoors;
-	const wf::dragon::FRideCheck R = wf::dragon::CanRide(St(), Class(), Ctx);
+	const wf::dragon::FRideCheck R = wf::dragon::CanRide(St(), OperatorClass(), Ctx);
 	OutReason = R.Reason ? ToF(*R.Reason) : FString();
 	return R.bOk;
 }
@@ -115,9 +115,9 @@ bool UWFDragonSubsystem::CanRide(const FString& RegionId, bool bInDungeon, bool 
 FString UWFDragonSubsystem::CastWyrmcall(bool& bOutOk)
 {
 	bOutOk = false;
-	if (!Class() || !IsBonded()) return TEXT("Bond with Vyrak to use Dragonite");
+	if (!OperatorClass() || !IsBonded()) return TEXT("Bond with Vyrak to use Dragonite");
 	if (WyrmcallCooldown > 0) return FString::Printf(TEXT("Wyrmcall - %ds"), FMath::CeilToInt(WyrmcallCooldown));
-	const wf::dragon::FStats St0 = wf::dragon::StatsFor(St(), *Class(), "wyrmcall");
+	const wf::dragon::FStats St0 = wf::dragon::StatsFor(St(), *OperatorClass(), "wyrmcall");
 	if (!wf::dragon::SummonWyrm(Wyrm, St0)) return TEXT("Vyrak is still recovering");
 	WyrmcallCooldown = St0.at("cooldown");
 	bOutOk = true;
@@ -129,7 +129,7 @@ FWFWyrmAction UWFDragonSubsystem::TickDragon(float DeltaSeconds, const TArray<FW
 	bOutWithdrew = false;
 	FWFWyrmAction Out;
 	WyrmcallCooldown = FMath::Max(0.0, WyrmcallCooldown - DeltaSeconds);
-	const std::optional<std::string> C = Class();
+	const std::optional<std::string> C = OperatorClass();
 	if (!C || Wyrm.State == wf::dragon::EWyrmState::Bonded) return Out;
 	const wf::dragon::FStats Stats = wf::dragon::StatsFor(St(), *C, "wyrmcall");
 	std::vector<wf::dragon::FWyrmTarget> In;
