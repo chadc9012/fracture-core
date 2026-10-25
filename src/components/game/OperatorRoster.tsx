@@ -4,6 +4,7 @@ import { activeSlot, currentUserId, listSlots, SLOT_COUNT, switchSlot, type Slot
 import { launchDestination } from "@/game/launch-flow";
 import { operatorByClass } from "@/game/loadout";
 import { rookieSetForClass } from "@/game/rookie-armor";
+import { TIER_LABEL, TIER_POWER, bodyTierFor, wornArmorPower } from "@/game/operator-tier";
 import { OperatorStage } from "./OperatorStage";
 import type { PlayerProgression } from "@/game/progression";
 
@@ -77,6 +78,7 @@ export function OperatorRoster({ progression, onSelect, onBack, onProgression }:
               <p className="font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground">Colourways · found or bought in the world</p>
               <p className="mt-2 text-[11px] text-muted-foreground">You start in {set.variants[0]!.name.toLowerCase()} colours. {set.variants.slice(1).map((v) => v.name).join(" and ")} {set.variants.length > 2 ? "are" : "is"} unlocked later as shaders from shops, contracts and hidden encounters, and can be applied to any piece.</p>
               <p className="mt-3 text-[11px] text-muted-foreground">Higher-tier armor found in the world replaces rookie pieces as you equip it.</p>
+              {isActive && <p className="mt-2 font-mono text-[10px] uppercase tracking-[0.25em] text-foreground/80">Body · {TIER_LABEL[bodyTierFor(progression)]} <span className="text-muted-foreground">(worn armor {Math.round(wornArmorPower(progression))} power · Veteran {TIER_POWER.VETERAN} · Elite {TIER_POWER.ELITE})</span></p>}
             </div>
           </> : <>
             <h2 className="font-mono text-2xl font-bold uppercase">{empty ? "New operator" : `Operator ${picked}`}</h2>
