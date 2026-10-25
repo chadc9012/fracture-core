@@ -98,7 +98,7 @@ export function BulletImpacts({ sim }: { sim: WorldSim }) {
       t.d.set(s.vx / v, s.vy / v, s.vz / v);
       t.m.compose(t.p.set(s.x, s.y, s.z), t.q.setFromUnitVectors(t.z, t.d), t.s.set(1, 1, Math.min(0.5, v * 0.03) * (0.4 + 0.6 * k)));
       meshes.spark.setMatrixAt(n, t.m);
-      meshes.spark.setColorAt(n, t.c.copy(t.col[s.kind].spark).multiplyScalar((s.kind === "ground" ? 0.5 : 2.4) * k));
+      meshes.spark.setColorAt(n, t.c.copy(t.col[s.kind].spark).multiplyScalar((s.kind === "ground" ? 0.5 : s.kind === "water" ? 0.9 : 2.4) * k));
       n++;
     }
     meshes.spark.count = n;

@@ -227,7 +227,7 @@ export type Bullet = {
   /** gore presentation only: a shotgun pellet tears, a single round punches */
   cause?: GoreCause | undefined;
 };
-export type BulletHit = "ground" | "cover" | "machine" | "truck";
+export type BulletHit = "ground" | "cover" | "machine" | "truck" | "water";
 /** presentation log of where bullets struck (a fixed ring, IMPACT_LOG slots; impact effects read it, combat never does) */
 export type ImpactEvent = { id: number; x: number; y: number; z: number; kind: BulletHit; vx: number; vz: number };
 export const IMPACT_LOG = 32;
@@ -1935,7 +1935,14 @@ export function stepSim(sim: WorldSim, input: SimInput) {
   for (const r of sim.rounds) {
     if (!r.alive) continue;
     const tm = r.target >= 0 ? sim.machines[r.target] : undefined;
+    const ry0 = r.y;
     let burst = stepRound(r, dt, tm && tm.alive ? { x: tm.x, y: tm.y + 1, z: tm.z } : null, heightAt);
+    // a rocket, missile or shell that dives into the sea bursts on the surface (torpedoes are made for the water)
+    if (!burst && r.alive && r.def.domain !== "WATER" && ry0 >= WATER_LEVEL && r.y < WATER_LEVEL && heightAt(r.x, r.z) < WATER_LEVEL - 0.3) {
+      r.y = WATER_LEVEL;
+      burst = { x: r.x, y: WATER_LEVEL, z: r.z, radius: r.def.splashRadius, damage: r.def.damage, reason: "GROUND" };
+      logImpact(sim, { x: r.x, y: WATER_LEVEL, z: r.z, vx: r.dx * r.def.speed, vz: r.dz * r.def.speed }, "water");
+    }
     if (!burst && r.alive && collideBody(r, 0.5, 70, 0.3).hit) burst = { x: r.x, y: r.y, z: r.z, radius: r.def.splashRadius, damage: r.def.damage, reason: "PROXIMITY" };
     if (!burst && r.alive && r.y - heightAt(r.x, r.z) < 8) {
       for (const m of sim.machines) {
@@ -1957,6 +1964,18 @@ export function stepSim(sim: WorldSim, input: SimInput) {
     b.y += b.vy * dt;
     b.z += b.vz * dt;
     b.life -= dt;
+    // a round fired from above that crosses the sea surface this step stops there in a splash (rounds fired underwater by
+    // a diver started below the surface and keep going: underwater-combat.ts slows them instead)
+    {
+      const y0 = b.y - b.vy * dt;
+      if (y0 >= WATER_LEVEL && b.y < WATER_LEVEL && heightAt(b.x, b.z) < WATER_LEVEL - 0.3 && !bodyOnPath(sim, b, dt)) {
+        const k = (y0 - WATER_LEVEL) / Math.max(1e-6, y0 - b.y); // fraction of the step before the surface
+        b.x -= b.vx * dt * (1 - k); b.z -= b.vz * dt * (1 - k); b.y = WATER_LEVEL;
+        b.alive = false;
+        logImpact(sim, b, "water");
+        continue;
+      }
+    }
     // a round that met a body on its way down this step hits the body, not the dirt at its feet (resolved below)
     if (b.y < heightAt(b.x, b.z) + 0.35 && !bodyOnPath(sim, b, dt)) {
       b.alive = false;

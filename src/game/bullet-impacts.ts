@@ -3,13 +3,15 @@
  * dust and grit off the ground, hot sparks off cover and vehicles, an energy flash and sparks off a machine. */
 import type { BulletHit } from "./sim";
 
-export type ImpactStyle = { sparks: number; speed: number; life: number; gravity: number; spark: string; puff: string; puffSize: number; puffLife: number; additivePuff: boolean };
+export type ImpactStyle = { sparks: number; speed: number; life: number; gravity: number; spark: string; puff: string; puffSize: number; puffLife: number; additivePuff: boolean; /** spray goes up in a column instead of back against the shot */ up?: boolean };
 
 export const IMPACT_STYLE: Record<BulletHit, ImpactStyle> = {
   ground: { sparks: 4, speed: 3.2, life: 0.45, gravity: 9.8, spark: "#8a7a62", puff: "#a39780", puffSize: 0.9, puffLife: 0.6, additivePuff: false },
   cover: { sparks: 6, speed: 6, life: 0.32, gravity: 9.8, spark: "#ffc46a", puff: "#8d8d88", puffSize: 0.6, puffLife: 0.45, additivePuff: false },
   truck: { sparks: 7, speed: 6.5, life: 0.3, gravity: 9.8, spark: "#ffd27a", puff: "#ff9a40", puffSize: 0.45, puffLife: 0.12, additivePuff: true },
   machine: { sparks: 5, speed: 5, life: 0.28, gravity: 4, spark: "#9ff2ff", puff: "#5fd8ff", puffSize: 0.8, puffLife: 0.16, additivePuff: true },
+  // a round into the sea: a column of white spray thrown up (not back) and a foam puff that lingers on the surface
+  water: { sparks: 8, speed: 5.5, life: 0.7, gravity: 9.8, spark: "#d7ecf2", puff: "#e8f3f5", puffSize: 1.1, puffLife: 0.9, additivePuff: false, up: true },
 };
 
 export const SPARK_POOL = 96;
@@ -30,8 +32,10 @@ export function spawnImpact(sparks: Spark[], puffs: Puff[], e: { x: number; y: n
   const sp = Math.hypot(e.vx, e.vz) || 1, bx = -e.vx / sp, bz = -e.vz / sp;
   for (let n = 0; n < st.sparks; n++) {
     const s = oldest(sparks, sparkAlive);
-    const a = (rnd() - 0.5) * 2.2, up = 0.4 + rnd() * 0.9, v = st.speed * (0.5 + rnd() * 0.7);
-    const dx = bx * Math.cos(a) - bz * Math.sin(a), dz = bx * Math.sin(a) + bz * Math.cos(a);
+    const a = (rnd() - 0.5) * 2.2, v = st.speed * (0.5 + rnd() * 0.7);
+    // a splash throws mostly straight up with a little scatter; everything else flies back out of the surface it hit
+    const up = st.up ? 1.6 + rnd() * 1.2 : 0.4 + rnd() * 0.9, spread = st.up ? 0.25 : 1;
+    const dx = (bx * Math.cos(a) - bz * Math.sin(a)) * spread, dz = (bx * Math.sin(a) + bz * Math.cos(a)) * spread;
     s.age = 0; s.life = st.life * (0.6 + rnd() * 0.6); s.kind = e.kind; s.g = st.gravity;
     s.x = e.x; s.y = e.y; s.z = e.z; s.vx = dx * v; s.vy = up * v; s.vz = dz * v;
   }

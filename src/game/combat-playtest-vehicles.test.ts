@@ -344,12 +344,21 @@ describe("boats", () => {
 
   // GAP (sim.ts bullet loop): the only terrain test is heightAt (the seabed), so rounds aimed at the sea surface keep flying underwater
   // with no splash impact until they reach the bottom or expire.
-  todo("GAP: a deck-gun round aimed into the sea makes a splash at the surface", () => {
+  test("a deck-gun round aimed into the sea splashes at the surface instead of flying on underwater", () => {
     const sim = arena();
     const r = ride("scrap-patrol-boat", SEA, { camPitch: -0.3 });
     frame(sim, r, none, true);
     for (let f = 0; f < 10; f++) frame(sim, r, none);
     expect(sim.bullets.every((b) => !b.alive || b.y > WATER_LEVEL - 0.5)).toBe(true);
+    const splash = sim.impacts.find((e) => e.id > 0 && e.kind === "water");
+    expect(splash).toBeDefined();
+    expect(splash!.y).toBeCloseTo(WATER_LEVEL, 6);
+  });
+  test("a diver's round fired underwater is not stopped by the surface rule", () => {
+    const sim = arena();
+    fireBullet(sim, SEA.x, WATER_LEVEL - 4, SEA.z, 0, false, 0);
+    for (let f = 0; f < 5; f++) stepSim(sim, { px: SEA.x, pz: SEA.z, dt: DT, night: 0, inVehicle: false, yaw: 0 });
+    expect(sim.impacts.some((e) => e.id > 0 && e.kind === "water")).toBe(false);
   });
 });
 
