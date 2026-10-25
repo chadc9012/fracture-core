@@ -35,6 +35,8 @@ namespace
 		FRandomStream Stream;
 	};
 
+	double UtcNowMs() { return std::floor((FDateTime::UtcNow() - FDateTime(1970, 1, 1)).GetTotalMilliseconds()); }
+
 	std::optional<std::string> NonEmpty(const FString& S) { return S.IsEmpty() ? std::nullopt : std::optional<std::string>(ToStd(S)); }
 }
 
@@ -105,6 +107,46 @@ bool UWFProgressionSubsystem::LoadRewardCatalog(FString& OutError)
 	if (!WFData::LoadRows(TEXT("CovenantAbilities"), Rows, OutError)) return false;
 	for (const TSharedPtr<FJsonObject>& Row : Rows)
 		Next.Scenarios.CovenantAbility[ToStd(WFData::Str(Row, TEXT("Name")))] = ToStd(WFData::Str(Row, TEXT("Id")));
+
+	// Mission payouts: completion weapons, story missions with their exotic and quest event, armor collections
+	wf::missionreward::FCatalog Missions;
+	if (!WFData::LoadRows(TEXT("CompletionWeapons"), Rows, OutError)) return false;
+	Rows.Sort([](const TSharedPtr<FJsonObject>& A, const TSharedPtr<FJsonObject>& B) { return WFData::Num(A, TEXT("Order")) < WFData::Num(B, TEXT("Order")); });
+	for (const TSharedPtr<FJsonObject>& Row : Rows)
+		Missions.CompletionPool.push_back({ToStd(WFData::Str(Row, TEXT("WeaponId"))), ToStd(WFData::Str(Row, TEXT("DisplayName"))), ToStd(WFData::Str(Row, TEXT("Slot"))), ToStd(WFData::Str(Row, TEXT("Element")))});
+	if (!WFData::LoadRows(TEXT("MissionPayouts"), Rows, OutError)) return false;
+	Rows.Sort([](const TSharedPtr<FJsonObject>& A, const TSharedPtr<FJsonObject>& B) { return WFData::Num(A, TEXT("CampaignOrder")) < WFData::Num(B, TEXT("CampaignOrder")); });
+	for (const TSharedPtr<FJsonObject>& Row : Rows)
+	{
+		const std::string Id = ToStd(WFData::Str(Row, TEXT("Id")));
+		Missions.StoryMissions.push_back(Id);
+		if (WFData::Num(Row, TEXT("CampaignOrder"), -1) >= 0) Missions.Campaign.push_back(Id);
+		if (!WFData::Str(Row, TEXT("ExoticWeaponId")).IsEmpty())
+			Missions.CampaignExotics[Id] = {ToStd(WFData::Str(Row, TEXT("ExoticWeaponId"))), ToStd(WFData::Str(Row, TEXT("ExoticName"))), ToStd(WFData::Str(Row, TEXT("ExoticSlot"))),
+				ToStd(WFData::Str(Row, TEXT("ExoticElement"))), ToStd(WFData::Str(Row, TEXT("ExoticSource")))};
+		if (!WFData::Str(Row, TEXT("EventType")).IsEmpty())
+		{
+			wf::missionreward::FCompletion Done;
+			Done.EventType = ToStd(WFData::Str(Row, TEXT("EventType")));
+			Done.EventId = ToStd(WFData::Str(Row, TEXT("EventId")));
+			TSharedPtr<FJsonObject> Mats;
+			if (FJsonSerializer::Deserialize(TJsonReaderFactory<>::Create(WFData::Str(Row, TEXT("Materials"))), Mats) && Mats.IsValid())
+				for (const auto& Pair : Mats->Values) Done.Materials[ToStd(Pair.Key)] = Pair.Value->AsNumber();
+			Missions.Completions[Id] = Done;
+		}
+	}
+	if (!WFData::LoadRows(TEXT("ArmorSets"), Rows, OutError)) return false;
+	for (const TSharedPtr<FJsonObject>& Row : Rows) // table order is ARMOR_SETS order; collections are the rows with a family
+	{
+		if (WFData::Str(Row, TEXT("Family")).IsEmpty()) continue;
+		wf::missionreward::FCollection Col;
+		Col.SetId = ToStd(WFData::Str(Row, TEXT("Id")));
+		const TArray<TSharedPtr<FJsonValue>>* Sources = nullptr;
+		if (Row->TryGetArrayField(TEXT("Sources"), Sources))
+			for (const TSharedPtr<FJsonValue>& V : *Sources) Col.Sources.push_back(ToStd(V->AsString()));
+		Missions.Collections.push_back(Col);
+	}
+	MissionCatalog = std::move(Missions);
 
 	Catalog = std::move(Next);
 	UE_LOG(LogWorldFracture, Log, TEXT("Reward catalog: %d armor sets, %d/%d weapons in the enemy/boss pools, %d unique scenarios, %d loot tables"),
@@ -198,8 +240,7 @@ EWFDefeatOutcome UWFProgressionSubsystem::ReportEnemyDefeated(const FWFEnemyRewa
 	for (const wf::reward::FDrop& Drop : Tally.Drops)
 		if (Drop.ScenarioClaim) Claims.emplace_back(Drop.ScenarioClaim->ScenarioId, "scenario-run:" + Drop.ScenarioClaim->RunId);
 	const std::vector<std::string> EarnedBefore = State.EarnedRewards;
-	const double NowMs = static_cast<double>((FDateTime::UtcNow() - FDateTime(1970, 1, 1)).GetTotalMilliseconds());
-	State = wf::reward::ClaimDrops(Catalog, std::move(State), Tally.Drops, std::floor(NowMs));
+	State = wf::reward::ClaimDrops(Catalog, std::move(State), Tally.Drops, UtcNowMs());
 	for (size_t I = InventoryBefore; I < State.Inventory.size(); ++I)
 		OnLootGained.Broadcast(ToF(State.Inventory[I].Name), ToF(State.Inventory[I].Rarity.value_or("")));
 	for (const auto& [ScenarioId, Key] : Claims)
@@ -230,6 +271,51 @@ bool UWFProgressionSubsystem::SetIdentityClass(const FString& ClassId)
 	State.IdentityClass = ToStd(ClassId);
 	NotifyChanged();
 	return true;
+}
+
+void UWFProgressionSubsystem::AfterMissionPayout(size_t InventoryBefore)
+{
+	for (size_t I = InventoryBefore; I < State.Inventory.size(); ++I)
+		OnLootGained.Broadcast(ToF(State.Inventory[I].Name), ToF(State.Inventory[I].Rarity.value_or("")));
+	if (State.LastMissionReward)
+		OnMissionPaid.Broadcast(ToF(State.LastMissionReward->MissionId), State.LastMissionReward->Factor, State.LastMissionReward->bFirstClear);
+	NotifyChanged();
+}
+
+bool UWFProgressionSubsystem::CompleteMission(const FString& MissionId)
+{
+	const size_t InventoryBefore = State.Inventory.size();
+	const double LevelBefore = State.Level;
+	wf::missionreward::FCompletionResult R = wf::missionreward::ApplyMissionCompletion(Catalog, MissionCatalog, std::move(State), ToStd(MissionId), UtcNowMs());
+	State = std::move(R.Progression);
+	if (!R.bPaid) return false;
+	if (State.Level > LevelBefore) OnLevelUp.Broadcast(static_cast<int32>(State.Level));
+	AfterMissionPayout(InventoryBefore);
+	// then the quest tick, as applyMissionCompletion does: gameTick(rewardMission(...), event)
+	if (UWFQuestSubsystem* Quests = GetGameInstance()->GetSubsystem<UWFQuestSubsystem>())
+	{
+		if (R.QuestEvent->EventType == "BOSS_DEFEATED") Quests->ReportBossDefeated(ToF(R.QuestEvent->EventId));
+		else Quests->ReportMissionComplete(ToF(R.QuestEvent->EventId));
+	}
+	return true;
+}
+
+void UWFProgressionSubsystem::RewardMission(const FString& MissionId, const TMap<FString, double>& Materials)
+{
+	std::map<std::string, double> Mats;
+	for (const auto& Pair : Materials) Mats[ToStd(Pair.Key)] = Pair.Value;
+	const size_t InventoryBefore = State.Inventory.size();
+	const double LevelBefore = State.Level;
+	State = wf::missionreward::RewardMission(Catalog, MissionCatalog, std::move(State), ToStd(MissionId), Mats, UtcNowMs());
+	if (State.Level > LevelBefore) OnLevelUp.Broadcast(static_cast<int32>(State.Level));
+	AfterMissionPayout(InventoryBefore);
+}
+
+double UWFProgressionSubsystem::GetNexBalance() const
+{
+	double Sum = 0;
+	for (const auto& [Key, Amount] : State.NexLedger) Sum += Amount;
+	return FMath::Max(0.0, Sum);
 }
 
 FString UWFProgressionSubsystem::MintScenarioRun(const FString& ScenarioId)

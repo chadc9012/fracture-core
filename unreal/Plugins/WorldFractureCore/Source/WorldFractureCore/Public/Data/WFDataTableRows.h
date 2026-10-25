@@ -531,3 +531,34 @@ struct FWeaponLootPoolsRow : public FTableRowBase
 	UPROPERTY(EditAnywhere, BlueprintReadWrite) FString Slot;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite) FString Element;
 };
+
+/** CompletionWeapons: 83 rows, exported from the web build. */
+USTRUCT(BlueprintType)
+struct FCompletionWeaponsRow : public FTableRowBase
+{
+	GENERATED_BODY()
+	UPROPERTY(EditAnywhere, BlueprintReadWrite) FString Id;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite) int32 Order = 0;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite) FString WeaponId;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite) FString DisplayName;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite) FString Slot;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite) FString Element;
+};
+
+/** MissionPayouts: 13 rows, exported from the web build. */
+USTRUCT(BlueprintType)
+struct FMissionPayoutsRow : public FTableRowBase
+{
+	GENERATED_BODY()
+	UPROPERTY(EditAnywhere, BlueprintReadWrite) FString Id;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite) int32 CampaignOrder = 0;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite) bool Story = false;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite) FString Materials;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite) FString EventType;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite) FString EventId;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite) FString ExoticWeaponId;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite) FString ExoticName;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite) FString ExoticSlot;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite) FString ExoticElement;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite) FString ExoticSource;
+};

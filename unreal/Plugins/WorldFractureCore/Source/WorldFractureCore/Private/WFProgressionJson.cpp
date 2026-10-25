@@ -150,6 +150,22 @@ namespace WFProgressionJson
 			Runs->SetObjectField(ToF(Key), R);
 		}
 		O->SetObjectField(TEXT("missionRuns"), Runs);
+		O->SetObjectField(TEXT("nexLedger"), NumberObject(P.NexLedger));
+		if (P.LastMissionReward)
+		{
+			const wf::FProgression::FMissionReward& L = *P.LastMissionReward;
+			TSharedRef<FJsonObject> R = MakeShared<FJsonObject>();
+			R->SetStringField(TEXT("missionId"), ToF(L.MissionId));
+			R->SetNumberField(TEXT("factor"), L.Factor);
+			R->SetBoolField(TEXT("firstClear"), L.bFirstClear);
+			R->SetNumberField(TEXT("xp"), L.Xp);
+			R->SetObjectField(TEXT("materials"), NumberObject(L.Materials));
+			TSharedRef<FJsonObject> Box = MakeShared<FJsonObject>();
+			Box->SetStringField(TEXT("rarity"), ToF(L.BoxRarity));
+			Box->SetObjectField(TEXT("materials"), NumberObject(L.BoxMaterials));
+			R->SetObjectField(TEXT("box"), Box);
+			O->SetObjectField(TEXT("lastMissionReward"), R);
+		}
 
 		FString Out;
 		const TSharedRef<TJsonWriter<>> Writer = TJsonWriterFactory<>::Create(&Out);
@@ -237,6 +253,25 @@ namespace WFProgressionJson
 				if (R->TryGetNumberField(TEXT("last"), Last)) Run.Last = Last;
 				P.MissionRuns[ToStd(Pair.Key)] = Run;
 			}
+		P.NexLedger = ReadNumbers(O, TEXT("nexLedger"));
+		P.LastMissionReward.reset();
+		const TSharedPtr<FJsonObject>* Last = nullptr;
+		if (O->TryGetObjectField(TEXT("lastMissionReward"), Last) && Last && Last->IsValid())
+		{
+			wf::FProgression::FMissionReward L;
+			L.MissionId = ToStd(WFData::Str(*Last, TEXT("missionId")));
+			L.Factor = WFData::Num(*Last, TEXT("factor"), 1.0);
+			(*Last)->TryGetBoolField(TEXT("firstClear"), L.bFirstClear);
+			L.Xp = WFData::Num(*Last, TEXT("xp"));
+			L.Materials = ReadNumbers(*Last, TEXT("materials"));
+			const TSharedPtr<FJsonObject>* Box = nullptr;
+			if ((*Last)->TryGetObjectField(TEXT("box"), Box) && Box && Box->IsValid())
+			{
+				L.BoxRarity = ToStd(WFData::Str(*Box, TEXT("rarity")));
+				L.BoxMaterials = ReadNumbers(*Box, TEXT("materials"));
+			}
+			P.LastMissionReward = L;
+		}
 		Out = std::move(P);
 		return true;
 	}

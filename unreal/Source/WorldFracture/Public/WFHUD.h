@@ -20,6 +20,7 @@ public:
 	void Toast(const FString& Text, const FLinearColor& Color);
 
 private:
+	UFUNCTION() void HandleMissionPaid(const FString& MissionId, double Factor, bool bFirstClear);
 	UFUNCTION() void HandleScenarioClaimed(const FString& ScenarioId, bool bPaid);
 	UFUNCTION() void HandleLoot(const FString& ItemName, const FString& Rarity);
 	UFUNCTION() void HandleLevelUp(int32 NewLevel);

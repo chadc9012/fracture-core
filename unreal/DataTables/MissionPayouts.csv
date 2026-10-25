@@ -1,0 +1,14 @@
+Name,Id,CampaignOrder,Story,Materials,EventType,EventId,ExoticWeaponId,ExoticName,ExoticSlot,ExoticElement,ExoticSource
+mission-01,mission-01,-1,true,{},,,,,,,
+awakening,awakening,0,true,"{""dataShards"":2}",MISSION_COMPLETE,awakening,cat-soulpiercer,Soulpiercer,primary,BIO,Quest reward
+broken-signal,broken-signal,1,true,"{""dataShards"":3}",MISSION_COMPLETE,broken-signal,cat-eclipse-smg,Eclipse SMG,primary,THERMAL,Quest reward
+drowned-relay,drowned-relay,2,true,"{""bioCatalyst"":2,""dataShards"":2}",MISSION_COMPLETE,drowned-relay,cat-doombringer,Doombringer,primary,THERMAL,Quest reward
+blackout-protocol,blackout-protocol,3,true,"{""microCircuits"":4}",MISSION_COMPLETE,blackout-protocol,cat-lightbringer,Lightbringer,secondary,ARC,Quest reward
+stitched-neon-core,stitched-neon-core,4,true,"{""aegisCore"":1}",MISSION_COMPLETE,stitched-neon-core,cat-worldbreaker,Worldbreaker,primary,THERMAL,Quest reward
+solar-array,solar-array,5,true,"{""anomalyCarbon"":2,""dataShards"":2}",MISSION_COMPLETE,solar-array,cat-light-of-solara,Light of Solara,primary,ARC,Quest reward
+core-node,core-node,6,true,"{""dataShards"":4,""microCircuits"":2}",MISSION_COMPLETE,core-node,cat-silent-horizon,Silent Horizon,primary,ARC,Missions
+frozen-beacon,frozen-beacon,7,true,"{""cryoCrystal"":2,""dataShards"":2}",MISSION_COMPLETE,frozen-beacon,cat-thunder-lord,Thunder Lord,heavy,ARC,Quest reward
+failure-core,failure-core,8,true,"{""thermalShards"":3,""dataShards"":2}",MISSION_COMPLETE,failure-core,cat-solara-blade,Solara Blade,primary,THERMAL,Quest reward
+convoy-breaker,convoy-breaker,9,true,"{""scrapMetal"":4,""dataShards"":2}",MISSION_COMPLETE,convoy-breaker,cat-dominator,Dominator,primary,ARC,Quest reward
+descent-protocol,descent-protocol,10,true,"{""dataShards"":5}",MISSION_COMPLETE,descent-protocol,cat-gravity-lance,Gravity Lance,primary,BIO,Missions
+system-core,system-core,11,true,"{""fractureCore"":1}",BOSS_DEFEATED,system-core,cat-world-ender,World Ender,heavy,ARC,Quest reward

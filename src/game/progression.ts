@@ -279,7 +279,7 @@ const dayKey = (now: number) => new Date(now).toISOString().slice(0, 10);
  * Now finishing the story affords a first apartment; houses and condos stay longer goals. Replays of story missions never repay
  * (applyMissionCompletion), so this cannot be farmed. */
 export const STORY_NEX = 1000;
-const STORY_MISSIONS = new Set(["mission-01", "awakening", "broken-signal", "drowned-relay", "blackout-protocol", "stitched-neon-core", "solar-array", "core-node", "frozen-beacon", "failure-core", "convoy-breaker", "descent-protocol", "system-core"]);
+export const STORY_MISSIONS = new Set(["mission-01", "awakening", "broken-signal", "drowned-relay", "blackout-protocol", "stitched-neon-core", "solar-array", "core-node", "frozen-beacon", "failure-core", "convoy-breaker", "descent-protocol", "system-core"]);
 export function rewardMission(progression: PlayerProgression, missionId: string, materials: Partial<Record<MaterialId, number>>, now = Date.now()): PlayerProgression {
   const firstClear = !progression.completedMissions.includes(missionId);
   const day = dayKey(now);

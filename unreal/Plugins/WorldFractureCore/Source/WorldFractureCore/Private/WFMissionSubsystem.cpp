@@ -2,6 +2,7 @@
 
 #include "Engine/GameInstance.h"
 #include "WFDataFiles.h"
+#include "WFProgressionSubsystem.h"
 #include "WFQuestSubsystem.h"
 #include "WorldFractureCoreModule.h"
 
@@ -53,7 +54,8 @@ void UWFMissionSubsystem::SendEvent(const FString& MissionId, EWFMissionEvent Ev
 	if (Run.State == Before) return;
 	OnMissionStateChanged.Broadcast(MissionId, ToF(Run.State), ToF(Run.Nova.empty() ? Run.Line : Run.Nova));
 	if (Run.State == "WORLD_UPDATE" || (Run.Id == "awakening" && Run.State == "COMPLETE"))
-		if (UWFQuestSubsystem* Quests = GetGameInstance()->GetSubsystem<UWFQuestSubsystem>()) Quests->ReportMissionComplete(MissionId);
+		// pays once and fires the mission's quest event (persistence.ts applyMissionCompletion)
+		if (UWFProgressionSubsystem* Progression = GetGameInstance()->GetSubsystem<UWFProgressionSubsystem>()) Progression->CompleteMission(MissionId);
 }
 
 void UWFMissionSubsystem::SetFaction(const FString& Faction)

@@ -1,0 +1,84 @@
+Name,Id,Order,WeaponId,DisplayName,Slot,Element
+completion-0,completion-0,0,weapon-t1-01,Scrap-Slugger,primary,KINETIC
+completion-1,completion-1,1,weapon-t1-02,Pipe-Rail Pistol,secondary,ARC
+completion-2,completion-2,2,weapon-t1-03,Rebar Crossbow,primary,CRYO
+completion-3,completion-3,3,weapon-t1-04,Makeshift Sub-Carbine,primary,ARC
+completion-4,completion-4,4,weapon-t1-05,Scrap-Slugger · Pattern 05,primary,THERMAL
+completion-5,completion-5,5,weapon-t1-06,Pipe-Rail Pistol · Pattern 06,heavy,BIO
+completion-6,completion-6,6,weapon-t1-07,Rebar Crossbow · Pattern 07,primary,KINETIC
+completion-7,completion-7,7,weapon-t1-08,Makeshift Sub-Carbine · Pattern 08,primary,ARC
+completion-8,completion-8,8,weapon-t1-09,Scrap-Slugger · Pattern 09,primary,CRYO
+completion-9,completion-9,9,weapon-t1-10,Pipe-Rail Pistol · Pattern 10,secondary,ARC
+completion-10,completion-10,10,weapon-t1-11,Rebar Crossbow · Pattern 11,primary,THERMAL
+completion-11,completion-11,11,weapon-t1-12,Makeshift Sub-Carbine · Pattern 12,primary,BIO
+completion-12,completion-12,12,weapon-t1-13,Scrap-Slugger · Pattern 13,primary,KINETIC
+completion-13,completion-13,13,weapon-t1-14,Pipe-Rail Pistol · Pattern 14,heavy,ARC
+completion-14,completion-14,14,weapon-t1-15,Rebar Crossbow · Pattern 15,primary,CRYO
+completion-15,completion-15,15,weapon-t1-16,Makeshift Sub-Carbine · Pattern 16,primary,ARC
+completion-16,completion-16,16,weapon-t1-17,Scrap-Slugger · Pattern 17,primary,THERMAL
+completion-17,completion-17,17,weapon-t1-18,Pipe-Rail Pistol · Pattern 18,secondary,BIO
+completion-18,completion-18,18,weapon-t1-19,Rebar Crossbow · Pattern 19,primary,KINETIC
+completion-19,completion-19,19,weapon-t1-20,Makeshift Sub-Carbine · Pattern 20,primary,ARC
+completion-20,completion-20,20,weapon-t1-21,Scrap-Slugger · Pattern 21,primary,CRYO
+completion-21,completion-21,21,weapon-t1-22,Pipe-Rail Pistol · Pattern 22,heavy,ARC
+completion-22,completion-22,22,weapon-t1-23,Rebar Crossbow · Pattern 23,primary,THERMAL
+completion-23,completion-23,23,weapon-t1-24,Makeshift Sub-Carbine · Pattern 24,primary,BIO
+completion-24,completion-24,24,weapon-t1-25,Scrap-Slugger · Pattern 25,primary,KINETIC
+completion-25,completion-25,25,weapon-t2-01,Resonant MK-IV Assault Rifle,secondary,ARC
+completion-26,completion-26,26,weapon-t2-02,Enforcer SMG,primary,CRYO
+completion-27,completion-27,27,weapon-t2-03,Kinetic DMR,primary,ARC
+completion-28,completion-28,28,weapon-t2-04,Standard-Issue Sidearm,primary,THERMAL
+completion-29,completion-29,29,weapon-t2-05,Resonant MK-IV Assault Rifle · Pattern 05,heavy,BIO
+completion-30,completion-30,30,weapon-t2-06,Enforcer SMG · Pattern 06,primary,KINETIC
+completion-31,completion-31,31,weapon-t2-07,Kinetic DMR · Pattern 07,primary,ARC
+completion-32,completion-32,32,weapon-t2-08,Standard-Issue Sidearm · Pattern 08,primary,CRYO
+completion-33,completion-33,33,weapon-t2-09,Resonant MK-IV Assault Rifle · Pattern 09,secondary,ARC
+completion-34,completion-34,34,weapon-t2-10,Enforcer SMG · Pattern 10,primary,THERMAL
+completion-35,completion-35,35,weapon-t2-11,Kinetic DMR · Pattern 11,primary,BIO
+completion-36,completion-36,36,weapon-t2-12,Standard-Issue Sidearm · Pattern 12,primary,KINETIC
+completion-37,completion-37,37,weapon-t2-13,Resonant MK-IV Assault Rifle · Pattern 13,heavy,ARC
+completion-38,completion-38,38,weapon-t2-14,Enforcer SMG · Pattern 14,primary,CRYO
+completion-39,completion-39,39,weapon-t2-15,Kinetic DMR · Pattern 15,primary,ARC
+completion-40,completion-40,40,weapon-t2-16,Standard-Issue Sidearm · Pattern 16,primary,THERMAL
+completion-41,completion-41,41,weapon-t2-17,Resonant MK-IV Assault Rifle · Pattern 17,secondary,BIO
+completion-42,completion-42,42,weapon-t2-18,Enforcer SMG · Pattern 18,primary,KINETIC
+completion-43,completion-43,43,weapon-t2-19,Kinetic DMR · Pattern 19,primary,ARC
+completion-44,completion-44,44,weapon-t2-20,Standard-Issue Sidearm · Pattern 20,primary,CRYO
+completion-45,completion-45,45,weapon-t2-21,Resonant MK-IV Assault Rifle · Pattern 21,heavy,ARC
+completion-46,completion-46,46,weapon-t2-22,Enforcer SMG · Pattern 22,primary,THERMAL
+completion-47,completion-47,47,weapon-t2-23,Kinetic DMR · Pattern 23,primary,BIO
+completion-48,completion-48,48,weapon-t2-24,Standard-Issue Sidearm · Pattern 24,primary,KINETIC
+completion-49,completion-49,49,weapon-t2-25,Resonant MK-IV Assault Rifle · Pattern 25,secondary,ARC
+completion-50,completion-50,50,weapon-t2-26,Enforcer SMG · Pattern 26,primary,CRYO
+completion-51,completion-51,51,weapon-t2-27,Kinetic DMR · Pattern 27,primary,ARC
+completion-52,completion-52,52,weapon-t2-28,Standard-Issue Sidearm · Pattern 28,primary,THERMAL
+completion-53,completion-53,53,weapon-t2-29,Resonant MK-IV Assault Rifle · Pattern 29,heavy,BIO
+completion-54,completion-54,54,weapon-t2-30,Enforcer SMG · Pattern 30,primary,KINETIC
+completion-55,completion-55,55,weapon-t3-01,Magma-Core Heavy Repeater,primary,CRYO
+completion-56,completion-56,56,weapon-t3-02,Cryo-Pulse Carbine,primary,ARC
+completion-57,completion-57,57,weapon-t3-03,Bio-Luminescent Arc-Caster,primary,THERMAL
+completion-58,completion-58,58,weapon-t3-04,Magma-Core Heavy Repeater · Pattern 04,heavy,BIO
+completion-59,completion-59,59,weapon-t3-05,Cryo-Pulse Carbine · Pattern 05,primary,KINETIC
+completion-60,completion-60,60,weapon-t3-06,Bio-Luminescent Arc-Caster · Pattern 06,primary,ARC
+completion-61,completion-61,61,weapon-t3-07,Magma-Core Heavy Repeater · Pattern 07,primary,CRYO
+completion-62,completion-62,62,weapon-t3-08,Cryo-Pulse Carbine · Pattern 08,secondary,ARC
+completion-63,completion-63,63,weapon-t3-09,Bio-Luminescent Arc-Caster · Pattern 09,primary,THERMAL
+completion-64,completion-64,64,weapon-t3-10,Magma-Core Heavy Repeater · Pattern 10,primary,BIO
+completion-65,completion-65,65,weapon-t3-11,Cryo-Pulse Carbine · Pattern 11,primary,KINETIC
+completion-66,completion-66,66,weapon-t3-12,Bio-Luminescent Arc-Caster · Pattern 12,heavy,ARC
+completion-67,completion-67,67,weapon-t3-13,Magma-Core Heavy Repeater · Pattern 13,primary,CRYO
+completion-68,completion-68,68,weapon-t3-14,Cryo-Pulse Carbine · Pattern 14,primary,ARC
+completion-69,completion-69,69,weapon-t3-15,Bio-Luminescent Arc-Caster · Pattern 15,primary,THERMAL
+completion-70,completion-70,70,weapon-t3-16,Magma-Core Heavy Repeater · Pattern 16,secondary,BIO
+completion-71,completion-71,71,weapon-t3-17,Cryo-Pulse Carbine · Pattern 17,primary,KINETIC
+completion-72,completion-72,72,weapon-t3-18,Bio-Luminescent Arc-Caster · Pattern 18,primary,ARC
+completion-73,completion-73,73,weapon-t3-19,Magma-Core Heavy Repeater · Pattern 19,primary,CRYO
+completion-74,completion-74,74,weapon-t3-20,Cryo-Pulse Carbine · Pattern 20,heavy,ARC
+completion-75,completion-75,75,weapon-t3-21,Bio-Luminescent Arc-Caster · Pattern 21,primary,THERMAL
+completion-76,completion-76,76,weapon-t3-22,Magma-Core Heavy Repeater · Pattern 22,primary,BIO
+completion-77,completion-77,77,weapon-t3-23,Cryo-Pulse Carbine · Pattern 23,primary,KINETIC
+completion-78,completion-78,78,weapon-t3-24,Bio-Luminescent Arc-Caster · Pattern 24,secondary,ARC
+completion-79,completion-79,79,weapon-t3-25,Magma-Core Heavy Repeater · Pattern 25,primary,CRYO
+completion-80,completion-80,80,weapon-t3-26,Cryo-Pulse Carbine · Pattern 26,primary,ARC
+completion-81,completion-81,81,weapon-t3-27,Bio-Luminescent Arc-Caster · Pattern 27,primary,THERMAL
+completion-82,completion-82,82,weapon-t3-28,Magma-Core Heavy Repeater · Pattern 28,heavy,BIO

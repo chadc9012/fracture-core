@@ -29,6 +29,7 @@ void AWFHUD::BeginPlay()
 		Progression->OnLootGained.AddDynamic(this, &AWFHUD::HandleLoot);
 		Progression->OnLevelUp.AddDynamic(this, &AWFHUD::HandleLevelUp);
 		Progression->OnScenarioClaimed.AddDynamic(this, &AWFHUD::HandleScenarioClaimed);
+		Progression->OnMissionPaid.AddDynamic(this, &AWFHUD::HandleMissionPaid);
 	}
 	if (UWFQuestSubsystem* Quests = Game->GetSubsystem<UWFQuestSubsystem>()) Quests->OnQuestCompleted.AddDynamic(this, &AWFHUD::HandleQuestCompleted);
 }
@@ -42,6 +43,11 @@ void AWFHUD::Toast(const FString& Text, const FLinearColor& Color)
 void AWFHUD::HandleLoot(const FString& ItemName, const FString& Rarity)
 {
 	Toast(FString::Printf(TEXT("Drop - %s%s"), *ItemName, Rarity.IsEmpty() ? TEXT("") : *FString::Printf(TEXT(" (%s)"), *Rarity)), Gold);
+}
+
+void AWFHUD::HandleMissionPaid(const FString& MissionId, double Factor, bool bFirstClear)
+{
+	Toast(FString::Printf(TEXT("MISSION PAID - %s%s (x%.2f)"), *MissionId, bFirstClear ? TEXT(" first clear") : TEXT(""), Factor), Gold);
 }
 
 void AWFHUD::HandleScenarioClaimed(const FString& ScenarioId, bool bPaid)
@@ -87,8 +93,8 @@ void AWFHUD::DrawHUD()
 	if (Progression)
 	{
 		const FString Class = Progression->GetIdentityClass();
-		Line(FString::Printf(TEXT("%s%s   DRAGONITE %d   [F6 class  F8 scenario]"), Class.IsEmpty() ? TEXT("NO CLASS") : *Class, Progression->IsBondedToVyrak() ? TEXT(" (Vyrak bond)") : TEXT(""),
-			FMath::RoundToInt(Progression->GetMaterial(TEXT("dragonite")))), 32, H - 94, Soft, 0.9f);
+		Line(FString::Printf(TEXT("%s%s   NEX %d   DRAGONITE %d   [F6 class  F8 scenario]"), Class.IsEmpty() ? TEXT("NO CLASS") : *Class, Progression->IsBondedToVyrak() ? TEXT(" (Vyrak bond)") : TEXT(""),
+			FMath::RoundToInt(Progression->GetNexBalance()), FMath::RoundToInt(Progression->GetMaterial(TEXT("dragonite")))), 32, H - 94, Soft, 0.9f);
 		Line(FString::Printf(TEXT("LEVEL %d   %d / %d XP"), Progression->GetLevel(), FMath::RoundToInt(Progression->GetXp()), FMath::RoundToInt(Progression->GetXpToNextLevel())), 32, H - 72, Soft);
 		Line(FString::Printf(TEXT("KILLS %d   CREDITS %d   GEAR %d"), Progression->GetSessionKills(), FMath::RoundToInt(Progression->GetSessionCredits()), Progression->GetInventoryCount()), 32, H - 50, Soft, 0.9f);
 	}

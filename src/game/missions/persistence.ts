@@ -49,7 +49,7 @@ export const RESPAWNS_ON_RESUME: Record<MissionId, readonly string[]> = {
 };
 
 /** Per-mission completion: the materials paid and the quest event fired, exactly as GameCanvas used to inline. */
-const COMPLETION: Record<MissionId, { materials: Partial<Record<MaterialId, number>>; event: QuestEvent }> = {
+export const COMPLETION: Record<MissionId, { materials: Partial<Record<MaterialId, number>>; event: QuestEvent }> = {
   "awakening": { materials: { dataShards: 2 }, event: { type: "MISSION_COMPLETE", missionId: "awakening" } },
   "broken-signal": { materials: { dataShards: 3 }, event: { type: "MISSION_COMPLETE", missionId: "broken-signal" } },
   "drowned-relay": { materials: { bioCatalyst: 2, dataShards: 2 }, event: { type: "MISSION_COMPLETE", missionId: "drowned-relay" } },

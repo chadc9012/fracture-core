@@ -41,6 +41,9 @@ import { HOMES, DECOR } from "../../src/game/housing";
 import { ACTIVITIES, ELITES, VYRAK_REMATCH } from "../../src/game/activities";
 import { WEAPON_MANIFEST } from "../../src/game/equipment";
 import { catalogFrom } from "../../src/game/weapon-catalog";
+import { campaignExotic } from "../../src/game/weapon-loot";
+import { STORY_MISSIONS } from "../../src/game/progression";
+import { COMPLETION, MISSION_IDS } from "../../src/game/missions/persistence";
 
 type Row = Record<string, unknown>;
 const OUT = join(process.cwd(), "unreal", "DataTables");
@@ -164,6 +167,22 @@ table("Activities", [...ACTIVITIES, ...ELITES, VYRAK_REMATCH]);
   const bossPool = [...enemyPool, ...catalogFrom("boss")];
   const row = (pool: string) => (w: { id: string; name: string; archetype: string; element: string }, order: number) => ({ id: `${pool}-${order}`, pool, order, weaponId: w.id, name: w.name, slot: slotOf(w.archetype), element: element[w.element] });
   table("WeaponLootPools", [...enemyPool.map(row("enemy")), ...bossPool.map(row("boss"))]);
+  // Mission payouts (progression.ts rewardMission, missions/persistence.ts COMPLETION). The completion-weapon pool is
+  // weapon-loot.ts DROPPABLE (the enemy pool's manifest prefix) and picks by index, so its order is data too.
+  const droppable = WEAPON_MANIFEST.filter((w) => w.tier === "T1" || w.tier === "T2" || w.tier === "T3");
+  table("CompletionWeapons", droppable.map((w, order) => ({ id: `completion-${order}`, order, weaponId: w.id, name: w.name, slot: slotOf(w.archetype), element: element[w.element] })));
+  table("MissionPayouts", [...STORY_MISSIONS].map((missionId) => {
+    const campaign = (MISSION_IDS as readonly string[]).indexOf(missionId);
+    const done = campaign >= 0 ? COMPLETION[missionId as (typeof MISSION_IDS)[number]] : undefined;
+    const ev = done?.event as { type: string; missionId?: string; encounterId?: string } | undefined;
+    const exotic = campaignExotic(missionId);
+    return {
+      id: missionId, campaignOrder: campaign, story: true,
+      materials: JSON.stringify(done?.materials ?? {}), eventType: ev?.type ?? "", eventId: ev ? (ev.missionId ?? ev.encounterId ?? "") : "",
+      exoticWeaponId: exotic ? exotic.id.slice("exotic:".length) : "", exoticName: exotic?.name ?? "", exoticSlot: exotic?.slot ?? "", exoticElement: exotic?.element ?? "",
+      exoticSource: exotic ? exotic.source.slice("Exotic \u00b7 ".length) : "",
+    };
+  }));
 }
 
 writeFileSync(HEADER, [

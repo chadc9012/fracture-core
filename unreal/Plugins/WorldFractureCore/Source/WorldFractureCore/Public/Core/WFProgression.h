@@ -75,6 +75,21 @@ namespace wf
 		};
 		std::map<std::string, FRunRecord> MissionRuns;
 
+		/** NEX currency as a ledger of signed entries (nex.ts): balance = max(0, sum). Keys like mission:<id>:<day>:<run>. */
+		std::map<std::string, double> NexLedger;
+		/** The last mission payout, for the reward screen (progression.ts MissionReward). */
+		struct FMissionReward
+		{
+			std::string MissionId;
+			double Factor = 1;
+			bool bFirstClear = false;
+			double Xp = 0;
+			std::map<std::string, double> Materials;
+			std::string BoxRarity; // COMMON | RARE | EPIC
+			std::map<std::string, double> BoxMaterials;
+		};
+		std::optional<FMissionReward> LastMissionReward;
+
 		std::optional<std::string> IdentityClass; // TITAN | HUNTER | WARLOCK
 		/** Difficulty picked before launch (map-activities.ts CHALLENGES): STANDARD | HARD | VERY_HARD. */
 		std::string Challenge = "STANDARD";

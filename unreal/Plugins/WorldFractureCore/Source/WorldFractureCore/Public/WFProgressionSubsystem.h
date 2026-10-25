@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "Core/WFProgression.h"
+#include "Core/WFMissionRewardCore.h"
 #include "Core/WFRewardCore.h"
 #include "Subsystems/GameInstanceSubsystem.h"
 #include "WFProgressionSubsystem.generated.h"
@@ -51,6 +52,7 @@ struct WORLDFRACTURECORE_API FWFEnemyRewardInfo
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FWFLevelUp, int32, NewLevel);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FWFLootGained, const FString&, ItemName, const FString&, Rarity);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FWFProgressionChanged);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FWFMissionPaid, const FString&, MissionId, double, Factor, bool, bFirstClear);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FWFScenarioClaimed, const FString&, ScenarioId, bool, bPaid);
 
 /**
@@ -77,6 +79,14 @@ public:
 	/** The Operator class (TITAN, HUNTER, WARLOCK): scenario journal, covenant bond and class rewards are kept per class. */
 	UFUNCTION(BlueprintCallable, Category = "World Fracture|Progression") bool SetIdentityClass(const FString& ClassId);
 	UFUNCTION(BlueprintPure, Category = "World Fracture|Progression") FString GetIdentityClass() const { return State.IdentityClass ? FString(UTF8_TO_TCHAR(State.IdentityClass->c_str())) : FString(); }
+
+	/** Pays a finished story mission once (persistence.ts applyMissionCompletion): XP, materials, loot box, first-clear
+	 *  weapon and campaign exotic, armor collection piece, NEX, then fires its quest event. False when already completed. */
+	UFUNCTION(BlueprintCallable, Category = "World Fracture|Rewards") bool CompleteMission(const FString& MissionId);
+	/** Any mission or side contract payout (progression.ts rewardMission), with the materials it pays before scaling. */
+	UFUNCTION(BlueprintCallable, Category = "World Fracture|Rewards") void RewardMission(const FString& MissionId, const TMap<FString, double>& Materials);
+	/** NEX balance: max(0, sum of the ledger) (nex.ts nexBalance). */
+	UFUNCTION(BlueprintPure, Category = "World Fracture|Progression") double GetNexBalance() const;
 
 	/** A run id for a newly summoned Unique Scenario boss, in the web build's format (sim.ts summonScenario). */
 	UFUNCTION(BlueprintCallable, Category = "World Fracture|Rewards") FString MintScenarioRun(const FString& ScenarioId);
@@ -107,6 +117,8 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "World Fracture|Progression") FWFProgressionChanged OnProgressionChanged;
 	/** A scenario kill was claimed: Paid says whether the run paid its signature loot (participation, first claim). */
 	UPROPERTY(BlueprintAssignable, Category = "World Fracture|Rewards") FWFScenarioClaimed OnScenarioClaimed;
+	/** A mission paid out: its id, the reward factor and whether it was the first clear. */
+	UPROPERTY(BlueprintAssignable, Category = "World Fracture|Rewards") FWFMissionPaid OnMissionPaid;
 
 	const wf::FProgression& Get() const { return State; }
 	/** For other core systems (quests, missions) that change the save; call NotifyChanged after. */
@@ -121,6 +133,8 @@ private:
 
 	wf::FProgression State;
 	wf::reward::FCatalog Catalog;
+	wf::missionreward::FCatalog MissionCatalog;
+	void AfterMissionPayout(size_t InventoryBefore);
 	wf::reward::FSimTally Tally;
 	int32 PlayerDeaths = 0;
 	int32 NextRunSerial = 0;

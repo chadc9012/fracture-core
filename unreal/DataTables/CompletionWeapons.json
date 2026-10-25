@@ -1,0 +1,749 @@
+[
+  {
+    "Name": "completion-0",
+    "Id": "completion-0",
+    "Order": 0,
+    "WeaponId": "weapon-t1-01",
+    "DisplayName": "Scrap-Slugger",
+    "Slot": "primary",
+    "Element": "KINETIC"
+  },
+  {
+    "Name": "completion-1",
+    "Id": "completion-1",
+    "Order": 1,
+    "WeaponId": "weapon-t1-02",
+    "DisplayName": "Pipe-Rail Pistol",
+    "Slot": "secondary",
+    "Element": "ARC"
+  },
+  {
+    "Name": "completion-2",
+    "Id": "completion-2",
+    "Order": 2,
+    "WeaponId": "weapon-t1-03",
+    "DisplayName": "Rebar Crossbow",
+    "Slot": "primary",
+    "Element": "CRYO"
+  },
+  {
+    "Name": "completion-3",
+    "Id": "completion-3",
+    "Order": 3,
+    "WeaponId": "weapon-t1-04",
+    "DisplayName": "Makeshift Sub-Carbine",
+    "Slot": "primary",
+    "Element": "ARC"
+  },
+  {
+    "Name": "completion-4",
+    "Id": "completion-4",
+    "Order": 4,
+    "WeaponId": "weapon-t1-05",
+    "DisplayName": "Scrap-Slugger · Pattern 05",
+    "Slot": "primary",
+    "Element": "THERMAL"
+  },
+  {
+    "Name": "completion-5",
+    "Id": "completion-5",
+    "Order": 5,
+    "WeaponId": "weapon-t1-06",
+    "DisplayName": "Pipe-Rail Pistol · Pattern 06",
+    "Slot": "heavy",
+    "Element": "BIO"
+  },
+  {
+    "Name": "completion-6",
+    "Id": "completion-6",
+    "Order": 6,
+    "WeaponId": "weapon-t1-07",
+    "DisplayName": "Rebar Crossbow · Pattern 07",
+    "Slot": "primary",
+    "Element": "KINETIC"
+  },
+  {
+    "Name": "completion-7",
+    "Id": "completion-7",
+    "Order": 7,
+    "WeaponId": "weapon-t1-08",
+    "DisplayName": "Makeshift Sub-Carbine · Pattern 08",
+    "Slot": "primary",
+    "Element": "ARC"
+  },
+  {
+    "Name": "completion-8",
+    "Id": "completion-8",
+    "Order": 8,
+    "WeaponId": "weapon-t1-09",
+    "DisplayName": "Scrap-Slugger · Pattern 09",
+    "Slot": "primary",
+    "Element": "CRYO"
+  },
+  {
+    "Name": "completion-9",
+    "Id": "completion-9",
+    "Order": 9,
+    "WeaponId": "weapon-t1-10",
+    "DisplayName": "Pipe-Rail Pistol · Pattern 10",
+    "Slot": "secondary",
+    "Element": "ARC"
+  },
+  {
+    "Name": "completion-10",
+    "Id": "completion-10",
+    "Order": 10,
+    "WeaponId": "weapon-t1-11",
+    "DisplayName": "Rebar Crossbow · Pattern 11",
+    "Slot": "primary",
+    "Element": "THERMAL"
+  },
+  {
+    "Name": "completion-11",
+    "Id": "completion-11",
+    "Order": 11,
+    "WeaponId": "weapon-t1-12",
+    "DisplayName": "Makeshift Sub-Carbine · Pattern 12",
+    "Slot": "primary",
+    "Element": "BIO"
+  },
+  {
+    "Name": "completion-12",
+    "Id": "completion-12",
+    "Order": 12,
+    "WeaponId": "weapon-t1-13",
+    "DisplayName": "Scrap-Slugger · Pattern 13",
+    "Slot": "primary",
+    "Element": "KINETIC"
+  },
+  {
+    "Name": "completion-13",
+    "Id": "completion-13",
+    "Order": 13,
+    "WeaponId": "weapon-t1-14",
+    "DisplayName": "Pipe-Rail Pistol · Pattern 14",
+    "Slot": "heavy",
+    "Element": "ARC"
+  },
+  {
+    "Name": "completion-14",
+    "Id": "completion-14",
+    "Order": 14,
+    "WeaponId": "weapon-t1-15",
+    "DisplayName": "Rebar Crossbow · Pattern 15",
+    "Slot": "primary",
+    "Element": "CRYO"
+  },
+  {
+    "Name": "completion-15",
+    "Id": "completion-15",
+    "Order": 15,
+    "WeaponId": "weapon-t1-16",
+    "DisplayName": "Makeshift Sub-Carbine · Pattern 16",
+    "Slot": "primary",
+    "Element": "ARC"
+  },
+  {
+    "Name": "completion-16",
+    "Id": "completion-16",
+    "Order": 16,
+    "WeaponId": "weapon-t1-17",
+    "DisplayName": "Scrap-Slugger · Pattern 17",
+    "Slot": "primary",
+    "Element": "THERMAL"
+  },
+  {
+    "Name": "completion-17",
+    "Id": "completion-17",
+    "Order": 17,
+    "WeaponId": "weapon-t1-18",
+    "DisplayName": "Pipe-Rail Pistol · Pattern 18",
+    "Slot": "secondary",
+    "Element": "BIO"
+  },
+  {
+    "Name": "completion-18",
+    "Id": "completion-18",
+    "Order": 18,
+    "WeaponId": "weapon-t1-19",
+    "DisplayName": "Rebar Crossbow · Pattern 19",
+    "Slot": "primary",
+    "Element": "KINETIC"
+  },
+  {
+    "Name": "completion-19",
+    "Id": "completion-19",
+    "Order": 19,
+    "WeaponId": "weapon-t1-20",
+    "DisplayName": "Makeshift Sub-Carbine · Pattern 20",
+    "Slot": "primary",
+    "Element": "ARC"
+  },
+  {
+    "Name": "completion-20",
+    "Id": "completion-20",
+    "Order": 20,
+    "WeaponId": "weapon-t1-21",
+    "DisplayName": "Scrap-Slugger · Pattern 21",
+    "Slot": "primary",
+    "Element": "CRYO"
+  },
+  {
+    "Name": "completion-21",
+    "Id": "completion-21",
+    "Order": 21,
+    "WeaponId": "weapon-t1-22",
+    "DisplayName": "Pipe-Rail Pistol · Pattern 22",
+    "Slot": "heavy",
+    "Element": "ARC"
+  },
+  {
+    "Name": "completion-22",
+    "Id": "completion-22",
+    "Order": 22,
+    "WeaponId": "weapon-t1-23",
+    "DisplayName": "Rebar Crossbow · Pattern 23",
+    "Slot": "primary",
+    "Element": "THERMAL"
+  },
+  {
+    "Name": "completion-23",
+    "Id": "completion-23",
+    "Order": 23,
+    "WeaponId": "weapon-t1-24",
+    "DisplayName": "Makeshift Sub-Carbine · Pattern 24",
+    "Slot": "primary",
+    "Element": "BIO"
+  },
+  {
+    "Name": "completion-24",
+    "Id": "completion-24",
+    "Order": 24,
+    "WeaponId": "weapon-t1-25",
+    "DisplayName": "Scrap-Slugger · Pattern 25",
+    "Slot": "primary",
+    "Element": "KINETIC"
+  },
+  {
+    "Name": "completion-25",
+    "Id": "completion-25",
+    "Order": 25,
+    "WeaponId": "weapon-t2-01",
+    "DisplayName": "Resonant MK-IV Assault Rifle",
+    "Slot": "secondary",
+    "Element": "ARC"
+  },
+  {
+    "Name": "completion-26",
+    "Id": "completion-26",
+    "Order": 26,
+    "WeaponId": "weapon-t2-02",
+    "DisplayName": "Enforcer SMG",
+    "Slot": "primary",
+    "Element": "CRYO"
+  },
+  {
+    "Name": "completion-27",
+    "Id": "completion-27",
+    "Order": 27,
+    "WeaponId": "weapon-t2-03",
+    "DisplayName": "Kinetic DMR",
+    "Slot": "primary",
+    "Element": "ARC"
+  },
+  {
+    "Name": "completion-28",
+    "Id": "completion-28",
+    "Order": 28,
+    "WeaponId": "weapon-t2-04",
+    "DisplayName": "Standard-Issue Sidearm",
+    "Slot": "primary",
+    "Element": "THERMAL"
+  },
+  {
+    "Name": "completion-29",
+    "Id": "completion-29",
+    "Order": 29,
+    "WeaponId": "weapon-t2-05",
+    "DisplayName": "Resonant MK-IV Assault Rifle · Pattern 05",
+    "Slot": "heavy",
+    "Element": "BIO"
+  },
+  {
+    "Name": "completion-30",
+    "Id": "completion-30",
+    "Order": 30,
+    "WeaponId": "weapon-t2-06",
+    "DisplayName": "Enforcer SMG · Pattern 06",
+    "Slot": "primary",
+    "Element": "KINETIC"
+  },
+  {
+    "Name": "completion-31",
+    "Id": "completion-31",
+    "Order": 31,
+    "WeaponId": "weapon-t2-07",
+    "DisplayName": "Kinetic DMR · Pattern 07",
+    "Slot": "primary",
+    "Element": "ARC"
+  },
+  {
+    "Name": "completion-32",
+    "Id": "completion-32",
+    "Order": 32,
+    "WeaponId": "weapon-t2-08",
+    "DisplayName": "Standard-Issue Sidearm · Pattern 08",
+    "Slot": "primary",
+    "Element": "CRYO"
+  },
+  {
+    "Name": "completion-33",
+    "Id": "completion-33",
+    "Order": 33,
+    "WeaponId": "weapon-t2-09",
+    "DisplayName": "Resonant MK-IV Assault Rifle · Pattern 09",
+    "Slot": "secondary",
+    "Element": "ARC"
+  },
+  {
+    "Name": "completion-34",
+    "Id": "completion-34",
+    "Order": 34,
+    "WeaponId": "weapon-t2-10",
+    "DisplayName": "Enforcer SMG · Pattern 10",
+    "Slot": "primary",
+    "Element": "THERMAL"
+  },
+  {
+    "Name": "completion-35",
+    "Id": "completion-35",
+    "Order": 35,
+    "WeaponId": "weapon-t2-11",
+    "DisplayName": "Kinetic DMR · Pattern 11",
+    "Slot": "primary",
+    "Element": "BIO"
+  },
+  {
+    "Name": "completion-36",
+    "Id": "completion-36",
+    "Order": 36,
+    "WeaponId": "weapon-t2-12",
+    "DisplayName": "Standard-Issue Sidearm · Pattern 12",
+    "Slot": "primary",
+    "Element": "KINETIC"
+  },
+  {
+    "Name": "completion-37",
+    "Id": "completion-37",
+    "Order": 37,
+    "WeaponId": "weapon-t2-13",
+    "DisplayName": "Resonant MK-IV Assault Rifle · Pattern 13",
+    "Slot": "heavy",
+    "Element": "ARC"
+  },
+  {
+    "Name": "completion-38",
+    "Id": "completion-38",
+    "Order": 38,
+    "WeaponId": "weapon-t2-14",
+    "DisplayName": "Enforcer SMG · Pattern 14",
+    "Slot": "primary",
+    "Element": "CRYO"
+  },
+  {
+    "Name": "completion-39",
+    "Id": "completion-39",
+    "Order": 39,
+    "WeaponId": "weapon-t2-15",
+    "DisplayName": "Kinetic DMR · Pattern 15",
+    "Slot": "primary",
+    "Element": "ARC"
+  },
+  {
+    "Name": "completion-40",
+    "Id": "completion-40",
+    "Order": 40,
+    "WeaponId": "weapon-t2-16",
+    "DisplayName": "Standard-Issue Sidearm · Pattern 16",
+    "Slot": "primary",
+    "Element": "THERMAL"
+  },
+  {
+    "Name": "completion-41",
+    "Id": "completion-41",
+    "Order": 41,
+    "WeaponId": "weapon-t2-17",
+    "DisplayName": "Resonant MK-IV Assault Rifle · Pattern 17",
+    "Slot": "secondary",
+    "Element": "BIO"
+  },
+  {
+    "Name": "completion-42",
+    "Id": "completion-42",
+    "Order": 42,
+    "WeaponId": "weapon-t2-18",
+    "DisplayName": "Enforcer SMG · Pattern 18",
+    "Slot": "primary",
+    "Element": "KINETIC"
+  },
+  {
+    "Name": "completion-43",
+    "Id": "completion-43",
+    "Order": 43,
+    "WeaponId": "weapon-t2-19",
+    "DisplayName": "Kinetic DMR · Pattern 19",
+    "Slot": "primary",
+    "Element": "ARC"
+  },
+  {
+    "Name": "completion-44",
+    "Id": "completion-44",
+    "Order": 44,
+    "WeaponId": "weapon-t2-20",
+    "DisplayName": "Standard-Issue Sidearm · Pattern 20",
+    "Slot": "primary",
+    "Element": "CRYO"
+  },
+  {
+    "Name": "completion-45",
+    "Id": "completion-45",
+    "Order": 45,
+    "WeaponId": "weapon-t2-21",
+    "DisplayName": "Resonant MK-IV Assault Rifle · Pattern 21",
+    "Slot": "heavy",
+    "Element": "ARC"
+  },
+  {
+    "Name": "completion-46",
+    "Id": "completion-46",
+    "Order": 46,
+    "WeaponId": "weapon-t2-22",
+    "DisplayName": "Enforcer SMG · Pattern 22",
+    "Slot": "primary",
+    "Element": "THERMAL"
+  },
+  {
+    "Name": "completion-47",
+    "Id": "completion-47",
+    "Order": 47,
+    "WeaponId": "weapon-t2-23",
+    "DisplayName": "Kinetic DMR · Pattern 23",
+    "Slot": "primary",
+    "Element": "BIO"
+  },
+  {
+    "Name": "completion-48",
+    "Id": "completion-48",
+    "Order": 48,
+    "WeaponId": "weapon-t2-24",
+    "DisplayName": "Standard-Issue Sidearm · Pattern 24",
+    "Slot": "primary",
+    "Element": "KINETIC"
+  },
+  {
+    "Name": "completion-49",
+    "Id": "completion-49",
+    "Order": 49,
+    "WeaponId": "weapon-t2-25",
+    "DisplayName": "Resonant MK-IV Assault Rifle · Pattern 25",
+    "Slot": "secondary",
+    "Element": "ARC"
+  },
+  {
+    "Name": "completion-50",
+    "Id": "completion-50",
+    "Order": 50,
+    "WeaponId": "weapon-t2-26",
+    "DisplayName": "Enforcer SMG · Pattern 26",
+    "Slot": "primary",
+    "Element": "CRYO"
+  },
+  {
+    "Name": "completion-51",
+    "Id": "completion-51",
+    "Order": 51,
+    "WeaponId": "weapon-t2-27",
+    "DisplayName": "Kinetic DMR · Pattern 27",
+    "Slot": "primary",
+    "Element": "ARC"
+  },
+  {
+    "Name": "completion-52",
+    "Id": "completion-52",
+    "Order": 52,
+    "WeaponId": "weapon-t2-28",
+    "DisplayName": "Standard-Issue Sidearm · Pattern 28",
+    "Slot": "primary",
+    "Element": "THERMAL"
+  },
+  {
+    "Name": "completion-53",
+    "Id": "completion-53",
+    "Order": 53,
+    "WeaponId": "weapon-t2-29",
+    "DisplayName": "Resonant MK-IV Assault Rifle · Pattern 29",
+    "Slot": "heavy",
+    "Element": "BIO"
+  },
+  {
+    "Name": "completion-54",
+    "Id": "completion-54",
+    "Order": 54,
+    "WeaponId": "weapon-t2-30",
+    "DisplayName": "Enforcer SMG · Pattern 30",
+    "Slot": "primary",
+    "Element": "KINETIC"
+  },
+  {
+    "Name": "completion-55",
+    "Id": "completion-55",
+    "Order": 55,
+    "WeaponId": "weapon-t3-01",
+    "DisplayName": "Magma-Core Heavy Repeater",
+    "Slot": "primary",
+    "Element": "CRYO"
+  },
+  {
+    "Name": "completion-56",
+    "Id": "completion-56",
+    "Order": 56,
+    "WeaponId": "weapon-t3-02",
+    "DisplayName": "Cryo-Pulse Carbine",
+    "Slot": "primary",
+    "Element": "ARC"
+  },
+  {
+    "Name": "completion-57",
+    "Id": "completion-57",
+    "Order": 57,
+    "WeaponId": "weapon-t3-03",
+    "DisplayName": "Bio-Luminescent Arc-Caster",
+    "Slot": "primary",
+    "Element": "THERMAL"
+  },
+  {
+    "Name": "completion-58",
+    "Id": "completion-58",
+    "Order": 58,
+    "WeaponId": "weapon-t3-04",
+    "DisplayName": "Magma-Core Heavy Repeater · Pattern 04",
+    "Slot": "heavy",
+    "Element": "BIO"
+  },
+  {
+    "Name": "completion-59",
+    "Id": "completion-59",
+    "Order": 59,
+    "WeaponId": "weapon-t3-05",
+    "DisplayName": "Cryo-Pulse Carbine · Pattern 05",
+    "Slot": "primary",
+    "Element": "KINETIC"
+  },
+  {
+    "Name": "completion-60",
+    "Id": "completion-60",
+    "Order": 60,
+    "WeaponId": "weapon-t3-06",
+    "DisplayName": "Bio-Luminescent Arc-Caster · Pattern 06",
+    "Slot": "primary",
+    "Element": "ARC"
+  },
+  {
+    "Name": "completion-61",
+    "Id": "completion-61",
+    "Order": 61,
+    "WeaponId": "weapon-t3-07",
+    "DisplayName": "Magma-Core Heavy Repeater · Pattern 07",
+    "Slot": "primary",
+    "Element": "CRYO"
+  },
+  {
+    "Name": "completion-62",
+    "Id": "completion-62",
+    "Order": 62,
+    "WeaponId": "weapon-t3-08",
+    "DisplayName": "Cryo-Pulse Carbine · Pattern 08",
+    "Slot": "secondary",
+    "Element": "ARC"
+  },
+  {
+    "Name": "completion-63",
+    "Id": "completion-63",
+    "Order": 63,
+    "WeaponId": "weapon-t3-09",
+    "DisplayName": "Bio-Luminescent Arc-Caster · Pattern 09",
+    "Slot": "primary",
+    "Element": "THERMAL"
+  },
+  {
+    "Name": "completion-64",
+    "Id": "completion-64",
+    "Order": 64,
+    "WeaponId": "weapon-t3-10",
+    "DisplayName": "Magma-Core Heavy Repeater · Pattern 10",
+    "Slot": "primary",
+    "Element": "BIO"
+  },
+  {
+    "Name": "completion-65",
+    "Id": "completion-65",
+    "Order": 65,
+    "WeaponId": "weapon-t3-11",
+    "DisplayName": "Cryo-Pulse Carbine · Pattern 11",
+    "Slot": "primary",
+    "Element": "KINETIC"
+  },
+  {
+    "Name": "completion-66",
+    "Id": "completion-66",
+    "Order": 66,
+    "WeaponId": "weapon-t3-12",
+    "DisplayName": "Bio-Luminescent Arc-Caster · Pattern 12",
+    "Slot": "heavy",
+    "Element": "ARC"
+  },
+  {
+    "Name": "completion-67",
+    "Id": "completion-67",
+    "Order": 67,
+    "WeaponId": "weapon-t3-13",
+    "DisplayName": "Magma-Core Heavy Repeater · Pattern 13",
+    "Slot": "primary",
+    "Element": "CRYO"
+  },
+  {
+    "Name": "completion-68",
+    "Id": "completion-68",
+    "Order": 68,
+    "WeaponId": "weapon-t3-14",
+    "DisplayName": "Cryo-Pulse Carbine · Pattern 14",
+    "Slot": "primary",
+    "Element": "ARC"
+  },
+  {
+    "Name": "completion-69",
+    "Id": "completion-69",
+    "Order": 69,
+    "WeaponId": "weapon-t3-15",
+    "DisplayName": "Bio-Luminescent Arc-Caster · Pattern 15",
+    "Slot": "primary",
+    "Element": "THERMAL"
+  },
+  {
+    "Name": "completion-70",
+    "Id": "completion-70",
+    "Order": 70,
+    "WeaponId": "weapon-t3-16",
+    "DisplayName": "Magma-Core Heavy Repeater · Pattern 16",
+    "Slot": "secondary",
+    "Element": "BIO"
+  },
+  {
+    "Name": "completion-71",
+    "Id": "completion-71",
+    "Order": 71,
+    "WeaponId": "weapon-t3-17",
+    "DisplayName": "Cryo-Pulse Carbine · Pattern 17",
+    "Slot": "primary",
+    "Element": "KINETIC"
+  },
+  {
+    "Name": "completion-72",
+    "Id": "completion-72",
+    "Order": 72,
+    "WeaponId": "weapon-t3-18",
+    "DisplayName": "Bio-Luminescent Arc-Caster · Pattern 18",
+    "Slot": "primary",
+    "Element": "ARC"
+  },
+  {
+    "Name": "completion-73",
+    "Id": "completion-73",
+    "Order": 73,
+    "WeaponId": "weapon-t3-19",
+    "DisplayName": "Magma-Core Heavy Repeater · Pattern 19",
+    "Slot": "primary",
+    "Element": "CRYO"
+  },
+  {
+    "Name": "completion-74",
+    "Id": "completion-74",
+    "Order": 74,
+    "WeaponId": "weapon-t3-20",
+    "DisplayName": "Cryo-Pulse Carbine · Pattern 20",
+    "Slot": "heavy",
+    "Element": "ARC"
+  },
+  {
+    "Name": "completion-75",
+    "Id": "completion-75",
+    "Order": 75,
+    "WeaponId": "weapon-t3-21",
+    "DisplayName": "Bio-Luminescent Arc-Caster · Pattern 21",
+    "Slot": "primary",
+    "Element": "THERMAL"
+  },
+  {
+    "Name": "completion-76",
+    "Id": "completion-76",
+    "Order": 76,
+    "WeaponId": "weapon-t3-22",
+    "DisplayName": "Magma-Core Heavy Repeater · Pattern 22",
+    "Slot": "primary",
+    "Element": "BIO"
+  },
+  {
+    "Name": "completion-77",
+    "Id": "completion-77",
+    "Order": 77,
+    "WeaponId": "weapon-t3-23",
+    "DisplayName": "Cryo-Pulse Carbine · Pattern 23",
+    "Slot": "primary",
+    "Element": "KINETIC"
+  },
+  {
+    "Name": "completion-78",
+    "Id": "completion-78",
+    "Order": 78,
+    "WeaponId": "weapon-t3-24",
+    "DisplayName": "Bio-Luminescent Arc-Caster · Pattern 24",
+    "Slot": "secondary",
+    "Element": "ARC"
+  },
+  {
+    "Name": "completion-79",
+    "Id": "completion-79",
+    "Order": 79,
+    "WeaponId": "weapon-t3-25",
+    "DisplayName": "Magma-Core Heavy Repeater · Pattern 25",
+    "Slot": "primary",
+    "Element": "CRYO"
+  },
+  {
+    "Name": "completion-80",
+    "Id": "completion-80",
+    "Order": 80,
+    "WeaponId": "weapon-t3-26",
+    "DisplayName": "Cryo-Pulse Carbine · Pattern 26",
+    "Slot": "primary",
+    "Element": "ARC"
+  },
+  {
+    "Name": "completion-81",
+    "Id": "completion-81",
+    "Order": 81,
+    "WeaponId": "weapon-t3-27",
+    "DisplayName": "Bio-Luminescent Arc-Caster · Pattern 27",
+    "Slot": "primary",
+    "Element": "THERMAL"
+  },
+  {
+    "Name": "completion-82",
+    "Id": "completion-82",
+    "Order": 82,
+    "WeaponId": "weapon-t3-28",
+    "DisplayName": "Magma-Core Heavy Repeater · Pattern 28",
+    "Slot": "heavy",
+    "Element": "BIO"
+  }
+]
