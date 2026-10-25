@@ -36,7 +36,7 @@ export type GoreEvent = {
   /** body size: 1 = a 1.85 m trooper */
   size: number;
   /** for KILL: which body (faction model + role) to lay down as a corpse; machine slot rotation */
-  body?: { kind: "RAIDER" | "OVERCLOCKED" | "ABERRATION" | "VANGUARD"; role: "standard" | "elite" | "boss"; rot: number; groundY: number; scale: number } | undefined;
+  body?: { kind: "RAIDER" | "OVERCLOCKED" | "ABERRATION" | "VANGUARD" | "SKYBORN"; role: "standard" | "elite" | "boss"; rot: number; groundY: number; scale: number } | undefined;
   /** for wildlife kills: the critter id, so the wildlife layer can lay that animal down */
   critter?: string | undefined;
 };
@@ -50,10 +50,11 @@ const BLUE_ALIEN_WORDS = /silicon|crystal|shard|abyssal|leviathan|deep|drowned|r
 const GREEN_ALIEN_WORDS = /aberration|mutat|crawl|craw|stalker|viper|queen|spawn|brood|hive|swarm|husk|thing|beast|maw|horror|wyrm|dragon|tree|sovereign|grove|silt|spore|leech/i;
 
 /** blood of an enemy machine from its faction and profile name. Bosses use the same rule (a mech boss sparks). */
-export function bloodOf(m: { kind: "RAIDER" | "OVERCLOCKED" | "ABERRATION" | "VANGUARD"; profile: string; rival?: unknown }): BloodType {
+export function bloodOf(m: { kind: "RAIDER" | "OVERCLOCKED" | "ABERRATION" | "VANGUARD" | "SKYBORN"; profile: string; rival?: unknown }): BloodType {
   if (m.rival) return "RED"; // rival operators are people in armor
   const p = m.profile;
   if (MACHINE_WORDS.test(p)) return "MACHINE";
+  if (m.kind === "SKYBORN") return "BLUE"; // avian aliens
   if (m.kind === "ABERRATION") return BLUE_ALIEN_WORDS.test(p) || /viper/i.test(p) ? "BLUE" : "GREEN";
   if (GREEN_ALIEN_WORDS.test(p)) return "GREEN";
   if (BLUE_ALIEN_WORDS.test(p) && !/frost|ice|glacial|rime/i.test(p)) return "BLUE"; // frost troopers are people in cold gear
@@ -281,7 +282,7 @@ export type Corpse = {
   alive: boolean; age: number; life: number;
   /** its death animation (death-animations.ts), the seed that varies it, and whether it is mirrored (a fall to the right) */
   style: DeathStyle; seed: number; mirror: boolean;
-  kind: "RAIDER" | "OVERCLOCKED" | "ABERRATION" | "VANGUARD"; role: "standard" | "elite" | "boss";
+  kind: "RAIDER" | "OVERCLOCKED" | "ABERRATION" | "VANGUARD" | "SKYBORN"; role: "standard" | "elite" | "boss";
   x: number; z: number; groundY: number; rot: number; scale: number;
   /** fall direction (world, normalised): which way the death animation carries the body */
   fx: number; fz: number;

@@ -28,7 +28,7 @@ import type { EnemyKind } from "@/game/enemy-visuals";
 export type { EnemyKind };
 
 /** Which region's look each enemy faction wears (visual-standard REGION_LOOK). */
-export const KIND_REGION: Record<EnemyKind, string> = { RAIDER: "wastelands", OVERCLOCKED: "nexus", ABERRATION: "swamps", VANGUARD: "frostspire" };
+export const KIND_REGION: Record<EnemyKind, string> = { RAIDER: "wastelands", OVERCLOCKED: "nexus", ABERRATION: "swamps", VANGUARD: "frostspire", SKYBORN: "ember" };
 
 type Mats = { plate: string; under: string; accent: string; plateKind: keyof typeof SURFACES };
 
