@@ -139,6 +139,14 @@ function startProceduralRadio(id: StationId) {
 
 /** Spatial send: distance attenuation, stereo pan from listener yaw, lowpass muffling beyond 20m. */
 type Where = { dist?: number; pan?: number };
+/** voice limiting: a sound kind may start at most once per `gap` seconds (rapid fire, crowds of enemies and per-hit ticks used to
+ * stack dozens of identical voices into a smeared, hissy wall). Returns false when the call should be dropped. */
+const gateAt = new Map<string, number>();
+function gate(key: string, gap: number): boolean {
+  const now = typeof performance !== "undefined" ? performance.now() / 1000 : 0;
+  if (now - (gateAt.get(key) ?? -1) < gap) return false;
+  gateAt.set(key, now); return true;
+}
 function out(c: Ctx, w: Where = {}, bus?: GainNode) {
   const dist = w.dist ?? 0;
   const g = c.ac.createGain(); g.gain.value = AUDIO_SAFETY.effectsGain / (Math.max(0, dist) * 0.08 + 1);
@@ -282,9 +290,10 @@ export function playVehicleEngineStart(vehicleId = "scrap-interceptor", speedRat
 
 /** Player weapon: crack + saturated blast + thump + reverb tail (+ bolt/pump/zap) from audio-design.ts SHOTS, humanised per shot.
  * Launchers keep their element shading on top of the shared launcher profile. */
-export function playShot(weapon: WeaponId | "VEHICLE") {
+export function playShot(weapon: WeaponId | "VEHICLE" | "CANNON") {
   const c = ctx; if (!c) return;
-  if (weapon === "VEHICLE" && playSample("tank", {}, 0.85)) return;
+  // the tank recording is a cannon: only shells use it (it used to play for every vehicle machine gun, ten times a second)
+  if (weapon === "CANNON") { if (playSample("tank", {}, 0.85)) return; weapon = "HEAVY"; }
   if (weapon === "AUTO" && playSample("rifle", {}, 0.58, 0.94 + Math.random() * 0.12)) return;
   if ((weapon === "HEAVY" || weapon === "SHOTGUN") && playSample("shotgun", {}, 0.82, 0.96 + Math.random() * 0.08)) return;
   const key = shotKey(weapon); if (!key) return;
@@ -312,20 +321,22 @@ export function playDryFire() { const c = ctx; if (!c) return; burst(c, out(c), 
 export function playSwitch() { const c = ctx; if (!c) return; const o = out(c); burst(c, o, { dur: 0.04, freq: 2000, q: 4, gain: 0.3 }); burst(c, o, { dur: 0.04, freq: 3000, q: 4, gain: 0.3, at: 0.08 }); }
 
 /** Material impact: enemies are machines (metal clang) or aberrations (organic thud). */
+function hitTick(c: Ctx) { if (gate("hit-tick", 0.07)) tone(c, out(c), { f0: 2600, f1: 2600, dur: 0.03, type: "sine", gain: 0.06 }); }
 export function playImpact(material: "METAL" | "ORGANIC" | "TECH", w: Where) {
-  const c = ctx; if (!c) return; const o = out(c, w);
-  if (material === "METAL" && playSample("melee", w, 0.42, 1.12)) { tone(c, out(c), { f0: 2600, f1: 2600, dur: 0.04, type: "sine", gain: 0.1 }); return; }
+  const c = ctx; if (!c) return;
+  if (!gate(`impact:${material}`, 0.045)) { hitTick(c); return; }
+  const o = out(c, w);
+  if (material === "METAL" && playSample("melee", w, 0.42, 1.12)) { hitTick(c); return; }
   if (material === "METAL") { tone(c, o, { f0: 1800, f1: 1500, dur: 0.12, type: "triangle", gain: 0.18 }); burst(c, o, { dur: 0.05, freq: 5000, q: 3, gain: 0.25 }); }
   else if (material === "TECH") { burst(c, o, { dur: 0.1, freq: 7000, type: "highpass", gain: 0.25 }); tone(c, o, { f0: 2400, f1: 600, dur: 0.08, type: "sawtooth", gain: 0.06 }); }
   else { burst(c, o, { dur: 0.1, freq: 300, type: "lowpass", gain: 0.5 }); }
-  tone(c, out(c), { f0: 2600, f1: 2600, dur: 0.04, type: "sine", gain: 0.1 }); // hit-marker tick, always centered
+  hitTick(c); // hit-marker tick, always centered
 }
 /** A real explosion: initial crack, a saturated sub thump, a brown-noise rumble whose filter closes over seconds, scattered debris ticks and
  * a big reverb send. Arrives late and darker with distance (blastAtDistance: speed of sound), so far blasts sound far. `flavor` adds an
  * elemental layer (fire roar, ice shatter, acid hiss, arc crackle). */
 export function playExplosion(big: boolean, w: Where = {}, flavor: BlastFlavor = "KINETIC") {
   const c = ctx; if (!c) return;
-  if (big && playSample("fracture", w, 0.7)) return;
   const far = blastAtDistance(w.dist ?? 0);
   const o = outVerb(c, { ...w, dist: 0 }, big ? 0.6 : 0.45, far.delay);
   const lp = c.ac.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.value = far.cutoff;
@@ -366,7 +377,8 @@ export function playAbility(kind: string) {
 export function playHurt() { const c = ctx; if (!c) return; const o = out(c); tone(c, o, { f0: 180, f1: 60, dur: 0.2, type: "square", gain: 0.12 }); burst(c, o, { dur: 0.12, freq: 800, type: "lowpass", gain: 0.4 }); }
 /** Enemy telegraph: shot from a hostile, positioned in space. */
 export function playEnemyShot(kind: string, heavy: boolean, w: Where) {
-  const c = ctx; if (!c) return; const o = outVerb(c, w, 0.3, Math.min(0.25, (w.dist ?? 0) / 343)); // distant fire arrives late, like real gunfire
+  const c = ctx; if (!c) return;
+  if (!gate("enemy-shot", 0.035)) return; const o = outVerb(c, w, 0.3, Math.min(0.25, (w.dist ?? 0) / 343)); // distant fire arrives late, like real gunfire
   const v = 0.9 + Math.random() * 0.2; // per-shot pitch variation
   if (kind === "OVERCLOCKED") { tone(c, o, { f0: 1600 * v, f1: 400, dur: 0.12, type: "sawtooth", gain: 0.08 }); burst(c, o, { dur: 0.06, freq: 5000, type: "highpass", gain: 0.2 }); }
   else if (kind === "ABERRATION") { burst(c, o, { dur: 0.25, freq: 500 * v, q: 3, gain: 0.45 }); tone(c, o, { f0: 220 * v, f1: 90, dur: 0.25, type: "triangle", gain: 0.15 }); }
@@ -480,7 +492,7 @@ export function updateWeatherAmbient(weather: string) {
   const def = WEATHER_BEDS[weather];
   if (!def) return;
   const bed = noiseBed(c, c.amb, { cutoff: def.cutoff, gain: def.gain, type: def.type, q: def.q });
-  const drops = weather === "Rain mist" ? periodicTexture(() => { for (let k = 0; k < 3; k++) tone(c, c.amb, { f0: 1800 + Math.random() * 2400, f1: 900, dur: 0.02, type: "sine", gain: 0.012, at: Math.random() * 0.25 }); }, [120, 380]) : null;
+  const drops = weather === "Rain mist" ? periodicTexture(() => { for (let k = 0; k < 3; k++) tone(c, c.amb, { f0: 1100 + Math.random() * 1300, f1: 600, dur: 0.02, type: "sine", gain: 0.008, at: Math.random() * 0.25 }); }, [120, 380]) : null;
   weatherVoice = { key: weather, stop: () => { bed.stop(); drops?.(); } };
 }
 
@@ -549,6 +561,9 @@ export function stopWaterAudio() {
 /** Continuous vehicle engine: per-vehicle voice, rpm follows speed + throttle, brake squeal on hard decel. */
 type Engine = { id: string; osc: OscillatorNode; sub: OscillatorNode; filter: BiquadFilterNode; gain: GainNode; brake: GainNode; brakeSrc: AudioBufferSourceNode };
 let engine: Engine | null = null;
+/** the engine sat louder than explosions (-20 dBFS while driving) and its filter opened to a full sawtooth buzz at top speed */
+const ENGINE_LEVEL = 0.35;
+const ENGINE_MAX_CUTOFF = 1600;
 export function updateEngine(active: boolean, vehicleId: string, speed01: number, throttle: number, braking: boolean, speedRatio = 1) {
   const c = ctx; if (!c) return;
   if (!active) { if (engine) { engine.gain.gain.setTargetAtTime(0, c.ac.currentTime, 0.15); const e = engine; setTimeout(() => { e.osc.stop(); e.sub.stop(); e.brakeSrc.stop(); }, 800); engine = null; } return; }
@@ -558,9 +573,11 @@ export function updateEngine(active: boolean, vehicleId: string, speed01: number
     const osc = c.ac.createOscillator(); osc.type = v.type; const sub = c.ac.createOscillator(); sub.type = "sine";
     const filter = c.ac.createBiquadFilter(); filter.type = "lowpass"; filter.frequency.value = v.cutoff; filter.Q.value = 0.7;
     const gain = c.ac.createGain(); gain.gain.value = 0;
-    const brake = c.ac.createGain(); brake.gain.value = 0; const bf = c.ac.createBiquadFilter(); bf.type = "bandpass"; bf.frequency.value = 3200; bf.Q.value = 8;
+    const brake = c.ac.createGain(); brake.gain.value = 0; const bf = c.ac.createBiquadFilter(); bf.type = "bandpass"; bf.frequency.value = 2600; bf.Q.value = 8;
+    const bfTop = c.ac.createBiquadFilter(); bfTop.type = "lowpass"; bfTop.frequency.value = 4000; bfTop.Q.value = 0.5;
     const brakeSrc = c.ac.createBufferSource(); brakeSrc.buffer = c.noise; brakeSrc.loop = true;
-    osc.connect(filter); sub.connect(filter); filter.connect(gain).connect(c.sfx); brakeSrc.connect(bf).connect(brake).connect(c.sfx);
+    const smooth = c.ac.createBiquadFilter(); smooth.type = "lowpass"; smooth.frequency.value = ENGINE_MAX_CUTOFF * 1.4; smooth.Q.value = 0.5;
+    osc.connect(filter); sub.connect(filter); filter.connect(smooth).connect(gain).connect(c.sfx); brakeSrc.connect(bf).connect(bfTop).connect(brake).connect(c.sfx);
     osc.start(); sub.start(); brakeSrc.start();
     engine = { id: vehicleId, osc, sub, filter, gain, brake, brakeSrc };
   }
@@ -568,9 +585,9 @@ export function updateEngine(active: boolean, vehicleId: string, speed01: number
   const rpm = v.base * (1 + speed01 * 2.4 + throttle * 0.5);
   engine.osc.frequency.setTargetAtTime(rpm, t, 0.08);
   engine.sub.frequency.setTargetAtTime(rpm / 2, t, 0.08);
-  engine.filter.frequency.setTargetAtTime(v.cutoff * (1 + throttle * 1.5 + speed01), t, 0.1);
-  engine.gain.gain.setTargetAtTime(0.06 + throttle * 0.08 + speed01 * 0.05, t, 0.1);
-  engine.brake.gain.setTargetAtTime(braking && speed01 > 0.15 ? 0.12 * speed01 : 0, t, 0.05);
+  engine.filter.frequency.setTargetAtTime(Math.min(ENGINE_MAX_CUTOFF, v.cutoff * (1 + throttle * 0.8 + speed01 * 0.6)), t, 0.1);
+  engine.gain.gain.setTargetAtTime((0.06 + throttle * 0.08 + speed01 * 0.05) * ENGINE_LEVEL, t, 0.1);
+  engine.brake.gain.setTargetAtTime(braking && speed01 > 0.15 ? 0.05 * speed01 : 0, t, 0.05);
 }
 
 /** Music: ambient pad always; tension pulse and combat drums fade in with intensity (0–1). */
@@ -615,7 +632,7 @@ export function updateCombatAudio(intensity: number, boss = false) {
     if (step % 4 === 0) tone(c, c.layers.drums, { f0: boss ? 150 : 120, f1: boss ? 45 : 40, dur: 0.3, gain: boss ? 1 : 0.8 });
     if (step % 4 === 2) burst(c, c.layers.drums, { dur: 0.15, freq: 1800, q: 0.8, gain: 0.35 });
     if (boss && step % 2 === 1) burst(c, c.layers.drums, { dur: 0.08, freq: 2600, q: 1.5, gain: 0.3 });
-    burst(c, c.layers.drums, { dur: 0.03, freq: 8000, type: "highpass", gain: eff > 0.85 ? 0.15 : 0.06 });
+    if (step % 2 === 1) burst(c, c.layers.drums, { dur: 0.025, freq: 6500, q: 1.4, gain: eff > 0.85 ? 0.05 : 0.025 });
   }
 }
 
@@ -779,7 +796,7 @@ export function playGadget(kind: GadgetSound, w: Where = {}) {
   } else if (kind === "FLARES") {
     for (let k = 0; k < 8; k++) {
       noiseLayer(c, o, { dur: 0.04, freq: 1800, q: 1.2, gain: 0.35, at: k * 0.06, drive: 2 });
-      noiseLayer(c, o, { dur: 0.9, freq: 4500, type: "highpass", q: 0.5, gain: 0.05, at: k * 0.06 + 0.03, attack: 0.05 }); // fizz
+      noiseLayer(c, o, { dur: 0.7, freq: 2600, q: 1.2, gain: 0.025, at: k * 0.06 + 0.03, attack: 0.05 }); // fizz
     }
   } else if (kind === "DRONE_LAUNCH") {
     noiseLayer(c, o, { dur: 0.08, freq: 900, q: 2, gain: 0.35 }); // release latch
@@ -805,15 +822,17 @@ function startGadgetLoop(c: Ctx, kind: "flame" | "drone"): LoopVoice {
   const nodes: AudioScheduledSourceNode[] = [];
   if (kind === "flame") {
     // a gas roar: a low rumble, a mid "whoomph" band that gusts, and a hiss of the jets
-    nodes.push(loopNoise(c, gain, "lowpass", 260, 0.6, 0.9).src);
-    const mid = loopNoise(c, gain, "bandpass", 700, 0.7, 0.5); nodes.push(mid.src);
-    nodes.push(loopNoise(c, gain, "highpass", 3800, 0.5, 0.12).src);
+    const dark = c.ac.createBiquadFilter(); dark.type = "lowpass"; dark.frequency.value = 2200; dark.Q.value = 0.5; dark.connect(gain);
+    nodes.push(loopNoise(c, dark, "lowpass", 260, 0.6, 0.9).src);
+    const mid = loopNoise(c, dark, "bandpass", 650, 0.8, 0.45); nodes.push(mid.src);
+    nodes.push(loopNoise(c, dark, "bandpass", 1500, 1.2, 0.08).src); // the jets' hiss, kept under 2 kHz
     nodes.push(gust(c, mid.gain.gain, 0.5));
   } else {
     // four rotors: two slightly detuned buzzes through a band, with a flutter
-    const band = c.ac.createBiquadFilter(); band.type = "bandpass"; band.frequency.value = 520; band.Q.value = 1.2; band.connect(gain);
+    const top = c.ac.createBiquadFilter(); top.type = "lowpass"; top.frequency.value = 2400; top.Q.value = 0.5; top.connect(gain);
+    const band = c.ac.createBiquadFilter(); band.type = "bandpass"; band.frequency.value = 520; band.Q.value = 1.2; band.connect(top);
     for (const f of [178, 183.5]) { const os = c.ac.createOscillator(); os.type = "sawtooth"; os.frequency.value = f; const g = c.ac.createGain(); g.gain.value = 0.35; os.connect(g).connect(band); os.start(); nodes.push(os); }
-    nodes.push(loopNoise(c, gain, "bandpass", 1500, 1, 0.25).src);
+    nodes.push(loopNoise(c, top, "bandpass", 1500, 1, 0.25).src);
     const lfo = c.ac.createOscillator(); lfo.frequency.value = 11; const d = c.ac.createGain(); d.gain.value = 0.25; lfo.connect(d).connect(gain.gain); lfo.start(); nodes.push(lfo);
   }
   return { gain, pan, nodes };

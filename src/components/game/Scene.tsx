@@ -1831,7 +1831,7 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
           if (fired) {
             s.shots++;
             bossActionLog.current = logAction(bossActionLog.current, "RANGED", performance.now() / 1000);
-            sfx.playShot(g.sound === "VEHICLE" ? "VEHICLE" : g.sound === "PULSE" ? "PULSE" : "AUTO");
+            sfx.playShot(g.shell ? "CANNON" : g.sound === "PULSE" ? "PULSE" : g.sound === "AUTO" ? "AUTO" : "VEHICLE");
             s.recoil += g.shell ? 0.03 : 0.004; s.punch += g.shell ? 0.9 : 0.12; s.bloom = Math.min(1, s.bloom + 0.05);
             muzzleFlash.current = { x: muzzle.x, y: muzzle.y, z: muzzle.z, t: performance.now() / 1000, big: !!g.shell };
           }
@@ -1846,7 +1846,7 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
             const muzzle = vehiclePoint(pose, fit(sec.muzzles[vf.podBarrel++ % sec.muzzles.length]!));
             const aim = aimFor(sec.mount, pose, s.yaw, s.pitch, 0.25, muzzle, 0);
             if (def && fireOrdnance(sim, def, muzzle.x, muzzle.y, muzzle.z, aim.yaw + (Math.random() - 0.5) * 0.02, aim.pitch + (Math.random() - 0.5) * 0.02, sec.damage * gearPower, Math.max(0, s.vSpeed))) {
-              sfx.playShot("VEHICLE"); s.punch += 0.3;
+              sfx.playShot("ROCKET"); s.punch += 0.3;
               muzzleFlash.current = { x: muzzle.x, y: muzzle.y, z: muzzle.z, t: performance.now() / 1000, big: true };
             }
             vf.salvoLeft--; vf.salvoCool = sec.salvoGap;

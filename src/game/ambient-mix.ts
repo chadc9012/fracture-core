@@ -15,8 +15,9 @@ export const AMBIENT_MIX = {
   padCutoff: 900,
   /** seconds per pad swell (fades in and out instead of holding one tone forever) */
   padSwellSeconds: 18,
-  /** regional ambience beds (scripts/build-ambience.py, mastered to -21 dBFS RMS) on the ambience bus */
-  sampleGain: 0.78,
+  /** regional ambience beds (scripts/build-ambience.py, mastered to -21 dBFS RMS) on the ambience bus. 0.78 put idle ambience at
+   *  -26 dBFS, within 2 dB of gunfire; 0.5 sits it ~4 dB lower so the action reads over the world */
+  sampleGain: 0.5,
   /** depth (0..1) of the slow gust swell on noise beds and recordings, so wind moves instead of hissing */
   gustDepth: 0.45,
   /** gust rate range in Hz */
@@ -31,7 +32,8 @@ export const AMBIENT_MIX = {
 
 /** Weather beds: rain is a soft mid band, never a high-pass hiss (which reads as radio static). */
 export const WEATHER_BEDS: Record<string, { cutoff: number; gain: number; type: BiquadFilterType; q: number }> = {
-  "Rain mist": { cutoff: 2400, gain: 0.035, type: "bandpass", q: 0.6 },
+  // a wide band at 2.4 kHz still reached 16 kHz and read as static; a lowpassed wash reads as rain on leaves
+  "Rain mist": { cutoff: 1300, gain: 0.03, type: "lowpass", q: 0.5 },
   Ashfall: { cutoff: 300, gain: 0.04, type: "lowpass", q: 0.5 },
   "Snow haze": { cutoff: 1100, gain: 0.03, type: "lowpass", q: 0.5 },
   "Dust front": { cutoff: 1600, gain: 0.05, type: "lowpass", q: 0.5 },

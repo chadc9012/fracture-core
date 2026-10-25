@@ -1,4 +1,4 @@
-import { expect, test } from "bun:test";
+import { describe, expect, test } from "bun:test";
 import { existsSync, statSync } from "node:fs";
 import { AMBIENT_MIX, WEATHER_BEDS, crossfadeLoop } from "./ambient-mix";
 import { AMBIENCE_BED_URLS, AUDIO_FILES } from "./audio-files";
@@ -55,4 +55,16 @@ test("every region's ambience is a designed bed from scripts/build-ambience.py, 
     expect(existsSync(file)).toBe(true);
     expect(statSync(file).size).toBeGreaterThan(100_000);
   }
+});
+
+describe("background beds stay out of the hiss band (Oct 25 audio cleanup)", () => {
+  test("weather beds are lowpassed or banded below 2.5 kHz, never a high-pass", () => {
+    for (const [name, b] of Object.entries(WEATHER_BEDS)) {
+      expect(b.type, name).not.toBe("highpass");
+      expect(b.cutoff, name).toBeLessThanOrEqual(2500);
+    }
+  });
+  test("ambience recordings sit under the action", () => {
+    expect(AMBIENT_MIX.sampleGain).toBeLessThanOrEqual(0.55);
+  });
 });
