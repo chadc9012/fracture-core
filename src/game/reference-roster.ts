@@ -12,10 +12,12 @@ export type Merchant = {
   shopId: string | null; reason: string;
 };
 export const REFERENCE_MERCHANTS: readonly Merchant[] = [
-  { id: "selene-voss", name: "Selene Voss", role: "Armor Merchant / Fabricator", region: "nexus", place: "Voss Armorworks, Nexus City", shopId: "nexus-plate", reason: "Sheet places her in Nexus City; Bastion Fittings is the Nexus armor shop." },
+  { id: "selene-voss", name: "Selene Voss", role: "Armor Merchant / Fabricator", region: "nexus", place: "Voss Armorworks, Nexus City", shopId: "nexus-plate", reason: "Sheet places her at Voss Armorworks in Nexus City, the Nexus armor shop." },
   { id: "jax-kane", name: "Jax \"Trigger\" Kane", role: "Weapons Merchant / Gunsmith", region: "nexus", place: "Kane Arms, Nexus City", shopId: "nexus-armory", reason: "Sheet places him in Nexus City; the Nexus Armory is the Nexus weapons shop." },
-  { id: "cruz-mendez", name: "Cruz \"Gearshift\" Mendez", role: "Vehicle Merchant / Customization", region: "nexus", place: "The Drive Hub, Nexus City", shopId: null, reason: "Sheet places him at the Nexus Drive Hub, but Nexus has no vehicle shop (vehicle shops are in the Wastelands and Solara). Needs a Nexus vehicle shop." },
-  { id: "rafiq-kaleem", name: "Rafiq \"Sands\" Kaleem", role: "Exotic Merchant / Rare Goods", region: "solara", place: "Dune Gate Outpost, Solara Desert", shopId: null, reason: "Sheet places him at the Solara Dune Gate Outpost; Solara's two shops are heavy arms and a garage, so exotics and artifacts need their own shop." },
+  { id: "cruz-mendez", name: "Cruz \"Gearshift\" Mendez", role: "Vehicle Merchant / Customization", region: "nexus", place: "The Drive Hub, Nexus City", shopId: "nexus-drive-hub", reason: "Sheet places him at the Nexus Drive Hub, so Nexus now has its own vehicle shop." },
+  { id: "rafiq-kaleem", name: "Rafiq \"Sands\" Kaleem", role: "Exotic Merchant / Rare Goods", region: "solara", place: "Dune Gate Outpost, Solara Desert", shopId: "solara-dunegate", reason: "Sheet places him at the Solara Dune Gate Outpost: rare materials and named weapons (exotic gear stays drop-only)." },
+  { id: "thalia-ren", name: "Thalia \"Forge\" Ren", role: "Armor Merchant / Armorsmith", region: "nexus", place: "The Bastion, Nexus City", shopId: "nexus-bastion", reason: "Sheet places her at The Bastion in Nexus City; it is the one shop that upgrades armor." },
+  { id: "malek-daram", name: "Malek \"The Broker\" Daram", role: "Black Market Merchant / Rare & Illegal Goods", region: "neon", place: "The Underlink, Neon City", shopId: "neon-underground", reason: "Sheet places him in Neon City's Underlink, the underground black market." },
 ];
 
 export type EnemyGroupId = "raiders" | "shadeborn" | "nexus-forces" | "wildlife" | "ancient-guardians" | "abyssal" | "skyborn" | "aberrations";

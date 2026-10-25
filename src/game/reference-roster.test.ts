@@ -19,8 +19,8 @@ test("merchants stand in real regions and at real shops, each shop keeper being 
       expect(SHOPKEEPERS.find((k) => k.shopId === m.shopId)?.region).toBe(m.region);
     }
   }
-  expect(merchantsInRegion("nexus").length).toBe(3);
-  expect(REFERENCE_MERCHANTS.filter((m) => !m.shopId).map((m) => m.id).sort()).toEqual(["cruz-mendez", "rafiq-kaleem"]);
+  expect(merchantsInRegion("nexus").length).toBe(4);
+  expect(REFERENCE_MERCHANTS.filter((m) => !m.shopId)).toEqual([]); // every sheet merchant now keeps a shop
 });
 test("wildlife names only appear in regions that list the wildlife group", () => {
   const wild = ENEMY_GROUPS.find((g) => g.id === "wildlife")!;

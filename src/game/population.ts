@@ -96,7 +96,7 @@ export function civilianPicks(region: PopulationRegion, count: number, seed = 0)
 }
 
 /* ------------------------------ shopkeepers: one per existing shop ------------------------------ */
-export type KeeperRole = "weapons-dealer" | "armorer" | "tech-specialist" | "general-store" | "material-trader" | "vehicle-dealer" | "relic-curator" | "gunsmith" | "alliance-quartermaster";
+export type KeeperRole = "weapons-dealer" | "armorer" | "tech-specialist" | "general-store" | "material-trader" | "vehicle-dealer" | "relic-curator" | "gunsmith" | "alliance-quartermaster" | "armorsmith" | "exotic-trader" | "black-marketeer";
 export type ShopkeeperProfile = {
   shopId: string; name: string; role: KeeperRole; title: string; region: PopulationRegion;
   coat: string; accent: string; skin: string; tools: string; personality: string; greeting: string; assetStatus: "procedural-placeholder";
@@ -119,6 +119,11 @@ export const SHOPKEEPERS: readonly ShopkeeperProfile[] = [
   K("solara-garage", "Technician Zahra Quill", "vehicle-dealer", "Convoy Workshop Technician", "solara", "#8a7448", "#ffb347", SKIN_TONES[2]!, "plating jacks, welding visor", "Dry humor, reinforcement evangelist", "Plating, mounts, reinforcement. Pick your armor, not your enemies."),
   K("frost-research", "Gearmaster Anselm Rime", "gunsmith", "Spire Gearmaster", "frostspire", "#33425c", "#cfe6ff", SKIN_TONES[0]!, "calibration frames, frost-proof gloves", "Patient, speaks in measurements", "Cold metal tells the truth. Show me your rifle."),
   K("ember-alliance", "Forge-Warden Ashka Veyr", "alliance-quartermaster", "Ember Alliance Quartermaster", "ember", "#4a2a24", "#ff7a3c", SKIN_TONES[6]!, "forge tongs, alliance seal", "Proud, tests people before selling", "The Alliance arms those who've earned it. Have you?"),
+  // the owner's merchant sheets (reference-roster.ts)
+  K("nexus-bastion", "Thalia \"Forge\" Ren", "armorsmith", "Armorsmith, The Bastion", "nexus", "#3a2a22", "#c0392b", SKIN_TONES[2]!, "forge hammer, anvil, armor previews", "Steady, warm, sizes you up before she sells", "Armor isn't just protection. It's a second chance. You wear your story, I help you rewrite it."),
+  K("nexus-drive-hub", "Cruz \"Gearshift\" Mendez", "vehicle-dealer", "Vehicle Merchant, The Drive Hub", "nexus", "#2a221c", "#ff8a2a", SKIN_TONES[3]!, "goggles, tool harness, holo vehicle table", "Easy grin, all salesman, knows every engine", "Doesn't matter where you're headed. I got something that'll take you there faster, safer, and in style."),
+  K("neon-underground", "Malek \"The Broker\" Daram", "black-marketeer", "Black Market Broker, The Underlink", "neon", "#2a2026", "#9b5cff", SKIN_TONES[4]!, "hooded coat, rings, prototype cases", "Unhurried, polite, never says no outright", "Everything has a price. You just gotta know what to ask."),
+  K("solara-dunegate", "Rafiq \"Sands\" Kaleem", "exotic-trader", "Exotic Trader, Dune Gate Outpost", "solara", "#8a6a4a", "#4a7dff", SKIN_TONES[5]!, "relic orbs, crystal cases, desert wraps", "Storyteller, sees beauty in the broken", "The world is broken, and that makes it beautiful. You bring the stories, I'll bring the treasures."),
 ];
 export const keeperFor = (shopId: string) => SHOPKEEPERS.find((k) => k.shopId === shopId);
 

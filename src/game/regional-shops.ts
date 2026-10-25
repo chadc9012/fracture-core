@@ -15,9 +15,9 @@ import type { PlayerProgression } from "./progression";
 import { COLLECTIONS, vendorSellable, type VendorTier } from "./armor-collections";
 import { grantSetPiece, type SetDrop } from "./armor-sets";
 
-export type ShopKind = "weapons" | "armor" | "supplies" | "mods" | "gunsmith" | "vehicles" | "blackmarket";
+export type ShopKind = "weapons" | "armor" | "supplies" | "mods" | "gunsmith" | "vehicles" | "blackmarket" | "armorsmith" | "exotic";
 export const SHOP_KIND_LABEL: Record<ShopKind, string> = {
-  weapons: "Weapon Dealer", armor: "Armor Shop", supplies: "Outfitter", mods: "Mod Shop", gunsmith: "Gunsmith", vehicles: "Vehicle Workshop", blackmarket: "Black Market",
+  weapons: "Weapon Dealer", armor: "Armor Shop", supplies: "Outfitter", mods: "Mod Shop", gunsmith: "Gunsmith", vehicles: "Vehicle Workshop", blackmarket: "Black Market", armorsmith: "Armorsmith", exotic: "Exotic Trader",
 };
 
 export type RegionalShop = {
@@ -43,7 +43,7 @@ const at = (c: { x: number; z: number }, angle: number, r: number) => ({ x: c.x 
 
 export const REGIONAL_SHOPS: readonly RegionalShop[] = [
   { id: "nexus-armory", name: "Nexus Armory", kind: "weapons", place: "Nexus City", blurb: "Regulated military weapons", ...at(NEXUS, 0.3, 7), currency: "scrapMetal", priceMult: 1, minLevel: 1 },
-  { id: "nexus-plate", name: "Bastion Fittings", kind: "armor", place: "Nexus City", blurb: "Standard-issue armor by slot", ...at(NEXUS, 1.9, 7), currency: "reinforcedAlloy", priceMult: 1, minLevel: 1, vendorTier: 2 },
+  { id: "nexus-plate", name: "Voss Armorworks", kind: "armor", place: "Nexus City", blurb: "Standard-issue armor by slot", ...at(NEXUS, 1.9, 7), currency: "reinforcedAlloy", priceMult: 1, minLevel: 1, vendorTier: 2 },
   { id: "nexus-calibration", name: "Calibration Range", kind: "gunsmith", place: "Nexus City", blurb: "Weapon upgrades and tuning", ...at(NEXUS, 3.5, 7), currency: "scrapMetal", priceMult: 0.9, minLevel: 2 },
   { id: "nexus-outfitter", name: "Field Outfitter", kind: "supplies", place: "Nexus City", blurb: "Mission supplies and kits", ...at(NEXUS, 5.1, 7), currency: "scrapMetal", priceMult: 1, minLevel: 1 },
   { id: "neon-dealer", name: "Neon Street Dealer", kind: "weapons", place: "Neon City", blurb: "Civilian-market weapons", ...at(NEON, 0.8, 9), currency: "microCircuits", priceMult: 1.1, minLevel: 3 },
@@ -53,11 +53,16 @@ export const REGIONAL_SHOPS: readonly RegionalShop[] = [
   { id: "waste-garage", name: "Rust-Runner Garage", kind: "vehicles", place: "The Wastelands", blurb: "Ground vehicle parts", ...at(scaleSite(12, -6), 4.0, 14), currency: "fuel", priceMult: 1, minLevel: 2 },
   { id: "veridan-broker", name: "Grove Research Broker", kind: "mods", place: "Verdant Forest", blurb: "Organic infusions", ...at(scaleSite(-58, -34), 1.2, 12), currency: "sporeFiber", priceMult: 1, minLevel: 2 },
   { id: "swamp-relics", name: "Bog Relic Dealer", kind: "armor", place: "Shrouded Swamps", blurb: "Anomaly-resistant pieces", ...at(scaleSite(62, 82), 3.0, 10), currency: "bioCatalyst", priceMult: 1.1, minLevel: 5, vendorTier: 3 },
-  { id: "neon-underground", name: "The Undercroft", kind: "blackmarket", place: "Neon City (underground)", blurb: "Smuggled street armor, no questions asked", ...at(NEON, 4.4, 12), currency: "microCircuits", priceMult: 1.5, minLevel: 10, requires: { missionId: "stitched-neon-core", label: "Complete Stitched Neon Core" }, vendorTier: 5 },
+  { id: "neon-underground", name: "The Underlink", kind: "blackmarket", place: "Neon City (underground)", blurb: "Smuggled street armor, no questions asked", ...at(NEON, 4.4, 12), currency: "microCircuits", priceMult: 1.5, minLevel: 10, requires: { missionId: "stitched-neon-core", label: "Complete Stitched Neon Core" }, vendorTier: 5 },
   { id: "solara-heavy", name: "Dune Heavy Arms", kind: "weapons", place: "Solara Desert", blurb: "Heavy weapons and launchers", ...at(scaleSite(-18, 76), 0.4, 14), currency: "anomalyCarbon", priceMult: 1, minLevel: 4 },
   { id: "solara-garage", name: "Convoy Workshop", kind: "vehicles", place: "Solara Desert", blurb: "Vehicle plating and weapons", ...at(scaleSite(-18, 76), 2.6, 14), currency: "vehicleParts", priceMult: 1, minLevel: 4 },
   { id: "frost-research", name: "Spire Research Post", kind: "gunsmith", place: "Frostspire Mountains", blurb: "Precision calibration", ...at(scaleSite(18, -96), 1.6, 12), currency: "cryoCrystal", priceMult: 1, minLevel: 6 },
   { id: "ember-alliance", name: "Ember Alliance Vendor", kind: "weapons", place: "Ember Peaks", blurb: "Elite high-tier weapons", ...at(scaleSite(-52, 16), 5.2, 10), currency: "thermalShards", priceMult: 1.3, minLevel: 8, requires: { missionId: "awakening", label: "Complete Neon Core: Awakening" } },
+  // the owner's merchant sheets: Thalia Ren's Bastion (the only shop that upgrades armor), Cruz Mendez's Drive Hub
+  // (Nexus vehicles) and Rafiq Kaleem's Dune Gate Outpost (rare materials and named weapons, never exotics)
+  { id: "nexus-bastion", name: "The Bastion", kind: "armorsmith", place: "Nexus City", blurb: "Armor forging, upgrades and class gear", ...at(NEXUS, 1.1, 7), currency: "reinforcedAlloy", priceMult: 1.1, minLevel: 3, vendorTier: 3 },
+  { id: "nexus-drive-hub", name: "The Drive Hub", kind: "vehicles", place: "Nexus City", blurb: "Vehicle parts, upgrades and tuning", ...at(NEXUS, 4.3, 7), currency: "vehicleParts", priceMult: 1.05, minLevel: 2 },
+  { id: "solara-dunegate", name: "Dune Gate Outpost", kind: "exotic", place: "Solara Desert", blurb: "Rare materials and named weapons", ...at(scaleSite(-18, 76), 3.4, 14), currency: "anomalyCarbon", priceMult: 1.2, minLevel: 5 },
   // faction outposts: each faction's own quartermaster, trading only with operators it trusts
   { id: "aegis-quartermaster", name: "Directorate Quartermaster", kind: "armor", place: "Neon City (Aegis Spire)", blurb: "Aegis-issue plate for cleared operators", x: NEON.x - 10, z: NEON.z - 38, currency: "microCircuits", priceMult: 1.15, minLevel: 6, vendorTier: 3, minStanding: "TRUSTED" },
   { id: "legion-quartermaster", name: "Legion Quartermaster", kind: "weapons", place: "The Wastelands (Sub-Terra vault gate)", blurb: "Gate-guard arms, sold to those who held the line", x: VAULT_GATE.x - VAULT_GATE.radius - 7, z: VAULT_GATE.z + 6, currency: "scrapMetal", priceMult: 0.9, minLevel: 3, requires: { missionId: "side-vault-defense", label: "Hold the Sub-Terra vault gates once" } },
@@ -107,6 +112,14 @@ const SUPPLY_PACKS: Record<"supplies" | "vehicles", Array<{ material: MaterialId
   ],
 };
 
+const EXOTIC_PACKS: Array<{ material: MaterialId; amount: number; price: number; name: string }> = [
+  { material: "relicFragment", amount: 2, price: 40, name: "Relic fragments" },
+  { material: "runeDust", amount: 3, price: 35, name: "Rune dust" },
+  { material: "ruinStone", amount: 4, price: 30, name: "Ruin stone" },
+  { material: "dragonite", amount: 1, price: 70, name: "Dragonite shard" },
+  { material: "anomalyCarbon", amount: 4, price: 30, name: "Anomaly carbon" },
+];
+
 const daySeed = (id: string, day: number) => { let h = day * 2654435761; for (const ch of id) h = (h * 31 + ch.charCodeAt(0)) >>> 0; return h >>> 0; };
 export const today = (now = Date.now()) => Math.floor(now / 86_400_000);
 
@@ -128,7 +141,14 @@ export function shopOffers(shop: RegionalShop, day = today(), mult = 1): ShopOff
       const listing: VendorListing = { key: `${shop.id}-${w.id}`, kind: "weapon", item: w, price: 0, currency: "credits", power: WEAPON_POWER[w.tier] };
       offers.push({ key: listing.key, type: "gear", name: w.name, detail: `WEEKLY · ${CLASS_LABEL[w.cls]} · ${w.rarity} · ${w.element} · POWER ${listing.power}`, price: Math.round(WEAPON_PRICE[w.tier] * shop.priceMult * 1.2), minLevel: WEAPON_LEVEL[w.tier], listing });
     }
-  } else if (shop.kind === "armor" && shop.vendorTier) {
+  } else if (shop.kind === "exotic") {
+    // rare materials (never the shop's own currency) plus this week's named catalogue weapons
+    for (const pack of EXOTIC_PACKS) if (pack.material !== shop.currency) offers.push({ key: `${shop.id}-${pack.material}`, type: "material", name: pack.name, detail: `+${pack.amount} ${pack.material}`, price: Math.max(1, Math.round(pack.price * shop.priceMult)), minLevel: 1, material: pack.material, amount: pack.amount });
+    for (const w of weeklyCatalogStock(shop.id, day * 86_400_000)) {
+      const listing: VendorListing = { key: `${shop.id}-${w.id}`, kind: "weapon", item: w, price: 0, currency: "credits", power: WEAPON_POWER[w.tier] };
+      offers.push({ key: listing.key, type: "gear", name: w.name, detail: `WEEKLY · ${CLASS_LABEL[w.cls]} · ${w.rarity} · ${w.element} · POWER ${listing.power}`, price: Math.round(WEAPON_PRICE[w.tier] * shop.priceMult * 1.25), minLevel: WEAPON_LEVEL[w.tier], listing });
+    }
+  } else if ((shop.kind === "armor" || shop.kind === "armorsmith") && shop.vendorTier) {
     // tiered city stock: collection pieces up to this city's tier, never raid/dungeon/exotic
     collectionOffers(shop, rand, COLLECTIONS.filter((c) => vendorSellable(c, shop.vendorTier!) && !c.sources.includes("black-market")), 5, offers);
   } else if (shop.kind === "blackmarket") {
@@ -201,9 +221,11 @@ export function buyOffer(p: PlayerProgression, shop: RegionalShop, offer: ShopOf
 
 /** Gunsmith: upgrades a weapon for a service fee on top of the normal material cost. */
 export function serviceFee(shop: RegionalShop, item: GearItem) { return Math.max(2, Math.round(item.level * 4 * shop.priceMult)); }
+const ARMOR_SLOTS = new Set<GearItem["slot"]>(["helmet", "chest", "gauntlets", "legs", "classItem"]);
 export function serviceTargets(shop: RegionalShop, p: PlayerProgression): GearItem[] {
   if (shop.kind === "gunsmith") return p.inventory.filter((i) => i.slot === "primary" || i.slot === "secondary" || i.slot === "heavy");
   if (shop.kind === "mods") return p.inventory.filter((i) => i.slot !== "vehicle");
+  if (shop.kind === "armorsmith") return p.inventory.filter((i) => ARMOR_SLOTS.has(i.slot));
   if (shop.kind === "vehicles") return p.inventory.filter((i) => i.slot === "vehicle");
   return [];
 }

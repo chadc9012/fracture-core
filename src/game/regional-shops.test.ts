@@ -1,6 +1,6 @@
 // @ts-ignore bun:test types
 import { describe, expect, test } from "bun:test";
-import { REGIONAL_SHOPS, shopNear, shopLock, shopOffers, buyOffer } from "./regional-shops";
+import { REGIONAL_SHOPS, shopNear, shopLock, shopOffers, buyOffer, serviceTargets } from "./regional-shops";
 import { loadProgression } from "./progression";
 import { COLLECTIONS } from "./armor-collections";
 
@@ -76,5 +76,35 @@ describe("faction outposts", () => {
     expect(shopLock(q, { level: 5, completedMissions: [] })).toBe("Hold the Sub-Terra vault gates once");
     expect(shopLock(q, { level: 5, completedMissions: ["side-vault-defense"] })).toBeNull();
     expect(shopOffers(q).length).toBeGreaterThan(0);
+  });
+});
+
+describe("merchant sheet shops", () => {
+  test("The Bastion sells armor and is the only shop that upgrades armor pieces", () => {
+    const b = shop("nexus-bastion");
+    const p = { ...loadProgression(), level: 10, inventory: [
+      { id: "h1", name: "Helm", slot: "helmet", power: 100, level: 1, element: "KINETIC", source: "test" },
+      { id: "g1", name: "Rifle", slot: "primary", power: 100, level: 1, element: "KINETIC", source: "test" },
+    ] } as never;
+    expect(serviceTargets(b, p).map((i) => i.id)).toEqual(["h1"]);
+    expect(serviceTargets(shop("nexus-calibration"), p).map((i) => i.id)).toEqual(["g1"]);
+    for (let d = 0; d < 10; d++) for (const o of shopOffers(b, d)) if (o.type === "gear") expect(o.listing.kind).toBe("armor");
+    expect(shopOffers(b, 3).some((o) => o.type === "piece" || o.type === "gear")).toBe(true);
+  });
+  test("Dune Gate sells rare materials (never its own currency) and named weapons, never exotic gear", () => {
+    const s = shop("solara-dunegate");
+    for (let d = 0; d < 14; d++) {
+      const offers = shopOffers(s, d);
+      expect(offers.some((o) => o.type === "material")).toBe(true);
+      for (const o of offers) {
+        if (o.type === "material") expect(o.material).not.toBe(s.currency);
+        if (o.type === "gear") expect(o.listing.kind).toBe("weapon");
+        expect(o.type).not.toBe("piece");
+      }
+    }
+  });
+  test("Nexus now has a vehicle shop", () => {
+    expect(shop("nexus-drive-hub").kind).toBe("vehicles");
+    expect(shop("nexus-drive-hub").place).toBe("Nexus City");
   });
 });

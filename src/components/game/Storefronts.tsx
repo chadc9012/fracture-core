@@ -24,7 +24,7 @@ const WF = {
 };
 
 export const KIND_COLOR: Record<ShopKind, string> = {
-  weapons: "#ff7a3c", armor: "#66e0ff", supplies: "#8fe08a", mods: "#c86bff", gunsmith: "#ffd27a", vehicles: "#e8f4ff", blackmarket: "#ff3aa0",
+  weapons: "#ff7a3c", armor: "#66e0ff", supplies: "#8fe08a", mods: "#c86bff", gunsmith: "#ffd27a", vehicles: "#e8f4ff", blackmarket: "#ff3aa0", armorsmith: "#ff8a4a", exotic: "#e8c06a",
 };
 
 /** A walk-in shop's street building: solid walls with a real door gap (the glowing door marker from

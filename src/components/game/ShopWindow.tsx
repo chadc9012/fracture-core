@@ -100,7 +100,7 @@ export function ShopWindow({ shopId, progression, onProgression, onClose }: { sh
             </div>
           </section>
         )}
-        {!lock && (shop.kind === "gunsmith" || shop.kind === "mods" || shop.kind === "vehicles") && (
+        {!lock && (shop.kind === "gunsmith" || shop.kind === "mods" || shop.kind === "vehicles" || shop.kind === "armorsmith") && (
           <div className="mt-5">
             <p className="font-mono text-[9px] uppercase tracking-[0.3em] text-muted-foreground">{shop.kind === "mods" ? "Infuse an element" : "Upgrade your gear"}</p>
             {shop.kind === "mods" && <div className="mt-2 flex gap-1">{ELEMENTS.map((e) => <Button key={e} size="sm" variant={e === element ? "default" : "outline"} onClick={() => setElement(e)}>{e}</Button>)}</div>}
