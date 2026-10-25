@@ -30,9 +30,12 @@ export type WaterNetwork = { rivers: River[]; lakes: Lake[] };
 type H = (x: number, z: number) => number;
 
 /** authored character per region: width, depth, whether it carries water */
-const RIVER_SPEC: { regionId: string; w: number; d: number; dry: boolean }[] = [
+type Outflow = { fx: number; fz: number };
+const RIVER_SPEC: { regionId: string; w: number; d: number; dry: boolean; outflow?: Outflow }[] = [
   { regionId: "frostspire", w: 2.6, d: 1.4, dry: false }, // snowmelt stream off the peaks
-  { regionId: "veridan", w: 3.2, d: 1.5, dry: false },    // clear forest river
+  // clear forest river; it overflows its forest pool and runs on east to the low ground (outflow: a point given as a
+  // fraction of the region radius from its centre), passing under the Verdant–Swamps Causeway, so the road gets a bridge
+  { regionId: "veridan", w: 3.2, d: 1.5, dry: false, outflow: { fx: 0.46, fz: 0.96 } },
   { regionId: "ember", w: 2.2, d: 1.2, dry: false },      // dark mineral stream off the cone
   { regionId: "swamps", w: 4.2, d: 0.9, dry: false },     // slow, wide bog channel
   { regionId: "wastelands", w: 3, d: 1.1, dry: true },    // dry wash
@@ -77,7 +80,7 @@ export function fitLake(h: H, x: number, z: number): Lake {
   return { x, z, level, r: 3 * RS };
 }
 
-export function traceRiver(h: H, id: string, regionId: string, sx: number, sz: number, spec: { w: number; d: number; dry: boolean }, sea: number): { river: River; lake: Lake | null } {
+export function traceRiver(h: H, id: string, regionId: string, sx: number, sz: number, spec: { w: number; d: number; dry: boolean; outlet?: { x: number; z: number } }, sea: number): { river: River; lake: Lake | null } {
   const pts: RiverPoint[] = [];
   let x = sx, z = sz;
   // initial direction: steepest descent
@@ -116,6 +119,21 @@ export function traceRiver(h: H, id: string, regionId: string, sx: number, sz: n
     }
     dir = dir + (bestA - dir) * 0.6;
     x += Math.cos(dir) * STEP; z += Math.sin(dir) * STEP;
+  }
+  // an authored outflow: the stream spills out of the basin it reached and runs on to a lower point, meandering gently;
+  // its surface keeps falling (never uphill), so where the ground rises in between the bed cuts a shallow gully
+  if (spec.outlet && mouth === "lake" && pts.length) {
+    const o = spec.outlet, s0 = pts[pts.length - 1]!;
+    const len = Math.hypot(o.x - s0.x, o.z - s0.z), n = Math.floor(len / STEP);
+    const ux = (o.x - s0.x) / (len || 1), uz = (o.z - s0.z) / (len || 1);
+    let surface = s0.s; const w = s0.w;
+    for (let k = 1; k <= n; k++) {
+      const f = k / n, wob = Math.sin(k * 0.75) * STEP * 0.6 * Math.sin(f * Math.PI);
+      const x = s0.x + ux * len * f - uz * wob, z = s0.z + uz * len * f + ux * wob;
+      surface = Math.min(surface - 0.02, h(x, z) - 0.25);
+      if (surface < sea) { mouth = "ocean"; break; }
+      pts.push({ x, z, s: surface, w, d: spec.d });
+    }
   }
   const last = pts[pts.length - 1]!;
   const fitted = mouth === "lake" && !spec.dry ? fitLake(h, last.x, last.z) : null;
@@ -171,7 +189,8 @@ export function buildWaterNetwork(h: H, sea: number): WaterNetwork {
     if (!r) continue;
     const peak = findSource(h, r.x, r.z, r.radius);
     const src = springBelow(h, peak.x, peak.z, sea);
-    const { river, lake } = traceRiver(h, `river-${spec.regionId}`, spec.regionId, src.x, src.z, spec, sea);
+    const outlet = spec.outflow ? { x: r.x + spec.outflow.fx * r.radius, z: r.z + spec.outflow.fz * r.radius } : undefined;
+    const { river, lake } = traceRiver(h, `river-${spec.regionId}`, spec.regionId, src.x, src.z, outlet ? { ...spec, outlet } : spec, sea);
     if (river.points.length < 8) continue; // a spring that goes nowhere is not a river
     rivers.push(river);
     if (lake) {

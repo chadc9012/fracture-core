@@ -18,7 +18,8 @@ test("background beds sit well below the action and the old drone/hiss levels", 
 test("rain is never a high-pass hiss, and no weather bed is louder than a whisper", () => {
   for (const bed of Object.values(WEATHER_BEDS)) {
     expect(bed.type).not.toBe("highpass");
-    expect(bed.gain).toBeLessThanOrEqual(0.05);
+    // dark (lowpassed under 1.5 kHz) beds may sit higher: measured at 0.03 they were 15 dB under the ambience and inaudible
+    expect(bed.gain).toBeLessThanOrEqual(bed.type === "lowpass" && bed.cutoff <= 1500 ? 0.1 : 0.05);
   }
   expect(WEATHER_BEDS["Rain mist"]!.cutoff).toBeLessThan(4000);
 });

@@ -53,6 +53,16 @@ describe("road crossings", () => {
     const { riverCrossings, deckAt } = await import("./terrain");
     for (const c of riverCrossings()) { expect(c.resolved).toBe(true); expect(deckAt(c.x, c.z)).toBe(c.deck); }
   });
+  it("the forest river's outflow runs under the Verdant–Swamps Causeway, so the road network keeps at least one real bridge", async () => {
+    const { riverCrossings, heightAt } = await import("./terrain");
+    const wet = riverCrossings().filter((c) => c.resolved && !c.dry);
+    expect(wet.length).toBeGreaterThan(0);
+    // the approaches meet the deck: no step from the graded road up onto the bridge
+    for (const c of wet) for (const s of [-1, 1]) {
+      const end = c.length / 2 + 3;
+      expect(Math.abs(heightAt(c.x + c.dirX * end * s, c.z + c.dirZ * end * s) - c.deck)).toBeLessThan(1.6);
+    }
+  });
 });
 
 describe("water sheet covers the carved channel", () => {
