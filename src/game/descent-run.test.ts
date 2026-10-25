@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { RANKS, gatesForDay, type FractureGate } from "./fracture-gates";
+import { RANKS, gatesForDay, shownDepth, type FractureGate } from "./fracture-gates";
 import {
   LIVES, WAVE_CAP, arrive, bossDefeated, bossEngaged, checkEnrage, claimDescentClear, claimTierLoot, clearTier, clearedTodayKey, died,
   enrageLeft, gateBreaking, openWays, riftMissionId, sealKey, sealsFor, startDescent, takeExit, tierPlan, weekOf,
@@ -53,7 +53,7 @@ describe("a run", () => {
   test("a lying gate is revealed once you pass the depth it claimed", () => {
     const g = gate({ shownRank: "B", trueRank: "A" });
     let run = startDescent(g, NOW);
-    const past = run.layout.tiers.findIndex((t) => run.layout.tiers[0]!.floorY - t.floorY > RANKS.B.depth);
+    const past = run.layout.tiers.findIndex((t) => run.layout.tiers[0]!.floorY - t.floorY > shownDepth(g.dungeonId, "B"));
     expect(past).toBeGreaterThan(0);
     run = arrive(run, past - 1);
     expect(run.rankRevealed).toBe(false);

@@ -1,9 +1,10 @@
 import { describe, expect, test } from "bun:test";
 import {
-  DESCENT_ORIGIN, DESCENT_TOP, DROP_RADIUS, RANKS, RANK_ORDER, SIGNATURE_DUNGEONS, buildDescent, descentGroundAt, descentSolids,
+  areaOf, descentShape, DESCENT_ORIGIN, DESCENT_TOP, DROP_RADIUS, RANKS, RANK_ORDER, SIGNATURE_DUNGEONS, buildDescent, descentGroundAt, descentSolids,
   gateAt, gateColor, gatesForDay, inShaft, tierAt, tierKinds, type OpenWays,
 } from "./fracture-gates";
 import { REGIONS, WORLD_RADIUS } from "./world";
+import { WATER_LEVEL } from "./terrain";
 
 const DAY = Date.UTC(2026, 9, 25, 12);
 const closed: OpenWays = { drops: new Set(), nested: false };
@@ -69,14 +70,37 @@ describe("descent layout", () => {
       expect(k.includes("GATEKEEPER")).toBe(RANK_ORDER.indexOf(r) >= RANK_ORDER.indexOf("B"));
     }
   });
-  test("the boss floor is exactly the rank's depth below the threshold, far above the sea, far outside the world", () => {
-    for (const r of RANK_ORDER) {
-      const l = buildDescent("rootbound-labyrinth", r);
+  test("each signature dungeon descends its board depth over a floor count in its board range, high above the sea", () => {
+    for (const d of SIGNATURE_DUNGEONS) for (let k = 0; k < 12; k++) {
+      const l = buildDescent(d.id, d.rank, DESCENT_ORIGIN, `seed-${k}`);
       expect(l.tiers[0]!.floorY).toBe(DESCENT_TOP);
-      expect(DESCENT_TOP - l.tiers[l.tiers.length - 1]!.floorY).toBeCloseTo(RANKS[r].depth, 6);
-      expect(l.nested.floorY).toBeGreaterThan(500);
+      expect(DESCENT_TOP - l.tiers.at(-1)!.floorY).toBeCloseTo(d.depth, 6);
+      expect(l.tiers.length).toBeGreaterThanOrEqual(d.floors[0]);
+      expect(l.tiers.length).toBeLessThanOrEqual(d.floors[1]);
+      expect(l.tiers.filter((t) => t.kind === "ENCOUNTER").length).toBe(RANKS[d.rank].encounters);
+      expect(l.nested.floorY).toBeGreaterThan(WATER_LEVEL + 200);
     }
     expect(Math.hypot(DESCENT_ORIGIN.x, DESCENT_ORIGIN.z) - 120).toBeGreaterThan(WORLD_RADIUS);
+  });
+  test("a lying gate runs 25% deeper with two more floors, still above the sea", () => {
+    for (const d of SIGNATURE_DUNGEONS) {
+      const deeper = RANK_ORDER[Math.min(RANK_ORDER.length - 1, RANK_ORDER.indexOf(d.rank) + 1)]!;
+      if (deeper === d.rank) continue;
+      const honest = descentShape(d.id, d.rank, "x"), lie = descentShape(d.id, deeper, "x");
+      expect(lie.depth).toBe(Math.round(d.depth * 1.25));
+      expect(lie.tiers).toBe(honest.tiers + 2);
+      expect(buildDescent(d.id, deeper, DESCENT_ORIGIN, "x").nested.floorY).toBeGreaterThan(WATER_LEVEL + 200);
+    }
+  });
+  test("floors are named after the board's four areas: surface gate first, the boss's own area last", () => {
+    const d = SIGNATURE_DUNGEONS.find((x) => x.id === "rootbound-labyrinth")!;
+    const l = buildDescent(d.id, d.rank, DESCENT_ORIGIN, "y");
+    const names = l.tiers.map((t) => areaOf(d.id, l, t.index));
+    expect(names[0]).toBe("Surface Gate");
+    expect(names.at(-1)).toBe("The Bloodroot Depths");
+    expect(new Set(names)).toEqual(new Set(d.areas));
+    // areas run in order, never back up
+    for (let i = 1; i < names.length; i++) expect(d.areas.indexOf(names[i] as never)).toBeGreaterThanOrEqual(d.areas.indexOf(names[i - 1] as never));
   });
   test("each drop lands you inside the next room, at the opposite end from that room's own drop", () => {
     const l = buildDescent("crucible-fallen", "S");
@@ -117,7 +141,7 @@ describe("descent ground", () => {
   test("every floor is a closed room: four walls, no taller than the gap to the floor above", () => {
     const boxes = descentSolids(l, false);
     expect(boxes.length).toBe(l.tiers.length * 4);
-    const step = RANKS.B.depth / (RANKS.B.tiers - 1);
+    const step = l.tiers[0]!.floorY - l.tiers[1]!.floorY;
     for (const b of boxes) expect(b.h).toBeLessThan(step);
   });
 });

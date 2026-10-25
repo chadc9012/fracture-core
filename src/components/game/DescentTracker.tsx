@@ -27,10 +27,8 @@ export function DescentTracker({ descent }: { descent: DescentHud | undefined })
       <div className="border border-border/60 bg-background/80 p-3 backdrop-blur-sm" style={{ borderLeft: `3px solid ${c}` }}>
         <p className="font-mono text-[9px] uppercase tracking-[0.3em]" style={{ color: c }}>{descent.place} · rank {descent.rank}</p>
         <p className="mt-1 text-sm font-semibold uppercase tracking-wider">{descent.dungeon}</p>
-        <div className="mt-2 flex items-baseline justify-between font-mono">
-          <span className="text-2xl font-semibold tabular-nums">−{descent.depth} m</span>
-          <span className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">{descent.tierLabel}</span>
-        </div>
+        <p className="mt-2 font-mono text-2xl font-semibold tabular-nums">−{descent.depth.toLocaleString()} m</p>
+        <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground">{descent.tierLabel}</p>
         <p className="mt-2 text-[12px] leading-snug">{descent.objective}</p>
         <p className="mt-2 font-mono text-[10px] text-muted-foreground">Shared lives {descent.lives}{mm ? ` · collapse in ${mm}` : ""}</p>
       </div>

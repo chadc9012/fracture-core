@@ -10,14 +10,14 @@ import type { DeployTarget } from "./StarMap";
 /**
  * The planet view (Stage 150): Veyra as a globe you can turn, its 12 continents (lit when playable, dim while they are
  * only on the map), the 7 oceans, the flight routes between playable continents, and Thalassia as a marker off Veyloria's
- * coast in the Obsidian Deep — not on any continent. Pick a continent to read its nations and look, and fly to it once
+ * east coast in the Meridian Ocean — not on any continent. Pick a continent to read its nations and look, and fly to it once
  * you have made landfall there (your start continent is always open). Data: planet.ts and travel.ts.
  */
 const SIZE = 560, C = SIZE / 2, RAD = SIZE * 0.44;
 const toRad = (d: number) => (d * Math.PI) / 180;
 
 /** orthographic projection of (lat, lon) with the globe turned to `lon0`; z < 0 is the far side */
-function project(lat: number, lon: number, lon0: number, lat0 = 12) {
+function project(lat: number, lon: number, lon0: number, lat0 = 0) {
   const p = toRad(lat), l = toRad(lon - lon0), p0 = toRad(lat0);
   const x = Math.cos(p) * Math.sin(l);
   const y = Math.cos(p0) * Math.sin(p) - Math.sin(p0) * Math.cos(p) * Math.cos(l);
@@ -49,8 +49,8 @@ function arc(a: { lat: number; lon: number }, b: { lat: number; lon: number }, s
   return out;
 }
 
-/** Thalassia: off Veyloria's eastern coast, in the Obsidian Deep */
-const THALASSIA_GLOBE = { lat: -2, lon: -12 };
+/** Thalassia: off Veyloria's east coast, as on the owner's planetary board */
+const THALASSIA_GLOBE = { lat: -6, lon: -12 };
 
 export function PlanetMap({ progression, onDeploy }: { progression: PlayerProgression; onDeploy: (target: DeployTarget) => void }) {
   const [lon0, setLon0] = useState(0);
@@ -117,7 +117,7 @@ export function PlanetMap({ progression, onDeploy }: { progression: PlayerProgre
         {regionNames.length > 0 && <p className="mt-3 font-mono text-[11px]">Regions · {regionNames.join(", ")}</p>}
         <p className="mt-3 font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground">Nations</p>
         <ul className="mt-1 space-y-0.5 text-[12px]">{nations.map((n) => <li key={n.id}>{n.name}{n.playable ? " · you can walk here" : ""}</li>)}</ul>
-        {selected.id === "veyloria" && <p className="mt-3 flex items-start gap-2 border-l-2 border-cyan-300/60 pl-2 text-[12px] text-cyan-100"><Waves className="mt-0.5 size-3.5 shrink-0" /> Thalassia lies off this coast in the Obsidian Deep, on no continent. Take the elevator platform out past the shore, or an underwater vehicle.</p>}
+        {selected.id === "veyloria" && <p className="mt-3 flex items-start gap-2 border-l-2 border-cyan-300/60 pl-2 text-[12px] text-cyan-100"><Waves className="mt-0.5 size-3.5 shrink-0" /> Thalassia lies off this east coast, on no continent. Take the elevator platform out past the shore, or an underwater vehicle.</p>}
         <div className="mt-4">
           {terminal && selected.tier === "CORE" ? (
             visited(selected.id)

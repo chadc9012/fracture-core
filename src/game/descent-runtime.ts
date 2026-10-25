@@ -6,7 +6,7 @@
 import { alert, freeSlots, spawnEventSquad, type Machine, type WorldSim } from "./sim";
 import { INITIAL_POISE } from "./boss-poise";
 import {
-  DESCENT_TOP, RANKS, dayOf, depthBelow, dungeonById, gateAt, gateRadius, inDescentSpace, inShaft, setActiveDescent, tierAt,
+  DESCENT_TOP, RANKS, areaOf, dayOf, depthBelow, dungeonById, gateAt, gateRadius, inDescentSpace, inShaft, setActiveDescent, tierAt,
   type FractureGate,
 } from "./fracture-gates";
 import {
@@ -95,7 +95,7 @@ function spawnBoss(sim: WorldSim, run: DescentRun, px: number, pz: number): stri
   const cx = run.layout.origin.x, cz = run.layout.origin.z + (run.layout.origin.z - tier.landing.z) * 0.5;
   if (!spawnEventSquad(sim, tag, cx, cz, 1, 1, d?.regionId ?? "nexus", 1)) return null;
   const m = tagged(sim, tag)[0]!;
-  const hp = 28 * (sim.challenge?.enemyHp ?? 1) * (1 + 0.35 * RANKS[run.rank].tiers / 3) * (tier.kind === "NESTED" ? 1.6 : 1);
+  const hp = 28 * (sim.challenge?.enemyHp ?? 1) * (1 + 0.35 * RANKS[run.rank].tiers / 3) * (1 + Math.min(1, run.layout.tiers.length / 24)) * (tier.kind === "NESTED" ? 1.6 : 1);
   Object.assign(m, { boss: true, elite: true, hp, maxHp: hp, scale: tier.kind === "NESTED" ? 2.8 : 2.4, phase: 0, poiseState: INITIAL_POISE, cool: 2,
     profile: tier.kind === "NESTED" ? `${d?.boss ?? "Boss"}, Unbound` : d?.boss ?? "Boss" });
   stand(m, tier.floorY);
@@ -229,7 +229,11 @@ export function stepDescentRuntime(rt: DescentRuntime, sim: WorldSim, inp: { now
     : plan.boss ? (rt.bossTag ? `Defeat ${tier.kind === "NESTED" ? `${d.boss}, Unbound` : d.boss}` : "Reach the bottom")
     : run.cleared.includes(tier.index) || !tier.gated && run.wave >= plan.waves.length ? "Find the drop · go down"
     : `${tier.kind === "ENCOUNTER" ? `Encounter · wave ${Math.max(1, run.wave)}/${plan.waves.length}` : tier.kind === "GATEKEEPER" ? `Defeat ${d.gatekeeper}` : "Clear the tier"} · ${left} hostile${left === 1 ? "" : "s"}`;
-  const label = tier.kind === "THRESHOLD" ? "Threshold" : tier.kind === "BOSS" ? "Boss room" : tier.kind === "NESTED" ? "Nested depths" : tier.kind === "ENCOUNTER" ? `Tier ${tier.index + 1} · Encounter` : tier.kind === "GATEKEEPER" ? `Tier ${tier.index + 1} · Gatekeeper` : `Tier ${tier.index + 1}`;
+  // the board's area names (Surface Gate → … → the boss's own area), then the floor and what kind of floor it is
+  const floors = run.layout.tiers.length;
+  const kindLabel = tier.kind === "BOSS" ? "Boss room" : tier.kind === "NESTED" ? "Nested depths" : tier.kind === "ENCOUNTER" ? "Encounter" : tier.kind === "GATEKEEPER" ? "Gatekeeper" : "";
+  const where = tier.kind === "NESTED" ? "Below the boss room" : `${areaOf(run.dungeonId, run.layout, tier.index)} · Floor ${tier.index + 1}/${floors}`;
+  const label = kindLabel ? `${where} · ${kindLabel}` : where;
   return {
     emits,
     hud: { dungeon: d.name, place: d.place, rank: run.rankRevealed ? `${run.shownRank} → ${run.rank}` : run.shownRank, rankLied: run.rankRevealed, depth: depthBelow(feet), tierLabel: label, objective, lives: run.lives, enrage: enrageLeft(run, inp.now) },

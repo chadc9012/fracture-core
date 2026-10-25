@@ -67,47 +67,61 @@ export type SignatureDungeon = {
   gatekeeper: string;
   boss: string;
   bossMechanic: string;
+  /** from the owner's dungeon-concepts board: total depth (m), the floor-count range a gate-day rolls in, and the four areas
+   * you descend through (the first is always the surface gate; the boss waits in the last) */
+  depth: number;
+  floors: readonly [number, number];
+  areas: readonly [string, string, string, string];
   /** enemy names shown in the briefing; the sim's regional troops are what actually spawn */
   roster: readonly string[];
 };
 
 export const SIGNATURE_DUNGEONS: readonly SignatureDungeon[] = [
   { id: "rootbound-labyrinth", name: "The Rootbound Labyrinth", regionId: "veridan", place: "Verdant Forest", rank: "C", sealed: false,
-    look: "A descent through the hollow roots of a colossal tree; fungus is the only light.",
+    look: "A colossal underground forest where ancient trees descend for miles, roots twist through ruined temples, and bioluminescent life glows in the dark.",
     theme: { fog: "#0b1a14", stone: "#3a3328", trim: "#5b4a33", glow: "#7dffb0", light: "#3fe08a" },
-    gatekeeper: "Rootbound Warden", boss: "The Heartwood Warden", bossMechanic: "Sever the glowing root veins feeding its shield.", roster: ["Silt-Stalkers", "Spore swarms", "Root-bound Hollow Knights"] },
+    gatekeeper: "Rootbound Warden", boss: "The Ancient Spawn", bossMechanic: "Sever the glowing root veins feeding its shield.", roster: ["Silt-Stalkers", "Spore swarms", "Root-bound Hollow Knights"],
+    depth: 600, floors: [6, 8], areas: ["Surface Gate", "The Living Canopy", "Root Chambers", "The Bloodroot Depths"] },
   { id: "drowned-cathedral", name: "The Drowned Cathedral", regionId: "swamps", place: "Shrouded Swamps", rank: "B", sealed: false,
-    look: "A gothic cathedral sinking into the swamp; stained glass glowing under black water.",
+    look: "A sunken megastructure of toxic water, collapsed cathedrals and corrupted life; the deeper it goes, the more reality decays.",
     theme: { fog: "#081413", stone: "#2c3330", trim: "#41504a", glow: "#6fe3d0", light: "#4ac7b4" },
-    gatekeeper: "The Drowned Deacon", boss: "The Drowned Choir", bossMechanic: "Match its sung tones on the nave bells; a wrong tone floods the floor.", roster: ["Swamp-Mutated Stalkers", "Drowned choir husks", "Automated Tech-Drones"] },
+    gatekeeper: "The Drowned Deacon", boss: "The Sinking Saint", bossMechanic: "Match its sung tones on the nave bells; a wrong tone floods the floor.", roster: ["Swamp-Mutated Stalkers", "Drowned choir husks", "Automated Tech-Drones"],
+    depth: 1100, floors: [8, 12], areas: ["Surface Gate", "Flooded Halls", "The Drowned Nave", "Abyssal Choir"] },
   { id: "tomb-hollow-sun", name: "Tomb of the Hollow Sun", regionId: "solara", place: "Solara Desert", rank: "B", sealed: false,
-    look: "A sand-buried solar temple dropping into a chamber lit by a dying artificial sun.",
+    look: "A buried city swallowed by sand and time: shifting ruins, solar relics and sand-filled vaults hiding deadly guardians.",
     theme: { fog: "#1c120a", stone: "#6b4a2c", trim: "#a37440", glow: "#ffc86a", light: "#ffb347" },
-    gatekeeper: "Sun-Scarab Matriarch", boss: "The Hollow Regent", bossMechanic: "Angle mirror pylons to reignite the sun and open each damage window.", roster: ["Sand-wrapped Hollow Knights", "Sun-scarab swarms"] },
+    gatekeeper: "Sun-Scarab Matriarch", boss: "The Sun Eater", bossMechanic: "Angle mirror pylons to reignite the dying sun and open each damage window.", roster: ["Sand-wrapped Hollow Knights", "Sun-scarab swarms"],
+    depth: 1200, floors: [8, 12], areas: ["Surface Gate", "Sand-Filled Ruins", "Solar Forges", "The Hollow Sanctum"] },
   { id: "iron-grave", name: "The Iron Grave", regionId: "wastelands", place: "The Wastelands", rank: "B", sealed: false,
-    look: "A mine shaft stacked with wrecked tanks, mechs and convoy rigs; rust, sparks and failing floodlights.",
+    look: "A massive buried industrial complex filled with war machines, fallen soldiers and experimental horrors.",
     theme: { fog: "#140f0b", stone: "#3b3029", trim: "#6a4b33", glow: "#ff9a3c", light: "#ffb070" },
-    gatekeeper: "Scrap Golem Foreman", boss: "The Scrap Colossus", bossMechanic: "Knock out the magnet pylons or it rebuilds lost limbs from the wrecks.", roster: ["Mutated Raider crews", "Scrap golems", "Turret nests"] },
+    gatekeeper: "Scrap Golem Foreman", boss: "The Prototype", bossMechanic: "Knock out the magnet pylons or it rebuilds lost limbs from the wrecks.", roster: ["Mutated Raider crews", "Scrap golems", "Turret nests"],
+    depth: 2000, floors: [12, 18], areas: ["Surface Gate", "The Broken Ascent", "War Machine Vaults", "The Iron Core"] },
   { id: "eternal-whiteout", name: "The Eternal Whiteout", regionId: "frostspire", place: "Frostspire Mountains", rank: "A", sealed: true,
-    look: "A crevasse into a glacier: blizzard above, dead silence below, soldiers frozen in blue ice.",
+    look: "A frozen chasm descending through ice, ancient structures and a lost civilization; blizzards, thin air and relentless creatures.",
     theme: { fog: "#0b1420", stone: "#4a5a6a", trim: "#7d93a8", glow: "#9fe3ff", light: "#8fd0ff" },
-    gatekeeper: "Rime Sentinel", boss: "The Whiteout Sovereign", bossMechanic: "Seen only as a shadow in its blizzard; thermal flares reveal it long enough to hit.", roster: ["Frost stalkers", "Ice-blade drones"] },
+    gatekeeper: "Rime Sentinel", boss: "The Frost Sovereign", bossMechanic: "Seen only as a shadow in its blizzard; thermal flares reveal it long enough to hit.", roster: ["Frost stalkers", "Ice-blade drones"],
+    depth: 1500, floors: [10, 14], areas: ["Surface Gate", "Glacial Descent", "Frozen Citadel", "The Zero Chamber"] },
   { id: "crucible-fallen", name: "Crucible of the Fallen", regionId: "ember", place: "Ember Peaks", rank: "A", sealed: true,
-    look: "A failed stabilization foundry inside the volcano: molten channels, hammer pistons, obsidian.",
+    look: "A volcanic underworld of magma rivers, ancient forges and warlike giants; the deeper you go, the hotter and deadlier.",
     theme: { fog: "#1a0806", stone: "#2a1d1a", trim: "#4a2a20", glow: "#ff5a1f", light: "#ff7a3a" },
-    gatekeeper: "Foundry Overseer", boss: "The Fallen Forgemind", bossMechanic: "The foundry AI fights with the forge itself.", roster: ["Magma-Mutated Crawlers", "Ash Hunters", "Corrupted Drones"] },
+    gatekeeper: "Foundry Overseer", boss: "The Forge Warden", bossMechanic: "It fights with the forge itself.", roster: ["Magma-Mutated Crawlers", "Ash Hunters", "Corrupted Drones"],
+    depth: 1800, floors: [12, 16], areas: ["Surface Gate", "The Fallen Bridge", "Magma Forges", "The Last Crucible"] },
   { id: "sublevel-protocol", name: "The Sublevel Protocol", regionId: null, place: "Neon City", rank: "C", sealed: false,
-    look: "Abandoned metro, flooded server vaults and black sites under Neon City.",
+    look: "A hidden network beneath the city: corporate experiments, AI-controlled defences and dimensional tests in a constantly shifting place.",
     theme: { fog: "#0a0816", stone: "#25222e", trim: "#3a3448", glow: "#ff3fd0", light: "#5ee7ff" },
-    gatekeeper: "Security Overseer", boss: "The Sublevel Admin", bossMechanic: "A security AI that copies itself; find the real one.", roster: ["Corrupted security androids", "Glitch phantoms"] },
+    gatekeeper: "Security Overseer", boss: "The Core Intelligence", bossMechanic: "A security AI that copies itself; find the real one.", roster: ["Corrupted security androids", "Glitch phantoms"],
+    depth: 1300, floors: [10, 14], areas: ["Surface Gate", "Corporate Labs", "AI Defense Sectors", "The Protocol Core"] },
   { id: "forgotten-foundation", name: "The Forgotten Foundation", regionId: null, place: "Nexus City", rank: "S", sealed: true,
-    look: "The unfinished simulation under Nexus: grid floors, wireframe walls.",
+    look: "An ancient city beneath the modern one: reality fractures, gravity shifts and dimensions intersect as you descend.",
     theme: { fog: "#05070c", stone: "#1c222c", trim: "#e8edf5", glow: "#cfe6ff", light: "#9fc6ff" },
-    gatekeeper: "Compliance Warden", boss: "The Foundation Warden", bossMechanic: "Rewrites the arena's rules each phase.", roster: ["Compliance drones", "Wireframe constructs"] },
+    gatekeeper: "Compliance Warden", boss: "The Fracture Being", bossMechanic: "Rewrites the arena's rules each phase.", roster: ["Compliance drones", "Wireframe constructs"],
+    depth: 2500, floors: [15, 20], areas: ["Surface Gate", "Fractured Levels", "Gravity Sectors", "The Nexus Chamber"] },
   { id: "abyssal-vault", name: "The Abyssal Vault", regionId: null, place: "Thalassia", rank: "S", sealed: true,
-    look: "A pressure vault below Thalassia's deepest zone; containment doors hundreds of metres tall.",
+    look: "A colossal underwater dungeon under crushing pressure: alien ruins and creatures from the darkest depths.",
     theme: { fog: "#02060c", stone: "#14202a", trim: "#24384a", glow: "#3fd0ff", light: "#2a9cff" },
-    gatekeeper: "Depth Warden", boss: "The Pressure Leviathan", bossMechanic: "Changes water pressure each phase.", roster: ["Depth Security Drones", "Abyssal predators"] },
+    gatekeeper: "Depth Warden", boss: "The Leviathan King", bossMechanic: "Changes the water pressure each phase.", roster: ["Depth Security Drones", "Abyssal predators"],
+    depth: 3000, floors: [16, 24], areas: ["Surface Gate", "The Sunken City", "Abyssal Trenches", "The Ocean Throne"] },
 ];
 
 export const dungeonById = (id: string): SignatureDungeon | null => SIGNATURE_DUNGEONS.find((d) => d.id === id) ?? null;
@@ -175,8 +189,9 @@ export function gateAt(gates: readonly FractureGate[], x: number, z: number): Fr
 
 /** the column sits far outside the world disc (interiors park at x = 2000; the Storm Islands near x = 980) */
 export const DESCENT_ORIGIN = { x: -2600, z: -2600 } as const;
-/** threshold floor altitude; the deepest S-rank boss floor is still 900 m above the sea */
-export const DESCENT_TOP = 1900;
+/** threshold floor altitude: the deepest descent (the Abyssal Vault, 3 km, 3.75 km when its gate lies) plus the nested depths
+ * still ends ~300 m above the sea, so the terrain's ground (water level outside the world disc) never rises above a floor */
+export const DESCENT_TOP = 4200;
 /** every tier's drop shaft sits this far from the centre line, alternating ends, so each tier is a walk across the room */
 export const DROP_OFFSET = 26;
 export const DROP_RADIUS = 6;
@@ -205,14 +220,14 @@ const SIZE: Record<TierKind, { w: number; d: number }> = {
 };
 
 /** which floors are mechanic arenas: spread the rank's encounters evenly through the middle tiers */
-export function tierKinds(rank: RiftRank): TierKind[] {
+export function tierKinds(rank: RiftRank, count: number = RANKS[rank].tiers): TierKind[] {
   const spec = RANKS[rank];
-  const kinds: TierKind[] = Array.from({ length: spec.tiers }, () => "CHAMBER");
+  const kinds: TierKind[] = Array.from({ length: count }, () => "CHAMBER");
   kinds[0] = "THRESHOLD";
-  kinds[spec.tiers - 1] = "BOSS";
+  kinds[count - 1] = "BOSS";
   const gk = RANK_ORDER.indexOf(rank) >= RANK_ORDER.indexOf("B");
-  if (gk) kinds[spec.tiers - 2] = "GATEKEEPER";
-  const middle = Array.from({ length: spec.tiers - 2 - (gk ? 1 : 0) }, (_, i) => i + 1);
+  if (gk) kinds[count - 2] = "GATEKEEPER";
+  const middle = Array.from({ length: count - 2 - (gk ? 1 : 0) }, (_, i) => i + 1);
   for (let e = 0; e < spec.encounters && middle.length; e++) {
     const at = middle[Math.min(middle.length - 1, Math.floor(((e + 1) * middle.length) / (spec.encounters + 1)))]!;
     kinds[at] = "ENCOUNTER";
@@ -220,10 +235,26 @@ export function tierKinds(rank: RiftRank): TierKind[] {
   return kinds;
 }
 
-export function buildDescent(dungeonId: string, rank: RiftRank, origin: { x: number; z: number } = DESCENT_ORIGIN): DescentLayout {
+/** how deep and how many floors a run goes: the dungeon's board depth and a floor count rolled in its range (seeded by the
+ * gate, so the same gate-day is the same descent for everyone). A gate whose true rank is deeper than its signature rank goes
+ * 25% deeper with two more floors: that is the lie you discover on the way down. Dungeons without board data use the rank. */
+export function descentShape(dungeonId: string, rank: RiftRank, seed = ""): { depth: number; tiers: number } {
+  const d = dungeonById(dungeonId);
   const spec = RANKS[rank];
-  const kinds = tierKinds(rank);
-  const step = spec.depth / (spec.tiers - 1);
+  const minTiers = spec.encounters + 2 + (RANK_ORDER.indexOf(rank) >= RANK_ORDER.indexOf("B") ? 1 : 0) + 1;
+  if (!d) return { depth: spec.depth, tiers: Math.max(minTiers, spec.tiers) };
+  const [lo, hi] = d.floors;
+  const rolled = lo + (hash(`${dungeonId}:${seed}:floors`) % (hi - lo + 1));
+  const lies = RANK_ORDER.indexOf(rank) > RANK_ORDER.indexOf(d.rank);
+  return { depth: lies ? Math.round(d.depth * 1.25) : d.depth, tiers: Math.max(minTiers, rolled + (lies ? 2 : 0)) };
+}
+/** the depth a gate claims (its signature dungeon's board depth), for spotting a lying gate on the way down */
+export const shownDepth = (dungeonId: string, shown: RiftRank) => dungeonById(dungeonId)?.depth ?? RANKS[shown].depth;
+
+export function buildDescent(dungeonId: string, rank: RiftRank, origin: { x: number; z: number } = DESCENT_ORIGIN, seed = ""): DescentLayout {
+  const shape = descentShape(dungeonId, rank, seed);
+  const kinds = tierKinds(rank, shape.tiers);
+  const step = shape.depth / (shape.tiers - 1);
   const tiers: Tier[] = kinds.map((kind, index) => {
     const side = index % 2 === 0 ? 1 : -1;
     const size = SIZE[kind];
@@ -241,6 +272,18 @@ export function buildDescent(dungeonId: string, rank: RiftRank, origin: { x: num
   const boss = tiers[tiers.length - 1]!;
   const nested: Tier = { index: tiers.length, kind: "NESTED", floorY: boss.floorY - 80, ...SIZE.NESTED, landing: { x: origin.x, z: origin.z }, drop: null, gated: true, wallH: 40 };
   return { dungeonId, rank, origin, tiers, nested };
+}
+
+/** which of the dungeon's four board areas a floor belongs to: the threshold is the surface gate, the boss floor (and the
+ * nested depths) the last area, and the floors between split evenly over the two middle areas */
+export function areaOf(dungeonId: string, layout: DescentLayout, tierIndex: number): string {
+  const d = dungeonById(dungeonId);
+  if (!d) return "";
+  const n = layout.tiers.length;
+  if (tierIndex === 0) return d.areas[0];
+  if (tierIndex >= n - 1) return d.areas[3];
+  const mid = n - 2, k = tierIndex - 1;
+  return k < Math.ceil(mid / 2) ? d.areas[1] : d.areas[2];
 }
 
 /** which drops are open: a gated tier's drop opens once it is cleared; the nested crack is the boss room's centre */

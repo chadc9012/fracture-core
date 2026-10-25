@@ -1,7 +1,7 @@
 /** A descent run (Stages 60–61, pure): what each tier spawns, when its drop opens, lives, the boss's enrage clock, the rare
  * nested depths under the boss room, and what the run pays. descent-runtime.ts applies it to the live sim; GameCanvas
  * applies the reward reducers to the save. Nothing here touches the scene or the sim. */
-import { RANKS, RANK_ORDER, buildDescent, dungeonById, hash, type DescentLayout, type FractureGate, type OpenWays, type RiftRank, type Tier } from "./fracture-gates";
+import { DESCENT_ORIGIN, RANKS, RANK_ORDER, buildDescent, dungeonById, hash, shownDepth, type DescentLayout, type FractureGate, type OpenWays, type RiftRank, type Tier } from "./fracture-gates";
 import { rewardMission, type PlayerProgression } from "./progression";
 import type { MaterialId } from "./inventory";
 
@@ -75,7 +75,7 @@ export type DescentRun = {
 export const LIVES = (squad: number) => (squad > 1 ? 4 : 3);
 
 export function startDescent(gate: FractureGate, now: number, squad = 1): DescentRun {
-  const layout = buildDescent(gate.dungeonId, gate.trueRank);
+  const layout = buildDescent(gate.dungeonId, gate.trueRank, DESCENT_ORIGIN, gate.id);
   return {
     gateId: gate.id, dungeonId: gate.dungeonId, day: gate.day, shownRank: gate.shownRank, rank: gate.trueRank, squad, layout,
     tier: 0, wave: 0, cleared: [], lives: LIVES(squad), deaths: 0, startedAt: now, bossStartedAt: null, bossDown: false,
@@ -93,10 +93,10 @@ export const currentTier = (run: DescentRun): Tier => (run.tier >= run.layout.ti
 /** you landed on a lower floor: the new tier starts with its first wave unsent */
 export function arrive(run: DescentRun, tierIndex: number): DescentRun {
   if (run.status !== "ACTIVE" || tierIndex <= run.tier) return run;
-  const shownDepth = RANKS[run.shownRank].depth;
+  const claimed = shownDepth(run.dungeonId, run.shownRank);
   const floor = tierIndex >= run.layout.tiers.length ? run.layout.nested.floorY : run.layout.tiers[tierIndex]!.floorY;
   const deep = run.layout.tiers[0]!.floorY - floor;
-  return { ...run, tier: tierIndex, wave: 0, rankRevealed: run.rankRevealed || (run.rank !== run.shownRank && deep > shownDepth) };
+  return { ...run, tier: tierIndex, wave: 0, rankRevealed: run.rankRevealed || (run.rank !== run.shownRank && deep > claimed) };
 }
 
 /** one wave was sent */
