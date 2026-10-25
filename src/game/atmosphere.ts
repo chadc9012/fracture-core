@@ -40,7 +40,8 @@ export const REGION_ATMOSPHERE: Record<string, Atmosphere> = {
   // low sick-green bog mist, murky olive sky, very hazy
   swamps: { fogTint: "#6f8f62", fogMix: 0.5, fogScale: 0.55, lightTint: "#b8d68a", lightMix: 0.22, skyTint: "#8fa37a", skyMix: 0.4, haze: 3.2 },
   // dry dust bowl: tan sky, constant airborne grit
-  wastelands: { fogTint: "#c9a16a", fogMix: 0.38, fogScale: 0.85, lightTint: "#ffbf80", lightMix: 0.2, skyTint: "#e0b983", skyMix: 0.34, haze: 2.4 },
+  // target frame "wilds by day": clear deep-blue sky, warm sun, a light gold dust low over the ground (it was a muddy brown murk)
+  wastelands: { fogTint: "#d8b47c", fogMix: 0.24, fogScale: 1.15, lightTint: "#ffc98a", lightMix: 0.22, skyTint: "#e6c690", skyMix: 0.14, haze: 1.3 },
   // high desert: pale bleached sky, thin clear air
   solara: { fogTint: "#f0d79b", fogMix: 0.32, fogScale: 1.2, lightTint: "#fff0c4", lightMix: 0.2, skyTint: "#ffe9b0", skyMix: 0.26, haze: 0.5 },
   // fracture zone: smoke and ash, bruised red-brown sky, heaviest haze
@@ -58,7 +59,8 @@ export const REGION_ATMOSPHERE: Record<string, Atmosphere> = {
  */
 /** The cities after dark (owner's trailers): violet-and-magenta air under the Fracture Storm, the neon bleeding into the fog.
  * Blended in by the night factor, replacing the daytime city air, so the neon districts read like the reference at night. */
-export const CITY_NIGHT: Atmosphere = { fogTint: "#3a2366", fogMix: 0.5, fogScale: 0.85, lightTint: "#b08cff", lightMix: 0.3, skyTint: "#2c1858", skyMix: 0.42, haze: 0.6 };
+// target frames (Nexus and Neon at night): deep blue air with the neon and sodium lamps bleeding into it, not a violet murk
+export const CITY_NIGHT: Atmosphere = { fogTint: "#1f2c60", fogMix: 0.5, fogScale: 0.9, lightTint: "#9fb2ff", lightMix: 0.28, skyTint: "#18204e", skyMix: 0.38, haze: 0.6 };
 export const isCity = (regionId: string | undefined) => regionId === "nexus" || regionId === "neon";
 
 export function atmosphereAt(regionId: string | undefined, weather: WeatherState | undefined, night: number): Atmosphere {

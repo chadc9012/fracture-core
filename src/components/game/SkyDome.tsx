@@ -3,6 +3,7 @@ import { useMemo, useRef } from "react";
 import * as THREE from "three";
 import { SKY_BODY, SKY_RIFT, riftGlow, skyParams, type SkyLookId } from "@/game/sky-dome";
 import type { SkyEnv } from "./CloudLayer";
+import { worldLight } from "@/game/world-light";
 import type { RenderTier } from "@/game/performance";
 
 const VERT = /* glsl */ `varying vec3 vDir; void main(){ vDir = normalize(position); vec4 p = projectionMatrix * modelViewMatrix * vec4(position, 1.0); gl_Position = p.xyww; }`; // .xyww pins the dome to the far plane: the sphere (r 3000) is beyond camera far (1800), so unpinned it was clipped inside ~53 deg of the view axis and showed the plain background colour as a big pale circle
@@ -261,6 +262,7 @@ export function SkyDome({ sunDirRef, envRef, playerRef, tier, look, timeRef }: {
     (u["cloudShade"]!.value as THREE.Vector3).set(...params.cloudShade);
     (u["zenith"]!.value as THREE.Vector3).set(...params.zenith);
     (u["horizonCol"]!.value as THREE.Vector3).set(...params.horizon);
+    worldLight.horizon[0] = params.horizon[0]; worldLight.horizon[1] = params.horizon[1]; worldLight.horizon[2] = params.horizon[2];
     u["wash"]!.value = params.wash;
     u["time"]!.value = clock.elapsedTime;
     u["cover"]!.value = params.cover;

@@ -1418,7 +1418,7 @@ export function GameCanvas() {
           // cost increase, not a new tier of budget risk, on MEDIUM/HIGH.
           <Profiler id="post" onRender={onProf}><EffectComposer multisampling={0}>
             {!flags.fxOff.has("grade") && <GritGrade grain={!flags.fxOff.has("noise")} vignette={!flags.fxOff.has("vignette")} />}
-            {!flags.fxOff.has("bloom") && <Bloom intensity={0.7} luminanceThreshold={0.92} luminanceSmoothing={0.25} mipmapBlur />}
+            {!flags.fxOff.has("bloom") && <Bloom intensity={0.75} luminanceThreshold={1.05} luminanceSmoothing={0.2} mipmapBlur />}
             {!premium && <SMAA />}
             {premium && <SSAO intensity={6} radius={0.12} luminanceInfluence={0.42} bias={0.03} />}
             {/* depth of field only during cinematics: gameplay stays sharp */}

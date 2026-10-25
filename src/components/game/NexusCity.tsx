@@ -17,6 +17,7 @@ import type { WorldSim } from "@/game/sim";
 import { addObstacle } from "@/game/obstacles";
 import { Model, QuietModel, useModel } from "./Vehicle";
 import { NexusDistricts } from "./NexusDistricts";
+import { NexusSigns } from "./NexusSigns";
 import { ResidentialHomes } from "./ResidentialHomes";
 import { NexusDiner } from "./NexusDiner";
 import { carIsOut } from "@/game/traffic-density";
@@ -200,6 +201,7 @@ export function NexusCity({ sim }: { sim: WorldSim }) {
       <NexusDistricts />
       {/* Grid Line Diner frontage (venue-life.ts): Nexus City's late-night venue */}
       <WorldPiece name="nexus diner"><NexusDiner /></WorldPiece>
+      <NexusSigns />
       <WorldPiece name="nexus palms"><NexusPalms /></WorldPiece>
       <ResidentialHomes city="nexus" />
       <Pedestrians />

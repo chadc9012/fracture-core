@@ -25,23 +25,27 @@ export function streetTexture(url: string, color: boolean): THREE.Texture | null
   return t;
 }
 
+/** live street wetness shared by every city street material (WetReflections.tsx drives it from the night and the rain) */
+export const STREET_WET = { value: 0.35 };
+
 export function cityStreetMaterial(grid: StreetGrid): THREE.MeshStandardMaterial {
   const asphalt = streetTexture("/textures/asphalt_col.jpg", true), asphaltN = streetTexture("/textures/asphalt_nrm.jpg", false), asphaltR = streetTexture("/textures/asphalt_rough.jpg", false);
   const pav = streetTexture("/textures/pavers_col.jpg", true), pavN = streetTexture("/textures/pavers_nrm.jpg", false), pavR = streetTexture("/textures/pavers_rough.jpg", false);
   const m = new THREE.MeshStandardMaterial({ color: "#ffffff", roughness: 1, metalness: 0.02, map: asphalt, normalMap: asphaltN, roughnessMap: asphaltR, normalScale: new THREE.Vector2(1, 1), polygonOffset: true, polygonOffsetFactor: -1 });
   if (!asphalt || !pav) return m;
-  const wet = grid.wet ?? 0.35;
-  m.customProgramCacheKey = () => `city-street|${grid.pitch}|${grid.block}|${grid.walk}|${wet}`;
+  if (grid.wet !== undefined) STREET_WET.value = grid.wet;
+  m.customProgramCacheKey = () => `city-street|${grid.pitch}|${grid.block}|${grid.walk}|wet`;
   m.onBeforeCompile = (sh) => {
     sh.uniforms["uPav"] = { value: pav }; sh.uniforms["uPavN"] = { value: pavN }; sh.uniforms["uPavR"] = { value: pavR };
     sh.uniforms["uGrid"] = { value: new THREE.Vector4(grid.cx, grid.cz, grid.pitch, grid.block / 2) };
     sh.uniforms["uWalk"] = { value: grid.walk };
+    sh.uniforms["uWet"] = STREET_WET;
     sh.vertexShader = sh.vertexShader
       .replace("#include <common>", "#include <common>\nvarying vec3 vCityW;")
       .replace("#include <begin_vertex>", "#include <begin_vertex>\nvCityW = (modelMatrix * vec4(transformed, 1.0)).xyz;");
     sh.fragmentShader = sh.fragmentShader
       .replace("#include <common>", `#include <common>
-varying vec3 vCityW; uniform sampler2D uPav; uniform sampler2D uPavN; uniform sampler2D uPavR; uniform vec4 uGrid; uniform float uWalk;
+varying vec3 vCityW; uniform float uWet; uniform sampler2D uPav; uniform sampler2D uPavN; uniform sampler2D uPavR; uniform vec4 uGrid; uniform float uWalk;
 float cityStreet; float cityPaint; vec2 cityPavUv;`)
       .replace("#include <map_fragment>", `#include <map_fragment>
 {
@@ -71,10 +75,11 @@ float cityStreet; float cityPaint; vec2 cityPavUv;`)
   vec3 street = diffuseColor.rgb * asphaltVariation * (1.0 - gutter * 0.35) * (1.0 - patched * 0.075);
   street = mix(street, vec3(0.78, 0.76, 0.7), cityPaint * (1.0 - cross_ * 0.0));
   street = mix(street, vec3(0.85, 0.66, 0.2), centre * 0.0);
-  diffuseColor.rgb = mix(pavers, street, cityStreet);
+  diffuseColor.rgb = mix(pavers, street * (1.0 - uWet * 0.3), cityStreet);
 }`)
       .replace("#include <roughnessmap_fragment>", `#include <roughnessmap_fragment>
-roughnessFactor = mix(texture2D(uPavR, cityPavUv).g, roughnessFactor * ${(1 - wet).toFixed(2)} + ${(wet * 0.25).toFixed(2)}, cityStreet);
+// wet asphalt goes glossy and a little darker (the soaked night streets of the owner's target frames); pavers dampen less
+roughnessFactor = mix(texture2D(uPavR, cityPavUv).g * (1.0 - uWet * 0.35), roughnessFactor * (1.0 - uWet) + uWet * 0.12, cityStreet);
 roughnessFactor = mix(roughnessFactor, 0.6, cityPaint);`)
       .replace("#include <normal_fragment_maps>", `#include <normal_fragment_maps>
 if (cityStreet < 0.5) {

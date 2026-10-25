@@ -51,5 +51,22 @@ export function brokenHorizon(seed = 7): HorizonIsland[] {
       spin: (rnd() - 0.5) * 0.01, bob: 3 + rnd() * 6, phase: rnd() * Math.PI * 2,
     });
   });
+  // the owner's target frame (wilds by day): the sky is full of smaller floating islands at every distance, not just a few on the horizon
+  for (let k = 0, guard = 0; k < 24 && guard < 400; guard++) {
+    const ang = rnd() * Math.PI * 2;
+    const dm = Math.atan2(Math.sin(ang - moon), Math.cos(ang - moon));
+    if (Math.abs(dm) < 0.55) continue;
+    const dist = 620 + rnd() * 720, r = 12 + Math.pow(rnd(), 1.5) * 34;
+    const y = Math.max(150, dist * (0.22 + rnd() * 0.3));
+    if (out.some((o) => Math.hypot(o.x - Math.cos(ang) * dist, o.y - y, o.z - Math.sin(ang) * dist) < (o.r + r) * 1.6)) continue;
+    const towers: HorizonTower[] = [];
+    for (let t = 0, nt = rnd() < 0.6 ? 1 + Math.floor(rnd() * 3) : 0; t < nt; t++) {
+      const rr = Math.sqrt(rnd()) * r * 0.5, ta = rnd() * Math.PI * 2;
+      towers.push({ dx: Math.cos(ta) * rr, dz: Math.sin(ta) * rr, w: 3 + rnd() * r * 0.25, d: 3 + rnd() * r * 0.25, h: 6 + rnd() * r * 0.9, lit: rnd() < 0.4 });
+    }
+    const debris = Array.from({ length: 1 + Math.floor(rnd() * 3) }, () => ({ dx: (rnd() - 0.5) * r, dy: -(r * 0.8 + rnd() * r * 1.5), dz: (rnd() - 0.5) * r, s: 1.5 + rnd() * r * 0.2 }));
+    out.push({ x: Math.cos(ang) * dist, z: Math.sin(ang) * dist, y, r, depth: r * (1.2 + rnd() * 1.1), towers, debris, inverted: false, spin: (rnd() - 0.5) * 0.02, bob: 2 + rnd() * 4, phase: rnd() * Math.PI * 2 });
+    k++;
+  }
   return out;
 }

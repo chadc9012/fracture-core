@@ -245,6 +245,8 @@ import { COMBAT_STANCE_HOLD, combatStance } from "@/game/combat-stance";
 import { weaponDamageMultiplier } from "@/game/inventory";
 import { boomClearance } from "@/game/camera-occlusion";
 import { FractureStorm } from "./FractureStorm";
+import { WetReflections } from "./WetReflections";
+import { SkyTraffic } from "./SkyTraffic";
 
 export type LootView = { name: string; rarity: Rarity; power: number; mods: string[]; color: string };
 
@@ -714,6 +716,8 @@ function SceneImpl({
       impacts: () => { const st = state.current; const kinds = ["ground", "cover", "truck", "machine"] as const; kinds.forEach((k, i) => { const a = st.yaw + (i - 1.5) * 0.25, d = 7; const x = st.x + Math.sin(a) * d, z = st.z + Math.cos(a) * d; logImpact(sim, { x, y: walkHeight(x, z) + (k === "ground" ? 0.3 : 1.2), z, vx: Math.sin(a) * 130, vz: Math.cos(a) * 130 }, k); }); return "ok"; },
       /** which decorative models loaded, are loading or failed (forest-assets.ts), with per-model detail */
       assets: () => ({ summary: getAssetSummary(), details: assetDetails() }),
+      /** force clear weather (true) or hand it back to the cycle (false), for like-for-like screenshots */
+      clear: (on = true) => { devClearSky.current = on; return on; },
       /** set the time of day (0-24 h) and optionally hold it there (frozen) for screenshots */
       time: (hour = 12, freeze = true) => { time.current = (((hour / 24) % 1) + 1) % 1; timeFrozen.current = freeze; return hour; },
       /** third-person (false) or first-person (true) camera */
@@ -863,6 +867,7 @@ function SceneImpl({
   const moon = useRef<THREE.DirectionalLight>(null!);
   const time = useRef(0.36); // 08:38, morning light (the clock: sunrise 06:00, noon 12:00, sunset 18:00)
   const timeFrozen = useRef(false);
+  const devClearSky = useRef(false);
   const camHead = useMemo(() => new THREE.Vector3(), []);
   const sunDir = useRef(new THREE.Vector3(0.4, 0.9, 0.3));
   const carSpeed = useRef(0);
@@ -1399,7 +1404,8 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
     }
     /* ---------------- weather cycle (deterministic fronts per region, see weather-cycle.ts) ---------------- */
     // seasons layer on top of the fronts (environment.ts): same deterministic clock, seasonally-adjusted weather
-    const envSample = environmentAt(here?.id, time.current, night);
+    const envSample0 = environmentAt(here?.id, time.current, night);
+    const envSample = devClearSky.current && envSample0.weather ? { ...envSample0, weather: { ...envSample0.weather, visibility: 1, cloud: 0.1 } } : envSample0;
     const wx = interior ? null : envSample.weather;
     const weather = interior ? "Indoor" : wx!.label;
     weatherKind.current = weather;
@@ -3248,6 +3254,8 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
       <NearOnly playerRef={player} x={NEXUS_REGION.x} z={NEXUS_REGION.z} radius={190 * NEAR_SCALE[settings.renderTier]} name="streets:nexus"><WorldPiece name="nexus streets"><CityStreets city="nexus" tier={settings.renderTier} /></WorldPiece></NearOnly>
       <NearOnly playerRef={player} x={NEON_CITY_CENTER.x} z={NEON_CITY_CENTER.z} radius={240 * NEAR_SCALE[settings.renderTier]} name="streets:neon"><WorldPiece name="neon streets"><CityStreets city="neon" tier={settings.renderTier} /></WorldPiece></NearOnly>
       <WorldPiece name="atlas sites"><SiteMarkers playerRef={player} /></WorldPiece>
+      <WorldPiece name="wet street reflections"><WetReflections /></WorldPiece>
+      <NearOnly playerRef={player} x={(NEXUS_REGION.x + NEON_CITY_CENTER.x) / 2} z={(NEXUS_REGION.z + NEON_CITY_CENTER.z) / 2} radius={1100} name="sky-traffic"><WorldPiece name="sky traffic"><SkyTraffic /></WorldPiece></NearOnly>
       <NearOnly playerRef={player} x={STORM_ISLANDS_CENTER.x} z={STORM_ISLANDS_CENTER.z} radius={1500} name="storm-islands"><WorldPiece name="storm islands"><StormIslands /></WorldPiece></NearOnly>
       <NearOnly playerRef={player} x={NEON_CITY_CENTER.x} z={NEON_CITY_CENTER.z} radius={300 * NEAR_SCALE[settings.renderTier]} name="city:neon"><NeonCity />{gear && <ResidenceGarages city="neon" progression={{ nexLedger: gear.nexLedger ?? {}, housing: gear.housing, fleet: gear.fleet }} />}</NearOnly>
       {(() => { const rg = REGIONS.find((r) => r.id === "frostspire"); return rg ? <NearOnly playerRef={player} x={rg.x} z={rg.z} radius={(rg.radius + 220) * NEAR_SCALE[settings.renderTier]} name="region:frostspire"><FrostspireDressing /></NearOnly> : null; })()}

@@ -124,3 +124,22 @@ The owner sent a sky board (`docs/reference/sky-cycle.png`: morning, noon, sunse
 - Night: a violet/electric-blue nebula along the galactic band with denser stars.
 - Clouds: separate heaped cumulus with cauliflower billows that catch the sun, bright white at noon, fiery at sunset; banks toward the horizon.
 - The Sky Rift is nearly off (`riftK` 0.12): the board has no white tear.
+
+## Target frames pass (Oct 25): "make everything look like these"
+
+Reference: `docs/reference/target-nexus-night.png`, `target-neon-night.png`, `target-wilds-day.png` (in-game frames with the real HUD).
+Supersedes the Oct 24 "gritty, held-back colour" grade direction.
+
+- Grade (`color-grade.ts`): rich cinematic colour everywhere, blue-teal shadows and golden highlights by day; at night shadows sink to
+  deep blue and highlights take the sodium warmth of the street lamps. Neon City keeps the richest grade.
+- Post (`GameCanvas.tsx`): MEDIUM now runs the grade + bloom pass too (SMAA in place of the MSAA the composer loses); bloom is stronger.
+  The adaptive governor still drops the stack when frames suffer.
+- Wet streets (`wet-reflections.ts`, `WetReflections.tsx`, `city-surface.ts` `STREET_WET`): asphalt goes glossy and darker at night and
+  in rain; every street lamp in Nexus and Neon gets a light streak down the road toward the camera (one additive instanced batch).
+- Sky traffic (`sky-traffic.ts`, `SkyTraffic.tsx`): hover cars loop over Nexus, Neon and a corridor between them, above the skyline,
+  with headlights, tail lights and engine glows that bloom.
+- Floating islands (`broken-horizon.ts`): 24 more, smaller islands across the sky at 620–1340 m.
+- Nexus signage (`nexus-signs.ts`, `NexusSigns.tsx`): tall banners and holographic figure screens on the street faces of the hub's towers,
+  cyan light strips up the tall towers' corners; dim by day, overdriven at night so the bloom catches them.
+- Atmosphere (`atmosphere.ts`): city nights are deep blue air instead of violet; the Wastelands by day are clear and warm.
+- Fracture Storm debris: lit rock slabs instead of flat navy blobs.

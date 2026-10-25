@@ -48,8 +48,8 @@ export function FractureStorm({ envRef }: { envRef: React.RefObject<SkyEnv> }) {
   const light = useRef<THREE.PointLight>(null);
   // drifting debris field: one instanced mesh, violet rim glow so the chunks read against the night sky
   const debris = useMemo(() => stormDebris(), []);
-  const rockGeo = useMemo(() => organicRock(1, 77, 1), []);
-  const rockMat = useMemo(() => new THREE.MeshStandardMaterial({ color: "#2b2733", roughness: 0.95, emissive: "#5a2bc0", emissiveIntensity: 0.12, fog: false }), []);
+  const rockGeo = useMemo(() => organicRock(1, 77, 1, 0.38).scale(1, 0.6, 1.3), []); // jagged slabs rather than round pebbles
+  const rockMat = useMemo(() => new THREE.MeshStandardMaterial({ color: "#8a8478", roughness: 0.92, emissive: "#3c3452", emissiveIntensity: 0.3, fog: false, flatShading: true }) /* lit rock with a cool far-away tint (they read as flat navy blobs before) */, []);
   const rocks = useRef<THREE.InstancedMesh>(null);
   const tmp = useMemo(() => new THREE.Object3D(), []);
   useFrame(({ clock, camera }) => {
@@ -63,7 +63,7 @@ export function FractureStorm({ envRef }: { envRef: React.RefObject<SkyEnv> }) {
         tmp.rotation.set(d.tilt + t * d.spin, t * d.spin * 0.7, 0); tmp.scale.setScalar(d.s); tmp.updateMatrix(); m.setMatrixAt(i, tmp.matrix);
       });
       m.instanceMatrix.needsUpdate = true;
-      rockMat.emissiveIntensity = 0.08 + (strike.on ? strike.k * 0.6 : 0) + (env?.night ?? 0) * 0.1;
+      rockMat.emissiveIntensity = 0.3 + (strike.on ? strike.k * 0.6 : 0) + (env?.night ?? 0) * 0.15;
     }
     mat.uniforms["uTime"]!.value = t;
     // from underneath, the lens is a ceiling rather than a storm on the horizon: it fades to a faint tint while the camera is under it
