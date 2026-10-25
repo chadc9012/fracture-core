@@ -19,6 +19,8 @@ import { Model, QuietModel, useModel } from "./Vehicle";
 import { NexusDistricts } from "./NexusDistricts";
 import { ResidentialHomes } from "./ResidentialHomes";
 import { NexusDiner } from "./NexusDiner";
+import { carIsOut } from "@/game/traffic-density";
+import { shopClockHour } from "@/game/shop-hours";
 
 const NEXUS = REGIONS.find((r) => r.id === "nexus")!;
 
@@ -140,7 +142,8 @@ function CityTraffic() {
   const items = useMemo<FleetInstance[]>(() => cars.map((c) => ({ model: c.model, paint: c.paint, x: 0, y: 0, z: 0, yaw: 0 })), [cars]);
   useFrame((_, raw) => { t.current += Math.min(raw, 0.05); });
   const place = (model: FleetModelId, _i: number, o: THREE.Object3D) => {
-    const c = cars.find((k) => k.model === model)!;
+    const idx = cars.findIndex((k) => k.model === model), c = cars[idx]!;
+    if (!carIsOut(idx, cars.length, shopClockHour())) { o.position.set(NEXUS.x, -1000, NEXUS.z); return; } // off the road for the quiet hours (traffic-density.ts)
     const a = c.a + t.current * c.speed;
     const x = NEXUS.x + Math.cos(a) * c.r, z = NEXUS.z + Math.sin(a) * c.r;
     o.position.set(x, walkHeight(x, z), z); o.rotation.set(0, -a, 0);
