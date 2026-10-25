@@ -1,4 +1,5 @@
 import { memo, useMemo } from "react";
+import { Billboard } from "@react-three/drei";
 import { DistrictLight } from "./DistrictLight";
 import * as THREE from "three";
 import { HOME_INTERIORS, HOME_ROOM_SIZE, INTERIOR_ALTITUDE } from "@/game/interiors";
@@ -80,7 +81,7 @@ function Room({ index, roomName, decor, exitRoom, style }: { index: number; room
 
 /** The front door of an owned home, standing in the open world so the player can find it and walk through. */
 /** A glowing door frame where walking in enters a pocket room (doorAt); `label` puts the place's name over it. */
-export function DoorMarker({ x, z, label }: { x: number; z: number; label?: string }) {
+export function DoorMarker({ x, z, label }: { x: number; z: number; label?: string | undefined }) {
   const y = useMemo(() => heightAt(x, z), [x, z]);
   const glow = { color: "#1c2026", emissive: "#7dffca", emissiveIntensity: 0.9 };
   return (
@@ -90,7 +91,8 @@ export function DoorMarker({ x, z, label }: { x: number; z: number; label?: stri
       <mesh position={[0, 2.45, 0]}><boxGeometry args={[2.0, 0.18, 0.18]} /><meshStandardMaterial {...glow} /></mesh>
       <mesh position={[0, 1.2, 0]}><planeGeometry args={[1.6, 2.2]} /><meshBasicMaterial color="#7dffca" transparent opacity={0.16} side={THREE.DoubleSide} /></mesh>
       <mesh rotation-x={-Math.PI / 2} position={[0, 0.05, 0]}><ringGeometry args={[1.3, 1.6, 28]} /><meshBasicMaterial color="#7dffca" transparent opacity={0.55} /></mesh>
-      {label && <Text position={[0, 2.95, 0]} fontSize={0.32} color="#e9fff6" outlineWidth={0.02} outlineColor="#000" anchorX="center" anchorY="middle">{label}</Text>}
+      {/* turned to the viewer: the marker has no facing of its own, so a fixed label read mirrored from behind */}
+      {label && <Billboard position={[0, 2.95, 0]}><Text fontSize={0.32} color="#e9fff6" outlineWidth={0.02} outlineColor="#000" anchorX="center" anchorY="middle">{label}</Text></Billboard>}
     </group>
   );
 }

@@ -46,7 +46,7 @@ export function Interiors() {
       {/* walk-in storefronts: entering is automatic at the door (doorAt), so the doorway has to be visible in the street */}
       {SHOP_INTERIORS.map((it) => <DoorMarker key={`door-${it.id}`} x={it.doorPos.x} z={it.doorPos.z} label={it.name} />)}
       {/* the hand-authored apartments, stores and offices enter the same way, so their doors are marked too (they were invisible triggers) */}
-      {INTERIORS.filter((it) => it.kind !== "HOME" && !it.viaLift && !SHOP_INTERIORS.includes(it)).map((it) => <DoorMarker key={`door-${it.id}`} x={it.doorPos.x} z={it.doorPos.z} label={it.name} />)}
+      {INTERIORS.filter((it) => it.kind !== "HOME" && !it.viaLift && !SHOP_INTERIORS.includes(it)).map((it) => <DoorMarker key={`door-${it.id}`} x={it.doorPos.x} z={it.doorPos.z} label={it.kind === "VENUE" ? undefined : it.name} />)}
       {INTERIORS.filter((i) => i.kind !== "HOME").map((interior) => (
         <group key={interior.id} position={[interior.origin.x, INTERIOR_ALTITUDE, interior.origin.z]}>
           {/* floor */}
