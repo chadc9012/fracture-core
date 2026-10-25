@@ -8,6 +8,19 @@ import * as THREE from "three";
 import { applyWorldTriplanar, weatheredConcreteTexture } from "@/game/weathered-surface";
 import { DistrictLight } from "./DistrictLight";
 import { ShopSign, LightBar } from "./DistrictStreet";
+import { chippedBlock } from "@/game/organic-geometry";
+import { corrugatedSheet, rollerShutter } from "@/game/street-geometry";
+
+/** window-shop facade parts, built once per size (there are only a couple of sizes) */
+const wfCache = new Map<string, THREE.BufferGeometry>();
+const wfGeo = (key: string, make: () => THREE.BufferGeometry) => { let g = wfCache.get(key); if (!g) { g = make(); wfCache.set(key, g); } return g; };
+const WF = {
+  pillar: (h: number) => wfGeo(`p${h}`, () => chippedBlock(1.2, h, 0.3, 5)),
+  header: (w: number) => wfGeo(`h${w}`, () => chippedBlock(w, 1, 0.3, 8)),
+  shutter: (w: number) => wfGeo(`s${w}`, () => rollerShutter(w - 2.4, 0.55)),
+  kick: (w: number) => wfGeo(`k${w}`, () => corrugatedSheet(w - 2, 1.05)),
+  awning: (w: number) => wfGeo(`a${w}`, () => corrugatedSheet(w - 1.2, 1.8, 0.12, 0.04)),
+};
 
 export const KIND_COLOR: Record<ShopKind, string> = {
   weapons: "#ff7a3c", armor: "#66e0ff", supplies: "#8fe08a", mods: "#c86bff", gunsmith: "#ffd27a", vehicles: "#e8f4ff", blackmarket: "#ff3aa0",
@@ -63,16 +76,22 @@ function WindowFront({ shop, y }: { shop: RegionalShop; y: number }) {
   const color = KIND_COLOR[shop.kind];
   return (
     <group position={[shop.x, y, shop.z]}>
-      {/* facade: two pillars, a header and a sill leave the service window open */}
+      {/* facade: chipped concrete pillars and header around the service window, a half-raised roller shutter, a steel
+          counter with a corrugated kick panel and a corrugated tin awning on brackets (street-geometry shopfront kit) */}
       {[-1, 1].map((s) => (
-        <mesh key={s} position={[s * (w / 2 - 0.6), h / 2, 0]} castShadow receiveShadow material={shellMaterial()}><boxGeometry args={[1.2, h, 0.3]} /></mesh>
+        <mesh key={s} position={[s * (w / 2 - 0.6), h / 2, 0]} castShadow receiveShadow material={shellMaterial()} geometry={WF.pillar(h)} />
       ))}
-      <mesh position={[0, h - 0.5, 0]} castShadow material={shellMaterial()}><boxGeometry args={[w, 1, 0.3]} /></mesh>
+      <mesh position={[0, h - 0.5, 0]} castShadow material={shellMaterial()} geometry={WF.header(w)} />
+      <mesh position={[0, h - 1.05, 0.06]} castShadow geometry={WF.shutter(w)}><meshStandardMaterial color="#5d6066" metalness={0.55} roughness={0.6} /></mesh>
       <mesh position={[0, 1.0, 0]}><boxGeometry args={[w - 2.4, 0.5, 0.35]} /><meshStandardMaterial color="#39424f" metalness={0.6} roughness={0.4} /></mesh>
       <mesh position={[0, 2.05, 0]}><planeGeometry args={[w - 2.4, 1.6]} /><meshBasicMaterial color={color} transparent opacity={0.18} side={2} depthWrite={false} /></mesh>
-      {/* counter to browse from, awning over it */}
-      <mesh position={[0, 0.55, 1.1]} castShadow receiveShadow><boxGeometry args={[w - 2, 1.1, 0.9]} /><meshStandardMaterial color="#2d3744" metalness={0.5} roughness={0.5} /></mesh>
-      <mesh position={[0, 3.0, 0.9]} rotation-x={0.18}><boxGeometry args={[w - 1.2, 0.08, 1.8]} /><meshStandardMaterial color="#39424f" roughness={0.8} /></mesh>
+      {/* counter to browse from: steel top with a lip, corrugated front */}
+      <mesh position={[0, 1.08, 1.1]} castShadow receiveShadow><boxGeometry args={[w - 1.9, 0.06, 1.0]} /><meshStandardMaterial color="#4a5058" metalness={0.7} roughness={0.38} /></mesh>
+      <mesh position={[0, 0.53, 1.58]} rotation-x={Math.PI / 2} castShadow geometry={WF.kick(w)}><meshStandardMaterial color="#2d3744" metalness={0.5} roughness={0.55} side={THREE.DoubleSide} /></mesh>
+      <mesh position={[0, 0.53, 0.68]}><boxGeometry args={[w - 2, 1.05, 0.06]} /><meshStandardMaterial color="#232a33" metalness={0.4} roughness={0.7} /></mesh>
+      {/* awning: corrugated tin on two angle brackets */}
+      <mesh position={[0, 3.0, 0.95]} rotation-x={0.18} castShadow geometry={WF.awning(w)}><meshStandardMaterial color="#6b6a63" metalness={0.5} roughness={0.75} side={THREE.DoubleSide} /></mesh>
+      {[-1, 1].map((s) => <mesh key={`br${s}`} position={[s * (w / 2 - 0.9), 2.85, 0.75]} rotation-x={-0.7}><boxGeometry args={[0.05, 0.05, 1.1]} /><meshStandardMaterial color="#2e3238" metalness={0.6} roughness={0.5} /></mesh>)}
       <LightBar position={[0, 2.86, 1.5]} size={[w - 1.6, 0.06, 0.08]} color={color} />
       <ShopSign label={shop.name.toUpperCase()} color={color} position={[0, h + 0.75, 0.2]} />
       <DistrictLight range={40} position={[0, 2.6, 1.4]} color={color} intensity={3.5} distance={7} decay={2} />

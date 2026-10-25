@@ -109,3 +109,26 @@ export function latticePylon(h = 18): THREE.BufferGeometry {
   for (const x of [-3.5, 0, 3.5]) for (let d = 0; d < 4; d++) parts.push(new THREE.CylinderGeometry(0.11, 0.11, 0.05, 8).translate(x, ya - 0.25 - d * 0.14, 0));
   return mergeGeometries(parts.map(clean))!;
 }
+
+/* ---------------- shopfront kit (Storefronts window shops) ---------------- */
+
+/** corrugated sheet in metres, w wide (X) and d deep (Z), centred, ribs running along Z; thickness is the wave */
+export function corrugatedSheet(w: number, d: number, pitch = 0.08, depth = 0.025): THREE.BufferGeometry {
+  const n = Math.max(4, Math.round(w / pitch) * 2);
+  const g = new THREE.PlaneGeometry(w, d, n, 1).rotateX(-Math.PI / 2);
+  const p = g.attributes["position"] as THREE.BufferAttribute;
+  for (let i = 0; i < p.count; i++) p.setY(i, Math.sin((p.getX(i) / pitch) * Math.PI * 2) * depth * 0.5);
+  g.computeVertexNormals();
+  return clean(g);
+}
+
+/** a roller shutter in metres, w wide, rolled down to height h below its drum: horizontal slats, a drum box on top
+ * and two guide rails. Origin at the top centre (drum), hanging down -Y, facing +Z. */
+export function rollerShutter(w: number, h: number): THREE.BufferGeometry {
+  const parts: THREE.BufferGeometry[] = [new THREE.BoxGeometry(w + 0.2, 0.32, 0.34).translate(0, 0, 0.02)];
+  const slats = Math.max(2, Math.round(h / 0.09));
+  for (let i = 0; i < slats; i++) parts.push(new THREE.BoxGeometry(w, 0.075, 0.03).translate(0, -0.2 - i * 0.09, 0.05 + (i % 2) * 0.006));
+  parts.push(new THREE.BoxGeometry(w, 0.05, 0.06).translate(0, -0.2 - slats * 0.09, 0.05)); // bottom bar
+  for (const s of [-1, 1]) parts.push(new THREE.BoxGeometry(0.07, h + 0.3, 0.09).translate(s * (w / 2 + 0.04), -0.15 - h / 2, 0.05));
+  return mergeGeometries(parts.map(clean))!;
+}
