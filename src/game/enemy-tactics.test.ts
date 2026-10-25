@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, spyOn, test } from "bun:test";
 import { findFlankSpot, GRENADE, grenadeDamage, lobVelocity, stepGrenade, throwsGrenades, beepEvery, type Grenade } from "./enemy-tactics";
 import { canSee } from "./line-of-sight";
 import { createSim, stepSim, type Machine } from "./sim";
@@ -52,7 +52,19 @@ describe("tactics rules", () => {
 
 describe("a squad against a player hiding behind a wall", () => {
   const PX = -240, PZ = -230;
+  // grenade aim and hit rolls use Math.random: seed it so these runs are repeatable
+  const seeded = <T,>(seed: number, fn: () => T): T => {
+    const real = Math.random; let x = seed >>> 0 || 1;
+    Math.random = () => { x ^= x << 13; x >>>= 0; x ^= x >>> 17; x ^= x << 5; x >>>= 0; return x / 4294967296; };
+    try { return fn(); } finally { Math.random = real; }
+  };
+  // the sim's cooldowns (grenade, flank) read performance.now(): give it a clock that advances with the steps, not the wall
   function fight(kind: "RAIDER" | "OVERCLOCKED", seconds: number) {
+    const spy = spyOn(performance, "now").mockImplementation(() => clock * 1000);
+    try { return seeded(4242, () => fightUnseeded(kind, seconds)); } finally { spy.mockRestore(); }
+  }
+  let clock = 1000;
+  function fightUnseeded(kind: "RAIDER" | "OVERCLOCKED", seconds: number) {
     const sim = createSim();
     for (const t of sim.trucks) t.alive = false;
     for (const o of sim.machines) o.alive = false;
@@ -71,6 +83,7 @@ describe("a squad against a player hiding behind a wall", () => {
     try {
       for (let f = 0; f < 60 * seconds; f++) {
         const hp0 = sim.hp;
+        clock += 1 / 60;
         stepSim(sim, { px: PX, pz: PZ, dt: 1 / 60, night: 0, inVehicle: false, yaw: 0, py: eye.y, pspeed: 0, stance: "STAND" });
         hpLost += Math.max(0, hp0 - sim.hp); sim.hp = 100;
         for (const g of sim.grenades) { if (!seen.has(g.id)) { seen.add(g.id); thrown++; } if (g.rest && Math.hypot(g.x - PX, g.z - PZ) < 5) landedNear++; }
