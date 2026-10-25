@@ -763,8 +763,9 @@ namespace
 		bool Blocked(double X, double Z) const override
 		{
 			// obstacles.ts: a solid body within ~1 m of the ground point at the Operator's height
+			// probe 50 cm above the capsule centre so the floor itself never counts; only world geometry (not pawns) blocks
 			FCollisionQueryParams Params(SCENE_QUERY_STAT(WFAbilityDash), false, Self);
-			return World->OverlapAnyTestByChannel(FVector(X * CmPerMeter, Z * CmPerMeter, GroundZ), FQuat::Identity, ECC_WorldStatic, FCollisionShape::MakeSphere(100.f), Params);
+			return World->OverlapAnyTestByObjectType(FVector(X * CmPerMeter, Z * CmPerMeter, GroundZ + 50.0), FQuat::Identity, FCollisionObjectQueryParams(ECC_WorldStatic), FCollisionShape::MakeSphere(100.f), Params);
 		}
 		void BossPoise(std::vector<wf::ability::FMachine>&, size_t I, double Amount) override
 		{
@@ -837,9 +838,9 @@ void AWFCharacter::CastClassAbility(const char* Slot)
 		if (AController* C = GetController())
 			if (R.Pose.Yaw != RulesYaw(GetControlRotation().Yaw)) { FRotator Rot = C->GetControlRotation(); Rot.Yaw = static_cast<float>(90.0 - FMath::RadiansToDegrees(R.Pose.Yaw)); C->SetControlRotation(Rot); }
 	}
-	const FLinearColor Cyan(0.45f, 0.9f, 1.f), WarnColor(1.f, 0.55f, 0.3f);
-	if (!R.bOk) Notify(WFData::ToF(R.Text), WarnColor);
-	else for (const FString& A : World.Bodies.Alerts) Notify(A, Cyan);
+	const FLinearColor AbilityCyan(0.45f, 0.9f, 1.f), AbilityWarn(1.f, 0.55f, 0.3f);
+	if (!R.bOk) Notify(WFData::ToF(R.Text), AbilityWarn);
+	else for (const FString& A : World.Bodies.Alerts) Notify(A, AbilityCyan);
 }
 
 void AWFCharacter::TickAbilities(float DeltaSeconds)

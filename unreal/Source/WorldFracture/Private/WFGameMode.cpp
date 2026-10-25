@@ -446,7 +446,9 @@ void AWFGameMode::TickRace(float DeltaSeconds)
 		if (Racing->TakeRecovery(RX, RZ))
 		{
 			const double Z = GroundZ(RX * RaceCmPerM, RZ * RaceCmPerM, Pawn->GetActorLocation().Z) + (Vehicle ? 120.0 : 100.0);
-			Pawn->SetActorLocation(FVector(RX * RaceCmPerM, RZ * RaceCmPerM, Z), false, nullptr, ETeleportType::TeleportPhysics);
+			const FVector At(RX * RaceCmPerM, RZ * RaceCmPerM, Z);
+			if (AWFVehicle* Car = Cast<AWFVehicle>(Pawn)) Car->Recover(At);
+			else Pawn->SetActorLocation(At, false, nullptr, ETeleportType::TeleportPhysics);
 		}
 		if (const wf::race::FRun* Run = Racing->ActiveRun())
 		{

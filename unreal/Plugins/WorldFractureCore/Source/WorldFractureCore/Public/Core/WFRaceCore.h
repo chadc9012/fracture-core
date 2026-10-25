@@ -65,7 +65,7 @@ namespace wf::race
 	{
 		std::vector<FRaceDef> Races; // RACES order (racingScore iterates it)
 		std::vector<FChampionship> Championships;
-		const FRaceDef* Find(const std::string& Id) const;
+		WORLDFRACTURECORE_API const FRaceDef* Find(const std::string& Id) const;
 	};
 
 	inline constexpr double CountdownS = 3, StartRadius = 30;

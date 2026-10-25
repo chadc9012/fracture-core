@@ -464,3 +464,12 @@ void AWFVehicle::Detonate(const wf::vweapons::FBurst& Burst)
 	}
 	DrawDebugSphere(World, FVector(Burst.X * VehCmPerM, Burst.Z * VehCmPerM, Burst.Y * VehCmPerM), static_cast<float>(Burst.Radius * VehCmPerM), 16, FColor(255, 120, 40), false, 0.4f, 0, 4.f);
 }
+
+void AWFVehicle::Recover(const FVector& At)
+{
+	// the handling state owns height and speed, so reset it as well as the actor (racing.ts recovery)
+	State.Y = At.Z / VehCmPerM;
+	State.Speed = 0;
+	State.Vy = 0;
+	SetActorLocation(At, false, nullptr, ETeleportType::TeleportPhysics);
+}

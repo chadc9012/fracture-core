@@ -63,6 +63,8 @@ public:
 	/** Hardpoints (vehicle-weapons.ts armamentFor for this vehicle's handling class) and the shared weapon heat. */
 	const wf::vweapons::FArmament& GetArmament() const { return Armament; }
 	const wf::vweapons::FHeat& GetHeat() const { return Heat; }
+	/** Race recovery: puts the vehicle at a point (cm), stopped, facing as it was. */
+	void Recover(const FVector& At);
 	bool AreWeaponsDisabled() const { return wf::vweapons::WeaponsDisabled(Condition.Body); }
 
 	/** World water surface in metres for boats and the sub (no water in the prototype map). */
