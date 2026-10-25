@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "Core/WFVehicleCore.h"
+#include "Core/WFVehicleWeaponsCore.h"
 #include "GameFramework/Pawn.h"
 #include "WFVehicle.generated.h"
 
@@ -59,6 +60,11 @@ public:
 	const wf::vehicle::FCondition& GetCondition() const { return Condition; }
 	const wf::vehicle::FProfile& GetProfile() const { return *Profile; }
 
+	/** Hardpoints (vehicle-weapons.ts armamentFor for this vehicle's handling class) and the shared weapon heat. */
+	const wf::vweapons::FArmament& GetArmament() const { return Armament; }
+	const wf::vweapons::FHeat& GetHeat() const { return Heat; }
+	bool AreWeaponsDisabled() const { return wf::vweapons::WeaponsDisabled(Condition.Body); }
+
 	/** World water surface in metres for boats and the sub (no water in the prototype map). */
 	UPROPERTY(EditAnywhere, Category = "World Fracture") float WaterLevelMeters = -100000.f;
 
@@ -72,13 +78,29 @@ private:
 	void BuildInput();
 	void Exit(const FInputActionValue& Value);
 	void Notify(const FString& Text, const FLinearColor& Color) const;
+	// weapons (ported vehicle-weapons.ts / ordnance.ts; rounds fly and hit in TickProjectiles)
+	wf::vweapons::FPose WeaponPose() const;
+	void TickWeapons(double Dt);
+	void TickProjectiles(double Dt);
+	void Detonate(const wf::vweapons::FBurst& Burst);
+	double GroundMeters(double X, double Z, double FallbackM) const;
 
 	FWFVehicleDef Def;
 	const wf::vehicle::FProfile* Profile = &wf::vehicle::ProfileFor("OFFROAD");
 	wf::vehicle::FState State;
 	wf::vehicle::FCondition Condition;
 	TWeakObjectPtr<AWFCharacter> Driver;
+	TWeakObjectPtr<AWFCharacter> Gunner; // the last driver: rounds still in flight pay their kills to them
 	double SkidNoticeAt = -10;
+
+	wf::vweapons::FArmament Armament;
+	wf::vweapons::FFireState Fire;
+	wf::vweapons::FHeat Heat;
+	bool bTrigger = false, bSecondaryTrigger = false;
+	double AimYaw = 0, AimPitch = 0; // camera look relative to the nose (rules radians): turrets follow it
+	TArray<wf::vweapons::FBullet> Bullets;
+	struct FLiveRound { wf::vweapons::FRound Round; TWeakObjectPtr<AActor> Target; };
+	TArray<FLiveRound> Rounds;
 
 	UPROPERTY() TObjectPtr<UInputMappingContext> Mapping;
 	UPROPERTY() TObjectPtr<UInputAction> ThrottleAction;
@@ -88,6 +110,9 @@ private:
 	UPROPERTY() TObjectPtr<UInputAction> DescendAction;
 	UPROPERTY() TObjectPtr<UInputAction> HandbrakeAction;
 	UPROPERTY() TObjectPtr<UInputAction> BoostAction;
+	UPROPERTY() TObjectPtr<UInputAction> FireAction;
+	UPROPERTY() TObjectPtr<UInputAction> SecondaryAction;
+	UPROPERTY() TObjectPtr<UInputAction> LookAction;
 	UPROPERTY() TObjectPtr<UInputAction> ExitAction;
 	wf::vehicle::FInput Input;
 };

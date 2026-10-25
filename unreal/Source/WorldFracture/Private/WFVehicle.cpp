@@ -22,6 +22,10 @@
 #include "WFHUD.h"
 #include "WFProgressionSubsystem.h"
 #include "WFRaceSubsystem.h"
+#include "WFEnemy.h"
+#include "WFWeapons.h"
+#include "DrawDebugHelpers.h"
+#include "EngineUtils.h"
 
 #include <cmath>
 
@@ -96,6 +100,7 @@ void AWFVehicle::Configure(const FWFVehicleDef& InDef, const wf::vehicle::FCondi
 	Def = InDef;
 	Condition = InCondition;
 	Profile = &wf::vehicle::HandlingFor(WFData::ToStd(Def.Id), WFData::ToStd(Def.Domain));
+	Armament = wf::vweapons::ArmamentFor(WFData::ToStd(Def.Id), Profile->Kind); // no fleet builds in the prototype garage
 	const float R = static_cast<float>(Def.CollisionRadius * VehCmPerM);
 	Box->SetBoxExtent(FVector(R, R * 0.45f, 80.f));
 	double Distance = 14, Height = 5;
@@ -133,12 +138,18 @@ void AWFVehicle::Enter(AWFCharacter* InDriver)
 	APlayerController* PC = InDriver ? Cast<APlayerController>(InDriver->GetController()) : nullptr;
 	if (!PC) return;
 	Driver = InDriver;
+	Gunner = InDriver;
 	InDriver->SetInVehicle(true);
 	InDriver->SetActorHiddenInGame(true);
 	InDriver->SetActorEnableCollision(false);
 	InDriver->AttachToActor(this, FAttachmentTransformRules::KeepWorldTransform);
 	PC->Possess(this);
 	Notify(FString::Printf(TEXT("%s - W/S drive, A/D steer, Space handbrake, Shift boost%s, E exit"), *Def.Name, Profile->Mode == "AIR" ? TEXT(", C/Z climb") : Profile->Kind == "SUB" ? TEXT(", C/Z surface / dive") : TEXT("")), FLinearColor(0.45f, 0.9f, 1.f));
+	if (Armament.Primary || Armament.Secondary || Armament.SecondaryGun)
+	{
+		const FString Rmb = Armament.SecondaryGun ? WFData::ToF(Armament.SecondaryGun->Name) : Armament.Secondary ? WFData::ToF(Armament.Secondary->Name) : FString();
+		Notify(FString::Printf(TEXT("LMB %s%s%s - mouse aims"), Armament.Primary ? *WFData::ToF(Armament.Primary->Name) : TEXT("-"), Rmb.IsEmpty() ? TEXT("") : TEXT("   RMB "), *Rmb), FLinearColor(1.f, 0.82f, 0.35f));
+	}
 }
 
 void AWFVehicle::BuildInput()
@@ -153,6 +164,9 @@ void AWFVehicle::BuildInput()
 	HandbrakeAction = Make(EInputActionValueType::Boolean);
 	BoostAction = Make(EInputActionValueType::Boolean);
 	ExitAction = Make(EInputActionValueType::Boolean);
+	FireAction = Make(EInputActionValueType::Boolean);
+	SecondaryAction = Make(EInputActionValueType::Boolean);
+	LookAction = Make(EInputActionValueType::Axis2D);
 	Mapping->MapKey(ThrottleAction, EKeys::W);
 	Mapping->MapKey(BrakeAction, EKeys::S);
 	Mapping->MapKey(SteerAction, EKeys::A); // steer = left - right (vehicle-handling.ts)
@@ -163,6 +177,9 @@ void AWFVehicle::BuildInput()
 	Mapping->MapKey(HandbrakeAction, EKeys::SpaceBar);
 	Mapping->MapKey(BoostAction, EKeys::LeftShift);
 	Mapping->MapKey(ExitAction, EKeys::E);
+	Mapping->MapKey(FireAction, EKeys::LeftMouseButton);
+	Mapping->MapKey(SecondaryAction, EKeys::RightMouseButton);
+	Mapping->MapKey(LookAction, EKeys::Mouse2D);
 }
 
 void AWFVehicle::PawnClientRestart()
@@ -198,6 +215,16 @@ void AWFVehicle::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent
 	In->BindActionValueLambda(BoostAction, ETriggerEvent::Triggered, [this](const FInputActionValue&) { Input.bBoost = true; });
 	In->BindActionValueLambda(BoostAction, ETriggerEvent::Completed, [this](const FInputActionValue&) { Input.bBoost = false; });
 	In->BindAction(ExitAction, ETriggerEvent::Started, this, &AWFVehicle::Exit);
+	In->BindActionValueLambda(FireAction, ETriggerEvent::Triggered, [this](const FInputActionValue&) { bTrigger = true; });
+	In->BindActionValueLambda(FireAction, ETriggerEvent::Completed, [this](const FInputActionValue&) { bTrigger = false; });
+	In->BindActionValueLambda(SecondaryAction, ETriggerEvent::Triggered, [this](const FInputActionValue&) { bSecondaryTrigger = true; });
+	In->BindActionValueLambda(SecondaryAction, ETriggerEvent::Completed, [this](const FInputActionValue&) { bSecondaryTrigger = false; });
+	In->BindActionValueLambda(LookAction, ETriggerEvent::Triggered, [this](const FInputActionValue& V) {
+		const FVector2D L = V.Get<FVector2D>();
+		// rules yaw turns the other way from Unreal yaw: mouse right lowers it
+		AimYaw = FMath::UnwindRadians(AimYaw - L.X * 0.0035);
+		AimPitch = FMath::Clamp(AimPitch + L.Y * 0.0035, -0.6, 0.8);
+	});
 }
 
 void AWFVehicle::Exit(const FInputActionValue& Value)
@@ -209,6 +236,7 @@ void AWFVehicle::Exit(const FInputActionValue& Value)
 	const wf::vehicle::FExitCheck Check = wf::vehicle::CanExitVehicle(*Profile, State, bDeepWater && GetActorLocation().Z / VehCmPerM < WaterLevelMeters + 2);
 	if (!Check.bOk) { Notify(WFData::ToF(Check.Reason), FLinearColor(1.f, 0.55f, 0.3f)); return; }
 	Input = {};
+	bTrigger = bSecondaryTrigger = false;
 	D->DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
 	D->SetActorLocation(GetActorLocation() - GetActorRightVector() * (Box->GetUnscaledBoxExtent().Y + 120.f) + FVector(0, 0, 60), false, nullptr, ETeleportType::TeleportPhysics);
 	D->SetActorHiddenInGame(false);
@@ -223,8 +251,10 @@ void AWFVehicle::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
 	UWorld* World = GetWorld();
-	if (!Driver.IsValid() || !World) return; // parked
 	const double Dt = FMath::Min(static_cast<double>(DeltaSeconds), 0.1);
+	if (World) TickProjectiles(Dt); // rounds already fired keep flying after the driver gets out
+	if (wf::vweapons::CoolHeat(Heat, Dt)) Notify(TEXT("Weapon cooled - ready"), FLinearColor(0.45f, 0.9f, 1.f));
+	if (!Driver.IsValid() || !World) return; // parked
 	const FVector Loc = GetActorLocation();
 
 	// ground under the vehicle
@@ -281,4 +311,156 @@ void AWFVehicle::Tick(float DeltaSeconds)
 	}
 	SetActorRotation(FRotator(static_cast<float>(FMath::RadiansToDegrees(State.Pitch)), static_cast<float>(90.0 - FMath::RadiansToDegrees(State.Yaw)), static_cast<float>(FMath::RadiansToDegrees(-State.Roll))));
 	if (UWFProgressionSubsystem* P = GetGameInstance()->GetSubsystem<UWFProgressionSubsystem>()) P->MutableGarage().Conditions[WFData::ToStd(Def.Id)] = Condition;
+	Arm->SetRelativeRotation(FRotator(FMath::RadiansToDegrees(AimPitch), -FMath::RadiansToDegrees(AimYaw), 0.0)); // the camera looks where the turret aims
+	TickWeapons(Dt);
+}
+
+// --- weapons (vehicle-weapons.ts, ordnance.ts, sim.ts fireBullet / fireOrdnance) ---------------------------------------
+
+namespace
+{
+	/** rules metres (x, y up, z) to Unreal centimetres: rules (x, z) are Unreal (X, Y) */
+	FVector VehToUe(const wf::vweapons::FVec& V) { return FVector(V.X * VehCmPerM, V.Z * VehCmPerM, V.Y * VehCmPerM); }
+	wf::vweapons::FVec VehToRules(const FVector& V) { return {V.X / VehCmPerM, V.Z / VehCmPerM, V.Y / VehCmPerM}; }
+}
+
+double AWFVehicle::GroundMeters(double X, double Z, double FallbackM) const
+{
+	FHitResult Hit;
+	FCollisionQueryParams Params(SCENE_QUERY_STAT(WFVehicleRoundGround), false, this);
+	if (Gunner.IsValid()) Params.AddIgnoredActor(Gunner.Get());
+	const FVector At(X * VehCmPerM, Z * VehCmPerM, FallbackM * VehCmPerM);
+	if (GetWorld()->LineTraceSingleByChannel(Hit, At + FVector(0, 0, 20000), At - FVector(0, 0, 50000), ECC_WorldStatic, Params)) return Hit.ImpactPoint.Z / VehCmPerM;
+	return -1e9; // no ground below: never a ground burst
+}
+
+wf::vweapons::FPose AWFVehicle::WeaponPose() const
+{
+	// muzzle offsets are measured from the vehicle's ground-level origin (Scene.tsx pose y = eye - 1.9)
+	const FVector L = GetActorLocation();
+	return {L.X / VehCmPerM, L.Z / VehCmPerM - Box->GetUnscaledBoxExtent().Z / VehCmPerM, L.Y / VehCmPerM, State.Yaw, State.Pitch, State.Roll};
+}
+
+void AWFVehicle::TickWeapons(double Dt)
+{
+	using namespace wf::vweapons;
+	const bool bBlocked = Heat.bOverheated || AreWeaponsDisabled(); // Scene.tsx: !sim.overheated && !weaponsDisabled
+	const std::vector<FShot> Shots = StepFire(Armament, Fire, bTrigger, bSecondaryTrigger, Dt, 1.0, bBlocked);
+	if (Shots.empty()) return;
+	const FPose Pose = WeaponPose();
+	const bool bAir = Profile->Mode == "AIR";
+	const FVec Carry = VehicleVelocity(State.Yaw, State.Speed, bAir || Profile->Mode == "WATER" ? State.Vy : 0);
+	const double CamYaw = State.Yaw + AimYaw, CamPitch = AimPitch;
+	// lock candidates (sim.machines): live enemies, in rules metres
+	std::vector<FCandidate> Cands;
+	TArray<AWFEnemy*> Enemies;
+	for (TActorIterator<AWFEnemy> It(GetWorld()); It; ++It)
+	{
+		const FVector P = It->GetActorLocation();
+		Cands.push_back({P.X / VehCmPerM, P.Y / VehCmPerM, !It->IsDead()});
+		Enemies.Add(*It);
+	}
+	auto Launch = [&](const FOrdnanceDef& D, const FVec& From, double Yaw, double Pitch, double Damage, double Knock) {
+		if (Heat.bOverheated) return false; // fireOrdnance refuses while venting
+		if (AddHeat(Heat, OrdnanceHeat(D))) Notify(TEXT("WEAPON OVERHEAT - venting"), FLinearColor(1.f, 0.3f, 0.25f));
+		FLiveRound R;
+		R.Round = LaunchOrdnance(D, From, Yaw, Pitch, Damage, FMath::Max(0.0, State.Speed), Knock, Cands);
+		if (R.Round.Target >= 0) R.Target = Enemies[R.Round.Target];
+		Rounds.Add(R);
+		return true;
+	};
+	for (const FShot& Shot : Shots)
+	{
+		const FVec Muzzle = VehiclePoint(Pose, Shot.Muzzle);
+		if (Shot.Slot == "ORDNANCE")
+		{
+			const FOrdnanceMount& Sec = *Armament.Secondary;
+			const FOrdnanceDef* D = OrdnanceById(Sec.Ordnance);
+			const FAim A = AimFor(Sec.Mount, Pose, CamYaw, CamPitch, 0.25, Muzzle, 0);
+			if (D && Launch(*D, Muzzle, A.Yaw + (FMath::FRand() - 0.5) * 0.02, A.Pitch + (FMath::FRand() - 0.5) * 0.02, Sec.Damage * WFWeapons::BaseBulletDamage, 2))
+				DrawDebugSphere(GetWorld(), VehToUe(Muzzle), 60.f, 8, FColor(255, 180, 80), false, 0.08f);
+			continue;
+		}
+		const FGun& G = Shot.Slot == "PRIMARY" ? *Armament.Primary : *Armament.SecondaryGun;
+		const FAim A = AimFor(G.Mount, Pose, CamYaw, CamPitch, G.PitchAssist, Muzzle, G.Converge);
+		const double Jy = (FMath::FRand() - 0.5) * 2 * G.Spread, Jp = (FMath::FRand() - 0.5) * 2 * G.Spread;
+		const double Dmg = G.Damage * WFWeapons::BaseBulletDamage;
+		if (G.Shell) { Launch(CannonShell(G), Muzzle, A.Yaw + Jy, A.Pitch + Jp, Dmg, G.Knock); continue; } // a cannon shell is ordnance
+		if (Heat.bOverheated) continue; // fireBullet refuses while venting
+		if (AddHeat(Heat, BulletHeat(G.Heat))) Notify(TEXT("WEAPON OVERHEAT - venting"), FLinearColor(1.f, 0.3f, 0.25f));
+		Bullets.Add(MakeBullet(Muzzle, A.Yaw + Jy, A.Pitch + Jp, G.Speed, Carry, Dmg, G.Knock));
+	}
+}
+
+void AWFVehicle::TickProjectiles(double Dt)
+{
+	using namespace wf::vweapons;
+	UWorld* World = GetWorld();
+	FCollisionQueryParams Params(SCENE_QUERY_STAT(WFVehicleRounds), false, this);
+	if (Gunner.IsValid()) Params.AddIgnoredActor(Gunner.Get());
+	AActor* Shooter = Gunner.IsValid() ? static_cast<AActor*>(Gunner.Get()) : this;
+	// bullets: straight lines at muzzle + inherited velocity, a reach of 1.4 s (more for fast guns)
+	for (int32 I = Bullets.Num() - 1; I >= 0; --I)
+	{
+		FBullet& B = Bullets[I];
+		const FVector From = VehToUe(B.Pos);
+		B.Pos = {B.Pos.X + B.Vel.X * Dt, B.Pos.Y + B.Vel.Y * Dt, B.Pos.Z + B.Vel.Z * Dt};
+		B.Life -= Dt;
+		const FVector To = VehToUe(B.Pos);
+		FHitResult Hit;
+		if (World->LineTraceSingleByChannel(Hit, From, To, ECC_Visibility, Params))
+		{
+			if (AWFEnemy* Enemy = Cast<AWFEnemy>(Hit.GetActor())) Enemy->TakeHit(B.Damage, Shooter);
+			DrawDebugLine(World, From, Hit.ImpactPoint, FColor(255, 220, 140), false, 0.f, 0, 3.f);
+			Bullets.RemoveAtSwap(I);
+			continue;
+		}
+		DrawDebugLine(World, From, To, FColor(255, 220, 140), false, 0.f, 0, 2.f);
+		if (B.Life <= 0) Bullets.RemoveAtSwap(I);
+	}
+	// rockets, missiles, torpedoes and shells (ordnance.ts stepRound + sim.ts's body and machine proximity checks)
+	for (int32 I = Rounds.Num() - 1; I >= 0; --I)
+	{
+		FLiveRound& L = Rounds[I];
+		FRound& R = L.Round;
+		std::optional<FVec> Target;
+		if (const AWFEnemy* T = Cast<AWFEnemy>(L.Target.Get()))
+			if (!T->IsDead()) { const FVec P = VehToRules(T->GetActorLocation()); Target = FVec{P.X, P.Y + 0.1, P.Z}; } // actor origin is mid-body (sim: feet + 1 m)
+		const FVector From(R.X * VehCmPerM, R.Z * VehCmPerM, R.Y * VehCmPerM);
+		std::optional<FBurst> Burst = StepRound(R, Dt, Target, [this, &R](double X, double Z) { return GroundMeters(X, Z, R.Y); });
+		const FVector To(R.X * VehCmPerM, R.Z * VehCmPerM, R.Y * VehCmPerM);
+		FHitResult Hit;
+		if (!Burst && World->LineTraceSingleByChannel(Hit, From, To, ECC_Visibility, Params))
+		{
+			const FVec P = VehToRules(Hit.ImpactPoint);
+			R.bAlive = false;
+			Burst = FBurst{P.X, P.Y, P.Z, R.Def.SplashRadius, R.Def.Damage, "PROXIMITY"};
+		}
+		if (!Burst && R.bAlive && R.Y - GroundMeters(R.X, R.Z, R.Y) < 8)
+			for (TActorIterator<AWFEnemy> It(World); It; ++It)
+			{
+				const FVector P = It->GetActorLocation() / VehCmPerM;
+				if (!It->IsDead() && FMath::Sqrt(FMath::Square(P.X - R.X) + FMath::Square(P.Y - R.Z)) < 2.6) { R.bAlive = false; Burst = FBurst{R.X, R.Y, R.Z, R.Def.SplashRadius, R.Def.Damage, "PROXIMITY"}; break; }
+			}
+		DrawDebugLine(World, From, To, FColor(255, 140, 60), false, 0.f, 0, 6.f);
+		if (Burst) { Detonate(*Burst); Rounds.RemoveAtSwap(I); }
+		else if (!R.bAlive) Rounds.RemoveAtSwap(I);
+	}
+}
+
+void AWFVehicle::Detonate(const wf::vweapons::FBurst& Burst)
+{
+	// sim.ts detonateRound: splash falls off linearly from the centre to the radius, measured to the body's edge (1.5 m)
+	UWorld* World = GetWorld();
+	AActor* Shooter = Gunner.IsValid() ? static_cast<AActor*>(Gunner.Get()) : this;
+	TArray<AWFEnemy*> InRange;
+	for (TActorIterator<AWFEnemy> It(World); It; ++It) if (!It->IsDead()) InRange.Add(*It);
+	for (AWFEnemy* E : InRange)
+	{
+		const FVector P = E->GetActorLocation() / VehCmPerM;
+		const double Planar = FMath::Sqrt(FMath::Square(P.X - Burst.X) + FMath::Square(P.Y - Burst.Z));
+		const double Damage = wf::vweapons::SplashDamage(Burst, FMath::Max(0.0, Planar - 1.5));
+		if (Damage > 0) E->TakeHit(Damage, Shooter);
+	}
+	DrawDebugSphere(World, FVector(Burst.X * VehCmPerM, Burst.Z * VehCmPerM, Burst.Y * VehCmPerM), static_cast<float>(Burst.Radius * VehCmPerM), 16, FColor(255, 120, 40), false, 0.4f, 0, 4.f);
 }

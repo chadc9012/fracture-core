@@ -24,7 +24,7 @@ unreal/
    `WorldFractureEditor` (Development Editor, Win64), then run.
 3. Press Play. The game loads `DataTables/*.json` directly, so no import step is needed. Controls: WASD, mouse,
    Space/C jump, Shift sprint, LMB fire, RMB aim, R/G reload, 1-5 / wheel weapons, F5 save, F6 cycle Operator class
-   (Titan / Hunter / Warlock), 8 9 0 - = \ ; the seven Dragonite abilities (F7 also Wyrmcall), V ride Vyrak, E enter / exit a vehicle, T call your vehicle, F8 summon a Unique Scenario boss, F9 finish the active quest.
+   (Titan / Hunter / Warlock), 8 9 0 - = \ ; the seven Dragonite abilities (F7 also Wyrmcall), V ride Vyrak, E enter / exit a vehicle (driving: LMB / RMB fire its hardpoints, mouse aims), T call your vehicle, F8 summon a Unique Scenario boss, F9 finish the active quest.
    Console (~): `UpgradeDragonite <ability>`, `VyrakTrust ruin|puzzle|protect <id>`, `AncientBond`, `EternalCovenant`,
    `SpawnScenarioBoss <id>`, `ChooseStarterVehicle scrap-interceptor|wasteland-jeep`, `SpawnVehicle <id>`, `RepairVehicle`,
    `ListRaces`, `StartRace <id> [standard|advanced|legendary]`, `AbandonRace`.
@@ -60,6 +60,12 @@ The default level is the engine's template map; the game mode adds a floor and l
   ground grip by region surface and slope, top speed from region and vehicle stats, and wear from crashes and hard
   landings (a wrecked engine stops it; `RepairVehicle` pays Nex). The garage (owned, 3-slot loadout, selection,
   conditions) is saved. Bodies are stand-in blocks, and the prototype map has no water, so boats and the sub are beached.
+- **Vehicle weapons:** every vehicle fires its own hardpoints (vehicle-weapons.ts armamentFor for its class and id):
+  LMB primary gun, RMB the secondary gun or the ordnance salvo (missiles, rocket pods, torpedoes), the mouse aims
+  (turrets follow it, fixed guns follow the nose with a little pitch and converge ahead). Rounds leave the real barrel
+  offsets, carry the vehicle's velocity and fly as projectiles; cannon shells and ordnance burst with splash falloff,
+  guided rounds lock the nearest enemy in a forward cone and steer at their turn rate. The shared weapon heat
+  overheats and vents as in sim.ts, and a vehicle at 65%+ body damage has its weapons offline (chase-ai.ts).
 - **Racing:** the 68 courses (street circuits, off-road, hazard and foot courses, hidden runs once their markers are
   found) on the ported racing.ts / activities.ts rules: attempts per day and cooldowns, racing-rank and difficulty gates,
   staging and countdown, ordered checkpoints, timed reality gates, shortcuts, off-course recovery, track obstacles that
@@ -88,17 +94,18 @@ cmake -S . -B build -G Ninja && cmake --build build && ctest --test-dir build --
 | DragoniteCastCoreTest | dragonite-cast.ts castDragonite / stepDragonite, live-build.ts energy | 9,600 operations, 35,122 checks |
 | VehicleCoreTest | vehicle-handling.ts, vehicle-surface.ts, vehicle-condition.ts, rewardVehicle | 15,120 handling steps, 17,938 checks |
 | RaceCoreTest | racing.ts, activities.ts (all 68 courses, attempts, payouts, records) | 286 runs, 41,602 ticks, 15,255 checks |
+| VehicleWeaponsCoreTest | vehicle-weapons.ts, ordnance.ts, launchers.ts, sim.ts fireBullet / fireOrdnance, Scene.tsx fire loop | 2,310 armaments, 160 flights, 14,400 fire frames, 135,166 checks |
 | DragonCoreTest | dragonite.ts, dragonite-cast.ts statsFor, vyrak-trust.ts | 2,099 states, 23,789 checks |
 
 Regenerate goldens after changing the web build's rules (from the repo root):
 
     npx esbuild unreal/tools/<tool>.ts --bundle --platform=node --format=esm --alias:@=./src --outfile=/tmp/t.mjs && node /tmp/t.mjs
 
-for `export-datatables`, `gen-quest-golden`, `gen-reward-golden`, `gen-mission-golden`, `gen-missionreward-golden`, `gen-dragon-golden`, `gen-vehicle-golden`, `gen-race-golden`; the encounter and Dragonite-cast recorders (`gen-encounter-golden`, `gen-dragoncast-golden`) run through `node unreal/tools/build-golden.mjs unreal/tools/<tool>.ts`, which routes their world calls to recording shims.
+for `export-datatables`, `gen-quest-golden`, `gen-reward-golden`, `gen-mission-golden`, `gen-missionreward-golden`, `gen-dragon-golden`, `gen-vehicle-golden`, `gen-race-golden`, `gen-vweapons-golden`; the encounter and Dragonite-cast recorders (`gen-encounter-golden`, `gen-dragoncast-golden`) run through `node unreal/tools/build-golden.mjs unreal/tools/<tool>.ts`, which routes their world calls to recording shims.
 
 ## Not ported yet
 Boss models and attack effects (zones are debug circles, decoys are stand-ins), mid-mission saves, abilities (Q/E/R),
-armor effects on combat, enemy perception/cover/line-of-sight, launchers and the sword, vehicle weapons and gadgets, the featured-activity rotation and
+armor effects on combat, enemy perception/cover/line-of-sight, launchers and the sword, vehicle gadgets and fleet builds, gear power and armor damage bonuses on vehicle guns, knockback, the featured-activity rotation and
 activity shader drops,
 merchants and housing, cloud save merge, the world itself (regions, Neon City, Thalassia). Their data is already in
 `DataTables/`.
