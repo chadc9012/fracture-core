@@ -17,6 +17,7 @@
 #include "InputMappingContext.h"
 #include "InputModifiers.h"
 #include "WFEnemy.h"
+#include "WFVehicle.h"
 #include "WFGameMode.h"
 #include "WFHUD.h"
 #include "WFDataFiles.h"
@@ -108,6 +109,8 @@ void AWFCharacter::BuildInput()
 	ClassAction = Make(EInputActionValueType::Boolean);
 	ScenarioAction = Make(EInputActionValueType::Boolean);
 	WyrmAction = Make(EInputActionValueType::Boolean);
+	InteractAction = Make(EInputActionValueType::Boolean);
+	CallVehicleAction = Make(EInputActionValueType::Boolean);
 	RideAction = Make(EInputActionValueType::Boolean);
 
 	// WASD -> 2D move: W/S on Y (swizzled), A/D on X, negated where needed.
@@ -135,6 +138,8 @@ void AWFCharacter::BuildInput()
 	Mapping->MapKey(ClassAction, EKeys::F6);
 	Mapping->MapKey(ScenarioAction, EKeys::F8);
 	Mapping->MapKey(WyrmAction, EKeys::F7);
+	Mapping->MapKey(InteractAction, EKeys::E);
+	Mapping->MapKey(CallVehicleAction, EKeys::T);
 	// the web build's default Dragonite keys (bindings.ts): 8 9 0 - = \ ;  in dragonite.ts order
 	const FKey DragoniteKeys[7] = {EKeys::Eight, EKeys::Nine, EKeys::Zero, EKeys::Hyphen, EKeys::Equals, EKeys::Backslash, EKeys::Semicolon};
 	for (const FKey& Key : DragoniteKeys)
@@ -163,15 +168,15 @@ void AWFCharacter::AddMappingContext() const
 
 void AWFCharacter::PawnClientRestart()
 {
+	if (!Mapping) BuildInput(); // once: the input component binds these same action objects on every possess
 	Super::PawnClientRestart();
-	BuildInput();
 	AddMappingContext();
 }
 
 void AWFCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
-	BuildInput();
+	if (!Mapping) BuildInput(); // the mapping context must hold the very actions bound below
 	UEnhancedInputComponent* Input = Cast<UEnhancedInputComponent>(PlayerInputComponent);
 	if (!Input)
 	{
@@ -195,6 +200,8 @@ void AWFCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 	Input->BindAction(ClassAction, ETriggerEvent::Started, this, &AWFCharacter::CycleClass);
 	Input->BindAction(ScenarioAction, ETriggerEvent::Started, this, &AWFCharacter::SummonScenario);
 	Input->BindActionValueLambda(WyrmAction, ETriggerEvent::Started, [this](const FInputActionValue&) { CastAbility(TEXT("wyrmcall")); });
+	Input->BindAction(InteractAction, ETriggerEvent::Started, this, &AWFCharacter::Interact);
+	Input->BindAction(CallVehicleAction, ETriggerEvent::Started, this, &AWFCharacter::CallVehicle);
 	for (int32 I = 0; I < DragoniteActions.Num(); ++I)
 	{
 		const FString Id = UTF8_TO_TCHAR(wf::dragon::AbilityIds[I]);
@@ -437,6 +444,88 @@ void AWFCharacter::TickRide(float DeltaSeconds)
 		C->SetControlRotation(R);
 	}
 	MountMesh->SetRelativeRotation(FRotator(0.f, 0.f, static_cast<float>(FMath::RadiansToDegrees(Flight.Bank)) * -1.f));
+}
+
+// --- Vehicles ---------------------------------------------------------------------------------------------------------
+
+namespace
+{
+	const TArray<FWFVehicleDef>& VehicleDefs()
+	{
+		static TArray<FWFVehicleDef> Defs;
+		if (Defs.IsEmpty())
+		{
+			FString Error;
+			Defs = WFVehicles::Load(Error);
+			if (Defs.IsEmpty()) UE_LOG(LogTemp, Error, TEXT("No vehicles: %s"), *Error);
+		}
+		return Defs;
+	}
+}
+
+AWFVehicle* AWFCharacter::SpawnVehicleAhead(const FString& VehicleId)
+{
+	const FWFVehicleDef* Def = WFVehicles::Find(VehicleDefs(), VehicleId);
+	if (!Def) { Notify(FString::Printf(TEXT("Unknown vehicle %s"), *VehicleId), FLinearColor(1.f, 0.55f, 0.3f)); return nullptr; }
+	const UWFProgressionSubsystem* Progression = GetGameInstance()->GetSubsystem<UWFProgressionSubsystem>();
+	wf::vehicle::FCondition Condition;
+	if (Progression)
+		if (const auto Found = Progression->GetGarage().Conditions.find(WFData::ToStd(VehicleId)); Found != Progression->GetGarage().Conditions.end()) Condition = Found->second;
+	const FRotator Yaw(0.f, GetControlRotation().Yaw, 0.f);
+	const FVector Around = GetActorLocation() + Yaw.Vector() * static_cast<float>((Def->CollisionRadius + 5) * CmPerMeter);
+	FHitResult Ground;
+	const FVector At = GetWorld()->LineTraceSingleByChannel(Ground, Around + FVector(0, 0, 5000), Around - FVector(0, 0, 20000), ECC_Visibility)
+		? Ground.ImpactPoint + FVector(0, 0, wf::vehicle::RideHeight * CmPerMeter) : Around;
+	const FTransform Spawn(Yaw, At);
+	AWFVehicle* V = GetWorld()->SpawnActorDeferred<AWFVehicle>(AWFVehicle::StaticClass(), Spawn, nullptr, nullptr, ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn);
+	if (!V) return nullptr;
+	V->Configure(*Def, Condition);
+	V->FinishSpawning(Spawn);
+	Notify(FString::Printf(TEXT("%s delivered - press E to get in"), *Def->Name), FLinearColor(0.45f, 0.9f, 1.f));
+	return V;
+}
+
+void AWFCharacter::CallVehicle(const FInputActionValue& Value)
+{
+	const UWFProgressionSubsystem* Progression = GetGameInstance()->GetSubsystem<UWFProgressionSubsystem>();
+	if (!Progression || !Progression->GetGarage().Selected)
+	{
+		Notify(TEXT("No vehicle yet - choose one: ChooseStarterVehicle scrap-interceptor | wasteland-jeep (console ~)"), FLinearColor(1.f, 0.55f, 0.3f));
+		return;
+	}
+	if (CalledVehicle.IsValid()) CalledVehicle->Destroy(); // one called vehicle at a time
+	CalledVehicle = SpawnVehicleAhead(WFData::ToF(*Progression->GetGarage().Selected));
+}
+
+void AWFCharacter::Interact(const FInputActionValue& Value)
+{
+	AWFVehicle* Best = nullptr;
+	double BestDist = 1e18;
+	for (TActorIterator<AWFVehicle> It(GetWorld()); It; ++It)
+	{
+		const double D = FVector::Dist2D(It->GetActorLocation(), GetActorLocation()) / CmPerMeter;
+		if (D < It->GetDef().CollisionRadius + 4 && D < BestDist) { BestDist = D; Best = *It; }
+	}
+	if (Best) Best->Enter(this);
+}
+
+void AWFCharacter::ChooseStarterVehicle(const FString& VehicleId)
+{
+	UWFProgressionSubsystem* Progression = GetGameInstance()->GetSubsystem<UWFProgressionSubsystem>();
+	const FWFVehicleDef* Def = WFVehicles::Find(VehicleDefs(), VehicleId);
+	if (!Progression || !Def || !Def->bStarter) { Notify(TEXT("Choose a starter: scrap-interceptor or wasteland-jeep"), FLinearColor(1.f, 0.55f, 0.3f)); return; }
+	if (!Progression->GetGarage().Owned.empty()) { Notify(TEXT("Your first vehicle is already chosen"), FLinearColor(1.f, 0.55f, 0.3f)); return; }
+	Progression->RewardVehicle(VehicleId);
+	Notify(FString::Printf(TEXT("%s is yours - press T to call it"), *Def->Name), FLinearColor(1.f, 0.82f, 0.35f));
+}
+
+void AWFCharacter::SpawnVehicle(const FString& VehicleId) { SpawnVehicleAhead(VehicleId); }
+
+void AWFCharacter::RepairVehicle()
+{
+	UWFProgressionSubsystem* Progression = GetGameInstance()->GetSubsystem<UWFProgressionSubsystem>();
+	if (!Progression || !Progression->GetGarage().Selected) return;
+	Notify(Progression->RepairVehicle(WFData::ToF(*Progression->GetGarage().Selected)), FLinearColor(0.45f, 0.9f, 1.f));
 }
 
 void AWFCharacter::UpgradeDragonite(const FString& Ability)

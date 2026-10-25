@@ -52,6 +52,12 @@ public:
 	/** VyrakTrust ruin|puzzle|protect <id> */
 	UFUNCTION(Exec) void VyrakTrust(const FString& Kind, const FString& SourceId);
 	UFUNCTION(Exec) void AncientBond();
+	/** ChooseStarterVehicle scrap-interceptor|wasteland-jeep: the first vehicle (once, as after Mission 01 in the web build). */
+	UFUNCTION(Exec) void ChooseStarterVehicle(const FString& VehicleId);
+	/** SpawnVehicle <id>: any of the 14 vehicles, for testing (does not grant ownership). */
+	UFUNCTION(Exec) void SpawnVehicle(const FString& VehicleId);
+	/** RepairVehicle: pays Nex to repair the selected vehicle. */
+	UFUNCTION(Exec) void RepairVehicle();
 	UFUNCTION(Exec) void EternalCovenant();
 
 	// health.ts
@@ -84,6 +90,9 @@ private:
 	void SummonScenario(const FInputActionValue& Value);
 	/** Casts a Dragonite ability through the ported dragonite-cast.ts rules (bond, cooldown and energy checked there). */
 	void CastAbility(const FString& Ability);
+	void Interact(const FInputActionValue& Value);
+	void CallVehicle(const FInputActionValue& Value);
+	class AWFVehicle* SpawnVehicleAhead(const FString& VehicleId);
 	void ToggleRide(const FInputActionValue& Value);
 	void TickDragon(float DeltaSeconds);
 	void TickRide(float DeltaSeconds);
@@ -110,6 +119,9 @@ private:
 	UPROPERTY() TObjectPtr<UInputAction> ScenarioAction;
 	UPROPERTY() TObjectPtr<UInputAction> WyrmAction;
 	UPROPERTY() TArray<TObjectPtr<UInputAction>> DragoniteActions;
+	UPROPERTY() TObjectPtr<UInputAction> InteractAction;
+	UPROPERTY() TObjectPtr<UInputAction> CallVehicleAction;
+	TWeakObjectPtr<class AWFVehicle> CalledVehicle;
 	UPROPERTY() TObjectPtr<UInputAction> RideAction;
 	/** Stand-in mount under the Operator while riding, until Vyrak's model is imported. */
 	UPROPERTY(VisibleAnywhere, Category = "Dragon") TObjectPtr<UStaticMeshComponent> MountMesh;

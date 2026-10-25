@@ -94,6 +94,7 @@ bool AWFGameMode::LoadRoster()
 			{
 				RegionName = WFData::Str(Row, TEXT("DisplayName"));
 				RegionDifficulty = WFData::Num(Row, TEXT("Difficulty"));
+				RegionSpeed = WFData::Num(Row, TEXT("Speed"), 0.9);
 			}
 
 	Roster.Reset();

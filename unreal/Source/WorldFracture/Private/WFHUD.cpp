@@ -7,6 +7,7 @@
 #include "Engine/Font.h"
 #include "Engine/World.h"
 #include "WFCharacter.h"
+#include "WFVehicle.h"
 #include "WFDragonSubsystem.h"
 #include "WFGameMode.h"
 #include "WFProgressionSubsystem.h"
@@ -84,6 +85,20 @@ void AWFHUD::DrawHUD()
 			Line(FString::Printf(TEXT("[%s] %d%%"), *Bar(HpFrac, 40), FMath::RoundToInt(HpFrac * 100)), X, 52, Warn);
 			if (!Windup.IsEmpty()) Line(FString::Printf(TEXT("%s  [%s]"), *Windup.ToUpper(), *Bar(Progress, 20)), X, 74, FLinearColor(1.f, 0.3f, 0.25f), 1.05f);
 		}
+	}
+
+	if (const AWFVehicle* Vehicle = Cast<AWFVehicle>(GetOwningPawn()))
+	{
+		const wf::vehicle::FState& S = Vehicle->GetState();
+		const wf::vehicle::FCondition& C = Vehicle->GetCondition();
+		Line(FString::Printf(TEXT("%s  (%s)"), *Vehicle->GetDef().Name.ToUpper(), UTF8_TO_TCHAR(Vehicle->GetProfile().Kind.c_str())), 32, H - 118, Cyan);
+		Line(FString::Printf(TEXT("%d km/h%s%s   body %d%%  engine %d%%  tires %d%%"), FMath::RoundToInt(FMath::Abs(S.Speed) * 3.6), S.bAirborne ? TEXT("   AIRBORNE") : TEXT(""), S.Slip > 0.3 ? TEXT("   DRIFT") : TEXT(""),
+			FMath::RoundToInt(C.Body), FMath::RoundToInt(C.Engine), FMath::RoundToInt(C.Tires)), 32, H - 92, Soft, 1.2f);
+		const double Now = GetWorld()->GetTimeSeconds();
+		Toasts.RemoveAll([Now](const FToast& T) { return T.Until < Now; });
+		float TY = 32;
+		for (const FToast& T : Toasts) { Line(T.Text, W - 460, TY, T.Color); TY += 26; }
+		return; // the on-foot panels are for the Operator
 	}
 
 	// crosshair

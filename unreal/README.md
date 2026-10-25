@@ -24,9 +24,9 @@ unreal/
    `WorldFractureEditor` (Development Editor, Win64), then run.
 3. Press Play. The game loads `DataTables/*.json` directly, so no import step is needed. Controls: WASD, mouse,
    Space/C jump, Shift sprint, LMB fire, RMB aim, R/G reload, 1-5 / wheel weapons, F5 save, F6 cycle Operator class
-   (Titan / Hunter / Warlock), 8 9 0 - = \ ; the seven Dragonite abilities (F7 also Wyrmcall), V ride Vyrak, F8 summon a Unique Scenario boss, F9 finish the active quest.
+   (Titan / Hunter / Warlock), 8 9 0 - = \ ; the seven Dragonite abilities (F7 also Wyrmcall), V ride Vyrak, E enter / exit a vehicle, T call your vehicle, F8 summon a Unique Scenario boss, F9 finish the active quest.
    Console (~): `UpgradeDragonite <ability>`, `VyrakTrust ruin|puzzle|protect <id>`, `AncientBond`, `EternalCovenant`,
-   `SpawnScenarioBoss <id>`.
+   `SpawnScenarioBoss <id>`, `ChooseStarterVehicle scrap-interceptor|wasteland-jeep`, `SpawnVehicle <id>`, `RepairVehicle`.
 
 The default level is the engine's template map; the game mode adds a floor and lights if a level has none.
 
@@ -54,6 +54,11 @@ The default level is the engine's template map; the game mode adds a floor and l
   Wyrmwing launch / glide / air dash, Dragonhide resistance, Roar of Ruin stagger / knockback / vulnerability,
   Scalebreaker strikes and shield break, Skyfall's delayed dive, Wyrmcall; they spend ability energy (100, +9/s).
   Vyrak's model and voice lines are not in yet; the mount is a stand-in block.
+- **Vehicles:** all 14 drive on the ported vehicle-handling.ts model for their type (racer, off-road, tank, jet,
+  heli, boat, sub): acceleration, braking, steering, drift and handbrake, takeoff speed and climb, floating and diving,
+  ground grip by region surface and slope, top speed from region and vehicle stats, and wear from crashes and hard
+  landings (a wrecked engine stops it; `RepairVehicle` pays Nex). The garage (owned, 3-slot loadout, selection,
+  conditions) is saved. Bodies are stand-in blocks, and the prototype map has no water, so boats and the sub are beached.
 - **Quests:** the Fracture Descent chain (fd-01 to fd-18) with world unlocks and corruption.
 - **Missions:** all twelve story mission machines with their NOVA lines. A finished mission pays once through the
   ported rewardMission / applyMissionCompletion (XP, materials, loot box, first-clear weapon and campaign exotic, armor
@@ -73,16 +78,17 @@ cmake -S . -B build -G Ninja && cmake --build build && ctest --test-dir build --
 | MissionRewardCoreTest | progression.ts rewardMission, persistence.ts applyMissionCompletion | 1,224 payouts, 1,576 checks |
 | EncounterCoreTest | encounter-sim.ts, boss-poise.ts, boss-phases.ts, scenario-gimmicks.ts, sim.ts boss damage | 112 fights, 27,149 steps, 32,056 checks |
 | DragoniteCastCoreTest | dragonite-cast.ts castDragonite / stepDragonite, live-build.ts energy | 9,600 operations, 35,122 checks |
+| VehicleCoreTest | vehicle-handling.ts, vehicle-surface.ts, vehicle-condition.ts, rewardVehicle | 15,120 handling steps, 17,938 checks |
 | DragonCoreTest | dragonite.ts, dragonite-cast.ts statsFor, vyrak-trust.ts | 2,099 states, 23,789 checks |
 
 Regenerate goldens after changing the web build's rules (from the repo root):
 
     npx esbuild unreal/tools/<tool>.ts --bundle --platform=node --format=esm --alias:@=./src --outfile=/tmp/t.mjs && node /tmp/t.mjs
 
-for `export-datatables`, `gen-quest-golden`, `gen-reward-golden`, `gen-mission-golden`, `gen-missionreward-golden`, `gen-dragon-golden`; the encounter recorder runs through `node unreal/tools/build-golden.mjs unreal/tools/gen-encounter-golden.ts`.
+for `export-datatables`, `gen-quest-golden`, `gen-reward-golden`, `gen-mission-golden`, `gen-missionreward-golden`, `gen-dragon-golden`, `gen-vehicle-golden`; the encounter and Dragonite-cast recorders (`gen-encounter-golden`, `gen-dragoncast-golden`) run through `node unreal/tools/build-golden.mjs unreal/tools/<tool>.ts`, which routes their world calls to recording shims.
 
 ## Not ported yet
 Boss models and attack effects (zones are debug circles, decoys are stand-ins), mid-mission saves, abilities (Q/E/R),
-armor effects on combat, enemy perception/cover/line-of-sight, launchers and the sword, vehicles and racing,
+armor effects on combat, enemy perception/cover/line-of-sight, launchers and the sword, vehicle weapons and gadgets, racing,
 merchants and housing, cloud save merge, the world itself (regions, Neon City, Thalassia). Their data is already in
 `DataTables/`.

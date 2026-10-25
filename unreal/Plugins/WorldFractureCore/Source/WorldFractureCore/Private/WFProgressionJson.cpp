@@ -101,7 +101,7 @@ namespace WFProgressionJson
 		return Item;
 	}
 
-	FString ToJson(const wf::FProgression& P)
+	FString ToJson(const wf::FProgression& P, const wf::FGarage* Garage)
 	{
 		TSharedRef<FJsonObject> O = MakeShared<FJsonObject>();
 		OptionalString(O, TEXT("activeQuestId"), P.ActiveQuestId);
@@ -151,6 +151,23 @@ namespace WFProgressionJson
 		}
 		O->SetObjectField(TEXT("missionRuns"), Runs);
 		O->SetObjectField(TEXT("nexLedger"), NumberObject(P.NexLedger));
+		if (Garage)
+		{
+			O->SetArrayField(TEXT("ownedVehicles"), StringArray(Garage->Owned));
+			O->SetArrayField(TEXT("garageLoadout"), StringArray(Garage->Loadout));
+			OptionalString(O, TEXT("selectedVehicle"), Garage->Selected);
+			TSharedRef<FJsonObject> Conditions = MakeShared<FJsonObject>();
+			for (const auto& [Id, C] : Garage->Conditions)
+			{
+				TSharedRef<FJsonObject> Co = MakeShared<FJsonObject>();
+				Co->SetNumberField(TEXT("body"), C.Body);
+				Co->SetNumberField(TEXT("engine"), C.Engine);
+				Co->SetNumberField(TEXT("tires"), C.Tires);
+				Co->SetNumberField(TEXT("suspension"), C.Suspension);
+				Conditions->SetObjectField(ToF(Id), Co);
+			}
+			O->SetObjectField(TEXT("vehicleConditions"), Conditions);
+		}
 		if (P.LastMissionReward)
 		{
 			const wf::FProgression::FMissionReward& L = *P.LastMissionReward;
@@ -173,7 +190,7 @@ namespace WFProgressionJson
 		return Out;
 	}
 
-	bool FromJson(const FString& Json, wf::FProgression& Out, FString& OutError)
+	bool FromJson(const FString& Json, wf::FProgression& Out, FString& OutError, wf::FGarage* OutGarage)
 	{
 		TSharedPtr<FJsonObject> O;
 		if (!FJsonSerializer::Deserialize(TJsonReaderFactory<>::Create(Json), O) || !O.IsValid())
@@ -254,6 +271,22 @@ namespace WFProgressionJson
 				P.MissionRuns[ToStd(Pair.Key)] = Run;
 			}
 		P.NexLedger = ReadNumbers(O, TEXT("nexLedger"));
+		if (OutGarage)
+		{
+			wf::FGarage G;
+			G.Owned = ReadStrings(O, TEXT("ownedVehicles"));
+			G.Loadout = ReadStrings(O, TEXT("garageLoadout"));
+			G.Selected = ReadOptionalString(O, TEXT("selectedVehicle"));
+			const TSharedPtr<FJsonObject>* Conditions = nullptr;
+			if (O->TryGetObjectField(TEXT("vehicleConditions"), Conditions) && Conditions && Conditions->IsValid())
+				for (const auto& Pair : (*Conditions)->Values)
+				{
+					const TSharedPtr<FJsonObject> Co = Pair.Value.IsValid() ? Pair.Value->AsObject() : nullptr;
+					if (!Co.IsValid()) continue;
+					G.Conditions[ToStd(Pair.Key)] = wf::vehicle::NormalizeCondition({WFData::Num(Co, TEXT("body")), WFData::Num(Co, TEXT("engine")), WFData::Num(Co, TEXT("tires")), WFData::Num(Co, TEXT("suspension"))});
+				}
+			*OutGarage = std::move(G);
+		}
 		P.LastMissionReward.reset();
 		const TSharedPtr<FJsonObject>* Last = nullptr;
 		if (O->TryGetObjectField(TEXT("lastMissionReward"), Last) && Last && Last->IsValid())

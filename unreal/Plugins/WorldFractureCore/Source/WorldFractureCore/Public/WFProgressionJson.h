@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "Core/WFProgression.h"
+#include "Core/WFVehicleCore.h"
 #include "Dom/JsonObject.h"
 
 /**
@@ -10,9 +11,10 @@
  */
 namespace WFProgressionJson
 {
-	WORLDFRACTURECORE_API FString ToJson(const wf::FProgression& P);
+	/** Garage (when given) writes ownedVehicles / garageLoadout / selectedVehicle / vehicleConditions. */
+	WORLDFRACTURECORE_API FString ToJson(const wf::FProgression& P, const wf::FGarage* Garage = nullptr);
 	/** Missing fields keep their defaults, as the web build's normalizeProgression does. */
-	WORLDFRACTURECORE_API bool FromJson(const FString& Json, wf::FProgression& Out, FString& OutError);
+	WORLDFRACTURECORE_API bool FromJson(const FString& Json, wf::FProgression& Out, FString& OutError, wf::FGarage* OutGarage = nullptr);
 	/** One GearItem object (id, name, slot, power, level, element, source, setId?, rarity?, perk?). */
 	WORLDFRACTURECORE_API wf::FGearItem GearFromJson(const TSharedPtr<FJsonObject>& Item);
 	WORLDFRACTURECORE_API TSharedRef<FJsonObject> GearToJson(const wf::FGearItem& G);

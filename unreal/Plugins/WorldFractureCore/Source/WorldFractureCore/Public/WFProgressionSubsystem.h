@@ -4,6 +4,7 @@
 #include "Core/WFProgression.h"
 #include "Core/WFMissionRewardCore.h"
 #include "Core/WFRewardCore.h"
+#include "Core/WFVehicleCore.h"
 #include "Subsystems/GameInstanceSubsystem.h"
 #include "WFProgressionSubsystem.generated.h"
 
@@ -121,6 +122,13 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "World Fracture|Rewards") FWFMissionPaid OnMissionPaid;
 
 	const wf::FProgression& Get() const { return State; }
+	/** Vehicle ownership, garage loadout, selection and wear (saved with the progression). */
+	const wf::FGarage& GetGarage() const { return Garage; }
+	wf::FGarage& MutableGarage() { return Garage; }
+	/** Pays Nex to repair a vehicle (vehicle-condition.ts repairVehicle). Returns the message to show. */
+	UFUNCTION(BlueprintCallable, Category = "World Fracture|Vehicles") FString RepairVehicle(const FString& VehicleId);
+	/** Grants a vehicle (progression.ts rewardVehicle): owned, in the 3-slot garage loadout, selected. */
+	UFUNCTION(BlueprintCallable, Category = "World Fracture|Vehicles") void RewardVehicle(const FString& VehicleId);
 	/** For other core systems (quests, missions) that change the save; call NotifyChanged after. */
 	wf::FProgression& Mutable() { return State; }
 	void NotifyChanged() { OnProgressionChanged.Broadcast(); }
@@ -132,6 +140,7 @@ private:
 	bool LoadRewardCatalog(FString& OutError);
 
 	wf::FProgression State;
+	wf::FGarage Garage;
 	wf::reward::FCatalog Catalog;
 	wf::missionreward::FCatalog MissionCatalog;
 	void AfterMissionPayout(size_t InventoryBefore);

@@ -54,6 +54,8 @@ public:
 	/** HUD: the nearest live encounter boss, its hp fraction, encounter phase, and the attack being wound up (if any). */
 	bool GetBossHud(FString& OutName, double& OutHpFraction, FString& OutPhase, FString& OutWindup, double& OutWindupProgress) const;
 	const FString& GetRegionName() const { return RegionName; }
+	/** The region's ground speed rating (regions.ts speed): scales vehicle top speed. */
+	double GetRegionSpeed() const { return RegionSpeed; }
 
 private:
 	void EnsurePlayableWorld();
@@ -85,6 +87,7 @@ private:
 	FString RegionId;
 	FString RegionName;
 	double RegionDifficulty = 0;
+	double RegionSpeed = 0.9;
 	TArray<FWFTroop> Roster;
 	TArray<TWeakObjectPtr<AWFEnemy>> Squad;
 	float SpawnTimer = 1.0f;

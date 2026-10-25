@@ -177,6 +177,7 @@ void UWFProgressionSubsystem::NewGame()
 		Fresh.EquippedGear[Item.Slot] = Item.Id;
 	}
 	State = std::move(Fresh);
+	Garage = {};
 	Tally = {};
 	NotifyChanged();
 }
@@ -185,7 +186,7 @@ bool UWFProgressionSubsystem::SaveGame()
 {
 	UWFSaveGame* Save = Cast<UWFSaveGame>(UGameplayStatics::CreateSaveGameObject(UWFSaveGame::StaticClass()));
 	if (!Save) return false;
-	Save->ProgressionJson = WFProgressionJson::ToJson(State);
+	Save->ProgressionJson = WFProgressionJson::ToJson(State, &Garage);
 	Save->SavedAt = FDateTime::UtcNow();
 	return UGameplayStatics::SaveGameToSlot(Save, SlotName, 0);
 }
@@ -197,12 +198,14 @@ bool UWFProgressionSubsystem::LoadGame()
 	if (!Save) return false;
 	wf::FProgression Loaded = State;
 	FString Error;
-	if (!WFProgressionJson::FromJson(Save->ProgressionJson, Loaded, Error))
+	wf::FGarage LoadedGarage;
+	if (!WFProgressionJson::FromJson(Save->ProgressionJson, Loaded, Error, &LoadedGarage))
 	{
 		UE_LOG(LogWorldFracture, Error, TEXT("Save %s unreadable: %s"), *SlotName, *Error);
 		return false;
 	}
 	State = std::move(Loaded);
+	Garage = std::move(LoadedGarage);
 	NotifyChanged();
 	return true;
 }
@@ -309,6 +312,20 @@ void UWFProgressionSubsystem::RewardMission(const FString& MissionId, const TMap
 	State = wf::missionreward::RewardMission(Catalog, MissionCatalog, std::move(State), ToStd(MissionId), Mats, UtcNowMs());
 	if (State.Level > LevelBefore) OnLevelUp.Broadcast(static_cast<int32>(State.Level));
 	AfterMissionPayout(InventoryBefore);
+}
+
+FString UWFProgressionSubsystem::RepairVehicle(const FString& VehicleId)
+{
+	std::string Message;
+	const bool bOk = wf::vehicle::RepairVehicle(Garage, State.NexLedger, ToStd(VehicleId), UtcNowMs(), Message);
+	if (bOk) NotifyChanged();
+	return ToF(Message);
+}
+
+void UWFProgressionSubsystem::RewardVehicle(const FString& VehicleId)
+{
+	Garage = wf::vehicle::RewardVehicle(std::move(Garage), ToStd(VehicleId));
+	NotifyChanged();
 }
 
 double UWFProgressionSubsystem::GetNexBalance() const
