@@ -3,13 +3,20 @@ import { cssGrade, gradeFor, gradeRegionAt, REGION_GRADE } from "./color-grade";
 import { NEON_SITE, REGIONS } from "./world";
 
 describe("colour grade", () => {
-  test("owner direction: the wilds and cities are gritty (held-back colour, firm contrast); Neon City is the one saturated cyberpunk grade", () => {
+  test("owner direction (target frames): rich cinematic colour everywhere, Neon City the richest", () => {
     for (const id of Object.keys(REGION_GRADE)) {
       const g = gradeFor(id);
       expect(g.contrast).toBeGreaterThan(1.05);
-      if (id === "neon") { expect(g.saturation).toBeGreaterThan(1.1); continue; }
-      expect(g.saturation).toBeLessThan(0.95); expect(g.saturation).toBeGreaterThan(0.7); // muted, not drained
+      expect(g.saturation).toBeGreaterThan(1.0);
+      if (id !== "neon") expect(g.saturation).toBeLessThan(gradeFor("neon").saturation);
     }
+  });
+  test("night sinks the shadows toward deep blue and warms the highlights (street lamps)", () => {
+    const day = gradeFor("nexus", 0), night = gradeFor("nexus", 1);
+    const blue = (h: string) => parseInt(h.slice(5, 7), 16) - parseInt(h.slice(1, 3), 16);
+    expect(night.shadowTint).not.toBe(day.shadowTint);
+    expect(blue(night.shadowTint)).toBeGreaterThan(0);
+    expect(night.highlightTint).toMatch(/^#[0-9a-f]{6}$/);
   });
   test("Neon City at night stays readable: colour carries the look, not crushed darks (the hard grade blacked out the streets)", () => {
     const g = gradeFor("neon", 1);
@@ -27,7 +34,7 @@ describe("colour grade", () => {
   });
   test("the CSS fallback is a valid filter", () => {
     const css = cssGrade(gradeFor("wastelands"));
-    expect(css).toMatch(/^saturate\([01]\.\d+\) contrast\(1\.\d+\) brightness\([01]\.\d+\) sepia\(0\.\d+\)$/);
+    expect(css).toMatch(/^saturate\([0-9]\.\d+\) contrast\(1\.\d+\) brightness\([01]\.\d+\) sepia\(0\.\d+\)$/);
     expect(cssGrade(gradeFor("neon"))).toContain("hue-rotate");
   });
 });

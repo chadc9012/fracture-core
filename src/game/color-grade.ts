@@ -24,35 +24,37 @@ export type Grade = {
   grain: number;
   /** vignette darkness 0..1 */
   vignette: number;
+  /** CSS fallback hue shift in degrees (Neon City only) */
+  hue?: number;
 };
 
-/** Owner direction (Oct 24, asked directly, over the stage-46 "lush" pass): GRITTY REALISTIC in the wilds and the cities,
- * NEON CYBERPUNK in Neon City. Colour is held back (not drained: sunsets and lava still read warm), contrast is firm, darks
- * are crushed a little, shadows lean cool and highlights warm, with fine grain and a vignette. Don't re-saturate the wilds
- * without the owner saying so. */
-const GRIT: Grade = { saturation: 0.86, contrast: 1.12, exposure: 0.98, shadowTint: "#20343d", highlightTint: "#ffd9b0", split: 0.14, crush: 0.035, grain: 0.03, vignette: 0.3 };
+/** Owner direction (Oct 25, superseding the Oct 24 "gritty, held-back colour" call): "make everything look like these" — three
+ * in-game target frames (docs/reference/target-*.png): Nexus at night, Neon at night, the wilds by day. Rich, saturated, cinematic
+ * colour: blue-teal shadows and golden highlights by day, deep blue shadows and warm sodium highlights at night, firm contrast
+ * without crushing the streets to black. Neon City keeps the strongest cyberpunk grade. */
+const CINE: Grade = { saturation: 1.18, contrast: 1.13, exposure: 1.02, shadowTint: "#1d3550", highlightTint: "#ffcf8a", split: 0.22, crush: 0.02, grain: 0.015, vignette: 0.26 };
 
 export const REGION_GRADE: Record<string, Partial<Grade>> = {
-  // forest: deep, earthy greens rather than candy green; warm low sun
-  veridan: { saturation: 0.9, shadowTint: "#1a3328", highlightTint: "#ffe2a8" },
-  swamps: { saturation: 0.78, contrast: 1.1, shadowTint: "#26301c", highlightTint: "#d9e0a0", split: 0.18 },
-  // dust bowl: rust and grit
-  wastelands: { saturation: 0.82, contrast: 1.16, shadowTint: "#2e2a26", highlightTint: "#ffc98a", split: 0.18 },
-  solara: { saturation: 0.84, contrast: 1.1, exposure: 1, shadowTint: "#3a2e24", highlightTint: "#fff0c8" },
-  // volcanic: the lava keeps its heat, the rock goes to soot
-  ember: { saturation: 0.9, contrast: 1.2, exposure: 0.95, shadowTint: "#2a1414", highlightTint: "#ffa070", split: 0.2, crush: 0.05 },
-  frostspire: { saturation: 0.8, contrast: 1.1, shadowTint: "#1e3048", highlightTint: "#eaf4ff", split: 0.12 },
-  nexus: { saturation: 0.86, contrast: 1.12, shadowTint: "#1c2c3a", highlightTint: "#f4ecdc", split: 0.12 },
-  // Neon City: cyberpunk — the one rich, saturated grade: violet shadows, cyan highlights. The city is already dark at
-  // night, so contrast stays moderate and exposure neutral: a harder grade crushed the streets (and the operator) to
-  // black and left only the tubes. Colour, not darkness, is what makes the neon pop.
-  neon: { saturation: 1.24, contrast: 1.1, exposure: 1.02, shadowTint: "#2a1050", highlightTint: "#5fe6ff", split: 0.24, crush: 0.02, grain: 0.03, vignette: 0.36 },
+  // forest: lush greens under a gold sun
+  veridan: { saturation: 1.2, shadowTint: "#173a3a", highlightTint: "#ffe0a0" },
+  swamps: { saturation: 1.02, contrast: 1.1, shadowTint: "#1e3328", highlightTint: "#e6e8a8", split: 0.2 },
+  // frame 3: warm dusty gold, deep blue sky
+  wastelands: { saturation: 1.16, contrast: 1.15, shadowTint: "#20304a", highlightTint: "#ffc274", split: 0.24 },
+  solara: { saturation: 1.18, contrast: 1.12, exposure: 1.03, shadowTint: "#243a58", highlightTint: "#ffe2a6" },
+  ember: { saturation: 1.16, contrast: 1.18, exposure: 0.98, shadowTint: "#2a1620", highlightTint: "#ff9a5a", split: 0.24, crush: 0.03 },
+  frostspire: { saturation: 1.06, contrast: 1.1, shadowTint: "#1a3666", highlightTint: "#eef6ff", split: 0.16 },
+  // frame 1: Nexus at night, deep blue shadows, warm street lamps, cyan and violet signs
+  nexus: { saturation: 1.2, contrast: 1.14, shadowTint: "#162a58", highlightTint: "#ffc88c", split: 0.24 },
+  // Neon City: the richest grade, violet shadows and cyan highlights. Contrast stays moderate so the streets don't crush to black.
+  neon: { saturation: 1.3, contrast: 1.1, exposure: 1.03, shadowTint: "#2a1258", highlightTint: "#5fe6ff", split: 0.26, crush: 0.015, grain: 0.015, vignette: 0.32, hue: -8 },
 };
 
 /** the grade for a region at a night factor (0 day .. 1 night): nights get firmer and a touch cooler */
 export function gradeFor(regionId: string | undefined, night = 0, underwater = false): Grade {
-  const g: Grade = { ...GRIT, ...(regionId ? REGION_GRADE[regionId] : undefined) };
+  const g: Grade = { ...CINE, ...(regionId ? REGION_GRADE[regionId] : undefined) };
   const n = Math.max(0, Math.min(1, night));
+  // night: shadows sink to deep blue, highlights take the warm sodium of the street lamps (frames 1 and 2)
+  if (regionId !== "neon" && n > 0) { g.shadowTint = mixHex(g.shadowTint, "#121f4c", n * 0.7); g.highlightTint = mixHex(g.highlightTint, "#ffb270", n * 0.5); g.saturation += 0.05 * n; }
   g.contrast += 0.02 * n;
   g.vignette = Math.min(0.6, g.vignette + 0.1 * n);
   if (underwater) { g.saturation *= 0.85; g.split = Math.max(g.split, 0.2); g.shadowTint = "#0c2a33"; g.highlightTint = "#9fe8e0"; }
@@ -64,7 +66,7 @@ export function gradeFor(regionId: string | undefined, night = 0, underwater = f
 export function cssGrade(g: Grade): string {
   const warm = hexWarmth(g.highlightTint) - hexWarmth(g.shadowTint);
   const sepia = Math.max(0, Math.min(0.25, warm * g.split * 0.9));
-  const hue = g.saturation > 1.15 ? -8 : 0; // only the Neon City grade is this rich
+  const hue = g.hue ?? 0;
   return `saturate(${g.saturation.toFixed(3)}) contrast(${g.contrast.toFixed(3)}) brightness(${(g.exposure - g.crush * 0.6).toFixed(3)}) sepia(${sepia.toFixed(3)})${hue ? ` hue-rotate(${hue}deg)` : ""}`;
 }
 
@@ -79,4 +81,11 @@ export function hexWarmth(hex: string): number {
 export function gradeRegionAt(x: number, z: number): string | undefined {
   if (neonPlateauWeight(x, z) > 0.3) return "neon";
   return regionAt(x, z)?.id;
+}
+
+/** blend two hex colours (t 0..1) */
+function mixHex(a: string, b: string, t: number): string {
+  const pa = parseInt(a.slice(1), 16), pb = parseInt(b.slice(1), 16);
+  const ch = (sh: number) => Math.round(((pa >> sh) & 255) + ((((pb >> sh) & 255) - ((pa >> sh) & 255)) * t));
+  return "#" + [16, 8, 0].map((sh) => ch(sh).toString(16).padStart(2, "0")).join("");
 }

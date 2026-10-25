@@ -11,7 +11,7 @@ const onProf: ProfilerOnRenderCallback = (id, _phase, actualMs) => recordSubtree
 import { Canvas } from "@react-three/fiber";
 import { PerformanceMonitor } from "@react-three/drei";
 import { WorldLoading } from "./WorldLoading";
-import { Bloom, ChromaticAberration, DepthOfField, EffectComposer, Noise, SSAO } from "@react-three/postprocessing";
+import { Bloom, ChromaticAberration, DepthOfField, EffectComposer, Noise, SMAA, SSAO } from "@react-three/postprocessing";
 import { GritGrade } from "./GritGrade";
 import { cssGrade, gradeFor, gradeRegionAt } from "@/game/color-grade";
 import * as THREE from "three";
@@ -1359,7 +1359,9 @@ export function GameCanvas() {
         // are the usual causes of a blank or lost context there.
         const maxDpr = caps.safari ? Math.min(preset.dpr, 1.5) : preset.dpr;
         const flags = perfFlags();
-        const post = preset.distortion && !caps.safari && caps.webgl2 && !lowPerf && flags.post;
+        // MEDIUM now gets the grade + bloom too (owner's target frames: every lamp and sign glows); the adaptive governor still drops the
+        // stack (lowPerf) if the frame rate cannot hold it, and SMAA replaces the MSAA the composer pass loses
+        const post = (preset.distortion || liveTier === "MEDIUM") && !caps.safari && caps.webgl2 && !lowPerf && flags.post;
         // SSAO and depth-of-field are the two costliest passes in the stack — reserve them for
         // the top render tier so MEDIUM/HIGH still get the cheap color-grade + bloom + vignette
         // look without paying for contact-shadow and bokeh sampling every frame.
@@ -1400,7 +1402,8 @@ export function GameCanvas() {
           // cost increase, not a new tier of budget risk, on MEDIUM/HIGH.
           <Profiler id="post" onRender={onProf}><EffectComposer multisampling={0}>
             {!flags.fxOff.has("grade") && <GritGrade grain={!flags.fxOff.has("noise")} vignette={!flags.fxOff.has("vignette")} />}
-            {!flags.fxOff.has("bloom") && <Bloom intensity={0.36} luminanceThreshold={1.0} luminanceSmoothing={0.2} mipmapBlur />}
+            {!flags.fxOff.has("bloom") && <Bloom intensity={0.7} luminanceThreshold={0.92} luminanceSmoothing={0.25} mipmapBlur />}
+            {!premium && <SMAA />}
             {premium && <SSAO intensity={6} radius={0.12} luminanceInfluence={0.42} bias={0.03} />}
             {/* depth of field only during cinematics: gameplay stays sharp */}
             {premium && (showIntro || Boolean(cineId)) && <DepthOfField focusDistance={0.018} focalLength={0.035} bokehScale={1.1} />}
