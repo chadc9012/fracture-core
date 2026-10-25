@@ -12,8 +12,11 @@ import { Compass, TrackedObjectives } from "./Tracker";
 import { FACTIONS } from "@/game/sim";
 import { CornerBrackets, HudPanel } from "./HudChrome";
 import { useVoiceLine } from "./useVoiceLine";
+import { getCombatLevel } from "@/game/audio";
+import { contextualAbilities, hudMode, hudVisibility, superJustReady, superMeter, type SuperMeter } from "@/game/operator-presentation";
 
 export function HUD({ hud, tutorialActive = false, onMenu, onAtlas, level }: { hud: HudState; /** saved level + XP into the level; the bar only ever reads progression, never invents numbers */ level?: { level: number; xp: number }; tutorialActive?: boolean; onMenu: () => void; onStrategy: () => void; onGarage: () => void; onAnalyze: () => void; onInventory: () => void; onAtlas: () => void; onOperations: (view: "DUNGEONS" | "ARSENAL" | "ABILITIES") => void }) {
+  const vis = hudVisibility(hudMode(Boolean(hud.bossHud), getCombatLevel()));
   const ammo = hud.ammo?.[hud.weaponSlot - 1];
   const melee = ammo?.magSize === 0;
   const lowAmmo = Boolean(ammo && !melee && ammo.mag <= Math.ceil(ammo.magSize * 0.25));
@@ -28,7 +31,7 @@ export function HUD({ hud, tutorialActive = false, onMenu, onAtlas, level }: { h
         {hud.zoneTier !== "STABLE" && <p className="text-destructive">{hud.zoneTier}</p>}
       </div>
     )}
-    {!tutorialActive && <><Compass markers={hud.markers ?? []} yaw={hud.yaw ?? 0} /><TrackedObjectives markers={hud.markers ?? []} /></>}
+    {!tutorialActive && <><Compass markers={hud.markers ?? []} yaw={hud.yaw ?? 0} />{vis.missionTracker && <TrackedObjectives markers={hud.markers ?? []} />}</>}
     <div className="absolute left-1/2 top-4 w-[min(26rem,calc(100%-7rem))] -translate-x-1/2 space-y-1 text-center text-[10px]">{hud.alerts.slice(0, 2).map((alert, index) => <p key={`${alert}-${index}`} className="hud-panel border-x border-primary/40 bg-background/45 px-3 py-1 text-foreground/90" style={{ opacity: 1 - index * 0.28 }}>{alert}</p>)}</div>
     {!tutorialActive && (hud.environment || hud.hazardWarning) && <div className="pointer-events-none absolute left-1/2 top-24 -translate-x-1/2 text-center font-mono text-[10px] uppercase tracking-[0.18em]">
       {hud.environment && <p className="text-muted-foreground">{hud.environment}</p>}
@@ -54,7 +57,7 @@ export function HUD({ hud, tutorialActive = false, onMenu, onAtlas, level }: { h
           <div className={`relative h-full hud-ticks ${hud.hp > 40 ? "bg-primary" : "bg-destructive"}`} style={{ width: `${hud.hp}%`, transition: "width 200ms linear" }} />
         </div>
         <div className="mt-1.5 flex items-center gap-3 text-[8px] uppercase tracking-[0.18em] text-muted-foreground"><span>{operatorByClass(hud.playerClass).name}</span><span>{hud.subclassName}</span>{hud.playerClass === "TITAN" && <span className="text-primary">Shield {hud.shield}%</span>}</div>
-        <div className="mt-2 flex gap-1">{hud.abilities.map((ability) => <div key={ability.slot} data-ability-state={ability.state} className={`min-w-0 flex-1 border-t px-1 pt-1 ${ability.state === "ACTIVE" ? "border-accent text-foreground" : ability.ready ? "border-primary text-foreground" : "border-border text-muted-foreground"}`}><p className="truncate text-[8px] uppercase">{ability.key} · {ability.name}</p><p className="text-[8px] uppercase tracking-wider">{ability.state === "COOLDOWN" ? `${ability.cooldown.toFixed(1)}s` : ability.state === "NO_ENERGY" ? `needs ${ability.cost}` : ability.state === "ACTIVE" ? "active" : "ready"}</p></div>)}</div>
+        <OperatorReadout hud={hud} />
       </div>
     </div>
     {ammo && (
@@ -147,4 +150,32 @@ function HealthVignette({ hp }: { hp: number }) {
     {low > 0 && <div className={`absolute inset-0 ${hp <= 20 ? "animate-pulse" : ""}`} style={{ background: `radial-gradient(ellipse at center, transparent 45%, rgb(160 10 20 / ${0.18 + low * 0.45}) 100%)` }} aria-hidden />}
     {flash > 0 && <div key={flash} className="hit-flash absolute inset-0" aria-hidden />}
   </>;
+}
+
+/** Q / E / R keep working exactly as before; they just stop occupying the screen. A cooldown chip appears only while an ability
+ * is cooling down or active, and the Super gets one meter that pulses "SUPER READY" the moment R can fire. */
+function OperatorReadout({ hud }: { hud: HudState }) {
+  const meter = superMeter(hud.abilities, hud.liveEnergy);
+  const prev = useRef<SuperMeter | null>(null);
+  const [pulse, setPulse] = useState(false);
+  useEffect(() => {
+    const fire = superJustReady(prev.current, meter);
+    prev.current = meter;
+    if (!fire) return;
+    setPulse(true);
+    const t = window.setTimeout(() => setPulse(false), 1800);
+    return () => window.clearTimeout(t);
+  });
+  const chips = contextualAbilities(hud.abilities);
+  return (
+    <div className="mt-2" aria-label="Operator readout">
+      {meter && (
+        <div className={pulse ? "animate-pulse" : ""} data-super-state={meter.label}>
+          <div className="flex items-center justify-between text-[8px] uppercase tracking-[0.18em]"><span className={meter.ready ? "text-primary" : "text-muted-foreground"}>{meter.ready ? "Super ready" : meter.active ? `${meter.name} active` : "Super"}</span><span className="text-muted-foreground">{meter.ready || meter.active ? "R" : `${Math.round(meter.charge * 100)}%`}</span></div>
+          <div className={`mt-0.5 h-1 w-full overflow-hidden bg-foreground/15 ${meter.ready ? "hud-glow" : ""}`}><div className={`h-full ${meter.ready || meter.active ? "bg-primary" : "bg-accent/70"}`} style={{ width: `${Math.round(meter.charge * 100)}%`, transition: "width 200ms linear" }} /></div>
+        </div>
+      )}
+      {chips.length > 0 && <div className="mt-1 flex gap-2 text-[8px] uppercase tracking-wider">{chips.map((a) => <span key={a.slot} data-ability-state={a.state} className={a.state === "ACTIVE" ? "text-foreground" : "text-muted-foreground"}>{a.key} {a.name} · {a.state === "ACTIVE" ? "active" : `${a.cooldown.toFixed(1)}s`}</span>)}</div>}
+    </div>
+  );
 }

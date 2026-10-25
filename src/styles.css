@@ -420,6 +420,25 @@
   .hud-health .hud-label { font-size: 8px; }
 }
 
+/* Landscape phones (short touch screens): the portrait stack above the touch controls has no height to climb, so vitals dock
+   bottom-centre between the stick and the fire cluster, ammo bottom-right of them, and the rails/chips shrink to the top corners. */
+@media (pointer: coarse) and (max-height: 500px) {
+  .hud-health { bottom: 8px !important; left: clamp(150px, 22vw, 190px) !important; width: min(250px, 34vw) !important; }
+  .hud-health > [aria-label^="Level"] { display: none; }
+  .hud-health .hud-status { padding: 4px 8px; }
+  .hud-health .hud-label { font-size: 7px; }
+  .hud-health .hud-status > div:nth-child(3) { display: none; }
+  .hud-ammo { bottom: 8px !important; right: auto !important; left: calc(clamp(150px, 22vw, 190px) + min(250px, 34vw) + 8px) !important; width: 96px !important; }
+  .wf-rail-left { top: 3.25rem; width: min(13rem, 30vw); max-height: 5rem; }
+  .wf-rail-right { top: 8.5rem; width: min(13rem, 30vw); max-height: 7rem; }
+  .mission-tracker, .quest-hud { top: 8.5rem !important; right: 8px !important; max-width: 12rem !important; }
+  .mission-tracker p, .quest-hud p { font-size: 9px; line-height: 1.25; }
+  .voice-subtitle { bottom: 56px !important; padding: 4px 8px !important; }
+  .voice-subtitle p { font-size: 10px !important; }
+  .mission-ribbon { top: 44px !important; padding: 4px 14px; }
+  [aria-label="Minimap"] { transform: scale(0.7); transform-origin: top right; }
+}
+
 /* Destination Director: each stage eases in; the selected city node breathes. Off under reduced motion. */
 @keyframes wf-director-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
 .wf-director-in { animation: wf-director-in 0.32s ease-out both; }
