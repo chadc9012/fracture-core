@@ -6,6 +6,8 @@ import * as THREE from "three";
 import { heightAt } from "@/game/terrain";
 import { FACTIONS } from "@/game/living-world";
 import { LIVING_NPCS, livingMarkers, npcWorld, type LivingNpc } from "@/game/living-npcs";
+import { npcPosition } from "@/game/npc-routine";
+import { shopClockHour } from "@/game/shop-hours";
 import { FRACTURE_RADIUS } from "@/game/living-events";
 import type { LivingRuntime } from "@/game/living-runtime";
 import { BEATS, type Guard } from "@/game/city-patrols";
@@ -83,25 +85,29 @@ function plateTexture(name: string, title: string, color: string): THREE.CanvasT
   return t;
 }
 
+const WALK_SPEED = 1.4; // m/s between post and rest spot
 function NpcView({ npc, playerRef }: { npc: LivingNpc; playerRef: React.RefObject<THREE.Object3D> }) {
   const group = useRef<THREE.Group>(null!);
-  const pos = useMemo(() => npcWorld(npc), [npc]);
-  const y = useMemo(() => heightAt(pos.x, pos.z), [pos]);
+  const pos = useMemo(() => npcWorld(npc), [npc]); // the post; npc-routine.ts moves them to a rest spot overnight
+  const cur = useRef({ x: pos.x, z: pos.z, y: heightAt(pos.x, pos.z) });
   const live = useRef({ state: "IDLE" } as Civilian);
   const color = FACTIONS[npc.faction].color;
   const plate = useMemo(() => plateTexture(npc.name, `${npc.title} · ${FACTIONS[npc.faction].name}`, color), [npc, color]);
-  useFrame(() => {
+  useFrame((_, dt) => {
     const p = playerRef.current;
     if (!p || !group.current) return;
-    const d = Math.hypot(p.position.x - pos.x, p.position.z - pos.z);
+    const goal = npcPosition(npc, shopClockHour());
+    const c = cur.current, gx = goal.x - c.x, gz = goal.z - c.z, gd = Math.hypot(gx, gz);
+    if (gd > 0.05) { const step = Math.min(gd, WALK_SPEED * dt); c.x += (gx / gd) * step; c.z += (gz / gd) * step; c.y = heightAt(c.x, c.z); group.current.position.set(c.x, c.y, c.z); }
+    const d = Math.hypot(p.position.x - c.x, p.position.z - c.z);
     group.current.visible = d < NPC_DRAW;
     live.current.hidden = d > NPC_DRAW;
     live.current.far = d > DETAIL_DISTANCE;
     live.current.state = d < 6 ? "GREET" : "IDLE";
-    if (d < 14) group.current.children[0]!.quaternion.setFromAxisAngle(UP, Math.atan2(p.position.x - pos.x, p.position.z - pos.z));
+    if (d < 14) group.current.children[0]!.quaternion.setFromAxisAngle(UP, Math.atan2(p.position.x - c.x, p.position.z - c.z));
   });
   return (
-    <group ref={group} position={[pos.x, y, pos.z]}>
+    <group ref={group} position={[cur.current.x, cur.current.y, cur.current.z]}>
       <group>
         <CivilianBody role={npc.body} live={live} />
       </group>

@@ -109,7 +109,8 @@ import { EncounterFx } from "./EncounterFx";
 import { COMBAT_FEEDBACK, impactFor, rumble } from "@/game/combat-feedback";
 import { encounterFor } from "@/game/scenario-encounters";
 import { windupHud } from "@/game/encounter-sim";
-import { setShopClockHour } from "@/game/shop-hours";
+import { setShopClockHour, shopClockHour } from "@/game/shop-hours";
+import { npcPosition } from "@/game/npc-routine";
 import { threatTicks, type ThreatTick } from "@/game/threat-indicators";
 const feedbackPad = () => (typeof navigator !== "undefined" && navigator.getGamepads ? Array.from(navigator.getGamepads()).find(Boolean) ?? null : null);
 import { raceLive } from "./NeonDistricts";
@@ -751,7 +752,7 @@ function SceneImpl({
       meshes: (r = 8) => { const camera = getThree().camera; const out: unknown[] = []; const p = new THREE.Vector3(); scene.traverse((o) => { const mesh = o as THREE.Mesh; if (!mesh.isMesh || out.length > 40) return; mesh.getWorldPosition(p); if (p.distanceTo(camera.position) > r) return; let vis = true; for (let q: THREE.Object3D | null = mesh; q; q = q.parent) if (!q.visible) vis = false; const m = mesh.material as THREE.MeshStandardMaterial; out.push({ geo: mesh.geometry.type, at: [p.x, p.y, p.z].map((v) => Math.round(v * 10) / 10), vis, layers: mesh.layers.mask, side: m?.side, op: m?.opacity, tr: m?.transparent, col: m?.color?.getHexString?.(), culled: mesh.frustumCulled, order: mesh.renderOrder }); }); return { cam: [camera.position.x, camera.position.y, camera.position.z].map((v) => Math.round(v * 10) / 10), near: (camera as THREE.PerspectiveCamera).near, layers: camera.layers.mask, list: out }; },
       machines: () => sim.machines.filter((m) => m.alive && m.mission).map((m) => ({ x: Math.round(m.x), z: Math.round(m.z), hp: Math.round(m.hp) })),
       /** Living World: start the next city event now (optionally of a given kind), read the live one, list guards */
-      npcs: () => ({ near: npcNear(state.current.x, state.current.z)?.id ?? null, inVehicle: state.current.inVehicle, list: LIVING_NPCS.map((n) => ({ id: n.id, ...npcWorld(n) })) }),
+      npcs: () => ({ near: npcNear(state.current.x, state.current.z)?.id ?? null, inVehicle: state.current.inVehicle, list: LIVING_NPCS.map((n) => ({ id: n.id, ...npcPosition(n, shopClockHour()) })) }),
       livingNow: () => { if (livingRt.current) livingRt.current.director = { ...livingRt.current.director, next: 0 }; return "next city event starts on the next frame (you must be inside Nexus or Neon City)"; },
       living: () => ({ event: livingRt.current?.director.current ?? null, next: Math.round(livingRt.current?.director.next ?? 0), guards: livingRt.current?.guards.map((g) => ({ id: g.id, state: g.state, x: Math.round(g.x), z: Math.round(g.z) })) }),
       /** list every live machine with its tags (nemesis/boss/living/mission) */

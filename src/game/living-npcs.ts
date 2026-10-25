@@ -9,6 +9,8 @@ import { CITIES, FACTIONS, adjustRep, districtStatus, districtById, repOf, tierA
 import type { MaterialId } from "./inventory";
 import type { PlayerProgression } from "./progression";
 import { grantXP } from "./xp";
+import { npcPosition } from "./npc-routine";
+import { shopClockHour } from "./shop-hours";
 
 export type NpcRole = "LEADER" | "QUEST" | "INFORMANT";
 export type LivingNpc = {
@@ -47,7 +49,8 @@ export const TALK_REACH = 3.6;
 /** nearest talkable NPC within reach of a world point */
 export function npcNear(x: number, z: number): LivingNpc | null {
   let best: LivingNpc | null = null, bestD = TALK_REACH;
-  for (const n of LIVING_NPCS) { const p = npcWorld(n); const d = Math.hypot(x - p.x, z - p.z); if (d < bestD) { bestD = d; best = n; } }
+  const hour = shopClockHour();
+  for (const n of LIVING_NPCS) { const p = npcPosition(n, hour); const d = Math.hypot(x - p.x, z - p.z); if (d < bestD) { bestD = d; best = n; } }
   return best;
 }
 
