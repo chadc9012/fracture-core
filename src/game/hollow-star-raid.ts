@@ -12,7 +12,8 @@
 import { HOLLOW_STAR, HOLLOW_STAR_ID } from "./hollow-star-data";
 import type { PlayerProgression } from "./progression";
 import { canClaimDungeon, claimDungeonClear } from "./dungeon-claims";
-import { CHALLENGE_RAID_MULT, payoutFor } from "./activity-payouts";
+import { CHALLENGE_RAID_MULT, payInto, payoutFor } from "./activity-payouts";
+import { RAID_TIERS, recordTierClear, tierById, tierTarget, tierUnlocked, weeklyMult } from "./difficulty-ladder";
 
 export { HOLLOW_STAR, HOLLOW_STAR_ID };
 export const STARBREAKER_TITLE = "Starbreaker";
@@ -163,6 +164,39 @@ export function claimHollowStarClear(p: PlayerProgression, variant: RaidVariant,
     },
   };
 }
+
+/* ------------------------------------------------------------ difficulty tiers ------------------------------------------------------------
+ * Normal is the raid as written (`claimHollowStarClear`). Heroic, Mastery and Contest replay it harder (difficulty-ladder.ts
+ * `scaleEncounter`), unlock one after another, and each pays its own first clear and its own daily repeat in Nex, with the tier's
+ * multiplier. The first-clear gear, title and blueprint stay with the first Normal clear: harder tiers pay currency, shards and carbon. */
+export const raidTierClaimKey = (tierId: string, now: number) => `raid-claim:${HOLLOW_STAR_ID}:${tierId}:${new Date(now).toISOString().slice(0, 10)}`;
+export const hollowStarTierUnlocked = (p: Pick<PlayerProgression, "earnedRewards" | "dungeonClears">, tierId: string) => tierUnlocked(p, "raid", [HOLLOW_STAR_ID], tierId);
+export const canClaimHollowStarTier = (p: Pick<PlayerProgression, "earnedRewards" | "dungeonClears">, tierId: string, now = Date.now()) =>
+  hollowStarTierUnlocked(p, tierId) && (tierById("raid", tierId).rank === 0 ? canClaimDungeon(p, HOLLOW_STAR_ID, now) : !p.earnedRewards.includes(raidTierClaimKey(tierId, now)));
+/** the Nex a tier clear would pay right now (null when today's is taken); `challenge` is this week's raid modifier taken */
+export function hollowStarTierPayout(p: Pick<PlayerProgression, "nexLedger">, variant: RaidVariant, tierId: string, challenge: boolean, now = Date.now()) {
+  const tier = tierById("raid", tierId);
+  return payoutFor(p.nexLedger, "raid", tierTarget("raid", HOLLOW_STAR_ID, tierId), now, tier.payMult * (variant === "CHALLENGE" ? CHALLENGE_RAID_MULT : 1) * weeklyMult("raid", tier, false, challenge));
+}
+export function claimHollowStarTierClear(p: PlayerProgression, variant: RaidVariant, secretsFound: readonly string[], tierId: string, challenge = false, now = Date.now()): PlayerProgression {
+  const tier = tierById("raid", tierId);
+  if (!canClaimHollowStarTier(p, tierId, now)) return p;
+  if (tier.rank === 0) {
+    const pay = payoutFor(p.nexLedger, "raid", HOLLOW_STAR_ID, now);
+    const base = claimHollowStarClear(p, variant, secretsFound, now);
+    const bonus = pay && challenge ? { ...base, nexLedger: { ...base.nexLedger, [`${pay.key}:weekly`]: Math.round(pay.nex * (weeklyMult("raid", tier, false, true) - 1)) } } : base;
+    return recordTierClear(bonus, HOLLOW_STAR_ID, tier.id);
+  }
+  const mult = tier.payMult * (variant === "CHALLENGE" ? CHALLENGE_RAID_MULT : 1) * weeklyMult("raid", tier, false, challenge);
+  const withKeys: PlayerProgression = {
+    ...p,
+    earnedRewards: [...p.earnedRewards, raidTierClaimKey(tierId, now)],
+    fractureShards: p.fractureShards + RAID_VARIANTS[variant].repeatShards * (1 + tier.rank),
+    materials: { ...p.materials, anomalyCarbon: (p.materials.anomalyCarbon ?? 0) + 2 * tier.rank },
+  };
+  return recordTierClear(payInto(withKeys, "raid", tierTarget("raid", HOLLOW_STAR_ID, tierId), now, mult).progression, HOLLOW_STAR_ID, tier.id);
+}
+export { RAID_TIERS };
 
 /* ------------------------------------------------------------ recognition ------------------------------------------------------------ */
 export const hasStarbreaker = (p: Pick<PlayerProgression, "earnedRewards">) => p.earnedRewards.includes(STARBREAKER_KEY);

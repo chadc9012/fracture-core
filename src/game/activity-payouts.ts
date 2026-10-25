@@ -1,6 +1,7 @@
 /** Nex payouts for the three big activity classes (pure). Bosses pay well, dungeons pay a bit better, raids pay best, and the gap is
  * wide enough that a raid day is worth several dungeon days:
  *   boss     first kill 800    repeat 350   (x1.0-2.0 by boss rank)
+ *   strike   first clear 700   repeat 300   (x1-4 by difficulty tier: difficulty-ladder.ts)
  *   dungeon  first clear 1,500 repeat 600
  *   raid     first clear 12,000 repeat 4,000 (challenge variant x1.5)
  * First pays once per target (the ledger remembers it); repeats pay once per day per target, the same daily guard dungeons already
@@ -10,9 +11,10 @@
 import type { NexLedger } from "./nex";
 import { HOLLOW_STAR_ID } from "./hollow-star-data";
 
-export type PayoutClass = "boss" | "dungeon" | "raid";
+export type PayoutClass = "boss" | "strike" | "dungeon" | "raid";
 export const PAYOUTS: Record<PayoutClass, { first: number; repeat: number }> = {
   boss: { first: 800, repeat: 350 },
+  strike: { first: 700, repeat: 300 },
   dungeon: { first: 1_500, repeat: 600 },
   raid: { first: 12_000, repeat: 4_000 },
 };

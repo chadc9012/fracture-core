@@ -1,4 +1,6 @@
 export type EncounterStageType = "SYNC_TRAVERSAL" | "COMBAT" | "PUZZLE_COMBAT" | "TRAVERSAL_COMBAT" | "BOSS_FIGHT";
+/** hazard added per objective step when a stage does not set its own `hazardPerStep` */
+export const DEFAULT_HAZARD_GAIN: Record<EncounterStageType, number> = { SYNC_TRAVERSAL: 11, COMBAT: 8, PUZZLE_COMBAT: 14, TRAVERSAL_COMBAT: 12, BOSS_FIGHT: 9 };
 export type EncounterStatus = "READY" | "ACTIVE" | "COMPLETE" | "WIPED";
 
 export type EncounterStage = {
@@ -22,7 +24,7 @@ export type EncounterStage = {
 export type EncounterDefinition = {
   id: string;
   name: string;
-  activity: "DUNGEON" | "RAID";
+  activity: "DUNGEON" | "RAID" | "STRIKE";
   privateInstance: boolean;
   squad: { min: number; max: number };
   duration: string;
@@ -54,7 +56,7 @@ export function advanceEncounter(definition: EncounterDefinition, run: Encounter
   const stage = definition.stages[run.stageIndex];
   if (!stage) return { ...run, status: "COMPLETE", message: "Encounter complete." };
   const nextProgress = Math.min(stage.target, run.progress + 1);
-  const hazardGain: Record<EncounterStageType, number> = { SYNC_TRAVERSAL: 11, COMBAT: 8, PUZZLE_COMBAT: 14, TRAVERSAL_COMBAT: 12, BOSS_FIGHT: 9 };
+  const hazardGain = DEFAULT_HAZARD_GAIN;
   const nextHazard = Math.min(100, run.hazard + (stage.hazardPerStep ?? hazardGain[stage.type]));
   const contributions = { damage: run.damage + (stage.type === "BOSS_FIGHT" || stage.type === "COMBAT" ? 140 : 45), support: run.support + (stage.type === "PUZZLE_COMBAT" || stage.type === "SYNC_TRAVERSAL" ? 85 : 25) };
   if (nextHazard >= 100) return { ...run, hazard: 100, status: "WIPED", message: "Sand entombment reached critical pressure. Fireteam lost." };
