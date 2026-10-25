@@ -74,7 +74,8 @@ const DEFAULT_APPEARANCE: AppearanceDefinition = { id: "BASTION", name: "Goliath
  * from, not an arbitrary color swatch. Stays the same across that Operator's 3 subclasses. */
 export const APPEARANCES: readonly AppearanceDefinition[] = [
   DEFAULT_APPEARANCE,
-  { id: "SHADE", name: "Nyx Rift", armor: "#2a2230", cloth: "#0e0b12", visor: "#ff2bd6", trim: "#1a0f22", callsign: "NYX-13" },
+  // Nyx's body is the Rookie Shadow model (Meshy, from the rookie sheet): her signature colours are its Standard variation, so it renders as modelled
+  { id: "SHADE", name: "Nyx Rookie Shadow", armor: "#2a2a2f", cloth: "#121215", visor: "#d81f2e", trim: "#c9c9cc", callsign: "NYX-13" },
   { id: "CIPHER", name: "Cipher Tech", armor: "#3d3a5c", cloth: "#121018", visor: "#ffc864", trim: "#15131d", callsign: "CIPHER-02" },
 ];
 /** Swatch rows offered when freely customizing each color channel in the Identity Forge — every
