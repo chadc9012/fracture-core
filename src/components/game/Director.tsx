@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Crosshair, LockKeyhole, Map as MapIcon, Play, Save, Settings2, Shield, Swords, Users } from "lucide-react";
+import { Crosshair, Globe2, LockKeyhole, Map as MapIcon, Play, Save, Settings2, Shield, Swords, Users } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { PlayerProgression } from "@/game/progression";
@@ -9,14 +9,16 @@ import { FRACTURE_RAID, PVP_RANKS } from "@/game/system-foundations";
 import { StarMap, type DeployTarget } from "./StarMap";
 import { ArsenalLoadouts } from "./ArsenalLoadouts";
 import { SaveManager } from "./SaveManager";
+import { PlanetMap } from "./PlanetMap";
 import { cycle, padTabIntent, tabKeyIntent } from "@/game/director-nav";
 
 /** Destiny-style director: the world map is home, with the Killbox (PvP; "crucible" in code and saves), Raid and the gear/save screens as tabs along the
  * top. Destinations deploy through the map's own transit; Killbox matches start an activity and drop you in the arena. */
-export type DirectorTab = "map" | "crucible" | "raid" | "arsenal" | "saves";
+export type DirectorTab = "map" | "planet" | "crucible" | "raid" | "arsenal" | "saves";
 
 const TABS: { id: DirectorTab; label: string; icon: LucideIcon }[] = [
   { id: "map", label: "Map", icon: MapIcon },
+  { id: "planet", label: "Planet", icon: Globe2 },
   { id: "crucible", label: "Killbox", icon: Swords },
   { id: "raid", label: "Raid", icon: Users },
   { id: "arsenal", label: "Arsenal", icon: Shield },
@@ -82,6 +84,7 @@ export function Director({ progression, onProgression, onDeploy, onCrucible, onR
       {notice && <div role="status" className="fixed left-1/2 top-16 z-[61] -translate-x-1/2 border border-destructive/60 bg-background/95 px-4 py-2 font-mono text-xs">{notice}</div>}
       {tab === "map" && <StarMap embedded progression={progression} onBack={() => setTab("map")} onDeploy={onDeploy} onProgression={onProgression}
         chrome={{ tabs: TABS.map(({ id, label }) => ({ id, label })), current: tab, onTab: (id) => setTab(id as DirectorTab), operator: operatorName, level: progression.level, onResume, onSystem }} />}
+      {tab === "planet" && <Panel label="Planet"><PlanetMap progression={progression} onDeploy={onDeploy} /></Panel>}
       {tab === "crucible" && <CrucibleView progression={progression} playerClass={playerClass} onLaunch={onCrucible} />}
       {tab === "raid" && <RaidView />}
       {tab === "arsenal" && <ArsenalLoadouts embedded progression={progression} onProgression={onProgression} onBack={() => setTab("map")} />}

@@ -126,6 +126,9 @@ import type { DescentEmit } from "@/game/descent-runtime";
 import { claimDescentClear, claimTierLoot } from "@/game/descent-run";
 import { dungeonById } from "@/game/fracture-gates";
 import { DescentTracker } from "./DescentTracker";
+import { TransitPanel } from "./TransitPanel";
+import { hasVisited, recordVisit, START_WORLD } from "@/game/travel";
+import { worldName } from "@/game/planet";
 import { resolveDerby, resolveRally, resolveVault } from "@/game/wasteland-activities";
 import { InventoryWindow } from "./InventoryWindow";
 import { CharacterScreen } from "./CharacterScreen";
@@ -432,6 +435,7 @@ export function GameCanvas() {
       else if (e.code === "KeyY" && !e.repeat && garageNearRef.current) { setBasePanel((open) => (open ? null : garageNearRef.current)); if (document.pointerLockElement) document.exitPointerLock(); }
       else if (e.code === "KeyY" && !e.repeat && residenceNearRef.current) { const id = residenceNearRef.current; setRealty((open) => (open ? null : { start: id })); if (document.pointerLockElement) document.exitPointerLock(); }
       else if (e.code === "KeyY" && !e.repeat && vaelNearRef.current) { setForgeOpen((open) => !open); if (document.pointerLockElement) document.exitPointerLock(); }
+      else if (e.code === "KeyY" && !e.repeat && transitNearRef.current) { setTransitOpen((open) => (open ? null : transitNearRef.current)); if (document.pointerLockElement) document.exitPointerLock(); }
       else if (e.code === "KeyY" && !e.repeat && npcNearRef.current) { setNpcOpen((open) => (open ? null : npcNearRef.current)); if (document.pointerLockElement) document.exitPointerLock(); }
       else if (e.code === "KeyY" && !e.repeat && cacheNearRef.current && !cacheNearRef.current.label.startsWith("Encrypted")) openNearCache();
       else if (e.code === "Escape") setShopOpen(null);
@@ -465,6 +469,18 @@ export function GameCanvas() {
   }, [phase, settings.bindings, toggleAtlas]);
   useEffect(() => { shopNearRef.current = hud.shopNearId ?? null; if (!hud.shopNearId) setShopOpen(null); }, [hud.shopNearId]);
   useEffect(() => { npcNearRef.current = hud.npcNear?.id ?? null; if (!hud.npcNear) setNpcOpen(null); }, [hud.npcNear?.id]);
+  /* continental transit (travel.ts): the terminal you stand at, its departures board, and first visits to each continent */
+  const [transitOpen, setTransitOpen] = useState<string | null>(null);
+  const transitNearRef = useRef<string | null>(null);
+  useEffect(() => { transitNearRef.current = hud.transitNear?.id ?? null; if (!hud.transitNear) setTransitOpen(null); }, [hud.transitNear?.id]);
+  useEffect(() => {
+    const w = hud.world;
+    if (!w || phase !== "world") return;
+    const cur = progressionRef.current;
+    if (recordVisit(recordVisit(cur, START_WORLD), w) === cur) return;
+    if (w !== START_WORLD && !hasVisited(cur, w)) showLivingToast(`First landfall · ${worldName(w)}`);
+    setProgression((current) => recordVisit(recordVisit(current, START_WORLD), w));
+  }, [hud.world, phase, showLivingToast]);
   useEffect(() => { vaelNearRef.current = !!hud.vaelNear; if (!hud.vaelNear) setForgeOpen(false); }, [hud.vaelNear]);
   useEffect(() => { skateNearRef.current = !!hud.skateShopNear; if (!hud.skateShopNear) setSkateOpen(false); }, [hud.skateShopNear]);
   useEffect(() => { garageNearRef.current = (hud.garageNear as GarageId | null | undefined) ?? null; if (!hud.garageNear) setBasePanel(null); }, [hud.garageNear]);
@@ -1608,6 +1624,18 @@ export function GameCanvas() {
        {hud.npcNear && !hud.shopNearId && !npcOpen && (
          <div className="pointer-events-none absolute bottom-24 left-1/2 -translate-x-1/2">
            <Button className="pointer-events-auto" variant="outline" onClick={() => setNpcOpen(hud.npcNear?.id ?? null)}>[Y] Talk · {hud.npcNear.name} <span className="ml-2 text-muted-foreground">{hud.npcNear.title}</span></Button>
+         </div>
+       )}
+       {hud.transitNear && !transitOpen && (
+         <div className="pointer-events-none absolute bottom-36 left-1/2 -translate-x-1/2">
+           <Button className="pointer-events-auto" variant="outline" onClick={() => setTransitOpen(hud.transitNear?.id ?? null)}>[Y] Departures · {hud.transitNear.name}</Button>
+         </div>
+       )}
+       {transitOpen && <TransitPanel terminalId={transitOpen} progression={progression} onClose={() => setTransitOpen(null)} onFly={(target) => { setTransitOpen(null); startTransit(target); }} />}
+       {hud.elevatorRide && (
+         <div className="pointer-events-none absolute left-1/2 top-[30%] -translate-x-1/2 border border-cyan-300/50 bg-background/80 px-5 py-3 text-center font-mono backdrop-blur-sm">
+           <p className="text-[9px] uppercase tracking-[0.3em] text-cyan-300">Thalassia elevator</p>
+           <p className="mt-1 text-sm uppercase tracking-wider">{hud.elevatorRide.down ? "Descending to the Sentry Dock" : "Rising to the surface"} · {hud.elevatorRide.left} s</p>
          </div>
        )}
        <DescentTracker descent={hud.descent ?? undefined} />

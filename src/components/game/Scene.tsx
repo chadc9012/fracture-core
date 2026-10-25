@@ -245,6 +245,9 @@ import { createWasteRuntime, stepWasteRuntime, type WasteEmit, type WasteHud, ty
 import { createDescentRuntime, descentDeath, drainEndedRuns, stepDescentRuntime, type DescentEmit, type DescentHud, type DescentRuntime } from "@/game/descent-runtime";
 import { activeDescent, descentSolids, dungeonById, gatesForDay, inDescentSpace, liveDescentGroundAt } from "@/game/fracture-gates";
 import { DescentDungeon } from "./DescentDungeon";
+import { borderBlocks, worldAt, worldName, type WorldId } from "@/game/planet";
+import { ELEVATOR_RIDE_S, dockArrival, elevatorDown, elevatorGroundAt, elevatorUp, platformArrival, terminalAt } from "@/game/travel";
+import { ContinentTransit } from "./ContinentTransit";
 import type { ArmorVisualState } from "./Scavenger";
 import type { PlayerProgression } from "@/game/progression";
 import { SkyFx, type SkyFxLive } from "./SkyFx";
@@ -394,6 +397,12 @@ export type HudState = {
   waste?: WasteHud;
   /** descent-runtime.ts: the Fracture Gate descent you are in, or a gate within sight */
   descent?: DescentHud;
+  /** planet.ts: the continent world you are standing in (GameCanvas records first visits) */
+  world?: WorldId | null;
+  /** travel.ts: a transit terminal you are standing at */
+  transitNear?: { id: string; name: string } | null;
+  /** the Thalassia elevator ride in progress: which way and seconds left */
+  elevatorRide?: { down: boolean; left: number } | null;
   /** godforge.ts: Vael is in reach (her forge is open) */
   vaelNear?: boolean;
   /** talkable Living World NPC within reach (living-npcs.ts) */
@@ -657,6 +666,12 @@ function SceneImpl({
   const wasteRt = useRef<WasteRuntime | null>(null);
   const descentRt = useRef<DescentRuntime>(createDescentRuntime());
   const descentHud = useRef<DescentHud>(null);
+  /** continental borders (planet.ts): last position that passed the check, and when the warning last showed */
+  const borderPrev = useRef<{ x: number; z: number } | null>(null);
+  const borderWarned = useRef(0);
+  /** the Thalassia elevator ride (travel.ts): you are held in the car until it arrives */
+  const elevatorRide = useRef<{ down: boolean; left: number; hold: { x: number; y: number; z: number } } | null>(null);
+  const elevatorRearm = useRef(true);
   const wasteHud = useRef<WasteHud>(null);
   // fleet.ts / godforge.ts: Vael's opened forge and owned garage bases are small sanctuaries (sim.ts pushes hostiles out)
   const sanctuaries = useMemo(() => sanctuariesFor({ earnedRewards: gear?.earnedRewards ?? [], fleet: gear?.fleet }), [gear?.earnedRewards, gear?.fleet]);
@@ -2200,6 +2215,30 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
       riftInside = dr.inside; riftShaft = dr.shaft;
       if (riftInside) submerged = false;
     }
+    /* ---------------- the Thalassia elevator (travel.ts): a platform off Veyloria's coast rides down to the Sentry Dock and back ---------------- */
+    if (!interior && !riftInside) {
+      const r = elevatorRide.current;
+      if (r) {
+        // held in the car while it travels
+        s.x = r.hold.x; s.y = r.hold.y; s.z = r.hold.z; s.vy = 0; s.vSpeed = 0; velocity.set(0, 0, 0);
+        r.left -= dt;
+        if (r.left <= 0) {
+          const to = r.down ? dockArrival() : platformArrival();
+          s.x = to.x; s.y = to.y; s.z = to.z; s.vy = 0; s.grounded = !r.down; s.diving = r.down;
+          if (r.down) { s.oxygen = OXYGEN_MAX; s.hull = 0; s.breachAt = performance.now() / 1000; }
+          submerged = r.down;
+          elevatorRide.current = null; elevatorRearm.current = false; borderPrev.current = null;
+          alert(sim, r.down ? "Sentry Dock · Thalassia. The car waits here to take you back up" : "Elevator platform · Veyloria coast");
+        }
+      } else if (!s.inVehicle) {
+        const down = elevatorDown(s.x, s.z, s.y - 1.6), up = elevatorUp(s.x, s.y, s.z);
+        if (!down && !up) elevatorRearm.current = true;
+        if ((down || up) && elevatorRearm.current) {
+          elevatorRide.current = { down, left: ELEVATOR_RIDE_S, hold: { x: s.x, y: s.y, z: s.z } };
+          alert(sim, down ? "Elevator descending to Thalassia" : "Elevator rising to the surface");
+        }
+      }
+    }
     // world bounds — skipped inside a pocket-dimension interior, which lives far outside WORLD_RADIUS by design
     // Thalassia sits past the world disc in open ocean: its city radius (plus an approach lane) is inside the bounds too
     // and the Storm Islands hang over the ocean past the rim: high in the air near the chain is in bounds (storm-quests.ts)
@@ -2227,6 +2266,23 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
     s.x = body.x;
     s.z = body.z;
     s.vSpeed = body.vSpeed;
+    /* ---------------- continental borders (planet.ts): no walking, driving, sailing or flying from one continent into another ----------------
+     * Free spaces keep their own rules (interiors, descents, the Storm Islands' airspace), and a running activity or scripted
+     * mission suspends the borders until it ends (their courses and routes were laid out on one landmass). A frame that jumps
+     * more than 30 m is a teleport (travel, respawn, warp) and is never blocked. */
+    {
+      const prevB = borderPrev.current;
+      const exempt = !!interior || riftInside || !!activity || !!tutorial || inStormAirspace(s.x, s.y, s.z) || sim.machines.some((m) => m.alive && m.mission);
+      if (prevB && !exempt && Math.hypot(s.x - prevB.x, s.z - prevB.z) < 30) {
+        const b = borderBlocks(prevB.x, prevB.z, s.x, s.z);
+        if (b.blocked) {
+          s.x = prevB.x; s.z = prevB.z; s.vSpeed *= -0.2; velocity.set(0, 0, 0);
+          const now = performance.now();
+          if (now - borderWarned.current > 4000) { borderWarned.current = now; alert(sim, `Continental border · ${worldName(b.from)} ends here. Take a flight from a transit terminal to reach ${worldName(b.to)}`); }
+        }
+      }
+      borderPrev.current = { x: s.x, z: s.z };
+    }
     if (s.inVehicle && Math.abs(preCollideSpeed - s.vSpeed) > 2) { condition.current = impactVehicle(condition.current, Math.abs(preCollideSpeed - s.vSpeed)); onVehicleCondition?.(vehicleId, condition.current); }
 
     // Neon City vehicle-combat: a wreck-level car forces you out on foot; a heavily damaged one only does when the collision actually stopped it.
@@ -2830,7 +2886,7 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
     // crates, walls and cover tops are ground too once your feet are on (or a step below) them
     const boxTop = interior || s.inVehicle ? -Infinity : solidTopAt(s.x, s.z, s.y - 1.6, solids, 0.45, 0.2);
     const casinoGround = interior || s.inVehicle ? -Infinity : casinoFloorAt(s.x, s.z, s.y, NEON_CITY_CENTER);
-    const riftGround = riftInside ? liveDescentGroundAt(s.x, s.z, s.y - (s.inVehicle ? 1.9 : 1.6)) : -Infinity;
+    const riftGround = riftInside ? liveDescentGroundAt(s.x, s.z, s.y - (s.inVehicle ? 1.9 : 1.6)) : Math.max(-Infinity, interior ? -Infinity : elevatorGroundAt(s.x, s.z, s.y - (s.inVehicle ? 1.9 : 1.6)));
     const standY = (interior ? INTERIOR_ALTITUDE : Math.max(walkHeight(s.x, s.z), skyGround, boxTop, casinoGround, riftGround)) + (s.inVehicle ? 1.9 : 1.6);
     if (s.inVehicle && handling.mode !== "GROUND") {
       s.grounded = !vh.current.airborne; // stepVehicle owns height for aircraft and boats
@@ -3218,6 +3274,9 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
         skateShopNear: !interior && Math.hypot(s.x - NEON_CITY_CENTER.x - SKATE_SHOP_OFFSET.x, s.z - NEON_CITY_CENTER.z - SKATE_SHOP_OFFSET.z) < SKATE_SHOP_RADIUS,
         waste: wasteHud.current,
         descent: descentHud.current,
+        world: interior || riftInside ? null : worldAt(s.x, s.z),
+        transitNear: !interior && !s.inVehicle && !riftInside ? (() => { const t = terminalAt(s.x, s.z); return t ? { id: t.id, name: t.name } : null; })() : null,
+        elevatorRide: elevatorRide.current ? { down: elevatorRide.current.down, left: Math.max(0, Math.ceil(elevatorRide.current.left)) } : null,
         vaelNear: !interior && !s.inVehicle && vaelNear({ earnedRewards: gear?.earnedRewards ?? [] }, s.x, s.z),
         npcNear: !interior && !s.inVehicle ? (() => { const n = npcNear(s.x, s.z); return n ? { id: n.id, name: n.name, title: n.title } : null; })() : null,
         shopNearId: !s.inVehicle && (!interior || isInteriorOpen(interior, time.current)) ? accessibleShop(s.x, s.z, interior)?.id ?? null : null,
@@ -3437,6 +3496,7 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
       <Interior structure={structure} />
       <Interiors />
       <DescentDungeon runtime={descentRt} playerRef={player} />
+      <ContinentTransit playerRef={player} />
       <HomeInteriors housing={gear?.housing} nexLedger={gear?.nexLedger} />
       {settings.zoneLabels && <RegionLabels zones={sim.zones} />}
 
