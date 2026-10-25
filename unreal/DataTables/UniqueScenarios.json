@@ -14,7 +14,8 @@
     "ModelJson": "",
     "LairJson": "",
     "Taunt": "",
-    "LairAtJson": ""
+    "LairAtJson": "",
+    "MapRegion": ""
   },
   {
     "Name": "system-core",
@@ -31,7 +32,8 @@
     "ModelJson": "",
     "LairJson": "",
     "Taunt": "",
-    "LairAtJson": ""
+    "LairAtJson": "",
+    "MapRegion": ""
   },
   {
     "Name": "rime-alpha",
@@ -48,7 +50,8 @@
     "ModelJson": "{\"url\":\"/models/bosses/frost-wolf.glb\",\"height\":2.4,\"glow\":0.45,\"gait\":\"quadruped\"}",
     "LairJson": "{\"dx\":-0.5,\"dz\":0.45}",
     "Taunt": "",
-    "LairAtJson": ""
+    "LairAtJson": "",
+    "MapRegion": ""
   },
   {
     "Name": "dark-knight",
@@ -65,7 +68,8 @@
     "ModelJson": "{\"url\":\"/models/bosses/dark-knight.glb\",\"height\":2.7,\"glow\":0.3}",
     "LairJson": "{\"dx\":-0.5,\"dz\":0.45}",
     "Taunt": "\"Show me what your world calls strength.\"",
-    "LairAtJson": ""
+    "LairAtJson": "",
+    "MapRegion": ""
   },
   {
     "Name": "hollow-saint",
@@ -82,7 +86,8 @@
     "ModelJson": "",
     "LairJson": "{\"dx\":0.45,\"dz\":-0.4}",
     "Taunt": "\"Every power you carry was borrowed. I only collect the debt.\"",
-    "LairAtJson": ""
+    "LairAtJson": "",
+    "MapRegion": ""
   },
   {
     "Name": "drowned-monarch",
@@ -99,7 +104,8 @@
     "ModelJson": "",
     "LairJson": "",
     "Taunt": "\"The court is drowned. Kneel, or be counted among it.\"",
-    "LairAtJson": "{\"x\":1281.2996219540862,\"z\":-165.0332913282318}"
+    "LairAtJson": "{\"x\":1281.2996219540862,\"z\":-165.0332913282318}",
+    "MapRegion": ""
   },
   {
     "Name": "vaelith",
@@ -116,7 +122,8 @@
     "ModelJson": "",
     "LairJson": "{\"dx\":0.5,\"dz\":0.45}",
     "Taunt": "\"Show me whether your courage is your own.\"",
-    "LairAtJson": ""
+    "LairAtJson": "",
+    "MapRegion": ""
   },
   {
     "Name": "red-ronin",
@@ -133,7 +140,8 @@
     "ModelJson": "",
     "LairJson": "{\"dx\":-0.45,\"dz\":-0.4}",
     "Taunt": "\"Distance is a coward's weapon. Come within my reach.\"",
-    "LairAtJson": ""
+    "LairAtJson": "",
+    "MapRegion": ""
   },
   {
     "Name": "vyrak",
@@ -150,7 +158,8 @@
     "ModelJson": "",
     "LairJson": "{\"dx\":0.45,\"dz\":0.5}",
     "Taunt": "Its armor sheds under heat. Break the chest plates and the core is exposed.",
-    "LairAtJson": ""
+    "LairAtJson": "",
+    "MapRegion": ""
   },
   {
     "Name": "hollow-colossus",
@@ -167,7 +176,8 @@
     "ModelJson": "",
     "LairJson": "{\"dx\":-0.4,\"dz\":0.5}",
     "Taunt": "\"...\" (the chamber floor groans as something enormous turns over)",
-    "LairAtJson": ""
+    "LairAtJson": "",
+    "MapRegion": ""
   },
   {
     "Name": "exiled-architect",
@@ -184,7 +194,8 @@
     "ModelJson": "",
     "LairJson": "{\"dx\":-0.5,\"dz\":-0.35}",
     "Taunt": "\"Do not solve it the way I taught you. Solve it the way I never imagined.\"",
-    "LairAtJson": ""
+    "LairAtJson": "",
+    "MapRegion": ""
   },
   {
     "Name": "verdant-sovereign",
@@ -201,7 +212,8 @@
     "ModelJson": "",
     "LairJson": "{\"dx\":0.4,\"dz\":-0.45}",
     "Taunt": "\"The forest hears everything you do in it.\"",
-    "LairAtJson": ""
+    "LairAtJson": "",
+    "MapRegion": ""
   },
   {
     "Name": "black-market-phantom",
@@ -218,7 +230,8 @@
     "ModelJson": "",
     "LairJson": "",
     "Taunt": "\"Catch me, or keep running the route everyone else runs.\"",
-    "LairAtJson": "{\"x\":-211.99999999999997,\"z\":-94.00000000000001}"
+    "LairAtJson": "{\"x\":-211.99999999999997,\"z\":-94.00000000000001}",
+    "MapRegion": ""
   },
   {
     "Name": "king-beneath",
@@ -235,7 +248,8 @@
     "ModelJson": "",
     "LairJson": "",
     "Taunt": "\"Every pattern you repeat, I have already compiled.\"",
-    "LairAtJson": "{\"x\":-219.99999999999997,\"z\":-121.00000000000001}"
+    "LairAtJson": "{\"x\":-219.99999999999997,\"z\":-121.00000000000001}",
+    "MapRegion": ""
   },
   {
     "Name": "clockwork-saint",
@@ -252,7 +266,8 @@
     "ModelJson": "",
     "LairJson": "{\"dx\":-0.3,\"dz\":0.05}",
     "Taunt": "\"You are early. You are also late. Both are true here.\"",
-    "LairAtJson": ""
+    "LairAtJson": "",
+    "MapRegion": ""
   },
   {
     "Name": "abyssal-leviathan",
@@ -269,7 +284,8 @@
     "ModelJson": "",
     "LairJson": "",
     "Taunt": "\"...\" (the water itself pulls toward the trench)",
-    "LairAtJson": "{\"x\":1217.2996219540862,\"z\":-111.0332913282318}"
+    "LairAtJson": "{\"x\":1217.2996219540862,\"z\":-111.0332913282318}",
+    "MapRegion": ""
   },
   {
     "Name": "eternal-huntress",
@@ -286,7 +302,8 @@
     "ModelJson": "",
     "LairJson": "{\"dx\":-0.45,\"dz\":0.4}",
     "Taunt": "\"Run, and I will only enjoy it longer.\"",
-    "LairAtJson": ""
+    "LairAtJson": "",
+    "MapRegion": ""
   },
   {
     "Name": "iron-behemoth",
@@ -303,6 +320,25 @@
     "ModelJson": "",
     "LairJson": "{\"dx\":0.5,\"dz\":-0.45}",
     "Taunt": "\"TARGET ACQUIRED. ALL BATTERIES.\"",
-    "LairAtJson": ""
+    "LairAtJson": "",
+    "MapRegion": ""
+  },
+  {
+    "Name": "astravore",
+    "Id": "astravore",
+    "Gimmick": "poise",
+    "DisplayName": "Raid Boss: Astravore, the Hollow Star",
+    "RegionId": "nexus",
+    "BossName": "Astravore, the Hollow Star",
+    "Drop": "anomalyCarbon",
+    "Briefing": "A colossal armored intelligence with a miniature star in its chest, the thing that woke under Nexus City. Its armor barely registers damage until the star destabilizes and the core is exposed. Read each tell, survive, and strike the core in the opening.",
+    "Tell": "The star in its chest flares violet-white and the arena lights lean toward it before every strike.",
+    "OutsideWindowMult": 0.1,
+    "RewardCredits": 6000,
+    "ModelJson": "",
+    "LairJson": "",
+    "Taunt": "\"Reality is just another layer.\"",
+    "LairAtJson": "{\"x\":48,\"z\":-68}",
+    "MapRegion": "nexus"
   }
 ]

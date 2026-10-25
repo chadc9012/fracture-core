@@ -78,6 +78,18 @@ public:
 	/** Cosmetic <build> wheels|body|spoiler|armor|glow <value> */
 	UFUNCTION(Exec) void Cosmetic(const FString& BuildId, const FString& Key, const FString& Value);
 
+	// ---- housing (ported housing.ts / residence-deeds.ts, UWFHousingSubsystem) ----
+	/** Prints the homes, residences and decor with prices, ownership, placed decor and parked vehicles. */
+	UFUNCTION(Exec) void Homes();
+	/** BuyHome <id>: a listed home (grid-loft, aegis-penthouse...) or a city residence (nexus-home-3...), for Nex. */
+	UFUNCTION(Exec) void BuyHome(const FString& Id);
+	UFUNCTION(Exec) void BuyDecor(const FString& DecorId);
+	/** PlaceDecor <home> <room#> <slot> [decor]: no decor clears the slot. */
+	UFUNCTION(Exec) void PlaceDecor(const FString& HomeId, int32 Room, const FString& Slot, const FString& DecorId);
+	/** Park <build> <residence>: parks an owned fleet build in an owned residence's garage. */
+	UFUNCTION(Exec) void Park(const FString& BuildId, const FString& ResidenceId);
+	UFUNCTION(Exec) void Unpark(const FString& BuildId);
+
 	// ---- boss encounters (ported encounter-sim.ts) ----
 	const wf::encounter::FCatalog& GetEncounterCatalog() const { return EncounterCatalog; }
 	bool HasEncounter(const FString& ScenarioId) const;

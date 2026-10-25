@@ -30,7 +30,8 @@ unreal/
    `ListRaces`, `StartRace <id> [standard|advanced|legendary]`, `AbandonRace`,
    `Subclass <id>`, `EquipAbility <id>`, `AbilityBranch <ability> <branch>`, `ClassBuild`,
    `ListShops`, `Shop <id>`, `Buy <n>`, `Service <itemId> [element]`, `Inventory`, `ShopHour <h>`, `CloseShop`,
-   `Fleet`, `BuyGarage <base>`, `BuyFleet <build>`, `FleetActive <build>`, `Tune <build> <node>`, `Paint <build> "<paint>"`, `Cosmetic <build> <key> <value>`.
+   `Fleet`, `BuyGarage <base>`, `BuyFleet <build>`, `FleetActive <build>`, `Tune <build> <node>`, `Paint <build> "<paint>"`, `Cosmetic <build> <key> <value>`,
+   `Homes`, `BuyHome <id>`, `BuyDecor <id>`, `PlaceDecor <home> <room#> <slot> [decor]`, `Park <build> <residence>`, `Unpark <build>`.
 
 The default level is the engine's template map; the game mode adds a floor and lights if a level has none.
 
@@ -85,6 +86,10 @@ The default level is the engine's template map; the game mode adds a floor and l
   place. A valid finish pays the activity (Nex, XP, reputation, materials, challenge bonus) and then the race records
   (placement Nex, medals, personal bests, championship points, racing rank). The web world is not ported, so
   `StartRace` lays a course out with its start line just ahead of you; dive courses need water and are refused.
+- **Housing:** the seven listed homes (Undercity capsule flat to the Aegis Spire penthouse, garage quarters that need
+  their base) and the twelve walk-in residences of Nexus and Neon City, each a one-time Nex purchase; 17 decor items
+  bought once and placed by slot and room in any owned home; fleet builds parked in a residence's garage bays. All
+  saved in the web build's nexLedger / housing fields. The rooms themselves are not built in the level yet.
 - **Fleet and gadgets:** the four garage bases and the 21 fleet builds (fleet.ts): bought at their home base for
   materials and Nex, each unlocks its chassis and becomes the active vehicle; tuning nodes raise speed / hull / handling /
   ram, plus paint and cosmetics, all saved. Driving the active build's chassis uses its tuned stats, its own hardpoints
@@ -113,29 +118,30 @@ cmake -S . -B build -G Ninja && cmake --build build && ctest --test-dir build --
 | Suite | Recorded from | Checks |
 | --- | --- | --- |
 | QuestCoreTest | quests.ts gameTick / reconcileQuests / finishActiveQuest | 4,200 states |
-| RewardCoreTest | sim.ts defeatMachine, inventory.ts claimDrops, xp.ts grantXP (Math.random replayed) incl. 18 scenarios + Vyrak covenant | 754 kills (319 scenario), 2,936 checks |
+| RewardCoreTest | sim.ts defeatMachine, inventory.ts claimDrops, xp.ts grantXP (Math.random replayed) incl. 18 scenarios + Vyrak covenant | 734 kills, 2,846 checks |
 | MissionCoreTest | src/game/missions/* (12 machines) | 28,800 states |
 | MissionRewardCoreTest | progression.ts rewardMission, persistence.ts applyMissionCompletion | 1,224 payouts, 1,576 checks |
-| EncounterCoreTest | encounter-sim.ts, boss-poise.ts, boss-phases.ts, scenario-gimmicks.ts, sim.ts boss damage | 112 fights, 27,149 steps, 32,056 checks |
+| EncounterCoreTest | encounter-sim.ts, boss-poise.ts, boss-phases.ts, scenario-gimmicks.ts, sim.ts boss damage | 112 fights, 27,870 steps, 32,774 checks |
 | DragoniteCastCoreTest | dragonite-cast.ts castDragonite / stepDragonite, live-build.ts energy | 9,600 operations, 35,122 checks |
 | VehicleCoreTest | vehicle-handling.ts, vehicle-surface.ts, vehicle-condition.ts, rewardVehicle | 15,120 handling steps, 17,938 checks |
-| RaceCoreTest | racing.ts, activities.ts (all 68 courses, attempts, payouts, records) | 286 runs, 41,602 ticks, 15,255 checks |
+| RaceCoreTest | racing.ts, activities.ts (all 68 courses, attempts, payouts, records) | 286 runs, 49,814 ticks, 17,120 checks |
 | VehicleWeaponsCoreTest | vehicle-weapons.ts, ordnance.ts, launchers.ts, sim.ts fireBullet / fireOrdnance, Scene.tsx fire loop | 2,310 armaments, 160 flights, 14,400 fire frames, 135,166 checks |
 | AbilityCoreTest | ability-effects.ts, live-build.ts, ability-hud.ts, branch-effects.ts, subclass-verbs.ts, operator-abilities.ts | 8,000 operations (3,256 casts), 2,400 turret steps, 39,106 checks |
 | ShopCoreTest | regional-shops.ts, weapon-catalog.ts, shop-hours.ts, living-world.ts, inventory.ts upgrade / infuse | 1,087 stock checks, 924 purchases, 702 services, 14,566 checks |
 | FleetCoreTest | fleet.ts, vehicle-gadgets.ts | 2,400 fleet operations, 2,100 gadget operations, 13,060 checks |
+| HousingCoreTest | housing.ts, residence-deeds.ts | 4,500 operations, 80 normalized saves, 9,821 checks |
 | DragonCoreTest | dragonite.ts, dragonite-cast.ts statsFor, vyrak-trust.ts | 2,099 states, 23,789 checks |
 
 Regenerate goldens after changing the web build's rules (from the repo root):
 
     npx esbuild unreal/tools/<tool>.ts --bundle --platform=node --format=esm --alias:@=./src --outfile=/tmp/t.mjs && node /tmp/t.mjs
 
-for `export-datatables`, `gen-quest-golden`, `gen-reward-golden`, `gen-mission-golden`, `gen-missionreward-golden`, `gen-dragon-golden`, `gen-vehicle-golden`, `gen-race-golden`, `gen-vweapons-golden`, `gen-shop-golden`, `gen-fleet-golden`; the encounter, Dragonite-cast and ability recorders (`gen-encounter-golden`, `gen-dragoncast-golden`, `gen-ability-golden`) run through `node unreal/tools/build-golden.mjs unreal/tools/<tool>.ts`, which routes their world calls to recording shims.
+for `export-datatables`, `gen-quest-golden`, `gen-reward-golden`, `gen-mission-golden`, `gen-missionreward-golden`, `gen-dragon-golden`, `gen-vehicle-golden`, `gen-race-golden`, `gen-vweapons-golden`, `gen-shop-golden`, `gen-fleet-golden`, `gen-housing-golden`; the encounter, Dragonite-cast and ability recorders (`gen-encounter-golden`, `gen-dragoncast-golden`, `gen-ability-golden`) run through `node unreal/tools/build-golden.mjs unreal/tools/<tool>.ts`, which routes their world calls to recording shims.
 
 ## Not ported yet
 Boss models and attack effects (zones are debug circles, decoys are stand-ins), mid-mission saves, ability mastery XP and armor ability-recharge,
 region kinds for abilities (the map counts as a war zone),
 armor effects on combat, enemy perception/cover/line-of-sight, launchers and the sword, gear power and armor damage bonuses on vehicle guns, knockback, the featured-activity rotation and
 activity shader drops,
-the Operations Hub preview marketplace (its wallet is not saved in the web build either), housing, cloud save merge, the world itself (regions, Neon City, Thalassia). Their data is already in
+the Operations Hub preview marketplace (its wallet is not saved in the web build either), home interiors, cloud save merge, the world itself (regions, Neon City, Thalassia). Their data is already in
 `DataTables/`.

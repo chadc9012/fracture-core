@@ -70,6 +70,11 @@
     "ChanceJson": "[{\"item\":{\"id\":\"phantom-bow\",\"name\":\"Phantom Bow\",\"slot\":\"primary\",\"power\":315,\"level\":1,\"element\":\"BIO\",\"rarity\":\"EXOTIC\",\"source\":\"The Eternal Huntress\"},\"chance\":0.15}]"
   },
   {
+    "Name": "astravore",
+    "GuaranteedJson": "[{\"id\":\"hollow-star-lens\",\"name\":\"Hollow Star Lens\",\"slot\":\"primary\",\"power\":340,\"level\":1,\"element\":\"ARC\",\"rarity\":\"EXOTIC\",\"source\":\"Astravore, the Hollow Star\"},{\"id\":\"starbreaker-plate\",\"name\":\"Starbreaker Plate\",\"slot\":\"chest\",\"power\":270,\"level\":1,\"element\":\"ARC\",\"rarity\":\"LEGENDARY\",\"source\":\"Astravore, the Hollow Star\"}]",
+    "ChanceJson": "[]"
+  },
+  {
     "Name": "iron-behemoth",
     "GuaranteedJson": "[{\"id\":\"titanbreaker-plate\",\"name\":\"Titanbreaker Plate\",\"slot\":\"chest\",\"power\":245,\"level\":1,\"element\":\"KINETIC\",\"rarity\":\"LEGENDARY\",\"source\":\"The Iron Behemoth\"}]",
     "ChanceJson": "[{\"item\":{\"id\":\"siege-cannon\",\"name\":\"Behemoth Siege Cannon\",\"slot\":\"heavy\",\"power\":320,\"level\":1,\"element\":\"THERMAL\",\"rarity\":\"LEGENDARY\",\"source\":\"The Iron Behemoth\"},\"chance\":0.2}]"

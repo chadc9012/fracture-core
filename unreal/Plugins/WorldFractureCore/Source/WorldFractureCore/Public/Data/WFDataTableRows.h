@@ -74,6 +74,25 @@ struct FVehiclesRow : public FTableRowBase
 	UPROPERTY(EditAnywhere, BlueprintReadWrite) bool Starter = false;
 };
 
+/** Residences: 12 rows, exported from the web build. */
+USTRUCT(BlueprintType)
+struct FResidencesRow : public FTableRowBase
+{
+	GENERATED_BODY()
+	UPROPERTY(EditAnywhere, BlueprintReadWrite) FString Id;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite) FString DisplayName;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite) FString Address;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite) FString Kind;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite) FString Style;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite) FString City;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite) FString District;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite) int32 Price = 0;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite) int32 Bays = 0;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite) FString Blurb;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite) double X = 0.0;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite) double Z = 0.0;
+};
+
 /** Fleet: 21 rows, exported from the web build. */
 USTRUCT(BlueprintType)
 struct FFleetRow : public FTableRowBase
@@ -379,7 +398,7 @@ struct FSkyPhasesRow : public FTableRowBase
 	UPROPERTY(EditAnywhere, BlueprintReadWrite) double Intensity = 0.0;
 };
 
-/** UniqueScenarios: 18 rows, exported from the web build. */
+/** UniqueScenarios: 19 rows, exported from the web build. */
 USTRUCT(BlueprintType)
 struct FUniqueScenariosRow : public FTableRowBase
 {
@@ -398,9 +417,10 @@ struct FUniqueScenariosRow : public FTableRowBase
 	UPROPERTY(EditAnywhere, BlueprintReadWrite) FString LairJson;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite) FString Taunt;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite) FString LairAtJson;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite) FString MapRegion;
 };
 
-/** ScenarioEncounters: 6 rows, exported from the web build. */
+/** ScenarioEncounters: 7 rows, exported from the web build. */
 USTRUCT(BlueprintType)
 struct FScenarioEncountersRow : public FTableRowBase
 {
@@ -412,7 +432,7 @@ struct FScenarioEncountersRow : public FTableRowBase
 	UPROPERTY(EditAnywhere, BlueprintReadWrite) FString TruceJson;
 };
 
-/** ScenarioLoot: 15 rows, exported from the web build. */
+/** ScenarioLoot: 16 rows, exported from the web build. */
 USTRUCT(BlueprintType)
 struct FScenarioLootRow : public FTableRowBase
 {

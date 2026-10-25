@@ -40,6 +40,7 @@ import { DRAGONITE, CHALLENGES as DRAGONITE_CHALLENGES } from "../../src/game/dr
 import { RACES, CHAMPIONSHIPS, worldPoint, raceObstacles } from "../../src/game/racing";
 import { activityById, pointWorld } from "../../src/game/activities";
 import { HOMES, DECOR } from "../../src/game/housing";
+import { deeds, styleName } from "../../src/game/residence-deeds";
 import { ACTIVITIES, ELITES, VYRAK_REMATCH } from "../../src/game/activities";
 import { WEAPON_MANIFEST, ARMOR_MANIFEST } from "../../src/game/equipment";
 import { WEAPON_CATALOG } from "../../src/game/weapon-catalog";
@@ -132,6 +133,8 @@ mkdirSync(join(HEADER, ".."), { recursive: true });
 table("Weapons", WEAPONS);
 table("Launchers", LAUNCHERS);
 table("Vehicles", VEHICLES);
+// the walk-in residences of Nexus and Neon City (residence-deeds.ts): address, price and garage bays per property
+table("Residences", deeds().map((d) => ({ id: d.id, name: d.name, address: d.address, kind: d.kind, style: styleName(d), city: d.city, district: d.district, price: d.price, bays: d.bays, blurb: d.blurb, x: d.residence.x, z: d.residence.z })));
 table("Fleet", FLEET.map((f) => ({ ...f, nexPrice: fleetNexPrice(f.id) })));
 table("Garages", GARAGES);
 table("Regions", REGIONS);

@@ -1,0 +1,13 @@
+Name,Id,DisplayName,Address,Kind,Style,City,District,Price,Bays,Blurb,X,Z
+nexus-home-1,nexus-home-1,102 Cedar Lane,102 Cedar Lane,HOUSE,Suburban House,Nexus City,Residential Street,24000,1,Suburban House · Single-storey family house with a private garage.,48,-99
+nexus-home-2,nexus-home-2,104 Foundry Row,104 Foundry Row,HOUSE,Townhouse,Nexus City,Residential Street,30000,1,Townhouse · Three storeys of brick on a quiet row.,22,-99
+nexus-home-3,nexus-home-3,106 Courtyard Square,106 Courtyard Square,HOUSE,Duplex,Nexus City,Residential Street,36000,2,Duplex · Wide two-storey home with a double garage.,74,-99
+nexus-home-4,nexus-home-4,108 Exchange Walk,108 Exchange Walk,HOUSE,Courtyard House,Nexus City,Residential Street,48000,2,Courtyard House · Built round a planted courtyard; double garage.,48,-73
+nexus-home-5,nexus-home-5,110 Cedar Lane,110 Cedar Lane,HOUSE,Suburban House,Nexus City,Residential Street,24000,1,Suburban House · Single-storey family house with a private garage.,22,-73
+nexus-home-6,nexus-home-6,112 Foundry Row,112 Foundry Row,HOUSE,Townhouse,Nexus City,Residential Street,30000,1,Townhouse · Three storeys of brick on a quiet row.,74,-73
+nexus-home-7,nexus-home-7,114 Courtyard Square,114 Courtyard Square,APARTMENT,Apartment,Nexus City,Residential Street,5000,1,"Apartment · Ground-floor flat in a four-storey block, one parking bay.",48,-47
+nexus-home-8,nexus-home-8,116 Exchange Walk,116 Exchange Walk,CONDO,Condominium,Nexus City,Residential Street,11000,2,Condominium · Corner condo with balconies and two parking bays.,22,-47
+neon-home-1,neon-home-1,16 Lumen Row,16 Lumen Row,APARTMENT,Apartment,Neon City,Skyline Residences,6500,1,"Apartment · Ground-floor flat in a four-storey block, one parking bay.",-328,-140
+neon-home-2,neon-home-2,22 Chrome Way,22 Chrome Way,APARTMENT,Industrial Loft,Neon City,Skyline Residences,10000,2,"Industrial Loft · Double-height warehouse loft, two bays below.",-145.99999999999997,-218
+neon-home-3,neon-home-3,28 Skyline Vista,28 Skyline Vista,CONDO,Condominium,Neon City,Skyline Residences,14000,1,Condominium · Corner condo with balconies and two parking bays.,-119.99999999999997,-36.000000000000014
+neon-home-4,neon-home-4,34 Arc Street,34 Arc Street,HOUSE,Skyline Villa,Neon City,Skyline Residences,200000,3,Skyline Villa · Glass villa over the city lights; three-car garage.,-223.99999999999997,15.999999999999986

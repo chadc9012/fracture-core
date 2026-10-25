@@ -2,6 +2,7 @@ table	rows
 Weapons	10
 Launchers	4
 Vehicles	14
+Residences	12
 Fleet	21
 Garages	4
 Regions	7
@@ -23,9 +24,9 @@ ArmorManifest	92
 WeaponCatalog	45
 ClassMissions	3
 SkyPhases	5
-UniqueScenarios	18
-ScenarioEncounters	6
-ScenarioLoot	15
+UniqueScenarios	19
+ScenarioEncounters	7
+ScenarioLoot	16
 VyrakCovenant	1
 CovenantAbilities	3
 Dragonite	7

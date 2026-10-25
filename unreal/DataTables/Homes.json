@@ -21,7 +21,7 @@
     "Kind": "APARTMENT",
     "District": "The Grid",
     "RegionId": "nexus",
-    "Price": 18000,
+    "Price": 9000,
     "Rooms": [
       "living",
       "bedroom",
@@ -73,7 +73,7 @@
     "Kind": "PENTHOUSE",
     "District": "Aegis Spire",
     "RegionId": "nexus",
-    "Price": 300000,
+    "Price": 15000,
     "Rooms": [
       "living",
       "bedroom",
@@ -108,7 +108,7 @@
     "Kind": "GARAGE_QUARTERS",
     "District": "Frostspire Mountains",
     "RegionId": "frostspire",
-    "Price": 22000,
+    "Price": 10000,
     "Rooms": [
       "garage",
       "living",

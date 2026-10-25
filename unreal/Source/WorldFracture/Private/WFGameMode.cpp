@@ -28,6 +28,7 @@
 #include "WFRaceSubsystem.h"
 #include "WFShopSubsystem.h"
 #include "WFFleetSubsystem.h"
+#include "WFHousingSubsystem.h"
 #include "WFVehicle.h"
 
 AWFGameMode::AWFGameMode()
@@ -571,3 +572,18 @@ void AWFGameMode::FleetActive(const FString& Id) { if (UWFFleetSubsystem* F = Ge
 void AWFGameMode::Tune(const FString& Id, const FString& Node) { if (UWFFleetSubsystem* F = GetGameInstance()->GetSubsystem<UWFFleetSubsystem>()) Toast(F->Tune(Id, Node), FleetGold); }
 void AWFGameMode::Paint(const FString& Id, const FString& PaintName) { if (UWFFleetSubsystem* F = GetGameInstance()->GetSubsystem<UWFFleetSubsystem>()) Toast(F->Paint(Id, PaintName), FleetGold); }
 void AWFGameMode::Cosmetic(const FString& Id, const FString& Key, const FString& Value) { if (UWFFleetSubsystem* F = GetGameInstance()->GetSubsystem<UWFFleetSubsystem>()) Toast(F->Cosmetic(Id, Key, Value), FleetGold); }
+
+// --- housing ---------------------------------------------------------------------------------------------------------
+
+void AWFGameMode::Homes()
+{
+	const UWFHousingSubsystem* H = GetGameInstance()->GetSubsystem<UWFHousingSubsystem>();
+	if (!H) return;
+	for (const FString& L : H->Describe()) UE_LOG(LogTemp, Display, TEXT("  %s"), *L);
+	Toast(TEXT("Homes, residences and decor listed in the output log"), FLinearColor(0.45f, 0.9f, 1.f));
+}
+void AWFGameMode::BuyHome(const FString& Id) { if (UWFHousingSubsystem* H = GetGameInstance()->GetSubsystem<UWFHousingSubsystem>()) Toast(H->BuyProperty(Id), FleetGold); }
+void AWFGameMode::BuyDecor(const FString& Id) { if (UWFHousingSubsystem* H = GetGameInstance()->GetSubsystem<UWFHousingSubsystem>()) Toast(H->BuyDecor(Id), FleetGold); }
+void AWFGameMode::PlaceDecor(const FString& Home, int32 Room, const FString& Slot, const FString& Decor) { if (UWFHousingSubsystem* H = GetGameInstance()->GetSubsystem<UWFHousingSubsystem>()) Toast(H->PlaceDecor(Home, Room, Slot, Decor), FleetGold); }
+void AWFGameMode::Park(const FString& Build, const FString& Residence) { if (UWFHousingSubsystem* H = GetGameInstance()->GetSubsystem<UWFHousingSubsystem>()) Toast(H->Park(Build, Residence), FleetGold); }
+void AWFGameMode::Unpark(const FString& Build) { if (UWFHousingSubsystem* H = GetGameInstance()->GetSubsystem<UWFHousingSubsystem>()) Toast(H->Unpark(Build), FleetGold); }
