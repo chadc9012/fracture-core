@@ -1,4 +1,5 @@
 import "@/game/venue-doors";
+import { CoastalBeaches } from "./CoastalBeaches";
 import { accessibleShop } from "@/game/shop-access";
 const DISCOVERY_LABEL: Record<string, string> = { flag: "Flag", beacon: "Beacon", patrol: "Patrol", fracture: "Rift Fracture", distress: "Distress Signal", cache: "Cache", movement: "Movement Route", anomaly: "Anomaly" };
 const ACTIVITY_REGION: Record<string, string> = { veridan: "veridan", ember: "ember", wastelands: "wastelands", swamps: "swamps", solara: "solara", frostspire: "frostspire", thalassia: "swamps" };
@@ -3267,7 +3268,7 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
       <RiftTurrets sim={sim} />
       <PerfProbe />
       <group name="iso:weather"><Weather playerRef={player} weatherRef={weatherKind} fxRef={weatherFx} /></group>
-      <group name="iso:life"><Wildlife playerRef={player} sim={sim} /><Civilians playerRef={player} threatsRef={livingThreats} /><LivingCity runtime={livingRt} playerRef={player} gear={gear as PlayerProgression | undefined} /><WastelandSites runtime={wasteRt} playerRef={player} /></group>
+      <group name="iso:life"><Wildlife playerRef={player} sim={sim} /><Civilians playerRef={player} threatsRef={livingThreats} /><CoastalBeaches /><LivingCity runtime={livingRt} playerRef={player} gear={gear as PlayerProgression | undefined} /><WastelandSites runtime={wasteRt} playerRef={player} /></group>
       <group name="iso:water"><Water size={WORLD_RADIUS * 4} sunRef={sunDir} styleRef={waterStyle} tier={settings.renderTier} /><Rivers sunRef={sunDir} /></group>
       <LootCaches opened={openedCaches} />
       <ShopStalls />
