@@ -52,7 +52,7 @@ export function NexusSkyRail() {
       }
       for (const p of ps) {
         for (const g of legs(p)) { const h = p.deck - p.ground + 0.4; o.position.set(g.x, p.ground - 0.4 + h / 2, g.z); o.rotation.set(0, yaw, 0); o.scale.set(1, h, 1); o.updateMatrix(); leg.push(o.matrix.clone()); }
-        o.position.set(p.x, p.deck - 0.6, p.z); o.rotation.set(0, yaw + Math.PI / 2, 0); o.scale.set(1, 1, 1); o.updateMatrix(); cap.push(o.matrix.clone());
+        o.position.set(p.x, p.deck - 0.6, p.z); o.rotation.set(0, yaw, 0); o.scale.set(1, 1, 1); o.updateMatrix(); cap.push(o.matrix.clone());
       }
     }
     return { deck, beam, led, leg, cap };
