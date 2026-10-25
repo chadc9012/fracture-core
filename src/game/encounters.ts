@@ -1,7 +1,8 @@
 
 /** Faction per region follows the owner's faction sheet (public/refs/factions-sheet.png): Raiders = Wastelands, Overclocked = Nexus,
- * Vanguard = Frostspire, Aberrations = Swamps. Regions the sheet does not cover keep their themed mix. */
-export type EnemyKind = "RAIDER" | "OVERCLOCKED" | "ABERRATION" | "VANGUARD";
+ * Vanguard = Frostspire, Aberrations = Swamps; the Skyborn sheet adds the Skyborn to Ember Peaks' troops (its region boss, Overseer
+ * Kael, is a human reactor operator and keeps the Raider boss body). Regions the sheets do not cover keep their themed mix. */
+export type EnemyKind = "RAIDER" | "OVERCLOCKED" | "ABERRATION" | "VANGUARD" | "SKYBORN";
 export type EnemyProfile = { name: string; kind: EnemyKind; role: string; drop: string };
 export type RegionalEncounter = { regionId: string; troops: readonly EnemyProfile[]; boss?: { name: string; lair: string; drop: string; tell: string } };
 
@@ -12,7 +13,10 @@ export const ENCOUNTERS: readonly RegionalEncounter[] = [
     { name: "Veridan Corruptor", kind: "ABERRATION", role: "Spore support", drop: "bioCatalyst" },
   ], boss: { name: "Veridan Effigy", lair: "Corrupted Spore-Grove", drop: "bioCatalyst", tell: "Roots spread before a ground slam" } },
   { regionId: "ember", troops: [
+    // the Skyborn hold the peaks (owner's Skyborn sheet): ambient spawns draw from the first three
+    { name: "Skyborn Legionary", kind: "SKYBORN", role: "Armored frontline infantry", drop: "thermalShards" },
     { name: "Breaker Magma Berserker", kind: "RAIDER", role: "Thermal blade frontline", drop: "thermalShards" },
+    { name: "Skyborn Axiom", kind: "SKYBORN", role: "Elite blade enforcer", drop: "thermalShards" },
     { name: "Crater Crawler", kind: "ABERRATION", role: "Lava-wading arachnid mech", drop: "thermalShards" },
     { name: "Breaker Slag-Thrower", kind: "OVERCLOCKED", role: "Area-denial lava bombs", drop: "microCircuits" },
   ], boss: { name: "Overseer Kael", lair: "Ember Peaks Volcanic", drop: "magmaCore", tell: "Hammer glows before the shockwave" } },

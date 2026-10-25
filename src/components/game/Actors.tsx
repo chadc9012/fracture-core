@@ -209,8 +209,8 @@ function WalkingTank() {
   );
 }
 
-function RegionalEnemy({ kind, boss, elite = false, drive }: { kind: "RAIDER" | "OVERCLOCKED" | "ABERRATION" | "VANGUARD"; boss: boolean; elite?: boolean; drive: DriveRef }) {
-  const metal = kind === "RAIDER" ? "#765949" : kind === "ABERRATION" ? "#375c43" : kind === "VANGUARD" ? "#5b7481" : "#636c85";
+function RegionalEnemy({ kind, boss, elite = false, drive }: { kind: "RAIDER" | "OVERCLOCKED" | "ABERRATION" | "VANGUARD" | "SKYBORN"; boss: boolean; elite?: boolean; drive: DriveRef }) {
+  const metal = kind === "RAIDER" ? "#765949" : kind === "ABERRATION" ? "#375c43" : kind === "VANGUARD" ? "#5b7481" : kind === "SKYBORN" ? "#cfc8b8" : "#636c85";
   const glow = kind === "RAIDER" ? "#f36b33" : kind === "ABERRATION" ? "#83dc89" : "#58d8ef";
   const head = useRef<THREE.Group>(null!);
   const visor = useRef<THREE.MeshStandardMaterial>(null!);
@@ -258,7 +258,7 @@ export function WarMachines({ sim }: { sim: WorldSim }) {
       }
       const stride = strides[i];
       if (m.rival && stride && drive) { stride.current.phase += drive.current.speed * dt * 1.25; stride.current.intensity = Math.min(1, drive.current.speed / 9); drive.current.procedural = false; }
-      const modelName = m.rival ? `rival-${m.rival}` : m.boss && m.scenarioId && scenarioModelReady.has(m.scenarioId) ? "scenario-model" : m.boss ? `boss-model-${m.kind ?? "OVERCLOCKED"}` : (m.kind === "OVERCLOCKED" ? "overclocked-model" : m.kind === "ABERRATION" ? "aberration-model" : m.kind === "VANGUARD" ? "vanguard-model" : "regional-model") + (m.elite ? "-elite" : "");
+      const modelName = m.rival ? `rival-${m.rival}` : m.boss && m.scenarioId && scenarioModelReady.has(m.scenarioId) ? "scenario-model" : m.boss || (m.nemesis && m.kind === "SKYBORN") ? `boss-model-${m.kind ?? "OVERCLOCKED"}` /* a Skyborn nemesis is a Harbinger, their commander caste */ : (m.kind === "OVERCLOCKED" ? "overclocked-model" : m.kind === "ABERRATION" ? "aberration-model" : m.kind === "VANGUARD" ? "vanguard-model" : m.kind === "SKYBORN" ? "skyborn-model" : "regional-model") + (m.elite ? "-elite" : "");
       if (modelName !== "scenario-model" && !mountedRef.current[i]?.includes(modelName)) {
         const next = mountedRef.current.map((list, k) => (k === i ? [...list, modelName] : list));
         mountedRef.current = next;
@@ -298,11 +298,14 @@ export function WarMachines({ sim }: { sim: WorldSim }) {
           <group name="overclocked-model-elite" visible={false}>{need(i, "overclocked-model-elite") && <RegionalEnemy kind="OVERCLOCKED" boss={false} elite drive={drives[i]!} />}</group>
           <group name="aberration-model-elite" visible={false}>{need(i, "aberration-model-elite") && <RegionalEnemy kind="ABERRATION" boss={false} elite drive={drives[i]!} />}</group>
           <group name="vanguard-model-elite" visible={false}>{need(i, "vanguard-model-elite") && <RegionalEnemy kind="VANGUARD" boss={false} elite drive={drives[i]!} />}</group>
+          <group name="skyborn-model" visible={false}>{need(i, "skyborn-model") && <RegionalEnemy kind="SKYBORN" boss={false} drive={drives[i]!} />}</group>
+          <group name="skyborn-model-elite" visible={false}>{need(i, "skyborn-model-elite") && <RegionalEnemy kind="SKYBORN" boss={false} elite drive={drives[i]!} />}</group>
           {/* region bosses wear their region faction's boss from the faction sheet (encounters.ts REGION_FACTION) */}
           <group name="boss-model-RAIDER" visible={false}>{need(i, "boss-model-RAIDER") && <RegionalEnemy kind="RAIDER" boss drive={drives[i]!} />}</group>
           <group name="boss-model-OVERCLOCKED" visible={false}>{need(i, "boss-model-OVERCLOCKED") && <RegionalEnemy kind="OVERCLOCKED" boss drive={drives[i]!} />}</group>
           <group name="boss-model-VANGUARD" visible={false}>{need(i, "boss-model-VANGUARD") && <RegionalEnemy kind="VANGUARD" boss drive={drives[i]!} />}</group>
           <group name="boss-model-ABERRATION" visible={false}>{need(i, "boss-model-ABERRATION") && <RegionalEnemy kind="ABERRATION" boss drive={drives[i]!} />}</group>
+          <group name="boss-model-SKYBORN" visible={false}>{need(i, "boss-model-SKYBORN") && <RegionalEnemy kind="SKYBORN" boss drive={drives[i]!} />}</group>
           {/* Crucible rival operators in their hostile colourways (crucible.ts) */}
           {(["TITAN", "HUNTER", "WARLOCK"] as RivalClass[]).map((cls) => (
             <group key={cls} name={`rival-${cls}`} visible={false} position={[0, 2.2, 0]}>

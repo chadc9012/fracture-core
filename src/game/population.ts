@@ -129,13 +129,14 @@ export const keeperFor = (shopId: string) => SHOPKEEPERS.find((k) => k.shopId ==
 
 /* ------------------------------ enemies: regular / elite / boss per region ------------------------------ */
 export type EnemyRank = "regular" | "elite" | "boss";
-export type EnemyFactionId = "RAIDER" | "OVERCLOCKED" | "VANGUARD" | "ABERRATION";
-export const FACTION_LABEL: Record<EnemyFactionId, string> = { RAIDER: "Raiders", OVERCLOCKED: "Overclocked", VANGUARD: "Vanguard", ABERRATION: "Aberrations" };
+export type EnemyFactionId = "RAIDER" | "OVERCLOCKED" | "VANGUARD" | "ABERRATION" | "SKYBORN";
+export const FACTION_LABEL: Record<EnemyFactionId, string> = { RAIDER: "Raiders", OVERCLOCKED: "Overclocked", VANGUARD: "Vanguard", ABERRATION: "Aberrations", SKYBORN: "Skyborn" };
 export const ENEMY_NAMES: Record<EnemyFactionId, Record<EnemyRank, string>> = {
   RAIDER: { regular: "Raider Trooper", elite: "Skirmisher", boss: "Warbringer" },
   OVERCLOCKED: { regular: "Tactical Operative", elite: "Augmented Elite", boss: "Executor" },
   VANGUARD: { regular: "Crystal Enforcer", elite: "Frost Juggernaut", boss: "Vanguard Champion" },
   ABERRATION: { regular: "Fracture Crawler", elite: "Silicon Viper", boss: "Aberration Queen" },
+  SKYBORN: { regular: "Skyborn Legionary", elite: "Skyborn Axiom", boss: "Skyborn Harbinger" },
 };
 /** Which existing model stands in for each rank (mirrors enemy-visuals.ts) and whether it is the intended unique design. The boards show
  * unique elites/bosses for most factions; where only a reused model exists the status says so. */
@@ -144,9 +145,10 @@ export const ENEMY_MODEL_STATUS: Record<EnemyFactionId, Record<EnemyRank, { mode
   OVERCLOCKED: { regular: { model: "overclocked-regular", status: "existing-model", note: "Operative — generated from the faction sheet, rigged idle/walk/run/shoot" }, elite: { model: "overclocked-elite", status: "existing-model", note: "Augmented — generated from the faction sheet, rigged idle/walk/run/shoot" }, boss: { model: "overclocked-boss", status: "existing-model", note: "Executor — generated from the faction sheet, rigged idle/walk/run/shoot" } },
   VANGUARD: { regular: { model: "vanguard-regular", status: "existing-model", note: "Enforcer — generated from the faction sheet, rigged idle/walk/run/shoot" }, elite: { model: "vanguard-elite", status: "existing-model", note: "Juggernaut — generated from the faction sheet, rigged idle/walk/run/shoot" }, boss: { model: "vanguard-boss", status: "existing-model", note: "Champion — generated from the faction sheet, rigged idle/walk/run/shoot" } },
   ABERRATION: { regular: { model: "aberration-regular", status: "existing-model", note: "Crawler from the faction sheet (static mesh)" }, elite: { model: "aberration-elite", status: "existing-model", note: "Viper from the faction sheet, rigged" }, boss: { model: "aberration-boss", status: "existing-model", note: "Queen from the faction sheet (static mesh)" } },
+  SKYBORN: { regular: { model: "skyborn-regular", status: "existing-model", note: "Legionary — generated from the Skyborn sheet, rigged idle/walk/run/shoot" }, elite: { model: "skyborn-elite", status: "existing-model", note: "Axiom — generated from the Skyborn sheet, rigged idle/walk/run/shoot" }, boss: { model: "skyborn-boss", status: "existing-model", note: "Harbinger — generated from the Skyborn sheet, rigged; worn by Skyborn nemeses" } },
 };
 /** Region -> faction. Regions the boards give no faction for return null: no enemy models exist for them and that is reported, not faked. */
-export const REGION_FACTION: Record<PopulationRegion, EnemyFactionId | null> = { nexus: "OVERCLOCKED", neon: "OVERCLOCKED", thalassia: null, wastelands: "RAIDER", veridan: null, swamps: "ABERRATION", solara: "RAIDER", frostspire: "VANGUARD", ember: null };
+export const REGION_FACTION: Record<PopulationRegion, EnemyFactionId | null> = { nexus: "OVERCLOCKED", neon: "OVERCLOCKED", thalassia: null, wastelands: "RAIDER", veridan: null, swamps: "ABERRATION", solara: "RAIDER", frostspire: "VANGUARD", ember: "SKYBORN" };
 export function enemyProfile(region: PopulationRegion, rank: EnemyRank) {
   const faction = REGION_FACTION[region];
   if (!faction) return { region, rank, faction: null, name: `${REGION_LABEL[region]} ${rank} (no authored enemy)`, model: null, status: "missing" as AssetStatus, note: "no enemy faction or model authored for this region yet" };
