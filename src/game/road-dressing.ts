@@ -12,8 +12,8 @@
  * Nothing is placed in water, on a bridge span (except the bridge itself), inside a hub, or on the 7.2 m surfaced strip. */
 import { LANES, ROAD_SAMPLES, distanceToRoad, laneSamples, type Lane } from "./lanes";
 import { ROAD_HALF } from "./road-ribbon";
-import { WATER_LEVEL, heightAt, neonPlateauWeight, riverCrossings, type Crossing } from "./terrain";
-import { REGIONS } from "./world";
+import { WATER_LEVEL, heightAt, riverCrossings, type Crossing } from "./terrain";
+import { NEON_FLAT, NEON_SITE, REGIONS } from "./world";
 
 export type RoadKind = "asphalt" | "gravel" | "dirt";
 
@@ -31,6 +31,8 @@ export type Sign = { x: number; z: number; y: number; yaw: number; to: string; k
 export type Bridge = { x: number; z: number; deck: number; yaw: number; length: number; width: number; kind: RoadKind; piers: { along: number; side: number; bed: number }[] };
 
 const POST_EVERY = 24, LAMP_EVERY = 30, LAMP_REACH = 160, RAIL_DROP = 1.6;
+/** open-country lamps (owner's wilds target frame: lamp posts march along the road between the hubs): sparser, one side */
+export const COUNTRY_LAMP_EVERY = 72;
 /** posts and rails stand this far from the centre line: just off the surfaced strip, inside the graded corridor */
 export const VERGE = ROAD_HALF + 1.1;
 
@@ -82,6 +84,11 @@ export function laneDressing(lane: Lane): RoadDressing {
       nextLamp = p.along + LAMP_EVERY;
       const side = Math.round(p.along / LAMP_EVERY) % 2 ? 1 : -1, w = at(p, side, VERGE + 0.6);
       if (ok(lane, w.x, w.z)) lamps.push({ ...w, y: heightAt(w.x, w.z), yaw: Math.atan2(-p.nx * side, -p.nz * side) }); // local +Z (the arm) leans over the road
+    } else if (!(kind === "asphalt" && toEnd < LAMP_REACH) && toEnd > 30 && p.along >= nextLamp) {
+      // out in the open country: a lamp every ~72 m on one side, never inside a city's own streets
+      nextLamp = p.along + COUNTRY_LAMP_EVERY;
+      const side = (lane.name.length % 2) ? 1 : -1, w = at(p, side, VERGE + 0.6);
+      if (ok(lane, w.x, w.z) && !inCity(w.x, w.z)) lamps.push({ ...w, y: heightAt(w.x, w.z), yaw: Math.atan2(-p.nx * side, -p.nz * side) });
     }
     // guard rails: one segment per sample gap where the ground falls away beyond the verge, or the road nears a bridge
     for (const side of [-1, 1]) {
@@ -131,9 +138,9 @@ export function worldRoadDressing() {
   return cache;
 }
 
-/** inside a city's streets (the Neon plateau, downtown Nexus): no wild scrub there (live check: it lined Neon's kerbs) */
+/** inside a city's streets (Neon's flat, downtown Nexus): no wild scrub there (live check: it lined Neon's kerbs) */
 const NEXUS_C = REGIONS.find((r) => r.id === "nexus")!, NEXUS_CITY_R = 125;
-const inCity = (x: number, z: number) => neonPlateauWeight(x, z) > 0.01 || Math.hypot(x - NEXUS_C.x, z - NEXUS_C.z) < NEXUS_CITY_R;
+const inCity = (x: number, z: number) => Math.hypot(x - NEON_SITE.x, z - NEON_SITE.z) < NEON_FLAT + 12 || Math.hypot(x - NEXUS_C.x, z - NEXUS_C.z) < NEXUS_CITY_R;
 
 /* ---------------- verge scatter (owner's target frame "wilds by day": rocks and dry scrub crowd the road edges) ---------------- */
 
