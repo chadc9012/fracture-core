@@ -1,7 +1,9 @@
 import { useGLTF } from "@react-three/drei";
 import { useFrame } from "@react-three/fiber";
-import { Suspense, useEffect, useMemo, useRef, type MutableRefObject } from "react";
+import { Suspense, useEffect, useMemo, useRef, useState, type MutableRefObject } from "react";
 import * as THREE from "three";
+import { wearLook, wearKey, flatWheelIndices, MAX_SAG } from "@/game/vehicle-wear-render";
+import type { VehicleCondition } from "@/game/vehicle-condition";
 import { localBounds } from "@/game/vehicle-bounds";
 
 import { FLEET_MODELS, paintColor, type FleetModel } from "@/game/fleet-models";
@@ -28,6 +30,8 @@ type Props = {
   shadows?: boolean;
   /** the model's ground plane relative to the parent (the driven car's group sits at body height, 1.9 m up) */
   lift?: number;
+  /** worn running gear: flat tyres sink and the ride height sags */
+  condition?: { current: Pick<VehicleCondition, "tires" | "suspension"> } | undefined;
 };
 
 export function AuthoredVehicle(props: Props) {
@@ -50,7 +54,7 @@ function PlainHull() {
 
 const GLOW: Record<VehicleCosmetics["glow"], string | null> = { off: null, cyan: "#00eaff", magenta: "#ff45d4" };
 
-function VehicleBody({ model, paint, cosmetics, speedRef, steerRef, brakeRef, boundsRef, lights = false, shadows = true, lift = 0 }: Props) {
+function VehicleBody({ model, paint, cosmetics, speedRef, steerRef, brakeRef, boundsRef, lights = false, shadows = true, lift = 0, condition }: Props) {
   const { scene } = useGLTF(model.url);
   const rig = useMemo(() => {
     const root = scene.clone(true);
@@ -127,8 +131,21 @@ function VehicleBody({ model, paint, cosmetics, speedRef, steerRef, brakeRef, bo
     return () => { boundsRef.current = null; };
   }, [boundsRef, rig, model.scale, lift]);
 
+  const [look, setLook] = useState(() => wearLook(condition?.current ?? { tires: 0, suspension: 0 }));
+  const lookKey = wearKey(look);
+  useEffect(() => {
+    const sorted = [...rig.wheels].sort((a, b) => (a.node.name < b.node.name ? -1 : 1));
+    const flat = new Set(flatWheelIndices(look.flatCount, sorted.length));
+    sorted.forEach((w, i) => {
+      const base = (w.node.userData as { wearBaseY?: number }).wearBaseY ?? ((w.node.userData as { wearBaseY?: number }).wearBaseY = w.node.position.y);
+      w.node.position.y = base - (flat.has(i) ? w.radius * look.flatSink : 0);
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rig, lookKey]);
+
   const wasBraking = useRef(-1);
   useFrame((_, raw) => {
+    if (condition) { const next = wearLook(condition.current); if (wearKey(next) !== lookKey) setLook(next); }
     const dt = Math.min(raw, 0.05);
     const v = speedRef?.current ?? 0;
     for (const w of rig.wheels) w.node.rotation.x += (v / (w.radius * model.scale)) * dt;
@@ -147,7 +164,7 @@ function VehicleBody({ model, paint, cosmetics, speedRef, steerRef, brakeRef, bo
 
   const k = kit?.box;
   return (
-    <group scale={model.scale} position-y={lift - rig.seat * model.scale}>
+    <group scale={model.scale} position-y={lift - rig.seat * model.scale - look.sag * MAX_SAG}>
       <primitive object={rig.root} />
       {k && cosmetics?.armor === "reinforced" && [-1, 1].map((s) => (
         <mesh key={s} position={[s * (k.max.x + 0.02), (k.min.y + k.max.y) * 0.32, (k.min.z + k.max.z) / 2]} castShadow>
