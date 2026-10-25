@@ -395,7 +395,7 @@
 .touch-vehicle { top: calc(36% + 54px); right: 16px; }
 .touch-map { top: 36%; right: 70px; }
 @media (pointer: coarse) {
-  .consumable-hud { top: 26%; left: 12px; max-width: 160px; }
+  .consumable-hud { top: auto; left: auto; bottom: 9rem; right: 12px; max-width: 160px; }
   .consumable-hud button { min-height: 44px; }
   .consumable-hud [role="status"] { font-size: 9px; max-width: 100px; }
   .hud-health { bottom: 242px !important; left: 12px !important; width: min(250px, calc(100% - 24px)) !important; }

@@ -23,7 +23,7 @@ export function ConsumableHud({ progression, bindings, disabled, onUse }: { prog
     return () => window.removeEventListener("keydown", key);
   }, [keys.healStim, keys.armorStim, keys.ruinStone, disabled, onUse]);
   const shown = visibleConsumables(progression.materials, activeBuffs.current, now);
-  return <div className="consumable-hud pointer-events-auto fixed left-3 top-[42%] z-[35] flex max-w-[calc(100vw-1.5rem)] flex-col gap-1 font-mono">
+  return <div className="consumable-hud pointer-events-auto fixed bottom-[8.5rem] right-3 z-[35] flex max-w-[calc(100vw-1.5rem)] flex-row-reverse flex-wrap items-end justify-start gap-1 font-mono">
     {shown.map((id) => {
       const buff = activeBuffs.current[id];
       const live = buff && buff.until > now;
