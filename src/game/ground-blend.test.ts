@@ -120,3 +120,19 @@ describe("rock placement after polish", () => {
     void slopeAt;
   });
 });
+
+describe("shore colour", () => {
+  test("dry ground just above the water is sand, never water-blue (the old band blended from 0 m, not the waterline)", async () => {
+    const { WATER_LEVEL } = await import("./terrain");
+    // the gentle Verdant shore that showed cobalt ground, plus a sweep of every dry height near the waterline
+    for (const [x, z] of [[957, 86], [940, 110]] as const) {
+      const h = heightAt(x, z); expect(h).toBeGreaterThan(WATER_LEVEL);
+      const c = colorAt(x, z, h); expect(c[0]).toBeGreaterThan(c[2]);
+    }
+    for (let h = WATER_LEVEL + 0.05; h < WATER_LEVEL + 6; h += 0.25) {
+      const c = colorAt(957, 86, h);
+      for (const v of c) { expect(v).toBeGreaterThanOrEqual(0); expect(v).toBeLessThanOrEqual(1); }
+      expect(c[0]).toBeGreaterThan(c[2]);
+    }
+  });
+});

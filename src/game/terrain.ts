@@ -489,6 +489,7 @@ const PALETTE = {
   deep: [0.03, 0.16, 0.28],
   shallow: [0.09, 0.35, 0.45],
   sand: [0.76, 0.66, 0.42],
+  wetSand: [0.5, 0.43, 0.29],
   grass: [0.2, 0.44, 0.22],
   dirt: [0.36, 0.28, 0.17],
   rock: [0.36, 0.35, 0.34],
@@ -558,7 +559,10 @@ export function colorAt(x: number, z: number, worldH: number, slope?: number): [
   let c: [number, number, number];
   if (h < -6) c = [...PALETTE.deep];
   else if (h < WATER_LEVEL) c = mix(PALETTE.deep, PALETTE.shallow, (h + 6) / 6);
-  else if (h < 1.6) c = mix(PALETTE.shallow, PALETTE.sand, Math.min(1, h / 1.6));
+  // dry shore: dark wet sand at the waterline drying to sand. (This used to blend from h = 0, not the waterline, so dry ground
+  // between the water and 0 m took the shallow-water colour, pushed past it to a saturated cobalt by the negative blend factor;
+  // the HEIGHT_K stretch widened that band to several metres of land along every gentle shore.)
+  else if (h < 1.6) c = mix(PALETTE.wetSand, PALETTE.sand, smoothstep(WATER_LEVEL, 1.6, h));
   else if (h < 12) c = mix(PALETTE.sand, PALETTE.grass, (h - 1.6) / 10.4);
   else if (h < 26) c = mix(PALETTE.grass, PALETTE.dirt, (h - 12) / 14);
   else if (h < 44) c = mix(PALETTE.dirt, PALETTE.rock, (h - 26) / 18);

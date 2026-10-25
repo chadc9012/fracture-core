@@ -42,7 +42,7 @@ function sandMaterial(): THREE.MeshStandardMaterial {
   grad.addColorStop(0, "rgba(255,255,255,1)"); grad.addColorStop(1, "rgba(255,255,255,0)");
   x.fillStyle = grad; x.fillRect(0, 0, 64, 64);
   const alpha = new THREE.CanvasTexture(c);
-  return new THREE.MeshStandardMaterial({ color: "#c9b28a", roughness: 0.98, alphaMap: alpha, transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2 });
+  return new THREE.MeshStandardMaterial({ color: "#a08c66", roughness: 1, opacity: 0.85, alphaMap: alpha, transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2 });
 }
 
 export function CoastalBeaches() {
