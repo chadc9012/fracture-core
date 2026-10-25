@@ -61,3 +61,20 @@ describe("tiered city armor and black market", () => {
     expect("error" in again).toBe(true);
   });
 });
+
+describe("faction outposts", () => {
+  const living = (gain: Record<string, number>, loss: Record<string, number> = {}) => ({ gain, loss, districts: {}, contracts: {}, intel: [] });
+  test("the Directorate Quartermaster only trades once the Aegis Directorate trusts you", () => {
+    const q = shop("aegis-quartermaster");
+    expect(shopLock(q, { level: 8, completedMissions: [] })).toContain("Trusted");
+    expect(shopLock(q, { level: 8, completedMissions: [], living: living({ aegis: 5 }) } as never)).toContain("you are Neutral");
+    expect(shopLock(q, { level: 8, completedMissions: [], living: living({ aegis: 30 }) } as never)).toBeNull();
+    expect(shopLock(q, { level: 4, completedMissions: [], living: living({ aegis: 30 }) } as never)).toBe("Requires level 6");
+  });
+  test("the Legion Quartermaster opens after you hold the vault gates", () => {
+    const q = shop("legion-quartermaster");
+    expect(shopLock(q, { level: 5, completedMissions: [] })).toBe("Hold the Sub-Terra vault gates once");
+    expect(shopLock(q, { level: 5, completedMissions: ["side-vault-defense"] })).toBeNull();
+    expect(shopOffers(q).length).toBeGreaterThan(0);
+  });
+});

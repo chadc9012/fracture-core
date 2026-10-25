@@ -170,14 +170,18 @@ export function recordDistrict(s: LivingState, id: string, outcome: "WON" | "FAI
 export const SHOP_FACTION: Record<string, FactionId> = {
   "nexus-armory": "wardens", "nexus-plate": "wardens", "nexus-calibration": "guild", "nexus-outfitter": "guild",
   "neon-dealer": "syndicate", "neon-mods": "syndicate",
+  "aegis-quartermaster": "aegis",
 };
 
 /** Trading terms a city shop offers right now: refused while its faction is hostile or its district has fallen,
  * otherwise priced by standing (and 10% off while the district is freshly secured). Shops outside the cities: open, ×1. */
-export function livingShopTerms(s: LivingState | undefined, shop: { id: string; x: number; z: number }, now: number): { lock: string | null; priceMult: number } {
+export function livingShopTerms(s: LivingState | undefined, shop: { id: string; x: number; z: number; minStanding?: RepTier }, now: number): { lock: string | null; priceMult: number } {
   const f = SHOP_FACTION[shop.id];
-  if (!s || !f) return { lock: null, priceMult: 1 };
-  const tier = tierOf(s, f);
+  if (!f) return { lock: null, priceMult: 1 };
+  const tier = s ? tierOf(s, f) : "NEUTRAL";
+  // faction outposts only trade once you have earned the faction's standing
+  if (shop.minStanding && !tierAtLeast(tier, shop.minStanding)) return { lock: `${FACTIONS[f].name} only trade with ${TIER_RULES[shop.minStanding].label} operators (you are ${TIER_RULES[tier].label})`, priceMult: TIER_RULES[tier].priceMult };
+  if (!s) return { lock: null, priceMult: 1 };
   const district = districtOf(shop.x, shop.z);
   const status = district ? districtStatus(s, district.id, now) : "STABLE";
   if (!TIER_RULES[tier].trade) return { lock: `${FACTIONS[f].name} refuse to trade with you (Hostile)`, priceMult: TIER_RULES[tier].priceMult };

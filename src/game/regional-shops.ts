@@ -2,7 +2,8 @@
  * category, priced in region-flavoured materials from progression.materials (persisted), and gated
  * by player level and story progress. Pure logic; Scene detects proximity, ShopWindow draws it. */
 import { mulberry32 } from "./rng";
-import { livingShopTerms } from "./living-world";
+import { livingShopTerms, type RepTier } from "./living-world";
+import { VAULT_GATE } from "./wasteland-activities";
 import { REGIONS, NEON_OFFSET, scaleSite } from "./world";
 import { THALASSIA_CENTER } from "./thalassia-site";
 import { WEAPON_MANIFEST, ARMOR_MANIFEST, type WeaponTier, type ArmorTier } from "./equipment";
@@ -31,6 +32,8 @@ export type RegionalShop = {
   requires?: { missionId: string; label: string };
   /** armor-collections.ts: highest collection tier this armor shop stocks (city tier) */
   vendorTier?: VendorTier;
+  /** faction outposts (living-world.ts SHOP_FACTION): the standing needed before they trade at all */
+  minStanding?: RepTier;
 };
 
 const NEXUS = REGIONS.find((r) => r.id === "nexus")!;
@@ -55,6 +58,9 @@ export const REGIONAL_SHOPS: readonly RegionalShop[] = [
   { id: "solara-garage", name: "Convoy Workshop", kind: "vehicles", place: "Solara Desert", blurb: "Vehicle plating and weapons", ...at(scaleSite(-18, 76), 2.6, 14), currency: "vehicleParts", priceMult: 1, minLevel: 4 },
   { id: "frost-research", name: "Spire Research Post", kind: "gunsmith", place: "Frostspire Mountains", blurb: "Precision calibration", ...at(scaleSite(18, -96), 1.6, 12), currency: "cryoCrystal", priceMult: 1, minLevel: 6 },
   { id: "ember-alliance", name: "Ember Alliance Vendor", kind: "weapons", place: "Ember Peaks", blurb: "Elite high-tier weapons", ...at(scaleSite(-52, 16), 5.2, 10), currency: "thermalShards", priceMult: 1.3, minLevel: 8, requires: { missionId: "awakening", label: "Complete Neon Core: Awakening" } },
+  // faction outposts: each faction's own quartermaster, trading only with operators it trusts
+  { id: "aegis-quartermaster", name: "Directorate Quartermaster", kind: "armor", place: "Neon City (Aegis Spire)", blurb: "Aegis-issue plate for cleared operators", x: NEON.x - 10, z: NEON.z - 38, currency: "microCircuits", priceMult: 1.15, minLevel: 6, vendorTier: 3, minStanding: "TRUSTED" },
+  { id: "legion-quartermaster", name: "Legion Quartermaster", kind: "weapons", place: "The Wastelands (Sub-Terra vault gate)", blurb: "Gate-guard arms, sold to those who held the line", x: VAULT_GATE.x - VAULT_GATE.radius - 7, z: VAULT_GATE.z + 6, currency: "scrapMetal", priceMult: 0.9, minLevel: 3, requires: { missionId: "side-vault-defense", label: "Hold the Sub-Terra vault gates once" } },
 ];
 
 export const SHOP_REACH = 4;
