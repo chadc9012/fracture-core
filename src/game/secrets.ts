@@ -5,6 +5,8 @@
  * Scene feeds position + conditions through living-runtime; this module decides. */
 import { REGIONS } from "./world";
 import type { MaterialId } from "./inventory";
+import type { NexLedger } from "./nex";
+import { EXPLORE_PAYOUTS, payFlat } from "./activity-payouts";
 
 export type SecretCondition = "ALWAYS" | "NIGHT" | "STORM" | "NEMESIS_SLAIN" | "PLEDGED" | "FRAGMENTS";
 export type Secret = {
@@ -67,7 +69,7 @@ export function senseSecret(x: number, z: number, ctx: SecretContext): { secret:
   return best;
 }
 
-type SecretSave = { earnedRewards: string[]; materials: Partial<Record<MaterialId, number>>; fractureShards: number; story: { collectibles: string[] } };
+type SecretSave = { nexLedger?: NexLedger; earnedRewards: string[]; materials: Partial<Record<MaterialId, number>>; fractureShards: number; story: { collectibles: string[] } };
 /** Claim a secret (once). Refuses when it is not answering yet. */
 export function claimSecret<P extends SecretSave>(p: P, id: string, ctx: Omit<SecretContext, "earned">): { progression: P; message: string } | { error: string } {
   const s = secretById(id);
@@ -78,7 +80,7 @@ export function claimSecret<P extends SecretSave>(p: P, id: string, ctx: Omit<Se
   for (const [k, v] of Object.entries(s.reward) as [MaterialId, number][]) materials[k] = (materials[k] ?? 0) + v;
   const collectibles = p.story.collectibles.includes(`secret:${id}`) ? p.story.collectibles : [...p.story.collectibles, `secret:${id}`];
   return {
-    progression: { ...p, materials, fractureShards: p.fractureShards + s.shards, earnedRewards: [...p.earnedRewards, secretKey(id)], story: { ...p.story, collectibles } },
+    progression: payFlat({ ...p, materials, fractureShards: p.fractureShards + s.shards, earnedRewards: [...p.earnedRewards, secretKey(id)], story: { ...p.story, collectibles } }, `payout:secret:${id}`, EXPLORE_PAYOUTS.secret),
     message: `Secret found: ${s.name}. ${s.lore}`,
   };
 }

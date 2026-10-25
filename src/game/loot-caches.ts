@@ -11,6 +11,7 @@ import { heightAt, riverAt, waterNetwork, WATER_LEVEL } from "./terrain";
 import { distanceToRoad, LANE_HALF_WIDTH } from "./lanes";
 import type { GearItem, GearSlot, MaterialId } from "./inventory";
 import { grantXP } from "./xp";
+import { EXPLORE_PAYOUTS, payFlat } from "./activity-payouts";
 import { rewardMission, type PlayerProgression } from "./progression";
 
 export type CacheRarity = "COMMON" | "RARE" | "EPIC" | "LEGENDARY";
@@ -174,7 +175,7 @@ export function openCache(p: PlayerProgression, c: LootCache, now = Date.now()):
   const rolled = rollCacheGear(c, now);
   const gear = rolled && !p.inventory.some((g) => g.id === rolled.id) ? rolled : null;
   const inventory = gear ? [...p.inventory, gear] : p.inventory;
-  let next = grantXP({ ...p, materials, inventory, earnedRewards: [...p.earnedRewards, openKey(c.id, now)] }, "DISCOVERY").progression;
+  let next = payFlat(grantXP({ ...p, materials, inventory, earnedRewards: [...p.earnedRewards, openKey(c.id, now)] }, "DISCOVERY").progression, `payout:cache:${c.id}@${dayKey(now)}`, EXPLORE_PAYOUTS.cache);
   const contracts: string[] = [];
   const opened = cachesEverOpened(next);
   for (const sc of SIDE_CONTRACTS) {
