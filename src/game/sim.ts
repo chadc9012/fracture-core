@@ -6,12 +6,16 @@ import { NO_BACKPACK, type BackpackDef } from "./backpacks";
 import { createEnvState, STRIKE_MACHINE_DAMAGE, STRIKE_PLAYER_DAMAGE, type EnvState, type Strike } from "./environment";
 import { squadMove, squadRole } from "./enemy-intelligence";
 import { createAi, pickCover, shouldTakeCover, sightRange, stepAwareness, type EnemyAi } from "./enemy-perception";
+import { enemyHitChance, sightLine } from "./line-of-sight";
+import { registeredModelSolids } from "./environment-collision";
+/** seconds between line-of-sight refreshes per machine */
+const LOS_REFRESH = 0.25;
 import type { AbilityEvent } from "./ability-effects";
 import { RIFT_TURRET_DAMAGE, deployRiftTurret, stepRiftTurret, type RiftTurret } from "./operator-abilities";
 import { REGIONS, type Region } from "./world";
 import { heightAt, smoothstep, walkHeight, WATER_LEVEL } from "./terrain";
 import { LANES, laneLanePoint, laneSamples, type Lane } from "./lanes";
-import { collideBody } from "./obstacles";
+import { collideBody, queryObstacles } from "./obstacles";
 import { collideWalls } from "./walls";
 import {
   createAdaptation,
@@ -96,6 +100,8 @@ export type ZoneState = {
 };
 
 export type Machine = {
+  /** line of sight to the player (line-of-sight.ts), refreshed a few times a second: clear, or where it is blocked */
+  los?: { t: number; clear: boolean; at?: { x: number; y: number; z: number } | undefined } | undefined;
   /** gore presentation only (gore.ts): direction, cause and size of the last hit, read when the machine dies */
   goreHit?: { dx: number; dz: number; dmg: number; cause: GoreCause; y: number } | undefined;
   /** crucible.ts: a rival operator in a Crucible match (renders as that operator; kills score the match, no loot) */
@@ -423,7 +429,7 @@ export type WorldSim = {
   armorRegen: number;
   consumableDamageMult: number;
   /** enemy gunfire this frame, consumed by the audio layer */
-  enemyShots: { x: number; z: number; kind: string; boss: boolean; elite: boolean; /** region the shooter stands in (presentation: elemental flights) */ zone: string; /** sim.machines index (presentation: fire from that enemy's held gun) */ slot?: number }[];
+  enemyShots: { x: number; z: number; kind: string; boss: boolean; elite: boolean; /** region the shooter stands in (presentation: elemental flights) */ zone: string; /** sim.machines index (presentation: fire from that enemy's held gun) */ slot?: number; /** did it hit the player; where cover took it (line-of-sight.ts) */ hit?: boolean; blockAt?: { x: number; y: number; z: number } }[];
   /** boss phase transitions this frame, consumed by the audio/camera layer (see boss-phases.ts) */
   bossPhaseFlares: { x: number; z: number; name: string; phase: BossPhaseIndex; label: string }[];
   /** Loot + XP System v1 (xp.ts) — Scene.tsx drains this each frame and applies it to PlayerProgression. */
@@ -1346,10 +1352,16 @@ export type SimInput = {
   inVehicle: boolean;
   /** player facing (yaw 0 = +z); squadmates hold formation off it */
   yaw?: number;
+  /** player eye height (world y); defaults to standing on the ground. Enemy line of sight aims just below it */
+  py?: number;
+  /** player ground speed (m/s) and stance: a moving or crouched target is harder to hit (line-of-sight.ts enemyHitChance) */
+  pspeed?: number;
+  stance?: "STAND" | "CROUCH" | "PRONE";
 };
 
 export function stepSim(sim: WorldSim, input: SimInput) {
   const { dt, px, pz, night } = input;
+  const playerEye = input.py ?? walkHeight(px, pz) + 1.6;
   const t0 = performance.now();
   beginStats(sim.stats);
   if (sim.titanActive) tickTitan(sim.titan, dt);
@@ -1564,10 +1576,18 @@ export function stepSim(sim: WorldSim, input: SimInput) {
     const damaged = m.hp < ai.lastHp - 0.001;
     ai.lastHp = m.hp;
     const facingDot = (Math.sin(m.rot) * dx + Math.cos(m.rot) * dz) / d;
+    // line of sight (line-of-sight.ts): eye to the player's chest, refreshed every LOS_REFRESH s; far machines skip it
+    const nowLos = performance.now() / 1000;
+    if (d < 160 && (!m.los || nowLos - m.los.t > LOS_REFRESH)) {
+      const feet = m.swimY !== undefined ? m.y - 2.2 * m.scale : Math.max(walkHeight(m.x, m.z), m.y - 2.2 * m.scale);
+      const line = sightLine({ x: m.x, y: feet + 1.55 * enemyBodyScaleOf(m.scale), z: m.z }, { x: px, y: playerEye - 0.35, z: pz }, { ground: walkHeight, obstaclesNear: queryObstacles, solids: registeredModelSolids() });
+      m.los = { t: nowLos, clear: !line.blocked, at: line.blocked ? line.at : undefined };
+    }
+    const inView = d >= 160 || (m.los?.clear ?? true);
     const sight = sightRange(night, sim.envVisibility ?? 1, m.elite) * (sim.stealthMult ?? 1) * (aggro / 70 > 1 ? Math.min(1.6, aggro / 70) : 1);
     const forced = m.boss || m.mission || sim.hp < 35 && d < 40;
     const aiState = forced && d < aggro ? (ai.state = "ALERT", ai.awareness = 1, ai.lastX = px, ai.lastZ = pz, "ALERT")
-      : stepAwareness(ai, { distance: d, sight, noise: Math.min(1, (sim.playerNoise ?? 0) + sim.combatHeat / 120), damaged, facing: facingDot > 0.3 }, px, pz, dt);
+      : stepAwareness(ai, { distance: d, sight, noise: Math.min(1, (sim.playerNoise ?? 0) + sim.combatHeat / 120), damaged, facing: facingDot > 0.3, inView }, px, pz, dt);
     if (aiState === "ALERT" && ai.coverTime <= 0 && shouldTakeCover(m.hp / Math.max(1, m.maxHp ?? (m.elite ? 6 : 3)), ai.coverTime, m.boss) && d < 45 && damaged) {
       const c = pickCover(m.x, m.z, px, pz, i % 2 ? 1 : -1);
       ai.coverX = c.x; ai.coverZ = c.z; ai.coverTime = 3.5;
@@ -1604,9 +1624,12 @@ export function stepSim(sim: WorldSim, input: SimInput) {
         if ((m.aim ?? 0) <= 0) {
           m.aim = 0;
           m.cool = rangedCooldownFor(m) * (bossTuning?.cooldownMult ?? 1);
-          sim.enemyShots.push({ x: m.x, z: m.z, kind: m.kind, boss: m.boss, elite: m.elite, zone: m.zone, slot: sim.machines.indexOf(m) });
+          // the shot resolves against the line it travels: cover takes it, otherwise range, the player's speed and stance decide
+          const blocked = m.los && !m.los.clear ? m.los.at : undefined;
+          const hit = !blocked && Math.random() < enemyHitChance(d, ENEMY_TUNING.rangedRange, input.pspeed ?? 0, input.stance);
+          sim.enemyShots.push({ x: m.x, z: m.z, kind: m.kind, boss: m.boss, elite: m.elite, zone: m.zone, slot: sim.machines.indexOf(m), hit, ...(blocked ? { blockAt: blocked } : {}) });
           if (sim.enemyShots.length > 24) sim.enemyShots.shift();
-          if (Math.random() < 0.25) { sim.lastHitBy = { profile: m.profile, zone: m.zone, elite: m.elite, boss: m.boss, nemesis: m.nemesis }; hurtPlayer(sim, ((m.boss ? 6 : m.elite ? 4 : 2) * (bossTuning?.damageMult ?? 1) * (m.nemesisDamage ?? 1)) / sim.mods.hullDurability, m.profile); }
+          if (hit) { sim.lastHitBy = { profile: m.profile, zone: m.zone, elite: m.elite, boss: m.boss, nemesis: m.nemesis }; hurtPlayer(sim, ((m.boss ? 6 : m.elite ? 4 : 2) * (bossTuning?.damageMult ?? 1) * (m.nemesisDamage ?? 1)) / sim.mods.hullDurability, m.profile); }
         }
       } else if (!scripted && d < ENEMY_TUNING.rangedRange && m.cool <= 0 && (m.boss || aimTickets < MAX_AIMING)) {
         // ranged suppressing fire: take a ticket and start the telegraph; elites/bosses wind up faster

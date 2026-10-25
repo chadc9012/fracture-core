@@ -2298,7 +2298,13 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
         const mz = shot.slot !== undefined ? enemyDrives[shot.slot]?.current.muzzle : undefined;
         const from: [number, number, number] = mz && performance.now() / 1000 - mz.t < 0.5 && Math.hypot(mz.x - shot.x, mz.z - shot.z) < 4 ? [mz.x, mz.y, mz.z] : [shot.x, walkHeight(shot.x, shot.z) + 1.4, shot.z];
         if (mz && from[0] === mz.x) flashEnemyMuzzle(mz.x, mz.y, mz.z, shot.boss || shot.elite);
-        launch(fxBus.flights, zoneElement(shot.zone, shot.kind), from, [s.x, s.y + 1, s.z], shot.boss ? 2 : shot.elite ? 1.4 : 1);
+        // where it went: into you, into the cover that took it, or past you (a near miss you can see)
+        const to: [number, number, number] = shot.blockAt ? [shot.blockAt.x, shot.blockAt.y, shot.blockAt.z]
+          : shot.hit === false ? (() => { const ax = s.x - from[0], az = s.z - from[2], al = Math.hypot(ax, az) || 1, side = Math.random() < 0.5 ? -1 : 1, off = 1.2 + Math.random() * 1.6; return [s.x + (ax / al) * 6 - (az / al) * side * off, s.y + (Math.random() - 0.3) * 1.4, s.z + (az / al) * 6 + (ax / al) * side * off] as [number, number, number]; })()
+          : [s.x, s.y - 0.3, s.z]; // your chest (s.y is ground + 1.6)
+        launch(fxBus.flights, zoneElement(shot.zone, shot.kind), from, to, shot.boss ? 2 : shot.elite ? 1.4 : 1);
+        // a round that cover took chips it: sparks and grit where it struck
+        if (shot.blockAt) logImpact(sim, { x: shot.blockAt.x, y: shot.blockAt.y, z: shot.blockAt.z, vx: shot.blockAt.x - from[0], vz: shot.blockAt.z - from[2] }, "cover");
       }
       for (const flare of sim.bossPhaseFlares.splice(0)) { sfx.playBossPhaseChange(flare.phase); s.punch += 1.4 + flare.phase * 0.6; }
       for (const event of sim.xpEvents.splice(0)) onXP?.(event);
@@ -2540,6 +2546,10 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
       night,
       inVehicle: s.inVehicle,
       yaw: s.yaw,
+      // enemy line of sight and hit chance (line-of-sight.ts): where your head is, how fast you move, how low you are
+      py: s.y + (s.inVehicle ? 0 : OPERATOR_CAMERA.eye),
+      pspeed: s.inVehicle ? Math.abs(s.vSpeed) : Math.hypot(velocity.x, velocity.z),
+      stance: s.inVehicle ? "STAND" : move.current.state.stance,
     });
     if (s.inVehicle && sim.hp < hpBeforeCombat) { condition.current = impactVehicle(condition.current, hpBeforeCombat - sim.hp + 2); onVehicleCondition?.(vehicleId, condition.current); }
     // Living World: city events, patrols, civilian panic and contract progress (living-runtime.ts); outcomes go to GameCanvas

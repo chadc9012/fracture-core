@@ -47,13 +47,15 @@ export type Stimulus = {
   damaged: boolean;
   /** true when the enemy faces roughly toward the player (front cone) */
   facing: boolean;
+  /** false when terrain, a building or cover stands between them (line-of-sight.ts): no sight, hearing still works */
+  inView?: boolean;
 };
 
 /** Awareness gain per second for a stimulus (0 when the player is not perceived). */
 export function awarenessGain(s: Stimulus): number {
   if (s.damaged) return 10;
   let g = 0;
-  if (s.distance < s.sight) {
+  if (s.distance < s.sight && s.inView !== false) {
     const closeness = 1 - s.distance / s.sight;
     g += (s.facing ? 1.6 : 0.5) * (0.3 + closeness * 1.7);
   }
