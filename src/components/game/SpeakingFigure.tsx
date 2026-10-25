@@ -8,7 +8,7 @@ import { getVoicePose } from "@/game/voice-animation";
 /** Interior NPC: the authored, rigged civilian body (Civilians.tsx, idle clip) at life size, leaning and nodding with the
  * voice director's live envelope while they talk. The procedural figure below stays as the stand-in while the model
  * loads or if it fails. */
-export function SpeakingFigure({ name, color, role = "VENDOR" }: { name: string; color: string; role?: CivilianRole }) {
+export function SpeakingFigure({ name, color, role = "VENDOR", modelUrl }: { name: string; color: string; role?: CivilianRole; /** the sheet merchant's own body (merchant-models.ts); else the civilian body for `role` */ modelUrl?: string | null | undefined }) {
   const body = useRef<THREE.Group>(null!);
   const live = useRef({ state: "IDLE", far: false, hidden: false } as unknown as Civilian);
   const key = name.toUpperCase();
@@ -17,7 +17,7 @@ export function SpeakingFigure({ name, color, role = "VENDOR" }: { name: string;
     if (body.current) body.current.rotation.set(pose.lean * 0.6 + pose.nod * 0.3, 0, pose.tilt * 0.5);
   });
   const fallback = <ProceduralFigure name={name} color={color} />;
-  return <group ref={body}><Quiet fallback={fallback}><Suspense fallback={fallback}><CivilianModel role={role} live={live} /></Suspense></Quiet></group>;
+  return <group ref={body}><Quiet fallback={fallback}><Suspense fallback={fallback}><CivilianModel role={role} live={live} url={modelUrl} /></Suspense></Quiet></group>;
 }
 
 function ProceduralFigure({ name, color }: { name: string; color: string }) {

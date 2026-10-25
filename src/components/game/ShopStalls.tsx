@@ -7,6 +7,8 @@ import { shopAccessKind } from "@/game/shop-access";
 import { walkHeight } from "@/game/terrain";
 import { DistrictLight } from "./DistrictLight";
 import { KIND_COLOR } from "./Storefronts";
+import { SpeakingFigure } from "./SpeakingFigure";
+import { keeperName, merchantModelUrl } from "@/game/merchant-models";
 
 /** Open-air vendor tables: counter, canopy and a glowing kind-coloured sign so shops read from a distance.
  * Only "table" shops get a stall — walk-in shops have a real storefront building and window shops a
@@ -28,6 +30,8 @@ export function ShopStalls() {
           <mesh position={[0, 2.75, 0.2]}><sphereGeometry args={[0.12, 10, 8]} /><meshStandardMaterial color="#2a1a0c" emissive="#ffb35c" emissiveIntensity={2.2} toneMapped={false} /></mesh>
           <DistrictLight range={45} position={[0, 2.6, 0.4]} color="#ffb867" intensity={6} distance={9} decay={2} />
           <DistrictLight range={45} position={[0, 2.4, 1.1]} color={KIND_COLOR[s.kind]} intensity={2.2} distance={5} decay={2} />
+          {/* the keeper behind the counter: the shop's sheet merchant when modelled, else the civilian vendor */}
+          <group position={[0, 0, -0.95]}><SpeakingFigure name={keeperName(s.id, s.name)} color={KIND_COLOR[s.kind] ?? "#c98a4a"} modelUrl={merchantModelUrl(s.id)} /></group>
         </group>
       ))}
     </group>

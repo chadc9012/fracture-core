@@ -1,4 +1,5 @@
 import "@/game/venue-doors";
+import { merchantModelUrl } from "@/game/merchant-models";
 import { useFrame } from "@react-three/fiber";
 import { Text } from "@react-three/drei";
 import { useMemo, useRef } from "react";
@@ -105,10 +106,10 @@ export function Interiors() {
             </group>
           ))}
 
-          {/* the NPC standee — a simple readable figure, not a full character model */}
+          {/* the NPC: a shop's own sheet merchant when modelled (merchant-models.ts), else the civilian body */}
           {interior.npcName && (
             <group position={interior.kind === "VENUE" ? [-1.5, 0, -4.6] : interior.kind === "SHOP" ? [0, 0, -2.3] : [2.4, 0, -3.6]}>
-              <SpeakingFigure name={interior.npcName} color={interior.kind === "SHOP" ? "#c98a4a" : interior.kind === "VENUE" ? "#c46bff" : "#6d8fc9"} role={interior.kind === "SHOP" || interior.kind === "VENUE" ? "VENDOR" : "MEDIC"} />
+              <SpeakingFigure name={interior.npcName} color={interior.kind === "SHOP" ? "#c98a4a" : interior.kind === "VENUE" ? "#c46bff" : "#6d8fc9"} role={interior.kind === "SHOP" || interior.kind === "VENUE" ? "VENDOR" : "MEDIC"} modelUrl={merchantModelUrl(interior.shopId)} />
             </group>
           )}
 

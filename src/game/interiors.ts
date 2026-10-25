@@ -16,6 +16,7 @@ import { HOMES } from "./housing";
 import { REGIONAL_SHOPS } from "./regional-shops";
 import { nexusHubLobby } from "./building-models";
 import { shopAccessKind } from "./shop-access";
+import { keeperName } from "./merchant-models";
 
 export const INTERIOR_ALTITUDE = 600;
 export const DOOR_RADIUS = 2.2;
@@ -198,7 +199,7 @@ export const SHOP_INTERIORS: readonly InteriorDef[] = REGIONAL_SHOPS.filter((s) 
   regionId: s.id.startsWith("neon") || s.id.startsWith("nexus") ? "nexus" : s.id.startsWith("frost") ? "frostspire" : s.id.startsWith("ember") ? "ember" : s.id.startsWith("veridan") ? "veridan" : s.id.startsWith("swamp") ? "swamps" : s.id.startsWith("solara") ? "solara" : "wastelands",
   doorPos: { x: s.x, z: s.z + 3 }, origin: { x: 2800, z: i * 60 },
   spawnOffset: { x: 0, z: 0.5 }, exitOffset: { x: 0, z: 4 },
-  npcName: `${s.name} specialist`, shopId: s.id,
+  npcName: keeperName(s.id, s.name), shopId: s.id,
 }));
 INTERIORS.push(...SHOP_INTERIORS);
 
