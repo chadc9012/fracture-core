@@ -165,7 +165,7 @@ import { heatStatus, stepHeatMeter } from "@/game/heat";
 import { shouldForceFootTransition, vehicleDamageStage, VEHICLE_DAMAGE_EFFECT, type VehicleDamageStage } from "@/game/chase-ai";
 import { exitVehicleMomentum, parkourChainBonus, vaultLunge } from "@/game/parkour";
 import { anySensorSees, detectionStateFor, lockdownStatus, nexusSensors, stepDetectionMeter, stepHackProgress, type DetectionState, type LockdownTier } from "@/game/stealth";
-import { INTERIORS, INTERIOR_ALTITUDE, doorAt, atExitMarker, interiorById, isInteriorOpen, clampHomeLocal, exitPosition } from "@/game/interiors";
+import { INTERIORS, INTERIOR_ALTITUDE, doorAt, atExitMarker, interiorById, isInteriorOpen, clampHomeLocal, exitPosition, liftAt } from "@/game/interiors";
 import { clampToFloor, registeredModelSolids, roomSolids, solidTopAt, structureSolids, sweepSolids } from "@/game/environment-collision";
 import { homeById } from "@/game/housing";
 import { HomeInteriors } from "./HomeInteriors";
@@ -631,6 +631,8 @@ function SceneImpl({
   const checkpointClock = useRef(0);
   // last simulated body position, for swept collision; door entry/exit is a teleport, not a sweep across the world
   const prevBodyPos = useRef<{ x: number; z: number; interior: string | null } | null>(null);
+  /** seconds before an elevator pad can fire again (you land 2 m from the pad in the next room) */
+  const liftCool = useRef(0);
   const keys = useKeyboard();
   const sim = useMemo<WorldSim>(() => createSim(), []);
   const livingRt = useRef<LivingRuntime | null>(null);
@@ -2110,7 +2112,19 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
       s.interiorPrevX = s.x;
       const localX = s.x - interior.origin.x;
       const localZ = s.z - interior.origin.z;
-      if (atExitMarker(interior, localX, localZ)) {
+      liftCool.current = Math.max(0, liftCool.current - dt);
+      const ride = liftCool.current <= 0 ? liftAt(interior, localX, localZ) : null;
+      if (ride) {
+        // elevator: another pocket room, same visit (the way back out still returns to the street door you came in by)
+        s.insideInterior = ride.to.id;
+        interior = ride.to;
+        s.x = ride.to.origin.x + ride.land.x;
+        s.z = ride.to.origin.z + ride.land.z;
+        s.interiorPrevX = s.x;
+        s.vy = 0;
+        velocity.set(0, 0, 0);
+        liftCool.current = 1.5;
+      } else if (atExitMarker(interior, localX, localZ)) {
         const back = s.interiorReturnPos;
         const leaving = interior;
         s.insideInterior = null;

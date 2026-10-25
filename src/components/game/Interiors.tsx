@@ -1,5 +1,6 @@
 import "@/game/venue-doors";
 import { useFrame } from "@react-three/fiber";
+import { Text } from "@react-three/drei";
 import { useMemo, useRef } from "react";
 import * as THREE from "three";
 import { INTERIOR_ALTITUDE, INTERIORS, SHOP_INTERIORS } from "@/game/interiors";
@@ -45,7 +46,7 @@ export function Interiors() {
       {/* walk-in storefronts: entering is automatic at the door (doorAt), so the doorway has to be visible in the street */}
       {SHOP_INTERIORS.map((it) => <DoorMarker key={`door-${it.id}`} x={it.doorPos.x} z={it.doorPos.z} label={it.name} />)}
       {/* the hand-authored apartments, stores and offices enter the same way, so their doors are marked too (they were invisible triggers) */}
-      {INTERIORS.filter((it) => it.kind !== "HOME" && !SHOP_INTERIORS.includes(it)).map((it) => <DoorMarker key={`door-${it.id}`} x={it.doorPos.x} z={it.doorPos.z} label={it.name} />)}
+      {INTERIORS.filter((it) => it.kind !== "HOME" && !it.viaLift && !SHOP_INTERIORS.includes(it)).map((it) => <DoorMarker key={`door-${it.id}`} x={it.doorPos.x} z={it.doorPos.z} label={it.name} />)}
       {INTERIORS.filter((i) => i.kind !== "HOME").map((interior) => (
         <group key={interior.id} position={[interior.origin.x, INTERIOR_ALTITUDE, interior.origin.z]}>
           {/* floor */}
@@ -111,6 +112,13 @@ export function Interiors() {
             </group>
           )}
 
+          {/* elevator: a lit pad in the floor under a call sign, stepping on it rides to the floor named on it */}
+          {interior.lift && <group position={[interior.lift.pad.x, 0, interior.lift.pad.z]}>
+            <mesh rotation-x={-Math.PI / 2} position={[0, 0.025, 0]}><circleGeometry args={[1, 32]} /><meshStandardMaterial color="#1b2330" metalness={0.8} roughness={0.3} /></mesh>
+            <mesh rotation-x={-Math.PI / 2} position={[0, 0.035, 0]}><ringGeometry args={[0.78, 1, 32]} /><meshBasicMaterial color="#6fd8ff" toneMapped={false} /></mesh>
+            <mesh position={[0, 2.4, -1.1]}><boxGeometry args={[1.6, 0.4, 0.06]} /><meshBasicMaterial color="#6fd8ff" toneMapped={false} /></mesh>
+            <Text position={[0, 2.4, -1.06]} fontSize={0.14} color="#04121a" anchorX="center" anchorY="middle" maxWidth={1.5}>{interior.lift.label}</Text>
+          </group>}
           {/* exit marker — a faint glowing seam in the floor, so the door out is readable at a glance */}
           <mesh rotation-x={-Math.PI / 2} position={[interior.exitOffset.x, 0.02, interior.exitOffset.z]}>
             <ringGeometry args={[1.2, 1.6, 24]} />

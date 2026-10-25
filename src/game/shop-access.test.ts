@@ -30,7 +30,7 @@ describe("walk-in storefronts", () => {
   test("no two doors overlap and no two pocket rooms share space", () => {
     for (let a = 0; a < INTERIORS.length; a++) for (let b = a + 1; b < INTERIORS.length; b++) {
       const A = INTERIORS[a]!, B = INTERIORS[b]!;
-      expect(Math.hypot(A.doorPos.x - B.doorPos.x, A.doorPos.z - B.doorPos.z)).toBeGreaterThan(DOOR_RADIUS * 2);
+      if (!A.viaLift && !B.viaLift) expect(Math.hypot(A.doorPos.x - B.doorPos.x, A.doorPos.z - B.doorPos.z)).toBeGreaterThan(DOOR_RADIUS * 2);
       expect(Math.hypot(A.origin.x - B.origin.x, A.origin.z - B.origin.z)).toBeGreaterThan(20);
     }
   });

@@ -16,7 +16,7 @@ describe("home doors", () => {
   });
   test("no two doors share a trigger, so one walk-up can never be ambiguous", () => {
     for (const a of INTERIORS) for (const b of INTERIORS) {
-      if (a === b) continue;
+      if (a === b || a.viaLift || b.viaLift) continue; // lift-only floors have no street door
       expect(Math.hypot(a.doorPos.x - b.doorPos.x, a.doorPos.z - b.doorPos.z), `${a.id} vs ${b.id}`).toBeGreaterThan(DOOR_RADIUS * 2);
     }
   });

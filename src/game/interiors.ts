@@ -54,6 +54,11 @@ export type InteriorDef = {
   shopId?: string;
   openHour?: number;
   closeHour?: number;
+  /** an elevator pad inside the room (metres from the room's origin): stepping on it rides to another floor, i.e. teleports
+   * to `land` in the interior `to` (a pocket room, like every interior here, so no floor-aware walking height is needed) */
+  lift?: { pad: { x: number; z: number }; to: string; land: { x: number; z: number }; label: string };
+  /** reached only by a lift, never from the street: no door in the world, no door marker */
+  viaLift?: boolean;
 };
 
 /** Nexus doors open from the plaza into a hub tower's lobby (building-models.ts), not into the side of a tower */
@@ -70,6 +75,20 @@ export const INTERIORS: InteriorDef[] = [
     spawnOffset: { x: 0, z: -2.5 },
     exitOffset: { x: 0, z: 4 },
     npcName: "Mara, off-shift Vanguard tech",
+    lift: { pad: { x: -3.2, z: -3.5 }, to: "nexus-tower-lounge", land: { x: -3.2, z: -1.2 }, label: "Lift · Floor 12 Sky Lounge" },
+  },
+  {
+    id: "nexus-tower-lounge",
+    name: "Warrens Tower · Floor 12 Sky Lounge",
+    kind: "APARTMENT",
+    regionId: "nexus",
+    doorPos: nexusHubLobby(NEXUS_HUB, Math.atan2(-10, -16)),
+    origin: { x: 2000, z: 540 },
+    spawnOffset: { x: -3.2, z: -1.2 },
+    exitOffset: { x: 0, z: 4 },
+    npcName: "Sky Lounge concierge",
+    lift: { pad: { x: -3.2, z: -3.5 }, to: "nexus-apartment", land: { x: -3.2, z: -1.2 }, label: "Lift · Ground floor" },
+    viaLift: true,
   },
   {
     id: "nexus-scrap-market",
@@ -231,6 +250,7 @@ export function doorAt(x: number, z: number, canEnter: (i: InteriorDef) => boole
   let best: InteriorDef | null = null;
   let bestDist = DOOR_RADIUS;
   for (const interior of INTERIORS) {
+    if (interior.viaLift) continue;
     const d = Math.hypot(x - interior.doorPos.x, z - interior.doorPos.z);
     if (d < bestDist && canEnter(interior)) { bestDist = d; best = interior; }
   }
@@ -259,4 +279,13 @@ export function exitPosition(doorPos: { x: number; z: number }, back: { x: numbe
   if (d >= need) return { x: back.x, z: back.z };
   if (d < 1e-6) return { x: doorPos.x, z: doorPos.z + need };
   return { x: doorPos.x + (dx / d) * need, z: doorPos.z + (dz / d) * need };
+}
+
+export const LIFT_RADIUS = 1.0;
+/** the floor the player rides to when standing on the interior's lift pad (local coordinates), else null */
+export function liftAt(interior: InteriorDef, localX: number, localZ: number): { to: InteriorDef; land: { x: number; z: number }; label: string } | null {
+  const l = interior.lift;
+  if (!l || Math.hypot(localX - l.pad.x, localZ - l.pad.z) > LIFT_RADIUS) return null;
+  const to = interiorById(l.to);
+  return to ? { to, land: l.land, label: l.label } : null;
 }
