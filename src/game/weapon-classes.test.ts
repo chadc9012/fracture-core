@@ -3,6 +3,7 @@ import { arsenalFor, FRAMES, frameFor, itemClass } from "./weapon-classes";
 import { WEAPON_CATALOG } from "./weapon-catalog";
 import { STARTER_GEAR } from "./inventory";
 import { WEAPONS, type WeaponId } from "./weapons";
+import { HEAT_PER_SHOT_FOOT } from "./sim";
 import { rangeFalloff, shotsToKill, timeToKill, WEAPON_META } from "./weapon-meta";
 
 /** a fresh build's damage scale (weapon-meta.test.ts) */
@@ -82,5 +83,27 @@ describe("each class has a job (kill time, fresh build)", () => {
     expect(FRAMES.LMG.reload).toBeGreaterThan(WEAPONS.AUTO.reload);
     // three elites back to back at mid range: the Auto Rifle has to reload, the LMG does not
     expect(ttk("LMG", ELITE * 3, 30)).toBeLessThan(ttk("AUTO", ELITE * 3, 30));
+  });
+});
+
+describe("every gun can be fired as designed (play-test findings)", () => {
+  const ALL = [...(Object.keys(WEAPONS) as WeaponId[]).filter((id) => WEAPONS[id].kind !== "sword"), ...(Object.keys(FRAMES) as (keyof typeof FRAMES)[])];
+  const def = (id: string) => (id in WEAPONS ? WEAPONS[id as WeaponId] : FRAMES[id as keyof typeof FRAMES]);
+  /** sim.ts: heat drains at 34/s while firing normally; a gun that hits 100 vents for seconds */
+  const COOL = 34;
+  test("from cold, no gun overheats before its magazine runs dry", () => {
+    for (const id of ALL) {
+      const w = def(id), pellets = w.pellets ?? 1, perRound = HEAT_PER_SHOT_FOOT * w.heat; // the shoot() call is charged once per pellet at heat/pellets
+      let heat = 0, t = 0;
+      for (let r = 0; r < w.mag; r++) {
+        heat = Math.max(0, heat + perRound * (pellets > 1 ? 1 : 1));
+        expect(heat, `${id} round ${r + 1}`).toBeLessThan(100);
+        const gap = (r + 1) % Math.max(1, w.burst) === 0 ? w.fireRate - (Math.max(1, w.burst) - 1) * w.burstGap : w.burstGap;
+        heat = Math.max(0, heat - COOL * gap); t += gap;
+      }
+    }
+  });
+  test("a burst's recoil stays on target: the whole volley climbs no more than 0.04 rad (≈0.5 m at 12 m)", () => {
+    for (const id of ALL) { const w = def(id); if (w.burst > 1) expect(w.recoil * (w.burst - 1), id).toBeLessThanOrEqual(0.04); }
   });
 });
