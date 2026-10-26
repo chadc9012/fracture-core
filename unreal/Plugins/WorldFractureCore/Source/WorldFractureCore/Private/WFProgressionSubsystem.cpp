@@ -149,6 +149,32 @@ bool UWFProgressionSubsystem::LoadRewardCatalog(FString& OutError)
 	}
 	MissionCatalog = std::move(Missions);
 
+	// armor-sets.ts set bonuses (ArmorSets TwoJson / FourJson, in ARMOR_SETS order) and armor-perks.ts perks (ArmorPerks)
+	{
+		auto Effects = [](const FString& Json, const TCHAR* Field) {
+			wf::armor::FEffects E;
+			TSharedPtr<FJsonObject> O;
+			if (!FJsonSerializer::Deserialize(TJsonReaderFactory<>::Create(Json), O) || !O.IsValid()) return E;
+			const TSharedPtr<FJsonObject>* Inner = nullptr;
+			const TSharedPtr<FJsonObject> Src = Field ? (O->TryGetObjectField(Field, Inner) ? *Inner : nullptr) : O;
+			if (!Src.IsValid()) return E;
+			E.Resist = WFData::Num(Src, TEXT("resist")); E.WeaponDamage = WFData::Num(Src, TEXT("weaponDamage")); E.MoveSpeed = WFData::Num(Src, TEXT("moveSpeed"));
+			E.Regen = WFData::Num(Src, TEXT("regen")); E.SlideBoost = WFData::Num(Src, TEXT("slideBoost")); E.AbilityRecharge = WFData::Num(Src, TEXT("abilityRecharge"));
+			return E;
+		};
+		wf::armor::FCatalog Armor;
+		TArray<TSharedPtr<FJsonObject>> SetRows, PerkRows;
+		FString ArmorError;
+		if (WFData::LoadRows(TEXT("ArmorSets"), SetRows, ArmorError))
+			for (const TSharedPtr<FJsonObject>& Row : SetRows)
+				Armor.Sets.push_back({ToStd(WFData::Str(Row, TEXT("Id"))), Effects(WFData::Str(Row, TEXT("TwoJson")), TEXT("effects")), Effects(WFData::Str(Row, TEXT("FourJson")), TEXT("effects"))});
+		if (WFData::LoadRows(TEXT("ArmorPerks"), PerkRows, ArmorError))
+			for (const TSharedPtr<FJsonObject>& Row : PerkRows)
+				Armor.Perks[ToStd(WFData::Str(Row, TEXT("SetId")))][ToStd(WFData::Str(Row, TEXT("Slot")))] = Effects(WFData::Str(Row, TEXT("EffectsJson")), nullptr);
+		else UE_LOG(LogWorldFracture, Warning, TEXT("ArmorPerks table missing (%s): armor perks do nothing"), *ArmorError);
+		ArmorCatalog = std::move(Armor);
+	}
+
 	Catalog = std::move(Next);
 	UE_LOG(LogWorldFracture, Log, TEXT("Reward catalog: %d armor sets, %d/%d weapons in the enemy/boss pools, %d unique scenarios, %d loot tables"),
 		static_cast<int32>(Catalog.Sets.size()), static_cast<int32>(Catalog.EnemyPool.size()), static_cast<int32>(Catalog.BossPool.size()),

@@ -5,6 +5,7 @@
 #include "Core/WFAbilityCore.h"
 #include "Core/WFDragonCore.h"
 #include "Core/WFArmsCore.h"
+#include "Core/WFArmorCore.h"
 #include "WFWeapons.h"
 #include "WFCharacter.generated.h"
 
@@ -50,6 +51,8 @@ public:
 	/** Encounter SLOW zones (frost patches, shroud mist) scale movement speed while the player stands in them. */
 	void SetHazardSpeedMult(double Mult) { HazardSpeedMult = Mult; }
 	bool IsHackHeld() const { return bHackHeld; }
+	/** the worn armor's effects (vehicle guns read the driver's weapon damage) */
+	const wf::armor::FEffects& GetArmorEffects() const { return ArmorFx; }
 	/** Getting into / out of a vehicle: the Operator stops simulating (no falling, firing or regen ticks) while carried. */
 	void SetInVehicle(bool bIn);
 	bool IsInVehicle() const { return bInVehicle; }
@@ -201,6 +204,9 @@ private:
 	bool bFireHeld = false;
 	bool bAiming = false;
 	wf::arms::FCombo Combo;
+	wf::armor::FEffects ArmorFx; // the worn armor, refreshed twice a second (Scene.tsx armorFx)
+	double ArmorRefresh = 0;
+	double GearPowerFor(const FWFWeaponStats& W) const;
 	double DeflectUntil = 0; // the Sun-Cutter's window: incoming damage halved (hurtPlayer deflectUntil)
 	struct FFootRound { wf::vweapons::FRound Round; TWeakObjectPtr<AActor> Target; FString Element; };
 	TArray<FFootRound> Rounds;

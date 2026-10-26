@@ -28,6 +28,7 @@ import { BOSS_PHASES } from "../../src/game/boss-phases";
 import { QUESTS } from "../../src/game/quests";
 import { CLASSES, SUBCLASSES, OPERATORS } from "../../src/game/loadout";
 import { ARMOR_SETS } from "../../src/game/armor-sets";
+import { ARMOR_PERKS } from "../../src/game/armor-perks";
 import { MATERIALS } from "../../src/game/inventory";
 import { REGIONAL_SHOPS } from "../../src/game/regional-shops";
 import { CLASS_MISSIONS } from "../../src/game/class-missions";
@@ -149,6 +150,8 @@ table("Subclasses", SUBCLASSES);
 table("Operators", OPERATORS);
 table("AbilityNodes", ABILITY_NODES);
 table("ArmorSets", ARMOR_SETS);
+// armor-perks.ts: every set piece's own perk (set x slot), regional sets authored, collections derived from the slot role
+table("ArmorPerks", Object.entries(ARMOR_PERKS).flatMap(([setId, slots]) => Object.entries(slots).map(([slot, perk]) => ({ id: `${setId}:${slot}`, setId, slot, name: perk.name, description: perk.description, effects: perk.effects }))));
 table("Materials", MATERIALS);
 // shops carry the faction that runs them and the district they stand in (living-world.ts), so the port needs no city geometry
 table("RegionalShops", REGIONAL_SHOPS.map((s) => ({ ...s, faction: SHOP_FACTION[s.id] ?? "", district: districtOf(s.x, s.z)?.id ?? "", districtName: districtOf(s.x, s.z)?.name ?? "" })));

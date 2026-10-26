@@ -1,0 +1,1622 @@
+[
+  {
+    "Name": "ironwatch_helmet",
+    "Id": "ironwatch:helmet",
+    "SetId": "ironwatch",
+    "Slot": "helmet",
+    "DisplayName": "Ironwatch Focus",
+    "Description": "Abilities recharge 4% faster.",
+    "EffectsJson": "{\"abilityRecharge\":0.04}"
+  },
+  {
+    "Name": "ironwatch_gauntlets",
+    "Id": "ironwatch:gauntlets",
+    "SetId": "ironwatch",
+    "Slot": "gauntlets",
+    "DisplayName": "Ironwatch Grip",
+    "Description": "Weapon damage +3%.",
+    "EffectsJson": "{\"weaponDamage\":0.03}"
+  },
+  {
+    "Name": "ironwatch_chest",
+    "Id": "ironwatch:chest",
+    "SetId": "ironwatch",
+    "Slot": "chest",
+    "DisplayName": "Ironwatch Bulwark",
+    "Description": "Incoming damage reduced by 4%.",
+    "EffectsJson": "{\"resist\":0.04}"
+  },
+  {
+    "Name": "ironwatch_legs",
+    "Id": "ironwatch:legs",
+    "SetId": "ironwatch",
+    "Slot": "legs",
+    "DisplayName": "Ironwatch Stride",
+    "Description": "Move 3% faster.",
+    "EffectsJson": "{\"moveSpeed\":0.03}"
+  },
+  {
+    "Name": "ironwatch_classItem",
+    "Id": "ironwatch:classItem",
+    "SetId": "ironwatch",
+    "Slot": "classItem",
+    "DisplayName": "Ironwatch Resolve",
+    "Description": "Hull regenerates a little.",
+    "EffectsJson": "{\"regen\":0.4}"
+  },
+  {
+    "Name": "ghost-recon_helmet",
+    "Id": "ghost-recon:helmet",
+    "SetId": "ghost-recon",
+    "Slot": "helmet",
+    "DisplayName": "Ghost Recon Focus",
+    "Description": "Abilities recharge 4% faster.",
+    "EffectsJson": "{\"abilityRecharge\":0.04}"
+  },
+  {
+    "Name": "ghost-recon_gauntlets",
+    "Id": "ghost-recon:gauntlets",
+    "SetId": "ghost-recon",
+    "Slot": "gauntlets",
+    "DisplayName": "Ghost Recon Grip",
+    "Description": "Weapon damage +3%.",
+    "EffectsJson": "{\"weaponDamage\":0.03}"
+  },
+  {
+    "Name": "ghost-recon_chest",
+    "Id": "ghost-recon:chest",
+    "SetId": "ghost-recon",
+    "Slot": "chest",
+    "DisplayName": "Ghost Recon Bulwark",
+    "Description": "Incoming damage reduced by 4%.",
+    "EffectsJson": "{\"resist\":0.04}"
+  },
+  {
+    "Name": "ghost-recon_legs",
+    "Id": "ghost-recon:legs",
+    "SetId": "ghost-recon",
+    "Slot": "legs",
+    "DisplayName": "Ghost Recon Stride",
+    "Description": "Move 3% faster.",
+    "EffectsJson": "{\"moveSpeed\":0.03}"
+  },
+  {
+    "Name": "ghost-recon_classItem",
+    "Id": "ghost-recon:classItem",
+    "SetId": "ghost-recon",
+    "Slot": "classItem",
+    "DisplayName": "Ghost Recon Resolve",
+    "Description": "Hull regenerates a little.",
+    "EffectsJson": "{\"regen\":0.4}"
+  },
+  {
+    "Name": "vanguard-siege_helmet",
+    "Id": "vanguard-siege:helmet",
+    "SetId": "vanguard-siege",
+    "Slot": "helmet",
+    "DisplayName": "Vanguard Siege Focus",
+    "Description": "Abilities recharge 4% faster.",
+    "EffectsJson": "{\"abilityRecharge\":0.04}"
+  },
+  {
+    "Name": "vanguard-siege_gauntlets",
+    "Id": "vanguard-siege:gauntlets",
+    "SetId": "vanguard-siege",
+    "Slot": "gauntlets",
+    "DisplayName": "Vanguard Siege Grip",
+    "Description": "Weapon damage +3%.",
+    "EffectsJson": "{\"weaponDamage\":0.03}"
+  },
+  {
+    "Name": "vanguard-siege_chest",
+    "Id": "vanguard-siege:chest",
+    "SetId": "vanguard-siege",
+    "Slot": "chest",
+    "DisplayName": "Vanguard Siege Bulwark",
+    "Description": "Incoming damage reduced by 4%.",
+    "EffectsJson": "{\"resist\":0.04}"
+  },
+  {
+    "Name": "vanguard-siege_legs",
+    "Id": "vanguard-siege:legs",
+    "SetId": "vanguard-siege",
+    "Slot": "legs",
+    "DisplayName": "Vanguard Siege Stride",
+    "Description": "Move 3% faster.",
+    "EffectsJson": "{\"moveSpeed\":0.03}"
+  },
+  {
+    "Name": "vanguard-siege_classItem",
+    "Id": "vanguard-siege:classItem",
+    "SetId": "vanguard-siege",
+    "Slot": "classItem",
+    "DisplayName": "Vanguard Siege Resolve",
+    "Description": "Hull regenerates a little.",
+    "EffectsJson": "{\"regen\":0.4}"
+  },
+  {
+    "Name": "wasteland-ranger_helmet",
+    "Id": "wasteland-ranger:helmet",
+    "SetId": "wasteland-ranger",
+    "Slot": "helmet",
+    "DisplayName": "Wasteland Ranger Focus",
+    "Description": "Abilities recharge 4% faster.",
+    "EffectsJson": "{\"abilityRecharge\":0.04}"
+  },
+  {
+    "Name": "wasteland-ranger_gauntlets",
+    "Id": "wasteland-ranger:gauntlets",
+    "SetId": "wasteland-ranger",
+    "Slot": "gauntlets",
+    "DisplayName": "Wasteland Ranger Grip",
+    "Description": "Weapon damage +3%.",
+    "EffectsJson": "{\"weaponDamage\":0.03}"
+  },
+  {
+    "Name": "wasteland-ranger_chest",
+    "Id": "wasteland-ranger:chest",
+    "SetId": "wasteland-ranger",
+    "Slot": "chest",
+    "DisplayName": "Wasteland Ranger Bulwark",
+    "Description": "Incoming damage reduced by 4%.",
+    "EffectsJson": "{\"resist\":0.04}"
+  },
+  {
+    "Name": "wasteland-ranger_legs",
+    "Id": "wasteland-ranger:legs",
+    "SetId": "wasteland-ranger",
+    "Slot": "legs",
+    "DisplayName": "Wasteland Ranger Stride",
+    "Description": "Move 3% faster.",
+    "EffectsJson": "{\"moveSpeed\":0.03}"
+  },
+  {
+    "Name": "wasteland-ranger_classItem",
+    "Id": "wasteland-ranger:classItem",
+    "SetId": "wasteland-ranger",
+    "Slot": "classItem",
+    "DisplayName": "Wasteland Ranger Resolve",
+    "Description": "Hull regenerates a little.",
+    "EffectsJson": "{\"regen\":0.4}"
+  },
+  {
+    "Name": "nightfall-operator_helmet",
+    "Id": "nightfall-operator:helmet",
+    "SetId": "nightfall-operator",
+    "Slot": "helmet",
+    "DisplayName": "Nightfall Operator Focus",
+    "Description": "Abilities recharge 4% faster.",
+    "EffectsJson": "{\"abilityRecharge\":0.04}"
+  },
+  {
+    "Name": "nightfall-operator_gauntlets",
+    "Id": "nightfall-operator:gauntlets",
+    "SetId": "nightfall-operator",
+    "Slot": "gauntlets",
+    "DisplayName": "Nightfall Operator Grip",
+    "Description": "Weapon damage +3%.",
+    "EffectsJson": "{\"weaponDamage\":0.03}"
+  },
+  {
+    "Name": "nightfall-operator_chest",
+    "Id": "nightfall-operator:chest",
+    "SetId": "nightfall-operator",
+    "Slot": "chest",
+    "DisplayName": "Nightfall Operator Bulwark",
+    "Description": "Incoming damage reduced by 4%.",
+    "EffectsJson": "{\"resist\":0.04}"
+  },
+  {
+    "Name": "nightfall-operator_legs",
+    "Id": "nightfall-operator:legs",
+    "SetId": "nightfall-operator",
+    "Slot": "legs",
+    "DisplayName": "Nightfall Operator Stride",
+    "Description": "Move 3% faster.",
+    "EffectsJson": "{\"moveSpeed\":0.03}"
+  },
+  {
+    "Name": "nightfall-operator_classItem",
+    "Id": "nightfall-operator:classItem",
+    "SetId": "nightfall-operator",
+    "Slot": "classItem",
+    "DisplayName": "Nightfall Operator Resolve",
+    "Description": "Hull regenerates a little.",
+    "EffectsJson": "{\"regen\":0.4}"
+  },
+  {
+    "Name": "aegis-battalion_helmet",
+    "Id": "aegis-battalion:helmet",
+    "SetId": "aegis-battalion",
+    "Slot": "helmet",
+    "DisplayName": "Aegis Battalion Focus",
+    "Description": "Abilities recharge 4% faster.",
+    "EffectsJson": "{\"abilityRecharge\":0.04}"
+  },
+  {
+    "Name": "aegis-battalion_gauntlets",
+    "Id": "aegis-battalion:gauntlets",
+    "SetId": "aegis-battalion",
+    "Slot": "gauntlets",
+    "DisplayName": "Aegis Battalion Grip",
+    "Description": "Weapon damage +3%.",
+    "EffectsJson": "{\"weaponDamage\":0.03}"
+  },
+  {
+    "Name": "aegis-battalion_chest",
+    "Id": "aegis-battalion:chest",
+    "SetId": "aegis-battalion",
+    "Slot": "chest",
+    "DisplayName": "Aegis Battalion Bulwark",
+    "Description": "Incoming damage reduced by 4%.",
+    "EffectsJson": "{\"resist\":0.04}"
+  },
+  {
+    "Name": "aegis-battalion_legs",
+    "Id": "aegis-battalion:legs",
+    "SetId": "aegis-battalion",
+    "Slot": "legs",
+    "DisplayName": "Aegis Battalion Stride",
+    "Description": "Move 3% faster.",
+    "EffectsJson": "{\"moveSpeed\":0.03}"
+  },
+  {
+    "Name": "aegis-battalion_classItem",
+    "Id": "aegis-battalion:classItem",
+    "SetId": "aegis-battalion",
+    "Slot": "classItem",
+    "DisplayName": "Aegis Battalion Resolve",
+    "Description": "Hull regenerates a little.",
+    "EffectsJson": "{\"regen\":0.4}"
+  },
+  {
+    "Name": "shadow-veil_helmet",
+    "Id": "shadow-veil:helmet",
+    "SetId": "shadow-veil",
+    "Slot": "helmet",
+    "DisplayName": "Shadow Veil Focus",
+    "Description": "Abilities recharge 4% faster.",
+    "EffectsJson": "{\"abilityRecharge\":0.04}"
+  },
+  {
+    "Name": "shadow-veil_gauntlets",
+    "Id": "shadow-veil:gauntlets",
+    "SetId": "shadow-veil",
+    "Slot": "gauntlets",
+    "DisplayName": "Shadow Veil Grip",
+    "Description": "Weapon damage +3%.",
+    "EffectsJson": "{\"weaponDamage\":0.03}"
+  },
+  {
+    "Name": "shadow-veil_chest",
+    "Id": "shadow-veil:chest",
+    "SetId": "shadow-veil",
+    "Slot": "chest",
+    "DisplayName": "Shadow Veil Bulwark",
+    "Description": "Incoming damage reduced by 4%.",
+    "EffectsJson": "{\"resist\":0.04}"
+  },
+  {
+    "Name": "shadow-veil_legs",
+    "Id": "shadow-veil:legs",
+    "SetId": "shadow-veil",
+    "Slot": "legs",
+    "DisplayName": "Shadow Veil Stride",
+    "Description": "Move 3% faster.",
+    "EffectsJson": "{\"moveSpeed\":0.03}"
+  },
+  {
+    "Name": "shadow-veil_classItem",
+    "Id": "shadow-veil:classItem",
+    "SetId": "shadow-veil",
+    "Slot": "classItem",
+    "DisplayName": "Shadow Veil Resolve",
+    "Description": "Hull regenerates a little.",
+    "EffectsJson": "{\"regen\":0.4}"
+  },
+  {
+    "Name": "crimson-ronin_helmet",
+    "Id": "crimson-ronin:helmet",
+    "SetId": "crimson-ronin",
+    "Slot": "helmet",
+    "DisplayName": "Crimson Ronin Focus",
+    "Description": "Abilities recharge 4% faster.",
+    "EffectsJson": "{\"abilityRecharge\":0.04}"
+  },
+  {
+    "Name": "crimson-ronin_gauntlets",
+    "Id": "crimson-ronin:gauntlets",
+    "SetId": "crimson-ronin",
+    "Slot": "gauntlets",
+    "DisplayName": "Crimson Ronin Grip",
+    "Description": "Weapon damage +3%.",
+    "EffectsJson": "{\"weaponDamage\":0.03}"
+  },
+  {
+    "Name": "crimson-ronin_chest",
+    "Id": "crimson-ronin:chest",
+    "SetId": "crimson-ronin",
+    "Slot": "chest",
+    "DisplayName": "Crimson Ronin Bulwark",
+    "Description": "Incoming damage reduced by 4%.",
+    "EffectsJson": "{\"resist\":0.04}"
+  },
+  {
+    "Name": "crimson-ronin_legs",
+    "Id": "crimson-ronin:legs",
+    "SetId": "crimson-ronin",
+    "Slot": "legs",
+    "DisplayName": "Crimson Ronin Stride",
+    "Description": "Move 3% faster.",
+    "EffectsJson": "{\"moveSpeed\":0.03}"
+  },
+  {
+    "Name": "crimson-ronin_classItem",
+    "Id": "crimson-ronin:classItem",
+    "SetId": "crimson-ronin",
+    "Slot": "classItem",
+    "DisplayName": "Crimson Ronin Resolve",
+    "Description": "Hull regenerates a little.",
+    "EffectsJson": "{\"regen\":0.4}"
+  },
+  {
+    "Name": "phantom-circuit_helmet",
+    "Id": "phantom-circuit:helmet",
+    "SetId": "phantom-circuit",
+    "Slot": "helmet",
+    "DisplayName": "Phantom Circuit Focus",
+    "Description": "Abilities recharge 4% faster.",
+    "EffectsJson": "{\"abilityRecharge\":0.04}"
+  },
+  {
+    "Name": "phantom-circuit_gauntlets",
+    "Id": "phantom-circuit:gauntlets",
+    "SetId": "phantom-circuit",
+    "Slot": "gauntlets",
+    "DisplayName": "Phantom Circuit Grip",
+    "Description": "Weapon damage +3%.",
+    "EffectsJson": "{\"weaponDamage\":0.03}"
+  },
+  {
+    "Name": "phantom-circuit_chest",
+    "Id": "phantom-circuit:chest",
+    "SetId": "phantom-circuit",
+    "Slot": "chest",
+    "DisplayName": "Phantom Circuit Bulwark",
+    "Description": "Incoming damage reduced by 4%.",
+    "EffectsJson": "{\"resist\":0.04}"
+  },
+  {
+    "Name": "phantom-circuit_legs",
+    "Id": "phantom-circuit:legs",
+    "SetId": "phantom-circuit",
+    "Slot": "legs",
+    "DisplayName": "Phantom Circuit Stride",
+    "Description": "Move 3% faster.",
+    "EffectsJson": "{\"moveSpeed\":0.03}"
+  },
+  {
+    "Name": "phantom-circuit_classItem",
+    "Id": "phantom-circuit:classItem",
+    "SetId": "phantom-circuit",
+    "Slot": "classItem",
+    "DisplayName": "Phantom Circuit Resolve",
+    "Description": "Hull regenerates a little.",
+    "EffectsJson": "{\"regen\":0.4}"
+  },
+  {
+    "Name": "void-serpent_helmet",
+    "Id": "void-serpent:helmet",
+    "SetId": "void-serpent",
+    "Slot": "helmet",
+    "DisplayName": "Void Serpent Focus",
+    "Description": "Abilities recharge 4% faster.",
+    "EffectsJson": "{\"abilityRecharge\":0.04}"
+  },
+  {
+    "Name": "void-serpent_gauntlets",
+    "Id": "void-serpent:gauntlets",
+    "SetId": "void-serpent",
+    "Slot": "gauntlets",
+    "DisplayName": "Void Serpent Grip",
+    "Description": "Weapon damage +3%.",
+    "EffectsJson": "{\"weaponDamage\":0.03}"
+  },
+  {
+    "Name": "void-serpent_chest",
+    "Id": "void-serpent:chest",
+    "SetId": "void-serpent",
+    "Slot": "chest",
+    "DisplayName": "Void Serpent Bulwark",
+    "Description": "Incoming damage reduced by 4%.",
+    "EffectsJson": "{\"resist\":0.04}"
+  },
+  {
+    "Name": "void-serpent_legs",
+    "Id": "void-serpent:legs",
+    "SetId": "void-serpent",
+    "Slot": "legs",
+    "DisplayName": "Void Serpent Stride",
+    "Description": "Move 3% faster.",
+    "EffectsJson": "{\"moveSpeed\":0.03}"
+  },
+  {
+    "Name": "void-serpent_classItem",
+    "Id": "void-serpent:classItem",
+    "SetId": "void-serpent",
+    "Slot": "classItem",
+    "DisplayName": "Void Serpent Resolve",
+    "Description": "Hull regenerates a little.",
+    "EffectsJson": "{\"regen\":0.4}"
+  },
+  {
+    "Name": "silent-lotus_helmet",
+    "Id": "silent-lotus:helmet",
+    "SetId": "silent-lotus",
+    "Slot": "helmet",
+    "DisplayName": "Silent Lotus Focus",
+    "Description": "Abilities recharge 4% faster.",
+    "EffectsJson": "{\"abilityRecharge\":0.04}"
+  },
+  {
+    "Name": "silent-lotus_gauntlets",
+    "Id": "silent-lotus:gauntlets",
+    "SetId": "silent-lotus",
+    "Slot": "gauntlets",
+    "DisplayName": "Silent Lotus Grip",
+    "Description": "Weapon damage +3%.",
+    "EffectsJson": "{\"weaponDamage\":0.03}"
+  },
+  {
+    "Name": "silent-lotus_chest",
+    "Id": "silent-lotus:chest",
+    "SetId": "silent-lotus",
+    "Slot": "chest",
+    "DisplayName": "Silent Lotus Bulwark",
+    "Description": "Incoming damage reduced by 4%.",
+    "EffectsJson": "{\"resist\":0.04}"
+  },
+  {
+    "Name": "silent-lotus_legs",
+    "Id": "silent-lotus:legs",
+    "SetId": "silent-lotus",
+    "Slot": "legs",
+    "DisplayName": "Silent Lotus Stride",
+    "Description": "Move 3% faster.",
+    "EffectsJson": "{\"moveSpeed\":0.03}"
+  },
+  {
+    "Name": "silent-lotus_classItem",
+    "Id": "silent-lotus:classItem",
+    "SetId": "silent-lotus",
+    "Slot": "classItem",
+    "DisplayName": "Silent Lotus Resolve",
+    "Description": "Hull regenerates a little.",
+    "EffectsJson": "{\"regen\":0.4}"
+  },
+  {
+    "Name": "eclipse-stalker_helmet",
+    "Id": "eclipse-stalker:helmet",
+    "SetId": "eclipse-stalker",
+    "Slot": "helmet",
+    "DisplayName": "Eclipse Stalker Focus",
+    "Description": "Abilities recharge 4% faster.",
+    "EffectsJson": "{\"abilityRecharge\":0.04}"
+  },
+  {
+    "Name": "eclipse-stalker_gauntlets",
+    "Id": "eclipse-stalker:gauntlets",
+    "SetId": "eclipse-stalker",
+    "Slot": "gauntlets",
+    "DisplayName": "Eclipse Stalker Grip",
+    "Description": "Weapon damage +3%.",
+    "EffectsJson": "{\"weaponDamage\":0.03}"
+  },
+  {
+    "Name": "eclipse-stalker_chest",
+    "Id": "eclipse-stalker:chest",
+    "SetId": "eclipse-stalker",
+    "Slot": "chest",
+    "DisplayName": "Eclipse Stalker Bulwark",
+    "Description": "Incoming damage reduced by 4%.",
+    "EffectsJson": "{\"resist\":0.04}"
+  },
+  {
+    "Name": "eclipse-stalker_legs",
+    "Id": "eclipse-stalker:legs",
+    "SetId": "eclipse-stalker",
+    "Slot": "legs",
+    "DisplayName": "Eclipse Stalker Stride",
+    "Description": "Move 3% faster.",
+    "EffectsJson": "{\"moveSpeed\":0.03}"
+  },
+  {
+    "Name": "eclipse-stalker_classItem",
+    "Id": "eclipse-stalker:classItem",
+    "SetId": "eclipse-stalker",
+    "Slot": "classItem",
+    "DisplayName": "Eclipse Stalker Resolve",
+    "Description": "Hull regenerates a little.",
+    "EffectsJson": "{\"regen\":0.4}"
+  },
+  {
+    "Name": "solar-sentinel_helmet",
+    "Id": "solar-sentinel:helmet",
+    "SetId": "solar-sentinel",
+    "Slot": "helmet",
+    "DisplayName": "Solar Sentinel Focus",
+    "Description": "Abilities recharge 4% faster.",
+    "EffectsJson": "{\"abilityRecharge\":0.04}"
+  },
+  {
+    "Name": "solar-sentinel_gauntlets",
+    "Id": "solar-sentinel:gauntlets",
+    "SetId": "solar-sentinel",
+    "Slot": "gauntlets",
+    "DisplayName": "Solar Sentinel Grip",
+    "Description": "Weapon damage +3%.",
+    "EffectsJson": "{\"weaponDamage\":0.03}"
+  },
+  {
+    "Name": "solar-sentinel_chest",
+    "Id": "solar-sentinel:chest",
+    "SetId": "solar-sentinel",
+    "Slot": "chest",
+    "DisplayName": "Solar Sentinel Bulwark",
+    "Description": "Incoming damage reduced by 4%.",
+    "EffectsJson": "{\"resist\":0.04}"
+  },
+  {
+    "Name": "solar-sentinel_legs",
+    "Id": "solar-sentinel:legs",
+    "SetId": "solar-sentinel",
+    "Slot": "legs",
+    "DisplayName": "Solar Sentinel Stride",
+    "Description": "Move 3% faster.",
+    "EffectsJson": "{\"moveSpeed\":0.03}"
+  },
+  {
+    "Name": "solar-sentinel_classItem",
+    "Id": "solar-sentinel:classItem",
+    "SetId": "solar-sentinel",
+    "Slot": "classItem",
+    "DisplayName": "Solar Sentinel Resolve",
+    "Description": "Hull regenerates a little.",
+    "EffectsJson": "{\"regen\":0.4}"
+  },
+  {
+    "Name": "frost-sentinel_helmet",
+    "Id": "frost-sentinel:helmet",
+    "SetId": "frost-sentinel",
+    "Slot": "helmet",
+    "DisplayName": "Frost Sentinel Focus",
+    "Description": "Abilities recharge 4% faster.",
+    "EffectsJson": "{\"abilityRecharge\":0.04}"
+  },
+  {
+    "Name": "frost-sentinel_gauntlets",
+    "Id": "frost-sentinel:gauntlets",
+    "SetId": "frost-sentinel",
+    "Slot": "gauntlets",
+    "DisplayName": "Frost Sentinel Grip",
+    "Description": "Weapon damage +3%.",
+    "EffectsJson": "{\"weaponDamage\":0.03}"
+  },
+  {
+    "Name": "frost-sentinel_chest",
+    "Id": "frost-sentinel:chest",
+    "SetId": "frost-sentinel",
+    "Slot": "chest",
+    "DisplayName": "Frost Sentinel Bulwark",
+    "Description": "Incoming damage reduced by 4%.",
+    "EffectsJson": "{\"resist\":0.04}"
+  },
+  {
+    "Name": "frost-sentinel_legs",
+    "Id": "frost-sentinel:legs",
+    "SetId": "frost-sentinel",
+    "Slot": "legs",
+    "DisplayName": "Frost Sentinel Stride",
+    "Description": "Move 3% faster.",
+    "EffectsJson": "{\"moveSpeed\":0.03}"
+  },
+  {
+    "Name": "frost-sentinel_classItem",
+    "Id": "frost-sentinel:classItem",
+    "SetId": "frost-sentinel",
+    "Slot": "classItem",
+    "DisplayName": "Frost Sentinel Resolve",
+    "Description": "Hull regenerates a little.",
+    "EffectsJson": "{\"regen\":0.4}"
+  },
+  {
+    "Name": "verdant-sentinel_helmet",
+    "Id": "verdant-sentinel:helmet",
+    "SetId": "verdant-sentinel",
+    "Slot": "helmet",
+    "DisplayName": "Verdant Sentinel Focus",
+    "Description": "Abilities recharge 4% faster.",
+    "EffectsJson": "{\"abilityRecharge\":0.04}"
+  },
+  {
+    "Name": "verdant-sentinel_gauntlets",
+    "Id": "verdant-sentinel:gauntlets",
+    "SetId": "verdant-sentinel",
+    "Slot": "gauntlets",
+    "DisplayName": "Verdant Sentinel Grip",
+    "Description": "Weapon damage +3%.",
+    "EffectsJson": "{\"weaponDamage\":0.03}"
+  },
+  {
+    "Name": "verdant-sentinel_chest",
+    "Id": "verdant-sentinel:chest",
+    "SetId": "verdant-sentinel",
+    "Slot": "chest",
+    "DisplayName": "Verdant Sentinel Bulwark",
+    "Description": "Incoming damage reduced by 4%.",
+    "EffectsJson": "{\"resist\":0.04}"
+  },
+  {
+    "Name": "verdant-sentinel_legs",
+    "Id": "verdant-sentinel:legs",
+    "SetId": "verdant-sentinel",
+    "Slot": "legs",
+    "DisplayName": "Verdant Sentinel Stride",
+    "Description": "Move 3% faster.",
+    "EffectsJson": "{\"moveSpeed\":0.03}"
+  },
+  {
+    "Name": "verdant-sentinel_classItem",
+    "Id": "verdant-sentinel:classItem",
+    "SetId": "verdant-sentinel",
+    "Slot": "classItem",
+    "DisplayName": "Verdant Sentinel Resolve",
+    "Description": "Hull regenerates a little.",
+    "EffectsJson": "{\"regen\":0.4}"
+  },
+  {
+    "Name": "eclipse-sentinel_helmet",
+    "Id": "eclipse-sentinel:helmet",
+    "SetId": "eclipse-sentinel",
+    "Slot": "helmet",
+    "DisplayName": "Eclipse Sentinel Focus",
+    "Description": "Abilities recharge 4% faster.",
+    "EffectsJson": "{\"abilityRecharge\":0.04}"
+  },
+  {
+    "Name": "eclipse-sentinel_gauntlets",
+    "Id": "eclipse-sentinel:gauntlets",
+    "SetId": "eclipse-sentinel",
+    "Slot": "gauntlets",
+    "DisplayName": "Eclipse Sentinel Grip",
+    "Description": "Weapon damage +3%.",
+    "EffectsJson": "{\"weaponDamage\":0.03}"
+  },
+  {
+    "Name": "eclipse-sentinel_chest",
+    "Id": "eclipse-sentinel:chest",
+    "SetId": "eclipse-sentinel",
+    "Slot": "chest",
+    "DisplayName": "Eclipse Sentinel Bulwark",
+    "Description": "Incoming damage reduced by 4%.",
+    "EffectsJson": "{\"resist\":0.04}"
+  },
+  {
+    "Name": "eclipse-sentinel_legs",
+    "Id": "eclipse-sentinel:legs",
+    "SetId": "eclipse-sentinel",
+    "Slot": "legs",
+    "DisplayName": "Eclipse Sentinel Stride",
+    "Description": "Move 3% faster.",
+    "EffectsJson": "{\"moveSpeed\":0.03}"
+  },
+  {
+    "Name": "eclipse-sentinel_classItem",
+    "Id": "eclipse-sentinel:classItem",
+    "SetId": "eclipse-sentinel",
+    "Slot": "classItem",
+    "DisplayName": "Eclipse Sentinel Resolve",
+    "Description": "Hull regenerates a little.",
+    "EffectsJson": "{\"regen\":0.4}"
+  },
+  {
+    "Name": "nova-sentinel_helmet",
+    "Id": "nova-sentinel:helmet",
+    "SetId": "nova-sentinel",
+    "Slot": "helmet",
+    "DisplayName": "Nova Sentinel Focus",
+    "Description": "Abilities recharge 4% faster.",
+    "EffectsJson": "{\"abilityRecharge\":0.04}"
+  },
+  {
+    "Name": "nova-sentinel_gauntlets",
+    "Id": "nova-sentinel:gauntlets",
+    "SetId": "nova-sentinel",
+    "Slot": "gauntlets",
+    "DisplayName": "Nova Sentinel Grip",
+    "Description": "Weapon damage +3%.",
+    "EffectsJson": "{\"weaponDamage\":0.03}"
+  },
+  {
+    "Name": "nova-sentinel_chest",
+    "Id": "nova-sentinel:chest",
+    "SetId": "nova-sentinel",
+    "Slot": "chest",
+    "DisplayName": "Nova Sentinel Bulwark",
+    "Description": "Incoming damage reduced by 4%.",
+    "EffectsJson": "{\"resist\":0.04}"
+  },
+  {
+    "Name": "nova-sentinel_legs",
+    "Id": "nova-sentinel:legs",
+    "SetId": "nova-sentinel",
+    "Slot": "legs",
+    "DisplayName": "Nova Sentinel Stride",
+    "Description": "Move 3% faster.",
+    "EffectsJson": "{\"moveSpeed\":0.03}"
+  },
+  {
+    "Name": "nova-sentinel_classItem",
+    "Id": "nova-sentinel:classItem",
+    "SetId": "nova-sentinel",
+    "Slot": "classItem",
+    "DisplayName": "Nova Sentinel Resolve",
+    "Description": "Hull regenerates a little.",
+    "EffectsJson": "{\"regen\":0.4}"
+  },
+  {
+    "Name": "prismatic-vanguard_helmet",
+    "Id": "prismatic-vanguard:helmet",
+    "SetId": "prismatic-vanguard",
+    "Slot": "helmet",
+    "DisplayName": "Prismatic Vanguard Focus",
+    "Description": "Abilities recharge 4% faster.",
+    "EffectsJson": "{\"abilityRecharge\":0.04}"
+  },
+  {
+    "Name": "prismatic-vanguard_gauntlets",
+    "Id": "prismatic-vanguard:gauntlets",
+    "SetId": "prismatic-vanguard",
+    "Slot": "gauntlets",
+    "DisplayName": "Prismatic Vanguard Grip",
+    "Description": "Weapon damage +3%.",
+    "EffectsJson": "{\"weaponDamage\":0.03}"
+  },
+  {
+    "Name": "prismatic-vanguard_chest",
+    "Id": "prismatic-vanguard:chest",
+    "SetId": "prismatic-vanguard",
+    "Slot": "chest",
+    "DisplayName": "Prismatic Vanguard Bulwark",
+    "Description": "Incoming damage reduced by 4%.",
+    "EffectsJson": "{\"resist\":0.04}"
+  },
+  {
+    "Name": "prismatic-vanguard_legs",
+    "Id": "prismatic-vanguard:legs",
+    "SetId": "prismatic-vanguard",
+    "Slot": "legs",
+    "DisplayName": "Prismatic Vanguard Stride",
+    "Description": "Move 3% faster.",
+    "EffectsJson": "{\"moveSpeed\":0.03}"
+  },
+  {
+    "Name": "prismatic-vanguard_classItem",
+    "Id": "prismatic-vanguard:classItem",
+    "SetId": "prismatic-vanguard",
+    "Slot": "classItem",
+    "DisplayName": "Prismatic Vanguard Resolve",
+    "Description": "Hull regenerates a little.",
+    "EffectsJson": "{\"regen\":0.4}"
+  },
+  {
+    "Name": "neon-phantom_helmet",
+    "Id": "neon-phantom:helmet",
+    "SetId": "neon-phantom",
+    "Slot": "helmet",
+    "DisplayName": "Neon Phantom Focus",
+    "Description": "Abilities recharge 4% faster.",
+    "EffectsJson": "{\"abilityRecharge\":0.04}"
+  },
+  {
+    "Name": "neon-phantom_gauntlets",
+    "Id": "neon-phantom:gauntlets",
+    "SetId": "neon-phantom",
+    "Slot": "gauntlets",
+    "DisplayName": "Neon Phantom Grip",
+    "Description": "Weapon damage +3%.",
+    "EffectsJson": "{\"weaponDamage\":0.03}"
+  },
+  {
+    "Name": "neon-phantom_chest",
+    "Id": "neon-phantom:chest",
+    "SetId": "neon-phantom",
+    "Slot": "chest",
+    "DisplayName": "Neon Phantom Bulwark",
+    "Description": "Incoming damage reduced by 4%.",
+    "EffectsJson": "{\"resist\":0.04}"
+  },
+  {
+    "Name": "neon-phantom_legs",
+    "Id": "neon-phantom:legs",
+    "SetId": "neon-phantom",
+    "Slot": "legs",
+    "DisplayName": "Neon Phantom Stride",
+    "Description": "Move 3% faster.",
+    "EffectsJson": "{\"moveSpeed\":0.03}"
+  },
+  {
+    "Name": "neon-phantom_classItem",
+    "Id": "neon-phantom:classItem",
+    "SetId": "neon-phantom",
+    "Slot": "classItem",
+    "DisplayName": "Neon Phantom Resolve",
+    "Description": "Hull regenerates a little.",
+    "EffectsJson": "{\"regen\":0.4}"
+  },
+  {
+    "Name": "blackmarket-runner_helmet",
+    "Id": "blackmarket-runner:helmet",
+    "SetId": "blackmarket-runner",
+    "Slot": "helmet",
+    "DisplayName": "Blackmarket Runner Focus",
+    "Description": "Abilities recharge 4% faster.",
+    "EffectsJson": "{\"abilityRecharge\":0.04}"
+  },
+  {
+    "Name": "blackmarket-runner_gauntlets",
+    "Id": "blackmarket-runner:gauntlets",
+    "SetId": "blackmarket-runner",
+    "Slot": "gauntlets",
+    "DisplayName": "Blackmarket Runner Grip",
+    "Description": "Weapon damage +3%.",
+    "EffectsJson": "{\"weaponDamage\":0.03}"
+  },
+  {
+    "Name": "blackmarket-runner_chest",
+    "Id": "blackmarket-runner:chest",
+    "SetId": "blackmarket-runner",
+    "Slot": "chest",
+    "DisplayName": "Blackmarket Runner Bulwark",
+    "Description": "Incoming damage reduced by 4%.",
+    "EffectsJson": "{\"resist\":0.04}"
+  },
+  {
+    "Name": "blackmarket-runner_legs",
+    "Id": "blackmarket-runner:legs",
+    "SetId": "blackmarket-runner",
+    "Slot": "legs",
+    "DisplayName": "Blackmarket Runner Stride",
+    "Description": "Move 3% faster.",
+    "EffectsJson": "{\"moveSpeed\":0.03}"
+  },
+  {
+    "Name": "blackmarket-runner_classItem",
+    "Id": "blackmarket-runner:classItem",
+    "SetId": "blackmarket-runner",
+    "Slot": "classItem",
+    "DisplayName": "Blackmarket Runner Resolve",
+    "Description": "Hull regenerates a little.",
+    "EffectsJson": "{\"regen\":0.4}"
+  },
+  {
+    "Name": "overdrive_helmet",
+    "Id": "overdrive:helmet",
+    "SetId": "overdrive",
+    "Slot": "helmet",
+    "DisplayName": "Overdrive Focus",
+    "Description": "Abilities recharge 4% faster.",
+    "EffectsJson": "{\"abilityRecharge\":0.04}"
+  },
+  {
+    "Name": "overdrive_gauntlets",
+    "Id": "overdrive:gauntlets",
+    "SetId": "overdrive",
+    "Slot": "gauntlets",
+    "DisplayName": "Overdrive Grip",
+    "Description": "Weapon damage +3%.",
+    "EffectsJson": "{\"weaponDamage\":0.03}"
+  },
+  {
+    "Name": "overdrive_chest",
+    "Id": "overdrive:chest",
+    "SetId": "overdrive",
+    "Slot": "chest",
+    "DisplayName": "Overdrive Bulwark",
+    "Description": "Incoming damage reduced by 4%.",
+    "EffectsJson": "{\"resist\":0.04}"
+  },
+  {
+    "Name": "overdrive_legs",
+    "Id": "overdrive:legs",
+    "SetId": "overdrive",
+    "Slot": "legs",
+    "DisplayName": "Overdrive Stride",
+    "Description": "Move 3% faster.",
+    "EffectsJson": "{\"moveSpeed\":0.03}"
+  },
+  {
+    "Name": "overdrive_classItem",
+    "Id": "overdrive:classItem",
+    "SetId": "overdrive",
+    "Slot": "classItem",
+    "DisplayName": "Overdrive Resolve",
+    "Description": "Hull regenerates a little.",
+    "EffectsJson": "{\"regen\":0.4}"
+  },
+  {
+    "Name": "chrome-rebel_helmet",
+    "Id": "chrome-rebel:helmet",
+    "SetId": "chrome-rebel",
+    "Slot": "helmet",
+    "DisplayName": "Chrome Rebel Focus",
+    "Description": "Abilities recharge 4% faster.",
+    "EffectsJson": "{\"abilityRecharge\":0.04}"
+  },
+  {
+    "Name": "chrome-rebel_gauntlets",
+    "Id": "chrome-rebel:gauntlets",
+    "SetId": "chrome-rebel",
+    "Slot": "gauntlets",
+    "DisplayName": "Chrome Rebel Grip",
+    "Description": "Weapon damage +3%.",
+    "EffectsJson": "{\"weaponDamage\":0.03}"
+  },
+  {
+    "Name": "chrome-rebel_chest",
+    "Id": "chrome-rebel:chest",
+    "SetId": "chrome-rebel",
+    "Slot": "chest",
+    "DisplayName": "Chrome Rebel Bulwark",
+    "Description": "Incoming damage reduced by 4%.",
+    "EffectsJson": "{\"resist\":0.04}"
+  },
+  {
+    "Name": "chrome-rebel_legs",
+    "Id": "chrome-rebel:legs",
+    "SetId": "chrome-rebel",
+    "Slot": "legs",
+    "DisplayName": "Chrome Rebel Stride",
+    "Description": "Move 3% faster.",
+    "EffectsJson": "{\"moveSpeed\":0.03}"
+  },
+  {
+    "Name": "chrome-rebel_classItem",
+    "Id": "chrome-rebel:classItem",
+    "SetId": "chrome-rebel",
+    "Slot": "classItem",
+    "DisplayName": "Chrome Rebel Resolve",
+    "Description": "Hull regenerates a little.",
+    "EffectsJson": "{\"regen\":0.4}"
+  },
+  {
+    "Name": "ghostline_helmet",
+    "Id": "ghostline:helmet",
+    "SetId": "ghostline",
+    "Slot": "helmet",
+    "DisplayName": "Ghostline Focus",
+    "Description": "Abilities recharge 4% faster.",
+    "EffectsJson": "{\"abilityRecharge\":0.04}"
+  },
+  {
+    "Name": "ghostline_gauntlets",
+    "Id": "ghostline:gauntlets",
+    "SetId": "ghostline",
+    "Slot": "gauntlets",
+    "DisplayName": "Ghostline Grip",
+    "Description": "Weapon damage +3%.",
+    "EffectsJson": "{\"weaponDamage\":0.03}"
+  },
+  {
+    "Name": "ghostline_chest",
+    "Id": "ghostline:chest",
+    "SetId": "ghostline",
+    "Slot": "chest",
+    "DisplayName": "Ghostline Bulwark",
+    "Description": "Incoming damage reduced by 4%.",
+    "EffectsJson": "{\"resist\":0.04}"
+  },
+  {
+    "Name": "ghostline_legs",
+    "Id": "ghostline:legs",
+    "SetId": "ghostline",
+    "Slot": "legs",
+    "DisplayName": "Ghostline Stride",
+    "Description": "Move 3% faster.",
+    "EffectsJson": "{\"moveSpeed\":0.03}"
+  },
+  {
+    "Name": "ghostline_classItem",
+    "Id": "ghostline:classItem",
+    "SetId": "ghostline",
+    "Slot": "classItem",
+    "DisplayName": "Ghostline Resolve",
+    "Description": "Hull regenerates a little.",
+    "EffectsJson": "{\"regen\":0.4}"
+  },
+  {
+    "Name": "aftershock_helmet",
+    "Id": "aftershock:helmet",
+    "SetId": "aftershock",
+    "Slot": "helmet",
+    "DisplayName": "Aftershock Focus",
+    "Description": "Abilities recharge 4% faster.",
+    "EffectsJson": "{\"abilityRecharge\":0.04}"
+  },
+  {
+    "Name": "aftershock_gauntlets",
+    "Id": "aftershock:gauntlets",
+    "SetId": "aftershock",
+    "Slot": "gauntlets",
+    "DisplayName": "Aftershock Grip",
+    "Description": "Weapon damage +3%.",
+    "EffectsJson": "{\"weaponDamage\":0.03}"
+  },
+  {
+    "Name": "aftershock_chest",
+    "Id": "aftershock:chest",
+    "SetId": "aftershock",
+    "Slot": "chest",
+    "DisplayName": "Aftershock Bulwark",
+    "Description": "Incoming damage reduced by 4%.",
+    "EffectsJson": "{\"resist\":0.04}"
+  },
+  {
+    "Name": "aftershock_legs",
+    "Id": "aftershock:legs",
+    "SetId": "aftershock",
+    "Slot": "legs",
+    "DisplayName": "Aftershock Stride",
+    "Description": "Move 3% faster.",
+    "EffectsJson": "{\"moveSpeed\":0.03}"
+  },
+  {
+    "Name": "aftershock_classItem",
+    "Id": "aftershock:classItem",
+    "SetId": "aftershock",
+    "Slot": "classItem",
+    "DisplayName": "Aftershock Resolve",
+    "Description": "Hull regenerates a little.",
+    "EffectsJson": "{\"regen\":0.4}"
+  },
+  {
+    "Name": "null-sovereign_helmet",
+    "Id": "null-sovereign:helmet",
+    "SetId": "null-sovereign",
+    "Slot": "helmet",
+    "DisplayName": "Null Sovereign Focus",
+    "Description": "Abilities recharge 4% faster.",
+    "EffectsJson": "{\"abilityRecharge\":0.04}"
+  },
+  {
+    "Name": "null-sovereign_gauntlets",
+    "Id": "null-sovereign:gauntlets",
+    "SetId": "null-sovereign",
+    "Slot": "gauntlets",
+    "DisplayName": "Null Sovereign Grip",
+    "Description": "Weapon damage +3%.",
+    "EffectsJson": "{\"weaponDamage\":0.03}"
+  },
+  {
+    "Name": "null-sovereign_chest",
+    "Id": "null-sovereign:chest",
+    "SetId": "null-sovereign",
+    "Slot": "chest",
+    "DisplayName": "Null Sovereign Bulwark",
+    "Description": "Incoming damage reduced by 4%.",
+    "EffectsJson": "{\"resist\":0.04}"
+  },
+  {
+    "Name": "null-sovereign_legs",
+    "Id": "null-sovereign:legs",
+    "SetId": "null-sovereign",
+    "Slot": "legs",
+    "DisplayName": "Null Sovereign Stride",
+    "Description": "Move 3% faster.",
+    "EffectsJson": "{\"moveSpeed\":0.03}"
+  },
+  {
+    "Name": "null-sovereign_classItem",
+    "Id": "null-sovereign:classItem",
+    "SetId": "null-sovereign",
+    "Slot": "classItem",
+    "DisplayName": "Null Sovereign Resolve",
+    "Description": "Hull regenerates a little.",
+    "EffectsJson": "{\"regen\":0.4}"
+  },
+  {
+    "Name": "rime-alpha_helmet",
+    "Id": "rime-alpha:helmet",
+    "SetId": "rime-alpha",
+    "Slot": "helmet",
+    "DisplayName": "Rime Alpha Focus",
+    "Description": "Abilities recharge 4% faster.",
+    "EffectsJson": "{\"abilityRecharge\":0.04}"
+  },
+  {
+    "Name": "rime-alpha_gauntlets",
+    "Id": "rime-alpha:gauntlets",
+    "SetId": "rime-alpha",
+    "Slot": "gauntlets",
+    "DisplayName": "Rime Alpha Grip",
+    "Description": "Weapon damage +3%.",
+    "EffectsJson": "{\"weaponDamage\":0.03}"
+  },
+  {
+    "Name": "rime-alpha_chest",
+    "Id": "rime-alpha:chest",
+    "SetId": "rime-alpha",
+    "Slot": "chest",
+    "DisplayName": "Rime Alpha Bulwark",
+    "Description": "Incoming damage reduced by 4%.",
+    "EffectsJson": "{\"resist\":0.04}"
+  },
+  {
+    "Name": "rime-alpha_legs",
+    "Id": "rime-alpha:legs",
+    "SetId": "rime-alpha",
+    "Slot": "legs",
+    "DisplayName": "Rime Alpha Stride",
+    "Description": "Move 3% faster.",
+    "EffectsJson": "{\"moveSpeed\":0.03}"
+  },
+  {
+    "Name": "rime-alpha_classItem",
+    "Id": "rime-alpha:classItem",
+    "SetId": "rime-alpha",
+    "Slot": "classItem",
+    "DisplayName": "Rime Alpha Resolve",
+    "Description": "Hull regenerates a little.",
+    "EffectsJson": "{\"regen\":0.4}"
+  },
+  {
+    "Name": "fractureborn_helmet",
+    "Id": "fractureborn:helmet",
+    "SetId": "fractureborn",
+    "Slot": "helmet",
+    "DisplayName": "Fractureborn Focus",
+    "Description": "Abilities recharge 4% faster.",
+    "EffectsJson": "{\"abilityRecharge\":0.04}"
+  },
+  {
+    "Name": "fractureborn_gauntlets",
+    "Id": "fractureborn:gauntlets",
+    "SetId": "fractureborn",
+    "Slot": "gauntlets",
+    "DisplayName": "Fractureborn Grip",
+    "Description": "Weapon damage +3%.",
+    "EffectsJson": "{\"weaponDamage\":0.03}"
+  },
+  {
+    "Name": "fractureborn_chest",
+    "Id": "fractureborn:chest",
+    "SetId": "fractureborn",
+    "Slot": "chest",
+    "DisplayName": "Fractureborn Bulwark",
+    "Description": "Incoming damage reduced by 4%.",
+    "EffectsJson": "{\"resist\":0.04}"
+  },
+  {
+    "Name": "fractureborn_legs",
+    "Id": "fractureborn:legs",
+    "SetId": "fractureborn",
+    "Slot": "legs",
+    "DisplayName": "Fractureborn Stride",
+    "Description": "Move 3% faster.",
+    "EffectsJson": "{\"moveSpeed\":0.03}"
+  },
+  {
+    "Name": "fractureborn_classItem",
+    "Id": "fractureborn:classItem",
+    "SetId": "fractureborn",
+    "Slot": "classItem",
+    "DisplayName": "Fractureborn Resolve",
+    "Description": "Hull regenerates a little.",
+    "EffectsJson": "{\"regen\":0.4}"
+  },
+  {
+    "Name": "starfall-monarch_helmet",
+    "Id": "starfall-monarch:helmet",
+    "SetId": "starfall-monarch",
+    "Slot": "helmet",
+    "DisplayName": "Starfall Monarch Focus",
+    "Description": "Abilities recharge 4% faster.",
+    "EffectsJson": "{\"abilityRecharge\":0.04}"
+  },
+  {
+    "Name": "starfall-monarch_gauntlets",
+    "Id": "starfall-monarch:gauntlets",
+    "SetId": "starfall-monarch",
+    "Slot": "gauntlets",
+    "DisplayName": "Starfall Monarch Grip",
+    "Description": "Weapon damage +3%.",
+    "EffectsJson": "{\"weaponDamage\":0.03}"
+  },
+  {
+    "Name": "starfall-monarch_chest",
+    "Id": "starfall-monarch:chest",
+    "SetId": "starfall-monarch",
+    "Slot": "chest",
+    "DisplayName": "Starfall Monarch Bulwark",
+    "Description": "Incoming damage reduced by 4%.",
+    "EffectsJson": "{\"resist\":0.04}"
+  },
+  {
+    "Name": "starfall-monarch_legs",
+    "Id": "starfall-monarch:legs",
+    "SetId": "starfall-monarch",
+    "Slot": "legs",
+    "DisplayName": "Starfall Monarch Stride",
+    "Description": "Move 3% faster.",
+    "EffectsJson": "{\"moveSpeed\":0.03}"
+  },
+  {
+    "Name": "starfall-monarch_classItem",
+    "Id": "starfall-monarch:classItem",
+    "SetId": "starfall-monarch",
+    "Slot": "classItem",
+    "DisplayName": "Starfall Monarch Resolve",
+    "Description": "Hull regenerates a little.",
+    "EffectsJson": "{\"regen\":0.4}"
+  },
+  {
+    "Name": "abyssal-warden_helmet",
+    "Id": "abyssal-warden:helmet",
+    "SetId": "abyssal-warden",
+    "Slot": "helmet",
+    "DisplayName": "Abyssal Warden Focus",
+    "Description": "Abilities recharge 4% faster.",
+    "EffectsJson": "{\"abilityRecharge\":0.04}"
+  },
+  {
+    "Name": "abyssal-warden_gauntlets",
+    "Id": "abyssal-warden:gauntlets",
+    "SetId": "abyssal-warden",
+    "Slot": "gauntlets",
+    "DisplayName": "Abyssal Warden Grip",
+    "Description": "Weapon damage +3%.",
+    "EffectsJson": "{\"weaponDamage\":0.03}"
+  },
+  {
+    "Name": "abyssal-warden_chest",
+    "Id": "abyssal-warden:chest",
+    "SetId": "abyssal-warden",
+    "Slot": "chest",
+    "DisplayName": "Abyssal Warden Bulwark",
+    "Description": "Incoming damage reduced by 4%.",
+    "EffectsJson": "{\"resist\":0.04}"
+  },
+  {
+    "Name": "abyssal-warden_legs",
+    "Id": "abyssal-warden:legs",
+    "SetId": "abyssal-warden",
+    "Slot": "legs",
+    "DisplayName": "Abyssal Warden Stride",
+    "Description": "Move 3% faster.",
+    "EffectsJson": "{\"moveSpeed\":0.03}"
+  },
+  {
+    "Name": "abyssal-warden_classItem",
+    "Id": "abyssal-warden:classItem",
+    "SetId": "abyssal-warden",
+    "Slot": "classItem",
+    "DisplayName": "Abyssal Warden Resolve",
+    "Description": "Hull regenerates a little.",
+    "EffectsJson": "{\"regen\":0.4}"
+  },
+  {
+    "Name": "chrono-revenant_helmet",
+    "Id": "chrono-revenant:helmet",
+    "SetId": "chrono-revenant",
+    "Slot": "helmet",
+    "DisplayName": "Chrono Revenant Focus",
+    "Description": "Abilities recharge 4% faster.",
+    "EffectsJson": "{\"abilityRecharge\":0.04}"
+  },
+  {
+    "Name": "chrono-revenant_gauntlets",
+    "Id": "chrono-revenant:gauntlets",
+    "SetId": "chrono-revenant",
+    "Slot": "gauntlets",
+    "DisplayName": "Chrono Revenant Grip",
+    "Description": "Weapon damage +3%.",
+    "EffectsJson": "{\"weaponDamage\":0.03}"
+  },
+  {
+    "Name": "chrono-revenant_chest",
+    "Id": "chrono-revenant:chest",
+    "SetId": "chrono-revenant",
+    "Slot": "chest",
+    "DisplayName": "Chrono Revenant Bulwark",
+    "Description": "Incoming damage reduced by 4%.",
+    "EffectsJson": "{\"resist\":0.04}"
+  },
+  {
+    "Name": "chrono-revenant_legs",
+    "Id": "chrono-revenant:legs",
+    "SetId": "chrono-revenant",
+    "Slot": "legs",
+    "DisplayName": "Chrono Revenant Stride",
+    "Description": "Move 3% faster.",
+    "EffectsJson": "{\"moveSpeed\":0.03}"
+  },
+  {
+    "Name": "chrono-revenant_classItem",
+    "Id": "chrono-revenant:classItem",
+    "SetId": "chrono-revenant",
+    "Slot": "classItem",
+    "DisplayName": "Chrono Revenant Resolve",
+    "Description": "Hull regenerates a little.",
+    "EffectsJson": "{\"regen\":0.4}"
+  },
+  {
+    "Name": "verdant-warden_helmet",
+    "Id": "verdant-warden:helmet",
+    "SetId": "verdant-warden",
+    "Slot": "helmet",
+    "DisplayName": "Canopy Sight",
+    "Description": "Abilities recharge 4% faster.",
+    "EffectsJson": "{\"abilityRecharge\":0.04}"
+  },
+  {
+    "Name": "verdant-warden_gauntlets",
+    "Id": "verdant-warden:gauntlets",
+    "SetId": "verdant-warden",
+    "Slot": "gauntlets",
+    "DisplayName": "Thornwrap Grip",
+    "Description": "Weapon damage +2%.",
+    "EffectsJson": "{\"weaponDamage\":0.02}"
+  },
+  {
+    "Name": "verdant-warden_chest",
+    "Id": "verdant-warden:chest",
+    "SetId": "verdant-warden",
+    "Slot": "chest",
+    "DisplayName": "Barkplate",
+    "Description": "Incoming damage reduced by 4%.",
+    "EffectsJson": "{\"resist\":0.04}"
+  },
+  {
+    "Name": "verdant-warden_legs",
+    "Id": "verdant-warden:legs",
+    "SetId": "verdant-warden",
+    "Slot": "legs",
+    "DisplayName": "Rootstep",
+    "Description": "Move 2% faster and regenerate a little hull.",
+    "EffectsJson": "{\"moveSpeed\":0.02,\"regen\":0.3}"
+  },
+  {
+    "Name": "verdant-warden_classItem",
+    "Id": "verdant-warden:classItem",
+    "SetId": "verdant-warden",
+    "Slot": "classItem",
+    "DisplayName": "Living Sash",
+    "Description": "Hull regenerates steadily.",
+    "EffectsJson": "{\"regen\":0.6}"
+  },
+  {
+    "Name": "mire-stalker_helmet",
+    "Id": "mire-stalker:helmet",
+    "SetId": "mire-stalker",
+    "Slot": "helmet",
+    "DisplayName": "Fen Sight",
+    "Description": "Abilities recharge 5% faster.",
+    "EffectsJson": "{\"abilityRecharge\":0.05}"
+  },
+  {
+    "Name": "mire-stalker_gauntlets",
+    "Id": "mire-stalker:gauntlets",
+    "SetId": "mire-stalker",
+    "Slot": "gauntlets",
+    "DisplayName": "Silt Grip",
+    "Description": "Weapon damage +2%.",
+    "EffectsJson": "{\"weaponDamage\":0.02}"
+  },
+  {
+    "Name": "mire-stalker_chest",
+    "Id": "mire-stalker:chest",
+    "SetId": "mire-stalker",
+    "Slot": "chest",
+    "DisplayName": "Reed Weave",
+    "Description": "Resist 2% and regenerate a little hull.",
+    "EffectsJson": "{\"resist\":0.02,\"regen\":0.3}"
+  },
+  {
+    "Name": "mire-stalker_legs",
+    "Id": "mire-stalker:legs",
+    "SetId": "mire-stalker",
+    "Slot": "legs",
+    "DisplayName": "Bog Runner",
+    "Description": "Move 4% faster.",
+    "EffectsJson": "{\"moveSpeed\":0.04}"
+  },
+  {
+    "Name": "mire-stalker_classItem",
+    "Id": "mire-stalker:classItem",
+    "SetId": "mire-stalker",
+    "Slot": "classItem",
+    "DisplayName": "Mist Cloak",
+    "Description": "Slides carry 8% further.",
+    "EffectsJson": "{\"slideBoost\":0.08}"
+  },
+  {
+    "Name": "cinder-vanguard_helmet",
+    "Id": "cinder-vanguard:helmet",
+    "SetId": "cinder-vanguard",
+    "Slot": "helmet",
+    "DisplayName": "Ember Targeting",
+    "Description": "Weapon damage +3%.",
+    "EffectsJson": "{\"weaponDamage\":0.03}"
+  },
+  {
+    "Name": "cinder-vanguard_gauntlets",
+    "Id": "cinder-vanguard:gauntlets",
+    "SetId": "cinder-vanguard",
+    "Slot": "gauntlets",
+    "DisplayName": "Forgehand",
+    "Description": "Weapon damage +5%.",
+    "EffectsJson": "{\"weaponDamage\":0.05}"
+  },
+  {
+    "Name": "cinder-vanguard_chest",
+    "Id": "cinder-vanguard:chest",
+    "SetId": "cinder-vanguard",
+    "Slot": "chest",
+    "DisplayName": "Slag Plate",
+    "Description": "Incoming damage reduced by 4%.",
+    "EffectsJson": "{\"resist\":0.04}"
+  },
+  {
+    "Name": "cinder-vanguard_legs",
+    "Id": "cinder-vanguard:legs",
+    "SetId": "cinder-vanguard",
+    "Slot": "legs",
+    "DisplayName": "Ashtread",
+    "Description": "Move 2% faster.",
+    "EffectsJson": "{\"moveSpeed\":0.02}"
+  },
+  {
+    "Name": "cinder-vanguard_classItem",
+    "Id": "cinder-vanguard:classItem",
+    "SetId": "cinder-vanguard",
+    "Slot": "classItem",
+    "DisplayName": "Cinder Mark",
+    "Description": "Abilities recharge 4% faster.",
+    "EffectsJson": "{\"abilityRecharge\":0.04}"
+  },
+  {
+    "Name": "frostwrought-aegis_helmet",
+    "Id": "frostwrought-aegis:helmet",
+    "SetId": "frostwrought-aegis",
+    "Slot": "helmet",
+    "DisplayName": "Rime Focus",
+    "Description": "Abilities recharge 3% faster.",
+    "EffectsJson": "{\"abilityRecharge\":0.03}"
+  },
+  {
+    "Name": "frostwrought-aegis_gauntlets",
+    "Id": "frostwrought-aegis:gauntlets",
+    "SetId": "frostwrought-aegis",
+    "Slot": "gauntlets",
+    "DisplayName": "Frostbite Grip",
+    "Description": "Weapon damage +2%.",
+    "EffectsJson": "{\"weaponDamage\":0.02}"
+  },
+  {
+    "Name": "frostwrought-aegis_chest",
+    "Id": "frostwrought-aegis:chest",
+    "SetId": "frostwrought-aegis",
+    "Slot": "chest",
+    "DisplayName": "Glacier Carapace",
+    "Description": "Incoming damage reduced by 6%.",
+    "EffectsJson": "{\"resist\":0.06}"
+  },
+  {
+    "Name": "frostwrought-aegis_legs",
+    "Id": "frostwrought-aegis:legs",
+    "SetId": "frostwrought-aegis",
+    "Slot": "legs",
+    "DisplayName": "Iceglide",
+    "Description": "Slides carry 12% further.",
+    "EffectsJson": "{\"slideBoost\":0.12}"
+  },
+  {
+    "Name": "frostwrought-aegis_classItem",
+    "Id": "frostwrought-aegis:classItem",
+    "SetId": "frostwrought-aegis",
+    "Slot": "classItem",
+    "DisplayName": "Aegis Banner",
+    "Description": "Resist 3% and regenerate hull.",
+    "EffectsJson": "{\"resist\":0.03,\"regen\":0.4}"
+  },
+  {
+    "Name": "scrapborn-raider_helmet",
+    "Id": "scrapborn-raider:helmet",
+    "SetId": "scrapborn-raider",
+    "Slot": "helmet",
+    "DisplayName": "Scavenger Scope",
+    "Description": "Abilities recharge 4% faster.",
+    "EffectsJson": "{\"abilityRecharge\":0.04}"
+  },
+  {
+    "Name": "scrapborn-raider_gauntlets",
+    "Id": "scrapborn-raider:gauntlets",
+    "SetId": "scrapborn-raider",
+    "Slot": "gauntlets",
+    "DisplayName": "Salvage Grip",
+    "Description": "Weapon damage +4%.",
+    "EffectsJson": "{\"weaponDamage\":0.04}"
+  },
+  {
+    "Name": "scrapborn-raider_chest",
+    "Id": "scrapborn-raider:chest",
+    "SetId": "scrapborn-raider",
+    "Slot": "chest",
+    "DisplayName": "Patchwork Plate",
+    "Description": "Incoming damage reduced by 3%.",
+    "EffectsJson": "{\"resist\":0.03}"
+  },
+  {
+    "Name": "scrapborn-raider_legs",
+    "Id": "scrapborn-raider:legs",
+    "SetId": "scrapborn-raider",
+    "Slot": "legs",
+    "DisplayName": "Roadburner",
+    "Description": "Move 4% faster.",
+    "EffectsJson": "{\"moveSpeed\":0.04}"
+  },
+  {
+    "Name": "scrapborn-raider_classItem",
+    "Id": "scrapborn-raider:classItem",
+    "SetId": "scrapborn-raider",
+    "Slot": "classItem",
+    "DisplayName": "Dust Scarf",
+    "Description": "Slides carry 10% further.",
+    "EffectsJson": "{\"slideBoost\":0.1}"
+  },
+  {
+    "Name": "dune-seeker_helmet",
+    "Id": "dune-seeker:helmet",
+    "SetId": "dune-seeker",
+    "Slot": "helmet",
+    "DisplayName": "Mirage Lens",
+    "Description": "Abilities recharge 6% faster.",
+    "EffectsJson": "{\"abilityRecharge\":0.06}"
+  },
+  {
+    "Name": "dune-seeker_gauntlets",
+    "Id": "dune-seeker:gauntlets",
+    "SetId": "dune-seeker",
+    "Slot": "gauntlets",
+    "DisplayName": "Sunsplit Grip",
+    "Description": "Weapon damage +3%.",
+    "EffectsJson": "{\"weaponDamage\":0.03}"
+  },
+  {
+    "Name": "dune-seeker_chest",
+    "Id": "dune-seeker:chest",
+    "SetId": "dune-seeker",
+    "Slot": "chest",
+    "DisplayName": "Heatveil",
+    "Description": "Incoming damage reduced by 2%.",
+    "EffectsJson": "{\"resist\":0.02}"
+  },
+  {
+    "Name": "dune-seeker_legs",
+    "Id": "dune-seeker:legs",
+    "SetId": "dune-seeker",
+    "Slot": "legs",
+    "DisplayName": "Sandstride",
+    "Description": "Move 5% faster.",
+    "EffectsJson": "{\"moveSpeed\":0.05}"
+  },
+  {
+    "Name": "dune-seeker_classItem",
+    "Id": "dune-seeker:classItem",
+    "SetId": "dune-seeker",
+    "Slot": "classItem",
+    "DisplayName": "Seeker Mantle",
+    "Description": "Slides 10% further, abilities 2% faster.",
+    "EffectsJson": "{\"slideBoost\":0.1,\"abilityRecharge\":0.02}"
+  }
+]

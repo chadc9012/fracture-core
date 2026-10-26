@@ -270,6 +270,12 @@ void AWFVehicle::Exit(const FInputActionValue& Value)
 	Dismount(0);
 }
 
+double AWFVehicle::VehGearPower() const
+{
+	const UWFProgressionSubsystem* P = GetGameInstance()->GetSubsystem<UWFProgressionSubsystem>();
+	return P ? P->GetGearPower(TEXT(""), TEXT(""), true) : 1.0;
+}
+
 void AWFVehicle::TakeEnemyFire(double HpLost)
 {
 	Condition = wf::vehicle::ImpactVehicle(Condition, HpLost + 2);
@@ -458,14 +464,15 @@ void AWFVehicle::TickWeapons(double Dt)
 			const FOrdnanceMount& Sec = *Armament.Secondary;
 			const FOrdnanceDef* D = OrdnanceById(Sec.Ordnance);
 			const FAim A = AimFor(Sec.Mount, Pose, CamYaw, CamPitch, 0.25, Muzzle, 0);
-			if (D && Launch(*D, Muzzle, A.Yaw + (FMath::FRand() - 0.5) * 0.02, A.Pitch + (FMath::FRand() - 0.5) * 0.02, Sec.Damage * WFWeapons::BaseBulletDamage, 2))
+			if (D && Launch(*D, Muzzle, A.Yaw + (FMath::FRand() - 0.5) * 0.02, A.Pitch + (FMath::FRand() - 0.5) * 0.02, Sec.Damage * WFWeapons::BaseBulletDamage * VehGearPower(), 2))
 				DrawDebugSphere(GetWorld(), VehToUe(Muzzle), 60.f, 8, FColor(255, 180, 80), false, 0.08f);
 			continue;
 		}
 		const FGun& G = Shot.Slot == "PRIMARY" ? *Armament.Primary : *Armament.SecondaryGun;
 		const FAim A = AimFor(G.Mount, Pose, CamYaw, CamPitch, G.PitchAssist, Muzzle, G.Converge);
 		const double Jy = (FMath::FRand() - 0.5) * 2 * G.Spread, Jp = (FMath::FRand() - 0.5) * 2 * G.Spread;
-		const double Dmg = G.Damage * WFWeapons::BaseBulletDamage;
+		// Scene.tsx: g.damage x gear power (the vehicle slot) x the driver's armor weapon damage
+		const double Dmg = G.Damage * WFWeapons::BaseBulletDamage * VehGearPower() * (1 + (Gunner.IsValid() ? Gunner->GetArmorEffects().WeaponDamage : 0.0));
 		if (G.Shell) { Launch(CannonShell(G), Muzzle, A.Yaw + Jy, A.Pitch + Jp, Dmg, G.Knock); continue; } // a cannon shell is ordnance
 		if (Heat.bOverheated) continue; // fireBullet refuses while venting
 		if (AddHeat(Heat, BulletHeat(G.Heat))) Notify(TEXT("WEAPON OVERHEAT - venting"), FLinearColor(1.f, 0.3f, 0.25f));

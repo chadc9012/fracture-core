@@ -300,6 +300,19 @@ struct FArmorSetsRow : public FTableRowBase
 	UPROPERTY(EditAnywhere, BlueprintReadWrite) int32 VendorTier = 0;
 };
 
+/** ArmorPerks: 180 rows, exported from the web build. */
+USTRUCT(BlueprintType)
+struct FArmorPerksRow : public FTableRowBase
+{
+	GENERATED_BODY()
+	UPROPERTY(EditAnywhere, BlueprintReadWrite) FString Id;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite) FString SetId;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite) FString Slot;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite) FString DisplayName;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite) FString Description;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite) FString EffectsJson;
+};
+
 /** Materials: 35 rows, exported from the web build. */
 USTRUCT(BlueprintType)
 struct FMaterialsRow : public FTableRowBase

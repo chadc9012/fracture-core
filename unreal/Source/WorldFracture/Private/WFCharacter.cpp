@@ -607,6 +607,9 @@ void AWFCharacter::EternalCovenant()
 void AWFCharacter::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
+	ArmorRefresh -= DeltaSeconds;
+	if (ArmorRefresh <= 0)
+		if (const UWFProgressionSubsystem* Progression = GetGameInstance()->GetSubsystem<UWFProgressionSubsystem>()) { ArmorFx = Progression->GetArmorEffects(); ArmorRefresh = 0.5; }
 	TickAbilities(DeltaSeconds); // cooldowns, energy, turrets and zones keep running while driving
 	TickRounds(DeltaSeconds);    // launcher rounds already in the air keep flying
 	if (bInVehicle) return; // carried by a vehicle: hidden, not simulating
@@ -614,11 +617,12 @@ void AWFCharacter::Tick(float DeltaSeconds)
 	TickDragon(DeltaSeconds);
 	if (bRiding) TickRide(DeltaSeconds);
 	else // Scene.tsx walk speed: Rift Dash x1.4, Siege Mode x0.8 (operator-abilities.ts siegeMoveMult)
-		GetCharacterMovement()->MaxWalkSpeed = static_cast<float>((bSprinting ? SprintSpeed : WalkSpeed) * HazardSpeedMult * (Live.DashTime > 0 ? 1.4 : 1.0) * wf::ability::SiegeMoveMult(Live.SiegeTime));
+		GetCharacterMovement()->MaxWalkSpeed = static_cast<float>((bSprinting ? SprintSpeed : WalkSpeed) * (1 + ArmorFx.MoveSpeed) * HazardSpeedMult * (Live.DashTime > 0 ? 1.4 : 1.0) * wf::ability::SiegeMoveMult(Live.SiegeTime));
 
 	// health.ts stepHealth: after RegenDelay seconds without damage, recover RegenRate per second.
 	SinceDamage += DeltaSeconds;
-	if (Health > 0 && Health < MaxHealth && SinceDamage >= RegenDelay) Health = FMath::Min(MaxHealth, Health + RegenRate * DeltaSeconds);
+	// armor regen (Rootbound Recovery, Resolve...) runs all the time, the base rate after the delay (stepHealth bonusRate)
+	if (Health > 0 && Health < MaxHealth) Health = FMath::Min(MaxHealth, Health + (ArmorFx.Regen + (SinceDamage >= RegenDelay ? RegenRate : 0.0)) * DeltaSeconds);
 	if (GetActorLocation().Z < -50000.f) Respawn(); // fell out of the world
 }
 
@@ -700,7 +704,7 @@ void AWFCharacter::FireRound()
 		if (bHit)
 			if (AWFEnemy* Enemy = Cast<AWFEnemy>(Hit.GetActor()))
 			{
-				Enemy->TakeHit(W->Damage * WFWeapons::BaseBulletDamage * SimMods.VerbDamageMult, this, W->Element); // Rage / Siege (syncSimFromLive)
+				Enemy->TakeHit(W->Damage * GearPowerFor(*W) * (1 + ArmorFx.WeaponDamage) * WFWeapons::BaseBulletDamage * SimMods.VerbDamageMult, this, W->Element); // gear power, armor, Rage / Siege
 				// sim.ts: a bullet shoves along its flight, velocity (130 m/s) x 0.06 x the weapon's knock per pellet
 				double Kx = 0, Kz = 0;
 				wf::arms::BulletKnock(Kx, Kz, Dir.X * 130, Dir.Y * 130, W->Knock / W->Pellets);
@@ -723,6 +727,12 @@ namespace
 {
 	/** the Operator's facing as rules yaw (atan2 convention on Unreal X/Y) */
 	double ArmsYaw(const FRotator& R) { return UE_DOUBLE_HALF_PI - FMath::DegreesToRadians(static_cast<double>(R.Yaw)); }
+}
+
+double AWFCharacter::GearPowerFor(const FWFWeaponStats& W) const
+{
+	const UWFProgressionSubsystem* Progression = GetGameInstance()->GetSubsystem<UWFProgressionSubsystem>();
+	return Progression ? Progression->GetGearPower(W.Id, W.Kind, false) : 1.0;
 }
 
 void AWFCharacter::SwingBlade(const FWFWeaponStats& W, int32 Step)
@@ -790,7 +800,7 @@ void AWFCharacter::FireLauncherRound(const FWFWeaponStats& W)
 		const FVector P = It->GetActorLocation() / CmPerMeter;
 		Cands.push_back({P.X, P.Y, !It->IsDead() && !It->IsDecoy()});
 	}
-	wf::arms::FLaunch Shot = wf::arms::FireLauncher(*L, From, Yaw, Pitch, W.Damage * WFWeapons::BaseBulletDamage * SimMods.VerbDamageMult, Cands);
+	wf::arms::FLaunch Shot = wf::arms::FireLauncher(*L, From, Yaw, Pitch, W.Damage * GearPowerFor(W) * (1 + ArmorFx.WeaponDamage) * WFWeapons::BaseBulletDamage * SimMods.VerbDamageMult, Cands);
 	Shot.Round.Knock = W.Knock;
 	FFootRound R;
 	R.Round = Shot.Round;
@@ -871,7 +881,8 @@ void AWFCharacter::ApplyHit(double Damage, const FString& Source)
 	if (IframesLeft > 0 || BarrierLeft > 0) return; // sim.ts hurtPlayer: Rift Dash i-frames and Bastion barriers absorb the hit
 	Damage *= SimMods.VerbIncomingMult; // Overshield (syncSimFromLive)
 	if (GetWorld()->GetTimeSeconds() < DeflectUntil) Damage *= 0.5; // hurtPlayer deflectUntil (Sun-Cutter)
-	Damage *= 1 - wf::dragon::CappedResist(0, DragonhideResist); // Dragonhide (armor resistance not modelled yet)
+	Damage *= 1 - wf::dragon::CappedResist(0, DragonhideResist); // Dragonhide
+	Damage *= 1 - FMath::Min(wf::armor::MaxResist, ArmorFx.Resist); // the worn armor (hurtPlayer armorResist, capped at 50%)
 	Health = FMath::Max(0.0, Health - Damage);
 	SinceDamage = 0;
 	LastDamageSource = Source;
@@ -1010,7 +1021,7 @@ void AWFCharacter::TickAbilities(float DeltaSeconds)
 	const UWFProgressionSubsystem* Progression = GetGameInstance()->GetSubsystem<UWFProgressionSubsystem>();
 	if (Progression) Live = wf::ability::RebindLiveBuild(Live, SavedBuild(), Progression->Get().AbilityBranches); // a no-op unless the build changed
 	if (Dragon) Live.Energy = Dragon->EnergyPool();
-	wf::ability::TickLiveBuild(Live, DeltaSeconds, 0); // armor INTELLECT recharge is not modelled yet
+	wf::ability::TickLiveBuild(Live, DeltaSeconds, ArmorFx.AbilityRecharge); // armor INTELLECT: faster cooldowns and energy
 	if (Dragon) Dragon->EnergyPool() = Live.Energy;
 	SimMods = wf::ability::SyncSimFromLive(Live);
 	IframesLeft = FMath::Max(0.0, IframesLeft - DeltaSeconds);

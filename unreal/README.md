@@ -36,6 +36,11 @@ unreal/
 The default level is the engine's template map; the game mode adds a floor and lights if a level has none.
 
 ## What runs
+- **Armor in combat:** worn armor works as in the web build (armor-attributes.ts loadoutEffects): 2- and 4-piece set
+  bonuses scaled by level, every set piece's perk, INTELLECT / MOBILITY / DEFENSE with soft caps and trade-offs, and the
+  mixed-gear flexibility bonus. Resistance (capped at 50%) cuts incoming damage, regen heals all the time, weapon damage
+  raises every gun, launcher and vehicle gun, move speed raises walking and sprinting, and INTELLECT speeds ability
+  cooldowns and energy. The equipped weapon's power scales its damage (up to x1.7).
 - **Heavy arms:** the mouse wheel reaches the Fracture Blade and the four launchers after the five guns. The blade swings
   a 1-2-3 combo through a 150-degree arc (6 m, the finisher 8 m and x1.8), shoves and staggers; an owned monoblade
   (`EquipBlade vectal|aegis-broadsword|sun-cutter|none`) adds damage, reach, the Aegis finisher shockwave or the
@@ -157,13 +162,14 @@ cmake -S . -B build -G Ninja && cmake --build build && ctest --test-dir build --
 | CityCoreTest | heat.ts, stealth.ts, chase-ai.ts, quest-signals.ts, sim.ts turret layout | 4,800 quest snapshots, 13 turrets, 19,883 checks |
 | PerceptionCoreTest | enemy-perception.ts, enemy-tuning.ts, line-of-sight.ts enemyHitChance | 300 awareness tracks (18,000 steps), 24,004 checks |
 | ArmsCoreTest | melee-arc.ts, foundries.ts blades / swingStats / inShockwave, launchers.ts via ordnance.ts fireRound | 3 blades, 4 launchers, 1,500 launches, 8,309 checks |
+| ArmorCoreTest | armor-sets.ts, armor-perks.ts, armor-attributes.ts, inventory.ts weaponDamageMultiplier | 36 sets, 1,500 loadouts, 10,510 checks |
 | OperatorCoreTest | operator-pockets.ts switchOperator, xp.ts grantXP, nex.ts spendNex | 6,400 operations (846 switches), 25,600 checks |
 
 The golden files (`Plugins/WorldFractureCore/Tests/<name>_golden.txt`) are **generated, not committed**: together they run to ~60 MB,
 which broke the Lovable preview build. Record all of them from the repo root before configuring the tests (and again after changing
 the web build's rules):
 
-    node unreal/tools/gen-goldens.mjs            # all eighteen
+    node unreal/tools/gen-goldens.mjs            # all nineteen
     node unreal/tools/gen-goldens.mjs race shop  # just these
 
 `export-datatables` (the DataTables, which are committed) still runs on its own:
@@ -173,9 +179,9 @@ the web build's rules):
 The encounter, Dragonite-cast and ability recorders route their world calls to recording shims (`build-golden.mjs`); `gen-goldens.mjs` handles that.
 
 ## Not ported yet
-Boss models and attack effects (zones are debug circles, decoys are stand-ins), mid-mission saves, ability mastery XP and armor ability-recharge,
+Boss models and attack effects (zones are debug circles, decoys are stand-ins), mid-mission saves, ability mastery XP, slides (the armor slide bonus),
 region kinds for abilities (the map counts as a war zone),
-armor effects on combat, real cover behind obstacles, flanking, grenades, dives and squad roles (enemy-cover.ts, enemy-tactics.ts, enemy-evasion.ts, enemy-intelligence.ts), gear power and armor damage bonuses on vehicle guns, earning monoblades (wasteland-activities.ts gold medals), on-foot weapon heat, the featured-activity rotation and
+real cover behind obstacles, flanking, grenades, dives and squad roles (enemy-cover.ts, enemy-tactics.ts, enemy-evasion.ts, enemy-intelligence.ts), earning monoblades (wasteland-activities.ts gold medals), on-foot weapon heat, the featured-activity rotation and
 activity shader drops,
 diving (the thalassia-dive survive timer), the Neon City police response itself (the web build has only the heat meter and its labels; chase-ai.ts pursuit helpers are unused there), the Operations Hub preview marketplace (its wallet is not saved in the web build either), home interiors, cloud save merge, the world itself (regions, Neon City, Thalassia). Their data is already in
 `DataTables/`.

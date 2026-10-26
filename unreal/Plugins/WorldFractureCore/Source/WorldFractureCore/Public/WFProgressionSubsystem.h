@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "Core/WFProgression.h"
+#include "Core/WFArmorCore.h"
 #include "Core/WFMissionRewardCore.h"
 #include "Core/WFRewardCore.h"
 #include "Core/WFVehicleCore.h"
@@ -137,6 +138,10 @@ public:
 	wf::FProgression& Mutable() { return State; }
 	void NotifyChanged() { OnProgressionChanged.Broadcast(); }
 	const wf::reward::FCatalog& GetRewardCatalog() const { return Catalog; }
+	/** what the worn armor does (armor-attributes.ts loadoutEffects: set bonuses, perks, attributes, flexibility) */
+	wf::armor::FEffects GetArmorEffects() const { return wf::armor::LoadoutEffects(ArmorCatalog, State.Inventory, State.EquippedGear); }
+	/** the equipped item's gear power for a weapon (inventory.ts weaponDamageMultiplier; vehicle guns use the vehicle slot) */
+	double GetGearPower(const FString& WeaponId, const FString& Kind, bool bInVehicle) const { return wf::armor::GearPower(State.Inventory, State.EquippedGear, TCHAR_TO_UTF8(*WeaponId), TCHAR_TO_UTF8(*Kind), bInVehicle); }
 
 	static const FString SlotName;
 
@@ -147,6 +152,7 @@ private:
 	wf::FGarage Garage;
 	wf::reward::FCatalog Catalog;
 	wf::missionreward::FCatalog MissionCatalog;
+	wf::armor::FCatalog ArmorCatalog;
 	void AfterMissionPayout(size_t InventoryBefore);
 	wf::reward::FSimTally Tally;
 	int32 PlayerDeaths = 0;

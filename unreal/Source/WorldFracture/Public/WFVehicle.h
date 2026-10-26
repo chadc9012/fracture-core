@@ -63,6 +63,8 @@ public:
 	void TakeEnemyFire(double HpLost);
 	/** flares are burning: incoming enemy fire misses (vehicle-gadgets.ts spoofed) */
 	bool IsSpoofed(double Now) const;
+	/** the equipped vehicle item's gear power (inventory.ts weaponDamageMultiplier) */
+	double VehGearPower() const;
 	const FWFVehicleDef& GetDef() const { return Def; }
 	const wf::vehicle::FState& GetState() const { return State; }
 	const wf::vehicle::FCondition& GetCondition() const { return Condition; }
