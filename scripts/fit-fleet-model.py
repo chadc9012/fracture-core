@@ -16,7 +16,7 @@ is none of that: tiny or huge, any orientation, wheels mixed in with the body, d
   6. decimates the body to about --tris triangles and shrinks every texture to --tex pixels, then writes the GLB.
 
 usage: blender -b -P scripts/fit-fleet-model.py -- SRC.glb OUT.glb --length=4.6 --nose=+y --paint=PAINT --glass=GLASS
-       --wheel=WHEEL,TYRE [--drop=phong5] [--dropobj=Object_12,...] [--tailobj=...] [--headobj=...] [--flatpaint=#rrggbb] [--tris=60000] [--tex=1024] [--wheeltris=400]
+       --wheel=WHEEL,TYRE [--drop=phong5] [--dropobj=Object_12,...] [--tailobj=...] [--headobj=...] [--wheelgeo=0.34] [--flatpaint=#rrggbb] [--tris=60000] [--tex=1024] [--wheeltris=400]
 """
 import math
 import sys
@@ -138,6 +138,33 @@ for o in list(meshes):
     bpy.ops.object.mode_set(mode="EDIT"); bpy.ops.mesh.separate(type="SELECTED"); bpy.ops.object.mode_set(mode="OBJECT")
     new = [x for x in bpy.context.selected_objects if x is not o]
     wheel_parts += new
+# --wheelgeo: the wheels are fused into the body meshes (no wheel material): split everything into loose parts and take the
+# round parts low in each corner (square in side view, narrow across, under axle height x 2)
+if "wheelgeo" in opts:
+    R0 = float(opts["wheelgeo"]) if opts["wheelgeo"] not in ("", "1") else 0.34
+    for o in list(meshes):
+        select([o]); bpy.ops.mesh.separate(type="LOOSE")
+    meshes = [o for o in scene.objects if o.type == "MESH"]
+    box = {o: bounds([o]) for o in meshes}
+    # pass 1: tyres and rims, wheel-sized and round in side view, one per corner (the largest)
+    tyre = {}
+    for o, (a_, b_) in box.items():
+        sz = b_ - a_; cc = (a_ + b_) / 2
+        if abs(cc.y) < 0.5 or not (0.08 < sz.x < 0.45):
+            continue
+        if not (1.6 * R0 < sz.z < 2.5 * R0 and 0.8 < sz.y / sz.z < 1.25):
+            continue
+        key = ("F" if cc.y < 0 else "R") + ("L" if cc.x < 0 else "R")
+        if key not in tyre or sz.z > (tyre[key][2] - tyre[key][1]).z:
+            tyre[key] = (o, a_, b_)
+    # pass 2: everything that fits inside a tyre's own box (rim, spokes, disc, caliper, nuts)
+    for key, (t, ta, tb) in tyre.items():
+        pad = 0.02
+        for o, (a_, b_) in box.items():
+            if o not in meshes:
+                continue
+            if o is t or all(ta[i] - pad <= a_[i] and b_[i] <= tb[i] + pad for i in range(3)):
+                wheel_parts.append(o); meshes.remove(o)
 corners = {"FL": [], "FR": [], "RL": [], "RR": []}
 for o in wheel_parts:
     a, b = bounds([o]); cc = (a + b) / 2

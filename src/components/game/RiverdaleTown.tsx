@@ -1,8 +1,10 @@
-import { useEffect, useMemo } from "react";
+import { Suspense, useEffect, useMemo } from "react";
+import { useGLTF } from "@react-three/drei";
+import { prepareWorldAsset } from "@/game/asset-render-quality";
 import * as THREE from "three";
 import { Text } from "./SafeText";
 import type { PlayerProgression } from "@/game/progression";
-import { LAMPS, RIVERDALE, SIGN, TOWER, boardwalkBoxes, boardwalkDeck, boardwalkFrame, townBoxes, townLevel, townWalls } from "@/game/riverdale";
+import { HALL_URL, LAMPS, RIVERDALE, RIVERDALE_HALL, SIGN, TOWER, boardwalkBoxes, boardwalkDeck, boardwalkFrame, townBoxes, townLevel, townWalls } from "@/game/riverdale";
 import { setWalls, clearWalls } from "@/game/walls";
 import { registerDeck } from "@/game/district-decks";
 import { mergeByMat, ResidentialHomes } from "./ResidentialHomes";
@@ -31,6 +33,7 @@ export function RiverdaleTown({ progression }: { progression?: PlayerProgression
     <group name="riverdale">
       {meshes.map((m) => <primitive key={m.name} object={m} />)}
       <ResidentialHomes city="riverdale" />
+      <Suspense fallback={null}><CornerBlock level={level} /></Suspense>
       {progression && <ResidenceGarages city="riverdale" progression={{ nexLedger: progression.nexLedger ?? {}, housing: progression.housing, fleet: progression.fleet }} />}
       {/* the welcome sign's lettering, on the face toward the road in (west) */}
       <group position={[RIVERDALE.x + SIGN.x - 0.1, level + 2.3, RIVERDALE.z + SIGN.z]} rotation={[0, -Math.PI / 2, 0]}>
@@ -41,4 +44,12 @@ export function RiverdaleTown({ progression }: { progression?: PlayerProgression
       <DistrictLight range={90} position={[RIVERDALE.x, level + TOWER.height - 1.2, RIVERDALE.z]} color="#fff1cc" intensity={5} distance={14} decay={1.6} castShadow={false} />
     </group>
   );
+}
+
+/** the Paris-style corner block on the square (world.ts RIVERDALE_HALL): scaled to its footprint, both facades toward the square */
+function CornerBlock({ level }: { level: number }) {
+  const { scene } = useGLTF(HALL_URL);
+  const obj = useMemo(() => { const o = scene.clone(true); prepareWorldAsset(o, { castShadow: true, receiveShadow: true, anisotropy: 8 }); return o; }, [scene]);
+  const H = RIVERDALE_HALL;
+  return <primitive object={obj} position={[H.x, level - 0.2, H.z]} rotation={[0, H.yaw, 0]} />;
 }

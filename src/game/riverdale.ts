@@ -6,13 +6,14 @@
  * Pure layout and geometry data, no three.js: RiverdaleTown.tsx merges `townBoxes` (residences.ts Box, in the town's
  * frame: origin at the square's centre on the graded ground, +z south) into a few meshes, `townWalls` go to the wall
  * collider and the boardwalk is a deck you walk on. Tested in riverdale.test.ts. */
-import { RIVERDALE } from "./world";
+import { RIVERDALE, RIVERDALE_HALL } from "./world";
 import { riverdaleGroundLevel, waterNetwork } from "./terrain";
 import type { Box } from "./residences";
 import type { Wall } from "./walls";
 import type { Deck } from "./district-decks";
 
-export { RIVERDALE };
+export { RIVERDALE, RIVERDALE_HALL };
+export const HALL_URL = "/models/buildings/riverdale-corner.glb";
 /** the graded ground the town stands on */
 export const townLevel = () => riverdaleGroundLevel();
 
@@ -115,6 +116,9 @@ export function townWalls(): Wall[] {
   seg(SIGN.x, SIGN.z - 2.6, SIGN.x, SIGN.z + 2.6, 0.2, L + 3);
   const b = boardwalk(), yaw = Math.atan2(b.dirX, b.dirZ), ox = Math.cos(yaw) * (BOARDWALK_W / 2), oz = -Math.sin(yaw) * (BOARDWALK_W / 2);
   for (const s of [-1, 1]) seg(b.dirX * (b.start + 3) + s * ox, b.dirZ * (b.start + 3) + s * oz, b.dirX * b.end + s * ox, b.dirZ * b.end + s * oz, 0.1, b.y + 1);
+  // the corner block: a solid footprint (it has no interior)
+  { const H = RIVERDALE_HALL, x0 = H.x - H.hx, x1 = H.x + H.hx, z0 = H.z - H.hz, z1 = H.z + H.hz, top = L + H.height;
+    for (const [ax, az, bx, bz] of [[x0, z0, x1, z0], [x1, z0, x1, z1], [x1, z1, x0, z1], [x0, z1, x0, z0]] as const) out.push({ ax, az, bx, bz, half: 0.3, base: L - 1, top }); }
   // the jetty's end rail
   seg(b.dirX * b.end - ox, b.dirZ * b.end - oz, b.dirX * b.end + ox, b.dirZ * b.end + oz, 0.1, b.y + 1);
   return out;

@@ -9,7 +9,7 @@
  * Placement: Nexus homes form a street just south of the city (outside the districts, off the supply roads, on flat
  * dry ground and clear of every other region); Neon homes take outer blocks of the tower grid (neon-layout.ts), so
  * they never meet a tower, race line, rail, shop or door. */
-import { NEXUS_SUBURB, REGIONS, RIVERDALE } from "./world";
+import { NEXUS_SUBURB, REGIONS, RIVERDALE, RIVERDALE_HALL } from "./world";
 import { heightAt, neonPlateauLevel, slopeAt, WATER_LEVEL } from "./terrain";
 import { distanceToRoad, LANE_HALF_WIDTH } from "./lanes";
 import { CITY_OUTER, NEXUS } from "./nexus-districts";
@@ -58,7 +58,9 @@ export const garageWidth = (bays: number) => bays * BAY_W + WALL * 2;
 
 const NEXUS_STYLES: HomeStyle[] = ["suburban", "townhouse", "duplex", "courtyard", "suburban", "townhouse", "apartment", "condo"];
 const NEON_STYLES: HomeStyle[] = ["apartment", "loft", "condo", "villa"];
-const RIVERDALE_STYLES: HomeStyle[] = ["suburban", "courtyard", "townhouse", "duplex", "suburban", "townhouse", "duplex", "courtyard"];
+const RIVERDALE_STYLES: HomeStyle[] = ["suburban", "courtyard", "townhouse", "duplex", "suburban", "townhouse", "courtyard"];
+/** the corner block stands on the north-east lot (world.ts RIVERDALE_HALL): no home and no garage there */
+const inHall = (x: number, z: number, m = 0) => Math.abs(x - RIVERDALE_HALL.x) < RIVERDALE_HALL.hx + m && Math.abs(z - RIVERDALE_HALL.z) < RIVERDALE_HALL.hz + m;
 
 /** footprint half-extents in world axes once turned by `rot` (porch included on the door side) */
 export function footprint(r: Pick<Residence, "style" | "rot">) {
@@ -98,7 +100,7 @@ function riverdaleLots(): { x: number; z: number; rot: number }[] {
   const out: { x: number; z: number; d: number; rot: number }[] = [];
   for (let j = -2; j <= 2; j++) for (let i = -2; i <= 2; i++) {
     const x = RIVERDALE.x + i * NEXUS_PITCH, z = RIVERDALE.z + j * NEXUS_PITCH, d = Math.hypot(x - RIVERDALE.x, z - RIVERDALE.z);
-    if (d + 13 > RIVERDALE.r || d < RIVERDALE.square + 12) continue;
+    if (d + 13 > RIVERDALE.r || d < RIVERDALE.square + 12 || inHall(x, z)) continue;
     const h = 10.5, pts = [[x, z], [x - h, z - h], [x + h, z - h], [x - h, z + h], [x + h, z + h], [x, z - h - PORCH], [x, z + h + PORCH]] as const;
     const hs = pts.map(([px, pz]) => heightAt(px, pz));
     if (Math.min(...hs) < WATER_LEVEL + 1 || Math.max(...hs) - Math.min(...hs) > 1.2 || slopeAt(x, z) > 0.2) continue;
@@ -175,6 +177,7 @@ function placeGarages(homes: Residence[]) {
         if (pts.some(([x, z]) => distanceToRoad(x, z) < LANE_HALF_WIDTH + 2)) continue;
         if ((h.city === "nexus" ? others : notVerdant).some((o) => Math.hypot(r.x - o.x, r.z - o.z) < o.radius + 15)) continue;
         if (h.city === "nexus" && Math.hypot(r.x - NEXUS.x, r.z - NEXUS.z) < CITY_OUTER + 8) continue;
+        if (h.city === "riverdale" && (Math.abs(r.x - RIVERDALE_HALL.x) < RIVERDALE_HALL.hx + r.hx + 1 && Math.abs(r.z - RIVERDALE_HALL.z) < RIVERDALE_HALL.hz + r.hz + 1)) continue;
         if (h.city === "riverdale" && (Math.hypot(r.x - RIVERDALE.x, r.z - RIVERDALE.z) < RIVERDALE.square + 2 || Math.hypot(r.x - RIVERDALE.x, r.z - RIVERDALE.z) + Math.max(r.hx, r.hz) > RIVERDALE.r + 4)) continue;
         g.floor = Math.max(...hs) + 0.12; g.base = Math.min(...hs) - 0.6;
       } else {

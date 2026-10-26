@@ -354,3 +354,6 @@ export const NEXUS_SUBURB = { x: NEON_NEXUS.x, z: NEON_NEXUS.z + 155, r: 62, fad
  * (trail, spawn clearing, crash site), its landmarks, terminals and the Thalassia pier. */
 const VERDANT_REGION = REGIONS.find((r) => r.id === "veridan")!;
 export const RIVERDALE = { x: VERDANT_REGION.x + 230, z: VERDANT_REGION.z - 68, r: 56, fade: 26, square: 14 } as const;
+/** Riverdale's landmark, the old Paris-style corner block on the square's north-east corner lot (a game-grade scanned model the
+ * owner supplied: public/models/buildings/riverdale-corner.glb). Both finished facades face the square. hx/hz: footprint half-size. */
+export const RIVERDALE_HALL = { x: RIVERDALE.x + 27, z: RIVERDALE.z - 27, yaw: -Math.PI / 2, hx: 9.4, hz: 10.3, height: 20 } as const;
