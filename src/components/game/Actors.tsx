@@ -10,6 +10,7 @@ import { useFrame } from "@react-three/fiber";
 import { useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 import { isStaggeredNow, reactionBones, recoilAt } from "@/game/enemy-reactions";
+import { swingBones } from "@/game/enemy-melee";
 import { diveBones } from "@/game/enemy-evasion";
 
 
@@ -259,8 +260,9 @@ export function WarMachines({ sim }: { sim: WorldSim }) {
         drive.current.speed += (Math.min(v, 12) - drive.current.speed) * Math.min(1, dt * 8);
         drive.current.aiming = (m.aim ?? 0) > 0;
         const nowD = performance.now() / 1000, ev = m.evade && m.evade.dive && nowD < m.evade.until ? m.evade : null;
-        // diving out of a blast (enemy-evasion.ts) takes over the limbs; otherwise any hit reaction plays over the clip
-        drive.current.hit = ev ? diveBones((nowD - ev.start) / (ev.until - ev.start)).bones : reactionBones(m.react, nowD, m.rot);
+        // diving out of a blast (enemy-evasion.ts) takes over the limbs, then a melee swing (enemy-melee.ts); otherwise any hit reaction plays over the clip
+        const sw = !ev && m.swing ? swingBones(m.swing, nowD) : null;
+        drive.current.hit = ev ? diveBones((nowD - ev.start) / (ev.until - ev.start)).bones : sw ? sw.bones : reactionBones(m.react, nowD, m.rot);
         prev.x = m.x; prev.z = m.z;
       }
       const stride = strides[i];
@@ -283,7 +285,9 @@ export function WarMachines({ sim }: { sim: WorldSim }) {
       // a dive drops the body low and pitches it toward the way it is going
       const ev = m.evade && m.evade.dive && nowS < m.evade.until ? m.evade : null;
       const dip = ev ? diveBones((nowS - ev.start) / (ev.until - ev.start)).dip : 0;
-      node.position.set(m.x + rx * back, m.y - 2.2 * m.scale + Math.abs(Math.sin(gait)) * 0.06 * bob - dip * 0.45 * enemyBodyScale(m.scale), m.z + rz * back);
+      // a melee strike steps the body in along its facing (enemy-melee.ts)
+      const lunge = m.swing ? (swingBones(m.swing, nowS)?.lunge ?? 0) * enemyBodyScale(m.scale) : 0;
+      node.position.set(m.x + rx * back + Math.sin(m.rot) * lunge, m.y - 2.2 * m.scale + Math.abs(Math.sin(gait)) * 0.06 * bob - dip * 0.45 * enemyBodyScale(m.scale), m.z + rz * back + Math.cos(m.rot) * lunge);
       // lean: pitch away from the hit in the enemy's own frame
       const c = Math.cos(m.rot), sn = Math.sin(m.rot), fwd = rx * sn + rz * c, side = rx * c - rz * sn, lean = kick * (staggered ? 0.32 : 0.1);
       const evl = ev ? Math.hypot(ev.vx, ev.vz) || 1 : 1, eFwd = ev ? (ev.vx * sn + ev.vz * c) / evl : 0, eSide = ev ? (ev.vx * c - ev.vz * sn) / evl : 0;

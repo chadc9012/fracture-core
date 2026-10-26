@@ -69,6 +69,7 @@ import { encounterHpFloor, endEncounter, onDecoyShattered, resetEncounters, pinS
 import { rollWeaponLoot } from "./weapon-loot";
 import { isStaggeredNow, reactTo, hitPart } from "./enemy-reactions";
 import { enemyPower, hitMultiplier, powerScale } from "./weapon-meta";
+import { MELEE, startSwing, swingDone, type Swing } from "./enemy-melee";
 import { freshDamageNumbers, pruneDamage, recordDamage, type DamageNumbers } from "./damage-numbers";
 import type { FrameId } from "./weapon-classes";
 import type { ClassId } from "./loadout";
@@ -119,6 +120,8 @@ export type Machine = {
   strikeSeen?: string | undefined;
   /** enemy-tactics.ts: seconds the player has been out of this machine's sight while it is alert; a flank it is running; when it may throw again */
   hiddenFor?: number | undefined;
+  /** enemy-melee.ts: a melee swing in progress (wind-up, then the strike lands if the player is still in reach) */
+  swing?: Swing | undefined;
   flank?: { x: number; z: number; until: number } | undefined;
   grenadeAt?: number | undefined;
   /** vehicle gadgets (vehicle-gadgets.ts): caltrops and EMP mines slow it to snareMult until snareUntil */
@@ -1839,17 +1842,33 @@ export function stepSim(sim: WorldSim, input: SimInput) {
     if (ai.peekX !== undefined && ai.coverTime > 0 && (ai.hideLeft ?? 0) > 0 && (m.aim ?? 0) <= 0 && Math.hypot(ai.coverX - m.x, ai.coverZ - m.z) < 0.6
       && !sightLine({ x: px, y: playerEye, z: pz }, { x: m.x, y: walkHeight(m.x, m.z) + COVER_CHEST, z: m.z }, { ground: walkHeight, obstaclesNear: queryObstacles, solids: registeredModelSolids() }).blocked) ai.coverTime = 0;
 
-    // shared engage step: melee up close, resolve a wind-up, or start one (ranged fire is resolved against the line of sight)
-    const engage = () => {
-      if (!scripted && d < 6 && m.cool <= 0) {
-        m.cool = ENEMY_TUNING.meleeCooldown * (bossTuning?.cooldownMult ?? 1);
-        sim.combatHeat += 2;
-        sim.lastHitBy = { profile: m.profile, zone: m.zone, elite: m.elite, boss: m.boss, nemesis: m.nemesis };
-        hurtPlayer(sim, ((m.boss ? 17 : m.elite ? 12 : 7) * (bossTuning?.damageMult ?? 1) * (m.nemesisDamage ?? 1)) / sim.mods.hullDurability, m.profile);
-        // machines besieging Nexus chew the city core
-        if (Math.hypot(m.x - byId("nexus").x, m.z - byId("nexus").z) < byId("nexus").radius) {
-          sim.coreHp = Math.max(0, sim.coreHp - 2);
+    // a melee swing in progress (enemy-melee.ts): it lands at the end of its wind-up, and only hurts if the player is still in reach
+    if (m.swing) {
+      const nowM = performance.now() / 1000;
+      if (nowM > m.swing.hitAt + MELEE.recover + 0.5) m.swing = undefined; // stale (a recycled body, a frozen frame): drop it, never land it
+      else {
+        if (!m.swing.landed && nowM >= m.swing.hitAt) {
+          m.swing.landed = true;
+          if (d < MELEE.reach) {
+            sim.combatHeat += 2;
+            sim.lastHitBy = { profile: m.profile, zone: m.zone, elite: m.elite, boss: m.boss, nemesis: m.nemesis };
+            hurtPlayer(sim, ((m.boss ? 17 : m.elite ? 12 : 7) * (bossTuning?.damageMult ?? 1) * (m.nemesisDamage ?? 1)) / sim.mods.hullDurability, m.profile);
+            // machines besieging Nexus chew the city core
+            if (Math.hypot(m.x - byId("nexus").x, m.z - byId("nexus").z) < byId("nexus").radius) {
+              sim.coreHp = Math.max(0, sim.coreHp - 2);
+            }
+          }
         }
+        if (m.swing && swingDone(m.swing, nowM)) m.swing = undefined;
+      }
+    }
+    // shared engage step: melee up close (a telegraphed swing), resolve a ranged wind-up, or start one (ranged fire is resolved against the line of sight)
+    const engage = () => {
+      if (m.swing) { m.rot = Math.atan2(dx, dz); return; } // mid-swing: facing the player, nothing else
+      if (!scripted && d < MELEE.start && m.cool <= 0) {
+        m.cool = ENEMY_TUNING.meleeCooldown * (bossTuning?.cooldownMult ?? 1);
+        m.swing = startSwing(performance.now() / 1000, m.boss);
+        m.aim = 0; m.rot = Math.atan2(dx, dz);
       } else if ((m.aim ?? 0) > 0) {
         // wind-up telegraph (Actors.tsx pulses the machine while aim > 0), then the shot lands
         m.aim = (m.aim ?? 0) - dt;
@@ -2418,7 +2437,7 @@ export function stepSim(sim: WorldSim, input: SimInput) {
         if (!m.rival && !m.decoy) {
           const nowR = performance.now() / 1000, prevR = m.react;
           m.react = reactTo(m.react, { damage: dmg, maxHp: m.maxHp ?? (m.elite ? 7 : 3.5), elite: m.elite, boss: m.boss, now: nowR, dx: m.x - px, dz: m.z - pz, part: hitPart(m.goreHit?.y ?? b.y, m.y - 2.2 * m.scale, 1.85 * enemyBodyScaleOf(m.scale)) });
-          if (m.react !== prevR && isStaggeredNow(m.react, nowR)) { if ((m.aim ?? 0) > 0) m.aim = Math.max(m.aim ?? 0, windupFor(m)); stunMachine(m, m.react!.until - nowR + 0.25); }
+          if (m.react !== prevR && isStaggeredNow(m.react, nowR)) { if ((m.aim ?? 0) > 0) m.aim = Math.max(m.aim ?? 0, windupFor(m)); if (m.swing && !m.swing.landed) m.swing = undefined; stunMachine(m, m.react!.until - nowR + 0.25); }
         }
         if (!b.element && (sim.equippedElement === "CRYO" || sim.equippedElement === "ARC")) m.cool = Math.max(m.cool, sim.equippedElement === "CRYO" ? 0.9 : 0.6);
         sim.lastHit = performance.now();
