@@ -47,7 +47,7 @@ export type Location = {
 /** old and alternative names used by other modules → the registry's destination id */
 export const DESTINATION_ALIAS: Readonly<Record<string, DestinationId>> = {
   neon: "neon-city", "neon-city": "neon-city", "neon-underground": "neon-city", "neon-core": "neon-city",
-  thalassia: "thalassia", nexus: "nexus", veridan: "veridan", frostspire: "frostspire", ember: "ember", wastelands: "wastelands", solara: "solara", swamps: "swamps",
+  thalassia: "thalassia", nexus: "nexus", veridan: "veridan", riverdale: "veridan", frostspire: "frostspire", ember: "ember", wastelands: "wastelands", solara: "solara", swamps: "swamps",
 };
 export const destKey = (id: DestinationId) => `dest:${id}`;
 const isDestinationId = (id: string): id is DestinationId => DESTINATION_PINS.some((p) => p.id === id);

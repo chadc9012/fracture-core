@@ -1,4 +1,6 @@
 import { resetMaw } from "@/game/maw-collapse";
+import { RiverdaleTown } from "./RiverdaleTown";
+import { RIVERDALE } from "@/game/world";
 import "@/game/venue-doors";
 import { CoastalBeaches } from "./CoastalBeaches";
 import { accessibleShop } from "@/game/shop-access";
@@ -3643,6 +3645,7 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
       <NearOnly playerRef={player} x={NEXUS_REGION.x} z={NEXUS_REGION.z} radius={900} name="bridges:nexus"><WorldPiece name="nexus bridges"><NexusBridge /></WorldPiece></NearOnly>
       <WorldPiece name="nexus far skyline"><NexusFarSkyline tier={settings.renderTier} /></WorldPiece>
       <NearOnly playerRef={player} x={AIRPORT.x} z={AIRPORT.z} radius={520} name="nexus-airport"><WorldPiece name="nexus airport"><NexusAirport /></WorldPiece></NearOnly>
+      <NearOnly playerRef={player} x={RIVERDALE.x} z={RIVERDALE.z} radius={320 * NEAR_SCALE[settings.renderTier]} name="town:riverdale"><WorldPiece name="riverdale"><RiverdaleTown progression={gear as PlayerProgression | undefined} /></WorldPiece></NearOnly>
       <NearOnly playerRef={player} x={STUNT_PARK.x} z={STUNT_PARK.z} radius={260} name="stunt-park"><WorldPiece name="stunt park"><StuntPark /></WorldPiece></NearOnly>
       <NearOnly playerRef={player} x={NEXUS_REGION.x} z={NEXUS_REGION.z} radius={190 * NEAR_SCALE[settings.renderTier]} name="streets:nexus"><WorldPiece name="nexus streets"><CityStreets city="nexus" tier={settings.renderTier} /></WorldPiece></NearOnly>
       <NearOnly playerRef={player} x={NEON_CITY_CENTER.x} z={NEON_CITY_CENTER.z} radius={240 * NEAR_SCALE[settings.renderTier]} name="streets:neon"><WorldPiece name="neon streets"><CityStreets city="neon" tier={settings.renderTier} /></WorldPiece></NearOnly>

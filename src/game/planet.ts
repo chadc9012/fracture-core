@@ -77,8 +77,8 @@ const C = (name: string, kind: PlaceKind, live?: string): Place => (live ? { nam
 /** the ten lands of the owner's global map board (Oct 26 2026). Verdant Forest is Aetheria's, beside Nexus City and Neon City. */
 export const CONTINENTS: readonly Continent[] = [
   { id: "aetheria", name: "Aetheria", region: "Atlantic Region", epithet: "Advanced cities, forests, mountains, and innovation.", kind: "CONTINENT", lat: 22, lon: -4, size: 26, tier: "CORE",
-    regions: ["nexus", "neon", "veridan"], capital: "Nexus City", color: "#5aa8d8", majorCities: 4, scale: "Large", climate: "Temperate",
-    places: [C("Nexus City", "CAPITAL", "nexus"), C("Neon City", "CITY", "neon"), C("Verdant Forest", "POI", "veridan"), C("Riverdale", "CITY"), C("Celestial Bridge", "BRIDGE"), C("Aetheria Airport (Nexus)", "AIRPORT", "terminal:nexus"), C("Neon International Airport", "AIRPORT", "terminal:neon")],
+    regions: ["nexus", "neon", "veridan", "riverdale"], capital: "Nexus City", color: "#5aa8d8", majorCities: 4, scale: "Large", climate: "Temperate",
+    places: [C("Nexus City", "CAPITAL", "nexus"), C("Neon City", "CITY", "neon"), C("Verdant Forest", "POI", "veridan"), C("Riverdale", "CITY", "riverdale"), C("Celestial Bridge", "BRIDGE"), C("Aetheria Airport (Nexus)", "AIRPORT", "terminal:nexus"), C("Neon International Airport", "AIRPORT", "terminal:neon")],
     look: "Nexus City and Neon City on opposite shores of a great gulf, joined by the Celestial Bridge; the Verdant Forest across the Nexus Strait. Thalassia lies offshore in the Atlantic. The game starts here.",
     pin: { x: 705, y: 350 }, panel: { x: 12, y: 102, w: 336, h: 172 } },
   { id: "valdoria", name: "Valdoria", region: "North America", epithet: "Lush forests, rivers, and ancient ruins.", kind: "CONTINENT", lat: 40, lon: -70, size: 30, tier: "BACKDROP",

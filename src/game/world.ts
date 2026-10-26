@@ -346,3 +346,11 @@ export const NEON_FLAT = NEON_FIT.flat;
 /** Nexus City's residential street (residences.ts): a disc south of the outer districts where the walkable-scale
  * ground rolls (terrain.ts detailHeight) ease out, as they already do around the hub, so houses stand level. */
 export const NEXUS_SUBURB = { x: NEON_NEXUS.x, z: NEON_NEXUS.z + 155, r: 62, fade: 30 } as const;
+
+/** Riverdale (owner's global map board, Oct 26 2026: an Aetheria town beside Nexus, Neon and the Verdant Forest): a
+ * riverside town on the Verdant landmass east of the forest, on the bank of the Verdant river's northern bend. The ground
+ * inside `r` is graded level (terrain.ts riverdaleWeight) for its streets of walk-in homes (residences.ts) round a town
+ * square; the fade ends short of the river, so the river keeps its own course. Placed off the forest's authored ground
+ * (trail, spawn clearing, crash site), its landmarks, terminals and the Thalassia pier. */
+const VERDANT_REGION = REGIONS.find((r) => r.id === "veridan")!;
+export const RIVERDALE = { x: VERDANT_REGION.x + 230, z: VERDANT_REGION.z - 68, r: 56, fade: 26, square: 14 } as const;

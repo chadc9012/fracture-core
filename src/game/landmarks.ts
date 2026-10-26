@@ -3,7 +3,7 @@
  * every probed spot sits above WATER_LEVEL. Discovery is stored in the existing claim ledger
  * (progression.earnedRewards, cloud-merged by union) as `landmark-seen:<id>`; it grants nothing but map knowledge
  * and story text, so it can never farm rewards. */
-import { REGIONS, NEON_OFFSET, WORLD_SCALE } from "./world";
+import { REGIONS, NEON_OFFSET, WORLD_SCALE, RIVERDALE } from "./world";
 import { THALASSIA_CENTER } from "./thalassia-site";
 import type { PlayerProgression } from "./progression";
 
@@ -12,7 +12,7 @@ export type LandmarkType = "hub" | "outpost" | "ruin" | "mountain" | "volcano" |
 export interface Landmark {
   id: string;
   name: string;
-  regionId: string | "neon" | "thalassia";
+  regionId: string | "neon" | "thalassia" | "riverdale";
   type: LandmarkType;
   x: number;
   z: number;
@@ -57,6 +57,7 @@ const thalassia = THALASSIA_CENTER;
 export const LANDMARKS: Landmark[] = [
   ...SPECS.map((s): Landmark => { const r = regionOf(s.regionId); return { id: s.id, name: s.name, regionId: s.regionId, type: s.type, x: r.x + s.dx * r.radius, z: r.z + s.dz * r.radius, history: s.history }; }),
   { id: "neon-city", name: "Neon City", regionId: "neon", type: "hub", x: nexus.x + NEON_OFFSET.x, z: nexus.z + NEON_OFFSET.z, history: "The district that kept its lights on through the Fracture, for reasons its owners will not explain." },
+  { id: "riverdale", name: "Riverdale", regionId: "riverdale", type: "hub", x: RIVERDALE.x, z: RIVERDALE.z, history: "A river town that kept its clock wound through the Fracture. Ferrymen still tie up at the jetty, and the square still keeps the Nexus hour." },
   { id: "thalassia", name: "Thalassia", regionId: "thalassia", type: "ocean", x: thalassia.x, z: thalassia.z, history: "A drowned city below the surface, still lit. Whatever keeps it lit does not want visitors." },
 ];
 
@@ -71,7 +72,7 @@ export const LANDMARK_ROUTES: [string, string][] = [
   ["glass-flats", "quicksand-basin"], ["temple-of-echoes", "spatial-sink"],
   ["scrap-outpost", "solar-array"], ["solar-array", "glass-flats"], ["solar-array", "sunken-arcology"],
   ["aqua-shipyard", "airboat-hub"], ["airboat-hub", "weeping-mangroves"], ["airboat-hub", "temple-of-echoes"],
-  ["transit-plaza", "vanguard-outpost"], ["vanguard-outpost", "whispering-canopies"], ["whispering-canopies", "fracture-grottos"],
+  ["transit-plaza", "vanguard-outpost"], ["vanguard-outpost", "riverdale"], ["vanguard-outpost", "whispering-canopies"], ["whispering-canopies", "fracture-grottos"],
   ["scrap-outpost", "obsidian-ridge"], ["obsidian-ridge", "magma-forge"], ["magma-forge", "smoldering-trench"],
 ];
 

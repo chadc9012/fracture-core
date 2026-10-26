@@ -1,5 +1,5 @@
 /** Deeds for the walk-in residences (residences.ts): every house, apartment block, condo, loft and villa in Nexus City
- * and Neon City is its own property with a street address, a Nex price and a garage with its own parking bays.
+ * Neon City and Riverdale is its own property with a street address, a Nex price and a garage with its own parking bays.
  * Ownership is the same one-time Nex spend as every other home (`home:<id>` in the ledger, housing.ts), so it merges
  * across devices the same way. Owned fleet vehicles (fleet.ts) can be parked in an owned home's garage bays, which
  * ResidenceGarages.tsx shows in the world. */
@@ -9,7 +9,7 @@ import { residences, DESIGNS, PORCH, GARAGE_D, garageWidth, type HomeStyle, type
 import { FLEET, fleetById, type FleetState } from "./fleet";
 
 export type DeedKind = "HOUSE" | "APARTMENT" | "CONDO";
-export type Deed = { id: string; residence: Residence; address: string; name: string; kind: DeedKind; city: "Nexus City" | "Neon City"; district: string; price: number; bays: number; blurb: string };
+export type Deed = { id: string; residence: Residence; address: string; name: string; kind: DeedKind; city: "Nexus City" | "Neon City" | "Riverdale"; district: string; price: number; bays: number; blurb: string };
 
 const STYLE: Record<HomeStyle, { kind: DeedKind; name: string; price: number; blurb: string }> = {
   suburban: { kind: "HOUSE", name: "Suburban House", price: 24000, blurb: "Single-storey family house with a private garage." },
@@ -23,17 +23,18 @@ const STYLE: Record<HomeStyle, { kind: DeedKind; name: string; price: number; bl
 };
 const NEXUS_STREETS = ["Cedar Lane", "Foundry Row", "Courtyard Square", "Exchange Walk"];
 const NEON_STREETS = ["Lumen Row", "Chrome Way", "Skyline Vista", "Arc Street"];
+const RIVERDALE_STREETS = ["Millrace Lane", "Willow Bank", "Ferry Row", "Town Square"];
 /** Neon prices carry the city premium */
 const NEON_PREMIUM = 1.25;
 
 function build(): Deed[] {
   return residences().map((r) => {
     const s = STYLE[r.style], n = Number(r.id.split("-").pop());
-    const neon = r.city === "neon", streets = neon ? NEON_STREETS : NEXUS_STREETS;
-    const address = `${neon ? 10 + n * 6 : 100 + n * 2} ${streets[(n - 1) % streets.length]}`;
+    const neon = r.city === "neon", river = r.city === "riverdale", streets = neon ? NEON_STREETS : river ? RIVERDALE_STREETS : NEXUS_STREETS;
+    const address = `${neon ? 10 + n * 6 : river ? n * 3 : 100 + n * 2} ${streets[(n - 1) % streets.length]}`;
     return {
-      id: r.id, residence: r, address, name: `${address}`, kind: s.kind, city: neon ? "Neon City" : "Nexus City",
-      district: neon ? "Skyline Residences" : "Residential Street",
+      id: r.id, residence: r, address, name: `${address}`, kind: s.kind, city: neon ? "Neon City" : river ? "Riverdale" : "Nexus City",
+      district: neon ? "Skyline Residences" : river ? "Riverdale Town" : "Residential Street",
       price: Math.round((s.price * (neon ? NEON_PREMIUM : 1)) / 500) * 500,
       bays: r.garage?.bays ?? 0,
       blurb: `${s.name} · ${s.blurb}`,

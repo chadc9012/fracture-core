@@ -2,7 +2,7 @@ import { HOLLOW_STAR_SITE } from "./hollow-star-site";
 import { CRASH_SITE, trailMask } from "./verdant";
 import { districtDeckAt } from "./district-decks";
 import { forestRelief, openWoods, IMPACT_PIT } from "./forest-relief";
-import { AUTHORED_CENTRES, legacyShifts, REGIONS, WORLD_RADIUS, BASE_WORLD_REGIONS, BASE_WORLD_RADIUS, WORLD_SCALE, HEIGHT_K, NEON_SITE, NEON_FLAT, NEON_FADE, NEXUS_SUBURB } from "./world";
+import { AUTHORED_CENTRES, legacyShifts, REGIONS, WORLD_RADIUS, BASE_WORLD_REGIONS, BASE_WORLD_RADIUS, WORLD_SCALE, HEIGHT_K, NEON_SITE, NEON_FLAT, NEON_FADE, NEXUS_SUBURB, RIVERDALE } from "./world";
 import { LANES, ROAD_SAMPLES, laneSamples, distanceToRoad } from "./lanes";
 import { coastShape } from "./coastline";
 import { STRAIT_DEPTH, straitCeiling } from "./continent-borders";
@@ -175,9 +175,11 @@ function detailHeight(x: number, z: number): number {
   if (open <= 0) return 0;
   const suburb = smoothstep(NEXUS_SUBURB.r, NEXUS_SUBURB.r + NEXUS_SUBURB.fade, Math.hypot(x - NEXUS_SUBURB.x, z - NEXUS_SUBURB.z));
   if (suburb <= 0) return 0;
+  const town = 1 - riverdaleWeight(x, z);
+  if (town <= 0) return 0;
   const arena = 1 - hollowStarWeight(x, z); // Astravore's arena is graded level
   if (arena <= 0) return 0;
-  return (fbm(x * 0.04 + 11, z * 0.04 - 5, 2) - 0.5) * 2 * DETAIL_AMP * city * open * suburb * arena;
+  return (fbm(x * 0.04 + 11, z * 0.04 - 5, 2) - 0.5) * 2 * DETAIL_AMP * city * open * suburb * arena * town;
 }
 
 /** the landform water is traced on: stretched base terrain + forest relief, WITHOUT the small world-space rolls (those would trap streams in pits) */
@@ -210,6 +212,18 @@ export function hollowStarGroundLevel(): number {
   if (hollowStarLevel === null) hollowStarLevel = Math.max(WATER_LEVEL + 2, landformAt(HOLLOW_STAR_SITE.x, HOLLOW_STAR_SITE.z));
   return hollowStarLevel;
 }
+/** 1 on Riverdale's graded ground (world.ts RIVERDALE), easing to 0 over its fade */
+export function riverdaleWeight(x: number, z: number): number {
+  if (WORLD_SCALE === 1) return 0;
+  const d = Math.hypot(x - RIVERDALE.x, z - RIVERDALE.z);
+  return d >= RIVERDALE.r + RIVERDALE.fade ? 0 : 1 - smoothstep(RIVERDALE.r, RIVERDALE.r + RIVERDALE.fade, d);
+}
+let riverdaleLevel: number | null = null;
+/** the level Riverdale is graded to: the natural ground at its centre, kept clear of the water */
+export function riverdaleGroundLevel(): number {
+  if (riverdaleLevel === null) riverdaleLevel = Math.max(WATER_LEVEL + 2, landformAt(RIVERDALE.x, RIVERDALE.z));
+  return riverdaleLevel;
+}
 let suburbLevel: number | null = null;
 /** the level the street is graded to: the natural ground at its centre */
 export function suburbGroundLevel(): number {
@@ -230,6 +244,8 @@ function preBankHeight(x: number, z: number): number {
   if (s > 0) h += (suburbGroundLevel() - h) * s;
   const a = hollowStarWeight(x, z);
   if (a > 0) h += (hollowStarGroundLevel() - h) * a;
+  const t = riverdaleWeight(x, z);
+  if (t > 0) h += (riverdaleGroundLevel() - h) * t;
   return h;
 }
 /* Stage 151: the continents are separate landmasses, a strait of open sea along every border (continent-borders.ts).

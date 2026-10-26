@@ -2,7 +2,7 @@ import { Suspense, useEffect, useMemo, useRef } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import { useGLTF } from "@react-three/drei";
 import * as THREE from "three";
-import { BAY_W, DOOR_H, GARAGE_D, WALL, bayPose, bayX, garageBoxes, garageDecks, garageWalls, garageWidth, residences, type Garage } from "@/game/residences";
+import { BAY_W, DOOR_H, GARAGE_D, WALL, bayPose, bayX, garageBoxes, garageDecks, garageWalls, garageWidth, residences, type Garage, type ResidenceCity } from "@/game/residences";
 import { ownsDeed, parkedIn } from "@/game/residence-deeds";
 import { fleetById } from "@/game/fleet";
 import { vehicleById } from "@/game/vehicles";
@@ -29,7 +29,7 @@ const slatMat = new THREE.MeshStandardMaterial({ color: "#9a9ea4", roughness: 0.
 const okLamp = new THREE.MeshBasicMaterial({ color: new THREE.Color("#3dff8a").multiplyScalar(1.6), toneMapped: false });
 const noLamp = new THREE.MeshBasicMaterial({ color: new THREE.Color("#ff3b3b").multiplyScalar(1.4), toneMapped: false });
 
-export function ResidenceGarages({ city, progression }: { city: "nexus" | "neon"; progression: { nexLedger: PlayerProgression["nexLedger"]; housing?: PlayerProgression["housing"] | undefined; fleet?: PlayerProgression["fleet"] | undefined } }) {
+export function ResidenceGarages({ city, progression }: { city: ResidenceCity; progression: { nexLedger: PlayerProgression["nexLedger"]; housing?: PlayerProgression["housing"] | undefined; fleet?: PlayerProgression["fleet"] | undefined } }) {
   const homes = useMemo(() => residences().filter((r) => r.city === city && r.garage), [city]);
   const shells = useMemo(() => mergeByMat(homes.flatMap((h) => garageBoxes(h.garage!, h.garage!.floor - h.garage!.base).map((b) => ({ b, at: h.garage! }))), `garages:${city}`), [homes, city]);
   useEffect(() => () => { for (const m of shells) { m.geometry.dispose(); (m.material as THREE.Material).dispose(); } }, [shells]);

@@ -285,4 +285,5 @@ Owner: "everything" from the Phantom private jet and walkable cabin patches in t
 - [x] Planet tab drawn on the World Fracture global map board, with live frames on every land, the selected land's panel lit, air routes, the Thalassia sea lane and your location; the selected land's places, travel and planet figures under it.
 - [x] planet.ts: the board's ten lands (7 continents, Sylvaris and Myrathis subregions, Zephyria an archipelago), its places, five oceans and planet info (12,742 km, 510.1 million km²).
 - [x] Verdant Forest joins Aetheria (Veyloria retired); start world Aetheria; terminal names follow the board (Aetheria Airport (Nexus), Frosthelm Airport, Kharos Airport, …).
-- [ ] Board places not in the game yet: Riverdale, Valdoria, Noctyra, Elyndra, Myrathis and Zephyria cities, airports and ports (map only).
+- [x] Riverdale: river town east of the Verdant Forest — eight walk-in homes for sale with garages round a clock-tower square, streets, lamps, welcome sign, boardwalk to a river jetty; a district of the Verdant destination and a landmark.
+- [ ] Board places not in the game yet: Valdoria, Noctyra, Elyndra, Myrathis and Zephyria cities, airports and ports (map only).

@@ -13,7 +13,7 @@ import { LANDMARKS, isLandmarkKnown, type Landmark } from "./landmarks";
 import { regionActivities, type Activity, type ActivityKind } from "./map-activities";
 import type { PlayerProgression } from "./progression";
 import { NEON_DISTRICTS } from "./neon-districts";
-import { NEON_SITE, NEXUS_SUBURB } from "./world";
+import { NEON_SITE, NEXUS_SUBURB, RIVERDALE } from "./world";
 import { NEXUS, CITY_INNER, CITY_OUTER } from "./nexus-districts";
 import { THALASSIA_CENTER } from "./thalassia-site";
 import { DOCK, RING, CORE } from "./thalassia-sectors";
@@ -109,6 +109,8 @@ export function cityDistricts(d: Destination): CityDistrict[] {
       { id: "residential", name: "Residential Street", tagline: "Walk-in homes south of the city", x: NEXUS_SUBURB.x, z: NEXUS_SUBURB.z, r: NEXUS_SUBURB.r, color: "#e8c39e" },
     ];
   }
+  // Riverdale: Aetheria's river town east of the forest (world.ts RIVERDALE), a district of the Verdant destination
+  if (d.id === "veridan") return [...atlasDistricts(d.id), { id: "riverdale", name: "Riverdale", tagline: "River town · walk-in homes round the clock-tower square", x: RIVERDALE.x, z: RIVERDALE.z, r: RIVERDALE.r, color: "#9fd4a8" }];
   return d.city ? [] : atlasDistricts(d.id);
 }
 

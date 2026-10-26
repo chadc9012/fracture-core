@@ -1,7 +1,7 @@
 import { useEffect, useMemo } from "react";
 import * as THREE from "three";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
-import { DESIGNS, homeBoxes, homeDecks, homeWalls, residences, type Box, type Mat, type Residence } from "@/game/residences";
+import { DESIGNS, homeBoxes, homeDecks, homeWalls, residences, type Box, type Mat, type Residence, type ResidenceCity } from "@/game/residences";
 import { DistrictLight } from "./DistrictLight";
 import { setWalls, clearWalls } from "@/game/walls";
 import { registerDeck } from "@/game/district-decks";
@@ -65,7 +65,7 @@ export function mergeByMat(pieces: { b: Box; at: Pick<Residence, "x" | "z" | "fl
   return out;
 }
 
-export function ResidentialHomes({ city }: { city: "nexus" | "neon" }) {
+export function ResidentialHomes({ city }: { city: ResidenceCity }) {
   const homes = useMemo(() => residences().filter((r) => r.city === city), [city]);
   const meshes = useMemo(() => mergeByMat(homes.flatMap((h) => homeBoxes(h.style, h.floor - h.base).map((b) => ({ b, at: h }))), `residences:${city}`), [homes, city]);
   useEffect(() => () => { for (const m of meshes) { m.geometry.dispose(); (m.material as THREE.Material).dispose(); } }, [meshes]);

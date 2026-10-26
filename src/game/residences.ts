@@ -1,4 +1,4 @@
-/** Walk-in residences in Nexus City and Neon City: eight designs (suburban house, townhouse, duplex, courtyard house,
+/** Walk-in residences in Nexus City, Neon City and Riverdale: eight designs (suburban house, townhouse, duplex, courtyard house,
  * apartment block, condo, industrial loft, skyline villa) whose ground floor is a real, furnished home you walk into —
  * an open front door, a living room with kitchen and dining, and a back wall of bedroom and bathroom through an
  * interior doorway. Upper storeys are closed shells (no stairs yet).
@@ -9,7 +9,7 @@
  * Placement: Nexus homes form a street just south of the city (outside the districts, off the supply roads, on flat
  * dry ground and clear of every other region); Neon homes take outer blocks of the tower grid (neon-layout.ts), so
  * they never meet a tower, race line, rail, shop or door. */
-import { NEXUS_SUBURB, REGIONS } from "./world";
+import { NEXUS_SUBURB, REGIONS, RIVERDALE } from "./world";
 import { heightAt, neonPlateauLevel, slopeAt, WATER_LEVEL } from "./terrain";
 import { distanceToRoad, LANE_HALF_WIDTH } from "./lanes";
 import { CITY_OUTER, NEXUS } from "./nexus-districts";
@@ -20,8 +20,10 @@ import { INTERIORS } from "./interiors";
 import type { Wall } from "./walls";
 import type { Deck } from "./district-decks";
 
+/** Riverdale (world.ts RIVERDALE): the Aetheria river town on the Verdant landmass, streets of family homes round its square */
+export type ResidenceCity = "nexus" | "neon" | "riverdale";
 export type HomeStyle = "suburban" | "townhouse" | "duplex" | "courtyard" | "apartment" | "condo" | "loft" | "villa";
-export type Residence = { id: string; style: HomeStyle; city: "nexus" | "neon"; x: number; z: number; rot: number; floor: number; base: number;
+export type Residence = { id: string; style: HomeStyle; city: ResidenceCity; x: number; z: number; rot: number; floor: number; base: number;
   /** the home's own garage beside it (none where nothing fits): centre, same turn as the house, door on its local +z */
   garage?: Garage };
 export type Garage = { x: number; z: number; rot: number; bays: number; floor: number; base: number };
@@ -56,6 +58,7 @@ export const garageWidth = (bays: number) => bays * BAY_W + WALL * 2;
 
 const NEXUS_STYLES: HomeStyle[] = ["suburban", "townhouse", "duplex", "courtyard", "suburban", "townhouse", "apartment", "condo"];
 const NEON_STYLES: HomeStyle[] = ["apartment", "loft", "condo", "villa"];
+const RIVERDALE_STYLES: HomeStyle[] = ["suburban", "courtyard", "townhouse", "duplex", "suburban", "townhouse", "duplex", "courtyard"];
 
 /** footprint half-extents in world axes once turned by `rot` (porch included on the door side) */
 export function footprint(r: Pick<Residence, "style" | "rot">) {
@@ -66,6 +69,7 @@ export function footprint(r: Pick<Residence, "style" | "rot">) {
 
 const NEXUS_PITCH = 26;
 const others = REGIONS.filter((r) => r.id !== "nexus");
+const notVerdant = REGIONS.filter((r) => r.id !== "veridan");
 
 function nexusLots(): { x: number; z: number; rot: number }[] {
   const out: { x: number; z: number; d: number; rot: number }[] = [];
@@ -88,6 +92,23 @@ function nexusLots(): { x: number; z: number; rot: number }[] {
   return out.sort((a, b) => a.d - b.d).slice(0, NEXUS_STYLES.length);
 }
 
+/** Riverdale's lots: the street grid of its graded disc round the town square (world.ts RIVERDALE), every row facing the
+ * square across its own street (door toward the centre line), on level dry ground off the supply roads */
+function riverdaleLots(): { x: number; z: number; rot: number }[] {
+  const out: { x: number; z: number; d: number; rot: number }[] = [];
+  for (let j = -2; j <= 2; j++) for (let i = -2; i <= 2; i++) {
+    const x = RIVERDALE.x + i * NEXUS_PITCH, z = RIVERDALE.z + j * NEXUS_PITCH, d = Math.hypot(x - RIVERDALE.x, z - RIVERDALE.z);
+    if (d + 13 > RIVERDALE.r || d < RIVERDALE.square + 12) continue;
+    const h = 10.5, pts = [[x, z], [x - h, z - h], [x + h, z - h], [x - h, z + h], [x + h, z + h], [x, z - h - PORCH], [x, z + h + PORCH]] as const;
+    const hs = pts.map(([px, pz]) => heightAt(px, pz));
+    if (Math.min(...hs) < WATER_LEVEL + 1 || Math.max(...hs) - Math.min(...hs) > 1.2 || slopeAt(x, z) > 0.2) continue;
+    if (pts.some(([px, pz]) => distanceToRoad(px, pz) < LANE_HALF_WIDTH + 3)) continue;
+    if (notVerdant.some((r) => Math.hypot(x - r.x, z - r.z) < r.radius + 20)) continue;
+    out.push({ x, z, d, rot: j > 0 ? Math.PI : j < 0 ? 0 : i < 0 ? Math.PI / 2 : -Math.PI / 2 });
+  }
+  return out.sort((a, b) => a.d - b.d || a.x - b.x || a.z - b.z).slice(0, RIVERDALE_STYLES.length);
+}
+
 /** the keep-out list Neon City's grid is laid out with (shop counters and interior doors) — shared with NeonTowerBlocks */
 export function neonKeepOut() {
   return [...REGIONAL_SHOPS.map((s) => ({ x: s.x, z: s.z, r: 8 })), ...INTERIORS.filter((i) => i.kind !== "VENUE").map((i) => ({ x: i.doorPos.x, z: i.doorPos.z, r: 6 }))];
@@ -99,6 +120,11 @@ function build(): Residence[] {
     const style = NEXUS_STYLES[i]!, { w, d } = DESIGNS[style];
     const hs = [[0, 0], [-1, -1], [1, -1], [-1, 1], [1, 1]].map(([sx, sz]) => heightAt(l.x + sx! * w / 2, l.z + sz! * d / 2));
     out.push({ id: `nexus-home-${i + 1}`, style, city: "nexus", x: l.x, z: l.z, rot: l.rot, floor: Math.max(...hs) + 0.15, base: Math.min(...hs) - 0.8 });
+  });
+  riverdaleLots().forEach((l, i) => {
+    const style = RIVERDALE_STYLES[i]!, { w, d } = DESIGNS[style];
+    const hs = [[0, 0], [-1, -1], [1, -1], [-1, 1], [1, 1]].map(([sx, sz]) => heightAt(l.x + sx! * w / 2, l.z + sz! * d / 2));
+    out.push({ id: `riverdale-home-${i + 1}`, style, city: "riverdale", x: l.x, z: l.z, rot: l.rot, floor: Math.max(...hs) + 0.15, base: Math.min(...hs) - 0.8 });
   });
   const level = neonPlateauLevel();
   neonLayoutWorld(neonKeepOut()).homes.forEach((h, i) => {
@@ -143,12 +169,13 @@ function placeGarages(homes: Residence[]) {
       if (shells.some((s) => rectsOverlap(r, s, 1)) || placed.some((s) => rectsOverlap(r, s, 1))) continue;
       if (REGIONAL_SHOPS.some((s) => Math.hypot(r.x - s.x, r.z - s.z) < Math.max(r.hx, r.hz) + 8)) continue;
       if (INTERIORS.some((it) => Math.hypot(r.x - it.doorPos.x, r.z - it.doorPos.z) < Math.max(r.hx, r.hz) + 6)) continue;
-      if (h.city === "nexus") {
+      if (h.city !== "neon") {
         const hs = pts.map(([x, z]) => heightAt(x, z));
         if (Math.min(...hs) < WATER_LEVEL + 1 || Math.max(...hs) - Math.min(...hs) > 1.4) continue;
         if (pts.some(([x, z]) => distanceToRoad(x, z) < LANE_HALF_WIDTH + 2)) continue;
-        if (others.some((o) => Math.hypot(r.x - o.x, r.z - o.z) < o.radius + 15)) continue;
-        if (Math.hypot(r.x - NEXUS.x, r.z - NEXUS.z) < CITY_OUTER + 8) continue;
+        if ((h.city === "nexus" ? others : notVerdant).some((o) => Math.hypot(r.x - o.x, r.z - o.z) < o.radius + 15)) continue;
+        if (h.city === "nexus" && Math.hypot(r.x - NEXUS.x, r.z - NEXUS.z) < CITY_OUTER + 8) continue;
+        if (h.city === "riverdale" && (Math.hypot(r.x - RIVERDALE.x, r.z - RIVERDALE.z) < RIVERDALE.square + 2 || Math.hypot(r.x - RIVERDALE.x, r.z - RIVERDALE.z) + Math.max(r.hx, r.hz) > RIVERDALE.r + 4)) continue;
         g.floor = Math.max(...hs) + 0.12; g.base = Math.min(...hs) - 0.6;
       } else {
         if (!clearNeon(r.x - NEON_SITE.x, r.z - NEON_SITE.z, r.hx, r.hz)) continue;
