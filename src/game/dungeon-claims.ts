@@ -23,7 +23,7 @@ export function claimDungeonClear(p: PlayerProgression, dungeonId: string, signa
   const rewarded = fuelKing
     ? (first ? grantFuelKingVictoryRewards(cleared) : { ...cleared, materials: { ...cleared.materials, reinforcedAlloy: (cleared.materials.reinforcedAlloy ?? 0) + DUNGEON_REPEAT.alloy } })
     : (WASTELAND_GATE_DUNGEONS as readonly string[]).includes(dungeonId) ? gatherWastelandFuel(cleared, first ? 100 : DUNGEON_REPEAT.fuel) : cleared;
-  const paid = payInto(rewarded, payoutClassOfDungeon(dungeonId), dungeonId, now).progression; // Nex: dungeons pay well, raids pay best (activity-payouts.ts)
+  const paid = payoutClassOfDungeon(dungeonId) === "raid" ? rewarded : payInto(rewarded, payoutClassOfDungeon(dungeonId), dungeonId, now).progression; // raids pay per encounter instead (raid-lockout.ts) // Nex: dungeons pay well, raids pay best (activity-payouts.ts)
   const ticked = gameTick(paid, { type: "DUNGEON_CLEARED", dungeonId });
   return fuelKing ? gameTick(ticked, { type: "BOSS_DEFEATED", encounterId: dungeonId }) : ticked;
 }

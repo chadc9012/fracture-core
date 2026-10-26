@@ -1,7 +1,8 @@
 import { describe, expect, test } from "bun:test";
 import { RAID_TIERS, STRIKE_TIERS, highestUnlocked, scaleEncounter, tierById, tierCleared, tierTarget, tierUnlocked, weekIndex, weeklyMult, weeklyRaidChallenge, RAID_CHALLENGES } from "./difficulty-ladder";
 import { STRIKES, STRIKE_IDS, canClaimStrike, claimStrikeClear, strikePayout, weeklyStrike } from "./strikes";
-import { HOLLOW_STAR_ID, HOLLOW_STAR, canClaimHollowStarTier, claimHollowStarClear, claimHollowStarTierClear, hollowStarTierPayout, hollowStarTierUnlocked } from "./hollow-star-raid";
+import { ENCOUNTERS, featuredStage } from "./raid-lockout";
+import { HOLLOW_STAR_ID, HOLLOW_STAR, canClaimHollowStarTier, claimHollowStarClear, claimHollowStarTierClear, hollowStarTierUnlocked } from "./hollow-star-raid";
 import { PAYOUTS } from "./activity-payouts";
 import { DUNGEONS } from "./dungeons";
 import { DEFAULT_PROGRESSION } from "./progression";
@@ -123,25 +124,27 @@ describe("raid tiers", () => {
     expect(paid).toEqual([...paid].sort((a, b) => a - b));
     expect(paid.at(-1)).toBe(PAYOUTS.raid.first * 5);
   });
-  test("one claim per tier per day; the next day pays the repeat rate; the first-clear gear is not re-granted", () => {
+  test("a tier is locked out for the week once finished; Monday pays the repeat rate; the first-clear gear is not re-granted", () => {
     let p = cleared();
     p = claimHollowStarTierClear(p, "STANDARD", [], "heroic", false, T + 1000);
     expect(canClaimHollowStarTier(p, "heroic", T + 2000)).toBe(false);
     expect(claimHollowStarTierClear(p, "STANDARD", [], "heroic", false, T + 2000)).toBe(p);
+    expect(claimHollowStarTierClear(p, "STANDARD", [], "heroic", false, T + 3 * DAY)).toBe(p); // still the same week
     const before = nexBalance(p.nexLedger);
-    const day2 = claimHollowStarTierClear(p, "STANDARD", [], "heroic", false, T + DAY);
-    expect(nexBalance(day2.nexLedger) - before).toBe(Math.round(PAYOUTS.raid.repeat * 1.75));
-    expect(day2.dungeonClears[HOLLOW_STAR_ID]).toBe(p.dungeonClears[HOLLOW_STAR_ID]); // harder tiers do not re-run the first-clear pipeline
+    const nextWeek = claimHollowStarTierClear(p, "STANDARD", [], "heroic", false, T + 7 * DAY);
+    expect(nexBalance(nextWeek.nexLedger) - before).toBe(Math.round(PAYOUTS.raid.repeat * 1.75));
+    expect(nextWeek.dungeonClears[HOLLOW_STAR_ID]).toBe(p.dungeonClears[HOLLOW_STAR_ID]); // harder tiers do not re-run the first-clear pipeline
   });
-  test("the weekly challenge adds 25% when taken, and the 12-player variant stacks with the tier", () => {
+  test("the weekly challenge doubles the featured encounter and guarantees its drop; the 12-player variant stacks with the tier", () => {
+    const feat = featuredStage(T), share = ENCOUNTERS[feat]!.share;
+    const plain = claimHollowStarTierClear(fresh(), "STANDARD", [], "normal", false, T);
+    const weekly = claimHollowStarTierClear(fresh(), "STANDARD", [], "normal", true, T);
+    expect(nexBalance(plain.nexLedger)).toBe(PAYOUTS.raid.first);
+    expect(nexBalance(weekly.nexLedger)).toBe(PAYOUTS.raid.first + Math.round(PAYOUTS.raid.first * share));
+    expect(weekly.inventory.some((g) => g.id === ENCOUNTERS[feat]!.piece.id)).toBe(true);
+    expect(nexBalance(claimHollowStarTierClear(fresh(), "CHALLENGE", [], "normal", false, T).nexLedger)).toBe(Math.round(PAYOUTS.raid.first * 1.5));
     const a = cleared();
-    const plain = hollowStarTierPayout(a, "STANDARD", "heroic", false, T + 1000)!.nex;
-    const weekly = hollowStarTierPayout(a, "STANDARD", "heroic", true, T + 1000)!.nex;
-    expect(weekly).toBe(Math.round(PAYOUTS.raid.first * 1.75 * 1.25));
-    expect(weekly).toBeGreaterThan(plain);
-    expect(hollowStarTierPayout(a, "CHALLENGE", "heroic", false, T + 1000)!.nex).toBe(Math.round(PAYOUTS.raid.first * 1.75 * 1.5));
-    const normalWeekly = claimHollowStarTierClear(fresh(), "STANDARD", [], "normal", true, T);
-    expect(nexBalance(normalWeekly.nexLedger)).toBe(PAYOUTS.raid.first + Math.round(PAYOUTS.raid.first * 0.25));
+    expect(nexBalance(claimHollowStarTierClear(a, "CHALLENGE", [], "heroic", false, T + 1000).nexLedger) - nexBalance(a.nexLedger)).toBe(Math.round(PAYOUTS.raid.first * 1.75 * 1.5));
   });
   test("a normal clear still behaves exactly as before (variant bonus, no double payout)", () => {
     const direct = claimHollowStarClear(fresh(), "CHALLENGE", [], T);

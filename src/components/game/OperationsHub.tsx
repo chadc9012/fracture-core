@@ -1,10 +1,10 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { canClaimDungeon, claimDungeonClear } from "@/game/dungeon-claims";
 import { payoutClassOfDungeon, payoutFor } from "@/game/activity-payouts";
 import { formatNex } from "@/game/nex";
-import { HOLLOW_STAR_ID, RAID_VARIANTS, SECRET_OBJECTIVES, canClaimHollowStarTier, claimHollowStarTierClear, hollowStarTierPayout, hollowStarTierUnlocked, secretKey, type RaidVariant } from "@/game/hollow-star-raid";
+import { HOLLOW_STAR_ID, RAID_VARIANTS, SECRET_OBJECTIVES, canClaimHollowStarTier, claimHollowStarTierClear, collectHollowStarEncounters, hollowStarTierUnlocked, secretKey, type RaidVariant } from "@/game/hollow-star-raid";
 import { STRIKES, canClaimStrike, claimStrikeClear, isStrike, strikePayout, strikeTierUnlocked, weeklyStrike } from "@/game/strikes";
-import { SEARCH_HAZARD, scaleEncounter, tierById, tiersOf, weeklyRaidChallenge, WEEKLY_RAID_BONUS, WEEKLY_STRIKE_BONUS } from "@/game/difficulty-ladder";
+import { SEARCH_HAZARD, scaleEncounter, tierById, tiersOf, weeklyRaidChallenge, WEEKLY_STRIKE_BONUS } from "@/game/difficulty-ladder";
 import { Activity, Anvil, Check, ChevronRight, Coins, Compass, Copy, Crosshair, Gauge, GitBranch, Globe2, LockKeyhole, Network, PackageOpen, Shield, Skull, Snowflake, Sparkles, Swords, Timer, Users, X } from "lucide-react";
 import { hubStopFor, markHubStopSeen, type HubView } from "@/game/hub-tour";
 
@@ -23,7 +23,8 @@ import { applySales, todaysBundle } from "@/game/vendor-sales";
 import { VENDOR_DEFS, vendorStock, sellValue, type VendorListing } from "@/game/vendors";
 import { xpRequiredForLevel } from "@/game/xp";
 import { shapeLoot, type LootItem } from "@/game/loot";
-import { advanceEncounter, chooseEncounterRoute, createEncounterRun, loseEncounterLife } from "@/game/raid-stages";
+import { advanceEncounter, chooseEncounterRoute, createEncounterRun, loseEncounterLife, type EncounterRun } from "@/game/raid-stages";
+import { ENCOUNTERS, RAID_STAGE_IDS, clearedStages, featuredStage, lockedOut, resumeStageIndex } from "@/game/raid-lockout";
 import { grantAbilityMastery, selectAbilityBranch, type PlayerProgression } from "@/game/progression";
 import { dungeonModifiers } from "@/game/dungeon-build";
 import { FUEL_KING_ENCOUNTER_ID, fuelKingGateStatus } from "@/game/wasteland";
@@ -31,6 +32,14 @@ import { BIOMES, COSMETIC_CATEGORIES, FRACTURE_RAID, PVP_MODES, PVP_RANKS, WORLD
 import type { ClassId } from "@/game/loadout";
 
 const ALL_ENCOUNTERS = [...DUNGEONS, ...STRIKES];
+const ENCOUNTER_PIECE: Record<string, string> = Object.fromEntries(Object.entries(ENCOUNTERS).map(([id, e]) => [id, e.piece.id]));
+/** a fresh run; the raid resumes at the first encounter not cleared this week (raid-lockout.ts), the way Destiny keeps your progress until reset */
+function startRun(def: (typeof DUNGEONS)[number], p: PlayerProgression, tierId: string): EncounterRun {
+  const run = createEncounterRun(def);
+  if (def.id !== HOLLOW_STAR_ID || lockedOut(p, tierId)) return run;
+  const i = resumeStageIndex(p, tierId);
+  return i > 0 ? { ...run, stageIndex: i, message: `Resuming at ${def.stages[i]?.name ?? "the next encounter"}. Earlier encounters are cleared until the weekly reset.` } : run;
+}
 const currencyLabel = { credits: "Credits", dataShards: "Data Shards", spatialCores: "Spatial Cores" } as const;
 
 export function OperationsHub({ initialView = "DUNGEONS", progression, onProgression, onClose, onStartActivity, activeActivityId = null }: { onStartActivity?: (id: string, difficulty?: import("@/game/racing").Difficulty) => void; activeActivityId?: string | null; initialView?: HubView; progression: PlayerProgression; onProgression: (next: PlayerProgression) => void; onClose: () => void }) {
@@ -83,7 +92,21 @@ function DungeonOperations({ progression, onProgression }: { progression: Player
   const [claimed, setClaimed] = useState(false);
   const [variant, setVariant] = useState<RaidVariant>("STANDARD");
   const [secrets, setSecrets] = useState<string[]>([]);
+  const [lootLog, setLootLog] = useState<string[]>([]);
   const gate = fuelKingGateStatus(progression);
+  // Destiny-style encounter loot: every encounter drops its reward as soon as it is cleared (not only at the end), and a wipe keeps it
+  const collected = useRef("");
+  useEffect(() => {
+    if (!dungeon || !run || dungeon.id !== HOLLOW_STAR_ID) return;
+    const done = run.status === "COMPLETE" ? dungeon.stages.map((x) => x.id) : dungeon.stages.slice(0, run.stageIndex).map((x) => x.id);
+    const sig = `${tierId}|${challenge}|${done.join(",")}`;
+    if (!done.length || sig === collected.current) return;
+    collected.current = sig;
+    const r = collectHollowStarEncounters(progression, variant, tierId, done, challenge);
+    if (!r.stages.length) return;
+    onProgression(r.progression);
+    setLootLog((log) => [...log, ...r.stages.map((id) => `${dungeon.stages.find((x) => x.id === id)?.name ?? id} cleared${r.drops.some((d) => d.id === ENCOUNTER_PIECE[id]) ? ` · dropped ${r.drops.find((d) => d.id === ENCOUNTER_PIECE[id])!.name}` : ""}`)].slice(-8));
+  }, [run?.stageIndex, run?.status, tierId, challenge]);
   if (!dungeon || !run) return null;
   const stage = dungeon.stages[run.stageIndex];
   const selectDungeon = (id: string) => {
@@ -92,11 +115,11 @@ function DungeonOperations({ progression, onProgression }: { progression: Player
     setTierId(isStrike(id) ? "standard" : "normal"); setChallenge(false);
     if (id === FUEL_KING_ENCOUNTER_ID && !gate.open) return;
     setSelectedId(id);
-    setRun(createEncounterRun(next));
+    setRun(startRun(next, progression, id === HOLLOW_STAR_ID ? "normal" : "standard"));
     setClaimed(false);
     setSecrets([]);
   };
-  const reset = () => { setRun(createEncounterRun(dungeon)); setClaimed(false); setSecrets([]); };
+  const reset = () => { setRun(startRun(dungeon, progression, tierId)); setClaimed(false); setSecrets([]); };
   const isRaid = dungeon.id === HOLLOW_STAR_ID;
   const canClaim = isStrike(dungeon.id) ? canClaimStrike(progression, dungeon.id, tierId) && strikeTierUnlocked(progression, tierId) : isRaid ? canClaimHollowStarTier(progression, tierId) : canClaimDungeon(progression, dungeon.id);
   const partyCap = isRaid ? RAID_VARIANTS[variant].party : Math.min(6, dungeon.squad.max);
@@ -118,12 +141,16 @@ function DungeonOperations({ progression, onProgression }: { progression: Player
         <p className="font-mono text-[9px] uppercase tracking-[0.28em] text-primary">{ladder === "strike" ? "Strike playlist · difficulty" : "Raid difficulty"}</p>
         <div className="mt-2 grid gap-2 sm:grid-cols-4">{tiersOf(ladder).map((t) => {
           const open = ladder === "strike" ? strikeTierUnlocked(progression, t.id) : hollowStarTierUnlocked(progression, t.id);
-          return <Button key={t.id} variant={t.id === tier.id ? "default" : "outline"} disabled={!open || run.status === "ACTIVE"} onClick={() => { setTierId(t.id); setRun(createEncounterRun(scaleEncounter(baseDef, t))); setClaimed(false); }} className="h-auto flex-col items-start gap-0.5 rounded-none p-2 text-left whitespace-normal"><span className="flex items-center gap-1 font-mono text-[10px] uppercase">{!open && <LockKeyhole className="size-3" />}{t.name} · x{t.payMult}</span><span className="text-[9px] opacity-80">{open ? `Power ${t.power}+` : `Clear ${tiersOf(ladder)[t.rank - 1]!.name} to unlock`}</span></Button>;
+          return <Button key={t.id} variant={t.id === tier.id ? "default" : "outline"} disabled={!open || run.status === "ACTIVE"} onClick={() => { setTierId(t.id); setRun(startRun(scaleEncounter(baseDef, t), progression, t.id)); setClaimed(false); }} className="h-auto flex-col items-start gap-0.5 rounded-none p-2 text-left whitespace-normal"><span className="flex items-center gap-1 font-mono text-[10px] uppercase">{!open && <LockKeyhole className="size-3" />}{t.name}{ladder === "strike" ? ` · x${t.payMult}` : ""}</span><span className="text-[9px] opacity-80">{open ? `Power ${t.power}+` : `Clear ${tiersOf(ladder)[t.rank - 1]!.name} to unlock`}</span></Button>;
         })}</div>
-        <p className="mt-2 text-[10px] text-muted-foreground">{tier.blurb} Shared lives {dungeon.maxLives}. Each tier pays its own first clear and its own daily repeat.</p>
+        <p className="mt-2 text-[10px] text-muted-foreground">{tier.blurb} Shared lives {dungeon.maxLives}. {ladder === "raid" ? "Encounters reset every Monday. Each one drops its own gear, and a wipe keeps what you cleared." : "Each tier pays its own first clear and its own daily repeat."}</p>
         {ladder === "strike" && <p className="mt-1 text-[10px] text-primary">Weekly Ordeal: {weeklyStrike(Date.now()).name} pays x{WEEKLY_STRIKE_BONUS} from Hero up.</p>}
-        {ladder === "raid" && <label className="mt-2 flex items-center gap-2 text-[10px]"><input type="checkbox" checked={challenge} disabled={run.status !== "READY"} onChange={(e) => { setChallenge(e.target.checked); setRun(createEncounterRun(scaleEncounter(baseDef, tier, e.target.checked ? weeklyRaidChallenge(Date.now()).id : undefined))); }} /><span>Weekly challenge · <b>{weeklyRaidChallenge(Date.now()).name}</b>: {weeklyRaidChallenge(Date.now()).effect} (+{Math.round((WEEKLY_RAID_BONUS - 1) * 100)}% Nex)</span></label>}
+        {ladder === "raid" && <>
+          <p className="mt-2 text-[10px] text-muted-foreground">This week: {clearedStages(progression, tierId).length}/{RAID_STAGE_IDS.length} encounters cleared{lockedOut(progression, tierId) ? " · locked out until the weekly reset" : ""}.</p>
+          <label className="mt-1 flex items-center gap-2 text-[10px]"><input type="checkbox" checked={challenge} disabled={run.status !== "READY"} onChange={(e) => { setChallenge(e.target.checked); setRun(startRun(scaleEncounter(baseDef, tier, e.target.checked ? weeklyRaidChallenge(Date.now()).id : undefined), progression, tierId)); }} /><span>Weekly challenge · <b>{weeklyRaidChallenge(Date.now()).name}</b>: {weeklyRaidChallenge(Date.now()).effect} Featured encounter: <b>{dungeon.stages.find((x) => x.id === featuredStage(Date.now()))?.name}</b> (a bonus drop)</span></label>
+        </>}
       </div>}
+      {isRaid && lootLog.length > 0 && <div className="mt-5 border border-border p-3" aria-label="Encounter loot"><p className="font-mono text-[9px] uppercase tracking-[0.28em] text-primary">Encounter loot</p><ul className="mt-2 space-y-1 text-xs">{lootLog.map((line, i) => <li key={i}>{line}</li>)}</ul></div>}
       <div className="mt-5 border border-border p-4">
         <div className="flex items-start justify-between gap-4"><div><p className="font-mono text-[9px] uppercase tracking-[0.28em] text-muted-foreground">Live encounter simulation</p><h4 className="mt-1 text-lg font-semibold">{run.status === "COMPLETE" ? "Cache secured" : run.status === "WIPED" ? "Fireteam lost" : stage?.name}</h4><p className="mt-1 text-xs text-muted-foreground">{run.message}</p></div><div className="text-right font-mono text-[10px]"><p>{run.lives} SHARED LIVES</p><p className="text-primary">{run.status}</p></div></div>
         <div className="mt-4 grid grid-cols-[1fr_auto] items-center gap-3"><div><div className="flex justify-between text-[9px] uppercase text-muted-foreground"><span>{stage?.hazardLabel ?? "STABILITY"}</span><span>{dungeon.blackout ? "??" : `${run.hazard}%`}</span></div><div className="mt-1 h-2 overflow-hidden bg-muted"><div className="h-full bg-primary transition-[width]" style={{ width: `${run.hazard}%` }} /></div></div><span className="font-mono text-xs">{run.progress}/{stage?.target ?? run.progress}</span></div>
@@ -136,10 +163,10 @@ function DungeonOperations({ progression, onProgression }: { progression: Player
           <div className="mt-2 grid gap-2">{SECRET_OBJECTIVES.map((o) => { const found = secrets.includes(o.id), here = stage?.id === o.stageId && run.status === "ACTIVE"; return <div key={o.id} className="flex items-center justify-between gap-3 border border-border p-2 text-xs"><span>{found ? <><b>{o.name}</b> — found{progression.earnedRewards.includes(secretKey(o.id)) ? " (already owned)" : ""}</> : here ? o.hint : "Undiscovered"}</span>{!found && here && <Button size="sm" variant="outline" onClick={() => { setSecrets([...secrets, o.id]); setRun({ ...run, hazard: Math.min(100, run.hazard + SEARCH_HAZARD), message: `Found: ${o.name}. The search cost time (+${SEARCH_HAZARD}% hazard).` }); }}>Investigate</Button>}</div>; })}</div>
         </div>}
         <div className="mt-4 flex flex-wrap gap-2">{run.status === "READY" && <Button disabled={!allReady} onClick={() => setRun({ ...run, status: "ACTIVE", message: `Entered ${stage?.name ?? dungeon.name}.` })}>{allReady ? "Launch fireteam" : "Waiting for ready checks"} <ChevronRight /></Button>}{run.status === "ACTIVE" && <><Button onClick={() => setRun(advanceEncounter(dungeon, run))} disabled={Boolean(stage?.routes && !run.selectedRoute)}>Advance objective <ChevronRight /></Button><Button variant="outline" onClick={() => setRun(loseEncounterLife(dungeon, run))}><Skull /> Lose shared life</Button></>}{(run.status === "COMPLETE" || run.status === "WIPED") && <Button onClick={reset}>{run.status === "COMPLETE" ? "Run again" : "Retry checkpoint"}</Button>}</div>
-        {run.status === "COMPLETE" && <div className="mt-5 border border-primary bg-primary/5 p-4"><p className="font-mono text-[9px] uppercase text-primary">Completion summary · clear {(progression.dungeonClears[dungeon.id] ?? 0) + (claimed ? 0 : 1)}</p><div className="mt-3 grid grid-cols-3 gap-2 text-center font-mono text-[10px]"><span className="border border-border p-2">{run.damage}<br />DAMAGE</span><span className="border border-border p-2">{run.support}<br />SUPPORT</span><span className="border border-border p-2">{run.livesUsed}<br />LIVES USED</span></div><div className="mt-3 space-y-1 text-[10px]">{run.stagePerformance.map((item) => <p key={item.name}>{item.name} · {item.objectives} objectives · {item.hazard}% hazard</p>)}</div><p className="mt-3 text-xs">Reward · {dungeon.signature.name} · repeat perk: {dungeon.signature.repeatTraits[(progression.dungeonClears[dungeon.id] ?? 0) % dungeon.signature.repeatTraits.length]}</p>{(() => { const pay = claimed ? null : isStrike(dungeon.id) ? strikePayout(progression, dungeon.id, tierId) : dungeon.id === HOLLOW_STAR_ID ? hollowStarTierPayout(progression, variant, tierId, challenge) : payoutFor(progression.nexLedger, payoutClassOfDungeon(dungeon.id), dungeon.id, Date.now(), 1, progression.pocketClass); return <p className="mt-1 text-xs text-primary">{pay ? `Bounty · ${formatNex(pay.nex)}${pay.first ? " (first clear)" : " (daily repeat)"}` : "Bounty · already paid today"}</p>; })()}<Button className="mt-3" size="sm" disabled={claimed || !canClaim} onClick={() => {
+        {run.status === "COMPLETE" && <div className="mt-5 border border-primary bg-primary/5 p-4"><p className="font-mono text-[9px] uppercase text-primary">Completion summary · clear {(progression.dungeonClears[dungeon.id] ?? 0) + (claimed ? 0 : 1)}</p><div className="mt-3 grid grid-cols-3 gap-2 text-center font-mono text-[10px]"><span className="border border-border p-2">{run.damage}<br />DAMAGE</span><span className="border border-border p-2">{run.support}<br />SUPPORT</span><span className="border border-border p-2">{run.livesUsed}<br />LIVES USED</span></div><div className="mt-3 space-y-1 text-[10px]">{run.stagePerformance.map((item) => <p key={item.name}>{item.name} · {item.objectives} objectives · {item.hazard}% hazard</p>)}</div><p className="mt-3 text-xs">Reward · {dungeon.signature.name} · repeat perk: {dungeon.signature.repeatTraits[(progression.dungeonClears[dungeon.id] ?? 0) % dungeon.signature.repeatTraits.length]}</p>{(() => { if (dungeon.id === HOLLOW_STAR_ID) return null; const pay = claimed ? null : isStrike(dungeon.id) ? strikePayout(progression, dungeon.id, tierId) : payoutFor(progression.nexLedger, payoutClassOfDungeon(dungeon.id), dungeon.id, Date.now(), 1, progression.pocketClass); return <p className="mt-1 text-xs text-primary">{pay ? `Bounty · ${formatNex(pay.nex)}${pay.first ? " (first clear)" : " (daily repeat)"}` : "Bounty · already paid today"}</p>; })()}<Button className="mt-3" size="sm" disabled={claimed || !canClaim} onClick={() => {
                 onProgression(isStrike(dungeon.id) ? claimStrikeClear(progression, dungeon.id, tierId).progression : dungeon.id === HOLLOW_STAR_ID ? claimHollowStarTierClear(progression, variant, secrets, tierId, challenge) : claimDungeonClear(progression, dungeon.id, dungeon.signature.name));
                 setClaimed(true);
-              }}>{claimed ? "Reward claimed" : canClaim ? "Claim rewards" : "Claimed today · back tomorrow"}</Button></div>}
+              }}>{claimed ? "Reward claimed" : canClaim ? "Claim rewards" : isRaid ? "Locked out · resets Monday" : "Claimed today · back tomorrow"}</Button></div>}
       </div>
     </section>
   </main>;

@@ -26,11 +26,12 @@ describe("Raid 01 playtest: a player's whole road through The Hollow Star", () =
     expect(claimBossBounty(fresh(), ASTRAVORE_SCENARIO_ID, T).paid).toBe(0);
     expect(claimBossBounty(fresh(), "vyrak", T).paid).toBeGreaterThan(0);
   });
-  test("killing it again the same day pays nothing (the arena resets, so it must not be farmable); the next day pays the repeat rate", () => {
+  test("killing it again before Monday pays nothing (the arena resets, so it must not be farmable); next week pays the repeat rate", () => {
     const a = applyAstravoreKill(fresh(), T).progress;
     const again = applyAstravoreKill(a, T + 60_000);
     expect(again.firstKill).toBe(false); expect(again.progress).toBe(a);
-    const next = applyAstravoreKill(a, T + DAY);
+    expect(applyAstravoreKill(a, T + 3 * DAY).progress).toBe(a); // same week
+    const next = applyAstravoreKill(a, T + 7 * DAY);
     expect(nexBalance(next.progress.nexLedger) - nexBalance(a.nexLedger)).toBe(PAYOUTS.raid.repeat);
     expect(next.progress.fractureShards).toBeGreaterThan(a.fractureShards);
     expect(next.progress.earnedRewards.filter((k) => k === STARBREAKER_KEY)).toHaveLength(1);
