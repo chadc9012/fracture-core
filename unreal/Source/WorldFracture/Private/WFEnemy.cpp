@@ -26,7 +26,6 @@ namespace
 	constexpr double RangedRange = 40;     // m
 	constexpr double MeleeRange = 2.5;     // m
 	constexpr double MeleeCooldownS = 1.4;
-	constexpr double PreferredRange = 18;  // m: troopers hold off and shoot rather than hug the player
 	constexpr double CmPerM = 100.0;
 	constexpr double PlayerCreditWindowS = 8; // sim.ts PLAYER_CREDIT_WINDOW_S
 }
@@ -193,6 +192,36 @@ void AWFEnemy::TickPerception(AWFCharacter* Operator, APawn* Target, float Delta
 	In.bLineClear = bLosClear;
 	const wf::perception::FPerceiveResult R = wf::perception::PerceiveStep(Ai, In, Dt);
 	const bool bAlert = R.State == "ALERT";
+	HiddenFor = !bLosClear && Distance < wf::perception::LosRange ? HiddenFor + Dt : 0;
+	const bool bScripted = bBoss && Mode && Mode->HasEncounter(ScenarioId);
+
+	// enemy-evasion.ts: dive out of an incoming rocket's blast (one reaction roll per threat), then a short burst away
+	if (Now < DiveUntil)
+	{
+		const double P = (Now - DiveStart) / FMath::Max(1e-6, DiveUntil - DiveStart), Ease = 1 - P * 0.6;
+		AddActorWorldOffset(DiveVelocity * Ease * Dt * CmPerM, true);
+		SetActorRotation(FRotator(0.f, FVector(ToPlayer.X, ToPlayer.Y, 0).Rotation().Yaw, 0.f));
+		RangedCooldown = FMath::Max(RangedCooldown, 0.35);
+		Windup = -1;
+		return;
+	}
+	if (!bBoss && !bScripted && !bDecoy && Distance < 90 && Now >= DiveCool && Mode)
+	{
+		const double Feet = Me.Z - GetCapsuleComponent()->GetScaledCapsuleHalfHeight() / CmPerM;
+		for (const wf::tactics::FRoundLike& Round : Mode->GetPlayerRounds())
+		{
+			const std::optional<wf::tactics::FThreat> Th = wf::tactics::RoundThreat(Round, Me.X, Me.Y, [Feet](double, double) { return Feet; }, 1.5 * GetActorScale3D().X);
+			if (!Th) continue;
+			DiveCool = Now + wf::tactics::FDive::Cooldown;
+			if (!wf::tactics::ReactsInTime(Th->T, bElite, FMath::FRand())) break; // a miss waits out the cooldown
+			const wf::tactics::FPoint D = wf::tactics::DiveDirection(Me.X, Me.Y, {Th->X, Th->Z}, Round.Dx, Round.Dz, GetUniqueID() % 2 ? 1 : -1);
+			DiveVelocity = FVector(D.X, D.Z, 0) * wf::tactics::FDive::Speed;
+			DiveStart = Now;
+			DiveUntil = Now + wf::tactics::FDive::Seconds;
+			Windup = -1;
+			return;
+		}
+	}
 
 	// a wounded trooper breaks line of fire to a retreat point (pickCover; real cover behind obstacles is not ported)
 	if (bAlert && Ai.CoverTime <= 0 && wf::perception::ShouldTakeCover(Health / FMath::Max(1.0, MaxHealth), Ai.CoverTime, bBoss) && Distance < 45 && R.bDamaged)
@@ -218,14 +247,60 @@ void AWFEnemy::TickPerception(AWFCharacter* Operator, APawn* Target, float Delta
 	}
 	if (bAlert)
 	{
-		if (Distance > PreferredRange) AddMovementInput(Flat, 1.f);
-		else if (Distance < PreferredRange * 0.5 && Distance > MeleeRange) AddMovementInput(-Flat, 0.5f);
+		const int32 Index = static_cast<int32>(GetUniqueID() % 1024);
+		const std::string Role = wf::tactics::SquadRole(Index, bElite, bBoss);
+		// the player has gone to ground: lob a grenade over the cover at where they were last seen (one squad grenade at a time)
+		if (!bScripted && Mode && wf::tactics::ThrowsGrenades(WFData::ToStd(Kind)) && HiddenFor >= wf::tactics::GrenadeAfter && Distance >= wf::tactics::FGrenadeTuning::MinRange
+			&& Distance <= wf::tactics::FGrenadeTuning::MaxRange && Now >= GrenadeAt && Windup < 0 && Mode->CanThrowGrenade())
+		{
+			const FVector Guess = It + FVector((FMath::FRand() - 0.5) * 3, (FMath::FRand() - 0.5) * 3, 0);
+			Mode->ThrowGrenade(GetActorLocation() / CmPerM + FVector(0, 0, 0.9 * GetActorScale3D().Z), Guess);
+			GrenadeAt = Now + wf::tactics::FGrenadeTuning::OwnCooldown;
+			RangedCooldown = FMath::Max(RangedCooldown, 0.9);
+			SetActorRotation(FRotator(0.f, Flat.Rotation().Yaw, 0.f));
+			return;
+		}
+		// ...and a couple of troopers swing round the side to find a line on them
+		if (!bFlanking && !bScripted && !bBoss && Role != "LEADER" && HiddenFor >= wf::tactics::FlankAfter && Mode && Mode->CountFlankers() < wf::tactics::MaxFlankers)
+		{
+			UWorld* World = GetWorld();
+			const AActor* Self = this;
+			const auto Ground = [World](double X, double Z) {
+				FHitResult G;
+				const FVector At(X * CmPerM, Z * CmPerM, 0);
+				return World->LineTraceSingleByChannel(G, At + FVector(0, 0, 20000), At - FVector(0, 0, 50000), ECC_WorldStatic) ? G.ImpactPoint.Z / CmPerM : 0.0;
+			};
+			const auto Blocked = [World, Self, Target](const wf::tactics::FPoint3& From, const wf::tactics::FPoint3& To) {
+				FHitResult H;
+				FCollisionQueryParams Q(SCENE_QUERY_STAT(WFFlank), false, Self);
+				Q.AddIgnoredActor(Target);
+				return World->LineTraceSingleByChannel(H, FVector(From.X, From.Z, From.Y) * CmPerM, FVector(To.X, To.Z, To.Y) * CmPerM, ECC_Visibility, Q);
+			};
+			if (const std::optional<wf::tactics::FPoint> Spot = wf::tactics::FindFlankSpot(Me.X, Me.Y, {It.X, It.Z, It.Y}, GetUniqueID() % 2 ? 1 : -1, Ground, Blocked))
+			{
+				bFlanking = true; Flank = *Spot; FlankUntil = Now + wf::tactics::FlankGiveUp;
+			}
+		}
+		if (bFlanking && (Now > FlankUntil || bLosClear || FVector::Dist2D(Me, FVector(Flank.X, Flank.Z, 0)) < 1.5)) bFlanking = false;
+		if (bFlanking)
+		{
+			MoveTo(Flank.X, Flank.Z, 1.f); // running the flank, guns up
+			if (bLosClear) { SetActorRotation(FRotator(0.f, Flat.Rotation().Yaw, 0.f)); TryAttack(Operator, Car, Distance, DeltaSeconds); }
+			return;
+		}
+		// squad role and threat drive positioning (enemy-intelligence.ts squadMove), not a straight chase
+		const wf::tactics::FMove M = wf::tactics::SquadMove(Role, Distance, Operator->GetHealth() / AWFCharacter::MaxHealth, Mode ? Mode->GetCombatHeat() : 0, Now + Index,
+			Operator->GetSquadArchetype(), Operator->IsReflecting(), Operator->GetBranchPosture());
+		const FVector Side(-Flat.Y, Flat.X, 0); // rules (-nz, nx) on Unreal (X, Y)
+		const FVector Wish = Flat * M.Forward + Side * M.Strafe;
+		if (Wish.Size2D() > 0.01) AddMovementInput(Wish.GetSafeNormal2D(), static_cast<float>(FMath::Min(1.0, Wish.Size2D())));
 		SetActorRotation(FRotator(0.f, Flat.Rotation().Yaw, 0.f));
 		// an authored encounter boss attacks only through its encounter (AWFGameMode::TickEncounters)
-		if (bBoss && Mode && Mode->HasEncounter(ScenarioId)) return;
+		if (bScripted) return;
 		TryAttack(Operator, Car, Distance, DeltaSeconds);
 		return;
 	}
+	bFlanking = false;
 	Windup = -1;
 	if (R.State == "SUSPICIOUS" || R.State == "SEARCH")
 	{

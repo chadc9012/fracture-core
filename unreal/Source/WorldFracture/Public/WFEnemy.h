@@ -3,6 +3,7 @@
 #include "CoreMinimal.h"
 #include "Core/WFEncounterCore.h"
 #include "Core/WFPerceptionCore.h"
+#include "Core/WFTacticsCore.h"
 #include "GameFramework/Character.h"
 #include "WFEnemy.generated.h"
 
@@ -22,8 +23,9 @@ class AWFVehicle;
  * Perception is the ported enemy-perception.ts state machine (patrol, suspicious, alert, search) fed by sight, hearing
  * (gunfire, combat heat) and damage, with sim.ts's line-of-sight refresh; a wounded trooper breaks off to a retreat point
  * (pickCover). Ranged shots land with line-of-sight.ts enemyHitChance and also reach an Operator who is driving:
- * the hit wears the vehicle, and its flares spoof the shot. Not ported: real cover behind obstacles, flanking, grenades,
- * dives out of rounds and squad roles (enemy-cover.ts, enemy-tactics.ts, enemy-evasion.ts, enemy-intelligence.ts).
+ * the hit wears the vehicle, and its flares spoof the shot. In a fight troopers move by squad role (enemy-intelligence.ts),
+ * flank a player who hides, lob grenades over cover (Raiders and Vanguard) and dive out of incoming rockets
+ * (enemy-tactics.ts, enemy-evasion.ts). Not ported: real cover behind obstacles (enemy-cover.ts).
  */
 UCLASS()
 class WORLDFRACTURE_API AWFEnemy : public ACharacter
@@ -92,6 +94,10 @@ public:
 
 	/** The awareness state this frame: PATROL | SUSPICIOUS | ALERT | SEARCH (HUD threat markers, tests). */
 	const std::string& GetAiState() const { return Ai.State; }
+	/** the faction kind (RAIDER, OVERCLOCKED, VANGUARD, ABERRATION...): Raiders and Vanguard carry grenades */
+	void SetKind(const FString& InKind) { Kind = InKind; }
+	/** running a flank round a hidden player (enemy-tactics.ts: at most MAX_FLANKERS at once) */
+	bool IsFlanking() const { return bFlanking; }
 
 protected:
 	UPROPERTY(VisibleAnywhere, Category = "Body") TObjectPtr<UStaticMeshComponent> Body;
@@ -126,6 +132,12 @@ private:
 	bool bDecoy = false;
 	double DecoyId = 0;
 	double SummonId = 0; // 0 = not called in
+	FString Kind = TEXT("RAIDER");
+	double HiddenFor = 0;          // seconds the player has been out of this trooper's sight (sim.ts hiddenFor)
+	bool bFlanking = false;
+	wf::tactics::FPoint Flank;
+	double FlankUntil = 0, GrenadeAt = 0, DiveUntil = 0, DiveStart = 0, DiveCool = 0;
+	FVector DiveVelocity = FVector::ZeroVector; // m/s
 	double KnockX = 0, KnockZ = 0;
 	double HitFloor = 0;      // TakeHitLeaving: health a hit may not cross
 	double ScaleOverride = 0; // a summon's authored scale (encounter-sim.ts SummonGroup.scale)

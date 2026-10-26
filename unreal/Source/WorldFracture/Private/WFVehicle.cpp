@@ -270,6 +270,15 @@ void AWFVehicle::Exit(const FInputActionValue& Value)
 	Dismount(0);
 }
 
+void AWFVehicle::AppendRounds(std::vector<wf::tactics::FRoundLike>& Out) const
+{
+	for (const FLiveRound& L : Rounds)
+	{
+		const wf::vweapons::FRound& R = L.Round;
+		if (R.bAlive) Out.push_back({R.X, R.Y, R.Z, R.Dx, R.Dy, R.Dz, R.Def.Speed, R.Def.SplashRadius, R.Def.Proximity, R.Def.Life, R.Age});
+	}
+}
+
 double AWFVehicle::VehGearPower() const
 {
 	const UWFProgressionSubsystem* P = GetGameInstance()->GetSubsystem<UWFProgressionSubsystem>();

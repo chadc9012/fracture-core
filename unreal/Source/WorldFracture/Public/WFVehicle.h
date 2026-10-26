@@ -1,6 +1,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Core/WFTacticsCore.h"
 #include "Core/WFVehicleCore.h"
 #include "Core/WFVehicleWeaponsCore.h"
 #include "Core/WFFleetCore.h"
@@ -65,6 +66,8 @@ public:
 	bool IsSpoofed(double Now) const;
 	/** the equipped vehicle item's gear power (inventory.ts weaponDamageMultiplier) */
 	double VehGearPower() const;
+	/** ordnance in flight, for enemies to dodge (enemy-evasion.ts) */
+	void AppendRounds(std::vector<wf::tactics::FRoundLike>& Out) const;
 	const FWFVehicleDef& GetDef() const { return Def; }
 	const wf::vehicle::FState& GetState() const { return State; }
 	const wf::vehicle::FCondition& GetCondition() const { return Condition; }

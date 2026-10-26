@@ -104,6 +104,13 @@ bool AWFGameMode::LoadRoster()
 {
 	const UWFProgressionSubsystem* Progression = GetGameInstance()->GetSubsystem<UWFProgressionSubsystem>();
 	RegionId = Progression ? WFData::ToF(Progression->Get().CurrentWorld) : TEXT("veridan");
+	{
+		// sim.ts factionOf: the region's trooper kind (who carries grenades)
+		FString FactionError;
+		TArray<TSharedPtr<FJsonObject>> FactionRows;
+		if (WFData::LoadRows(TEXT("RegionFactions"), FactionRows, FactionError))
+			for (const TSharedPtr<FJsonObject>& Row : FactionRows) FactionByRegion.Add(WFData::Str(Row, TEXT("Region")), WFData::Str(Row, TEXT("Faction")));
+	}
 
 	FString Error;
 	TArray<TSharedPtr<FJsonObject>> Rows;
@@ -136,6 +143,7 @@ void AWFGameMode::Tick(float DeltaSeconds)
 	TickEncounters(DeltaSeconds);
 	TickRace(DeltaSeconds);
 	TickCity(DeltaSeconds);
+	TickGrenades(DeltaSeconds);
 	Squad.RemoveAll([](const TWeakObjectPtr<AWFEnemy>& E) { return !E.IsValid() || E->IsDead(); });
 	SpawnTimer -= DeltaSeconds;
 	if (SpawnTimer <= 0 && Squad.Num() < SquadSize && !Roster.IsEmpty())
@@ -240,6 +248,76 @@ void AWFGameMode::TickCity(float DeltaSeconds)
 	}
 }
 
+bool AWFGameMode::CanThrowGrenade() const
+{
+	return static_cast<int32>(Grenades.size()) < wf::tactics::FGrenadeTuning::MaxLive && GrenadeCool <= 0;
+}
+
+void AWFGameMode::ThrowGrenade(const FVector& FromM, const FVector& TargetM)
+{
+	// rules points are (x, y up, z): Unreal (X, Z, Y)
+	const double TargetGround = GroundZ(TargetM.X * EncCmPerM, TargetM.Y * EncCmPerM, TargetM.Z * EncCmPerM) / EncCmPerM;
+	const wf::tactics::FLob V = wf::tactics::LobVelocity({FromM.X, FromM.Z, FromM.Y}, {TargetM.X, TargetGround, TargetM.Y});
+	wf::tactics::FGrenade G;
+	G.X = FromM.X; G.Y = FromM.Z; G.Z = FromM.Y; G.Vx = V.Vx; G.Vy = V.Vy; G.Vz = V.Vz; G.Fuse = wf::tactics::FGrenadeTuning::Fuse; G.Id = NextGrenadeId++;
+	Grenades.push_back(G);
+	GrenadeCool = wf::tactics::FGrenadeTuning::SquadCooldown;
+	if (const APawn* P = UGameplayStatics::GetPlayerPawn(this, 0))
+		if (FVector::Dist2D(P->GetActorLocation() / EncCmPerM, FromM) < 26) Toast(TEXT("GRENADE - move!"), EncWarn);
+}
+
+int32 AWFGameMode::CountFlankers() const
+{
+	int32 N = 0;
+	for (TActorIterator<AWFEnemy> It(GetWorld()); It; ++It) if (!It->IsDead() && It->IsFlanking()) ++N;
+	return N;
+}
+
+void AWFGameMode::TickGrenades(float DeltaSeconds)
+{
+	const double Dt = FMath::Min(static_cast<double>(DeltaSeconds), 0.1);
+	GrenadeCool = FMath::Max(0.0, GrenadeCool - Dt);
+	// the player's rounds in flight, for enemies to dodge
+	PlayerRounds.clear();
+	APawn* Pawn = UGameplayStatics::GetPlayerPawn(this, 0);
+	AWFCharacter* Player = Cast<AWFCharacter>(Pawn);
+	AWFVehicle* Car = Cast<AWFVehicle>(Pawn);
+	if (Car) { Car->AppendRounds(PlayerRounds); Player = Car->GetDriver(); }
+	if (Player) Player->AppendRounds(PlayerRounds);
+	if (Grenades.empty()) return;
+	const auto Ground = [this](double X, double Z) { return GroundZ(X * EncCmPerM, Z * EncCmPerM, 0) / EncCmPerM; };
+	for (size_t I = Grenades.size(); I-- > 0;)
+	{
+		wf::tactics::FGrenade& G = Grenades[I];
+		wf::tactics::StepGrenade(G, Dt, Ground);
+		const FVector At(G.X * EncCmPerM, G.Z * EncCmPerM, G.Y * EncCmPerM);
+		// telegraph: a danger ring the size of the blast and the grenade itself
+		DrawDebugCircle(GetWorld(), At + FVector(0, 0, 5), static_cast<float>(wf::tactics::FGrenadeTuning::Radius * EncCmPerM), 32, FColor(255, 60, 40), false, -1.f, 0, 4.f, FVector(0, 1, 0), FVector(1, 0, 0), false);
+		DrawDebugSphere(GetWorld(), At, 15.f, 8, FColor(255, 200, 60), false, -1.f);
+		if (G.Fuse > 0) continue;
+		// the blast: falloff to the edge, softened when cover stands between it and the player's chest
+		if (Pawn && Player)
+		{
+			const FVector Chest = Pawn->GetActorLocation() + FVector(0, 0, 40);
+			const double Dist = FVector::Dist(Chest, At) / EncCmPerM;
+			FHitResult H;
+			FCollisionQueryParams Q(SCENE_QUERY_STAT(WFGrenade), false, Pawn);
+			Q.AddIgnoredActor(Player);
+			const bool bCovered = GetWorld()->LineTraceSingleByChannel(H, At + FVector(0, 0, 40), Chest, ECC_Visibility, Q);
+			const double Dmg = wf::tactics::GrenadeDamage(Dist, bCovered);
+			if (Dmg > 0)
+			{
+				const double Before = Player->GetHealth();
+				Player->ApplyHit(Dmg, TEXT("grenade"));
+				if (Car && Player->GetHealth() < Before) Car->TakeEnemyFire(Before - Player->GetHealth());
+			}
+		}
+		AddCombatHeat(wf::city::FHeatGain::Grenade);
+		DrawDebugSphere(GetWorld(), At, static_cast<float>(wf::tactics::FGrenadeTuning::Radius * EncCmPerM), 16, FColor(255, 120, 40), false, 0.4f, 0, 4.f);
+		Grenades.erase(Grenades.begin() + static_cast<std::ptrdiff_t>(I));
+	}
+}
+
 void AWFGameMode::DrawTurrets() const
 {
 	for (const wf::city::FTurret& T : Turrets)
@@ -322,6 +400,7 @@ void AWFGameMode::SyncSummons()
 		if (AWFEnemy* Trooper = GetWorld()->SpawnActorDeferred<AWFEnemy>(AWFEnemy::StaticClass(), Spawn, nullptr, nullptr, ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn))
 		{
 			Trooper->Configure(WFData::ToF(S.Profile), RegionId, TEXT("dataShards"), S.bElite, false, S.Hp); // hp already x challenge
+			Trooper->SetKind(WFData::ToF(S.Kind));
 			Trooper->ConfigureSummon(S.Id, S.Scale);
 			Trooper->FinishSpawning(Spawn);
 			SummonActors.Add(Id, Trooper);
@@ -506,6 +585,7 @@ void AWFGameMode::SpawnTrooper()
 	if (AWFEnemy* Enemy = World->SpawnActorDeferred<AWFEnemy>(AWFEnemy::StaticClass(), At, nullptr, nullptr, Params.SpawnCollisionHandlingOverride))
 	{
 		Enemy->Configure(Troop.Name, RegionId, Troop.Drop, bElite, false, MaxHealth);
+		if (const FString* Faction = FactionByRegion.Find(RegionId)) Enemy->SetKind(*Faction);
 		Enemy->FinishSpawning(At);
 		Squad.Add(Enemy);
 	}

@@ -961,6 +961,23 @@ const TCHAR* AWFCharacter::AbilityKey(int32 Slot)
 	return Keys[FMath::Clamp(Slot, 0, 2)];
 }
 
+std::string AWFCharacter::GetSquadArchetype() const { return wf::tactics::SquadArchetypeFor(SavedBuild()); }
+
+std::string AWFCharacter::GetBranchPosture() const
+{
+	const UWFProgressionSubsystem* Progression = GetGameInstance()->GetSubsystem<UWFProgressionSubsystem>();
+	return Progression ? wf::ability::BranchPosture(Progression->Get().ActiveBuildSlots, Progression->Get().AbilityBranches) : std::string("NONE");
+}
+
+void AWFCharacter::AppendRounds(std::vector<wf::tactics::FRoundLike>& Out) const
+{
+	for (const FFootRound& L : Rounds)
+	{
+		const wf::vweapons::FRound& R = L.Round;
+		if (R.bAlive) Out.push_back({R.X, R.Y, R.Z, R.Dx, R.Dy, R.Dz, R.Def.Speed, R.Def.SplashRadius, R.Def.Proximity, R.Def.Life, R.Age});
+	}
+}
+
 wf::ability::FBuild AWFCharacter::SavedBuild() const
 {
 	const UWFProgressionSubsystem* Progression = GetGameInstance()->GetSubsystem<UWFProgressionSubsystem>();

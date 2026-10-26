@@ -6,6 +6,7 @@
 #include "Core/WFDragonCore.h"
 #include "Core/WFArmsCore.h"
 #include "Core/WFArmorCore.h"
+#include "Core/WFTacticsCore.h"
 #include "WFWeapons.h"
 #include "WFCharacter.generated.h"
 
@@ -53,6 +54,12 @@ public:
 	bool IsHackHeld() const { return bHackHeld; }
 	/** the worn armor's effects (vehicle guns read the driver's weapon damage) */
 	const wf::armor::FEffects& GetArmorEffects() const { return ArmorFx; }
+	/** Scene.tsx: the build's synergy archetype and active shield reflect steer enemy squads (enemy-intelligence.ts) */
+	std::string GetSquadArchetype() const;
+	bool IsReflecting() const { return Live.ShieldReflect > 0; }
+	std::string GetBranchPosture() const;
+	/** launcher rounds in flight, for enemies to dodge (enemy-evasion.ts) */
+	void AppendRounds(std::vector<wf::tactics::FRoundLike>& Out) const;
 	/** Getting into / out of a vehicle: the Operator stops simulating (no falling, firing or regen ticks) while carried. */
 	void SetInVehicle(bool bIn);
 	bool IsInVehicle() const { return bInVehicle; }

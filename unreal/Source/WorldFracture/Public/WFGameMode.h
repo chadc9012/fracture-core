@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "Core/WFCityCore.h"
+#include "Core/WFTacticsCore.h"
 #include "Core/WFEncounterCore.h"
 #include "GameFramework/GameModeBase.h"
 #include "WFGameMode.generated.h"
@@ -121,6 +122,15 @@ public:
 	double GetHackProgress() const { return HackProgress; }
 	bool IsHacking() const { return bHacking; }
 	bool IsInNexus() const { return RegionId == TEXT("nexus"); }
+
+	// ---- squad tactics (ported enemy-tactics.ts / enemy-evasion.ts) ----
+	/** every player round in flight (launchers on foot, vehicle ordnance), refreshed each frame */
+	const std::vector<wf::tactics::FRoundLike>& GetPlayerRounds() const { return PlayerRounds; }
+	/** one squad grenade alive at a time, with a squad cooldown */
+	bool CanThrowGrenade() const;
+	/** lob a grenade from From to Target (rules metres: X, Y on the ground plane = Unreal X, Y; Z up) */
+	void ThrowGrenade(const FVector& FromM, const FVector& TargetM);
+	int32 CountFlankers() const;
 	/** The region's ground speed rating (regions.ts speed): scales vehicle top speed. */
 	double GetRegionSpeed() const { return RegionSpeed; }
 
@@ -131,6 +141,7 @@ private:
 	void LoadScenarios();
 	void TickEncounters(float DeltaSeconds);
 	void TickCity(float DeltaSeconds);
+	void TickGrenades(float DeltaSeconds);
 	void DrawTurrets() const;
 	void TickRace(float DeltaSeconds);
 	void DrawRace() const;
@@ -155,6 +166,10 @@ private:
 	bool bHacking = false;
 	std::vector<wf::city::FTurret> Turrets; // the safe-zone perimeter turrets (createSim layout)
 	wf::city::FQuestSignals QuestSignals;
+	std::vector<wf::tactics::FRoundLike> PlayerRounds;
+	std::vector<wf::tactics::FGrenade> Grenades;
+	double GrenadeCool = 0, NextGrenadeId = 1;
+	TMap<FString, FString> FactionByRegion; // RegionFactions: region -> faction kind
 	TMap<FString, double> PendingSurvive; // survive seconds per world, sent to the quests about once a second
 
 	struct FScenarioBoss
