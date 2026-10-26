@@ -15,7 +15,9 @@ export type FleetModelId =
   | "tech-transport" | "war-rig" | "rift-helicopter" | "vanguard-jet" | "void-skimmer" | "ai-interceptor"
   | "scrap-patrol-boat" | "hydro-sub-skiff" | "leviathan";
 
-export type FleetModel = { id: FleetModelId; url: string; /** world scale on top of real metres */ scale: number; kind: "car" | "bike" | "heavy" | "air" | "boat"; label: string };
+export type FleetModel = { id: FleetModelId; url: string; /** world scale on top of real metres */ scale: number; kind: "car" | "bike" | "heavy" | "air" | "boat"; label: string;
+  /** a light copy for parked cars and traffic (InstancedFleet), where many share the screen: the hero model is only the one you drive */
+  trafficUrl?: string };
 
 /** every vehicle is built in real metres and shown at life size (cars were 1.15x while operators stood 2.8 m; both are life-size now) */
 export const VEHICLE_WORLD_SCALE = 1;
@@ -23,8 +25,9 @@ export const VEHICLE_WORLD_SCALE = 1;
 const m = (id: FleetModelId, kind: FleetModel["kind"], label: string, scale = VEHICLE_WORLD_SCALE): FleetModel => ({ id, url: `/models/fleet/${id}.glb`, scale, kind, label });
 
 export const FLEET_MODELS: Record<FleetModelId, FleetModel> = {
-  "street-racer": m("street-racer", "car", "Street racer"),
-  "muscle-car": m("muscle-car", "car", "Muscle car"),
+  // imported, game-grade bodies (scripts/fit-fleet-model.py, debadged; credits in CreditsPanel): a hero model and a light traffic copy
+  "street-racer": { ...m("street-racer", "car", "Street racer"), trafficUrl: "/models/fleet/street-racer-lod.glb" },
+  "muscle-car": { ...m("muscle-car", "car", "Muscle car"), trafficUrl: "/models/fleet/muscle-car-lod.glb" },
   "luxury-sedan": m("luxury-sedan", "car", "Luxury sedan"),
   "tuner": m("tuner", "car", "Tuner"),
   "hover-car": m("hover-car", "car", "Hover car"),

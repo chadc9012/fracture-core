@@ -889,8 +889,13 @@ BUILDS = {
     "armored-muscle": lambda: car("armored-muscle", "muscle", "#5e3a24", "#ff7a2e", 0.4, 0.62, rim_style="solid", spokes=6, tread="offroad", armor=True, spikes=True, lamps="round", rim_color="#2a2a2a", underglow=False, caliper="#3a3a3a"),
 }
 
+# bodies imported with scripts/fit-fleet-model.py (game-grade models, debadged): a full rebuild must not overwrite them
+IMPORTED = {"street-racer", "muscle-car"}
+
 if __name__ == "__main__":
     for oid, fn in BUILDS.items():
         if ONLY and oid not in ONLY:
             continue
+        if not ONLY and oid in IMPORTED:
+            print("SKIP (imported body)", oid); continue
         fn()

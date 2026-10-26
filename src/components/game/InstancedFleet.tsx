@@ -19,6 +19,6 @@ export function InstancedFleet({ items, place, shadows = true }: { items: FleetI
   return <group>{groups.map(([model, list]) => {
     const def = FLEET_MODELS[model];
     const placed = list.map((it) => ({ ...it, scale: def.scale }));
-    return <InstancedGlb key={model} url={def.url} items={placed} shadows={shadows} {...(place ? { place: (i: number, o: THREE.Object3D) => { place(model, i, o); o.scale.setScalar(def.scale); } } : {})} />;
+    return <InstancedGlb key={model} url={def.trafficUrl ?? def.url} items={placed} shadows={shadows} {...(place ? { place: (i: number, o: THREE.Object3D) => { place(model, i, o); o.scale.setScalar(def.scale); } } : {})} />;
   })}</group>;
 }
