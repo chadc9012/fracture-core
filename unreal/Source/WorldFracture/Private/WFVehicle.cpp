@@ -13,6 +13,9 @@
 #include "GameFramework/PlayerController.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "InputAction.h"
+#include "WFTerrain.h"
+#include "WFWorldBuildings.h"
+#include "WFAssets.h"
 #include "InputMappingContext.h"
 #include "InputModifiers.h"
 #include "Materials/MaterialInstanceDynamic.h"
@@ -138,10 +141,28 @@ void AWFVehicle::Configure(const FWFVehicleDef& InDef, const wf::vehicle::FCondi
 void AWFVehicle::BeginPlay()
 {
 	Super::BeginPlay();
-	if (UStaticMesh* Cube = LoadObject<UStaticMesh>(nullptr, TEXT("/Engine/BasicShapes/Cube.Cube"))) Body->SetStaticMesh(Cube);
 	const FVector Extent = Box->GetUnscaledBoxExtent();
-	Body->SetRelativeScale3D(Extent / 50.f); // the cube is 100 cm
-	if (UMaterialInterface* Base = LoadObject<UMaterialInterface>(nullptr, TEXT("/Engine/BasicShapes/BasicShapeMaterial.BasicShapeMaterial")))
+	// the sea is real once the terrain is in: boats float and the sub dives at its water level
+	for (TActorIterator<AWFTerrain> It(GetWorld()); It; ++It)
+		if (It->IsLoaded()) { WaterLevelMeters = static_cast<float>(It->GetWaterLevel()); break; }
+	// the web build's authored fleet model (fleet-models.ts: the fleet build's look, else the chassis's), once imported
+	UStaticMesh* Model = WFAssets::Mesh(TEXT("Fleet"), AWFWorldBuildings::FleetModelFor(Def.Id, BuildId));
+	if (Model)
+	{
+		Body->SetStaticMesh(Model);
+		Body->SetRelativeScale3D(FVector::OneVector);
+		Body->SetRelativeLocation(FVector(0, 0, -Extent.Z)); // the model's origin is on the ground under its centre
+		Body->SetRelativeRotation(FRotator(0.f, ImportedModelYawDeg, 0.f));
+		Body->EmptyOverrideMaterials();
+	}
+	else if (UStaticMesh* Cube = LoadObject<UStaticMesh>(nullptr, TEXT("/Engine/BasicShapes/Cube.Cube")))
+	{
+		Body->SetStaticMesh(Cube);
+		Body->SetRelativeScale3D(Extent / 50.f); // the cube is 100 cm
+	}
+	// the stand-in block gets a paint by vehicle mode; an imported model keeps its own materials
+	UMaterialInterface* Base = Model ? nullptr : LoadObject<UMaterialInterface>(nullptr, TEXT("/Engine/BasicShapes/BasicShapeMaterial.BasicShapeMaterial"));
+	if (Base)
 	{
 		UMaterialInstanceDynamic* Paint = UMaterialInstanceDynamic::Create(Base, this);
 		const bool bAir = Profile->Mode == "AIR", bWater = Profile->Mode == "WATER";
@@ -212,6 +233,46 @@ void AWFVehicle::BuildInput()
 	Mapping->MapKey(FireAction, EKeys::LeftMouseButton);
 	Mapping->MapKey(SecondaryAction, EKeys::RightMouseButton);
 	Mapping->MapKey(LookAction, EKeys::Mouse2D);
+
+	// gamepad, and the phone's on-screen sticks (which send the gamepad stick axes): left stick drives and steers,
+	// right stick aims the guns
+	DriveAxisAction = Make(EInputActionValueType::Axis1D);
+	// dead zones: a resting stick that drifts must not hold the keyboard's W or A / D at zero
+	FEnhancedActionKeyMapping& StickDrive = Mapping->MapKey(DriveAxisAction, EKeys::Gamepad_LeftY);
+	StickDrive.Modifiers.Add(NewObject<UInputModifierDeadZone>(this));
+	FEnhancedActionKeyMapping& StickSteer = Mapping->MapKey(SteerAction, EKeys::Gamepad_LeftX);
+	StickSteer.Modifiers.Add(NewObject<UInputModifierDeadZone>(this));
+	StickSteer.Modifiers.Add(NewObject<UInputModifierNegate>(this)); // steer = left - right
+	// a stick is a rate: about 2 radians a second at full tilt through the mouse's 0.0035 rad per unit
+	auto StickAim = [this](FEnhancedActionKeyMapping& M) {
+		M.Modifiers.Add(NewObject<UInputModifierScaleByDeltaTime>(this));
+		UInputModifierScalar* Rate = NewObject<UInputModifierScalar>(this);
+		Rate->Scalar = FVector(570.0, 570.0, 1.0);
+		M.Modifiers.Add(Rate);
+	};
+	StickAim(Mapping->MapKey(LookAction, EKeys::Gamepad_RightX));
+	FEnhancedActionKeyMapping& AimY = Mapping->MapKey(LookAction, EKeys::Gamepad_RightY);
+	AimY.Modifiers.Add(NewObject<UInputModifierSwizzleAxis>(this));
+	StickAim(AimY);
+	Mapping->MapKey(FireAction, EKeys::Gamepad_RightTrigger);
+	Mapping->MapKey(SecondaryAction, EKeys::Gamepad_LeftTrigger);
+	Mapping->MapKey(HandbrakeAction, EKeys::Gamepad_FaceButton_Bottom);
+	Mapping->MapKey(BoostAction, EKeys::Gamepad_LeftThumbstick);
+	Mapping->MapKey(ExitAction, EKeys::Gamepad_FaceButton_Top);
+	Mapping->MapKey(AscendAction, EKeys::Gamepad_RightShoulder);
+	Mapping->MapKey(DescendAction, EKeys::Gamepad_LeftShoulder);
+}
+
+UInputAction* AWFVehicle::GetTouchAction(FName Id) const
+{
+	if (Id == TEXT("Drive.Fire")) return FireAction;
+	if (Id == TEXT("Drive.Secondary")) return SecondaryAction;
+	if (Id == TEXT("Drive.Handbrake")) return HandbrakeAction;
+	if (Id == TEXT("Drive.Boost")) return BoostAction;
+	if (Id == TEXT("Drive.Ascend")) return AscendAction;
+	if (Id == TEXT("Drive.Descend")) return DescendAction;
+	if (Id == TEXT("Drive.Exit")) return ExitAction;
+	return nullptr;
 }
 
 void AWFVehicle::PawnClientRestart()
@@ -247,6 +308,13 @@ void AWFVehicle::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent
 	In->BindActionValueLambda(BoostAction, ETriggerEvent::Triggered, [this](const FInputActionValue&) { Input.bBoost = true; });
 	In->BindActionValueLambda(BoostAction, ETriggerEvent::Completed, [this](const FInputActionValue&) { Input.bBoost = false; });
 	In->BindAction(ExitAction, ETriggerEvent::Started, this, &AWFVehicle::Exit);
+	// the stick's forward / back: pushed past a quarter it holds the throttle or the brake (vehicle-handling.ts takes 0/1)
+	In->BindActionValueLambda(DriveAxisAction, ETriggerEvent::Triggered, [this](const FInputActionValue& V) {
+		const float Y = V.Get<float>();
+		Input.Throttle = Y > 0.25f ? 1 : 0;
+		Input.Brake = Y < -0.25f ? 1 : 0;
+	});
+	In->BindActionValueLambda(DriveAxisAction, ETriggerEvent::Completed, [this](const FInputActionValue&) { Input.Throttle = 0; Input.Brake = 0; });
 	In->BindActionValueLambda(FireAction, ETriggerEvent::Triggered, [this](const FInputActionValue&) { bTrigger = true; });
 	In->BindActionValueLambda(FireAction, ETriggerEvent::Completed, [this](const FInputActionValue&) { bTrigger = false; });
 	In->BindActionValueLambda(SecondaryAction, ETriggerEvent::Triggered, [this](const FInputActionValue&) { bSecondaryTrigger = true; });

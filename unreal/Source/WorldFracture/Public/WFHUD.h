@@ -32,6 +32,8 @@ private:
 
 	void Line(const FString& Text, float X, float Y, const FLinearColor& Color, float Scale = 1.f);
 	bool WantsTouchControls() const;
+	/** the touch button's action on whatever is possessed: the Operator on foot, the vehicle while driving */
+	class UInputAction* TouchActionFor(FName Id) const;
 	void DrawTouchControls(float W, float H);
 	void ReleaseTouch(FName BoxName);
 	/** where each button was drawn this frame (for letting go when the finger slides off) */

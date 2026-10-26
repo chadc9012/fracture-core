@@ -8,7 +8,7 @@ import { chippedBlock, steelDrum } from "@/game/organic-geometry";
 
 /**
  * Continental transit (travel.ts), drawn: a transit terminal beside every landing zone (a canopy over a lit departure pad,
- * a departures board and a beacon mast so it can be found), and the Thalassia elevator off Veyloria's coast (a pier out to
+ * a departures board and a beacon mast so it can be found), and the Thalassia elevator off Aetheria's Verdant shore (a pier out to
  * a steel platform, an open lift tower with its car, and the matching car at the Sentry Dock far below). Shapes come from
  * the shared generators (chippedBlock, steelDrum) plus lathe/tube pieces with enough segments to read as built things.
  */

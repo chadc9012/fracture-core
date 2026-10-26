@@ -18,7 +18,7 @@
  * `shotsToKill` / `timeToKill` turn the rules into numbers (the tests hold the bands; a weapon card can show them).
  */
 import type { ClassId } from "./loadout";
-import { WEAPONS, type WeaponId } from "./weapons";
+import { frameDef, type FrameId } from "./weapon-classes";
 
 export type WeaponRole = "CLOSE" | "MID" | "LONG" | "ANY";
 export type WeaponMeta = {
@@ -34,7 +34,8 @@ export type WeaponMeta = {
   precision: number;
 };
 
-export const WEAPON_META: Record<WeaponId, WeaponMeta> = {
+/** keyed by firing frame: a loadout gun or a gear class (weapon-classes.ts) */
+export const WEAPON_META: Record<FrameId, WeaponMeta> = {
   SHOTGUN: { role: "CLOSE", label: "Close quarters · one-shot inside 8 m", rangeFull: 8, rangeEnd: 20, rangeFloor: 0.2, precision: 1.15 },
   AUTO: { role: "MID", label: "Rapid-fire · mid range", rangeFull: 28, rangeEnd: 55, rangeFloor: 0.7, precision: 1.5 },
   PULSE: { role: "MID", label: "Burst · mid range", rangeFull: 38, rangeEnd: 70, rangeFloor: 0.65, precision: 1.6 },
@@ -45,10 +46,14 @@ export const WEAPON_META: Record<WeaponId, WeaponMeta> = {
   CINDER: { role: "ANY", label: "Explosive · burns", rangeFull: Infinity, rangeEnd: Infinity, rangeFloor: 1, precision: 1 },
   FROSTBITE: { role: "ANY", label: "Explosive · chills", rangeFull: Infinity, rangeEnd: Infinity, rangeFloor: 1, precision: 1 },
   VITRIOL: { role: "ANY", label: "Explosive · corrodes", rangeFull: Infinity, rangeEnd: Infinity, rangeFloor: 1, precision: 1 },
+  SMG: { role: "CLOSE", label: "Fastest fire · close range", rangeFull: 14, rangeEnd: 32, rangeFloor: 0.55, precision: 1.35 },
+  SNIPER: { role: "LONG", label: "One shot · aim down sights", rangeFull: 150, rangeEnd: 250, rangeFloor: 0.9, precision: 2.4 },
+  LMG: { role: "MID", label: "Big magazine · sustained fire", rangeFull: 32, rangeEnd: 60, rangeFloor: 0.7, precision: 1.4 },
+  FUSION: { role: "CLOSE", label: "Five-bolt volley · close to mid", rangeFull: 18, rangeEnd: 36, rangeFloor: 0.4, precision: 1.1 },
 };
 
 /** damage multiplier at `distance` metres for this class */
-export function rangeFalloff(id: WeaponId, distance: number): number {
+export function rangeFalloff(id: FrameId, distance: number): number {
   const m = WEAPON_META[id];
   if (!(distance > m.rangeFull)) return 1;
   if (distance >= m.rangeEnd) return m.rangeFloor;
@@ -56,17 +61,17 @@ export function rangeFalloff(id: WeaponId, distance: number): number {
 }
 
 // ---- class affinity ----
-export const AFFINITY: Record<ClassId, readonly WeaponId[]> = {
-  TITAN: ["AUTO", "SHOTGUN"],
-  HUNTER: ["SIDEARM", "PULSE"],
-  WARLOCK: ["HEAVY", "ROCKET", "CINDER", "FROSTBITE", "VITRIOL"],
+export const AFFINITY: Record<ClassId, readonly FrameId[]> = {
+  TITAN: ["AUTO", "SHOTGUN", "LMG"],
+  HUNTER: ["SIDEARM", "PULSE", "SNIPER"],
+  WARLOCK: ["HEAVY", "FUSION", "SMG", "ROCKET", "CINDER", "FROSTBITE", "VITRIOL"],
 };
 export const AFFINITY_DAMAGE = 1.12;
 export const AFFINITY_PRECISION = 0.25;
-export const hasAffinity = (cls: ClassId | null | undefined, id: WeaponId) => !!cls && AFFINITY[cls].includes(id);
+export const hasAffinity = (cls: ClassId | null | undefined, id: FrameId) => !!cls && AFFINITY[cls].includes(id);
 
 /** the precision multiplier this operator gets with this gun */
-export const precisionFor = (id: WeaponId, cls?: ClassId | null) => (WEAPON_META[id].precision > 1 ? WEAPON_META[id].precision + (hasAffinity(cls, id) ? AFFINITY_PRECISION : 0) : 1);
+export const precisionFor = (id: FrameId, cls?: ClassId | null) => (WEAPON_META[id].precision > 1 ? WEAPON_META[id].precision + (hasAffinity(cls, id) ? AFFINITY_PRECISION : 0) : 1);
 
 // ---- power level ----
 /** power each operator level adds on top of the average gear power (levels past the cap add nothing) */
@@ -94,20 +99,20 @@ export function powerScale(delta: number): number {
 // ---- one hit, and kill time ----
 export type HitContext = { distance: number; precision: boolean; cls?: ClassId | null };
 /** the class-side multiplier on one bullet hit: range band x precision x affinity (power and build scale on top) */
-export function hitMultiplier(id: WeaponId, hit: HitContext): number {
+export function hitMultiplier(id: FrameId, hit: HitContext): number {
   return rangeFalloff(id, hit.distance) * (hit.precision ? precisionFor(id, hit.cls) : 1) * (hasAffinity(hit.cls, id) ? AFFINITY_DAMAGE : 1);
 }
 
 export type KillOpts = HitContext & { /** everything else multiplying a hit: build, skill tree, gear power, power level */ scale?: number };
 /** projectile hits to kill an enemy with `hp` (each pellet counts) */
-export function shotsToKill(id: WeaponId, hp: number, o: KillOpts): number {
-  const w = WEAPONS[id];
+export function shotsToKill(id: FrameId, hp: number, o: KillOpts): number {
+  const w = frameDef(id);
   const perHit = w.damage * hitMultiplier(id, o) * (o.scale ?? 1);
   return perHit > 0 ? Math.ceil(hp / perHit - 1e-9) : Infinity;
 }
 /** seconds from the first trigger pull to the killing hit, every hit landing (reloads included) */
-export function timeToKill(id: WeaponId, hp: number, o: KillOpts): number {
-  const w = WEAPONS[id], n = shotsToKill(id, hp, o);
+export function timeToKill(id: FrameId, hp: number, o: KillOpts): number {
+  const w = frameDef(id), n = shotsToKill(id, hp, o);
   if (!Number.isFinite(n)) return Infinity;
   const perPull = Math.max(1, w.burst) * (w.pellets ?? 1);
   const pulls = Math.ceil(n / perPull);

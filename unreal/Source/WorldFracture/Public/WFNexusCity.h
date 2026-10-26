@@ -42,6 +42,16 @@ public:
 	/** Hub centre in Unreal units. */
 	FVector GetHubCentre() const { return HubCentre; }
 	bool IsBuilt() const { return bBuilt; }
+	/** the hub's ground height in the web build (m): the city stands at it when bOnTerrain */
+	double GetDatum() const { return DatumM; }
+	/** how far the city reaches from the hub centre (m) */
+	double GetCityRadius() const { return CityRadiusM; }
+
+	/** Stand the city at its real height on the terrain (the web build's hub ground); false keeps it at Z = 0. Set before
+	 * the actor begins play (the game mode spawns it deferred). */
+	UPROPERTY(EditAnywhere, Category = "Nexus City") bool bOnTerrain = false;
+	/** Imported building models: an extra turn (degrees) if the importer's axes leave them facing the wrong way. */
+	UPROPERTY(EditAnywhere, Category = "Nexus City|Look") float ImportedModelYawDeg = 0.f;
 
 	/** Night look for the "Nexus at night" target frame: dims the sun to moonlight, cools the sky, adds street-level fog. */
 	void ApplyNightLook();
@@ -58,6 +68,8 @@ public:
 private:
 	/** one instanced draw per (shape, colour, collision) */
 	UInstancedStaticMeshComponent* Batch(UStaticMesh* Mesh, const FLinearColor& Color, bool bNeon, bool bCollide);
+	/** an imported model keeps its own materials */
+	UInstancedStaticMeshComponent* ModelBatch(UStaticMesh* Mesh);
 	/** a box in rules metres: centre (x, y up, z), size (sx, sy, sz), turned yaw radians the web build's way (about +y) */
 	void Box(UInstancedStaticMeshComponent* To, double X, double Y, double Z, double SX, double SY, double SZ, double Yaw = 0) const;
 	void Cylinder(UInstancedStaticMeshComponent* To, double X, double Y, double Z, double Diameter, double Height) const;
@@ -88,4 +100,6 @@ private:
 	FRotator SpawnRotation = FRotator::ZeroRotator;
 	FVector HubCentre = FVector::ZeroVector;
 	bool bBuilt = false;
+	double DatumM = 0;
+	double CityRadiusM = 95;
 };

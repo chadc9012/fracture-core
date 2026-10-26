@@ -17,7 +17,7 @@ export type TripBooking = { kind: JourneyKind; seatStyle: SeatStyle; fromId: str
 /** A terminal's departures board (travel.ts): from an airport, flights to every other playable continent; from a seaport,
  * ferries along the sea lanes. Continents are separate
  * worlds, so this (or deploying from the planet map) is the way across. Thalassia is not on the board: its elevator stands
- * off Veyloria's coast, or take an underwater vehicle. Airports with a private hangar (Nexus, Neon) and any airport where your
+ * off Aetheria's Verdant shore, or take an underwater vehicle. Airports with a private hangar (Nexus, Neon) and any airport where your
  * Phantom is parked also show Private aviation (phantom-jet.ts): buy, open the hangar, recall the jet, or fly it anywhere. */
 export function TransitPanel({ terminalId, progression, onFly, onClose, onOpenHangar, onProgression }: {
   terminalId: string; progression: PlayerProgression; onFly: (target: DeployTarget, trip: TripBooking) => void; onClose: () => void;
@@ -87,7 +87,7 @@ export function TransitPanel({ terminalId, progression, onFly, onClose, onOpenHa
             {msg && <p role="status" className="mt-1 text-[11px] text-primary">{msg}</p>}
           </section>
         )}
-        <p className="mt-3 flex items-center gap-2 font-mono text-[10px] text-muted-foreground"><Waves className="size-3.5" /> Thalassia: the elevator platform off Veyloria's coast, or an underwater vehicle.</p>
+        <p className="mt-3 flex items-center gap-2 font-mono text-[10px] text-muted-foreground"><Waves className="size-3.5" /> Thalassia: the elevator platform off Aetheria's Verdant shore, or an underwater vehicle.</p>
       </div>
     </div>
   );

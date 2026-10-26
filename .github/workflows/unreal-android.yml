@@ -34,6 +34,17 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Join the web build's models (one mesh per model)
+        shell: pwsh
+        run: |
+          python -m pip install --quiet bpy
+          python unreal/tools/join_models.py build/joined/buildings (Get-ChildItem public/models/buildings/*.glb).FullName
+          python unreal/tools/join_models.py build/joined/fleet (Get-ChildItem public/models/fleet/*.glb).FullName
+
       - name: Build, cook and package for Android
         shell: pwsh
         run: |
@@ -42,6 +53,12 @@ jobs:
           if (!(Test-Path $uat)) { throw "Unreal Engine not found at $ue (set UE_ROOT)" }
           $project = Join-Path $PWD "unreal\WorldFracture.uproject"
           $out = Join-Path $PWD "build\android"
+          # the editor (with the game module) makes the materials and imports the models, then the packaging cooks them in
+          & (Join-Path $ue "Engine\Build\BatchFiles\Build.bat") WorldFractureEditor Win64 Development -project="$project"
+          if ($LASTEXITCODE -ne 0) { throw "the editor build failed ($LASTEXITCODE)" }
+          $env:WF_JOINED_MODELS = Join-Path $PWD "build\joined"
+          & (Join-Path $ue "Engine\Binaries\Win64\UnrealEditor-Cmd.exe") "$project" -run=pythonscript -script="$(Join-Path $PWD 'unreal\tools\setup_assets.py')" -unattended -nullrhi -nosplash
+          if ($LASTEXITCODE -ne 0) { throw "the asset setup failed ($LASTEXITCODE)" }
           & $uat BuildCookRun -project="$project" -platform=Android -cookflavor=ASTC -clientconfig=${{ inputs.config }} `
             -build -cook -stage -package -pak -archive -archivedirectory="$out" -utf8output -nop4 -unattended
           if ($LASTEXITCODE -ne 0) { throw "BuildCookRun failed ($LASTEXITCODE)" }

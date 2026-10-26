@@ -151,7 +151,7 @@ export function dungeonDeploy(dungeonId: string, now: number) {
   const dest = destinationInfo(DUNGEON_DESTINATION[d.id]!);
   const worldGate = gate.x !== 0 || gate.z !== 0;
   // stand just off the gate's trigger so the walk-in gate does not fire first
-  // a submerged destination (Thalassia) is entered from the elevator pier on Veyloria's shore: you come back out on dry land
+  // a submerged destination (Thalassia) is entered from the elevator pier on the Verdant shore: you come back out on dry land
   const at = worldGate ? { x: gate.x, z: gate.z + 18 } : dest.drop.y !== undefined ? { ...thalassiaElevator().pier } : { x: dest.drop.x, z: dest.drop.z };
   return { id: `dungeon:${d.id}`, name: d.name, sub: `Dungeon · ${d.place}`, color: "#5ee7ff", ...at };
 }

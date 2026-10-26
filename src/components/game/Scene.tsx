@@ -181,6 +181,7 @@ import { ADAPTIVE_TUTORIAL_INIT, maybeReteach, recordStruggle } from "@/game/ada
 import { isValidPlayerState, resetFrameFailureCount, sanitizePlayerState, softFrameFailure } from "@/game/safe-state";
 import { difficultyCurve, playerPowerScore } from "@/game/balance";
 import { operatorPower } from "@/game/weapon-meta";
+import { arsenalFor, type ArmedWeapon, type FrameId } from "@/game/weapon-classes";
 import type { TutorialEvent, TutorialState } from "@/game/onboarding";
 import { CITY_RADIUS, DOCK_DECK_Y, REACTOR_REACH, REBREATHER_DRAIN_SCALE, SECTOR_LABEL, airStationAt, airlockSite, coolantDamage, coolantPhase, dockSite, hullDamagePerSec, hullStressStep, reactorSite, ringWaypoint, sectorAt, type ThalassiaSector } from "@/game/thalassia-sectors";
 import { airlockRestored } from "@/game/missions/descent-protocol";
@@ -336,7 +337,7 @@ export type HudState = {
   weaponName: string;
   weaponSlot: number;
   /* ammo + weapon selection */
-  ammo: { id: WeaponId; name: string; mag: number; magSize: number; reserve: number; element?: string }[];
+  ammo: { id: WeaponId; /** weapon-classes.ts: the class it fires as (e.g. SNIPER in the Auto Rifle's slot) */ frame?: FrameId; name: string; mag: number; magSize: number; reserve: number; element?: string }[];
   reloading: number;
   weaponWheel: boolean;
   weaponSwitched: number;
@@ -720,6 +721,9 @@ function SceneImpl({
   const livingMarks = useMemo(() => (gear ? livingMarkers({ ...(gear as PlayerProgression), living: gear.living ?? EMPTY_LIVING }) : []), [gear]);
   // Global Balance Controller: recomputed only when equipped gear/clears/missions actually change,
   // not every frame — the frame loop just assigns the (already-cheap) result into sim.mods below.
+  // weapon-classes.ts: the loadout as it fires with the equipped gear (an equipped SMG / sniper / fusion rifle takes the Auto
+  // Rifle's slot, an LMG the Heavy Cannon's): stats, HUD name and the class the range/precision rules read
+  const arsenal = useMemo(() => arsenalFor(gear ? { inventory: gear.inventory, equippedGear: gear.equippedGear } : undefined), [gear?.inventory, gear?.equippedGear]);
   // weapon-meta.ts: the operator's power level, Destiny style (average equipped gear power + a bonus per level)
   const operatorPowerNow = useMemo(() => operatorPower((gear?.inventory ?? []).filter((item) => item.slot !== "vehicle" && gear?.equippedGear[item.slot] === item.id).map((item) => item.power), gear?.level ?? 1), [gear?.inventory, gear?.equippedGear, gear?.level]);
   const balance = useMemo(() => difficultyCurve(playerPowerScore({ inventory: gear?.inventory ?? [], equippedGear: gear?.equippedGear ?? {}, dungeonClears: gear?.dungeonClears ?? {}, completedMissions: gear?.completedMissions ?? [] } as Parameters<typeof playerPowerScore>[0])), [gear?.inventory, gear?.equippedGear, gear?.dungeonClears, gear?.completedMissions]);
@@ -1788,7 +1792,7 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
       s.weapon = id; s.burstLeft = 0; s.reload = 0; s.switchedAt = performance.now();
       s.fireCool = Math.max(s.fireCool, 0.25);
       sfx.playSwitch();
-      alert(sim, `${WEAPONS[id].name} equipped`);
+      alert(sim, `${arsenal[id].name} equipped`);
     };
     const order = orderRef.current;
     if (!order.includes(s.weapon)) equip(order[0]!);
@@ -1802,8 +1806,10 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
       const [rx = 0, ry = 0] = [pad.axes[2], pad.axes[3]];
       if (Math.hypot(rx, ry) > 0.6) equip(Math.abs(rx) > Math.abs(ry) ? (rx > 0 ? order[1 % order.length]! : order[order.length - 1]!) : (ry < 0 ? order[0]! : order[2 % order.length]!));
     }
-    const def = WEAPONS[s.weapon];
+    const def = arsenal[s.weapon];
     const clip = s.ammo[s.weapon];
+    // a class swap can shrink the magazine (an 80-round LMG back to a 4-shell cannon): never hold more than fits
+    if (def.mag > 0 && clip.mag > def.mag) { clip.reserve += clip.mag - def.mag; clip.mag = def.mag; }
     const startReload = () => { if (def.mag > 0 && s.reload <= 0 && clip.mag < def.mag && clip.reserve > 0) { s.reload = def.reload; s.burstLeft = 0; sfx.playReload("start"); alert(sim, `Reloading ${def.name}`); } };
     if (!s.inVehicle && (keyTap(binds.keyboard.reload) || padTap(binds.gamepad.reload))) startReload();
 
@@ -1835,7 +1841,7 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
     }
     padPrev.current = padNow;
     keyPrev.current = new Set(held);
-    const wpn = s.inVehicle ? WEAPONS.AUTO : WEAPONS[s.weapon];
+    const wpn: ArmedWeapon = s.inVehicle ? VEHICLE_SIDEARM : arsenal[s.weapon];
     const equippedWeapon = gear?.inventory.find((item) => item.id === gear.equippedGear[s.inVehicle ? "vehicle" : s.weapon === "HEAVY" || WEAPONS[s.weapon].kind === "launcher" ? "heavy" : s.weapon === "PULSE" ? "secondary" : "primary"]);
     const gearPower = equippedWeapon ? weaponDamageMultiplier(equippedWeapon.power) : 1;
     // foundries.ts: the equipped weapon's foundry is a real rule (Häkke/Black Armory in sim.ts, Omolon/SUROS/Tex here)
@@ -1917,12 +1923,12 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
       const pellets = s.inVehicle ? 1 : wpn.pellets ?? 1;
       for (let pi = 0; pi < pellets; pi++) {
         const py = pi === 0 ? yawJ : (Math.random() - 0.5) * 2 * spread, pp = pi === 0 ? pitchJ : (Math.random() - 0.5) * 2 * spread;
-        if (fireBullet(sim, s.x, s.y + SHOT_EYE, s.z, s.yaw + py, s.inVehicle, s.pitch + s.recoil + pp, wpn.damage * gearPower * hipMult * (1 + armorFxRef.current.weaponDamage), wpn.knock / pellets, (wpn.heat * heatMult) / pellets, s.inVehicle ? undefined : wpn.element, pellets > 1 ? "PELLET" : "BULLET", s.inVehicle ? undefined : { weapon: wpn.id })) fired = true;
+        if (fireBullet(sim, s.x, s.y + SHOT_EYE, s.z, s.yaw + py, s.inVehicle, s.pitch + s.recoil + pp, wpn.damage * gearPower * hipMult * (1 + armorFxRef.current.weaponDamage), wpn.knock / pellets, (wpn.heat * heatMult) / pellets, s.inVehicle ? undefined : wpn.element, pellets > 1 ? "PELLET" : "BULLET", s.inVehicle ? undefined : { weapon: wpn.frame })) fired = true;
       }
        if (fired) {
         s.shots++;
         bossActionLog.current = logAction(bossActionLog.current, "RANGED", performance.now() / 1000);
-        sfx.playShot(s.inVehicle ? "VEHICLE" : s.weapon);
+        sfx.playShot(s.inVehicle ? "VEHICLE" : wpn.sound);
         if (!s.inVehicle) ejectCasing(fxBus.casings, s.weapon, s.x + Math.sin(s.yaw) * 0.5, s.y + 0.9, s.z + Math.cos(s.yaw) * 0.5, s.yaw);
         s.recoil += wpn.recoil * recoilMult;
         s.punch += wpn.punch;
@@ -2319,7 +2325,7 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
       riftInside = dr.inside; riftShaft = dr.shaft;
       if (riftInside) submerged = false;
     }
-    /* ---------------- the Thalassia elevator (travel.ts): a platform off Veyloria's coast rides down to the Sentry Dock and back ---------------- */
+    /* ---------------- the Thalassia elevator (travel.ts): a platform off Aetheria's Verdant shore rides down to the Sentry Dock and back ---------------- */
     if (!interior && !riftInside) {
       const r = elevatorRide.current;
       if (r) {
@@ -2332,7 +2338,7 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
           if (r.down) { s.oxygen = OXYGEN_MAX; s.hull = 0; s.breachAt = performance.now() / 1000; }
           submerged = r.down;
           elevatorRide.current = null; elevatorRearm.current = false; borderPrev.current = null;
-          alert(sim, r.down ? "Sentry Dock · Thalassia. The car waits here to take you back up" : "Elevator platform · Veyloria coast");
+          alert(sim, r.down ? "Sentry Dock · Thalassia. The car waits here to take you back up" : "Elevator platform · Verdant shore");
         }
       } else if (!s.inVehicle) {
         const down = elevatorDown(s.x, s.z, s.y - 1.6), up = elevatorUp(s.x, s.y, s.z);
@@ -2953,7 +2959,7 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
       sfx.playExplosion(ev.kind === "ORBITAL_STRIKE", sfx.where(s.x, s.z, s.yaw, ev.x, ev.z));
       if (ev.kind === "ORBITAL_STRIKE") s.punch += dist < 40 ? 2 : 0.6;
       if (ev.kind === "RESUPPLY" && dist <= ev.radius) {
-        for (const id of WEAPON_ORDER) { s.ammo[id].mag = WEAPONS[id].mag; s.ammo[id].reserve = WEAPONS[id].reserve; }
+        for (const id of WEAPON_ORDER) { s.ammo[id].mag = arsenal[id].mag; s.ammo[id].reserve = arsenal[id].reserve; }
         alert(sim, "Supply drop collected · ammo restocked, hull repaired");
       }
     }
@@ -3408,10 +3414,10 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
         aimLocked: s.aimLocked,
         aiming: (mouse.current.aim || padState.current.aim),
         meleeTime: s.meleeTime,
-        weaponName: WEAPONS[s.weapon].name,
+        weaponName: arsenal[s.weapon].name,
         weaponSlot: orderRef.current.indexOf(s.weapon) + 1,
-        ammo: orderRef.current.map((id) => ({ id, name: WEAPONS[id].name, mag: s.ammo[id].mag, magSize: WEAPONS[id].mag, reserve: s.ammo[id].reserve, ...(WEAPONS[id].element && WEAPONS[id].element !== "KINETIC" ? { element: WEAPONS[id].element } : {}) })),
-        reloading: s.reload > 0 ? 1 - s.reload / WEAPONS[s.weapon].reload : 0,
+        ammo: orderRef.current.map((id) => ({ id, frame: arsenal[id].frame, name: arsenal[id].name, mag: s.ammo[id].mag, magSize: arsenal[id].mag, reserve: s.ammo[id].reserve, ...(WEAPONS[id].element && WEAPONS[id].element !== "KINETIC" ? { element: WEAPONS[id].element } : {}) })),
+        reloading: s.reload > 0 ? 1 - s.reload / arsenal[s.weapon].reload : 0,
         weaponWheel: s.wheel,
         weaponSwitched: s.switchedAt,
         controller: padState.current.connected,
@@ -3812,6 +3818,8 @@ export const scenePropsEqual = (a: Record<string, unknown>, b: Record<string, un
 const SceneMemo = memo(SceneImpl, (a, b) => scenePropsEqual(a as Record<string, unknown>, b as Record<string, unknown>));
 
 const NEON_SKY_GLOW = new THREE.Color("#7a5cff"), NEON_GROUND_GLOW = new THREE.Color("#1d5c6e"), HEMI_GROUND = new THREE.Color("#3b3326");
+/** on-foot fire code's stand-in while seated (vehicle guns have their own path; this only feeds shared bookkeeping) */
+const VEHICLE_SIDEARM: ArmedWeapon = { ...WEAPONS.AUTO, frame: "AUTO", sound: "AUTO" };
 export function Scene(props: SceneProps) {
   const latest = useRef(props);
   latest.current = props;

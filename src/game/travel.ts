@@ -2,7 +2,7 @@
  * Continents are separate worlds (planet.ts): you cannot walk, drive, sail or fly across a border, so every playable region
  * has a transit terminal (airport and port in one) beside its landing zone. Flights reuse the director's transit (the
  * same transition and teleport as deploying from the map). Thalassia is not on any continent: an elevator platform stands
- * in the sea off Veyloria's coast and rides down to the city's Sentry Dock; an underwater vehicle can also sail there. */
+ * in the sea off Aetheria's Verdant shore and rides down to the city's Sentry Dock; an underwater vehicle can also sail there. */
 import { NEON_SITE, REGIONS } from "./world";
 import { heightAt, WATER_LEVEL } from "./terrain";
 import { THALASSIA_CENTER } from "./thalassia-site";
@@ -31,14 +31,14 @@ function beside(x: number, z: number): { x: number; z: number } {
   }
   return { x: x + 14, z: z + 6 };
 }
-/** each landing zone's airport (the owner's global map board names: Aetheria Airport at Nexus, Neon International, …) */
+/** each landing zone's airport (the owner's global map board names: Aetheria Airport (Nexus), Neon International, Frosthelm Airport, …) */
 const AIRPORT_NAME: Record<string, string> = {
-  nexus: "Aetheria Airport · Nexus", neon: "Neon International Airport", veridan: "Veyloria Airport · Verdant", frostspire: "Frosthelm Airport · Frost Spire",
-  ember: "Pyrrath Airport · Ember Peaks", wastelands: "Wastelands Airstrip", solara: "Kharos Airport · Solara", swamps: "Sylvaris Airport · Shrouded Swamps",
+  nexus: "Aetheria Airport (Nexus)", neon: "Neon International Airport", veridan: "Verdant Airfield", frostspire: "Frosthelm Airport",
+  ember: "Pyrrath Airport", wastelands: "Wastelands Airstrip", solara: "Kharos Airport", swamps: "Sylvaris Airport",
 };
 /** each city's seaport, named after its coast */
 const SEAPORT_NAME: Record<string, string> = {
-  nexus: "Nexus Harbour", neon: "Nightreach Port · Neon City", veridan: "Verdant East Port", frostspire: "Whitegate Port",
+  nexus: "Nexus Harbour", neon: "Neon City Harbour", veridan: "Verdant Port", frostspire: "Whitegate Port",
   ember: "Blackrock Port", wastelands: "Rust Harbour", solara: "Dune Port", swamps: "Sylvaris Port",
 };
 const SITES: readonly { id: string; x: number; z: number; world: WorldId }[] = [
@@ -86,7 +86,7 @@ export const arrivalPoint = (t: Terminal) => ({ x: t.x + TERMINAL_RADIUS + 3, z:
 
 /* ---------------- the Thalassia elevator ---------------- */
 
-/** Off Veyloria's coast on the bearing to Thalassia: the first stretch of open sea past the shore, then 40 m out. The pier
+/** Off the Verdant shore on the bearing to Thalassia: the first stretch of open sea past the shore, then 40 m out. The pier
  * runs from the last dry ground to the platform. Computed once from the terrain, so it moves if the coast does. */
 let elevatorCache: { pier: { x: number; z: number }; platform: { x: number; z: number }; deckY: number } | null = null;
 export function thalassiaElevator() {
@@ -128,7 +128,7 @@ export const ELEVATOR_RIDE_S = 6;
 export const visitedKey = (w: WorldId | ContinentId) => `planet:visited:${w}`;
 export const hasVisited = (p: Pick<PlayerProgression, "earnedRewards">, w: WorldId | ContinentId) => p.earnedRewards.includes(visitedKey(w));
 /** the start continent counts as visited from the first step */
-export const START_WORLD: ContinentId = "veyloria";
+export const START_WORLD: ContinentId = "aetheria";
 
 export type FlightOption = { terminal: Terminal; continent: string; open: boolean; reason: string | null; visited: boolean };
 /** departures from a terminal. From an airport: every other airport, grouped by continent (open to every CORE continent;
