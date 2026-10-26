@@ -4,7 +4,8 @@
  * stepped each frame by Scene; the HUD only draws the resulting view. Pixels are screen pixels.
  */
 export type Motion = "IDLE" | "WALK" | "SPRINT" | "AIR";
-export type HitKind = "NONE" | "HIT" | "KILL";
+/** CRIT: a precision (head-band) hit, weapon-meta.ts */
+export type HitKind = "NONE" | "HIT" | "CRIT" | "KILL";
 
 export const MOTION_SPREAD: Record<Motion, number> = { IDLE: 0, WALK: 3, SPRINT: 9, AIR: 12 };
 export const BLOOM_SPREAD = 18;
@@ -14,6 +15,7 @@ export const BARREL_LAG_PX = 26;
 export const BARREL_MAX_PX = 44;
 export const HIT_SECONDS = 0.12;
 export const KILL_SECONDS = 0.32;
+export const CRIT_SECONDS = 0.16;
 
 export type ReticleState = { spread: number; bx: number; by: number; hit: HitKind; hitLeft: number };
 export const createReticle = (): ReticleState => ({ spread: 0, bx: 0, by: 0, hit: "NONE", hitLeft: 0 });
@@ -33,11 +35,12 @@ export const EMPTY_RETICLE: ReticleView = { gap: BASE_GAP, barrelX: 0, barrelY: 
 
 const clamp = (v: number, lim: number) => Math.max(-lim, Math.min(lim, v));
 
-/** Register a hit; a kill outranks a plain hit and is never downgraded while it is showing. */
+const HIT_RANK: Record<HitKind, number> = { NONE: 0, HIT: 1, CRIT: 2, KILL: 3 };
+/** Register a hit; a kill outranks a precision hit, which outranks a plain hit; a showing marker is never downgraded. */
 export function markHit(state: ReticleState, kind: Exclude<HitKind, "NONE">) {
-  if (state.hit === "KILL" && state.hitLeft > 0 && kind === "HIT") return;
+  if (state.hitLeft > 0 && HIT_RANK[kind] < HIT_RANK[state.hit]) return;
   state.hit = kind;
-  state.hitLeft = kind === "KILL" ? KILL_SECONDS : HIT_SECONDS;
+  state.hitLeft = kind === "KILL" ? KILL_SECONDS : kind === "CRIT" ? CRIT_SECONDS : HIT_SECONDS;
 }
 
 export function stepReticle(state: ReticleState, input: ReticleInput, dt: number): ReticleView {

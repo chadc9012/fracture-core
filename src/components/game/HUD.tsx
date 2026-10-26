@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { WEAPON_META } from "@/game/weapon-meta";
 import { xpRequiredForLevel } from "@/game/xp";
 import { DiveHud } from "./DiveHud";
 import { VehicleHud } from "./VehicleHud";
@@ -76,8 +77,9 @@ function Crosshair({ hud }: { hud: HudState }) {
   const r = hud.reticle;
   const gap = r.gap;
   const color = hud.overheated ? "var(--destructive)" : hud.aimLocked ? "var(--primary)" : "var(--foreground)";
-  const hitColor = r.hit === "KILL" ? "var(--warning)" : "var(--destructive)";
-  const hitSize = r.hit === "KILL" ? 22 : 14;
+  // a precision hit flashes gold (Destiny's crit colour), a kill gold and larger, a body hit red
+  const hitColor = r.hit === "KILL" || r.hit === "CRIT" ? "var(--warning)" : "var(--destructive)";
+  const hitSize = r.hit === "KILL" ? 22 : r.hit === "CRIT" ? 17 : 14;
   // four ticks ride the spread ring around the true screen centre; the barrel index drifts behind the camera
   return <div className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"><div className="relative h-0 w-0">
     {([[0, -1], [0, 1], [-1, 0], [1, 0]] as const).map(([x, y], index) => <span key={index} className="absolute block" style={{ width: x ? 8 : 2, height: y ? 8 : 2, background: color, boxShadow: `0 0 6px ${color}`, left: x * gap - (x ? (x > 0 ? 0 : 8) : 1), top: y * gap - (y ? (y > 0 ? 0 : 8) : 1), opacity: 0.85 }} />)}
@@ -138,7 +140,7 @@ function WeaponSelector({ hud }: { hud: HudState }) {
   if (!hud.ammo?.length) return null;
   const recent = performance.now() - (hud.weaponSwitched ?? 0) < 1100;
   if (!recent && !hud.weaponWheel) return null;
-  if (hud.weaponWheel) return <div className="absolute left-1/2 top-1/2 grid size-64 -translate-x-1/2 -translate-y-1/2 grid-cols-2 gap-20">{hud.ammo.map((weapon, index) => <div key={weapon.id} className={`hud-panel relative grid place-items-center p-2 text-center ${index + 1 === hud.weaponSlot ? "hud-glow text-primary" : "text-muted-foreground"}`}><CornerBrackets /><span className="text-[9px] uppercase">{weapon.name}<br />{weapon.magSize ? `${weapon.mag}/${weapon.reserve}` : "melee"}</span></div>)}</div>;
+  if (hud.weaponWheel) return <div className="absolute left-1/2 top-1/2 grid size-64 -translate-x-1/2 -translate-y-1/2 grid-cols-2 gap-20">{hud.ammo.map((weapon, index) => <div key={weapon.id} className={`hud-panel relative grid place-items-center p-2 text-center ${index + 1 === hud.weaponSlot ? "hud-glow text-primary" : "text-muted-foreground"}`}><CornerBrackets /><span className="text-[9px] uppercase">{weapon.name}<br />{weapon.magSize ? `${weapon.mag}/${weapon.reserve}` : "melee"}{WEAPON_META[weapon.id] && WEAPON_META[weapon.id].role !== "ANY" && <><br /><span className="text-[8px] tracking-[0.18em] opacity-70">{WEAPON_META[weapon.id].role === "CLOSE" ? "Close range" : WEAPON_META[weapon.id].role === "MID" ? "Mid range" : "Long range"}</span></>}</span></div>)}</div>;
   return <div className="absolute bottom-24 left-1/2 flex -translate-x-1/2 gap-1">{hud.ammo.map((weapon, index) => <div key={weapon.id} className={`h-1 w-10 ${index + 1 === hud.weaponSlot ? "bg-primary" : "bg-foreground/20"}`} style={index + 1 === hud.weaponSlot ? { boxShadow: "0 0 6px color-mix(in oklch, var(--primary) 70%, transparent)" } : undefined} />)}</div>;
 }
 /** Damage feedback: a red edge vignette that deepens below 40% health, and a brief flash whenever health drops. Presentation only. */

@@ -67,6 +67,9 @@ import { ENCOUNTERS } from "./scenario-encounters";
 import { encounterHpFloor, endEncounter, onDecoyShattered, resetEncounters, pinSummons, stepEncounters, type EncounterEvent, type EncounterState, type EncounterZone } from "./encounter-sim";
 import { rollWeaponLoot } from "./weapon-loot";
 import { isStaggeredNow, reactTo, hitPart } from "./enemy-reactions";
+import { enemyPower, hitMultiplier, powerScale } from "./weapon-meta";
+import type { WeaponId } from "./weapons";
+import type { ClassId } from "./loadout";
 import { PARTICIPATION_HITS, SCENARIO_LOOT, rollScenario, type ScenarioClaim } from "./scenario-loot";
 import { attunedElement, gimmickMultiplier, type DamageElement } from "./scenario-gimmicks";
 import { fireRound, splashDamage, stepRound, type Burst, type OrdnanceDef, type Round } from "./ordnance";
@@ -253,6 +256,10 @@ export type Bullet = {
   element?: DamageElement | undefined;
   /** gore presentation only: a shotgun pellet tears, a single round punches */
   cause?: GoreCause | undefined;
+  /** weapon-meta.ts: the on-foot gun that fired it (range band, precision, class affinity) and where it left the barrel; unset for vehicle guns */
+  weapon?: WeaponId | undefined;
+  ox?: number | undefined;
+  oz?: number | undefined;
 };
 export type BulletHit = "ground" | "cover" | "machine" | "truck" | "water";
 /** presentation log of where bullets struck (a fixed ring, IMPACT_LOG slots; impact effects read it, combat never does) */
@@ -499,6 +506,13 @@ export type WorldSim = {
   stealthMult: number;
   verbDamageMult: number;
   verbIncomingMult: number;
+  /** weapon-meta.ts, set by Scene each frame: the build's damage (ability synergy x momentum, on top of the skill tree's
+   * mods.bulletDamage), the operator's power level (null = untracked: no power scaling) and class (signature weapons) */
+  buildDamage: number;
+  operatorPower: number | null;
+  operatorClass: ClassId | null;
+  /** performance.now() of the player's last precision (head-band) hit: the gold hit marker and tick */
+  lastCrit: number;
   /** seasons/hazards state (see environment.ts): exposure meters, pending lightning, strike flashes */
   env: EnvState;
   /** thrown stratagem beacons and the detonations Scene drains each frame (ammo refill, sfx, camera punch) */
@@ -794,6 +808,10 @@ export function createSim(): WorldSim {
     stealthMult: 1,
     verbDamageMult: 1,
     verbIncomingMult: 1,
+    buildDamage: 1,
+    operatorPower: null,
+    operatorClass: null,
+    lastCrit: 0,
     env: createEnvState(),
     backpack: NO_BACKPACK,
     beacons: Array.from({ length: BEACON_POOL }, () => ({ alive: false, kind: "RESUPPLY" as StratagemId, state: "FLIGHT" as const, x: 0, y: 0, z: 0, vx: 0, vy: 0, vz: 0, timer: 0, radius: 0 })),
@@ -953,7 +971,7 @@ export function fireBullet(
   element?: DamageElement,
   cause?: GoreCause,
   /** vehicle guns (vehicle-weapons.ts): muzzle velocity and the shooter's own velocity, which the round keeps */
-  shot?: { speed?: number; inherit?: { vx: number; vy: number; vz: number }; heat?: "VEHICLE" | "FOOT" },
+  shot?: { speed?: number; inherit?: { vx: number; vy: number; vz: number }; heat?: "VEHICLE" | "FOOT"; weapon?: WeaponId },
 ) {
   if (sim.overheated) return false;
   const b = sim.bullets.find((v) => !v.alive);
@@ -977,6 +995,7 @@ export function fireBullet(
   b.knock = knock;
   b.element = element;
   b.cause = cause;
+  b.weapon = shot?.weapon; b.ox = x; b.oz = z;
   logBehavior(sim.adaptation, "combat", 0.35);
   return true;
 }
@@ -993,7 +1012,7 @@ export function fireLauncher(sim: WorldSim, id: LauncherId, x: number, y: number
   if (sim.weaponHeat >= 100) { sim.overheated = true; alert(sim, "WEAPON OVERHEAT — venting"); }
   const lock = L.guided ? pickLockTarget({ x, z }, yaw, sim.machines, L.lockCone, L.lockRange) : -1;
   const aim: [number, number, number] = [Math.sin(yaw) * Math.cos(pitch), Math.sin(pitch), Math.cos(yaw) * Math.cos(pitch)];
-  Object.assign(r, fireRound({ ...L.ordnance, damage: dmg * sim.mods.bulletDamage * sim.verbDamageMult }, { x, y, z }, aim), { launcher: id, element: L.element, target: lock, knock });
+  Object.assign(r, fireRound({ ...L.ordnance, damage: dmg * sim.mods.bulletDamage * sim.buildDamage * sim.verbDamageMult }, { x, y, z }, aim), { launcher: id, element: L.element, target: lock, knock });
   logBehavior(sim.adaptation, "combat", 0.6);
   return true;
 }
@@ -1011,7 +1030,7 @@ export function fireOrdnance(sim: WorldSim, def: OrdnanceDef, x: number, y: numb
   if (sim.weaponHeat >= 100) { sim.overheated = true; alert(sim, "WEAPON OVERHEAT — venting"); }
   const lock = def.turnRate > 0 ? pickLockTarget({ x, z }, yaw, sim.machines, 0.5, def.kind === "MISSILE" ? 260 : 120) : -1;
   const aim: [number, number, number] = [Math.sin(yaw) * Math.cos(pitch), Math.sin(pitch), Math.cos(yaw) * Math.cos(pitch)];
-  Object.assign(r, fireRound({ ...def, speed: def.speed + Math.max(0, carry), damage: dmg * sim.mods.bulletDamage * sim.verbDamageMult }, { x, y, z }, aim), { launcher: "ROCKET" as LauncherId, element: "KINETIC" as DamageElement, target: lock, knock });
+  Object.assign(r, fireRound({ ...def, speed: def.speed + Math.max(0, carry), damage: dmg * sim.mods.bulletDamage * sim.buildDamage * sim.verbDamageMult }, { x, y, z }, aim), { launcher: "ROCKET" as LauncherId, element: "KINETIC" as DamageElement, target: lock, knock });
   logBehavior(sim.adaptation, "vehicles", 0.6);
   return true;
 }
@@ -1349,6 +1368,8 @@ export function applyLightning(sim: WorldSim, strike: Strike, px: number, pz: nu
  * that decides scenario reward participation. Returns the damage to subtract from m.hp. */
 export function applyMachineDamageMods(sim: WorldSim, m: Machine, dmg: number, element: Parameters<typeof gimmickMultiplier>[1]["element"], px: number, pz: number): number {
   dmg *= sim.consumableDamageMult;
+  // weapon-meta.ts: power level against the enemy's (its region's difficulty), Destiny style
+  if (sim.operatorPower !== null) dmg *= powerScale(sim.operatorPower - enemyPower(byId(m.zone)?.difficulty ?? 0, m.elite, m.boss));
   const nowSec = performance.now() / 1000;
   markPlayerDamage(m); // bullets, abilities, launchers, turrets and strikes all price their damage here, so this is the player's damage
   if (m.vulnUntil > nowSec) dmg *= m.vulnMult;
@@ -1538,8 +1559,9 @@ export function stepSim(sim: WorldSim, input: SimInput) {
   stepAdaptation(sim.adaptation, dt);
   // Scene sets the build-driven squad fields once per frame (after stepSim); keep them across the rebuild
   // so enemy squads actually see the equipped archetype / shield / branch posture.
-  const { squadArchetype, rangedHoldFire, branchPosture } = sim.mods;
-  sim.mods = { ...adaptationMods(sim.adaptation), squadArchetype, rangedHoldFire, branchPosture };
+  const { squadArchetype, rangedHoldFire, branchPosture, incomingDamageScale } = sim.mods;
+  // incomingDamageScale is Scene's too (balance.ts difficulty curve): it was lost here every step
+  sim.mods = { ...adaptationMods(sim.adaptation), squadArchetype, rangedHoldFire, branchPosture, incomingDamageScale };
   sim.hp = stepHealth(sim.hp, dt, performance.now() / 1000 - sim.lastDamageAt, { bonusRate: sim.mods.regen + sim.armorRegen, safe: sim.inSafeZone });
 
   // ---------- Emergency Quest world event ----------
@@ -2310,8 +2332,15 @@ export function stepSim(sim: WorldSim, input: SimInput) {
         // report the strike where it met the body, not where the step ended
         b.x -= b.vx * dt * (1 - t); b.y -= b.vy * dt * (1 - t); b.z -= b.vz * dt * (1 - t);
         logImpact(sim, b, "machine");
-        let dmg = sim.mods.bulletDamage * b.dmg * sim.verbDamageMult;
+        let dmg = sim.mods.bulletDamage * sim.buildDamage * b.dmg * sim.verbDamageMult;
         if (sim.equippedElement !== "KINETIC") dmg += 0.35;
+        // weapon-meta.ts: the gun's range band, a head-band hit's precision multiplier and the class's signature weapons
+        if (b.weapon) {
+          // the head band of the drawn body (bodySpan pads the collider 0.2 m under the feet); bosses have their own weak points
+          const precision = !m.boss && hitPart(b.y, c.feet + 0.2, 1.85 * enemyBodyScaleOf(m.scale)) === "HEAD";
+          dmg *= hitMultiplier(b.weapon, { distance: Math.hypot(m.x - (b.ox ?? m.x), m.z - (b.oz ?? m.z)), precision, cls: sim.operatorClass });
+          if (precision) sim.lastCrit = performance.now();
+        }
         if (sim.equippedEvolution) { const st = sim.statuses.get(m); dmg *= evolutionDamageMult(sim.equippedEvolution, !!st && isChilled(st, performance.now() / 1000)); }
         if (sim.runes.bursts.length || sim.runes.devour || sim.runes.rift || sim.runes.awakened) dmg *= runeDamageMult(sim, m);
         if (sim.foundry === "HAKKE" && (m.elite || m.boss)) dmg *= FOUNDRY_RULES.hakkeArmored; // foundries.ts: Wall-Piercer

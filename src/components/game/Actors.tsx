@@ -18,7 +18,8 @@ import { diveBones } from "@/game/enemy-evasion";
 import { FACTIONS, laneSamples, type WorldSim } from "@/game/sim";
 import { getVoicePose, isBossSpeaker } from "@/game/voice-animation";
 import { walkHeight } from "@/game/terrain";
-import { enemyVisible } from "@/game/actor-cull";
+import { ENEMY_BUDGET, budgetedEnemies, enemyVisible } from "@/game/actor-cull";
+import { getPerfTier } from "@/game/perf-budget";
 import { FLEET_MODELS } from "@/game/fleet-models";
 import { AuthoredVehicle } from "./AuthoredVehicle";
 
@@ -242,11 +243,15 @@ export function WarMachines({ sim }: { sim: WorldSim }) {
     const g = group.current;
     if (!g) return;
     const t = state.clock.elapsedTime;
+    // render budget (actor-cull.ts): ordinary enemies draw nearest-first up to the tier's cap; bosses/scenario/summons always draw
+    const bud = ENEMY_BUDGET[getPerfTier()], cand: { i: number; d2: number }[] = [];
+    sim.machines.forEach((m, i) => { if (m.alive && !m.boss && !m.scenarioId && !m.summoned) { const ex = m.x - state.camera.position.x, ez = m.z - state.camera.position.z; cand.push({ i, d2: ex * ex + ez * ez }); } });
+    const draw = budgetedEnemies(cand, bud.range, bud.max);
     sim.machines.forEach((m, i) => {
       const node = g.children[i] as THREE.Group | undefined;
       if (!node) return;
       const cdx = m.x - state.camera.position.x, cdz = m.z - state.camera.position.z;
-      node.visible = enemyVisible(m, cdx * cdx + cdz * cdz);
+      node.visible = m.boss || m.scenarioId || m.summoned ? enemyVisible(m, cdx * cdx + cdz * cdz) : m.alive && draw.has(i);
       const prev = last[i], drive = drives[i];
       if (!m.alive) { if (prev) prev.x = NaN; return; }
       if (prev && drive) {

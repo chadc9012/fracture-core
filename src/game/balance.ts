@@ -31,6 +31,8 @@ function lerpCurve(x: number, points: readonly [number, number][]): number {
   return last[1];
 }
 
+/** outgoingDamageScale is no longer applied: weapon-meta.ts power level (operator vs enemy) decides how hard the player hits,
+ * so levelling makes kills faster instead of this curve easing damage off late. incomingDamageScale is still live. */
 export type DifficultyCurve = { incomingDamageScale: number; outgoingDamageScale: number };
 
 /** power 0 (fresh start) -> enemies hit softer, player hits harder (forgiving onboarding).
