@@ -62,6 +62,7 @@ import { decayPoise, hitPoise, INITIAL_POISE, isStaggered, isWeakPointOpen, open
 import { counterTuningFor, type CounterTuning } from "./boss-adaptive-ai";
 import { completeEmergencyQuest, EMERGENCY_QUEST_INIT, stepEmergencyQuest, type EmergencyQuest } from "./emergency-quest";
 import { scenarioById, scenarioFor, type UniqueScenario } from "./unique-scenarios";
+import { INITIAL_MAW, MAW_PERK, mawEffect, registerMawHit, type MawState } from "./maw-collapse";
 import { INITIAL_NULL_CHARGE, NULL_PERK, NULL_PULSE_POISE, NULL_PULSE_RADIUS, NULL_PULSE_STUN_SECONDS, registerNullHit, type NullChargeState } from "./null-disruption";
 import { ENCOUNTERS } from "./scenario-encounters";
 import { encounterHpFloor, endEncounter, onDecoyShattered, resetEncounters, pinSummons, stepEncounters, type EncounterEvent, type EncounterState, type EncounterZone } from "./encounter-sim";
@@ -425,6 +426,8 @@ export type WorldSim = {
   /** godforge.ts: the Godforged relic in hand (set each frame by Scene) with one hit counter per burst rune and the Devour counter */
   runes: RuneCombat & { charges: EvolutionCharge[]; devourHits: number };
   nullCharge: NullChargeState;
+  maw: MawState;
+  mawCollapse: { id: number; x: number; z: number; at: number } | null;
   /** last released Null Disruption pulse (id increments per pulse); Scene/NullPulseFx read it, never write it */
   nullPulse: { id: number; x: number; z: number; radius: number; at: number } | null;
   nextHitId: number;
@@ -786,6 +789,8 @@ export function createSim(): WorldSim {
     equippedEvolution: undefined,
     evoCharge: freshCharge(),
     nullCharge: { ...INITIAL_NULL_CHARGE },
+    maw: { ...INITIAL_MAW },
+    mawCollapse: null,
     nullPulse: null,
     nextHitId: 0, nextChainHitId: 0, chainState: emptyChainState(), lastChainReaction: null,
     encounterZones: [], encounterEvents: [], nextEncounterEventId: 1, nextEncounterZoneId: 1, hazardSpeedMult: 1,
@@ -2369,6 +2374,23 @@ export function stepSim(sim: WorldSim, input: SimInput) {
             }
             sim.nullPulse = { id: (sim.nullPulse?.id ?? 0) + 1, x: m.x, z: m.z, radius: NULL_PULSE_RADIUS, at: nowS };
             alert(sim, "NULL DISRUPTION — pulse released");
+          }
+        }
+        if (sim.equippedPerk === MAW_PERK) {
+          const nowS = performance.now() / 1000;
+          const r = registerMawHit(sim.maw, { now: nowS, eventId: sim.nextHitId++ });
+          sim.maw = r.state;
+          if (r.collapse) {
+            for (const other of sim.machines) {
+              if (!other.alive || other === m) continue;
+              const e = mawEffect(other.x - m.x, other.z - m.z, dmg);
+              if (!e) continue;
+              other.kx += e.pullX; other.kz += e.pullZ;
+              other.hp -= e.damage;
+              if (other.hp <= 0) defeatMachine(sim, other);
+            }
+            sim.mawCollapse = { id: (sim.mawCollapse?.id ?? 0) + 1, x: m.x, z: m.z, at: nowS };
+            alert(sim, "MAW COLLAPSE — singularity released");
           }
         }
         // (after the perks read the wind-up) flinch / stagger (enemy-reactions.ts): a stagger knocks a ranged wind-up back to the start (the shot is delayed, the telegraph stays readable) and holds the next attack

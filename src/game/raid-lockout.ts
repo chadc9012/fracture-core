@@ -7,6 +7,7 @@
  *  - NO PAYOUT PREVIEW: the UI never shows what a raid pays; the reward is what drops.
  * Keys live in earnedRewards (`raid-enc:<raid>:<tier>:<stage>#<operator>:W<week>`, union-merged by the cloud save) and the payout ledger, so
  * a merge can never double-pay. The first-ever clear extras (Starbreaker, regalia, blueprint) stay with hollow-star-raid.ts. */
+import { MAW_PERK } from "./maw-collapse";
 import { HOLLOW_STAR, HOLLOW_STAR_ID } from "./hollow-star-data";
 import type { GearItem, GearSlot } from "./inventory";
 import type { PlayerProgression } from "./progression";
@@ -65,7 +66,7 @@ export const dropRoll = (operator: string | undefined, tierId: string, stageId: 
 export function pieceFor(stageId: string, tierId: string): GearItem {
   const d = ENCOUNTERS[stageId]!.drop, tier = tierById("raid", tierId);
   if (d.kind === "set") return makeSetPiece(RAID_SET_ID, d.slot, pieceLevel(tier.rank))!;
-  return { id: d.id, name: d.name, slot: d.slot, power: piecePower(tier.rank), level: 1, element: d.element, rarity: "LEGENDARY", source: "The Hollow Star" };
+  return { id: d.id, name: d.name, slot: d.slot, power: piecePower(tier.rank), level: 1, element: d.element, rarity: "LEGENDARY", source: "The Hollow Star", perk: MAW_PERK };
 }
 
 export type EncounterClaim<P> = { progression: P; stages: string[]; paid: number; drops: GearItem[]; parts: number };

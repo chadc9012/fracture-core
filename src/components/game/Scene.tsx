@@ -1,3 +1,4 @@
+import { resetMaw } from "@/game/maw-collapse";
 import "@/game/venue-doors";
 import { CoastalBeaches } from "./CoastalBeaches";
 import { accessibleShop } from "@/game/shop-access";
@@ -1780,6 +1781,7 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
     const hipMult = foundry === "TEX_MECHANICA" && !(mouse.current.aim || padState.current.aim) ? FOUNDRY_RULES.texHip : 1;
     sim.equippedElement = equippedWeapon?.element ?? "KINETIC";
     if (sim.equippedPerk !== equippedWeapon?.perk) sim.nullCharge = { charge: 0, lastTimedAt: -1e9, cooldownUntil: sim.nullCharge.cooldownUntil, lastEventId: sim.nullCharge.lastEventId };
+    if (sim.equippedPerk !== equippedWeapon?.perk) sim.maw = resetMaw(sim.maw);
     sim.equippedPerk = equippedWeapon?.perk;
     if (sim.equippedEvolution !== equippedWeapon?.evolution?.ability) sim.evoCharge = freshCharge();
     sim.equippedEvolution = equippedWeapon?.evolution?.ability;
