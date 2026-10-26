@@ -282,6 +282,8 @@ private:
 	wf::env::FEnvState EnvState;
 	FString HazardWarning, RegionKind;
 	TWeakObjectPtr<class ADirectionalLight> SunLight;
+	/** the realistic sky, clouds, air and camera grade (WFAtmosphere.h), driven by the clock and weather */
+	TWeakObjectPtr<class AWFAtmosphere> Atmosphere;
 	bool bRegionAnchored = false;
 	FVector2D RegionAnchorCm = FVector2D::ZeroVector;
 	wf::godforge::FRegionCircle RegionCircle;

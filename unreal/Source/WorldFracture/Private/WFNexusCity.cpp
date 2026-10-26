@@ -1,4 +1,5 @@
 #include "WFNexusCity.h"
+#include "WFAtmosphere.h"
 
 #include "Components/DirectionalLightComponent.h"
 #include "Components/ExponentialHeightFogComponent.h"
@@ -508,6 +509,8 @@ void AWFNexusCity::ApplyNightLook()
 			Sky->SetIntensity(0.25f);
 			Sky->SetLightColor(FLinearColor(0.55f, 0.5f, 0.85f)); // violet night bounce
 		}
+	// the realistic atmosphere (WFAtmosphere) owns the air and the night grade when it is there: one height fog only
+	if (TActorIterator<AWFAtmosphere>(World)) return;
 	AExponentialHeightFog* Fog = nullptr;
 	for (TActorIterator<AExponentialHeightFog> It(World); It; ++It) { Fog = *It; break; }
 	if (!Fog) Fog = World->SpawnActor<AExponentialHeightFog>(HubCentre, FRotator::ZeroRotator); // at the city's own ground

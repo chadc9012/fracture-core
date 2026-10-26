@@ -12,6 +12,7 @@ public class WorldFracture : ModuleRules
 			"Core",
 			"CoreUObject",
 			"Engine",
+			"RHI", // AWFAtmosphere reads the feature level (mobile renderer or desktop)
 			"InputCore",
 			"EnhancedInput",
 			"ProceduralMeshComponent", // AWFTerrain's streamed ground tiles

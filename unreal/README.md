@@ -61,6 +61,20 @@ RB / LB next / previous weapon, D-pad down call vehicle, up ride Vyrak, right ha
 Re-export after a world change in the web build (from the repo root, each bundled with esbuild like the city):
 `tools/export-terrain.ts`, `tools/export-nexus-city.ts`, `tools/export-world-buildings.ts`.
 
+## Realistic rendering (UE5's own systems)
+- **Sky and air (AWFAtmosphere):** a physically based Sky Atmosphere (dawn, noon, sunset and dusk colour themselves from
+  the sun's angle), Unreal's volumetric clouds casting cloud shadows, exponential height fog with volumetric fog (light
+  shafts) on PC, a moon as the night's second atmosphere light, and one unbound post-process (histogram auto exposure,
+  filmic bloom, vignette, grain, AO, motion blur on PC, a richer night grade in Nexus and Neon). The game's clock and
+  weather drive it every tick: cloud, rain and fog thicken the haze and the deck, dim the sun and cool the grade.
+- **Light and shadow (Config/DefaultEngine.ini):** Lumen global illumination and reflections (software, on mesh distance
+  fields; set `r.Lumen.HardwareRayTracing` and `r.RayTracing` to True on an RTX card), Virtual Shadow Maps, Temporal
+  Super Resolution, Nanite on the imported opaque building and vehicle meshes (`tools/setup_assets.py`).
+- **Phones:** the mobile renderer keeps the atmosphere, clouds, height fog and post-process; Lumen, Nanite, volumetric
+  fog and motion blur are PC-only. `Config/DefaultDeviceProfiles.ini` raises the high-end Android profile.
+- Not built in this pass, and needing assets made in the editor: rain and splash particles (Niagara), UE Water bodies,
+  MetaHuman characters, Chaos vehicle physics.
+
 ## Android (APK)
 **No PC (cloud):** link your Epic Games account to GitHub, accept the EpicGames organization invite, save a classic token
 with `read:packages` as the repo secret `EPIC_GHCR_TOKEN`, then run the **Unreal Android APK (cloud)** workflow. It uses

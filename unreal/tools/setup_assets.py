@@ -141,6 +141,21 @@ def import_model(src, folder, collide):
         return False
     mesh = LIB.load_asset(target)
     instanced_safe(mesh)
+    # Nanite (PC): film-density geometry at a fraction of the cost; phones draw the mesh's own fallback, so nothing changes there
+    try:
+        # Nanite draws opaque and masked surfaces only: a mesh with glass (translucent) slots stays a plain mesh
+        opaque = all(
+            (slot.get_editor_property("material_interface") is None)
+            or slot.get_editor_property("material_interface").get_base_material().get_editor_property("blend_mode")
+            in (unreal.BlendMode.BLEND_OPAQUE, unreal.BlendMode.BLEND_MASKED)
+            for slot in mesh.get_editor_property("static_materials"))
+        if not opaque:
+            raise RuntimeError("translucent material slots")
+        ns = mesh.get_editor_property("nanite_settings")
+        ns.set_editor_property("enabled", True)
+        mesh.set_editor_property("nanite_settings", ns)
+    except Exception as e:  # an engine without Nanite settings on the mesh: leave it as a plain mesh
+        unreal.log_warning(f"[WF setup] {base}: Nanite not set ({e})")
     if collide:
         # buildings: walls you can't walk through, exactly as modelled
         body = mesh.get_editor_property("body_setup")

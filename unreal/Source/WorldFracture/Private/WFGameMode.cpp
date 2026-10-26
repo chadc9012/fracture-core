@@ -24,6 +24,7 @@
 #include "WFEnemy.h"
 #include "WFHUD.h"
 #include "WFNexusCity.h"
+#include "WFAtmosphere.h"
 #include "WFTerrain.h"
 #include "WFWorldBuildings.h"
 #include "WFProgressionSubsystem.h"
@@ -105,6 +106,18 @@ void AWFGameMode::EnsurePlayableWorld()
 			Sky->GetLightComponent()->SetIntensity(1.f);
 			Sky->GetLightComponent()->bRealTimeCapture = true;
 			Sky->GetLightComponent()->MarkRenderStateDirty(); // the component is already registered
+		}
+
+	// the realistic sky and air: Sky Atmosphere, volumetric clouds, height fog and the camera grade; it takes over the
+	// sun (as the atmosphere's sun light) and the sky light (captured live from that sky)
+	if (!Atmosphere.IsValid() && !TActorIterator<AWFAtmosphere>(World))
+		if (AWFAtmosphere* Air = World->SpawnActor<AWFAtmosphere>(FVector::ZeroVector, FRotator::ZeroRotator))
+		{
+			ASkyLight* SkyActor = nullptr;
+			for (TActorIterator<ASkyLight> It(World); It; ++It) { SkyActor = *It; break; }
+			ADirectionalLight* Sun = SunLight.Get();
+			Air->Bind(Sun ? Cast<UDirectionalLightComponent>(Sun->GetLightComponent()) : nullptr, SkyActor ? SkyActor->GetLightComponent() : nullptr);
+			Atmosphere = Air;
 		}
 
 	// A floor under the player if the level has nothing to stand on (never with the terrain: it is the ground, and a
@@ -1415,7 +1428,10 @@ void AWFGameMode::TickEnvironment(float DeltaSeconds)
 		const double Pitch = -FMath::RadiansToDegrees(FMath::Asin(FMath::Clamp(Elevation, -1.0, 1.0)));
 		const double Yaw = wf::env::HourOf(DayClock) / 24 * 360; // east in the morning, west in the evening
 		Sun->SetActorRotation(FRotator(static_cast<float>(Pitch), static_cast<float>(Yaw), 0.f));
-		if (Sun->GetLightComponent())
+		if (AWFAtmosphere* Air = Atmosphere.Get())
+			// the atmosphere lights the world physically: it sets the sun's and moon's strength from the angle and the weather
+			Air->Update(DeltaSeconds, Elevation, Night, Env.Weather.Cloud, Env.Weather.Precipitation, Env.Weather.Visibility, IsInNexus() || RegionId == TEXT("neon"));
+		else if (Sun->GetLightComponent())
 			Sun->GetLightComponent()->SetIntensity(static_cast<float>(FMath::Max(0.05, 6.0 * FMath::Max(0.0, Elevation + 0.1) * (1 - 0.7 * Env.Weather.Cloud))));
 	}
 
