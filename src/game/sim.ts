@@ -10,7 +10,7 @@ import { drivePattern } from "./pattern-drive";
 import { createAi, pickCover, shouldTakeCover, sightRange, stepAwareness, type EnemyAi } from "./enemy-perception";
 import { enemyHitChance, sightLine } from "./line-of-sight";
 import { DIVE, diveDirection, FLEE, fleeDirection, reactsInTime, roundThreat } from "./enemy-evasion";
-import { FLANK_AFTER, FLANK_GIVE_UP, findFlankSpot, GRENADE, GRENADE_AFTER, grenadeDamage, lobVelocity, MAX_FLANKERS, stepGrenade, throwsGrenades, type Grenade } from "./enemy-tactics";
+import { FLANK_AFTER, FLANK_GIVE_UP, PIN_RANGE, STAY_ALERT_HIDDEN, findFlankSpot, GRENADE, GRENADE_AFTER, grenadeDamage, lobVelocity, MAX_FLANKERS, stepGrenade, throwsGrenades, type Grenade } from "./enemy-tactics";
 import { freshGadgets, GADGET, inCaltrops, inFlames, droneTarget, mineTriggered, slowFor, spoofed, stepDrone, stepFlares, type GadgetState } from "./vehicle-gadgets";
 import { COVER_CHEST, COVER_HOLD, coverCandidates, coverPhase, findCover, HIDE_SECONDS } from "./enemy-cover";
 import { registeredModelSolids } from "./environment-collision";
@@ -1773,7 +1773,8 @@ export function stepSim(sim: WorldSim, input: SimInput) {
     const sight = sightRange(night, sim.envVisibility ?? 1, m.elite) * (sim.stealthMult ?? 1) * (aggro / 70 > 1 ? Math.min(1.6, aggro / 70) : 1);
     const forced = m.boss || m.mission || m.summoned || sim.hp < 35 && d < 40;
     const aiState = forced && d < aggro ? (ai.state = "ALERT", ai.awareness = 1, ai.lastX = px, ai.lastZ = pz, "ALERT")
-      : stepAwareness(ai, { distance: d, sight, noise: Math.min(1, (sim.playerNoise ?? 0) + sim.combatHeat / 120), damaged, facing: facingDot > 0.3, inView }, px, pz, dt);
+      : stepAwareness(ai, { distance: d, sight, noise: Math.min(1, (sim.playerNoise ?? 0) + sim.combatHeat / 120), damaged, facing: facingDot > 0.3, inView,
+        pinned: !inView && d < PIN_RANGE && (m.hiddenFor ?? 0) < STAY_ALERT_HIDDEN }, px, pz, dt);
     // ---- getting out of the way (enemy-evasion.ts): dive from an incoming round's blast, run out of a strike circle ----
     {
       const nowE = performance.now() / 1000, canEvade = !m.boss && !scripted && !m.decoy && !m.rival && d < 90;

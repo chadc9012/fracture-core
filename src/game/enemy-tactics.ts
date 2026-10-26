@@ -14,6 +14,11 @@
 import { sightLine, type Point3, type SightWorld } from "./line-of-sight";
 
 export const FLANK_AFTER = 3;
+/** a trooper that was fighting keeps the player pinned (stays ALERT) this long after they duck out of sight behind cover
+ * within `PIN_RANGE`: long enough to grenade (`GRENADE_AFTER`) and run a flank (`FLANK_AFTER`..`FLANK_GIVE_UP`), then it
+ * falls back to searching. Without it awareness decayed below ALERT about a second after the player vanished. */
+export const STAY_ALERT_HIDDEN = 12;
+export const PIN_RANGE = 60;
 export const FLANK_GIVE_UP = 8;
 export const MAX_FLANKERS = 2;
 export const FLANK_RING = [11, 15, 19] as const;
