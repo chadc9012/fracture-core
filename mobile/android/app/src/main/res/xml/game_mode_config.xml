@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- World Fracture opts in to Android's game modes, so Samsung Game Booster and the Game Dashboard list it as a game and can apply
+     their performance profiles, resolution downscaling and frame-rate limits to it. -->
+<game-mode-config xmlns:android="http://schemas.android.com/apk/res/android"
+    android:supportsPerformanceGameMode="true"
+    android:supportsBatteryGameMode="true"
+    android:allowGameDownscaling="true"
+    android:allowGameFpsOverride="true" />

@@ -452,6 +452,22 @@
   /* declutter (Oct 26 feedback: "screen feels cluttered"): in landscape the world is the point. Keep vitals, ammo, minimap, the
      mission line and the touch controls; drop the cloud chip, left info rail, side-quest panel, tutorial card and shrink the minimap. */
   .wf-cloud-chip, .wf-rail-left, .quest-hud, .onboarding-card { display: none !important; }
+  /* declutter, round 2 (owner phone shots Oct 26, "clean up screen clutter"): the ammo count wrapped onto two lines and the
+     shield/med counters sat on top of it. Ammo shrinks to one line with no heat bar; the counters ride above the ammo panel;
+     the vitals keep only the hull bar; the dash meter is a thin line with its name; the Nex chip and the minimap sit small. */
+  .hud-ammo { width: 104px !important; padding: 4px 8px !important; }
+  .hud-ammo > p:first-child { font-size: 8px; }
+  .hud-ammo > p:nth-child(2) { font-size: 22px !important; white-space: nowrap; }
+  .hud-ammo > div, .hud-ammo > p:last-child { display: none; }
+  .consumable-hud { bottom: 64px !important; right: auto !important; left: calc(clamp(150px, 22vw, 190px) + min(250px, 34vw) + 8px) !important; max-width: 120px !important; transform: scale(0.8); transform-origin: bottom left; }
+  .hud-health .hud-status > div:nth-child(n+3), .hud-health .hud-status > p:nth-child(n+3) { display: none !important; }
+  .dash-hud { bottom: 58px !important; opacity: 0.8; }
+  .wf-nex-chip { transform: scale(0.75); transform-origin: top right; }
+  /* the tracked-objective cards sat under the right-hand touch buttons, and the season/weather line overlapped the mission
+     title: the compass already marks those objectives with distances, so on a phone both go */
+  .wf-tracked, .wf-env-line { display: none !important; }
+  /* NOVA's line is already the subtitle at the bottom: the copy under the mission title only stacked on the hazard line */
+  .wf-nova-quote { display: none !important; }
   .mission-tracker { opacity: 0.85; }
   [aria-label="Minimap"] { transform: scale(0.55); }
 }

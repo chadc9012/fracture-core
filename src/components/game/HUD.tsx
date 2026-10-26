@@ -35,7 +35,7 @@ export function HUD({ hud, tutorialActive = false, onMenu, onAtlas, level }: { h
     {!tutorialActive && <><Compass markers={hud.markers ?? []} yaw={hud.yaw ?? 0} threats={hud.threats ?? []} />{vis.missionTracker && <TrackedObjectives markers={hud.markers ?? []} />}</>}
     <div className="absolute left-1/2 top-4 w-[min(26rem,calc(100%-7rem))] -translate-x-1/2 space-y-1 text-center text-[10px]">{hud.alerts.slice(0, 2).map((alert, index) => <p key={`${alert}-${index}`} className="hud-panel border-x border-primary/40 bg-background/45 px-3 py-1 text-foreground/90" style={{ opacity: 1 - index * 0.28 }}>{alert}</p>)}</div>
     {!tutorialActive && (hud.environment || hud.hazardWarning) && <div className="pointer-events-none absolute left-1/2 top-24 -translate-x-1/2 text-center font-mono text-[10px] uppercase tracking-[0.18em]">
-      {hud.environment && <p className="text-muted-foreground">{hud.environment}</p>}
+      {hud.environment && <p className="wf-env-line text-muted-foreground">{hud.environment}</p>}
       {hud.hazardWarning && <p className="mt-1 text-destructive">{hud.hazardWarning}</p>}
         {hud.hazard && <div className={hud.hazard.active ? "text-destructive" : "text-foreground/70"}><p>⚠ {hud.hazard.name}</p><div className="mt-0.5 h-0.5 w-24 bg-foreground/15"><div className="h-full bg-current" style={{ width: `${Math.round(hud.hazard.intensity * 100)}%` }} /></div></div>}
     </div>}

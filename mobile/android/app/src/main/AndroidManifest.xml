@@ -8,7 +8,16 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:largeHeap="true"
+        android:appCategory="game"
+        android:isGame="true"
         android:theme="@style/AppTheme">
+
+        <!-- Android game mode (Android 12+): Game Booster / Game Dashboard can switch the game between Performance, Standard and
+             Battery saver, and may scale its resolution and frame rate. MainActivity passes the mode to the game, which picks its
+             own frame cap and resolution from it (quality-governor.ts gameModeProfile). -->
+        <meta-data
+            android:name="android.game_mode_config"
+            android:resource="@xml/game_mode_config" />
 
         <activity
             android:configChanges="orientation|keyboardHidden|keyboard|screenSize|locale|smallestScreenSize|screenLayout|uiMode|navigation"

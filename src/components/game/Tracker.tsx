@@ -44,7 +44,7 @@ export function TrackedObjectives({ markers }: { markers: TrackedMarker[] }) {
   const rows = (["WAYPOINT", "MISSION", "RESOURCE", "BOSS"] as const).map((k) => [k, pick(k)] as const).filter(([, m]) => m);
   if (!rows.length) return null;
   return (
-    <HudRail side="right" order={2}><div className="pointer-events-none absolute right-4 top-40 hidden w-56 space-y-1.5 md:block" aria-label="Tracked objectives">
+    <HudRail side="right" order={2}><div className="wf-tracked pointer-events-none absolute right-4 top-40 hidden w-56 space-y-1.5 md:block" aria-label="Tracked objectives">
       {rows.map(([kind, m]) => m && (
         <div key={kind} className="hud-panel relative flex items-center gap-2 px-2 py-1.5" style={{ boxShadow: `0 0 12px color-mix(in oklch, ${MARKER_COLOR[kind]} 30%, transparent)`, borderColor: `color-mix(in oklch, ${MARKER_COLOR[kind]} 55%, transparent)` }}>
           <CornerBrackets />

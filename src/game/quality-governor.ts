@@ -46,3 +46,18 @@ export function monitorBounds(rate: FrameRate): [number, number] {
 export const dprDown = (d: number, touch: boolean) => Math.max(dprFloor(touch), Math.round((d - 0.25) * 100) / 100);
 /** on an incline: desktops step back up; phones hold their resolution (stepping up and down again was the hitching) */
 export const dprUp = (d: number, touch: boolean, max = 2) => (touch ? d : Math.min(max, d + 0.25));
+
+/* ---------------- Android game mode (Samsung Game Booster / Game Dashboard, Android 12+) ----------------
+ * The APK is registered as a game (AndroidManifest appCategory/isGame + game_mode_config), so Game Booster lists it and the player
+ * can pick Performance, Standard or Battery saver for it there. MainActivity passes that mode in as window.__wfGameMode; unless the
+ * player picked a frame rate in Settings, the game follows it. */
+export type OsGameMode = "performance" | "standard" | "battery" | "unsupported";
+export function gameModeProfile(mode: OsGameMode): { frameRate: FrameRate; dpr: number; label: string } {
+  if (mode === "performance") return { frameRate: 60, dpr: 1.75, label: "Performance" };
+  if (mode === "battery") return { frameRate: 30, dpr: 1.5, label: "Battery saver" };
+  return { frameRate: 30, dpr: PHONE_DPR, label: mode === "standard" ? "Standard" : "Not set" };
+}
+export const readOsGameMode = (): OsGameMode => {
+  const m = typeof window !== "undefined" ? (window as unknown as { __wfGameMode?: string }).__wfGameMode : undefined;
+  return m === "performance" || m === "standard" || m === "battery" ? m : "unsupported";
+};

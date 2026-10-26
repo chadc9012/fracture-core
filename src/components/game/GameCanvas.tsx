@@ -27,7 +27,7 @@ import type { VehicleId } from "@/game/vehicles";
 import { STARTER_VEHICLES, VEHICLES, vehicleAcquisition } from "@/game/vehicles";
 import { Button } from "@/components/ui/button";
 import type { RenderTier } from "@/game/performance";
-import { PHONE_DPR, phoneTier, defaultFrameRate, dprDown, dprFloor, dprUp, effectiveTier, frameInterval, monitorBounds, onDecline as governDecline, type FrameRate } from "@/game/quality-governor";
+import { PHONE_DPR, gameModeProfile, readOsGameMode, phoneTier, defaultFrameRate, dprDown, dprFloor, dprUp, effectiveTier, frameInterval, monitorBounds, onDecline as governDecline, type FrameRate } from "@/game/quality-governor";
 import { isTouchDevice } from "@/game/client-input";
 import { MissionCinematic } from "./MissionCinematic";
 import { recordClue } from "@/game/encounter-journal";
@@ -339,7 +339,11 @@ export function GameCanvas() {
   // frame pacing (quality-governor.ts): phones run a steady 30 by default at a fixed, sharper resolution
   const touchScreen = useMemo(() => typeof window !== "undefined" && isTouchDevice(), []);
   const [adaptiveDpr, setAdaptiveDpr] = useCountedState("adaptiveDpr", touchScreen ? PHONE_DPR : 1.5);
-  const frameRate: FrameRate = settings.frameRate ?? defaultFrameRate(touchScreen);
+  // Samsung Game Booster / Android game mode (MainActivity sets window.__wfGameMode and fires "wf-gamemode")
+  const [osGameMode, setOsGameMode] = useState(readOsGameMode);
+  useEffect(() => { const on = () => setOsGameMode(readOsGameMode()); window.addEventListener("wf-gamemode", on); on(); return () => window.removeEventListener("wf-gamemode", on); }, []);
+  const modeProfile = gameModeProfile(osGameMode);
+  const frameRate: FrameRate = settings.frameRate ?? (touchScreen ? modeProfile.frameRate : defaultFrameRate(false));
   const [lowPerf, setLowPerf] = useCountedState("lowPerf", false);
   // automatic quality step-down (quality-governor.ts): session-only cap, never changes the saved setting
   const [autoCap, setAutoCap] = useCountedState<RenderTier | null>("autoCap", null);
@@ -1546,7 +1550,7 @@ export function GameCanvas() {
         }}
         onContextMenu={(event) => event.preventDefault()}
         shadows={preset.shadows && flags.shadows ? { type: caps.safari ? THREE.PCFShadowMap : THREE.PCFSoftShadowMap } : false}
-        dpr={flags.dpr ?? Math.min(touchScreen ? PHONE_DPR : maxDpr, adaptiveDpr)}
+        dpr={flags.dpr ?? Math.min(touchScreen ? modeProfile.dpr : maxDpr, adaptiveDpr)}
         frameloop={frameInterval(frameRate) ? "never" : "always"}
         gl={{ antialias: !caps.safari, toneMapping: THREE.ACESFilmicToneMapping, powerPreference: "high-performance", failIfMajorPerformanceCaveat: false }}
         camera={{
@@ -1809,7 +1813,7 @@ export function GameCanvas() {
           onContinue={() => { setTutorial(null); setOperationsView("ABILITIES"); }}
         />
       )}
-      {qualityNotice && <div className="pointer-events-none absolute left-1/2 top-16 z-50 -translate-x-1/2 border border-border/60 bg-background/80 px-4 py-2 font-mono text-[11px] uppercase tracking-[0.15em]">{qualityNotice}</div>}
+      {qualityNotice && !touchScreen && <div className="pointer-events-none absolute left-1/2 top-16 z-50 -translate-x-1/2 border border-border/60 bg-background/80 px-4 py-2 font-mono text-[11px] uppercase tracking-[0.15em]">{qualityNotice}</div>}
       {cineId && worldMounted && <MissionCinematic id={cineId} onProgress={setCineProgress} onDone={(_handoff, _skipped) => { const id = cineId; const played = markCinePlayed(progressionRef.current.story, id); const next = CAMPAIGN_CHAIN[id] ?? BOSS_CINE_CHAIN[id]; setCineProgress(0); setCineId(next && shouldPlayCine(played, next) ? next : null); if (!(next && shouldPlayCine(played, next)) && pendingBossGraph.current) { const g = pendingBossGraph.current; pendingBossGraph.current = null; setStoryGraph((cur) => cur ?? g); } setProgression((cur) => ({ ...cur, story: markCinePlayed(cur.story, id) })); }} />}
       {showIntro && worldMounted && <IntroCinematic onComplete={() => setShowIntro(false)} onTick={setIntroElapsed} />}
       {strategyOpen && <RaidStrategyPanel onClose={() => setStrategyOpen(false)} />}

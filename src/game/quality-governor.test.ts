@@ -1,6 +1,6 @@
 // @ts-ignore bun:test has no types in this project's tsconfig
 import { describe, expect, it } from "bun:test";
-import { DPR_FLOOR, PHONE_DPR, phoneTier, defaultFrameRate, dprDown, dprFloor, dprUp, frameInterval, monitorBounds, onDecline } from "./quality-governor";
+import { DPR_FLOOR, PHONE_DPR, gameModeProfile, phoneTier, defaultFrameRate, dprDown, dprFloor, dprUp, frameInterval, monitorBounds, onDecline } from "./quality-governor";
 
 describe("frame pacing", () => {
   it("phones default to a steady 30 fps, desktops uncapped", () => {
@@ -32,5 +32,12 @@ describe("frame pacing", () => {
     expect(phoneTier("ULTRA", true)).toBe("MEDIUM");
     expect(phoneTier("LOW", true)).toBe("LOW");
     expect(phoneTier("HIGH", false)).toBe("HIGH");
+  });
+  it("follows the Android game mode Game Booster sets: Performance 60, Standard and Battery saver 30", () => {
+    expect(gameModeProfile("performance").frameRate).toBe(60);
+    expect(gameModeProfile("standard").frameRate).toBe(30);
+    expect(gameModeProfile("battery")).toMatchObject({ frameRate: 30 });
+    expect(gameModeProfile("battery").dpr).toBeLessThan(gameModeProfile("standard").dpr);
+    expect(gameModeProfile("unsupported").dpr).toBe(PHONE_DPR);
   });
 });
