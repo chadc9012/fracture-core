@@ -14,7 +14,7 @@ export const GROUND_SURFACES = [forest.url, rocks.url, sand.url, snow.url, burne
 export const GROUND_NORMALS = ["forest_ground_04", "aerial_rocks_02", "coast_sand_01", "snow_02", "burned_ground_01", "brown_mud_02"].map((n) => `/textures/ground/${n}_nrm.jpg`);
 /** per-surface roughness (forest litter, rock, dry sand, packed snow, ash, wet mud) */
 export const GROUND_ROUGHNESS = [0.96, 0.84, 0.93, 0.62, 0.9, 0.52] as const;
-export const REGION_SURFACE: Record<string, number> = { veridan: 0, nexus: 1, wastelands: 1, solara: 2, frostspire: 3, ember: 4, swamps: 5 };
+export const REGION_SURFACE: Record<string, number> = { veridan: 0, nexus: 1, wastelands: 2, solara: 2, frostspire: 3, ember: 4, swamps: 5 };
 const DEFAULT_SURFACE = 1;
 
 /** Soft per-region surface weights at a world point; always sums to 1. */

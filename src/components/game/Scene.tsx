@@ -1003,7 +1003,7 @@ function SceneImpl({
   const move = useRef({ state: createMoveState(), jumpHeld: false, slideHeld: false, proneHeld: false });
   const reticle = useRef({ state: createReticle(), view: EMPTY_RETICLE, yaw: 0, pitch: 0, hit: 0, crit: 0, kills: 0, ready: false });
   /** eased regional atmosphere (atmosphere.ts) + scratch colours, so crossing a border blends rather than pops */
-  const atmo = useRef({ fogMix: 0, fogScale: 1, lightMix: 0, skyMix: 0, haze: 0, fogTint: new THREE.Color("#ffffff"), lightTint: new THREE.Color("#ffffff"), skyTint: new THREE.Color("#ffffff"), hemiBase: new THREE.Color("#9ec8e8") });
+  const atmo = useRef({ fogMix: 0, fogScale: 1, lightMix: 0, skyMix: 0, haze: 0, fogTint: new THREE.Color("#ffffff"), lightTint: new THREE.Color("#ffffff"), skyTint: new THREE.Color("#ffffff"), hemiBase: new THREE.Color("#b2c4d6") }); // sky fill: a saturated sky-blue fill turned every tan and gold ground sage-grey (target wilds frame: warm dust)
   /** eased regional water style (water-style.ts): deep/shallow colours, murk and wave chop */
   const waterStyle = useRef({ deep: new THREE.Color("#062a44"), shallow: new THREE.Color("#1d7fa8"), murk: 0.15, chop: 1 });
   const ruinLive = useRef<HudState["ruinNear"]>(null);
@@ -1637,7 +1637,7 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
       // the cheaper tiers see less far: the terrain streams out to ~1.25x the fog distance (Terrain.tsx), so a nearer fog line
       // is fewer ground chunks to build and draw (measured: ~130 chunk draws a frame in the forest at scale 6 with no cap)
       const fogCap = FOG_CAP[settings.renderTier as keyof typeof FOG_CAP] ?? Infinity;
-      scene.fog.near += (Math.min(fogCap * 0.3, (25 + visibility * 95) * FOG_REACH * atmo.current.fogScale) - scene.fog.near) * fogK;
+      scene.fog.near += (Math.min(fogCap * 0.45, (25 + visibility * 95) * FOG_REACH * atmo.current.fogScale) - scene.fog.near) * fogK;
       scene.fog.far += (Math.min(fogCap, (120 + visibility * 400) * FOG_REACH * atmo.current.fogScale) - scene.fog.far) * fogK;
     }
     // underwater look: diving swaps the horizon for a close, turbid teal murk (eased in and out)
@@ -1672,14 +1672,18 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
     // cities after dark keep a glow-bounce fill (atmosphere.ts cityNightFill), so their streets read between the lamps
     const inCity = interior ? 1 : Math.max(cityPresence(Math.hypot(s.x - NEON_CITY_CENTER.x, s.z - NEON_CITY_CENTER.z), NEON_FLAT), cityPresence(Math.hypot(s.x - NEXUS_REGION.x, s.z - NEXUS_REGION.z), 95));
     if (hemi.current) hemi.current.intensity = 0.32 + 0.26 * (1 - night) + cityNightFill(inCity, night); // a moonlit sky fill at night: the reference nights read blue, not black (owner, Oct 26: the wilds at night were near black on the phone)
+    // the cities after dark are lit by their own lamps, signs and windows (target night frames): the sky fill and moon key only rim
+    // them, so towers read dark behind lit windows (the wilds keep the brighter night fill above)
+    if (hemi.current) hemi.current.intensity *= 1 - 0.5 * inCity * night;
+    if (moon.current) moon.current.intensity *= 1 - 0.65 * inCity * night;
     if ((riftInside || raidZone) && hemi.current) hemi.current.intensity *= 0.35; // underground in a descent or a raid
     // Neon City after dark: the glow bounce takes the signage's violet-cyan cast instead of grey moonlight (owner: neon cyberpunk)
     const inNeon = interior ? 0 : cityPresence(Math.hypot(s.x - NEON_CITY_CENTER.x, s.z - NEON_CITY_CENTER.z), NEON_FLAT);
     if (hemi.current) hemi.current.groundColor.copy(HEMI_GROUND); // the sky colour is re-based every frame above; the ground colour is here
-    if (hemi.current && inNeon > 0.01 && night > 0.01) { hemi.current.color.lerp(NEON_SKY_GLOW, 0.55 * inNeon * night); hemi.current.groundColor.lerp(NEON_GROUND_GLOW, 0.5 * inNeon * night); }
+    if (hemi.current && inNeon > 0.01 && night > 0.01) { hemi.current.color.lerp(NEON_SKY_GLOW, 0.35 * inNeon * night); hemi.current.groundColor.lerp(NEON_GROUND_GLOW, 0.4 * inNeon * night); }
     // metal and glass are lit by reflections, not the hemisphere: keep some city glow in the reflections too, or Neon's
     // metal stalls and decks render pure black at night
-    (scene as THREE.Scene & { environmentIntensity?: number }).environmentIntensity = 0.62 * (1 - 0.75 * night) + cityNightFill(inCity, night) * 0.9;
+    (scene as THREE.Scene & { environmentIntensity?: number }).environmentIntensity = 0.62 * (1 - 0.9 * night) + cityNightFill(inCity, night) * 0.6; // the IBL is a daylight sky: at night it lit glass towers pale cyan (target night frames: dark towers, lit windows)
     if (sky.current) {
       const m = (sky.current as unknown as { material?: THREE.ShaderMaterial }).material;
       const u = m?.uniforms;
@@ -3860,7 +3864,7 @@ export const scenePropsEqual = (a: Record<string, unknown>, b: Record<string, un
 };
 const SceneMemo = memo(SceneImpl, (a, b) => scenePropsEqual(a as Record<string, unknown>, b as Record<string, unknown>));
 
-const NEON_SKY_GLOW = new THREE.Color("#7a5cff"), NEON_GROUND_GLOW = new THREE.Color("#1d5c6e"), HEMI_GROUND = new THREE.Color("#3b3326");
+const NEON_SKY_GLOW = new THREE.Color("#4c3cc4"), NEON_GROUND_GLOW = new THREE.Color("#1d5c6e"), HEMI_GROUND = new THREE.Color("#3b3326");
 /** on-foot fire code's stand-in while seated (vehicle guns have their own path; this only feeds shared bookkeeping) */
 const VEHICLE_SIDEARM: ArmedWeapon = { ...WEAPONS.AUTO, frame: "AUTO", sound: "AUTO" };
 export function Scene(props: SceneProps) {

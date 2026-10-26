@@ -108,7 +108,15 @@ function jitter(hex: string, seed: number, hueAmt = 0.02, lightAmt = 0.08): THRE
 
 /** Chunked, distance-LOD heightmap (terrain-chunks.ts): each tile is built lazily at the resolution its distance needs, nearest first,
  * under a small per-frame time budget. Meshes are managed imperatively so no React re-render happens as the player moves. */
-const GROUND_SAMPLERS: ChunkSamplers = { height: heightAt, color: colorAt, weights: surfaceWeights };
+/** the ground's vertex colour, richer: the palette is linear, so after sRGB output its tans and greens read pastel and the sky fill
+ * greyed them toward sage. The owner's target frames have saturated ground (golden dust, deep green hills), so the chunks get
+ * the palette with its chroma lifted and its values a touch deeper. Presentation only; colorAt itself is unchanged. */
+export const GROUND_CHROMA = { saturation: 1.45, depth: 1.12 } as const;
+export function richGround(c: readonly [number, number, number]): [number, number, number] {
+  const l = c[0] * 0.2126 + c[1] * 0.7152 + c[2] * 0.0722;
+  return c.map((v) => Math.min(1, Math.max(0, l + (v - l) * GROUND_CHROMA.saturation)) ** GROUND_CHROMA.depth) as [number, number, number];
+}
+const GROUND_SAMPLERS: ChunkSamplers = { height: heightAt, color: (x, z, h, sl) => richGround(colorAt(x, z, h, sl)), weights: surfaceWeights };
 /** dev-only (?dev=1&tier=…): a software renderer draws ~2 frames a second, so screenshots would show unstreamed ground; give the
  * stream a big per-frame budget there instead */
 const DEV_FAST_STREAM = typeof window !== "undefined" && (() => { const q = new URLSearchParams(window.location.search); return q.get("dev") === "1" && q.has("tier"); })();

@@ -33,6 +33,8 @@ void main(){
 }`;
 const VERT = /* glsl */ `varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`;
 const SEGMENTS = 18;
+/** how loud the lens is against the sky: at full glow its additive violet turned the whole night sky over both cities lavender */
+const STORM_LOOK = 0.25;
 
 export function FractureStorm({ envRef }: { envRef: React.RefObject<SkyEnv> }) {
   const mat = useMemo(() => new THREE.ShaderMaterial({
@@ -69,7 +71,8 @@ export function FractureStorm({ envRef }: { envRef: React.RefObject<SkyEnv> }) {
     // from underneath, the lens is a ceiling rather than a storm on the horizon: it fades to a faint tint while the camera is under it
     const under = Math.hypot(camera.position.x - STORM.x, camera.position.z - STORM.z);
     const fromAfar = 0.12 + 0.88 * Math.min(1, Math.max(0, (under - STORM.outer * 0.9) / (STORM.outer * 0.9)));
-    mat.uniforms["uGlow"]!.value = stormGlow(env?.night ?? 0, (env?.cloud ?? 0) > 0.75) * fromAfar;
+    // held well back (owner's night frames: a navy starry sky over the cities, no violet lens washing it lavender)
+    mat.uniforms["uGlow"]!.value = stormGlow(env?.night ?? 0, (env?.cloud ?? 0) > 0.75) * fromAfar * STORM_LOOK;
     mat.uniforms["uFlash"]!.value = strike.on ? strike.k : 0;
     if (ring.current) ring.current.rotation.z = t * STORM.spin;
     bolt.visible = strike.on;

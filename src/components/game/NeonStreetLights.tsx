@@ -37,7 +37,7 @@ export function NeonStreetLights() {
     const k = Math.round(lampLevel(worldLight.night) * 50) / 50;
     if (k === seen.current) return;
     seen.current = k;
-    mats.pool.opacity = 0.16 + k * 0.4;
+    mats.pool.opacity = 0.1 + k * 0.22; // a soft pool, not a painted disc: the target frames' streets stay dark between the lamps
   });
   if (!ls.length) return null;
   return <group>

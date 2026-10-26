@@ -35,15 +35,16 @@ export type SkyKey = { h: number; zenith: RGB; horizon: RGB; sun: RGB; lit: RGB;
 const K = (h: number, zenith: string, horizon: string, sun: string, lit: string, shade: string, crack: string, crackGlow: number, moon: string, nebula: number): SkyKey =>
   ({ h, zenith: hex(zenith), horizon: hex(horizon), sun: hex(sun), lit: hex(lit), shade: hex(shade), crack: hex(crack), crackGlow, moon: hex(moon), nebula });
 export const SKY_KEYS: readonly SkyKey[] = [
-  K(2, "#05081f", "#121842", "#8090c0", "#3c4478", "#0e1230", "#6f7dff", 1.2, "#34407a", 1),     // late night: deep navy, blue-violet cracks
+  K(2, "#03061a", "#0c1236", "#8090c0", "#1a2048", "#080b22", "#6f7dff", 0.45, "#2a3466", 1),     // late night: deep navy, blue-violet cracks
   K(5.6, "#232a66", "#ff8a5c", "#ffa060", "#f0907a", "#4a3a6a", "#ff8a4a", 0.7, "#8a7a9a", 0.25), // dawn: indigo overhead, a pink-orange band
   K(7.2, "#3d6cc0", "#ffc48a", "#ffd096", "#ffe0b8", "#8d93bb", "#ff9a4a", 0.35, "#b0b4c8", 0),  // morning: blue sky, gold horizon, peach-lit cloud
-  K(9.5, "#2b68d2", "#b9d6f2", "#fff2dc", "#fff8ee", "#9fb1d0", "#3a3446", 0.1, "#b8c4da", 0),   // mid-morning
+  K(8.2, "#2b68d2", "#b9d6f2", "#fff2dc", "#fff8ee", "#9fb1d0", "#3a3446", 0.1, "#b8c4da", 0),   // mid-morning
   K(12, "#1b5bcc", "#a6cdf4", "#fffaf0", "#ffffff", "#a4b6d6", "#36303f", 0.06, "#bcc8de", 0),   // noon: deep blue, bright white cumulus
   K(15, "#2560c6", "#c0d6ee", "#fff0d6", "#fff4e4", "#9caacb", "#3c3444", 0.1, "#b8c2d8", 0),    // afternoon
+  K(16.9, "#2a5cc0", "#d8d4d0", "#ffe2b0", "#fff0d8", "#98a4c4", "#5a3a3a", 0.2, "#b8bcd0", 0),  // late afternoon: still blue overhead (target wilds frame), the horizon only starting to warm
   K(18, "#4a2858", "#ff5a1c", "#ff7426", "#ff8c40", "#5c2c4a", "#ff5a14", 1.25, "#c48468", 0),  // sunset: red-orange horizon, fiery clouds, burning cracks
   K(19.2, "#1c1848", "#b83e5a", "#ff6040", "#c4586a", "#2a1f46", "#ff4a7a", 1.1, "#6a4a7a", 0.35), // dusk: violet overhead, a red ember band
-  K(21, "#080c2c", "#1a1e56", "#8090c0", "#46508e", "#121638", "#9a5cff", 1.4, "#3a4a8a", 1),    // night: navy and violet, glowing violet cracks, nebula
+  K(21, "#050a26", "#121a48", "#8090c0", "#1e2652", "#0a0e2a", "#7a6cff", 0.5, "#2e3c74", 1),    // night: navy and violet, glowing violet cracks, nebula
 ];
 /** the sky board's colours at `hour` (0..24), eased between keys */
 export function skyKeyAt(hour: number): Omit<SkyKey, "h"> {

@@ -61,7 +61,7 @@ function CityBuildings() {
       {/* stability field dome */}
       <mesh position={[NEXUS.x, walkHeight(NEXUS.x, NEXUS.z), NEXUS.z]}>
         <sphereGeometry args={[NEXUS.radius, 40, 24, 0, Math.PI * 2, 0, Math.PI / 2]} />
-        <meshBasicMaterial color="#66e0ff" transparent opacity={0.07} side={THREE.DoubleSide} depthWrite={false} />
+        <meshBasicMaterial color="#66e0ff" transparent opacity={0.025} side={THREE.DoubleSide} depthWrite={false} />
       </mesh>
     </group>
   );

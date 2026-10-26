@@ -16,7 +16,10 @@ import { QuietModel } from "./Vehicle";
  * A model that cannot load draws nothing.
  */
 export type GlbInstance = { x: number; y: number; z: number; yaw: number; scale?: number; paint?: string };
-type Part = { geometry: THREE.BufferGeometry; material: THREE.Material; paint: boolean; windows: boolean };
+type Part = { geometry: THREE.BufferGeometry; material: THREE.Material; paint: boolean; windows: boolean; /** pale masonry that dims after dark */ pale?: THREE.Color };
+/** pale stone and slab read as floodlit white boxes at night (owner's night frames: dark podiums under lit windows); after dark
+ * they keep this share of their colour */
+const PALE_NIGHT = 0.4;
 
 const flatCache = new Map<THREE.Object3D, Part[]>();
 
@@ -59,7 +62,9 @@ export function flattenGlb(scene: THREE.Object3D): Part[] {
     if (material.name === "Glass") { mat.transparent = true; mat.depthWrite = false; }
     // the owner's night target frames: dense banded office light instead of the baked map's big warm blocks (facade-windows.ts)
     if (windows) { const tex = facadeTexture(); if (tex) { const m = mat as THREE.MeshStandardMaterial; m.emissiveMap = tex; m.emissive.set("#ffffff"); m.needsUpdate = true; } }
-    parts.push({ geometry: merged, material: mat, paint, windows });
+    const c = (mat as THREE.MeshStandardMaterial).color;
+    const pale = (material.name === "Stone" || material.name === "Slab" || material.name === "Frame") && c && c.r + c.g + c.b > 1.5 ? c.clone() : undefined;
+    parts.push({ geometry: merged, material: mat, paint, windows, ...(pale ? { pale } : {}) });
   }
   flatCache.set(scene, parts);
   return parts;
@@ -122,7 +127,10 @@ function Batch({ url, items, place, shadows, nightGlow, sway }: { url: string; i
     const k = Math.round(lampLevel(worldLight.night) * 40) / 40;
     if (k !== glow.current) {
       glow.current = k;
-      for (const p of parts) if (p.windows) (p.material as THREE.MeshStandardMaterial).emissiveIntensity = nightGlow[0] + (nightGlow[1] - nightGlow[0]) * k;
+      for (const p of parts) {
+        if (p.windows) (p.material as THREE.MeshStandardMaterial).emissiveIntensity = nightGlow[0] + (nightGlow[1] - nightGlow[0]) * k;
+        if (p.pale) (p.material as THREE.MeshStandardMaterial).color.copy(p.pale).multiplyScalar(1 - (1 - PALE_NIGHT) * k);
+      }
     }
   });
   return <group>{parts.map((p, k) => (

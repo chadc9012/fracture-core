@@ -92,7 +92,13 @@ function windowMaterial(style: Style): THREE.MeshStandardMaterial {
 
 function Bodies({ style, list }: { style: Style; list: Building[] }) {
   const mat = useMemo(() => windowMaterial(style), [style]);
-  useFrame(() => { glowUniform.value = 0.55 + 1.65 * lampLevel(worldLight.night); });
+  const base = useMemo(() => mat.color.clone(), [mat]);
+  useFrame(() => {
+    const k = lampLevel(worldLight.night);
+    glowUniform.value = 0.55 + 1.65 * k;
+    // after dark the walls fall back behind their lit windows (owner's night frames); pale concrete read as floodlit at night
+    mat.color.copy(base).multiplyScalar(1 - 0.5 * k);
+  });
   const ref = useRef<THREE.InstancedMesh>(null);
   useInstances<Building>(ref, list, (o, b) => {
     const top = b.crown ? b.base + (b.top - b.base) * 0.78 : b.top;

@@ -83,12 +83,17 @@ void main(){
         float crack = 1.0 - smoothstep(0.0, 0.055, cellEdge(wp * 3.2 + 17.3));
         crack += (1.0 - smoothstep(0.0, 0.035, cellEdge(wp * 8.5 + 4.0))) * 0.45 * smoothstep(0.35, 0.6, fbm3(n.xy * 3.0));
         float lit = clamp(dot(n, normalize(sunDir)) * 0.6 + 0.55, 0.0, 1.0);
+        // at night the moon is lit from one side (target night frames: a dark slate world with a bright crescent limb), not
+        // evenly glowing: a hard terminator from a fixed light off to its upper left
+        vec3 nightL = normalize(t1 * -0.75 + t2 * 0.45 + bd * 0.25);
+        float nightLit = smoothstep(-0.15, 0.75, dot(n, nightL));
+        lit = mix(lit, nightLit, night);
         vec3 rock = moonTint * (0.75 + 0.5 * (surf * 0.7 + surf2 * 0.3));
-        vec3 body = rock * (0.35 + lit * 0.85);
+        vec3 body = rock * (mix(0.35, 0.04, night) + lit * mix(0.85, 0.6, night));
         body *= 0.6 + 0.4 * smoothstep(0.0, 0.9, 1.0 - rr * 0.6);           // darker toward the limb
         // cracks: dark chasms by day, burning at sunset, violet at night (owner's sky board)
         body = mix(body, body * 0.35, crack * clamp(1.0 - crackGlow, 0.0, 1.0) * 0.9);
-        body += crackCol * crack * crackGlow * 1.1;
+        body += crackCol * crack * crackGlow * mix(1.1, 0.5, night) * mix(1.0, 0.25 + 0.75 * lit, night);
         body = mix(body, haloCol * 2.0, pow(rr, 6.0) * 0.4);                // atmosphere rim
         float bodyA = mix(moonDay, 1.0, night);
         col = mix(col, body, bodyA); alpha = max(alpha, bodyA); moonMask = smoothstep(1.0, 0.97, rr);
@@ -137,8 +142,9 @@ void main(){
     float g1 = fbm(np + fbm3(np * 1.7) * 1.2), g2 = fbm(np * 2.1 + 4.0);
     vec3 neb = mix(vec3(0.38, 0.16, 0.75), vec3(0.12, 0.42, 1.0), smoothstep(0.35, 0.7, g2)) * smoothstep(0.5, 0.85, g1) * band * 1.1;
     neb += vec3(1.0, 0.35, 0.8) * pow(smoothstep(0.62, 0.9, g1 * g2 * 1.9), 2.0) * band * 0.8;
-    col += (vec3(0.9, 0.95, 1.0) * star * tw * 1.4) * max(starStrength, nebula) + mw * milkyWay * 0.6 + neb * nebula;
-    alpha = max(alpha, clamp(star * max(starStrength, nebula) + length(mw) * milkyWay * 0.5 + length(neb) * nebula * 0.8, 0.0, 1.0));
+    float behind = 1.0 - moonMask;                                          // the moon is in front of the stars and the nebula
+    col += ((vec3(0.9, 0.95, 1.0) * star * tw * 1.4) * max(starStrength, nebula) + mw * milkyWay * 0.6 + neb * nebula) * behind;
+    alpha = max(alpha, clamp((star * max(starStrength, nebula) + length(mw) * milkyWay * 0.5 + length(neb) * nebula * 0.8) * behind, 0.0, 1.0));
   }
 
   // ---- sun disc + glow ----

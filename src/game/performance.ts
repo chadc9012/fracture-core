@@ -16,6 +16,7 @@ const WEAK_GPU = /intel|iris|uhd|hd graphics|mali|adreno|powervr|swiftshader|llv
  * phone cap (quality-governor.ts). LOW strips the forest to procedural blobs and the grade/bloom; the owner's Galaxy S22 Ultra
  * started there (Oct 26 2026). */
 const FLAGSHIP_MOBILE = /adreno[^0-9]*(6[4-9]\d|[78]\d\d)|xclipse|immortalis|mali-g(7[6-9]|[6-9]\d\d)/i;
+export const isFlagshipMobile = (renderer: string | null | undefined) => !!renderer && FLAGSHIP_MOBILE.test(renderer);
 export function defaultTierForGpu(renderer: string | null | undefined): RenderTier {
   if (renderer && FLAGSHIP_MOBILE.test(renderer)) return "MEDIUM";
   return renderer && WEAK_GPU.test(renderer) ? "LOW" : "MEDIUM";

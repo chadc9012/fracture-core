@@ -85,7 +85,7 @@ import { getRaidLaunchTier } from "@/game/raid-launch";
 import { adjustRep, EMPTY_LIVING } from "@/game/living-world";
 import { buyPenthouseUpgrade, ownedUpgrades } from "@/game/penthouse-upgrades";
 import { activeLoadout, rewardMission, loadProgression, rewardVehicle, saveProgression, type PlayerProgression } from "@/game/progression";
-import { RENDER_PRESETS, defaultTierForGpu, detectGpuRenderer } from "@/game/performance";
+import { RENDER_PRESETS, defaultTierForGpu, detectGpuRenderer, isFlagshipMobile } from "@/game/performance";
 import { classBuild } from "@/game/live-build";
 import { persistCharacter } from "@/game/deployment/saveCharacter";
 import { withTimeout } from "@/game/with-timeout";
@@ -353,7 +353,15 @@ export function GameCanvas() {
   useEffect(() => {
     try {
       const savedSettings = window.localStorage.getItem("world-fracture-settings");
-      if (savedSettings) setSettings((current) => ({ ...current, ...(JSON.parse(savedSettings) as Partial<GameSettings>) }));
+      if (savedSettings) {
+        const parsed = JSON.parse(savedSettings) as Partial<GameSettings>;
+        // one-time: flagship phones that were put on LOW by the old first-run rule (Adreno was "weak") move up to MEDIUM
+        if (!window.localStorage.getItem("world-fracture-tier-flagship-v1")) {
+          window.localStorage.setItem("world-fracture-tier-flagship-v1", "1");
+          if (parsed.renderTier === "LOW" && isFlagshipMobile(detectGpuRenderer())) parsed.renderTier = "MEDIUM";
+        }
+        setSettings((current) => ({ ...current, ...parsed }));
+      }
       else { const tier = defaultTierForGpu(detectGpuRenderer()); setSettings((current) => ({ ...current, renderTier: tier })); }
     } catch { /* keep safe defaults */ }
     const saved = window.localStorage.getItem("world-fracture-camera");

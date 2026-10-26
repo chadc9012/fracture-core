@@ -41,7 +41,7 @@ export const REGION_ATMOSPHERE: Record<string, Atmosphere> = {
   swamps: { fogTint: "#6f8f62", fogMix: 0.5, fogScale: 0.55, lightTint: "#b8d68a", lightMix: 0.22, skyTint: "#8fa37a", skyMix: 0.4, haze: 3.2 },
   // dry dust bowl: tan sky, constant airborne grit
   // target frame "wilds by day": clear deep-blue sky, warm sun, a light gold dust low over the ground (it was a muddy brown murk)
-  wastelands: { fogTint: "#d8b47c", fogMix: 0.24, fogScale: 1.15, lightTint: "#ffc98a", lightMix: 0.22, skyTint: "#e6c690", skyMix: 0.14, haze: 1.3 },
+  wastelands: { fogTint: "#d8b47c", fogMix: 0.24, fogScale: 1.15, lightTint: "#ffbf78", lightMix: 0.4, skyTint: "#e6c690", skyMix: 0.14, haze: 1.3 },
   // high desert: pale bleached sky, thin clear air
   solara: { fogTint: "#f0d79b", fogMix: 0.32, fogScale: 1.2, lightTint: "#fff0c4", lightMix: 0.2, skyTint: "#ffe9b0", skyMix: 0.26, haze: 0.5 },
   // fracture zone: smoke and ash, bruised red-brown sky, heaviest haze
@@ -93,7 +93,7 @@ function dayAtmosphere(regionId: string | undefined, weather: WeatherState | und
 
 /** City glow bounce after dark: signage, street lamps and lit windows throw light back onto the streets, so a city at night
  * is never pitch black between its lamps. Extra hemisphere intensity for a point `inCity` (0 outside .. 1 inside a city). */
-export const CITY_NIGHT_FILL = 0.42;
+export const CITY_NIGHT_FILL = 0.18;
 export const cityNightFill = (inCity: number, night: number) => CITY_NIGHT_FILL * Math.max(0, Math.min(1, inCity)) * Math.max(0, Math.min(1, night));
 /** 1 inside `radius`, fading to 0 over `fade` metres beyond it */
 export const cityPresence = (dist: number, radius: number, fade = 60) => Math.max(0, Math.min(1, 1 - (dist - radius) / fade));
