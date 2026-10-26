@@ -30,8 +30,8 @@ describe("near grass field", () => {
       expect(Math.floor(g.x / CHUNK)).toBe(c.cx); expect(Math.floor(g.z / CHUNK)).toBe(c.cz);
     }
   });
-  test("LOW draws no grass; every region spec has colours", () => {
-    expect(GRASS_REACH.LOW.chunks).toBe(0);
+  test("LOW draws a sparse patch of grass; every region spec has colours", () => {
+    expect(GRASS_REACH.LOW.chunks).toBeGreaterThan(0); expect(GRASS_REACH.LOW.density).toBeLessThan(GRASS_REACH.MEDIUM.density);
     for (const s of Object.values(GRASS)) expect(s.colors.length).toBeGreaterThan(0);
   });
 });

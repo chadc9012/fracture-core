@@ -25,7 +25,7 @@ export const GRASS: Readonly<Record<string, GrassSpec>> = {
   nexus: { perChunk: 60, h: [0.18, 0.35], w: [0.6, 1.0], colors: ["#6fa040", "#7cae4a", "#62923a"], patchy: 0.3, maxSlope: 0.4 },
 };
 /** how far the field reaches and how dense it is, per tier (LOW draws none) */
-export const GRASS_REACH: Record<RenderTier, { chunks: number; density: number }> = { LOW: { chunks: 0, density: 0 }, MEDIUM: { chunks: 3, density: 0.6 }, HIGH: { chunks: 4, density: 1 }, ULTRA: { chunks: 5, density: 1.25 } };
+export const GRASS_REACH: Record<RenderTier, { chunks: number; density: number }> = { LOW: { chunks: 2, density: 0.3 }, MEDIUM: { chunks: 3, density: 0.6 }, HIGH: { chunks: 4, density: 1 }, ULTRA: { chunks: 5, density: 1.25 } };
 
 export type Clump = { x: number; y: number; z: number; h: number; w: number; r: number; color: string };
 

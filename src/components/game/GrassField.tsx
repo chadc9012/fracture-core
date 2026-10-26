@@ -45,7 +45,7 @@ const GEN_PER_FRAME = 2; // chunk generation is ~4 ms; two per frame keeps strea
 const key = (cx: number, cz: number) => `${cx},${cz}`;
 
 /** The near grass field (grass-field.ts): dense region-coloured grass in 16 m chunks around the camera, streamed in a couple of
- * chunks per frame and swaying in the wind. One instanced draw call. Off on LOW. */
+ * chunks per frame and swaying in the wind. One instanced draw call. Sparse on LOW (2 chunks, 30%): one draw call, ~1k cards. */
 export function GrassField({ tier }: { tier: RenderTier }) {
   const reach = GRASS_REACH[tier];
   const capacity = (2 * reach.chunks + 1) ** 2 * Math.ceil(MAX_PER_CHUNK * reach.density);
