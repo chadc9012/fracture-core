@@ -159,7 +159,7 @@ FLinearColor AWFTerrain::GroundColor(double X, double Z, double H, double Slope)
 	return C;
 }
 
-void AWFTerrain::BuildTile(int32 TX, int32 TZ)
+void AWFTerrain::BuildTile(int32 TX, int32 TZ, bool bAsyncCollision)
 {
 	const int64 Key = TileKey(TX, TZ);
 	if (Tiles.Contains(Key) || N <= 0) return;
@@ -186,19 +186,19 @@ void AWFTerrain::BuildTile(int32 TX, int32 TZ)
 			UV.Add(FVector2D(WX / 8.0, WZ / 8.0));
 			Colors.Add(GroundColor(WX, WZ, H, FMath::Sqrt(DX * DX + DZ * DZ)));
 		}
-	// two triangles a cell, wound clockwise seen from above (Unreal's front face); flip with bFlipWinding if a build shows
-	// the ground from below
+	// two triangles a cell, wound so their normals point up by the procedural mesh's own rule (KismetProceduralMeshLibrary
+	// takes a triangle's normal as (P1 - P2) x (P0 - P2)); flip with bFlipWinding if a build ever shows the ground from below
 	Tris.Reserve(CX * CZ * 6);
 	for (int32 Z = 0; Z < CZ; ++Z)
 		for (int32 X = 0; X < CX; ++X)
 		{
 			const int32 A = Z * Row + X, B = A + 1, C = A + Row, D = C + 1;
-			if (bFlipWinding) { Tris.Append({A, C, B, B, C, D}); }
-			else { Tris.Append({A, B, C, B, D, C}); }
+			if (bFlipWinding) { Tris.Append({A, B, C, B, D, C}); }
+			else { Tris.Append({A, C, B, B, C, D}); }
 		}
 
 	UProceduralMeshComponent* Tile = NewObject<UProceduralMeshComponent>(this);
-	Tile->bUseAsyncCooking = true;
+	Tile->bUseAsyncCooking = bAsyncCollision; // the start-up tiles cook at once, so there is ground under the player on frame one
 	Tile->bUseComplexAsSimpleCollision = true;
 	Tile->SetupAttachment(Root);
 	Tile->SetCollisionProfileName(TEXT("BlockAll"));
@@ -214,7 +214,7 @@ void AWFTerrain::BuildTile(int32 TX, int32 TZ)
 	Tiles.Add(Key, Tile);
 }
 
-void AWFTerrain::Stream(const FVector& AtCm, double Radius, int32 Budget)
+void AWFTerrain::Stream(const FVector& AtCm, double Radius, int32 Budget, bool bAsyncCollision)
 {
 	if (N <= 0) return;
 	const double TileM = TileCells * Cell;
@@ -230,7 +230,7 @@ void AWFTerrain::Stream(const FVector& AtCm, double Radius, int32 Budget)
 			if (D < Radius && !Tiles.Contains(TileKey(TX, TZ))) Want.Add({D, FIntPoint(TX, TZ)});
 		}
 	Want.Sort([](const TPair<double, FIntPoint>& A, const TPair<double, FIntPoint>& B) { return A.Key < B.Key; });
-	for (int32 I = 0; I < Want.Num() && I < Budget; ++I) BuildTile(Want[I].Value.X, Want[I].Value.Y);
+	for (int32 I = 0; I < Want.Num() && I < Budget; ++I) BuildTile(Want[I].Value.X, Want[I].Value.Y, bAsyncCollision);
 
 	// drop tiles well past the radius
 	TArray<int64> Drop;
@@ -249,7 +249,7 @@ void AWFTerrain::Stream(const FVector& AtCm, double Radius, int32 Budget)
 
 void AWFTerrain::BuildAround(const FVector& AtCm, double Radius)
 {
-	Stream(AtCm, Radius, 1000);
+	Stream(AtCm, Radius, 1000, false);
 }
 
 void AWFTerrain::Tick(float DeltaSeconds)
@@ -265,5 +265,5 @@ void AWFTerrain::Tick(float DeltaSeconds)
 #else
 	const double Radius = StreamRadiusDesktop;
 #endif
-	Stream(Pawn->GetActorLocation(), Radius, 3); // a few tiles at a time, so driving fast never hitches on a burst
+	Stream(Pawn->GetActorLocation(), Radius, 3, true); // a few tiles at a time, so driving fast never hitches on a burst
 }

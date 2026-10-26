@@ -55,8 +55,8 @@ public:
 private:
 	double Sample(int32 IX, int32 IZ) const;
 	FLinearColor GroundColor(double X, double Z, double H, double Slope) const;
-	void BuildTile(int32 TX, int32 TZ);
-	void Stream(const FVector& AtCm, double Radius, int32 Budget);
+	void BuildTile(int32 TX, int32 TZ, bool bAsyncCollision);
+	void Stream(const FVector& AtCm, double Radius, int32 Budget, bool bAsyncCollision);
 
 	static constexpr int32 TileCells = 32;
 

@@ -107,7 +107,9 @@ void AWFGameMode::EnsurePlayableWorld()
 			Sky->GetLightComponent()->MarkRenderStateDirty(); // the component is already registered
 		}
 
-	// A floor under the player if the level has nothing to stand on.
+	// A floor under the player if the level has nothing to stand on (never with the terrain: it is the ground, and a
+	// plane at Z = 0 would sit under the land or in the sea)
+	if (Terrain.IsValid()) return;
 	APawn* Player = UGameplayStatics::GetPlayerPawn(this, 0);
 	const FVector Probe = Player ? Player->GetActorLocation() : FVector::ZeroVector;
 	FHitResult Hit;

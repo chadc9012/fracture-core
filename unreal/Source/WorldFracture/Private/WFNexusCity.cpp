@@ -510,7 +510,7 @@ void AWFNexusCity::ApplyNightLook()
 		}
 	AExponentialHeightFog* Fog = nullptr;
 	for (TActorIterator<AExponentialHeightFog> It(World); It; ++It) { Fog = *It; break; }
-	if (!Fog) Fog = World->SpawnActor<AExponentialHeightFog>(FVector(HubCentre.X, HubCentre.Y, 0), FRotator::ZeroRotator);
+	if (!Fog) Fog = World->SpawnActor<AExponentialHeightFog>(HubCentre, FRotator::ZeroRotator); // at the city's own ground
 	if (Fog && Fog->GetComponent())
 	{
 		UExponentialHeightFogComponent* F = Fog->GetComponent();

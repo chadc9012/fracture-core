@@ -310,9 +310,11 @@ void AWFVehicle::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent
 	In->BindAction(ExitAction, ETriggerEvent::Started, this, &AWFVehicle::Exit);
 	// the stick's forward / back: pushed past a quarter it holds the throttle or the brake (vehicle-handling.ts takes 0/1)
 	In->BindActionValueLambda(DriveAxisAction, ETriggerEvent::Triggered, [this](const FInputActionValue& V) {
+		// only a stick pushed past a quarter drives, so a light touch never cancels the keyboard's W / S
 		const float Y = V.Get<float>();
-		Input.Throttle = Y > 0.25f ? 1 : 0;
-		Input.Brake = Y < -0.25f ? 1 : 0;
+		if (FMath::Abs(Y) < 0.25f) return;
+		Input.Throttle = Y > 0 ? 1 : 0;
+		Input.Brake = Y < 0 ? 1 : 0;
 	});
 	In->BindActionValueLambda(DriveAxisAction, ETriggerEvent::Completed, [this](const FInputActionValue&) { Input.Throttle = 0; Input.Brake = 0; });
 	In->BindActionValueLambda(FireAction, ETriggerEvent::Triggered, [this](const FInputActionValue&) { bTrigger = true; });

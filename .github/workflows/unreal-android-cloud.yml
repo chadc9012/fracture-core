@@ -57,7 +57,7 @@ jobs:
 
       - name: Join the web build's models (one mesh per model)
         run: |
-          bash scripts/setup-blender.sh
+          sudo -E env "PATH=$PATH" bash scripts/setup-blender.sh # it installs to /opt and /usr/local/bin
           blender -b -P unreal/tools/join_models.py -- build/joined/buildings public/models/buildings/*.glb
           blender -b -P unreal/tools/join_models.py -- build/joined/fleet public/models/fleet/*.glb
 
@@ -71,6 +71,17 @@ jobs:
           echo "$EPIC_GHCR_TOKEN" | docker login ghcr.io -u "${{ github.repository_owner }}" --password-stdin
           docker pull "${{ inputs.engine_image }}" || { echo "::error::Could not pull ${{ inputs.engine_image }}. Is the Epic account linked to GitHub, the EpicGames invitation accepted, and the tag right?"; exit 1; }
           df -h /mnt
+
+      - name: Check the engine image can build for Android
+        run: |
+          # an Installed Build only packages for the platforms it was built with; a source build can add Android itself
+          docker run --rm "${{ inputs.engine_image }}" bash -lc '
+            E=/home/ue4/UnrealEngine/Engine
+            if [ -f "$E/Build/InstalledBuild.txt" ] && [ ! -d "$E/Binaries/Android" ] && ! ls "$E"/Platforms/Android >/dev/null 2>&1; then
+              echo "::error::This engine image is an Installed Build without Android support, so it cannot package an APK. Use a source-build image tag, or the PC workflow (Unreal Android APK)."
+              exit 1
+            fi
+            echo "Android packaging is available in this image."'
 
       - name: Android SDK, NDK and Java for the engine
         run: |

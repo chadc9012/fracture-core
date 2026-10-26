@@ -140,6 +140,7 @@ def import_model(src, folder, collide):
         unreal.log_warning(f"[WF setup] {base}: could not move {src_path} to {target}")
         return False
     mesh = LIB.load_asset(target)
+    instanced_safe(mesh)
     if collide:
         # buildings: walls you can't walk through, exactly as modelled
         body = mesh.get_editor_property("body_setup")
@@ -148,6 +149,33 @@ def import_model(src, folder, collide):
     LIB.save_asset(target)
     log(f"model {folder}/{asset}")
     return True
+
+
+def instanced_safe(mesh):
+    """The game draws imported buildings instanced: every material on the mesh must allow that, or a cooked build falls
+    back to the default material. The importer's parent materials live outside /Game, so those are copied in first."""
+    for i, slot in enumerate(mesh.get_editor_property("static_materials")):
+        mi = slot.get_editor_property("material_interface")
+        if not mi:
+            continue
+        base = mi.get_base_material()
+        if not base:
+            continue
+        if not base.get_path_name().startswith("/Game/"):
+            copy = f"{MAT_PATH}/Imported/{base.get_name()}"
+            if not LIB.does_asset_exist(copy):
+                LIB.duplicate_asset(base.get_path_name().split(".")[0], copy)
+            new_base = LIB.load_asset(copy)
+            if isinstance(mi, unreal.MaterialInstanceConstant) and mi.get_editor_property("parent") == base:
+                MEL.set_material_instance_parent(mi, new_base)
+                LIB.save_loaded_asset(mi)
+            elif mi == base:
+                mesh.set_material(i, new_base)
+            base = new_base
+        if not base.get_editor_property("used_with_instanced_static_meshes"):
+            base.set_editor_property("used_with_instanced_static_meshes", True)
+            MEL.recompile_material(base)
+            LIB.save_loaded_asset(base)
 
 
 def import_models():

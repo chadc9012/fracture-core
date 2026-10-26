@@ -139,7 +139,8 @@ bool AWFWorldBuildings::Build(const AWFTerrain* Ground)
 				if (!BoxValue.IsValid() || !BoxValue->TryGetArray(B)) continue;
 				const TArray<TSharedPtr<FJsonValue>>& R = *B;
 				const FVector At(Num(R, 0), Num(R, 1), Num(R, 2) + Dz);
-				const FQuat Turn(Num(R, 3), Num(R, 4), Num(R, 5), Num(R, 6));
+				FQuat Turn(Num(R, 3), Num(R, 4), Num(R, 5), Num(R, 6));
+				Turn.Normalize(); // the export rounds to 3 decimals
 				FVector Size(Num(R, 7), Num(R, 8), Num(R, 9));
 				const int32 Mat = static_cast<int32>(Num(R, 11));
 				const bool bPrism = Num(R, 12) > 0.5;

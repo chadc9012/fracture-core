@@ -21,6 +21,7 @@ UMaterialInterface* WFAssets::Material(const TCHAR* Name)
 
 UStaticMesh* WFAssets::Mesh(const TCHAR* Folder, const FString& Name)
 {
+	if (Name.IsEmpty()) return nullptr; // no model for this vehicle
 	// asset names can't hold '-', the import turns the GLB's file name into one with '_'
 	const FString Asset = Name.Replace(TEXT("-"), TEXT("_"));
 	return TryLoad<UStaticMesh>(FString::Printf(TEXT("/Game/WF/Models/%s/%s.%s"), Folder, *Asset, *Asset));
