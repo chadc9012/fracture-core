@@ -1,9 +1,12 @@
 import { REGIONS, WORLD_SCALE, NEON_SITE, type Region } from "./world";
+import { NEON_KEEP, STRAIT_CLEAR, borderDistance } from "./continent-borders";
 
 /* Supply routes shared by the simulation, the road renderer and the
  * obstacle registry (props are cleared off the roads so convoys never crash). */
 
-export type Lane = { name: string; a: Region; b: Region; bow: number };
+export type Lane = { name: string; a: Region; b: Region; bow: number;
+  /** Stage 151: a road cut at a strait follows its full route (`route`) over this stretch of it */
+  route?: Lane; span?: readonly [number, number] };
 
 const byId = (id: string) => REGIONS.find((r) => r.id === id)!;
 
@@ -14,7 +17,8 @@ const byId = (id: string) => REGIONS.find((r) => r.id === id)!;
  * Frostspire–Ember, Ember–Wastelands — each needs its own grading/approach work before it can join. */
 const neon: Region = { ...byId("nexus"), id: "neon", name: "Neon City", x: NEON_SITE.x, z: NEON_SITE.z, radius: 30 };
 const road = (name: string, a: string, b: string, bow: number): Lane => ({ name, a: a === "neon" ? neon : byId(a), b: b === "neon" ? neon : byId(b), bow });
-export const LANES: Lane[] = [
+/** the highway routes as first laid out across the one map (Stage 151 cuts them at the straits into LANES) */
+export const ROUTES: Lane[] = [
   road("Nexus–Wastelands Highway", "nexus", "wastelands", 0.10),
   road("Wastelands–Solara Convoy Road", "wastelands", "solara", 0.24),
   road("Verdant–Nexus Forest Road", "veridan", "nexus", -0.26),
@@ -32,7 +36,7 @@ export const LANE_HALF_WIDTH = 9;
 const GATES = new Map<string, { x: number; z: number }>();
 {
   const ends: { key: string; hub: Region; toward: Region }[] = [];
-  LANES.forEach((l, i) => {
+  ROUTES.forEach((l, i) => {
     ends.push({ key: `${i}a`, hub: l.a, toward: l.b });
     ends.push({ key: `${i}b`, hub: l.b, toward: l.a });
   });
@@ -49,10 +53,11 @@ const GATES = new Map<string, { x: number; z: number }>();
 }
 
 function gate(lane: Lane, end: "a" | "b") {
-  return GATES.get(`${LANES.indexOf(lane)}${end}`)!;
+  return GATES.get(`${ROUTES.indexOf(lane)}${end}`)!;
 }
 
-export function lanePoint(lane: Lane, t: number) {
+export function lanePoint(lane: Lane, t: number): { x: number; z: number } {
+  if (lane.route && lane.span) return lanePoint(lane.route, lane.span[0] + (lane.span[1] - lane.span[0]) * t);
   const A = gate(lane, "a");
   const B = gate(lane, "b");
 
@@ -83,6 +88,36 @@ export function laneLanePoint(lane: Lane, t: number, side: number) {
 export function laneSamples(lane: Lane, steps = 24) {
   return Array.from({ length: steps + 1 }, (_, i) => lanePoint(lane, i / steps));
 }
+
+/* ---------------- Stage 151: roads stop at the sea ----------------
+ * A route whose ends are on different landmasses is cut where it reaches a strait: each side keeps its own road from the
+ * hub down to a ferry pier on the shore (the road ends on land, STRAIT_CLEAR + a margin back from the border). Crossing
+ * is by transit flight. Routes inside one landmass stay whole. */
+const PIER_MARGIN = 14;
+const STUB_MIN = 110;
+function cutRoute(r: Lane): Lane[] {
+  const N = 400, pts = Array.from({ length: N + 1 }, (_, i) => lanePoint(r, i / N));
+  // at the sea, or on the beach / too close to it for a road: only where a strait can be (not on Neon City's land border)
+  const blocked = pts.map((p) => Math.hypot(p.x - NEON_SITE.x, p.z - NEON_SITE.z) >= NEON_KEEP && borderDistance(p.x, p.z) < STRAIT_CLEAR + PIER_MARGIN);
+  if (!blocked.includes(true)) return [r];
+  const len = (i0: number, i1: number) => { let l = 0; for (let i = i0; i < i1; i++) l += Math.hypot(pts[i + 1]!.x - pts[i]!.x, pts[i + 1]!.z - pts[i]!.z); return l; };
+  const pier = (i: number, from: Region, to: Region): Region => ({ ...from, id: `pier-${from.id}-${to.id}-${i}`, name: `${to.name} Ferry Pier`, x: pts[i]!.x, z: pts[i]!.z, radius: 0 });
+  // every dry run of the route long enough to be a road stays one: from a hub (or a pier) to a pier (or a hub)
+  const out: Lane[] = [];
+  for (let i = 0; i <= N;) {
+    if (blocked[i]) { i++; continue; }
+    let j = i; while (j < N && !blocked[j + 1]) j++;
+    if (len(i, j) >= STUB_MIN) {
+      const a = i === 0 ? r.a : pier(i, r.b, r.a), b = j === N ? r.b : pier(j, r.a, r.b);
+      const side = i === 0 && j === N ? "" : i === 0 ? ` · ${r.a.name} side` : j === N ? ` · ${r.b.name} side` : " · inland stretch";
+      out.push({ name: `${r.name}${side}`, a, b, bow: r.bow, route: r, span: [i / N, j / N] });
+    }
+    i = j + 1;
+  }
+  return out;
+}
+/** the supply roads as they run now: whole routes inside a landmass, harbour roads where a route met the sea */
+export const LANES: Lane[] = ROUTES.flatMap(cutRoute);
 
 /** samples per route: a longer route gets proportionally more, so the spacing stays ~2.5 m at any WORLD_SCALE */
 export const ROAD_SAMPLES = Math.round(40 * Math.max(1, WORLD_SCALE));

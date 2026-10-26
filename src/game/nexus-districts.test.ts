@@ -98,7 +98,9 @@ describe("facade kit: geometry verification (no floating or intersecting pieces)
     expect(bad).toBe(0);
   });
   test("pieces stay within one metre and a half of the wall they decorate (no hovering)", () => {
-    for (const [, list] of pieces) for (const f of list) { const o = ownerOf(f); const dx = Math.abs(f.x - o.x) - o.w / 2, dz = Math.abs(f.z - o.z) - o.d / 2; expect(Math.max(dx, dz)).toBeLessThan(1.5); expect(Math.max(dx, dz)).toBeGreaterThan(-0.5 - f.sx / 2 - f.sz / 2); }
+    // the building whose wall the piece is nearest (two buildings can stand close enough that the nearest centre is the other one)
+    const wallOf = (f: { x: number; z: number }) => bs.filter((k) => Math.abs(k.x - f.x) <= k.w / 2 + 1.6 && Math.abs(k.z - f.z) <= k.d / 2 + 1.6).sort((a, c) => Math.max(Math.abs(a.x - f.x) - a.w / 2, Math.abs(a.z - f.z) - a.d / 2) - Math.max(Math.abs(c.x - f.x) - c.w / 2, Math.abs(c.z - f.z) - c.d / 2))[0]!;
+    for (const [, list] of pieces) for (const f of list) { const o = wallOf(f); const dx = Math.abs(f.x - o.x) - o.w / 2, dz = Math.abs(f.z - o.z) - o.d / 2; expect(Math.max(dx, dz)).toBeLessThan(1.5); expect(Math.max(dx, dz)).toBeGreaterThan(-0.5 - f.sx / 2 - f.sz / 2); }
   });
   test("added draw cost is five instanced meshes", () => { expect(pieces.length).toBe(5); const n = pieces.reduce((t, [, l]) => t + l.length, 0); console.log("kit instances added:", n); expect(n).toBeLessThan(20000); });
 });

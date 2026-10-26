@@ -5,6 +5,7 @@ import { forestRelief, openWoods, IMPACT_PIT } from "./forest-relief";
 import { AUTHORED_CENTRES, legacyShifts, REGIONS, WORLD_RADIUS, BASE_WORLD_REGIONS, BASE_WORLD_RADIUS, WORLD_SCALE, HEIGHT_K, NEON_SITE, NEON_FLAT, NEON_FADE, NEXUS_SUBURB } from "./world";
 import { LANES, ROAD_SAMPLES, laneSamples, distanceToRoad } from "./lanes";
 import { coastShape } from "./coastline";
+import { STRAIT_DEPTH, straitCeiling } from "./continent-borders";
 import { wetnessAt, wetTint } from "./wetness";
 import { warpedDistance, jitteredSlope, pitSoilWeight, pitRimWeight, PIT_SOIL, PIT_RIM, bankFringe, hueDrift } from "./ground-blend";
 import { buildWaterNetwork, carveTarget, carveWeight, RIVER_SCALE, type RiverPoint, type WaterNetwork } from "./rivers";
@@ -218,6 +219,10 @@ export function suburbGroundLevel(): number {
 
 /** the landform with Neon City's plateau (and the Nexus residential street) levelled in, so rivers are traced around them */
 function smoothHeightAt(x: number, z: number): number {
+  return bankHeight(preBankHeight(x, z), x, z);
+}
+/** the smooth ground before the strait banks */
+function preBankHeight(x: number, z: number): number {
   let h = landformAt(x, z);
   const w = neonPlateauWeight(x, z);
   if (w > 0) h += (neonPlateauLevel() - h) * w;
@@ -226,6 +231,24 @@ function smoothHeightAt(x: number, z: number): number {
   const a = hollowStarWeight(x, z);
   if (a > 0) h += (hollowStarGroundLevel() - h) * a;
   return h;
+}
+/* Stage 151: the continents are separate landmasses, a strait of open sea along every border (continent-borders.ts).
+ * The ground is held under a bank rising from the strait's bed; a soft minimum keeps the shoreline smooth. */
+const BANK_SOFT = 6;
+/** the strait bank applied to a ground height: under the bank's ceiling it is untouched, past it held to the bank */
+function bankHeight(h: number, x: number, z: number): number {
+  const cap = straitCeiling(x, z);
+  if (cap === Infinity) return h;
+  const top = WATER_LEVEL - STRAIT_DEPTH + cap, k = BANK_SOFT;
+  return h <= top - k ? h : h < top + k ? top - (top + k - h) ** 2 / (4 * k) : top;
+}
+/** 0 where the ground is its own, rising to 1 where a strait's bank has taken it over (the small rolls fade out there,
+ * so the bank is one clean slope instead of a slope with bumps stacked on it) */
+function bankTakeover(x: number, z: number, h: number): number {
+  const cap = straitCeiling(x, z);
+  if (cap === Infinity) return 0;
+  const top = WATER_LEVEL - STRAIT_DEPTH + cap;
+  return smoothstep(top - BANK_SOFT * 2, top + BANK_SOFT, h);
 }
 
 function landformAt(x: number, z: number): number {
@@ -253,7 +276,14 @@ let carveCells: Map<number, CarveSeg[]> | null = null;
 /** the traced rivers, waterfalls and lakes (built once on the uncarved heightmap) */
 export function waterNetwork(): WaterNetwork {
   if (network) return network;
-  network = buildWaterNetwork(smoothHeightAt, WATER_LEVEL);
+  // traced on the ground before the strait banks (a river must not re-route itself down a bank), then ended where it meets
+  // a strait: past that point its course would run over open sea, so the river flows out there instead (Stage 151)
+  {
+    const raw = buildWaterNetwork(preBankHeight, WATER_LEVEL);
+    const drowned = (x: number, z: number, level: number) => { const c = straitCeiling(x, z); return c !== Infinity && WATER_LEVEL - STRAIT_DEPTH + c < level + 1; };
+    const rivers = raw.rivers.map((r) => { const i = r.points.findIndex((p) => drowned(p.x, p.z, p.s)); return i < 0 ? r : { ...r, points: r.points.slice(0, Math.max(2, i + 1)) }; });
+    network = { rivers, lakes: raw.lakes.filter((l) => !drowned(l.x, l.z, l.level)) };
+  }
   const cells = new Map<number, CarveSeg[]>();
   const reach = (6 + 7) * RIVER_SCALE;
   for (const r of network.rivers) for (let i = 0; i < r.points.length - 1; i++) {
@@ -333,6 +363,7 @@ function rawHeightAt(x: number, z: number): number {
   const sm = smoothHeightAt(x, z);
   // the small rolls fade out over river channels and lake basins, so water always sits in a carved bed with banks
   let detail = detailHeight(x, z) * (1 - neonPlateauWeight(x, z));
+  if (detail !== 0) { const t = bankTakeover(x, z, preBankHeight(x, z)); if (t > 0) detail *= 1 - t; }
   if (detail !== 0) {
     if (rv) { let cw = 0; for (const q of segs) cw = Math.max(cw, carveWeight(q.w, q.dist)); detail *= 1 - cw; }
     for (const l of net.lakes) { const d = Math.hypot(x - l.x, z - l.z); if (d < l.r * 2) detail *= smoothstep(l.r * 0.8, l.r * 2, d); }
@@ -579,14 +610,18 @@ export function colorAt(x: number, z: number, worldH: number, slope?: number): [
 
   // slope mask: steep ground sheds its grass/snow for dirt then bare rock; underwater and the
   // shoreline keep their colour so beaches and sea floors do not turn to cliff
-  if (h > 1.6) {
-    const { dirt, rock } = slopeMask(Math.min(1, jitteredSlope((slope ?? slopeAt(x, z)) * SLOPE_BOOST, fbm(x * 0.07 - 31, z * 0.07 + 11, 2))));
+  // (faded in just above the shore band rather than switched on at it: a sloped bank, like a strait's, crossed that line
+  // with a hard colour edge)
+  if (h > 1.0) {
+    const shoreFade = smoothstep(1.0, 2.4, h);
+    const sm = slopeMask(Math.min(1, jitteredSlope((slope ?? slopeAt(x, z)) * SLOPE_BOOST, fbm(x * 0.07 - 31, z * 0.07 + 11, 2))));
+    const dirt = sm.dirt * shoreFade, rock = sm.rock * shoreFade;
     const cliff = (fbm(x * 0.12, z * 0.12, 2) - 0.5) * 0.1; // strata variation
     c = mix(c, [PALETTE.dirt[0] + cliff, PALETTE.dirt[1] + cliff, PALETTE.dirt[2] + cliff], dirt * 0.75);
     c = mix(c, [PALETTE.rock[0] + cliff, PALETTE.rock[1] + cliff, PALETTE.rock[2] + cliff], rock * 0.9);
     // Solara's river valley: lush grass on the banks, ragged into the sand (steep banks keep their dirt/rock)
     const sv = solaraValley(x, z);
-    if (sv > 0) c = mix(c, [0.25 + (fbm(x * 0.09, z * 0.09, 2) - 0.5) * 0.06, 0.47, 0.2], sv * 0.85 * (1 - rock * 0.8));
+    if (sv > 0) c = mix(c, [0.25 + (fbm(x * 0.09, z * 0.09, 2) - 0.5) * 0.06, 0.47, 0.2], sv * 0.85 * (1 - rock * 0.8) * shoreFade);
     // Frostspire's snowpack (reference "night - Frostspire"): above the valley floors the mountains stay white on all but sheer
     // cliffs; the slope mask above would otherwise strip the snow off nearly every mountain face (only ~3% of the region was white)
     const fr = FROST_REGION;

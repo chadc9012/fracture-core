@@ -7,6 +7,7 @@
  * player controller, sim enemies and combat all work unchanged. `descentGroundAt` is the floor under you (the Storm
  * Islands' stormGroundAt pattern), and `descentSolids` are its walls for sweepSolids. Design: the "World Fracture —
  * Dungeon Design: The Descent" doc (ranks, sizes, the nine signature dungeons). */
+import { STRAIT_CLEAR, borderDistance } from "./continent-borders";
 import { REGIONS } from "./world";
 import { slopeAt, walkHeight, WATER_LEVEL } from "./terrain";
 import type { SolidBox } from "./environment-collision";
@@ -154,18 +155,32 @@ function gateSite(regionId: string, day: string): { x: number; z: number; y: num
   const r = REGIONS.find((g) => g.id === regionId);
   if (!r) return null;
   const h = hash(`${regionId}:${day}`);
-  for (let k = 0; k < 24; k++) {
+  for (let k = 0; k < 64; k++) {
     const a = ((h % 3600) / 3600) * Math.PI * 2 + k * 2.399;
-    const d = r.radius * (0.3 + (((h >>> 8) + k * 37) % 30) / 100);
+    const d = r.radius * (k < 24 ? 0.3 + (((h >>> 8) + k * 37) % 30) / 100 : 0.12 + (((h >>> 8) + k * 37) % 40) / 100);
     const x = r.x + Math.cos(a) * d, z = r.z + Math.sin(a) * d;
+    // Stage 151: well back from the sea between continents, so a gate never opens on a strait's beach
+    if (borderDistance(x, z) < STRAIT_CLEAR + 20) continue;
     const ground = walkHeight(x, z);
     if (ground > WATER_LEVEL + 1.5 && slopeAt(x, z) < 0.35) return { x, z, y: ground };
   }
-  return null;
+  // mountain regions can be nearly all steep: sweep the region and take the day's pick of every spot that will do
+  const ok: { x: number; z: number; y: number }[] = [];
+  for (let a = 0; a < 64; a++) for (let f = 0.1; f < 0.8; f += 0.05) {
+    const x = r.x + Math.cos((a / 64) * Math.PI * 2) * r.radius * f, z = r.z + Math.sin((a / 64) * Math.PI * 2) * r.radius * f;
+    if (borderDistance(x, z) < STRAIT_CLEAR + 20) continue;
+    const ground = walkHeight(x, z);
+    if (ground > WATER_LEVEL + 1.5 && slopeAt(x, z) < 0.35) ok.push({ x, z, y: ground });
+  }
+  return ok.length ? ok[h % ok.length]! : null;
 }
 
+const gateDays = new Map<string, FractureGate[]>();
+/** the day's gates (deterministic per UTC day, so every client agrees; memoised, the siting samples the terrain) */
 export function gatesForDay(now: number): FractureGate[] {
   const day = dayOf(now);
+  const hit = gateDays.get(day);
+  if (hit) return hit.map((g) => ({ ...g }));
   const out: FractureGate[] = [];
   for (const d of SIGNATURE_DUNGEONS) {
     if (!d.regionId) continue;
@@ -175,7 +190,9 @@ export function gatesForDay(now: number): FractureGate[] {
     const lies = hash(`${d.id}:${day}:rank`) % 7 === 0 && i < RANK_ORDER.length - 1;
     out.push({ id: `${d.id}:${day}`, dungeonId: d.id, day, ...site, shownRank: d.rank, trueRank: lies ? RANK_ORDER[i + 1]! : d.rank, sealed: d.sealed });
   }
-  return out;
+  if (gateDays.size > 8) gateDays.clear();
+  gateDays.set(day, out);
+  return out.map((g) => ({ ...g }));
 }
 
 /** gate radius you walk into (the lower half of the ring) */

@@ -53,10 +53,11 @@ describe("road crossings", () => {
     const { riverCrossings, deckAt } = await import("./terrain");
     for (const c of riverCrossings()) { expect(c.resolved).toBe(true); expect(deckAt(c.x, c.z)).toBe(c.deck); }
   });
-  it("the forest river's outflow runs under the Verdant–Swamps Causeway, so the road network keeps at least one real bridge", async () => {
+  // Stage 151 cut the Verdant–Swamps Causeway at the strait, and with it the forest river's bridge; any road that still
+  // meets a river gets a deck whose approaches meet it
+  it("every wet river crossing's approaches meet its bridge deck", async () => {
     const { riverCrossings, heightAt } = await import("./terrain");
     const wet = riverCrossings().filter((c) => c.resolved && !c.dry);
-    expect(wet.length).toBeGreaterThan(0);
     // the approaches meet the deck: no step from the graded road up onto the bridge
     for (const c of wet) for (const s of [-1, 1]) {
       const end = c.length / 2 + 3;

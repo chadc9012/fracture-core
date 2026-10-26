@@ -9,7 +9,7 @@
  * You cannot walk, drive, sail or fly from one continent world into another; you travel between them from a transit
  * terminal (travel.ts) or by deploying from the planet map. Thalassia, the Storm Islands, interiors and descents are free
  * spaces with their own ways in. Pure; tested in planet.test.ts. */
-import { NEON_SITE, REGIONS } from "./world";
+import { WORLD_ANCHORS } from "./continent-borders";
 import { THALASSIA_CENTER } from "./thalassia-site";
 import { CITY_RADIUS } from "./thalassia-sectors";
 
@@ -115,21 +115,7 @@ export const continentById = (id: string): Continent | null => CONTINENTS.find((
 
 /* ---------------- continent worlds in the live map ---------------- */
 
-/** a continent's pull on the map: the map point belongs to the anchor with the least (distance − weight) */
-type Anchor = { x: number; z: number; w: number };
-const R = (id: string) => REGIONS.find((r) => r.id === id)!;
-const at = (id: string, w: number): Anchor => ({ x: R(id).x, z: R(id).z, w });
-/** Weights are tuned so every border runs through open country between cities, never through one (planet.test.ts checks
- * every region centre, Neon City's whole plateau, the Nexus hub and its suburb, and every landmark). */
-export const WORLD_ANCHORS: Readonly<Record<string, readonly Anchor[]>> = {
-  aetheria: [at("nexus", 194), { x: R("nexus").x, z: R("nexus").z + 155, w: 175 }],
-  noctyra: [{ x: NEON_SITE.x, z: NEON_SITE.z, w: 275 }],
-  veyloria: [at("veridan", 204)],
-  sylvaris: [at("swamps", 180)],
-  kharos: [at("solara", 264), at("wastelands", 252)],
-  frosthelm: [at("frostspire", 240)],
-  pyrrath: [at("ember", 180)],
-};
+export { WORLD_ANCHORS };
 export type WorldId = keyof typeof WORLD_ANCHORS | "thalassia";
 
 /** Thalassia's own water: the city and the sea around it, plus the approach lane from Veyloria's elevator platform */

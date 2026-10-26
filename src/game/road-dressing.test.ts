@@ -1,17 +1,19 @@
 import { describe, expect, test } from "bun:test";
-import { LANES, distanceToRoad } from "./lanes";
+import { LANES, ROUTES, distanceToRoad } from "./lanes";
 import { ROAD_HALF } from "./road-ribbon";
 import { bridgeOf, laneDressing, nearBridge, roadKind, worldRoadDressing } from "./road-dressing";
 import { WATER_LEVEL, deckAt, heightAt, riverCrossings } from "./terrain";
 
 describe("road dressing", () => {
   test("trunk roads are paved, mountain routes gravel, forest and swamp roads dirt", () => {
-    const kinds = Object.fromEntries(LANES.map((l) => [l.name, roadKind(l)]));
+    // classified by the full route: a road cut at a strait (Stage 151) keeps its route's surface on each side
+    const kinds = Object.fromEntries(ROUTES.map((l) => [l.name, roadKind(l)]));
     expect(kinds["Nexus–Wastelands Highway"]).toBe("asphalt");
     expect(kinds["Neon–Wastelands Industrial Road"]).toBe("asphalt");
     expect(kinds["Wastelands–Frostspire Pass"]).toBe("gravel");
     expect(kinds["Verdant–Nexus Forest Road"]).toBe("dirt");
     expect(kinds["Verdant–Swamps Causeway"]).toBe("dirt");
+    for (const l of LANES) if (l.route) expect(roadKind(l)).toBe(roadKind(l.route));
   });
   const { dressing, bridges } = worldRoadDressing();
   test("paved and gravel roads get posts both sides; nothing stands on the surfaced strip, in water or on a bridge span", () => {
@@ -52,7 +54,8 @@ describe("verge scatter (wilds target frame)", () => {
   const at = (x: number, z: number) => region(x, z)?.id;
   const all = ALL_LANES.flatMap((l) => vergeScatter(l, at));
   test("every road gets rocks and scrub along its edges, never on a surfaced strip", () => {
-    expect(all.length).toBeGreaterThan(1000);
+    // the network got shorter when Stage 151 cut its roads at the straits
+    expect(all.length).toBeGreaterThan(600);
     expect(all.some((i) => i.kind === "rock") && all.some((i) => i.kind === "scrub")).toBe(true);
     for (const i of all) expect(roadDist(i.x, i.z)).toBeGreaterThan(HALF + 0.85);
   });
