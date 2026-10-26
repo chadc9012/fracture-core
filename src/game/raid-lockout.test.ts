@@ -1,11 +1,12 @@
 import { describe, expect, test } from "bun:test";
-import { DROP_CHANCE, DUPLICATE_PARTS, ENCOUNTERS, RAID_STAGE_IDS, claimEncounters, clearedStages, dropRoll, encounterCleared, featuredStage, lockedOut, pieceFor, piecePower, remainingStages, resumeStageIndex, weekKey } from "./raid-lockout";
+import { RAID_SET_ID, DROP_CHANCE, dropIdFor, pieceLevel, DUPLICATE_PARTS, ENCOUNTERS, RAID_STAGE_IDS, claimEncounters, clearedStages, dropRoll, encounterCleared, featuredStage, lockedOut, pieceFor, piecePower, remainingStages, resumeStageIndex, weekKey } from "./raid-lockout";
 import { claimHollowStarClear, claimHollowStarTierClear, collectHollowStarEncounters } from "./hollow-star-raid";
 import { RAID_TIERS } from "./difficulty-ladder";
 import { PAYOUTS } from "./activity-payouts";
 import { DEFAULT_PROGRESSION } from "./progression";
 import { nexBalance } from "./nex";
 import { HOLLOW_STAR } from "./hollow-star-data";
+import { setById, setForRegion } from "./armor-sets";
 
 const T = Date.UTC(2026, 9, 26, 12), DAY = 86_400_000, WEEK = 7 * DAY; // a Monday noon
 const fresh = () => structuredClone(DEFAULT_PROGRESSION);
@@ -17,7 +18,11 @@ describe("the weekly raid loop (Destiny's)", () => {
     expect(Object.values(ENCOUNTERS).reduce((n, e) => n + e.share, 0)).toBeCloseTo(1, 10);
     const boss = ENCOUNTERS["hollow-star-boss"]!.share;
     expect(Object.entries(ENCOUNTERS).every(([id, e]) => id === "hollow-star-boss" || e.share < boss)).toBe(true);
-    expect(new Set(Object.values(ENCOUNTERS).map((e) => e.piece.id)).size).toBe(RAID_STAGE_IDS.length);
+    expect(new Set(RAID_STAGE_IDS.map(dropIdFor)).size).toBe(RAID_STAGE_IDS.length);
+    // five pieces of the raid armor set (one per slot) and one weapon
+    const slots = RAID_STAGE_IDS.map((id) => ENCOUNTERS[id]!.drop).filter((d) => d.kind === "set").map((d) => (d as { slot: string }).slot).sort();
+    expect(slots).toEqual(["chest", "classItem", "gauntlets", "helmet", "legs"]);
+    expect(ENCOUNTERS["hollow-star-boss"]!.drop.kind).toBe("weapon");
   });
   test("each encounter pays its own share the first time you clear it in a week, and a first clear pays the 'first' rate", () => {
     const r = claimEncounters(fresh(), "normal", ["broken-gate"], {}, T);
@@ -69,28 +74,50 @@ describe("encounter loot", () => {
     const rolls = new Set(RAID_STAGE_IDS.flatMap((id) => [0, 1, 2, 3].map((w) => dropRoll("TITAN", "normal", id, T + w * WEEK))));
     expect(rolls.size).toBeGreaterThan(10);
   });
-  test("higher tiers roll more often and drop higher-power pieces", () => {
+  test("higher tiers roll more often and drop higher-level armor and higher-power weapons", () => {
     expect([...DROP_CHANCE]).toEqual([...DROP_CHANCE].sort((a, b) => a - b));
     expect(DROP_CHANCE[3]).toBeGreaterThan(DROP_CHANCE[0]!);
+    expect(pieceFor("broken-gate", "contest").level).toBe(10); expect(pieceFor("broken-gate", "normal").level).toBe(1);
     expect(pieceFor("broken-gate", "contest").power).toBeGreaterThan(pieceFor("broken-gate", "normal").power);
-    expect(pieceFor("broken-gate", "normal").power).toBe(piecePower(0));
+    expect(pieceFor("hollow-star-boss", "contest").power).toBe(piecePower(3)); expect(pieceFor("hollow-star-boss", "normal").power).toBe(piecePower(0));
+    expect([0, 1, 2, 3].map(pieceLevel)).toEqual([1, 4, 7, 10]);
+  });
+  test("raid armor is a real armor set with set bonuses, and no region enemy drops it", () => {
+    const set = setById(RAID_SET_ID)!;
+    expect(set.name).toBe("Hollow Star");
+    expect(Object.values(set.pieces).sort()).toEqual(["Conduit Mark", "Echo Mantle", "Gatewarden Visor", "Sealkeeper Greaves", "Spanwalker Grips"]);
+    expect(setForRegion("nexus")?.id).not.toBe(RAID_SET_ID);
+    for (const region of ["nexus", "veridan", "swamps", "ember", "frostspire", "wastelands", "solara"]) expect(setForRegion(region)?.id).not.toBe(RAID_SET_ID);
+    // an encounter's set drop is a real set piece (setId), so the existing equip, level and bonus rules apply to it
+    const r = claimEncounters(fresh(), "normal", ["broken-gate"], { challenge: false }, T + 0).progression;
+    const feat = featuredStage(T);
+    const w = claimEncounters(fresh(), "normal", [feat], { challenge: true }, T).progression;
+    const piece = w.inventory.find((g) => g.id === dropIdFor(feat))!;
+    expect(r).toBeTruthy();
+    if (ENCOUNTERS[feat]!.drop.kind === "set") { expect(piece.setId).toBe(RAID_SET_ID); expect(piece.level).toBe(1); }
   });
   test("over many weeks the drop rate follows the tier's chance (the whole table fills in)", () => {
     let hits = 0, n = 0;
     for (let w = 0; w < 60; w++) for (const id of RAID_STAGE_IDS) { n++; if (dropRoll("TITAN", "normal", id, T + w * WEEK) < DROP_CHANCE[0]!) hits++; }
     expect(hits / n).toBeGreaterThan(0.25); expect(hits / n).toBeLessThan(0.45);
   });
-  test("a piece you own comes back as gear parts, a higher tier upgrades it, and the challenge guarantees the featured drop", () => {
-    const feat = featuredStage(T), pieceId = ENCOUNTERS[feat]!.piece.id;
+  test("a duplicate armor piece levels up, a higher tier upgrades it, a duplicate weapon becomes gear parts, and the challenge guarantees the featured drop", () => {
+    const feat = featuredStage(T);
+    const weaponWeek = Array.from({ length: 12 }, (_, w) => T + w * WEEK).find((t) => featuredStage(t) === "hollow-star-boss")!;
     const a = claimEncounters(fresh(), "normal", [feat], { challenge: true }, T);
-    expect(a.drops.map((d) => d.id)).toEqual([pieceId]);
+    expect(a.drops.map((d) => d.id)).toEqual([dropIdFor(feat)]);
+    const isSet = ENCOUNTERS[feat]!.drop.kind === "set";
     const dup = claimEncounters(a.progression, "normal", [feat], { challenge: true }, T + 6 * WEEK); // six weeks later the same encounter is featured again
-    expect(dup.drops).toEqual([]); expect(dup.parts).toBe(DUPLICATE_PARTS);
-    expect(dup.progression.materials.gearParts).toBe((a.progression.materials.gearParts ?? 0) + DUPLICATE_PARTS);
+    if (isSet) { expect(dup.drops[0]!.level).toBe(2); expect(dup.parts).toBe(0); }
+    else { expect(dup.drops).toEqual([]); expect(dup.parts).toBe(DUPLICATE_PARTS); }
     const up = claimEncounters(dup.progression, "contest", [feat], { challenge: true }, T);
-    expect(up.drops[0]!.power).toBe(piecePower(3));
-    expect(up.progression.inventory.filter((g) => g.id === pieceId)).toHaveLength(1);
-    expect(up.progression.inventory.find((g) => g.id === pieceId)!.power).toBe(piecePower(3));
+    expect(up.progression.inventory.filter((g) => g.id === dropIdFor(feat))).toHaveLength(1);
+    expect(up.drops[0]!.level === 10 || up.drops[0]!.power === piecePower(3)).toBe(true);
+    // the boss weapon: a second one is only gear parts
+    const w1 = claimEncounters(fresh(), "normal", ["hollow-star-boss"], { challenge: true }, weaponWeek);
+    expect(w1.drops.map((d) => d.id)).toEqual(["hs-astravore-fang"]);
+    const w2 = claimEncounters(w1.progression, "normal", ["hollow-star-boss"], { challenge: true }, weaponWeek + 6 * WEEK);
+    expect(w2.drops).toEqual([]); expect(w2.parts).toBe(DUPLICATE_PARTS);
   });
   test("a full clear on every tier pays the raid's whole tier total", () => {
     let p = fresh();
