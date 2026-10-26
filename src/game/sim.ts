@@ -6,6 +6,7 @@ import { stratagemById, type StratagemId } from "./stratagems";
 import { NO_BACKPACK, type BackpackDef } from "./backpacks";
 import { createEnvState, STRIKE_MACHINE_DAMAGE, STRIKE_PLAYER_DAMAGE, type EnvState, type Strike } from "./environment";
 import { squadMove, squadRole } from "./enemy-intelligence";
+import { drivePattern } from "./pattern-drive";
 import { createAi, pickCover, shouldTakeCover, sightRange, stepAwareness, type EnemyAi } from "./enemy-perception";
 import { enemyHitChance, sightLine } from "./line-of-sight";
 import { DIVE, diveDirection, FLEE, fleeDirection, reactsInTime, roundThreat } from "./enemy-evasion";
@@ -108,6 +109,8 @@ export type Machine = {
   /** enemy-evasion.ts: diving out of a rocket's blast or running out of a strike circle (no shooting meanwhile); when it may dive again; the last strike beacon it rolled to notice */
   evade?: { vx: number; vz: number; start: number; until: number; dive: boolean } | undefined;
   evadeCool?: number | undefined;
+  /** pattern-drive.ts: the wind-up this machine is showing right now (a ring or a charge lane), for the ground telegraph */
+  patternTell?: { kind: "RING" | "LANE"; x: number; z: number; radius: number; width: number; progress: number } | undefined;
   strikeSeen?: string | undefined;
   /** enemy-tactics.ts: seconds the player has been out of this machine's sight while it is alert; a flank it is running; when it may throw again */
   hiddenFor?: number | undefined;
@@ -1877,6 +1880,12 @@ export function stepSim(sim: WorldSim, input: SimInput) {
         if (m.los?.clear) { m.rot = Math.atan2(dx, dz); engage(); }
       } else {
       // squad role + threat drive positioning instead of a straight chase
+      // authored attack & movement patterns (enemy-patterns.ts): charges, leaps, strafing, blinks, shells; a kind with none uses the squad roles
+      const drv = !scripted ? drivePattern(sim, m, i, { d, dx, dz, dt, speed, time: nowT, yaw: input.yaw, playerHp: sim.hp / 100 }) : null;
+      if (drv) {
+        m.cool -= dt;
+        if (drv.fire) engage();
+      } else {
       const move = squadMove(role, d, sim.hp / 100, sim.combatHeat, nowT + i, sim.mods.squadArchetype, sim.mods.rangedHoldFire, sim.mods.branchPosture);
       const nx = dx / d, nz = dz / d;
       m.x += (nx * move.forward + -nz * move.strafe) * speed * dt;
@@ -1884,6 +1893,7 @@ export function stepSim(sim: WorldSim, input: SimInput) {
       m.rot = Math.atan2(dx, dz);
       m.cool -= dt;
       engage();
+      }
       }
     } else if (aiState === "SUSPICIOUS" || aiState === "SEARCH") {
       // investigate last known position; turn to face it, move cautiously

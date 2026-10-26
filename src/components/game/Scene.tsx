@@ -87,6 +87,7 @@ import { closeStratagems, createStratagemState, inputDirection, openStratagems, 
 import { Wildlife } from "./Wildlife";
 import { Civilians } from "./Civilians";
 import { Bullets, BeaconMarkers, Convoys, HazardMarkers, SupplyLanes, WarMachines, ZoneBeacons } from "./Actors";
+import { PatternTelegraphs } from "./PatternTelegraphs";
 import { BulletImpacts } from "./BulletFx";
 import { Roads } from "./Roads";
 import { RoadDressing } from "./RoadDressing";
@@ -3450,7 +3451,7 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
       <SupplyLanes sim={sim} />
       <ZoneBeacons sim={sim} />
       <Convoys sim={sim} />
-      <group name="enemies"><WarMachines sim={sim} /></group>
+      <group name="enemies"><WarMachines sim={sim} /><PatternTelegraphs sim={sim} /></group>
       <ScenarioBosses sim={sim} />
       <CombatFx sim={sim} reducedMotion={!!settings.reducedMotion} />
       <AbilityFx sim={sim} reducedMotion={!!settings.reducedMotion} />
