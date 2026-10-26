@@ -223,7 +223,7 @@ export function applyAstravoreKill(p: PlayerProgression, now = Date.now(), tierI
   if (!firstKill && !canClaimDungeon(p, HOLLOW_STAR_ID, now)) return { progress: p, firstKill: false };
   const extras = hollowStarExtras(p.earnedRewards, firstKill ? 0 : 1, "STANDARD", []);
   const earned = Array.from(new Set([
-    ...p.earnedRewards, dungeonClaimKey(HOLLOW_STAR_ID, now), ...extras.appearances,
+    ...p.earnedRewards, dungeonClaimKey(HOLLOW_STAR_ID, now, p.pocketClass), ...extras.appearances,
     ...(extras.blueprint ? [DIMENSIONAL_BLUEPRINT_KEY] : []), ...(extras.title ? [STARBREAKER_KEY] : []),
   ]));
   const kept: PlayerProgression = {
