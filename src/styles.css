@@ -473,6 +473,14 @@ html.wf-touch {
   .wf-nova-quote { display: none !important; }
   .mission-tracker { opacity: 0.85; }
   [aria-label="Minimap"] { transform: scale(0.55); }
+  /* owner phone shots, Oct 26 (first run of the phone layout): the tutorial objective was hidden with the card, so nothing said
+     what to do; it comes back as a compact note under the zone line. The heal/shield counters stacked over the gun: they sit in a
+     row on the bottom edge, right of the ammo panel. */
+  .onboarding-card { display: block !important; top: 3.1rem !important; left: 8px !important; width: min(15rem, 30vw) !important; }
+  .onboarding-card > div:first-child { display: none; }
+  .onboarding-card h2 { font-size: 11px !important; letter-spacing: 0.1em; }
+  .onboarding-card p { font-size: 9.5px !important; line-height: 1.25; padding-top: 2px; padding-bottom: 2px; margin-top: 2px !important; }
+  .consumable-hud { bottom: 8px !important; left: calc(clamp(150px, 22vw, 190px) + min(250px, 34vw) + 118px) !important; right: auto !important; flex-wrap: nowrap !important; flex-direction: row !important; transform: scale(0.75) !important; transform-origin: bottom left !important; max-width: none !important; }
 }
 }
 /* touch screens have no keyboard: hide keyboard key hints on the HUD meters */

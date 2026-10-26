@@ -1,10 +1,16 @@
 import { tutorialText, type TutorialState } from "@/game/onboarding";
 import type { ClassId } from "@/game/loadout";
 import { useVoiceLine } from "./useVoiceLine";
+import { isTouchDevice } from "@/game/client-input";
+
+/** the brief names keyboard keys; on a phone it names the on-screen controls instead (Q/E/R stay: the buttons carry those letters) */
+const forTouch = (text: string) => text
+  .replace("(WASD)", "(left stick)").replace("jump (C)", "jump (up-arrow button)").replace("Aim and fire with Space", "Aim and tap the fire button");
 
 /** VICTORY is handled by the full-screen VictoryReport instead of this small in-progress banner. */
 export function OnboardingSignal({ tutorial, classId }: { tutorial: TutorialState; classId: ClassId; onOpenHub: () => void }) {
-  const [title, description] = tutorialText(tutorial.step, classId);
+  const [title, brief] = tutorialText(tutorial.step, classId);
+  const description = brief && isTouchDevice() ? forTouch(brief) : brief;
   useVoiceLine(`tutorial-${tutorial.step}`, "NOVA", description, "critical");
   if (tutorial.step === "VICTORY") return null;
   // the same editorial look as the opening cinematic: a ruled kicker, a light uppercase title, the brief on a fading band
