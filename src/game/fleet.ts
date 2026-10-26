@@ -13,6 +13,7 @@ import { HOLLOW_CROWN } from "./godforge";
 import type { VehicleDefinition, VehicleId } from "./vehicles";
 import { fleetLedgerKey, fleetNexPrice } from "./market-prices";
 import { nexBalance, spendNex, type NexLedger } from "./nex";
+import { FOUNDRY_HUB, KITS, kitById, kitStat } from "./vehicle-foundry";
 
 export type GarageId = "base-01" | "base-02" | "base-03" | "base-04";
 const frost = REGIONS.find((r) => r.id === "frostspire")!;
@@ -103,8 +104,8 @@ export function normalizeVehicleCosmetics(raw: unknown): VehicleCosmetics {
   }
   return result;
 }
-export type FleetState = { owned: string[]; garages: GarageId[]; tuning: Record<string, Record<string, number>>; paint: Record<string, string>; active: string | null; cosmetics?: Record<string, VehicleCosmetics> };
-export const EMPTY_FLEET: FleetState = { owned: [], garages: [], tuning: {}, paint: {}, active: null, cosmetics: {} };
+export type FleetState = { owned: string[]; garages: GarageId[]; tuning: Record<string, Record<string, number>>; paint: Record<string, string>; active: string | null; cosmetics?: Record<string, VehicleCosmetics>; /** foundry weaponization kit per build (vehicle-foundry.ts) */ kits?: Record<string, string> };
+export const EMPTY_FLEET: FleetState = { owned: [], garages: [], tuning: {}, paint: {}, active: null, cosmetics: {}, kits: {} };
 
 export function normalizeFleet(raw: unknown): FleetState {
   const r = (raw && typeof raw === "object" ? raw : {}) as Partial<FleetState>;
@@ -115,13 +116,15 @@ export function normalizeFleet(raw: unknown): FleetState {
   if (r.paint && typeof r.paint === "object") for (const [k, v] of Object.entries(r.paint)) if (typeof v === "string") paint[k] = v;
   const cosmetics: Record<string, VehicleCosmetics> = {};
   if (r.cosmetics && typeof r.cosmetics === "object") for (const [id, value] of Object.entries(r.cosmetics as Record<string, unknown>)) if (fleetById(id)) cosmetics[id] = normalizeVehicleCosmetics(value);
-  return { owned: ids(r.owned).filter((x) => fleetById(x)), garages: ids(r.garages).filter((g): g is GarageId => g in GARAGES), tuning, paint, active: typeof r.active === "string" && fleetById(r.active) ? r.active : null, cosmetics };
+  const kits: Record<string, string> = {};
+  if (r.kits && typeof r.kits === "object") for (const [id, v] of Object.entries(r.kits as Record<string, unknown>)) if (fleetById(id) && typeof v === "string" && KITS.some((x) => x.id === v)) kits[id] = v;
+  return { owned: ids(r.owned).filter((x) => fleetById(x)), garages: ids(r.garages).filter((g): g is GarageId => g in GARAGES), tuning, paint, active: typeof r.active === "string" && fleetById(r.active) ? r.active : null, cosmetics, kits };
 }
 export function mergeFleet(a: FleetState, b: FleetState, aIsNewer: boolean): FleetState {
   const tuning: FleetState["tuning"] = {};
   for (const src of [a.tuning, b.tuning]) for (const [k, v] of Object.entries(src)) { tuning[k] ??= {}; for (const [n, l] of Object.entries(v)) tuning[k]![n] = Math.max(tuning[k]![n] ?? 0, l); }
   const newer = aIsNewer ? a : b, older = aIsNewer ? b : a;
-  return { owned: [...new Set([...a.owned, ...b.owned])], garages: [...new Set([...a.garages, ...b.garages])], tuning, paint: { ...older.paint, ...newer.paint }, active: newer.active ?? older.active, cosmetics: { ...(older.cosmetics ?? {}), ...(newer.cosmetics ?? {}) } };
+  return { owned: [...new Set([...a.owned, ...b.owned])], garages: [...new Set([...a.garages, ...b.garages])], tuning, paint: { ...older.paint, ...newer.paint }, active: newer.active ?? older.active, cosmetics: { ...(older.cosmetics ?? {}), ...(newer.cosmetics ?? {}) }, kits: { ...(older.kits ?? {}), ...(newer.kits ?? {}) } };
 }
 
 type FleetSave = { nexLedger: NexLedger; fleet: FleetState; materials: Partial<Record<MaterialId, number>>; ownedVehicles: VehicleId[]; garageLoadout: VehicleId[]; selectedVehicle: VehicleId | null };
@@ -191,6 +194,8 @@ export function tunedVehicle(def: VehicleDefinition, fleet: FleetState | undefin
   const t = fleet!.tuning[active.id] ?? {};
   const mult: Record<TuneStat, number> = { speed: 1, hull: 1, handling: 1, ram: 1 };
   for (const n of active.nodes) mult[n.stat] += n.perLevel * (t[n.id] ?? 0);
+  const kit = kitById(fleet!.kits?.[active.id]);
+  for (const st of ["speed", "hull", "handling", "ram"] as const) mult[st] *= kitStat(kit, st);
   return { ...def, name: active.name, speed: def.speed * mult.speed, hull: def.hull * mult.hull, handling: def.handling * mult.handling, ram: def.ram * mult.ram };
 }
 
@@ -231,4 +236,17 @@ export function setVehicleCosmetic<P extends FleetSave, K extends keyof VehicleC
   if (!(VEHICLE_COSMETIC_OPTIONS[key] as readonly string[]).includes(value)) return { error: "Invalid cosmetic option" };
   const current = normalizeVehicleCosmetics(f.cosmetics?.[id]);
   return { progression: { ...p, fleet: { ...f, cosmetics: { ...(f.cosmetics ?? {}), [id]: { ...current, [key]: value } } } }, message: `${e.name}: ${key} set to ${value}` };
+}
+
+/** Fit a foundry kit (vehicle-foundry.ts) to an owned build. Fitting is done at the build's home hub (`atGarage`); a kit costs
+ * its materials each time it is fitted, going back to Stock is free. */
+export function installKit<P extends FleetSave>(p: P, id: string, kitId: string, atGarage: GarageId): FleetResult<P> {
+  const e = fleetById(id), f = fleetOf(p), kit = KITS.find((x) => x.id === kitId);
+  if (!e || !f.owned.includes(id)) return { error: "Not in your fleet" };
+  if (!kit) return { error: "Unknown kit" };
+  if (e.garage !== atGarage) return { error: `Fit kits at ${FOUNDRY_HUB[e.garage].name} (${GARAGES[e.garage].name})` };
+  if ((f.kits?.[id] ?? "stock") === kit.id) return { error: `${kit.name} is already fitted` };
+  const paid = pay(p, kit.cost);
+  if (typeof paid === "string") return { error: paid };
+  return { progression: { ...paid, fleet: { ...f, kits: { ...(f.kits ?? {}), [id]: kit.id } } }, message: `${e.name}: ${kit.name} fitted` };
 }

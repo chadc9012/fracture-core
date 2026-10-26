@@ -1,4 +1,5 @@
 import { createDesertScrubGeometry } from "@/game/desert-botanical-geometry";
+import { inStuntPark } from "@/game/stunt-park";
 import { useMemo, useRef } from "react";
 import * as THREE from "three";
 import { walkHeight, slopeAt, WATER_LEVEL } from "@/game/terrain";
@@ -21,7 +22,7 @@ function scatter(count: number, radius: number, seed: number): Scatter[] {
     const r = Math.sqrt(rand()) * radius;
     const x = center.x + Math.cos(a) * r, z = center.z + Math.sin(a) * r;
     // Keep roads, steep slopes, and submerged terrain clear of decorative obstacles.
-    if (distanceToRoad(x, z) < LANE_HALF_WIDTH + 4 || slopeAt(x, z) > 0.65 || walkHeight(x, z) < WATER_LEVEL + 0.4) continue;
+    if (distanceToRoad(x, z) < LANE_HALF_WIDTH + 4 || slopeAt(x, z) > 0.65 || walkHeight(x, z) < WATER_LEVEL + 0.4 || inStuntPark(x, z, 6)) continue;
     placements.push({ x, z, scale: 0.45 + rand() * 1.9, rotation: rand() * Math.PI * 2, variant: placements.length % 4 });
   }
   return placements;

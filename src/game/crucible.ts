@@ -36,7 +36,7 @@ export function rivalLineup(mode: CrucibleModeId, playerClass: RivalClass): Riva
   return all.slice(0, CRUCIBLE_MODES[mode].rivals);
 }
 
-export type CrucibleState = { mode: CrucibleModeId; respawn: number[] };
+export type CrucibleState = { mode: CrucibleModeId; respawn: number[]; /** no-respawn fields (rounds): slots already sent out this round */ spent?: boolean[] };
 export const newCrucible = (mode: CrucibleModeId): CrucibleState => ({ mode, respawn: Array.from({ length: CRUCIBLE_MODES[mode].rivals }, () => 0) });
 
 /** keep the lineup on the field: each missing rival respawns at the arena edge once its timer runs out */
@@ -67,3 +67,33 @@ export function clearRivals(sim: WorldSim): number {
   for (const m of sim.machines) if (m.alive && m.rival) { m.alive = false; delete m.rival; delete m.living; n++; }
   return n;
 }
+
+/** Killbox modes (pvp.ts): keep `lineup` on the field around `center` (spawn ring `ring` m). With `respawn` off, each slot takes
+ * the field once until `resetField` (a new round). Same rival machines and tags as stepRivals. */
+export function stepField(sim: WorldSim, st: CrucibleState, center: { x: number; z: number }, lineup: readonly RivalClass[], ring: number, respawn: boolean, dt: number, rng = Math.random): void {
+  st.spent ??= [];
+  // slots past the lineup leave the field (a royale lobby thinning out)
+  for (const m of sim.machines) if (m.alive && m.rival && m.living?.startsWith("crucible:") && Number(m.living.slice(9)) >= lineup.length) { m.alive = false; delete m.rival; delete m.living; }
+  lineup.forEach((cls, slot) => {
+    const tag = `crucible:${slot}`;
+    if (sim.machines.some((m) => m.alive && m.rival && m.living === tag)) { st.respawn[slot] = RIVAL_RESPAWN_S; st.spent![slot] = true; return; }
+    if (!respawn && st.spent![slot]) return;
+    st.respawn[slot] = (st.respawn[slot] ?? 0) - dt;
+    if ((st.respawn[slot] ?? 0) > 0) return;
+    const m = sim.machines.find((e) => !e.alive);
+    if (!m) return;
+    const a = rng() * Math.PI * 2;
+    Object.assign(m, {
+      alive: true, x: center.x + Math.cos(a) * ring, z: center.z + Math.sin(a) * ring, hp: RIVAL_HP, rot: 0, scale: 1, zone: "wastelands",
+      cool: 1.2 + rng(), elite: false, profile: `Rival ${RIVAL_LABEL[cls]}`, kind: "VANGUARD" as const, drop: "scrapMetal", boss: false, kx: 0, kz: 0, mission: false,
+      vulnUntil: 0, vulnMult: 1, encounter: undefined, decoy: undefined, living: tag, scenarioId: undefined, eq: undefined, swimY: undefined,
+      nemesis: undefined, nemesisWeak: undefined, nemesisDamage: undefined, rival: cls,
+    });
+    delete m.lastPlayerDamage; delete m.ai;
+    st.respawn[slot] = RIVAL_RESPAWN_S; st.spent![slot] = true;
+  });
+}
+/** a new round: everyone off the field, every slot fresh */
+export function resetField(sim: WorldSim, st: CrucibleState): void { clearRivals(sim); st.spent = []; st.respawn = st.respawn.map(() => 0.8); }
+/** n rival operators cycling the three classes (a mode's on-field count) */
+export const rivalSquad = (n: number, offset = 0): RivalClass[] => Array.from({ length: n }, (_, i) => (["TITAN", "HUNTER", "WARLOCK"] as const)[(i + offset) % 3]!);

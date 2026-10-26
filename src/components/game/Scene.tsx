@@ -14,13 +14,15 @@ import { createHudGate } from "@/game/hud-gate";
 import { Billboard, Environment, Lightformer, Sky, useGLTF } from "@react-three/drei";
 import { Text } from "./SafeText";
 import { getPin, pinMarker, reached, setPin } from "@/game/map-pin";
-import { ARENA_POINT, ARENA_RADIUS, clearRivals, newCrucible, stepRivals, type CrucibleState, type RivalClass } from "@/game/crucible";
-import { pointWorld } from "@/game/activities";
+import { ARENA_POINT, ARENA_RADIUS, clearRivals, newCrucible, resetField, rivalSquad, stepField, stepRivals, type CrucibleState, type RivalClass } from "@/game/crucible";
+import { PVP_MODES, fieldSize, newPvp, respawns, stepPvp, stormDamage, type PvpState } from "@/game/pvp";
+import { PvpField } from "./PvpField";
+import { AREAS, pointWorld } from "@/game/activities";
 import { CoverWall } from "./PropModels";
 import { getPerfTier, heavyShadows, NEAR_SCALE, setPerfTier } from "@/game/perf-budget";
 import { ruins, isEvolved, isDiscovered, freshCharge, RUIN_DISCOVER_RADIUS, RUIN_REACH } from "@/game/weapon-evolution";
 import { useFrame, useThree } from "@react-three/fiber";
-import { memo, useEffect, useMemo, useRef, type ComponentProps } from "react";
+import { memo, useEffect, useMemo, useRef, useState, type ComponentProps } from "react";
 import * as THREE from "three";
 import { softSprite } from "./softSprite";
 
@@ -114,7 +116,7 @@ import { fxBus } from "@/game/fx-bus";
 import { launch, zoneElement } from "@/game/combat-fx";
 import { ejectCasing } from "@/game/casings";
 import { EncounterFx } from "./EncounterFx";
-import { COMBAT_FEEDBACK, impactFor, rumble } from "@/game/combat-feedback";
+import { COMBAT_FEEDBACK, impactFor, rumble, triggerRumble } from "@/game/combat-feedback";
 import { encounterFor } from "@/game/scenario-encounters";
 import { windupHud } from "@/game/encounter-sim";
 import { setShopClockHour, shopClockHour } from "@/game/shop-hours";
@@ -129,6 +131,10 @@ import { bossStoryFor, introDue, vaultNear, type BossStoryId } from "@/game/boss
 import { NexusCity } from "./NexusCity";
 import { NexusSkyRail } from "./NexusSkyRail";
 import { NexusBridge } from "./NexusBridge";
+import { StuntPark } from "./StuntPark";
+import { kitById } from "@/game/vehicle-foundry";
+import { WORLD_BOSS, raidSiteWorld, worldBossAt, worldBossKey } from "@/game/world-boss";
+import { STUNT_PARK } from "@/game/stunt-park";
 import { NeonCity, NEON_CITY_CENTER } from "./NeonCity";
 import { casinoElevatorNear, casinoFloorAt, casinoLevels, casinoLocation } from "@/game/casino-access";
 import { casinoCombatGate3D } from "@/game/casino-safe-zone";
@@ -150,6 +156,8 @@ import { RARITY_COLOR, type Rarity } from "@/game/loot";
 import { appearanceById, classById, subclassById, type AppearanceDefinition, type ClassId, type SubclassId } from "@/game/loadout";
 import { handlingFor, stepVehicle, canExitVehicle, vehicleCamera } from "@/game/vehicle-handling";
 import { surfaceAt, surfaceGrip } from "@/game/vehicle-surface";
+import { freshAir, freshRun, scoreLanding, stepAir, stepPowerslide, wrap, AIR } from "@/game/stunts";
+import { cleanGrime, grimeTint, stepGrime } from "@/game/vehicle-mud";
 import { vehicleById, type VehicleId } from "@/game/vehicles";
 import { projectDome, shieldBash } from "@/game/titan";
 import { RENDER_PRESETS } from "@/game/performance";
@@ -558,6 +566,8 @@ function SceneImpl({
   onVyrakRematch,
   onLiving,
   onVehicleCondition,
+  onStuntPoints,
+  onWorldBoss,
   onWaste,
   onDescent,
   summonNemesis = null,
@@ -625,6 +635,10 @@ function SceneImpl({
   /** Living World outcomes (city kills, event results, survey/stash reached); GameCanvas applies them to progression */
   onLiving?: (event: LivingEmit) => void;
   onVehicleCondition?: (id: string, condition: VehicleCondition) => void;
+  /** off-road stunts (stunts.ts): points scored by a landed trick or powerslide, and the label for the toast */
+  onStuntPoints?: (points: number, label: string) => void;
+  /** a World Boss raid (world-boss.ts) was felled by the player */
+  onWorldBoss?: (raidId: string) => void;
   /** Wastelands activity results (wasteland-runtime.ts); GameCanvas resolves them into the save */
   onWaste?: (event: WasteEmit) => void;
   /** Fracture Gate descents (descent-runtime.ts): tier chests and run results; GameCanvas resolves them into the save */
@@ -722,6 +736,11 @@ function SceneImpl({
   const blackoutSpawned = useRef("");
   const relaySpawned = useRef("");
   const crucible = useRef<CrucibleState | null>(null);
+  // Killbox modes (pvp.ts): the match state, the counters it diffs, the round it last staffed, and the rival field
+  const pvp = useRef<{ st: PvpState; kills: number; team: number; deaths: number; round: number; field: CrucibleState; center: { x: number; z: number }; squadWas: boolean } | null>(null);
+  const [pvpView, setPvpView] = useState<PvpState | null>(null);
+  // World Boss raids (world-boss.ts): the raid last announced, woken and reported, and a 1 s check clock
+  const worldBoss = useRef({ announced: "", woke: "", paid: "", clock: 0 });
   const neonCoreSpawned = useRef("");
   const descentSpawned = useRef("");
   const burstHeard = useRef(0);
@@ -755,6 +774,12 @@ function SceneImpl({
         launchCaltrops(gs, st.x + fx * 14, st.z + fz * 14, now); launchDrone(gs, st.x, st.y + 1, st.z, now); popFlares(gs, st.x, st.y + 8, st.z, st.yaw, now);
         gs.flameLit = { x: st.x - fx * 12, z: st.z - fz * 12, yaw: st.yaw, t: now + 5 };
         return { mines: gs.mines.length, caltrops: gs.caltrops.length, drones: gs.drones.length, flares: gs.flares.length }; },
+      /** debug: remember the call stack of the next time you're put out of the vehicle (window.__exitStack) */
+      traceExit: () => { const st = state.current as { inVehicle: boolean }; let v = st.inVehicle; Object.defineProperty(st, "inVehicle", { get: () => v, set: (n: boolean) => { if (v && !n) (window as unknown as { __exitStack?: string }).__exitStack = new Error().stack ?? ""; v = n; }, configurable: true, enumerable: true }); return "tracing"; },
+      /** off-road check: set the vehicle's speed (m/s) to test a jump without a long run-up */
+      drive: (speed = 30) => { state.current.vSpeed = speed; return speed; },
+      /** off-road check: stunt score, whether the vehicle is in the air, and its grime level */
+      stunts: () => { const o = offroad.current; return { total: o.run.total, last: o.run.last, airborne: o.air.airborne, airTime: Math.round(o.air.airTime * 100) / 100, y: Math.round(o.air.y * 10) / 10, grime: Math.round(o.grime.level * 100) / 100, jumps: o.jumps, maxAir: Math.round(o.maxAir * 100) / 100, x: Math.round(state.current.x), z: Math.round(state.current.z), sy: Math.round(state.current.y * 10) / 10, speed: Math.round(state.current.vSpeed), inVehicle: state.current.inVehicle, mode: handling.mode }; },
       killMission: () => { let n = 0; for (const m of sim.machines) if (m.alive && m.mission) { m.hp = 0; defeatMachine(sim, m, "player"); if (!m.alive) n++; } return n; },
       hp: (n = 1) => { sim.hp = n; return sim.hp; },
       o2: (n = 0) => { state.current.oxygen = n; return n; },
@@ -859,10 +884,13 @@ function SceneImpl({
   }, [vehicleId, gear?.fleet]);
   const handling = useMemo(() => handlingFor(vehicleById(vehicleId)), [vehicleId]); // vehicle-handling.ts: jet/heli/boat/sub/tank/car each move differently
   const vh = useRef({ airborne: false, slip: 0, roll: 0, pitch: 0, skidAt: 0, groundPitch: 0, groundRoll: 0 });
+  // off-road air, stunt scoring and mud on the bodywork (stunts.ts, vehicle-mud.ts) for ground vehicles
+  const offroad = useRef({ air: freshAir(0), run: freshRun(), input: { throttle: 0, brake: 0, steer: 0, handbrake: false }, grime: cleanGrime(), tintAt: 0, tinted: -1, jumps: 0, maxAir: 0, hapAt: 0 });
   // vehicle-weapons.ts: what this vehicle's hardpoints fire, and the secondary salvo in progress
   // the fleet build being driven fires its own hardpoints (fleet.ts / vehicle-weapons.ts BY_BUILD), else the chassis's
   const activeBuildId = gear?.fleet?.active && fleetById(gear.fleet.active)?.base === vehicleId ? gear.fleet.active : null;
-  const armament = useMemo(() => armamentFor(vehicleId, handling.kind, activeBuildId), [vehicleId, handling.kind, activeBuildId]);
+  const activeKit = activeBuildId ? kitById(gear?.fleet?.kits?.[activeBuildId]) : undefined;
+  const armament = useMemo(() => armamentFor(vehicleId, handling.kind, activeBuildId, activeKit), [vehicleId, handling.kind, activeBuildId, activeKit]);
   // the build's non-gun hardpoint (vehicle-gadgets.ts): mines, caltrops, flames, flares, drone dock, grill, breach thruster
   const gadget = useMemo(() => gadgetFor(activeBuildId), [activeBuildId]);
   const muzzleFlash = useRef<MuzzleFlashState | null>(null);
@@ -2093,11 +2121,24 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
       const floorH = handling.mode === "WATER" ? heightAt(s.x, s.z) : walkHeight(s.x, s.z);
       const venv = { grip: surfaceGrip(gSurface, slope) * damageFx.grip * damageFx.stability * selectedVehicle.handling, slope, floor: floorH, water: WATER_LEVEL, overWater: heightAt(s.x, s.z) < WATER_LEVEL - 0.3 };
       const before = { x: s.x, z: s.z };
-      const r = stepVehicle(handling, { speed: s.vSpeed, yaw: s.yaw, y: s.y, vy: s.vy, ...vh.current }, vin, venv, (maxSpeed / (boost ? 1.5 : 1)) * (1 + (GADGET.BREACH.impulse - 1) * Math.max(0, Math.min(1, (sim.gadgets.breachUntil - performance.now() / 1000) / GADGET.BREACH.window + 0.5))), dt);
+      offroad.current.input = { throttle: vin.throttle, brake: vin.brake, steer: vin.steer, handbrake: vin.handbrake };
+      const flying = handling.mode === "GROUND" && offroad.current.air.airborne;
+      const r = flying ? { speed: s.vSpeed, yaw: s.yaw, y: s.y, vy: s.vy, ...vh.current, landed: false, hardLanding: false, blocked: false, skidding: false } : stepVehicle(handling, { speed: s.vSpeed, yaw: s.yaw, y: s.y, vy: s.vy, ...vh.current }, vin, venv, (maxSpeed / (boost ? 1.5 : 1)) * (1 + (GADGET.BREACH.impulse - 1) * Math.max(0, Math.min(1, (sim.gadgets.breachUntil - performance.now() / 1000) / GADGET.BREACH.window + 0.5))), dt);
       s.vSpeed = r.speed; s.yaw = r.yaw;
       vh.current.airborne = r.airborne; vh.current.slip = r.slip; vh.current.roll = r.roll; vh.current.pitch = r.pitch;
       if (handling.mode !== "GROUND") { s.y = r.y; s.vy = r.vy; }
       if (r.landed) { sfx.playReload("end"); if (r.hardLanding) { rumble(pad as never, "heavy"); condition.current = impactVehicle(condition.current, 14); onVehicleCondition?.(vehicleId, condition.current); } }
+      // trigger haptics: the right trigger buzzes with the engine under throttle, harder on boost; the left with the brakes
+      if (pad && performance.now() - offroad.current.hapAt > 110) {
+        offroad.current.hapAt = performance.now();
+        if (vin.throttle > 0.05 || vin.brake > 0.05) triggerRumble(pad as never, vin.brake * 0.35, vin.throttle * (boost ? 0.6 : 0.18) * Math.min(1, 0.3 + Math.abs(r.speed) / 40), 120);
+      }
+      if (handling.mode === "GROUND" && !flying) {
+        const o = offroad.current, nowS = performance.now() / 1000;
+        const slide = stepPowerslide(o.run, r.slip, r.speed, dt, nowS);
+        if (slide > 0 && o.run.last) { alert(sim, `${o.run.last.label}  +${slide}`); onStuntPoints?.(slide, o.run.last.label); }
+        o.grime = stepGrime(o.grime, venv.overWater ? "WATER" : gSurface, r.speed, r.slip, dt);
+      }
       if (r.skidding && performance.now() - vh.current.skidAt > 450) { vh.current.skidAt = performance.now(); rumble(pad as never, "light", 0.4); }
       s.x += Math.sin(s.yaw) * s.vSpeed * dt;
       s.z += Math.cos(s.yaw) * s.vSpeed * dt;
@@ -2408,6 +2449,49 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
         if (!crucible.current || crucible.current.mode !== stage.mode) crucible.current = newCrucible(stage.mode);
         stepRivals(sim, crucible.current, pointWorld(activity!.def.area, ARENA_POINT), playerClass as RivalClass, dt);
       } else if (crucible.current) { clearRivals(sim); crucible.current = null; }
+      {
+        const wb = worldBoss.current; wb.clock += dt;
+        if (wb.clock > 1 && !tutorial) {
+          wb.clock = 0;
+          const raid = worldBossAt(Date.now()).current, tag = worldBossKey(raid.id);
+          if (raid.live) {
+            if (wb.announced !== raid.id) { wb.announced = raid.id; alert(sim, `WORLD BOSS · ${raid.site.boss} rises at ${raid.site.name} (${REGIONS.find((r) => r.id === raid.site.region)?.name ?? raid.site.region}) · the factions stand together`); }
+            const region = REGIONS.find((r) => r.id === raid.site.region);
+            const already = gear?.nexLedger?.[tag] !== undefined;
+            if (region && !already && wb.woke !== raid.id) {
+              const at = raidSiteWorld(raid.site, region, heightAt, WATER_LEVEL);
+              if (Math.hypot(s.x - at.x, s.z - at.z) < WORLD_BOSS.wakeRange && summonBoss(sim, raid.site.region, at.x, at.z, { living: tag })) {
+                wb.woke = raid.id;
+                const boss = sim.machines.find((m) => m.alive && m.living === tag);
+                if (boss) { boss.maxHp = (boss.maxHp ?? boss.hp) * WORLD_BOSS.hpScale; boss.hp = boss.maxHp; boss.scale = (boss.scale ?? 1) * 1.5; }
+                alert(sim, `${raid.site.boss} awakens`);
+              }
+            }
+          }
+          for (const id of [raid.id]) { const t = worldBossKey(id); if ((sim.livingKills[t] ?? 0) > 0 && wb.paid !== id) { wb.paid = id; alert(sim, `WORLD BOSS DOWN · ${raid.site.boss}`); onWorldBoss?.(id); } }
+        }
+      }
+      if (stage?.kind === "pvp") {
+        const mode = PVP_MODES[stage.mode];
+        if (!pvp.current || pvp.current.st.mode !== stage.mode) {
+          clearRivals(sim);
+          const center = mode.kind === "royale" ? { x: AREAS[activity!.def.area]!.x, z: AREAS[activity!.def.area]!.z } : pointWorld(activity!.def.area, ARENA_POINT);
+          pvp.current = { st: newPvp(stage.mode, (Date.now() & 0xffff) + 1), kills: sim.rivalKills, team: sim.teamRivalKills ?? 0, deaths: sim.deaths, round: 1, field: { mode: "skirmish", respawn: [], spent: [] }, center, squadWas: sim.squad.enabled };
+          // team modes field your fireteam: VEX and HOLT (squad.ts) fight beside you for the match
+          if (mode.kind !== "ffa" && mode.kind !== "royale") sim.squad.enabled = true;
+          setPvpView(pvp.current.st);
+        }
+        const p = pvp.current, st = p.st;
+        const team = mode.kind === "ffa" ? 0 : (sim.teamRivalKills ?? 0) - p.team;
+        const kills = sim.rivalKills - p.kills + team, died = sim.deaths > p.deaths;
+        p.kills = sim.rivalKills; p.team = sim.teamRivalKills ?? 0; p.deaths = sim.deaths;
+        stepPvp(st, { dt, kills, died, px: s.x - p.center.x, pz: s.z - p.center.z, rivalsAlive: sim.machines.filter((m) => m.alive && m.rival).length });
+        if (st.round !== p.round) { resetField(sim, p.field); p.round = st.round; }
+        // the royale field follows you (fresh squads find you as the circle closes); the arena modes spawn round the arena edge
+        const fieldAt = mode.kind === "royale" ? { x: s.x, z: s.z } : p.center;
+        stepField(sim, p.field, fieldAt, rivalSquad(fieldSize(st), st.round), mode.kind === "royale" ? 42 : ARENA_RADIUS * 0.8, respawns(st), dt);
+        if (mode.kind === "royale") { const burn = stormDamage(st, Math.hypot(s.x - p.center.x, s.z - p.center.z)); if (burn > 0) hurtPlayer(sim, burn * dt, "The closing fracture"); }
+      } else if (pvp.current) { clearRivals(sim); sim.squad.enabled = pvp.current.squadWas; pvp.current = null; setPvpView(null); }
     }
     if (!s.inVehicle && !tutorial) {
       const now = performance.now();
@@ -2484,7 +2568,7 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
         if (activity && activity.run.status === "active") {
           const r = activity.run, rsig = () => { const rr = r.race as { phase?: string; next?: number; recoveries?: number; notice?: string | null; countdown?: number } | undefined; return `${r.stage}|${r.progress}|${r.status}|${r.cp}|${r.carrying}|${rr?.phase}|${rr?.next}|${rr?.recoveries}|${rr?.notice}|${rr?.phase === "countdown" ? Math.ceil(rr.countdown ?? 0) : ""}`; }, sig0 = rsig();
           const hitsBefore = (r.race as RaceRun | undefined)?.hitObstacles?.length ?? 0;
-          stepActivity(activity.def, r, { x: s.x, z: s.z, dt, now: Date.now(), kills: sim.kills, elites: sim.eliteKills, bosses: sim.bossKills, hp: sim.hp, deaths: sim.deaths, rivalKills: sim.rivalKills, mode: s.inVehicle ? "vehicle" : s.diving ? "dive" : "foot", y: s.y, vehicleDisabled: s.inVehicle && conditionEffects(condition.current).disabled });
+          stepActivity(activity.def, r, { x: s.x, z: s.z, dt, now: Date.now(), kills: sim.kills, elites: sim.eliteKills, bosses: sim.bossKills, hp: sim.hp, deaths: sim.deaths, rivalKills: sim.rivalKills, ...(pvp.current ? { pvp: pvp.current.st } : {}), mode: s.inVehicle ? "vehicle" : s.diving ? "dive" : "foot", y: s.y, vehicleDisabled: s.inVehicle && conditionEffects(condition.current).disabled });
           // a race asked to put the player back on the course (wreck, fall, or lost): same place as the last checkpoint, race clock keeps running
           const back = (r.race as { recover?: { x: number; z: number; depth?: number } | null } | undefined)?.recover;
           if (back) { s.x = back.x; s.z = back.z; s.vSpeed = 0; s.vy = 0; if (back.depth !== undefined) s.y = back.depth; else s.y = walkHeight(back.x, back.z) + 0.2; (r.race as { recover: unknown }).recover = null; }
@@ -2554,6 +2638,7 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
       if (liveBoss) { a.bossAlive = true; a.bossX = liveBoss.x; a.bossZ = liveBoss.z; }
       else if (a.bossAlive) { a.bossAlive = false; sfx.playExplosion(true, sfx.where(s.x, s.z, s.yaw, a.bossX, a.bossZ)); }
       sfx.updateCombatAudio(Math.min(1, sim.combatHeat / 100), Boolean(liveBoss));
+      sfx.updateDriveMusic(s.inVehicle && handling.mode === "GROUND" ? Math.min(1, Math.abs(s.vSpeed) / 40) : 0, offroad.current.air.airborne && s.inVehicle);
       sfx.updateBiomeAmbient(s.diving ? "thalassia" : here?.id ?? "");
       sfx.updateWeatherAmbient(weather);
       // running water: one stream + one waterfall voice, nearest wins; muffled indoors and while diving (water-audio.ts)
@@ -2907,7 +2992,7 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
         velocity.set(0, 0, 0);
         submerged = false;
       } else {
-        const arena = crucible.current && activity ? pointWorld(activity.def.area, ARENA_POINT) : null;
+        const arena = (crucible.current || (pvp.current && PVP_MODES[pvp.current.st.mode].kind !== "royale")) && activity ? pointWorld(activity.def.area, ARENA_POINT) : null;
         // in a Crucible match you come back at the arena edge, opposite where you fell, not at a distant checkpoint
         const spot = arena ? { x: arena.x - Math.sign(s.x - arena.x || 1) * ARENA_RADIUS * 0.7, z: arena.z, label: "the arena edge" } : chooseRespawn({ x: s.x, z: s.z }, checkpoint.current, hostiles);
         // Thalassia descent checkpoint: dying in the city during the mission returns you to the dock berth
@@ -2977,6 +3062,27 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
     const standY = (interior ? INTERIOR_ALTITUDE : Math.max(walkHeight(s.x, s.z), skyGround, boxTop, casinoGround, riftGround)) + (s.inVehicle ? 1.9 : 1.6);
     if (s.inVehicle && handling.mode !== "GROUND") {
       s.grounded = !vh.current.airborne; // stepVehicle owns height for aircraft and boats
+    } else if (s.inVehicle && handling.mode === "GROUND" && !interior) {
+      const o = offroad.current, a = o.air;
+      if (Math.abs(a.y - s.y) > 4 && !a.airborne) { a.y = standY; a.vy = 0; a.lastStand = standY; } // warped or just got in
+      const landing = stepAir(a, standY, o.input, dt);
+      s.y = a.y; s.vy = a.vy; s.grounded = !a.airborne; vh.current.airborne = a.airborne;
+      if (landing) {
+        const nowS = performance.now() / 1000;
+        if (landing.airTime > 0.25) { o.jumps++; o.maxAir = Math.max(o.maxAir, landing.airTime); }
+        // a partial spin carries into the heading; speed bleeds by how far off-line it landed
+        s.yaw += landing.spinYaw; s.vSpeed *= Math.max(0.35, Math.abs(Math.cos(wrap(landing.spinYaw))));
+        const pts = scoreLanding(o.run, landing, nowS);
+        if (!landing.clean) {
+          s.vSpeed *= 0.15; rumble(pad as never, "heavy"); sfx.playReload("end");
+          condition.current = impactVehicle(condition.current, 18); onVehicleCondition?.(vehicleId, condition.current);
+          alert(sim, "WIPEOUT");
+        } else {
+          if (landing.impact > AIR.hardImpact) { rumble(pad as never, "heavy"); condition.current = impactVehicle(condition.current, landing.impact - AIR.hardImpact + 4); onVehicleCondition?.(vehicleId, condition.current); }
+          else if (landing.airTime > 0.4) rumble(pad as never, "light", 0.6);
+          if (pts > 0 && o.run.last) { alert(sim, `${o.run.last.label}  +${pts}`); onStuntPoints?.(pts, o.run.last.label); }
+        }
+      }
     } else if (!s.inVehicle && submerged && (s.diving || held.has("KeyZ"))) {
       // Thalassia-style underwater vertical control: KeyC kicks up, KeyZ dives down, otherwise buoyancy carries you toward the surface.
       s.diving = true;
@@ -3119,11 +3225,25 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
           const L = 1.8, W = 0.9, fx = Math.sin(s.yaw), fz = Math.cos(s.yaw);
           const gp = Math.atan2(walkHeight(s.x + fx * L, s.z + fz * L) - walkHeight(s.x - fx * L, s.z - fz * L), 2 * L);
           const gr = Math.atan2(walkHeight(s.x + fz * W, s.z - fx * W) - walkHeight(s.x - fz * W, s.z + fx * W), 2 * W);
-          const k = 1 - Math.exp(-10 * dt);
+          const air = offroad.current.air;
+          const k = air.airborne ? 0 : 1 - Math.exp(-10 * dt); // in the air the ground under you doesn't tilt the car
           vh.current.groundPitch += (gp - vh.current.groundPitch) * k;
           vh.current.groundRoll += (gr - vh.current.groundRoll) * k;
-          v.rotation.x = -vh.current.groundPitch;
-          v.rotation.z = vh.current.roll + vh.current.groundRoll;
+          v.rotation.y = s.yaw + air.spinYaw;
+          v.rotation.x = -vh.current.groundPitch - air.pitch;
+          v.rotation.z = vh.current.roll + vh.current.groundRoll + air.roll;
+          // mud and dust: pull the paint toward the grime colour (a few times a second; originals kept in userData)
+          const o = offroad.current, tint = grimeTint(o.grime);
+          if (performance.now() - o.tintAt > 250 && Math.abs(tint - o.tinted) > 0.01) {
+            o.tintAt = performance.now(); o.tinted = tint;
+            v.traverse((m) => {
+              const mat = (m as THREE.Mesh).material as THREE.MeshStandardMaterial | undefined;
+              if (!mat || !(mat as THREE.MeshStandardMaterial).color || (mat as THREE.MeshStandardMaterial).emissiveIntensity > 0.5) return;
+              const ud = mat.userData as { paint?: THREE.Color };
+              if (!ud.paint) ud.paint = mat.color.clone();
+              mat.color.copy(ud.paint).lerp(new THREE.Color(o.grime.r, o.grime.g, o.grime.b), tint);
+            });
+          }
         } else {
           v.rotation.x = handling.mode === "AIR" ? -vh.current.pitch : 0;
           v.rotation.z = vh.current.roll;
@@ -3477,6 +3597,8 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
       <Storefronts />
       <NearOnly playerRef={player} x={NEXUS_REGION.x} z={NEXUS_REGION.z} radius={330 * NEAR_SCALE[settings.renderTier]} name="city:nexus"><NexusCity sim={sim} /><NexusSkyRail /><WorldPiece name="nexus strait bridge"><NexusBridge /></WorldPiece>{gear && <ResidenceGarages city="nexus" progression={{ nexLedger: gear.nexLedger ?? {}, housing: gear.housing, fleet: gear.fleet }} />}</NearOnly>
       {/* street level (kerbs, crossings, furniture, signals; src/game/city-streets.ts): only near enough to read */}
+      {pvpView && pvp.current && <PvpField state={pvpView} center={pvp.current.center} />}
+      <NearOnly playerRef={player} x={STUNT_PARK.x} z={STUNT_PARK.z} radius={260} name="stunt-park"><WorldPiece name="stunt park"><StuntPark /></WorldPiece></NearOnly>
       <NearOnly playerRef={player} x={NEXUS_REGION.x} z={NEXUS_REGION.z} radius={190 * NEAR_SCALE[settings.renderTier]} name="streets:nexus"><WorldPiece name="nexus streets"><CityStreets city="nexus" tier={settings.renderTier} /></WorldPiece></NearOnly>
       <NearOnly playerRef={player} x={NEON_CITY_CENTER.x} z={NEON_CITY_CENTER.z} radius={240 * NEAR_SCALE[settings.renderTier]} name="streets:neon"><WorldPiece name="neon streets"><CityStreets city="neon" tier={settings.renderTier} /></WorldPiece></NearOnly>
       <NearOnly playerRef={player} x={NEON_CITY_CENTER.x} z={NEON_CITY_CENTER.z} radius={240 * NEAR_SCALE[settings.renderTier]} name="traffic:neon"><WorldPiece name="neon ground traffic"><NeonGroundTraffic /></WorldPiece></NearOnly>

@@ -46,3 +46,10 @@ export function rumble(pad: Rumbler | null | undefined, impact: ImpactClass, int
   const s = COMBAT_FEEDBACK[impact].haptic * clampIntensity(intensity);
   try { void pad?.vibrationActuator?.playEffect?.("dual-rumble", { duration: COMBAT_FEEDBACK[impact].flashMs + 60, strongMagnitude: Math.min(1, s), weakMagnitude: Math.min(1, s * 0.6) })?.catch(() => {}); } catch { /* unsupported */ }
 }
+
+/** Trigger haptics (owner's controller brief, Oct 25): impulse-trigger rumble on controllers that support it (Xbox
+ * impulse triggers in Chromium's "trigger-rumble" effect). Browsers expose no DualSense adaptive-trigger resistance, so
+ * this is the nearest the web build can do; unsupported pads ignore it. Magnitudes 0..1. */
+export function triggerRumble(pad: Rumbler | null | undefined, left: number, right: number, ms = 90) {
+  try { void (pad?.vibrationActuator?.playEffect as ((t: string, p: object) => Promise<unknown>) | undefined)?.("trigger-rumble", { duration: ms, leftTrigger: Math.min(1, left), rightTrigger: Math.min(1, right), strongMagnitude: 0, weakMagnitude: 0 })?.catch(() => {}); } catch { /* unsupported */ }
+}

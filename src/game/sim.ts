@@ -362,6 +362,8 @@ export type WorldSim = {
   kills: number;
   /** Crucible: rival operators the player has eliminated (crucible.ts) */
   rivalKills: number;
+  /** Killbox modes: rivals eliminated by anyone but the player (squadmates, hazards) */
+  teamRivalKills?: number;
   /** activities.ts: tiered kill counters */
   eliteKills: number;
   bossKills: number;
@@ -592,6 +594,7 @@ export function defeatMachine(sim: WorldSim, m: Machine, credit: KillCredit = "p
     const who = m.rival;
     delete m.rival; delete m.living; delete m.lastPlayerDamage;
     if (credit === "player") { sim.rivalKills++; alert(sim, `Rival ${who === "TITAN" ? "GOLIATH" : who === "HUNTER" ? "NYX" : "CIPHER"} eliminated`); }
+    else sim.teamRivalKills = (sim.teamRivalKills ?? 0) + 1; // a squadmate (or the arena) took them out: a team point in the Killbox modes (pvp.ts)
     return;
   }
   if (m.nemesis) { sim.nemesisEvents.push({ id: m.nemesis, killed: credit === "player" }); delete m.nemesis; delete m.nemesisWeak; delete m.nemesisDamage; }

@@ -46,6 +46,7 @@ export function ActivityTracker({ def, run, onAbandon, px, pz }: { def: Activity
     <p className="mt-1 text-sm font-semibold">{def.name}</p>
     <p className="mt-1 text-muted-foreground">Stage {run.stage + 1}/{def.stages.length} · {o.label}</p>
     <p className="mt-1">{o.kind === "deliver" ? (run.carrying ? "Cargo picked up — deliver it" : "Go to the pickup") : `${Math.min(run.progress, need)} / ${need}`}{left !== null && <span className={`ml-2 ${left < 15 ? "text-destructive" : "text-primary"}`}>{Math.floor(left / 60)}:{String(left % 60).padStart(2, "0")}</span>}</p>
+    {run.pvpLine && <p className="mt-1 text-primary">{run.pvpLine}</p>}
     {def.challenge && <p className="mt-1 text-[9px] text-primary/80">Bonus: {def.challenge.label}</p>}
     <Button size="sm" variant="outline" className="mt-2 h-6 text-[9px]" onClick={onAbandon}>Abandon (attempt is not refunded)</Button>
   </div></HudRail>;

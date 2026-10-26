@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import type { PlayerProgression } from "@/game/progression";
 import { activityById, activityState } from "@/game/activities";
 import { CRUCIBLE_LOCKED, CRUCIBLE_MODES, RIVAL_LABEL, rivalLineup, type CrucibleModeId, type RivalClass } from "@/game/crucible";
+import { PVP_MODES } from "@/game/pvp";
 import { FRACTURE_RAID, PVP_RANKS } from "@/game/system-foundations";
 import { StarMap, type DeployTarget } from "./StarMap";
 import { ArsenalLoadouts } from "./ArsenalLoadouts";
@@ -114,7 +115,9 @@ function Panel({ children, label }: { children: React.ReactNode; label: string }
 
 function CrucibleView({ progression, playerClass, onLaunch }: { progression: PlayerProgression; playerClass: RivalClass; onLaunch: (id: string) => void }) {
   const modes: { mode: CrucibleModeId; id: string }[] = [{ mode: "duel", id: "crucible-duel" }, { mode: "skirmish", id: "crucible-skirmish" }];
-  const wins = modes.reduce((n, m) => n + (progression.earnedRewards.filter((r) => r === `crucible-win:${m.id}`).length), 0);
+  const ids = [...modes.map((m) => m.id), ...Object.values(PVP_MODES).map((m) => m.activity)];
+  // win keys are `crucible-win:<activity>:<start time>` (GameCanvas), one per match won
+  const wins = ids.reduce((n, id) => n + (progression.earnedRewards.filter((r) => r === `crucible-win:${id}` || r.startsWith(`crucible-win:${id}:`)).length), 0);
   const rank = PVP_RANKS[Math.min(PVP_RANKS.length - 1, Math.floor(wins / 5))];
   return (
     <Panel label="Killbox">
@@ -153,6 +156,28 @@ function CrucibleView({ progression, playerClass, onLaunch }: { progression: Pla
           );
         })}
       </div>
+      <h2 className="mt-8 font-mono text-sm uppercase tracking-[0.3em] text-primary">Playlists</h2>
+      <div className="mt-3 grid gap-4 md:grid-cols-3">
+        {Object.values(PVP_MODES).map((m) => {
+          const def = activityById(m.activity);
+          if (!def) return null;
+          const st = activityState(progression, def);
+          return (
+            <article key={m.id} className={`ui-enter flex flex-col justify-between border bg-background/60 p-4 ${m.elite ? "border-fuchsia-400/50" : m.kind === "royale" ? "border-amber-300/50" : "border-foreground/15"}`}>
+              <div>
+                <span className="ui-kicker">{m.tagline}</span>
+                <h3 className="mt-2 font-mono text-xl uppercase tracking-wide">{m.name}</h3>
+                <p className="mt-2 text-xs text-muted-foreground">{m.brief}</p>
+                <p className="mt-3 font-mono text-[10px] uppercase text-foreground/80">{def.rewards.nex} NEX · {def.rewards.xp} XP</p>
+              </div>
+              <Button size="sm" className="mt-4 w-full font-mono uppercase tracking-widest" disabled={!st.available || !progression.tutorialComplete} onClick={() => onLaunch(m.activity)}>
+                {!progression.tutorialComplete ? <><LockKeyhole /> Locked</> : st.available ? <><Swords /> Launch</> : st.reason ?? "Unavailable"}
+              </Button>
+            </article>
+          );
+        })}
+      </div>
+      <p className="mt-4 text-[11px] text-muted-foreground">Every other player is an AI operator for now. Around you the fight is real: rivals take the field and your squadmates VEX and HOLT fight beside you; the rest of each team battles across the arena and their eliminations count on the scoreboard.</p>
     </Panel>
   );
 }

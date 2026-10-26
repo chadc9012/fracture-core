@@ -1,6 +1,7 @@
 /** Shared placement rules for region dressing passes (pure). A region pass declares its keep-out circles once and gets a
  * seeded, gap-respecting scatter that never lands on roads, water (unless asked), or outside the region. */
 import { REGIONS } from "./world";
+import { STUNT_PARK } from "./stunt-park";
 import { heightAt, riverAt, slopeAt, WATER_LEVEL } from "./terrain";
 import { distanceToRoad, LANE_HALF_WIDTH } from "./lanes";
 import { mulberry32 } from "./rng";
@@ -69,7 +70,9 @@ export function arenaCircles(region: string, r = 30): Circle[] {
   const reg = regionById(region);
   const lairs = SCENARIO_LAIRS.filter((l) => l.regionId === region).map((l) => ({ x: l.x, z: l.z, r }));
   const sites = Object.values(ZONE_MISSIONS).filter((m) => m.regionId === region).map((m) => ({ ...zoneSite(m, reg), r }));
-  return [...lairs, ...sites];
+  // the Wastelands stunt park's yard (stunt-park.ts) stays clear of ruins, junk and rocks
+  const park = region === "wastelands" ? [{ x: STUNT_PARK.x, z: STUNT_PARK.z, r: Math.hypot(STUNT_PARK.length, STUNT_PARK.width) / 2 + 8 }] : [];
+  return [...lairs, ...sites, ...park];
 }
 
 /** the height of whatever water is at (x,z): a lake's level, a river's surface, or the sea; null on dry ground */

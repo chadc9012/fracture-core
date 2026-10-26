@@ -2,6 +2,7 @@
  * Fills the space between the big trees and props so the world reads full. Rendering lives in GroundCover.tsx; this module only decides WHERE and
  * WHAT, using the same heightAt/slope/road/river/trail rules as every other prop so nothing grows through the mission trail, roads or water. */
 import { REGIONS, type Region } from "./world";
+import { inStuntPark } from "./stunt-park";
 import { WATER_LEVEL, fbm, heightAt, slopeAt, riverAt, waterNetwork } from "./terrain";
 import { LANE_HALF_WIDTH, distanceToRoad } from "./lanes";
 import { COVER as MISSION_COVER, isReserved } from "./verdant";
@@ -43,6 +44,7 @@ export function placeable(x: number, z: number, kind: CoverKind, region: Region 
   if (isReserved(x, z, 1)) return false; // the mission pads are fixed world positions, whichever region circle the item came from
   if (distanceToRoad(x, z) < LANE_HALF_WIDTH) return false;
   if (inResidence(x, z)) return false; // no bushes growing through a living-room floor
+  if (inStuntPark(x, z, 4)) return false; // the Wastelands stunt park's run-ups stay clear (stunt-park.ts)
   const rv = riverAt(x, z);
   if (rv && kind !== "reed" && rv.dist < rv.w + (kind === "rock" ? 2.6 : 1.2)) return false;
   if (kind === "rock") {

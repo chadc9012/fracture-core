@@ -1,4 +1,5 @@
 import { useFrame } from "@react-three/fiber";
+import { inStuntPark } from "@/game/stunt-park";
 import { useGLTF } from "@react-three/drei";
 import { Component, Suspense, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import type * as THREE from "three";
@@ -40,7 +41,7 @@ function Placed({ url, regions, count, scale, seed }: (typeof PLACEMENT)[number]
       while (n < count && guard-- > 0) {
         const a = rnd() * Math.PI * 2, d = Math.sqrt(rnd()) * region.radius * 0.85;
         const x = region.x + Math.cos(a) * d, z = region.z + Math.sin(a) * d, y = heightAt(x, z);
-        if (y < WATER_LEVEL + 0.3 || slopeAt(x, z) > 0.6 || distanceToRoad(x, z) < LANE_HALF_WIDTH + 2) continue;
+        if (y < WATER_LEVEL + 0.3 || slopeAt(x, z) > 0.6 || distanceToRoad(x, z) < LANE_HALF_WIDTH + 2 || inStuntPark(x, z, 8)) continue;
         if (Math.hypot(x - region.x, z - (region.z + 12)) < 16) continue;
         if (id === "veridan" && isReserved(x, z, 2)) continue; // keep the mission trail and clearings open
         out.push({ x, y, z, s: scale[0] + rnd() * (scale[1] - scale[0]), r: rnd() * Math.PI * 2 });

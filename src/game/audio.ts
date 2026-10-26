@@ -13,7 +13,7 @@ import { engineVoice } from "./vehicle-audio";
 import { AUDIO_SAFETY, envelopeAttack, unitVolume } from "./audio-safety";
 import { AMBIENT_MIX, WEATHER_BEDS, crossfadeLoop } from "./ambient-mix";
 
-type Ctx = { ac: AudioContext; master: GainNode; sfx: GainNode; music: GainNode; amb: GainNode; abil: GainNode; noise: AudioBuffer; brown: AudioBuffer; verb: GainNode; drive: Map<number, Float32Array>; layers: { ambient: GainNode; tension: GainNode; drums: GainNode; motif: GainNode } | null; ambientOscs: OscillatorNode[]; musicRegion: string; beat: number };
+type Ctx = { ac: AudioContext; master: GainNode; sfx: GainNode; music: GainNode; amb: GainNode; abil: GainNode; noise: AudioBuffer; brown: AudioBuffer; verb: GainNode; drive: Map<number, Float32Array>; layers: { ambient: GainNode; tension: GainNode; drums: GainNode; motif: GainNode; arp: GainNode } | null; ambientOscs: OscillatorNode[]; musicRegion: string; beat: number };
 let ctx: Ctx | null = null;
 let volume = 0.7;
 export const VOLUME_KEY = "world-fracture-volume";
@@ -636,7 +636,7 @@ export function updateEngine(active: boolean, vehicleId: string, speed01: number
 /** Music: ambient pad always; tension pulse and combat drums fade in with intensity (0–1). */
 function startMusic(c: Ctx) {
   const mk = () => { const g = c.ac.createGain(); g.gain.value = 0; g.connect(c.music); return g; };
-  const ambient = mk(), tension = mk(), drums = mk(), motif = mk();
+  const ambient = mk(), tension = mk(), drums = mk(), motif = mk(), arp = mk();
   ambient.gain.value = AMBIENT_MIX.pad;
   motif.gain.value = 1;
   // The pad used to be three full-level sines held forever (an idling-engine drone). Now: a warm, lowpassed chord whose
@@ -653,7 +653,7 @@ function startMusic(c: Ctx) {
   const t = c.ac.createOscillator(); t.type = "triangle"; t.frequency.value = 110; const tf = c.ac.createBiquadFilter(); tf.type = "lowpass"; tf.frequency.value = 500;
   const trem = c.ac.createGain(); trem.gain.value = 0.3; const tl = c.ac.createOscillator(); tl.frequency.value = 4; const tlg = c.ac.createGain(); tlg.gain.value = 0.3; tl.connect(tlg).connect(trem.gain);
   t.connect(tf).connect(trem).connect(tension); t.start(); tl.start();
-  c.layers = { ambient, tension, drums, motif };
+  c.layers = { ambient, tension, drums, motif, arp };
 }
 
 /** Called every frame; schedules drum hits on a 120bpm grid while in combat. With `boss` true
@@ -677,6 +677,25 @@ export function updateCombatAudio(intensity: number, boss = false) {
     if (boss && step % 2 === 1) burst(c, c.layers.drums, { dur: 0.08, freq: 2600, q: 1.5, gain: 0.3 });
     if (step % 2 === 1) burst(c, c.layers.drums, { dur: 0.025, freq: 6500, q: 1.4, gain: eff > 0.85 ? 0.05 : 0.025 });
   }
+}
+
+/** Drive music (owner's audio brief, Oct 25: the soundtrack shifts when you're drifting off-road, not only in fights): a synth
+ * arpeggio on the region's scale fades in with ground speed when there's no fight on, and doubles its rate while you're in
+ * the air off a jump. Called every frame with speed 0..1 (0 on foot). */
+let arpAt = 0, arpStep = 0;
+export function updateDriveMusic(speed01: number, airborne: boolean) {
+  const c = ctx; if (!c || !c.layers) return;
+  const now = c.ac.currentTime;
+  const level = combatLevel < 0.65 && speed01 > 0.3 ? Math.min(1, (speed01 - 0.3) * 2.2) : 0;
+  c.layers.arp.gain.setTargetAtTime(level * 0.11, now, level > 0 ? 0.8 : 1.6);
+  if (level <= 0.02 || now < arpAt) return;
+  const def = MUSIC_REGION[c.musicRegion], root = def?.root ?? 220, ratios = def?.ratios ?? [1, 1.25, 1.5, 2];
+  const seq = [0, 2, 1, 3, 2, 4, 3, 1];
+  const f = root * (ratios[seq[arpStep % seq.length]! % ratios.length] ?? 1) * (arpStep % 16 >= 8 ? 2 : 1);
+  arpAt = Math.max(now, arpAt) + (airborne ? 0.0938 : 0.1875); // 16ths at 80 bpm, 32nds in the air
+  arpStep++;
+  tone(c, c.layers.arp, { f0: f, f1: f * 0.995, dur: 0.16, type: "sawtooth", gain: 0.35 });
+  if (arpStep % 8 === 0) tone(c, c.layers.arp, { f0: root / 2, f1: root / 2, dur: 0.6, type: "triangle", gain: 0.7 });
 }
 
 /** Root note + a handful of scale-degree ratios (above the root) each region's music leans on for its sparse motif layer. */

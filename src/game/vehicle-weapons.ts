@@ -14,6 +14,7 @@
  */
 import type { HandlingKind } from "./vehicle-handling";
 import type { VehicleId } from "./vehicles";
+import { kitGun, type Kit } from "./vehicle-foundry";
 
 export type VehicleGun = {
   name: string;
@@ -149,9 +150,12 @@ function apply(base: VehicleArmament, o: Override | undefined): VehicleArmament 
 }
 
 /** a chassis's armament, refined by the fleet build being driven when one is given (fleet.ts id) */
-export function armamentFor(id: VehicleId | string, kind: HandlingKind, buildId?: string | null): VehicleArmament {
+export function armamentFor(id: VehicleId | string, kind: HandlingKind, buildId?: string | null, kit?: Kit): VehicleArmament {
   const chassis = apply(BY_KIND[kind], BY_ID[id as VehicleId] as Override | undefined);
-  return buildId ? apply(chassis, BY_BUILD[buildId]) : chassis;
+  const a = buildId ? apply(chassis, BY_BUILD[buildId]) : chassis;
+  // a foundry kit (vehicle-foundry.ts) scales the guns: damage, fire interval, heat
+  if (!kit || kit.id === "stock") return a;
+  return { ...a, primary: a.primary && kitGun(a.primary, kit), secondaryGun: a.secondaryGun ? kitGun(a.secondaryGun, kit) : (a.secondaryGun ?? null) };
 }
 
 export type VehiclePose = { x: number; y: number; z: number; yaw: number; pitch: number; roll: number };

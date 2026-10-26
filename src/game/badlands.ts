@@ -4,6 +4,7 @@
  * Formations keep clear of supply roads, rivers, landmarks, the activity sites (vault gate, arena, Rust Run rally course),
  * every baked race route through the region, and house plots, so nothing ever blocks a route or a mission. */
 import { REGIONS, WORLD_SCALE } from "./world";
+import { inStuntPark } from "./stunt-park";
 import { WATER_LEVEL, heightAt, riverAt, slopeAt } from "./terrain";
 import { LANE_HALF_WIDTH, distanceToRoad } from "./lanes";
 import { landmarksIn } from "./landmarks";
@@ -42,6 +43,7 @@ export function formationFits(x: number, z: number, r: number): boolean {
   for (const l of landmarksIn("wastelands")) if (Math.hypot(x - l.x, z - l.z) < r + 34) return false;
   for (const s of [VAULT_GATE, ARENA]) if (Math.hypot(x - s.x, z - s.z) < s.radius + r + 14) return false;
   if (nearCourse(x, z, r + 14)) return false;
+  if (inStuntPark(x, z, r + 10)) return false; // the stunt park's yard (stunt-park.ts)
   for (let k = 0; k < 6; k++) { const a = (k / 6) * Math.PI * 2; if (inResidence(x + Math.cos(a) * r, z + Math.sin(a) * r)) return false; }
   return !inResidence(x, z);
 }

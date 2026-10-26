@@ -2,7 +2,8 @@ import { fleetNexPrice } from "@/game/market-prices";
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import type { PlayerProgression } from "@/game/progression";
-import { DEFAULT_VEHICLE_COSMETICS, EMPTY_FLEET, FLEET, GARAGES, VEHICLE_COSMETIC_OPTIONS, buyFleetVehicle, buyGarage, setActiveFleet, setPaint, setVehicleCosmetic, tuneNode, tunedVehicle, type FleetEntry, type GarageId, type VehicleCosmetics } from "@/game/fleet";
+import { FOUNDRY_HUB, KITS } from "@/game/vehicle-foundry";
+import { DEFAULT_VEHICLE_COSMETICS, EMPTY_FLEET, FLEET, GARAGES, VEHICLE_COSMETIC_OPTIONS, buyFleetVehicle, buyGarage, setActiveFleet, setPaint, setVehicleCosmetic, tuneNode, tunedVehicle, installKit, type FleetEntry, type GarageId, type VehicleCosmetics } from "@/game/fleet";
 import { vehicleModelFor } from "@/game/fleet-models";
 import { GaragePreview } from "./GaragePreview";
 import { vehicleById } from "@/game/vehicles";
@@ -54,7 +55,7 @@ export function GaragePanel({ garageId, progression, onProgression, onSelectVehi
       <div className="wf-panel max-h-[92vh] w-full max-w-6xl overflow-y-auto p-4 sm:p-6">
         <div className="flex flex-wrap items-end justify-between gap-3 border-b border-[var(--wf-line)] pb-3">
           <div>
-            <p className="ui-kicker">Vehicle dealership · {g.region}</p>
+            <p className="ui-kicker">{FOUNDRY_HUB[garageId].name} · {FOUNDRY_HUB[garageId].focus} · {g.region}</p>
             <h2 className="mt-1 text-2xl font-light uppercase tracking-[0.12em]">{g.name}</h2>
             <p className="text-xs text-muted-foreground">{g.blurb}</p>
           </div>
@@ -78,7 +79,7 @@ export function GaragePanel({ garageId, progression, onProgression, onSelectVehi
               </button>
             </li>; })}
           </ul>
-          {sel && <VehicleDetail f={sel} progression={progression} baseOwned={owned} confirm={confirm} setConfirm={setConfirm} run={run} />}
+          {sel && <VehicleDetail garageId={garageId} f={sel} progression={progression} baseOwned={owned} confirm={confirm} setConfirm={setConfirm} run={run} />}
         </div>
         {notice && <p className="mt-3 font-mono text-xs text-primary" role="status">{notice}</p>}
         <p className="mt-3 text-[11px] text-muted-foreground">Tuning changes the vehicle's real speed, hull, handling and ram. Paint and customization change only its look, on the road and in this preview.</p>
@@ -87,7 +88,7 @@ export function GaragePanel({ garageId, progression, onProgression, onSelectVehi
   );
 }
 
-function VehicleDetail({ f, progression, baseOwned, confirm, setConfirm, run }: { f: FleetEntry; progression: PlayerProgression; baseOwned: boolean; confirm: boolean; setConfirm: (v: boolean) => void; run: (r: { progression: PlayerProgression; message: string } | { error: string }, select?: boolean) => void }) {
+function VehicleDetail({ f, progression, baseOwned, confirm, setConfirm, run, garageId }: { garageId: GarageId; f: FleetEntry; progression: PlayerProgression; baseOwned: boolean; confirm: boolean; setConfirm: (v: boolean) => void; run: (r: { progression: PlayerProgression; message: string } | { error: string }, select?: boolean) => void }) {
   const fleet = progression.fleet ?? EMPTY_FLEET;
   const has = fleet.owned.includes(f.id), active = fleet.active === f.id, base = vehicleById(f.base);
   const homes = ownedDeeds(progression).filter((d) => d.bays > 0);
@@ -114,6 +115,14 @@ function VehicleDetail({ f, progression, baseOwned, confirm, setConfirm, run }: 
                 <div key={n.id} className="flex items-center justify-between gap-2 border border-[var(--wf-line)] px-2 py-1.5">
                   <span className="text-xs">{n.name} <span className="text-muted-foreground">{lvl}/{n.maxLevel} · {n.text}</span></span>
                   <Button size="sm" variant="outline" className="h-7 rounded-none px-2 text-[10px]" disabled={lvl >= n.maxLevel} onClick={() => run(tuneNode(progression, f.id, n.id))}>{lvl >= n.maxLevel ? "Max" : costText(n.cost)}</Button>
+                </div>); })}</div>
+            </div>
+            <div>
+              <p className="ui-kicker">Foundry · weaponization kit</p>
+              <div className="mt-1 grid gap-1">{KITS.map((kit) => { const on = (fleet.kits?.[f.id] ?? "stock") === kit.id; return (
+                <div key={kit.id} className={`flex items-center justify-between gap-2 border px-2 py-1.5 ${on ? "border-[var(--wf-ice)]" : "border-[var(--wf-line)]"}`}>
+                  <span className="text-xs">{kit.name}<span className="block text-[10px] text-emerald-300">+ {kit.pros}</span><span className="block text-[10px] text-rose-300">− {kit.cons}</span></span>
+                  <Button size="sm" variant="outline" className="h-7 shrink-0 rounded-none px-2 text-[10px]" disabled={on} onClick={() => run(installKit(progression, f.id, kit.id, garageId))}>{on ? "Fitted" : kit.id === "stock" ? "Refit stock" : costText(kit.cost)}</Button>
                 </div>); })}</div>
             </div>
             <div>

@@ -1,4 +1,5 @@
 import { inReclaimedCity } from "@/game/reclaimed-city";
+import { inStuntPark } from "@/game/stunt-park";
 import { Instance, Instances } from "@react-three/drei";
 import { DistrictLight } from "./DistrictLight";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
@@ -69,6 +70,8 @@ function scatter(
     if (region.id === "veridan" && (isReserved(x, z, 1.5) || inReclaimedCity(x, z, 2.5))) continue; // ...and the reclaimed city's shells
     // keep supply roads clear so convoys have a crash-free corridor
     if (distanceToRoad(x, z) < LANE_HALF_WIDTH) continue;
+    // the Wastelands stunt park's yard stays clear (stunt-park.ts)
+    if (inStuntPark(x, z, 6)) continue;
     // keep river channels and their banks open (rivers.ts)
     const rv = riverAt(x, z);
     if (rv && rv.dist < rv.w + 2) continue;
