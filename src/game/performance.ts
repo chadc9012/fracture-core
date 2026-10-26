@@ -12,7 +12,12 @@ export const RENDER_PRESETS = {
 const WEAK_GPU = /intel|iris|uhd|hd graphics|mali|adreno|powervr|swiftshader|llvmpipe|software/i;
 
 /** First-run render tier from the WebGL renderer string. Players' own choice always wins over this. */
+/** flagship phone GPUs (Snapdragon 8-series Adreno 7xx/8xx, Samsung Xclipse, Mali-G710+/Immortalis): MEDIUM, with the 30 fps
+ * phone cap (quality-governor.ts). LOW strips the forest to procedural blobs and the grade/bloom; the owner's Galaxy S22 Ultra
+ * started there (Oct 26 2026). */
+const FLAGSHIP_MOBILE = /adreno[^0-9]*(6[4-9]\d|[78]\d\d)|xclipse|immortalis|mali-g(7[6-9]|[6-9]\d\d)/i;
 export function defaultTierForGpu(renderer: string | null | undefined): RenderTier {
+  if (renderer && FLAGSHIP_MOBILE.test(renderer)) return "MEDIUM";
   return renderer && WEAK_GPU.test(renderer) ? "LOW" : "MEDIUM";
 }
 

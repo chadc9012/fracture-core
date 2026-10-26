@@ -47,7 +47,7 @@ export function BrokenHorizon({ playerRef }: { playerRef: React.RefObject<THREE.
     const p = playerRef.current?.position; if (root.current && p) root.current.position.set(p.x, Math.max(0, p.y), p.z);
     const [r, g, b] = worldLight.horizon;
     haze.setRGB(r, g, b);
-    for (const m of [mats.rock, mats.cap, mats.tower]) { m.emissive.copy(haze).multiplyScalar(0.18 + 0.2 * worldLight.night); } // live check: 0.42 by day washed the islands out to pale ghosts
+    for (const m of [mats.rock, mats.cap, mats.tower]) { m.emissive.copy(haze).multiplyScalar(0.18 - 0.12 * worldLight.night); } // live check: 0.42 by day washed the islands out to pale ghosts; at night (owner phone shots, Oct 26) a strong haze glow turned them into flat lavender cut-outs, so they fall to moonlit silhouettes with lit windows
     mats.lit.emissiveIntensity = 0.2 + worldLight.night * 0.9;
   });
   return (

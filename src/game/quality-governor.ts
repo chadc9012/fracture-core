@@ -12,9 +12,31 @@ export const stepDownTier = (t: RenderTier): RenderTier => ORDER[Math.max(ORDER.
 /** the tier actually used: the lower of what the player chose and the automatic cap */
 export const effectiveTier = (chosen: RenderTier, cap: RenderTier | null): RenderTier => (cap && ORDER.indexOf(cap) < ORDER.indexOf(chosen) ? cap : chosen);
 /** decide on a performance decline: returns the new cap, or null when nothing should change yet */
-export function onDecline(args: { dpr: number; chosen: RenderTier; cap: RenderTier | null; secondsSinceLastStep: number }): RenderTier | null {
-  if (args.dpr > DPR_FLOOR || args.secondsSinceLastStep < MIN_STEP_SECONDS) return null;
+export function onDecline(args: { dpr: number; chosen: RenderTier; cap: RenderTier | null; secondsSinceLastStep: number; floor?: number }): RenderTier | null {
+  if (args.dpr > (args.floor ?? DPR_FLOOR) || args.secondsSinceLastStep < MIN_STEP_SECONDS) return null;
   const current = effectiveTier(args.chosen, args.cap);
   const next = stepDownTier(current);
   return next === current ? null : next;
 }
+
+/* ---------------- frame pacing (owner, Oct 26 2026: "frame rates are jumpy" on the Galaxy S22 Ultra) ----------------
+ * A phone that can't hold 60 swung between ~40 and ~55 fps, and the adaptive resolution flip-flopped with it (each change
+ * reallocates every render target: a visible hitch, and at its 0.75 floor the picture went blocky). A steady 30 fps with a
+ * fixed, sharper resolution reads smoother than an uneven 45. Pure; tested in quality-governor.test.ts. */
+export type FrameRate = 30 | 60 | "max";
+/** the default frame cap: 30 on phones and tablets (touch screens), uncapped elsewhere */
+export const defaultFrameRate = (touch: boolean): FrameRate => (touch ? 30 : "max");
+/** the frame interval for a cap, ms (null: render every display refresh) */
+export const frameInterval = (rate: FrameRate): number | null => (rate === "max" ? null : 1000 / rate);
+/** phones never drop below a resolution that keeps edges clean (the 0.75 floor is for desktops) */
+export const dprFloor = (touch: boolean) => (touch ? 1 : DPR_FLOOR);
+/** the resolution a phone starts at under the 30 fps cap: sharper than the old 1.25 at the cost of frames it no longer renders */
+export const PHONE_DPR = 1.5;
+/** fps bounds for the performance monitor: a decline only when the cap itself can't be held, an incline only near it */
+export function monitorBounds(rate: FrameRate): [number, number] {
+  return rate === "max" ? [45, 58] : [rate * 0.82, rate * 0.97];
+}
+/** one step down in resolution on a decline, never past the floor */
+export const dprDown = (d: number, touch: boolean) => Math.max(dprFloor(touch), Math.round((d - 0.25) * 100) / 100);
+/** on an incline: desktops step back up; phones hold their resolution (stepping up and down again was the hitching) */
+export const dprUp = (d: number, touch: boolean, max = 2) => (touch ? d : Math.min(max, d + 0.25));

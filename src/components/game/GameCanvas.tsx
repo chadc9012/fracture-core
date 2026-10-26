@@ -10,7 +10,7 @@ import { recordVenueVisit, venueDialogue, venueStanding } from "@/game/nightlife
 import { renderCounts, canvasWhy, setterCalls, recordSubtree } from "@/game/perf-counters";
 import { Profiler, type ProfilerOnRenderCallback } from "react";
 const onProf: ProfilerOnRenderCallback = (id, _phase, actualMs) => recordSubtree(id, actualMs);
-import { Canvas } from "@react-three/fiber";
+import { Canvas, useThree } from "@react-three/fiber";
 import { PerformanceMonitor } from "@react-three/drei";
 import { WorldLoading } from "./WorldLoading";
 import { WorldMountedSignal } from "./WorldMountedSignal";
@@ -27,7 +27,8 @@ import type { VehicleId } from "@/game/vehicles";
 import { STARTER_VEHICLES, VEHICLES, vehicleAcquisition } from "@/game/vehicles";
 import { Button } from "@/components/ui/button";
 import type { RenderTier } from "@/game/performance";
-import { DPR_FLOOR, effectiveTier, onDecline as governDecline } from "@/game/quality-governor";
+import { PHONE_DPR, defaultFrameRate, dprDown, dprFloor, dprUp, effectiveTier, frameInterval, monitorBounds, onDecline as governDecline, type FrameRate } from "@/game/quality-governor";
+import { isTouchDevice } from "@/game/client-input";
 import { MissionCinematic } from "./MissionCinematic";
 import { recordClue } from "@/game/encounter-journal";
 import { applyRaceResult, difficultyLocked, isRaceActivity, raceById, worldPoint as raceWorldPoint, type Difficulty } from "@/game/racing";
@@ -336,6 +337,9 @@ export function GameCanvas() {
   const [menuOpen, setMenuOpen] = useCountedState("menuOpen", false);
   const [settings, setSettings] = useCountedState<GameSettings>("settings", DEFAULT_SETTINGS);
   const [adaptiveDpr, setAdaptiveDpr] = useCountedState("adaptiveDpr", 1.5);
+  // frame pacing (quality-governor.ts): phones run a steady 30 by default at a fixed, sharper resolution
+  const touchScreen = useMemo(() => typeof window !== "undefined" && isTouchDevice(), []);
+  const frameRate: FrameRate = settings.frameRate ?? defaultFrameRate(touchScreen);
   const [lowPerf, setLowPerf] = useCountedState("lowPerf", false);
   // automatic quality step-down (quality-governor.ts): session-only cap, never changes the saved setting
   const [autoCap, setAutoCap] = useCountedState<RenderTier | null>("autoCap", null);
@@ -1534,7 +1538,8 @@ export function GameCanvas() {
         }}
         onContextMenu={(event) => event.preventDefault()}
         shadows={preset.shadows && flags.shadows ? { type: caps.safari ? THREE.PCFShadowMap : THREE.PCFSoftShadowMap } : false}
-        dpr={flags.dpr ?? Math.min(maxDpr, adaptiveDpr)}
+        dpr={flags.dpr ?? Math.min(touchScreen && frameRate === 30 ? Math.max(maxDpr, PHONE_DPR) : maxDpr, adaptiveDpr)}
+        frameloop={frameInterval(frameRate) ? "never" : "always"}
         gl={{ antialias: !caps.safari, toneMapping: THREE.ACESFilmicToneMapping, powerPreference: "high-performance", failIfMajorPerformanceCaveat: false }}
         camera={{
           position: [START.x, walkHeight(START.x, START.z) + 30, START.z + 46],
@@ -1569,16 +1574,17 @@ export function GameCanvas() {
         <PerfSampler />
         {/* Adaptive quality: when frames drop, lower resolution first, then turn off the
             post-processing stack; recovers when the frame rate is healthy again. */}
+        <FrameLimiter interval={frameInterval(frameRate)} />
         <PerformanceMonitor
-          bounds={() => [45, 58]}
+          bounds={() => monitorBounds(frameRate)}
           flipflops={6}
           onDecline={() => {
             if (devTier) return;
-            const cap = governDecline({ dpr: adaptiveDpr, chosen: settings.renderTier, cap: autoCap, secondsSinceLastStep: (performance.now() - lastStepAt.current) / 1000 });
+            const cap = governDecline({ dpr: adaptiveDpr, chosen: settings.renderTier, cap: autoCap, secondsSinceLastStep: (performance.now() - lastStepAt.current) / 1000, floor: dprFloor(touchScreen) });
             if (cap) { lastStepAt.current = performance.now(); setAutoCap(cap); setQualityNotice(`Frame rate was low, so graphics quality was lowered to ${cap}. You can change it in Settings.`); window.setTimeout(() => setQualityNotice(null), 6000); }
-            setAdaptiveDpr((d) => { const next = Math.max(DPR_FLOOR, Math.round((d - 0.25) * 100) / 100); if (next <= 1) setLowPerf(true); return next; });
+            setAdaptiveDpr((d) => { const next = dprDown(d, touchScreen); if (next <= 1 && d <= 1) setLowPerf(true); return next; });
           }}
-          onIncline={() => setAdaptiveDpr((d) => { const next = Math.min(2, d + 0.25); if (next > 1.25) setLowPerf(false); return next; })}
+          onIncline={() => setAdaptiveDpr((d) => { const next = dprUp(d, touchScreen); if (next > 1.25) setLowPerf(false); return next; })}
         />
       </Canvas>
       {!post && <CinematicGrade reduce={!!settings.reducedMotion} />}
@@ -1815,4 +1821,25 @@ export function GameCanvas() {
       )}
     </div></Profiler>
   );
+}
+
+/** Renders the world on an even cadence when a frame cap is set (Canvas frameloop "never"): one frame every `interval` ms,
+ * scheduled against the display's refresh so a 120 Hz phone shows every fourth refresh, not a jittery mix. */
+function FrameLimiter({ interval }: { interval: number | null }) {
+  const advance = useThree((s) => s.advance);
+  useEffect(() => {
+    if (!interval) return;
+    let raf = 0, next = 0;
+    const loop = (t: number) => {
+      raf = requestAnimationFrame(loop);
+      if (!next) next = t;
+      if (t + 1.5 < next) return;
+      // keep the cadence (catch up at most one frame after a stall instead of bursting)
+      next = Math.max(next + interval, t);
+      advance(t / 1000); // frameloop "never": R3F's clock runs on the timestamp given, in seconds
+    };
+    raf = requestAnimationFrame(loop);
+    return () => cancelAnimationFrame(raf);
+  }, [interval, advance]);
+  return null;
 }

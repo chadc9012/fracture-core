@@ -19,7 +19,7 @@
 namespace wf::env
 {
 	// ---- the clock ----
-	inline constexpr double ClockStart = 0.36, DayRate = 0.008, FastDayRate = 0.06;
+	inline constexpr double ClockStart = 0.36, DayRate = 1.0 / 1440.0, FastDayRate = 0.06;
 	WORLDFRACTURECORE_API double HourOf(double T);
 	WORLDFRACTURECORE_API double SunElevation(double T);
 	WORLDFRACTURECORE_API std::string PhaseFor(double T); // Moonlight | Dawn | Day | Sunset | Night

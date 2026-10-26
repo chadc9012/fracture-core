@@ -1,4 +1,5 @@
 import { resetMaw } from "@/game/maw-collapse";
+import { DAY_RATE } from "@/game/day-clock";
 import { RiverdaleTown } from "./RiverdaleTown";
 import { RIVERDALE } from "@/game/world";
 import "@/game/venue-doors";
@@ -1319,7 +1320,9 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
     { const bf = buffEffect(activeBuffs.current, Date.now()); sim.armorResist = Math.min(0.75, armorFxRef.current.resist + bf.resist); sim.armorRegen = armorFxRef.current.regen + bf.regen; sim.consumableDamageMult = bf.damageMult; }
 
     /* ---------------- day / night ---------------- */
-    if (!timeFrozen.current) time.current += dt * (held.has("KeyT") ? 0.06 : 0.008);
+    // a 24-minute day (owner, Oct 26 2026: the old 0.008/s ran a whole day in about two minutes, so most play was in the dark);
+    // hold T to fast-forward
+    if (!timeFrozen.current) time.current += dt * (held.has("KeyT") ? 0.06 : DAY_RATE);
     const night = nightFactor(time.current);
 
     blend(time.current, "bottom", skyColor);
@@ -1668,7 +1671,7 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
 
     // cities after dark keep a glow-bounce fill (atmosphere.ts cityNightFill), so their streets read between the lamps
     const inCity = interior ? 1 : Math.max(cityPresence(Math.hypot(s.x - NEON_CITY_CENTER.x, s.z - NEON_CITY_CENTER.z), NEON_FLAT), cityPresence(Math.hypot(s.x - NEXUS_REGION.x, s.z - NEXUS_REGION.z), 95));
-    if (hemi.current) hemi.current.intensity = 0.2 + 0.38 * (1 - night) + cityNightFill(inCity, night); // a moonlit sky fill at night: the reference nights read blue, not black
+    if (hemi.current) hemi.current.intensity = 0.32 + 0.26 * (1 - night) + cityNightFill(inCity, night); // a moonlit sky fill at night: the reference nights read blue, not black (owner, Oct 26: the wilds at night were near black on the phone)
     if ((riftInside || raidZone) && hemi.current) hemi.current.intensity *= 0.35; // underground in a descent or a raid
     // Neon City after dark: the glow bounce takes the signage's violet-cyan cast instead of grey moonlight (owner: neon cyberpunk)
     const inNeon = interior ? 0 : cityPresence(Math.hypot(s.x - NEON_CITY_CENTER.x, s.z - NEON_CITY_CENTER.z), NEON_FLAT);
