@@ -11,7 +11,8 @@
  * hub runs the raid as a local fireteam simulation, like every other dungeon. */
 import { HOLLOW_STAR, HOLLOW_STAR_ID } from "./hollow-star-data";
 import type { PlayerProgression } from "./progression";
-import { canClaimDungeon, claimDungeonClear } from "./dungeon-claims";
+import { canClaimDungeon, claimDungeonClear, dungeonClaimKey } from "./dungeon-claims";
+import { gameTick } from "./quests";
 import { CHALLENGE_RAID_MULT, payInto, payoutFor } from "./activity-payouts";
 import { RAID_TIERS, recordTierClear, tierById, tierTarget, tierUnlocked, weeklyMult } from "./difficulty-ladder";
 
@@ -213,15 +214,24 @@ export const ASTRAVORE_SCENARIO_ID = "astravore";
 /** Killing Astravore in the world (the unique-scenario fight, scenario-encounters.ts) pays the raid's own extras on top of its
  * signature gear: Starbreaker, the blueprint and the regalia on the first kill, a smaller repeat payout after. Call it once per
  * confirmed kill (the reward plan already guarantees one call per run id). */
-export function applyAstravoreKill(p: PlayerProgression): { progress: PlayerProgression; firstKill: boolean } {
+export function applyAstravoreKill(p: PlayerProgression, now = Date.now(), tierId: string = RAID_TIERS[0]!.id): { progress: PlayerProgression; firstKill: boolean } {
+  // a harder tier pays its own clear (own first clear and own daily repeat); one the player has not opened counts as Normal
+  const tier = tierById("raid", tierId);
+  if (tier.rank > 0 && hollowStarTierUnlocked(p, tier.id)) return { progress: claimHollowStarTierClear(p, "STANDARD", [], tier.id, false, now), firstKill: false };
   const firstKill = !p.earnedRewards.includes(STARBREAKER_KEY);
+  // one raid payout per day: a second kill the same day pays nothing more (the arena resets when you leave, so it could be farmed)
+  if (!firstKill && !canClaimDungeon(p, HOLLOW_STAR_ID, now)) return { progress: p, firstKill: false };
   const extras = hollowStarExtras(p.earnedRewards, firstKill ? 0 : 1, "STANDARD", []);
   const earned = Array.from(new Set([
-    ...p.earnedRewards, ...extras.appearances,
+    ...p.earnedRewards, dungeonClaimKey(HOLLOW_STAR_ID, now, p.pocketClass), ...extras.appearances,
     ...(extras.blueprint ? [DIMENSIONAL_BLUEPRINT_KEY] : []), ...(extras.title ? [STARBREAKER_KEY] : []),
   ]));
-  return {
-    firstKill,
-    progress: { ...p, earnedRewards: earned, fractureShards: p.fractureShards + extras.fractureShards, materials: { ...p.materials, anomalyCarbon: (p.materials.anomalyCarbon ?? 0) + extras.anomalyCarbon } },
+  const kept: PlayerProgression = {
+    ...p, earnedRewards: earned, fractureShards: p.fractureShards + extras.fractureShards,
+    materials: { ...p.materials, anomalyCarbon: (p.materials.anomalyCarbon ?? 0) + extras.anomalyCarbon },
+    // the real kill is a raid clear: it counts for the brief ("cleared"), unlocks Heroic and pays the raid's Nex like the hub run does
+    dungeonClears: { ...p.dungeonClears, [HOLLOW_STAR_ID]: (p.dungeonClears[HOLLOW_STAR_ID] ?? 0) + 1 },
   };
+  const paid = payInto(recordTierClear(kept, HOLLOW_STAR_ID, RAID_TIERS[0]!.id), "raid", HOLLOW_STAR_ID, now).progression;
+  return { progress: gameTick(paid, { type: "DUNGEON_CLEARED", dungeonId: HOLLOW_STAR_ID }), firstKill };
 }

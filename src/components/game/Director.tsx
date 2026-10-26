@@ -13,6 +13,10 @@ import { PlanetMap } from "./PlanetMap";
 import { RAID_INSTANCES, raidArrival } from "@/game/raid-instances";
 import { DUNGEONS } from "@/game/dungeons";
 import { cycle, padTabIntent, tabKeyIntent } from "@/game/director-nav";
+import { HOLLOW_STAR_ID, hollowStarTierPayout, hollowStarTierUnlocked } from "@/game/hollow-star-raid";
+import { RAID_TIERS } from "@/game/difficulty-ladder";
+import { setRaidLaunchTier } from "@/game/raid-launch";
+import { formatNex } from "@/game/nex";
 
 /** Destiny-style director: the world map is home, with the Killbox (PvP; "crucible" in code and saves), Raid and the gear/save screens as tabs along the
  * top. Destinations deploy through the map's own transit; Killbox matches start an activity and drop you in the arena. */
@@ -90,7 +94,7 @@ export function Director({ progression, onProgression, onDeploy, onCrucible, onR
         chrome={{ tabs: TABS.map(({ id, label }) => ({ id, label })), current: tab, onTab: (id) => setTab(id as DirectorTab), operator: operatorName, level: progression.level, onResume, onSystem }} />}
       {tab === "planet" && <Panel label="Planet"><PlanetMap progression={progression} onDeploy={onDeploy} currentWorld={currentWorld} /></Panel>}
       {tab === "crucible" && <CrucibleView progression={progression} playerClass={playerClass} onLaunch={onCrucible} />}
-      {tab === "raid" && <RaidView onDeploy={onDeploy} />}
+      {tab === "raid" && <RaidView progression={progression} onDeploy={onDeploy} />}
       {tab === "arsenal" && <ArsenalLoadouts embedded progression={progression} onProgression={onProgression} onBack={() => setTab("map")} />}
       {tab === "saves" && <SaveManager embedded progression={progression} onProgression={onProgression} onBack={() => setTab("map")} />}
     </>
@@ -153,7 +157,8 @@ function CrucibleView({ progression, playerClass, onLaunch }: { progression: Pla
 
 /** Raids launch from here and nowhere else (owner, Oct 25 2026): they are instances, never places on the world map, and you
  * cannot walk up to one. Launching uses the same transit as deploying; the arena lies far outside the world (raid-instances.ts). */
-function RaidView({ onDeploy }: { onDeploy: (target: DeployTarget) => void }) {
+function RaidView({ progression, onDeploy }: { progression: PlayerProgression; onDeploy: (target: DeployTarget) => void }) {
+  const [tierId, setTierId] = useState("normal");
   const roles = Object.entries(FRACTURE_RAID.roles) as [RivalClass, string][];
   return (
     <Panel label="Raid">
@@ -165,7 +170,7 @@ function RaidView({ onDeploy }: { onDeploy: (target: DeployTarget) => void }) {
       </header>
       {RAID_INSTANCES.map((raid) => {
         const def = DUNGEONS.find((d) => d.id === raid.id);
-        const go = () => { const a = raidArrival(raid); onDeploy({ id: `raid:${raid.id}`, name: raid.name, sub: `Raid · ${raid.entrance}`, color: "#a970ff", x: a.x, z: a.z }); };
+        const go = () => { const a = raidArrival(raid); setRaidLaunchTier(hollowStarTierUnlocked(progression, tierId) ? tierId : "normal"); onDeploy({ id: `raid:${raid.id}`, name: raid.name, sub: `Raid · ${raid.entrance}`, color: "#a970ff", x: a.x, z: a.z }); };
         return (
           <div key={raid.id} className="mt-6 grid gap-4 lg:grid-cols-3">
             <section className="border border-foreground/15 bg-background/60 p-5 lg:col-span-2">
@@ -185,7 +190,14 @@ function RaidView({ onDeploy }: { onDeploy: (target: DeployTarget) => void }) {
               <p className="ui-kicker">Final boss</p>
               <p className="mt-1 font-mono uppercase">{def?.boss ?? raid.name}</p>
               <p className="mt-3 text-sm text-muted-foreground">In this build the live raid is its final chamber: you are dropped into Astravore's arena. The encounters before it run as a fireteam simulation in the Operations hub until online fireteams arrive.</p>
-              <Button className="mt-auto font-mono uppercase tracking-widest" onClick={go}><Swords /> Launch raid</Button>
+              {raid.id === HOLLOW_STAR_ID && <div className="mt-3">
+                <p className="ui-kicker">Difficulty</p>
+                <div className="mt-2 grid grid-cols-2 gap-2">{RAID_TIERS.map((t) => {
+                  const open = hollowStarTierUnlocked(progression, t.id), pay = hollowStarTierPayout(progression, "STANDARD", t.id, false);
+                  return <Button key={t.id} size="sm" variant={t.id === tierId ? "default" : "outline"} disabled={!open} onClick={() => setTierId(t.id)} className="h-auto flex-col items-start gap-0.5 rounded-none p-2 text-left whitespace-normal"><span className="font-mono text-[10px] uppercase">{!open && <LockKeyhole className="mr-1 inline size-3" />}{t.name} · boss x{t.bossHealthScale}</span><span className="text-[9px] opacity-80">{open ? (pay ? `Pays ${formatNex(pay.nex)} today` : "Paid today") : `Clear ${RAID_TIERS[t.rank - 1]!.name} first`}</span></Button>;
+                })}</div>
+              </div>}
+              <Button className="mt-4 font-mono uppercase tracking-widest" onClick={go}><Swords /> Launch raid</Button>
             </section>
           </div>
         );

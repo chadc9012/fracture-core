@@ -17,7 +17,7 @@ describe("ladders", () => {
       const a = tiers[i - 1]!, b = tiers[i]!;
       expect(b.rank).toBe(a.rank + 1);
       expect(b.enemyScale).toBeGreaterThan(a.enemyScale); expect(b.bossHealthScale).toBeGreaterThan(a.bossHealthScale);
-      expect(b.hazardScale).toBeGreaterThan(a.hazardScale); expect(b.payMult).toBeGreaterThan(a.payMult);
+      expect(b.peak).toBeGreaterThan(a.peak); expect(b.payMult).toBeGreaterThan(a.payMult);
       expect(b.livesDelta).toBeLessThanOrEqual(a.livesDelta); expect(b.power).toBeGreaterThan(a.power);
     }
   });
@@ -33,7 +33,7 @@ describe("ladders", () => {
     expect(hard.id).toBe(base.id);
     expect(hard.maxLives).toBe(Math.max(1, base.maxLives - 3));
     expect(hard.stages.length).toBe(base.stages.length);
-    hard.stages.forEach((s, i) => { expect(s.target).toBeGreaterThanOrEqual(base.stages[i]!.target); expect(s.hazardPerStep!).toBeGreaterThan(base.stages[i]!.hazardPerStep ?? 0); });
+    hard.stages.forEach((s, i) => expect(s.target).toBeGreaterThanOrEqual(base.stages[i]!.target));
     expect(hard.stages.reduce((n, s) => n + s.target, 0)).toBeGreaterThan(base.stages.reduce((n, s) => n + s.target, 0));
     expect(hard.name).toContain("Contest");
   });
@@ -163,7 +163,7 @@ describe("weekly rotation", () => {
   });
 });
 
-import { applyChallenge } from "./difficulty-ladder";
+import { applyChallenge, flawlessPeak, challengeBump, CHALLENGE_PEAK_CAP } from "./difficulty-ladder";
 describe("weekly raid challenge rules", () => {
   const def = HOLLOW_STAR;
   const total = (d: typeof def) => d.stages.reduce((n, s) => n + s.target, 0);
@@ -174,13 +174,13 @@ describe("weekly raid challenge rules", () => {
     expect(total(applyChallenge(def, "swarm"))).toBeGreaterThan(total(def));
     expect(applyChallenge(def, "swarm").stages.at(-1)!.target).toBe(def.stages.at(-1)!.target);
     expect(applyChallenge(def, "iron-boss").stages.at(-1)!.target).toBeGreaterThan(def.stages.at(-1)!.target);
-    expect(applyChallenge(def, "short-fuse").stages.every((s, i) => s.hazardPerStep! > (def.stages[i]!.hazardPerStep ?? 0))).toBe(true);
+    expect(flawlessPeak(scaleEncounter(def, RAID_TIERS[0]!, "short-fuse"))).toBeGreaterThan(flawlessPeak(def));
     const glass = applyChallenge(def, "glass");
     expect(glass.maxLives).toBe(def.maxLives - 2); expect(play(glass).damage).toBeGreaterThan(play(def).damage);
     expect(applyChallenge(def, "unknown")).toBe(def);
   });
   test("every weekly modifier has a rule, and no checkpoint relief means hazard carries between stages", () => {
-    for (const m of RAID_CHALLENGES) expect(applyChallenge(def, m.id)).not.toBe(def);
+    for (const m of RAID_CHALLENGES) expect(scaleEncounter(def, RAID_TIERS[0]!, m.id)).not.toBe(def);
     const d = applyChallenge(def, "no-revive");
     let r: EncounterRun = { ...createEncounterRun(d), status: "ACTIVE" };
     const first = d.stages[0]!;
@@ -188,4 +188,45 @@ describe("weekly raid challenge rules", () => {
     expect(r.stageIndex).toBe(1);
     expect(r.hazard).toBe(Math.min(100, first.target * (first.hazardPerStep ?? 8)));
   });
+});
+
+describe("every tier is winnable on purpose, and harder tiers leave less room", () => {
+  test("flawless play clears every strike at every tier, peaking near the tier's target", () => {
+    for (const s of STRIKES) {
+      const peaks = STRIKE_TIERS.map((t) => flawlessPeak(scaleEncounter(s, t)));
+      peaks.forEach((p, i) => { expect(p).toBeLessThanOrEqual(STRIKE_TIERS[i]!.peak + TUNE_SLACK); expect(p).toBeGreaterThanOrEqual(STRIKE_TIERS[i]!.peak - 6); });
+      expect(peaks).toEqual([...peaks].sort((a, b) => a - b));
+    }
+  });
+  test("flawless play clears the raid at every tier, with and without the weekly challenge, at both party sizes' tiers", () => {
+    for (const t of RAID_TIERS) {
+      const p = flawlessPeak(scaleEncounter(HOLLOW_STAR, t));
+      expect(p).toBeLessThanOrEqual(Math.min(CHALLENGE_PEAK_CAP, t.peak + TUNE_SLACK)); expect(p).toBeGreaterThanOrEqual(t.peak - 6);
+      for (const m of RAID_CHALLENGES) {
+        const pm = flawlessPeak(scaleEncounter(HOLLOW_STAR, t, m.id));
+        expect(pm).toBeLessThan(100); expect(pm).toBeLessThanOrEqual(Math.min(CHALLENGE_PEAK_CAP, t.peak + challengeBump(m.id) + TUNE_SLACK));
+      }
+    }
+    expect(flawlessPeak(HOLLOW_STAR)).toBe(80); // the authored raid is untouched
+  });
+  test("the base tier keeps room for all three secret searches (each costs 8% hazard in its own stage); harder tiers are tuned to their limit", () => {
+    for (const t of RAID_TIERS.filter((x) => x.rank <= SEARCH_ROOM_RANK)) {
+      const def = scaleEncounter(HOLLOW_STAR, t);
+      let run: EncounterRun = { ...createEncounterRun(def), status: "ACTIVE" };
+      let guard = 0;
+      while (run.status === "ACTIVE" && guard++ < 500) {
+        const id = def.stages[run.stageIndex]!.id;
+        if (run.progress === 0 && ["broken-gate", "seal-chambers", "echo-realm"].includes(id)) run = { ...run, hazard: Math.min(100, run.hazard + 8) };
+        run = advanceEncounter(def, run);
+      }
+      expect(run.status).toBe("COMPLETE");
+    }
+  });
+});
+
+import { SEARCH_STAGES, SEARCH_HAZARD, SEARCH_ROOM_RANK, TUNE_SLACK } from "./difficulty-ladder";
+import { SECRET_OBJECTIVES } from "./hollow-star-raid";
+test("the search-room table matches the raid's secret objectives", () => {
+  expect([...SEARCH_STAGES[HOLLOW_STAR_ID]!].sort()).toEqual(SECRET_OBJECTIVES.map((o) => o.stageId).sort());
+  expect(SEARCH_HAZARD).toBe(8);
 });
