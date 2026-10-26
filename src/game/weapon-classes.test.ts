@@ -74,6 +74,9 @@ describe("each class has a job (kill time, fresh build)", () => {
     // and it is the worst thing to hip-fire: the widest unaimed spread of any primary
     for (const f of ["AUTO", "SMG", "LMG", "FUSION"] as const) expect(FRAMES.SNIPER.spread).toBeGreaterThan(f === "AUTO" ? WEAPONS.AUTO.spread : FRAMES[f].spread);
   });
+  test("Fusion: four of a volley's five bolts drop an elite inside its band (one stray bolt doesn't spoil it)", () => {
+    expect(shotsToKill("FUSION", ELITE, { distance: 12, precision: false, scale: FRESH })).toBeLessThanOrEqual(4);
+  });
   test("Fusion: one volley drops an elite inside its band, not far outside it", () => {
     expect(ttk("FUSION", ELITE, 12)).toBeLessThanOrEqual(FRAMES.FUSION.burstGap * (FRAMES.FUSION.burst - 1) + 1e-9);
     expect(ttk("FUSION", ELITE, 40)).toBeGreaterThanOrEqual(FRAMES.FUSION.fireRate);

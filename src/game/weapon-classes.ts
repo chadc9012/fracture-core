@@ -29,7 +29,7 @@ export const FRAMES: Record<GearFrameId, Omit<WeaponDef, "id"> & { sound: Weapon
   LMG: { name: "Light Machine Gun", kind: "gun", damage: 1.05, fireRate: 0.095, burst: 1, burstGap: 0, spread: 0.045, adsSpread: 0.45, recoil: 0.009, knock: 0.9, heat: 0.5, punch: 0.7, mag: 80, reserve: 320, reload: 3.6, sound: "AUTO" },
   // a five-bolt volley per pull: devastating close, falls off fast. Recoil and heat are charged per bolt, so both are small:
   // at 0.03 a bolt the volley climbed a metre over a head at 12 m, and 1.6 heat a bolt overheated in two pulls (play-test)
-  FUSION: { name: "Fusion Rifle", kind: "gun", damage: 1.75, fireRate: 1.1, burst: 5, burstGap: 0.035, spread: 0.02, adsSpread: 0.6, recoil: 0.008, knock: 1.4, heat: 0.55, punch: 1.8, mag: 20, reserve: 100, reload: 2.2, sound: "PULSE" },
+  FUSION: { name: "Fusion Rifle", kind: "gun", damage: 2.2, fireRate: 1.1, burst: 5, burstGap: 0.035, spread: 0.02, adsSpread: 0.6, recoil: 0.008, knock: 1.4, heat: 0.55, punch: 1.8, mag: 20, reserve: 100, reload: 2.2, sound: "PULSE" },
 };
 
 /** the frame's firing stats: a slot gun's own, or a gear class's */
