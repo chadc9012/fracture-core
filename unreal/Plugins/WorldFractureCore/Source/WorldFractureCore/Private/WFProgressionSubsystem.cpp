@@ -12,6 +12,7 @@
 #include "WFQuestSubsystem.h"
 #include "WFSaveGame.h"
 #include "Core/WFOperatorCore.h"
+#include "Core/WFBountyCore.h"
 #include "WorldFractureCoreModule.h"
 
 #include <algorithm>
@@ -406,6 +407,15 @@ double UWFProgressionSubsystem::GetChallengeEnemyHealthScale() const
 FString UWFProgressionSubsystem::DescribeLoot() const
 {
 	return ToF(wf::reward::DescribeLoot(State));
+}
+
+double UWFProgressionSubsystem::ClaimBossBounty(const FString& ScenarioId, bool& bFirst)
+{
+	const double NowMs = static_cast<double>((FDateTime::UtcNow() - FDateTime(1970, 1, 1)).GetTotalMilliseconds());
+	const wf::bounty::FPayout P = wf::bounty::ClaimBossBounty(State.NexLedger, ToStd(ScenarioId), NowMs, State.PocketClass);
+	bFirst = P.bFirst;
+	if (P.Nex > 0) NotifyChanged();
+	return P.Nex;
 }
 
 FString UWFProgressionSubsystem::DescribeOperators() const

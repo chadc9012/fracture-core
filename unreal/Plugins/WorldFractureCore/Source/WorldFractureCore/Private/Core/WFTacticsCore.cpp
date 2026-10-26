@@ -131,6 +131,36 @@ namespace wf::tactics
 		return FThreat{Bx, Bz, TBurst};
 	}
 
+	std::optional<FCoverSpot> FindCover(double Mx, double Mz, const FPoint3& PlayerEye, const std::vector<FCoverCandidate>& Candidates, const FGround& Ground, const FSightBlocked& Blocked)
+	{
+		std::optional<FCoverSpot> Best;
+		double BestScore = std::numeric_limits<double>::infinity();
+		const double Dp = js::Hypot(Mx - PlayerEye.X, Mz - PlayerEye.Z);
+		for (const FCoverCandidate& C : Candidates)
+		{
+			const double ToC = js::Hypot(C.X - Mx, C.Z - Mz);
+			if (ToC > CoverSearch + C.R) continue;
+			const double Ax = C.X - PlayerEye.X, Az = C.Z - PlayerEye.Z, Al = js::Hypot(Ax, Az);
+			if (Al < 4) continue; // the player is standing on it
+			const double Ux = Ax / Al, Uz = Az / Al;
+			const double Back = C.R + 0.9;
+			const double X = C.X + Ux * Back, Z = C.Z + Uz * Back;
+			// never run to a spot much closer to the player than it is now (no charging through the line of fire to hide)
+			if (js::Hypot(X - PlayerEye.X, Z - PlayerEye.Z) < std::min(Dp, 8.0) - 2) continue;
+			if (!Blocked(PlayerEye, {X, Ground(X, Z) + CoverChest, Z})) continue;
+			std::optional<FPoint> Peek;
+			for (const int Side : {1, -1})
+			{
+				const double Px = X - Uz * Side * (C.R + 1.1), Pz = Z + Ux * Side * (C.R + 1.1);
+				if (!Blocked(PlayerEye, {Px, Ground(Px, Pz) + PeekChest, Pz})) { Peek = FPoint{Px, Pz}; break; }
+			}
+			if (!Peek) continue;
+			const double Run = js::Hypot(X - Mx, Z - Mz);
+			if (Run < BestScore) { BestScore = Run; Best = FCoverSpot{X, Z, Peek->X, Peek->Z, Run}; }
+		}
+		return Best;
+	}
+
 	FPoint DiveDirection(double Mx, double Mz, const FPoint& Burst, double RoundDx, double RoundDz, int Side)
 	{
 		const double Ax = Mx - Burst.X, Az = Mz - Burst.Z, Al = js::Hypot(Ax, Az);

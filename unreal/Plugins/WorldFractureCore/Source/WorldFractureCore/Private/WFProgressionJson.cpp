@@ -1,6 +1,7 @@
 #include "WFProgressionJson.h"
 
 #include "Core/WFAbilityCore.h"
+#include "Core/WFBountyCore.h"
 
 #include <algorithm>
 #include <cmath>
@@ -499,6 +500,8 @@ namespace WFProgressionJson
 			if (O->TryGetStringField(TEXT("pocketClass"), Pocket) && IsCls(ToStd(Pocket))) P.PocketClass = ToStd(Pocket);
 			else P.PocketClass = P.IdentityClass && IsCls(*P.IdentityClass) ? *P.IdentityClass : "TITAN";
 			P.Operators = { { "TITAN", {} }, { "HUNTER", {} }, { "WARLOCK", {} } };
+			// activity-payouts.ts tagLegacyPayouts: untagged bounty entries belong to the operator being played
+			wf::bounty::TagLegacyPayouts(P.NexLedger, P.PocketClass);
 			const TSharedPtr<FJsonObject>* Ops = nullptr;
 			if (O->TryGetObjectField(TEXT("operators"), Ops))
 				for (auto& [Cls, K] : P.Operators)

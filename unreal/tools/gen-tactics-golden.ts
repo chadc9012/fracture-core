@@ -14,6 +14,7 @@
  *   GD dist covered -> damage          BE fuse -> interval      TG kind -> 0/1
  *   RT x y z dx dy dz speed splash proximity life age mx mz body -> x|z|t
  *   DD mx mz bx bz rdx rdz side -> x|z     RE t elite roll -> 0/1     FD mx mz cx cz seed -> x|z
+ *   FC mx mz px py pz candidates(x:z:r;) -> x|z|peekX|peekZ|run or ~      CP hideLeft aiming cooldown -> HIDE/PEEK
  */
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
@@ -22,6 +23,7 @@ import { buildSynergy, DEFAULT_BUILD } from "../../src/game/ability-network";
 import { ABILITY_NODES } from "../../src/game/ability-network";
 import { findFlankSpot, lobVelocity, stepGrenade, grenadeDamage, beepEvery, throwsGrenades, type Grenade } from "../../src/game/enemy-tactics";
 import { roundThreat, diveDirection, reactsInTime, fleeDirection } from "../../src/game/enemy-evasion";
+import { findCover, coverPhase } from "../../src/game/enemy-cover";
 
 const OUT = join(process.cwd(), "unreal", "Plugins", "WorldFractureCore", "Tests", "tactics_golden.txt");
 const NONE = "~";
@@ -86,5 +88,14 @@ for (let i = 0; i < 500; i++) {
 }
 for (const t of [0, 0.27, 0.28, 1]) for (const e of [false, true]) for (const r of [0.2, 0.5, 0.6, 0.75, 0.9]) out("RE", t, e ? 1 : 0, r, reactsInTime(t, e, r) ? 1 : 0);
 for (let i = 0; i < 300; i++) { const cx = rand() * 20, cz = rand() * 20, mx = rand() < 0.2 ? cx + (rand() - 0.5) * 0.8 : rand() * 20, mz = rand() < 0.2 ? cz : rand() * 20, s = rand(); const f = fleeDirection(mx, mz, cx, cz, s); out("FD", mx, mz, cx, cz, s, `${n(f.x)}|${n(f.z)}`); }
+for (let i = 0; i < 2500; i++) {
+  const p = { x: rand() * 100 - 50, y: 0, z: rand() * 100 - 50 }; p.y = ground(p.x, p.z) + 1.6;
+  const mx = p.x + (rand() - 0.5) * 50, mz = p.z + (rand() - 0.5) * 50;
+  const cands = Array.from({ length: Math.floor(rand() * 7) }, () => ({ x: mx + (rand() - 0.5) * 50, z: mz + (rand() - 0.5) * 50, r: pick([0.6, 1, 1.5, 3, 6]) }));
+  if (rand() < 0.1) cands.push({ x: p.x + 1, z: p.z, r: 1 }); // one under the player's feet
+  const c = findCover(mx, mz, p, cands, world as never);
+  out("FC", mx, mz, p.x, p.y, p.z, cands.map((k) => `${n(k.x)}:${n(k.z)}:${n(k.r)}`).join(";") || NONE, c ? [c.x, c.z, c.peekX, c.peekZ, c.run].map(n).join("|") : NONE);
+}
+for (const h of [-0.1, 0, 0.5, 1.6]) for (const a of [false, true]) for (const cd of [0, 0.6, 0.61, 2]) out("CP", h, a ? 1 : 0, cd, coverPhase(h, a, cd));
 writeFileSync(OUT, lines.join("\n") + "\n");
 console.log(`tactics golden: ${lines.length} lines -> ${OUT}`);

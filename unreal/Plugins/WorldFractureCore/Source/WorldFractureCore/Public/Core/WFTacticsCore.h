@@ -7,6 +7,7 @@
 //   ability-network.ts     buildSynergy's archetype (Scene.tsx maps it to the squad archetype)
 //   enemy-tactics.ts       findFlankSpot, lobVelocity, stepGrenade, grenadeDamage, beepEvery, throwsGrenades, GRENADE / FLANK
 //   enemy-evasion.ts       roundThreat, diveDirection, reactsInTime, fleeDirection, DIVE / FLEE
+//   enemy-cover.ts         findCover, coverPhase (the candidates come from the engine's level geometry)
 // Golden-tested (Tests/TacticsCoreTest.cpp; findFlankSpot against a recorded line-of-sight stand-in).
 #pragma once
 
@@ -16,6 +17,7 @@
 #include <functional>
 #include <optional>
 #include <string>
+#include <vector>
 
 namespace wf::tactics
 {
@@ -49,6 +51,16 @@ namespace wf::tactics
 	WORLDFRACTURECORE_API void StepGrenade(FGrenade& G, double Dt, const FGround& Ground);
 	WORLDFRACTURECORE_API double GrenadeDamage(double Dist, bool bCovered);
 	WORLDFRACTURECORE_API double BeepEvery(double Fuse);
+
+	// ---- real cover (enemy-cover.ts) ----
+	inline constexpr double CoverSearch = 22, CoverChest = 1.05, PeekChest = 1.35, HideSeconds = 1.6, CoverHold = 7;
+	struct FCoverCandidate { double X = 0, Z = 0, R = 0; };
+	struct FCoverSpot { double X = 0, Z = 0, PeekX = 0, PeekZ = 0, Run = 0; };
+	/** the spot right behind a candidate (away from the player) the player can't see, with a lean-out step that sees them;
+	 *  the shortest run wins, never one that runs much closer to the player */
+	WORLDFRACTURECORE_API std::optional<FCoverSpot> FindCover(double Mx, double Mz, const FPoint3& PlayerEye, const std::vector<FCoverCandidate>& Candidates, const FGround& Ground, const FSightBlocked& Blocked);
+	/** at the cover: lean out while winding up, or once hidden long enough with the gun nearly ready; else hide */
+	inline const char* CoverPhase(double HideLeft, bool bAiming, double Cooldown) { return bAiming || (HideLeft <= 0 && Cooldown <= 0.6) ? "PEEK" : "HIDE"; }
 
 	// ---- evasion ----
 	inline constexpr double ReactMin = 0.28;

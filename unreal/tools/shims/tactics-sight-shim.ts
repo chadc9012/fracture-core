@@ -11,3 +11,6 @@ export function sightLine(from: Point3, to: Point3, _world: SightWorld): { block
   sightCalls.n++;
   return { blocked: blockedRule(from, to) };
 }
+
+/** enemy-cover.ts imports this too; coverCandidates is not replayed, so any height will do */
+export const obstacleHeight = (_o: unknown) => 2;

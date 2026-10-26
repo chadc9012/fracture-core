@@ -133,6 +133,14 @@ int main(int Argc, char** Argv)
 			const FPoint D = FleeDirection(Num(F[1]), Num(F[2]), Num(F[3]), Num(F[4]), Num(F[5]));
 			Near(LineNo, "fleeDirection", N(D.X) + "|" + N(D.Z), F[6]);
 		}
+		else if (T == "FC")
+		{
+			std::vector<FCoverCandidate> Cands;
+			if (F[6] != None) for (const std::string& K : Split(F[6], ';')) { const auto P = Split(K, ':'); Cands.push_back({Num(P[0]), Num(P[1]), Num(P[2])}); }
+			const std::optional<FCoverSpot> C = FindCover(Num(F[1]), Num(F[2]), {Num(F[3]), Num(F[4]), Num(F[5])}, Cands, TcGround, TcBlocked);
+			Near(LineNo, "findCover", C ? N(C->X) + "|" + N(C->Z) + "|" + N(C->PeekX) + "|" + N(C->PeekZ) + "|" + N(C->Run) : None, F[7]);
+		}
+		else if (T == "CP") Same(LineNo, "coverPhase", CoverPhase(Num(F[1]), F[2] == "1", Num(F[3])), F[4]);
 		else Same(LineNo, "line", T, "known");
 	}
 	std::printf("%d flank searches, %d grenades, %d round threats, %d checks (%d within float tolerance), %d mismatches\n", Flanks, Grenades, Threats, Checks, Fuzzy, Mismatches);

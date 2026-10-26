@@ -4,6 +4,8 @@
 
 #include "AIController.h"
 #include "Components/CapsuleComponent.h"
+#include "Components/PrimitiveComponent.h"
+#include "Engine/OverlapResult.h"
 #include "DrawDebugHelpers.h"
 #include "Components/StaticMeshComponent.h"
 #include "Engine/StaticMesh.h"
@@ -223,19 +225,66 @@ void AWFEnemy::TickPerception(AWFCharacter* Operator, APawn* Target, float Delta
 		}
 	}
 
-	// a wounded trooper breaks line of fire to a retreat point (pickCover; real cover behind obstacles is not ported)
+	// sight tests for cover, from the player's eye (rules points (x, y up, z) are Unreal (X, Z, Y))
+	UWorld* SightWorld = GetWorld();
+	const AActor* SightSelf = this;
+	const auto CoverGround = [SightWorld](double X, double Z) {
+		FHitResult G;
+		const FVector At(X * CmPerM, Z * CmPerM, 0);
+		return SightWorld->LineTraceSingleByChannel(G, At + FVector(0, 0, 20000), At - FVector(0, 0, 50000), ECC_WorldStatic) ? G.ImpactPoint.Z / CmPerM : 0.0;
+	};
+	const auto CoverBlocked = [SightWorld, SightSelf, Target, Operator](const wf::tactics::FPoint3& From, const wf::tactics::FPoint3& To) {
+		FHitResult H;
+		FCollisionQueryParams Q(SCENE_QUERY_STAT(WFCover), false, SightSelf);
+		Q.AddIgnoredActor(Target);
+		Q.AddIgnoredActor(Operator);
+		return SightWorld->LineTraceSingleByChannel(H, FVector(From.X, From.Z, From.Y) * CmPerM, FVector(To.X, To.Z, To.Y) * CmPerM, ECC_Visibility, Q);
+	};
+	const wf::tactics::FPoint3 Eye{It.X, It.Z + 0.5, It.Y};
+	// a wounded trooper takes cover: real cover first (enemy-cover.ts findCover), else a retreat point (pickCover)
 	if (bAlert && Ai.CoverTime <= 0 && wf::perception::ShouldTakeCover(Health / FMath::Max(1.0, MaxHealth), Ai.CoverTime, bBoss) && Distance < 45 && R.bDamaged)
 	{
-		const wf::perception::FPoint C = wf::perception::PickCover(Me.X, Me.Y, It.X, It.Y, GetUniqueID() % 2 ? 1 : -1);
-		Ai.CoverX = C.X; Ai.CoverZ = C.Z; Ai.CoverTime = 3.5;
+		if (const std::optional<wf::tactics::FCoverSpot> Real = wf::tactics::FindCover(Me.X, Me.Y, Eye, CoverCandidates(), CoverGround, CoverBlocked))
+		{
+			Ai.CoverX = Real->X; Ai.CoverZ = Real->Z; PeekX = Real->PeekX; PeekZ = Real->PeekZ; bRealCover = true;
+			HideLeft = wf::tactics::HideSeconds; Ai.CoverTime = wf::tactics::CoverHold; Windup = -1;
+		}
+		else
+		{
+			const wf::perception::FPoint C = wf::perception::PickCover(Me.X, Me.Y, It.X, It.Y, GetUniqueID() % 2 ? 1 : -1);
+			Ai.CoverX = C.X; Ai.CoverZ = C.Z; Ai.CoverTime = 3.5; bRealCover = false;
+		}
 	}
 	Ai.CoverTime -= Dt;
+	if (Ai.CoverTime <= 0) bRealCover = false;
+	// the player walked round the cover: it no longer hides anything, break off and fight
+	if (bRealCover && HideLeft > 0 && Windup < 0 && FVector::Dist2D(Me, FVector(Ai.CoverX, Ai.CoverZ, 0)) < 0.6
+		&& !CoverBlocked(Eye, {Me.X, CoverGround(Me.X, Me.Y) + wf::tactics::CoverChest, Me.Y})) { Ai.CoverTime = 0; bRealCover = false; }
 
 	auto MoveTo = [this, &Me](double X, double Z, float Pace) {
 		const FVector Dir(X - Me.X, Z - Me.Y, 0);
 		if (Dir.Size2D() > 0.01) { AddMovementInput(Dir.GetSafeNormal(), Pace); SetActorRotation(FRotator(0.f, Dir.Rotation().Yaw, 0.f)); }
 	};
 	const FVector Flat = FVector(ToPlayer.X, ToPlayer.Y, 0).GetSafeNormal();
+	if (bAlert && Ai.CoverTime > 0 && bRealCover)
+	{
+		// fighting from real cover: run there, then hide, lean out to fire, duck back
+		const bool bAtCover = FVector::Dist2D(Me, FVector(Ai.CoverX, Ai.CoverZ, 0)) < 1.5 || FVector::Dist2D(Me, FVector(PeekX, PeekZ, 0)) < 1.2;
+		const std::string Phase = bAtCover ? wf::tactics::CoverPhase(HideLeft, Windup >= 0, RangedCooldown) : "RUN";
+		const double Tx = Phase == "PEEK" ? PeekX : Ai.CoverX, Tz = Phase == "PEEK" ? PeekZ : Ai.CoverZ;
+		const double Cd = FVector::Dist2D(Me, FVector(Tx, Tz, 0));
+		if (Cd > 0.4) MoveTo(Tx, Tz, Phase == "RUN" ? 1.f : 0.65f);
+		if (Phase != "RUN") SetActorRotation(FRotator(0.f, Flat.Rotation().Yaw, 0.f));
+		if (Phase == "HIDE") { HideLeft = FMath::Max(0.0, HideLeft - Dt); RangedCooldown -= Dt; Windup = -1; }
+		else if (Phase == "PEEK" && Cd < 0.6 && !bScripted)
+		{
+			const bool bWasAiming = Windup >= 0;
+			TryAttack(Operator, Car, Distance, DeltaSeconds);
+			if (bWasAiming && Windup < 0) HideLeft = wf::tactics::HideSeconds; // from cover: duck back after the shot
+		}
+		else if (Phase == "RUN") { RangedCooldown = FMath::Max(RangedCooldown, 0.4); Windup = -1; }
+		return;
+	}
 	if (bAlert && Ai.CoverTime > 1.2)
 	{
 		// sprinting to the retreat point: no shooting while relocating
@@ -363,6 +412,33 @@ void AWFEnemy::TryAttack(AWFCharacter* Operator, AWFVehicle* Car, double Distanc
 	}
 	RangedCooldown -= DeltaSeconds;
 	if (RangedCooldown <= 0) Windup = wf::perception::WindupFor(bBoss, bElite); // telegraph, then shoot
+}
+
+std::vector<wf::tactics::FCoverCandidate> AWFEnemy::CoverCandidates() const
+{
+	// chest-high, body-wide static geometry (rocks, wrecks, walls, crates) within the search radius; huge floors are not cover
+	std::vector<wf::tactics::FCoverCandidate> Out;
+	TArray<FOverlapResult> Hits;
+	FCollisionQueryParams Q(SCENE_QUERY_STAT(WFCoverSearch), false, this);
+	const float Radius = static_cast<float>((wf::tactics::CoverSearch + 6) * CmPerM);
+	if (!GetWorld()->OverlapMultiByObjectType(Hits, GetActorLocation(), FQuat::Identity, FCollisionObjectQueryParams(ECC_WorldStatic), FCollisionShape::MakeSphere(Radius), Q)) return Out;
+	TSet<const UPrimitiveComponent*> Seen;
+	for (const FOverlapResult& H : Hits)
+	{
+		const UPrimitiveComponent* C = H.GetComponent();
+		if (!C || Seen.Contains(C)) continue;
+		Seen.Add(C);
+		const FBoxSphereBounds B = C->Bounds;
+		const double Half = FMath::Max(B.BoxExtent.X, B.BoxExtent.Y) / CmPerM;
+		if (Half < 0.5 || Half > 12) continue; // a post, or the ground itself
+		const double Top = (B.Origin.Z + B.BoxExtent.Z) / CmPerM;
+		FHitResult G;
+		const FVector Base(B.Origin.X, B.Origin.Y, B.Origin.Z);
+		const double Floor = GetWorld()->LineTraceSingleByChannel(G, Base + FVector(0, 0, 100), Base - FVector(0, 0, 50000), ECC_WorldStatic, Q) && G.GetComponent() != C ? G.ImpactPoint.Z / CmPerM : (B.Origin.Z - B.BoxExtent.Z) / CmPerM;
+		if (Top - Floor < wf::tactics::CoverChest + 0.1) continue; // a kerb, not cover
+		Out.push_back({B.Origin.X / CmPerM, B.Origin.Y / CmPerM, Half});
+	}
+	return Out;
 }
 
 double AWFEnemy::TakeHitLeaving(double Damage, AActor* DamageInstigator, const FString& Element, double Floor)

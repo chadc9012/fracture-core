@@ -103,6 +103,9 @@ public:
 
 	/** Titan, Hunter and Warlock each have their own level, XP, Nex, shards and materials (operator-pockets.ts); one line each */
 	UFUNCTION(BlueprintPure, Category = "World Fracture|Progression") FString DescribeOperators() const;
+	/** activity-payouts.ts claimBossBounty for the operator being played: a scenario boss's first kill, then a daily
+	 *  repeat, in Nex. Returns the Nex paid (0 when today's is already taken); bFirst says which. */
+	double ClaimBossBounty(const FString& ScenarioId, bool& bFirst);
 	UFUNCTION(BlueprintPure, Category = "World Fracture|Progression") int32 GetLevel() const { return static_cast<int32>(State.Level); }
 	UFUNCTION(BlueprintPure, Category = "World Fracture|Progression") double GetXp() const { return State.Xp; }
 	UFUNCTION(BlueprintPure, Category = "World Fracture|Progression") double GetXpToNextLevel() const { return State.Level * wf::reward::XpPerLevel; }

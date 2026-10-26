@@ -432,6 +432,14 @@ void AWFGameMode::ShowEncounterEvents()
 		else if (E.Kind == "SUMMON") Toast(FString::Printf(TEXT("%s joins the fight"), *Text), EncWarn);
 		else if (E.Kind == "PHASE" || E.Kind == "TRUCE" || E.Kind == "RESET" || E.Kind == "DEPART" || E.Kind == "DECOY_SHATTER") Toast(Text, EncCyan);
 		else if (E.Kind == "FINALE" || E.Kind == "VICTORY") Toast(Text, EncGold);
+		// a real kill's VICTORY pays the boss bounty to the operator being played (Scene.tsx BOSS_BOUNTY)
+		if (E.Kind == "VICTORY" && !E.ScenarioId.empty())
+			if (UWFProgressionSubsystem* Progression = GetGameInstance()->GetSubsystem<UWFProgressionSubsystem>())
+			{
+				bool bFirst = false;
+				const double Paid = Progression->ClaimBossBounty(WFData::ToF(E.ScenarioId), bFirst);
+				if (Paid > 0) Toast(FString::Printf(TEXT("%s paid: NEX %s"), bFirst ? TEXT("Boss bounty") : TEXT("Daily boss bounty"), *FText::AsNumber(static_cast<int64>(Paid)).ToString()), EncGold);
+			}
 		else if (E.Kind == "IMPACT" && E.Hit && *E.Hit) Toast(FString::Printf(TEXT("%s hit you"), *Text), EncWarn);
 	}
 }

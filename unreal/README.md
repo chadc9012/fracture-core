@@ -36,6 +36,10 @@ unreal/
 The default level is the engine's template map; the game mode adds a floor and lights if a level has none.
 
 ## What runs
+- **Boss bounties and real cover:** a scenario boss's real kill pays its Nex bounty to the operator being played, a first
+  kill and then a daily repeat, ranked by boss (activity-payouts.ts); older saves' bounties go to the operator played when
+  they load. A wounded trooper looks for chest-high cover in the level geometry that hides it from you, hides, leans out
+  to fire, and ducks back; if you walk round it, it fights (enemy-cover.ts).
 - **Squad tactics:** alert troopers move by squad role (assault presses, ranged holds 28 m, flankers circle, leaders
   anchor; everyone rushes a player under 35% hull, spreads out against a hot one, and your ability build shifts them)
   (enemy-intelligence.ts). A player out of sight for 3 s gets up to two flankers swinging round to a spot that sees
@@ -169,14 +173,15 @@ cmake -S . -B build -G Ninja && cmake --build build && ctest --test-dir build --
 | PerceptionCoreTest | enemy-perception.ts, enemy-tuning.ts, line-of-sight.ts enemyHitChance | 300 awareness tracks (18,000 steps), 24,004 checks |
 | ArmsCoreTest | melee-arc.ts, foundries.ts blades / swingStats / inShockwave, launchers.ts via ordnance.ts fireRound | 3 blades, 4 launchers, 1,500 launches, 8,309 checks |
 | ArmorCoreTest | armor-sets.ts, armor-perks.ts, armor-attributes.ts, inventory.ts weaponDamageMultiplier | 36 sets, 1,500 loadouts, 10,510 checks |
-| TacticsCoreTest | enemy-intelligence.ts, ability-network.ts buildSynergy, enemy-tactics.ts, enemy-evasion.ts | 2,000 flank searches, 200 grenade flights, 3,000 round threats, 19,223 checks |
+| TacticsCoreTest | enemy-intelligence.ts, ability-network.ts buildSynergy, enemy-tactics.ts, enemy-evasion.ts, enemy-cover.ts | 2,000 flank searches, 2,500 cover searches, 200 grenade flights, 3,000 round threats, 21,755 checks |
+| BountyCoreTest | activity-payouts.ts payoutFor / payInto / tagLegacyPayouts / payFlat | 400 ledgers, 8,936 payouts, 16,048 checks |
 | OperatorCoreTest | operator-pockets.ts switchOperator, xp.ts grantXP, nex.ts spendNex | 6,400 operations (846 switches), 25,600 checks |
 
 The golden files (`Plugins/WorldFractureCore/Tests/<name>_golden.txt`) are **generated, not committed**: together they run to ~60 MB,
 which broke the Lovable preview build. Record all of them from the repo root before configuring the tests (and again after changing
 the web build's rules):
 
-    node unreal/tools/gen-goldens.mjs            # all twenty
+    node unreal/tools/gen-goldens.mjs            # all twenty-one
     node unreal/tools/gen-goldens.mjs race shop  # just these
 
 `export-datatables` (the DataTables, which are committed) still runs on its own:
@@ -188,7 +193,7 @@ The encounter, Dragonite-cast and ability recorders route their world calls to r
 ## Not ported yet
 Boss models and attack effects (zones are debug circles, decoys are stand-ins), mid-mission saves, ability mastery XP, slides (the armor slide bonus),
 region kinds for abilities (the map counts as a war zone),
-real cover behind obstacles (enemy-cover.ts), troopers running out of orbital strike circles (no strike beacons yet), earning monoblades (wasteland-activities.ts gold medals), on-foot weapon heat, the featured-activity rotation and
+troopers running out of orbital strike circles (no strike beacons yet), earning monoblades (wasteland-activities.ts gold medals), on-foot weapon heat, the featured-activity rotation and
 activity shader drops,
 diving (the thalassia-dive survive timer), the Neon City police response itself (the web build has only the heat meter and its labels; chase-ai.ts pursuit helpers are unused there), the Operations Hub preview marketplace (its wallet is not saved in the web build either), home interiors, cloud save merge, the world itself (regions, Neon City, Thalassia). Their data is already in
 `DataTables/`.

@@ -25,7 +25,8 @@ class AWFVehicle;
  * (pickCover). Ranged shots land with line-of-sight.ts enemyHitChance and also reach an Operator who is driving:
  * the hit wears the vehicle, and its flares spoof the shot. In a fight troopers move by squad role (enemy-intelligence.ts),
  * flank a player who hides, lob grenades over cover (Raiders and Vanguard) and dive out of incoming rockets
- * (enemy-tactics.ts, enemy-evasion.ts). Not ported: real cover behind obstacles (enemy-cover.ts).
+ * (enemy-tactics.ts, enemy-evasion.ts). A wounded trooper looks for real cover in the level geometry, hides, leans out to
+ * fire and ducks back (enemy-cover.ts), and falls back to a retreat point when nothing nearby hides it.
  */
 UCLASS()
 class WORLDFRACTURE_API AWFEnemy : public ACharacter
@@ -138,6 +139,10 @@ private:
 	wf::tactics::FPoint Flank;
 	double FlankUntil = 0, GrenadeAt = 0, DiveUntil = 0, DiveStart = 0, DiveCool = 0;
 	FVector DiveVelocity = FVector::ZeroVector; // m/s
+	bool bRealCover = false;       // a cover spot with a lean-out (ai.peekX in sim.ts)
+	double PeekX = 0, PeekZ = 0, HideLeft = 0;
+	/** chest-high static geometry within reach (enemy-cover.ts coverCandidates, from the level instead of the obstacle map) */
+	std::vector<wf::tactics::FCoverCandidate> CoverCandidates() const;
 	double KnockX = 0, KnockZ = 0;
 	double HitFloor = 0;      // TakeHitLeaving: health a hit may not cross
 	double ScaleOverride = 0; // a summon's authored scale (encounter-sim.ts SummonGroup.scale)

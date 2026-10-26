@@ -12,6 +12,7 @@ const shims = {
   "encounter-sim.ts": { "./sim": resolve("unreal/tools/shims/encounter-sim-shim.ts") },
   "dragonite-cast.ts": { "./sim": resolve("unreal/tools/shims/dragonite-cast-shim.ts") },
   "enemy-tactics.ts": { "./line-of-sight": resolve("unreal/tools/shims/tactics-sight-shim.ts") },
+  "enemy-cover.ts": { "./line-of-sight": resolve("unreal/tools/shims/tactics-sight-shim.ts") },
   "ability-effects.ts": { "./sim": resolve("unreal/tools/shims/ability-sim-shim.ts"), "./boss-poise": resolve("unreal/tools/shims/ability-poise-shim.ts"), "./obstacles": resolve("unreal/tools/shims/ability-obstacles-shim.ts") },
 };
 await build({
