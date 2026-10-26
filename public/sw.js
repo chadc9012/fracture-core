@@ -2,7 +2,7 @@
  * their URL (models, audio, textures, fonts, maps) are served from cache and refreshed in the background, so a replaced model shows up
  * on the next load; pages try the network first and fall back to the last copy. Anything else (API, server functions, other sites,
  * partial/Range requests such as streamed audio) is never touched. Bump VERSION to drop every old cache. */
-const VERSION = "wf-offline-v1";
+const VERSION = "wf-offline-v2"; // v2: drop the cached transmission-glass car models
 const HASHED = ["/assets/"];
 const KEPT = ["/models/", "/textures/", "/audio/", "/fonts/", "/maps/", "/menu/", "/refs/"];
 const NEVER = ["/api/", "/_serverFn/", "/sw.js"];
