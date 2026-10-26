@@ -4,6 +4,7 @@ import { EMPTY_LIVING, mergeLiving } from "./living-world";
 import { mergeNemeses } from "./nemesis";
 import { EMPTY_FLEET, mergeFleet } from "./fleet";
 import { EMPTY_HOUSING, mergeHousing } from "./housing";
+import { mergePrivateJet } from "./phantom-jet";
 import { mergeRecords } from "./wasteland-activities";
 import { profileKey } from "./save-profile";
 import { mergeStory } from "./story";
@@ -69,6 +70,7 @@ function mergeInner(local: PlayerProgression, cloud: PlayerProgression, localIsN
     blade: (localIsNewer ? local.blade : cloud.blade) ?? (localIsNewer ? cloud.blade : local.blade) ?? null,
     housing: mergeHousing(local.housing ?? EMPTY_HOUSING, cloud.housing ?? EMPTY_HOUSING, localIsNewer),
     fleet: mergeFleet(local.fleet ?? EMPTY_FLEET, cloud.fleet ?? EMPTY_FLEET, localIsNewer),
+    privateJet: mergePrivateJet(local.privateJet, cloud.privateJet, localIsNewer),
     living: mergeLiving(local.living ?? EMPTY_LIVING, cloud.living ?? EMPTY_LIVING, union(local.earnedRewards, cloud.earnedRewards)),
     inventory: [...new Map([...cloud.inventory, ...local.inventory].map((item) => [item.id, item])).values()].map((item) => {
       const other = cloud.inventory.find((entry) => entry.id === item.id);

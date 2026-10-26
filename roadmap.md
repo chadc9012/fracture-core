@@ -271,3 +271,12 @@ Owner: "Reflection on water wet ground from rain and morning dew on grass windin
 - [x] Morning dew: from about 04:30 to 07:00 on clear, calm mornings grass and low cover carry a damp sheen and fine sun glints that twinkle as you move, gone by 10:00; humid regions most, deserts barely.
 - [x] Wind: gusts roll across meadows and through tree lines downwind, stronger and faster in storms; grass, flowers, reeds, bushes, canopies (procedural and GLB trees) and city/oasis palms all bend in the shared wind direction, tips and canopy most.
 - [ ] Not yet: wet/dew on rocks and props, screen-space reflections of geometry (buildings, trees) in water, puddle splashes from footsteps and vehicles.
+
+## Private aviation and passenger cabins (owner's stages 105-128 patches, Oct 26 2026)
+Owner: "everything" from the Phantom private jet and walkable cabin patches in the game. Ported onto the live travel system instead of the standalone previews.
+- [x] Phantom Stealth Jet rules (phantom-jet.ts + test): six-zone sofa cabin, ice-blue cabin light, paint/wing/exterior light, cockpit readout, ownership and flight state machine; bought once for 150,000 Nex at the Nexus or Neon private hangar; look and parking saved in progression.privateJet, condition in vehicleConditions.phantom.
+- [x] Departures board (Nexus, Neon, and any airport where the Phantom is parked): Private aviation section (buy / open hangar / recall), a Phantom button per destination, and a cabin class picker for scheduled flights and ferries.
+- [x] Private hangar (PhantomHangar.tsx): exterior model in a hangar bay (paint, wing style, exterior light), cabin walk-through with mood lighting, maintenance bay (per-system service, cabin valet), parked cockpit instruments; a showroom preview before buying.
+- [x] Every flight / ferry / Phantom trip shows the cabin you ride in (FlightCabin.tsx): airliner or ferry cabin in the chosen seat style (economy .. royal cabin, zero-G pod), fellow passengers boarding, walk the aisle, take your seat, recline, seat-back screen; the Phantom's private cabin with the live flight-deck readout. Skip to arrival any time; the arrival is the usual transit.
+- [ ] The Phantom has no 3D presence at the airports in the open world yet (hangar building, parked jet on the apron), and cannot be flown by hand: trips are cabin journeys plus the transit.
+- [ ] Cabin input is keyboard, mouse and touch drag; gamepad sticks in the cabin are not wired (the world reads the pad directly).

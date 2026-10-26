@@ -129,7 +129,11 @@ import type { DescentEmit } from "@/game/descent-runtime";
 import { claimDescentClear, claimTierLoot } from "@/game/descent-run";
 import { dungeonById } from "@/game/fracture-gates";
 import { DescentTracker } from "./DescentTracker";
-import { TransitPanel } from "./TransitPanel";
+import { TransitPanel, type TripBooking } from "./TransitPanel";
+import { FlightCabinOverlay, type FlightRide } from "./FlightCabin";
+import { PhantomHangar } from "./PhantomHangar";
+import { JOURNEY_SECONDS } from "@/game/flight-journey";
+import { completePhantomFlight, headingBetween, phantomFlightBlock, phantomOf } from "@/game/phantom-jet";
 import { hasVisited, recordVisit, START_WORLD } from "@/game/travel";
 import { worldName } from "@/game/planet";
 import { resolveDerby, resolveRally, resolveVault } from "@/game/wasteland-activities";
@@ -477,7 +481,10 @@ export function GameCanvas() {
   /* continental transit (travel.ts): the terminal you stand at, its departures board, and first visits to each continent */
   const [transitOpen, setTransitOpen] = useState<string | null>(null);
   const transitNearRef = useRef<string | null>(null);
-  useEffect(() => { transitNearRef.current = hud.transitNear?.id ?? null; if (!hud.transitNear) setTransitOpen(null); }, [hud.transitNear?.id]);
+  useEffect(() => { transitNearRef.current = hud.transitNear?.id ?? null; if (!hud.transitNear) { setTransitOpen(null); setHangarOpen(null); } }, [hud.transitNear?.id]);
+  /* private aviation (phantom-jet.ts): the hangar opened from the board, and the cabin you ride in during a trip (FlightCabin) */
+  const [hangarOpen, setHangarOpen] = useState<string | null>(null);
+  const [flight, setFlight] = useState<FlightRide | null>(null);
   useEffect(() => {
     const w = hud.world;
     if (!w || phase !== "world") return;
@@ -1038,6 +1045,30 @@ export function GameCanvas() {
       window.setTimeout(() => setTransit(null), totalSeconds(plan) * 1000),
     );
   };
+  /** a trip from a departures board: ride in the cabin first (FlightCabin), then the ordinary transit to the destination */
+  const flightRef = useRef(flight); flightRef.current = flight;
+  const boardTrip = (target: DeployTarget, trip: TripBooking) => {
+    if (transit || flightRef.current) return;
+    const p = progressionRef.current;
+    if (trip.kind === "phantom" && phantomFlightBlock(p, trip.fromId, trip.toId)) return;
+    const jet = phantomOf(p), ph = hud.phase;
+    setTransitOpen(null); setHangarOpen(null);
+    setFlight({
+      kind: trip.kind, target, fromId: trip.fromId, toId: trip.toId, fromName: trip.fromName, toName: trip.toName, seatStyle: trip.seatStyle,
+      durationS: JOURNEY_SECONDS[trip.kind], startedAt: performance.now(), cabinLight: jet.cabin, cleanliness: jet.cleanliness,
+      dayPhase: ph === "Night" || ph === "Moonlight" ? "night" : ph === "Sunset" || ph === "Dawn" ? "dusk" : "day", headingDeg: headingBetween(trip.from, trip.to),
+    });
+  };
+  /** the trip is over (or skipped): the Phantom parks at the destination, and the transit cover takes over from the cabin */
+  const arriveTrip = () => {
+    const ride = flightRef.current;
+    if (!ride) return;
+    if (transit) { setFlight(null); return; }
+    if (ride.kind === "phantom") setProgression((p) => completePhantomFlight(p, ride.fromId, ride.toId));
+    startTransit(ride.target);
+    // keep the cabin up under the cover until the swap, so the world never shows in between
+    transitTimers.current.push(window.setTimeout(() => setFlight(null), swapAt(transitPlan(prefersReduced(settings.reducedMotion))) * 1000 + 60));
+  };
 
   /** Adopts a progression that arrived from outside the normal flow (cloud pull/merge, restore point, New Game).
    * Re-derives operator, tutorial and mission machines from the final merged save. Live runs are kept unless `force`. */
@@ -1484,6 +1515,7 @@ export function GameCanvas() {
         return (
       <>
       {transit && <TransitOverlay startedAt={transit.startedAt} plan={transit.plan} reduced={transit.reduced} name={transit.target.name} sub={transit.target.sub} color={transit.target.color} />}
+      {flight && <FlightCabinOverlay ride={flight} onArrive={arriveTrip} />}
       {liteGrade && <div aria-hidden className="pointer-events-none fixed inset-0 z-[1]" style={{ background: "radial-gradient(ellipse at center, transparent 50%, rgba(4,6,10,0.55) 100%)" }} />}
       <Canvas
         style={liteGrade ? { filter: cssGrade(gradeFor(gradeRegionAt(hud.px, hud.pz), hud.phase === "Night" || hud.phase === "Moonlight" ? 1 : hud.phase === "Sunset" || hud.phase === "Dawn" ? 0.5 : 0)), transition: "filter 2.5s ease" } : undefined}
@@ -1630,11 +1662,11 @@ export function GameCanvas() {
          </div>
        )}
        {skateOpen && <SkateShop progression={progression} onProgression={setProgression} onClose={() => setSkateOpen(false)} />}
-       <TouchControls bindings={settings.bindings} disabled={Boolean(housingOpen || menuOpen || characterOpen || inventoryOpen || atlasOpen || operationsView || shopOpen || skateOpen || npcOpen || forgeOpen || basePanel || ruinOpen || showIntro || cineId || deathInfo || storyGraph || activeDialogue || transit)} />
+       <TouchControls bindings={settings.bindings} disabled={Boolean(housingOpen || menuOpen || characterOpen || inventoryOpen || atlasOpen || operationsView || shopOpen || skateOpen || npcOpen || forgeOpen || basePanel || ruinOpen || showIntro || cineId || deathInfo || storyGraph || activeDialogue || transit || flight)} />
        <DashHud bindings={settings.bindings} />
        <DragoniteHud bindings={settings.bindings} />
       <NexChip ledger={progression.nexLedger} />
-      <ConsumableHud progression={progression} bindings={settings.bindings} disabled={Boolean(housingOpen || menuOpen || characterOpen || inventoryOpen || atlasOpen || operationsView || shopOpen || skateOpen || npcOpen || forgeOpen || basePanel || ruinOpen || showIntro || cineId || deathInfo || storyGraph || activeDialogue || transit || hud.hp <= 0)} onUse={useConsumable} />
+      <ConsumableHud progression={progression} bindings={settings.bindings} disabled={Boolean(housingOpen || menuOpen || characterOpen || inventoryOpen || atlasOpen || operationsView || shopOpen || skateOpen || npcOpen || forgeOpen || basePanel || ruinOpen || showIntro || cineId || deathInfo || storyGraph || activeDialogue || transit || flight || hud.hp <= 0)} onUse={useConsumable} />
        <KillPlaylistPlayer volume={(settings.volume ?? 0.7) * (settings.musicVolume ?? 1)} muted={!!settings.mute?.music} />
        {hud.garageNear && !basePanel && !hud.shopNearId && (
          <div className="pointer-events-none absolute bottom-24 left-1/2 -translate-x-1/2">
@@ -1668,7 +1700,8 @@ export function GameCanvas() {
            <Button className="pointer-events-auto" variant="outline" onClick={() => setTransitOpen(hud.transitNear?.id ?? null)}>[Y] Departures · {hud.transitNear.name}</Button>
          </div>
        )}
-       {transitOpen && <TransitPanel terminalId={transitOpen} progression={progression} onClose={() => setTransitOpen(null)} onFly={(target) => { setTransitOpen(null); startTransit(target); }} />}
+       {transitOpen && !hangarOpen && <TransitPanel terminalId={transitOpen} progression={progression} onClose={() => setTransitOpen(null)} onFly={boardTrip} onOpenHangar={(id) => setHangarOpen(id)} onProgression={setProgression} />}
+       {hangarOpen && <PhantomHangar terminalId={hangarOpen} progression={progression} onProgression={setProgression} onClose={() => setHangarOpen(null)} />}
        {hud.elevatorRide && (
          <div className="pointer-events-none absolute left-1/2 top-[30%] -translate-x-1/2 border border-cyan-300/50 bg-background/80 px-5 py-3 text-center font-mono backdrop-blur-sm">
            <p className="text-[9px] uppercase tracking-[0.3em] text-cyan-300">Thalassia elevator</p>

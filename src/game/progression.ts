@@ -25,6 +25,7 @@ import { EMPTY_HOUSING, normalizeHousing, type HousingState } from "./housing";
 import { normalizeCondition, type VehicleCondition } from "./vehicle-condition";
 import { freshPockets, normalizePockets, type OperatorPocket } from "./operator-pockets";
 import { tagLegacyPayouts } from "./activity-payouts";
+import { normalizePrivateJet, type PrivateJetSave } from "./phantom-jet";
 
 export type ClassId = "TITAN" | "HUNTER" | "WARLOCK";
 export type WeaponLoadout = { name: string; slots: [WeaponId, WeaponId, WeaponId] };
@@ -83,6 +84,8 @@ export type PlayerProgression = {
   fleet: FleetState;
   /** housing.ts: placed decor per home (ownership lives in nexLedger) */
   housing: HousingState;
+  /** phantom-jet.ts: the owned Phantom's parking spot, look and cabin (ownership is `aircraft:phantom` in earnedRewards); absent until bought */
+  privateJet?: PrivateJetSave | undefined;
   /** wasteland-activities.ts: best rally times (lower wins) and arena scores (higher wins) */
   records: Record<string, number>;
   /** foundries.ts: the equipped monoblade (owned blades are `blade:<id>` in earnedRewards) */
@@ -219,6 +222,7 @@ export function normalizeProgression(raw: unknown): PlayerProgression {
       nemeses: normalizeNemeses(parsed.nemeses),
       fleet: normalizeFleet(parsed.fleet),
       housing: normalizeHousing(parsed.housing),
+      privateJet: normalizePrivateJet(parsed.privateJet),
       records: normalizeRecords(parsed.records),
       blade: typeof parsed.blade === "string" ? parsed.blade : null,
       challenge: parsed.challenge === "HARD" || parsed.challenge === "VERY_HARD" ? parsed.challenge : "STANDARD",
