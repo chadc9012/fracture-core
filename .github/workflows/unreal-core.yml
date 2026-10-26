@@ -1,0 +1,38 @@
+# Keeps the Unreal port honest while there's no Windows machine to build the full project:
+# the engine-free rules plugin (unreal/Plugins/WorldFractureCore) is compiled with plain g++ and checked against
+# goldens recorded fresh from the web build's TypeScript. If a web change alters a rule the port mirrors, this fails.
+name: Unreal core rules
+
+on:
+  push:
+    branches: [main]
+    paths: ["src/game/**", "unreal/**", ".github/workflows/unreal-core.yml"]
+  pull_request:
+    paths: ["src/game/**", "unreal/**", ".github/workflows/unreal-core.yml"]
+  workflow_dispatch:
+
+concurrency:
+  group: unreal-core-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  core-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: oven-sh/setup-bun@v2
+      - name: Install web dependencies
+        run: bun install --frozen-lockfile
+      - name: Record goldens from the web build
+        run: node unreal/tools/gen-goldens.mjs
+      - name: Build the core tests
+        run: |
+          cmake -S unreal/Plugins/WorldFractureCore/Tests -B build/core -DCMAKE_BUILD_TYPE=Release
+          cmake --build build/core -j"$(nproc)"
+      - name: Run the core tests
+        working-directory: build/core
+        run: ctest --output-on-failure
