@@ -99,6 +99,7 @@ import { Roads } from "./Roads";
 import { RoadDressing } from "./RoadDressing";
 import { ScenarioBosses } from "./ScenarioBosses";
 import { NullPulseFx } from "./NullPulseFx";
+import { MawCollapseFx } from "./MawCollapseFx";
 import { AbilityFx } from "./AbilityFx";
 import { ShardGainFx } from "./ShardGainFx";
 import { SkylineLookout } from "./SkylineLookout";
@@ -3633,6 +3634,7 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
       <Squad sim={sim} />
       {coreNode?.target && <CoreNodePod run={coreNode} />}
       <NullPulseFx sim={sim} tier={settings.renderTier} reducedMotion={!!settings.reducedMotion || (typeof window !== "undefined" && typeof window.matchMedia === "function" && window.matchMedia("(prefers-reduced-motion: reduce)").matches)} />
+      <MawCollapseFx sim={sim} reducedMotion={!!settings.reducedMotion || (typeof window !== "undefined" && typeof window.matchMedia === "function" && window.matchMedia("(prefers-reduced-motion: reduce)").matches)} />
       <EncounterFx sim={sim} reducedMotion={!!settings.reducedMotion || (typeof window !== "undefined" && typeof window.matchMedia === "function" && window.matchMedia("(prefers-reduced-motion: reduce)").matches)} />
       <HazardMarkers sim={sim} />
       <BeaconMarkers sim={sim} />
