@@ -202,6 +202,7 @@ void AWFGameMode::TickCity(float DeltaSeconds)
 
 	// combat heat and the heat meter (Scene.tsx: stepHeatMeter off sim.combatHeat)
 	CombatHeat = wf::city::DecayCombatHeat(CombatHeat, Dt);
+	PlayerNoise = FMath::Max(0.0, PlayerNoise - Dt * 1.5);
 	HeatMeter = wf::city::StepHeatMeter(HeatMeter, CombatHeat, Dt);
 	if (UWFProgressionSubsystem* Progression = GetGameInstance()->GetSubsystem<UWFProgressionSubsystem>()) Progression->SetCombatHeat(CombatHeat);
 

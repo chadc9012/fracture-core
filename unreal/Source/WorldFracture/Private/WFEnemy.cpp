@@ -15,12 +15,11 @@
 #include "WFDataFiles.h"
 #include "WFGameMode.h"
 #include "WFProgressionSubsystem.h"
+#include "WFVehicle.h"
 
 namespace
 {
 	// enemy-tuning.ts ENEMY_TUNING (daytime; night bonuses not modelled yet)
-	constexpr double AggroBase = 48;       // m
-	constexpr double AggroElite = 1.25;
 	constexpr double SpeedBase = 6.5;      // m/s
 	constexpr double SpeedElite = 1.1;
 	constexpr double RangedRange = 40;     // m
@@ -142,31 +141,118 @@ void AWFEnemy::Tick(float DeltaSeconds)
 	const double Snare = GetWorld()->GetTimeSeconds() < SnareUntil ? SnareMult : 1.0;
 	GetCharacterMovement()->MaxWalkSpeed = static_cast<float>(SpeedBase * (bElite ? SpeedElite : 1.0) * CmPerM * PhaseSpeedMult * Snare);
 	if (StunLeft > 0) { StunLeft -= DeltaSeconds; return; }
-	AWFCharacter* Player = Cast<AWFCharacter>(UGameplayStatics::GetPlayerPawn(this, 0));
-	if (!Player) return;
-
-	const FVector ToPlayer = Player->GetActorLocation() - GetActorLocation();
-	const double Distance = ToPlayer.Size2D() / CmPerM;
-	// sight scales with the Operator's concealment (sim.ts sightRange x stealthMult: Phase Veil sees you at 15%)
-	if (!bAggro && Distance <= AggroBase * (bElite ? AggroElite : 1.0) * Player->GetStealthMult()) bAggro = true;
-	if (!bAggro) return;
-
-	const FVector Flat = FVector(ToPlayer.X, ToPlayer.Y, 0).GetSafeNormal();
-	if (Distance > PreferredRange) AddMovementInput(Flat, 1.f);
-	else if (Distance < PreferredRange * 0.5 && Distance > MeleeRange) AddMovementInput(-Flat, 0.5f);
-	SetActorRotation(FRotator(0.f, Flat.Rotation().Yaw, 0.f));
-	// an authored encounter boss attacks only through its encounter (AWFGameMode::TickEncounters)
-	const AWFGameMode* Mode = GetWorld()->GetAuthGameMode<AWFGameMode>();
-	if (bBoss && Mode && Mode->HasEncounter(ScenarioId)) return;
-	TryAttack(Player, Distance, DeltaSeconds);
+	// the target is the Operator, or the vehicle they are driving
+	APawn* Target = UGameplayStatics::GetPlayerPawn(this, 0);
+	AWFCharacter* Operator = Cast<AWFCharacter>(Target);
+	if (const AWFVehicle* Car = Cast<AWFVehicle>(Target)) Operator = Car->GetDriver();
+	if (!Target || !Operator) return;
+	TickPerception(Operator, Target, DeltaSeconds);
 }
 
-void AWFEnemy::TryAttack(AWFCharacter* Player, double Distance, float DeltaSeconds)
+void AWFEnemy::TickPerception(AWFCharacter* Operator, APawn* Target, float DeltaSeconds)
 {
+	const double Dt = DeltaSeconds;
+	const double Now = GetWorld()->GetTimeSeconds();
+	AWFGameMode* Mode = GetWorld()->GetAuthGameMode<AWFGameMode>();
+	AWFVehicle* Car = Cast<AWFVehicle>(Target);
+	const FVector Me = GetActorLocation() / CmPerM, It = Target->GetActorLocation() / CmPerM;
+	const FVector ToPlayer = Target->GetActorLocation() - GetActorLocation();
+	const double Distance = ToPlayer.Size2D() / CmPerM;
+	if (!bAiReady) { Ai = wf::perception::CreateAi(Me.X, Me.Y, Health); bAiReady = true; }
+
+	// line of sight, eye to chest, refreshed every 0.25 s inside 160 m (sim.ts LOS_REFRESH)
+	if (Distance < wf::perception::LosRange && Now - LosAt > 0.25)
+	{
+		LosAt = Now;
+		FHitResult Hit;
+		FCollisionQueryParams Params(SCENE_QUERY_STAT(WFEnemySight), false, this);
+		Params.AddIgnoredActor(Target);
+		Params.AddIgnoredActor(Operator);
+		const FVector Eye = GetActorLocation() + FVector(0, 0, 155.0 * GetActorScale3D().Z - GetCapsuleComponent()->GetScaledCapsuleHalfHeight());
+		bLosClear = !GetWorld()->LineTraceSingleByChannel(Hit, Eye, Target->GetActorLocation() + FVector(0, 0, 40), ECC_Visibility, Params);
+	}
+
+	wf::perception::FPerceiveInput In;
+	In.Hp = Health;
+	In.X = Me.X; In.Z = Me.Y;
+	In.Rot = UE_DOUBLE_HALF_PI - FMath::DegreesToRadians(static_cast<double>(GetActorRotation().Yaw)); // rules yaw = pi/2 - Unreal yaw
+	In.Px = It.X; In.Pz = It.Y;
+	In.bElite = bElite; In.bBoss = bBoss;
+	In.StealthMult = Operator->GetStealthMult(); // Phase Veil: seen at 15%
+	In.Aggro = wf::perception::AggroRadius(0, bElite, 1, 1);
+	In.PlayerHp = Operator->GetHealth();
+	In.PlayerNoise = Mode ? Mode->GetPlayerNoise() : 0;
+	In.CombatHeat = Mode ? Mode->GetCombatHeat() : 0;
+	In.bLineClear = bLosClear;
+	const wf::perception::FPerceiveResult R = wf::perception::PerceiveStep(Ai, In, Dt);
+	const bool bAlert = R.State == "ALERT";
+
+	// a wounded trooper breaks line of fire to a retreat point (pickCover; real cover behind obstacles is not ported)
+	if (bAlert && Ai.CoverTime <= 0 && wf::perception::ShouldTakeCover(Health / FMath::Max(1.0, MaxHealth), Ai.CoverTime, bBoss) && Distance < 45 && R.bDamaged)
+	{
+		const wf::perception::FPoint C = wf::perception::PickCover(Me.X, Me.Y, It.X, It.Y, GetUniqueID() % 2 ? 1 : -1);
+		Ai.CoverX = C.X; Ai.CoverZ = C.Z; Ai.CoverTime = 3.5;
+	}
+	Ai.CoverTime -= Dt;
+
+	auto MoveTo = [this, &Me](double X, double Z, float Pace) {
+		const FVector Dir(X - Me.X, Z - Me.Y, 0);
+		if (Dir.Size2D() > 0.01) { AddMovementInput(Dir.GetSafeNormal(), Pace); SetActorRotation(FRotator(0.f, Dir.Rotation().Yaw, 0.f)); }
+	};
+	const FVector Flat = FVector(ToPlayer.X, ToPlayer.Y, 0).GetSafeNormal();
+	if (bAlert && Ai.CoverTime > 1.2)
+	{
+		// sprinting to the retreat point: no shooting while relocating
+		if (FVector::Dist2D(Me, FVector(Ai.CoverX, Ai.CoverZ, 0)) > 1.5) MoveTo(Ai.CoverX, Ai.CoverZ, 1.f);
+		else SetActorRotation(FRotator(0.f, Flat.Rotation().Yaw, 0.f));
+		RangedCooldown = FMath::Max(RangedCooldown, 0.4);
+		Windup = -1;
+		return;
+	}
+	if (bAlert)
+	{
+		if (Distance > PreferredRange) AddMovementInput(Flat, 1.f);
+		else if (Distance < PreferredRange * 0.5 && Distance > MeleeRange) AddMovementInput(-Flat, 0.5f);
+		SetActorRotation(FRotator(0.f, Flat.Rotation().Yaw, 0.f));
+		// an authored encounter boss attacks only through its encounter (AWFGameMode::TickEncounters)
+		if (bBoss && Mode && Mode->HasEncounter(ScenarioId)) return;
+		TryAttack(Operator, Car, Distance, DeltaSeconds);
+		return;
+	}
+	Windup = -1;
+	if (R.State == "SUSPICIOUS" || R.State == "SEARCH")
+	{
+		// investigate the last known position, cautiously; sweep around once there
+		if (FVector::Dist2D(Me, FVector(Ai.LastX, Ai.LastZ, 0)) > 3) MoveTo(Ai.LastX, Ai.LastZ, R.State == "SEARCH" ? 0.7f : 0.45f);
+		else SetActorRotation(GetActorRotation() + FRotator(0.f, static_cast<float>(FMath::RadiansToDegrees(-Dt * 1.6)), 0.f));
+		return;
+	}
+	// patrol between waypoints around the spawn anchor, at 5 m/s
+	if (FVector::Dist2D(Me, FVector(Ai.WpX, Ai.WpZ, 0)) < 2.5)
+	{
+		Ai.Timer -= Dt;
+		SetActorRotation(GetActorRotation() + FRotator(0.f, static_cast<float>(FMath::RadiansToDegrees(-Dt * 0.6)), 0.f));
+		if (Ai.Timer <= 0)
+		{
+			const double A = FMath::FRand() * UE_DOUBLE_TWO_PI, Rad = 10 + FMath::FRand() * 22;
+			Ai.WpX = Ai.HomeX + std::cos(A) * Rad; Ai.WpZ = Ai.HomeZ + std::sin(A) * Rad; Ai.Timer = 1.5 + FMath::FRand() * 2;
+		}
+	}
+	else MoveTo(Ai.WpX, Ai.WpZ, static_cast<float>(5.0 / (SpeedBase * (bElite ? SpeedElite : 1.0))));
+}
+
+void AWFEnemy::TryAttack(AWFCharacter* Operator, AWFVehicle* Car, double Distance, float DeltaSeconds)
+{
+	// a hit on a driving Operator also wears the vehicle (Scene.tsx: impactVehicle by the hp lost + 2)
+	auto Hurt = [Operator, Car, this](double Damage) {
+		const double Before = Operator->GetHealth();
+		Operator->ApplyHit(Damage, Profile);
+		if (Car && Operator->GetHealth() < Before) Car->TakeEnemyFire(Before - Operator->GetHealth());
+	};
 	MeleeCooldown = FMath::Max(0.0, MeleeCooldown - DeltaSeconds);
 	if (Distance <= MeleeRange && MeleeCooldown <= 0)
 	{
-		Player->ApplyHit(Tier(7, 12, 17) * PhaseDamageMult, Profile);
+		Hurt(Tier(7, 12, 17) * PhaseDamageMult);
 		MeleeCooldown = MeleeCooldownS * PhaseCooldownMult;
 		if (AWFGameMode* HeatMode = GetWorld()->GetAuthGameMode<AWFGameMode>()) HeatMode->AddCombatHeat(wf::city::FHeatGain::EnemyMelee);
 		return;
@@ -178,19 +264,23 @@ void AWFEnemy::TryAttack(AWFCharacter* Player, double Distance, float DeltaSecon
 		Windup -= DeltaSeconds;
 		if (Windup > 0) return;
 		Windup = -1;
-		RangedCooldown = Tier(2.6, 1.9, 1.3) * PhaseCooldownMult;
-		// a clear line from the muzzle to the player's chest, then a fixed hit chance (simplified; see header)
+		RangedCooldown = wf::perception::RangedCooldownFor(bBoss, bElite) * PhaseCooldownMult;
+		// the shot resolves against the line it travels: cover takes it, flares spoof it, otherwise range and speed decide
+		APawn* Target = Car ? static_cast<APawn*>(Car) : static_cast<APawn*>(Operator);
 		const FVector From = GetActorLocation() + FVector(0, 0, 60);
-		const FVector To = Player->GetActorLocation() + FVector(0, 0, 40);
+		const FVector To = Target->GetActorLocation() + FVector(0, 0, 40);
 		FHitResult Hit;
 		FCollisionQueryParams Params(SCENE_QUERY_STAT(WFEnemyShot), false, this);
-		const bool bBlocked = GetWorld()->LineTraceSingleByChannel(Hit, From, To, ECC_Visibility, Params) && Hit.GetActor() != Player;
+		Params.AddIgnoredActor(Operator);
+		const bool bBlocked = GetWorld()->LineTraceSingleByChannel(Hit, From, To, ECC_Visibility, Params) && Hit.GetActor() != Target;
 		DrawDebugLine(GetWorld(), From, bBlocked ? Hit.ImpactPoint : To, FColor(255, 70, 50), false, 0.08f, 0, 1.f);
-		if (!bBlocked && FMath::FRand() < RangedHitChance) Player->ApplyHit(Tier(2, 4, 6) * PhaseDamageMult, Profile);
+		const bool bSpoofed = Car && Car->IsSpoofed(GetWorld()->GetTimeSeconds());
+		const double Chance = wf::perception::EnemyHitChance(Distance, wf::perception::RangedRange, Target->GetVelocity().Size2D() / CmPerM);
+		if (!bBlocked && !bSpoofed && FMath::FRand() < Chance) Hurt(Tier(2, 4, 6) * PhaseDamageMult);
 		return;
 	}
 	RangedCooldown -= DeltaSeconds;
-	if (RangedCooldown <= 0) Windup = Tier(0.6, 0.42, 0.25); // telegraph, then shoot
+	if (RangedCooldown <= 0) Windup = wf::perception::WindupFor(bBoss, bElite); // telegraph, then shoot
 }
 
 double AWFEnemy::TakeHit(double Damage, AActor* DamageInstigator, const FString& Element)
@@ -208,7 +298,6 @@ double AWFEnemy::TakeHit(double Damage, AActor* DamageInstigator, const FString&
 		Damage = wf::encounter::ApplyBossDamage(Mode->GetEncounterCatalog(), BossRules, Damage, WFData::ToStd(Element), Distance, Now);
 	}
 	Health -= Damage;
-	bAggro = true;
 	if (Cast<AWFCharacter>(DamageInstigator)) SincePlayerHit = 0;
 	if (Health > 0) return Damage;
 	if (bBoss && Mode && !bDecoy)
@@ -242,7 +331,6 @@ void AWFEnemy::ConfigureScenario(const FString& InScenarioId)
 		ScenarioRun = Progression->MintScenarioRun(InScenarioId);
 		DeathsAtSummon = Progression->GetPlayerDeaths();
 	}
-	bAggro = true;
 }
 
 void AWFEnemy::Die()

@@ -110,6 +110,9 @@ public:
 	// ---- city systems (ported sim.ts combatHeat, heat.ts, stealth.ts, quest-signals.ts) ----
 	/** Shots, blasts, crashes, rams and melee raise combat heat (wf::city::FHeatGain); it decays 6 per second. */
 	void AddCombatHeat(double Amount) { CombatHeat += Amount; }
+	/** sim.ts playerNoise: gunfire is loud (1), fading 1.5 per second; enemies hear it (enemy-perception.ts) */
+	void NotePlayerGunfire() { PlayerNoise = 1; }
+	double GetPlayerNoise() const { return PlayerNoise; }
 	double GetCombatHeat() const { return CombatHeat; }
 	/** the 0-100 Neon City heat meter behind the 1-5 heat level */
 	double GetHeatMeter() const { return HeatMeter; }
@@ -148,7 +151,7 @@ private:
 	TMap<int64, TWeakObjectPtr<AWFEnemy>> DecoyActors; // decoy id -> actor
 	TMap<int64, TWeakObjectPtr<AWFEnemy>> SummonActors; // summon id -> actor
 
-	double CombatHeat = 0, HeatMeter = 0, DetectionMeter = 0, HackProgress = 0;
+	double CombatHeat = 0, HeatMeter = 0, DetectionMeter = 0, HackProgress = 0, PlayerNoise = 0;
 	bool bHacking = false;
 	std::vector<wf::city::FTurret> Turrets; // the safe-zone perimeter turrets (createSim layout)
 	wf::city::FQuestSignals QuestSignals;

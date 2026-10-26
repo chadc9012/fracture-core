@@ -59,6 +59,10 @@ public:
 	AWFCharacter* GetDriver() const { return Driver.Get(); }
 	/** gets the driver out without the exit checks (a forced bail-out keeps KeepSpeed m/s of momentum) */
 	void Dismount(double KeepSpeed);
+	/** an enemy shot or blow that reached the driver also wears the vehicle (Scene.tsx: impactVehicle by hp lost + 2) */
+	void TakeEnemyFire(double HpLost);
+	/** flares are burning: incoming enemy fire misses (vehicle-gadgets.ts spoofed) */
+	bool IsSpoofed(double Now) const;
 	const FWFVehicleDef& GetDef() const { return Def; }
 	const wf::vehicle::FState& GetState() const { return State; }
 	const wf::vehicle::FCondition& GetCondition() const { return Condition; }

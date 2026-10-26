@@ -673,6 +673,7 @@ void AWFCharacter::FireRound()
 	UWorld* World = GetWorld();
 	if (!W || !World || Ammo[WeaponIndex] <= 0) return;
 	--Ammo[WeaponIndex];
+	if (AWFGameMode* NoiseMode = World->GetAuthGameMode<AWFGameMode>()) NoiseMode->NotePlayerGunfire(); // sim.ts fireBullet: playerNoise = 1
 
 	const FVector Start = Camera->GetComponentLocation();
 	const FVector Aim = GetControlRotation().Vector();

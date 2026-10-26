@@ -8,7 +8,7 @@ import { execFileSync } from "node:child_process";
 
 // recorders whose world calls go through the recording shims (build-golden.mjs); the rest bundle plainly
 const SHIMMED = new Set(["encounter", "dragoncast", "ability"]);
-const ALL = ["quest", "reward", "mission", "missionreward", "dragon", "vehicle", "race", "vweapons", "shop", "fleet", "housing", "encounter", "dragoncast", "ability", "operator", "city"];
+const ALL = ["quest", "reward", "mission", "missionreward", "dragon", "vehicle", "race", "vweapons", "shop", "fleet", "housing", "encounter", "dragoncast", "ability", "operator", "city", "perception"];
 
 const pick = process.argv.slice(2);
 const todo = pick.length ? ALL.filter((n) => pick.includes(n)) : ALL;

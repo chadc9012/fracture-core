@@ -2,11 +2,13 @@
 
 #include "CoreMinimal.h"
 #include "Core/WFEncounterCore.h"
+#include "Core/WFPerceptionCore.h"
 #include "GameFramework/Character.h"
 #include "WFEnemy.generated.h"
 
 class UStaticMeshComponent;
 class AWFCharacter;
+class AWFVehicle;
 
 /**
  * A regional trooper. Numbers come from the web build: health from sim.ts spawnMachine ((3 or 7 elite) + region
@@ -17,8 +19,11 @@ class AWFCharacter;
  * outside-window immunity, the finale hp floor) and escalate through the three regional phases. A boss with an
  * authored encounter does not shoot or melee on its own: AWFGameMode runs its encounter (tells, attacks, zones).
  *
- * Simplified for now: no perception states, cover, line-of-sight cache or hit-chance model (enemy-perception.ts,
- * enemy-cover.ts, line-of-sight.ts) — a ranged shot hits if the line to the player is clear, with a fixed 40% chance.
+ * Perception is the ported enemy-perception.ts state machine (patrol, suspicious, alert, search) fed by sight, hearing
+ * (gunfire, combat heat) and damage, with sim.ts's line-of-sight refresh; a wounded trooper breaks off to a retreat point
+ * (pickCover). Ranged shots land with line-of-sight.ts enemyHitChance and also reach an Operator who is driving:
+ * the hit wears the vehicle, and its flares spoof the shot. Not ported: real cover behind obstacles, flanking, grenades,
+ * dives out of rounds and squad roles (enemy-cover.ts, enemy-tactics.ts, enemy-evasion.ts, enemy-intelligence.ts).
  */
 UCLASS()
 class WORLDFRACTURE_API AWFEnemy : public ACharacter
@@ -78,8 +83,8 @@ public:
 	/** Cancels the wind-up and stuns (Wyrm interrupt, sim.ts stunMachine). */
 	void Interrupt(double Seconds) { Windup = -1; StunLeft = FMath::Max(StunLeft, Seconds); }
 
-	/** Fixed for the simplified ranged model (see class comment). */
-	static constexpr double RangedHitChance = 0.4;
+	/** The awareness state this frame: PATROL | SUSPICIOUS | ALERT | SEARCH (HUD threat markers, tests). */
+	const std::string& GetAiState() const { return Ai.State; }
 
 protected:
 	UPROPERTY(VisibleAnywhere, Category = "Body") TObjectPtr<UStaticMeshComponent> Body;
@@ -87,7 +92,9 @@ protected:
 
 private:
 	void Die();
-	void TryAttack(AWFCharacter* Player, double Distance, float DeltaSeconds);
+	void TryAttack(AWFCharacter* Operator, AWFVehicle* Car, double Distance, float DeltaSeconds);
+	/** sim.ts: one machine's awareness, movement and fire for the frame */
+	void TickPerception(AWFCharacter* Operator, APawn* Target, float DeltaSeconds);
 	double Tier(double Regular, double Elite, double Boss) const { return bBoss ? Boss : bElite ? Elite : Regular; }
 
 	FString Profile = TEXT("Raider");
@@ -97,7 +104,10 @@ private:
 	bool bBoss = false;
 	double MaxHealth = 3;
 	double Health = 3;
-	bool bAggro = false;
+	wf::perception::FAi Ai;
+	bool bAiReady = false;
+	bool bLosClear = true;
+	double LosAt = -1;
 	double RangedCooldown = 1.5;
 	double Windup = -1;      // counting down while telegraphing a shot
 	double MeleeCooldown = 0;

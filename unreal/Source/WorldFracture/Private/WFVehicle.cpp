@@ -264,6 +264,14 @@ void AWFVehicle::Exit(const FInputActionValue& Value)
 	Dismount(0);
 }
 
+void AWFVehicle::TakeEnemyFire(double HpLost)
+{
+	Condition = wf::vehicle::ImpactVehicle(Condition, HpLost + 2);
+	if (UWFProgressionSubsystem* P = GetGameInstance()->GetSubsystem<UWFProgressionSubsystem>()) P->MutableGarage().Conditions[WFData::ToStd(Def.Id)] = Condition;
+}
+
+bool AWFVehicle::IsSpoofed(double Now) const { return wf::gadget::Spoofed(Gadgets, Now); }
+
 void AWFVehicle::Dismount(double KeepSpeed)
 {
 	AWFCharacter* D = Driver.Get();
@@ -431,6 +439,7 @@ void AWFVehicle::TickWeapons(double Dt)
 		if (AddHeat(Heat, OrdnanceHeat(D))) Notify(TEXT("WEAPON OVERHEAT - venting"), FLinearColor(1.f, 0.3f, 0.25f));
 		FLiveRound R;
 		R.Round = LaunchOrdnance(D, From, Yaw, Pitch, Damage, FMath::Max(0.0, State.Speed), Knock, Cands);
+		if (AWFGameMode* NoiseMode = GetWorld()->GetAuthGameMode<AWFGameMode>()) NoiseMode->NotePlayerGunfire();
 		if (R.Round.Target >= 0) R.Target = Enemies[R.Round.Target];
 		Rounds.Add(R);
 		return true;
@@ -455,6 +464,7 @@ void AWFVehicle::TickWeapons(double Dt)
 		if (Heat.bOverheated) continue; // fireBullet refuses while venting
 		if (AddHeat(Heat, BulletHeat(G.Heat))) Notify(TEXT("WEAPON OVERHEAT - venting"), FLinearColor(1.f, 0.3f, 0.25f));
 		Bullets.Add(MakeBullet(Muzzle, A.Yaw + Jy, A.Pitch + Jp, G.Speed, Carry, Dmg, G.Knock));
+		if (AWFGameMode* NoiseMode = GetWorld()->GetAuthGameMode<AWFGameMode>()) NoiseMode->NotePlayerGunfire();
 	}
 }
 
