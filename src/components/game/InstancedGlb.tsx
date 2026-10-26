@@ -69,7 +69,7 @@ const tmp = new THREE.Object3D(), col = new THREE.Color();
 
 let facadeTex: THREE.DataTexture | null = null;
 /** one shared facade map for every tower's lit windows (uploaded once) */
-function facadeTexture(): THREE.DataTexture | null {
+export function facadeTexture(): THREE.DataTexture | null {
   if (facadeTex) return facadeTex;
   const t = new THREE.DataTexture(facadePixels(), FACADE.size, FACADE.size, THREE.RGBAFormat);
   t.colorSpace = THREE.SRGBColorSpace; t.wrapS = t.wrapT = THREE.RepeatWrapping; t.flipY = false;

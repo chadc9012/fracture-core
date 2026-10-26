@@ -133,6 +133,7 @@ import { NexusCity } from "./NexusCity";
 import { NexusSkyRail } from "./NexusSkyRail";
 import { NexusBridge } from "./NexusBridge";
 import { NexusAirport } from "./NexusAirport";
+import { NexusFarSkyline } from "./NexusFarSkyline";
 import { AIRPORT } from "@/game/nexus-airport";
 import { StuntPark } from "./StuntPark";
 import { kitById } from "@/game/vehicle-foundry";
@@ -3634,10 +3635,13 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
       <LootCaches opened={openedCaches} />
       <ShopStalls />
       <Storefronts />
-      <NearOnly playerRef={player} x={NEXUS_REGION.x} z={NEXUS_REGION.z} radius={330 * NEAR_SCALE[settings.renderTier]} name="city:nexus"><NexusCity sim={sim} /><NexusSkyRail /><WorldPiece name="nexus strait bridge"><NexusBridge /></WorldPiece>{gear && <ResidenceGarages city="nexus" progression={{ nexLedger: gear.nexLedger ?? {}, housing: gear.housing, fleet: gear.fleet }} />}</NearOnly>
+      <NearOnly playerRef={player} x={NEXUS_REGION.x} z={NEXUS_REGION.z} radius={330 * NEAR_SCALE[settings.renderTier]} name="city:nexus"><NexusCity sim={sim} /><NexusSkyRail />{gear && <ResidenceGarages city="nexus" progression={{ nexLedger: gear.nexLedger ?? {}, housing: gear.housing, fleet: gear.fleet }} />}</NearOnly>
       {/* street level (kerbs, crossings, furniture, signals; src/game/city-streets.ts): only near enough to read */}
       {pvpView && pvp.current && <PvpField state={pvpView} center={pvp.current.center} />}
       <NearOnly playerRef={player} x={NEON_CITY_CENTER.x} z={NEON_CITY_CENTER.z - 80} radius={420} name="civic-security"><WorldPiece name="civic security"><CivicSecurity player={player} security={security} feed={securityFeed} jurisdiction={securityWhere} /></WorldPiece></NearOnly>
+      {/* the bridges are landmarks seen from the hills and the far shores, so they stay up well past the city mount */}
+      <NearOnly playerRef={player} x={NEXUS_REGION.x} z={NEXUS_REGION.z} radius={900} name="bridges:nexus"><WorldPiece name="nexus bridges"><NexusBridge /></WorldPiece></NearOnly>
+      <WorldPiece name="nexus far skyline"><NexusFarSkyline tier={settings.renderTier} /></WorldPiece>
       <NearOnly playerRef={player} x={AIRPORT.x} z={AIRPORT.z} radius={520} name="nexus-airport"><WorldPiece name="nexus airport"><NexusAirport /></WorldPiece></NearOnly>
       <NearOnly playerRef={player} x={STUNT_PARK.x} z={STUNT_PARK.z} radius={260} name="stunt-park"><WorldPiece name="stunt park"><StuntPark /></WorldPiece></NearOnly>
       <NearOnly playerRef={player} x={NEXUS_REGION.x} z={NEXUS_REGION.z} radius={190 * NEAR_SCALE[settings.renderTier]} name="streets:nexus"><WorldPiece name="nexus streets"><CityStreets city="nexus" tier={settings.renderTier} /></WorldPiece></NearOnly>
