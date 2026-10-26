@@ -204,7 +204,33 @@ namespace wf::encounter
 		std::string ScenarioId, Profile, Kind;
 		double X = 0, Z = 0, Hp = 0, Scale = 1;
 		bool bElite = false;
+		/** the machine slot the web build gives it (the lowest free one): the skills run in slot order */
+		int Slot = 0;
+		double Rot = 0; // facing (atan2(dx, dz)), set by the skills
+		/** summon-skills.ts SkillState: IDLE | TELL, the wind-up, cooldown, anchor, target, radius, turret life, and the position
+		 *  at the end of the skill step (the pins move from there) */
+		struct FSkill { std::string St = "IDLE"; double T = 0, Total = 0, Cd = 0, Ax = 0, Az = 0, Tx = 0, Tz = 0, Radius = 0, Life = 0, Ox = 0, Oz = 0; };
+		std::optional<FSkill> Skill;
 	};
+
+	// ---- summon-skills.ts: the concept-art roles of Astravore's troops ----
+	inline const std::string Reaver = "Void Reaver", Arcanist = "Void Arcanist", Sentinel = "Void Sentinel", Turret = "Void Turret";
+	inline constexpr int MaxTurrets = 3;
+	inline constexpr double TurretLife = 25;
+	/** a Reaver aims just behind the player and strikes there (a flank, not a charge) */
+	struct FReaverStrike { double Windup = 0.9, Radius = 3.2, Damage = 9, Cooldown = 4.5, MinRange = 1, MaxRange = 16, Behind = 2.2; };
+	/** an Arcanist's orb hits where the player stood and leaves a slowing pool */
+	struct FArcanistOrb { double Windup = 1.3, Radius = 6, Damage = 11, Cooldown = 6, MaxRange = 45, PoolLife = 4, PoolDps = 4, PoolSlow = 0.6; };
+	struct FSentinelDeploy { double Windup = 1.0, Cooldown = 9, MaxRange = 50, Distance = 8; };
+	inline constexpr FReaverStrike ReaverStrike{};
+	inline constexpr FArcanistOrb ArcanistOrb{};
+	inline constexpr FSentinelDeploy SentinelDeploy{};
+	inline constexpr double ReaverSpeed = 9, ArcanistSpeed = 4.5, ArcanistBandMin = 16, ArcanistBandMax = 28;
+	inline bool IsTurret(const FSummon& S) { return S.Profile == Turret; }
+	/** Reavers and Arcanists attack only with their skills (their rifle cooldown is held at 99 s) */
+	inline bool HoldsFire(const FSummon& S) { return S.Profile == Reaver || S.Profile == Arcanist; }
+	/** the skills own its position: turrets, Reavers and Arcanists (StepSummonPins), so the engine's AI must not move it */
+	inline bool IsPinned(const FSummon& S) { return S.Skill && (IsTurret(S) || S.Profile == Reaver || S.Profile == Arcanist); }
 
 	/** Everything an encounter leaves in the world besides the boss. Hits and new events are for the engine to drain. */
 	struct FArena
@@ -229,6 +255,16 @@ namespace wf::encounter
 	WORLDFRACTURECORE_API void EndEncounter(const FCatalog& C, const FBoss& B, FArena& A, double Now);
 	/** A False Saint was destroyed (no kill or loot); the last one exposes the real Saint. */
 	WORLDFRACTURECORE_API void OnDecoyShattered(const FCatalog& C, std::vector<FBoss*>& Bosses, FArena& A, double DecoyId, double Now);
+
+	/** summon-skills.ts stepSummonSkills (run by StepEncounters while a boss lives): Reaver strikes, Arcanist orbs and their
+	 *  pools, Sentinel turrets (at most three, 25 s each). The engine writes each summon's live X / Z in first. */
+	WORLDFRACTURECORE_API void StepSummonSkills(FArena& A, double Dt, double Px, double Pz, double Now);
+	/** summon-skills.ts stepSummonPins, at the end of the frame: turrets and winding-up troops hold still, a Reaver rushes the
+	 *  player at 9 m/s, an Arcanist keeps 16-28 m away at 4.5 m/s. The engine then moves pinned summons (IsPinned) to X / Z. */
+	WORLDFRACTURECORE_API void StepSummonPins(FArena& A, double Dt, double Px, double Pz);
+
+	/** Puts a called-in troop into the fight outside an attack (the lowest free slot, no skill state yet). */
+	WORLDFRACTURECORE_API FSummon& AddSummon(FArena& A, const std::string& ScenarioId, const std::string& Profile, const std::string& Kind, double X, double Z, double Hp, double Scale, bool bElite);
 
 	/** A called-in trooper was killed: it leaves the fight's count. */
 	WORLDFRACTURECORE_API void OnSummonDefeated(FArena& A, double SummonId);

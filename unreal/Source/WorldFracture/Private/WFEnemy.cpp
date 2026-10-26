@@ -143,7 +143,7 @@ void AWFEnemy::Tick(float DeltaSeconds)
 	}
 	// vehicle gadgets (vehicle-gadgets.ts): caltrops and EMP mines slow it to SnareMult until SnareUntil
 	const double Snare = GetWorld()->GetTimeSeconds() < SnareUntil ? SnareMult : 1.0;
-	GetCharacterMovement()->MaxWalkSpeed = static_cast<float>(SpeedBase * (bElite ? SpeedElite : 1.0) * CmPerM * PhaseSpeedMult * Snare);
+	GetCharacterMovement()->MaxWalkSpeed = bSkillPinned ? 0.f : static_cast<float>(SpeedBase * (bElite ? SpeedElite : 1.0) * CmPerM * PhaseSpeedMult * Snare);
 	// knockback (sim.ts: m.x += kx / mass x dt, kx *= e^-3dt; bosses are BOSS_KNOCK_MASS heavy)
 	if (FMath::Abs(KnockX) + FMath::Abs(KnockZ) > 0.01)
 	{
@@ -151,6 +151,7 @@ void AWFEnemy::Tick(float DeltaSeconds)
 		AddActorWorldOffset(FVector(Step.X * CmPerM, Step.Z * CmPerM, 0), true);
 	}
 	if (StunLeft > 0) { StunLeft -= DeltaSeconds; return; }
+	if (bSkillHoldsFire) return; // its strike or orb is stepped by the encounter rules (AWFGameMode::TickEncounters)
 	// the target is the Operator, or the vehicle they are driving
 	APawn* Target = UGameplayStatics::GetPlayerPawn(this, 0);
 	AWFCharacter* Operator = Cast<AWFCharacter>(Target);

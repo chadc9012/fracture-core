@@ -18,6 +18,7 @@
  *   RUN scenarioId profile bossX bossZ        a fight; then per step any of
  *     D amount now     damage the boss (hp floor / death as defeatMachine)      ST until   stagger until
  *     CO cool          set the boss's stun cooldown                             SH decoyId now  shatter a decoy
+ *     SU profile kind x z hp scale elite   a called-in troop placed in the first free slot     KS slot  it dies
  *     R now            the player died                                          S dt px pz now   step
  *     X state          state after the step (fuzzy compare: numbers to 1e-9 relative)
  *   DB scenarioId x z  a boss for the damage rules; then  H dmg element px pz now -> HR out|poise|history|hits
@@ -27,7 +28,8 @@
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { createSim, applyMachineDamageMods, type Machine } from "../../src/game/sim";
-import { stepEncounters, resetEncounters, encounterHpFloor, endEncounter, onDecoyShattered, isSummoned } from "../../src/game/encounter-sim";
+import { resetSkill } from "../../src/game/summon-skills";
+import { stepEncounters, resetEncounters, encounterHpFloor, endEncounter, onDecoyShattered, isSummoned, pinSummons } from "../../src/game/encounter-sim";
 import { ENCOUNTERS, type ZoneSpec } from "../../src/game/scenario-encounters";
 import { UNIQUE_SCENARIOS } from "../../src/game/unique-scenarios";
 import { INITIAL_POISE, decayPoise, hitPoise, type PoiseState } from "../../src/game/boss-poise";
@@ -85,10 +87,14 @@ function trackDecoys(sim: Sim, decoys: Map<Machine, number>, next: { id: number 
 
 const SCENARIOS = Object.keys(ENCOUNTERS);
 let steps = 0;
-for (let run = 0; run < 112; run++) {
+const DRILL_TROOPS = [["Void Reaver", "OVERCLOCKED", 3, 0.9, false], ["Void Arcanist", "RAIDER", 4, 1.1, false], ["Void Sentinel", "VANGUARD", 22, 2.6, true], ["Void Vanguard", "VANGUARD", 12, 1.7, true]] as const;
+for (let run = 0; run < 152; run++) {
   // the last 16 fights start the Hollow Saint in its False Saints phase, so decoys spawn, cap at 4 and shatter
-  const decoyDrill = run >= 96;
-  const scenarioId = decoyDrill ? "hollow-saint" : SCENARIOS[run % SCENARIOS.length]!;
+  const decoyDrill = run >= 96 && run < 112;
+  // the last 40 are Astravore with troops placed and killed at random, so every summon skill (Reaver strikes, Arcanist pools,
+  // Sentinel turrets up to three) and slot reuse is exercised
+  const summonDrill = run >= 112;
+  const scenarioId = decoyDrill ? "hollow-saint" : summonDrill ? "astravore" : SCENARIOS[run % SCENARIOS.length]!;
   nowSec = 1000 + run * 3;
   const sim = createSim();
   for (const mm of sim.machines) mm.alive = false;
@@ -104,9 +110,24 @@ for (let run = 0; run < 112; run++) {
   const seen = { id: 0 };
   const style = decoyDrill ? "patient" : pick(["aggressive", "patient", "kiting"] as const);
   if (decoyDrill) { lines.push(["D", "10", n(nowSec)].join("\t")); m.hp -= 10; }
-  const maxSteps = decoyDrill ? 500 : scenarioId === "hollow-saint" ? 400 : 220;
+  const maxSteps = decoyDrill ? 500 : summonDrill ? 400 : scenarioId === "hollow-saint" ? 400 : 220;
+  const addTroop = () => {
+    const [profile, kind, hp, scale, elite] = pick(DRILL_TROOPS);
+    const slot = sim.machines.find((x) => !x.alive);
+    if (!slot) return;
+    const x = m.x + Math.round(rand() * 60 - 30), z = m.z + Math.round(rand() * 60 - 30);
+    Object.assign(slot, { alive: true, react: undefined, x, z, hp, maxHp: hp, rot: 0, scale, zone: m.zone, cool: 1.2, elite, boss: false, mission: false, profile, kind, drop: "dataShards", kx: 0, kz: 0, vulnUntil: 0, vulnMult: 1, aim: 0, summoned: true });
+    delete slot.encounter; delete slot.decoy; delete slot.living; delete slot.nemesis; delete slot.scenarioId; delete slot.lastPlayerDamage; resetSkill(slot);
+    lines.push(["SU", profile, kind, n(x), n(z), n(hp), n(scale), elite ? "1" : "0"].join("\t"));
+  };
+  if (summonDrill) for (let k = 2 + Math.floor(rand() * 4); k > 0; k--) addTroop();
   for (let s = 0; s < maxSteps && m.alive; s++) {
     const before = seen.id;
+    if (summonDrill) {
+      const q = rand();
+      if (q < 0.03) addTroop();
+      else if (q < 0.05) { const i = sim.machines.findIndex((x) => isSummoned(x)); const live = sim.machines.map((x, k) => (isSummoned(x) ? k : -1)).filter((k) => k >= 0); if (i >= 0) { const k = pick(live); sim.machines[k]!.alive = false; delete sim.machines[k]!.summoned; lines.push(["KS", n(k)].join("\t")); } }
+    }
     const r = rand();
     if (r < (style === "aggressive" ? 0.18 : decoyDrill ? 0.01 : 0.08)) {
       const amount = pick([0.5, 1, 2, 3, 5, 8]);
@@ -144,7 +165,7 @@ for (let run = 0; run < 112; run++) {
     const dt = pick([1 / 30, 0.1, 0.25, 0.5]);
     lines.push(["S", n(dt), n(px), n(pz), n(nowSec)].join("\t"));
     const evBefore = seen.id;
-    rulesRunning = true; stepEncounters(sim, dt, px, pz); rulesRunning = false;
+    rulesRunning = true; stepEncounters(sim, dt, px, pz); pinSummons(sim, dt, px, pz); rulesRunning = false; // the squad AI (between the two in sim.ts) is not replayed
     trackDecoys(sim, decoys, nextDecoy, evBefore);
     m.cool = Math.max(0, m.cool - dt);
     nowSec += dt;

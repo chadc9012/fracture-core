@@ -10,6 +10,7 @@ const out = "/tmp/wf-golden-" + entry.split("/").pop().replace(/\.ts$/, ".mjs");
 // importer file -> { import specifier -> the shim it resolves to }
 const shims = {
   "encounter-sim.ts": { "./sim": resolve("unreal/tools/shims/encounter-sim-shim.ts") },
+  "summon-skills.ts": { "./sim": resolve("unreal/tools/shims/encounter-sim-shim.ts") },
   "dragonite-cast.ts": { "./sim": resolve("unreal/tools/shims/dragonite-cast-shim.ts") },
   "enemy-tactics.ts": { "./line-of-sight": resolve("unreal/tools/shims/tactics-sight-shim.ts") },
   "enemy-cover.ts": { "./line-of-sight": resolve("unreal/tools/shims/tactics-sight-shim.ts") },

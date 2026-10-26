@@ -69,6 +69,9 @@ public:
 	/** a trooper an encounter boss called in (encounter-sim.ts SUMMON) */
 	void ConfigureSummon(double InSummonId, double InScale) { SummonId = InSummonId; ScaleOverride = InScale; }
 	double GetSummonId() const { return SummonId; }
+	/** summon-skills.ts: a pinned troop (Reaver, Arcanist, Void Turret) is placed by the encounter rules each frame and does not
+	 *  walk; one that holds fire (Reaver, Arcanist) attacks only through its skill, never with the rifle */
+	void SetSkillControl(bool bInPinned, bool bInHoldFire) { bSkillPinned = bInPinned; bSkillHoldsFire = bInHoldFire; }
 	bool IsDecoy() const { return bDecoy; }
 	double GetDecoyId() const { return DecoyId; }
 	double GetHealth() const { return Health; }
@@ -139,6 +142,7 @@ private:
 	bool bDecoy = false;
 	double DecoyId = 0;
 	double SummonId = 0; // 0 = not called in
+	bool bSkillPinned = false, bSkillHoldsFire = false;
 	FString Kind = TEXT("RAIDER");
 	double HiddenFor = 0;          // seconds the player has been out of this trooper's sight (sim.ts hiddenFor)
 	bool bFlanking = false;

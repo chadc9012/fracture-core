@@ -225,8 +225,15 @@ int main(int Argc, char** Argv)
 		{
 			const double Dt = Num(F.at(1));
 			StepEncounters(C, Bosses, Arena, Dt, Num(F.at(2)), Num(F.at(3)), Num(F.at(4)));
+			StepSummonPins(Arena, Dt, Num(F.at(2)), Num(F.at(3))); // sim.ts pinSummons at the end of the frame
 			Boss.Cool = std::max(0.0, Boss.Cool - Dt);
 			++Steps;
+		}
+		else if (K == "SU") AddSummon(Arena, Boss.ScenarioId.value_or(""), F.at(1), F.at(2), Num(F.at(3)), Num(F.at(4)), Num(F.at(5)), Num(F.at(6)), F.at(7) == "1");
+		else if (K == "KS")
+		{
+			const int Slot = static_cast<int>(Num(F.at(1)));
+			for (const FSummon& S : Arena.Summons) if (S.Slot == Slot) { OnSummonDefeated(Arena, S.Id); break; }
 		}
 		else if (K == "X") Expect("fight state", F.at(1), StateText(Boss, Arena, SeenEvent), LineNo, true);
 		else if (K == "DB")

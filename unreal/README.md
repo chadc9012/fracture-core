@@ -81,8 +81,10 @@ The default level is the engine's template map; the game mode adds a floor and l
   hostiles (kills pay nothing); in Nexus they are vision-cone sensors that fill the detection meter (stealth.ts).
   Hold H to hack: it stalls under YELLOW and loses progress under RED.
 - **Boss pacing:** scenario bosses have 520 hull (x challenge), poise builds at 1.6 per damage and not at all for 6 s
-  after a stagger (boss-poise.ts). Astravore calls in real troops (Void Hounds, a Dimensional Knight with Reality
-  Mages, a Star Sentinel; at most six at once) that fight and pay like any enemy and leave when the fight ends or resets.
+  after a stagger (boss-poise.ts). Astravore calls in real troops (Void Reavers, a Void Vanguard with Void Arcanists,
+  a Void Sentinel; at most six at once) that fight and pay like any enemy and leave when the fight ends or resets. They
+  fight in role (summon-skills.ts): a Reaver rushes you and strikes from just behind you, an Arcanist keeps 16-28 m away
+  and lobs void orbs that leave a slowing pool, and a Sentinel deploys up to three Void Turrets that last 25 s.
 - **Separate operators:** Titan, Hunter and Warlock each have their own level, XP, Nex, fracture shards and materials
   (operator-pockets.ts); F6 switches operator and loads that operator's pocket. Gear, vehicles, homes, story and
   one-time claims stay shared. Old saves give everything to the operator being played. `Operators` lists all three.
@@ -171,7 +173,7 @@ cmake -S . -B build -G Ninja && cmake --build build && ctest --test-dir build --
 | RewardCoreTest | sim.ts defeatMachine, inventory.ts claimDrops, xp.ts grantXP (Math.random replayed) incl. 18 scenarios + Vyrak covenant | 734 kills, 2,846 checks |
 | MissionCoreTest | src/game/missions/* (12 machines) | 28,800 states |
 | MissionRewardCoreTest | progression.ts rewardMission, persistence.ts applyMissionCompletion | 1,224 payouts, 1,576 checks |
-| EncounterCoreTest | encounter-sim.ts (incl. summoned troops), boss-poise.ts (pacing, post-stagger gap), boss-phases.ts, scenario-gimmicks.ts, sim.ts boss damage | 112 fights, 27,871 steps, 32,852 checks |
+| EncounterCoreTest | encounter-sim.ts (incl. summoned troops), summon-skills.ts, boss-poise.ts (pacing, post-stagger gap), boss-phases.ts, scenario-gimmicks.ts, sim.ts boss damage | 152 fights, 41,959 steps, 46,950 checks |
 | DragoniteCastCoreTest | dragonite-cast.ts castDragonite / stepDragonite, live-build.ts energy | 9,600 operations, 35,122 checks |
 | VehicleCoreTest | vehicle-handling.ts, vehicle-surface.ts, vehicle-condition.ts, rewardVehicle | 15,120 handling steps, 17,938 checks |
 | RaceCoreTest | racing.ts, activities.ts (all 68 courses, attempts, payouts, records) | 286 runs, 49,814 ticks, 17,120 checks |
@@ -186,7 +188,7 @@ cmake -S . -B build -G Ninja && cmake --build build && ctest --test-dir build --
 | ArmsCoreTest | melee-arc.ts, foundries.ts blades / swingStats / inShockwave, launchers.ts via ordnance.ts fireRound | 3 blades, 4 launchers, 1,500 launches, 8,309 checks |
 | ArmorCoreTest | armor-sets.ts, armor-perks.ts, armor-attributes.ts, inventory.ts weaponDamageMultiplier | 36 sets, 1,500 loadouts, 10,510 checks |
 | TacticsCoreTest | enemy-intelligence.ts, ability-network.ts buildSynergy, enemy-tactics.ts, enemy-evasion.ts, enemy-cover.ts | 2,000 flank searches, 2,500 cover searches, 200 grenade flights, 3,000 round threats, 21,755 checks |
-| BountyCoreTest | activity-payouts.ts payoutFor / payInto / tagLegacyPayouts / payFlat | 400 ledgers, 8,936 payouts, 16,048 checks |
+| BountyCoreTest | activity-payouts.ts payoutFor / payInto / tagLegacyPayouts / payFlat (raids reset weekly) | 400 ledgers, 8,939 payouts, 17,866 checks |
 | WastelandCoreTest | wasteland-activities.ts, wasteland-runtime.ts | 15,600 machine steps, 2,400 resolves, 24,000 runtime frames, 132,024 checks |
 | MoveCoreTest | movement.ts, parkour.ts | 300 tracks, 18,000 frames, 36,067 checks |
 | OperatorCoreTest | operator-pockets.ts switchOperator, xp.ts grantXP, nex.ts spendNex | 6,400 operations (846 switches), 25,600 checks |

@@ -1,5 +1,6 @@
 // World Fracture — boss fights. See WFEncounterCore.h.
 #include "Core/WFEncounterCore.h"
+#include "Core/WFJsCompat.h"
 
 #include <algorithm>
 #include <cmath>
@@ -128,9 +129,17 @@ namespace wf::encounter
 		}
 
 		/** the boss calls in real troops, spread around it at 18 m (outside machine separation, inside the arena) */
+		/** sim.machines.find(!alive): the lowest slot no summon holds (slot 0 is the boss) */
+		int EnFreeSlot(const FArena& A)
+		{
+			for (int Slot = 1;; ++Slot)
+				if (std::none_of(A.Summons.begin(), A.Summons.end(), [Slot](const FSummon& S) { return S.Slot == Slot; })) return Slot;
+		}
+
 		void SpawnSummons(const FCatalog& C, FArena& A, const FBoss& Boss, const FEncounterState& Enc, const std::vector<FSummonGroup>& Groups, double Now)
 		{
-			size_t Live = A.Summons.size();
+			// turrets do not count against the cap
+			size_t Live = static_cast<size_t>(std::count_if(A.Summons.begin(), A.Summons.end(), [](const FSummon& S) { return !IsTurret(S); }));
 			int Made = 0;
 			double Total = 0;
 			for (const FSummonGroup& G : Groups) Total += G.Count;
@@ -140,6 +149,7 @@ namespace wf::encounter
 					const double Ang = ((Made + 0.5) / Total) * EncounterPi * 2 + Enc.Cursor * 1.3;
 					FSummon S;
 					S.Id = A.NextSummonId++;
+					S.Slot = EnFreeSlot(A);
 					S.ScenarioId = Boss.ScenarioId.value_or("");
 					S.Profile = G.Profile; S.Kind = G.Kind; S.Scale = G.Scale; S.bElite = G.bElite;
 					S.X = Boss.X + std::sin(Ang) * 18; S.Z = Boss.Z + std::cos(Ang) * 18;
@@ -438,6 +448,7 @@ namespace wf::encounter
 			A.Decoys.clear();
 			A.Summons.clear(); // called-in troops leave with the boss, paying nothing
 		}
+		if (!Live.empty()) StepSummonSkills(A, Dt, Px, Pz, Now);
 		StepZones(A, Dt, Px, Pz, Now);
 	}
 
@@ -483,6 +494,168 @@ namespace wf::encounter
 		FEmit E;
 		E.Kind = "VICTORY"; E.Text = Def->Victory; E.X = B.X; E.Z = B.Z;
 		Emit(C, A, &B, E, Now);
+	}
+
+	namespace
+	{
+		FSummon::FSkill& EnStateFor(FSummon& S, double Cd)
+		{
+			if (!S.Skill) { S.Skill = FSummon::FSkill{}; S.Skill->Cd = Cd; }
+			return *S.Skill;
+		}
+		void EnFace(FSummon& S, double X, double Z) { S.Rot = std::atan2(X - S.X, Z - S.Z); }
+		/** the summon in the lowest slot above After, or null */
+		FSummon* EnNextBySlot(FArena& A, int After)
+		{
+			FSummon* Best = nullptr;
+			for (FSummon& S : A.Summons) if (S.Slot > After && (!Best || S.Slot < Best->Slot)) Best = &S;
+			return Best;
+		}
+	}
+
+	void StepSummonSkills(FArena& A, double Dt, double Px, double Pz, double Now)
+	{
+		int Deployed = static_cast<int>(std::count_if(A.Summons.begin(), A.Summons.end(), [](const FSummon& S) { return IsTurret(S); }));
+		// slot order, like the web build's machine loop: a turret deployed into a later slot is stepped this same frame
+		for (int Cur = 0;;)
+		{
+			FSummon* M = EnNextBySlot(A, Cur);
+			if (!M) break;
+			Cur = M->Slot;
+			const double D = js::Hypot(Px - M->X, Pz - M->Z);
+			if (M->Profile == Turret)
+			{
+				FSummon::FSkill& Sk = EnStateFor(*M, 0);
+				M->X = Sk.Ax; M->Z = Sk.Az; EnFace(*M, Px, Pz); // a turret never moves
+				Sk.Life -= Dt;
+				if (Sk.Life <= 0)
+				{
+					const double Id = M->Id;
+					A.Summons.erase(std::remove_if(A.Summons.begin(), A.Summons.end(), [Id](const FSummon& S) { return S.Id == Id; }), A.Summons.end());
+					--Deployed;
+				}
+				continue;
+			}
+			if (M->Profile == Reaver)
+			{
+				FSummon::FSkill& Sk = EnStateFor(*M, 2);
+				Sk.Cd -= Dt;
+				if (Sk.St == "IDLE")
+				{
+					if (Sk.Cd <= 0 && D > ReaverStrike.MinRange && D < ReaverStrike.MaxRange)
+					{
+						// aim at a point just BEHIND the player as seen from the Reaver, so the strike is a flank, not a charge
+						const double Ux = (Px - M->X) / (D != 0 ? D : 1), Uz = (Pz - M->Z) / (D != 0 ? D : 1);
+						Sk.St = "TELL"; Sk.T = ReaverStrike.Windup; Sk.Total = ReaverStrike.Windup; Sk.Ax = M->X; Sk.Az = M->Z;
+						Sk.Tx = Px + Ux * ReaverStrike.Behind; Sk.Tz = Pz + Uz * ReaverStrike.Behind; Sk.Radius = ReaverStrike.Radius;
+					}
+				}
+				else
+				{
+					M->X = Sk.Ax; M->Z = Sk.Az; EnFace(*M, Sk.Tx, Sk.Tz); // crouches in place while the strike is read
+					Sk.T -= Dt;
+					if (Sk.T <= 0)
+					{
+						M->X = Sk.Tx; M->Z = Sk.Tz;
+						if (InCircle(Px, Pz, Sk.Tx, Sk.Tz, Sk.Radius)) A.Hits.push_back({ReaverStrike.Damage, Reaver});
+						Sk.St = "IDLE"; Sk.Cd = ReaverStrike.Cooldown;
+					}
+				}
+			}
+			else if (M->Profile == Arcanist)
+			{
+				FSummon::FSkill& Sk = EnStateFor(*M, 3);
+				Sk.Cd -= Dt;
+				if (Sk.St == "IDLE")
+				{
+					if (Sk.Cd <= 0 && D < ArcanistOrb.MaxRange)
+					{
+						Sk.St = "TELL"; Sk.T = ArcanistOrb.Windup; Sk.Total = ArcanistOrb.Windup; Sk.Ax = M->X; Sk.Az = M->Z;
+						Sk.Tx = Px; Sk.Tz = Pz; Sk.Radius = ArcanistOrb.Radius;
+					}
+				}
+				else
+				{
+					M->X = Sk.Ax; M->Z = Sk.Az; EnFace(*M, Sk.Tx, Sk.Tz);
+					Sk.T -= Dt;
+					if (Sk.T <= 0)
+					{
+						if (InCircle(Px, Pz, Sk.Tx, Sk.Tz, Sk.Radius)) A.Hits.push_back({ArcanistOrb.Damage, Arcanist});
+						FZone Z;
+						Z.Id = A.NextZoneId++; Z.ScenarioId = "astravore"; Z.Name = "Void Orb pool"; Z.Kind = "SLOW";
+						Z.X = Sk.Tx; Z.Z = Sk.Tz; Z.Radius = Sk.Radius * 0.8; Z.Dps = ArcanistOrb.PoolDps; Z.Slow = ArcanistOrb.PoolSlow;
+						Z.ArmAt = Now; Z.Until = Now + ArcanistOrb.PoolLife; Z.Scope = "attack";
+						A.Zones.push_back(Z);
+						Sk.St = "IDLE"; Sk.Cd = ArcanistOrb.Cooldown;
+					}
+				}
+			}
+			else if (M->Profile == Sentinel)
+			{
+				FSummon::FSkill& Sk = EnStateFor(*M, 4); // keeps its own suppressing fire; the turrets are extra
+				Sk.Cd -= Dt;
+				if (Sk.St == "IDLE")
+				{
+					if (Sk.Cd <= 0 && D < SentinelDeploy.MaxRange && Deployed < MaxTurrets)
+					{
+						const double Ux = (Px - M->X) / (D != 0 ? D : 1), Uz = (Pz - M->Z) / (D != 0 ? D : 1);
+						Sk.St = "TELL"; Sk.T = SentinelDeploy.Windup; Sk.Total = SentinelDeploy.Windup; Sk.Ax = M->X; Sk.Az = M->Z;
+						Sk.Tx = M->X + Ux * SentinelDeploy.Distance; Sk.Tz = M->Z + Uz * SentinelDeploy.Distance; Sk.Radius = 1.8;
+					}
+				}
+				else
+				{
+					Sk.T -= Dt;
+					if (Sk.T <= 0)
+					{
+						const double Tx = Sk.Tx, Tz = Sk.Tz;
+						Sk.St = "IDLE"; Sk.Cd = SentinelDeploy.Cooldown;
+						if (Deployed < MaxTurrets)
+						{
+							// summon-skills.ts deployTurret: hp 2, scale 0.5, facing as the Sentinel; the push may move M
+							FSummon T;
+							T.Id = A.NextSummonId++; T.Slot = EnFreeSlot(A); T.ScenarioId = M->ScenarioId; T.Profile = Turret; T.Kind = "RAIDER";
+							T.X = Tx; T.Z = Tz; T.Hp = 2; T.Scale = 0.5; T.bElite = false; T.Rot = M->Rot;
+							T.Skill = FSummon::FSkill{}; T.Skill->Ax = Tx; T.Skill->Az = Tz; T.Skill->Life = TurretLife;
+							A.Summons.push_back(T);
+							++Deployed;
+						}
+					}
+				}
+			}
+		}
+		// remember where each troop stands before the engine's AI moves it
+		for (FSummon& S : A.Summons) if (S.Skill) { S.Skill->Ox = S.X; S.Skill->Oz = S.Z; }
+	}
+
+	void StepSummonPins(FArena& A, double Dt, double Px, double Pz)
+	{
+		for (FSummon& M : A.Summons)
+		{
+			if (!M.Skill) continue;
+			const FSummon::FSkill& Sk = *M.Skill;
+			if (IsTurret(M) || ((M.Profile == Reaver || M.Profile == Arcanist) && Sk.St == "TELL")) { M.X = Sk.Ax; M.Z = Sk.Az; continue; }
+			const double Dx = Px - Sk.Ox, Dz = Pz - Sk.Oz, Dd = js::Hypot(Dx, Dz), D = Dd != 0 ? Dd : 1, Ux = Dx / D, Uz = Dz / D;
+			if (M.Profile == Reaver)
+			{
+				const double V = D > 2.5 ? ReaverSpeed : 0;
+				M.X = Sk.Ox + Ux * V * Dt; M.Z = Sk.Oz + Uz * V * Dt; EnFace(M, Px, Pz);
+			}
+			else if (M.Profile == Arcanist)
+			{
+				const double V = D > ArcanistBandMax ? ArcanistSpeed : D < ArcanistBandMin ? -ArcanistSpeed : 0;
+				M.X = Sk.Ox + Ux * V * Dt; M.Z = Sk.Oz + Uz * V * Dt; EnFace(M, Px, Pz);
+			}
+		}
+	}
+
+	FSummon& AddSummon(FArena& A, const std::string& ScenarioId, const std::string& Profile, const std::string& Kind, double X, double Z, double Hp, double Scale, bool bElite)
+	{
+		FSummon S;
+		S.Id = A.NextSummonId++; S.Slot = EnFreeSlot(A); S.ScenarioId = ScenarioId;
+		S.Profile = Profile; S.Kind = Kind; S.X = X; S.Z = Z; S.Hp = Hp; S.Scale = Scale; S.bElite = bElite;
+		A.Summons.push_back(S);
+		return A.Summons.back();
 	}
 
 	void OnSummonDefeated(FArena& A, double SummonId)

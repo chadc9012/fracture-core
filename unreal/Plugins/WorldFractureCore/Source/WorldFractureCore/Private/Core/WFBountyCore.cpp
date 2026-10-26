@@ -63,12 +63,15 @@ namespace wf::bounty
 		return Buf;
 	}
 
+	double WeekIndex(double NowMs) { return std::floor((NowMs - WeekZeroMs) / WeekMs); }
+
 	std::optional<FPayout> PayoutFor(const FLedger& Ledger, const std::string& Class, const std::string& RawId, double NowMs, double Mult, const std::string& Operator)
 	{
 		const std::string Id = Operator.empty() ? RawId : RawId + "#" + Operator;
 		const bool bFirst = !BtEverPaid(Ledger, Class, Id);
-		const std::string Day = DayOf(NowMs);
-		// the first clear is recorded with its day, so it also uses up that day's repeat (no double-dip on day one)
+		// raids reset weekly (Monday: difficulty-ladder.ts weekIndex), everything else daily
+		const std::string Day = Class == "raid" ? "W" + js::NumberToString(WeekIndex(NowMs)) : DayOf(NowMs);
+		// the first clear is recorded with its period, so it also uses up that period's repeat (no double-dip on day one)
 		const std::string Key = bFirst ? BtKey(Class, Id, "first:" + Day) : BtKey(Class, Id, Day);
 		if (Ledger.count(Key) || Ledger.count(BtKey(Class, Id, "first:" + Day))) return std::nullopt;
 		const FRates R = RatesFor(Class);

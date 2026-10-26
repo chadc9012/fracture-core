@@ -22,6 +22,9 @@ namespace wf::bounty
 	WORLDFRACTURECORE_API double BossRank(const std::string& BossId);
 	/** the UTC calendar day of a time in ms since the epoch, YYYY-MM-DD (JavaScript toISOString().slice(0, 10)) */
 	WORLDFRACTURECORE_API std::string DayOf(double NowMs);
+	/** difficulty-ladder.ts weekIndex: weeks since Monday 2026-01-05 UTC; raid bounties reset on it (keyed W<week>) */
+	inline constexpr double WeekMs = 7 * 86400000.0, WeekZeroMs = 1767571200000.0;
+	WORLDFRACTURECORE_API double WeekIndex(double NowMs);
 
 	struct FPayout { std::string Key; double Nex = 0; bool bFirst = false; };
 	/** what a clear pays right now and the ledger key it is recorded under; nullopt when today's payout is already taken */

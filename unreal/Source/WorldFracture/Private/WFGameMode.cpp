@@ -350,7 +350,15 @@ void AWFGameMode::TickEncounters(float DeltaSeconds)
 	for (AWFEnemy* B : Bosses) { B->SyncRules(); Rules.push_back(&B->Rules()); }
 	const FVector P = Player->GetActorLocation() / EncCmPerM;
 	if (const UWFProgressionSubsystem* Progression = GetGameInstance()->GetSubsystem<UWFProgressionSubsystem>()) Arena.EnemyHpScale = Progression->GetChallengeEnemyHealthScale();
+	// summon-skills.ts reads where each called-in troop stands
+	for (wf::encounter::FSummon& S : Arena.Summons)
+		if (const TWeakObjectPtr<AWFEnemy>* A = SummonActors.Find(static_cast<int64>(S.Id)); A && A->IsValid() && !(*A)->IsDead())
+		{
+			S.X = (*A)->GetActorLocation().X / EncCmPerM; S.Z = (*A)->GetActorLocation().Y / EncCmPerM;
+		}
 	wf::encounter::StepEncounters(EncounterCatalog, Rules, Arena, DeltaSeconds, P.X, P.Y, Now);
+	// sim.ts pinSummons: pinned troops do not walk themselves, so the end-of-frame pin can follow the skill step directly
+	wf::encounter::StepSummonPins(Arena, DeltaSeconds, P.X, P.Y);
 	for (AWFEnemy* B : Bosses)
 	{
 		if (!B->Rules().bAlive) { B->Depart(); continue; } // Vaelith withdraws after the truce
@@ -358,6 +366,16 @@ void AWFGameMode::TickEncounters(float DeltaSeconds)
 	}
 	SyncDecoys();
 	SyncSummons();
+	for (const wf::encounter::FSummon& S : Arena.Summons)
+		if (const TWeakObjectPtr<AWFEnemy>* A = SummonActors.Find(static_cast<int64>(S.Id)); A && A->IsValid() && !(*A)->IsDead())
+		{
+			AWFEnemy* Troop = A->Get();
+			Troop->SetSkillControl(wf::encounter::IsPinned(S), wf::encounter::HoldsFire(S));
+			if (!wf::encounter::IsPinned(S)) continue;
+			// rules yaw r faces (sin r, cos r) on (X, Y): Unreal yaw = 90 deg - r
+			Troop->SetActorLocation(FVector(S.X * EncCmPerM, S.Z * EncCmPerM, Troop->GetActorLocation().Z), true);
+			Troop->SetActorRotation(FRotator(0.f, static_cast<float>(90.0 - FMath::RadiansToDegrees(S.Rot)), 0.f));
+		}
 	ShowEncounterEvents();
 	DrawZones();
 	Player->SetHazardSpeedMult(Arena.HazardSpeedMult);
