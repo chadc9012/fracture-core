@@ -265,7 +265,7 @@ EWFDefeatOutcome UWFProgressionSubsystem::ReportEnemyDefeated(const FWFEnemyRewa
 	}
 	Tally.XpEvents.clear();
 
-	if (UWFQuestSubsystem* Quests = GetGameInstance()->GetSubsystem<UWFQuestSubsystem>()) Quests->ReportKill(Enemy.Zone);
+	// the kill reaches the quests through the game mode's quest bridge (quest-signals.ts: credited to the region you stand in)
 	NotifyChanged();
 	return EWFDefeatOutcome::Paid;
 }

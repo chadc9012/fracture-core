@@ -45,6 +45,7 @@ public:
 	bool IsRiding() const { return bRiding; }
 	/** Encounter SLOW zones (frost patches, shroud mist) scale movement speed while the player stands in them. */
 	void SetHazardSpeedMult(double Mult) { HazardSpeedMult = Mult; }
+	bool IsHackHeld() const { return bHackHeld; }
 	/** Getting into / out of a vehicle: the Operator stops simulating (no falling, firing or regen ticks) while carried. */
 	void SetInVehicle(bool bIn);
 	bool IsInVehicle() const { return bInVehicle; }
@@ -149,6 +150,7 @@ private:
 	UPROPERTY() TArray<TObjectPtr<UInputAction>> DragoniteActions;
 	UPROPERTY() TObjectPtr<UInputAction> InteractAction;
 	UPROPERTY() TObjectPtr<UInputAction> CallVehicleAction;
+	UPROPERTY() TObjectPtr<UInputAction> HackAction;
 	TWeakObjectPtr<class AWFVehicle> CalledVehicle;
 	UPROPERTY() TObjectPtr<UInputAction> RideAction;
 	UPROPERTY() TArray<TObjectPtr<UInputAction>> ClassAbilityActions; // Q / F / X
@@ -167,6 +169,7 @@ private:
 	TArray<FVolatileZone> VolatileZones;
 	double IframesLeft = 0, BarrierLeft = 0, DomeLeft = 0;
 	bool bSprinting = false;
+	bool bHackHeld = false; // H held: hacking in Nexus City (stealth.ts)
 	bool bInVehicle = false;
 	double DragonhideResist = 0;
 	static constexpr double GlideSinkCmPerSec = 250; // Unreal-side glide feel: the web build only flags gliding

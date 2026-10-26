@@ -109,6 +109,8 @@ public:
 	UFUNCTION(BlueprintPure, Category = "World Fracture|Progression") int32 GetInventoryCount() const { return static_cast<int32>(State.Inventory.size()); }
 	UFUNCTION(BlueprintPure, Category = "World Fracture|Progression") double GetSessionCredits() const { return Tally.Credits; }
 	UFUNCTION(BlueprintPure, Category = "World Fracture|Progression") int32 GetSessionKills() const { return static_cast<int32>(Tally.Kills); }
+	/** sim.ts combatHeat, kept by the game mode: kills scale XP by it (xp.ts comboMultiplier, enemy level) */
+	void SetCombatHeat(double Heat) { Tally.CombatHeat = Heat; }
 	/** Difficulty reward factor (map-activities.ts CHALLENGES): 1 / 1.25 / 1.5. */
 	UFUNCTION(BlueprintPure, Category = "World Fracture|Progression") double GetChallengeRewardScale() const;
 	/** Difficulty enemy health factor: 1 / 1.4 / 1.8. */

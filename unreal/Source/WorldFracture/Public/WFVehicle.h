@@ -56,6 +56,9 @@ public:
 
 	/** The character gets in: it is hidden and carried; the controller drives this pawn. */
 	void Enter(AWFCharacter* InDriver);
+	AWFCharacter* GetDriver() const { return Driver.Get(); }
+	/** gets the driver out without the exit checks (a forced bail-out keeps KeepSpeed m/s of momentum) */
+	void Dismount(double KeepSpeed);
 	const FWFVehicleDef& GetDef() const { return Def; }
 	const wf::vehicle::FState& GetState() const { return State; }
 	const wf::vehicle::FCondition& GetCondition() const { return Condition; }

@@ -46,7 +46,16 @@ void AWFGameMode::StartPlay()
 	FString EncounterError;
 	if (!WFEncounterData::LoadCatalog(EncounterCatalog, EncounterError))
 		UE_LOG(LogTemp, Error, TEXT("Boss encounters failed to load (%s); scenario bosses fight as plain bosses."), *EncounterError);
-	if (UWFQuestSubsystem* Quests = GetGameInstance()->GetSubsystem<UWFQuestSubsystem>()) Quests->ReportEnterWorld(RegionId);
+	// entering the region, kills, survive time, heat and the Nexus hack reach the quests through TickCity (quest-signals.ts)
+
+	// sim.ts createSim: the safe-zone perimeter turrets (each starts with a random cooldown)
+	std::vector<wf::city::FRegionCircle> Circles;
+	FString RegionsError;
+	TArray<TSharedPtr<FJsonObject>> RegionRows;
+	if (WFData::LoadRows(TEXT("Regions"), RegionRows, RegionsError))
+		for (const TSharedPtr<FJsonObject>& R : RegionRows)
+			Circles.push_back({WFData::ToStd(WFData::Str(R, TEXT("Id"))), WFData::ToStd(WFData::Str(R, TEXT("Kind"))), WFData::Num(R, TEXT("X")), WFData::Num(R, TEXT("Z")), WFData::Num(R, TEXT("Radius"))});
+	Turrets = wf::city::MakeTurrets(Circles, []() { return static_cast<double>(FMath::FRand()); });
 }
 
 void AWFGameMode::EnsurePlayableWorld()
@@ -126,6 +135,7 @@ void AWFGameMode::Tick(float DeltaSeconds)
 	Super::Tick(DeltaSeconds);
 	TickEncounters(DeltaSeconds);
 	TickRace(DeltaSeconds);
+	TickCity(DeltaSeconds);
 	Squad.RemoveAll([](const TWeakObjectPtr<AWFEnemy>& E) { return !E.IsValid() || E->IsDead(); });
 	SpawnTimer -= DeltaSeconds;
 	if (SpawnTimer <= 0 && Squad.Num() < SquadSize && !Roster.IsEmpty())
@@ -160,6 +170,81 @@ void AWFGameMode::Toast(const FString& Text, const FLinearColor& Color) const
 {
 	if (const APlayerController* PC = GetWorld()->GetFirstPlayerController())
 		if (AWFHUD* Hud = PC->GetHUD<AWFHUD>()) Hud->Toast(Text, Color);
+}
+
+void AWFGameMode::TickCity(float DeltaSeconds)
+{
+	const double Dt = FMath::Min(static_cast<double>(DeltaSeconds), 0.25);
+	APawn* Pawn = UGameplayStatics::GetPlayerPawn(this, 0);
+	AWFCharacter* Player = Cast<AWFCharacter>(Pawn);
+	if (const AWFVehicle* Car = Cast<AWFVehicle>(Pawn)) Player = Car->GetDriver();
+	if (!Pawn) return;
+	const FVector P = Pawn->GetActorLocation() / EncCmPerM;
+
+	// perimeter turrets: track the nearest hostile in range and shoot it (2 damage, knocked outward); kills pay nothing
+	TArray<AWFEnemy*> Enemies;
+	std::vector<wf::city::FTurretTarget> Targets;
+	for (TActorIterator<AWFEnemy> It(GetWorld()); It; ++It)
+	{
+		if (It->IsDead() || It->IsDecoy()) continue;
+		Enemies.Add(*It);
+		const FVector E = It->GetActorLocation() / EncCmPerM;
+		Targets.push_back({E.X, E.Y, true, false});
+	}
+	for (wf::city::FTurret& T : Turrets)
+		if (const std::optional<wf::city::FTurretShot> Shot = wf::city::StepTurret(T, Targets, Dt))
+		{
+			AWFEnemy* E = Enemies[Shot->Target];
+			E->LaunchCharacter(FVector(Shot->KnockX, Shot->KnockZ, 0) * EncCmPerM, true, false);
+			if (E->TakeHit(Shot->Damage, nullptr) > 0 && E->IsDead()) Toast(TEXT("Safe-zone turret destroyed an ambusher"), EncCyan);
+		}
+	DrawTurrets();
+
+	// combat heat and the heat meter (Scene.tsx: stepHeatMeter off sim.combatHeat)
+	CombatHeat = wf::city::DecayCombatHeat(CombatHeat, Dt);
+	HeatMeter = wf::city::StepHeatMeter(HeatMeter, CombatHeat, Dt);
+	if (UWFProgressionSubsystem* Progression = GetGameInstance()->GetSubsystem<UWFProgressionSubsystem>()) Progression->SetCombatHeat(CombatHeat);
+
+	// Nexus City surveillance: the turrets double as vision-cone sensors; H held on foot hacks
+	const bool bNexus = IsInNexus();
+	const bool bSeen = bNexus && wf::city::AnySensorSees(wf::city::NexusSensors(Turrets), P.X, P.Y);
+	bHacking = bNexus && Player && Pawn == Player && Player->IsHackHeld();
+	DetectionMeter = bNexus ? wf::city::StepDetectionMeter(DetectionMeter, Dt, bSeen, bHacking) : FMath::Max(0.0, DetectionMeter - Dt * 30);
+	if (bHacking) HackProgress = wf::city::StepHackProgress(HackProgress, Dt, wf::city::DetectionStateFor(DetectionMeter));
+
+	// the quest bridge: one HUD snapshot per frame
+	UWFQuestSubsystem* Quests = GetGameInstance()->GetSubsystem<UWFQuestSubsystem>();
+	const UWFProgressionSubsystem* Progression = GetGameInstance()->GetSubsystem<UWFProgressionSubsystem>();
+	if (!Quests || !Progression) return;
+	wf::city::FQuestHud Hud;
+	Hud.RegionId = WFData::ToStd(RegionId);
+	Hud.HeatLevel = wf::city::HeatLevelFor(HeatMeter);
+	Hud.LockdownTier = wf::city::LockdownStatus(bNexus ? DetectionMeter : 0).Tier;
+	Hud.HackProgress = HackProgress;
+	Hud.bDiving = false; // the prototype has no diving
+	Hud.Kills = Progression->GetSessionKills();
+	Hud.Hp = Player ? Player->GetHealth() : 100;
+	for (const wf::city::FSignalEvent& E : wf::city::QuestEventsFromHud(QuestSignals, Hud, Dt))
+	{
+		if (E.Type == "ENTER_WORLD") Quests->ReportEnterWorld(WFData::ToF(E.World));
+		else if (E.Type == "KILL") Quests->ReportKill(WFData::ToF(E.World));
+		else if (E.Type == "SURVIVED") Quests->ReportSurvived(WFData::ToF(E.World), E.Number);
+		else if (E.Type == "HEAT_LEVEL") { Quests->ReportHeatLevel(static_cast<int32>(E.Number)); Toast(FString::Printf(TEXT("HEAT %d - %s"), static_cast<int32>(E.Number), UTF8_TO_TCHAR(wf::city::HeatStatus(HeatMeter).Response)), EncWarn); }
+		else if (E.Type == "LOCKDOWN_TIER") { Quests->ReportLockdownTier(WFData::ToF(E.Tier)); if (bNexus) Toast(UTF8_TO_TCHAR(wf::city::LockdownStatus(DetectionMeter).Response), EncWarn); }
+		else if (E.Type == "HACK_COMPLETE") { Quests->ReportHackComplete(); Toast(TEXT("Hack complete"), EncCyan); }
+	}
+}
+
+void AWFGameMode::DrawTurrets() const
+{
+	for (const wf::city::FTurret& T : Turrets)
+	{
+		const FVector At(T.X * EncCmPerM, T.Z * EncCmPerM, GroundZ(T.X * EncCmPerM, T.Z * EncCmPerM, 0) + 250);
+		DrawDebugBox(GetWorld(), At, FVector(60, 60, 120), T.Flash > 0 ? FColor(255, 230, 120) : FColor(90, 200, 255), false, -1.f, 0, 4.f);
+		// the sensor cone: rules yaw rot is atan2(dx, dz) on (Unreal X, Unreal Y)
+		const FVector Dir(std::sin(T.Rot), std::cos(T.Rot), 0);
+		if (T.Zone == "nexus") DrawDebugCone(GetWorld(), At, Dir, static_cast<float>(T.Range * 0.75 * EncCmPerM), static_cast<float>(wf::city::VisionHalfAngle), 0.05f, 12, FColor(255, 80, 60, 120), false, -1.f, 0, 1.f);
+	}
 }
 
 void AWFGameMode::TickEncounters(float DeltaSeconds)

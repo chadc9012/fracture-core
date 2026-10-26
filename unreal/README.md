@@ -36,6 +36,13 @@ unreal/
 The default level is the engine's template map; the game mode adds a floor and lights if a level has none.
 
 ## What runs
+- **Heat and the quest bridge:** shots, blasts, crashes, rams, melee and flame jets raise combat heat (decays 6/s), which
+  scales kill XP and drives the 1-5 Neon City heat meter on the HUD (heat.ts). Every frame the quest-signals.ts bridge
+  reports entering the region, kills, survive time, heat levels, the Nexus lockdown tier and hack, so the whole story
+  chain can advance. A wreck-level vehicle (or a heavily damaged one stopped by a crash) throws you out (chase-ai.ts).
+- **Safe-zone turrets and Nexus surveillance:** 8 turrets on the Nexus rim and 5 on the Verdant Forest's track and shoot
+  hostiles (kills pay nothing); in Nexus they are vision-cone sensors that fill the detection meter (stealth.ts).
+  Hold H to hack: it stalls under YELLOW and loses progress under RED.
 - **Boss pacing:** scenario bosses have 520 hull (x challenge), poise builds at 1.6 per damage and not at all for 6 s
   after a stagger (boss-poise.ts). Astravore calls in real troops (Void Hounds, a Dimensional Knight with Reality
   Mages, a Star Sentinel; at most six at once) that fight and pay like any enemy and leave when the fight ends or resets.
@@ -137,13 +144,14 @@ cmake -S . -B build -G Ninja && cmake --build build && ctest --test-dir build --
 | FleetCoreTest | fleet.ts, vehicle-gadgets.ts | 2,400 fleet operations, 2,100 gadget operations, 13,060 checks |
 | HousingCoreTest | housing.ts, residence-deeds.ts | 4,500 operations, 80 normalized saves, 9,821 checks |
 | DragonCoreTest | dragonite.ts, dragonite-cast.ts statsFor, vyrak-trust.ts | 2,099 states, 23,789 checks |
+| CityCoreTest | heat.ts, stealth.ts, chase-ai.ts, quest-signals.ts, sim.ts turret layout | 4,800 quest snapshots, 13 turrets, 19,883 checks |
 | OperatorCoreTest | operator-pockets.ts switchOperator, xp.ts grantXP, nex.ts spendNex | 6,400 operations (846 switches), 25,600 checks |
 
 The golden files (`Plugins/WorldFractureCore/Tests/<name>_golden.txt`) are **generated, not committed**: together they run to ~60 MB,
 which broke the Lovable preview build. Record all of them from the repo root before configuring the tests (and again after changing
 the web build's rules):
 
-    node unreal/tools/gen-goldens.mjs            # all fifteen
+    node unreal/tools/gen-goldens.mjs            # all sixteen
     node unreal/tools/gen-goldens.mjs race shop  # just these
 
 `export-datatables` (the DataTables, which are committed) still runs on its own:
@@ -157,5 +165,5 @@ Boss models and attack effects (zones are debug circles, decoys are stand-ins), 
 region kinds for abilities (the map counts as a war zone),
 armor effects on combat, enemy perception/cover/line-of-sight, launchers and the sword, gear power and armor damage bonuses on vehicle guns, knockback, the featured-activity rotation and
 activity shader drops,
-the Operations Hub preview marketplace (its wallet is not saved in the web build either), home interiors, cloud save merge, the world itself (regions, Neon City, Thalassia). Their data is already in
+diving (the thalassia-dive survive timer), the Neon City police response itself (the web build has only the heat meter and its labels; chase-ai.ts pursuit helpers are unused there), the Operations Hub preview marketplace (its wallet is not saved in the web build either), home interiors, cloud save merge, the world itself (regions, Neon City, Thalassia). Their data is already in
 `DataTables/`.

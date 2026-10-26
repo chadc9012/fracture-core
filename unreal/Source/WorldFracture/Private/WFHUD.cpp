@@ -1,5 +1,7 @@
 #include "WFHUD.h"
 
+#include "Core/WFCityCore.h"
+
 #include "Engine/GameInstance.h"
 
 #include "WFMissionSubsystem.h"
@@ -88,6 +90,30 @@ void AWFHUD::DrawHUD()
 			Line(FString::Printf(TEXT("%s  -  %s"), *Name.ToUpper(), *Phase), X, 28, Gold, 1.1f);
 			Line(FString::Printf(TEXT("[%s] %d%%"), *Bar(HpFrac, 40), FMath::RoundToInt32(HpFrac * 100)), X, 52, Warn);
 			if (!Windup.IsEmpty()) Line(FString::Printf(TEXT("%s  [%s]"), *Windup.ToUpper(), *Bar(Progress, 20)), X, 74, FLinearColor(1.f, 0.3f, 0.25f), 1.05f);
+		}
+	}
+
+	// city: the heat level (heat.ts), and in Nexus City the surveillance meter, lockdown tier and hack (stealth.ts)
+	if (const AWFGameMode* Mode = GetWorld()->GetAuthGameMode<AWFGameMode>())
+	{
+		const float X = W - 430.f;
+		float Y = 150.f;
+		const wf::city::FHeatStatus Heat = wf::city::HeatStatus(Mode->GetHeatMeter());
+		if (Mode->GetHeatMeter() > 0.5)
+		{
+			Line(FString::Printf(TEXT("HEAT %d  %s"), Heat.Level, UTF8_TO_TCHAR(Heat.Label)), X, Y, Heat.Level >= 4 ? FLinearColor(1.f, 0.3f, 0.25f) : Warn, 1.0f);
+			Line(UTF8_TO_TCHAR(Heat.Response), X, Y + 20, Soft, 0.75f);
+			Y += 44;
+		}
+		if (Mode->IsInNexus() && (Mode->GetDetectionMeter() > 0.5 || Mode->IsHacking() || Mode->GetHackProgress() > 0))
+		{
+			const std::string State = wf::city::DetectionStateFor(Mode->GetDetectionMeter());
+			const wf::city::FLockdownStatus Lock = wf::city::LockdownStatus(Mode->GetDetectionMeter());
+			const FLinearColor C = State == "RED" ? FLinearColor(1.f, 0.3f, 0.25f) : State == "YELLOW" ? Warn : Cyan;
+			Line(FString::Printf(TEXT("DETECTION %d%%  %s"), FMath::RoundToInt32(Mode->GetDetectionMeter()), UTF8_TO_TCHAR(Lock.Label)), X, Y, C, 0.95f);
+			Line(UTF8_TO_TCHAR(Lock.Response), X, Y + 20, Soft, 0.75f);
+			Y += 44;
+			Line(FString::Printf(TEXT("HACK %d%%%s"), FMath::RoundToInt32(Mode->GetHackProgress()), Mode->IsHacking() ? TEXT("  (holding H)") : TEXT("  (hold H to hack)")), X, Y, Cyan, 0.85f);
 		}
 	}
 

@@ -24,6 +24,7 @@
 #include "WFRaceSubsystem.h"
 #include "WFFleetSubsystem.h"
 #include "Core/WFDragoniteCastCore.h"
+#include "Core/WFCityCore.h"
 #include "Core/WFJsCompat.h"
 #include "WFEnemy.h"
 #include "WFWeapons.h"
@@ -71,6 +72,15 @@ namespace WFVehicles
 	const FWFVehicleDef* Find(const TArray<FWFVehicleDef>& Defs, const FString& Id)
 	{
 		return Defs.FindByPredicate([&Id](const FWFVehicleDef& D) { return D.Id == Id; });
+	}
+}
+
+namespace
+{
+	/** sim.ts combatHeat: what this vehicle's fights add to the game mode's heat */
+	void VehHeat(UWorld* World, double Amount)
+	{
+		if (World) if (AWFGameMode* M = World->GetAuthGameMode<AWFGameMode>()) M->AddCombatHeat(Amount);
 	}
 }
 
@@ -251,6 +261,14 @@ void AWFVehicle::Exit(const FInputActionValue& Value)
 	const bool bDeepWater = Profile->Mode == "WATER";
 	const wf::vehicle::FExitCheck Check = wf::vehicle::CanExitVehicle(*Profile, State, bDeepWater && GetActorLocation().Z / VehCmPerM < WaterLevelMeters + 2);
 	if (!Check.bOk) { Notify(WFData::ToF(Check.Reason), FLinearColor(1.f, 0.55f, 0.3f)); return; }
+	Dismount(0);
+}
+
+void AWFVehicle::Dismount(double KeepSpeed)
+{
+	AWFCharacter* D = Driver.Get();
+	APlayerController* PC = Cast<APlayerController>(GetController());
+	if (!D || !PC) return;
 	Input = {};
 	bTrigger = bSecondaryTrigger = false;
 	D->DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
@@ -260,6 +278,8 @@ void AWFVehicle::Exit(const FInputActionValue& Value)
 	D->SetInVehicle(false);
 	PC->Possess(D);
 	Driver.Reset();
+	// parkour.ts exitVehicleMomentum: bailing out mid-drive keeps a fraction of the car's speed
+	if (KeepSpeed != 0) D->LaunchCharacter(FVector(std::sin(State.Yaw), std::cos(State.Yaw), 0) * KeepSpeed * VehCmPerM, true, false);
 	if (UWFProgressionSubsystem* P = GetGameInstance()->GetSubsystem<UWFProgressionSubsystem>()) P->MutableGarage().Conditions[WFData::ToStd(Def.Id)] = Condition;
 }
 
@@ -319,6 +339,7 @@ void AWFVehicle::Tick(float DeltaSeconds)
 		if (bAhead && Ahead.ImpactPoint.Z / VehCmPerM > Water - 0.3) { Next = FVector(Loc.X, Loc.Y, Next.Z); State.Speed *= 0.2; } // never drives up the shore
 	}
 	FHitResult Hit;
+	const double PreCollide = State.Speed;
 	SetActorLocation(Next, true, &Hit, ETeleportType::None);
 	if (Hit.bBlockingHit && FMath::Abs(State.Speed) > 3)
 	{
@@ -331,10 +352,25 @@ void AWFVehicle::Tick(float DeltaSeconds)
 		{
 			RamCoolUntil = NowS + 0.6;
 			Rammed->TakeHit(wf::js::Round(Force / 30 * Ram.DamageMult), Gunner.IsValid() ? static_cast<AActor*>(Gunner.Get()) : this);
+			VehHeat(World, wf::city::FHeatGain::RamMachine);
 		}
 		State.Speed *= 0.3;
 		Condition = wf::vehicle::ImpactVehicle(Condition, Lost * Ram.SelfMult);
+		if (!Cast<AWFEnemy>(Hit.GetActor()) && Lost * Ram.SelfMult > 2) VehHeat(World, wf::city::FHeatGain::Crash); // sim.ts collideBody: a crash that hurts
 		Notify(FString::Printf(TEXT("Impact - body %d%%  engine %d%%"), FMath::RoundToInt32(Condition.Body), FMath::RoundToInt32(Condition.Engine)), FLinearColor(1.f, 0.55f, 0.3f));
+	}
+	// Scene.tsx: a wreck-level car forces you out on foot; a heavily damaged one only does when the collision stopped it
+	{
+		const bool bBlocked = FMath::Abs(PreCollide) > 4 && FMath::Abs(State.Speed) < FMath::Abs(PreCollide) * 0.4;
+		const wf::city::FDamageEffect Stage = wf::city::VehicleDamageStage(100 - Condition.Body);
+		if (wf::vehicle::ConditionEffects(Condition).bDisabled || wf::city::ShouldForceFootTransition(Stage.Stage, bBlocked))
+		{
+			Notify(TEXT("The vehicle is wrecked - you bail out"), FLinearColor(1.f, 0.3f, 0.25f));
+			if (UWFProgressionSubsystem* P = GetGameInstance()->GetSubsystem<UWFProgressionSubsystem>()) P->MutableGarage().Conditions[WFData::ToStd(Def.Id)] = Condition;
+			Dismount(State.Speed * 0.55);
+			State.Speed = 0;
+			return;
+		}
 	}
 	SetActorRotation(FRotator(static_cast<float>(FMath::RadiansToDegrees(State.Pitch)), static_cast<float>(90.0 - FMath::RadiansToDegrees(State.Yaw)), static_cast<float>(FMath::RadiansToDegrees(-State.Roll))));
 	if (UWFProgressionSubsystem* P = GetGameInstance()->GetSubsystem<UWFProgressionSubsystem>()) P->MutableGarage().Conditions[WFData::ToStd(Def.Id)] = Condition;
@@ -440,7 +476,7 @@ void AWFVehicle::TickProjectiles(double Dt)
 		FHitResult Hit;
 		if (World->LineTraceSingleByChannel(Hit, From, To, ECC_Visibility, Params))
 		{
-			if (AWFEnemy* Enemy = Cast<AWFEnemy>(Hit.GetActor())) Enemy->TakeHit(B.Damage, Shooter);
+			if (AWFEnemy* Enemy = Cast<AWFEnemy>(Hit.GetActor())) { Enemy->TakeHit(B.Damage, Shooter); VehHeat(World, wf::city::FHeatGain::BulletHit); }
 			DrawDebugLine(World, From, Hit.ImpactPoint, FColor(255, 220, 140), false, 0.f, 0, 3.f);
 			Bullets.RemoveAtSwap(I);
 			continue;
@@ -482,6 +518,7 @@ void AWFVehicle::Detonate(const wf::vweapons::FBurst& Burst)
 {
 	// sim.ts detonateRound: splash falls off linearly from the centre to the radius, measured to the body's edge (1.5 m)
 	UWorld* World = GetWorld();
+	VehHeat(World, wf::city::FHeatGain::Burst);
 	AActor* Shooter = Gunner.IsValid() ? static_cast<AActor*>(Gunner.Get()) : this;
 	TArray<AWFEnemy*> InRange;
 	for (TActorIterator<AWFEnemy> It(World); It; ++It) if (!It->IsDead()) InRange.Add(*It);
@@ -592,6 +629,7 @@ void AWFVehicle::TickGadgets(double Dt)
 			if (InFlames(L.X, L.Y, State.Yaw, P.X, P.Y, 1.2)) E->TakeHit(FlameDps * Dt, Shooter, TEXT("THERMAL"));
 		}
 		if (wf::vweapons::AddHeat(Heat, FlameHeat * Dt)) Notify(TEXT("FLAME JETS OVERHEAT - venting"), FLinearColor(1.f, 0.3f, 0.25f));
+		VehHeat(World, wf::city::FHeatGain::FlamePerSecond * Dt);
 		DrawDebugCylinder(World, GetActorLocation(), GetActorLocation() + FVector(0, 0, 60), static_cast<float>(FlameReach * VehCmPerM), 20, FColor(255, 120, 30), false, -1.f, 0, 3.f);
 	}
 	// the Remora drone: orbits over the driver and picks off the nearest hostile it can see

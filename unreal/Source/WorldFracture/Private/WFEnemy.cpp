@@ -168,6 +168,7 @@ void AWFEnemy::TryAttack(AWFCharacter* Player, double Distance, float DeltaSecon
 	{
 		Player->ApplyHit(Tier(7, 12, 17) * PhaseDamageMult, Profile);
 		MeleeCooldown = MeleeCooldownS * PhaseCooldownMult;
+		if (AWFGameMode* HeatMode = GetWorld()->GetAuthGameMode<AWFGameMode>()) HeatMode->AddCombatHeat(wf::city::FHeatGain::EnemyMelee);
 		return;
 	}
 	if (Distance > RangedRange) { Windup = -1; return; }

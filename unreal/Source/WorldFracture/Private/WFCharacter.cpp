@@ -112,6 +112,7 @@ void AWFCharacter::BuildInput()
 	FireAction = Make(EInputActionValueType::Boolean);
 	AimAction = Make(EInputActionValueType::Boolean);
 	SprintAction = Make(EInputActionValueType::Boolean);
+	HackAction = Make(EInputActionValueType::Boolean);
 	ReloadAction = Make(EInputActionValueType::Boolean);
 	NextWeaponAction = Make(EInputActionValueType::Axis1D);
 	SaveAction = Make(EInputActionValueType::Boolean);
@@ -140,6 +141,7 @@ void AWFCharacter::BuildInput()
 	Mapping->MapKey(FireAction, EKeys::LeftMouseButton);
 	Mapping->MapKey(AimAction, EKeys::RightMouseButton);
 	Mapping->MapKey(SprintAction, EKeys::LeftShift);
+	Mapping->MapKey(HackAction, EKeys::H);
 	Mapping->MapKey(ReloadAction, EKeys::R);
 	Mapping->MapKey(ReloadAction, EKeys::G);
 	Mapping->MapKey(NextWeaponAction, EKeys::MouseWheelAxis);
@@ -211,6 +213,8 @@ void AWFCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 	Input->BindAction(AimAction, ETriggerEvent::Completed, this, &AWFCharacter::AimStopped);
 	Input->BindAction(SprintAction, ETriggerEvent::Started, this, &AWFCharacter::SprintStarted);
 	Input->BindAction(SprintAction, ETriggerEvent::Completed, this, &AWFCharacter::SprintStopped);
+	Input->BindActionValueLambda(HackAction, ETriggerEvent::Started, [this](const FInputActionValue&) { bHackHeld = true; });
+	Input->BindActionValueLambda(HackAction, ETriggerEvent::Completed, [this](const FInputActionValue&) { bHackHeld = false; });
 	Input->BindAction(ReloadAction, ETriggerEvent::Started, this, &AWFCharacter::ReloadPressed);
 	Input->BindAction(NextWeaponAction, ETriggerEvent::Triggered, this, &AWFCharacter::NextWeapon);
 	Input->BindAction(SaveAction, ETriggerEvent::Started, this, &AWFCharacter::SaveGamePressed);
@@ -683,7 +687,11 @@ void AWFCharacter::FireRound()
 		const bool bHit = World->LineTraceSingleByChannel(Hit, Start, End, ECC_Visibility, Params);
 		DrawDebugLine(World, Start + Dir * 60.f, bHit ? Hit.ImpactPoint : End, FColor(255, 214, 120), false, 0.05f, 0, 1.2f);
 		if (bHit)
-			if (AWFEnemy* Enemy = Cast<AWFEnemy>(Hit.GetActor())) Enemy->TakeHit(W->Damage * WFWeapons::BaseBulletDamage * SimMods.VerbDamageMult, this, W->Element); // Rage / Siege (syncSimFromLive)
+			if (AWFEnemy* Enemy = Cast<AWFEnemy>(Hit.GetActor()))
+			{
+				Enemy->TakeHit(W->Damage * WFWeapons::BaseBulletDamage * SimMods.VerbDamageMult, this, W->Element); // Rage / Siege (syncSimFromLive)
+				if (AWFGameMode* HeatMode = GetWorld()->GetAuthGameMode<AWFGameMode>()) HeatMode->AddCombatHeat(wf::city::FHeatGain::BulletHit);
+			}
 	}
 	if (Live.VeilTime > wf::ability::VeilBreakTime) Live.VeilTime = wf::ability::VeilBreakTime; // firing breaks Phase Veil
 

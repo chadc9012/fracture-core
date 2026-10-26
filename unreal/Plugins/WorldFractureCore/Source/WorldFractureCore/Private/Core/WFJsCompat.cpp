@@ -1,8 +1,10 @@
 #include "Core/WFJsCompat.h"
 
+#include <algorithm>
 #include <charconv>
 #include <cmath>
 #include <cstdlib>
+#include <limits>
 
 namespace wf::js
 {
@@ -41,6 +43,25 @@ namespace wf::js
 	{
 		const double Floor = std::floor(Value);
 		return Value - Floor >= 0.5 ? Floor + 1 : Floor;
+	}
+
+	double Hypot(double A, double B)
+	{
+		A = std::fabs(A); B = std::fabs(B);
+		if (std::isinf(A) || std::isinf(B)) return std::numeric_limits<double>::infinity();
+		if (std::isnan(A) || std::isnan(B)) return std::numeric_limits<double>::quiet_NaN();
+		const double Max = std::max(A, B);
+		if (Max == 0) return 0;
+		double Sum = 0, Compensation = 0;
+		for (const double X : { A, B })
+		{
+			const double R = X / Max;
+			const double Summand = R * R - Compensation;
+			const double Preliminary = Sum + Summand;
+			Compensation = (Preliminary - Sum) - Summand;
+			Sum = Preliminary;
+		}
+		return std::sqrt(Sum) * Max;
 	}
 
 	uint32_t Fnv1a(const std::string& Text)

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Core/WFCityCore.h"
 #include "Core/WFEncounterCore.h"
 #include "GameFramework/GameModeBase.h"
 #include "WFGameMode.generated.h"
@@ -105,6 +106,18 @@ public:
 	/** HUD: the nearest live encounter boss, its hp fraction, encounter phase, and the attack being wound up (if any). */
 	bool GetBossHud(FString& OutName, double& OutHpFraction, FString& OutPhase, FString& OutWindup, double& OutWindupProgress) const;
 	const FString& GetRegionName() const { return RegionName; }
+
+	// ---- city systems (ported sim.ts combatHeat, heat.ts, stealth.ts, quest-signals.ts) ----
+	/** Shots, blasts, crashes, rams and melee raise combat heat (wf::city::FHeatGain); it decays 6 per second. */
+	void AddCombatHeat(double Amount) { CombatHeat += Amount; }
+	double GetCombatHeat() const { return CombatHeat; }
+	/** the 0-100 Neon City heat meter behind the 1-5 heat level */
+	double GetHeatMeter() const { return HeatMeter; }
+	/** Nexus City: the surveillance detection meter (0-100) and the hack in progress (0-100, H held) */
+	double GetDetectionMeter() const { return DetectionMeter; }
+	double GetHackProgress() const { return HackProgress; }
+	bool IsHacking() const { return bHacking; }
+	bool IsInNexus() const { return RegionId == TEXT("nexus"); }
 	/** The region's ground speed rating (regions.ts speed): scales vehicle top speed. */
 	double GetRegionSpeed() const { return RegionSpeed; }
 
@@ -114,6 +127,8 @@ private:
 	void SpawnTrooper();
 	void LoadScenarios();
 	void TickEncounters(float DeltaSeconds);
+	void TickCity(float DeltaSeconds);
+	void DrawTurrets() const;
 	void TickRace(float DeltaSeconds);
 	void DrawRace() const;
 	double GroundZ(double XCm, double YCm, double FallbackCm) const;
@@ -132,6 +147,11 @@ private:
 	int32 SeenRaceFinishes = 0;
 	TMap<int64, TWeakObjectPtr<AWFEnemy>> DecoyActors; // decoy id -> actor
 	TMap<int64, TWeakObjectPtr<AWFEnemy>> SummonActors; // summon id -> actor
+
+	double CombatHeat = 0, HeatMeter = 0, DetectionMeter = 0, HackProgress = 0;
+	bool bHacking = false;
+	std::vector<wf::city::FTurret> Turrets; // the safe-zone perimeter turrets (createSim layout)
+	wf::city::FQuestSignals QuestSignals;
 
 	struct FScenarioBoss
 	{
