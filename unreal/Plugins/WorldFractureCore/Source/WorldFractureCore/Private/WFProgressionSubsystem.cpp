@@ -432,7 +432,12 @@ FString UWFProgressionSubsystem::ResolveWasteland(const wf::wasteland::FEmit& Em
 	State = std::move(R.Progression);
 	if (State.Level > LevelBefore) OnLevelUp.Broadcast(static_cast<int32>(State.Level));
 	if (bPaidMission) AfterMissionPayout(InventoryBefore);
-	else NotifyChanged();
+	else
+	{
+		for (size_t I = InventoryBefore; I < State.Inventory.size(); ++I)
+			OnLootGained.Broadcast(ToF(State.Inventory[I].Name), ToF(State.Inventory[I].Rarity.value_or("")));
+		NotifyChanged();
+	}
 	return UTF8_TO_TCHAR(R.Message.c_str());
 }
 

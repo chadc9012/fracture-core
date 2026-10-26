@@ -216,7 +216,7 @@ private:
 	double GrenadeCool = 0, NextGrenadeId = 1;
 	int32 NextSquadIndex = 0;
 	TMap<FString, FString> FactionByRegion; // RegionFactions: region -> faction kind
-	TMap<FString, double> PendingSurvive;
+	TMap<FString, double> PendingSurvive; // survive seconds per world, sent to the quests about once a second
 	wf::wasteland::FRuntime WasteRt;
 	std::optional<wf::wasteland::FHud> WasteHud;
 	bool bWasteActive = false, bWasteAutoPlaced = false;
@@ -230,7 +230,7 @@ private:
 	TSet<FString> SecretsReached; // living-runtime.ts rt.reached: a secret claims once per session
 	double SecretDist = -1;
 	FString SecretName, SecretLocked;
-	bool bGuardianOut = false; // survive seconds per world, sent to the quests about once a second
+	bool bGuardianOut = false; // living-runtime.ts guardianOut: the Furnace Guardian woke this visit
 
 	struct FScenarioBoss
 	{

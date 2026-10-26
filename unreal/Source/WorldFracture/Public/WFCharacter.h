@@ -56,7 +56,7 @@ public:
 	void SetHazardSpeedMult(double Mult) { HazardSpeedMult = Mult; }
 	bool IsHackHeld() const { return bHackHeld; }
 	/** STAND | CROUCH | PRONE (movement.ts): enemies hit a crouched or prone Operator less often */
-	const std::string& GetStance() const { return Move.Stance; }
+	const std::string& GetStance() const { return MoveKit.Stance; }
 	/** the web build's foot units per Unreal metre/second: its walk is 14, this Operator's is 4.5 m/s */
 	static constexpr double FootRatio = 4.5 / wf::move::BaseFootSpeed;
 	/** the worn armor's effects (vehicle guns read the driver's weapon damage) */
@@ -168,7 +168,7 @@ private:
 	void JumpPressed();
 	void JumpReleased();
 	std::string MoveClass() const;
-	wf::move::FMoveState Move;
+	wf::move::FMoveState MoveKit;
 	bool bJumpHeld = false, bCrouchHeld = false, bSlideKeyWas = false;
 	int32 ChainCount = 0;
 	double LastVaultAt = -10;

@@ -57,7 +57,7 @@ void AWFGameMode::StartPlay()
 	TArray<TSharedPtr<FJsonObject>> RegionRows;
 	if (WFData::LoadRows(TEXT("Regions"), RegionRows, RegionsError))
 		for (const TSharedPtr<FJsonObject>& R : RegionRows)
-			RegionCircles.Add(WFData::Str(R, TEXT("Id")), {WFData::Num(R, TEXT("X")), WFData::Num(R, TEXT("Z")), WFData::Num(R, TEXT("Radius"))});
+			RegionCircles.Add(WFData::Str(R, TEXT("Id")), wf::godforge::FRegionCircle{WFData::Num(R, TEXT("X")), WFData::Num(R, TEXT("Z")), WFData::Num(R, TEXT("Radius"))});
 	if (const wf::godforge::FRegionCircle* Mine = RegionCircles.Find(RegionId)) RegionCircle = *Mine;
 	if (RegionRows.Num())
 		for (const TSharedPtr<FJsonObject>& R : RegionRows)
@@ -939,7 +939,7 @@ int32 AWFGameMode::SpawnActivitySquad(const FString& Tag, double X, double Z, in
 		const bool bElite = I < Elites;
 		const FWFTroop Troop = WasteRoster.IsEmpty() ? FWFTroop{TEXT("Hostile"), TEXT("scrapMetal")} : WasteRoster[FMath::Abs(Kind >= 0 ? Kind : I) % WasteRoster.Num()];
 		const double MaxHealth = (bElite ? 7.0 : 3.5) * (Progression ? Progression->GetChallengeEnemyHealthScale() : 1.0);
-		const FTransform Xf(FRotator::ZeroRotator, At);
+		const FTransform Xf(FRotator::ZeroRotator, At, FVector(bElite ? 1.4 : 0.95)); // spawnEventSquad: elites stand larger
 		if (AWFEnemy* Enemy = World->SpawnActorDeferred<AWFEnemy>(AWFEnemy::StaticClass(), Xf, nullptr, nullptr, ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn))
 		{
 			Enemy->Configure(Troop.Name, TEXT("wastelands"), Troop.Drop, bElite, false, MaxHealth);
@@ -1030,11 +1030,11 @@ void AWFGameMode::DrawWasteland() const
 		return;
 	}
 	if (WasteRt.Vault) { Ring(VaultGate.X, VaultGate.Z, GateThreatRadius, FColor(255, 90, 60), 150.f, 3.f); Ring(VaultGate.X, VaultGate.Z, VaultGate.Radius, FColor(255, 190, 80), 500.f, 6.f); return; }
-	if (WasteRt.Derby) { Ring(Arena.X, Arena.Z, Arena.Radius, FColor(255, 70, 60), 300.f, 8.f); return; }
+	if (WasteRt.Derby) { Ring(wf::wasteland::Arena.X, wf::wasteland::Arena.Z, wf::wasteland::Arena.Radius, FColor(255, 70, 60), 300.f, 8.f); return; }
 	// idle: the three start pads (the Mash-Pit starts once you are 4 m inside its ring)
 	Ring(VaultGate.X, VaultGate.Z, VaultGate.Radius, FColor(255, 190, 80), 500.f, 5.f);
 	Ring(RallyStart.X, RallyStart.Z, RallyReach, FColor(110, 230, 255), 500.f, 5.f);
-	Ring(Arena.X, Arena.Z, Arena.Radius, FColor(255, 70, 60), 250.f, 5.f);
+	Ring(wf::wasteland::Arena.X, wf::wasteland::Arena.Z, wf::wasteland::Arena.Radius, FColor(255, 70, 60), 250.f, 5.f);
 }
 
 // --- the Godforge and the Living Secret World ---------------------------------------------------------------------------
@@ -1058,6 +1058,7 @@ FVector2D AWFGameMode::WorldToRegion(const FVector& L) const
 void AWFGameMode::TickGodforge(float DeltaSeconds)
 {
 	(void)DeltaSeconds;
+	SecretDist = -1; SecretName.Reset(); SecretLocked.Reset(); // nothing sensed unless this frame senses it
 	APawn* Pawn = UGameplayStatics::GetPlayerPawn(this, 0);
 	UWFProgressionSubsystem* Prog = GetGameInstance()->GetSubsystem<UWFProgressionSubsystem>();
 	UWorld* World = GetWorld();
@@ -1084,7 +1085,6 @@ void AWFGameMode::TickGodforge(float DeltaSeconds)
 		if (WFData::ToF(Id) != RegionId) return std::nullopt;
 		return RegionCircle;
 	};
-	SecretDist = -1; SecretName.Reset(); SecretLocked.Reset();
 	if (bAlive)
 		if (const std::optional<wf::godforge::FSensed> Sensed = wf::godforge::SenseSecret(P.X, P.Y, Ctx, Save.EarnedRewards, RegionOf))
 		{

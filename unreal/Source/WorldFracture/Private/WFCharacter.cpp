@@ -214,7 +214,7 @@ void AWFCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 	Input->BindActionValueLambda(JumpAction, ETriggerEvent::Completed, [this](const FInputActionValue&) { JumpReleased(); });
 	Input->BindActionValueLambda(CrouchAction, ETriggerEvent::Started, [this](const FInputActionValue&) { bCrouchHeld = true; });
 	Input->BindActionValueLambda(CrouchAction, ETriggerEvent::Completed, [this](const FInputActionValue&) { bCrouchHeld = false; });
-	Input->BindActionValueLambda(ProneAction, ETriggerEvent::Started, [this](const FInputActionValue&) { Move.bProne = !Move.bProne; });
+	Input->BindActionValueLambda(ProneAction, ETriggerEvent::Started, [this](const FInputActionValue&) { MoveKit.bProne = !MoveKit.bProne; });
 	Input->BindAction(FireAction, ETriggerEvent::Started, this, &AWFCharacter::FireStarted);
 	Input->BindAction(FireAction, ETriggerEvent::Completed, this, &AWFCharacter::FireStopped);
 	Input->BindAction(AimAction, ETriggerEvent::Started, this, &AWFCharacter::AimStarted);
@@ -617,8 +617,10 @@ void AWFCharacter::Tick(float DeltaSeconds)
 	Super::Tick(DeltaSeconds);
 	ArmorRefresh -= DeltaSeconds;
 	if (ArmorRefresh <= 0)
+	{
 		if (const UWFProgressionSubsystem* Progression = GetGameInstance()->GetSubsystem<UWFProgressionSubsystem>()) { ArmorFx = Progression->GetArmorEffects(); ArmorRefresh = 0.5; }
 		RefreshRelic();
+	}
 	TickAbilities(DeltaSeconds); // cooldowns, energy, turrets and zones keep running while driving
 	TickRounds(DeltaSeconds);    // launcher rounds already in the air keep flying
 	// health.ts stepHealth: armor regen (Rootbound Recovery, Resolve...) all the time, the base rate after the delay
@@ -633,8 +635,8 @@ void AWFCharacter::Tick(float DeltaSeconds)
 		TickMovementKit(DeltaSeconds);
 		// Scene.tsx walk speed: sprint only standing, the stance, armor, Rift Dash x1.4, Siege Mode x0.8, the parkour chain bonus
 		const double Chain = wf::move::ParkourChainBonus(ChainCount, GetWorld()->GetTimeSeconds() - LastVaultAt);
-		const bool bSprint = bSprinting && Move.Stance == "STAND";
-		GetCharacterMovement()->MaxWalkSpeed = static_cast<float>((bSprint ? SprintSpeed : WalkSpeed) * wf::move::StanceSpeed(Move.Stance) * (1 + ArmorFx.MoveSpeed) * HazardSpeedMult * (Live.DashTime > 0 ? 1.4 : 1.0) * wf::ability::SiegeMoveMult(Live.SiegeTime) * (1 + Chain));
+		const bool bSprint = bSprinting && MoveKit.Stance == "STAND";
+		GetCharacterMovement()->MaxWalkSpeed = static_cast<float>((bSprint ? SprintSpeed : WalkSpeed) * wf::move::StanceSpeed(MoveKit.Stance) * (1 + ArmorFx.MoveSpeed) * HazardSpeedMult * (Live.DashTime > 0 ? 1.4 : 1.0) * wf::ability::SiegeMoveMult(Live.SiegeTime) * (1 + Chain));
 	}
 
 	if (GetActorLocation().Z < -50000.f) Respawn(); // fell out of the world
@@ -643,7 +645,8 @@ void AWFCharacter::Tick(float DeltaSeconds)
 std::string AWFCharacter::MoveClass() const
 {
 	const UWFProgressionSubsystem* Progression = GetGameInstance()->GetSubsystem<UWFProgressionSubsystem>();
-	return Progression ? WFData::ToStd(Progression->GetIdentityClass()) : std::string("TITAN");
+	const std::string Cls = Progression ? WFData::ToStd(Progression->GetIdentityClass()) : std::string();
+	return Cls.empty() ? std::string("TITAN") : Cls; // no operator picked yet: movement.ts falls back to the Titan profile
 }
 
 void AWFCharacter::JumpPressed()
@@ -662,7 +665,7 @@ void AWFCharacter::JumpPressed()
 		const double Now = GetWorld()->GetTimeSeconds();
 		ChainCount = Now - LastVaultAt < wf::move::ChainWindow ? ChainCount + 1 : 1;
 		LastVaultAt = Now;
-		wf::move::CancelSlide(Move);
+		wf::move::CancelSlide(MoveKit);
 		return;
 	}
 	// movement.ts airJump: Titan one, Hunter two, Warlock one (then hold to glide)
@@ -687,15 +690,15 @@ void AWFCharacter::TickMovementKit(float DeltaSeconds)
 	const FVector V = GetVelocity();
 	if (bCrouchHeld && !bSlideKeyWas && bGrounded) wf::move::StartSlide(Move, V.X / 100 / FootRatio, V.Y / 100 / FootRatio);
 	bSlideKeyWas = bCrouchHeld;
-	if (Move.SlideLeft > 0 && (!bGrounded || bJumpHeld)) wf::move::CancelSlide(Move);
+	if (MoveKit.SlideLeft > 0 && (!bGrounded || bJumpHeld)) wf::move::CancelSlide(MoveKit);
 	const double Slide = wf::move::StepSlide(Move, Dt);
 	if (Slide > 0)
 	{
 		const double Ue = Slide * (1 + ArmorFx.SlideBoost) * FootRatio * 100;
-		Cm->Velocity = FVector(Move.SlideDirX * Ue, Move.SlideDirZ * Ue, Cm->Velocity.Z);
+		Cm->Velocity = FVector(MoveKit.SlideDirX * Ue, MoveKit.SlideDirZ * Ue, Cm->Velocity.Z);
 	}
 	wf::move::FStanceInput In;
-	In.bCrouchHeld = bCrouchHeld; In.bSprinting = bSprinting; In.bJumping = bJumpHeld; In.bGrounded = bGrounded; In.bSliding = Move.SlideLeft > 0; In.bSwimming = Cm->IsSwimming();
+	In.bCrouchHeld = bCrouchHeld; In.bSprinting = bSprinting; In.bJumping = bJumpHeld; In.bGrounded = bGrounded; In.bSliding = MoveKit.SlideLeft > 0; In.bSwimming = Cm->IsSwimming();
 	wf::move::ResolveStance(Move, In);
 	wf::move::StepStance(Move, Dt);
 	// Warlock glide: holding jump while falling caps the fall and pushes forward
@@ -710,8 +713,8 @@ void AWFCharacter::TickMovementKit(float DeltaSeconds)
 		}
 	}
 	// the camera sinks for the stance and the slide; the FOV widens sprinting and sliding (relative to this camera's 90)
-	Camera->SetRelativeLocation(FVector(0.f, 0.f, 72.f - static_cast<float>(wf::move::CameraDrop(Move) * 60)));
-	const double Fov = BaseFov + (wf::move::MovementFov(bAiming, bSprinting && Move.Stance == "STAND" && bGrounded && V.Size2D() > 200, Move.SlideLeft > 0, Move.Stance) - 78);
+	Camera->SetRelativeLocation(FVector(0.f, 0.f, 72.f - static_cast<float>(wf::move::CameraDrop(MoveKit) * 60)));
+	const double Fov = BaseFov + (wf::move::MovementFov(bAiming, bSprinting && MoveKit.Stance == "STAND" && bGrounded && V.Size2D() > 200, MoveKit.SlideLeft > 0, MoveKit.Stance) - 78);
 	Camera->SetFieldOfView(FMath::FInterpTo(Camera->FieldOfView, static_cast<float>(Fov), static_cast<float>(Dt), 8.f));
 }
 
@@ -740,6 +743,9 @@ void AWFCharacter::TickWeapon(float DeltaSeconds)
 		}
 		return;
 	}
+
+	// Scene.tsx: the trigger and burst only run while the guns are not venting (a burst cut off by an overheat resumes after)
+	if (const AWFGameMode* HeatMode = GetWorld()->GetAuthGameMode<AWFGameMode>(); HeatMode && HeatMode->GetWeaponHeat().bOverheated) return;
 
 	if (BurstLeft > 0)
 	{
