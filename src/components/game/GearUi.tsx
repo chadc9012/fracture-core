@@ -53,7 +53,7 @@ export function ItemCard({ item, worn, equippedLabel, className = "", children }
   return (
     <div className={`wf-item-card ${className}`} role="group" aria-label={`${t.title} details`}>
       <div className="flex items-start justify-between gap-3 px-4 py-2.5" style={{ background: `linear-gradient(90deg, ${fill.from}, ${fill.to})` }}>
-        <div className="min-w-0"><p className="truncate text-xl font-bold uppercase leading-tight tracking-[0.04em] text-white">{t.title}</p><p className="text-sm text-white/85">{SLOT_NAME[item.slot]}</p></div>
+        <div className="min-w-0"><p className="truncate text-xl font-bold uppercase leading-tight tracking-[0.04em] text-white">{t.title}</p><p className="text-sm text-white/85">{t.type.split(" · ").slice(0, -1).join(" · ") || SLOT_NAME[item.slot]}</p></div>
         <p className="shrink-0 pt-1 text-sm font-semibold capitalize text-white/75">{t.tier.toLowerCase()}</p>
       </div>
       <div className="flex items-baseline gap-2 px-4 pt-3">
@@ -69,8 +69,8 @@ export function ItemCard({ item, worn, equippedLabel, className = "", children }
           <div key={s.label} className="flex items-center gap-2 text-sm">
             <span className="w-20 text-white/75">{s.label}</span>
             <div className="h-2 flex-1 bg-white/10"><div className="h-2 bg-white/90" style={{ width: `${Math.min(100, (s.value / s.max) * 100)}%` }} /></div>
-            <span className="w-8 text-right font-semibold">{s.value}</span>
-            <span className={`w-10 text-right text-xs font-bold ${d > 0 ? "text-[#7be08a]" : d < 0 ? "text-[#ff6b6b]" : "text-transparent"}`}>{d ? `${d > 0 ? "▲" : "▼"}${Math.abs(d)}` : "·"}</span>
+            <span className="w-12 text-right font-semibold">{s.text ?? s.value}</span>
+            <span className={`w-10 text-right text-xs font-bold ${d > 0 ? "text-[#7be08a]" : d < 0 ? "text-[#ff6b6b]" : "text-transparent"}`}>{d ? `${d > 0 ? "▲" : "▼"}${s.label === "Headshot" ? (Math.abs(d) / 100).toFixed(1) : Math.abs(d)}` : "·"}</span>
           </div>); })}
       </div>
       {t.perks.length > 0 && <ul className="mx-4 mt-3 space-y-1 border-t border-white/15 pt-2 text-sm text-white/70">{t.perks.map((p) => <li key={p} className="flex gap-2"><span className="text-white/40">◇</span>{p}</li>)}</ul>}

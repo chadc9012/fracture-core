@@ -9,6 +9,7 @@ import { LANDMARKS, landmarkKey } from "./landmarks";
 import type { PlayerProgression } from "./progression";
 import { QUESTS } from "./quests";
 import { VEHICLES } from "./vehicles";
+import { killLine, weaponProfile } from "./weapon-card";
 
 export const WEAPON_SLOTS = ["primary", "secondary", "heavy"] as const satisfies readonly GearSlot[];
 export const ARMOR_SLOTS: readonly SetSlot[] = ["helmet", "gauntlets", "chest", "legs", "classItem"];
@@ -48,15 +49,23 @@ export function characterSheet(p: Save & Pick<PlayerProgression, "materials" | "
   };
 }
 
-export type Tooltip = { title: string; type: string; tier: Tier; color: string; power: number; source: string; stats: { label: string; value: number; max: number }[]; perks: string[] };
+export type Tooltip = { title: string; type: string; tier: Tier; color: string; power: number; source: string; stats: { label: string; value: number; max: number; /** shown instead of the bare value (e.g. "28 m", "x2.4") */ text?: string }[]; perks: string[] };
 export function itemTooltip(item: GearItem): Tooltip {
   const tier = tierOf(item);
   const armor = (SET_SLOTS as readonly string[]).includes(item.slot);
+  const profile = armor ? null : weaponProfile(item);
   const stats = armor
     ? (() => { const at = pieceAttributes(item); return [{ label: "Mobility", value: Math.round(at.mobility), max: 20 }, { label: "Defense", value: Math.round(at.defense), max: 20 }, { label: "Intellect", value: Math.round(at.intellect), max: 20 }]; })()
-    : [{ label: "Impact", value: item.power, max: 200 }, { label: "Level", value: item.level, max: 10 }];
+    : [{ label: "Impact", value: item.power, max: 200 }, { label: "Level", value: item.level, max: 10 },
+      // weapon-card.ts: the class's range band and headshot multiplier, from the same rules combat uses
+      ...(profile ? [
+        { label: "Range", value: Number.isFinite(profile.range) ? Math.min(150, profile.range) : 150, max: 150, text: Number.isFinite(profile.range) ? `${profile.range} m` : "Any" },
+        { label: "Headshot", value: Math.round(profile.precision * 100), max: 250, text: profile.precision > 1 ? `×${profile.precision}` : "—" },
+      ] : [])];
   const set = item.setId ? setById(item.setId) : undefined;
   const perks = [
+    // the class and its job first, then what it takes to drop a trooper and an elite with it (weapon-card.ts)
+    ...(profile ? [`${profile.className} · ${profile.roleLabel}`, killLine(profile)] : []),
     ...(item.element && item.element !== "KINETIC" ? [`${item.element[0]}${item.element.slice(1).toLowerCase()} element`] : []),
     ...(item.perk === "NULL_DISRUPTION" ? ["Null Disruption"] : []),
     ...(item.perk === "MAW_COLLAPSE" ? ["Maw Collapse: every 6th hit collapses a singularity that drags nearby enemies in"] : []),
@@ -65,7 +74,7 @@ export function itemTooltip(item: GearItem): Tooltip {
     ...(() => { const f = foundryOf(item); return f ? [`${FOUNDRIES[f].name}: ${FOUNDRIES[f].perk} (${FOUNDRIES[f].text})`] : []; })(),
     ...(() => { const t = taxonomyOf(item); return t ? [`${t.category} · ${t.type}`] : []; })(),
   ];
-  return { title: item.name, type: `${SLOT_NAME[item.slot]} · ${tier[0]}${tier.slice(1).toLowerCase()}`, tier, color: TIER_COLOR[tier], power: item.power, source: item.source, stats, perks };
+  return { title: item.name, type: `${SLOT_NAME[item.slot]}${profile ? ` · ${profile.className}` : ""} · ${tier[0]}${tier.slice(1).toLowerCase()}`, tier, color: TIER_COLOR[tier], power: item.power, source: item.source, stats, perks };
 }
 
 /** what can go in `slot`, strongest first, equipped item first among equals */
