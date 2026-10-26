@@ -163,6 +163,12 @@ void AWFVehicle::Enter(AWFCharacter* InDriver)
 {
 	APlayerController* PC = InDriver ? Cast<APlayerController>(InDriver->GetController()) : nullptr;
 	if (!PC) return;
+	// Scene.tsx: a disabled (or wreck-level) vehicle can't be driven; repair it first (RepairVehicle)
+	if (wf::vehicle::ConditionEffects(Condition).bDisabled || std::string(wf::city::VehicleDamageStage(100 - Condition.Body).Stage) == "CRITICAL")
+	{
+		Notify(TEXT("Too wrecked to drive - repair it first"), FLinearColor(1.f, 0.3f, 0.25f));
+		return;
+	}
 	Driver = InDriver;
 	Gunner = InDriver;
 	InDriver->SetInVehicle(true);

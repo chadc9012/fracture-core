@@ -155,6 +155,7 @@ private:
 	bool bHacking = false;
 	std::vector<wf::city::FTurret> Turrets; // the safe-zone perimeter turrets (createSim layout)
 	wf::city::FQuestSignals QuestSignals;
+	TMap<FString, double> PendingSurvive; // survive seconds per world, sent to the quests about once a second
 
 	struct FScenarioBoss
 	{

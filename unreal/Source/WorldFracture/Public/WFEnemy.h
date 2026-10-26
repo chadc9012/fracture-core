@@ -45,6 +45,8 @@ public:
 	/** Element is the hit's damage element (KINETIC, THERMAL, CRYO, ARC, BIO): scenario gimmicks read it. */
 	/** Returns the damage the hit really dealt (after vulnerability and the boss rules). */
 	double TakeHit(double Damage, AActor* DamageInstigator, const FString& Element = TEXT("KINETIC"));
+	/** TakeHit that never takes health below Floor (a finisher shockwave never kills a boss outright) */
+	double TakeHitLeaving(double Damage, AActor* DamageInstigator, const FString& Element, double Floor);
 	// Dragonite casts (ported dragonite-cast.ts) read and change these
 	double GetAim() const { return Windup >= 0 ? 1.0 : 0.0; }
 	void CancelWindup() { Windup = -1; }
@@ -62,7 +64,7 @@ public:
 	/** A False Saint (Hollow Saint decoy): never attacks, pays nothing, and reports its shattering to the encounter. */
 	void ConfigureDecoy(double InDecoyId) { bDecoy = true; DecoyId = InDecoyId; }
 	/** a trooper an encounter boss called in (encounter-sim.ts SUMMON) */
-	void ConfigureSummon(double InSummonId) { SummonId = InSummonId; }
+	void ConfigureSummon(double InSummonId, double InScale) { SummonId = InSummonId; ScaleOverride = InScale; }
 	double GetSummonId() const { return SummonId; }
 	bool IsDecoy() const { return bDecoy; }
 	double GetDecoyId() const { return DecoyId; }
@@ -125,6 +127,8 @@ private:
 	double DecoyId = 0;
 	double SummonId = 0; // 0 = not called in
 	double KnockX = 0, KnockZ = 0;
+	double HitFloor = 0;      // TakeHitLeaving: health a hit may not cross
+	double ScaleOverride = 0; // a summon's authored scale (encounter-sim.ts SummonGroup.scale)
 	wf::encounter::FBoss BossRules;
 	double PhaseSpeedMult = 1, PhaseDamageMult = 1, PhaseCooldownMult = 1; // regional boss phase tuning
 	FString ScenarioRun;

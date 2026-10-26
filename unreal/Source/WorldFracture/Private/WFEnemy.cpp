@@ -114,7 +114,7 @@ void AWFEnemy::BeginPlay()
 		Body->SetMaterial(0, Paint);
 		Head->SetMaterial(0, Paint);
 	}
-	const double Scale = bBoss ? 1.8 : bElite ? 1.25 : 1.0;
+	const double Scale = ScaleOverride > 0 ? ScaleOverride : bBoss ? 1.8 : bElite ? 1.25 : 1.0;
 	SetActorScale3D(FVector(Scale));
 	GetCharacterMovement()->MaxWalkSpeed = static_cast<float>(SpeedBase * (bElite ? SpeedElite : 1.0) * CmPerM);
 	RangedCooldown = 1.5; // sim.ts spawnMachine cool
@@ -282,12 +282,20 @@ void AWFEnemy::TryAttack(AWFCharacter* Operator, AWFVehicle* Car, double Distanc
 		const bool bBlocked = GetWorld()->LineTraceSingleByChannel(Hit, From, To, ECC_Visibility, Params) && Hit.GetActor() != Target;
 		DrawDebugLine(GetWorld(), From, bBlocked ? Hit.ImpactPoint : To, FColor(255, 70, 50), false, 0.08f, 0, 1.f);
 		const bool bSpoofed = Car && Car->IsSpoofed(GetWorld()->GetTimeSeconds());
-		const double Chance = wf::perception::EnemyHitChance(Distance, wf::perception::RangedRange, Target->GetVelocity().Size2D() / CmPerM);
+		const double Chance = wf::perception::EnemyHitChance(Distance, wf::perception::RangedRange, Car ? FMath::Abs(Car->GetState().Speed) : Operator->GetVelocity().Size2D() / CmPerM); // a car moves without a movement component
 		if (!bBlocked && !bSpoofed && FMath::FRand() < Chance) Hurt(Tier(2, 4, 6) * PhaseDamageMult);
 		return;
 	}
 	RangedCooldown -= DeltaSeconds;
 	if (RangedCooldown <= 0) Windup = wf::perception::WindupFor(bBoss, bElite); // telegraph, then shoot
+}
+
+double AWFEnemy::TakeHitLeaving(double Damage, AActor* DamageInstigator, const FString& Element, double Floor)
+{
+	HitFloor = Floor; // TakeHit applies it before its death check
+	const double Dealt = TakeHit(Damage, DamageInstigator, Element);
+	HitFloor = 0;
+	return Dealt;
 }
 
 double AWFEnemy::TakeHit(double Damage, AActor* DamageInstigator, const FString& Element)
@@ -305,6 +313,7 @@ double AWFEnemy::TakeHit(double Damage, AActor* DamageInstigator, const FString&
 		Damage = wf::encounter::ApplyBossDamage(Mode->GetEncounterCatalog(), BossRules, Damage, WFData::ToStd(Element), Distance, Now);
 	}
 	Health -= Damage;
+	if (HitFloor > 0 && Health < HitFloor) Health = FMath::Min(HitFloor, Health + Damage); // TakeHitLeaving
 	if (Cast<AWFCharacter>(DamageInstigator)) SincePlayerHit = 0;
 	if (Health > 0) return Damage;
 	if (bBoss && Mode && !bDecoy)

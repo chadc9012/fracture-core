@@ -195,7 +195,8 @@ void AWFGameMode::TickCity(float DeltaSeconds)
 		if (const std::optional<wf::city::FTurretShot> Shot = wf::city::StepTurret(T, Targets, Dt))
 		{
 			AWFEnemy* E = Enemies[Shot->Target];
-			E->LaunchCharacter(FVector(Shot->KnockX, Shot->KnockZ, 0) * EncCmPerM, true, false);
+			if (!IsValid(E) || E->IsDead()) continue;
+			E->AddKnock(Shot->KnockX, Shot->KnockZ); // the shared knock model (bosses are heavy)
 			if (E->TakeHit(Shot->Damage, nullptr) > 0 && E->IsDead()) Toast(TEXT("Safe-zone turret destroyed an ambusher"), EncCyan);
 		}
 	DrawTurrets();
@@ -224,12 +225,15 @@ void AWFGameMode::TickCity(float DeltaSeconds)
 	Hud.HackProgress = HackProgress;
 	Hud.bDiving = false; // the prototype has no diving
 	Hud.Kills = Progression->GetSessionKills();
+	// survive time is summed and sent once a second: each report copies and re-broadcasts the whole save
+	for (auto It = PendingSurvive.CreateIterator(); It; ++It)
+		if (It.Value() >= 1.0 || It.Key() != RegionId) { Quests->ReportSurvived(It.Key(), It.Value()); It.RemoveCurrent(); }
 	Hud.Hp = Player ? Player->GetHealth() : 100;
 	for (const wf::city::FSignalEvent& E : wf::city::QuestEventsFromHud(QuestSignals, Hud, Dt))
 	{
 		if (E.Type == "ENTER_WORLD") Quests->ReportEnterWorld(WFData::ToF(E.World));
 		else if (E.Type == "KILL") Quests->ReportKill(WFData::ToF(E.World));
-		else if (E.Type == "SURVIVED") Quests->ReportSurvived(WFData::ToF(E.World), E.Number);
+		else if (E.Type == "SURVIVED") PendingSurvive.FindOrAdd(WFData::ToF(E.World)) += E.Number;
 		else if (E.Type == "HEAT_LEVEL") { Quests->ReportHeatLevel(static_cast<int32>(E.Number)); Toast(FString::Printf(TEXT("HEAT %d - %s"), static_cast<int32>(E.Number), UTF8_TO_TCHAR(wf::city::HeatStatus(HeatMeter).Response)), EncWarn); }
 		else if (E.Type == "LOCKDOWN_TIER") { Quests->ReportLockdownTier(WFData::ToF(E.Tier)); if (bNexus) Toast(UTF8_TO_TCHAR(wf::city::LockdownStatus(DetectionMeter).Response), EncWarn); }
 		else if (E.Type == "HACK_COMPLETE") { Quests->ReportHackComplete(); Toast(TEXT("Hack complete"), EncCyan); }
@@ -318,7 +322,7 @@ void AWFGameMode::SyncSummons()
 		if (AWFEnemy* Trooper = GetWorld()->SpawnActorDeferred<AWFEnemy>(AWFEnemy::StaticClass(), Spawn, nullptr, nullptr, ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn))
 		{
 			Trooper->Configure(WFData::ToF(S.Profile), RegionId, TEXT("dataShards"), S.bElite, false, S.Hp); // hp already x challenge
-			Trooper->ConfigureSummon(S.Id);
+			Trooper->ConfigureSummon(S.Id, S.Scale);
 			Trooper->FinishSpawning(Spawn);
 			SummonActors.Add(Id, Trooper);
 		}

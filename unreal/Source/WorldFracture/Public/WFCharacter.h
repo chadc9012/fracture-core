@@ -57,9 +57,9 @@ public:
 
 	// Console commands for the dragon progression (no menu yet)
 	/** UpgradeDragonite dragonfire|wyrmwing|dragonhide|wyrmcall|roar|scalebreaker|skyfall */
+	UFUNCTION(Exec) void UpgradeDragonite(const FString& Ability);
 	/** EquipBlade vectal|aegis-broadsword|sun-cutter|none: the monoblade the Fracture Blade swings (foundries.ts; must be owned) */
 	UFUNCTION(Exec) void EquipBlade(const FString& BladeId);
-	UFUNCTION(Exec) void UpgradeDragonite(const FString& Ability);
 	/** VyrakTrust ruin|puzzle|protect <id> */
 	UFUNCTION(Exec) void VyrakTrust(const FString& Kind, const FString& SourceId);
 	UFUNCTION(Exec) void AncientBond();

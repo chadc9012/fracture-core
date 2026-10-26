@@ -558,6 +558,7 @@ void AWFCharacter::SetInVehicle(bool bIn)
 {
 	bInVehicle = bIn;
 	bFireHeld = false;
+	bHackHeld = false; // H released while possession changed never sends Completed
 	bAiming = false;
 	bSprinting = false;
 	if (bIn) GetCharacterMovement()->DisableMovement();
@@ -607,6 +608,7 @@ void AWFCharacter::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
 	TickAbilities(DeltaSeconds); // cooldowns, energy, turrets and zones keep running while driving
+	TickRounds(DeltaSeconds);    // launcher rounds already in the air keep flying
 	if (bInVehicle) return; // carried by a vehicle: hidden, not simulating
 	TickWeapon(DeltaSeconds);
 	TickDragon(DeltaSeconds);
@@ -625,7 +627,6 @@ void AWFCharacter::TickWeapon(float DeltaSeconds)
 	const FWFWeaponStats* W = GetWeapon();
 	if (!W) return;
 	Cooldown = FMath::Max(0.0, Cooldown - DeltaSeconds);
-	TickRounds(DeltaSeconds);
 	wf::arms::TickCombo(Combo, DeltaSeconds);
 	if (W->Kind == TEXT("sword"))
 	{
@@ -742,17 +743,19 @@ void AWFCharacter::SwingBlade(const FWFWeaponStats& W, int32 Step)
 	{
 		for (AWFEnemy* E : Enemies)
 		{
+			if (!IsValid(E) || E->IsDead()) continue; // a boss kill can dismiss its summons mid-loop
 			const FVector P = E->GetActorLocation() / CmPerMeter;
 			if (E->IsDecoy() || !wf::arms::InShockwave(*Sw.Shockwave, Me.X, Me.Y, Yaw, P.X, P.Y)) continue;
-			const double Dmg = E->IsBoss() ? FMath::Min(Sw.Shockwave->Damage, FMath::Max(0.0, E->GetHealth() - 0.01)) : Sw.Shockwave->Damage;
-			if (Dmg > 0) E->TakeHit(Dmg, this, TEXT("ARC"));
+			// Scene.tsx: a boss the shockwave would kill is left at 0.01 (damage multipliers apply inside TakeHit, so cap after them)
+			if (E->IsBoss()) E->TakeHitLeaving(Sw.Shockwave->Damage, this, TEXT("ARC"), 0.01);
+			else E->TakeHit(Sw.Shockwave->Damage, this, TEXT("ARC"));
 		}
 		const FVector Mid = GetActorLocation() + FVector(std::sin(Yaw), std::cos(Yaw), 0) * Sw.Shockwave->Length * 0.5 * CmPerMeter;
 		DrawDebugSphere(World, Mid, 500.f, 12, FColor(170, 90, 255), false, 0.3f, 0, 3.f);
 	}
 	for (AWFEnemy* E : Enemies)
 	{
-		if (E->IsDead()) continue;
+		if (!IsValid(E) || E->IsDead()) continue; // a boss kill can dismiss its summons mid-loop
 		const FVector P = E->GetActorLocation() / CmPerMeter;
 		const double Scale = E->GetActorScale3D().X;
 		const double EFeet = (E->GetActorLocation().Z - E->GetCapsuleComponent()->GetScaledCapsuleHalfHeight()) / CmPerMeter;
@@ -839,6 +842,7 @@ void AWFCharacter::DetonateRound(const wf::vweapons::FBurst& Burst, double Knock
 	for (TActorIterator<AWFEnemy> It(World); It; ++It) if (!It->IsDead()) InRange.Add(*It);
 	for (AWFEnemy* E : InRange)
 	{
+		if (!IsValid(E) || E->IsDead()) continue; // a boss kill can dismiss its summons mid-loop
 		const FVector P = E->GetActorLocation() / CmPerMeter;
 		const double Dx = P.X - Burst.X, Dz = P.Y - Burst.Z, Planar = FMath::Sqrt(Dx * Dx + Dz * Dz);
 		const double Dist = FMath::Max(0.0, Planar - 1.5 * E->GetActorScale3D().X);
@@ -876,6 +880,7 @@ void AWFCharacter::ApplyHit(double Damage, const FString& Source)
 		if (UWFProgressionSubsystem* Progression = GetGameInstance()->GetSubsystem<UWFProgressionSubsystem>()) Progression->RecordPlayerDeath();
 		if (AWFGameMode* Mode = GetWorld()->GetAuthGameMode<AWFGameMode>()) Mode->OnPlayerDied(); // encounter bosses reset
 		CancelAbilities(); // ability-effects.ts cancelAbilities: nothing in flight survives into the next life
+		if (bInVehicle) if (AWFVehicle* Car = Cast<AWFVehicle>(GetAttachParentActor())) Car->Dismount(0); // died at the wheel: out first
 		Respawn();
 	}
 }
