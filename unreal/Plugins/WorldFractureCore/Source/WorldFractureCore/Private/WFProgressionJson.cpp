@@ -147,6 +147,21 @@ namespace WFProgressionJson
 		O->SetStringField(TEXT("challenge"), ToF(P.Challenge));
 		O->SetArrayField(TEXT("earnedRewards"), StringArray(P.EarnedRewards));
 		{
+			// story.ts StoryState and the activity records
+			TSharedRef<FJsonObject> St = MakeShared<FJsonObject>();
+			St->SetArrayField(TEXT("flags"), StringArray(P.Story.Flags));
+			TSharedRef<FJsonObject> Choices = MakeShared<FJsonObject>();
+			for (const auto& [K, V] : P.Story.Choices) Choices->SetStringField(ToF(K), ToF(V));
+			St->SetObjectField(TEXT("choices"), Choices);
+			St->SetObjectField(TEXT("trust"), NumberObject(P.Story.Trust));
+			TSharedRef<FJsonObject> Stages = MakeShared<FJsonObject>();
+			for (const auto& [K, V] : P.Story.Stages) Stages->SetStringField(ToF(K), ToF(V));
+			St->SetObjectField(TEXT("stages"), Stages);
+			St->SetArrayField(TEXT("collectibles"), StringArray(P.Story.Collectibles));
+			O->SetObjectField(TEXT("story"), St);
+			O->SetObjectField(TEXT("records"), NumberObject(P.Records));
+		}
+		{
 			// living-world.ts LivingState
 			TSharedRef<FJsonObject> L = MakeShared<FJsonObject>();
 			L->SetObjectField(TEXT("gain"), NumberObject(P.Living.Gain));
@@ -342,6 +357,23 @@ namespace WFProgressionJson
 		P.Blade = ReadOptionalString(O, TEXT("blade"));
 		if (std::optional<std::string> Challenge = ReadOptionalString(O, TEXT("challenge"))) P.Challenge = *Challenge;
 		P.EarnedRewards = ReadStrings(O, TEXT("earnedRewards"));
+		{
+			// story.ts normalizeStory (trust clamped to 0-100) and wasteland-activities.ts normalizeRecords (finite, non-negative)
+			const TSharedPtr<FJsonObject>* St = nullptr;
+			if (O->TryGetObjectField(TEXT("story"), St) && St && St->IsValid())
+			{
+				P.Story.Flags = ReadStrings(*St, TEXT("flags"));
+				P.Story.Collectibles = ReadStrings(*St, TEXT("collectibles"));
+				for (const auto& [K, V] : ReadNumbers(*St, TEXT("trust"))) P.Story.Trust[K] = std::min(100.0, std::max(0.0, V));
+				const TSharedPtr<FJsonObject>* Choices = nullptr;
+				if ((*St)->TryGetObjectField(TEXT("choices"), Choices) && Choices && Choices->IsValid())
+					for (const auto& X : (*Choices)->Values) { FString V; if (X.Value.IsValid() && X.Value->TryGetString(V)) P.Story.Choices[ToStd(X.Key)] = ToStd(V); }
+				const TSharedPtr<FJsonObject>* Stages = nullptr;
+				if ((*St)->TryGetObjectField(TEXT("stages"), Stages) && Stages && Stages->IsValid())
+					for (const auto& X : (*Stages)->Values) { FString V; if (X.Value.IsValid() && X.Value->TryGetString(V)) P.Story.Stages[ToStd(X.Key)] = ToStd(V); }
+			}
+			for (const auto& [K, V] : ReadNumbers(O, TEXT("records"))) if (std::isfinite(V) && V >= 0) P.Records[K] = V;
+		}
 		{
 			// living-world.ts normalizeLiving: non-negative counters for the four factions, district and contract records, intel
 			P.Living = {};

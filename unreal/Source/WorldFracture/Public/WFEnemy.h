@@ -97,6 +97,9 @@ public:
 	const std::string& GetAiState() const { return Ai.State; }
 	/** the faction kind (RAIDER, OVERCLOCKED, VANGUARD, ABERRATION...): Raiders and Vanguard carry grenades */
 	void SetKind(const FString& InKind) { Kind = InKind; }
+	/** sim.ts machine.living: the activity that spawned it (vault:<run>, derby:<run>); empty for ambient troopers */
+	void SetActivityTag(const FString& InTag) { ActivityTag = InTag; }
+	const FString& GetActivityTag() const { return ActivityTag; }
 	/** running a flank round a hidden player (enemy-tactics.ts: at most MAX_FLANKERS at once) */
 	bool IsFlanking() const { return bFlanking; }
 	/** the spawn order in the squad (sim.ts machine index): squad role and which way it swings */
@@ -107,6 +110,7 @@ protected:
 	UPROPERTY(VisibleAnywhere, Category = "Body") TObjectPtr<UStaticMeshComponent> Head;
 
 private:
+	FString ActivityTag;
 	void Die();
 	void TryAttack(AWFCharacter* Operator, AWFVehicle* Car, double Distance, float DeltaSeconds);
 	/** sim.ts: one machine's awareness, movement and fire for the frame */

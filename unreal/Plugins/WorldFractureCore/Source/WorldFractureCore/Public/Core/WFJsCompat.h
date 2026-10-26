@@ -20,6 +20,11 @@ namespace wf::js
 	WORLDFRACTURECORE_API double Hypot(double A, double B);
 	WORLDFRACTURECORE_API double Hypot(double A, double B, double C);
 
+	/** Number#toFixed(Digits) for |Value| < 1e21: the exact binary value rounded half up (0.25.toFixed(1) === "0.3"). */
+	WORLDFRACTURECORE_API std::string ToFixed(double Value, int Digits);
+	/** Number#toString(36) for a whole, non-negative number below 2^53 (Date.now().toString(36)). */
+	WORLDFRACTURECORE_API std::string ToBase36(double Value);
+
 	/** The 32-bit FNV-1a the web build uses over a string's UTF-16 code units (ASCII text: its bytes). */
 	WORLDFRACTURECORE_API uint32_t Fnv1a(const std::string& Text);
 }

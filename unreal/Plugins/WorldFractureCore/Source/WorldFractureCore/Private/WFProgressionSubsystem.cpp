@@ -418,6 +418,24 @@ double UWFProgressionSubsystem::ClaimBossBounty(const FString& ScenarioId, bool&
 	return P.Nex;
 }
 
+FString UWFProgressionSubsystem::ResolveWasteland(const wf::wasteland::FEmit& Emit)
+{
+	const size_t InventoryBefore = State.Inventory.size();
+	const double LevelBefore = State.Level;
+	bool bPaidMission = false;
+	const wf::wasteland::FRewardFn Reward = [this, &bPaidMission](const wf::FProgression& P, const std::string& MissionId, const std::vector<std::pair<std::string, double>>& Materials, double NowMs)
+	{
+		bPaidMission = true;
+		return wf::missionreward::RewardMission(Catalog, MissionCatalog, P, MissionId, std::map<std::string, double>(Materials.begin(), Materials.end()), NowMs);
+	};
+	wf::wasteland::FResolved R = wf::wasteland::ResolveEmit(Reward, State, Emit, UtcNowMs());
+	State = std::move(R.Progression);
+	if (State.Level > LevelBefore) OnLevelUp.Broadcast(static_cast<int32>(State.Level));
+	if (bPaidMission) AfterMissionPayout(InventoryBefore);
+	else NotifyChanged();
+	return UTF8_TO_TCHAR(R.Message.c_str());
+}
+
 FString UWFProgressionSubsystem::DescribeOperators() const
 {
 	return UTF8_TO_TCHAR(wf::operators::DescribeOperators(State).c_str());

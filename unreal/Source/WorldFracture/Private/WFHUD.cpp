@@ -93,6 +93,22 @@ void AWFHUD::DrawHUD()
 		}
 	}
 
+	// Wastelands activity panel (wasteland-runtime.ts WasteHud): title, lines and a progress bar
+	if (const AWFGameMode* Mode = GetWorld()->GetAuthGameMode<AWFGameMode>())
+		if (const std::optional<wf::wasteland::FHud>& Hud = Mode->GetWastelandHud())
+		{
+			const float X = W * 0.5f - 230.f;
+			float Y = 110.f;
+			Line(UTF8_TO_TCHAR(Hud->Title.c_str()), X, Y, Gold, 1.05f);
+			Y += 24;
+			for (const std::string& L : Hud->Lines) { Line(UTF8_TO_TCHAR(L.c_str()), X, Y, Soft, 0.9f); Y += 20; }
+			if (Hud->Progress)
+			{
+				DrawRect(FLinearColor(0.1f, 0.12f, 0.14f, 0.7f), X, Y + 4, 300, 6);
+				DrawRect(Hud->Kind == "VAULT" && *Hud->Progress < 0.35 ? Warn : Cyan, X, Y + 4, 300.f * static_cast<float>(FMath::Clamp(*Hud->Progress, 0.0, 1.0)), 6);
+			}
+		}
+
 	// city: the heat level (heat.ts), and in Nexus City the surveillance meter, lockdown tier and hack (stealth.ts)
 	if (const AWFGameMode* Mode = GetWorld()->GetAuthGameMode<AWFGameMode>())
 	{

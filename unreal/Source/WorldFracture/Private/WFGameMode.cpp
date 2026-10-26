@@ -30,6 +30,7 @@
 #include "WFFleetSubsystem.h"
 #include "WFHousingSubsystem.h"
 #include "WFVehicle.h"
+#include "Core/WFJsCompat.h"
 
 AWFGameMode::AWFGameMode()
 {
@@ -144,6 +145,7 @@ void AWFGameMode::Tick(float DeltaSeconds)
 	TickRace(DeltaSeconds);
 	TickCity(DeltaSeconds);
 	TickGrenades(DeltaSeconds);
+	TickWasteland(DeltaSeconds);
 	Squad.RemoveAll([](const TWeakObjectPtr<AWFEnemy>& E) { return !E.IsValid() || E->IsDead(); });
 	SpawnTimer -= DeltaSeconds;
 	if (SpawnTimer <= 0 && Squad.Num() < SquadSize && !Roster.IsEmpty())
@@ -828,3 +830,181 @@ void AWFGameMode::BuyDecor(const FString& Id) { if (UWFHousingSubsystem* H = Get
 void AWFGameMode::PlaceDecor(const FString& Home, int32 Room, const FString& Slot, const FString& Decor) { if (UWFHousingSubsystem* H = GetGameInstance()->GetSubsystem<UWFHousingSubsystem>()) Toast(H->PlaceDecor(Home, Room, Slot, Decor), FleetGold); }
 void AWFGameMode::Park(const FString& Build, const FString& Residence) { if (UWFHousingSubsystem* H = GetGameInstance()->GetSubsystem<UWFHousingSubsystem>()) Toast(H->Park(Build, Residence), FleetGold); }
 void AWFGameMode::Unpark(const FString& Build) { if (UWFHousingSubsystem* H = GetGameInstance()->GetSubsystem<UWFHousingSubsystem>()) Toast(H->Unpark(Build), FleetGold); }
+
+// --- the Wastelands activities ----------------------------------------------------------------------------------------
+
+namespace
+{
+	constexpr double WlCmPerM = 100.0;
+	const FLinearColor WlGold(1.f, 0.82f, 0.35f), WlWarn(1.f, 0.55f, 0.3f);
+}
+
+FVector AWFGameMode::WasteToWorld(double X, double Z, double BaseZ) const
+{
+	const double WX = WasteAnchorCm.X + (X - wf::wasteland::RegionCentre.X) * WlCmPerM, WY = WasteAnchorCm.Y + (Z - wf::wasteland::RegionCentre.Z) * WlCmPerM;
+	return FVector(WX, WY, GroundZ(WX, WY, BaseZ));
+}
+
+FVector2D AWFGameMode::WorldToWaste(const FVector& L) const
+{
+	return FVector2D((L.X - WasteAnchorCm.X) / WlCmPerM + wf::wasteland::RegionCentre.X, (L.Y - WasteAnchorCm.Y) / WlCmPerM + wf::wasteland::RegionCentre.Z);
+}
+
+void AWFGameMode::WastelandHere()
+{
+	const APawn* Pawn = UGameplayStatics::GetPlayerPawn(this, 0);
+	if (!Pawn) return;
+	if (WasteRt.Vault || WasteRt.Rally || WasteRt.Derby) { Toast(TEXT("Finish the activity first"), WlWarn); return; }
+	if (WasteRoster.IsEmpty())
+	{
+		// encounters.ts troopFor("wastelands", i): Badlands Marauder, Nomad Sniper, Rust-Runner Buggy
+		FString Error;
+		TArray<TSharedPtr<FJsonObject>> Rows;
+		if (WFData::LoadRows(TEXT("RegionalEncounters"), Rows, Error))
+			for (const TSharedPtr<FJsonObject>& Row : Rows)
+			{
+				if (WFData::Str(Row, TEXT("RegionId")) != TEXT("wastelands")) continue;
+				TArray<TSharedPtr<FJsonValue>> Troops;
+				if (!FJsonSerializer::Deserialize(TJsonReaderFactory<>::Create(WFData::Str(Row, TEXT("TroopsJson"))), Troops)) continue;
+				for (const TSharedPtr<FJsonValue>& Troop : Troops)
+					if (const TSharedPtr<FJsonObject> T = Troop->AsObject()) WasteRoster.Add({WFData::Str(T, TEXT("name")), WFData::Str(T, TEXT("drop"))});
+			}
+		if (WasteRoster.IsEmpty()) UE_LOG(LogTemp, Error, TEXT("No wastelands roster (%s); activity raiders spawn as Hostiles."), *Error);
+	}
+	// the player stands at the Wastelands centre: the vault gate 78 m east, the Mash-Pit 158 m west, the rally start 113 m north
+	WasteAnchorCm = FVector2D(Pawn->GetActorLocation().X, Pawn->GetActorLocation().Y);
+	if (!bWasteActive) { const UWFProgressionSubsystem* Prog = GetGameInstance()->GetSubsystem<UWFProgressionSubsystem>(); WasteRt = wf::wasteland::CreateRuntime(Prog ? Prog->GetSessionKills() : 0); }
+	bWasteActive = true;
+	Toast(TEXT("Wastelands: Vault Gate (amber), Rust Run start (cyan, in a vehicle), the Mash-Pit (red, in a vehicle). Console: Wasteland"), WlGold);
+}
+
+void AWFGameMode::Wasteland()
+{
+	const APawn* Pawn = UGameplayStatics::GetPlayerPawn(this, 0);
+	const UWFProgressionSubsystem* Prog = GetGameInstance()->GetSubsystem<UWFProgressionSubsystem>();
+	if (!Pawn || !Prog) return;
+	if (!bWasteActive) { Toast(TEXT("No Wastelands sites here - WastelandHere lays them out around you"), WlWarn); return; }
+	const FVector2D P = WorldToWaste(Pawn->GetActorLocation());
+	auto Dist = [&](double X, double Z) { return FMath::RoundToInt32(wf::js::Hypot(P.X - X, P.Y - Z)); };
+	const wf::wasteland::FMedalTargets T = wf::wasteland::RallyTargets();
+	const double Rally = Prog->GetRecord(TEXT("rust-run")), Derby = Prog->GetRecord(TEXT("mash-pit"));
+	const TArray<FString> Lines = {
+		FString::Printf(TEXT("Defend the Vault Gates: %d m away. Sub-Terra Legion: %s (%d trust)"), Dist(wf::wasteland::VaultGate.X, wf::wasteland::VaultGate.Z), *Prog->GetLegionRank(), FMath::RoundToInt32(Prog->GetLegionTrust())),
+		FString::Printf(TEXT("Rust Run: start %d m away, in a vehicle. Gold %gs / Silver %gs / Bronze %gs. Best %s"), Dist(wf::wasteland::RallyStart.X, wf::wasteland::RallyStart.Z), T.Gold, T.Silver, T.Bronze, Rally < 0 ? TEXT("none") : *FString::Printf(TEXT("%.1f s"), Rally)),
+		FString::Printf(TEXT("The Mash-Pit: %d m away, in a vehicle. Gold %g / Silver %g / Bronze %g wrecks. Best %s"), Dist(wf::wasteland::Arena.X, wf::wasteland::Arena.Z), wf::wasteland::DerbyTargets.Gold, wf::wasteland::DerbyTargets.Silver, wf::wasteland::DerbyTargets.Bronze, Derby < 0 ? TEXT("none") : *FString::Printf(TEXT("%g"), Derby)),
+	};
+	for (const FString& L : Lines) { UE_LOG(LogTemp, Display, TEXT("%s"), *L); Toast(L, WlGold); }
+}
+
+int32 AWFGameMode::SpawnActivitySquad(const FString& Tag, double X, double Z, int32 Size, int32 Elites, double Ring, int32 Kind)
+{
+	UWorld* World = GetWorld();
+	const APawn* Pawn = UGameplayStatics::GetPlayerPawn(this, 0);
+	const UWFProgressionSubsystem* Progression = GetGameInstance()->GetSubsystem<UWFProgressionSubsystem>();
+	if (!World || !Pawn) return 0;
+	int32 Spawned = 0;
+	for (int32 I = 0; I < Size; ++I)
+	{
+		// sim.ts spawnEventSquad: a ring around the point, elites first, hp (elite 7 : 3.5) x challenge enemyHp
+		const double A = (static_cast<double>(I) / Size) * UE_DOUBLE_PI * 2 + FMath::FRand() * 0.4;
+		const FVector At = WasteToWorld(X + FMath::Cos(A) * Ring, Z + FMath::Sin(A) * Ring, Pawn->GetActorLocation().Z) + FVector(0, 0, 120);
+		const bool bElite = I < Elites;
+		const FWFTroop Troop = WasteRoster.IsEmpty() ? FWFTroop{TEXT("Hostile"), TEXT("scrapMetal")} : WasteRoster[FMath::Abs(Kind >= 0 ? Kind : I) % WasteRoster.Num()];
+		const double MaxHealth = (bElite ? 7.0 : 3.5) * (Progression ? Progression->GetChallengeEnemyHealthScale() : 1.0);
+		const FTransform Xf(FRotator::ZeroRotator, At);
+		if (AWFEnemy* Enemy = World->SpawnActorDeferred<AWFEnemy>(AWFEnemy::StaticClass(), Xf, nullptr, nullptr, ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn))
+		{
+			Enemy->Configure(Troop.Name, TEXT("wastelands"), Troop.Drop, bElite, false, MaxHealth);
+			if (const FString* Faction = FactionByRegion.Find(TEXT("wastelands"))) Enemy->SetKind(*Faction);
+			Enemy->SetActivityTag(Tag);
+			Enemy->SetSquadIndex(NextSquadIndex++);
+			Enemy->FinishSpawning(Xf);
+			++Spawned;
+		}
+	}
+	return Spawned;
+}
+
+void AWFGameMode::TickWasteland(float DeltaSeconds)
+{
+	// a session that starts in the Wastelands gets the three activities around where the Operator first stands
+	if (!bWasteActive && !bWasteAutoPlaced && RegionId == TEXT("wastelands") && UGameplayStatics::GetPlayerPawn(this, 0)) { bWasteAutoPlaced = true; WastelandHere(); }
+	if (!bWasteActive) return;
+	APawn* Pawn = UGameplayStatics::GetPlayerPawn(this, 0);
+	UWFProgressionSubsystem* Prog = GetGameInstance()->GetSubsystem<UWFProgressionSubsystem>();
+	if (!Pawn || !Prog) return;
+	AWFVehicle* Car = Cast<AWFVehicle>(Pawn);
+	const AWFCharacter* Player = Car ? Car->GetDriver() : Cast<AWFCharacter>(Pawn);
+	const FVector2D P = WorldToWaste(Pawn->GetActorLocation());
+
+	wf::wasteland::FWorld W;
+	W.Kills = Prog->GetSessionKills();
+	W.Hp = Player ? Player->GetHealth() : 1;
+	W.TagCount = [this](const std::string& Tag, const std::optional<wf::wasteland::FSite>& Near)
+	{
+		const FString T = WFData::ToF(Tag);
+		int Count = 0;
+		for (TActorIterator<AWFEnemy> It(GetWorld()); It; ++It)
+		{
+			if (It->IsDead() || It->GetActivityTag() != T) continue;
+			if (Near) { const FVector2D E = WorldToWaste(It->GetActorLocation()); if (wf::js::Hypot(E.X - Near->X, E.Y - Near->Z) > Near->Radius) continue; }
+			++Count;
+		}
+		return Count;
+	};
+	W.Alert = [this](const std::string& Text) { Toast(UTF8_TO_TCHAR(Text.c_str()), WlGold); };
+	// the web build's fixed machine pool has to make room; spawned actors here have no pool, so nothing is freed
+	W.FreeSlots = [](int, double, double) {};
+	W.SpawnSquad = [this](const std::string& Tag, double X, double Z, int Size, int Elites, double Spread, int Kind) { return SpawnActivitySquad(WFData::ToF(Tag), X, Z, Size, Elites, Spread, Kind); };
+	W.Despawn = [this](const std::string& Tag)
+	{
+		const FString T = WFData::ToF(Tag);
+		TArray<AWFEnemy*> Leaving;
+		for (TActorIterator<AWFEnemy> It(GetWorld()); It; ++It) if (!It->IsDead() && It->GetActivityTag() == T) Leaving.Add(*It);
+		for (AWFEnemy* E : Leaving) E->Destroy(); // they leave: no payout
+	};
+
+	wf::wasteland::FRuntimeInput In;
+	In.Dt = FMath::Min(static_cast<double>(DeltaSeconds), 0.25);
+	In.NowMs = FMath::FloorToDouble((FDateTime::UtcNow() - FDateTime(1970, 1, 1)).GetTotalMilliseconds());
+	In.Px = P.X; In.Pz = P.Y;
+	In.bInVehicle = Car != nullptr;
+	const UWFRaceSubsystem* Racing = GetGameInstance()->GetSubsystem<UWFRaceSubsystem>();
+	In.bBlocked = (Racing && Racing->IsRacing()) || !EncounterBosses().IsEmpty(); // Scene.tsx: no activity starts over a race or a boss fight
+	const wf::wasteland::FRuntimeStep S = wf::wasteland::StepRuntime(WasteRt, W, In);
+	for (const wf::wasteland::FEmit& E : S.Emits)
+	{
+		const FString Msg = Prog->ResolveWasteland(E);
+		if (!Msg.IsEmpty()) Toast(Msg, WlGold);
+	}
+	WasteHud = S.Hud;
+	DrawWasteland();
+}
+
+void AWFGameMode::DrawWasteland() const
+{
+	UWorld* World = GetWorld();
+	const APawn* Pawn = UGameplayStatics::GetPlayerPawn(this, 0);
+	if (!World || !Pawn) return;
+	const double Base = Pawn->GetActorLocation().Z;
+	auto Ring = [&](double X, double Z, double R, const FColor& C, float Height, float Thick)
+	{
+		const FVector G = WasteToWorld(X, Z, Base);
+		DrawDebugCylinder(World, G, G + FVector(0, 0, Height), static_cast<float>(R * WlCmPerM), 40, C, false, -1.f, 0, Thick);
+	};
+	using namespace wf::wasteland;
+	if (WasteRt.Rally)
+	{
+		const std::vector<FPoint>& Cps = RallyCheckpoints();
+		const size_t Next = static_cast<size_t>(WasteRt.Rally->Next);
+		for (size_t I = Next; I < Cps.size() && I <= Next + 1; ++I)
+			Ring(Cps[I].X, Cps[I].Z, RallyReach, I == Next ? (I + 1 == Cps.size() ? FColor(255, 210, 90) : FColor(110, 230, 255)) : FColor(60, 110, 140), 600.f, I == Next ? 8.f : 3.f);
+		return;
+	}
+	if (WasteRt.Vault) { Ring(VaultGate.X, VaultGate.Z, GateThreatRadius, FColor(255, 90, 60), 150.f, 3.f); Ring(VaultGate.X, VaultGate.Z, VaultGate.Radius, FColor(255, 190, 80), 500.f, 6.f); return; }
+	if (WasteRt.Derby) { Ring(Arena.X, Arena.Z, Arena.Radius, FColor(255, 70, 60), 300.f, 8.f); return; }
+	// idle: the three start pads (the Mash-Pit starts once you are 4 m inside its ring)
+	Ring(VaultGate.X, VaultGate.Z, VaultGate.Radius, FColor(255, 190, 80), 500.f, 5.f);
+	Ring(RallyStart.X, RallyStart.Z, RallyReach, FColor(110, 230, 255), 500.f, 5.f);
+	Ring(Arena.X, Arena.Z, Arena.Radius, FColor(255, 70, 60), 250.f, 5.f);
+}

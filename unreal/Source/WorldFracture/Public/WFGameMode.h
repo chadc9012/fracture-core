@@ -4,6 +4,7 @@
 #include "Core/WFCityCore.h"
 #include "Core/WFTacticsCore.h"
 #include "Core/WFEncounterCore.h"
+#include "Core/WFWastelandCore.h"
 #include "GameFramework/GameModeBase.h"
 #include "WFGameMode.generated.h"
 
@@ -131,6 +132,15 @@ public:
 	/** lob a grenade from From to Target (rules metres: X, Y on the ground plane = Unreal X, Y; Z up) */
 	void ThrowGrenade(const FVector& FromM, const FVector& TargetM);
 	int32 CountFlankers() const;
+	// ---- the Wastelands activities (ported wasteland-activities.ts / wasteland-runtime.ts) ----
+	/** Lays the Vault Gate, the Rust Run course and the Mash-Pit out around the player, in the web build's layout around the
+	 *  Wastelands centre (the web world is not ported). Runs on its own when the session starts in the Wastelands. */
+	UFUNCTION(Exec) void WastelandHere();
+	/** Prints where the three activities are from you, your records and your Sub-Terra Legion standing. */
+	UFUNCTION(Exec) void Wasteland();
+	/** the activity panel (title, lines, progress) while one runs, or its result for a few seconds after */
+	const std::optional<wf::wasteland::FHud>& GetWastelandHud() const { return WasteHud; }
+
 	/** The region's ground speed rating (regions.ts speed): scales vehicle top speed. */
 	double GetRegionSpeed() const { return RegionSpeed; }
 
@@ -142,6 +152,13 @@ private:
 	void TickEncounters(float DeltaSeconds);
 	void TickCity(float DeltaSeconds);
 	void TickGrenades(float DeltaSeconds);
+	void TickWasteland(float DeltaSeconds);
+	void DrawWasteland() const;
+	/** sim.ts spawnEventSquad: Size wastelands troopers tagged Tag in a ring around rules point (X, Z); Kind -1 = by index */
+	int32 SpawnActivitySquad(const FString& Tag, double X, double Z, int32 Size, int32 Elites, double Ring, int32 Kind);
+	/** rules metres in the web world <-> this level, through the anchor WastelandHere set */
+	FVector WasteToWorld(double X, double Z, double BaseZ) const;
+	FVector2D WorldToWaste(const FVector& L) const;
 	void DrawTurrets() const;
 	void TickRace(float DeltaSeconds);
 	void DrawRace() const;
@@ -171,7 +188,12 @@ private:
 	double GrenadeCool = 0, NextGrenadeId = 1;
 	int32 NextSquadIndex = 0;
 	TMap<FString, FString> FactionByRegion; // RegionFactions: region -> faction kind
-	TMap<FString, double> PendingSurvive; // survive seconds per world, sent to the quests about once a second
+	TMap<FString, double> PendingSurvive;
+	wf::wasteland::FRuntime WasteRt;
+	std::optional<wf::wasteland::FHud> WasteHud;
+	bool bWasteActive = false, bWasteAutoPlaced = false;
+	FVector2D WasteAnchorCm = FVector2D::ZeroVector; // where the Wastelands centre sits in this level
+	TArray<FWFTroop> WasteRoster; // survive seconds per world, sent to the quests about once a second
 
 	struct FScenarioBoss
 	{

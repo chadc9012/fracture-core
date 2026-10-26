@@ -36,6 +36,13 @@ unreal/
 The default level is the engine's template map; the game mode adds a floor and lights if a level has none.
 
 ## What runs
+- **Wastelands activities:** in the Wastelands (or anywhere after `WastelandHere`) the three sites are laid out around you
+  in the web build's layout. Stand on the amber Vault Gate pad to hold it against three raider waves (raiders within
+  16 m wear the gate down); win for Legion trust and, once, the Vectal monoblade. Drive onto the cyan Rust Run start for
+  the 10-checkpoint rally (gold 20 s, silver 27 s, bronze 40 s). Drive into the red Mash-Pit for a 75 s derby (gold 14
+  wrecks, silver 10, bronze 6). Each medal tier pays once, and gold awards the Sun-Cutter (rally) or the Aegis Broadsword
+  (derby). Runs pay through the side-contract payout, best times and scores are saved, and `Wasteland` prints the
+  distances, your records and your Legion rank.
 - **Movement kit:** Titans get one weighty air jump, Hunters two quick ones, Warlocks one and then a glide while jump is
   held (movement.ts). Left Ctrl crouches, or slides out of a sprint (the armor slide bonus stretches it); Z toggles
   prone. Crouched and prone you are slower and harder to hit (enemyHitChance). A running jump vaults further and higher,
@@ -180,6 +187,7 @@ cmake -S . -B build -G Ninja && cmake --build build && ctest --test-dir build --
 | ArmorCoreTest | armor-sets.ts, armor-perks.ts, armor-attributes.ts, inventory.ts weaponDamageMultiplier | 36 sets, 1,500 loadouts, 10,510 checks |
 | TacticsCoreTest | enemy-intelligence.ts, ability-network.ts buildSynergy, enemy-tactics.ts, enemy-evasion.ts, enemy-cover.ts | 2,000 flank searches, 2,500 cover searches, 200 grenade flights, 3,000 round threats, 21,755 checks |
 | BountyCoreTest | activity-payouts.ts payoutFor / payInto / tagLegacyPayouts / payFlat | 400 ledgers, 8,936 payouts, 16,048 checks |
+| WastelandCoreTest | wasteland-activities.ts, wasteland-runtime.ts | 15,600 machine steps, 2,400 resolves, 24,000 runtime frames, 132,024 checks |
 | MoveCoreTest | movement.ts, parkour.ts | 300 tracks, 18,000 frames, 36,067 checks |
 | OperatorCoreTest | operator-pockets.ts switchOperator, xp.ts grantXP, nex.ts spendNex | 6,400 operations (846 switches), 25,600 checks |
 
@@ -187,19 +195,19 @@ The golden files (`Plugins/WorldFractureCore/Tests/<name>_golden.txt`) are **gen
 which broke the Lovable preview build. Record all of them from the repo root before configuring the tests (and again after changing
 the web build's rules):
 
-    node unreal/tools/gen-goldens.mjs            # all twenty-two
+    node unreal/tools/gen-goldens.mjs            # all twenty-three
     node unreal/tools/gen-goldens.mjs race shop  # just these
 
 `export-datatables` (the DataTables, which are committed) still runs on its own:
 
     npx esbuild unreal/tools/export-datatables.ts --bundle --platform=node --format=esm --alias:@=./src --outfile=/tmp/t.mjs && node /tmp/t.mjs
 
-The encounter, Dragonite-cast and ability recorders route their world calls to recording shims (`build-golden.mjs`); `gen-goldens.mjs` handles that.
+The encounter, Dragonite-cast, ability, tactics and Wastelands recorders route their world calls to recording shims (`build-golden.mjs`); `gen-goldens.mjs` handles that.
 
 ## Not ported yet
 Boss models and attack effects (zones are debug circles, decoys are stand-ins), mid-mission saves, ability mastery XP,
 region kinds for abilities (the map counts as a war zone),
-troopers running out of orbital strike circles (no strike beacons yet), earning monoblades (wasteland-activities.ts gold medals), on-foot weapon heat, the featured-activity rotation and
+troopers running out of orbital strike circles (no strike beacons yet), on-foot weapon heat, the featured-activity rotation and
 activity shader drops,
 diving (the thalassia-dive survive timer), the Neon City police response itself (the web build has only the heat meter and its labels; chase-ai.ts pursuit helpers are unused there), the Operations Hub preview marketplace (its wallet is not saved in the web build either), home interiors, cloud save merge, the world itself (regions, Neon City, Thalassia). Their data is already in
 `DataTables/`.

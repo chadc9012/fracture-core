@@ -148,6 +148,19 @@ namespace wf
 		std::string PocketClass = "TITAN";
 		/** TITAN / HUNTER / WARLOCK: the stored pockets (the played operator's entry is refreshed when it is switched away) */
 		std::map<std::string, FOperatorPocket> Operators = { { "TITAN", {} }, { "HUNTER", {} }, { "WARLOCK", {} } };
+		/** The shared story layer (story.ts StoryState): flags (once:<key> marks applied effects), decisions, trust per character or
+		 *  faction (0-100), scenario stages and collected memories. */
+		struct FStory
+		{
+			std::vector<std::string> Flags;
+			std::map<std::string, std::string> Choices;
+			std::map<std::string, double> Trust;
+			std::map<std::string, std::string> Stages;
+			std::vector<std::string> Collectibles;
+		};
+		FStory Story;
+		/** best results per activity (records): the Rust Run time is lower-is-better, other scores higher-is-better */
+		std::map<std::string, double> Records;
 		/** Difficulty picked before launch (map-activities.ts CHALLENGES): STANDARD | HARD | VERY_HARD. */
 		std::string Challenge = "STANDARD";
 	};

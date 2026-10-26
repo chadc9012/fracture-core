@@ -6,6 +6,7 @@
 #include "Core/WFMissionRewardCore.h"
 #include "Core/WFRewardCore.h"
 #include "Core/WFVehicleCore.h"
+#include "Core/WFWastelandCore.h"
 #include "Subsystems/GameInstanceSubsystem.h"
 #include "WFProgressionSubsystem.generated.h"
 
@@ -106,6 +107,14 @@ public:
 	/** activity-payouts.ts claimBossBounty for the operator being played: a scenario boss's first kill, then a daily
 	 *  repeat, in Nex. Returns the Nex paid (0 when today's is already taken); bFirst says which. */
 	double ClaimBossBounty(const FString& ScenarioId, bool& bFirst);
+	/** A Wastelands activity ended (wasteland-runtime.ts emit): wasteland-activities.ts resolveVault / resolveRally / resolveDerby
+	 *  pay it once per run (rewardMission side-* payout, medal tiers once ever, the monoblades, Legion trust). Returns the line to show. */
+	FString ResolveWasteland(const wf::wasteland::FEmit& Emit);
+	/** Sub-Terra Legion standing (Outsider ... Iron Vanguard) and its trust points */
+	FString GetLegionRank() const { return UTF8_TO_TCHAR(wf::wasteland::LegionRank(State).c_str()); }
+	double GetLegionTrust() const { return wf::wasteland::TrustOf(State, wf::wasteland::Legion); }
+	/** best results (records): the Rust Run time in s, the Mash-Pit wrecks; negative when none */
+	double GetRecord(const FString& Id) const { const auto It = State.Records.find(TCHAR_TO_UTF8(*Id)); return It == State.Records.end() ? -1 : It->second; }
 	UFUNCTION(BlueprintPure, Category = "World Fracture|Progression") int32 GetLevel() const { return static_cast<int32>(State.Level); }
 	UFUNCTION(BlueprintPure, Category = "World Fracture|Progression") double GetXp() const { return State.Xp; }
 	UFUNCTION(BlueprintPure, Category = "World Fracture|Progression") double GetXpToNextLevel() const { return State.Level * wf::reward::XpPerLevel; }

@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <charconv>
 #include <cmath>
+#include <cstdio>
 #include <cstdlib>
 #include <initializer_list>
 #include <limits>
@@ -103,5 +104,41 @@ namespace wf::js
 			Hash *= 16777619u; // Math.imul then >>> 0: multiplication modulo 2^32
 		}
 		return Hash;
+	}
+
+	std::string ToFixed(double Value, int Digits)
+	{
+		if (std::isnan(Value)) return "NaN";
+		if (Value < 0) return "-" + ToFixed(-Value, Digits); // (-0.04).toFixed(1) === "-0.0"; -0 is not < 0
+		// glibc / MSVC print the exact decimal expansion; round it half up at Digits by hand
+		char Buf[512];
+		std::snprintf(Buf, sizeof(Buf), "%.120f", Value);
+		std::string S(Buf);
+		const size_t Dot = S.find('.');
+		std::string Whole = S.substr(0, Dot), Frac = S.substr(Dot + 1);
+		const bool bUp = Frac[static_cast<size_t>(Digits)] >= '5';
+		std::string Kept = Whole + Frac.substr(0, static_cast<size_t>(Digits));
+		if (bUp)
+		{
+			int I = static_cast<int>(Kept.size()) - 1;
+			for (; I >= 0; --I)
+			{
+				if (Kept[static_cast<size_t>(I)] == '9') { Kept[static_cast<size_t>(I)] = '0'; continue; }
+				++Kept[static_cast<size_t>(I)];
+				break;
+			}
+			if (I < 0) Kept.insert(Kept.begin(), '1');
+		}
+		const size_t WholeLen = Kept.size() - static_cast<size_t>(Digits);
+		return Digits > 0 ? Kept.substr(0, WholeLen) + "." + Kept.substr(WholeLen) : Kept;
+	}
+
+	std::string ToBase36(double Value)
+	{
+		unsigned long long N = static_cast<unsigned long long>(Value < 0 ? 0 : Value);
+		if (N == 0) return "0";
+		std::string Out;
+		while (N) { const unsigned D = static_cast<unsigned>(N % 36); Out.insert(Out.begin(), static_cast<char>(D < 10 ? '0' + D : 'a' + (D - 10))); N /= 36; }
+		return Out;
 	}
 }

@@ -13,13 +13,15 @@ const shims = {
   "dragonite-cast.ts": { "./sim": resolve("unreal/tools/shims/dragonite-cast-shim.ts") },
   "enemy-tactics.ts": { "./line-of-sight": resolve("unreal/tools/shims/tactics-sight-shim.ts") },
   "enemy-cover.ts": { "./line-of-sight": resolve("unreal/tools/shims/tactics-sight-shim.ts") },
+  "wasteland-activities.ts": { "./progression": resolve("unreal/tools/shims/wasteland-progression-shim.ts") },
+  "wasteland-runtime.ts": { "./sim": resolve("unreal/tools/shims/wasteland-sim-shim.ts") },
   "ability-effects.ts": { "./sim": resolve("unreal/tools/shims/ability-sim-shim.ts"), "./boss-poise": resolve("unreal/tools/shims/ability-poise-shim.ts"), "./obstacles": resolve("unreal/tools/shims/ability-obstacles-shim.ts") },
 };
 await build({
   entryPoints: [entry], bundle: true, platform: "node", format: "esm", outfile: out, logLevel: "warning",
   alias: { "@": "./src" },
   plugins: [{ name: "encounter-sim-shim", setup(b) {
-    b.onResolve({ filter: /^\.\/(sim|boss-poise|obstacles|line-of-sight)$/ }, (args) => { const hit = Object.keys(shims).find((f) => args.importer.endsWith(f)); const to = hit && shims[hit][args.path]; return to ? { path: to } : undefined; });
+    b.onResolve({ filter: /^\.\/(sim|boss-poise|obstacles|line-of-sight|progression)$/ }, (args) => { const hit = Object.keys(shims).find((f) => args.importer.endsWith(f)); const to = hit && shims[hit][args.path]; return to ? { path: to } : undefined; });
   } }],
 });
 execFileSync("node", [out], { stdio: "inherit" });
