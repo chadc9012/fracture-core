@@ -64,10 +64,10 @@ export const attacksForPhase = (phase: 1 | 2 | 3 | 4) => ASTRAVORE_ATTACKS.filte
 /* ------------------------------------------------------------ the monsters between encounters ------------------------------------------------------------ */
 export type RaidMinion = { id: string; name: string; role: "RUSHER" | "ELITE_MELEE" | "RANGED_CASTER" | "ANCHOR"; height: number; summary: string; healthMult: number };
 export const RAID_MINIONS: readonly RaidMinion[] = [
-  { id: "void-hound", name: "Void Hound", role: "RUSHER", height: 1.2, summary: "Fast, aggressive units that flank and swarm.", healthMult: 0.6 },
-  { id: "dimensional-knight", name: "Dimensional Knight", role: "ELITE_MELEE", height: 4, summary: "Elite melee units with a phase-step charge.", healthMult: 3 },
-  { id: "reality-mage", name: "Reality Mage", role: "RANGED_CASTER", height: 2.2, summary: "Ranged attackers that teleport between volleys.", healthMult: 1.2 },
-  { id: "star-sentinel", name: "Star Sentinel", role: "ANCHOR", height: 10, summary: "Large constructs that guard the conduits and the seals.", healthMult: 6 },
+  { id: "void-reaver", name: "Void Reaver", role: "RUSHER", height: 1.2, summary: "Fast, aggressive units that flank and swarm.", healthMult: 0.6 },
+  { id: "void-vanguard", name: "Void Vanguard", role: "ELITE_MELEE", height: 4, summary: "Elite melee units with a phase-step charge.", healthMult: 3 },
+  { id: "void-arcanist", name: "Void Arcanist", role: "RANGED_CASTER", height: 2.2, summary: "Ranged attackers that teleport between volleys.", healthMult: 1.2 },
+  { id: "void-sentinel", name: "Void Sentinel", role: "ANCHOR", height: 10, summary: "Large constructs that guard the conduits and the seals.", healthMult: 6 },
 ];
 export function minionCount(stageId: string, variant: RaidVariant, partySize: number): number {
   const stage = HOLLOW_STAR.stages.find((s) => s.id === stageId);

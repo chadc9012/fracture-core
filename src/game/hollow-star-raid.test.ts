@@ -101,7 +101,7 @@ describe("route, minions and shortcuts", () => {
   test("every enemy a stage names exists as a minion or the boss", () => {
     const known = new Set([...RAID_MINIONS.map((m) => m.name), "Astravore"]);
     for (const s of HOLLOW_STAR.stages) for (const e of s.enemies ?? []) expect(known.has(e), `${s.id}: ${e}`).toBe(true);
-    expect(RAID_MINIONS.map((m) => m.name)).toEqual(["Void Hound", "Dimensional Knight", "Reality Mage", "Star Sentinel"]);
+    expect(RAID_MINIONS.map((m) => m.name)).toEqual(["Void Reaver", "Void Vanguard", "Void Arcanist", "Void Sentinel"]);
   });
   test("minion counts grow with party size and the challenge scale, never below one", () => {
     expect(minionCount("broken-gate", "STANDARD", 1)).toBeLessThan(minionCount("broken-gate", "STANDARD", 6));
