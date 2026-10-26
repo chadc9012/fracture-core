@@ -449,6 +449,11 @@
   .onboarding-card > div:first-child { font-size: 8px; margin-bottom: 2px; }
   .touch-vehicle { top: 36% !important; right: 124px !important; } /* sat on top of the aim button at 412 px tall */
   .consumable-hud { bottom: 8px !important; right: 180px !important; max-width: 150px !important; }
+  /* declutter (Oct 26 feedback: "screen feels cluttered"): in landscape the world is the point. Keep vitals, ammo, minimap, the
+     mission line and the touch controls; drop the cloud chip, left info rail, side-quest panel, tutorial card and shrink the minimap. */
+  .wf-cloud-chip, .wf-rail-left, .quest-hud, .onboarding-card { display: none !important; }
+  .mission-tracker { opacity: 0.85; }
+  [aria-label="Minimap"] { transform: scale(0.55); }
 }
 /* touch screens have no keyboard: hide keyboard key hints on the HUD meters */
 @media (pointer: coarse) { .dash-key { display: none; } }

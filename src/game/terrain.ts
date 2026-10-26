@@ -594,7 +594,7 @@ export function colorAt(x: number, z: number, worldH: number, slope?: number): [
   // between the water and 0 m took the shallow-water colour, pushed past it to a saturated cobalt by the negative blend factor;
   // the HEIGHT_K stretch widened that band to several metres of land along every gentle shore.)
   else if (h < 1.6) c = mix(PALETTE.wetSand, PALETTE.sand, smoothstep(WATER_LEVEL, 1.6, h));
-  else if (h < 12) c = mix(PALETTE.sand, PALETTE.grass, (h - 1.6) / 10.4);
+  else if (h < 12) c = mix(PALETTE.sand, PALETTE.grass, smoothstep(2.2, 5.5, h));
   else if (h < 26) c = mix(PALETTE.grass, PALETTE.dirt, (h - 12) / 14);
   else if (h < 44) c = mix(PALETTE.dirt, PALETTE.rock, (h - 26) / 18);
   else c = mix(PALETTE.rock, PALETTE.snow, Math.min(1, (h - 44) / 18));
