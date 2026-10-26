@@ -5,7 +5,7 @@
  *   2. stepVehicle(handlingFor(v), ...) with topSpeed = 62 x biome grip x vehicle speed, then s.x/z += heading x speed x dt;
  *   3. stepSim(sim, { px, pz, inVehicle: true }).
  * Spread jitter is left out so runs are deterministic. Model-bounds clamping (`fit`) is skipped: it needs the GLB. */
-import { describe, expect, test } from "bun:test";
+import { describe, expect, spyOn, test } from "bun:test";
 import { createSim, fireBullet, fireOrdnance, HEAT_PER_SHOT_VEHICLE, stepSim, type Machine, type WorldSim } from "./sim";
 import { heightAt, walkHeight, WATER_LEVEL } from "./terrain";
 import { vehicleById, VEHICLES, type VehicleId } from "./vehicles";
@@ -187,10 +187,20 @@ describe("driving and shooting (every drivable land vehicle)", () => {
 
 describe("flying and shooting", () => {
   test("helicopter: VTOL climb to ~30 m, hover, chin gun follows camera pitch down onto a grunt below and kills it", () => {
+    // the hover's sway and the sim's rolls use Math.random: seed it so the run is the same every time (it missed with
+    // every round in about one run in six)
+    const real = Math.random; let seed = 99;
+    Math.random = () => { seed ^= seed << 13; seed >>>= 0; seed ^= seed >>> 17; seed ^= seed << 5; seed >>>= 0; return seed / 4294967296; };
+    // and the sim's timers read performance.now(): a clock that advances with the frames, not the (loaded) wall clock
+    let clock = 5000;
+    const spy = spyOn(performance, "now").mockImplementation(() => clock);
+    try { heliRun(() => { clock += 1000 / 60; }); } finally { Math.random = real; spy.mockRestore(); }
+  });
+  function heliRun(tick: () => void) {
     const sim = arena();
     const m = grunt(sim, PX, PZ + 40);
     const r = ride("rift-helicopter");
-    for (let f = 0; f < 60 * 5; f++) frame(sim, r, { ...none, ascend: 1 });
+    for (let f = 0; f < 60 * 5; f++) { tick(); frame(sim, r, { ...none, ascend: 1 }); }
     const alt = r.y - RIDE - walkHeight(r.x, r.z);
     expect(alt).toBeGreaterThan(25);
     // the gunner keeps the chin gun on the grunt (it walks in under the helicopter during the climb)
@@ -199,14 +209,14 @@ describe("flying and shooting", () => {
       m.x = hold.x; m.z = hold.z; m.kx = 0; m.kz = 0; // a stationary target for a deterministic run
       const d = Math.max(1, Math.hypot(m.x - r.x, m.z - r.z) - 2.6);
       r.camPitch = -Math.atan2(r.y - RIDE + 0.55 - (walkHeight(m.x, m.z) + 1.1), d);
-      frame(sim, r, none, true);
+      tick(); frame(sim, r, none, true);
     }
     expect(m.alive).toBe(false);
     // shots left from the chin, below the airframe and ahead of it, at altitude
     const s = r.shots[0]!;
     expect(rel(s.vehicle, s.muzzle).along).toBeGreaterThan(2);
     expect(s.muzzle.y - walkHeight(s.muzzle.x, s.muzzle.z)).toBeGreaterThan(20);
-  });
+  }
 
   test("jet: takes off only past 32 m/s, climbs, and its fixed guns follow the aircraft's pitch and heading", () => {
     const sim = arena();

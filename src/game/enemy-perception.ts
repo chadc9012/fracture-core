@@ -53,6 +53,9 @@ export type Stimulus = {
   facing: boolean;
   /** false when terrain, a building or cover stands between them (line-of-sight.ts): no sight, hearing still works */
   inView?: boolean;
+  /** the player was in the fight and just ducked behind cover close by (sim.ts, enemy-tactics.ts STAY_ALERT_HIDDEN): an
+   * ALERT enemy knows they are still there and stays ALERT, so it can grenade and flank instead of wandering off to search */
+  pinned?: boolean;
 };
 
 /** Awareness gain per second for a stimulus (0 when the player is not perceived). */
@@ -77,6 +80,7 @@ export function stepAwareness(ai: EnemyAi, s: Stimulus, playerX: number, playerZ
     ai.awareness = Math.max(0, ai.awareness - 0.18 * dt);
   }
   const prev = ai.state;
+  if (prev === "ALERT" && gain <= 0 && s.pinned) ai.awareness = Math.max(ai.awareness, ALERT_AT);
   if (ai.awareness >= ALERT_AT) ai.state = "ALERT";
   else if (prev === "ALERT") { ai.state = "SEARCH"; ai.timer = SEARCH_SECONDS; }
   else if (prev === "SEARCH") { ai.timer -= dt; if (ai.timer <= 0 && ai.awareness < SUSPICIOUS_AT) ai.state = "PATROL"; }

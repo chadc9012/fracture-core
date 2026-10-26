@@ -1,5 +1,5 @@
 import { describe, expect, spyOn, test } from "bun:test";
-import { findFlankSpot, GRENADE, grenadeDamage, lobVelocity, stepGrenade, throwsGrenades, beepEvery, type Grenade } from "./enemy-tactics";
+import { findFlankSpot, GRENADE, STAY_ALERT_HIDDEN, grenadeDamage, lobVelocity, stepGrenade, throwsGrenades, beepEvery, type Grenade } from "./enemy-tactics";
 import { canSee } from "./line-of-sight";
 import { createSim, stepSim, type Machine } from "./sim";
 import { walkHeight } from "./terrain";
@@ -59,26 +59,28 @@ describe("a squad against a player hiding behind a wall", () => {
     try { return fn(); } finally { Math.random = real; }
   };
   // the sim's cooldowns (grenade, flank) read performance.now(): give it a clock that advances with the steps, not the wall
-  function fight(kind: "RAIDER" | "OVERCLOCKED", seconds: number, seed = 4242) {
+  function fight(kind: "RAIDER" | "OVERCLOCKED", seconds: number, seed = 4242, ambient = false) {
     const spy = spyOn(performance, "now").mockImplementation(() => clock * 1000);
-    try { return seeded(seed, () => fightUnseeded(kind, seconds)); } finally { spy.mockRestore(); }
+    try { return seeded(seed, () => fightUnseeded(kind, seconds, ambient)); } finally { spy.mockRestore(); }
   }
   let clock = 1000;
-  function fightUnseeded(kind: "RAIDER" | "OVERCLOCKED", seconds: number) {
+  /** ambient: ordinary world troops (not mission troops, which are forced ALERT), already in the fight when the player ducks
+   * behind the wall: they have to keep the player pinned themselves */
+  function fightUnseeded(kind: "RAIDER" | "OVERCLOCKED", seconds: number, ambient: boolean) {
     const sim = createSim();
     for (const t of sim.trucks) t.alive = false;
     for (const o of sim.machines) o.alive = false;
     const troops = sim.machines.slice(0, 3);
     troops.forEach((m, k) => {
       const x = PX + (k - 1) * 3, z = PZ + 22;
-      Object.assign(m, { alive: true, x, z, y: walkHeight(x, z) + 2.2 * 0.95, hp: 1e6, maxHp: 1e6, rot: Math.PI, scale: 0.95, zone: "wastelands", cool: 0, elite: false, boss: false, profile: "Test Grunt", kind, drop: "scrapMetal", kx: 0, kz: 0, vulnUntil: 0, vulnMult: 1, mission: true, react: undefined }) as Machine;
+      Object.assign(m, { alive: true, x, z, y: walkHeight(x, z) + 2.2 * 0.95, hp: 1e6, maxHp: 1e6, rot: Math.PI, scale: 0.95, zone: "wastelands", cool: 0, elite: false, boss: false, profile: "Test Grunt", kind, drop: "scrapMetal", kx: 0, kz: 0, vulnUntil: 0, vulnMult: 1, mission: !ambient, react: undefined }) as Machine;
       delete m.ai; delete m.los; m.hiddenFor = 0; m.flank = undefined; m.grenadeAt = 0;
     });
     // a long wall just in front of the player, between them and the squad
     setModelSolid("tactics-wall", { x: PX, y: walkHeight(PX, PZ + 3) + 1.4, z: PZ + 3, w: 14, h: 2.8, d: 0.6 });
     const world = { ground: walkHeight, obstaclesNear: queryObstacles, solids: registeredModelSolids() };
     const eye = { x: PX, y: walkHeight(PX, PZ) + 1.7, z: PZ };
-    let thrown = 0, landedNear = 0, flankers = 0, sawPlayer = 0, hpLost = 0;
+    let thrown = 0, landedNear = 0, flankers = 0, sawPlayer = 0, hpLost = 0, alertAt10 = 0, alertEnd = 0;
     const seen = new Set<number>();
     try {
       for (let f = 0; f < 60 * seconds; f++) {
@@ -86,11 +88,14 @@ describe("a squad against a player hiding behind a wall", () => {
         clock += 1 / 60;
         stepSim(sim, { px: PX, pz: PZ, dt: 1 / 60, night: 0, inVehicle: false, yaw: 0, py: eye.y, pspeed: 0, stance: "STAND" });
         hpLost += Math.max(0, hp0 - sim.hp); sim.hp = 100;
+        if (ambient && f === 0) for (const m of troops) Object.assign(m.ai!, { state: "ALERT", awareness: 1.2, lastX: PX, lastZ: PZ });
+        if (f === 60 * 10) alertAt10 = troops.filter((m) => m.ai?.state === "ALERT").length;
         for (const g of sim.grenades) { if (!seen.has(g.id)) { seen.add(g.id); thrown++; } if (g.rest && Math.hypot(g.x - PX, g.z - PZ) < 5) landedNear++; }
         for (const m of troops) { if (m.flank) flankers = Math.max(flankers, troops.filter((t) => t.flank).length); if (canSee({ x: m.x, y: walkHeight(m.x, m.z) + 1.55, z: m.z }, { x: PX, y: eye.y - 0.35, z: PZ }, world)) sawPlayer++; }
       }
+      alertEnd = troops.filter((m) => m.ai?.state === "ALERT").length;
     } finally { removeModelSolid("tactics-wall"); }
-    return { thrown, landedNear, flankers, sawPlayer, hpLost };
+    return { thrown, landedNear, flankers, sawPlayer, hpLost, alertAt10, alertEnd };
   }
   test("raiders lob grenades over the wall and send flankers round it", () => {
     const r = fight("RAIDER", 20);
@@ -104,6 +109,49 @@ describe("a squad against a player hiding behind a wall", () => {
     expect(r.sawPlayer).toBeGreaterThan(0); // someone got round to a line
     expect(r.hpLost).toBeGreaterThan(0);
   });
+  test("ordinary troops in the fight keep the hidden player pinned: they grenade and flank instead of drifting off to search", () => {
+    // play-test finding: awareness decayed below ALERT about a second after the player ducked out of sight, so world
+    // enemies never flanked (FLANK_AFTER 3 s) and rarely threw; only forced-ALERT mission troops did
+    const r = fight("RAIDER", 20, 4242, true);
+    expect(r.thrown).toBeGreaterThan(0);
+    expect(r.flankers).toBeGreaterThan(0);
+    expect(r.sawPlayer).toBeGreaterThan(0);
+  });
+  test("the pin does not last forever: troops that cannot find a line fall back to searching", () => {
+    // nobody flanks round a 200 m wall; once hidden longer than STAY_ALERT_HIDDEN they stop holding ALERT
+    const r = fightLongWall(STAY_ALERT_HIDDEN + 10);
+    expect(r.alertAt5).toBe(3);
+    expect(r.alertEnd).toBe(0);
+  });
+  function fightLongWall(seconds: number) {
+    const spy = spyOn(performance, "now").mockImplementation(() => clock * 1000);
+    try {
+      return seeded(7, () => {
+        const sim = createSim();
+        for (const t of sim.trucks) t.alive = false;
+        for (const o of sim.machines) o.alive = false;
+        const troops = sim.machines.slice(0, 3);
+        troops.forEach((m, k) => {
+          const x = PX + (k - 1) * 3, z = PZ + 22;
+          Object.assign(m, { alive: true, x, z, y: walkHeight(x, z) + 2.2 * 0.95, hp: 1e6, maxHp: 1e6, rot: Math.PI, scale: 0.95, zone: "wastelands", cool: 0, elite: false, boss: false, profile: "Test Grunt", kind: "OVERCLOCKED", drop: "scrapMetal", kx: 0, kz: 0, vulnUntil: 0, vulnMult: 1, mission: false, react: undefined }) as Machine;
+          delete m.ai; delete m.los; m.hiddenFor = 0; m.flank = undefined; m.grenadeAt = 0;
+        });
+        setModelSolid("tactics-long-wall", { x: PX, y: walkHeight(PX, PZ + 3) + 3, z: PZ + 3, w: 200, h: 6, d: 0.6 });
+        let alertAt5 = 0;
+        try {
+          for (let f = 0; f < 60 * seconds; f++) {
+            clock += 1 / 60;
+            stepSim(sim, { px: PX, pz: PZ, dt: 1 / 60, night: 0, inVehicle: false, yaw: 0, py: walkHeight(PX, PZ) + 1.7, pspeed: 0, stance: "STAND" });
+            sim.hp = 100; sim.playerNoise = 0; sim.combatHeat = 0;
+            if (f === 0) for (const m of troops) Object.assign(m.ai!, { state: "ALERT", awareness: 1.2, lastX: PX, lastZ: PZ });
+            for (const m of troops) { m.x = PX + (troops.indexOf(m) - 1) * 3; m.z = PZ + 22; } // they hold the far side
+            if (f === 60 * 5) alertAt5 = troops.filter((m) => m.ai?.state === "ALERT").length;
+          }
+        } finally { removeModelSolid("tactics-long-wall"); }
+        return { alertAt5, alertEnd: troops.filter((m) => m.ai?.state === "ALERT").length };
+      });
+    } finally { spy.mockRestore(); }
+  }
   test("cyber troopers never throw (they still flank)", () => {
     const r = fight("OVERCLOCKED", 14);
     expect(r.thrown).toBe(0);
