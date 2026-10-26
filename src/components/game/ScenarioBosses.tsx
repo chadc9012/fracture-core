@@ -9,6 +9,7 @@ import { walkHeight } from "@/game/terrain";
 import type { WorldSim } from "@/game/sim";
 import { DragonModel } from "./DragonModel";
 import { AstravoreBody, HollowStarArena } from "./AstravoreBody";
+import { SummonBodies } from "./SummonBodies";
 import { vyrakFire } from "@/game/dragon-look";
 import { findQuadrupedLegs, legAngles, type Leg, type RestBone } from "@/game/skeleton-gait";
 
@@ -152,7 +153,7 @@ export function ScenarioBosses({ sim }: { sim: WorldSim }) {
       }
     }
   });
-  return <><HollowStarArena />{wanted.includes("astravore") && <AstravoreBody sim={sim} ready={scenarioModelReady} />}{wanted.includes("vyrak") && <VyrakBody sim={sim} />}{UNIQUE_SCENARIOS.filter((s) => s.model && wanted.includes(s.id)).map((s) => (
+  return <><HollowStarArena />{wanted.includes("astravore") && <><AstravoreBody sim={sim} ready={scenarioModelReady} /><SummonBodies sim={sim} /></>}{wanted.includes("vyrak") && <VyrakBody sim={sim} />}{UNIQUE_SCENARIOS.filter((s) => s.model && wanted.includes(s.id)).map((s) => (
     <Quiet key={s.id} id={s.id}><Suspense fallback={null}><BossModel scenario={s} sim={sim} /></Suspense></Quiet>
   ))}</>;
 }

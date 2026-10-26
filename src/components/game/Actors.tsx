@@ -266,7 +266,7 @@ export function WarMachines({ sim }: { sim: WorldSim }) {
         mountedRef.current = next;
         setMounted(next);
       }
-      for (const child of node.children) child.visible = child.name === "elite-ring" ? m.elite && !m.boss : child.name === "summon-ring" ? Boolean(m.summoned) : child.name === modelName;
+      for (const child of node.children) child.visible = m.summoned ? child.name === "summon-ring" : child.name === "elite-ring" ? m.elite && !m.boss : child.name === "summon-ring" ? Boolean(m.summoned) : child.name === modelName;
       // walking gait: subtle body bob + roll so the legs read as striding
       const gait = t * 3 + i;
       // rigged models walk with their own clips; only clip-less ones get the procedural bob/roll, and only while moving
