@@ -29,8 +29,9 @@ namespace wf::godforge
 {
 	using FCost = std::vector<std::pair<std::string, double>>; // material -> amount, in the web build's key order
 
-	// ---- the place (Wastelands centre -300, 180, radius 252: the Hollow Crown sits 0.12 r east, 0.55 r south) ----
-	inline constexpr double HollowCrownX = -300 + 252 * 0.12, HollowCrownZ = 180 + 252 * 0.55, HollowCrownRadius = 14;
+	// ---- the place (the Wastelands centre -390, 234 after world.ts MAP_SPREAD, radius 252: the Hollow Crown sits 0.12 r east, 0.55 r south) ----
+	inline constexpr double WastesX = -390, WastesZ = 234, WastesRadius = 252;
+	inline constexpr double HollowCrownX = WastesX + WastesRadius * 0.12, HollowCrownZ = WastesZ + WastesRadius * 0.55, HollowCrownRadius = 14;
 	inline constexpr double VaelX = HollowCrownX - 3, VaelZ = HollowCrownZ - 4, VaelReach = 3.6;
 	inline const std::string GuardianTag = "godforge-guardian", HeartKey = "godforge:heart";
 	inline constexpr double GuardianHp = 60; // x the challenge's enemy health

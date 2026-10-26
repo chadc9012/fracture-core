@@ -1,5 +1,5 @@
 Name,Id,DisplayName,Region,MapRegion,X,Z,CostJson,Blurb,DeckY
-base-01,base-01,Wastelands Scrap-Hangar,The Wastelands,wastelands,-280,172,"{""scrapMetal"":40}","Corrugated hangar at Rust Port. Trucks, buggies and rigs.",0
-base-02,base-02,Neon City Spire Vault,Neon City,nexus,-179.99999999999997,-136,"{""microCircuits"":20,""reinforcedAlloy"":10}",A sealed vault under the Aegis Spire. Aircraft and hover bikes.,0
-base-03,base-03,Frostspire Bunkered Base,Frostspire Mountains,frostspire,-24,-540,"{""reinforcedAlloy"":25,""cryoCrystal"":10}",Blast-proof bays cut into the mountain. Heavy armor.,0
-base-04,base-04,Thalassia Sub-Dock,Thalassia,swamps,1288.2996219540862,-143.0332913282318,"{""dataShards"":12,""bioCatalyst"":6}",A pressure dock on the Thalassia shelf. Boats and submersibles.,-10
+base-01,base-01,Wastelands Scrap-Hangar,The Wastelands,wastelands,-370,226,"{""scrapMetal"":40}","Corrugated hangar at Rust Port. Trucks, buggies and rigs.",0
+base-02,base-02,Neon City Spire Vault,Neon City,nexus,-255.35298563379115,-220.4140222378975,"{""microCircuits"":20,""reinforcedAlloy"":10}",A sealed vault under the Aegis Spire. Aircraft and hover bikes.,0
+base-03,base-03,Frostspire Bunkered Base,Frostspire Mountains,frostspire,-16.799999999999997,-727.2,"{""reinforcedAlloy"":25,""cryoCrystal"":10}",Blast-proof bays cut into the mountain. Heavy armor.,0
+base-04,base-04,Thalassia Sub-Dock,Thalassia,swamps,1475.2491524461939,-163.80546138291044,"{""dataShards"":12,""bioCatalyst"":6}",A pressure dock on the Thalassia shelf. Boats and submersibles.,-10

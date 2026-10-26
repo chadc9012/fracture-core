@@ -90,6 +90,21 @@
     "VendorTier": 0
   },
   {
+    "Name": "hollow-star",
+    "Id": "hollow-star",
+    "DisplayName": "Hollow Star",
+    "RegionId": "hollow-star",
+    "Element": "ARC",
+    "Color": "#a970ff",
+    "Tagline": "Armor from the bottom of the world: raid-earned, never found.",
+    "PiecesJson": "{\"helmet\":\"Gatewarden Visor\",\"gauntlets\":\"Spanwalker Grips\",\"chest\":\"Echo Mantle\",\"legs\":\"Sealkeeper Greaves\",\"classItem\":\"Conduit Mark\"}",
+    "TwoJson": "{\"name\":\"Starfall Ward\",\"description\":\"Incoming damage reduced by 8%, abilities recharge 6% faster.\",\"effects\":{\"resist\":0.08,\"abilityRecharge\":0.06}}",
+    "FourJson": "{\"name\":\"Event Horizon\",\"description\":\"Weapon damage +12%, resist another 5%, hull regenerates.\",\"effects\":{\"weaponDamage\":0.12,\"resist\":0.05,\"regen\":1.2}}",
+    "Family": "",
+    "Sources": [],
+    "VendorTier": 0
+  },
+  {
     "Name": "ironwatch",
     "Id": "ironwatch",
     "DisplayName": "Ironwatch",

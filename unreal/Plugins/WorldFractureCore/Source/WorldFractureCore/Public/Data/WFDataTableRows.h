@@ -136,8 +136,8 @@ struct FRegionsRow : public FTableRowBase
 	UPROPERTY(EditAnywhere, BlueprintReadWrite) FString DisplayName;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite) FString Sub;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite) FString Kind;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite) int32 X = 0;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite) int32 Z = 0;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite) double X = 0.0;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite) double Z = 0.0;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite) int32 Radius = 0;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite) int32 Difficulty = 0;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite) FString Ground;
@@ -281,7 +281,7 @@ struct FAbilityNodesRow : public FTableRowBase
 	UPROPERTY(EditAnywhere, BlueprintReadWrite) FString BranchesJson;
 };
 
-/** ArmorSets: 36 rows, exported from the web build. */
+/** ArmorSets: 37 rows, exported from the web build. */
 USTRUCT(BlueprintType)
 struct FArmorSetsRow : public FTableRowBase
 {
@@ -300,7 +300,7 @@ struct FArmorSetsRow : public FTableRowBase
 	UPROPERTY(EditAnywhere, BlueprintReadWrite) int32 VendorTier = 0;
 };
 
-/** ArmorPerks: 180 rows, exported from the web build. */
+/** ArmorPerks: 185 rows, exported from the web build. */
 USTRUCT(BlueprintType)
 struct FArmorPerksRow : public FTableRowBase
 {

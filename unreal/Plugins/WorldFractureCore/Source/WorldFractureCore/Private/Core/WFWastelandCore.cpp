@@ -70,7 +70,14 @@ namespace wf::wasteland
 
 	const std::vector<FPoint>& RallyCheckpoints()
 	{
-		static const std::vector<FPoint> Points{{-274, 279}, {-208, 259}, {-190, 192}, {-237, 142}, {-295, 141}, {-411, 142}, {-425, 192}, {-411, 242}, {-374, 279}, {-324, 293}};
+		// authored offsets from the Wastelands centre
+		static const std::vector<FPoint> Points = []()
+		{
+			const double Off[10][2] = {{26, 99}, {92, 79}, {110, 12}, {63, -38}, {5, -39}, {-111, -38}, {-125, 12}, {-111, 62}, {-74, 99}, {-24, 113}};
+			std::vector<FPoint> Out;
+			for (const auto& O : Off) Out.push_back({RegionCentre.X + O[0], RegionCentre.Z + O[1]});
+			return Out;
+		}();
 		return Points;
 	}
 

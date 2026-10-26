@@ -109,7 +109,7 @@
     "ModelJson": "",
     "LairJson": "",
     "Taunt": "\"The court is drowned. Kneel, or be counted among it.\"",
-    "LairAtJson": "{\"x\":1281.2996219540862,\"z\":-165.0332913282318}",
+    "LairAtJson": "{\"x\":1468.2491524461939,\"z\":-185.80546138291044}",
     "MapRegion": "",
     "Raid": false
   },
@@ -242,7 +242,7 @@
     "ModelJson": "",
     "LairJson": "",
     "Taunt": "\"Catch me, or keep running the route everyone else runs.\"",
-    "LairAtJson": "{\"x\":-211.99999999999997,\"z\":-94.00000000000001}",
+    "LairAtJson": "{\"x\":-287.35298563379115,\"z\":-178.4140222378975}",
     "MapRegion": "",
     "Raid": false
   },
@@ -261,7 +261,7 @@
     "ModelJson": "",
     "LairJson": "",
     "Taunt": "\"Every pattern you repeat, I have already compiled.\"",
-    "LairAtJson": "{\"x\":-219.99999999999997,\"z\":-121.00000000000001}",
+    "LairAtJson": "{\"x\":-295.35298563379115,\"z\":-205.4140222378975}",
     "MapRegion": "",
     "Raid": false
   },
@@ -299,7 +299,7 @@
     "ModelJson": "",
     "LairJson": "",
     "Taunt": "\"...\" (the water itself pulls toward the trench)",
-    "LairAtJson": "{\"x\":1217.2996219540862,\"z\":-111.0332913282318}",
+    "LairAtJson": "{\"x\":1404.2491524461939,\"z\":-131.80546138291044}",
     "MapRegion": "",
     "Raid": false
   },

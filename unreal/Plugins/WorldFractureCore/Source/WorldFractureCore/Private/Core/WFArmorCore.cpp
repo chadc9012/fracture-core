@@ -30,6 +30,7 @@ namespace wf::armor
 			if (SetId == "frostwrought-aegis") return {0.9, 0.8, 1.4};
 			if (SetId == "scrapborn-raider") return {1, 1.15, 1};
 			if (SetId == "dune-seeker") return {1.1, 1.3, 0.75};
+			if (SetId == "hollow-star") return {1.2, 1.1, 1.2};
 			return {1, 1, 1};
 		}
 		double AmSoft(double X) { return X <= SoftCap ? X : SoftCap + (X - SoftCap) * SoftCapFalloff; }

@@ -45,8 +45,8 @@ namespace
 	{
 		// the safe and starter regions of the Regions DataTable (world.ts REGIONS, scaled); everything else has no turrets
 		return {
-			{"nexus", "safe", 48, -228, 26},
-			{"veridan", "starter", 432, -60, 204},
+			{"nexus", "safe", 62.400000000000006, -296.4, 26},
+			{"veridan", "starter", 561.6, -78, 204},
 		};
 	}
 }

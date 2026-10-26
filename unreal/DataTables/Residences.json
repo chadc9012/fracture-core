@@ -11,8 +11,8 @@
     "Price": 24000,
     "Bays": 1,
     "Blurb": "Suburban House · Single-storey family house with a private garage.",
-    "X": 48,
-    "Z": -99
+    "X": 62.400000000000006,
+    "Z": -167.39999999999998
   },
   {
     "Name": "nexus-home-2",
@@ -26,8 +26,8 @@
     "Price": 30000,
     "Bays": 1,
     "Blurb": "Townhouse · Three storeys of brick on a quiet row.",
-    "X": 22,
-    "Z": -99
+    "X": 36.400000000000006,
+    "Z": -167.39999999999998
   },
   {
     "Name": "nexus-home-3",
@@ -41,8 +41,8 @@
     "Price": 36000,
     "Bays": 2,
     "Blurb": "Duplex · Wide two-storey home with a double garage.",
-    "X": 74,
-    "Z": -99
+    "X": 88.4,
+    "Z": -167.39999999999998
   },
   {
     "Name": "nexus-home-4",
@@ -56,8 +56,8 @@
     "Price": 48000,
     "Bays": 2,
     "Blurb": "Courtyard House · Built round a planted courtyard; double garage.",
-    "X": 48,
-    "Z": -73
+    "X": 62.400000000000006,
+    "Z": -141.39999999999998
   },
   {
     "Name": "nexus-home-5",
@@ -71,8 +71,8 @@
     "Price": 24000,
     "Bays": 1,
     "Blurb": "Suburban House · Single-storey family house with a private garage.",
-    "X": 22,
-    "Z": -73
+    "X": 36.400000000000006,
+    "Z": -141.39999999999998
   },
   {
     "Name": "nexus-home-6",
@@ -86,8 +86,8 @@
     "Price": 30000,
     "Bays": 1,
     "Blurb": "Townhouse · Three storeys of brick on a quiet row.",
-    "X": 74,
-    "Z": -73
+    "X": 88.4,
+    "Z": -141.39999999999998
   },
   {
     "Name": "nexus-home-7",
@@ -101,8 +101,8 @@
     "Price": 5000,
     "Bays": 1,
     "Blurb": "Apartment · Ground-floor flat in a four-storey block, one parking bay.",
-    "X": 48,
-    "Z": -47
+    "X": 62.400000000000006,
+    "Z": -115.39999999999998
   },
   {
     "Name": "nexus-home-8",
@@ -116,8 +116,8 @@
     "Price": 11000,
     "Bays": 2,
     "Blurb": "Condominium · Corner condo with balconies and two parking bays.",
-    "X": 22,
-    "Z": -47
+    "X": 36.400000000000006,
+    "Z": -115.39999999999998
   },
   {
     "Name": "neon-home-1",
@@ -131,8 +131,8 @@
     "Price": 6500,
     "Bays": 1,
     "Blurb": "Apartment · Ground-floor flat in a four-storey block, one parking bay.",
-    "X": -328,
-    "Z": -140
+    "X": -403.35298563379115,
+    "Z": -224.4140222378975
   },
   {
     "Name": "neon-home-2",
@@ -146,8 +146,8 @@
     "Price": 10000,
     "Bays": 2,
     "Blurb": "Industrial Loft · Double-height warehouse loft, two bays below.",
-    "X": -145.99999999999997,
-    "Z": -218
+    "X": -221.35298563379115,
+    "Z": -302.4140222378975
   },
   {
     "Name": "neon-home-3",
@@ -161,8 +161,8 @@
     "Price": 14000,
     "Bays": 1,
     "Blurb": "Condominium · Corner condo with balconies and two parking bays.",
-    "X": -119.99999999999997,
-    "Z": -36.000000000000014
+    "X": -195.35298563379115,
+    "Z": -120.41402223789751
   },
   {
     "Name": "neon-home-4",
@@ -176,7 +176,7 @@
     "Price": 200000,
     "Bays": 3,
     "Blurb": "Skyline Villa · Glass villa over the city lights; three-car garage.",
-    "X": -223.99999999999997,
-    "Z": 15.999999999999986
+    "X": -299.35298563379115,
+    "Z": -68.41402223789751
   }
 ]

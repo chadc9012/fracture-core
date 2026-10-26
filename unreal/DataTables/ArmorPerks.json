@@ -1350,6 +1350,51 @@
     "EffectsJson": "{\"regen\":0.4}"
   },
   {
+    "Name": "hollow-star_helmet",
+    "Id": "hollow-star:helmet",
+    "SetId": "hollow-star",
+    "Slot": "helmet",
+    "DisplayName": "Beacon Lens",
+    "Description": "Abilities recharge 8% faster.",
+    "EffectsJson": "{\"abilityRecharge\":0.08}"
+  },
+  {
+    "Name": "hollow-star_gauntlets",
+    "Id": "hollow-star:gauntlets",
+    "SetId": "hollow-star",
+    "Slot": "gauntlets",
+    "DisplayName": "Span Grip",
+    "Description": "Weapon damage +5%.",
+    "EffectsJson": "{\"weaponDamage\":0.05}"
+  },
+  {
+    "Name": "hollow-star_chest",
+    "Id": "hollow-star:chest",
+    "SetId": "hollow-star",
+    "Slot": "chest",
+    "DisplayName": "Mirror Plate",
+    "Description": "Incoming damage reduced by 4%.",
+    "EffectsJson": "{\"resist\":0.04}"
+  },
+  {
+    "Name": "hollow-star_legs",
+    "Id": "hollow-star:legs",
+    "SetId": "hollow-star",
+    "Slot": "legs",
+    "DisplayName": "Seal Stride",
+    "Description": "Move 5% faster.",
+    "EffectsJson": "{\"moveSpeed\":0.05}"
+  },
+  {
+    "Name": "hollow-star_classItem",
+    "Id": "hollow-star:classItem",
+    "SetId": "hollow-star",
+    "Slot": "classItem",
+    "DisplayName": "Conduit Sash",
+    "Description": "Slides carry 10% further, abilities 3% faster.",
+    "EffectsJson": "{\"slideBoost\":0.1,\"abilityRecharge\":0.03}"
+  },
+  {
     "Name": "verdant-warden_helmet",
     "Id": "verdant-warden:helmet",
     "SetId": "verdant-warden",

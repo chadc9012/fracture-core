@@ -27,11 +27,12 @@ namespace wf::wasteland
 {
 	struct FSite { double X = 0, Z = 0, Radius = 0; };
 	struct FPoint { double X = 0, Z = 0; };
-	/** where the web world puts the Wastelands (regions.ts), so a level can lay the sites out around its own centre */
-	inline constexpr FPoint RegionCentre{-300, 180};
-	inline constexpr FSite VaultGate{-222, 196, 9};
-	inline constexpr FSite Arena{-458, 192, 24};
-	inline constexpr FPoint RallyStart{-324, 293};
+	/** where the web world puts the Wastelands (world.ts REGIONS, MAP_SPREAD 1.3), so a level can lay the sites out around its
+	 *  own centre; the sites move rigidly with it (world.ts movedWithRegion) */
+	inline constexpr FPoint RegionCentre{-390, 234};
+	inline constexpr FSite VaultGate{RegionCentre.X + 78, RegionCentre.Z + 16, 9};
+	inline constexpr FSite Arena{RegionCentre.X - 158, RegionCentre.Z + 12, 24};
+	inline constexpr FPoint RallyStart{RegionCentre.X - 24, RegionCentre.Z + 113};
 	WORLDFRACTURECORE_API const std::vector<FPoint>& RallyCheckpoints();
 	inline constexpr double RallyReach = 10;
 	inline const std::string RallyId = "rust-run", RallyName = "Rust Run", DerbyId = "mash-pit";
