@@ -325,7 +325,14 @@ void AWFHUD::DrawHUD()
 
 	// top left: region and quest
 	float Y = 32;
-	if (Mode) { Line(FString::Printf(TEXT("%s"), *Mode->GetRegionName().ToUpper()), 32, Y, Soft, 0.9f); Y += 26; }
+	if (Mode)
+	{
+		Line(FString::Printf(TEXT("%s"), *Mode->GetRegionName().ToUpper()), 32, Y, Soft, 0.9f); Y += 26;
+		// the clock, phase and environment summary (world.ts clockLabel / phaseFor, environment.ts summary)
+		const double Clock = Mode->GetDayClock();
+		Line(FString::Printf(TEXT("%s  %s  %s"), UTF8_TO_TCHAR(wf::env::ClockLabel(Clock).c_str()), UTF8_TO_TCHAR(wf::env::PhaseFor(Clock).c_str()), UTF8_TO_TCHAR(Mode->GetEnvironment().Summary.c_str())), 32, Y, Soft, 0.8f); Y += 22;
+		if (!Mode->GetHazardWarning().IsEmpty()) { Line(Mode->GetHazardWarning(), 32, Y, Warn, 0.85f); Y += 22; }
+	}
 	if (Quests && !Quests->GetActiveQuestId().IsEmpty())
 	{
 		Line(FString::Printf(TEXT("THE FRACTURE DESCENT / %s"), *Quests->GetActiveQuestTitle().ToUpper()), 32, Y, Cyan);

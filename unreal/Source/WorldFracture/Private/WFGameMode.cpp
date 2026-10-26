@@ -75,7 +75,8 @@ void AWFGameMode::EnsurePlayableWorld()
 	UWorld* World = GetWorld();
 	if (!World) return;
 
-	if (!TActorIterator<ADirectionalLight>(World))
+	if (TActorIterator<ADirectionalLight> Existing(World); Existing) SunLight = *Existing; // the clock turns the level's own sun
+	else
 	{
 		ADirectionalLight* Sun = World->SpawnActor<ADirectionalLight>(FVector(0, 0, 2000), FRotator(-40.f, 35.f, 0.f));
 		if (Sun && Sun->GetLightComponent())
@@ -83,6 +84,7 @@ void AWFGameMode::EnsurePlayableWorld()
 			Sun->GetLightComponent()->SetMobility(EComponentMobility::Movable);
 			Sun->GetLightComponent()->SetIntensity(6.f);
 		}
+		SunLight = Sun;
 	}
 	if (!TActorIterator<ASkyLight>(World))
 		if (ASkyLight* Sky = World->SpawnActor<ASkyLight>(FVector(0, 0, 1000), FRotator::ZeroRotator))
@@ -164,6 +166,7 @@ bool AWFGameMode::LoadRoster(const FString& Override)
 				RegionName = WFData::Str(Row, TEXT("DisplayName"));
 				RegionDifficulty = WFData::Num(Row, TEXT("Difficulty"));
 				RegionSpeed = WFData::Num(Row, TEXT("Speed"), 0.9);
+				RegionKind = WFData::Str(Row, TEXT("Kind"));
 			}
 
 	Roster.Reset();
@@ -188,6 +191,7 @@ void AWFGameMode::Tick(float DeltaSeconds)
 	TickCity(DeltaSeconds);
 	TickGrenades(DeltaSeconds);
 	TickWasteland(DeltaSeconds);
+	TickEnvironment(DeltaSeconds);
 	TickGodforge(DeltaSeconds);
 	// sim.ts: weapon cooling; venting from an overheat is slower than a normal cooldown
 	if (wf::vweapons::CoolHeat(WeaponHeat, FMath::Min(static_cast<double>(DeltaSeconds), 0.25))) Toast(TEXT("Weapon cooled - ready"), FLinearColor(0.45f, 0.9f, 1.f));
@@ -845,7 +849,15 @@ void AWFGameMode::Inventory()
 
 void AWFGameMode::ShopHour(float Hour)
 {
-	if (UWFShopSubsystem* Shops = GetGameInstance()->GetSubsystem<UWFShopSubsystem>()) Shops->SetWorldHour(Hour);
+	Clock(Hour, static_cast<float>(ClockSpeed));
+}
+
+void AWFGameMode::Clock(float Hour, float Speed)
+{
+	// Scene.tsx debug time(hour): the clock keeps its day count so the season does not jump
+	DayClock = FMath::FloorToDouble(DayClock) + FMath::Fmod(FMath::Fmod(static_cast<double>(Hour) / 24, 1.0) + 1.0, 1.0);
+	if (Speed > 0) ClockSpeed = Speed;
+	Toast(FString::Printf(TEXT("Clock %s (%s), pace x%g"), UTF8_TO_TCHAR(wf::env::ClockLabel(DayClock).c_str()), UTF8_TO_TCHAR(wf::env::PhaseFor(DayClock).c_str()), ClockSpeed), FLinearColor(0.45f, 0.9f, 1.f));
 }
 
 // --- the fleet -----------------------------------------------------------------------------------------------------------
@@ -1109,10 +1121,8 @@ void AWFGameMode::TickGodforge(float DeltaSeconds)
 
 	// secrets.ts: NOVA senses the nearest unfound secret; reaching one that answers now claims it (once per session)
 	wf::godforge::FSecretContext Ctx;
-	const UWFShopSubsystem* Shops = GetGameInstance()->GetSubsystem<UWFShopSubsystem>();
-	const std::optional<double> Hour = Shops ? Shops->GetWorldHour() : std::nullopt;
-	Ctx.bNight = Hour && wf::godforge::NightFactor(*Hour / 24) > 0.5; // no day cycle here: ShopHour sets the clock
-	Ctx.bStorm = false;                                               // no weather is ported
+	Ctx.bNight = wf::env::NightFactor(DayClock) > 0.5;      // Scene.tsx: night > 0.5
+	Ctx.bStorm = Env.Weather.State == "STORM";
 	Ctx.bNemesisSlain = wf::godforge::NemesesSlain(Save) > 0;
 	Ctx.bPledged = Save.Story.Choices.count("living.neon.pledge") > 0;
 	auto RegionOf = [this](const std::string& Id) -> std::optional<wf::godforge::FRegionCircle>
@@ -1268,4 +1278,64 @@ void AWFGameMode::Godforge()
 		}
 	if (Stage == "GUARDIAN_SLAIN") Lines.Add(TEXT("At Vael: ForgeRelic eclipse-devourer|crownfire|stillwater, SocketRune <id> <rune>, RemoveRune, AscendRelic <id>, CollectDust; Equip <id> to wield a relic"));
 	for (const FString& L : Lines) { UE_LOG(LogTemp, Display, TEXT("%s"), *L); Toast(L, GfGold); }
+}
+
+// --- the world clock, weather and hazards -------------------------------------------------------------------------------
+
+bool AWFGameMode::IsSheltered() const
+{
+	// Scene.tsx: an interior, a safe region or the Nexus shield (there are no interiors in this prototype level)
+	return RegionKind == TEXT("safe") || RegionId == TEXT("nexus");
+}
+
+void AWFGameMode::TickEnvironment(float DeltaSeconds)
+{
+	const double Dt = FMath::Min(static_cast<double>(DeltaSeconds), 0.25);
+	DayClock += Dt * wf::env::DayRate * ClockSpeed;
+	if (UWFShopSubsystem* Shops = GetGameInstance()->GetSubsystem<UWFShopSubsystem>()) Shops->SetWorldHour(static_cast<float>(wf::env::HourOf(DayClock))); // shop-hours.ts reads the same clock
+	const double Night = wf::env::NightFactor(DayClock);
+	Env = wf::env::EnvironmentAt(WFData::ToStd(RegionId), DayClock, Night);
+
+	// the sun: up at 06:00, highest at noon, down at 18:00; clouds dim it
+	if (ADirectionalLight* Sun = SunLight.Get())
+	{
+		const double Elevation = wf::env::SunElevation(DayClock);
+		const double Pitch = -FMath::RadiansToDegrees(FMath::Asin(FMath::Clamp(Elevation, -1.0, 1.0)));
+		const double Yaw = wf::env::HourOf(DayClock) / 24 * 360; // east in the morning, west in the evening
+		Sun->SetActorRotation(FRotator(static_cast<float>(Pitch), static_cast<float>(Yaw), 0.f));
+		if (Sun->GetLightComponent())
+			Sun->GetLightComponent()->SetIntensity(static_cast<float>(FMath::Max(0.05, 6.0 * FMath::Max(0.0, Elevation + 0.1) * (1 - 0.7 * Env.Weather.Cloud))));
+	}
+
+	// environment.ts stepEnvironment: exposure meters and telegraphed lightning
+	APawn* Pawn = UGameplayStatics::GetPlayerPawn(this, 0);
+	AWFCharacter* Player = Cast<AWFCharacter>(Pawn);
+	if (const AWFVehicle* Car = Cast<AWFVehicle>(Pawn)) Player = Car->GetDriver();
+	if (!Pawn || !Player) return;
+	const FVector P = Pawn->GetActorLocation() / 100.0;
+	wf::env::FEnvInput In;
+	In.Dt = Dt; In.RegionId = WFData::ToStd(RegionId); In.Env = Env; In.bSheltered = IsSheltered(); In.Px = P.X; In.Pz = P.Y;
+	In.Rand = []() { return static_cast<double>(FMath::FRand()); };
+	const wf::env::FEnvOutput Out = wf::env::StepEnvironment(EnvState, In);
+	if (Out.Damage > 0) Player->ApplyHit(Out.Damage, UTF8_TO_TCHAR(Out.Cause.c_str()));
+	const FString Warning = UTF8_TO_TCHAR(Out.Warning.c_str());
+	if (!Warning.IsEmpty() && Warning != HazardWarning) Toast(Warning, FLinearColor(1.f, 0.55f, 0.3f));
+	HazardWarning = Warning;
+	UWorld* World = GetWorld();
+	for (const wf::env::FStrike& S : EnvState.Strikes) // the ground ring telegraphs where it lands
+	{
+		const FVector G(S.X * 100, S.Z * 100, GroundZ(S.X * 100, S.Z * 100, Pawn->GetActorLocation().Z));
+		DrawDebugCylinder(World, G, G + FVector(0, 0, 40), static_cast<float>(S.Radius * 100), 32, FColor(170, 200, 255), false, -1.f, 0, 4.f);
+	}
+	for (const wf::env::FStrike& S : Out.Detonated)
+	{
+		// sim.ts applyLightning: machines within radius + their scale take 6, the player within the radius 14
+		const FVector G(S.X * 100, S.Z * 100, GroundZ(S.X * 100, S.Z * 100, Pawn->GetActorLocation().Z));
+		DrawDebugLine(World, G + FVector(0, 0, 6000), G, FColor(220, 230, 255), false, 0.3f, 0, 12.f);
+		TArray<AWFEnemy*> Struck;
+		for (TActorIterator<AWFEnemy> It(World); It; ++It)
+			if (!It->IsDead() && !It->IsDecoy() && FVector::Dist2D(It->GetActorLocation(), G) / 100.0 <= S.Radius + It->GetActorScale3D().X) Struck.Add(*It);
+		for (AWFEnemy* E : Struck) if (IsValid(E) && !E->IsDead()) E->TakeHit(wf::env::StrikeMachineDamage, nullptr, TEXT("ARC"));
+		if (wf::js::Hypot(P.X - S.X, P.Y - S.Z) <= S.Radius) Player->ApplyHit(wf::env::StrikePlayerDamage, TEXT("Lightning strike"));
+	}
 }

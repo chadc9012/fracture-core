@@ -6,6 +6,7 @@
 #include "Core/WFEncounterCore.h"
 #include "Core/WFWastelandCore.h"
 #include "Core/WFGodforgeCore.h"
+#include "Core/WFEnvironmentCore.h"
 #include "Core/WFVehicleWeaponsCore.h"
 #include "GameFramework/GameModeBase.h"
 #include "WFGameMode.generated.h"
@@ -73,8 +74,10 @@ public:
 	UFUNCTION(Exec) void Service(const FString& ItemId, const FString& Element);
 	/** Prints the inventory with item ids, levels and power. */
 	UFUNCTION(Exec) void Inventory();
-	/** ShopHour <0-24>: the world clock the shop hours use (-1 = unset, all open). */
+	/** ShopHour <0-24>: sets the world clock (the shops, the sun, night-only secrets all read it); kept for old habits */
 	UFUNCTION(Exec) void ShopHour(float Hour);
+	/** Clock <0-24> [speed]: sets the world clock; speed multiplies its pace (1 = the web build's 0.008 days a second) */
+	UFUNCTION(Exec) void Clock(float Hour, float Speed);
 
 	// ---- the fleet (ported fleet.ts, UWFFleetSubsystem) ----
 	/** Prints the four garage bases and the 21 fleet builds with costs, ownership and tuning. */
@@ -149,6 +152,12 @@ public:
 	/** the activity panel (title, lines, progress) while one runs, or its result for a few seconds after */
 	const std::optional<wf::wasteland::FHud>& GetWastelandHud() const { return WasteHud; }
 
+	// ---- the world clock, weather and hazards (ported world.ts, weather-cycle.ts, environment.ts) ----
+	double GetDayClock() const { return DayClock; }
+	const wf::env::FEnvironment& GetEnvironment() const { return Env; }
+	const FString& GetHazardWarning() const { return HazardWarning; }
+	bool IsSheltered() const;
+
 	// ---- weapon heat (sim.ts weaponHeat): one gauge for the Operator's guns and every vehicle gun ----
 	wf::vweapons::FHeat& GetWeaponHeat() { return WeaponHeat; }
 	const wf::vweapons::FHeat& GetWeaponHeat() const { return WeaponHeat; }
@@ -185,6 +194,7 @@ private:
 	void TickGrenades(float DeltaSeconds);
 	void TickWasteland(float DeltaSeconds);
 	void TickGodforge(float DeltaSeconds);
+	void TickEnvironment(float DeltaSeconds);
 	/** the forge's console commands answer only at Vael (godforge.ts vaelNear), as the web build's forge window opens only there */
 	bool AtVael();
 	void ForgeAction(const std::function<wf::godforge::FForgeResult(const wf::FProgression&)>& Action);
@@ -233,6 +243,12 @@ private:
 	FVector2D WasteAnchorCm = FVector2D::ZeroVector; // where the Wastelands centre sits in this level
 	TArray<FWFTroop> WasteRoster;
 	wf::vweapons::FHeat WeaponHeat;
+	double DayClock = wf::env::ClockStart; // 08:38, as the web build starts
+	double ClockSpeed = 1;
+	wf::env::FEnvironment Env;
+	wf::env::FEnvState EnvState;
+	FString HazardWarning, RegionKind;
+	TWeakObjectPtr<class ADirectionalLight> SunLight;
 	bool bRegionAnchored = false;
 	FVector2D RegionAnchorCm = FVector2D::ZeroVector;
 	wf::godforge::FRegionCircle RegionCircle;

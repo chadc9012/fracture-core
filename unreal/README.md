@@ -58,12 +58,18 @@ Driving has no touch controls yet.
 Until then the phone build is the web game (`mobile/`, the `android-latest` release), which is the whole game today.
 
 ## What runs
+- **Clock, weather and hazards:** the world clock starts at 08:38 and runs at the web build's pace (a day in about two
+  minutes; `Clock <hour> [pace]` sets it). It turns the sun, opens and shuts the shops and wakes the night-only
+  secrets. Every region rolls its own weather fronts and seasons (weather-cycle.ts, environment.ts), shown under the
+  region name with the temperature. Ember Peaks summers bring heat exhaustion, Frostspire hypothermia, Swamp fog
+  spore toxicity; meters warn at 50% and hurt at 100%, safe regions and the Nexus shield relieve them. Storms throw
+  lightning: a ring marks the ground 1.6 s before the bolt (14 damage to you, 6 to enemies).
 - **Weapon heat and foundries:** every gun shares one heat gauge, on foot and mounted (sim.ts weaponHeat): each pull adds
   7 x the weapon's heat (split across a shotgun's pellets), the guns vent at 100 and fire again once cooled to 6. The
   equipped weapon's foundry is a real rule (foundries.ts): Omolon -25% heat, SUROS -30% recoil, Tex Mechanica +25% from
   the hip, Häkke +20% to elites and bosses, Black Armory nanites hop 1.5 damage to the nearest hostile after a kill.
 - **The Godforge and secrets:** NOVA hums near the region's hidden secrets (secrets.ts; within 60 m, a shimmer within
-  25 m, claimed in reach when its condition holds: `ShopHour` sets the clock for the night-only ones). The three
+  25 m, claimed in reach when its condition holds: night-only ones at night, the storm relay in a Solara storm). The three
   Forgewright's Marks (Frostspire, Ember Peaks, the Wastelands) open the Hollow Crown in the Wastelands; walking in wakes
   the Furnace Guardian, whose kill pays the Heart of the Hollow Crown and two forge catalysts. Standing at Vael:
   `ForgeRelic eclipse-devourer|crownfire|stillwater`, `SocketRune <id> <rune>`, `RemoveRune`, `AscendRelic <id>`,
@@ -237,6 +243,7 @@ cmake -S . -B build -G Ninja && cmake --build build && ctest --test-dir build --
 | ArmorCoreTest | armor-sets.ts, armor-perks.ts, armor-attributes.ts, inventory.ts weaponDamageMultiplier | 36 sets, 1,500 loadouts, 10,510 checks |
 | TacticsCoreTest | enemy-intelligence.ts, ability-network.ts buildSynergy, enemy-tactics.ts, enemy-evasion.ts, enemy-cover.ts | 2,000 flank searches, 2,500 cover searches, 200 grenade flights, 3,000 round threats, 21,755 checks |
 | BountyCoreTest | activity-payouts.ts payoutFor / payInto / tagLegacyPayouts / payFlat (raids reset weekly) | 400 ledgers, 8,939 payouts, 17,866 checks |
+| EnvironmentCoreTest | world.ts clock, weather-cycle.ts, environment.ts | 3,000 clock times, 12,000 weather samples, 48,000 hazard steps, 111,000 checks |
 | GodforgeCoreTest | godforge.ts, secrets.ts, foundries.ts foundryOf, sim.ts fireBullet / fireLauncher heat | 1,590 foundry names, 3,000 trigger pulls, 10,516 forge actions, 1,084 queries, 37,843 checks |
 | WastelandCoreTest | wasteland-activities.ts, wasteland-runtime.ts | 15,600 machine steps, 2,400 resolves, 24,000 runtime frames, 132,024 checks |
 | MoveCoreTest | movement.ts, parkour.ts | 300 tracks, 18,000 frames, 36,067 checks |
@@ -246,7 +253,7 @@ The golden files (`Plugins/WorldFractureCore/Tests/<name>_golden.txt`) are **gen
 which broke the Lovable preview build. Record all of them from the repo root before configuring the tests (and again after changing
 the web build's rules):
 
-    node unreal/tools/gen-goldens.mjs            # all twenty-four
+    node unreal/tools/gen-goldens.mjs            # all twenty-five
     node unreal/tools/gen-goldens.mjs race shop  # just these
 
 `export-datatables` (the DataTables, which are committed) still runs on its own:
@@ -258,7 +265,7 @@ The encounter, Dragonite-cast, ability, tactics and Wastelands recorders route t
 ## Not ported yet
 Boss models and attack effects (zones are debug circles, decoys are stand-ins), mid-mission saves, ability mastery XP,
 region kinds for abilities (the map counts as a war zone),
-troopers running out of orbital strike circles (no strike beacons yet), the rune bursts (Storm, Ember, Frost, Bloom and Sun need weapon-evolution.ts, which is not ported; their element still applies), nemeses (so the nemesis-gated runes and relic tiers wait), weather (storm secrets), the Neon City pledge, the featured-activity rotation and
+troopers running out of orbital strike circles (no strike beacons yet), the rune bursts (Storm, Ember, Frost, Bloom and Sun need weapon-evolution.ts, which is not ported; their element still applies), nemeses (so the nemesis-gated runes and relic tiers wait), rain, snow and fog visuals (the weather is simulated and shown on the HUD; the regional hazard zones of hazards.ts are separate and not ported), the Neon City pledge, the featured-activity rotation and
 activity shader drops,
 diving (the thalassia-dive survive timer), the Neon City police response itself (the web build has only the heat meter and its labels; chase-ai.ts pursuit helpers are unused there), the Operations Hub preview marketplace (its wallet is not saved in the web build either), home interiors, cloud save merge, the rest of the world (terrain, the other regions, Neon City, Thalassia; Nexus City is in). Their data is already in
 `DataTables/`.
