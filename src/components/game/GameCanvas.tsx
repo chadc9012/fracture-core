@@ -27,7 +27,7 @@ import type { VehicleId } from "@/game/vehicles";
 import { STARTER_VEHICLES, VEHICLES, vehicleAcquisition } from "@/game/vehicles";
 import { Button } from "@/components/ui/button";
 import type { RenderTier } from "@/game/performance";
-import { PHONE_DPR, defaultFrameRate, dprDown, dprFloor, dprUp, effectiveTier, frameInterval, monitorBounds, onDecline as governDecline, type FrameRate } from "@/game/quality-governor";
+import { PHONE_DPR, phoneTier, defaultFrameRate, dprDown, dprFloor, dprUp, effectiveTier, frameInterval, monitorBounds, onDecline as governDecline, type FrameRate } from "@/game/quality-governor";
 import { isTouchDevice } from "@/game/client-input";
 import { MissionCinematic } from "./MissionCinematic";
 import { recordClue } from "@/game/encounter-journal";
@@ -336,9 +336,9 @@ export function GameCanvas() {
   const [pendingDeployment, setPendingDeployment] = useCountedState<Deployment | null>("pendingDeployment", null);
   const [menuOpen, setMenuOpen] = useCountedState("menuOpen", false);
   const [settings, setSettings] = useCountedState<GameSettings>("settings", DEFAULT_SETTINGS);
-  const [adaptiveDpr, setAdaptiveDpr] = useCountedState("adaptiveDpr", 1.5);
   // frame pacing (quality-governor.ts): phones run a steady 30 by default at a fixed, sharper resolution
   const touchScreen = useMemo(() => typeof window !== "undefined" && isTouchDevice(), []);
+  const [adaptiveDpr, setAdaptiveDpr] = useCountedState("adaptiveDpr", touchScreen ? PHONE_DPR : 1.5);
   const frameRate: FrameRate = settings.frameRate ?? defaultFrameRate(touchScreen);
   const [lowPerf, setLowPerf] = useCountedState("lowPerf", false);
   // automatic quality step-down (quality-governor.ts): session-only cap, never changes the saved setting
@@ -348,7 +348,7 @@ export function GameCanvas() {
   // dev-only (?dev=1&tier=HIGH): pin the render tier and switch off the automatic step-down, so screenshots from a software renderer
   // show what a real GPU at that tier draws instead of the governor's emergency LOW
   const devTier = useMemo<RenderTier | null>(() => { if (typeof window === "undefined") return null; const q = new URLSearchParams(window.location.search); const t = q.get("tier"); return q.get("dev") === "1" && (t === "LOW" || t === "MEDIUM" || t === "HIGH" || t === "ULTRA") ? t : null; }, []);
-  const liveTier = devTier ?? effectiveTier(settings.renderTier, autoCap);
+  const liveTier = devTier ?? effectiveTier(phoneTier(settings.renderTier, touchScreen), autoCap);
   const liveSettings = useMemo(() => ({ ...settings, renderTier: liveTier }), [settings, liveTier]);
   useEffect(() => {
     try {
@@ -1546,7 +1546,7 @@ export function GameCanvas() {
         }}
         onContextMenu={(event) => event.preventDefault()}
         shadows={preset.shadows && flags.shadows ? { type: caps.safari ? THREE.PCFShadowMap : THREE.PCFSoftShadowMap } : false}
-        dpr={flags.dpr ?? Math.min(touchScreen && frameRate === 30 ? Math.max(maxDpr, PHONE_DPR) : maxDpr, adaptiveDpr)}
+        dpr={flags.dpr ?? Math.min(touchScreen ? PHONE_DPR : maxDpr, adaptiveDpr)}
         frameloop={frameInterval(frameRate) ? "never" : "always"}
         gl={{ antialias: !caps.safari, toneMapping: THREE.ACESFilmicToneMapping, powerPreference: "high-performance", failIfMajorPerformanceCaveat: false }}
         camera={{
@@ -1588,7 +1588,7 @@ export function GameCanvas() {
           flipflops={6}
           onDecline={() => {
             if (devTier) return;
-            const cap = governDecline({ dpr: adaptiveDpr, chosen: settings.renderTier, cap: autoCap, secondsSinceLastStep: (performance.now() - lastStepAt.current) / 1000, floor: dprFloor(touchScreen) });
+            const cap = governDecline({ dpr: adaptiveDpr, chosen: phoneTier(settings.renderTier, touchScreen), cap: autoCap, secondsSinceLastStep: (performance.now() - lastStepAt.current) / 1000, floor: dprFloor(touchScreen) });
             if (cap) { lastStepAt.current = performance.now(); setAutoCap(cap); setQualityNotice(`Frame rate was low, so graphics quality was lowered to ${cap}. You can change it in Settings.`); window.setTimeout(() => setQualityNotice(null), 6000); }
             setAdaptiveDpr((d) => { const next = dprDown(d, touchScreen); if (next <= 1 && d <= 1) setLowPerf(true); return next; });
           }}

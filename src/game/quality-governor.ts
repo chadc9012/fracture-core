@@ -29,9 +29,15 @@ export const defaultFrameRate = (touch: boolean): FrameRate => (touch ? 30 : "ma
 /** the frame interval for a cap, ms (null: render every display refresh) */
 export const frameInterval = (rate: FrameRate): number | null => (rate === "max" ? null : 1000 / rate);
 /** phones never drop below a resolution that keeps edges clean (the 0.75 floor is for desktops) */
-export const dprFloor = (touch: boolean) => (touch ? 1 : DPR_FLOOR);
-/** the resolution a phone starts at under the 30 fps cap: sharper than the old 1.25 at the cost of frames it no longer renders */
-export const PHONE_DPR = 1.5;
+export const dprFloor = (touch: boolean) => (touch ? 1.25 : DPR_FLOOR);
+/** the resolution a phone starts at under the 30 fps cap. R3F's dpr is absolute (pixels per CSS pixel), and a flagship phone
+ * screen is ~3.5: at 1.0 the picture was stretched 3.5x and looked blocky (owner phone shots, Oct 26). 2.0 is about 1.3 MP. */
+export const PHONE_DPR = 2;
+/** the highest tier a phone runs: HIGH and ULTRA could not hold on the owner's Galaxy S22 Ultra, and the automatic step-down from
+ * them mid-play remounted the world (a visible hitch every time). */
+export const PHONE_MAX_TIER: RenderTier = "MEDIUM";
+/** the tier used on a touch screen: never above PHONE_MAX_TIER */
+export const phoneTier = (t: RenderTier, touch: boolean): RenderTier => (touch && ORDER.indexOf(t) > ORDER.indexOf(PHONE_MAX_TIER) ? PHONE_MAX_TIER : t);
 /** fps bounds for the performance monitor: a decline only when the cap itself can't be held, an incline only near it */
 export function monitorBounds(rate: FrameRate): [number, number] {
   return rate === "max" ? [45, 58] : [rate * 0.82, rate * 0.97];

@@ -422,7 +422,7 @@
 
 /* Landscape phones (short touch screens): the portrait stack above the touch controls has no height to climb, so vitals dock
    bottom-centre between the stick and the fire cluster, ammo bottom-right of them, and the rails/chips shrink to the top corners. */
-@media (pointer: coarse) and (max-height: 500px) {
+@media (pointer: coarse) and (max-height: 600px) {
   .hud-health { bottom: 8px !important; left: clamp(150px, 22vw, 190px) !important; width: min(250px, 34vw) !important; }
   .hud-health > [aria-label^="Level"] { display: none; }
   .hud-health .hud-status { padding: 4px 8px; }
