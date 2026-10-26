@@ -187,6 +187,7 @@ import { isValidPlayerState, resetFrameFailureCount, sanitizePlayerState, softFr
 import { difficultyCurve, playerPowerScore } from "@/game/balance";
 import { operatorPower } from "@/game/weapon-meta";
 import { arsenalFor, type ArmedWeapon, type FrameId } from "@/game/weapon-classes";
+import { DamageNumbers } from "./DamageNumbers";
 import type { TutorialEvent, TutorialState } from "@/game/onboarding";
 import { CITY_RADIUS, DOCK_DECK_Y, REACTOR_REACH, REBREATHER_DRAIN_SCALE, SECTOR_LABEL, airStationAt, airlockSite, coolantDamage, coolantPhase, dockSite, hullDamagePerSec, hullStressStep, reactorSite, ringWaypoint, sectorAt, type ThalassiaSector } from "@/game/thalassia-sectors";
 import { airlockRestored } from "@/game/missions/descent-protocol";
@@ -3673,6 +3674,7 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
       <ScenarioBosses sim={sim} />
       <CombatFx sim={sim} reducedMotion={!!settings.reducedMotion} />
       <AbilityFx sim={sim} reducedMotion={!!settings.reducedMotion} />
+      {settings.damageNumbers !== false && <DamageNumbers sim={sim} />}
       {!settings.reducedMotion && <ShardGainFx shards={gear?.fractureShards} playerRef={player} />}
       <SkylineLookout />
       <Squad sim={sim} />

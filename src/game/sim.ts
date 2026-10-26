@@ -69,6 +69,7 @@ import { encounterHpFloor, endEncounter, onDecoyShattered, resetEncounters, pinS
 import { rollWeaponLoot } from "./weapon-loot";
 import { isStaggeredNow, reactTo, hitPart } from "./enemy-reactions";
 import { enemyPower, hitMultiplier, powerScale } from "./weapon-meta";
+import { freshDamageNumbers, pruneDamage, recordDamage, type DamageNumbers } from "./damage-numbers";
 import type { FrameId } from "./weapon-classes";
 import type { ClassId } from "./loadout";
 import { PARTICIPATION_HITS, SCENARIO_LOOT, rollScenario, type ScenarioClaim } from "./scenario-loot";
@@ -518,6 +519,9 @@ export type WorldSim = {
   operatorClass: ClassId | null;
   /** performance.now() of the player's last precision (head-band) hit: the gold hit marker and tick */
   lastCrit: number;
+  /** damage-numbers.ts: the player's hits as floating numbers; `critPending` marks the next recorded hit as a precision hit */
+  damageNumbers: DamageNumbers;
+  critPending: boolean;
   /** seasons/hazards state (see environment.ts): exposure meters, pending lightning, strike flashes */
   env: EnvState;
   /** thrown stratagem beacons and the detonations Scene drains each frame (ammo refill, sfx, camera punch) */
@@ -820,6 +824,8 @@ export function createSim(): WorldSim {
     operatorPower: null,
     operatorClass: null,
     lastCrit: 0,
+    damageNumbers: freshDamageNumbers(),
+    critPending: false,
     env: createEnvState(),
     backpack: NO_BACKPACK,
     beacons: Array.from({ length: BEACON_POOL }, () => ({ alive: false, kind: "RESUPPLY" as StratagemId, state: "FLIGHT" as const, x: 0, y: 0, z: 0, vx: 0, vy: 0, vz: 0, timer: 0, radius: 0 })),
@@ -1375,6 +1381,16 @@ export function applyLightning(sim: WorldSim, strike: Strike, px: number, pz: nu
  * respect the same rules: Weaken/Marked vulnerability, boss poise windows, Unique Scenario gimmicks, and the hit count
  * that decides scenario reward participation. Returns the damage to subtract from m.hp. */
 export function applyMachineDamageMods(sim: WorldSim, m: Machine, dmg: number, element: Parameters<typeof gimmickMultiplier>[1]["element"], px: number, pz: number): number {
+  const out = machineDamageMods(sim, m, dmg, element, px, pz);
+  // damage-numbers.ts: every player hit, as it finally lands, floats above the enemy (white, gold for a precision hit)
+  if (!m.decoy) {
+    const feet = m.swimY !== undefined ? m.y - 2.2 * m.scale : Math.max(walkHeight(m.x, m.z), m.y - 2.2 * m.scale);
+    recordDamage(sim.damageNumbers, { target: sim.machines.indexOf(m), x: m.x, y: feet + 2.05 * enemyBodyScaleOf(m.scale) + 0.25, z: m.z, amount: out, crit: sim.critPending, maxHp: m.maxHp ?? (m.elite ? 7 : 3.5), now: performance.now() / 1000 });
+  }
+  sim.critPending = false;
+  return out;
+}
+function machineDamageMods(sim: WorldSim, m: Machine, dmg: number, element: Parameters<typeof gimmickMultiplier>[1]["element"], px: number, pz: number): number {
   dmg *= sim.consumableDamageMult;
   // weapon-meta.ts: power level against the enemy's (its region's difficulty), Destiny style
   if (sim.operatorPower !== null) dmg *= powerScale(sim.operatorPower - enemyPower(byId(m.zone)?.difficulty ?? 0, m.elite, m.boss));
@@ -1570,6 +1586,7 @@ export function stepSim(sim: WorldSim, input: SimInput) {
   const { squadArchetype, rangedHoldFire, branchPosture, incomingDamageScale } = sim.mods;
   // incomingDamageScale is Scene's too (balance.ts difficulty curve): it was lost here every step
   sim.mods = { ...adaptationMods(sim.adaptation), squadArchetype, rangedHoldFire, branchPosture, incomingDamageScale };
+  pruneDamage(sim.damageNumbers, performance.now() / 1000);
   sim.hp = stepHealth(sim.hp, dt, performance.now() / 1000 - sim.lastDamageAt, { bonusRate: sim.mods.regen + sim.armorRegen, safe: sim.inSafeZone });
 
   // ---------- Emergency Quest world event ----------
@@ -2348,7 +2365,7 @@ export function stepSim(sim: WorldSim, input: SimInput) {
           // the head band of the drawn body (bodySpan pads the collider 0.2 m under the feet); bosses have their own weak points
           const precision = !m.boss && hitPart(b.y, c.feet + 0.2, 1.85 * enemyBodyScaleOf(m.scale)) === "HEAD";
           dmg *= hitMultiplier(b.weapon, { distance: Math.hypot(m.x - (b.ox ?? m.x), m.z - (b.oz ?? m.z)), precision, cls: sim.operatorClass });
-          if (precision) sim.lastCrit = performance.now();
+          if (precision) { sim.lastCrit = performance.now(); sim.critPending = true; }
         }
         if (sim.equippedEvolution) { const st = sim.statuses.get(m); dmg *= evolutionDamageMult(sim.equippedEvolution, !!st && isChilled(st, performance.now() / 1000)); }
         if (sim.runes.bursts.length || sim.runes.devour || sim.runes.rift || sim.runes.awakened) dmg *= runeDamageMult(sim, m);
