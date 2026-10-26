@@ -1,17 +1,20 @@
 import { describe, expect, test } from "bun:test";
 import { existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import { AD_EVERY, BROADCAST_START, FRACTURE_FM_ARCHIVE, RADIO_ADS, RADIO_ADS_ARCHIVE, RADIO_STATIONS, STATION_IDS, STATION_TRACKS, nextOnAir, onAir, stationTrack, type Broadcast, type StationId } from "./radio-stations";
+import { hasRecordings, AD_EVERY, BROADCAST_START, FRACTURE_FM_ARCHIVE, RADIO_ADS, RADIO_ADS_ARCHIVE, RADIO_STATIONS, STATION_IDS, STATION_TRACKS, nextOnAir, onAir, stationTrack, type Broadcast, type StationId } from "./radio-stations";
 
 const publicDir = fileURLToPath(new URL("../../public", import.meta.url));
 
 describe("radio station recordings", () => {
-  test("seven stations, each with a station ID and a recorded rotation, and every file (IDs, songs, ads, archive) ships", () => {
-    expect(Object.keys(RADIO_STATIONS)).toHaveLength(7);
+  test("nine stations; the seven recorded ones each have a station ID and a rotation, and every file (IDs, songs, ads, archive) ships", () => {
+    expect(Object.keys(RADIO_STATIONS)).toHaveLength(9);
+    expect(Object.keys(RADIO_STATIONS)).toEqual(expect.arrayContaining(["rnb", "latin"]));
+    // Velvet Static (hip-hop & R&B) and Calor 97 (Latin) air the procedural groove until original recordings are supplied
+    expect(hasRecordings("rnb")).toBe(false); expect(hasRecordings("latin")).toBe(false);
     for (const id of Object.keys(RADIO_STATIONS) as StationId[]) {
-      expect(STATION_TRACKS[id].length).toBeGreaterThan(0);
+      if (!hasRecordings(id)) continue;
       for (const t of STATION_TRACKS[id]) expect(existsSync(publicDir + t.path)).toBe(true);
-      expect(existsSync(publicDir + STATION_IDS[id].path)).toBe(true);
+      expect(existsSync(publicDir + STATION_IDS[id]!.path)).toBe(true);
     }
     for (const ad of RADIO_ADS) expect(existsSync(publicDir + ad.path)).toBe(true);
     for (const t of [...FRACTURE_FM_ARCHIVE, ...RADIO_ADS_ARCHIVE]) expect(existsSync(publicDir + t.path)).toBe(true);
@@ -69,7 +72,7 @@ describe("linear broadcast", () => {
   });
   test("the station ID plays once per tuning session and is never an advertisement", () => {
     const first = onAir("comedy", BROADCAST_START, false);
-    expect(first).toMatchObject({ ident: true, advertisement: false, path: STATION_IDS.comedy.path });
+    expect(first).toMatchObject({ ident: true, advertisement: false, path: STATION_IDS.comedy!.path });
     const after = nextOnAir(BROADCAST_START, false);
     expect(after.adBreak).toBe(false);
     expect(after.broadcast).toMatchObject({ intro: false, program: 0, sinceAd: 0 });

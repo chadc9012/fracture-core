@@ -8,7 +8,7 @@ import type { WeaponId } from "./weapons";
 import { voiceAction, type WaterMix, type WaterSource } from "./water-audio";
 import { AUDIO_FILES } from "./audio-files";
 import { BLAST_FLAVOR, SHOTS, blastAtDistance, shotKey, variation, type BlastFlavor, type ShotProfile } from "./audio-design";
-import { BROADCAST_START, RADIO_STATIONS, nextOnAir, onAir, type StationId } from "./radio-stations";
+import { BROADCAST_START, RADIO_STATIONS, hasRecordings, nextOnAir, onAir, type StationId } from "./radio-stations";
 import { engineVoice } from "./vehicle-audio";
 import { AUDIO_SAFETY, envelopeAttack, unitVolume } from "./audio-safety";
 import { AMBIENT_MIX, WEATHER_BEDS, crossfadeLoop } from "./ambient-mix";
@@ -77,6 +77,7 @@ export function startRadio(id: StationId, onTrack?: (label: string) => void) {
   const c = ctx;
   if (!c) return () => {};
   if (typeof Audio === "undefined") return startProceduralRadio(id);
+  if (!hasRecordings(id)) { onTrack?.(RADIO_STATIONS[id].name); return startProceduralRadio(id); }
   const el = new Audio(); el.preload = "auto";
   const bus = c.ac.createGain(); bus.gain.value = RECORDED_RADIO_GAIN * musicVol; bus.connect(c.master);
   let source: MediaElementAudioSourceNode | null = null;
@@ -122,9 +123,10 @@ function startProceduralRadio(id: StationId) {
     if (cursor < c.ac.currentTime - 0.1) cursor = c.ac.currentTime;
     while (cursor < c.ac.currentTime + 0.1) {
       const n = step % 16, chord = Math.floor(step / 16) % 4;
-      const kick = id === "house" ? n % 4 === 0 : id === "reggae" ? n === 4 || n === 12 : n === 0 || n === 8 || (id === "hiphop" && n === 11);
+      const kick = id === "house" || id === "latin" ? n % 4 === 0 : id === "reggae" ? n === 4 || n === 12 : n === 0 || n === 8 || ((id === "hiphop" || id === "rnb") && n === 11);
       if (kick) note(140, 0.18, 0.75, "sine", cursor, 38);
-      if (n === 4 || n === 12) note(220, 0.09, 0.15, "triangle", cursor, 90);
+      // dembow: the kick lands every beat and the snare answers on the off-beat tresillo (steps 3, 6, 11, 14)
+      if (id === "latin" ? n === 3 || n === 6 || n === 11 || n === 14 : n === 4 || n === 12) note(220, 0.09, 0.15, "triangle", cursor, 90);
       if (n % 2 === 0) note(6200, 0.025, 0.028, "square", cursor);
       if (n % 4 === 0 || (id === "reggae" && n === 7)) note(def.bass[chord] ?? 55, 0.26, 0.3, "triangle", cursor);
       if (id === "reggae" ? n % 4 === 2 : id === "rock" ? n % 2 === 0 : n === 2 || n === 6 || n === 14) {

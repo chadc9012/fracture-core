@@ -7,6 +7,8 @@ export const RADIO_STATIONS = {
   reggae: { name: "Island Relay", genre: "Dancehall / Reggae", bpm: 100, bass: [49, 65.4, 58.3, 43.7], notes: [196, 261.6, 233.1, 174.6], wave: "triangle" as OscillatorType },
   oldschool: { name: "Golden Era 94", genre: "Old-school hip-hop", bpm: 94, bass: [55, 49, 65.4, 55], notes: [220, 196, 261.6, 220], wave: "triangle" as OscillatorType },
   instrumental: { name: "Parallel 88", genre: "Instrumental beats", bpm: 88, bass: [65.4, 58.3, 49, 55], notes: [261.6, 233.1, 196, 220], wave: "sine" as OscillatorType },
+  rnb: { name: "Velvet Static", genre: "Hip-hop & R&B", bpm: 84, bass: [55, 61.7, 49, 55], notes: [220, 246.9, 196, 220], wave: "sine" as OscillatorType },
+  latin: { name: "Calor 97", genre: "Latin: old-school classics, reggaeton, dembow", bpm: 120, bass: [55, 55, 65.4, 49], notes: [220, 261.6, 329.6, 196], wave: "triangle" as OscillatorType },
   comedy: { name: "Fracture FM: Off the Rails", genre: "Comedy talk radio", bpm: 96, bass: [55, 55, 55, 55], notes: [220, 220, 220, 220], wave: "triangle" as OscillatorType },
 };
 export type StationId = keyof typeof RADIO_STATIONS;
@@ -59,6 +61,9 @@ export const STATION_TRACKS: Record<StationId, StationTrack[]> = {
     { title: "Parallel Streets", artist: "Vektor Lane", path: "/audio/radio/instrumental-dimensions.ogg" },
     { title: "Night Drive", artist: "Vektor Lane", path: "/audio/radio/instrumental-night-drive.ogg" },
   ],
+  // no recordings yet: these two stations air the procedural groove (audio.ts) until the owner supplies original tracks
+  rnb: [],
+  latin: [],
   comedy: [
     { title: "Off the Rails · Episode 3: Wasteland Mechanics", artist: "Fracture FM", path: "/audio/radio/fracture-fm-episode-03.ogg" },
     { title: "Off the Rails · Council Hotline", artist: "Fracture FM", path: "/audio/radio/fracture-fm-episode-06.ogg" },
@@ -78,7 +83,7 @@ export const FRACTURE_FM_ARCHIVE: ArchivedTrack[] = [
   { title: "Off the Rails · Episode 5: The Dungeon Landlord", artist: "Fracture FM", path: "/audio/radio/fracture-fm-episode-05.ogg", withheld: "'procedurally generated dungeons' and rent paid in experience points: tells the player the world is generated (simulation reveal)" },
 ];
 /** the short station ID that opens every tuning session (stage 47, public/audio/radio/ids) */
-export const STATION_IDS: Record<StationId, StationTrack> = {
+export const STATION_IDS: Partial<Record<StationId, StationTrack>> = {
   hiphop: { title: "Station ID", artist: "Block Signal", path: "/audio/radio/ids/block-signal-id.ogg" },
   rock: { title: "Station ID", artist: "Rust Riot", path: "/audio/radio/ids/rust-riot-id.ogg" },
   house: { title: "Station ID", artist: "Neon Frequency", path: "/audio/radio/ids/neon-frequency-id.ogg" },
@@ -111,7 +116,8 @@ export const BROADCAST_START: Broadcast = { intro: true, program: 0, sinceAd: 0,
 export type OnAir = StationTrack & { advertisement: boolean; ident: boolean };
 /** what plays now at this position */
 export function onAir(id: StationId, b: Broadcast, adBreak: boolean): OnAir {
-  if (b.intro) return { ...STATION_IDS[id], advertisement: false, ident: true };
+  const ident = STATION_IDS[id];
+  if (b.intro && ident) return { ...ident, advertisement: false, ident: true };
   return adBreak ? { ...RADIO_ADS[b.ad % RADIO_ADS.length]!, advertisement: true, ident: false } : { ...stationTrack(id, b.program), advertisement: false, ident: false };
 }
 /** after the current item ends: the station ID leads into the first program (it never counts toward an ad break); a finished
@@ -123,6 +129,8 @@ export function nextOnAir(b: Broadcast, wasAd: boolean): { broadcast: Broadcast;
   return played.sinceAd >= AD_EVERY ? { broadcast: played, adBreak: true } : { broadcast: played, adBreak: false };
 }
 /** the track at a rotation step (wraps; negative steps are treated as 0) */
+/** whether the station has recordings to air; the rest play the procedural groove */
+export function hasRecordings(id: StationId): boolean { return STATION_TRACKS[id].length > 0; }
 export function stationTrack(id: StationId, step: number): StationTrack {
   const list = STATION_TRACKS[id];
   return list[Math.max(0, Math.floor(step)) % list.length]!;
