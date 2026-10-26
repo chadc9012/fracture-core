@@ -1,0 +1,63 @@
+# Builds the Unreal Engine version of World Fracture for Android and publishes the APK as the "unreal-android-latest"
+# GitHub release, so it can be installed straight from the phone.
+#
+# Unreal can't run on GitHub's own machines (the engine is ~100 GB and needs a GPU-capable Windows box), so this runs on
+# the owner's Windows PC registered as a self-hosted runner with the labels `self-hosted, Windows, unreal`. That PC needs:
+#   - Unreal Engine 5.8 (set the UE_ROOT environment variable if it isn't in the default Epic Games folder)
+#   - Visual Studio 2022/2026 with "Game development with C++"
+#   - Android Studio, then Engine\Extras\Android\SetupAndroid.bat (installs the SDK/NDK versions the engine wants)
+#   - GitHub CLI (gh), signed in, for the release upload
+# It only runs when started by hand (Actions → "Unreal Android APK" → Run workflow): with no runner online, a push-
+# triggered job would sit queued forever. The web-build APK (android-apk.yml) keeps building on its own meanwhile.
+name: Unreal Android APK
+
+on:
+  workflow_dispatch:
+    inputs:
+      config:
+        description: "Build configuration"
+        type: choice
+        options: [Development, Shipping]
+        default: Development
+
+permissions:
+  contents: write
+
+concurrency:
+  group: unreal-android
+  cancel-in-progress: false
+
+jobs:
+  apk:
+    runs-on: [self-hosted, Windows, unreal]
+    timeout-minutes: 360
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build, cook and package for Android
+        shell: pwsh
+        run: |
+          $ue = if ($env:UE_ROOT) { $env:UE_ROOT } else { "C:\Program Files\Epic Games\UE_5.8" }
+          $uat = Join-Path $ue "Engine\Build\BatchFiles\RunUAT.bat"
+          if (!(Test-Path $uat)) { throw "Unreal Engine not found at $ue (set UE_ROOT)" }
+          $project = Join-Path $PWD "unreal\WorldFracture.uproject"
+          $out = Join-Path $PWD "build\android"
+          & $uat BuildCookRun -project="$project" -platform=Android -cookflavor=ASTC -clientconfig=${{ inputs.config }} `
+            -build -cook -stage -package -pak -archive -archivedirectory="$out" -utf8output -nop4 -unattended
+          if ($LASTEXITCODE -ne 0) { throw "BuildCookRun failed ($LASTEXITCODE)" }
+
+      - name: Publish the APK
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          $apk = Get-ChildItem -Recurse -Filter *.apk build\android | Sort-Object Length -Descending | Select-Object -First 1
+          if (!$apk) { throw "no APK was produced" }
+          Copy-Item $apk.FullName WorldFractureUE.apk
+          gh release view unreal-android-latest 2>$null
+          if ($LASTEXITCODE -ne 0) {
+            gh release create unreal-android-latest --prerelease --title "World Fracture (Unreal) - Android" `
+              --notes "Unreal Engine build for Android, from the latest main. Open this page on the phone, tap WorldFractureUE.apk, allow installs from the browser."
+          }
+          gh release upload unreal-android-latest WorldFractureUE.apk --clobber
+          Write-Host "Published $($apk.Name) ($([math]::Round($apk.Length / 1MB)) MB)"

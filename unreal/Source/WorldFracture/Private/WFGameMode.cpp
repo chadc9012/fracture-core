@@ -23,6 +23,7 @@
 #include "DrawDebugHelpers.h"
 #include "WFEnemy.h"
 #include "WFHUD.h"
+#include "WFNexusCity.h"
 #include "WFProgressionSubsystem.h"
 #include "WFQuestSubsystem.h"
 #include "WFRaceSubsystem.h"
@@ -44,8 +45,12 @@ AWFGameMode::AWFGameMode()
 void AWFGameMode::StartPlay()
 {
 	Super::StartPlay();
+	const bool bRoster = LoadRoster();
+	SpawnNexusCity();
+	if (IsInNexus()) PlaceAtNexus(); // before the floor probe, so it finds the city's ground
 	EnsurePlayableWorld();
-	if (!LoadRoster()) UE_LOG(LogTemp, Error, TEXT("No roster for region %s; no enemies will spawn."), *RegionId);
+	if (IsInNexus() && NexusCity.IsValid()) NexusCity->ApplyNightLook();
+	if (!bRoster) UE_LOG(LogTemp, Error, TEXT("No roster for region %s; no enemies will spawn."), *RegionId);
 	FString EncounterError;
 	if (!WFEncounterData::LoadCatalog(EncounterCatalog, EncounterError))
 		UE_LOG(LogTemp, Error, TEXT("Boss encounters failed to load (%s); scenario bosses fight as plain bosses."), *EncounterError);
@@ -107,10 +112,41 @@ void AWFGameMode::EnsurePlayableWorld()
 	}
 }
 
-bool AWFGameMode::LoadRoster()
+void AWFGameMode::SpawnNexusCity()
+{
+	if (NexusCity.IsValid() || !GetWorld()) return;
+	FActorSpawnParameters Params;
+	Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+	AWFNexusCity* City = GetWorld()->SpawnActor<AWFNexusCity>(AWFNexusCity::StaticClass(), FTransform::Identity, Params);
+	if (City && City->Build()) NexusCity = City;
+	else if (City) City->Destroy();
+}
+
+void AWFGameMode::PlaceAtNexus()
+{
+	if (!NexusCity.IsValid()) return;
+	APawn* Pawn = UGameplayStatics::GetPlayerPawn(this, 0);
+	if (!Pawn) return;
+	Pawn->SetActorLocation(NexusCity->GetSpawnLocation(), false, nullptr, ETeleportType::TeleportPhysics);
+	if (AController* Controller = Pawn->GetController()) Controller->SetControlRotation(NexusCity->GetSpawnRotation());
+}
+
+void AWFGameMode::GoNexus()
+{
+	if (!NexusCity.IsValid()) SpawnNexusCity();
+	if (!NexusCity.IsValid()) { Toast(TEXT("Nexus City could not be built (DataTables/NexusCity.json missing)"), FLinearColor(1.f, 0.55f, 0.3f)); return; }
+	for (const TWeakObjectPtr<AWFEnemy>& E : Squad) if (E.IsValid()) E->Destroy(); // the old region's troopers don't follow you in
+	Squad.Reset();
+	LoadRoster(TEXT("nexus"));
+	PlaceAtNexus();
+	NexusCity->ApplyNightLook();
+	Toast(TEXT("Nexus City"), FLinearColor(0.45f, 0.9f, 1.f));
+}
+
+bool AWFGameMode::LoadRoster(const FString& Override)
 {
 	const UWFProgressionSubsystem* Progression = GetGameInstance()->GetSubsystem<UWFProgressionSubsystem>();
-	RegionId = Progression ? WFData::ToF(Progression->Get().CurrentWorld) : TEXT("veridan");
+	RegionId = !Override.IsEmpty() ? Override : Progression ? WFData::ToF(Progression->Get().CurrentWorld) : TEXT("veridan");
 	{
 		// sim.ts factionOf: the region's trooper kind (who carries grenades)
 		FString FactionError;

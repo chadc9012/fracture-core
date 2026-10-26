@@ -7,6 +7,11 @@
 #include "WFMissionSubsystem.h"
 
 #include "Engine/Canvas.h"
+#include "GameFramework/PlayerController.h"
+#include "EnhancedInputSubsystems.h"
+#include "InputAction.h"
+#include "Misc/CommandLine.h"
+#include "Misc/Parse.h"
 #include "Engine/Engine.h"
 #include "Engine/Font.h"
 #include "Engine/World.h"
@@ -216,6 +221,7 @@ void AWFHUD::DrawHUD()
 		Toasts.RemoveAll([Now](const FToast& T) { return T.Until < Now; });
 		float TY = 32;
 		for (const FToast& T : Toasts) { Line(T.Text, W - 460, TY, T.Color); TY += 26; }
+		for (const FName& Id : HeldIds()) ReleaseTouch(Id); // driving: let go of anything held on foot
 		return; // the on-foot panels are for the Operator
 	}
 
@@ -348,4 +354,125 @@ void AWFHUD::DrawHUD()
 	for (const FToast& T : Toasts) { Line(T.Text, W - 460, TY, T.Color); TY += 26; }
 	if (Player && !Player->GetLastDamageSource().IsEmpty() && Player->GetHealth() < AWFCharacter::MaxHealth)
 		Line(FString::Printf(TEXT("Hit by %s"), *Player->GetLastDamageSource()), W / 2 - 80, H - 160, Warn, 0.9f);
+
+	DrawTouchControls(W, H);
+}
+
+// --- touch controls (phones): buttons that inject into the Operator's own Enhanced Input actions --------------------
+
+namespace
+{
+	/** one on-screen button: the action it drives, its label, and where it sits (fractions of the screen, from the right) */
+	struct FTouchButton
+	{
+		const TCHAR* Action;
+		const TCHAR* Label;
+		float Right, Bottom, Size;
+	};
+	// right thumb cluster (the engine's virtual sticks own the bottom corners: move on the left, look on the right)
+	const FTouchButton TouchButtons[] = {
+		{TEXT("Fire"), TEXT("FIRE"), 0.20f, 0.38f, 0.115f},
+		{TEXT("Aim"), TEXT("AIM"), 0.33f, 0.30f, 0.085f},
+		{TEXT("Jump"), TEXT("JUMP"), 0.09f, 0.50f, 0.085f},
+		{TEXT("Reload"), TEXT("R"), 0.33f, 0.47f, 0.07f},
+		{TEXT("Crouch"), TEXT("CROUCH"), 0.08f, 0.66f, 0.075f},
+		{TEXT("NextWeapon"), TEXT("SWAP"), 0.20f, 0.58f, 0.07f},
+		{TEXT("Sprint"), TEXT("SPRINT"), 0.86f, 0.52f, 0.08f},
+		{TEXT("Interact"), TEXT("E"), 0.45f, 0.40f, 0.07f},
+		{TEXT("Ability1"), TEXT("Q"), 0.31f, 0.86f, 0.065f},
+		{TEXT("Ability2"), TEXT("F"), 0.22f, 0.86f, 0.065f},
+		{TEXT("Ability3"), TEXT("X"), 0.13f, 0.86f, 0.065f},
+		{TEXT("Hack"), TEXT("HACK"), 0.45f, 0.86f, 0.065f},
+	};
+}
+
+bool AWFHUD::WantsTouchControls() const
+{
+	static const bool bForced = FParse::Param(FCommandLine::Get(), TEXT("touchhud")); // try the layout on a PC: -touchhud
+	return bForced || FPlatformMisc::GetUseVirtualJoysticks();
+}
+
+void AWFHUD::DrawTouchControls(float W, float H)
+{
+	if (!WantsTouchControls()) return;
+	const AWFCharacter* Player = Cast<AWFCharacter>(GetOwningPawn());
+	if (!Player) return;
+	if (APlayerController* PC = GetOwningPlayerController())
+	{
+		// hit boxes only see touches (and, for -touchhud on a PC, clicks) with these on
+		PC->bEnableTouchEvents = PC->bEnableTouchOverEvents = true;
+		PC->bEnableClickEvents = PC->bEnableMouseOverEvents = true;
+		// a finger that slid off its button never sends a release there: let go of any held button with no finger on it
+		for (const FName& Id : HeldIds())
+		{
+			const FBox2D* Rect = TouchRects.Find(Id);
+			bool bStillDown = false;
+			for (int32 T = 0; Rect && T < 10 && !bStillDown; ++T)
+			{
+				float TX = 0, TY = 0;
+				bool bPressed = false;
+				PC->GetInputTouchState(static_cast<ETouchIndex::Type>(ETouchIndex::Touch1 + T), TX, TY, bPressed);
+				bStillDown = bPressed && Rect->IsInside(FVector2D(TX, TY));
+			}
+			if (!bStillDown && Rect && FParse::Param(FCommandLine::Get(), TEXT("touchhud"))) // a mouse holding the button
+			{
+				float MX = 0, MY = 0;
+				bStillDown = PC->IsInputKeyDown(EKeys::LeftMouseButton) && PC->GetMousePosition(MX, MY) && Rect->IsInside(FVector2D(MX, MY));
+			}
+			if (!bStillDown) ReleaseTouch(Id);
+		}
+	}
+	const float Unit = FMath::Min(W, H);
+	for (const FTouchButton& B : TouchButtons)
+	{
+		const float Size = B.Size * Unit;
+		const float X = W - B.Right * W - Size / 2, Y = H - B.Bottom * H - Size / 2;
+		const FName Id(B.Action);
+		const bool bHeld = HeldTouch.Contains(Id);
+		DrawRect(bHeld ? FLinearColor(0.4f, 0.9f, 1.f, 0.45f) : FLinearColor(0.05f, 0.08f, 0.12f, 0.45f), X, Y, Size, Size);
+		DrawRect(FLinearColor(0.4f, 0.9f, 1.f, 0.8f), X, Y, Size, 2.f); // a cyan top edge, Destiny-style
+		float TW = 0, TH = 0;
+		GetTextSize(B.Label, TW, TH, GEngine->GetMediumFont(), 0.8f);
+		Line(B.Label, X + (Size - TW) / 2, Y + (Size - TH) / 2, Soft, 0.8f);
+		AddHitBox(FVector2D(X, Y), FVector2D(Size, Size), Id, true, 1);
+		TouchRects.Add(Id, FBox2D(FVector2D(X, Y), FVector2D(X + Size, Y + Size)));
+	}
+}
+
+void AWFHUD::NotifyHitBoxClick_Implementation(FName BoxName)
+{
+	Super::NotifyHitBoxClick_Implementation(BoxName);
+	const AWFCharacter* Player = Cast<AWFCharacter>(GetOwningPawn());
+	const APlayerController* PC = GetOwningPlayerController();
+	UInputAction* Action = Player ? Player->GetTouchAction(BoxName) : nullptr;
+	UEnhancedInputLocalPlayerSubsystem* Input = PC ? ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(PC->GetLocalPlayer()) : nullptr;
+	if (!Action || !Input || HeldTouch.Contains(BoxName)) return;
+	const FInputActionValue Value = Action->ValueType == EInputActionValueType::Boolean ? FInputActionValue(true) : FInputActionValue(1.f);
+	// weapon swap is a tap (its action fires every frame it's held); everything else is held until the finger lifts:
+	// Started, Triggered every frame, then Completed, like a held key
+	if (BoxName == TEXT("NextWeapon")) { Input->InjectInputForAction(Action, Value, {}, {}); return; }
+	Input->StartContinuousInputInjectionForAction(Action, Value, {}, {});
+	HeldTouch.Add(BoxName, Action);
+}
+
+void AWFHUD::NotifyHitBoxRelease_Implementation(FName BoxName)
+{
+	Super::NotifyHitBoxRelease_Implementation(BoxName);
+	ReleaseTouch(BoxName);
+}
+
+void AWFHUD::ReleaseTouch(FName BoxName)
+{
+	TWeakObjectPtr<UInputAction> Action;
+	if (!HeldTouch.RemoveAndCopyValue(BoxName, Action)) return;
+	// the action held, not looked up again: the pawn may have changed (a vehicle) since the finger went down
+	const APlayerController* PC = GetOwningPlayerController();
+	if (UEnhancedInputLocalPlayerSubsystem* Input = PC ? ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(PC->GetLocalPlayer()) : nullptr)
+		if (Action.IsValid()) Input->StopContinuousInputInjectionForAction(Action.Get());
+}
+
+void AWFHUD::EndPlay(const EEndPlayReason::Type Reason)
+{
+	for (const FName& Id : HeldIds()) ReleaseTouch(Id); // never leave fire or sprint held
+	Super::EndPlay(Reason);
 }

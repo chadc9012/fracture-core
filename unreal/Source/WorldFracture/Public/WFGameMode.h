@@ -11,6 +11,7 @@
 #include "WFGameMode.generated.h"
 
 class AWFEnemy;
+class AWFNexusCity;
 
 /** A trooper of the current region's roster (DataTables/RegionalEncounters.json, from encounters.ts). */
 struct FWFTroop
@@ -42,6 +43,11 @@ public:
 	UPROPERTY(EditAnywhere, Category = "World Fracture") float SpawnInterval = 2.0f;
 
 	const FString& GetRegionId() const { return RegionId; }
+
+	/** Nexus City (AWFNexusCity, built from DataTables/NexusCity.json): it always stands at the Nexus region's coordinates. */
+	AWFNexusCity* GetNexusCity() const { return NexusCity.Get(); }
+	/** GoNexus: walks you into Nexus City now (the hub's spawn pad, at night), whatever region the save is in. */
+	UFUNCTION(Exec) void GoNexus();
 
 	/** Summons a Unique Scenario boss ~30 m in front of the player (console: SpawnScenarioBoss dark-knight). */
 	UFUNCTION(Exec) void SpawnScenarioBoss(const FString& ScenarioId);
@@ -167,7 +173,11 @@ public:
 
 private:
 	void EnsurePlayableWorld();
-	bool LoadRoster();
+	/** the current region's data and trooper roster; Override picks a region instead of the save's current world */
+	bool LoadRoster(const FString& Override = FString());
+	void SpawnNexusCity();
+	/** the player on the hub's spawn pad, facing the plaza */
+	void PlaceAtNexus();
 	void SpawnTrooper();
 	void LoadScenarios();
 	void TickEncounters(float DeltaSeconds);
@@ -242,6 +252,7 @@ private:
 	TArray<FScenarioBoss> Scenarios;
 	int32 NextScenario = 0;
 
+	TWeakObjectPtr<AWFNexusCity> NexusCity;
 	FString RegionId;
 	FString RegionName;
 	double RegionDifficulty = 0;

@@ -16,7 +16,11 @@ class WORLDFRACTURE_API AWFHUD : public AHUD
 
 public:
 	virtual void BeginPlay() override;
+	virtual void EndPlay(const EEndPlayReason::Type Reason) override;
 	virtual void DrawHUD() override;
+	/** touch buttons (phones, or any PC started with -touchhud) press and release the Operator's input actions */
+	virtual void NotifyHitBoxClick_Implementation(FName BoxName) override;
+	virtual void NotifyHitBoxRelease_Implementation(FName BoxName) override;
 	void Toast(const FString& Text, const FLinearColor& Color);
 
 private:
@@ -27,6 +31,13 @@ private:
 	UFUNCTION() void HandleQuestCompleted(const FString& QuestId);
 
 	void Line(const FString& Text, float X, float Y, const FLinearColor& Color, float Scale = 1.f);
+	bool WantsTouchControls() const;
+	void DrawTouchControls(float W, float H);
+	void ReleaseTouch(FName BoxName);
+	/** where each button was drawn this frame (for letting go when the finger slides off) */
+	TMap<FName, FBox2D> TouchRects;
+	TMap<FName, TWeakObjectPtr<class UInputAction>> HeldTouch;
+	TArray<FName> HeldIds() const { TArray<FName> Out; HeldTouch.GetKeys(Out); return Out; }
 
 	struct FToast
 	{

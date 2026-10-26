@@ -20,6 +20,7 @@
 #include "InputAction.h"
 #include "InputMappingContext.h"
 #include "InputModifiers.h"
+#include "InputTriggers.h"
 #include "WFEnemy.h"
 #include "Core/WFFoundryCore.h"
 #include "WFVehicle.h"
@@ -174,6 +175,40 @@ void AWFCharacter::BuildInput()
 		Mapping->MapKey(A, Key);
 		ClassAbilityActions.Add(A);
 	}
+	// gamepad, and the phone's on-screen sticks (the engine's virtual joysticks send the gamepad stick axes)
+	{
+		Mapping->MapKey(MoveAction, EKeys::Gamepad_LeftX);
+		FEnhancedActionKeyMapping& LeftY = Mapping->MapKey(MoveAction, EKeys::Gamepad_LeftY);
+		LeftY.Modifiers.Add(NewObject<UInputModifierSwizzleAxis>(this)); // stick up = forward (Axis.Y)
+		// a stick is a rate, not a mouse delta: scale it by frame time so turning speed doesn't change with frame rate
+		// (72 per second through the controller's yaw/pitch input scale is roughly 180 degrees a second at full tilt)
+		auto StickLook = [this](FEnhancedActionKeyMapping& M) {
+			M.Modifiers.Add(NewObject<UInputModifierScaleByDeltaTime>(this));
+			UInputModifierScalar* Rate = NewObject<UInputModifierScalar>(this);
+			Rate->Scalar = FVector(72.0, 72.0, 1.0);
+			M.Modifiers.Add(Rate);
+		};
+		StickLook(Mapping->MapKey(LookAction, EKeys::Gamepad_RightX));
+		FEnhancedActionKeyMapping& RightY = Mapping->MapKey(LookAction, EKeys::Gamepad_RightY);
+		RightY.Modifiers.Add(NewObject<UInputModifierSwizzleAxis>(this));
+		StickLook(RightY);
+		Mapping->MapKey(JumpAction, EKeys::Gamepad_FaceButton_Bottom);
+		Mapping->MapKey(FireAction, EKeys::Gamepad_RightTrigger);
+		Mapping->MapKey(AimAction, EKeys::Gamepad_LeftTrigger);
+		Mapping->MapKey(SprintAction, EKeys::Gamepad_LeftThumbstick);
+		Mapping->MapKey(CrouchAction, EKeys::Gamepad_FaceButton_Right);
+		Mapping->MapKey(ReloadAction, EKeys::Gamepad_FaceButton_Left);
+		Mapping->MapKey(InteractAction, EKeys::Gamepad_FaceButton_Top);
+		// NextWeapon fires on Triggered (fine for the wheel's single ticks): a held shoulder must swap once per press
+		FEnhancedActionKeyMapping& Next = Mapping->MapKey(NextWeaponAction, EKeys::Gamepad_RightShoulder);
+		Next.Triggers.Add(NewObject<UInputTriggerPressed>(this));
+		FEnhancedActionKeyMapping& Prev = Mapping->MapKey(NextWeaponAction, EKeys::Gamepad_LeftShoulder);
+		Prev.Modifiers.Add(NewObject<UInputModifierNegate>(this));
+		Prev.Triggers.Add(NewObject<UInputTriggerPressed>(this));
+		Mapping->MapKey(CallVehicleAction, EKeys::Gamepad_DPad_Down);
+		Mapping->MapKey(RideAction, EKeys::Gamepad_DPad_Up);
+		Mapping->MapKey(HackAction, EKeys::Gamepad_DPad_Right);
+	}
 	const FKey SlotKeys[] = {EKeys::One, EKeys::Two, EKeys::Three, EKeys::Four, EKeys::Five};
 	for (const FKey& Key : SlotKeys)
 	{
@@ -181,6 +216,24 @@ void AWFCharacter::BuildInput()
 		Mapping->MapKey(Slot, Key);
 		SlotActions.Add(Slot);
 	}
+}
+
+UInputAction* AWFCharacter::GetTouchAction(FName Id) const
+{
+	if (Id == TEXT("Fire")) return FireAction;
+	if (Id == TEXT("Aim")) return AimAction;
+	if (Id == TEXT("Jump")) return JumpAction;
+	if (Id == TEXT("Sprint")) return SprintAction;
+	if (Id == TEXT("Reload")) return ReloadAction;
+	if (Id == TEXT("Crouch")) return CrouchAction;
+	if (Id == TEXT("Interact")) return InteractAction;
+	if (Id == TEXT("Hack")) return HackAction;
+	if (Id == TEXT("NextWeapon")) return NextWeaponAction;
+	if (Id == TEXT("Ride")) return RideAction;
+	if (Id == TEXT("Ability1")) return ClassAbilityActions.IsValidIndex(0) ? ClassAbilityActions[0].Get() : nullptr;
+	if (Id == TEXT("Ability2")) return ClassAbilityActions.IsValidIndex(1) ? ClassAbilityActions[1].Get() : nullptr;
+	if (Id == TEXT("Ability3")) return ClassAbilityActions.IsValidIndex(2) ? ClassAbilityActions[2].Get() : nullptr;
+	return nullptr;
 }
 
 void AWFCharacter::AddMappingContext() const

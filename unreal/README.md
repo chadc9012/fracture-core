@@ -33,7 +33,29 @@ unreal/
    `Fleet`, `BuyGarage <base>`, `BuyFleet <build>`, `FleetActive <build>`, `Tune <build> <node>`, `Paint <build> "<paint>"`, `Cosmetic <build> <key> <value>`,
    `Homes`, `BuyHome <id>`, `BuyDecor <id>`, `PlaceDecor <home> <room#> <slot> [decor]`, `Park <build> <residence>`, `Unpark <build>`.
 
-The default level is the engine's template map; the game mode adds a floor and lights if a level has none.
+The default level is the engine's template map; the game mode adds a floor and lights if a level has none, and builds
+**Nexus City** at its real place in the world (below). A save whose current world is Nexus starts on the hub's spawn pad;
+from anywhere else, `GoNexus` at the console walks you in.
+
+Gamepad: left stick move, right stick look, A jump, RT fire, LT aim, L3 sprint, B crouch, X reload, Y interact,
+RB / LB next / previous weapon, D-pad down call vehicle, up ride Vyrak, right hack.
+
+## Android (APK)
+Build it on the Windows PC (Unreal can't package for Android anywhere else):
+1. Install Android Studio, then run `<UE 5.8>\Engine\Extras\Android\SetupAndroid.bat` once (it fetches the SDK and NDK the
+   engine wants).
+2. Either open the project and use *Platforms → Android → Package Project* (pick ASTC), or start the **Unreal Android APK**
+   workflow on GitHub with the PC registered as a self-hosted runner (labels `self-hosted, Windows, unreal`); it publishes
+   `WorldFractureUE.apk` to the `unreal-android-latest` release, which installs straight from the phone's browser.
+
+`Config/DefaultEngine.ini` packages one self-contained APK (data inside, no OBB) for arm64 with Vulkan (ES 3.1 fallback),
+landscape and full screen, and uses mobile deferred shading so all of Nexus City's pooled lights reach the buildings. On a
+phone the engine's on-screen sticks move (left) and look (right) through the same Enhanced Input actions as WASD and the
+mouse, and the HUD draws buttons for fire, aim, jump, reload, crouch, swap, sprint, interact, hack and the three class
+abilities, which press those same actions (start any PC build with `-touchhud` to try the layout with a mouse).
+Driving has no touch controls yet.
+
+Until then the phone build is the web game (`mobile/`, the `android-latest` release), which is the whole game today.
 
 ## What runs
 - **Weapon heat and foundries:** every gun shares one heat gauge, on foot and mounted (sim.ts weaponHeat): each pull adds
@@ -55,6 +77,20 @@ The default level is the engine's template map; the game mode adds a floor and l
   wrecks, silver 10, bronze 6). Each medal tier pays once, and gold awards the Sun-Cutter (rally) or the Aegis Broadsword
   (derby). Runs pay through the side-contract payout, best times and scores are saved, and `Wasteland` prints the
   distances, your records and your Legion rank.
+- **Nexus City:** built at play time from `DataTables/NexusCity.json`, which `tools/export-nexus-city.ts` writes from the web
+  build's own layout code (nexus-districts.ts, nexus-signs.ts, city-streets.ts, building-models.ts), so the two cities match
+  street for street: the hub plaza with its promenade, ring road, spawn pad and eight civic towers; 66 district buildings
+  (Spire glass towers north, Market east, Arcology west, Shipyard sheds south) with setback crowns, lit floors and their roof
+  kit; the facade kit (plinths, ledges, glass fins, shopfronts and awnings, balconies, lobbies, blade signs); sidewalks,
+  kerbs, crossings, street furniture, 244 street lights, parked cars; and the night signage (87 violet banners, 13
+  holographic screens, 146 cyan corner strips). Buildings, kerbs, cars, benches, planters and shelters are solid, and
+  troopers use them as cover. Everything is instanced (one draw per shape and colour) for phones. In Nexus the sun dims to
+  moonlight under a violet sky with street-level fog, and a pool of real lights (24 on PC, 8 on phones) follows you,
+  lighting the nearest lamps, shopfronts and signs. The terrain isn't ported, so the city is levelled onto one flat slab.
+  Shapes are the engine's basic meshes and colours go through BasicShapeMaterial; set the actor's `SurfaceMaterial` /
+  `NeonMaterial` (a "Color" vector parameter) once real materials exist, and replace the hub towers' stand-in boxes with
+  the imported building GLBs. Re-export after a layout change in the web build:
+  `npx esbuild unreal/tools/export-nexus-city.ts --bundle --platform=node --format=esm --alias:@=./src --outfile=/tmp/nc.mjs && node /tmp/nc.mjs`
 - **Movement kit:** Titans get one weighty air jump, Hunters two quick ones, Warlocks one and then a glide while jump is
   held (movement.ts). Left Ctrl crouches, or slides out of a sprint (the armor slide bonus stretches it); Z toggles
   prone. Crouched and prone you are slower and harder to hit (enemyHitChance). A running jump vaults further and higher,
@@ -224,5 +260,5 @@ Boss models and attack effects (zones are debug circles, decoys are stand-ins), 
 region kinds for abilities (the map counts as a war zone),
 troopers running out of orbital strike circles (no strike beacons yet), the rune bursts (Storm, Ember, Frost, Bloom and Sun need weapon-evolution.ts, which is not ported; their element still applies), nemeses (so the nemesis-gated runes and relic tiers wait), weather (storm secrets), the Neon City pledge, the featured-activity rotation and
 activity shader drops,
-diving (the thalassia-dive survive timer), the Neon City police response itself (the web build has only the heat meter and its labels; chase-ai.ts pursuit helpers are unused there), the Operations Hub preview marketplace (its wallet is not saved in the web build either), home interiors, cloud save merge, the world itself (regions, Neon City, Thalassia). Their data is already in
+diving (the thalassia-dive survive timer), the Neon City police response itself (the web build has only the heat meter and its labels; chase-ai.ts pursuit helpers are unused there), the Operations Hub preview marketplace (its wallet is not saved in the web build either), home interiors, cloud save merge, the rest of the world (terrain, the other regions, Neon City, Thalassia; Nexus City is in). Their data is already in
 `DataTables/`.

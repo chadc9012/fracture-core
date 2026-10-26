@@ -39,6 +39,13 @@ public:
 	virtual void SetupPlayerInputComponent(UInputComponent* PlayerInputComponent) override;
 	virtual void PawnClientRestart() override;
 
+	/**
+	 * The Enhanced Input action behind an on-screen touch button (WFHUD): Fire, Aim, Jump, Sprint, Reload, Crouch, Interact,
+	 * Hack, NextWeapon, Ability1-3, Ride. Touch buttons inject into these same actions, so touch, gamepad and keyboard all
+	 * run the same bindings. Null for an unknown name or before input is built.
+	 */
+	class UInputAction* GetTouchAction(FName Id) const;
+
 	/** Damage from an enemy (sim.ts hurtPlayer without armor or abilities yet). */
 	void ApplyHit(double Damage, const FString& Source);
 
