@@ -4,7 +4,7 @@ import { payoutClassOfDungeon, payoutFor } from "@/game/activity-payouts";
 import { formatNex } from "@/game/nex";
 import { HOLLOW_STAR_ID, RAID_VARIANTS, SECRET_OBJECTIVES, canClaimHollowStarTier, claimHollowStarTierClear, hollowStarTierPayout, hollowStarTierUnlocked, secretKey, type RaidVariant } from "@/game/hollow-star-raid";
 import { STRIKES, canClaimStrike, claimStrikeClear, isStrike, strikePayout, strikeTierUnlocked, weeklyStrike } from "@/game/strikes";
-import { scaleEncounter, tierById, tiersOf, weeklyRaidChallenge, WEEKLY_RAID_BONUS, WEEKLY_STRIKE_BONUS } from "@/game/difficulty-ladder";
+import { applyChallenge, scaleEncounter, tierById, tiersOf, weeklyRaidChallenge, WEEKLY_RAID_BONUS, WEEKLY_STRIKE_BONUS } from "@/game/difficulty-ladder";
 import { Activity, Anvil, Check, ChevronRight, Coins, Compass, Copy, Crosshair, Gauge, GitBranch, Globe2, LockKeyhole, Network, PackageOpen, Shield, Skull, Snowflake, Sparkles, Swords, Timer, Users, X } from "lucide-react";
 import { hubStopFor, markHubStopSeen, type HubView } from "@/game/hub-tour";
 
@@ -76,7 +76,8 @@ function DungeonOperations({ progression, onProgression }: { progression: Player
   const baseDef = ALL_ENCOUNTERS.find((entry) => entry.id === selectedId) ?? DUNGEONS[0];
   const ladder = baseDef ? (isStrike(baseDef.id) ? "strike" : baseDef.id === HOLLOW_STAR_ID ? "raid" : null) : null;
   const tier = ladder ? tierById(ladder, tierId) : null;
-  const dungeon = baseDef && tier ? scaleEncounter(baseDef, tier) : baseDef;
+  const scaled = baseDef && tier ? scaleEncounter(baseDef, tier) : baseDef;
+  const dungeon = scaled && ladder === "raid" && challenge ? applyChallenge(scaled, weeklyRaidChallenge(Date.now()).id) : scaled;
   const [run, setRun] = useState(() => dungeon ? createEncounterRun(dungeon) : null);
   const [members, setMembers] = useState<{ name: string; classId: ClassId; ready: boolean; host?: boolean }[]>([{ name: "You", classId: progression.identityClass ?? "TITAN", ready: false, host: true }]);
   const [inviteNotice, setInviteNotice] = useState("");
@@ -122,11 +123,11 @@ function DungeonOperations({ progression, onProgression }: { progression: Player
         })}</div>
         <p className="mt-2 text-[10px] text-muted-foreground">{tier.blurb} Shared lives {dungeon.maxLives}. Each tier pays its own first clear and its own daily repeat.</p>
         {ladder === "strike" && <p className="mt-1 text-[10px] text-primary">Weekly Ordeal: {weeklyStrike(Date.now()).name} pays x{WEEKLY_STRIKE_BONUS} from Hero up.</p>}
-        {ladder === "raid" && <label className="mt-2 flex items-center gap-2 text-[10px]"><input type="checkbox" checked={challenge} disabled={run.status !== "READY"} onChange={(e) => setChallenge(e.target.checked)} /><span>Weekly challenge · <b>{weeklyRaidChallenge(Date.now()).name}</b>: {weeklyRaidChallenge(Date.now()).effect} (+{Math.round((WEEKLY_RAID_BONUS - 1) * 100)}% Nex)</span></label>}
+        {ladder === "raid" && <label className="mt-2 flex items-center gap-2 text-[10px]"><input type="checkbox" checked={challenge} disabled={run.status !== "READY"} onChange={(e) => { setChallenge(e.target.checked); setRun(createEncounterRun(e.target.checked ? applyChallenge(scaleEncounter(baseDef, tier), weeklyRaidChallenge(Date.now()).id) : scaleEncounter(baseDef, tier))); }} /><span>Weekly challenge · <b>{weeklyRaidChallenge(Date.now()).name}</b>: {weeklyRaidChallenge(Date.now()).effect} (+{Math.round((WEEKLY_RAID_BONUS - 1) * 100)}% Nex)</span></label>}
       </div>}
       <div className="mt-5 border border-border p-4">
         <div className="flex items-start justify-between gap-4"><div><p className="font-mono text-[9px] uppercase tracking-[0.28em] text-muted-foreground">Live encounter simulation</p><h4 className="mt-1 text-lg font-semibold">{run.status === "COMPLETE" ? "Cache secured" : run.status === "WIPED" ? "Fireteam lost" : stage?.name}</h4><p className="mt-1 text-xs text-muted-foreground">{run.message}</p></div><div className="text-right font-mono text-[10px]"><p>{run.lives} SHARED LIVES</p><p className="text-primary">{run.status}</p></div></div>
-        <div className="mt-4 grid grid-cols-[1fr_auto] items-center gap-3"><div><div className="flex justify-between text-[9px] uppercase text-muted-foreground"><span>{stage?.hazardLabel ?? "STABILITY"}</span><span>{run.hazard}%</span></div><div className="mt-1 h-2 overflow-hidden bg-muted"><div className="h-full bg-primary transition-[width]" style={{ width: `${run.hazard}%` }} /></div></div><span className="font-mono text-xs">{run.progress}/{stage?.target ?? run.progress}</span></div>
+        <div className="mt-4 grid grid-cols-[1fr_auto] items-center gap-3"><div><div className="flex justify-between text-[9px] uppercase text-muted-foreground"><span>{stage?.hazardLabel ?? "STABILITY"}</span><span>{dungeon.blackout ? "??" : `${run.hazard}%`}</span></div><div className="mt-1 h-2 overflow-hidden bg-muted"><div className="h-full bg-primary transition-[width]" style={{ width: `${run.hazard}%` }} /></div></div><span className="font-mono text-xs">{run.progress}/{stage?.target ?? run.progress}</span></div>
         {stage?.routes && !run.selectedRoute && <div className="mt-4 grid gap-2 sm:grid-cols-2">{stage.routes.map((route) => <Button key={route.id} variant="outline" className="h-auto justify-start rounded-none p-3 text-left whitespace-normal" onClick={() => setRun(chooseEncounterRoute(run, route.id))}><span><b className="block text-xs">{route.name}</b><span className="mt-1 block text-[10px] text-muted-foreground">{route.tradeoff}</span></span></Button>)}</div>}
         {stage?.bossPhases?.[run.bossPhase] && <div className="mt-4 border-l-2 border-primary bg-primary/5 p-3"><p className="font-mono text-[10px] text-primary">{stage.bossPhases[run.bossPhase]?.name}</p><p className="mt-1 text-xs">{stage.bossPhases[run.bossPhase]?.mechanic}</p><p className="mt-1 text-[10px] text-muted-foreground">Counter · {stage.bossPhases[run.bossPhase]?.counter}</p></div>}
         {isRaid && run.status !== "COMPLETE" && <div className="mt-4 border border-border p-3">

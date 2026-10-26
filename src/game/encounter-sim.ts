@@ -5,6 +5,7 @@
 import { INITIAL_POISE, isStaggered, openWeakPoint } from "./boss-poise";
 import { ENCOUNTERS, encounterFor, inCircle, inFan, inLane, phaseIndexFor, pickAttack, type AttackDef, type EncounterDef, type PhaseDef, type ZoneKind, type ZoneSpec } from "./scenario-encounters";
 import { walkHeight as walkHeightFor } from "./terrain";
+import { stepSummonSkills, stepSummonPins, resetSkill, TURRET, isTurret } from "./summon-skills";
 import { alert, hurtPlayer, type Machine, type WorldSim } from "./sim";
 
 export type EncounterState = {
@@ -113,11 +114,11 @@ function impact(sim: WorldSim, m: Machine, enc: EncounterState, atk: AttackDef, 
 
 /** most called-in troops alive at once; a pack that is ignored does not snowball into an unwinnable room */
 export const MAX_SUMMONED = 6;
-const SUMMON_PROFILES = new Set(["Void Reaver", "Void Vanguard", "Void Arcanist", "Void Sentinel"]);
+const SUMMON_PROFILES = new Set(["Void Reaver", "Void Vanguard", "Void Arcanist", "Void Sentinel", TURRET]);
 export const isSummoned = (x: Machine) => Boolean(x.alive && x.summoned && SUMMON_PROFILES.has(x.profile));
 /** the boss calls in real troops, spread around it at 18 m (outside machine separation, inside the arena). Returns how many arrived. */
 function spawnSummons(sim: WorldSim, boss: Machine, enc: EncounterState, groups: readonly import("./scenario-encounters").SummonGroup[]): number {
-  let live = sim.machines.filter(isSummoned).length, made = 0;
+  let live = sim.machines.filter((x) => isSummoned(x) && !isTurret(x)).length, made = 0;
   const total = groups.reduce((n, g) => n + g.count, 0);
   for (const g of groups) for (let i = 0; i < g.count && live < MAX_SUMMONED; i++) {
     const slot = sim.machines.find((x) => !x.alive);
@@ -126,7 +127,7 @@ function spawnSummons(sim: WorldSim, boss: Machine, enc: EncounterState, groups:
     const x = boss.x + Math.sin(a) * 18, z = boss.z + Math.cos(a) * 18;
     const hp = g.hp * (sim.challenge?.enemyHp ?? 1);
     Object.assign(slot, { alive: true, react: undefined, x, z, y: walkHeightFor(x, z), hp, maxHp: hp, rot: 0, scale: g.scale, zone: boss.zone, cool: 1.2, elite: Boolean(g.elite), boss: false, mission: false, profile: g.profile, kind: g.kind, drop: "dataShards", kx: 0, kz: 0, vulnUntil: 0, vulnMult: 1, aim: 0, summoned: true });
-    delete slot.encounter; delete slot.decoy; delete slot.living; delete slot.nemesis; delete slot.scenarioId; delete slot.lastPlayerDamage;
+    delete slot.encounter; delete slot.decoy; delete slot.living; delete slot.nemesis; delete slot.scenarioId; delete slot.lastPlayerDamage; resetSkill(slot);
     emit(sim, boss, { kind: "SUMMON", text: g.profile, x, z, radius: 0, duration: 0 });
     live++; made++;
   }
@@ -266,8 +267,12 @@ export function stepEncounters(sim: WorldSim, dt: number, px: number, pz: number
   } else {
     for (const x of sim.machines) if (x.alive && x.decoy) x.cool = Math.max(x.cool, DECOY_COOL); // decoys never fight
   }
+  if (bosses.length) stepSummonSkills(sim, dt, px, pz);
   stepZones(sim, dt, px, pz, now);
 }
+
+/** end-of-frame: troops with skill-owned movement overwrite whatever the squad AI did (summon-skills.ts) */
+export function pinSummons(sim: WorldSim, dt: number, px: number, pz: number) { stepSummonPins(sim, dt, px, pz); }
 
 /** hp the boss cannot be brought under until its finale window opens (Last Oath / Drowning / Last Benediction). */
 export function encounterHpFloor(m: Machine, now: number): number {

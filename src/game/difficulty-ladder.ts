@@ -84,6 +84,20 @@ export const RAID_CHALLENGES: readonly WeeklyModifier[] = [
   { id: "swarm", name: "Swarm", effect: "Adds arrive in larger groups." },
   { id: "glass", name: "Glass Cannons", effect: "Everyone deals more damage and takes much more." },
 ];
+/** the modifier's actual rules on an encounter definition (taking the challenge applies it; it never changes the base tier) */
+export function applyChallenge<D extends EncounterDefinition>(def: D, modId: string): D {
+  const stages = (f: (s: EncounterStage) => EncounterStage) => def.stages.map(f);
+  const gain = (s: EncounterStage) => s.hazardPerStep ?? DEFAULT_GAIN[s.type];
+  switch (modId) {
+    case "no-revive": return { ...def, noCheckpointRelief: true };
+    case "short-fuse": return { ...def, stages: stages((s) => ({ ...s, hazardPerStep: Math.max(1, Math.round(gain(s) * 1.35)) })) };
+    case "iron-boss": return { ...def, stages: stages((s) => (s.type === "BOSS_FIGHT" ? { ...s, target: Math.round(s.target * 1.4) } : s)) };
+    case "blackout": return { ...def, blackout: true };
+    case "swarm": return { ...def, stages: stages((s) => (s.type === "BOSS_FIGHT" ? s : { ...s, target: Math.round(s.target * 1.3) })) };
+    case "glass": return { ...def, damageMult: 1.5, maxLives: Math.max(1, def.maxLives - 2) };
+    default: return def;
+  }
+}
 export const weeklyRaidChallenge = (now: number): WeeklyModifier => RAID_CHALLENGES[((weekIndex(now) % RAID_CHALLENGES.length) + RAID_CHALLENGES.length) % RAID_CHALLENGES.length]!;
 /** the Nex multiplier from this week's feature: the Ordeal strike pays extra from Hero up; the raid challenge pays extra when taken */
 export function weeklyMult(kind: LadderKind, tier: Tier, featured: boolean, challengeTaken: boolean): number {

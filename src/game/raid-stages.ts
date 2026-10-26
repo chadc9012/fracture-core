@@ -30,6 +30,11 @@ export type EncounterDefinition = {
   duration: string;
   maxLives: number;
   stages: readonly EncounterStage[];
+  /** weekly raid challenge rules (difficulty-ladder.ts `applyChallenge`) */
+  noCheckpointRelief?: boolean;
+  damageMult?: number;
+  /** hide hazard and objective numbers (UI reads this) */
+  blackout?: boolean;
 };
 
 export type EncounterRun = {
@@ -58,7 +63,7 @@ export function advanceEncounter(definition: EncounterDefinition, run: Encounter
   const nextProgress = Math.min(stage.target, run.progress + 1);
   const hazardGain = DEFAULT_HAZARD_GAIN;
   const nextHazard = Math.min(100, run.hazard + (stage.hazardPerStep ?? hazardGain[stage.type]));
-  const contributions = { damage: run.damage + (stage.type === "BOSS_FIGHT" || stage.type === "COMBAT" ? 140 : 45), support: run.support + (stage.type === "PUZZLE_COMBAT" || stage.type === "SYNC_TRAVERSAL" ? 85 : 25) };
+  const contributions = { damage: run.damage + Math.round((stage.type === "BOSS_FIGHT" || stage.type === "COMBAT" ? 140 : 45) * (definition.damageMult ?? 1)), support: run.support + (stage.type === "PUZZLE_COMBAT" || stage.type === "SYNC_TRAVERSAL" ? 85 : 25) };
   if (nextHazard >= 100) return { ...run, hazard: 100, status: "WIPED", message: "Sand entombment reached critical pressure. Fireteam lost." };
   if (nextProgress < stage.target) {
     const bossPhase = stage.bossPhases ? Math.min(stage.bossPhases.length - 1, Math.floor((nextProgress / stage.target) * stage.bossPhases.length)) : 0;
@@ -71,7 +76,7 @@ export function advanceEncounter(definition: EncounterDefinition, run: Encounter
     return { ...run, ...contributions, stagePerformance, status: "COMPLETE", progress: nextProgress, hazard: nextHazard, message: "Final threat neutralized. Signature cache secured." };
   }
   const { selectedRoute: _previousRoute, ...remaining } = run;
-  return { ...remaining, ...contributions, stagePerformance, status: "ACTIVE", stageIndex: nextStage, progress: 0, bossPhase: 0, hazard: Math.max(0, nextHazard - (stage.checkpoint ? 35 : 18)), message: `Checkpoint secured · ${definition.stages[nextStage]?.name ?? "Next stage"}` };
+  return { ...remaining, ...contributions, stagePerformance, status: "ACTIVE", stageIndex: nextStage, progress: 0, bossPhase: 0, hazard: definition.noCheckpointRelief ? nextHazard : Math.max(0, nextHazard - (stage.checkpoint ? 35 : 18)), message: `Checkpoint secured · ${definition.stages[nextStage]?.name ?? "Next stage"}` };
 }
 
 export function chooseEncounterRoute(run: EncounterRun, routeId: string): EncounterRun {

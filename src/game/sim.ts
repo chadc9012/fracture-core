@@ -63,7 +63,7 @@ import { completeEmergencyQuest, EMERGENCY_QUEST_INIT, stepEmergencyQuest, type 
 import { scenarioById, scenarioFor, type UniqueScenario } from "./unique-scenarios";
 import { INITIAL_NULL_CHARGE, NULL_PERK, NULL_PULSE_POISE, NULL_PULSE_RADIUS, NULL_PULSE_STUN_SECONDS, registerNullHit, type NullChargeState } from "./null-disruption";
 import { ENCOUNTERS } from "./scenario-encounters";
-import { encounterHpFloor, endEncounter, onDecoyShattered, resetEncounters, stepEncounters, type EncounterEvent, type EncounterState, type EncounterZone } from "./encounter-sim";
+import { encounterHpFloor, endEncounter, onDecoyShattered, resetEncounters, pinSummons, stepEncounters, type EncounterEvent, type EncounterState, type EncounterZone } from "./encounter-sim";
 import { rollWeaponLoot } from "./weapon-loot";
 import { isStaggeredNow, reactTo, hitPart } from "./enemy-reactions";
 import { PARTICIPATION_HITS, SCENARIO_LOOT, rollScenario, type ScenarioClaim } from "./scenario-loot";
@@ -1741,7 +1741,7 @@ export function stepSim(sim: WorldSim, input: SimInput) {
     m.hiddenFor = m.los && !m.los.clear && d < 160 ? (m.hiddenFor ?? 0) + dt : 0;
     const inView = d >= 160 || (m.los?.clear ?? true);
     const sight = sightRange(night, sim.envVisibility ?? 1, m.elite) * (sim.stealthMult ?? 1) * (aggro / 70 > 1 ? Math.min(1.6, aggro / 70) : 1);
-    const forced = m.boss || m.mission || sim.hp < 35 && d < 40;
+    const forced = m.boss || m.mission || m.summoned || sim.hp < 35 && d < 40;
     const aiState = forced && d < aggro ? (ai.state = "ALERT", ai.awareness = 1, ai.lastX = px, ai.lastZ = pz, "ALERT")
       : stepAwareness(ai, { distance: d, sight, noise: Math.min(1, (sim.playerNoise ?? 0) + sim.combatHeat / 120), damaged, facing: facingDot > 0.3, inView }, px, pz, dt);
     // ---- getting out of the way (enemy-evasion.ts): dive from an incoming round's blast, run out of a strike circle ----
@@ -2404,6 +2404,7 @@ export function stepSim(sim: WorldSim, input: SimInput) {
     sim.credits += paid;
   }
 
+  pinSummons(sim, dt, px, pz);
   endStats(sim.stats, performance.now() - t0);
 
   return { playerInstability };
