@@ -164,6 +164,7 @@ import type { SquadArchetype } from "@/game/adaptation";
 import { ADAPTIVE_TUTORIAL_INIT, maybeReteach, recordStruggle } from "@/game/adaptive-tutorial";
 import { isValidPlayerState, resetFrameFailureCount, sanitizePlayerState, softFrameFailure } from "@/game/safe-state";
 import { difficultyCurve, playerPowerScore } from "@/game/balance";
+import { operatorPower } from "@/game/weapon-meta";
 import type { TutorialEvent, TutorialState } from "@/game/onboarding";
 import { CITY_RADIUS, DOCK_DECK_Y, REACTOR_REACH, REBREATHER_DRAIN_SCALE, SECTOR_LABEL, airStationAt, airlockSite, coolantDamage, coolantPhase, dockSite, hullDamagePerSec, hullStressStep, reactorSite, ringWaypoint, sectorAt, type ThalassiaSector } from "@/game/thalassia-sectors";
 import { airlockRestored } from "@/game/missions/descent-protocol";
@@ -623,7 +624,7 @@ function SceneImpl({
   onWaste?: (event: WasteEmit) => void;
   /** Fracture Gate descents (descent-runtime.ts): tier chests and run results; GameCanvas resolves them into the save */
   onDescent?: (event: DescentEmit) => void;
-  gear?: Pick<PlayerProgression, "inventory" | "equippedGear" | "dungeonClears" | "completedMissions" | "story" | "earnedRewards" | "missionRuns"> & Partial<Pick<PlayerProgression, "living" | "challenge" | "nemeses" | "fleet" | "blade" | "vehicleConditions" | "nexLedger" | "housing" | "fractureShards">>;
+  gear?: Pick<PlayerProgression, "inventory" | "equippedGear" | "dungeonClears" | "completedMissions" | "story" | "earnedRewards" | "missionRuns"> & Partial<Pick<PlayerProgression, "level" | "living" | "challenge" | "nemeses" | "fleet" | "blade" | "vehicleConditions" | "nexLedger" | "housing" | "fractureShards">>;
   /** nemesis.ts: a nemesis the player picked on the map; it ambushes right after arrival */
   summonNemesis?: string | null;
   mission?: MissionRun | null;
@@ -697,6 +698,8 @@ function SceneImpl({
   const livingMarks = useMemo(() => (gear ? livingMarkers({ ...(gear as PlayerProgression), living: gear.living ?? EMPTY_LIVING }) : []), [gear]);
   // Global Balance Controller: recomputed only when equipped gear/clears/missions actually change,
   // not every frame — the frame loop just assigns the (already-cheap) result into sim.mods below.
+  // weapon-meta.ts: the operator's power level, Destiny style (average equipped gear power + a bonus per level)
+  const operatorPowerNow = useMemo(() => operatorPower((gear?.inventory ?? []).filter((item) => item.slot !== "vehicle" && gear?.equippedGear[item.slot] === item.id).map((item) => item.power), gear?.level ?? 1), [gear?.inventory, gear?.equippedGear, gear?.level]);
   const balance = useMemo(() => difficultyCurve(playerPowerScore({ inventory: gear?.inventory ?? [], equippedGear: gear?.equippedGear ?? {}, dungeonClears: gear?.dungeonClears ?? {}, completedMissions: gear?.completedMissions ?? [] } as Parameters<typeof playerPowerScore>[0])), [gear?.inventory, gear?.equippedGear, gear?.dungeonClears, gear?.completedMissions]);
   // Equipped chest/helmet/legs upgrade levels -> Operator's real armor-geometry tiers (tierOf()
   // in Operator.tsx), so gearing up actually changes the model, not just its tint.
@@ -936,7 +939,7 @@ function SceneImpl({
   })());
   /** class movement kit (movement.ts): air jumps, glide, slide + previous-frame jump/slide key state for edge detection */
   const move = useRef({ state: createMoveState(), jumpHeld: false, slideHeld: false, proneHeld: false });
-  const reticle = useRef({ state: createReticle(), view: EMPTY_RETICLE, yaw: 0, pitch: 0, hit: 0, kills: 0, ready: false });
+  const reticle = useRef({ state: createReticle(), view: EMPTY_RETICLE, yaw: 0, pitch: 0, hit: 0, crit: 0, kills: 0, ready: false });
   /** eased regional atmosphere (atmosphere.ts) + scratch colours, so crossing a border blends rather than pops */
   const atmo = useRef({ fogMix: 0, fogScale: 1, lightMix: 0, skyMix: 0, haze: 0, fogTint: new THREE.Color("#ffffff"), lightTint: new THREE.Color("#ffffff"), skyTint: new THREE.Color("#ffffff"), hemiBase: new THREE.Color("#9ec8e8") });
   /** eased regional water style (water-style.ts): deep/shallow colours, murk and wave chop */
@@ -1792,7 +1795,7 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
     {
       // dynamic reticle: spread follows locomotion + bloom, the barrel index lags the camera, hits flash
       const r = reticle.current;
-      if (!r.ready) { r.yaw = s.yaw; r.pitch = s.pitch; r.hit = sim.lastHit; r.kills = sim.kills; r.ready = true; }
+      if (!r.ready) { r.yaw = s.yaw; r.pitch = s.pitch; r.hit = sim.lastHit; r.crit = sim.lastCrit; r.kills = sim.kills; r.ready = true; }
       const speed = Math.hypot(velocity.x, velocity.z);
       const motion: Motion = !s.grounded && !s.diving && !s.inVehicle ? "AIR" : speed > 2 && (held.has("ShiftLeft") || held.has("ShiftRight")) ? "SPRINT" : speed > 0.6 ? "WALK" : "IDLE";
       const safeDt = Math.max(dt, 1e-3);
@@ -1802,8 +1805,10 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
       const lookUp = (s.pitch - r.pitch) / safeDt;
       r.yaw = s.yaw; r.pitch = s.pitch;
       if (sim.kills > r.kills) markHit(r.state, "KILL");
+      else if (sim.lastCrit !== r.crit) markHit(r.state, "CRIT");
       else if (sim.lastHit !== r.hit) markHit(r.state, "HIT");
-      r.kills = sim.kills; r.hit = sim.lastHit;
+      if (sim.lastCrit !== r.crit) sfx.playCritTick();
+      r.kills = sim.kills; r.hit = sim.lastHit; r.crit = sim.lastCrit;
       r.view = stepReticle(r.state, { motion: s.inVehicle ? "IDLE" : motion, bloom: s.bloom, aiming: Boolean(mouse.current.aim || padState.current.aim), lookRight, lookUp }, dt);
     }
     s.swing = Math.max(0, s.swing - dt);
@@ -1845,7 +1850,7 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
       const pellets = s.inVehicle ? 1 : wpn.pellets ?? 1;
       for (let pi = 0; pi < pellets; pi++) {
         const py = pi === 0 ? yawJ : (Math.random() - 0.5) * 2 * spread, pp = pi === 0 ? pitchJ : (Math.random() - 0.5) * 2 * spread;
-        if (fireBullet(sim, s.x, s.y + SHOT_EYE, s.z, s.yaw + py, s.inVehicle, s.pitch + s.recoil + pp, wpn.damage * gearPower * hipMult * (1 + armorFxRef.current.weaponDamage), wpn.knock / pellets, (wpn.heat * heatMult) / pellets, s.inVehicle ? undefined : wpn.element, pellets > 1 ? "PELLET" : "BULLET")) fired = true;
+        if (fireBullet(sim, s.x, s.y + SHOT_EYE, s.z, s.yaw + py, s.inVehicle, s.pitch + s.recoil + pp, wpn.damage * gearPower * hipMult * (1 + armorFxRef.current.weaponDamage), wpn.knock / pellets, (wpn.heat * heatMult) / pellets, s.inVehicle ? undefined : wpn.element, pellets > 1 ? "PELLET" : "BULLET", s.inVehicle ? undefined : { weapon: wpn.id })) fired = true;
       }
        if (fired) {
         s.shots++;
@@ -2908,7 +2913,12 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
     if (tutorial?.step === "CONTACT" && sim.kills > tutorialKills.current) { tutorialKills.current++; onTutorialEvent?.("KILL"); }
     if (tutorial?.step === "SENTINEL" && sentinel.current && !sentinel.current.alive) { sentinel.current = null; onTutorialEvent?.("BOSS"); }
     sim.mods.incomingDamageScale = balance.incomingDamageScale;
-    sim.mods.bulletDamage = Math.max(0.5, 1.2 * live.current.damageMultiplier * (1 + live.current.momentum * 0.25) * balance.outgoingDamageScale);
+    // the build's damage rides on top of the skill tree's (sim.mods.bulletDamage, rebuilt inside stepSim: writing it here
+    // used to be overwritten before any bullet landed). Power level (weapon-meta.ts) replaces the old outgoing balance
+    // curve: levelling and better gear now make enemies die faster instead of the curve easing damage off late.
+    sim.buildDamage = Math.max(0.5, 1.2 * live.current.damageMultiplier * (1 + live.current.momentum * 0.25));
+    sim.operatorPower = operatorPowerNow;
+    sim.operatorClass = playerClass;
     // the equipped ability build's archetype and active shield/reflect state actually change how enemy
     // squads move and hold fire (see squadMove in enemy-intelligence.ts), not just the HUD threat line
     const synergyArchetype = buildSynergy(live.current.equipped).archetype;

@@ -346,6 +346,12 @@ export function playImpact(material: "METAL" | "ORGANIC" | "TECH", w: Where) {
   else { noiseLayer(c, o, { dur: 0.1, freq: 380, type: "lowpass", gain: 0.8 }); tone(c, o, { f0: 120, f1: 60, dur: 0.08, gain: 0.3 }); }
   hitTick(c); // hit-marker tick, always centered
 }
+/** A precision (head-band) hit: a bright two-note ping over the impact, so landing headshots is audible (weapon-meta.ts) */
+export function playCritTick() {
+  const c = ctx; if (!c || !gate("crit-tick", 0.06)) return;
+  tone(c, out(c), { f0: 3300, f1: 3300, dur: 0.035, type: "sine", gain: 0.07 });
+  tone(c, out(c), { f0: 4400, f1: 4200, dur: 0.05, type: "triangle", gain: 0.045 });
+}
 /** A real explosion: initial crack, a saturated sub thump, a brown-noise rumble whose filter closes over seconds, scattered debris ticks and
  * a big reverb send. Arrives late and darker with distance (blastAtDistance: speed of sound), so far blasts sound far. `flavor` adds an
  * elemental layer (fire roar, ice shatter, acid hiss, arc crackle). */
