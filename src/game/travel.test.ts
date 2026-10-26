@@ -1,7 +1,7 @@
 // @ts-ignore bun:test has no types in this project's tsconfig
 import { describe, expect, it } from "bun:test";
 import {
-  ELEVATOR_PLATFORM_R, TERMINALS, arrivalPoint, dockArrival, dockLift, elevatorDown, elevatorGroundAt, elevatorUp, flightsFrom, hasVisited,
+  AIRPORTS, ELEVATOR_PLATFORM_R, FERRY_ROUTES, SEAPORTS, TERMINALS, arrivalPoint, dockArrival, dockLift, elevatorDown, elevatorGroundAt, elevatorUp, flightsFrom, hasVisited,
   platformArrival, recordVisit, terminalAt, thalassiaElevator,
 } from "./travel";
 import { CONTINENTS, worldAt } from "./planet";
@@ -11,8 +11,15 @@ import { DEFAULT_PROGRESSION } from "./progression";
 import { drivablePoint } from "./race-routing";
 
 describe("transit terminals", () => {
-  it("every playable region and Neon City has one, on dry ground, in its own continent's world", () => {
-    expect(TERMINALS.length).toBe(8);
+  it("every playable region and Neon City has an airport and a seaport, on dry ground, in its own continent's world", () => {
+    expect(AIRPORTS().length).toBe(8);
+    expect(SEAPORTS().length).toBe(8);
+    for (const t of SEAPORTS()) {
+      // a seaport stands on the quay: open sea within a short walk
+      let sea = false;
+      for (let a = 0; a < Math.PI * 2 && !sea; a += Math.PI / 24) for (let d = 4; d < 40 && !sea; d += 2) if (heightAt(t.x + Math.cos(a) * d, t.z + Math.sin(a) * d) < WATER_LEVEL) sea = true;
+      expect(`${t.id}:${sea}`).toBe(`${t.id}:true`);
+    }
     for (const t of TERMINALS) {
       expect(heightAt(t.x, t.z)).toBeGreaterThan(WATER_LEVEL);
       expect(worldAt(t.x, t.z)).toBe(t.world);
@@ -27,10 +34,18 @@ describe("transit terminals", () => {
     expect(terminalAt(t.x + 1, t.z)?.id).toBe(t.id);
     expect(terminalAt(arrivalPoint(t).x, arrivalPoint(t).z)).toBeNull();
   });
-  it("flights go to every other terminal on a playable continent, never to Thalassia", () => {
-    const from = TERMINALS.find((t) => t.regionId === "veridan")!;
+  it("ferries sail the sea lanes between seaports; every seaport has at least one, and Nexus and Neon have one across the gulf", () => {
+    for (const p of SEAPORTS()) {
+      const f = flightsFrom(p, DEFAULT_PROGRESSION);
+      expect(f.length).toBeGreaterThan(0);
+      expect(f.every((o) => o.terminal.kind === "SEAPORT")).toBe(true);
+    }
+    expect(FERRY_ROUTES.some(([a, b]) => a === "nexus" && b === "neon")).toBe(true);
+  });
+  it("flights go to every other airport on a playable continent, never to Thalassia", () => {
+    const from = AIRPORTS().find((t) => t.regionId === "veridan")!;
     const f = flightsFrom(from, DEFAULT_PROGRESSION);
-    expect(f.length).toBe(TERMINALS.length - 1);
+    expect(f.length).toBe(AIRPORTS().length - 1);
     expect(f.every((o) => o.open)).toBe(true);
     expect(f.some((o) => o.terminal.world === "thalassia")).toBe(false);
   });

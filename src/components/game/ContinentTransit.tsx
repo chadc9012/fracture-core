@@ -46,7 +46,7 @@ function TerminalKiosk({ t, playerRef }: { t: Terminal; playerRef: MutableRefObj
   return (
     <group ref={group} position={[t.x, y, t.z]}>
       <mesh geometry={geo.pad} material={concrete} position={[0, 0.17, 0]} receiveShadow />
-      <mesh geometry={geo.ring} material={cyan} position={[0, 0.37, 0]} rotation={[-Math.PI / 2, 0, 0]} />
+      <mesh geometry={geo.ring} material={t.kind === "SEAPORT" ? amber : cyan} position={[0, 0.37, 0]} rotation={[-Math.PI / 2, 0, 0]} />
       {[[-1, -1], [1, -1], [-1, 1], [1, 1]].map(([sx, sz], i) => <mesh key={i} geometry={geo.post} material={steel} position={[sx! * R * 1.15, 2.1, sz! * R * 0.75]} castShadow />)}
       <mesh geometry={geo.canopy} material={darkSteel} position={[0, 4.35, 0]} castShadow />
       <mesh geometry={geo.boardFrame} material={darkSteel} position={[0, 3.2, -R * 0.78]} />
@@ -55,7 +55,9 @@ function TerminalKiosk({ t, playerRef }: { t: Terminal; playerRef: MutableRefObj
       <mesh geometry={geo.lamp} material={amber} position={[R * 1.6, 14.2, -R * 0.8]} />
       <mesh geometry={geo.beam} material={beam} position={[R * 1.6, 74, -R * 0.8]} />
       {[0, 1, 2].map((i) => <mesh key={i} geometry={geo.drum} material={darkSteel} position={[-R * 1.5, 0.5, -R * 0.4 + i * 1.1]} />)}
-      <pointLight ref={light} color="#7fd8ff" position={[0, 3.6, 0]} distance={14} decay={1.6} />
+      {/* a seaport is a ferry quay: bollards along the edge and a warm light; an airport keeps the cyan pad and the beacon */}
+      {t.kind === "SEAPORT" && [-2, -1, 0, 1, 2].map((i) => <mesh key={`b${i}`} geometry={geo.drum} material={darkSteel} position={[i * 1.8, 0.5, R * 1.3]} scale={[0.6, 1.1, 0.6]} />)}
+      <pointLight ref={light} color={t.kind === "SEAPORT" ? "#ffcf8a" : "#7fd8ff"} position={[0, 3.6, 0]} distance={14} decay={1.6} />
     </group>
   );
 }

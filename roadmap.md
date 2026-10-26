@@ -259,4 +259,5 @@ Owner: an Earth-sized planet (12,756 km, oblate) with original continents; 7 maj
 - [x] The Celestial Bridge: Nexus ↔ Neon over the gulf, wide deck, driving lanes, a glass-walled transit route down the median, maintenance walkways, viewpoint balconies, cyan cable lights; walkable and drivable. The Nexus Strait Bridge is placed the same way.
 - [x] Planet data: 12,756 km, 7 major continents, 5 major oceans (the Emerald Sea and Fractured Abyss are seas), land kinds on the board; Noctyra is map-only for now.
 - [x] On foot the sea stops you (too far to swim); any vehicle, aircraft or boat crosses it.
-- [ ] Airports and seaports per city, scheduled flights and ferries; manual flight across the planet beyond the local map is Unreal work (World Partition, large world coordinates).
+- [x] Airports and seaports: every landing zone and Neon City has an airport (flights to every continent's airports) and a seaport on its quay (ferries along the sea lanes, Nexus↔Neon across the gulf among them); the departures board shows flights or ferries by terminal.
+- [ ] Manual flight around the whole planet beyond the local map is Unreal work (World Partition, large world coordinates).
