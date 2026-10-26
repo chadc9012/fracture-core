@@ -15,7 +15,7 @@ import craw from "@/assets/models/enemies/enemy-fracture-mutated-craw.glb.asset.
 import warrior from "@/assets/models/enemies/enemy-scifi-armored-warrior.glb.asset.json";
 import viper from "@/assets/models/enemies/enemy-silicon-fused-viper.glb.asset.json";
 
-export type EnemyKind = "RAIDER" | "OVERCLOCKED" | "ABERRATION" | "VANGUARD" | "SKYBORN" | "GUARDIAN" | "ABYSSAL";
+export type EnemyKind = "RAIDER" | "OVERCLOCKED" | "ABERRATION" | "VANGUARD" | "SKYBORN" | "GUARDIAN" | "ABYSSAL" | "BEAST";
 export type EnemyRole = "standard" | "elite" | "boss";
 export type EnemyVisual = { id: string; url: string; height: number; motion: "biped" | "creature" | "hover" | "swim"; note: string;
   /** swimmers (motion "swim") are sized by body length along +Z, head forward (scripts/fit-creature-meshy.py), metres */
@@ -43,6 +43,9 @@ const V = {
   ayRegular: { id: "abyssal-regular", url: M("abyssal-regular"), height: 0.9, length: 2.6, motion: "swim", note: "Reef Hunter (Thalassia) from the Abyssal sheet; solid mesh, swims with a travelling wave (abyssal-swim.ts)" },
   ayElite: { id: "abyssal-elite", url: M("abyssal-elite"), height: 1.1, length: 3.4, motion: "swim", note: "Siren Stalker; swims" },
   ayBoss: { id: "abyssal-boss", url: M("abyssal-boss"), height: 2.6, length: 7, motion: "swim", note: "Abyssal Colossus (Thalassia boss); swims" },
+  bsRegular: { id: "beast-regular", url: M("beast-regular"), height: 1.4, motion: "biped", note: "Dune Stalker (Solara pack hunter) from the wildlife sheet; Meshy quadruped rig" },
+  bsElite: { id: "beast-elite", url: M("beast-regular"), height: 1.75, motion: "biped", note: "Dune Stalker pack alpha: the same body, bigger" },
+  bsBoss: { id: "beast-boss", url: M("beast-boss"), height: 2.6, motion: "biped", note: "Thunder Beast (Solara apex predator); Meshy quadruped rig" },
   abBoss: { id: "aberration-boss", url: M("aberration-boss"), height: 2.56, motion: "creature", note: "Aberration Queen; static mesh" },
   raider: { id: "ember-raider", url: ch3.url, height: 1.85, motion: "biped", note: "orange/black scavenger trooper" },
   overclocked: { id: "nexus-overclocked", url: ch2.url, height: 1.85, motion: "biped", note: "black/red/cyan cyber trooper" },
@@ -61,6 +64,7 @@ export const ENEMY_VISUALS: Record<EnemyKind, Record<EnemyRole, EnemyVisual>> = 
   SKYBORN: { standard: V.skyRegular, elite: V.skyElite, boss: V.skyBoss },
   GUARDIAN: { standard: V.gdRegular, elite: V.gdElite, boss: V.gdBoss },
   ABYSSAL: { standard: V.ayRegular, elite: V.ayElite, boss: V.ayBoss },
+  BEAST: { standard: V.bsRegular, elite: V.bsElite, boss: V.bsBoss },
 };
 
 export const roleOf = (m: { elite: boolean; boss: boolean }): EnemyRole => (m.boss ? "boss" : m.elite ? "elite" : "standard");

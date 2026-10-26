@@ -39,3 +39,12 @@ export function strideRate(speed: number, clip: "walk" | "run"): number {
   const native = clip === "run" ? RUN_SPEED : WALK_SPEED * 1.6;
   return Math.min(1.8, Math.max(0.6, safeSpeed(speed) / native));
 }
+
+/** Walk-only rigs (Meshy's quadruped "dog" rig ships just a Walking clip: the desert beasts): a standing beast would
+ * otherwise tread the walk cycle on the spot. Its stride rate follows how much it is actually moving, easing to a stop
+ * at rest (the body then just breathes, EnemyModel.tsx) and quickening into a gallop-paced walk at speed. */
+export function walkOnlyRate(speed: number): number {
+  const s = safeSpeed(speed);
+  return clamp01(s / WALK_SPEED) * strideRate(s, s > WALK_SPEED * 2 ? "run" : "walk") * (s > WALK_SPEED * 2 ? 1.6 : 1);
+}
+

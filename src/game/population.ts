@@ -129,8 +129,8 @@ export const keeperFor = (shopId: string) => SHOPKEEPERS.find((k) => k.shopId ==
 
 /* ------------------------------ enemies: regular / elite / boss per region ------------------------------ */
 export type EnemyRank = "regular" | "elite" | "boss";
-export type EnemyFactionId = "RAIDER" | "OVERCLOCKED" | "VANGUARD" | "ABERRATION" | "SKYBORN" | "GUARDIAN" | "ABYSSAL";
-export const FACTION_LABEL: Record<EnemyFactionId, string> = { RAIDER: "Raiders", OVERCLOCKED: "Overclocked", VANGUARD: "Vanguard", ABERRATION: "Aberrations", SKYBORN: "Skyborn", GUARDIAN: "Ancient Guardians", ABYSSAL: "Abyssal" };
+export type EnemyFactionId = "RAIDER" | "OVERCLOCKED" | "VANGUARD" | "ABERRATION" | "SKYBORN" | "GUARDIAN" | "ABYSSAL" | "BEAST";
+export const FACTION_LABEL: Record<EnemyFactionId, string> = { RAIDER: "Raiders", OVERCLOCKED: "Overclocked", VANGUARD: "Vanguard", ABERRATION: "Aberrations", SKYBORN: "Skyborn", GUARDIAN: "Ancient Guardians", ABYSSAL: "Abyssal", BEAST: "Wild Predators" };
 export const ENEMY_NAMES: Record<EnemyFactionId, Record<EnemyRank, string>> = {
   RAIDER: { regular: "Raider Trooper", elite: "Skirmisher", boss: "Warbringer" },
   OVERCLOCKED: { regular: "Tactical Operative", elite: "Augmented Elite", boss: "Executor" },
@@ -139,6 +139,7 @@ export const ENEMY_NAMES: Record<EnemyFactionId, Record<EnemyRank, string>> = {
   SKYBORN: { regular: "Skyborn Legionary", elite: "Skyborn Axiom", boss: "Skyborn Harbinger" },
   GUARDIAN: { regular: "Ruin Sentinel", elite: "Arc Warden", boss: "Stone Colossus" },
   ABYSSAL: { regular: "Reef Hunter", elite: "Siren Stalker", boss: "Abyssal Colossus" },
+  BEAST: { regular: "Dune Stalker", elite: "Dune Stalker Alpha", boss: "Thunder Beast" },
 };
 /** Which existing model stands in for each rank (mirrors enemy-visuals.ts) and whether it is the intended unique design. The boards show
  * unique elites/bosses for most factions; where only a reused model exists the status says so. */
@@ -150,6 +151,7 @@ export const ENEMY_MODEL_STATUS: Record<EnemyFactionId, Record<EnemyRank, { mode
   SKYBORN: { regular: { model: "skyborn-regular", status: "existing-model", note: "Legionary — generated from the Skyborn sheet, rigged idle/walk/run/shoot" }, elite: { model: "skyborn-elite", status: "existing-model", note: "Axiom — generated from the Skyborn sheet, rigged idle/walk/run/shoot" }, boss: { model: "skyborn-boss", status: "existing-model", note: "Harbinger — generated from the Skyborn sheet, rigged; worn by Skyborn nemeses" } },
   GUARDIAN: { regular: { model: "guardian-regular", status: "existing-model", note: "Ruin Sentinel — generated from the enemies sheet, rigged idle/walk/run/shoot" }, elite: { model: "guardian-elite", status: "existing-model", note: "Arc Warden — generated from the enemies sheet, rigged" }, boss: { model: "guardian-boss", status: "existing-model", note: "Stone Colossus — generated from the enemies sheet, rigged; worn by Guardian nemeses" } },
   ABYSSAL: { regular: { model: "abyssal-regular", status: "existing-model", note: "Reef Hunter — generated from the enemies sheet; solid mesh that swims (abyssal-swim.ts)" }, elite: { model: "abyssal-elite", status: "existing-model", note: "Siren Stalker — swims" }, boss: { model: "abyssal-boss", status: "existing-model", note: "Abyssal Colossus — swims; Thalassia's boss body" } },
+  BEAST: { regular: { model: "beast-regular", status: "existing-model", note: "Dune Stalker — generated from the wildlife sheet, Meshy quadruped rig" }, elite: { model: "beast-regular", status: "existing-model", note: "Dune Stalker alpha — the same body, larger" }, boss: { model: "beast-boss", status: "existing-model", note: "Thunder Beast — generated from the wildlife sheet, Meshy quadruped rig" } },
 };
 /** Region -> faction. Regions the boards give no faction for return null: no enemy models exist for them and that is reported, not faked. */
 export const REGION_FACTION: Record<PopulationRegion, EnemyFactionId | null> = { nexus: "OVERCLOCKED", neon: "OVERCLOCKED", thalassia: "ABYSSAL", wastelands: "RAIDER", veridan: "GUARDIAN", swamps: "ABERRATION", solara: "RAIDER", frostspire: "VANGUARD", ember: "SKYBORN" };

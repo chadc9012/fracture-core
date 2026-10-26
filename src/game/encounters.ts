@@ -2,7 +2,7 @@
 /** Faction per region follows the owner's faction sheet (public/refs/factions-sheet.png): Raiders = Wastelands, Overclocked = Nexus,
  * Vanguard = Frostspire, Aberrations = Swamps; the Skyborn sheet adds the Skyborn to Ember Peaks' troops (its region boss, Overseer
  * Kael, is a human reactor operator and keeps the Raider boss body). Regions the sheets do not cover keep their themed mix. */
-export type EnemyKind = "RAIDER" | "OVERCLOCKED" | "ABERRATION" | "VANGUARD" | "SKYBORN" | "GUARDIAN" | "ABYSSAL";
+export type EnemyKind = "RAIDER" | "OVERCLOCKED" | "ABERRATION" | "VANGUARD" | "SKYBORN" | "GUARDIAN" | "ABYSSAL" | "BEAST";
 export type EnemyProfile = { name: string; kind: EnemyKind; role: string; drop: string };
 export type RegionalEncounter = { regionId: string; troops: readonly EnemyProfile[]; boss?: { name: string; lair: string; drop: string; tell: string } };
 
@@ -42,6 +42,8 @@ export const ENCOUNTERS: readonly RegionalEncounter[] = [
     { name: "Cyber-Corrupted Riot Squad", kind: "OVERCLOCKED", role: "Breach team", drop: "microCircuits" },
   ], boss: { name: "Aegis-Prime", lair: "High-Tech Interior", drop: "aegisCore", tell: "Shield panels open before the pulse" } },
   { regionId: "solara", troops: [
+    // desert predators (owner's wildlife sheet): Dune Stalker packs, led by alphas; the Thunder Beast is their apex
+    { name: "Dune Stalker", kind: "BEAST", role: "Pack hunter", drop: "anomalyCarbon" },
     { name: "Ash-Born Stalker", kind: "RAIDER", role: "Dune ambusher", drop: "scrapMetal" },
     { name: "Silicon-Fused Viper", kind: "ABERRATION", role: "Burrowing hunter", drop: "anomalyCarbon" },
     { name: "Augmented Soldier", kind: "OVERCLOCKED", role: "Ranged patrol", drop: "microCircuits" },

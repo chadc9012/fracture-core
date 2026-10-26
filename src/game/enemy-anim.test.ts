@@ -36,3 +36,14 @@ describe("enemy clip weights", () => {
     expect(strideRate(100, "run")).toBe(1.8);
   });
 });
+
+describe("walk-only rigs (quadruped beasts)", () => {
+  test("a standing beast stops treading; it walks at walking pace and quickens when running", async () => {
+    const { walkOnlyRate, WALK_SPEED, RUN_SPEED } = await import("./enemy-anim");
+    expect(walkOnlyRate(0)).toBe(0);
+    expect(walkOnlyRate(WALK_SPEED * 0.5)).toBeGreaterThan(0);
+    expect(walkOnlyRate(WALK_SPEED * 0.5)).toBeLessThan(walkOnlyRate(WALK_SPEED));
+    expect(walkOnlyRate(RUN_SPEED)).toBeGreaterThan(walkOnlyRate(WALK_SPEED));
+    expect(Number.isFinite(walkOnlyRate(Number.NaN))).toBe(true);
+  });
+});

@@ -4,7 +4,7 @@ import { Component, Suspense, useEffect, useMemo, useRef, type ReactNode } from 
 import { clone as cloneSkinned } from "three/examples/jsm/utils/SkeletonUtils.js";
 import { enemyVisual, type EnemyRole, type EnemyVisual } from "@/game/enemy-visuals";
 import { prepareWorldAsset } from "@/game/asset-render-quality";
-import { enemyClipWeights, strideRate, type ClipWeights, type EnemyDrive } from "@/game/enemy-anim";
+import { enemyClipWeights, strideRate, walkOnlyRate, type ClipWeights, type EnemyDrive } from "@/game/enemy-anim";
 import { enemyWeapon, HELD_MUZZLE, heldPitch, PALM, RAISE_RATE } from "@/game/enemy-weapons";
 import { DEATH_BONES, deathBonesAt, type DeathStyle } from "@/game/death-animations";
 import type { HandlingClass } from "@/game/weapon-handling";
@@ -36,7 +36,7 @@ import type { EnemyKind } from "@/game/enemy-visuals";
 export type { EnemyKind };
 
 /** Which region's look each enemy faction wears (visual-standard REGION_LOOK). */
-export const KIND_REGION: Record<EnemyKind, string> = { RAIDER: "wastelands", OVERCLOCKED: "nexus", ABERRATION: "swamps", VANGUARD: "frostspire", SKYBORN: "ember", GUARDIAN: "veridan", ABYSSAL: "thalassia" };
+export const KIND_REGION: Record<EnemyKind, string> = { RAIDER: "wastelands", OVERCLOCKED: "nexus", ABERRATION: "swamps", VANGUARD: "frostspire", SKYBORN: "ember", GUARDIAN: "veridan", ABYSSAL: "thalassia", BEAST: "solara" };
 
 type Mats = { plate: string; under: string; accent: string; plateKind: keyof typeof SURFACES };
 
@@ -237,11 +237,15 @@ function Authored({ visual, headRef, drive, onBuilt, weapon }: { visual: EnemyVi
       for (const name of CLIP_NAMES) { const a = built.clips[name]; if (a) a.weight = w[name]; }
       if (built.clips.walk) built.clips.walk.timeScale = strideRate(d.speed, "walk");
       if (built.clips.run) built.clips.run.timeScale = strideRate(d.speed, "run");
+      // walk-only rigs (the quadruped beasts): the stride eases to a stop at rest, and the standing body breathes
+      const walkOnly = !!built.clips.walk && !built.clips.idle && !built.clips.run;
+      if (walkOnly) built.clips.walk!.timeScale = walkOnlyRate(d.speed);
       built.mixer.update(Math.min(dt, 0.1));
       // hit reaction: additive on top of whatever clip is playing (the mixer rewrites the bones every frame, so this never accumulates)
       const hit = drive?.current.hit;
       if (hit) for (const [name, e] of Object.entries(hit)) { const bone = rigBone(built.obj, name); if (bone) { tmp.e.set(e[0], e[1], e[2]); bone.quaternion.multiply(tmp.q.setFromEuler(tmp.e)); } }
       b.rotation.set(0, 0, 0);
+      if (walkOnly) { const rest = 1 - Math.min(1, d.speed / 1.2), t = clock.elapsedTime + seed.current; b.scale.set(1, 1 + Math.sin(t * 1.6) * 0.012 * rest, 1 + Math.sin(t * 1.6) * 0.01 * rest); }
       // the gun: gripped at the palm, pointing where the body faces (+Z), up to aim while winding up or firing, low ready
       // otherwise (the hand bone twists through the clips, so following it pointed the barrel at the sky)
       if (weapon && built.hand && holder.children.length) {

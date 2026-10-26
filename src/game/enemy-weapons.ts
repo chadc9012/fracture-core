@@ -25,6 +25,8 @@ export const ENEMY_ARMS: Record<EnemyKind, Record<EnemyRole, HandlingClass | nul
   GUARDIAN: { standard: null, elite: null, boss: null },
   // sea creatures: teeth, tentacles and sonic shrieks
   ABYSSAL: { standard: null, elite: null, boss: null },
+  // predators: teeth, claws and horns
+  BEAST: { standard: null, elite: null, boss: null },
   // creatures: no weapons
   ABERRATION: { standard: null, elite: null, boss: null },
 };
