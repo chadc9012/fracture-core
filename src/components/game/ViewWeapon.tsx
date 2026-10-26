@@ -1,4 +1,5 @@
-import { Component, Suspense, useMemo, useRef, type ReactElement, type ReactNode } from "react";
+import { Component, Suspense, useMemo, useRef, useState, type ReactElement, type ReactNode } from "react";
+import { RIFLE_VARIANTS, rifleVariantOf, type RifleVariant } from "./heldModels";
 import { useGLTF } from "@react-three/drei";
 import { prepareWorldAsset } from "@/game/asset-render-quality";
 import { useFrame } from "@react-three/fiber";
@@ -77,8 +78,8 @@ function viewmodelReady(obj: THREE.Object3D, accent: THREE.MeshStandardMaterial,
   return obj;
 }
 
-function RifleAuthored({ m, rig }: { m: Mats; rig: Rig }) {
-  const { scene } = useGLTF(RIFLE_URL);
+function RifleAuthored({ m, rig, url = RIFLE_URL }: { m: Mats; rig: Rig; url?: string }) {
+  const { scene } = useGLTF(url);
   const parts = useMemo(() => {
     const pick = (name: string) => { const node = scene.getObjectByName(name); return node ? viewmodelReady(node.clone(true), m.accent) : null; };
     const body = new THREE.Group();
@@ -104,9 +105,9 @@ class ModelBoundary extends Component<{ children: ReactNode; fallback: ReactNode
 }
 
 /** The authored rifle, with the procedural one standing in while it loads or if the file is unreachable. */
-function Rifle({ m, rig }: { m: Mats; rig: Rig }) {
+function Rifle({ m, rig, url }: { m: Mats; rig: Rig; url?: string }) {
   const fallback = <RifleProcedural m={m} rig={rig} />;
-  return <ModelBoundary fallback={fallback}><Suspense fallback={fallback}><RifleAuthored m={m} rig={rig} /></Suspense></ModelBoundary>;
+  return <ModelBoundary fallback={fallback}><Suspense fallback={fallback}><RifleAuthored m={m} rig={rig} {...(url ? { url } : {})} /></Suspense></ModelBoundary>;
 }
 
 /* ---------- authored sidearm / shotgun / heavy / launcher / sword (scripts/build-weapons.py) ----------
@@ -339,8 +340,12 @@ const FLASH_TEX = (() => {
 const SMOKE_PUFFS = 6;
 const SMOKE_LIFE = 0.9;
 
-export function ViewWeapon({ pose, colors }: { pose: { current: ViewPose | null }; colors: Colors }) {
+export function ViewWeapon({ pose, colors, frame }: { pose: { current: ViewPose | null }; colors: Colors; /** weapon-classes.ts: the class the held gun fires as (an SMG/sniper/fusion in the rifle's slot draws its own model) */ frame?: { current: string | undefined } }) {
   const m = useMats(colors);
+  // rifle-slot class models (heldModels.ts RIFLE_VARIANTS): mounted the first time that class is held, each with its own rig
+  const [variants, setVariants] = useState<RifleVariant[]>([]);
+  const variantGroups = useRef<Partial<Record<RifleVariant, THREE.Group | null>>>({});
+  const variantRigs = useRef<Record<RifleVariant, Rig>>({ SMG: {}, SNIPER: {}, FUSION: {} });
   const root = useRef<THREE.Group>(null!);
   const groups = useRef<Partial<Record<HandlingClass, THREE.Group | null>>>({});
   const rigs = useRef<Record<HandlingClass, Rig>>({ rifle: {}, pistol: {}, shotgun: {}, heavy: {}, launcher: {}, sword: {} });
@@ -367,7 +372,13 @@ export function ViewWeapon({ pose, colors }: { pose: { current: ViewPose | null 
     root.current.position.set(p.pos[0], p.pos[1], p.pos[2]);
     root.current.rotation.set(p.rot[0], p.rot[1], p.rot[2]);
     for (const k of Object.keys(groups.current) as HandlingClass[]) { const g = groups.current[k]; if (g) g.visible = k === cls; }
-    const rig = rigs.current[cls];
+    const variant = cls === "rifle" ? rifleVariantOf(frame?.current) : null;
+    if (variant && !variants.includes(variant)) setVariants((v) => (v.includes(variant) ? v : [...v, variant]));
+    // the class model replaces the rifle once it has loaded (its group has children); until then the rifle stands in
+    const vg = variant ? variantGroups.current[variant] : null, showVariant = !!vg && vg.children.length > 0;
+    for (const k of Object.keys(variantGroups.current) as RifleVariant[]) { const g = variantGroups.current[k]; if (g) g.visible = showVariant && k === variant; }
+    if (showVariant) { const g = groups.current.rifle; if (g) g.visible = false; }
+    const rig = showVariant ? variantRigs.current[variant!] : rigs.current[cls];
     if (rig.mag) { rig.mag.visible = p.magVisible; rig.mag.position.y = (rig.mag.userData["y0"] as number ?? 0) - p.magDrop; }
     if (rig.action) rig.action.position.z = p.action * (cls === "shotgun" ? 0.08 : cls === "pistol" ? 0.035 : 0.05);
     const sup = SUPPORT[cls];
@@ -378,7 +389,7 @@ export function ViewWeapon({ pose, colors }: { pose: { current: ViewPose | null 
         support.current.position.set(sup.grip[0] + (sup.well[0] - sup.grip[0]) * r - 0.01, sup.grip[1] + (sup.well[1] - sup.grip[1]) * r - p.magDrop * r, sup.grip[2] + (sup.well[2] - sup.grip[2]) * r + (cls === "shotgun" ? p.action * 0.08 * (1 - r) : 0));
       }
     }
-    const muzzle = MUZZLE[cls];
+    const base = MUZZLE[cls], muzzle: [number, number, number] | null = base && showVariant ? [base[0], base[1], base[2] + RIFLE_VARIANTS[variant!].muzzleDz] : base;
     const on = muzzle && p.flash > 0;
     if (flash.current) { flash.current.visible = Boolean(on); if (on) { flash.current.position.set(muzzle[0], muzzle[1], muzzle[2] - 0.05); const s = (cls === "shotgun" || cls === "heavy" ? 0.65 : 0.42) * (0.7 + p.flash * 0.6); flash.current.scale.set(s, s, s); flash.current.material.rotation = Math.random() * Math.PI; } }
     if (light.current) { light.current.intensity = on ? 9 * p.flash : 0; if (muzzle) light.current.position.set(muzzle[0], muzzle[1], muzzle[2]); }
@@ -407,6 +418,7 @@ export function ViewWeapon({ pose, colors }: { pose: { current: ViewPose | null 
         const Model = MODELS[k];
         return <group key={k} ref={(g) => { groups.current[k] = g; }} visible={false}><Model m={m} rig={rigs.current[k]} /></group>;
       })}
+      {variants.map((k) => <group key={k} ref={(g) => { variantGroups.current[k] = g; }} visible={false}><ModelBoundary fallback={null}><Suspense fallback={null}><RifleAuthored m={m} rig={variantRigs.current[k]} url={RIFLE_VARIANTS[k].url} /></Suspense></ModelBoundary></group>)}
       {/* firing hand on the grip, support hand on the foregrip (or at the magazine well while reloading) */}
       <group position={[0, -0.02, 0.01]}><Arm m={m} side={1} /></group>
       <group ref={support}><group rotation={[0, 0.5, 0]}><Arm m={m} side={-1} /></group></group>

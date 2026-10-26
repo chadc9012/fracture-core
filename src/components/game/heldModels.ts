@@ -9,6 +9,16 @@ export const HELD_MODEL: Record<HandlingClass, { url: string; prefix: string }> 
   shotgun: { url: "/models/weapons/shotgun.glb", prefix: "Shotgun" }, heavy: { url: "/models/weapons/heavy.glb", prefix: "Heavy" },
   launcher: { url: "/models/weapons/launcher.glb", prefix: "Launcher" }, sword: { url: "/models/weapons/sword.glb", prefix: "Sword" },
 };
+/** weapon-classes.ts gear classes that take the Auto Rifle's slot have their own models, kitbashed from the rifle
+ * (scripts/build-weapon-classes.py) with the rifle's node contract (Rifle* prefix), so the rifle's rig works unchanged.
+ * `muzzleDz`: how far the muzzle moved along the barrel from the rifle's (glTF z, metres; negative = further out). */
+export const RIFLE_VARIANTS = {
+  SMG: { url: "/models/weapons/rifle-smg.glb", muzzleDz: 0.209 },
+  SNIPER: { url: "/models/weapons/rifle-sniper.glb", muzzleDz: -0.372 },
+  FUSION: { url: "/models/weapons/rifle-fusion.glb", muzzleDz: -0.07 },
+} as const;
+export type RifleVariant = keyof typeof RIFLE_VARIANTS;
+export const rifleVariantOf = (frame: string | undefined): RifleVariant | null => (frame && frame in RIFLE_VARIANTS ? (frame as RifleVariant) : null);
 const heldCache = new Map<string, Promise<THREE.Object3D | null>>();
 export function heldModel(url: string): Promise<THREE.Object3D | null> {
   let p = heldCache.get(url);

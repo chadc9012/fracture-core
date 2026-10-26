@@ -1,7 +1,7 @@
 import { useFrame } from "@react-three/fiber";
 import { tierBodyFor } from "@/game/operator-tier";
 import { ARM_RELAX, IDLE_RELAX, armBones, relaxArm } from "@/game/rest-pose";
-import { HELD_MODEL, heldModel } from "./heldModels";
+import { HELD_MODEL, heldModel, RIFLE_VARIANTS, rifleVariantOf, type RifleVariant } from "./heldModels";
 import { COLORWAY_EMISSIVE, COLORWAY_MAP, COLORWAY_UNIFORMS, colorwayFor, type Colorway } from "@/game/operator-colorway";
 import { useGLTF } from "@react-three/drei";
 import { prepareWorldAsset } from "@/game/asset-render-quality";
@@ -26,7 +26,7 @@ import { cinematicImported, createCinematicMaterial } from "@/game/cinematic-mat
 import { standingClip } from "@/game/combat-stance";
 
 /** the weapon the operator is currently holding; read every frame so a weapon swap needs no rebuild */
-export type HeldWeapon = { current: { weapon: WeaponId } };
+export type HeldWeapon = { current: { weapon: WeaponId; /** weapon-classes.ts: the class the held gun fires as (an SMG/sniper/fusion in the rifle's slot shows its own model) */ heldFrame?: string } };
 
 export type WornGear = { inventory: GearItem[]; equippedGear: Partial<Record<GearSlot, string>>; earnedRewards?: string[] };
 
@@ -108,26 +108,38 @@ function attachWeapons(object: THREE.Object3D, height: number, modelScale: numbe
   // hand-bone frame wants +Z, so the model is turned half a turn.
   let live = true;
   const accents: THREE.Material[] = [];
-  for (const id of WEAPON_ORDER) {
-    const spec = HELD_MODEL[handlingClass(id)];
-    heldModel(spec.url).then((scene) => {
-      const g = groups[id];
-      if (!live || !g || !scene) return;
-      const glow = ELEMENT_GLOW[WEAPONS[id].element ?? ""] ?? "#ffb347";
+  const fill = (g: THREE.Group, url: string, prefix: string, glow: string) => {
+    heldModel(url).then((scene) => {
+      if (!live || !scene) return;
       const accent = new THREE.MeshStandardMaterial({ color: "#10151c", emissive: new THREE.Color(glow), emissiveIntensity: 1.1, roughness: 0.3 });
       accents.push(accent);
       const model = new THREE.Group(); model.rotation.y = Math.PI;
       for (const part of ["Body", "Blade", "Mag", "Action", "Bolt", "Accent"]) {
-        const node = scene.getObjectByName(spec.prefix + part); if (!node) continue;
+        const node = scene.getObjectByName(prefix + part); if (!node) continue;
         const c = node.clone(true);
-        c.traverse((o) => { const m = o as THREE.Mesh; if (!m.isMesh) return; m.castShadow = true; m.receiveShadow = false; if ((m.material as THREE.Material).name === `${spec.prefix}Accent`) m.material = accent; });
+        c.traverse((o) => { const m = o as THREE.Mesh; if (!m.isMesh) return; m.castShadow = true; m.receiveShadow = false; if ((m.material as THREE.Material).name === `${prefix}Accent`) m.material = accent; });
         model.add(c);
       }
       if (!model.children.length) return;
       g.clear(); g.add(model);
     });
+  };
+  for (const id of WEAPON_ORDER) {
+    const g = groups[id];
+    if (g) fill(g, HELD_MODEL[handlingClass(id)].url, HELD_MODEL[handlingClass(id)].prefix, ELEMENT_GLOW[WEAPONS[id].element ?? ""] ?? "#ffb347");
   }
-  return { groups, dispose: () => { live = false; Object.values(groups).forEach((g) => g?.removeFromParent()); geos.forEach((x) => x.dispose()); mats.forEach((m) => m.dispose()); accents.forEach((m) => m.dispose()); } };
+  // rifle-slot class models (heldModels.ts RIFLE_VARIANTS): empty until first held, then loaded once; the rifle shows until they arrive
+  const variants: Partial<Record<RifleVariant, THREE.Group>> = {};
+  const variant = (v: RifleVariant) => {
+    let g = variants[v];
+    if (!g) {
+      g = new THREE.Group(); g.name = `held:AUTO:${v}`; g.scale.setScalar(k); g.visible = false;
+      bone.add(g); variants[v] = g;
+      fill(g, RIFLE_VARIANTS[v].url, "Rifle", ELEMENT_GLOW[""] ?? "#ffb347");
+    }
+    return g;
+  };
+  return { groups, variant, variants, dispose: () => { live = false; Object.values(groups).forEach((g) => g?.removeFromParent()); Object.values(variants).forEach((g) => g?.removeFromParent()); geos.forEach((x) => x.dispose()); mats.forEach((m) => m.dispose()); accents.forEach((m) => m.dispose()); } };
 }
 
 /** Authored (Meshy) operator models, served from /public. GOLIATH, NYX and CIPHER are rigged (Mixamo skeleton; walk/run for all, idle for NYX and GOLIATH, the owner's combat-stance clip for NYX and GOLIATH, flex showcase and chest-pound taunt for GOLIATH); Anything missing or failing to load falls back to the procedural Operator. */
@@ -248,14 +260,16 @@ function Model({ url, tint, height, feetY, color, trim, pose, motion, bodyType, 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [built, armorKey, color, height, tint]);
   const heldGroups = useRef<Partial<Record<WeaponId, THREE.Group>>>({});
+  const heldVariant = useRef<((v: RifleVariant) => THREE.Group) | null>(null);
+  const heldVariants = useRef<Partial<Record<RifleVariant, THREE.Group>>>({});
   const skate = useRef({ id: "none", dispose: () => {} });
   useEffect(() => () => { skate.current.dispose(); skate.current = { id: "none", dispose: () => {} }; }, [built]);
   useEffect(() => {
     if (!held) return;
     built.object.updateMatrixWorld(true);
     const w = attachWeapons(built.object, height, built.scale);
-    heldGroups.current = w.groups;
-    return () => { heldGroups.current = {}; w.dispose(); };
+    heldGroups.current = w.groups; heldVariant.current = "variant" in w ? w.variant : null; heldVariants.current = "variants" in w ? w.variants : {};
+    return () => { heldGroups.current = {}; heldVariant.current = null; heldVariants.current = {}; w.dispose(); };
   }, [built, held, height]);
   useEffect(() => () => { built.material?.dispose(); built.authoredMaterials.forEach((m) => m.dispose()); built.skins.forEach((t) => { t.map.dispose(); t.emissiveMap.dispose(); t.surface.dispose(); }); built.mixer?.stopAllAction(); }, [built]);
 
@@ -266,7 +280,12 @@ function Model({ url, tint, height, feetY, color, trim, pose, motion, bodyType, 
   useFrame(({ clock }, dt) => {
     const boots = bootStats(gear?.earnedRewards ?? [], getEquippedBoots()).id;
     if (boots !== skate.current.id) { skate.current.dispose(); skate.current = { id: boots, dispose: attachSkates(built.object, boots, classId, built.scale) }; }
-    if (held) { const w = held.current.weapon; for (const id of WEAPON_ORDER) { const g = heldGroups.current[id]; if (g) g.visible = id === w; } }
+    if (held) {
+      const w = held.current.weapon, v = w === "AUTO" ? rifleVariantOf(held.current.heldFrame) : null;
+      const vg = v && heldVariant.current ? heldVariant.current(v) : null, showVariant = !!vg && vg.children.length > 0;
+      for (const id of WEAPON_ORDER) { const g = heldGroups.current[id]; if (g) g.visible = id === w && !(showVariant && id === "AUTO"); }
+      for (const [k, g] of Object.entries(heldVariants.current)) if (g) g.visible = showVariant && k === v;
+    }
     // stance pose: squash toward the ground for a crouch, tip face-down for prone, lean back in a slide (all pivot on the feet)
     const m0 = pose === "locomotion" ? motion?.current : undefined;
     const sliding = (m0?.slideT ?? -1) >= 0;

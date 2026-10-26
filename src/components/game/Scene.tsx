@@ -733,6 +733,7 @@ function SceneImpl({
   // not every frame — the frame loop just assigns the (already-cheap) result into sim.mods below.
   // weapon-classes.ts: the loadout as it fires with the equipped gear (an equipped SMG / sniper / fusion rifle takes the Auto
   // Rifle's slot, an LMG the Heavy Cannon's): stats, HUD name and the class the range/precision rules read
+  const heldFrameRef = useMemo(() => ({ get current() { return state.current.heldFrame; } }), []);
   const arsenal = useMemo(() => arsenalFor(gear ? { inventory: gear.inventory, equippedGear: gear.equippedGear } : undefined), [gear?.inventory, gear?.equippedGear]);
   // weapon-meta.ts: the operator's power level, Destiny style (average equipped gear power + a bonus per level)
   const operatorPowerNow = useMemo(() => operatorPower((gear?.inventory ?? []).filter((item) => item.slot !== "vehicle" && gear?.equippedGear[item.slot] === item.id).map((item) => item.power), gear?.level ?? 1), [gear?.inventory, gear?.equippedGear, gear?.level]);
@@ -1041,6 +1042,8 @@ function SceneImpl({
     grounded: true,
     toggleCool: 0,
     fireCool: 0,
+    /** weapon-classes.ts: the class the held gun fires as; OperatorModel and ViewWeapon draw that class's model */
+    heldFrame: "AUTO" as string,
     inspectorCool: 0,
     showInspector: false,
     fps: 60,
@@ -1865,6 +1868,7 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
     padPrev.current = padNow;
     keyPrev.current = new Set(held);
     const wpn: ArmedWeapon = s.inVehicle ? VEHICLE_SIDEARM : arsenal[s.weapon];
+    s.heldFrame = arsenal[s.weapon].frame;
     const equippedWeapon = gear?.inventory.find((item) => item.id === gear.equippedGear[s.inVehicle ? "vehicle" : s.weapon === "HEAVY" || WEAPONS[s.weapon].kind === "launcher" ? "heavy" : s.weapon === "PULSE" ? "secondary" : "primary"]);
     const gearPower = equippedWeapon ? weaponDamageMultiplier(equippedWeapon.power) : 1;
     // foundries.ts: the equipped weapon's foundry is a real rule (Häkke/Black Armory in sim.ts, Omolon/SUROS/Tex here)
@@ -3801,7 +3805,7 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
 
       {/* Local first-person arms and rifle; the world avatar remains available for external views. */}
       <group ref={viewmodel} visible={false}>
-        <ViewWeapon pose={viewPoseRef} colors={{ armor: appearance.armor, cloth: appearance.cloth, accent: appearance.visor }} />
+        <ViewWeapon pose={viewPoseRef} frame={heldFrameRef} colors={{ armor: appearance.armor, cloth: appearance.cloth, accent: appearance.visor }} />
       </group>
 
       {/* Titan training arena: three readable cover anchors and one hazardous fracture pool. */}
