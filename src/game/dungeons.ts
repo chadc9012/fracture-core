@@ -1,5 +1,5 @@
 import type { EncounterDefinition } from "./raid-stages";
-import { HOLLOW_STAR } from "./hollow-star-data";
+import { HOLLOW_STAR } from "./hollow-star-data.ts";
 
 export type DungeonDefinition = EncounterDefinition & {
   region: string;
