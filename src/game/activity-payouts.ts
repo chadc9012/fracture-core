@@ -63,7 +63,9 @@ export function payInto<P extends { nexLedger: NexLedger; pocketClass?: string }
   if (!pay) return { progression: p, paid: 0, first: false };
   return { progression: { ...p, nexLedger: { ...p.nexLedger, [pay.key]: pay.nex } }, paid: pay.nex, first: pay.first };
 }
-export const claimBossBounty = <P extends { nexLedger: NexLedger; pocketClass?: string }>(p: P, scenarioId: string, now = Date.now()) => payInto(p, "boss", scenarioId, now);
+/** raid bosses pay through the raid clear (hollow-star-raid.ts), never as a separate boss bounty */
+export const NO_BOUNTY: readonly string[] = ["astravore"];
+export const claimBossBounty = <P extends { nexLedger: NexLedger; pocketClass?: string }>(p: P, scenarioId: string, now = Date.now()) => (NO_BOUNTY.includes(scenarioId) ? { progression: p, paid: 0, first: false } : payInto(p, "boss", scenarioId, now));
 
 /** exploration pays too, smaller than the three big classes: a hidden secret once (400), a loot cache once per cache per day (60) */
 export const EXPLORE_PAYOUTS = { secret: 400, cache: 60 } as const;
