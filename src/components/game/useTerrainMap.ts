@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { createMapJob, pixelsToDataUrl, terrainMapPixels, type MapBounds, type MapJob } from "@/game/terrain-map";
+import { createMapJob, mapFingerprint, pixelsToDataUrl, terrainMapPixels, type MapBounds, type MapJob } from "@/game/terrain-map";
 
 /** The painted terrain image, delivered progressively: a coarse preview within ~100 ms, then the full-resolution map painted a few
  * milliseconds per frame (so opening the map never freezes the game), shared and cached across every map screen. */
@@ -10,9 +10,27 @@ const listeners = new Set<(s: State) => void>();
 let job: MapJob | null = null, running = false;
 const emit = (next: State) => { state = next; listeners.forEach((l) => l(next)); };
 
+/** The baked images (scripts/bake-terrain-maps.ts): used at once when they were painted from this exact terrain. Painting the full
+ * map on a phone took 20-60 s, so the map showed its blocky preview (owner's shots, Oct 26). */
+type Baked = { fingerprint: string; world: { url: string; size: number }; details: Record<string, { url: string; bounds: MapBounds }> };
+let baked: Promise<Baked | null> | null = null;
+function loadBaked(): Promise<Baked | null> {
+  return (baked ??= fetch("/maps/terrain/manifest.json")
+    .then((r) => (r.ok ? r.json() as Promise<Baked> : null)) // a dev server's index.html for a missing file fails to parse: caught below
+    .then((m) => (m && m.fingerprint === mapFingerprint() ? m : null))
+    .catch(() => null));
+}
+
 function start() {
   if (running || state.full || typeof window === "undefined") return;
   running = true;
+  void loadBaked().then((m) => {
+    if (m) { running = false; emit({ url: m.world.url, full: true, progress: 1 }); return; }
+    paintWorld();
+  });
+}
+
+function paintWorld() {
   if (!state.url) {
     try { const url = pixelsToDataUrl(terrainMapPixels(PREVIEW), PREVIEW); if (url) emit({ url, full: false, progress: 0 }); } catch { /* the full pass below still runs */ }
   }
@@ -54,6 +72,13 @@ const painting = new Set<string>();
 function paintDetail(key: string, bounds: MapBounds) {
   if (painting.has(key) || details.get(key)?.full || typeof window === "undefined") return;
   painting.add(key);
+  void loadBaked().then((m) => {
+    const hit = m?.details[key];
+    if (hit) { painting.delete(key); const d = { url: hit.url, bounds: hit.bounds, full: true }; details.set(key, d); detailListeners.get(key)?.forEach((l) => l(d)); return; }
+    paintDetailNow(key, bounds);
+  });
+}
+function paintDetailNow(key: string, bounds: MapBounds) {
   const job = createMapJob(DETAIL, bounds);
   const emit = (d: Detail) => { details.set(key, d); detailListeners.get(key)?.forEach((l) => l(d)); };
   const tick = () => {

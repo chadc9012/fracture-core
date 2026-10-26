@@ -41,6 +41,7 @@ jobs:
       - name: Build the game as a static app
         run: |
           bun install --frozen-lockfile
+          bun scripts/bake-terrain-maps.ts # the map images, painted from this exact terrain (a few minutes)
           WF_MOBILE=1 npx vite build
           rm -rf mobile/www && cp -r .output/public mobile/www
           rm -rf mobile/www/refs mobile/www/server

@@ -663,3 +663,31 @@ html.wf-touch {
   .touch-stick { border-color: rgba(146, 233, 245, 0.65); box-shadow: 0 0 24px rgba(36, 157, 203, 0.12); }
 }
 @media (prefers-reduced-motion: reduce) { .touch-controls button { transition: none !important; } }
+
+/* Simple phone HUD (settings.simplePhoneHud, on by default; owner Oct 26: "fix the clutter... only put walk, shooting, enter vehicle
+   for now while I test"). Scoped to html.wf-simple-touch, which TouchControls sets: the move stick, a drag-to-look right half, a big
+   fire button and the vehicle button; on the HUD, the hull bar, the ammo count, the crosshair, the compass and the current objective.
+   Everything else (abilities, consumables, dash meter, Nex, minimap, rails, cloud chip, side quests) is still in the game, just off
+   the screen. The full set comes back with Settings > Interface > Simple phone controls. */
+html.wf-touch.wf-simple-touch {
+  .consumable-hud, .dash-hud, .wf-cloud-chip, .wf-rail-right, .quest-hud, .wf-tracked, .wf-env-line, .wf-nova-quote, .wf-nex-chip,
+  [aria-label="Minimap"], [aria-label="Operator readout"], .hud-health > [aria-label^="Level"] { display: none !important; }
+  .hud-health .hud-status > div:nth-child(n+3), .hud-health .hud-status > p:nth-child(n+3) { display: none !important; }
+  /* the two buttons: fire big in the right thumb's rest spot, the vehicle key above and inside it */
+  .touch-fire { width: 5.5rem !important; height: 5.5rem !important; bottom: max(28px, env(safe-area-inset-bottom)) !important; right: max(28px, env(safe-area-inset-right)) !important; top: auto !important; }
+  .touch-fire svg { width: 2rem; height: 2rem; }
+  .touch-vehicle { width: 3.5rem !important; height: 3.5rem !important; bottom: calc(max(28px, env(safe-area-inset-bottom)) + 6.5rem) !important; right: calc(max(28px, env(safe-area-inset-right)) + 1rem) !important; top: auto !important; }
+  /* vitals and ammo sit low and small between the stick and the fire button */
+  .hud-health { bottom: 10px !important; left: clamp(160px, 22vw, 200px) !important; width: min(220px, 30vw) !important; }
+  .hud-health .hud-status { padding: 4px 8px; }
+  .hud-ammo { bottom: 10px !important; top: auto !important; left: auto !important; right: calc(max(28px, env(safe-area-inset-right)) + 7rem) !important; width: 96px !important; padding: 4px 8px !important; }
+  .hud-ammo > div, .hud-ammo > p:last-child { display: none; }
+  .hud-ammo > p:nth-child(2) { font-size: 22px !important; white-space: nowrap; }
+  /* the tutorial card keeps only its title and the one line that says what to do, small in the top-left corner */
+  .onboarding-card { top: 3.5rem !important; left: 8px !important; width: min(15rem, 34vw) !important; }
+  .onboarding-card > div:first-child, .onboarding-card > p:nth-of-type(2) { display: none; }
+  .onboarding-card h2 { font-size: 12px !important; letter-spacing: 0.08em; }
+  .onboarding-card p { font-size: 10px !important; line-height: 1.3; padding-top: 2px; padding-bottom: 2px; margin-top: 2px; }
+  .mission-tracker { top: 3.5rem !important; left: 8px !important; right: auto !important; max-width: 15rem !important; opacity: 0.85; }
+  .mission-tracker p { font-size: 9px; line-height: 1.25; }
+}

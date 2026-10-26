@@ -1693,7 +1693,7 @@ export function GameCanvas() {
          </div>
        )}
        {skateOpen && <SkateShop progression={progression} onProgression={setProgression} onClose={() => setSkateOpen(false)} />}
-       <TouchControls bindings={settings.bindings} disabled={Boolean(housingOpen || menuOpen || characterOpen || inventoryOpen || atlasOpen || operationsView || shopOpen || skateOpen || npcOpen || forgeOpen || basePanel || ruinOpen || showIntro || cineId || deathInfo || storyGraph || activeDialogue || transit || flight)} />
+       <TouchControls bindings={settings.bindings} simple={settings.simplePhoneHud ?? true} disabled={Boolean(housingOpen || menuOpen || characterOpen || inventoryOpen || atlasOpen || operationsView || shopOpen || skateOpen || npcOpen || forgeOpen || basePanel || ruinOpen || showIntro || cineId || deathInfo || storyGraph || activeDialogue || transit || flight)} />
        <DashHud bindings={settings.bindings} />
        <DragoniteHud bindings={settings.bindings} />
       <NexChip ledger={progression.nexLedger} />

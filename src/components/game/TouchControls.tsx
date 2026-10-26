@@ -8,7 +8,7 @@ import { Crosshair, MoveUp, RotateCw, ArrowRightLeft, Navigation, Car, Hand, Che
 const key = (code: string, down: boolean) => window.dispatchEvent(new KeyboardEvent(down ? "keydown" : "keyup", { code, bubbles: true }));
 
 /** Phone/tablet play: left stick moves (WASD), drag on the right half looks, buttons press the matching keys. */
-export function TouchControls({ disabled = false, bindings }: { disabled?: boolean; bindings?: Bindings | undefined }) {
+export function TouchControls({ disabled = false, bindings, simple = true }: { disabled?: boolean; bindings?: Bindings | undefined; /** only move, look, fire and the vehicle key (settings.simplePhoneHud) */ simple?: boolean }) {
   const [on, setOn] = useState(false);
   const stick = useRef<{ id: number; x: number; y: number } | null>(null);
   const [knob, setKnob] = useState({ x: 0, y: 0 });
@@ -23,6 +23,8 @@ export function TouchControls({ disabled = false, bindings }: { disabled?: boole
   };
   useEffect(() => { const t = isTouchDevice(); setOn(t); touch.active = t; const release = () => reset(); window.addEventListener("blur", release); return () => { reset(); touch.active = false; window.removeEventListener("blur", release); }; }, []);
   useEffect(() => { if (disabled) reset(); }, [disabled]);
+  // the bare phone HUD (styles.css html.wf-simple-touch) follows the same switch
+  useEffect(() => { document.documentElement.classList.toggle("wf-simple-touch", on && simple); return () => document.documentElement.classList.remove("wf-simple-touch"); }, [on, simple]);
   const codes = touchCodes(bindings);
   if (!on || disabled) return null;
 
@@ -54,6 +56,8 @@ export function TouchControls({ disabled = false, bindings }: { disabled?: boole
         <div className="absolute left-1/2 top-1/2 h-12 w-12 rounded-full bg-primary/60" style={{ transform: `translate(calc(-50% + ${knob.x}px), calc(-50% + ${knob.y}px))` }} />
       </div>
       {btn("Fire", null, <Crosshair />, "touch-fire size-16", () => { touch.fire = true; }, () => { touch.fire = false; })}
+      {btn("Enter or exit vehicle", codes.vehicle, <Car />, "touch-vehicle size-11")}
+      {!simple && <>
       {btn("Aim", null, <Crosshair className="size-4" />, "touch-aim size-11", () => { touch.aim = true; }, () => { touch.aim = false; })}
       {btn("Jump", codes.jump, <MoveUp />, "touch-jump size-11")}
       {btn("Dash", codes.dash, <Zap />, "touch-dash size-11")}
@@ -64,8 +68,8 @@ export function TouchControls({ disabled = false, bindings }: { disabled?: boole
       {btn("Ability E", codes.tactical, "E", "touch-e size-11")}
       {btn("Ability R", codes.ultimate, "R", "touch-r size-11")}
       {btn("Interact", codes.use, <Hand />, "touch-use size-11")}
-      {btn("Enter or exit vehicle", codes.vehicle, <Car />, "touch-vehicle size-11")}
       {btn("Map", codes.map, <Navigation />, "touch-map size-11")}
+      </>}
     </div>
   );
 }

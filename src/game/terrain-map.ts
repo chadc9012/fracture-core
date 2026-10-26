@@ -187,3 +187,19 @@ export function terrainMapDataUrl(size = 420): string | null {
   cached = pixelsToDataUrl(terrainMapPixels(size), size);
   return cached;
 }
+
+/** A cheap signature of the painted map (a 12 px paint of the whole world): baked map images (scripts/bake-terrain-maps.ts,
+ * public/maps/terrain/) are only used while it matches, so a terrain change can never show a stale map. */
+export function mapFingerprint(): string {
+  const px = terrainMapPixels(12);
+  let h = 2166136261;
+  for (let i = 0; i < px.length; i++) { h ^= px[i]!; h = Math.imul(h, 16777619) >>> 0; }
+  return `${WORLD_RADIUS.toFixed(1)}-${h.toString(16)}`;
+}
+
+/** the close-up a destination's map paints (WorldAtlas: 1.35 x its radius on every side), and the key it is cached under */
+export function detailBounds(focus: { x: number; z: number; radius: number }): MapBounds {
+  return { x0: focus.x - focus.radius * 1.35, z0: focus.z - focus.radius * 1.35, span: focus.radius * 2.7 };
+}
+export const detailKey = (focus: { x: number; z: number; radius: number }) => `${Math.round(focus.x)},${Math.round(focus.z)},${Math.round(focus.radius)}`;
+

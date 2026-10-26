@@ -30,6 +30,7 @@ import { activityById, activityState, pointWorld } from "@/game/activities";
 import { cityPlan, type CityPlan, type PlanRect } from "@/game/city-plan";
 import { MapLegend } from "./MapLegend";
 import { LANDMARK_GLYPH, MARKER_GLYPH } from "@/game/map-symbols";
+import { labelAnchor, placeBadgeLabels, type LabelItem, type LabelPlacement } from "@/game/badge-labels";
 import { LANDMARKS, landmarkRoutes, isLandmarkKnown } from "@/game/landmarks";
 import { HAZARD_ZONES, zoneCenter } from "@/game/hazard-zones";
 import { regionHistory, regionStory, discoveredCount } from "@/game/world-story";
@@ -328,15 +329,22 @@ const districtGlyph = (k: CityDistrict) => {
   return /market|shop|vendor|bazaar/.test(t) ? "◆" : /home|residen|housing|arcology|loft/.test(t) ? "⌂" : /dock|ship|port|harbo/.test(t) ? "⚓" : /spire|tower|core|command/.test(t) ? "▲" : /race|track|muck/.test(t) ? "⚑" : /trench|deep|ring|contain/.test(t) ? "◎" : "⬡";
 };
 /** a district's badge (reference: the city maps' hex icons with the name and what it's for beside them) */
-function HexBadge({ x, z, scale, color, glyph, name, sub }: { x: number; z: number; scale: number; color: string; glyph: string; name: string; sub: string }) {
+function HexBadge({ x, z, scale, color, glyph, name, sub, place }: { x: number; z: number; scale: number; color: string; glyph: string; name: string; sub: string; place: LabelPlacement }) {
+  // the name (and its caption) sit wherever badge-labels.ts found room; no room, no text (the name stays in the side list)
+  const a = place ? labelAnchor(place.side, BADGE_R, BADGE_NAME) : null;
+  // above the badge the caption is the line nearest it, so the name moves up a line
+  const lift = a && place?.sub && place.side === "above" ? BADGE_SUB * 1.2 : 0;
+  const nameY = a ? a.y - lift : 0, subY = a ? nameY + BADGE_NAME * 1.1 : 0;
   return <g transform={`translate(${x} ${z}) scale(${scale})`}>
+    <title>{`${name} · ${sub}`}</title>
     <polygon points={HEX(5.6)} fill="#061422" fillOpacity={0.88} stroke={color} strokeWidth={1.1} />
     <polygon points={HEX(4.1)} fill={color} fillOpacity={0.2} stroke={color} strokeOpacity={0.5} strokeWidth={0.4} />
     <text y={1.8} textAnchor="middle" fontSize={5} fill={color}>{glyph}</text>
-    <text x={7.6} y={-0.2} fontSize={3.5} fontWeight={700} fill="#ffffff" stroke="#03080f" strokeWidth={0.7} paintOrder="stroke" style={{ letterSpacing: "0.04em" }}>{name}</text>
-    <text x={7.6} y={3.7} fontSize={2.5} fill="#cfe7f2" stroke="#03080f" strokeWidth={0.5} paintOrder="stroke">({sub})</text>
+    {a && <text x={a.x} y={nameY} textAnchor={a.anchor} fontSize={BADGE_NAME} fontWeight={700} fill="#ffffff" stroke="#03080f" strokeWidth={0.7} paintOrder="stroke" style={{ letterSpacing: "0.04em" }}>{name}</text>}
+    {a && place?.sub && <text x={a.x} y={subY} textAnchor={a.anchor} fontSize={BADGE_SUB} fill="#cfe7f2" stroke="#03080f" strokeWidth={0.5} paintOrder="stroke">({sub})</text>}
   </g>;
 }
+const BADGE_R = 5.6, BADGE_NAME = 3.5, BADGE_SUB = 2.5, MARKER_R = 4, MARKER_LABEL = 3.2;
 const PLAN_STYLE: Record<PlanRect["kind"], { fill: string; stroke: string }> = { tower: { fill: "#0a1424", stroke: "#7fe3ff" }, home: { fill: "#3a2d22", stroke: "#ffd5a3" }, garage: { fill: "#2a2f36", stroke: "#b9c3cc" }, shop: { fill: "#3b2a08", stroke: "#ffd166" } };
 /** a city's footprints on its close-up: lit blocks for towers, warm ones for homes, gold for shop counters */
 function PlanLayer({ plan }: { plan: CityPlan }) {
@@ -435,6 +443,18 @@ function TacticalMap({ chartRegionId, markers, px, pz, selected, onSelect, progr
   // marker names only past this zoom: a focused destination opens already zoomed in (a city at ~5x), where every
   // shop, drop point and activity name at once piled into one unreadable stack
   const labelZoom = focus ? Math.max(3, fit(focus).zoom * 1.8) : 3; // markers shrink a little as you zoom so they don't cover the detail
+  // one label pass over the district badges and the marker names, so none of them land on each other (badge-labels.ts)
+  const shownMarkers = live.filter((m) => legend[m.kind as (typeof LAYERS)[number]]);
+  const markerLabelled = (m: TrackedMarker) => (m.kind === "LANDMARK" ? !focus || view.zoom >= labelZoom : view.zoom >= labelZoom);
+  const labels = useMemo(() => {
+    const ds = scaleK * 0.9;
+    const items: LabelItem[] = [
+      ...districts.map((k, i) => ({ id: `dist-${k.id}`, x: k.x, z: k.z, r: BADGE_R * ds, text: k.name, size: BADGE_NAME * ds, sub: `${k.tagline.split(" · ")[0]!}`, subSize: BADGE_SUB * ds, priority: 100 - i, prefer: "right" as const })),
+      ...shownMarkers.map((m) => ({ id: m.id, x: m.x, z: m.z, r: MARKER_R * scaleK, text: m.label, size: MARKER_LABEL * scaleK, priority: m.kind === "LANDMARK" ? 50 : 10, prefer: "below" as const, labelled: markerLabelled(m) })),
+    ];
+    return placeBadgeLabels(items);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [districts, shownMarkers.map((m) => m.id).join("|"), scaleK, view.zoom >= labelZoom]);
   const pickPin = (m: Marker) => setPin(getPin()?.id === m.id ? null : pinFromMarker(m));
   const pickActivity = (a: Activity) => { onActivity?.(a.id); setPin({ id: `act-${a.id}`, label: a.name, x: a.x, z: a.z, source: "MISSION" }); };
   // inspect panel: the marker last clicked or focused from the keyboard (Tab through markers, Enter toggles the waypoint)
@@ -512,9 +532,9 @@ function TacticalMap({ chartRegionId, markers, px, pz, selected, onSelect, progr
         {hazards && hz.map(({ z, c }) => <g key={z.id}><title>{`${z.name} · ${z.hint}`}</title><circle cx={c.x} cy={c.z} r={z.radius} fill="#ff4d4d" fillOpacity={0.14} stroke="#ff4d4d" strokeWidth={u(0.6)} strokeDasharray={`${u(1.6)} ${u(1.2)}`} /><g transform={`translate(${c.x} ${c.z}) scale(${WORLD_SCALE})`}><text y={1.6} textAnchor="middle" fontSize={5} fill="#ff8a8a" stroke="#000" strokeWidth={0.8} paintOrder="stroke">⚠</text></g></g>)}
         {live.filter((m) => legend[m.kind as (typeof LAYERS)[number]]).map((m) => <g key={m.id} transform={`translate(${m.x} ${m.z}) scale(${scaleK})`} className="cursor-pointer outline-none" tabIndex={0} role="button" aria-label={`${LAYER_NAME[m.kind as (typeof LAYERS)[number]] ?? m.kind}: ${m.label}, ${fmt(m.dist)}${pin?.id === m.id ? ", current waypoint" : ""}`} aria-pressed={pin?.id === m.id}
           onFocus={() => setInspectId(m.id)} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); e.stopPropagation(); pickPin(m); } }}
-          onPointerUp={(e) => { if (drag.current?.moved) return; e.stopPropagation(); drag.current = null; setInspectId(m.id); pickPin(m); }}><title>{`${m.label} · ${fmt(m.dist)} — click to ${pin?.id === m.id ? "clear" : "set"} waypoint`}</title><g>{inspectId === m.id && <circle r={5} fill="none" stroke="#ffffff" strokeWidth={0.6} strokeDasharray="1.4 1" />}<circle r={4} fill="transparent" /><text y={m.kind === "LANDMARK" ? 1.8 : 1.9} textAnchor="middle" fontSize={m.kind === "LANDMARK" ? 5.5 : 5} fill={MARKER_COLOR[m.kind]} fillOpacity={m.ready === false ? 0.4 : 1} stroke={pin?.id === m.id ? "#ffffff" : "#000"} strokeWidth={pin?.id === m.id ? 1.4 : 0.9} paintOrder="stroke">{m.kind === "LANDMARK" ? LANDMARK_GLYPH[LANDMARKS.find((l) => `lm-${l.id}` === m.id)?.type ?? "outpost"] : MARKER_GLYPH[m.kind]}</text>{focus && m.kind === "LANDMARK" && <polygon points={HEX(4.6)} fill="none" stroke={MARKER_COLOR.LANDMARK} strokeWidth={0.6} />}{(m.kind === "LANDMARK" ? !focus || view.zoom >= labelZoom : view.zoom >= labelZoom) && <text y={6.4} textAnchor="middle" fontSize={3.2} fill="#ffffff" stroke="#000" strokeWidth={0.7} paintOrder="stroke">{m.label}</text>}</g></g>)}
+          onPointerUp={(e) => { if (drag.current?.moved) return; e.stopPropagation(); drag.current = null; setInspectId(m.id); pickPin(m); }}><title>{`${m.label} · ${fmt(m.dist)} — click to ${pin?.id === m.id ? "clear" : "set"} waypoint`}</title><g>{inspectId === m.id && <circle r={5} fill="none" stroke="#ffffff" strokeWidth={0.6} strokeDasharray="1.4 1" />}<circle r={4} fill="transparent" /><text y={m.kind === "LANDMARK" ? 1.8 : 1.9} textAnchor="middle" fontSize={m.kind === "LANDMARK" ? 5.5 : 5} fill={MARKER_COLOR[m.kind]} fillOpacity={m.ready === false ? 0.4 : 1} stroke={pin?.id === m.id ? "#ffffff" : "#000"} strokeWidth={pin?.id === m.id ? 1.4 : 0.9} paintOrder="stroke">{m.kind === "LANDMARK" ? LANDMARK_GLYPH[LANDMARKS.find((l) => `lm-${l.id}` === m.id)?.type ?? "outpost"] : MARKER_GLYPH[m.kind]}</text>{focus && m.kind === "LANDMARK" && <polygon points={HEX(4.6)} fill="none" stroke={MARKER_COLOR.LANDMARK} strokeWidth={0.6} />}{(() => { const pl = labels.get(m.id); if (!pl) return null; const a = labelAnchor(pl.side, MARKER_R, MARKER_LABEL); return <text x={a.x} y={a.y} textAnchor={a.anchor} fontSize={MARKER_LABEL} fill="#ffffff" stroke="#000" strokeWidth={0.7} paintOrder="stroke">{m.label}</text>; })()}</g></g>)}
         {districts.map((k) => <g key={`dist-${k.id}`} pointerEvents="none"><circle cx={k.x} cy={k.z} r={k.r} fill={k.color} fillOpacity={0.08} stroke={k.color} strokeOpacity={0.45} strokeWidth={u(0.3)} strokeDasharray={`${u(1.4)} ${u(1)}`} />
-          <HexBadge x={k.x} z={k.z} scale={scaleK * 0.9} color={k.color} glyph={districtGlyph(k)} name={k.name} sub={k.tagline.split(" · ")[0]!} /></g>)}
+          <HexBadge x={k.x} z={k.z} scale={scaleK * 0.9} color={k.color} glyph={districtGlyph(k)} name={k.name} sub={k.tagline.split(" · ")[0]!} place={labels.get(`dist-${k.id}`) ?? null} /></g>)}
         {course && (() => { const pts = course.points.slice(0, (course.points.length - 1) / course.laps + 1).map((_, i) => worldPoint(course, i)), line = pts.map((p) => `${p.x},${p.z}`).join(" "); return <g key={`course-${course.id}`} pointerEvents="none">
           <polyline points={line} fill="none" stroke="#03080f" strokeOpacity={0.7} strokeWidth={u(1.6) / Math.sqrt(view.zoom) * 1.4} strokeLinejoin="round" strokeLinecap="round" />
           <polyline points={line} fill="none" stroke="#ffd166" strokeWidth={u(0.8) / Math.sqrt(view.zoom) * 1.4} strokeLinejoin="round" strokeLinecap="round" />

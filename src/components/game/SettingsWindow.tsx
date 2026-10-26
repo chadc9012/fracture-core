@@ -23,6 +23,9 @@ export type GameSettings = {
   gore?: GoreLevel;
   /** damage-numbers.ts: floating damage numbers over enemies (on unless turned off) */
   damageNumbers?: boolean;
+  /** phones: only the move stick, look drag, fire and enter / exit vehicle on screen, and a bare HUD (owner, Oct 26: "only put walk,
+   * shooting, enter vehicle for now while I test"); on unless turned off. Everything else still works from a controller. */
+  simplePhoneHud?: boolean;
 };
 
 export const DEFAULT_SETTINGS: GameSettings = {
@@ -41,6 +44,7 @@ export const DEFAULT_SETTINGS: GameSettings = {
   highContrastHud: false,
   gore: DEFAULT_GORE,
   damageNumbers: true,
+  simplePhoneHud: true,
 };
 
 function Toggle({ label, on, onChange }: { label: string; on: boolean; onChange: (v: boolean) => void }) {
@@ -126,7 +130,7 @@ export function SettingsWindow({
               {section === "GAMEPLAY" && <><Toggle label="Predictive aim assist" on={settings.aimAssist} onChange={(v) => set({ aimAssist: v })} /><Toggle label="First-person camera" on={settings.firstPersonDefault} onChange={(v) => set({ firstPersonDefault: v })} /><Toggle label="Damage numbers" on={settings.damageNumbers ?? true} onChange={(v) => set({ damageNumbers: v })} /><p className="ui-kicker">Gore</p><div className="grid grid-cols-3 gap-2">{GORE_LEVELS.map((lvl) => <Button key={lvl} variant={normalizeGore(settings.gore) === lvl ? "default" : "outline"} onClick={() => set({ gore: lvl })} className="rounded-none">{lvl === "REDUCED" ? "Reduced" : lvl === "FULL" ? "Full" : "Off"}</Button>)}</div><p className="text-xs text-muted-foreground">Full: blood, pooling, severed limbs and gibs. Reduced: light blood, no dismemberment. Off: no blood; bodies still fall.</p></>}
               {section === "DISPLAY" && <><p className="ui-kicker">Rendering quality</p><div className="grid grid-cols-2 gap-2 sm:grid-cols-4">{(["LOW", "MEDIUM", "HIGH", "ULTRA"] as const).map((tier) => <Button key={tier} variant={settings.renderTier === tier ? "default" : "outline"} onClick={() => set({ renderTier: tier })} className="rounded-none">{tier}</Button>)}</div><p className="text-xs text-muted-foreground">Simulation and combat remain identical at every quality.</p><p className="ui-kicker mt-3">Frame rate</p><div className="grid grid-cols-4 gap-2">{([["auto", "Auto"], [30, "30 · smooth"], [60, "60"], ["max", "Uncapped"]] as const).map(([r, label]) => <Button key={String(r)} variant={(settings.frameRate ?? "auto") === r ? "default" : "outline"} onClick={() => set({ frameRate: r === "auto" ? undefined : r })} className="rounded-none">{label}</Button>)}</div><p className="text-xs text-muted-foreground">Auto follows Samsung Game Booster on your phone: Performance runs 60, Standard and Battery saver run a steady 30.</p><p className="mt-3 font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground">Build {typeof __WF_BUILD__ === "string" ? __WF_BUILD__ : "dev"}</p></>}
               {section === "AUDIO" && <><Volume label="Master volume" value={settings.volume ?? 0.7} onChange={(value) => set({ volume: value })} />{([["Music", "musicVolume", "music"], ["Region ambience", "ambienceVolume", "ambience"], ["Weapon sound effects", "sfxVolume", "sfx"], ["Ability sound effects", "abilityVolume", "abilities"]] as const).map(([label, key, mk]) => <div key={key} className="grid grid-cols-[minmax(0,1fr)_auto] items-end gap-3"><Volume label={label} value={settings[key] ?? 1} onChange={(value) => set({ [key]: value })} /><Toggle label="Mute" on={!!settings.mute?.[mk]} onChange={(v) => set({ mute: { ...settings.mute, [mk]: v } })} /></div>)}<Volume label="Voice volume" value={settings.voiceVolume ?? 0.85} onChange={(value) => set({ voiceVolume: value })} /><Toggle label="Spoken dialogue" on={settings.spokenDialogue ?? true} onChange={(v) => set({ spokenDialogue: v })} /><KillPlaylistPanel /></>}
-              {section === "INTERFACE" && <><Toggle label="Zone name markers" on={settings.zoneLabels} onChange={(v) => set({ zoneLabels: v })} /><Toggle label="Full HUD panels" on={settings.hudDensity === "full"} onChange={(v) => set({ hudDensity: v ? "full" : "lean" })} /></>}
+              {section === "INTERFACE" && <><Toggle label="Zone name markers" on={settings.zoneLabels} onChange={(v) => set({ zoneLabels: v })} /><Toggle label="Full HUD panels" on={settings.hudDensity === "full"} onChange={(v) => set({ hudDensity: v ? "full" : "lean" })} /><Toggle label="Simple phone controls (walk, shoot, vehicle)" on={settings.simplePhoneHud ?? true} onChange={(v) => set({ simplePhoneHud: v })} /></>}
               {section === "CONTROLS" && <ControlsPanel bindings={settings.bindings ?? DEFAULT_BINDINGS} onChange={(bindings) => set({ bindings })} />}
               {section === "ACCESSIBILITY" && <><Toggle label="Reduced interface motion" on={settings.reducedMotion ?? false} onChange={(v) => set({ reducedMotion: v })} /><Toggle label="High contrast HUD" on={settings.highContrastHud ?? false} onChange={(v) => set({ highContrastHud: v })} /><Toggle label="Spoken dialogue" on={settings.spokenDialogue ?? true} onChange={(v) => set({ spokenDialogue: v })} /></>}
             </div>
