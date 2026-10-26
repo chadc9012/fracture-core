@@ -37,3 +37,53 @@ export function wetTint(c: [number, number, number], wet: number, rock = 0): [nu
   const dark = 1 - wet * (0.1 + 0.1 * rock);
   return [(c[0] + (MUD[0] - c[0]) * mud) * dark, (c[1] + (MUD[1] - c[1]) * mud) * dark, (c[2] + (MUD[2] - c[2]) * mud) * dark * 1.02];
 }
+
+/* ---------------- rain wetness over time (ground, roads and leaves after a shower) ----------------
+ * The weather is a pure function of the day clock (weather-cycle.ts + environment.ts), so how wet the ground is can be worked out from
+ * the recent rain alone: it soaks in fast while it rains and dries slowly afterwards (faster under the sun and in hot regions, slower
+ * at night and in the swamp). Scene steps it each frame and re-seeds it from the history after a clock jump. Units are game hours.
+ * The bank wetness above is baked into the terrain colour; this one is live and drives the ground/street/foliage shaders. */
+
+/** hours of full rain to soak dry ground through, and hours for soaked ground to dry in full sun (mild climate) */
+export const RAIN_SOAK_HOURS = 0.8;
+export const DRY_HOURS = 5;
+/** how far back the history seed looks (hours); older rain has always dried by then */
+export const WET_HISTORY_HOURS = 12;
+
+/** per-region drying speed: deserts bake dry, the bog stays wet */
+export const REGION_DRYING: Record<string, number> = { solara: 2.4, wastelands: 1.9, ember: 2.6, veridan: 0.85, swamps: 0.45, frostspire: 0.6, nexus: 1.2 };
+
+/** only rain wets the ground: snow (Frostspire, cold fronts) and ash (Ember) fall as `precipitation` too, under other labels */
+export function rainFall(label: string | undefined, precipitation: number): number {
+  return label === "Rain mist" ? Math.min(1, Math.max(0, precipitation)) : 0;
+}
+
+/** advance ground wetness `wet` (0..1) by `hours` of game time under `rain` (0..1). `sun` 0 night .. 1 clear noon. */
+export function stepGroundWetness(wet: number, rain: number, hours: number, sun = 0.6, regionId?: string): number {
+  let w = Math.min(1, Math.max(0, wet));
+  if (!(hours > 0)) return w;
+  const r = Math.min(1, Math.max(0, rain));
+  if (r > 0.02) w += (r / RAIN_SOAK_HOURS) * hours * (1.15 - w * 0.4);
+  else {
+    const k = (REGION_DRYING[regionId ?? ""] ?? 1) * (0.35 + 0.65 * Math.min(1, Math.max(0, sun)));
+    // soaked soil drains quickly, the last damp film takes longer
+    w -= (k / DRY_HOURS) * hours * (0.45 + 0.55 * w);
+  }
+  return Math.min(1, Math.max(0, w));
+}
+
+/** wetness now, rebuilt from the last WET_HISTORY_HOURS of weather. `at(hoursAgo)` gives the rain 0..1 and the sun 0..1 then. */
+export function wetnessFromHistory(at: (hoursAgo: number) => { rain: number; sun: number }, regionId?: string, step = 0.25): number {
+  let w = 0;
+  for (let h = WET_HISTORY_HOURS; h > 0; h -= step) {
+    const s = at(h);
+    w = stepGroundWetness(w, s.rain, step, s.sun, regionId);
+  }
+  return w;
+}
+
+/** share of flat ground standing in puddles: none until the ground is soaked past ~45%, then they spread */
+export function puddleCover(wet: number): number {
+  const t = Math.min(1, Math.max(0, (wet - 0.45) / 0.5));
+  return t * t * (3 - 2 * t);
+}

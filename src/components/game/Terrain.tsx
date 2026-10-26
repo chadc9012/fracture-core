@@ -490,10 +490,10 @@ export function Terrain({ renderTier = "HIGH" }: { renderTier?: RenderTier } = {
   const trunkGeo = useMemo(() => new THREE.CylinderGeometry(0.32, 0.55, 4, 7), []);
   const deadTrunkGeo = useMemo(() => deadSnag(5), []);
   const reedGeo = useMemo(() => new THREE.CylinderGeometry(0.03, 0.07, 2.2, 4, 1, true).translate(0, 1.1, 0), []);
-  const swayTrunk = useMemo(() => windSway(trunkGeo, 0.18), [trunkGeo]);
-  const swayDeadTrunk = useMemo(() => windSway(deadTrunkGeo, 0.1), [deadTrunkGeo]);
-  const swayCanopyLow = useMemo(() => windSway(canopyLow, 0.55), [canopyLow]);
-  const swayCanopyHigh = useMemo(() => windSway(canopyHigh, 0.8), [canopyHigh]);
+  const swayTrunk = useMemo(() => windSway(trunkGeo, 0.18, { dew: 0.3 }), [trunkGeo]);
+  const swayDeadTrunk = useMemo(() => windSway(deadTrunkGeo, 0.1, { dew: 0.3 }), [deadTrunkGeo]);
+  const swayCanopyLow = useMemo(() => windSway(canopyLow, 0.55, { dew: 0.4 }), [canopyLow]);
+  const swayCanopyHigh = useMemo(() => windSway(canopyHigh, 0.8, { dew: 0.4 }), [canopyHigh]);
   const swayReed = useMemo(() => windSway(reedGeo, 0.5), [reedGeo]);
   const reeds = useMemo(() => scatter(swamp, dO(240), 33, { min: -2.2, max: 3.5, maxSlope: 0.5 }), [swamp, density]);
   const emberRockGeo = useMemo(() => organicRock(1.6, 44, 1, 0.5), []);

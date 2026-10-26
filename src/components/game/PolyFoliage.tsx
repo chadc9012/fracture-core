@@ -89,7 +89,8 @@ function Instanced({ kind, url, items, scale, onReady, shadows, height, sway, va
         const mat = cinematicImported((Array.isArray(m.material) ? m.material[0] : m.material) ?? new THREE.MeshStandardMaterial()) as THREE.MeshStandardMaterial;
         if (mat.map && mat.transparent) { mat.transparent = false; mat.alphaTest = 0.5; }
         mat.side = THREE.DoubleSide;
-        if (sway) mat.onBeforeCompile = windSway(g, sway / Math.max(0.01, norm));
+        // every part (trunk, leaf cards) bends about the whole model's base and height, so the canopy stays on its branches
+        if (sway) mat.onBeforeCompile = windSway(g, sway / Math.max(0.01, norm), { range: { min: 0, max: Math.max(0.01, box.max.y - box.min.y) }, dew: kind === "fir" || kind === "broadleaf" ? 0.4 : 1 });
         parts.push({ geometry: g, material: mat });
       });
       return { parts, norm };

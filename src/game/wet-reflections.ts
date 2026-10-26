@@ -42,6 +42,17 @@ export function streak(camX: number, camZ: number, g: Glint): { cx: number; cz: 
   return { cx: g.x + ux * len * 0.5, cz: g.z + uz * len * 0.5, len, yaw: Math.atan2(ux, uz) };
 }
 
+/** the `n` lights nearest (x, z) within `range`, nearest first: the ones the sea and lakes mirror this frame (Water.tsx, a small
+ * per-tier budget of point reflections instead of a mirror pass) */
+export function nearestGlints<T extends { x: number; z: number }>(glints: readonly T[], x: number, z: number, n: number, range = 420): T[] {
+  if (n <= 0) return [];
+  const r2 = range * range;
+  const near: { g: T; d: number }[] = [];
+  for (const g of glints) { const d = (g.x - x) ** 2 + (g.z - z) ** 2; if (d <= r2) near.push({ g, d }); }
+  near.sort((a, b) => a.d - b.d);
+  return near.slice(0, n).map((e) => e.g);
+}
+
 /** how wet the streets read: damp by day, soaked at night, and fully wet whenever it rains */
 export function wetness(night: number, rain: number): number {
   return Math.min(1, 0.25 + 0.55 * Math.max(0, Math.min(1, night)) + 0.6 * Math.max(0, Math.min(1, rain)));

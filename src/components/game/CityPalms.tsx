@@ -16,7 +16,7 @@ function Palms({ list, y }: { list: Palm[]; y: (p: Palm) => number }) {
     return () => { for (const o of added) o.broken = true; };
   }, [list]);
   const byVariant = useMemo(() => URLS.map((_, v) => list.filter((p) => p.variant === v).map((p) => ({ x: p.x, y: y(p) - 0.1, z: p.z, yaw: p.yaw, scale: p.scale }))), [list, y]);
-  return <group>{byVariant.map((items, v) => <InstancedGlb key={v} url={URLS[v]!} items={items} />)}</group>;
+  return <group>{byVariant.map((items, v) => <InstancedGlb key={v} url={URLS[v]!} items={items} sway={0.45} />)}</group>;
 }
 
 export function NexusPalms() {

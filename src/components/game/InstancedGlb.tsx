@@ -1,11 +1,12 @@
 import { useGLTF } from "@react-three/drei";
 import { useFrame } from "@react-three/fiber";
-import { Suspense, useLayoutEffect, useMemo, useRef } from "react";
+import { Suspense, useEffect, useLayoutEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
 import { FACADE, facadePixels } from "@/game/facade-windows";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 
 import { lampLevel, worldLight } from "@/game/world-light";
+import { windSway } from "@/game/wind-sway";
 import { QuietModel } from "./Vehicle";
 
 /**
@@ -77,9 +78,26 @@ function facadeTexture(): THREE.DataTexture | null {
   return (facadeTex = t);
 }
 
-function Batch({ url, items, place, shadows, nightGlow }: { url: string; items: GlbInstance[]; place?: ((i: number, o: THREE.Object3D) => void) | undefined; shadows: boolean; nightGlow: [number, number] }) {
+/** a swaying copy of the flattened parts (palms): own material clones, every part bending about the whole model's base and height so
+ * the fronds stay on the trunk (wind-sway.ts) */
+function swayParts(parts: Part[], amount: number): Part[] {
+  const box = new THREE.Box3();
+  for (const p of parts) { p.geometry.computeBoundingBox(); if (p.geometry.boundingBox) box.union(p.geometry.boundingBox); }
+  if (box.isEmpty()) return parts;
+  const range = { min: box.min.y, max: box.max.y };
+  return parts.map((p) => {
+    if (p.windows || p.material.transparent) return p;
+    const material = p.material.clone();
+    material.onBeforeCompile = windSway(p.geometry, amount, { range, dew: 0.4 });
+    return { ...p, material };
+  });
+}
+
+function Batch({ url, items, place, shadows, nightGlow, sway }: { url: string; items: GlbInstance[]; place?: ((i: number, o: THREE.Object3D) => void) | undefined; shadows: boolean; nightGlow: [number, number]; sway?: number | undefined }) {
   const { scene } = useGLTF(url);
-  const parts = useMemo(() => flattenGlb(scene), [scene]);
+  const flat = useMemo(() => flattenGlb(scene), [scene]);
+  const parts = useMemo(() => (sway ? swayParts(flat, sway) : flat), [flat, sway]);
+  useEffect(() => () => { if (parts !== flat) parts.forEach((p, i) => { if (p.material !== flat[i]!.material) p.material.dispose(); }); }, [parts, flat]);
   const refs = useRef<(THREE.InstancedMesh | null)[]>([]);
   const write = (initial: boolean) => {
     for (let k = 0; k < parts.length; k++) {
@@ -112,12 +130,12 @@ function Batch({ url, items, place, shadows, nightGlow }: { url: string; items: 
   ))}</group>;
 }
 
-/** `nightGlow`: lit-window emissive multiplier [by day, at night] */
-export function InstancedGlb({ url, items, place, shadows = true, nightGlow = [0.08, 1.8] }: { url: string; items: GlbInstance[]; place?: (i: number, o: THREE.Object3D) => void; shadows?: boolean; nightGlow?: [number, number] }) {
+/** `nightGlow`: lit-window emissive multiplier [by day, at night]; `sway`: wind bend at the top of the model (model units), for plants */
+export function InstancedGlb({ url, items, place, shadows = true, nightGlow = [0.08, 1.8], sway }: { url: string; items: GlbInstance[]; place?: (i: number, o: THREE.Object3D) => void; shadows?: boolean; nightGlow?: [number, number]; sway?: number }) {
   if (!items.length) return null;
   return (
     <QuietModel url={url} fallback={null}>
-      <Suspense fallback={null}><Batch url={url} items={items} place={place} shadows={shadows} nightGlow={nightGlow} /></Suspense>
+      <Suspense fallback={null}><Batch url={url} items={items} place={place} shadows={shadows} nightGlow={nightGlow} sway={sway} /></Suspense>
     </QuietModel>
   );
 }

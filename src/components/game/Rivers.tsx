@@ -5,20 +5,25 @@ import { softSprite } from "./softSprite";
 import { waterNetwork } from "@/game/terrain";
 import { NEUTRAL_WATER, REGION_WATER } from "@/game/water-style";
 import { regionAt } from "@/game/world";
+import { worldLight } from "@/game/world-light";
 import { riverMeshArrays, type River, type Waterfall, type Lake } from "@/game/rivers";
 
 /**
  * Rivers, lakes and waterfalls from the traced water network (rivers.ts). Every surface sits on
  * a carved bed in heightAt, uses its own region's water colours, and animates in shaders only.
  */
-const shared = { uTime: { value: 0 }, uSun: { value: new THREE.Vector3(0.4, 0.8, 0.3) } };
+const shared = {
+  uTime: { value: 0 }, uSun: { value: new THREE.Vector3(0.4, 0.8, 0.3) },
+  // the live sky (scene background overhead, SkyDome's horizon colour low), so rivers and lakes mirror dawn, dusk and night
+  uSky: { value: new THREE.Color("#bfe4f2") }, uSkyHorizon: { value: new THREE.Color("#87b9d0") },
+};
 
 const flowVert = /* glsl */ `
   attribute float aSpeed; varying vec2 vUv; varying float vSpeed; varying vec3 vPosW;
   void main(){ vUv = uv; vSpeed = aSpeed; vec4 w = modelMatrix * vec4(position,1.0); vPosW = w.xyz; gl_Position = projectionMatrix * viewMatrix * w; }`;
 
 const flowFrag = /* glsl */ `
-  uniform float uTime, uMurk, uRound; uniform vec3 uDeep, uShallow, uSun;
+  uniform float uTime, uMurk, uRound; uniform vec3 uDeep, uShallow, uSun, uSky, uSkyHorizon;
   varying vec2 vUv; varying float vSpeed; varying vec3 vPosW;
   float hsh(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
   float vn(vec2 p){ vec2 i = floor(p), f = fract(p); f = f*f*(3.0-2.0*f);
@@ -31,7 +36,15 @@ const flowFrag = /* glsl */ `
     float streak = vn(flowP * vec2(1.0, 3.0)) * vn(flowP * 2.3 + 7.0);
     col += vec3(0.85, 0.95, 1.0) * streak * 0.25 * (1.0 - uMurk);
     vec3 view = normalize(cameraPosition - vPosW);
-    float spec = pow(clamp(dot(normalize(normalize(uSun) + view), vec3(0,1,0)), 0.0, 1.0), 120.0);
+    // ripple normal from the flow noise (running water ripples downstream, lakes shiver in the wind), then an analytic mirror of
+    // the live sky with a fresnel: steep views see into the water, grazing views see the sky
+    float camD = length(cameraPosition - vPosW);
+    float rx = vn(flowP * 2.0 + 3.0) - vn(flowP * 2.0 + vec2(3.4, 3.0)), rz = vn(flowP * 2.0 + 9.0) - vn(flowP * 2.0 + vec2(9.0, 9.4));
+    vec3 n = normalize(vec3(rx * 0.5, 1.0, rz * 0.5) + vec3(sin(vPosW.x * 1.9 + uTime * 2.0), 0.0, cos(vPosW.z * 2.1 + uTime * 1.7)) * 0.03 * (1.0 - smoothstep(10.0, 70.0, camD)));
+    float fres = pow(1.0 - clamp(dot(n, view), 0.0, 1.0), 3.0);
+    vec3 R = reflect(-view, n);
+    col = mix(col, mix(uSkyHorizon, uSky, smoothstep(0.0, 0.5, max(R.y, 0.0))), fres * 0.75 * (1.0 - uMurk * 0.6));
+    float spec = pow(clamp(dot(normalize(normalize(uSun) + view), n), 0.0, 1.0), 120.0) * smoothstep(-0.03, 0.06, uSun.y);
     col += vec3(1.0, 0.95, 0.85) * spec * (1.0 - uMurk * 0.8);
     // bank foam, and white water on rapids
     float rapid = smoothstep(1.4, 3.0, vSpeed);
@@ -125,8 +138,10 @@ export function Rivers({ sunRef }: { sunRef: React.RefObject<THREE.Vector3> }) {
   const rivers = useMemo(() => net.rivers.filter((r) => !r.dry).map((r) => ({ r, geo: riverGeometry(r), mat: flowMaterial(r.regionId, false) })), [net]);
   const lakes = useMemo(() => net.lakes.map((l: Lake) => ({ l, mat: flowMaterial(regionAt(l.x, l.z)?.id ?? "nexus", true) })), [net]);
 
-  useFrame((_, raw) => {
+  useFrame(({ scene }, raw) => {
     shared.uTime.value += Math.min(raw, 0.05);
+    if (scene.background instanceof THREE.Color) shared.uSky.value.copy(scene.background);
+    shared.uSkyHorizon.value.setRGB(worldLight.horizon[0], worldLight.horizon[1], worldLight.horizon[2]);
     if (sunRef.current) shared.uSun.value.copy(sunRef.current).normalize();
   });
 

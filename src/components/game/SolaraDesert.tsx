@@ -97,7 +97,7 @@ const PALM_H = [10.6, 13.1, 8.6];
 function Palms({ palms }: { palms: readonly Palm[] }) {
   const byVariant = useMemo(() => PALM_URLS.map((_, v) => palms.map((p, i) => ({ p, i })).filter(({ i }) => i % 3 === v)
     .map(({ p }) => ({ x: p.x, y: walkHeight(p.x, p.z) - 0.1, z: p.z, yaw: p.r, scale: p.h / PALM_H[v]! }))), [palms]);
-  return <group>{byVariant.map((items, v) => <InstancedGlb key={v} url={PALM_URLS[v]!} items={items} />)}</group>;
+  return <group>{byVariant.map((items, v) => <InstancedGlb key={v} url={PALM_URLS[v]!} items={items} sway={0.45} />)}</group>;
 }
 
 function Scrub({ cx, cz, r }: { cx: number; cz: number; r: number }) {

@@ -38,6 +38,16 @@ export function surfaceWeights(x: number, z: number): number[] {
 /** seconds, shared by every ground material: drives the seabed caustics (Terrain advances it each frame) */
 export const groundTime = { value: 0 };
 
+/** live rain wetness on the ground (wetness.ts stepGroundWetness; Scene sets it each frame): soaked soil darkens and turns glossy,
+ * flat hollows collect puddles that mirror the sky (the IBL) once it is wet enough, and rain rings dimple them while it falls.
+ * `uWetDetail`: 0 LOW (darken + gloss only), 1 MEDIUM (puddles), 2 HIGH/ULTRA (puddles + rain rings). */
+export const groundWeather = {
+  uRainWet: { value: 0 },
+  uRaining: { value: 0 },
+  uPuddles: { value: 0 },
+  uWetDetail: { value: 1 },
+};
+
 /** Patches a vertex-coloured standard material to blend the six surfaces by wA/wB attributes. Ground below the waterline
  * also gets sunlight caustics: two drifting interference layers, strongest just under the surface and gone by ~24 m. */
 export function applySurfaceBlend(mat: THREE.MeshStandardMaterial, textures: THREE.Texture[], normals: THREE.Texture[] | null = null) {
@@ -47,11 +57,13 @@ export function applySurfaceBlend(mat: THREE.MeshStandardMaterial, textures: THR
     textures.forEach((t, i) => { shader.uniforms[`uSurf${i}`] = { value: t }; });
     if (relief) normals!.forEach((t, i) => { shader.uniforms[`uSurfN${i}`] = { value: t }; });
     shader.uniforms["uGroundTime"] = groundTime;
+    Object.assign(shader.uniforms, groundWeather);
     shader.vertexShader = shader.vertexShader
       .replace("#include <common>", "#include <common>\nattribute vec3 wA; attribute vec3 wB; varying vec3 vWA; varying vec3 vWB; varying vec2 vSurfUv; varying vec3 vGroundW;")
       .replace("#include <begin_vertex>", "#include <begin_vertex>\nvWA = wA; vWB = wB; vSurfUv = position.xy / 9.0; vGroundW = (modelMatrix * vec4(transformed, 1.0)).xyz;");
     shader.fragmentShader = shader.fragmentShader
       .replace("#include <common>", `#include <common>\n${textures.map((_, i) => `uniform sampler2D uSurf${i};${relief ? ` uniform sampler2D uSurfN${i};` : ""}`).join("\n")}\nvarying vec3 vWA; varying vec3 vWB; varying vec2 vSurfUv; varying vec3 vGroundW; uniform float uGroundTime;
+      uniform float uRainWet; uniform float uRaining; uniform float uPuddles; uniform float uWetDetail;
       // anti-tiling: every surface is sampled at its 9 m tile and again at a rotated ~33 m tile, mixed by a slow world
       // noise, so the ground stops showing a repeating stamp; a broad brightness variation breaks up large flats
       float wfHash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
@@ -100,7 +112,42 @@ export function applySurfaceBlend(mat: THREE.MeshStandardMaterial, textures: THR
       }`)
       .replace("#include <roughnessmap_fragment>", `#include <roughnessmap_fragment>
       roughnessFactor = dot(vWA, vec3(${GROUND_ROUGHNESS.slice(0, 3).map((r) => r.toFixed(2)).join(", ")})) + dot(vWB, vec3(${GROUND_ROUGHNESS.slice(3).map((r) => r.toFixed(2)).join(", ")}));
-      roughnessFactor = clamp(roughnessFactor, 0.4, 1.0);`);
+      roughnessFactor = clamp(roughnessFactor, 0.4, 1.0);`)
+      // rain wetness: after the normal maps, before lighting. Snow and dry sand drain or freeze, so they take little of it; ground
+      // under the sea is already wet.
+      .replace("#include <emissivemap_fragment>", `#include <emissivemap_fragment>
+      if (uRainWet > 0.01 && vGroundW.y > ${(WATER_LEVEL + 0.15).toFixed(2)}) {
+        float soak = uRainWet * (1.0 - vWB.x * 0.85) * (1.0 - vWA.z * 0.45);
+        // soil and litter darken a lot when wet, rock a little; everything gets a damp sheen
+        diffuseColor.rgb *= 1.0 - soak * mix(0.34, 0.16, wfSteep);
+        roughnessFactor = mix(roughnessFactor, 0.34, soak * 0.85);
+        if (uWetDetail > 0.5 && uPuddles > 0.01) {
+          // puddles in flat hollows: a broad noise mask that grows with the wetness, only on near-level ground
+          float flat_ = smoothstep(0.955, 0.99, abs(wfN.y));
+          float pn = wfNoise(vGroundW.xz * 0.11) * 0.65 + wfNoise(vGroundW.xz * 0.37 + 11.0) * 0.35;
+          float puddle = smoothstep(1.0 - 0.42 * uPuddles, 1.09 - 0.42 * uPuddles, pn) * flat_ * (1.0 - vWB.x) * (1.0 - vWA.z * 0.8);
+          if (puddle > 0.01) {
+            vec3 upV = normalize((viewMatrix * vec4(0.0, 1.0, 0.0, 0.0)).xyz);
+            vec3 pN = upV;
+            float ringFade = uRaining * (1.0 - smoothstep(8.0, 28.0, length(cameraPosition - vGroundW))); // rings alias into speckle far off
+            if (uWetDetail > 1.5 && ringFade > 0.02) {
+              // rain rings: each 0.45 m cell drops a ring at its own time; the ring front tilts the mirror normal
+              vec2 rc = vGroundW.xz / 0.45, ri = floor(rc), rf = fract(rc) - 0.5;
+              float rh = fract(sin(dot(ri, vec2(127.1, 311.7))) * 43758.5453);
+              float ph = fract(uGroundTime * (0.9 + rh * 0.6) + rh * 7.0);
+              vec2 off = (vec2(fract(rh * 17.3), fract(rh * 31.7)) - 0.5) * 0.4;
+              vec2 d = rf - off; float r = length(d);
+              float ring = sin(clamp((r - ph * 0.5) * 40.0, -3.1416, 3.1416)) * (1.0 - ph) * step(r, ph * 0.5 + 0.08) * ringFade;
+              vec3 tW = vec3(d.x, 0.0, d.y) / max(r, 1e-3) * ring * 0.35;
+              pN = normalize(upV + (viewMatrix * vec4(tW, 0.0)).xyz);
+            }
+            normal = normalize(mix(normal, pN, puddle));
+            // standing water hides the ground texture under a dark, muddy film; the mirror does the rest
+            diffuseColor.rgb = mix(diffuseColor.rgb, vec3(dot(diffuseColor.rgb, vec3(0.3, 0.5, 0.2))) * vec3(0.32, 0.3, 0.27), puddle * 0.85);
+            roughnessFactor = mix(roughnessFactor, 0.04, puddle);
+          }
+        }
+      }`);
     if (relief) shader.fragmentShader = shader.fragmentShader.replace("#include <normal_fragment_maps>", `#include <normal_fragment_maps>
       {
         // surface relief: each surface's own normal map, blended by the same weights as its colour, on top of the fine detail

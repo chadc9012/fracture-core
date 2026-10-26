@@ -261,3 +261,13 @@ Owner: an Earth-sized planet (12,756 km, oblate) with original continents; 7 maj
 - [x] On foot the sea stops you (too far to swim); any vehicle, aircraft or boat crosses it.
 - [x] Airports and seaports: every landing zone and Neon City has an airport (flights to every continent's airports) and a seaport on its quay (ferries along the sea lanes, Nexus↔Neon across the gulf among them); the departures board shows flights or ferries by terminal.
 - [ ] Manual flight around the whole planet beyond the local map is Unreal work (World Partition, large world coordinates).
+
+## Weather on surfaces: reflections, wet ground, dew, wind (owner request, Oct 26 2026)
+
+Owner: "Reflection on water wet ground from rain and morning dew on grass winding blowing grass and tress leafs move in the wind".
+
+- [x] Water reflections: sea, rivers and lakes mirror the live sky (zenith overhead, SkyDome horizon colour at grazing angles) with fine wind ripples; a moon path at night; nearby Nexus/Neon lamps and signs mirrored as shimmering columns (MEDIUM 4, HIGH 8, ULTRA 12 lights; none on LOW). Fixed the ocean uniforms never reaching the GPU (waves, sun glint and regional style were frozen).
+- [x] Wet ground after rain: wetness soaks in within about an hour of rain and dries over the next few hours (faster in deserts and sun, slower in the swamp and at night); ground darkens and turns glossy, flat hollows hold sky-mirroring puddles (MEDIUM+), rain rings dimple them while it falls (HIGH+); city streets stay wet after a shower.
+- [x] Morning dew: from about 04:30 to 07:00 on clear, calm mornings grass and low cover carry a damp sheen and fine sun glints that twinkle as you move, gone by 10:00; humid regions most, deserts barely.
+- [x] Wind: gusts roll across meadows and through tree lines downwind, stronger and faster in storms; grass, flowers, reeds, bushes, canopies (procedural and GLB trees) and city/oasis palms all bend in the shared wind direction, tips and canopy most.
+- [ ] Not yet: wet/dew on rocks and props, screen-space reflections of geometry (buildings, trees) in water, puddle splashes from footsteps and vehicles.

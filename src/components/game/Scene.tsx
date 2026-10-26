@@ -81,7 +81,10 @@ import { airJump, cameraDrop, cancelSlide, createMoveState, glideVy, GLIDE_THRUS
 import { loadoutEffects } from "@/game/armor-attributes";
 import { armorLook } from "@/game/armor-look";
 import { createStride, stepStride, RUN_SPEED, type FeelView } from "@/game/movement-feel";
-import { updateWind } from "@/game/wind-sway";
+import { foliageWeather, updateWind } from "@/game/wind-sway";
+import { puddleCover, rainFall, stepGroundWetness, wetnessFromHistory } from "@/game/wetness";
+import { dewStrength } from "@/game/dew";
+import { groundWeather } from "@/game/region-materials";
 import { waterStyleAt } from "@/game/water-style";
 import { atmosphereAt, cityNightFill, cityPresence, INSTABILITY_FOG, instabilityBleed, NEUTRAL_ATMOSPHERE, type Atmosphere } from "@/game/atmosphere";
 import { closeStratagems, createStratagemState, inputDirection, openStratagems, releaseStratagems, stratagemById, stratagemHud, tickStratagems, type StratagemHud } from "@/game/stratagems";
@@ -872,11 +875,16 @@ function SceneImpl({
   // start fetching this operator's model at once so the plain procedural stand-in is on screen for as short a time as possible
   // foliage / region-model / light budgets read the live tier from perf-budget.ts
   setPerfTier(settings.renderTier);
+  // surface weather detail per tier: LOW keeps the wet darkening/gloss and dew sheen but skips puddles, rain rings and dew glints
+  groundWeather.uWetDetail.value = settings.renderTier === "LOW" ? 0 : settings.renderTier === "MEDIUM" ? 1 : 2;
+  foliageWeather.uDewDetail.value = settings.renderTier === "LOW" ? 0 : 1;
   useEffect(() => { const entry = OPERATOR_MODELS[playerClass]; if (entry) useGLTF.preload(entry.url); }, [playerClass]);
   const vehicle = useRef<THREE.Group>(null!);
   const sun = useRef<THREE.DirectionalLight>(null!);
   const weatherKind = useRef<string>("Clear shield");
   const weatherFx = useRef({ precipitation: 0, windX: 0, windZ: 0 });
+  /** live rain wetness of the ground (wetness.ts), stepped in game time from `t` */
+  const surfaceWet = useRef({ wet: 0, t: NaN });
   const weatherName = useRef("Clear");
   const stratagem = useRef(createStratagemState());
   const environmentSummary = useRef("");
@@ -1474,6 +1482,31 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
     weatherFx.current.windX = wx?.windX ?? 0;
     weatherFx.current.windZ = wx?.windZ ?? 0;
     updateWind(dt, wx?.windX ?? 0, wx?.windZ ?? 0);
+    /* ---------------- surface weather: rain wetness that dries over time, morning dew (wetness.ts, dew.ts) ---------------- */
+    {
+      const sw = surfaceWet.current, t = time.current, rid = here?.id;
+      const rain = interior ? 0 : rainFall(wx?.label, wx?.precipitation ?? 0);
+      const sun = (1 - night) * (1 - 0.7 * (wx?.cloud ?? 0));
+      const dh = (t - sw.t) * 24;
+      if (!Number.isFinite(sw.t) || dh < 0 || dh > 2) {
+        // first frame or a clock jump: rebuild from this region's recent weather, so every client agrees (crossing a border just
+        // keeps stepping under the new region's weather, so the ground never pops)
+        sw.wet = wetnessFromHistory((ago) => {
+          const ta = t - ago / 24, e = environmentAt(rid, ta, nightFactor(ta)).weather;
+          return { rain: rainFall(e?.label, e?.precipitation ?? 0), sun: (1 - nightFactor(ta)) * (1 - 0.7 * (e?.cloud ?? 0)) };
+        }, rid, 0.5);
+      } else sw.wet = stepGroundWetness(sw.wet, rain, dh, sun, rid);
+      sw.t = t;
+      groundWeather.uRainWet.value = sw.wet;
+      groundWeather.uPuddles.value = puddleCover(sw.wet);
+      groundWeather.uRaining.value = rain;
+      const windSpeed = Math.hypot(wx?.windX ?? 0, wx?.windZ ?? 0);
+      const dew = interior ? 0 : dewStrength(hourOf(t), { cloud: wx?.cloud ?? 0, wind: windSpeed, precipitation: rain, regionId: rid });
+      foliageWeather.uDew.value += (dew - foliageWeather.uDew.value) * Math.min(1, dt * 2);
+      foliageWeather.uLeafWet.value += (Math.min(1, sw.wet * 1.1) - foliageWeather.uLeafWet.value) * Math.min(1, dt * 2);
+      foliageWeather.uDewSun.value.copy(sunDir.current);
+      foliageWeather.uDewLight.value = Math.max(0, Math.min(1, sunDir.current.y * 4)) * (1 - 0.8 * (wx?.cloud ?? 0));
+    }
     weatherName.current = interior ? "Indoor" : weatherLabel(wx!, here?.id);
     const visibility = interior ? 1 : wx!.visibility;
     sim.envVisibility = visibility;

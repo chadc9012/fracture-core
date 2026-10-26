@@ -157,8 +157,7 @@ export function GroundCover({ density }: { density: number }) {
   useMemo(() => {
     assets.stemMat.onBeforeCompile = windSway(assets.stem, 0.5);
     assets.headMat.onBeforeCompile = windSway(assets.head, 0.55);
-    assets.bushMat.onBeforeCompile = windSway(assets.bush, 0.15);
-    assets.reedMat.onBeforeCompile = windSway(assets.reed, 0.3);
+    assets.bushMat.onBeforeCompile = windSway(assets.bush, 0.15, { dew: 0.7 });    assets.reedMat.onBeforeCompile = windSway(assets.reed, 0.3);
   }, [assets]);
   useEffect(() => () => { Object.values(assets).forEach((a) => (a as { dispose?: () => void }).dispose?.()); }, [assets]);
 

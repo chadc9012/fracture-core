@@ -5,6 +5,7 @@ import { WET, cityGlints, streak, wetness } from "@/game/wet-reflections";
 import { walkHeight } from "@/game/terrain";
 import { lampLevel, worldLight } from "@/game/world-light";
 import { STREET_WET } from "./city-surface";
+import { groundWeather } from "@/game/region-materials";
 
 let streakTex: THREE.CanvasTexture | null = null;
 /** a reflection streak: bright and tight at the far end (under the light), widening and fading toward the viewer, broken up by
@@ -46,7 +47,8 @@ export function WetReflections({ rainRef }: { rainRef?: React.RefObject<number> 
   const last = useRef({ x: Infinity, z: Infinity, t: 0 });
   useFrame(({ camera, clock }) => {
     const m = ref.current; if (!m) return;
-    const wet = wetness(worldLight.night, rainRef?.current ?? 0);
+    // the streets stay wet after a shower and dry with the ground (Scene steps wetness.ts into groundWeather)
+    const wet = wetness(worldLight.night, rainRef?.current ?? groundWeather.uRainWet.value);
     STREET_WET.value = wet * 0.85;
     const lit = lampLevel(worldLight.night) * wet;
     mat.opacity = lit * 0.7;
