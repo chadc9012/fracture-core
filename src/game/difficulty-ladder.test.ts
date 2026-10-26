@@ -162,3 +162,30 @@ describe("weekly rotation", () => {
     expect(weeklyMult("strike", tierById("strike", "hero"), false, false)).toBe(1);
   });
 });
+
+import { applyChallenge } from "./difficulty-ladder";
+describe("weekly raid challenge rules", () => {
+  const def = HOLLOW_STAR;
+  const total = (d: typeof def) => d.stages.reduce((n, s) => n + s.target, 0);
+  const play = (d: typeof def) => { let run: EncounterRun = { ...createEncounterRun(d), status: "ACTIVE" }; let n = 0; while (run.status === "ACTIVE" && n++ < 500) run = advanceEncounter(d, run); return run; };
+  test("every modifier changes the run in the way it says", () => {
+    expect(applyChallenge(def, "no-revive").noCheckpointRelief).toBe(true);
+    expect(applyChallenge(def, "blackout").blackout).toBe(true);
+    expect(total(applyChallenge(def, "swarm"))).toBeGreaterThan(total(def));
+    expect(applyChallenge(def, "swarm").stages.at(-1)!.target).toBe(def.stages.at(-1)!.target);
+    expect(applyChallenge(def, "iron-boss").stages.at(-1)!.target).toBeGreaterThan(def.stages.at(-1)!.target);
+    expect(applyChallenge(def, "short-fuse").stages.every((s, i) => s.hazardPerStep! > (def.stages[i]!.hazardPerStep ?? 0))).toBe(true);
+    const glass = applyChallenge(def, "glass");
+    expect(glass.maxLives).toBe(def.maxLives - 2); expect(play(glass).damage).toBeGreaterThan(play(def).damage);
+    expect(applyChallenge(def, "unknown")).toBe(def);
+  });
+  test("every weekly modifier has a rule, and no checkpoint relief means hazard carries between stages", () => {
+    for (const m of RAID_CHALLENGES) expect(applyChallenge(def, m.id)).not.toBe(def);
+    const d = applyChallenge(def, "no-revive");
+    let r: EncounterRun = { ...createEncounterRun(d), status: "ACTIVE" };
+    const first = d.stages[0]!;
+    for (let i = 0; i < first.target; i++) r = advanceEncounter(d, r);
+    expect(r.stageIndex).toBe(1);
+    expect(r.hazard).toBe(Math.min(100, first.target * (first.hazardPerStep ?? 8)));
+  });
+});
