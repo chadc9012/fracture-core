@@ -1,4 +1,5 @@
 #include "Core/WFVehicleWeaponsCore.h"
+#include "Core/WFJsCompat.h"
 
 #include <algorithm>
 #include <cmath>
@@ -151,7 +152,7 @@ namespace wf::vweapons
 
 		std::array<double, 3> VwNorm(double X, double Y, double Z)
 		{
-			double L = std::hypot(X, Y, Z);
+			double L = js::Hypot(X, Y, Z);
 			if (L == 0) L = 1;
 			return {X / L, Y / L, Z / L};
 		}
@@ -235,7 +236,7 @@ namespace wf::vweapons
 		}
 		R.X += R.Dx * D.Speed * Dt; R.Y += R.Dy * D.Speed * Dt; R.Z += R.Dz * D.Speed * Dt; R.Age += Dt;
 		auto Burst = [&R, &D](const char* Reason) { R.bAlive = false; return FBurst{R.X, R.Y, R.Z, D.SplashRadius, D.Damage, Reason}; };
-		if (Target && std::hypot(Target->X - R.X, Target->Y - R.Y, Target->Z - R.Z) <= D.Proximity) return Burst("PROXIMITY");
+		if (Target && js::Hypot(Target->X - R.X, Target->Y - R.Y, Target->Z - R.Z) <= D.Proximity) return Burst("PROXIMITY");
 		if (D.Domain != "WATER" && R.Y <= Ground(R.X, R.Z)) return Burst("GROUND");
 		if (R.Age >= D.Life) return Burst("TIMEOUT");
 		return std::nullopt;
@@ -255,7 +256,7 @@ namespace wf::vweapons
 		{
 			const FCandidate& C = Cands[I];
 			if (!C.bAlive) continue;
-			const double Dx = C.X - FromX, Dz = C.Z - FromZ, D = std::hypot(Dx, Dz);
+			const double Dx = C.X - FromX, Dz = C.Z - FromZ, D = js::Hypot(Dx, Dz);
 			if (D < 4 || D > Range) continue;
 			const double Ang = std::acos(std::min(1.0, std::max(-1.0, (Dx * Fx + Dz * Fz) / D)));
 			if (Ang <= Cone && D < BestD) { Best = I; BestD = D; }

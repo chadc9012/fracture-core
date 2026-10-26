@@ -36,6 +36,11 @@ unreal/
 The default level is the engine's template map; the game mode adds a floor and lights if a level has none.
 
 ## What runs
+- **Heavy arms:** the mouse wheel reaches the Fracture Blade and the four launchers after the five guns. The blade swings
+  a 1-2-3 combo through a 150-degree arc (6 m, the finisher 8 m and x1.8), shoves and staggers; an owned monoblade
+  (`EquipBlade vectal|aegis-broadsword|sun-cutter|none`) adds damage, reach, the Aegis finisher shockwave or the
+  Sun-Cutter's deflect window. Breacher, Cinder, Frostbite (guided) and Vitriol fire real ordnance rounds with splash and
+  their element. Bullets, swings and blasts knock enemies back; bosses move a fourteenth as far (boss-poise.ts).
 - **Enemy perception:** troopers patrol, grow suspicious, lock on and search the last place they saw you
   (enemy-perception.ts): sight (85 m, elites further, Phase Veil hides you), hearing (your gunfire and combat heat) and
   damage raise awareness; lines of sight are traced every 0.25 s. Bosses, and anyone near a badly hurt player, are always
@@ -151,13 +156,14 @@ cmake -S . -B build -G Ninja && cmake --build build && ctest --test-dir build --
 | DragonCoreTest | dragonite.ts, dragonite-cast.ts statsFor, vyrak-trust.ts | 2,099 states, 23,789 checks |
 | CityCoreTest | heat.ts, stealth.ts, chase-ai.ts, quest-signals.ts, sim.ts turret layout | 4,800 quest snapshots, 13 turrets, 19,883 checks |
 | PerceptionCoreTest | enemy-perception.ts, enemy-tuning.ts, line-of-sight.ts enemyHitChance | 300 awareness tracks (18,000 steps), 24,004 checks |
+| ArmsCoreTest | melee-arc.ts, foundries.ts blades / swingStats / inShockwave, launchers.ts via ordnance.ts fireRound | 3 blades, 4 launchers, 1,500 launches, 8,309 checks |
 | OperatorCoreTest | operator-pockets.ts switchOperator, xp.ts grantXP, nex.ts spendNex | 6,400 operations (846 switches), 25,600 checks |
 
 The golden files (`Plugins/WorldFractureCore/Tests/<name>_golden.txt`) are **generated, not committed**: together they run to ~60 MB,
 which broke the Lovable preview build. Record all of them from the repo root before configuring the tests (and again after changing
 the web build's rules):
 
-    node unreal/tools/gen-goldens.mjs            # all seventeen
+    node unreal/tools/gen-goldens.mjs            # all eighteen
     node unreal/tools/gen-goldens.mjs race shop  # just these
 
 `export-datatables` (the DataTables, which are committed) still runs on its own:
@@ -169,7 +175,7 @@ The encounter, Dragonite-cast and ability recorders route their world calls to r
 ## Not ported yet
 Boss models and attack effects (zones are debug circles, decoys are stand-ins), mid-mission saves, ability mastery XP and armor ability-recharge,
 region kinds for abilities (the map counts as a war zone),
-armor effects on combat, real cover behind obstacles, flanking, grenades, dives and squad roles (enemy-cover.ts, enemy-tactics.ts, enemy-evasion.ts, enemy-intelligence.ts), launchers and the sword, gear power and armor damage bonuses on vehicle guns, knockback, the featured-activity rotation and
+armor effects on combat, real cover behind obstacles, flanking, grenades, dives and squad roles (enemy-cover.ts, enemy-tactics.ts, enemy-evasion.ts, enemy-intelligence.ts), gear power and armor damage bonuses on vehicle guns, earning monoblades (wasteland-activities.ts gold medals), on-foot weapon heat, the featured-activity rotation and
 activity shader drops,
 diving (the thalassia-dive survive timer), the Neon City police response itself (the web build has only the heat meter and its labels; chase-ai.ts pursuit helpers are unused there), the Operations Hub preview marketplace (its wallet is not saved in the web build either), home interiors, cloud save merge, the world itself (regions, Neon City, Thalassia). Their data is already in
 `DataTables/`.

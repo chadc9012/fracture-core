@@ -625,6 +625,14 @@ void AWFCharacter::TickWeapon(float DeltaSeconds)
 	const FWFWeaponStats* W = GetWeapon();
 	if (!W) return;
 	Cooldown = FMath::Max(0.0, Cooldown - DeltaSeconds);
+	TickRounds(DeltaSeconds);
+	wf::arms::TickCombo(Combo, DeltaSeconds);
+	if (W->Kind == TEXT("sword"))
+	{
+		// the blade: no ammo; holding the trigger keeps the combo going at the blade's rate
+		if (bFireHeld && Cooldown <= 0) if (const int32 Step = wf::arms::Swing(Combo, W->FireRate)) SwingBlade(*W, Step);
+		return;
+	}
 
 	if (ReloadLeft > 0)
 	{
@@ -674,6 +682,7 @@ void AWFCharacter::FireRound()
 	if (!W || !World || Ammo[WeaponIndex] <= 0) return;
 	--Ammo[WeaponIndex];
 	if (AWFGameMode* NoiseMode = World->GetAuthGameMode<AWFGameMode>()) NoiseMode->NotePlayerGunfire(); // sim.ts fireBullet: playerNoise = 1
+	if (W->Kind == TEXT("launcher")) { FireLauncherRound(*W); return; }
 
 	const FVector Start = Camera->GetComponentLocation();
 	const FVector Aim = GetControlRotation().Vector();
@@ -691,6 +700,10 @@ void AWFCharacter::FireRound()
 			if (AWFEnemy* Enemy = Cast<AWFEnemy>(Hit.GetActor()))
 			{
 				Enemy->TakeHit(W->Damage * WFWeapons::BaseBulletDamage * SimMods.VerbDamageMult, this, W->Element); // Rage / Siege (syncSimFromLive)
+				// sim.ts: a bullet shoves along its flight, velocity (130 m/s) x 0.06 x the weapon's knock per pellet
+				double Kx = 0, Kz = 0;
+				wf::arms::BulletKnock(Kx, Kz, Dir.X * 130, Dir.Y * 130, W->Knock / W->Pellets);
+				Enemy->AddKnock(Kx, Kz);
 				if (AWFGameMode* HeatMode = GetWorld()->GetAuthGameMode<AWFGameMode>()) HeatMode->AddCombatHeat(wf::city::FHeatGain::BulletHit);
 			}
 	}
@@ -703,6 +716,139 @@ void AWFCharacter::FireRound()
 		R.Pitch += static_cast<float>(FMath::RadiansToDegrees(W->Recoil));
 		C->SetControlRotation(R);
 	}
+}
+
+namespace
+{
+	/** the Operator's facing as rules yaw (atan2 convention on Unreal X/Y) */
+	double ArmsYaw(const FRotator& R) { return UE_DOUBLE_HALF_PI - FMath::DegreesToRadians(static_cast<double>(R.Yaw)); }
+}
+
+void AWFCharacter::SwingBlade(const FWFWeaponStats& W, int32 Step)
+{
+	UWorld* World = GetWorld();
+	const double Now = World->GetTimeSeconds();
+	const UWFProgressionSubsystem* Progression = GetGameInstance()->GetSubsystem<UWFProgressionSubsystem>();
+	const wf::arms::FBlade* Blade = Progression ? wf::arms::ActiveBlade(Progression->Get().EarnedRewards, Progression->Get().Blade) : nullptr;
+	const wf::arms::FSwing Sw = wf::arms::SwingStats(Blade, Step, W.Damage, wf::arms::BaseReachFor(Step), false);
+	if (Sw.Deflect > 0) DeflectUntil = Now + Sw.Deflect;
+	const FVector Me = GetActorLocation() / CmPerMeter;
+	const double Yaw = ArmsYaw(GetControlRotation());
+	const double Feet = (GetActorLocation().Z - GetCapsuleComponent()->GetScaledCapsuleHalfHeight()) / CmPerMeter;
+	TArray<AWFEnemy*> Enemies;
+	for (TActorIterator<AWFEnemy> It(World); It; ++It) if (!It->IsDead()) Enemies.Add(*It);
+	// the finisher's shockwave (aegis broadsword): a 12 m ground line; it never kills a boss outright
+	if (Sw.Shockwave)
+	{
+		for (AWFEnemy* E : Enemies)
+		{
+			const FVector P = E->GetActorLocation() / CmPerMeter;
+			if (E->IsDecoy() || !wf::arms::InShockwave(*Sw.Shockwave, Me.X, Me.Y, Yaw, P.X, P.Y)) continue;
+			const double Dmg = E->IsBoss() ? FMath::Min(Sw.Shockwave->Damage, FMath::Max(0.0, E->GetHealth() - 0.01)) : Sw.Shockwave->Damage;
+			if (Dmg > 0) E->TakeHit(Dmg, this, TEXT("ARC"));
+		}
+		const FVector Mid = GetActorLocation() + FVector(std::sin(Yaw), std::cos(Yaw), 0) * Sw.Shockwave->Length * 0.5 * CmPerMeter;
+		DrawDebugSphere(World, Mid, 500.f, 12, FColor(170, 90, 255), false, 0.3f, 0, 3.f);
+	}
+	for (AWFEnemy* E : Enemies)
+	{
+		if (E->IsDead()) continue;
+		const FVector P = E->GetActorLocation() / CmPerMeter;
+		const double Scale = E->GetActorScale3D().X;
+		const double EFeet = (E->GetActorLocation().Z - E->GetCapsuleComponent()->GetScaledCapsuleHalfHeight()) / CmPerMeter;
+		if (!wf::arms::InSwordArc({Me.X, Me.Y, Feet, Yaw}, {P.X, P.Y, EFeet, Scale}, Sw.Reach)) continue;
+		// the shared damage path; monoblades hit elites and bosses harder
+		E->TakeHit(wf::arms::SwingStats(Blade, Step, W.Damage, Sw.Reach, E->IsElite() || E->IsBoss()).Damage, this, TEXT("KINETIC"));
+		const double Dx = P.X - Me.X, Dz = P.Y - Me.Y, D = FMath::Max(FMath::Sqrt(Dx * Dx + Dz * Dz), 0.1);
+		E->AddKnock(Dx / D * W.Knock * wf::arms::SwingKnock, Dz / D * W.Knock * wf::arms::SwingKnock);
+		E->Stagger(wf::arms::SwingStagger);
+	}
+	DrawDebugCone(World, GetActorLocation(), FVector(std::sin(Yaw), std::cos(Yaw), 0), static_cast<float>(Sw.Reach * CmPerMeter), static_cast<float>(wf::arms::MeleeHalfArc), 0.1f, 10, Step == 3 ? FColor(255, 200, 80) : FColor(200, 230, 255), false, 0.15f, 0, 2.f);
+	if (Live.VeilTime > wf::ability::VeilBreakTime) Live.VeilTime = wf::ability::VeilBreakTime;
+}
+
+void AWFCharacter::FireLauncherRound(const FWFWeaponStats& W)
+{
+	const wf::arms::FLauncher* L = wf::arms::LauncherById(WFData::ToStd(W.Id));
+	UWorld* World = GetWorld();
+	if (!L || !World) return;
+	const double Spread = W.Spread * (bAiming ? W.AdsSpread : 1.0);
+	const FRotator Aim = GetControlRotation();
+	const double Yaw = ArmsYaw(Aim) + (FMath::FRand() - 0.5) * 2 * Spread;
+	const double Pitch = FMath::DegreesToRadians(static_cast<double>(FRotator::NormalizeAxis(Aim.Pitch))) + (FMath::FRand() - 0.5) * 2 * Spread;
+	const FVector Eye = Camera->GetComponentLocation() / CmPerMeter;
+	// rules (x, y up, z) from Unreal (X, Y, Z up); the round leaves 0.6 m ahead of the eye
+	const wf::vweapons::FVec From{Eye.X + std::sin(Yaw) * 0.6, Eye.Z - 0.05, Eye.Y + std::cos(Yaw) * 0.6};
+	TArray<AWFEnemy*> Enemies;
+	std::vector<wf::vweapons::FCandidate> Cands;
+	for (TActorIterator<AWFEnemy> It(World); It; ++It)
+	{
+		Enemies.Add(*It);
+		const FVector P = It->GetActorLocation() / CmPerMeter;
+		Cands.push_back({P.X, P.Y, !It->IsDead() && !It->IsDecoy()});
+	}
+	wf::arms::FLaunch Shot = wf::arms::FireLauncher(*L, From, Yaw, Pitch, W.Damage * WFWeapons::BaseBulletDamage * SimMods.VerbDamageMult, Cands);
+	Shot.Round.Knock = W.Knock;
+	FFootRound R;
+	R.Round = Shot.Round;
+	if (Shot.Target >= 0 && Enemies.IsValidIndex(Shot.Target)) R.Target = Enemies[Shot.Target];
+	R.Element = UTF8_TO_TCHAR(L->Element.c_str());
+	Rounds.Add(R);
+	if (Live.VeilTime > wf::ability::VeilBreakTime) Live.VeilTime = wf::ability::VeilBreakTime;
+	if (AController* C = GetController()) { FRotator Kick = C->GetControlRotation(); Kick.Pitch += static_cast<float>(FMath::RadiansToDegrees(W.Recoil)); C->SetControlRotation(Kick); }
+}
+
+void AWFCharacter::TickRounds(double Dt)
+{
+	UWorld* World = GetWorld();
+	if (!World || Rounds.IsEmpty()) return;
+	FCollisionQueryParams Params(SCENE_QUERY_STAT(WFFootRounds), false, this);
+	auto Ground = [World, &Params](double X, double Z, double Fallback) {
+		FHitResult G;
+		const FVector At(X * CmPerMeter, Z * CmPerMeter, 0);
+		return World->LineTraceSingleByChannel(G, At + FVector(0, 0, 20000), At - FVector(0, 0, 50000), ECC_WorldStatic, Params) ? G.ImpactPoint.Z / CmPerMeter : Fallback - 50;
+	};
+	for (int32 I = Rounds.Num() - 1; I >= 0; --I)
+	{
+		FFootRound& L = Rounds[I];
+		wf::vweapons::FRound& R = L.Round;
+		std::optional<wf::vweapons::FVec> Target;
+		if (const AWFEnemy* T = Cast<AWFEnemy>(L.Target.Get()))
+			if (!T->IsDead()) { const FVector P = T->GetActorLocation() / CmPerMeter; Target = wf::vweapons::FVec{P.X, P.Z + 0.1, P.Y}; }
+		const FVector From(R.X * CmPerMeter, R.Z * CmPerMeter, R.Y * CmPerMeter);
+		std::optional<wf::vweapons::FBurst> Burst = wf::vweapons::StepRound(R, Dt, Target, [&Ground, &R](double X, double Z) { return Ground(X, Z, R.Y); });
+		const FVector To(R.X * CmPerMeter, R.Z * CmPerMeter, R.Y * CmPerMeter);
+		FHitResult Hit;
+		if (!Burst && World->LineTraceSingleByChannel(Hit, From, To, ECC_Visibility, Params))
+		{
+			R.bAlive = false;
+			Burst = wf::vweapons::FBurst{Hit.ImpactPoint.X / CmPerMeter, Hit.ImpactPoint.Z / CmPerMeter, Hit.ImpactPoint.Y / CmPerMeter, R.Def.SplashRadius, R.Def.Damage, "PROXIMITY"};
+		}
+		DrawDebugLine(World, From, To, FColor(255, 140, 60), false, 0.f, 0, 5.f);
+		if (Burst) { DetonateRound(*Burst, R.Knock, L.Element); Rounds.RemoveAtSwap(I); }
+		else if (!R.bAlive) Rounds.RemoveAtSwap(I);
+	}
+}
+
+void AWFCharacter::DetonateRound(const wf::vweapons::FBurst& Burst, double Knock, const FString& Element)
+{
+	// sim.ts detonateRound: splash to each body's edge (1.5 m x scale), shoved outward 7 x knock x falloff; no self damage
+	UWorld* World = GetWorld();
+	if (AWFGameMode* Mode = World->GetAuthGameMode<AWFGameMode>()) Mode->AddCombatHeat(wf::city::FHeatGain::Burst);
+	TArray<AWFEnemy*> InRange;
+	for (TActorIterator<AWFEnemy> It(World); It; ++It) if (!It->IsDead()) InRange.Add(*It);
+	for (AWFEnemy* E : InRange)
+	{
+		const FVector P = E->GetActorLocation() / CmPerMeter;
+		const double Dx = P.X - Burst.X, Dz = P.Y - Burst.Z, Planar = FMath::Sqrt(Dx * Dx + Dz * Dz);
+		const double Dist = FMath::Max(0.0, Planar - 1.5 * E->GetActorScale3D().X);
+		const double Damage = wf::vweapons::SplashDamage(Burst, Dist);
+		if (Damage <= 0) continue;
+		E->TakeHit(Damage, this, Element);
+		const double Fall = 1 - FMath::Min(1.0, Dist / Burst.Radius), N = Planar > 0 ? Planar : 1;
+		E->AddKnock(Dx / N * 7 * Knock * Fall, Dz / N * 7 * Knock * Fall);
+	}
+	DrawDebugSphere(World, FVector(Burst.X * CmPerMeter, Burst.Z * CmPerMeter, Burst.Y * CmPerMeter), static_cast<float>(Burst.Radius * CmPerMeter), 16, FColor(255, 120, 40), false, 0.4f, 0, 4.f);
 }
 
 void AWFCharacter::StartReload()
@@ -720,6 +866,7 @@ void AWFCharacter::ApplyHit(double Damage, const FString& Source)
 	if (Health <= 0) return;
 	if (IframesLeft > 0 || BarrierLeft > 0) return; // sim.ts hurtPlayer: Rift Dash i-frames and Bastion barriers absorb the hit
 	Damage *= SimMods.VerbIncomingMult; // Overshield (syncSimFromLive)
+	if (GetWorld()->GetTimeSeconds() < DeflectUntil) Damage *= 0.5; // hurtPlayer deflectUntil (Sun-Cutter)
 	Damage *= 1 - wf::dragon::CappedResist(0, DragonhideResist); // Dragonhide (armor resistance not modelled yet)
 	Health = FMath::Max(0.0, Health - Damage);
 	SinceDamage = 0;
@@ -912,6 +1059,19 @@ void AWFCharacter::CancelAbilities()
 	IframesLeft = BarrierLeft = DomeLeft = 0;
 	RiftTurrets.Reset();
 	VolatileZones.Reset();
+}
+
+void AWFCharacter::EquipBlade(const FString& BladeId)
+{
+	UWFProgressionSubsystem* Progression = GetGameInstance()->GetSubsystem<UWFProgressionSubsystem>();
+	if (!Progression) return;
+	wf::FProgression& P = Progression->Mutable();
+	const std::string Id = WFData::ToStd(BladeId.ToLower());
+	if (Id == "none" || Id.empty()) { P.Blade.reset(); Progression->NotifyChanged(); Notify(TEXT("Plain Fracture Blade"), FLinearColor(0.45f, 0.9f, 1.f)); return; }
+	if (!wf::arms::ActiveBlade(P.EarnedRewards, Id)) { Notify(TEXT("You don't own that blade (earned from wasteland activity gold medals)"), FLinearColor(1.f, 0.55f, 0.3f)); return; }
+	P.Blade = Id;
+	Progression->NotifyChanged();
+	Notify(FString::Printf(TEXT("%s equipped"), UTF8_TO_TCHAR(wf::arms::ActiveBlade(P.EarnedRewards, Id)->Name.c_str())), FLinearColor(1.f, 0.82f, 0.35f));
 }
 
 void AWFCharacter::Subclass(const FString& InSubclassId)

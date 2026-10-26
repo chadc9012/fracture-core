@@ -16,6 +16,7 @@
 #include "WFGameMode.h"
 #include "WFProgressionSubsystem.h"
 #include "WFVehicle.h"
+#include "Core/WFArmsCore.h"
 
 namespace
 {
@@ -140,6 +141,12 @@ void AWFEnemy::Tick(float DeltaSeconds)
 	// vehicle gadgets (vehicle-gadgets.ts): caltrops and EMP mines slow it to SnareMult until SnareUntil
 	const double Snare = GetWorld()->GetTimeSeconds() < SnareUntil ? SnareMult : 1.0;
 	GetCharacterMovement()->MaxWalkSpeed = static_cast<float>(SpeedBase * (bElite ? SpeedElite : 1.0) * CmPerM * PhaseSpeedMult * Snare);
+	// knockback (sim.ts: m.x += kx / mass x dt, kx *= e^-3dt; bosses are BOSS_KNOCK_MASS heavy)
+	if (FMath::Abs(KnockX) + FMath::Abs(KnockZ) > 0.01)
+	{
+		const wf::vweapons::FVec Step = wf::arms::StepKnock(KnockX, KnockZ, DeltaSeconds, bBoss);
+		AddActorWorldOffset(FVector(Step.X * CmPerM, Step.Z * CmPerM, 0), true);
+	}
 	if (StunLeft > 0) { StunLeft -= DeltaSeconds; return; }
 	// the target is the Operator, or the vehicle they are driving
 	APawn* Target = UGameplayStatics::GetPlayerPawn(this, 0);

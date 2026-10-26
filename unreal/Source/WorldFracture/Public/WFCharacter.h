@@ -4,6 +4,7 @@
 #include "GameFramework/Character.h"
 #include "Core/WFAbilityCore.h"
 #include "Core/WFDragonCore.h"
+#include "Core/WFArmsCore.h"
 #include "WFWeapons.h"
 #include "WFCharacter.generated.h"
 
@@ -17,7 +18,8 @@ struct FInputActionValue;
  * The player Operator, first person (the web build's default camera). Guns fire hitscan rounds with the exported
  * weapon tuning (fire rate, burst, spread, recoil, magazine, reload); health and regeneration follow health.ts.
  * Input is built in code, so the project needs no input assets: WASD move, mouse look, Space/C jump, Shift sprint,
- * LMB fire, RMB aim, R/G reload, 1-5 or mouse wheel weapons, F5 save, F9 finish the active quest (development).
+ * LMB fire (or swing the Fracture Blade), RMB aim, R/G reload, 1-5 guns and the mouse wheel through the blade and the four
+ * launchers, F5 save, F9 finish the active quest (development).
  */
 UCLASS()
 class WORLDFRACTURE_API AWFCharacter : public ACharacter
@@ -40,6 +42,8 @@ public:
 	const FWFWeaponStats* GetWeapon() const { return Weapons.IsValidIndex(WeaponIndex) ? &Weapons[WeaponIndex] : nullptr; }
 	int32 GetAmmoInMag() const { return Ammo.IsValidIndex(WeaponIndex) ? Ammo[WeaponIndex] : 0; }
 	int32 GetAmmoReserve() const { return Reserve.IsValidIndex(WeaponIndex) ? Reserve[WeaponIndex] : 0; }
+	bool IsBladeOut() const { return Weapons.IsValidIndex(WeaponIndex) && Weapons[WeaponIndex].Kind == TEXT("sword"); }
+	int32 GetComboStep() const { return Combo.Step; }
 	bool IsReloading() const { return ReloadLeft > 0; }
 	const FString& GetLastDamageSource() const { return LastDamageSource; }
 	bool IsRiding() const { return bRiding; }
@@ -53,6 +57,8 @@ public:
 
 	// Console commands for the dragon progression (no menu yet)
 	/** UpgradeDragonite dragonfire|wyrmwing|dragonhide|wyrmcall|roar|scalebreaker|skyfall */
+	/** EquipBlade vectal|aegis-broadsword|sun-cutter|none: the monoblade the Fracture Blade swings (foundries.ts; must be owned) */
+	UFUNCTION(Exec) void EquipBlade(const FString& BladeId);
 	UFUNCTION(Exec) void UpgradeDragonite(const FString& Ability);
 	/** VyrakTrust ruin|puzzle|protect <id> */
 	UFUNCTION(Exec) void VyrakTrust(const FString& Kind, const FString& SourceId);
@@ -128,6 +134,13 @@ private:
 	void Notify(const FString& Text, const FLinearColor& Color) const;
 
 	void TickWeapon(float DeltaSeconds);
+	/** Scene.tsx sword block: one swing of the combo (arc, monoblade damage and reach, finisher shockwave, deflect) */
+	void SwingBlade(const FWFWeaponStats& W, int32 Step);
+	/** sim.ts fireLauncher: a launcher round (guided launchers lock the nearest enemy in their cone) */
+	void FireLauncherRound(const FWFWeaponStats& W);
+	/** ordnance.ts stepRound for the launcher rounds in flight, then sim.ts detonateRound's splash and shove */
+	void TickRounds(double Dt);
+	void DetonateRound(const wf::vweapons::FBurst& Burst, double Knock, const FString& Element);
 	void FireRound();
 	void StartReload();
 	void Respawn();
@@ -187,6 +200,10 @@ private:
 	double ReloadLeft = 0;
 	bool bFireHeld = false;
 	bool bAiming = false;
+	wf::arms::FCombo Combo;
+	double DeflectUntil = 0; // the Sun-Cutter's window: incoming damage halved (hurtPlayer deflectUntil)
+	struct FFootRound { wf::vweapons::FRound Round; TWeakObjectPtr<AActor> Target; FString Element; };
+	TArray<FFootRound> Rounds;
 
 	double Health = MaxHealth;
 	double SinceDamage = 100;

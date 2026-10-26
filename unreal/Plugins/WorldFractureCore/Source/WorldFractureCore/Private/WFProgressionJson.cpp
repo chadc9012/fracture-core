@@ -142,6 +142,7 @@ namespace WFProgressionJson
 		O->SetNumberField(TEXT("novaLevel"), P.NovaLevel);
 		O->SetArrayField(TEXT("novaUnlocks"), StringArray(P.NovaUnlocks));
 		OptionalString(O, TEXT("identityClass"), P.IdentityClass);
+		OptionalString(O, TEXT("blade"), P.Blade);
 		O->SetStringField(TEXT("challenge"), ToF(P.Challenge));
 		O->SetArrayField(TEXT("earnedRewards"), StringArray(P.EarnedRewards));
 		{
@@ -337,6 +338,7 @@ namespace WFProgressionJson
 		O->TryGetNumberField(TEXT("novaLevel"), P.NovaLevel);
 		P.NovaUnlocks = ReadStrings(O, TEXT("novaUnlocks"));
 		P.IdentityClass = ReadOptionalString(O, TEXT("identityClass"));
+		P.Blade = ReadOptionalString(O, TEXT("blade"));
 		if (std::optional<std::string> Challenge = ReadOptionalString(O, TEXT("challenge"))) P.Challenge = *Challenge;
 		P.EarnedRewards = ReadStrings(O, TEXT("earnedRewards"));
 		{

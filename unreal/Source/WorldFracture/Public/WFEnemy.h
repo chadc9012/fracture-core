@@ -78,10 +78,15 @@ public:
 	bool IsDead() const { return Health <= 0; }
 	const FString& GetProfile() const { return Profile; }
 	bool IsBoss() const { return bBoss; }
+	bool IsElite() const { return bElite; }
 	/** Telegraphing a shot (the Wyrm interrupts these first). */
 	bool IsWindingUp() const { return Windup >= 0; }
 	/** Cancels the wind-up and stuns (Wyrm interrupt, sim.ts stunMachine). */
 	void Interrupt(double Seconds) { Windup = -1; StunLeft = FMath::Max(StunLeft, Seconds); }
+	/** knockback velocity in m/s on the ground plane (sim.ts kx / kz): bosses move a fourteenth of it, it decays e^-3t */
+	void AddKnock(double Kx, double Kz) { KnockX += Kx; KnockZ += Kz; }
+	/** sim.ts enemy.cool = max(cool, s): a sword hit staggers its next attack */
+	void Stagger(double Seconds) { RangedCooldown = FMath::Max(RangedCooldown, Seconds); MeleeCooldown = FMath::Max(MeleeCooldown, Seconds); Windup = -1; }
 
 	/** The awareness state this frame: PATROL | SUSPICIOUS | ALERT | SEARCH (HUD threat markers, tests). */
 	const std::string& GetAiState() const { return Ai.State; }
@@ -119,6 +124,7 @@ private:
 	bool bDecoy = false;
 	double DecoyId = 0;
 	double SummonId = 0; // 0 = not called in
+	double KnockX = 0, KnockZ = 0;
 	wf::encounter::FBoss BossRules;
 	double PhaseSpeedMult = 1, PhaseDamageMult = 1, PhaseCooldownMult = 1; // regional boss phase tuning
 	FString ScenarioRun;

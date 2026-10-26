@@ -131,6 +131,8 @@ namespace wf
 		std::optional<FMissionReward> LastMissionReward;
 
 		std::optional<std::string> IdentityClass; // TITAN | HUNTER | WARLOCK
+		/** the equipped monoblade (foundries.ts activeBlade: used only while blade:<id> is owned) */
+		std::optional<std::string> Blade;
 
 		/** One operator's own progress and money (operator-pockets.ts OperatorPocket). */
 		struct FOperatorPocket

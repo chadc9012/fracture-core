@@ -19,6 +19,7 @@ struct FWFWeaponStats
 	int32 Reserve = 120;
 	double Reload = 1.6;   // seconds
 	int32 Pellets = 1;
+	double Knock = 1;      // shove on hit (sim.ts: bullets x0.06 of their velocity, swords x8 outward, blasts x7)
 	FString Element = TEXT("KINETIC"); // damage element (boss gimmicks read it); weapons without one are kinetic
 };
 
@@ -26,6 +27,7 @@ namespace WFWeapons
 {
 	/** Base damage of one round before the weapon's multiplier (sim.mods.bulletDamage's resting value in Scene.tsx). */
 	inline constexpr double BaseBulletDamage = 1.2;
-	/** Weapons the first-person loop can fire today: guns (hitscan). Swords and launchers are listed but not wired yet. */
+	/** The arsenal, in slot order: the five guns on keys 1-5 (hitscan), then the Fracture Blade and the four launchers
+	 *  (mouse wheel). */
 	TArray<FWFWeaponStats> LoadGuns(FString& OutError);
 }

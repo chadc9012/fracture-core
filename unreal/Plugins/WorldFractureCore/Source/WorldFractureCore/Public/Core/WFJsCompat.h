@@ -18,6 +18,7 @@ namespace wf::js
 	/** V8's Math.hypot for two numbers (scaled by the larger, Kahan-summed squares), which can differ from std::hypot in
 	 *  the last bit; rules that compare a distance against a range at its exact edge need the JavaScript result. */
 	WORLDFRACTURECORE_API double Hypot(double A, double B);
+	WORLDFRACTURECORE_API double Hypot(double A, double B, double C);
 
 	/** The 32-bit FNV-1a the web build uses over a string's UTF-16 code units (ASCII text: its bytes). */
 	WORLDFRACTURECORE_API uint32_t Fnv1a(const std::string& Text);

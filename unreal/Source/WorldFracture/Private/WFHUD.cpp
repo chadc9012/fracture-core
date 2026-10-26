@@ -274,7 +274,7 @@ void AWFHUD::DrawHUD()
 		if (const FWFWeaponStats* Weapon = Player->GetWeapon())
 		{
 			Line(Weapon->Name.ToUpper(), W - 300, H - 118, Cyan);
-			Line(Player->IsReloading() ? TEXT("RELOADING") : FString::Printf(TEXT("%d / %d"), Player->GetAmmoInMag(), Player->GetAmmoReserve()), W - 300, H - 90, Soft, 1.6f);
+			Line(Player->IsBladeOut() ? FString::Printf(TEXT("COMBO %d / 3"), Player->GetComboStep()) : Player->IsReloading() ? FString(TEXT("RELOADING")) : FString::Printf(TEXT("%d / %d"), Player->GetAmmoInMag(), Player->GetAmmoReserve()), W - 300, H - 90, Soft, 1.6f);
 		}
 
 	// top left: region and quest
