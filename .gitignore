@@ -35,3 +35,4 @@ __pycache__/
 # Unreal core-test goldens are generated from the web build (node unreal/tools/gen-goldens.mjs), not committed:
 # together they run to ~60 MB of text and the Lovable preview build stopped succeeding as they grew
 unreal/Plugins/WorldFractureCore/Tests/*_golden.txt
+.claude/worktrees/
