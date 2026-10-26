@@ -26,7 +26,7 @@ export function NeonStreetLights() {
   useInstances<NeonLamp>(pole, ls, (o, l) => { o.position.set(l.x, y0(l) + 3.4, l.z); o.scale.set(0.09, 6.8, 0.09); });
   useInstances<NeonLamp>(arm, ls, (o, l) => { o.position.set(l.x + Math.sin(l.yaw) * 1.05, y0(l) + 6.7, l.z + Math.cos(l.yaw) * 1.05); o.rotation.set(0, l.yaw, 0); o.scale.set(0.07, 0.07, 2.1); });
   useInstances<NeonLamp>(head, ls, (o, l) => { const t = tip(l); o.position.set(t.x, y0(l) + 6.6, t.z); o.rotation.set(0, l.yaw, 0); o.scale.set(0.3, 0.07, 0.9); }, (l) => l.glow);
-  useInstances<NeonLamp>(pool, ls, (o, l) => { const t = tip(l); o.position.set(t.x, walkHeight(t.x, t.z) + 0.1, t.z); o.rotation.set(-Math.PI / 2, 0, 0); o.scale.setScalar(9); }, (l) => l.glow);
+  useInstances<NeonLamp>(pool, ls, (o, l) => { const t = tip(l); o.position.set(t.x, walkHeight(t.x, t.z) + 0.1, t.z); o.rotation.set(-Math.PI / 2, 0, 0); o.scale.setScalar(6.5); }, (l) => l.glow);
   const mats = useMemo(() => ({
     pole: new THREE.MeshStandardMaterial({ color: "#1a1d24", metalness: 0.85, roughness: 0.3 }),
     head: new THREE.MeshBasicMaterial({ color: "#ffffff", toneMapped: false }),
@@ -37,7 +37,7 @@ export function NeonStreetLights() {
     const k = Math.round(lampLevel(worldLight.night) * 50) / 50;
     if (k === seen.current) return;
     seen.current = k;
-    mats.pool.opacity = 0.1 + k * 0.22; // a soft pool, not a painted disc: the target frames' streets stay dark between the lamps
+    mats.pool.opacity = 0.08 + k * 0.16; // a soft pool, not a painted disc: the target frames' streets stay dark between the lamps
   });
   if (!ls.length) return null;
   return <group>

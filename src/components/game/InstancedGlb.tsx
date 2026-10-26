@@ -67,6 +67,9 @@ export function flattenGlb(scene: THREE.Object3D): Part[] {
     if (material.name === "Glass") { mat.transparent = true; mat.depthWrite = false; }
     // the owner's night target frames: dense banded office light instead of the baked map's big warm blocks (facade-windows.ts)
     if (windows) { const tex = facadeTexture(); if (tex) { const m = mat as THREE.MeshStandardMaterial; m.emissiveMap = tex; m.emissive.set("#ffffff"); m.needsUpdate = true; } }
+    // neon trim panels (the authored towers' "Accent", emissive x4): up close they read as whole floodlit cyan-white walls rather
+    // than trim (owner's Nexus night frame); held to a glow that still blooms
+    if (material.name === "Accent") (mat as THREE.MeshStandardMaterial).emissiveIntensity = Math.min((mat as THREE.MeshStandardMaterial).emissiveIntensity, 1.4);
     const c = (mat as THREE.MeshStandardMaterial).color;
     const pale = (material.name === "Stone" || material.name === "Slab" || material.name === "Frame") && c && c.r + c.g + c.b > 1.5 ? c.clone() : undefined;
     parts.push({ geometry: merged, material: mat, paint, windows, ...(pale ? { pale } : {}), ...(windows && c ? { glazing: c.clone() } : {}) });
@@ -88,6 +91,15 @@ export function facadeTexture(): THREE.DataTexture | null {
   return (facadeTex = t);
 }
 
+const scaledFacade = new Map<number, THREE.DataTexture>();
+/** the facade map tiled `k` times tighter (shares the uploaded image's pixels via a clone) */
+export function facadeTextureAt(k: number): THREE.DataTexture | null {
+  const base = facadeTexture(); if (!base) return null;
+  const hit = scaledFacade.get(k); if (hit) return hit;
+  const t = base.clone(); t.repeat.set(k, k); t.needsUpdate = true;
+  scaledFacade.set(k, t); return t;
+}
+
 /** a swaying copy of the flattened parts (palms): own material clones, every part bending about the whole model's base and height so
  * the fronds stay on the trunk (wind-sway.ts) */
 function swayParts(parts: Part[], amount: number): Part[] {
@@ -103,9 +115,13 @@ function swayParts(parts: Part[], amount: number): Part[] {
   });
 }
 
-function Batch({ url, items, place, shadows, nightGlow, sway }: { url: string; items: GlbInstance[]; place?: ((i: number, o: THREE.Object3D) => void) | undefined; shadows: boolean; nightGlow: [number, number]; sway?: number | undefined }) {
+function Batch({ url, items, place, shadows, nightGlow, sway, windowScale }: { url: string; items: GlbInstance[]; place?: ((i: number, o: THREE.Object3D) => void) | undefined; shadows: boolean; nightGlow: [number, number]; sway?: number | undefined; windowScale?: number | undefined }) {
   const { scene } = useGLTF(url);
-  const flat = useMemo(() => flattenGlb(scene), [scene]);
+  const flat = useMemo(() => {
+    const parts = flattenGlb(scene);
+    if (windowScale && windowScale !== 1) for (const p of parts) if (p.windows) { const m = p.material as THREE.MeshStandardMaterial, t = facadeTextureAt(windowScale); if (t && m.emissiveMap !== t) { m.emissiveMap = t; m.needsUpdate = true; } }
+    return parts;
+  }, [scene, windowScale]);
   const parts = useMemo(() => (sway ? swayParts(flat, sway) : flat), [flat, sway]);
   useEffect(() => () => { if (parts !== flat) parts.forEach((p, i) => { if (p.material !== flat[i]!.material) p.material.dispose(); }); }, [parts, flat]);
   const refs = useRef<(THREE.InstancedMesh | null)[]>([]);
@@ -145,11 +161,11 @@ function Batch({ url, items, place, shadows, nightGlow, sway }: { url: string; i
 }
 
 /** `nightGlow`: lit-window emissive multiplier [by day, at night]; `sway`: wind bend at the top of the model (model units), for plants */
-export function InstancedGlb({ url, items, place, shadows = true, nightGlow = [0.08, 1.8], sway }: { url: string; items: GlbInstance[]; place?: (i: number, o: THREE.Object3D) => void; shadows?: boolean; nightGlow?: [number, number]; sway?: number }) {
+export function InstancedGlb({ url, items, place, shadows = true, nightGlow = [0.08, 1.8], sway, windowScale }: { url: string; items: GlbInstance[]; place?: (i: number, o: THREE.Object3D) => void; shadows?: boolean; nightGlow?: [number, number]; sway?: number; /** >1 packs the lit-window grid tighter (smaller windows) */ windowScale?: number }) {
   if (!items.length) return null;
   return (
     <QuietModel url={url} fallback={null}>
-      <Suspense fallback={null}><Batch url={url} items={items} place={place} shadows={shadows} nightGlow={nightGlow} sway={sway} /></Suspense>
+      <Suspense fallback={null}><Batch url={url} items={items} place={place} shadows={shadows} nightGlow={nightGlow} sway={sway} windowScale={windowScale} /></Suspense>
     </QuietModel>
   );
 }

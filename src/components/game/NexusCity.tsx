@@ -48,7 +48,9 @@ function CityBuildings() {
 
   return (
     <group>
-      {byModel.map(([id, items]) => <InstancedGlb key={id} url={BUILDING_MODELS[id].url} items={items} />)}
+      {/* the hub ring stands right round the player: at the default glow its lit panels read as floodlit cyan-white walls up close
+          (owner's Nexus night frame: smaller, warmer, moderate windows, many dark) */}
+      {byModel.map(([id, items]) => <InstancedGlb key={id} url={BUILDING_MODELS[id].url} items={items} nightGlow={[0.06, 0.75]} windowScale={2} />)}
       {/* (the old "lit window" planes sat at fixed offsets that missed these towers' walls, so they floated round the skyline as
           cream rectangles; removed — the towers carry their own window textures) */}
       <DistrictLight range={120} position={[NEXUS.x, walkHeight(NEXUS.x, NEXUS.z) + 9, NEXUS.z]} color="#ffbf7a" intensity={22} distance={NEXUS.radius} decay={1.6} />

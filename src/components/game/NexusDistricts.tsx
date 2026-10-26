@@ -101,7 +101,7 @@ function Bodies({ style, list }: { style: Style; list: Building[] }) {
   const base = useMemo(() => mat.color.clone(), [mat]);
   useFrame(() => {
     const k = lampLevel(worldLight.night);
-    glowUniform.value = 0.55 + 1.65 * k;
+    glowUniform.value = 0.1 + 2.1 * k; // by day the offices are unlit glass under the sky (owner's overlook frame: pale towers), lit up after dark
     dayUniform.value = 1 - k;
     // after dark the walls fall back behind their lit windows (owner's night frames); pale concrete read as floodlit at night
     mat.color.copy(base).multiplyScalar(1 - 0.5 * k);
