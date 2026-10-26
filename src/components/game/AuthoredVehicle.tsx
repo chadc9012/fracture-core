@@ -81,7 +81,7 @@ function VehicleBody({ model, paint, cosmetics, speedRef, steerRef, brakeRef, bo
       const swap = (m: THREE.Material) => {
         const name = m.name;
         if (name === "Paint" || name === "Taillight" || name === "Headlight" || name === "Rim" || name === "Accent") {
-          const c = mine(m) as THREE.MeshStandardMaterial;
+          const c = (name === "Paint" ? carPaint(m as THREE.MeshStandardMaterial, own) : mine(m)) as THREE.MeshStandardMaterial;
           if (name === "Paint") paintMat = c; else if (name === "Rim") rimMat = c;
           else if (name === "Taillight" && !tails.includes(c)) tails.push(c);
           else if (name === "Headlight" && !heads.includes(c)) heads.push(c);
@@ -189,4 +189,24 @@ function VehicleBody({ model, paint, cosmetics, speedRef, steerRef, brakeRef, bo
 /** warm the cache for the models the world shows most */
 export function preloadFleetModels(ids: (keyof typeof FLEET_MODELS)[]) {
   for (const id of ids) useGLTF.preload(FLEET_MODELS[id].url);
+}
+
+/** Showroom car paint (owner, Oct 26 2026: "give the vehicles a visual quality boost"): the flat single-layer Paint the fleet
+ * builder writes becomes a metallic base coat under a glossy clear coat (MeshPhysicalMaterial clearcoat), so a car shows a sharp
+ * clear reflection of the sky and street lights over a softer coloured sheen, like real automotive paint. The garage paint still
+ * recolours it (it is still the rig's paintMat). Shared per source material through `own`, like every other cloned material. */
+export function carPaint(src: THREE.MeshStandardMaterial, own: Map<THREE.Material, THREE.Material>): THREE.MeshPhysicalMaterial {
+  const hit = own.get(src);
+  if (hit) return hit as THREE.MeshPhysicalMaterial;
+  const p = new THREE.MeshPhysicalMaterial({
+    name: "Paint",
+    color: src.color.clone(),
+    metalness: Math.min(src.metalness, 0.6),
+    roughness: Math.max(src.roughness, 0.38),
+    clearcoat: 1,
+    clearcoatRoughness: 0.05,
+    envMapIntensity: 1.25,
+  });
+  own.set(src, p);
+  return p;
 }
