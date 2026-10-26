@@ -1001,6 +1001,8 @@ FVector2D AWFGameMode::WorldToWaste(const FVector& L) const
 
 void AWFGameMode::WastelandHere()
 {
+	// typed by the player: lay the sites around them (the automatic placement clears this and uses the real coordinates)
+	if (bWasteAutoPlaced && bWasteActive) bWasteManual = true;
 	const APawn* Pawn = UGameplayStatics::GetPlayerPawn(this, 0);
 	if (!Pawn) return;
 	if (WasteRt.Vault || WasteRt.Rally || WasteRt.Derby) { Toast(TEXT("Finish the activity first"), WlWarn); return; }
@@ -1021,7 +1023,10 @@ void AWFGameMode::WastelandHere()
 		if (WasteRoster.IsEmpty()) UE_LOG(LogTemp, Error, TEXT("No wastelands roster (%s); activity raiders spawn as Hostiles."), *Error);
 	}
 	// the player stands at the Wastelands centre: the vault gate 78 m east, the Mash-Pit 158 m west, the rally start 113 m north
-	WasteAnchorCm = FVector2D(Pawn->GetActorLocation().X, Pawn->GetActorLocation().Y);
+	// on the real terrain the web world's coordinates are this level's (rules metres x 100), so the sites stand where the web build
+	// puts them; on a bare test map they are laid out around the player
+	const bool bRealWorld = GetTerrain() && GetTerrain()->IsLoaded() && RegionId == TEXT("wastelands") && !bWasteManual;
+	WasteAnchorCm = bRealWorld ? FVector2D(wf::wasteland::RegionCentre.X * 100.0, wf::wasteland::RegionCentre.Z * 100.0) : FVector2D(Pawn->GetActorLocation().X, Pawn->GetActorLocation().Y);
 	if (RegionId == TEXT("wastelands")) { RegionAnchorCm = WasteAnchorCm; bRegionAnchored = true; } // the Hollow Crown and the region's secrets move with it
 	if (!bWasteActive) { const UWFProgressionSubsystem* Prog = GetGameInstance()->GetSubsystem<UWFProgressionSubsystem>(); WasteRt = wf::wasteland::CreateRuntime(Prog ? Prog->GetSessionKills() : 0); }
 	bWasteActive = true;
@@ -1078,7 +1083,7 @@ int32 AWFGameMode::SpawnActivitySquad(const FString& Tag, double X, double Z, in
 void AWFGameMode::TickWasteland(float DeltaSeconds)
 {
 	// a session that starts in the Wastelands gets the three activities around where the Operator first stands
-	if (!bWasteActive && !bWasteAutoPlaced && RegionId == TEXT("wastelands") && UGameplayStatics::GetPlayerPawn(this, 0)) { bWasteAutoPlaced = true; WastelandHere(); }
+	if (!bWasteActive && !bWasteAutoPlaced && RegionId == TEXT("wastelands") && UGameplayStatics::GetPlayerPawn(this, 0)) { bWasteAutoPlaced = true; WastelandHere(); bWasteManual = false; }
 	if (!bWasteActive) return;
 	APawn* Pawn = UGameplayStatics::GetPlayerPawn(this, 0);
 	UWFProgressionSubsystem* Prog = GetGameInstance()->GetSubsystem<UWFProgressionSubsystem>();
@@ -1186,7 +1191,13 @@ void AWFGameMode::TickGodforge(float DeltaSeconds)
 	UWorld* World = GetWorld();
 	if (!Pawn || !Prog || !World) return;
 	// the level's centre is the region's centre: anchored where the Operator first stands (WastelandHere moves it in the Wastelands)
-	if (!bRegionAnchored) { RegionAnchorCm = FVector2D(Pawn->GetActorLocation().X, Pawn->GetActorLocation().Y); bRegionAnchored = true; }
+	if (!bRegionAnchored)
+	{
+		// the real terrain uses the web world's coordinates: the region's centre is its own; a bare map puts it where you stand
+		const bool bRealWorld = GetTerrain() && GetTerrain()->IsLoaded();
+		RegionAnchorCm = bRealWorld ? FVector2D(RegionCircle.X * 100.0, RegionCircle.Z * 100.0) : FVector2D(Pawn->GetActorLocation().X, Pawn->GetActorLocation().Y);
+		bRegionAnchored = true;
+	}
 	const FVector2D P = WorldToRegion(Pawn->GetActorLocation());
 	const wf::FProgression& Save = Prog->Get();
 	const AWFCharacter* Player = Cast<AWFCharacter>(Pawn);

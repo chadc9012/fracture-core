@@ -268,7 +268,7 @@ private:
 	TMap<FString, double> PendingSurvive; // survive seconds per world, sent to the quests about once a second
 	wf::wasteland::FRuntime WasteRt;
 	std::optional<wf::wasteland::FHud> WasteHud;
-	bool bWasteActive = false, bWasteAutoPlaced = false;
+	bool bWasteActive = false, bWasteAutoPlaced = false, bWasteManual = false;
 	FVector2D WasteAnchorCm = FVector2D::ZeroVector; // where the Wastelands centre sits in this level
 	TArray<FWFTroop> WasteRoster;
 	wf::vweapons::FHeat WeaponHeat;
