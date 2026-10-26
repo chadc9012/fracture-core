@@ -1,0 +1,120 @@
+# Builds the Unreal Engine version of World Fracture for Android in the cloud (no PC needed) and publishes the APK as the
+# "unreal-android-latest" GitHub release, installable straight from the phone.
+#
+# It runs Epic's official Unreal Engine container (ghcr.io/epicgames/unreal-engine). Epic only lets accounts that have
+# accepted its EULA pull it, so before the first run the repo owner:
+#   1. links their Epic Games account to GitHub (epicgames.com > Account > Apps and Accounts > GitHub) and accepts the
+#      invitation to the EpicGames organization;
+#   2. makes a classic personal access token with only `read:packages` and saves it as the repository secret
+#      EPIC_GHCR_TOKEN (Settings > Secrets and variables > Actions).
+# Then: Actions > "Unreal Android APK (cloud)" > Run workflow.
+#
+# The engine image is tens of GB. The standard GitHub machine is cleared of its preinstalled tools to make room; if a run
+# still runs out of disk, set `runner` to a larger GitHub machine (paid per minute) when starting it.
+name: Unreal Android APK (cloud)
+
+on:
+  workflow_dispatch:
+    inputs:
+      engine_image:
+        description: "Unreal Engine container (Epic's ghcr.io images; dev-slim is the smallest that can package)"
+        default: "ghcr.io/epicgames/unreal-engine:dev-slim-5.8"
+      config:
+        description: "Build configuration"
+        type: choice
+        options: [Development, Shipping]
+        default: Development
+      ndk:
+        description: "Android NDK version the engine expects (see Engine/Config/Android/Android_SDK.json in the engine)"
+        default: "27.2.12479018"
+      runner:
+        description: "GitHub machine to run on"
+        default: "ubuntu-latest"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: unreal-android-cloud
+  cancel-in-progress: false
+
+jobs:
+  apk:
+    runs-on: ${{ inputs.runner }}
+    timeout-minutes: 350
+    steps:
+      - name: Make room for the engine
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL /usr/local/share/boost /usr/local/.ghcup /opt/microsoft /usr/share/swift
+          sudo docker image prune --all --force
+          # docker keeps the engine image on the bigger /mnt disk
+          sudo systemctl stop docker
+          echo '{"data-root":"/mnt/docker"}' | sudo tee /etc/docker/daemon.json
+          sudo mkdir -p /mnt/docker && sudo systemctl start docker
+          df -h / /mnt
+
+      - uses: actions/checkout@v4
+
+      - name: Join the web build's models (one mesh per model)
+        run: |
+          bash scripts/setup-blender.sh
+          blender -b -P unreal/tools/join_models.py -- build/joined/buildings public/models/buildings/*.glb
+          blender -b -P unreal/tools/join_models.py -- build/joined/fleet public/models/fleet/*.glb
+
+      - name: Pull the Unreal Engine image
+        env:
+          EPIC_GHCR_TOKEN: ${{ secrets.EPIC_GHCR_TOKEN }}
+        run: |
+          if [ -z "$EPIC_GHCR_TOKEN" ]; then
+            echo "::error::The EPIC_GHCR_TOKEN secret is missing: see the steps at the top of this workflow."; exit 1
+          fi
+          echo "$EPIC_GHCR_TOKEN" | docker login ghcr.io -u "${{ github.repository_owner }}" --password-stdin
+          docker pull "${{ inputs.engine_image }}" || { echo "::error::Could not pull ${{ inputs.engine_image }}. Is the Epic account linked to GitHub, the EpicGames invitation accepted, and the tag right?"; exit 1; }
+          df -h /mnt
+
+      - name: Android SDK, NDK and Java for the engine
+        run: |
+          mkdir -p /mnt/android && cd /mnt/android
+          curl -sSLo tools.zip https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip
+          unzip -q tools.zip && mkdir -p sdk/cmdline-tools && mv cmdline-tools sdk/cmdline-tools/latest
+          yes | sdk/cmdline-tools/latest/bin/sdkmanager --sdk_root=/mnt/android/sdk --licenses > /dev/null
+          sdk/cmdline-tools/latest/bin/sdkmanager --sdk_root=/mnt/android/sdk "platform-tools" "platforms;android-34" "build-tools;34.0.0" "cmake;3.22.1" "ndk;${{ inputs.ndk }}" > /dev/null
+          sudo chmod -R a+rwX /mnt/android
+          ls sdk/ndk
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Build the materials and models, compile, cook and package for Android
+        run: |
+          mkdir -p build/android && chmod -R a+rwX "$PWD"
+          # the engine refuses to run as root; the image's own user (ue4) builds, with the repo, SDK and JDK mounted in
+          docker run --rm -u ue4 \
+            -v "$PWD":/project -v /mnt/android/sdk:/android/sdk -v "$JAVA_HOME":/jdk:ro \
+            -e ANDROID_HOME=/android/sdk -e NDKROOT=/android/sdk/ndk/${{ inputs.ndk }} -e NDK_ROOT=/android/sdk/ndk/${{ inputs.ndk }} \
+            -e JAVA_HOME=/jdk -e WF_JOINED_MODELS=/project/build/joined \
+            "${{ inputs.engine_image }}" bash -lc '
+              set -euo pipefail
+              ENGINE=/home/ue4/UnrealEngine # where Epic's dev images keep the engine
+              cd /project
+              "$ENGINE/Engine/Build/BatchFiles/Linux/Build.sh" WorldFractureEditor Linux Development -project=/project/unreal/WorldFracture.uproject
+              "$ENGINE/Engine/Binaries/Linux/UnrealEditor-Cmd" /project/unreal/WorldFracture.uproject -run=pythonscript -script=/project/unreal/tools/setup_assets.py -unattended -nullrhi -nosplash
+              "$ENGINE/Engine/Build/BatchFiles/RunUAT.sh" BuildCookRun -project=/project/unreal/WorldFracture.uproject \
+                -platform=Android -cookflavor=ASTC -clientconfig=${{ inputs.config }} \
+                -build -cook -stage -package -pak -archive -archivedirectory=/project/build/android -utf8output -nop4 -unattended
+            '
+
+      - name: Publish the APK
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          APK=$(find build/android -name '*.apk' -printf '%s %p\n' | sort -nr | head -1 | cut -d' ' -f2-)
+          [ -n "$APK" ] || { echo "::error::no APK was produced"; exit 1; }
+          cp "$APK" WorldFractureUE.apk
+          gh release view unreal-android-latest > /dev/null 2>&1 || gh release create unreal-android-latest --prerelease \
+            --title "World Fracture (Unreal) - Android" \
+            --notes "Unreal Engine build for Android, from the latest main. Open this page on the phone, tap WorldFractureUE.apk, allow installs from the browser."
+          gh release upload unreal-android-latest WorldFractureUE.apk --clobber
+          echo "Published $(du -h WorldFractureUE.apk | cut -f1) APK"

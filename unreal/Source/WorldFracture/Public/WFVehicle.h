@@ -55,6 +55,10 @@ public:
 	virtual void SetupPlayerInputComponent(UInputComponent* PlayerInputComponent) override;
 	virtual void PawnClientRestart() override;
 
+	/** The action behind a driving touch button (WFHUD): Drive.Fire, Drive.Secondary, Drive.Handbrake, Drive.Boost,
+	 * Drive.Ascend, Drive.Descend, Drive.Exit. Null for anything else. */
+	class UInputAction* GetTouchAction(FName Id) const;
+
 	/** The character gets in: it is hidden and carried; the controller drives this pawn. */
 	void Enter(AWFCharacter* InDriver);
 	AWFCharacter* GetDriver() const { return Driver.Get(); }
@@ -87,6 +91,8 @@ public:
 
 	/** World water surface in metres for boats and the sub (no water in the prototype map). */
 	UPROPERTY(EditAnywhere, Category = "World Fracture") float WaterLevelMeters = -100000.f;
+	/** Imported fleet models: an extra turn (degrees) if the importer's axes leave them facing sideways or backwards. */
+	UPROPERTY(EditAnywhere, Category = "World Fracture") float ImportedModelYawDeg = 0.f;
 
 protected:
 	UPROPERTY(VisibleAnywhere, Category = "Vehicle") TObjectPtr<UBoxComponent> Box;
@@ -144,5 +150,7 @@ private:
 	UPROPERTY() TObjectPtr<UInputAction> SecondaryAction;
 	UPROPERTY() TObjectPtr<UInputAction> LookAction;
 	UPROPERTY() TObjectPtr<UInputAction> ExitAction;
+	/** a stick's forward / back (gamepad left stick, the phone's left on-screen stick): throttle above, brake below */
+	UPROPERTY() TObjectPtr<UInputAction> DriveAxisAction;
 	wf::vehicle::FInput Input;
 };

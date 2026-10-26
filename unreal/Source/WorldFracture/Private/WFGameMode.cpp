@@ -24,6 +24,8 @@
 #include "WFEnemy.h"
 #include "WFHUD.h"
 #include "WFNexusCity.h"
+#include "WFTerrain.h"
+#include "WFWorldBuildings.h"
 #include "WFProgressionSubsystem.h"
 #include "WFQuestSubsystem.h"
 #include "WFRaceSubsystem.h"
@@ -46,8 +48,14 @@ void AWFGameMode::StartPlay()
 {
 	Super::StartPlay();
 	const bool bRoster = LoadRoster();
+	SpawnTerrain();
 	SpawnNexusCity();
-	if (IsInNexus()) PlaceAtNexus(); // before the floor probe, so it finds the city's ground
+	SpawnWorldBuildings(); // after the city: it levels the ground the buildings near it stand on
+	// the player starts in their region: Nexus on the hub's spawn pad, anywhere else at the region's centre on the land
+	if (IsInNexus()) PlaceAtNexus();
+	else PlaceInRegion();
+	if (Terrain.IsValid())
+		if (const APawn* Pawn = UGameplayStatics::GetPlayerPawn(this, 0)) Terrain->BuildAround(Pawn->GetActorLocation(), 300); // ground under them now
 	EnsurePlayableWorld();
 	if (IsInNexus() && NexusCity.IsValid()) NexusCity->ApplyNightLook();
 	if (!bRoster) UE_LOG(LogTemp, Error, TEXT("No roster for region %s; no enemies will spawn."), *RegionId);
@@ -117,14 +125,73 @@ void AWFGameMode::EnsurePlayableWorld()
 	}
 }
 
+void AWFGameMode::SpawnTerrain()
+{
+	if (Terrain.IsValid() || !GetWorld()) return;
+	FActorSpawnParameters Params;
+	Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+	AWFTerrain* Ground = GetWorld()->SpawnActor<AWFTerrain>(AWFTerrain::StaticClass(), FTransform::Identity, Params);
+	if (Ground && Ground->Load())
+	{
+		Terrain = Ground;
+		// the level's own template floor would poke through the land (the terrain is the ground now)
+		for (TActorIterator<AStaticMeshActor> It(GetWorld()); It; ++It)
+		{
+			const UStaticMeshComponent* Mesh = It->GetStaticMeshComponent();
+			const FString Name = Mesh && Mesh->GetStaticMesh() ? Mesh->GetStaticMesh()->GetName() : FString();
+			if (Name.Contains(TEXT("Floor")) || Name.Contains(TEXT("Template")))
+			{
+				It->SetActorHiddenInGame(true);
+				It->SetActorEnableCollision(false);
+			}
+		}
+	}
+	else if (Ground) Ground->Destroy();
+}
+
 void AWFGameMode::SpawnNexusCity()
 {
 	if (NexusCity.IsValid() || !GetWorld()) return;
+	// deferred: the city has to know whether it stands on the terrain before it builds (at BeginPlay)
+	AWFNexusCity* City = GetWorld()->SpawnActorDeferred<AWFNexusCity>(AWFNexusCity::StaticClass(), FTransform::Identity, nullptr, nullptr, ESpawnActorCollisionHandlingMethod::AlwaysSpawn);
+	if (!City) return;
+	City->bOnTerrain = Terrain.IsValid();
+	City->FinishSpawning(FTransform::Identity);
+	if (!City->IsBuilt()) { City->Destroy(); return; }
+	NexusCity = City;
+	// level the land under the city to its hub ground, blending back to the hills past its edge
+	if (Terrain.IsValid())
+	{
+		const FVector Hub = City->GetHubCentre() / 100.0;
+		Terrain->SetFlatPad(Hub.X, Hub.Y, City->GetDatum(), City->GetCityRadius() + 15, City->GetCityRadius() + 50);
+	}
+}
+
+void AWFGameMode::SpawnWorldBuildings()
+{
+	if (WorldBuildings.IsValid() || !GetWorld()) return;
 	FActorSpawnParameters Params;
 	Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
-	AWFNexusCity* City = GetWorld()->SpawnActor<AWFNexusCity>(AWFNexusCity::StaticClass(), FTransform::Identity, Params);
-	if (City && City->Build()) NexusCity = City;
-	else if (City) City->Destroy();
+	AWFWorldBuildings* Built = GetWorld()->SpawnActor<AWFWorldBuildings>(AWFWorldBuildings::StaticClass(), FTransform::Identity, Params);
+	if (Built && Built->Build(Terrain.Get())) WorldBuildings = Built;
+	else if (Built) Built->Destroy();
+}
+
+void AWFGameMode::PlaceInRegion()
+{
+	APawn* Pawn = UGameplayStatics::GetPlayerPawn(this, 0);
+	if (!Pawn || !Terrain.IsValid()) return; // no terrain: keep the level's own start
+	FString Error;
+	TArray<TSharedPtr<FJsonObject>> Rows;
+	if (!WFData::LoadRows(TEXT("Regions"), Rows, Error)) return;
+	for (const TSharedPtr<FJsonObject>& Row : Rows)
+	{
+		if (WFData::Str(Row, TEXT("Id")) != RegionId) continue;
+		const double X = WFData::Num(Row, TEXT("X")), Z = WFData::Num(Row, TEXT("Z"));
+		const double Ground = FMath::Max(Terrain->HeightAt(X, Z), Terrain->GetWaterLevel());
+		Pawn->SetActorLocation(FVector(X * 100.0, Z * 100.0, Ground * 100.0 + 200.0), false, nullptr, ETeleportType::TeleportPhysics);
+		return;
+	}
 }
 
 void AWFGameMode::PlaceAtNexus()
@@ -144,6 +211,7 @@ void AWFGameMode::GoNexus()
 	Squad.Reset();
 	LoadRoster(TEXT("nexus"));
 	PlaceAtNexus();
+	if (Terrain.IsValid()) Terrain->BuildAround(NexusCity->GetSpawnLocation(), 300);
 	NexusCity->ApplyNightLook();
 	Toast(TEXT("Nexus City"), FLinearColor(0.45f, 0.9f, 1.f));
 }
@@ -702,6 +770,7 @@ double AWFGameMode::GroundZ(double XCm, double YCm, double FallbackCm) const
 	Params.AddIgnoredActor(UGameplayStatics::GetPlayerPawn(this, 0));
 	if (World && World->LineTraceSingleByChannel(Hit, FVector(XCm, YCm, FallbackCm + 20000), FVector(XCm, YCm, FallbackCm - 50000), ECC_Visibility, Params))
 		return Hit.ImpactPoint.Z;
+	if (Terrain.IsValid()) return Terrain->HeightAtCm(XCm, YCm); // beyond the streamed tiles: the heightmap itself
 	return FallbackCm;
 }
 

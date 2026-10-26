@@ -228,7 +228,7 @@ void AWFHUD::DrawHUD()
 		Toasts.RemoveAll([Now](const FToast& T) { return T.Until < Now; });
 		float TY = 32;
 		for (const FToast& T : Toasts) { Line(T.Text, W - 460, TY, T.Color); TY += 26; }
-		for (const FName& Id : HeldIds()) ReleaseTouch(Id); // driving: let go of anything held on foot
+		DrawTouchControls(W, H); // the driving buttons (anything held on foot lets go once its finger lifts)
 		return; // the on-foot panels are for the Operator
 	}
 
@@ -398,6 +398,23 @@ namespace
 		{TEXT("Ability3"), TEXT("X"), 0.13f, 0.86f, 0.065f},
 		{TEXT("Hack"), TEXT("HACK"), 0.45f, 0.86f, 0.065f},
 	};
+	// driving: the left stick steers and drives (up throttle, down brake / reverse), the right stick aims the guns
+	const FTouchButton DriveButtons[] = {
+		{TEXT("Drive.Fire"), TEXT("FIRE"), 0.20f, 0.38f, 0.115f},
+		{TEXT("Drive.Secondary"), TEXT("ALT"), 0.33f, 0.30f, 0.085f},
+		{TEXT("Drive.Handbrake"), TEXT("DRIFT"), 0.09f, 0.50f, 0.085f},
+		{TEXT("Drive.Boost"), TEXT("BOOST"), 0.86f, 0.52f, 0.08f},
+		{TEXT("Drive.Ascend"), TEXT("UP"), 0.33f, 0.47f, 0.07f},
+		{TEXT("Drive.Descend"), TEXT("DOWN"), 0.20f, 0.58f, 0.07f},
+		{TEXT("Drive.Exit"), TEXT("EXIT"), 0.45f, 0.40f, 0.07f},
+	};
+}
+
+UInputAction* AWFHUD::TouchActionFor(FName Id) const
+{
+	if (const AWFCharacter* Player = Cast<AWFCharacter>(GetOwningPawn())) return Player->GetTouchAction(Id);
+	if (const AWFVehicle* Vehicle = Cast<AWFVehicle>(GetOwningPawn())) return Vehicle->GetTouchAction(Id);
+	return nullptr;
 }
 
 bool AWFHUD::WantsTouchControls() const
@@ -409,8 +426,8 @@ bool AWFHUD::WantsTouchControls() const
 void AWFHUD::DrawTouchControls(float W, float H)
 {
 	if (!WantsTouchControls()) return;
-	const AWFCharacter* Player = Cast<AWFCharacter>(GetOwningPawn());
-	if (!Player) return;
+	const bool bDriving = Cast<AWFVehicle>(GetOwningPawn()) != nullptr;
+	if (!bDriving && !Cast<AWFCharacter>(GetOwningPawn())) return;
 	if (APlayerController* PC = GetOwningPlayerController())
 	{
 		// hit boxes only see touches (and, for -touchhud on a PC, clicks) with these on
@@ -437,7 +454,8 @@ void AWFHUD::DrawTouchControls(float W, float H)
 		}
 	}
 	const float Unit = FMath::Min(W, H);
-	for (const FTouchButton& B : TouchButtons)
+	const TArrayView<const FTouchButton> Buttons = bDriving ? TArrayView<const FTouchButton>(DriveButtons) : TArrayView<const FTouchButton>(TouchButtons);
+	for (const FTouchButton& B : Buttons)
 	{
 		const float Size = B.Size * Unit;
 		const float X = W - B.Right * W - Size / 2, Y = H - B.Bottom * H - Size / 2;
@@ -456,9 +474,8 @@ void AWFHUD::DrawTouchControls(float W, float H)
 void AWFHUD::NotifyHitBoxClick_Implementation(FName BoxName)
 {
 	Super::NotifyHitBoxClick_Implementation(BoxName);
-	const AWFCharacter* Player = Cast<AWFCharacter>(GetOwningPawn());
 	const APlayerController* PC = GetOwningPlayerController();
-	UInputAction* Action = Player ? Player->GetTouchAction(BoxName) : nullptr;
+	UInputAction* Action = TouchActionFor(BoxName);
 	UEnhancedInputLocalPlayerSubsystem* Input = PC ? ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(PC->GetLocalPlayer()) : nullptr;
 	if (!Action || !Input || HeldTouch.Contains(BoxName)) return;
 	const FInputActionValue Value = Action->ValueType == EInputActionValueType::Boolean ? FInputActionValue(true) : FInputActionValue(1.f);

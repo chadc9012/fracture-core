@@ -36,3 +36,10 @@ __pycache__/
 # together they run to ~60 MB of text and the Lovable preview build stopped succeeding as they grew
 unreal/Plugins/WorldFractureCore/Tests/*_golden.txt
 .claude/worktrees/
+
+# Unreal build outputs (the Unreal workflows: joined models, packaged APKs) and the engine's generated folders
+/build/
+unreal/Binaries/
+unreal/Intermediate/
+unreal/Saved/
+unreal/DerivedDataCache/

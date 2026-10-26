@@ -40,7 +40,32 @@ from anywhere else, `GoNexus` at the console walks you in.
 Gamepad: left stick move, right stick look, A jump, RT fire, LT aim, L3 sprint, B crouch, X reload, Y interact,
 RB / LB next / previous weapon, D-pad down call vehicle, up ride Vyrak, right hack.
 
+## The world
+- **Terrain:** `DataTables/Terrain.bin` is the web build's own ground (terrain.ts heightAt: hills, rivers carved, supply
+  roads graded) every 4 m over the whole planet map, exported by `tools/export-terrain.ts`. AWFTerrain streams it as mesh
+  tiles with collision around you (900 m on PC, 500 m on phones), tints it by region (shore sand, slope rock, snow up
+  high) and lays the sea at the web build's water level, which boats and the sub float and dive in. You start at your
+  region's centre. Nexus City stands at its real height on a levelled pad.
+- **Everything else built:** `DataTables/WorldBuildings.json` (`tools/export-world-buildings.ts`) holds Neon City's 36
+  towers and 151 street lights; the twelve walk-in homes (suburban houses, townhouses, a duplex, a courtyard home,
+  apartments, condos, a loft, a villa) with their garages, walls with real door gaps so you walk in; the nine towers of
+  the jungle-reclaimed city in Verdant Forest; and an airport and a seaport at every landing zone. AWFWorldBuildings builds
+  them instanced on the terrain, with a light pool for their lamps.
+- **Real materials and models:** `tools/setup_assets.py` runs inside the editor and makes the materials (lit surface,
+  unlit neon glow, glass, vertex-coloured terrain, water) and imports the web build's 17 building and 22 vehicle models
+  (first joined to one mesh each by `tools/join_models.py`, with Blender). The game picks them up by path when they exist:
+  the Nexus hub towers and Neon towers become the authored buildings and every vehicle its fleet model. Both Android
+  workflows run it before cooking. Rigged characters (Operators, enemies, bosses) are not imported yet: they need
+  skeletons and animation set up in the editor.
+
+Re-export after a world change in the web build (from the repo root, each bundled with esbuild like the city):
+`tools/export-terrain.ts`, `tools/export-nexus-city.ts`, `tools/export-world-buildings.ts`.
+
 ## Android (APK)
+**No PC (cloud):** link your Epic Games account to GitHub, accept the EpicGames organization invite, save a classic token
+with `read:packages` as the repo secret `EPIC_GHCR_TOKEN`, then run the **Unreal Android APK (cloud)** workflow. It uses
+Epic's official engine container on GitHub's machines (a larger paid machine if the standard one runs out of disk).
+
 Build it on the Windows PC (Unreal can't package for Android anywhere else):
 1. Install Android Studio, then run `<UE 5.8>\Engine\Extras\Android\SetupAndroid.bat` once (it fetches the SDK and NDK the
    engine wants).
@@ -53,7 +78,7 @@ landscape and full screen, and uses mobile deferred shading so all of Nexus City
 phone the engine's on-screen sticks move (left) and look (right) through the same Enhanced Input actions as WASD and the
 mouse, and the HUD draws buttons for fire, aim, jump, reload, crouch, swap, sprint, interact, hack and the three class
 abilities, which press those same actions (start any PC build with `-touchhud` to try the layout with a mouse).
-Driving has no touch controls yet.
+Driving has its own buttons (fire, alt fire, drift, boost, up, down, exit) with the left stick driving and steering and the right stick aiming.
 
 Until then the phone build is the web game (`mobile/`, the `android-latest` release), which is the whole game today.
 

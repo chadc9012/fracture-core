@@ -14,6 +14,7 @@ public class WorldFracture : ModuleRules
 			"Engine",
 			"InputCore",
 			"EnhancedInput",
+			"ProceduralMeshComponent", // AWFTerrain's streamed ground tiles
 			"AIModule",
 			"Json",
 			"WorldFractureCore",

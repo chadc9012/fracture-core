@@ -14,6 +14,8 @@
 
 class AWFEnemy;
 class AWFNexusCity;
+class AWFTerrain;
+class AWFWorldBuildings;
 
 /** A trooper of the current region's roster (DataTables/RegionalEncounters.json, from encounters.ts). */
 struct FWFTroop
@@ -48,6 +50,8 @@ public:
 
 	/** Nexus City (AWFNexusCity, built from DataTables/NexusCity.json): it always stands at the Nexus region's coordinates. */
 	AWFNexusCity* GetNexusCity() const { return NexusCity.Get(); }
+	/** The ground (AWFTerrain, the web build's heightmap); null if DataTables/Terrain.bin is missing. */
+	AWFTerrain* GetTerrain() const { return Terrain.Get(); }
 	/** GoNexus: walks you into Nexus City now (the hub's spawn pad, at night), whatever region the save is in. */
 	UFUNCTION(Exec) void GoNexus();
 
@@ -198,6 +202,11 @@ private:
 	/** the current region's data and trooper roster; Override picks a region instead of the save's current world */
 	bool LoadRoster(const FString& Override = FString());
 	void SpawnNexusCity();
+	void SpawnTerrain();
+	/** Neon City, the walk-in homes and garages, the reclaimed city, airports and seaports (AWFWorldBuildings) */
+	void SpawnWorldBuildings();
+	/** the player at their region's centre, on the land */
+	void PlaceInRegion();
 	/** the player on the hub's spawn pad, facing the plaza */
 	void PlaceAtNexus();
 	void SpawnTrooper();
@@ -286,6 +295,8 @@ private:
 	int32 NextScenario = 0;
 
 	TWeakObjectPtr<AWFNexusCity> NexusCity;
+	TWeakObjectPtr<AWFTerrain> Terrain;
+	TWeakObjectPtr<AWFWorldBuildings> WorldBuildings;
 	FString RegionId;
 	FString RegionName;
 	double RegionDifficulty = 0;

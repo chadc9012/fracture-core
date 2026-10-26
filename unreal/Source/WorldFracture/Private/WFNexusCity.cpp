@@ -20,6 +20,7 @@
 #include "Misc/Paths.h"
 #include "Serialization/JsonReader.h"
 #include "Serialization/JsonSerializer.h"
+#include "WFAssets.h"
 #include "WFDataFiles.h"
 
 namespace
@@ -135,24 +136,38 @@ UInstancedStaticMeshComponent* AWFNexusCity::Batch(UStaticMesh* Mesh, const FLin
 	return Ism;
 }
 
+UInstancedStaticMeshComponent* AWFNexusCity::ModelBatch(UStaticMesh* Mesh)
+{
+	const FString Key = FString::Printf(TEXT("model|%s"), *Mesh->GetPathName());
+	if (UInstancedStaticMeshComponent** Found = BatchByKey.Find(Key)) return *Found;
+	UInstancedStaticMeshComponent* Ism = NewObject<UInstancedStaticMeshComponent>(this);
+	Ism->SetMobility(EComponentMobility::Movable);
+	Ism->SetupAttachment(Root);
+	Ism->SetStaticMesh(Mesh);
+	Ism->SetCollisionProfileName(TEXT("BlockAll"));
+	Batches.Add(Ism);
+	BatchByKey.Add(Key, Ism);
+	return Ism;
+}
+
 void AWFNexusCity::Box(UInstancedStaticMeshComponent* To, double X, double Y, double Z, double SX, double SY, double SZ, double Yaw) const
 {
 	if (!To || SX <= 0 || SY <= 0 || SZ <= 0) return;
 	// engine cube: 1 m, centred; web x/z/y = Unreal X/Y/Z, so a web size (sx, sy up, sz) scales (X, Y, Z) = (sx, sz, sy)
-	const FTransform Xf(FRotator(0.f, static_cast<float>(UnrealYawDeg(Yaw)), 0.f), FVector(X, Z, Y) * CityCmPerM, FVector(SX, SZ, SY));
+	const FTransform Xf(FRotator(0.f, static_cast<float>(UnrealYawDeg(Yaw)), 0.f), FVector(X, Z, Y + DatumM) * CityCmPerM, FVector(SX, SZ, SY));
 	To->AddInstance(Xf, true);
 }
 
 void AWFNexusCity::Cylinder(UInstancedStaticMeshComponent* To, double X, double Y, double Z, double Diameter, double Height) const
 {
 	if (!To || Diameter <= 0 || Height <= 0) return;
-	const FTransform Xf(FRotator::ZeroRotator, FVector(X, Z, Y) * CityCmPerM, FVector(Diameter, Diameter, Height));
+	const FTransform Xf(FRotator::ZeroRotator, FVector(X, Z, Y + DatumM) * CityCmPerM, FVector(Diameter, Diameter, Height));
 	To->AddInstance(Xf, true);
 }
 
 void AWFNexusCity::AddLightSpot(double X, double Y, double Z, const FLinearColor& Color, float Intensity, float Radius)
 {
-	LightSpots.Add({FVector(X, Z, Y) * CityCmPerM, Color, Intensity, Radius});
+	LightSpots.Add({FVector(X, Z, Y + DatumM) * CityCmPerM, Color, Intensity, Radius});
 }
 
 bool AWFNexusCity::Build()
@@ -184,14 +199,19 @@ bool AWFNexusCity::Build()
 	const double RoadR = Hub->GetNumberField(TEXT("RoadR")), RoadHalf = Hub->GetNumberField(TEXT("RoadHalf"));
 	const TArray<FLinearColor> ShopTints = Colors(City, TEXT("ShopTints"));
 	const TArray<FLinearColor> SignColors = Colors(City, TEXT("SignColors"));
-	HubCentre = FVector(HX, HZ, 0) * CityCmPerM;
+	if (bOnTerrain) DatumM = City->GetNumberField(TEXT("Datum"));
+	CityRadiusM = Outer;
+	HubCentre = FVector(HX, HZ, DatumM) * CityCmPerM;
+	if (!SurfaceMaterial) SurfaceMaterial = WFAssets::Material(TEXT("M_WF_Surface"));
+	if (!NeonMaterial) NeonMaterial = WFAssets::Material(TEXT("M_WF_Neon"));
 
 	UStaticMesh* Cube = CubeMesh.Get();
 	UStaticMesh* Cyl = CylinderMesh.Get();
 
 	// ---- ground: one asphalt slab under the whole city (top at Z = 0), the plaza, promenade ring and ring-road lines ----
 	const double Span = (Outer + 20) * 2;
-	Box(Batch(Cube, Asphalt, false, true), HX, -0.5, HZ, Span, 1.0, Span);
+	if (bOnTerrain) Cylinder(Batch(Cyl, Asphalt, false, true), HX, -0.47, HZ, (Outer + 15) * 2, 1.0); // the terrain pad's flat disc
+	else Box(Batch(Cube, Asphalt, false, true), HX, -0.5, HZ, Span, 1.0, Span);
 	const double PlazaR = RoadR - RoadHalf;
 	Cylinder(Batch(Cyl, PlazaStone, false, true), HX, 0.06, HZ, PlazaR * 2, 0.12);
 	{
@@ -219,7 +239,7 @@ bool AWFNexusCity::Build()
 		Cylinder(Batch(Cyl, Metal, false, true), SX, 0.08, SZ, 5.0, 0.16);
 		Cylinder(Batch(Cyl, HubCyan, true, false), SX, 0.17, SZ, 3.6, 0.02);
 		AddLightSpot(SX, 1.5, SZ, HubCyan, 60.f, 900.f);
-		SpawnLocation = FVector(SX, SZ, 0) * CityCmPerM + FVector(0, 0, 120);
+		SpawnLocation = FVector(SX, SZ, DatumM) * CityCmPerM + FVector(0, 0, 120);
 		SpawnRotation = FRotator(0.f, static_cast<float>(FMath::RadiansToDegrees(FMath::Atan2(HZ - SZ, HX - SX))), 0.f);
 	}
 
@@ -228,6 +248,14 @@ bool AWFNexusCity::Build()
 	{
 		const double X = T.N(0), Z = T.N(1), W = T.N(2), D = T.N(3), H = T.N(4), Rot = T.N(5);
 		const bool bSpire = T.S(6).Contains(TEXT("spire"));
+		if (UStaticMesh* Model = WFAssets::Mesh(TEXT("Buildings"), T.S(6)))
+		{
+			// the web build's authored tower (footprint centre at the origin, ground at 0, lobby toward +z)
+			const FTransform Xf(FRotator(0.f, static_cast<float>(UnrealYawDeg(Rot)) + ImportedModelYawDeg, 0.f), FVector(X, Z, DatumM) * CityCmPerM);
+			ModelBatch(Model)->AddInstance(Xf, true);
+			AddLightSpot(X + Turn(0, D / 2 + 0.6, Rot).X, 3.2, Z + Turn(0, D / 2 + 0.6, Rot).Y, WarmWindow, 45.f, 800.f);
+			continue;
+		}
 		Box(Batch(Cube, bSpire ? Glass : Concrete, false, true), X, H / 2 - 0.5, Z, W, H + 1, D, Rot);
 		Box(Batch(Cube, DarkStone, false, true), X, 2.1, Z, W + 0.3, 4.2, D + 0.3, Rot);
 		// lobby canopy and doors on the front (+z, toward the plaza)
