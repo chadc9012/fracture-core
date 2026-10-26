@@ -3,7 +3,9 @@ import { useMemo, useRef } from "react";
 import * as THREE from "three";
 import { enemyBodyScale } from "@/game/enemy-visuals";
 import { MAX_SUMMONED, isSummoned } from "@/game/encounter-sim";
+import { MAX_TURRETS, skillOf } from "@/game/summon-skills";
 import type { WorldSim } from "@/game/sim";
+import { walkHeight } from "@/game/terrain";
 
 /** Procedural bodies for the troops Astravore calls in (Void Reaver, Void Vanguard, Void Arcanist, Void Sentinel): void-violet
  *  armor with glowing seams, so they read as his spawn rather than as ordinary raiders. A fixed pool of MAX_SUMMONED stands in for
@@ -78,9 +80,22 @@ function Sentinel() {
   </group>;
 }
 
+/** Void Turret: a short tripod with a single violet-lit barrel, deployed by a Void Sentinel */
+function Turret() {
+  return <group name="Void Turret">
+    {[0, 2.1, 4.2].map((a) => <mesh key={a} position={[Math.sin(a) * 0.45, 0.4, Math.cos(a) * 0.45]} rotation={[Math.cos(a) * 0.35, 0, -Math.sin(a) * 0.35]}><boxGeometry args={[0.1, 0.9, 0.1]} />{armor}</mesh>)}
+    <mesh position={[0, 1.0, 0]}><boxGeometry args={[0.6, 0.45, 0.6]} />{plate}</mesh>
+    <mesh position={[0, 1.05, 0.65]}><boxGeometry args={[0.16, 0.16, 0.9]} />{armor}</mesh>
+    <mesh position={[0, 1.05, 1.12]}><boxGeometry args={[0.1, 0.1, 0.06]} />{glow(HOT, 2)}</mesh>
+    <mesh position={[0, 1.3, 0]}><sphereGeometry args={[0.12, 8, 6]} />{glow(VIOLET, 2)}</mesh>
+  </group>;
+}
+
 export function SummonBodies({ sim }: { sim: WorldSim }) {
   const root = useRef<THREE.Group>(null!);
-  const slots = useMemo(() => Array.from({ length: MAX_SUMMONED }, (_, i) => i), []);
+  const POOL = MAX_SUMMONED + MAX_TURRETS;
+  const slots = useMemo(() => Array.from({ length: POOL }, (_, i) => i), [POOL]);
+  const rings = useRef<THREE.Group>(null!);
   useFrame((state) => {
     const g = root.current;
     if (!g) return;
@@ -91,7 +106,8 @@ export function SummonBodies({ sim }: { sim: WorldSim }) {
       if (!node) return;
       const m = live[i];
       node.visible = !!m;
-      if (!m) return;
+      const r0 = rings.current?.children[i];
+      if (!m) { if (r0) r0.visible = false; return; }
       for (const c of node.children) c.visible = c.name === m.profile;
       const s = enemyBodyScale(m.scale);
       node.position.set(m.x, m.y - 2.2 * m.scale, m.z);
@@ -100,8 +116,19 @@ export function SummonBodies({ sim }: { sim: WorldSim }) {
       const body = node.children.find((c) => c.name === m.profile);
       const orbs = body?.children.filter((c) => c.name === "orb") ?? [];
       orbs.forEach((o, k) => { o.position.y = 1.75 + Math.sin(t * 2 + i + k * 2) * 0.1; });
+      const ring = rings.current?.children[i] as THREE.Mesh | undefined, sk = skillOf(m);
+      if (ring) {
+        ring.visible = !!sk && sk.st === "TELL";
+        if (sk && ring.visible) {
+          const p = 1 - sk.t / (sk.total || 1);
+          ring.position.set(sk.tx, walkHeight(sk.tx, sk.tz) + 0.15, sk.tz);
+          ring.scale.setScalar(Math.max(0.2, sk.radius));
+          (ring.material as THREE.MeshBasicMaterial).opacity = 0.25 + 0.6 * p;
+        }
+      }
       if (m.profile === "Void Reaver") body!.position.y = Math.abs(Math.sin(t * 9 + i)) * 0.05;
     });
   });
-  return <group ref={root}>{slots.map((i) => <group key={i} visible={false}><Vanguard /><Reaver /><Arcanist /><Sentinel /></group>)}</group>;
+  return <group ref={root}>{slots.map((i) => <group key={i} visible={false}><Vanguard /><Reaver /><Arcanist /><Sentinel /><Turret /></group>)}
+    <group ref={rings}>{slots.map((i) => <mesh key={i} visible={false} rotation={[-Math.PI / 2, 0, 0]}><ringGeometry args={[0.82, 1, 40]} /><meshBasicMaterial color="#ff5a3c" transparent opacity={0.6} depthWrite={false} side={THREE.DoubleSide} /></mesh>)}</group></group>;
 }
