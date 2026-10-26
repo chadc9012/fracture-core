@@ -48,6 +48,10 @@ namespace wf::hit
 			{"CINDER", {"ANY", "Explosive \xC2\xB7 burns", Inf, Inf, 1, 1}},
 			{"FROSTBITE", {"ANY", "Explosive \xC2\xB7 chills", Inf, Inf, 1, 1}},
 			{"VITRIOL", {"ANY", "Explosive \xC2\xB7 corrodes", Inf, Inf, 1, 1}},
+			{"SMG", {"CLOSE", "Fastest fire \xC2\xB7 close range", 14, 32, 0.55, 1.35}},
+			{"SNIPER", {"LONG", "One shot \xC2\xB7 aim down sights", 150, 250, 0.9, 2.4}},
+			{"LMG", {"MID", "Big magazine \xC2\xB7 sustained fire", 32, 60, 0.7, 1.4}},
+			{"FUSION", {"CLOSE", "Five-bolt volley \xC2\xB7 close to mid", 18, 36, 0.4, 1.1}},
 		};
 		for (const auto& [Id, M] : Table) if (Id == WeaponId) return &M;
 		return nullptr;
@@ -63,9 +67,9 @@ namespace wf::hit
 
 	bool HasAffinity(const std::string& ClassId, const std::string& WeaponId)
 	{
-		if (ClassId == "TITAN") return WeaponId == "AUTO" || WeaponId == "SHOTGUN";
-		if (ClassId == "HUNTER") return WeaponId == "SIDEARM" || WeaponId == "PULSE";
-		if (ClassId == "WARLOCK") return WeaponId == "HEAVY" || WeaponId == "ROCKET" || WeaponId == "CINDER" || WeaponId == "FROSTBITE" || WeaponId == "VITRIOL";
+		if (ClassId == "TITAN") return WeaponId == "AUTO" || WeaponId == "SHOTGUN" || WeaponId == "LMG";
+		if (ClassId == "HUNTER") return WeaponId == "SIDEARM" || WeaponId == "PULSE" || WeaponId == "SNIPER";
+		if (ClassId == "WARLOCK") return WeaponId == "HEAVY" || WeaponId == "FUSION" || WeaponId == "SMG" || WeaponId == "ROCKET" || WeaponId == "CINDER" || WeaponId == "FROSTBITE" || WeaponId == "VITRIOL";
 		return false;
 	}
 
@@ -78,6 +82,59 @@ namespace wf::hit
 	double HitMultiplier(const std::string& WeaponId, double Distance, bool bPrecision, const std::string& ClassId)
 	{
 		return RangeFalloff(WeaponId, Distance) * (bPrecision ? PrecisionFor(WeaponId, ClassId) : 1) * (HasAffinity(ClassId, WeaponId) ? AffinityDamage : 1);
+	}
+
+	const FFrame* GearFrame(const std::string& FrameId)
+	{
+		static const std::vector<FFrame> Table{
+			{"SMG", "Submachine Gun", 0.72, 0.065, 1, 0, 0.026, 0.55, 0.005, 0.6, 0.55, 0.45, 40, 240, 1.5, "AUTO"},
+			{"SNIPER", "Sniper Rifle", 6.5, 1.05, 1, 0, 0.06, 0.08, 0.07, 3, 2.4, 2.8, 5, 30, 2.6, "HEAVY"},
+			{"LMG", "Light Machine Gun", 1.05, 0.095, 1, 0, 0.045, 0.45, 0.009, 0.9, 0.75, 0.7, 80, 320, 3.6, "AUTO"},
+			{"FUSION", "Fusion Rifle", 1.75, 1.1, 5, 0.035, 0.02, 0.6, 0.03, 1.4, 1.6, 1.8, 20, 100, 2.2, "PULSE"},
+		};
+		for (const FFrame& F : Table) if (F.Id == FrameId) return &F;
+		return nullptr;
+	}
+
+	namespace
+	{
+		bool HtWord(char C) { return (C >= 'a' && C <= 'z') || (C >= 'A' && C <= 'Z') || (C >= '0' && C <= '9') || C == '_'; }
+		/** /\bword\b/ over ASCII word characters */
+		bool HtWordIn(const std::string& S, const std::string& W)
+		{
+			for (size_t I = S.find(W); I != std::string::npos; I = S.find(W, I + 1))
+				if ((I == 0 || !HtWord(S[I - 1])) && (I + W.size() >= S.size() || !HtWord(S[I + W.size()]))) return true;
+			return false;
+		}
+		bool HtIn(const std::string& S, const char* W) { return S.find(W) != std::string::npos; }
+	}
+
+	std::string ItemClass(const std::string& Name, const std::function<std::string(const std::string&)>& CatalogClass)
+	{
+		if (Name.empty()) return "";
+		if (CatalogClass) { const std::string C = CatalogClass(Name); if (!C.empty()) return C; }
+		std::string N = Name;
+		for (char& C : N) C = static_cast<char>(C >= 'A' && C <= 'Z' ? C - 'A' + 'a' : C);
+		if (HtWordIn(N, "smg") || HtIn(N, "sub-carbine") || HtIn(N, "submachine")) return "smg";
+		if (HtWordIn(N, "dmr") || HtIn(N, "sniper") || HtIn(N, "crossbow") || HtWordIn(N, "bow") || HtIn(N, "marksman")) return "sniper";
+		if (HtWordIn(N, "lmg") || HtWordIn(N, "mg") || HtIn(N, "minigun") || HtIn(N, "repeater") || HtIn(N, "machine gun")) return "lmg";
+		if (HtIn(N, "fusion") || HtIn(N, "caster") || HtIn(N, "disruptor") || HtIn(N, "lance")) return "fusion";
+		if (HtIn(N, "shotgun") || HtWordIn(N, "sg")) return "shotgun";
+		return "";
+	}
+
+	std::string FrameFor(const std::string& SlotGun, const std::string& Cls)
+	{
+		if (SlotGun == "AUTO")
+		{
+			if (Cls == "smg") return "SMG";
+			if (Cls == "sniper" || Cls == "crossbow") return "SNIPER";
+			if (Cls == "fusion" || Cls == "special") return "FUSION";
+			if (Cls == "shotgun") return "SHOTGUN";
+			return "AUTO";
+		}
+		if (SlotGun == "HEAVY" && Cls == "lmg") return "LMG";
+		return SlotGun;
 	}
 
 	double EnemyPower(double Difficulty, bool bElite, bool bBoss) { return 90 + 30 * std::max(0.0, Difficulty) + (bBoss ? 20 : bElite ? 10 : 0); }

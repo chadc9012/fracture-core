@@ -89,7 +89,9 @@ Until then the phone build is the web game (`mobile/`, the `android-latest` rele
   pulse rifle, Warlock heavy cannon and launchers: +12%, more precision). Every source of your damage is scaled by your
   power level (equipped gear and level) against the enemy's region. Elemental guns and launchers burn, chill (slow),
   corrode (vulnerable) or shock (brief stun, with a cooldown); bosses are never burned, chilled or locked down. Heavy
-  hits stagger troopers and push a shot's wind-up back.
+  hits stagger troopers and push a shot's wind-up back. The equipped item's class decides how its slot fires
+  (weapon-classes.ts): an SMG, sniper (or crossbow), fusion rifle or shotgun in the primary slot fires as that class,
+  a light machine gun in the heavy slot as an LMG, each with its own stats, range band and headshot multiplier.
 - **Evolution and exotic perks:** five hidden ruins (Ember Peaks, Frostspire, the Swamps, the Wastelands, Solara) appear
   once you come within 40 m; `Evolve <weapon id>` there turns a level 5 weapon into its element with +60 power and an
   ability that bursts every few hits (Ember Brand, Rime Shatter, Rot Bloom, Storm Arc, Sun Flare). The Godforge's
@@ -288,7 +290,7 @@ cmake -S . -B build -G Ninja && cmake --build build && ctest --test-dir build --
 | BountyCoreTest | activity-payouts.ts payoutFor / payInto / tagLegacyPayouts / payFlat (raids reset weekly) | 400 ledgers, 8,939 payouts, 17,866 checks |
 | EnvironmentCoreTest | world.ts clock, weather-cycle.ts, environment.ts | 3,000 clock times, 12,000 weather samples, 48,000 hazard steps, 111,000 checks |
 | NemesisCoreTest | nemesis.ts | 16,938 events, 36,051 checks |
-| HitCoreTest | weapon-elements.ts, weapon-meta.ts, weapon-evolution.ts, null-disruption.ts, maw-collapse.ts, enemy-reactions.ts | 36,025 checks |
+| HitCoreTest | weapon-elements.ts, weapon-meta.ts, weapon-classes.ts, weapon-evolution.ts, null-disruption.ts, maw-collapse.ts, enemy-reactions.ts | 37,529 checks |
 | GodforgeCoreTest | godforge.ts, secrets.ts, foundries.ts foundryOf, sim.ts fireBullet / fireLauncher heat | 1,590 foundry names, 3,000 trigger pulls, 10,516 forge actions, 1,084 queries, 37,843 checks |
 | WastelandCoreTest | wasteland-activities.ts, wasteland-runtime.ts | 15,600 machine steps, 2,400 resolves, 24,000 runtime frames, 132,024 checks |
 | MoveCoreTest | movement.ts, parkour.ts | 300 tracks, 18,000 frames, 36,067 checks |

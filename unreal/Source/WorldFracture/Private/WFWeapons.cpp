@@ -32,6 +32,7 @@ namespace WFWeapons
 				W.Reload = WFData::Num(Row, TEXT("Reload"), 1.6);
 				W.Pellets = FMath::Max(1, static_cast<int32>(WFData::Num(Row, TEXT("Pellets"), 1)));
 				W.Heat = WFData::Num(Row, TEXT("Heat"), 1);
+				W.Frame = Id;
 				const FString Element = WFData::Str(Row, TEXT("Element"));
 				if (!Element.IsEmpty()) W.Element = Element;
 				Out.Add(W);

@@ -5,6 +5,8 @@
 // Port of the web build's authoritative rules:
 //   weapon-elements.ts   applyElementHit (BURN / CHILL / CORRODE / SHOCK), mergeVuln, isChilled, statusSpeedMult, burnDamage
 //   weapon-meta.ts       WEAPON_META, rangeFalloff, AFFINITY, precisionFor, enemyPower, operatorPower, powerScale, hitMultiplier
+//   weapon-classes.ts    FRAMES (SMG, SNIPER, LMG, FUSION), itemClass, frameFor: the equipped item's class decides how the
+//                        Auto Rifle's and the Heavy Cannon's slots fire
 //   weapon-evolution.ts  ABILITY_RULES, the five ruins, canEvolve / evolveWeapon / discoverNearby, registerEvolutionHit,
 //                        evolutionDamageMult, burstTargets, ruinElementOf
 //   null-disruption.ts   registerNullHit;  maw-collapse.ts  registerMawHit, mawEffect
@@ -16,6 +18,7 @@
 #include "Core/WFCoreApi.h"
 #include "Core/WFProgression.h"
 
+#include <functional>
 #include <optional>
 #include <string>
 #include <vector>
@@ -46,6 +49,16 @@ namespace wf::hit
 	inline constexpr double AffinityDamage = 1.12, AffinityPrecision = 0.25;
 	WORLDFRACTURECORE_API double PrecisionFor(const std::string& WeaponId, const std::string& ClassId);
 	WORLDFRACTURECORE_API double HitMultiplier(const std::string& WeaponId, double Distance, bool bPrecision, const std::string& ClassId);
+	// ---- weapon classes from gear ----
+	/** a gear-only frame's firing stats, in the weapons table's units (damage = multiplier on a base bullet) */
+	struct FFrame { std::string Id, Name; double Damage = 1, FireRate = 0.2; int Burst = 1; double BurstGap = 0, Spread = 0.03, AdsSpread = 0.4, Recoil = 0.01, Knock = 1, Heat = 1, Punch = 1; int Mag = 30, Reserve = 120; double Reload = 1.6; std::string Sound; };
+	/** SMG, SNIPER, LMG, FUSION (null for a slot gun's own id) */
+	WORLDFRACTURECORE_API const FFrame* GearFrame(const std::string& FrameId);
+	/** the catalogue class of an item by its name (CatalogClass finds catalogue entries), else one read off the name; "" for none */
+	WORLDFRACTURECORE_API std::string ItemClass(const std::string& Name, const std::function<std::string(const std::string&)>& CatalogClass);
+	/** which frame a loadout gun fires with this item class in its slot: AUTO -> SMG / SNIPER / FUSION / SHOTGUN, HEAVY -> LMG */
+	WORLDFRACTURECORE_API std::string FrameFor(const std::string& SlotGun, const std::string& ItemClassId);
+
 	// ---- power level (applies to every source of player damage) ----
 	WORLDFRACTURECORE_API double EnemyPower(double Difficulty, bool bElite, bool bBoss);
 	WORLDFRACTURECORE_API double OperatorPower(const std::vector<double>& GearPowers, double Level);

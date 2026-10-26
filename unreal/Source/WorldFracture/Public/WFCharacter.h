@@ -255,6 +255,10 @@ private:
 	FVector2D RideInput = FVector2D::ZeroVector; // A/D turn, W/S throttle, gathered from Move each frame
 
 	TArray<FWFWeaponStats> Weapons;
+	TArray<FWFWeaponStats> BaseWeapons; // the loadout's own guns, before the equipped items' classes
+	TMap<FString, FString> CatalogClasses; // weapon-catalog.ts name -> class
+	/** weapon-classes.ts arsenalFor: the Auto Rifle's and Heavy Cannon's slots fire as the equipped item's class */
+	void RefreshArsenal();
 	TArray<int32> Ammo;
 	TArray<int32> Reserve;
 	int32 WeaponIndex = 0;

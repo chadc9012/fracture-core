@@ -88,6 +88,15 @@ void AWFCharacter::BeginPlay()
 		Ammo.Add(W.Mag);
 		Reserve.Add(W.Reserve);
 	}
+	BaseWeapons = Weapons;
+	{
+		// weapon-catalog.ts: a catalogue weapon's class by its name (weapon-classes.ts itemClass)
+		FString CatalogError;
+		TArray<TSharedPtr<FJsonObject>> Rows;
+		if (WFData::LoadRows(TEXT("WeaponCatalog"), Rows, CatalogError))
+			for (const TSharedPtr<FJsonObject>& Row : Rows) CatalogClasses.Add(WFData::Str(Row, TEXT("DisplayName")), WFData::Str(Row, TEXT("Cls")));
+	}
+	RefreshArsenal();
 	AddMappingContext();
 	if (const UWFProgressionSubsystem* Progression = GetGameInstance()->GetSubsystem<UWFProgressionSubsystem>())
 	{
@@ -828,8 +837,48 @@ void AWFCharacter::TickWeapon(float DeltaSeconds)
 	}
 }
 
+void AWFCharacter::RefreshArsenal()
+{
+	const UWFProgressionSubsystem* Progression = GetGameInstance() ? GetGameInstance()->GetSubsystem<UWFProgressionSubsystem>() : nullptr;
+	if (!Progression || BaseWeapons.Num() != Weapons.Num()) return;
+	const wf::FProgression& S = Progression->Get();
+	auto ItemIn = [&S](const char* Slot) -> const wf::FGearItem*
+	{
+		const auto It = S.EquippedGear.find(Slot);
+		if (It == S.EquippedGear.end()) return nullptr;
+		for (const wf::FGearItem& I : S.Inventory) if (I.Id == It->second && I.Slot == Slot) return &I;
+		return nullptr;
+	};
+	auto CatalogClass = [this](const std::string& Name) { const FString* C = CatalogClasses.Find(UTF8_TO_TCHAR(Name.c_str())); return C ? WFData::ToStd(*C) : std::string(); };
+	for (int32 I = 0; I < Weapons.Num(); ++I)
+	{
+		const FWFWeaponStats& Base = BaseWeapons[I];
+		if (Base.Id != TEXT("AUTO") && Base.Id != TEXT("HEAVY")) continue;
+		const wf::FGearItem* Item = ItemIn(Base.Id == TEXT("AUTO") ? "primary" : "heavy");
+		const std::string Cls = Item ? wf::hit::ItemClass(Item->Name, CatalogClass) : std::string();
+		const FString Frame = UTF8_TO_TCHAR(wf::hit::FrameFor(WFData::ToStd(Base.Id), Cls).c_str());
+		if (Frame == Weapons[I].Frame) continue;
+		FWFWeaponStats W = Base;
+		if (const wf::hit::FFrame* G = wf::hit::GearFrame(WFData::ToStd(Frame)))
+		{
+			// frameDef: a gear class's own stats (no element, single pellets)
+			W.Name = UTF8_TO_TCHAR(G->Name.c_str()); W.Damage = G->Damage; W.FireRate = G->FireRate; W.Burst = G->Burst; W.BurstGap = G->BurstGap;
+			W.Spread = G->Spread; W.AdsSpread = G->AdsSpread; W.Recoil = G->Recoil; W.Knock = G->Knock; W.Heat = G->Heat; W.Mag = G->Mag;
+			W.Reserve = G->Reserve; W.Reload = G->Reload; W.Pellets = 1; W.Element = TEXT("KINETIC");
+		}
+		else
+			for (const FWFWeaponStats& Other : BaseWeapons) if (Other.Id == Frame) { W = Other; break; } // e.g. a shotgun in the Auto Rifle's slot
+		W.Id = Base.Id; // ammo, binds and the held model stay keyed by the slot gun
+		W.Frame = Frame;
+		Weapons[I] = W;
+		// a class swap that shrinks the magazine returns the extra rounds to reserve
+		if (Ammo.IsValidIndex(I) && Ammo[I] > W.Mag) { Reserve[I] += Ammo[I] - W.Mag; Ammo[I] = W.Mag; }
+	}
+}
+
 void AWFCharacter::RefreshRelic()
 {
+	RefreshArsenal();
 	const UWFProgressionSubsystem* Progression = GetGameInstance()->GetSubsystem<UWFProgressionSubsystem>();
 	const FWFWeaponStats* W = GetWeapon();
 	// Scene.tsx: in a vehicle the equipped weapon is the vehicle slot's, so no foundry and no relic in hand
@@ -913,7 +962,7 @@ void AWFCharacter::FireRound()
 				const double Feet = (EL.Z - Enemy->GetCapsuleComponent()->GetScaledCapsuleHalfHeight()) / CmPerMeter;
 				const FString Part = UTF8_TO_TCHAR(wf::hit::HitPart(Hit.ImpactPoint.Z / CmPerMeter, Feet + 0.2, 1.85 * wf::hit::EnemyBodyScaleOf(Scale)).c_str());
 				const bool bPrecision = !Enemy->IsBoss() && Part == TEXT("HEAD");
-				Dmg *= wf::hit::HitMultiplier(WFData::ToStd(W->Id), FVector::Dist2D(EL, Start) / CmPerMeter, bPrecision, MoveClass());
+				Dmg *= wf::hit::HitMultiplier(WFData::ToStd(W->Frame.IsEmpty() ? W->Id : W->Frame), FVector::Dist2D(EL, Start) / CmPerMeter, bPrecision, MoveClass());
 				const bool bChilled = Enemy->IsChilled();
 				if (!EquippedEvolution.IsEmpty()) Dmg *= wf::hit::EvolutionDamageMult(WFData::ToStd(EquippedEvolution), bChilled);
 				const bool bArmored = Enemy->IsElite() || Enemy->IsBoss();

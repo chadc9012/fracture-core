@@ -96,6 +96,7 @@ int main(int Argc, char** Argv)
 	FProgression P;
 	FNullCharge Null;
 	FMaw Maw;
+	std::map<std::string, std::string> Catalog; // weapon-catalog.ts name -> class
 	int Cases = 0;
 	for (size_t I = 0; I < Lines.size(); ++I)
 	{
@@ -127,6 +128,19 @@ int main(int Argc, char** Argv)
 			Same(LineNo, "power", N(Op) + " " + N(Ep) + " " + N(PowerScale(Op - Ep)), F[6] + " " + F[7] + " " + F[8]);
 		}
 		else if (T == "PS") Same(LineNo, "powerScale", N(PowerScale(Num(F[1]))), F[2]);
+		else if (T == "FR")
+		{
+			const FFrame* Fr = GearFrame(F[1]);
+			Same(LineNo, "frame", Fr ? Fr->Name + "|" + N(Fr->Damage) + "|" + N(Fr->FireRate) + "|" + N(Fr->Burst) + "|" + N(Fr->BurstGap) + "|" + N(Fr->Spread) + "|" + N(Fr->AdsSpread) + "|" + N(Fr->Recoil) + "|" + N(Fr->Knock)
+				+ "|" + N(Fr->Heat) + "|" + N(Fr->Punch) + "|" + N(Fr->Mag) + "|" + N(Fr->Reserve) + "|" + N(Fr->Reload) + "|" + Fr->Sound : "missing", F[2]);
+		}
+		else if (T == "CC") Catalog[F[1]] = F[2];
+		else if (T == "IC")
+		{
+			const std::string Name = F[1] == None ? "" : F[1];
+			const std::string C = ItemClass(Name, [&](const std::string& Nm) { const auto It = Catalog.find(Nm); return It == Catalog.end() ? std::string() : It->second; });
+			Same(LineNo, "itemClass / frameFor", O(C) + " " + FrameFor(F[2], C), F[3] + " " + F[4]);
+		}
 		else if (T == "HP") Same(LineNo, "hitPart", HitPart(Num(F[1]), Num(F[2]), Num(F[3])), F[4]);
 		else if (T == "RT") React.reset();
 		else if (T == "RE")

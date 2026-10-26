@@ -15,6 +15,8 @@ import { reactTo, isStaggeredNow, hitPart, type Reaction } from "../../src/game/
 import { DEFAULT_PROGRESSION, type PlayerProgression } from "../../src/game/progression";
 import type { GearItem } from "../../src/game/inventory";
 import type { WeaponId } from "../../src/game/weapons";
+import { FRAMES, itemClass, frameFor, type FrameId } from "../../src/game/weapon-classes";
+import { WEAPON_CATALOG } from "../../src/game/weapon-catalog";
 import type { ClassId } from "../../src/game/loadout";
 
 const OUT = join(process.cwd(), "unreal", "Plugins", "WorldFractureCore", "Tests", "hit_golden.txt");
@@ -27,7 +29,7 @@ const pick = <T>(xs: readonly T[]): T => xs[Math.floor(rand() * xs.length)]!;
 const lines: string[] = [];
 const out = (...f: (string | number)[]) => lines.push(f.map((v) => (typeof v === "number" ? n(v) : v)).join("\t"));
 const ELEMENTS = ["THERMAL", "CRYO", "BIO", "ARC", "KINETIC"] as const;
-const WEAPONS: WeaponId[] = ["AUTO", "PULSE", "SIDEARM", "SHOTGUN", "HEAVY", "SWORD", "ROCKET", "CINDER", "FROSTBITE", "VITRIOL"];
+const WEAPONS: FrameId[] = ["AUTO", "PULSE", "SIDEARM", "SHOTGUN", "HEAVY", "SWORD", "ROCKET", "CINDER", "FROSTBITE", "VITRIOL", "SMG", "SNIPER", "LMG", "FUSION"];
 const CLASSES = ["TITAN", "HUNTER", "WARLOCK", null] as const;
 const ABILITIES: EvolutionAbility[] = ["EMBER_BRAND", "RIME_SHATTER", "ROT_BLOOM", "STORM_ARC", "SUN_FLARE"];
 const st = (s: MachineStatuses) => `${n(s.burnUntil)}|${n(s.chillUntil)}|${n(s.shockReadyAt)}`;
@@ -57,6 +59,16 @@ for (let i = 0; i < 2000; i++) {
   out("PW", powers.join(",") || "~", level, diff, b(elite), b(boss), n(op), n(ep), n(powerScale(op - ep)));
 }
 for (const dlt of [Infinity, -Infinity, NaN, -1000, -75, -1, 0, 50, 100, 150]) out("PS", dlt, n(powerScale(dlt)));
+/* weapon classes from gear */
+for (const [id, f] of Object.entries(FRAMES)) out("FR", id, [f.name, f.damage, f.fireRate, f.burst, f.burstGap, f.spread, f.adsSpread, f.recoil, f.knock, f.heat, f.punch, f.mag, f.reserve, f.reload, f.sound].map((v) => (typeof v === "number" ? n(v) : v)).join("|"));
+for (const w of WEAPON_CATALOG) out("CC", w.name, w.cls);
+const NAME_BITS = ["Enforcer SMG", "Kinetic DMR", "West Frontline MG", "Scout Sniper", "Hunting Bow", "Rainbow", "Elbow Guard", "Fusion Lance", "Arc Caster", "Breach Shotgun", "SG-7", "sgx", "Mg", "Smgx", "Sub-Carbine", "Submachine", "Marksman", "Minigun", "Repeater", "Machine Gun", "Disruptor", "Auto Rifle", "", "Hand Cannon"];
+for (let i = 0; i < 1500; i++) {
+  const name = i < WEAPON_CATALOG.length ? WEAPON_CATALOG[i]!.name : Array.from({ length: 1 + Math.floor(rand() * 2) }, () => pick(NAME_BITS)).join(pick([" ", "-", ""]));
+  const slot = pick(["AUTO", "HEAVY", "PULSE", "SIDEARM"] as WeaponId[]);
+  out("IC", name || "~", slot, o(itemClass(name || undefined)), frameFor(slot, name || undefined));
+}
+
 /* body */
 for (let i = 0; i < 2000; i++) { const y = rand() * 4 - 1, f = rand() - 0.5, h = pick([0, 0.05, 1.85, 2.4, rand() * 3]); out("HP", y, f, h, hitPart(y, f, h)); }
 for (const y of [0.45, 0.4499, 0.82, 0.8199, 0.82001]) out("HP", y, 0, 1, hitPart(y, 0, 1)); // the band edges exactly
