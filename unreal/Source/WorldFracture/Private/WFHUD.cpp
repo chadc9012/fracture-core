@@ -291,7 +291,31 @@ void AWFHUD::DrawHUD()
 		{
 			Line(Weapon->Name.ToUpper(), W - 300, H - 118, Cyan);
 			Line(Player->IsBladeOut() ? FString::Printf(TEXT("COMBO %d / 3"), Player->GetComboStep()) : Player->IsReloading() ? FString(TEXT("RELOADING")) : FString::Printf(TEXT("%d / %d"), Player->GetAmmoInMag(), Player->GetAmmoReserve()), W - 300, H - 90, Soft, 1.6f);
+			// sim.ts weaponHeat: the shared gauge (it vents slower after an overheat)
+			if (const AWFGameMode* HeatMode = GetWorld()->GetAuthGameMode<AWFGameMode>(); HeatMode && !Player->IsBladeOut())
+			{
+				const wf::vweapons::FHeat& G = HeatMode->GetWeaponHeat();
+				if (G.Heat > 0.5 || G.bOverheated)
+				{
+					FString Bar;
+					for (int32 I = 0; I < 20; ++I) Bar += I < FMath::RoundToInt32(G.Heat / 5) ? TEXT("#") : TEXT("-");
+					Line(FString::Printf(TEXT("HEAT [%s]%s"), *Bar, G.bOverheated ? TEXT("  VENTING") : TEXT("")), W - 300, H - 52, G.bOverheated ? Warn : Soft, 0.8f);
+				}
+			}
 		}
+
+	// NOVA senses a secret (secrets.ts): the distance, its name in reach, or why it does not answer yet
+	if (const AWFGameMode* SecretMode = GetWorld()->GetAuthGameMode<AWFGameMode>())
+	{
+		double Dist = -1;
+		FString Name, Locked;
+		SecretMode->GetSecretHud(Dist, Name, Locked);
+		if (Dist >= 0)
+		{
+			const FString Text = !Locked.IsEmpty() ? Locked : !Name.IsEmpty() ? FString::Printf(TEXT("NOVA: %s"), *Name) : FString::Printf(TEXT("NOVA: something hums nearby (%d m)"), FMath::RoundToInt32(Dist));
+			Line(Text, W * 0.5f - 230.f, H - 150, FLinearColor(0.75f, 0.5f, 1.f), 0.85f);
+		}
+	}
 
 	// top left: region and quest
 	float Y = 32;

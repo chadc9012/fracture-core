@@ -88,6 +88,17 @@ namespace WFProgressionJson
 		G.SetId = ReadOptionalString(Item, TEXT("setId"));
 		G.Rarity = ReadOptionalString(Item, TEXT("rarity"));
 		G.Perk = ReadOptionalString(Item, TEXT("perk"));
+		const TSharedPtr<FJsonObject>* God = nullptr;
+		if (Item->TryGetObjectField(TEXT("godforge"), God) && God && God->IsValid())
+		{
+			// godforge.ts Godforged: tier, runes, kills with it in hand, awakened
+			wf::FGearItem::FGodforge F;
+			if (const std::optional<std::string> Tier = ReadOptionalString(*God, TEXT("tier"))) F.Tier = *Tier;
+			F.Runes = ReadStrings(*God, TEXT("runes"));
+			(*God)->TryGetNumberField(TEXT("kills"), F.Kills);
+			(*God)->TryGetBoolField(TEXT("awakened"), F.bAwakened);
+			G.Godforge = F;
+		}
 		return G;
 	}
 
@@ -104,6 +115,15 @@ namespace WFProgressionJson
 		if (G.SetId) Item->SetStringField(TEXT("setId"), ToF(*G.SetId));
 		if (G.Rarity) Item->SetStringField(TEXT("rarity"), ToF(*G.Rarity));
 		if (G.Perk) Item->SetStringField(TEXT("perk"), ToF(*G.Perk));
+		if (G.Godforge)
+		{
+			TSharedRef<FJsonObject> God = MakeShared<FJsonObject>();
+			God->SetStringField(TEXT("tier"), ToF(G.Godforge->Tier));
+			God->SetArrayField(TEXT("runes"), StringArray(G.Godforge->Runes));
+			God->SetNumberField(TEXT("kills"), G.Godforge->Kills);
+			God->SetBoolField(TEXT("awakened"), G.Godforge->bAwakened);
+			Item->SetObjectField(TEXT("godforge"), God);
+		}
 		return Item;
 	}
 
@@ -160,6 +180,16 @@ namespace WFProgressionJson
 			St->SetArrayField(TEXT("collectibles"), StringArray(P.Story.Collectibles));
 			O->SetObjectField(TEXT("story"), St);
 			O->SetObjectField(TEXT("records"), NumberObject(P.Records));
+			// nemesis.ts: only id and status are ported (SLAIN unlocks runes and relic tiers)
+			TArray<TSharedPtr<FJsonValue>> Nem;
+			for (const wf::FProgression::FNemesis& N : P.Nemeses)
+			{
+				TSharedRef<FJsonObject> X = MakeShared<FJsonObject>();
+				X->SetStringField(TEXT("id"), ToF(N.Id));
+				X->SetStringField(TEXT("status"), ToF(N.Status));
+				Nem.Add(MakeShared<FJsonValueObject>(X));
+			}
+			O->SetArrayField(TEXT("nemeses"), Nem);
 		}
 		{
 			// living-world.ts LivingState
@@ -373,6 +403,11 @@ namespace WFProgressionJson
 					for (const auto& X : (*Stages)->Values) { FString V; if (X.Value.IsValid() && X.Value->TryGetString(V)) P.Story.Stages[ToStd(X.Key)] = ToStd(V); }
 			}
 			for (const auto& [K, V] : ReadNumbers(O, TEXT("records"))) if (std::isfinite(V) && V >= 0) P.Records[K] = V;
+			const TArray<TSharedPtr<FJsonValue>>* Nem = nullptr;
+			if (O->TryGetArrayField(TEXT("nemeses"), Nem) && Nem)
+				for (const TSharedPtr<FJsonValue>& V : *Nem)
+					if (const TSharedPtr<FJsonObject>* X = nullptr; V.IsValid() && V->TryGetObject(X) && X && X->IsValid())
+						P.Nemeses.push_back({ToStd(WFData::Str(*X, TEXT("id"))), ToStd(WFData::Str(*X, TEXT("status")))});
 		}
 		{
 			// living-world.ts normalizeLiving: non-negative counters for the four factions, district and contract records, intel

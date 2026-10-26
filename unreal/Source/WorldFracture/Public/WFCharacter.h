@@ -8,9 +8,11 @@
 #include "Core/WFArmorCore.h"
 #include "Core/WFTacticsCore.h"
 #include "Core/WFMoveCore.h"
+#include "Core/WFGodforgeCore.h"
 #include "WFWeapons.h"
 #include "WFCharacter.generated.h"
 
+class AWFEnemy;
 class UCameraComponent;
 class UInputAction;
 class UInputMappingContext;
@@ -75,6 +77,11 @@ public:
 	UFUNCTION(Exec) void UpgradeDragonite(const FString& Ability);
 	/** EquipBlade vectal|aegis-broadsword|sun-cutter|none: the monoblade the Fracture Blade swings (foundries.ts; must be owned) */
 	UFUNCTION(Exec) void EquipBlade(const FString& BladeId);
+	/** Equip <item id>: wear or wield an owned item in its own slot (armor-sets.ts equipPiece), e.g. a forged relic */
+	UFUNCTION(Exec) void Equip(const FString& ItemId);
+	/** a kill credited to the Operator (sim.ts defeatMachine): the Reap rune heals 6, the relic in hand counts it toward
+	 *  awakening, and a Black Armory weapon's nanites hop to the nearest hostile within 10 m (never chaining) */
+	void OnEnemyKilled(AWFEnemy* Victim);
 	/** VyrakTrust ruin|puzzle|protect <id> */
 	UFUNCTION(Exec) void VyrakTrust(const FString& Kind, const FString& SourceId);
 	UFUNCTION(Exec) void AncientBond();
@@ -115,6 +122,13 @@ protected:
 	UPROPERTY(VisibleAnywhere, Category = "Weapon") TObjectPtr<UStaticMeshComponent> GunMesh;
 
 private:
+	/** the equipped weapon's foundry and the relic in hand's runes (Scene.tsx runeKey: the Devour count restarts when it changes) */
+	void RefreshRelic();
+	FString Foundry;
+	FString RelicKey, RelicId;
+	wf::godforge::FRuneCombat RuneFx;
+	int32 DevourHits = 0;
+	bool bNaniteChain = false;
 	void BuildInput();
 	void AddMappingContext() const;
 
@@ -162,7 +176,7 @@ private:
 	/** Scene.tsx sword block: one swing of the combo (arc, monoblade damage and reach, finisher shockwave, deflect) */
 	void SwingBlade(const FWFWeaponStats& W, int32 Step);
 	/** sim.ts fireLauncher: a launcher round (guided launchers lock the nearest enemy in their cone) */
-	void FireLauncherRound(const FWFWeaponStats& W);
+	void FireLauncherRound(const FWFWeaponStats& W, double RecoilMult);
 	/** ordnance.ts stepRound for the launcher rounds in flight, then sim.ts detonateRound's splash and shove */
 	void TickRounds(double Dt);
 	void DetonateRound(const wf::vweapons::FBurst& Burst, double Knock, const FString& Element);

@@ -436,6 +436,35 @@ FString UWFProgressionSubsystem::ResolveWasteland(const wf::wasteland::FEmit& Em
 	return UTF8_TO_TCHAR(R.Message.c_str());
 }
 
+FString UWFProgressionSubsystem::ApplyForge(const std::function<wf::godforge::FForgeResult(const wf::FProgression&)>& Action, bool& bOk)
+{
+	wf::godforge::FForgeResult R = Action(State);
+	bOk = R.bOk;
+	if (!R.bOk) return UTF8_TO_TCHAR(R.Error.c_str());
+	const size_t InventoryBefore = State.Inventory.size();
+	State = std::move(R.Progression);
+	for (size_t I = InventoryBefore; I < State.Inventory.size(); ++I)
+		OnLootGained.Broadcast(ToF(State.Inventory[I].Name), ToF(State.Inventory[I].Rarity.value_or("")));
+	NotifyChanged();
+	return UTF8_TO_TCHAR(R.Message.c_str());
+}
+
+bool UWFProgressionSubsystem::EquipItem(const FString& ItemId)
+{
+	const std::string Id = ToStd(ItemId);
+	for (const wf::FGearItem& I : State.Inventory)
+		if (I.Id == Id) { State.EquippedGear[I.Slot] = Id; NotifyChanged(); return true; }
+	return false;
+}
+
+const wf::FGearItem* UWFProgressionSubsystem::GetEquippedWeaponItem(const FString& WeaponId, const FString& Kind, bool bInVehicle) const
+{
+	const auto Slot = State.EquippedGear.find(wf::armor::GearSlotForWeapon(ToStd(WeaponId), ToStd(Kind), bInVehicle));
+	if (Slot == State.EquippedGear.end()) return nullptr;
+	for (const wf::FGearItem& I : State.Inventory) if (I.Id == Slot->second) return &I;
+	return nullptr;
+}
+
 FString UWFProgressionSubsystem::DescribeOperators() const
 {
 	return UTF8_TO_TCHAR(wf::operators::DescribeOperators(State).c_str());

@@ -7,6 +7,9 @@
 #include "Core/WFRewardCore.h"
 #include "Core/WFVehicleCore.h"
 #include "Core/WFWastelandCore.h"
+#include "Core/WFGodforgeCore.h"
+
+#include <functional>
 #include "Subsystems/GameInstanceSubsystem.h"
 #include "WFProgressionSubsystem.generated.h"
 
@@ -110,6 +113,13 @@ public:
 	/** A Wastelands activity ended (wasteland-runtime.ts emit): wasteland-activities.ts resolveVault / resolveRally / resolveDerby
 	 *  pay it once per run (rewardMission side-* payout, medal tiers once ever, the monoblades, Legion trust). Returns the line to show. */
 	FString ResolveWasteland(const wf::wasteland::FEmit& Emit);
+	/** A Godforge or secrets action (wf::godforge ForgeRelic, SocketRune, AscendRelic, ClaimHeart, ClaimSecret...): kept when it
+	 *  succeeds; returns Vael's line or why it was refused. */
+	FString ApplyForge(const std::function<wf::godforge::FForgeResult(const wf::FProgression&)>& Action, bool& bOk);
+	/** armor-sets.ts equipPiece: the item goes into its own slot */
+	bool EquipItem(const FString& ItemId);
+	/** the weapon item worn in the gear slot this weapon fires from (armor GearSlotForWeapon), or null */
+	const wf::FGearItem* GetEquippedWeaponItem(const FString& WeaponId, const FString& Kind, bool bInVehicle) const;
 	/** Sub-Terra Legion standing (Outsider ... Iron Vanguard) and its trust points */
 	FString GetLegionRank() const { return UTF8_TO_TCHAR(wf::wasteland::LegionRank(State).c_str()); }
 	double GetLegionTrust() const { return wf::wasteland::TrustOf(State, wf::wasteland::Legion); }

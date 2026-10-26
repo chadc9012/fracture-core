@@ -32,6 +32,8 @@
 #include "WFVehicle.h"
 #include "Core/WFJsCompat.h"
 
+#include <algorithm>
+
 AWFGameMode::AWFGameMode()
 {
 	DefaultPawnClass = AWFCharacter::StaticClass();
@@ -54,6 +56,10 @@ void AWFGameMode::StartPlay()
 	FString RegionsError;
 	TArray<TSharedPtr<FJsonObject>> RegionRows;
 	if (WFData::LoadRows(TEXT("Regions"), RegionRows, RegionsError))
+		for (const TSharedPtr<FJsonObject>& R : RegionRows)
+			RegionCircles.Add(WFData::Str(R, TEXT("Id")), {WFData::Num(R, TEXT("X")), WFData::Num(R, TEXT("Z")), WFData::Num(R, TEXT("Radius"))});
+	if (const wf::godforge::FRegionCircle* Mine = RegionCircles.Find(RegionId)) RegionCircle = *Mine;
+	if (RegionRows.Num())
 		for (const TSharedPtr<FJsonObject>& R : RegionRows)
 			Circles.push_back({WFData::ToStd(WFData::Str(R, TEXT("Id"))), WFData::ToStd(WFData::Str(R, TEXT("Kind"))), WFData::Num(R, TEXT("X")), WFData::Num(R, TEXT("Z")), WFData::Num(R, TEXT("Radius"))});
 	Turrets = wf::city::MakeTurrets(Circles, []() { return static_cast<double>(FMath::FRand()); });
@@ -146,6 +152,9 @@ void AWFGameMode::Tick(float DeltaSeconds)
 	TickCity(DeltaSeconds);
 	TickGrenades(DeltaSeconds);
 	TickWasteland(DeltaSeconds);
+	TickGodforge(DeltaSeconds);
+	// sim.ts: weapon cooling; venting from an overheat is slower than a normal cooldown
+	if (wf::vweapons::CoolHeat(WeaponHeat, FMath::Min(static_cast<double>(DeltaSeconds), 0.25))) Toast(TEXT("Weapon cooled - ready"), FLinearColor(0.45f, 0.9f, 1.f));
 	Squad.RemoveAll([](const TWeakObjectPtr<AWFEnemy>& E) { return !E.IsValid() || E->IsDead(); });
 	SpawnTimer -= DeltaSeconds;
 	if (SpawnTimer <= 0 && Squad.Num() < SquadSize && !Roster.IsEmpty())
@@ -891,6 +900,7 @@ void AWFGameMode::WastelandHere()
 	}
 	// the player stands at the Wastelands centre: the vault gate 78 m east, the Mash-Pit 158 m west, the rally start 113 m north
 	WasteAnchorCm = FVector2D(Pawn->GetActorLocation().X, Pawn->GetActorLocation().Y);
+	if (RegionId == TEXT("wastelands")) { RegionAnchorCm = WasteAnchorCm; bRegionAnchored = true; } // the Hollow Crown and the region's secrets move with it
 	if (!bWasteActive) { const UWFProgressionSubsystem* Prog = GetGameInstance()->GetSubsystem<UWFProgressionSubsystem>(); WasteRt = wf::wasteland::CreateRuntime(Prog ? Prog->GetSessionKills() : 0); }
 	bWasteActive = true;
 	Toast(TEXT("Wastelands: Vault Gate (amber), Rust Run start (cyan, in a vehicle), the Mash-Pit (red, in a vehicle). Console: Wasteland"), WlGold);
@@ -1025,4 +1035,201 @@ void AWFGameMode::DrawWasteland() const
 	Ring(VaultGate.X, VaultGate.Z, VaultGate.Radius, FColor(255, 190, 80), 500.f, 5.f);
 	Ring(RallyStart.X, RallyStart.Z, RallyReach, FColor(110, 230, 255), 500.f, 5.f);
 	Ring(Arena.X, Arena.Z, Arena.Radius, FColor(255, 70, 60), 250.f, 5.f);
+}
+
+// --- the Godforge and the Living Secret World ---------------------------------------------------------------------------
+
+namespace
+{
+	const FLinearColor GfGold(1.f, 0.82f, 0.35f), GfWarn(1.f, 0.55f, 0.3f), GfViolet(0.75f, 0.5f, 1.f);
+}
+
+FVector AWFGameMode::RegionToWorld(double X, double Z, double BaseZ) const
+{
+	const double WX = RegionAnchorCm.X + (X - RegionCircle.X) * 100.0, WY = RegionAnchorCm.Y + (Z - RegionCircle.Z) * 100.0;
+	return FVector(WX, WY, GroundZ(WX, WY, BaseZ));
+}
+
+FVector2D AWFGameMode::WorldToRegion(const FVector& L) const
+{
+	return FVector2D((L.X - RegionAnchorCm.X) / 100.0 + RegionCircle.X, (L.Y - RegionAnchorCm.Y) / 100.0 + RegionCircle.Z);
+}
+
+void AWFGameMode::TickGodforge(float DeltaSeconds)
+{
+	(void)DeltaSeconds;
+	APawn* Pawn = UGameplayStatics::GetPlayerPawn(this, 0);
+	UWFProgressionSubsystem* Prog = GetGameInstance()->GetSubsystem<UWFProgressionSubsystem>();
+	UWorld* World = GetWorld();
+	if (!Pawn || !Prog || !World) return;
+	// the level's centre is the region's centre: anchored where the Operator first stands (WastelandHere moves it in the Wastelands)
+	if (!bRegionAnchored) { RegionAnchorCm = FVector2D(Pawn->GetActorLocation().X, Pawn->GetActorLocation().Y); bRegionAnchored = true; }
+	const FVector2D P = WorldToRegion(Pawn->GetActorLocation());
+	const wf::FProgression& Save = Prog->Get();
+	const AWFCharacter* Player = Cast<AWFCharacter>(Pawn);
+	if (const AWFVehicle* Car = Cast<AWFVehicle>(Pawn)) Player = Car->GetDriver();
+	const bool bAlive = Player && Player->GetHealth() > 0;
+
+	// secrets.ts: NOVA senses the nearest unfound secret; reaching one that answers now claims it (once per session)
+	wf::godforge::FSecretContext Ctx;
+	const UWFShopSubsystem* Shops = GetGameInstance()->GetSubsystem<UWFShopSubsystem>();
+	const std::optional<double> Hour = Shops ? Shops->GetWorldHour() : std::nullopt;
+	Ctx.bNight = Hour && wf::godforge::NightFactor(*Hour / 24) > 0.5; // no day cycle here: ShopHour sets the clock
+	Ctx.bStorm = false;                                               // no weather is ported
+	Ctx.bNemesisSlain = wf::godforge::NemesesSlain(Save) > 0;
+	Ctx.bPledged = Save.Story.Choices.count("living.neon.pledge") > 0;
+	auto RegionOf = [this](const std::string& Id) -> std::optional<wf::godforge::FRegionCircle>
+	{
+		// only the current region's secrets are in this level
+		if (WFData::ToF(Id) != RegionId) return std::nullopt;
+		return RegionCircle;
+	};
+	SecretDist = -1; SecretName.Reset(); SecretLocked.Reset();
+	if (bAlive)
+		if (const std::optional<wf::godforge::FSensed> Sensed = wf::godforge::SenseSecret(P.X, P.Y, Ctx, Save.EarnedRewards, RegionOf))
+		{
+			const bool bInReach = Sensed->Dist <= wf::godforge::SecretReach;
+			SecretDist = Sensed->Dist;
+			if (bInReach) SecretName = WFData::ToF(Sensed->Secret->Name);
+			if (bInReach && !Sensed->bOpen) SecretLocked = WFData::ToF(!Sensed->Secret->Locked.empty() ? Sensed->Secret->Locked : wf::godforge::ConditionText(Sensed->Secret->Condition));
+			if (Sensed->Dist <= wf::godforge::SecretShimmer)
+			{
+				const wf::godforge::FRegionCircle At = wf::godforge::SecretPoint(*Sensed->Secret, RegionCircle);
+				const FVector G = RegionToWorld(At.X, At.Z, Pawn->GetActorLocation().Z);
+				DrawDebugCylinder(World, G, G + FVector(0, 0, 220), static_cast<float>(wf::godforge::SecretReach * 100), 24, Sensed->bOpen ? FColor(150, 220, 255) : FColor(120, 120, 140), false, -1.f, 0, 2.f);
+			}
+			const FString Key = WFData::ToF(Sensed->Secret->Id);
+			if (bInReach && Sensed->bOpen && !SecretsReached.Contains(Key))
+			{
+				SecretsReached.Add(Key);
+				bool bOk = false;
+				const std::string Id = Sensed->Secret->Id;
+				const FString Msg = Prog->ApplyForge([&](const wf::FProgression& S) { return wf::godforge::ClaimSecret(S, Id, Ctx); }, bOk);
+				if (!Msg.IsEmpty()) Toast(Msg, bOk ? GfViolet : GfWarn);
+			}
+		}
+
+	// godforge.ts: the Hollow Crown and Vael live in the Wastelands
+	if (RegionId != TEXT("wastelands")) return;
+	const std::string Stage = wf::godforge::ForgeStage(Save);
+	const double Base = Pawn->GetActorLocation().Z;
+	if (Stage != "SEALED")
+	{
+		const FVector Crown = RegionToWorld(wf::godforge::HollowCrownX, wf::godforge::HollowCrownZ, Base);
+		DrawDebugCylinder(World, Crown, Crown + FVector(0, 0, 400), static_cast<float>(wf::godforge::HollowCrownRadius * 100), 40, Stage == "DOOR" ? FColor(255, 120, 40) : FColor(255, 210, 90), false, -1.f, 0, 4.f);
+	}
+	if (Stage == "GUARDIAN_SLAIN")
+	{
+		const FVector Vael = RegionToWorld(wf::godforge::VaelX, wf::godforge::VaelZ, Base);
+		DrawDebugCylinder(World, Vael, Vael + FVector(0, 0, 200), static_cast<float>(wf::godforge::VaelReach * 100), 20, FColor(255, 230, 150), false, -1.f, 0, 3.f);
+	}
+	// living-runtime.ts: walking into the opened Hollow Crown wakes the Furnace Guardian (once per visit)
+	auto GuardianAlive = [this]()
+	{
+		for (TActorIterator<AWFEnemy> It(GetWorld()); It; ++It) if (!It->IsDead() && It->GetActivityTag() == WFData::ToF(wf::godforge::GuardianTag)) return true;
+		return false;
+	};
+	if (wf::godforge::GuardianDue(Save, P.X, P.Y) && !bGuardianOut && bAlive && !GuardianAlive())
+	{
+		const FVector At = RegionToWorld(wf::godforge::HollowCrownX, wf::godforge::HollowCrownZ + 6, Base) + FVector(0, 0, 250);
+		const FTransform Xf(FRotator::ZeroRotator, At, FVector(2.3));
+		const double Hp = wf::godforge::GuardianHp * Prog->GetChallengeEnemyHealthScale();
+		if (AWFEnemy* Guardian = World->SpawnActorDeferred<AWFEnemy>(AWFEnemy::StaticClass(), Xf, nullptr, nullptr, ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn))
+		{
+			// sim.ts summonBoss("ember", ...): an elite boss of Ember Peaks' faction, tagged so its kill pays the Heart
+			Guardian->Configure(TEXT("The Furnace Guardian"), TEXT("ember"), TEXT("thermalShards"), true, true, Hp);
+			if (const FString* Faction = FactionByRegion.Find(TEXT("ember"))) Guardian->SetKind(*Faction);
+			Guardian->SetActivityTag(WFData::ToF(wf::godforge::GuardianTag));
+			Guardian->SetSquadIndex(NextSquadIndex++);
+			Guardian->FinishSpawning(Xf);
+			bGuardianOut = true;
+			Toast(TEXT("The Furnace Guardian wakes: \"None pass to the forge unproven.\""), GfWarn);
+		}
+	}
+	if (bGuardianOut && wf::js::Hypot(P.X - wf::godforge::HollowCrownX, P.Y - wf::godforge::HollowCrownZ) > wf::godforge::HollowCrownRadius * 6 && !GuardianAlive()) bGuardianOut = false;
+}
+
+void AWFGameMode::OnGuardianSlain()
+{
+	UWFProgressionSubsystem* Prog = GetGameInstance()->GetSubsystem<UWFProgressionSubsystem>();
+	if (!Prog) return;
+	bool bOk = false;
+	const FString Msg = Prog->ApplyForge([](const wf::FProgression& S) { return wf::godforge::ClaimHeart(S); }, bOk);
+	if (bOk) Toast(Msg, GfGold);
+}
+
+bool AWFGameMode::AtVael()
+{
+	const APawn* Pawn = UGameplayStatics::GetPlayerPawn(this, 0);
+	const UWFProgressionSubsystem* Prog = GetGameInstance()->GetSubsystem<UWFProgressionSubsystem>();
+	if (!Pawn || !Prog) return false;
+	const FVector2D P = WorldToRegion(Pawn->GetActorLocation());
+	if (RegionId == TEXT("wastelands") && wf::godforge::VaelNear(Prog->Get(), P.X, P.Y)) return true;
+	const std::string Stage = wf::godforge::ForgeStage(Prog->Get());
+	Toast(Stage == "GUARDIAN_SLAIN" ? TEXT("Vael is at the forge in the Hollow Crown (Wastelands): stand by her") : TEXT("The forge is cold. Bring Vael the Heart of the Hollow Crown."), GfWarn);
+	return false;
+}
+
+void AWFGameMode::ForgeAction(const std::function<wf::godforge::FForgeResult(const wf::FProgression&)>& Action)
+{
+	UWFProgressionSubsystem* Prog = GetGameInstance()->GetSubsystem<UWFProgressionSubsystem>();
+	if (!Prog || !AtVael()) return;
+	bool bOk = false;
+	const FString Msg = Prog->ApplyForge(Action, bOk);
+	Toast(Msg, bOk ? GfGold : GfWarn);
+}
+
+void AWFGameMode::ForgeRelic(const FString& DesignId)
+{
+	const std::string D = WFData::ToStd(DesignId);
+	const double Now = FMath::FloorToDouble((FDateTime::UtcNow() - FDateTime(1970, 1, 1)).GetTotalMilliseconds());
+	ForgeAction([D, Now](const wf::FProgression& S) { return wf::godforge::ForgeRelic(S, D, Now); });
+}
+
+void AWFGameMode::SocketRune(const FString& ItemId, const FString& Rune)
+{
+	const std::string I = WFData::ToStd(ItemId), R = WFData::ToStd(Rune.ToUpper());
+	ForgeAction([I, R](const wf::FProgression& S) { return wf::godforge::SocketRune(S, I, R); });
+}
+
+void AWFGameMode::RemoveRune(const FString& ItemId, const FString& Rune)
+{
+	const std::string I = WFData::ToStd(ItemId), R = WFData::ToStd(Rune.ToUpper());
+	ForgeAction([I, R](const wf::FProgression& S) { return wf::godforge::RemoveRune(S, I, R); });
+}
+
+void AWFGameMode::AscendRelic(const FString& ItemId)
+{
+	const std::string I = WFData::ToStd(ItemId);
+	ForgeAction([I](const wf::FProgression& S) { return wf::godforge::AscendRelic(S, I); });
+}
+
+void AWFGameMode::CollectDust()
+{
+	ForgeAction([](const wf::FProgression& S) { return wf::godforge::CollectRuneDust(S); });
+}
+
+void AWFGameMode::Godforge()
+{
+	const UWFProgressionSubsystem* Prog = GetGameInstance()->GetSubsystem<UWFProgressionSubsystem>();
+	if (!Prog) return;
+	const wf::FProgression& S = Prog->Get();
+	TArray<FString> Lines;
+	const std::string Stage = wf::godforge::ForgeStage(S);
+	Lines.Add(FString::Printf(TEXT("Godforge: %s. Forgewright's Marks %d/3 (Frostspire, Ember Peaks, the Wastelands). Slain nemeses %d."), UTF8_TO_TCHAR(Stage.c_str()), wf::godforge::MarksFound(S), wf::godforge::NemesesSlain(S)));
+	FString Unlocked;
+	for (const wf::godforge::FRune& R : wf::godforge::Runes()) if (wf::godforge::RuneUnlocked(S, R.Id)) Unlocked += (Unlocked.IsEmpty() ? TEXT("") : TEXT(", ")) + WFData::ToF(R.Id);
+	Lines.Add(FString::Printf(TEXT("Runes you can bind: %s. Rune dust owed: %g."), Unlocked.IsEmpty() ? TEXT("none") : *Unlocked,
+		wf::godforge::RuneDustEarned(S) - static_cast<double>(std::count_if(S.EarnedRewards.begin(), S.EarnedRewards.end(), [](const std::string& K) { return K.rfind("godforge:dust:", 0) == 0; }))));
+	for (const wf::FGearItem& I : S.Inventory)
+		if (I.Godforge)
+		{
+			FString Socketed;
+			for (const std::string& R : I.Godforge->Runes) Socketed += (Socketed.IsEmpty() ? TEXT("") : TEXT(" ")) + WFData::ToF(R);
+			const wf::godforge::FTier* T = wf::godforge::TierById(I.Godforge->Tier);
+			Lines.Add(FString::Printf(TEXT("  %s  %s, %s, power %g, %s, kills %g%s"), UTF8_TO_TCHAR(I.Id.c_str()), UTF8_TO_TCHAR(I.Name.c_str()), T ? UTF8_TO_TCHAR(T->Label.c_str()) : TEXT(""), I.Power,
+				Socketed.IsEmpty() ? TEXT("no runes") : *Socketed, I.Godforge->Kills, I.Godforge->bAwakened ? TEXT(", awakened") : TEXT("")));
+		}
+	if (Stage == "GUARDIAN_SLAIN") Lines.Add(TEXT("At Vael: ForgeRelic eclipse-devourer|crownfire|stillwater, SocketRune <id> <rune>, RemoveRune, AscendRelic <id>, CollectDust; Equip <id> to wield a relic"));
+	for (const FString& L : Lines) { UE_LOG(LogTemp, Display, TEXT("%s"), *L); Toast(L, GfGold); }
 }

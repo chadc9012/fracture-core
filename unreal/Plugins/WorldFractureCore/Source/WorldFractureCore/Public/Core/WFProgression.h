@@ -31,11 +31,21 @@ namespace wf
 		std::optional<std::string> SetId;
 		std::optional<std::string> Rarity; // LEGENDARY | EXOTIC; absent = ordinary gear
 		std::optional<std::string> Perk;   // unique weapon perk, e.g. NULL_DISRUPTION
+		/** a Godforged relic (godforge.ts Godforged): tier, socketed runes, kills with it in hand, awakened */
+		struct FGodforge
+		{
+			std::string Tier = "RELIC"; // RELIC | ASCENDANT | GODFORGED | SOVEREIGN
+			std::vector<std::string> Runes;
+			double Kills = 0;
+			bool bAwakened = false;
+			bool operator==(const FGodforge& O) const { return Tier == O.Tier && Runes == O.Runes && Kills == O.Kills && bAwakened == O.bAwakened; }
+		};
+		std::optional<FGodforge> Godforge;
 
 		bool operator==(const FGearItem& O) const
 		{
 			return Id == O.Id && Name == O.Name && Slot == O.Slot && Power == O.Power && Level == O.Level && Element == O.Element
-				&& Source == O.Source && SetId == O.SetId && Rarity == O.Rarity && Perk == O.Perk;
+				&& Source == O.Source && SetId == O.SetId && Rarity == O.Rarity && Perk == O.Perk && Godforge == O.Godforge;
 		}
 	};
 
@@ -159,6 +169,9 @@ namespace wf
 			std::vector<std::string> Collectibles;
 		};
 		FStory Story;
+		/** nemesis.ts: the nemeses that hunted you (only their status is read here: SLAIN ones unlock runes and relic tiers) */
+		struct FNemesis { std::string Id; std::string Status; };
+		std::vector<FNemesis> Nemeses;
 		/** best results per activity (records): the Rust Run time is lower-is-better, other scores higher-is-better */
 		std::map<std::string, double> Records;
 		/** Difficulty picked before launch (map-activities.ts CHALLENGES): STANDARD | HARD | VERY_HARD. */

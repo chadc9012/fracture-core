@@ -21,6 +21,7 @@
 #include "InputMappingContext.h"
 #include "InputModifiers.h"
 #include "WFEnemy.h"
+#include "Core/WFFoundryCore.h"
 #include "WFVehicle.h"
 #include "WFGameMode.h"
 #include "WFHUD.h"
@@ -617,6 +618,7 @@ void AWFCharacter::Tick(float DeltaSeconds)
 	ArmorRefresh -= DeltaSeconds;
 	if (ArmorRefresh <= 0)
 		if (const UWFProgressionSubsystem* Progression = GetGameInstance()->GetSubsystem<UWFProgressionSubsystem>()) { ArmorFx = Progression->GetArmorEffects(); ArmorRefresh = 0.5; }
+		RefreshRelic();
 	TickAbilities(DeltaSeconds); // cooldowns, energy, turrets and zones keep running while driving
 	TickRounds(DeltaSeconds);    // launcher rounds already in the air keep flying
 	// health.ts stepHealth: armor regen (Rootbound Recovery, Resolve...) all the time, the base rate after the delay
@@ -767,21 +769,61 @@ void AWFCharacter::TickWeapon(float DeltaSeconds)
 	}
 }
 
+void AWFCharacter::RefreshRelic()
+{
+	const UWFProgressionSubsystem* Progression = GetGameInstance()->GetSubsystem<UWFProgressionSubsystem>();
+	const FWFWeaponStats* W = GetWeapon();
+	// Scene.tsx: in a vehicle the equipped weapon is the vehicle slot's, so no foundry and no relic in hand
+	const wf::FGearItem* Item = Progression && W && !bInVehicle ? Progression->GetEquippedWeaponItem(W->Id, W->Kind, false) : nullptr;
+	Foundry = UTF8_TO_TCHAR(wf::foundry::FoundryOf(Item).c_str());
+	FString Key;
+	if (Item && Item->Godforge)
+	{
+		Key = UTF8_TO_TCHAR(Item->Id.c_str());
+		for (const std::string& R : Item->Godforge->Runes) Key += TEXT("|") + FString(UTF8_TO_TCHAR(R.c_str()));
+		Key += Item->Godforge->bAwakened ? TEXT("|A") : TEXT("|-");
+	}
+	if (Key == RelicKey) return;
+	RelicKey = Key;
+	RuneFx = wf::godforge::RuneCombat(Item && Item->Godforge ? &*Item->Godforge : nullptr);
+	DevourHits = 0;
+	RelicId = Item && Item->Godforge ? FString(UTF8_TO_TCHAR(Item->Id.c_str())) : FString();
+}
+
 void AWFCharacter::FireRound()
 {
 	const FWFWeaponStats* W = GetWeapon();
 	UWorld* World = GetWorld();
 	if (!W || !World || Ammo[WeaponIndex] <= 0) return;
+	RefreshRelic();
+	AWFGameMode* Mode = World->GetAuthGameMode<AWFGameMode>();
+	wf::vweapons::FHeat NoMode;
+	wf::vweapons::FHeat& Heat = Mode ? Mode->GetWeaponHeat() : NoMode;
+	const wf::foundry::FFootRules Fr = wf::foundry::FootRules(WFData::ToStd(Foundry), bAiming);
+	bool bTipped = false;
+	if (W->Kind == TEXT("launcher"))
+	{
+		// sim.ts fireLauncher: refused while venting, no ammo spent
+		if (!wf::foundry::FireFootLauncher(Heat, W->Heat, Fr.HeatMult, bTipped)) return;
+		if (bTipped) Notify(TEXT("WEAPON OVERHEAT - venting"), FLinearColor(1.f, 0.3f, 0.25f));
+		--Ammo[WeaponIndex];
+		if (Mode) Mode->NotePlayerGunfire();
+		FireLauncherRound(*W, Fr.RecoilMult);
+		return;
+	}
+	// sim.ts fireBullet per pellet: each adds its share of the heat and is refused once the guns vent; ammo only if one fired
+	const int32 Fired = wf::foundry::FireFootBullets(Heat, W->Heat, Fr.HeatMult, W->Pellets, bTipped);
+	if (bTipped) Notify(TEXT("WEAPON OVERHEAT - venting"), FLinearColor(1.f, 0.3f, 0.25f));
+	if (Fired == 0) return;
 	--Ammo[WeaponIndex];
-	if (AWFGameMode* NoiseMode = World->GetAuthGameMode<AWFGameMode>()) NoiseMode->NotePlayerGunfire(); // sim.ts fireBullet: playerNoise = 1
-	if (W->Kind == TEXT("launcher")) { FireLauncherRound(*W); return; }
+	if (Mode) Mode->NotePlayerGunfire(); // sim.ts fireBullet: playerNoise = 1
 
 	const FVector Start = Camera->GetComponentLocation();
 	const FVector Aim = GetControlRotation().Vector();
 	const double Spread = W->Spread * (bAiming ? W->AdsSpread : 1.0);
 	FCollisionQueryParams Params(SCENE_QUERY_STAT(WFWeapon), false, this);
 
-	for (int32 P = 0; P < W->Pellets; ++P)
+	for (int32 P = 0; P < Fired; ++P)
 	{
 		const FVector Dir = FMath::VRandCone(Aim, static_cast<float>(Spread));
 		const FVector End = Start + Dir * WeaponRange;
@@ -791,7 +833,12 @@ void AWFCharacter::FireRound()
 		if (bHit)
 			if (AWFEnemy* Enemy = Cast<AWFEnemy>(Hit.GetActor()))
 			{
-				Enemy->TakeHit(W->Damage * GearPowerFor(*W) * (1 + ArmorFx.WeaponDamage) * WFWeapons::BaseBulletDamage * SimMods.VerbDamageMult, this, W->Element); // gear power, armor, Rage / Siege
+				// gear power, Tex Mechanica's hip fire, armor, Rage / Siege; then sim.ts runeDamageMult and Häkke's Wall-Piercer on elites and bosses
+				double Dmg = W->Damage * GearPowerFor(*W) * Fr.HipMult * (1 + ArmorFx.WeaponDamage) * WFWeapons::BaseBulletDamage * SimMods.VerbDamageMult;
+				const bool bArmored = Enemy->IsElite() || Enemy->IsBoss();
+				if (!RuneFx.Bursts.empty() || RuneFx.bDevour || RuneFx.bRift || RuneFx.bAwakened) Dmg *= wf::godforge::RuneDamageMult(RuneFx, DevourHits, bArmored);
+				if (Foundry == TEXT("HAKKE") && bArmored) Dmg *= wf::foundry::Rules.HakkeArmored;
+				Enemy->TakeHit(Dmg, this, W->Element);
 				// sim.ts: a bullet shoves along its flight, velocity (130 m/s) x 0.06 x the weapon's knock per pellet
 				double Kx = 0, Kz = 0;
 				wf::arms::BulletKnock(Kx, Kz, Dir.X * 130, Dir.Y * 130, W->Knock / W->Pellets);
@@ -805,7 +852,7 @@ void AWFCharacter::FireRound()
 	if (AController* C = GetController())
 	{
 		FRotator R = C->GetControlRotation();
-		R.Pitch += static_cast<float>(FMath::RadiansToDegrees(W->Recoil));
+		R.Pitch += static_cast<float>(FMath::RadiansToDegrees(W->Recoil * Fr.RecoilMult)); // SUROS dampeners
 		C->SetControlRotation(R);
 	}
 }
@@ -867,7 +914,7 @@ void AWFCharacter::SwingBlade(const FWFWeaponStats& W, int32 Step)
 	if (Live.VeilTime > wf::ability::VeilBreakTime) Live.VeilTime = wf::ability::VeilBreakTime;
 }
 
-void AWFCharacter::FireLauncherRound(const FWFWeaponStats& W)
+void AWFCharacter::FireLauncherRound(const FWFWeaponStats& W, double RecoilMult)
 {
 	const wf::arms::FLauncher* L = wf::arms::LauncherById(WFData::ToStd(W.Id));
 	UWorld* World = GetWorld();
@@ -895,7 +942,7 @@ void AWFCharacter::FireLauncherRound(const FWFWeaponStats& W)
 	R.Element = UTF8_TO_TCHAR(L->Element.c_str());
 	Rounds.Add(R);
 	if (Live.VeilTime > wf::ability::VeilBreakTime) Live.VeilTime = wf::ability::VeilBreakTime;
-	if (AController* C = GetController()) { FRotator Kick = C->GetControlRotation(); Kick.Pitch += static_cast<float>(FMath::RadiansToDegrees(W.Recoil)); C->SetControlRotation(Kick); }
+	if (AController* C = GetController()) { FRotator Kick = C->GetControlRotation(); Kick.Pitch += static_cast<float>(FMath::RadiansToDegrees(W.Recoil * RecoilMult)); C->SetControlRotation(Kick); }
 }
 
 void AWFCharacter::TickRounds(double Dt)
@@ -967,6 +1014,7 @@ void AWFCharacter::ApplyHit(double Damage, const FString& Source)
 	if (Health <= 0) return;
 	if (IframesLeft > 0 || BarrierLeft > 0) return; // sim.ts hurtPlayer: Rift Dash i-frames and Bastion barriers absorb the hit
 	Damage *= SimMods.VerbIncomingMult; // Overshield (syncSimFromLive)
+	if (RuneFx.bWard) Damage *= wf::godforge::WardMult; // hurtPlayer: the Ward rune in hand
 	if (GetWorld()->GetTimeSeconds() < DeflectUntil) Damage *= 0.5; // hurtPlayer deflectUntil (Sun-Cutter)
 	Damage *= 1 - wf::dragon::CappedResist(0, DragonhideResist); // Dragonhide
 	Damage *= 1 - FMath::Clamp(ArmorFx.Resist, 0.0, wf::armor::MaxResist); // the worn armor (hurtPlayer armorResist, capped at 50%)
@@ -1237,4 +1285,44 @@ void AWFCharacter::ClassBuild()
 	Progression->Mutable().ActiveBuildMode = B.Mode;
 	Progression->Mutable().ActiveBuildSlots = B.Slots;
 	Progression->NotifyChanged();
+}
+
+void AWFCharacter::Equip(const FString& ItemId)
+{
+	UWFProgressionSubsystem* Progression = GetGameInstance()->GetSubsystem<UWFProgressionSubsystem>();
+	if (!Progression || !Progression->EquipItem(ItemId)) { Notify(FString::Printf(TEXT("No item %s - Inventory lists them"), *ItemId), FLinearColor(1.f, 0.55f, 0.3f)); return; }
+	ArmorFx = Progression->GetArmorEffects();
+	RefreshRelic();
+	Notify(FString::Printf(TEXT("Equipped %s"), *ItemId), FLinearColor(0.45f, 0.9f, 1.f));
+}
+
+void AWFCharacter::OnEnemyKilled(AWFEnemy* Victim)
+{
+	RefreshRelic();
+	if (RuneFx.bReap && Health > 0) Health = FMath::Min(MaxHealth, Health + wf::godforge::ReapHeal); // sim.ts: the Reap rune
+	UWFProgressionSubsystem* Progression = GetGameInstance()->GetSubsystem<UWFProgressionSubsystem>();
+	if (Progression && !RelicId.IsEmpty())
+	{
+		// living-runtime.ts RELIC_KILLS: mastery for the relic in hand; at 100 kills it awakens (+30 power) once
+		bool bOk = false;
+		const std::string Id = WFData::ToStd(RelicId);
+		const FString Msg = Progression->ApplyForge([&Id](const wf::FProgression& S) { return wf::godforge::RecordRelicKills(S, Id, 1); }, bOk);
+		if (!Msg.IsEmpty()) Notify(Msg, FLinearColor(1.f, 0.82f, 0.35f));
+	}
+	// sim.ts naniteBurst: one hop of nanite damage into the nearest hostile near the kill (never chains)
+	if (Foundry != TEXT("BLACK_ARMORY") || bNaniteChain || !IsValid(Victim)) return;
+	const FVector At = Victim->GetActorLocation();
+	AWFEnemy* Best = nullptr;
+	double Bd = wf::foundry::Rules.NaniteRange;
+	for (TActorIterator<AWFEnemy> It(GetWorld()); It; ++It)
+	{
+		if (*It == Victim || It->IsDead() || It->IsDecoy()) continue;
+		const double D = FVector::Dist2D(It->GetActorLocation(), At) / CmPerMeter;
+		if (D > 0.01 && D < Bd) { Bd = D; Best = *It; }
+	}
+	if (!Best) return;
+	bNaniteChain = true;
+	if (Best->IsBoss()) Best->TakeHitLeaving(wf::foundry::Rules.NaniteDamage, this, TEXT("KINETIC"), 0.01); // a boss is left at 0.01
+	else Best->TakeHit(wf::foundry::Rules.NaniteDamage, this, TEXT("KINETIC"));
+	bNaniteChain = false;
 }

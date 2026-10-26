@@ -36,6 +36,8 @@ public:
 	UFUNCTION(BlueprintPure, Category = "World Fracture|Shops") TArray<FString> DescribeShops() const;
 	/** The world clock hour for shop hours (shop-hours.ts); negative = unset, every shop open. */
 	UFUNCTION(BlueprintCallable, Category = "World Fracture|Shops") void SetWorldHour(float Hour) { WorldHour = Hour < 0 ? std::nullopt : std::optional<double>(Hour); }
+	/** the world clock (ShopHour), if one was set */
+	std::optional<double> GetWorldHour() const { return WorldHour; }
 
 	const wf::shop::FShop* GetOpenShop() const;
 	/** Today's stock of the open shop at today's prices (standing, secured district). */

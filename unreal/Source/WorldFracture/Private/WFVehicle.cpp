@@ -318,7 +318,6 @@ void AWFVehicle::Tick(float DeltaSeconds)
 	UWorld* World = GetWorld();
 	const double Dt = FMath::Min(static_cast<double>(DeltaSeconds), 0.1);
 	if (World) { TickProjectiles(Dt); TickGadgets(Dt); } // rounds and gadgets already out keep working after the driver gets out
-	if (wf::vweapons::CoolHeat(Heat, Dt)) Notify(TEXT("Weapon cooled - ready"), FLinearColor(0.45f, 0.9f, 1.f));
 	if (!Driver.IsValid() || !World) return; // parked
 	const FVector Loc = GetActorLocation();
 
@@ -433,9 +432,22 @@ wf::vweapons::FPose AWFVehicle::WeaponPose() const
 	return {L.X / VehCmPerM, L.Z / VehCmPerM - Box->GetUnscaledBoxExtent().Z / VehCmPerM, L.Y / VehCmPerM, State.Yaw, State.Pitch, State.Roll};
 }
 
+wf::vweapons::FHeat& AWFVehicle::SharedHeat()
+{
+	if (AWFGameMode* M = GetWorld() ? GetWorld()->GetAuthGameMode<AWFGameMode>() : nullptr) return M->GetWeaponHeat();
+	return FallbackHeat;
+}
+
+const wf::vweapons::FHeat& AWFVehicle::GetHeat() const
+{
+	if (const AWFGameMode* M = GetWorld() ? GetWorld()->GetAuthGameMode<AWFGameMode>() : nullptr) return M->GetWeaponHeat();
+	return FallbackHeat;
+}
+
 void AWFVehicle::TickWeapons(double Dt)
 {
 	using namespace wf::vweapons;
+	FHeat& Heat = SharedHeat(); // the game mode cools it once a frame (sim.ts)
 	const bool bBlocked = Heat.bOverheated || AreWeaponsDisabled(); // Scene.tsx: !sim.overheated && !weaponsDisabled
 	const std::vector<FShot> Shots = StepFire(Armament, Fire, bTrigger, bSecondaryTrigger, Dt, 1.0, bBlocked);
 	const FPose Pose = WeaponPose();
@@ -652,6 +664,7 @@ void AWFVehicle::TickGadgets(double Dt)
 			E->TakeHit(CaltropDps * Dt, Shooter);
 		}
 	// flame jets: burn what is around the hull while the trigger is held; heat builds toward an overheat
+	wf::vweapons::FHeat& Heat = SharedHeat();
 	if (bFlameLit && Driver.IsValid() && !Heat.bOverheated && !AreWeaponsDisabled())
 	{
 		const FVector L = GetActorLocation() / VehCmPerM;

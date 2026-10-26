@@ -5,6 +5,8 @@
 #include "Core/WFTacticsCore.h"
 #include "Core/WFEncounterCore.h"
 #include "Core/WFWastelandCore.h"
+#include "Core/WFGodforgeCore.h"
+#include "Core/WFVehicleWeaponsCore.h"
 #include "GameFramework/GameModeBase.h"
 #include "WFGameMode.generated.h"
 
@@ -141,6 +143,25 @@ public:
 	/** the activity panel (title, lines, progress) while one runs, or its result for a few seconds after */
 	const std::optional<wf::wasteland::FHud>& GetWastelandHud() const { return WasteHud; }
 
+	// ---- weapon heat (sim.ts weaponHeat): one gauge for the Operator's guns and every vehicle gun ----
+	wf::vweapons::FHeat& GetWeaponHeat() { return WeaponHeat; }
+	const wf::vweapons::FHeat& GetWeaponHeat() const { return WeaponHeat; }
+
+	// ---- the Godforge and the Living Secret World (ported godforge.ts / secrets.ts) ----
+	/** Prints the forge stage, the Forgewright's Marks, your relics, the runes you can bind and the rune dust owed. */
+	UFUNCTION(Exec) void Godforge();
+	/** at Vael: ForgeRelic eclipse-devourer | crownfire | stillwater */
+	UFUNCTION(Exec) void ForgeRelic(const FString& DesignId);
+	/** at Vael: SocketRune <relic item id> STORM|EMBER|FROST|BLOOM|SUN|DEVOUR|RIFT|WARD|REAP */
+	UFUNCTION(Exec) void SocketRune(const FString& ItemId, const FString& Rune);
+	UFUNCTION(Exec) void RemoveRune(const FString& ItemId, const FString& Rune);
+	UFUNCTION(Exec) void AscendRelic(const FString& ItemId);
+	UFUNCTION(Exec) void CollectDust();
+	/** the Furnace Guardian fell to the player: the Heart of the Hollow Crown and two forge catalysts, once */
+	void OnGuardianSlain();
+	/** NOVA's hum for the HUD: distance to the nearest unfound secret (negative = none near), its name in reach, why it is locked */
+	void GetSecretHud(double& OutDist, FString& OutName, FString& OutLocked) const { OutDist = SecretDist; OutName = SecretName; OutLocked = SecretLocked; }
+
 	/** The region's ground speed rating (regions.ts speed): scales vehicle top speed. */
 	double GetRegionSpeed() const { return RegionSpeed; }
 
@@ -153,6 +174,13 @@ private:
 	void TickCity(float DeltaSeconds);
 	void TickGrenades(float DeltaSeconds);
 	void TickWasteland(float DeltaSeconds);
+	void TickGodforge(float DeltaSeconds);
+	/** the forge's console commands answer only at Vael (godforge.ts vaelNear), as the web build's forge window opens only there */
+	bool AtVael();
+	void ForgeAction(const std::function<wf::godforge::FForgeResult(const wf::FProgression&)>& Action);
+	/** this level's centre stands for the current region's centre (the web world is not ported) */
+	FVector RegionToWorld(double X, double Z, double BaseZ) const;
+	FVector2D WorldToRegion(const FVector& L) const;
 	void DrawWasteland() const;
 	/** sim.ts spawnEventSquad: Size wastelands troopers tagged Tag in a ring around rules point (X, Z); Kind -1 = by index */
 	int32 SpawnActivitySquad(const FString& Tag, double X, double Z, int32 Size, int32 Elites, double Ring, int32 Kind);
@@ -193,7 +221,16 @@ private:
 	std::optional<wf::wasteland::FHud> WasteHud;
 	bool bWasteActive = false, bWasteAutoPlaced = false;
 	FVector2D WasteAnchorCm = FVector2D::ZeroVector; // where the Wastelands centre sits in this level
-	TArray<FWFTroop> WasteRoster; // survive seconds per world, sent to the quests about once a second
+	TArray<FWFTroop> WasteRoster;
+	wf::vweapons::FHeat WeaponHeat;
+	bool bRegionAnchored = false;
+	FVector2D RegionAnchorCm = FVector2D::ZeroVector;
+	wf::godforge::FRegionCircle RegionCircle;
+	TMap<FString, wf::godforge::FRegionCircle> RegionCircles;
+	TSet<FString> SecretsReached; // living-runtime.ts rt.reached: a secret claims once per session
+	double SecretDist = -1;
+	FString SecretName, SecretLocked;
+	bool bGuardianOut = false; // survive seconds per world, sent to the quests about once a second
 
 	struct FScenarioBoss
 	{

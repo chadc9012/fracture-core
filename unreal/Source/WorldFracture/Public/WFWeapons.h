@@ -19,6 +19,7 @@ struct FWFWeaponStats
 	int32 Reserve = 120;
 	double Reload = 1.6;   // seconds
 	int32 Pellets = 1;
+	double Heat = 1;       // weapon heat per trigger pull (x HEAT_PER_SHOT_FOOT 7, split across pellets)
 	double Knock = 1;      // shove on hit (sim.ts: bullets x0.06 of their velocity, swords x8 outward, blasts x7)
 	FString Element = TEXT("KINETIC"); // damage element (boss gimmicks read it); weapons without one are kinetic
 };

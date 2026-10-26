@@ -560,4 +560,11 @@ void AWFEnemy::Die()
 		Info.FightDeaths = Progression->GetPlayerDeaths() - DeathsAtSummon;
 	}
 	Progression->ReportEnemyDefeated(Info);
+	if (Info.bKilledByWorld) return;
+	// the Operator's kill hooks (runes, relic mastery, nanites) and the Furnace Guardian's Heart
+	APawn* Pawn = UGameplayStatics::GetPlayerPawn(this, 0);
+	AWFCharacter* Operator = Cast<AWFCharacter>(Pawn);
+	if (const AWFVehicle* Car = Cast<AWFVehicle>(Pawn)) Operator = Car->GetDriver();
+	if (Operator) Operator->OnEnemyKilled(this);
+	if (Mode && ActivityTag == UTF8_TO_TCHAR(wf::godforge::GuardianTag.c_str())) Mode->OnGuardianSlain();
 }

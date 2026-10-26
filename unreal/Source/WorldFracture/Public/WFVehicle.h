@@ -75,7 +75,8 @@ public:
 
 	/** Hardpoints (vehicle-weapons.ts armamentFor for this vehicle's handling class) and the shared weapon heat. */
 	const wf::vweapons::FArmament& GetArmament() const { return Armament; }
-	const wf::vweapons::FHeat& GetHeat() const { return Heat; }
+	/** sim.ts weaponHeat: the game mode's one gauge for every gun, on foot or mounted */
+	const wf::vweapons::FHeat& GetHeat() const;
 	/** Race recovery: puts the vehicle at a point (cm), stopped, facing as it was. */
 	void Recover(const FVector& At);
 	/** The fleet build being driven (fleet.ts active build on this chassis), its gadget hardpoint, and the gadgets out. */
@@ -117,7 +118,8 @@ private:
 
 	wf::vweapons::FArmament Armament;
 	wf::vweapons::FFireState Fire;
-	wf::vweapons::FHeat Heat;
+	wf::vweapons::FHeat& SharedHeat();
+	wf::vweapons::FHeat FallbackHeat; // only without a World Fracture game mode
 	bool bTrigger = false, bSecondaryTrigger = false;
 	double AimYaw = 0, AimPitch = 0; // camera look relative to the nose (rules radians): turrets follow it
 	TArray<wf::vweapons::FBullet> Bullets;
