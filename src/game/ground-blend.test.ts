@@ -71,7 +71,7 @@ describe("terrain colour after polish", () => {
       const a = colorAt(x, z, h0), b = colorAt(x + 2.5, z, h1);
       worst = Math.max(worst, Math.abs(a[0] - b[0]), Math.abs(a[1] - b[1]), Math.abs(a[2] - b[2]));
     }
-    expect(worst).toBeLessThan(0.25);
+    expect(worst).toBeLessThan(0.27); // (0.26 since the planet update: a river bank's carve edge now crosses the window)
   });
   test("the trail stays worn dirt: colour on the centre line is not repainted by the pit skirt", () => {
     for (const p of TRAIL) { const c = colorAt(p.x, p.z, heightAt(p.x, p.z)); expect(c[0]).toBeGreaterThan(c[2]); } // warm brown, never blue-ish
@@ -124,13 +124,14 @@ describe("rock placement after polish", () => {
 describe("shore colour", () => {
   test("dry ground just above the water is sand, never water-blue (the old band blended from 0 m, not the waterline)", async () => {
     const { WATER_LEVEL } = await import("./terrain");
-    // the gentle Verdant shore that showed cobalt ground, plus a sweep of every dry height near the waterline
-    for (const [x, z] of [[957, 86], [940, 110]] as const) {
+    // a gentle Verdant shore (the one that showed cobalt ground moved east with the forest in the planet update), plus a sweep
+    // of every dry height near the waterline
+    for (const [x, z] of [[1136, 75]] as const) {
       const h = heightAt(x, z); expect(h).toBeGreaterThan(WATER_LEVEL);
       const c = colorAt(x, z, h); expect(c[0]).toBeGreaterThan(c[2]);
     }
     for (let h = WATER_LEVEL + 0.05; h < WATER_LEVEL + 6; h += 0.25) {
-      const c = colorAt(957, 86, h);
+      const c = colorAt(1136, 75, h);
       for (const v of c) { expect(v).toBeGreaterThanOrEqual(0); expect(v).toBeLessThanOrEqual(1); }
       expect(c[0]).toBeGreaterThan(c[2]);
     }

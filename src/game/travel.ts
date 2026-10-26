@@ -29,7 +29,7 @@ function beside(x: number, z: number): { x: number; z: number } {
 }
 export const TERMINALS: readonly Terminal[] = [
   ...REGIONS.map((r) => ({ id: `terminal:${r.id}`, name: `${r.name} Transit`, world: worldAt(r.x, r.z), regionId: r.id, ...beside(r.x, r.z) })),
-  { id: "terminal:neon", name: "Neon City Transit", world: "noctyra" as WorldId, regionId: "neon", ...beside(NEON_SITE.x, NEON_SITE.z) },
+  { id: "terminal:neon", name: "Neon City Transit", world: "aetheria" as WorldId, regionId: "neon", ...beside(NEON_SITE.x, NEON_SITE.z) },
 ];
 export const TERMINAL_RADIUS = 4;
 export const terminalAt = (x: number, z: number): Terminal | null => TERMINALS.find((t) => Math.hypot(x - t.x, z - t.z) < TERMINAL_RADIUS) ?? null;
@@ -77,8 +77,8 @@ export const ELEVATOR_RIDE_S = 6;
 
 /* ---------------- flights ---------------- */
 
-export const visitedKey = (w: WorldId) => `planet:visited:${w}`;
-export const hasVisited = (p: Pick<PlayerProgression, "earnedRewards">, w: WorldId) => p.earnedRewards.includes(visitedKey(w));
+export const visitedKey = (w: WorldId | ContinentId) => `planet:visited:${w}`;
+export const hasVisited = (p: Pick<PlayerProgression, "earnedRewards">, w: WorldId | ContinentId) => p.earnedRewards.includes(visitedKey(w));
 /** the start continent counts as visited from the first step */
 export const START_WORLD: ContinentId = "veyloria";
 
@@ -97,6 +97,6 @@ export function flightsFrom(from: Terminal, p: Pick<PlayerProgression, "earnedRe
 export function newlyVisited(p: Pick<PlayerProgression, "earnedRewards">, w: WorldId): WorldId | null {
   return hasVisited(p, w) ? null : w;
 }
-export function recordVisit<P extends Pick<PlayerProgression, "earnedRewards">>(p: P, w: WorldId): P {
+export function recordVisit<P extends Pick<PlayerProgression, "earnedRewards">>(p: P, w: WorldId | ContinentId): P {
   return hasVisited(p, w) ? p : { ...p, earnedRewards: [...p.earnedRewards, visitedKey(w)] };
 }

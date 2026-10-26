@@ -1,5 +1,5 @@
 import { REGIONS, WORLD_SCALE, NEON_SITE, type Region } from "./world";
-import { NEON_KEEP, STRAIT_CLEAR, borderDistance } from "./continent-borders";
+import { STRAIT_CLEAR, borderDistance } from "./continent-borders";
 
 /* Supply routes shared by the simulation, the road renderer and the
  * obstacle registry (props are cleared off the roads so convoys never crash). */
@@ -97,8 +97,8 @@ const PIER_MARGIN = 14;
 const STUB_MIN = 110;
 function cutRoute(r: Lane): Lane[] {
   const N = 400, pts = Array.from({ length: N + 1 }, (_, i) => lanePoint(r, i / N));
-  // at the sea, or on the beach / too close to it for a road: only where a strait can be (not on Neon City's land border)
-  const blocked = pts.map((p) => Math.hypot(p.x - NEON_SITE.x, p.z - NEON_SITE.z) >= NEON_KEEP && borderDistance(p.x, p.z) < STRAIT_CLEAR + PIER_MARGIN);
+  // at the sea, or on the beach / too close to it for a road
+  const blocked = pts.map((p) => borderDistance(p.x, p.z) < STRAIT_CLEAR + PIER_MARGIN);
   if (!blocked.includes(true)) return [r];
   const len = (i0: number, i1: number) => { let l = 0; for (let i = i0; i < i1; i++) l += Math.hypot(pts[i + 1]!.x - pts[i]!.x, pts[i + 1]!.z - pts[i]!.z); return l; };
   const pier = (i: number, from: Region, to: Region): Region => ({ ...from, id: `pier-${from.id}-${to.id}-${i}`, name: `${to.name} Ferry Pier`, x: pts[i]!.x, z: pts[i]!.z, radius: 0 });

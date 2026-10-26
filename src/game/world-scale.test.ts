@@ -1,4 +1,4 @@
-import { NEON_FLAT } from "./world";
+import { NEON_FLAT, MAP_SPREAD } from "./world";
 import { describe, expect, test } from "bun:test";
 import { BASE_WORLD_REGIONS, BASE_WORLD_RADIUS, REGIONS, WORLD_RADIUS, WORLD_SCALE, HEIGHT_K, NEON_OFFSET, scaleSite, regionAt, AUTHORED_CENTRES } from "./world";
 import { BASE_FOOT_SPEED, FOOT_SCALE, SPRINT_MULT } from "./foot-speed";
@@ -39,7 +39,7 @@ describe("world scale", () => {
       expect(o.z - r.z).toBeCloseTo(b.id === "nexus" ? -3 : -3 * WORLD_SCALE, 9);
     }
     const open = scaleSite(-97, -208);
-    expect(open.x).toBeCloseTo(-97 * WORLD_SCALE, 9);
+    expect(open.x).toBeCloseTo(-97 * WORLD_SCALE * MAP_SPREAD, 9); // open sea spreads with the map (planet update)
     // Thalassia lies offshore from the Verdant Forest (thalassia-site.ts authors it at (225, -25))
     const sea = scaleSite(225, -25);
     // Thalassia keeps the authored bearing; it is only pulled in so its reachable zone always overlaps the world disc (thalassia-site.ts)

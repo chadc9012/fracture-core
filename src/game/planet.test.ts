@@ -1,6 +1,6 @@
 // @ts-ignore bun:test has no types in this project's tsconfig
 import { describe, expect, it } from "bun:test";
-import { CONTINENTS, NATIONS, OCEANS, PLANET, THALASSIA_ZONE_RADIUS, borderBlocks, continentById, crossingAllowed, worldAt } from "./planet";
+import { CONTINENTS, MAJOR_CONTINENTS, NATIONS, OCEANS, PLANET, THALASSIA_ZONE_RADIUS, borderBlocks, continentById, crossingAllowed, worldAt } from "./planet";
 import { NEON_FLAT, NEON_SITE, NEXUS_SUBURB, REGIONS } from "./world";
 import { LANDMARKS } from "./landmarks";
 import { THALASSIA_CENTER } from "./thalassia-site";
@@ -9,13 +9,20 @@ import { AREAS } from "./activities";
 const continentOfRegion = (id: string) => CONTINENTS.find((c) => c.regions.includes(id))?.id;
 
 describe("the planet", () => {
-  it("is the stated super-Earth: 12 continents, 7 oceans, 48 nations, about 68% more surface than Earth", () => {
-    expect(CONTINENTS.length).toBe(12);
-    expect(OCEANS.length).toBe(7);
+  it("is Earth-sized (planet update): 12,756 km, oblate, 7 major continents, 5 major oceans, the rest archipelagos, nations and subregions", () => {
+    expect(PLANET.diameterKm).toBe(12756);
+    expect(PLANET.polarDiameterKm).toBeLessThan(PLANET.diameterKm);
+    expect(PLANET.surfaceKm2 / 510_072_000).toBeGreaterThan(0.99);
+    expect(PLANET.surfaceKm2 / 510_072_000).toBeLessThan(1.01);
+    expect(MAJOR_CONTINENTS().map((c) => c.id).sort()).toEqual(["aetheria", "frosthelm", "kharos", "noctyra", "pyrrath", "sylvaris", "veyloria"]);
+    expect(OCEANS.filter((o) => o.major).length).toBe(5);
+    for (const id of ["elyndra", "valdoria", "myrathis", "drakoria", "zephyria"]) expect(continentById(id)!.kind).not.toBe("CONTINENT");
     expect(NATIONS.length).toBe(48);
     expect(new Set(NATIONS.map((n) => n.name)).size).toBe(48);
-    expect(PLANET.surfaceKm2 / 510_072_000).toBeGreaterThan(1.66);
-    expect(PLANET.surfaceKm2 / 510_072_000).toBeLessThan(1.7);
+  });
+  it("Nexus City and Neon City are both Aetheria", () => {
+    expect(continentOfRegion("nexus")).toBe("aetheria");
+    expect(continentOfRegion("neon")).toBe("aetheria");
   });
   it("owner decisions: start on Veyloria, Wastelands with Solara on Kharos, Meridian is Aetheria's capital, Thalassia on no continent", () => {
     expect(continentOfRegion("veridan")).toBe("veyloria");
@@ -34,9 +41,9 @@ describe("continent worlds on the live map", () => {
   it("each region centre lies in its own continent's world", () => {
     for (const r of REGIONS) expect(worldAt(r.x, r.z)).toBe(continentOfRegion(r.id)!);
   });
-  it("Neon City's whole plateau is Noctyra; the Nexus hub and its suburb are Aetheria", () => {
+  it("Neon City's whole plateau, the Nexus hub and its suburb are all Aetheria", () => {
     for (let a = 0; a < Math.PI * 2; a += Math.PI / 16) {
-      expect(worldAt(NEON_SITE.x + Math.cos(a) * NEON_FLAT, NEON_SITE.z + Math.sin(a) * NEON_FLAT)).toBe("noctyra");
+      expect(worldAt(NEON_SITE.x + Math.cos(a) * NEON_FLAT, NEON_SITE.z + Math.sin(a) * NEON_FLAT)).toBe("aetheria");
     }
     const nexus = REGIONS.find((r) => r.id === "nexus")!;
     for (let a = 0; a < Math.PI * 2; a += Math.PI / 8) expect(worldAt(nexus.x + Math.cos(a) * 40, nexus.z + Math.sin(a) * 40)).toBe("aetheria");
@@ -44,12 +51,12 @@ describe("continent worlds on the live map", () => {
   });
   it("every landmark stands in the world of its own region", () => {
     for (const l of LANDMARKS) {
-      const want = l.regionId === "thalassia" ? "thalassia" : l.regionId === "neon" ? "noctyra" : continentOfRegion(l.regionId);
+      const want = l.regionId === "thalassia" ? "thalassia" : l.regionId === "neon" ? "aetheria" : continentOfRegion(l.regionId);
       expect(`${l.id}:${worldAt(l.x, l.z)}`).toBe(`${l.id}:${want}`);
     }
   });
   it("every activity area sits in one world at its centre", () => {
-    for (const [id, a] of Object.entries(AREAS)) expect(`${id}:${worldAt(a.x, a.z)}`).toMatch(/:(aetheria|noctyra|veyloria|sylvaris|kharos|frosthelm|pyrrath|thalassia)$/);
+    for (const [id, a] of Object.entries(AREAS)) expect(`${id}:${worldAt(a.x, a.z)}`).toMatch(/:(aetheria|veyloria|sylvaris|kharos|frosthelm|pyrrath|thalassia)$/);
   });
 });
 

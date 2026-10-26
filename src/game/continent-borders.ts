@@ -11,20 +11,24 @@ const at = (id: string, w: number): Anchor => ({ x: R(id).x, z: R(id).z, w });
  * every authored site stands at least STRAIT_CLEAR + 16 m from a strait (planet.test.ts checks
  * every region centre, Neon City's whole plateau, the Nexus hub and its suburb, and every landmark). */
 export const WORLD_ANCHORS: Readonly<Record<string, readonly Anchor[]>> = {
-  aetheria: [at("nexus", 179), { x: R("nexus").x, z: R("nexus").z + 155, w: 168 }],
-  noctyra: [{ x: NEON_SITE.x, z: NEON_SITE.z, w: 264 }],
+  aetheria: [at("nexus", 203), { x: R("nexus").x, z: R("nexus").z + 155, w: 191 }],
+  // Neon City: its own landmass in Aetheria across the gulf from Nexus (owner, Oct 25 2026: the Celestial Bridge joins them)
+  neon: [{ x: NEON_SITE.x, z: NEON_SITE.z, w: 250 }],
   veyloria: [at("veridan", 274)],
   sylvaris: [at("swamps", 193)],
-  kharos: [at("solara", 264), at("wastelands", 252)],
+  kharos: [at("solara", 264), at("wastelands", 286)],
   frosthelm: [at("frostspire", 240)],
-  pyrrath: [at("ember", 283)],
+  pyrrath: [at("ember", 253)],
 };
 export type AnchorWorld = keyof typeof WORLD_ANCHORS;
 
-/** Landmasses: continents that share one (no sea between them). Owner, Oct 25 2026: Neon City stays where it is, beside
- * Nexus, so Aetheria and Noctyra keep a land border (the invisible line); every other pair is split by sea. */
-export const LANDMASS: Readonly<Record<string, string>> = { aetheria: "meridian", noctyra: "meridian" };
-const massOf = (id: string) => LANDMASS[id] ?? id;
+/** Every anchor is its own landmass with sea all round it. Owner, Oct 25 2026 (the planet update): Nexus City and Neon
+ * City are both Aetheria but stand on separate coastal landmasses across an ocean gulf, so the Neon anchor is a landmass
+ * whose continent world is Aetheria. */
+export const ANCHOR_WORLD: Readonly<Record<string, string>> = { neon: "aetheria" };
+/** the continent world an anchor's land belongs to */
+export const worldOfAnchor = (id: string) => ANCHOR_WORLD[id] ?? id;
+const massOf = (id: string) => id;
 
 type Near = { id: AnchorWorld; s: number; ux: number; uz: number };
 /** the closest continent world by anchor score (distance − weight) and the closest one on another landmass, each with
@@ -106,29 +110,29 @@ export const STRAIT_SHORE = 30;
 export const STRAIT_DEPTH = 6;
 /** 1 in the strait's open water, falling to 0 at the top of its beach */
 export function straitWeight(x: number, z: number): number {
-  // Neon City stays put (owner): the sea stops at its plateau, so the city is never cut; the land there is a border line
-  const dn = Math.hypot(x - NEON_SITE.x, z - NEON_SITE.z);
-  if (dn < NEON_KEEP) return 0;
-  const keep = dn < NEON_KEEP + NEON_KEEP_FADE ? smooth((dn - NEON_KEEP) / NEON_KEEP_FADE) : 1;
+  const keep = 1;
   const d = borderDistance(x, z);
   if (d >= STRAIT_WATER + STRAIT_SHORE) return 0;
   if (d <= STRAIT_WATER) return keep;
   return keep * (1 - smooth((d - STRAIT_WATER) / STRAIT_SHORE));
 }
 const smooth = (t: number) => t * t * (3 - 2 * t);
-/** the sea keeps this far from Neon City's centre (its plateau and fade), easing in over the next stretch */
-export const NEON_KEEP = NEON_FLAT + NEON_FADE;
-export const NEON_KEEP_FADE = 60;
 /** the steepest the strait's banks run (rise per metre): land near a strait is capped under this slope from the open
  * water's edge, so a tall forest or mountain meets the sea as a steep bank, never a step */
 export const STRAIT_SLOPE = 0.9;
+/** at the two cities the sea meets a harbour wall instead of a wild bank: the bank steepens to this near them */
+export const QUAY_SLOPE = 2.6;
+const NEXUS_C = REGIONS.find((r) => r.id === "nexus")!;
+/** the bank slope here: wild banks out in the country, harbour walls along Nexus City and Neon City */
+export function bankSlope(x: number, z: number): number {
+  const dn = Math.hypot(x - NEON_SITE.x, z - NEON_SITE.z) - (NEON_FLAT + NEON_FADE), dx = Math.hypot(x - NEXUS_C.x, z - NEXUS_C.z) - 150;
+  const city = 1 - smooth(Math.min(1, Math.max(0, Math.min(dn, dx) / 120)));
+  return STRAIT_SLOPE + (QUAY_SLOPE - STRAIT_SLOPE) * city;
+}
 /** the highest the ground may stand here, metres above the strait's bed (Infinity away from every strait) */
 export function straitCeiling(x: number, z: number): number {
-  const dn = Math.hypot(x - NEON_SITE.x, z - NEON_SITE.z);
-  if (dn < NEON_KEEP) return Infinity;
   const d = borderDistance(x, z);
-  const lift = dn < NEON_KEEP + NEON_KEEP_FADE ? (1 - smooth((dn - NEON_KEEP) / NEON_KEEP_FADE)) * 400 : 0;
-  const c = Math.max(0, d - STRAIT_WATER) * STRAIT_SLOPE + lift;
+  const c = Math.max(0, d - STRAIT_WATER) * bankSlope(x, z);
   return c > 400 ? Infinity : c;
 }
 /** land stays this far back from a border (roads end, gates and props stay clear) */

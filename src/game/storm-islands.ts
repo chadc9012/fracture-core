@@ -1,3 +1,4 @@
+import { MAP_SPREAD } from "./world";
 /** Storm Islands is an optional hidden sub-area, not a tenth destination (uploaded storm-islands quest foundation +
  * world pass, 2026-10-23). The chain floats over the north-east ocean at STORM_ISLANDS_CENTER; site positions are
  * offsets from it (y is absolute height). StormIslands.tsx builds the islands; storm-quests.ts makes them standable and
@@ -56,5 +57,6 @@ export function stormSiteById(id: string): StormIslandSite | undefined {
 }
 
 /** where the chain floats: open ocean north-east of Nexus City, in sight of the coast */
-export const STORM_ISLANDS_CENTER = { x: 980, z: -700 } as const;
+/** (×MAP_SPREAD since the planet update: the chain stays out over the open ocean as the continents moved apart) */
+export const STORM_ISLANDS_CENTER = { x: 980 * MAP_SPREAD, z: -700 * MAP_SPREAD } as const;
 export const stormSiteWorld = (s: StormIslandSite) => ({ x: STORM_ISLANDS_CENTER.x + s.position[0], y: s.position[1], z: STORM_ISLANDS_CENTER.z + s.position[2] });
