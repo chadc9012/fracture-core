@@ -1169,7 +1169,7 @@ export function GameCanvas() {
     const last = plan[plan.length - 1];
     // Raid 01's boss: the raid's own rewards (Starbreaker on the first kill) ride on the same confirmed claim
     let first = false;
-    if (plan.some((p) => p.scenarioId === ASTRAVORE_SCENARIO_ID)) { const tierNow = getRaidLaunchTier(); const r = applyAstravoreKill(progressionRef.current, Date.now(), tierNow); first = r.firstKill; const raidNex = nexBalance(r.progress.nexLedger) - nexBalance(progressionRef.current.nexLedger); if (raidNex > 0) showLivingToast(`Raid cleared · NΞ ${raidNex.toLocaleString("en-US")} paid`); setProgression((current) => applyAstravoreKill(current, Date.now(), tierNow).progress); }
+    if (plan.some((p) => p.scenarioId === ASTRAVORE_SCENARIO_ID)) { const tierNow = getRaidLaunchTier(); const r = applyAstravoreKill(progressionRef.current, Date.now(), tierNow); first = r.firstKill; const raidNex = nexBalance(r.progress.nexLedger) - nexBalance(progressionRef.current.nexLedger); const had = new Set(progressionRef.current.inventory.map((g) => `${g.id}@${g.power}`)); const dropped = r.progress.inventory.filter((g) => !had.has(`${g.id}@${g.power}`)).map((g) => g.name); if (raidNex > 0 || dropped.length) showLivingToast(`Raid cleared${raidNex > 0 ? ` · NΞ ${raidNex.toLocaleString("en-US")}` : ""}${dropped.length ? ` · dropped ${dropped.join(", ")}` : ""}`); setProgression((current) => applyAstravoreKill(current, Date.now(), tierNow).progress); }
     if (first) setWorldNews(hollowStarNews(classById(progressionRef.current.identityClass ?? cls).name));
     if (last) setRewardCards({ title: `${scenarioById(last.scenarioId)?.name ?? "Scenario"}${first ? " · Title earned: Starbreaker" : ""}`, cards: plan.flatMap((p) => p.cards) });
   };

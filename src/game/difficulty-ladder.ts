@@ -142,7 +142,7 @@ export const challengeBump = (modId: string) => BUMPS[modId] ?? 0;
 /* ------------------------------------------------------------------ weekly rotation */
 const WEEK = 7 * 86_400_000, WEEK_ZERO = Date.UTC(2026, 0, 5); // a Monday
 export const weekIndex = (now: number) => Math.floor((now - WEEK_ZERO) / WEEK);
-export const WEEKLY_STRIKE_BONUS = 1.5, WEEKLY_RAID_BONUS = 1.25;
+export const WEEKLY_STRIKE_BONUS = 1.5;
 export type WeeklyModifier = { id: string; name: string; effect: string };
 export const RAID_CHALLENGES: readonly WeeklyModifier[] = [
   { id: "no-revive", name: "Last Light", effect: "No shared-life recovery between encounters." },
@@ -169,5 +169,6 @@ export const weeklyRaidChallenge = (now: number): WeeklyModifier => RAID_CHALLEN
 /** the Nex multiplier from this week's feature: the Ordeal strike pays extra from Hero up; the raid challenge pays extra when taken */
 export function weeklyMult(kind: LadderKind, tier: Tier, featured: boolean, challengeTaken: boolean): number {
   if (kind === "strike") return featured && tier.rank >= 1 ? WEEKLY_STRIKE_BONUS : 1;
-  return challengeTaken ? WEEKLY_RAID_BONUS : 1;
+  void challengeTaken; // the raid's weekly challenge pays on its featured encounter (raid-lockout.ts), not on the whole raid
+  return 1;
 }

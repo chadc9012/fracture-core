@@ -13,6 +13,7 @@
  * tagLegacyPayouts gives to the operator who was being played (operator-pockets.ts). */
 import type { NexLedger } from "./nex";
 import { HOLLOW_STAR_ID } from "./hollow-star-data";
+import { weekIndex } from "./difficulty-ladder";
 
 export type PayoutClass = "boss" | "strike" | "dungeon" | "raid";
 export const PAYOUTS: Record<PayoutClass, { first: number; repeat: number }> = {
@@ -50,8 +51,8 @@ const everPaid = (ledger: NexLedger, cls: PayoutClass, id: string) => Object.key
 export function payoutFor(ledger: NexLedger, cls: PayoutClass, rawId: string, now: number, mult = 1, operator?: string): { key: string; nex: number; first: boolean } | null {
   const id = targetOf(rawId, operator);
   const first = !everPaid(ledger, cls, id);
-  const day = dayOf(now);
-  // the first clear is recorded with its day, so it also uses up that day's repeat (no double-dip on day one)
+  const day = cls === "raid" ? `W${weekIndex(now)}` : dayOf(now); // raids reset weekly (Monday), everything else daily
+  // the first clear is recorded with its period, so it also uses up that day's repeat (no double-dip on day one)
   const key = first ? keyOf(cls, id, `first:${day}`) : keyOf(cls, id, day);
   if (key in ledger || keyOf(cls, id, `first:${day}`) in ledger) return null;
   const base = first ? PAYOUTS[cls].first : PAYOUTS[cls].repeat;

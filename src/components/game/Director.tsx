@@ -12,11 +12,13 @@ import { SaveManager } from "./SaveManager";
 import { PlanetMap } from "./PlanetMap";
 import { RAID_INSTANCES, raidArrival } from "@/game/raid-instances";
 import { DUNGEONS } from "@/game/dungeons";
+import { HOLLOW_STAR } from "@/game/hollow-star-data";
 import { cycle, padTabIntent, tabKeyIntent } from "@/game/director-nav";
-import { HOLLOW_STAR_ID, hollowStarTierPayout, hollowStarTierUnlocked } from "@/game/hollow-star-raid";
+import { HOLLOW_STAR_ID, hollowStarTierUnlocked } from "@/game/hollow-star-raid";
+import { RAID_STAGE_IDS, clearedStages, featuredStage, lockedOut } from "@/game/raid-lockout";
+import { weeklyRaidChallenge } from "@/game/difficulty-ladder";
 import { RAID_TIERS } from "@/game/difficulty-ladder";
 import { setRaidLaunchTier } from "@/game/raid-launch";
-import { formatNex } from "@/game/nex";
 
 /** Destiny-style director: the world map is home, with the Killbox (PvP; "crucible" in code and saves), Raid and the gear/save screens as tabs along the
  * top. Destinations deploy through the map's own transit; Killbox matches start an activity and drop you in the arena. */
@@ -193,9 +195,11 @@ function RaidView({ progression, onDeploy }: { progression: PlayerProgression; o
               {raid.id === HOLLOW_STAR_ID && <div className="mt-3">
                 <p className="ui-kicker">Difficulty</p>
                 <div className="mt-2 grid grid-cols-2 gap-2">{RAID_TIERS.map((t) => {
-                  const open = hollowStarTierUnlocked(progression, t.id), pay = hollowStarTierPayout(progression, "STANDARD", t.id, false);
-                  return <Button key={t.id} size="sm" variant={t.id === tierId ? "default" : "outline"} disabled={!open} onClick={() => setTierId(t.id)} className="h-auto flex-col items-start gap-0.5 rounded-none p-2 text-left whitespace-normal"><span className="font-mono text-[10px] uppercase">{!open && <LockKeyhole className="mr-1 inline size-3" />}{t.name} · boss x{t.bossHealthScale}</span><span className="text-[9px] opacity-80">{open ? (pay ? `Pays ${formatNex(pay.nex)} today` : "Paid today") : `Clear ${RAID_TIERS[t.rank - 1]!.name} first`}</span></Button>;
+                  const open = hollowStarTierUnlocked(progression, t.id), n = clearedStages(progression, t.id).length;
+                  return <Button key={t.id} size="sm" variant={t.id === tierId ? "default" : "outline"} disabled={!open} onClick={() => setTierId(t.id)} className="h-auto flex-col items-start gap-0.5 rounded-none p-2 text-left whitespace-normal"><span className="font-mono text-[10px] uppercase">{!open && <LockKeyhole className="mr-1 inline size-3" />}{t.name} · boss x{t.bossHealthScale}</span><span className="text-[9px] opacity-80">{!open ? `Clear ${RAID_TIERS[t.rank - 1]!.name} first` : lockedOut(progression, t.id) ? "Locked out until reset" : `${n}/${RAID_STAGE_IDS.length} encounters this week`}</span></Button>;
                 })}</div>
+                <p className="mt-2 text-[10px] text-muted-foreground">Encounters reset every Monday. Each one drops its own gear.</p>
+                <p className="mt-1 text-[10px] text-primary">Weekly challenge · {weeklyRaidChallenge(Date.now()).name}: {weeklyRaidChallenge(Date.now()).effect} Featured encounter: {HOLLOW_STAR.stages.find((x) => x.id === featuredStage(Date.now()))?.name}</p>
               </div>}
               <Button className="mt-4 font-mono uppercase tracking-widest" onClick={go}><Swords /> Launch raid</Button>
             </section>

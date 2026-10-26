@@ -10,6 +10,7 @@ import {
   hollowStarExtras, hollowStarNews, minionCount, openShortcuts, secretKey, starbreakerRecognition,
 } from "./hollow-star-raid";
 
+const WEEK = 7 * 86_400_000;
 const DAY = Date.UTC(2026, 9, 25, 12);
 
 describe("Hollow Star definition", () => {
@@ -131,22 +132,22 @@ describe("rewards", () => {
     expect(first.earnedRewards).toContain(FIRST_CLEAR_APPEARANCE);
     expect(first.dungeonClears[HOLLOW_STAR_ID]).toBe(1);
     expect(first.inventory.length).toBeGreaterThan(DEFAULT_PROGRESSION.inventory.length);
-    const next = claimHollowStarClear(first, "STANDARD", [], DAY + 86_400_000);
+    const next = claimHollowStarClear(first, "STANDARD", [], DAY + WEEK);
     expect(next.dungeonClears[HOLLOW_STAR_ID]).toBe(2);
     expect(next.earnedRewards.filter((k) => k === STARBREAKER_KEY).length).toBe(1);
-    expect(next.inventory.length).toBe(first.inventory.length);
+    expect(next.inventory.filter((g) => !g.id.startsWith("hs-")).length).toBe(first.inventory.filter((g) => !g.id.startsWith("hs-")).length); // no second first-clear weapon (raid pieces are encounter drops)
     expect(next.fractureShards - first.fractureShards).toBeLessThan(first.fractureShards - DEFAULT_PROGRESSION.fractureShards);
   });
-  test("one claim a day: the same day pays nothing more", () => {
+  test("locked out for the week: the same day, or any day before Monday, pays nothing more", () => {
     const first = claimHollowStarClear(DEFAULT_PROGRESSION, "STANDARD", [], DAY);
     expect(claimHollowStarClear(first, "STANDARD", ["sixth-seal"], DAY + 3_600_000)).toBe(first);
   });
   test("secret objectives pay once each, only when found, and the challenge repeat pays more than standard", () => {
     const first = claimHollowStarClear(DEFAULT_PROGRESSION, "STANDARD", [], DAY);
-    const withSecret = claimHollowStarClear(first, "STANDARD", ["sixth-seal", "not-a-secret"], DAY + 86_400_000);
+    const withSecret = claimHollowStarClear(first, "STANDARD", ["sixth-seal", "not-a-secret"], DAY + WEEK);
     expect(withSecret.earnedRewards).toContain(secretKey("sixth-seal"));
     expect(withSecret.earnedRewards).not.toContain(secretKey("not-a-secret"));
-    const again = claimHollowStarClear(withSecret, "STANDARD", ["sixth-seal"], DAY + 2 * 86_400_000);
+    const again = claimHollowStarClear(withSecret, "STANDARD", ["sixth-seal"], DAY + 2 * WEEK);
     expect(again.earnedRewards.filter((k) => k === secretKey("sixth-seal")).length).toBe(1);
     const e1 = hollowStarExtras(withSecret.earnedRewards, 2, "STANDARD", ["sixth-seal"]);
     expect(e1.secrets).toEqual([]);
