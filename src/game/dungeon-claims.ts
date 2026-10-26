@@ -10,13 +10,14 @@ import { payInto, payoutClassOfDungeon } from "./activity-payouts";
 
 export const DUNGEON_REPEAT = { shards: 10, fuel: 25, alloy: 20 } as const;
 const day = (now: number) => new Date(now).toISOString().slice(0, 10);
-export const dungeonClaimKey = (dungeonId: string, now: number) => `dungeon-claim:${dungeonId}:${day(now)}`;
-export const canClaimDungeon = (p: Pick<PlayerProgression, "earnedRewards">, dungeonId: string, now = Date.now()) => !p.earnedRewards.includes(dungeonClaimKey(dungeonId, now));
+/** one claim per dungeon per day per operator (each operator earns their own clears' bounties: activity-payouts.ts) */
+export const dungeonClaimKey = (dungeonId: string, now: number, operator?: string) => `dungeon-claim:${dungeonId}${operator ? `#${operator}` : ""}:${day(now)}`;
+export const canClaimDungeon = (p: Pick<PlayerProgression, "earnedRewards"> & Partial<Pick<PlayerProgression, "pocketClass">>, dungeonId: string, now = Date.now()) => !p.earnedRewards.includes(dungeonClaimKey(dungeonId, now, p.pocketClass));
 
 export function claimDungeonClear(p: PlayerProgression, dungeonId: string, signatureName: string, now = Date.now()): PlayerProgression {
   if (!canClaimDungeon(p, dungeonId, now)) return p;
   const first = (p.dungeonClears[dungeonId] ?? 0) === 0;
-  const earned = Array.from(new Set([...p.earnedRewards, signatureName, dungeonClaimKey(dungeonId, now)]));
+  const earned = Array.from(new Set([...p.earnedRewards, signatureName, dungeonClaimKey(dungeonId, now, p.pocketClass)]));
   const cleared: PlayerProgression = { ...grantDungeonFirstClear(p, dungeonId), dungeonClears: { ...p.dungeonClears, [dungeonId]: (p.dungeonClears[dungeonId] ?? 0) + 1 }, fractureShards: p.fractureShards + (first ? 35 : DUNGEON_REPEAT.shards), earnedRewards: earned };
   const fuelKing = dungeonId === FUEL_KING_ENCOUNTER_ID;
   const rewarded = fuelKing

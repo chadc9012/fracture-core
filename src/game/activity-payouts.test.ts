@@ -66,7 +66,40 @@ describe("dungeon and raid clears", () => {
     const a = payInto(fresh(), "raid", HOLLOW_STAR_ID, T).progression;
     const merged = { ...a.nexLedger, ...a.nexLedger };
     expect(nexBalance(merged)).toBe(PAYOUTS.raid.first);
-    expect(payoutFor(a.nexLedger, "raid", HOLLOW_STAR_ID, T)).toBeNull();
+    expect(payoutFor(a.nexLedger, "raid", HOLLOW_STAR_ID, T, 1, a.pocketClass)).toBeNull();
+  });
+});
+
+import { switchOperator } from "./operator-pockets";
+import { normalizeProgression } from "./progression";
+import { tagLegacyPayouts } from "./activity-payouts";
+describe("bounties per operator", () => {
+  test("each operator earns a boss's first-kill bounty and the daily repeat on their own", () => {
+    const titan = claimBossBounty(fresh(), "dark-knight", T);
+    expect(titan.paid).toBe(PAYOUTS.boss.first);
+    const hunter = claimBossBounty(switchOperator(titan.progression, "HUNTER"), "dark-knight", T);
+    expect(hunter.paid).toBe(PAYOUTS.boss.first);
+    expect(hunter.first).toBe(true);
+    expect(claimBossBounty(hunter.progression, "dark-knight", T + 1000).paid).toBe(0); // Hunter's daily one is taken too
+    const back = switchOperator(hunter.progression, "TITAN");
+    expect(claimBossBounty(back, "dark-knight", T + 1000).paid).toBe(0); // and Titan's still is
+    expect(claimBossBounty(back, "dark-knight", T + DAY).paid).toBe(PAYOUTS.boss.repeat);
+    expect(nexBalance(back.nexLedger)).toBe(PAYOUTS.boss.first); // Hunter's pay went to Hunter
+  });
+  test("dungeon clears pay each operator's first clear", () => {
+    const a = claimDungeonClear(fresh(), plain.id, plain.signature.name, T);
+    const b = claimDungeonClear(switchOperator(a, "WARLOCK"), plain.id, plain.signature.name, T);
+    expect(nexBalance(b.nexLedger)).toBe(PAYOUTS.dungeon.first);
+  });
+  test("an old save's bounties belong to the operator being played", () => {
+    const legacy = { ...fresh(), identityClass: "HUNTER", nexLedger: { "payout:boss:dark-knight:first:2026-10-25": 800, "payout:secret:x": 400 } } as Record<string, unknown>;
+    delete legacy["pocketClass"]; delete legacy["operators"];
+    const p = normalizeProgression(legacy);
+    expect(Object.keys(p.nexLedger).sort()).toEqual(["payout:boss:dark-knight#HUNTER:first:2026-10-25", "payout:secret:x"]);
+    expect(claimBossBounty(p, "dark-knight", T).paid).toBe(0);
+    expect(claimBossBounty(switchOperator(p, "TITAN"), "dark-knight", T).paid).toBe(PAYOUTS.boss.first);
+    const tagged = { "payout:raid:hollow-star#TITAN:2026-10-25": 4000 };
+    expect(tagLegacyPayouts(tagged, "HUNTER")).toBe(tagged);
   });
 });
 

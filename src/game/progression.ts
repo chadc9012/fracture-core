@@ -24,6 +24,7 @@ import { normalizeNex, type NexLedger } from "./nex";
 import { EMPTY_HOUSING, normalizeHousing, type HousingState } from "./housing";
 import { normalizeCondition, type VehicleCondition } from "./vehicle-condition";
 import { freshPockets, normalizePockets, type OperatorPocket } from "./operator-pockets";
+import { tagLegacyPayouts } from "./activity-payouts";
 
 export type ClassId = "TITAN" | "HUNTER" | "WARLOCK";
 export type WeaponLoadout = { name: string; slots: [WeaponId, WeaponId, WeaponId] };
@@ -191,7 +192,7 @@ export function normalizeProgression(raw: unknown): PlayerProgression {
   try {
     const parsed = raw as (Partial<Omit<PlayerProgression, "version">> & { version?: number }) | null;
      if (!parsed || (parsed.version !== 1 && parsed.version !== 2 && parsed.version !== 3 && parsed.version !== 4 && parsed.version !== 5)) return DEFAULT_PROGRESSION;
-    return {
+    const base: PlayerProgression = {
       ...DEFAULT_PROGRESSION,
       ...parsed,
       completedMissions: Array.isArray(parsed.completedMissions) ? parsed.completedMissions : [],
@@ -244,6 +245,8 @@ export function normalizeProgression(raw: unknown): PlayerProgression {
       arsenal: parsed.arsenal && typeof parsed.arsenal === "object" ? { ...DEFAULT_ARSENAL, ...parsed.arsenal } : DEFAULT_ARSENAL,
       ...normalizePockets(parsed),
     };
+    // older saves recorded activity bounties untagged: they belong to the operator being played (activity-payouts.ts)
+    return { ...base, nexLedger: tagLegacyPayouts(base.nexLedger, base.pocketClass) };
   } catch {
     return DEFAULT_PROGRESSION;
   }

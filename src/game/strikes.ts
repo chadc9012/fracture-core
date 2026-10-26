@@ -62,15 +62,16 @@ export const isStrike = (id: string) => STRIKE_IDS.includes(id);
 /** this week's Ordeal strike: one strike, rotating weekly, pays extra from Hero up */
 export const weeklyStrike = (now: number): DungeonDefinition => STRIKES[((weekIndex(now) % STRIKES.length) + STRIKES.length) % STRIKES.length]!;
 
-export const strikeClaimKey = (strikeId: string, tierId: string, now: number) => `strike-claim:${strikeId}:${tierId}:${new Date(now).toISOString().slice(0, 10)}`;
-export const canClaimStrike = (p: Pick<PlayerProgression, "earnedRewards">, strikeId: string, tierId: string, now = Date.now()) => !p.earnedRewards.includes(strikeClaimKey(strikeId, tierId, now));
+/** one claim per strike tier per day per operator */
+export const strikeClaimKey = (strikeId: string, tierId: string, now: number, operator?: string) => `strike-claim:${strikeId}:${tierId}${operator ? `#${operator}` : ""}:${new Date(now).toISOString().slice(0, 10)}`;
+export const canClaimStrike = (p: Pick<PlayerProgression, "earnedRewards"> & Partial<Pick<PlayerProgression, "pocketClass">>, strikeId: string, tierId: string, now = Date.now()) => !p.earnedRewards.includes(strikeClaimKey(strikeId, tierId, now, p.pocketClass));
 /** a strike is playable at a tier once the tier before it has been cleared in any strike */
 export const strikeTierUnlocked = (p: Pick<PlayerProgression, "earnedRewards">, tierId: string) => tierUnlocked(p, "strike", STRIKE_IDS, tierId);
 
 /** the Nex a clear would pay right now (null when today's is taken), including this week's Ordeal bonus */
-export function strikePayout(p: Pick<PlayerProgression, "nexLedger">, strikeId: string, tierId: string, now = Date.now()) {
+export function strikePayout(p: Pick<PlayerProgression, "nexLedger"> & Partial<Pick<PlayerProgression, "pocketClass">>, strikeId: string, tierId: string, now = Date.now()) {
   const tier = tierById("strike", tierId);
-  return payoutFor(p.nexLedger, "strike", tierTarget("strike", strikeId, tierId), now, tier.payMult * weeklyMult("strike", tier, weeklyStrike(now).id === strikeId, false));
+  return payoutFor(p.nexLedger, "strike", tierTarget("strike", strikeId, tierId), now, tier.payMult * weeklyMult("strike", tier, weeklyStrike(now).id === strikeId, false), p.pocketClass);
 }
 
 /** claim a strike clear: tier payout in Nex (once per strike per tier per day), shards by tier, discovery XP, the signature gear's name, and the tier clear is recorded to unlock the next tier */
@@ -79,7 +80,7 @@ export function claimStrikeClear(p: PlayerProgression, strikeId: string, tierId:
   if (!def || !strikeTierUnlocked(p, tierId) || !canClaimStrike(p, strikeId, tierId, now)) return { progression: p, paid: 0, first: false };
   const tier = tierById("strike", tierId);
   const mult = tier.payMult * weeklyMult("strike", tier, weeklyStrike(now).id === strikeId, false);
-  const withKeys: PlayerProgression = { ...p, earnedRewards: Array.from(new Set([...p.earnedRewards, def.signature.name, strikeClaimKey(strikeId, tierId, now)])), fractureShards: p.fractureShards + 12 * (1 + tier.rank) };
+  const withKeys: PlayerProgression = { ...p, earnedRewards: Array.from(new Set([...p.earnedRewards, def.signature.name, strikeClaimKey(strikeId, tierId, now, p.pocketClass)])), fractureShards: p.fractureShards + 12 * (1 + tier.rank) };
   const recorded = recordTierClear(withKeys, strikeId, tierId);
   const paid = payInto(recorded, "strike", tierTarget("strike", strikeId, tierId), now, mult);
   return { progression: grantXP(paid.progression, "DISCOVERY", { scale: 1 + tier.rank * 0.5 }).progression, paid: paid.paid, first: paid.first };
