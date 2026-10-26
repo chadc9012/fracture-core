@@ -13,6 +13,7 @@ const onProf: ProfilerOnRenderCallback = (id, _phase, actualMs) => recordSubtree
 import { Canvas } from "@react-three/fiber";
 import { PerformanceMonitor } from "@react-three/drei";
 import { WorldLoading } from "./WorldLoading";
+import { WorldMountedSignal } from "./WorldMountedSignal";
 import { Bloom, ChromaticAberration, DepthOfField, EffectComposer, Noise, SMAA, SSAO } from "@react-three/postprocessing";
 import { GritGrade } from "./GritGrade";
 import { cssGrade, gradeFor, gradeRegionAt } from "@/game/color-grade";
@@ -601,6 +602,8 @@ export function GameCanvas() {
   const [tutorial, setTutorial] = useCountedState<TutorialState | null>("tutorial", null);
   const [showIntro, setShowIntro] = useCountedState("showIntro", false);
   // Act I screenplay cinematic (cinematics.ts) that replaces the old text intro for a save's first deploy
+  // true once the world has really mounted and settled (not while the "Loading world" fallback is up): the opening cinematics wait for it
+  const [worldMounted, setWorldMounted] = useState(false);
   const [cineId, setCineId] = useCountedState<string | null>("cineId", null);
   const [cineProgress, setCineProgress] = useCountedState("cineProgress", 0);
   // tutorial checkpoint: saved at every step so a reload resumes instead of restarting (VICTORY clears it)
@@ -1543,6 +1546,7 @@ export function GameCanvas() {
         <color attach="background" args={["#bfe4f2"]} />
         <Suspense fallback={<WorldLoading />}>
             <Profiler id="scene" onRender={onProf}><Scene onDiscovery={onDiscovery} onStuntPoints={(points) => setProgression((cur) => payStunts(cur, new Date().toISOString().slice(0, 10), points))} onWorldBoss={(id) => setProgression((cur) => payWorldBoss(cur, id))} vyrakRematch={rematchReady} onVyrakRematch={spendRematch} activity={activity} onActivityChange={onActivityChange} onEncounterClue={(enc, clue) => setProgression((cur) => recordClue(cur, enc, clue).progression)} openedCaches={openedToday} onStoryEvent={recordStory} onLiving={recordLiving} onWaste={recordWaste} onDescent={recordFractureDescent} summonNemesis={summonNemesis} onHud={setHud} onDrops={(drops) => { showScenarioRewards(drops); setProgression((current) => claimDrops(current, drops)); }} gear={progression} settings={liveSettings} onCameraPreference={(firstPerson) => { window.localStorage.setItem("world-fracture-camera", firstPerson ? "first" : "third"); setSettings((current) => ({ ...current, firstPersonDefault: firstPerson })); }} playerClass={cls} subclassId={subclass} bonded={isBonded(progression, cls)} appearance={appearance} bodyType={bodyType} vehicleId={vehicleId} vehicleUnlocked={vehicleUnlocked} activeBuild={progression.activeBuild} abilityBranches={progression.abilityBranches} tutorial={tutorial} onTutorialEvent={recordTutorial} mission={mission} onMissionEvent={recordMission} relay={relay} onRelayEvent={recordRelay} blackout={blackout} onBlackoutEvent={recordBlackout} neonCore={neonCore} onNeonCoreEvent={recordNeonCore} solarArray={solarArray} onSolarArrayEvent={recordSolarArray} coreNode={coreNode} onCoreNodeEvent={recordCoreNode} zoneRuns={zoneRuns} onZoneEvent={recordZone} descent={descent} onDescentEvent={recordDescent} systemCore={systemCore} onSystemCoreEvent={recordSystemCore} awakening={awakening} onAwakeningEvent={recordAwakening} onXP={recordXP} weaponOrder={carriedWeapons(activeLoadout(progression, progression.identityClass ?? cls).slots)} travelTo={travelTo} introPlayback={showIntro ? { elapsed: introElapsed, totalSeconds: introTotalSeconds() } : cineId ? { elapsed: cineProgress * introTotalSeconds(), totalSeconds: introTotalSeconds() } : null} armorState={hud.hp < 35 ? "FRACTURE" : hud.heat > 65 ? "ASCENDANT" : hud.heat > 15 ? "ACTIVE" : "STABLE"} /></Profiler>
+          <WorldMountedSignal onChange={setWorldMounted} />
         </Suspense>
         {post && (
           // cinematic grade: cool-leaning teal shadows, a touch more punch, so the HUD's cyan
@@ -1791,8 +1795,8 @@ export function GameCanvas() {
         />
       )}
       {qualityNotice && <div className="pointer-events-none absolute left-1/2 top-16 z-50 -translate-x-1/2 border border-border/60 bg-background/80 px-4 py-2 font-mono text-[11px] uppercase tracking-[0.15em]">{qualityNotice}</div>}
-      {cineId && <MissionCinematic id={cineId} onProgress={setCineProgress} onDone={(_handoff, _skipped) => { const id = cineId; const played = markCinePlayed(progressionRef.current.story, id); const next = CAMPAIGN_CHAIN[id] ?? BOSS_CINE_CHAIN[id]; setCineProgress(0); setCineId(next && shouldPlayCine(played, next) ? next : null); if (!(next && shouldPlayCine(played, next)) && pendingBossGraph.current) { const g = pendingBossGraph.current; pendingBossGraph.current = null; setStoryGraph((cur) => cur ?? g); } setProgression((cur) => ({ ...cur, story: markCinePlayed(cur.story, id) })); }} />}
-      {showIntro && <IntroCinematic onComplete={() => setShowIntro(false)} onTick={setIntroElapsed} />}
+      {cineId && worldMounted && <MissionCinematic id={cineId} onProgress={setCineProgress} onDone={(_handoff, _skipped) => { const id = cineId; const played = markCinePlayed(progressionRef.current.story, id); const next = CAMPAIGN_CHAIN[id] ?? BOSS_CINE_CHAIN[id]; setCineProgress(0); setCineId(next && shouldPlayCine(played, next) ? next : null); if (!(next && shouldPlayCine(played, next)) && pendingBossGraph.current) { const g = pendingBossGraph.current; pendingBossGraph.current = null; setStoryGraph((cur) => cur ?? g); } setProgression((cur) => ({ ...cur, story: markCinePlayed(cur.story, id) })); }} />}
+      {showIntro && worldMounted && <IntroCinematic onComplete={() => setShowIntro(false)} onTick={setIntroElapsed} />}
       {strategyOpen && <RaidStrategyPanel onClose={() => setStrategyOpen(false)} />}
       {analysisOpen && <ZoneAnalysisPanel zoneName={hud.region} onClose={() => setAnalysisOpen(false)} />}
       {operationsView && <OperationsHub onStartActivity={startActivityById} activeActivityId={activity?.def.id ?? null} initialView={operationsView} progression={progression} onProgression={setProgression} onClose={() => setOperationsView(null)} />}

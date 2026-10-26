@@ -4,6 +4,8 @@ import { cinematicById, cinematicSeconds, inspectCinematic, skipCinematic, start
 import { speakVoice, stopVoice } from "@/game/voice-director";
 import { useMenuInput } from "./useMenuInput";
 
+const touchScreen = () => typeof window !== "undefined" && typeof window.matchMedia === "function" && window.matchMedia("(pointer: coarse)").matches;
+
 /**
  * Plays an authored Act I cinematic (src/game/cinematics.ts) over the live world: letterbox, shot cue text, speaker-named subtitles
  * (spoken through the shared voice director when available, captions always shown) and a skip control.
@@ -71,7 +73,7 @@ export function MissionCinematic({ id, onDone, onProgress }: { id: string; onDon
           <p className="max-w-2xl bg-black/55 px-4 py-2 text-center text-base text-white"><span className="mr-2 font-mono text-[11px] uppercase tracking-[0.25em] text-primary">{view.line.speaker}</span>{view.line.text}</p>
         </div>
       )}
-      <p className="pointer-events-none absolute bottom-[11vh] right-6 font-mono text-[10px] uppercase tracking-[0.3em] text-white/50">Enter / click to skip</p>
+      <p className="pointer-events-none absolute bottom-[11vh] right-6 font-mono text-[10px] uppercase tracking-[0.3em] text-white/50">{touchScreen() ? "Tap to skip" : "Enter / click to skip"}</p>
     </div>
   );
 }
