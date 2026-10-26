@@ -16,11 +16,13 @@ describe("radio station recordings", () => {
     for (const ad of RADIO_ADS) expect(existsSync(publicDir + ad.path)).toBe(true);
     for (const t of [...FRACTURE_FM_ARCHIVE, ...RADIO_ADS_ARCHIVE]) expect(existsSync(publicDir + t.path)).toBe(true);
   });
-  test("Block Signal rotates four Kinggg Dream songs; Keep Moving opens Neon Frequency", () => {
-    expect(STATION_TRACKS.hiphop.map((t) => t.title)).toEqual(["Brooklyn, Stand Tall", "Bodega Gate", "Write Your Own Name", "We Keep Rolling"]);
+  test("Block Signal rotates the Kinggg Dream catalog; Keep Moving opens Neon Frequency", () => {
+    expect(STATION_TRACKS.hiphop).toHaveLength(16);
+    expect(STATION_TRACKS.hiphop.map((t) => t.title).slice(0, 4)).toEqual(["Brooklyn, Stand Tall", "Bodega Gate", "Write Your Own Name", "We Keep Rolling"]);
+    expect(STATION_TRACKS.reggae.map((t) => t.title)).toContain("Likkle Secret");
     expect(STATION_TRACKS.hiphop.every((t) => t.artist === "Kinggg Dream")).toBe(true);
     expect(stationTrack("house", 0).title).toBe("Keep Moving");
-    expect(stationTrack("hiphop", 4)).toEqual(stationTrack("hiphop", 0));
+    expect(stationTrack("hiphop", 16)).toEqual(stationTrack("hiphop", 0));
     expect(stationTrack("rock", -3)).toEqual(stationTrack("rock", 0));
   });
   test("stage 49: night instrumentals and the spoiler-free caller shows join the rotation", () => {
@@ -62,7 +64,7 @@ describe("linear broadcast", () => {
   test("tuning in opens with the station ID, then a commercial airs after every two full programs, never mid-song", () => {
     let b: Broadcast = BROADCAST_START, ad = false; const aired: string[] = [];
     for (let i = 0; i < 10; i++) { const t = onAir("hiphop", b, ad); aired.push(t.ident ? `ID:${t.artist}` : t.advertisement ? `AD:${t.title}` : t.title); const n = nextOnAir(b, ad); b = n.broadcast; ad = n.adBreak; }
-    expect(aired).toEqual(["ID:Block Signal", "Brooklyn, Stand Tall", "Bodega Gate", `AD:${RADIO_ADS[0]!.title}`, "Write Your Own Name", "We Keep Rolling", `AD:${RADIO_ADS[1]!.title}`, "Brooklyn, Stand Tall", "Bodega Gate", `AD:${RADIO_ADS[2]!.title}`]);
+    expect(aired).toEqual(["ID:Block Signal", "Brooklyn, Stand Tall", "Bodega Gate", `AD:${RADIO_ADS[0]!.title}`, "Write Your Own Name", "We Keep Rolling", `AD:${RADIO_ADS[1]!.title}`, "Facetime", "Nike Like Mikey", `AD:${RADIO_ADS[2]!.title}`]);
     expect(AD_EVERY).toBe(2);
   });
   test("the station ID plays once per tuning session and is never an advertisement", () => {
