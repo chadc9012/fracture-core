@@ -8,7 +8,7 @@ import { useVoiceLine } from "./useVoiceLine";
  * to ask about. New topics open on later nights and after you've done things there; a few lead to a one-time discovery. */
 export function VenueTalk({ npc, progression, onTopic, onClose }: { npc: string; progression: PlayerProgression; onTopic: (t: Topic) => void; onClose: () => void }) {
   const c = CAST.find((x) => x.id === npc);
-  // greeting and topics are fixed when the conversation opens (talking tonight is recorded as it opens)
+  // greeting and topics are fixed when the conversation opens (GameCanvas records tonight's talk when it ends, however it ends)
   const lines = useMemo(() => greeting(progression, npc), []); // eslint-disable-line react-hooks/exhaustive-deps
   const topics = useMemo(() => openTopics(progression, npc), []); // eslint-disable-line react-hooks/exhaustive-deps
   const [asked, setAsked] = useState<Topic | null>(null);

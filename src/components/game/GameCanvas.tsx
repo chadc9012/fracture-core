@@ -905,6 +905,14 @@ export function GameCanvas() {
     setProgression(claimed.progression);
     if (claimed.paid.length) setCaptionQueue((q) => [...q, ...claimed.paid.map((c) => ({ speaker: "Challenge complete", text: `${c.title} · ${rewardText(c.reward)}` }))]);
   };
+  // a conversation counts however it ends (Goodbye, Escape, walking out of the venue, a teleport): it used to be recorded only on
+  // Goodbye, so leaving mid-talk left the regular greeting you as a new face every night. Recorded on the way out, not on the
+  // way in, so the opening greeting still reads the save as it was before this talk.
+  const talkOpen = useRef<string | null>(null);
+  useEffect(() => {
+    const was = talkOpen.current; talkOpen.current = talkWith;
+    if (was && was !== talkWith) venueSave((p) => recordTalk(p, was));
+  }, [talkWith]); // eslint-disable-line react-hooks/exhaustive-deps
   // city happenings (city-happenings.ts): walking into a district while its market / busker set / car meet is on announces it and
   // counts a once-per-real-day visit with the district's faction
   const happeningSeen = useRef("");
@@ -1602,7 +1610,7 @@ export function GameCanvas() {
        })()}
        {talkWith && hud.insideInterior && <VenueTalk key={talkWith} npc={talkWith} progression={progression}
          onTopic={(t: Topic) => { const d = claimDiscovery(progressionRef.current, t); if (d.paid) { venueSave(() => d.progression); setCaptionQueue((q) => [...q, { speaker: "Discovery", text: `${d.paid!.title} · ${rewardText(d.paid!.reward)}` }]); } }}
-         onClose={() => { const id = talkWith; setTalkWith(null); venueSave((p) => recordTalk(p, id)); }} />}
+         onClose={() => setTalkWith(null)} />}
        {fourBeatAt && hud.insideInterior && <FourBeatDance venueId={fourBeatAt} color={fourBeatAt === NEXUS_DINER.id ? NEXUS_DINER.color : "#35efff"}
          onFinish={(won) => { if (won) { const v = fourBeatAt; venueSave((p) => recordFact(p, v, "fourbeat")); } }} onClose={() => setFourBeatAt(null)} />}
        {housingOpen && <HousingPanel progression={progression} startTab={housingOpen} startHome={interiorById(hud.insideInterior ?? null)?.homeId} onProgression={setProgression} onClose={() => setHousingOpen(null)} />}
