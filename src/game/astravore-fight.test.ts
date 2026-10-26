@@ -128,16 +128,16 @@ function forceTell(boss: ReturnType<typeof arena>["boss"], atk: string) {
   Object.assign(boss.encounter!, { state: "TELL", atk, timer: 0.04, tx: BX + 45, tz: BZ, tellTotal: 0.04 });
 }
 describe("Astravore calls in real troops", () => {
-  it("Summons brings three Void Hounds; the guardians call brings a Knight and two Mages; a Sentinel is one big elite", () => {
+  it("Summons brings three Void Reavers; the guardians call brings a Vanguard and two Arcanists; a Sentinel is one big elite", () => {
     const { sim, boss, step } = arena();
     forceTell(boss, "summons"); step(0.2);
     let live = sim.machines.filter(isSummoned);
-    expect(live.map((m) => m.profile)).toEqual(["Void Hound", "Void Hound", "Void Hound"]);
+    expect(live.map((m) => m.profile)).toEqual(["Void Reaver", "Void Reaver", "Void Reaver"]);
     expect(live.every((m) => m.hp > 0 && !m.boss && m.summoned)).toBe(true);
     forceTell(boss, "call-guardians"); boss.encounter!.timer = 0.04; step(0.2);
     live = sim.machines.filter(isSummoned);
-    expect(live.map((m) => m.profile).sort()).toEqual(["Dimensional Knight", "Reality Mage", "Reality Mage", "Void Hound", "Void Hound", "Void Hound"].sort());
-    expect(live.find((m) => m.profile === "Dimensional Knight")!.elite).toBe(true);
+    expect(live.map((m) => m.profile).sort()).toEqual(["Void Vanguard", "Void Arcanist", "Void Arcanist", "Void Reaver", "Void Reaver", "Void Reaver"].sort());
+    expect(live.find((m) => m.profile === "Void Vanguard")!.elite).toBe(true);
     expect(sim.encounterEvents.filter((e) => e.kind === "SUMMON").length).toBe(6);
   });
   it("never more than the cap alive at once, however many calls", () => {

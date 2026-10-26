@@ -113,7 +113,7 @@ function impact(sim: WorldSim, m: Machine, enc: EncounterState, atk: AttackDef, 
 
 /** most called-in troops alive at once; a pack that is ignored does not snowball into an unwinnable room */
 export const MAX_SUMMONED = 6;
-const SUMMON_PROFILES = new Set(["Void Hound", "Dimensional Knight", "Reality Mage", "Star Sentinel"]);
+const SUMMON_PROFILES = new Set(["Void Reaver", "Void Vanguard", "Void Arcanist", "Void Sentinel"]);
 export const isSummoned = (x: Machine) => Boolean(x.alive && x.summoned && SUMMON_PROFILES.has(x.profile));
 /** the boss calls in real troops, spread around it at 18 m (outside machine separation, inside the arena). Returns how many arrived. */
 function spawnSummons(sim: WorldSim, boss: Machine, enc: EncounterState, groups: readonly import("./scenario-encounters").SummonGroup[]): number {
