@@ -36,6 +36,11 @@ unreal/
 The default level is the engine's template map; the game mode adds a floor and lights if a level has none.
 
 ## What runs
+- **Movement kit:** Titans get one weighty air jump, Hunters two quick ones, Warlocks one and then a glide while jump is
+  held (movement.ts). Left Ctrl crouches, or slides out of a sprint (the armor slide bonus stretches it); Z toggles
+  prone. Crouched and prone you are slower and harder to hit (enemyHitChance). A running jump vaults further and higher,
+  and quick jumps chain into a small speed bonus (parkour.ts). The camera sinks and the FOV widens with the stance,
+  sprint and slide.
 - **Boss bounties and real cover:** a scenario boss's real kill pays its Nex bounty to the operator being played, a first
   kill and then a daily repeat, ranked by boss (activity-payouts.ts); older saves' bounties go to the operator played when
   they load. A wounded trooper looks for chest-high cover in the level geometry that hides it from you, hides, leans out
@@ -175,13 +180,14 @@ cmake -S . -B build -G Ninja && cmake --build build && ctest --test-dir build --
 | ArmorCoreTest | armor-sets.ts, armor-perks.ts, armor-attributes.ts, inventory.ts weaponDamageMultiplier | 36 sets, 1,500 loadouts, 10,510 checks |
 | TacticsCoreTest | enemy-intelligence.ts, ability-network.ts buildSynergy, enemy-tactics.ts, enemy-evasion.ts, enemy-cover.ts | 2,000 flank searches, 2,500 cover searches, 200 grenade flights, 3,000 round threats, 21,755 checks |
 | BountyCoreTest | activity-payouts.ts payoutFor / payInto / tagLegacyPayouts / payFlat | 400 ledgers, 8,936 payouts, 16,048 checks |
+| MoveCoreTest | movement.ts, parkour.ts | 300 tracks, 18,000 frames, 36,067 checks |
 | OperatorCoreTest | operator-pockets.ts switchOperator, xp.ts grantXP, nex.ts spendNex | 6,400 operations (846 switches), 25,600 checks |
 
 The golden files (`Plugins/WorldFractureCore/Tests/<name>_golden.txt`) are **generated, not committed**: together they run to ~60 MB,
 which broke the Lovable preview build. Record all of them from the repo root before configuring the tests (and again after changing
 the web build's rules):
 
-    node unreal/tools/gen-goldens.mjs            # all twenty-one
+    node unreal/tools/gen-goldens.mjs            # all twenty-two
     node unreal/tools/gen-goldens.mjs race shop  # just these
 
 `export-datatables` (the DataTables, which are committed) still runs on its own:
@@ -191,7 +197,7 @@ the web build's rules):
 The encounter, Dragonite-cast and ability recorders route their world calls to recording shims (`build-golden.mjs`); `gen-goldens.mjs` handles that.
 
 ## Not ported yet
-Boss models and attack effects (zones are debug circles, decoys are stand-ins), mid-mission saves, ability mastery XP, slides (the armor slide bonus),
+Boss models and attack effects (zones are debug circles, decoys are stand-ins), mid-mission saves, ability mastery XP,
 region kinds for abilities (the map counts as a war zone),
 troopers running out of orbital strike circles (no strike beacons yet), earning monoblades (wasteland-activities.ts gold medals), on-foot weapon heat, the featured-activity rotation and
 activity shader drops,

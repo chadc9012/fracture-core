@@ -113,6 +113,8 @@ void AWFCharacter::BuildInput()
 	AimAction = Make(EInputActionValueType::Boolean);
 	SprintAction = Make(EInputActionValueType::Boolean);
 	HackAction = Make(EInputActionValueType::Boolean);
+	CrouchAction = Make(EInputActionValueType::Boolean);
+	ProneAction = Make(EInputActionValueType::Boolean);
 	ReloadAction = Make(EInputActionValueType::Boolean);
 	NextWeaponAction = Make(EInputActionValueType::Axis1D);
 	SaveAction = Make(EInputActionValueType::Boolean);
@@ -142,6 +144,8 @@ void AWFCharacter::BuildInput()
 	Mapping->MapKey(AimAction, EKeys::RightMouseButton);
 	Mapping->MapKey(SprintAction, EKeys::LeftShift);
 	Mapping->MapKey(HackAction, EKeys::H);
+	Mapping->MapKey(CrouchAction, EKeys::LeftControl);
+	Mapping->MapKey(ProneAction, EKeys::Z);
 	Mapping->MapKey(ReloadAction, EKeys::R);
 	Mapping->MapKey(ReloadAction, EKeys::G);
 	Mapping->MapKey(NextWeaponAction, EKeys::MouseWheelAxis);
@@ -205,8 +209,11 @@ void AWFCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 	}
 	Input->BindAction(MoveAction, ETriggerEvent::Triggered, this, &AWFCharacter::Move);
 	Input->BindAction(LookAction, ETriggerEvent::Triggered, this, &AWFCharacter::Look);
-	Input->BindAction(JumpAction, ETriggerEvent::Started, this, &ACharacter::Jump);
-	Input->BindAction(JumpAction, ETriggerEvent::Completed, this, &ACharacter::StopJumping);
+	Input->BindActionValueLambda(JumpAction, ETriggerEvent::Started, [this](const FInputActionValue&) { JumpPressed(); });
+	Input->BindActionValueLambda(JumpAction, ETriggerEvent::Completed, [this](const FInputActionValue&) { JumpReleased(); });
+	Input->BindActionValueLambda(CrouchAction, ETriggerEvent::Started, [this](const FInputActionValue&) { bCrouchHeld = true; });
+	Input->BindActionValueLambda(CrouchAction, ETriggerEvent::Completed, [this](const FInputActionValue&) { bCrouchHeld = false; });
+	Input->BindActionValueLambda(ProneAction, ETriggerEvent::Started, [this](const FInputActionValue&) { Move.bProne = !Move.bProne; });
 	Input->BindAction(FireAction, ETriggerEvent::Started, this, &AWFCharacter::FireStarted);
 	Input->BindAction(FireAction, ETriggerEvent::Completed, this, &AWFCharacter::FireStopped);
 	Input->BindAction(AimAction, ETriggerEvent::Started, this, &AWFCharacter::AimStarted);
@@ -619,10 +626,91 @@ void AWFCharacter::Tick(float DeltaSeconds)
 	TickWeapon(DeltaSeconds);
 	TickDragon(DeltaSeconds);
 	if (bRiding) TickRide(DeltaSeconds);
-	else // Scene.tsx walk speed: Rift Dash x1.4, Siege Mode x0.8 (operator-abilities.ts siegeMoveMult)
-		GetCharacterMovement()->MaxWalkSpeed = static_cast<float>((bSprinting ? SprintSpeed : WalkSpeed) * (1 + ArmorFx.MoveSpeed) * HazardSpeedMult * (Live.DashTime > 0 ? 1.4 : 1.0) * wf::ability::SiegeMoveMult(Live.SiegeTime));
+	else
+	{
+		TickMovementKit(DeltaSeconds);
+		// Scene.tsx walk speed: sprint only standing, the stance, armor, Rift Dash x1.4, Siege Mode x0.8, the parkour chain bonus
+		const double Chain = wf::move::ParkourChainBonus(ChainCount, GetWorld()->GetTimeSeconds() - LastVaultAt);
+		const bool bSprint = bSprinting && Move.Stance == "STAND";
+		GetCharacterMovement()->MaxWalkSpeed = static_cast<float>((bSprint ? SprintSpeed : WalkSpeed) * wf::move::StanceSpeed(Move.Stance) * (1 + ArmorFx.MoveSpeed) * HazardSpeedMult * (Live.DashTime > 0 ? 1.4 : 1.0) * wf::ability::SiegeMoveMult(Live.SiegeTime) * (1 + Chain));
+	}
 
 	if (GetActorLocation().Z < -50000.f) Respawn(); // fell out of the world
+}
+
+std::string AWFCharacter::MoveClass() const
+{
+	const UWFProgressionSubsystem* Progression = GetGameInstance()->GetSubsystem<UWFProgressionSubsystem>();
+	return Progression ? WFData::ToStd(Progression->GetIdentityClass()) : std::string("TITAN");
+}
+
+void AWFCharacter::JumpPressed()
+{
+	bJumpHeld = true;
+	if (bRiding || bInVehicle) { Jump(); return; }
+	UCharacterMovementComponent* Cm = GetCharacterMovement();
+	const double JumpZ = Cm->JumpZVelocity;
+	if (Cm->IsMovingOnGround())
+	{
+		// parkour.ts vaultLunge: a running jump vaults further and a little higher; jumps in quick succession chain
+		const FVector Flat(GetVelocity().X, GetVelocity().Y, 0);
+		const wf::move::FLunge L = wf::move::VaultLunge(Flat.Size() / 100 / FootRatio, JumpZ);
+		const FVector Forward = Flat.GetSafeNormal() * L.ForwardBoost * FootRatio * 100;
+		LaunchCharacter(FVector(Forward.X, Forward.Y, L.VerticalBoost), false, true);
+		const double Now = GetWorld()->GetTimeSeconds();
+		ChainCount = Now - LastVaultAt < wf::move::ChainWindow ? ChainCount + 1 : 1;
+		LastVaultAt = Now;
+		wf::move::CancelSlide(Move);
+		return;
+	}
+	// movement.ts airJump: Titan one, Hunter two, Warlock one (then hold to glide)
+	const double Mult = wf::move::AirJump(Move, MoveClass());
+	if (Mult >= 0) LaunchCharacter(FVector(0, 0, JumpZ * Mult), false, true);
+}
+
+void AWFCharacter::JumpReleased()
+{
+	bJumpHeld = false;
+	StopJumping();
+}
+
+void AWFCharacter::TickMovementKit(float DeltaSeconds)
+{
+	const double Dt = DeltaSeconds;
+	UCharacterMovementComponent* Cm = GetCharacterMovement();
+	const bool bGrounded = Cm->IsMovingOnGround();
+	const std::string Cls = MoveClass();
+	if (bGrounded) wf::move::Land(Move, Cls);
+	// slide: crouch pressed out of a sprint commits to the heading with a burst that bleeds off
+	const FVector V = GetVelocity();
+	if (bCrouchHeld && !bSlideKeyWas && bGrounded) wf::move::StartSlide(Move, V.X / 100 / FootRatio, V.Y / 100 / FootRatio);
+	bSlideKeyWas = bCrouchHeld;
+	if (Move.SlideLeft > 0 && (!bGrounded || bJumpHeld)) wf::move::CancelSlide(Move);
+	const double Slide = wf::move::StepSlide(Move, Dt);
+	if (Slide > 0)
+	{
+		const double Ue = Slide * (1 + ArmorFx.SlideBoost) * FootRatio * 100;
+		Cm->Velocity = FVector(Move.SlideDirX * Ue, Move.SlideDirZ * Ue, Cm->Velocity.Z);
+	}
+	wf::move::FStanceInput In;
+	In.bCrouchHeld = bCrouchHeld; In.bSprinting = bSprinting; In.bJumping = bJumpHeld; In.bGrounded = bGrounded; In.bSliding = Move.SlideLeft > 0; In.bSwimming = Cm->IsSwimming();
+	wf::move::ResolveStance(Move, In);
+	wf::move::StepStance(Move, Dt);
+	// Warlock glide: holding jump while falling caps the fall and pushes forward
+	if (!bGrounded && Cm->IsFalling())
+	{
+		const double Vy = Cm->Velocity.Z / 100 / FootRatio;
+		const double Glided = wf::move::GlideVy(Vy, Cls, bJumpHeld);
+		if (Glided != Vy)
+		{
+			Cm->Velocity.Z = Glided * FootRatio * 100;
+			Cm->Velocity += GetActorForwardVector() * wf::move::GlideThrust * FootRatio * 100 * Dt;
+		}
+	}
+	// the camera sinks for the stance and the slide; the FOV widens sprinting and sliding (relative to this camera's 90)
+	Camera->SetRelativeLocation(FVector(0.f, 0.f, 72.f - static_cast<float>(wf::move::CameraDrop(Move) * 60)));
+	const double Fov = BaseFov + (wf::move::MovementFov(bAiming, bSprinting && Move.Stance == "STAND" && bGrounded && V.Size2D() > 200, Move.SlideLeft > 0, Move.Stance) - 78);
+	Camera->SetFieldOfView(FMath::FInterpTo(Camera->FieldOfView, static_cast<float>(Fov), static_cast<float>(Dt), 8.f));
 }
 
 void AWFCharacter::TickWeapon(float DeltaSeconds)

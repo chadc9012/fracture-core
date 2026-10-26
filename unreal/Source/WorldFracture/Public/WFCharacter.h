@@ -7,6 +7,7 @@
 #include "Core/WFArmsCore.h"
 #include "Core/WFArmorCore.h"
 #include "Core/WFTacticsCore.h"
+#include "Core/WFMoveCore.h"
 #include "WFWeapons.h"
 #include "WFCharacter.generated.h"
 
@@ -52,6 +53,10 @@ public:
 	/** Encounter SLOW zones (frost patches, shroud mist) scale movement speed while the player stands in them. */
 	void SetHazardSpeedMult(double Mult) { HazardSpeedMult = Mult; }
 	bool IsHackHeld() const { return bHackHeld; }
+	/** STAND | CROUCH | PRONE (movement.ts): enemies hit a crouched or prone Operator less often */
+	const std::string& GetStance() const { return Move.Stance; }
+	/** the web build's foot units per Unreal metre/second: its walk is 14, this Operator's is 4.5 m/s */
+	static constexpr double FootRatio = 4.5 / wf::move::BaseFootSpeed;
 	/** the worn armor's effects (vehicle guns read the driver's weapon damage) */
 	const wf::armor::FEffects& GetArmorEffects() const { return ArmorFx; }
 	/** Scene.tsx: the build's synergy archetype and active shield reflect steer enemy squads (enemy-intelligence.ts) */
@@ -144,6 +149,16 @@ private:
 	void Notify(const FString& Text, const FLinearColor& Color) const;
 
 	void TickWeapon(float DeltaSeconds);
+	/** movement.ts / parkour.ts: stance, slides, air jumps, the Warlock glide, vault lunges and chains, camera and FOV */
+	void TickMovementKit(float DeltaSeconds);
+	void JumpPressed();
+	void JumpReleased();
+	std::string MoveClass() const;
+	wf::move::FMoveState Move;
+	bool bJumpHeld = false, bCrouchHeld = false, bSlideKeyWas = false;
+	int32 ChainCount = 0;
+	double LastVaultAt = -10;
+	float BaseFov = 90.f;
 	/** Scene.tsx sword block: one swing of the combo (arc, monoblade damage and reach, finisher shockwave, deflect) */
 	void SwingBlade(const FWFWeaponStats& W, int32 Step);
 	/** sim.ts fireLauncher: a launcher round (guided launchers lock the nearest enemy in their cone) */
@@ -174,6 +189,8 @@ private:
 	UPROPERTY() TObjectPtr<UInputAction> InteractAction;
 	UPROPERTY() TObjectPtr<UInputAction> CallVehicleAction;
 	UPROPERTY() TObjectPtr<UInputAction> HackAction;
+	UPROPERTY() TObjectPtr<UInputAction> CrouchAction; // held: crouch, or slide out of a sprint
+	UPROPERTY() TObjectPtr<UInputAction> ProneAction;  // toggle
 	TWeakObjectPtr<class AWFVehicle> CalledVehicle;
 	UPROPERTY() TObjectPtr<UInputAction> RideAction;
 	UPROPERTY() TArray<TObjectPtr<UInputAction>> ClassAbilityActions; // Q / F / X

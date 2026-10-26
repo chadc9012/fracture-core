@@ -422,7 +422,8 @@ void AWFEnemy::TryAttack(AWFCharacter* Operator, AWFVehicle* Car, double Distanc
 		const bool bBlocked = GetWorld()->LineTraceSingleByChannel(Hit, From, To, ECC_Visibility, Params) && Hit.GetActor() != Target;
 		DrawDebugLine(GetWorld(), From, bBlocked ? Hit.ImpactPoint : To, FColor(255, 70, 50), false, 0.08f, 0, 1.f);
 		const bool bSpoofed = Car && Car->IsSpoofed(GetWorld()->GetTimeSeconds());
-		const double Chance = wf::perception::EnemyHitChance(Distance, wf::perception::RangedRange, Car ? FMath::Abs(Car->GetState().Speed) : Operator->GetVelocity().Size2D() / CmPerM); // a car moves without a movement component
+		// a car moves without a movement component; the Operator's speed and stance are in the web build's foot units
+		const double Chance = wf::perception::EnemyHitChance(Distance, wf::perception::RangedRange, Car ? FMath::Abs(Car->GetState().Speed) : Operator->GetVelocity().Size2D() / CmPerM / AWFCharacter::FootRatio, Car ? std::string("STAND") : Operator->GetStance());
 		if (!bBlocked && !bSpoofed && FMath::FRand() < Chance) Hurt(Tier(2, 4, 6) * PhaseDamageMult);
 		return;
 	}
