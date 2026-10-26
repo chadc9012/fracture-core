@@ -34,6 +34,14 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
 
+            <!-- Google sign-in comes back from the phone's browser through this deep link (see src/integrations/supabase/native-google-auth.ts) -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="com.chadc9012.worldfracture" android:host="auth" />
+            </intent-filter>
+
         </activity>
 
         <provider

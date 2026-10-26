@@ -13,7 +13,7 @@
     "audit:source": "node scripts/release-audit.mjs",
     "test:release-smoke": "node --experimental-strip-types --test scripts/tests/release-smoke.mjs",
     "release:preflight": "node scripts/release-gate.mjs",
-    "test:gameplay-core": "node --experimental-strip-types --test scripts/tests/release-smoke.mjs scripts/tests/dungeon-run.mjs"
+    "test:gameplay-core": "node --experimental-strip-types --test scripts/tests/release-smoke.mjs scripts/tests/dungeon-run.mjs scripts/tests/native-google-auth.mjs"
   },
   "overrides": {
     "rolldown": "1.2.1"

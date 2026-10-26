@@ -3,6 +3,7 @@ import { isTestProfile } from "@/game/save-profile";
 import type { User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable";
+import { isNativeApp, listenForNativeAuthCallback, signInWithGoogleNative } from "@/integrations/supabase/native-google-auth";
 import { hasBackup, listRestorePoints, loadRestorePoint, localSavedAt, pullAndMerge, pushSave, restoreBackup, setRemoteMergeHandler, type RestorePoint } from "@/game/cloud-save";
 import type { PlayerProgression } from "@/game/progression";
 import { HudRail } from "./HudRail";
@@ -32,6 +33,7 @@ export function CloudSavePanel({ progression, onProgression }: { progression: Pl
   latest.current = progression;
 
   useEffect(() => {
+    listenForNativeAuthCallback(); // Android app: Google sign-in returns through a deep link
     setRemoteMergeHandler((p) => { setStatus("merged"); onProgression(p); });
     // test profile (?dev=1 / ?profile=test): never sign the session into cloud sync, so test runs can't touch the real save
     const { data } = supabase.auth.onAuthStateChange((_e, session) => setUser(isTestProfile() ? null : session?.user ?? null));
@@ -71,6 +73,15 @@ export function CloudSavePanel({ progression, onProgression }: { progression: Pl
       : await supabase.auth.signUp({ email, password, options: { emailRedirectTo: window.location.origin } });
     if (res.error) setNote(res.error.message);
     else if (mode === "up" && !res.data.session) setNote("Check your email to confirm your account.");
+  };
+
+  // In the Android app the Lovable broker isn't reachable, so Google goes through the phone's browser and a deep link back.
+  const google = async () => {
+    setNote("");
+    if (!isNativeApp()) { void lovable.auth.signInWithOAuth("google", { redirect_uri: window.location.origin }); return; }
+    setNote("Finish signing in with Google in your browser, then come back to the game.");
+    const { error } = await signInWithGoogleNative();
+    setNote(error ? `Google sign-in failed: ${error.message}` : "");
   };
 
   const retry = () => {
@@ -117,7 +128,7 @@ export function CloudSavePanel({ progression, onProgression }: { progression: Pl
             </div>
           ) : (
             <div className="mt-3 space-y-2">
-              <button onClick={() => lovable.auth.signInWithOAuth("google", { redirect_uri: window.location.origin })} className="w-full border border-border py-1.5 uppercase">Continue with Google</button>
+              <button onClick={google} className="w-full border border-border py-1.5 uppercase">Continue with Google</button>
               <input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email" type="email" className="w-full border border-border bg-background px-2 py-1.5" />
               {mode !== "reset" && <input value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Password" type="password" className="w-full border border-border bg-background px-2 py-1.5" />}
               <button onClick={submit} className="w-full bg-primary py-1.5 uppercase text-primary-foreground">{mode === "in" ? "Sign in" : mode === "up" ? "Create account" : "Send reset link"}</button>
