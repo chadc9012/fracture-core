@@ -9,26 +9,28 @@ import { AREAS } from "./activities";
 const continentOfRegion = (id: string) => CONTINENTS.find((c) => c.regions.includes(id))?.id;
 
 describe("the planet", () => {
-  it("is Earth-sized (planet update): 12,756 km, oblate, 7 major continents, 5 major oceans, the rest archipelagos, nations and subregions", () => {
-    expect(PLANET.diameterKm).toBe(12756);
+  it("matches the global map board: 12,742 km, 510.1 million km², ten lands, 7 continents, 5 oceans", () => {
+    expect(PLANET.diameterKm).toBe(12742);
+    expect(Math.round(PLANET.surfaceKm2 / 100_000) / 10).toBe(510.1);
+    expect(CONTINENTS.map((c) => c.id).sort()).toEqual(["aetheria", "elyndra", "frosthelm", "kharos", "myrathis", "noctyra", "pyrrath", "sylvaris", "valdoria", "zephyria"]);
     expect(PLANET.polarDiameterKm).toBeLessThan(PLANET.diameterKm);
     expect(PLANET.surfaceKm2 / 510_072_000).toBeGreaterThan(0.99);
     expect(PLANET.surfaceKm2 / 510_072_000).toBeLessThan(1.01);
-    expect(MAJOR_CONTINENTS().map((c) => c.id).sort()).toEqual(["aetheria", "frosthelm", "kharos", "noctyra", "pyrrath", "sylvaris", "veyloria"]);
-    expect(OCEANS.filter((o) => o.major).length).toBe(5);
-    for (const id of ["elyndra", "valdoria", "myrathis", "drakoria", "zephyria"]) expect(continentById(id)!.kind).not.toBe("CONTINENT");
-    expect(NATIONS.length).toBe(48);
-    expect(new Set(NATIONS.map((n) => n.name)).size).toBe(48);
+    expect(MAJOR_CONTINENTS().map((c) => c.id).sort()).toEqual(["aetheria", "elyndra", "frosthelm", "kharos", "noctyra", "pyrrath", "valdoria"]);
+    expect(OCEANS.filter((o) => o.major).map((o) => o.name)).toEqual(["Arctic Ocean", "Pacific Ocean", "Atlantic Ocean", "Indian Ocean", "Southern Ocean"]);
+    for (const id of ["sylvaris", "myrathis", "zephyria"]) expect(continentById(id)!.kind).not.toBe("CONTINENT");
+    expect(new Set(NATIONS.map((n) => n.name)).size).toBe(NATIONS.length);
+    for (const c of CONTINENTS) expect(NATIONS.some((n) => n.continent === c.id)).toBe(true);
   });
-  it("Nexus City and Neon City are both Aetheria", () => {
+  it("Nexus City (the capital), Neon City and the Verdant Forest are all Aetheria", () => {
+    expect(continentOfRegion("veridan")).toBe("aetheria");
+    expect(continentById("aetheria")!.capital).toBe("Nexus City");
     expect(continentOfRegion("nexus")).toBe("aetheria");
     expect(continentOfRegion("neon")).toBe("aetheria");
   });
-  it("owner decisions: start on Veyloria, Wastelands with Solara on Kharos, Meridian is Aetheria's capital, Thalassia on no continent", () => {
-    expect(continentOfRegion("veridan")).toBe("veyloria");
+  it("Wastelands with Solara on Kharos, Thalassia on no continent", () => {
     expect(continentOfRegion("wastelands")).toBe("kharos");
     expect(continentOfRegion("solara")).toBe("kharos");
-    expect(continentById("aetheria")!.capital).toBe("Meridian");
     expect(CONTINENTS.some((c) => c.regions.includes("thalassia"))).toBe(false);
   });
   it("every game region has a continent, and every CORE continent has a region", () => {
@@ -56,7 +58,7 @@ describe("continent worlds on the live map", () => {
     }
   });
   it("every activity area sits in one world at its centre", () => {
-    for (const [id, a] of Object.entries(AREAS)) expect(`${id}:${worldAt(a.x, a.z)}`).toMatch(/:(aetheria|veyloria|sylvaris|kharos|frosthelm|pyrrath|thalassia)$/);
+    for (const [id, a] of Object.entries(AREAS)) expect(`${id}:${worldAt(a.x, a.z)}`).toMatch(/:(aetheria|sylvaris|kharos|frosthelm|pyrrath|thalassia)$/);
   });
 });
 
@@ -65,22 +67,22 @@ describe("Thalassia is off the coast, not part of a continent", () => {
     expect(worldAt(THALASSIA_CENTER.x, THALASSIA_CENTER.z)).toBe("thalassia");
     expect(worldAt(THALASSIA_CENTER.x + THALASSIA_ZONE_RADIUS - 5, THALASSIA_CENTER.z)).toBe("thalassia");
   });
-  it("you can cross only between it and Veyloria's coast; other continents are borders", () => {
-    expect(crossingAllowed("veyloria", "thalassia")).toBe(true);
-    expect(crossingAllowed("thalassia", "veyloria")).toBe(true);
+  it("you can cross only between it and Aetheria's coast; other continents are borders", () => {
+    expect(crossingAllowed("aetheria", "thalassia")).toBe(true);
+    expect(crossingAllowed("thalassia", "aetheria")).toBe(true);
     expect(crossingAllowed("sylvaris", "thalassia")).toBe(false);
-    expect(crossingAllowed("veyloria", "aetheria")).toBe(false);
+    expect(crossingAllowed("aetheria", "kharos")).toBe(false);
     expect(crossingAllowed("kharos", "kharos")).toBe(true);
   });
-  it("the sea lane from Veyloria to the city never passes through another continent", () => {
+  it("the sea lane from the Verdant shore to the city never passes through another continent", () => {
     const v = REGIONS.find((r) => r.id === "veridan")!;
     for (let t = 0; t <= 1; t += 0.01) {
       const w = worldAt(v.x + (THALASSIA_CENTER.x - v.x) * t, v.z + (THALASSIA_CENTER.z - v.z) * t);
-      expect(["veyloria", "thalassia"]).toContain(w);
+      expect(["aetheria", "thalassia"]).toContain(w);
     }
   });
-  it("walking from Verdant toward Nexus is stopped at the border", () => {
-    const v = REGIONS.find((r) => r.id === "veridan")!, n = REGIONS.find((r) => r.id === "nexus")!;
+  it("walking from Verdant toward Solara is stopped at the border", () => {
+    const v = REGIONS.find((r) => r.id === "veridan")!, n = REGIONS.find((r) => r.id === "solara")!;
     let blocked = false;
     for (let t = 0; t < 1; t += 0.002) {
       const x0 = v.x + (n.x - v.x) * t, z0 = v.z + (n.z - v.z) * t, x1 = v.x + (n.x - v.x) * (t + 0.002), z1 = v.z + (n.z - v.z) * (t + 0.002);

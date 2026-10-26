@@ -58,10 +58,10 @@ describe("transit terminals", () => {
 
 describe("the Thalassia elevator", () => {
   const e = thalassiaElevator();
-  it("stands in the sea off Veyloria's coast, on the bearing to the city, joined to dry land by a pier", () => {
+  it("stands in the sea off Aetheria's Verdant shore, on the bearing to the city, joined to dry land by a pier", () => {
     expect(heightAt(e.platform.x, e.platform.z)).toBeLessThan(WATER_LEVEL);
     expect(heightAt(e.pier.x, e.pier.z)).toBeGreaterThan(WATER_LEVEL - 1.2);
-    expect(worldAt(e.platform.x, e.platform.z)).toBe("veyloria");
+    expect(worldAt(e.platform.x, e.platform.z)).toBe("aetheria");
     expect(Math.hypot(e.platform.x - THALASSIA_CENTER.x, e.platform.z - THALASSIA_CENTER.z)).toBeLessThan(Math.hypot(e.pier.x - THALASSIA_CENTER.x, e.pier.z - THALASSIA_CENTER.z));
   });
   it("its deck and pier are ground above the water; the sea beside them is not", () => {

@@ -2319,7 +2319,7 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
       riftInside = dr.inside; riftShaft = dr.shaft;
       if (riftInside) submerged = false;
     }
-    /* ---------------- the Thalassia elevator (travel.ts): a platform off Veyloria's coast rides down to the Sentry Dock and back ---------------- */
+    /* ---------------- the Thalassia elevator (travel.ts): a platform off Aetheria's Verdant shore rides down to the Sentry Dock and back ---------------- */
     if (!interior && !riftInside) {
       const r = elevatorRide.current;
       if (r) {
@@ -2332,7 +2332,7 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
           if (r.down) { s.oxygen = OXYGEN_MAX; s.hull = 0; s.breachAt = performance.now() / 1000; }
           submerged = r.down;
           elevatorRide.current = null; elevatorRearm.current = false; borderPrev.current = null;
-          alert(sim, r.down ? "Sentry Dock · Thalassia. The car waits here to take you back up" : "Elevator platform · Veyloria coast");
+          alert(sim, r.down ? "Sentry Dock · Thalassia. The car waits here to take you back up" : "Elevator platform · Verdant shore");
         }
       } else if (!s.inVehicle) {
         const down = elevatorDown(s.x, s.z, s.y - 1.6), up = elevatorUp(s.x, s.y, s.z);

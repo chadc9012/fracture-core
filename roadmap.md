@@ -280,3 +280,9 @@ Owner: "everything" from the Phantom private jet and walkable cabin patches in t
 - [x] Every flight / ferry / Phantom trip shows the cabin you ride in (FlightCabin.tsx): airliner or ferry cabin in the chosen seat style (economy .. royal cabin, zero-G pod), fellow passengers boarding, walk the aisle, take your seat, recline, seat-back screen; the Phantom's private cabin with the live flight-deck readout. Skip to arrival any time; the arrival is the usual transit.
 - [ ] The Phantom has no 3D presence at the airports in the open world yet (hangar building, parked jet on the apron), and cannot be flown by hand: trips are cabin journeys plus the transit.
 - [ ] Cabin input is keyboard, mouse and touch drag; gamepad sticks in the cabin are not wired (the world reads the pad directly).
+
+## Stage 153: the global map board (owner, Oct 26 2026)
+- [x] Planet tab drawn on the World Fracture global map board, with live frames on every land, the selected land's panel lit, air routes, the Thalassia sea lane and your location; the selected land's places, travel and planet figures under it.
+- [x] planet.ts: the board's ten lands (7 continents, Sylvaris and Myrathis subregions, Zephyria an archipelago), its places, five oceans and planet info (12,742 km, 510.1 million km²).
+- [x] Verdant Forest joins Aetheria (Veyloria retired); start world Aetheria; terminal names follow the board (Aetheria Airport (Nexus), Frosthelm Airport, Kharos Airport, …).
+- [ ] Board places not in the game yet: Riverdale, Valdoria, Noctyra, Elyndra, Myrathis and Zephyria cities, airports and ports (map only).

@@ -14,7 +14,8 @@ export const WORLD_ANCHORS: Readonly<Record<string, readonly Anchor[]>> = {
   aetheria: [at("nexus", 203), { x: R("nexus").x, z: R("nexus").z + 155, w: 191 }],
   // Neon City: its own landmass in Aetheria across the gulf from Nexus (owner, Oct 25 2026: the Celestial Bridge joins them)
   neon: [{ x: NEON_SITE.x, z: NEON_SITE.z, w: 250 }],
-  veyloria: [at("veridan", 274)],
+  // the Verdant Forest: its own landmass across the Nexus Strait, Aetheria's (global map board, Oct 26 2026: Veyloria retired)
+  verdant: [at("veridan", 274)],
   sylvaris: [at("swamps", 193)],
   kharos: [at("solara", 264), at("wastelands", 286)],
   frosthelm: [at("frostspire", 240)],
@@ -24,8 +25,8 @@ export type AnchorWorld = keyof typeof WORLD_ANCHORS;
 
 /** Every anchor is its own landmass with sea all round it. Owner, Oct 25 2026 (the planet update): Nexus City and Neon
  * City are both Aetheria but stand on separate coastal landmasses across an ocean gulf, so the Neon anchor is a landmass
- * whose continent world is Aetheria. */
-export const ANCHOR_WORLD: Readonly<Record<string, string>> = { neon: "aetheria" };
+ * whose continent world is Aetheria. The global map board (Oct 26 2026) puts the Verdant Forest in Aetheria too. */
+export const ANCHOR_WORLD: Readonly<Record<string, string>> = { neon: "aetheria", verdant: "aetheria" };
 /** the continent world an anchor's land belongs to */
 export const worldOfAnchor = (id: string) => ANCHOR_WORLD[id] ?? id;
 const massOf = (id: string) => id;
