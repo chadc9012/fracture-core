@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { RAID_TIERS, STRIKE_TIERS, highestUnlocked, scaleEncounter, tierById, tierCleared, tierTarget, tierUnlocked, weekIndex, weeklyMult, weeklyRaidChallenge, RAID_CHALLENGES } from "./difficulty-ladder";
 import { STRIKES, STRIKE_IDS, canClaimStrike, claimStrikeClear, strikePayout, weeklyStrike } from "./strikes";
-import { ENCOUNTERS, featuredStage } from "./raid-lockout";
+import { ENCOUNTERS, dropIdFor, featuredStage } from "./raid-lockout";
 import { HOLLOW_STAR_ID, HOLLOW_STAR, canClaimHollowStarTier, claimHollowStarClear, claimHollowStarTierClear, hollowStarTierUnlocked } from "./hollow-star-raid";
 import { PAYOUTS } from "./activity-payouts";
 import { DUNGEONS } from "./dungeons";
@@ -141,7 +141,7 @@ describe("raid tiers", () => {
     const weekly = claimHollowStarTierClear(fresh(), "STANDARD", [], "normal", true, T);
     expect(nexBalance(plain.nexLedger)).toBe(PAYOUTS.raid.first);
     expect(nexBalance(weekly.nexLedger)).toBe(PAYOUTS.raid.first + Math.round(PAYOUTS.raid.first * share));
-    expect(weekly.inventory.some((g) => g.id === ENCOUNTERS[feat]!.piece.id)).toBe(true);
+    expect(weekly.inventory.some((g) => g.id === dropIdFor(feat))).toBe(true);
     expect(nexBalance(claimHollowStarTierClear(fresh(), "CHALLENGE", [], "normal", false, T).nexLedger)).toBe(Math.round(PAYOUTS.raid.first * 1.5));
     const a = cleared();
     expect(nexBalance(claimHollowStarTierClear(a, "CHALLENGE", [], "heroic", false, T + 1000).nexLedger) - nexBalance(a.nexLedger)).toBe(Math.round(PAYOUTS.raid.first * 1.75 * 1.5));

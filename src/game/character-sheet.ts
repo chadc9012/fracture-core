@@ -59,6 +59,7 @@ export function itemTooltip(item: GearItem): Tooltip {
   const perks = [
     ...(item.element && item.element !== "KINETIC" ? [`${item.element[0]}${item.element.slice(1).toLowerCase()} element`] : []),
     ...(item.perk === "NULL_DISRUPTION" ? ["Null Disruption"] : []),
+    ...(item.perk === "MAW_COLLAPSE" ? ["Maw Collapse: every 6th hit collapses a singularity that drags nearby enemies in"] : []),
     ...(set ? [`${set.name} set`] : []),
     ...(item.evolution ? ["Evolved at a ruin"] : []),
     ...(() => { const f = foundryOf(item); return f ? [`${FOUNDRIES[f].name}: ${FOUNDRIES[f].perk} (${FOUNDRIES[f].text})`] : []; })(),

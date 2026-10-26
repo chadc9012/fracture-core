@@ -5,6 +5,9 @@
 export type Deck = {
   id: string; x: number; z: number; dirX: number; dirZ: number;
   length: number; width: number; top: number; base: number; ramp: number;
+  /** a deck that climbs or falls along its length (a bridge between shores of different height): the top at the far (+dir)
+   * end; the top runs straight from `top` at the near end to it, with no ramps */
+  topB?: number;
 };
 
 const decks = new Map<string, Deck>();
@@ -26,6 +29,7 @@ export function deckHeight(d: Deck, x: number, z: number): number {
   const half = d.length / 2;
   if (Math.abs(along) > half || Math.abs(across) > d.width / 2) return -Infinity;
   const fromEnd = half - Math.abs(along);
+  if (d.topB !== undefined) return d.top + (d.topB - d.top) * ((along + half) / d.length);
   if (d.ramp > 0 && fromEnd < d.ramp) return d.base + (d.top - d.base) * (fromEnd / d.ramp);
   return d.top;
 }

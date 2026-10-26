@@ -24,7 +24,7 @@ import { VENDOR_DEFS, vendorStock, sellValue, type VendorListing } from "@/game/
 import { xpRequiredForLevel } from "@/game/xp";
 import { shapeLoot, type LootItem } from "@/game/loot";
 import { advanceEncounter, chooseEncounterRoute, createEncounterRun, loseEncounterLife, type EncounterRun } from "@/game/raid-stages";
-import { ENCOUNTERS, RAID_STAGE_IDS, clearedStages, featuredStage, lockedOut, resumeStageIndex } from "@/game/raid-lockout";
+import { RAID_STAGE_IDS, dropIdFor, clearedStages, featuredStage, lockedOut, resumeStageIndex } from "@/game/raid-lockout";
 import { grantAbilityMastery, selectAbilityBranch, type PlayerProgression } from "@/game/progression";
 import { dungeonModifiers } from "@/game/dungeon-build";
 import { FUEL_KING_ENCOUNTER_ID, fuelKingGateStatus } from "@/game/wasteland";
@@ -32,7 +32,7 @@ import { BIOMES, COSMETIC_CATEGORIES, FRACTURE_RAID, PVP_MODES, PVP_RANKS, WORLD
 import type { ClassId } from "@/game/loadout";
 
 const ALL_ENCOUNTERS = [...DUNGEONS, ...STRIKES];
-const ENCOUNTER_PIECE: Record<string, string> = Object.fromEntries(Object.entries(ENCOUNTERS).map(([id, e]) => [id, e.piece.id]));
+const ENCOUNTER_PIECE: Record<string, string> = Object.fromEntries(RAID_STAGE_IDS.map((id) => [id, dropIdFor(id)]));
 /** a fresh run; the raid resumes at the first encounter not cleared this week (raid-lockout.ts), the way Destiny keeps your progress until reset */
 function startRun(def: (typeof DUNGEONS)[number], p: PlayerProgression, tierId: string): EncounterRun {
   const run = createEncounterRun(def);

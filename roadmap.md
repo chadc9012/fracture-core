@@ -251,3 +251,13 @@ Owner: split the regions onto separate continents with travel between them; star
 - Done: hover card (type, destination, rank, depth, floors, fireteam, boss) and a full launch screen with hero art, the four descent areas or the raid's six encounters, the final boss and roster, modifiers (champions, shared lives, collapse timer, sealed) and rewards (chests, clear, seals / Lens, Starbreaker, blueprint).
 - Done: Launch on a dungeon travels to today's gate (or the destination, or the Thalassia pier for the Abyssal Vault) and starts the descent on arrival; this makes the gateless Sublevel Protocol, Forgotten Foundation and Abyssal Vault playable. The raid node uses the Raid tab's own launch.
 - Open: fireteam size in the launch screen is display-only until online fireteams exist (descents run solo); keyboard V opens the selected destination's first node, a pad binding for cycling nodes is still to do.
+
+## The planet update, Stage 152 (owner, Oct 25 2026)
+Owner: an Earth-sized planet (12,756 km, oblate) with original continents; 7 major continents (Aetheria, Veyloria, Kharos, Pyrrath, Frosthelm, Sylvaris, Noctyra) and 5 major oceans; Elyndra, Valdoria, Myrathis, Drakoria and Zephyria become archipelagos, nations or subregions; Nexus City and Neon City both Aetheria on separate landmasses across a gulf joined by the Celestial Bridge, each with an airport and a seaport; five ways to travel (aircraft, ships, bridges, the destination map, ground vehicles); oceans are real barriers.
+- [x] Bigger world: regions 30% further apart (MAP_SPREAD), wider seas between them, world radius 1,140 → 1,328 m; Storm Islands and open-sea sites move out with it; anchors retuned; race routes re-baked.
+- [x] Neon City on its own island in Aetheria (moved off Nexus, turned onto open ground); sea all round it; harbour-wall banks at both cities.
+- [x] The Celestial Bridge: Nexus ↔ Neon over the gulf, wide deck, driving lanes, a glass-walled transit route down the median, maintenance walkways, viewpoint balconies, cyan cable lights; walkable and drivable. The Nexus Strait Bridge is placed the same way.
+- [x] Planet data: 12,756 km, 7 major continents, 5 major oceans (the Emerald Sea and Fractured Abyss are seas), land kinds on the board; Noctyra is map-only for now.
+- [x] On foot the sea stops you (too far to swim); any vehicle, aircraft or boat crosses it.
+- [x] Airports and seaports: every landing zone and Neon City has an airport (flights to every continent's airports) and a seaport on its quay (ferries along the sea lanes, Nexus↔Neon across the gulf among them); the departures board shows flights or ferries by terminal.
+- [ ] Manual flight around the whole planet beyond the local map is Unreal work (World Partition, large world coordinates).

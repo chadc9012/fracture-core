@@ -21,7 +21,7 @@ describe("Nexus hub at life size", () => {
     // traffic never drives through a door or a plaza palm
     for (const d of [...INTERIORS.filter((i) => i.regionId === "nexus"), ...SHOP_INTERIORS.filter((i) => i.shopId?.startsWith("nexus"))]) {
       const r = Math.hypot(d.doorPos.x - C.x, d.doorPos.z - C.z);
-      expect(r < NEXUS_HUB_ROAD_R - NEXUS_HUB_ROAD_HALF - 0.3 || r > NEXUS_HUB_ROAD_R + NEXUS_HUB_ROAD_HALF + 0.3).toBe(true);
+      expect(r < NEXUS_HUB_ROAD_R - NEXUS_HUB_ROAD_HALF - 0.3 || r > NEXUS_HUB_ROAD_R + NEXUS_HUB_ROAD_HALF + 0.3 - 1e-6).toBe(true); // (a lobby door sits exactly 0.3 m past the kerb: float noise must not flip it)
     }
     for (const p of nexusPalms()) { const r = Math.hypot(p.x - C.x, p.z - C.z); expect(r < NEXUS_HUB_ROAD_R - NEXUS_HUB_ROAD_HALF || r > NEXUS_HUB_ROAD_R + NEXUS_HUB_ROAD_HALF + 1).toBe(true); }
     for (const s of REGIONAL_SHOPS.filter((q) => q.id.startsWith("nexus"))) expect(Math.hypot(s.x - C.x, s.z - C.z) + 5.7).toBeLessThan(NEXUS_HUB_PROMENADE[0] + 0.2);

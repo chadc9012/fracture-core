@@ -1,4 +1,5 @@
 import { useFrame } from "@react-three/fiber";
+import { NPC_DRAW_RADIUS, getPerfTier } from "@/game/perf-budget";
 import { ARM_RELAX, IDLE_RELAX, armBones, relaxArm } from "@/game/rest-pose";
 import { useGLTF } from "@react-three/drei";
 import { Component, Suspense, useMemo, useRef, type ReactNode } from "react";
@@ -207,9 +208,10 @@ export function Civilians({ playerRef, threatsRef }: { playerRef: React.RefObjec
     for (const c of civiliansRef.current) {
       // only bother stepping AI for civilians anywhere near the player — same distance culling as Wildlife
       const far = Math.hypot(c.x - p.position.x, c.z - p.position.z);
-      c.hidden = far > 150;
+      const drawR = NPC_DRAW_RADIUS[getPerfTier()];
+      c.hidden = far > drawR;
       c.far = far > DETAIL_DISTANCE; // authored bodies are ~100k triangles each: full detail only up close
-      if (far > 140) continue;
+      if (far > 140) continue; // AI still steps out to 140 m; only the drawing is budgeted
       stepCivilian(c, dt, p.position.x, p.position.z, rndRef.current, threatsRef?.current ?? []);
     }
   });

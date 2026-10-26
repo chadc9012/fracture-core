@@ -69,6 +69,13 @@ export const ARMOR_SETS: readonly ArmorSet[] = [
     two: { name: "Mirage Step", description: "Move 7% faster.", effects: { moveSpeed: 0.07 } },
     four: { name: "Sun Surge", description: "Weapon damage +10%, move 6% faster.", effects: { weaponDamage: 0.1, moveSpeed: 0.06 } },
   },
+  {
+    // raid gear: dropped only by The Hollow Star's encounters (raid-lockout.ts), never by region enemies (no region owns it)
+    id: "hollow-star", name: "Hollow Star", regionId: "hollow-star", element: "ARC", color: "#a970ff", tagline: "Armor from the bottom of the world: raid-earned, never found.",
+    pieces: { helmet: "Gatewarden Visor", gauntlets: "Spanwalker Grips", chest: "Echo Mantle", legs: "Sealkeeper Greaves", classItem: "Conduit Mark" },
+    two: { name: "Starfall Ward", description: "Incoming damage reduced by 8%, abilities recharge 6% faster.", effects: { resist: 0.08, abilityRecharge: 0.06 } },
+    four: { name: "Event Horizon", description: "Weapon damage +12%, resist another 5%, hull regenerates.", effects: { weaponDamage: 0.12, resist: 0.05, regen: 1.2 } },
+  },
   ...COLLECTIONS,
 ];
 

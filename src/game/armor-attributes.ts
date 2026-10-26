@@ -31,6 +31,7 @@ const SET_TILT: Record<string, Attributes> = {
   "frostwrought-aegis": { intellect: 0.9, mobility: 0.8, defense: 1.4 },
   "scrapborn-raider": { intellect: 1, mobility: 1.15, defense: 1 },
   "dune-seeker": { intellect: 1.1, mobility: 1.3, defense: 0.75 },
+  "hollow-star": { intellect: 1.2, mobility: 1.1, defense: 1.2 },
 };
 
 export const SOFT_CAP = 40;

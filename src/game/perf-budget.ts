@@ -20,6 +20,9 @@ export const NEAR_TREE_RADIUS: Record<RenderTier, number> = { LOW: 65, MEDIUM: 9
  * changed nothing — ~200 trees stood within 65 m — while capping to the nearest ~48 took GPU from 41 to 31 ms (17 -> 24 fps). */
 export const NEAR_TREE_MAX: Record<RenderTier, number> = { LOW: 24, MEDIUM: 45, HIGH: Infinity, ULTRA: Infinity };
 /** heavy decorative meshes only cast shadows from HIGH up: the shadow pass redraws every caster */
+/** how far living-city and civilian NPCs draw (m): a far NPC is still a ~10-mesh stand-in, and a street holds hundreds. Measured in the
+ * Nexus streets: living-city NPCs were ~150 of ~1,150 draw calls. */
+export const NPC_DRAW_RADIUS: Record<RenderTier, number> = { LOW: 80, MEDIUM: 110, HIGH: 150, ULTRA: 150 };
 export const heavyShadows = (tier: RenderTier) => tier === "HIGH" || tier === "ULTRA";
 
 /** how much of a district's mount radius is used (NearOnly): far cities past the fog line cost every draw call for little */

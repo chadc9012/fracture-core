@@ -1,3 +1,4 @@
+import { resetMaw } from "@/game/maw-collapse";
 import "@/game/venue-doors";
 import { CoastalBeaches } from "./CoastalBeaches";
 import { accessibleShop } from "@/game/shop-access";
@@ -1780,6 +1781,7 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
     const hipMult = foundry === "TEX_MECHANICA" && !(mouse.current.aim || padState.current.aim) ? FOUNDRY_RULES.texHip : 1;
     sim.equippedElement = equippedWeapon?.element ?? "KINETIC";
     if (sim.equippedPerk !== equippedWeapon?.perk) sim.nullCharge = { charge: 0, lastTimedAt: -1e9, cooldownUntil: sim.nullCharge.cooldownUntil, lastEventId: sim.nullCharge.lastEventId };
+    if (sim.equippedPerk !== equippedWeapon?.perk) sim.maw = resetMaw(sim.maw);
     sim.equippedPerk = equippedWeapon?.perk;
     if (sim.equippedEvolution !== equippedWeapon?.evolution?.ability) sim.evoCharge = freshCharge();
     sim.equippedEvolution = equippedWeapon?.evolution?.ability;
@@ -2297,13 +2299,14 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
      * more than 30 m is a teleport (travel, respawn, warp) and is never blocked. */
     {
       const prevB = borderPrev.current;
-      const exempt = !!interior || riftInside || !!raidZone || !!activity || !!tutorial || inStormAirspace(s.x, s.y, s.z) || sim.machines.some((m) => m.alive && m.mission);
+      // planet update: the oceans are the barrier now, so aircraft and boats cross them freely; on foot the sea is too far to swim
+      const exempt = !!interior || riftInside || !!raidZone || !!activity || !!tutorial || s.inVehicle || inStormAirspace(s.x, s.y, s.z) || sim.machines.some((m) => m.alive && m.mission);
       if (prevB && !exempt && Math.hypot(s.x - prevB.x, s.z - prevB.z) < 30) {
         const b = borderBlocks(prevB.x, prevB.z, s.x, s.z);
         if (b.blocked) {
           s.x = prevB.x; s.z = prevB.z; s.vSpeed *= -0.2; velocity.set(0, 0, 0);
           const now = performance.now();
-          if (now - borderWarned.current > 4000) { borderWarned.current = now; alert(sim, `Continental border · ${worldName(b.from)} ends here. Take a flight from a transit terminal to reach ${worldName(b.to)}`); }
+          if (now - borderWarned.current > 4000) { borderWarned.current = now; alert(sim, `Open sea · too far to swim to ${worldName(b.to)}. Take a boat or an aircraft, or a flight or ferry from a terminal`); }
         }
       }
       borderPrev.current = { x: s.x, z: s.z };

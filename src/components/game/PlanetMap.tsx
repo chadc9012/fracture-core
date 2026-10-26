@@ -38,7 +38,7 @@ export function PlanetMap({ progression, onDeploy, currentWorld = null }: { prog
   const drag = useRef<{ x: number; y: number; px: number; py: number } | null>(null);
   const selected = byId(selectedId);
   const visited = (id: ContinentId) => id === START_WORLD || hasVisited(progression, id);
-  const terminal = TERMINALS.find((t) => t.world === selected.id);
+  const terminal = TERMINALS.find((t) => t.world === selected.id && t.kind === "AIRPORT");
   const canFly = !!terminal && selected.tier === "CORE" && visited(selected.id) && selected.id !== here;
   const fly = () => {
     if (!terminal || !canFly) return;

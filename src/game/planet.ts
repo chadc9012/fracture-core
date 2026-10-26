@@ -1,5 +1,10 @@
-/** The planet (Stage 148, pure): World Fracture's super-Earth, its 12 continents, 7 oceans and 48 nations, and how the
- * playable world maps onto it. Design: "World Fracture — Planet Reconciliation" (owner decisions, Oct 25 2026): regions are
+/** The planet (Stages 148 and 152, pure): World Fracture's Earth-sized world, its 7 major continents, 5 major oceans, the
+ * archipelagos, nations and subregions between them, and how the playable world maps onto it.
+ * Planet update (owner, Oct 25 2026): an Earth-sized oblate globe (12,756 km) with completely original continents; seven
+ * major continents (Aetheria, Veyloria, Kharos, Pyrrath, Frosthelm, Sylvaris, Noctyra) and five major oceans; Elyndra,
+ * Valdoria, Myrathis, Drakoria and Zephyria become archipelagos, nations or subregions. Nexus City and Neon City are both
+ * Aetheria, on separate coastal landmasses across a gulf joined by the Celestial Bridge.
+ * Earlier: "World Fracture — Planet Reconciliation" (owner decisions, Oct 25 2026): regions are
  * split onto separate continents with travel between them, the game starts on Veyloria (Verdant Forest), the Wastelands
  * sit on Kharos north of Solara, Aetheria's public capital is Meridian with Nexus City inside it, and Thalassia is NOT part
  * of any continent: it lies off Veyloria's east coast in the Meridian Ocean, reached by an offshore elevator or an underwater
@@ -9,27 +14,35 @@
  * You cannot walk, drive, sail or fly from one continent world into another; you travel between them from a transit
  * terminal (travel.ts) or by deploying from the planet map. Thalassia, the Storm Islands, interiors and descents are free
  * spaces with their own ways in. Pure; tested in planet.test.ts. */
-import { WORLD_ANCHORS } from "./continent-borders";
+import { WORLD_ANCHORS, worldOfAnchor } from "./continent-borders";
 import { THALASSIA_CENTER } from "./thalassia-site";
 import { CITY_RADIUS } from "./thalassia-sectors";
 
 export const PLANET = {
   name: "Veyra",
-  diameterKm: 16500,
-  /** 4πr² for the stated diameter */
-  surfaceKm2: Math.round(4 * Math.PI * (16500 / 2) ** 2),
-  /** a real super-Earth of Earth density would pull ~1.3 g; the simulation holds it at 1 g, which is why Fracture zones can break it */
+  /** equatorial diameter (an oblate sphere, Earth-sized) */
+  diameterKm: 12756,
+  /** polar diameter: flattened like Earth's (1/298) */
+  polarDiameterKm: Math.round(12756 * (1 - 1 / 298)),
+  /** 4πr² for the equatorial diameter (the flattening changes it by under 0.3%) */
+  surfaceKm2: Math.round(4 * Math.PI * (12756 / 2) ** 2),
   gravityG: 1,
+  majorContinents: 7,
+  majorOceans: 5,
 } as const;
 
 export type ContinentId = "aetheria" | "kharos" | "veyloria" | "noctyra" | "frosthelm" | "pyrrath" | "elyndra" | "valdoria" | "myrathis" | "drakoria" | "sylvaris" | "zephyria";
 /** CORE: built and playable now; EXPANSION: one region at a time, later; BACKDROP: on the map (nations, lore, events), not walkable yet */
 export type PlayTier = "CORE" | "EXPANSION" | "BACKDROP";
+/** what a landmass on the board is: one of the seven major continents, or (planet update) an archipelago, nation or subregion */
+export type LandKind = "CONTINENT" | "ARCHIPELAGO" | "NATION" | "SUBREGION";
+export const LAND_KIND_LABEL: Record<LandKind, string> = { CONTINENT: "Continent", ARCHIPELAGO: "Archipelago", NATION: "Nation", SUBREGION: "Subregion" };
 
 export type Continent = {
   id: ContinentId;
   name: string;
   epithet: string;
+  kind: LandKind;
   /** globe position of its heart, degrees: read off the owner's planetary map board, so the in-game globe matches it */
   lat: number; lon: number;
   /** rough extent on the globe, degrees of arc */
@@ -49,41 +62,45 @@ export type Continent = {
 };
 
 export const CONTINENTS: readonly Continent[] = [
-  { id: "veyloria", name: "Veyloria", epithet: "The Living Wilds", lat: -4, lon: -27, size: 30, tier: "CORE", regions: ["veridan"], capital: "Rootholm", color: "#3f8f4e", majorCities: 4, scale: "Large", climate: "Tropical", pin: { x: 305, y: 405 },
-    look: "Real old-growth forest and rivers, grounded and damp; glow only at Fracture tears. The game starts here." },
-  { id: "aetheria", name: "Aetheria", epithet: "The Central Civilization", lat: 16, lon: -8, size: 28, tier: "CORE", regions: ["nexus"], capital: "Meridian", color: "#5aa8d8", majorCities: 8, scale: "Large", climate: "Temperate", pin: { x: 432, y: 285 },
-    look: "A grounded modern metropolis on the surface. Meridian is the public capital; Nexus City sits inside it." },
-  { id: "noctyra", name: "Noctyra", epithet: "The Neon Dominion", lat: 6, lon: 74, size: 22, tier: "CORE", regions: ["neon"], capital: "Neon City", color: "#b45cff", majorCities: 7, scale: "Medium", climate: "Temperate · rain", pin: { x: 862, y: 348 },
-    look: "The one place for full neon cyberpunk saturation: wet streets, signage, haze." },
-  { id: "kharos", name: "Kharos", epithet: "The Burning Expanse", lat: 0, lon: 34, size: 28, tier: "CORE", regions: ["solara", "wastelands"], capital: "Sandreach", color: "#d9973f", majorCities: 6, scale: "Large", climate: "Arid", pin: { x: 703, y: 393 },
-    look: "Sun-bleached sandstone in Solara to the south; rust, scrap and burned highways in the Wastelands to the north." },
-  { id: "frosthelm", name: "Frosthelm", epithet: "The Frozen Crown", lat: 60, lon: 0, size: 30, tier: "CORE", regions: ["frostspire"], capital: "Hallowmere", color: "#a9d3ee", majorCities: 3, scale: "Large", climate: "Polar", pin: { x: 490, y: 78 },
-    look: "Hard blue-grey ice, military outposts, whiteout storms." },
-  { id: "pyrrath", name: "Pyrrath", epithet: "The Molten Frontier", lat: -25, lon: 30, size: 26, tier: "CORE", regions: ["ember"], capital: "Cinderforge", color: "#e0522a", majorCities: 3, scale: "Medium", climate: "Volcanic", pin: { x: 657, y: 565 },
-    look: "Black basalt, ash fall, lava glow as the only warm light." },
-  { id: "sylvaris", name: "Sylvaris", epithet: "The Emerald Depths", lat: -28, lon: -28, size: 24, tier: "CORE", regions: ["swamps"], capital: "Mirewatch", color: "#2f9c86", majorCities: 3, scale: "Medium", climate: "Wetland", pin: { x: 315, y: 580 },
-    look: "Murky, fog-heavy wetlands; faint, sickly bioluminescence, not neon." },
-  { id: "zephyria", name: "Zephyria", epithet: "The Storm Frontier", lat: 48, lon: 70, size: 20, tier: "EXPANSION", regions: ["storm-islands"], capital: "Skyhold", color: "#7f8fd8", majorCities: 2, scale: "Small", climate: "Storm · alpine", pin: { x: 762, y: 128 },
-    look: "Real storm plateaus first; the floating Storm Islands are its first playable ground." },
-  { id: "elyndra", name: "Elyndra", epithet: "The Sapphire Coast", lat: -16, lon: -74, size: 18, tier: "BACKDROP", regions: [], capital: "Port Azure", color: "#3fb6c9", majorCities: 5, scale: "Small", climate: "Tropical", pin: { x: 113, y: 500 },
-    look: "Realistic tropical coast and working harbours." },
-  { id: "valdoria", name: "Valdoria", epithet: "The Great Plains", lat: 28, lon: 35, size: 26, tier: "BACKDROP", regions: [], capital: "Harrowfield", color: "#9cbf52", majorCities: 5, scale: "Large", climate: "Continental", pin: { x: 686, y: 225 },
-    look: "Open grassland under big skies; the cracked moon reads clearly here." },
-  { id: "myrathis", name: "Myrathis", epithet: "The Forgotten Lands", lat: 14, lon: -50, size: 20, tier: "BACKDROP", regions: [], capital: "Vel'Sora", color: "#8a9a7a", majorCities: 2, scale: "Medium", climate: "Highland mist", pin: { x: 191, y: 305 },
-    look: "Weathered stone and mist; the most mythic look, still photographic." },
-  { id: "drakoria", name: "Drakoria", epithet: "The Shattered Peaks", lat: 38, lon: -48, size: 22, tier: "BACKDROP", regions: [], capital: "Cragmouth", color: "#8e8a86", majorCities: 3, scale: "Medium", climate: "Alpine", pin: { x: 250, y: 185 },
-    look: "Raw rock faces, industrial scaffolding, rough weather." },
+  { id: "veyloria", name: "Veyloria", epithet: "The Living Wilds", kind: "CONTINENT", lat: -4, lon: -27, size: 30, tier: "CORE", regions: ["veridan"], capital: "Rootholm", color: "#3f8f4e", majorCities: 4, scale: "Large", climate: "Tropical", pin: { x: 305, y: 405 },
+    look: "Verdant Forest, river networks and jungle coastlines; Thalassia lies offshore. The game starts here." },
+  { id: "aetheria", name: "Aetheria", epithet: "The Central Civilization", kind: "CONTINENT", lat: 16, lon: -8, size: 28, tier: "CORE", regions: ["nexus", "neon"], capital: "Meridian", color: "#5aa8d8", majorCities: 8, scale: "Large", climate: "Temperate", pin: { x: 432, y: 285 },
+    look: "Nexus City and Neon City on opposing shores of a great gulf, joined by the Celestial Bridge; each has its own airport and seaport. Meridian is the public capital." },
+  { id: "noctyra", name: "Noctyra", epithet: "The Veiled Dominion", kind: "CONTINENT", lat: 6, lon: 74, size: 22, tier: "BACKDROP", regions: [], capital: "Voidspire", color: "#b45cff", majorCities: 5, scale: "Medium", climate: "Temperate · rain", pin: { x: 862, y: 348 },
+    look: "A mysterious, technologically advanced landmass of isolated territories and dimensional anomalies." },
+  { id: "kharos", name: "Kharos", epithet: "The Burning Expanse", kind: "CONTINENT", lat: 0, lon: 34, size: 28, tier: "CORE", regions: ["solara", "wastelands"], capital: "Sandreach", color: "#d9973f", majorCities: 6, scale: "Large", climate: "Arid", pin: { x: 703, y: 393 },
+    look: "Solara Desert, canyons, ancient ruins and a vast dry interior; rust, scrap and burned highways in the Wastelands." },
+  { id: "frosthelm", name: "Frosthelm", epithet: "The Frozen Crown", kind: "CONTINENT", lat: 60, lon: 0, size: 30, tier: "CORE", regions: ["frostspire"], capital: "Hallowmere", color: "#a9d3ee", majorCities: 3, scale: "Large", climate: "Polar", pin: { x: 490, y: 78 },
+    look: "Frost Spire, glaciers, frozen coastlines and polar settlements." },
+  { id: "pyrrath", name: "Pyrrath", epithet: "The Molten Frontier", kind: "CONTINENT", lat: -25, lon: 30, size: 26, tier: "CORE", regions: ["ember"], capital: "Cinderforge", color: "#e0522a", majorCities: 3, scale: "Medium", climate: "Volcanic", pin: { x: 657, y: 565 },
+    look: "Ember Peaks: volcanic mountains, lava fields and industrial settlements." },
+  { id: "sylvaris", name: "Sylvaris", epithet: "The Emerald Depths", kind: "CONTINENT", lat: -28, lon: -28, size: 24, tier: "CORE", regions: ["swamps"], capital: "Mirewatch", color: "#2f9c86", majorCities: 3, scale: "Medium", climate: "Wetland", pin: { x: 315, y: 580 },
+    look: "The Shrouded Swamps, bioluminescent wetlands and ancient forests." },
+  { id: "zephyria", name: "Zephyria", epithet: "The Storm Archipelago", kind: "ARCHIPELAGO", lat: 48, lon: 70, size: 20, tier: "EXPANSION", regions: ["storm-islands"], capital: "Skyhold", color: "#7f8fd8", majorCities: 2, scale: "Small", climate: "Storm · alpine", pin: { x: 762, y: 128 },
+    look: "Floating islands and stormfronts; the Storm Islands are its first playable ground." },
+  { id: "elyndra", name: "Elyndra", epithet: "The Sapphire Isles", kind: "ARCHIPELAGO", lat: -16, lon: -74, size: 18, tier: "BACKDROP", regions: [], capital: "Port Azure", color: "#3fb6c9", majorCities: 5, scale: "Small", climate: "Tropical", pin: { x: 113, y: 500 },
+    look: "Tropical islands, crystal waters and working harbours." },
+  { id: "valdoria", name: "Valdoria", epithet: "The Great Plains", kind: "NATION", lat: 28, lon: 35, size: 26, tier: "BACKDROP", regions: [], capital: "Harrowfield", color: "#9cbf52", majorCities: 5, scale: "Large", climate: "Continental", pin: { x: 686, y: 225 },
+    look: "A plains nation of open grassland, rivers and ancient ruins under big skies." },
+  { id: "myrathis", name: "Myrathis", epithet: "The Forgotten Lands", kind: "SUBREGION", lat: 14, lon: -50, size: 20, tier: "BACKDROP", regions: [], capital: "Vel'Sora", color: "#8a9a7a", majorCities: 2, scale: "Medium", climate: "Highland mist", pin: { x: 191, y: 305 },
+    look: "Ancient lands and forgotten realms: weathered stone and mist." },
+  { id: "drakoria", name: "Drakoria", epithet: "The Shattered Peaks", kind: "NATION", lat: 38, lon: -48, size: 22, tier: "BACKDROP", regions: [], capital: "Cragmouth", color: "#8e8a86", majorCities: 3, scale: "Medium", climate: "Alpine", pin: { x: 250, y: 185 },
+    look: "A highland nation of raw rock faces, industrial scaffolding and rough weather." },
 ];
 
+/** the seven major continents (the rest of CONTINENTS are archipelagos, nations and subregions on the board) */
+export const MAJOR_CONTINENTS = (): readonly Continent[] => CONTINENTS.filter((c) => c.kind === "CONTINENT");
+
 export type OceanId = "azure-expanse" | "meridian-ocean" | "emerald-basin" | "tempest-sea" | "glacial-reach" | "obsidian-deep" | "fractured-abyss";
-export const OCEANS: readonly { id: OceanId; name: string; lat: number; lon: number; character: string }[] = [
-  { id: "azure-expanse", name: "Azure Expanse", lat: 2, lon: -82, character: "Main shipping and passenger routes along the western coasts" },
-  { id: "meridian-ocean", name: "Meridian Ocean", lat: -6, lon: 2, character: "Central trade routes; Thalassia lies in its waters off Veyloria's coast" },
-  { id: "emerald-basin", name: "Emerald Basin", lat: -46, lon: -46, character: "Tropical islands and reefs off Elyndra and Sylvaris" },
-  { id: "tempest-sea", name: "Tempest Sea", lat: 36, lon: 80, character: "Storms and hard navigation around Zephyria" },
-  { id: "glacial-reach", name: "Glacial Reach", lat: 54, lon: -66, character: "Polar seas and drifting ice" },
-  { id: "obsidian-deep", name: "Obsidian Deep", lat: -50, lon: 6, character: "Deep trenches and dangerous water south of Pyrrath" },
-  { id: "fractured-abyss", name: "Fractured Abyss", lat: -24, lon: 82, character: "Underwater anomalies and late-game mysteries" },
+/** five major oceans; the Emerald Basin and the Fractured Abyss are seas within them (planet update) */
+export const OCEANS: readonly { id: OceanId; name: string; lat: number; lon: number; character: string; major: boolean }[] = [
+  { id: "azure-expanse", name: "Azure Expanse", lat: 2, lon: -82, character: "Main shipping and passenger routes along the western coasts", major: true },
+  { id: "meridian-ocean", name: "Meridian Ocean", lat: -6, lon: 2, character: "Central trade routes; Thalassia lies in its waters off Veyloria's coast", major: true },
+  { id: "emerald-basin", name: "Emerald Sea", lat: -46, lon: -46, character: "Tropical islands and reefs off Elyndra and Sylvaris", major: false },
+  { id: "tempest-sea", name: "Tempest Ocean", lat: 36, lon: 80, character: "Storms and hard navigation around Zephyria", major: true },
+  { id: "glacial-reach", name: "Glacial Reach", lat: 54, lon: -66, character: "Polar seas and drifting ice", major: true },
+  { id: "obsidian-deep", name: "Obsidian Deep", lat: -50, lon: 6, character: "Deep trenches and dangerous water south of Pyrrath", major: true },
+  { id: "fractured-abyss", name: "Fractured Abyss", lat: -24, lon: 82, character: "Underwater anomalies and late-game mysteries", major: false },
 ];
 
 /** 48 nations (Aetheria's six as on the owner's board, three to five elsewhere). The first nation of each CORE continent holds its playable ground. */
@@ -116,7 +133,8 @@ export const continentById = (id: string): Continent | null => CONTINENTS.find((
 /* ---------------- continent worlds in the live map ---------------- */
 
 export { WORLD_ANCHORS };
-export type WorldId = keyof typeof WORLD_ANCHORS | "thalassia";
+/** a continent world in the live map (Neon City's landmass is Aetheria's), or Thalassia's own water */
+export type WorldId = "aetheria" | "veyloria" | "sylvaris" | "kharos" | "frosthelm" | "pyrrath" | "thalassia";
 
 /** Thalassia's own water: the city and the sea around it, plus the approach lane from Veyloria's elevator platform */
 export const THALASSIA_ZONE_RADIUS = CITY_RADIUS + 140;
@@ -124,12 +142,12 @@ export const THALASSIA_ZONE_RADIUS = CITY_RADIUS + 140;
 /** which continent world (x, z) belongs to; "thalassia" for the city's own water */
 export function worldAt(x: number, z: number): WorldId {
   if (Math.hypot(x - THALASSIA_CENTER.x, z - THALASSIA_CENTER.z) < THALASSIA_ZONE_RADIUS) return "thalassia";
-  let best: WorldId = "veyloria", score = Infinity;
+  let best = "veyloria", score = Infinity;
   for (const [id, anchors] of Object.entries(WORLD_ANCHORS)) for (const a of anchors) {
     const s = Math.hypot(x - a.x, z - a.z) - a.w;
-    if (s < score) { score = s; best = id as WorldId; }
+    if (s < score) { score = s; best = id; }
   }
-  return best;
+  return worldOfAnchor(best) as WorldId;
 }
 export const continentOfWorld = (w: WorldId): ContinentId => (w === "thalassia" ? "veyloria" : (w as ContinentId));
 
@@ -158,6 +176,6 @@ export const BOARD = { w: 971, h: 772 } as const;
 export const THALASSIA_PIN = { x: 392, y: 470 } as const;
 /** air routes drawn on the planet map: every playable continent to its neighbours, Aetheria as the hub (as on the worldbuild board) */
 export const AIR_ROUTES: readonly (readonly [ContinentId, ContinentId])[] = [
-  ["aetheria", "veyloria"], ["aetheria", "frosthelm"], ["aetheria", "kharos"], ["aetheria", "noctyra"], ["aetheria", "sylvaris"],
-  ["veyloria", "sylvaris"], ["kharos", "pyrrath"], ["kharos", "noctyra"],
+  ["aetheria", "veyloria"], ["aetheria", "frosthelm"], ["aetheria", "kharos"], ["aetheria", "pyrrath"], ["aetheria", "sylvaris"],
+  ["veyloria", "sylvaris"], ["kharos", "pyrrath"],
 ];

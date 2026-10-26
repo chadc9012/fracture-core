@@ -43,7 +43,7 @@ export const raidExitPad = (r: RaidInstance) => ({ x: r.site.x + 8, z: r.site.z 
 export const EXIT_PAD_R = 3;
 /** where the exit pad sends you: beside the home city's transit terminal */
 export function raidReturn(r: RaidInstance): { x: number; z: number } {
-  const t = TERMINALS.find((x) => x.regionId === r.homeRegion) ?? TERMINALS[0]!;
+  const t = TERMINALS.find((x) => x.regionId === r.homeRegion && x.kind === "AIRPORT") ?? TERMINALS[0]!;
   return arrivalPoint(t);
 }
 /** every raid site lies outside the world disc (asserted in raid-instances.test.ts) */

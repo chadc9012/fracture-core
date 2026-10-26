@@ -7,29 +7,38 @@
  *  - NO PAYOUT PREVIEW: the UI never shows what a raid pays; the reward is what drops.
  * Keys live in earnedRewards (`raid-enc:<raid>:<tier>:<stage>#<operator>:W<week>`, union-merged by the cloud save) and the payout ledger, so
  * a merge can never double-pay. The first-ever clear extras (Starbreaker, regalia, blueprint) stay with hollow-star-raid.ts. */
+import { MAW_PERK } from "./maw-collapse";
 import { HOLLOW_STAR, HOLLOW_STAR_ID } from "./hollow-star-data";
 import type { GearItem, GearSlot } from "./inventory";
 import type { PlayerProgression } from "./progression";
 import { mulberry32 } from "./rng";
+import { ARMOR_LEVEL_MAX, makeSetPiece, setPieceId, type SetSlot } from "./armor-sets";
 import { RAID_TIERS, tierById, tierTarget, weekIndex } from "./difficulty-ladder";
 import { payoutFor } from "./activity-payouts";
 
 type Save = Pick<PlayerProgression, "earnedRewards" | "nexLedger" | "inventory" | "materials"> & Partial<Pick<PlayerProgression, "pocketClass">>;
 
-/** each encounter's share of the raid's Nex (sums to 1) and its named gear piece */
-export const ENCOUNTERS: Record<string, { share: number; piece: { id: string; name: string; slot: GearSlot; element: GearItem["element"] } }> = {
-  "broken-gate": { share: 0.08, piece: { id: "hs-gatewarden-visor", name: "Gatewarden Visor", slot: "helmet", element: "ARC" } },
-  "fallen-bridge": { share: 0.10, piece: { id: "hs-spanwalker-grips", name: "Spanwalker Grips", slot: "gauntlets", element: "KINETIC" } },
-  "seal-chambers": { share: 0.15, piece: { id: "hs-sealkeeper-greaves", name: "Sealkeeper Greaves", slot: "legs", element: "ARC" } },
-  "chrono-core": { share: 0.15, piece: { id: "hs-conduit-mark", name: "Conduit Mark", slot: "classItem", element: "THERMAL" } },
-  "echo-realm": { share: 0.17, piece: { id: "hs-mirrorglass-sidearm", name: "Mirrorglass Sidearm", slot: "secondary", element: "ARC" } },
-  "hollow-star-boss": { share: 0.35, piece: { id: "hs-astravore-fang", name: "Astravore's Fang", slot: "heavy", element: "ARC" } },
+/** the raid's armor set (armor-sets.ts "hollow-star"): five encounters each drop one piece, the boss drops a weapon */
+export const RAID_SET_ID = "hollow-star";
+type Drop = { kind: "set"; slot: SetSlot } | { kind: "weapon"; id: string; name: string; slot: GearSlot; element: GearItem["element"] };
+/** each encounter's share of the raid's Nex (sums to 1) and what it drops */
+export const ENCOUNTERS: Record<string, { share: number; drop: Drop }> = {
+  "broken-gate": { share: 0.08, drop: { kind: "set", slot: "helmet" } },
+  "fallen-bridge": { share: 0.10, drop: { kind: "set", slot: "gauntlets" } },
+  "seal-chambers": { share: 0.15, drop: { kind: "set", slot: "legs" } },
+  "chrono-core": { share: 0.15, drop: { kind: "set", slot: "classItem" } },
+  "echo-realm": { share: 0.17, drop: { kind: "set", slot: "chest" } },
+  "hollow-star-boss": { share: 0.35, drop: { kind: "weapon", id: "hs-astravore-fang", name: "Astravore's Fang", slot: "heavy", element: "ARC" } },
 };
+/** the item id an encounter drops */
+export const dropIdFor = (stageId: string) => { const d = ENCOUNTERS[stageId]!.drop; return d.kind === "set" ? setPieceId(RAID_SET_ID, d.slot) : d.id; };
 export const RAID_STAGE_IDS: readonly string[] = HOLLOW_STAR.stages.map((s) => s.id);
 /** chance a cleared encounter drops its piece, by tier rank; duplicates come back as gear parts */
 export const DROP_CHANCE = [0.35, 0.5, 0.65, 0.8] as const;
 export const DUPLICATE_PARTS = 3;
+/** weapon power by tier; set pieces start at a level by tier instead (1, 4, 7, 10), and a duplicate levels the piece */
 export const piecePower = (tierRank: number) => 300 + tierRank * 40;
+export const pieceLevel = (tierRank: number) => Math.min(ARMOR_LEVEL_MAX, 1 + 3 * tierRank);
 
 export const weekKey = (now: number) => `W${weekIndex(now)}`;
 export const encounterKey = (tierId: string, stageId: string, now: number, operator?: string) => `raid-enc:${HOLLOW_STAR_ID}:${tierId}:${stageId}${operator ? `#${operator}` : ""}:${weekKey(now)}`;
@@ -55,8 +64,9 @@ const hash = (s: string) => { let h = 2166136261; for (let i = 0; i < s.length; 
 /** the seeded drop roll for one encounter this week: the same operator, week, tier and encounter always roll the same */
 export const dropRoll = (operator: string | undefined, tierId: string, stageId: string, now: number) => mulberry32(hash(`${operator ?? ""}|${weekKey(now)}|${tierId}|${stageId}`))();
 export function pieceFor(stageId: string, tierId: string): GearItem {
-  const e = ENCOUNTERS[stageId]!, tier = tierById("raid", tierId);
-  return { id: e.piece.id, name: e.piece.name, slot: e.piece.slot, power: piecePower(tier.rank), level: 1, element: e.piece.element, rarity: "LEGENDARY", source: "The Hollow Star" };
+  const d = ENCOUNTERS[stageId]!.drop, tier = tierById("raid", tierId);
+  if (d.kind === "set") return makeSetPiece(RAID_SET_ID, d.slot, pieceLevel(tier.rank))!;
+  return { id: d.id, name: d.name, slot: d.slot, power: piecePower(tier.rank), level: 1, element: d.element, rarity: "LEGENDARY", source: "The Hollow Star", perk: MAW_PERK };
 }
 
 export type EncounterClaim<P> = { progression: P; stages: string[]; paid: number; drops: GearItem[]; parts: number };
@@ -77,9 +87,13 @@ export function claimEncounters<P extends Save>(p: P, tierId: string, stageIds: 
     if (drop) {
       const item = pieceFor(id, tier.id);
       const owned = next.inventory.find((g) => g.id === item.id);
+      const rank = (g: GearItem) => (g.setId ? g.level : g.power);
       if (!owned) { next = { ...next, inventory: [...next.inventory, item] }; drops.push(item); }
-      else if (owned.power < item.power) { next = { ...next, inventory: next.inventory.map((g) => (g.id === item.id ? { ...item, favorite: g.favorite } : g)) }; drops.push(item); } // a higher tier upgrades the piece you own
-      else { next = { ...next, materials: { ...next.materials, gearParts: (next.materials.gearParts ?? 0) + DUPLICATE_PARTS } }; parts += DUPLICATE_PARTS; }
+      else if (rank(owned) < rank(item)) { next = { ...next, inventory: next.inventory.map((g) => (g.id === item.id ? { ...item, favorite: g.favorite } : g)) }; drops.push(item); } // a higher tier upgrades the piece you own
+      else if (owned.setId && owned.level < ARMOR_LEVEL_MAX) { // a duplicate set piece levels up (the armor system's rule: nothing is wasted)
+        const up = { ...owned, level: owned.level + 1, power: owned.power + 15 };
+        next = { ...next, inventory: next.inventory.map((g) => (g.id === item.id ? up : g)) }; drops.push(up);
+      } else { next = { ...next, materials: { ...next.materials, gearParts: (next.materials.gearParts ?? 0) + DUPLICATE_PARTS } }; parts += DUPLICATE_PARTS; }
     }
     cur = next; stages.push(id);
   }

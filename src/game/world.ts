@@ -53,7 +53,11 @@ export const WORLD_SCALE = readWorldScale();
 /** vertical stretch of the landform: heights grow less than widths so a big map has mountains, not walls (1 at scale 1) */
 export const HEIGHT_K = WORLD_SCALE === 1 ? 1 : 1 + (WORLD_SCALE - 1) * 0.35;
 
-const BASE_REGIONS: Region[] = [
+/** The planet update (owner, Oct 25 2026: "we are making this world bigger"): the continents stand this much further apart
+ * than the scale-6 layout they were tuned on. Each region moves rigidly with its land and authored sites (legacyShifts),
+ * the world rim grows with it, and the wider seas between them carry the straits. */
+export const MAP_SPREAD = 1.3;
+const LAYOUT_REGIONS: Region[] = [
   {
     id: "nexus",
     name: "Nexus City",
@@ -154,9 +158,11 @@ const BASE_REGIONS: Region[] = [
   },
 ];
 
+const BASE_REGIONS: Region[] = LAYOUT_REGIONS.map((r) => ({ ...r, x: r.x * MAP_SPREAD, z: r.z * MAP_SPREAD }));
 /** original-size regions (terrain shaping noise runs in this space and is stretched by WORLD_SCALE) */
 export const BASE_WORLD_REGIONS: readonly Region[] = BASE_REGIONS;
-export const BASE_WORLD_RADIUS = 190;
+/** the rim grows less than the spread: each region keeps about the coast band it had, the extra room goes to the seas between */
+export const BASE_WORLD_RADIUS = 190 * (1 + (MAP_SPREAD - 1) * 0.55);
 export const WORLD_RADIUS = BASE_WORLD_RADIUS * WORLD_SCALE;
 
 /** Regions at world size: centres and wild radii x WORLD_SCALE; Nexus keeps its authored radius. */
@@ -228,7 +234,7 @@ export function movedWithRegion<T extends { x: number; z: number }>(regionId: st
 export function scaleSite(x: number, z: number, offsetScale: number = WORLD_SCALE): { x: number; z: number } {
   let best = -1; let bestScore = Infinity;
   BASE_REGIONS.forEach((r, i) => { const a = AUTHORED_CENTRES[r.id] ?? r; const sc = Math.hypot(x - a.x, z - a.z) / r.radius; if (sc < 1.15 && sc < bestScore) { bestScore = sc; best = i; } });
-  if (best < 0) return { x: x * WORLD_SCALE, z: z * WORLD_SCALE };
+  if (best < 0) return { x: x * WORLD_SCALE * MAP_SPREAD, z: z * WORLD_SCALE * MAP_SPREAD };
   if (WORLD_SCALE === 1) { const b0 = BASE_REGIONS[best]!, a0 = AUTHORED_CENTRES[b0.id] ?? b0; return { x: b0.x + (x - a0.x), z: b0.z + (z - a0.z) }; }
   const b = BASE_REGIONS[best]!, r = REGIONS[best]!, a = AUTHORED_CENTRES[b.id] ?? b;
   const k = b.id === "nexus" ? 1 : offsetScale;
@@ -305,9 +311,14 @@ export function clockLabel(t: number) {
 }
 
 /** Neon City sits beside the Nexus hub, along this bearing from it */
-const NEON_DIR = { x: -82 / Math.hypot(82, 38), z: 38 / Math.hypot(82, 38) };
+/** (the planet update turned it 0.15 rad north, onto the open ground between Ember Peaks and the Wastelands, so the gulf and
+ * the sea round the city have room) */
+const NEON_TURN = 0.15;
+const NEON_DIR = (() => { const a = Math.atan2(38, -82) + NEON_TURN; return { x: Math.cos(a), z: Math.sin(a) }; })();
 /** the authored spacing (half the wild-region scale), and the room the city plateau needs past it */
-const NEON_BASE_DIST = Math.hypot(82, 38) * Math.max(1, WORLD_SCALE / 2);
+/** (×1.37 since the planet update: open sea between the two cities, the Celestial Bridge across it) */
+export const NEON_SPREAD = 1.29;
+const NEON_BASE_DIST = Math.hypot(82, 38) * Math.max(1, WORLD_SCALE / 2) * NEON_SPREAD;
 const NEON_CLEAR = 50 + 25 + 20; // plateau fade + the hub's building ring + a gap
 /** Largest city plateau (flat radius, 40..160 m) that fits between the hub and the world's edge, and how far out the city sits
  * for it: never closer than the authored spacing, pushed out just enough to clear the hub. At the default scale this is

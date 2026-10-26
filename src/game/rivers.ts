@@ -48,12 +48,15 @@ const FALL_MIN_DROP = 3 * HEIGHT_K;     // total drop before a steep run is a wa
 
 /** highest point in the inner part of a region — a plausible spring */
 function findSource(h: H, rx: number, rz: number, radius: number): { x: number; z: number } {
-  let best = { x: rx, z: rz }, bh = -Infinity;
+  let best = { x: rx, z: rz }, bh = -Infinity, bk = -Infinity;
   const r = radius * 0.6;
   for (let gx = -r; gx <= r; gx += 4 * RS) for (let gz = -r; gz <= r; gz += 4 * RS) {
     if (gx * gx + gz * gz > r * r) continue;
     const v = h(rx + gx, rz + gz);
-    if (v > bh) { bh = v; best = { x: rx + gx, z: rz + gz }; }
+    // a flat summit ties within millimetres: break ties by a fixed bearing rather than by rounding noise, so moving a region
+    // (it carries its land rigidly) never moves its spring to the other side of the summit
+    const k = gx - gz;
+    if (v > bh + 0.02 || (v > bh - 0.02 && k > bk)) { bh = Math.max(bh, v); bk = k; best = { x: rx + gx, z: rz + gz }; }
   }
   return best;
 }

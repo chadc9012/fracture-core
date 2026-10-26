@@ -34,4 +34,9 @@ describe("actor-cull", () => {
     expect(ENEMY_BUDGET.MEDIUM.max).toBeLessThan(ENEMY_BUDGET.HIGH.max);
     expect(ENEMY_BUDGET.LOW.range).toBeLessThan(ENEMY_BUDGET.ULTRA.range);
   });
+  test("NPC draw radius shrinks on weaker tiers and never exceeds the old 150 m", async () => {
+    const { NPC_DRAW_RADIUS } = await import("./perf-budget");
+    expect(NPC_DRAW_RADIUS.LOW).toBeLessThan(NPC_DRAW_RADIUS.MEDIUM);
+    expect(Math.max(...Object.values(NPC_DRAW_RADIUS))).toBeLessThanOrEqual(150);
+  });
 });

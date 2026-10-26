@@ -27,6 +27,13 @@ const collectionPerks = Object.fromEntries(COLLECTIONS.map((c) => [c.id, Object.
 
 export const ARMOR_PERKS: Readonly<Record<string, Record<SetSlot, ArmorPerk>>> = {
   ...collectionPerks,
+  "hollow-star": {
+    helmet: p("Beacon Lens", "Abilities recharge 8% faster.", { abilityRecharge: 0.08 }),
+    gauntlets: p("Span Grip", "Weapon damage +5%.", { weaponDamage: 0.05 }),
+    chest: p("Mirror Plate", "Incoming damage reduced by 4%.", { resist: 0.04 }),
+    legs: p("Seal Stride", "Move 5% faster.", { moveSpeed: 0.05 }),
+    classItem: p("Conduit Sash", "Slides carry 10% further, abilities 3% faster.", { slideBoost: 0.1, abilityRecharge: 0.03 }),
+  },
   "verdant-warden": {
     helmet: p("Canopy Sight", "Abilities recharge 4% faster.", { abilityRecharge: 0.04 }),
     gauntlets: p("Thornwrap Grip", "Weapon damage +2%.", { weaponDamage: 0.02 }),

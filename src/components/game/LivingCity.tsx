@@ -25,6 +25,7 @@ const UP = new THREE.Vector3(0, 1, 0);
 const DRAW = 200;
 /** NPC bodies share the ~100k-triangle civilian GLBs, so they are drawn only up close (the name plate shows from there) */
 const NPC_DRAW = 150;
+import { NPC_DRAW_RADIUS, getPerfTier } from "@/game/perf-budget";
 
 function GuardView({ id, faction, runtime, playerRef }: { id: string; faction: FactionId; runtime: React.RefObject<LivingRuntime | null>; playerRef: React.RefObject<THREE.Object3D> }) {
   const group = useRef<THREE.Group>(null!);
@@ -100,8 +101,9 @@ function NpcView({ npc, playerRef }: { npc: LivingNpc; playerRef: React.RefObjec
     const c = cur.current, gx = goal.x - c.x, gz = goal.z - c.z, gd = Math.hypot(gx, gz);
     if (gd > 0.05) { const step = Math.min(gd, WALK_SPEED * dt); c.x += (gx / gd) * step; c.z += (gz / gd) * step; c.y = heightAt(c.x, c.z); group.current.position.set(c.x, c.y, c.z); }
     const d = Math.hypot(p.position.x - c.x, p.position.z - c.z);
-    group.current.visible = d < NPC_DRAW;
-    live.current.hidden = d > NPC_DRAW;
+    const drawR = Math.min(NPC_DRAW, NPC_DRAW_RADIUS[getPerfTier()]);
+    group.current.visible = d < drawR;
+    live.current.hidden = d > drawR;
     live.current.far = d > DETAIL_DISTANCE;
     live.current.state = d < 6 ? "GREET" : "IDLE";
     if (d < 14) group.current.children[0]!.quaternion.setFromAxisAngle(UP, Math.atan2(p.position.x - c.x, p.position.z - c.z));

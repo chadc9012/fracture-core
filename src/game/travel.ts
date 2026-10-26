@@ -10,8 +10,12 @@ import { DOCK_DECK_Y, airlockSite } from "./thalassia-sectors";
 import { CONTINENTS, worldAt, worldName, type ContinentId, type WorldId } from "./planet";
 import type { PlayerProgression } from "./progression";
 import { drivablePoint } from "./race-routing";
+import { BRIDGES } from "./nexus-bridge";
 
-export type Terminal = { id: string; name: string; world: WorldId; regionId: string; x: number; z: number };
+/** AIRPORT: flights to every other playable continent's airport; SEAPORT: ferries along the sea lanes (planet update: each
+ * city has its own airport and seaport) */
+export type TerminalKind = "AIRPORT" | "SEAPORT";
+export type Terminal = { id: string; name: string; kind: TerminalKind; world: WorldId; regionId: string; x: number; z: number };
 
 /** a terminal near each landing zone (region centre + 6 m south, destinations.ts dropPoint): the first spot on a spiral out
  * from 14 m beside it where the whole canopy footprint is open, dry, built-free ground (race-routing drivablePoint), so a
@@ -27,9 +31,53 @@ function beside(x: number, z: number): { x: number; z: number } {
   }
   return { x: x + 14, z: z + 6 };
 }
+/** each landing zone's airport (the owner's global map board names: Aetheria Airport at Nexus, Neon International, …) */
+const AIRPORT_NAME: Record<string, string> = {
+  nexus: "Aetheria Airport · Nexus", neon: "Neon International Airport", veridan: "Veyloria Airport · Verdant", frostspire: "Frosthelm Airport · Frost Spire",
+  ember: "Pyrrath Airport · Ember Peaks", wastelands: "Wastelands Airstrip", solara: "Kharos Airport · Solara", swamps: "Sylvaris Airport · Shrouded Swamps",
+};
+/** each city's seaport, named after its coast */
+const SEAPORT_NAME: Record<string, string> = {
+  nexus: "Nexus Harbour", neon: "Nightreach Port · Neon City", veridan: "Verdant East Port", frostspire: "Whitegate Port",
+  ember: "Blackrock Port", wastelands: "Rust Harbour", solara: "Dune Port", swamps: "Sylvaris Port",
+};
+const SITES: readonly { id: string; x: number; z: number; world: WorldId }[] = [
+  ...REGIONS.map((r) => ({ id: r.id, x: r.x, z: r.z, world: worldAt(r.x, r.z) })),
+  { id: "neon", x: NEON_SITE.x, z: NEON_SITE.z, world: "aetheria" as WorldId },
+];
+/** the seaport: the open, dry, gentle shore closest to the city (a ray out from its centre in every direction: the last
+ * clear ground before the sea), stepped back onto land so the kiosk stands on the quay */
+function shore(x: number, z: number, world: WorldId): { x: number; z: number } | null {
+  let best: { x: number; z: number; d: number } | null = null;
+  for (let k = 0; k < 48; k++) {
+    const a = (k / 48) * Math.PI * 2, ux = Math.cos(a), uz = Math.sin(a);
+    for (let d = 20; d < 700; d += 3) {
+      const px = x + ux * d, pz = z + uz * d;
+      if (worldAt(px, pz) !== world) break;
+      if (heightAt(px, pz) >= WATER_LEVEL) continue;
+      // the sea is here: the quay is 12 m back, on clear ground, and never on a sea bridge's approach
+      const qd = d - 12, qx = x + ux * qd, qz = z + uz * qd;
+      const nearBridge = BRIDGES.some((b) => Math.hypot(qx - b.west.x, qz - b.west.z) < 45 || Math.hypot(qx - b.east.x, qz - b.east.z) < 45);
+      if (qd > 20 && drivablePoint(qx, qz) && !nearBridge && (!best || qd < best.d)) best = { x: qx, z: qz, d: qd };
+      break;
+    }
+  }
+  if (!best) return null;
+  // the quay: a clear footprint at that spot (or the nearest clear one round it)
+  const q = beside(best.x, best.z - 6);
+  return { x: q.x, z: q.z };
+}
 export const TERMINALS: readonly Terminal[] = [
-  ...REGIONS.map((r) => ({ id: `terminal:${r.id}`, name: `${r.name} Transit`, world: worldAt(r.x, r.z), regionId: r.id, ...beside(r.x, r.z) })),
-  { id: "terminal:neon", name: "Neon City Transit", world: "noctyra" as WorldId, regionId: "neon", ...beside(NEON_SITE.x, NEON_SITE.z) },
+  ...SITES.map((s) => ({ id: `terminal:${s.id}`, name: AIRPORT_NAME[s.id] ?? `${s.id} Airport`, kind: "AIRPORT" as const, world: s.world, regionId: s.id, ...beside(s.x, s.z) })),
+  ...SITES.flatMap((s) => { const at = shore(s.x, s.z, s.world); return at ? [{ id: `seaport:${s.id}`, name: SEAPORT_NAME[s.id] ?? `${s.id} Port`, kind: "SEAPORT" as const, world: s.world, regionId: s.id, ...at }] : []; }),
+];
+export const AIRPORTS = (): readonly Terminal[] => TERMINALS.filter((t) => t.kind === "AIRPORT");
+export const SEAPORTS = (): readonly Terminal[] => TERMINALS.filter((t) => t.kind === "SEAPORT");
+/** the sea lanes: ferries run between these ports (neighbouring coasts, the Nexus–Neon gulf crossing, and Aetheria to every
+ * coast as the hub). Ids are seaport region ids. */
+export const FERRY_ROUTES: readonly (readonly [string, string])[] = [
+  ["nexus", "neon"], ["nexus", "veridan"], ["nexus", "frostspire"], ["nexus", "swamps"], ["neon", "ember"], ["neon", "wastelands"],
+  ["veridan", "swamps"], ["swamps", "solara"], ["solara", "wastelands"], ["wastelands", "ember"], ["ember", "frostspire"],
 ];
 export const TERMINAL_RADIUS = 4;
 export const terminalAt = (x: number, z: number): Terminal | null => TERMINALS.find((t) => Math.hypot(x - t.x, z - t.z) < TERMINAL_RADIUS) ?? null;
@@ -77,16 +125,20 @@ export const ELEVATOR_RIDE_S = 6;
 
 /* ---------------- flights ---------------- */
 
-export const visitedKey = (w: WorldId) => `planet:visited:${w}`;
-export const hasVisited = (p: Pick<PlayerProgression, "earnedRewards">, w: WorldId) => p.earnedRewards.includes(visitedKey(w));
+export const visitedKey = (w: WorldId | ContinentId) => `planet:visited:${w}`;
+export const hasVisited = (p: Pick<PlayerProgression, "earnedRewards">, w: WorldId | ContinentId) => p.earnedRewards.includes(visitedKey(w));
 /** the start continent counts as visited from the first step */
 export const START_WORLD: ContinentId = "veyloria";
 
 export type FlightOption = { terminal: Terminal; continent: string; open: boolean; reason: string | null; visited: boolean };
-/** every other terminal, grouped by continent; flights are open to every CORE continent (tickets are free for now), the
- * terminal you are standing at is left out, and Thalassia is never a flight (elevator or submarine only) */
+/** departures from a terminal. From an airport: every other airport, grouped by continent (open to every CORE continent;
+ * tickets are free for now). From a seaport: the ports its sea lanes reach. The terminal you stand at is left out; Thalassia
+ * is never a flight or a ferry (elevator or submarine only). */
 export function flightsFrom(from: Terminal, p: Pick<PlayerProgression, "earnedRewards">): FlightOption[] {
-  return TERMINALS.filter((t) => t.id !== from.id).map((t) => {
+  const reach = from.kind === "SEAPORT"
+    ? SEAPORTS().filter((t) => FERRY_ROUTES.some(([a, b]) => (a === from.regionId && b === t.regionId) || (b === from.regionId && a === t.regionId)))
+    : AIRPORTS().filter((t) => t.id !== from.id);
+  return reach.map((t) => {
     const c = CONTINENTS.find((x) => x.id === t.world);
     const open = !!c && c.tier === "CORE";
     return { terminal: t, continent: worldName(t.world), open, reason: open ? null : "No scheduled service", visited: t.world === START_WORLD || hasVisited(p, t.world) };
@@ -97,6 +149,6 @@ export function flightsFrom(from: Terminal, p: Pick<PlayerProgression, "earnedRe
 export function newlyVisited(p: Pick<PlayerProgression, "earnedRewards">, w: WorldId): WorldId | null {
   return hasVisited(p, w) ? null : w;
 }
-export function recordVisit<P extends Pick<PlayerProgression, "earnedRewards">>(p: P, w: WorldId): P {
+export function recordVisit<P extends Pick<PlayerProgression, "earnedRewards">>(p: P, w: WorldId | ContinentId): P {
   return hasVisited(p, w) ? p : { ...p, earnedRewards: [...p.earnedRewards, visitedKey(w)] };
 }

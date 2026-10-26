@@ -135,7 +135,7 @@ describe("rewards", () => {
     const next = claimHollowStarClear(first, "STANDARD", [], DAY + WEEK);
     expect(next.dungeonClears[HOLLOW_STAR_ID]).toBe(2);
     expect(next.earnedRewards.filter((k) => k === STARBREAKER_KEY).length).toBe(1);
-    expect(next.inventory.filter((g) => !g.id.startsWith("hs-")).length).toBe(first.inventory.filter((g) => !g.id.startsWith("hs-")).length); // no second first-clear weapon (raid pieces are encounter drops)
+    expect(next.inventory.filter((g) => !g.id.startsWith("hs-") && !g.setId).length).toBe(first.inventory.filter((g) => !g.id.startsWith("hs-") && !g.setId).length); // no second first-clear weapon (raid pieces are encounter drops)
     expect(next.fractureShards - first.fractureShards).toBeLessThan(first.fractureShards - DEFAULT_PROGRESSION.fractureShards);
   });
   test("locked out for the week: the same day, or any day before Monday, pays nothing more", () => {
