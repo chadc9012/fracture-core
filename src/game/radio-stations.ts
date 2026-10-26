@@ -6,7 +6,7 @@ export const RADIO_STATIONS = {
   house: { name: "Neon Frequency", genre: "EDM / House", bpm: 126, bass: [65.4, 65.4, 77.8, 58.3], notes: [261.6, 311.1, 392, 233.1], wave: "square" as OscillatorType },
   reggae: { name: "Island Relay", genre: "Dancehall / Reggae", bpm: 100, bass: [49, 65.4, 58.3, 43.7], notes: [196, 261.6, 233.1, 174.6], wave: "triangle" as OscillatorType },
   oldschool: { name: "Golden Era 94", genre: "Old-school hip-hop", bpm: 94, bass: [55, 49, 65.4, 55], notes: [220, 196, 261.6, 220], wave: "triangle" as OscillatorType },
-  instrumental: { name: "Instrumental Dimensions", genre: "Instrumental beats", bpm: 88, bass: [65.4, 58.3, 49, 55], notes: [261.6, 233.1, 196, 220], wave: "sine" as OscillatorType },
+  instrumental: { name: "Parallel 88", genre: "Instrumental beats", bpm: 88, bass: [65.4, 58.3, 49, 55], notes: [261.6, 233.1, 196, 220], wave: "sine" as OscillatorType },
   comedy: { name: "Fracture FM: Off the Rails", genre: "Comedy talk radio", bpm: 96, bass: [55, 55, 55, 55], notes: [220, 220, 220, 220], wave: "triangle" as OscillatorType },
 };
 export type StationId = keyof typeof RADIO_STATIONS;
@@ -16,7 +16,7 @@ export function isStation(id: string): id is StationId { return Object.hasOwn(RA
 export function getMusicSource(): MusicSource { try { const id = localStorage.getItem(RADIO_KEY) ?? "playlist"; return isStation(id) ? id : "playlist"; } catch { return "playlist"; } }
 export function setMusicSource(source: MusicSource) { try { localStorage.setItem(RADIO_KEY, source); } catch { /* device storage unavailable */ } window.dispatchEvent(new Event("wf-playlist-changed")); }
 /** Recorded rotation per station (stages 42-49 from the owner): Block Signal rotates four Kinggg Dream songs, Keep Moving opens Neon
- * Frequency, Neon Frequency / Golden Era 94 / Instrumental Dimensions add the stage 49 night instrumentals, and Fracture FM airs
+ * Frequency, Neon Frequency / Golden Era 94 / Parallel 88 add the stage 49 night instrumentals, and Fracture FM airs
  * only the episodes that passed the spoiler review (docs/radio/SPOILER_REVIEW.md): 03 and the stage 49 caller shows (06-08).
  * Tuning in opens with the station's short ID (STATION_IDS, stage 47).
  * Broadcasts are linear: every program plays through, no skip or shuffle. After every AD_EVERY programs one original fictional
@@ -56,8 +56,8 @@ export const STATION_TRACKS: Record<StationId, StationTrack[]> = {
     { title: "Night Shift", artist: "Golden Era 94", path: "/audio/radio/golden-era-night-shift.ogg" },
   ],
   instrumental: [
-    { title: "Instrumental", artist: "Instrumental Dimensions", path: "/audio/radio/instrumental-dimensions.ogg" },
-    { title: "Night Drive", artist: "Instrumental Dimensions", path: "/audio/radio/instrumental-night-drive.ogg" },
+    { title: "Parallel Streets", artist: "Vektor Lane", path: "/audio/radio/instrumental-dimensions.ogg" },
+    { title: "Night Drive", artist: "Vektor Lane", path: "/audio/radio/instrumental-night-drive.ogg" },
   ],
   comedy: [
     { title: "Off the Rails · Episode 3: Wasteland Mechanics", artist: "Fracture FM", path: "/audio/radio/fracture-fm-episode-03.ogg" },
@@ -84,7 +84,7 @@ export const STATION_IDS: Record<StationId, StationTrack> = {
   house: { title: "Station ID", artist: "Neon Frequency", path: "/audio/radio/ids/neon-frequency-id.ogg" },
   reggae: { title: "Station ID", artist: "Island Relay", path: "/audio/radio/ids/island-relay-id.ogg" },
   oldschool: { title: "Station ID", artist: "Golden Era 94", path: "/audio/radio/ids/golden-era-id.ogg" },
-  instrumental: { title: "Station ID", artist: "Instrumental Dimensions", path: "/audio/radio/ids/instrumental-dimensions-id.ogg" },
+  instrumental: { title: "Station ID", artist: "Parallel 88", path: "/audio/radio/ids/instrumental-dimensions-id.ogg" },
   comedy: { title: "Station ID", artist: "Fracture FM: Off the Rails", path: "/audio/radio/ids/off-the-rails-id.ogg" },
 };
 export const RADIO_ADS: StationTrack[] = [
