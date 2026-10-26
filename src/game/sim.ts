@@ -69,7 +69,7 @@ import { encounterHpFloor, endEncounter, onDecoyShattered, resetEncounters, pinS
 import { rollWeaponLoot } from "./weapon-loot";
 import { isStaggeredNow, reactTo, hitPart } from "./enemy-reactions";
 import { enemyPower, hitMultiplier, powerScale } from "./weapon-meta";
-import type { WeaponId } from "./weapons";
+import type { FrameId } from "./weapon-classes";
 import type { ClassId } from "./loadout";
 import { PARTICIPATION_HITS, SCENARIO_LOOT, rollScenario, type ScenarioClaim } from "./scenario-loot";
 import { attunedElement, gimmickMultiplier, type DamageElement } from "./scenario-gimmicks";
@@ -258,7 +258,7 @@ export type Bullet = {
   /** gore presentation only: a shotgun pellet tears, a single round punches */
   cause?: GoreCause | undefined;
   /** weapon-meta.ts: the on-foot gun that fired it (range band, precision, class affinity) and where it left the barrel; unset for vehicle guns */
-  weapon?: WeaponId | undefined;
+  weapon?: FrameId | undefined;
   ox?: number | undefined;
   oz?: number | undefined;
 };
@@ -979,7 +979,7 @@ export function fireBullet(
   element?: DamageElement,
   cause?: GoreCause,
   /** vehicle guns (vehicle-weapons.ts): muzzle velocity and the shooter's own velocity, which the round keeps */
-  shot?: { speed?: number; inherit?: { vx: number; vy: number; vz: number }; heat?: "VEHICLE" | "FOOT"; weapon?: WeaponId },
+  shot?: { speed?: number; inherit?: { vx: number; vy: number; vz: number }; heat?: "VEHICLE" | "FOOT"; weapon?: FrameId },
 ) {
   if (sim.overheated) return false;
   const b = sim.bullets.find((v) => !v.alive);

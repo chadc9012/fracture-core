@@ -4,6 +4,7 @@ import {
 } from "./weapon-meta";
 import { STARTER_GEAR } from "./inventory";
 import { WEAPONS, type WeaponId } from "./weapons";
+import { frameDef } from "./weapon-classes";
 import { REGIONS } from "./world";
 
 const GUNS: WeaponId[] = ["SHOTGUN", "AUTO", "PULSE", "SIDEARM", "HEAVY"];
@@ -99,7 +100,7 @@ describe("class affinity (Destiny classes)", () => {
     for (const [cls, ids] of Object.entries(AFFINITY)) {
       expect(ids.length).toBeGreaterThanOrEqual(2);
       for (const id of ids) {
-        expect(WEAPONS[id], id).toBeDefined();
+        expect(frameDef(id), id).toBeDefined();
         expect(hitMultiplier(id, { distance: 5, precision: false, cls: cls as never })).toBeGreaterThan(hitMultiplier(id, { distance: 5, precision: false, cls: null }));
         if (WEAPON_META[id].precision > 1) expect(precisionFor(id, cls as never)).toBeGreaterThan(precisionFor(id, null));
       }

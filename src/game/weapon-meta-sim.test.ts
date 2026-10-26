@@ -5,7 +5,7 @@ import { walkHeight } from "./terrain";
 /** sim.ts: the drawn body grows slower than the sim scale */
 const enemyBodyScaleOf = (simScale: number) => 1 + (simScale - 1) * 0.35;
 import { AFFINITY_DAMAGE, enemyPower, precisionFor, powerScale, rangeFalloff } from "./weapon-meta";
-import type { WeaponId } from "./weapons";
+import type { FrameId } from "./weapon-classes";
 
 /** flat open ground outside every region (same spot as combat-playtest-onfoot.test.ts) */
 const PX = -240, PZ = -230;
@@ -24,26 +24,34 @@ function target(sim: WorldSim, dist: number, o: Partial<Machine> = {}): Machine 
   return m;
 }
 /** one round from the player straight down +z at height `aimY` above the target's feet; the damage it did */
-function shoot(dist: number, aimFrac: number, weapon: WeaponId | undefined, setup: (sim: WorldSim, m: Machine) => void = () => {}): { dealt: number; crit: boolean } {
+function shoot(dist: number, aimFrac: number, weapon: FrameId | undefined, setup: (sim: WorldSim, m: Machine) => void = () => {}): { dealt: number; crit: boolean } {
   const sim = arena(), m = target(sim, dist);
   setup(sim, m);
   const feet = walkHeight(m.x, m.z), y = feet + aimFrac * 1.85 * enemyBodyScaleOf(m.scale);
   const hp0 = m.hp;
   fireBullet(sim, PX, y, PZ, 0, false, 0, 1, 0, 1, undefined, "BULLET", weapon ? { weapon } : undefined);
-  for (let f = 0; f < 90 && m.hp === hp0; f++) stepSim(sim, { px: PX, pz: PZ, dt: 1 / 60, night: 0, inVehicle: false, yaw: 0 });
+  // a stationary target: an alert trooper strafes ~3 m during a 100 m flight, and these tests measure damage, not leading
+  const hold = { x: m.x, z: m.z };
+  for (let f = 0; f < 120 && m.hp === hp0; f++) { m.x = hold.x; m.z = hold.z; m.kx = 0; m.kz = 0; stepSim(sim, { px: PX, pz: PZ, dt: 1 / 60, night: 0, inVehicle: false, yaw: 0 }); }
   return { dealt: hp0 - m.hp, crit: sim.lastCrit > 0 };
 }
 const HEAD = 0.9, CHEST = 0.62;
 
 describe("the sim applies the weapon classes", () => {
   test("a head-band hit lands the class's precision multiplier and flags a crit; a chest hit does not", () => {
-    for (const w of ["SIDEARM", "AUTO", "HEAVY"] as WeaponId[]) {
+    for (const w of ["SIDEARM", "AUTO", "HEAVY"] as FrameId[]) {
       const head = shoot(10, HEAD, w), chest = shoot(10, CHEST, w);
       expect(chest.dealt, w).toBeGreaterThan(0);
       expect(head.crit, w).toBe(true);
       expect(chest.crit, w).toBe(false);
       expect(head.dealt / chest.dealt, w).toBeCloseTo(precisionFor(w), 3);
     }
+  });
+  test("a gear class's round (a sniper in the Auto Rifle's slot) uses its own precision and reach", () => {
+    const head = shoot(150, HEAD, "SNIPER"), chest = shoot(150, CHEST, "SNIPER"), near = shoot(10, CHEST, "SNIPER");
+    expect(head.dealt / chest.dealt).toBeCloseTo(precisionFor("SNIPER"), 3);
+    expect(chest.dealt).toBeCloseTo(near.dealt, 3); // no falloff at 150 m
+    expect(shoot(30, CHEST, "SMG").dealt).toBeLessThan(shoot(10, CHEST, "SMG").dealt * 0.8); // an SMG is done by 30 m
   });
   test("bosses take no headshot bonus (they have weak points instead)", () => {
     const head = shoot(10, HEAD, "SIDEARM", (_s, m) => { m.boss = true; }), chest = shoot(10, CHEST, "SIDEARM", (_s, m) => { m.boss = true; });
