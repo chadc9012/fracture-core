@@ -58,6 +58,12 @@ Driving has no touch controls yet.
 Until then the phone build is the web game (`mobile/`, the `android-latest` release), which is the whole game today.
 
 ## What runs
+- **Nemeses:** an ordinary trooper or elite that lands your killing blow becomes a nemesis (nemesis.ts): a name, a rank,
+  a strength (Iron Hide, Brutal, Survivor, Vengeful) and a weakness (double damage from one element). After a minute in
+  its region it ambushes you (then every four minutes), bigger and harder-hitting with each rank; dying to it ranks it
+  up. Killing it pays alloy, data shards and fracture shards (catalysts and a Fracture Core at high ranks) once per
+  life; a Survivor crawls away once. `Nemeses` lists them, `HuntNemesis <id>` calls one to you. Slain nemeses unlock the
+  Devour and Reap runes and the higher relic tiers.
 - **Clock, weather and hazards:** the world clock starts at 08:38 and runs at the web build's pace (a day in about two
   minutes; `Clock <hour> [pace]` sets it). It turns the sun, opens and shuts the shops and wakes the night-only
   secrets. Every region rolls its own weather fronts and seasons (weather-cycle.ts, environment.ts), shown under the
@@ -244,6 +250,7 @@ cmake -S . -B build -G Ninja && cmake --build build && ctest --test-dir build --
 | TacticsCoreTest | enemy-intelligence.ts, ability-network.ts buildSynergy, enemy-tactics.ts, enemy-evasion.ts, enemy-cover.ts | 2,000 flank searches, 2,500 cover searches, 200 grenade flights, 3,000 round threats, 21,755 checks |
 | BountyCoreTest | activity-payouts.ts payoutFor / payInto / tagLegacyPayouts / payFlat (raids reset weekly) | 400 ledgers, 8,939 payouts, 17,866 checks |
 | EnvironmentCoreTest | world.ts clock, weather-cycle.ts, environment.ts | 3,000 clock times, 12,000 weather samples, 48,000 hazard steps, 111,000 checks |
+| NemesisCoreTest | nemesis.ts | 16,938 events, 36,051 checks |
 | GodforgeCoreTest | godforge.ts, secrets.ts, foundries.ts foundryOf, sim.ts fireBullet / fireLauncher heat | 1,590 foundry names, 3,000 trigger pulls, 10,516 forge actions, 1,084 queries, 37,843 checks |
 | WastelandCoreTest | wasteland-activities.ts, wasteland-runtime.ts | 15,600 machine steps, 2,400 resolves, 24,000 runtime frames, 132,024 checks |
 | MoveCoreTest | movement.ts, parkour.ts | 300 tracks, 18,000 frames, 36,067 checks |
@@ -253,7 +260,7 @@ The golden files (`Plugins/WorldFractureCore/Tests/<name>_golden.txt`) are **gen
 which broke the Lovable preview build. Record all of them from the repo root before configuring the tests (and again after changing
 the web build's rules):
 
-    node unreal/tools/gen-goldens.mjs            # all twenty-five
+    node unreal/tools/gen-goldens.mjs            # all twenty-six
     node unreal/tools/gen-goldens.mjs race shop  # just these
 
 `export-datatables` (the DataTables, which are committed) still runs on its own:
@@ -265,7 +272,7 @@ The encounter, Dragonite-cast, ability, tactics and Wastelands recorders route t
 ## Not ported yet
 Boss models and attack effects (zones are debug circles, decoys are stand-ins), mid-mission saves, ability mastery XP,
 region kinds for abilities (the map counts as a war zone),
-troopers running out of orbital strike circles (no strike beacons yet), the rune bursts (Storm, Ember, Frost, Bloom and Sun need weapon-evolution.ts, which is not ported; their element still applies), nemeses (so the nemesis-gated runes and relic tiers wait), rain, snow and fog visuals (the weather is simulated and shown on the HUD; the regional hazard zones of hazards.ts are separate and not ported), the Neon City pledge, the featured-activity rotation and
+troopers running out of orbital strike circles (no strike beacons yet), the rune bursts (Storm, Ember, Frost, Bloom and Sun need weapon-evolution.ts, which is not ported; their element still applies), rain, snow and fog visuals (the weather is simulated and shown on the HUD; the regional hazard zones of hazards.ts are separate and not ported), the Neon City pledge, the featured-activity rotation and
 activity shader drops,
 diving (the thalassia-dive survive timer), the Neon City police response itself (the web build has only the heat meter and its labels; chase-ai.ts pursuit helpers are unused there), the Operations Hub preview marketplace (its wallet is not saved in the web build either), home interiors, cloud save merge, the rest of the world (terrain, the other regions, Neon City, Thalassia; Nexus City is in). Their data is already in
 `DataTables/`.

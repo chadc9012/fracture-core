@@ -454,6 +454,23 @@ FString UWFProgressionSubsystem::ApplyForge(const std::function<wf::godforge::FF
 	return UTF8_TO_TCHAR(R.Message.c_str());
 }
 
+FString UWFProgressionSubsystem::ApplyPlayerDeath(const wf::nemesis::FKiller& Killer, const FString& RegionName)
+{
+	const wf::nemesis::FApplied R = wf::nemesis::ApplyPlayerDeath(State, Killer, ToStd(RegionName), UtcNowMs());
+	if (R.Line.empty()) return FString();
+	State = R.Progression;
+	NotifyChanged();
+	return UTF8_TO_TCHAR(R.Line.c_str());
+}
+
+FString UWFProgressionSubsystem::ApplyNemesisKill(const FString& NemesisId)
+{
+	const wf::nemesis::FApplied R = wf::nemesis::ApplyNemesisKill(State, ToStd(NemesisId), UtcNowMs());
+	State = R.Progression;
+	NotifyChanged();
+	return UTF8_TO_TCHAR(R.Line.c_str());
+}
+
 bool UWFProgressionSubsystem::EquipItem(const FString& ItemId)
 {
 	const std::string Id = ToStd(ItemId);

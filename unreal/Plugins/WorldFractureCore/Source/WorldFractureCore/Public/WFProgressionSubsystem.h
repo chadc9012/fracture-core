@@ -8,6 +8,7 @@
 #include "Core/WFVehicleCore.h"
 #include "Core/WFWastelandCore.h"
 #include "Core/WFGodforgeCore.h"
+#include "Core/WFNemesisCore.h"
 
 #include <functional>
 #include "Subsystems/GameInstanceSubsystem.h"
@@ -118,6 +119,9 @@ public:
 	FString ApplyForge(const std::function<wf::godforge::FForgeResult(const wf::FProgression&)>& Action, bool& bOk);
 	/** armor-sets.ts equipPiece: the item goes into its own slot */
 	bool EquipItem(const FString& ItemId);
+	/** nemesis.ts applyPlayerDeath / applyNemesisKill: returns the line to announce ("" = nothing) */
+	FString ApplyPlayerDeath(const wf::nemesis::FKiller& Killer, const FString& RegionName);
+	FString ApplyNemesisKill(const FString& NemesisId);
 	/** the weapon item worn in the gear slot this weapon fires from (armor GearSlotForWeapon), or null */
 	const wf::FGearItem* GetEquippedWeaponItem(const FString& WeaponId, const FString& Kind, bool bInVehicle) const;
 	/** Sub-Terra Legion standing (Outsider ... Iron Vanguard) and its trust points */

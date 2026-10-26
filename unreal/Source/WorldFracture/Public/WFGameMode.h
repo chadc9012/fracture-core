@@ -7,6 +7,7 @@
 #include "Core/WFWastelandCore.h"
 #include "Core/WFGodforgeCore.h"
 #include "Core/WFEnvironmentCore.h"
+#include "Core/WFNemesisCore.h"
 #include "Core/WFVehicleWeaponsCore.h"
 #include "GameFramework/GameModeBase.h"
 #include "WFGameMode.generated.h"
@@ -158,6 +159,18 @@ public:
 	const FString& GetHazardWarning() const { return HazardWarning; }
 	bool IsSheltered() const;
 
+	// ---- nemeses (ported nemesis.ts, living-runtime.ts ambushes) ----
+	/** the enemy that landed your killing blow: it is promoted to a nemesis or ranks up */
+	void OnPlayerKilledBy(const wf::nemesis::FKiller& Killer);
+	/** a nemesis machine died (killed = by the player): it is slain, or a Survivor crawls away */
+	void OnNemesisDown(const FString& NemesisId, bool bKilled);
+	/** Prints your nemeses: id, name, rank, traits, region, status. */
+	UFUNCTION(Exec) void Nemeses();
+	/** HuntNemesis <id>: it comes for you in its region after 4 s (the web build's map drop to its activity) */
+	UFUNCTION(Exec) void HuntNemesis(const FString& NemesisId);
+	/** HUD: the nemesis on the field (name, rank, traits, weak element, hp), if one is */
+	bool GetNemesisHud(FString& OutLine) const;
+
 	// ---- weapon heat (sim.ts weaponHeat): one gauge for the Operator's guns and every vehicle gun ----
 	wf::vweapons::FHeat& GetWeaponHeat() { return WeaponHeat; }
 	const wf::vweapons::FHeat& GetWeaponHeat() const { return WeaponHeat; }
@@ -195,6 +208,7 @@ private:
 	void TickWasteland(float DeltaSeconds);
 	void TickGodforge(float DeltaSeconds);
 	void TickEnvironment(float DeltaSeconds);
+	void TickNemesis(float DeltaSeconds);
 	/** the forge's console commands answer only at Vael (godforge.ts vaelNear), as the web build's forge window opens only there */
 	bool AtVael();
 	void ForgeAction(const std::function<wf::godforge::FForgeResult(const wf::FProgression&)>& Action);
@@ -243,6 +257,9 @@ private:
 	FVector2D WasteAnchorCm = FVector2D::ZeroVector; // where the Wastelands centre sits in this level
 	TArray<FWFTroop> WasteRoster;
 	wf::vweapons::FHeat WeaponHeat;
+	double NemInRegion = 0, NemLastAmbush = -1e9, NemClock = 0;
+	FString SummonedNemesis, NemSummonDone;
+	TMap<FString, FString> RegionNames; // region id -> display name (the nemesis grudge names where it beat you)
 	double DayClock = wf::env::ClockStart; // 08:38, as the web build starts
 	double ClockSpeed = 1;
 	wf::env::FEnvironment Env;

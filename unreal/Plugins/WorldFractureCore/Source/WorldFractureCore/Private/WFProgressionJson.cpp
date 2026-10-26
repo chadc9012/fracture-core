@@ -2,6 +2,7 @@
 
 #include "Core/WFAbilityCore.h"
 #include "Core/WFBountyCore.h"
+#include "Core/WFNemesisCore.h"
 
 #include <algorithm>
 #include <cmath>
@@ -180,13 +181,24 @@ namespace WFProgressionJson
 			St->SetArrayField(TEXT("collectibles"), StringArray(P.Story.Collectibles));
 			O->SetObjectField(TEXT("story"), St);
 			O->SetObjectField(TEXT("records"), NumberObject(P.Records));
-			// nemesis.ts: only id and status are ported (SLAIN unlocks runes and relic tiers)
+			// nemesis.ts Nemesis
 			TArray<TSharedPtr<FJsonValue>> Nem;
 			for (const wf::FProgression::FNemesis& N : P.Nemeses)
 			{
 				TSharedRef<FJsonObject> X = MakeShared<FJsonObject>();
 				X->SetStringField(TEXT("id"), ToF(N.Id));
 				X->SetStringField(TEXT("status"), ToF(N.Status));
+				X->SetStringField(TEXT("name"), ToF(N.Name));
+				X->SetStringField(TEXT("epithet"), ToF(N.Epithet));
+				X->SetStringField(TEXT("profile"), ToF(N.Profile));
+				X->SetStringField(TEXT("regionId"), ToF(N.RegionId));
+				X->SetNumberField(TEXT("rank"), N.Rank);
+				X->SetArrayField(TEXT("traits"), StringArray(N.Traits));
+				X->SetNumberField(TEXT("kills"), N.Kills);
+				X->SetNumberField(TEXT("returns"), N.Returns);
+				X->SetNumberField(TEXT("createdAt"), N.CreatedAt);
+				X->SetNumberField(TEXT("lastSeenAt"), N.LastSeenAt);
+				X->SetStringField(TEXT("grudge"), ToF(N.Grudge));
 				Nem.Add(MakeShared<FJsonValueObject>(X));
 			}
 			O->SetArrayField(TEXT("nemeses"), Nem);
@@ -407,7 +419,24 @@ namespace WFProgressionJson
 			if (O->TryGetArrayField(TEXT("nemeses"), Nem) && Nem)
 				for (const TSharedPtr<FJsonValue>& V : *Nem)
 					if (const TSharedPtr<FJsonObject>* X = nullptr; V.IsValid() && V->TryGetObject(X) && X && X->IsValid())
-						P.Nemeses.push_back({ToStd(WFData::Str(*X, TEXT("id"))), ToStd(WFData::Str(*X, TEXT("status")))});
+					{
+						// nemesis.ts normalizeNemeses: rank 1-5, known traits, ALIVE unless SLAIN
+						wf::FProgression::FNemesis N;
+						N.Id = ToStd(WFData::Str(*X, TEXT("id")));
+						N.Name = ToStd(WFData::Str(*X, TEXT("name")));
+						N.RegionId = ToStd(WFData::Str(*X, TEXT("regionId")));
+						if (N.Id.empty() || N.RegionId.empty()) continue;
+						N.Status = WFData::Str(*X, TEXT("status")) == TEXT("SLAIN") ? "SLAIN" : "ALIVE";
+						N.Epithet = ToStd(WFData::Str(*X, TEXT("epithet")));
+						N.Profile = ToStd(WFData::Str(*X, TEXT("profile")));
+						if (N.Profile.empty()) N.Profile = "Hostile";
+						N.Rank = std::max(1.0, std::min(5.0, WFData::Num(*X, TEXT("rank"), 1)));
+						for (const std::string& T : ReadStrings(*X, TEXT("traits"))) if (wf::nemesis::TraitById(T)) N.Traits.push_back(T);
+						N.Kills = std::max(0.0, WFData::Num(*X, TEXT("kills"))); N.Returns = std::max(0.0, WFData::Num(*X, TEXT("returns")));
+						N.CreatedAt = WFData::Num(*X, TEXT("createdAt")); N.LastSeenAt = WFData::Num(*X, TEXT("lastSeenAt"));
+						N.Grudge = ToStd(WFData::Str(*X, TEXT("grudge")));
+						P.Nemeses.push_back(N);
+					}
 		}
 		{
 			// living-world.ts normalizeLiving: non-negative counters for the four factions, district and contract records, intel

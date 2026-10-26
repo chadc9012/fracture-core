@@ -1083,7 +1083,11 @@ void AWFCharacter::ApplyHit(double Damage, const FString& Source)
 	if (Health <= 0)
 	{
 		if (UWFProgressionSubsystem* Progression = GetGameInstance()->GetSubsystem<UWFProgressionSubsystem>()) Progression->RecordPlayerDeath();
-		if (AWFGameMode* Mode = GetWorld()->GetAuthGameMode<AWFGameMode>()) Mode->OnPlayerDied(); // encounter bosses reset
+		AWFGameMode* Mode = GetWorld()->GetAuthGameMode<AWFGameMode>();
+		// sim.ts hurtPlayer: a death whose blow came from the last enemy to hit you is reported (nemesis.ts promotes it)
+		if (Mode && LastHitBy && WFData::ToF(LastHitBy->Profile) == Source) Mode->OnPlayerKilledBy(*LastHitBy);
+		LastHitBy.reset();
+		if (Mode) Mode->OnPlayerDied(); // encounter bosses reset
 		CancelAbilities(); // ability-effects.ts cancelAbilities: nothing in flight survives into the next life
 		if (bInVehicle) if (AWFVehicle* Car = Cast<AWFVehicle>(GetAttachParentActor())) Car->Dismount(0); // died at the wheel: out first
 		Respawn();

@@ -98,6 +98,13 @@ void AWFHUD::DrawHUD()
 		}
 	}
 
+	// the nemesis on the field (living-runtime.ts hud.nemesis)
+	if (const AWFGameMode* NemMode = GetWorld()->GetAuthGameMode<AWFGameMode>())
+	{
+		FString NemLine;
+		if (NemMode->GetNemesisHud(NemLine)) Line(NemLine, W * 0.5f - 230.f, 96.f, FLinearColor(1.f, 0.35f, 0.3f), 0.95f);
+	}
+
 	// Wastelands activity panel (wasteland-runtime.ts WasteHud): title, lines and a progress bar
 	if (const AWFGameMode* Mode = GetWorld()->GetAuthGameMode<AWFGameMode>())
 		if (const std::optional<wf::wasteland::FHud>& Hud = Mode->GetWastelandHud())

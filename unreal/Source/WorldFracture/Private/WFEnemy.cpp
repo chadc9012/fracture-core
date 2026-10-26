@@ -395,7 +395,9 @@ void AWFEnemy::TryAttack(AWFCharacter* Operator, AWFVehicle* Car, double Distanc
 	// a hit on a driving Operator also wears the vehicle (Scene.tsx: impactVehicle by the hp lost + 2)
 	auto Hurt = [Operator, Car, this](double Damage) {
 		const double Before = Operator->GetHealth();
-		Operator->ApplyHit(Damage, Profile);
+		// sim.ts: the hit records who landed it (a killing blow can promote it to a nemesis), a nemesis hits harder
+		Operator->SetLastHitBy({WFData::ToStd(Profile), WFData::ToStd(Zone), bElite, bBoss, WFData::ToStd(NemesisId)});
+		Operator->ApplyHit(Damage * NemesisDamage, Profile);
 		if (Car && Operator->GetHealth() < Before) Car->TakeEnemyFire(Before - Operator->GetHealth());
 	};
 	if (Distance <= MeleeRange && MeleeCooldown <= 0)
@@ -480,6 +482,7 @@ double AWFEnemy::TakeHit(double Damage, AActor* DamageInstigator, const FString&
 	if (IsDead()) return 0;
 	const double Now = GetWorld()->GetTimeSeconds();
 	if (VulnUntil > Now) Damage *= VulnMult; // sim.ts applyMachineDamageMods: Weaken / Marked / Roar vulnerability
+	if (!NemesisWeak.IsEmpty() && Element == NemesisWeak) Damage *= 2; // nemesis.ts: a scarred nemesis takes double from its weak element
 	const AWFGameMode* Mode = GetWorld()->GetAuthGameMode<AWFGameMode>();
 	if (bBoss && Mode)
 	{
@@ -560,6 +563,7 @@ void AWFEnemy::Die()
 		Info.FightDeaths = Progression->GetPlayerDeaths() - DeathsAtSummon;
 	}
 	Progression->ReportEnemyDefeated(Info);
+	if (!NemesisId.IsEmpty() && Mode) Mode->OnNemesisDown(NemesisId, !Info.bKilledByWorld); // sim.ts nemesisEvents
 	if (Info.bKilledByWorld) return;
 	// the Operator's kill hooks (runes, relic mastery, nanites) and the Furnace Guardian's Heart
 	APawn* Pawn = UGameplayStatics::GetPlayerPawn(this, 0);

@@ -102,6 +102,12 @@ public:
 	void SetKind(const FString& InKind) { Kind = InKind; }
 	/** sim.ts machine.living: the activity that spawned it (vault:<run>, derby:<run>); empty for ambient troopers */
 	void SetActivityTag(const FString& InTag) { ActivityTag = InTag; }
+	/** nemesis.ts: this machine is a nemesis (sim.ts spawnNemesis): its weak element takes x2, its hits land harder */
+	void ConfigureNemesis(const FString& InId, const FString& InWeak, double InDamageMult) { NemesisId = InId; NemesisWeak = InWeak; NemesisDamage = InDamageMult; }
+	const FString& GetNemesisId() const { return NemesisId; }
+	const FString& GetNemesisWeak() const { return NemesisWeak; }
+	const FString& GetProfile() const { return Profile; }
+	const FString& GetZone() const { return Zone; }
 	const FString& GetActivityTag() const { return ActivityTag; }
 	/** running a flank round a hidden player (enemy-tactics.ts: at most MAX_FLANKERS at once) */
 	bool IsFlanking() const { return bFlanking; }
@@ -114,6 +120,8 @@ protected:
 
 private:
 	FString ActivityTag;
+	FString NemesisId, NemesisWeak;
+	double NemesisDamage = 1;
 	void Die();
 	void TryAttack(AWFCharacter* Operator, AWFVehicle* Car, double Distance, float DeltaSeconds);
 	/** sim.ts: one machine's awareness, movement and fire for the frame */

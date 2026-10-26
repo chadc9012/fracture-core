@@ -169,8 +169,18 @@ namespace wf
 			std::vector<std::string> Collectibles;
 		};
 		FStory Story;
-		/** nemesis.ts: the nemeses that hunted you (only their status is read here: SLAIN ones unlock runes and relic tiers) */
-		struct FNemesis { std::string Id; std::string Status; };
+		/** nemesis.ts Nemesis: an enemy that killed you, promoted with a name, a rank (1-5), a strength and a weakness. SLAIN ones
+		 *  also unlock runes and relic tiers (godforge.ts). */
+		struct FNemesis
+		{
+			std::string Id;
+			std::string Status = "ALIVE"; // ALIVE | SLAIN
+			std::string Name, Epithet, Profile, RegionId;
+			double Rank = 1;
+			std::vector<std::string> Traits; // IRON_HIDE BRUTAL SURVIVOR VENGEFUL FIRE_SCARRED FROST_SCARRED ARC_SCARRED
+			double Kills = 0, Returns = 0, CreatedAt = 0, LastSeenAt = 0;
+			std::string Grudge;
+		};
 		std::vector<FNemesis> Nemeses;
 		/** best results per activity (records): the Rust Run time is lower-is-better, other scores higher-is-better */
 		std::map<std::string, double> Records;

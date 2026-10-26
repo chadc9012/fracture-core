@@ -62,7 +62,10 @@ void AWFGameMode::StartPlay()
 	TArray<TSharedPtr<FJsonObject>> RegionRows;
 	if (WFData::LoadRows(TEXT("Regions"), RegionRows, RegionsError))
 		for (const TSharedPtr<FJsonObject>& R : RegionRows)
+		{
+			RegionNames.Add(WFData::Str(R, TEXT("Id")), WFData::Str(R, TEXT("DisplayName")));
 			RegionCircles.Add(WFData::Str(R, TEXT("Id")), wf::godforge::FRegionCircle{WFData::Num(R, TEXT("X")), WFData::Num(R, TEXT("Z")), WFData::Num(R, TEXT("Radius"))});
+		}
 	if (const wf::godforge::FRegionCircle* Mine = RegionCircles.Find(RegionId)) RegionCircle = *Mine;
 	if (RegionRows.Num())
 		for (const TSharedPtr<FJsonObject>& R : RegionRows)
@@ -192,6 +195,7 @@ void AWFGameMode::Tick(float DeltaSeconds)
 	TickGrenades(DeltaSeconds);
 	TickWasteland(DeltaSeconds);
 	TickEnvironment(DeltaSeconds);
+	TickNemesis(DeltaSeconds);
 	TickGodforge(DeltaSeconds);
 	// sim.ts: weapon cooling; venting from an overheat is slower than a normal cooldown
 	if (wf::vweapons::CoolHeat(WeaponHeat, FMath::Min(static_cast<double>(DeltaSeconds), 0.25))) Toast(TEXT("Weapon cooled - ready"), FLinearColor(0.45f, 0.9f, 1.f));
@@ -1338,4 +1342,116 @@ void AWFGameMode::TickEnvironment(float DeltaSeconds)
 		for (AWFEnemy* E : Struck) if (IsValid(E) && !E->IsDead()) E->TakeHit(wf::env::StrikeMachineDamage, nullptr, TEXT("ARC"));
 		if (wf::js::Hypot(P.X - S.X, P.Y - S.Z) <= S.Radius) Player->ApplyHit(wf::env::StrikePlayerDamage, TEXT("Lightning strike"));
 	}
+}
+
+// --- nemeses -----------------------------------------------------------------------------------------------------------
+
+namespace
+{
+	const FLinearColor NmRed(1.f, 0.35f, 0.3f);
+}
+
+void AWFGameMode::OnPlayerKilledBy(const wf::nemesis::FKiller& Killer)
+{
+	UWFProgressionSubsystem* Prog = GetGameInstance()->GetSubsystem<UWFProgressionSubsystem>();
+	if (!Prog) return;
+	const FString* Name = RegionNames.Find(WFData::ToF(Killer.Zone));
+	const FString Line = Prog->ApplyPlayerDeath(Killer, Name ? *Name : FString(TEXT("the wastes")));
+	if (!Line.IsEmpty()) Toast(Line, NmRed);
+}
+
+void AWFGameMode::OnNemesisDown(const FString& NemesisId, bool bKilled)
+{
+	if (!bKilled) { Toast(TEXT("Your nemesis got away."), NmRed); return; }
+	UWFProgressionSubsystem* Prog = GetGameInstance()->GetSubsystem<UWFProgressionSubsystem>();
+	if (!Prog) return;
+	const FString Line = Prog->ApplyNemesisKill(NemesisId);
+	if (!Line.IsEmpty()) Toast(Line, FLinearColor(1.f, 0.82f, 0.35f));
+	SummonedNemesis.Reset();
+}
+
+void AWFGameMode::TickNemesis(float DeltaSeconds)
+{
+	const double Dt = FMath::Min(static_cast<double>(DeltaSeconds), 0.25);
+	NemClock += Dt;
+	NemInRegion += Dt; // this level is one region: the time in it only grows
+	APawn* Pawn = UGameplayStatics::GetPlayerPawn(this, 0);
+	UWFProgressionSubsystem* Prog = GetGameInstance()->GetSubsystem<UWFProgressionSubsystem>();
+	UWorld* World = GetWorld();
+	if (!Pawn || !Prog || !World) return;
+	const AWFCharacter* Player = Cast<AWFCharacter>(Pawn);
+	if (const AWFVehicle* Car = Cast<AWFVehicle>(Pawn)) Player = Car->GetDriver();
+	const bool bAlive = Player && Player->GetHealth() > 0;
+	// living-runtime.ts: never during a race, a boss fight, or with a nemesis already on the field
+	bool bNemesisOut = false;
+	for (TActorIterator<AWFEnemy> It(World); It; ++It) if (!It->IsDead() && !It->GetNemesisId().IsEmpty()) { bNemesisOut = true; break; }
+	const UWFRaceSubsystem* Racing = GetGameInstance()->GetSubsystem<UWFRaceSubsystem>();
+	const bool bBusy = (Racing && Racing->IsRacing()) || !EncounterBosses().IsEmpty() || bNemesisOut;
+	const std::string Summoned = !SummonedNemesis.IsEmpty() && SummonedNemesis != NemSummonDone ? WFData::ToStd(SummonedNemesis) : std::string();
+	const wf::nemesis::FNemesis* Due = bBusy || !bAlive ? nullptr : wf::nemesis::AmbushDue(Prog->Get().Nemeses, WFData::ToStd(RegionId), NemInRegion, NemClock - NemLastAmbush, Summoned);
+	if (!Due) return;
+	// sim.ts spawnNemesis: 24 m away, its rank's health (x challenge), size and hit strength; an elite of the region's troops
+	const double A = FMath::FRand() * UE_DOUBLE_PI * 2;
+	const FVector Around = Pawn->GetActorLocation() + FVector(FMath::Cos(A), FMath::Sin(A), 0) * 2400;
+	const wf::nemesis::FStats St = wf::nemesis::NemesisStats(*Due);
+	const FVector At(Around.X, Around.Y, GroundZ(Around.X, Around.Y, Pawn->GetActorLocation().Z) + 150);
+	const FTransform Xf(FRotator::ZeroRotator, At, FVector(St.Scale));
+	const wf::nemesis::FNemesis N = *Due; // the save can change under us once it spawns
+	if (AWFEnemy* Enemy = World->SpawnActorDeferred<AWFEnemy>(AWFEnemy::StaticClass(), Xf, nullptr, nullptr, ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn))
+	{
+		const FString Drop = Roster.IsEmpty() ? FString(TEXT("scrapMetal")) : Roster[0].Drop; // troopFor(regionId, 0)
+		Enemy->Configure(WFData::ToF(N.Name + " " + N.Epithet), WFData::ToF(N.RegionId), Drop, true, false, St.Hp * Prog->GetChallengeEnemyHealthScale());
+		if (const FString* Faction = FactionByRegion.Find(WFData::ToF(N.RegionId))) Enemy->SetKind(*Faction);
+		Enemy->ConfigureNemesis(WFData::ToF(N.Id), WFData::ToF(wf::nemesis::WeakElement(N)), St.Damage);
+		Enemy->SetSquadIndex(NextSquadIndex++);
+		Enemy->FinishSpawning(Xf);
+		NemLastAmbush = NemClock;
+		if (WFData::ToF(N.Id) == SummonedNemesis) NemSummonDone = SummonedNemesis;
+		Toast(FString::Printf(TEXT("%s %s: \"%s\""), UTF8_TO_TCHAR(N.Name.c_str()), UTF8_TO_TCHAR(N.Epithet.c_str()), UTF8_TO_TCHAR(N.Grudge.c_str())), NmRed);
+	}
+}
+
+bool AWFGameMode::GetNemesisHud(FString& OutLine) const
+{
+	const UWFProgressionSubsystem* Prog = GetGameInstance()->GetSubsystem<UWFProgressionSubsystem>();
+	if (!Prog) return false;
+	for (TActorIterator<AWFEnemy> It(GetWorld()); It; ++It)
+	{
+		if (It->IsDead() || It->GetNemesisId().IsEmpty()) continue;
+		const std::string Id = WFData::ToStd(It->GetNemesisId());
+		for (const wf::nemesis::FNemesis& N : Prog->Get().Nemeses)
+			if (N.Id == Id)
+			{
+				FString Traits;
+				for (const std::string& T : N.Traits) if (const wf::nemesis::FTrait* D = wf::nemesis::TraitById(T)) Traits += (Traits.IsEmpty() ? TEXT("") : TEXT(", ")) + WFData::ToF(D->Label);
+				OutLine = FString::Printf(TEXT("NEMESIS %s %s  rank %g  %s%s  hp %.1f"), UTF8_TO_TCHAR(N.Name.c_str()), UTF8_TO_TCHAR(N.Epithet.c_str()), N.Rank, *Traits,
+					It->GetNemesisWeak().IsEmpty() ? TEXT("") : *FString::Printf(TEXT("  weak to %s"), *It->GetNemesisWeak()), It->GetHealth());
+				return true;
+			}
+	}
+	return false;
+}
+
+void AWFGameMode::Nemeses()
+{
+	const UWFProgressionSubsystem* Prog = GetGameInstance()->GetSubsystem<UWFProgressionSubsystem>();
+	if (!Prog) return;
+	TArray<FString> Lines;
+	for (const wf::nemesis::FNemesis& N : Prog->Get().Nemeses)
+	{
+		FString Traits;
+		for (const std::string& T : N.Traits) if (const wf::nemesis::FTrait* D = wf::nemesis::TraitById(T)) Traits += (Traits.IsEmpty() ? TEXT("") : TEXT(", ")) + WFData::ToF(D->Label + " (" + D->Text + ")");
+		const FString* Region = RegionNames.Find(WFData::ToF(N.RegionId));
+		Lines.Add(FString::Printf(TEXT("%s  %s %s  rank %g  %s  %s  %s"), UTF8_TO_TCHAR(N.Id.c_str()), UTF8_TO_TCHAR(N.Name.c_str()), UTF8_TO_TCHAR(N.Epithet.c_str()), N.Rank, *Traits,
+			Region ? **Region : UTF8_TO_TCHAR(N.RegionId.c_str()), UTF8_TO_TCHAR(N.Status.c_str())));
+	}
+	if (Lines.IsEmpty()) Lines.Add(TEXT("No nemeses yet. An ordinary trooper or elite that kills you becomes one."));
+	for (const FString& L : Lines) { UE_LOG(LogTemp, Display, TEXT("%s"), *L); Toast(L, NmRed); }
+}
+
+void AWFGameMode::HuntNemesis(const FString& NemesisId)
+{
+	SummonedNemesis = NemesisId;
+	NemSummonDone.Reset();
+	Toast(FString::Printf(TEXT("Hunting %s: it comes for you in its own region"), *NemesisId), NmRed);
 }
