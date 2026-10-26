@@ -99,6 +99,7 @@ import { Roads } from "./Roads";
 import { RoadDressing } from "./RoadDressing";
 import { ScenarioBosses } from "./ScenarioBosses";
 import { NullPulseFx } from "./NullPulseFx";
+import { MawCollapseFx } from "./MawCollapseFx";
 import { AbilityFx } from "./AbilityFx";
 import { ShardGainFx } from "./ShardGainFx";
 import { SkylineLookout } from "./SkylineLookout";
@@ -131,6 +132,8 @@ import { bossStoryFor, introDue, vaultNear, type BossStoryId } from "@/game/boss
 import { NexusCity } from "./NexusCity";
 import { NexusSkyRail } from "./NexusSkyRail";
 import { NexusBridge } from "./NexusBridge";
+import { NexusAirport } from "./NexusAirport";
+import { AIRPORT } from "@/game/nexus-airport";
 import { StuntPark } from "./StuntPark";
 import { kitById } from "@/game/vehicle-foundry";
 import { WORLD_BOSS, raidSiteWorld, worldBossAt, worldBossKey } from "@/game/world-boss";
@@ -2566,7 +2569,7 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
     // the running activity steps in a vehicle too (it used to sit inside the on-foot block above, so a vehicle race never left the start line)
     if (!tutorial) {
         if (activity && activity.run.status === "active") {
-          const r = activity.run, rsig = () => { const rr = r.race as { phase?: string; next?: number; recoveries?: number; notice?: string | null; countdown?: number } | undefined; return `${r.stage}|${r.progress}|${r.status}|${r.cp}|${r.carrying}|${rr?.phase}|${rr?.next}|${rr?.recoveries}|${rr?.notice}|${rr?.phase === "countdown" ? Math.ceil(rr.countdown ?? 0) : ""}`; }, sig0 = rsig();
+          const r = activity.run, rsig = () => { const rr = r.race as { phase?: string; next?: number; recoveries?: number; notice?: string | null; countdown?: number } | undefined; return `${r.stage}|${r.progress}|${r.theirScore}|${r.pvpLine}|${r.status}|${r.cp}|${r.carrying}|${rr?.phase}|${rr?.next}|${rr?.recoveries}|${rr?.notice}|${rr?.phase === "countdown" ? Math.ceil(rr.countdown ?? 0) : ""}`; }, sig0 = rsig();
           const hitsBefore = (r.race as RaceRun | undefined)?.hitObstacles?.length ?? 0;
           stepActivity(activity.def, r, { x: s.x, z: s.z, dt, now: Date.now(), kills: sim.kills, elites: sim.eliteKills, bosses: sim.bossKills, hp: sim.hp, deaths: sim.deaths, rivalKills: sim.rivalKills, ...(pvp.current ? { pvp: pvp.current.st } : {}), mode: s.inVehicle ? "vehicle" : s.diving ? "dive" : "foot", y: s.y, vehicleDisabled: s.inVehicle && conditionEffects(condition.current).disabled });
           // a race asked to put the player back on the course (wreck, fall, or lost): same place as the last checkpoint, race clock keeps running
@@ -3598,6 +3601,7 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
       <NearOnly playerRef={player} x={NEXUS_REGION.x} z={NEXUS_REGION.z} radius={330 * NEAR_SCALE[settings.renderTier]} name="city:nexus"><NexusCity sim={sim} /><NexusSkyRail /><WorldPiece name="nexus strait bridge"><NexusBridge /></WorldPiece>{gear && <ResidenceGarages city="nexus" progression={{ nexLedger: gear.nexLedger ?? {}, housing: gear.housing, fleet: gear.fleet }} />}</NearOnly>
       {/* street level (kerbs, crossings, furniture, signals; src/game/city-streets.ts): only near enough to read */}
       {pvpView && pvp.current && <PvpField state={pvpView} center={pvp.current.center} />}
+      <NearOnly playerRef={player} x={AIRPORT.x} z={AIRPORT.z} radius={520} name="nexus-airport"><WorldPiece name="nexus airport"><NexusAirport /></WorldPiece></NearOnly>
       <NearOnly playerRef={player} x={STUNT_PARK.x} z={STUNT_PARK.z} radius={260} name="stunt-park"><WorldPiece name="stunt park"><StuntPark /></WorldPiece></NearOnly>
       <NearOnly playerRef={player} x={NEXUS_REGION.x} z={NEXUS_REGION.z} radius={190 * NEAR_SCALE[settings.renderTier]} name="streets:nexus"><WorldPiece name="nexus streets"><CityStreets city="nexus" tier={settings.renderTier} /></WorldPiece></NearOnly>
       <NearOnly playerRef={player} x={NEON_CITY_CENTER.x} z={NEON_CITY_CENTER.z} radius={240 * NEAR_SCALE[settings.renderTier]} name="streets:neon"><WorldPiece name="neon streets"><CityStreets city="neon" tier={settings.renderTier} /></WorldPiece></NearOnly>
@@ -3630,6 +3634,7 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
       <Squad sim={sim} />
       {coreNode?.target && <CoreNodePod run={coreNode} />}
       <NullPulseFx sim={sim} tier={settings.renderTier} reducedMotion={!!settings.reducedMotion || (typeof window !== "undefined" && typeof window.matchMedia === "function" && window.matchMedia("(prefers-reduced-motion: reduce)").matches)} />
+      <MawCollapseFx sim={sim} reducedMotion={!!settings.reducedMotion || (typeof window !== "undefined" && typeof window.matchMedia === "function" && window.matchMedia("(prefers-reduced-motion: reduce)").matches)} />
       <EncounterFx sim={sim} reducedMotion={!!settings.reducedMotion || (typeof window !== "undefined" && typeof window.matchMedia === "function" && window.matchMedia("(prefers-reduced-motion: reduce)").matches)} />
       <HazardMarkers sim={sim} />
       <BeaconMarkers sim={sim} />
