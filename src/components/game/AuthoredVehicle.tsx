@@ -1,3 +1,4 @@
+import { noTransmission } from "@/game/asset-render-quality";
 import { useGLTF } from "@react-three/drei";
 import { useFrame } from "@react-three/fiber";
 import { Suspense, useEffect, useMemo, useRef, useState, type MutableRefObject } from "react";
@@ -87,6 +88,7 @@ function VehicleBody({ model, paint, cosmetics, speedRef, steerRef, brakeRef, bo
           else if (name === "Headlight" && !heads.includes(c)) heads.push(c);
           return c;
         }
+        noTransmission(m);
         if (name === "Glass") { const g = m as THREE.MeshStandardMaterial; g.transparent = true; g.depthWrite = false; g.envMapIntensity = 1.6; }
         return m;
       };

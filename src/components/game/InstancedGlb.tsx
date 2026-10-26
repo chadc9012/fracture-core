@@ -1,3 +1,4 @@
+import { noTransmission } from "@/game/asset-render-quality";
 import { useGLTF } from "@react-three/drei";
 import { useFrame } from "@react-three/fiber";
 import { Suspense, useEffect, useLayoutEffect, useMemo, useRef } from "react";
@@ -62,6 +63,7 @@ export function flattenGlb(scene: THREE.Object3D): Part[] {
     const mat = material.clone();
     const paint = material.name === "Paint", windows = material.name === "WindowsLit";
     if (paint) (mat as THREE.MeshStandardMaterial).color.set("#ffffff");
+    noTransmission(mat);
     if (material.name === "Glass") { mat.transparent = true; mat.depthWrite = false; }
     // the owner's night target frames: dense banded office light instead of the baked map's big warm blocks (facade-windows.ts)
     if (windows) { const tex = facadeTexture(); if (tex) { const m = mat as THREE.MeshStandardMaterial; m.emissiveMap = tex; m.emissive.set("#ffffff"); m.needsUpdate = true; } }

@@ -68,7 +68,7 @@ function Crystals() {
     o.scale.set(0.5 * c.s, h, 0.5 * c.s);
   });
   return <instancedMesh ref={ref} args={[geo.shard, undefined, shards.length]} castShadow>
-    <meshPhysicalMaterial color="#9fdcff" emissive="#2a7fb8" emissiveIntensity={0.35} roughness={0.1} metalness={0} transmission={0.4} thickness={1} transparent opacity={0.85} flatShading />
+    <meshPhysicalMaterial color="#9fdcff" emissive="#2a7fb8" emissiveIntensity={0.35} roughness={0.1} metalness={0} transparent opacity={0.85} flatShading />
   </instancedMesh>;
 }
 
@@ -113,7 +113,7 @@ function FrozenFall() {
   if (!f) return null;
   const h = Math.max(6, f.top - f.bottom);
   return <group position={[f.x, (f.top + f.bottom) / 2, f.z]} rotation-y={f.yaw}>
-    <mesh castShadow rotation-x={0.25}><boxGeometry args={[6, h * 1.15, 1.2, 4, 10, 1]} /><meshPhysicalMaterial color="#bfe8ff" roughness={0.15} transmission={0.3} thickness={1.5} transparent opacity={0.9} emissive="#3d8fc4" emissiveIntensity={0.2} /></mesh>
+    <mesh castShadow rotation-x={0.25}><boxGeometry args={[6, h * 1.15, 1.2, 4, 10, 1]} /><meshPhysicalMaterial color="#bfe8ff" roughness={0.15} transparent opacity={0.9} emissive="#3d8fc4" emissiveIntensity={0.2} /></mesh>
     {Array.from({ length: 9 }, (_, i) => <mesh key={i} position={[-2.6 + i * 0.65, h * 0.55, -0.7]} rotation-x={Math.PI}><coneGeometry args={[0.18, 1.2 + (i % 3) * 0.8, 5]} /><meshStandardMaterial color="#d8f1ff" roughness={0.2} /></mesh>)}
     <mesh position={[0, -h / 2 - 0.3, -3]} rotation-x={-Math.PI / 2}><circleGeometry args={[5, 24]} /><meshStandardMaterial color="#a8d8f0" roughness={0.05} metalness={0.2} /></mesh>
   </group>;

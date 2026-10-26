@@ -23,6 +23,7 @@ export function prepareWorldAsset(root: THREE.Object3D, options: {
       if (!material) continue;
       // Preserve GLTF material identity and authored texture maps; don't replace
       // metallic/roughness/normal maps with flat procedural substitutes.
+      noTransmission(material);
       const pbr = material as THREE.MeshStandardMaterial;
       for (const key of ["map", "normalMap", "roughnessMap", "metalnessMap", "aoMap", "emissiveMap"] as const) {
         const texture = pbr[key];
@@ -37,4 +38,18 @@ export function prepareWorldAsset(root: THREE.Object3D, options: {
       }
     }
   });
+}
+
+/** glTF KHR_materials_transmission glass makes three.js render the whole scene a second time, every frame, into a half-float
+ * target for the refraction; on phone GPUs that doubled the frame cost and could leave the frame black (owner's phone, Nexus City
+ * traffic, Oct 26 2026). Imported glass is drawn as plain alpha-blended glass instead. Returns true when it changed the material. */
+export function noTransmission(material: THREE.Material): boolean {
+  const m = material as THREE.MeshPhysicalMaterial;
+  if (!m.isMeshPhysicalMaterial || !(m.transmission > 0)) return false;
+  m.transmission = 0;
+  m.transparent = true;
+  m.opacity = Math.min(m.opacity, 0.35);
+  m.depthWrite = false;
+  m.needsUpdate = true;
+  return true;
 }

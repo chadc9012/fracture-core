@@ -394,7 +394,7 @@
 .touch-use { top: 36%; right: 16px; }
 .touch-vehicle { top: calc(36% + 54px); right: 16px; }
 .touch-map { top: 36%; right: 70px; }
-@media (pointer: coarse) {
+html.wf-touch {
   .consumable-hud { top: auto; left: auto; bottom: 9rem; right: 12px; max-width: 160px; }
   .consumable-hud button { min-height: 44px; }
   .consumable-hud [role="status"] { font-size: 9px; max-width: 100px; }
@@ -404,7 +404,8 @@
   .touch-controls button { touch-action: none; }
   .vehicle-hud { top: 92px; bottom: auto; left: 12px; width: 240px; }
 }
-@media (pointer: coarse) and (max-width: 600px) {
+@media (max-width: 600px) {
+  html.wf-touch {
   [aria-label="Minimap"] { display: none; }
   [aria-label="Compass"] { top: 56px !important; width: calc(100% - 24px) !important; }
   .quest-hud { top: 208px !important; right: 12px !important; max-width: 190px; }
@@ -419,10 +420,12 @@
   .hud-ammo { bottom: 248px !important; width: 104px !important; }
   .hud-health .hud-label { font-size: 8px; }
 }
+}
 
 /* Landscape phones (short touch screens): the portrait stack above the touch controls has no height to climb, so vitals dock
    bottom-centre between the stick and the fire cluster, ammo bottom-right of them, and the rails/chips shrink to the top corners. */
-@media (pointer: coarse) and (max-height: 600px) {
+@media (max-height: 600px) {
+  html.wf-touch {
   .hud-health { bottom: 8px !important; left: clamp(150px, 22vw, 190px) !important; width: min(250px, 34vw) !important; }
   .hud-health > [aria-label^="Level"] { display: none; }
   .hud-health .hud-status { padding: 4px 8px; }
@@ -471,8 +474,9 @@
   .mission-tracker { opacity: 0.85; }
   [aria-label="Minimap"] { transform: scale(0.55); }
 }
+}
 /* touch screens have no keyboard: hide keyboard key hints on the HUD meters */
-@media (pointer: coarse) { .dash-key { display: none; } }
+html.wf-touch { .dash-key { display: none; } }
 
 /* Destination Director: each stage eases in; the selected city node breathes. Off under reduced motion. */
 @keyframes wf-director-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
@@ -647,7 +651,7 @@
 
 /* Touch HUD contrast (from the owner's "visuals before APK" pass): readable buttons over bright scenes, no tap flash. Only the
  * look is taken; the layout stays the one TouchControls/styles.css already set (that pass's right-edge overrides stacked buttons). */
-@media (pointer: coarse) {
+html.wf-touch {
   .touch-controls { -webkit-user-select: none; user-select: none; overscroll-behavior: contain; }
   .touch-controls button {
     border-color: rgba(146, 233, 245, 0.75);

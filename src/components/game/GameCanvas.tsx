@@ -28,7 +28,7 @@ import { STARTER_VEHICLES, VEHICLES, vehicleAcquisition } from "@/game/vehicles"
 import { Button } from "@/components/ui/button";
 import type { RenderTier } from "@/game/performance";
 import { PHONE_DPR, gameModeProfile, readOsGameMode, phoneTier, defaultFrameRate, dprDown, dprFloor, dprUp, effectiveTier, frameInterval, monitorBounds, onDecline as governDecline, type FrameRate } from "@/game/quality-governor";
-import { isTouchDevice } from "@/game/client-input";
+import { isTouchDevice, markTouchDocument } from "@/game/client-input";
 import { MissionCinematic } from "./MissionCinematic";
 import { recordClue } from "@/game/encounter-journal";
 import { applyRaceResult, difficultyLocked, isRaceActivity, raceById, worldPoint as raceWorldPoint, type Difficulty } from "@/game/racing";
@@ -338,6 +338,7 @@ export function GameCanvas() {
   const [settings, setSettings] = useCountedState<GameSettings>("settings", DEFAULT_SETTINGS);
   // frame pacing (quality-governor.ts): phones run a steady 30 by default at a fixed, sharper resolution
   const touchScreen = useMemo(() => typeof window !== "undefined" && isTouchDevice(), []);
+  useEffect(() => markTouchDocument(), []); // hydration can drop the class set at import
   const [adaptiveDpr, setAdaptiveDpr] = useCountedState("adaptiveDpr", touchScreen ? PHONE_DPR : 1.5);
   // Samsung Game Booster / Android game mode (MainActivity sets window.__wfGameMode and fires "wf-gamemode")
   const [osGameMode, setOsGameMode] = useState(readOsGameMode);
@@ -1529,7 +1530,9 @@ export function GameCanvas() {
         const flags = perfFlags();
         // MEDIUM now gets the grade + bloom too (owner's target frames: every lamp and sign glows); the adaptive governor still drops the
         // stack (lowPerf) if the frame rate cannot hold it, and SMAA replaces the MSAA the composer pass loses
-        const post = (preset.distortion || liveTier === "MEDIUM") && !caps.safari && caps.webgl2 && !lowPerf && flags.post;
+        // phones never mount the composer (bloom mip chain + SMAA + grade, a full-screen pass each at device resolution): they get the
+        // CSS grade below instead, so the frame budget goes to resolution and a steady frame rate
+        const post = (preset.distortion || liveTier === "MEDIUM") && !touchScreen && !caps.safari && caps.webgl2 && !lowPerf && flags.post;
         // SSAO and depth-of-field are the two costliest passes in the stack — reserve them for
         // the top render tier so MEDIUM/HIGH still get the cheap color-grade + bloom + vignette
         // look without paying for contact-shadow and bokeh sampling every frame.

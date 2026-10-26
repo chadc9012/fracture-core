@@ -1,10 +1,11 @@
+import { isTouchDevice } from "@/game/client-input";
 import { useEffect, useRef, useState } from "react";
 import { campaignCinematicById } from "@/game/campaign-cinematics";
 import { cinematicById, cinematicSeconds, inspectCinematic, skipCinematic, startCinematic, stepCinematic, type CinePlayer, type Handoff } from "@/game/cinematics";
 import { speakVoice, stopVoice } from "@/game/voice-director";
 import { useMenuInput } from "./useMenuInput";
 
-const touchScreen = () => typeof window !== "undefined" && typeof window.matchMedia === "function" && window.matchMedia("(pointer: coarse)").matches;
+const touchScreen = () => isTouchDevice();
 
 /**
  * Plays an authored Act I cinematic (src/game/cinematics.ts) over the live world: letterbox, shot cue text, speaker-named subtitles
