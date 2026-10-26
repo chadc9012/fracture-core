@@ -809,6 +809,9 @@ function SceneImpl({
       aim: (only?: "nemesis" | "boss" | "living") => { const st = state.current; let best = null as null | { x: number; z: number }, bd = 1e9; for (const m of sim.machines) { if (!m.alive) continue; if (only === "nemesis" && !m.nemesis) continue; if (only === "boss" && !m.boss) continue; if (only === "living" && !m.living) continue; const d = Math.hypot(m.x - st.x, m.z - st.z); if (d < bd) { bd = d; best = m; } } if (!best) return "none"; st.yaw = Math.atan2(best.x - st.x, best.z - st.z); st.pitch = -0.04; return Math.round(bd); },
       secrets: () => SECRETS.map((sc) => ({ id: sc.id, ...secretPoint(sc), condition: sc.condition })),
       crown: () => ({ ...HOLLOW_CROWN, vael: VAEL }),
+      /** play-test access (?dev=1): the live sim and the player's state, so a test script can stage fights with the real sim functions (import "/src/game/sim.ts" from the page: same module instance) */
+      sim: () => sim,
+      player: () => state.current,
       spawn: (n = 4) => spawnEventSquad(sim, "", state.current.x + 18, state.current.z, n, 1, regionAt(state.current.x, state.current.z)?.id ?? "wastelands", 6),
       dieTo: () => { const profile = "Wasteland Grunt"; sim.lastHitBy = { profile, zone: regionAt(state.current.x, state.current.z)?.id ?? "wastelands", elite: true, boss: false }; hurtPlayer(sim, 9999, profile); return "died"; },
       nemesis: () => (gearLive.current?.nemeses ?? []).map((n) => `${n.name} ${n.epithet} r${n.rank} ${n.regionId} ${n.status} [${n.traits.join(",")}]`),
