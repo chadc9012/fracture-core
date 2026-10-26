@@ -60,6 +60,169 @@ def lamp(body, x, z, size, m, front=True, name="Lamp", sink=0.012):
     return o
 
 
+
+# ---------------------------------------------------------------- panel detail (owner, Oct 26 2026: "start rebuild")
+# The lofted shells were one smooth skin: no shut lines, so every car read as a toy. cut_panels carves real panel gaps (doors,
+# hood, boot, fuel flap) a few millimetres deep into the body with one exact boolean, the gap walls taking the dark trim
+# material, and side intakes on the supercar. panel_dressing adds the hardware that sits on those panels: door handles,
+# window trim, projector headlight lenses and number plates.
+
+GAP = 0.0065     # shut-line width
+DEPTH = 0.007    # how far a gap is cut into the skin
+
+
+def _surface_fns(spec, prof):
+    us, hw, zb, zbelt, zroof = prof
+    n = len(us)
+    cr = spec.get("crown", 0.05)
+    _, crown = K.profile(cr if isinstance(cr, list) else [(0, cr), (1, cr)], n)
+    at = lambda arr, u: float(np.interp(u, us, arr))
+    def top(u, x):
+        """z of the hood / deck skin at station u and |x| (below the glasshouse)"""
+        w = at(hw, u); sfr = 1 - min(1.0, abs(x) / (0.93 * w))
+        return at(zbelt, u) + at(crown, u) * (1 - (1 - sfr) ** 2)
+    return at, top
+
+
+def cut_panels(body, spec, prof, M, L, recesses=False):
+    us, hw, zb, zbelt, zroof = prof
+    at, top = _surface_fns(spec, prof)
+    Y = lambda u: -L / 2 + u * L
+    cutters = []
+    def blk(size, center):
+        cutters.append(K.box(size, center, M["trim"], bevel=0, name="Cut"))
+    g0, g1 = spec.get("side_glass", (spec["ws"][0] + 0.05, spec["rw"][1] - 0.07))
+    pillars = list(spec.get("pillars", []))
+    doors = [g0 - 0.004] + pillars[:2]
+    if len(pillars) >= 2:
+        doors.append(pillars[-1] + 0.035)
+    for side in (-1, 1):
+        # door shut lines: vertical, from just above the sill to the window line
+        for u in doors:
+            w = at(hw, u); z0, z1 = at(zb, u) + 0.13, at(zbelt, u) - 0.012
+            if z1 - z0 < 0.12:
+                continue
+            blk((0.3, GAP, z1 - z0), (side * (w + 0.15 - DEPTH), Y(u), (z0 + z1) / 2))
+        # the door bottoms: a horizontal line along the rocker between the first and last door line
+        u0, u1 = doors[0], doors[-1]
+        zr = at(zb, (u0 + u1) / 2) + 0.13
+        w = min(at(hw, u0), at(hw, u1))
+        blk((0.3, (u1 - u0) * L, GAP), (side * (w * 0.985 + 0.15 - DEPTH), Y((u0 + u1) / 2), zr))
+        # hood and boot side lines, following the hood crown in short steps
+        for ua, ub in ((0.03, spec["ws"][0] - 0.012), (spec["rw"][1] + 0.012, 0.975)):
+            if ub - ua < 0.04:
+                continue
+            steps = max(2, int((ub - ua) * L / 0.18))
+            for k in range(steps):
+                uu0, uu1 = ua + (ub - ua) * k / steps, ua + (ub - ua) * (k + 1) / steps
+                um = (uu0 + uu1) / 2; x = side * 0.62 * at(hw, um)
+                blk((GAP, (uu1 - uu0) * L + 0.03, 0.3), (x, Y(um), top(um, x) + 0.15 - DEPTH))
+    # cowl and boot lines across the top, in short steps following the crown
+    for u in (spec["ws"][0] - 0.012, spec["rw"][1] + 0.012):
+        if u > 0.975:
+            continue
+        w = at(hw, u)
+        for k in range(10):
+            x0, x1 = -0.62 * w + 1.24 * w * k / 10, -0.62 * w + 1.24 * w * (k + 1) / 10
+            xm = (x0 + x1) / 2
+            blk((x1 - x0 + 0.02, GAP, 0.3), (xm, Y(u), top(u, xm) + 0.15 - DEPTH))
+    # fuel flap on the right rear quarter
+    uf = min(0.9, (spec["rw"][0] + spec["rw"][1]) / 2 + 0.02)
+    zf = at(zbelt, uf) - 0.14
+    for dz, dy, sz in ((0.07, 0, (0.3, 0.15, GAP)), (-0.07, 0, (0.3, 0.15, GAP)), (0, 0.075, (0.3, GAP, 0.14)), (0, -0.075, (0.3, GAP, 0.14))):
+        blk(sz, (at(hw, uf) + 0.15 - DEPTH, Y(uf) + dy, zf + dz))
+    if recesses:
+        # supercar side intakes behind the doors: a deep scoop in each flank
+        ui = doors[-1] + 0.07
+        for side in (-1, 1):
+            w = at(hw, ui)
+            blk((0.3, 0.42, 0.17), (side * (w + 0.15 - 0.05), Y(ui) + 0.05, at(zb, ui) + 0.32))
+    cutter = K.join(cutters, "PanelCutters")
+    before = len(body.data.polygons)
+    mod = body.modifiers.new("panels", "BOOLEAN"); mod.operation = "DIFFERENCE"; mod.object = cutter; mod.solver = "EXACT"
+    # the cutters overlap one another (door lines meet the rocker line): the exact solver needs self-intersection on, and a
+    # tolerance for the loft's end caps
+    mod.use_self = True
+    mod.use_hole_tolerant = True
+    try:
+        mod.material_mode = "TRANSFER"
+    except Exception:
+        pass
+    bpy.context.view_layer.objects.active = body
+    bpy.ops.object.modifier_apply(modifier=mod.name)
+    bpy.data.objects.remove(cutter, do_unlink=True)
+    if len(body.data.polygons) < before * 0.8:
+        raise RuntimeError(f"panel cut lost the body ({before} -> {len(body.data.polygons)} faces)")
+
+
+def panel_dressing(body, spec, prof, M, L, maxw, nose_z, tail_z, heads, style):
+    """door handles, window trim, projector lenses, plates, and the intake slats; returns the parts"""
+    us, hw, zb, zbelt, zroof = prof
+    at, top = _surface_fns(spec, prof)
+    Y = lambda u: -L / 2 + u * L
+    out = []
+    pillars = list(spec.get("pillars", []))
+    g0, g1 = spec.get("side_glass", (spec["ws"][0] + 0.05, spec["rw"][1] - 0.07))
+    door_ends = pillars[:2] if pillars else [g1]
+    if len(pillars) >= 2:
+        door_ends = [pillars[0], pillars[-1] + 0.035]
+    handle_m = M["chrome"] if style == "sedan" else M["satin"]
+    for side in (-1, 1):
+        for ue in door_ends:
+            uh = ue - 0.035
+            loc, n = stick_side(body, Y(uh), at(zbelt, uh) - 0.1, side)
+            if loc is not None:
+                out.append(K.box((0.03, 0.17, 0.035), (loc.x + side * 0.012, loc.y, loc.z), handle_m, bevel=0.012, name="DoorHandle"))
+        # window line trim: a strip along the sill of the side glass
+        pts = []
+        for k in range(9):
+            u = g0 + (g1 - g0) * k / 8
+            loc, n = stick_side(body, Y(u), at(zbelt, u) + 0.012, side)
+            if loc is not None:
+                pts.append((loc.x + side * 0.004, loc.y, loc.z))
+        if len(pts) >= 2:
+            out.append(K.tube(pts, 0.009, M["chrome"] if style == "sedan" else M["trim"], "WindowTrim", verts=8))
+    # projector lenses inside each headlight: a chrome bezel and a bright lens
+    for h in heads:
+        if h is None:
+            continue
+        c = h.location
+        for dx in (-0.07, 0.07) if h.dimensions.x > 0.25 else (0,):
+            out.append(K.cyl(0.042, 0.03, (c.x + dx, c.y - 0.012, c.z), M["chrome"], rot=(math.pi / 2, 0, 0), verts=20, name="LensBezel"))
+            out.append(K.sphere(0.03, (c.x + dx, c.y - 0.03, c.z), M["head"], scale=(1, 0.5, 1), name="Lens", seg=16, rings=8))
+    # number plates front and rear
+    plate = K.mat("Plate", "#d6dbe0", 0.1, 0.45)
+    for front, z in ((True, max(at(zb, 0.03) + 0.16, nose_z - 0.28)), (False, max(at(zb, 0.97) + 0.18, tail_z - 0.24))):
+        loc, n = stick(body, 0, z, front)
+        if loc is not None:
+            out.append(K.box((0.52, 0.02, 0.12), (0, loc.y + (-0.008 if front else 0.008), loc.z), plate, bevel=0.006, name="Plate"))
+            out.append(K.box((0.55, 0.012, 0.15), (0, loc.y + (0.002 if front else -0.002), loc.z), M["trim"], bevel=0.004, name="PlateFrame"))
+    return out
+
+
+def rugged_kit(body, M, d):
+    """off-roader extras: snorkel, spare wheel, side steps, fender flares, tow hooks, skid plate"""
+    L, maxw, R, fy, ry, zbelt, roof_top = d["L"], d["maxw"], d["R"], d["fy"], d["ry"], d["zbelt"], d["roof_top"]
+    out = []
+    belt = float(np.median(zbelt))
+    # snorkel up the right A-pillar
+    out.append(K.tube([(maxw + 0.06, fy + R + 0.1, belt - 0.25), (maxw + 0.08, fy + R + 0.25, belt + 0.05), (maxw * 0.92, fy + R + 0.5, roof_top - 0.05)], 0.055, M["satin"], "Snorkel", verts=14))
+    out.append(K.box((0.16, 0.2, 0.12), (maxw * 0.92, fy + R + 0.58, roof_top + 0.02), M["satin"], bevel=0.03, name="SnorkelHead"))
+    # spare wheel on the tailgate
+    out.append(K.cyl(R * 0.92, 0.26, (0, L / 2 + 0.16, belt + 0.05), M["rubber"], rot=(math.pi / 2, 0, 0), verts=32, name="Spare", bevel=0.03))
+    out.append(K.cyl(R * 0.55, 0.28, (0, L / 2 + 0.16, belt + 0.05), M["rim"], rot=(math.pi / 2, 0, 0), verts=24, name="SpareRim"))
+    for s in (-1, 1):
+        # side steps between the wheels
+        out.append(K.box((0.22, abs(ry - fy) - 2 * R - 0.15, 0.05), (s * (maxw + 0.06), (fy + ry) / 2, R * 0.75), M["steel"], bevel=0.01, name="SideStep"))
+        # bolt-on fender flares over each arch
+        for y in (fy, ry):
+            out.append(K.tube([(s * (maxw + 0.03), y - R - 0.06, R * 0.95), (s * (maxw + 0.07), y - R * 0.55, R * 1.65), (s * (maxw + 0.08), y, R * 1.88), (s * (maxw + 0.07), y + R * 0.55, R * 1.65), (s * (maxw + 0.03), y + R + 0.06, R * 0.95)], 0.05, M["trim"], "Flare", verts=8))
+        # red tow hooks
+        out.append(K.box((0.06, 0.12, 0.06), (s * maxw * 0.55, -L / 2 - 0.1, R * 0.62), K.mat("TowHook", "#c41e1e", 0.4, 0.4), bevel=0.012, name="TowHook"))
+    out.append(K.box((maxw * 1.3, 0.6, 0.03), (0, -L / 2 + 0.45, R * 0.55), M["steel"], bevel=0.01, name="SkidPlate"))
+    return out
+
+
 # ---------------------------------------------------------------- cars
 
 BODIES = {
@@ -153,15 +316,17 @@ def car(oid, body_key, paint, accent="#38e8ff", metal=0.8, rough=0.22, rim_style
     wheels = {"FL": (-hx, fy, R), "FR": (hx, fy, R), "RL": (-hx, ry, R), "RR": (hx, ry, R)}
     if not hover:
         K.cut_arches(body, list(wheels.values()), R, W, flare=0.035)
+        cut_panels(body, spec, prof, M, L, recesses=body_key == "racer")
     K.shade_auto(body, 50)
     parts = []
     if not hover:
         parts.append(K.arch_liners(list(wheels.values()), R, W, M["trim"]))
     nose_z = float(zbelt[3]); tail_z = float(zbelt[-4])
+    heads = []
     # lamps
     if lamps == "slim":
         for s in (-1, 1):
-            parts.append(lamp(body, s * maxw * 0.66, nose_z - 0.06, (0.4, 0.05, 0.06), M["head"], True, "Headlight"))
+            hl = lamp(body, s * maxw * 0.66, nose_z - 0.06, (0.4, 0.05, 0.06), M["head"], True, "Headlight"); parts.append(hl); heads.append(hl)
             parts.append(lamp(body, s * maxw * 0.72, nose_z - 0.14, (0.2, 0.04, 0.03), M["accent"], True, "DRL"))
             parts.append(lamp(body, s * maxw * 0.64, tail_z - 0.06, (0.42, 0.04, 0.06), M["tail"], False, "Tail"))
         parts.append(lamp(body, 0, tail_z - 0.04, (maxw * 1.0, 0.03, 0.025), M["tail"], False, "TailBar"))
@@ -173,8 +338,10 @@ def car(oid, body_key, paint, accent="#38e8ff", metal=0.8, rough=0.22, rim_style
             parts.append(lamp(body, s * maxw * 0.68, tail_z - 0.1, (0.36, 0.04, 0.1), M["tail"], False, "Tail"))
     elif lamps == "square":
         for s in (-1, 1):
-            parts.append(lamp(body, s * maxw * 0.7, nose_z - 0.12, (0.3, 0.05, 0.16), M["head"], True, "Headlight"))
+            hl = lamp(body, s * maxw * 0.7, nose_z - 0.12, (0.3, 0.05, 0.16), M["head"], True, "Headlight"); parts.append(hl); heads.append(hl)
             parts.append(lamp(body, s * maxw * 0.8, tail_z - 0.12, (0.14, 0.04, 0.34), M["tail"], False, "Tail"))
+    if not hover:
+        parts.extend(panel_dressing(body, spec, prof, M, L, maxw, nose_z, tail_z, heads, body_key))
     # grille
     gl, gn = stick(body, 0, nose_z - 0.12, True)
     if gl is not None and not hover:
@@ -705,7 +872,7 @@ BUILDS = {
     "city-pod": lambda: car("city-pod", "pod", "#e8ecf2", "#38e8ff", 0.2, 0.3, rim_style="solid", spokes=8, exhausts=0, underglow=False, rim_color="#d0d4da", caliper="#808890"),
     "security-suv": lambda: car("security-suv", "suv", "#c9ced6", "#2a7bff", 0.8, 0.25, rim_style="solid", spokes=6, lightbar="police", seats=2, rim_color="#1e2024", tread="offroad", lamps="slim"),
     # Wastelands
-    "offroad-truck": lambda: car("offroad-truck", "suv", "#3a3530", "#ffb040", 0.5, 0.55, rim_style="solid", spokes=8, tread="offroad", roof_rack=True, lightbar="lamps", bullbar=True, seats=2, rim_color="#2a2a2a", lamps="square", underglow=False, caliper="#3a3a3a"),
+    "offroad-truck": lambda: car("offroad-truck", "suv", "#3a3530", "#ffb040", 0.5, 0.55, rim_style="solid", spokes=8, tread="offroad", roof_rack=True, lightbar="lamps", bullbar=True, seats=2, rim_color="#2a2a2a", lamps="square", underglow=False, caliper="#3a3a3a", extra=rugged_kit),
     "raider-buggy": lambda: buggy("raider-buggy"),
     "aether-hoverbike": lambda: bike("aether-hoverbike"),
     "goliath-tank": lambda: tank("goliath-tank"),
