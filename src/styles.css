@@ -439,7 +439,19 @@
   .wf-rail-left { top: 4.75rem !important; }
   .mission-ribbon { top: 44px !important; padding: 4px 14px; }
   [aria-label="Minimap"] { transform: scale(0.7); transform-origin: top right; }
+  /* phone play-test (Oct 25): the dash meter sat on the Q/E/R buttons, the tutorial card covered a third of the screen, and the
+     shield/heart counters hid under the right-hand buttons. Dash meter rides just above the vitals; the card shrinks to a corner
+     note; the counters sit bottom-centre between the ammo panel and the fire cluster. */
+  .dash-hud { bottom: 70px !important; left: clamp(150px, 22vw, 190px) !important; width: min(250px, 34vw) !important; }
+  .onboarding-card { top: 4.5rem !important; left: 8px !important; width: min(15rem, 32vw) !important; }
+  .onboarding-card h2 { font-size: 13px !important; letter-spacing: 0.08em; }
+  .onboarding-card p { font-size: 10px !important; line-height: 1.3; padding-top: 2px; padding-bottom: 2px; }
+  .onboarding-card > div:first-child { font-size: 8px; margin-bottom: 2px; }
+  .touch-vehicle { top: 36% !important; right: 124px !important; } /* sat on top of the aim button at 412 px tall */
+  .consumable-hud { bottom: 8px !important; right: 180px !important; max-width: 150px !important; }
 }
+/* touch screens have no keyboard: hide keyboard key hints on the HUD meters */
+@media (pointer: coarse) { .dash-key { display: none; } }
 
 /* Destination Director: each stage eases in; the selected city node breathes. Off under reduced motion. */
 @keyframes wf-director-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }

@@ -18,8 +18,8 @@ export function DashHud({ bindings }: { bindings?: Bindings | undefined }) {
   if (!view) return null;
   const key = keyName(normalizeBindings(bindings).keyboard.dash);
   return (
-    <div role="status" aria-label={`${view.name}: ${view.charges} of ${view.max} charges`} className="pointer-events-none fixed bottom-[11.5rem] left-4 z-[35] w-40 font-mono text-[9px] text-foreground">
-      <div className="flex items-center justify-between"><span>{view.name}</span><span className="text-muted-foreground">[{key}]</span></div>
+    <div role="status" aria-label={`${view.name}: ${view.charges} of ${view.max} charges`} className="dash-hud pointer-events-none fixed bottom-[11.5rem] left-4 z-[35] w-40 font-mono text-[9px] text-foreground">
+      <div className="flex items-center justify-between"><span>{view.name}</span><span className="dash-key text-muted-foreground">[{key}]</span></div>
       <div className="mt-1 flex gap-1">
         {Array.from({ length: view.max }, (_, i) => (
           <div key={i} className="h-1.5 flex-1 overflow-hidden border border-primary/60 bg-background/70">

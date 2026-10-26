@@ -20,3 +20,5 @@ rm -rf mobile/www && cp -r .output/public mobile/www && cp mobile/www/_shell.htm
 cd mobile && npm install && npm run apk         # → android/app/build/outputs/apk/debug/app-debug.apk
 ```
 `mobile/www/index.html` in the repo is only a placeholder; the build replaces the folder.
+
+_Phone HUD layout reworked Oct 25 (landscape touch layout: no overlapping buttons or meters)._
