@@ -23,20 +23,23 @@ export function swingPhase(s: Swing, now: number): { phase: "WINDUP" | "STRIKE" 
   return { phase: "DONE", u: 1 };
 }
 
-/** the swing's pose (additive bones, same axes as death-animations.ts / enemy-reactions.ts) and how far the body lunges (m) */
-export function swingBones(s: Swing, now: number): { bones: Record<string, [number, number, number]>; lunge: number } | null {
+/** the swing's pose in the BODY's frame (EnemyModel hitBody: per bone [pitch, twist, roll] rad; pitch > 0 leans the top forward /
+ * swings a hanging limb back, twist > 0 turns toward the body's left) and how far the body lunges (m). Authored in body axes because
+ * the rigs' local axes are skewed ~45 deg by their idle/aim stances: the first, local-axis version threw troopers onto their sides
+ * (play-test filmstrip). A right-handed strike: wind up turned right with the arm raised, snap through to the left and down. */
+export function swingBones(s: Swing, now: number): { body: Record<string, [number, number, number]>; lunge: number } | null {
   const { phase, u } = swingPhase(s, now);
   if (phase === "DONE") return null;
-  // wind-up: twist away, the striking (right) arm drawn up and back, weight on the back foot
-  const w = phase === "WINDUP" ? Math.sin(Math.min(1, u) * Math.PI * 0.5) : 1 - Math.min(1, u * 3);
-  // strike: snap round and down, the arm sweeping across, a step in; recover eases back to the clip
+  // wind-up builds to full by the strike; in the strike it releases fast while the sweep peaks and eases out
+  const w = phase === "WINDUP" ? Math.sin(Math.min(1, u) * Math.PI * 0.5) : Math.max(0, 1 - u * 3);
   const k = phase === "STRIKE" ? Math.sin(Math.min(1, u) * Math.PI) : 0;
   return {
     lunge: MELEE.lunge * k,
-    bones: {
-      Spine: [-0.1 * w + 0.3 * k, -0.45 * w + 0.55 * k, 0], Spine1: [-0.05 * w + 0.15 * k, -0.25 * w + 0.3 * k, 0],
-      RightArm: [-1.1 * w + 0.6 * k, 0, 0.5 * w - 0.4 * k], RightForeArm: [0, 0, 0.9 * w - 0.2 * k],
-      LeftArm: [0.25 * w, 0, -0.2 * w], RightUpLeg: [0.2 * w - 0.3 * k, 0, 0], LeftUpLeg: [-0.1 * w + 0.45 * k, 0, 0], LeftLeg: [0.35 * k, 0, 0],
+    body: {
+      Spine: [-0.12 * w + 0.28 * k, -0.45 * w + 0.5 * k, 0],
+      Spine1: [-0.05 * w + 0.12 * k, -0.22 * w + 0.25 * k, 0],
+      RightArm: [-1.3 * w + 0.6 * k, 0, 0],
+      LeftUpLeg: [-0.35 * k, 0, 0], RightUpLeg: [0.2 * k, 0, 0],
     },
   };
 }

@@ -16,12 +16,12 @@ describe("swing rules", () => {
   });
   test("the pose is continuous (no bone jumps a quarter turn between 60 fps frames) and the lunge peaks in the strike", () => {
     const s = startSwing(0, false);
-    let prev = swingBones(s, 0)!.bones, peak = 0;
+    let prev = swingBones(s, 0)!.body, peak = 0;
     for (let t = 1 / 60; t < s.hitAt + MELEE.recover; t += 1 / 60) {
       const cur = swingBones(s, t);
       if (!cur) break;
-      for (const [b, e] of Object.entries(cur.bones)) for (let i = 0; i < 3; i++) expect(Math.abs(e[i]! - (prev[b]?.[i] ?? 0)), `${b} at ${t.toFixed(2)}`).toBeLessThan(Math.PI / 4);
-      prev = cur.bones; peak = Math.max(peak, cur.lunge);
+      for (const [b, e] of Object.entries(cur.body)) for (let i = 0; i < 3; i++) expect(Math.abs(e[i]! - (prev[b]?.[i] ?? 0)), `${b} at ${t.toFixed(2)}`).toBeLessThan(Math.PI / 4);
+      prev = cur.body; peak = Math.max(peak, cur.lunge);
       if (t < s.hitAt) expect(cur.lunge).toBe(0);
     }
     expect(peak).toBeGreaterThan(MELEE.lunge * 0.9);

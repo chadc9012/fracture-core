@@ -262,7 +262,8 @@ export function WarMachines({ sim }: { sim: WorldSim }) {
         const nowD = performance.now() / 1000, ev = m.evade && m.evade.dive && nowD < m.evade.until ? m.evade : null;
         // diving out of a blast (enemy-evasion.ts) takes over the limbs, then a melee swing (enemy-melee.ts); otherwise any hit reaction plays over the clip
         const sw = !ev && m.swing ? swingBones(m.swing, nowD) : null;
-        drive.current.hit = ev ? diveBones((nowD - ev.start) / (ev.until - ev.start)).bones : sw ? sw.bones : reactionBones(m.react, nowD, m.rot);
+        drive.current.hit = ev ? diveBones((nowD - ev.start) / (ev.until - ev.start)).bones : sw ? null : reactionBones(m.react, nowD, m.rot);
+        drive.current.hitBody = sw ? sw.body : null;
         prev.x = m.x; prev.z = m.z;
       }
       const stride = strides[i];

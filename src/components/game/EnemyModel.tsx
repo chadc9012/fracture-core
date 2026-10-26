@@ -28,7 +28,7 @@ function rigBone(root: THREE.Object3D, name: string): THREE.Object3D | null {
  * (death-animations.ts: style, seed for its variation, mirror for falls to the right). `muzzle`: where this enemy's held gun's barrel was last frame (world), for shots and flashes. */
 /** each pooled machine slot's drive (WarMachines registers them): Scene reads `muzzle` to fire enemy shots from the held gun */
 export const enemyDrives: (DriveRef | undefined)[] = [];
-export type DriveRef = { current: EnemyDrive & { procedural?: boolean; frozen?: boolean; death?: { age: number; seed: number; style: DeathStyle; mirror: boolean }; /** hit reaction laid over the clips (enemy-reactions.ts reactionBones) */ hit?: Record<string, [number, number, number]> | null; muzzle?: { x: number; y: number; z: number; t: number } } };
+export type DriveRef = { current: EnemyDrive & { procedural?: boolean; frozen?: boolean; death?: { age: number; seed: number; style: DeathStyle; mirror: boolean }; /** hit reaction laid over the clips (enemy-reactions.ts reactionBones), in each bone's local axes */ hit?: Record<string, [number, number, number]> | null; /** a pose in the BODY's frame (enemy-melee.ts swingBones): per bone [pitch forward, twist toward the body's left, roll] (rad, Euler YXZ about the body's left/up/forward axes), applied parent-first whatever the rig's or clip's local axes */ hitBody?: Record<string, [number, number, number]> | null; muzzle?: { x: number; y: number; z: number; t: number } } };
 import * as THREE from "three";
 import { SURFACES, regionLook } from "@/game/visual-standard";
 
@@ -189,7 +189,9 @@ function Authored({ visual, headRef, drive, onBuilt, weapon }: { visual: EnemyVi
   }, [weapon, built, holder]);
   // corpse collapse: this body's pose deltas and the resting quaternions they are applied on top of
   const collapse = useRef<{ seed: number; base: [string, THREE.Object3D, THREE.Quaternion][] } | null>(null);
-  const tmp = useMemo(() => ({ v: new THREE.Vector3(), w: new THREE.Vector3(), q: new THREE.Quaternion(), e: new THREE.Euler() }), []);
+  /** bones an overlay touched last frame, with the clip value they had before it (restored before the next mixer step) */
+  const overlaid = useRef(new Map<THREE.Object3D, THREE.Quaternion>());
+  const tmp = useMemo(() => ({ v: new THREE.Vector3(), w: new THREE.Vector3(), q: new THREE.Quaternion(), e: new THREE.Euler(), eb: new THREE.Euler(0, 0, 0, "YXZ"), qb: new THREE.Quaternion(), qi: new THREE.Quaternion(), qp: new THREE.Quaternion() }), []);
   const body = useRef<THREE.Group>(null);
   const seed = useRef(Math.random() * 10);
   const posed = useRef(false);
@@ -237,10 +239,35 @@ function Authored({ visual, headRef, drive, onBuilt, weapon }: { visual: EnemyVi
       for (const name of CLIP_NAMES) { const a = built.clips[name]; if (a) a.weight = w[name]; }
       if (built.clips.walk) built.clips.walk.timeScale = strideRate(d.speed, "walk");
       if (built.clips.run) built.clips.run.timeScale = strideRate(d.speed, "run");
+      // the overlays below (hit reactions, dives, melee swings) are laid on whatever the clips produced. three's mixer only writes a
+      // bone when its mixed value changes, so a still track (legs in an idle or aim stance) or a frame with no time step kept last
+      // frame's overlaid value and the overlay compounded every frame (a play-test swing threw a trooper's feet a metre up).
+      // Put every overlaid bone back to its clip value before the mixer runs.
+      for (const [bone, q] of overlaid.current) bone.quaternion.copy(q);
+      overlaid.current.clear();
       built.mixer.update(Math.min(dt, 0.1));
-      // hit reaction: additive on top of whatever clip is playing (the mixer rewrites the bones every frame, so this never accumulates)
+      const keep = (bone: THREE.Object3D) => { if (!overlaid.current.has(bone)) overlaid.current.set(bone, bone.quaternion.clone()); };
+      // hit reaction: additive on top of whatever clip is playing
       const hit = drive?.current.hit;
-      if (hit) for (const [name, e] of Object.entries(hit)) { const bone = rigBone(built.obj, name); if (bone) { tmp.e.set(e[0], e[1], e[2]); bone.quaternion.multiply(tmp.q.setFromEuler(tmp.e)); } }
+      if (hit) for (const [name, e] of Object.entries(hit)) { const bone = rigBone(built.obj, name); if (bone) { keep(bone); tmp.e.set(e[0], e[1], e[2]); bone.quaternion.multiply(tmp.q.setFromEuler(tmp.e)); } }
+      // body-frame pose: rotate each bone about the body's own axes (left = pitch, up = twist, forward = roll), converted into the
+      // bone's parent space after its parent has been posed: local = parentWorld^-1 * (bodyWorld * R * bodyWorld^-1) * parentWorld * local.
+      // The rigs' local axes are skewed by their stances (the idle/aim clips turn the hips ~45 deg), so big local-axis rotations threw bodies around.
+      const body = drive?.current.hitBody;
+      if (body) {
+        built.obj.getWorldQuaternion(tmp.qb);
+        for (const [name, e] of Object.entries(body)) {
+          const bone = rigBone(built.obj, name);
+          if (!bone?.parent) continue;
+          keep(bone);
+          tmp.eb.set(e[0], e[1], e[2], "YXZ");
+          tmp.q.setFromEuler(tmp.eb).premultiply(tmp.qb).multiply(tmp.qi.copy(tmp.qb).invert()); // body axes -> world
+          bone.parent.getWorldQuaternion(tmp.qp);
+          tmp.q.premultiply(tmp.qi.copy(tmp.qp).invert()).multiply(tmp.qp); // world -> parent space
+          bone.quaternion.premultiply(tmp.q);
+          bone.updateMatrixWorld(true);
+        }
+      }
       b.rotation.set(0, 0, 0);
       // the gun: gripped at the palm, pointing where the body faces (+Z), up to aim while winding up or firing, low ready
       // otherwise (the hand bone twists through the clips, so following it pointed the barrel at the sky)
