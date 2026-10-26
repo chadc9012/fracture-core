@@ -136,6 +136,8 @@ import { NexusAirport } from "./NexusAirport";
 import { AIRPORT } from "@/game/nexus-airport";
 import { StuntPark } from "./StuntPark";
 import { kitById } from "@/game/vehicle-foundry";
+import { CLEAR_SECURITY, arrestFine, inRestricted, isDischargeOffence, jurisdictionAt, report as reportOffence, starsLabel, tick as tickSecurity, wanted, type SecurityState } from "@/game/civic-security";
+import { CivicSecurity, type SecurityFeed } from "./CivicSecurity";
 import { WORLD_BOSS, raidSiteWorld, worldBossAt, worldBossKey } from "@/game/world-boss";
 import { STUNT_PARK } from "@/game/stunt-park";
 import { NeonCity, NEON_CITY_CENTER } from "./NeonCity";
@@ -572,6 +574,7 @@ function SceneImpl({
   onVehicleCondition,
   onStuntPoints,
   onWorldBoss,
+  onArrest,
   onWaste,
   onDescent,
   summonNemesis = null,
@@ -643,6 +646,8 @@ function SceneImpl({
   onStuntPoints?: (points: number, label: string) => void;
   /** a World Boss raid (world-boss.ts) was felled by the player */
   onWorldBoss?: (raidId: string) => void;
+  /** caught by Neon police or Bastion guards (civic-security.ts): the fine to take */
+  onArrest?: (fine: number, status: string) => void;
   /** Wastelands activity results (wasteland-runtime.ts); GameCanvas resolves them into the save */
   onWaste?: (event: WasteEmit) => void;
   /** Fracture Gate descents (descent-runtime.ts): tier chests and run results; GameCanvas resolves them into the save */
@@ -748,6 +753,11 @@ function SceneImpl({
   const [pvpView, setPvpView] = useState<PvpState | null>(null);
   // World Boss raids (world-boss.ts): the raid last announced, woken and reported, and a 1 s check clock
   const worldBoss = useRef({ announced: "", woke: "", paid: "", clock: 0 });
+  // civic security (civic-security.ts): wanted heat, what the units saw this frame, the force policing where you stand
+  const security = useRef<SecurityState>(CLEAR_SECURITY);
+  const securityFeed = useRef<SecurityFeed>({ seen: false, caught: false });
+  const securityWhere = useRef<string>("none");
+  const securityStars = useRef(0);
   const neonCoreSpawned = useRef("");
   const descentSpawned = useRef("");
   const burstHeard = useRef(0);
@@ -783,6 +793,8 @@ function SceneImpl({
         return { mines: gs.mines.length, caltrops: gs.caltrops.length, drones: gs.drones.length, flares: gs.flares.length }; },
       /** debug: remember the call stack of the next time you're put out of the vehicle (window.__exitStack) */
       traceExit: () => { const st = state.current as { inVehicle: boolean }; let v = st.inVehicle; Object.defineProperty(st, "inVehicle", { get: () => v, set: (n: boolean) => { if (v && !n) (window as unknown as { __exitStack?: string }).__exitStack = new Error().stack ?? ""; v = n; }, configurable: true, enumerable: true }); return "tracing"; },
+      /** civic security check: set wanted heat (0-100) to test the chase and arrest; returns the state */
+      wanted: (heat?: number) => { if (heat !== undefined) security.current = { ...CLEAR_SECURITY, heat, lastOffenceAt: performance.now() / 1000, searchLeft: 12 }; return { ...security.current, where: securityWhere.current, stars: wanted(security.current.heat) }; },
       /** off-road check: set the vehicle's speed (m/s) to test a jump without a long run-up */
       drive: (speed = 30) => { state.current.vSpeed = speed; return speed; },
       /** off-road check: stunt score, whether the vehicle is in the air, and its grime level */
@@ -1927,6 +1939,11 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
       }
        if (fired) {
         s.shots++;
+        // a shot in Neon City or at Bastion Command with no hostile near and no activity running is a weapon discharge
+        if (!s.inVehicle && securityWhere.current !== "none") {
+          let near = Infinity; for (const m of sim.machines) if (m.alive) near = Math.min(near, Math.hypot(m.x - s.x, m.z - s.z));
+          if (isDischargeOffence(near, !!activity)) security.current = reportOffence(security.current, "weapon-discharge", securityWhere.current as "neon" | "base", performance.now() / 1000);
+        }
         bossActionLog.current = logAction(bossActionLog.current, "RANGED", performance.now() / 1000);
         sfx.playShot(s.inVehicle ? "VEHICLE" : wpn.sound);
         if (!s.inVehicle) ejectCasing(fxBus.casings, s.weapon, s.x + Math.sin(s.yaw) * 0.5, s.y + 0.9, s.z + Math.cos(s.yaw) * 0.5, s.yaw);
@@ -2479,6 +2496,19 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
           }
           for (const id of [raid.id]) { const t = worldBossKey(id); if ((sim.livingKills[t] ?? 0) > 0 && wb.paid !== id) { wb.paid = id; alert(sim, `WORLD BOSS DOWN · ${raid.site.boss}`); onWorldBoss?.(id); } }
         }
+      }
+      {
+        const where = interior ? "none" : jurisdictionAt(s.x, s.z), nowS = performance.now() / 1000;
+        securityWhere.current = where;
+        if (where === "base" && inRestricted(s.x, s.z)) security.current = reportOffence(security.current, "trespass", "base", nowS);
+        security.current = tickSecurity(security.current, securityFeed.current.seen, dt, nowS);
+        securityFeed.current.seen = false;
+        if (securityFeed.current.caught) {
+          securityFeed.current.caught = false;
+          if (security.current.heat > 0) { const f = arrestFine(security.current.heat); security.current = CLEAR_SECURITY; onArrest?.(f.fine, f.status); alert(sim, `${f.status === "detained" ? "Detained" : "Cited"} by ${where === "base" ? "Bastion Command" : "Neon Civic Automata"} · fine ${f.fine} Nex`); }
+        }
+        const w = wanted(security.current.heat);
+        if (w !== securityStars.current) { securityStars.current = w; alert(sim, w ? `${starsLabel(security.current.heat)} · ${where === "base" ? "restricted area" : "weapons discharge in the city"}` : "Wanted level cleared"); }
       }
       if (stage?.kind === "pvp") {
         const mode = PVP_MODES[stage.mode];
@@ -3607,6 +3637,7 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
       <NearOnly playerRef={player} x={NEXUS_REGION.x} z={NEXUS_REGION.z} radius={330 * NEAR_SCALE[settings.renderTier]} name="city:nexus"><NexusCity sim={sim} /><NexusSkyRail /><WorldPiece name="nexus strait bridge"><NexusBridge /></WorldPiece>{gear && <ResidenceGarages city="nexus" progression={{ nexLedger: gear.nexLedger ?? {}, housing: gear.housing, fleet: gear.fleet }} />}</NearOnly>
       {/* street level (kerbs, crossings, furniture, signals; src/game/city-streets.ts): only near enough to read */}
       {pvpView && pvp.current && <PvpField state={pvpView} center={pvp.current.center} />}
+      <NearOnly playerRef={player} x={NEON_CITY_CENTER.x} z={NEON_CITY_CENTER.z - 80} radius={420} name="civic-security"><WorldPiece name="civic security"><CivicSecurity player={player} security={security} feed={securityFeed} jurisdiction={securityWhere} /></WorldPiece></NearOnly>
       <NearOnly playerRef={player} x={AIRPORT.x} z={AIRPORT.z} radius={520} name="nexus-airport"><WorldPiece name="nexus airport"><NexusAirport /></WorldPiece></NearOnly>
       <NearOnly playerRef={player} x={STUNT_PARK.x} z={STUNT_PARK.z} radius={260} name="stunt-park"><WorldPiece name="stunt park"><StuntPark /></WorldPiece></NearOnly>
       <NearOnly playerRef={player} x={NEXUS_REGION.x} z={NEXUS_REGION.z} radius={190 * NEAR_SCALE[settings.renderTier]} name="streets:nexus"><WorldPiece name="nexus streets"><CityStreets city="nexus" tier={settings.renderTier} /></WorldPiece></NearOnly>
