@@ -623,3 +623,18 @@
 /* creator armor summary: only where it cannot cover the specialization cards (wide AND tall enough) */
 .wf-armor-aside { display: none; }
 @media (min-width: 768px) and (min-height: 700px) { .wf-armor-aside { display: block; } }
+
+/* Touch HUD contrast (from the owner's "visuals before APK" pass): readable buttons over bright scenes, no tap flash. Only the
+ * look is taken; the layout stays the one TouchControls/styles.css already set (that pass's right-edge overrides stacked buttons). */
+@media (pointer: coarse) {
+  .touch-controls { -webkit-user-select: none; user-select: none; overscroll-behavior: contain; }
+  .touch-controls button {
+    border-color: rgba(146, 233, 245, 0.75);
+    background: linear-gradient(145deg, rgba(15, 39, 59, 0.88), rgba(5, 12, 23, 0.82));
+    box-shadow: inset 0 1px rgba(220, 247, 255, 0.18), 0 2px 12px rgba(0, 0, 0, 0.35);
+    -webkit-tap-highlight-color: transparent;
+  }
+  .touch-controls button:active { background: rgba(38, 125, 157, 0.92); }
+  .touch-stick { border-color: rgba(146, 233, 245, 0.65); box-shadow: 0 0 24px rgba(36, 157, 203, 0.12); }
+}
+@media (prefers-reduced-motion: reduce) { .touch-controls button { transition: none !important; } }
