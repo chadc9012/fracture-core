@@ -169,6 +169,7 @@ private:
 	std::vector<wf::tactics::FRoundLike> PlayerRounds;
 	std::vector<wf::tactics::FGrenade> Grenades;
 	double GrenadeCool = 0, NextGrenadeId = 1;
+	int32 NextSquadIndex = 0;
 	TMap<FString, FString> FactionByRegion; // RegionFactions: region -> faction kind
 	TMap<FString, double> PendingSurvive; // survive seconds per world, sent to the quests about once a second
 

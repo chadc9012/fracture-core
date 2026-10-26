@@ -612,6 +612,9 @@ void AWFCharacter::Tick(float DeltaSeconds)
 		if (const UWFProgressionSubsystem* Progression = GetGameInstance()->GetSubsystem<UWFProgressionSubsystem>()) { ArmorFx = Progression->GetArmorEffects(); ArmorRefresh = 0.5; }
 	TickAbilities(DeltaSeconds); // cooldowns, energy, turrets and zones keep running while driving
 	TickRounds(DeltaSeconds);    // launcher rounds already in the air keep flying
+	// health.ts stepHealth: armor regen (Rootbound Recovery, Resolve...) all the time, the base rate after the delay
+	SinceDamage += DeltaSeconds;
+	if (Health > 0 && Health < MaxHealth) Health = FMath::Min(MaxHealth, Health + (ArmorFx.Regen + (SinceDamage >= RegenDelay ? RegenRate : 0.0)) * DeltaSeconds);
 	if (bInVehicle) return; // carried by a vehicle: hidden, not simulating
 	TickWeapon(DeltaSeconds);
 	TickDragon(DeltaSeconds);
@@ -619,10 +622,6 @@ void AWFCharacter::Tick(float DeltaSeconds)
 	else // Scene.tsx walk speed: Rift Dash x1.4, Siege Mode x0.8 (operator-abilities.ts siegeMoveMult)
 		GetCharacterMovement()->MaxWalkSpeed = static_cast<float>((bSprinting ? SprintSpeed : WalkSpeed) * (1 + ArmorFx.MoveSpeed) * HazardSpeedMult * (Live.DashTime > 0 ? 1.4 : 1.0) * wf::ability::SiegeMoveMult(Live.SiegeTime));
 
-	// health.ts stepHealth: after RegenDelay seconds without damage, recover RegenRate per second.
-	SinceDamage += DeltaSeconds;
-	// armor regen (Rootbound Recovery, Resolve...) runs all the time, the base rate after the delay (stepHealth bonusRate)
-	if (Health > 0 && Health < MaxHealth) Health = FMath::Min(MaxHealth, Health + (ArmorFx.Regen + (SinceDamage >= RegenDelay ? RegenRate : 0.0)) * DeltaSeconds);
 	if (GetActorLocation().Z < -50000.f) Respawn(); // fell out of the world
 }
 
@@ -882,7 +881,7 @@ void AWFCharacter::ApplyHit(double Damage, const FString& Source)
 	Damage *= SimMods.VerbIncomingMult; // Overshield (syncSimFromLive)
 	if (GetWorld()->GetTimeSeconds() < DeflectUntil) Damage *= 0.5; // hurtPlayer deflectUntil (Sun-Cutter)
 	Damage *= 1 - wf::dragon::CappedResist(0, DragonhideResist); // Dragonhide
-	Damage *= 1 - FMath::Min(wf::armor::MaxResist, ArmorFx.Resist); // the worn armor (hurtPlayer armorResist, capped at 50%)
+	Damage *= 1 - FMath::Clamp(ArmorFx.Resist, 0.0, wf::armor::MaxResist); // the worn armor (hurtPlayer armorResist, capped at 50%)
 	Health = FMath::Max(0.0, Health - Damage);
 	SinceDamage = 0;
 	LastDamageSource = Source;

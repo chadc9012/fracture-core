@@ -28,7 +28,9 @@ namespace wf::bounty
 	WORLDFRACTURECORE_API std::optional<FPayout> PayoutFor(const FLedger& Ledger, const std::string& Class, const std::string& Id, double NowMs, double Mult = 1, const std::string& Operator = "");
 	/** pay it into the ledger; 0 when already taken today */
 	WORLDFRACTURECORE_API FPayout PayInto(FLedger& Ledger, const std::string& Class, const std::string& Id, double NowMs, double Mult = 1, const std::string& Operator = "");
-	inline FPayout ClaimBossBounty(FLedger& Ledger, const std::string& ScenarioId, double NowMs, const std::string& Operator) { return PayInto(Ledger, "boss", ScenarioId, NowMs, 1, Operator); }
+	/** scenarios that pay through their own activity instead (NO_BOUNTY: Astravore is the Hollow Star raid) */
+	inline bool NoBounty(const std::string& ScenarioId) { return ScenarioId == "astravore"; }
+	inline FPayout ClaimBossBounty(FLedger& Ledger, const std::string& ScenarioId, double NowMs, const std::string& Operator) { return NoBounty(ScenarioId) ? FPayout{} : PayInto(Ledger, "boss", ScenarioId, NowMs, 1, Operator); }
 	/** older saves recorded payouts untagged: they belong to the operator who was being played */
 	WORLDFRACTURECORE_API bool TagLegacyPayouts(FLedger& Ledger, const std::string& Operator);
 	/** record one flat payout under Key (nothing when the key is already there) */

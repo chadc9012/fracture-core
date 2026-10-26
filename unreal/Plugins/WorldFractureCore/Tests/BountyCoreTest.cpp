@@ -76,6 +76,7 @@ int main(int Argc, char** Argv)
 			const FPayout P = PayInto(L, F[1], F[2], Num(F[3]), Num(F[4]), F[5] == None ? "" : F[5]);
 			Same(LineNo, "payInto", N(P.Nex) + "|" + (P.bFirst ? "1" : "0"), F[6]);
 		}
+		else if (T == "CB") { ++Payouts; const FPayout P = ClaimBossBounty(L, F[1], Num(F[2]), F[3]); Same(LineNo, "claimBossBounty", N(P.Nex) + "|" + (P.bFirst ? "1" : "0"), F[4]); }
 		else if (T == "TG") Same(LineNo, "tagLegacyPayouts", TagLegacyPayouts(L, F[1]) ? "1" : "0", F[2]);
 		else if (T == "FL") Same(LineNo, "payFlat", PayFlat(L, F[1], Num(F[2])) ? "1" : "0", F[3]);
 		else if (T == "L") Same(LineNo, "ledger", Led(L), F[1]);

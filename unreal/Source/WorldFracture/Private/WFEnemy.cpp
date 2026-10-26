@@ -5,6 +5,8 @@
 #include "AIController.h"
 #include "Components/CapsuleComponent.h"
 #include "Components/PrimitiveComponent.h"
+#include "Components/InstancedStaticMeshComponent.h"
+#include "Engine/StaticMesh.h"
 #include "Engine/OverlapResult.h"
 #include "DrawDebugHelpers.h"
 #include "Components/StaticMeshComponent.h"
@@ -161,6 +163,7 @@ void AWFEnemy::TickPerception(AWFCharacter* Operator, APawn* Target, float Delta
 {
 	const double Dt = DeltaSeconds;
 	const double Now = GetWorld()->GetTimeSeconds();
+	MeleeCooldown = FMath::Max(0.0, MeleeCooldown - Dt); // runs every frame, whatever the trooper is doing
 	AWFGameMode* Mode = GetWorld()->GetAuthGameMode<AWFGameMode>();
 	AWFVehicle* Car = Cast<AWFVehicle>(Target);
 	const FVector Me = GetActorLocation() / CmPerM, It = Target->GetActorLocation() / CmPerM;
@@ -216,7 +219,7 @@ void AWFEnemy::TickPerception(AWFCharacter* Operator, APawn* Target, float Delta
 			if (!Th) continue;
 			DiveCool = Now + wf::tactics::FDive::Cooldown;
 			if (!wf::tactics::ReactsInTime(Th->T, bElite, FMath::FRand())) break; // a miss waits out the cooldown
-			const wf::tactics::FPoint D = wf::tactics::DiveDirection(Me.X, Me.Y, {Th->X, Th->Z}, Round.Dx, Round.Dz, GetUniqueID() % 2 ? 1 : -1);
+			const wf::tactics::FPoint D = wf::tactics::DiveDirection(Me.X, Me.Y, {Th->X, Th->Z}, Round.Dx, Round.Dz, SquadIndex % 2 ? 1 : -1);
 			DiveVelocity = FVector(D.X, D.Z, 0) * wf::tactics::FDive::Speed;
 			DiveStart = Now;
 			DiveUntil = Now + wf::tactics::FDive::Seconds;
@@ -231,7 +234,7 @@ void AWFEnemy::TickPerception(AWFCharacter* Operator, APawn* Target, float Delta
 	const auto CoverGround = [SightWorld](double X, double Z) {
 		FHitResult G;
 		const FVector At(X * CmPerM, Z * CmPerM, 0);
-		return SightWorld->LineTraceSingleByChannel(G, At + FVector(0, 0, 20000), At - FVector(0, 0, 50000), ECC_WorldStatic) ? G.ImpactPoint.Z / CmPerM : 0.0;
+		return SightWorld->LineTraceSingleByObjectType(G, At + FVector(0, 0, 20000), At - FVector(0, 0, 50000), FCollisionObjectQueryParams(ECC_WorldStatic)) ? G.ImpactPoint.Z / CmPerM : 0.0;
 	};
 	const auto CoverBlocked = [SightWorld, SightSelf, Target, Operator](const wf::tactics::FPoint3& From, const wf::tactics::FPoint3& To) {
 		FHitResult H;
@@ -240,18 +243,21 @@ void AWFEnemy::TickPerception(AWFCharacter* Operator, APawn* Target, float Delta
 		Q.AddIgnoredActor(Operator);
 		return SightWorld->LineTraceSingleByChannel(H, FVector(From.X, From.Z, From.Y) * CmPerM, FVector(To.X, To.Z, To.Y) * CmPerM, ECC_Visibility, Q);
 	};
-	const wf::tactics::FPoint3 Eye{It.X, It.Z + 0.5, It.Y};
+	// the player's eye: feet + 1.6 m (sim.ts playerEye); the pawn origin is mid-capsule
+	const double PlayerFeet = It.Z - (Cast<ACharacter>(Target) ? Cast<ACharacter>(Target)->GetCapsuleComponent()->GetScaledCapsuleHalfHeight() / CmPerM : 0.0);
+	const wf::tactics::FPoint3 Eye{It.X, PlayerFeet + 1.6, It.Y};
 	// a wounded trooper takes cover: real cover first (enemy-cover.ts findCover), else a retreat point (pickCover)
 	if (bAlert && Ai.CoverTime <= 0 && wf::perception::ShouldTakeCover(Health / FMath::Max(1.0, MaxHealth), Ai.CoverTime, bBoss) && Distance < 45 && R.bDamaged)
 	{
 		if (const std::optional<wf::tactics::FCoverSpot> Real = wf::tactics::FindCover(Me.X, Me.Y, Eye, CoverCandidates(), CoverGround, CoverBlocked))
 		{
 			Ai.CoverX = Real->X; Ai.CoverZ = Real->Z; PeekX = Real->PeekX; PeekZ = Real->PeekZ; bRealCover = true;
+			ProgressBest = 1e9; ProgressAt = Now;
 			HideLeft = wf::tactics::HideSeconds; Ai.CoverTime = wf::tactics::CoverHold; Windup = -1;
 		}
 		else
 		{
-			const wf::perception::FPoint C = wf::perception::PickCover(Me.X, Me.Y, It.X, It.Y, GetUniqueID() % 2 ? 1 : -1);
+			const wf::perception::FPoint C = wf::perception::PickCover(Me.X, Me.Y, It.X, It.Y, SquadIndex % 2 ? 1 : -1);
 			Ai.CoverX = C.X; Ai.CoverZ = C.Z; Ai.CoverTime = 3.5; bRealCover = false;
 		}
 	}
@@ -273,7 +279,9 @@ void AWFEnemy::TickPerception(AWFCharacter* Operator, APawn* Target, float Delta
 		const std::string Phase = bAtCover ? wf::tactics::CoverPhase(HideLeft, Windup >= 0, RangedCooldown) : "RUN";
 		const double Tx = Phase == "PEEK" ? PeekX : Ai.CoverX, Tz = Phase == "PEEK" ? PeekZ : Ai.CoverZ;
 		const double Cd = FVector::Dist2D(Me, FVector(Tx, Tz, 0));
-		if (Cd > 0.4) MoveTo(Tx, Tz, Phase == "RUN" ? 1.f : 0.65f);
+		// no pathing: a run that stops closing on the cover (an obstacle in the way) gives the cover up after 2 s
+		if (Phase == "RUN" && MadeNoProgress(Cd, Now)) { Ai.CoverTime = 0; bRealCover = false; return; }
+		if (Cd > 0.4) MoveTo(Tx, Tz, Phase == "RUN" ? 1.f : 0.8f);
 		if (Phase != "RUN") SetActorRotation(FRotator(0.f, Flat.Rotation().Yaw, 0.f));
 		if (Phase == "HIDE") { HideLeft = FMath::Max(0.0, HideLeft - Dt); RangedCooldown -= Dt; Windup = -1; }
 		else if (Phase == "PEEK" && Cd < 0.6 && !bScripted)
@@ -296,8 +304,8 @@ void AWFEnemy::TickPerception(AWFCharacter* Operator, APawn* Target, float Delta
 	}
 	if (bAlert)
 	{
-		const int32 Index = static_cast<int32>(GetUniqueID() % 1024);
-		const std::string Role = wf::tactics::SquadRole(Index, bElite, bBoss);
+		const int32 Index = SquadIndex;
+		const std::string SquadRoleName = wf::tactics::SquadRole(Index, bElite, bBoss);
 		// the player has gone to ground: lob a grenade over the cover at where they were last seen (one squad grenade at a time)
 		if (!bScripted && Mode && wf::tactics::ThrowsGrenades(WFData::ToStd(Kind)) && HiddenFor >= wf::tactics::GrenadeAfter && Distance >= wf::tactics::FGrenadeTuning::MinRange
 			&& Distance <= wf::tactics::FGrenadeTuning::MaxRange && Now >= GrenadeAt && Windup < 0 && Mode->CanThrowGrenade())
@@ -310,14 +318,14 @@ void AWFEnemy::TickPerception(AWFCharacter* Operator, APawn* Target, float Delta
 			return;
 		}
 		// ...and a couple of troopers swing round the side to find a line on them
-		if (!bFlanking && !bScripted && !bBoss && Role != "LEADER" && HiddenFor >= wf::tactics::FlankAfter && Mode && Mode->CountFlankers() < wf::tactics::MaxFlankers)
+		if (!bFlanking && !bScripted && !bBoss && SquadRoleName != "LEADER" && HiddenFor >= wf::tactics::FlankAfter && Mode && Mode->CountFlankers() < wf::tactics::MaxFlankers)
 		{
 			UWorld* World = GetWorld();
 			const AActor* Self = this;
 			const auto Ground = [World](double X, double Z) {
 				FHitResult G;
 				const FVector At(X * CmPerM, Z * CmPerM, 0);
-				return World->LineTraceSingleByChannel(G, At + FVector(0, 0, 20000), At - FVector(0, 0, 50000), ECC_WorldStatic) ? G.ImpactPoint.Z / CmPerM : 0.0;
+				return World->LineTraceSingleByObjectType(G, At + FVector(0, 0, 20000), At - FVector(0, 0, 50000), FCollisionObjectQueryParams(ECC_WorldStatic)) ? G.ImpactPoint.Z / CmPerM : 0.0;
 			};
 			const auto Blocked = [World, Self, Target](const wf::tactics::FPoint3& From, const wf::tactics::FPoint3& To) {
 				FHitResult H;
@@ -325,20 +333,23 @@ void AWFEnemy::TickPerception(AWFCharacter* Operator, APawn* Target, float Delta
 				Q.AddIgnoredActor(Target);
 				return World->LineTraceSingleByChannel(H, FVector(From.X, From.Z, From.Y) * CmPerM, FVector(To.X, To.Z, To.Y) * CmPerM, ECC_Visibility, Q);
 			};
-			if (const std::optional<wf::tactics::FPoint> Spot = wf::tactics::FindFlankSpot(Me.X, Me.Y, {It.X, It.Z, It.Y}, GetUniqueID() % 2 ? 1 : -1, Ground, Blocked))
+			if (const std::optional<wf::tactics::FPoint> Spot = wf::tactics::FindFlankSpot(Me.X, Me.Y, Eye, SquadIndex % 2 ? 1 : -1, Ground, Blocked))
 			{
 				bFlanking = true; Flank = *Spot; FlankUntil = Now + wf::tactics::FlankGiveUp;
+				ProgressBest = 1e9; ProgressAt = Now;
 			}
 		}
 		if (bFlanking && (Now > FlankUntil || bLosClear || FVector::Dist2D(Me, FVector(Flank.X, Flank.Z, 0)) < 1.5)) bFlanking = false;
+		// no pathing: a flank that stops closing on its spot (blocked by the level) is given up after 2 s
+		if (bFlanking && MadeNoProgress(FVector::Dist2D(Me, FVector(Flank.X, Flank.Z, 0)), Now)) bFlanking = false;
 		if (bFlanking)
 		{
-			MoveTo(Flank.X, Flank.Z, 1.f); // running the flank, guns up
-			if (bLosClear) { SetActorRotation(FRotator(0.f, Flat.Rotation().Yaw, 0.f)); TryAttack(Operator, Car, Distance, DeltaSeconds); }
+			MoveTo(Flank.X, Flank.Z, 1.f); // running the flank, guns up (it ends the moment there is a line of fire)
+			RangedCooldown -= Dt;
 			return;
 		}
 		// squad role and threat drive positioning (enemy-intelligence.ts squadMove), not a straight chase
-		const wf::tactics::FMove M = wf::tactics::SquadMove(Role, Distance, Operator->GetHealth() / AWFCharacter::MaxHealth, Mode ? Mode->GetCombatHeat() : 0, Now + Index,
+		const wf::tactics::FMove M = wf::tactics::SquadMove(SquadRoleName, Distance, Operator->GetHealth() / AWFCharacter::MaxHealth, Mode ? Mode->GetCombatHeat() : 0, Now + Index,
 			Operator->GetSquadArchetype(), Operator->IsReflecting(), Operator->GetBranchPosture());
 		const FVector Side(-Flat.Y, Flat.X, 0); // rules (-nz, nx) on Unreal (X, Y)
 		const FVector Wish = Flat * M.Forward + Side * M.Strafe;
@@ -372,6 +383,12 @@ void AWFEnemy::TickPerception(AWFCharacter* Operator, APawn* Target, float Delta
 	else MoveTo(Ai.WpX, Ai.WpZ, static_cast<float>(5.0 / (SpeedBase * (bElite ? SpeedElite : 1.0))));
 }
 
+bool AWFEnemy::MadeNoProgress(double DistanceToGoal, double Now)
+{
+	if (DistanceToGoal < ProgressBest - 0.3) { ProgressBest = DistanceToGoal; ProgressAt = Now; return false; }
+	return Now - ProgressAt > 2;
+}
+
 void AWFEnemy::TryAttack(AWFCharacter* Operator, AWFVehicle* Car, double Distance, float DeltaSeconds)
 {
 	// a hit on a driving Operator also wears the vehicle (Scene.tsx: impactVehicle by the hp lost + 2)
@@ -380,7 +397,6 @@ void AWFEnemy::TryAttack(AWFCharacter* Operator, AWFVehicle* Car, double Distanc
 		Operator->ApplyHit(Damage, Profile);
 		if (Car && Operator->GetHealth() < Before) Car->TakeEnemyFire(Before - Operator->GetHealth());
 	};
-	MeleeCooldown = FMath::Max(0.0, MeleeCooldown - DeltaSeconds);
 	if (Distance <= MeleeRange && MeleeCooldown <= 0)
 	{
 		Hurt(Tier(7, 12, 17) * PhaseDamageMult);
@@ -422,19 +438,27 @@ std::vector<wf::tactics::FCoverCandidate> AWFEnemy::CoverCandidates() const
 	FCollisionQueryParams Q(SCENE_QUERY_STAT(WFCoverSearch), false, this);
 	const float Radius = static_cast<float>((wf::tactics::CoverSearch + 6) * CmPerM);
 	if (!GetWorld()->OverlapMultiByObjectType(Hits, GetActorLocation(), FQuat::Identity, FCollisionObjectQueryParams(ECC_WorldStatic), FCollisionShape::MakeSphere(Radius), Q)) return Out;
-	TSet<const UPrimitiveComponent*> Seen;
+	TSet<TPair<const UPrimitiveComponent*, int32>> Seen;
 	for (const FOverlapResult& H : Hits)
 	{
 		const UPrimitiveComponent* C = H.GetComponent();
-		if (!C || Seen.Contains(C)) continue;
-		Seen.Add(C);
-		const FBoxSphereBounds B = C->Bounds;
+		if (!C) continue;
+		if (C->GetClass()->GetName().Contains(TEXT("Landscape"))) continue; // the terrain is ground, not cover
+		const UInstancedStaticMeshComponent* Ism = Cast<UInstancedStaticMeshComponent>(C);
+		const int32 Item = Ism ? H.ItemIndex : INDEX_NONE;
+		if (Seen.Contains(TPair<const UPrimitiveComponent*, int32>(C, Item))) continue;
+		Seen.Add(TPair<const UPrimitiveComponent*, int32>(C, Item));
+		FBoxSphereBounds B = C->Bounds;
+		if (Ism) // a cluster's bounds span every instance: use the instance that was hit
+		{
+			FTransform Xf;
+			if (Item == INDEX_NONE || !Ism->GetStaticMesh() || !Ism->GetInstanceTransform(Item, Xf, true)) continue;
+			B = Ism->GetStaticMesh()->GetBounds().TransformBy(Xf);
+		}
 		const double Half = FMath::Max(B.BoxExtent.X, B.BoxExtent.Y) / CmPerM;
 		if (Half < 0.5 || Half > 12) continue; // a post, or the ground itself
 		const double Top = (B.Origin.Z + B.BoxExtent.Z) / CmPerM;
-		FHitResult G;
-		const FVector Base(B.Origin.X, B.Origin.Y, B.Origin.Z);
-		const double Floor = GetWorld()->LineTraceSingleByChannel(G, Base + FVector(0, 0, 100), Base - FVector(0, 0, 50000), ECC_WorldStatic, Q) && G.GetComponent() != C ? G.ImpactPoint.Z / CmPerM : (B.Origin.Z - B.BoxExtent.Z) / CmPerM;
+		const double Floor = (B.Origin.Z - B.BoxExtent.Z) / CmPerM; // its own base
 		if (Top - Floor < wf::tactics::CoverChest + 0.1) continue; // a kerb, not cover
 		Out.push_back({B.Origin.X / CmPerM, B.Origin.Y / CmPerM, Half});
 	}

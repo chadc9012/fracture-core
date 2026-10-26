@@ -7,11 +7,11 @@
  * Lines are tab-separated; "~" = absent. C starts a ledger; then
  *   PF class id nowMs mult operator -> key|nex|first or ~      PI (same, pays) -> key|nex|first or ~ ; then L ledger
  *   TG operator -> changed ; L ledger       FL key nex -> 0/1 ; L ledger       SEED key value (a ledger entry)
- *   DAY nowMs -> YYYY-MM-DD
+ *   DAY nowMs -> YYYY-MM-DD      CB scenarioId nowMs operator -> nex|first (claimBossBounty, NO_BOUNTY honoured) ; L ledger
  */
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { payoutFor, payInto, tagLegacyPayouts, payFlat, type PayoutClass } from "../../src/game/activity-payouts";
+import { payoutFor, payInto, tagLegacyPayouts, payFlat, claimBossBounty, type PayoutClass } from "../../src/game/activity-payouts";
 import type { NexLedger } from "../../src/game/nex";
 
 const OUT = join(process.cwd(), "unreal", "Plugins", "WorldFractureCore", "Tests", "bounty_golden.txt");
@@ -44,6 +44,7 @@ for (let c = 0; c < 400; c++) {
     if (r < 0.06) { const op = pick(OPS.slice(1)); const t = tagLegacyPayouts(ledger, op); out("TG", op, t !== ledger ? 1 : 0); ledger = t; out("L", led(ledger)); continue; }
     if (r < 0.1) { const key = pick(["payout:secret:x", "payout:secret:y", `payout:cache:c${k % 3}@2026-10-25`]), nex = pick([400, 60]); const before = ledger; const p = payFlat({ nexLedger: ledger }, key, nex); ledger = p.nexLedger ?? {}; out("FL", key, nex, ledger !== before ? 1 : 0); out("L", led(ledger)); continue; }
     if (r < 0.2) now += pick([1000, DAY, 3 * DAY, DAY / 2]);
+    if (r < 0.28) { const sid = pick(["astravore", "dark-knight", "vyrak", "hollow-saint"]), op = pick(OPS.slice(1)); const res = claimBossBounty({ nexLedger: ledger, pocketClass: op }, sid, now); out("CB", sid, now, op, `${n(res.paid)}|${res.first ? 1 : 0}`); ledger = res.progression.nexLedger; out("L", led(ledger)); continue; }
     const cls = pick(CLASSES), id = pick(IDS), mult = pick([1, 1, 1.5, 2.25, 0.7]), op = pick(OPS);
     if (r < 0.5) { const p = payoutFor(ledger, cls, id, now, mult, op || undefined); out("PF", cls, id, now, mult, op || NONE, p ? `${p.key}|${n(p.nex)}|${p.first ? 1 : 0}` : NONE); }
     else {

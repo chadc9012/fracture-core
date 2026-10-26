@@ -99,6 +99,8 @@ public:
 	void SetKind(const FString& InKind) { Kind = InKind; }
 	/** running a flank round a hidden player (enemy-tactics.ts: at most MAX_FLANKERS at once) */
 	bool IsFlanking() const { return bFlanking; }
+	/** the spawn order in the squad (sim.ts machine index): squad role and which way it swings */
+	void SetSquadIndex(int32 InIndex) { SquadIndex = InIndex; }
 
 protected:
 	UPROPERTY(VisibleAnywhere, Category = "Body") TObjectPtr<UStaticMeshComponent> Body;
@@ -139,6 +141,9 @@ private:
 	wf::tactics::FPoint Flank;
 	double FlankUntil = 0, GrenadeAt = 0, DiveUntil = 0, DiveStart = 0, DiveCool = 0;
 	FVector DiveVelocity = FVector::ZeroVector; // m/s
+	int32 SquadIndex = 0;
+	double ProgressBest = 1e9, ProgressAt = 0; // getting closer to a cover or flank spot (no pathing)
+	bool MadeNoProgress(double DistanceToGoal, double Now);
 	bool bRealCover = false;       // a cover spot with a lean-out (ai.peekX in sim.ts)
 	double PeekX = 0, PeekZ = 0, HideLeft = 0;
 	/** chest-high static geometry within reach (enemy-cover.ts coverCandidates, from the level instead of the obstacle map) */

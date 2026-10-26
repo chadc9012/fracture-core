@@ -256,7 +256,9 @@ bool AWFGameMode::CanThrowGrenade() const
 void AWFGameMode::ThrowGrenade(const FVector& FromM, const FVector& TargetM)
 {
 	// rules points are (x, y up, z): Unreal (X, Z, Y)
-	const double TargetGround = GroundZ(TargetM.X * EncCmPerM, TargetM.Y * EncCmPerM, TargetM.Z * EncCmPerM) / EncCmPerM;
+	FHitResult Floor;
+	const FVector Over(TargetM.X * EncCmPerM, TargetM.Y * EncCmPerM, 0);
+	const double TargetGround = GetWorld()->LineTraceSingleByObjectType(Floor, Over + FVector(0, 0, 500000), Over - FVector(0, 0, 500000), FCollisionObjectQueryParams(ECC_WorldStatic)) ? Floor.ImpactPoint.Z / EncCmPerM : TargetM.Z - 1;
 	const wf::tactics::FLob V = wf::tactics::LobVelocity({FromM.X, FromM.Z, FromM.Y}, {TargetM.X, TargetGround, TargetM.Y});
 	wf::tactics::FGrenade G;
 	G.X = FromM.X; G.Y = FromM.Z; G.Z = FromM.Y; G.Vx = V.Vx; G.Vy = V.Vy; G.Vz = V.Vz; G.Fuse = wf::tactics::FGrenadeTuning::Fuse; G.Id = NextGrenadeId++;
@@ -285,7 +287,13 @@ void AWFGameMode::TickGrenades(float DeltaSeconds)
 	if (Car) { Car->AppendRounds(PlayerRounds); Player = Car->GetDriver(); }
 	if (Player) Player->AppendRounds(PlayerRounds);
 	if (Grenades.empty()) return;
-	const auto Ground = [this](double X, double Z) { return GroundZ(X * EncCmPerM, Z * EncCmPerM, 0) / EncCmPerM; };
+	// static geometry only (a grenade rests on the ground, not on a trooper's head), from well above any terrain
+	UWorld* World = GetWorld();
+	const auto Ground = [World](double X, double Z) {
+		FHitResult Hit;
+		const FVector At(X * EncCmPerM, Z * EncCmPerM, 0);
+		return World->LineTraceSingleByObjectType(Hit, At + FVector(0, 0, 500000), At - FVector(0, 0, 500000), FCollisionObjectQueryParams(ECC_WorldStatic)) ? Hit.ImpactPoint.Z / EncCmPerM : -1e9;
+	};
 	for (size_t I = Grenades.size(); I-- > 0;)
 	{
 		wf::tactics::FGrenade& G = Grenades[I];
@@ -303,7 +311,7 @@ void AWFGameMode::TickGrenades(float DeltaSeconds)
 			FHitResult H;
 			FCollisionQueryParams Q(SCENE_QUERY_STAT(WFGrenade), false, Pawn);
 			Q.AddIgnoredActor(Player);
-			const bool bCovered = GetWorld()->LineTraceSingleByChannel(H, At + FVector(0, 0, 40), Chest, ECC_Visibility, Q);
+			const bool bCovered = GetWorld()->LineTraceSingleByObjectType(H, At + FVector(0, 0, 40), Chest, FCollisionObjectQueryParams(ECC_WorldStatic), Q); // walls cover, troopers don't
 			const double Dmg = wf::tactics::GrenadeDamage(Dist, bCovered);
 			if (Dmg > 0)
 			{
@@ -401,6 +409,7 @@ void AWFGameMode::SyncSummons()
 		{
 			Trooper->Configure(WFData::ToF(S.Profile), RegionId, TEXT("dataShards"), S.bElite, false, S.Hp); // hp already x challenge
 			Trooper->SetKind(WFData::ToF(S.Kind));
+			Trooper->SetSquadIndex(NextSquadIndex++);
 			Trooper->ConfigureSummon(S.Id, S.Scale);
 			Trooper->FinishSpawning(Spawn);
 			SummonActors.Add(Id, Trooper);
@@ -432,15 +441,17 @@ void AWFGameMode::ShowEncounterEvents()
 		else if (E.Kind == "SUMMON") Toast(FString::Printf(TEXT("%s joins the fight"), *Text), EncWarn);
 		else if (E.Kind == "PHASE" || E.Kind == "TRUCE" || E.Kind == "RESET" || E.Kind == "DEPART" || E.Kind == "DECOY_SHATTER") Toast(Text, EncCyan);
 		else if (E.Kind == "FINALE" || E.Kind == "VICTORY") Toast(Text, EncGold);
+		else if (E.Kind == "IMPACT" && E.Hit && *E.Hit) Toast(FString::Printf(TEXT("%s hit you"), *Text), EncWarn);
 		// a real kill's VICTORY pays the boss bounty to the operator being played (Scene.tsx BOSS_BOUNTY)
 		if (E.Kind == "VICTORY" && !E.ScenarioId.empty())
+		{
 			if (UWFProgressionSubsystem* Progression = GetGameInstance()->GetSubsystem<UWFProgressionSubsystem>())
 			{
 				bool bFirst = false;
 				const double Paid = Progression->ClaimBossBounty(WFData::ToF(E.ScenarioId), bFirst);
 				if (Paid > 0) Toast(FString::Printf(TEXT("%s paid: NEX %s"), bFirst ? TEXT("Boss bounty") : TEXT("Daily boss bounty"), *FText::AsNumber(static_cast<int64>(Paid)).ToString()), EncGold);
 			}
-		else if (E.Kind == "IMPACT" && E.Hit && *E.Hit) Toast(FString::Printf(TEXT("%s hit you"), *Text), EncWarn);
+		}
 	}
 }
 
@@ -562,6 +573,8 @@ void AWFGameMode::SpawnScenarioBoss(const FString& ScenarioId)
 	if (AWFEnemy* Boss = World->SpawnActorDeferred<AWFEnemy>(AWFEnemy::StaticClass(), Spawn, nullptr, nullptr, ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn))
 	{
 		Boss->Configure(Found->BossName, Found->RegionId, Found->Drop, true, true, MaxHealth);
+		if (const FString* Faction = FactionByRegion.Find(Found->RegionId)) Boss->SetKind(*Faction); // sim.ts factionOf(scenario.regionId)
+		Boss->SetSquadIndex(NextSquadIndex++);
 		Boss->FinishSpawning(Spawn);
 		Boss->ConfigureScenario(Found->Id);
 		if (HasEncounter(Found->Id)) Toast(FString::Printf(TEXT("%s - read the tells, survive, punish the opening"), *Found->BossName), EncWarn);
@@ -594,6 +607,7 @@ void AWFGameMode::SpawnTrooper()
 	{
 		Enemy->Configure(Troop.Name, RegionId, Troop.Drop, bElite, false, MaxHealth);
 		if (const FString* Faction = FactionByRegion.Find(RegionId)) Enemy->SetKind(*Faction);
+		Enemy->SetSquadIndex(NextSquadIndex++); // sim.ts: the machine index sets the squad role and swing side
 		Enemy->FinishSpawning(At);
 		Squad.Add(Enemy);
 	}
