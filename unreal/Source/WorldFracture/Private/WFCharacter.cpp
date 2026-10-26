@@ -835,6 +835,17 @@ void AWFCharacter::RefreshRelic()
 	// Scene.tsx: in a vehicle the equipped weapon is the vehicle slot's, so no foundry and no relic in hand
 	const wf::FGearItem* Item = Progression && W && !bInVehicle ? Progression->GetEquippedWeaponItem(W->Id, W->Kind, false) : nullptr;
 	Foundry = UTF8_TO_TCHAR(wf::foundry::FoundryOf(Item).c_str());
+	EquippedElement = Item && !Item->Element.empty() ? FString(UTF8_TO_TCHAR(Item->Element.c_str())) : FString(TEXT("KINETIC"));
+	// Scene.tsx: a different evolution restarts its hit count; a different perk clears the charge but keeps the lockout
+	const FString Evo = Item && Item->Evolution ? FString(UTF8_TO_TCHAR(Item->Evolution->Ability.c_str())) : FString();
+	if (Evo != EquippedEvolution) { EvoCharge = {}; EquippedEvolution = Evo; }
+	const FString Perk = Item && Item->Perk ? FString(UTF8_TO_TCHAR(Item->Perk->c_str())) : FString();
+	if (Perk != EquippedPerk)
+	{
+		wf::hit::FNullCharge Kept; Kept.CooldownUntil = NullCharge.CooldownUntil; Kept.LastEventId = NullCharge.LastEventId; NullCharge = Kept;
+		Maw = wf::hit::ResetMaw(Maw);
+		EquippedPerk = Perk;
+	}
 	FString Key;
 	if (Item && Item->Godforge)
 	{
@@ -846,6 +857,7 @@ void AWFCharacter::RefreshRelic()
 	RelicKey = Key;
 	RuneFx = wf::godforge::RuneCombat(Item && Item->Godforge ? &*Item->Godforge : nullptr);
 	DevourHits = 0;
+	RuneCharges.assign(RuneFx.Bursts.size(), wf::hit::FCharge{});
 	RelicId = Item && Item->Godforge ? FString(UTF8_TO_TCHAR(Item->Id.c_str())) : FString();
 }
 
@@ -894,10 +906,29 @@ void AWFCharacter::FireRound()
 			{
 				// gear power, Tex Mechanica's hip fire, armor, Rage / Siege; then sim.ts runeDamageMult and Häkke's Wall-Piercer on elites and bosses
 				double Dmg = W->Damage * GearPowerFor(*W) * Fr.HipMult * (1 + ArmorFx.WeaponDamage) * WFWeapons::BaseBulletDamage * SimMods.VerbDamageMult;
+				if (EquippedElement != TEXT("KINETIC")) Dmg += 0.35; // sim.ts: an elemental weapon item hits a little harder
+				// weapon-meta.ts: the range band from where it was fired, a head-band hit's precision, the class's signature weapons
+				const FVector EL = Enemy->GetActorLocation();
+				const double Scale = Enemy->GetActorScale3D().X;
+				const double Feet = (EL.Z - Enemy->GetCapsuleComponent()->GetScaledCapsuleHalfHeight()) / CmPerMeter;
+				const FString Part = UTF8_TO_TCHAR(wf::hit::HitPart(Hit.ImpactPoint.Z / CmPerMeter, Feet + 0.2, 1.85 * wf::hit::EnemyBodyScaleOf(Scale)).c_str());
+				const bool bPrecision = !Enemy->IsBoss() && Part == TEXT("HEAD");
+				Dmg *= wf::hit::HitMultiplier(WFData::ToStd(W->Id), FVector::Dist2D(EL, Start) / CmPerMeter, bPrecision, MoveClass());
+				const bool bChilled = Enemy->IsChilled();
+				if (!EquippedEvolution.IsEmpty()) Dmg *= wf::hit::EvolutionDamageMult(WFData::ToStd(EquippedEvolution), bChilled);
 				const bool bArmored = Enemy->IsElite() || Enemy->IsBoss();
-				if (!RuneFx.Bursts.empty() || RuneFx.bDevour || RuneFx.bRift || RuneFx.bAwakened) Dmg *= wf::godforge::RuneDamageMult(RuneFx, DevourHits, bArmored);
+				if (!RuneFx.Bursts.empty() || RuneFx.bDevour || RuneFx.bRift || RuneFx.bAwakened)
+				{
+					Dmg *= wf::godforge::RuneDamageMult(RuneFx, DevourHits, bArmored);
+					if (std::find(RuneFx.Bursts.begin(), RuneFx.Bursts.end(), "RIME_SHATTER") != RuneFx.Bursts.end()) Dmg *= wf::hit::EvolutionDamageMult("RIME_SHATTER", bChilled); // the Frost rune
+				}
 				if (Foundry == TEXT("HAKKE") && bArmored) Dmg *= wf::foundry::Rules.HakkeArmored;
-				Enemy->TakeHit(Dmg, this, W->Element);
+				// the bullet's element is the gun's own, else the equipped item's
+				const bool bGunElement = !W->Element.IsEmpty() && W->Element != TEXT("KINETIC");
+				const FString BulletElement = bGunElement ? W->Element : EquippedElement;
+				const double Dealt = Enemy->TakeHit(Dmg, this, BulletElement);
+				AfterBulletHit(Enemy, Dealt, bGunElement ? W->Element : FString(), Start);
+				if (IsValid(Enemy) && !Enemy->IsDead()) Enemy->ReactToHit(Dealt, Part, (EL.X - Start.X) / CmPerMeter, (EL.Y - Start.Y) / CmPerMeter);
 				// sim.ts: a bullet shoves along its flight, velocity (130 m/s) x 0.06 x the weapon's knock per pellet
 				double Kx = 0, Kz = 0;
 				wf::arms::BulletKnock(Kx, Kz, Dir.X * 130, Dir.Y * 130, W->Knock / W->Pellets);
@@ -1052,6 +1083,7 @@ void AWFCharacter::DetonateRound(const wf::vweapons::FBurst& Burst, double Knock
 		const double Damage = wf::vweapons::SplashDamage(Burst, Dist);
 		if (Damage <= 0) continue;
 		E->TakeHit(Damage, this, Element);
+		if (IsValid(E) && !E->IsDead()) E->ApplyWeaponElement(Element); // sim.ts: the burst carries the launcher's element
 		const double Fall = 1 - FMath::Min(1.0, Dist / Burst.Radius), N = Planar > 0 ? Planar : 1;
 		E->AddKnock(Dx / N * 7 * Knock * Fall, Dz / N * 7 * Knock * Fall);
 	}
@@ -1388,4 +1420,73 @@ void AWFCharacter::OnEnemyKilled(AWFEnemy* Victim)
 	if (Best->IsBoss()) Best->TakeHitLeaving(wf::foundry::Rules.NaniteDamage, this, TEXT("KINETIC"), 0.01); // a boss is left at 0.01
 	else Best->TakeHit(wf::foundry::Rules.NaniteDamage, this, TEXT("KINETIC"));
 	bNaniteChain = false;
+}
+
+void AWFCharacter::AbilityBurst(AWFEnemy* Victim, double Dealt, const FString& Ability)
+{
+	const wf::hit::FAbilityRule* Rule = wf::hit::AbilityRule(WFData::ToStd(Ability));
+	if (!Rule || !IsValid(Victim)) return;
+	const FString Element = UTF8_TO_TCHAR(wf::hit::RuinElementOf(Rule->Id).c_str());
+	TArray<AWFEnemy*> Live;
+	std::vector<wf::hit::FPoint> Points;
+	for (TActorIterator<AWFEnemy> It(GetWorld()); It; ++It)
+	{
+		if (*It == Victim || It->IsDead() || It->IsDecoy()) continue;
+		Live.Add(*It);
+		Points.push_back({It->GetActorLocation().X / CmPerMeter, It->GetActorLocation().Y / CmPerMeter});
+	}
+	const FVector V = Victim->GetActorLocation() / CmPerMeter;
+	for (size_t K : wf::hit::BurstTargets({V.X, V.Y}, Points, Rule->Id))
+	{
+		AWFEnemy* O = Live[static_cast<int32>(K)];
+		if (!IsValid(O) || O->IsDead()) continue;
+		if (Rule->BurstFraction > 0) O->TakeHit(Dealt * Rule->BurstFraction, this, Element);
+		O->ApplyWeaponElement(Element);
+		if (Rule->Stun > 0) O->StunMachine(Rule->Stun);
+	}
+	DrawDebugSphere(GetWorld(), Victim->GetActorLocation(), static_cast<float>(Rule->Radius * CmPerMeter), 16, FColor(170, 120, 255), false, 0.3f, 0, 2.f);
+}
+
+void AWFCharacter::AfterBulletHit(AWFEnemy* Victim, double Dealt, const FString& WeaponElement, const FVector& From)
+{
+	if (!IsValid(Victim)) return;
+	const double Now = GetWorld()->GetTimeSeconds();
+	const bool bTimed = Victim->IsWindingUp() || (Victim->IsBoss() && (wf::encounter::IsWeakPointOpen(Victim->Rules().Poise, Now) || wf::encounter::IsStaggered(Victim->Rules().Poise, Now)));
+	if (!WeaponElement.IsEmpty()) Victim->ApplyWeaponElement(WeaponElement);
+	// weapon-evolution.ts: every Nth hit of an evolved weapon bursts
+	if (!EquippedEvolution.IsEmpty() && wf::hit::RegisterEvolutionHit(EvoCharge, WFData::ToStd(EquippedEvolution))) AbilityBurst(Victim, Dealt, EquippedEvolution);
+	// godforge.ts: each burst rune keeps its own count
+	for (size_t K = 0; K < RuneFx.Bursts.size() && K < RuneCharges.size(); ++K)
+		if (wf::hit::RegisterEvolutionHit(RuneCharges[K], RuneFx.Bursts[K])) AbilityBurst(Victim, Dealt, UTF8_TO_TCHAR(RuneFx.Bursts[K].c_str()));
+	const FVector At = Victim->GetActorLocation();
+	if (EquippedPerk == UTF8_TO_TCHAR(wf::hit::NullPerk.c_str()) && wf::hit::RegisterNullHit(NullCharge, Now, bTimed, ++HitEventId))
+	{
+		// null-disruption.ts: the pulse stuns everything within 14 m and breaks boss poise
+		for (TActorIterator<AWFEnemy> It(GetWorld()); It; ++It)
+		{
+			if (It->IsDead() || FVector::Dist2D(It->GetActorLocation(), At) / CmPerMeter > wf::hit::NullPulseRadius) continue;
+			It->StunMachine(wf::hit::NullPulseStun);
+			if (It->IsBoss()) { double Mult = 1; It->Rules().Poise = wf::encounter::HitPoise(It->Rules().Poise, wf::hit::NullPulsePoise, Now, Mult); }
+		}
+		DrawDebugSphere(GetWorld(), At, static_cast<float>(wf::hit::NullPulseRadius * CmPerMeter), 24, FColor(80, 230, 255), false, 0.5f, 0, 3.f);
+		Notify(TEXT("NULL DISRUPTION - pulse released"), FLinearColor(0.3f, 0.9f, 1.f));
+	}
+	if (EquippedPerk == UTF8_TO_TCHAR(wf::hit::MawPerk.c_str()) && wf::hit::RegisterMawHit(Maw, Now, ++HitEventId))
+	{
+		// maw-collapse.ts: everything within 10 m is dragged in and takes 60% of the hit, straight off its health
+		TArray<AWFEnemy*> Caught;
+		for (TActorIterator<AWFEnemy> It(GetWorld()); It; ++It) if (*It != Victim && !It->IsDead()) Caught.Add(*It);
+		for (AWFEnemy* O : Caught)
+		{
+			if (!IsValid(O) || O->IsDead()) continue;
+			const FVector D = (O->GetActorLocation() - At) / CmPerMeter;
+			if (const std::optional<wf::hit::FMawEffect> E = wf::hit::MawEffect(D.X, D.Y, Dealt)) { O->AddKnock(E->PullX, E->PullZ); O->TakeRawDamage(E->Damage, this); }
+		}
+		DrawDebugSphere(GetWorld(), At, static_cast<float>(wf::hit::MawRadius * CmPerMeter), 24, FColor(150, 60, 255), false, 0.5f, 0, 3.f);
+		Notify(TEXT("MAW COLLAPSE - singularity released"), FLinearColor(0.7f, 0.4f, 1.f));
+	}
+	// sim.ts: a cryo or arc weapon item holds the target's next attack even when the gun itself has no element
+	if (WeaponElement.IsEmpty() && IsValid(Victim) && !Victim->IsDead() && (EquippedElement == TEXT("CRYO") || EquippedElement == TEXT("ARC")))
+		Victim->StunMachine(EquippedElement == TEXT("CRYO") ? 0.9 : 0.6);
+	(void)From;
 }

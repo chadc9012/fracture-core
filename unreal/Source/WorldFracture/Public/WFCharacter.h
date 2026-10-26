@@ -10,6 +10,7 @@
 #include "Core/WFMoveCore.h"
 #include "Core/WFGodforgeCore.h"
 #include "Core/WFNemesisCore.h"
+#include "Core/WFHitCore.h"
 #include "WFWeapons.h"
 #include "WFCharacter.generated.h"
 
@@ -140,6 +141,17 @@ private:
 	int32 DevourHits = 0;
 	bool bNaniteChain = false;
 	std::optional<wf::nemesis::FKiller> LastHitBy;
+	/** the equipped weapon item's element, evolution and perk (sim.equippedElement / equippedEvolution / equippedPerk) */
+	FString EquippedElement = TEXT("KINETIC"), EquippedEvolution, EquippedPerk;
+	wf::hit::FCharge EvoCharge;
+	std::vector<wf::hit::FCharge> RuneCharges; // one per burst rune on the relic in hand
+	wf::hit::FNullCharge NullCharge;
+	wf::hit::FMaw Maw;
+	double HitEventId = 0;
+	/** one landed bullet: everything sim.ts does after the damage (statuses, bursts, perks, reaction) */
+	void AfterBulletHit(AWFEnemy* Victim, double Dealt, const FString& WeaponElement, const FVector& From);
+	/** weapon-evolution.ts / godforge.ts abilityBurst: share the hit with the nearest others, apply the element, stun */
+	void AbilityBurst(AWFEnemy* Victim, double Dealt, const FString& Ability);
 	void BuildInput();
 	void AddMappingContext() const;
 

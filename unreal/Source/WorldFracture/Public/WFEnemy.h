@@ -1,6 +1,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Core/WFHitCore.h"
 #include "Core/WFEncounterCore.h"
 #include "Core/WFPerceptionCore.h"
 #include "Core/WFTacticsCore.h"
@@ -108,6 +109,20 @@ public:
 	const FString& GetNemesisWeak() const { return NemesisWeak; }
 	const FString& GetProfile() const { return Profile; }
 	const FString& GetZone() const { return Zone; }
+
+	// ---- what a player hit does (ported weapon-elements.ts, enemy-reactions.ts, sim.ts stunMachine) ----
+	/** BURN (3 s, 0.5/s, never bosses), CHILL (3 s at x0.55 speed, never bosses), CORRODE (x1.25 taken for 4 s, bosses x1.1), SHOCK
+	 *  (0.7 s stun, then 3.5 s before another) */
+	void ApplyWeaponElement(const FString& Element);
+	bool IsChilled() const;
+	/** sim.ts stunMachine: holds its attacks; a boss's stun is capped at 1.4 s */
+	void StunMachine(double Seconds);
+	/** enemy-reactions.ts reactTo: a flinch, or a stagger that knocks a ranged wind-up back to its start and holds the next attack */
+	void ReactToHit(double Damage, const FString& Part, double Dx, double Dz);
+	/** telegraphing a shot (Null Disruption's timed hit) */
+	bool IsWindingUp() const { return Windup >= 0; }
+	/** damage straight to health, with no multipliers (a Maw Collapse share, as sim.ts does) */
+	void TakeRawDamage(double Damage, AActor* DamageInstigator);
 	const FString& GetActivityTag() const { return ActivityTag; }
 	/** running a flank round a hidden player (enemy-tactics.ts: at most MAX_FLANKERS at once) */
 	bool IsFlanking() const { return bFlanking; }
@@ -121,6 +136,8 @@ protected:
 private:
 	FString ActivityTag;
 	FString NemesisId, NemesisWeak;
+	wf::hit::FStatuses Statuses;
+	std::optional<wf::hit::FReaction> Reaction;
 	double NemesisDamage = 1;
 	void Die();
 	void TryAttack(AWFCharacter* Operator, AWFVehicle* Car, double Distance, float DeltaSeconds);

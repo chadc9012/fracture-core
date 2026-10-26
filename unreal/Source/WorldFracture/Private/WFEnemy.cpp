@@ -143,7 +143,10 @@ void AWFEnemy::Tick(float DeltaSeconds)
 	}
 	// vehicle gadgets (vehicle-gadgets.ts): caltrops and EMP mines slow it to SnareMult until SnareUntil
 	const double Snare = GetWorld()->GetTimeSeconds() < SnareUntil ? SnareMult : 1.0;
-	GetCharacterMovement()->MaxWalkSpeed = bSkillPinned ? 0.f : static_cast<float>(SpeedBase * (bElite ? SpeedElite : 1.0) * CmPerM * PhaseSpeedMult * Snare);
+	// weapon-elements.ts: a burn ticks straight off health (regular enemies only); a chill slows
+	const double NowE = GetWorld()->GetTimeSeconds();
+	if (const double Burn = wf::hit::BurnDamage(&Statuses, NowE, DeltaSeconds); Burn > 0 && !bBoss) { TakeRawDamage(Burn, nullptr); if (IsDead()) return; }
+	GetCharacterMovement()->MaxWalkSpeed = bSkillPinned ? 0.f : static_cast<float>(SpeedBase * (bElite ? SpeedElite : 1.0) * CmPerM * PhaseSpeedMult * Snare * wf::hit::StatusSpeedMult(&Statuses, NowE));
 	// knockback (sim.ts: m.x += kx / mass x dt, kx *= e^-3dt; bosses are BOSS_KNOCK_MASS heavy)
 	if (FMath::Abs(KnockX) + FMath::Abs(KnockZ) > 0.01)
 	{
@@ -481,6 +484,13 @@ double AWFEnemy::TakeHit(double Damage, AActor* DamageInstigator, const FString&
 {
 	if (IsDead()) return 0;
 	const double Now = GetWorld()->GetTimeSeconds();
+	// weapon-meta.ts: the Operator's power against this enemy's (its region's difficulty), on every source of player damage
+	if (Cast<AWFCharacter>(DamageInstigator))
+		if (const UWFProgressionSubsystem* Prog = GetGameInstance()->GetSubsystem<UWFProgressionSubsystem>())
+		{
+			const AWFGameMode* PowerMode = GetWorld()->GetAuthGameMode<AWFGameMode>();
+			Damage *= wf::hit::PowerScale(Prog->GetOperatorPower() - wf::hit::EnemyPower(PowerMode ? PowerMode->DifficultyOf(Zone) : 0, bElite, bBoss));
+		}
 	if (VulnUntil > Now) Damage *= VulnMult; // sim.ts applyMachineDamageMods: Weaken / Marked / Roar vulnerability
 	if (!NemesisWeak.IsEmpty() && Element == NemesisWeak) Damage *= 2; // nemesis.ts: a scarred nemesis takes double from its weak element
 	const AWFGameMode* Mode = GetWorld()->GetAuthGameMode<AWFGameMode>();
@@ -571,4 +581,58 @@ void AWFEnemy::Die()
 	if (const AWFVehicle* Car = Cast<AWFVehicle>(Pawn)) Operator = Car->GetDriver();
 	if (Operator) Operator->OnEnemyKilled(this);
 	if (Mode && ActivityTag == UTF8_TO_TCHAR(wf::godforge::GuardianTag.c_str())) Mode->OnGuardianSlain();
+}
+
+void AWFEnemy::ApplyWeaponElement(const FString& Element)
+{
+	if (IsDead() || Element.IsEmpty() || Element == TEXT("KINETIC")) return;
+	const double Now = GetWorld()->GetTimeSeconds();
+	const wf::hit::FElementEffect Fx = wf::hit::ApplyElementHit(Statuses, WFData::ToStd(Element), Now, bBoss);
+	if (Fx.Stun > 0) StunMachine(Fx.Stun);
+	if (Fx.Vuln)
+	{
+		const wf::hit::FVuln V = wf::hit::MergeVuln({VulnMult, VulnUntil}, *Fx.Vuln, Now);
+		VulnMult = V.Mult; VulnUntil = V.Until;
+	}
+}
+
+bool AWFEnemy::IsChilled() const { return wf::hit::IsChilled(Statuses, GetWorld()->GetTimeSeconds()); }
+
+void AWFEnemy::StunMachine(double Seconds)
+{
+	// m.cool: a boss's is its encounter stun (capped), a trooper's is its attack cooldown
+	if (bBoss) StunLeft = FMath::Max(StunLeft, FMath::Min(Seconds, wf::hit::BossStunCap));
+	else { RangedCooldown = FMath::Max(RangedCooldown, Seconds); MeleeCooldown = FMath::Max(MeleeCooldown, Seconds); }
+}
+
+void AWFEnemy::ReactToHit(double Damage, const FString& Part, double Dx, double Dz)
+{
+	if (bDecoy || IsDead()) return;
+	const double Now = GetWorld()->GetTimeSeconds();
+	const std::optional<wf::hit::FReaction> Prev = Reaction;
+	Reaction = wf::hit::ReactTo(Reaction, Damage, MaxHealth > 0 ? MaxHealth : (bElite ? 7 : 3.5), bElite, bBoss, Now, Dx, Dz, WFData::ToStd(Part));
+	const bool bChanged = Reaction.has_value() != Prev.has_value() || (Reaction && Prev && (Reaction->Start != Prev->Start || Reaction->Kind != Prev->Kind));
+	if (bChanged && wf::hit::IsStaggeredNow(Reaction, Now))
+	{
+		if (Windup >= 0) Windup = FMath::Max(Windup, wf::perception::WindupFor(bBoss, bElite)); // the shot is delayed, the telegraph stays readable
+		StunMachine(Reaction->Until - Now + 0.25);
+	}
+}
+
+void AWFEnemy::TakeRawDamage(double Damage, AActor* DamageInstigator)
+{
+	if (IsDead() || Damage <= 0) return;
+	Health -= Damage;
+	if (Cast<AWFCharacter>(DamageInstigator)) SincePlayerHit = 0;
+	if (Health <= 0)
+	{
+		if (bBoss && !bDecoy)
+			if (const AWFGameMode* Mode = GetWorld()->GetAuthGameMode<AWFGameMode>())
+			{
+				BossRules.Hp = Health;
+				const double Floor = wf::encounter::EncounterHpFloor(Mode->GetEncounterCatalog(), BossRules, GetWorld()->GetTimeSeconds());
+				if (Floor > 0) { Health = Floor; return; }
+			}
+		Die();
+	}
 }

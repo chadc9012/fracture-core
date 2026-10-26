@@ -41,11 +41,14 @@ namespace wf
 			bool operator==(const FGodforge& O) const { return Tier == O.Tier && Runes == O.Runes && Kills == O.Kills && bAwakened == O.bAwakened; }
 		};
 		std::optional<FGodforge> Godforge;
+		/** weapon-evolution.ts Evolution: the ruin that evolved this weapon and the ability it granted */
+		struct FEvolution { std::string RuinId, Ability; bool operator==(const FEvolution& O) const { return RuinId == O.RuinId && Ability == O.Ability; } };
+		std::optional<FEvolution> Evolution;
 
 		bool operator==(const FGearItem& O) const
 		{
 			return Id == O.Id && Name == O.Name && Slot == O.Slot && Power == O.Power && Level == O.Level && Element == O.Element
-				&& Source == O.Source && SetId == O.SetId && Rarity == O.Rarity && Perk == O.Perk && Godforge == O.Godforge;
+				&& Source == O.Source && SetId == O.SetId && Rarity == O.Rarity && Perk == O.Perk && Godforge == O.Godforge && Evolution == O.Evolution;
 		}
 	};
 

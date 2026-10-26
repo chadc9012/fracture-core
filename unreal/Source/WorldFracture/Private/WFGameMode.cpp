@@ -64,6 +64,7 @@ void AWFGameMode::StartPlay()
 		for (const TSharedPtr<FJsonObject>& R : RegionRows)
 		{
 			RegionNames.Add(WFData::Str(R, TEXT("Id")), WFData::Str(R, TEXT("DisplayName")));
+			RegionDifficulties.Add(WFData::Str(R, TEXT("Id")), WFData::Num(R, TEXT("Difficulty")));
 			RegionCircles.Add(WFData::Str(R, TEXT("Id")), wf::godforge::FRegionCircle{WFData::Num(R, TEXT("X")), WFData::Num(R, TEXT("Z")), WFData::Num(R, TEXT("Radius"))});
 		}
 	if (const wf::godforge::FRegionCircle* Mine = RegionCircles.Find(RegionId)) RegionCircle = *Mine;
@@ -1159,6 +1160,31 @@ void AWFGameMode::TickGodforge(float DeltaSeconds)
 			}
 		}
 
+	// weapon-evolution.ts: the region's ruin is found within 40 m (then marked) and evolves a weapon within 6 m
+	RuinHint.Reset();
+	{
+		const wf::FProgression Discovered = wf::hit::DiscoverNearby(Save, P.X, P.Y);
+		if (Discovered.EarnedRewards.size() != Save.EarnedRewards.size())
+		{
+			bool bOk = false;
+			Prog->ApplyForge([&Discovered](const wf::FProgression&) { wf::godforge::FForgeResult R; R.bOk = true; R.Progression = Discovered; return R; }, bOk);
+			Toast(TEXT("NOVA: an evolution ruin. Bring a level 5 weapon, 2 forge catalysts and the ruin's element"), GfViolet);
+		}
+		for (const wf::hit::FRuin& Ruin : wf::hit::Ruins())
+		{
+			if (WFData::ToF(Ruin.RegionId) != RegionId || !wf::hit::IsDiscovered(Prog->Get(), Ruin.Id)) continue;
+			const FVector G = RegionToWorld(Ruin.X, Ruin.Z, Pawn->GetActorLocation().Z);
+			const bool bSpent = wf::hit::IsEvolved(Prog->Get(), Ruin.Id);
+			DrawDebugCylinder(World, G, G + FVector(0, 0, 300), static_cast<float>(wf::hit::RuinReach * 100), 24, bSpent ? FColor(90, 90, 100) : FColor(190, 120, 255), false, -1.f, 0, 3.f);
+			if (!bSpent && wf::js::Hypot(P.X - Ruin.X, P.Y - Ruin.Z) <= wf::hit::RuinReach)
+			{
+				const wf::hit::FAbilityRule* Rule = wf::hit::AbilityRule(Ruin.Ability);
+				RuinHint = FString::Printf(TEXT("%s: Evolve <weapon id> grants %s (%s). Needs level %g, %g forge catalysts, %g %s"), UTF8_TO_TCHAR(Ruin.Name.c_str()), Rule ? UTF8_TO_TCHAR(Rule->Name.c_str()) : TEXT(""),
+					Rule ? UTF8_TO_TCHAR(Rule->Blurb.c_str()) : TEXT(""), wf::hit::EvolveMinLevel, wf::hit::EvolveCatalysts, wf::hit::EvolveElementAmount, UTF8_TO_TCHAR(Ruin.Material.c_str()));
+			}
+		}
+	}
+
 	// godforge.ts: the Hollow Crown and Vael live in the Wastelands
 	if (RegionId != TEXT("wastelands")) return;
 	const std::string Stage = wf::godforge::ForgeStage(Save);
@@ -1454,4 +1480,24 @@ void AWFGameMode::HuntNemesis(const FString& NemesisId)
 	SummonedNemesis = NemesisId;
 	NemSummonDone.Reset();
 	Toast(FString::Printf(TEXT("Hunting %s: it comes for you in its own region"), *NemesisId), NmRed);
+}
+
+void AWFGameMode::Evolve(const FString& WeaponItemId)
+{
+	const APawn* Pawn = UGameplayStatics::GetPlayerPawn(this, 0);
+	UWFProgressionSubsystem* Prog = GetGameInstance()->GetSubsystem<UWFProgressionSubsystem>();
+	if (!Pawn || !Prog) return;
+	const FVector2D P = WorldToRegion(Pawn->GetActorLocation());
+	const wf::hit::FRuin* At = nullptr;
+	for (const wf::hit::FRuin& Ruin : wf::hit::Ruins())
+		if (WFData::ToF(Ruin.RegionId) == RegionId && wf::js::Hypot(P.X - Ruin.X, P.Y - Ruin.Z) <= wf::hit::RuinReach) At = &Ruin;
+	if (!At) { Toast(TEXT("Stand at an evolution ruin (each region with one marks it once you have found it)"), GfWarn); return; }
+	const std::string Weapon = WFData::ToStd(WeaponItemId);
+	const wf::hit::FEvolveCheck Check = wf::hit::CanEvolve(Prog->Get(), *At, Weapon);
+	if (!Check.bOk) { Toast(UTF8_TO_TCHAR(Check.Reason.c_str()), GfWarn); return; }
+	const std::string RuinId = At->Id;
+	bool bOk = false;
+	Prog->ApplyForge([&](const wf::FProgression& S) { wf::godforge::FForgeResult R; R.bOk = true; R.Progression = wf::hit::EvolveWeapon(S, RuinId, Weapon); return R; }, bOk);
+	const wf::hit::FAbilityRule* Rule = wf::hit::AbilityRule(At->Ability);
+	Toast(FString::Printf(TEXT("%s evolved at the %s: +%g power, %s, and %s"), *WeaponItemId, UTF8_TO_TCHAR(At->Name.c_str()), wf::hit::EvolvePowerBonus, UTF8_TO_TCHAR(At->Element.c_str()), Rule ? UTF8_TO_TCHAR(Rule->Name.c_str()) : TEXT("")), GfGold);
 }

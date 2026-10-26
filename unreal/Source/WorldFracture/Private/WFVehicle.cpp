@@ -671,7 +671,7 @@ void AWFVehicle::TickGadgets(double Dt)
 		for (AWFEnemy* E : Live)
 		{
 			const FVector P = E->GetActorLocation() / VehCmPerM;
-			if (InFlames(L.X, L.Y, State.Yaw, P.X, P.Y, 1.2)) E->TakeHit(FlameDps * Dt, Shooter, TEXT("THERMAL"));
+			if (InFlames(L.X, L.Y, State.Yaw, P.X, P.Y, 1.2)) { E->TakeHit(FlameDps * Dt, Shooter, TEXT("THERMAL")); if (IsValid(E) && !E->IsDead()) E->ApplyWeaponElement(TEXT("THERMAL")); }
 		}
 		if (wf::vweapons::AddHeat(Heat, FlameHeat * Dt)) Notify(TEXT("FLAME JETS OVERHEAT - venting"), FLinearColor(1.f, 0.3f, 0.25f));
 		VehHeat(World, wf::city::FHeatGain::FlamePerSecond * Dt);

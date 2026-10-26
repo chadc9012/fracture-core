@@ -45,6 +45,8 @@ public:
 	UPROPERTY(EditAnywhere, Category = "World Fracture") float SpawnInterval = 2.0f;
 
 	const FString& GetRegionId() const { return RegionId; }
+	/** world.ts region difficulty (0-5) of an enemy's zone: weapon-meta.ts enemyPower */
+	double DifficultyOf(const FString& Zone) const { const double* D = RegionDifficulties.Find(Zone); return D ? *D : 0; }
 
 	/** Nexus City (AWFNexusCity, built from DataTables/NexusCity.json): it always stands at the Nexus region's coordinates. */
 	AWFNexusCity* GetNexusCity() const { return NexusCity.Get(); }
@@ -185,6 +187,10 @@ public:
 	UFUNCTION(Exec) void RemoveRune(const FString& ItemId, const FString& Rune);
 	UFUNCTION(Exec) void AscendRelic(const FString& ItemId);
 	UFUNCTION(Exec) void CollectDust();
+	/** at a weapon-evolution ruin: Evolve <weapon item id> (level 5+, 2 forge catalysts, 6 of the ruin's element material) */
+	UFUNCTION(Exec) void Evolve(const FString& WeaponItemId);
+	/** HUD: the ruin you stand at, or "" */
+	const FString& GetRuinHint() const { return RuinHint; }
 	/** the Furnace Guardian fell to the player: the Heart of the Hollow Crown and two forge catalysts, once */
 	void OnGuardianSlain();
 	/** NOVA's hum for the HUD: distance to the nearest unfound secret (negative = none near), its name in reach, why it is locked */
@@ -259,6 +265,7 @@ private:
 	wf::vweapons::FHeat WeaponHeat;
 	double NemInRegion = 0, NemLastAmbush = -1e9, NemClock = 0;
 	FString SummonedNemesis, NemSummonDone;
+	TMap<FString, double> RegionDifficulties;
 	TMap<FString, FString> RegionNames; // region id -> display name (the nemesis grudge names where it beat you)
 	double DayClock = wf::env::ClockStart; // 08:38, as the web build starts
 	double ClockSpeed = 1;
@@ -273,7 +280,8 @@ private:
 	TSet<FString> SecretsReached; // living-runtime.ts rt.reached: a secret claims once per session
 	double SecretDist = -1;
 	FString SecretName, SecretLocked;
-	bool bGuardianOut = false; // living-runtime.ts guardianOut: the Furnace Guardian woke this visit
+	bool bGuardianOut = false;
+	FString RuinHint; // living-runtime.ts guardianOut: the Furnace Guardian woke this visit
 
 	struct FScenarioBoss
 	{

@@ -9,6 +9,7 @@
 #include "Core/WFWastelandCore.h"
 #include "Core/WFGodforgeCore.h"
 #include "Core/WFNemesisCore.h"
+#include "Core/WFHitCore.h"
 
 #include <functional>
 #include "Subsystems/GameInstanceSubsystem.h"
@@ -119,6 +120,8 @@ public:
 	FString ApplyForge(const std::function<wf::godforge::FForgeResult(const wf::FProgression&)>& Action, bool& bOk);
 	/** armor-sets.ts equipPiece: the item goes into its own slot */
 	bool EquipItem(const FString& ItemId);
+	/** weapon-meta.ts operatorPower: the equipped gear's average power plus 4 a level (to 50) */
+	double GetOperatorPower() const { return wf::hit::OperatorPower(wf::hit::EquippedGearPowers(State), State.Level); }
 	/** nemesis.ts applyPlayerDeath / applyNemesisKill: returns the line to announce ("" = nothing) */
 	FString ApplyPlayerDeath(const wf::nemesis::FKiller& Killer, const FString& RegionName);
 	FString ApplyNemesisKill(const FString& NemesisId);

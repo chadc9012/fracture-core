@@ -58,6 +58,18 @@ Driving has no touch controls yet.
 Until then the phone build is the web game (`mobile/`, the `android-latest` release), which is the whole game today.
 
 ## What runs
+- **What a hit does:** bullets follow the web build's whole hit path (weapon-meta.ts and friends): each gun has a range
+  band (full damage inside it, falling to a floor past it), head-band hits multiply by the gun's precision (hand cannon
+  x2, shotgun pellets x1.15), and each class has signature guns (Titan auto rifle and shotgun, Hunter hand cannon and
+  pulse rifle, Warlock heavy cannon and launchers: +12%, more precision). Every source of your damage is scaled by your
+  power level (equipped gear and level) against the enemy's region. Elemental guns and launchers burn, chill (slow),
+  corrode (vulnerable) or shock (brief stun, with a cooldown); bosses are never burned, chilled or locked down. Heavy
+  hits stagger troopers and push a shot's wind-up back.
+- **Evolution and exotic perks:** five hidden ruins (Ember Peaks, Frostspire, the Swamps, the Wastelands, Solara) appear
+  once you come within 40 m; `Evolve <weapon id>` there turns a level 5 weapon into its element with +60 power and an
+  ability that bursts every few hits (Ember Brand, Rime Shatter, Rot Bloom, Storm Arc, Sun Flare). The Godforge's
+  Storm / Ember / Frost / Bloom / Sun runes now burst the same way. Weapons with Null Disruption (timed hits charge a
+  stunning pulse) or Maw Collapse (every seventh hit drags nearby enemies in) work.
 - **Nemeses:** an ordinary trooper or elite that lands your killing blow becomes a nemesis (nemesis.ts): a name, a rank,
   a strength (Iron Hide, Brutal, Survivor, Vengeful) and a weakness (double damage from one element). After a minute in
   its region it ambushes you (then every four minutes), bigger and harder-hitting with each rank; dying to it ranks it
@@ -251,6 +263,7 @@ cmake -S . -B build -G Ninja && cmake --build build && ctest --test-dir build --
 | BountyCoreTest | activity-payouts.ts payoutFor / payInto / tagLegacyPayouts / payFlat (raids reset weekly) | 400 ledgers, 8,939 payouts, 17,866 checks |
 | EnvironmentCoreTest | world.ts clock, weather-cycle.ts, environment.ts | 3,000 clock times, 12,000 weather samples, 48,000 hazard steps, 111,000 checks |
 | NemesisCoreTest | nemesis.ts | 16,938 events, 36,051 checks |
+| HitCoreTest | weapon-elements.ts, weapon-meta.ts, weapon-evolution.ts, null-disruption.ts, maw-collapse.ts, enemy-reactions.ts | 36,025 checks |
 | GodforgeCoreTest | godforge.ts, secrets.ts, foundries.ts foundryOf, sim.ts fireBullet / fireLauncher heat | 1,590 foundry names, 3,000 trigger pulls, 10,516 forge actions, 1,084 queries, 37,843 checks |
 | WastelandCoreTest | wasteland-activities.ts, wasteland-runtime.ts | 15,600 machine steps, 2,400 resolves, 24,000 runtime frames, 132,024 checks |
 | MoveCoreTest | movement.ts, parkour.ts | 300 tracks, 18,000 frames, 36,067 checks |
@@ -260,7 +273,7 @@ The golden files (`Plugins/WorldFractureCore/Tests/<name>_golden.txt`) are **gen
 which broke the Lovable preview build. Record all of them from the repo root before configuring the tests (and again after changing
 the web build's rules):
 
-    node unreal/tools/gen-goldens.mjs            # all twenty-six
+    node unreal/tools/gen-goldens.mjs            # all twenty-seven
     node unreal/tools/gen-goldens.mjs race shop  # just these
 
 `export-datatables` (the DataTables, which are committed) still runs on its own:
@@ -272,7 +285,7 @@ The encounter, Dragonite-cast, ability, tactics and Wastelands recorders route t
 ## Not ported yet
 Boss models and attack effects (zones are debug circles, decoys are stand-ins), mid-mission saves, ability mastery XP,
 region kinds for abilities (the map counts as a war zone),
-troopers running out of orbital strike circles (no strike beacons yet), the rune bursts (Storm, Ember, Frost, Bloom and Sun need weapon-evolution.ts, which is not ported; their element still applies), rain, snow and fog visuals (the weather is simulated and shown on the HUD; the regional hazard zones of hazards.ts are separate and not ported), the Neon City pledge, the featured-activity rotation and
+troopers running out of orbital strike circles (no strike beacons yet), consumable buffs (the damage, resist and regen of activeBuffs), legendary-chain.ts reactions (they need two hit sources, so never fire in single player), rain, snow and fog visuals (the weather is simulated and shown on the HUD; the regional hazard zones of hazards.ts are separate and not ported), the Neon City pledge, the featured-activity rotation and
 activity shader drops,
 diving (the thalassia-dive survive timer), the Neon City police response itself (the web build has only the heat meter and its labels; chase-ai.ts pursuit helpers are unused there), the Operations Hub preview marketplace (its wallet is not saved in the web build either), home interiors, cloud save merge, the rest of the world (terrain, the other regions, Neon City, Thalassia; Nexus City is in). Their data is already in
 `DataTables/`.

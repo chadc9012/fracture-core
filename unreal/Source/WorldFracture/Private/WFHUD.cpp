@@ -317,6 +317,10 @@ void AWFHUD::DrawHUD()
 			}
 		}
 
+	// a weapon-evolution ruin in reach
+	if (const AWFGameMode* RuinMode = GetWorld()->GetAuthGameMode<AWFGameMode>(); RuinMode && !RuinMode->GetRuinHint().IsEmpty())
+		Line(RuinMode->GetRuinHint(), W * 0.5f - 330.f, H - 175, FLinearColor(0.75f, 0.5f, 1.f), 0.8f);
+
 	// NOVA senses a secret (secrets.ts): the distance, its name in reach, or why it does not answer yet
 	if (const AWFGameMode* SecretMode = GetWorld()->GetAuthGameMode<AWFGameMode>())
 	{

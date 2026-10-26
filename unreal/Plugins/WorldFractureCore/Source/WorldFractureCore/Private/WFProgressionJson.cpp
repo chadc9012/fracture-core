@@ -100,6 +100,9 @@ namespace WFProgressionJson
 			(*God)->TryGetBoolField(TEXT("awakened"), F.bAwakened);
 			G.Godforge = F;
 		}
+		const TSharedPtr<FJsonObject>* Evo = nullptr;
+		if (Item->TryGetObjectField(TEXT("evolution"), Evo) && Evo && Evo->IsValid())
+			G.Evolution = wf::FGearItem::FEvolution{ToStd(WFData::Str(*Evo, TEXT("ruinId"))), ToStd(WFData::Str(*Evo, TEXT("ability")))};
 		return G;
 	}
 
@@ -124,6 +127,13 @@ namespace WFProgressionJson
 			God->SetNumberField(TEXT("kills"), G.Godforge->Kills);
 			God->SetBoolField(TEXT("awakened"), G.Godforge->bAwakened);
 			Item->SetObjectField(TEXT("godforge"), God);
+		}
+		if (G.Evolution)
+		{
+			TSharedRef<FJsonObject> Evo = MakeShared<FJsonObject>();
+			Evo->SetStringField(TEXT("ruinId"), ToF(G.Evolution->RuinId));
+			Evo->SetStringField(TEXT("ability"), ToF(G.Evolution->Ability));
+			Item->SetObjectField(TEXT("evolution"), Evo);
 		}
 		return Item;
 	}
