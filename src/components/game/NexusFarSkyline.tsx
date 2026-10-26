@@ -22,8 +22,17 @@ export function NexusFarSkyline({ tier }: { tier: RenderTier }) {
   const camera = useThree((s) => s.camera);
   const list = useMemo(() => {
     const out: { x: number; z: number; w: number; d: number; base: number; top: number; yaw: number }[] = [];
-    for (const b of buildings()) out.push({ x: b.x, z: b.z, w: b.w, d: b.d, base: b.base, top: b.top, yaw: b.yaw });
-    for (const t of nexusHubTowers(NEXUS)) { const m = BUILDING_MODELS[t.model], y = walkHeight(t.x, t.z) - 0.2; out.push({ x: t.x, z: t.z, w: m.w, d: m.d, base: y, top: y + m.height, yaw: t.rot }); }
+    // a tall block reads as a tower, not a crate: a setback crown on the top fifth, and a mast on the tallest
+    const add = (x: number, z: number, w: number, d: number, base: number, top: number, yaw: number, crown: boolean) => {
+      const h = top - base;
+      if (crown && h > 24) {
+        const cut = base + h * 0.8;
+        out.push({ x, z, w, d, base, top: cut, yaw }, { x, z, w: w * 0.66, d: d * 0.66, base: cut, top, yaw });
+      } else out.push({ x, z, w, d, base, top, yaw });
+      if (h > 45) out.push({ x, z, w: 0.7, d: 0.7, base: top, top: top + h * 0.18, yaw });
+    };
+    for (const b of buildings()) add(b.x, b.z, b.w, b.d, b.base, b.top, b.yaw, b.crown);
+    for (const t of nexusHubTowers(NEXUS)) { const m = BUILDING_MODELS[t.model], y = walkHeight(t.x, t.z) - 0.2; add(t.x, t.z, m.w, m.d, y, y + m.height, t.rot, m.height > 30); }
     return out;
   }, []);
   const mesh = useRef<THREE.InstancedMesh>(null);

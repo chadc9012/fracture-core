@@ -1,5 +1,12 @@
 import { inReclaimedCity } from "@/game/reclaimed-city";
 import { inStuntPark } from "@/game/stunt-park";
+import { nexusHillTrees } from "@/game/nexus-hills";
+import { nearestTwo } from "@/game/continent-borders";
+import { inResidence } from "@/game/residences";
+import { SITES } from "@/game/region-atlas";
+import { AIRPORT } from "@/game/nexus-airport";
+import { skylineLookout } from "@/game/skyline-lookout";
+import { deckAt } from "@/game/terrain";
 import { Instance, Instances } from "@react-three/drei";
 import { DistrictLight } from "./DistrictLight";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
@@ -392,7 +399,19 @@ export function Terrain({ renderTier = "HIGH" }: { renderTier?: RenderTier } = {
     };
     return growGroves(centres, baseTrees, mulberry32(23), accept, Math.round(d(GROVE.perGrove) * (bigWorld ? 1.5 : 1))).map((t) => ({ ...t, y: heightAt(t.x, t.z) }));
   }, [forest, baseTrees, density]);
-  const trees = useMemo(() => [...baseTrees, ...groveTrees], [baseTrees, groveTrees]);
+  // the wooded hills round Nexus (nexus-hills.ts; owner's overlook frame)
+  const hillTrees = useMemo<Prop[]>(() => {
+    const NEX = REGIONS.find((r) => r.id === "nexus")!, home = nearestTwo(NEX.x, NEX.z).a.id, look = skylineLookout();
+    const onField = (x: number, z: number) => { const dx = x - AIRPORT.x, dz = z - AIRPORT.z, along = dx * AIRPORT.dirX + dz * AIRPORT.dirZ, across = -dx * AIRPORT.dirZ + dz * AIRPORT.dirX; return Math.abs(along) < AIRPORT.length / 2 + 10 && Math.abs(across) < AIRPORT.width / 2 + 10; };
+    const clear = (x: number, z: number) => {
+      if (distanceToRoad(x, z) < LANE_HALF_WIDTH + 3 || inResidence(x, z, 4) || onField(x, z) || deckAt(x, z) > -Infinity) return false;
+      const rv = riverAt(x, z); if (rv && rv.dist < rv.w + 3) return false;
+      if (look && Math.hypot(x - look.x, z - look.z) < 22) return false;
+      return !SITES.some((st) => Math.hypot(st.x - x, st.z - z) < st.radius + 6);
+    };
+    return nexusHillTrees({ height: heightAt, slope: slopeAt, clear, onIsland: (x, z) => nearestTwo(x, z).a.id === home, water: WATER_LEVEL }, density).map((t) => ({ ...t, y: heightAt(t.x, t.z) }));
+  }, [density]);
+  const trees = useMemo(() => [...baseTrees, ...groveTrees, ...hillTrees], [baseTrees, groveTrees, hillTrees]);
   // undergrowth clusters around each tree: saplings and low brush, kept off roads, water and steep ground
   // (drawn without distance culling, so on the big forest only the trees nearest the route get companions)
   const understoryParents = useMemo(() => (trees.length <= UNDERSTORY_PARENT_CAP ? trees : trees.map((t) => ({ t, d: trailInfo(t.x, t.z).dist })).sort((a, b) => a.d - b.d).slice(0, UNDERSTORY_PARENT_CAP).map((e) => e.t)), [trees]);
