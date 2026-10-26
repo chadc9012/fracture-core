@@ -2,6 +2,7 @@ package com.chadc9012.worldfracture;
 
 import android.app.GameManager;
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
@@ -23,6 +24,39 @@ public class MainActivity extends BridgeActivity {
         super.onCreate(savedInstanceState);
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         immersive();
+        dropStaleWebCache();
+    }
+
+    /** Once per install: the web build's offline service worker (added Oct 25) kept serving the build cached on first launch, so
+     * updated APKs went on running old game code (owner's phone, Oct 26: none of the phone fixes appeared). The new web code can't
+     * remove it because the old worker never lets it load, so the app does it from here: unregister every worker, delete the Cache
+     * Storage caches and reload, then the page comes from this APK. Saves (localStorage) are not touched. */
+    private void dropStaleWebCache() {
+        final long installed = installTime();
+        if (installed == 0) return;
+        final SharedPreferences prefs = getSharedPreferences("wf", MODE_PRIVATE);
+        if (prefs.getLong("cacheDroppedFor", 0) == installed) return;
+        // runs twice (the page may still be navigating at the first try); a sessionStorage mark keeps it to one reload per install
+        String js = "(async()=>{const m='wf-native-drop';try{if(sessionStorage.getItem(m)==='" + installed + "')return;sessionStorage.setItem(m,'" + installed + "');}catch(e){}let n=0;try{const r=await navigator.serviceWorker.getRegistrations();n+=r.length;await Promise.all(r.map(x=>x.unregister()));}catch(e){}"
+            + "try{const k=await caches.keys();n+=k.length;await Promise.all(k.map(c=>caches.delete(c)));}catch(e){}location.reload();})()";
+        final Handler h = new Handler(Looper.getMainLooper());
+        final int[] tries = {0};
+        Runnable attempt = new Runnable() {
+            @Override public void run() {
+                WebView w = getBridge() == null ? null : getBridge().getWebView();
+                if (w == null) { if (++tries[0] < 20) h.postDelayed(this, 500); return; }
+                w.clearCache(true);
+                // the script reloads the page itself once the worker and caches are gone, so this launch runs the APK's own files
+                w.evaluateJavascript(js, null);
+                if (++tries[0] >= 100) prefs.edit().putLong("cacheDroppedFor", installed).apply();
+                else { tries[0] = 100; h.postDelayed(this, 5000); }
+            }
+        };
+        h.postDelayed(attempt, 1500);
+    }
+
+    private long installTime() {
+        try { return getPackageManager().getPackageInfo(getPackageName(), 0).lastUpdateTime; } catch (Exception e) { return 0; }
     }
 
     @Override
@@ -30,7 +64,7 @@ public class MainActivity extends BridgeActivity {
         super.onResume();
         // the page may still be loading on a cold start: send again once it is up
         sendGameMode();
-        Handler h = new Handler(Looper.getMainLooper());
+        final Handler h = new Handler(Looper.getMainLooper());
         h.postDelayed(this::sendGameMode, 2500);
         h.postDelayed(this::sendGameMode, 9000);
     }
