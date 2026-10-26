@@ -78,12 +78,12 @@ let onResult: ((error: Error | null) => void) | null = null;
 export function listenForNativeAuthCallback(): void {
   if (listening || !isNativeApp()) return;
   const app = plugin("App");
-  if (!app?.addListener) return;
+  if (!app?.["addListener"]) return;
   listening = true;
-  void app.addListener("appUrlOpen", (event: unknown) => {
+  void app["addListener"]("appUrlOpen", (event: unknown) => {
     const url = (event as { url?: string } | undefined)?.url;
     if (!url || !url.startsWith(NATIVE_AUTH_REDIRECT)) return;
-    void plugin("Browser")?.close?.().catch(() => undefined);
+    void plugin("Browser")?.["close"]?.().catch(() => undefined);
     void completeSignIn(url).then(({ error }) => { onResult?.(error); onResult = null; });
   });
 }
@@ -102,7 +102,7 @@ export async function signInWithGoogleNative(): Promise<{ error: Error | null }>
   const browser = plugin("Browser");
   const done = new Promise<{ error: Error | null }>((resolve) => { onResult = (e) => resolve({ error: e }); });
   try {
-    if (browser?.open) await browser.open({ url: data.url });
+    if (browser?.["open"]) await browser["open"]({ url: data.url });
     else window.open(data.url, "_blank");
   } catch (e) {
     onResult = null;
