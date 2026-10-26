@@ -3,8 +3,12 @@
  * the air). Each ramp is a registered deck (district-decks.ts), so the wheels, the player and the camera all ride the same
  * surface; a symmetric deck is a tabletop (flat top) or a peak (no top) depending on its ramp length. Pure placement data. */
 import type { Deck } from "./district-decks";
+import { REGIONS } from "./world";
 
-export const STUNT_PARK = { x: -340, z: 340, /** run-up direction (unit, world) */ dirX: 1, dirZ: 0, length: 150, width: 46 } as const;
+/** authored as an offset from the Wastelands centre, so the park moves with its land when the map is re-laid (MAP_SPREAD) */
+const WASTE = REGIONS.find((r) => r.id === "wastelands")!;
+
+export const STUNT_PARK = { x: WASTE.x - 40, z: WASTE.z + 160, /** run-up direction (unit, world) */ dirX: 1, dirZ: 0, length: 150, width: 46 } as const;
 
 export type Ramp = { id: string; /** offset along the run-up and across it, m */ along: number; across: number; length: number; ramp: number; width: number; height: number; label: string };
 export const RAMPS: readonly Ramp[] = [

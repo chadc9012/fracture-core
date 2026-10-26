@@ -850,7 +850,7 @@ export function GameCanvas() {
     we.__missionEvent = (id, event) => { const r = devRecorders.current[id]; if (!r) return "unknown mission"; r(event as never); return "ok"; };
     // start any activity by id, skipping the menu (Killbox modes included: __activity("killbox-clash"))
     const wa = window as unknown as { __activity?: (id: string) => string };
-    wa.__activity = (id) => { const def = activityById(id); if (!def) return "unknown activity"; const res = startActivity(progressionRef.current, id, Date.now()); if ("error" in res) return res.error; progressionRef.current = res.progression; setProgression(res.progression); setActivity({ def, run: res.run }); return "ok"; };
+    wa.__activity = (id) => { const def = activityById(id); if (!def) return "unknown activity"; setTutorial(null); /* dev: the field calibration would hold activities back */ const res = startActivity(progressionRef.current, id, Date.now()); if ("error" in res) return res.error; progressionRef.current = res.progression; setProgression(res.progression); setActivity({ def, run: res.run }); return "ok"; };
     const wq = window as unknown as { __questFinish?: () => string };
     wq.__questFinish = () => { const q = progressionRef.current.activeQuestId; setProgression((p) => finishActiveQuest(p)); return q ?? "none"; };
     return () => { delete w.__missions; delete we.__missionEvent; delete (window as unknown as { __activity?: unknown }).__activity; delete (window as unknown as { __questFinish?: unknown }).__questFinish; };
