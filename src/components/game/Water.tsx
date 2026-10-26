@@ -241,7 +241,7 @@ export function Water({
             // so the sea goes gold at sunset and dark at night with the sky instead of always mirroring a fixed noon blue.
             // No screen-space or planar pass: the mirror is analytic.
             vec3 reflectedSky = mix(uSkyHorizon, uSky, smoothstep(0.0, 0.5, max(R.y, 0.0)));
-            col = mix(col, reflectedSky, fres * 0.8 * (1.0 - uMurk * 0.6));
+            col = mix(col, reflectedSky, fres * 0.55 * (1.0 - uMurk * 0.6)); // the water keeps its own blue from the hills (owner's overlook frame): at 0.8 the grazing sky turned the bay pale grey
 
             // sun glint, dulled by murk
             vec3 h = normalize(normalize(uSun) + view);

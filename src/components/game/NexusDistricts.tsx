@@ -46,6 +46,10 @@ const LOOK: Record<Style, { color: string; glass: string; lit: number; cell: [nu
 
 /** one shared window-glow level for every district facade: dim by day, bright at night (Bodies updates it each frame) */
 const glowUniform = { value: 1 };
+/** daylight on the glazing (1 by day, 0 at night): by day the glass takes the sky, so the towers read pale blue-grey from the hills
+ * (owner's overlook frame) instead of near-black slabs */
+const dayUniform = { value: 1 };
+const DAY_GLASS = new THREE.Color("#7f9ab3");
 /** a MeshStandardMaterial whose faces get a world-space window grid; roofs and floors (|n.y| > 0.5) stay solid */
 function windowMaterial(style: Style): THREE.MeshStandardMaterial {
   const L = LOOK[style];
@@ -56,11 +60,13 @@ function windowMaterial(style: Style): THREE.MeshStandardMaterial {
     sh.uniforms["uWin"] = { value: new THREE.Vector2(...L.win) };
     sh.uniforms["uLit"] = { value: L.lit };
     sh.uniforms["uGlow"] = glowUniform;
+    sh.uniforms["uDay"] = dayUniform;
+    sh.uniforms["uDayGlass"] = { value: DAY_GLASS };
     sh.vertexShader = sh.vertexShader
       .replace("#include <common>", "#include <common>\nvarying vec3 vWp; varying vec3 vWn;")
       .replace("#include <begin_vertex>", "#include <begin_vertex>\n#ifdef USE_INSTANCING\n mat4 wfIm = modelMatrix * instanceMatrix;\n#else\n mat4 wfIm = modelMatrix;\n#endif\n vWp = (wfIm * vec4(transformed, 1.0)).xyz; vWn = normalize(mat3(wfIm) * objectNormal);");
     sh.fragmentShader = sh.fragmentShader
-      .replace("#include <common>", "#include <common>\nvarying vec3 vWp; varying vec3 vWn; uniform vec3 uGlass; uniform vec2 uCell; uniform vec2 uWin; uniform float uLit; uniform float uGlow;\nfloat wHash(vec2 p){ return fract(sin(dot(p, vec2(41.3, 289.1))) * 43758.5453); }")
+      .replace("#include <common>", "#include <common>\nvarying vec3 vWp; varying vec3 vWn; uniform vec3 uGlass; uniform vec2 uCell; uniform vec2 uWin; uniform float uLit; uniform float uGlow; uniform float uDay; uniform vec3 uDayGlass;\nfloat wHash(vec2 p){ return fract(sin(dot(p, vec2(41.3, 289.1))) * 43758.5453); }")
       .replace("#include <emissivemap_fragment>", `#include <emissivemap_fragment>
         if (abs(vWn.y) < 0.5) {
           vec3 t = normalize(vec3(-vWn.z, 0.0, vWn.x));
@@ -78,7 +84,7 @@ function windowMaterial(style: Style): THREE.MeshStandardMaterial {
           float verticalJoint = 1.0 - smoothstep(0.0, 0.018, min(f.x, 1.0 - f.x));
           diffuseColor.rgb *= (0.95 + 0.1 * wHash(mod(floor(id * 0.5), 1024.0))) * (1.0 - seam * 0.12 - verticalJoint * 0.09);
           diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.055, 0.071, 0.084), frame * 0.88);
-          diffuseColor.rgb = mix(diffuseColor.rgb, uGlass, inside * 0.91);
+          diffuseColor.rgb = mix(diffuseColor.rgb, mix(uGlass, uDayGlass, uDay * (0.75 + 0.25 * fract(h * 5.0))), inside * 0.91);
           diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.085, 0.105, 0.12), mullion * 0.7);
           float lit = max(0.0, inside - mullion) * step(h, uLit);
           // mostly cool office white with warm rooms (the towers' facade map uses the same mix), brighter at night
@@ -96,6 +102,7 @@ function Bodies({ style, list }: { style: Style; list: Building[] }) {
   useFrame(() => {
     const k = lampLevel(worldLight.night);
     glowUniform.value = 0.55 + 1.65 * k;
+    dayUniform.value = 1 - k;
     // after dark the walls fall back behind their lit windows (owner's night frames); pale concrete read as floodlit at night
     mat.color.copy(base).multiplyScalar(1 - 0.5 * k);
   });

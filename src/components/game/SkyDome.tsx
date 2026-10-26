@@ -58,7 +58,7 @@ void main(){
   float hz = pow(1.0 - clamp(d.y, 0.0, 1.0), 2.4);
   vec3 sunSide = mix(horizonCol, sunColor, pow(max(dot(normalize(vec3(d.x, 0.0, d.z) + 1e-4), normalize(vec3(sunDir.x, 0.0, sunDir.z) + 1e-4)), 0.0), 3.0) * 0.6);
   col = mix(zenith, sunSide, hz);
-  alpha = wash * (0.55 + 0.45 * hz);
+  alpha = wash * mix(0.55 + 0.45 * hz, 1.0, step(0.95, wash)); // the sky board looks (wash ~1) own the whole dome: the physical sky bled pale haze through the zenith
 
   // ---- the Fracture Moon: a vast cracked world, lit by the sun, cracks glowing from within ----
   {

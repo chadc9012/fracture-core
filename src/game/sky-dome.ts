@@ -24,7 +24,7 @@ export const SKY_LOOKS: Readonly<Record<SkyLookId, SkyLook>> = {
   gritty: { cover: 0.54, absorb: 2.4, cirrus: 0.25, cloudScale: 0.8, moonDay: 0.06, riftK: 0.3, shadeTint: [0.92, 0.94, 1], desat: 0.35 },
   fracture: { cover: 0.42, absorb: 2, cirrus: 0.6, cloudScale: 0.9, moonDay: 0.38, riftK: 1, shadeTint: [1.05, 0.9, 1.15], desat: 0.1 },
   // the owner's sky board (docs/reference/sky-cycle.png): saturated and cinematic, bright white cumulus, the cracked moon always huge
-  vivid: { cover: 0.36, absorb: 0.9, cirrus: 0.7, cloudScale: 0.85, moonDay: 0.96, riftK: 0.12, shadeTint: [1, 1, 1], desat: 0, keyed: true },
+  vivid: { cover: 0.3, absorb: 0.9, cirrus: 0.7, cloudScale: 0.85, moonDay: 0.96, riftK: 0.12, shadeTint: [1, 1, 1], desat: 0, keyed: true },
 };
 /** owner's sky board (Oct 25, "the sky transitions should look like this") replaced the gritty pick */
 export const DEFAULT_SKY_LOOK: SkyLookId = "vivid";
@@ -41,7 +41,7 @@ export const SKY_KEYS: readonly SkyKey[] = [
   K(8.2, "#2b68d2", "#b9d6f2", "#fff2dc", "#fff8ee", "#9fb1d0", "#3a3446", 0.1, "#b8c4da", 0),   // mid-morning
   K(12, "#1b5bcc", "#a6cdf4", "#fffaf0", "#ffffff", "#a4b6d6", "#36303f", 0.06, "#bcc8de", 0),   // noon: deep blue, bright white cumulus
   K(15, "#2560c6", "#c0d6ee", "#fff0d6", "#fff4e4", "#9caacb", "#3c3444", 0.1, "#b8c2d8", 0),    // afternoon
-  K(16.9, "#2a5cc0", "#d8d4d0", "#ffe2b0", "#fff0d8", "#98a4c4", "#5a3a3a", 0.2, "#b8bcd0", 0),  // late afternoon: still blue overhead (target wilds frame), the horizon only starting to warm
+  K(16.9, "#2a5cc0", "#b6cce6", "#ffe2b0", "#fff0d8", "#98a4c4", "#5a3a3a", 0.2, "#b8bcd0", 0),  // late afternoon: still blue overhead (target wilds frame), the horizon only starting to warm
   K(18, "#4a2858", "#ff5a1c", "#ff7426", "#ff8c40", "#5c2c4a", "#ff5a14", 1.25, "#c48468", 0),  // sunset: red-orange horizon, fiery clouds, burning cracks
   K(19.2, "#1c1848", "#b83e5a", "#ff6040", "#c4586a", "#2a1f46", "#ff4a7a", 1.1, "#6a4a7a", 0.35), // dusk: violet overhead, a red ember band
   K(21, "#050a26", "#121a48", "#8090c0", "#1e2652", "#0a0e2a", "#7a6cff", 0.5, "#2e3c74", 1),    // night: navy and violet, glowing violet cracks, nebula
@@ -116,7 +116,7 @@ export function skyParams(sunY: number, envCloud: number, regionId?: string | nu
   const graded = mood ? gradeSky(grey(zenith), grey(horizon), mood, low, night) : { zenith: grey(zenith), horizon: grey(horizon) };
   const tint = (c: RGB): RGB => c.map((v, i) => clamp01(v * look.shadeTint[i]!)) as RGB;
   return {
-    zenith: graded.zenith, horizon: graded.horizon, wash: key ? 0.9 : 0.66 + low * (1 - night) * 0.2 - night * 0.3, // golden hour: the authored sunset gradient dominates the bleached physical sky
+    zenith: graded.zenith, horizon: graded.horizon, wash: key ? 0.97 : 0.66 + low * (1 - night) * 0.2 - night * 0.3, // golden hour: the authored sunset gradient dominates the bleached physical sky
     night,
     cover: Math.min(0.95, look.cover + clamp01(envCloud) * 0.5),
     sunStrength: smooth(-0.08, 0.06, sunY),

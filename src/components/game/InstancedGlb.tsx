@@ -16,10 +16,13 @@ import { QuietModel } from "./Vehicle";
  * A model that cannot load draws nothing.
  */
 export type GlbInstance = { x: number; y: number; z: number; yaw: number; scale?: number; paint?: string };
-type Part = { geometry: THREE.BufferGeometry; material: THREE.Material; paint: boolean; windows: boolean; /** pale masonry that dims after dark */ pale?: THREE.Color };
+type Part = { geometry: THREE.BufferGeometry; material: THREE.Material; paint: boolean; windows: boolean; /** pale masonry that dims after dark */ pale?: THREE.Color; /** the glazing's authored (night) colour */ glazing?: THREE.Color };
 /** pale stone and slab read as floodlit white boxes at night (owner's night frames: dark podiums under lit windows); after dark
  * they keep this share of their colour */
 const PALE_NIGHT = 0.4;
+/** lit-window glazing by day: the GLBs' dark navy mirror glass read as black slabs from the hills in daylight (owner's overlook
+ * frame: pale blue-grey glass towers); it eases back to the authored navy as the windows light up */
+const DAY_GLAZING = new THREE.Color("#6f8ba8");
 
 const flatCache = new Map<THREE.Object3D, Part[]>();
 
@@ -64,7 +67,7 @@ export function flattenGlb(scene: THREE.Object3D): Part[] {
     if (windows) { const tex = facadeTexture(); if (tex) { const m = mat as THREE.MeshStandardMaterial; m.emissiveMap = tex; m.emissive.set("#ffffff"); m.needsUpdate = true; } }
     const c = (mat as THREE.MeshStandardMaterial).color;
     const pale = (material.name === "Stone" || material.name === "Slab" || material.name === "Frame") && c && c.r + c.g + c.b > 1.5 ? c.clone() : undefined;
-    parts.push({ geometry: merged, material: mat, paint, windows, ...(pale ? { pale } : {}) });
+    parts.push({ geometry: merged, material: mat, paint, windows, ...(pale ? { pale } : {}), ...(windows && c ? { glazing: c.clone() } : {}) });
   }
   flatCache.set(scene, parts);
   return parts;
@@ -130,6 +133,7 @@ function Batch({ url, items, place, shadows, nightGlow, sway }: { url: string; i
       for (const p of parts) {
         if (p.windows) (p.material as THREE.MeshStandardMaterial).emissiveIntensity = nightGlow[0] + (nightGlow[1] - nightGlow[0]) * k;
         if (p.pale) (p.material as THREE.MeshStandardMaterial).color.copy(p.pale).multiplyScalar(1 - (1 - PALE_NIGHT) * k);
+        if (p.glazing) (p.material as THREE.MeshStandardMaterial).color.copy(DAY_GLAZING).lerp(p.glazing, k);
       }
     }
   });
