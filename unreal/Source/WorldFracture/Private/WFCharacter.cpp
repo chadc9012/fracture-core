@@ -707,7 +707,7 @@ void AWFCharacter::Tick(float DeltaSeconds)
 	if (bInVehicle) return; // carried by a vehicle: hidden, not simulating
 	// region-hazards.ts gravity swings and a hazard zone's drift (Scene.tsx: sim.gravity x gravityMul; s.x += zone pull x dt)
 	GetCharacterMovement()->GravityScale = static_cast<float>(RegionGravityMul);
-	if (RegionPullX != 0 || RegionPullZ != 0) AddActorWorldOffset(FVector(RegionPullX, RegionPullZ, 0) * (100.0 * FootRatio * DeltaSeconds), true);
+	if (RegionPullX != 0 || RegionPullZ != 0) AddActorWorldOffset(FVector(RegionPullX, RegionPullZ, 0) * (100.0 * DeltaSeconds), true); // world metres a second, as Scene.tsx adds it
 	TickWeapon(DeltaSeconds);
 	TickDragon(DeltaSeconds);
 	if (bRiding) TickRide(DeltaSeconds);
@@ -1567,13 +1567,13 @@ void AWFCharacter::UseConsumable(const FString& Id)
 	if (!Progression || !C) return;
 	const std::map<std::string, double>& Mats = Progression->Get().Materials;
 	const auto Have = Mats.find(C->Id);
-	const FLinearColor Cyan(0.45f, 0.9f, 1.f), Warn(1.f, 0.55f, 0.3f);
+	const FLinearColor StimCyan(0.45f, 0.9f, 1.f), StimWarn(1.f, 0.55f, 0.3f);
 	AWFHUD* Hud = GetController<APlayerController>() ? Cast<AWFHUD>(GetController<APlayerController>()->GetHUD()) : nullptr;
 	auto Say = [Hud](const FString& Text, const FLinearColor& Color) { if (Hud) Hud->Toast(Text, Color); };
-	if (Have == Mats.end() || Have->second < 1) { Say(FString::Printf(TEXT("No %s carried"), UTF8_TO_TCHAR(C->Name.c_str())), Warn); return; }
-	if (!Progression->UseConsumable(Id)) { Say(FString::Printf(TEXT("%s is already at 3 stacks"), UTF8_TO_TCHAR(C->Name.c_str())), Warn); return; }
+	if (Have == Mats.end() || Have->second < 1) { Say(FString::Printf(TEXT("No %s carried"), UTF8_TO_TCHAR(C->Name.c_str())), StimWarn); return; }
+	if (!Progression->UseConsumable(Id)) { Say(FString::Printf(TEXT("%s is already at 3 stacks"), UTF8_TO_TCHAR(C->Name.c_str())), StimWarn); return; }
 	const auto B = Progression->GetBuffs().find(C->Id);
-	Say(FString::Printf(TEXT("%s x%g · %s"), UTF8_TO_TCHAR(C->Name.c_str()), B != Progression->GetBuffs().end() ? B->second.Stacks : 1.0, UTF8_TO_TCHAR(C->Blurb.c_str())), Cyan);
+	Say(FString::Printf(TEXT("%s x%g · %s"), UTF8_TO_TCHAR(C->Name.c_str()), B != Progression->GetBuffs().end() ? B->second.Stacks : 1.0, UTF8_TO_TCHAR(C->Blurb.c_str())), StimCyan);
 }
 
 void AWFCharacter::ApplyHazardDamage(double DamagePerSec, double Dt, const FString& Cause)

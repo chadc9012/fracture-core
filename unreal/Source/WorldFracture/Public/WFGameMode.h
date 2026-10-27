@@ -334,6 +334,7 @@ private:
 	std::optional<wf::strike::FDefinition> StrikeDef;
 	FString StrikeTierId;
 	wf::strike::FRun StrikeRun;
+	double StrikeEndedAt = 0;
 	// world boss raids (Scene.tsx worldBoss ref): the raid announced, woken and paid this session
 	FString WbAnnounced, WbWoke, WbPaid, WorldBossLine;
 	wf::hazard::FHazardEffect RegionHazardFx; // the region hazard and zone acting on the player (carries the exposure)

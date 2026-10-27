@@ -1072,15 +1072,15 @@ void AWFGameMode::SpawnStuntPark()
 	const wf::stunt::FPark& P = wf::stunt::StuntPark();
 	const double Yaw = FMath::RadiansToDegrees(FMath::Atan2(P.DirZ, P.DirX)); // rules (x, z) are Unreal (X, Y)
 	const FVector Centre = WasteToWorld(P.X, P.Z, BaseZ);
-	AWFStuntPark* Park = World->SpawnActor<AWFStuntPark>(AWFStuntPark::StaticClass(), FTransform(Centre));
-	if (!Park) return;
+	AWFStuntPark* NewPark = World->SpawnActor<AWFStuntPark>(AWFStuntPark::StaticClass(), FTransform(Centre));
+	if (!NewPark) return;
 	for (const wf::stunt::FRamp& R : wf::stunt::Ramps())
 	{
 		const wf::stunt::FPoint C = wf::stunt::RampCentre(R);
-		Park->AddRamp(WasteToWorld(C.X, C.Z, BaseZ), Yaw, R.Length, R.Ramp, R.Width, R.Height, UTF8_TO_TCHAR(R.Label.c_str()));
+		NewPark->AddRamp(WasteToWorld(C.X, C.Z, BaseZ), Yaw, R.Length, R.Ramp, R.Width, R.Height, UTF8_TO_TCHAR(R.Label.c_str()));
 	}
-	Park->AddFence(Centre, Yaw, P.Length, P.Width, [this, BaseZ](double X, double Y) { return GroundZ(X, Y, BaseZ); });
-	StuntParkActor = Park;
+	NewPark->AddFence(Centre, Yaw, P.Length, P.Width, [this, BaseZ](double X, double Y) { return GroundZ(X, Y, BaseZ); });
+	StuntParkActor = NewPark;
 }
 
 void AWFGameMode::Wasteland()
@@ -1741,6 +1741,7 @@ void AWFGameMode::StrikeAdvance()
 	}
 	StrikeRun = wf::strike::Advance(*StrikeDef, StrikeRun);
 	Toast(StF(StrikeRun.Message), StrikeRun.Status == "WIPED" ? StRed : StCyan);
+	if (StrikeRun.Status != "ACTIVE") StrikeEndedAt = GetWorld()->GetTimeSeconds(); // the panel shows the result for a few seconds
 	if (StrikeRun.Status == "WIPED") { Toast(TEXT("Fireteam lost: StrikeStart again to retry"), StRed); return; }
 	if (StrikeRun.Status != "COMPLETE") return;
 	// strikes.ts claimStrikeClear: the payout, shards, discovery XP, the signature gear and the tier clear
@@ -1764,6 +1765,7 @@ void AWFGameMode::StrikeLoseLife()
 {
 	if (!StrikeDef || StrikeRun.Status != "ACTIVE") { Toast(TEXT("No strike running"), StWarn); return; }
 	StrikeRun = wf::strike::LoseLife(*StrikeDef, StrikeRun);
+	if (StrikeRun.Status != "ACTIVE") StrikeEndedAt = GetWorld()->GetTimeSeconds();
 	Toast(StF(StrikeRun.Message), StrikeRun.Status == "WIPED" ? StRed : StWarn);
 }
 
@@ -1777,6 +1779,7 @@ void AWFGameMode::StrikeAbandon()
 bool AWFGameMode::GetStrikeHud(FString& OutTitle, TArray<FString>& OutLines, double& OutHazard) const
 {
 	if (!StrikeDef) return false;
+	if (StrikeRun.Status != "ACTIVE" && GetWorld() && GetWorld()->GetTimeSeconds() - StrikeEndedAt > 8) return false;
 	const wf::strike::FDefinition& D = *StrikeDef;
 	OutTitle = StF(D.Name);
 	OutLines.Reset();
@@ -1826,12 +1829,12 @@ void AWFGameMode::TickWorldBoss(float DeltaSeconds)
 	const FString Tag = StF(wf::worldboss::WorldBossKey(Raid.Id)), Id = StF(Raid.Id);
 	WorldBossLine.Reset();
 	if (!Raid.bLive) return;
-	const FString* RegionName = RegionNames.Find(StF(Raid.Site.Region));
-	WorldBossLine = FString::Printf(TEXT("WORLD BOSS · %s · %s (%s) · %g min left"), *StF(Raid.Site.Boss), *StF(Raid.Site.Name), RegionName ? **RegionName : *StF(Raid.Site.Region), FMath::CeilToDouble((Raid.EndsAt - Now) / 60000));
+	const FString* SiteRegionName = RegionNames.Find(StF(Raid.Site.Region));
+	WorldBossLine = FString::Printf(TEXT("WORLD BOSS · %s · %s (%s) · %g min left"), *StF(Raid.Site.Boss), *StF(Raid.Site.Name), SiteRegionName ? **SiteRegionName : *StF(Raid.Site.Region), FMath::CeilToDouble((Raid.EndsAt - Now) / 60000));
 	if (WbAnnounced != Id)
 	{
 		WbAnnounced = Id;
-		Toast(FString::Printf(TEXT("WORLD BOSS · %s rises at %s (%s) · the factions stand together"), *StF(Raid.Site.Boss), *StF(Raid.Site.Name), RegionName ? **RegionName : *StF(Raid.Site.Region)), StGold);
+		Toast(FString::Printf(TEXT("WORLD BOSS · %s rises at %s (%s) · the factions stand together"), *StF(Raid.Site.Boss), *StF(Raid.Site.Name), SiteRegionName ? **SiteRegionName : *StF(Raid.Site.Region)), StGold);
 	}
 	if (Prog->Get().NexLedger.count(WFData::ToStd(Tag)) || WbWoke == Id) return; // this raid already paid, or its boss is up
 	FVector At;

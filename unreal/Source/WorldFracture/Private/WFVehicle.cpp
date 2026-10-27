@@ -475,6 +475,13 @@ void AWFVehicle::Tick(float DeltaSeconds)
 	FHitResult Hit;
 	const double PreCollide = State.Speed;
 	SetActorLocation(Next, true, &Hit, ETeleportType::None);
+	// a surface the vehicle can drive up (a Stunt Park ramp face, a steep bank): the level box catches its front edge, but the
+	// ground trace and stepAir already ride it, so it is driven over, not crashed into
+	if (Hit.bBlockingHit && Hit.ImpactNormal.Z > 0.5 && Profile->Mode == "GROUND")
+	{
+		SetActorLocation(Next, false, nullptr, ETeleportType::None);
+		Hit = FHitResult();
+	}
 	if (Hit.bBlockingHit && FMath::Abs(State.Speed) > 3)
 	{
 		// a crash: most of the speed is lost and the vehicle wears (vehicle-condition.ts impactVehicle)
