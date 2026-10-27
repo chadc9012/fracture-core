@@ -9,3 +9,5 @@ export const setRaidLaunchTier = (tierId: string) => { selected = tierById("raid
 export const getRaidLaunchTier = () => selected;
 /** the multiplier on the boss's health for a tier */
 export const raidBossHealthScale = (tierId: string) => tierById("raid", tierId).bossHealthScale;
+/** the multiplier on the damage the player takes while fighting the boss on a tier: a quarter of the health bump (Heroic ×1.15, Mastery ×1.35, Contest ×1.6) */
+export const raidBossDamageScale = (tierId: string) => 1 + (raidBossHealthScale(tierId) - 1) * 0.25;

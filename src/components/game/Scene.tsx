@@ -268,7 +268,7 @@ import { FOUNDRY_RULES, activeBlade, foundryOf, inShockwave, swingStats } from "
 import { LIVING_NPCS, PLEDGE_KEY, livingMarkers, npcNear, npcWorld } from "@/game/living-npcs";
 import { SECRETS, secretPoint, type SecretContext } from "@/game/secrets";
 import { LivingCity } from "./LivingCity";
-import { getRaidLaunchTier, raidBossHealthScale } from "@/game/raid-launch";
+import { getRaidLaunchTier, raidBossDamageScale, raidBossHealthScale } from "@/game/raid-launch";
 import { WastelandSites } from "./WastelandSites";
 import { createWasteRuntime, stepWasteRuntime, type WasteEmit, type WasteHud, type WasteRuntime } from "@/game/wasteland-runtime";
 import { createDescentRuntime, descentDeath, drainEndedRuns, stepDescentRuntime, type DescentEmit, type DescentHud, type DescentRuntime } from "@/game/descent-runtime";
@@ -2434,7 +2434,7 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
       const run = raidRun.current;
       if (!run || run.id !== raidZone.id) {
         const sc = scenarioById(raidZone.scenarioId);
-        if (sc && !boss && summonScenarioBoss(sim, sc, raidZone.site.x, raidZone.site.z)) { raidRun.current = { id: raidZone.id, woke: true }; const woken = sim.machines.find((m) => m.alive && m.boss && m.scenarioId === raidZone.scenarioId); const hp = raidBossHealthScale(getRaidLaunchTier()); if (woken && hp !== 1 && woken.maxHp) { woken.maxHp *= hp; woken.hp = woken.maxHp; } alert(sim, `${raidZone.name} · ${sc.bossName} wakes`); }
+        if (sc && !boss && summonScenarioBoss(sim, sc, raidZone.site.x, raidZone.site.z)) { raidRun.current = { id: raidZone.id, woke: true }; const woken = sim.machines.find((m) => m.alive && m.boss && m.scenarioId === raidZone.scenarioId); const hp = raidBossHealthScale(getRaidLaunchTier()); if (sim.raidFight) sim.raidFight.dmgScale = raidBossDamageScale(getRaidLaunchTier()); if (woken && hp !== 1 && woken.maxHp) { woken.maxHp *= hp; woken.hp = woken.maxHp; } alert(sim, `${raidZone.name} · ${sc.bossName} wakes`); }
       } else if (!boss) {
         const pad = raidExitPad(raidZone);
         if (!run.cleared) { run.cleared = true; alert(sim, "The arena falls quiet · the exit pad is open"); }

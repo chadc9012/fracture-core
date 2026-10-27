@@ -349,7 +349,7 @@ export { laneSamples };
 
 export type WorldSim = {
   /** active boss fight performance tracker (raid drops) */
-  raidFight?: { start: number; hurt: number; region: string } | undefined;
+  raidFight?: { start: number; hurt: number; region: string; /** raid-launch.ts tier damage scale (default 1) */ dmgScale?: number } | undefined;
   zones: ZoneState[];
   lanes: Lane[];
   machines: Machine[];
@@ -1440,7 +1440,7 @@ export function hurtPlayer(sim: WorldSim, dmg: number, cause: string) {
   // score before anything else runs — the one place all incoming damage already funnels through.
   // verbIncomingMult (Bulwark Titan's Safe Ground / OVERSHIELD) is set here too since every source
   // of incoming damage — bullets, collisions, hazards — already routes through this one function.
-  const scaled = dmg * (performance.now() / 1000 < sim.deflectUntil ? 0.5 : 1) * (sim.challenge?.enemyDamage ?? 1) * (sim.runes?.ward ? WARD_MULT : 1) * sim.mods.incomingDamageScale * sim.verbIncomingMult * (1 - Math.min(0.9, Math.max(0, sim.dashResist))) * (1 - Math.min(0.5, Math.max(0, sim.dragoniteResist))) * (1 - Math.min(0.5, Math.max(0, sim.armorResist)));
+  const scaled = dmg * (performance.now() / 1000 < sim.deflectUntil ? 0.5 : 1) * (sim.challenge?.enemyDamage ?? 1) * (sim.raidFight?.dmgScale ?? 1) * (sim.runes?.ward ? WARD_MULT : 1) * sim.mods.incomingDamageScale * sim.verbIncomingMult * (1 - Math.min(0.9, Math.max(0, sim.dashResist))) * (1 - Math.min(0.5, Math.max(0, sim.dragoniteResist))) * (1 - Math.min(0.5, Math.max(0, sim.armorResist)));
   const resolvedDamage = sim.titanActive ? absorbTitanDamage(sim.titan, scaled, performance.now() / 1000) : scaled;
   sim.hp = Math.max(0, sim.hp - resolvedDamage);
   if (resolvedDamage > 0) sim.lastDamageAt = performance.now() / 1000;
