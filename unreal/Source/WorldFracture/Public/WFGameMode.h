@@ -16,6 +16,7 @@
 #include "Core/WFActivityCore.h"
 #include "Core/WFLivingNpcCore.h"
 #include "Core/WFLivingEventCore.h"
+#include "Core/WFSquadCore.h"
 #include "WFGameMode.generated.h"
 
 class AWFEnemy;
@@ -228,6 +229,8 @@ public:
 	UFUNCTION(Exec) void TalkDo(const FString& Choice);
 	/** your standing with the four city factions */
 	UFUNCTION(Exec) void Standing();
+	/** squad.ts: your two AI squadmates VEX and HOLT on or off (they always join the Killbox team modes) */
+	UFUNCTION(Exec) void Fireteam();
 	/** a tagged machine fell to the player (sim.ts livingKills) */
 	void OnTaggedKill(const FString& Tag) { TagKills.FindOrAdd(Tag) += 1; }
 	/** HUD: the city world event in progress (title, phase, timer, the rift hold), or "" */
@@ -304,6 +307,10 @@ private:
 	void TickActivity(float DeltaSeconds);
 	void TickLivingNpcs(float DeltaSeconds);
 	void TickCityEvents(float DeltaSeconds);
+	void TickFireteam(float DeltaSeconds);
+	std::optional<wf::squad::FState> FireteamState;
+	bool bFireteamWanted = false;
+	TArray<TWeakObjectPtr<class AWFLivingNpc>> FireteamBodies;
 	/** sim.ts spawnEventSquad: Size of a region's troopers (Elites of them elite) tagged Tag in a ring round a web-world point */
 	int32 SpawnRegionSquad(const FString& Tag, double WebX, double WebZ, int32 Size, int32 Elites, double RingM, const FString& Region);
 	void DespawnTag(const FString& Tag);

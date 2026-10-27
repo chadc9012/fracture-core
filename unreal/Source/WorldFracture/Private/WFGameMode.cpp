@@ -301,6 +301,7 @@ void AWFGameMode::Tick(float DeltaSeconds)
 	TickActivity(DeltaSeconds);
 	TickLivingNpcs(DeltaSeconds);
 	TickCityEvents(DeltaSeconds);
+	TickFireteam(DeltaSeconds);
 	// sim.ts: weapon cooling; venting from an overheat is slower than a normal cooldown
 	if (wf::vweapons::CoolHeat(WeaponHeat, FMath::Min(static_cast<double>(DeltaSeconds), 0.25))) Toast(TEXT("Weapon cooled - ready"), FLinearColor(0.45f, 0.9f, 1.f));
 	Squad.RemoveAll([](const TWeakObjectPtr<AWFEnemy>& E) { return !E.IsValid() || E->IsDead(); });
@@ -2157,7 +2158,7 @@ std::optional<wf::activity::FPvpTick> AWFGameMode::TickKillbox(float DeltaSecond
 	FKillbox& K = *Killbox;
 	ArenaWeb.reset();
 	if (M->Kind != "royale") ArenaWeb = K.Centre;
-	// your squadmates are not in this build: team points come from your own eliminations (and the off-field fight)
+	// your eliminations and your squadmates' (sim.ts credits a squad kill to you) score for the team, with the off-field fight
 	const double Kills = T.RivalKills - K.Kills;
 	const bool bDied = Prog->GetPlayerDeaths() > K.Deaths;
 	K.Kills = T.RivalKills; K.Deaths = Prog->GetPlayerDeaths();
@@ -2480,4 +2481,88 @@ void AWFGameMode::TickCityEvents(float DeltaSeconds)
 			DrawDebugCylinder(GetWorld(), At, At + FVector(0, 0, 1500), (Ev->Kind == "FRACTURE" ? wf::livingevent::FractureRadius : 12.0) * 100.0, 24, Tint, false, -1.f, 0, 6.f);
 		}
 	}
+}
+
+// --- the AI squadmates (squad.ts) ------------------------------------------------------------------------------------------
+
+void AWFGameMode::Fireteam()
+{
+	bFireteamWanted = !bFireteamWanted;
+	Toast(bFireteamWanted ? TEXT("Fireteam: VEX and HOLT are with you") : TEXT("Fireteam: VEX and HOLT stand down"), FLinearColor(0.45f, 0.85f, 1.f));
+}
+
+void AWFGameMode::TickFireteam(float DeltaSeconds)
+{
+	APawn* Pawn = UGameplayStatics::GetPlayerPawn(this, 0);
+	if (!Pawn) return;
+	AWFCharacter* Operator = Cast<AWFCharacter>(Pawn);
+	const AWFVehicle* Car = Cast<AWFVehicle>(Pawn);
+	if (Car) Operator = Car->GetDriver();
+	// Scene.tsx: the Killbox team modes field your fireteam for the match
+	const wf::pvp::FMode* KbMode = Killbox ? wf::pvp::ModeById(Killbox->St.Mode) : nullptr;
+	const bool bOn = bFireteamWanted || (KbMode && KbMode->Kind != "ffa" && KbMode->Kind != "royale");
+	const FVector2D Here = WebPosition(Pawn->GetActorLocation());
+	if (!bOn)
+	{
+		for (const TWeakObjectPtr<AWFLivingNpc>& B : FireteamBodies) if (B.IsValid()) B->Destroy();
+		FireteamBodies.Reset();
+		FireteamState.reset();
+		return;
+	}
+	if (!FireteamState)
+	{
+		FireteamState = wf::squad::CreateSquad(Here.X, Here.Y);
+		const FLinearColor Colors[2] = {FLinearColor(0.35f, 0.75f, 1.f), FLinearColor(0.55f, 1.f, 0.6f)};
+		for (int32 I = 0; I < 2; ++I)
+		{
+			const wf::squad::FMate& M = FireteamState->Mates[static_cast<size_t>(I)];
+			const FVector At(M.X * 100.0, M.Z * 100.0, GroundZ(M.X * 100.0, M.Z * 100.0, Pawn->GetActorLocation().Z));
+			if (AWFLivingNpc* Body = GetWorld()->SpawnActor<AWFLivingNpc>(AWFLivingNpc::StaticClass(), FTransform(At)))
+			{
+				Body->Setup(FString::Printf(TEXT("squad:%s"), UTF8_TO_TCHAR(M.Name.c_str())), UTF8_TO_TCHAR(M.Name.c_str()), TEXT("Fireteam"), Colors[I]);
+				Body->SetSolid(false);
+				FireteamBodies.Add(Body);
+			}
+		}
+	}
+	// the targets: every enemy standing (pickTarget keeps to the living, non-decoy ones within 34 m of you)
+	TArray<AWFEnemy*> Actors;
+	std::vector<wf::squad::FTarget> Targets;
+	for (TActorIterator<AWFEnemy> It(GetWorld()); It; ++It)
+	{
+		if (It->IsDead()) continue;
+		const FVector2D P = WebPosition(It->GetActorLocation());
+		Actors.Add(*It);
+		Targets.push_back({P.X, P.Y, true, It->IsBoss(), It->GetHealth(), It->GetMaxHealth(), It->IsDecoy()});
+	}
+	// web yaw 0 faces +z (Unreal +Y): yaw = atan2(forward x, forward z)
+	const FVector Fwd = (Car ? Pawn->GetActorForwardVector() : Pawn->GetControlRotation().Vector());
+	wf::squad::FInput In;
+	In.Px = Here.X; In.Pz = Here.Y; In.Yaw = FMath::Atan2(Fwd.X, Fwd.Y); In.Dt = DeltaSeconds; In.Heat = CombatHeat;
+	In.bInVehicle = Car != nullptr;
+	In.Rand = []() { return static_cast<double>(FMath::FRand()); };
+	const std::vector<wf::squad::FHit> Hits = wf::squad::StepSquad(*FireteamState, Targets, In);
+	for (const wf::squad::FHit& H : Hits)
+	{
+		AWFEnemy* E = Actors.IsValidIndex(H.Index) ? Actors[H.Index] : nullptr;
+		if (!E || E->IsDead()) continue;
+		// sim.ts: squad rounds go through the machine damage mods and credit you; a boss is never taken below its floor
+		if (E->IsBoss()) E->TakeHitLeaving(H.Damage, Operator, TEXT("KINETIC"), 0.01);
+		else E->TakeHit(H.Damage, Operator, TEXT("KINETIC"));
+	}
+	// the bodies follow the rules' positions; fresh rounds draw as tracers (debug lines: compiled out of Shipping)
+	for (int32 I = 0; I < FireteamBodies.Num() && I < static_cast<int32>(FireteamState->Mates.size()); ++I)
+		if (AWFLivingNpc* Body = FireteamBodies[I].Get())
+		{
+			const wf::squad::FMate& M = FireteamState->Mates[static_cast<size_t>(I)];
+			const double X = M.X * 100.0, Y = M.Z * 100.0;
+			Body->Place(FVector(X, Y, GroundZ(X, Y, Pawn->GetActorLocation().Z)), static_cast<float>(FMath::RadiansToDegrees(FMath::Atan2(FMath::Cos(M.Yaw), FMath::Sin(M.Yaw)))));
+		}
+	for (const wf::squad::FShot& Shot : FireteamState->Shots)
+		if (FireteamState->Clock - Shot.At < 0.06)
+		{
+			const double Z = Pawn->GetActorLocation().Z;
+			DrawDebugLine(GetWorld(), FVector(Shot.FromX * 100.0, Shot.FromZ * 100.0, GroundZ(Shot.FromX * 100.0, Shot.FromZ * 100.0, Z) + 140), FVector(Shot.ToX * 100.0, Shot.ToZ * 100.0, GroundZ(Shot.ToX * 100.0, Shot.ToZ * 100.0, Z) + 110),
+				Shot.bHit ? FColor(255, 220, 120) : FColor(160, 160, 160), false, 0.f, 0, 2.f);
+		}
 }

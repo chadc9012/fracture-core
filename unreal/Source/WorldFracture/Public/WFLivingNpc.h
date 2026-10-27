@@ -25,6 +25,10 @@ public:
 	const FString& GetNpcId() const { return NpcId; }
 	/** where to stand now (cm); the body walks there */
 	void SetGoal(const FVector& Goal) { GoalCm = Goal; bHasGoal = true; }
+	/** stand exactly here, facing Yaw (degrees): the squadmates' bodies follow wf::squad */
+	void Place(const FVector& At, float Yaw);
+	/** squadmates are not solid: they never block the Operator, vehicles or shots */
+	void SetSolid(bool bSolid);
 
 private:
 	UPROPERTY() TObjectPtr<USceneComponent> Root;

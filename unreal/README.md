@@ -161,7 +161,13 @@ Until then the phone build is the web game (`mobile/`, the `android-latest` rele
   to 20), Lockdown (4v4 attack and defend rounds), Killbox: Ascendancy (elite 3v3 rounds with a buzzer capture zone) and
   Fracture Royale (60 players, a closing circle that burns). The far side of each team trades eliminations at the web
   build's seeded rate; the HUD shows the score line; you respawn at the arena edge. The first five wins a day pay in
-  full. Your two AI squadmates (squad.ts) are not ported, so team points come from your own eliminations.
+  full. In the team modes your two AI squadmates fight beside you (below), and their eliminations score for the team.
+- **AI squadmates (squad.ts):** VEX and HOLT run in formation behind your shoulders and lay down support fire in
+  five-round bursts, only while you are in a fight (combat heat), on foot, and only at enemies within 34 m of you. Their
+  rounds hit 60% of the time for 2.2 damage a second each, go through the same damage mods as yours and credit you; they
+  never take a boss below a quarter of its health, so the boss kill is always yours. They cannot be hurt, never ride in
+  vehicles, and catch up at once when left 60 m behind. They join every Killbox team mode; `Fireteam` brings them along
+  (or stands them down) anywhere else. Their tracers are debug lines, so they do not show in Shipping builds.
 - **The city NPCs:** nine people in Nexus City and Neon City (living-npcs.ts): faction leaders, quest givers and informants,
   in their faction's colour with a name plate, at their posts by day and resting near the centre from 22:00 to 05:00. E
   (or `Talk`) opens the talk panel: their line (standing, a fallen district, your pledge) and numbered offers, taken with
@@ -371,6 +377,7 @@ cmake -S . -B build -G Ninja && cmake --build build && ctest --test-dir build --
 | PvpCoreTest | pvp.ts, crucible.ts | 61,728 match frames, 17,689 rival-field steps, 82,364 checks |
 | LivingNpcCoreTest | living-npcs.ts, npc-routine.ts, living-world.ts cities | 7,007 talk actions, 25,652 checks |
 | LivingEventCoreTest | living-events.ts | 120,163 director steps, 127,081 checks |
+| SquadCoreTest | squad.ts | 67,605 squad steps, 205,235 checks |
 | StashCoreTest | stash.ts | 10,209 stash operations, 16,465 checks |
 | HazardCoreTest | region-hazards.ts, hazard-zones.ts, landmarks.ts | 5,408 hazard steps, 12,000 zone probes, 33,445 checks |
 | StuntCoreTest | stunts.ts (air, tricks, combos, powerslides, pay), stunt-park.ts | 66,120 flight frames, 186,818 scored events, 329,904 checks |
@@ -381,7 +388,7 @@ The golden files (`Plugins/WorldFractureCore/Tests/<name>_golden.txt`) are **gen
 which broke the Lovable preview build. Record all of them from the repo root before configuring the tests (and again after changing
 the web build's rules):
 
-    node unreal/tools/gen-goldens.mjs            # all thirty-five
+    node unreal/tools/gen-goldens.mjs            # all thirty-six
     node unreal/tools/gen-goldens.mjs race shop  # just these
 
 `export-datatables` (the DataTables, which are committed) still runs on its own:
@@ -393,7 +400,7 @@ The encounter, Dragonite-cast, ability, tactics and Wastelands recorders route t
 ## Not ported yet
 Boss models and attack effects (zones are debug circles, decoys are stand-ins), mid-mission saves, ability mastery XP,
 region kinds for abilities (the map counts as a war zone),
-troopers running out of orbital strike circles (no strike beacons yet), legendary-chain.ts reactions (they need two hit sources, so never fire in single player), rain, snow and fog visuals (the weather is simulated and shown on the HUD), venue specials (venue-life.ts orderSpecial), the Killbox squadmates (squad.ts), the Hollow Star raid and
+troopers running out of orbital strike circles (no strike beacons yet), legendary-chain.ts reactions (they need two hit sources, so never fire in single player), rain, snow and fog visuals (the weather is simulated and shown on the HUD), venue specials (venue-life.ts orderSpecial), the Hollow Star raid and
 activity shader drops,
 diving (the thalassia-dive survive timer), the Neon City police response itself (the web build has only the heat meter and its labels; chase-ai.ts pursuit helpers are unused there), the Operations Hub preview marketplace (its wallet is not saved in the web build either), home interiors, cloud save merge, the rest of the world (terrain, the other regions, Neon City, Thalassia; Nexus City is in). Their data is already in
 `DataTables/`.

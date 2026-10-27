@@ -61,3 +61,14 @@ void AWFLivingNpc::Tick(float DeltaSeconds)
 	if (const APlayerCameraManager* Cam = UGameplayStatics::GetPlayerCameraManager(this, 0))
 		Plate->SetWorldRotation(FRotator(0.f, static_cast<float>((Cam->GetCameraLocation() - Plate->GetComponentLocation()).Rotation().Yaw), 0.f));
 }
+
+void AWFLivingNpc::Place(const FVector& At, float Yaw)
+{
+	bHasGoal = false;
+	SetActorLocationAndRotation(At, FRotator(0.f, Yaw, 0.f));
+}
+
+void AWFLivingNpc::SetSolid(bool bSolid)
+{
+	Body->SetCollisionEnabled(bSolid ? ECollisionEnabled::QueryAndPhysics : ECollisionEnabled::NoCollision);
+}
