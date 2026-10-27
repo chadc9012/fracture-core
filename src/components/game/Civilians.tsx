@@ -11,6 +11,7 @@ import { NEON_CENTER as NEON } from "@/game/living-world";
 import { heightAt } from "@/game/terrain";
 import { mulberry32 } from "@/game/rng";
 import { ambientCivilianSpecs, beachgoerSpecs } from "@/game/ambient-population";
+import { robotCivilianSpecs, robotModelUrl, type RobotVariant } from "@/game/robots";
 import {
   spawnCivilian,
   stepCivilian,
@@ -50,7 +51,9 @@ function buildRoster(): CivilianSpec[] {
   ];
   // everyday people across the destinations and on the beaches (ambient-population.ts), never on top of the named roster
   const ambient = ambientCivilianSpecs(specs);
-  return [...specs, ...ambient, ...beachgoerSpecs()];
+  // robot civilians (robots.ts): service droids, haulers and couriers in Nexus and Neon City
+  const robots = robotCivilianSpecs({ nexus: { x: nexus.x, z: nexus.z }, neon: { x: NEON.x, z: NEON.z } });
+  return [...specs, ...ambient, ...robots, ...beachgoerSpecs()];
 }
 
 const UP = new THREE.Vector3(0, 1, 0);
@@ -136,7 +139,7 @@ export function CivilianModel({ role, live, url }: { role: CivilianRole; live: R
     }
     // a body with no idle clip would hold its rig's A-pose: relax the arms instead; a sheet merchant's Meshy idle still holds
     // them out, so those get the lighter idle relax on top (rest-pose.ts)
-    const relaxArms = actions.idle && !url ? [] : armBones(obj);
+    const relaxArms = actions.idle && (!url || url.includes("/robots/")) ? [] : armBones(obj);
     return { obj, k, offset: [-c.x * k, -box.min.y * k, -c.z * k] as [number, number, number], mixer, actions, relaxArms };
   }, [scene, animations, url]);
   const weights = useRef<Record<CivilianClip, number>>({ idle: 1, walk: 0, wave: 0 });
@@ -162,14 +165,14 @@ export function CivilianModel({ role, live, url }: { role: CivilianRole; live: R
 /** Level of detail: the authored body (~100k triangles, own animation mixer) up close, a cheap procedural stand-in past
  * DETAIL_DISTANCE. `live.current.far` is set by whoever owns the position (Civilians loop, LivingCity NPCs). */
 export const DETAIL_DISTANCE = 32;
-export function CivilianBody({ role, live }: { role: CivilianRole; live: React.RefObject<Civilian> }) {
+export function CivilianBody({ role, live, robot }: { role: CivilianRole; live: React.RefObject<Civilian>; /** robots.ts body */ robot?: string | undefined }) {
   const lo = useRef<THREE.Group>(null!);
   useFrame(() => { if (lo.current) lo.current.visible = !!live.current?.far; });
   const fallback = <Humanoid role={role} phase={0} walking={false} greeting={false} />;
   return (
     <>
       <group ref={lo} visible={false}><Humanoid role={role} phase={0} walking={false} greeting={false} /></group>
-      <Quiet fallback={fallback}><Suspense fallback={fallback}><CivilianModel role={role} live={live} /></Suspense></Quiet>
+      <Quiet fallback={fallback}><Suspense fallback={fallback}><CivilianModel role={role} live={live} url={robot ? robotModelUrl(robot as RobotVariant) : undefined} /></Suspense></Quiet>
     </>
   );
 }
@@ -190,7 +193,7 @@ function CivilianView({ civilian, sharedRef }: { civilian: Civilian; sharedRef: 
   });
   return (
     <group ref={group}>
-      <CivilianBody role={civilian.role} live={live} />
+      <CivilianBody role={civilian.role} live={live} robot={civilian.robot} />
     </group>
   );
 }

@@ -54,6 +54,7 @@ import {
 import { createSquad, stepSquad, type SquadState } from "./squad";
 import { absorbTitanDamage, createTitanState, tickTitan, type TitanState } from "./titan";
 import { encounterFor, factionOf, troopFor } from "./encounters";
+import { robotChassis } from "./robots";
 import { ENEMY_TUNING, aggroRadius, rangedCooldownFor, trooperSpeed, windupFor } from "./enemy-tuning";
 import type { MaterialId } from "./inventory";
 import type { GearItem } from "./inventory";
@@ -594,7 +595,7 @@ export function defeatMachine(sim: WorldSim, m: Machine, credit: KillCredit = "p
     const g = m.goreHit, body = enemyBodyScaleOf(m.scale), feet = m.y - 2.2 * m.scale;
     logGore(sim, { kind: "KILL", blood: bloodOf(m), cause: g?.cause ?? "BULLET", x: m.x, y: g?.y ?? feet + 1.25 * body, z: m.z, dx: g?.dx ?? 0, dz: g?.dz ?? 0,
       power: Math.min(1, (g?.dmg ?? 1) / Math.max(0.5, m.maxHp ?? (m.elite ? 7 : 3.5)) + (m.hp < 0 ? -m.hp / Math.max(0.5, m.maxHp ?? 3.5) : 0)), size: body,
-      body: m.rival ? undefined : { kind: m.kind, role: m.boss ? "boss" : m.elite ? "elite" : "standard", rot: m.rot, groundY: feet, scale: body } });
+      body: m.rival ? undefined : { kind: m.kind, role: m.boss ? "boss" : m.elite ? "elite" : "standard", robot: !m.boss && robotChassis(m), rot: m.rot, groundY: feet, scale: body } });
     m.goreHit = undefined;
   }
   if (m.rival) { // Crucible rival: scores the match; the match result pays out, not a drop

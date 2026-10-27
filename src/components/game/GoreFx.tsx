@@ -17,6 +17,9 @@ import { heldWeaponCopy } from "./heldModels";
 type Dropped = { cls: HandlingClass | null; x: number; y: number; z: number; vx: number; vy: number; vz: number; rx: number; ry: number; rz: number; spin: number; rest: boolean };
 import { softSprite } from "./softSprite";
 
+/** a corpse slot's model key: faction, rank and (robots.ts) whether it is a robot chassis */
+const corpseKey = (c: Pick<Corpse, "kind" | "role" | "robot">) => `${c.kind}:${c.role}${c.robot ? ":robot" : ""}`;
+
 /**
  * Gore (gore.ts): blood spray, mist, machine sparks/oil/coolant, ground decals and pools, severed parts and gibs, and the
  * bodies left where enemies fell. Presentation only — it reads the sim.gore ring (logGore) and never changes combat.
@@ -181,7 +184,7 @@ export function GoreFx({ sim, level }: { sim: WorldSim; level: GoreLevel }) {
     const prev = severed.current[i];
     if (prev) { prev.bone.scale.copy(prev.scale); severed.current[i] = null; }
     if (!part) return;
-    const rig = rigs.current[i]!.get(`${c.kind}:${c.role}`);
+    const rig = rigs.current[i]!.get(corpseKey(c));
     if (!rig) return;
     const names: string[] = []; const byName = new Map<string, THREE.Object3D>();
     rig.traverse((o) => { if ((o as THREE.Bone).isBone) { names.push(o.name); byName.set(o.name, o); } });
@@ -207,7 +210,7 @@ export function GoreFx({ sim, level }: { sim: WorldSim; level: GoreLevel }) {
       if (e.kind === "KILL" && e.body) {
         const c = addCorpse(corpses, e, lvl, spray);
         if (c) {
-          const i = corpses.indexOf(c), key = `${c.kind}:${c.role}`;
+          const i = corpses.indexOf(c), key = corpseKey(c);
           if (!mountedRef.current[i]!.includes(key)) { const next = mountedRef.current.map((l, k) => (k === i ? [...l, key] : l)); mountedRef.current = next; setMounted(next); }
           sever(i, c, spray.sever);
           drives[i]!.current.death = { age: 0, seed: c.seed, style: c.style, mirror: c.mirror };
@@ -321,7 +324,7 @@ export function GoreFx({ sim, level }: { sim: WorldSim; level: GoreLevel }) {
       // the body keeps facing the way it stood (rot), relative to the fall direction
       inner.rotation.set(0, c.rot - fallYaw + root.twist * deathTwistSign(c.mirror), 0);
       inner.scale.setScalar(c.scale);
-      for (const child of inner.children) child.visible = child.name === `${c.kind}:${c.role}`;
+      for (const child of inner.children) child.visible = child.name === corpseKey(c);
       // the limbs play the same animation (EnemyModel reads drive.death); the hips sink while the body is still upright
       const death = drives[i]!.current.death;
       if (death) death.age = c.age;
@@ -354,8 +357,8 @@ export function GoreFx({ sim, level }: { sim: WorldSim; level: GoreLevel }) {
           <group>
             <group>
               {mounted[i]!.map((key) => {
-                const [kind, role] = key.split(":") as [Corpse["kind"], Corpse["role"]];
-                return <group key={key} name={key} visible={false}><FactionEnemy kind={kind} role={role} armed={false} drive={drives[i]!} onBuilt={onBuilt(i, key)} /></group>;
+                const [kind, role, chassis] = key.split(":") as [Corpse["kind"], Corpse["role"], string | undefined];
+                return <group key={key} name={key} visible={false}><FactionEnemy kind={kind} role={role} robot={chassis === "robot"} armed={false} drive={drives[i]!} onBuilt={onBuilt(i, key)} /></group>;
               })}
             </group>
           </group>

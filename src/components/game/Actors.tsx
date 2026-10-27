@@ -23,6 +23,7 @@ import { ENEMY_BUDGET, budgetedEnemies, enemyVisible } from "@/game/actor-cull";
 import { getPerfTier } from "@/game/perf-budget";
 import { FLEET_MODELS } from "@/game/fleet-models";
 import { AuthoredVehicle } from "./AuthoredVehicle";
+import { robotChassis } from "@/game/robots";
 
 /* ---------------- supply lanes (roads) ---------------- */
 
@@ -212,7 +213,7 @@ function WalkingTank() {
   );
 }
 
-function RegionalEnemy({ kind, boss, elite = false, drive }: { kind: "RAIDER" | "OVERCLOCKED" | "ABERRATION" | "VANGUARD" | "SKYBORN" | "GUARDIAN" | "ABYSSAL"; boss: boolean; elite?: boolean; drive: DriveRef }) {
+function RegionalEnemy({ kind, boss, elite = false, robot = false, drive }: { kind: "RAIDER" | "OVERCLOCKED" | "ABERRATION" | "VANGUARD" | "SKYBORN" | "GUARDIAN" | "ABYSSAL"; boss: boolean; elite?: boolean; robot?: boolean; drive: DriveRef }) {
   const metal = kind === "RAIDER" ? "#765949" : kind === "ABERRATION" ? "#375c43" : kind === "VANGUARD" ? "#5b7481" : kind === "SKYBORN" ? "#cfc8b8" : kind === "GUARDIAN" ? "#8a7a5e" : kind === "ABYSSAL" ? "#2a3a4e" : "#636c85";
   const glow = kind === "RAIDER" ? "#f36b33" : kind === "ABERRATION" ? "#83dc89" : "#58d8ef";
   const head = useRef<THREE.Group>(null!);
@@ -224,7 +225,7 @@ function RegionalEnemy({ kind, boss, elite = false, drive }: { kind: "RAIDER" | 
     if (visor.current) visor.current.emissiveIntensity = 2 * pose.glow * (pose.talking ? 0.8 + Math.random() * 0.4 : 1);
     if (head.current) head.current.rotation.x = pose.lean + pose.jaw * 0.2;
   });
-  return <FactionEnemy kind={kind} role={boss ? "boss" : elite ? "elite" : "standard"} visorRef={visor} headRef={head} drive={drive} />;
+  return <FactionEnemy kind={kind} role={boss ? "boss" : elite ? "elite" : "standard"} robot={robot} visorRef={visor} headRef={head} drive={drive} />;
 }
 
 export function WarMachines({ sim }: { sim: WorldSim }) {
@@ -268,7 +269,7 @@ export function WarMachines({ sim }: { sim: WorldSim }) {
       }
       const stride = strides[i];
       if (m.rival && stride && drive) { stride.current.phase += drive.current.speed * dt * 1.25; stride.current.intensity = Math.min(1, drive.current.speed / 9); drive.current.procedural = false; }
-      const modelName = m.rival ? `rival-${m.rival}` : m.boss && m.scenarioId && scenarioModelReady.has(m.scenarioId) ? "scenario-model" : m.boss || (m.nemesis && (m.kind === "SKYBORN" || m.kind === "GUARDIAN" || m.kind === "ABYSSAL")) ? `boss-model-${m.kind ?? "OVERCLOCKED"}` /* a Skyborn nemesis is a Harbinger, their commander caste */ : (m.kind === "OVERCLOCKED" ? "overclocked-model" : m.kind === "ABERRATION" ? "aberration-model" : m.kind === "VANGUARD" ? "vanguard-model" : m.kind === "SKYBORN" ? "skyborn-model" : m.kind === "GUARDIAN" ? "guardian-model" : m.kind === "ABYSSAL" ? "abyssal-model" : "regional-model") + (m.elite ? "-elite" : "");
+      const modelName = m.rival ? `rival-${m.rival}` : m.boss && m.scenarioId && scenarioModelReady.has(m.scenarioId) ? "scenario-model" : m.boss || (m.nemesis && (m.kind === "SKYBORN" || m.kind === "GUARDIAN" || m.kind === "ABYSSAL")) ? `boss-model-${m.kind ?? "OVERCLOCKED"}` /* a Skyborn nemesis is a Harbinger, their commander caste */ : robotChassis(m) ? `robot-model-${m.kind}${m.elite ? "-elite" : ""}` : (m.kind === "OVERCLOCKED" ? "overclocked-model" : m.kind === "ABERRATION" ? "aberration-model" : m.kind === "VANGUARD" ? "vanguard-model" : m.kind === "SKYBORN" ? "skyborn-model" : m.kind === "GUARDIAN" ? "guardian-model" : m.kind === "ABYSSAL" ? "abyssal-model" : "regional-model") + (m.elite ? "-elite" : "");
       if (modelName !== "scenario-model" && !mountedRef.current[i]?.includes(modelName)) {
         const next = mountedRef.current.map((list, k) => (k === i ? [...list, modelName] : list));
         mountedRef.current = next;
@@ -316,6 +317,11 @@ export function WarMachines({ sim }: { sim: WorldSim }) {
           <group name="guardian-model-elite" visible={false}>{need(i, "guardian-model-elite") && <RegionalEnemy kind="GUARDIAN" boss={false} elite drive={drives[i]!} />}</group>
           <group name="abyssal-model" visible={false}>{need(i, "abyssal-model") && <RegionalEnemy kind="ABYSSAL" boss={false} drive={drives[i]!} />}</group>
           <group name="abyssal-model-elite" visible={false}>{need(i, "abyssal-model-elite") && <RegionalEnemy kind="ABYSSAL" boss={false} elite drive={drives[i]!} />}</group>
+          {/* robot chassis troops (robots.ts): a Sentry, an Enforcer for elites; the faction still picks the weapon */}
+          {(["OVERCLOCKED", "RAIDER", "VANGUARD"] as const).flatMap((k) => [false, true].map((el) => {
+            const name = `robot-model-${k}${el ? "-elite" : ""}`;
+            return <group key={name} name={name} visible={false}>{need(i, name) && <RegionalEnemy kind={k} boss={false} elite={el} robot drive={drives[i]!} />}</group>;
+          }))}
           {/* region bosses wear their region faction's boss from the faction sheet (encounters.ts REGION_FACTION) */}
           <group name="boss-model-RAIDER" visible={false}>{need(i, "boss-model-RAIDER") && <RegionalEnemy kind="RAIDER" boss drive={drives[i]!} />}</group>
           <group name="boss-model-OVERCLOCKED" visible={false}>{need(i, "boss-model-OVERCLOCKED") && <RegionalEnemy kind="OVERCLOCKED" boss drive={drives[i]!} />}</group>

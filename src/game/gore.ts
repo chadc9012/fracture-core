@@ -36,7 +36,7 @@ export type GoreEvent = {
   /** body size: 1 = a 1.85 m trooper */
   size: number;
   /** for KILL: which body (faction model + role) to lay down as a corpse; machine slot rotation */
-  body?: { kind: "RAIDER" | "OVERCLOCKED" | "ABERRATION" | "VANGUARD" | "SKYBORN" | "GUARDIAN" | "ABYSSAL"; role: "standard" | "elite" | "boss"; rot: number; groundY: number; scale: number } | undefined;
+  body?: { kind: "RAIDER" | "OVERCLOCKED" | "ABERRATION" | "VANGUARD" | "SKYBORN" | "GUARDIAN" | "ABYSSAL"; role: "standard" | "elite" | "boss"; robot?: boolean; rot: number; groundY: number; scale: number } | undefined;
   /** for wildlife kills: the critter id, so the wildlife layer can lay that animal down */
   critter?: string | undefined;
 };
@@ -285,12 +285,14 @@ export type Corpse = {
   /** its death animation (death-animations.ts), the seed that varies it, and whether it is mirrored (a fall to the right) */
   style: DeathStyle; seed: number; mirror: boolean;
   kind: "RAIDER" | "OVERCLOCKED" | "ABERRATION" | "VANGUARD" | "SKYBORN" | "GUARDIAN" | "ABYSSAL"; role: "standard" | "elite" | "boss";
+  /** wears a robot chassis (robots.ts): the body that falls is the robot */
+  robot: boolean;
   x: number; z: number; groundY: number; rot: number; scale: number;
   /** fall direction (world, normalised): which way the death animation carries the body */
   fx: number; fz: number;
   sever: SeverPart | null; blood: BloodType; spurt: number;
 };
-export const makeCorpses = (): Corpse[] => Array.from({ length: CORPSE_POOL }, () => ({ alive: false, age: 0, life: 0, style: "CRUMPLE" as DeathStyle, seed: 0, mirror: false, kind: "RAIDER", role: "standard", x: 0, z: 0, groundY: 0, rot: 0, scale: 1, fx: 0, fz: 1, sever: null, blood: "RED", spurt: 0 }));
+export const makeCorpses = (): Corpse[] => Array.from({ length: CORPSE_POOL }, () => ({ alive: false, age: 0, life: 0, style: "CRUMPLE" as DeathStyle, seed: 0, mirror: false, kind: "RAIDER", role: "standard", robot: false, x: 0, z: 0, groundY: 0, rot: 0, scale: 1, fx: 0, fz: 1, sever: null, blood: "RED", spurt: 0 }));
 
 /** the fall comes from the body's death animation (death-animations.ts): tip, hip drop, slide, lift and twist over its
  * duration, with a small settle bounce when it lands; afterwards the body lies still, then sinks away */
@@ -314,7 +316,7 @@ export function addCorpse(corpses: Corpse[], e: GoreEvent, level: GoreLevel, spr
   const { style, mirror } = deathStyleFor(e.cause, e.power, e.dx, e.dz, e.body.rot, seed);
   const fall = e.body.rot + deathFall(style, seed, mirror);
   const fx = Math.sin(fall), fz = Math.cos(fall);
-  Object.assign(c, { alive: true, age: 0, style, seed, mirror, life: Math.max(DEATHS[style].duration + SINK_TIME + 1, GORE_TUNE[level].corpseLife * (e.body.role === "boss" ? 2 : 1)), kind: e.body.kind, role: e.body.role, x: e.x, z: e.z, groundY: e.body.groundY, rot: e.body.rot, scale: e.body.scale, fx, fz, sever: spray.sever, blood: e.blood, spurt: spray.stumpSpurt });
+  Object.assign(c, { alive: true, age: 0, style, seed, mirror, life: Math.max(DEATHS[style].duration + SINK_TIME + 1, GORE_TUNE[level].corpseLife * (e.body.role === "boss" ? 2 : 1)), kind: e.body.kind, role: e.body.role, robot: !!e.body.robot, x: e.x, z: e.z, groundY: e.body.groundY, rot: e.body.rot, scale: e.body.scale, fx, fz, sever: spray.sever, blood: e.blood, spurt: spray.stumpSpurt });
   return c;
 }
 export function stepCorpses(corpses: Corpse[], dt: number) {
