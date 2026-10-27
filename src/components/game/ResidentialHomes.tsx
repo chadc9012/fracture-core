@@ -5,7 +5,7 @@ import { DESIGNS, homeBoxes, homeDecks, homeWalls, residences, type Box, type Ma
 import { DistrictLight } from "./DistrictLight";
 import { setWalls, clearWalls } from "@/game/walls";
 import { registerDeck } from "@/game/district-decks";
-import { applyWorldTriplanar, PLASTER_TILE, weatheredPlasterTexture } from "@/game/weathered-surface";
+import { applyWorldTriplanar, CLADDING_TILE, claddingTexture, type Cladding } from "@/game/weathered-surface";
 
 /**
  * Walk-in residences (layout and geometry in residences.ts): every home in a city merged into one mesh per material —
@@ -41,24 +41,29 @@ export function piece(b: Box, home: Pick<Residence, "x" | "z" | "floor" | "rot">
 
 /** merge pieces into one mesh per material (painted, glass, lamps) */
 export function mergeByMat(pieces: { b: Box; at: Pick<Residence, "x" | "z" | "floor" | "rot"> }[], name: string): THREE.Mesh[] {
-  const by: Record<Mat, THREE.BufferGeometry[]> = { solid: [], glass: [], lamp: [] };
-  for (const { b, at } of pieces) by[b.mat].push(piece(b, at));
-  const mats: Record<Mat, THREE.Material> = {
-    // painted render in world space (weathered-surface.ts): the paint colour rides on the vertex colours, the plaster adds grain and grime
-    solid: applyWorldTriplanar(new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.86, metalness: 0.02 }), weatheredPlasterTexture(), PLASTER_TILE),
-    glass: new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.18, metalness: 0.35, envMapIntensity: 1.4 }),
-    lamp: new THREE.MeshBasicMaterial({ vertexColors: true, toneMapped: false, color: new THREE.Color(1.6, 1.5, 1.35) }),
+  // solids split by their cladding (residences.ts Box.surface): each cladding is one merged mesh with its own world-space texture
+  type Key = Exclude<Mat, "solid"> | `solid:${Cladding}`;
+  const keyOf = (b: Box): Key => (b.mat === "solid" ? `solid:${b.surface ?? "plaster"}` : b.mat);
+  const by = new Map<Key, THREE.BufferGeometry[]>();
+  for (const { b, at } of pieces) { const k = keyOf(b); let list = by.get(k); if (!list) by.set(k, (list = [])); list.push(piece(b, at)); }
+  const material = (k: Key): THREE.Material => {
+    if (k === "glass") return new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.18, metalness: 0.35, envMapIntensity: 1.4 });
+    if (k === "lamp") return new THREE.MeshBasicMaterial({ vertexColors: true, toneMapped: false, color: new THREE.Color(1.6, 1.5, 1.35) });
+    // painted render / brick / lap siding / shingles / stone in world space (weathered-surface.ts): the colour rides on the vertex colours
+    const c = k.slice(6) as Cladding;
+    const rough = c === "shingle" ? 0.95 : c === "siding" ? 0.7 : c === "brick" ? 0.9 : 0.86;
+    return applyWorldTriplanar(new THREE.MeshStandardMaterial({ vertexColors: true, roughness: rough, metalness: 0.02 }), claddingTexture(c), CLADDING_TILE[c]);
   };
   const out: THREE.Mesh[] = [];
-  for (const k of ["solid", "glass", "lamp"] as Mat[]) {
-    if (!by[k].length) { mats[k].dispose(); continue; }
-    const g = mergeGeometries(by[k]);
-    by[k].forEach((p) => p.dispose());
+  for (const [k, list] of by) {
+    const g = mergeGeometries(list);
+    list.forEach((p) => p.dispose());
     if (!g) continue;
     g.computeBoundingSphere();
-    const m = new THREE.Mesh(g, mats[k]);
+    const m = new THREE.Mesh(g, material(k));
     m.name = `${name}:${k}`;
-    m.castShadow = k === "solid"; m.receiveShadow = k !== "lamp";
+    const solid = k.startsWith("solid");
+    m.castShadow = solid; m.receiveShadow = k !== "lamp";
     m.matrixAutoUpdate = false;
     out.push(m);
   }

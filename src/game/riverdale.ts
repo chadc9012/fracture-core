@@ -85,6 +85,14 @@ export function townBoxes(): Box[] {
   // the welcome sign: two posts and a board (the lettering is drawn by the component)
   for (const s of [-1, 1]) box(SIGN.x, 1.4, SIGN.z + s * 2.2, 0.22, 2.8, 0.22, WOOD);
   box(SIGN.x, 2.3, SIGN.z, 0.16, 1.3, 5.2, "#2e4a3a");
+  // claddings (weathered-surface.ts): dressed stone for the kerbs, beds, plinth and belfry, brick for the tower shaft, slate shingles
+  // on its roof
+  for (const b of out) {
+    if (b.mat !== "solid") continue;
+    if (b.prism) b.surface = "shingle";
+    else if (b.color === STONE || b.color === "#8a7b66") b.surface = "stone";
+    else if (b.color === "#a99c86") { b.surface = "brick"; b.color = "#b07a62"; }
+  }
   return out;
 }
 
