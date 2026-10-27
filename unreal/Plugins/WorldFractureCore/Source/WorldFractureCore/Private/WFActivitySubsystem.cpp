@@ -6,6 +6,7 @@
 #include "Serialization/JsonReader.h"
 #include "Serialization/JsonSerializer.h"
 #include "WFDataFiles.h"
+#include "Core/WFPvpCore.h"
 #include "WFProgressionSubsystem.h"
 #include "WFRaceSubsystem.h"
 #include "WorldFractureCoreModule.h"
@@ -203,7 +204,7 @@ FString UWFActivitySubsystem::Start(const FString& Id)
 	const double Now = UWFProgressionSubsystem::NowMs();
 	if (Def->bElite && !IsWeeklyElite(Def->Rules.Id, Now)) return TEXT("Not one of this week's elite operations");
 	for (const wf::activity::FObjective& O : Def->Stages)
-		if (O.Kind == "crucible" || O.Kind == "pvp") return TEXT("The Killbox needs the rival operators, which this build does not field yet");
+		if (O.Kind == "pvp" && !wf::pvp::ModeById(O.Mode)) return TEXT("Unknown Killbox mode");
 	if (Def->bSubmerged) return TEXT("This one is underwater, and diving is not in this build yet");
 	if (!AreaOf(Def->Area)) return TEXT("Its area is not in the data");
 	wf::activity::FActivityRun Run;

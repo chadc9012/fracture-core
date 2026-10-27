@@ -1203,7 +1203,10 @@ void AWFCharacter::Respawn()
 		MountMesh->SetVisibility(false);
 		GetCharacterMovement()->SetMovementMode(MOVE_Walking);
 	}
-	SetActorLocation(SpawnLocation, false, nullptr, ETeleportType::TeleportPhysics);
+	FVector Back = SpawnLocation;
+	// in a Killbox match you come back at the arena edge, opposite where you fell (Scene.tsx), not at a distant checkpoint
+	if (const AWFGameMode* Mode = GetWorld()->GetAuthGameMode<AWFGameMode>()) Mode->KillboxRespawn(GetActorLocation(), Back);
+	SetActorLocation(Back, false, nullptr, ETeleportType::TeleportPhysics);
 	GetCharacterMovement()->Velocity = FVector::ZeroVector;
 	Health = MaxHealth;
 	SinceDamage = 100;

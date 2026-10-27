@@ -155,6 +155,13 @@ Until then the phone build is the web game (`mobile/`, the `android-latest` rele
   ordered checkpoints and collecting against a clock, holding a zone (leaving drains the hold twice as fast), carrying
   from A to B. A ring marks where to go and the HUD shows the stage, progress, timer and distance. A finish pays Nex,
   XP, faction reputation and materials once per attempt, plus the challenge (+25%) and featured bonuses.
+- **The Killbox:** PvP against AI rival operators (GOLIATH, NYX, CIPHER) in the Wastelands arena, started from the
+  board: Duel (first to 5) and Skirmish (first to 10), where rivals come back at the arena edge 3.5 s after they fall,
+  and the Killbox modes (pvp.ts): Clash (6v6 to 75), Dominion (zones A / B / C to 150), Freefall (12-player free-for-all
+  to 20), Lockdown (4v4 attack and defend rounds), Killbox: Ascendancy (elite 3v3 rounds with a buzzer capture zone) and
+  Fracture Royale (60 players, a closing circle that burns). The far side of each team trades eliminations at the web
+  build's seeded rate; the HUD shows the score line; you respawn at the arena edge. The first five wins a day pay in
+  full. Your two AI squadmates (squad.ts) are not ported, so team points come from your own eliminations.
 - **Consumables and the stash:** Heal Stims (+5 health a second a stack, 30 s), Armor Stims (+10% resistance a stack, 60 s)
   and Ruin Stones (Ruin Surge, +15% damage a stack, 45 s) on keys 6 / 7 / J, stacking to 3 (stash.ts). `CraftStim`,
   `CraftRuinStone`, `SellGear` (duplicates, for shards), `DismantleGear` (into gear parts), `UpgradeGear` (3 parts a level:
@@ -346,6 +353,7 @@ cmake -S . -B build -G Ninja && cmake --build build && ctest --test-dir build --
 | WastelandCoreTest | wasteland-activities.ts, wasteland-runtime.ts | 15,600 machine steps, 2,400 resolves, 24,000 runtime frames, 132,024 checks |
 | MoveCoreTest | movement.ts, parkour.ts | 300 tracks, 18,000 frames, 36,067 checks |
 | ActivityCoreTest | activities.ts objectives, stepRun, targets, areas, featured and weekly rotations | 284 runs, 17,734 ticks, 22,068 checks |
+| PvpCoreTest | pvp.ts, crucible.ts | 61,728 match frames, 17,689 rival-field steps, 82,364 checks |
 | StashCoreTest | stash.ts | 10,209 stash operations, 16,465 checks |
 | HazardCoreTest | region-hazards.ts, hazard-zones.ts, landmarks.ts | 5,408 hazard steps, 12,000 zone probes, 33,445 checks |
 | StuntCoreTest | stunts.ts (air, tricks, combos, powerslides, pay), stunt-park.ts | 66,120 flight frames, 186,818 scored events, 329,904 checks |
@@ -356,7 +364,7 @@ The golden files (`Plugins/WorldFractureCore/Tests/<name>_golden.txt`) are **gen
 which broke the Lovable preview build. Record all of them from the repo root before configuring the tests (and again after changing
 the web build's rules):
 
-    node unreal/tools/gen-goldens.mjs            # all thirty-two
+    node unreal/tools/gen-goldens.mjs            # all thirty-three
     node unreal/tools/gen-goldens.mjs race shop  # just these
 
 `export-datatables` (the DataTables, which are committed) still runs on its own:
@@ -368,7 +376,7 @@ The encounter, Dragonite-cast, ability, tactics and Wastelands recorders route t
 ## Not ported yet
 Boss models and attack effects (zones are debug circles, decoys are stand-ins), mid-mission saves, ability mastery XP,
 region kinds for abilities (the map counts as a war zone),
-troopers running out of orbital strike circles (no strike beacons yet), legendary-chain.ts reactions (they need two hit sources, so never fire in single player), rain, snow and fog visuals (the weather is simulated and shown on the HUD), venue specials (venue-life.ts orderSpecial), the living NPCs' talk panel with its contracts, intel and the Neon City pledge, the Killbox (PvP modes against AI rival operators), the Hollow Star raid, the featured-activity rotation and
+troopers running out of orbital strike circles (no strike beacons yet), legendary-chain.ts reactions (they need two hit sources, so never fire in single player), rain, snow and fog visuals (the weather is simulated and shown on the HUD), venue specials (venue-life.ts orderSpecial), the living NPCs' talk panel with its contracts, intel and the Neon City pledge, the Killbox squadmates (squad.ts), the Hollow Star raid, the featured-activity rotation and
 activity shader drops,
 diving (the thalassia-dive survive timer), the Neon City police response itself (the web build has only the heat meter and its labels; chase-ai.ts pursuit helpers are unused there), the Operations Hub preview marketplace (its wallet is not saved in the web build either), home interiors, cloud save merge, the rest of the world (terrain, the other regions, Neon City, Thalassia; Nexus City is in). Their data is already in
 `DataTables/`.

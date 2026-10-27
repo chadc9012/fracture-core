@@ -39,6 +39,7 @@
 #include "Core/WFStuntCore.h"
 #include "Core/WFHazardCore.h"
 #include "Core/WFStashCore.h"
+#include "Core/WFPvpCore.h"
 #include "WFStuntPark.h"
 #include "WFActivitySubsystem.h"
 
@@ -2050,6 +2051,12 @@ void AWFGameMode::TickActivity(float DeltaSeconds)
 		Facts.Kills = T.Kills; Facts.Elites = T.EliteKills; Facts.Bosses = T.BossKills; Facts.RivalKills = T.RivalKills;
 		Facts.Hp = Player ? Player->GetHealth() : 100;
 		Facts.Deaths = Prog->GetPlayerDeaths();
+		// the Killbox stage in progress fields its rivals and keeps its match here (Scene.tsx crucible / pvp)
+		const UWFActivitySubsystem::FBoardDef* Def = Board->ActiveDef();
+		const wf::activity::FActivityRun* Run = Board->ActiveRun();
+		const wf::activity::FObjective* Stage = Def && Run && static_cast<size_t>(Run->Stage) < Def->Stages.size() ? &Def->Stages[static_cast<size_t>(Run->Stage)] : nullptr;
+		if (Stage && (Stage->Kind == "crucible" || Stage->Kind == "pvp")) Facts.Pvp = TickKillbox(DeltaSeconds, Stage->Kind, Stage->Mode, Def->Area);
+		else if (Killbox || CrucibleField) { ClearRivals(); Killbox.reset(); CrucibleField.reset(); ArenaWeb.reset(); }
 		Board->Tick(Facts);
 		// the marker: a ring where the objective is (debug draw: compiled out of Shipping, where the HUD distance guides you)
 		if (const std::optional<wf::activity::FTarget> Tg = Board->Target())
@@ -2058,9 +2065,120 @@ void AWFGameMode::TickActivity(float DeltaSeconds)
 			DrawDebugCylinder(GetWorld(), At, At + FVector(0, 0, 1200), wf::activity::CheckpointRadius * 100.0, 24, FColor(255, 200, 60), false, -1.f, 0, 6.f);
 		}
 	}
+	else if (Killbox || CrucibleField) { ClearRivals(); Killbox.reset(); CrucibleField.reset(); ArenaWeb.reset(); } // the match ended or was abandoned
 	if (Board->GetFinishedCount() != ActivitySeen)
 	{
 		ActivitySeen = Board->GetFinishedCount();
 		for (const FString& L : Board->GetLastSummary()) Toast(L, FLinearColor(1.f, 0.82f, 0.35f));
 	}
+}
+
+// --- the Killbox (crucible.ts / pvp.ts against AI rival operators) -------------------------------------------------------
+
+namespace
+{
+	const FLinearColor KbRed(1.f, 0.35f, 0.3f);
+	FString KbTag(int32 Slot) { return FString::Printf(TEXT("crucible:%d"), Slot); }
+}
+
+void AWFGameMode::ClearRivals()
+{
+	// crucible.ts clearRivals: rivals leave the field without awarding anything
+	for (TActorIterator<AWFEnemy> It(GetWorld()); It; ++It) if (!It->IsDead() && It->IsRival()) It->Destroy();
+}
+
+int32 AWFGameMode::SpawnRival(int32 Slot, const FString& Class, const FVector& Centre, double RingM, double Angle)
+{
+	UWorld* World = GetWorld();
+	const APawn* Pawn = UGameplayStatics::GetPlayerPawn(this, 0);
+	if (!World || !Pawn) return 0;
+	const double X = Centre.X + FMath::Cos(Angle) * RingM * 100.0, Y = Centre.Y + FMath::Sin(Angle) * RingM * 100.0;
+	const FTransform Xf(FRotator::ZeroRotator, FVector(X, Y, GroundZ(X, Y, Pawn->GetActorLocation().Z) + 150));
+	AWFEnemy* Rival = World->SpawnActorDeferred<AWFEnemy>(AWFEnemy::StaticClass(), Xf, nullptr, nullptr, ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn);
+	if (!Rival) return 0;
+	// crucible.ts: hp RIVAL_HP, a Vanguard-kind operator body, Rival <GOLIATH | NYX | CIPHER>, no drop
+	Rival->Configure(TEXT("Rival ") + WFData::ToF(wf::pvp::RivalLabel(WFData::ToStd(Class))), TEXT("wastelands"), TEXT("scrapMetal"), false, false, wf::pvp::RivalHp);
+	Rival->SetKind(TEXT("VANGUARD"));
+	Rival->SetRival(Class);
+	Rival->SetActivityTag(KbTag(Slot));
+	Rival->SetSquadIndex(NextSquadIndex++);
+	Rival->FinishSpawning(Xf);
+	return 1;
+}
+
+std::optional<wf::activity::FPvpTick> AWFGameMode::TickKillbox(float DeltaSeconds, const std::string& StageKind, const std::string& Mode, const std::string& AreaId)
+{
+	const UWFActivitySubsystem* Board = GetGameInstance()->GetSubsystem<UWFActivitySubsystem>();
+	const UWFProgressionSubsystem* Prog = GetGameInstance()->GetSubsystem<UWFProgressionSubsystem>();
+	APawn* Pawn = UGameplayStatics::GetPlayerPawn(this, 0);
+	const wf::activity::FArea* Area = Board ? Board->AreaOf(AreaId) : nullptr;
+	if (!Prog || !Pawn || !Area) return std::nullopt;
+	const double Dt = DeltaSeconds;
+	const wf::activity::FFrac ArenaF = wf::activity::PointWorld(*Area, wf::activity::ArenaPoint);
+	auto SlotAlive = [this](int Slot) { for (TActorIterator<AWFEnemy> It(GetWorld()); It; ++It) if (!It->IsDead() && It->IsRival() && It->GetActivityTag() == KbTag(Slot)) return true; return false; };
+	auto Rand = []() { return static_cast<double>(FMath::FRand()); };
+	AWFCharacter* Player = Cast<AWFCharacter>(Pawn);
+	if (const AWFVehicle* Car = Cast<AWFVehicle>(Pawn)) Player = Car->GetDriver();
+	const FString PlayerClass = UTF8_TO_TCHAR(Prog->Get().PocketClass.c_str()); // the operator being played (Scene.tsx playerClass)
+
+	if (StageKind == "crucible")
+	{
+		if (!CrucibleField || CrucibleField->Mode != Mode) { ClearRivals(); CrucibleField = wf::pvp::NewCrucible(Mode); }
+		ArenaWeb = FVector2D(ArenaF.X, ArenaF.Z);
+		const FVector Centre = RegionToWorld(ArenaF.X, ArenaF.Z, Pawn->GetActorLocation().Z);
+		const wf::pvp::FFieldWorld W{SlotAlive, []() { return true; }, Rand};
+		for (const wf::pvp::FSpawn& S : wf::pvp::StepRivals(*CrucibleField, WFData::ToStd(PlayerClass), Dt, W))
+			SpawnRival(S.Slot, WFData::ToF(S.Class), Centre, wf::pvp::ArenaRadius * 0.8, S.Angle);
+		return std::nullopt; // the duel / skirmish scores from the rival kills and deaths in the tick
+	}
+
+	const wf::pvp::FMode* M = wf::pvp::ModeById(Mode);
+	if (!M) return std::nullopt;
+	const wf::reward::FSimTally& T = Prog->GetTally();
+	if (!Killbox || Killbox->St.Mode != Mode)
+	{
+		ClearRivals();
+		FKillbox K;
+		K.St = wf::pvp::NewPvp(Mode, static_cast<uint32_t>((static_cast<int64_t>(UWFProgressionSubsystem::NowMs()) & 0xffff) + 1));
+		K.Kills = T.RivalKills; K.Deaths = Prog->GetPlayerDeaths();
+		K.Field.Mode = "skirmish";
+		const wf::activity::FFrac C = M->Kind == "royale" ? wf::activity::FFrac{Area->X, Area->Z} : ArenaF;
+		K.Centre = FVector2D(C.X, C.Z);
+		Killbox = K;
+		Toast(FString::Printf(TEXT("%s · %s"), UTF8_TO_TCHAR(M->Name.c_str()), UTF8_TO_TCHAR(M->Brief.c_str())), KbRed);
+	}
+	FKillbox& K = *Killbox;
+	ArenaWeb.reset();
+	if (M->Kind != "royale") ArenaWeb = K.Centre;
+	// your squadmates are not in this build: team points come from your own eliminations (and the off-field fight)
+	const double Kills = T.RivalKills - K.Kills;
+	const bool bDied = Prog->GetPlayerDeaths() > K.Deaths;
+	K.Kills = T.RivalKills; K.Deaths = Prog->GetPlayerDeaths();
+	const FVector2D Here = WorldToRegion(Pawn->GetActorLocation());
+	int32 OnField = 0;
+	for (TActorIterator<AWFEnemy> It(GetWorld()); It; ++It) if (!It->IsDead() && It->IsRival()) ++OnField;
+	wf::pvp::StepPvp(K.St, {Dt, Kills, bDied, Here.X - K.Centre.X, Here.Y - K.Centre.Y, static_cast<double>(OnField)});
+	if (K.St.Round != K.Round) { ClearRivals(); wf::pvp::ResetField(K.Field); K.Round = K.St.Round; }
+	// the royale field follows you; the arena modes spawn round the arena edge
+	const std::vector<std::string> Lineup = wf::pvp::RivalSquad(wf::pvp::FieldSize(K.St), static_cast<int>(K.St.Round));
+	for (TActorIterator<AWFEnemy> It(GetWorld()); It; ++It)
+		if (!It->IsDead() && It->IsRival() && FCString::Atoi(*It->GetActivityTag().Mid(9)) >= static_cast<int32>(Lineup.size())) It->Destroy(); // a royale lobby thinning out
+	const FVector FieldAt = M->Kind == "royale" ? Pawn->GetActorLocation() : RegionToWorld(K.Centre.X, K.Centre.Y, Pawn->GetActorLocation().Z);
+	const wf::pvp::FFieldWorld W{SlotAlive, []() { return true; }, Rand};
+	for (const wf::pvp::FSpawn& S : wf::pvp::StepField(K.Field, Lineup, wf::pvp::Respawns(K.St), Dt, W))
+		SpawnRival(S.Slot, WFData::ToF(S.Class), FieldAt, M->Kind == "royale" ? 42 : wf::pvp::ArenaRadius * 0.8, S.Angle);
+	if (M->Kind == "royale" && Player)
+		if (const double Burn = wf::pvp::StormDamage(K.St, wf::js::Hypot(Here.X - K.Centre.X, Here.Y - K.Centre.Y)); Burn > 0)
+			Player->ApplyHit(Burn * Dt, TEXT("The closing fracture"));
+	return wf::activity::FPvpTick{K.St.Us, K.St.Them, K.St.Result, K.St.Reason, wf::pvp::PvpLine(K.St)};
+}
+
+bool AWFGameMode::KillboxRespawn(const FVector& DiedAt, FVector& OutAt) const
+{
+	if (!ArenaWeb) return false;
+	const FVector2D Fell = WorldToRegion(DiedAt);
+	const double Side = Fell.X - ArenaWeb->X;
+	const double X = ArenaWeb->X - (Side > 0 ? 1.0 : Side < 0 ? -1.0 : 1.0) * wf::pvp::ArenaRadius * 0.7;
+	OutAt = RegionToWorld(X, ArenaWeb->Y, DiedAt.Z) + FVector(0, 0, 120);
+	return true;
 }

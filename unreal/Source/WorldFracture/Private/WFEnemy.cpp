@@ -563,6 +563,7 @@ void AWFEnemy::Die()
 	Info.DropMaterial = DropMaterial;
 	Info.Profile = Profile;
 	Info.bKilledByWorld = SincePlayerHit > PlayerCreditWindowS;
+	Info.Rival = RivalClass;
 	UWFProgressionSubsystem* Progression = GetGameInstance()->GetSubsystem<UWFProgressionSubsystem>();
 	if (!Progression) return;
 	if (!ScenarioId.IsEmpty())
@@ -574,6 +575,7 @@ void AWFEnemy::Die()
 		Info.FightDeaths = Progression->GetPlayerDeaths() - DeathsAtSummon;
 	}
 	Progression->ReportEnemyDefeated(Info);
+	if (!RivalClass.IsEmpty()) return; // sim.ts: a Killbox rival only scores the match (no kill hooks, loot or nemesis)
 	if (!NemesisId.IsEmpty() && Mode) Mode->OnNemesisDown(NemesisId, !Info.bKilledByWorld); // sim.ts nemesisEvents
 	if (Info.bKilledByWorld) return;
 	// the Operator's kill hooks (runes, relic mastery, nanites) and the Furnace Guardian's Heart

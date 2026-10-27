@@ -19,7 +19,8 @@ class UWFProgressionSubsystem;
  * bounties, contracts, regional events and the weekly elite operations, run objective by objective (wf::activity::StepRun)
  * from what the game measures (kills by tier, deaths, health, where you stand). Starting spends an attempt (never refunded);
  * a finished run pays once (completeActivity: Nex, XP, reputation, materials, the challenge and featured bonuses) and starts
- * the cooldown. Races run through UWFRaceSubsystem; Killbox matches need the rival operators.
+ * the cooldown. Races run through UWFRaceSubsystem; a Killbox match's rivals and score are the host's (AWFGameMode), passed in
+ * with the tick.
  *
  * Positions are the web world's metres (x, z).
  */

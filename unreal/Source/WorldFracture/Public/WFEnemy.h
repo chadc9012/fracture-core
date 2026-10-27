@@ -101,6 +101,9 @@ public:
 	const std::string& GetAiState() const { return Ai.State; }
 	/** the faction kind (RAIDER, OVERCLOCKED, VANGUARD, ABERRATION...): Raiders and Vanguard carry grenades */
 	void SetKind(const FString& InKind) { Kind = InKind; }
+	/** a Killbox rival operator (TITAN / HUNTER / WARLOCK): its fall scores the match, never a drop (sim.ts defeatMachine) */
+	void SetRival(const FString& InClass) { RivalClass = InClass; }
+	bool IsRival() const { return !RivalClass.IsEmpty(); }
 	/** sim.ts machine.living: the activity that spawned it (vault:<run>, derby:<run>); empty for ambient troopers */
 	void SetActivityTag(const FString& InTag) { ActivityTag = InTag; }
 	/** nemesis.ts: this machine is a nemesis (sim.ts spawnNemesis): its weak element takes x2, its hits land harder */
@@ -137,6 +140,7 @@ protected:
 
 private:
 	FString ActivityTag;
+	FString RivalClass;
 	FString NemesisId, NemesisWeak;
 	wf::hit::FStatuses Statuses;
 	std::optional<wf::hit::FReaction> Reaction;

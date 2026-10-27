@@ -12,6 +12,8 @@
 #include "GameFramework/GameModeBase.h"
 #include "Core/WFStrikeCore.h"
 #include "Core/WFHazardCore.h"
+#include "Core/WFPvpCore.h"
+#include "Core/WFActivityCore.h"
 #include "WFGameMode.generated.h"
 
 class AWFEnemy;
@@ -222,6 +224,8 @@ public:
 	UFUNCTION(Exec) void Activities(const FString& Area);
 	UFUNCTION(Exec) void ActivityStart(const FString& ActivityId);
 	UFUNCTION(Exec) void ActivityAbandon();
+	/** in a Killbox match (not the royale) the Operator comes back at the arena edge, opposite where they fell; false otherwise */
+	bool KillboxRespawn(const FVector& DiedAt, FVector& OutAt) const;
 	/** a level position in the web world's metres (x, z) */
 	FVector2D WebPosition(const FVector& L) const { return WorldToRegion(L); }
 
@@ -282,6 +286,15 @@ private:
 	void TickWorldBoss(float DeltaSeconds);
 	void TickRegionHazard(float DeltaSeconds);
 	void TickActivity(float DeltaSeconds);
+	/** the Killbox for the activity stage in progress: rivals on the field, the match state; returns the match's tick facts */
+	std::optional<wf::activity::FPvpTick> TickKillbox(float DeltaSeconds, const std::string& StageKind, const std::string& Mode, const std::string& AreaId);
+	void ClearRivals();
+	int32 SpawnRival(int32 Slot, const FString& Class, const FVector& Centre, double RingM, double Angle);
+	// the Killbox (Scene.tsx crucible / pvp refs)
+	std::optional<wf::pvp::FField> CrucibleField;
+	struct FKillbox { wf::pvp::FState St; double Kills = 0, Deaths = 0, Round = 1; wf::pvp::FField Field; FVector2D Centre = FVector2D::ZeroVector; };
+	std::optional<FKillbox> Killbox;
+	std::optional<FVector2D> ArenaWeb; // the arena centre (web metres) while a duel / skirmish / arena mode runs
 	int32 ActivitySeen = 0; // UWFActivitySubsystem finished count already announced
 	void StashAction(const std::function<bool(wf::FProgression&)>& Action, const FString& Done, const FString& Refused);
 	/** where a raid site stands in this level (false when its region is not in this level) */
