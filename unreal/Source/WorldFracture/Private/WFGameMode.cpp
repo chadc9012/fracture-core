@@ -74,6 +74,7 @@ void AWFGameMode::StartPlay()
 		{
 			RegionNames.Add(WFData::Str(R, TEXT("Id")), WFData::Str(R, TEXT("DisplayName")));
 			RegionDifficulties.Add(WFData::Str(R, TEXT("Id")), WFData::Num(R, TEXT("Difficulty")));
+			RegionKinds.Add(WFData::Str(R, TEXT("Id")), WFData::Str(R, TEXT("Kind")));
 			RegionCircles.Add(WFData::Str(R, TEXT("Id")), wf::godforge::FRegionCircle{WFData::Num(R, TEXT("X")), WFData::Num(R, TEXT("Z")), WFData::Num(R, TEXT("Radius"))});
 		}
 	if (const wf::godforge::FRegionCircle* Mine = RegionCircles.Find(RegionId)) RegionCircle = *Mine;
@@ -88,7 +89,11 @@ void AWFGameMode::EnsurePlayableWorld()
 	UWorld* World = GetWorld();
 	if (!World) return;
 
-	if (TActorIterator<ADirectionalLight> Existing(World); Existing) SunLight = *Existing; // the clock turns the level's own sun
+	if (TActorIterator<ADirectionalLight> Existing(World); Existing)
+	{
+		SunLight = *Existing; // the clock turns the level's own sun, which must be movable for that
+		if (Existing->GetLightComponent()) Existing->GetLightComponent()->SetMobility(EComponentMobility::Movable);
+	}
 	else
 	{
 		ADirectionalLight* Sun = World->SpawnActor<ADirectionalLight>(FVector(0, 0, 2000), FRotator(-40.f, 35.f, 0.f));
@@ -938,6 +943,7 @@ void AWFGameMode::Inventory()
 
 void AWFGameMode::ShopHour(float Hour)
 {
+	if (Hour < 0) { Toast(TEXT("The shops follow the world clock now: ShopHour / Clock <0-24>"), FLinearColor(1.f, 0.55f, 0.3f)); return; }
 	Clock(Hour, static_cast<float>(ClockSpeed));
 }
 
@@ -1151,6 +1157,7 @@ void AWFGameMode::TickWasteland(float DeltaSeconds)
 	DrawWasteland();
 }
 
+// The site markers are debug draws: Shipping builds compile DrawDebug out, so there the HUD panel and toasts carry the activity.
 void AWFGameMode::DrawWasteland() const
 {
 	UWorld* World = GetWorld();
@@ -1410,7 +1417,8 @@ void AWFGameMode::Godforge()
 bool AWFGameMode::IsSheltered() const
 {
 	// Scene.tsx: an interior, a safe region or the Nexus shield (there are no interiors in this prototype level)
-	return RegionKind == TEXT("safe") || RegionId == TEXT("nexus");
+	const FString* Kind = RegionKinds.Find(HereRegion);
+	return (Kind && *Kind == TEXT("safe")) || HereRegion == TEXT("nexus");
 }
 
 void AWFGameMode::TickEnvironment(float DeltaSeconds)
@@ -1419,20 +1427,47 @@ void AWFGameMode::TickEnvironment(float DeltaSeconds)
 	DayClock += Dt * wf::env::DayRate * ClockSpeed;
 	if (UWFShopSubsystem* Shops = GetGameInstance()->GetSubsystem<UWFShopSubsystem>()) Shops->SetWorldHour(static_cast<float>(wf::env::HourOf(DayClock))); // shop-hours.ts reads the same clock
 	const double Night = wf::env::NightFactor(DayClock);
-	Env = wf::env::EnvironmentAt(WFData::ToStd(RegionId), DayClock, Night);
+	// world.ts regionAt: on the real terrain the region is wherever you stand (lowest distance / radius inside one); a bare map
+	// is the level's own region
+	if (const APawn* Here = UGameplayStatics::GetPlayerPawn(this, 0))
+	{
+		const FString Was = HereRegion;
+		if (GetTerrain() && GetTerrain()->IsLoaded())
+		{
+			const FVector L = Here->GetActorLocation() / 100.0;
+			double Best = TNumericLimits<double>::Max();
+			HereRegion.Reset();
+			for (const TPair<FString, wf::godforge::FRegionCircle>& R : RegionCircles)
+			{
+				const double D = wf::js::Hypot(L.X - R.Value.X, L.Y - R.Value.Z);
+				if (D < R.Value.Radius && D / R.Value.Radius < Best) { Best = D / R.Value.Radius; HereRegion = R.Key; }
+			}
+		}
+		else HereRegion = RegionId;
+		if (HereRegion != Was) NemInRegion = 0; // living-runtime.ts: time in a region restarts when you cross into another
+	}
+	Env = wf::env::EnvironmentAt(WFData::ToStd(HereRegion), DayClock, Night);
 
-	// the sun: up at 06:00, highest at noon, down at 18:00; clouds dim it
+	// the sun: up at 06:00, highest at noon, down at 18:00; clouds dim it. Nexus City is always night (AWFNexusCity::ApplyNightLook
+	// sets its moonlight): there the clock leaves the sun where the city put it and the atmosphere runs its night.
+	const bool bNexusNight = IsInNexus() || HereRegion == TEXT("nexus");
 	if (ADirectionalLight* Sun = SunLight.Get())
 	{
-		const double Elevation = wf::env::SunElevation(DayClock);
-		const double Pitch = -FMath::RadiansToDegrees(FMath::Asin(FMath::Clamp(Elevation, -1.0, 1.0)));
-		const double Yaw = wf::env::HourOf(DayClock) / 24 * 360; // east in the morning, west in the evening
-		Sun->SetActorRotation(FRotator(static_cast<float>(Pitch), static_cast<float>(Yaw), 0.f));
+		const double Elevation = bNexusNight ? -1.0 : wf::env::SunElevation(DayClock);
+		if (!bNexusNight)
+		{
+			const double Pitch = -FMath::RadiansToDegrees(FMath::Asin(FMath::Clamp(Elevation, -1.0, 1.0)));
+			const double Yaw = wf::env::HourOf(DayClock) / 24 * 360; // east in the morning, west in the evening
+			Sun->SetActorRotation(FRotator(static_cast<float>(Pitch), static_cast<float>(Yaw), 0.f));
+		}
 		if (AWFAtmosphere* Air = Atmosphere.Get())
 			// the atmosphere lights the world physically: it sets the sun's and moon's strength from the angle and the weather
-			Air->Update(DeltaSeconds, Elevation, Night, Env.Weather.Cloud, Env.Weather.Precipitation, Env.Weather.Visibility, IsInNexus() || RegionId == TEXT("neon"));
-		else if (Sun->GetLightComponent())
+			Air->Update(DeltaSeconds, Elevation, bNexusNight ? 1.0 : Night, Env.Weather.Cloud, Env.Weather.Precipitation, Env.Weather.Visibility, bNexusNight || RegionId == TEXT("neon"));
+		else if (!bNexusNight && Sun->GetLightComponent()) // in Nexus, ApplyNightLook's moonlight stands
+		{
 			Sun->GetLightComponent()->SetIntensity(static_cast<float>(FMath::Max(0.05, 6.0 * FMath::Max(0.0, Elevation + 0.1) * (1 - 0.7 * Env.Weather.Cloud))));
+			Sun->GetLightComponent()->SetLightColor(FLinearColor::White); // undo the Nexus moonlight tint once you are out
+		}
 	}
 
 	// environment.ts stepEnvironment: exposure meters and telegraphed lightning
@@ -1442,7 +1477,7 @@ void AWFGameMode::TickEnvironment(float DeltaSeconds)
 	if (!Pawn || !Player) return;
 	const FVector P = Pawn->GetActorLocation() / 100.0;
 	wf::env::FEnvInput In;
-	In.Dt = Dt; In.RegionId = WFData::ToStd(RegionId); In.Env = Env; In.bSheltered = IsSheltered(); In.Px = P.X; In.Pz = P.Y;
+	In.Dt = Dt; In.RegionId = WFData::ToStd(HereRegion); In.Env = Env; In.bSheltered = IsSheltered(); In.Px = P.X; In.Pz = P.Y;
 	In.Rand = []() { return static_cast<double>(FMath::FRand()); };
 	const wf::env::FEnvOutput Out = wf::env::StepEnvironment(EnvState, In);
 	if (Out.Damage > 0) Player->ApplyHit(Out.Damage, UTF8_TO_TCHAR(Out.Cause.c_str()));
@@ -1463,7 +1498,7 @@ void AWFGameMode::TickEnvironment(float DeltaSeconds)
 		TArray<AWFEnemy*> Struck;
 		for (TActorIterator<AWFEnemy> It(World); It; ++It)
 			if (!It->IsDead() && !It->IsDecoy() && FVector::Dist2D(It->GetActorLocation(), G) / 100.0 <= S.Radius + It->GetActorScale3D().X) Struck.Add(*It);
-		for (AWFEnemy* E : Struck) if (IsValid(E) && !E->IsDead()) E->TakeHit(wf::env::StrikeMachineDamage, nullptr, TEXT("ARC"));
+		for (AWFEnemy* E : Struck) if (IsValid(E) && !E->IsDead()) E->TakeRawDamage(wf::env::StrikeMachineDamage, nullptr); // a flat 6 off health, as sim.ts
 		if (wf::js::Hypot(P.X - S.X, P.Y - S.Z) <= S.Radius) Player->ApplyHit(wf::env::StrikePlayerDamage, TEXT("Lightning strike"));
 	}
 }
@@ -1498,7 +1533,7 @@ void AWFGameMode::TickNemesis(float DeltaSeconds)
 {
 	const double Dt = FMath::Min(static_cast<double>(DeltaSeconds), 0.25);
 	NemClock += Dt;
-	NemInRegion += Dt; // this level is one region: the time in it only grows
+	NemInRegion += Dt; // reset by TickEnvironment when you cross into another region
 	APawn* Pawn = UGameplayStatics::GetPlayerPawn(this, 0);
 	UWFProgressionSubsystem* Prog = GetGameInstance()->GetSubsystem<UWFProgressionSubsystem>();
 	UWorld* World = GetWorld();
@@ -1510,9 +1545,10 @@ void AWFGameMode::TickNemesis(float DeltaSeconds)
 	bool bNemesisOut = false;
 	for (TActorIterator<AWFEnemy> It(World); It; ++It) if (!It->IsDead() && !It->GetNemesisId().IsEmpty()) { bNemesisOut = true; break; }
 	const UWFRaceSubsystem* Racing = GetGameInstance()->GetSubsystem<UWFRaceSubsystem>();
-	const bool bBusy = (Racing && Racing->IsRacing()) || !EncounterBosses().IsEmpty() || bNemesisOut;
+	// a Wastelands activity stands in for the web build's living-director event
+	const bool bBusy = (Racing && Racing->IsRacing()) || !EncounterBosses().IsEmpty() || bNemesisOut || WasteRt.Vault || WasteRt.Rally || WasteRt.Derby;
 	const std::string Summoned = !SummonedNemesis.IsEmpty() && SummonedNemesis != NemSummonDone ? WFData::ToStd(SummonedNemesis) : std::string();
-	const wf::nemesis::FNemesis* Due = bBusy || !bAlive ? nullptr : wf::nemesis::AmbushDue(Prog->Get().Nemeses, WFData::ToStd(RegionId), NemInRegion, NemClock - NemLastAmbush, Summoned);
+	const wf::nemesis::FNemesis* Due = bBusy || !bAlive ? nullptr : wf::nemesis::AmbushDue(Prog->Get().Nemeses, WFData::ToStd(HereRegion), NemInRegion, NemClock - NemLastAmbush, Summoned);
 	if (!Due) return;
 	// sim.ts spawnNemesis: 24 m away, its rank's health (x challenge), size and hit strength; an elite of the region's troops
 	const double A = FMath::FRand() * UE_DOUBLE_PI * 2;
@@ -1526,7 +1562,7 @@ void AWFGameMode::TickNemesis(float DeltaSeconds)
 		const FString Drop = Roster.IsEmpty() ? FString(TEXT("scrapMetal")) : Roster[0].Drop; // troopFor(regionId, 0)
 		Enemy->Configure(WFData::ToF(N.Name + " " + N.Epithet), WFData::ToF(N.RegionId), Drop, true, false, St.Hp * Prog->GetChallengeEnemyHealthScale());
 		if (const FString* Faction = FactionByRegion.Find(WFData::ToF(N.RegionId))) Enemy->SetKind(*Faction);
-		Enemy->ConfigureNemesis(WFData::ToF(N.Id), WFData::ToF(wf::nemesis::WeakElement(N)), St.Damage);
+		Enemy->ConfigureNemesis(WFData::ToF(N.Id), WFData::ToF(wf::nemesis::WeakElement(N)), St.Damage, St.Scale); // its rank's size
 		Enemy->SetSquadIndex(NextSquadIndex++);
 		Enemy->FinishSpawning(Xf);
 		NemLastAmbush = NemClock;
@@ -1577,6 +1613,7 @@ void AWFGameMode::HuntNemesis(const FString& NemesisId)
 {
 	SummonedNemesis = NemesisId;
 	NemSummonDone.Reset();
+	NemInRegion = 0; // ambushDue: a called nemesis comes after 4 s in its region
 	Toast(FString::Printf(TEXT("Hunting %s: it comes for you in its own region"), *NemesisId), NmRed);
 }
 

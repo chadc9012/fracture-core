@@ -87,10 +87,10 @@ namespace wf::hit
 	const FFrame* GearFrame(const std::string& FrameId)
 	{
 		static const std::vector<FFrame> Table{
-			{"SMG", "Submachine Gun", 0.72, 0.065, 1, 0, 0.026, 0.55, 0.005, 0.6, 0.55, 0.45, 40, 240, 1.5, "AUTO"},
+			{"SMG", "Submachine Gun", 0.72, 0.065, 1, 0, 0.026, 0.55, 0.005, 0.6, 0.4, 0.45, 40, 240, 1.5, "AUTO"},
 			{"SNIPER", "Sniper Rifle", 6.5, 1.05, 1, 0, 0.06, 0.08, 0.07, 3, 2.4, 2.8, 5, 30, 2.6, "HEAVY"},
-			{"LMG", "Light Machine Gun", 1.05, 0.095, 1, 0, 0.045, 0.45, 0.009, 0.9, 0.75, 0.7, 80, 320, 3.6, "AUTO"},
-			{"FUSION", "Fusion Rifle", 1.75, 1.1, 5, 0.035, 0.02, 0.6, 0.03, 1.4, 1.6, 1.8, 20, 100, 2.2, "PULSE"},
+			{"LMG", "Light Machine Gun", 1.05, 0.095, 1, 0, 0.045, 0.45, 0.009, 0.9, 0.5, 0.7, 80, 320, 3.6, "AUTO"},
+			{"FUSION", "Fusion Rifle", 2.2, 1.1, 5, 0.035, 0.02, 0.6, 0.008, 1.4, 0.55, 1.8, 20, 100, 2.2, "PULSE"},
 		};
 		for (const FFrame& F : Table) if (F.Id == FrameId) return &F;
 		return nullptr;

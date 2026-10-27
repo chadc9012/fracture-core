@@ -275,6 +275,8 @@ private:
 	double NemInRegion = 0, NemLastAmbush = -1e9, NemClock = 0;
 	FString SummonedNemesis, NemSummonDone;
 	TMap<FString, double> RegionDifficulties;
+	TMap<FString, FString> RegionKinds; // region id -> safe / starter / war / ... (shelter from the weather)
+	FString HereRegion; // the region the player stands in (world.ts regionAt on the real terrain)
 	TMap<FString, FString> RegionNames; // region id -> display name (the nemesis grudge names where it beat you)
 	double DayClock = wf::env::ClockStart; // 08:38, as the web build starts
 	double ClockSpeed = 1;
@@ -291,8 +293,8 @@ private:
 	TSet<FString> SecretsReached; // living-runtime.ts rt.reached: a secret claims once per session
 	double SecretDist = -1;
 	FString SecretName, SecretLocked;
-	bool bGuardianOut = false;
-	FString RuinHint; // living-runtime.ts guardianOut: the Furnace Guardian woke this visit
+	bool bGuardianOut = false; // living-runtime.ts guardianOut: the Furnace Guardian woke this visit
+	FString RuinHint; // the nearest undiscovered ruin, for the HUD
 
 	struct FScenarioBoss
 	{

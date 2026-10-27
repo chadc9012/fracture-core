@@ -960,7 +960,7 @@ void AWFCharacter::FireRound()
 				const FVector EL = Enemy->GetActorLocation();
 				const double Scale = Enemy->GetActorScale3D().X;
 				const double Feet = (EL.Z - Enemy->GetCapsuleComponent()->GetScaledCapsuleHalfHeight()) / CmPerMeter;
-				const FString Part = UTF8_TO_TCHAR(wf::hit::HitPart(Hit.ImpactPoint.Z / CmPerMeter, Feet + 0.2, 1.85 * wf::hit::EnemyBodyScaleOf(Scale)).c_str());
+				const FString Part = UTF8_TO_TCHAR(wf::hit::HitPart(Hit.ImpactPoint.Z / CmPerMeter, Feet, 1.85 * wf::hit::EnemyBodyScaleOf(Scale)).c_str());
 				const bool bPrecision = !Enemy->IsBoss() && Part == TEXT("HEAD");
 				Dmg *= wf::hit::HitMultiplier(WFData::ToStd(W->Frame.IsEmpty() ? W->Id : W->Frame), FVector::Dist2D(EL, Start) / CmPerMeter, bPrecision, MoveClass());
 				const bool bChilled = Enemy->IsChilled();
@@ -1166,8 +1166,8 @@ void AWFCharacter::ApplyHit(double Damage, const FString& Source)
 		if (UWFProgressionSubsystem* Progression = GetGameInstance()->GetSubsystem<UWFProgressionSubsystem>()) Progression->RecordPlayerDeath();
 		AWFGameMode* Mode = GetWorld()->GetAuthGameMode<AWFGameMode>();
 		// sim.ts hurtPlayer: a death whose blow came from the last enemy to hit you is reported (nemesis.ts promotes it)
-		if (Mode && LastHitBy && WFData::ToF(LastHitBy->Profile) == Source) Mode->OnPlayerKilledBy(*LastHitBy);
-		LastHitBy.reset();
+		if (Mode && LastEnemyHit && WFData::ToF(LastEnemyHit->Profile) == Source) Mode->OnPlayerKilledBy(*LastEnemyHit);
+		LastEnemyHit.reset();
 		if (Mode) Mode->OnPlayerDied(); // encounter bosses reset
 		CancelAbilities(); // ability-effects.ts cancelAbilities: nothing in flight survives into the next life
 		if (bInVehicle) if (AWFVehicle* Car = Cast<AWFVehicle>(GetAttachParentActor())) Car->Dismount(0); // died at the wheel: out first
@@ -1476,18 +1476,18 @@ void AWFCharacter::AbilityBurst(AWFEnemy* Victim, double Dealt, const FString& A
 	const wf::hit::FAbilityRule* Rule = wf::hit::AbilityRule(WFData::ToStd(Ability));
 	if (!Rule || !IsValid(Victim)) return;
 	const FString Element = UTF8_TO_TCHAR(wf::hit::RuinElementOf(Rule->Id).c_str());
-	TArray<AWFEnemy*> Live;
+	TArray<AWFEnemy*> Candidates;
 	std::vector<wf::hit::FPoint> Points;
 	for (TActorIterator<AWFEnemy> It(GetWorld()); It; ++It)
 	{
 		if (*It == Victim || It->IsDead() || It->IsDecoy()) continue;
-		Live.Add(*It);
+		Candidates.Add(*It);
 		Points.push_back({It->GetActorLocation().X / CmPerMeter, It->GetActorLocation().Y / CmPerMeter});
 	}
 	const FVector V = Victim->GetActorLocation() / CmPerMeter;
 	for (size_t K : wf::hit::BurstTargets({V.X, V.Y}, Points, Rule->Id))
 	{
-		AWFEnemy* O = Live[static_cast<int32>(K)];
+		AWFEnemy* O = Candidates[static_cast<int32>(K)];
 		if (!IsValid(O) || O->IsDead()) continue;
 		if (Rule->BurstFraction > 0) O->TakeHit(Dealt * Rule->BurstFraction, this, Element);
 		O->ApplyWeaponElement(Element);

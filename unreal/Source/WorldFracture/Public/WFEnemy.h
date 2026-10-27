@@ -104,7 +104,7 @@ public:
 	/** sim.ts machine.living: the activity that spawned it (vault:<run>, derby:<run>); empty for ambient troopers */
 	void SetActivityTag(const FString& InTag) { ActivityTag = InTag; }
 	/** nemesis.ts: this machine is a nemesis (sim.ts spawnNemesis): its weak element takes x2, its hits land harder */
-	void ConfigureNemesis(const FString& InId, const FString& InWeak, double InDamageMult) { NemesisId = InId; NemesisWeak = InWeak; NemesisDamage = InDamageMult; }
+	void ConfigureNemesis(const FString& InId, const FString& InWeak, double InDamageMult, double InScale) { NemesisId = InId; NemesisWeak = InWeak; NemesisDamage = InDamageMult; ScaleOverride = InScale; }
 	const FString& GetNemesisId() const { return NemesisId; }
 	const FString& GetNemesisWeak() const { return NemesisWeak; }
 	const FString& GetProfile() const { return Profile; }

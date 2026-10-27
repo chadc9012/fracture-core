@@ -92,7 +92,7 @@ public:
 	 *  awakening, and a Black Armory weapon's nanites hop to the nearest hostile within 10 m (never chaining) */
 	void OnEnemyKilled(AWFEnemy* Victim);
 	/** sim.ts lastHitBy: the enemy that landed the latest hit (the killing blow's source can become a nemesis) */
-	void SetLastHitBy(const wf::nemesis::FKiller& Killer) { LastHitBy = Killer; }
+	void SetLastHitBy(const wf::nemesis::FKiller& Killer) { LastEnemyHit = Killer; }
 	/** VyrakTrust ruin|puzzle|protect <id> */
 	UFUNCTION(Exec) void VyrakTrust(const FString& Kind, const FString& SourceId);
 	UFUNCTION(Exec) void AncientBond();
@@ -140,7 +140,7 @@ private:
 	wf::godforge::FRuneCombat RuneFx;
 	int32 DevourHits = 0;
 	bool bNaniteChain = false;
-	std::optional<wf::nemesis::FKiller> LastHitBy;
+	std::optional<wf::nemesis::FKiller> LastEnemyHit;
 	/** the equipped weapon item's element, evolution and perk (sim.equippedElement / equippedEvolution / equippedPerk) */
 	FString EquippedElement = TEXT("KINETIC"), EquippedEvolution, EquippedPerk;
 	wf::hit::FCharge EvoCharge;
