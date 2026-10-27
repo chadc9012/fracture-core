@@ -137,6 +137,15 @@ void AWFHUD::DrawHUD()
 			DrawRect(FLinearColor(0.1f, 0.12f, 0.14f, 0.7f), X, Y + 4, 280, 6);
 			DrawRect(Hazard > 0.7 ? FLinearColor(1.f, 0.3f, 0.25f) : Hazard > 0.4 ? Warn : Cyan, X, Y + 4, 280.f * static_cast<float>(FMath::Clamp(Hazard, 0.0, 1.0)), 6);
 		}
+		// region-hazards.ts: the hazard acting on you (Scene.tsx hud.hazard: name, intensity, active)
+		const wf::hazard::FHazardEffect& Hz = StMode->GetRegionHazard();
+		if (Hz.Id != "none" || Hz.DamagePerSec > 0 || Hz.GravityMul != 1)
+		{
+			FString Meter;
+			const int32 Full = FMath::Clamp(FMath::RoundToInt32(Hz.Intensity * 10), 0, 10);
+			for (int32 I = 0; I < 10; ++I) Meter += I < Full ? TEXT("#") : TEXT("-");
+			Line(FString::Printf(TEXT("%s  [%s]%s"), UTF8_TO_TCHAR(Hz.Name.c_str()), *Meter, Hz.DamagePerSec > 0 || Hz.GravityMul != 1 ? TEXT("  ACTIVE") : TEXT("")), 30.f, H - 230.f, Hz.DamagePerSec > 0 ? FLinearColor(1.f, 0.35f, 0.3f) : Warn, 0.8f);
+		}
 		if (!StMode->GetWorldBossLine().IsEmpty()) Line(StMode->GetWorldBossLine(), W * 0.5f - 300.f, 6.f, Gold, 0.9f);
 	}
 

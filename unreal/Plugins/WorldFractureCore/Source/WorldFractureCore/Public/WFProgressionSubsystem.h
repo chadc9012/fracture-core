@@ -12,6 +12,7 @@
 #include "Core/WFHitCore.h"
 #include "Core/WFStrikeCore.h"
 #include "Core/WFStuntCore.h"
+#include "Core/WFStashCore.h"
 
 #include <functional>
 #include "Subsystems/GameInstanceSubsystem.h"
@@ -134,6 +135,14 @@ public:
 	bool PayWorldBoss(const FString& RaidId);
 	/** stunts.ts payStunts: 1 Nex per 50 stunt points into today's stunts:<day> line, up to 600 a day; returns the Nex paid */
 	double PayStunts(double Points);
+	/** stash.ts useStim: spend a Heal Stim / Armor Stim / Ruin Stone for a timed buff stack (max 3); false when none or at 3 */
+	bool UseConsumable(const FString& Id);
+	/** stash.ts buffEffect now: +resist, +health a second, x damage */
+	wf::stash::FBuffEffect GetBuffEffect() const { return wf::stash::BuffEffect(Buffs, NowMs()); }
+	const wf::stash::FBuffs& GetBuffs() const { return Buffs; }
+	/** a stash action (wf::stash CraftStim, CraftRuinStone, SellDuplicate, Dismantle, UpgradeWithParts, ToVault...): kept and
+	 *  saved when it returns true */
+	bool ApplyStash(const std::function<bool(wf::FProgression&)>& Action);
 	/** the time in ms since the epoch, UTC (Date.now()): strikes and raids run on the real clock */
 	static double NowMs();
 	/** the weapon item worn in the gear slot this weapon fires from (armor GearSlotForWeapon), or null */
@@ -186,6 +195,9 @@ public:
 	static const FString SlotName;
 
 private:
+	/** the stim and Ruin Stone buffs running (client-input.ts activeBuffs: this session only, never saved) */
+	wf::stash::FBuffs Buffs;
+
 	bool LoadRewardCatalog(FString& OutError);
 
 	wf::FProgression State;

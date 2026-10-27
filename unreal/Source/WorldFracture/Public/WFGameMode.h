@@ -11,6 +11,7 @@
 #include "Core/WFVehicleWeaponsCore.h"
 #include "GameFramework/GameModeBase.h"
 #include "Core/WFStrikeCore.h"
+#include "Core/WFHazardCore.h"
 #include "WFGameMode.generated.h"
 
 class AWFEnemy;
@@ -224,6 +225,28 @@ public:
 	/** HUD: the live raid's banner, or "" */
 	const FString& GetWorldBossLine() const { return WorldBossLine; }
 
+	// ---- region hazards and hazard zones (ported region-hazards.ts, hazard-zones.ts) ----
+	/** HUD: the hazard acting on you now (its name, how hard it acts 0-1, whether it hurts) */
+	const wf::hazard::FHazardEffect& GetRegionHazard() const { return RegionHazardFx; }
+
+	// ---- the stash (ported stash.ts) ----
+	/** Prints your stims, Ruin Stones, collectibles, gear parts, running buffs, and your gear with ids (V = in the vault). */
+	UFUNCTION(Exec) void Stash();
+	/** CraftStim armorStim | healStim (4 gear parts + 2 energy tokens / 2 data chips + 2 energy tokens; carry up to 3) */
+	UFUNCTION(Exec) void CraftStim(const FString& StimId);
+	/** 5 data chips + 5 energy tokens + 3 relic fragments */
+	UFUNCTION(Exec) void CraftRuinStone();
+	/** a duplicate (not worn, favourite, starter or vaulted) for fracture shards */
+	UFUNCTION(Exec) void SellGear(const FString& ItemId);
+	/** any piece not worn, favourite or starter, into gear parts */
+	UFUNCTION(Exec) void DismantleGear(const FString& ItemId);
+	/** +1 level, +15 power for 3 gear parts a level */
+	UFUNCTION(Exec) void UpgradeGear(const FString& ItemId);
+	UFUNCTION(Exec) void VaultGear(const FString& ItemId);
+	UFUNCTION(Exec) void UnvaultGear(const FString& ItemId);
+	/** a favourite is never sold or dismantled */
+	UFUNCTION(Exec) void FavoriteGear(const FString& ItemId);
+
 	/** The region's ground speed rating (regions.ts speed): scales vehicle top speed. */
 	double GetRegionSpeed() const { return RegionSpeed; }
 
@@ -249,6 +272,8 @@ private:
 	void TickEnvironment(float DeltaSeconds);
 	void TickNemesis(float DeltaSeconds);
 	void TickWorldBoss(float DeltaSeconds);
+	void TickRegionHazard(float DeltaSeconds);
+	void StashAction(const std::function<bool(wf::FProgression&)>& Action, const FString& Done, const FString& Refused);
 	/** where a raid site stands in this level (false when its region is not in this level) */
 	bool RaidSiteHere(const wf::worldboss::FRaidSite& Site, FVector& OutAt) const;
 	/** the forge's console commands answer only at Vael (godforge.ts vaelNear), as the web build's forge window opens only there */
@@ -311,6 +336,7 @@ private:
 	wf::strike::FRun StrikeRun;
 	// world boss raids (Scene.tsx worldBoss ref): the raid announced, woken and paid this session
 	FString WbAnnounced, WbWoke, WbPaid, WorldBossLine;
+	wf::hazard::FHazardEffect RegionHazardFx; // the region hazard and zone acting on the player (carries the exposure)
 	double WbClock = 0;
 	/** region id -> its boss (encounters.ts RegionalEncounter.boss): name and drop */
 	TMap<FString, TPair<FString, FString>> RegionBosses;

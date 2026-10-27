@@ -31,6 +31,8 @@ namespace wf
 		std::optional<std::string> SetId;
 		std::optional<std::string> Rarity; // LEGENDARY | EXOTIC; absent = ordinary gear
 		std::optional<std::string> Perk;   // unique weapon perk, e.g. NULL_DISRUPTION
+		/** locked against selling and dismantling (stash.ts) */
+		bool bFavorite = false;
 		/** a Godforged relic (godforge.ts Godforged): tier, socketed runes, kills with it in hand, awakened */
 		struct FGodforge
 		{
@@ -48,7 +50,8 @@ namespace wf
 		bool operator==(const FGearItem& O) const
 		{
 			return Id == O.Id && Name == O.Name && Slot == O.Slot && Power == O.Power && Level == O.Level && Element == O.Element
-				&& Source == O.Source && SetId == O.SetId && Rarity == O.Rarity && Perk == O.Perk && Godforge == O.Godforge && Evolution == O.Evolution;
+				&& Source == O.Source && SetId == O.SetId && Rarity == O.Rarity && Perk == O.Perk && Godforge == O.Godforge && Evolution == O.Evolution
+				&& bFavorite == O.bFavorite;
 		}
 	};
 
@@ -80,6 +83,8 @@ namespace wf
 		/** The claim ledger (earnedRewards): one-time keys such as scenario-run:<id>, enc-done:<CLASS>:<id>,
 		 *  covenant:vyrak:<CLASS>, dragonite-up:<CLASS>:<ability>:<n>. Order is kept. */
 		std::vector<std::string> EarnedRewards;
+		/** stash.ts: gear kept in the vault, out of the carried inventory (at most 150) */
+		std::vector<std::string> VaultIds;
 		std::vector<std::string> UnlockedAbilities;
 		/** The equipped class abilities (activeBuild: mode + slots PRIMARY / TACTICAL / ULTIMATE -> ability id; account-wide
 		 *  as in the web build) and the evolution branch picked per ability (abilityBranches). */

@@ -496,6 +496,22 @@ bool UWFProgressionSubsystem::PayWorldBoss(const FString& RaidId)
 
 double UWFProgressionSubsystem::NowMs() { return UtcNowMs(); }
 
+bool UWFProgressionSubsystem::UseConsumable(const FString& Id)
+{
+	if (!wf::stash::UseStim(State, Buffs, ToStd(Id), UtcNowMs())) return false;
+	NotifyChanged();
+	return true;
+}
+
+bool UWFProgressionSubsystem::ApplyStash(const std::function<bool(wf::FProgression&)>& Action)
+{
+	wf::FProgression Next = State;
+	if (!Action(Next)) return false;
+	State = std::move(Next);
+	NotifyChanged();
+	return true;
+}
+
 double UWFProgressionSubsystem::PayStunts(double Points)
 {
 	const std::string Day = wf::bounty::DayOf(UtcNowMs());

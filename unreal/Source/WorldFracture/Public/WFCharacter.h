@@ -3,6 +3,7 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
 #include "Core/WFAbilityCore.h"
+#include "Core/WFStashCore.h"
 #include "Core/WFDragonCore.h"
 #include "Core/WFArmsCore.h"
 #include "Core/WFArmorCore.h"
@@ -63,6 +64,10 @@ public:
 	bool IsRiding() const { return bRiding; }
 	/** Encounter SLOW zones (frost patches, shroud mist) scale movement speed while the player stands in them. */
 	void SetHazardSpeedMult(double Mult) { HazardSpeedMult = Mult; }
+	/** region-hazards.ts / hazard-zones.ts: the region's and the zone's pull on movement (speed, gravity, a drift in m/s) */
+	void SetRegionHazard(double SpeedMul, double GravityMul, double PullX, double PullZ) { RegionSpeedMul = SpeedMul; RegionGravityMul = GravityMul; RegionPullX = PullX; RegionPullZ = PullZ; }
+	/** Scene.tsx hazard damage: a chip that never takes the last point of health, unless it would, then a 5-point hit */
+	void ApplyHazardDamage(double DamagePerSec, double Dt, const FString& Cause);
 	bool IsHackHeld() const { return bHackHeld; }
 	/** STAND | CROUCH | PRONE (movement.ts): enemies hit a crouched or prone Operator less often */
 	const std::string& GetStance() const { return MoveKit.Stance; }
@@ -172,6 +177,8 @@ private:
 	void SummonScenario(const FInputActionValue& Value);
 	/** Casts a Dragonite ability through the ported dragonite-cast.ts rules (bond, cooldown and energy checked there). */
 	void CastAbility(const FString& Ability);
+	/** UseConsumable healStim | armorStim | ruinStone (keys 6 / 7 / J): a timed buff stack, at most 3 (stash.ts useStim) */
+	UFUNCTION(Exec) void UseConsumable(const FString& Id);
 	/** Casts the class ability in a slot (PRIMARY / TACTICAL / ULTIMATE) through the ported castAbility. */
 	void CastClassAbility(const char* Slot);
 	void TickAbilities(float DeltaSeconds);
@@ -223,6 +230,9 @@ private:
 	UPROPERTY() TObjectPtr<UInputAction> ScenarioAction;
 	UPROPERTY() TObjectPtr<UInputAction> WyrmAction;
 	UPROPERTY() TArray<TObjectPtr<UInputAction>> DragoniteActions;
+	UPROPERTY() TArray<TObjectPtr<UInputAction>> ConsumableActions;
+	/** the running stim / Ruin Stone buffs (stash.ts buffEffect), read each tick */
+	wf::stash::FBuffEffect BuffFx;
 	UPROPERTY() TObjectPtr<UInputAction> InteractAction;
 	UPROPERTY() TObjectPtr<UInputAction> CallVehicleAction;
 	UPROPERTY() TObjectPtr<UInputAction> HackAction;
@@ -251,6 +261,7 @@ private:
 	double DragonhideResist = 0;
 	static constexpr double GlideSinkCmPerSec = 250; // Unreal-side glide feel: the web build only flags gliding
 	double HazardSpeedMult = 1;
+	double RegionSpeedMul = 1, RegionGravityMul = 1, RegionPullX = 0, RegionPullZ = 0;
 	wf::dragon::FFlight Flight;
 	FVector2D RideInput = FVector2D::ZeroVector; // A/D turn, W/S throttle, gathered from Move each frame
 

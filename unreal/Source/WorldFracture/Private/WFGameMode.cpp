@@ -37,6 +37,8 @@
 #include "Core/WFJsCompat.h"
 #include "Core/WFStrikeCore.h"
 #include "Core/WFStuntCore.h"
+#include "Core/WFHazardCore.h"
+#include "Core/WFStashCore.h"
 #include "WFStuntPark.h"
 
 #include <algorithm>
@@ -290,6 +292,7 @@ void AWFGameMode::Tick(float DeltaSeconds)
 	TickNemesis(DeltaSeconds);
 	TickGodforge(DeltaSeconds);
 	TickWorldBoss(DeltaSeconds);
+	TickRegionHazard(DeltaSeconds);
 	// sim.ts: weapon cooling; venting from an overheat is slower than a normal cooldown
 	if (wf::vweapons::CoolHeat(WeaponHeat, FMath::Min(static_cast<double>(DeltaSeconds), 0.25))) Toast(TEXT("Weapon cooled - ready"), FLinearColor(0.45f, 0.9f, 1.f));
 	Squad.RemoveAll([](const TWeakObjectPtr<AWFEnemy>& E) { return !E.IsValid() || E->IsDead(); });
@@ -1896,4 +1899,104 @@ void AWFGameMode::WorldBoss()
 	}
 	else Toast(TEXT("That raid site is in another region's level"), StCyan);
 	if (Prog && R.Current.bLive && Prog->Get().NexLedger.count(wf::worldboss::WorldBossKey(R.Current.Id))) Toast(TEXT("This raid has already paid you"), StCyan);
+}
+
+// --- region hazards and hazard zones (Scene.tsx on region-hazards.ts / hazard-zones.ts) ------------------------------------
+
+void AWFGameMode::TickRegionHazard(float DeltaSeconds)
+{
+	APawn* Pawn = UGameplayStatics::GetPlayerPawn(this, 0);
+	UWorld* World = GetWorld();
+	if (!Pawn || !World) return;
+	AWFCharacter* Player = Cast<AWFCharacter>(Pawn);
+	const bool bInVehicle = Cast<AWFVehicle>(Pawn) != nullptr;
+	if (const AWFVehicle* Car = Cast<AWFVehicle>(Pawn)) Player = Car->GetDriver();
+	if (!Player) return;
+	// the web world's place you stand at (this level's region anchor on a bare map); shelter is a vehicle
+	const FVector2D Here = WorldToRegion(Pawn->GetActorLocation());
+	const double T = World->GetTimeSeconds(), Dt = DeltaSeconds;
+	const wf::hazard::FRegionLookup Lookup = [this](const std::string& Id) -> std::optional<wf::hazard::FRegionCircle> {
+		const wf::godforge::FRegionCircle* R = RegionCircles.Find(UTF8_TO_TCHAR(Id.c_str()));
+		if (!R) return std::nullopt;
+		return wf::hazard::FRegionCircle{Id, R->X, R->Z, R->Radius};
+	};
+	const wf::hazard::FZoneEffect Zone = wf::hazard::ZoneAt(Here.X, Here.Y, T, bInVehicle, Lookup);
+	wf::hazard::FHazardInput In;
+	In.RegionId = WFData::ToStd(HereRegion);
+	In.T = T; In.Dt = Dt; In.bSheltered = bInVehicle; In.Exposure = RegionHazardFx.Exposure;
+	const wf::hazard::FHazardEffect Fx = wf::hazard::CombineHazard(wf::hazard::HazardAt(In), Zone);
+	if (Fx.Warning && Fx.Warning != RegionHazardFx.Warning) Toast(UTF8_TO_TCHAR(Fx.Warning->c_str()), FLinearColor(1.f, 0.55f, 0.3f));
+	RegionHazardFx = Fx;
+	Player->SetRegionHazard(Fx.SpeedMul, Fx.GravityMul, Zone.PullX, Zone.PullZ);
+	Player->ApplyHazardDamage(Fx.DamagePerSec, Dt, UTF8_TO_TCHAR(Fx.Name.c_str()));
+}
+
+// --- the stash (stash.ts) ------------------------------------------------------------------------------------------------
+
+void AWFGameMode::StashAction(const std::function<bool(wf::FProgression&)>& Action, const FString& Done, const FString& Refused)
+{
+	UWFProgressionSubsystem* Prog = GetGameInstance()->GetSubsystem<UWFProgressionSubsystem>();
+	if (!Prog) return;
+	const bool bOk = Prog->ApplyStash(Action);
+	Toast(bOk ? Done : Refused, bOk ? FLinearColor(0.45f, 0.9f, 1.f) : FLinearColor(1.f, 0.55f, 0.3f));
+}
+
+void AWFGameMode::Stash()
+{
+	const UWFProgressionSubsystem* Prog = GetGameInstance()->GetSubsystem<UWFProgressionSubsystem>();
+	if (!Prog) return;
+	const wf::FProgression& P = Prog->Get();
+	auto Have = [&P](const char* Id) { const auto It = P.Materials.find(Id); return It == P.Materials.end() ? 0.0 : It->second; };
+	TArray<FString> Lines;
+	Lines.Add(FString::Printf(TEXT("Heal Stim %g/3 (key 6) · Armor Stim %g/3 (key 7) · Ruin Stone %g (key J) · gear parts %g"), Have("healStim"), Have("armorStim"), Have("ruinStone"), Have("gearParts")));
+	Lines.Add(FString::Printf(TEXT("Data chips %g · energy tokens %g · relic fragments %g · fracture shards %g"), Have("dataChip"), Have("energyToken"), Have("relicFragment"), P.FractureShards));
+	const double Now = UWFProgressionSubsystem::NowMs();
+	for (const auto& [Id, B] : Prog->GetBuffs())
+		if (B.Until > Now)
+			if (const wf::stash::FConsumable* C = wf::stash::ConsumableById(Id)) Lines.Add(FString::Printf(TEXT("  %s x%g · %.0f s left"), UTF8_TO_TCHAR(C->Name.c_str()), B.Stacks, (B.Until - Now) / 1000.0));
+	for (const wf::FGearItem& G : P.Inventory)
+		Lines.Add(FString::Printf(TEXT("  %s%s %s  %s  power %g  level %g%s%s"), wf::stash::InVault(P, G.Id) ? TEXT("[V] ") : TEXT(""), UTF8_TO_TCHAR(G.Id.c_str()), UTF8_TO_TCHAR(G.Name.c_str()), UTF8_TO_TCHAR(G.Slot.c_str()), G.Power, G.Level,
+			G.bFavorite ? TEXT("  favourite") : TEXT(""), wf::stash::IsDuplicate(P, G) ? *FString::Printf(TEXT("  duplicate (sells %g)"), wf::stash::SellValue(G)) : TEXT("")));
+	Lines.Add(TEXT("CraftStim / CraftRuinStone / SellGear / DismantleGear / UpgradeGear / VaultGear / UnvaultGear / FavoriteGear <id>"));
+	for (const FString& L : Lines) { UE_LOG(LogTemp, Display, TEXT("%s"), *L); Toast(L, FLinearColor(0.45f, 0.9f, 1.f)); }
+}
+
+void AWFGameMode::CraftStim(const FString& StimId)
+{
+	const std::string Id = WFData::ToStd(StimId);
+	StashAction([Id](wf::FProgression& P) { return wf::stash::CraftStim(P, Id); }, FString::Printf(TEXT("Crafted a %s"), *StimId), TEXT("Can't craft that: carrying 3 already, or short of the parts (Stash shows them)"));
+}
+void AWFGameMode::CraftRuinStone()
+{
+	StashAction([](wf::FProgression& P) { return wf::stash::CraftRuinStone(P); }, TEXT("Crafted a Ruin Stone"), TEXT("A Ruin Stone takes 5 data chips, 5 energy tokens and 3 relic fragments"));
+}
+void AWFGameMode::SellGear(const FString& ItemId)
+{
+	const std::string Id = WFData::ToStd(ItemId);
+	StashAction([Id](wf::FProgression& P) { return wf::stash::SellDuplicate(P, Id); }, TEXT("Sold for fracture shards"), TEXT("Only a spare duplicate sells (not worn, favourite, starter or in the vault)"));
+}
+void AWFGameMode::DismantleGear(const FString& ItemId)
+{
+	const std::string Id = WFData::ToStd(ItemId);
+	StashAction([Id](wf::FProgression& P) { return wf::stash::Dismantle(P, Id); }, TEXT("Dismantled into gear parts"), TEXT("Worn, favourite and starter gear can't be dismantled"));
+}
+void AWFGameMode::UpgradeGear(const FString& ItemId)
+{
+	const std::string Id = WFData::ToStd(ItemId);
+	StashAction([Id](wf::FProgression& P) { return wf::stash::UpgradeWithParts(P, Id); }, TEXT("Upgraded: +1 level, +15 power"), TEXT("Not enough gear parts (3 a level), or the armor is at its level cap"));
+}
+void AWFGameMode::VaultGear(const FString& ItemId)
+{
+	const std::string Id = WFData::ToStd(ItemId);
+	StashAction([Id](wf::FProgression& P) { return wf::stash::ToVault(P, Id); }, TEXT("Moved to the vault"), TEXT("Worn gear stays out, and the vault holds 150"));
+}
+void AWFGameMode::UnvaultGear(const FString& ItemId)
+{
+	const std::string Id = WFData::ToStd(ItemId);
+	StashAction([Id](wf::FProgression& P) { const bool bWas = wf::stash::InVault(P, Id); wf::stash::FromVault(P, Id); return bWas; }, TEXT("Back in your inventory"), TEXT("That piece is not in the vault"));
+}
+void AWFGameMode::FavoriteGear(const FString& ItemId)
+{
+	const std::string Id = WFData::ToStd(ItemId);
+	StashAction([Id](wf::FProgression& P) { for (wf::FGearItem& G : P.Inventory) if (G.Id == Id) { G.bFavorite = !G.bFavorite; return true; } return false; }, TEXT("Favourite toggled"), TEXT("No such item"));
 }

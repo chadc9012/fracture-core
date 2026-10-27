@@ -168,6 +168,14 @@ void AWFCharacter::BuildInput()
 	Mapping->MapKey(InteractAction, EKeys::E);
 	Mapping->MapKey(CallVehicleAction, EKeys::T);
 	// the web build's default Dragonite keys (bindings.ts): 8 9 0 - = \ ;  in dragonite.ts order
+	// consumables (bindings.ts has the heal stim, armor stim and Ruin Stone on 5 / 6 / 7; 1-5 are weapon slots here): 6 / 7 / J
+	const FKey ConsumableKeys[3] = {EKeys::Six, EKeys::Seven, EKeys::J};
+	for (const FKey& Key : ConsumableKeys)
+	{
+		UInputAction* A = Make(EInputActionValueType::Boolean);
+		Mapping->MapKey(A, Key);
+		ConsumableActions.Add(A);
+	}
 	const FKey DragoniteKeys[7] = {EKeys::Eight, EKeys::Nine, EKeys::Zero, EKeys::Hyphen, EKeys::Equals, EKeys::Backslash, EKeys::Semicolon};
 	for (const FKey& Key : DragoniteKeys)
 	{
@@ -300,6 +308,12 @@ void AWFCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 		Input->BindActionValueLambda(DragoniteActions[I], ETriggerEvent::Started, [this, Id](const FInputActionValue&) { CastAbility(Id); });
 	}
 	Input->BindAction(RideAction, ETriggerEvent::Started, this, &AWFCharacter::ToggleRide);
+	static const TCHAR* const ConsumableIds[3] = {TEXT("healStim"), TEXT("armorStim"), TEXT("ruinStone")};
+	for (int32 I = 0; I < ConsumableActions.Num() && I < 3; ++I)
+	{
+		const FString Id = ConsumableIds[I];
+		Input->BindActionValueLambda(ConsumableActions[I], ETriggerEvent::Started, [this, Id](const FInputActionValue&) { UseConsumable(Id); });
+	}
 	for (int32 I = 0; I < ClassAbilityActions.Num(); ++I)
 		Input->BindActionValueLambda(ClassAbilityActions[I], ETriggerEvent::Started, [this, I](const FInputActionValue&) { CastClassAbility(wf::ability::Slots[I]); });
 	for (int32 I = 0; I < SlotActions.Num(); ++I)
@@ -687,8 +701,13 @@ void AWFCharacter::Tick(float DeltaSeconds)
 	TickRounds(DeltaSeconds);    // launcher rounds already in the air keep flying
 	// health.ts stepHealth: armor regen (Rootbound Recovery, Resolve...) all the time, the base rate after the delay
 	SinceDamage += DeltaSeconds;
-	if (Health > 0 && Health < MaxHealth) Health = FMath::Min(MaxHealth, Health + (ArmorFx.Regen + (SinceDamage >= RegenDelay ? RegenRate : 0.0)) * DeltaSeconds);
+	// stash.ts buffEffect: the Heal Stim's regen joins the armor's, the Armor Stim's resist the armor's (Scene.tsx)
+	if (const UWFProgressionSubsystem* Progression = GetGameInstance()->GetSubsystem<UWFProgressionSubsystem>()) BuffFx = Progression->GetBuffEffect();
+	if (Health > 0 && Health < MaxHealth) Health = FMath::Min(MaxHealth, Health + (ArmorFx.Regen + BuffFx.Regen + (SinceDamage >= RegenDelay ? RegenRate : 0.0)) * DeltaSeconds);
 	if (bInVehicle) return; // carried by a vehicle: hidden, not simulating
+	// region-hazards.ts gravity swings and a hazard zone's drift (Scene.tsx: sim.gravity x gravityMul; s.x += zone pull x dt)
+	GetCharacterMovement()->GravityScale = static_cast<float>(RegionGravityMul);
+	if (RegionPullX != 0 || RegionPullZ != 0) AddActorWorldOffset(FVector(RegionPullX, RegionPullZ, 0) * (100.0 * FootRatio * DeltaSeconds), true);
 	TickWeapon(DeltaSeconds);
 	TickDragon(DeltaSeconds);
 	if (bRiding) TickRide(DeltaSeconds);
@@ -698,7 +717,7 @@ void AWFCharacter::Tick(float DeltaSeconds)
 		// Scene.tsx walk speed: sprint only standing, the stance, armor, Rift Dash x1.4, Siege Mode x0.8, the parkour chain bonus
 		const double Chain = wf::move::ParkourChainBonus(ChainCount, GetWorld()->GetTimeSeconds() - LastVaultAt);
 		const bool bSprint = bSprinting && MoveKit.Stance == "STAND";
-		GetCharacterMovement()->MaxWalkSpeed = static_cast<float>((bSprint ? SprintSpeed : WalkSpeed) * wf::move::StanceSpeed(MoveKit.Stance) * (1 + ArmorFx.MoveSpeed) * HazardSpeedMult * (Live.DashTime > 0 ? 1.4 : 1.0) * wf::ability::SiegeMoveMult(Live.SiegeTime) * (1 + Chain));
+		GetCharacterMovement()->MaxWalkSpeed = static_cast<float>((bSprint ? SprintSpeed : WalkSpeed) * wf::move::StanceSpeed(MoveKit.Stance) * (1 + ArmorFx.MoveSpeed) * HazardSpeedMult * RegionSpeedMul * (Live.DashTime > 0 ? 1.4 : 1.0) * wf::ability::SiegeMoveMult(Live.SiegeTime) * (1 + Chain));
 	}
 
 	if (GetActorLocation().Z < -50000.f) Respawn(); // fell out of the world
@@ -1157,7 +1176,8 @@ void AWFCharacter::ApplyHit(double Damage, const FString& Source)
 	if (RuneFx.bWard) Damage *= wf::godforge::WardMult; // hurtPlayer: the Ward rune in hand
 	if (GetWorld()->GetTimeSeconds() < DeflectUntil) Damage *= 0.5; // hurtPlayer deflectUntil (Sun-Cutter)
 	Damage *= 1 - wf::dragon::CappedResist(0, DragonhideResist); // Dragonhide
-	Damage *= 1 - FMath::Clamp(ArmorFx.Resist, 0.0, wf::armor::MaxResist); // the worn armor (hurtPlayer armorResist, capped at 50%)
+	// the worn armor plus an Armor Stim (Scene.tsx: armorResist = min(0.75, armor + stim); hurtPlayer caps it at 50%)
+	Damage *= 1 - FMath::Clamp(FMath::Min(0.75, ArmorFx.Resist + BuffFx.Resist), 0.0, wf::armor::MaxResist);
 	Health = FMath::Max(0.0, Health - Damage);
 	SinceDamage = 0;
 	LastDamageSource = Source;
@@ -1538,4 +1558,29 @@ void AWFCharacter::AfterBulletHit(AWFEnemy* Victim, double Dealt, const FString&
 	if (WeaponElement.IsEmpty() && IsValid(Victim) && !Victim->IsDead() && (EquippedElement == TEXT("CRYO") || EquippedElement == TEXT("ARC")))
 		Victim->StunMachine(EquippedElement == TEXT("CRYO") ? 0.9 : 0.6);
 	(void)From;
+}
+
+void AWFCharacter::UseConsumable(const FString& Id)
+{
+	UWFProgressionSubsystem* Progression = GetGameInstance()->GetSubsystem<UWFProgressionSubsystem>();
+	const wf::stash::FConsumable* C = wf::stash::ConsumableById(WFData::ToStd(Id));
+	if (!Progression || !C) return;
+	const std::map<std::string, double>& Mats = Progression->Get().Materials;
+	const auto Have = Mats.find(C->Id);
+	const FLinearColor Cyan(0.45f, 0.9f, 1.f), Warn(1.f, 0.55f, 0.3f);
+	AWFHUD* Hud = GetController<APlayerController>() ? Cast<AWFHUD>(GetController<APlayerController>()->GetHUD()) : nullptr;
+	auto Say = [Hud](const FString& Text, const FLinearColor& Color) { if (Hud) Hud->Toast(Text, Color); };
+	if (Have == Mats.end() || Have->second < 1) { Say(FString::Printf(TEXT("No %s carried"), UTF8_TO_TCHAR(C->Name.c_str())), Warn); return; }
+	if (!Progression->UseConsumable(Id)) { Say(FString::Printf(TEXT("%s is already at 3 stacks"), UTF8_TO_TCHAR(C->Name.c_str())), Warn); return; }
+	const auto B = Progression->GetBuffs().find(C->Id);
+	Say(FString::Printf(TEXT("%s x%g · %s"), UTF8_TO_TCHAR(C->Name.c_str()), B != Progression->GetBuffs().end() ? B->second.Stacks : 1.0, UTF8_TO_TCHAR(C->Blurb.c_str())), Cyan);
+}
+
+void AWFCharacter::ApplyHazardDamage(double DamagePerSec, double Dt, const FString& Cause)
+{
+	if (DamagePerSec <= 0 || Health <= 0) return;
+	// Scene.tsx: if (hp - dps x dt <= 1) hurtPlayer(5, name) else chipPlayer(dps x dt); chipPlayer floors at 1
+	if (Health - DamagePerSec * Dt <= 1) { ApplyHit(5, Cause); return; }
+	Health = FMath::Max(1.0, Health - DamagePerSec * Dt);
+	SinceDamage = 0;
 }

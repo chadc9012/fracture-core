@@ -89,6 +89,7 @@ namespace WFProgressionJson
 		G.SetId = ReadOptionalString(Item, TEXT("setId"));
 		G.Rarity = ReadOptionalString(Item, TEXT("rarity"));
 		G.Perk = ReadOptionalString(Item, TEXT("perk"));
+		Item->TryGetBoolField(TEXT("favorite"), G.bFavorite);
 		const TSharedPtr<FJsonObject>* God = nullptr;
 		if (Item->TryGetObjectField(TEXT("godforge"), God) && God && God->IsValid())
 		{
@@ -119,6 +120,7 @@ namespace WFProgressionJson
 		if (G.SetId) Item->SetStringField(TEXT("setId"), ToF(*G.SetId));
 		if (G.Rarity) Item->SetStringField(TEXT("rarity"), ToF(*G.Rarity));
 		if (G.Perk) Item->SetStringField(TEXT("perk"), ToF(*G.Perk));
+		if (G.bFavorite) Item->SetBoolField(TEXT("favorite"), true);
 		if (G.Godforge)
 		{
 			TSharedRef<FJsonObject> God = MakeShared<FJsonObject>();
@@ -191,6 +193,7 @@ namespace WFProgressionJson
 			St->SetArrayField(TEXT("collectibles"), StringArray(P.Story.Collectibles));
 			O->SetObjectField(TEXT("story"), St);
 			O->SetObjectField(TEXT("records"), NumberObject(P.Records));
+			if (!P.VaultIds.empty()) O->SetArrayField(TEXT("vaultIds"), StringArray(P.VaultIds));
 			// nemesis.ts Nemesis
 			TArray<TSharedPtr<FJsonValue>> Nem;
 			for (const wf::FProgression::FNemesis& N : P.Nemeses)
@@ -425,6 +428,7 @@ namespace WFProgressionJson
 					for (const auto& X : (*Stages)->Values) { FString V; if (X.Value.IsValid() && X.Value->TryGetString(V)) P.Story.Stages[ToStd(X.Key)] = ToStd(V); }
 			}
 			for (const auto& [K, V] : ReadNumbers(O, TEXT("records"))) if (std::isfinite(V) && V >= 0) P.Records[K] = V;
+			P.VaultIds = ReadStrings(O, TEXT("vaultIds"));
 			const TArray<TSharedPtr<FJsonValue>>* Nem = nullptr;
 			if (O->TryGetArrayField(TEXT("nemeses"), Nem) && Nem)
 				for (const TSharedPtr<FJsonValue>& V : *Nem)

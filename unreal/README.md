@@ -149,6 +149,16 @@ Until then the phone build is the web game (`mobile/`, the `android-latest` rele
   off upright is a wipeout (speed lost, body damage, the chain broken). Points pay 1 Nex per 50, up to 600 Nex a day.
 - **The Stunt Park:** steel ramps in a fenced yard 160 m south of the Wastelands centre (stunt-park.ts): the Kicker, the
   Tabletop, the Mega Launch (7.5 m), three Whoops humps and a Gap Jump pair, solid and driveable.
+- **Consumables and the stash:** Heal Stims (+5 health a second a stack, 30 s), Armor Stims (+10% resistance a stack, 60 s)
+  and Ruin Stones (Ruin Surge, +15% damage a stack, 45 s) on keys 6 / 7 / J, stacking to 3 (stash.ts). `CraftStim`,
+  `CraftRuinStone`, `SellGear` (duplicates, for shards), `DismantleGear` (into gear parts), `UpgradeGear` (3 parts a level:
+  +1 level, +15 power), `VaultGear` / `UnvaultGear` (150 slots), `FavoriteGear`; `Stash` prints it all.
+- **Region hazards and hazard zones:** every region acts on you (region-hazards.ts): Veridan's overgrowth slows you,
+  Frostspire's cold builds exposure outside a vehicle and hurts past 60%, Ember Peaks' gravity swings, Wastelands dust
+  storms scour you on their pulses, Solara's flares burn the exposed after a 4 s warning, the Swamps' mire drags,
+  corrodes and drifts the gravity. Six zones stack on top (hazard-zones.ts): the drifting quicksand, the avalanche slope
+  (a slide every 26 s after a rumble), the Spatial Sink (low gravity, drawn in), the Smoldering Trench, the Glacial
+  Crevasses and the Fracture Tear. The hazard line on the HUD shows what is acting on you.
 - **Strikes:** the Operations hub's strike runs (raid-stages.ts, difficulty-ladder.ts, strikes.ts). `Strikes` lists the four
   strikes (Slagworks Breach, Bloom Sanctum, Drowned Relay, Skyline Override), this week's Ordeal (x1.5 from Hero up), each
   tier's lock and what a clear pays now. `StrikeStart <id> [standard|hero|legend|master]` launches; `StrikeAdvance` is one
@@ -329,6 +339,8 @@ cmake -S . -B build -G Ninja && cmake --build build && ctest --test-dir build --
 | GodforgeCoreTest | godforge.ts, secrets.ts, foundries.ts foundryOf, sim.ts fireBullet / fireLauncher heat | 1,590 foundry names, 3,000 trigger pulls, 10,516 forge actions, 1,084 queries, 37,843 checks |
 | WastelandCoreTest | wasteland-activities.ts, wasteland-runtime.ts | 15,600 machine steps, 2,400 resolves, 24,000 runtime frames, 132,024 checks |
 | MoveCoreTest | movement.ts, parkour.ts | 300 tracks, 18,000 frames, 36,067 checks |
+| StashCoreTest | stash.ts | 10,209 stash operations, 16,465 checks |
+| HazardCoreTest | region-hazards.ts, hazard-zones.ts, landmarks.ts | 5,408 hazard steps, 12,000 zone probes, 33,445 checks |
 | StuntCoreTest | stunts.ts (air, tricks, combos, powerslides, pay), stunt-park.ts | 66,120 flight frames, 186,818 scored events, 329,904 checks |
 | StrikeCoreTest | raid-stages.ts, difficulty-ladder.ts (tier scaling, hazard tuning, weekly rotation), strikes.ts, world-boss.ts | 202 tier scalings, 12,973 run steps, 6,060 claims, 3,300 raid times, 35,718 checks |
 | OperatorCoreTest | operator-pockets.ts switchOperator, xp.ts grantXP, nex.ts spendNex | 6,400 operations (846 switches), 25,600 checks |
@@ -337,7 +349,7 @@ The golden files (`Plugins/WorldFractureCore/Tests/<name>_golden.txt`) are **gen
 which broke the Lovable preview build. Record all of them from the repo root before configuring the tests (and again after changing
 the web build's rules):
 
-    node unreal/tools/gen-goldens.mjs            # all twenty-nine
+    node unreal/tools/gen-goldens.mjs            # all thirty-one
     node unreal/tools/gen-goldens.mjs race shop  # just these
 
 `export-datatables` (the DataTables, which are committed) still runs on its own:
@@ -349,7 +361,7 @@ The encounter, Dragonite-cast, ability, tactics and Wastelands recorders route t
 ## Not ported yet
 Boss models and attack effects (zones are debug circles, decoys are stand-ins), mid-mission saves, ability mastery XP,
 region kinds for abilities (the map counts as a war zone),
-troopers running out of orbital strike circles (no strike beacons yet), consumable buffs (the damage, resist and regen of activeBuffs), legendary-chain.ts reactions (they need two hit sources, so never fire in single player), rain, snow and fog visuals (the weather is simulated and shown on the HUD; the regional hazard zones of hazards.ts are separate and not ported), the Neon City pledge, the featured-activity rotation and
+troopers running out of orbital strike circles (no strike beacons yet), legendary-chain.ts reactions (they need two hit sources, so never fire in single player), rain, snow and fog visuals (the weather is simulated and shown on the HUD), venue specials (venue-life.ts orderSpecial), the living NPCs' talk panel with its contracts, intel and the Neon City pledge, the Killbox (PvP modes against AI rival operators), the Hollow Star raid, the featured-activity rotation and
 activity shader drops,
 diving (the thalassia-dive survive timer), the Neon City police response itself (the web build has only the heat meter and its labels; chase-ai.ts pursuit helpers are unused there), the Operations Hub preview marketplace (its wallet is not saved in the web build either), home interiors, cloud save merge, the rest of the world (terrain, the other regions, Neon City, Thalassia; Nexus City is in). Their data is already in
 `DataTables/`.

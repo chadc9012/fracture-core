@@ -489,7 +489,8 @@ double AWFEnemy::TakeHit(double Damage, AActor* DamageInstigator, const FString&
 		if (const UWFProgressionSubsystem* Prog = GetGameInstance()->GetSubsystem<UWFProgressionSubsystem>())
 		{
 			const AWFGameMode* PowerMode = GetWorld()->GetAuthGameMode<AWFGameMode>();
-			Damage *= wf::hit::PowerScale(Prog->GetOperatorPower() - wf::hit::EnemyPower(PowerMode ? PowerMode->DifficultyOf(Zone) : 0, bElite, bBoss));
+			// sim.ts machineDamageMods: the Ruin Surge (consumableDamageMult) first, then the power scale
+			Damage *= Prog->GetBuffEffect().DamageMult * wf::hit::PowerScale(Prog->GetOperatorPower() - wf::hit::EnemyPower(PowerMode ? PowerMode->DifficultyOf(Zone) : 0, bElite, bBoss));
 		}
 	if (VulnUntil > Now) Damage *= VulnMult; // sim.ts applyMachineDamageMods: Weaken / Marked / Roar vulnerability
 	if (!NemesisWeak.IsEmpty() && Element == NemesisWeak) Damage *= 2; // nemesis.ts: a scarred nemesis takes double from its weak element
