@@ -260,6 +260,16 @@
     "History": "The district that kept its lights on through the Fracture, for reasons its owners will not explain."
   },
   {
+    "Name": "riverdale",
+    "Id": "riverdale",
+    "DisplayName": "Riverdale",
+    "RegionId": "riverdale",
+    "Type": "hub",
+    "X": 791.6,
+    "Z": -146,
+    "History": "A river town that kept its clock wound through the Fracture. Ferrymen still tie up at the jetty, and the square still keeps the Nexus hour."
+  },
+  {
     "Name": "thalassia",
     "Id": "thalassia",
     "DisplayName": "Thalassia",

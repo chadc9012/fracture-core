@@ -197,6 +197,17 @@ namespace wf::activity
 		std::optional<std::string> Difficulty;
 		bool bWasHurt = false, bDiedDuring = false;
 		std::optional<race::FRun> Race;
+		// the objective engine's state (activities.ts Run; WFActivityCore StepRun drives it)
+		int Stage = 0;
+		double StageStartedAt = 0;
+		std::optional<std::string> FailReason;
+		double Progress = 0, Need = 0;
+		int Cp = 0;
+		std::vector<int> Visited;
+		bool bCarrying = false;
+		double Hold = 0, KillsBase = -1, ElitesBase = -1, BossesBase = -1, HpMin = 100, Deaths0 = -1;
+		std::optional<double> RivalBase, TheirScore;
+		std::optional<std::string> PvpLine;
 	};
 	/** Spends an attempt (never refunded) and starts a run, or says why not. */
 	WORLDFRACTURECORE_API bool StartActivity(const race::FCatalog& Races, FProgression& P, const FActivityDef& Def, double NowMs, const std::optional<std::string>& Difficulty, FActivityRun& OutRun, std::string& OutError);

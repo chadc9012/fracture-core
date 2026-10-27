@@ -1,0 +1,90 @@
+[
+  {
+    "Name": "veridan",
+    "Id": "veridan",
+    "DisplayName": "Verdant Forest",
+    "X": 561.6,
+    "Z": -78,
+    "Radius": 204
+  },
+  {
+    "Name": "nexus",
+    "Id": "nexus",
+    "DisplayName": "Nexus City",
+    "X": 62.400000000000006,
+    "Z": -296.4,
+    "Radius": 26
+  },
+  {
+    "Name": "ember",
+    "Id": "ember",
+    "DisplayName": "Ember Peaks",
+    "X": -608.4000000000001,
+    "Z": -436.79999999999995,
+    "Radius": 180
+  },
+  {
+    "Name": "wastelands",
+    "Id": "wastelands",
+    "DisplayName": "Wastelands",
+    "X": -390,
+    "Z": 234,
+    "Radius": 252
+  },
+  {
+    "Name": "swamps",
+    "Id": "swamps",
+    "DisplayName": "Shrouded Swamps",
+    "X": 795.5999999999999,
+    "Z": 405.6,
+    "Radius": 180
+  },
+  {
+    "Name": "solara",
+    "Id": "solara",
+    "DisplayName": "Solara Desert",
+    "X": 234,
+    "Z": 624,
+    "Radius": 264
+  },
+  {
+    "Name": "frostspire",
+    "Id": "frostspire",
+    "DisplayName": "Frost Spire",
+    "X": 31.200000000000003,
+    "Z": -811.2,
+    "Radius": 240
+  },
+  {
+    "Name": "neon",
+    "Id": "neon",
+    "DisplayName": "Neon City",
+    "X": -273.35298563379115,
+    "Z": -198.4140222378975,
+    "Radius": 60
+  },
+  {
+    "Name": "neon-underground",
+    "Id": "neon-underground",
+    "DisplayName": "Neon City Underground",
+    "X": -295.35298563379115,
+    "Z": -205.4140222378975,
+    "Radius": 28
+  },
+  {
+    "Name": "neon-core",
+    "Id": "neon-core",
+    "DisplayName": "Neon Core District",
+    "X": -273.35298563379115,
+    "Z": -227.4140222378975,
+    "Radius": 26
+  },
+  {
+    "Name": "thalassia",
+    "Id": "thalassia",
+    "DisplayName": "Thalassia — Underwater City",
+    "X": 1438.2491524461939,
+    "Z": -159.80546138291044,
+    "Radius": 50
+  }
+]

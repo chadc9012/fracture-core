@@ -42,7 +42,7 @@ import { RACES, CHAMPIONSHIPS, worldPoint, raceObstacles } from "../../src/game/
 import { activityById, pointWorld } from "../../src/game/activities";
 import { HOMES, DECOR } from "../../src/game/housing";
 import { deeds, styleName } from "../../src/game/residence-deeds";
-import { ACTIVITIES, ELITES, VYRAK_REMATCH } from "../../src/game/activities";
+import { ACTIVITIES, AREAS, ELITES, VYRAK_REMATCH } from "../../src/game/activities";
 import { WEAPON_MANIFEST, ARMOR_MANIFEST } from "../../src/game/equipment";
 import { WEAPON_CATALOG } from "../../src/game/weapon-catalog";
 import { SHOP_FACTION, districtOf } from "../../src/game/living-world";
@@ -174,6 +174,8 @@ table("Championships", CHAMPIONSHIPS);
 table("Homes", HOMES);
 table("Decor", DECOR);
 table("Activities", [...ACTIVITIES, ...ELITES, VYRAK_REMATCH]);
+// where each activity area lives (activities.ts AREAS: the regions' own circles, the Neon City districts, Thalassia)
+table("ActivityAreas", Object.entries(AREAS).map(([id, a]) => ({ id, name: a.name, x: a.x, z: a.z, radius: a.radius })));
 // Kill weapon drops pick by index into these pools, so order is part of the data (weapon-loot.ts ENEMY_POOL / BOSS_POOL).
 {
   const element: Record<string, string> = { KINETIC: "KINETIC", PLASMA: "ARC", CRYO: "CRYO", ARC: "ARC", THERMAL: "THERMAL", VOID: "BIO" };

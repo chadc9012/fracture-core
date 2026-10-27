@@ -74,7 +74,7 @@ struct FVehiclesRow : public FTableRowBase
 	UPROPERTY(EditAnywhere, BlueprintReadWrite) bool Starter = false;
 };
 
-/** Residences: 12 rows, exported from the web build. */
+/** Residences: 19 rows, exported from the web build. */
 USTRUCT(BlueprintType)
 struct FResidencesRow : public FTableRowBase
 {
@@ -146,7 +146,7 @@ struct FRegionsRow : public FTableRowBase
 	UPROPERTY(EditAnywhere, BlueprintReadWrite) TArray<FString> Rules;
 };
 
-/** Landmarks: 27 rows, exported from the web build. */
+/** Landmarks: 28 rows, exported from the web build. */
 USTRUCT(BlueprintType)
 struct FLandmarksRow : public FTableRowBase
 {
@@ -572,7 +572,7 @@ struct FDecorRow : public FTableRowBase
 	UPROPERTY(EditAnywhere, BlueprintReadWrite) TArray<FString> Rooms;
 };
 
-/** Activities: 101 rows, exported from the web build. */
+/** Activities: 107 rows, exported from the web build. */
 USTRUCT(BlueprintType)
 struct FActivitiesRow : public FTableRowBase
 {
@@ -593,6 +593,18 @@ struct FActivitiesRow : public FTableRowBase
 	UPROPERTY(EditAnywhere, BlueprintReadWrite) int32 MinRep = 0;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite) FString GateJson;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite) FString Period;
+};
+
+/** ActivityAreas: 11 rows, exported from the web build. */
+USTRUCT(BlueprintType)
+struct FActivityAreasRow : public FTableRowBase
+{
+	GENERATED_BODY()
+	UPROPERTY(EditAnywhere, BlueprintReadWrite) FString Id;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite) FString DisplayName;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite) double X = 0.0;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite) double Z = 0.0;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite) int32 Radius = 0;
 };
 
 /** RaceCourses: 68 rows, exported from the web build. */

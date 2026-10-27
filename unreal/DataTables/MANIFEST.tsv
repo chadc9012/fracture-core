@@ -2,11 +2,11 @@ table	rows
 Weapons	10
 Launchers	4
 Vehicles	14
-Residences	12
+Residences	19
 Fleet	21
 Garages	4
 Regions	7
-Landmarks	27
+Landmarks	28
 RegionalEncounters	9
 ExtraEnemies	5
 RegionFactions	9
@@ -36,7 +36,8 @@ Races	68
 Championships	11
 Homes	7
 Decor	17
-Activities	101
+Activities	107
+ActivityAreas	11
 RaceCourses	68
 WeaponLootPools	203
 CompletionWeapons	83
