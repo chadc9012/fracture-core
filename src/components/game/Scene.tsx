@@ -657,7 +657,7 @@ function SceneImpl({
   onWaste?: (event: WasteEmit) => void;
   /** Fracture Gate descents (descent-runtime.ts): tier chests and run results; GameCanvas resolves them into the save */
   onDescent?: (event: DescentEmit) => void;
-  gear?: Pick<PlayerProgression, "inventory" | "equippedGear" | "dungeonClears" | "completedMissions" | "story" | "earnedRewards" | "missionRuns"> & Partial<Pick<PlayerProgression, "level" | "living" | "challenge" | "nemeses" | "fleet" | "blade" | "vehicleConditions" | "nexLedger" | "housing" | "fractureShards">>;
+  gear?: Pick<PlayerProgression, "inventory" | "equippedGear" | "dungeonClears" | "completedMissions" | "story" | "earnedRewards" | "missionRuns"> & Partial<Pick<PlayerProgression, "level" | "living" | "challenge" | "nemeses" | "fleet" | "blade" | "vehicleConditions" | "nexLedger" | "housing" | "fractureShards" | "character">>;
   /** nemesis.ts: a nemesis the player picked on the map; it ambushes right after arrival */
   summonNemesis?: string | null;
   mission?: MissionRun | null;
@@ -3780,7 +3780,7 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
       {activity && activity.def.stages[0]?.kind === "race" && activity.run.race ? <RaceCourse race={raceById((activity.def.stages[0] as { raceId: string }).raceId)!} run={activity.run.race as RaceRun} /> : null}
       {/* player on foot */}
       <group ref={player} position={SPAWN.toArray()}>
-        <OperatorModel colorway held={state} gear={gear} bodyType={bodyType} classId={playerClass} height={OPERATOR_HEIGHT} feetY={-1.6} color={appearance.armor} trim={appearance.visor} cloth={appearance.cloth} look={worn} pose="locomotion" motion={feel.current.motionRef} fallback={
+        <OperatorModel colorway held={state} gear={gear} bodyType={bodyType} face={gear?.character?.face} skin={gear?.character?.skin} eyes={gear?.character?.eyes} classId={playerClass} height={OPERATOR_HEIGHT} feetY={-1.6} color={appearance.armor} trim={appearance.visor} cloth={appearance.cloth} look={worn} pose="locomotion" motion={feel.current.motionRef} fallback={
   <group scale={OPERATOR_HEIGHT / 2.75} position={[0, -1.55 * (1 - OPERATOR_HEIGHT / 2.75), 0]}><Operator bodyType={bodyType} armor={appearance.armor} cloth={appearance.cloth} visor={appearance.visor} trim={appearance.trim} classId={playerClass} motion={feel.current.motionRef} visualState={armorState} chestLevel={armorLevels.chest} helmetLevel={armorLevels.helmet} legsLevel={armorLevels.legs} look={worn} /></group>
         } />
         {playerClass === "TITAN" && sim.titan.blocking && (

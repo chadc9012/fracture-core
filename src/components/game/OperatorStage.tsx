@@ -9,7 +9,7 @@ import { Operator } from "./Operator";
 /** The character-select centrepiece (Stage 47): the Operator full-body and life-size in the frame, in the colours of the
  * rookie variant they wear, lit like the concept sheet (warm key from the front-left, a rim light in their accent colour,
  * a glow ring on a transparent floor so the page's own backdrop shows through). They breathe while idle and turn slowly; drag to look around them. */
-export function OperatorStage({ character }: { character: Pick<PlayerCharacter, "classId" | "bodyType" | "appearance"> }) {
+export function OperatorStage({ character }: { character: Pick<PlayerCharacter, "classId" | "bodyType" | "appearance" | "face" | "skin" | "eyes"> }) {
   const a = character.appearance;
   return <div className="relative h-full w-full" aria-label="Operator preview: drag to rotate">
     <Canvas dpr={[1, 1.75]} camera={{ position: [0, 0.95, 7.2], fov: 30 }} gl={{ antialias: true, alpha: true, toneMapping: THREE.ACESFilmicToneMapping }} shadows>
@@ -20,7 +20,7 @@ export function OperatorStage({ character }: { character: Pick<PlayerCharacter, 
       <pointLight position={[0, 0.25, 1.8]} intensity={3} color="#ffb070" distance={5} />
       <Suspense fallback={null}>
         <Idle>
-          <OperatorModel colorway classId={character.classId} bodyType={character.bodyType} height={2.15} feetY={0} color={a.armor} trim={a.visor} cloth={a.cloth} pose="showcase"
+          <OperatorModel colorway classId={character.classId} bodyType={character.bodyType} face={character.face} skin={character.skin} eyes={character.eyes} height={2.15} feetY={0} color={a.armor} trim={a.visor} cloth={a.cloth} pose="showcase"
             fallback={<group position-y={1.05}><Operator armor={a.armor} cloth={a.cloth} visor={a.visor} trim={a.trim} classId={character.classId} visualState="ACTIVE" /></group>} />
         </Idle>
         <Environment resolution={128}>

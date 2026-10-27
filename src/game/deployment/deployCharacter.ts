@@ -12,6 +12,10 @@ export type PlayerCharacter = {
   bodyType: BodyType;
   /** chosen face (operators.ts FACES); absent on older saves */
   face?: string;
+  /** skin tone (humans) or plating colour (robots): operator-faces.ts swatch id; absent on older saves */
+  skin?: string;
+  /** a robot's optics colour (operator-faces.ts ROBOT_OPTICS id) */
+  eyes?: string;
   displayName: string;
   appearance: Pick<AppearanceDefinition, "armor" | "cloth" | "visor" | "trim" | "callsign">;
   loadout: { weaponOrder: readonly string[] };

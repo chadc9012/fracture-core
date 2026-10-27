@@ -1,14 +1,17 @@
 /** Pure state helpers for the character-creation forge: restoring a saved character, detecting
  * unsaved edits, and summarising worn armor with the authoritative stat calculation. */
 import { DEFAULT_SUBCLASS, SUBCLASSES, appearanceById, operatorByClass, type AppearanceDefinition, type ClassId, type SubclassId } from "../loadout";
-import { DEFAULT_BODY_TYPE, bodyTypeOr, faceOr, type BodyType } from "../operators";
+import { DEFAULT_BODY_TYPE, bodyTypeOr, type BodyType } from "../operators";
+import { faceFor, swatchOr, toneKind } from "../operator-faces";
 import { loadoutAttributes, type Attributes } from "../armor-attributes";
 import { SET_SLOTS, type SetSlot } from "../armor-sets";
 import type { PlayerProgression } from "../progression";
 import type { PlayerCharacter } from "./deployCharacter";
 import { rookieStartColors } from "../rookie-armor";
 
-export type ForgeState = { classId: ClassId; subclassId: SubclassId; appearance: AppearanceDefinition; bodyType: BodyType; face: string };
+export type ForgeState = { classId: ClassId; subclassId: SubclassId; appearance: AppearanceDefinition; bodyType: BodyType; face: string;
+  /** skin tone (humans) or plating (robots), operator-faces.ts swatch id */ skin: string;
+  /** a robot's optics colour */ eyes: string };
 
 /** A new Operator's look: their rookie armor (rookie-armor.ts, Standard variant) with their callsign pre-filled. */
 export function defaultAppearance(classId: ClassId): AppearanceDefinition {
@@ -29,14 +32,15 @@ export function forgeInitial(saved: Partial<PlayerCharacter> | null | undefined)
   const callsign = typeof a?.callsign === "string" && a.callsign.trim() ? a.callsign.trim().slice(0, 16) : base.callsign;
   const bodyType = saved?.bodyType === undefined ? DEFAULT_BODY_TYPE : bodyTypeOr(saved.bodyType);
   return {
-    classId, subclassId: sub, bodyType, face: faceOr(bodyType, saved?.face),
+    classId, subclassId: sub, bodyType, face: faceFor(classId, bodyType, saved?.face),
+    skin: swatchOr(toneKind(bodyType), saved?.skin), eyes: swatchOr("optics", saved?.eyes),
     appearance: { ...base, armor: hex(a?.armor, base.armor), cloth: hex(a?.cloth, base.cloth), visor: hex(a?.visor, base.visor), trim: hex(a?.trim, base.trim), callsign },
   };
 }
 
 /** True when the forge differs from the starting state, i.e. leaving would discard edits. */
 export function forgeDirty(a: ForgeState, b: ForgeState): boolean {
-  return a.classId !== b.classId || a.subclassId !== b.subclassId || a.bodyType !== b.bodyType || a.face !== b.face
+  return a.classId !== b.classId || a.subclassId !== b.subclassId || a.bodyType !== b.bodyType || a.face !== b.face || a.skin !== b.skin || a.eyes !== b.eyes
     || a.appearance.armor !== b.appearance.armor || a.appearance.cloth !== b.appearance.cloth
     || a.appearance.visor !== b.appearance.visor || a.appearance.trim !== b.appearance.trim || a.appearance.callsign !== b.appearance.callsign;
 }

@@ -14,17 +14,25 @@ const CLASS_LABEL: Record<ClassId, string> = { TITAN: "GOLIATH", HUNTER: "NYX", 
 const CLASS_X: Record<ClassId, number> = { TITAN: -4.6, HUNTER: 0, WARLOCK: 4.6 };
 
 type ForgeMode = "CLASS" | "SUBCLASS" | "APPEARANCE" | "ASSEMBLING";
+/** what the appearance camera frames: the whole body, or a close-up of the face (Destiny's character creation) */
+export type ForgeFocus = "body" | "face";
 
-function CameraRig({ selected, mode }: { selected: ClassId; mode: ForgeMode }) {
+function CameraRig({ selected, mode, focus }: { selected: ClassId; mode: ForgeMode; focus: ForgeFocus }) {
   const { camera } = useThree();
   const target = useMemo(() => new THREE.Vector3(), []);
   const look = useMemo(() => new THREE.Vector3(), []);
   useFrame((_, rawDelta) => {
     const dt = Math.min(rawDelta, 0.05);
-    const focus = mode === "CLASS" ? CLASS_X[selected] * 0.16 : CLASS_X[selected] * 0.52;
-    target.set(focus, mode === "ASSEMBLING" ? 2.25 : 2.7, mode === "CLASS" ? 11.8 : 8.3);
+    const x = CLASS_X[selected];
+    if (mode === "APPEARANCE") {
+      // the operator stands left of centre (the options panel is on the right): look past them to the right
+      if (focus === "face") { target.set(x + 0.4, 2.56, 1.8); look.set(x + 0.4, 2.5, 0); }
+      else { target.set(x + 1.05, 1.6, 5.9); look.set(x + 1.05, 1.42, 0); }
+    } else {
+      target.set(mode === "CLASS" ? x * 0.16 : x * 0.52, mode === "ASSEMBLING" ? 2.25 : 2.7, mode === "CLASS" ? 11.8 : 8.3);
+      look.set(mode === "CLASS" ? 0 : x * 0.72, 2.45, 0);
+    }
     camera.position.lerp(target, 1 - Math.exp(-4.8 * dt));
-    look.set(mode === "CLASS" ? 0 : CLASS_X[selected] * 0.72, 2.45, 0);
     camera.lookAt(look);
   });
   return null;
@@ -58,7 +66,8 @@ function ChamberShell({ activeColor }: { activeColor: string }) {
 
 /** A real operator standing on the ring, slowly turning like a showcase pedestal — Operator.tsx's
  * own feet-at-(-1.55)/head-at-1.2 footprint means it just needs to sit 1.55 above the ring. */
-function Showcase({ classId, appearance, bodyType, look, gear, selected, hidden, mode, onSelect }: {
+function Showcase({ classId, appearance, bodyType, face, look, gear, selected, hidden, mode, onSelect }: {
+  face?: { face?: string; skin?: string; eyes?: string } | undefined;
   classId: ClassId;
   gear?: WornGear | undefined;
   look?: ArmorLook | undefined;
@@ -82,14 +91,18 @@ function Showcase({ classId, appearance, bodyType, look, gear, selected, hidden,
       const s = THREE.MathUtils.lerp(group.current.scale.x, targetScale, 1 - Math.exp(-8 * delta));
       group.current.scale.setScalar(s);
     }
-    if (turntable.current) turntable.current.rotation.y += delta * (selected ? 0.5 : 0.22);
+    if (turntable.current) {
+      // in the appearance step the operator holds a three-quarter pose toward the camera instead of turning
+      if (mode === "APPEARANCE") { const r = turntable.current.rotation.y, goal = Math.round(r / (Math.PI * 2)) * Math.PI * 2 + 0.28; turntable.current.rotation.y = r + (goal - r) * (1 - Math.exp(-5 * delta)); }
+      else turntable.current.rotation.y += delta * (selected ? 0.5 : 0.22);
+    }
     if (pulse.current) pulse.current.opacity = selected ? 0.45 + Math.sin(clock.elapsedTime * 3) * 0.12 : 0.16;
   });
   return <group ref={group} position={[x, 0, 0]} onClick={(event) => { event.stopPropagation(); if (mode === "CLASS") onSelect(classId); }}>
     <group ref={turntable} position-y={1.55}>
       <OperatorModel
         colorway
-        bodyType={bodyType} classId={classId}
+        bodyType={bodyType} classId={classId} face={face?.face} skin={face?.skin} eyes={face?.eyes} calm={mode === "APPEARANCE"}
         height={2.75}
         feetY={-1.55}
         color={appearance.armor}
@@ -106,14 +119,19 @@ function Showcase({ classId, appearance, bodyType, look, gear, selected, hidden,
       <meshBasicMaterial ref={pulse} color={accent} transparent opacity={0.25} toneMapped={false} />
     </mesh>
     <ContactShadows position={[0, 0.03, 0]} opacity={0.55} scale={5} blur={2.2} color={accent} />
-    <pointLight position={[0, 1.6, 1]} intensity={selected ? 22 : 7} distance={7} color={accent} />
+    <pointLight position={[0, 1.6, 1]} intensity={selected ? (mode === "APPEARANCE" ? 7 : 22) : 7} distance={7} color={accent} />
+    {/* appearance: a warm key and a soft fill on the face, so skin tones read true for the close-up */}
+    {selected && mode === "APPEARANCE" && <>
+      <pointLight position={[-0.9, 3.0, 1.7]} intensity={14} distance={5} color="#ffe2c8" />
+      <pointLight position={[1.2, 2.6, 1.6]} intensity={3.5} distance={4} color="#cfe0ff" />
+    </>}
   </group>;
 }
 
-export function IdentityForge({ classId, appearance, bodyType, look, gear, mode, onSelectClass }: { gear?: WornGear; look?: ArmorLook; classId: ClassId; appearance: AppearanceDefinition; bodyType: BodyType; mode: ForgeMode; onSelectClass: (id: ClassId) => void }) {
+export function IdentityForge({ classId, appearance, bodyType, face, focus = "body", look, gear, mode, onSelectClass }: { gear?: WornGear; look?: ArmorLook; classId: ClassId; appearance: AppearanceDefinition; bodyType: BodyType; face?: { face?: string; skin?: string; eyes?: string }; focus?: ForgeFocus; mode: ForgeMode; onSelectClass: (id: ClassId) => void }) {
   return <Canvas shadows dpr={[1, 1.5]} camera={{ position: [0, 2.7, 12], fov: 42 }} gl={{ antialias: true, toneMapping: THREE.ACESFilmicToneMapping }}>
     <ChamberShell activeColor={appearance.visor} />
-    <CameraRig selected={classId} mode={mode} />
+    <CameraRig selected={classId} mode={mode} focus={focus} />
     {(["TITAN", "HUNTER", "WARLOCK"] as ClassId[]).map((id) => (
       <Showcase
         key={id}
@@ -121,6 +139,7 @@ export function IdentityForge({ classId, appearance, bodyType, look, gear, mode,
         classId={id}
         appearance={id === classId ? appearance : defaultAppearance(id)}
         bodyType={bodyType}
+        face={id === classId ? face : undefined}
         look={id === classId ? look : undefined}
         selected={id === classId}
         hidden={mode !== "CLASS" && id !== classId}

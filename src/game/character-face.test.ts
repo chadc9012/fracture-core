@@ -12,35 +12,39 @@ const base = (o: Partial<PlayerCharacter> = {}): PlayerCharacter => ({ deploymen
 describe("faces", () => {
   test("every body type has several distinct faces, with unique ids across bodies", () => {
     const ids = BODY_TYPES.flatMap((b) => FACES[b].map((f) => f.id));
-    for (const b of BODY_TYPES) expect(FACES[b].length).toBeGreaterThanOrEqual(4);
+    for (const b of BODY_TYPES) expect(FACES[b].length).toBeGreaterThanOrEqual(2);
+    expect(FACES.male.length).toBeGreaterThanOrEqual(4); expect(FACES.robot.length).toBeGreaterThanOrEqual(4);
     expect(new Set(ids).size).toBe(ids.length);
   });
   test("a face only belongs to its own body type; switching body falls back to that body's first face", () => {
-    expect(isFaceFor("female", "f-veteran")).toBe(true); expect(isFaceFor("male", "f-veteran")).toBe(false);
-    expect(faceOr("robot", "m-scout")).toBe(FACES.robot[0]!.id); expect(faceOr("male", "m-ember")).toBe("m-ember"); expect(faceOr("male", 12)).toBe(FACES.male[0]!.id);
+    expect(isFaceFor("female", "f-nyx")).toBe(true); expect(isFaceFor("male", "f-nyx")).toBe(false);
+    expect(faceOr("robot", "m-sage")).toBe(FACES.robot[0]!.id); expect(faceOr("male", "m-sage")).toBe("m-sage"); expect(faceOr("male", 12)).toBe(FACES.male[0]!.id);
   });
   test("any operator can be any body type with its faces: saves validate for every combination", () => {
     for (const classId of ["TITAN", "HUNTER", "WARLOCK"] as const) for (const b of BODY_TYPES) for (const f of FACES[b]) expect(validateCharacter(base({ classId, bodyType: b, face: f.id }))).toBeNull();
   });
   test("a mismatched face is rejected; an old save without a face still validates", () => {
-    expect(validateCharacter(base({ bodyType: "male", face: "f-veteran" }))).not.toBeNull();
+    expect(validateCharacter(base({ bodyType: "male", face: "f-nyx" }))).not.toBeNull();
     expect(validateCharacter(base({ bodyType: "male" }))).toBeNull();
   });
   test("the forge restores the saved face, repairs a bad one, and notices face edits", () => {
     const saved = base({ bodyType: "robot", face: "r-slit" });
     expect(forgeInitial(saved).face).toBe("r-slit");
-    expect(forgeInitial(base({ bodyType: "robot", face: "m-scout" })).face).toBe(FACES.robot[0]!.id);
+    // a bad or old face id falls back to the class's own face for that body (NYX robot: twin-lens)
+    expect(forgeInitial(base({ bodyType: "robot", face: "m-scout" })).face).toBe("r-twin");
     expect(forgeInitial(null).face).toBe(FACES.male[0]!.id);
     const a = forgeInitial(saved);
-    expect(forgeDirty(a, { ...a, face: "r-twin" })).toBe(true); expect(forgeDirty(a, forgeInitial(saved))).toBe(false);
+    expect(forgeDirty(a, { ...a, face: "r-twin" })).toBe(true); expect(forgeDirty(a, { ...a, skin: "gold" })).toBe(true); expect(forgeDirty(a, { ...a, eyes: "red" })).toBe(true); expect(forgeDirty(a, forgeInitial(saved))).toBe(false);
   });
 });
 
 describe("colour is no longer a creation choice", () => {
   const menu = readFileSync(new URL("../components/game/StartMenu.tsx", import.meta.url), "utf8");
-  test("the creation menu has Body, Face, Gear and Callsign tabs and no colour tabs or palette", () => {
-    const tabs = menu.slice(menu.indexOf("const TABS"), menu.indexOf("];", menu.indexOf("const TABS")));
-    for (const t of ["Body", "Face", "Gear", "Callsign"]) expect(tabs).toContain(`label: "${t}"`);
+  test("the creation menu has Body, Face, skin/plating, Callsign and Finish steps, no armour editing and no armour colour", () => {
+    const tabs = menu.slice(menu.indexOf("const tabsFor"), menu.indexOf("];", menu.indexOf("const tabsFor")));
+    for (const t of ["Body", "Face", "Callsign", "Finish"]) expect(tabs).toContain(`label: "${t}"`);
+    expect(tabs).toContain('"Skin tone"'); expect(tabs).toContain('"Plating"'); expect(tabs).toContain('"Optics"');
+    expect(tabs).not.toContain('"Gear"'); expect(menu).not.toContain("cyclePiece"); expect(menu).not.toContain("Equipped armor");
     for (const t of ["Armor", "Undersuit", "Visor", "Trim"]) expect(tabs).not.toContain(`label: "${t}"`);
     expect(menu).not.toContain("CUSTOMIZATION_PALETTE.map");
   });

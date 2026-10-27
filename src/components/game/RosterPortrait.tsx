@@ -19,7 +19,7 @@ export function RosterPortrait({ character, active }: { character: PlayerCharact
       <Suspense fallback={null}>
         <Bounds fit clip margin={0.82}>
           <Spin active={active}>
-            <OperatorModel colorway classId={character.classId} bodyType={character.bodyType} height={2.75} feetY={-1.55} color={a.armor} trim={a.visor} cloth={a.cloth} pose="showcase"
+            <OperatorModel colorway classId={character.classId} bodyType={character.bodyType} face={character.face} skin={character.skin} eyes={character.eyes} height={2.75} feetY={-1.55} color={a.armor} trim={a.visor} cloth={a.cloth} pose="showcase"
               fallback={<Operator armor={a.armor} cloth={a.cloth} visor={a.visor} trim={a.trim} classId={character.classId} visualState="ACTIVE" />} />
           </Spin>
         </Bounds>

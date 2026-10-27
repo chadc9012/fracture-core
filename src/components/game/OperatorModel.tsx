@@ -9,7 +9,9 @@ import { Component, Suspense, useEffect, useMemo, useRef, type ReactNode } from 
 import * as THREE from "three";
 import { clone as cloneSkinned } from "three/examples/jsm/utils/SkeletonUtils.js";
 import type { ClassId } from "@/game/loadout";
-import { bodyProfile, type BodyType } from "@/game/operators";
+import { bodyProfile, bodyTypeOr, type BodyType } from "@/game/operators";
+import { faceLook, rookieBodyUrl, type FaceLook } from "@/game/operator-faces";
+import { attachHead } from "./operator-head";
 import type { ArmorLook } from "@/game/armor-look";
 import { boneRegion, buildPalette, vivid } from "@/game/operator-paint";
 import { paintSkin, type SkinTextures } from "./operator-skin";
@@ -177,8 +179,12 @@ function pinRootMotion(clip: THREE.AnimationClip) {
 
 const actions0 = (a: Record<string, THREE.AnimationAction>, name: string) => Boolean(a[name]);
 
-function Model({ url, tint, height, feetY, color, trim, pose, motion, bodyType, look, cloth, gear, classId, held, colorway: recolor }: { colorway: boolean; held: HeldWeapon | undefined; trim: string | undefined; gear: WornGear | undefined; classId: ClassId; look: ArmorLook | undefined; cloth: string | undefined; bodyType: BodyType | undefined; url: string; tint: boolean; height: number; feetY: number; color: string | undefined; pose: "showcase" | "locomotion"; motion: ModelMotion | undefined }) {
+function Model({ calm, face, url, tint, height, feetY, color, trim, pose, motion, bodyType, look, cloth, gear, classId, held, colorway: recolor }: { calm: boolean; face: FaceLook | null; colorway: boolean; held: HeldWeapon | undefined; trim: string | undefined; gear: WornGear | undefined; classId: ClassId; look: ArmorLook | undefined; cloth: string | undefined; bodyType: BodyType | undefined; url: string; tint: boolean; height: number; feetY: number; color: string | undefined; pose: "showcase" | "locomotion"; motion: ModelMotion | undefined }) {
   const { scene, animations } = useGLTF(url);
+  // the chosen face's head (a headless rookie body); otherwise the body itself again, already cached and unused
+  const headGltf = useGLTF(face?.headUrl ?? url);
+  // a new FaceLook object comes every render: rebuild only when its contents change
+  const faceKey = face ? JSON.stringify(face) : "";
   const built = useMemo(() => {
     const object = cloneSkinned(scene);
     prepareWorldAsset(object, { castShadow: false, receiveShadow: true });
@@ -225,6 +231,12 @@ function Model({ url, tint, height, feetY, color, trim, pose, motion, bodyType, 
         m.receiveShadow = true;
       }
     });
+    // operator-faces.ts: the chosen head, skinned onto this headless body's bones (after the colourway pass: skin is not armour)
+    if (face) {
+      authoredMaterials.push(...attachHead(object, headGltf.scene, face));
+      // a robot's plating colour also tints its body's bare metal a little
+      if (face.plating) for (const m of authoredMaterials) if (m instanceof THREE.MeshStandardMaterial && !/Robot/.test(m.name)) m.color.lerp(new THREE.Color(face.plating), 0.45);
+    }
     // F3 diagnostics (PerfProbe): what the paint path actually did for this operator, so a grey result can be traced
     let verts = 0, matCount = 0; const share: Record<string, number> = {};
     object.traverse((o) => { const m = o as THREE.SkinnedMesh; if (!m.isMesh) return; matCount += Array.isArray(m.material) ? m.material.length : 1; verts += m.geometry.getAttribute("position")?.count ?? 0; if (m.isSkinnedMesh) for (const b of m.skeleton.bones) { const r = boneRegion(b.name); share[r] = (share[r] ?? 0) + 1; } });
@@ -248,7 +260,7 @@ function Model({ url, tint, height, feetY, color, trim, pose, motion, bodyType, 
       idle.weight = 0; mixer.update(0);
     }
     return { object, scale, material, authoredMaterials, skins, mixer, actions, offset: new THREE.Vector3(-centre.x * scale, feetY - floorY * scale, -centre.z * scale) };
-  }, [scene, animations, height, feetY, tint, color, trim, bodyType, look, cloth, pose, recolor, classId]);
+  }, [scene, animations, height, feetY, tint, color, trim, bodyType, look, cloth, pose, recolor, classId, faceKey, headGltf]);
   const armorKey = piecesKey(gear, classId);
   useEffect(() => {
     // an authored (untinted) body already wears its armor in its textures; procedural plates would float over it
@@ -296,7 +308,8 @@ function Model({ url, tint, height, feetY, color, trim, pose, motion, bodyType, 
     b.lean += ((sliding ? 1 : 0) - b.lean) * k;
     if (rig.current) {
       // body type reshapes the one authored mesh: height, shoulder width and waist depth relative to the male baseline
-      const prof = bodyProfile(bodyType);
+      // (a real body-type mesh with a chosen face is already that shape: no stretch)
+      const prof = bodyProfile(face ? "male" : bodyType);
       const wide = 1 + (prof.shoulders - 1.06) * 2.2;
       rig.current.scale.set(wide, prof.height * (1 - 0.24 * b.crouch), 1 + (prof.waist - 1) * 1.8);
       rig.current.rotation.x = b.prone * 1.25 - b.lean * (actions0(built.actions, "slide") ? 0 : 0.45);
@@ -315,7 +328,7 @@ function Model({ url, tint, height, feetY, color, trim, pose, motion, bodyType, 
     if (pose === "showcase") {
       // flex clip (GOLIATH) > idle clip (NYX) > walk held at mid-stance (CIPHER), a relaxed standing pose
       // GOLIATH alternates the flex with the owner's chest-pound taunt every other loop
-      const showName = actions["showcase"] && actions["taunt"] && Math.floor(clock.elapsedTime / 9) % 2 === 1 ? "taunt" : actions["showcase"] ? "showcase" : actions["idle"] ? "idle" : null;
+      const showName = calm ? (actions["idle"] ? "idle" : null) : actions["showcase"] && actions["taunt"] && Math.floor(clock.elapsedTime / 9) % 2 === 1 ? "taunt" : actions["showcase"] ? "showcase" : actions["idle"] ? "idle" : null;
       const loop = showName ? actions[showName] : undefined;
       if (showName && loop) { set(showName, 1, clock.elapsedTime / loop.getClip().duration); if (showName === "idle") relax = IDLE_RELAX; }
       else { set("walk", 1, 0.25); relax = 1; }
@@ -359,7 +372,11 @@ function applyColorway(material: THREE.Material, way: Colorway) {
 
 /** Draws the authored model for `classId` if one exists, else `fallback` (also while loading or on failure).
  * `pose="showcase"` loops the flex clip (forge); `"locomotion"` drives walk/run from the live stride phase. */
-export function OperatorModel({ classId, height, feetY, fallback, color, trim, pose = "showcase", motion, bodyType, look, cloth, gear, held, colorway = false }: {
+export function OperatorModel({ calm = false, face, skin, eyes, classId, height, feetY, fallback, color, trim, pose = "showcase", motion, bodyType, look, cloth, gear, held, colorway = false }: {
+  /** character creation's face, and skin tone or plating (`skin`) and robot optics (`eyes`): operator-faces.ts */
+  face?: string | undefined; skin?: string | undefined; eyes?: string | undefined;
+  /** showcase: stand in the idle (no flex or taunt), for a close-up of the face */
+  calm?: boolean;
   /** recolour the authored body from `color` (plate) and `trim` (accent glow) through operator-colorway.ts; the player's operator only */
   colorway?: boolean;
   /** weapon in hand (starter procedural props); omit for no weapon */
@@ -373,6 +390,10 @@ export function OperatorModel({ classId, height, feetY, fallback, color, trim, p
   if (!entry || (pose === "locomotion" && !entry.rigged)) return <>{fallback}</>;
   // operator-tier.ts: worn armor power picks the rookie / veteran / elite body; tier bodies wear their own colours
   const tiered = gear ? tierBodyFor(classId, gear) : null;
-  const url = tiered?.body.url ?? entry.url;
-  return <Quiet key={url} fallback={fallback}><Suspense fallback={fallback}><Model url={url} tint={entry.tint} height={height} feetY={feetY} color={color} trim={trim} pose={pose} motion={motion} bodyType={bodyType} look={look} cloth={cloth} gear={gear} classId={classId} held={held} colorway={colorway && (tiered?.body.colorway ?? true)} /></Suspense></Quiet>;
+  // rookie armour shows the face: the body type's own headless body plus the chosen head (operator-faces.ts); veteran and elite
+  // bodies wear their own helmets and heads
+  const body = bodyTypeOr(bodyType);
+  const chosen = !tiered || tiered.tier === "ROOKIE" ? faceLook(classId, body, { face, skin, eyes }) : null;
+  const url = chosen ? rookieBodyUrl(classId, body) : tiered?.body.url ?? entry.url;
+  return <Quiet key={`${url}|${chosen?.headUrl ?? ""}`} fallback={fallback}><Suspense fallback={fallback}><Model calm={calm} face={chosen} url={url} tint={entry.tint} height={height} feetY={feetY} color={color} trim={trim} pose={pose} motion={motion} bodyType={bodyType} look={look} cloth={cloth} gear={gear} classId={classId} held={held} colorway={colorway && (tiered?.body.colorway ?? true)} /></Suspense></Quiet>;
 }

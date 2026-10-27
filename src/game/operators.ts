@@ -65,21 +65,27 @@ export const bodyProfile = (t: unknown): BodyProfile => BODY_PROFILES[bodyTypeOr
 /** The body each operator is introduced with (the rookie armor concept sheet: Goliath and Cipher male, Nyx female); the player can switch to any body type. */
 export const OPERATOR_START_BODY: Readonly<Record<"goliath" | "nyx" | "cipher", BodyType>> = { goliath: "male", nyx: "female", cipher: "male" };
 
-/** Faces: a selectable face per body type, saved with the character (PlayerCharacter.face). Data and selection only: the
- * operator meshes are helmeted/hooded, so a face shows once head models with a bare-face variant are authored. */
-export type FaceDef = { id: string; label: string; blurb: string };
+/** Faces: a selectable head per body type, saved with the character (PlayerCharacter.face). Each is a real head model cut from
+ * an authored operator (scripts/build-operator-heads.py) or a modelled robot head, skinned onto the headless rookie bodies at
+ * load (OperatorModel.tsx); `thumb` is its portrait for the character-creation grid. `skinLum` is the head texture's mean skin
+ * luminance (linear), which the skin-tone tint keeps its shading relative to (operator-faces.ts). */
+export type FaceDef = { id: string; label: string; blurb: string; url: string; thumb: string; skinLum?: number };
+const head = (id: string, label: string, blurb: string, skinLum?: number): FaceDef => ({ id, label, blurb, url: `/models/operators/heads/${id}.glb`, thumb: `/ui/faces/${id}.jpg`, ...(skinLum ? { skinLum } : {}) });
 export const FACES: Readonly<Record<BodyType, readonly FaceDef[]>> = {
   female: [
-    { id: "f-veteran", label: "Veteran", blurb: "Weathered, steady eyes." }, { id: "f-scout", label: "Scout", blurb: "Sharp and watchful." },
-    { id: "f-ember", label: "Ember", blurb: "Scarred brow, quick grin." }, { id: "f-calm", label: "Calm", blurb: "Composed and open." },
+    head("f-nyx", "Nyx", "High ponytail, steady eyes.", 0.21),
+    head("f-shade", "Shade", "Swept fringe, calm stare.", 0.287),
   ],
   male: [
-    { id: "m-veteran", label: "Veteran", blurb: "Square jaw, hard stare." }, { id: "m-scout", label: "Scout", blurb: "Lean and alert." },
-    { id: "m-ember", label: "Ember", blurb: "Old scar, short beard." }, { id: "m-calm", label: "Calm", blurb: "Even, thoughtful." },
+    head("m-goliath", "Goliath", "Square jaw, short dark hair.", 0.224),
+    head("m-veteran", "Veteran", "Scarred brow, hard stare.", 0.182),
+    head("m-cipher", "Cipher", "Young, close curls.", 0.061),
+    head("m-sage", "Sage", "Weathered, grey at the temples.", 0.082),
+    head("m-nomad", "Nomad", "Topknot, beard, tinted goggles.", 0.186),
   ],
   robot: [
-    { id: "r-mono", label: "Mono-lens", blurb: "Single wide optic." }, { id: "r-twin", label: "Twin-lens", blurb: "Paired sensors." },
-    { id: "r-slit", label: "Slit visor", blurb: "Narrow scanning band." }, { id: "r-mask", label: "Mask plate", blurb: "Blank faceplate." },
+    head("r-twin", "Twin-lens", "Paired optics, jointed jaw."), head("r-mono", "Mono-lens", "Single round optic."),
+    head("r-slit", "Slit visor", "Narrow scanning band."), head("r-mask", "Mask plate", "Blank sculpted faceplate."),
   ],
 };
 export const isFaceFor = (body: BodyType, id: unknown): id is string => typeof id === "string" && FACES[body].some((f) => f.id === id);

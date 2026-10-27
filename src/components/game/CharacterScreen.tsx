@@ -206,7 +206,7 @@ export function CharacterPreview({ appearance, classId, progression }: { appeara
       <directionalLight position={[3, 6, 5]} intensity={2.6} color="#fff1dc" />
       <pointLight position={[-3, 2.5, 2]} intensity={14} color={appearance.visor} />
       {/* live check: fixed framing showed only the legs of the authored body; Bounds frames whatever finally loads (GLB or fallback) */}
-      <Bounds fit clip observe margin={1.15}><Turntable><OperatorModel colorway classId={classId} bodyType={progression.character?.bodyType} height={2.75} feetY={-1.55} color={appearance.armor} trim={appearance.visor} cloth={appearance.cloth} gear={progression} held={{ current: { weapon: DEFAULT_ARSENAL[classId].loadouts[0]!.slots[0] } }} pose="showcase"
+      <Bounds fit clip observe margin={1.15}><Turntable><OperatorModel colorway classId={classId} bodyType={progression.character?.bodyType} face={progression.character?.face} skin={progression.character?.skin} eyes={progression.character?.eyes} height={2.75} feetY={-1.55} color={appearance.armor} trim={appearance.visor} cloth={appearance.cloth} gear={progression} held={{ current: { weapon: DEFAULT_ARSENAL[classId].loadouts[0]!.slots[0] } }} pose="showcase"
         fallback={<Operator armor={appearance.armor} cloth={appearance.cloth} visor={appearance.visor} trim={appearance.trim} classId={classId} visualState="ACTIVE" />} /></Turntable><Refit /></Bounds>
       <ContactShadows position={[0, 0.02, 0]} opacity={0.5} scale={5} blur={2.4} />
     </Canvas>
