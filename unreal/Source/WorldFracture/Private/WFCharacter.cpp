@@ -618,6 +618,7 @@ void AWFCharacter::Interact(const FInputActionValue& Value)
 	}
 	if (Best) Best->Enter(this);
 	else if (AWFGameMode* Mode = GetWorld()->GetAuthGameMode<AWFGameMode>(); Mode && !Mode->GetTalkHint().IsEmpty()) Mode->Talk(); // a city NPC in reach
+	else if (AWFGameMode* VenueMode = GetWorld()->GetAuthGameMode<AWFGameMode>(); VenueMode && !VenueMode->GetVenueHint().IsEmpty()) VenueMode->EnterVenue(); // a venue door
 }
 
 void AWFCharacter::ChooseStarterVehicle(const FString& VehicleId)

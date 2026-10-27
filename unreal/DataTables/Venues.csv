@@ -1,0 +1,6 @@
+Name,Id,DisplayName,DoorX,DoorZ,OpenHour,CloseHour,Host
+pulse-array,pulse-array,Pulse Array,-247.35298563379115,-126.81402223789752,20,4,"Kade, door host"
+afterglow,afterglow,Afterglow,-299.35298563379115,-126.81402223789752,21,5,"Sable, bartender"
+velvet-circuit,velvet-circuit,Velvet Circuit,-247.35298563379115,-102.81402223789752,18,2,"Mirelle, hostess"
+crown-casino,crown-casino,Crown Casino,-369.9529856337912,-224.4140222378975,0,24,"Dorian, pit boss"
+grid-line-diner,grid-line-diner,Grid Line Diner,62.400000000000006,-257.3403410985134,17,7,"Ma Ruiz, owner"

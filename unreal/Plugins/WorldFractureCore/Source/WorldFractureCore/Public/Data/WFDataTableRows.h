@@ -595,6 +595,20 @@ struct FActivitiesRow : public FTableRowBase
 	UPROPERTY(EditAnywhere, BlueprintReadWrite) FString Period;
 };
 
+/** Venues: 5 rows, exported from the web build. */
+USTRUCT(BlueprintType)
+struct FVenuesRow : public FTableRowBase
+{
+	GENERATED_BODY()
+	UPROPERTY(EditAnywhere, BlueprintReadWrite) FString Id;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite) FString DisplayName;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite) double DoorX = 0.0;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite) double DoorZ = 0.0;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite) int32 OpenHour = 0;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite) int32 CloseHour = 0;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite) FString Host;
+};
+
 /** ActivityAreas: 11 rows, exported from the web build. */
 USTRUCT(BlueprintType)
 struct FActivityAreasRow : public FTableRowBase

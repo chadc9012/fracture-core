@@ -1,0 +1,52 @@
+[
+  {
+    "Name": "pulse-array",
+    "Id": "pulse-array",
+    "DisplayName": "Pulse Array",
+    "DoorX": -247.35298563379115,
+    "DoorZ": -126.81402223789752,
+    "OpenHour": 20,
+    "CloseHour": 4,
+    "Host": "Kade, door host"
+  },
+  {
+    "Name": "afterglow",
+    "Id": "afterglow",
+    "DisplayName": "Afterglow",
+    "DoorX": -299.35298563379115,
+    "DoorZ": -126.81402223789752,
+    "OpenHour": 21,
+    "CloseHour": 5,
+    "Host": "Sable, bartender"
+  },
+  {
+    "Name": "velvet-circuit",
+    "Id": "velvet-circuit",
+    "DisplayName": "Velvet Circuit",
+    "DoorX": -247.35298563379115,
+    "DoorZ": -102.81402223789752,
+    "OpenHour": 18,
+    "CloseHour": 2,
+    "Host": "Mirelle, hostess"
+  },
+  {
+    "Name": "crown-casino",
+    "Id": "crown-casino",
+    "DisplayName": "Crown Casino",
+    "DoorX": -369.9529856337912,
+    "DoorZ": -224.4140222378975,
+    "OpenHour": 0,
+    "CloseHour": 24,
+    "Host": "Dorian, pit boss"
+  },
+  {
+    "Name": "grid-line-diner",
+    "Id": "grid-line-diner",
+    "DisplayName": "Grid Line Diner",
+    "DoorX": 62.400000000000006,
+    "DoorZ": -257.3403410985134,
+    "OpenHour": 17,
+    "CloseHour": 7,
+    "Host": "Ma Ruiz, owner"
+  }
+]

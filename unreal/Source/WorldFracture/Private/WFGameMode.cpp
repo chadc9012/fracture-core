@@ -302,6 +302,7 @@ void AWFGameMode::Tick(float DeltaSeconds)
 	TickLivingNpcs(DeltaSeconds);
 	TickCityEvents(DeltaSeconds);
 	TickFireteam(DeltaSeconds);
+	TickVenues(DeltaSeconds);
 	// sim.ts: weapon cooling; venting from an overheat is slower than a normal cooldown
 	if (wf::vweapons::CoolHeat(WeaponHeat, FMath::Min(static_cast<double>(DeltaSeconds), 0.25))) Toast(TEXT("Weapon cooled - ready"), FLinearColor(0.45f, 0.9f, 1.f));
 	Squad.RemoveAll([](const TWeakObjectPtr<AWFEnemy>& E) { return !E.IsValid() || E->IsDead(); });
@@ -2565,4 +2566,229 @@ void AWFGameMode::TickFireteam(float DeltaSeconds)
 			DrawDebugLine(GetWorld(), FVector(Shot.FromX * 100.0, Shot.FromZ * 100.0, GroundZ(Shot.FromX * 100.0, Shot.FromZ * 100.0, Z) + 140), FVector(Shot.ToX * 100.0, Shot.ToZ * 100.0, GroundZ(Shot.ToX * 100.0, Shot.ToZ * 100.0, Z) + 110),
 				Shot.bHit ? FColor(255, 220, 120) : FColor(160, 160, 160), false, 0.f, 0, 2.f);
 		}
+}
+
+// --- the nightlife venues (nightlife.ts, venue-life.ts, dance.ts; the doors from venue-doors.ts) --------------------------
+
+namespace
+{
+	const FLinearColor VnPink(1.f, 0.35f, 0.75f), VnCyan(0.35f, 0.95f, 1.f), VnWarn(1.f, 0.55f, 0.3f), VnGold(1.f, 0.82f, 0.35f);
+	FString VnF(const std::string& S) { return UTF8_TO_TCHAR(S.c_str()); }
+}
+
+void AWFGameMode::VenueSave(const std::function<void(wf::FProgression&)>& Change)
+{
+	UWFProgressionSubsystem* Prog = GetGameInstance()->GetSubsystem<UWFProgressionSubsystem>();
+	if (!Prog) return;
+	std::vector<wf::venue::FPayout> Paid;
+	Prog->ApplyStash([&Change, &Paid](wf::FProgression& P) { Change(P); Paid = wf::venue::ClaimChallenges(P); return true; });
+	for (const wf::venue::FPayout& X : Paid) Toast(FString::Printf(TEXT("Challenge complete · %s · %s"), *VnF(X.Title), *VnF(wf::venue::RewardText(X.Reward))), VnGold);
+}
+
+void AWFGameMode::LeaveVenue()
+{
+	// a conversation counts however it ends (venue-life.ts: recorded on the way out, so the greeting read the save before it)
+	if (!VenueTalkingTo.IsEmpty())
+	{
+		const std::string Npc = WFData::ToStd(VenueTalkingTo);
+		VenueSave([Npc](wf::FProgression& P) { wf::venue::RecordTalk(P, Npc, UWFProgressionSubsystem::NowMs()); });
+	}
+	VenueTalkingTo.Reset();
+	VenueTopics.clear();
+	FourBeatRun.reset();
+	DanceBeats.clear();
+	DanceStart = -1;
+	InsideVenue.Reset();
+}
+
+void AWFGameMode::EnterVenue()
+{
+	const UWFProgressionSubsystem* Prog = GetGameInstance()->GetSubsystem<UWFProgressionSubsystem>();
+	const FVenueDoor* Door = VenueDoors.FindByPredicate([this](const FVenueDoor& D) { return D.Id == NearVenue; });
+	if (!Prog || !Door) { Toast(TEXT("Walk up to a venue's door first"), VnWarn); return; }
+	const double Hour = FMath::FloorToDouble(wf::env::HourOf(DayClock));
+	if (!wf::venue::InHours(Door->Open, Door->Close, Hour)) { Toast(FString::Printf(TEXT("%s is closed · opens at %02d:00"), *Door->Name, static_cast<int32>(Door->Open)), VnWarn); return; }
+	if (InsideVenue != Door->Id) LeaveVenue();
+	InsideVenue = Door->Id;
+	const std::string Venue = WFData::ToStd(Door->Id);
+	// the host greets you by how many nights you have come (counted before tonight's visit) and tonight's event
+	for (const wf::venue::FLine& L : wf::venue::VenueDialogue(Venue, wf::venue::VenueStanding(Prog->Get(), Venue), Hour))
+		Toast(FString::Printf(TEXT("%s: \"%s\""), *VnF(L.Speaker), *VnF(L.Text)), VnPink);
+	GetGameInstance()->GetSubsystem<UWFProgressionSubsystem>()->ApplyStash([&Venue](wf::FProgression& P) { return wf::venue::RecordVenueVisit(P, Venue, UWFProgressionSubsystem::NowMs()); });
+	VenueTalk(0);
+	TArray<FString> Menu;
+	if (const wf::venue::FSpecial* S = wf::venue::SpecialAt(Venue)) Menu.Add(FString::Printf(TEXT("VenueSpecial (%s, %s Nex)"), *VnF(S->Name), *VnF(wf::js::NumberToString(S->Price))));
+	if (Venue == "pulse-array" || Venue == "afterglow" || Venue == "velvet-circuit") Menu.Add(TEXT("FourBeat")); // venue-life.ts FOURBEAT_BPM
+	if (wf::venue::IsDanceVenue(Venue)) Menu.Add(TEXT("Dance"));
+	Menu.Add(TEXT("VenueChallenges"));
+	Toast(FString::Join(Menu, TEXT(" · ")), VnCyan);
+}
+
+void AWFGameMode::VenueTalk(int32 Who)
+{
+	const UWFProgressionSubsystem* Prog = GetGameInstance()->GetSubsystem<UWFProgressionSubsystem>();
+	if (!Prog || InsideVenue.IsEmpty()) { Toast(TEXT("Walk into a venue first (E at its door)"), VnWarn); return; }
+	const std::string Venue = WFData::ToStd(InsideVenue);
+	// the host greets you at the door; the people inside are the cast (venue-life.ts castAt, the host's own name left out)
+	std::vector<const wf::venue::FCastMember*> People;
+	const std::string HostName = WFData::ToStd(VenueDoors.FindByPredicate([this](const FVenueDoor& D) { return D.Id == InsideVenue; })->Host);
+	for (const wf::venue::FCastMember* C : wf::venue::CastAt(Venue)) if (HostName.rfind(C->Name, 0) != 0) People.push_back(C);
+	if (Who <= 0 || Who > static_cast<int32>(People.size()))
+	{
+		TArray<FString> Names;
+		for (size_t I = 0; I < People.size(); ++I) Names.Add(FString::Printf(TEXT("%d. %s (%s)"), static_cast<int32>(I + 1), *VnF(People[I]->Name), *VnF(People[I]->Role)));
+		Toast(Names.IsEmpty() ? TEXT("Nobody else here tonight") : TEXT("VenueTalk <n>: ") + FString::Join(Names, TEXT(" · ")), VnCyan);
+		return;
+	}
+	const wf::venue::FCastMember* C = People[static_cast<size_t>(Who - 1)];
+	if (VenueTalkingTo != VnF(C->Id))
+	{
+		if (!VenueTalkingTo.IsEmpty()) { const std::string Was = WFData::ToStd(VenueTalkingTo); VenueSave([Was](wf::FProgression& P) { wf::venue::RecordTalk(P, Was, UWFProgressionSubsystem::NowMs()); }); }
+		VenueTalkingTo = VnF(C->Id);
+	}
+	const double Now = UWFProgressionSubsystem::NowMs();
+	for (const wf::venue::FLine& L : wf::venue::Greeting(Prog->Get(), C->Id, Now)) Toast(FString::Printf(TEXT("%s: \"%s\""), *VnF(L.Speaker), *VnF(L.Text)), VnPink);
+	VenueTopics = wf::venue::OpenTopics(Prog->Get(), C->Id, Now);
+	TArray<FString> Titles;
+	for (size_t I = 0; I < VenueTopics.size(); ++I) Titles.Add(FString::Printf(TEXT("%d. %s"), static_cast<int32>(I + 1), *VnF(VenueTopics[I]->Title)));
+	if (!Titles.IsEmpty()) Toast(TEXT("VenueTopic <n>: ") + FString::Join(Titles, TEXT(" · ")), VnCyan);
+}
+
+void AWFGameMode::VenueTopic(int32 Which)
+{
+	const wf::venue::FCastMember* C = wf::venue::CastById(WFData::ToStd(VenueTalkingTo));
+	if (!C || InsideVenue.IsEmpty() || Which <= 0 || Which > static_cast<int32>(VenueTopics.size())) { Toast(TEXT("VenueTalk to someone, then VenueTopic <n>"), VnWarn); return; }
+	const wf::venue::FTopic* T = VenueTopics[static_cast<size_t>(Which - 1)];
+	Toast(FString::Printf(TEXT("%s: \"%s\""), *VnF(C->Name), *VnF(T->Text)), VnPink);
+	std::optional<wf::venue::FPayout> Paid;
+	VenueSave([T, &Paid](wf::FProgression& P) { Paid = wf::venue::ClaimDiscovery(P, *T); });
+	if (Paid) Toast(FString::Printf(TEXT("Discovery · %s · %s"), *VnF(Paid->Title), *VnF(wf::venue::RewardText(Paid->Reward))), VnGold);
+}
+
+void AWFGameMode::VenueSpecial()
+{
+	UWFProgressionSubsystem* Prog = GetGameInstance()->GetSubsystem<UWFProgressionSubsystem>();
+	if (!Prog || InsideVenue.IsEmpty()) { Toast(TEXT("Walk into a venue first (E at its door)"), VnWarn); return; }
+	const std::string Venue = WFData::ToStd(InsideVenue);
+	const double Hour = FMath::FloorToDouble(wf::env::HourOf(DayClock));
+	std::string Error;
+	Prog->ApplyWithBuffs([&](wf::FProgression& P, wf::stash::FBuffs& B) { Error = wf::venue::OrderSpecial(P, B, Venue, Hour, UWFProgressionSubsystem::NowMs()); return Error.empty(); });
+	if (!Error.empty()) { Toast(VnF(Error), VnWarn); return; }
+	const wf::venue::FSpecial* S = wf::venue::SpecialAt(Venue);
+	Toast(FString::Printf(TEXT("One %s. %s"), *VnF(S->Name), *VnF(S->Blurb)), VnPink);
+	VenueSave([](wf::FProgression&) {}); // the special may finish the Tasting Tour or the Night Shift
+}
+
+void AWFGameMode::FourBeat()
+{
+	const std::string Venue = WFData::ToStd(InsideVenue);
+	if (Venue != "pulse-array" && Venue != "afterglow" && Venue != "velvet-circuit") { Toast(TEXT("The Four-Beat Dance needs a dance floor: Pulse Array, Afterglow or the Velvet Circuit"), VnWarn); return; }
+	if (DanceStart >= 0) return;
+	FourBeatRun = wf::venue::StartFourBeat(Venue);
+	FourBeatStart = GetWorld()->GetTimeSeconds();
+	Toast(TEXT("Four-Beat: feel the kick, tap B on the beat · four clean hits win"), VnCyan);
+}
+
+void AWFGameMode::Dance()
+{
+	const std::string Venue = WFData::ToStd(InsideVenue);
+	if (!wf::venue::IsDanceVenue(Venue)) { Toast(TEXT("The dance sets play at Pulse Array and Afterglow"), VnWarn); return; }
+	if (FourBeatRun) return;
+	DanceBeats = wf::venue::DanceSet(Venue, wf::venue::DayOf(UWFProgressionSubsystem::NowMs()));
+	DanceStart = GetWorld()->GetTimeSeconds();
+	Toast(TEXT("Tonight's set: hit the arrow keys as each arrow reaches the line"), VnCyan);
+}
+
+void AWFGameMode::VenueChallenges()
+{
+	const UWFProgressionSubsystem* Prog = GetGameInstance()->GetSubsystem<UWFProgressionSubsystem>();
+	if (!Prog) return;
+	for (const wf::venue::FChallenge& C : wf::venue::Challenges())
+	{
+		const bool bDone = wf::venue::ChallengeClaimed(Prog->Get(), C.Id);
+		const double P = FMath::Min(wf::venue::ChallengeProgress(Prog->Get(), C), C.Target);
+		const FVenueDoor* Door = VenueDoors.FindByPredicate([&C](const FVenueDoor& D) { return D.Id == VnF(C.Venue); });
+		Toast(FString::Printf(TEXT("%s · %s — %s · %s / %s%s · %s"), *VnF(C.Title), Door ? *Door->Name : *VnF(C.Venue), *VnF(C.Blurb), *VnF(wf::js::NumberToString(P)), *VnF(wf::js::NumberToString(C.Target)), bDone ? TEXT(" · done") : TEXT(""), *VnF(wf::venue::RewardText(C.Reward))), bDone ? VnGold : VnCyan);
+	}
+}
+
+void AWFGameMode::TickVenues(float DeltaSeconds)
+{
+	APawn* Pawn = UGameplayStatics::GetPlayerPawn(this, 0);
+	if (!Pawn) return;
+	if (!bVenueDoorsLoaded)
+	{
+		bVenueDoorsLoaded = true;
+		TArray<TSharedPtr<FJsonObject>> Rows;
+		FString Error;
+		if (WFData::LoadRows(TEXT("Venues"), Rows, Error))
+			for (const TSharedPtr<FJsonObject>& Row : Rows)
+				VenueDoors.Add({WFData::Str(Row, TEXT("Id")), WFData::Str(Row, TEXT("DisplayName")), WFData::Str(Row, TEXT("Host")), WFData::Num(Row, TEXT("DoorX")), WFData::Num(Row, TEXT("DoorZ")), WFData::Num(Row, TEXT("OpenHour")), WFData::Num(Row, TEXT("CloseHour"), 24)});
+	}
+	const bool bOnFoot = Cast<AWFVehicle>(Pawn) == nullptr;
+	const FVector2D Here = WebPosition(Pawn->GetActorLocation());
+	const double Hour = FMath::FloorToDouble(wf::env::HourOf(DayClock));
+	NearVenue.Reset();
+	VenueHint.Reset();
+	VenueLine.Reset();
+	for (const FVenueDoor& D : VenueDoors)
+	{
+		const double Dist = FMath::Sqrt(FMath::Square(Here.X - D.DoorX) + FMath::Square(Here.Y - D.DoorZ));
+		if (D.Id == InsideVenue && (Dist > 25 || !bOnFoot)) LeaveVenue(); // walked out (there are no pocket rooms in this build: the lot is the venue)
+		if (!bOnFoot || Dist > 4 || D.Id == InsideVenue) continue;
+		NearVenue = D.Id;
+		VenueHint = wf::venue::InHours(D.Open, D.Close, Hour) ? FString::Printf(TEXT("E: walk into %s"), *D.Name) : FString::Printf(TEXT("%s · closed · opens at %02d:00"), *D.Name, static_cast<int32>(D.Open));
+	}
+	if (const FVenueDoor* Inside = VenueDoors.FindByPredicate([this](const FVenueDoor& D) { return D.Id == InsideVenue; }))
+		VenueLine = FString::Printf(TEXT("%s%s"), *Inside->Name, VenueTalkingTo.IsEmpty() ? TEXT("") : *FString::Printf(TEXT(" · talking with %s"), *VnF(wf::venue::CastById(WFData::ToStd(VenueTalkingTo))->Name)));
+	APlayerController* PC = UGameplayStatics::GetPlayerController(this, 0);
+	const double Now = GetWorld()->GetTimeSeconds();
+	// the Four-Beat Dance: B taps; the HUD pulse fills toward the next beat
+	if (FourBeatRun)
+	{
+		const double T = (Now - FourBeatStart) * 1000.0;
+		*FourBeatRun = wf::venue::FourBeatTick(*FourBeatRun, T);
+		if (!FourBeatRun->bDone && PC && PC->WasInputKeyJustPressed(EKeys::B))
+		{
+			const wf::venue::FTap Tap = wf::venue::FourBeatTap(*FourBeatRun, T);
+			*FourBeatRun = Tap.State;
+		}
+		const double Phase = wf::venue::FourBeatPhase(*FourBeatRun, T);
+		const int32 Fill = FMath::Clamp(static_cast<int32>(Phase * 10), 0, 10);
+		VenueLine = FString::Printf(TEXT("Four-Beat · [%s%s] · hits %.0f / 4 · misses %.0f / 4 · %.0f s"), *FString::ChrN(Fill, TEXT('=')), *FString::ChrN(10 - Fill, TEXT(' ')), FourBeatRun->Hits, FourBeatRun->Misses, FMath::Max(0.0, (wf::venue::FourBeatTimeoutMs - T) / 1000));
+		if (FourBeatRun->bDone)
+		{
+			const bool bWon = FourBeatRun->bWon;
+			const std::string Venue = FourBeatRun->Venue;
+			FourBeatRun.reset();
+			Toast(bWon ? TEXT("Four-Beat: you found the four") : TEXT("Four-Beat: the floor ate you · FourBeat to try again"), bWon ? VnGold : VnWarn);
+			if (bWon) VenueSave([Venue](wf::FProgression& P) { wf::venue::RecordFact(P, Venue, "fourbeat", UWFProgressionSubsystem::NowMs()); });
+		}
+	}
+	// the dance set: arrow keys judge the earliest open beat of that arrow; beats that slide past are misses
+	if (DanceStart >= 0)
+	{
+		const double T = Now - DanceStart;
+		if (PC)
+		{
+			const FKey Keys[4] = {EKeys::Left, EKeys::Up, EKeys::Down, EKeys::Right};
+			for (int32 I = 0; I < 4; ++I) if (PC->WasInputKeyJustPressed(Keys[I])) wf::venue::Press(DanceBeats, static_cast<wf::venue::EArrow>(I), T);
+		}
+		wf::venue::Expire(DanceBeats, T);
+		TArray<FString> Next;
+		for (const wf::venue::FBeat& B : DanceBeats)
+			if (B.Hit.empty() && Next.Num() < 4) Next.Add(FString::Printf(TEXT("%s %.1f"), UTF8_TO_TCHAR(wf::venue::ArrowNames[static_cast<int32>(B.Arrow)]), B.T - T));
+		const wf::venue::FDanceResult Live = wf::venue::Result(DanceBeats);
+		VenueLine = FString::Printf(TEXT("Dance · %s · score %.0f · combo %.0f"), *FString::Join(Next, TEXT(" · ")), Live.Score, Live.BestCombo);
+		if (wf::venue::Finished(DanceBeats))
+		{
+			const std::string Venue = WFData::ToStd(InsideVenue);
+			const wf::venue::FDanceResult R = wf::venue::Result(DanceBeats);
+			DanceStart = -1;
+			DanceBeats.clear();
+			Toast(FString::Printf(TEXT("Set over · %s · %.0f points (%.0f perfect, %.0f good, %.0f missed, best combo %.0f)"), *VnF(R.Grade), R.Score, R.Perfect, R.Good, R.Miss, R.BestCombo), VnGold);
+			const double Score = R.Score;
+			VenueSave([Venue, Score](wf::FProgression& P) { wf::venue::RecordDance(P, Venue, Score); wf::venue::RecordFact(P, Venue, "danced", UWFProgressionSubsystem::NowMs()); });
+		}
+	}
 }

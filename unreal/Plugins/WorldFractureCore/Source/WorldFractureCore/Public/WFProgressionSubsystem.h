@@ -143,6 +143,8 @@ public:
 	/** a stash action (wf::stash CraftStim, CraftRuinStone, SellDuplicate, Dismantle, UpgradeWithParts, ToVault...): kept and
 	 *  saved when it returns true */
 	bool ApplyStash(const std::function<bool(wf::FProgression&)>& Action);
+	/** an action on the save and the running buffs together (venue-life.ts orderSpecial): kept when it returns true */
+	bool ApplyWithBuffs(const std::function<bool(wf::FProgression&, wf::stash::FBuffs&)>& Action);
 	/** the time in ms since the epoch, UTC (Date.now()): strikes and raids run on the real clock */
 	static double NowMs();
 	/** the weapon item worn in the gear slot this weapon fires from (armor GearSlotForWeapon), or null */

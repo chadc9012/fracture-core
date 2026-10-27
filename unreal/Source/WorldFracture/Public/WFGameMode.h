@@ -17,6 +17,7 @@
 #include "Core/WFLivingNpcCore.h"
 #include "Core/WFLivingEventCore.h"
 #include "Core/WFSquadCore.h"
+#include "Core/WFVenueCore.h"
 #include "WFGameMode.generated.h"
 
 class AWFEnemy;
@@ -231,6 +232,23 @@ public:
 	UFUNCTION(Exec) void Standing();
 	/** squad.ts: your two AI squadmates VEX and HOLT on or off (they always join the Killbox team modes) */
 	UFUNCTION(Exec) void Fireteam();
+	/** nightlife.ts / venue-life.ts: walk in at an open venue's door (E there): your visit, the host's greeting, the menu */
+	UFUNCTION(Exec) void EnterVenue();
+	/** talk to someone inside (VenueTalk with no number lists who is in) */
+	UFUNCTION(Exec) void VenueTalk(int32 Who);
+	/** hear a topic from the person you are talking to (a discovery pays once) */
+	UFUNCTION(Exec) void VenueTopic(int32 Which);
+	/** tonight's house special: one a night, paid in Nex, a stim buff */
+	UFUNCTION(Exec) void VenueSpecial();
+	/** the Four-Beat Dance (Pulse Array, Afterglow, the Velvet Circuit): tap B on the beat */
+	UFUNCTION(Exec) void FourBeat();
+	/** the dance set (Pulse Array, Afterglow): the arrow keys on the line */
+	UFUNCTION(Exec) void Dance();
+	/** the venue challenges, their progress and what they pay */
+	UFUNCTION(Exec) void VenueChallenges();
+	/** HUD: the venue at hand (the door hint, inside, or the dance in progress), or "" */
+	const FString& GetVenueLine() const { return VenueLine; }
+	const FString& GetVenueHint() const { return VenueHint; }
 	/** a tagged machine fell to the player (sim.ts livingKills) */
 	void OnTaggedKill(const FString& Tag) { TagKills.FindOrAdd(Tag) += 1; }
 	/** HUD: the city world event in progress (title, phase, timer, the rift hold), or "" */
@@ -308,6 +326,19 @@ private:
 	void TickLivingNpcs(float DeltaSeconds);
 	void TickCityEvents(float DeltaSeconds);
 	void TickFireteam(float DeltaSeconds);
+	void TickVenues(float DeltaSeconds);
+	/** venue-life.ts venueSave: a venue change to the save, then any challenge it finished pays */
+	void VenueSave(const std::function<void(wf::FProgression&)>& Change);
+	void LeaveVenue();
+	struct FVenueDoor { FString Id, Name, Host; double DoorX = 0, DoorZ = 0, Open = 0, Close = 24; };
+	TArray<FVenueDoor> VenueDoors;
+	bool bVenueDoorsLoaded = false;
+	FString NearVenue, InsideVenue, VenueTalkingTo, VenueHint, VenueLine;
+	std::vector<const wf::venue::FTopic*> VenueTopics;
+	std::optional<wf::venue::FFourBeat> FourBeatRun;
+	double FourBeatStart = 0;
+	std::vector<wf::venue::FBeat> DanceBeats;
+	double DanceStart = -1;
 	std::optional<wf::squad::FState> FireteamState;
 	bool bFireteamWanted = false;
 	TArray<TWeakObjectPtr<class AWFLivingNpc>> FireteamBodies;

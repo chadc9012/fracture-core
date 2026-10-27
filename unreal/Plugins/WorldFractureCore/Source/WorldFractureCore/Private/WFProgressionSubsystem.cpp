@@ -512,6 +512,17 @@ bool UWFProgressionSubsystem::ApplyStash(const std::function<bool(wf::FProgressi
 	return true;
 }
 
+bool UWFProgressionSubsystem::ApplyWithBuffs(const std::function<bool(wf::FProgression&, wf::stash::FBuffs&)>& Action)
+{
+	wf::FProgression Next = State;
+	wf::stash::FBuffs NextBuffs = Buffs;
+	if (!Action(Next, NextBuffs)) return false;
+	State = std::move(Next);
+	Buffs = std::move(NextBuffs);
+	NotifyChanged();
+	return true;
+}
+
 double UWFProgressionSubsystem::PayStunts(double Points)
 {
 	const std::string Day = wf::bounty::DayOf(UtcNowMs());

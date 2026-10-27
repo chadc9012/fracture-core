@@ -162,6 +162,8 @@ void AWFHUD::DrawHUD()
 			Line(FString::Printf(TEXT("%s  [%s]%s"), UTF8_TO_TCHAR(Hz.Name.c_str()), *Meter, Hz.DamagePerSec > 0 || Hz.GravityMul != 1 ? TEXT("  ACTIVE") : TEXT("")), 30.f, H - 230.f, Hz.DamagePerSec > 0 ? FLinearColor(1.f, 0.35f, 0.3f) : Warn, 0.8f);
 		}
 		if (!StMode->GetCityEventLine().IsEmpty()) Line(StMode->GetCityEventLine(), W * 0.5f - 260.f, 30.f, FLinearColor(1.f, 0.55f, 0.3f), 0.9f);
+		if (!StMode->GetVenueLine().IsEmpty()) Line(StMode->GetVenueLine(), W * 0.5f - 260.f, H - 170.f, FLinearColor(1.f, 0.35f, 0.75f), 0.9f);
+		if (StMode->GetTalkHint().IsEmpty() && !StMode->GetVenueHint().IsEmpty()) Line(StMode->GetVenueHint(), W * 0.5f - 160.f, H - 140.f, Gold, 0.9f);
 		if (!StMode->GetTalkHint().IsEmpty()) Line(StMode->GetTalkHint(), W * 0.5f - 160.f, H - 140.f, Gold, 0.9f);
 		if (!StMode->GetWorldBossLine().IsEmpty()) Line(StMode->GetWorldBossLine(), W * 0.5f - 300.f, 6.f, Gold, 0.9f);
 	}

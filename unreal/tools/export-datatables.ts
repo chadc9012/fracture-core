@@ -43,6 +43,7 @@ import { activityById, pointWorld } from "../../src/game/activities";
 import { HOMES, DECOR } from "../../src/game/housing";
 import { deeds, styleName } from "../../src/game/residence-deeds";
 import { ACTIVITIES, AREAS, ELITES, VYRAK_REMATCH } from "../../src/game/activities";
+import { VENUE_INTERIORS, DINER_INTERIOR } from "../../src/game/venue-doors";
 import { WEAPON_MANIFEST, ARMOR_MANIFEST } from "../../src/game/equipment";
 import { WEAPON_CATALOG } from "../../src/game/weapon-catalog";
 import { SHOP_FACTION, districtOf } from "../../src/game/living-world";
@@ -175,6 +176,8 @@ table("Homes", HOMES);
 table("Decor", DECOR);
 table("Activities", [...ACTIVITIES, ...ELITES, VYRAK_REMATCH]);
 // where each activity area lives (activities.ts AREAS: the regions' own circles, the Neon City districts, Thalassia)
+// the nightlife venues' doors (venue-doors.ts): Neon City's four venues on their tower lots and Nexus City's diner
+table("Venues", [...VENUE_INTERIORS, DINER_INTERIOR].map((v) => ({ id: v.venueId!, name: v.name, doorX: v.doorPos.x, doorZ: v.doorPos.z, openHour: v.openHour ?? 0, closeHour: v.closeHour ?? 24, host: v.npcName ?? "" })));
 table("ActivityAreas", Object.entries(AREAS).map(([id, a]) => ({ id, name: a.name, x: a.x, z: a.z, radius: a.radius })));
 // Kill weapon drops pick by index into these pools, so order is part of the data (weapon-loot.ts ENEMY_POOL / BOSS_POOL).
 {
