@@ -39,7 +39,8 @@ export const ENCOUNTERS: readonly RegionalEncounter[] = [
   { regionId: "nexus", troops: [
     { name: "Overclocked Operative", kind: "OVERCLOCKED", role: "Perimeter trooper", drop: "microCircuits" },
     { name: "Overclocked Augmented", kind: "OVERCLOCKED", role: "Augmented heavy", drop: "reinforcedAlloy" },
-    { name: "Cyber-Corrupted Riot Squad", kind: "OVERCLOCKED", role: "Breach team", drop: "microCircuits" },
+    // a robot squad: machine profiles in a faction of armoured people wear a robot chassis (robots.ts)
+    { name: "Nexus Sentry Frame", kind: "OVERCLOCKED", role: "Robotic breach squad", drop: "microCircuits" },
   ], boss: { name: "Aegis-Prime", lair: "High-Tech Interior", drop: "aegisCore", tell: "Shield panels open before the pulse" } },
   { regionId: "solara", troops: [
     { name: "Ash-Born Stalker", kind: "RAIDER", role: "Dune ambusher", drop: "scrapMetal" },

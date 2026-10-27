@@ -3,6 +3,7 @@ import { RoundedBox, useGLTF } from "@react-three/drei";
 import { Component, Suspense, useEffect, useMemo, useRef, type ReactNode } from "react";
 import { clone as cloneSkinned } from "three/examples/jsm/utils/SkeletonUtils.js";
 import { enemyVisual, type EnemyRole, type EnemyVisual } from "@/game/enemy-visuals";
+import { ROBOT_ENEMY } from "@/game/robots";
 import { prepareWorldAsset } from "@/game/asset-render-quality";
 import { enemyClipWeights, strideRate, type ClipWeights, type EnemyDrive } from "@/game/enemy-anim";
 import { enemyWeapon, HELD_MUZZLE, heldPitch, PALM, RAISE_RATE } from "@/game/enemy-weapons";
@@ -301,10 +302,11 @@ function Authored({ visual, headRef, drive, onBuilt, weapon }: { visual: EnemyVi
 }
 
 /** Real enemy model for this faction/role; procedural trooper while loading or if the model fails. */
-export function FactionEnemy({ kind, role, visorRef, headRef, drive, onBuilt, armed = true }: { kind: EnemyKind; role: EnemyRole; visorRef?: React.Ref<THREE.MeshStandardMaterial>; headRef?: React.Ref<THREE.Group>; drive?: DriveRef; onBuilt?: (obj: THREE.Object3D) => void; /** carry the faction/rank weapon (enemy-weapons.ts); bodies (GoreFx) pass false */ armed?: boolean }) {
+export function FactionEnemy({ kind, role, robot = false, visorRef, headRef, drive, onBuilt, armed = true }: { kind: EnemyKind; role: EnemyRole; /** wear the robot chassis for this rank (robots.ts) */ robot?: boolean; visorRef?: React.Ref<THREE.MeshStandardMaterial>; headRef?: React.Ref<THREE.Group>; drive?: DriveRef; onBuilt?: (obj: THREE.Object3D) => void; /** carry the faction/rank weapon (enemy-weapons.ts); bodies (GoreFx) pass false */ armed?: boolean }) {
   // the procedural stand-in is built ~3.9 units tall with boots ~0.18 below its origin: scale it to the authored height and
   // stand its boots on the ground, so a loading or failed model never shows a 3.9 m trooper sunk into the floor
-  const k = enemyVisual(kind, role).height / 3.9;
+  const visual = robot ? ROBOT_ENEMY[role] : enemyVisual(kind, role);
+  const k = visual.height / 3.9;
   const fallback = <group scale={k} position={[0, 0.18 * k, 0]}><EnemyModel kind={kind} boss={role === "boss"} {...(drive ? { drive } : {})} {...(visorRef ? { visorRef } : {})} {...(headRef ? { headRef } : {})} /></group>;
-  return <QuietBoundary fallback={fallback}><Suspense fallback={fallback}><Authored visual={enemyVisual(kind, role)} weapon={armed ? enemyWeapon(kind, role) : null} {...(headRef ? { headRef } : {})} {...(drive ? { drive } : {})} {...(onBuilt ? { onBuilt } : {})} /></Suspense></QuietBoundary>;
+  return <QuietBoundary fallback={fallback}><Suspense fallback={fallback}><Authored visual={visual} weapon={armed ? enemyWeapon(kind, role) : null} {...(headRef ? { headRef } : {})} {...(drive ? { drive } : {})} {...(onBuilt ? { onBuilt } : {})} /></Suspense></QuietBoundary>;
 }

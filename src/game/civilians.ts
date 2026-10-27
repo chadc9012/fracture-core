@@ -11,11 +11,15 @@
 export type CivilianRole = "ENGINEER" | "VENDOR" | "SCAVENGER" | "OBSERVER" | "MEDIC" | "ARTISAN";
 export type CivilianState = "WANDER" | "IDLE" | "GREET" | "FLEE" | "COWER";
 
-export type CivilianSpec = { id: string; name: string; role: CivilianRole; title: string; lore: string; homeX: number; homeZ: number };
+export type CivilianSpec = { id: string; name: string; role: CivilianRole; title: string; lore: string; homeX: number; homeZ: number;
+  /** a robot civilian's body (robots.ts RobotVariant); people have none */
+  robot?: string };
 
 export type Civilian = {
   id: string;
   name: string;
+  /** robot body (robots.ts), or undefined for a person */
+  robot?: string | undefined;
   role: CivilianRole;
   homeX: number;
   homeZ: number;
@@ -77,6 +81,7 @@ export function spawnCivilian(spec: CivilianSpec, index: number): Civilian {
   return {
     id: spec.id,
     name: spec.name,
+    robot: spec.robot,
     role: spec.role,
     homeX: spec.homeX,
     homeZ: spec.homeZ,
