@@ -68,8 +68,15 @@ jobs:
           if [ -z "$EPIC_GHCR_TOKEN" ]; then
             echo "::error::The EPIC_GHCR_TOKEN secret is missing: see the steps at the top of this workflow."; exit 1
           fi
-          echo "$EPIC_GHCR_TOKEN" | docker login ghcr.io -u "${{ github.repository_owner }}" --password-stdin
-          docker pull "${{ inputs.engine_image }}" || { echo "::error::Could not pull ${{ inputs.engine_image }}. Is the Epic account linked to GitHub, the EpicGames invitation accepted, and the tag right?"; exit 1; }
+          # errors go into annotations (one line each) so they can be read without the raw log
+          if ! out=$(echo "$EPIC_GHCR_TOKEN" | docker login ghcr.io -u "${{ github.repository_owner }}" --password-stdin 2>&1); then
+            echo "::error::docker login to ghcr.io failed: $(echo "$out" | tail -3 | tr '\n' ' ')"; exit 1
+          fi
+          if ! out=$(docker pull "${{ inputs.engine_image }}" 2>&1); then
+            echo "::error::Could not pull ${{ inputs.engine_image }}: $(echo "$out" | tail -3 | tr '\n' ' ')"
+            echo "::error::Usual causes: the Epic account not linked to GitHub, the EpicGames org invitation not accepted, the token missing read:packages, or no such tag."
+            exit 1
+          fi
           df -h /mnt
 
       - name: Check the engine image can build for Android
