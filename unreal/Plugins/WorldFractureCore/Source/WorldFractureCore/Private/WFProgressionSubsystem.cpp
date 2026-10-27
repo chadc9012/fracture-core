@@ -496,6 +496,16 @@ bool UWFProgressionSubsystem::PayWorldBoss(const FString& RaidId)
 
 double UWFProgressionSubsystem::NowMs() { return UtcNowMs(); }
 
+double UWFProgressionSubsystem::PayStunts(double Points)
+{
+	const std::string Day = wf::bounty::DayOf(UtcNowMs());
+	const auto It = State.NexLedger.find("stunts:" + Day);
+	const double Before = It == State.NexLedger.end() ? 0 : It->second;
+	if (!wf::stunt::PayStunts(State.NexLedger, Day, Points)) return 0;
+	NotifyChanged();
+	return State.NexLedger["stunts:" + Day] - Before;
+}
+
 bool UWFProgressionSubsystem::EquipItem(const FString& ItemId)
 {
 	const std::string Id = ToStd(ItemId);

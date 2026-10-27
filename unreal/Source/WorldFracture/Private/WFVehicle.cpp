@@ -182,6 +182,7 @@ void AWFVehicle::Notify(const FString& Text, const FLinearColor& Color) const
 
 void AWFVehicle::Enter(AWFCharacter* InDriver)
 {
+	bAirReady = false; // stunts.ts: the air state starts on the ground under the new driver
 	APlayerController* PC = InDriver ? Cast<APlayerController>(InDriver->GetController()) : nullptr;
 	if (!PC) return;
 	// Scene.tsx: a disabled (or wreck-level) vehicle can't be driven; repair it first (RepairVehicle)
@@ -421,8 +422,15 @@ void AWFVehicle::Tick(float DeltaSeconds)
 
 	wf::vehicle::FInput In = Input;
 	if (Fx.bDisabled) { In.Throttle = 0; In.bBoost = false; } // a wrecked engine stops it (vehicle-condition.ts disabled)
-	const wf::vehicle::FStepResult R = wf::vehicle::StepVehicle(*Profile, State, In, Env, Top, Dt);
+	// Scene.tsx: a ground vehicle in the air keeps its speed and heading (stunts.ts owns the flight); otherwise it drives
+	const bool bGroundMode = Profile->Mode == "GROUND";
+	const bool bFlying = bGroundMode && Air.bAirborne;
+	wf::vehicle::FStepResult R;
+	static_cast<wf::vehicle::FState&>(R) = State;
+	if (!bFlying) R = wf::vehicle::StepVehicle(*Profile, State, In, Env, Top, Dt);
 	State = R;
+	if (bGroundMode && !bFlying)
+		if (const double Slide = wf::stunt::StepPowerslide(StuntRun, R.Slip, R.Speed, Dt, World->GetTimeSeconds()); Slide > 0) OnStunt(Slide);
 	if (R.bLanded && R.bHardLanding) { Condition = wf::vehicle::ImpactVehicle(Condition, 14); Notify(TEXT("Hard landing"), FLinearColor(1.f, 0.55f, 0.3f)); }
 	if (R.bSkidding && World->GetTimeSeconds() - SkidNoticeAt > 4) SkidNoticeAt = World->GetTimeSeconds();
 
@@ -435,6 +443,34 @@ void AWFVehicle::Tick(float DeltaSeconds)
 		FHitResult Ahead;
 		const bool bAhead = World->LineTraceSingleByChannel(Ahead, Next + FVector(0, 0, 3000), Next - FVector(0, 0, 50000), ECC_Visibility, Params);
 		if (bAhead && Ahead.ImpactPoint.Z / VehCmPerM > Water - 0.3) { Next = FVector(Loc.X, Loc.Y, Next.Z); State.Speed *= 0.2; } // never drives up the shore
+	}
+	if (bGroundMode)
+	{
+		// stunts.ts stepAir: follow the ground under the new position while it holds the vehicle, fly when it falls away
+		FHitResult Under;
+		const double StandM = (World->LineTraceSingleByChannel(Under, Next + FVector(0, 0, 3000), Next - FVector(0, 0, 50000), ECC_Visibility, Params) ? Under.ImpactPoint.Z / VehCmPerM : FloorM) + wf::vehicle::RideHeight;
+		if (!bAirReady || (FMath::Abs(Air.Y - Loc.Z / VehCmPerM) > 4 && !Air.bAirborne)) { Air = wf::stunt::FreshAir(StandM); bAirReady = true; } // warped or just got in
+		const std::optional<wf::stunt::FLanding> Landing = wf::stunt::StepAir(Air, StandM, {In.Throttle, In.Brake, In.Steer, In.bHandbrake}, Dt);
+		State.Y = Air.Y; State.Vy = Air.Vy; State.bAirborne = Air.bAirborne;
+		Next.Z = Air.Y * VehCmPerM;
+		if (Landing)
+		{
+			// a partial spin carries into the heading; speed bleeds by how far off-line it landed
+			State.Yaw += Landing->SpinYaw;
+			State.Speed *= FMath::Max(0.35, FMath::Abs(std::cos(wf::stunt::Wrap(Landing->SpinYaw))));
+			const double Pts = wf::stunt::ScoreLanding(StuntRun, *Landing, World->GetTimeSeconds());
+			if (!Landing->bClean)
+			{
+				State.Speed *= 0.15;
+				Condition = wf::vehicle::ImpactVehicle(Condition, 18);
+				Notify(TEXT("WIPEOUT"), FLinearColor(1.f, 0.3f, 0.25f));
+			}
+			else
+			{
+				if (Landing->Impact > wf::stunt::HardImpact) Condition = wf::vehicle::ImpactVehicle(Condition, Landing->Impact - wf::stunt::HardImpact + 4);
+				if (Pts > 0) OnStunt(Pts);
+			}
+		}
 	}
 	FHitResult Hit;
 	const double PreCollide = State.Speed;
@@ -470,10 +506,21 @@ void AWFVehicle::Tick(float DeltaSeconds)
 			return;
 		}
 	}
-	SetActorRotation(FRotator(static_cast<float>(FMath::RadiansToDegrees(State.Pitch)), static_cast<float>(90.0 - FMath::RadiansToDegrees(State.Yaw)), static_cast<float>(FMath::RadiansToDegrees(-State.Roll))));
+	// in the air the stunt pose turns the body: flips pitch it, barrel rolls roll it, spins turn it flat (Scene.tsx)
+	const double PoseP = Air.bAirborne ? Air.Pitch : 0, PoseR = Air.bAirborne ? Air.Roll : 0, PoseY = Air.bAirborne ? Air.SpinYaw : 0;
+	SetActorRotation(FRotator(static_cast<float>(FMath::RadiansToDegrees(State.Pitch + PoseP)), static_cast<float>(90.0 - FMath::RadiansToDegrees(State.Yaw + PoseY)), static_cast<float>(FMath::RadiansToDegrees(-(State.Roll + PoseR)))));
 	if (UWFProgressionSubsystem* P = GetGameInstance()->GetSubsystem<UWFProgressionSubsystem>()) P->MutableGarage().Conditions[WFData::ToStd(Def.Id)] = Condition;
 	Arm->SetRelativeRotation(FRotator(FMath::RadiansToDegrees(AimPitch), -FMath::RadiansToDegrees(AimYaw), 0.0)); // the camera looks where the turret aims
 	TickWeapons(Dt);
+}
+
+void AWFVehicle::OnStunt(double Points) const
+{
+	// Scene.tsx alert + GameCanvas payStunts(day, points)
+	const FString Label = StuntRun.Last ? UTF8_TO_TCHAR(StuntRun.Last->Label.c_str()) : TEXT("Stunt");
+	double Nex = 0;
+	if (UWFProgressionSubsystem* P = GetGameInstance()->GetSubsystem<UWFProgressionSubsystem>()) Nex = P->PayStunts(Points);
+	Notify(Nex > 0 ? FString::Printf(TEXT("%s  +%g  (+%g Nex)"), *Label, Points, Nex) : FString::Printf(TEXT("%s  +%g"), *Label, Points), FLinearColor(1.f, 0.82f, 0.35f));
 }
 
 // --- weapons (vehicle-weapons.ts, ordnance.ts, sim.ts fireBullet / fireOrdnance) ---------------------------------------

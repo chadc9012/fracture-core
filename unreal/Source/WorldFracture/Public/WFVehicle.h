@@ -5,6 +5,7 @@
 #include "Core/WFVehicleCore.h"
 #include "Core/WFVehicleWeaponsCore.h"
 #include "Core/WFFleetCore.h"
+#include "Core/WFStuntCore.h"
 #include "GameFramework/Pawn.h"
 #include "WFVehicle.generated.h"
 
@@ -118,6 +119,12 @@ private:
 	const wf::vehicle::FProfile* Profile = &wf::vehicle::ProfileFor("OFFROAD");
 	wf::vehicle::FState State;
 	wf::vehicle::FCondition Condition;
+	// off-road air and stunts (stunts.ts; Scene.tsx offroad): ground vehicles leave crests and ramp lips and score their tricks
+	wf::stunt::FAir Air;
+	wf::stunt::FRun StuntRun;
+	bool bAirReady = false;
+	/** a scored stunt: the HUD line and the Nex (stunts:<day>, capped) */
+	void OnStunt(double Points) const;
 	TWeakObjectPtr<AWFCharacter> Driver;
 	TWeakObjectPtr<AWFCharacter> Gunner; // the last driver: rounds still in flight pay their kills to them
 	double SkidNoticeAt = -10;

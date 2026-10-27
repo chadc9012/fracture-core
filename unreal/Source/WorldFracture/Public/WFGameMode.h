@@ -258,6 +258,9 @@ private:
 	FVector RegionToWorld(double X, double Z, double BaseZ) const;
 	FVector2D WorldToRegion(const FVector& L) const;
 	void DrawWasteland() const;
+	/** the Wastelands Stunt Park's ramps (stunt-park.ts), laid out through the Wastelands anchor */
+	void SpawnStuntPark();
+	TWeakObjectPtr<class AWFStuntPark> StuntParkActor;
 	/** sim.ts spawnEventSquad: Size wastelands troopers tagged Tag in a ring around rules point (X, Z); Kind -1 = by index */
 	int32 SpawnActivitySquad(const FString& Tag, double X, double Z, int32 Size, int32 Elites, double Ring, int32 Kind);
 	/** rules metres in the web world <-> this level, through the anchor WastelandHere set */

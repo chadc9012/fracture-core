@@ -11,6 +11,7 @@
 #include "Core/WFNemesisCore.h"
 #include "Core/WFHitCore.h"
 #include "Core/WFStrikeCore.h"
+#include "Core/WFStuntCore.h"
 
 #include <functional>
 #include "Subsystems/GameInstanceSubsystem.h"
@@ -131,6 +132,8 @@ public:
 	double ClaimStrike(const FString& StrikeId, const FString& TierId, bool& bClaimed, bool& bFirst);
 	/** world-boss.ts payWorldBoss: 2,500 Nex and the materials once per raid; false when this raid already paid */
 	bool PayWorldBoss(const FString& RaidId);
+	/** stunts.ts payStunts: 1 Nex per 50 stunt points into today's stunts:<day> line, up to 600 a day; returns the Nex paid */
+	double PayStunts(double Points);
 	/** the time in ms since the epoch, UTC (Date.now()): strikes and raids run on the real clock */
 	static double NowMs();
 	/** the weapon item worn in the gear slot this weapon fires from (armor GearSlotForWeapon), or null */

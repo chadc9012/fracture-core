@@ -36,6 +36,8 @@
 #include "WFVehicle.h"
 #include "Core/WFJsCompat.h"
 #include "Core/WFStrikeCore.h"
+#include "Core/WFStuntCore.h"
+#include "WFStuntPark.h"
 
 #include <algorithm>
 
@@ -1053,7 +1055,29 @@ void AWFGameMode::WastelandHere()
 	if (RegionId == TEXT("wastelands")) { RegionAnchorCm = WasteAnchorCm; bRegionAnchored = true; } // the Hollow Crown and the region's secrets move with it
 	if (!bWasteActive) { const UWFProgressionSubsystem* Prog = GetGameInstance()->GetSubsystem<UWFProgressionSubsystem>(); WasteRt = wf::wasteland::CreateRuntime(Prog ? Prog->GetSessionKills() : 0); }
 	bWasteActive = true;
-	Toast(TEXT("Wastelands: Vault Gate (amber), Rust Run start (cyan, in a vehicle), the Mash-Pit (red, in a vehicle). Console: Wasteland"), WlGold);
+	SpawnStuntPark();
+	Toast(TEXT("Wastelands: Vault Gate (amber), Rust Run start (cyan, in a vehicle), the Mash-Pit (red, in a vehicle), the Stunt Park (ramps, 160 m south). Console: Wasteland"), WlGold);
+}
+
+void AWFGameMode::SpawnStuntPark()
+{
+	UWorld* World = GetWorld();
+	const APawn* Pawn = UGameplayStatics::GetPlayerPawn(this, 0);
+	if (!World || !Pawn) return;
+	if (StuntParkActor.IsValid()) StuntParkActor->Destroy(); // re-laid with the sites
+	const double BaseZ = Pawn->GetActorLocation().Z;
+	const wf::stunt::FPark& P = wf::stunt::StuntPark();
+	const double Yaw = FMath::RadiansToDegrees(FMath::Atan2(P.DirZ, P.DirX)); // rules (x, z) are Unreal (X, Y)
+	const FVector Centre = WasteToWorld(P.X, P.Z, BaseZ);
+	AWFStuntPark* Park = World->SpawnActor<AWFStuntPark>(AWFStuntPark::StaticClass(), FTransform(Centre));
+	if (!Park) return;
+	for (const wf::stunt::FRamp& R : wf::stunt::Ramps())
+	{
+		const wf::stunt::FPoint C = wf::stunt::RampCentre(R);
+		Park->AddRamp(WasteToWorld(C.X, C.Z, BaseZ), Yaw, R.Length, R.Ramp, R.Width, R.Height, UTF8_TO_TCHAR(R.Label.c_str()));
+	}
+	Park->AddFence(Centre, Yaw, P.Length, P.Width, [this, BaseZ](double X, double Y) { return GroundZ(X, Y, BaseZ); });
+	StuntParkActor = Park;
 }
 
 void AWFGameMode::Wasteland()
