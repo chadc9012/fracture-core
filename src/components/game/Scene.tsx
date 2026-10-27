@@ -3334,6 +3334,7 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
       // vehicles always use the chase camera: a first-person blend put the camera at the vehicle's centre, inside its body
       const targetBlend = override || !s.firstPerson || s.inVehicle ? 1 : 0;
       s.cameraBlend += (targetBlend - s.cameraBlend) * (1 - Math.exp(-15 * dt));
+      foliageWeather.uNearFade.value = s.inVehicle ? 1 : s.cameraBlend; // first person: no leaf dissolve around the player (wind-sway.ts)
       const shoulder = s.inVehicle ? 0 : OPERATOR_CAMERA.shoulder * lockRt.current.state.shoulderSide;
       const vcam = vehicleCamera(handling);
       const distance = s.inVehicle ? vcam.distance : interior ? OPERATOR_CAMERA.indoorDistance : OPERATOR_CAMERA.distance;
