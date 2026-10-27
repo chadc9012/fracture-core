@@ -617,6 +617,7 @@ void AWFCharacter::Interact(const FInputActionValue& Value)
 		if (D < It->GetDef().CollisionRadius + 4 && D < BestDist) { BestDist = D; Best = *It; }
 	}
 	if (Best) Best->Enter(this);
+	else if (AWFGameMode* Mode = GetWorld()->GetAuthGameMode<AWFGameMode>(); Mode && !Mode->GetTalkHint().IsEmpty()) Mode->Talk(); // a city NPC in reach
 }
 
 void AWFCharacter::ChooseStarterVehicle(const FString& VehicleId)

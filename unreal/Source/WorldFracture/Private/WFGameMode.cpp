@@ -40,6 +40,8 @@
 #include "Core/WFHazardCore.h"
 #include "Core/WFStashCore.h"
 #include "Core/WFPvpCore.h"
+#include "Core/WFLivingNpcCore.h"
+#include "WFLivingNpc.h"
 #include "WFStuntPark.h"
 #include "WFActivitySubsystem.h"
 
@@ -296,6 +298,7 @@ void AWFGameMode::Tick(float DeltaSeconds)
 	TickWorldBoss(DeltaSeconds);
 	TickRegionHazard(DeltaSeconds);
 	TickActivity(DeltaSeconds);
+	TickLivingNpcs(DeltaSeconds);
 	// sim.ts: weapon cooling; venting from an overheat is slower than a normal cooldown
 	if (wf::vweapons::CoolHeat(WeaponHeat, FMath::Min(static_cast<double>(DeltaSeconds), 0.25))) Toast(TEXT("Weapon cooled - ready"), FLinearColor(0.45f, 0.9f, 1.f));
 	Squad.RemoveAll([](const TWeakObjectPtr<AWFEnemy>& E) { return !E.IsValid() || E->IsDead(); });
@@ -2181,4 +2184,132 @@ bool AWFGameMode::KillboxRespawn(const FVector& DiedAt, FVector& OutAt) const
 	const double X = ArenaWeb->X - (Side > 0 ? 1.0 : Side < 0 ? -1.0 : 1.0) * wf::pvp::ArenaRadius * 0.7;
 	OutAt = RegionToWorld(X, ArenaWeb->Y, DiedAt.Z) + FVector(0, 0, 120);
 	return true;
+}
+
+// --- the city NPCs (LivingCity.tsx / the talk panel on living-npcs.ts) ------------------------------------------------------
+
+namespace
+{
+	const FLinearColor LvCyan(0.45f, 0.9f, 1.f), LvGold(1.f, 0.82f, 0.35f), LvWarn(1.f, 0.55f, 0.3f);
+	/** living-world.ts FACTIONS colours */
+	FLinearColor LvFactionColor(const std::string& Faction)
+	{
+		if (Faction == "wardens") return FLinearColor::FromSRGBColor(FColor(0x66, 0xe0, 0xff));
+		if (Faction == "guild") return FLinearColor::FromSRGBColor(FColor(0xff, 0xc6, 0x5a));
+		if (Faction == "syndicate") return FLinearColor::FromSRGBColor(FColor(0xff, 0x2e, 0xa6));
+		return FLinearColor::FromSRGBColor(FColor(0x38, 0xe8, 0xff));
+	}
+}
+
+void AWFGameMode::TickLivingNpcs(float DeltaSeconds)
+{
+	UWorld* World = GetWorld();
+	APawn* Pawn = UGameplayStatics::GetPlayerPawn(this, 0);
+	UWFProgressionSubsystem* Prog = GetGameInstance()->GetSubsystem<UWFProgressionSubsystem>();
+	if (!World || !Pawn || !Prog) return;
+	const double Hour = wf::env::HourOf(DayClock);
+	// the cities stand at the web world's coordinates (x 100 cm): so do their people
+	if (!bLivingSpawned && NexusCity.IsValid())
+	{
+		bLivingSpawned = true;
+		for (const wf::living::FNpc& N : wf::living::Npcs())
+		{
+			if (N.City == "neon" && !WorldBuildings.IsValid()) continue; // Neon City is built with the world buildings
+			const wf::living::FPoint At = wf::living::NpcPosition(N, Hour);
+			const FVector Cm(At.X * 100.0, At.Z * 100.0, GroundZ(At.X * 100.0, At.Z * 100.0, Pawn->GetActorLocation().Z) + 90);
+			if (AWFLivingNpc* Body = World->SpawnActor<AWFLivingNpc>(AWFLivingNpc::StaticClass(), FTransform(Cm)))
+			{
+				Body->Setup(WFData::ToF(N.Id), WFData::ToF(N.Name), WFData::ToF(N.Title), LvFactionColor(N.Faction));
+				LivingNpcs.Add(Body);
+			}
+		}
+	}
+	const FVector L = Pawn->GetActorLocation();
+	const double Px = L.X / 100.0, Pz = L.Y / 100.0;
+	const wf::living::FNpc* Near = wf::living::NpcNear(Px, Pz, Hour);
+	NearNpc = Near ? WFData::ToF(Near->Id) : FString();
+	TalkHint = Near ? FString::Printf(TEXT("E · Talk to %s, %s"), UTF8_TO_TCHAR(Near->Name.c_str()), UTF8_TO_TCHAR(Near->Title.c_str())) : FString();
+	if (!Near) { TalkingTo.Reset(); TalkOffers.clear(); }
+	// living-npcs.ts recordCityKills: your kills inside a city advance its CULL contracts
+	const double Kills = Prog->GetTally().Kills;
+	if (CityKillsSeen < 0) CityKillsSeen = Kills;
+	if (Kills > CityKillsSeen)
+	{
+		const std::string City = wf::living::CityAt(Px, Pz);
+		const double New = Kills - CityKillsSeen;
+		if (!City.empty()) Prog->ApplyStash([&City, New](wf::FProgression& P) { wf::living::RecordCityKills(P, City, New); return true; });
+		CityKillsSeen = Kills;
+	}
+	LivingClock += DeltaSeconds;
+	if (LivingClock < 0.5) return;
+	LivingClock = 0;
+	// surveys reached and revealed stashes opened (recordReach)
+	std::vector<std::string> Messages;
+	Prog->ApplyStash([&Messages, Px, Pz](wf::FProgression& P) { Messages = wf::living::RecordReach(P, Px, Pz); return !Messages.empty(); });
+	for (const std::string& M : Messages) Toast(UTF8_TO_TCHAR(M.c_str()), LvGold);
+	// the routine: posts by day, rest spots at night
+	for (const TWeakObjectPtr<AWFLivingNpc>& Body : LivingNpcs)
+		if (AWFLivingNpc* B = Body.Get())
+			if (const wf::living::FNpc* N = wf::living::NpcById(WFData::ToStd(B->GetNpcId())))
+			{
+				const wf::living::FPoint At = wf::living::NpcPosition(*N, Hour);
+				B->SetGoal(FVector(At.X * 100.0, At.Z * 100.0, GroundZ(At.X * 100.0, At.Z * 100.0, B->GetActorLocation().Z) + 90));
+			}
+	// survey points and revealed stashes (debug rings: compiled out of Shipping, where Talk lists them)
+	for (const wf::living::FMarker& M : wf::living::LivingMarkers(Prog->Get()))
+	{
+		const FVector At(M.X * 100.0, M.Z * 100.0, GroundZ(M.X * 100.0, M.Z * 100.0, L.Z));
+		DrawDebugCylinder(World, At, At + FVector(0, 0, 800), (M.Kind == "survey" ? wf::living::SurveyReach : wf::living::StashReach) * 100.0, 20, M.Kind == "survey" ? FColor(120, 230, 255) : FColor(255, 200, 60), false, 0.55f, 0, 4.f);
+	}
+}
+
+void AWFGameMode::Talk()
+{
+	const UWFProgressionSubsystem* Prog = GetGameInstance()->GetSubsystem<UWFProgressionSubsystem>();
+	const wf::living::FNpc* Npc = wf::living::NpcById(WFData::ToStd(NearNpc));
+	if (!Prog || !Npc) { Toast(TEXT("Nobody in reach to talk to"), LvWarn); return; }
+	TalkingTo = NearNpc;
+	Toast(FString::Printf(TEXT("%s: \"%s\""), UTF8_TO_TCHAR(Npc->Name.c_str()), UTF8_TO_TCHAR(wf::living::NpcLine(Prog->Get(), *Npc, "", UWFProgressionSubsystem::NowMs()).c_str())), LvGold);
+	TalkOffers = wf::living::NpcActions(Prog->Get(), *Npc);
+	for (size_t I = 0; I < TalkOffers.size(); ++I)
+	{
+		const wf::living::FAction& A = TalkOffers[I];
+		const FString L = FString::Printf(TEXT("%d. %s · %s%s"), static_cast<int32>(I + 1), UTF8_TO_TCHAR(A.Label.c_str()), UTF8_TO_TCHAR(A.Detail.c_str()), A.bEnabled ? TEXT("") : *FString::Printf(TEXT("  [%s]"), UTF8_TO_TCHAR(A.Reason.c_str())));
+		UE_LOG(LogTemp, Display, TEXT("%s"), *L);
+		Toast(L, A.bEnabled ? LvCyan : LvWarn);
+	}
+	if (TalkOffers.empty()) Toast(TEXT("Nothing to offer you right now"), LvCyan);
+	else Toast(TEXT("TalkDo <number> to choose"), LvCyan);
+}
+
+void AWFGameMode::TalkDo(const FString& Choice)
+{
+	UWFProgressionSubsystem* Prog = GetGameInstance()->GetSubsystem<UWFProgressionSubsystem>();
+	if (!Prog || TalkingTo.IsEmpty() || TalkingTo != NearNpc) { Toast(TEXT("Talk to someone first (E nearby)"), LvWarn); return; }
+	std::string ActionId = WFData::ToStd(Choice);
+	if (Choice.IsNumeric())
+	{
+		const int32 I = FCString::Atoi(*Choice) - 1;
+		if (I < 0 || I >= static_cast<int32>(TalkOffers.size())) { Toast(TEXT("No such offer"), LvWarn); return; }
+		ActionId = TalkOffers[static_cast<size_t>(I)].Id;
+	}
+	const std::string NpcId = WFData::ToStd(TalkingTo);
+	wf::living::FResult R;
+	const double Now = UWFProgressionSubsystem::NowMs();
+	const double LevelBefore = Prog->Get().Level;
+	Prog->ApplyStash([&R, &NpcId, &ActionId, Now](wf::FProgression& P) { R = wf::living::PerformNpcAction(P, NpcId, ActionId, Now); return R.bOk; });
+	Toast(UTF8_TO_TCHAR(R.Message.c_str()), R.bOk ? LvGold : LvWarn);
+	if (Prog->Get().Level > LevelBefore) Prog->OnLevelUp.Broadcast(static_cast<int32>(Prog->Get().Level));
+	if (R.bOk) Talk(); // the panel refreshes
+}
+
+void AWFGameMode::Standing()
+{
+	const UWFProgressionSubsystem* Prog = GetGameInstance()->GetSubsystem<UWFProgressionSubsystem>();
+	if (!Prog) return;
+	for (const char* City : {"nexus", "neon"})
+		for (const wf::living::FStanding& S : wf::living::RepSummary(Prog->Get(), City))
+			Toast(FString::Printf(TEXT("%s: %g (%s)"), UTF8_TO_TCHAR(S.Name.c_str()), S.Rep, UTF8_TO_TCHAR(S.Tier.c_str())), LvCyan);
+	const auto Pledge = Prog->Get().Story.Choices.find(wf::living::PledgeKey);
+	if (Pledge != Prog->Get().Story.Choices.end()) Toast(FString::Printf(TEXT("Pledged in Neon City: %s"), UTF8_TO_TCHAR(Pledge->second.c_str())), LvGold);
 }

@@ -14,6 +14,7 @@
 #include "Core/WFHazardCore.h"
 #include "Core/WFPvpCore.h"
 #include "Core/WFActivityCore.h"
+#include "Core/WFLivingNpcCore.h"
 #include "WFGameMode.generated.h"
 
 class AWFEnemy;
@@ -219,6 +220,16 @@ public:
 	/** HUD: the strike run's title and lines, hazard 0-1; false when no strike is loaded */
 	bool GetStrikeHud(FString& OutTitle, TArray<FString>& OutLines, double& OutHazard) const;
 
+	// ---- the city NPCs (ported living-npcs.ts, npc-routine.ts) ----
+	/** talk to the NPC in reach (E with no vehicle near): their line and the numbered offers */
+	UFUNCTION(Exec) void Talk();
+	/** TalkDo <number | action id>: take an offer (a contract, a turn-in, intel, the pledge, amends, a commendation) */
+	UFUNCTION(Exec) void TalkDo(const FString& Choice);
+	/** your standing with the four city factions */
+	UFUNCTION(Exec) void Standing();
+	/** HUD: the NPC in reach ("" when none) */
+	const FString& GetTalkHint() const { return TalkHint; }
+
 	// ---- the activity board (ported activities.ts, UWFActivitySubsystem) ----
 	/** Activities [area]: the board (bounties, side missions, contracts, events, this week's elite operations) */
 	UFUNCTION(Exec) void Activities(const FString& Area);
@@ -286,6 +297,12 @@ private:
 	void TickWorldBoss(float DeltaSeconds);
 	void TickRegionHazard(float DeltaSeconds);
 	void TickActivity(float DeltaSeconds);
+	void TickLivingNpcs(float DeltaSeconds);
+	TArray<TWeakObjectPtr<class AWFLivingNpc>> LivingNpcs;
+	bool bLivingSpawned = false;
+	FString NearNpc, TalkHint, TalkingTo;
+	std::vector<wf::living::FAction> TalkOffers;
+	double LivingClock = 0, CityKillsSeen = -1;
 	/** the Killbox for the activity stage in progress: rivals on the field, the match state; returns the match's tick facts */
 	std::optional<wf::activity::FPvpTick> TickKillbox(float DeltaSeconds, const std::string& StageKind, const std::string& Mode, const std::string& AreaId);
 	void ClearRivals();

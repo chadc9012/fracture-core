@@ -161,6 +161,7 @@ void AWFHUD::DrawHUD()
 			for (int32 I = 0; I < 10; ++I) Meter += I < Full ? TEXT("#") : TEXT("-");
 			Line(FString::Printf(TEXT("%s  [%s]%s"), UTF8_TO_TCHAR(Hz.Name.c_str()), *Meter, Hz.DamagePerSec > 0 || Hz.GravityMul != 1 ? TEXT("  ACTIVE") : TEXT("")), 30.f, H - 230.f, Hz.DamagePerSec > 0 ? FLinearColor(1.f, 0.35f, 0.3f) : Warn, 0.8f);
 		}
+		if (!StMode->GetTalkHint().IsEmpty()) Line(StMode->GetTalkHint(), W * 0.5f - 160.f, H - 140.f, Gold, 0.9f);
 		if (!StMode->GetWorldBossLine().IsEmpty()) Line(StMode->GetWorldBossLine(), W * 0.5f - 300.f, 6.f, Gold, 0.9f);
 	}
 
