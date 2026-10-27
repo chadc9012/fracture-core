@@ -128,6 +128,8 @@ public:
 	bool IsFlanking() const { return bFlanking; }
 	/** the spawn order in the squad (sim.ts machine index): squad role and which way it swings */
 	void SetSquadIndex(int32 InIndex) { SquadIndex = InIndex; }
+	/** a size other than the boss / elite / trooper default (set before FinishSpawning) */
+	void SetScaleOverride(double InScale) { ScaleOverride = InScale; }
 
 protected:
 	UPROPERTY(VisibleAnywhere, Category = "Body") TObjectPtr<UStaticMeshComponent> Body;

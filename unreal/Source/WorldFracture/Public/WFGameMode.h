@@ -10,6 +10,7 @@
 #include "Core/WFNemesisCore.h"
 #include "Core/WFVehicleWeaponsCore.h"
 #include "GameFramework/GameModeBase.h"
+#include "Core/WFStrikeCore.h"
 #include "WFGameMode.generated.h"
 
 class AWFEnemy;
@@ -200,6 +201,29 @@ public:
 	/** NOVA's hum for the HUD: distance to the nearest unfound secret (negative = none near), its name in reach, why it is locked */
 	void GetSecretHud(double& OutDist, FString& OutName, FString& OutLocked) const { OutDist = SecretDist; OutName = SecretName; OutLocked = SecretLocked; }
 
+	// ---- strikes (ported raid-stages.ts, difficulty-ladder.ts, strikes.ts: the Operations hub's strike runs) ----
+	/** Prints the strikes, this week's Ordeal, each tier's lock and what a clear pays right now. */
+	UFUNCTION(Exec) void Strikes();
+	/** StrikeStart <strike id, e.g. slagworks> [standard|hero|legend|master]: the fireteam launches (the tier must be unlocked) */
+	UFUNCTION(Exec) void StrikeStart(const FString& StrikeId, const FString& TierId);
+	/** one objective step: hazard builds, checkpoints ease it, the boss phases turn; a clear pays out */
+	UFUNCTION(Exec) void StrikeAdvance();
+	/** a stage with routes waits for one: StrikeRoute <route id> */
+	UFUNCTION(Exec) void StrikeRoute(const FString& RouteId);
+	/** a fireteam member goes down: one shared life */
+	UFUNCTION(Exec) void StrikeLoseLife();
+	UFUNCTION(Exec) void StrikeAbandon();
+	/** HUD: the strike run's title and lines, hazard 0-1; false when no strike is loaded */
+	bool GetStrikeHud(FString& OutTitle, TArray<FString>& OutLines, double& OutHazard) const;
+
+	// ---- World Boss raids (ported world-boss.ts) ----
+	/** Prints the raid that is up or next, where, and whether this raid has paid. */
+	UFUNCTION(Exec) void WorldBoss();
+	/** a machine tagged worldboss:<raid id> fell to the player */
+	void OnWorldBossSlain(const FString& Tag);
+	/** HUD: the live raid's banner, or "" */
+	const FString& GetWorldBossLine() const { return WorldBossLine; }
+
 	/** The region's ground speed rating (regions.ts speed): scales vehicle top speed. */
 	double GetRegionSpeed() const { return RegionSpeed; }
 
@@ -224,6 +248,9 @@ private:
 	void TickGodforge(float DeltaSeconds);
 	void TickEnvironment(float DeltaSeconds);
 	void TickNemesis(float DeltaSeconds);
+	void TickWorldBoss(float DeltaSeconds);
+	/** where a raid site stands in this level (false when its region is not in this level) */
+	bool RaidSiteHere(const wf::worldboss::FRaidSite& Site, FVector& OutAt) const;
 	/** the forge's console commands answer only at Vael (godforge.ts vaelNear), as the web build's forge window opens only there */
 	bool AtVael();
 	void ForgeAction(const std::function<wf::godforge::FForgeResult(const wf::FProgression&)>& Action);
@@ -275,6 +302,15 @@ private:
 	double NemInRegion = 0, NemLastAmbush = -1e9, NemClock = 0;
 	FString SummonedNemesis, NemSummonDone;
 	TMap<FString, double> RegionDifficulties;
+	// strikes: the scaled definition being run, its tier, the run
+	std::optional<wf::strike::FDefinition> StrikeDef;
+	FString StrikeTierId;
+	wf::strike::FRun StrikeRun;
+	// world boss raids (Scene.tsx worldBoss ref): the raid announced, woken and paid this session
+	FString WbAnnounced, WbWoke, WbPaid, WorldBossLine;
+	double WbClock = 0;
+	/** region id -> its boss (encounters.ts RegionalEncounter.boss): name and drop */
+	TMap<FString, TPair<FString, FString>> RegionBosses;
 	TMap<FString, FString> RegionKinds; // region id -> safe / starter / war / ... (shelter from the weather)
 	FString HereRegion; // the region the player stands in (world.ts regionAt on the real terrain)
 	TMap<FString, FString> RegionNames; // region id -> display name (the nemesis grudge names where it beat you)

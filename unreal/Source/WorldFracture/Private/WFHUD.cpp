@@ -121,6 +121,25 @@ void AWFHUD::DrawHUD()
 			}
 		}
 
+	// a strike run (the Operations hub's run panel): stage, objective, boss counter, hazard and shared lives
+	if (const AWFGameMode* StMode = GetWorld()->GetAuthGameMode<AWFGameMode>())
+	{
+		FString Title;
+		TArray<FString> Lines;
+		double Hazard = 0;
+		if (StMode->GetStrikeHud(Title, Lines, Hazard))
+		{
+			const float X = 30.f;
+			float Y = H * 0.32f;
+			Line(Title, X, Y, Gold, 1.0f);
+			Y += 22;
+			for (const FString& L : Lines) { Line(L, X, Y, Soft, 0.8f); Y += 18; }
+			DrawRect(FLinearColor(0.1f, 0.12f, 0.14f, 0.7f), X, Y + 4, 280, 6);
+			DrawRect(Hazard > 0.7 ? FLinearColor(1.f, 0.3f, 0.25f) : Hazard > 0.4 ? Warn : Cyan, X, Y + 4, 280.f * static_cast<float>(FMath::Clamp(Hazard, 0.0, 1.0)), 6);
+		}
+		if (!StMode->GetWorldBossLine().IsEmpty()) Line(StMode->GetWorldBossLine(), W * 0.5f - 300.f, 6.f, Gold, 0.9f);
+	}
+
 	// city: the heat level (heat.ts), and in Nexus City the surveillance meter, lockdown tier and hack (stealth.ts)
 	if (const AWFGameMode* Mode = GetWorld()->GetAuthGameMode<AWFGameMode>())
 	{

@@ -142,6 +142,20 @@ Until then the phone build is the web game (`mobile/`, the `android-latest` rele
   wrecks, silver 10, bronze 6). Each medal tier pays once, and gold awards the Sun-Cutter (rally) or the Aegis Broadsword
   (derby). Runs pay through the side-contract payout, best times and scores are saved, and `Wasteland` prints the
   distances, your records and your Legion rank.
+- **Strikes:** the Operations hub's strike runs (raid-stages.ts, difficulty-ladder.ts, strikes.ts). `Strikes` lists the four
+  strikes (Slagworks Breach, Bloom Sanctum, Drowned Relay, Skyline Override), this week's Ordeal (x1.5 from Hero up), each
+  tier's lock and what a clear pays now. `StrikeStart <id> [standard|hero|legend|master]` launches; `StrikeAdvance` is one
+  objective step (hazard builds, checkpoints ease it, boss phases turn, 100 hazard wipes the fireteam), `StrikeRoute`,
+  `StrikeLoseLife`, `StrikeAbandon`. Higher tiers lengthen the stages and are auto-tuned so flawless play peaks at the
+  tier's hazard (72 / 84 / 94); clearing a tier in any strike unlocks the next. A clear pays the tier's Nex once per
+  strike, tier and day per Operator (700 first / 300 repeat x the tier), 12 shards a tier rank, discovery XP and the
+  signature gear. As in the web build a strike is a run panel, not a separate combat map.
+- **World Boss raids:** every 40 minutes (real time, so every device agrees) a region's titan rises for 15 minutes at an
+  open site in that region (world-boss.ts): the Rust Colossus, the Verdant Effigy, the Frost Titan, the Magma Overseer,
+  the Sun-Scorched Behemoth, the Mire Leviathan. Within 140 m of the site it wakes as the region's boss with 4x health
+  and half again its size; felling it pays 2,500 Nex, a fracture core, 8 reinforced alloy and 2 forge catalysts once per
+  raid. The banner shows while one is up; `WorldBoss` prints the raid, the site's distance and whether it has paid. On a
+  single-region map only that region's raids can be reached.
 - **Nexus City:** built at play time from `DataTables/NexusCity.json`, which `tools/export-nexus-city.ts` writes from the web
   build's own layout code (nexus-districts.ts, nexus-signs.ts, city-streets.ts, building-models.ts), so the two cities match
   street for street: the hub plaza with its promenade, ring road, spawn pad and eight civic towers; 66 district buildings
@@ -308,13 +322,14 @@ cmake -S . -B build -G Ninja && cmake --build build && ctest --test-dir build --
 | GodforgeCoreTest | godforge.ts, secrets.ts, foundries.ts foundryOf, sim.ts fireBullet / fireLauncher heat | 1,590 foundry names, 3,000 trigger pulls, 10,516 forge actions, 1,084 queries, 37,843 checks |
 | WastelandCoreTest | wasteland-activities.ts, wasteland-runtime.ts | 15,600 machine steps, 2,400 resolves, 24,000 runtime frames, 132,024 checks |
 | MoveCoreTest | movement.ts, parkour.ts | 300 tracks, 18,000 frames, 36,067 checks |
+| StrikeCoreTest | raid-stages.ts, difficulty-ladder.ts (tier scaling, hazard tuning, weekly rotation), strikes.ts, world-boss.ts | 202 tier scalings, 12,973 run steps, 6,060 claims, 3,300 raid times, 35,718 checks |
 | OperatorCoreTest | operator-pockets.ts switchOperator, xp.ts grantXP, nex.ts spendNex | 6,400 operations (846 switches), 25,600 checks |
 
 The golden files (`Plugins/WorldFractureCore/Tests/<name>_golden.txt`) are **generated, not committed**: together they run to ~60 MB,
 which broke the Lovable preview build. Record all of them from the repo root before configuring the tests (and again after changing
 the web build's rules):
 
-    node unreal/tools/gen-goldens.mjs            # all twenty-seven
+    node unreal/tools/gen-goldens.mjs            # all twenty-eight
     node unreal/tools/gen-goldens.mjs race shop  # just these
 
 `export-datatables` (the DataTables, which are committed) still runs on its own:

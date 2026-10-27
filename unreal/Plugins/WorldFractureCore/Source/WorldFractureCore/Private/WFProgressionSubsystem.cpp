@@ -471,6 +471,31 @@ FString UWFProgressionSubsystem::ApplyNemesisKill(const FString& NemesisId)
 	return UTF8_TO_TCHAR(R.Line.c_str());
 }
 
+double UWFProgressionSubsystem::ClaimStrike(const FString& StrikeId, const FString& TierId, bool& bClaimed, bool& bFirst)
+{
+	const double Now = UtcNowMs(), Before = State.Level;
+	const std::string Id = ToStd(StrikeId), Tier = ToStd(TierId);
+	// the same tests claimStrikeClear makes before it changes anything
+	bClaimed = wf::strike::IsStrike(Id) && wf::strike::StrikeTierUnlocked(State, Tier) && wf::strike::CanClaimStrike(State, Id, Tier, Now);
+	bFirst = false;
+	if (!bClaimed) return 0;
+	wf::strike::FClaim C = wf::strike::ClaimStrikeClear(State, Id, Tier, Now);
+	bFirst = C.bFirst;
+	State = std::move(C.Progression);
+	if (State.Level > Before) OnLevelUp.Broadcast(static_cast<int32>(State.Level));
+	NotifyChanged();
+	return C.Paid;
+}
+
+bool UWFProgressionSubsystem::PayWorldBoss(const FString& RaidId)
+{
+	if (!wf::worldboss::PayWorldBoss(State, ToStd(RaidId))) return false;
+	NotifyChanged();
+	return true;
+}
+
+double UWFProgressionSubsystem::NowMs() { return UtcNowMs(); }
+
 bool UWFProgressionSubsystem::EquipItem(const FString& ItemId)
 {
 	const std::string Id = ToStd(ItemId);

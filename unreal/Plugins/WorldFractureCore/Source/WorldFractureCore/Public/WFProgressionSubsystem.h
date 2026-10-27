@@ -10,6 +10,7 @@
 #include "Core/WFGodforgeCore.h"
 #include "Core/WFNemesisCore.h"
 #include "Core/WFHitCore.h"
+#include "Core/WFStrikeCore.h"
 
 #include <functional>
 #include "Subsystems/GameInstanceSubsystem.h"
@@ -125,6 +126,13 @@ public:
 	/** nemesis.ts applyPlayerDeath / applyNemesisKill: returns the line to announce ("" = nothing) */
 	FString ApplyPlayerDeath(const wf::nemesis::FKiller& Killer, const FString& RegionName);
 	FString ApplyNemesisKill(const FString& NemesisId);
+	/** strikes.ts claimStrikeClear for the operator being played: tier Nex once per strike, tier and day; shards, discovery XP, the
+	 *  signature gear and the tier clear. Returns the Nex paid (0 when nothing was claimed: locked tier or today's already taken). */
+	double ClaimStrike(const FString& StrikeId, const FString& TierId, bool& bClaimed, bool& bFirst);
+	/** world-boss.ts payWorldBoss: 2,500 Nex and the materials once per raid; false when this raid already paid */
+	bool PayWorldBoss(const FString& RaidId);
+	/** the time in ms since the epoch, UTC (Date.now()): strikes and raids run on the real clock */
+	static double NowMs();
 	/** the weapon item worn in the gear slot this weapon fires from (armor GearSlotForWeapon), or null */
 	const wf::FGearItem* GetEquippedWeaponItem(const FString& WeaponId, const FString& Kind, bool bInVehicle) const;
 	/** Sub-Terra Legion standing (Outsider ... Iron Vanguard) and its trust points */

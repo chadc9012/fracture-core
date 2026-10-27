@@ -581,6 +581,7 @@ void AWFEnemy::Die()
 	if (const AWFVehicle* Car = Cast<AWFVehicle>(Pawn)) Operator = Car->GetDriver();
 	if (Operator) Operator->OnEnemyKilled(this);
 	if (Mode && ActivityTag == UTF8_TO_TCHAR(wf::godforge::GuardianTag.c_str())) Mode->OnGuardianSlain();
+	if (Mode && ActivityTag.StartsWith(TEXT("worldboss:"))) Mode->OnWorldBossSlain(ActivityTag); // sim.ts livingKills (player credit)
 }
 
 void AWFEnemy::ApplyWeaponElement(const FString& Element)

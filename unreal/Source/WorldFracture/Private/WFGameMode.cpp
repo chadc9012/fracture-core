@@ -35,6 +35,7 @@
 #include "WFHousingSubsystem.h"
 #include "WFVehicle.h"
 #include "Core/WFJsCompat.h"
+#include "Core/WFStrikeCore.h"
 
 #include <algorithm>
 
@@ -286,6 +287,7 @@ void AWFGameMode::Tick(float DeltaSeconds)
 	TickEnvironment(DeltaSeconds);
 	TickNemesis(DeltaSeconds);
 	TickGodforge(DeltaSeconds);
+	TickWorldBoss(DeltaSeconds);
 	// sim.ts: weapon cooling; venting from an overheat is slower than a normal cooldown
 	if (wf::vweapons::CoolHeat(WeaponHeat, FMath::Min(static_cast<double>(DeltaSeconds), 0.25))) Toast(TEXT("Weapon cooled - ready"), FLinearColor(0.45f, 0.9f, 1.f));
 	Squad.RemoveAll([](const TWeakObjectPtr<AWFEnemy>& E) { return !E.IsValid() || E->IsDead(); });
@@ -1635,4 +1637,239 @@ void AWFGameMode::Evolve(const FString& WeaponItemId)
 	Prog->ApplyForge([&](const wf::FProgression& S) { wf::godforge::FForgeResult R; R.bOk = true; R.Progression = wf::hit::EvolveWeapon(S, RuinId, Weapon); return R; }, bOk);
 	const wf::hit::FAbilityRule* Rule = wf::hit::AbilityRule(At->Ability);
 	Toast(FString::Printf(TEXT("%s evolved at the %s: +%g power, %s, and %s"), *WeaponItemId, UTF8_TO_TCHAR(At->Name.c_str()), wf::hit::EvolvePowerBonus, UTF8_TO_TCHAR(At->Element.c_str()), Rule ? UTF8_TO_TCHAR(Rule->Name.c_str()) : TEXT("")), GfGold);
+}
+
+// --- strikes (OperationsHub.tsx's strike runs on raid-stages.ts / difficulty-ladder.ts / strikes.ts) -------------------
+
+namespace
+{
+	const FLinearColor StGold(1.f, 0.82f, 0.35f), StCyan(0.45f, 0.9f, 1.f), StWarn(1.f, 0.55f, 0.3f), StRed(1.f, 0.35f, 0.3f);
+	FString StF(const std::string& S) { return UTF8_TO_TCHAR(S.c_str()); }
+	/** "slagworks" or "strike-slagworks" */
+	const wf::strike::FDefinition* StrikeNamed(const FString& Name)
+	{
+		const std::string Id = WFData::ToStd(Name.ToLower());
+		if (const wf::strike::FDefinition* D = wf::strike::FindStrike(Id)) return D;
+		return wf::strike::FindStrike("strike-" + Id);
+	}
+}
+
+void AWFGameMode::Strikes()
+{
+	const UWFProgressionSubsystem* Prog = GetGameInstance()->GetSubsystem<UWFProgressionSubsystem>();
+	if (!Prog) return;
+	const double Now = UWFProgressionSubsystem::NowMs();
+	const std::string Ordeal = wf::strike::WeeklyStrike(Now).Id;
+	TArray<FString> Lines;
+	for (const wf::strike::FDefinition& D : wf::strike::Strikes())
+	{
+		Lines.Add(FString::Printf(TEXT("%s  %s%s  %s · %s · boss %s"), *StF(D.Id), *StF(D.Name), D.Id == Ordeal ? TEXT("  [WEEKLY ORDEAL]") : TEXT(""), *StF(D.Region), *StF(D.Hazard), *StF(D.Boss)));
+		FString Tiers;
+		for (const wf::strike::FTier& T : wf::strike::TiersOf("strike"))
+		{
+			FString What;
+			if (!wf::strike::StrikeTierUnlocked(Prog->Get(), T.Id)) What = TEXT("locked");
+			else if (const std::optional<wf::strike::FStrikePayout> Pay = wf::strike::StrikePayout(Prog->Get(), D.Id, T.Id, Now)) What = FString::Printf(TEXT("%g Nex%s"), Pay->Nex, Pay->bFirst ? TEXT(" first") : TEXT(""));
+			else What = TEXT("paid today");
+			Tiers += FString::Printf(TEXT("%s%s %s"), Tiers.IsEmpty() ? TEXT("") : TEXT(" | "), *StF(T.Name), *What);
+		}
+		Lines.Add(TEXT("    ") + Tiers);
+	}
+	Lines.Add(TEXT("StrikeStart <id> [standard|hero|legend|master], then StrikeAdvance / StrikeRoute / StrikeLoseLife"));
+	for (const FString& L : Lines) { UE_LOG(LogTemp, Display, TEXT("%s"), *L); Toast(L, StCyan); }
+}
+
+void AWFGameMode::StrikeStart(const FString& StrikeId, const FString& TierId)
+{
+	const UWFProgressionSubsystem* Prog = GetGameInstance()->GetSubsystem<UWFProgressionSubsystem>();
+	const wf::strike::FDefinition* Def = StrikeNamed(StrikeId);
+	if (!Prog || !Def) { Toast(TEXT("No such strike: Strikes lists them"), StWarn); return; }
+	if (StrikeDef && StrikeRun.Status == "ACTIVE") { Toast(TEXT("A strike is already running: StrikeAbandon first"), StWarn); return; }
+	const wf::strike::FTier Tier = wf::strike::TierById("strike", WFData::ToStd(TierId.IsEmpty() ? FString(TEXT("standard")) : TierId.ToLower()));
+	if (!wf::strike::StrikeTierUnlocked(Prog->Get(), Tier.Id))
+	{
+		Toast(FString::Printf(TEXT("%s is locked: clear %s first"), *StF(Tier.Name), *StF(wf::strike::TiersOf("strike")[static_cast<size_t>(Tier.Rank - 1)].Name)), StWarn);
+		return;
+	}
+	StrikeDef = wf::strike::ScaleEncounter(*Def, Tier);
+	StrikeTierId = StF(Tier.Id);
+	StrikeRun = wf::strike::CreateRun(*StrikeDef);
+	// the hub's "Launch fireteam": a lone Operator is always ready
+	StrikeRun.Status = "ACTIVE";
+	StrikeRun.Message = "Entered " + (StrikeDef->Stages.empty() ? StrikeDef->Name : StrikeDef->Stages.front().Name) + ".";
+	Toast(FString::Printf(TEXT("%s · power %g+ · %g shared lives · %s"), *StF(StrikeDef->Name), Tier.Power, StrikeDef->MaxLives, *StF(Def->Identity)), StGold);
+	Toast(StF(StrikeRun.Message), StCyan);
+}
+
+void AWFGameMode::StrikeAdvance()
+{
+	if (!StrikeDef || StrikeRun.Status != "ACTIVE") { Toast(TEXT("No strike running: StrikeStart <id>"), StWarn); return; }
+	const wf::strike::FStage* Stage = static_cast<size_t>(StrikeRun.StageIndex) < StrikeDef->Stages.size() ? &StrikeDef->Stages[static_cast<size_t>(StrikeRun.StageIndex)] : nullptr;
+	if (Stage && !Stage->Routes.empty() && !StrikeRun.SelectedRoute)
+	{
+		FString Routes;
+		for (const wf::strike::FRoute& R : Stage->Routes) Routes += FString::Printf(TEXT("  %s (%s: %s)"), *StF(R.Id), *StF(R.Name), *StF(R.Tradeoff));
+		Toast(TEXT("Pick a route first: StrikeRoute") + Routes, StWarn);
+		return;
+	}
+	StrikeRun = wf::strike::Advance(*StrikeDef, StrikeRun);
+	Toast(StF(StrikeRun.Message), StrikeRun.Status == "WIPED" ? StRed : StCyan);
+	if (StrikeRun.Status == "WIPED") { Toast(TEXT("Fireteam lost: StrikeStart again to retry"), StRed); return; }
+	if (StrikeRun.Status != "COMPLETE") return;
+	// strikes.ts claimStrikeClear: the payout, shards, discovery XP, the signature gear and the tier clear
+	UWFProgressionSubsystem* Prog = GetGameInstance()->GetSubsystem<UWFProgressionSubsystem>();
+	const wf::strike::FDefinition* Base = wf::strike::FindStrike(StrikeDef->Id);
+	bool bClaimed = false, bFirst = false;
+	const double Paid = Prog ? Prog->ClaimStrike(StF(StrikeDef->Id), StrikeTierId, bClaimed, bFirst) : 0;
+	if (bClaimed)
+		Toast(FString::Printf(TEXT("STRIKE CLEAR · +%g Nex%s · +%g shards · %s"), Paid, bFirst ? TEXT(" (first clear)") : TEXT(""), 12.0 * (1 + wf::strike::TierById("strike", WFData::ToStd(StrikeTierId)).Rank), Base ? *StF(Base->Signature.Name) : TEXT("")), StGold);
+	else Toast(TEXT("Strike clear · today's payout for this strike and tier is already claimed"), StCyan);
+}
+
+void AWFGameMode::StrikeRoute(const FString& RouteId)
+{
+	if (!StrikeDef || StrikeRun.Status != "ACTIVE") { Toast(TEXT("No strike running"), StWarn); return; }
+	StrikeRun = wf::strike::ChooseRoute(StrikeRun, WFData::ToStd(RouteId));
+	Toast(StF(StrikeRun.Message), StCyan);
+}
+
+void AWFGameMode::StrikeLoseLife()
+{
+	if (!StrikeDef || StrikeRun.Status != "ACTIVE") { Toast(TEXT("No strike running"), StWarn); return; }
+	StrikeRun = wf::strike::LoseLife(*StrikeDef, StrikeRun);
+	Toast(StF(StrikeRun.Message), StrikeRun.Status == "WIPED" ? StRed : StWarn);
+}
+
+void AWFGameMode::StrikeAbandon()
+{
+	if (!StrikeDef) return;
+	Toast(FString::Printf(TEXT("%s abandoned"), *StF(StrikeDef->Name)), StWarn);
+	StrikeDef.reset();
+}
+
+bool AWFGameMode::GetStrikeHud(FString& OutTitle, TArray<FString>& OutLines, double& OutHazard) const
+{
+	if (!StrikeDef) return false;
+	const wf::strike::FDefinition& D = *StrikeDef;
+	OutTitle = StF(D.Name);
+	OutLines.Reset();
+	const size_t I = static_cast<size_t>(StrikeRun.StageIndex);
+	if (StrikeRun.Status == "ACTIVE" && I < D.Stages.size())
+	{
+		const wf::strike::FStage& S = D.Stages[I];
+		OutLines.Add(FString::Printf(TEXT("Stage %d/%d · %s · %s %g/%g"), StrikeRun.StageIndex + 1, static_cast<int32>(D.Stages.size()), *StF(S.Name), *StF(S.Objective), StrikeRun.Progress, S.Target));
+		if (!S.BossPhases.empty() && static_cast<size_t>(StrikeRun.BossPhase) < S.BossPhases.size())
+			OutLines.Add(TEXT("Counter: ") + StF(S.BossPhases[static_cast<size_t>(StrikeRun.BossPhase)].Counter));
+	}
+	OutLines.Add(StF(StrikeRun.Message));
+	OutLines.Add(FString::Printf(TEXT("%s %g · lives %g · %s"), D.Stages.empty() ? TEXT("HAZARD") : *StF(D.Stages[FMath::Min(I, D.Stages.size() - 1)].HazardLabel), StrikeRun.Hazard, StrikeRun.Lives, *StF(StrikeRun.Status)));
+	OutHazard = StrikeRun.Hazard / 100.0;
+	return true;
+}
+
+// --- World Boss raids (Scene.tsx worldBoss on world-boss.ts) ------------------------------------------------------------
+
+bool AWFGameMode::RaidSiteHere(const wf::worldboss::FRaidSite& Site, FVector& OutAt) const
+{
+	// the real terrain holds every region at its web-world place; a bare map holds only its own region, around the anchor
+	const bool bRealWorld = GetTerrain() && GetTerrain()->IsLoaded();
+	const wf::godforge::FRegionCircle* Region = bRealWorld ? RegionCircles.Find(StF(Site.Region)) : (StF(Site.Region) == RegionId && bRegionAnchored ? &RegionCircle : nullptr);
+	if (!Region) return false;
+	const AWFTerrain* Land = bRealWorld ? GetTerrain() : nullptr;
+	const double Water = Land ? Land->GetWaterLevel() : -1e9;
+	// on the real terrain a region point (x, z) is at (x, z) x 100 cm
+	auto Ground = [Land](double X, double Z) { return Land ? Land->HeightAtCm(X * 100.0, Z * 100.0) / 100.0 : 1e9; }; // no terrain: all dry land
+	const wf::worldboss::FPoint P = wf::worldboss::RaidSiteWorld(Site, Region->X, Region->Z, Region->Radius, Ground, Water);
+	const APawn* Pawn = UGameplayStatics::GetPlayerPawn(this, 0);
+	OutAt = RegionToWorld(P.X, P.Z, Pawn ? Pawn->GetActorLocation().Z : 0);
+	return true;
+}
+
+void AWFGameMode::TickWorldBoss(float DeltaSeconds)
+{
+	WbClock += DeltaSeconds;
+	if (WbClock <= 1) return;
+	WbClock = 0;
+	UWFProgressionSubsystem* Prog = GetGameInstance()->GetSubsystem<UWFProgressionSubsystem>();
+	APawn* Pawn = UGameplayStatics::GetPlayerPawn(this, 0);
+	UWorld* World = GetWorld();
+	if (!Prog || !Pawn || !World) return;
+	const double Now = UWFProgressionSubsystem::NowMs();
+	const wf::worldboss::FRaid Raid = wf::worldboss::WorldBossAt(Now).Current;
+	const FString Tag = StF(wf::worldboss::WorldBossKey(Raid.Id)), Id = StF(Raid.Id);
+	WorldBossLine.Reset();
+	if (!Raid.bLive) return;
+	const FString* RegionName = RegionNames.Find(StF(Raid.Site.Region));
+	WorldBossLine = FString::Printf(TEXT("WORLD BOSS · %s · %s (%s) · %g min left"), *StF(Raid.Site.Boss), *StF(Raid.Site.Name), RegionName ? **RegionName : *StF(Raid.Site.Region), FMath::CeilToDouble((Raid.EndsAt - Now) / 60000));
+	if (WbAnnounced != Id)
+	{
+		WbAnnounced = Id;
+		Toast(FString::Printf(TEXT("WORLD BOSS · %s rises at %s (%s) · the factions stand together"), *StF(Raid.Site.Boss), *StF(Raid.Site.Name), RegionName ? **RegionName : *StF(Raid.Site.Region)), StGold);
+	}
+	if (Prog->Get().NexLedger.count(WFData::ToStd(Tag)) || WbWoke == Id) return; // this raid already paid, or its boss is up
+	FVector At;
+	if (!RaidSiteHere(Raid.Site, At)) return;
+	if (FVector::Dist2D(Pawn->GetActorLocation(), At) >= wf::worldboss::WakeRange * 100.0) return;
+
+	// sim.ts summonBoss: the region's boss (encounters.ts), else its unique scenario's boss; x4 health, x1.5 size
+	if (RegionBosses.IsEmpty())
+	{
+		TArray<TSharedPtr<FJsonObject>> Rows;
+		FString Error;
+		if (WFData::LoadRows(TEXT("RegionalEncounters"), Rows, Error))
+			for (const TSharedPtr<FJsonObject>& Row : Rows)
+			{
+				TSharedPtr<FJsonObject> Boss;
+				if (FJsonSerializer::Deserialize(TJsonReaderFactory<>::Create(WFData::Str(Row, TEXT("BossJson"))), Boss) && Boss.IsValid())
+					RegionBosses.Add(WFData::Str(Row, TEXT("RegionId")), TPair<FString, FString>(WFData::Str(Boss, TEXT("name")), WFData::Str(Boss, TEXT("drop"))));
+			}
+		if (Scenarios.IsEmpty()) LoadScenarios();
+	}
+	const FString Region = StF(Raid.Site.Region);
+	FString Name, Drop;
+	double BaseHp = wf::encounter::BossHpRegional;
+	if (const TPair<FString, FString>* B = RegionBosses.Find(Region)) { Name = B->Key; Drop = B->Value; }
+	else if (const FScenarioBoss* S = Scenarios.FindByPredicate([&Region](const FScenarioBoss& X) { return X.RegionId == Region; })) { Name = S->BossName; Drop = S->Drop; BaseHp = wf::encounter::BossHpScenario; }
+	else return;
+	const FTransform Xf(FRotator::ZeroRotator, FVector(At.X, At.Y, GroundZ(At.X, At.Y, Pawn->GetActorLocation().Z) + 200));
+	if (AWFEnemy* Boss = World->SpawnActorDeferred<AWFEnemy>(AWFEnemy::StaticClass(), Xf, nullptr, nullptr, ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn))
+	{
+		Boss->Configure(StF(Raid.Site.Boss), Region, Drop, true, true, BaseHp * Prog->GetChallengeEnemyHealthScale() * wf::worldboss::HpScale);
+		if (const FString* Faction = FactionByRegion.Find(Region)) Boss->SetKind(*Faction);
+		Boss->SetScaleOverride(1.8 * 1.5); // a boss's size, half again
+		Boss->SetActivityTag(Tag);
+		Boss->SetSquadIndex(NextSquadIndex++);
+		Boss->FinishSpawning(Xf);
+		WbWoke = Id;
+		Toast(FString::Printf(TEXT("%s awakens (%s)"), *StF(Raid.Site.Boss), *Name), StRed);
+	}
+}
+
+void AWFGameMode::OnWorldBossSlain(const FString& Tag)
+{
+	// Scene.tsx pays the raid that is up now, once
+	const wf::worldboss::FRaid Raid = wf::worldboss::WorldBossAt(UWFProgressionSubsystem::NowMs()).Current;
+	const FString Id = StF(Raid.Id);
+	if (Tag != StF(wf::worldboss::WorldBossKey(Raid.Id)) || WbPaid == Id) return;
+	WbPaid = Id;
+	Toast(FString::Printf(TEXT("WORLD BOSS DOWN · %s"), *StF(Raid.Site.Boss)), StGold);
+	if (UWFProgressionSubsystem* Prog = GetGameInstance()->GetSubsystem<UWFProgressionSubsystem>(); Prog && Prog->PayWorldBoss(Id))
+		Toast(FString::Printf(TEXT("+%g Nex · 1 fracture core · 8 reinforced alloy · 2 forge catalysts"), wf::worldboss::RewardNex), StGold);
+}
+
+void AWFGameMode::WorldBoss()
+{
+	const UWFProgressionSubsystem* Prog = GetGameInstance()->GetSubsystem<UWFProgressionSubsystem>();
+	const double Now = UWFProgressionSubsystem::NowMs();
+	const wf::worldboss::FRaids R = wf::worldboss::WorldBossAt(Now);
+	Toast(StF(wf::worldboss::WorldBossBanner(Now)), StGold);
+	const wf::worldboss::FRaid& Shown = R.Current.bLive ? R.Current : R.Next;
+	FVector At;
+	if (RaidSiteHere(Shown.Site, At))
+	{
+		const APawn* Pawn = UGameplayStatics::GetPlayerPawn(this, 0);
+		Toast(FString::Printf(TEXT("%s is %.0f m from you (wakes inside %g m)"), *StF(Shown.Site.Name), Pawn ? FVector::Dist2D(Pawn->GetActorLocation(), At) / 100.0 : 0.0, wf::worldboss::WakeRange), StCyan);
+	}
+	else Toast(TEXT("That raid site is in another region's level"), StCyan);
+	if (Prog && R.Current.bLive && Prog->Get().NexLedger.count(wf::worldboss::WorldBossKey(R.Current.Id))) Toast(TEXT("This raid has already paid you"), StCyan);
 }
