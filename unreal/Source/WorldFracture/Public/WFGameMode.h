@@ -237,8 +237,8 @@ public:
 	UFUNCTION(Exec) void ActivityAbandon();
 	/** in a Killbox match (not the royale) the Operator comes back at the arena edge, opposite where they fell; false otherwise */
 	bool KillboxRespawn(const FVector& DiedAt, FVector& OutAt) const;
-	/** a level position in the web world's metres (x, z) */
-	FVector2D WebPosition(const FVector& L) const { return WorldToRegion(L); }
+	/** a level position in the web world's metres (x, z): the cities, activity areas and arenas stand at web metres x 100 */
+	FVector2D WebPosition(const FVector& L) const { return FVector2D(L.X / 100.0, L.Y / 100.0); }
 
 	// ---- World Boss raids (ported world-boss.ts) ----
 	/** Prints the raid that is up or next, where, and whether this raid has paid. */

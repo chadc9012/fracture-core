@@ -2026,6 +2026,7 @@ void AWFGameMode::ActivityStart(const FString& ActivityId)
 {
 	UWFActivitySubsystem* Board = GetGameInstance()->GetSubsystem<UWFActivitySubsystem>();
 	if (!Board) return;
+	ClearRivals(); Killbox.reset(); CrucibleField.reset(); ArenaWeb.reset(); // a fresh match never inherits the last one
 	const FString Error = Board->Start(ActivityId);
 	if (!Error.IsEmpty()) { Toast(Error, FLinearColor(1.f, 0.55f, 0.3f)); return; }
 	if (const UWFActivitySubsystem::FBoardDef* D = Board->ActiveDef()) Toast(FString::Printf(TEXT("%s: %s"), UTF8_TO_TCHAR(D->Name.c_str()), UTF8_TO_TCHAR(D->Brief.c_str())), FLinearColor(1.f, 0.82f, 0.35f));
@@ -2034,6 +2035,7 @@ void AWFGameMode::ActivityStart(const FString& ActivityId)
 void AWFGameMode::ActivityAbandon()
 {
 	if (UWFActivitySubsystem* Board = GetGameInstance()->GetSubsystem<UWFActivitySubsystem>()) Board->Abandon();
+	ClearRivals(); Killbox.reset(); CrucibleField.reset(); ArenaWeb.reset();
 }
 
 void AWFGameMode::TickActivity(float DeltaSeconds)
@@ -2047,7 +2049,7 @@ void AWFGameMode::TickActivity(float DeltaSeconds)
 		// activities.ts Tick: where you stand in the web world, the session's kills by tier, health and deaths
 		const AWFCharacter* Player = Cast<AWFCharacter>(Pawn);
 		if (const AWFVehicle* Car = Cast<AWFVehicle>(Pawn)) Player = Car->GetDriver();
-		const FVector2D Here = WorldToRegion(Pawn->GetActorLocation());
+		const FVector2D Here = WebPosition(Pawn->GetActorLocation());
 		const wf::reward::FSimTally& T = Prog->GetTally();
 		wf::activity::FTick Facts;
 		Facts.X = Here.X; Facts.Z = Here.Y; Facts.Dt = DeltaSeconds; Facts.NowMs = UWFProgressionSubsystem::NowMs();
@@ -2064,7 +2066,7 @@ void AWFGameMode::TickActivity(float DeltaSeconds)
 		// the marker: a ring where the objective is (debug draw: compiled out of Shipping, where the HUD distance guides you)
 		if (const std::optional<wf::activity::FTarget> Tg = Board->Target())
 		{
-			const FVector At = RegionToWorld(Tg->X, Tg->Z, Pawn->GetActorLocation().Z);
+			const FVector At(Tg->X * 100.0, Tg->Z * 100.0, GroundZ(Tg->X * 100.0, Tg->Z * 100.0, Pawn->GetActorLocation().Z));
 			DrawDebugCylinder(GetWorld(), At, At + FVector(0, 0, 1200), wf::activity::CheckpointRadius * 100.0, 24, FColor(255, 200, 60), false, -1.f, 0, 6.f);
 		}
 	}
@@ -2128,7 +2130,7 @@ std::optional<wf::activity::FPvpTick> AWFGameMode::TickKillbox(float DeltaSecond
 	{
 		if (!CrucibleField || CrucibleField->Mode != Mode) { ClearRivals(); CrucibleField = wf::pvp::NewCrucible(Mode); }
 		ArenaWeb = FVector2D(ArenaF.X, ArenaF.Z);
-		const FVector Centre = RegionToWorld(ArenaF.X, ArenaF.Z, Pawn->GetActorLocation().Z);
+		const FVector Centre(ArenaF.X * 100.0, ArenaF.Z * 100.0, Pawn->GetActorLocation().Z);
 		const wf::pvp::FFieldWorld W{SlotAlive, []() { return true; }, Rand};
 		for (const wf::pvp::FSpawn& S : wf::pvp::StepRivals(*CrucibleField, WFData::ToStd(PlayerClass), Dt, W))
 			SpawnRival(S.Slot, WFData::ToF(S.Class), Centre, wf::pvp::ArenaRadius * 0.8, S.Angle);
@@ -2157,7 +2159,7 @@ std::optional<wf::activity::FPvpTick> AWFGameMode::TickKillbox(float DeltaSecond
 	const double Kills = T.RivalKills - K.Kills;
 	const bool bDied = Prog->GetPlayerDeaths() > K.Deaths;
 	K.Kills = T.RivalKills; K.Deaths = Prog->GetPlayerDeaths();
-	const FVector2D Here = WorldToRegion(Pawn->GetActorLocation());
+	const FVector2D Here = WebPosition(Pawn->GetActorLocation());
 	int32 OnField = 0;
 	for (TActorIterator<AWFEnemy> It(GetWorld()); It; ++It) if (!It->IsDead() && It->IsRival()) ++OnField;
 	wf::pvp::StepPvp(K.St, {Dt, Kills, bDied, Here.X - K.Centre.X, Here.Y - K.Centre.Y, static_cast<double>(OnField)});
@@ -2166,7 +2168,7 @@ std::optional<wf::activity::FPvpTick> AWFGameMode::TickKillbox(float DeltaSecond
 	const std::vector<std::string> Lineup = wf::pvp::RivalSquad(wf::pvp::FieldSize(K.St), static_cast<int>(K.St.Round));
 	for (TActorIterator<AWFEnemy> It(GetWorld()); It; ++It)
 		if (!It->IsDead() && It->IsRival() && FCString::Atoi(*It->GetActivityTag().Mid(9)) >= static_cast<int32>(Lineup.size())) It->Destroy(); // a royale lobby thinning out
-	const FVector FieldAt = M->Kind == "royale" ? Pawn->GetActorLocation() : RegionToWorld(K.Centre.X, K.Centre.Y, Pawn->GetActorLocation().Z);
+	const FVector FieldAt = M->Kind == "royale" ? Pawn->GetActorLocation() : FVector(K.Centre.X * 100.0, K.Centre.Y * 100.0, Pawn->GetActorLocation().Z);
 	const wf::pvp::FFieldWorld W{SlotAlive, []() { return true; }, Rand};
 	for (const wf::pvp::FSpawn& S : wf::pvp::StepField(K.Field, Lineup, wf::pvp::Respawns(K.St), Dt, W))
 		SpawnRival(S.Slot, WFData::ToF(S.Class), FieldAt, M->Kind == "royale" ? 42 : wf::pvp::ArenaRadius * 0.8, S.Angle);
@@ -2179,10 +2181,11 @@ std::optional<wf::activity::FPvpTick> AWFGameMode::TickKillbox(float DeltaSecond
 bool AWFGameMode::KillboxRespawn(const FVector& DiedAt, FVector& OutAt) const
 {
 	if (!ArenaWeb) return false;
-	const FVector2D Fell = WorldToRegion(DiedAt);
+	const FVector2D Fell = WebPosition(DiedAt);
 	const double Side = Fell.X - ArenaWeb->X;
 	const double X = ArenaWeb->X - (Side > 0 ? 1.0 : Side < 0 ? -1.0 : 1.0) * wf::pvp::ArenaRadius * 0.7;
-	OutAt = RegionToWorld(X, ArenaWeb->Y, DiedAt.Z) + FVector(0, 0, 120);
+	// OutAt comes in as the ordinary respawn point: its height anchors the ground trace (a fall out of the world has none)
+	OutAt = FVector(X * 100.0, ArenaWeb->Y * 100.0, GroundZ(X * 100.0, ArenaWeb->Y * 100.0, OutAt.Z) + 120);
 	return true;
 }
 
@@ -2216,7 +2219,7 @@ void AWFGameMode::TickLivingNpcs(float DeltaSeconds)
 		{
 			if (N.City == "neon" && !WorldBuildings.IsValid()) continue; // Neon City is built with the world buildings
 			const wf::living::FPoint At = wf::living::NpcPosition(N, Hour);
-			const FVector Cm(At.X * 100.0, At.Z * 100.0, GroundZ(At.X * 100.0, At.Z * 100.0, Pawn->GetActorLocation().Z) + 90);
+			const FVector Cm(At.X * 100.0, At.Z * 100.0, GroundZ(At.X * 100.0, At.Z * 100.0, Pawn->GetActorLocation().Z));
 			if (AWFLivingNpc* Body = World->SpawnActor<AWFLivingNpc>(AWFLivingNpc::StaticClass(), FTransform(Cm)))
 			{
 				Body->Setup(WFData::ToF(N.Id), WFData::ToF(N.Name), WFData::ToF(N.Title), LvFactionColor(N.Faction));
@@ -2226,13 +2229,15 @@ void AWFGameMode::TickLivingNpcs(float DeltaSeconds)
 	}
 	const FVector L = Pawn->GetActorLocation();
 	const double Px = L.X / 100.0, Pz = L.Y / 100.0;
-	const wf::living::FNpc* Near = wf::living::NpcNear(Px, Pz, Hour);
+	// talk on foot only (Scene.tsx), and only to someone who is standing in this level
+	const wf::living::FNpc* Near = Cast<AWFVehicle>(Pawn) ? nullptr : wf::living::NpcNear(Px, Pz, Hour);
+	if (Near && !LivingNpcs.ContainsByPredicate([Near](const TWeakObjectPtr<AWFLivingNpc>& B) { return B.IsValid() && B->GetNpcId() == UTF8_TO_TCHAR(Near->Id.c_str()); })) Near = nullptr;
 	NearNpc = Near ? WFData::ToF(Near->Id) : FString();
 	TalkHint = Near ? FString::Printf(TEXT("E · Talk to %s, %s"), UTF8_TO_TCHAR(Near->Name.c_str()), UTF8_TO_TCHAR(Near->Title.c_str())) : FString();
 	if (!Near) { TalkingTo.Reset(); TalkOffers.clear(); }
 	// living-npcs.ts recordCityKills: your kills inside a city advance its CULL contracts
 	const double Kills = Prog->GetTally().Kills;
-	if (CityKillsSeen < 0) CityKillsSeen = Kills;
+	if (CityKillsSeen < 0 || Kills < CityKillsSeen) CityKillsSeen = Kills; // a new session tally re-baselines
 	if (Kills > CityKillsSeen)
 	{
 		const std::string City = wf::living::CityAt(Px, Pz);
@@ -2245,7 +2250,9 @@ void AWFGameMode::TickLivingNpcs(float DeltaSeconds)
 	LivingClock = 0;
 	// surveys reached and revealed stashes opened (recordReach)
 	std::vector<std::string> Messages;
-	Prog->ApplyStash([&Messages, Px, Pz](wf::FProgression& P) { Messages = wf::living::RecordReach(P, Px, Pz); return !Messages.empty(); });
+	bool bNearMarker = false;
+	for (const wf::living::FMarker& M : wf::living::LivingMarkers(Prog->Get())) bNearMarker |= wf::js::Hypot(Px - M.X, Pz - M.Z) <= wf::living::SurveyReach + 1;
+	if (bNearMarker) Prog->ApplyStash([&Messages, Px, Pz](wf::FProgression& P) { Messages = wf::living::RecordReach(P, Px, Pz); return !Messages.empty(); });
 	for (const std::string& M : Messages) Toast(UTF8_TO_TCHAR(M.c_str()), LvGold);
 	// the routine: posts by day, rest spots at night
 	for (const TWeakObjectPtr<AWFLivingNpc>& Body : LivingNpcs)
@@ -2253,7 +2260,7 @@ void AWFGameMode::TickLivingNpcs(float DeltaSeconds)
 			if (const wf::living::FNpc* N = wf::living::NpcById(WFData::ToStd(B->GetNpcId())))
 			{
 				const wf::living::FPoint At = wf::living::NpcPosition(*N, Hour);
-				B->SetGoal(FVector(At.X * 100.0, At.Z * 100.0, GroundZ(At.X * 100.0, At.Z * 100.0, B->GetActorLocation().Z) + 90));
+				B->SetGoal(FVector(At.X * 100.0, At.Z * 100.0, GroundZ(At.X * 100.0, At.Z * 100.0, B->GetActorLocation().Z + 100)));
 			}
 	// survey points and revealed stashes (debug rings: compiled out of Shipping, where Talk lists them)
 	for (const wf::living::FMarker& M : wf::living::LivingMarkers(Prog->Get()))

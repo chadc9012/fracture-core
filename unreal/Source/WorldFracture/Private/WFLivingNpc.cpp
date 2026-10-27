@@ -10,18 +10,23 @@
 AWFLivingNpc::AWFLivingNpc()
 {
 	PrimaryActorTick.bCanEverTick = true;
+	// the root stands on the ground; the body, head and plate are unscaled siblings of it
+	Root = CreateDefaultSubobject<USceneComponent>(TEXT("Root"));
+	RootComponent = Root;
 	Body = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Body"));
-	RootComponent = Body;
+	Body->SetupAttachment(Root);
 	Head = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Head"));
-	Head->SetupAttachment(Body);
+	Head->SetupAttachment(Root);
 	Plate = CreateDefaultSubobject<UTextRenderComponent>(TEXT("Plate"));
-	Plate->SetupAttachment(Body);
+	Plate->SetupAttachment(Root);
 	Body->SetCollisionProfileName(TEXT("BlockAllDynamic"));
+	Body->SetCollisionResponseToChannel(ECC_Visibility, ECR_Ignore); // ground traces pass through people (they stood on their own heads)
 	Head->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-	Body->SetRelativeScale3D(FVector(0.5, 0.5, 0.85)); // the engine cylinder is 1 m across and tall: a 1.7 m body
-	Head->SetRelativeLocation(FVector(0, 0, 70));
-	Head->SetRelativeScale3D(FVector(0.6, 0.6, 0.35));
-	Plate->SetRelativeLocation(FVector(0, 0, 120));
+	Body->SetRelativeScale3D(FVector(0.5, 0.5, 1.6)); // the engine cylinder is 1 m across and tall, centred: a 1.6 m body
+	Body->SetRelativeLocation(FVector(0, 0, 80));
+	Head->SetRelativeLocation(FVector(0, 0, 175));
+	Head->SetRelativeScale3D(FVector(0.3, 0.3, 0.3));
+	Plate->SetRelativeLocation(FVector(0, 0, 215));
 	Plate->SetHorizontalAlignment(EHTA_Center);
 	Plate->SetWorldSize(22.f);
 }

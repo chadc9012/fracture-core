@@ -27,6 +27,7 @@ public:
 	void SetGoal(const FVector& Goal) { GoalCm = Goal; bHasGoal = true; }
 
 private:
+	UPROPERTY() TObjectPtr<USceneComponent> Root;
 	UPROPERTY() TObjectPtr<UStaticMeshComponent> Body;
 	UPROPERTY() TObjectPtr<UStaticMeshComponent> Head;
 	UPROPERTY() TObjectPtr<UTextRenderComponent> Plate;
