@@ -296,7 +296,7 @@ export const SKY_STOPS: readonly { t: number; key: Phase }[] = [
 
 export const SKY: Record<Phase, { top: string; bottom: string; fog: string; light: string; intensity: number }> = {
   Dawn: { top: "#2f4d7a", bottom: "#f2a25c", fog: "#9fb6cf", light: "#ffcf9b", intensity: 1.1 },
-  Day: { top: "#4aa3d8", bottom: "#bfe4f2", fog: "#9fc6e4", light: "#fff6e2", intensity: 1.6 },
+  Day: { top: "#4aa3d8", bottom: "#bfe4f2", fog: "#8cb8dd", light: "#fff6e2", intensity: 1.6 },
   Sunset: { top: "#3b2a5c", bottom: "#ff7a3c", fog: "#c98a6a", light: "#ff9a52", intensity: 1.2 },
   // nights are deep blue and readable (reference "night - Frostspire"), not black: bluer air and a brighter moon key
   Night: { top: "#081430", bottom: "#17305a", fog: "#132a52", light: "#9cc0ff", intensity: 0.5 },

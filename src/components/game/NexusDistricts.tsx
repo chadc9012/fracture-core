@@ -124,20 +124,31 @@ function StreetLights() {
   useInstances<Lamp>(pole, ls, (o, l) => { o.position.set(l.x, y0(l), l.z); o.rotation.set(0, l.yaw, 0); });
   useInstances<Lamp>(arm, ls, (o, l) => { o.position.set(l.x, y0(l), l.z); o.rotation.set(0, l.yaw, 0); });
   useInstances<Lamp>(head, ls, (o, l) => { o.position.set(l.x, y0(l), l.z); o.rotation.set(0, l.yaw, 0); });
-  useInstances<Lamp>(pool, ls, (o, l) => { const x = l.x + Math.sin(l.yaw) * 1.7, z = l.z + Math.cos(l.yaw) * 1.7; o.position.set(x, walkHeight(x, z) + 0.13, z); o.rotation.set(-Math.PI / 2, 0, 0); o.scale.setScalar(7.5); });
+  useInstances<Lamp>(pool, ls, (o, l) => { const x = l.x + Math.sin(l.yaw) * 1.7, z = l.z + Math.cos(l.yaw) * 1.7; o.position.set(x, walkHeight(x, z) + 0.13, z); o.rotation.set(-Math.PI / 2, 0, 0); o.scale.setScalar(11); });
   const mats = useMemo(() => ({
     pole: new THREE.MeshStandardMaterial({ color: "#22272d", metalness: 0.8, roughness: 0.35 }),
     head: new THREE.MeshStandardMaterial({ color: "#d9e6ee", emissive: "#fff1d8", emissiveIntensity: 0, roughness: 0.3, toneMapped: false }),
-    pool: new THREE.MeshBasicMaterial({ map: softSprite("dot") ?? null, color: "#ffd9a6", transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false, polygonOffset: true, polygonOffsetFactor: -4 }),
+    pool: new THREE.MeshBasicMaterial({ map: softSprite("dot") ?? null, color: "#ffc27e", transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false, polygonOffset: true, polygonOffsetFactor: -4 }),
   }), []);
+  // a soft glow round each lit lens: phones draw no bloom pass, so without it the lamps read as flat white chips (target frame:
+  // every street lamp haloed). One additive points batch.
+  const halos = useRef<THREE.Points>(null);
+  const haloGeo = useMemo(() => {
+    const p = new Float32Array(ls.length * 3);
+    ls.forEach((l, i) => { p[i * 3] = l.x + Math.sin(l.yaw) * 1.8; p[i * 3 + 1] = walkHeight(l.x, l.z) + 7.2; p[i * 3 + 2] = l.z + Math.cos(l.yaw) * 1.8; });
+    const g = new THREE.BufferGeometry(); g.setAttribute("position", new THREE.BufferAttribute(p, 3)); g.computeBoundingSphere(); return g;
+  }, [ls]);
+  const halo = useMemo(() => new THREE.PointsMaterial({ map: softSprite("dot") ?? null, color: "#ffcf96", size: 4.5, sizeAttenuation: true, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false }), []);
+  useEffect(() => () => { haloGeo.dispose(); halo.dispose(); }, [haloGeo, halo]);
   const seen = useRef(-1);
   useFrame(() => {
     const k = Math.round(lampLevel(worldLight.night) * 50) / 50;
     if (k === seen.current) return;
     seen.current = k;
     mats.head.emissiveIntensity = 0.2 + k * 4.5;
-    mats.pool.opacity = k * 0.42;
+    mats.pool.opacity = k * 0.6; // warm sodium pools on the pavement (owner's Nexus night frame)
     if (pool.current) pool.current.visible = k > 0.01;
+    halo.opacity = k * 0.75; if (halos.current) halos.current.visible = k > 0.01;
   });
   return <group>
     {/* tapered pole with a curved outreach arm, a cobra-head housing (arm instance) and its lit lens (head instance) */}
@@ -145,6 +156,7 @@ function StreetLights() {
     <instancedMesh ref={arm} args={[SL.housing, undefined, Math.max(1, ls.length)]} material={mats.pole} />
     <instancedMesh ref={head} args={[SL.lens, undefined, Math.max(1, ls.length)]} material={mats.head} />
     <instancedMesh ref={pool} args={[undefined, undefined, Math.max(1, ls.length)]} material={mats.pool} frustumCulled={false} renderOrder={2}><planeGeometry args={[1, 1]} /></instancedMesh>
+    <points ref={halos} geometry={haloGeo} material={halo} frustumCulled={false} renderOrder={3} />
   </group>;
 }
 /** facade articulation (nexus-districts.ts facadeKit): ledges, mullion fins, stone plinths, lit shopfronts and awnings */

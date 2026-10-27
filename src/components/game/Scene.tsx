@@ -476,7 +476,7 @@ const SPAWN_REGION = REGIONS.find((r) => r.id === "veridan");
 const VERIDAN_REGION = REGIONS.find((r) => r.id === "veridan")!;
 const FOG_REACH = 1 + (WORLD_SCALE - 1) * 0.2;
 /** furthest fog line per quality tier (m); HIGH/ULTRA keep the full view */
-const FOG_CAP = { LOW: 480, MEDIUM: 700, HIGH: Infinity, ULTRA: Infinity } as const;
+const FOG_CAP = { LOW: 480, MEDIUM: 850, HIGH: Infinity, ULTRA: Infinity } as const; // MEDIUM: the overlook frame sees the far shore and the bay in clear air
 export const SPAWN = new THREE.Vector3(SPAWN_REGION?.x ?? -58, 0, (SPAWN_REGION?.z ?? -34) + 12);
 const NEXUS_REGION = REGIONS.find((r) => r.id === "nexus")!;
 
