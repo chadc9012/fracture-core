@@ -46,6 +46,7 @@ jobs:
           rm -rf mobile/www && cp -r .output/public mobile/www
           rm -rf mobile/www/refs mobile/www/server
           cp mobile/www/_shell.html mobile/www/index.html
+          node scripts/bundle-hosted-assets.mjs mobile/www # ferns, shrubs, audio, menu art... live on the website, not in public/
           du -sh mobile/www
 
       - name: Install Capacitor
