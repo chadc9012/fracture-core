@@ -149,6 +149,12 @@ Until then the phone build is the web game (`mobile/`, the `android-latest` rele
   off upright is a wipeout (speed lost, body damage, the chain broken). Points pay 1 Nex per 50, up to 600 Nex a day.
 - **The Stunt Park:** steel ramps in a fenced yard 160 m south of the Wastelands centre (stunt-park.ts): the Kicker, the
   Tabletop, the Mega Launch (7.5 m), three Whoops humps and a Gap Jump pair, solid and driveable.
+- **The activity board:** `Activities [area]` lists the bounties, side missions, contracts and regional events (and this
+  week's three elite operations), with today's four featured contracts (x1.5), attempts, cooldowns and rewards
+  (activities.ts). `ActivityStart <id>` spends an attempt and runs it objective by objective: kills (any or elite),
+  ordered checkpoints and collecting against a clock, holding a zone (leaving drains the hold twice as fast), carrying
+  from A to B. A ring marks where to go and the HUD shows the stage, progress, timer and distance. A finish pays Nex,
+  XP, faction reputation and materials once per attempt, plus the challenge (+25%) and featured bonuses.
 - **Consumables and the stash:** Heal Stims (+5 health a second a stack, 30 s), Armor Stims (+10% resistance a stack, 60 s)
   and Ruin Stones (Ruin Surge, +15% damage a stack, 45 s) on keys 6 / 7 / J, stacking to 3 (stash.ts). `CraftStim`,
   `CraftRuinStone`, `SellGear` (duplicates, for shards), `DismantleGear` (into gear parts), `UpgradeGear` (3 parts a level:
@@ -339,6 +345,7 @@ cmake -S . -B build -G Ninja && cmake --build build && ctest --test-dir build --
 | GodforgeCoreTest | godforge.ts, secrets.ts, foundries.ts foundryOf, sim.ts fireBullet / fireLauncher heat | 1,590 foundry names, 3,000 trigger pulls, 10,516 forge actions, 1,084 queries, 37,843 checks |
 | WastelandCoreTest | wasteland-activities.ts, wasteland-runtime.ts | 15,600 machine steps, 2,400 resolves, 24,000 runtime frames, 132,024 checks |
 | MoveCoreTest | movement.ts, parkour.ts | 300 tracks, 18,000 frames, 36,067 checks |
+| ActivityCoreTest | activities.ts objectives, stepRun, targets, areas, featured and weekly rotations | 284 runs, 17,734 ticks, 22,068 checks |
 | StashCoreTest | stash.ts | 10,209 stash operations, 16,465 checks |
 | HazardCoreTest | region-hazards.ts, hazard-zones.ts, landmarks.ts | 5,408 hazard steps, 12,000 zone probes, 33,445 checks |
 | StuntCoreTest | stunts.ts (air, tricks, combos, powerslides, pay), stunt-park.ts | 66,120 flight frames, 186,818 scored events, 329,904 checks |
@@ -349,7 +356,7 @@ The golden files (`Plugins/WorldFractureCore/Tests/<name>_golden.txt`) are **gen
 which broke the Lovable preview build. Record all of them from the repo root before configuring the tests (and again after changing
 the web build's rules):
 
-    node unreal/tools/gen-goldens.mjs            # all thirty-one
+    node unreal/tools/gen-goldens.mjs            # all thirty-two
     node unreal/tools/gen-goldens.mjs race shop  # just these
 
 `export-datatables` (the DataTables, which are committed) still runs on its own:

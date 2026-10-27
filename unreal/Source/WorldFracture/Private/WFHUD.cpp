@@ -22,6 +22,8 @@
 #include "WFProgressionSubsystem.h"
 #include "WFQuestSubsystem.h"
 #include "WFRaceSubsystem.h"
+#include "WFActivitySubsystem.h"
+#include "Core/WFJsCompat.h"
 #include "WFShopSubsystem.h"
 
 namespace
@@ -136,6 +138,19 @@ void AWFHUD::DrawHUD()
 			for (const FString& L : Lines) { Line(L, X, Y, Soft, 0.8f); Y += 18; }
 			DrawRect(FLinearColor(0.1f, 0.12f, 0.14f, 0.7f), X, Y + 4, 280, 6);
 			DrawRect(Hazard > 0.7 ? FLinearColor(1.f, 0.3f, 0.25f) : Hazard > 0.4 ? Warn : Cyan, X, Y + 4, 280.f * static_cast<float>(FMath::Clamp(Hazard, 0.0, 1.0)), 6);
+		}
+		// the activity run (ActivityBoard / the HUD objective): name, stage, progress, timer, challenge, distance to the marker
+		if (const UWFActivitySubsystem* Board = GetGameInstance() ? GetGameInstance()->GetSubsystem<UWFActivitySubsystem>() : nullptr; Board && Board->IsRunning())
+		{
+			float Y = H * 0.2f;
+			const TArray<FString> RunLines = Board->DescribeRun(UWFProgressionSubsystem::NowMs());
+			for (int32 I = 0; I < RunLines.Num(); ++I) { Line(RunLines[I], 30.f, Y, I == 0 ? Gold : Soft, I == 0 ? 0.95f : 0.8f); Y += 20; }
+			const APawn* Pawn = GetOwningPawn();
+			if (const std::optional<wf::activity::FTarget> Tg = Board->Target(); Tg && Pawn)
+			{
+				const FVector2D Here = StMode->WebPosition(Pawn->GetActorLocation());
+				Line(FString::Printf(TEXT("Marker: %.0f m"), wf::js::Hypot(Here.X - Tg->X, Here.Y - Tg->Z)), 30.f, Y, Cyan, 0.8f);
+			}
 		}
 		// region-hazards.ts: the hazard acting on you (Scene.tsx hud.hazard: name, intensity, active)
 		const wf::hazard::FHazardEffect& Hz = StMode->GetRegionHazard();

@@ -40,6 +40,7 @@
 #include "Core/WFHazardCore.h"
 #include "Core/WFStashCore.h"
 #include "WFStuntPark.h"
+#include "WFActivitySubsystem.h"
 
 #include <algorithm>
 
@@ -293,6 +294,7 @@ void AWFGameMode::Tick(float DeltaSeconds)
 	TickGodforge(DeltaSeconds);
 	TickWorldBoss(DeltaSeconds);
 	TickRegionHazard(DeltaSeconds);
+	TickActivity(DeltaSeconds);
 	// sim.ts: weapon cooling; venting from an overheat is slower than a normal cooldown
 	if (wf::vweapons::CoolHeat(WeaponHeat, FMath::Min(static_cast<double>(DeltaSeconds), 0.25))) Toast(TEXT("Weapon cooled - ready"), FLinearColor(0.45f, 0.9f, 1.f));
 	Squad.RemoveAll([](const TWeakObjectPtr<AWFEnemy>& E) { return !E.IsValid() || E->IsDead(); });
@@ -2002,4 +2004,63 @@ void AWFGameMode::FavoriteGear(const FString& ItemId)
 {
 	const std::string Id = WFData::ToStd(ItemId);
 	StashAction([Id](wf::FProgression& P) { for (wf::FGearItem& G : P.Inventory) if (G.Id == Id) { G.bFavorite = !G.bFavorite; return true; } return false; }, TEXT("Favourite toggled"), TEXT("No such item"));
+}
+
+// --- the activity board (Scene.tsx stepActivity on activities.ts) ------------------------------------------------------
+
+void AWFGameMode::Activities(const FString& Area)
+{
+	const UWFActivitySubsystem* Board = GetGameInstance()->GetSubsystem<UWFActivitySubsystem>();
+	if (!Board) return;
+	TArray<FString> Lines = Board->DescribeBoard(Area);
+	if (Lines.IsEmpty()) Lines.Add(TEXT("Nothing on the board there. Areas: veridan ember frostspire wastelands swamps solara nexus neon neon-underground neon-core"));
+	Lines.Add(TEXT("ActivityStart <id> · ActivityAbandon · races: ListRaces / StartRace"));
+	for (const FString& L : Lines) { UE_LOG(LogTemp, Display, TEXT("%s"), *L); Toast(L, FLinearColor(0.45f, 0.9f, 1.f)); }
+}
+
+void AWFGameMode::ActivityStart(const FString& ActivityId)
+{
+	UWFActivitySubsystem* Board = GetGameInstance()->GetSubsystem<UWFActivitySubsystem>();
+	if (!Board) return;
+	const FString Error = Board->Start(ActivityId);
+	if (!Error.IsEmpty()) { Toast(Error, FLinearColor(1.f, 0.55f, 0.3f)); return; }
+	if (const UWFActivitySubsystem::FBoardDef* D = Board->ActiveDef()) Toast(FString::Printf(TEXT("%s: %s"), UTF8_TO_TCHAR(D->Name.c_str()), UTF8_TO_TCHAR(D->Brief.c_str())), FLinearColor(1.f, 0.82f, 0.35f));
+}
+
+void AWFGameMode::ActivityAbandon()
+{
+	if (UWFActivitySubsystem* Board = GetGameInstance()->GetSubsystem<UWFActivitySubsystem>()) Board->Abandon();
+}
+
+void AWFGameMode::TickActivity(float DeltaSeconds)
+{
+	UWFActivitySubsystem* Board = GetGameInstance()->GetSubsystem<UWFActivitySubsystem>();
+	const UWFProgressionSubsystem* Prog = GetGameInstance()->GetSubsystem<UWFProgressionSubsystem>();
+	APawn* Pawn = UGameplayStatics::GetPlayerPawn(this, 0);
+	if (!Board || !Prog || !Pawn) return;
+	if (Board->IsRunning())
+	{
+		// activities.ts Tick: where you stand in the web world, the session's kills by tier, health and deaths
+		const AWFCharacter* Player = Cast<AWFCharacter>(Pawn);
+		if (const AWFVehicle* Car = Cast<AWFVehicle>(Pawn)) Player = Car->GetDriver();
+		const FVector2D Here = WorldToRegion(Pawn->GetActorLocation());
+		const wf::reward::FSimTally& T = Prog->GetTally();
+		wf::activity::FTick Facts;
+		Facts.X = Here.X; Facts.Z = Here.Y; Facts.Dt = DeltaSeconds; Facts.NowMs = UWFProgressionSubsystem::NowMs();
+		Facts.Kills = T.Kills; Facts.Elites = T.EliteKills; Facts.Bosses = T.BossKills; Facts.RivalKills = T.RivalKills;
+		Facts.Hp = Player ? Player->GetHealth() : 100;
+		Facts.Deaths = Prog->GetPlayerDeaths();
+		Board->Tick(Facts);
+		// the marker: a ring where the objective is (debug draw: compiled out of Shipping, where the HUD distance guides you)
+		if (const std::optional<wf::activity::FTarget> Tg = Board->Target())
+		{
+			const FVector At = RegionToWorld(Tg->X, Tg->Z, Pawn->GetActorLocation().Z);
+			DrawDebugCylinder(GetWorld(), At, At + FVector(0, 0, 1200), wf::activity::CheckpointRadius * 100.0, 24, FColor(255, 200, 60), false, -1.f, 0, 6.f);
+		}
+	}
+	if (Board->GetFinishedCount() != ActivitySeen)
+	{
+		ActivitySeen = Board->GetFinishedCount();
+		for (const FString& L : Board->GetLastSummary()) Toast(L, FLinearColor(1.f, 0.82f, 0.35f));
+	}
 }

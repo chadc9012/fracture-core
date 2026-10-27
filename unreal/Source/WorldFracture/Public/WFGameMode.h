@@ -217,6 +217,14 @@ public:
 	/** HUD: the strike run's title and lines, hazard 0-1; false when no strike is loaded */
 	bool GetStrikeHud(FString& OutTitle, TArray<FString>& OutLines, double& OutHazard) const;
 
+	// ---- the activity board (ported activities.ts, UWFActivitySubsystem) ----
+	/** Activities [area]: the board (bounties, side missions, contracts, events, this week's elite operations) */
+	UFUNCTION(Exec) void Activities(const FString& Area);
+	UFUNCTION(Exec) void ActivityStart(const FString& ActivityId);
+	UFUNCTION(Exec) void ActivityAbandon();
+	/** a level position in the web world's metres (x, z) */
+	FVector2D WebPosition(const FVector& L) const { return WorldToRegion(L); }
+
 	// ---- World Boss raids (ported world-boss.ts) ----
 	/** Prints the raid that is up or next, where, and whether this raid has paid. */
 	UFUNCTION(Exec) void WorldBoss();
@@ -273,6 +281,8 @@ private:
 	void TickNemesis(float DeltaSeconds);
 	void TickWorldBoss(float DeltaSeconds);
 	void TickRegionHazard(float DeltaSeconds);
+	void TickActivity(float DeltaSeconds);
+	int32 ActivitySeen = 0; // UWFActivitySubsystem finished count already announced
 	void StashAction(const std::function<bool(wf::FProgression&)>& Action, const FString& Done, const FString& Refused);
 	/** where a raid site stands in this level (false when its region is not in this level) */
 	bool RaidSiteHere(const wf::worldboss::FRaidSite& Site, FVector& OutAt) const;

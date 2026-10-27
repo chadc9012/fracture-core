@@ -161,6 +161,8 @@ public:
 	UFUNCTION(BlueprintPure, Category = "World Fracture|Progression") int32 GetSessionKills() const { return static_cast<int32>(Tally.Kills); }
 	/** sim.ts combatHeat, kept by the game mode: kills scale XP by it (xp.ts comboMultiplier, enemy level) */
 	void SetCombatHeat(double Heat) { Tally.CombatHeat = Heat; }
+	/** this session's kills (all, elite, boss, Killbox rivals) as sim.ts counts them */
+	const wf::reward::FSimTally& GetTally() const { return Tally; }
 	/** Difficulty reward factor (map-activities.ts CHALLENGES): 1 / 1.25 / 1.5. */
 	UFUNCTION(BlueprintPure, Category = "World Fracture|Progression") double GetChallengeRewardScale() const;
 	/** Difficulty enemy health factor: 1 / 1.4 / 1.8. */
