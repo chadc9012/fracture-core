@@ -36,6 +36,9 @@ export const foliageWeather = {
   uDewLight: { value: 1 },
   /** 0 = LOW tier (sheen only, no glints), 1 = glints */
   uDewDetail: { value: 1 },
+  /** near-camera leaf dissolve: 1 = third person (leaves within NEAR_FADE break up so the operator stays visible), 0 = first person
+   * (only leaves touching the lens go; the dissolve band dotted every fern and branch around the player, owner phone shots Oct 26) */
+  uNearFade: { value: 1 },
 };
 
 /** Scene calls this each frame with the live weather wind. */
@@ -92,16 +95,17 @@ export function windSway(geometry: THREE.BufferGeometry, amount: number, opts: S
       shader.fragmentShader = shader.fragmentShader
         .replace("#include <common>", `#include <common>
 varying float vWfCamDist; varying vec3 vWfW;
-uniform float uDew; uniform float uLeafWet; uniform vec3 uDewSun; uniform float uDewLight; uniform float uDewDetail; uniform float uDewK;`)
+uniform float uNearFade; uniform float uDew; uniform float uLeafWet; uniform vec3 uDewSun; uniform float uDewLight; uniform float uDewDetail; uniform float uDewK;`)
         // near-camera dissolve: leaves, fronds and bushes within NEAR_FADE metres of the camera break up in a screen-door pattern, so a
         // third-person camera pushed into a tree or a fern shows the operator instead of a wall of leaf
         .replace("#include <clipping_planes_fragment>", `#include <clipping_planes_fragment>
-if (vWfCamDist < ${NEAR_FADE.toFixed(2)}) {
+float fwNear = mix(0.3, ${NEAR_FADE.toFixed(2)}, uNearFade);
+if (vWfCamDist < fwNear) {
   // fully gone inside the inner radius (a sparse grid of surviving pixels used to hang in front of the lens), then an
-  // interleaved-gradient-noise dissolve out to NEAR_FADE: no regular screen-door grid, and it stays stable per pixel
-  if (vWfCamDist < ${(NEAR_FADE * 0.4).toFixed(2)}) discard;
+  // interleaved-gradient-noise dissolve out to the fade radius: no regular screen-door grid, and it stays stable per pixel
+  if (vWfCamDist < fwNear * 0.4) discard;
   float ign = fract(52.9829189 * fract(dot(floor(gl_FragCoord.xy), vec2(0.06711056, 0.00583715))));
-  if (ign >= smoothstep(${(NEAR_FADE * 0.4).toFixed(2)}, ${NEAR_FADE.toFixed(2)}, vWfCamDist)) discard;
+  if (ign >= smoothstep(fwNear * 0.4, fwNear, vWfCamDist)) discard;
 }`)
         // foliage weather: rain-wet leaves darken and gloss up; dew beads glint where a bead's facet bounces the sun into the eye
         .replace("#include <emissivemap_fragment>", `#include <emissivemap_fragment>
