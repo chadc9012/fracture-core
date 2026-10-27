@@ -27,18 +27,18 @@ export type Residence = { id: string; style: HomeStyle; city: ResidenceCity; x: 
   /** the home's own garage beside it (none where nothing fits): centre, same turn as the house, door on its local +z */
   garage?: Garage };
 export type Garage = { x: number; z: number; rot: number; bays: number; floor: number; base: number };
-export type Design = { w: number; d: number; h: number; levels: number; wall: string; trim: string; floor: string; accent: string; glass: string; roof: "gable" | "flat" | "parapet" };
+export type Design = { w: number; d: number; h: number; levels: number; /** the outside of the walls (weathered-surface.ts) */ cladding: "plaster" | "brick" | "siding"; wall: string; trim: string; floor: string; accent: string; glass: string; roof: "gable" | "flat" | "parapet" };
 
 /** w across the front, d front-to-back, h ground-floor height (m) */
 export const DESIGNS: Record<HomeStyle, Design> = {
-  suburban: { w: 10, d: 11, h: 3.6, levels: 1, wall: "#c9b9a1", trim: "#685a51", floor: "#a98b67", accent: "#7c9d8b", glass: "#456779", roof: "gable" },
-  townhouse: { w: 9, d: 12, h: 3.6, levels: 3, wall: "#a17a68", trim: "#483d3b", floor: "#9e8069", accent: "#c1a36d", glass: "#415a6b", roof: "parapet" },
-  duplex: { w: 13, d: 11, h: 3.6, levels: 2, wall: "#b4b3a7", trim: "#515b60", floor: "#9b886e", accent: "#9a8664", glass: "#526e7b", roof: "gable" },
-  courtyard: { w: 14, d: 13, h: 3.6, levels: 2, wall: "#d0c4aa", trim: "#83745d", floor: "#bca17c", accent: "#648b77", glass: "#60838a", roof: "flat" },
-  apartment: { w: 15, d: 15, h: 3.6, levels: 4, wall: "#929ba4", trim: "#323d49", floor: "#777b80", accent: "#d0a36a", glass: "#37556b", roof: "parapet" },
-  condo: { w: 15, d: 15, h: 3.6, levels: 5, wall: "#c5c9ca", trim: "#303f4c", floor: "#8d8176", accent: "#70a6b6", glass: "#476f83", roof: "flat" },
-  loft: { w: 15, d: 16, h: 4.6, levels: 2, wall: "#787e82", trim: "#343b42", floor: "#806e5d", accent: "#b97b56", glass: "#36536c", roof: "flat" },
-  villa: { w: 16, d: 17, h: 4.0, levels: 2, wall: "#d6d2c8", trim: "#3a4145", floor: "#a99a85", accent: "#608c99", glass: "#356477", roof: "flat" },
+  suburban: { w: 10, d: 11, h: 3.6, levels: 1, cladding: "siding", wall: "#c9b9a1", trim: "#685a51", floor: "#a98b67", accent: "#7c9d8b", glass: "#456779", roof: "gable" },
+  townhouse: { w: 9, d: 12, h: 3.6, levels: 3, cladding: "brick", wall: "#a17a68", trim: "#483d3b", floor: "#9e8069", accent: "#c1a36d", glass: "#415a6b", roof: "parapet" },
+  duplex: { w: 13, d: 11, h: 3.6, levels: 2, cladding: "siding", wall: "#b4b3a7", trim: "#515b60", floor: "#9b886e", accent: "#9a8664", glass: "#526e7b", roof: "gable" },
+  courtyard: { w: 14, d: 13, h: 3.6, levels: 2, cladding: "plaster", wall: "#d0c4aa", trim: "#83745d", floor: "#bca17c", accent: "#648b77", glass: "#60838a", roof: "flat" },
+  apartment: { w: 15, d: 15, h: 3.6, levels: 4, cladding: "brick", wall: "#929ba4", trim: "#323d49", floor: "#777b80", accent: "#d0a36a", glass: "#37556b", roof: "parapet" },
+  condo: { w: 15, d: 15, h: 3.6, levels: 5, cladding: "plaster", wall: "#c5c9ca", trim: "#303f4c", floor: "#8d8176", accent: "#70a6b6", glass: "#476f83", roof: "flat" },
+  loft: { w: 15, d: 16, h: 4.6, levels: 2, cladding: "brick", wall: "#787e82", trim: "#343b42", floor: "#806e5d", accent: "#b97b56", glass: "#36536c", roof: "flat" },
+  villa: { w: 16, d: 17, h: 4.0, levels: 2, cladding: "plaster", wall: "#d6d2c8", trim: "#3a4145", floor: "#a99a85", accent: "#608c99", glass: "#356477", roof: "flat" },
 };
 export const STOREY = 3.4;
 export const WALL = 0.26;
@@ -209,7 +209,11 @@ export function inResidence(x: number, z: number, margin = 1): boolean {
  * origin: footprint centre at floor level; door wall at +z; +y up. */
 
 export type Mat = "solid" | "glass" | "lamp";
-export type Box = { x: number; y: number; z: number; sx: number; sy: number; sz: number; color: string; mat: Mat; /** a gable roof prism instead of a box */ prism?: boolean };
+export type Box = { x: number; y: number; z: number; sx: number; sy: number; sz: number; color: string; mat: Mat; /** a gable roof prism instead of a box */ prism?: boolean;
+  /** the texture a solid box wears (weathered-surface.ts claddingTexture); plaster when absent */ surface?: "brick" | "siding" | "shingle" | "stone" };
+
+/** shingles: the trim colour, darkened and cooled so a roof never reads as a painted box */
+const roofColor = (trim: string) => { const n = parseInt(trim.slice(1), 16), k = (v: number) => Math.round(v * 0.82 + 10); return `#${[(n >> 16) & 255, (n >> 8) & 255, n & 255].map((v) => k(v).toString(16).padStart(2, "0")).join("")}`; };
 
 /** `sink`: how far the foundation reaches below the floor (to the lowest ground under the footprint) */
 export function homeBoxes(style: HomeStyle, sink = 1): Box[] {
@@ -217,7 +221,7 @@ export function homeBoxes(style: HomeStyle, sink = 1): Box[] {
   const box = (x: number, y: number, z: number, sx: number, sy: number, sz: number, color: string, mat: Mat = "solid") => out.push({ x, y, z, sx, sy, sz, color, mat });
   const front = d / 2, wing = (w - DOOR) / 2;
   // foundation down to the lowest ground under the footprint, so nothing floats on a slope; then the floor
-  box(0, -sink / 2, 0, w + 0.3, sink, d + 0.3, "#6d6a64");
+  out.push({ x: 0, y: -sink / 2, z: 0, sx: w + 0.3, sy: sink, sz: d + 0.3, color: "#8a857c", mat: "solid", surface: "stone" });
   box(0, -0.03, 0, w - WALL * 2, 0.06, d - WALL * 2, p.floor);
   // porch step outside the door
   box(0, -0.08, front + PORCH / 2, DOOR + 1.2, 0.16, PORCH, "#7a7f7e");
@@ -228,6 +232,14 @@ export function homeBoxes(style: HomeStyle, sink = 1): Box[] {
   box(-(DOOR + wing) / 2, h / 2, front - WALL / 2, wing, h, WALL, p.wall);
   box((DOOR + wing) / 2, h / 2, front - WALL / 2, wing, h, WALL, p.wall);
   box(0, h - (h - 2.5) / 2, front - WALL / 2, DOOR, h - 2.5, WALL, p.wall);
+  // the cladding is a 2 cm skin on the outside of the shell, so the rooms keep their plaster
+  if (p.cladding !== "plaster") {
+    const sk = 0.02, c = p.cladding, skinBox = (x: number, y: number, z: number, sx: number, sy: number, sz: number) => out.push({ x, y, z, sx, sy, sz, color: p.wall, mat: "solid", surface: c });
+    skinBox(0, h / 2, -front - sk / 2, w + sk * 2, h, sk);
+    for (const s of [-1, 1]) skinBox(s * (w / 2 + sk / 2), h / 2, 0, sk, h, d + sk * 2);
+    for (const s of [-1, 1]) skinBox(s * (DOOR + wing) / 2, h / 2, front + sk / 2, wing, h, sk);
+    skinBox(0, h - (h - 2.5) / 2, front + sk / 2, DOOR, h - 2.5, sk);
+  }
   // door frame, ground-floor windows either side of the door and on the flanks
   for (const s of [-1, 1]) {
     box(s * (DOOR / 2 + 0.06), 1.25, front + 0.02, 0.12, 2.5, WALL + 0.06, p.trim);
@@ -296,7 +308,7 @@ export function homeBoxes(style: HomeStyle, sink = 1): Box[] {
   for (let i = 0; i < p.levels - 1; i++) {
     const y0 = h + i * STOREY;
     box(0, y0 + 0.1, 0, w + 0.2, 0.2, d + 0.2, p.trim);
-    box(0, y0 + STOREY / 2, 0, w, STOREY, d, p.wall);
+    out.push({ x: 0, y: y0 + STOREY / 2, z: 0, sx: w, sy: STOREY, sz: d, color: p.wall, mat: "solid", ...(p.cladding !== "plaster" ? { surface: p.cladding } : {}) });
     const n = Math.max(2, Math.round(w / 3.4));
     for (let k = 0; k < n; k++) {
       const x = -w / 2 + (k + 0.5) * (w / n);
@@ -325,8 +337,8 @@ export function homeBoxes(style: HomeStyle, sink = 1): Box[] {
     }
   }
   if (p.roof === "gable") {
-    out.push({ x: 0, y: top + 0.9, z: 0, sx: w + 0.6, sy: 1.8, sz: d + 0.6, color: p.trim, mat: "solid", prism: true });
-    box(w * 0.28, top + 1.3, -d * 0.12, 0.75, 2.6, 0.75, "#6f5a4c"); // brick chimney through the roof
+    out.push({ x: 0, y: top + 0.9, z: 0, sx: w + 0.6, sy: 1.8, sz: d + 0.6, color: p.roof === "gable" ? roofColor(p.trim) : p.trim, mat: "solid", prism: true, surface: "shingle" });
+    out.push({ x: w * 0.28, y: top + 1.3, z: -d * 0.12, sx: 0.75, sy: 2.6, sz: 0.75, color: "#9a6a55", mat: "solid", surface: "brick" }); // brick chimney through the roof
     box(w * 0.28, top + 2.65, -d * 0.12, 0.9, 0.12, 0.9, "#4a3c33");
     for (const s of [-1, 1]) box(0, top + 0.02, s * (d / 2 + 0.28), w + 0.6, 0.12, 0.12, "#3c3f42"); // gutters along both eaves
   }
