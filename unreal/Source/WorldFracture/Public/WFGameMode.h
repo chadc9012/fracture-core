@@ -15,6 +15,7 @@
 #include "Core/WFPvpCore.h"
 #include "Core/WFActivityCore.h"
 #include "Core/WFLivingNpcCore.h"
+#include "Core/WFLivingEventCore.h"
 #include "WFGameMode.generated.h"
 
 class AWFEnemy;
@@ -227,6 +228,10 @@ public:
 	UFUNCTION(Exec) void TalkDo(const FString& Choice);
 	/** your standing with the four city factions */
 	UFUNCTION(Exec) void Standing();
+	/** a tagged machine fell to the player (sim.ts livingKills) */
+	void OnTaggedKill(const FString& Tag) { TagKills.FindOrAdd(Tag) += 1; }
+	/** HUD: the city world event in progress (title, phase, timer, the rift hold), or "" */
+	const FString& GetCityEventLine() const { return CityEventLine; }
 	/** HUD: the NPC in reach ("" when none) */
 	const FString& GetTalkHint() const { return TalkHint; }
 
@@ -298,6 +303,14 @@ private:
 	void TickRegionHazard(float DeltaSeconds);
 	void TickActivity(float DeltaSeconds);
 	void TickLivingNpcs(float DeltaSeconds);
+	void TickCityEvents(float DeltaSeconds);
+	/** sim.ts spawnEventSquad: Size of a region's troopers (Elites of them elite) tagged Tag in a ring round a web-world point */
+	int32 SpawnRegionSquad(const FString& Tag, double WebX, double WebZ, int32 Size, int32 Elites, double RingM, const FString& Region);
+	void DespawnTag(const FString& Tag);
+	wf::livingevent::FDirector CityDirector;
+	TMap<FString, int32> TagKills;
+	TMap<FString, TArray<FWFTroop>> RosterByRegion;
+	FString CityEventLine;
 	TArray<TWeakObjectPtr<class AWFLivingNpc>> LivingNpcs;
 	bool bLivingSpawned = false;
 	FString NearNpc, TalkHint, TalkingTo;

@@ -41,6 +41,7 @@
 #include "Core/WFStashCore.h"
 #include "Core/WFPvpCore.h"
 #include "Core/WFLivingNpcCore.h"
+#include "Core/WFLivingEventCore.h"
 #include "WFLivingNpc.h"
 #include "WFStuntPark.h"
 #include "WFActivitySubsystem.h"
@@ -299,6 +300,7 @@ void AWFGameMode::Tick(float DeltaSeconds)
 	TickRegionHazard(DeltaSeconds);
 	TickActivity(DeltaSeconds);
 	TickLivingNpcs(DeltaSeconds);
+	TickCityEvents(DeltaSeconds);
 	// sim.ts: weapon cooling; venting from an overheat is slower than a normal cooldown
 	if (wf::vweapons::CoolHeat(WeaponHeat, FMath::Min(static_cast<double>(DeltaSeconds), 0.25))) Toast(TEXT("Weapon cooled - ready"), FLinearColor(0.45f, 0.9f, 1.f));
 	Squad.RemoveAll([](const TWeakObjectPtr<AWFEnemy>& E) { return !E.IsValid() || E->IsDead(); });
@@ -2319,4 +2321,163 @@ void AWFGameMode::Standing()
 			Toast(FString::Printf(TEXT("%s: %g (%s)"), UTF8_TO_TCHAR(S.Name.c_str()), S.Rep, UTF8_TO_TCHAR(S.Tier.c_str())), LvCyan);
 	const auto Pledge = Prog->Get().Story.Choices.find(wf::living::PledgeKey);
 	if (Pledge != Prog->Get().Story.Choices.end()) Toast(FString::Printf(TEXT("Pledged in Neon City: %s"), UTF8_TO_TCHAR(Pledge->second.c_str())), LvGold);
+}
+
+// --- the cities' world events (living-runtime.ts on living-events.ts) ------------------------------------------------------
+
+int32 AWFGameMode::SpawnRegionSquad(const FString& Tag, double WebX, double WebZ, int32 Size, int32 Elites, double RingM, const FString& Region)
+{
+	UWorld* World = GetWorld();
+	const APawn* Pawn = UGameplayStatics::GetPlayerPawn(this, 0);
+	const UWFProgressionSubsystem* Progression = GetGameInstance()->GetSubsystem<UWFProgressionSubsystem>();
+	if (!World || !Pawn) return 0;
+	if (!RosterByRegion.Contains(Region))
+	{
+		TArray<FWFTroop>& Troops = RosterByRegion.Add(Region);
+		TArray<TSharedPtr<FJsonObject>> Rows;
+		FString Error;
+		if (WFData::LoadRows(TEXT("RegionalEncounters"), Rows, Error))
+			for (const TSharedPtr<FJsonObject>& Row : Rows)
+			{
+				if (WFData::Str(Row, TEXT("RegionId")) != Region) continue;
+				TArray<TSharedPtr<FJsonValue>> List;
+				if (FJsonSerializer::Deserialize(TJsonReaderFactory<>::Create(WFData::Str(Row, TEXT("TroopsJson"))), List))
+					for (const TSharedPtr<FJsonValue>& V : List) if (const TSharedPtr<FJsonObject> O = V->AsObject()) Troops.Add({WFData::Str(O, TEXT("name")), WFData::Str(O, TEXT("drop"))});
+			}
+	}
+	const TArray<FWFTroop>& Troops = RosterByRegion[Region];
+	int32 Spawned = 0;
+	for (int32 I = 0; I < Size; ++I)
+	{
+		// sim.ts spawnEventSquad: a ring round the point, elites first, hp (elite 7 : 3.5) x challenge enemyHp, elites larger
+		const double A = (static_cast<double>(I) / Size) * UE_DOUBLE_PI * 2 + FMath::FRand() * 0.4;
+		const double X = (WebX + FMath::Cos(A) * RingM) * 100.0, Y = (WebZ + FMath::Sin(A) * RingM) * 100.0;
+		const FVector At(X, Y, GroundZ(X, Y, Pawn->GetActorLocation().Z) + 120);
+		const bool bElite = I < Elites;
+		const FWFTroop Troop = Troops.IsEmpty() ? FWFTroop{TEXT("Hostile"), TEXT("scrapMetal")} : Troops[I % Troops.Num()];
+		const double MaxHealth = (bElite ? 7.0 : 3.5) * (Progression ? Progression->GetChallengeEnemyHealthScale() : 1.0);
+		const FTransform Xf(FRotator::ZeroRotator, At, FVector(bElite ? 1.4 : 0.95));
+		if (AWFEnemy* Enemy = World->SpawnActorDeferred<AWFEnemy>(AWFEnemy::StaticClass(), Xf, nullptr, nullptr, ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn))
+		{
+			Enemy->Configure(Troop.Name, Region, Troop.Drop, bElite, false, MaxHealth);
+			if (const FString* Faction = FactionByRegion.Find(Region)) Enemy->SetKind(*Faction);
+			Enemy->SetActivityTag(Tag);
+			Enemy->SetSquadIndex(NextSquadIndex++);
+			Enemy->FinishSpawning(Xf);
+			++Spawned;
+		}
+	}
+	return Spawned;
+}
+
+void AWFGameMode::DespawnTag(const FString& Tag)
+{
+	TArray<AWFEnemy*> Leaving;
+	for (TActorIterator<AWFEnemy> It(GetWorld()); It; ++It) if (!It->IsDead() && It->GetActivityTag() == Tag) Leaving.Add(*It);
+	for (AWFEnemy* E : Leaving) E->Destroy();
+}
+
+void AWFGameMode::TickCityEvents(float DeltaSeconds)
+{
+	UWFProgressionSubsystem* Prog = GetGameInstance()->GetSubsystem<UWFProgressionSubsystem>();
+	APawn* Pawn = UGameplayStatics::GetPlayerPawn(this, 0);
+	if (!Prog || !Pawn) return;
+	const AWFCharacter* Player = Cast<AWFCharacter>(Pawn);
+	if (const AWFVehicle* Car = Cast<AWFVehicle>(Pawn)) Player = Car->GetDriver();
+	const FVector2D Here = WebPosition(Pawn->GetActorLocation());
+	const double Now = UWFProgressionSubsystem::NowMs();
+	const FColor Tint(255, 120, 80);
+	const FString CurTag = CityDirector.Current ? WFData::ToF(CityDirector.Current->Id) : FString();
+	int32 TagAlive = 0;
+	if (!CurTag.IsEmpty()) for (TActorIterator<AWFEnemy> It(GetWorld()); It; ++It) if (!It->IsDead() && It->GetActivityTag() == CurTag) ++TagAlive;
+	const UWFRaceSubsystem* Racing = GetGameInstance()->GetSubsystem<UWFRaceSubsystem>();
+	const UWFActivitySubsystem* Board = GetGameInstance()->GetSubsystem<UWFActivitySubsystem>();
+
+	wf::livingevent::FInput In;
+	In.Dt = DeltaSeconds; In.NowMs = Now; In.Rnd = []() { return static_cast<double>(FMath::FRand()); };
+	In.Px = Here.X; In.Pz = Here.Y;
+	In.bAlive = Player && Player->GetHealth() > 0;
+	In.City = wf::living::CityAt(Here.X, Here.Y);
+	// a race, a board activity or a strike run holds the city's events back (Scene.tsx blocked)
+	In.bBlocked = (Racing && Racing->IsRacing()) || (Board && Board->IsRunning()) || (StrikeDef && StrikeRun.Status == "ACTIVE");
+	In.TagAlive = TagAlive;
+	In.PlayerKills = CurTag.IsEmpty() ? 0 : TagKills.FindRef(CurTag);
+	In.Fallen = wf::livingevent::FallenDistricts(Prog->Get(), Now);
+	const wf::livingevent::FStep Step = wf::livingevent::StepDirector(CityDirector, In);
+	CityDirector = Step.Director;
+	if (Step.Started)
+	{
+		const wf::livingevent::FRule& R = wf::livingevent::RuleOf(Step.Started->Kind);
+		const wf::livingevent::FDistrict* D = wf::livingevent::DistrictById(Step.Started->District);
+		Toast(FString::Printf(TEXT("%s · %s — %s"), UTF8_TO_TCHAR(R.Title.c_str()), D ? UTF8_TO_TCHAR(D->Name.c_str()) : TEXT("the city"), UTF8_TO_TCHAR(R.Brief.c_str())), FLinearColor(1.f, 0.55f, 0.3f));
+	}
+	if (Step.Activated && CityDirector.Current)
+	{
+		wf::livingevent::FEvent& Ev = *CityDirector.Current;
+		const wf::livingevent::FSpawnPlan Plan = wf::livingevent::SpawnPlan(Ev);
+		const FString Tag = WFData::ToF(Ev.Id);
+		bool bBossUp = false;
+		if (Plan.bBoss)
+		{
+			// sim.ts summonBoss(nexus): the Nexus region's boss walks the edge; without one, four elites come instead
+			if (RegionBosses.IsEmpty())
+			{
+				TArray<TSharedPtr<FJsonObject>> Rows;
+				FString Error;
+				if (WFData::LoadRows(TEXT("RegionalEncounters"), Rows, Error))
+					for (const TSharedPtr<FJsonObject>& Row : Rows)
+					{
+						TSharedPtr<FJsonObject> Boss;
+						if (FJsonSerializer::Deserialize(TJsonReaderFactory<>::Create(WFData::Str(Row, TEXT("BossJson"))), Boss) && Boss.IsValid())
+							RegionBosses.Add(WFData::Str(Row, TEXT("RegionId")), TPair<FString, FString>(WFData::Str(Boss, TEXT("name")), WFData::Str(Boss, TEXT("drop"))));
+					}
+			}
+			if (const TPair<FString, FString>* B = RegionBosses.Find(TEXT("nexus")))
+			{
+				const double X = Ev.X * 100.0, Y = Ev.Z * 100.0;
+				const FTransform Xf(FRotator::ZeroRotator, FVector(X, Y, GroundZ(X, Y, Pawn->GetActorLocation().Z) + 200));
+				if (AWFEnemy* Boss = GetWorld()->SpawnActorDeferred<AWFEnemy>(AWFEnemy::StaticClass(), Xf, nullptr, nullptr, ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn))
+				{
+					Boss->Configure(B->Key, TEXT("nexus"), B->Value, true, true, wf::encounter::BossHpRegional * Prog->GetChallengeEnemyHealthScale());
+					if (const FString* Faction = FactionByRegion.Find(TEXT("nexus"))) Boss->SetKind(*Faction);
+					Boss->SetActivityTag(Tag);
+					Boss->SetSquadIndex(NextSquadIndex++);
+					Boss->FinishSpawning(Xf);
+					bBossUp = true;
+				}
+			}
+			if (!bBossUp) SpawnRegionSquad(Tag, Ev.X, Ev.Z, 4, 4, 12, WFData::ToF(Ev.City == "nexus" ? std::string("wastelands") : std::string("nexus")));
+		}
+		else SpawnRegionSquad(Tag, Ev.X, Ev.Z, Plan.Size, Plan.Elites, Plan.Spread, WFData::ToF(Plan.Region));
+		Ev.bSpawned = true;
+		Ev.Wave = wf::livingevent::FractureWaveEvery;
+		Toast(FString::Printf(TEXT("%s is live"), UTF8_TO_TCHAR(wf::livingevent::RuleOf(Ev.Kind).Title.c_str())), FLinearColor(1.f, 0.35f, 0.3f));
+	}
+	if (const std::optional<wf::livingevent::FSpawnPlan> Wave = wf::livingevent::FractureWave(CityDirector, TagAlive))
+		SpawnRegionSquad(WFData::ToF(CityDirector.Current->Id), CityDirector.Current->X, CityDirector.Current->Z, Wave->Size, 0, Wave->Spread, WFData::ToF(Wave->Region));
+	if (Step.Resolved)
+	{
+		const wf::livingevent::FEvent& Ev = Step.Resolved->Event;
+		const FString Tag = WFData::ToF(Ev.Id);
+		if (Step.Resolved->Outcome == "FAILED" || Ev.Kind == "FRACTURE") DespawnTag(Tag); // a closed rift takes its aberrations with it
+		TagKills.Remove(Tag);
+		std::string Line;
+		const std::string Outcome = Step.Resolved->Outcome;
+		Prog->ApplyStash([&Line, &Ev, &Outcome, Now](wf::FProgression& P) { Line = wf::livingevent::ResolveEvent(P, Ev, Outcome, Now); return !Line.empty(); });
+		if (!Line.empty()) Toast(UTF8_TO_TCHAR(Line.c_str()), Outcome == "WON" ? FLinearColor(1.f, 0.82f, 0.35f) : FLinearColor(1.f, 0.35f, 0.3f));
+	}
+	// the HUD line and the marker (a debug ring: compiled out of Shipping, where the HUD line guides you)
+	CityEventLine.Reset();
+	if (const std::optional<wf::livingevent::FEvent>& Ev = CityDirector.Current)
+	{
+		const wf::livingevent::FRule& R = wf::livingevent::RuleOf(Ev->Kind);
+		const double Dist = wf::js::Hypot(Here.X - Ev->X, Here.Y - Ev->Z);
+		CityEventLine = FString::Printf(TEXT("%s · %s · %s %.0f s · %.0f m%s"), UTF8_TO_TCHAR(R.Title.c_str()), UTF8_TO_TCHAR(Ev->Phase.c_str()), Ev->Phase == "WARNING" ? TEXT("starts in") : TEXT("left"), FMath::Max(0.0, Ev->Timer), Dist,
+			Ev->Kind == "FRACTURE" && Ev->Phase == "ACTIVE" ? *FString::Printf(TEXT(" · hold %.0f / %.0f s"), Ev->Hold, wf::livingevent::FractureHold) : TEXT(""));
+		if (Ev->Phase == "WARNING" || Ev->Phase == "ACTIVE")
+		{
+			const FVector At(Ev->X * 100.0, Ev->Z * 100.0, GroundZ(Ev->X * 100.0, Ev->Z * 100.0, Pawn->GetActorLocation().Z));
+			DrawDebugCylinder(GetWorld(), At, At + FVector(0, 0, 1500), (Ev->Kind == "FRACTURE" ? wf::livingevent::FractureRadius : 12.0) * 100.0, 24, Tint, false, -1.f, 0, 6.f);
+		}
+	}
 }

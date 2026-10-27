@@ -585,6 +585,7 @@ void AWFEnemy::Die()
 	if (Operator) Operator->OnEnemyKilled(this);
 	if (Mode && ActivityTag == UTF8_TO_TCHAR(wf::godforge::GuardianTag.c_str())) Mode->OnGuardianSlain();
 	if (Mode && ActivityTag.StartsWith(TEXT("worldboss:"))) Mode->OnWorldBossSlain(ActivityTag); // sim.ts livingKills (player credit)
+	if (Mode && !ActivityTag.IsEmpty()) Mode->OnTaggedKill(ActivityTag); // sim.ts livingKills: the city events count the player's kills
 }
 
 void AWFEnemy::ApplyWeaponElement(const FString& Element)

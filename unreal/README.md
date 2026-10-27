@@ -168,8 +168,15 @@ Until then the phone build is the web game (`mobile/`, the `android-latest` rele
   `TalkDo <n>`: city contracts (cull hostiles inside the city, deliver materials, survey a point; three at a time),
   turn-ins (standing, materials, XP), intel that reveals a stash (half price when trusted), amends when hostile, a
   one-time commendation when honored, and the permanent Neon City pledge to the Syndicate or Aegis (+20 with them, -25
-  with their rival). `Standing` prints all four factions. Defend contracts need the cities' world events, which are not
-  ported, so they cannot be finished yet.
+  with their rival). `Standing` prints all four factions.
+- **The cities' world events (living-events.ts, living-runtime.ts):** 75 s after you first walk into Nexus or Neon City,
+  then every 150-240 s, the city stages an event in one of its districts: an invasion, a distress call, a roaming boss
+  (the Nexus region's boss), a convoy or a fracture you hold for 25 s inside 9 m while aberrations pour out. A warning
+  toast and countdown come first, then the machines spawn (tagged to the event, scaled by your challenge tier); the HUD
+  shows the event, its phase, the time left and your distance, with a ring at the site. Clearing it pays standing with
+  the district's faction, materials and shards once per event and advances Defend contracts; failing (time out, or
+  dying or walking 80 m away) costs standing, and a lost district falls until an invasion retakes it. Races, board
+  activities and strike runs hold events back.
 - **Consumables and the stash:** Heal Stims (+5 health a second a stack, 30 s), Armor Stims (+10% resistance a stack, 60 s)
   and Ruin Stones (Ruin Surge, +15% damage a stack, 45 s) on keys 6 / 7 / J, stacking to 3 (stash.ts). `CraftStim`,
   `CraftRuinStone`, `SellGear` (duplicates, for shards), `DismantleGear` (into gear parts), `UpgradeGear` (3 parts a level:
@@ -363,6 +370,7 @@ cmake -S . -B build -G Ninja && cmake --build build && ctest --test-dir build --
 | ActivityCoreTest | activities.ts objectives, stepRun, targets, areas, featured and weekly rotations | 284 runs, 17,734 ticks, 22,068 checks |
 | PvpCoreTest | pvp.ts, crucible.ts | 61,728 match frames, 17,689 rival-field steps, 82,364 checks |
 | LivingNpcCoreTest | living-npcs.ts, npc-routine.ts, living-world.ts cities | 7,007 talk actions, 25,652 checks |
+| LivingEventCoreTest | living-events.ts | 120,163 director steps, 127,081 checks |
 | StashCoreTest | stash.ts | 10,209 stash operations, 16,465 checks |
 | HazardCoreTest | region-hazards.ts, hazard-zones.ts, landmarks.ts | 5,408 hazard steps, 12,000 zone probes, 33,445 checks |
 | StuntCoreTest | stunts.ts (air, tricks, combos, powerslides, pay), stunt-park.ts | 66,120 flight frames, 186,818 scored events, 329,904 checks |
@@ -373,7 +381,7 @@ The golden files (`Plugins/WorldFractureCore/Tests/<name>_golden.txt`) are **gen
 which broke the Lovable preview build. Record all of them from the repo root before configuring the tests (and again after changing
 the web build's rules):
 
-    node unreal/tools/gen-goldens.mjs            # all thirty-four
+    node unreal/tools/gen-goldens.mjs            # all thirty-five
     node unreal/tools/gen-goldens.mjs race shop  # just these
 
 `export-datatables` (the DataTables, which are committed) still runs on its own:
@@ -385,7 +393,7 @@ The encounter, Dragonite-cast, ability, tactics and Wastelands recorders route t
 ## Not ported yet
 Boss models and attack effects (zones are debug circles, decoys are stand-ins), mid-mission saves, ability mastery XP,
 region kinds for abilities (the map counts as a war zone),
-troopers running out of orbital strike circles (no strike beacons yet), legendary-chain.ts reactions (they need two hit sources, so never fire in single player), rain, snow and fog visuals (the weather is simulated and shown on the HUD), venue specials (venue-life.ts orderSpecial), the cities' world events (raids, distress calls) that Defend contracts count, the Killbox squadmates (squad.ts), the Hollow Star raid and
+troopers running out of orbital strike circles (no strike beacons yet), legendary-chain.ts reactions (they need two hit sources, so never fire in single player), rain, snow and fog visuals (the weather is simulated and shown on the HUD), venue specials (venue-life.ts orderSpecial), the Killbox squadmates (squad.ts), the Hollow Star raid and
 activity shader drops,
 diving (the thalassia-dive survive timer), the Neon City police response itself (the web build has only the heat meter and its labels; chase-ai.ts pursuit helpers are unused there), the Operations Hub preview marketplace (its wallet is not saved in the web build either), home interiors, cloud save merge, the rest of the world (terrain, the other regions, Neon City, Thalassia; Nexus City is in). Their data is already in
 `DataTables/`.
