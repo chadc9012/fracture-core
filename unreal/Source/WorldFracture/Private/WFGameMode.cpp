@@ -21,6 +21,7 @@
 #include "WFDataFiles.h"
 #include "WFEncounterData.h"
 #include "DrawDebugHelpers.h"
+#include "InputCoreTypes.h"
 #include "WFEnemy.h"
 #include "WFHUD.h"
 #include "WFNexusCity.h"
@@ -1863,8 +1864,8 @@ void AWFGameMode::TickWorldBoss(float DeltaSeconds)
 				if (FJsonSerializer::Deserialize(TJsonReaderFactory<>::Create(WFData::Str(Row, TEXT("BossJson"))), Boss) && Boss.IsValid())
 					RegionBosses.Add(WFData::Str(Row, TEXT("RegionId")), TPair<FString, FString>(WFData::Str(Boss, TEXT("name")), WFData::Str(Boss, TEXT("drop"))));
 			}
-		if (Scenarios.IsEmpty()) LoadScenarios();
 	}
+	if (Scenarios.IsEmpty()) LoadScenarios(); // on its own: a city event may have filled RegionBosses first
 	const FString Region = StF(Raid.Site.Region);
 	FString Name, Drop;
 	double BaseHp = wf::encounter::BossHpRegional;
@@ -2071,7 +2072,7 @@ void AWFGameMode::TickActivity(float DeltaSeconds)
 		if (const std::optional<wf::activity::FTarget> Tg = Board->Target())
 		{
 			const FVector At(Tg->X * 100.0, Tg->Z * 100.0, GroundZ(Tg->X * 100.0, Tg->Z * 100.0, Pawn->GetActorLocation().Z));
-			DrawDebugCylinder(GetWorld(), At, At + FVector(0, 0, 1200), wf::activity::CheckpointRadius * 100.0, 24, FColor(255, 200, 60), false, -1.f, 0, 6.f);
+			DrawDebugCylinder(GetWorld(), At, At + FVector(0, 0, 1200), static_cast<float>(wf::activity::CheckpointRadius * 100.0), 24, FColor(255, 200, 60), false, -1.f, 0, 6.f);
 		}
 	}
 	else if (Killbox || CrucibleField) { ClearRivals(); Killbox.reset(); CrucibleField.reset(); ArenaWeb.reset(); } // the match ended or was abandoned
@@ -2270,7 +2271,7 @@ void AWFGameMode::TickLivingNpcs(float DeltaSeconds)
 	for (const wf::living::FMarker& M : wf::living::LivingMarkers(Prog->Get()))
 	{
 		const FVector At(M.X * 100.0, M.Z * 100.0, GroundZ(M.X * 100.0, M.Z * 100.0, L.Z));
-		DrawDebugCylinder(World, At, At + FVector(0, 0, 800), (M.Kind == "survey" ? wf::living::SurveyReach : wf::living::StashReach) * 100.0, 20, M.Kind == "survey" ? FColor(120, 230, 255) : FColor(255, 200, 60), false, 0.55f, 0, 4.f);
+		DrawDebugCylinder(World, At, At + FVector(0, 0, 800), static_cast<float>((M.Kind == "survey" ? wf::living::SurveyReach : wf::living::StashReach) * 100.0), 20, M.Kind == "survey" ? FColor(120, 230, 255) : FColor(255, 200, 60), false, 0.55f, 0, 4.f);
 	}
 }
 
@@ -2479,7 +2480,7 @@ void AWFGameMode::TickCityEvents(float DeltaSeconds)
 		if (Ev->Phase == "WARNING" || Ev->Phase == "ACTIVE")
 		{
 			const FVector At(Ev->X * 100.0, Ev->Z * 100.0, GroundZ(Ev->X * 100.0, Ev->Z * 100.0, Pawn->GetActorLocation().Z));
-			DrawDebugCylinder(GetWorld(), At, At + FVector(0, 0, 1500), (Ev->Kind == "FRACTURE" ? wf::livingevent::FractureRadius : 12.0) * 100.0, 24, Tint, false, -1.f, 0, 6.f);
+			DrawDebugCylinder(GetWorld(), At, At + FVector(0, 0, 1500), static_cast<float>((Ev->Kind == "FRACTURE" ? wf::livingevent::FractureRadius : 12.0) * 100.0), 24, Tint, false, -1.f, 0, 6.f);
 		}
 	}
 }
