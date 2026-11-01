@@ -405,11 +405,12 @@ void AWFHUD::DrawHUD()
 
 	// running story mission: objective and NOVA's line
 	if (const UWFMissionSubsystem* Missions = Game ? Game->GetSubsystem<UWFMissionSubsystem>() : nullptr)
-		for (const FString& Id : Missions->GetRunningMissions())
+		if (const auto Running = Missions->GetRunningMissions(); !Running.IsEmpty())
 		{
+			// the first running mission only
+			const FString& Id = Running[0];
 			Line(FString::Printf(TEXT("MISSION / %s"), *Missions->GetObjective(Id).ToUpper()), 32, Y + 40, Gold);
 			Line(FString::Printf(TEXT("NOVA: %s"), *Missions->GetNovaLine(Id)), W / 2 - 420, H - 200, Soft, 0.85f);
-			break;
 		}
 
 	// top right: toasts
