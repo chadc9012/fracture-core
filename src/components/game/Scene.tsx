@@ -693,7 +693,7 @@ function SceneImpl({
   weaponOrder?: WeaponId[];
   /** star map deployment target; nonce changes trigger the drop */
   /** `descend`: a dungeon the Director map launched (director-activities.ts); its descent starts once you arrive */
-  travelTo?: { x: number; z: number; nonce: number; y?: number; descend?: string } | null;
+  travelTo?: { x: number; z: number; nonce: number; y?: number; descend?: string; /** arrive inside this interior (a new character wakes in Apartment 1204), at `local` metres in it */ interior?: string; local?: { x: number; z: number } } | null;
   onCheckpoint?: (p: { x: number; z: number }) => void;
   /** Opening cinematic: while set, the camera follows intro-camera.ts's scripted flythrough
    * instead of the normal player follow-cam — IntroCinematic.tsx's overlay fades out over this
@@ -3047,6 +3047,15 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
       travelSeen.current = travelTo.nonce;
       pendingDescend.current = travelTo.descend ?? null;
       s.x = travelTo.x; s.z = travelTo.z; s.y = walkHeight(s.x, s.z) + 1.6; s.vy = 0; s.vSpeed = 0; s.inVehicle = false; s.insideInterior = null; interior = null; velocity.set(0, 0, 0);
+      // arriving inside an interior (story-start.ts: a new character wakes in Apartment 1204): the way out is the building's street door
+      const into = travelTo.interior ? interiorById(travelTo.interior) : null;
+      if (into) {
+        const street = into.viaLift ? interiorById("nexus-apartment") ?? into : into;
+        s.interiorReturnPos = { x: street.doorPos.x, y: walkHeight(street.doorPos.x, street.doorPos.z) + 1.6, z: street.doorPos.z };
+        s.insideInterior = into.id; interior = into;
+        s.x = into.origin.x + (travelTo.local?.x ?? into.spawnOffset.x); s.z = into.origin.z + (travelTo.local?.z ?? into.spawnOffset.z);
+        s.interiorPrevX = s.x; s.y = INTERIOR_ALTITUDE + 1.6; s.grounded = true; s.diving = false;
+      }
       // submersible arrival (Thalassia): the sub breaches the dock seal and you exit at depth, diving, full rebreather
       if (travelTo.y !== undefined) { s.y = travelTo.y; s.diving = true; s.grounded = false; s.oxygen = OXYGEN_MAX; s.hull = 0; s.breachAt = performance.now() / 1000; s.sector = sectorAt(s.x, s.y, s.z); }
       submerged = heightAt(s.x, s.z) < WATER_LEVEL - 0.2;

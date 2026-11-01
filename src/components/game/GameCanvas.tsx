@@ -41,7 +41,8 @@ import { shouldPlay as shouldPlayCine, markPlayed as markCinePlayed } from "@/ga
 import { undiscoveredNear, discoverLandmarks, isLandmarkKnown } from "@/game/landmarks";
 import { ruinById, discoverNearby, canEvolve, evolveWeapon, isWeapon, ABILITY_RULES, EVOLVE_POWER_BONUS, EVOLVE_MIN_LEVEL, EVOLVE_CATALYSTS, EVOLVE_ELEMENT_AMOUNT } from "@/game/weapon-evolution";
 import { HUD } from "./HUD";
-import { Scene, type HudState } from "./Scene";
+import { SPAWN, Scene, type HudState } from "./Scene";
+import { OPENING_FLOOR, WAKE_AT, openingOver, skipOpening, startsInResidences } from "@/game/story-start";
 import { WorldErrorBoundary } from "./WorldErrorBoundary";
 import { GraphicsGuard } from "./GraphicsGuard";
 import { CinematicGrade } from "./CinematicGrade";
@@ -564,7 +565,7 @@ export function GameCanvas() {
   }, [hud.cacheNear?.id, hud.cacheNear?.ok]);
   const [atlasOpen, setAtlasOpen] = useCountedState("atlasOpen", false);
   const [hubView, setHubView] = useCountedState<"starmap" | "arsenal" | "saves" | null>("hubView", null);
-  const [travelTo, setTravelTo] = useCountedState<{ x: number; z: number; nonce: number; y?: number; descend?: string } | null>("travelTo", null);
+  const [travelTo, setTravelTo] = useCountedState<{ x: number; z: number; nonce: number; y?: number; descend?: string; interior?: string; local?: { x: number; z: number } } | null>("travelTo", null);
   /** star-map fast travel: a Destiny-style cover hides the teleport (transit.ts timeline); the player moves only while fully covered */
   const [transit, setTransit] = useCountedState<{ startedAt: number; plan: TransitPlan; reduced: boolean; target: DeployTarget } | null>("transit", null);
   const transitTimers = useRef<number[]>([]);
@@ -653,14 +654,16 @@ export function GameCanvas() {
   /* Mission 01 · Broken Signal starts as a world event once the player is free-roaming. */
   const [mission, setMission] = useCountedState<MissionRun | null>("mission", () => restoreMission<MissionRun>("broken-signal", progression));
   useEffect(() => setProgression((p) => withMissionRun(p, "broken-signal", mission)), [mission]);
+  /** story-start.ts: a new character's opening in Nexus City Residences is running (the tutorial and Awakening wait for it) */
+  const [opening, setOpening] = useState(false);
   const [awakening, setAwakening] = useCountedState<AwakeningRun | null>("awakening", () => restoreMission<AwakeningRun>("awakening", progression));
   useEffect(() => setProgression((p) => withMissionRun(p, "awakening", awakening)), [awakening]);
   const awakeningDone = progression.completedMissions.includes("awakening");
   useEffect(() => {
-    if (phase !== "world" || tutorial || awakening || awakeningDone) return;
+    if (phase !== "world" || tutorial || opening || awakening || awakeningDone) return;
     const timer = window.setTimeout(() => setAwakening(advanceAwakening(AWAKENING, { type: "START" })), 2500);
     return () => window.clearTimeout(timer);
-  }, [phase, tutorial, awakening, awakeningDone]);
+  }, [phase, tutorial, opening, awakening, awakeningDone]);
   useEffect(() => {
     if (awakening?.state === "LOOT") return; // loot granted on ACK
     if (awakening?.state !== "COMPLETE" || awakeningDone) return;
@@ -1057,12 +1060,34 @@ export function GameCanvas() {
     }
   };
   // a confirmed character; the cinematic plays only for a save that has not seen it (not on re-deploys or Continue)
-  const deploy = (deployment: Deployment) => enterWorld(
-    { cls: deployment.classId, subclass: deployment.subclassId, appearance: deployment.appearance, bodyType: deployment.bodyType },
-    { newCharacter: true, intro: shouldPlayIntro(progressionRef.current) },
-  );
+  const deploy = (deployment: Deployment) => {
+    const session = { cls: deployment.classId, subclass: deployment.subclassId, appearance: deployment.appearance, bodyType: deployment.bodyType };
+    // story-start.ts: a new character wakes in Apartment 1204; the cinematic and the forest calibration follow the evacuation
+    if (startsInResidences(progressionRef.current)) { enterWorld(session, { newCharacter: true, intro: false }); beginOpening(); return; }
+    enterWorld(session, { newCharacter: true, intro: shouldPlayIntro(progressionRef.current) });
+  };
+  /** into Apartment 1204 beside the bed, the tutorial held back; the residences' first morning and evacuation take it from here */
+  const beginOpening = () => {
+    setTutorial(null);
+    setOpening(true);
+    setTravelTo({ x: 0, z: 0, nonce: Date.now(), interior: OPENING_FLOOR, local: { x: WAKE_AT.x, z: WAKE_AT.z } });
+    setHud((h) => ({ ...h, region: "Nexus City", regionId: "nexus", sub: "Nexus City Residences", kind: "safe" as const, difficulty: 0 }));
+    setCaptionQueue([{ speaker: "Apartment 1204", text: "Morning light through the glass. The city hums below. Time to get ready." }]);
+  };
+  /** out of the building (or skipped): the opening cinematic, then the Verdant Forest field calibration */
+  const endOpening = () => {
+    setOpening(false);
+    setProgression((p) => withIntroSeen(p));
+    setTutorial(tutorialForEntry(progressionRef.current));
+    setTravelTo({ x: SPAWN.x, z: SPAWN.z, nonce: Date.now() });
+    setHud((h) => ({ ...h, region: "Verdant Forest", regionId: "veridan", sub: "Starter Zone / Resources", kind: "starter" as const, difficulty: 1, weather: "Rain mist" }));
+    if (shouldPlayCine(progressionRef.current.story, "m1-opening")) { setCineProgress(0); setCineId("m1-opening"); }
+    else { setIntroElapsed(0); setShowIntro(true); }
+  };
   // Continue / hub: restore exactly what the save describes, no onboarding replay
   const continueIntoWorld = () => enterWorld(sessionFromProgression(progressionRef.current), { newCharacter: false, intro: false });
+  /** the title screen's Continue: a save that never got out of the residences starts again in the apartment */
+  const resumeFromTitle = () => { continueIntoWorld(); if (startsInResidences(progressionRef.current)) beginOpening(); };
   const continueRef = useRef(continueIntoWorld);
   continueRef.current = continueIntoWorld; // the delayed swap must use the latest closure, not the one from the click
   const startTransit = (target: DeployTarget) => {
@@ -1275,6 +1300,13 @@ export function GameCanvas() {
     const t = setTimeout(() => setCaptionQueue((q) => q.slice(1)), 4500);
     return () => clearTimeout(t);
   }, [captionQueue]);
+  // the opening ends when the save records it: out through the lobby doors in the evacuation (evac:done), or skipped
+  useEffect(() => {
+    if (!opening || !openingOver(progression)) return;
+    const t = window.setTimeout(endOpening, 2500); // let "You got out" be read before the cinematic
+    return () => window.clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [opening, progression.earnedRewards]);
   /** Living World outcomes from Scene (living-runtime.ts): all three reducers are idempotent, so a repeat changes nothing */
   /** Wastelands activities (wasteland-runtime.ts): each reducer is once-keyed, so a repeated emit changes nothing */
   const recordWaste = useCallback((event: WasteEmit) => {
@@ -1481,7 +1513,7 @@ export function GameCanvas() {
             onProgression={setProgression}
             onDeploy={startTransit}
             onCrucible={launchCrucible}
-            onResume={continueIntoWorld}
+            onResume={resumeFromTitle}
             onSystem={() => setMenuOpen(true)}
             operatorName={classById(progression.identityClass ?? cls).name}
             playerClass={progression.identityClass ?? cls}
@@ -1809,6 +1841,10 @@ export function GameCanvas() {
       {landmarkToast && !atlasOpen && <HudRail side="left" order={0}><div className="pointer-events-none absolute left-1/2 top-28 z-30 w-[min(26rem,86vw)] -translate-x-1/2 border-l-2 border-primary bg-background/80 px-3 py-2" role="status"><p className="font-mono text-[9px] uppercase tracking-[0.3em] text-primary">Landmark discovered</p><p className="text-sm font-semibold">{landmarkToast.name}</p><p className="mt-0.5 text-[11px] text-muted-foreground">{landmarkToast.history}</p></div></HudRail>}
        {atlasOpen && <WorldAtlas onStartRace={startRace} activeActivityId={activity?.def.id ?? null} progression={progression} markers={hud.markers} px={hud.px} pz={hud.pz} currentRegion={hud.region} phase={hud.phase} onClose={() => setAtlasOpen(false)} onProgression={setProgression} onTravel={(a) => { setAtlasOpen(false); startTransit({ id: a.id, name: a.name, sub: ACTIVITY_LABEL[a.kind], color: ACTIVITY_COLOR[a.kind], x: a.drop.x, z: a.drop.z, ...(a.drop.y !== undefined ? { y: a.drop.y } : {}) }); }} />}
       {awakening && <AwakeningOverlay run={awakening} onEvent={recordAwakening} />}
+      {opening && phase === "world" && !menuOpen && <div className="pointer-events-none fixed right-4 top-16 z-20 text-right">
+        <p className="font-mono text-[10px] uppercase tracking-[0.3em] text-violet-200/80">Prologue · Before the Fracture</p>
+        <button type="button" onClick={() => setProgression((p) => skipOpening(p))} className="pointer-events-auto mt-1 border border-white/25 bg-black/40 px-3 py-1 font-mono text-[10px] uppercase tracking-[0.2em] text-white/70 hover:border-white/60 hover:text-white">Skip prologue</button>
+      </div>}
       {mission && <BrokenSignalOverlay mission={mission} onEvent={recordMission} />}
       {blackout && <BlackoutProtocolOverlay mission={blackout} onEvent={recordBlackout} />}
       {relay && <DrownedRelayOverlay mission={relay} onEvent={recordRelay} />}
