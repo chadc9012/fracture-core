@@ -84,7 +84,8 @@ jobs:
           # an Installed Build only packages for the platforms it was built with; a source build can add Android itself
           docker run --rm "${{ inputs.engine_image }}" bash -lc '
             E=/home/ue4/UnrealEngine/Engine
-            if [ -f "$E/Build/InstalledBuild.txt" ] && [ ! -d "$E/Binaries/Android" ] && ! ls "$E"/Platforms/Android >/dev/null 2>&1; then
+            # an Installed Build lists what it can package in InstalledPlatformConfigurations; the Platforms/Android folder alone is not enough
+            if [ -f "$E/Build/InstalledBuild.txt" ] && ! grep -q "InstalledPlatformConfigurations=(PlatformName=\"Android\"" "$E/Config/BaseEngine.ini"; then
               echo "::error::This engine image is an Installed Build without Android support, so it cannot package an APK. Use a source-build image tag, or the PC workflow (Unreal Android APK)."
               exit 1
             fi
