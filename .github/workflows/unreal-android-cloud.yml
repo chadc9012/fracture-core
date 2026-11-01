@@ -92,7 +92,7 @@ jobs:
 
       - name: Android SDK, NDK and Java for the engine
         run: |
-          mkdir -p /mnt/android && cd /mnt/android
+          sudo mkdir -p /mnt/android && sudo chown "$(id -u):$(id -g)" /mnt/android && cd /mnt/android
           curl -sSLo tools.zip https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip
           unzip -q tools.zip && mkdir -p sdk/cmdline-tools && mv cmdline-tools sdk/cmdline-tools/latest
           yes | sdk/cmdline-tools/latest/bin/sdkmanager --sdk_root=/mnt/android/sdk --licenses > /dev/null
