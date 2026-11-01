@@ -3,6 +3,7 @@ import { ArrowLeft, Check, Eye, Plus } from "lucide-react";
 import { WeaponInspection } from "./WeaponInspection";
 import { WeaponCatalogue } from "./WeaponCatalogue";
 import { WeaponClassCards } from "./WeaponClassCards";
+import { ArsenalIndex, ArsenalVault } from "./ArsenalIndex";
 import { Button } from "@/components/ui/button";
 import { WEAPONS, WEAPON_ORDER, type WeaponId } from "@/game/weapons";
 import { classById } from "@/game/loadout";
@@ -20,6 +21,7 @@ export function ArsenalLoadouts({ progression, onProgression, onBack, embedded =
   const [editing, setEditing] = useState(arsenal.active);
   const loadout = arsenal.loadouts[editing] ?? arsenal.loadouts[0]!;
   const [inspect, setInspect] = useState<WeaponId | null>(null);
+  const [tab, setTab] = useState<"LOADOUTS" | "INDEX" | "VAULT" | "CATALOGUE">("LOADOUTS");
 
   const write = (loadouts: WeaponLoadout[], active = arsenal.active) =>
     onProgression({ ...progression, arsenal: { ...progression.arsenal, [cls]: { loadouts, active } } });
@@ -43,6 +45,12 @@ export function ArsenalLoadouts({ progression, onProgression, onBack, embedded =
         <nav className="flex gap-1">{CLASSES.map((c) => <Button key={c} size="sm" variant="ghost" onClick={() => { setCls(c); setEditing(progression.arsenal[c].active); }} className={`rounded-none border-b-2 font-mono ${cls === c ? "border-primary text-primary" : "border-transparent"}`}>{classById(c).name}{progression.identityClass === c ? " ·" : ""}</Button>)}</nav>
       </header>
 
+      <div className="wf-tabs mx-auto mt-4 max-w-6xl" role="tablist" aria-label="Arsenal sections">
+        {(["LOADOUTS", "INDEX", "VAULT", "CATALOGUE"] as const).map((t) => <button key={t} type="button" role="tab" aria-selected={tab === t} className="wf-tab" onClick={() => setTab(t)}>{t === "LOADOUTS" ? "Loadouts" : t === "INDEX" ? "Index" : t === "VAULT" ? "Vault" : "Catalogue"}</button>)}
+      </div>
+      {tab === "INDEX" && <ArsenalIndex progression={progression} onProgression={onProgression} />}
+      {tab === "VAULT" && <ArsenalVault progression={progression} onProgression={onProgression} />}
+      {tab === "LOADOUTS" && <>
       <div className="mx-auto mt-5 grid max-w-6xl gap-5 lg:grid-cols-[16rem_minmax(0,1fr)]">
         <aside>
           <p className="ui-kicker">{classById(cls).name} loadouts</p>
@@ -81,7 +89,8 @@ export function ArsenalLoadouts({ progression, onProgression, onBack, embedded =
         </section>
       </div>
       <WeaponClassCards />
-      <div className="mx-auto max-w-6xl"><WeaponCatalogue progression={progression} /></div>
+      </>}
+      {tab === "CATALOGUE" && <div className="mx-auto max-w-6xl"><WeaponCatalogue progression={progression} /></div>}
     </div>
   );
 }
