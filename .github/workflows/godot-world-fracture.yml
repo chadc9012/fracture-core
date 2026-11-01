@@ -1,0 +1,85 @@
+# Builds the Godot version of World Fracture (godot-world-fracture/) as an Android APK and publishes it as the "godot-latest"
+# release, so it installs straight from a phone. The world data comes from the web game: scripts/export-godot-data.ts writes
+# godot-world-fracture/generated/ (gitignored) before the export.
+name: Godot APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "godot-world-fracture/**"
+      - "scripts/export-godot-data.ts"
+      - "src/game/planet.ts"
+      - "src/game/globe.ts"
+      - "src/game/carto-*.ts"
+      - "public/maps/**"
+      - ".github/workflows/godot-world-fracture.yml"
+  schedule:
+    - cron: "41 7 * * *"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: godot-apk
+  cancel-in-progress: true
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    env:
+      GODOT: "4.6.2"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: "17" }
+      - uses: oven-sh/setup-bun@v2
+      - name: Export the world data from the web game
+        run: |
+          bun install --frozen-lockfile
+          bun scripts/export-godot-data.ts
+      - name: Install Godot and export templates
+        run: |
+          cd $RUNNER_TEMP
+          curl -sSL -o godot.zip "https://github.com/godotengine/godot/releases/download/${GODOT}-stable/Godot_v${GODOT}-stable_linux.x86_64.zip"
+          unzip -q godot.zip && mv Godot_v${GODOT}-stable_linux.x86_64 /usr/local/bin/godot
+          curl -sSL -o tpl.tpz "https://github.com/godotengine/godot/releases/download/${GODOT}-stable/Godot_v${GODOT}-stable_export_templates.tpz"
+          mkdir -p ~/.local/share/godot/export_templates/${GODOT}.stable
+          unzip -q -j tpl.tpz 'templates/android_*' 'templates/version.txt' -d ~/.local/share/godot/export_templates/${GODOT}.stable
+      - name: Editor settings and debug keystore
+        run: |
+          keytool -keyalg RSA -genkeypair -alias androiddebugkey -keypass android -keystore $RUNNER_TEMP/debug.keystore \
+            -storepass android -dname "CN=Android Debug,O=Android,C=US" -validity 9999
+          mkdir -p ~/.config/godot
+          cat > ~/.config/godot/editor_settings-4.6.tres <<EOT
+          [gd_resource type="EditorSettings" format=3]
+          [resource]
+          export/android/android_sdk_path = "$ANDROID_SDK_ROOT"
+          export/android/java_sdk_path = "$JAVA_HOME"
+          export/android/debug_keystore = "$RUNNER_TEMP/debug.keystore"
+          export/android/debug_keystore_user = "androiddebugkey"
+          export/android/debug_keystore_pass = "android"
+          EOT
+          sed -i 's/^ *//' ~/.config/godot/editor_settings-4.6.tres
+      - name: Export the APK
+        working-directory: godot-world-fracture
+        env:
+          GODOT_ANDROID_KEYSTORE_DEBUG_PATH: ${{ runner.temp }}/debug.keystore
+          GODOT_ANDROID_KEYSTORE_DEBUG_USER: androiddebugkey
+          GODOT_ANDROID_KEYSTORE_DEBUG_PASSWORD: android
+        run: |
+          mkdir -p build/android
+          godot --headless --import || true
+          godot --headless --export-debug "Android" build/android/WorldFracture-Godot.apk
+          ls -la build/android
+      - uses: actions/upload-artifact@v4
+        with: { name: WorldFracture-Godot, path: godot-world-fracture/build/android/WorldFracture-Godot.apk }
+      - name: Publish the godot-latest release
+        env: { GH_TOKEN: "${{ github.token }}" }
+        run: |
+          gh release delete godot-latest --yes --cleanup-tag || true
+          gh release create godot-latest godot-world-fracture/build/android/WorldFracture-Godot.apk \
+            --title "World Fracture in Godot (latest)" \
+            --notes "Built from ${GITHUB_SHA::7}. The Godot version of World Fracture, moving over piece by piece: the planet globe and every region map so far. Open this page on your Android phone, tap WorldFracture-Godot.apk and allow installs when asked." \
+            --prerelease
