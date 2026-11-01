@@ -512,7 +512,7 @@ void AWFNexusCity::ApplyNightLook()
 	// the realistic atmosphere (WFAtmosphere) owns the air and the night grade when it is there: one height fog only
 	if (TActorIterator<AWFAtmosphere>(World)) return;
 	AExponentialHeightFog* Fog = nullptr;
-	for (TActorIterator<AExponentialHeightFog> It(World); It; ++It) { Fog = *It; break; }
+	if (TActorIterator<AExponentialHeightFog> FogIt(World); FogIt) Fog = *FogIt;
 	if (!Fog) Fog = World->SpawnActor<AExponentialHeightFog>(HubCentre, FRotator::ZeroRotator); // at the city's own ground
 	if (Fog && Fog->GetComponent())
 	{

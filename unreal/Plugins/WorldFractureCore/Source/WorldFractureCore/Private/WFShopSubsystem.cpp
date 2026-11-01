@@ -81,8 +81,8 @@ void UWFShopSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 	Collection.InitializeDependency<UWFProgressionSubsystem>();
 	Super::Initialize(Collection);
 	FString Error;
-	if (!ShopLoad(Shops, Error)) UE_LOG(LogWorldFracture, Warning, TEXT("World Fracture shops: %s"), *Error);
-	else UE_LOG(LogWorldFracture, Log, TEXT("World Fracture shops: %d shops, %d manifest weapons, %d collections"), static_cast<int32>(Shops.Shops.size()), static_cast<int32>(Shops.Weapons.size()), static_cast<int32>(Shops.Collections.size()));
+	if (!ShopLoad(Shops, Error)) { UE_LOG(LogWorldFracture, Warning, TEXT("World Fracture shops: %s"), *Error); }
+	else { UE_LOG(LogWorldFracture, Log, TEXT("World Fracture shops: %d shops, %d manifest weapons, %d collections"), static_cast<int32>(Shops.Shops.size()), static_cast<int32>(Shops.Weapons.size()), static_cast<int32>(Shops.Collections.size())); }
 }
 
 UWFProgressionSubsystem* UWFShopSubsystem::Progression() const

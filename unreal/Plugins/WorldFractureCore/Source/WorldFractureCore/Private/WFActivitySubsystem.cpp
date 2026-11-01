@@ -76,7 +76,7 @@ void UWFActivitySubsystem::Initialize(FSubsystemCollectionBase& Collection)
 	if (WFData::LoadRows(TEXT("ActivityAreas"), Rows, Error))
 		for (const TSharedPtr<FJsonObject>& Row : Rows)
 			AreaList.push_back({ToStd(WFData::Str(Row, TEXT("Id"))), ToStd(WFData::Str(Row, TEXT("DisplayName"))), WFData::Num(Row, TEXT("X")), WFData::Num(Row, TEXT("Z")), WFData::Num(Row, TEXT("Radius"))});
-	else UE_LOG(LogWorldFracture, Warning, TEXT("World Fracture activities: %s"), *Error);
+	else { UE_LOG(LogWorldFracture, Warning, TEXT("World Fracture activities: %s"), *Error); }
 	if (!WFData::LoadRows(TEXT("Activities"), Rows, Error)) { UE_LOG(LogWorldFracture, Warning, TEXT("World Fracture activities: %s"), *Error); return; }
 	for (const TSharedPtr<FJsonObject>& Row : Rows)
 	{

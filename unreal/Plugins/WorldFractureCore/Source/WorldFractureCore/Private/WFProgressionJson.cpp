@@ -516,9 +516,9 @@ namespace WFProgressionJson
 				if ((*Fl)->TryGetObjectField(TEXT("paint"), Paint) && Paint && Paint->IsValid())
 					for (const auto& X : (*Paint)->Values) { FString V; if (X.Value.IsValid() && X.Value->TryGetString(V)) P.Fleet.Paint[ToStd(X.Key)] = ToStd(V); }
 				P.Fleet.Active = ReadOptionalString(*Fl, TEXT("active"));
-				const TSharedPtr<FJsonObject>* Cos = nullptr;
-				if ((*Fl)->TryGetObjectField(TEXT("cosmetics"), Cos) && Cos && Cos->IsValid())
-					for (const auto& X : (*Cos)->Values)
+				const TSharedPtr<FJsonObject>* CosObj = nullptr;
+				if ((*Fl)->TryGetObjectField(TEXT("cosmetics"), CosObj) && CosObj && CosObj->IsValid())
+					for (const auto& X : (*CosObj)->Values)
 					{
 						const TSharedPtr<FJsonObject> C = X.Value.IsValid() ? X.Value->AsObject() : nullptr;
 						if (!C.IsValid()) continue;

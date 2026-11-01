@@ -26,8 +26,8 @@ void UWFRaceSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 	Collection.InitializeDependency<UWFProgressionSubsystem>();
 	Super::Initialize(Collection);
 	FString Error;
-	if (!WFRaceData::Load(Races, Activities, Error)) UE_LOG(LogWorldFracture, Warning, TEXT("World Fracture racing: %s"), *Error);
-	else UE_LOG(LogWorldFracture, Log, TEXT("World Fracture racing: %d courses, %d championships"), static_cast<int32>(Races.Races.size()), static_cast<int32>(Races.Championships.size()));
+	if (!WFRaceData::Load(Races, Activities, Error)) { UE_LOG(LogWorldFracture, Warning, TEXT("World Fracture racing: %s"), *Error); }
+	else { UE_LOG(LogWorldFracture, Log, TEXT("World Fracture racing: %d courses, %d championships"), static_cast<int32>(Races.Races.size()), static_cast<int32>(Races.Championships.size())); }
 }
 
 UWFProgressionSubsystem* UWFRaceSubsystem::Progression() const

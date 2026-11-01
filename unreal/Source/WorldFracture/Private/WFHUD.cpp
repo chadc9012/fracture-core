@@ -522,9 +522,10 @@ void AWFHUD::DrawTouchControls(float W, float H)
 	}
 }
 
-void AWFHUD::NotifyHitBoxClick_Implementation(FName BoxName)
+void AWFHUD::NotifyHitBoxClick(FName HitBox)
 {
-	Super::NotifyHitBoxClick_Implementation(BoxName);
+	Super::NotifyHitBoxClick(HitBox);
+	const FName BoxName = HitBox;
 	const APlayerController* PC = GetOwningPlayerController();
 	UInputAction* Action = TouchActionFor(BoxName);
 	UEnhancedInputLocalPlayerSubsystem* Input = PC ? ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(PC->GetLocalPlayer()) : nullptr;
@@ -537,10 +538,10 @@ void AWFHUD::NotifyHitBoxClick_Implementation(FName BoxName)
 	HeldTouch.Add(BoxName, Action);
 }
 
-void AWFHUD::NotifyHitBoxRelease_Implementation(FName BoxName)
+void AWFHUD::NotifyHitBoxRelease(FName HitBox)
 {
-	Super::NotifyHitBoxRelease_Implementation(BoxName);
-	ReleaseTouch(BoxName);
+	Super::NotifyHitBoxRelease(HitBox);
+	ReleaseTouch(HitBox);
 }
 
 void AWFHUD::ReleaseTouch(FName BoxName)

@@ -130,7 +130,7 @@ void AWFGameMode::EnsurePlayableWorld()
 		if (AWFAtmosphere* Air = World->SpawnActor<AWFAtmosphere>(FVector::ZeroVector, FRotator::ZeroRotator))
 		{
 			ASkyLight* SkyActor = nullptr;
-			for (TActorIterator<ASkyLight> It(World); It; ++It) { SkyActor = *It; break; }
+			if (TActorIterator<ASkyLight> SkyIt(World); SkyIt) SkyActor = *SkyIt;
 			ADirectionalLight* Sun = SunLight.Get();
 			Air->Bind(Sun ? Cast<UDirectionalLightComponent>(Sun->GetLightComponent()) : nullptr, SkyActor ? SkyActor->GetLightComponent() : nullptr);
 			Atmosphere = Air;

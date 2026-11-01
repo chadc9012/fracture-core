@@ -449,7 +449,7 @@ namespace wf::activity
 	namespace
 	{
 		std::string RecKey(const std::string& Id) { return "act:" + Id; }
-		std::string WeekKeyUtc(double NowMs)
+		std::string RcWeekKeyUtc(double NowMs)
 		{
 			const double Days = std::floor(NowMs / 86400000.0);
 			const double Weekday = std::fmod(std::fmod(Days + 4, 7) + 7, 7); // 1970-01-01 was a Thursday
@@ -458,7 +458,7 @@ namespace wf::activity
 		}
 	}
 
-	std::string PeriodKey(const FActivityDef& Def, double NowMs) { return Def.Period == "week" ? "w" + WeekKeyUtc(NowMs) : scenario::DayKeyUtc(NowMs); }
+	std::string PeriodKey(const FActivityDef& Def, double NowMs) { return Def.Period == "week" ? "w" + RcWeekKeyUtc(NowMs) : scenario::DayKeyUtc(NowMs); }
 
 	double ReputationOf(const FProgression& P, const std::string& Faction)
 	{

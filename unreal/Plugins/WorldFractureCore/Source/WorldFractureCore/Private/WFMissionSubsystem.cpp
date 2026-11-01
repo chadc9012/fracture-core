@@ -19,12 +19,12 @@ void UWFMissionSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 	if (WFData::LoadRows(TEXT("MissionLines"), Rows, Error))
 		for (const TSharedPtr<FJsonObject>& Row : Rows)
 			Lines.Add(ToStd(WFData::Str(Row, TEXT("Mission"))), ToStd(WFData::Str(Row, TEXT("Field"))), ToStd(WFData::Str(Row, TEXT("Key"))), ToStd(WFData::Str(Row, TEXT("Text"))));
-	else UE_LOG(LogWorldFracture, Error, TEXT("Mission lines failed to load: %s"), *Error);
+	else { UE_LOG(LogWorldFracture, Error, TEXT("Mission lines failed to load: %s"), *Error); }
 
 	if (WFData::LoadRows(TEXT("MissionObjectives"), Rows, Error))
 		for (const TSharedPtr<FJsonObject>& Row : Rows)
 			Objectives.Add(WFData::Str(Row, TEXT("Mission")) + TEXT("/") + WFData::Str(Row, TEXT("State")), WFData::Str(Row, TEXT("Objective")));
-	else UE_LOG(LogWorldFracture, Error, TEXT("Mission objectives failed to load: %s"), *Error);
+	else { UE_LOG(LogWorldFracture, Error, TEXT("Mission objectives failed to load: %s"), *Error); }
 	UE_LOG(LogWorldFracture, Log, TEXT("Missions: %d lines, %d objectives"), static_cast<int32>(Lines.Num()), Objectives.Num());
 }
 

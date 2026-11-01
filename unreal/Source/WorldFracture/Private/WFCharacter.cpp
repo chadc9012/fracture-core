@@ -752,7 +752,7 @@ void AWFCharacter::JumpPressed()
 		return;
 	}
 	// movement.ts airJump: Titan one, Hunter two, Warlock one (then hold to glide)
-	const double Mult = wf::move::AirJump(Move, MoveClass());
+	const double Mult = wf::move::AirJump(MoveKit, MoveClass());
 	if (Mult >= 0) LaunchCharacter(FVector(0, 0, JumpZ * Mult), false, true);
 }
 
@@ -768,13 +768,13 @@ void AWFCharacter::TickMovementKit(float DeltaSeconds)
 	UCharacterMovementComponent* Cm = GetCharacterMovement();
 	const bool bGrounded = Cm->IsMovingOnGround();
 	const std::string Cls = MoveClass();
-	if (bGrounded) wf::move::Land(Move, Cls);
+	if (bGrounded) wf::move::Land(MoveKit, Cls);
 	// slide: crouch pressed out of a sprint commits to the heading with a burst that bleeds off
 	const FVector V = GetVelocity();
-	if (bCrouchHeld && !bSlideKeyWas && bGrounded) wf::move::StartSlide(Move, V.X / 100 / FootRatio, V.Y / 100 / FootRatio);
+	if (bCrouchHeld && !bSlideKeyWas && bGrounded) wf::move::StartSlide(MoveKit, V.X / 100 / FootRatio, V.Y / 100 / FootRatio);
 	bSlideKeyWas = bCrouchHeld;
 	if (MoveKit.SlideLeft > 0 && (!bGrounded || bJumpHeld)) wf::move::CancelSlide(MoveKit);
-	const double Slide = wf::move::StepSlide(Move, Dt);
+	const double Slide = wf::move::StepSlide(MoveKit, Dt);
 	if (Slide > 0)
 	{
 		const double Ue = Slide * (1 + ArmorFx.SlideBoost) * FootRatio * 100;
@@ -782,8 +782,8 @@ void AWFCharacter::TickMovementKit(float DeltaSeconds)
 	}
 	wf::move::FStanceInput In;
 	In.bCrouchHeld = bCrouchHeld; In.bSprinting = bSprinting; In.bJumping = bJumpHeld; In.bGrounded = bGrounded; In.bSliding = MoveKit.SlideLeft > 0; In.bSwimming = Cm->IsSwimming();
-	wf::move::ResolveStance(Move, In);
-	wf::move::StepStance(Move, Dt);
+	wf::move::ResolveStance(MoveKit, In);
+	wf::move::StepStance(MoveKit, Dt);
 	// Warlock glide: holding jump while falling caps the fall and pushes forward
 	if (!bGrounded && Cm->IsFalling())
 	{

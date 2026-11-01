@@ -11,7 +11,7 @@ enum class EWFMissionEvent : uint8 { Start, Anchor, Arrived, Clear, Hack, Hold, 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FWFMissionStateChanged, const FString&, MissionId, const FString&, NewState, const FString&, NovaLine);
 
 /**
- * Runs the scripted story missions (wf::mission, golden-tested against src/game/missions/*). Gameplay sends the same
+ * Runs the scripted story missions (wf::mission, golden-tested against src/game/missions/). Gameplay sends the same
  * world events the web build's Scene and overlays send: START, ANCHOR (with the mission site), ARRIVED at the target,
  * CLEAR of a wave, HACK / HOLD progress, ACK of the completion card, DECIDED at the Core Node.
  *

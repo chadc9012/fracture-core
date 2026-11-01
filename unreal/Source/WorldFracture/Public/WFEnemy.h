@@ -110,7 +110,6 @@ public:
 	void ConfigureNemesis(const FString& InId, const FString& InWeak, double InDamageMult, double InScale) { NemesisId = InId; NemesisWeak = InWeak; NemesisDamage = InDamageMult; ScaleOverride = InScale; }
 	const FString& GetNemesisId() const { return NemesisId; }
 	const FString& GetNemesisWeak() const { return NemesisWeak; }
-	const FString& GetProfile() const { return Profile; }
 	const FString& GetZone() const { return Zone; }
 
 	// ---- what a player hit does (ported weapon-elements.ts, enemy-reactions.ts, sim.ts stunMachine) ----
@@ -122,8 +121,6 @@ public:
 	void StunMachine(double Seconds);
 	/** enemy-reactions.ts reactTo: a flinch, or a stagger that knocks a ranged wind-up back to its start and holds the next attack */
 	void ReactToHit(double Damage, const FString& Part, double Dx, double Dz);
-	/** telegraphing a shot (Null Disruption's timed hit) */
-	bool IsWindingUp() const { return Windup >= 0; }
 	/** damage straight to health, with no multipliers (a Maw Collapse share, as sim.ts does) */
 	void TakeRawDamage(double Damage, AActor* DamageInstigator);
 	const FString& GetActivityTag() const { return ActivityTag; }

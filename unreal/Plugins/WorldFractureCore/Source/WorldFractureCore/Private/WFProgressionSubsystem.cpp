@@ -172,7 +172,7 @@ bool UWFProgressionSubsystem::LoadRewardCatalog(FString& OutError)
 		if (WFData::LoadRows(TEXT("ArmorPerks"), PerkRows, ArmorError))
 			for (const TSharedPtr<FJsonObject>& Row : PerkRows)
 				Armor.Perks[ToStd(WFData::Str(Row, TEXT("SetId")))][ToStd(WFData::Str(Row, TEXT("Slot")))] = Effects(WFData::Str(Row, TEXT("EffectsJson")), nullptr);
-		else UE_LOG(LogWorldFracture, Warning, TEXT("ArmorPerks table missing (%s): armor perks do nothing"), *ArmorError);
+		else { UE_LOG(LogWorldFracture, Warning, TEXT("ArmorPerks table missing (%s): armor perks do nothing"), *ArmorError); }
 		ArmorCatalog = std::move(Armor);
 	}
 

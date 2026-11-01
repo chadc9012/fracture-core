@@ -69,8 +69,8 @@ void UWFFleetSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 			}
 			Fleet.Fleet.push_back(E);
 		}
-	if (Fleet.Fleet.empty()) UE_LOG(LogWorldFracture, Warning, TEXT("World Fracture fleet: %s"), *Error);
-	else UE_LOG(LogWorldFracture, Log, TEXT("World Fracture fleet: %d builds, %d garage bases"), static_cast<int32>(Fleet.Fleet.size()), static_cast<int32>(Fleet.Garages.size()));
+	if (Fleet.Fleet.empty()) { UE_LOG(LogWorldFracture, Warning, TEXT("World Fracture fleet: %s"), *Error); }
+	else { UE_LOG(LogWorldFracture, Log, TEXT("World Fracture fleet: %d builds, %d garage bases"), static_cast<int32>(Fleet.Fleet.size()), static_cast<int32>(Fleet.Garages.size())); }
 }
 
 UWFProgressionSubsystem* UWFFleetSubsystem::Progression() const

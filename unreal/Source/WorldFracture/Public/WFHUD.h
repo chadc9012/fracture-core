@@ -19,8 +19,8 @@ public:
 	virtual void EndPlay(const EEndPlayReason::Type Reason) override;
 	virtual void DrawHUD() override;
 	/** touch buttons (phones, or any PC started with -touchhud) press and release the Operator's input actions */
-	virtual void NotifyHitBoxClick_Implementation(FName BoxName) override;
-	virtual void NotifyHitBoxRelease_Implementation(FName BoxName) override;
+	virtual void NotifyHitBoxClick(FName HitBox) override;
+	virtual void NotifyHitBoxRelease(FName HitBox) override;
 	void Toast(const FString& Text, const FLinearColor& Color);
 
 private:

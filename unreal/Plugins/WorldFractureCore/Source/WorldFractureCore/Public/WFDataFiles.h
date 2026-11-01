@@ -4,6 +4,7 @@
 #include "Dom/JsonObject.h"
 
 #include <string>
+#include <utility>
 
 /**
  * Reads the exported tables straight from <Project>/DataTables/<Table>.json (staged with packaged builds; see
@@ -19,4 +20,7 @@ namespace WFData
 	WORLDFRACTURECORE_API double Num(const TSharedPtr<FJsonObject>& Row, const TCHAR* Field, double Fallback = 0.0);
 	WORLDFRACTURECORE_API std::string ToStd(const FString& S);
 	WORLDFRACTURECORE_API FString ToF(const std::string& S);
+	/** any engine string with operator* giving TCHARs (UE 5.8 JSON object keys are UE::TSharedString, not FString) */
+	template <typename T, typename = decltype(FString(*std::declval<const T&>()))>
+	std::string ToStd(const T& S) { return ToStd(FString(*S)); }
 }
