@@ -2597,6 +2597,7 @@ void AWFGameMode::LeaveVenue()
 	VenueTalkingTo.Reset();
 	VenueTopics.clear();
 	FourBeatRun.reset();
+	ArcadeRun.reset();
 	DanceBeats.clear();
 	DanceStart = -1;
 	InsideVenue.Reset();
@@ -2621,6 +2622,7 @@ void AWFGameMode::EnterVenue()
 	if (const wf::venue::FSpecial* S = wf::venue::SpecialAt(Venue)) Menu.Add(FString::Printf(TEXT("VenueSpecial (%s, %s Nex)"), *VnF(S->Name), *VnF(wf::js::NumberToString(S->Price))));
 	if (Venue == "pulse-array" || Venue == "afterglow" || Venue == "velvet-circuit") Menu.Add(TEXT("FourBeat")); // venue-life.ts FOURBEAT_BPM
 	if (wf::venue::IsDanceVenue(Venue)) Menu.Add(TEXT("Dance"));
+	if (wf::venue::IsArcadeVenue(Venue)) Menu.Add(TEXT("Arcade (the Pixel Pit)"));
 	Menu.Add(TEXT("VenueChallenges"));
 	Toast(FString::Join(Menu, TEXT(" · ")), VnCyan);
 }
@@ -2684,7 +2686,7 @@ void AWFGameMode::FourBeat()
 {
 	const std::string Venue = WFData::ToStd(InsideVenue);
 	if (Venue != "pulse-array" && Venue != "afterglow" && Venue != "velvet-circuit") { Toast(TEXT("The Four-Beat Dance needs a dance floor: Pulse Array, Afterglow or the Velvet Circuit"), VnWarn); return; }
-	if (DanceStart >= 0) return;
+	if (DanceStart >= 0 || ArcadeRun) return;
 	FourBeatRun = wf::venue::StartFourBeat(Venue);
 	FourBeatStart = GetWorld()->GetTimeSeconds();
 	Toast(TEXT("Four-Beat: feel the kick, tap B on the beat · four clean hits win"), VnCyan);
@@ -2694,10 +2696,19 @@ void AWFGameMode::Dance()
 {
 	const std::string Venue = WFData::ToStd(InsideVenue);
 	if (!wf::venue::IsDanceVenue(Venue)) { Toast(TEXT("The dance sets play at Pulse Array and Afterglow"), VnWarn); return; }
-	if (FourBeatRun) return;
+	if (FourBeatRun || ArcadeRun) return;
 	DanceBeats = wf::venue::DanceSet(Venue, wf::venue::DayOf(UWFProgressionSubsystem::NowMs()));
 	DanceStart = GetWorld()->GetTimeSeconds();
 	Toast(TEXT("Tonight's set: hit the arrow keys as each arrow reaches the line"), VnCyan);
+}
+
+void AWFGameMode::Arcade()
+{
+	const std::string Venue = WFData::ToStd(InsideVenue);
+	if (!wf::venue::IsArcadeVenue(Venue)) { Toast(TEXT("The Pixel Pit cabinet is at Crown Casino"), VnWarn); return; }
+	if (FourBeatRun || DanceStart >= 0 || ArcadeRun) return;
+	ArcadeRun = wf::venue::StartArcade(Venue, wf::venue::DayOf(UWFProgressionSubsystem::NowMs()), GetWorld()->GetTimeSeconds() * 1000.0);
+	Toast(TEXT("Pixel Pit: tap B while the signal is lit · an early press is a miss · two misses end the run"), VnCyan);
 }
 
 void AWFGameMode::VenueChallenges()
@@ -2764,6 +2775,24 @@ void AWFGameMode::TickVenues(float DeltaSeconds)
 			FourBeatRun.reset();
 			Toast(bWon ? TEXT("Four-Beat: you found the four") : TEXT("Four-Beat: the floor ate you · FourBeat to try again"), bWon ? VnGold : VnWarn);
 			if (bWon) VenueSave([Venue](wf::FProgression& P) { wf::venue::RecordFact(P, Venue, "fourbeat", UWFProgressionSubsystem::NowMs()); });
+		}
+	}
+	// the Pixel Pit: B taps; the cabinet reads READY / WAIT / HIT
+	if (ArcadeRun)
+	{
+		const double T = Now * 1000.0;
+		*ArcadeRun = wf::venue::ArcadeTick(*ArcadeRun, T);
+		if (!ArcadeRun->bDone && PC && PC->WasInputKeyJustPressed(EKeys::B)) *ArcadeRun = wf::venue::ArcadeTap(*ArcadeRun, T);
+		VenueLine = FString::Printf(TEXT("Pixel Pit · %s · round %.0f / %d · score %.0f · misses %.0f / 2"), *VnF(wf::venue::ArcadeSignal(*ArcadeRun, T)), ArcadeRun->Round + 1, wf::venue::ArcadeRounds, ArcadeRun->Score, ArcadeRun->Misses);
+		if (ArcadeRun->bDone)
+		{
+			const bool bWon = ArcadeRun->bWon;
+			const double Score = ArcadeRun->Score;
+			const std::string Venue = ArcadeRun->Venue;
+			const std::string EndedBy = ArcadeRun->EndedBy;
+			ArcadeRun.reset();
+			Toast(bWon ? FString::Printf(TEXT("JACKPOT · %.0f points"), Score) : FString::Printf(TEXT("GAME OVER (%s) · %.0f points · Arcade to play again"), *VnF(EndedBy), Score), bWon ? VnGold : VnWarn);
+			VenueSave([Venue, Score, bWon](wf::FProgression& P) { wf::venue::RecordArcade(P, Venue, Score); if (bWon) wf::venue::RecordFact(P, Venue, "jackpot", UWFProgressionSubsystem::NowMs()); });
 		}
 	}
 	// the dance set: arrow keys judge the earliest open beat of that arrow; beats that slide past are misses

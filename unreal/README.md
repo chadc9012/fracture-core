@@ -178,8 +178,10 @@ Until then the phone build is the web game (`mobile/`, the `android-latest` rele
   once. `VenueSpecial` orders tonight's house special (one a night, paid in Nex, a stim buff stack for its duration).
   `FourBeat` runs the Four-Beat Dance (tap B on the club's beat: four hits win, four misses or 15 s lose); `Dance` plays
   the club's dance set for the night with the arrow keys (perfect / good / miss windows, combos, grades S to D, your best
-  score kept). `VenueChallenges` lists the six venue challenges, which pay once as they finish. The Pixel Pit arcade
-  cabinet (arcade.ts) is not ported, so Arcade Streak cannot be finished yet.
+  score kept). At Crown Casino, `Arcade` plays the Pixel Pit cabinet (arcade.ts): five rounds of three signals, tap B
+  while each is lit; windows shrink and signals quicken each round, an early press or a missed signal is a miss and two
+  end the run, and clearing all five pays the jackpot bonus (the night's jackpot counts for Arcade Streak). Your best
+  score is kept. `VenueChallenges` lists the six venue challenges, which pay once as they finish.
 - **The city NPCs:** nine people in Nexus City and Neon City (living-npcs.ts): faction leaders, quest givers and informants,
   in their faction's colour with a name plate, at their posts by day and resting near the centre from 22:00 to 05:00. E
   (or `Talk`) opens the talk panel: their line (standing, a fallen district, your pledge) and numbered offers, taken with
@@ -390,6 +392,7 @@ cmake -S . -B build -G Ninja && cmake --build build && ctest --test-dir build --
 | LivingNpcCoreTest | living-npcs.ts, npc-routine.ts, living-world.ts cities | 7,007 talk actions, 25,652 checks |
 | LivingEventCoreTest | living-events.ts | 120,163 director steps, 127,081 checks |
 | SquadCoreTest | squad.ts | 67,605 squad steps, 205,235 checks |
+| ArcadeCoreTest | arcade.ts | 900 runs, 7,641 taps, 24,302 checks |
 | VenueCoreTest | nightlife.ts, venue-life.ts, dance.ts | 164 nights-out runs, 5,164 four-beat taps, 7,853 dance presses, 33,941 checks |
 | StashCoreTest | stash.ts | 10,209 stash operations, 16,465 checks |
 | HazardCoreTest | region-hazards.ts, hazard-zones.ts, landmarks.ts | 5,408 hazard steps, 12,000 zone probes, 33,445 checks |
@@ -401,7 +404,7 @@ The golden files (`Plugins/WorldFractureCore/Tests/<name>_golden.txt`) are **gen
 which broke the Lovable preview build. Record all of them from the repo root before configuring the tests (and again after changing
 the web build's rules):
 
-    node unreal/tools/gen-goldens.mjs            # all thirty-seven
+    node unreal/tools/gen-goldens.mjs            # all thirty-eight
     node unreal/tools/gen-goldens.mjs race shop  # just these
 
 `export-datatables` (the DataTables, which are committed) still runs on its own:
@@ -413,7 +416,7 @@ The encounter, Dragonite-cast, ability, tactics and Wastelands recorders route t
 ## Not ported yet
 Boss models and attack effects (zones are debug circles, decoys are stand-ins), mid-mission saves, ability mastery XP,
 region kinds for abilities (the map counts as a war zone),
-troopers running out of orbital strike circles (no strike beacons yet), legendary-chain.ts reactions (they need two hit sources, so never fire in single player), rain, snow and fog visuals (the weather is simulated and shown on the HUD), the Pixel Pit arcade cabinet (arcade.ts), the venues' pocket rooms (interiors.ts), the Hollow Star raid and
+troopers running out of orbital strike circles (no strike beacons yet), legendary-chain.ts reactions (they need two hit sources, so never fire in single player), rain, snow and fog visuals (the weather is simulated and shown on the HUD), the venues' pocket rooms (interiors.ts), the Hollow Star raid and
 activity shader drops,
 diving (the thalassia-dive survive timer), the Neon City police response itself (the web build has only the heat meter and its labels; chase-ai.ts pursuit helpers are unused there), the Operations Hub preview marketplace (its wallet is not saved in the web build either), home interiors, cloud save merge, the rest of the world (terrain, the other regions, Neon City, Thalassia; Nexus City is in). Their data is already in
 `DataTables/`.

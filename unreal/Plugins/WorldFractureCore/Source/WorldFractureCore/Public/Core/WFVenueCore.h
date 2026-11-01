@@ -14,6 +14,8 @@
 //                  discovered, SPECIALS, orderSpecial, the Four-Beat Dance, CHALLENGES, claimChallenges, claimDiscovery,
 //                  rewardText
 //   dance.ts       DANCE_VENUES, danceSet, press, expire, finished, result, danceBest, recordDance
+//   arcade.ts      the Pixel Pit cabinet at Crown Casino: roundTargets, startArcade, arcadeTick, arcadeTap, arcadeSignal,
+//                  arcadeBest, recordArcade (Tests/ArcadeCoreTest.cpp)
 // The venue doors (venue-doors.ts) are exported to DataTables/Venues.json. Golden-tested (Tests/VenueCoreTest.cpp).
 #pragma once
 
@@ -125,4 +127,34 @@ namespace wf::venue
 	WORLDFRACTURECORE_API double DanceBest(const FProgression& P, const std::string& Venue);
 	/** keeps one key a venue (the best); false when the score is not a new best */
 	WORLDFRACTURECORE_API bool RecordDance(FProgression& P, const std::string& Venue, double Score);
+
+	// the Pixel Pit reflex cabinet (arcade.ts): five rounds of three timed signals; hit each while it is lit. An early press is
+	// a miss (the signal stays), a signal left past its window is a late miss, two misses end the run, and a round with no
+	// press at all ends it as a timeout. Windows shrink and signals quicken each round; tonight's timings are seeded by venue
+	// and day. Times in ms.
+	inline constexpr int ArcadeRounds = 5, TargetsPerRound = 3;
+	inline constexpr double ArcadeMaxMisses = 2, BaseToleranceMs = 270, MinToleranceMs = 150, ToleranceStepMs = 30, RoundGapMs = 1200, JackpotBonus = 500;
+	WORLDFRACTURECORE_API bool IsArcadeVenue(const std::string& Venue);
+	struct FArcadeEvent { std::string Kind; /* hit | early | late */ double Points = 0, At = 0; };
+	struct FArcadeRun
+	{
+		std::string Venue, Day;
+		double Round = 0, RoundStartsAt = 0;
+		std::vector<double> Targets;
+		double Next = 0, Hits = 0, Misses = 0, Score = 0;
+		bool bPressedThisRound = false, bDone = false, bWon = false;
+		std::string EndedBy; // "" | misses | timeout | cleared
+		std::optional<FArcadeEvent> Last;
+	};
+	WORLDFRACTURECORE_API double ToleranceFor(double Round);
+	WORLDFRACTURECORE_API std::vector<double> RoundTargets(const std::string& Venue, const std::string& Day, double Round);
+	WORLDFRACTURECORE_API FArcadeRun StartArcade(const std::string& Venue, const std::string& Day, double NowMs);
+	/** signals whose window closed unanswered become late misses; resolves the run even without another press */
+	WORLDFRACTURECORE_API FArcadeRun ArcadeTick(const FArcadeRun& S, double NowMs);
+	WORLDFRACTURECORE_API FArcadeRun ArcadeTap(const FArcadeRun& S, double NowMs);
+	/** READY | WAIT | HIT | JACKPOT | GAME OVER */
+	WORLDFRACTURECORE_API std::string ArcadeSignal(const FArcadeRun& S, double NowMs);
+	WORLDFRACTURECORE_API double ArcadeBest(const FProgression& P, const std::string& Venue);
+	/** keeps one key a venue (the best); false when the score is not a new best */
+	WORLDFRACTURECORE_API bool RecordArcade(FProgression& P, const std::string& Venue, double Score);
 }

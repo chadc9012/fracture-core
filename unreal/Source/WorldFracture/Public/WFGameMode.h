@@ -244,6 +244,8 @@ public:
 	UFUNCTION(Exec) void FourBeat();
 	/** the dance set (Pulse Array, Afterglow): the arrow keys on the line */
 	UFUNCTION(Exec) void Dance();
+	/** the Pixel Pit cabinet at Crown Casino (arcade.ts): tap B while the signal is lit; five rounds clear the jackpot */
+	UFUNCTION(Exec) void Arcade();
 	/** the venue challenges, their progress and what they pay */
 	UFUNCTION(Exec) void VenueChallenges();
 	/** HUD: the venue at hand (the door hint, inside, or the dance in progress), or "" */
@@ -339,6 +341,7 @@ private:
 	double FourBeatStart = 0;
 	std::vector<wf::venue::FBeat> DanceBeats;
 	double DanceStart = -1;
+	std::optional<wf::venue::FArcadeRun> ArcadeRun;
 	std::optional<wf::squad::FState> FireteamState;
 	bool bFireteamWanted = false;
 	TArray<TWeakObjectPtr<class AWFLivingNpc>> FireteamBodies;

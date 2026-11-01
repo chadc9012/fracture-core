@@ -445,4 +445,96 @@ namespace wf::venue
 		P.EarnedRewards = std::move(Keep);
 		return true;
 	}
+
+	bool IsArcadeVenue(const std::string& Venue) { return Venue == "crown-casino"; }
+	double ToleranceFor(double Round) { return std::max(MinToleranceMs, BaseToleranceMs - Round * ToleranceStepMs); }
+	std::vector<double> RoundTargets(const std::string& Venue, const std::string& Day, double Round)
+	{
+		uint32_t Seed = js::Fnv1a(Venue + "@" + Day + "#" + js::NumberToString(Round));
+		auto R = [&Seed]() { Seed = Seed * 1664525u + 1013904223u; return static_cast<double>(Seed) / 4294967296.0; };
+		const double Tol = ToleranceFor(Round), Pace = 1 - std::min(0.4, Round * 0.08);
+		std::vector<double> Out;
+		double T = 700 + R() * 600;
+		for (int I = 0; I < TargetsPerRound; ++I) { Out.push_back(js::Round(T)); T += std::max(2 * Tol + 120, (650 + R() * 650) * Pace); }
+		return Out;
+	}
+	FArcadeRun StartArcade(const std::string& Venue, const std::string& Day, double NowMs)
+	{
+		FArcadeRun S;
+		S.Venue = Venue; S.Day = Day; S.RoundStartsAt = NowMs + RoundGapMs; S.Targets = RoundTargets(Venue, Day, 0);
+		return S;
+	}
+	namespace
+	{
+		FArcadeRun VnEndRound(FArcadeRun S, double At)
+		{
+			if (S.Round + 1 >= ArcadeRounds) { S.Score += JackpotBonus; S.bDone = true; S.bWon = true; S.EndedBy = "cleared"; return S; }
+			S.Round += 1;
+			S.RoundStartsAt = At + RoundGapMs;
+			S.Targets = RoundTargets(S.Venue, S.Day, S.Round);
+			S.Next = 0;
+			S.bPressedThisRound = false;
+			return S;
+		}
+	}
+	FArcadeRun ArcadeTick(const FArcadeRun& State, double NowMs)
+	{
+		if (State.bDone || !std::isfinite(NowMs) || NowMs < State.RoundStartsAt) return State;
+		FArcadeRun S = State;
+		const double Tol = ToleranceFor(S.Round), Elapsed = NowMs - S.RoundStartsAt;
+		const double Count = static_cast<double>(S.Targets.size());
+		while (S.Next < Count && Elapsed > S.Targets[static_cast<size_t>(S.Next)] + Tol)
+		{
+			const double At = S.RoundStartsAt + S.Targets[static_cast<size_t>(S.Next)] + Tol;
+			S.Next += 1; S.Misses += 1; S.Last = FArcadeEvent{"late", 0, At};
+			if (S.Misses >= ArcadeMaxMisses) { S.bDone = true; S.bWon = false; S.EndedBy = S.bPressedThisRound ? "misses" : "timeout"; return S; }
+			if (S.Next == Count)
+			{
+				if (S.bPressedThisRound) return ArcadeTick(VnEndRound(S, At), NowMs);
+				S.bDone = true; S.bWon = false; S.EndedBy = "timeout";
+				return S;
+			}
+		}
+		return S;
+	}
+	FArcadeRun ArcadeTap(const FArcadeRun& State, double NowMs)
+	{
+		FArcadeRun S = ArcadeTick(State, NowMs);
+		if (S.bDone || !std::isfinite(NowMs) || NowMs < S.RoundStartsAt || S.Next >= static_cast<double>(S.Targets.size())) return S;
+		const double Tol = ToleranceFor(S.Round), Target = S.RoundStartsAt + S.Targets[static_cast<size_t>(S.Next)];
+		if (NowMs < Target - Tol)
+		{
+			S.Misses += 1; S.bPressedThisRound = true; S.Last = FArcadeEvent{"early", 0, NowMs};
+			if (S.Misses >= ArcadeMaxMisses) { S.bDone = true; S.bWon = false; S.EndedBy = "misses"; }
+			return S;
+		}
+		const double Points = js::Round((50 + 100 * (1 - std::fabs(NowMs - Target) / Tol)) * (S.Round + 1));
+		S.Next += 1; S.Hits += 1; S.Score += Points; S.bPressedThisRound = true; S.Last = FArcadeEvent{"hit", Points, NowMs};
+		return S.Next == static_cast<double>(S.Targets.size()) ? VnEndRound(S, NowMs) : S;
+	}
+	std::string ArcadeSignal(const FArcadeRun& State, double NowMs)
+	{
+		const FArcadeRun S = ArcadeTick(State, NowMs);
+		if (S.bDone) return S.bWon ? "JACKPOT" : "GAME OVER";
+		if (NowMs < S.RoundStartsAt) return "READY";
+		if (S.Next < static_cast<double>(S.Targets.size()) && std::fabs(NowMs - S.RoundStartsAt - S.Targets[static_cast<size_t>(S.Next)]) <= ToleranceFor(S.Round)) return "HIT";
+		return "WAIT";
+	}
+	double ArcadeBest(const FProgression& P, const std::string& Venue)
+	{
+		const std::string Prefix = "arcade-best:" + Venue + ":";
+		double Best = 0;
+		for (const std::string& K : P.EarnedRewards) if (K.rfind(Prefix, 0) == 0) Best = std::max(Best, VnNumberOr0(K.substr(Prefix.size())));
+		return Best;
+	}
+	bool RecordArcade(FProgression& P, const std::string& Venue, double Score)
+	{
+		if (Score <= ArcadeBest(P, Venue)) return false;
+		const std::string Prefix = "arcade-best:" + Venue + ":";
+		std::vector<std::string> Keep;
+		for (const std::string& K : P.EarnedRewards) if (K.rfind(Prefix, 0) != 0) Keep.push_back(K);
+		Keep.push_back(Prefix + js::NumberToString(js::Round(Score)));
+		P.EarnedRewards = std::move(Keep);
+		return true;
+	}
 }
