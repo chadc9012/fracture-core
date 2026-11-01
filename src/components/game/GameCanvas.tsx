@@ -1330,8 +1330,9 @@ export function GameCanvas() {
       return;
     }
     if (event.run.status !== "CLEARED") { showLivingToast(`${name} · ${event.run.reason ?? "descent ended"}`); return; }
-    const { seals } = claimDescentClear(progressionRef.current, event.run, now);
-    showLivingToast(seals.length ? `Legendary Recognition · ${name}: ${seals.map((x) => x.replace("_", " ").toLowerCase()).join(", ")} seal${seals.length > 1 ? "s" : ""} earned` : `${name} cleared`);
+    const { seals, nex, drop } = claimDescentClear(progressionRef.current, event.run, now);
+    const spoils = `${nex ? ` · ${nex.toLocaleString()}Ξ` : ""}${drop ? ` · dropped ${drop.name}` : ""}`;
+    showLivingToast(seals.length ? `Legendary Recognition · ${name}: ${seals.map((x) => x.replace("_", " ").toLowerCase()).join(", ")} seal${seals.length > 1 ? "s" : ""} earned${spoils}` : `${name} cleared${spoils}`);
     setProgression((current) => claimDescentClear(current, event.run, now).progression);
   }, [showLivingToast]);
   const recordLiving = useCallback((event: LivingEmit) => {

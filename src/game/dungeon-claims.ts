@@ -7,6 +7,7 @@ import { grantDungeonFirstClear } from "./weapon-loot";
 import { FUEL_KING_ENCOUNTER_ID, WASTELAND_GATE_DUNGEONS, gatherWastelandFuel, grantFuelKingVictoryRewards } from "./wasteland";
 import { gameTick } from "./quests";
 import { payInto, payoutClassOfDungeon } from "./activity-payouts";
+import { HUB_DUNGEON_REGION, rollDungeonGear } from "./dungeon-rewards";
 
 export const DUNGEON_REPEAT = { shards: 10, fuel: 25, alloy: 20 } as const;
 const day = (now: number) => new Date(now).toISOString().slice(0, 10);
@@ -24,6 +25,7 @@ export function claimDungeonClear(p: PlayerProgression, dungeonId: string, signa
     ? (first ? grantFuelKingVictoryRewards(cleared) : { ...cleared, materials: { ...cleared.materials, reinforcedAlloy: (cleared.materials.reinforcedAlloy ?? 0) + DUNGEON_REPEAT.alloy } })
     : (WASTELAND_GATE_DUNGEONS as readonly string[]).includes(dungeonId) ? gatherWastelandFuel(cleared, first ? 100 : DUNGEON_REPEAT.fuel) : cleared;
   const paid = payoutClassOfDungeon(dungeonId) === "raid" ? rewarded : payInto(rewarded, payoutClassOfDungeon(dungeonId), dungeonId, now).progression; // raids pay per encounter instead (raid-lockout.ts) // Nex: dungeons pay well, raids pay best (activity-payouts.ts)
-  const ticked = gameTick(paid, { type: "DUNGEON_CLEARED", dungeonId });
+  const geared = payoutClassOfDungeon(dungeonId) === "raid" ? paid : rollDungeonGear(paid, dungeonId, HUB_DUNGEON_REGION[dungeonId], "D", false, now).progression; // the weekly region-set drop (dungeon-rewards.ts); raids drop per encounter
+  const ticked = gameTick(geared, { type: "DUNGEON_CLEARED", dungeonId });
   return fuelKing ? gameTick(ticked, { type: "BOSS_DEFEATED", encounterId: dungeonId }) : ticked;
 }

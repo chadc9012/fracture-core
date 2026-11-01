@@ -10,6 +10,9 @@ import { RAID_VARIANTS, STARBREAKER_KEY } from "./hollow-star-raid";
 import { DESTINATION_PINS, STAGE, destinationInfo, type DestinationId } from "./destination-map";
 import { thalassiaElevator } from "./travel";
 import type { PlayerProgression } from "./progression";
+import { PAYOUTS } from "./activity-payouts";
+import { rankPayMult } from "./dungeon-rewards";
+import { setForRegion } from "./armor-sets";
 
 export type MapNodeKind = "DUNGEON" | "RAID";
 export type MapNode = {
@@ -102,6 +105,8 @@ export function dungeonBrief(p: Pick<PlayerProgression, "earnedRewards">, dungeo
   const rewards: DungeonBrief["rewards"] = [
     { id: "chests", label: "Encounter chests", detail: "One per encounter floor, once a week.", earned: false },
     { id: "clear", label: "Boss clear", detail: "Clear loot and contract pay, once a day.", earned: clearedToday },
+    { id: "bounty", label: "Nex bounty", detail: `Pays ${Math.round(PAYOUTS.dungeon.first * rankPayMult(rank))} Nex the first time, ${Math.round(PAYOUTS.dungeon.repeat * rankPayMult(rank))} on later days (more for a flawless clear).`, earned: clearedToday },
+    ...(setForRegion(d.regionId ?? "") ? [{ id: "gear", label: `${setForRegion(d.regionId ?? "")!.name} armor`, detail: "A boss clear can drop a piece of the region set, rolled once a week.", earned: false }] : []),
     ...SEALS.map((s) => ({ id: `seal-${s}`, label: `${SEAL_LABEL[s]} seal`, detail: s === "FLAWLESS" ? "Clear without spending a life." : s === "SOLO" ? "Clear it alone." : "Alone, without a death.", earned: seals.includes(s) })),
   ];
   return {

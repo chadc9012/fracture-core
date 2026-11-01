@@ -3,7 +3,8 @@
  * applies the reward reducers to the save. Nothing here touches the scene or the sim. */
 import { DESCENT_ORIGIN, RANKS, RANK_ORDER, buildDescent, dungeonById, hash, shownDepth, type DescentLayout, type FractureGate, type OpenWays, type RiftRank, type Tier } from "./fracture-gates";
 import { rewardMission, type PlayerProgression } from "./progression";
-import type { MaterialId } from "./inventory";
+import type { GearItem, MaterialId } from "./inventory";
+import { payDescent, rollDungeonGear } from "./dungeon-rewards";
 
 /* ---------------- what each tier spawns ---------------- */
 
@@ -203,15 +204,19 @@ export function sealsFor(run: DescentRun): Seal[] {
 }
 
 /** a cleared run pays through the one mission reward path (side-contract taper, first-clear tuning core), records the day's
- * clear (so the gate stops threatening a break) and any new seals. Returns the new seals for the Legendary Recognition line. */
-export function claimDescentClear(p: PlayerProgression, run: DescentRun, now: number): { progression: PlayerProgression; seals: Seal[] } {
-  if (run.status !== "CLEARED") return { progression: p, seals: [] };
+ * clear (so the gate stops threatening a break) and any new seals, pays the dungeon's Nex bounty and rolls the weekly gear drop
+ * (dungeon-rewards.ts). Returns the new seals for the Legendary Recognition line, plus what the clear paid and dropped. */
+export function claimDescentClear(p: PlayerProgression, run: DescentRun, now: number): { progression: PlayerProgression; seals: Seal[]; nex: number; drop: GearItem | null } {
+  if (run.status !== "CLEARED") return { progression: p, seals: [], nex: 0, drop: null };
   const today = clearedTodayKey(run.dungeonId, run.day);
-  if (p.earnedRewards.includes(today) && !run.nestedDown) return { progression: p, seals: [] };
+  if (p.earnedRewards.includes(today) && !run.nestedDown) return { progression: p, seals: [], nex: 0, drop: null };
   const paid = rewardMission(p, riftMissionId(run.dungeonId), clearLoot(run), now);
   const newSeals = sealsFor(run).filter((s) => !paid.earnedRewards.includes(sealKey(run.dungeonId, s)));
   const earned = Array.from(new Set([...paid.earnedRewards, today, ...newSeals.map((s) => sealKey(run.dungeonId, s))]));
-  return { progression: { ...paid, earnedRewards: earned }, seals: newSeals };
+  const flawless = run.deaths === 0;
+  const bounty = payDescent({ ...paid, earnedRewards: earned }, run.dungeonId, run.rank, flawless, now);
+  const gear = rollDungeonGear(bounty.progression, run.dungeonId, dungeonById(run.dungeonId)?.regionId, run.rank, flawless, now);
+  return { progression: gear.progression, seals: newSeals, nex: bounty.paid, drop: gear.item };
 }
 
 /* ---------------- dungeon breaks ---------------- */
