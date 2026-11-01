@@ -3,6 +3,7 @@
 import { DEFAULT_SUBCLASS, SUBCLASSES, appearanceById, operatorByClass, type AppearanceDefinition, type ClassId, type SubclassId } from "../loadout";
 import { DEFAULT_BODY_TYPE, bodyTypeOr, type BodyType } from "../operators";
 import { faceFor, swatchOr, toneKind } from "../operator-faces";
+import { hairColorOr, hairOr, markingsOr } from "../operator-styling";
 import { loadoutAttributes, type Attributes } from "../armor-attributes";
 import { SET_SLOTS, type SetSlot } from "../armor-sets";
 import type { PlayerProgression } from "../progression";
@@ -11,7 +12,8 @@ import { rookieStartColors } from "../rookie-armor";
 
 export type ForgeState = { classId: ClassId; subclassId: SubclassId; appearance: AppearanceDefinition; bodyType: BodyType; face: string;
   /** skin tone (humans) or plating (robots), operator-faces.ts swatch id */ skin: string;
-  /** a robot's optics colour */ eyes: string };
+  /** a robot's optics colour */ eyes: string;
+  /** hairstyle, hair colour and markings (operator-styling.ts ids) */ hair: string; hairColor: string; marks: string[] };
 
 /** A new Operator's look: their rookie armor (rookie-armor.ts, Standard variant) with their callsign pre-filled. */
 export function defaultAppearance(classId: ClassId): AppearanceDefinition {
@@ -34,6 +36,7 @@ export function forgeInitial(saved: Partial<PlayerCharacter> | null | undefined)
   return {
     classId, subclassId: sub, bodyType, face: faceFor(classId, bodyType, saved?.face),
     skin: swatchOr(toneKind(bodyType), saved?.skin), eyes: swatchOr("optics", saved?.eyes),
+    hair: hairOr(saved?.hair), hairColor: hairColorOr(saved?.hairColor), marks: markingsOr(saved?.marks),
     appearance: { ...base, armor: hex(a?.armor, base.armor), cloth: hex(a?.cloth, base.cloth), visor: hex(a?.visor, base.visor), trim: hex(a?.trim, base.trim), callsign },
   };
 }
@@ -41,6 +44,7 @@ export function forgeInitial(saved: Partial<PlayerCharacter> | null | undefined)
 /** True when the forge differs from the starting state, i.e. leaving would discard edits. */
 export function forgeDirty(a: ForgeState, b: ForgeState): boolean {
   return a.classId !== b.classId || a.subclassId !== b.subclassId || a.bodyType !== b.bodyType || a.face !== b.face || a.skin !== b.skin || a.eyes !== b.eyes
+    || a.hair !== b.hair || a.hairColor !== b.hairColor || a.marks.join() !== b.marks.join()
     || a.appearance.armor !== b.appearance.armor || a.appearance.cloth !== b.appearance.cloth
     || a.appearance.visor !== b.appearance.visor || a.appearance.trim !== b.appearance.trim || a.appearance.callsign !== b.appearance.callsign;
 }

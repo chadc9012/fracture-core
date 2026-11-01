@@ -10,7 +10,7 @@ import * as THREE from "three";
 import { clone as cloneSkinned } from "three/examples/jsm/utils/SkeletonUtils.js";
 import type { ClassId } from "@/game/loadout";
 import { bodyProfile, bodyTypeOr, type BodyType } from "@/game/operators";
-import { faceLook, rookieBodyUrl, type FaceLook } from "@/game/operator-faces";
+import { faceLook, rookieBodyUrl, type FaceLook, type StyleChoice } from "@/game/operator-faces";
 import { attachHead } from "./operator-head";
 import type { ArmorLook } from "@/game/armor-look";
 import { boneRegion, buildPalette, vivid } from "@/game/operator-paint";
@@ -372,9 +372,11 @@ function applyColorway(material: THREE.Material, way: Colorway) {
 
 /** Draws the authored model for `classId` if one exists, else `fallback` (also while loading or on failure).
  * `pose="showcase"` loops the flex clip (forge); `"locomotion"` drives walk/run from the live stride phase. */
-export function OperatorModel({ calm = false, face, skin, eyes, classId, height, feetY, fallback, color, trim, pose = "showcase", motion, bodyType, look, cloth, gear, held, colorway = false }: {
+export function OperatorModel({ calm = false, face, skin, eyes, style, classId, height, feetY, fallback, color, trim, pose = "showcase", motion, bodyType, look, cloth, gear, held, colorway = false }: {
   /** character creation's face, and skin tone or plating (`skin`) and robot optics (`eyes`): operator-faces.ts */
   face?: string | undefined; skin?: string | undefined; eyes?: string | undefined;
+  /** hairstyle, hair colour and markings (operator-styling.ts), as saved on the character */
+  style?: StyleChoice | undefined;
   /** showcase: stand in the idle (no flex or taunt), for a close-up of the face */
   calm?: boolean;
   /** recolour the authored body from `color` (plate) and `trim` (accent glow) through operator-colorway.ts; the player's operator only */
@@ -393,7 +395,7 @@ export function OperatorModel({ calm = false, face, skin, eyes, classId, height,
   // rookie armour shows the face: the body type's own headless body plus the chosen head (operator-faces.ts); veteran and elite
   // bodies wear their own helmets and heads
   const body = bodyTypeOr(bodyType);
-  const chosen = !tiered || tiered.tier === "ROOKIE" ? faceLook(classId, body, { face, skin, eyes }) : null;
+  const chosen = !tiered || tiered.tier === "ROOKIE" ? faceLook(classId, body, { face, skin, eyes, ...style }) : null;
   const url = chosen ? rookieBodyUrl(classId, body) : tiered?.body.url ?? entry.url;
   return <Quiet key={`${url}|${chosen?.headUrl ?? ""}`} fallback={fallback}><Suspense fallback={fallback}><Model calm={calm} face={chosen} url={url} tint={entry.tint} height={height} feetY={feetY} color={color} trim={trim} pose={pose} motion={motion} bodyType={bodyType} look={look} cloth={cloth} gear={gear} classId={classId} held={held} colorway={colorway && (tiered?.body.colorway ?? true)} /></Suspense></Quiet>;
 }

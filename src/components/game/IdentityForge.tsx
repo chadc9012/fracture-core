@@ -10,6 +10,9 @@ import { Operator } from "./Operator";
 import { OperatorModel, type WornGear } from "./OperatorModel";
 import { DEFAULT_ARSENAL } from "@/game/progression";
 
+/** the forge's look choices for the preview: face, skin/plating, optics, hair and markings (operator-faces.ts / operator-styling.ts ids) */
+export type ForgeFace = { face?: string; skin?: string; eyes?: string; hair?: string; hairColor?: string; marks?: readonly string[] };
+
 const CLASS_LABEL: Record<ClassId, string> = { TITAN: "GOLIATH", HUNTER: "NYX", WARLOCK: "CIPHER" };
 const CLASS_X: Record<ClassId, number> = { TITAN: -4.6, HUNTER: 0, WARLOCK: 4.6 };
 
@@ -67,7 +70,7 @@ function ChamberShell({ activeColor }: { activeColor: string }) {
 /** A real operator standing on the ring, slowly turning like a showcase pedestal — Operator.tsx's
  * own feet-at-(-1.55)/head-at-1.2 footprint means it just needs to sit 1.55 above the ring. */
 function Showcase({ classId, appearance, bodyType, face, look, gear, selected, hidden, mode, onSelect }: {
-  face?: { face?: string; skin?: string; eyes?: string } | undefined;
+  face?: ForgeFace | undefined;
   classId: ClassId;
   gear?: WornGear | undefined;
   look?: ArmorLook | undefined;
@@ -102,7 +105,7 @@ function Showcase({ classId, appearance, bodyType, face, look, gear, selected, h
     <group ref={turntable} position-y={1.55}>
       <OperatorModel
         colorway
-        bodyType={bodyType} classId={classId} face={face?.face} skin={face?.skin} eyes={face?.eyes} calm={mode === "APPEARANCE"}
+        bodyType={bodyType} classId={classId} face={face?.face} skin={face?.skin} eyes={face?.eyes} style={face} calm={mode === "APPEARANCE"}
         height={2.75}
         feetY={-1.55}
         color={appearance.armor}
@@ -128,7 +131,7 @@ function Showcase({ classId, appearance, bodyType, face, look, gear, selected, h
   </group>;
 }
 
-export function IdentityForge({ classId, appearance, bodyType, face, focus = "body", look, gear, mode, onSelectClass }: { gear?: WornGear; look?: ArmorLook; classId: ClassId; appearance: AppearanceDefinition; bodyType: BodyType; face?: { face?: string; skin?: string; eyes?: string }; focus?: ForgeFocus; mode: ForgeMode; onSelectClass: (id: ClassId) => void }) {
+export function IdentityForge({ classId, appearance, bodyType, face, focus = "body", look, gear, mode, onSelectClass }: { gear?: WornGear; look?: ArmorLook; classId: ClassId; appearance: AppearanceDefinition; bodyType: BodyType; face?: ForgeFace; focus?: ForgeFocus; mode: ForgeMode; onSelectClass: (id: ClassId) => void }) {
   return <Canvas shadows dpr={[1, 1.5]} camera={{ position: [0, 2.7, 12], fov: 42 }} gl={{ antialias: true, toneMapping: THREE.ACESFilmicToneMapping }}>
     <ChamberShell activeColor={appearance.visor} />
     <CameraRig selected={classId} mode={mode} focus={focus} />

@@ -7,8 +7,18 @@
 import * as THREE from "three";
 import { cinematicImported } from "@/game/cinematic-materials";
 import type { FaceLook } from "@/game/operator-faces";
+import { skinProgram, type HairMode } from "@/game/operator-skin-shader";
+import { bindHairToBone, fitSkull, hairGeometry, scalpGeometry, strandTexture, type Skull } from "@/game/hair-geometry";
 
 const isHeadBone = (name: string) => /Head$/.test(name) && !/HeadTop/.test(name);
+const isHeadTop = (name: string) => /HeadTop_End$/.test(name);
+/** the rig's metres per unit from the Head → HeadTop_End distance (0.18 m on a 1.85 m human); 1 when the rig has no top bone */
+function headUnit(mesh: THREE.SkinnedMesh, headIndex: number): number {
+  const top = mesh.skeleton.bones.findIndex((x) => isHeadTop(x.name));
+  if (top < 0) return 1;
+  const d = restPosition(mesh, top).distanceTo(restPosition(mesh, headIndex));
+  return d > 1e-4 ? d / 0.18 : 1;
+}
 
 /** the bone's rest position in the mesh's own (bind) space */
 function restPosition(mesh: THREE.SkinnedMesh, index: number): THREE.Vector3 {
@@ -16,31 +26,63 @@ function restPosition(mesh: THREE.SkinnedMesh, index: number): THREE.Vector3 {
   return new THREE.Vector3().setFromMatrixPosition(mesh.bindMatrixInverse.clone().multiply(boneWorld));
 }
 
-/** skin tone in linear RGB; keeps each texel's shading relative to the head's own mean skin luminance */
-const SKIN_UNIFORMS = "uniform vec3 wfSkin; uniform float wfSkinLum;";
-const SKIN_MAP = `{
-  vec3 c = diffuseColor.rgb;
-  float l = dot(c, vec3(0.3, 0.59, 0.11));
-  float mx = max(c.r, max(c.g, c.b)), mn = min(c.r, min(c.g, c.b));
-  float sat = (mx - mn) / (mx + 1e-4);
-  // skin: warm (red over blue, green between), moderately saturated, not near-black (hair, brows) or vivid (a red scarf, lips)
-  float k = smoothstep(0.015, 0.05, c.r - c.b) * smoothstep(0.12, 0.25, sat) * (1.0 - smoothstep(0.78, 0.9, sat))
-    * smoothstep(0.012, 0.035, l) * step(c.b, c.g + 0.04);
-  vec3 tone = wfSkin * clamp(l / wfSkinLum, 0.0, 2.2);
-  diffuseColor.rgb = mix(c, tone, k);
-}`;
-
-function tintSkin(material: THREE.Material, hex: string, skinLum: number) {
-  if (!(material instanceof THREE.MeshStandardMaterial) || !hex) return;
-  const tone = new THREE.Color(hex); // THREE.Color stores linear values (colour management on)
+/** The skin material's program (operator-skin-shader.ts): skin tone, the authored hair's treatment for the chosen style, and
+ * the markings. `head`/`unit` place the shapes in head space: the Head bone's rest position and the rig's metres-per-unit. */
+function patchSkin(material: THREE.Material, look: FaceLook, head: THREE.Vector3, unit: number) {
+  if (!(material instanceof THREE.MeshStandardMaterial)) return;
+  const hairMode: HairMode = look.style.hair.kind === "authored" ? 0 : look.style.hair.kind === "none" ? 1 : 2;
+  if (!look.skin && hairMode === 0 && look.style.marks.length === 0) return; // nothing to change: keep the authored head as is
+  const program = skinProgram({ skinHex: look.skin, skinLum: look.skinLum, hairMode, hairHex: look.style.hairHex, marks: look.style.marks });
+  const tone = look.skin ? new THREE.Color(look.skin) : new THREE.Color(0, 0, 0); // THREE.Color stores linear values (colour management on)
+  const hair = new THREE.Color(look.style.hairHex || "#120f0e");
+  // a bald scalp with the skin left "as modelled": a warm tone at the head's own skin brightness
+  const bald = look.skin ? tone.clone() : new THREE.Color(look.skinLum * 1.9, look.skinLum * 1.35, look.skinLum * 1.05);
   material.onBeforeCompile = (shader) => {
     shader.uniforms["wfSkin"] = { value: new THREE.Vector3(tone.r, tone.g, tone.b) };
-    shader.uniforms["wfSkinLum"] = { value: skinLum };
-    shader.fragmentShader = shader.fragmentShader.replace("#include <common>", `#include <common>\n${SKIN_UNIFORMS}`)
-      .replace("#include <map_fragment>", `#include <map_fragment>\n${SKIN_MAP}`);
+    shader.uniforms["wfSkinLum"] = { value: look.skinLum };
+    shader.uniforms["wfHead"] = { value: head.clone() };
+    shader.uniforms["wfUnit"] = { value: unit };
+    shader.uniforms["wfHair"] = { value: new THREE.Vector3(hair.r, hair.g, hair.b) };
+    shader.uniforms["wfHairMode"] = { value: hairMode };
+    shader.uniforms["wfBald"] = { value: new THREE.Vector3(bald.r, bald.g, bald.b) };
+    shader.vertexShader = shader.vertexShader.replace("#include <common>", `#include <common>\n${program.vertexDecl}`)
+      .replace("#include <begin_vertex>", `#include <begin_vertex>\n${program.vertexAssign}`);
+    shader.fragmentShader = shader.fragmentShader.replace("#include <common>", `#include <common>\n${program.fragmentDecl}`)
+      .replace("#include <map_fragment>", `#include <map_fragment>\n${program.fragmentBody}`)
+      .replace("#include <emissivemap_fragment>", `#include <emissivemap_fragment>\n${program.emissive}`);
   };
-  material.customProgramCacheKey = () => `operator-skin-${hex}-${skinLum}`;
+  material.customProgramCacheKey = () => program.key;
   material.needsUpdate = true;
+}
+
+/** The head texture's own skin colour (its mean over skin-like texels), as a hex, so a bare scalp matches an untinted face;
+ * null when the image can't be read (no DOM, a GPU-compressed texture). Cached per texture. */
+const skinSamples = new WeakMap<THREE.Texture, string | null>();
+function sampleSkinTone(material: THREE.Material | THREE.Material[]): string | null {
+  const m = (Array.isArray(material) ? material[0] : material) as THREE.MeshStandardMaterial;
+  const tex = m?.map;
+  if (!tex || typeof document === "undefined") return null;
+  if (skinSamples.has(tex)) return skinSamples.get(tex)!;
+  let out: string | null = null;
+  try {
+    const img = tex.image as CanvasImageSource & { width?: number; height?: number };
+    const w = 96, h = 96, canvas = document.createElement("canvas");
+    canvas.width = w; canvas.height = h;
+    const ctx = canvas.getContext("2d", { willReadFrequently: true });
+    if (ctx && img && (img.width ?? 0) > 0) {
+      ctx.drawImage(img, 0, 0, w, h);
+      const d = ctx.getImageData(0, 0, w, h).data;
+      let r = 0, g = 0, bl = 0, n = 0;
+      for (let i = 0; i < d.length; i += 4) {
+        const R = d[i]! / 255, G = d[i + 1]! / 255, B = d[i + 2]! / 255;
+        const mx = Math.max(R, G, B), mn = Math.min(R, G, B), sat = (mx - mn) / (mx + 1e-4), lum = 0.3 * R + 0.59 * G + 0.11 * B;
+        if (R - B > 0.06 && sat > 0.15 && sat < 0.8 && lum > 0.12 && B <= G + 0.04) { r += R; g += G; bl += B; n++; }
+      }
+      if (n > 50) out = "#" + [r / n, g / n, bl / n].map((c) => Math.round(Math.min(1, c) * 255).toString(16).padStart(2, "0")).join("");
+    }
+  } catch { out = null; }
+  skinSamples.set(tex, out);
+  return out;
 }
 
 function robotColours(material: THREE.Material, look: FaceLook) {
@@ -64,6 +106,20 @@ export function attachHead(object: THREE.Object3D, headScene: THREE.Object3D, lo
   if (bodyHead < 0) return [];
   const byName = new Map(b.skeleton.bones.map((x, i) => [x.name, i]));
   const made: THREE.Material[] = [];
+  const headRest = restPosition(b, bodyHead);
+  // head space is scaled by the HEAD's own rig (the head keeps the size it was cut at; the body's rig may differ)
+  const firstSrc = sources.find((src) => src.skeleton.bones.some((x) => isHeadBone(x.name)));
+  const unit = firstSrc ? headUnit(firstSrc, firstSrc.skeleton.bones.findIndex((x) => isHeadBone(x.name))) : headUnit(b, bodyHead);
+  // the head's own skull in head space (metres), so hair caps hug this head and off-skull hair is told apart
+  let skull: Skull | null = null;
+  if (firstSrc) {
+    const pos = firstSrc.geometry.getAttribute("position") as THREE.BufferAttribute;
+    const srcHeadIdx = firstSrc.skeleton.bones.findIndex((x) => isHeadBone(x.name));
+    const origin = restPosition(firstSrc, srcHeadIdx);
+    const xyz = new Float32Array(pos.count * 3);
+    for (let i = 0; i < pos.count; i++) { xyz[i * 3] = (pos.getX(i) - origin.x) / unit; xyz[i * 3 + 1] = (pos.getY(i) - origin.y) / unit; xyz[i * 3 + 2] = (pos.getZ(i) - origin.z) / unit; }
+    skull = fitSkull(xyz);
+  }
   for (const src of sources) {
     const srcHead = src.skeleton.bones.findIndex((x) => isHeadBone(x.name));
     if (srcHead < 0) continue;
@@ -77,7 +133,7 @@ export function attachHead(object: THREE.Object3D, headScene: THREE.Object3D, lo
     si.needsUpdate = true;
     const mats = (Array.isArray(src.material) ? src.material : [src.material]).map((m) => {
       const copy = cinematicImported(m);
-      if (look.skin) tintSkin(copy, look.skin, look.skinLum);
+      patchSkin(copy, look, headRest, unit);
       robotColours(copy, look);
       made.push(copy);
       return copy;
@@ -88,6 +144,33 @@ export function attachHead(object: THREE.Object3D, headScene: THREE.Object3D, lo
     mesh.frustumCulled = false; mesh.castShadow = b.castShadow; mesh.receiveShadow = true;
     b.parent.add(mesh);
     mesh.bind(b.skeleton, b.bindMatrix);
+  }
+  const skinMesh = (geo: THREE.BufferGeometry, mat: THREE.Material, name: string) => {
+    const mesh = new THREE.SkinnedMesh(geo, mat);
+    mesh.name = name;
+    mesh.position.copy(b.position); mesh.quaternion.copy(b.quaternion); mesh.scale.copy(b.scale);
+    mesh.frustumCulled = false; mesh.castShadow = b.castShadow; mesh.receiveShadow = true;
+    b.parent!.add(mesh);
+    mesh.bind(b.skeleton, b.bindMatrix);
+    return mesh;
+  };
+  // a style other than the head's own hair: the authored hair is cut away by the shader, so a skin-toned skull closes the head
+  if (look.style.hair.kind !== "authored" && firstSrc) {
+    const fitted = skull ?? fitSkull([]);
+    const skinHex = look.skin || sampleSkinTone(firstSrc.material) || "#a8764f";
+    const scalpMat = new THREE.MeshStandardMaterial({ color: skinHex, roughness: 0.62, metalness: 0 });
+    made.push(scalpMat);
+    skinMesh(bindHairToBone(scalpGeometry(fitted), bodyHead, unit, headRest), scalpMat, "FaceScalp").userData["skull"] = fitted;
+  }
+  // the chosen hairstyle (operator-styling.ts), built in head space and ridden on the Head bone
+  const hairGeo = hairGeometry(look.style.hair, skull ?? undefined);
+  if (hairGeo) {
+    bindHairToBone(hairGeo, bodyHead, unit, headRest);
+    const tex = strandTexture();
+    const hairMat = new THREE.MeshStandardMaterial({ color: look.style.hairHex || "#120f0e", roughness: 0.72, metalness: 0, vertexColors: true, map: tex,
+      ...(look.style.hair.kind === "buzz" ? { transparent: true, opacity: 0.7 } : {}) });
+    made.push(hairMat);
+    skinMesh(hairGeo, hairMat, "FaceHair");
   }
   return made;
 }

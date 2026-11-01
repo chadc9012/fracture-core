@@ -16,6 +16,12 @@ export type PlayerCharacter = {
   skin?: string;
   /** a robot's optics colour (operator-faces.ts ROBOT_OPTICS id) */
   eyes?: string;
+  /** hairstyle (operator-styling.ts HAIR_STYLES id); absent on older saves = the face's own hair */
+  hair?: string;
+  /** hair colour (operator-styling.ts HAIR_COLORS id) */
+  hairColor?: string;
+  /** skin markings worn (operator-styling.ts MARKINGS ids, at most MAX_MARKINGS) */
+  marks?: readonly string[];
   displayName: string;
   appearance: Pick<AppearanceDefinition, "armor" | "cloth" | "visor" | "trim" | "callsign">;
   loadout: { weaponOrder: readonly string[] };
