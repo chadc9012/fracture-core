@@ -1,0 +1,37 @@
+# Looks inside Epic's Unreal Engine container images to see which target platforms each one can package for
+# (UnrealBuildTool said "The Android platform is not supported from this engine distribution" on dev-slim-5.8).
+name: Unreal image probe
+
+on:
+  workflow_dispatch:
+    inputs:
+      image:
+        description: "Engine image to inspect"
+        default: "ghcr.io/epicgames/unreal-engine:dev-5.8"
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Make room
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL /usr/local/share/boost /usr/local/.ghcup /opt/microsoft /usr/share/swift
+          sudo systemctl stop docker
+          echo '{"data-root":"/mnt/docker"}' | sudo tee /etc/docker/daemon.json
+          sudo mkdir -p /mnt/docker && sudo systemctl start docker
+      - name: Pull and inspect
+        env:
+          EPIC_GHCR_TOKEN: ${{ secrets.EPIC_GHCR_TOKEN }}
+        run: |
+          echo "$EPIC_GHCR_TOKEN" | docker login ghcr.io -u "${{ github.repository_owner }}" --password-stdin
+          docker pull "${{ inputs.image }}"
+          docker run --rm "${{ inputs.image }}" bash -lc '
+            E=/home/ue4/UnrealEngine/Engine
+            echo "== InstalledBuild.txt"; ls -la $E/Build/InstalledBuild.txt 2>&1
+            echo "== Engine/Platforms"; ls $E/Platforms 2>&1
+            echo "== Engine/Binaries"; ls $E/Binaries 2>&1
+            echo "== Engine/Source/Runtime/Launch?"; ls $E/Source 2>&1 | head
+            echo "== installed platforms in config"; grep -rn "InstalledPlatformConfigurations\|+InstalledPlatform" $E/Config/BaseEngine.ini $E/Config/*.ini 2>/dev/null | head -40
+            echo "== Android anywhere"; find $E -maxdepth 3 -iname "*android*" 2>/dev/null | head -30
+            echo "== Intermediate/Build platform folders"; ls $E/Intermediate/Build 2>&1 | head
+            echo "== du"; du -sh $E 2>/dev/null'
