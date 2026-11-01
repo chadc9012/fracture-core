@@ -9,3 +9,5 @@ forest war zone with a wrecked-armour checkpoint (CITY / WAR ZONE button).
 `.github/workflows/engine-samples.yml` builds both APKs and attaches them to the `engine-samples` release.
 
 Controls: left side drag to walk, right side drag to look; keyboard WASD, N day/night, T city/war zone.
+
+Re-run after updating the Unity secrets: push any change under engine-samples/ (or Actions → Engine samples → Run workflow).
