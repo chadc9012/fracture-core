@@ -14,6 +14,7 @@ import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as ApiVoiceRouteImport } from './routes/api/voice'
 import { Route as DevAssetsRouteImport } from './routes/dev.assets'
 import { Route as DevMapsRouteImport } from './routes/dev.maps'
+import { Route as DevShowroomRouteImport } from './routes/dev.showroom'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -40,6 +41,11 @@ const DevMapsRoute = DevMapsRouteImport.update({
   path: '/dev/maps',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DevShowroomRoute = DevShowroomRouteImport.update({
+  id: '/dev/showroom',
+  path: '/dev/showroom',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -47,6 +53,7 @@ export interface FileRoutesByFullPath {
   '/api/voice': typeof ApiVoiceRoute
   '/dev/assets': typeof DevAssetsRoute
   '/dev/maps': typeof DevMapsRoute
+  '/dev/showroom': typeof DevShowroomRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -54,6 +61,7 @@ export interface FileRoutesByTo {
   '/api/voice': typeof ApiVoiceRoute
   '/dev/assets': typeof DevAssetsRoute
   '/dev/maps': typeof DevMapsRoute
+  '/dev/showroom': typeof DevShowroomRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -62,13 +70,25 @@ export interface FileRoutesById {
   '/api/voice': typeof ApiVoiceRoute
   '/dev/assets': typeof DevAssetsRoute
   '/dev/maps': typeof DevMapsRoute
+  '/dev/showroom': typeof DevShowroomRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
-    '/' | '/reset-password' | '/api/voice' | '/dev/assets' | '/dev/maps'
+    | '/'
+    | '/reset-password'
+    | '/api/voice'
+    | '/dev/assets'
+    | '/dev/maps'
+    | '/dev/showroom'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/reset-password' | '/api/voice' | '/dev/assets' | '/dev/maps'
+  to:
+    | '/'
+    | '/reset-password'
+    | '/api/voice'
+    | '/dev/assets'
+    | '/dev/maps'
+    | '/dev/showroom'
   id:
     | '__root__'
     | '/'
@@ -76,6 +96,7 @@ export interface FileRouteTypes {
     | '/api/voice'
     | '/dev/assets'
     | '/dev/maps'
+    | '/dev/showroom'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -84,6 +105,7 @@ export interface RootRouteChildren {
   ApiVoiceRoute: typeof ApiVoiceRoute
   DevAssetsRoute: typeof DevAssetsRoute
   DevMapsRoute: typeof DevMapsRoute
+  DevShowroomRoute: typeof DevShowroomRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -123,6 +145,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DevMapsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/dev/showroom': {
+      id: '/dev/showroom'
+      path: '/dev/showroom'
+      fullPath: '/dev/showroom'
+      preLoaderRoute: typeof DevShowroomRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -132,6 +161,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiVoiceRoute: ApiVoiceRoute,
   DevAssetsRoute: DevAssetsRoute,
   DevMapsRoute: DevMapsRoute,
+  DevShowroomRoute: DevShowroomRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

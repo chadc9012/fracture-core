@@ -10,6 +10,7 @@ import { localBounds } from "@/game/vehicle-bounds";
 import { FLEET_MODELS, paintColor, type FleetModel } from "@/game/fleet-models";
 import type { VehicleCosmetics } from "@/game/fleet";
 import { QuietModel } from "./Vehicle";
+import { applyVehicleSurface, wearOf } from "./vehicle-surface";
 
 /**
  * An authored fleet model (public/models/fleet, built by scripts/build-fleet.py): clear-coated paint, real wheels, glass,
@@ -94,6 +95,8 @@ function VehicleBody({ model, paint, cosmetics, speedRef, steerRef, brakeRef, bo
       };
       mesh.material = Array.isArray(mesh.material) ? mesh.material.map(swap) : swap(mesh.material);
     });
+    // baked occlusion, road dirt, dust and rust on every part (vehicle-surface.ts)
+    applyVehicleSurface(root, wearOf(model.id));
     const baseColor = paintMat ? (paintMat as THREE.MeshStandardMaterial).color.clone() : null;
     const baseRim = rimMat ? (rimMat as THREE.MeshStandardMaterial).color.clone() : null;
     // aircraft were built without landing gear and their lowest point sits ~1 m above the model origin, so a landed jet
@@ -101,7 +104,7 @@ function VehicleBody({ model, paint, cosmetics, speedRef, steerRef, brakeRef, bo
     const under = localBounds(root).min.y;
     const seat = under > 0.4 ? under : 0;
     return { seat, root, wheels, steer, rotors, tailRotors, tails, heads, paintMat: paintMat as THREE.MeshStandardMaterial | null, rimMat: rimMat as THREE.MeshStandardMaterial | null, baseColor, baseRim, wing: wing as THREE.Object3D | null, underglow: underglow as THREE.Object3D | null };
-  }, [scene, shadows]);
+  }, [scene, shadows, model.id]);
 
   // garage paint
   useEffect(() => {
@@ -208,6 +211,9 @@ export function carPaint(src: THREE.MeshStandardMaterial, own: Map<THREE.Materia
     clearcoat: 1,
     clearcoatRoughness: 0.05,
     envMapIntensity: 1.25,
+    // the baked occlusion (scripts/bake-fleet-ao.py) carries over to the new paint
+    aoMap: src.aoMap,
+    aoMapIntensity: 1,
   });
   own.set(src, p);
   return p;

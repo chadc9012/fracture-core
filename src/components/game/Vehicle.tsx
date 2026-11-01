@@ -7,6 +7,7 @@ import { MODELS, type ModelKey } from "@/game/models";
 import { removeModelSolid, setModelSolid } from "@/game/environment-collision";
 import { softSprite } from "./softSprite";
 import { applyVehicleFinish } from "./VehicleFinish";
+import { applyVehicleSurface } from "./vehicle-surface";
 import { perfTierVersion } from "@/game/perf-budget";
 import { prepareWorldAsset } from "@/game/asset-render-quality";
 
@@ -118,7 +119,7 @@ function CarBody({
 }) {
   const raw = useModel(body);
   // real paint, tinted glass, chrome and tyres (VehicleFinish.ts), shared between copies of the same model
-  const shell = useMemo(() => applyVehicleFinish(raw), [raw]);
+  const shell = useMemo(() => { const s = applyVehicleFinish(raw); applyVehicleSurface(s); return s; }, [raw]);
   // lamp lenses sit on the model's own front and rear faces (front is +z), so any body gets them in the right place
   const lamps = useMemo(() => {
     const b = new THREE.Box3().setFromObject(shell);

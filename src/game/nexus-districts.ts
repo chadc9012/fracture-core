@@ -135,7 +135,9 @@ export function parkedCars(): Car[] {
  * not blocks — floor ledges on concrete buildings every other floor, vertical mullion fins on glass towers, a lit
  * shopfront band with an awning on the street faces of low/mid-rise lots, and a dark stone plinth on every building.
  * Each piece is an axis-aligned box (x, y, z centre; sx, sy, sz size) drawn instanced by NexusDistricts.tsx. */
-export type FacadeBox = { x: number; y: number; z: number; sx: number; sy: number; sz: number; tint: number };
+export type FacadeBox = { x: number; y: number; z: number; sx: number; sy: number; sz: number; tint: number;
+  /** awnings and blade signs: the outward direction of the face they hang from (unit x/z) */
+  face?: [number, number] };
 export type FacadeKit = {
   ledges: FacadeBox[]; fins: FacadeBox[]; shopfronts: FacadeBox[]; awnings: FacadeBox[]; plinths: FacadeBox[];
   /** modular architecture pieces (Stage 130 foundation): balcony slabs + rails on residential floors, lit lobby entrances, vertical blade signs */
@@ -178,12 +180,12 @@ export function facadeKit(list: Building[] = buildings()): FacadeKit {
         const ox = dx * (b.w / 2 + 0.05), oz = dz * (b.d / 2 + 0.05);
         kit.shopfronts.push({ x: b.x + ox, y: ground + 1.5, z: b.z + oz, sx: along ? len : 0.1, sy: 2.6, sz: along ? 0.1 : len, tint });
         const ax = dx * (b.w / 2 + 0.9), az = dz * (b.d / 2 + 0.9);
-        kit.awnings.push({ x: b.x + ax, y: ground + 3.25, z: b.z + az, sx: along ? len + 0.4 : 1.7, sy: 0.12, sz: along ? 1.7 : len + 0.4, tint });
+        kit.awnings.push({ x: b.x + ax, y: ground + 3.25, z: b.z + az, sx: along ? len + 0.4 : 1.7, sy: 0.12, sz: along ? 1.7 : len + 0.4, tint, face: [dx, dz] });
         // a vertical blade sign at the shop's end, lit in the shop colour
         if (arch() < 0.6) {
           const bx = along ? b.x + (len / 2) * (arch() < 0.5 ? 1 : -1) : b.x + ox + dx * 0.55;
           const bz = along ? b.z + oz + dz * 0.55 : b.z + (len / 2) * (arch() < 0.5 ? 1 : -1);
-          kit.blades.push({ x: bx, y: ground + 5.2, z: bz, sx: 0.22, sy: 2.4, sz: 0.9, tint });
+          kit.blades.push({ x: bx, y: ground + 5.2, z: bz, sx: 0.22, sy: 2.4, sz: 0.9, tint, face: [dx, dz] });
         }
       }
     }

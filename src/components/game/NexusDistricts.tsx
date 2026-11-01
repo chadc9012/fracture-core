@@ -10,6 +10,8 @@ import { cityStreetMaterial } from "./city-surface";
 import type { FleetModelId } from "@/game/fleet-models";
 import { InstancedFleet, type FleetInstance } from "./InstancedFleet";
 import { useInstances } from "./instancing";
+import { awningGeometry, awningMaterial, facadeMaterial, facadeNight, signMaterial } from "./facade-shader";
+import { streetTexture } from "./city-surface";
 import { antennaMast, hvacUnit, lampHead, lampLens, lampPole, waterTank } from "@/game/street-geometry";
 
 const SL = { pole: lampPole(7.4, 1.8), housing: lampHead(7.4, 1.8), lens: lampLens(7.4, 1.8), pole6: lampPole(6.2, 1.2), head6: lampLens(6.2, 1.2), tank: waterTank(), hvac: hvacUnit(), mast: antennaMast(12) };
@@ -44,56 +46,11 @@ const LOOK: Record<Style, { color: string; glass: string; lit: number; cell: [nu
   industrial: { color: "#4f5458", glass: "#1a1d20", lit: 0.3, cell: [4.0, 4.2], win: [0.45, 0.35], metal: 0.5, rough: 0.7 },
 };
 
-/** one shared window-glow level for every district facade: dim by day, bright at night (Bodies updates it each frame) */
-const glowUniform = { value: 1 };
-/** daylight on the glazing (1 by day, 0 at night): by day the glass takes the sky, so the towers read pale blue-grey from the hills
- * (owner's overlook frame) instead of near-black slabs */
-const dayUniform = { value: 1 };
-const DAY_GLASS = new THREE.Color("#7f9ab3");
-/** a MeshStandardMaterial whose faces get a world-space window grid; roofs and floors (|n.y| > 0.5) stay solid */
+/** the modern facade (facade-shader.ts): rooms behind the windows, reflective glass, weathered walls; grime per style */
+const GRIME: Record<Style, number> = { glass: 0.35, concrete: 1, industrial: 0.9 };
 function windowMaterial(style: Style): THREE.MeshStandardMaterial {
   const L = LOOK[style];
-  const m = new THREE.MeshStandardMaterial({ color: L.color, metalness: L.metal, roughness: L.rough });
-  m.onBeforeCompile = (sh) => {
-    sh.uniforms["uGlass"] = { value: new THREE.Color(L.glass) };
-    sh.uniforms["uCell"] = { value: new THREE.Vector2(...L.cell) };
-    sh.uniforms["uWin"] = { value: new THREE.Vector2(...L.win) };
-    sh.uniforms["uLit"] = { value: L.lit };
-    sh.uniforms["uGlow"] = glowUniform;
-    sh.uniforms["uDay"] = dayUniform;
-    sh.uniforms["uDayGlass"] = { value: DAY_GLASS };
-    sh.vertexShader = sh.vertexShader
-      .replace("#include <common>", "#include <common>\nvarying vec3 vWp; varying vec3 vWn;")
-      .replace("#include <begin_vertex>", "#include <begin_vertex>\n#ifdef USE_INSTANCING\n mat4 wfIm = modelMatrix * instanceMatrix;\n#else\n mat4 wfIm = modelMatrix;\n#endif\n vWp = (wfIm * vec4(transformed, 1.0)).xyz; vWn = normalize(mat3(wfIm) * objectNormal);");
-    sh.fragmentShader = sh.fragmentShader
-      .replace("#include <common>", "#include <common>\nvarying vec3 vWp; varying vec3 vWn; uniform vec3 uGlass; uniform vec2 uCell; uniform vec2 uWin; uniform float uLit; uniform float uGlow; uniform float uDay; uniform vec3 uDayGlass;\nfloat wHash(vec2 p){ return fract(sin(dot(p, vec2(41.3, 289.1))) * 43758.5453); }")
-      .replace("#include <emissivemap_fragment>", `#include <emissivemap_fragment>
-        if (abs(vWn.y) < 0.5) {
-          vec3 t = normalize(vec3(-vWn.z, 0.0, vWn.x));
-          float u = dot(vWp, t) / uCell.x, v = vWp.y / uCell.y;
-          vec2 f = fract(vec2(u, v)), id = floor(vec2(u, v));
-          float inside = step(abs(f.x - 0.5), uWin.x * 0.5) * step(abs(f.y - 0.55), uWin.y * 0.5);
-          // window frames read as recessed glass; a hashed share are lit, some cool white, most warm
-          float h = wHash(mod(id + floor(vWn.xz * 3.0 + 0.5) * 17.0, 1024.0));
-          // recessed glazing in a dark frame, a centre mullion and a seam at each floor line, plus a little
-          // per-panel variation: all in the facade shader, so no extra draw calls
-          float outer = step(abs(f.x - 0.5), min(0.49, uWin.x * 0.5 + 0.045)) * step(abs(f.y - 0.55), min(0.49, uWin.y * 0.5 + 0.045));
-          float frame = max(0.0, outer - inside);
-          float mullion = inside * (1.0 - step(0.016, abs(f.x - 0.5)));
-          float seam = 1.0 - smoothstep(0.0, 0.025, min(f.y, 1.0 - f.y));
-          float verticalJoint = 1.0 - smoothstep(0.0, 0.018, min(f.x, 1.0 - f.x));
-          diffuseColor.rgb *= (0.95 + 0.1 * wHash(mod(floor(id * 0.5), 1024.0))) * (1.0 - seam * 0.12 - verticalJoint * 0.09);
-          diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.055, 0.071, 0.084), frame * 0.88);
-          diffuseColor.rgb = mix(diffuseColor.rgb, mix(uGlass, uDayGlass, uDay * (0.75 + 0.25 * fract(h * 5.0))), inside * 0.91);
-          diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.085, 0.105, 0.12), mullion * 0.7);
-          float lit = max(0.0, inside - mullion) * step(h, uLit);
-          // mostly cool office white with warm rooms (the towers' facade map uses the same mix), brighter at night
-          float hc = fract(h * 7.0);
-          vec3 warm = hc < 0.56 ? vec3(0.86, 0.93, 1.0) : hc < 0.9 ? vec3(1.0, 0.8, 0.55) : vec3(0.4, 0.9, 1.0);
-          totalEmissiveRadiance += warm * lit * (0.42 + 0.38 * fract(h * 13.0)) * uGlow;
-        }`);
-  };
-  return m;
+  return facadeMaterial({ ...L, grime: GRIME[style] }, { key: `nexus-${style}` });
 }
 
 function Bodies({ style, list }: { style: Style; list: Building[] }) {
@@ -101,8 +58,7 @@ function Bodies({ style, list }: { style: Style; list: Building[] }) {
   const base = useMemo(() => mat.color.clone(), [mat]);
   useFrame(() => {
     const k = lampLevel(worldLight.night);
-    glowUniform.value = 0.1 + 2.1 * k; // by day the offices are unlit glass under the sky (owner's overlook frame: pale towers), lit up after dark
-    dayUniform.value = 1 - k;
+    facadeNight.value = k; // rooms glow after dark, dim behind reflective glass by day
     // after dark the walls fall back behind their lit windows (owner's night frames); pale concrete read as floodlit at night
     mat.color.copy(base).multiplyScalar(1 - 0.5 * k);
   });
@@ -165,6 +121,27 @@ function KitBoxes({ list, material, tinted }: { list: FacadeBox[]; material: THR
   useInstances<FacadeBox>(ref, list, (o, b) => { o.position.set(b.x, b.y, b.z); o.rotation.set(0, 0, 0); o.scale.set(b.sx, b.sy, b.sz); }, tinted ? (b) => SHOP_TINTS[b.tint]! : undefined);
   return <instancedMesh ref={ref} args={[undefined, undefined, Math.max(1, list.length)]} material={material} castShadow receiveShadow><boxGeometry args={[1, 1, 1]} /></instancedMesh>;
 }
+/** sloped awnings (facade-shader.ts awningGeometry) turned to face out from their wall, hung with their top edge at the old slab */
+function Awnings({ list, material }: { list: FacadeBox[]; material: THREE.Material }) {
+  const ref = useRef<THREE.InstancedMesh>(null);
+  const geo = useMemo(() => awningGeometry(), []);
+  useEffect(() => () => geo.dispose(), [geo]);
+  useInstances<FacadeBox>(ref, list, (o, b) => {
+    const [fx, fz] = b.face ?? [0, 1];
+    o.position.set(b.x, b.y + 0.1, b.z); o.rotation.set(0, Math.atan2(fx, fz), 0);
+    o.scale.set(fz !== 0 ? b.sx : b.sz, 1, 1);
+  }, (b) => SHOP_TINTS[b.tint]!);
+  return <instancedMesh ref={ref} args={[geo, material, Math.max(1, list.length)]} castShadow receiveShadow />;
+}
+/** blade signs standing out from the wall, sign faces along the street (facade-shader.ts signMaterial) */
+function BladeSigns({ list, material }: { list: FacadeBox[]; material: THREE.Material }) {
+  const ref = useRef<THREE.InstancedMesh>(null);
+  useInstances<FacadeBox>(ref, list, (o, b) => {
+    const [fx, fz] = b.face ?? [0, 1];
+    o.position.set(b.x, b.y, b.z); o.rotation.set(0, Math.atan2(fx, fz), 0); o.scale.set(0.22, b.sy, 0.9);
+  }, (b) => SHOP_TINTS[b.tint]!);
+  return <instancedMesh ref={ref} args={[undefined, material, Math.max(1, list.length)]} castShadow><boxGeometry args={[1, 1, 1]} /></instancedMesh>;
+}
 /** shop glass glows in its sign colour: emissive follows the per-instance colour */
 function shopGlass() {
   const m = new THREE.MeshStandardMaterial({ color: "#ffffff", roughness: 0.15, metalness: 0.2 });
@@ -174,30 +151,34 @@ function shopGlass() {
 }
 function Facades({ list }: { list: Building[] }) {
   const kit = useMemo(() => facadeKit(list), [list]);
+  // facadeKit pushes exactly one plinth per building, in list order
+  const shopPlinth = useMemo(() => list.map((b) => b.district !== "shipyard" && b.style !== "industrial"), [list]);
   const mats = useMemo(() => ({
     ledge: new THREE.MeshStandardMaterial({ color: "#b8b0a2", roughness: 0.85, metalness: 0.02 }),
     fin: new THREE.MeshStandardMaterial({ color: "#2c3640", roughness: 0.3, metalness: 0.85 }),
     plinth: new THREE.MeshStandardMaterial({ color: "#3a3c40", roughness: 0.55, metalness: 0.1 }),
+    // ground floors with shops: stone piers, lit shop glass with interiors, a sign fascia (facade-shader.ts)
+    shopBay: facadeMaterial({ color: "#4a4844", glass: "#1a2630", metal: 0.05, rough: 0.6, cell: [5.2, 3.4], win: [0.8, 0.8], lit: 1, grime: 0.6 }, { shop: true, key: "nexus-shop" }),
     // shop glass glows in its sign colour (instance colour): bright enough to light the pavement in the bloom pass
     shop: shopGlass(),
-    awning: new THREE.MeshStandardMaterial({ color: "#ffffff", roughness: 0.7, metalness: 0.0 }),
+    awning: awningMaterial(),
     balcony: new THREE.MeshStandardMaterial({ color: "#a9aaa6", roughness: 0.8, metalness: 0.05 }),
     rail: new THREE.MeshPhysicalMaterial({ color: "#cfe6ee", roughness: 0.08, metalness: 0.1, transparent: true, opacity: 0.45 }),
     portal: new THREE.MeshStandardMaterial({ color: "#1d2228", roughness: 0.4, metalness: 0.8 }),
     lobby: new THREE.MeshStandardMaterial({ color: "#ffe9c4", emissive: "#ffcf8a", emissiveIntensity: 1.6, roughness: 0.3, toneMapped: false }),
-    blade: shopGlass(),
+    blade: signMaterial(),
   }), []);
   return <group>
-    <KitBoxes list={kit.plinths} material={mats.plinth} />
+    <KitBoxes list={kit.plinths.filter((_, i) => shopPlinth[i])} material={mats.shopBay} />
+    <KitBoxes list={kit.plinths.filter((_, i) => !shopPlinth[i])} material={mats.plinth} />
     <KitBoxes list={kit.ledges} material={mats.ledge} />
     <KitBoxes list={kit.fins} material={mats.fin} />
-    <KitBoxes list={kit.shopfronts} material={mats.shop} tinted />
-    <KitBoxes list={kit.awnings} material={mats.awning} tinted />
+    <Awnings list={kit.awnings} material={mats.awning} />
     <KitBoxes list={kit.balconies} material={mats.balcony} />
     <KitBoxes list={kit.rails} material={mats.rail} />
     <KitBoxes list={kit.portals} material={mats.portal} />
     <KitBoxes list={kit.lobbies} material={mats.lobby} />
-    <KitBoxes list={kit.blades} material={mats.blade} tinted />
+    <BladeSigns list={kit.blades} material={mats.blade} />
   </group>;
 }
 /** tall towers step back into a narrower glass crown with a lit band */
@@ -314,12 +295,17 @@ function RaisedSidewalks() {
     }
     const g = new THREE.BufferGeometry();
     g.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
+    // paver UVs from world x/z: one 4 m texture tile, so slabs line up across every strip
+    const uv: number[] = []; for (let i = 0; i < pos.length; i += 3) uv.push(pos[i]! / 4, pos[i + 2]! / 4);
+    g.setAttribute("uv", new THREE.Float32BufferAttribute(uv, 2));
     g.setIndex(idx); g.computeVertexNormals();
     return g;
   }, []);
-  return <mesh geometry={geo} receiveShadow>
-    <meshStandardMaterial color="#92999a" roughness={0.91} metalness={0.02} side={THREE.DoubleSide} polygonOffset polygonOffsetFactor={-2} />
-  </mesh>;
+  const mat = useMemo(() => new THREE.MeshStandardMaterial({
+    color: "#c9cbc6", roughness: 1, metalness: 0.02, side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: -2,
+    map: streetTexture("/textures/pavers_col.jpg", true), normalMap: streetTexture("/textures/pavers_nrm.jpg", false), roughnessMap: streetTexture("/textures/pavers_rough.jpg", false),
+  }), []);
+  return <mesh geometry={geo} material={mat} receiveShadow />;
 }
 
 function Streets() {

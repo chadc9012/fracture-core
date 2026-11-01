@@ -9,6 +9,7 @@ import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js
 import { lampLevel, worldLight } from "@/game/world-light";
 import { windSway } from "@/game/wind-sway";
 import { QuietModel } from "./Vehicle";
+import { vehicleSurface, wearOf } from "./vehicle-surface";
 
 /**
  * Draw many copies of one authored GLB (buildings, cars, props) as one InstancedMesh per material: the model is
@@ -28,7 +29,8 @@ const DAY_GLAZING = new THREE.Color("#6f8ba8");
 const flatCache = new Map<THREE.Object3D, Part[]>();
 
 function strip(g: THREE.BufferGeometry) {
-  for (const name of Object.keys(g.attributes)) if (name !== "position" && name !== "normal" && name !== "uv") g.deleteAttribute(name);
+  // uv1 is the fleet's baked-occlusion layout (scripts/bake-fleet-ao.py); every part of a baked model has it
+  for (const name of Object.keys(g.attributes)) if (name !== "position" && name !== "normal" && name !== "uv" && name !== "uv1") g.deleteAttribute(name);
   if (!g.attributes["uv"]) g.setAttribute("uv", new THREE.BufferAttribute(new Float32Array(g.attributes["position"]!.count * 2), 2));
   return g.index ? g.toNonIndexed() : g;
 }
@@ -57,6 +59,8 @@ export function flattenGlb(scene: THREE.Object3D): Part[] {
   });
   const parts: Part[] = [];
   for (const [material, geos] of byMat) {
+    // merge needs matching attributes: keep the occlusion layout only when every piece of this material has one
+    if (!geos.every((g) => g.attributes["uv1"])) for (const g of geos) if (g.attributes["uv1"]) g.deleteAttribute("uv1");
     const merged = mergeGeometries(geos, false);
     if (!merged) continue;
     merged.computeBoundingSphere();
@@ -119,9 +123,14 @@ function Batch({ url, items, place, shadows, nightGlow, sway, windowScale }: { u
   const { scene } = useGLTF(url);
   const flat = useMemo(() => {
     const parts = flattenGlb(scene);
+    // parked cars and traffic: baked occlusion, road dirt, dust and rust (vehicle-surface.ts)
+    if (url.includes("/models/fleet/")) for (const p of parts) vehicleSurface(p.material, wearOf(url));
+    // the authored towers (build-city.py, baked occlusion from bake-fleet-ao.py): the same weathering, lightly, so stone and
+    // frames carry street grime at their base and dirt in their recesses instead of reading as clean flat colour
+    else if (url.includes("/models/buildings/") || url.includes("/models/city/")) for (const p of parts) if (!p.windows) vehicleSurface(p.material, 0.45);
     if (windowScale && windowScale !== 1) for (const p of parts) if (p.windows) { const m = p.material as THREE.MeshStandardMaterial, t = facadeTextureAt(windowScale); if (t && m.emissiveMap !== t) { m.emissiveMap = t; m.needsUpdate = true; } }
     return parts;
-  }, [scene, windowScale]);
+  }, [scene, windowScale, url]);
   const parts = useMemo(() => (sway ? swayParts(flat, sway) : flat), [flat, sway]);
   useEffect(() => () => { if (parts !== flat) parts.forEach((p, i) => { if (p.material !== flat[i]!.material) p.material.dispose(); }); }, [parts, flat]);
   const refs = useRef<(THREE.InstancedMesh | null)[]>([]);
