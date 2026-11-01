@@ -18,6 +18,12 @@ public class NexusStreet : MonoBehaviour
     int moveTouch = -1, lookTouch = -1;
     Vector2 moveOrigin, moveVec, lastMouse;
     float fps;
+    Light sun;
+    readonly System.Collections.Generic.List<Light> nightLights = new();
+    readonly System.Collections.Generic.List<Material> windowMats = new();
+    bool isDay;
+    string zone = "Nexus City";
+    System.Random wr = new System.Random(77);
 
     void Start()
     {
@@ -32,7 +38,9 @@ public class NexusStreet : MonoBehaviour
         }
         for (int k = 0; k < 9; k++) { float zz = -64f + k * 16f; Lamp(new Vector3(-8.6f, 0, zz)); Lamp(new Vector3(8.6f, 0, zz + 8f)); }
         car = Car(new Color(0.55f, 0.06f, 0.1f));
+        WarZone();
         Player();
+        SetDay(false);
     }
 
     // ------------------------------------------------------------ the night
@@ -46,12 +54,9 @@ public class NexusStreet : MonoBehaviour
         RenderSettings.fogMode = FogMode.Exponential;
         RenderSettings.fogDensity = 0.008f;
         RenderSettings.fogColor = new Color(0.18f, 0.12f, 0.26f);
-        var moon = new GameObject("Moon").AddComponent<Light>();
-        moon.type = LightType.Directional;
-        moon.color = new Color(0.55f, 0.62f, 0.9f);
-        moon.intensity = 0.35f;
-        moon.shadows = LightShadows.Soft;
-        moon.transform.rotation = Quaternion.Euler(50f, 30f, 0f);
+        sun = new GameObject("Sun / moon").AddComponent<Light>();
+        sun.type = LightType.Directional;
+        sun.shadows = LightShadows.Soft;
     }
 
     Material Mat(Color c, float smooth = 0.2f, float metal = 0f)
@@ -121,6 +126,7 @@ public class NexusStreet : MonoBehaviour
         m.SetTexture("_EmissionMap", tex);
         m.SetTextureScale("_EmissionMap", new Vector2(w / 10f, h / 20f));
         m.SetColor("_EmissionColor", Color.white * 1.6f);
+        windowMats.Add(m);
         Box(new Vector3(w, h, w), b + new Vector3(0, h / 2f, 0), m, null, true);
         Box(new Vector3(w + 0.4f, 0.5f, w + 0.4f), b + new Vector3(0, h + 0.25f, 0), Glow(new Color(0.7f, 0.4f, 1f), 2f));
     }
@@ -138,6 +144,7 @@ public class NexusStreet : MonoBehaviour
         l.intensity = 2.2f;
         l.range = 13f;
         l.transform.position = at + new Vector3(dir * 1.5f, 5.5f, 0);
+        nightLights.Add(l);
     }
 
     Transform Car(Color paint)
@@ -167,7 +174,184 @@ public class NexusStreet : MonoBehaviour
         head.spotAngle = 56f;
         head.transform.SetParent(root, false);
         head.transform.localPosition = new Vector3(0, 0.8f, 2.3f);
+        nightLights.Add(head);
         return root;
+    }
+
+    // ------------------------------------------------------------ day and night
+    void SetDay(bool day)
+    {
+        isDay = day;
+        sun.color = day ? new Color(1f, 0.95f, 0.86f) : new Color(0.55f, 0.62f, 0.9f);
+        sun.intensity = day ? 1.15f : 0.35f;
+        sun.transform.rotation = Quaternion.Euler(day ? 42f : 50f, day ? 35f : 30f, 0f);
+        RenderSettings.ambientSkyColor = day ? new Color(0.45f, 0.55f, 0.7f) : new Color(0.12f, 0.1f, 0.22f);
+        RenderSettings.ambientEquatorColor = day ? new Color(0.4f, 0.44f, 0.46f) : new Color(0.16f, 0.1f, 0.2f);
+        RenderSettings.ambientGroundColor = day ? new Color(0.15f, 0.15f, 0.12f) : new Color(0.03f, 0.03f, 0.04f);
+        if (cam) cam.backgroundColor = day ? new Color(0.45f, 0.62f, 0.85f) : new Color(0.05f, 0.04f, 0.1f);
+        foreach (var l in nightLights) l.enabled = !day;
+        foreach (var m in windowMats)
+        {
+            m.SetColor("_EmissionColor", Color.white * (day ? 0.15f : 1.6f));
+            m.SetColor("_BaseColor", day ? new Color(0.75f, 0.8f, 0.88f) : new Color(0.5f, 0.52f, 0.6f));
+        }
+    }
+
+    void Teleport()
+    {
+        player.enabled = false;
+        player.transform.position = player.transform.position.z > -90f ? new Vector3(0, 1f, -112f) : new Vector3(3, 1f, 30f);
+        player.enabled = true;
+        yaw = 180f;
+    }
+
+    // ------------------------------------------------------------ the war zone (south of the city)
+    /// A two-lane forest road through pines, like the Road to Vostok shot: wrecked armour at a checkpoint, tyres, sandbags,
+    /// a gravel berm and a tagged bus shelter, in fog. The pines are static-batched into a few draw calls.
+    void WarZone()
+    {
+        Box(new Vector3(240, 0.2f, 200), new Vector3(0, -0.35f, -180), Mat(new Color(0.2f, 0.22f, 0.14f), 0f), null, true);
+        Box(new Vector3(9, 0.2f, 200), new Vector3(0, -0.12f, -180), Mat(new Color(0.3f, 0.3f, 0.3f), 0.1f), null, true);
+        for (int z = -90; z > -270; z -= 9) Box(new Vector3(0.15f, 0.02f, 3f), new Vector3(0, 0f, z), Mat(new Color(0.75f, 0.75f, 0.7f), 0.1f));
+        Pines();
+        var rust = Mat(new Color(0.32f, 0.2f, 0.12f), 0.05f, 0.3f);
+        var olive = Mat(new Color(0.26f, 0.27f, 0.18f), 0.15f, 0.2f);
+        Apc(new Vector3(-2.5f, 0, -132), 23f, rust);
+        Apc(new Vector3(3.2f, 0, -140), -14f, olive);
+        Tank(new Vector3(-1f, 0, -158), 9f, rust);
+        var bag = Mat(new Color(0.45f, 0.4f, 0.3f), 0f);
+        for (int i = 0; i < 10; i++)
+        {
+            Box(new Vector3(1f, 0.45f, 0.55f), new Vector3(-4f + i * 0.95f, 0.22f, -126f + (i % 2) * 0.1f), bag, null, i % 3 == 0);
+            Box(new Vector3(1f, 0.45f, 0.55f), new Vector3(-3.5f + i * 0.95f, 0.66f, -126f), bag);
+        }
+        var tyre = Mat(new Color(0.05f, 0.05f, 0.05f), 0.1f);
+        for (int i = 0; i < 6; i++)
+        {
+            var t = Prim(PrimitiveType.Cylinder, tyre, null);
+            t.transform.position = new Vector3(-6.5f + (i % 2) * 0.3f, 0.12f + (i / 2) * 0.2f, -134f - (i % 3) * 0.9f);
+            t.transform.localScale = new Vector3(0.84f, 0.1f, 0.84f);
+        }
+        var berm = Prim(PrimitiveType.Sphere, Mat(new Color(0.5f, 0.46f, 0.4f), 0f), null);
+        berm.transform.position = new Vector3(-9.5f, -0.2f, -136);
+        berm.transform.localScale = new Vector3(11.2f, 1.8f, 6.4f);
+        Shelter(new Vector3(7.5f, 0, -150));
+    }
+
+    GameObject Prim(PrimitiveType t, Material m, Transform parent)
+    {
+        var g = GameObject.CreatePrimitive(t);
+        Destroy(g.GetComponent<Collider>());
+        g.transform.SetParent(parent, false);
+        g.GetComponent<Renderer>().sharedMaterial = m;
+        return g;
+    }
+
+    static Mesh ConeMesh(int seg)
+    {
+        var v = new System.Collections.Generic.List<Vector3>();
+        var tri = new System.Collections.Generic.List<int>();
+        for (int i = 0; i < seg; i++)
+        {
+            float a0 = i * Mathf.PI * 2 / seg, a1 = (i + 1) * Mathf.PI * 2 / seg;
+            int b = v.Count;
+            v.Add(new Vector3(Mathf.Cos(a0) * 0.5f, -0.5f, Mathf.Sin(a0) * 0.5f));
+            v.Add(new Vector3(0, 0.5f, 0));
+            v.Add(new Vector3(Mathf.Cos(a1) * 0.5f, -0.5f, Mathf.Sin(a1) * 0.5f));
+            tri.Add(b); tri.Add(b + 1); tri.Add(b + 2);
+        }
+        var m = new Mesh();
+        m.SetVertices(v);
+        m.SetTriangles(tri, 0);
+        m.RecalculateNormals();
+        return m;
+    }
+
+    void Pines()
+    {
+        var root = new GameObject("Pines");
+        var cone = ConeMesh(9);
+        var bark = Mat(new Color(0.25f, 0.18f, 0.12f), 0f);
+        var needles = new[] { Mat(new Color(0.1f, 0.2f, 0.1f), 0.05f), Mat(new Color(0.14f, 0.23f, 0.12f), 0.05f), Mat(new Color(0.18f, 0.26f, 0.14f), 0.05f) };
+        float R(float a, float b) => a + (float)wr.NextDouble() * (b - a);
+        for (int i = 0; i < 620; i++)
+        {
+            float x = R(-110f, 110f), z = R(-275f, -85f);
+            if (Mathf.Abs(x) < 8.5f || (Mathf.Abs(x) < 14f && z > -165f && z < -120f)) continue;  // keep the road and checkpoint open
+            float h = R(14f, 26f);
+            var trunk = Prim(PrimitiveType.Cylinder, bark, root.transform);
+            trunk.transform.position = new Vector3(x, h / 2f, z);
+            trunk.transform.localScale = new Vector3(0.5f, h / 2f, 0.5f);
+            var tint = needles[wr.Next(3)];
+            for (int k = 0; k < 3; k++)
+            {
+                float r = (1f - k * 0.28f) * R(2.2f, 3.2f) * 2f, ch = h * 0.42f;
+                var c = new GameObject("tier", typeof(MeshFilter), typeof(MeshRenderer));
+                c.transform.SetParent(root.transform, false);
+                c.GetComponent<MeshFilter>().sharedMesh = cone;
+                c.GetComponent<MeshRenderer>().sharedMaterial = tint;
+                c.transform.position = new Vector3(x, h * 0.32f + k * h * 0.2f + ch / 2f, z);
+                c.transform.localScale = new Vector3(r, ch, r);
+            }
+        }
+        StaticBatchingUtility.Combine(root);
+    }
+
+    void WheelRow(Transform root, float[] xs, float[] zs, float r, Material m)
+    {
+        foreach (var x in xs) foreach (var z in zs)
+        {
+            var w = Prim(PrimitiveType.Cylinder, m, root);
+            w.transform.localPosition = new Vector3(x, r, z);
+            w.transform.localRotation = Quaternion.Euler(0, 0, 90);
+            w.transform.localScale = new Vector3(r * 2f, 0.2f, r * 2f);
+        }
+    }
+
+    void Apc(Vector3 at, float turn, Material paint)
+    {
+        var root = new GameObject("Wrecked APC").transform;
+        root.position = at; root.rotation = Quaternion.Euler(0, turn, 0);
+        Box(new Vector3(2.7f, 1.3f, 6.4f), new Vector3(0, 1.35f, 0), paint, root, true);
+        Box(new Vector3(2.3f, 0.7f, 2f), new Vector3(0, 2.3f, 2.4f), paint, root);
+        Box(new Vector3(1.2f, 0.5f, 1.4f), new Vector3(0, 2.25f, -0.6f), paint, root);
+        Box(new Vector3(0.12f, 0.12f, 2.2f), new Vector3(0, 2.3f, 0.9f), Mat(new Color(0.1f, 0.1f, 0.1f), 0.4f, 0.8f), root);
+        WheelRow(root, new[] { -1.4f, 1.4f }, new[] { -2.2f, -0.7f, 0.8f, 2.3f }, 0.55f, Mat(new Color(0.06f, 0.06f, 0.06f), 0.1f));
+    }
+
+    void Tank(Vector3 at, float turn, Material paint)
+    {
+        var root = new GameObject("Wrecked tank").transform;
+        root.position = at; root.rotation = Quaternion.Euler(0, turn, 0);
+        var track = Mat(new Color(0.08f, 0.07f, 0.06f), 0.1f, 0.4f);
+        Box(new Vector3(3.4f, 1f, 7f), new Vector3(0, 1f, 0), paint, root, true);
+        foreach (var x in new[] { -1.75f, 1.75f }) Box(new Vector3(0.7f, 0.9f, 7.2f), new Vector3(x, 0.45f, 0), track, root);
+        var turret = Prim(PrimitiveType.Cylinder, paint, root);
+        turret.transform.localPosition = new Vector3(0, 1.9f, -0.4f);
+        turret.transform.localScale = new Vector3(2.8f, 0.4f, 2.8f);
+        var barrel = Box(new Vector3(0.2f, 0.2f, 4.5f), new Vector3(0.3f, 1.95f, 2.6f), paint, root);
+        barrel.transform.localRotation = Quaternion.Euler(-6f, 8f, 0);
+    }
+
+    void Shelter(Vector3 at)
+    {
+        var frame = Mat(new Color(0.35f, 0.3f, 0.26f), 0.2f, 0.5f);
+        foreach (var x in new[] { -1.6f, 1.6f }) Box(new Vector3(0.1f, 2.4f, 0.1f), at + new Vector3(x, 1.2f, 0.7f), frame);
+        Box(new Vector3(3.4f, 0.1f, 1.8f), at + new Vector3(0, 2.45f, 0), frame);
+        var t = new Texture2D(64, 32, TextureFormat.RGB24, false) { filterMode = FilterMode.Point };
+        var px = new Color[64 * 32];
+        for (int i = 0; i < px.Length; i++) px[i] = new Color(0.7f, 0.68f, 0.62f);
+        var ink = new[] { new Color(0.1f, 0.1f, 0.12f), new Color(0.2f, 0.3f, 0.75f), new Color(0.75f, 0.15f, 0.15f) };
+        for (int k = 0; k < 260; k++)
+        {
+            int x0 = wr.Next(0, 61), y0 = wr.Next(4, 27);
+            for (int d = 0; d < 3; d++) px[Mathf.Clamp(y0 + (k % 5) - 2, 0, 31) * 64 + Mathf.Clamp(x0 + d, 0, 63)] = ink[k % 3];
+        }
+        t.SetPixels(px); t.Apply();
+        var m = Mat(Color.white, 0.1f);
+        m.SetTexture("_BaseMap", t);
+        Box(new Vector3(3.3f, 2.2f, 0.06f), at + new Vector3(0, 1.25f, -0.8f), m, null, true);
+        Box(new Vector3(2.8f, 0.08f, 0.5f), at + new Vector3(0, 0.5f, -0.4f), frame);
     }
 
     // ------------------------------------------------------------ the operator
@@ -251,6 +435,14 @@ public class NexusStreet : MonoBehaviour
         float lane = (carT % 2f) < 1f ? 3.2f : -3.2f, u = carT % 1f;
         car.position = new Vector3(lane, 0, lane > 0 ? Mathf.Lerp(-74f, 74f, u) : Mathf.Lerp(74f, -74f, u));
         car.rotation = Quaternion.Euler(0, lane > 0 ? 0 : 180, 0);
+        if (Input.GetKeyDown(KeyCode.N)) SetDay(!isDay);
+        if (Input.GetKeyDown(KeyCode.T)) Teleport();
+        float war = Mathf.Clamp01((-player.transform.position.z - 80f) / 30f);
+        RenderSettings.fogDensity = Mathf.Lerp(isDay ? 0.006f : 0.008f, 0.016f, war);
+        var cityFog = isDay ? new Color(0.55f, 0.62f, 0.72f) : new Color(0.18f, 0.12f, 0.26f);
+        var warFog = isDay ? new Color(0.5f, 0.55f, 0.52f) : new Color(0.1f, 0.12f, 0.13f);
+        RenderSettings.fogColor = Color.Lerp(cityFog, warFog, war);
+        zone = war > 0.5f ? "war zone" : "Nexus City";
         fps = Mathf.Lerp(fps, 1f / Mathf.Max(Time.unscaledDeltaTime, 0.0001f), 0.05f);
     }
 
@@ -260,8 +452,12 @@ public class NexusStreet : MonoBehaviour
         s.normal.textColor = new Color(0.75f, 0.92f, 1f);
         GUI.Label(new Rect(16, 12, 1400, 40), "UNITY 6 (URP) · World Fracture sample · Nexus City street", s);
         s.normal.textColor = new Color(0.7f, 0.7f, 0.8f);
-        GUI.Label(new Rect(16, 12 + s.fontSize * 1.6f, 1400, 40), "Left side: drag to walk   ·   Right side: drag to look   ·   Keyboard: WASD + mouse drag", s);
+        GUI.Label(new Rect(16, 12 + s.fontSize * 1.6f, 1400, 40), "Left side: drag to walk   ·   Right side: drag to look   ·   Keyboard: WASD, N day/night, T travel", s);
         s.normal.textColor = new Color(1f, 0.85f, 0.4f);
-        GUI.Label(new Rect(16, 12 + s.fontSize * 3.2f, 400, 40), $"{Mathf.RoundToInt(fps)} fps", s);
+        GUI.Label(new Rect(16, 12 + s.fontSize * 3.2f, 600, 40), $"{Mathf.RoundToInt(fps)} fps · {zone} · {(isDay ? "day" : "night")}", s);
+        var b = new GUIStyle(GUI.skin.button) { fontSize = s.fontSize };
+        float bw = Screen.height * 0.3f, bh = Screen.height * 0.075f;
+        if (GUI.Button(new Rect(Screen.width - bw - 16, 16, bw, bh), "DAY / NIGHT", b)) SetDay(!isDay);
+        if (GUI.Button(new Rect(Screen.width - bw - 16, 24 + bh, bw, bh), "CITY / WAR ZONE", b)) Teleport();
     }
 }
