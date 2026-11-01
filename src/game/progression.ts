@@ -98,6 +98,8 @@ export type PlayerProgression = {
   outfit: string | null;
   /** transmog.ts: the owned piece each armour slot shows instead of the equipped one */
   transmog: Transmog;
+  /** the Wardrobe's helmet toggle: veteran and elite bodies show the face and hair instead of their helmet */
+  helmetOff: boolean;
   inventory: GearItem[];
   /** stash.ts: ids of inventory gear stored in the vault */
   vaultIds: string[];
@@ -170,6 +172,7 @@ export const DEFAULT_PROGRESSION: PlayerProgression = {
   cosmetics: {},
   outfit: null,
   transmog: {},
+  helmetOff: false,
   inventory: STARTER_GEAR,
   vaultIds: [],
   equippedGear: STARTER_SLOTS,
@@ -239,6 +242,7 @@ export function normalizeProgression(raw: unknown): PlayerProgression {
       cosmetics: normalizeCosmetics(parsed.cosmetics),
       outfit: typeof parsed.outfit === "string" ? parsed.outfit : null,
       transmog: normalizeTransmog(parsed.transmog, Array.isArray(parsed.inventory) ? (parsed.inventory as GearItem[]) : []),
+      helmetOff: parsed.helmetOff === true,
       challenge: parsed.challenge === "HARD" || parsed.challenge === "VERY_HARD" ? parsed.challenge : "STANDARD",
       patrol: parsed.patrol && typeof parsed.patrol === "object" && typeof parsed.patrol.regionId === "string" && typeof parsed.patrol.kills === "number" && typeof parsed.patrol.need === "number" && typeof parsed.patrol.day === "string" ? { regionId: parsed.patrol.regionId, kills: parsed.patrol.kills, need: parsed.patrol.need, day: parsed.patrol.day } : null,
       abilityMastery: parsed.abilityMastery && typeof parsed.abilityMastery === "object" ? parsed.abilityMastery : {},

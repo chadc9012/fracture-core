@@ -307,6 +307,10 @@ function WardrobePanel({ progression, onProgression }: { progression: PlayerProg
   const items = COSMETICS.filter((x) => x.slot === slot && (!x.event || eventIds.includes(x.event) || ownsCosmetic(progression, x.id)));
   return <div className="space-y-4 border-b border-white/15 pb-5">
     <div className="flex items-baseline justify-between"><p className="wf-op-kicker">Wardrobe</p><span className="text-xs text-white/50">Looks only, never stats · {formatNex(balance)}</span></div>
+    <label className="flex items-center justify-between gap-3 border border-white/15 px-3 py-2 text-xs">
+      <span><span className="font-semibold uppercase tracking-[0.14em]">Helmet</span> <span className="text-white/55">— veteran and elite armour show your face and hair with the helmet off</span></span>
+      <button type="button" role="switch" aria-checked={progression.helmetOff} onClick={() => onProgression({ ...progression, helmetOff: !progression.helmetOff })} className="wf-op-btn !py-1 !text-xs">{progression.helmetOff ? "Off" : "On"}</button>
+    </label>
     {events.length > 0 && <div className="border border-[#92e9f5]/40 bg-[#92e9f5]/5 p-2 text-xs">
       <span className="font-semibold uppercase tracking-[0.14em]">{events.map((e) => e.name).join(" · ")}</span>
       <span className="text-white/60"> is on: {events.map((e) => e.theme).join("; ")}. Event stock is marked below and stays yours after.</span>

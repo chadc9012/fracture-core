@@ -32,7 +32,7 @@ import { standingClip } from "@/game/combat-stance";
 /** the weapon the operator is currently holding; read every frame so a weapon swap needs no rebuild */
 export type HeldWeapon = { current: { weapon: WeaponId; /** weapon-classes.ts: the class the held gun fires as (an SMG/sniper/fusion in the rifle's slot shows its own model) */ heldFrame?: string } };
 
-export type WornGear = { inventory: GearItem[]; equippedGear: Partial<Record<GearSlot, string>>; earnedRewards?: string[]; /** cosmetics.ts: worn cosmetic gear (drawn on every body, authored or procedural) */ cosmetics?: WornCosmetics | undefined };
+export type WornGear = { inventory: GearItem[]; equippedGear: Partial<Record<GearSlot, string>>; earnedRewards?: string[]; /** cosmetics.ts: worn cosmetic gear (drawn on every body, authored or procedural) */ cosmetics?: WornCosmetics | undefined; /** helmet off: veteran and elite bodies lose their helmet above the neck and wear the chosen face and hair */ helmetOff?: boolean | undefined };
 
 const ELEMENT_GLOW: Record<string, string> = { KINETIC: "#ffd9a0", THERMAL: "#ff8a3a", CRYO: "#8fd8ff", ARC: "#6fe7ff", BIO: "#9cff8a" };
 
@@ -430,7 +430,9 @@ export function OperatorModel({ calm = false, face, skin, eyes, style, classId, 
   // rookie armour shows the face: the body type's own headless body plus the chosen head (operator-faces.ts); veteran and elite
   // bodies wear their own helmets and heads
   const body = bodyTypeOr(bodyType);
-  const chosen = !tiered || tiered.tier === "ROOKIE" ? faceLook(classId, body, { face, skin, eyes, ...style }) : null;
-  const url = chosen ? rookieBodyUrl(classId, body) : tiered?.body.url ?? entry.url;
+  // helmet off (the Wardrobe): a tier body keeps its armour but is cut above the neck and wears the face and hair instead
+  const bare = !!tiered && tiered.tier !== "ROOKIE" && !!gear?.helmetOff;
+  const chosen = !tiered || tiered.tier === "ROOKIE" || bare ? faceLook(classId, body, { face, skin, eyes, ...style, cutBody: bare }) : null;
+  const url = chosen && !bare ? rookieBodyUrl(classId, body) : tiered?.body.url ?? entry.url;
   return <Quiet key={`${url}|${chosen?.headUrl ?? ""}`} fallback={fallback}><Suspense fallback={fallback}><Model calm={calm} face={chosen} url={url} tint={entry.tint} height={height} feetY={feetY} color={color} trim={trim} pose={pose} motion={motion} bodyType={bodyType} look={look} cloth={cloth} gear={gear} classId={classId} held={held} colorway={colorway && (tiered?.body.colorway ?? true)} /></Suspense></Quiet>;
 }
