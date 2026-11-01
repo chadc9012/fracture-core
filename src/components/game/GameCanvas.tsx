@@ -54,7 +54,7 @@ import { ConsumableHud } from "./ConsumableHud";
 import { DashHud } from "./DashHud";
 import { DragoniteHud } from "./DragoniteHud";
 import { NexChip } from "./NexChip";
-import { activeBuffs } from "@/game/client-input";
+import { activeBuffs, restRequest } from "@/game/client-input";
 import { useStim, type ConsumableId } from "@/game/stash";
 import { SettingsWindow, DEFAULT_SETTINGS, type GameSettings } from "./SettingsWindow";
 import { BootSequence } from "./BootSequence";
@@ -140,6 +140,9 @@ import { PhantomHangar } from "./PhantomHangar";
 import { JOURNEY_SECONDS } from "@/game/flight-journey";
 import { completePhantomFlight, headingBetween, phantomFlightBlock, phantomOf } from "@/game/phantom-jet";
 import { hasVisited, recordVisit, START_WORLD } from "@/game/travel";
+import { APARTMENT_SPOTS } from "@/game/nexus-residences";
+import { newsHeadline, nextStation, workOut } from "@/game/apartment-actions";
+import { getMusicSource, setMusicSource } from "@/game/radio-stations";
 import { worldName } from "@/game/planet";
 import { resolveDerby, resolveRally, resolveVault } from "@/game/wasteland-activities";
 import { InventoryWindow } from "./InventoryWindow";
@@ -178,7 +181,7 @@ import { dialogueFor, revisitDialogueFor, type DialogueLine } from "@/game/dialo
 import { DialogueOverlay } from "./DialogueOverlay";
 import { EndingOverlay, endingTierFor } from "./EndingOverlay";
 import { DeathOverlay } from "./DeathOverlay";
-import { playEnding, playLevelUp, playNovaUnlock, setVolume, setMixVolumes } from "@/game/audio";
+import { unlockAudio, playEnding, playLevelUp, playNovaUnlock, setVolume, setMixVolumes } from "@/game/audio";
 import { Minimap } from "./Minimap";
 import { grantXP } from "@/game/xp";
 import { switchOperator } from "@/game/operator-pockets";
@@ -261,6 +264,7 @@ const initial: HudState = {
   hacking: false,
   hackProgress: 0,
   insideInterior: null,
+  homeSpot: null,
   interiorName: "",
   interiorOpen: true,
   zoneTier: "STABLE",
@@ -1628,7 +1632,30 @@ export function GameCanvas() {
       {missionBanner && <MissionBannerView banner={missionBanner} onDone={clearBanner} />}
       {levelUpFlash && <LevelUpOverlay level={levelUpFlash.level} novaUnlocked={levelUpFlash.novaUnlocked} onDone={() => setLevelUpFlash(null)} />}
        {showEnding && <EndingOverlay progression={progression} onClose={() => setShowEnding(false)} />}
-       {hud.insideInterior && !housingOpen && !realty && (hud.insideInterior === "neon-property-office" || interiorById(hud.insideInterior)?.kind === "APARTMENT" || interiorById(hud.insideInterior)?.kind === "HOME") && (
+       {/* Apartment 1204 (nexus-residences.ts): the spot you stand at — bed, PC, TV, stash, wardrobe, workout, radio */}
+       {hud.homeSpot && !menuOpen && !inventoryOpen && !characterOpen && !housingOpen && (() => {
+         const spot = APARTMENT_SPOTS.find((x) => x.id === hud.homeSpot);
+         if (!spot) return null;
+         const act = () => {
+           if (spot.action === "rest") { restRequest.current = true; return; }
+           if (spot.action === "pc") { setAtlasOpen(false); setOperationsView(null); setMenuOpen(true); return; }
+           if (spot.action === "stash") { setInventoryOpen(true); return; }
+           if (spot.action === "wardrobe") { setCharacterOpen(true); return; }
+           if (spot.action === "tv") { const n = newsHeadline(progressionRef.current); showLivingToast(`Nexus City News · ${n.headline} · ${n.ticker}`); return; }
+           if (spot.action === "radio") { const n = nextStation(getMusicSource()); unlockAudio(); setMusicSource(n.source); showLivingToast(`World Fracture Radio · ${n.name}`); return; }
+           const r = workOut(progressionRef.current, activeBuffs.current);
+           if ("error" in r) { showLivingToast(r.error); return; }
+           activeBuffs.current = r.buffs;
+           setProgression(() => r.progression);
+           showLivingToast(r.message);
+         };
+         return (
+           <div className="pointer-events-none absolute bottom-48 left-1/2 z-[61] -translate-x-1/2">
+             <Button className="pointer-events-auto" variant="outline" onClick={act}>{spot.label}</Button>
+           </div>
+         );
+       })()}
+       {hud.insideInterior && !housingOpen && !realty && (hud.insideInterior === "neon-property-office" || (interiorById(hud.insideInterior)?.kind === "APARTMENT" && (!interiorById(hud.insideInterior)?.layout || hud.insideInterior === "nexus-res-1204")) || interiorById(hud.insideInterior)?.kind === "HOME") && (
          <div className="pointer-events-none absolute bottom-36 left-1/2 -translate-x-1/2">
            <Button className="pointer-events-auto" variant="outline" onClick={() => { if (hud.insideInterior === "neon-property-office") setRealty({ start: null }); else setHousingOpen("DECORATE"); }}>{hud.insideInterior === "neon-property-office" ? "Talk to the agent · Buy homes" : interiorById(hud.insideInterior)?.homeId ? "Decorate this home" : "Decorate my homes"}</Button>
          </div>

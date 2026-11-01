@@ -17,6 +17,7 @@ import { REGIONAL_SHOPS } from "./regional-shops";
 import { nexusHubLobby } from "./building-models";
 import { shopAccessKind } from "./shop-access";
 import { keeperName } from "./merchant-models";
+import { FLOORS as RESIDENCE_FLOORS, elevatorPads, residenceFloor } from "./nexus-residences";
 
 export const INTERIOR_ALTITUDE = 600;
 export const DOOR_RADIUS = 2.2;
@@ -60,37 +61,37 @@ export type InteriorDef = {
   lift?: { pad: { x: number; z: number }; to: string; land: { x: number; z: number }; label: string };
   /** reached only by a lift, never from the street: no door in the world, no door marker */
   viaLift?: boolean;
+  /** an elevator bank: several pads, one per floor (nexus-residences.ts); checked as well as `lift` */
+  lifts?: readonly { pad: { x: number; z: number }; to: string; land: { x: number; z: number }; label: string }[];
+  /** the room's half extents (metres) when it is not the standard 10 m room */
+  size?: { hx: number; hz: number };
+  /** no exit marker: the floor is left by its elevator (the Residences' upper floors) */
+  noExit?: boolean;
+  /** drawn by its own component instead of the plain room (NexusResidences.tsx) */
+  layout?: "nexus-residences";
 };
 
 /** Nexus doors open from the plaza into a hub tower's lobby (building-models.ts), not into the side of a tower */
 const NEXUS_HUB = REGIONS.find((r) => r.id === "nexus")!;
 
 export const INTERIORS: InteriorDef[] = [
-  {
-    id: "nexus-apartment",
-    name: "Warrens Apartment 4B",
+  // Nexus City Residences (nexus-residences.ts): the player's apartment tower. The street door opens into the lobby; every
+  // floor has an elevator bank to every other floor; only the lobby leads back out to the street.
+  ...RESIDENCE_FLOORS.map((f): InteriorDef => ({
+    id: f.id,
+    name: f.name,
     kind: "APARTMENT",
     regionId: "nexus",
     doorPos: nexusHubLobby(NEXUS_HUB, Math.atan2(-10, -16)),
-    origin: { x: 2000, z: 0 },
-    spawnOffset: { x: 0, z: -2.5 },
-    exitOffset: { x: 0, z: 4 },
-    npcName: "Mara, off-shift Vanguard tech",
-    lift: { pad: { x: -3.2, z: -3.5 }, to: "nexus-tower-lounge", land: { x: -3.2, z: -1.2 }, label: "Lift · Floor 12 Sky Lounge" },
-  },
-  {
-    id: "nexus-tower-lounge",
-    name: "Warrens Tower · Floor 12 Sky Lounge",
-    kind: "APARTMENT",
-    regionId: "nexus",
-    doorPos: nexusHubLobby(NEXUS_HUB, Math.atan2(-10, -16)),
-    origin: { x: 2000, z: 540 },
-    spawnOffset: { x: -3.2, z: -1.2 },
-    exitOffset: { x: 0, z: 4 },
-    npcName: "Sky Lounge concierge",
-    lift: { pad: { x: -3.2, z: -3.5 }, to: "nexus-apartment", land: { x: -3.2, z: -1.2 }, label: "Lift · Ground floor" },
-    viaLift: true,
-  },
+    origin: f.origin,
+    spawnOffset: f.id === "nexus-apartment" ? { x: 0, z: f.hz - 3.2 } : f.arrive,
+    exitOffset: f.id === "nexus-apartment" ? { x: 0, z: f.hz - 0.2 } : { x: 0, z: 999 },
+    ...(f.npcName ? { npcName: f.npcName } : {}),
+    lifts: elevatorPads(f.id).map((e) => ({ pad: e.pad, to: e.to, land: residenceFloor(e.to)!.arrive, label: e.label })),
+    size: { hx: f.hx, hz: f.hz },
+    layout: "nexus-residences",
+    ...(f.id === "nexus-apartment" ? {} : { viaLift: true, noExit: true }),
+  })),
   {
     id: "nexus-scrap-market",
     name: "Scrap-Market Storefront",
@@ -260,6 +261,7 @@ export function doorAt(x: number, z: number, canEnter: (i: InteriorDef) => boole
 
 /** True while standing at the interior-side exit marker (relative to the interior's own origin). */
 export function atExitMarker(interior: InteriorDef, localX: number, localZ: number): boolean {
+  if (interior.noExit) return false;
   return Math.hypot(localX - interior.exitOffset.x, localZ - interior.exitOffset.z) < DOOR_RADIUS;
 }
 
@@ -285,8 +287,12 @@ export function exitPosition(doorPos: { x: number; z: number }, back: { x: numbe
 export const LIFT_RADIUS = 1.0;
 /** the floor the player rides to when standing on the interior's lift pad (local coordinates), else null */
 export function liftAt(interior: InteriorDef, localX: number, localZ: number): { to: InteriorDef; land: { x: number; z: number }; label: string } | null {
-  const l = interior.lift;
-  if (!l || Math.hypot(localX - l.pad.x, localZ - l.pad.z) > LIFT_RADIUS) return null;
-  const to = interiorById(l.to);
-  return to ? { to, land: l.land, label: l.label } : null;
+  for (const l of [...(interior.lift ? [interior.lift] : []), ...(interior.lifts ?? [])]) {
+    if (Math.hypot(localX - l.pad.x, localZ - l.pad.z) > LIFT_RADIUS) continue;
+    const to = interiorById(l.to);
+    if (to) return { to, land: l.land, label: l.label };
+  }
+  return null;
 }
+/** how far you can walk from a plain room's centre (half extents less a body's width) */
+export const roomBounds = (interior: InteriorDef) => ({ hx: (interior.size?.hx ?? 5) - 0.5, hz: (interior.size?.hz ?? 5) - 0.5 });

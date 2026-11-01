@@ -45,3 +45,6 @@ export const dashHud: { current: { name: string; charges: number; max: number; f
 
 /** Dragonite ability readout written by Scene each frame (dragonite-cast.ts), read by DragoniteHud; null when the Operator is not bonded */
 export const dragoniteHud: { current: { name: string; cd: number; max: number; key: string }[] | null } = { current: null };
+
+/** Apartment 1204's bed (nexus-residences.ts): the button sets it, Scene restores the hull next frame and clears it */
+export const restRequest: { current: boolean } = { current: false };

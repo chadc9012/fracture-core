@@ -7,6 +7,8 @@ import { INTERIOR_ALTITUDE, INTERIORS, SHOP_INTERIORS } from "@/game/interiors";
 import { DoorMarker } from "./HomeInteriors";
 import { SpeakingFigure } from "./SpeakingFigure";
 import { castAt, NEXUS_DINER } from "@/game/venue-life";
+import { residenceFloor } from "@/game/nexus-residences";
+import { NexusResidences } from "./NexusResidences";
 
 const ROOM_HALF = 5;
 const WALL_HEIGHT = 4;
@@ -37,8 +39,10 @@ export function Interiors() {
     }
     if (!best) return;
     l.position.set(best.origin.x, INTERIOR_ALTITUDE + WALL_HEIGHT - 0.4, best.origin.z);
-    l.color.set(best.kind === "SHOP" ? "#ffd9a0" : best.kind === "VENUE" ? "#d06bff" : "#cfe6ff");
-    l.intensity = best.kind === "VENUE" ? 26 : 20;
+    const rf = residenceFloor(best.id);
+    l.color.set(rf ? rf.light : best.kind === "SHOP" ? "#ffd9a0" : best.kind === "VENUE" ? "#d06bff" : "#cfe6ff");
+    l.intensity = best.kind === "VENUE" ? 26 : rf ? 34 : 20;
+    l.distance = best.size ? (best.size.hx + best.size.hz) * 1.5 : 14;
   });
   return (
     <group>
@@ -47,7 +51,25 @@ export function Interiors() {
       {SHOP_INTERIORS.map((it) => <DoorMarker key={`door-${it.id}`} x={it.doorPos.x} z={it.doorPos.z} label={it.name} />)}
       {/* the hand-authored apartments, stores and offices enter the same way, so their doors are marked too (they were invisible triggers) */}
       {INTERIORS.filter((it) => it.kind !== "HOME" && !it.viaLift && !SHOP_INTERIORS.includes(it)).map((it) => <DoorMarker key={`door-${it.id}`} x={it.doorPos.x} z={it.doorPos.z} label={it.kind === "VENUE" ? undefined : it.name} />)}
-      {INTERIORS.filter((i) => i.kind !== "HOME").map((interior) => (
+      {/* Nexus City Residences: its own furnished floors; the lift pads, people and the lobby's exit are drawn below */}
+      <NexusResidences />
+      {INTERIORS.filter((i) => i.layout === "nexus-residences").map((interior) => {
+        const f = residenceFloor(interior.id)!;
+        return (
+          <group key={interior.id} position={[interior.origin.x, INTERIOR_ALTITUDE, interior.origin.z]}>
+            {(interior.lifts ?? []).map((l) => (
+              <group key={l.to} position={[l.pad.x, 0, l.pad.z]}>
+                <mesh rotation-x={-Math.PI / 2} position={[0, 0.025, 0]}><circleGeometry args={[1, 32]} /><meshStandardMaterial color="#1b2330" metalness={0.8} roughness={0.3} /></mesh>
+                <mesh rotation-x={-Math.PI / 2} position={[0, 0.035, 0]}><ringGeometry args={[0.78, 1, 32]} /><meshBasicMaterial color="#6fd8ff" toneMapped={false} /></mesh>
+                <LiftSign label={l.label} at={f.bank === "west" ? [-1.0, 2.15, 0] : [0, 2.15, 1.0]} turn={f.bank === "west" ? Math.PI / 2 : Math.PI} />
+              </group>
+            ))}
+            {interior.npcName && f.npcAt && <group position={[f.npcAt.x, 0, f.npcAt.z]} rotation-y={Math.PI}><SpeakingFigure name={interior.npcName} color="#6d8fc9" role="MEDIC" /></group>}
+            {!interior.noExit && <mesh rotation-x={-Math.PI / 2} position={[interior.exitOffset.x, 0.02, interior.exitOffset.z]}><ringGeometry args={[1.2, 1.6, 24]} /><meshBasicMaterial color="#7dffca" transparent opacity={0.6} /></mesh>}
+          </group>
+        );
+      })}
+      {INTERIORS.filter((i) => i.kind !== "HOME" && !i.layout).map((interior) => (
         <group key={interior.id} position={[interior.origin.x, INTERIOR_ALTITUDE, interior.origin.z]}>
           {/* floor */}
           <mesh rotation-x={-Math.PI / 2} receiveShadow position={[0, 0, 0]}>
@@ -185,7 +207,7 @@ function VenueRoom({ venueId }: { venueId: string }) {
 }
 
 /** the lift call sign: label drawn onto a canvas, so it needs no font download (a CDN font fetch held the whole world back offline) */
-function LiftSign({ label }: { label: string }) {
+function LiftSign({ label, at = [0, 2.4, -1.1], turn = 0 }: { label: string; at?: [number, number, number]; turn?: number }) {
   const tex = useMemo(() => {
     const c = document.createElement("canvas");
     c.width = 512; c.height = 128;
@@ -199,5 +221,5 @@ function LiftSign({ label }: { label: string }) {
     t.colorSpace = THREE.SRGBColorSpace;
     return t;
   }, [label]);
-  return <mesh position={[0, 2.4, -1.1]}><planeGeometry args={[1.6, 0.4]} /><meshBasicMaterial map={tex} toneMapped={false} /></mesh>;
+  return <mesh position={at} rotation-y={turn}><planeGeometry args={[1.6, 0.4]} /><meshBasicMaterial map={tex} toneMapped={false} /></mesh>;
 }

@@ -199,7 +199,9 @@ import { heatStatus, stepHeatMeter } from "@/game/heat";
 import { shouldForceFootTransition, vehicleDamageStage, VEHICLE_DAMAGE_EFFECT, type VehicleDamageStage } from "@/game/chase-ai";
 import { exitVehicleMomentum, parkourChainBonus, vaultLunge } from "@/game/parkour";
 import { anySensorSees, detectionStateFor, lockdownStatus, nexusSensors, stepDetectionMeter, stepHackProgress, type DetectionState, type LockdownTier } from "@/game/stealth";
-import { INTERIORS, INTERIOR_ALTITUDE, doorAt, atExitMarker, interiorById, isInteriorOpen, clampHomeLocal, exitPosition, liftAt } from "@/game/interiors";
+import { spotAt } from "@/game/nexus-residences";
+import { restRequest } from "@/game/client-input";
+import { INTERIORS, INTERIOR_ALTITUDE, doorAt, atExitMarker, interiorById, isInteriorOpen, clampHomeLocal, exitPosition, liftAt, roomBounds } from "@/game/interiors";
 import { clampToFloor, registeredModelSolids, roomSolids, solidTopAt, structureSolids, sweepSolids } from "@/game/environment-collision";
 import { homeById } from "@/game/housing";
 import { HomeInteriors } from "./HomeInteriors";
@@ -417,6 +419,8 @@ export type HudState = {
   hackProgress: number;
   /* Interior Building system — populated only while insideInterior is set */
   insideInterior: string | null;
+  /** the apartment spot you stand at in the Nexus City Residences (nexus-residences.ts APARTMENT_SPOTS), else null */
+  homeSpot: string | null;
   interiorName: string;
   interiorOpen: boolean;
   /** Living World (living-runtime.ts): the city you're in and its live world event */
@@ -2287,6 +2291,8 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
         }
       } else stormNest.current = false;
     }
+    /* ---------------- Apartment 1204: resting in your own bed restores your hull (GameCanvas sets restRequest) ---------------- */
+    if (restRequest.current) { restRequest.current = false; if (interior?.id === "nexus-res-1204") { sim.hp = 100; alert(sim, "Rested · hull restored"); } }
     /* ---------------- interiors: walk up to a door to go in, walk up to the exit marker to come back out ---------------- */
     if (!interior && !s.inVehicle) {
       // homes open for their owner only; nightlife venues only during their hours (nightlife.ts VENUE_HOURS)
@@ -2310,8 +2316,9 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
         s.x = interior.origin.x + c.x; s.z = interior.origin.z + c.z;
       }
       if (!interior.homeId) {
-        s.x = interior.origin.x + Math.max(-4.5, Math.min(4.5, s.x - interior.origin.x));
-        s.z = interior.origin.z + Math.max(-4.5, Math.min(4.5, s.z - interior.origin.z));
+        const rb = roomBounds(interior);
+        s.x = interior.origin.x + Math.max(-rb.hx, Math.min(rb.hx, s.x - interior.origin.x));
+        s.z = interior.origin.z + Math.max(-rb.hz, Math.min(rb.hz, s.z - interior.origin.z));
       }
       s.interiorPrevX = s.x;
       const localX = s.x - interior.origin.x;
@@ -3529,6 +3536,7 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
         hackProgress: Math.round(s.hackProgress),
         regionId: interior ? interior.regionId : here?.id ?? "",
         insideInterior: s.insideInterior,
+        homeSpot: interior ? spotAt(interior.id, s.x - interior.origin.x, s.z - interior.origin.z)?.id ?? null : null,
         interiorName: interior?.name ?? "",
         interiorOpen: interior ? isInteriorOpen(interior, time.current) : true,
         living: livingHud.current,
