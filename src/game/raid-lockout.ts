@@ -8,6 +8,7 @@
  * Keys live in earnedRewards (`raid-enc:<raid>:<tier>:<stage>#<operator>:W<week>`, union-merged by the cloud save) and the payout ledger, so
  * a merge can never double-pay. The first-ever clear extras (Starbreaker, regalia, blueprint) stay with hollow-star-raid.ts. */
 import { MAW_PERK } from "./maw-collapse";
+import { REFRAIN_PERK } from "./ashen-refrain";
 import { HOLLOW_STAR, HOLLOW_STAR_ID } from "./hollow-star-data";
 import { ASHEN_CHOIR, ASHEN_CHOIR_ID } from "./ashen-choir-data";
 import type { GearItem, GearSlot } from "./inventory";
@@ -42,7 +43,7 @@ const ASHEN_ENCOUNTERS: Record<string, Encounter> = {
   "pyre-crypts": { share: 0.15, drop: { kind: "set", slot: "legs" } },
   "organ-vault": { share: 0.15, drop: { kind: "set", slot: "classItem" } },
   "choir-loft": { share: 0.17, drop: { kind: "set", slot: "chest" } },
-  "cantor-boss": { share: 0.35, drop: { kind: "weapon", id: "ac-cantors-dirge", name: "Cantor's Dirge", slot: "heavy", element: "THERMAL" } },
+  "cantor-boss": { share: 0.35, drop: { kind: "weapon", id: "ac-cantors-dirge", name: "Cantor's Dirge", slot: "heavy", element: "THERMAL", perk: REFRAIN_PERK } },
 };
 /** every raid on the weekly loop (stage ids are unique across raids, so an encounter always names its raid) */
 export const RAIDS: Readonly<Record<string, RaidRoster>> = {

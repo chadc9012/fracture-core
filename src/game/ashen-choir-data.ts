@@ -9,7 +9,7 @@ export const ASHEN_CHOIR: DungeonDefinition = {
   squad: { min: 1, max: 6 }, duration: "90–150 min", maxLives: 8,
   identity: "A cathedral-sized server farm burned down with its congregation inside, and its voices never stopped. The Cantor still sings the old protocol, and every note rewrites the ash into something that hunts. Climb the nave, silence the bells and the organ, and end the hymn before it finishes.",
   hazard: "Resonance", boss: "The Cantor of Ash",
-  signature: { name: "Cantor's Dirge", type: "WEAPON", perk: "A heavy rifle that sings in a low key: plain stats, element THERMAL.", repeatTraits: ["Ashen Refrain", "Low Key", "Last Verse"] },
+  signature: { name: "Cantor's Dirge", type: "WEAPON", perk: "Each kill adds a verse that raises weapon damage; at five verses the next kill bursts in ash.", repeatTraits: ["Ashen Refrain", "Low Key", "Last Verse"] },
   stages: [
     { id: "cinder-nave", hazardPerStep: 5, name: "The Cinder Nave", room: "Collapsed Nave", type: "COMBAT", objective: "Hold the nave against the choir's thralls while the three censer pylons are relit", target: 6, checkpoint: true, hazardLabel: "RESONANCE",
       enemies: ["Ash Thrall", "Choir Warden"], triggers: ["Censer 1 lit", "Censer 2 lit", "Nave steadied"] },

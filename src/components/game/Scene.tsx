@@ -1,4 +1,5 @@
 import { resetMaw } from "@/game/maw-collapse";
+import { resetRefrain } from "@/game/ashen-refrain";
 import { DAY_RATE } from "@/game/day-clock";
 import { RiverdaleTown } from "./RiverdaleTown";
 import { RIVERDALE } from "@/game/world";
@@ -103,6 +104,7 @@ import { RoadDressing } from "./RoadDressing";
 import { ScenarioBosses } from "./ScenarioBosses";
 import { NullPulseFx } from "./NullPulseFx";
 import { MawCollapseFx } from "./MawCollapseFx";
+import { AshenRefrainFx } from "./AshenRefrainFx";
 import { AbilityFx } from "./AbilityFx";
 import { ShardGainFx } from "./ShardGainFx";
 import { SkylineLookout } from "./SkylineLookout";
@@ -1886,7 +1888,7 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
     const hipMult = foundry === "TEX_MECHANICA" && !(mouse.current.aim || padState.current.aim) ? FOUNDRY_RULES.texHip : 1;
     sim.equippedElement = equippedWeapon?.element ?? "KINETIC";
     if (sim.equippedPerk !== equippedWeapon?.perk) sim.nullCharge = { charge: 0, lastTimedAt: -1e9, cooldownUntil: sim.nullCharge.cooldownUntil, lastEventId: sim.nullCharge.lastEventId };
-    if (sim.equippedPerk !== equippedWeapon?.perk) sim.maw = resetMaw(sim.maw);
+    if (sim.equippedPerk !== equippedWeapon?.perk) { sim.maw = resetMaw(sim.maw); sim.refrain = resetRefrain(sim.refrain); }
     sim.equippedPerk = equippedWeapon?.perk;
     if (sim.equippedEvolution !== equippedWeapon?.evolution?.ability) sim.evoCharge = freshCharge();
     sim.equippedEvolution = equippedWeapon?.evolution?.ability;
@@ -3724,6 +3726,7 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
       {coreNode?.target && <CoreNodePod run={coreNode} />}
       <NullPulseFx sim={sim} tier={settings.renderTier} reducedMotion={!!settings.reducedMotion || (typeof window !== "undefined" && typeof window.matchMedia === "function" && window.matchMedia("(prefers-reduced-motion: reduce)").matches)} />
       <MawCollapseFx sim={sim} reducedMotion={!!settings.reducedMotion || (typeof window !== "undefined" && typeof window.matchMedia === "function" && window.matchMedia("(prefers-reduced-motion: reduce)").matches)} />
+      <AshenRefrainFx sim={sim} reducedMotion={!!settings.reducedMotion || (typeof window !== "undefined" && typeof window.matchMedia === "function" && window.matchMedia("(prefers-reduced-motion: reduce)").matches)} />
       <EncounterFx sim={sim} reducedMotion={!!settings.reducedMotion || (typeof window !== "undefined" && typeof window.matchMedia === "function" && window.matchMedia("(prefers-reduced-motion: reduce)").matches)} />
       <HazardMarkers sim={sim} />
       <BeaconMarkers sim={sim} />

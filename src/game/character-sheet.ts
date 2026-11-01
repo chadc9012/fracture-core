@@ -68,6 +68,7 @@ export function itemTooltip(item: GearItem): Tooltip {
     ...(profile ? [`${profile.className} · ${profile.roleLabel}`, killLine(profile)] : []),
     ...(item.element && item.element !== "KINETIC" ? [`${item.element[0]}${item.element.slice(1).toLowerCase()} element`] : []),
     ...(item.perk === "NULL_DISRUPTION" ? ["Null Disruption"] : []),
+    ...(item.perk === "ASHEN_REFRAIN" ? ["Ashen Refrain: each kill adds a verse (+6% damage, 5 max); the next kill at full verses bursts in ash"] : []),
     ...(item.perk === "MAW_COLLAPSE" ? ["Maw Collapse: every 6th hit collapses a singularity that drags nearby enemies in"] : []),
     ...(set ? [`${set.name} set`] : []),
     ...(item.evolution ? ["Evolved at a ruin"] : []),

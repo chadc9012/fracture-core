@@ -63,6 +63,7 @@ import { decayPoise, hitPoise, INITIAL_POISE, isStaggered, isWeakPointOpen, open
 import { counterTuningFor, type CounterTuning } from "./boss-adaptive-ai";
 import { completeEmergencyQuest, EMERGENCY_QUEST_INIT, stepEmergencyQuest, type EmergencyQuest } from "./emergency-quest";
 import { scenarioById, scenarioFor, type UniqueScenario } from "./unique-scenarios";
+import { INITIAL_REFRAIN, REFRAIN_PERK, refrainBurstDamage, refrainDamageMult, registerRefrainKill, type RefrainState } from "./ashen-refrain";
 import { INITIAL_MAW, MAW_PERK, mawEffect, registerMawHit, type MawState } from "./maw-collapse";
 import { INITIAL_NULL_CHARGE, NULL_PERK, NULL_PULSE_POISE, NULL_PULSE_RADIUS, NULL_PULSE_STUN_SECONDS, registerNullHit, type NullChargeState } from "./null-disruption";
 import { ENCOUNTERS } from "./scenario-encounters";
@@ -434,6 +435,8 @@ export type WorldSim = {
   runes: RuneCombat & { charges: EvolutionCharge[]; devourHits: number };
   nullCharge: NullChargeState;
   maw: MawState;
+  refrain: RefrainState;
+  refrainBurst: { id: number; x: number; z: number; at: number } | null;
   mawCollapse: { id: number; x: number; z: number; at: number } | null;
   /** last released Null Disruption pulse (id increments per pulse); Scene/NullPulseFx read it, never write it */
   nullPulse: { id: number; x: number; z: number; radius: number; at: number } | null;
@@ -801,6 +804,8 @@ export function createSim(): WorldSim {
     evoCharge: freshCharge(),
     nullCharge: { ...INITIAL_NULL_CHARGE },
     maw: { ...INITIAL_MAW },
+    refrain: { ...INITIAL_REFRAIN },
+    refrainBurst: null,
     mawCollapse: null,
     nullPulse: null,
     nextHitId: 0, nextChainHitId: 0, chainState: emptyChainState(), lastChainReaction: null,
@@ -2387,6 +2392,7 @@ export function stepSim(sim: WorldSim, input: SimInput) {
           dmg *= hitMultiplier(b.weapon, { distance: Math.hypot(m.x - (b.ox ?? m.x), m.z - (b.oz ?? m.z)), precision, cls: sim.operatorClass });
           if (precision) { sim.lastCrit = performance.now(); sim.critPending = true; }
         }
+        if (sim.equippedPerk === REFRAIN_PERK) dmg *= refrainDamageMult(sim.refrain, performance.now() / 1000);
         if (sim.equippedEvolution) { const st = sim.statuses.get(m); dmg *= evolutionDamageMult(sim.equippedEvolution, !!st && isChilled(st, performance.now() / 1000)); }
         if (sim.runes.bursts.length || sim.runes.devour || sim.runes.rift || sim.runes.awakened) dmg *= runeDamageMult(sim, m);
         if (sim.foundry === "HAKKE" && (m.elite || m.boss)) dmg *= FOUNDRY_RULES.hakkeArmored; // foundries.ts: Wall-Piercer
@@ -2448,6 +2454,22 @@ export function stepSim(sim: WorldSim, input: SimInput) {
         m.kz += b.vz * 0.06 * b.knock;
         sim.combatHeat += 1.5;
          defeatMachine(sim, m);
+        if (!m.alive && sim.equippedPerk === REFRAIN_PERK) {
+          const nowS = performance.now() / 1000;
+          const r = registerRefrainKill(sim.refrain, { now: nowS, eventId: sim.nextHitId++ });
+          sim.refrain = r.state;
+          if (r.burst) {
+            for (const other of sim.machines) {
+              if (!other.alive || other === m) continue;
+              const d = refrainBurstDamage(other.x - m.x, other.z - m.z, dmg);
+              if (d === null) continue;
+              other.hp -= d;
+              if (other.hp <= 0) defeatMachine(sim, other);
+            }
+            sim.refrainBurst = { id: (sim.refrainBurst?.id ?? 0) + 1, x: m.x, z: m.z, at: nowS };
+            alert(sim, "ASHEN REFRAIN — last verse");
+          }
+        }
         break;
       }
     }
