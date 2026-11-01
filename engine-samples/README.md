@@ -7,3 +7,5 @@ forest war zone with a wrecked-armour checkpoint (CITY / WAR ZONE button).
 - `unity-nexus-street/` — Unity 6 URP (C#). Built by GameCI with the UNITY_LICENSE / UNITY_EMAIL / UNITY_PASSWORD secrets.
 
 `.github/workflows/engine-samples.yml` builds both APKs and attaches them to the `engine-samples` release.
+
+Controls: left side drag to walk, right side drag to look; keyboard WASD, N day/night, T city/war zone.
