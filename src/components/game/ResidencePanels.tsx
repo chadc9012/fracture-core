@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { Button } from "@/components/ui/button";
 import { DIRECTORY, FLOOR_SPOTS, residenceFloor, type ResidenceFloorId, type Spot } from "@/game/nexus-residences";
-import { EVAC_REWARD, MORNING_FOR, MORNING_REWARD, RESIDENTS, canRide, finishEvac, getEvac, markMorning, morningDone, morningSteps, rescueNeighbour, residentLine, startEvac, subscribeEvac } from "@/game/residence-life";
+import { EVAC_REWARD, LOBBY, MORNING_FOR, MORNING_REWARD, RESIDENTS, canRide, finishEvac, getEvac, markMorning, morningDone, morningSteps, rescueNeighbour, residentLine, startEvac, subscribeEvac } from "@/game/residence-life";
 import { train } from "@/game/attributes";
 import { newsHeadline, nextStation, workOut } from "@/game/apartment-actions";
 import { activeBuffs, liftRequest, restRequest } from "@/game/client-input";
@@ -65,7 +65,12 @@ export function ResidencePanels({ inside, spotId, liftCall, residentId, progress
       toast(`Morning routine done · +${MORNING_REWARD.xp} XP · +${MORNING_REWARD.nex} Nex`);
       const paid = pay(r.progression, "res:morning", MORNING_REWARD.xp, MORNING_REWARD.nex);
       // the fracture hits as the morning ends
-      window.setTimeout(() => { if (startEvac(paid, Date.now())) { toast("REALITY FRACTURE · Evacuate the building · elevators offline, take the emergency stairs"); say({ speaker: "Building alarm", text: "Reality collision detected. All residents evacuate by the emergency stairs. Do not use the elevators." }); } }, 1200);
+      const here = floor?.id ?? null;
+      window.setTimeout(() => {
+        if (!startEvac(paid, Date.now(), here)) return;
+        if (here === LOBBY) { toast("REALITY FRACTURE · Get out of the building · through the street doors"); say({ speaker: "Mara", text: "That's not the lights. Something's tearing the city open. Doors, now, go!" }); }
+        else { toast("REALITY FRACTURE · Evacuate the building · elevators offline, take the emergency stairs"); say({ speaker: "Building alarm", text: "Reality collision detected. All residents evacuate by the emergency stairs. Do not use the elevators." }); }
+      }, 1200);
       return paid;
     });
   };
@@ -140,7 +145,7 @@ export function ResidencePanels({ inside, spotId, liftCall, residentId, progress
     {/* the alarm */}
     {evac.phase === "alarm" && <div className="pointer-events-none absolute left-1/2 top-24 z-[62] w-[min(30rem,92vw)] -translate-x-1/2 border-2 border-red-500 bg-red-950/85 px-3 py-2 text-center shadow-[0_0_30px_rgba(255,40,40,0.5)]" role="alert">
       <p className="font-mono text-xs font-bold uppercase tracking-[0.3em] text-red-300 wf-pulse">Reality fracture · Evacuate</p>
-      <p className="text-sm text-white">Elevators offline. Take the <b className="text-emerald-300">emergency stairs</b> (green EXIT) down to the lobby.</p>
+      <p className="text-sm text-white">{floor?.id === LOBBY ? <>Get out through the <b className="text-emerald-300">street doors</b>.</> : <>Elevators offline. Take the <b className="text-emerald-300">emergency stairs</b> (green EXIT) down to the lobby.</>}</p>
       <p className="mt-0.5 text-xs text-red-200">{evac.rescued ? "Mara is with you. Get to the street." : "Mara is trapped in the Floor 11 lounge."}</p>
     </div>}
     {/* the first morning */}

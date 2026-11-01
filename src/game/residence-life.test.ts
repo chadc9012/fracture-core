@@ -1,6 +1,6 @@
 // @ts-ignore bun:test has no types in this project's tsconfig
 import { describe, expect, it } from "bun:test";
-import { EVAC_DONE, EVAC_RESCUED, MORNING, MORNING_DONE, RESIDENTS, TRAPPED, finishEvac, getEvac, markMorning, morningDone, rescueNeighbour, residentLine, residentNear, residentPlace, resetEvac, startEvac } from "./residence-life";
+import { EVAC_DONE, EVAC_RESCUED, LOBBY, MORNING, MORNING_DONE, RESIDENTS, TRAPPED, finishEvac, getEvac, markMorning, morningDone, rescueNeighbour, residentLine, residentNear, residentPlace, resetEvac, startEvac } from "./residence-life";
 import { ATTRIBUTES, attrLevel, attributeLevel, awardAttribute, train, trainingKey } from "./attributes";
 import { HOOPS_GREEN_CENTRE, METER_PERIOD, SHOTS, hitWindow, rallyTap, rallyTick, shoot, sportResult, startHoops, startRally, tennisCall, tennisOver, tennisPoint, volleyOver, volleyPoint } from "./sports";
 
@@ -35,6 +35,14 @@ describe("residence life", () => {
     expect(getEvac().phase).toBe("escaped");
     resetEvac();
     expect(startEvac(r.progression, 0)).toBe(false);
+    resetEvac();
+  });
+  it("when it hits in the lobby, Mara is beside you and runs out with you (not trapped on 11)", () => {
+    resetEvac();
+    expect(startEvac({ earnedRewards: [MORNING_DONE] }, 0, LOBBY)).toBe(true);
+    expect(getEvac().rescued).toBe(true);
+    expect(residentPlace(RESIDENTS.find((r) => r.id === "mara")!)).toBeNull();
+    expect(finishEvac({ earnedRewards: [MORNING_DONE] })!.rescued).toBe(true);
     resetEvac();
   });
 });

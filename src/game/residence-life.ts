@@ -85,6 +85,8 @@ export const MORNING_FOR: Partial<Record<string, MorningStep>> = { wardrobe: "dr
 
 /* ---------------- the evacuation ---------------- */
 
+/** the street-level floor: the evacuation ends by walking out of its doors */
+export const LOBBY = "nexus-apartment";
 export const EVAC_DONE = "evac:done", EVAC_RESCUED = "evac:rescued";
 export const EVAC_REWARD = { xp: 300, nex: 250, rescueXp: 200 } as const;
 /** where Mara is trapped during the evacuation: the Floor 11 lounge, by the theater seats */
@@ -96,9 +98,11 @@ export const getEvac = () => evac;
 export const subscribeEvac = (fn: () => void) => { evacListeners.add(fn); return () => { evacListeners.delete(fn); }; };
 function setEvac(next: Evac) { evac = next; evacListeners.forEach((f) => f()); }
 /** the fracture hits after the first morning: start the evacuation if it has not been survived yet */
-export function startEvac(p: Pick<PlayerProgression, "earnedRewards">, now: number): boolean {
+export function startEvac(p: Pick<PlayerProgression, "earnedRewards">, now: number, here?: string | null): boolean {
   if (evac.phase === "alarm" || p.earnedRewards.includes(EVAC_DONE) || !morningDone(p)) return false;
-  setEvac({ phase: "alarm", rescued: false, startedAt: now });
+  // it hits while you are in the lobby (saying hi to Mara is often the last morning step): she is right beside you, so she
+  // runs out with you instead of being "trapped on Floor 11" while standing in front of you
+  setEvac({ phase: "alarm", rescued: here === LOBBY, startedAt: now });
   return true;
 }
 export function rescueNeighbour(): boolean { if (evac.phase !== "alarm" || evac.rescued) return false; setEvac({ ...evac, rescued: true }); return true; }
