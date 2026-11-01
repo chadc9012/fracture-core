@@ -6,7 +6,7 @@ import { DEFAULT_SKULL, fitSkull, hairGeometry, scalpGeometry } from '../../src/
 
 test('old saves and junk fall back to the face\'s own hair and no markings', () => {
   assert.equal(hairOr(undefined), 'authored');
-  assert.equal(hairOr('mullet'), 'authored');
+  assert.equal(hairOr('beehive'), 'authored');
   assert.equal(hairColorOr(42), 'natural');
   assert.deepEqual(markingsOr(undefined), []);
   assert.deepEqual(markingsOr(['scar-cheek', 'nope', 'scar-cheek', 7]), ['scar-cheek']);

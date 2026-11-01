@@ -130,13 +130,14 @@ export function hairline(theta: number): number {
   return THREE.MathUtils.lerp(0.4 * Math.PI, 0.62 * Math.PI, Math.sin(t * Math.PI * 0.5));
 }
 
+type Lift = number | ((phi: number, theta: number) => number);
 /** A lat/long shell over the skull: `lift` metres off it, down to `limit(theta)` (the hairline for hair), with a closed rim. */
-function shell(lift: number, limit: (theta: number) => number, shade = 1, rows = 18, cols = 36): THREE.BufferGeometry {
+function shell(lift: Lift, limit: (theta: number) => number, shade = 1, rows = 18, cols = 36): THREE.BufferGeometry {
   const pos: number[] = [], uv: number[] = [], idx: number[] = [];
   for (let i = 0; i <= rows; i++) for (let j = 0; j <= cols; j++) {
     const theta = (j / cols) * Math.PI * 2;
     const phi = Math.min(limit(theta), (i / rows) * Math.PI);
-    const p = onSkull(phi, theta, lift);
+    const p = onSkull(phi, theta, typeof lift === "number" ? lift : lift(phi, theta));
     pos.push(p.x, p.y, p.z); uv.push(j / cols, i / rows);
   }
   for (let i = 0; i < rows; i++) for (let j = 0; j < cols; j++) {
@@ -151,14 +152,17 @@ function shell(lift: number, limit: (theta: number) => number, shade = 1, rows =
   return part(g, shade);
 }
 
-/** hair shell from the crown down to the hairline, no further than `phiMax` anywhere */
-const cap = (phiMax: number, thick: number, shade = 1) => shell(thick, (theta) => Math.min(phiMax, hairline(theta)), shade);
+/** hair shell from the crown down to the hairline (no further than `phiMax`); `sideThick` fades the sides and back thinner */
+function cap(thick: number, sideThick: number | undefined, phiMax: number | undefined, shade = 1): THREE.BufferGeometry {
+  const lift: Lift = sideThick === undefined ? thick : (phi) => THREE.MathUtils.lerp(thick, sideThick, THREE.MathUtils.smoothstep(phi, 0.22 * Math.PI, 0.5 * Math.PI));
+  return shell(lift, (theta) => Math.min(phiMax ?? 0.6 * Math.PI, hairline(theta)), shade);
+}
 
 /** a tube along a curve through `pts`, radius `r` (tapering to `rEnd` when given, in three sections) */
-function strand(pts: THREE.Vector3[], r: number, seed: number, rEnd?: number): THREE.BufferGeometry[] {
+function strand(pts: THREE.Vector3[], r: number, seed: number, rEnd?: number, segs = 8): THREE.BufferGeometry[] {
   const curve = new THREE.CatmullRomCurve3(pts, false, "centripetal");
   const shade = 0.82 + rand(seed) * 0.3;
-  if (rEnd === undefined) return [part(new THREE.TubeGeometry(curve, 8, r, 5, false), shade)];
+  if (rEnd === undefined) return [part(new THREE.TubeGeometry(curve, segs, r, 5, false), shade)];
   const out: THREE.BufferGeometry[] = [];
   for (let s = 0; s < 3; s++) {
     const a = s / 3, b = (s + 1) / 3;
@@ -168,8 +172,8 @@ function strand(pts: THREE.Vector3[], r: number, seed: number, rEnd?: number): T
   return out;
 }
 
-/** a hanging loc/braid/twist from a scalp root: leaves outward, then falls under gravity with a little drift */
-function hanging(root: THREE.Vector3, length: number, r: number, seed: number): THREE.BufferGeometry[] {
+/** a hanging loc/braid/twist/curl from a scalp root: leaves outward, then falls under gravity with a little drift */
+function hanging(root: THREE.Vector3, length: number, r: number, seed: number, curl = false): THREE.BufferGeometry[] {
   const n = outward(root);
   // strands rooted towards the front sweep to the sides and back rather than falling over the face
   if (n.z > 0.15) { n.x += Math.sign(n.x || 1) * n.z * 0.9; n.z *= 0.15; n.normalize(); }
@@ -177,7 +181,16 @@ function hanging(root: THREE.Vector3, length: number, r: number, seed: number): 
   const p1 = root.clone().add(n.clone().multiplyScalar(0.03)).add(new THREE.Vector3(0, -length * 0.15, 0));
   const p2 = root.clone().add(n.clone().multiplyScalar(0.03 + Math.abs(drift))).add(new THREE.Vector3(drift, -length * 0.6, -0.01));
   const p3 = root.clone().add(new THREE.Vector3(n.x * 0.025 + drift * 1.4, -length, n.z * 0.02 - 0.015));
-  return strand([root, p1, p2, p3], r, seed);
+  if (!curl) return strand([root, p1, p2, p3], r, seed);
+  // a curl: the same path with a corkscrew around it
+  const pts: THREE.Vector3[] = [];
+  const base = new THREE.CatmullRomCurve3([root, p1, p2, p3], false, "centripetal");
+  const side = new THREE.Vector3().crossVectors(n, new THREE.Vector3(0, 1, 0)).normalize();
+  for (let i = 0; i <= 14; i++) {
+    const t = i / 14, a = t * Math.PI * 7 + seed;
+    pts.push(base.getPoint(t).add(side.clone().multiplyScalar(Math.cos(a) * 0.012 * t)).add(n.clone().multiplyScalar(Math.sin(a) * 0.012 * t)));
+  }
+  return strand(pts, r, seed, undefined, 20);
 }
 
 /** scalp roots in rings from the crown down to the hairline */
@@ -204,8 +217,8 @@ const tie = (at: THREE.Vector3, axis: THREE.Vector3, r: number): THREE.BufferGeo
   return part(g, 0.35); // a dark band
 };
 
-/** a braid lying along the scalp from front to back at `theta` (mirrored over the crown), then falling behind */
-function cornrow(theta: number, seed: number): THREE.BufferGeometry[] {
+/** a braid lying along the scalp from front to back at `theta` (mirrored over the crown), then falling behind by `hang` */
+function cornrow(theta: number, seed: number, hang: number): THREE.BufferGeometry[] {
   const pts: THREE.Vector3[] = [];
   for (let s = 0; s <= 6; s++) {
     const t = s / 6;
@@ -214,131 +227,188 @@ function cornrow(theta: number, seed: number): THREE.BufferGeometry[] {
     pts.push(onSkull(Math.max(0.05, phi), th, 0.006));
   }
   const back = pts[pts.length - 1]!;
-  pts.push(back.clone().add(new THREE.Vector3(0, -0.07, -0.03)), back.clone().add(new THREE.Vector3(0, -0.15, -0.035)));
+  if (hang > 0) pts.push(back.clone().add(new THREE.Vector3(0, -hang * 0.45, -0.025)), back.clone().add(new THREE.Vector3(0, -hang, -0.03)));
   return strand(pts, 0.007, seed);
+}
+
+/** a bun: a squashed ball on the skull at (phi, theta), with its tie; `braided` wraps it in a coil of strands */
+function bun(phi: number, theta: number, r: number, flat: number, braided: boolean): THREE.BufferGeometry[] {
+  const at = onSkull(phi, theta, r * 0.45);
+  const n = outward(at);
+  const out: THREE.BufferGeometry[] = [];
+  const g = new THREE.SphereGeometry(r, 18, 12); g.scale(1, flat, 0.85);
+  g.applyQuaternion(new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 0, 1), n));
+  g.translate(at.x, at.y, at.z);
+  out.push(part(g, 0.95), tie(onSkull(phi, theta, 0.004), n, r * 0.72));
+  if (braided) {
+    const side = new THREE.Vector3().crossVectors(n, new THREE.Vector3(0, 1, 0)).normalize(), up = new THREE.Vector3().crossVectors(side, n).normalize();
+    const pts: THREE.Vector3[] = [];
+    for (let i = 0; i <= 30; i++) { const a = i * 0.7, rr = r * (0.3 + 0.7 * (i / 30)); pts.push(at.clone().add(side.clone().multiplyScalar(Math.cos(a) * rr)).add(up.clone().multiplyScalar(Math.sin(a) * rr * flat)).add(n.clone().multiplyScalar(r * 0.75 * Math.sqrt(Math.max(0, 1 - (rr / r) ** 2)) + 0.002))); }
+    out.push(...strand(pts, 0.006, 77, undefined, 40));
+  }
+  return out;
+}
+
+/** a tail from a tie point: falls with gravity, swaying `sway` to the side (±1 for twin tails) */
+function tail(phi: number, theta: number, length: number, radius: number, sway: number, seed: number): THREE.BufferGeometry[] {
+  const base = onSkull(phi, theta, 0.012);
+  const n = outward(base);
+  const out: THREE.BufferGeometry[] = [tie(base, n, radius * 0.9)];
+  const back = new THREE.Vector3(n.x, 0, n.z).normalize();
+  const high = phi < 0.45 * Math.PI;
+  const pts = [base, base.clone().add(back.clone().multiplyScalar(high ? 0.06 : 0.025)).add(new THREE.Vector3(0, high ? -0.03 : -0.06, 0)),
+    base.clone().add(back.clone().multiplyScalar(high ? 0.07 : 0.01)).add(new THREE.Vector3(sway * 0.02, -length * 0.55, 0)),
+    base.clone().add(back.clone().multiplyScalar(high ? 0.03 : -0.005)).add(new THREE.Vector3(sway * 0.03, -length, 0))];
+  out.push(...strand(pts, radius, seed, radius * 0.45));
+  return out;
+}
+
+/** hair falling from the hairline: a skirt round the back (and sides, with `span` ≥ 1) down `length`, waved by `waves` */
+function curtain(length: number, waves: number, span: number, side: -1 | 0 | 1, seed: number): THREE.BufferGeometry[] {
+  const out: THREE.BufferGeometry[] = [];
+  const half = Math.min(Math.PI, 0.45 * Math.PI * span);
+  const cols = Math.max(6, Math.round(half * 14));
+  for (let j = 0; j <= cols; j++) {
+    const theta = Math.PI + (j / cols) * 2 * half - half; // around the back
+    if (side === 1 && theta < Math.PI) continue;
+    if (side === -1 && theta > Math.PI) continue;
+    const top = onSkull(hairline(theta) - 0.02, theta, 0.012);
+    const n = outward(top); n.y = 0; n.normalize();
+    const pts: THREE.Vector3[] = [];
+    for (let i = 0; i <= 6; i++) {
+      const t = i / 6;
+      const wave = waves ? Math.sin(t * Math.PI * 2.2 + j) * 0.012 * waves * t : 0;
+      pts.push(top.clone().add(n.clone().multiplyScalar(0.008 + t * 0.03 + wave)).add(new THREE.Vector3(0, -length * t, 0)));
+    }
+    out.push(...strand(pts, 0.011, seed + j, 0.007));
+  }
+  return out;
+}
+
+/** short strands out of the scalp: lying along it (messy), straight up (spiky) or curled (curly) */
+function tufts(count: number, length: number, radius: number, seed: number, spiky: boolean, curl: boolean): THREE.BufferGeometry[] {
+  const out: THREE.BufferGeometry[] = [];
+  roots(count, seed).forEach((r, i) => {
+    const n = outward(r);
+    const side = new THREE.Vector3().crossVectors(n, new THREE.Vector3(0, 1, 0)).normalize().multiplyScalar(rand(seed + i * 3) - 0.5);
+    if (spiky) {
+      const g = new THREE.ConeGeometry(radius, length, 5);
+      g.translate(0, length / 2, 0);
+      g.applyQuaternion(new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), n.clone().add(side.multiplyScalar(0.6)).add(new THREE.Vector3(0, 0.3, 0)).normalize()));
+      g.translate(r.x, r.y, r.z);
+      out.push(part(g, 0.85 + rand(i) * 0.3));
+      return;
+    }
+    const dir = n.clone().multiplyScalar(0.3).add(side).add(new THREE.Vector3(0, -0.6, 0)).normalize();
+    if (curl) {
+      const pts: THREE.Vector3[] = [];
+      for (let k = 0; k <= 10; k++) { const t = k / 10, a = t * Math.PI * 4 + i; pts.push(r.clone().add(dir.clone().multiplyScalar(length * t)).add(n.clone().multiplyScalar(Math.sin(a) * 0.008)).add(side.clone().multiplyScalar(Math.cos(a) * 0.008))); }
+      out.push(...strand(pts, radius, seed + i, undefined, 14));
+    } else {
+      out.push(...strand([r, r.clone().add(dir.clone().multiplyScalar(length * 0.5)).add(n.clone().multiplyScalar(0.01)), r.clone().add(dir.clone().multiplyScalar(length))], radius, seed + i, radius * 0.5));
+    }
+  });
+  return out;
+}
+
+/** a fringe over the forehead: swept to one side (`sweep` ±1), straight (0), or pushed up and back (`up`) */
+function fringe(sweep: -1 | 0 | 1, lift: number, up: boolean): THREE.BufferGeometry[] {
+  if (up) {
+    const out: THREE.BufferGeometry[] = [];
+    for (let k = -3; k <= 3; k++) {
+      const th = k * 0.18;
+      const r = onSkull(hairline(th) - 0.1, th, 0.008);
+      const n = outward(r);
+      out.push(...strand([r, r.clone().add(n.clone().multiplyScalar(lift * 0.6)).add(new THREE.Vector3(0, lift * 0.8, 0)), r.clone().add(n.clone().multiplyScalar(-0.01)).add(new THREE.Vector3(0, lift * 1.3, -0.03))], 0.012, 90 + k, 0.006));
+    }
+    return out;
+  }
+  const a = onSkull(0.36 * Math.PI, -0.6 * (sweep || 1), lift), b = onSkull(0.4 * Math.PI, -0.15 * (sweep || 1), lift + 0.008), c = onSkull(0.44 * Math.PI, 0.35 * (sweep || 1), lift + 0.004);
+  return sweep === 0 ? strand([onSkull(0.42 * Math.PI, -0.45, lift + 0.004), onSkull(0.44 * Math.PI, 0, lift + 0.008), onSkull(0.42 * Math.PI, 0.45, lift + 0.004)], 0.014, 3) : strand([a, b, c], 0.016, 3);
+}
+
+/** a braid ring around the head just above the hairline */
+function crown(): THREE.BufferGeometry[] {
+  const pts: THREE.Vector3[] = [];
+  for (let j = 0; j <= 40; j++) { const th = (j / 40) * Math.PI * 2; pts.push(onSkull(hairline(th) - 0.12, th, 0.012)); }
+  return strand(pts, 0.011, 88, undefined, 60);
+}
+
+/** one thick braid from behind the ear over the shoulder on `side` */
+function sideBraid(side: -1 | 1, length: number): THREE.BufferGeometry[] {
+  const th = side * 0.72 * Math.PI;
+  const top = onSkull(0.5 * Math.PI, th, 0.014);
+  const pts = [top, top.clone().add(new THREE.Vector3(side * 0.01, -0.08, 0.03)), top.clone().add(new THREE.Vector3(side * 0.005, -length * 0.6, 0.06)), top.clone().add(new THREE.Vector3(0, -length, 0.075))];
+  const out = strand(pts, 0.016, 99, 0.009);
+  out.push(tie(pts[3]!.clone().add(new THREE.Vector3(0, 0.02, 0)), new THREE.Vector3(0, 1, 0), 0.011));
+  return out;
 }
 
 /** the geometry for a hairstyle on `skull`, or null for "as modelled" and bald */
 export function hairGeometry(style: HairDef, skull: Skull = DEFAULT_SKULL): THREE.BufferGeometry | null {
   SK = skull;
+  if (style.kind !== "built" || !style.parts?.length) return null;
   const parts: THREE.BufferGeometry[] = [];
   const up = new THREE.Vector3(0, 1, 0);
-  switch (style.kind) {
-    case "authored": case "none": return null;
-    case "buzz": parts.push(cap(0.6 * Math.PI, 0.002, 0.9)); break;
-    case "cap": parts.push(cap(0.6 * Math.PI, 0.012)); break;
-    case "undercut": parts.push(cap(0.38 * Math.PI, 0.016)); break;
-    case "fringe": {
-      parts.push(cap(0.56 * Math.PI, 0.012));
-      parts.push(...strand([onSkull(0.36 * Math.PI, -0.6, 0.012), onSkull(0.4 * Math.PI, -0.15, 0.02), onSkull(0.44 * Math.PI, 0.35, 0.016)], 0.016, 3));
-      break;
-    }
-    case "dreads": {
-      parts.push(cap(0.6 * Math.PI, 0.008));
-      roots(34, 11).forEach((r, i) => parts.push(...hanging(r, 0.24 + rand(i) * 0.1, 0.009, i)));
-      break;
-    }
-    case "twists": {
-      parts.push(cap(0.6 * Math.PI, 0.006));
-      roots(60, 23).forEach((r, i) => parts.push(...hanging(r, 0.17 + rand(i) * 0.09, 0.0045, i)));
-      break;
-    }
-    case "box-braids": {
-      parts.push(cap(0.6 * Math.PI, 0.006));
-      roots(48, 37).forEach((r, i) => parts.push(...hanging(r, 0.3 + rand(i) * 0.08, 0.0062, i)));
-      break;
-    }
-    case "dreads-tied": {
-      parts.push(cap(0.6 * Math.PI, 0.008));
-      const gather = onSkull(0.56 * Math.PI, Math.PI, 0.03);
-      roots(30, 17).forEach((r, i) => {
-        // the loc runs along the skull's surface to the gather point: its midpoint is pushed back out onto the skull
-        const midDir = outward(r.clone().add(gather).multiplyScalar(0.5));
-        const mid = midDir.clone().multiplyScalar(SK.radiusAt(midDir) + 0.012).add(SK.centre);
-        parts.push(...strand([r, mid, gather], 0.0085, i));
-      });
-      parts.push(tie(gather, new THREE.Vector3(0, 0.3, -1), 0.03));
-      for (let i = 0; i < 12; i++) {
-        const a = (i / 12) * Math.PI * 2;
-        const start = gather.clone().add(new THREE.Vector3(Math.cos(a) * 0.018, Math.sin(a) * 0.012, -0.01));
-        parts.push(...strand([start, start.clone().add(new THREE.Vector3(Math.cos(a) * 0.01, -0.1, -0.02)), start.clone().add(new THREE.Vector3(Math.cos(a) * 0.015, -0.22, -0.01))], 0.0085, 50 + i));
+  let seed = 1;
+  for (const p of style.parts) {
+    seed += 17;
+    switch (p.kind) {
+      case "cap": parts.push(cap(p.thick, p.sideThick, p.phiMax, p.shade)); break;
+      case "fringe": parts.push(...fringe(p.sweep, p.lift ?? 0.012, p.up ?? false)); break;
+      case "hanging": roots(p.count, p.seed).forEach((r, i) => parts.push(...hanging(r, p.length + rand(p.seed + i) * p.jitter, p.radius, p.seed + i, p.curl))); break;
+      case "tied": {
+        const gather = p.bun ? onSkull(0.42 * Math.PI, Math.PI, 0.03) : onSkull(0.56 * Math.PI, Math.PI, 0.03);
+        roots(p.count, 17).forEach((r, i) => {
+          const midDir = outward(r.clone().add(gather).multiplyScalar(0.5));
+          const mid = midDir.clone().multiplyScalar(SK.radiusAt(midDir) + 0.012).add(SK.centre);
+          parts.push(...strand([r, mid, gather], p.radius, i));
+        });
+        if (p.bun) { parts.push(...bun(0.42 * Math.PI, Math.PI, 0.04, 0.9, false)); break; }
+        parts.push(tie(gather, new THREE.Vector3(0, 0.3, -1), 0.03));
+        for (let i = 0; i < 12; i++) {
+          const a = (i / 12) * Math.PI * 2;
+          const start = gather.clone().add(new THREE.Vector3(Math.cos(a) * 0.018, Math.sin(a) * 0.012, -0.01));
+          parts.push(...strand([start, start.clone().add(new THREE.Vector3(Math.cos(a) * 0.01, -0.1, -0.02)), start.clone().add(new THREE.Vector3(Math.cos(a) * 0.015, -0.22, -0.01))], p.radius, 50 + i));
+        }
+        break;
       }
-      break;
-    }
-    case "cornrows": {
-      parts.push(cap(0.6 * Math.PI, 0.001, 0.85));
-      for (let i = 0; i < 7; i++) parts.push(...cornrow(-0.6 + (i / 6) * 1.2, i));
-      break;
-    }
-    case "ponytail-high": {
-      parts.push(cap(0.6 * Math.PI, 0.01));
-      const base = onSkull(0.3 * Math.PI, Math.PI, 0.012);
-      parts.push(tie(base, new THREE.Vector3(0, 0.5, -1), 0.02));
-      parts.push(...strand([base, base.clone().add(new THREE.Vector3(0, -0.03, -0.06)), base.clone().add(new THREE.Vector3(0.01, -0.14, -0.07)), base.clone().add(new THREE.Vector3(0.015, -0.26, -0.03))], 0.022, 5, 0.01));
-      break;
-    }
-    case "ponytail-low": {
-      parts.push(cap(0.6 * Math.PI, 0.01));
-      const base = onSkull(0.62 * Math.PI, Math.PI, 0.01);
-      parts.push(tie(base, new THREE.Vector3(0, -0.2, -1), 0.02));
-      parts.push(...strand([base, base.clone().add(new THREE.Vector3(0, -0.06, -0.025)), base.clone().add(new THREE.Vector3(0.008, -0.16, -0.01)), base.clone().add(new THREE.Vector3(0.012, -0.25, 0.01))], 0.02, 7, 0.009));
-      break;
-    }
-    case "bun": {
-      parts.push(cap(0.6 * Math.PI, 0.01));
-      const at = onSkull(0.38 * Math.PI, Math.PI, 0.028);
-      const g = new THREE.SphereGeometry(0.038, 18, 12); g.scale(1, 0.9, 0.8); g.translate(at.x, at.y, at.z);
-      parts.push(part(g, 0.95), tie(onSkull(0.38 * Math.PI, Math.PI, 0.004), new THREE.Vector3(0, 0.4, -1), 0.028));
-      break;
-    }
-    case "topknot": {
-      parts.push(cap(0.3 * Math.PI, 0.012));
-      const at = onSkull(0.03 * Math.PI, Math.PI, 0.016);
-      const g = new THREE.SphereGeometry(0.034, 18, 12); g.scale(1, 1.1, 1); g.translate(at.x, at.y, at.z);
-      parts.push(part(g, 0.95), tie(onSkull(0.03 * Math.PI, Math.PI, 0.006), up, 0.022));
-      break;
-    }
-    case "mohawk": {
-      for (let i = 0; i <= 12; i++) {
-        const t = i / 12;
-        const th = t < 0.5 ? 0 : Math.PI;
-        const phi = (hairline(th) - 0.06) * Math.abs(t * 2 - 1);
-        const p = onSkull(Math.max(0.03, phi), th, 0.002);
-        const n = outward(p);
-        const h = 0.05 + 0.03 * Math.sin(t * Math.PI);
-        const g = new THREE.BoxGeometry(0.022, h, 0.028);
-        g.translate(0, h / 2, 0);
-        g.applyQuaternion(new THREE.Quaternion().setFromUnitVectors(up, n));
-        g.translate(p.x, p.y, p.z);
-        parts.push(part(g, 0.9 + 0.1 * rand(i)));
+      case "tail": parts.push(...tail(p.phi, p.theta, p.length, p.radius, p.sway ?? 0, seed)); break;
+      case "bun": parts.push(...bun(p.phi, p.theta, p.r, p.flat ?? 1, p.braided ?? false)); break;
+      case "crest": {
+        const w = p.width ?? 0.022;
+        for (let i = 0; i <= 12; i++) {
+          const t = i / 12;
+          const th = t < 0.5 ? 0 : Math.PI;
+          const phi = (hairline(th) - 0.06) * Math.abs(t * 2 - 1);
+          const at = onSkull(Math.max(0.03, phi), th, 0.002);
+          const n = outward(at);
+          const h = p.height * (0.75 + 0.35 * Math.sin(t * Math.PI));
+          const g = new THREE.BoxGeometry(w, h, 0.028);
+          g.translate(0, h / 2, 0);
+          g.applyQuaternion(new THREE.Quaternion().setFromUnitVectors(up, n));
+          g.translate(at.x, at.y, at.z);
+          parts.push(part(g, 0.9 + 0.1 * rand(i)));
+        }
+        break;
       }
-      break;
-    }
-    case "afro": {
-      // a full round natural: the skull pushed out 3–4 cm with a rough surface, down to just past the hairline
-      const g = shell(0, (theta) => Math.min(0.7 * Math.PI, hairline(theta) + 0.25), 1, 36, 72);
-      const pos = g.getAttribute("position") as THREE.BufferAttribute;
-      for (let i = 0; i < pos.count; i++) {
-        const v = new THREE.Vector3().fromBufferAttribute(pos, i);
-        const n = outward(v);
-        v.add(n.multiplyScalar(0.032 + rand(i * 7) * 0.004));
-        pos.setXYZ(i, v.x, v.y, v.z);
+      case "afro": {
+        const g = shell(0, (theta) => Math.min(0.7 * Math.PI, hairline(theta) + (p.extra ?? 0.25)), 1, 36, 72);
+        const pos = g.getAttribute("position") as THREE.BufferAttribute;
+        for (let i = 0; i < pos.count; i++) {
+          const v = new THREE.Vector3().fromBufferAttribute(pos, i);
+          v.add(outward(v).multiplyScalar(p.lift + rand(i * 7) * p.jitter));
+          pos.setXYZ(i, v.x, v.y, v.z);
+        }
+        g.computeVertexNormals();
+        parts.push(g);
+        break;
       }
-      g.computeVertexNormals();
-      parts.push(g);
-      break;
-    }
-    case "long": {
-      parts.push(cap(0.58 * Math.PI, 0.012));
-      // a curtain down the back and sides from the crown to below the shoulders
-      const sheet = new THREE.CylinderGeometry(SK.radii.x * 1.06, SK.radii.x * 1.2, 0.36, 20, 1, true, Math.PI * 0.55, Math.PI * 0.9);
-      sheet.translate(SK.centre.x, SK.centre.y - 0.1, SK.centre.z);
-      parts.push(part(sheet, 0.95));
-      for (const side of [-1, 1]) {
-        const top = onSkull(0.5 * Math.PI, side * 1.25, 0.012);
-        parts.push(...strand([top, top.clone().add(new THREE.Vector3(side * 0.01, -0.12, 0.02)), top.clone().add(new THREE.Vector3(side * 0.01, -0.26, 0.03))], 0.02, side + 100, 0.012));
-      }
-      break;
+      case "curtain": parts.push(...curtain(p.length, p.waves ?? 0, p.span ?? 1, p.side ?? 0, seed)); break;
+      case "cornrows": for (let i = 0; i < p.rows; i++) parts.push(...cornrow(-0.6 + (i / (p.rows - 1)) * 1.2, i, p.hang ?? 0.15)); break;
+      case "crown": parts.push(...crown()); break;
+      case "tufts": parts.push(...tufts(p.count, p.length, p.radius, p.seed, p.spiky ?? false, p.curl ?? false)); break;
+      case "sideBraid": parts.push(...sideBraid(p.side, p.length)); break;
     }
   }
   if (!parts.length) return null;
@@ -353,7 +423,9 @@ export function hairGeometry(style: HairDef, skull: Skull = DEFAULT_SKULL): THRE
 export function scalpGeometry(skull: Skull): THREE.BufferGeometry {
   SK = skull;
   // past the hairline in front (under the forehead's own skin), right down to the nape behind, where the cut hair leaves nothing
-  const g = shell(-0.002, (theta) => Math.min(0.88 * Math.PI, hairline(theta) + THREE.MathUtils.lerp(0.14, 0.8, (1 - Math.cos(theta)) / 2)), 1, 24, 40);
+  // just past the hairline in front (the forehead's own skin takes over; any further and it shows as a band on narrower
+  // heads), right down to the nape behind
+  const g = shell(-0.005, (theta) => Math.min(0.88 * Math.PI, hairline(theta) + THREE.MathUtils.lerp(0.05, 0.8, (1 - Math.cos(theta)) / 2)), 1, 24, 40);
   g.deleteAttribute("color");
   g.deleteAttribute("uv");
   return g;

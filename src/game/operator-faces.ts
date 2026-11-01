@@ -81,7 +81,7 @@ export type FaceLook = { headUrl: string; skinLum: number; skin: string; plating
   /** the face editor's sculpt (face-morphs.ts); robots have none */
   morphs: FaceMorphs };
 /** the hair, hair colour and markings saved on a character (operator-styling.ts ids) */
-export type StyleChoice = { hair?: unknown; hairColor?: unknown; marks?: unknown; faceMorphs?: unknown };
+export type StyleChoice = { hair?: unknown; hairColor?: unknown; marks?: unknown; faceMorphs?: unknown; beard?: unknown; accessory?: unknown; headgear?: unknown };
 export function faceLook(classId: ClassId, body: BodyType, choice: { face?: unknown; skin?: unknown; eyes?: unknown } & StyleChoice): FaceLook {
   const f = faceDef(body, faceFor(classId, body, choice.face));
   const robot = body === "robot";

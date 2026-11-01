@@ -54,6 +54,16 @@ export const MARKING_SHAPES: Readonly<Record<string, Shape[]>> = {
   "resonance-temple": [...path(0.0016, [0.074, 0.108, 0.022], [0.074, 0.085, 0.032], [0.068, 0.078, 0.048]), ...path(0.0016, [0.078, 0.095, 0.012], [0.072, 0.062, 0.038]),
     dot([0.074, 0.085, 0.032], 0.003), dot([0.072, 0.062, 0.038], 0.0026)],
   "resonance-neck": [...path(0.0015, [0.03, -0.015, 0.05], [0.032, -0.06, 0.048], [0.036, -0.062, 0.04], [0.038, -0.095, 0.035]), dot([0.032, -0.06, 0.048], 0.0026)],
+  "tattoo-fullface": [...path(0.0045, [0.07, 0.095, 0.025], [0.074, 0.068, 0.035], [0.066, 0.045, 0.055], [0.05, 0.03, 0.072]), ...path(0.003, [0.075, 0.08, 0.018], [0.07, 0.055, 0.042], [0.058, 0.04, 0.062]),
+    ...mirror([...path(0.0045, [0.07, 0.095, 0.025], [0.074, 0.068, 0.035], [0.066, 0.045, 0.055], [0.05, 0.03, 0.072]), ...path(0.003, [0.075, 0.08, 0.018], [0.07, 0.055, 0.042], [0.058, 0.04, 0.062])])],
+  "tattoo-sidehead": [...path(0.0022, [-0.07, 0.11, 0.03], [-0.078, 0.11, -0.01], [-0.08, 0.1, -0.04]), ...path(0.0022, [-0.072, 0.12, 0.02], [-0.079, 0.12, -0.02], [-0.08, 0.112, -0.05]),
+    ...path(0.0022, [-0.074, 0.13, 0.01], [-0.079, 0.13, -0.03], [-0.079, 0.124, -0.06])],
+  "tattoo-jaw": path(0.0022, [0.062, 0.03, 0.025], [0.052, 0.012, 0.05], [0.035, 0.0, 0.07]),
+  "paint-warstripes": [...[0.058, 0.048, 0.038].flatMap((y) => path(0.0032, [0.07, y, 0.035], [0.035, y - 0.012, 0.076])), ...mirror([0.058, 0.048, 0.038].flatMap((y) => path(0.0032, [0.07, y, 0.035], [0.035, y - 0.012, 0.076])))],
+  "paint-halfmask": path(0.012, [-0.075, 0.068, 0.03], [-0.04, 0.068, 0.072], [0, 0.07, 0.085], [0.04, 0.068, 0.072], [0.075, 0.068, 0.03]),
+  "paint-cheekbars": [...path(0.0028, [0.03, 0.05, 0.074], [0.048, 0.046, 0.064]), ...path(0.0028, [0.03, 0.042, 0.075], [0.048, 0.038, 0.065]),
+    ...mirror([...path(0.0028, [0.03, 0.05, 0.074], [0.048, 0.046, 0.064]), ...path(0.0028, [0.03, 0.042, 0.075], [0.048, 0.038, 0.065])])],
+  "freckles": [dot([0, 0.058, 0.09], 0.028), dot([0.045, 0.05, 0.065], 0.024), dot([-0.045, 0.05, 0.065], 0.024)],
 };
 
 const f = (n: number) => (Number.isInteger(n) ? `${n}.0` : `${n}`);
@@ -62,7 +72,7 @@ const v3 = (v: Vec3) => `vec3(${f(v[0])}, ${f(v[1])}, ${f(v[2])})`;
 /** How the authored hair on the scalp is treated: 0 keep, 1 recolour to skin (bald), 2 recolour to the chosen hair colour. */
 export type HairMode = 0 | 1 | 2;
 
-export const SKIN_UNIFORMS = "uniform vec3 wfSkin; uniform float wfSkinLum; uniform vec3 wfHead; uniform float wfUnit; uniform vec3 wfHair; uniform int wfHairMode; uniform vec3 wfBald;\nvarying vec3 wfRest;\nfloat wfGlow = 0.0;";
+export const SKIN_UNIFORMS = "uniform vec3 wfSkin; uniform float wfSkinLum; uniform vec3 wfHead; uniform float wfUnit; uniform vec3 wfHair; uniform int wfHairMode; uniform vec3 wfBald; uniform vec3 wfBeardTone;\nvarying vec3 wfRest;\nfloat wfGlow = 0.0;";
 
 export const VERTEX_REST = "varying vec3 wfRest;";
 /** the bind-space (unskinned) position, so shapes stay put while the head animates */
@@ -103,11 +113,54 @@ function markingCode(m: MarkingDef): string {
       return `{ float a = ${alpha}; diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.055, 0.065, 0.085) * (0.6 + 0.4 * c.r / max(wfSkinLum, 0.02)), a * 0.88); }`;
     case "resonance":
       return `{ float a = ${alpha}; diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.1, 0.5, 0.6), a * 0.7); wfGlow = max(wfGlow, a); }`;
+    case "paint": {
+      const colour = m.id === "paint-warstripes" ? "vec3(0.55, 0.06, 0.04)" : m.id === "paint-cheekbars" ? "vec3(0.85, 0.84, 0.8)" : "vec3(0.03, 0.03, 0.035)";
+      // flat matte paint, a little worn at the edges
+      return `{ float a = ${alpha} * (0.85 + 0.15 * wfHash(floor(q * 600.0))); diffuseColor.rgb = mix(diffuseColor.rgb, ${colour} * (0.7 + 0.3 * l / max(wfSkinLum, 0.02)), a * 0.92); }`;
+    }
+    case "freckle":
+      // scattered small spots inside the region, darker and warmer than the skin
+      return `{ float a = ${alpha}; float h = wfHash(floor(q * 520.0)); float spot = step(0.78, h) * a; diffuseColor.rgb = mix(diffuseColor.rgb, c * vec3(0.62, 0.5, 0.42), spot * 0.8); }`;
   }
 }
 
-/** The fragment code inserted after <map_fragment>: skin retint, hair treatment, markings. */
-export function skinFragment(marks: readonly MarkingDef[]): string {
+/** Facial hair regions in head space (landmarks as above): weights 0…1 per beard id. */
+const BEARD_GLSL: Readonly<Record<string, string>> = {
+  stubble: "max(max(jaw, cheek), lip) * 0.5",
+  goatee: "max(chin, lipRing) * 0.95",
+  moustache: "lip * 0.95",
+  full: "max(max(jaw, cheek), max(lip, max(chin, burns))) * 0.95",
+  "chin-strap": "strap * 0.95",
+  "van-dyke": "max(chin, lip) * 0.95",
+  chops: "max(burns, cheekLow) * 0.95",
+};
+function beardCode(id: string): string {
+  const w = BEARD_GLSL[id];
+  if (!w) return "";
+  return `{
+  // regions: the jaw and chin, the lower cheeks, the upper lip, sideburns, the strap along the jawline
+  float onFace = smoothstep(0.2, 0.4, k);
+  float jaw = smoothstep(-0.012, 0.0, p.y) * (1.0 - smoothstep(0.03, 0.045, p.y)) * smoothstep(0.015, 0.03, p.z) * (1.0 - smoothstep(0.06, 0.07, abs(p.x)));
+  float chin = (1.0 - smoothstep(0.02, 0.03, abs(p.x))) * smoothstep(-0.012, 0.0, p.y) * (1.0 - smoothstep(0.012, 0.02, p.y)) * smoothstep(0.06, 0.075, p.z);
+  float lipRing = (1.0 - smoothstep(0.024, 0.032, abs(p.x))) * smoothstep(-0.012, 0.0, p.y) * (1.0 - smoothstep(0.04, 0.046, p.y)) * smoothstep(0.07, 0.082, p.z)
+    * (1.0 - (1.0 - smoothstep(0.02, 0.026, abs(p.x))) * smoothstep(0.012, 0.016, p.y) * (1.0 - smoothstep(0.03, 0.034, p.y)));
+  float lip = (1.0 - smoothstep(0.026, 0.034, abs(p.x))) * smoothstep(0.026, 0.031, p.y) * (1.0 - smoothstep(0.04, 0.046, p.y)) * smoothstep(0.075, 0.085, p.z);
+  float cheek = smoothstep(0.0, 0.012, p.y) * (1.0 - smoothstep(0.04, 0.052, p.y)) * smoothstep(0.0, 0.02, p.z) * smoothstep(0.028, 0.04, abs(p.x)) * (1.0 - smoothstep(0.068, 0.075, abs(p.x)));
+  float cheekLow = cheek * (1.0 - smoothstep(0.02, 0.035, p.y));
+  float burns = smoothstep(0.05, 0.06, abs(p.x)) * smoothstep(0.01, 0.025, p.y) * (1.0 - smoothstep(0.085, 0.095, p.y)) * smoothstep(-0.035, -0.02, p.z) * (1.0 - smoothstep(0.03, 0.045, p.z));
+  float strap = smoothstep(-0.01, 0.0, p.y) * (1.0 - smoothstep(0.012, 0.02, p.y)) * smoothstep(0.0, 0.015, p.z) * (1.0 - smoothstep(0.06, 0.07, abs(p.x)));
+  strap = max(strap, burns * (1.0 - smoothstep(0.03, 0.045, p.y)));
+  float lipMouth = (1.0 - smoothstep(0.022, 0.028, abs(p.x))) * smoothstep(0.012, 0.016, p.y) * (1.0 - smoothstep(0.028, 0.032, p.y)) * smoothstep(0.08, 0.088, p.z);
+  float beard = clamp(${w}, 0.0, 1.0) * onFace * (1.0 - lipMouth);
+  // hair grain: dense short strokes, a little lighter where the skin is lit
+  float grain = 0.55 + 0.45 * wfHash(floor(q * vec3(700.0, 1400.0, 700.0)));
+  vec3 tone = wfBeardTone * clamp(l / max(wfSkinLum, 0.02), 0.35, 1.3);
+  diffuseColor.rgb = mix(diffuseColor.rgb, tone, beard * grain);
+}`;
+}
+
+/** The fragment code inserted after <map_fragment>: skin retint, hair treatment, beard, markings. */
+export function skinFragment(marks: readonly MarkingDef[], beard = "clean"): string {
   return `{
   vec3 c = diffuseColor.rgb;
   float l = dot(c, vec3(0.3, 0.59, 0.11));
@@ -140,12 +193,13 @@ export function skinFragment(marks: readonly MarkingDef[]): string {
     if (scalp > 0.35) discard;
     // hair left on the face (a fringe over the forehead, the hair by the ears) takes the style's colour, brows included;
     // for bald the brows stay and only what's above them turns to skin; the eyes and lips keep their own
-    float kept = notSkin * smoothstep(wfHairMode == 1 ? 0.098 : 0.078, wfHairMode == 1 ? 0.104 : 0.084, p.y) * max(face, ears);
+    float kept = notSkin * smoothstep(wfHairMode == 1 ? 0.098 : 0.088, wfHairMode == 1 ? 0.104 : 0.094, p.y) * max(face, ears);
     vec3 hairTone = wfHairMode == 1 ? wfBald * clamp(l / 0.05, 0.6, 1.3) : wfHair * clamp(l / 0.06, 0.3, 1.6);
     diffuseColor.rgb = mix(diffuseColor.rgb, hairTone, max(scalp / 0.35, kept));
   }
   c = diffuseColor.rgb;
   vec3 q = wfMap(p);
+${beardCode(beard)}
 ${marks.map(markingCode).filter(Boolean).join("\n")}
 }`;
 }
@@ -155,13 +209,13 @@ export const EMISSIVE_GLOW = "totalEmissiveRadiance += vec3(0.15, 0.85, 1.0) * w
 export type SkinProgram = { vertexDecl: string; vertexAssign: string; fragmentDecl: string; fragmentBody: string; emissive: string; key: string };
 
 /** Everything operator-head.ts splices into the material's shaders, plus a cache key for the program. */
-export function skinProgram(opts: { skinHex: string; skinLum: number; hairMode: HairMode; hairHex: string; marks: readonly MarkingDef[] }): SkinProgram {
+export function skinProgram(opts: { skinHex: string; skinLum: number; hairMode: HairMode; hairHex: string; marks: readonly MarkingDef[]; beard?: string }): SkinProgram {
   return {
     vertexDecl: VERTEX_REST,
     vertexAssign: VERTEX_REST_ASSIGN,
     fragmentDecl: `${SKIN_UNIFORMS}\n${HELPERS}`,
-    fragmentBody: skinFragment(opts.marks),
+    fragmentBody: skinFragment(opts.marks, opts.beard ?? "clean"),
     emissive: EMISSIVE_GLOW,
-    key: `operator-skin|${opts.skinHex}|${opts.skinLum}|${opts.hairMode}|${opts.hairHex}|${opts.marks.map((m) => m.id).join(",")}`,
+    key: `operator-skin|${opts.skinHex}|${opts.skinLum}|${opts.hairMode}|${opts.hairHex}|${opts.beard ?? "clean"}|${opts.marks.map((m) => m.id).join(",")}`,
   };
 }
