@@ -1,3 +1,5 @@
+import { normalizeCosmetics, type WornCosmetics } from "./cosmetics";
+import { normalizeTransmog, type Transmog } from "./transmog";
 import { EMPTY_LIVING, normalizeLiving, type LivingState } from "./living-world";
 import { normalizeNemeses, type Nemesis } from "./nemesis";
 import { EMPTY_FLEET, normalizeFleet, type FleetState } from "./fleet";
@@ -90,6 +92,12 @@ export type PlayerProgression = {
   records: Record<string, number>;
   /** foundries.ts: the equipped monoblade (owned blades are `blade:<id>` in earnedRewards) */
   blade: string | null;
+  /** cosmetics.ts: worn cosmetic gear by slot (owned items are `cosmetic:<id>` in earnedRewards) */
+  cosmetics: WornCosmetics;
+  /** clothing-sets.ts: the outfit worn (owned outfits are `outfit:<id>` in earnedRewards); null = none */
+  outfit: string | null;
+  /** transmog.ts: the owned piece each armour slot shows instead of the equipped one */
+  transmog: Transmog;
   inventory: GearItem[];
   /** stash.ts: ids of inventory gear stored in the vault */
   vaultIds: string[];
@@ -159,6 +167,9 @@ export const DEFAULT_PROGRESSION: PlayerProgression = {
   housing: EMPTY_HOUSING,
   records: {},
   blade: null,
+  cosmetics: {},
+  outfit: null,
+  transmog: {},
   inventory: STARTER_GEAR,
   vaultIds: [],
   equippedGear: STARTER_SLOTS,
@@ -225,6 +236,9 @@ export function normalizeProgression(raw: unknown): PlayerProgression {
       privateJet: normalizePrivateJet(parsed.privateJet),
       records: normalizeRecords(parsed.records),
       blade: typeof parsed.blade === "string" ? parsed.blade : null,
+      cosmetics: normalizeCosmetics(parsed.cosmetics),
+      outfit: typeof parsed.outfit === "string" ? parsed.outfit : null,
+      transmog: normalizeTransmog(parsed.transmog, Array.isArray(parsed.inventory) ? (parsed.inventory as GearItem[]) : []),
       challenge: parsed.challenge === "HARD" || parsed.challenge === "VERY_HARD" ? parsed.challenge : "STANDARD",
       patrol: parsed.patrol && typeof parsed.patrol === "object" && typeof parsed.patrol.regionId === "string" && typeof parsed.patrol.kills === "number" && typeof parsed.patrol.need === "number" && typeof parsed.patrol.day === "string" ? { regionId: parsed.patrol.regionId, kills: parsed.patrol.kills, need: parsed.patrol.need, day: parsed.patrol.day } : null,
       abilityMastery: parsed.abilityMastery && typeof parsed.abilityMastery === "object" ? parsed.abilityMastery : {},

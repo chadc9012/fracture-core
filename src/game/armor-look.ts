@@ -58,10 +58,13 @@ const STARTER_ARMOR_IDS: Partial<Record<SetSlot, string>> = {
   helmet: "field-helmet", chest: "field-chest", legs: "field-legs",
 };
 
-export function armorLook(progress: Pick<PlayerProgression, "inventory" | "equippedGear">, classId?: ClassId): ArmorLook {
+export function armorLook(progress: Pick<PlayerProgression, "inventory" | "equippedGear"> & { transmog?: Partial<Record<SetSlot, string>> | undefined }, classId?: ClassId): ArmorLook {
   const look: ArmorLook = {};
   for (const slot of SET_SLOTS) {
-    const item = progress.inventory.find((entry) => entry.id === progress.equippedGear[slot]);
+    // transmog.ts: a slot may show another owned piece's look while the equipped piece keeps its stats
+    const shown = progress.transmog?.[slot];
+    const item = progress.inventory.find((entry) => entry.id === (shown ?? progress.equippedGear[slot]) && (!shown || entry.slot === slot))
+      ?? progress.inventory.find((entry) => entry.id === progress.equippedGear[slot]);
     const set = item?.setId ? setById(item.setId) : undefined;
     const motif = set ? SET_MOTIFS[set.id]?.[slot] : undefined;
     if (set && motif) look[slot] = { motif, color: set.color };

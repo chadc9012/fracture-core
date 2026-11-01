@@ -974,7 +974,8 @@ export function GameCanvas() {
   const visitCounts = useRef(new Map<string, number>());
   const [activeDialogue, setActiveDialogue] = useCountedState<DialogueLine[] | null>("activeDialogue", null);
   useEffect(() => {
-    if (!hud.insideInterior) return;
+    // the prologue's residents talk through ResidencePanels; the lobby's generic greeting ("Still chasing Awakening?") doesn't fit yet
+    if (!hud.insideInterior || opening) return;
     // nightlife venues (nightlife.ts): greet by standing and tonight's event, and count tonight's visit
     const venue = interiorById(hud.insideInterior)?.venueId;
     if (venue) {
@@ -1654,7 +1655,7 @@ export function GameCanvas() {
        {savedFlash > 0 && <p className="pointer-events-none fixed right-4 top-4 z-30 font-mono text-[10px] uppercase tracking-[0.25em] text-primary" role="status">◌ Auto-saved</p>}
        <HudRails />
        <VoiceSubtitle hidden={atlasOpen} />
-       <Profiler id="hud" onRender={onProf}><HUD civilian={opening} hud={opening ? { ...hud, markers: [] } : hud} level={{ level: progression.level, xp: progression.xp }} tutorialActive={Boolean(tutorial && tutorial.step !== "VICTORY")} onMenu={() => { setInventoryOpen(false); setAtlasOpen(false); setOperationsView(null); setMenuOpen(true); }} onStrategy={() => setStrategyOpen(true)} onGarage={() => setGarageOpen(true)} onAnalyze={() => setAnalysisOpen(true)} onOperations={(view) => { setInventoryOpen(false); setAtlasOpen(false); setOperationsView(view); }} onInventory={() => { setAtlasOpen(false); setOperationsView(null); setCharacterOpen(true); }} onAtlas={() => { setInventoryOpen(false); setOperationsView(null); setAtlasOpen(true); }} /></Profiler>
+       {!cineId && <Profiler id="hud" onRender={onProf}><HUD civilian={opening} hud={opening ? { ...hud, markers: [], alerts: [] } : hud} level={{ level: progression.level, xp: progression.xp }} tutorialActive={Boolean(tutorial && tutorial.step !== "VICTORY")} onMenu={() => { setInventoryOpen(false); setAtlasOpen(false); setOperationsView(null); setMenuOpen(true); }} onStrategy={() => setStrategyOpen(true)} onGarage={() => setGarageOpen(true)} onAnalyze={() => setAnalysisOpen(true)} onOperations={(view) => { setInventoryOpen(false); setAtlasOpen(false); setOperationsView(view); }} onInventory={() => { setAtlasOpen(false); setOperationsView(null); setCharacterOpen(true); }} onAtlas={() => { setInventoryOpen(false); setOperationsView(null); setAtlasOpen(true); }} /></Profiler>}
        {!tutorial && !hud.insideInterior && <Profiler id="minimap" onRender={onProf}><Minimap hud={hud} known={(id) => isLandmarkKnown(progression, id)} /></Profiler>}
        {!tutorial && !opening && <Profiler id="quest" onRender={onProf}><QuestTracker progression={progression} /></Profiler>}
        {storyGraph && <StoryDialogue key={storyGraph.id} graph={storyGraph} story={progression.story} onStory={applyStory} onDone={finishStoryGraph} />}
@@ -1741,10 +1742,10 @@ export function GameCanvas() {
        )}
        {skateOpen && <SkateShop progression={progression} onProgression={setProgression} onClose={() => setSkateOpen(false)} />}
        <TouchControls civilian={opening} bindings={settings.bindings} simple={settings.simplePhoneHud ?? true} disabled={Boolean(housingOpen || menuOpen || characterOpen || inventoryOpen || atlasOpen || operationsView || shopOpen || skateOpen || npcOpen || forgeOpen || basePanel || ruinOpen || showIntro || cineId || deathInfo || storyGraph || activeDialogue || transit || flight)} />
-       {!opening && <><DashHud bindings={settings.bindings} />
+       {!opening && !cineId && <><DashHud bindings={settings.bindings} />
        <DragoniteHud bindings={settings.bindings} /></>}
       <NexChip ledger={progression.nexLedger} />
-      {!opening && <ConsumableHud progression={progression} bindings={settings.bindings} disabled={Boolean(housingOpen || menuOpen || characterOpen || inventoryOpen || atlasOpen || operationsView || shopOpen || skateOpen || npcOpen || forgeOpen || basePanel || ruinOpen || showIntro || cineId || deathInfo || storyGraph || activeDialogue || transit || flight || hud.hp <= 0)} onUse={useConsumable} />}
+      {!opening && !cineId && <ConsumableHud progression={progression} bindings={settings.bindings} disabled={Boolean(housingOpen || menuOpen || characterOpen || inventoryOpen || atlasOpen || operationsView || shopOpen || skateOpen || npcOpen || forgeOpen || basePanel || ruinOpen || showIntro || cineId || deathInfo || storyGraph || activeDialogue || transit || flight || hud.hp <= 0)} onUse={useConsumable} />}
        <KillPlaylistPlayer volume={(settings.volume ?? 0.7) * (settings.musicVolume ?? 1)} muted={!!settings.mute?.music} />
        {hud.garageNear && !basePanel && !hud.shopNearId && (
          <div className="pointer-events-none absolute bottom-24 left-1/2 -translate-x-1/2">
@@ -1859,7 +1860,7 @@ export function GameCanvas() {
       {ZONE_MISSION_IDS.map((id) => { const run = zoneRuns[id]; return run ? <ZoneMissionOverlay key={id} mission={run} onEvent={(e) => recordZone(id, e)} /> : null; })}
       {descent && <DescentProtocolOverlay mission={descent} onEvent={recordDescent} near={!descent.target || Math.hypot(descent.target.x - (hud.px ?? 0), descent.target.z - (hud.pz ?? 0)) < (descent.state === "TRACING" ? REACTOR_REACH : AIRLOCK_REACH)} />}
       {systemCore && <SystemCoreOverlay mission={systemCore} onEvent={recordSystemCore} />}
-      {tutorial && <HudRail side="left" order={0}><OnboardingSignal tutorial={tutorial} classId={cls} onOpenHub={() => { setTutorial(null); setOperationsView("ABILITIES"); }} /></HudRail>}
+      {tutorial && !cineId && <HudRail side="left" order={0}><OnboardingSignal tutorial={tutorial} classId={cls} onOpenHub={() => { setTutorial(null); setOperationsView("ABILITIES"); }} /></HudRail>}
       {tutorial?.step === "VICTORY" && (
         <VictoryReport
           classId={cls}

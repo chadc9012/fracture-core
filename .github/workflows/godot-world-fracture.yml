@@ -83,5 +83,5 @@ jobs:
           gh release delete godot-latest --yes --cleanup-tag || true
           gh release create godot-latest godot-world-fracture/build/android/WorldFracture-Godot.apk \
             --title "World Fracture in Godot (latest)" \
-            --notes "Built from ${GITHUB_SHA::7}. The Godot version of World Fracture, moving over piece by piece: the planet globe and every region map so far. Open this page on your Android phone, tap WorldFracture-Godot.apk and allow installs when asked." \
+            --notes "Built from ${GITHUB_SHA::7}. The Godot version of World Fracture, moving over piece by piece: the planet globe, every region map (Crystal Badlands and The Shattered Reefs included) and every region in 3D (3D City and Street View) so far. Open this page on your Android phone, tap WorldFracture-Godot.apk and allow installs when asked." \
             --prerelease

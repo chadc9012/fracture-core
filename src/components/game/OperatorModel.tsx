@@ -17,6 +17,8 @@ import { boneRegion, buildPalette, vivid } from "@/game/operator-paint";
 import { paintSkin, type SkinTextures } from "./operator-skin";
 import { SURFACES } from "@/game/visual-standard";
 import { equippedPieces, piecesKey, type ArmorPiece } from "@/game/armor-pieces";
+import { wornCosmetics, type WornCosmetics } from "@/game/cosmetics";
+import { cosmeticPieces } from "@/game/cosmetic-geometry";
 import type { GearItem, GearSlot } from "@/game/inventory";
 import { HAND_BONE, WEAPON_PROPS } from "@/game/weapon-props";
 import { WEAPONS, WEAPON_ORDER, type WeaponId } from "@/game/weapons";
@@ -30,9 +32,36 @@ import { standingClip } from "@/game/combat-stance";
 /** the weapon the operator is currently holding; read every frame so a weapon swap needs no rebuild */
 export type HeldWeapon = { current: { weapon: WeaponId; /** weapon-classes.ts: the class the held gun fires as (an SMG/sniper/fusion in the rifle's slot shows its own model) */ heldFrame?: string } };
 
-export type WornGear = { inventory: GearItem[]; equippedGear: Partial<Record<GearSlot, string>>; earnedRewards?: string[] };
+export type WornGear = { inventory: GearItem[]; equippedGear: Partial<Record<GearSlot, string>>; earnedRewards?: string[]; /** cosmetics.ts: worn cosmetic gear (drawn on every body, authored or procedural) */ cosmetics?: WornCosmetics | undefined };
 
 const ELEMENT_GLOW: Record<string, string> = { KINETIC: "#ffd9a0", THERMAL: "#ff8a3a", CRYO: "#8fd8ff", ARC: "#6fe7ff", BIO: "#9cff8a" };
+
+/** Worn cosmetics (cosmetic-geometry.ts) parented to the rig's bones, on authored and procedural bodies alike. */
+function attachCosmetics(object: THREE.Object3D, worn: WornCosmetics | undefined, earned: string[] | undefined, height: number, modelScale: number) {
+  const pieces = cosmeticPieces(wornCosmetics({ cosmetics: worn ?? {}, earnedRewards: earned ?? [] }));
+  if (!pieces.length) return () => {};
+  const made: THREE.Object3D[] = [], mats: THREE.Material[] = [], geos: THREE.BufferGeometry[] = [];
+  const unit = height / 1.85;
+  const ws = new THREE.Vector3();
+  for (const piece of pieces) {
+    const bone = object.getObjectByName(piece.bone) ?? object.getObjectByName(piece.bone.replace("mixamorig:", "mixamorig"));
+    if (!bone) continue;
+    bone.getWorldScale(ws);
+    const g = new THREE.Group();
+    g.name = piece.name;
+    g.scale.setScalar(unit / Math.max(ws.y * modelScale, 1e-6));
+    for (const part of piece.parts) {
+      const m = part.material;
+      const mat = new THREE.MeshStandardMaterial({ color: m.color, roughness: m.roughness ?? 0.7, metalness: m.metalness ?? 0, side: m.doubleSide ? THREE.DoubleSide : THREE.FrontSide,
+        ...(m.emissive ? { emissive: m.emissive, emissiveIntensity: m.emissiveIntensity ?? 1 } : {}), ...(m.opacity !== undefined ? { transparent: true, opacity: m.opacity, depthWrite: false } : {}) });
+      const mesh = new THREE.Mesh(part.geometry, mat);
+      mesh.castShadow = m.opacity === undefined; mesh.receiveShadow = true;
+      g.add(mesh); mats.push(mat); geos.push(part.geometry);
+    }
+    bone.add(g); made.push(g);
+  }
+  return () => { for (const g of made) g.removeFromParent(); mats.forEach((m) => m.dispose()); geos.forEach((g) => g.dispose()); };
+}
 
 /** Builds the separate armor meshes and parents them to the rig's bones so they follow every clip. */
 function attachArmor(object: THREE.Object3D, pieces: ArmorPiece[], height: number, modelScale: number, colors: { armor: string; trim: string; accent: string }) {
@@ -271,6 +300,12 @@ function Model({ calm, face, url, tint, height, feetY, color, trim, pose, motion
     return attachArmor(built.object, pieces, height, built.scale, { armor: color ?? "#9aa3ad", trim: "#3b4048", accent });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [built, armorKey, color, height, tint]);
+  const cosmeticKey = JSON.stringify(gear?.cosmetics ?? {}) + "|" + (gear?.earnedRewards?.filter((r) => r.startsWith("cosmetic:")).join(",") ?? "");
+  useEffect(() => {
+    built.object.updateMatrixWorld(true);
+    return attachCosmetics(built.object, gear?.cosmetics, gear?.earnedRewards, height, built.scale);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [built, cosmeticKey, height]);
   const heldGroups = useRef<Partial<Record<WeaponId, THREE.Group>>>({});
   const heldVariant = useRef<((v: RifleVariant) => THREE.Group) | null>(null);
   const heldVariants = useRef<Partial<Record<RifleVariant, THREE.Group>>>({});

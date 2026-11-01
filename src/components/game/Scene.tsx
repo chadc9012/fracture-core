@@ -670,7 +670,7 @@ function SceneImpl({
   onWaste?: (event: WasteEmit) => void;
   /** Fracture Gate descents (descent-runtime.ts): tier chests and run results; GameCanvas resolves them into the save */
   onDescent?: (event: DescentEmit) => void;
-  gear?: Pick<PlayerProgression, "inventory" | "equippedGear" | "dungeonClears" | "completedMissions" | "story" | "earnedRewards" | "missionRuns"> & Partial<Pick<PlayerProgression, "level" | "living" | "challenge" | "nemeses" | "fleet" | "blade" | "vehicleConditions" | "nexLedger" | "housing" | "fractureShards" | "character">>;
+  gear?: Pick<PlayerProgression, "inventory" | "equippedGear" | "dungeonClears" | "completedMissions" | "story" | "earnedRewards" | "missionRuns"> & Partial<Pick<PlayerProgression, "level" | "living" | "challenge" | "nemeses" | "fleet" | "blade" | "transmog" | "cosmetics" | "vehicleConditions" | "nexLedger" | "housing" | "fractureShards" | "character">>;
   /** nemesis.ts: a nemesis the player picked on the map; it ambushes right after arrival */
   summonNemesis?: string | null;
   mission?: MissionRun | null;
@@ -761,7 +761,7 @@ function SceneImpl({
     helmet: gear?.inventory.find((item) => item.id === gear.equippedGear.helmet)?.level ?? 1,
     legs: gear?.inventory.find((item) => item.id === gear.equippedGear.legs)?.level ?? 1,
   }), [gear?.inventory, gear?.equippedGear]);
-  const worn = useMemo(() => armorLook({ inventory: gear?.inventory ?? [], equippedGear: gear?.equippedGear ?? {} }, playerClass), [gear?.inventory, gear?.equippedGear, playerClass]);
+  const worn = useMemo(() => armorLook({ inventory: gear?.inventory ?? [], equippedGear: gear?.equippedGear ?? {}, transmog: gear?.transmog }, playerClass), [gear?.inventory, gear?.equippedGear, gear?.transmog, playerClass]);
   // Equipped armor-set bonuses (armor-sets.ts): recomputed only when gear changes; the frame loop reads the ref.
   const armorFx = useMemo(() => loadoutEffects({ inventory: gear?.inventory ?? [], equippedGear: gear?.equippedGear ?? {} }), [gear?.inventory, gear?.equippedGear]);
   const armorFxRef = useRef(armorFx);
