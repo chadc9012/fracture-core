@@ -199,8 +199,9 @@ import { heatStatus, stepHeatMeter } from "@/game/heat";
 import { shouldForceFootTransition, vehicleDamageStage, VEHICLE_DAMAGE_EFFECT, type VehicleDamageStage } from "@/game/chase-ai";
 import { exitVehicleMomentum, parkourChainBonus, vaultLunge } from "@/game/parkour";
 import { anySensorSees, detectionStateFor, lockdownStatus, nexusSensors, stepDetectionMeter, stepHackProgress, type DetectionState, type LockdownTier } from "@/game/stealth";
-import { spotAt } from "@/game/nexus-residences";
-import { restRequest } from "@/game/client-input";
+import { residenceFloor, spotAt, type ResidenceFloorId } from "@/game/nexus-residences";
+import { canRide, onCallPad, onStairsPad, residentNear, stairsTo } from "@/game/residence-life";
+import { liftRequest, restRequest } from "@/game/client-input";
 import { INTERIORS, INTERIOR_ALTITUDE, doorAt, atExitMarker, interiorById, isInteriorOpen, clampHomeLocal, exitPosition, liftAt, roomBounds } from "@/game/interiors";
 import { clampToFloor, registeredModelSolids, roomSolids, solidTopAt, structureSolids, sweepSolids } from "@/game/environment-collision";
 import { homeById } from "@/game/housing";
@@ -421,6 +422,9 @@ export type HudState = {
   insideInterior: string | null;
   /** the apartment spot you stand at in the Nexus City Residences (nexus-residences.ts APARTMENT_SPOTS), else null */
   homeSpot: string | null;
+  /** Nexus City Residences: standing on the elevator call pad (the directory opens), the resident in talking range */
+  liftCall: boolean;
+  resident: string | null;
   interiorName: string;
   interiorOpen: boolean;
   /** Living World (living-runtime.ts): the city you're in and its live world event */
@@ -2324,7 +2328,15 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
       const localX = s.x - interior.origin.x;
       const localZ = s.z - interior.origin.z;
       liftCool.current = Math.max(0, liftCool.current - dt);
-      const ride = liftCool.current <= 0 ? liftAt(interior, localX, localZ) : null;
+      let ride = liftCool.current <= 0 ? liftAt(interior, localX, localZ) : null;
+      // Nexus City Residences: the elevator directory's pick, or the stairwell (one floor down) during an evacuation
+      if (interior.layout === "nexus-residences") {
+        const here = interior.id as ResidenceFloorId, want = liftRequest.current as ResidenceFloorId | null;
+        liftRequest.current = null;
+        const to = want && !canRide(here, want) ? interiorById(want) : null, tf = want ? residenceFloor(want) : null;
+        if (to && tf) ride = { to, land: tf.arrive, label: "Elevator" };
+        else if (liftCool.current <= 0 && onStairsPad(here, localX, localZ)) { const st = stairsTo(here); const ti = st ? interiorById(st.to) : null; if (st && ti) ride = { to: ti, land: st.land, label: "Stairs" }; }
+      }
       if (ride) {
         // elevator: another pocket room, same visit (the way back out still returns to the street door you came in by)
         s.insideInterior = ride.to.id;
@@ -3537,6 +3549,8 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
         regionId: interior ? interior.regionId : here?.id ?? "",
         insideInterior: s.insideInterior,
         homeSpot: interior ? spotAt(interior.id, s.x - interior.origin.x, s.z - interior.origin.z)?.id ?? null : null,
+        liftCall: interior?.layout === "nexus-residences" ? onCallPad(interior.id as ResidenceFloorId, s.x - interior.origin.x, s.z - interior.origin.z) : false,
+        resident: interior?.layout === "nexus-residences" ? residentNear(interior.id, s.x - interior.origin.x, s.z - interior.origin.z)?.id ?? null : null,
         interiorName: interior?.name ?? "",
         interiorOpen: interior ? isInteriorOpen(interior, time.current) : true,
         living: livingHud.current,

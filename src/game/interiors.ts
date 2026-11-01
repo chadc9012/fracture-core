@@ -17,7 +17,7 @@ import { REGIONAL_SHOPS } from "./regional-shops";
 import { nexusHubLobby } from "./building-models";
 import { shopAccessKind } from "./shop-access";
 import { keeperName } from "./merchant-models";
-import { FLOORS as RESIDENCE_FLOORS, elevatorPads, residenceFloor } from "./nexus-residences";
+import { FLOORS as RESIDENCE_FLOORS } from "./nexus-residences";
 
 export const INTERIOR_ALTITUDE = 600;
 export const DOOR_RADIUS = 2.2;
@@ -87,7 +87,8 @@ export const INTERIORS: InteriorDef[] = [
     spawnOffset: f.id === "nexus-apartment" ? { x: 0, z: f.hz - 3.2 } : f.arrive,
     exitOffset: f.id === "nexus-apartment" ? { x: 0, z: f.hz - 0.2 } : { x: 0, z: 999 },
     ...(f.npcName ? { npcName: f.npcName } : {}),
-    lifts: elevatorPads(f.id).map((e) => ({ pad: e.pad, to: e.to, land: residenceFloor(e.to)!.arrive, label: e.label })),
+    // no automatic lift pads: the residences' elevators open a floor directory (residence-life.ts), the stairs only in an evacuation
+    lifts: [],
     size: { hx: f.hx, hz: f.hz },
     layout: "nexus-residences",
     ...(f.id === "nexus-apartment" ? {} : { viaLift: true, noExit: true }),

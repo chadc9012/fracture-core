@@ -5,8 +5,14 @@
  * Amenities (lounge and game room, movie theater), 12 Fitness / Wellness (gym, pool, hot tub), 12-04 the player's
  * apartment (the sheet's floor plan: living room, bedroom, kitchen / dining, bathroom, storage / utility, balcony with the
  * city view, a personal PC and a workout corner) and R the Rooftop Lounge & Sky Deck. Each floor is a pocket room like
- * every interior (interiors.ts): an elevator bank on each floor rides to every other floor, and only the lobby has a
- * street door. The apartment is the starting residence: always open, no purchase.
+ * every interior (interiors.ts) and only the lobby has a street door. The apartment is the starting residence: always open, no
+ * purchase.
+ *
+ * Owner's residences pack (Nov 1) added the floors the sheet's directory lists below the apartments: P the parking garage,
+ * 2 mail, laundry & storage, 3 the courtyard terrace (garden, dog park, BBQ dining, multi-sport court) and 4 the co-working
+ * centre. With nine floors an elevator bank of one pad per floor no longer fits a wall, so every floor has one elevator call
+ * pad (step on it, pick a floor from the directory) and an emergency stairwell pad that only opens during an evacuation
+ * (residence-life.ts), when the elevators stop.
  *
  * Pure layout data, no three.js: boxes in each floor's local frame (residences.ts Box: origin at the floor's centre, y up,
  * +z toward the street door), the elevator pads, collision walls for every partition and large piece of furniture, and
@@ -14,9 +20,10 @@
 import type { Box } from "./residences";
 import type { Wall } from "./walls";
 
-export type ResidenceFloorId = "nexus-apartment" | "nexus-tower-lounge" | "nexus-res-fitness" | "nexus-res-1204" | "nexus-res-roof";
+export type ResidenceFloorId = "nexus-apartment" | "nexus-tower-lounge" | "nexus-res-fitness" | "nexus-res-1204" | "nexus-res-roof" | "nexus-res-parking" | "nexus-res-services" | "nexus-res-courtyard" | "nexus-res-cowork";
 /** what you can do at a spot in the apartment (GameCanvas shows the button, Scene / the panels do it) */
-export type SpotAction = "rest" | "pc" | "tv" | "stash" | "wardrobe" | "workout" | "radio";
+export type SpotAction = "rest" | "pc" | "tv" | "stash" | "wardrobe" | "workout" | "radio" | "breakfast" | "phone"
+  | "mail" | "laundry" | "court" | "grill" | "dog" | "garden" | "shift" | "coffee" | "gym" | "pool" | "spa" | "games" | "theater" | "view" | "garage";
 export type Spot = { id: string; action: SpotAction; label: string; x: number; z: number; r: number };
 export type ResidenceFloor = {
   id: ResidenceFloorId;
@@ -42,29 +49,50 @@ export type ResidenceFloor = {
   arrive: { x: number; z: number };
 };
 
-export const FLOOR_ORDER: readonly ResidenceFloorId[] = ["nexus-apartment", "nexus-res-1204", "nexus-tower-lounge", "nexus-res-fitness", "nexus-res-roof"];
+/** building order, bottom to top (the elevator directory lists it top down) */
+export const FLOOR_ORDER: readonly ResidenceFloorId[] = ["nexus-res-parking", "nexus-apartment", "nexus-res-services", "nexus-res-courtyard", "nexus-res-cowork", "nexus-tower-lounge", "nexus-res-fitness", "nexus-res-1204", "nexus-res-roof"];
 const COLUMN_X = 3600;
 const FLOORS_RAW: Omit<ResidenceFloor, "origin" | "arrive" | "bank">[] = [
-  { id: "nexus-apartment", code: "L", name: "Nexus City Residences · Main Lobby", hx: 9, hz: 7, floorColor: "#cfc9c0", wallColor: "#3a3240", ceilingColor: "#1e1a24", light: "#ffe2b8", npcName: "Mara, off-shift Vanguard tech", npcAt: { x: 4.5, z: 2.2 } },
+  { id: "nexus-apartment", code: "L", name: "Nexus City Residences · Main Lobby", hx: 9, hz: 7, floorColor: "#cfc9c0", wallColor: "#3a3240", ceilingColor: "#1e1a24", light: "#ffe2b8" },
   { id: "nexus-res-1204", code: "12-04", name: "Nexus City Residences · Apartment 1204", hx: 8, hz: 6, skyline: true, floorColor: "#6b5a4a", wallColor: "#2c2a30", ceilingColor: "#1c1b20", light: "#ffd9b0" },
-  { id: "nexus-tower-lounge", code: "11", name: "Nexus City Residences · Floor 11 Resident Lounge", hx: 9, hz: 7, skyline: true, floorColor: "#3a3442", wallColor: "#2a2533", ceilingColor: "#17141d", light: "#d9b8ff", npcName: "Sky Lounge concierge", npcAt: { x: 6.5, z: 4.5 } },
+  { id: "nexus-tower-lounge", code: "11", name: "Nexus City Residences · Floor 11 Resident Lounge", hx: 9, hz: 7, skyline: true, floorColor: "#3a3442", wallColor: "#2a2533", ceilingColor: "#17141d", light: "#d9b8ff" },
   { id: "nexus-res-fitness", code: "12", name: "Nexus City Residences · Floor 12 Fitness & Pool", hx: 10, hz: 7, skyline: true, floorColor: "#8a8f96", wallColor: "#2f3238", ceilingColor: "#1a1c20", light: "#e4f1ff" },
   { id: "nexus-res-roof", code: "R", name: "Nexus City Residences · Rooftop Sky Deck", hx: 10, hz: 8, open: true, skyline: true, floorColor: "#5a5048", wallColor: "#2f2c33", ceilingColor: "#000000", light: "#ffcf9a" },
+  // the pack's floors (appended, so the original floors keep their places in the interior column)
+  { id: "nexus-res-parking", code: "P", name: "Nexus City Residences · Parking Garage", hx: 13, hz: 9, floorColor: "#5b5d61", wallColor: "#3b3d42", ceilingColor: "#26282c", light: "#e6eeff" },
+  { id: "nexus-res-services", code: "2", name: "Nexus City Residences · Floor 2 Mail, Laundry & Storage", hx: 9, hz: 7, floorColor: "#b9b4ab", wallColor: "#34363c", ceilingColor: "#1d1e22", light: "#fff0d8" },
+  { id: "nexus-res-courtyard", code: "3", name: "Nexus City Residences · Floor 3 Courtyard Terrace", hx: 15, hz: 11, open: true, skyline: true, floorColor: "#4f7a3c", wallColor: "#3a3530", ceilingColor: "#000000", light: "#fff2d6" },
+  { id: "nexus-res-cowork", code: "4", name: "Nexus City Residences · Floor 4 Co-working Center", hx: 10, hz: 7, skyline: true, floorColor: "#7a6e62", wallColor: "#2e2c30", ceilingColor: "#1b1a1e", light: "#f4ecdf" },
 ];
-/** the elevator bank: one pad per other floor, 2.4 m apart, along the west wall (the apartment: by its front door, south) */
+/** the lift lobby: an elevator call pad and the emergency stairwell pad, on the west wall (the apartment: by its front door) */
 export const PAD_R = 1.0;
 const bankOf = (id: string): "west" | "south" => (id === "nexus-res-1204" ? "south" : "west");
 const arriveAt = (f: { hx: number; hz: number }, bank: "west" | "south") => (bank === "west" ? { x: -f.hx + 3.9, z: 0 } : { x: 0, z: f.hz - 3.4 });
 export const FLOORS: readonly ResidenceFloor[] = FLOORS_RAW.map((f, i) => ({ ...f, origin: { x: COLUMN_X, z: i * 200 }, bank: bankOf(f.id), arrive: arriveAt(f, bankOf(f.id)) }));
 export const residenceFloor = (id: string | null | undefined): ResidenceFloor | null => FLOORS.find((f) => f.id === id) ?? null;
 
-/** the elevator pads on a floor: one to every other floor, in building order, centred on z 0 */
+/** the elevator call pad on a floor: step on it and the directory opens (residence-life.ts rides) */
+export function callPad(id: ResidenceFloorId): { x: number; z: number } {
+  const f = residenceFloor(id)!;
+  return f.bank === "west" ? { x: -f.hx + 1.3, z: -1.4 } : { x: -1.2, z: f.hz - 1.3 };
+}
+/** the emergency stairwell door on a floor (open only during an evacuation) */
+export function stairsPad(id: ResidenceFloorId): { x: number; z: number } {
+  const f = residenceFloor(id)!;
+  return f.bank === "west" ? { x: -f.hx + 1.3, z: 1.8 } : { x: 1.6, z: f.hz - 1.3 };
+}
+/** the floor directory (top floor first), as the elevator panel shows it */
+export const DIRECTORY = [...FLOOR_ORDER].reverse().map((id) => { const f = residenceFloor(id)!; return { id, code: f.code, name: f.name.split(" · ")[1]! }; });
+/** the floor below in the stairwell (toward the lobby; the garage's stairs lead up to it) */
+export function stairsDown(id: ResidenceFloorId): ResidenceFloorId | null {
+  if (id === "nexus-apartment") return null;
+  if (id === "nexus-res-parking") return "nexus-apartment";
+  const i = FLOOR_ORDER.indexOf(id);
+  return FLOOR_ORDER[i - 1] ?? null;
+}
+/** kept for older callers: the lift pads of a floor (now the call pad and the stairwell) */
 export function elevatorPads(id: ResidenceFloorId): { to: ResidenceFloorId; pad: { x: number; z: number }; label: string }[] {
-  const f = residenceFloor(id)!, others = FLOOR_ORDER.filter((o) => o !== id);
-  return others.map((to, k) => {
-    const t = residenceFloor(to)!, along = (k - (others.length - 1) / 2) * 2.4;
-    return { to, pad: f.bank === "west" ? { x: -f.hx + 1.3, z: along } : { x: along, z: f.hz - 1.3 }, label: `Lift · ${t.code} · ${t.name.split(" · ")[1]}` };
-  });
+  return [{ to: id, pad: callPad(id), label: "Elevators" }];
 }
 
 /* ---------------- geometry ---------------- */
@@ -103,12 +131,18 @@ function shell(f: ResidenceFloor): Box[] {
   return out;
 }
 
-/** the elevator bank on the west wall: steel doors behind each pad, a lit call sign */
+/** the lift lobby on the west wall: two steel elevator doors behind the call pad with a lit call sign, and the stairwell door
+ * (a heavy grey door under a green EXIT light) behind the stairs pad */
 function bank(f: ResidenceFloor): Box[] {
-  const out: Box[] = [];
-  for (const p of elevatorPads(f.id)) {
-    if (f.bank === "west") out.push(on(-f.hx + 0.2, p.pad.z, 0.12, 2.5, 1.5, STEEL), L(-f.hx + 0.28, 2.75, p.pad.z, 0.04, 0.18, 0.9, CYAN));
-    else out.push(on(p.pad.x, f.hz - 0.2, 1.5, 2.5, 0.12, STEEL), L(p.pad.x, 2.75, f.hz - 0.28, 0.9, 0.18, 0.04, CYAN));
+  const out: Box[] = [], c = callPad(f.id), st = stairsPad(f.id);
+  if (f.bank === "west") {
+    for (const dz of [-0.85, 0.85]) out.push(on(-f.hx + 0.2, c.z + dz, 0.12, 2.5, 1.4, STEEL));
+    out.push(L(-f.hx + 0.28, 2.75, c.z, 0.04, 0.18, 1.6, CYAN));
+    out.push(on(-f.hx + 0.2, st.z, 0.12, 2.3, 1.1, "#4a4d52"), L(-f.hx + 0.28, 2.55, st.z, 0.04, 0.16, 0.5, "#3cff7a"));
+  } else {
+    for (const dx of [-0.85, 0.85]) out.push(on(c.x + dx, f.hz - 0.2, 1.4, 2.5, 0.12, STEEL));
+    out.push(L(c.x, 2.75, f.hz - 0.28, 1.6, 0.18, 0.04, CYAN));
+    out.push(on(st.x, f.hz - 0.2, 1.1, 2.3, 0.12, "#4a4d52"), L(st.x, 2.55, f.hz - 0.28, 0.5, 0.16, 0.04, "#3cff7a"));
   }
   return out;
 }
@@ -195,14 +229,81 @@ const ROOF: Box[] = [
   ...[-5, 0, 5].flatMap((z) => plant(8.6, z, 1.0)), ...[-4, 0, 4].flatMap((x) => plant(x, 7.3, 1.0)),
 ];
 
+/* ---- the pack's floors ---- */
+const WHITE = "#e9e9e6";
+/** a parked car: body, glass cabin, two lit tail lamps (boxes, seen from a walkway) */
+const car = (x: number, z: number, color: string, faceNorth: boolean): Box[] => { const t = faceNorth ? 2.15 : -2.15; return [on(x, z, 1.9, 0.8, 4.4, color), G(x, 1.12, z - t * 0.08, 1.7, 0.5, 2.2, "#1c2430"), L(x - 0.6, 0.62, z + t, 0.3, 0.12, 0.04, "#ff3a3a"), L(x + 0.6, 0.62, z + t, 0.3, 0.12, 0.04, "#ff3a3a")]; };
+const CARS = ["#8a1f24", "#d8d8d8", "#1f2f4a", "#202024", "#5a6a72", "#c9a13a"];
+const PARKING: Box[] = [
+  // bays: two rows of painted bays off the drive aisle, some taken; columns between the rows; strip lights
+  ...[-1, 1].flatMap((side) => Array.from({ length: 7 }, (_, k) => S(-6 + k * 3, 0.006, side * 6.5, 0.1, 0.01, 4.8, WHITE))),
+  ...[-4.5, 1.5, 4.5, 10.5].flatMap((x, k) => car(x, -6.5, CARS[k % CARS.length]!, false)), ...[-1.5, 7.5].flatMap((x, k) => car(x, 6.5, CARS[(k + 3) % CARS.length]!, true)),
+  ...[-3, 3, 9].flatMap((x) => [-1, 1].map((sd) => on(x, sd * 3.6, 0.6, 3.6, 0.6, "#6c6e72"))),
+  ...[-6, -2, 2, 6, 10].map((x) => L(x, 3.48, 0, 0.18, 0.04, 14, "#eef4ff")),
+  // EV chargers on the north wall, each with a green lamp
+  ...[-4.5, 1.5, 7.5].flatMap((x) => [on(x, -8.7, 0.45, 1.5, 0.3, "#2b2f36"), L(x, 1.3, -8.53, 0.2, 0.2, 0.03, "#3cff9a")]),
+  // the attendant's booth by the ramp (east), glazed toward the aisle
+  on(11.8, 1.2, 2.0, 2.6, 2.6, "#2b2e34"), G(10.75, 1.6, 1.2, 0.06, 1.2, 2.2, "#9fc4d8"), L(11.8, 2.66, 1.2, 1.6, 0.04, 2.0, WARM),
+  // painted aisle arrows and the ramp stripe
+  S(4, 0.006, 0, 2.2, 0.01, 0.3, "#f2c94c"), S(-2, 0.006, 0, 2.2, 0.01, 0.3, "#f2c94c"), S(12.6, 0.006, -4.5, 0.6, 0.01, 7, "#f2c94c"),
+];
+const SERVICES: Box[] = [
+  // mail: a wall of mailboxes and package lockers behind the clerk's counter
+  on(2, -6.7, 8, 2.4, 0.5, "#5c5f66"), L(2, 2.5, -6.42, 7.8, 0.06, 0.03, CYAN), ...[-1.5, 0, 1.5, 3, 4.5].map((x) => L(x, 1.4, -6.43, 0.08, 0.08, 0.02, "#bfe4ff")),
+  on(2, -4.6, 4, 1.05, 0.8, "#d9d3c8", "stone"), L(2, 1.07, -4.22, 4, 0.04, 0.04, PURPLE),
+  // laundry along the east wall: washers with dryers stacked on top, a folding table
+  ...[-3.3, -2.2, -1.1, 0, 1.1, 2.2].flatMap((z) => [on(8.45, z, 0.9, 0.95, 0.9, WHITE), S(8.45, 1.45, z, 0.9, 0.95, 0.9, "#d4d6da"), L(8.0, 0.55, z, 0.02, 0.3, 0.3, "#4a7ab0")]),
+  on(5.6, 0, 1.0, 0.9, 3.0, WOOD),
+  // storage lockers along the south wall, numbered strips
+  ...[-6, -4.8, -3.6, -2.4, -1.2, 0, 1.2, 2.4, 3.6].flatMap((x) => [on(x, 6.6, 1.1, 2.2, 0.6, "#3c4048"), L(x, 1.9, 6.29, 0.5, 0.06, 0.02, WARM)]),
+  // a bench and plants
+  on(-1.5, 2.2, 2.4, 0.45, 0.6, LEATHER), ...plant(-7.4, -6), ...plant(7.8, 5.6, 1.0),
+];
+/** the courtyard terrace: garden (north-west), multi-sport court (north-east), dog park (south-west), BBQ dining (south-east) */
+const COURT = { x: 7, z: -5, hx: 6, hz: 3.5 } as const;
+export const SPORTS_COURT = COURT;
+const COURTYARD: Box[] = [
+  // paths
+  S(0, 0.012, 0.6, 29.6, 0.02, 2.4, "#c9c2b5", "stone"), S(-1, 0.013, 0, 2.4, 0.02, 21.6, "#c9c2b5", "stone"),
+  // the multi-sport court: surface, white lines, a hoop at each end, the net across the middle (tennis / volleyball)
+  S(COURT.x, 0.02, COURT.z, COURT.hx * 2 + 0.4, 0.03, COURT.hz * 2 + 0.4, "#3d6f8f"),
+  ...[-1, 1].map((sd) => S(COURT.x, 0.04, COURT.z + sd * COURT.hz, COURT.hx * 2, 0.01, 0.08, WHITE)), ...[-1, 1].map((sd) => S(COURT.x + sd * COURT.hx, 0.04, COURT.z, 0.08, 0.01, COURT.hz * 2, WHITE)),
+  S(COURT.x, 0.04, COURT.z, 0.06, 0.01, COURT.hz * 2, WHITE),
+  ...[-1, 1].flatMap((sd) => { const x = COURT.x + sd * (COURT.hx - 0.3); return [on(x, COURT.z, 0.15, 3.0, 0.15, STEEL), S(x - sd * 0.1, 3.0, COURT.z, 0.08, 0.9, 1.4, WHITE), L(x - sd * 0.45, 2.8, COURT.z, 0.5, 0.04, 0.5, "#ff7a2a")]; }),
+  ...[-1, 1].map((sd) => on(COURT.x, COURT.z + sd * (COURT.hz + 0.3), 0.1, 1.1, 0.1, STEEL)), S(COURT.x, 0.85, COURT.z, 0.04, 0.5, COURT.hz * 2 + 0.6, "#f0f0f0"),
+  // garden: planter beds, trees, benches
+  ...[[-11, -7], [-7, -7], [-11, -3]].flatMap(([x, z]) => [on(x!, z!, 2.6, 0.45, 2.6, "#6a5848", "stone"), S(x!, 0.55, z!, 2.3, 0.2, 2.3, "#5b8f3a")]),
+  ...plant(-13.2, -9.2, 2.4), ...plant(-4.4, -9.2, 2.2), ...plant(-13.2, 1.6, 2.0), on(-7, -3.8, 2.0, 0.45, 0.6, WOOD),
+  // dog park: a low fence with a gate on its north side, two dogs, an agility hurdle
+  ...[-1, 1].map((sd) => on(-6 + sd * 4, 6.4, 0.08, 1.0, 5.2, "#7a6a58")), on(-6, 9, 8, 1.0, 0.08, "#7a6a58"), on(-8.5, 3.8, 3.0, 1.0, 0.08, "#7a6a58"), on(-3.5, 3.8, 3.0, 1.0, 0.08, "#7a6a58"),
+  S(-6, 0.012, 6.4, 7.8, 0.02, 5.0, "#6f8f4a"),
+  on(-7.2, 6.8, 0.35, 0.45, 0.8, "#8a5a32"), S(-7.2, 0.62, 7.28, 0.3, 0.3, 0.32, "#8a5a32"), on(-4.6, 5.6, 0.3, 0.4, 0.7, "#e6d2a8"), S(-4.6, 0.55, 6.02, 0.26, 0.26, 0.3, "#e6d2a8"),
+  ...[-1, 1].map((sd) => on(-6 + sd * 0.8, 8.2, 0.06, 0.6, 0.06, WHITE)), S(-6, 0.55, 8.2, 1.6, 0.06, 0.06, "#ff5a3a"),
+  // BBQ dining: grills with glowing coals, two tables with benches, string lights on posts
+  ...[5, 7.4].flatMap((x) => [on(x, 9.6, 1.6, 0.95, 0.8, "#2b2a2e"), L(x, 0.97, 9.6, 1.2, 0.02, 0.5, "#ff8a3a")]),
+  ...[[4, 5.4], [8, 5.4]].flatMap(([x, z]) => [on(x!, z!, 2.0, 0.75, 0.9, WOOD), on(x!, z! - 0.85, 2.0, 0.42, 0.35, WOOD), on(x!, z! + 0.85, 2.0, 0.42, 0.35, WOOD)]),
+  ...[2, 6, 10].flatMap((x) => [S(x, 1.4, 3.6, 0.08, 2.8, 0.08, DARK), L(x, 2.8, 3.6, 0.14, 0.14, 0.14, WARM)]), ...plant(13.4, 9.2, 1.4),
+];
+const COWORK: Box[] = [
+  // two rows of shared desks facing the glass, each with a lit monitor and a chair
+  ...[-4.2, -1.2].flatMap((z) => [-3, 0, 3, 6].flatMap((x) => [on(x, z, 1.6, 0.75, 0.8, "#c9b79e"), L(x, 1.05, z - 0.25, 0.6, 0.36, 0.03, z < -2 ? CYAN : "#cfe6ff"), on(x, z + 0.75, 0.5, 0.55, 0.5, DARK)])),
+  // the glass meeting room (south-east) with its table
+  G(6.5, 1.5, 2.6, 5.4, 3.0, 0.06, "#9fc4d8"), G(3.8, 1.5, 4.8, 0.06, 3.0, 3.0, "#9fc4d8"), on(6.6, 4.8, 2.6, 0.75, 1.2, "#2b2622"), L(6.6, 3.4, 4.8, 2.0, 0.04, 0.04, WARM),
+  // the coffee bar by the lifts' wall
+  on(-2.4, 6.4, 4, 1.05, 0.7, "#2c2c30"), S(-2.4, 1.08, 6.4, 4.1, 0.05, 0.75, "#e3ddd2"), L(-2.4, 2.6, 6.6, 3.6, 0.1, 0.04, WARM), on(-3.8, 6.5, 0.5, 1.6, 0.5, STEEL),
+  ...plant(-8.8, -6), ...plant(9.2, -6), ...plant(9.2, 6.2, 1.0),
+];
+
 export function floorBoxes(id: ResidenceFloorId): Box[] {
   const f = residenceFloor(id)!;
-  const body = id === "nexus-apartment" ? LOBBY : id === "nexus-res-1204" ? APARTMENT : id === "nexus-tower-lounge" ? LOUNGE : id === "nexus-res-fitness" ? FITNESS : ROOF;
+  const body = id === "nexus-apartment" ? LOBBY : id === "nexus-res-1204" ? APARTMENT : id === "nexus-tower-lounge" ? LOUNGE : id === "nexus-res-fitness" ? FITNESS
+    : id === "nexus-res-parking" ? PARKING : id === "nexus-res-services" ? SERVICES : id === "nexus-res-courtyard" ? COURTYARD : id === "nexus-res-cowork" ? COWORK : ROOF;
   return [...shell(f), ...(f.open ? [] : bank(f)), ...(f.open ? bankRoof(f) : []), ...body];
 }
 /** the roof's bank stands under a small lift lobby canopy on the west parapet */
 function bankRoof(f: ResidenceFloor): Box[] {
-  return [...bank(f), S(-f.hx + 1.2, 2.9, 0, 2.6, 0.2, elevatorPads(f.id).length * 2.4 + 0.6, DARK), ...[-1, 1].map((s) => S(-f.hx + 2.4, 1.45, s * (elevatorPads(f.id).length * 1.2 + 0.2), 0.12, 2.9, 0.12, DARK))];
+  // a lift-lobby kiosk on the parapet: a back wall for the doors, a canopy, two posts
+  return [on(-f.hx + 0.1, 0.2, 0.2, 2.9, 5.2, f.wallColor), ...bank(f), S(-f.hx + 1.2, 2.9, 0.2, 2.6, 0.2, 5.4, DARK), ...[-1, 1].map((s) => S(-f.hx + 2.4, 1.45, 0.2 + s * 2.6, 0.12, 2.9, 0.12, DARK))];
 }
 
 /** the solid things you bump into, as wall segments in the floor's local frame (base/top relative to the floor):
@@ -221,20 +322,54 @@ export function floorWalls(id: ResidenceFloorId): Wall[] {
   return out;
 }
 
-/** the apartment's interaction spots (local frame): walk within r of one and its button shows */
-export const APARTMENT_SPOTS: readonly Spot[] = [
-  { id: "bed", action: "rest", label: "Rest · restore your hull", x: -5.6, z: -1.6, r: 1.4 },
-  { id: "pc", action: "pc", label: "Use your PC · missions, news & intel", x: 6.9, z: -3.6, r: 1.3 },
-  { id: "tv", action: "tv", label: "Watch the news", x: 0.3, z: -3.6, r: 1.4 },
-  { id: "stash", action: "stash", label: "Open your stash", x: -6.2, z: 4.3, r: 1.3 },
-  { id: "wardrobe", action: "wardrobe", label: "Change outfit & gear", x: -3.0, z: -4.6, r: 1.2 },
-  { id: "workout", action: "workout", label: "Work out", x: 6.6, z: -0.6, r: 1.2 },
-  { id: "radio", action: "radio", label: "World Fracture Radio", x: -1.4, z: -1.8, r: 1.0 },
-];
-/** the spot you stand at in an apartment floor (local metres), or null */
+/** each floor's interaction spots (local frame): walk within r of one and its button shows */
+export const FLOOR_SPOTS: Readonly<Record<ResidenceFloorId, readonly Spot[]>> = {
+  "nexus-res-1204": [
+    { id: "bed", action: "rest", label: "Rest · restore your hull", x: -5.6, z: -1.6, r: 1.4 },
+    { id: "pc", action: "pc", label: "Use your PC · missions, news & intel", x: 6.9, z: -3.6, r: 1.3 },
+    { id: "tv", action: "tv", label: "Watch the news", x: 0.3, z: -3.6, r: 1.4 },
+    { id: "stash", action: "stash", label: "Open your stash", x: -6.2, z: 4.3, r: 1.3 },
+    { id: "wardrobe", action: "wardrobe", label: "Change outfit & gear", x: -3.0, z: -4.6, r: 1.2 },
+    { id: "workout", action: "workout", label: "Work out", x: 6.6, z: -0.6, r: 1.2 },
+    { id: "radio", action: "radio", label: "World Fracture Radio", x: -1.4, z: -1.8, r: 1.0 },
+    { id: "breakfast", action: "breakfast", label: "Make breakfast", x: 3.8, z: 1.35, r: 1.0 },
+    { id: "phone", action: "phone", label: "Check your messages", x: 1.0, z: -0.7, r: 0.9 },
+  ],
+  "nexus-apartment": [],
+  "nexus-res-services": [
+    { id: "mail", action: "mail", label: "Check your mailbox", x: 2, z: -3.4, r: 1.3 },
+    { id: "laundry", action: "laundry", label: "Do your laundry", x: 7.0, z: -0.6, r: 1.3 },
+  ],
+  "nexus-res-courtyard": [
+    { id: "court", action: "court", label: "Play on the court · hoops, tennis, volleyball", x: COURT.x - 3, z: COURT.z + COURT.hz + 1.2, r: 1.6 },
+    { id: "grill", action: "grill", label: "Fire up the grill", x: 6.2, z: 8.0, r: 1.3 },
+    { id: "dog", action: "dog", label: "Play with the dogs", x: -6, z: 6.4, r: 1.5 },
+    { id: "garden", action: "garden", label: "Sit in the garden", x: -7, z: -2.6, r: 1.3 },
+  ],
+  "nexus-res-cowork": [
+    { id: "shift", action: "shift", label: "Work a shift at a hot desk", x: 1.5, z: 0.5, r: 1.3 },
+    { id: "coffee", action: "coffee", label: "Grab a coffee", x: -2.4, z: 5.2, r: 1.2 },
+  ],
+  "nexus-tower-lounge": [
+    { id: "games", action: "games", label: "Play pool & arcade", x: 1.5, z: -1.2, r: 1.4 },
+    { id: "theater", action: "theater", label: "Catch a film", x: -5.0, z: 4.0, r: 1.3 },
+  ],
+  "nexus-res-fitness": [
+    { id: "gym", action: "gym", label: "Train in the gym", x: -3.8, z: 2.8, r: 1.4 },
+    { id: "pool", action: "pool", label: "Swim laps", x: 3, z: 0.5, r: 1.4 },
+    { id: "spa", action: "spa", label: "Soak in the hot tub", x: 6.2, z: -3.4, r: 1.2 },
+  ],
+  "nexus-res-roof": [{ id: "view", action: "view", label: "Take in the skyline", x: 5, z: 5, r: 1.5 }],
+  "nexus-res-parking": [{ id: "garage", action: "garage", label: "Your garage · vehicles", x: 8.6, z: 0.4, r: 1.4 }],
+};
+/** the apartment's spots (older callers) */
+export const APARTMENT_SPOTS: readonly Spot[] = FLOOR_SPOTS["nexus-res-1204"];
+export const ALL_SPOTS: readonly Spot[] = Object.values(FLOOR_SPOTS).flat();
+/** the spot you stand at on a residences floor (local metres), or null */
 export function spotAt(id: string | null, x: number, z: number): Spot | null {
-  if (id !== "nexus-res-1204") return null;
+  const list = id ? FLOOR_SPOTS[id as ResidenceFloorId] : undefined;
+  if (!list) return null;
   let best: Spot | null = null, bd = Infinity;
-  for (const s of APARTMENT_SPOTS) { const d = Math.hypot(x - s.x, z - s.z); if (d < s.r && d < bd) { bd = d; best = s; } }
+  for (const s of list) { const d = Math.hypot(x - s.x, z - s.z); if (d < s.r && d < bd) { bd = d; best = s; } }
   return best;
 }

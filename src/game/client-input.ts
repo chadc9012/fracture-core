@@ -48,3 +48,5 @@ export const dragoniteHud: { current: { name: string; cd: number; max: number; k
 
 /** Apartment 1204's bed (nexus-residences.ts): the button sets it, Scene restores the hull next frame and clears it */
 export const restRequest: { current: boolean } = { current: false };
+/** Nexus City Residences: the floor picked on the elevator directory (GameCanvas sets it; Scene rides and clears it) */
+export const liftRequest: { current: string | null } = { current: null };

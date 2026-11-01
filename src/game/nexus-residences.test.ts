@@ -1,7 +1,8 @@
 // @ts-ignore bun:test has no types in this project's tsconfig
 import { describe, expect, it } from "bun:test";
-import { APARTMENT_SPOTS, FLOORS, FLOOR_ORDER, PAD_R, elevatorPads, floorBoxes, floorWalls, residenceFloor, spotAt, type ResidenceFloorId } from "./nexus-residences";
-import { INTERIORS, LIFT_RADIUS, atExitMarker, doorAt, interiorById, liftAt, roomBounds } from "./interiors";
+import { APARTMENT_SPOTS, DIRECTORY, FLOORS, FLOOR_ORDER, FLOOR_SPOTS, callPad, floorBoxes, floorWalls, residenceFloor, spotAt, stairsPad, type ResidenceFloorId } from "./nexus-residences";
+import { INTERIORS, atExitMarker, doorAt, interiorById, liftAt, roomBounds } from "./interiors";
+import { MORNING_DONE, PAD_REACH, RESIDENTS, TRAPPED, canRide, getEvac, onCallPad, onStairsPad, residentPlace, resetEvac, startEvac, stairsTo } from "./residence-life";
 import type { Wall } from "./walls";
 
 const BODY = 0.45;
@@ -34,41 +35,62 @@ function reachable(id: ResidenceFloorId) {
 }
 
 describe("Nexus City Residences", () => {
-  it("has the sheet's floors in building order, the lobby the only street door", () => {
-    expect(FLOORS.map((f) => f.code)).toEqual(["L", "12-04", "11", "12", "R"]);
+  it("has every floor, the lobby the only street door", () => {
+    expect(FLOORS.map((f) => f.code)).toEqual(["L", "12-04", "11", "12", "R", "P", "2", "3", "4"]);
+    expect(DIRECTORY.map((d) => d.code)).toEqual(["R", "12-04", "12", "11", "4", "3", "2", "L", "P"]);
     expect(doorAt(interiorById("nexus-apartment")!.doorPos.x, interiorById("nexus-apartment")!.doorPos.z)?.id).toBe("nexus-apartment");
-    for (const id of FLOOR_ORDER.slice(1)) { const i = interiorById(id)!; expect(i.viaLift).toBe(true); expect(atExitMarker(i, i.exitOffset.x, i.exitOffset.z)).toBe(false); }
+    for (const id of FLOOR_ORDER.filter((o) => o !== "nexus-apartment")) { const i = interiorById(id)!; expect(i.viaLift).toBe(true); expect(atExitMarker(i, i.exitOffset.x, i.exitOffset.z)).toBe(false); }
     const lobby = interiorById("nexus-apartment")!;
     expect(atExitMarker(lobby, lobby.exitOffset.x, lobby.exitOffset.z)).toBe(true);
     expect(Math.hypot(lobby.spawnOffset.x - lobby.exitOffset.x, lobby.spawnOffset.z - lobby.exitOffset.z)).toBeGreaterThan(2.2 + 0.5);
   });
-  it("every floor's elevator rides to every other floor, and you land clear of every pad", () => {
+  it("one elevator call pad and one stairs door per floor, apart, and you arrive off both; the old lift pads are gone", () => {
     for (const id of FLOOR_ORDER) {
-      const i = interiorById(id)!, pads = elevatorPads(id);
-      expect(pads.map((p) => p.to).sort()).toEqual(FLOOR_ORDER.filter((o) => o !== id).slice().sort());
-      for (const p of pads) {
-        const ride = liftAt(i, p.pad.x, p.pad.z)!;
-        expect(ride.to.id).toBe(p.to);
-        for (const q of elevatorPads(p.to)) expect(Math.hypot(ride.land.x - q.pad.x, ride.land.z - q.pad.z)).toBeGreaterThan(LIFT_RADIUS + 0.5);
-      }
-      // pads never overlap each other
-      for (const a of pads) for (const b of pads) if (a !== b) expect(Math.hypot(a.pad.x - b.pad.x, a.pad.z - b.pad.z)).toBeGreaterThan(PAD_R * 2);
+      const f = residenceFloor(id)!, c = callPad(id), st = stairsPad(id), i = interiorById(id)!;
+      expect(onCallPad(id, c.x, c.z)).toBe(true);
+      expect(onStairsPad(id, st.x, st.z)).toBe(true);
+      expect(Math.hypot(c.x - st.x, c.z - st.z)).toBeGreaterThan(PAD_REACH * 2 + 0.5);
+      expect(onCallPad(id, f.arrive.x, f.arrive.z) || onStairsPad(id, f.arrive.x, f.arrive.z)).toBe(false);
+      expect(liftAt(i, c.x, c.z)).toBeNull();
     }
   });
-  it("on every floor you can walk from where the elevator leaves you to every pad (and the lobby's street door)", () => {
-    for (const id of FLOOR_ORDER) {
-      const can = reachable(id);
-      for (const p of elevatorPads(id)) expect(`${id}->${p.to}:${can(p.pad.x, p.pad.z, PAD_R)}`).toBe(`${id}->${p.to}:true`);
+  it("the elevator goes anywhere but stops in the evacuation; the stairs then lead floor by floor to the lobby", () => {
+    resetEvac();
+    expect(canRide("nexus-res-1204", "nexus-res-roof")).toBeNull();
+    expect(canRide("nexus-res-1204", "nexus-res-1204")).not.toBeNull();
+    expect(stairsTo("nexus-res-roof")).toBeNull();
+    expect(startEvac({ earnedRewards: [MORNING_DONE] }, 0)).toBe(true);
+    expect(getEvac().phase).toBe("alarm");
+    expect(canRide("nexus-res-1204", "nexus-res-roof")).not.toBeNull();
+    for (const from of FLOOR_ORDER.filter((o) => o !== "nexus-apartment")) {
+      let at: ResidenceFloorId = from, hops = 0;
+      while (at !== "nexus-apartment" && hops < 12) {
+        const s: NonNullable<ReturnType<typeof stairsTo>> = stairsTo(at)!;
+        expect(s).not.toBeNull();
+        // you come out clear of the stairs door (no instant second ride) and on open floor
+        expect(onStairsPad(s.to, s.land.x, s.land.z)).toBe(false);
+        expect(`${s.to}:${reachable(s.to)(s.land.x, s.land.z, 0.4)}`).toBe(`${s.to}:true`);
+        at = s.to; hops++;
+      }
+      expect(at).toBe("nexus-apartment");
     }
+    resetEvac();
+  });
+  it("on every floor you can walk from the arrival point to the call pad, the stairs, every spot and every resident (and the lobby's street door)", () => {
+    for (const id of FLOOR_ORDER) {
+      const can = reachable(id), c = callPad(id), st = stairsPad(id);
+      expect(`${id}:call:${can(c.x, c.z, PAD_REACH)}`).toBe(`${id}:call:true`);
+      expect(`${id}:stairs:${can(st.x, st.z, PAD_REACH)}`).toBe(`${id}:stairs:true`);
+      for (const s of FLOOR_SPOTS[id] ?? []) {
+        expect(`${id}:${s.id}:${can(s.x, s.z, s.r)}`).toBe(`${id}:${s.id}:true`);
+        expect(spotAt(id, s.x, s.z)?.id).toBe(s.id);
+      }
+    }
+    for (const r of RESIDENTS) { const at = residentPlace(r)!; expect(`${r.id}:${reachable(at.floor)(at.x, at.z, 2.4)}`).toBe(`${r.id}:true`); }
+    expect(`trapped:${reachable(TRAPPED.floor)(TRAPPED.x, TRAPPED.z, 2.4)}`).toBe("trapped:true");
     const lobby = interiorById("nexus-apartment")!;
     expect(reachable("nexus-apartment")(lobby.exitOffset.x, lobby.exitOffset.z, 2.2)).toBe(true);
-  });
-  it("every apartment spot can be walked to, and stands inside the apartment", () => {
-    const can = reachable("nexus-res-1204");
-    for (const s of APARTMENT_SPOTS) {
-      expect(`${s.id}:${can(s.x, s.z, s.r)}`).toBe(`${s.id}:true`);
-      expect(spotAt("nexus-res-1204", s.x, s.z)?.id).toBe(s.id);
-    }
+    expect(APARTMENT_SPOTS.length).toBeGreaterThan(5);
     expect(spotAt("nexus-apartment", APARTMENT_SPOTS[0]!.x, APARTMENT_SPOTS[0]!.z)).toBeNull();
   });
   it("floors sit far from every other interior and from each other", () => {

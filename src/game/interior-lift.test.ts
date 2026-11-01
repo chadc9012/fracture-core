@@ -5,7 +5,9 @@ import { INTERIORS, LIFT_RADIUS, doorAt, interiorById, liftAt, roomBounds } from
 const pads = INTERIORS.flatMap((i) => [...(i.lift ? [i.lift] : []), ...(i.lifts ?? [])].map((l) => ({ i, l })));
 const padsOf = (id: string) => pads.filter((p) => p.i.id === id).map((p) => p.l);
 describe("interior elevators", () => {
-  test("there is at least one lift pair", () => { expect(pads.length).toBeGreaterThanOrEqual(2); });
+  test("the Residences ride by their call pad and directory (nexus-residences.test.ts), so no interior keeps an old pad bank", () => {
+    for (const i of INTERIORS.filter((x) => x.layout === "nexus-residences")) expect(i.lifts ?? []).toEqual([]);
+  });
   test("every lift leads to an existing interior that lifts back, so a ride is always reversible", () => {
     for (const { i, l } of pads) { expect(interiorById(l.to)).toBeTruthy(); expect(padsOf(l.to).some((b) => b.to === i.id)).toBe(true); }
   });
@@ -18,7 +20,9 @@ describe("interior elevators", () => {
     }
   });
   test("stepping on the pad rides; one step off it does not", () => {
-    const i = interiorById("nexus-apartment")!, l = padsOf("nexus-apartment")[0]!;
+    // a stand-in room with one pad up to the lounge (the generic lift rule stays for future interiors)
+    const l = { pad: { x: 2, z: 1 }, to: "nexus-tower-lounge", land: { x: 0, z: 0 }, label: "Up" };
+    const i = { ...interiorById("nexus-apartment")!, lifts: [l] };
     expect(liftAt(i, l.pad.x, l.pad.z)?.to.id).toBe(l.to);
     expect(liftAt(i, l.pad.x + LIFT_RADIUS + 0.3, l.pad.z)).toBeNull();
     expect(liftAt(interiorById("neon-property-office")!, 0, 0)).toBeNull();

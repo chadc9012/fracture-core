@@ -1,13 +1,14 @@
 import "@/game/venue-doors";
 import { merchantModelUrl } from "@/game/merchant-models";
 import { useFrame } from "@react-three/fiber";
-import { useMemo, useRef } from "react";
+import { useMemo, useRef, useSyncExternalStore } from "react";
 import * as THREE from "three";
 import { INTERIOR_ALTITUDE, INTERIORS, SHOP_INTERIORS } from "@/game/interiors";
 import { DoorMarker } from "./HomeInteriors";
 import { SpeakingFigure } from "./SpeakingFigure";
 import { castAt, NEXUS_DINER } from "@/game/venue-life";
-import { residenceFloor } from "@/game/nexus-residences";
+import { callPad, residenceFloor, stairsPad, type ResidenceFloorId } from "@/game/nexus-residences";
+import { getEvac, residentPlace, residentsOn, subscribeEvac } from "@/game/residence-life";
 import { NexusResidences } from "./NexusResidences";
 
 const ROOM_HALF = 5;
@@ -57,14 +58,7 @@ export function Interiors() {
         const f = residenceFloor(interior.id)!;
         return (
           <group key={interior.id} position={[interior.origin.x, INTERIOR_ALTITUDE, interior.origin.z]}>
-            {(interior.lifts ?? []).map((l) => (
-              <group key={l.to} position={[l.pad.x, 0, l.pad.z]}>
-                <mesh rotation-x={-Math.PI / 2} position={[0, 0.025, 0]}><circleGeometry args={[1, 32]} /><meshStandardMaterial color="#1b2330" metalness={0.8} roughness={0.3} /></mesh>
-                <mesh rotation-x={-Math.PI / 2} position={[0, 0.035, 0]}><ringGeometry args={[0.78, 1, 32]} /><meshBasicMaterial color="#6fd8ff" toneMapped={false} /></mesh>
-                <LiftSign label={l.label} at={f.bank === "west" ? [-1.0, 2.15, 0] : [0, 2.15, 1.0]} turn={f.bank === "west" ? Math.PI / 2 : Math.PI} />
-              </group>
-            ))}
-            {interior.npcName && f.npcAt && <group position={[f.npcAt.x, 0, f.npcAt.z]} rotation-y={Math.PI}><SpeakingFigure name={interior.npcName} color="#6d8fc9" role="MEDIC" /></group>}
+            <ResidenceFloorExtras id={interior.id} />
             {!interior.noExit && <mesh rotation-x={-Math.PI / 2} position={[interior.exitOffset.x, 0.02, interior.exitOffset.z]}><ringGeometry args={[1.2, 1.6, 24]} /><meshBasicMaterial color="#7dffca" transparent opacity={0.6} /></mesh>}
           </group>
         );
@@ -222,4 +216,39 @@ function LiftSign({ label, at = [0, 2.4, -1.1], turn = 0 }: { label: string; at?
     return t;
   }, [label]);
   return <mesh position={at} rotation-y={turn}><planeGeometry args={[1.6, 0.4]} /><meshBasicMaterial map={tex} toneMapped={false} /></mesh>;
+}
+
+const RESIDENT_TINT: Record<string, string> = { ellis: "#3b4a66", mara: "#7a5a9c", ivo: "#9c7a44", kito: "#4f7a4a", sana: "#b0463e", priya: "#3f7f8c", juno: "#a85a8a", dex: "#5a5f66" };
+/** a residences floor's elevator call pad, its emergency stairs (lit only during the evacuation), the residents standing
+ * there now (residence-life residentPlace) and the red alarm light while the fracture is on */
+function ResidenceFloorExtras({ id }: { id: string }) {
+  const evac = useSyncExternalStore(subscribeEvac, getEvac, getEvac);
+  const f = residenceFloor(id)!;
+  const call = callPad(id as ResidenceFloorId), st = stairsPad(id as ResidenceFloorId);
+  const alarm = evac.phase === "alarm";
+  const turn = f.bank === "west" ? Math.PI / 2 : Math.PI;
+  const signAt = (f.bank === "west" ? [-1.0, 2.15, 0] : [0, 2.15, 1.0]) as [number, number, number];
+  const alarmLight = useRef<THREE.PointLight>(null);
+  const wp = useMemo(() => new THREE.Vector3(), []);
+  // only the floor you're on gets the light (every visible light shades every lit pixel, even at zero intensity)
+  useFrame(({ clock, camera }) => {
+    const l = alarmLight.current; if (!l) return;
+    l.getWorldPosition(wp);
+    const here = alarm && Math.abs(camera.position.y - wp.y) < 30 && Math.hypot(camera.position.x - wp.x, camera.position.z - wp.z) < 40;
+    if (l.visible !== here) l.visible = here;
+    if (here) l.intensity = 10 + Math.sin(clock.elapsedTime * 6) * 9;
+  });
+  return <>
+    <group position={[call.x, 0, call.z]}>
+      <mesh rotation-x={-Math.PI / 2} position={[0, 0.025, 0]}><circleGeometry args={[1, 32]} /><meshStandardMaterial color="#1b2330" metalness={0.8} roughness={0.3} /></mesh>
+      <mesh rotation-x={-Math.PI / 2} position={[0, 0.035, 0]}><ringGeometry args={[0.78, 1, 32]} /><meshBasicMaterial color={alarm ? "#ff3b3b" : "#6fd8ff"} toneMapped={false} /></mesh>
+      <LiftSign label={alarm ? "OUT OF ORDER" : "Elevators"} at={signAt} turn={turn} />
+    </group>
+    <group position={[st.x, 0, st.z]}>
+      <mesh rotation-x={-Math.PI / 2} position={[0, 0.03, 0]}><ringGeometry args={[0.78, 1, 32]} /><meshBasicMaterial color={alarm ? "#3dff8a" : "#2a3a30"} toneMapped={false} transparent opacity={alarm ? 0.95 : 0.5} /></mesh>
+      <LiftSign label={alarm ? "EXIT · Emergency stairs" : "Emergency stairs"} at={signAt} turn={turn} />
+    </group>
+    {residentsOn(id).map((r) => { const at = residentPlace(r)!; return <group key={r.id} position={[at.x, 0, at.z]} rotation-y={Math.PI}><SpeakingFigure name={r.name} color={RESIDENT_TINT[r.id] ?? "#6d8fc9"} role="MEDIC" /></group>; })}
+    <pointLight ref={alarmLight} visible={false} color="#ff2a2a" intensity={0} distance={18} position={[0, 3.4, 0]} />
+  </>;
 }
