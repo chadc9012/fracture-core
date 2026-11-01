@@ -1,0 +1,30 @@
+; World Fracture in Godot 4.6 (owner, Nov 1 2026: "make everything look like my reference using Godot engine").
+; The web game (src/) stays the source of truth while features move over: scripts/export-godot-data.ts writes generated/.
+config_version=5
+
+[application]
+config/name="World Fracture"
+run/main_scene="res://scenes/main.tscn"
+config/features=PackedStringArray("4.6", "Mobile")
+boot_splash/bg_color=Color(0.012, 0.047, 0.094, 1)
+
+[autoload]
+Data="*res://scripts/data.gd"
+
+[display]
+window/size/viewport_width=720
+window/size/viewport_height=720
+window/stretch/mode="canvas_items"
+window/stretch/aspect="expand"
+window/handheld/orientation=6
+
+[input_devices]
+pointing/emulate_touch_from_mouse=false
+pointing/emulate_mouse_from_touch=true
+
+[rendering]
+renderer/rendering_method="mobile"
+renderer/rendering_method.web="gl_compatibility"
+anti_aliasing/quality/msaa_3d=1
+textures/vram_compression/import_etc2_astc=true
+environment/defaults/default_clear_color=Color(0.012, 0.027, 0.059, 1)

@@ -46,7 +46,7 @@ export const CONTINENT_GLOBE: Readonly<Record<ContinentId, LatLon>> = Object.fro
  * western, the storm belt, the shattered depths); the near side holds the continents, so most oceans wrap round the far side */
 export const OCEAN_GLOBE: Readonly<Record<string, LatLon>> = {
   aurora: { lat: 66, lon: 120 },      // the Northern Expanse
-  fracture: { lat: 4, lon: -2 },      // the Central Deep, between Nexus City, the Wastelands and the Scorched Plains
+  fracture: { lat: -8, lon: 10 },     // the Central Deep, between Nexus City, the Wastelands and Thalassia
   solara: { lat: -62, lon: 40 },      // the Southern Reach
   silent: { lat: 6, lon: 112 },       // the Eastern Expanse
   obsidian: { lat: 8, lon: -112 },    // the Western Deep
