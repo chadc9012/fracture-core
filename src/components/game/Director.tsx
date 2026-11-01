@@ -16,6 +16,8 @@ import { DUNGEONS } from "@/game/dungeons";
 import { HOLLOW_STAR } from "@/game/hollow-star-data";
 import { cycle, padTabIntent, tabKeyIntent } from "@/game/director-nav";
 import { HOLLOW_STAR_ID, hollowStarTierUnlocked } from "@/game/hollow-star-raid";
+import { ASHEN_CHOIR_ID } from "@/game/ashen-choir-data";
+import { raidTierUnlocked } from "@/game/raid-claims";
 import { RAID_STAGE_IDS, clearedStages, featuredStage, lockedOut } from "@/game/raid-lockout";
 import { weeklyRaidChallenge } from "@/game/difficulty-ladder";
 import { RAID_TIERS } from "@/game/difficulty-ladder";
@@ -232,6 +234,39 @@ function RaidView({ progression, onDeploy }: { progression: PlayerProgression; o
           </div>
         );
       })}
+      {(() => {
+        const def = DUNGEONS.find((d) => d.id === ASHEN_CHOIR_ID);
+        if (!def) return null;
+        return (
+          <div className="mt-6 grid gap-4 lg:grid-cols-3">
+            <section className="border border-foreground/15 bg-background/60 p-5 lg:col-span-2">
+              <p className="ui-kicker">{def.region}</p>
+              <h2 className="mt-1 font-mono text-2xl uppercase tracking-[0.2em]">{def.name.replace("Raid 02 · ", "")}</h2>
+              <ol className="mt-3 space-y-2">
+                {def.stages.map((st, i) => (
+                  <li key={st.id} className="flex items-baseline gap-3 border-b border-foreground/10 pb-2 last:border-0">
+                    <span className="font-mono text-xs text-primary">{String(i + 1).padStart(2, "0")}</span>
+                    <span className="font-mono uppercase tracking-wide">{st.name}</span>
+                    <span className="ml-auto hidden text-xs text-muted-foreground sm:inline">{st.room}</span>
+                  </li>
+                ))}
+              </ol>
+            </section>
+            <section className="flex flex-col border border-foreground/15 bg-background/60 p-5">
+              <p className="ui-kicker">Final boss</p>
+              <p className="mt-1 font-mono uppercase">{def.boss}</p>
+              <p className="mt-3 text-sm text-muted-foreground">This raid runs as a fireteam simulation in the Operations hub (Dungeons tab) until its arena is built. Same weekly loop as the Hollow Star: encounters reset every Monday and each one drops its own gear.</p>
+              <div className="mt-3">
+                <p className="ui-kicker">Difficulty</p>
+                <div className="mt-2 grid grid-cols-2 gap-2">{RAID_TIERS.map((t) => {
+                  const open = raidTierUnlocked(progression, ASHEN_CHOIR_ID, t.id), n = clearedStages(progression, t.id, Date.now(), ASHEN_CHOIR_ID).length;
+                  return <div key={t.id} className="border border-foreground/15 p-2 text-left"><span className="font-mono text-[10px] uppercase">{!open && <LockKeyhole className="mr-1 inline size-3" />}{t.name} · boss x{t.bossHealthScale}</span><span className="block text-[9px] opacity-80">{!open ? `Clear ${RAID_TIERS[t.rank - 1]!.name} first` : lockedOut(progression, t.id, Date.now(), ASHEN_CHOIR_ID) ? "Locked out until reset" : `${n}/${def.stages.length} encounters this week`}</span></div>;
+                })}</div>
+              </div>
+            </section>
+          </div>
+        );
+      })()}
       <div className="mt-6 grid gap-4 lg:grid-cols-3">
         <section className="border border-foreground/15 bg-background/40 p-5 opacity-80 lg:col-span-2">
           <p className="ui-kicker">Coming raid</p>

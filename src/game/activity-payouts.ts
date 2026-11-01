@@ -13,6 +13,7 @@
  * tagLegacyPayouts gives to the operator who was being played (operator-pockets.ts). */
 import type { NexLedger } from "./nex";
 import { HOLLOW_STAR_ID } from "./hollow-star-data";
+import { ASHEN_CHOIR_ID } from "./ashen-choir-data";
 import { weekIndex } from "./difficulty-ladder";
 
 export type PayoutClass = "boss" | "strike" | "dungeon" | "raid";
@@ -23,7 +24,7 @@ export const PAYOUTS: Record<PayoutClass, { first: number; repeat: number }> = {
   raid: { first: 12_000, repeat: 4_000 },
 };
 /** the dungeon ids that are raids (everything else in dungeons.ts is a dungeon) */
-export const RAID_IDS: readonly string[] = [HOLLOW_STAR_ID];
+export const RAID_IDS: readonly string[] = [HOLLOW_STAR_ID, ASHEN_CHOIR_ID];
 /** later campaign bosses pay more */
 export const BOSS_RANK: Record<string, number> = { "dark-knight": 1, "rime-alpha": 1.25, "drowned-monarch": 1.5, "hollow-saint": 1.75, vyrak: 2 };
 export const CHALLENGE_RAID_MULT = 1.5;

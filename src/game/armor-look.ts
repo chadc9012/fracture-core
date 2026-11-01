@@ -36,6 +36,7 @@ export const SET_MOTIFS: Readonly<Record<string, Record<SetSlot, Motif>>> = {
   "frostwrought-aegis": { helmet: "crest", gauntlets: "spikes", chest: "plates", legs: "greaves", classItem: "banner" },
   "scrapborn-raider": { helmet: "slit", gauntlets: "bands", chest: "spine", legs: "fins", classItem: "sash" },
   "dune-seeker": { helmet: "horns", gauntlets: "bands", chest: "core", legs: "fins", classItem: "mantle" },
+  "ashen-choir": { helmet: "horns", gauntlets: "bands", chest: "plates", legs: "greaves", classItem: "banner" },
   "hollow-star": { helmet: "crest", gauntlets: "spikes", chest: "core", legs: "greaves", classItem: "mantle" },
 };
 

@@ -1,5 +1,6 @@
 import type { EncounterDefinition } from "./raid-stages";
 import { HOLLOW_STAR } from "./hollow-star-data.ts";
+import { ASHEN_CHOIR } from "./ashen-choir-data.ts";
 
 export type DungeonDefinition = EncounterDefinition & {
   region: string;
@@ -67,4 +68,5 @@ export const DUNGEONS: readonly DungeonDefinition[] = [
     ],
   },
   HOLLOW_STAR,
+  ASHEN_CHOIR,
 ];

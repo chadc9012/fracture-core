@@ -76,6 +76,13 @@ export const ARMOR_SETS: readonly ArmorSet[] = [
     two: { name: "Starfall Ward", description: "Incoming damage reduced by 8%, abilities recharge 6% faster.", effects: { resist: 0.08, abilityRecharge: 0.06 } },
     four: { name: "Event Horizon", description: "Weapon damage +12%, resist another 5%, hull regenerates.", effects: { weaponDamage: 0.12, resist: 0.05, regen: 1.2 } },
   },
+  {
+    // raid gear: dropped only by The Ashen Choir's encounters (raid-lockout.ts), never by region enemies
+    id: "ashen-choir", name: "Ashen Choir", regionId: "ashen-choir", element: "THERMAL", color: "#ff7a3d", tagline: "Vestments from the burned cathedral: raid-earned, never found.",
+    pieces: { helmet: "Cantrix Cowl", gauntlets: "Bellringer Wraps", chest: "Ashen Cassock", legs: "Sexton Greaves", classItem: "Censer Cord" },
+    two: { name: "Cinder Hymn", description: "Move 6% faster, abilities recharge 5% faster.", effects: { moveSpeed: 0.06, abilityRecharge: 0.05 } },
+    four: { name: "Last Verse", description: "Weapon damage +10%, slide 20% further, hull regenerates.", effects: { weaponDamage: 0.1, slideBoost: 0.2, regen: 1 } },
+  },
   ...COLLECTIONS,
 ];
 

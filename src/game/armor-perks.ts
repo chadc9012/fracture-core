@@ -34,6 +34,13 @@ export const ARMOR_PERKS: Readonly<Record<string, Record<SetSlot, ArmorPerk>>> =
     legs: p("Seal Stride", "Move 5% faster.", { moveSpeed: 0.05 }),
     classItem: p("Conduit Sash", "Slides carry 10% further, abilities 3% faster.", { slideBoost: 0.1, abilityRecharge: 0.03 }),
   },
+  "ashen-choir": {
+    helmet: p("Cantrix Ear", "Abilities recharge 7% faster.", { abilityRecharge: 0.07 }),
+    gauntlets: p("Bell Grip", "Weapon damage +4%.", { weaponDamage: 0.04 }),
+    chest: p("Ash Plate", "Incoming damage reduced by 5%.", { resist: 0.05 }),
+    legs: p("Sexton Stride", "Move 5% faster, regenerate a little hull.", { moveSpeed: 0.05, regen: 0.3 }),
+    classItem: p("Censer Sway", "Slides carry 12% further.", { slideBoost: 0.12 }),
+  },
   "verdant-warden": {
     helmet: p("Canopy Sight", "Abilities recharge 4% faster.", { abilityRecharge: 0.04 }),
     gauntlets: p("Thornwrap Grip", "Weapon damage +2%.", { weaponDamage: 0.02 }),
