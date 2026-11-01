@@ -17,7 +17,7 @@ import { neonTowersWorld } from "./neon-layout";
 import { neonKeepOut } from "./residences";
 
 export type SiteKind =
-  | "district" | "shop" | "nightclub" | "lounge" | "casino" | "mall" | "metro" | "dock" | "garage" | "plaza" | "palace" | "campus" | "government" | "farm" | "research"
+  | "district" | "shop" | "nightclub" | "lounge" | "casino" | "mall" | "metro" | "dock" | "garage" | "plaza" | "palace" | "campus" | "school" | "government" | "farm" | "research"
   | "camp" | "outpost" | "cave" | "temple" | "ruins" | "village" | "spire" | "lake" | "falls" | "field" | "highway" | "crater" | "scrapyard" | "station" | "grove" | "forge";
 
 export type Site = {
@@ -34,7 +34,7 @@ export const SITE_STYLE: Record<SiteKind, { glyph: string; color: string; label:
   casino: { glyph: "♠", color: "#ffb347", label: "Casino" }, mall: { glyph: "▤", color: "#ff6a6a", label: "Mall" },
   metro: { glyph: "Ⓜ", color: "#38e8ff", label: "Metro station" }, dock: { glyph: "⚓", color: "#7fd8ff", label: "Dock / harbor" },
   garage: { glyph: "⛽", color: "#9aa3ad", label: "Garage" }, plaza: { glyph: "◎", color: "#ffd27a", label: "Plaza" },
-  palace: { glyph: "♛", color: "#ffd27a", label: "Palace" }, campus: { glyph: "✎", color: "#b0d8ff", label: "University" },
+  palace: { glyph: "♛", color: "#ffd27a", label: "Palace" }, campus: { glyph: "✎", color: "#b0d8ff", label: "University" }, school: { glyph: "✐", color: "#c9a26b", label: "School" },
   government: { glyph: "⌂", color: "#e8e6df", label: "Government" }, farm: { glyph: "❀", color: "#7ce07a", label: "Farms" },
   research: { glyph: "⚗", color: "#7ae8d8", label: "Research" }, camp: { glyph: "⛺", color: "#ff7a2e", label: "Camp" },
   outpost: { glyph: "▣", color: "#d7b9a2", label: "Outpost" }, cave: { glyph: "◖", color: "#a0a8b8", label: "Cave entrance" },
@@ -72,6 +72,7 @@ const NEON: CitySpec[] = [
   ["neon-afterglow", "Afterglow", "nightclub", -28, 46, 10, "Underground nightclub in red and gold."],
   ["neon-velvet-circuit", "Velvet Circuit", "lounge", 30, 70, 10, "21+ cabaret lounge."],
   ["neon-crown-casino", "Crown Casino", "casino", -96, -26, 12, "Gold doors, high tables and higher debts."],
+  ["neon-polytechnic", "Neon Polytechnic", "school", 58, -46, 10, "Coding labs and drone workshops for the city's kids."],
 ];
 
 const NEXUS_SITES: CitySpec[] = [
@@ -83,6 +84,7 @@ const NEXUS_SITES: CitySpec[] = [
   ["nexus-mall", "Nexus Mall", "mall", 46, 50, 22, "The city's shopping galleria."],
   ["nexus-harbor", "Harbor District", "dock", 0, 72, 30, "Shipyards and the coast road."],
   ["nexus-central-plaza", "Central Plaza", "plaza", 0, 0, 14, "The safe zone's heart, under the stability dome."],
+  ["nexus-academy", "Nexus Academy", "school", -58, 34, 10, "The city's school: classrooms, a gym and a rooftop pitch."],
 ];
 
 const WILD: Record<string, WildSpec[]> = {

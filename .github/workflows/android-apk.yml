@@ -42,6 +42,7 @@ jobs:
         run: |
           bun install --frozen-lockfile
           bun scripts/bake-terrain-maps.ts # the map images, painted from this exact terrain (a few minutes)
+          bun scripts/bake-carto-maps.ts # the street maps of every city and region (a few minutes)
           WF_MOBILE=1 npx vite build
           rm -rf mobile/www && cp -r .output/public mobile/www
           rm -rf mobile/www/refs mobile/www/server

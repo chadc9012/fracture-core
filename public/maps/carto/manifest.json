@@ -1,0 +1,46 @@
+{
+ "fingerprint": "v1-9acd23ab",
+ "size": 1536,
+ "maps": {
+  "nexus": {
+   "url": "/maps/carto/nexus.png",
+   "size": 1536
+  },
+  "neon-city": {
+   "url": "/maps/carto/neon-city.png",
+   "size": 1536
+  },
+  "riverdale": {
+   "url": "/maps/carto/riverdale.png",
+   "size": 1536
+  },
+  "thalassia": {
+   "url": "/maps/carto/thalassia.png",
+   "size": 1536
+  },
+  "veridan": {
+   "url": "/maps/carto/veridan.png",
+   "size": 1536
+  },
+  "frostspire": {
+   "url": "/maps/carto/frostspire.png",
+   "size": 1536
+  },
+  "ember": {
+   "url": "/maps/carto/ember.png",
+   "size": 1536
+  },
+  "wastelands": {
+   "url": "/maps/carto/wastelands.png",
+   "size": 1536
+  },
+  "solara": {
+   "url": "/maps/carto/solara.png",
+   "size": 1536
+  },
+  "swamps": {
+   "url": "/maps/carto/swamps.png",
+   "size": 1536
+  }
+ }
+}

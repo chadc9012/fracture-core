@@ -1,7 +1,9 @@
 import { ThalassiaMapCity } from "./ThalassiaMapCity";
+import { CartoMapView } from "./CartoMapView";
+import { cartoMap, cartoMapAt } from "@/game/carto-maps";
 import { REGION_CARTOGRAPHY } from "@/game/region-cartography";
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
-import { ArrowLeft, Crosshair, Focus, Globe2, Navigation, Shield, Skull, X } from "lucide-react";
+import { ArrowLeft, Crosshair, Focus, Globe2, Map as MapIcon, Navigation, Shield, Skull, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { REGIONS, ZONE_LABEL, WORLD_SCALE } from "@/game/world";
 import { MAP_EXTENT, MAP_OCEAN_EDGE } from "@/game/terrain-map";
@@ -48,24 +50,26 @@ import { activityBrief, childrenOf, isLocationVisible, locationById, locationsIn
 export function WorldAtlas({ progression, currentRegion, phase, onClose, markers = [], px = 0, pz = 0, onProgression, onTravel, onStartRace, activeActivityId = null }: { progression: PlayerProgression; currentRegion: string; phase: string; onClose: () => void; markers?: TrackedMarker[]; px?: number; pz?: number ; onProgression?: (next: PlayerProgression) => void; onTravel?: (a: Activity) => void; /** sign up for a race and go to its start line */ onStartRace?: (id: string, difficulty: Difficulty) => void; activeActivityId?: string | null }) {
   const [destId, setDestIdRaw] = useState<string | null>(null);
   const [areaId, setAreaId] = useState<string | null>(null);
+  const [streetMap, setStreetMap] = useState<string | null>(null);
   const setDestId = (id: string | null) => { setDestIdRaw(id); setAreaId(null); };
   const dest = destId ? destinationById(destId) ?? null : null;
   const here = REGIONS.find((r) => r.name === currentRegion)?.id;
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape" && destId) { e.preventDefault(); e.stopPropagation(); if (areaId) setAreaId(null); else setDestId(null); } };
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape" && destId && !streetMap) { e.preventDefault(); e.stopPropagation(); if (areaId) setAreaId(null); else setDestId(null); } };
     window.addEventListener("keydown", onKey, true);
     return () => window.removeEventListener("keydown", onKey, true);
-  }, [destId, areaId]);
+  }, [destId, areaId, streetMap]);
   return <div className="wf-shell fixed inset-0 z-50 overflow-y-auto bg-background/95 text-foreground" role="dialog" aria-modal="true" aria-label="Destination director">
     <div className="mx-auto max-w-7xl px-4 py-5 sm:px-7">
       <header className="flex items-start justify-between gap-4 border-b border-foreground/15 pb-5">
         <div><p className="ui-kicker">Director / The Fractured Earth / {phase}</p><h2 className="mt-1 font-mono text-3xl font-light uppercase sm:text-4xl">{dest ? dest.name : "Destinations"}</h2>
           <p className="mt-1 text-xs text-muted-foreground">{dest ? `${dest.sub}${dest.difficulty ? ` · Risk ${dest.difficulty}` : ""}${dest.city ? ` · part of ${REGIONS.find((r) => r.id === dest.regionId)?.name}` : ""}` : "Pick a destination to see its missions, patrols, bosses and safe zones"}</p></div>
-        <div className="flex gap-1">{dest && areaId && <Button variant="outline" className="rounded-none" onClick={() => setAreaId(null)} aria-label={`Back to ${dest.name}`}><ArrowLeft />{dest.name}</Button>}{dest && <Button variant="outline" className="rounded-none" onClick={() => setDestId(null)} aria-label="Back to destinations"><ArrowLeft />Destinations</Button>}<Button size="icon" variant="ghost" onClick={onClose} aria-label="Close world map"><X /></Button></div>
+        <div className="flex gap-1">{dest && areaId && <Button variant="outline" className="rounded-none" onClick={() => setAreaId(null)} aria-label={`Back to ${dest.name}`}><ArrowLeft />{dest.name}</Button>}{dest && <Button variant="outline" className="rounded-none" onClick={() => setDestId(null)} aria-label="Back to destinations"><ArrowLeft />Destinations</Button>}<Button variant="outline" className="rounded-none" onClick={() => setStreetMap(cartoMap(dest?.id ?? "")?.id ?? cartoMapAt(px, pz)?.id ?? "nexus")} aria-label="Open the street maps"><MapIcon />Street maps</Button><Button size="icon" variant="ghost" onClick={onClose} aria-label="Close world map"><X /></Button></div>
       </header>
       {!dest ? <DestinationOverview progression={progression} here={here} px={px} pz={pz} onPick={setDestId} onTravel={onTravel ? (a) => onTravel(a) : undefined} />
         : <DestinationView key={dest.id} dest={dest} progression={progression} phase={phase} markers={markers} px={px} pz={pz} onProgression={onProgression} onTravel={onTravel} onStartRace={onStartRace} activeActivityId={activeActivityId} onClose={onClose} areaId={areaId} onArea={setAreaId} padActive />}
     </div>
+    {streetMap && <CartoMapView initial={streetMap} px={px} pz={pz} onClose={() => setStreetMap(null)} />}
   </div>;
 }
 
