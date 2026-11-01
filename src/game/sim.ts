@@ -2132,7 +2132,9 @@ export function stepSim(sim: WorldSim, input: SimInput) {
     let best: Machine | null = null;
     let bestD = tur.range;
     for (const m of sim.machines) {
-      if (!m.alive || m.living) continue; // Living World events are the player's (and the city patrols') fight, not the hub turrets'
+      // Living World events are the player's (and the city patrols') fight, not the hub turrets'; scripted mission machines too
+      // (the stability field already spares them): the Breach's echoes fight right outside the Residences in Nexus City
+      if (!m.alive || m.living || m.mission) continue;
       const d = Math.hypot(m.x - tur.x, m.z - tur.z);
       if (d < bestD) {
         bestD = d;
