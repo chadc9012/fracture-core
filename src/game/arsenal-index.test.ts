@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { weaponIndex, weaponVault } from "./arsenal-index";
+import { baseWeaponRows, weaponIndex, weaponVault } from "./arsenal-index";
 import { fromVault, toVault } from "./stash";
 import { DEFAULT_PROGRESSION } from "./progression";
 import type { GearItem } from "./inventory";
@@ -21,5 +21,11 @@ describe("arsenal index and vault", () => {
   test("an equipped weapon cannot be stored", () => {
     const eq = { ...base, equippedGear: { primary: "a" } };
     expect(toVault(eq, "a")).toBe(eq);
+  });
+  test("the index lists every built-in weapon and marks the ones in the active loadout", () => {
+    const rows = baseWeaponRows(base);
+    expect(rows.map((r) => r.id)).toEqual(["AUTO", "PULSE", "HEAVY", "SWORD", "SIDEARM", "SHOTGUN", "ROCKET", "CINDER", "FROSTBITE", "VITRIOL"]);
+    const cls = base.identityClass ?? "TITAN", a = base.arsenal[cls];
+    expect(rows.filter((r) => r.slotted).map((r) => r.id).sort()).toEqual([...(a.loadouts[a.active]!.slots)].sort());
   });
 });
