@@ -154,7 +154,7 @@ export function ResidencePanels({ inside, spotId, liftCall, residentId, progress
       <ul className="mt-1 space-y-0.5">{steps.map((s) => <li key={s.id} className={s.done ? "text-muted-foreground line-through" : ""}>{s.done ? "✓" : "○"} {s.label}{!s.done && <span className="block pl-3 text-[10px] text-muted-foreground">{s.hint}</span>}</li>)}</ul>
     </div>}
     {!blocked && !court && <div className="pointer-events-none absolute bottom-48 left-1/2 z-[61] flex -translate-x-1/2 flex-col items-center gap-1.5">
-      {spot && <Button className="pointer-events-auto" variant="outline" onClick={() => act(spot)}>{spot.label}</Button>}
+      {spot && <Button className="pointer-events-auto" variant="outline" onClick={() => act(spot)}>{morning && spot.action === "rest" ? "Rest a minute" : spot.label}</Button>}
       {resident && <Button className="pointer-events-auto" variant="outline" onClick={talk}>{resident.id === "mara" && evac.phase === "alarm" && !evac.rescued ? "Help Mara" : `Talk to ${resident.name} · ${resident.role}`}</Button>}
     </div>}
     {/* the elevator directory */}
