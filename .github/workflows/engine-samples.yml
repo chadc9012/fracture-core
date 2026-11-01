@@ -1,0 +1,97 @@
+name: Engine samples (Godot + Unity APKs)
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ["engine-samples/**", ".github/workflows/engine-samples.yml"]
+
+permissions:
+  contents: write
+
+jobs:
+  godot:
+    runs-on: ubuntu-latest
+    env:
+      GODOT: "4.6.2"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: "17" }
+      - uses: android-actions/setup-android@v3
+      - name: Install Godot and export templates
+        run: |
+          cd $RUNNER_TEMP
+          curl -sSL -o godot.zip "https://github.com/godotengine/godot/releases/download/${GODOT}-stable/Godot_v${GODOT}-stable_linux.x86_64.zip"
+          unzip -q godot.zip && mv Godot_v${GODOT}-stable_linux.x86_64 /usr/local/bin/godot
+          curl -sSL -o tpl.tpz "https://github.com/godotengine/godot/releases/download/${GODOT}-stable/Godot_v${GODOT}-stable_export_templates.tpz"
+          mkdir -p ~/.local/share/godot/export_templates/${GODOT}.stable
+          unzip -q -j tpl.tpz 'templates/android_*' 'templates/version.txt' -d ~/.local/share/godot/export_templates/${GODOT}.stable
+          ls ~/.local/share/godot/export_templates/${GODOT}.stable
+      - name: Editor settings and debug keystore
+        run: |
+          keytool -keyalg RSA -genkeypair -alias androiddebugkey -keypass android -keystore $RUNNER_TEMP/debug.keystore \
+            -storepass android -dname "CN=Android Debug,O=Android,C=US" -validity 9999
+          mkdir -p ~/.config/godot
+          cat > ~/.config/godot/editor_settings-4.6.tres <<EOT
+          [gd_resource type="EditorSettings" format=3]
+          [resource]
+          export/android/android_sdk_path = "$ANDROID_SDK_ROOT"
+          export/android/java_sdk_path = "$JAVA_HOME"
+          export/android/debug_keystore = "$RUNNER_TEMP/debug.keystore"
+          export/android/debug_keystore_user = "androiddebugkey"
+          export/android/debug_keystore_pass = "android"
+          EOT
+          sed -i 's/^ *//' ~/.config/godot/editor_settings-4.6.tres
+      - name: Export APK
+        working-directory: engine-samples/godot-nexus-street
+        env:
+          GODOT_ANDROID_KEYSTORE_DEBUG_PATH: ${{ runner.temp }}/debug.keystore
+          GODOT_ANDROID_KEYSTORE_DEBUG_USER: androiddebugkey
+          GODOT_ANDROID_KEYSTORE_DEBUG_PASSWORD: android
+        run: |
+          mkdir -p build/android
+          godot --headless --import || true
+          godot --headless --export-debug "Android" build/android/GodotSample.apk
+          ls -la build/android
+      - uses: actions/upload-artifact@v4
+        with: { name: GodotSample, path: engine-samples/godot-nexus-street/build/android/GodotSample.apk }
+      - name: Publish to the engine-samples release
+        env: { GH_TOKEN: "${{ github.token }}" }
+        run: |
+          gh release view engine-samples >/dev/null 2>&1 || gh release create engine-samples --title "Engine samples" --notes "Godot and Unity versions of the same Nexus City street, to compare on a phone." --prerelease
+          gh release upload engine-samples engine-samples/godot-nexus-street/build/android/GodotSample.apk --clobber
+
+  unity:
+    runs-on: ubuntu-latest
+    env:
+      UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+      UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+      UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+    steps:
+      - name: Check for Unity secrets
+        id: gate
+        run: |
+          if [ -z "$UNITY_LICENSE" ] && [ -z "$UNITY_EMAIL" ]; then
+            echo "::notice::Unity sample skipped: add UNITY_LICENSE (or UNITY_EMAIL + UNITY_PASSWORD) as repository secrets to build it."
+            echo "ok=false" >> $GITHUB_OUTPUT
+          else echo "ok=true" >> $GITHUB_OUTPUT; fi
+      - if: steps.gate.outputs.ok == 'true'
+        uses: actions/checkout@v4
+      - if: steps.gate.outputs.ok == 'true'
+        uses: jlumbroso/free-disk-space@v1.3.1
+        with: { android: false, tool-cache: false }
+      - if: steps.gate.outputs.ok == 'true'
+        uses: game-ci/unity-builder@v4
+        with:
+          projectPath: engine-samples/unity-nexus-street
+          targetPlatform: Android
+          buildMethod: BuildSample.Android
+          androidExportType: androidPackage
+      - if: steps.gate.outputs.ok == 'true'
+        name: Publish to the engine-samples release
+        env: { GH_TOKEN: "${{ github.token }}" }
+        run: |
+          APK=$(find engine-samples/unity-nexus-street/Builds -name '*.apk' | head -1)
+          gh release view engine-samples >/dev/null 2>&1 || gh release create engine-samples --title "Engine samples" --notes "Godot and Unity versions of the same Nexus City street." --prerelease
+          cp "$APK" UnitySample.apk && gh release upload engine-samples UnitySample.apk --clobber
