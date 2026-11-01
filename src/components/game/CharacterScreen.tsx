@@ -23,6 +23,12 @@ import { ACCESSORIES, BEARDS, HAIR_COLORS, HEADGEAR, MARKINGS, MAX_MARKINGS, acc
 import { RESTYLE_PRICE, restyleCharacter, restyleQuote, type RestylePatch } from "@/game/restyle";
 import { MORPHS, morphsOr } from "@/game/face-morphs";
 import { formatNex, nexBalance } from "@/game/nex";
+import { COSMETICS, COSMETIC_SLOTS, SLOT_LABEL as COSMETIC_SLOT_LABEL, buyCosmetic, ownsCosmetic, removeCosmetic, wearCosmetic, type CosmeticSlot } from "@/game/cosmetics";
+import { OUTFITS, buyOutfit, ownsOutfit } from "@/game/clothing-sets";
+import { activeEvents } from "@/game/seasonal";
+import { setTransmog, transmogOptions } from "@/game/transmog";
+import { SET_SLOTS, setById } from "@/game/armor-sets";
+import { COLLECTIONS, STYLE_LABEL } from "@/game/armor-collections";
 
 export type CharacterTab = "CHARACTER" | "APPEARANCE" | "COLLECTIONS" | "TRIUMPHS" | "CAMPAIGN";
 
@@ -198,6 +204,7 @@ function AppearanceTab({ progression, classId, appearance, onProgression, onAppe
     <section className="wf-op-stage" aria-label="Operator preview"><CharacterPreview appearance={appearance} classId={classId} progression={previewed} /></section>
     <section className="wf-op-panel space-y-5 p-4" aria-label="Appearance">
       {character.bodyType !== "robot" && <RestylePanel character={character} draft={draft} setDraft={(d) => { setDraft(d); setRestyleNote(""); }} quote={quote} balance={nexBalance(progression.nexLedger)} note={restyleNote} onCommit={commitRestyle} />}
+      <WardrobePanel progression={progression} onProgression={(next) => { onProgression(next); if (next.character) onAppearance?.({ ...appearance, ...next.character.appearance }); }} />
       <div className="flex items-center justify-between"><p className="wf-op-kicker">Appearance</p>
         <button type="button" className="wf-op-btn !py-1 !text-xs" disabled={!custom} onClick={() => apply({ armor: preset.armor, visor: preset.visor, cloth: preset.cloth, trim: preset.trim })}>Signature look</button></div>
       {CHANNELS.map(({ key, label, note }) => <div key={key}>
@@ -283,6 +290,62 @@ function RestylePanel({ character, draft, setDraft, quote, balance, note, onComm
       {note && <span className="text-xs text-white/70">{note}</span>}
       {quote.price > 0 && balance < quote.price && !note && <span className="text-xs text-[#f5b092]">Not enough Nex.</span>}
     </div>
+  </div>;
+}
+
+/** Outfits (clothing-sets.ts), cosmetic gear (cosmetics.ts), this season's collection (seasonal.ts) and transmog
+ * (transmog.ts), all appearance only. Prices are Nex; event stock shows only while the event runs. */
+function WardrobePanel({ progression, onProgression }: { progression: PlayerProgression; onProgression: (p: PlayerProgression) => void }) {
+  const [note, setNote] = useState("");
+  const [slot, setSlot] = useState<CosmeticSlot>("back");
+  const events = activeEvents();
+  const eventIds = events.map((e) => e.id);
+  const balance = nexBalance(progression.nexLedger);
+  const tile = (on: boolean, locked = false) => `border px-2 py-2 text-left text-[10px] uppercase tracking-[0.1em] ${on ? "border-white bg-white/10 text-white ring-1 ring-[#92e9f5]" : locked ? "border-white/10 text-white/40" : "border-white/20 text-white/75 hover:border-white/60"}`;
+  const act = (r: { progression: PlayerProgression; message: string } | { error: string }) => { if ("error" in r) setNote(r.error); else { onProgression(r.progression); setNote(r.message); } };
+  const outfits = OUTFITS.filter((x) => !x.event || eventIds.includes(x.event) || ownsOutfit(progression, x.id));
+  const items = COSMETICS.filter((x) => x.slot === slot && (!x.event || eventIds.includes(x.event) || ownsCosmetic(progression, x.id)));
+  return <div className="space-y-4 border-b border-white/15 pb-5">
+    <div className="flex items-baseline justify-between"><p className="wf-op-kicker">Wardrobe</p><span className="text-xs text-white/50">Looks only, never stats · {formatNex(balance)}</span></div>
+    {events.length > 0 && <div className="border border-[#92e9f5]/40 bg-[#92e9f5]/5 p-2 text-xs">
+      <span className="font-semibold uppercase tracking-[0.14em]">{events.map((e) => e.name).join(" · ")}</span>
+      <span className="text-white/60"> is on: {events.map((e) => e.theme).join("; ")}. Event stock is marked below and stays yours after.</span>
+    </div>}
+    <div>
+      <div className="flex items-baseline justify-between"><span className="font-semibold uppercase tracking-[0.16em]">Outfits</span><span className="text-xs text-white/50">{progression.outfit ? OUTFITS.find((x) => x.id === progression.outfit)?.name : "Armour colours"}</span></div>
+      <div className="mt-2 grid grid-cols-2 gap-1 sm:grid-cols-3">
+        {outfits.map((x) => { const owned = ownsOutfit(progression, x.id); const on = progression.outfit === x.id; return <button key={x.id} type="button" aria-pressed={on} title={x.blurb} onClick={() => act(buyOutfit(progression, x.id, eventIds))} className={tile(on, !owned && x.price === null)}>
+          <span className="flex items-center gap-2"><span className="inline-block size-3 border border-white/30" style={{ background: `linear-gradient(135deg, ${x.armor} 50%, ${x.cloth} 50%)` }} />{x.name}{x.event ? " ★" : ""}</span>
+          <span className="block text-[9px] normal-case tracking-normal text-white/50">{owned ? (on ? "Wearing" : "Owned") : x.price === null ? x.source : formatNex(x.price)}</span>
+        </button>; })}
+      </div>
+    </div>
+    <div>
+      <span className="font-semibold uppercase tracking-[0.16em]">Gear</span>
+      <div className="mt-2 flex flex-wrap gap-1">
+        {COSMETIC_SLOTS.map((sl) => <button key={sl} type="button" aria-pressed={slot === sl} onClick={() => setSlot(sl)} className={`${tile(slot === sl)} !py-1`}>{COSMETIC_SLOT_LABEL[sl]}{progression.cosmetics[sl] ? " •" : ""}</button>)}
+      </div>
+      <div className="mt-2 grid grid-cols-2 gap-1 sm:grid-cols-3">
+        <button type="button" aria-pressed={!progression.cosmetics[slot]} onClick={() => { onProgression(removeCosmetic(progression, slot)); setNote(""); }} className={tile(!progression.cosmetics[slot])}>None</button>
+        {items.map((x) => { const owned = ownsCosmetic(progression, x.id); const on = progression.cosmetics[slot] === x.id; return <button key={x.id} type="button" aria-pressed={on} title={x.blurb} onClick={() => act(owned ? { progression: wearCosmetic(progression, x.id), message: `Wearing ${x.name}` } : buyCosmetic(progression, x.id, eventIds))} className={tile(on, !owned && x.price === null)}>
+          <span className="flex items-center gap-2"><span className="inline-block size-3 rounded-full border border-white/30" style={{ background: x.visual.glow ?? x.visual.color, boxShadow: x.visual.glow ? `0 0 6px ${x.visual.glow}` : undefined }} />{x.name}{x.event ? " ★" : ""}</span>
+          <span className="block text-[9px] normal-case tracking-normal text-white/50">{x.rarity} · {owned ? (on ? "Wearing" : "Owned") : x.price === null ? x.source : formatNex(x.price)}</span>
+        </button>; })}
+      </div>
+    </div>
+    <div>
+      <div className="flex items-baseline justify-between"><span className="font-semibold uppercase tracking-[0.16em]">Transmog</span><span className="text-xs text-white/50">Show any owned piece, keep the equipped one's stats</span></div>
+      <div className="mt-2 space-y-1">
+        {SET_SLOTS.map((sl) => { const options = transmogOptions(progression, sl); const shown = progression.transmog[sl] ?? ""; return <label key={sl} className="grid grid-cols-[6rem_1fr] items-center gap-2 text-[10px] uppercase tracking-[0.12em] text-white/80">
+          <span>{SLOT_NAME[sl]}</span>
+          <select value={shown} onChange={(e) => onProgression(setTransmog(progression, sl, e.target.value || null))} className="min-w-0 border border-white/25 bg-black/40 px-2 py-1 text-[11px] normal-case tracking-normal text-white">
+            <option value="">As equipped</option>
+            {options.map((g) => { const set = g.setId ? setById(g.setId) : undefined; const col = g.setId ? COLLECTIONS.find((c) => c.id === g.setId) : undefined; return <option key={g.id} value={g.id}>{g.name}{set ? ` · ${set.name}` : ""}{col ? ` · ${STYLE_LABEL[col.style]}` : ""}</option>; })}
+          </select>
+        </label>; })}
+      </div>
+    </div>
+    {note && <p className="text-xs text-white/70">{note}</p>}
   </div>;
 }
 
