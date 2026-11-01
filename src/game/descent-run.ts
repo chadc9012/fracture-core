@@ -5,6 +5,8 @@ import { DESCENT_ORIGIN, RANKS, RANK_ORDER, buildDescent, dungeonById, hash, sho
 import { rewardMission, type PlayerProgression } from "./progression";
 import type { GearItem, MaterialId } from "./inventory";
 import { payDescent, rollDungeonGear } from "./dungeon-rewards";
+import { strikeSiteById, tierOfStrikeRank } from "./strike-sites";
+import { claimStrikeClear } from "./strikes";
 
 /* ---------------- what each tier spawns ---------------- */
 
@@ -119,7 +121,7 @@ export function bossEngaged(run: DescentRun, now: number): DescentRun {
 export function bossDefeated(run: DescentRun, now: number): DescentRun {
   if (run.status !== "ACTIVE") return run;
   if (run.tier >= run.layout.tiers.length) return { ...run, nestedDown: true, status: "CLEARED", reason: "Hidden depths cleared" };
-  const cracks = hash(`${run.gateId}:${run.startedAt}:nested`) % 5 === 0;
+  const cracks = !strikeSiteById(run.dungeonId) && hash(`${run.gateId}:${run.startedAt}:nested`) % 5 === 0; // a strike has no hidden depths
   return { ...run, bossDown: true, nested: cracks, reason: "Boss defeated", cleared: [...run.cleared, run.tier], bossStartedAt: run.bossStartedAt ?? now };
 }
 
@@ -209,6 +211,10 @@ export function sealsFor(run: DescentRun): Seal[] {
  * (dungeon-rewards.ts). Returns the new seals for the Legendary Recognition line, plus what the clear paid and dropped. */
 export function claimDescentClear(p: PlayerProgression, run: DescentRun, now: number): { progression: PlayerProgression; seals: Seal[]; nex: number; drop: GearItem | null } {
   if (run.status !== "CLEARED") return { progression: p, seals: [], nex: 0, drop: null };
+  if (strikeSiteById(run.dungeonId)) { // a playable strike pays the strike bounty for its tier (strikes.ts), never the dungeon bounty or gear
+    const r = claimStrikeClear(p, run.dungeonId, tierOfStrikeRank(run.rank), now);
+    return { progression: r.progression, seals: [], nex: r.paid, drop: null };
+  }
   const today = clearedTodayKey(run.dungeonId, run.day);
   if (p.earnedRewards.includes(today) && !run.nestedDown) return { progression: p, seals: [], nex: 0, drop: null };
   const paid = rewardMission(p, riftMissionId(run.dungeonId), clearLoot(run), now);

@@ -11,6 +11,7 @@ import { DESTINATION_PINS, STAGE, destinationInfo, type DestinationId } from "./
 import { thalassiaElevator } from "./travel";
 import type { PlayerProgression } from "./progression";
 import { PAYOUTS } from "./activity-payouts";
+import { parseStrikeRun, strikeRank, strikeSiteById } from "./strike-sites";
 import { PARKOUR_NAME, PUZZLE_NAME, TRIAL_COUNTS, trialDifficulty, trialOf } from "./descent-trials";
 import { rankPayMult } from "./dungeon-rewards";
 import { setForRegion } from "./armor-sets";
@@ -55,6 +56,8 @@ export const nodesFor = (dest: DestinationId) => MAP_NODES.filter((n) => n.desti
 
 /** the gate a map launch enters: today's world gate when the dungeon has one, otherwise a gate made for it at its board rank */
 export function launchGate(dungeonId: string, now: number): FractureGate | null {
+  const run = parseStrikeRun(dungeonId); // a playable strike, `<strike>@<tier>`: a gate made for it at the tier's rank
+  if (run) { const s = strikeSiteById(run.strikeId)!, day = dayOf(now); return { id: `${s.id}@${run.tierId}:${day}`, dungeonId: s.id, day, x: 0, z: 0, y: 0, shownRank: strikeRank(run.tierId), trueRank: strikeRank(run.tierId), sealed: true }; }
   const d = SIGNATURE_DUNGEONS.find((x) => x.id === dungeonId);
   if (!d) return null;
   const today = gatesForDay(now).find((g) => g.dungeonId === dungeonId);

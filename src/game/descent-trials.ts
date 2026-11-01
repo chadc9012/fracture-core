@@ -31,6 +31,11 @@ export const DUNGEON_TRIALS: Readonly<Record<string, DungeonTrial>> = {
   "sublevel-protocol": { puzzle: "SEQUENCE", parkour: "GAP_RUN", hardness: 0.65 },
   "forgotten-foundation": { puzzle: "RELAY", parkour: "ASCENT", hardness: 0.8 },
   "abyssal-vault": { puzzle: "BEACONS", parkour: "GAP_RUN", hardness: 1 },
+  // the playable strikes (strike-sites.ts): one trial each, kept gentler than the big dungeons so a strike stays a ten-minute mission
+  "strike-slagworks": { puzzle: "SEQUENCE", parkour: "GAP_RUN", hardness: 0.35 },
+  "strike-bloom": { puzzle: "BEACONS", parkour: "ASCENT", hardness: 0.3 },
+  "strike-drowned-relay": { puzzle: "SEQUENCE", parkour: "ASCENT", hardness: 0.4 },
+  "strike-skyline-override": { puzzle: "RELAY", parkour: "GAP_RUN", hardness: 0.45 },
 };
 export const trialOf = (dungeonId: string): DungeonTrial => DUNGEON_TRIALS[dungeonId] ?? { puzzle: "SEQUENCE", parkour: "GAP_RUN", hardness: 0.5 };
 const RANKS = ["F", "E", "D", "C", "B", "A", "S"] as const;
