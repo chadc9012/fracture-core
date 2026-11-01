@@ -115,7 +115,7 @@ jobs:
             -e JAVA_HOME=/jdk -e WF_JOINED_MODELS=/project/build/joined \
             "${{ inputs.engine_image }}" bash -lc '
               set -euo pipefail
-              ENGINE=/home/ue4/UnrealEngine # where Epic's dev images keep the engine
+              ENGINE=/home/ue4/UnrealEngine # where the Epic dev images keep the engine (no apostrophes inside this single-quoted script)
               cd /project
               "$ENGINE/Engine/Build/BatchFiles/Linux/Build.sh" WorldFractureEditor Linux Development -project=/project/unreal/WorldFracture.uproject
               "$ENGINE/Engine/Binaries/Linux/UnrealEditor-Cmd" /project/unreal/WorldFracture.uproject -run=pythonscript -script=/project/unreal/tools/setup_assets.py -unattended -nullrhi -nosplash
