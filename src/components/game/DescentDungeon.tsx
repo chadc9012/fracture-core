@@ -10,6 +10,7 @@ import { openWays, type DescentRun } from "@/game/descent-run";
 import { bossExit, thresholdExit, type DescentRuntime } from "@/game/descent-runtime";
 import { brokenTower, erodedColumn, flutedColumn, organicRock } from "@/game/organic-geometry";
 import { obsidianShard } from "@/game/wild-geometry";
+import { getLiveTrial, type ParkourCourse, type PuzzleSpec } from "@/game/descent-trials";
 
 /**
  * Fracture Gates and the descent (fracture-gates.ts / descent-runtime.ts), drawn. Gates stand in the open world: a stone
@@ -172,6 +173,71 @@ function floorGeometry(layout: DescentLayout, tier: Tier, crack: boolean): THREE
   return g;
 }
 
+/** the parkour floor: stone platforms over the pit with a glowing rim, and a light column over the summit pad */
+function ParkourPlatforms({ course, mats, open }: { course: ParkourCourse; mats: Mats; open: boolean }) {
+  const geos = useMemo(() => course.platforms.map((p) => ({ slab: new THREE.BoxGeometry(p.w, 2, p.d), barX: new THREE.BoxGeometry(p.w, 0.12, 0.3), barZ: new THREE.BoxGeometry(0.3, 0.12, p.d) })), [course]);
+  const summit = course.platforms[course.summit]!;
+  const beam = useMemo(() => new THREE.CylinderGeometry(2.2, 2.2, 24, 20, 1, true), []);
+  return (
+    <group>
+      {course.platforms.map((p, i) => (
+        <group key={i} position={[p.x, p.top, p.z]}>
+          <mesh geometry={geos[i]!.slab} material={mats.stone} position={[0, -1, 0]} receiveShadow castShadow />
+          <mesh geometry={geos[i]!.barX} material={mats.glow} position={[0, 0.03, -p.d / 2 + 0.15]} />
+          <mesh geometry={geos[i]!.barX} material={mats.glow} position={[0, 0.03, p.d / 2 - 0.15]} />
+          <mesh geometry={geos[i]!.barZ} material={mats.glow} position={[-p.w / 2 + 0.15, 0.03, 0]} />
+          <mesh geometry={geos[i]!.barZ} material={mats.glow} position={[p.w / 2 - 0.15, 0.03, 0]} />
+        </group>
+      ))}
+      {!open && <mesh geometry={beam} material={mats.beam} position={[summit.x, summit.top + 12, summit.z]} />}
+    </group>
+  );
+}
+
+/** puzzle plates and beacons: they read their state from the live trial (descent-runtime.ts) every frame */
+function PuzzlePlates({ tier, spec, y, mats }: { tier: number; spec: PuzzleSpec; y: number; mats: Mats }) {
+  const refs = useRef<(THREE.Mesh | null)[]>([]);
+  const poles = useRef<(THREE.Mesh | null)[]>([]);
+  const disc = useMemo(() => new THREE.CylinderGeometry(spec.radius, spec.radius, 0.3, 28), [spec.radius]);
+  const pip = useMemo(() => new THREE.BoxGeometry(0.5, 0.2, 0.5), []);
+  const pole = useMemo(() => new THREE.CylinderGeometry(0.7, 0.7, 1, 12), []);
+  const plateMats = useMemo(() => spec.plates.map(() => new THREE.MeshBasicMaterial({ color: "#445", toneMapped: false })), [spec]);
+  const poleMats = useMemo(() => spec.plates.map(() => new THREE.MeshBasicMaterial({ color: "#8cf", toneMapped: false, transparent: true, opacity: 0.55 })), [spec]);
+  const tmp = useMemo(() => new THREE.Color(), []);
+  useFrame(() => {
+    const live = getLiveTrial();
+    const st = live && live.tier === tier ? live.state : null;
+    const now = performance.now() / 1000;
+    spec.plates.forEach((pl, i) => {
+      const m = plateMats[i]!;
+      if (spec.kind === "SEQUENCE") {
+        const wrong = st && now - st.wrongAt < 0.8, done = st ? pl.order < st.progress : false;
+        m.color.set(wrong ? "#ff3a2a" : done ? "#5dff8a" : mats.light.getStyle());
+        m.color.multiplyScalar(wrong ? 1.4 : done ? 1.2 : 0.55);
+      } else if (spec.kind === "RELAY") {
+        const p = st?.progress ?? 0;
+        if (pl.order < p) m.color.set("#5dff8a"); else if (pl.order === p) m.color.set("#ffffff").multiplyScalar(1.6); else m.color.set("#556");
+      } else {
+        const c = st?.charge[i] ?? 0;
+        m.color.set("#6aa8ff").lerp(tmp.set("#ffffff"), c).multiplyScalar(0.6 + c);
+        const pm = poles.current[i];
+        if (pm) { const h = 0.5 + c * 14; pm.scale.set(1, h, 1); pm.position.y = h / 2; }
+      }
+    });
+  });
+  return (
+    <group>
+      {spec.plates.map((pl, i) => (
+        <group key={i} position={[pl.x, y + 0.2, pl.z]}>
+          <mesh ref={(m) => { refs.current[i] = m; }} geometry={disc} material={plateMats[i]!} />
+          {spec.kind === "SEQUENCE" && Array.from({ length: pl.order + 1 }, (_, k) => <mesh key={k} geometry={pip} material={mats.glow} position={[(k - pl.order / 2) * 0.9, 0.2, 0]} />)}
+          {spec.kind === "BEACONS" && <mesh ref={(m) => { poles.current[i] = m; }} geometry={pole} material={poleMats[i]!} position={[0, 0.25, 0]} scale={[1, 0.5, 1]} />}
+        </group>
+      ))}
+    </group>
+  );
+}
+
 function TierRoom({ layout, tier, step, mats, open, crackOpen, near, exits }: { layout: DescentLayout; tier: Tier; step: number; mats: Mats; open: boolean; crackOpen: boolean; near: boolean; exits: { x: number; z: number }[] }) {
   const o = layout.origin, y = tier.floorY;
   const geo = useMemo(() => {
@@ -217,7 +283,9 @@ function TierRoom({ layout, tier, step, mats, open, crackOpen, near, exits }: { 
   const statue = geo.statue;
   return (
     <group>
-      <mesh geometry={geo.floor} material={mats.stone} position={[o.x, y - 2, o.z]} receiveShadow />
+      {tier.kind !== "PARKOUR" && <mesh geometry={geo.floor} material={mats.stone} position={[o.x, y - 2, o.z]} receiveShadow />}
+      {tier.trial?.parkour && <ParkourPlatforms course={tier.trial.parkour} mats={mats} open={open} />}
+      {tier.trial?.puzzle && <PuzzlePlates tier={tier.index} spec={tier.trial.puzzle} y={y} mats={mats} />}
       <mesh geometry={geo.wallX} material={mats.stone} position={[o.x, y + tier.wallH / 2, o.z - tier.d / 2 - 1]} receiveShadow />
       <mesh geometry={geo.wallX} material={mats.stone} position={[o.x, y + tier.wallH / 2, o.z + tier.d / 2 + 1]} receiveShadow />
       <mesh geometry={geo.wallZ} material={mats.stone} position={[o.x - tier.w / 2 - 1, y + tier.wallH / 2, o.z]} receiveShadow />

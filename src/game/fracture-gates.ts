@@ -11,6 +11,7 @@ import { STRAIT_CLEAR, borderDistance } from "./continent-borders";
 import { REGIONS } from "./world";
 import { slopeAt, walkHeight, WATER_LEVEL } from "./terrain";
 import type { SolidBox } from "./environment-collision";
+import { TRIAL_COUNTS, buildTrial, platformGround, type TierTrial } from "./descent-trials";
 
 export type RiftRank = "F" | "E" | "D" | "C" | "B" | "A" | "S";
 export const RANK_ORDER: readonly RiftRank[] = ["F", "E", "D", "C", "B", "A", "S"];
@@ -213,7 +214,7 @@ export const DESCENT_TOP = 4200;
 export const DROP_OFFSET = 26;
 export const DROP_RADIUS = 6;
 
-export type TierKind = "THRESHOLD" | "CHAMBER" | "ENCOUNTER" | "GATEKEEPER" | "BOSS" | "NESTED";
+export type TierKind = "THRESHOLD" | "CHAMBER" | "ENCOUNTER" | "GATEKEEPER" | "BOSS" | "NESTED" | "PUZZLE" | "PARKOUR";
 export type Tier = {
   index: number;
   kind: TierKind;
@@ -229,15 +230,17 @@ export type Tier = {
   gated: boolean;
   /** headroom: the walls stop under the next floor up */
   wallH: number;
+  /** puzzle / parkour floors (descent-trials.ts) */
+  trial?: TierTrial;
 };
 export type DescentLayout = { dungeonId: string; rank: RiftRank; origin: { x: number; z: number }; tiers: Tier[]; nested: Tier };
 
 const SIZE: Record<TierKind, { w: number; d: number }> = {
-  THRESHOLD: { w: 48, d: 72 }, CHAMBER: { w: 56, d: 76 }, ENCOUNTER: { w: 92, d: 104 }, GATEKEEPER: { w: 72, d: 84 }, BOSS: { w: 140, d: 140 }, NESTED: { w: 80, d: 80 },
+  THRESHOLD: { w: 48, d: 72 }, CHAMBER: { w: 56, d: 76 }, ENCOUNTER: { w: 92, d: 104 }, GATEKEEPER: { w: 72, d: 84 }, BOSS: { w: 140, d: 140 }, NESTED: { w: 80, d: 80 }, PUZZLE: { w: 92, d: 104 }, PARKOUR: { w: 100, d: 100 },
 };
 
 /** which floors are mechanic arenas: spread the rank's encounters evenly through the middle tiers */
-export function tierKinds(rank: RiftRank, count: number = RANKS[rank].tiers): TierKind[] {
+export function tierKinds(rank: RiftRank, count: number = RANKS[rank].tiers, trials = false): TierKind[] {
   const spec = RANKS[rank];
   const kinds: TierKind[] = Array.from({ length: count }, () => "CHAMBER");
   kinds[0] = "THRESHOLD";
@@ -248,6 +251,15 @@ export function tierKinds(rank: RiftRank, count: number = RANKS[rank].tiers): Ti
   for (let e = 0; e < spec.encounters && middle.length; e++) {
     const at = middle[Math.min(middle.length - 1, Math.floor(((e + 1) * middle.length) / (spec.encounters + 1)))]!;
     kinds[at] = "ENCOUNTER";
+  }
+  if (trials) {
+    // the rank's puzzle and parkour floors take over chamber floors, alternating and spread evenly through the descent
+    const free = kinds.map((k, i) => (k === "CHAMBER" ? i : -1)).filter((i) => i >= 0);
+    const want = TRIAL_COUNTS[rank] ?? { puzzles: 0, parkour: 0 };
+    const order: TierKind[] = [];
+    for (let i = 0; i < Math.max(want.puzzles, want.parkour); i++) { if (i < want.puzzles) order.push("PUZZLE"); if (i < want.parkour) order.push("PARKOUR"); }
+    const n = Math.min(order.length, free.length);
+    for (let i = 0; i < n; i++) kinds[free[Math.min(free.length - 1, Math.floor(((i + 0.5) * free.length) / n))]!] = order[i]!;
   }
   return kinds;
 }
@@ -270,7 +282,7 @@ export const shownDepth = (dungeonId: string, shown: RiftRank) => dungeonById(du
 
 export function buildDescent(dungeonId: string, rank: RiftRank, origin: { x: number; z: number } = DESCENT_ORIGIN, seed = ""): DescentLayout {
   const shape = descentShape(dungeonId, rank, seed);
-  const kinds = tierKinds(rank, shape.tiers);
+  const kinds = tierKinds(rank, shape.tiers, true);
   const step = shape.depth / (shape.tiers - 1);
   const tiers: Tier[] = kinds.map((kind, index) => {
     const side = index % 2 === 0 ? 1 : -1;
@@ -284,8 +296,13 @@ export function buildDescent(dungeonId: string, rank: RiftRank, origin: { x: num
       drop: kind === "BOSS" ? null : { x: origin.x, z: origin.z + side * DROP_OFFSET },
       gated: kind !== "THRESHOLD" && kind !== "CHAMBER",
       wallH: Math.min(28, step - 2),
-    };
+    } as Tier;
   });
+  // puzzle and parkour floors carry their generated trial; a floor too low for a parkour climb is a plain chamber again
+  for (const t of tiers) {
+    if (t.kind === "PARKOUR" && t.wallH < 14) { t.kind = "CHAMBER"; t.gated = false; const sz = SIZE.CHAMBER; t.w = sz.w; t.d = sz.d; }
+    if (t.kind === "PUZZLE" || t.kind === "PARKOUR") t.trial = buildTrial({ origin, floorY: t.floorY, wallH: t.wallH, w: t.w, d: t.d, landing: t.landing, drop: t.drop }, t.kind, dungeonId, rank, `${seed}:${t.index}`);
+  }
   const boss = tiers[tiers.length - 1]!;
   const nested: Tier = { index: tiers.length, kind: "NESTED", floorY: boss.floorY - 80, ...SIZE.NESTED, landing: { x: origin.x, z: origin.z }, drop: null, gated: true, wallH: 40 };
   return { dungeonId, rank, origin, tiers, nested };
@@ -322,6 +339,11 @@ export function descentGroundAt(layout: DescentLayout, open: OpenWays, x: number
   for (const t of all) {
     if (feetY < t.floorY - 3) continue;
     if (!inRoom(t, layout.origin, x, z)) continue;
+    if (t.kind === "PARKOUR" && t.trial?.parkour) { // no floor: only the platforms hold you, and the open drop is a hole in the last one
+      const top = platformGround(t.trial.parkour, x, z, feetY);
+      if (top === null || inHole(t, open, x, z)) continue;
+      return top;
+    }
     if (inHole(t, open, x, z) || inCrack(layout, t, open, x, z)) continue;
     return t.floorY;
   }

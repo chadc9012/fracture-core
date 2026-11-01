@@ -25,6 +25,23 @@ function play(gate: FractureGate) {
   return { sim, rt, emits, pos, step, killAll };
 }
 
+/** clear a puzzle or parkour floor the way a player would: touch the plates in order / charge the beacons / reach the summit pad */
+function solveTrial(g: ReturnType<typeof play>, tier: import("./fracture-gates").Tier) {
+  let now = NOW;
+  const tick = (x: number, z: number, y: number, dt = 0.2) => { g.pos.x = x; g.pos.z = z; g.pos.y = y + 1.6; now += dt * 1000; g.step(now); };
+  const puzzle = tier.trial?.puzzle, course = tier.trial?.parkour;
+  if (puzzle) {
+    g.step(now);
+    const plates = [...puzzle.plates].sort((a, b) => a.order - b.order);
+    if (puzzle.kind === "BEACONS") for (const p of plates) for (let i = 0; i < Math.ceil(puzzle.charge / 0.2) + 2; i++) tick(p.x, p.z, tier.floorY);
+    else for (const p of plates) { tick(tier.landing.x, tier.landing.z, tier.floorY); tick(p.x, p.z, tier.floorY); }
+  } else if (course) {
+    g.step(now);
+    const p = course.platforms[course.summit]!;
+    tick(p.x, p.z, p.top);
+  }
+}
+
 describe("Fracture Gate descent against the real sim", () => {
   const gate: FractureGate = { ...gatesForDay(NOW).find((g) => g.dungeonId === "rootbound-labyrinth")!, shownRank: "C", trueRank: "C" };
 
@@ -45,6 +62,7 @@ describe("Fracture Gate descent against the real sim", () => {
       // stand on the floor: waves come, get killed, until the tier is done
       g.pos.x = tier.landing.x; g.pos.z = tier.landing.z; g.pos.y = tier.floorY + 1.6;
       const plan = tierPlan(tier, "C");
+      solveTrial(g, tier);
       for (let w = 0; w < plan.waves.length + 1; w++) {
         g.step();
         const troops = g.sim.machines.filter((m) => m.alive && m.living?.startsWith("rift:"));
@@ -72,7 +90,7 @@ describe("Fracture Gate descent against the real sim", () => {
     expect(activeDescent()).toBeNull();
     const end = g.emits.find((e) => e.type === "END")!;
     expect(end.run.status).toBe("CLEARED");
-    expect(g.emits.filter((e) => e.type === "TIER_LOOT").length).toBe(layout.tiers.filter((t) => t.kind === "ENCOUNTER" || t.kind === "GATEKEEPER").length);
+    expect(g.emits.filter((e) => e.type === "TIER_LOOT").length).toBe(layout.tiers.filter((t) => t.kind === "ENCOUNTER" || t.kind === "GATEKEEPER" || t.kind === "PUZZLE" || t.kind === "PARKOUR").length);
     expect(Math.hypot(g.pos.x - gate.x, g.pos.z - gate.z)).toBeGreaterThan(3); // back outside the gate's trigger
   });
 

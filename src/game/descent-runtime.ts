@@ -5,6 +5,7 @@
  * calls `descentDeath` from its death flow. GameCanvas applies `emits` to the save. */
 import { alert, freeSlots, spawnEventSquad, type Machine, type WorldSim } from "./sim";
 import { INITIAL_POISE } from "./boss-poise";
+import { PUZZLE_NAME, freshPuzzle, onSummit, setLiveTrial, stepPuzzle, type PuzzleState } from "./descent-trials";
 import {
   DESCENT_TOP, RANKS, areaOf, dayOf, depthBelow, dungeonById, gateAt, gateRadius, inDescentSpace, inShaft, setActiveDescent, tierAt,
   type FractureGate,
@@ -40,11 +41,13 @@ export type DescentRuntime = {
   /** gate-days whose break squad has already spilled out */
   breaks: Set<string>;
   bossTag: string | null;
+  /** the live puzzle floor (descent-trials.ts): its state and the last step's time */
+  puzzle: { tier: number; state: PuzzleState; at: number } | null;
   gatesDay: string;
   gates: FractureGate[];
 };
 
-export const createDescentRuntime = (): DescentRuntime => ({ run: null, returnPos: null, rearm: true, breaks: new Set(), bossTag: null, gatesDay: "", gates: [] });
+export const createDescentRuntime = (): DescentRuntime => ({ run: null, returnPos: null, rearm: true, breaks: new Set(), bossTag: null, puzzle: null, gatesDay: "", gates: [] });
 
 const tagOf = (tier: number) => `rift:${tier}`;
 const aliveTagged = (sim: WorldSim, tag: string) => sim.machines.reduce((n, m) => n + (m.alive && m.living === tag ? 1 : 0), 0);
@@ -177,9 +180,39 @@ export function stepDescentRuntime(rt: DescentRuntime, sim: WorldSim, inp: { now
   const plan = tierPlan(tier, run.rank, run.squad);
   const tag = tagOf(tier.index);
   const onFloor = landed && here.index === run.tier;
+  const trialTier = tier.kind === "PUZZLE" || tier.kind === "PARKOUR";
+  let tp: DescentStep["teleport"] = null;
+  const shaftNow = inShaft(run.layout, openWays(run), inp.px, inp.pz, feet);
+  if (run.status === "ACTIVE" && trialTier && run.tier === tier.index) {
+    const nowS = inp.now / 1000;
+    if (tier.kind === "PUZZLE" && tier.trial?.puzzle) {
+      const spec = tier.trial.puzzle;
+      if (!rt.puzzle || rt.puzzle.tier !== tier.index) rt.puzzle = { tier: tier.index, state: freshPuzzle(spec), at: inp.now };
+      if (onFloor && !run.cleared.includes(tier.index)) {
+        const dt = Math.max(0, Math.min(0.25, (inp.now - rt.puzzle.at) / 1000));
+        const r = stepPuzzle(spec, rt.puzzle.state, { x: inp.px, z: inp.pz, now: nowS, dt });
+        rt.puzzle = { tier: tier.index, state: r.state, at: inp.now };
+        for (const ev of r.events) {
+          if (ev === "STEP") alert(sim, `${PUZZLE_NAME[spec.kind]} · ${r.state.progress}/${spec.plates.length}`);
+          else if (ev === "WRONG") alert(sim, "Wrong glyph · the sequence resets");
+          else if (ev === "RESET") alert(sim, "Out of time · the chain resets");
+          else if (ev === "BEACON_FULL") alert(sim, `Beacon charged · ${r.state.charge.filter((c) => c >= 1).length}/${spec.plates.length}`);
+          else if (ev === "DONE") { run = clearTier(run); alert(sim, "Puzzle solved · the drop is open"); emits.push({ type: "TIER_LOOT", run, tier: tier.index }); }
+        }
+      } else rt.puzzle = { ...rt.puzzle, at: inp.now };
+      setLiveTrial({ tier: tier.index, spec, state: rt.puzzle.state });
+    } else if (tier.kind === "PARKOUR" && tier.trial?.parkour) {
+      const course = tier.trial.parkour;
+      if (!run.cleared.includes(tier.index) && onSummit(course, inp.px, inp.pz, feet)) {
+        run = clearTier(run); alert(sim, "Summit reached · the drop is open"); emits.push({ type: "TIER_LOOT", run, tier: tier.index });
+      }
+      // a fall into the pit is a stumble, not a death: back to the landing pad
+      if (feet < course.fallBelow && !shaftNow) { tp = { x: tier.landing.x, y: tier.floorY + 1.6, z: tier.landing.z }; alert(sim, "You fell · back to the start of the floor"); }
+    }
+  } else if (rt.puzzle && rt.puzzle.tier !== tier.index) { rt.puzzle = null; setLiveTrial(null); }
 
   // waves: the next goes out when the last is down and you are standing on the tier
-  if (run.status === "ACTIVE" && onFloor && !run.cleared.includes(tier.index) && aliveTagged(sim, tag) === 0) {
+  if (run.status === "ACTIVE" && onFloor && !trialTier && !run.cleared.includes(tier.index) && aliveTagged(sim, tag) === 0) {
     if (plan.boss && run.wave === 0 && !rt.bossTag) {
       rt.bossTag = spawnBoss(sim, run, inp.px, inp.pz);
       if (rt.bossTag) { spawnWave(sim, run, inp.px, inp.pz); run = waveSent(bossEngaged(run, inp.now)); }
@@ -218,6 +251,7 @@ export function stepDescentRuntime(rt: DescentRuntime, sim: WorldSim, inp: { now
   if (leave) {
     despawnRift(sim);
     setActiveDescent(null);
+    setLiveTrial(null); rt.puzzle = null;
     emits.push({ type: "END", run });
     const back = rt.returnPos;
     rt.run = null; rt.returnPos = null; rt.bossTag = null; rt.rearm = false;
@@ -233,16 +267,18 @@ export function stepDescentRuntime(rt: DescentRuntime, sim: WorldSim, inp: { now
     ? run.nested ? "Drop into the crack, or take the exit" : "Take the exit"
     : plan.boss ? (rt.bossTag ? `Defeat ${tier.kind === "NESTED" ? `${d.boss}, Unbound` : d.boss}` : "Reach the bottom")
     : run.cleared.includes(tier.index) || !tier.gated && run.wave >= plan.waves.length ? "Find the drop · go down"
+    : tier.kind === "PUZZLE" && tier.trial?.puzzle ? puzzleObjective(tier.trial.puzzle, rt.puzzle?.state ?? null, inp.now / 1000)
+    : tier.kind === "PARKOUR" ? (run.cleared.includes(tier.index) ? "Find the drop · go down" : tier.trial?.parkour?.kind === "ASCENT" ? "Climb to the summit pad, then drop down" : "Cross the islands to the far pad")
     : `${tier.kind === "ENCOUNTER" ? `Encounter · wave ${Math.max(1, run.wave)}/${plan.waves.length}` : tier.kind === "GATEKEEPER" ? `Defeat ${d.gatekeeper}` : "Clear the tier"} · ${left} hostile${left === 1 ? "" : "s"}`;
   // the board's area names (Surface Gate → … → the boss's own area), then the floor and what kind of floor it is
   const floors = run.layout.tiers.length;
-  const kindLabel = tier.kind === "BOSS" ? "Boss room" : tier.kind === "NESTED" ? "Nested depths" : tier.kind === "ENCOUNTER" ? "Encounter" : tier.kind === "GATEKEEPER" ? "Gatekeeper" : "";
+  const kindLabel = tier.kind === "PUZZLE" ? "Puzzle" : tier.kind === "PARKOUR" ? "Parkour" : tier.kind === "BOSS" ? "Boss room" : tier.kind === "NESTED" ? "Nested depths" : tier.kind === "ENCOUNTER" ? "Encounter" : tier.kind === "GATEKEEPER" ? "Gatekeeper" : "";
   const where = tier.kind === "NESTED" ? "Below the boss room" : `${areaOf(run.dungeonId, run.layout, tier.index)} · Floor ${tier.index + 1}/${floors}`;
   const label = kindLabel ? `${where} · ${kindLabel}` : where;
   return {
     emits,
     hud: { dungeon: d.name, place: d.place, rank: run.rankRevealed ? `${run.shownRank} → ${run.rank}` : run.shownRank, rankLied: run.rankRevealed, depth: depthBelow(feet), tierLabel: label, objective, lives: run.lives, enrage: enrageLeft(run, inp.now) },
-    teleport: null,
+    teleport: tp,
     shaft: inShaft(run.layout, openWays(run), inp.px, inp.pz, feet),
     inside: inDescentSpace(run.layout, inp.px, inp.pz, inp.py),
   };
@@ -260,6 +296,7 @@ export function descentDeath(rt: DescentRuntime, sim: WorldSim): { respawn: { x:
   }
   despawnRift(sim);
   setActiveDescent(null);
+  setLiveTrial(null); rt.puzzle = null;
   const back = rt.returnPos ?? { x: 0, y: DESCENT_TOP, z: 0 };
   pendingEnd.push(run);
   rt.run = null; rt.returnPos = null; rt.bossTag = null; rt.rearm = false;
@@ -269,3 +306,12 @@ export function descentDeath(rt: DescentRuntime, sim: WorldSim): { respawn: { x:
 /** runs that ended in the death flow; stepDescentRuntime's caller drains them into END emits */
 const pendingEnd: DescentRun[] = [];
 export const drainEndedRuns = (): DescentRun[] => pendingEnd.splice(0);
+
+/** the HUD line for a puzzle floor */
+function puzzleObjective(spec: NonNullable<import("./descent-trials").TierTrial["puzzle"]>, st: PuzzleState | null, nowS: number): string {
+  const n = spec.plates.length;
+  if (spec.kind === "SEQUENCE") return `Glyph sequence · step on the plates in pip order · ${st?.progress ?? 0}/${n}`;
+  if (spec.kind === "BEACONS") return `Beacon charge · stand in each beacon until it fills · ${st?.charge.filter((c) => c >= 1).length ?? 0}/${n}`;
+  const left = st?.startedAt != null ? Math.max(0, Math.ceil(spec.timeLimit - (nowS - st.startedAt))) : spec.timeLimit;
+  return `Chain relay · touch the lit plates in order · ${st?.progress ?? 0}/${n} · ${left}s`;
+}

@@ -38,6 +38,7 @@ export function tierPlan(tier: Tier, rank: RiftRank, squad = 1): TierPlan {
     case "GATEKEEPER": return { waves: [wave(8, 0, champs(1), true, 1)], boss: false };
     case "BOSS": return { waves: [wave(6, 0)], boss: true };
     case "NESTED": return { waves: [wave(8, 0, champs(3), false, 2)], boss: true };
+    case "PUZZLE": case "PARKOUR": return { waves: [], boss: false }; // trial floors: no troops, the trial is the floor (descent-trials.ts)
   }
 }
 
@@ -168,7 +169,7 @@ export function tierLoot(dungeonId: string, tier: Tier, rank: RiftRank): Partial
   const d = dungeonById(dungeonId);
   const mat = REGION_MATS[d?.regionId ?? ""] ?? "anomalyCarbon";
   const r = 1 + RANK_ORDER.indexOf(rank) * 0.25;
-  if (tier.kind === "ENCOUNTER") return { [mat]: Math.round(6 * r), dataShards: Math.round(3 * r) };
+  if (tier.kind === "ENCOUNTER" || tier.kind === "PUZZLE" || tier.kind === "PARKOUR") return { [mat]: Math.round(6 * r), dataShards: Math.round(3 * r) };
   if (tier.kind === "GATEKEEPER") return { [mat]: Math.round(8 * r), relicFragment: 1 };
   return {};
 }

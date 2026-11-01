@@ -11,6 +11,7 @@ import { DESTINATION_PINS, STAGE, destinationInfo, type DestinationId } from "./
 import { thalassiaElevator } from "./travel";
 import type { PlayerProgression } from "./progression";
 import { PAYOUTS } from "./activity-payouts";
+import { PARKOUR_NAME, PUZZLE_NAME, TRIAL_COUNTS, trialDifficulty, trialOf } from "./descent-trials";
 import { rankPayMult } from "./dungeon-rewards";
 import { setForRegion } from "./armor-sets";
 
@@ -100,6 +101,12 @@ export function dungeonBrief(p: Pick<PlayerProgression, "earnedRewards">, dungeo
     { id: "lives", label: `Shared lives · ${LIVES(1)}`, detail: "Every death spends one; out of lives before the boss falls, the descent fails.", tone: "info" },
     { id: "collapse", label: `Collapse · ${Math.round(RANKS[rank].enrage / 60)} min`, detail: "Once the boss wakes, the descent collapses if it is still standing when the timer runs out.", tone: "danger" },
     ...(gate.sealed ? [{ id: "sealed", label: "Sealed", detail: "The entrance closes behind you. The only way out is the boss room.", tone: "danger" as const }] : []),
+    ...(() => {
+      const t = trialOf(d.id), tc = TRIAL_COUNTS[rank] ?? { puzzles: 0, parkour: 0 }, dif = trialDifficulty(d.id, rank);
+      const level = dif < 0.25 ? "gentle" : dif < 0.5 ? "steady" : dif < 0.75 ? "hard" : "brutal";
+      const parts = [...(tc.puzzles ? [`${tc.puzzles} puzzle floor${tc.puzzles > 1 ? "s" : ""} (${PUZZLE_NAME[t.puzzle].toLowerCase()})`] : []), ...(tc.parkour ? [`${tc.parkour} parkour floor${tc.parkour > 1 ? "s" : ""} (${PARKOUR_NAME[t.parkour].toLowerCase()})`] : [])];
+      return parts.length ? [{ id: "trials", label: `Trials · ${level}`, detail: `${parts.join(", ")}. A fall in the parkour pit sends you back to the floor's start, never costs a life.`, tone: "info" as const }] : [];
+    })(),
     { id: "boss", label: d.boss, detail: d.bossMechanic, tone: "warn" },
   ];
   const rewards: DungeonBrief["rewards"] = [
