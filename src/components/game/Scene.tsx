@@ -650,7 +650,7 @@ function SceneImpl({
   activity?: { def: ActivityDef; run: ActivityRun } | null;
   onActivityChange?: () => void;
   /** the player walked into a discovery; the host starts it through the same activity pipeline as the board */
-  onDiscovery?: (discoveryId: string) => void;
+  onDiscovery?: ((discoveryId: string) => void) | undefined;
   /** Vyrak rematch (activities.ts VYRAK_REMATCH): a bonded Operator may re-summon the Sky Sovereign only while this is true; the host spends the attempt */
   vyrakRematch?: boolean;
   onVyrakRematch?: () => void;
