@@ -1500,6 +1500,8 @@ export function GameCanvas() {
           setTutorial(tutorialForEntry(save));
           setHud((h) => ({ ...h, ...hudIdentity(session), missions: firstMissionHud(save) }));
           setPhase("world");
+          // a save that never got out of the Residences picks the prologue up again in Apartment 1204 (story-start.ts)
+          if (startsInResidences(save)) beginOpening();
         }
       }} />;
   }
