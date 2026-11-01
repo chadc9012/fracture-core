@@ -5,6 +5,8 @@ import { EVAC_DONE } from "./residence-life";
 import { floorWalls, residenceFloor, type ResidenceFloorId } from "./nexus-residences";
 import { interiorById, roomBounds } from "./interiors";
 import type { Wall } from "./walls";
+import { roomSolids, sweepSolids } from "./environment-collision";
+import { INTERIOR_ALTITUDE } from "./interiors";
 
 function clearance(w: Wall, x: number, z: number) {
   const dx = w.bx - w.ax, dz = w.bz - w.az, L2 = dx * dx + dz * dz || 1, t = Math.max(0, Math.min(1, ((x - w.ax) * dx + (z - w.az) * dz) / L2));
@@ -37,5 +39,12 @@ describe("story start: a new character wakes in Apartment 1204", () => {
   });
   it("you wake somewhere you can walk from", () => {
     expect(reachable(OPENING_FLOOR)(WAKE_AT.x, WAKE_AT.z, 0.3)).toBe(true);
+  });
+  it("no plain-room shell walls cut through the residence floors (they trapped you beside the bed)", () => {
+    const room = interiorById(OPENING_FLOOR)!, solids = roomSolids(room, INTERIOR_ALTITUDE);
+    expect(solids).toEqual([]);
+    const body = { x: room.origin.x + 0.3, z: room.origin.z - 3.6 };
+    expect(sweepSolids(body, { x: room.origin.x + WAKE_AT.x, z: room.origin.z + WAKE_AT.z }, INTERIOR_ALTITUDE, 1.8, 0.5, solids)).toBe(false);
+    expect(body.x).toBeCloseTo(room.origin.x + 0.3);
   });
 });

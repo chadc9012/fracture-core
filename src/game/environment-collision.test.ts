@@ -56,7 +56,8 @@ describe("player and vehicle environment collision", () => {
     expect(body.x).toBeCloseTo(20);
   });
   test("room side walls block movement, but exit gap remains open", () => {
-    const room = INTERIORS[0]; if (!room) throw new Error("Missing room");
+    // a plain 10 m room (the Residences floors lay out their own walls)
+    const room = INTERIORS.find((r) => !r.layout && !r.size); if (!room) throw new Error("Missing room");
     const boxes = roomSolids(room, INTERIOR_ALTITUDE);
     const body = { x: room.origin.x + 15, z: room.origin.z };
     expect(sweepSolids(body, room.origin, INTERIOR_ALTITUDE, 1.8, 1, boxes)).toBe(true);

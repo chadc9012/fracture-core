@@ -16,6 +16,9 @@ export function structureSolids(nodes: Iterable<StructuralNode>): SolidBox[] {
  * them and an internal wall between each pair with a doorway (|z| < 1.6) — a single shop-sized box would wall off every room
  * past the first. */
 export function roomSolids(room: InteriorDef, altitude: number, rooms = 1): SolidBox[] {
+  // a laid-out floor (the Residences) registers its own walls (NexusResidences.tsx setWalls) and is clamped to its `size`:
+  // the 10 m shell below would cut invisible walls through it (a new character woke in 12-04 and could not leave the bed)
+  if (room.layout || room.size) return [];
   const { x, z } = room.origin;
   const y = altitude + 1.9;
   const n = Math.max(1, Math.floor(rooms)), span = n * 10, mid = x + (n - 1) * 5;

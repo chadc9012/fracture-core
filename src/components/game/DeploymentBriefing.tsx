@@ -6,6 +6,7 @@ import { NextActivityCard } from "./NextActivityCard";
 import { classById, subclassById, type AppearanceDefinition, type ClassId, type OperatorId, type SubclassId } from "@/game/loadout";
 import type { BodyType } from "@/game/operators";
 import { useMenuInput } from "./useMenuInput";
+import { startsInResidences } from "@/game/story-start";
 
 export type DeploymentBriefingData = {
   classId: ClassId;
@@ -23,6 +24,8 @@ export function DeploymentBriefing({ deployment, progression, onLaunch, onBack }
   }, ["confirm", "back"]);
   const operatorClass = classById(deployment.classId);
   const subclass = subclassById(deployment.subclassId);
+  // a new character's story starts at home in Nexus City (story-start.ts), not in the forest
+  const prologue = startsInResidences(progression);
 
   return (
     <main className="fixed inset-0 z-50 overflow-hidden bg-background text-foreground">
@@ -32,7 +35,7 @@ export function DeploymentBriefing({ deployment, progression, onLaunch, onBack }
         <header className="flex items-center justify-between border-b border-foreground/15 pb-4">
           <div>
             <p className="ui-kicker">Deployment queue / 01</p>
-            <h1 className="mt-1 font-mono text-xl uppercase sm:text-3xl">Verdant Forest</h1>
+            <h1 className="mt-1 font-mono text-xl uppercase sm:text-3xl">{prologue ? "Nexus City" : "Verdant Forest"}</h1>
           </div>
           <Button variant="ghost" onClick={onBack}>Back</Button>
         </header>
@@ -40,15 +43,15 @@ export function DeploymentBriefing({ deployment, progression, onLaunch, onBack }
         {/* scrolls instead of spilling up over the header when the briefing is taller than the window */}
         <section className="flex min-h-0 flex-1 flex-col overflow-y-auto pb-6 sm:pb-10">
           <div className="mt-auto max-w-3xl pt-6 ui-enter">
-            <p className="ui-kicker">First deployment</p>
-            <h2 className="mt-3 max-w-2xl text-4xl font-light leading-none sm:text-6xl">Mission 01<br /><span className="text-primary">First Resonance</span></h2>
-            <p className="mt-5 max-w-xl text-sm leading-relaxed text-muted-foreground sm:text-base">Materialize beyond the Nexus perimeter, complete NOVA’s field calibration, and secure the first stable signal.</p>
+            <p className="ui-kicker">{prologue ? "Prologue" : "First deployment"}</p>
+            <h2 className="mt-3 max-w-2xl text-4xl font-light leading-none sm:text-6xl">{prologue ? <>Before the Fracture<br /><span className="text-primary">Apartment 12-04</span></> : <>Mission 01<br /><span className="text-primary">First Resonance</span></>}</h2>
+            <p className="mt-5 max-w-xl text-sm leading-relaxed text-muted-foreground sm:text-base">{prologue ? "An ordinary morning in Nexus City Residences, the last one before everything breaks. Wake up, get ready, and get out of the building when it starts." : "Materialize beyond the Nexus perimeter, complete NOVA’s field calibration, and secure the first stable signal."}</p>
 
             <div className="mt-8 grid max-w-2xl grid-cols-2 gap-px border-y border-foreground/15 bg-foreground/15 sm:grid-cols-4">
-              <BriefStat icon={MapPin} label="Destination" value="Veridan" />
-              <BriefStat icon={Activity} label="Threat" value="Low" />
-              <BriefStat icon={CloudRain} label="Conditions" value="Rain mist" />
-              <BriefStat icon={Radio} label="Guide" value="NOVA" />
+              <BriefStat icon={MapPin} label="Destination" value={prologue ? "Nexus City" : "Veridan"} />
+              <BriefStat icon={Activity} label="Threat" value={prologue ? "None. Yet." : "Low"} />
+              <BriefStat icon={CloudRain} label="Conditions" value={prologue ? "Clear morning" : "Rain mist"} />
+              <BriefStat icon={Radio} label="Guide" value={prologue ? "Your neighbours" : "NOVA"} />
             </div>
 
             <div className="mt-5 max-w-md"><NextActivityCard progression={progression} /></div>
@@ -58,7 +61,7 @@ export function DeploymentBriefing({ deployment, progression, onLaunch, onBack }
                 <p className="mt-1 font-mono text-sm uppercase">{deployment.appearance.callsign} · {operatorClass.name} / {subclass.name}</p>
                 <p className="mt-1 text-xs text-muted-foreground">Vehicle access locked until Mission 01 is complete.</p>
               </div>
-              <Button size="lg" className="ui-focus min-w-52 justify-between rounded-none" onClick={onLaunch}>Launch mission <ChevronRight /></Button>
+              <Button size="lg" className="ui-focus min-w-52 justify-between rounded-none" onClick={onLaunch}>{prologue ? "Wake up" : "Launch mission"} <ChevronRight /></Button>
             </div>
           </div>
         </section>

@@ -1646,13 +1646,13 @@ export function GameCanvas() {
       }}</GraphicsGuard>
       </WorldErrorBoundary></Profiler>
        <PerfOverlay />
-      <ForestAssetStatus />
+      {!opening && <ForestAssetStatus />}
        {savedFlash > 0 && <p className="pointer-events-none fixed right-4 top-4 z-30 font-mono text-[10px] uppercase tracking-[0.25em] text-primary" role="status">◌ Auto-saved</p>}
        <HudRails />
        <VoiceSubtitle hidden={atlasOpen} />
-       <Profiler id="hud" onRender={onProf}><HUD hud={hud} level={{ level: progression.level, xp: progression.xp }} tutorialActive={Boolean(tutorial && tutorial.step !== "VICTORY")} onMenu={() => { setInventoryOpen(false); setAtlasOpen(false); setOperationsView(null); setMenuOpen(true); }} onStrategy={() => setStrategyOpen(true)} onGarage={() => setGarageOpen(true)} onAnalyze={() => setAnalysisOpen(true)} onOperations={(view) => { setInventoryOpen(false); setAtlasOpen(false); setOperationsView(view); }} onInventory={() => { setAtlasOpen(false); setOperationsView(null); setCharacterOpen(true); }} onAtlas={() => { setInventoryOpen(false); setOperationsView(null); setAtlasOpen(true); }} /></Profiler>
+       <Profiler id="hud" onRender={onProf}><HUD hud={opening ? { ...hud, markers: [] } : hud} level={{ level: progression.level, xp: progression.xp }} tutorialActive={Boolean(tutorial && tutorial.step !== "VICTORY")} onMenu={() => { setInventoryOpen(false); setAtlasOpen(false); setOperationsView(null); setMenuOpen(true); }} onStrategy={() => setStrategyOpen(true)} onGarage={() => setGarageOpen(true)} onAnalyze={() => setAnalysisOpen(true)} onOperations={(view) => { setInventoryOpen(false); setAtlasOpen(false); setOperationsView(view); }} onInventory={() => { setAtlasOpen(false); setOperationsView(null); setCharacterOpen(true); }} onAtlas={() => { setInventoryOpen(false); setOperationsView(null); setAtlasOpen(true); }} /></Profiler>
        {!tutorial && !hud.insideInterior && <Profiler id="minimap" onRender={onProf}><Minimap hud={hud} known={(id) => isLandmarkKnown(progression, id)} /></Profiler>}
-       {!tutorial && <Profiler id="quest" onRender={onProf}><QuestTracker progression={progression} /></Profiler>}
+       {!tutorial && !opening && <Profiler id="quest" onRender={onProf}><QuestTracker progression={progression} /></Profiler>}
        {storyGraph && <StoryDialogue key={storyGraph.id} graph={storyGraph} story={progression.story} onStory={applyStory} onDone={finishStoryGraph} />}
        {!storyGraph && !activeDialogue && objectiveFor(progression.story) && progression.story.stages["vaelith"] !== undefined && <p className="pointer-events-none fixed left-4 top-24 z-20 max-w-[280px] font-mono text-[10px] uppercase tracking-[0.18em] text-primary/80">Vaelith · {objectiveFor(progression.story)!.text}</p>}
        {!storyGraph && !activeDialogue && captionQueue[0] && <p className="pointer-events-none fixed inset-x-0 bottom-36 z-20 mx-auto w-[min(92vw,560px)] border border-border/60 bg-background/80 p-3 text-sm text-foreground" role="status"><span className="mr-2 font-mono text-[10px] uppercase tracking-[0.25em] text-primary">{captionQueue[0].speaker}</span>{captionQueue[0].text}</p>}
@@ -1842,7 +1842,7 @@ export function GameCanvas() {
       {landmarkToast && !atlasOpen && <HudRail side="left" order={0}><div className="pointer-events-none absolute left-1/2 top-28 z-30 w-[min(26rem,86vw)] -translate-x-1/2 border-l-2 border-primary bg-background/80 px-3 py-2" role="status"><p className="font-mono text-[9px] uppercase tracking-[0.3em] text-primary">Landmark discovered</p><p className="text-sm font-semibold">{landmarkToast.name}</p><p className="mt-0.5 text-[11px] text-muted-foreground">{landmarkToast.history}</p></div></HudRail>}
        {atlasOpen && <WorldAtlas onStartRace={startRace} activeActivityId={activity?.def.id ?? null} progression={progression} markers={hud.markers} px={hud.px} pz={hud.pz} currentRegion={hud.region} phase={hud.phase} onClose={() => setAtlasOpen(false)} onProgression={setProgression} onTravel={(a) => { setAtlasOpen(false); startTransit({ id: a.id, name: a.name, sub: ACTIVITY_LABEL[a.kind], color: ACTIVITY_COLOR[a.kind], x: a.drop.x, z: a.drop.z, ...(a.drop.y !== undefined ? { y: a.drop.y } : {}) }); }} />}
       {awakening && <AwakeningOverlay run={awakening} onEvent={recordAwakening} />}
-      {opening && phase === "world" && !menuOpen && <div className="pointer-events-none fixed right-4 top-16 z-20 text-right">
+      {opening && phase === "world" && !menuOpen && <div className="pointer-events-none fixed left-4 top-44 z-20">
         <p className="font-mono text-[10px] uppercase tracking-[0.3em] text-violet-200/80">Prologue · Before the Fracture</p>
         <button type="button" onClick={() => setProgression((p) => skipOpening(p))} className="pointer-events-auto mt-1 border border-white/25 bg-black/40 px-3 py-1 font-mono text-[10px] uppercase tracking-[0.2em] text-white/70 hover:border-white/60 hover:text-white">Skip prologue</button>
       </div>}
