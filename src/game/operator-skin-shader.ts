@@ -128,14 +128,19 @@ export function skinFragment(marks: readonly MarkingDef[]): string {
     // skin-toned cap under the chosen style (or bare, for bald).
     // hair-like: far darker than this face's skin, or neither skin-coloured nor vivid (a scarf or collar is vivid)
     float notSkin = max(1.0 - smoothstep(0.35, 0.55, l / max(wfSkinLum, 0.02)), (1.0 - k) * (1.0 - smoothstep(0.3, 0.45, sat)));
-    float face = step(0.03, p.z) * step(p.y, 0.098) * step(abs(p.x), 0.058);
-    float ears = step(0.05, abs(p.x)) * step(0.035, p.y) * step(p.y, 0.1) * step(-0.035, p.z) * step(p.z, 0.025) * smoothstep(0.2, 0.4, k);
+    // the face's own dark features stay: brows and eyes, then nose, lips, chin and beard; feathered so no box edges show
+    float eyes = smoothstep(0.04, 0.05, p.z) * smoothstep(0.05, 0.058, p.y) * (1.0 - smoothstep(0.094, 0.1, p.y)) * (1.0 - smoothstep(0.042, 0.05, abs(p.x)));
+    // below the eyes: the nose, lips and chin, and a beard (stubble is part skin; a black strand hanging by the jaw is not)
+    float lower = smoothstep(0.03, 0.04, p.z) * (1.0 - smoothstep(0.055, 0.062, p.y)) * (1.0 - smoothstep(0.046, 0.054, abs(p.x)))
+      * max(1.0 - smoothstep(0.03, 0.038, abs(p.x)), smoothstep(0.3, 0.45, k));
+    float face = max(eyes, lower);
+    float ears = smoothstep(0.045, 0.052, abs(p.x)) * smoothstep(0.03, 0.038, p.y) * (1.0 - smoothstep(0.095, 0.102, p.y)) * smoothstep(-0.04, -0.032, p.z) * (1.0 - smoothstep(0.02, 0.028, p.z)) * smoothstep(0.2, 0.4, k);
     float neck = step(p.y, 0.045) * step(length(vec2(p.x, p.z + 0.02)), 0.062); // the neck column and the collar on it
     float scalp = notSkin * smoothstep(0.0, 0.015, p.y) * (1.0 - max(face, max(ears, neck)));
     if (scalp > 0.35) discard;
-    // hair left on the face above the brows (a fringe over the forehead, the hair by the ears) takes the style's colour, or
-    // skin for bald; the brows, eyes and lips keep their own
-    float kept = notSkin * step(0.098, p.y) * max(face, ears);
+    // hair left on the face (a fringe over the forehead, the hair by the ears) takes the style's colour, brows included;
+    // for bald the brows stay and only what's above them turns to skin; the eyes and lips keep their own
+    float kept = notSkin * smoothstep(wfHairMode == 1 ? 0.098 : 0.078, wfHairMode == 1 ? 0.104 : 0.084, p.y) * max(face, ears);
     vec3 hairTone = wfHairMode == 1 ? wfBald * clamp(l / 0.05, 0.6, 1.3) : wfHair * clamp(l / 0.06, 0.3, 1.6);
     diffuseColor.rgb = mix(diffuseColor.rgb, hairTone, max(scalp / 0.35, kept));
   }
