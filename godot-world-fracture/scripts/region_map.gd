@@ -5,13 +5,15 @@ extends Control
 ## pinch / wheel / buttons to zoom, tap a place or building for its card. Chips switch maps and filter the places.
 
 signal closed
+## open this region in 3D (the 3D City or Street View) at a world point (null: the map's centre)
+signal open_3d(map_id: String, at: Variant, street: bool)
 
 const ROAD := {
 	"highway": ["#fcd462", "#e3a93a", 4.0, ""], "main": ["#ffffff", "#c9c9c9", 3.0, ""], "street": ["#ffffff", "#d6d6d6", 2.0, ""],
 	"track": ["#c8ad85", "#c8ad85", 1.6, "dash"], "runway": ["#8d9299", "#6f747b", 5.0, ""], "taxiway": ["#a7acb2", "#8d9299", 2.0, ""],
 	"bridge": ["#ffffff", "#8f969d", 4.0, ""], "boardwalk": ["#c79a63", "#a07444", 2.0, ""], "rail": ["#ffffff", "#7b8188", 3.0, "rail"],
 	"trail": ["#a07444", "#a07444", 1.4, "dash"], "powerline": ["#8a8f96", "#8a8f96", 1.0, "dot"], "race": ["#d0287f", "#d0287f", 1.6, "dash"],
-	"skybridge": ["#e9e4f7", "#9a8fc0", 2.5, ""],
+	"skybridge": ["#e9e4f7", "#9a8fc0", 2.5, ""], "ferry": ["#1a73e8", "#1a73e8", 1.4, "dash"],
 }
 const AREA := {
 	"city": ["#202124", 20], "district": ["#5f6368", 12], "mountain": ["#6d4c41", 16], "valley": ["#6d4c41", 13], "lake": ["#1967d2", 13],
@@ -592,6 +594,12 @@ func _show_card() -> void:
 	var at := Vector2(_picked.x, _picked.z) if _picked is Dictionary else Vector2(_picked[0], _picked[1])
 	zh.pressed.connect(func(): cx = at.x; cz = at.y; zoom = maxf(zoom, 4.0); _clamp(); _redraw())
 	row.add_child(zh)
+	var v3 := Data.button("3D", true)
+	v3.pressed.connect(func(): open_3d.emit(map_id, at, false))
+	row.add_child(v3)
+	var sv := Data.button("STREET VIEW", true)
+	sv.pressed.connect(func(): open_3d.emit(map_id, at, true))
+	row.add_child(sv)
 	var cl := Data.button("CLOSE")
 	cl.pressed.connect(func(): _picked = null; _show_card(); _redraw())
 	row.add_child(cl)

@@ -15,7 +15,7 @@ const ROAD: Record<RoadClass, { fill: string; casing: string; min: number; dash?
   bridge: { fill: "#ffffff", casing: "#8f969d", min: 4 }, boardwalk: { fill: "#c79a63", casing: "#a07444", min: 2 },
   rail: { fill: "#ffffff", casing: "#7b8188", min: 3, fillDash: "8 6" }, trail: { fill: "#a07444", casing: "#a07444", min: 1.4, dash: "3 3" },
   powerline: { fill: "#8a8f96", casing: "#8a8f96", min: 1, dash: "1 7" }, race: { fill: "#d0287f", casing: "#d0287f", min: 1.6, dash: "7 5" },
-  skybridge: { fill: "#e9e4f7", casing: "#9a8fc0", min: 2.5 },
+  skybridge: { fill: "#e9e4f7", casing: "#9a8fc0", min: 2.5 }, ferry: { fill: "#1a73e8", casing: "#1a73e8", min: 1.4, dash: "6 6" },
 };
 const AREA_STYLE: Record<string, { color: string; italic?: boolean; upper?: boolean; weight?: number; size: number }> = {
   city: { color: "#202124", weight: 700, size: 17 }, district: { color: "#5f6368", upper: true, weight: 600, size: 11 }, mountain: { color: "#6d4c41", italic: true, weight: 600, size: 15 },

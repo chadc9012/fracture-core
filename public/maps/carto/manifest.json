@@ -56,6 +56,16 @@
    "url": "/maps/carto/storm.png",
    "data": "/maps/carto/storm.data.png",
    "size": 1536
+  },
+  "crystal-badlands": {
+   "url": "/maps/carto/crystal-badlands.png",
+   "data": "/maps/carto/crystal-badlands.data.png",
+   "size": 1536
+  },
+  "shattered-reefs": {
+   "url": "/maps/carto/shattered-reefs.png",
+   "data": "/maps/carto/shattered-reefs.data.png",
+   "size": 1536
   }
  }
 }

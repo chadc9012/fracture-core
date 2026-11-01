@@ -11,6 +11,7 @@ import { AIRPORT_NAMES, SEAPORT_NAMES, continentOfRegion, worldAt, type WorldId 
 import type { PlayerProgression } from "./progression";
 import { drivablePoint } from "./race-routing";
 import { BRIDGES } from "./nexus-bridge";
+import { CRATER_R, lavaFlows } from "./ember-dressing";
 
 /** AIRPORT: flights to every other playable continent's airport; SEAPORT: ferries along the sea lanes (planet update: each
  * city has its own airport and seaport) */
@@ -19,14 +20,22 @@ export type Terminal = { id: string; name: string; kind: TerminalKind; world: Wo
 
 /** a terminal near each landing zone (region centre + 6 m south, destinations.ts dropPoint): the first spot on a spiral out
  * from 14 m beside it where the whole canopy footprint is open, dry, built-free ground (race-routing drivablePoint), so a
- * kiosk never stands in a building, a river or the sea */
+ * kiosk never stands in a building, a river or the sea, nor in Ember Peaks' magma pool or on a lava flow */
 const CLEAR_R = 8;
+const EMBER = REGIONS.find((r) => r.id === "ember");
+let hotSegs: [number, number, number, number, number][] | null = null;
+function hotGround(x: number, z: number): boolean {
+  if (!EMBER || Math.hypot(x - EMBER.x, z - EMBER.z) > EMBER.radius * 1.2) return false;
+  if (Math.hypot(x - EMBER.x, z - EMBER.z) < CRATER_R * 1.6) return true;
+  hotSegs ??= lavaFlows().flatMap((f) => f.slice(1).map((b, i) => [f[i]!.x, f[i]!.z, b.x, b.z, Math.max(f[i]!.w, b.w) * 1.4 + 4] as [number, number, number, number, number]));
+  return hotSegs.some(([ax, az, bx, bz, w]) => { const ex = bx - ax, ez = bz - az, L = ex * ex + ez * ez || 1, t = Math.max(0, Math.min(1, ((x - ax) * ex + (z - az) * ez) / L)); return Math.hypot(ax + ex * t - x, az + ez * t - z) < w; });
+}
 function beside(x: number, z: number): { x: number; z: number } {
   for (let k = 0; k < 120; k++) {
     const a = k * 2.399, d = 14 + k * 1.5;
     const cx = x + Math.cos(a) * d, cz = z + 6 + Math.sin(a) * d;
-    let ok = drivablePoint(cx, cz);
-    for (let i = 0; ok && i < 12; i++) ok = drivablePoint(cx + Math.cos((i / 12) * Math.PI * 2) * CLEAR_R, cz + Math.sin((i / 12) * Math.PI * 2) * CLEAR_R);
+    let ok = drivablePoint(cx, cz) && !hotGround(cx, cz);
+    for (let i = 0; ok && i < 12; i++) ok = !hotGround(cx + Math.cos((i / 12) * Math.PI * 2) * CLEAR_R, cz + Math.sin((i / 12) * Math.PI * 2) * CLEAR_R) && drivablePoint(cx + Math.cos((i / 12) * Math.PI * 2) * CLEAR_R, cz + Math.sin((i / 12) * Math.PI * 2) * CLEAR_R);
     if (ok) return { x: cx, z: cz };
   }
   return { x: x + 14, z: z + 6 };

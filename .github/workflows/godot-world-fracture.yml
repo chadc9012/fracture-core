@@ -13,6 +13,8 @@ on:
       - "src/game/planet.ts"
       - "src/game/globe.ts"
       - "src/game/carto-*.ts"
+      - "src/game/new-lands.ts"
+      - "src/game/travel.ts"
       - "public/maps/**"
       - ".github/workflows/godot-world-fracture.yml"
   schedule:

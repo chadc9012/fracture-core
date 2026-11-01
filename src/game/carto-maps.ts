@@ -18,11 +18,12 @@ import { airportPoint, AIRPORT } from "./nexus-airport";
 import { STORM_ISLAND_SITES, STORM_ISLANDS_CENTER, stormSiteWorld } from "./storm-islands";
 import { islandRadius } from "./storm-quests";
 import { HILLS } from "./nexus-hills";
+import { NEW_LANDS } from "./new-lands";
 import { lavaFissures } from "./set-pieces";
 import { frozenFall } from "./frost-dressing";
 
 export type CartoBounds = { x0: number; z0: number; span: number };
-export type CartoMapId = "nexus" | "neon-city" | "riverdale" | "thalassia" | "veridan" | "frostspire" | "ember" | "wastelands" | "solara" | "swamps" | "storm";
+export type CartoMapId = "nexus" | "neon-city" | "riverdale" | "thalassia" | "veridan" | "frostspire" | "ember" | "wastelands" | "solara" | "swamps" | "storm" | "crystal-badlands" | "shattered-reefs";
 export type CartoMap = { id: CartoMapId; name: string; sub: string; kind: "city" | "region"; x: number; z: number; reach: number; regionId: string };
 
 const R = (id: string) => REGIONS.find((r) => r.id === id)!;
@@ -46,7 +47,11 @@ export const CARTO_MAPS: readonly CartoMap[] = [
   }),
   // the floating chain over the storm sea north-east of Nexus City (storm-islands.ts): its six islands span ~530 m
   { id: "storm", name: "Storm Islands", sub: "Floating islands · storm sea", kind: "region", x: STORM_ISLANDS_CENTER.x + 45, z: STORM_ISLANDS_CENTER.z + 150, reach: 330, regionId: "storm-islands" },
+  // the two continents built beyond the playable world (new-lands.ts): their own ground, towns and roads
+  ...NEW_LANDS.map((l) => l.map),
 ];
+/** the ground a map is painted from: its own for the new lands, else the live world */
+export const cartoSource = (m: CartoMap): CartoSource | undefined => NEW_LANDS.find((l) => l.map.id === m.id)?.source;
 export const cartoMap = (id: string) => CARTO_MAPS.find((m) => m.id === id);
 export const cartoBounds = (m: CartoMap): CartoBounds => ({ x0: m.x - m.reach, z0: m.z - m.reach, span: m.reach * 2 });
 /** the map that shows a world point best: the smallest one it lies inside */
@@ -60,7 +65,7 @@ export function cartoMapAt(x: number, z: number): CartoMap | null {
 
 export type Cover =
   | "deep" | "sea" | "shallow" | "lake" | "river" | "beach" | "meadow" | "grass" | "forest" | "denseForest" | "scrub" | "dirt"
-  | "desert" | "dunes" | "rock" | "sandstone" | "basalt" | "cliff" | "snow" | "ice" | "ash" | "lava" | "magma" | "marsh" | "urban" | "paved" | "town" | "wash";
+  | "desert" | "dunes" | "rock" | "sandstone" | "basalt" | "cliff" | "snow" | "ice" | "ash" | "lava" | "magma" | "marsh" | "urban" | "paved" | "town" | "wash" | "crystal" | "rift" | "reef";
 
 /** The palette: a light, legible street-map style. Water is a clean light blue, land a warm off-white tinted by what grows
  * on it, cities pale grey blocks for the white streets to sit on; the hot ground of Ember Peaks is the one loud colour. */
@@ -70,11 +75,12 @@ export const COVER_COLOR: Record<Cover, readonly [number, number, number]> = {
   scrub: [222, 216, 176], dirt: [232, 206, 160], desert: [246, 226, 184], dunes: [240, 214, 162], rock: [214, 206, 194], sandstone: [226, 176, 128], basalt: [96, 88, 86], cliff: [190, 180, 168],
   snow: [252, 253, 255], ice: [222, 240, 250], ash: [128, 116, 110], lava: [255, 104, 32], magma: [255, 178, 40], marsh: [182, 206, 172],
   urban: [236, 234, 230], paved: [226, 222, 216], town: [240, 236, 226], wash: [226, 204, 168],
+  crystal: [214, 190, 255], rift: [92, 52, 128], reef: [150, 226, 222],
 };
 export const COVER_LABEL: Record<Cover, string> = {
   deep: "Deep water", sea: "Sea", shallow: "Shallows", lake: "Lake", river: "River", beach: "Beach", meadow: "Meadow", grass: "Grassland",
   forest: "Forest", denseForest: "Old-growth forest", scrub: "Scrub", dirt: "Dirt", desert: "Desert", dunes: "Dunes", rock: "Rock", sandstone: "Sandstone", basalt: "Basalt", cliff: "Cliffs",
-  snow: "Snow", ice: "Glacier ice", ash: "Ash plain", lava: "Lava field", magma: "Magma pool", marsh: "Marsh", urban: "City", paved: "Paved", town: "Town", wash: "Dry wash",
+  snow: "Snow", ice: "Glacier ice", ash: "Ash plain", lava: "Lava field", magma: "Magma pool", marsh: "Marsh", urban: "City", paved: "Paved", town: "Town", wash: "Dry wash", crystal: "Crystal field", rift: "Void rift", reef: "Reef",
 };
 
 const clamp01 = (x: number) => (x < 0 ? 0 : x > 1 ? 1 : x);
@@ -195,7 +201,9 @@ export type CartoJob = { step: (budgetMs: number) => boolean; progress: () => nu
 
 /** Paint a square of the world. Phase 1 samples the height grid (the cost), phase 2 colours it: cover colour, a texture per
  * cover (canopy speckle, dune ripples, lava veins), north-west hill shading, faint contours every 10 m, and a crisp shoreline. */
-export function createCartoJob(size: number, bounds: CartoBounds): CartoJob {
+/** a land painted from its own ground instead of the live world's (new-lands.ts: lands designed beyond the playable world) */
+export type CartoSource = { height: (x: number, z: number) => number; cover: (x: number, z: number, h: number, slope: number) => Cover };
+export function createCartoJob(size: number, bounds: CartoBounds, src?: CartoSource): CartoJob {
   const pixels = new Uint8ClampedArray(size * size * 4);
   const data = new Uint8ClampedArray(size * size * 4);
   const G = size + 2, hs = new Float32Array(G * G);
@@ -204,7 +212,7 @@ export function createCartoJob(size: number, bounds: CartoBounds): CartoJob {
   // stamps that touch this square, rasterised once into a cover index per pixel
   const covers = Object.keys(COVER_COLOR) as Cover[];
   const stampIdx = new Uint8Array(size * size); // 0 = none, else covers index + 1
-  for (const s of cartoStamps()) {
+  for (const s of src ? [] : cartoStamps()) {
     let x0: number, x1: number, z0: number, z1: number;
     if ("seg" in s) { const [ax, az, bx, bz] = s.seg; x0 = Math.min(ax, bx) - s.w; x1 = Math.max(ax, bx) + s.w; z0 = Math.min(az, bz) - s.w; z1 = Math.max(az, bz) + s.w; }
     else if ("quad" in s) { x0 = Math.min(...s.quad.map((p) => p[0])); x1 = Math.max(...s.quad.map((p) => p[0])); z0 = Math.min(...s.quad.map((p) => p[1])); z1 = Math.max(...s.quad.map((p) => p[1])); }
@@ -228,7 +236,7 @@ export function createCartoJob(size: number, bounds: CartoBounds): CartoJob {
     const t0 = typeof performance !== "undefined" ? performance.now() : Date.now();
     const now = () => (typeof performance !== "undefined" ? performance.now() : Date.now());
     while (phase === 0) {
-      for (let i = 0; i < G; i++) hs[row * G + i] = heightAt(wx(i), wz(row));
+      for (let i = 0; i < G; i++) hs[row * G + i] = src ? src.height(wx(i), wz(row)) : heightAt(wx(i), wz(row));
       if (++row >= G) { phase = 1; break; }
       if (now() - t0 > budgetMs) return false;
     }
@@ -240,9 +248,9 @@ export function createCartoJob(size: number, bounds: CartoBounds): CartoJob {
         const slope = Math.hypot(dx, dz);
         const x = bounds.x0 + (i + 0.5) * mpp, z = bounds.z0 + (j + 0.5) * mpp;
         const si = stampIdx[j * size + i]!;
-        const cover = coverAt(x, z, h, slope, si ? covers[si - 1]! : null);
+        const cover = src ? src.cover(x, z, h, slope) : coverAt(x, z, h, slope, si ? covers[si - 1]! : null);
         coverIdx[j * size + i] = covers.indexOf(cover);
-        const water = cover === "deep" || cover === "sea" || cover === "shallow" || cover === "lake" || cover === "river" || cover === "ice";
+        const water = cover === "deep" || cover === "sea" || cover === "shallow" || cover === "lake" || cover === "river" || cover === "ice" || cover === "reef";
         const washBed = cover === "wash";
         let [r, g, b] = COVER_COLOR[cover];
         // texture per cover
@@ -252,6 +260,9 @@ export function createCartoJob(size: number, bounds: CartoBounds): CartoJob {
         else if (cover === "magma") { const d = vnoise(x * 0.4, z * 0.4); g += (d - 0.5) * 50; }
         else if (cover === "ash") { const c = vnoise(x * 0.3, z * 0.3); r += (c - 0.5) * 18; g += (c - 0.5) * 16; b += (c - 0.5) * 14; }
         else if (cover === "marsh") { if (vnoise(x * 0.22, z * 0.22) > 0.62) { r = 160; g = 196; b = 196; } }
+        else if (cover === "crystal") { const c = vnoise(x * 0.7, z * 0.7); if (c > 0.72) { r = 245; g = 232; b = 255; } else { r += (c - 0.5) * 30; b += (c - 0.5) * 20; } }
+        else if (cover === "rift") { const c = vnoise(x * 0.4, z * 0.4); r += c * 40; b += c * 60; }
+        else if (cover === "reef") { const c = vnoise(x * 0.35, z * 0.35); if (c > 0.6) { r = 236; g = 214; b = 196; } }
         else if (washBed) { const c = vnoise(x * 0.9, z * 0.9) - 0.5; r += c * 14; g += c * 12; b += c * 8; }
         else if (cover === "scrub" || cover === "dirt") { if (hash(Math.floor(x * 0.7), Math.floor(z * 0.7)) > 0.93) { r -= 40; g -= 30; b -= 40; } }
         else if (cover === "cliff" || cover === "rock" || cover === "sandstone" || cover === "basalt") { const st = vnoise(x * 0.35, z * 0.35) - 0.5; r += st * 16; g += st * 15; b += st * 14; }
@@ -301,8 +312,8 @@ export function createCartoJob(size: number, bounds: CartoBounds): CartoJob {
 }
 
 /** paint to completion with the satellite data too (the bake) */
-export function paintCartoAll(size: number, bounds: CartoBounds): { pixels: Uint8ClampedArray; data: Uint8ClampedArray } {
-  const job = createCartoJob(size, bounds);
+export function paintCartoAll(size: number, bounds: CartoBounds, src?: CartoSource): { pixels: Uint8ClampedArray; data: Uint8ClampedArray } {
+  const job = createCartoJob(size, bounds, src);
   while (!job.step(Infinity)) { /* to completion */ }
   return { pixels: job.pixels, data: job.data };
 }
@@ -316,6 +327,7 @@ export const SAT_COLOR: Record<Cover, readonly [number, number, number]> = {
   scrub: [130, 122, 84], dirt: [148, 122, 88], desert: [204, 178, 130], dunes: [212, 180, 124], rock: [124, 116, 104], sandstone: [176, 118, 76], basalt: [50, 46, 46], cliff: [106, 98, 90],
   snow: [236, 240, 246], ice: [194, 220, 234], ash: [84, 76, 72], lava: [255, 92, 22], magma: [255, 172, 42], marsh: [72, 90, 58],
   urban: [96, 100, 106], paved: [122, 124, 128], town: [120, 114, 104], wash: [170, 150, 118],
+  crystal: [150, 112, 214], rift: [34, 16, 52], reef: [52, 168, 168],
 };
 /** recolour a map's data (createCartoJob `data`) into a satellite image; noise is keyed to world metres so it never swims */
 export function satelliteFromData(data: Uint8ClampedArray, size: number, bounds: CartoBounds): Uint8ClampedArray {
@@ -327,7 +339,9 @@ export function satelliteFromData(data: Uint8ClampedArray, size: number, bounds:
     let [r, g, b] = SAT_COLOR[cover];
     const grain = hash(Math.floor(x * 1.7), Math.floor(z * 1.7)) - 0.5;
     const water = cover === "deep" || cover === "sea" || cover === "shallow" || cover === "lake" || cover === "river";
-    if (water) {
+    if (cover === "reef") {
+      const c = vnoise(x * 0.3, z * 0.3); r += (c - 0.5) * 40 + grain * 10; g += (c - 0.5) * 40; b += (c - 0.5) * 30; if (c > 0.64) { r = 170; g = 196; b = 170; }
+    } else if (water) {
       const k = smooth(0, 30, depth); r -= k * 10; g -= k * 18; b -= k * 14;
       const wave = vnoise(x * 0.08, z * 0.08) - 0.5; r += wave * 6; g += wave * 8; b += wave * 10;
     } else {
@@ -338,6 +352,10 @@ export function satelliteFromData(data: Uint8ClampedArray, size: number, bounds:
         const patch = vnoise(x * 0.06, z * 0.06) - 0.5; r += patch * 24 + grain * 10; g += patch * 26 + grain * 10; b += patch * 10 + grain * 6;
       } else if (cover === "desert" || cover === "dunes" || cover === "sandstone" || cover === "wash") {
         const rip = Math.sin((x * 0.5 + z * 0.3) + vnoise(x * 0.03, z * 0.03) * 8); r += rip * 8 + grain * 12; g += rip * 6 + grain * 10; b += rip * 4 + grain * 8;
+      } else if (cover === "crystal") {
+        const c = vnoise(x * 0.9, z * 0.9); r += (c - 0.5) * 50; g += (c - 0.5) * 40; b += (c - 0.5) * 60; if (c > 0.78) { r = 232; g = 214; b = 255; }
+      } else if (cover === "rift") {
+        const c = 1 - Math.abs(vnoise(x * 0.25, z * 0.25) * 2 - 1); r += c * 90; g += c * 30; b += c * 140; // a violet glow along the cracks
       } else if (cover === "lava") {
         const v = 1 - Math.abs(vnoise(x * 0.18, z * 0.18) * 2 - 1), hot = smooth(0.8, 0.97, v); r = 40 + (255 - 40) * hot; g = 26 + (190 - 26) * hot; b = 22 + (60 - 22) * hot;
       } else { r += grain * 16; g += grain * 15; b += grain * 14; }

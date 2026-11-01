@@ -4,9 +4,11 @@ extends Control
 
 const PlanetView := preload("res://scripts/planet_view.gd")
 const RegionMap := preload("res://scripts/region_map.gd")
+const Region3D := preload("res://scripts/region_3d.gd")
 
 var planet_view: Control
 var region_map: Control
+var region_3d: Control
 
 func _ready() -> void:
 	var bg := ColorRect.new()
@@ -31,10 +33,28 @@ func _open_map(map_id: String) -> void:
 	region_map = RegionMap.new()
 	region_map.set_anchors_preset(Control.PRESET_FULL_RECT)
 	region_map.closed.connect(_close_map)
+	region_map.open_3d.connect(_open_3d)
 	add_child(region_map)
 	region_map.show_map(map_id)
 	planet_view.visible = false
 	planet_view.set_process(false)
+
+func _open_3d(map_id: String, at: Variant, street: bool) -> void:
+	_close_3d()
+	region_3d = Region3D.new()
+	region_3d.set_anchors_preset(Control.PRESET_FULL_RECT)
+	region_3d.closed.connect(_close_3d)
+	add_child(region_3d)
+	region_3d.show_region(map_id, at, Region3D.Mode.STREET if street else Region3D.Mode.CITY)
+	if region_map:
+		region_map.visible = false
+
+func _close_3d() -> void:
+	if region_3d:
+		region_3d.queue_free()
+		region_3d = null
+	if region_map:
+		region_map.visible = true
 
 func _close_map() -> void:
 	if region_map:
@@ -45,7 +65,9 @@ func _close_map() -> void:
 
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_WM_GO_BACK_REQUEST or what == NOTIFICATION_WM_CLOSE_REQUEST:
-		if region_map:
+		if region_3d:
+			_close_3d()
+		elif region_map:
 			_close_map()
 		elif what == NOTIFICATION_WM_CLOSE_REQUEST:
 			get_tree().quit()
@@ -60,7 +82,19 @@ func _shoot(path: String, opts: Array) -> void:
 			region_map.set_satellite(true)
 		if String(o).begins_with("zoom:") and region_map:
 			region_map.zoom_by(float(String(o).substr(5)))
-	for f in 150:
+		if String(o) == "3d" and region_map:
+			_open_3d(region_map.map_id, null, false)
+		if String(o).begins_with("street:") and region_map:
+			var p: Dictionary = {}
+			for q in Data.map(region_map.map_id).pois:
+				if q.id == String(o).substr(7):
+					p = q
+			_open_3d(region_map.map_id, Vector2(p.x, p.z) if not p.is_empty() else null, true)
+	var frames := 150
+	for o in opts:
+		if String(o).begins_with("frames:"):
+			frames = int(String(o).substr(7))
+	for f in frames:
 		await get_tree().process_frame
 	get_viewport().get_texture().get_image().save_png(path)
 	get_tree().quit()
