@@ -8,7 +8,7 @@ import { Crosshair, MoveUp, RotateCw, ArrowRightLeft, Navigation, Car, Hand, Che
 const key = (code: string, down: boolean) => window.dispatchEvent(new KeyboardEvent(down ? "keydown" : "keyup", { code, bubbles: true }));
 
 /** Phone/tablet play: left stick moves (WASD), drag on the right half looks, buttons press the matching keys. */
-export function TouchControls({ disabled = false, bindings, simple = true }: { disabled?: boolean; bindings?: Bindings | undefined; /** only move, look, fire and the vehicle key (settings.simplePhoneHud) */ simple?: boolean }) {
+export function TouchControls({ disabled = false, bindings, simple = true, civilian = false }: { disabled?: boolean; bindings?: Bindings | undefined; /** the prologue: nothing to fire (story-start.ts) */ civilian?: boolean; /** only move, look, fire and the vehicle key (settings.simplePhoneHud) */ simple?: boolean }) {
   const [on, setOn] = useState(false);
   const stick = useRef<{ id: number; x: number; y: number } | null>(null);
   const [knob, setKnob] = useState({ x: 0, y: 0 });
@@ -55,9 +55,9 @@ export function TouchControls({ disabled = false, bindings, simple = true }: { d
         onPointerUp={() => { stick.current = null; setKnob({ x: 0, y: 0 }); setDir(0, 0); }} onPointerCancel={reset}>
         <div className="absolute left-1/2 top-1/2 h-12 w-12 rounded-full bg-primary/60" style={{ transform: `translate(calc(-50% + ${knob.x}px), calc(-50% + ${knob.y}px))` }} />
       </div>
-      {btn("Fire", null, <Crosshair />, "touch-fire size-16", () => { touch.fire = true; }, () => { touch.fire = false; })}
+      {!civilian && btn("Fire", null, <Crosshair />, "touch-fire size-16", () => { touch.fire = true; }, () => { touch.fire = false; })}
       {btn("Enter or exit vehicle", codes.vehicle, <Car />, "touch-vehicle size-11")}
-      {!simple && <>
+      {!simple && !civilian && <>
       {btn("Aim", null, <Crosshair className="size-4" />, "touch-aim size-11", () => { touch.aim = true; }, () => { touch.aim = false; })}
       {btn("Jump", codes.jump, <MoveUp />, "touch-jump size-11")}
       {btn("Dash", codes.dash, <Zap />, "touch-dash size-11")}

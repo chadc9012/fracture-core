@@ -6,6 +6,8 @@ import { RIVERDALE } from "@/game/world";
 import "@/game/venue-doors";
 import { CoastalBeaches } from "./CoastalBeaches";
 import { accessibleShop } from "@/game/shop-access";
+/** combat keys a civilian (the prologue) cannot use: fire, abilities Q/E/R, melee, boss, stratagems, camera swap, hacking, weapon slots */
+const CIVILIAN_BLOCKED_KEYS = ["Space", "KeyQ", "KeyE", "KeyR", "KeyX", "KeyB", "KeyN", "KeyF", "KeyH", "Digit1", "Digit2", "Digit3", "Digit4", "Digit5", "Digit6", "Digit7", "Digit8", "Digit9", "Digit0"];
 const DISCOVERY_LABEL: Record<string, string> = { flag: "Flag", beacon: "Beacon", patrol: "Patrol", fracture: "Rift Fracture", distress: "Distress Signal", cache: "Cache", movement: "Movement Route", anomaly: "Anomaly" };
 const ACTIVITY_REGION: Record<string, string> = { veridan: "veridan", ember: "ember", wastelands: "wastelands", swamps: "swamps", solara: "solara", frostspire: "frostspire", thalassia: "swamps" };
 import { nearby as discoveriesNear, triggered as discoveryTriggered } from "@/game/discoveries";
@@ -617,6 +619,7 @@ function SceneImpl({
   onXP,
   weaponOrder = WEAPON_ORDER,
   travelTo = null,
+  civilian = false,
   onCheckpoint,
   introPlayback,
   openedCaches = [],
@@ -695,6 +698,9 @@ function SceneImpl({
   weaponOrder?: WeaponId[];
   /** star map deployment target; nonce changes trigger the drop */
   /** `descend`: a dungeon the Director map launched (director-activities.ts); its descent starts once you arrive */
+  /** the prologue (story-start.ts): an ordinary resident before the Fracture: no weapon, no abilities, no armor. First person
+   * with no body or gun drawn, and every combat input (fire, aim, reload, weapon swap, melee, dash, abilities, stims) ignored */
+  civilian?: boolean;
   travelTo?: { x: number; z: number; nonce: number; y?: number; descend?: string; /** arrive inside this interior (a new character wakes in Apartment 1204), at `local` metres in it */ interior?: string; local?: { x: number; z: number } } | null;
   onCheckpoint?: (p: { x: number; z: number }) => void;
   /** Opening cinematic: while set, the camera follows intro-camera.ts's scripted flythrough
@@ -778,6 +784,7 @@ function SceneImpl({
   const descentSpawned = useRef("");
   const burstHeard = useRef(0);
   const devWarp = useRef<{ x: number; z: number; y?: number; keepInterior?: boolean } | null>(null);
+  const civilianRef = useRef(civilian); civilianRef.current = civilian;
   useEffect(() => {
     if (typeof window === "undefined" || new URLSearchParams(window.location.search).get("dev") !== "1") return;
     const w = window as unknown as { __warp?: (to: string | { x: number; z: number; y?: number; keepInterior?: boolean }) => string };
@@ -1309,6 +1316,13 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
       s.yaw -= touch.lookDX * 0.005; s.pitch = THREE.MathUtils.clamp(s.pitch - touch.lookDY * 0.005, -1.2, 1.2);
       touch.lookDX = 0; touch.lookDY = 0; mouse.current.fire = touch.fire; mouse.current.aim = touch.aim;
     }
+    // the prologue: a civilian has nothing to fire, swing, dash or cast (moving, jumping, crouching and looking still work)
+    const civ = civilianRef.current;
+    if (civ) {
+      mouse.current.fire = false; mouse.current.aim = false;
+      const kb = (settings.bindings ?? DEFAULT_BINDINGS).keyboard;
+      for (const code of [...CIVILIAN_BLOCKED_KEYS, kb.dash, kb.reload, kb.weaponWheel, kb.nextWeapon, kb.prevWeapon, kb.healStim, kb.armorStim, kb.ruinStone, kb.dragonfire, kb.wyrmwing, kb.dragonhide, kb.wyrmcall, kb.roar, kb.scalebreaker, kb.skyfall, kb.lockOn]) held.delete(code);
+    }
     const boots = bootStats(gearLive.current?.earnedRewards ?? [], getEquippedBoots());
     // Safe-state guard: a null/invalid player or world ref (bad hot-reload, a race during a scene
     // transition) skips this frame instead of throwing into React Three Fiber's render loop.
@@ -1485,7 +1499,7 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
     const padForAbilities = typeof navigator !== "undefined" && navigator.getGamepads ? Array.from(navigator.getGamepads()).find(Boolean) ?? null : null;
     const chord = abilityChord(padForAbilities ? padForAbilities.buttons.map((b) => b.pressed) : [], (settings.bindings ?? DEFAULT_BINDINGS).gamepad);
     for (const [key, slot] of [["KeyQ", "PRIMARY"], ["KeyE", "TACTICAL"], ["KeyR", "ULTIMATE"]] as const) {
-      const down = held.has(key) || chord[slot];
+      const down = !civ && (held.has(key) || chord[slot]);
       if (down && !abilityHeld.current[key]) {
         const cast = castAbility(sim, live.current, slot, { x: s.x, z: s.z, yaw: s.yaw }, { environment: here?.kind ?? "war", subclassId, inVehicle: s.inVehicle });
         if (cast.ok) {
@@ -1820,6 +1834,7 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
     const binds = settings.bindings ?? DEFAULT_BINDINGS;
     const pad = typeof navigator !== "undefined" && navigator.getGamepads ? Array.from(navigator.getGamepads()).find(Boolean) ?? null : null;
     const padNow = pad ? maskChord(pad.buttons.map((b) => b.pressed), binds.gamepad) : [];
+    if (civ) { const g = binds.gamepad; for (const i of [g.fire, g.aim, g.dash, g.reload, g.nextWeapon, g.prevWeapon, g.weaponWheel, g.slot1, g.slot2, g.slot3, g.slot4, g.abilityModifier]) padNow[i] = false; }
     const padTap = (i: number) => !!padNow[i] && !padPrev.current[i];
     const keyTap = (code: string) => held.has(code) && !keyPrev.current.has(code);
     padState.current = { fire: !!padNow[binds.gamepad.fire], aim: !!padNow[binds.gamepad.aim], connected: !!pad };
@@ -1925,7 +1940,7 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
     s.comboTime = Math.max(0, s.comboTime - dt);
     if (s.comboTime <= 0) s.combo = 0;
     // in a vehicle Space is the handbrake and the pad's RT is the throttle, so neither fires: mouse or pad X (2) fires the guns, RMB / pad Y (3) the ordnance
-    const trigger = s.inVehicle ? mouse.current.fire || !!padNow[2] : held.has("Space") || mouse.current.fire || padState.current.fire;
+    const trigger = civ ? false : s.inVehicle ? mouse.current.fire || !!padNow[2] : held.has("Space") || mouse.current.fire || padState.current.fire;
     const secondaryTrigger = s.inVehicle && (mouse.current.aim || !!padNow[3]);
     // rounds leave from just under the eye, along the camera ray: the old +0.95 (2.55 m up, from before the life-size pass)
     // flew over a standing trooper's head and drew first-person tracers ~5 degrees above the crosshair, never crossing it
@@ -3362,7 +3377,7 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
       }
       const override = !s.inVehicle && (s.meleeTime > 0 || s.specialTime > 0);
       // vehicles always use the chase camera: a first-person blend put the camera at the vehicle's centre, inside its body
-      const targetBlend = override || !s.firstPerson || s.inVehicle ? 1 : 0;
+      const targetBlend = override || (!s.firstPerson && !civ) || s.inVehicle ? 1 : 0;
       s.cameraBlend += (targetBlend - s.cameraBlend) * (1 - Math.exp(-15 * dt));
       foliageWeather.uNearFade.value = s.inVehicle ? 1 : s.cameraBlend; // first person: no leaf dissolve around the player (wind-sway.ts)
       const shoulder = s.inVehicle ? 0 : OPERATOR_CAMERA.shoulder * lockRt.current.state.shoulderSide;
@@ -3408,8 +3423,10 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
         camera.fov += (desiredFov - camera.fov) * (1 - Math.exp(-12 * dt));
         camera.updateProjectionMatrix();
       }
+      // the prologue's civilian: no armored Operator body (or its shadow) either
+      if (player.current) player.current.visible = !civ || s.inVehicle;
       if (viewmodel.current) {
-        viewmodel.current.visible = !s.inVehicle && s.cameraBlend < 0.22;
+        viewmodel.current.visible = !s.inVehicle && s.cameraBlend < 0.22 && !civ;
         viewmodel.current.position.copy(camera.position);
         viewmodel.current.quaternion.copy(camera.quaternion);
         // sprint/slide widen the FOV; scaling the viewmodel's x/y by the same ratio keeps the gun and hands where they sit
