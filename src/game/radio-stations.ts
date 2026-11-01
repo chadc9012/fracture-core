@@ -9,6 +9,8 @@ export const RADIO_STATIONS = {
   instrumental: { name: "Parallel 88", genre: "Instrumental beats", bpm: 88, bass: [65.4, 58.3, 49, 55], notes: [261.6, 233.1, 196, 220], wave: "sine" as OscillatorType },
   rnb: { name: "Velvet Static", genre: "Hip-hop & R&B", bpm: 84, bass: [55, 61.7, 49, 55], notes: [220, 246.9, 196, 220], wave: "sine" as OscillatorType },
   latin: { name: "Calor 97", genre: "Latin: old-school classics, reggaeton, dembow", bpm: 120, bass: [55, 55, 65.4, 49], notes: [220, 261.6, 329.6, 196], wave: "triangle" as OscillatorType },
+  chill: { name: "Aether Vibes FM", genre: "Chill / Lo-Fi / Ambient / R&B", bpm: 72, bass: [55, 49, 58.3, 51.9], notes: [220, 207.7, 233.1, 196], wave: "sine" as OscillatorType },
+  edm: { name: "Fracture Beats Radio", genre: "EDM / Trap / Future Bass", bpm: 140, bass: [41.2, 41.2, 49, 36.7], notes: [329.6, 392, 440, 293.7], wave: "sawtooth" as OscillatorType },
   comedy: { name: "Fracture FM: Off the Rails", genre: "Comedy talk radio", bpm: 96, bass: [55, 55, 55, 55], notes: [220, 220, 220, 220], wave: "triangle" as OscillatorType },
 };
 export type StationId = keyof typeof RADIO_STATIONS;
@@ -64,6 +66,8 @@ export const STATION_TRACKS: Record<StationId, StationTrack[]> = {
   // no recordings yet: these two stations air the procedural groove (audio.ts) until the owner supplies original tracks
   rnb: [],
   latin: [],
+  chill: [],
+  edm: [],
   comedy: [
     { title: "Off the Rails · Episode 3: Wasteland Mechanics", artist: "Fracture FM", path: "/audio/radio/fracture-fm-episode-03.ogg" },
     { title: "Off the Rails · Council Hotline", artist: "Fracture FM", path: "/audio/radio/fracture-fm-episode-06.ogg" },
@@ -135,3 +139,16 @@ export function stationTrack(id: StationId, step: number): StationTrack {
   const list = STATION_TRACKS[id];
   return list[Math.max(0, Math.floor(step)) % list.length]!;
 }
+
+/** the fictional artists and tracks planned for the stations that have no recordings yet (docs/radio/NEW_STATION_ROSTERS.md).
+ * Names only: nothing here airs until original audio is supplied, so no song plays under these titles. */
+export const PLANNED_ROSTER: Partial<Record<StationId, readonly { title: string; artist: string }[]>> = {
+  chill: [
+    { title: "Island Dusk", artist: "Lomar Keys" }, { title: "Aether Waves", artist: "Nia Sol" }, { title: "Driftin'", artist: "Kael Reno" },
+    { title: "Late Night Nexus", artist: "Sora Jade" }, { title: "Still Here", artist: "Trey Malix" },
+  ],
+  edm: [
+    { title: "Fracture Drop", artist: "Vexon" }, { title: "Nexus Pulse", artist: "Kairo D" }, { title: "Rift Runner", artist: "Elara X" },
+    { title: "Overdrive", artist: "Dax Volt" }, { title: "Collapse & Rise", artist: "Nova Creed" },
+  ],
+};

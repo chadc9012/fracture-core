@@ -1,16 +1,17 @@
 import { describe, expect, test } from "bun:test";
 import { existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import { hasRecordings, AD_EVERY, BROADCAST_START, FRACTURE_FM_ARCHIVE, RADIO_ADS, RADIO_ADS_ARCHIVE, RADIO_STATIONS, STATION_IDS, STATION_TRACKS, nextOnAir, onAir, stationTrack, type Broadcast, type StationId } from "./radio-stations";
+import { PLANNED_ROSTER, hasRecordings, AD_EVERY, BROADCAST_START, FRACTURE_FM_ARCHIVE, RADIO_ADS, RADIO_ADS_ARCHIVE, RADIO_STATIONS, STATION_IDS, STATION_TRACKS, nextOnAir, onAir, stationTrack, type Broadcast, type StationId } from "./radio-stations";
 
 const publicDir = fileURLToPath(new URL("../../public", import.meta.url));
 
 describe("radio station recordings", () => {
-  test("nine stations; the seven recorded ones each have a station ID and a rotation, and every file (IDs, songs, ads, archive) ships", () => {
-    expect(Object.keys(RADIO_STATIONS)).toHaveLength(9);
+  test("eleven stations; the seven recorded ones each have a station ID and a rotation, and every file (IDs, songs, ads, archive) ships", () => {
+    expect(Object.keys(RADIO_STATIONS)).toHaveLength(11);
     expect(Object.keys(RADIO_STATIONS)).toEqual(expect.arrayContaining(["rnb", "latin"]));
     // Velvet Static (hip-hop & R&B) and Calor 97 (Latin) air the procedural groove until original recordings are supplied
-    expect(hasRecordings("rnb")).toBe(false); expect(hasRecordings("latin")).toBe(false);
+    for (const id of ["rnb", "latin", "chill", "edm"] as const) expect(hasRecordings(id)).toBe(false);
+    expect(PLANNED_ROSTER.chill).toHaveLength(5); expect(PLANNED_ROSTER.edm).toHaveLength(5);
     for (const id of Object.keys(RADIO_STATIONS) as StationId[]) {
       if (!hasRecordings(id)) continue;
       for (const t of STATION_TRACKS[id]) expect(existsSync(publicDir + t.path)).toBe(true);

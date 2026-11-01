@@ -1,3 +1,4 @@
+import { existsSync } from "node:fs";
 import { describe, expect, test } from "bun:test";
 import { CLASS_CARDS, cardFor, cardStats } from "./weapon-class-cards";
 import { frameDef } from "./weapon-classes";
@@ -10,6 +11,7 @@ describe("arsenal class cards", () => {
       expect(card.stats).toHaveLength(5);
       for (const s of card.stats) { expect(s.pct).toBeGreaterThanOrEqual(4); expect(s.pct).toBeLessThanOrEqual(100); }
       expect(card.mag).toBe(frameDef(c.frame).mag);
+      expect(existsSync(`${__dirname}/../../public${c.art}`)).toBe(true);
     }
   });
   test("the classes read like their class", () => {
@@ -18,6 +20,6 @@ describe("arsenal class cards", () => {
     expect(stat("sniper", "Range")).toBeGreaterThan(stat("shotgun", "Range"));
     expect(stat("smg", "Handling")).toBeGreaterThan(stat("sniper", "Handling"));
     expect(stat("smg", "Mag size")).toBeGreaterThan(stat("sniper", "Mag size"));
-    expect(stat("heavy", "Damage")).toBeGreaterThan(stat("auto", "Damage"));
+    expect(stat("launcher", "Damage")).toBeGreaterThan(stat("auto", "Damage"));
   });
 });

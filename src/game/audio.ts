@@ -123,7 +123,7 @@ function startProceduralRadio(id: StationId) {
     if (cursor < c.ac.currentTime - 0.1) cursor = c.ac.currentTime;
     while (cursor < c.ac.currentTime + 0.1) {
       const n = step % 16, chord = Math.floor(step / 16) % 4;
-      const kick = id === "house" || id === "latin" ? n % 4 === 0 : id === "reggae" ? n === 4 || n === 12 : n === 0 || n === 8 || ((id === "hiphop" || id === "rnb") && n === 11);
+      const kick = id === "house" || id === "latin" || id === "edm" ? n % 4 === 0 : id === "reggae" ? n === 4 || n === 12 : n === 0 || n === 8 || ((id === "hiphop" || id === "rnb") && n === 11);
       if (kick) note(140, 0.18, 0.75, "sine", cursor, 38);
       // dembow: the kick lands every beat and the snare answers on the off-beat tresillo (steps 3, 6, 11, 14)
       if (id === "latin" ? n === 3 || n === 6 || n === 11 || n === 14 : n === 4 || n === 12) note(220, 0.09, 0.15, "triangle", cursor, 90);
