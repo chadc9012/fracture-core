@@ -3,7 +3,7 @@ import { Plane, PlaneTakeoff, Ship, Warehouse, X, Waves } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { PlayerProgression } from "@/game/progression";
 import { TERMINALS, arrivalPoint, flightsFrom, type Terminal } from "@/game/travel";
-import { continentById } from "@/game/planet";
+import { continentOfRegion } from "@/game/planet";
 import { formatNex } from "@/game/nex";
 import { nexBalance } from "@/game/nex";
 import type { JourneyKind } from "@/game/flight-journey";
@@ -30,7 +30,7 @@ export function TransitPanel({ terminalId, progression, onFly, onClose, onOpenHa
   const sea = from.kind === "SEAPORT";
   const flights = flightsFrom(from, progression);
   const fly = (t: Terminal, kind: JourneyKind) => {
-    const c = continentById(t.world);
+    const c = continentOfRegion(t.regionId);
     const a = arrivalPoint(t);
     const sub = kind === "phantom" ? `${c?.name ?? ""} · Phantom Stealth Jet` : `${c?.name ?? ""} · ${sea ? "ferry" : "flight"}`;
     onFly({ id: t.id, name: t.name, sub, color: kind === "phantom" ? "#7fd0ff" : c?.color ?? "#5ee7ff", x: a.x, z: a.z }, { kind, seatStyle, fromId: from.id, toId: t.id, fromName: from.name, toName: t.name, from: { x: from.x, z: from.z }, to: { x: t.x, z: t.z } });
@@ -87,7 +87,7 @@ export function TransitPanel({ terminalId, progression, onFly, onClose, onOpenHa
             {msg && <p role="status" className="mt-1 text-[11px] text-primary">{msg}</p>}
           </section>
         )}
-        <p className="mt-3 flex items-center gap-2 font-mono text-[10px] text-muted-foreground"><Waves className="size-3.5" /> Thalassia: the elevator platform off Aetheria's Verdant shore, or an underwater vehicle.</p>
+        <p className="mt-3 flex items-center gap-2 font-mono text-[10px] text-muted-foreground"><Waves className="size-3.5" /> Thalassia: the elevator platform off the Verdant Forest's shore, or an underwater vehicle.</p>
       </div>
     </div>
   );

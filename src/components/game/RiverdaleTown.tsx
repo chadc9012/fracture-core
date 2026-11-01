@@ -38,7 +38,7 @@ export function RiverdaleTown({ progression }: { progression?: PlayerProgression
       {/* the welcome sign's lettering, on the face toward the road in (west) */}
       <group position={[RIVERDALE.x + SIGN.x - 0.1, level + 2.3, RIVERDALE.z + SIGN.z]} rotation={[0, -Math.PI / 2, 0]}>
         <Text fontSize={0.62} color="#f3ead2" anchorX="center" anchorY="middle" position={[0, 0.18, 0]} letterSpacing={0.12}>RIVERDALE</Text>
-        <Text fontSize={0.24} color="#bcd7c2" anchorX="center" anchorY="middle" position={[0, -0.32, 0]}>Aetheria · on the Verdant river</Text>
+        <Text fontSize={0.24} color="#bcd7c2" anchorX="center" anchorY="middle" position={[0, -0.32, 0]}>Verdant Forest · on the river</Text>
       </group>
       {LAMPS.slice(0, 4).map(([x, z]) => <DistrictLight key={`${x},${z}`} range={60} position={[RIVERDALE.x + x, level + 4.4, RIVERDALE.z + z]} color="#ffd9a0" intensity={7} distance={16} decay={1.6} castShadow={false} />)}
       <DistrictLight range={90} position={[RIVERDALE.x, level + TOWER.height - 1.2, RIVERDALE.z]} color="#fff1cc" intensity={5} distance={14} decay={1.6} castShadow={false} />

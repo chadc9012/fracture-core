@@ -21,7 +21,7 @@ import * as THREE from "three";
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { appearanceById, classById, subclassById, type AppearanceDefinition, type ClassId, type SubclassId } from "@/game/loadout";
-import { REGIONS } from "@/game/world";
+import { NEON_FLAT, NEON_SITE, REGIONS, RIVERDALE } from "@/game/world";
 import { walkHeight } from "@/game/terrain";
 import type { VehicleId } from "@/game/vehicles";
 import { STARTER_VEHICLES, VEHICLES, vehicleAcquisition } from "@/game/vehicles";
@@ -1483,6 +1483,7 @@ export function GameCanvas() {
             playerClass={progression.identityClass ?? cls}
             notice={menuNotice}
             currentWorld={hud.world ?? null}
+            currentRegion={hud.world === "thalassia" ? "thalassia" : Math.hypot(hud.px - NEON_SITE.x, hud.pz - NEON_SITE.z) < NEON_FLAT * 1.4 ? "neon" : Math.hypot(hud.px - RIVERDALE.x, hud.pz - RIVERDALE.z) < RIVERDALE.r + RIVERDALE.fade ? "riverdale" : hud.regionId || null}
           />
         )}
         {menuOpen && <SettingsWindow completedMissions={progression.completedMissions} settings={settings} onChange={updateSettings} onClose={() => setMenuOpen(false)} onOrbit={() => { setMenuOpen(false); setPhase("title"); }} />}

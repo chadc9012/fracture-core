@@ -1,154 +1,160 @@
 /** The planet (Stages 148, 152 and 153, pure): World Fracture's Earth-sized world and how the playable world maps onto it.
- * Global map board (owner, Oct 26 2026): ten lands on an Earth-like globe — Aetheria (Atlantic Region: Nexus City, the
- * capital, Neon City, the Verdant Forest, Riverdale and the Celestial Bridge), Valdoria (North America), Frosthelm (Arctic),
- * Zephyria (North Asia), Noctyra (Europe/Asia), Myrathis (Asia), Elyndra (South America), Kharos (Africa), Pyrrath (Southern
- * Continent) and Sylvaris; the Arctic, Pacific, Atlantic, Indian and Southern Oceans; a 12,742 km planet. Veyloria is retired:
- * the Verdant Forest is Aetheria's, across the Nexus Strait from Nexus City. Thalassia is on no continent: it lies in the
- * Atlantic off Aetheria's Verdant shore, reached by an offshore elevator or an underwater vehicle.
+ * Canon map (owner, Nov 1 2026: "12 Continents, 7 Oceans", the concept board sent Oct 27): twelve continents — Nexus City,
+ * Neon City, Verdant Forest, Thalassia, Frost Spire, Scorched Plains, Wastelands, Crystal Badlands, Storm Islands, The
+ * Shattered Reefs, Ember Peaks and Shrouded Swamps — and seven oceans (Aurora, Fracture, Solara, Silent, Obsidian, Tempest,
+ * Echo). It replaces the Oct 26 board's ten lands (Aetheria, Kharos, Pyrrath...). Districts per continent come from the same
+ * concept series' regional maps. Protected (design bible): Thalassia lies offshore from the Verdant Forest; Neon City is its
+ * own continent, not Nexus; Vyrak's lair stays in the Solara Desert, which is part of the Scorched Plains.
  *
- * In the live game every continent is a "world": the part of the map closest (weighted) to that continent's anchors.
- * You cannot walk, drive, sail or fly from one continent world into another; you travel between them from a transit
- * terminal (travel.ts) or by deploying from the planet map. Thalassia, the Storm Islands, interiors and descents are free
- * spaces with their own ways in. Pure; tested in planet.test.ts. */
+ * Continents are the map and lore. Walking is governed by the live map's WORLDS (continent-borders.ts anchors): the part of
+ * the map closest (weighted) to a world's anchors. You cannot walk, drive, sail or fly from one world into another; you
+ * travel between them from a transit terminal (travel.ts) or by deploying from the planet map. World ids are internal and
+ * saved ("planet:visited:<world>"), so they keep their old names: "aetheria" holds the Nexus City, Neon City and Verdant
+ * Forest continents (the bridge drive between them stays open), "kharos" the Scorched Plains and Wastelands, "frosthelm"
+ * Frost Spire, "pyrrath" Ember Peaks, "sylvaris" Shrouded Swamps, "thalassia" the undersea city's water. Pure; tested in
+ * planet.test.ts. */
 import { WORLD_ANCHORS, worldOfAnchor } from "./continent-borders";
 import { THALASSIA_CENTER } from "./thalassia-site";
 import { CITY_RADIUS } from "./thalassia-sectors";
 
 export const PLANET = {
   name: "Veyra",
-  /** mean diameter, as on the owner's global map board (Earth's) */
+  /** mean diameter (Earth's) */
   diameterKm: 12742,
   /** polar diameter: flattened like Earth's (1/298) */
   polarDiameterKm: Math.round(12742 * (1 - 1 / 298)),
-  /** 4πr²: 510.1 million km², as on the board */
+  /** 4πr²: 510.1 million km² */
   surfaceKm2: Math.round(4 * Math.PI * (12742 / 2) ** 2),
   gravityG: 1,
-  majorContinents: 7,
-  majorOceans: 5,
-  /** the board's planet info: 8 major regions, 40+ cities, 20+ airports, 20+ ports, 100+ discoverable locations */
-  majorRegions: 8,
-  cities: "40+",
-  airports: "20+",
-  ports: "20+",
-  discoverable: "100+",
+  /** the canon board: "12 Continents, 7 Oceans" */
+  majorContinents: 12,
+  majorOceans: 7,
 } as const;
 
-export type ContinentId = "aetheria" | "valdoria" | "frosthelm" | "zephyria" | "noctyra" | "myrathis" | "elyndra" | "kharos" | "pyrrath" | "sylvaris";
-/** CORE: built and playable now; EXPANSION: one region at a time, later; BACKDROP: on the map (nations, lore, events), not walkable yet */
+export type ContinentId = "nexus-city" | "neon-city" | "verdant-forest" | "thalassia" | "frost-spire" | "scorched-plains" | "wastelands"
+  | "crystal-badlands" | "storm-islands" | "shattered-reefs" | "ember-peaks" | "shrouded-swamps";
+/** CORE: built and playable now; EXPANSION: one region at a time, later; BACKDROP: on the map (lore, events), not walkable yet */
 export type PlayTier = "CORE" | "EXPANSION" | "BACKDROP";
-/** what a land on the board is: one of the seven continents, or an archipelago or subregion */
-export type LandKind = "CONTINENT" | "ARCHIPELAGO" | "NATION" | "SUBREGION";
-export const LAND_KIND_LABEL: Record<LandKind, string> = { CONTINENT: "Continent", ARCHIPELAGO: "Archipelago", NATION: "Nation", SUBREGION: "Subregion" };
 
-/** a named place in a land's panel on the board (the board's legend: capital, major city, point of interest, airport, port) */
+/** a named place in a continent's list (capital, district, point of interest, airport, port) */
 export type PlaceKind = "CAPITAL" | "CITY" | "POI" | "AIRPORT" | "PORT" | "BRIDGE" | "HUB";
 export type Place = { name: string; kind: PlaceKind; /** the live terminal or game region it is, when it exists in the game */ live?: string };
 
+/** a walkable world of the live map (internal ids, saved: see the header) */
+export type WorldId = "aetheria" | "sylvaris" | "kharos" | "frosthelm" | "pyrrath" | "thalassia";
+
 export type Continent = {
   id: ContinentId;
+  /** its number in the board's continent list (1-12) */
+  n: number;
   name: string;
-  /** the board's tag under the name (Aetheria: "Atlantic Region") */
-  region: string;
-  /** the board's one-line description in the land's panel */
+  /** the board list's tag under the name ("Unity · Progress") */
+  tagline: string;
+  /** the board's tile caption ("Unity · Progress · Opportunity") */
   epithet: string;
-  kind: LandKind;
-  /** globe position of its heart, degrees: read off the owner's global map board */
-  lat: number; lon: number;
-  /** rough extent on the globe, degrees of arc */
-  size: number;
   tier: PlayTier;
-  /** the game's regions on it (world.ts REGIONS ids, plus "neon" for Neon City and "storm-islands") */
+  /** the game's regions on it (world.ts REGIONS ids, plus "neon", "riverdale", "thalassia" and "storm-islands") */
   regions: readonly string[];
+  /** the live world it lies in, or null when it is not walkable yet */
+  world: WorldId | null;
   capital: string;
   look: string;
   color: string;
-  majorCities: number;
-  scale: "Large" | "Medium" | "Small";
   climate: string;
-  /** the board panel's list, top to bottom */
+  /** districts and terminals, top to bottom */
   places: readonly Place[];
-  /** where its name is painted on the global map board (pixels in the 1536×1024 board) */
+  /** the centre of its painted name on the board (pixels, BOARD space); its icon sits ~30 px above */
   pin: { x: number; y: number };
-  /** its panel on the board (pixels) */
+  /** its row in the board's continent list (pixels) */
   panel: { x: number; y: number; w: number; h: number };
 };
 
 const C = (name: string, kind: PlaceKind, live?: string): Place => (live ? { name, kind, live } : { name, kind });
-/** the ten lands of the owner's global map board (Oct 26 2026). Verdant Forest is Aetheria's, beside Nexus City and Neon City. */
-export const CONTINENTS: readonly Continent[] = [
-  { id: "aetheria", name: "Aetheria", region: "Atlantic Region", epithet: "Advanced cities, forests, mountains, and innovation.", kind: "CONTINENT", lat: 22, lon: -4, size: 26, tier: "CORE",
-    regions: ["nexus", "neon", "veridan", "riverdale"], capital: "Nexus City", color: "#5aa8d8", majorCities: 4, scale: "Large", climate: "Temperate",
-    places: [C("Nexus City", "CAPITAL", "nexus"), C("Neon City", "CITY", "neon"), C("Verdant Forest", "POI", "veridan"), C("Riverdale", "CITY", "riverdale"), C("Celestial Bridge", "BRIDGE"), C("Aetheria Airport (Nexus)", "AIRPORT", "terminal:nexus"), C("Neon International Airport", "AIRPORT", "terminal:neon")],
-    look: "Nexus City and Neon City on opposite shores of a great gulf, joined by the Celestial Bridge; the Verdant Forest across the Nexus Strait. Thalassia lies offshore in the Atlantic. The game starts here.",
-    pin: { x: 705, y: 350 }, panel: { x: 12, y: 102, w: 336, h: 172 } },
-  { id: "valdoria", name: "Valdoria", region: "North America", epithet: "Lush forests, rivers, and ancient ruins.", kind: "CONTINENT", lat: 40, lon: -70, size: 30, tier: "BACKDROP",
-    regions: [], capital: "Valdoria City", color: "#7fbf5a", majorCities: 2, scale: "Large", climate: "Temperate · forest",
-    places: [C("Valdoria City", "CAPITAL"), C("Eldergrove", "CITY"), C("The Great Plains", "POI"), C("Silver River", "POI"), C("Valdoria Airport", "AIRPORT"), C("East Port", "PORT")],
-    look: "Forests, river valleys and the Great Plains, with ancient ruins along the Silver River.", pin: { x: 510, y: 224 }, panel: { x: 12, y: 282, w: 336, h: 152 } },
-  { id: "frosthelm", name: "Frosthelm", region: "Arctic Continent", epithet: "Frozen lands and towering peaks.", kind: "CONTINENT", lat: 72, lon: -10, size: 26, tier: "CORE",
-    regions: ["frostspire"], capital: "Frost Spire", color: "#a9d3ee", majorCities: 2, scale: "Large", climate: "Polar",
-    places: [C("Frost Spire", "CAPITAL", "frostspire"), C("Whitegate Port", "PORT", "seaport:frostspire"), C("Glacier Pass", "POI"), C("Northreach", "CITY"), C("Frosthelm Airport", "AIRPORT", "terminal:frostspire")],
-    look: "Frost Spire, glaciers, frozen coastlines and polar settlements.", pin: { x: 718, y: 140 }, panel: { x: 12, y: 440, w: 336, h: 144 } },
-  { id: "kharos", name: "Kharos", region: "Africa", epithet: "Vast deserts, ancient tombs, and lost civilizations.", kind: "CONTINENT", lat: 2, lon: 22, size: 30, tier: "CORE",
-    regions: ["solara", "wastelands"], capital: "Solara City", color: "#d9973f", majorCities: 2, scale: "Large", climate: "Arid",
-    places: [C("Solara City", "CAPITAL", "solara"), C("Solara Desert", "POI"), C("Sunspire", "CITY"), C("The Hollow Sun", "POI"), C("Kharos Airport", "AIRPORT", "terminal:solara"), C("Dune Port", "PORT", "seaport:solara")],
-    look: "Solara Desert, canyons, ancient tombs and a vast dry interior; rust, scrap and burned highways in the Wastelands north of Solara.", pin: { x: 880, y: 480 }, panel: { x: 12, y: 590, w: 336, h: 144 } },
-  { id: "pyrrath", name: "Pyrrath", region: "Southern Continent", epithet: "Volcanic mountains and molten frontiers.", kind: "CONTINENT", lat: -24, lon: 38, size: 24, tier: "CORE",
-    regions: ["ember"], capital: "Pyrrath Keep", color: "#e0522a", majorCities: 2, scale: "Medium", climate: "Volcanic",
-    places: [C("Ember Peaks", "CITY", "ember"), C("Magma Core", "POI"), C("Pyrrath Keep", "CAPITAL"), C("Ashen Coast", "POI"), C("Pyrrath Airport", "AIRPORT", "terminal:ember"), C("Blackrock Port", "PORT", "seaport:ember")],
-    look: "Ember Peaks: volcanic mountains, lava fields and industrial settlements.", pin: { x: 963, y: 574 }, panel: { x: 12, y: 740, w: 336, h: 132 } },
-  { id: "noctyra", name: "Noctyra", region: "Europe / Asia", epithet: "Neon metropolises and digital frontiers.", kind: "CONTINENT", lat: 42, lon: 40, size: 26, tier: "BACKDROP",
-    regions: [], capital: "Noctyra City", color: "#b45cff", majorCities: 2, scale: "Large", climate: "Temperate · rain",
-    places: [C("Noctyra City", "CAPITAL"), C("Voidspire", "CITY"), C("The Neon Dominion", "POI"), C("Nightreach Port", "PORT"), C("Noctyra International", "AIRPORT"), C("Skyrail Hub", "HUB")],
-    look: "Neon metropolises, isolated territories and dimensional anomalies.", pin: { x: 913, y: 275 }, panel: { x: 1228, y: 8, w: 300, h: 156 } },
-  { id: "elyndra", name: "Elyndra", region: "South America", epithet: "Tropical islands and crystal waters.", kind: "CONTINENT", lat: -10, lon: -58, size: 26, tier: "BACKDROP",
-    regions: [], capital: "Sapphire City", color: "#3fb6c9", majorCities: 1, scale: "Large", climate: "Tropical",
-    places: [C("Sapphire City", "CAPITAL"), C("Coral Expanse", "POI"), C("Azure Port", "PORT"), C("The Sapphire Coast", "POI"), C("Elyndra Airport", "AIRPORT")],
-    look: "Tropical islands, crystal waters and working harbours.", pin: { x: 551, y: 497 }, panel: { x: 1228, y: 168, w: 300, h: 156 } },
-  { id: "sylvaris", name: "Sylvaris", region: "Southern wetlands", epithet: "Wetlands, jungles, and living ecosystems.", kind: "SUBREGION", lat: -38, lon: -52, size: 18, tier: "CORE",
-    regions: ["swamps"], capital: "Sylva City", color: "#2f9c86", majorCities: 1, scale: "Medium", climate: "Wetland",
-    places: [C("Sylva City", "CAPITAL", "swamps"), C("Emerald Basin", "POI"), C("The Living Reef", "POI"), C("Sylvaris Port", "PORT", "seaport:swamps"), C("Sylvaris Airport", "AIRPORT", "terminal:swamps")],
-    look: "The Shrouded Swamps, bioluminescent wetlands and ancient forests at the southern end of Elyndra's landmass.", pin: { x: 574, y: 640 }, panel: { x: 1228, y: 328, w: 300, h: 152 } },
-  { id: "myrathis", name: "Myrathis", region: "Asia", epithet: "Ancient lands and forgotten realms.", kind: "SUBREGION", lat: 28, lon: 78, size: 20, tier: "BACKDROP",
-    regions: [], capital: "Stonecrest", color: "#8a9a7a", majorCities: 1, scale: "Medium", climate: "Highland mist",
-    places: [C("Stonecrest", "CAPITAL"), C("Eclipse Ruins", "POI"), C("The Forgotten Lands", "POI"), C("Myrathis Airport", "AIRPORT"), C("West Port", "PORT")],
-    look: "Ancient lands and forgotten realms: weathered stone, waterfalls and mist, east of Noctyra.", pin: { x: 1112, y: 330 }, panel: { x: 1228, y: 486, w: 300, h: 152 } },
-  { id: "zephyria", name: "Zephyria", region: "North Asia", epithet: "Floating islands and stormfronts.", kind: "ARCHIPELAGO", lat: 66, lon: 60, size: 20, tier: "EXPANSION",
-    regions: ["storm-islands"], capital: "Zephyr Gate", color: "#7f8fd8", majorCities: 1, scale: "Small", climate: "Storm · alpine",
-    places: [C("Zephyr Gate", "CAPITAL"), C("Stormspire", "POI"), C("Skyreach", "POI"), C("Zephyria Airport", "AIRPORT"), C("Tempest Port", "PORT")],
-    look: "Floating islands and stormfronts; the Storm Islands are its first playable ground.", pin: { x: 957, y: 143 }, panel: { x: 1228, y: 642, w: 300, h: 152 } },
-];
-
-/** the seven continents (the rest of CONTINENTS are archipelagos and subregions on the board) */
-export const MAJOR_CONTINENTS = (): readonly Continent[] => CONTINENTS.filter((c) => c.kind === "CONTINENT");
-
-export type OceanId = "arctic" | "pacific" | "atlantic" | "indian" | "southern";
-/** the board's five major oceans */
-export const OCEANS: readonly { id: OceanId; name: string; lat: number; lon: number; character: string; major: boolean; pin: { x: number; y: number } }[] = [
-  { id: "arctic", name: "Arctic Ocean", lat: 84, lon: 0, character: "Polar seas and drifting ice around Frosthelm and Zephyria", major: true, pin: { x: 795, y: 66 } },
-  { id: "pacific", name: "Pacific Ocean", lat: 10, lon: -110, character: "Main shipping and passenger routes along Valdoria's and Elyndra's western coasts", major: true, pin: { x: 396, y: 398 } },
-  { id: "atlantic", name: "Atlantic Ocean", lat: -8, lon: -20, character: "Central trade routes between Aetheria, Elyndra and Kharos; Thalassia lies in its waters off Aetheria", major: true, pin: { x: 720, y: 548 } },
-  { id: "indian", name: "Indian Ocean", lat: -6, lon: 80, character: "Between Kharos, Pyrrath and Myrathis", major: true, pin: { x: 1098, y: 512 } },
-  { id: "southern", name: "Southern Ocean", lat: -62, lon: 0, character: "Deep trenches and dangerous water south of Pyrrath and Sylvaris", major: true, pin: { x: 776, y: 718 } },
-];
-
-/** nations on each land (the first nation of each CORE land holds its playable ground) */
-const NATIONS_BY: Record<ContinentId, readonly string[]> = {
-  aetheria: ["Nexus Republic", "Aether Concord", "Neon Free State", "Verdant Wilds", "Riverdale Compact", "Skyline Accord"],
-  valdoria: ["Valdorian Commonwealth", "Eldergrove March", "Great Plains League", "Silver River Freehold"],
-  frosthelm: ["Crown of Frosthelm", "Rimeguard", "Northreach Pact"],
-  kharos: ["Kharosi Sun Dominion", "Wasteland Free Clans", "Dune Gate Emirates", "Canyon Accord", "Ashen Caravans"],
-  pyrrath: ["Pyrrathi Forge Union", "Cinder Marches", "Basalt Thanes"],
-  noctyra: ["Noctyran Directorate", "Neon Dominion", "Nightreach Free Port", "Voltmarch"],
-  elyndra: ["Sapphire Coast Federation", "Isle Kingdoms of Elyndra", "Coralport", "Tidewell"],
-  sylvaris: ["Sylvari Mire Council", "Mangrove Leagues", "Lantern Delta"],
-  myrathis: ["Remnant of Myrathis", "Mistveil", "Temple Cantons"],
-  zephyria: ["Zephyrian Highcourt", "Stormward Isles", "Thunderhold"],
+/** the board's continent list: one row per continent, 37.6 px apart from y 26 */
+const row = (n: number) => ({ x: 690, y: Math.round(26 + (n - 1) * 37.6), w: 198, h: 36 });
+const T = (id: string) => [C(AIRPORT_NAMES[id]!, "AIRPORT", `terminal:${id}`), C(SEAPORT_NAMES[id]!, "PORT", `seaport:${id}`)];
+/** terminal names (travel.ts reads them too) */
+export const AIRPORT_NAMES: Readonly<Record<string, string>> = {
+  nexus: "Nexus City Airport", neon: "Neon International Airport", veridan: "Verdant Airfield", frostspire: "Frost Spire Airport",
+  ember: "Ember Peaks Airport", wastelands: "Wastelands Airstrip", solara: "Solara Airport", swamps: "Shrouded Swamps Airfield",
 };
-export type Nation = { id: string; name: string; continent: ContinentId; playable: boolean };
-export const NATIONS: readonly Nation[] = CONTINENTS.flatMap((c) =>
-  NATIONS_BY[c.id].map((name, i) => ({ id: `${c.id}-${i + 1}`, name, continent: c.id, playable: i === 0 && c.tier === "CORE" })),
-);
+export const SEAPORT_NAMES: Readonly<Record<string, string>> = {
+  nexus: "Nexus Harbour", neon: "Neon City Harbour", veridan: "Verdant Port", frostspire: "Whitegate Port",
+  ember: "Lava Docks", wastelands: "Rust Harbour", solara: "Dune Port", swamps: "Mirewater Port",
+};
+
+/** the twelve continents of the canon board, in its list order */
+export const CONTINENTS: readonly Continent[] = [
+  { id: "nexus-city", n: 1, name: "Nexus City", tagline: "Unity · Progress", epithet: "Unity · Progress · Opportunity", tier: "CORE", regions: ["nexus"], world: "aetheria",
+    capital: "Nexus City", color: "#9fd6ff", climate: "Temperate",
+    places: [C("Nexus City", "CAPITAL", "nexus"), C("Nexus Hall", "POI"), C("Government District", "CITY"), C("Capital District", "CITY"), C("University", "POI"), C("Residential", "CITY"), C("Harbor District", "CITY"), ...T("nexus")],
+    look: "The capital of a new world: towers, the State Capitol and the elevated highway loop. The game starts here, and the bridge drive runs on to Neon City and the Verdant Forest.",
+    pin: { x: 320, y: 311 }, panel: row(1) },
+  { id: "neon-city", n: 2, name: "Neon City", tagline: "Lights · Power · Freedom", epithet: "Lights · Money · Power", tier: "CORE", regions: ["neon"], world: "aetheria",
+    capital: "Neon City", color: "#c86bff", climate: "Temperate · rain",
+    places: [C("Neon City", "CAPITAL", "neon"), C("Luxury District", "CITY"), C("Aegis Spire", "POI"), C("Crown Casino", "POI"), C("Casino Row", "CITY"), C("The Strip", "CITY"), C("Shopping Mall", "POI"), C("Nightlife District", "CITY"), C("Metro Station", "HUB"), C("Harbor & Docks", "CITY"), C("Industrial", "CITY"), ...T("neon")],
+    look: "The Velvet Circuit: casinos, clubs and penthouses under the neon, its own city across the gulf from Nexus.",
+    pin: { x: 486, y: 349 }, panel: row(2) },
+  { id: "verdant-forest", n: 3, name: "Verdant Forest", tagline: "Life · Mystery", epithet: "Life · Mystery · Ancient Secrets", tier: "CORE", regions: ["veridan", "riverdale"], world: "aetheria",
+    capital: "Riverdale", color: "#59d07a", climate: "Temperate rainforest",
+    places: [C("Verdant Grove", "POI", "veridan"), C("Riverdale", "CITY", "riverdale"), C("The Canopy", "POI"), C("Mistwood", "POI"), C("Emerald Lakes", "POI"), C("Spirit Falls", "POI"), C("Rooted Hollow", "POI"), ...T("veridan")],
+    look: "Old-growth forest, rivers and the town of Riverdale. Thalassia lies offshore: take the elevator platform off the Verdant shore.",
+    pin: { x: 630, y: 330 }, panel: row(3) },
+  { id: "thalassia", n: 4, name: "Thalassia", tagline: "Beauty · Below", epithet: "Beauty · Below · Life Together", tier: "CORE", regions: ["thalassia"], world: "thalassia",
+    capital: "Royal Palace", color: "#4fd6e8", climate: "Undersea",
+    places: [C("Thalassia", "CAPITAL", "thalassia"), C("Coral District", "CITY"), C("Central Plaza", "CITY"), C("Royal Palace", "POI"), C("Research Dome", "POI"), C("Trench Gates", "POI"), C("Living Reef", "POI")],
+    look: "The sunken kingdom, offshore from the Verdant Forest: reached by the elevator platform off the Verdant shore or an underwater vehicle.",
+    pin: { x: 578, y: 521 }, panel: row(4) },
+  { id: "frost-spire", n: 5, name: "Frost Spire", tagline: "Isolation · Strength", epithet: "Isolation · Strength · Ancient Power", tier: "CORE", regions: ["frostspire"], world: "frosthelm",
+    capital: "Frostspire Keep", color: "#cfe8ff", climate: "Polar",
+    places: [C("Frostspire Mountains", "CAPITAL", "frostspire"), C("Frostspire Keep", "POI"), C("Glacier Pass", "POI"), C("The White Expanse", "POI"), C("Icegate", "POI"), C("Avalanche Basin", "POI"), C("Skyreach", "POI"), C("Nomad Camp", "CITY"), ...T("frostspire")],
+    look: "The cold remembers: glaciers, frozen passes and polar settlements under the Spire.",
+    pin: { x: 400, y: 100 }, panel: row(5) },
+  { id: "scorched-plains", n: 6, name: "Scorched Plains", tagline: "Heat · Conflict", epithet: "Heat · Conflict · Hidden Truths", tier: "CORE", regions: ["solara"], world: "kharos",
+    capital: "Solara", color: "#f2b63c", climate: "Arid",
+    places: [C("Solara Desert", "CAPITAL", "solara"), C("Sunken Arcology Vaults", "POI"), C("Glass Dunes", "POI"), ...T("solara")],
+    look: "Sun-baked plains around the Solara Desert, with canyons and ancient tombs; the Wastelands lie north across the dunes.",
+    pin: { x: 137, y: 407 }, panel: row(6) },
+  { id: "wastelands", n: 7, name: "Wastelands", tagline: "Survival · Opportunity", epithet: "Survival · Danger · Opportunity", tier: "CORE", regions: ["wastelands"], world: "kharos",
+    capital: "Outlander Camp", color: "#c9a36a", climate: "Arid · dust",
+    places: [C("The Wastelands", "CAPITAL", "wastelands"), C("Warlord's Ridge", "POI"), C("The Dust Sea", "POI"), C("The Maw", "POI"), C("Scrapwall", "CITY"), C("Sunken Convoy", "POI"), C("Outlander Camp", "CITY"), C("Ravager Dunes", "POI"), C("Salvage Yards", "POI"), ...T("wastelands")],
+    look: "Survive, adapt, conquer: rust, scrap and burned highways.",
+    pin: { x: 338, y: 473 }, panel: row(7) },
+  { id: "crystal-badlands", n: 8, name: "Crystal Badlands", tagline: "Resources · Mysteries", epithet: "Beauty · Resources · Mysteries", tier: "BACKDROP", regions: [], world: null,
+    capital: "The Crystal Spire", color: "#9b6bff", climate: "Crystalline badlands",
+    places: [C("The Crystal Spire", "CAPITAL"), C("Shattered Fields", "POI"), C("Echo Canyons", "POI"), C("Refraction Valley", "POI"), C("The Prism", "POI"), C("Void Rifts", "POI"), C("Crystal Mines", "POI"), C("Scavenger's Rest", "CITY")],
+    look: "Beauty in ruin: crystal spires, mines and void rifts. On the map, not explorable yet.",
+    pin: { x: 147, y: 287 }, panel: row(8) },
+  { id: "storm-islands", n: 9, name: "Storm Islands", tagline: "Chaos · Discovery", epithet: "Chaos · Discovery · Sky High", tier: "EXPANSION", regions: ["storm-islands"], world: null,
+    capital: "Storm Citadel", color: "#7fb2ff", climate: "Storm · alpine",
+    places: [C("Storm Citadel", "CAPITAL"), C("Thunder Cliffs", "POI"), C("Cyclone Pass", "POI"), C("Shattered Isles", "POI"), C("Windshear Village", "CITY"), C("Tempest Docks", "PORT"), C("Eye of the Storm", "POI")],
+    look: "Where chaos lives: floating islands and stormfronts, reached by air drop.",
+    pin: { x: 557, y: 189 }, panel: row(9) },
+  { id: "shattered-reefs", n: 10, name: "The Shattered Reefs", tagline: "Islands · Secrets", epithet: "Islands · Secrets · War's Remnants", tier: "BACKDROP", regions: [], world: null,
+    capital: "Echo Isles", color: "#5ec8e0", climate: "Maritime",
+    places: [C("Echo Isles", "CAPITAL"), C("The Fracture", "POI"), C("Echo Ruins", "POI"), C("Ancient Vault", "POI"), C("Driftmarker", "POI"), C("Sunken Spire", "POI"), C("The Deep", "POI")],
+    look: "Remnants of another time: broken islands and sunken vaults. On the map, not explorable yet.",
+    pin: { x: 220, y: 173 }, panel: row(10) },
+  { id: "ember-peaks", n: 11, name: "Ember Peaks", tagline: "Fire · Power", epithet: "Fire · Power · Forgotten Kings", tier: "CORE", regions: ["ember"], world: "pyrrath",
+    capital: "Forgemaster's Keep", color: "#ff6a3a", climate: "Volcanic",
+    places: [C("Ember Peaks", "CAPITAL", "ember"), C("Ashen Summit", "POI"), C("Magma Flow", "POI"), C("Forgemaster's Keep", "POI"), C("Ember Pass", "POI"), C("Sulfur Fields", "POI"), C("The Crucible", "POI"), C("Obsidian Canyons", "POI"), ...T("ember")],
+    look: "Fire shapes destiny: volcanic mountains, lava fields and the forges.",
+    pin: { x: 162, y: 576 }, panel: row(11) },
+  { id: "shrouded-swamps", n: 12, name: "Shrouded Swamps", tagline: "Danger · Hidden Truths", epithet: "Danger · Hidden Truths · Lost History", tier: "CORE", regions: ["swamps"], world: "sylvaris",
+    capital: "The Shrouded Swamps", color: "#8bc34a", climate: "Wetland",
+    places: [C("The Shrouded Swamps", "CAPITAL", "swamps"), C("Sunken Temple of Echoes", "POI"), C("Drowned Causeway", "POI"), ...T("swamps")],
+    look: "Fog, bioluminescent wetlands and drowned ruins.",
+    pin: { x: 427, y: 624 }, panel: row(12) },
+];
+
+export type OceanId = "aurora" | "fracture" | "solara" | "silent" | "obsidian" | "tempest" | "echo";
+/** the board's seven oceans, in its list order, each with its row in the list (pixels) */
+export const OCEANS: readonly { id: OceanId; n: number; name: string; character: string; panel: { x: number; y: number; w: number; h: number } }[] = (
+  [["aurora", "Aurora Ocean", "The Northern Expanse"], ["fracture", "Fracture Ocean", "The Central Deep"], ["solara", "Solara Ocean", "The Southern Reach"],
+   ["silent", "Silent Ocean", "The Eastern Expanse"], ["obsidian", "Obsidian Ocean", "The Western Deep"], ["tempest", "Tempest Ocean", "The Storm Belt"],
+   ["echo", "Echo Ocean", "The Shattered Depths"]] as const
+).map(([id, name, character], i) => ({ id, n: i + 1, name, character, panel: { x: 690, y: Math.round(508 + i * 28.8), w: 198, h: 28 } }));
+
 /** small deterministic string hash (FNV-1a), for seeded map shapes */
 export function hash32(s: string): number {
   let h = 2166136261;
@@ -156,12 +162,14 @@ export function hash32(s: string): number {
   return h >>> 0;
 }
 export const continentById = (id: string): Continent | null => CONTINENTS.find((c) => c.id === id) ?? null;
+/** the continent a game region (REGIONS id, "neon", "riverdale", "thalassia") lies on */
+export const continentOfRegion = (regionId: string | null | undefined): Continent | null => (regionId ? CONTINENTS.find((c) => c.regions.includes(regionId)) ?? null : null);
+/** the continents inside a live world, in board order */
+export const continentsOfWorld = (w: WorldId): readonly Continent[] => CONTINENTS.filter((c) => c.world === w);
 
 /* ---------------- continent worlds in the live map ---------------- */
 
 export { WORLD_ANCHORS };
-/** a continent world in the live map (Neon City's landmass is Aetheria's), or Thalassia's own water */
-export type WorldId = "aetheria" | "sylvaris" | "kharos" | "frosthelm" | "pyrrath" | "thalassia";
 
 /** Thalassia's own water: the city and the sea around it, plus the approach lane from the Verdant shore's elevator platform */
 export const THALASSIA_ZONE_RADIUS = CITY_RADIUS + 140;
@@ -176,9 +184,10 @@ export function worldAt(x: number, z: number): WorldId {
   }
   return worldOfAnchor(best) as WorldId;
 }
-export const continentOfWorld = (w: WorldId): ContinentId => (w === "thalassia" ? "aetheria" : (w as ContinentId));
+/** the first continent of a world on the board (Nexus City for the Nexus world) */
+export const continentOfWorld = (w: WorldId): ContinentId => continentsOfWorld(w)[0]!.id;
 
-/** May you move from one world straight into another without a terminal? Only between Aetheria's coast and Thalassia's
+/** May you move from one world straight into another without a terminal? Only between the Nexus world's coast and Thalassia's
  * water (by boat, sub or swimming): the city lies off the Verdant shore. Every other pair is a continental border. */
 export function crossingAllowed(from: WorldId, to: WorldId): boolean {
   if (from === to) return true;
@@ -192,21 +201,21 @@ export function borderBlocks(x0: number, z0: number, x1: number, z1: number): { 
   return { blocked: !crossingAllowed(from, to), from, to };
 }
 
-/** the region ids (REGIONS + "neon") inside a world, for UI */
-export const worldName = (w: WorldId): string => (w === "thalassia" ? "Thalassia · off Aetheria" : continentById(w)?.name ?? w);
+/** a world's name for the HUD and toasts: its continents ("Scorched Plains · Wastelands") */
+export const worldName = (w: WorldId): string => continentsOfWorld(w).map((c) => c.name).join(" · ") || w;
 
 /* ---------------- the planetary map board ---------------- */
 
-/** the board art's size; pins and routes are drawn in its pixel space */
-export const BOARD = { w: 1536, h: 1024 } as const;
+/** the board art's size (the canon "12 Continents, 7 Oceans" globe with its continent and ocean lists); pins and routes are
+ * drawn in its pixel space */
+export const BOARD = { w: 890, h: 712 } as const;
 /** the painted globe on the board (centre and radius, pixels) */
-export const GLOBE = { x: 778, y: 436, r: 432 } as const;
-/** Thalassia's marker on the board: in the Atlantic just off Aetheria's southern coast */
-export const THALASSIA_PIN = { x: 712, y: 462 } as const;
-/** the board's own legend box, where the live legend is drawn */
-export const LEGEND_RECT = { x: 362, y: 680, w: 146, h: 182 } as const;
-/** air routes drawn on the planet map: every playable continent to its neighbours, Aetheria as the hub (as on the worldbuild board) */
+export const GLOBE = { x: 345, y: 365, r: 345 } as const;
+/** where the live legend is drawn: over the board's "12 Continents / 7 Oceans" caption, bottom left */
+export const LEGEND_RECT = { x: 6, y: 612, w: 132, h: 94 } as const;
+/** air routes drawn on the planet map: Nexus City is the hub (every airport continent), plus the southern links */
 export const AIR_ROUTES: readonly (readonly [ContinentId, ContinentId])[] = [
-  ["aetheria", "frosthelm"], ["aetheria", "kharos"], ["aetheria", "pyrrath"], ["aetheria", "sylvaris"], ["aetheria", "zephyria"],
-  ["kharos", "pyrrath"], ["kharos", "sylvaris"],
+  ["nexus-city", "neon-city"], ["nexus-city", "verdant-forest"], ["nexus-city", "frost-spire"], ["nexus-city", "scorched-plains"],
+  ["nexus-city", "wastelands"], ["nexus-city", "storm-islands"], ["wastelands", "ember-peaks"], ["wastelands", "shrouded-swamps"],
+  ["scorched-plains", "ember-peaks"],
 ];

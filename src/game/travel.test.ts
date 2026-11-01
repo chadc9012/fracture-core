@@ -4,7 +4,7 @@ import {
   AIRPORTS, ELEVATOR_PLATFORM_R, FERRY_ROUTES, SEAPORTS, TERMINALS, arrivalPoint, dockArrival, dockLift, elevatorDown, elevatorGroundAt, elevatorUp, flightsFrom, hasVisited,
   platformArrival, recordVisit, terminalAt, thalassiaElevator,
 } from "./travel";
-import { CONTINENTS, worldAt } from "./planet";
+import { continentOfRegion, worldAt } from "./planet";
 import { heightAt, WATER_LEVEL } from "./terrain";
 import { THALASSIA_CENTER } from "./thalassia-site";
 import { DEFAULT_PROGRESSION } from "./progression";
@@ -24,7 +24,8 @@ describe("transit terminals", () => {
       expect(heightAt(t.x, t.z)).toBeGreaterThan(WATER_LEVEL);
       expect(worldAt(t.x, t.z)).toBe(t.world);
       expect(worldAt(arrivalPoint(t).x, arrivalPoint(t).z)).toBe(t.world);
-      expect(CONTINENTS.find((c) => c.id === t.world)!.tier).toBe("CORE");
+      expect(continentOfRegion(t.regionId)!.tier).toBe("CORE");
+      expect(continentOfRegion(t.regionId)!.world).toBe(t.world);
       // the canopy footprint is clear of buildings, water and rivers
       for (let i = 0; i < 12; i++) expect(`${t.id}:${drivablePoint(t.x + Math.cos(i / 2) * 8, t.z + Math.sin(i / 2) * 8)}`).toBe(`${t.id}:true`);
     }

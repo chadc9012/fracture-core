@@ -7,7 +7,7 @@ import { NEON_SITE, REGIONS } from "./world";
 import { heightAt, WATER_LEVEL } from "./terrain";
 import { THALASSIA_CENTER } from "./thalassia-site";
 import { DOCK_DECK_Y, airlockSite } from "./thalassia-sectors";
-import { CONTINENTS, worldAt, worldName, type ContinentId, type WorldId } from "./planet";
+import { AIRPORT_NAMES, SEAPORT_NAMES, continentOfRegion, worldAt, type WorldId } from "./planet";
 import type { PlayerProgression } from "./progression";
 import { drivablePoint } from "./race-routing";
 import { BRIDGES } from "./nexus-bridge";
@@ -31,16 +31,8 @@ function beside(x: number, z: number): { x: number; z: number } {
   }
   return { x: x + 14, z: z + 6 };
 }
-/** each landing zone's airport (the owner's global map board names: Aetheria Airport (Nexus), Neon International, Frosthelm Airport, …) */
-const AIRPORT_NAME: Record<string, string> = {
-  nexus: "Aetheria Airport (Nexus)", neon: "Neon International Airport", veridan: "Verdant Airfield", frostspire: "Frosthelm Airport",
-  ember: "Pyrrath Airport", wastelands: "Wastelands Airstrip", solara: "Kharos Airport", swamps: "Sylvaris Airport",
-};
-/** each city's seaport, named after its coast */
-const SEAPORT_NAME: Record<string, string> = {
-  nexus: "Nexus Harbour", neon: "Neon City Harbour", veridan: "Verdant Port", frostspire: "Whitegate Port",
-  ember: "Blackrock Port", wastelands: "Rust Harbour", solara: "Dune Port", swamps: "Sylvaris Port",
-};
+/** terminal names: the canon map's (planet.ts AIRPORT_NAMES / SEAPORT_NAMES) */
+const AIRPORT_NAME = AIRPORT_NAMES, SEAPORT_NAME = SEAPORT_NAMES;
 const SITES: readonly { id: string; x: number; z: number; world: WorldId }[] = [
   ...REGIONS.map((r) => ({ id: r.id, x: r.x, z: r.z, world: worldAt(r.x, r.z) })),
   { id: "neon", x: NEON_SITE.x, z: NEON_SITE.z, world: "aetheria" as WorldId },
@@ -125,10 +117,10 @@ export const ELEVATOR_RIDE_S = 6;
 
 /* ---------------- flights ---------------- */
 
-export const visitedKey = (w: WorldId | ContinentId) => `planet:visited:${w}`;
-export const hasVisited = (p: Pick<PlayerProgression, "earnedRewards">, w: WorldId | ContinentId) => p.earnedRewards.includes(visitedKey(w));
+export const visitedKey = (w: WorldId) => `planet:visited:${w}`;
+export const hasVisited = (p: Pick<PlayerProgression, "earnedRewards">, w: WorldId) => p.earnedRewards.includes(visitedKey(w));
 /** the start continent counts as visited from the first step */
-export const START_WORLD: ContinentId = "aetheria";
+export const START_WORLD: WorldId = "aetheria";
 
 export type FlightOption = { terminal: Terminal; continent: string; open: boolean; reason: string | null; visited: boolean };
 /** departures from a terminal. From an airport: every other airport, grouped by continent (open to every CORE continent;
@@ -139,9 +131,9 @@ export function flightsFrom(from: Terminal, p: Pick<PlayerProgression, "earnedRe
     ? SEAPORTS().filter((t) => FERRY_ROUTES.some(([a, b]) => (a === from.regionId && b === t.regionId) || (b === from.regionId && a === t.regionId)))
     : AIRPORTS().filter((t) => t.id !== from.id);
   return reach.map((t) => {
-    const c = CONTINENTS.find((x) => x.id === t.world);
+    const c = continentOfRegion(t.regionId);
     const open = !!c && c.tier === "CORE";
-    return { terminal: t, continent: worldName(t.world), open, reason: open ? null : "No scheduled service", visited: t.world === START_WORLD || hasVisited(p, t.world) };
+    return { terminal: t, continent: c?.name ?? t.world, open, reason: open ? null : "No scheduled service", visited: t.world === START_WORLD || hasVisited(p, t.world) };
   }).sort((a, b) => a.continent.localeCompare(b.continent) || a.terminal.name.localeCompare(b.terminal.name));
 }
 
@@ -149,6 +141,6 @@ export function flightsFrom(from: Terminal, p: Pick<PlayerProgression, "earnedRe
 export function newlyVisited(p: Pick<PlayerProgression, "earnedRewards">, w: WorldId): WorldId | null {
   return hasVisited(p, w) ? null : w;
 }
-export function recordVisit<P extends Pick<PlayerProgression, "earnedRewards">>(p: P, w: WorldId | ContinentId): P {
+export function recordVisit<P extends Pick<PlayerProgression, "earnedRewards">>(p: P, w: WorldId): P {
   return hasVisited(p, w) ? p : { ...p, earnedRewards: [...p.earnedRewards, visitedKey(w)] };
 }
