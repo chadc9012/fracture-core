@@ -1,6 +1,8 @@
 // @ts-ignore bun:test has no types in this project's tsconfig
 import { describe, expect, it } from "bun:test";
-import { OPENING_FLOOR, OPENING_SKIPPED, WAKE_AT, openingOver, skipOpening, startsInResidences } from "./story-start";
+import { OPENING_FLOOR, OPENING_SKIPPED, WAKE_AT, finishOpening, openingOver, openingPhase, skipOpening, startsInResidences, streetOutside } from "./story-start";
+import { BREACH_DONE } from "./breach";
+import { doorAt } from "./interiors";
 import { EVAC_DONE } from "./residence-life";
 import { floorWalls, residenceFloor, type ResidenceFloorId } from "./nexus-residences";
 import { interiorById, roomBounds } from "./interiors";
@@ -30,12 +32,34 @@ describe("story start: a new character wakes in Apartment 1204", () => {
     expect(startsInResidences({ ...fresh, tutorialRun: { step: "CONTACT", gates: 3, jumped: true, kills: 0, chained: 0, abilities: 1, bossHits: 0 } })).toBe(false);
     expect(startsInResidences({ ...fresh, tutorialComplete: true })).toBe(false);
     expect(startsInResidences({ ...fresh, completedMissions: ["awakening"] })).toBe(false);
-    expect(openingOver({ earnedRewards: [EVAC_DONE] })).toBe(true);
+    // out of the building: the Breach (the street fight) is next, then the opening is over
+    expect(openingOver({ earnedRewards: [EVAC_DONE] })).toBe(false);
     expect(startsInResidences({ ...fresh, earnedRewards: [EVAC_DONE] })).toBe(false);
+    expect(openingPhase({ ...fresh, earnedRewards: [EVAC_DONE] })).toBe("breach");
+    expect(openingPhase({ ...fresh, earnedRewards: [EVAC_DONE, BREACH_DONE] })).toBeNull();
+    expect(openingPhase(fresh)).toBe("residences");
     const skipped = skipOpening(fresh);
     expect(skipped.earnedRewards).toEqual([OPENING_SKIPPED]);
     expect(skipOpening(skipped)).toBe(skipped);
     expect(startsInResidences(skipped)).toBe(false);
+  });
+  it("winning the Breach (or skipping) counts as Mission 01 and the onboarding, paid once; the forest calibration never starts", () => {
+    let paid = 0;
+    const reward = <P extends { completedMissions: string[] }>(p: P): P => { paid++; return { ...p, completedMissions: [...p.completedMissions, "mission-01"] }; };
+    const done = finishOpening({ ...fresh, earnedRewards: [EVAC_DONE] }, reward, "breach");
+    expect(done.tutorialComplete).toBe(true);
+    expect(done.tutorialRun).toBeNull();
+    expect(done.earnedRewards).toContain(BREACH_DONE);
+    expect(done.completedMissions).toEqual(["mission-01"]);
+    expect(openingPhase(done)).toBeNull();
+    expect(finishOpening(done, reward, "breach").completedMissions).toEqual(["mission-01"]);
+    expect(paid).toBe(1);
+    expect(finishOpening(fresh, reward, "skipped").earnedRewards).toContain(OPENING_SKIPPED);
+  });
+  it("the street point is outside the Residences' doors, not on them", () => {
+    const st = streetOutside();
+    expect(doorAt(st.x, st.z)).toBeNull();
+    expect(doorAt(streetOutside(0).x, streetOutside(0).z)?.id).toBe("nexus-apartment");
   });
   it("you wake somewhere you can walk from", () => {
     expect(reachable(OPENING_FLOOR)(WAKE_AT.x, WAKE_AT.z, 0.3)).toBe(true);

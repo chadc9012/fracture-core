@@ -907,6 +907,23 @@ export function spawnMissionDrones(sim: WorldSim, x: number, z: number, count: n
   }
 }
 
+/** The Breach (breach.ts): the prologue's street fight. `count` Fracture echoes (the first `elite` of them the Breach Anchor) in
+ * a small ring around (x,z), weak and slow to strike: a first encounter that teaches. Returns the machines it used, so the
+ * caller can tell when they are down. Mission machines, so nothing ambient leashes them away. */
+export function spawnBreachFoes(sim: WorldSim, x: number, z: number, count: number, elite: number, ring = 4): Machine[] {
+  const out: Machine[] = [];
+  freeSlots(sim, count, x, z);
+  for (let i = 0; i < count; i++) {
+    const m = sim.machines.find((e) => !e.alive);
+    if (!m) break;
+    const a = (i / Math.max(1, count)) * Math.PI * 2 + 0.6, anchor = i < elite, hp = anchor ? 10 : 2.4;
+    Object.assign(m, { alive: true, react: undefined, x: x + Math.cos(a) * ring, z: z + Math.sin(a) * ring, hp, maxHp: hp, rot: 0, scale: anchor ? 1.5 : 0.85, zone: "nexus", cool: anchor ? 2.2 : 3.2, elite: anchor, profile: anchor ? "Breach Anchor" : "Fracture Echo", kind: "OVERCLOCKED" as const, drop: "dataShards" as MaterialId, boss: false, kx: 0, kz: 0, mission: true, vulnUntil: 0, vulnMult: 1, encounter: undefined, decoy: undefined, living: undefined, nemesis: undefined, nemesisWeak: undefined, nemesisDamage: undefined });
+    delete m.lastPlayerDamage; delete m.ai;
+    out.push(m);
+  }
+  return out;
+}
+
 /** Make room in the machine pool for an authored wave: retire the farthest ambient machines (not mission, boss, event,
  * nemesis or scenario machines) silently — no kill, no credit. Returns how many slots are now free. */
 export function freeSlots(sim: WorldSim, need: number, px: number, pz: number): number {

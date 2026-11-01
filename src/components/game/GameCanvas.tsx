@@ -42,7 +42,10 @@ import { undiscoveredNear, discoverLandmarks, isLandmarkKnown } from "@/game/lan
 import { ruinById, discoverNearby, canEvolve, evolveWeapon, isWeapon, ABILITY_RULES, EVOLVE_POWER_BONUS, EVOLVE_MIN_LEVEL, EVOLVE_CATALYSTS, EVOLVE_ELEMENT_AMOUNT } from "@/game/weapon-evolution";
 import { HUD } from "./HUD";
 import { SPAWN, Scene, type HudState } from "./Scene";
-import { OPENING_FLOOR, WAKE_AT, openingOver, skipOpening, startsInResidences } from "@/game/story-start";
+import { OPENING_FLOOR, OPENING_SKIPPED, WAKE_AT, finishOpening, openingPhase, skipOpening, startsInResidences, streetOutside } from "@/game/story-start";
+import { BREACH_OBJECTIVE, advanceBreach, breachHint, breachPowers, startBreach, type BreachEvent, type BreachRun, type BreachState, type Powers } from "@/game/breach";
+import { EVAC_DONE } from "@/game/residence-life";
+import { keyName } from "@/game/bindings";
 import { WorldErrorBoundary } from "./WorldErrorBoundary";
 import { GraphicsGuard } from "./GraphicsGuard";
 import { CinematicGrade } from "./CinematicGrade";
@@ -656,14 +659,19 @@ export function GameCanvas() {
   useEffect(() => setProgression((p) => withMissionRun(p, "broken-signal", mission)), [mission]);
   /** story-start.ts: a new character's opening in Nexus City Residences is running (the tutorial and Awakening wait for it) */
   const [opening, setOpening] = useState(false);
+  /** the Breach (breach.ts): the street fight after the evacuation, where the Operator's powers wake */
+  const [breach, setBreach] = useState<BreachRun | null>(null);
+  /** which Operator powers are awake: none in the apartment, a layer at a time in the Breach, everything after */
+  const powers: Powers = opening ? 0 : breach ? breachPowers(breach.state) : 3;
+  const prologue = opening || !!breach;
   const [awakening, setAwakening] = useCountedState<AwakeningRun | null>("awakening", () => restoreMission<AwakeningRun>("awakening", progression));
   useEffect(() => setProgression((p) => withMissionRun(p, "awakening", awakening)), [awakening]);
   const awakeningDone = progression.completedMissions.includes("awakening");
   useEffect(() => {
-    if (phase !== "world" || tutorial || opening || awakening || awakeningDone) return;
+    if (phase !== "world" || tutorial || opening || breach || awakening || awakeningDone) return;
     const timer = window.setTimeout(() => setAwakening(advanceAwakening(AWAKENING, { type: "START" })), 2500);
     return () => window.clearTimeout(timer);
-  }, [phase, tutorial, opening, awakening, awakeningDone]);
+  }, [phase, tutorial, opening, breach, awakening, awakeningDone]);
   useEffect(() => {
     if (awakening?.state === "LOOT") return; // loot granted on ACK
     if (awakening?.state !== "COMPLETE" || awakeningDone) return;
@@ -1063,7 +1071,7 @@ export function GameCanvas() {
   // a confirmed character; the cinematic plays only for a save that has not seen it (not on re-deploys or Continue)
   const deploy = (deployment: Deployment) => {
     const session = { cls: deployment.classId, subclass: deployment.subclassId, appearance: deployment.appearance, bodyType: deployment.bodyType };
-    // story-start.ts: a new character wakes in Apartment 1204; the cinematic and the forest calibration follow the evacuation
+    // story-start.ts: a new character wakes in Apartment 1204; the cinematic and the Breach follow the evacuation
     if (startsInResidences(progressionRef.current)) { enterWorld(session, { newCharacter: true, intro: false }); beginOpening(); return; }
     enterWorld(session, { newCharacter: true, intro: shouldPlayIntro(progressionRef.current) });
   };
@@ -1075,21 +1083,45 @@ export function GameCanvas() {
     setHud((h) => ({ ...h, region: "Nexus City", regionId: "nexus", sub: "Nexus City Residences", kind: "safe" as const, difficulty: 0 }));
     setCaptionQueue([{ speaker: "Apartment 1204", text: "Morning light through the glass. The city hums below. Time to get ready." }]);
   };
-  /** out of the building (or skipped): the opening cinematic, then the Verdant Forest field calibration */
-  const endOpening = () => {
+  /** out through the Residences' doors (breach.ts): the opening cinematic, then the street fight where the powers wake. On a
+   * resume (`street`) you are put back outside the doors and the fight starts again from the top, without the cinematic. */
+  const beginBreach = (street: boolean) => {
     setOpening(false);
-    setActiveDialogue(null); // a neighbour's last line must not hang over the cinematic and the forest
+    setTutorial(null);
+    setActiveDialogue(null); // a neighbour's last line must not hang over the cinematic
     setProgression((p) => withIntroSeen(p));
-    setTutorial(tutorialForEntry(progressionRef.current));
-    setTravelTo({ x: SPAWN.x, z: SPAWN.z, nonce: Date.now() });
-    setHud((h) => ({ ...h, region: "Verdant Forest", regionId: "veridan", sub: "Starter Zone / Resources", kind: "starter" as const, difficulty: 1, weather: "Rain mist" }));
-    if (shouldPlayCine(progressionRef.current.story, "m1-opening")) { setCineProgress(0); setCineId("m1-opening"); }
-    else { setIntroElapsed(0); setShowIntro(true); }
+    if (street) { const st = streetOutside(); setTravelTo({ x: st.x, z: st.z, nonce: Date.now() }); }
+    setHud((h) => ({ ...h, region: "Nexus City", regionId: "nexus", sub: "The Fracture", kind: "safe" as const, difficulty: 1 }));
+    const cine = !street && shouldPlayCine(progressionRef.current.story, "m1-opening");
+    if (cine) { setCineProgress(0); setCineId("m1-opening"); }
+    setBreach(startBreach(Date.now(), cine));
   };
+  /** the opening is finished (the Breach won, or skipped): it counts as Mission 01 and the onboarding, so the forest
+   * calibration never starts; you stay in Nexus City with every power awake and the open world ahead */
+  const endOpening = (how: "breach" | "skipped") => {
+    const tactical = classBuild(cls).slots.TACTICAL;
+    setProgression((p) => withIntroSeen(finishOpening(p, (q) => ({ ...rewardMission(q, "mission-01", { dataShards: 1 }), unlockedAbilities: Array.from(new Set([...q.unlockedAbilities, tactical])), calibrationTokens: q.calibrationTokens + 1 }), how)));
+    setTutorial(null);
+    setHud((h) => ({ ...h, missions: (h.missions ?? []).filter((m) => m.id !== "mission-01") }));
+    if (how === "skipped") {
+      const wasOpening = opening;
+      setOpening(false); setBreach(null); setActiveDialogue(null);
+      if (wasOpening) {
+        const st = streetOutside(); setTravelTo({ x: st.x, z: st.z, nonce: Date.now() });
+        setHud((h) => ({ ...h, region: "Nexus City", regionId: "nexus", sub: "The Fracture", kind: "safe" as const, difficulty: 1 }));
+        if (shouldPlayCine(progressionRef.current.story, "m1-opening")) { setCineProgress(0); setCineId("m1-opening"); }
+      }
+    } else setBreach(null);
+  };
+  /** the Breach's quiet input hints, in the words of the device in hand */
+  const breachHints = (st: BreachState) => breachHint(st, touchScreen ? { fire: "Fire button", primary: "Q button", dash: "Dash button" } : { fire: "Space / left click", primary: "Q", dash: keyName(settings.bindings?.keyboard.dash ?? "AltLeft") });
+  const onBreachEvent = (e: BreachEvent) => setBreach((r) => (r ? advanceBreach(r, e, breachHints) : r));
   // Continue / hub: restore exactly what the save describes, no onboarding replay
   const continueIntoWorld = () => enterWorld(sessionFromProgression(progressionRef.current), { newCharacter: false, intro: false });
   /** the title screen's Continue: a save that never got out of the residences starts again in the apartment */
-  const resumeFromTitle = () => { continueIntoWorld(); if (startsInResidences(progressionRef.current)) beginOpening(); };
+  const resumeFromTitle = () => { continueIntoWorld(); resumeOpening(progressionRef.current); };
+  /** a save still in the opening picks it up again: the residences from the apartment, the Breach on the street */
+  const resumeOpening = (p: PlayerProgression) => { const ph = openingPhase(p); if (ph === "residences") beginOpening(); else if (ph === "breach") beginBreach(true); };
   const continueRef = useRef(continueIntoWorld);
   continueRef.current = continueIntoWorld; // the delayed swap must use the latest closure, not the one from the click
   const startTransit = (target: DeployTarget) => {
@@ -1302,13 +1334,26 @@ export function GameCanvas() {
     const t = setTimeout(() => setCaptionQueue((q) => q.slice(1)), 4500);
     return () => clearTimeout(t);
   }, [captionQueue]);
-  // the opening ends when the save records it: out through the lobby doors in the evacuation (evac:done), or skipped
+  // out through the lobby doors in the evacuation (evac:done): the Breach; Skip prologue (opening:skipped): straight to the end
+  const skipped = progression.earnedRewards.includes(OPENING_SKIPPED), evacuated = progression.earnedRewards.includes(EVAC_DONE);
   useEffect(() => {
-    if (!opening || !openingOver(progression)) return;
-    const t = window.setTimeout(endOpening, 2500); // let "You got out" be read before the cinematic
+    if (prologue && skipped) { endOpening("skipped"); return; }
+    if (!opening || !evacuated) return;
+    const t = window.setTimeout(() => beginBreach(false), 2500); // let "You got out" be read before the cinematic
     return () => window.clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [opening, progression.earnedRewards]);
+  }, [opening, prologue, skipped, evacuated]);
+  // the Breach: the cinematic hands over to the street; time moves it on (the first strike, NOVA's nudge, the closing beat)
+  useEffect(() => { if (breach?.state === "CINE" && !cineId) onBreachEvent({ type: "CINE_DONE", now: Date.now() }); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [breach?.state, cineId]);
+  useEffect(() => {
+    if (!breach || breach.state === "CINE") return;
+    if (breach.state === "DONE") { endOpening("breach"); return; }
+    const t = window.setInterval(() => onBreachEvent({ type: "TICK", now: Date.now() }), 500);
+    return () => window.clearInterval(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [breach?.state]);
+  // what is said as each beat lands (and NOVA's one nudge)
+  useEffect(() => { if (breach?.lines.length) setCaptionQueue([...breach.lines]); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [breach?.state, breach?.nudged]);
   /** Living World outcomes from Scene (living-runtime.ts): all three reducers are idempotent, so a repeat changes nothing */
   /** Wastelands activities (wasteland-runtime.ts): each reducer is once-keyed, so a repeated emit changes nothing */
   const recordWaste = useCallback((event: WasteEmit) => {
@@ -1502,7 +1547,7 @@ export function GameCanvas() {
           setHud((h) => ({ ...h, ...hudIdentity(session), missions: firstMissionHud(save) }));
           setPhase("world");
           // a save that never got out of the Residences picks the prologue up again in Apartment 1204 (story-start.ts)
-          if (startsInResidences(save)) beginOpening();
+          resumeOpening(save);
         }
       }} />;
   }
@@ -1609,7 +1654,7 @@ export function GameCanvas() {
       >
         <color attach="background" args={["#bfe4f2"]} />
         <Suspense fallback={<WorldLoading />}>
-            <Profiler id="scene" onRender={onProf}><Scene civilian={opening} onDiscovery={opening ? undefined : onDiscovery} onStuntPoints={(points) => setProgression((cur) => payStunts(cur, new Date().toISOString().slice(0, 10), points))} onWorldBoss={(id) => setProgression((cur) => payWorldBoss(cur, id))} onArrest={(fine) => setProgression((cur) => ({ ...cur, nexLedger: payFine(cur.nexLedger ?? {}, fine, nexBalance(cur.nexLedger ?? {}), Date.now()) }))} vyrakRematch={rematchReady} onVyrakRematch={spendRematch} activity={activity} onActivityChange={onActivityChange} onEncounterClue={(enc, clue) => setProgression((cur) => recordClue(cur, enc, clue).progression)} openedCaches={openedToday} onStoryEvent={recordStory} onLiving={recordLiving} onWaste={recordWaste} onDescent={recordFractureDescent} summonNemesis={summonNemesis} onHud={setHud} onDrops={(drops) => { showScenarioRewards(drops); setProgression((current) => claimDrops(current, drops)); }} gear={progression} settings={liveSettings} onCameraPreference={(firstPerson) => { window.localStorage.setItem("world-fracture-camera", firstPerson ? "first" : "third"); setSettings((current) => ({ ...current, firstPersonDefault: firstPerson })); }} playerClass={cls} subclassId={subclass} bonded={isBonded(progression, cls)} appearance={appearance} bodyType={bodyType} vehicleId={vehicleId} vehicleUnlocked={vehicleUnlocked} activeBuild={progression.activeBuild} abilityBranches={progression.abilityBranches} tutorial={tutorial} onTutorialEvent={recordTutorial} mission={mission} onMissionEvent={recordMission} relay={relay} onRelayEvent={recordRelay} blackout={blackout} onBlackoutEvent={recordBlackout} neonCore={neonCore} onNeonCoreEvent={recordNeonCore} solarArray={solarArray} onSolarArrayEvent={recordSolarArray} coreNode={coreNode} onCoreNodeEvent={recordCoreNode} zoneRuns={zoneRuns} onZoneEvent={recordZone} descent={descent} onDescentEvent={recordDescent} systemCore={systemCore} onSystemCoreEvent={recordSystemCore} awakening={awakening} onAwakeningEvent={recordAwakening} onXP={recordXP} weaponOrder={carriedWeapons(activeLoadout(progression, progression.identityClass ?? cls).slots)} travelTo={travelTo} introPlayback={showIntro ? { elapsed: introElapsed, totalSeconds: introTotalSeconds() } : cineId ? { elapsed: cineProgress * introTotalSeconds(), totalSeconds: introTotalSeconds() } : null} armorState={hud.hp < 35 ? "FRACTURE" : hud.heat > 65 ? "ASCENDANT" : hud.heat > 15 ? "ACTIVE" : "STABLE"} /></Profiler>
+            <Profiler id="scene" onRender={onProf}><Scene powers={powers} breach={breach} onBreachEvent={onBreachEvent} onDiscovery={prologue ? undefined : onDiscovery} onStuntPoints={(points) => setProgression((cur) => payStunts(cur, new Date().toISOString().slice(0, 10), points))} onWorldBoss={(id) => setProgression((cur) => payWorldBoss(cur, id))} onArrest={(fine) => setProgression((cur) => ({ ...cur, nexLedger: payFine(cur.nexLedger ?? {}, fine, nexBalance(cur.nexLedger ?? {}), Date.now()) }))} vyrakRematch={rematchReady} onVyrakRematch={spendRematch} activity={activity} onActivityChange={onActivityChange} onEncounterClue={(enc, clue) => setProgression((cur) => recordClue(cur, enc, clue).progression)} openedCaches={openedToday} onStoryEvent={recordStory} onLiving={recordLiving} onWaste={recordWaste} onDescent={recordFractureDescent} summonNemesis={summonNemesis} onHud={setHud} onDrops={(drops) => { showScenarioRewards(drops); setProgression((current) => claimDrops(current, drops)); }} gear={progression} settings={liveSettings} onCameraPreference={(firstPerson) => { window.localStorage.setItem("world-fracture-camera", firstPerson ? "first" : "third"); setSettings((current) => ({ ...current, firstPersonDefault: firstPerson })); }} playerClass={cls} subclassId={subclass} bonded={isBonded(progression, cls)} appearance={appearance} bodyType={bodyType} vehicleId={vehicleId} vehicleUnlocked={vehicleUnlocked} activeBuild={progression.activeBuild} abilityBranches={progression.abilityBranches} tutorial={tutorial} onTutorialEvent={recordTutorial} mission={mission} onMissionEvent={recordMission} relay={relay} onRelayEvent={recordRelay} blackout={blackout} onBlackoutEvent={recordBlackout} neonCore={neonCore} onNeonCoreEvent={recordNeonCore} solarArray={solarArray} onSolarArrayEvent={recordSolarArray} coreNode={coreNode} onCoreNodeEvent={recordCoreNode} zoneRuns={zoneRuns} onZoneEvent={recordZone} descent={descent} onDescentEvent={recordDescent} systemCore={systemCore} onSystemCoreEvent={recordSystemCore} awakening={awakening} onAwakeningEvent={recordAwakening} onXP={recordXP} weaponOrder={carriedWeapons(activeLoadout(progression, progression.identityClass ?? cls).slots)} travelTo={travelTo} introPlayback={showIntro ? { elapsed: introElapsed, totalSeconds: introTotalSeconds() } : cineId ? { elapsed: cineProgress * introTotalSeconds(), totalSeconds: introTotalSeconds() } : null} armorState={hud.hp < 35 ? "FRACTURE" : hud.heat > 65 ? "ASCENDANT" : hud.heat > 15 ? "ACTIVE" : "STABLE"} /></Profiler>
           <WorldMountedSignal onChange={setWorldMounted} />
         </Suspense>
         {post && (
@@ -1655,9 +1700,9 @@ export function GameCanvas() {
        {savedFlash > 0 && <p className="pointer-events-none fixed right-4 top-4 z-30 font-mono text-[10px] uppercase tracking-[0.25em] text-primary" role="status">◌ Auto-saved</p>}
        <HudRails />
        <VoiceSubtitle hidden={atlasOpen} />
-       {!cineId && <Profiler id="hud" onRender={onProf}><HUD civilian={opening} hud={opening ? { ...hud, markers: [], alerts: [] } : hud} level={{ level: progression.level, xp: progression.xp }} tutorialActive={Boolean(tutorial && tutorial.step !== "VICTORY")} onMenu={() => { setInventoryOpen(false); setAtlasOpen(false); setOperationsView(null); setMenuOpen(true); }} onStrategy={() => setStrategyOpen(true)} onGarage={() => setGarageOpen(true)} onAnalyze={() => setAnalysisOpen(true)} onOperations={(view) => { setInventoryOpen(false); setAtlasOpen(false); setOperationsView(view); }} onInventory={() => { setAtlasOpen(false); setOperationsView(null); setCharacterOpen(true); }} onAtlas={() => { setInventoryOpen(false); setOperationsView(null); setAtlasOpen(true); }} /></Profiler>}
+       {!cineId && <Profiler id="hud" onRender={onProf}><HUD civilian={powers === 0} hud={prologue ? { ...hud, markers: [], alerts: [] } : hud} level={{ level: progression.level, xp: progression.xp }} tutorialActive={Boolean(tutorial && tutorial.step !== "VICTORY")} onMenu={() => { setInventoryOpen(false); setAtlasOpen(false); setOperationsView(null); setMenuOpen(true); }} onStrategy={() => setStrategyOpen(true)} onGarage={() => setGarageOpen(true)} onAnalyze={() => setAnalysisOpen(true)} onOperations={(view) => { setInventoryOpen(false); setAtlasOpen(false); setOperationsView(view); }} onInventory={() => { setAtlasOpen(false); setOperationsView(null); setCharacterOpen(true); }} onAtlas={() => { setInventoryOpen(false); setOperationsView(null); setAtlasOpen(true); }} /></Profiler>}
        {!tutorial && !hud.insideInterior && <Profiler id="minimap" onRender={onProf}><Minimap hud={hud} known={(id) => isLandmarkKnown(progression, id)} /></Profiler>}
-       {!tutorial && !opening && <Profiler id="quest" onRender={onProf}><QuestTracker progression={progression} /></Profiler>}
+       {!tutorial && !prologue && <Profiler id="quest" onRender={onProf}><QuestTracker progression={progression} /></Profiler>}
        {storyGraph && <StoryDialogue key={storyGraph.id} graph={storyGraph} story={progression.story} onStory={applyStory} onDone={finishStoryGraph} />}
        {!storyGraph && !activeDialogue && objectiveFor(progression.story) && progression.story.stages["vaelith"] !== undefined && <p className="pointer-events-none fixed left-4 top-24 z-20 max-w-[280px] font-mono text-[10px] uppercase tracking-[0.18em] text-primary/80">Vaelith · {objectiveFor(progression.story)!.text}</p>}
        {!storyGraph && !activeDialogue && captionQueue[0] && <p className="pointer-events-none fixed inset-x-0 bottom-36 z-20 mx-auto w-[min(92vw,560px)] border border-border/60 bg-background/80 p-3 text-sm text-foreground" role="status"><span className="mr-2 font-mono text-[10px] uppercase tracking-[0.25em] text-primary">{captionQueue[0].speaker}</span>{captionQueue[0].text}</p>}
@@ -1741,11 +1786,11 @@ export function GameCanvas() {
          </div>
        )}
        {skateOpen && <SkateShop progression={progression} onProgression={setProgression} onClose={() => setSkateOpen(false)} />}
-       <TouchControls civilian={opening} bindings={settings.bindings} simple={settings.simplePhoneHud ?? true} disabled={Boolean(housingOpen || menuOpen || characterOpen || inventoryOpen || atlasOpen || operationsView || shopOpen || skateOpen || npcOpen || forgeOpen || basePanel || ruinOpen || showIntro || cineId || deathInfo || storyGraph || activeDialogue || transit || flight)} />
-       {!opening && !cineId && <><DashHud bindings={settings.bindings} />
-       <DragoniteHud bindings={settings.bindings} /></>}
+       <TouchControls civilian={powers === 0} awake={breach?.state === "ANCHOR"} bindings={settings.bindings} simple={settings.simplePhoneHud ?? true} disabled={Boolean(housingOpen || menuOpen || characterOpen || inventoryOpen || atlasOpen || operationsView || shopOpen || skateOpen || npcOpen || forgeOpen || basePanel || ruinOpen || showIntro || cineId || deathInfo || storyGraph || activeDialogue || transit || flight)} />
+       {powers >= 2 && !cineId && <DashHud bindings={settings.bindings} />}
+       {powers >= 3 && !cineId && <DragoniteHud bindings={settings.bindings} />}
       <NexChip ledger={progression.nexLedger} />
-      {!opening && !cineId && <ConsumableHud progression={progression} bindings={settings.bindings} disabled={Boolean(housingOpen || menuOpen || characterOpen || inventoryOpen || atlasOpen || operationsView || shopOpen || skateOpen || npcOpen || forgeOpen || basePanel || ruinOpen || showIntro || cineId || deathInfo || storyGraph || activeDialogue || transit || flight || hud.hp <= 0)} onUse={useConsumable} />}
+      {powers >= 3 && !cineId && <ConsumableHud progression={progression} bindings={settings.bindings} disabled={Boolean(housingOpen || menuOpen || characterOpen || inventoryOpen || atlasOpen || operationsView || shopOpen || skateOpen || npcOpen || forgeOpen || basePanel || ruinOpen || showIntro || cineId || deathInfo || storyGraph || activeDialogue || transit || flight || hud.hp <= 0)} onUse={useConsumable} />}
        <KillPlaylistPlayer volume={(settings.volume ?? 0.7) * (settings.musicVolume ?? 1)} muted={!!settings.mute?.music} />
        {hud.garageNear && !basePanel && !hud.shopNearId && (
          <div className="pointer-events-none absolute bottom-24 left-1/2 -translate-x-1/2">
@@ -1847,8 +1892,14 @@ export function GameCanvas() {
       {landmarkToast && !atlasOpen && !cineId && <HudRail side="left" order={0}><div className="pointer-events-none absolute left-1/2 top-28 z-30 w-[min(26rem,86vw)] -translate-x-1/2 border-l-2 border-primary bg-background/80 px-3 py-2" role="status"><p className="font-mono text-[9px] uppercase tracking-[0.3em] text-primary">Landmark discovered</p><p className="text-sm font-semibold">{landmarkToast.name}</p><p className="mt-0.5 text-[11px] text-muted-foreground">{landmarkToast.history}</p></div></HudRail>}
        {atlasOpen && <WorldAtlas onStartRace={startRace} activeActivityId={activity?.def.id ?? null} progression={progression} markers={hud.markers} px={hud.px} pz={hud.pz} currentRegion={hud.region} phase={hud.phase} onClose={() => setAtlasOpen(false)} onProgression={setProgression} onTravel={(a) => { setAtlasOpen(false); startTransit({ id: a.id, name: a.name, sub: ACTIVITY_LABEL[a.kind], color: ACTIVITY_COLOR[a.kind], x: a.drop.x, z: a.drop.z, ...(a.drop.y !== undefined ? { y: a.drop.y } : {}) }); }} />}
       {awakening && <AwakeningOverlay run={awakening} onEvent={recordAwakening} />}
-      {opening && phase === "world" && !menuOpen && <div className="pointer-events-none fixed left-4 top-44 z-20">
-        <p className="font-mono text-[10px] uppercase tracking-[0.3em] text-violet-200/80">Prologue · Before the Fracture</p>
+      {/* the Breach: what to do, in a line, and at most one quiet input hint (breach.ts); no checklist */}
+      {breach && BREACH_OBJECTIVE[breach.state] && !cineId && phase === "world" && !menuOpen && <div className="pointer-events-none fixed left-1/2 top-14 z-20 w-[min(90vw,26rem)] -translate-x-1/2 text-center" role="status">
+        <p className="font-mono text-[10px] uppercase tracking-[0.3em] text-violet-200/80">The Fracture</p>
+        <p className="mt-0.5 text-sm font-semibold uppercase tracking-wider text-white drop-shadow">{BREACH_OBJECTIVE[breach.state]}</p>
+        {breach.hint && <p className="mt-1 font-mono text-[10px] uppercase tracking-[0.2em] text-white/60">{breach.hint}</p>}
+      </div>}
+      {prologue && !cineId && phase === "world" && !menuOpen && <div className="pointer-events-none fixed left-4 top-44 z-20">
+        <p className="font-mono text-[10px] uppercase tracking-[0.3em] text-violet-200/80">{breach ? "Prologue · The Fracture" : "Prologue · Before the Fracture"}</p>
         <button type="button" onClick={() => setProgression((p) => skipOpening(p))} className="pointer-events-auto mt-1 border border-white/25 bg-black/40 px-3 py-1 font-mono text-[10px] uppercase tracking-[0.2em] text-white/70 hover:border-white/60 hover:text-white">Skip prologue</button>
       </div>}
       {mission && <BrokenSignalOverlay mission={mission} onEvent={recordMission} />}

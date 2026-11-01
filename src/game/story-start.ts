@@ -1,11 +1,15 @@
-/** Where a new character's story starts (owner, Nov 1: the Nexus City Residences opening as the start of the story). A new
- * character wakes in Apartment 1204 instead of the forest: the residences' own first morning and reality-fracture evacuation
- * (residence-life.ts, ResidencePanels) play out, and getting out of the building hands over to the opening cinematic ("The
- * night the world changed") and the Verdant Forest field calibration. GameCanvas holds the tutorial and Awakening back until
- * then. Pure; the only state is in earnedRewards (the evacuation's `evac:done`, or `opening:skipped`), which every save merge
- * keeps, so a reload part-way puts you back in the apartment. */
+/** Where a new character's story starts (owner, Nov 1: the Nexus City Residences opening is the start of the story, and
+ * combat is taught during the escape, not in a separate calibration). A new character wakes in Apartment 1204 as an ordinary
+ * civilian: the residences' own first morning and reality-fracture evacuation (residence-life.ts, ResidencePanels) play out;
+ * getting out of the doors plays the opening cinematic and then the Breach (breach.ts), the street fight where the Operator's
+ * powers wake. Finishing it records Mission 01 and the onboarding as done, so the Verdant Forest field calibration is no
+ * longer mandatory (it stays for saves already part-way through it). Pure; the only state is in earnedRewards (`evac:done`,
+ * `opening:breach`, or `opening:skipped`), which every save merge keeps, so a reload part-way resumes the right phase. */
 import type { PlayerProgression } from "./progression";
 import { EVAC_DONE } from "./residence-life";
+import { BREACH_DONE } from "./breach";
+import { REGIONS } from "./world";
+import { interiorById } from "./interiors";
 
 export const OPENING_SKIPPED = "opening:skipped";
 export const OPENING_FLOOR = "nexus-res-1204";
@@ -13,12 +17,31 @@ export const OPENING_FLOOR = "nexus-res-1204";
 export const WAKE_AT = { x: -5.4, z: -1.4 } as const;
 
 type Save = Pick<PlayerProgression, "earnedRewards" | "tutorialComplete" | "tutorialRun" | "completedMissions">;
-/** the opening is over: you got out of the building, or skipped it */
-export const openingOver = (p: Pick<PlayerProgression, "earnedRewards">) => p.earnedRewards.includes(EVAC_DONE) || p.earnedRewards.includes(OPENING_SKIPPED);
-/** a character that starts in the residences: the opening is not over and nothing past the first calibration step was played
- * (saves already into the field calibration or any mission are never sent back to the apartment) */
-export function startsInResidences(p: Save): boolean {
-  if (openingOver(p) || p.tutorialComplete || p.completedMissions.length > 0) return false;
-  return !p.tutorialRun || p.tutorialRun.step === "MATERIALIZE";
+/** the whole opening is over: the Breach was won, or the prologue was skipped */
+export const openingOver = (p: Pick<PlayerProgression, "earnedRewards">) => p.earnedRewards.includes(BREACH_DONE) || p.earnedRewards.includes(OPENING_SKIPPED);
+/** a save still in the opening: nothing past the first calibration step was played and no mission is done (saves already
+ * into the field calibration or any mission are never sent back) */
+const inOpening = (p: Save) => !openingOver(p) && !p.tutorialComplete && p.completedMissions.length === 0 && (!p.tutorialRun || p.tutorialRun.step === "MATERIALIZE");
+/** which part of the opening a save is in: the residences (wake up, morning, evacuation), the Breach (out on the street), or none */
+export function openingPhase(p: Save): "residences" | "breach" | null {
+  if (!inOpening(p)) return null;
+  return p.earnedRewards.includes(EVAC_DONE) ? "breach" : "residences";
 }
+export const startsInResidences = (p: Save): boolean => openingPhase(p) === "residences";
 export const skipOpening = <P extends Pick<PlayerProgression, "earnedRewards">>(p: P): P => (openingOver(p) ? p : { ...p, earnedRewards: [...p.earnedRewards, OPENING_SKIPPED] });
+
+/** out on the street in front of the Residences' doors, `out` metres from them, away from the tower (not on the door, which
+ * would walk you straight back in) */
+export function streetOutside(out = 6): { x: number; z: number; yaw: number } {
+  const lobby = interiorById("nexus-apartment")!, hub = REGIONS.find((r) => r.id === "nexus")!;
+  const dx = lobby.doorPos.x - hub.x, dz = lobby.doorPos.z - hub.z, d = Math.hypot(dx, dz) || 1;
+  return { x: lobby.doorPos.x + (dx / d) * out, z: lobby.doorPos.z + (dz / d) * out, yaw: Math.atan2(dx, dz) };
+}
+/** the opening is finished (the Breach won, or skipped): it counts as Mission 01 and the onboarding, so the forest
+ * calibration never starts. `reward` is the mission payout (progression's rewardMission) applied once. */
+export function finishOpening<P extends Save>(p: P, reward: (p: P) => P, how: "breach" | "skipped"): P {
+  const tag = how === "breach" ? BREACH_DONE : OPENING_SKIPPED;
+  const tagged = p.earnedRewards.includes(tag) ? p : { ...p, earnedRewards: [...p.earnedRewards, tag] };
+  const paid = p.completedMissions.includes("mission-01") ? tagged : reward(tagged);
+  return { ...paid, tutorialComplete: true, tutorialRun: null };
+}

@@ -6,8 +6,11 @@ import { RIVERDALE } from "@/game/world";
 import "@/game/venue-doors";
 import { CoastalBeaches } from "./CoastalBeaches";
 import { accessibleShop } from "@/game/shop-access";
-/** combat keys a civilian (the prologue) cannot use: fire, abilities Q/E/R, melee, boss, stratagems, camera swap, hacking, weapon slots */
-const CIVILIAN_BLOCKED_KEYS = ["Space", "KeyQ", "KeyE", "KeyR", "KeyX", "KeyB", "KeyN", "KeyF", "KeyH", "Digit1", "Digit2", "Digit3", "Digit4", "Digit5", "Digit6", "Digit7", "Digit8", "Digit9", "Digit0"];
+/** the prologue's power stages (breach.ts Powers): keys still asleep at each level. 0 civilian: no fire, melee, weapon slots or
+ * camera swap; below 2 no primary ability (Q); below 3 no tactical/ultimate, boss, stratagems, hacking or quick-use stims */
+const ASLEEP_BELOW_1 = ["Space", "KeyX", "KeyF", "Digit1", "Digit2", "Digit3", "Digit4"];
+const ASLEEP_BELOW_2 = ["KeyQ"];
+const ASLEEP_BELOW_3 = ["KeyE", "KeyR", "KeyB", "KeyN", "KeyH", "Digit5", "Digit6", "Digit7", "Digit8", "Digit9", "Digit0"];
 const DISCOVERY_LABEL: Record<string, string> = { flag: "Flag", beacon: "Beacon", patrol: "Patrol", fracture: "Rift Fracture", distress: "Distress Signal", cache: "Cache", movement: "Movement Route", anomaly: "Anomaly" };
 const ACTIVITY_REGION: Record<string, string> = { veridan: "veridan", ember: "ember", wastelands: "wastelands", swamps: "swamps", solara: "solara", frostspire: "frostspire", thalassia: "swamps" };
 import { nearby as discoveriesNear, triggered as discoveryTriggered } from "@/game/discoveries";
@@ -54,6 +57,9 @@ import { waterMix } from "@/game/water-audio";
 /** water audio is eased in the audio graph, so it only needs a pose update ~8x/s */
 let lastWaterAudioAt = 0;
 import { flavorFor } from "@/game/audio-design";
+import { spawnBreachFoes, type Machine } from "@/game/sim";
+import { BREACH_HP_FLOOR, breachWave, slotAwake, type BreachEvent, type BreachRun, type Powers } from "@/game/breach";
+import { streetOutside } from "@/game/story-start";
 import { alert, applyLightning, chipPlayer, collidePlayer, createSim, defeatMachine, logImpact, markGoreHit, fireOrdnance, applyMachineDamageMods, FACTIONS, fireBullet, fireLauncher, hurtPlayer, throwBeacon, instabilityTier, spawnMissionDrones, spawnEventSquad, spawnStormGuardians, stepSim, summonBoss, summonScenarioBoss, type Faction, type InstabilityTier, type WorldSim, type ZoneState } from "@/game/sim";
 import type { MissionEvent, MissionRun } from "@/game/missions/broken-signal";
 import type { MissionEvent as BlackoutEvent, MissionRun as BlackoutRun } from "@/game/missions/blackout-protocol";
@@ -619,7 +625,9 @@ function SceneImpl({
   onXP,
   weaponOrder = WEAPON_ORDER,
   travelTo = null,
-  civilian = false,
+  powers = 3,
+  breach = null,
+  onBreachEvent,
   onCheckpoint,
   introPlayback,
   openedCaches = [],
@@ -698,9 +706,13 @@ function SceneImpl({
   weaponOrder?: WeaponId[];
   /** star map deployment target; nonce changes trigger the drop */
   /** `descend`: a dungeon the Director map launched (director-activities.ts); its descent starts once you arrive */
-  /** the prologue (story-start.ts): an ordinary resident before the Fracture: no weapon, no abilities, no armor. First person
-   * with no body or gun drawn, and every combat input (fire, aim, reload, weapon swap, melee, dash, abilities, stims) ignored */
-  civilian?: boolean;
+  /** the prologue's power stage (story-start.ts, breach.ts): 0 an ordinary resident before the Fracture (no weapon, abilities
+   * or armor: first person with no body or gun drawn, every combat input ignored), 1 armor and weapon (fire, melee), 2 + the
+   * primary ability and dash, 3 (default) everything */
+  powers?: Powers;
+  /** the Breach: the street fight out of the Residences where the powers wake (breach.ts); Scene spawns its echoes and reports */
+  breach?: BreachRun | null;
+  onBreachEvent?: (e: BreachEvent) => void;
   travelTo?: { x: number; z: number; nonce: number; y?: number; descend?: string; /** arrive inside this interior (a new character wakes in Apartment 1204), at `local` metres in it */ interior?: string; local?: { x: number; z: number } } | null;
   onCheckpoint?: (p: { x: number; z: number }) => void;
   /** Opening cinematic: while set, the camera follows intro-camera.ts's scripted flythrough
@@ -784,7 +796,11 @@ function SceneImpl({
   const descentSpawned = useRef("");
   const burstHeard = useRef(0);
   const devWarp = useRef<{ x: number; z: number; y?: number; keepInterior?: boolean } | null>(null);
-  const civilianRef = useRef(civilian); civilianRef.current = civilian;
+  const powersRef = useRef<Powers>(powers); powersRef.current = powers;
+  /** the Breach's enemies on the street (machine refs), and which state's wave was spawned */
+  const breachFoes = useRef<{ state: string; foes: Machine[] }>({ state: "", foes: [] });
+  /** the Breach: the power NOVA just pointed at was used (fire in SURGE, an ability in ANCHOR), so its hint can fade */
+  const breachUsed = useRef(false);
   useEffect(() => {
     if (typeof window === "undefined" || new URLSearchParams(window.location.search).get("dev") !== "1") return;
     const w = window as unknown as { __warp?: (to: string | { x: number; z: number; y?: number; keepInterior?: boolean }) => string };
@@ -1316,12 +1332,14 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
       s.yaw -= touch.lookDX * 0.005; s.pitch = THREE.MathUtils.clamp(s.pitch - touch.lookDY * 0.005, -1.2, 1.2);
       touch.lookDX = 0; touch.lookDY = 0; mouse.current.fire = touch.fire; mouse.current.aim = touch.aim;
     }
-    // the prologue: a civilian has nothing to fire, swing, dash or cast (moving, jumping, crouching and looking still work)
-    const civ = civilianRef.current;
-    if (civ) {
-      mouse.current.fire = false; mouse.current.aim = false;
+    // the prologue: a civilian has nothing to fire, swing, dash or cast (moving, jumping, crouching and looking still work); in
+    // the Breach the powers wake a layer at a time and the keys of the layers still asleep do nothing
+    const pw = powersRef.current, civ = pw === 0;
+    if (pw < 3) {
       const kb = (settings.bindings ?? DEFAULT_BINDINGS).keyboard;
-      for (const code of [...CIVILIAN_BLOCKED_KEYS, kb.dash, kb.reload, kb.weaponWheel, kb.nextWeapon, kb.prevWeapon, kb.healStim, kb.armorStim, kb.ruinStone, kb.dragonfire, kb.wyrmwing, kb.dragonhide, kb.wyrmcall, kb.roar, kb.scalebreaker, kb.skyfall, kb.lockOn]) held.delete(code);
+      if (pw < 1) { mouse.current.fire = false; mouse.current.aim = false; for (const code of [...ASLEEP_BELOW_1, kb.reload, kb.weaponWheel, kb.nextWeapon, kb.prevWeapon]) held.delete(code); }
+      if (pw < 2) for (const code of [...ASLEEP_BELOW_2, kb.dash]) held.delete(code);
+      for (const code of [...ASLEEP_BELOW_3, kb.healStim, kb.armorStim, kb.ruinStone, kb.dragonfire, kb.wyrmwing, kb.dragonhide, kb.wyrmcall, kb.roar, kb.scalebreaker, kb.skyfall, kb.lockOn]) held.delete(code);
     }
     const boots = bootStats(gearLive.current?.earnedRewards ?? [], getEquippedBoots());
     // Safe-state guard: a null/invalid player or world ref (bad hot-reload, a race during a scene
@@ -1499,10 +1517,11 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
     const padForAbilities = typeof navigator !== "undefined" && navigator.getGamepads ? Array.from(navigator.getGamepads()).find(Boolean) ?? null : null;
     const chord = abilityChord(padForAbilities ? padForAbilities.buttons.map((b) => b.pressed) : [], (settings.bindings ?? DEFAULT_BINDINGS).gamepad);
     for (const [key, slot] of [["KeyQ", "PRIMARY"], ["KeyE", "TACTICAL"], ["KeyR", "ULTIMATE"]] as const) {
-      const down = !civ && (held.has(key) || chord[slot]);
+      const down = slotAwake(pw, slot) && (held.has(key) || chord[slot]);
       if (down && !abilityHeld.current[key]) {
         const cast = castAbility(sim, live.current, slot, { x: s.x, z: s.z, yaw: s.yaw }, { environment: here?.kind ?? "war", subclassId, inVehicle: s.inVehicle });
         if (cast.ok) {
+          breachUsed.current = true;
           const effect = cast.config.effects[0];
           s.x = cast.pose.x; s.z = cast.pose.z; s.yaw = cast.pose.yaw;
           s.specialTime = Math.max(s.specialTime, slot === "ULTIMATE" ? 1.5 : 0.8);
@@ -1834,7 +1853,7 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
     const binds = settings.bindings ?? DEFAULT_BINDINGS;
     const pad = typeof navigator !== "undefined" && navigator.getGamepads ? Array.from(navigator.getGamepads()).find(Boolean) ?? null : null;
     const padNow = pad ? maskChord(pad.buttons.map((b) => b.pressed), binds.gamepad) : [];
-    if (civ) { const g = binds.gamepad; for (const i of [g.fire, g.aim, g.dash, g.reload, g.nextWeapon, g.prevWeapon, g.weaponWheel, g.slot1, g.slot2, g.slot3, g.slot4, g.abilityModifier]) padNow[i] = false; }
+    if (pw < 3) { const g = binds.gamepad; for (const i of [...(pw < 1 ? [g.fire, g.aim, g.reload, g.nextWeapon, g.prevWeapon, g.weaponWheel, g.slot1, g.slot2, g.slot3, g.slot4] : []), ...(pw < 2 ? [g.dash] : [])]) padNow[i] = false; }
     const padTap = (i: number) => !!padNow[i] && !padPrev.current[i];
     const keyTap = (code: string) => held.has(code) && !keyPrev.current.has(code);
     padState.current = { fire: !!padNow[binds.gamepad.fire], aim: !!padNow[binds.gamepad.aim], connected: !!pad };
@@ -2992,6 +3011,26 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
       }
     }
 
+    /* ---------------- the Breach (breach.ts): the prologue's street fight, the powers waking under pressure ---------------- */
+    const breachLive = !!breach && !!onBreachEvent && breach.state !== "CINE" && breach.state !== "DONE";
+    if (breachLive) {
+      const b = breach!, emit = onBreachEvent!, now = Date.now(), bf = breachFoes.current, wave = breachWave(b.state);
+      if (wave && bf.state !== b.state) {
+        // they come out of the smoke up the street, away from the Residences' doors
+        const st = streetOutside(6), at = { x: st.x + Math.sin(st.yaw) * 13, z: st.z + Math.cos(st.yaw) * 13 };
+        // each awakening: time slows for a breath as the next layer of power comes online
+        if (b.state !== "DAZED") { hitStopUntil.current = performance.now() + 500; s.punch += 0.6; sfx.playAbility("DASH"); }
+        bf.foes = [...bf.foes.filter((m) => m.alive), ...spawnBreachFoes(sim, at.x, at.z, wave.count, wave.elite, b.state === "DAZED" ? 1.5 : 5)];
+        bf.state = b.state; breachUsed.current = false;
+      }
+      const live = bf.foes.filter((m) => m.alive);
+      if (b.state === "DAZED" && (sim.hp < 100 || live.some((m) => Math.hypot(m.x - s.x, m.z - s.z) < 7))) emit({ type: "THREAT", now });
+      if ((b.state === "SURGE" || b.state === "ANCHOR") && bf.state === b.state && live.length === 0) emit({ type: b.state === "SURGE" ? "WAVE_CLEAR" : "ANCHOR_DOWN", now });
+      if (b.state === "SURGE" && (mouse.current.fire || held.has("Space") || padState.current.fire)) breachUsed.current = true;
+      if (b.hint && breachUsed.current) { breachUsed.current = false; emit({ type: "USED", now }); }
+      // a first encounter teaches, it doesn't kill
+      sim.hp = Math.max(sim.hp, BREACH_HP_FLOOR);
+    } else if (breachFoes.current.state && (!breach || breach.state === "DONE")) breachFoes.current = { state: "", foes: [] };
     /* ---------------- simulation step ---------------- */
     const hpBeforeCombat = sim.hp;
     const { playerInstability } = stepSim(sim, {
@@ -3006,6 +3045,7 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
       pspeed: s.inVehicle ? Math.abs(s.vSpeed) : Math.hypot(velocity.x, velocity.z),
       stance: s.inVehicle ? "STAND" : move.current.state.stance,
     });
+    if (breachLive) sim.hp = Math.max(sim.hp, BREACH_HP_FLOOR);
     if (s.inVehicle && sim.hp < hpBeforeCombat) { condition.current = impactVehicle(condition.current, hpBeforeCombat - sim.hp + 2); onVehicleCondition?.(vehicleId, condition.current); }
     // Living World: city events, patrols, civilian panic and contract progress (living-runtime.ts); outcomes go to GameCanvas
     {
