@@ -1,6 +1,6 @@
 /**
  * Bakes the street maps' land-cover images (carto-maps.ts) into public/maps/carto/ so every city and region map opens sharp at
- * once on a phone. The game uses them only while their fingerprint matches the live world (useCartoMap), so a stale bake falls
+ * once on a phone, plus each map's satellite data (cover, hill shade, depth) the game recolours into the satellite view. The game uses them only while their fingerprint matches the live world (useCartoMap), so a stale bake falls
  * back to painting in the game, never to a wrong map.
  *
  *   bun scripts/bake-carto-maps.ts [size]     (the Android APK workflow runs it before every build; re-run after a terrain change)
@@ -8,7 +8,7 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { deflateSync, crc32 } from "node:zlib";
-import { CARTO_MAPS, cartoBounds, cartoFingerprint, paintCarto } from "../src/game/carto-maps";
+import { CARTO_MAPS, cartoBounds, cartoFingerprint, paintCartoAll } from "../src/game/carto-maps";
 
 const SIZE = Number(process.argv[2] ?? 1536);
 const OUT = join(process.cwd(), "public", "maps", "carto");
@@ -36,11 +36,14 @@ function png(px: Uint8ClampedArray, size: number): Buffer {
 }
 
 mkdirSync(OUT, { recursive: true });
-const maps: Record<string, { url: string; size: number }> = {};
+const maps: Record<string, { url: string; data: string; size: number }> = {};
 for (const m of CARTO_MAPS) {
   const t = performance.now();
-  writeFileSync(join(OUT, `${m.id}.png`), png(paintCarto(SIZE, cartoBounds(m)), SIZE));
-  maps[m.id] = { url: `/maps/carto/${m.id}.png`, size: SIZE };
+  const { pixels, data } = paintCartoAll(SIZE, cartoBounds(m));
+  writeFileSync(join(OUT, `${m.id}.png`), png(pixels, SIZE));
+  // the satellite view's data (cover, shade, depth): the game recolours it on the phone (satelliteFromData)
+  writeFileSync(join(OUT, `${m.id}.data.png`), png(data, SIZE));
+  maps[m.id] = { url: `/maps/carto/${m.id}.png`, data: `/maps/carto/${m.id}.data.png`, size: SIZE };
   console.log(`${m.id}: ${Math.round(performance.now() - t)} ms`);
 }
 writeFileSync(join(OUT, "manifest.json"), JSON.stringify({ fingerprint: cartoFingerprint(), size: SIZE, maps }, null, 1));

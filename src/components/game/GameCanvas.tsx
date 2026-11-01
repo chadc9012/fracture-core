@@ -1519,6 +1519,7 @@ export function GameCanvas() {
             playerClass={progression.identityClass ?? cls}
             notice={menuNotice}
             currentWorld={hud.world ?? null}
+            playerPos={{ x: hud.px, z: hud.pz }}
             currentRegion={hud.world === "thalassia" ? "thalassia" : Math.hypot(hud.px - NEON_SITE.x, hud.pz - NEON_SITE.z) < NEON_FLAT * 1.4 ? "neon" : Math.hypot(hud.px - RIVERDALE.x, hud.pz - RIVERDALE.z) < RIVERDALE.r + RIVERDALE.fade ? "riverdale" : hud.regionId || null}
           />
         )}

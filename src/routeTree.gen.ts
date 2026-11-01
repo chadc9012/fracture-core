@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as ApiVoiceRouteImport } from './routes/api/voice'
 import { Route as DevAssetsRouteImport } from './routes/dev.assets'
+import { Route as DevMapsRouteImport } from './routes/dev.maps'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -34,18 +35,25 @@ const DevAssetsRoute = DevAssetsRouteImport.update({
   path: '/dev/assets',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DevMapsRoute = DevMapsRouteImport.update({
+  id: '/dev/maps',
+  path: '/dev/maps',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/reset-password': typeof ResetPasswordRoute
   '/api/voice': typeof ApiVoiceRoute
   '/dev/assets': typeof DevAssetsRoute
+  '/dev/maps': typeof DevMapsRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/reset-password': typeof ResetPasswordRoute
   '/api/voice': typeof ApiVoiceRoute
   '/dev/assets': typeof DevAssetsRoute
+  '/dev/maps': typeof DevMapsRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -53,13 +61,21 @@ export interface FileRoutesById {
   '/reset-password': typeof ResetPasswordRoute
   '/api/voice': typeof ApiVoiceRoute
   '/dev/assets': typeof DevAssetsRoute
+  '/dev/maps': typeof DevMapsRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/reset-password' | '/api/voice' | '/dev/assets'
+  fullPaths:
+    '/' | '/reset-password' | '/api/voice' | '/dev/assets' | '/dev/maps'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/reset-password' | '/api/voice' | '/dev/assets'
-  id: '__root__' | '/' | '/reset-password' | '/api/voice' | '/dev/assets'
+  to: '/' | '/reset-password' | '/api/voice' | '/dev/assets' | '/dev/maps'
+  id:
+    | '__root__'
+    | '/'
+    | '/reset-password'
+    | '/api/voice'
+    | '/dev/assets'
+    | '/dev/maps'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -67,6 +83,7 @@ export interface RootRouteChildren {
   ResetPasswordRoute: typeof ResetPasswordRoute
   ApiVoiceRoute: typeof ApiVoiceRoute
   DevAssetsRoute: typeof DevAssetsRoute
+  DevMapsRoute: typeof DevMapsRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -99,6 +116,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DevAssetsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/dev/maps': {
+      id: '/dev/maps'
+      path: '/dev/maps'
+      fullPath: '/dev/maps'
+      preLoaderRoute: typeof DevMapsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -107,6 +131,7 @@ const rootRouteChildren: RootRouteChildren = {
   ResetPasswordRoute: ResetPasswordRoute,
   ApiVoiceRoute: ApiVoiceRoute,
   DevAssetsRoute: DevAssetsRoute,
+  DevMapsRoute: DevMapsRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

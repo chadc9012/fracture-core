@@ -285,7 +285,7 @@ export function naturalHeightAt(x: number, z: number): number {
 
 const CARVE_CELL = 6;
 const CARVE_RANGE = Math.ceil(WORLD_RADIUS * 1.2 / CARVE_CELL);
-type CarveSeg = { a: RiverPoint; b: RiverPoint };
+type CarveSeg = { a: RiverPoint; b: RiverPoint; dry: boolean };
 let network: WaterNetwork | null = null;
 let carveCells: Map<number, CarveSeg[]> | null = null;
 
@@ -303,7 +303,7 @@ export function waterNetwork(): WaterNetwork {
   const cells = new Map<number, CarveSeg[]>();
   const reach = (6 + 7) * RIVER_SCALE;
   for (const r of network.rivers) for (let i = 0; i < r.points.length - 1; i++) {
-    const seg = { a: r.points[i]!, b: r.points[i + 1]! };
+    const seg = { a: r.points[i]!, b: r.points[i + 1]!, dry: !!r.dry };
     const minX = Math.min(seg.a.x, seg.b.x) - reach, maxX = Math.max(seg.a.x, seg.b.x) + reach;
     const minZ = Math.min(seg.a.z, seg.b.z) - reach, maxZ = Math.max(seg.a.z, seg.b.z) + reach;
     for (let cx = Math.floor(minX / CARVE_CELL); cx <= Math.floor(maxX / CARVE_CELL); cx++)
@@ -318,17 +318,17 @@ export function waterNetwork(): WaterNetwork {
 }
 
 /** nearest river centre-line info at (x,z), or null if no river is within carving reach */
-export function riverAt(x: number, z: number): { dist: number; s: number; w: number; d: number } | null {
+export function riverAt(x: number, z: number): { dist: number; s: number; w: number; d: number; /** a dry wash, not running water */ dry: boolean } | null {
   if (!carveCells) waterNetwork();
   const list = carveCells!.get((Math.floor(x / CARVE_CELL) + CARVE_RANGE) * 4096 + (Math.floor(z / CARVE_CELL) + CARVE_RANGE));
   if (!list) return null;
-  let best: { dist: number; s: number; w: number; d: number } | null = null;
-  for (const { a, b } of list) {
+  let best: { dist: number; s: number; w: number; d: number; dry: boolean } | null = null;
+  for (const { a, b, dry } of list) {
     const ex = b.x - a.x, ez = b.z - a.z;
     const len2 = ex * ex + ez * ez || 1;
     const t = Math.min(1, Math.max(0, ((x - a.x) * ex + (z - a.z) * ez) / len2));
     const dist = Math.hypot(a.x + ex * t - x, a.z + ez * t - z);
-    if (!best || dist < best.dist) best = { dist, s: a.s + (b.s - a.s) * t, w: a.w + (b.w - a.w) * t, d: a.d };
+    if (!best || dist < best.dist) best = { dist, s: a.s + (b.s - a.s) * t, w: a.w + (b.w - a.w) * t, d: a.d, dry };
   }
   return best;
 }

@@ -23,19 +23,43 @@ import { CITY_RADIUS, CORE, DOCK, RING } from "./thalassia-sectors";
 import { GARAGES } from "./fleet";
 import { HEIGHT_K, WATER_LEVEL, heightAt, waterNetwork } from "./terrain";
 import { NEON_SITE, REGIONS, RIVERDALE } from "./world";
+import { STORM_ISLAND_SITES, stormSiteWorld } from "./storm-islands";
+import { reclaimedCity } from "./reclaimed-city";
+import { HULL } from "./crash-layout";
+import { CRASH_SITE, TRAIL, TRAIL_HALF_WIDTH } from "./verdant";
+import { RIVERDALE_HALL } from "./world";
+import { BOARDWALK_W, boardwalk, townBoxes } from "./riverdale";
+import { ruins as wasteRuins, pylons } from "./waste-dressing";
+import { STUNT_PARK } from "./stunt-park";
+import { ARENA, RUST_RUN, VAULT_GATE } from "./wasteland-activities";
+import { HOLLOW_CROWN } from "./godforge";
+import { camps as frostCamps, frozenFall } from "./frost-dressing";
+import { pillars as solaraPillars, ribcage } from "./solara-dressing";
+import { wreckField } from "./set-pieces";
+import { HAZARD_ZONES } from "./hazard-zones";
+import { skylineLookout, LEDGE } from "./skyline-lookout";
+import { railLines, SKYRAIL } from "./nexus-skyrail";
+import { CHECKPOINT, DECK, SKYBRIDGES, SPIRE, undercity } from "./neon-tiers";
+import { worldMaglev } from "./maglev";
+import { GRID_WALKWAYS } from "./neon-districts";
+import { ELEVATOR_PLATFORM_R, TERMINALS, thalassiaElevator } from "./travel";
+import { riverCrossings } from "./terrain";
+import { NEXUS_HUB_ROAD_R } from "./building-models";
+import { islandRadius } from "./storm-quests";
 
 export type BuildingUse = "apartment" | "house" | "store" | "mall" | "school" | "entertainment" | "office" | "civic" | "industrial" | "transport" | "garage" | "dome";
 export type CartoBuilding = { x: number; z: number; hx: number; hz: number; yaw: number; use: BuildingUse; /** 0..1 how tall, for the roof shading */ h: number; name?: string };
-export type RoadClass = "highway" | "main" | "street" | "track" | "runway" | "taxiway" | "bridge" | "boardwalk";
-export type CartoRoad = { cls: RoadClass; pts: [number, number][]; /** full width in metres */ width: number; name?: string };
+export type RoadClass = "highway" | "main" | "street" | "track" | "runway" | "taxiway" | "bridge" | "boardwalk" | "rail" | "trail" | "powerline" | "race" | "skybridge";
+export type CartoRoad = { cls: RoadClass; pts: [number, number][]; /** full width in metres */ width: number; name?: string; /** a line colour of its own (the maglev lines) */ color?: string };
 /** a paved area drawn under the roads (street segments, junctions, the square, the apron) */
 export type CartoPavement = { x: number; z: number; hx: number; hz: number; yaw: number; kind: "street" | "plaza" | "apron" };
 export type PoiCat = "store" | "mall" | "school" | "university" | "entertainment" | "casino" | "nightclub" | "park" | "transit" | "dock" | "civic" | "landmark" | "garage"
-  | "village" | "camp" | "cave" | "ruins" | "peak" | "lake" | "falls" | "lava" | "research" | "temple" | "spire" | "airport" | "outpost";
+  | "village" | "camp" | "cave" | "ruins" | "peak" | "lake" | "falls" | "lava" | "research" | "temple" | "spire" | "airport" | "outpost"
+  | "terminal" | "port" | "station" | "hazard" | "arena" | "viewpoint" | "wreck";
 export type CartoPoi = { id: string; name: string; cat: PoiCat; x: number; z: number; /** 0 always shown .. 3 only close up */ rank: number; blurb?: string };
-export type AreaKind = "city" | "district" | "mountain" | "valley" | "lake" | "desert" | "forest" | "lava" | "sea" | "snow" | "marsh";
+export type AreaKind = "city" | "district" | "mountain" | "valley" | "lake" | "desert" | "forest" | "lava" | "sea" | "snow" | "marsh" | "river" | "hazard";
 export type CartoArea = { name: string; x: number; z: number; kind: AreaKind; rank: number };
-export type CartoFeatures = { buildings: CartoBuilding[]; roads: CartoRoad[]; pavements: CartoPavement[]; rings: { x: number; z: number; r: number; kind: "dome" | "ring" | "dock" }[]; pois: CartoPoi[]; areas: CartoArea[] };
+export type CartoFeatures = { buildings: CartoBuilding[]; roads: CartoRoad[]; pavements: CartoPavement[]; rings: { x: number; z: number; r: number; kind: "dome" | "ring" | "dock" | "hazard" | "arena" | "pad" | "fence"; name?: string }[]; pois: CartoPoi[]; areas: CartoArea[] };
 
 /** display style of each use: roof colour and outline (light street-map buildings, coloured by what they are) */
 export const USE_STYLE: Record<BuildingUse, { fill: string; stroke: string; label: string }> = {
@@ -56,16 +80,20 @@ export const POI_STYLE: Record<PoiCat, { color: string; glyph: string; label: st
   peak: { color: "#6d4c41", glyph: "▲", label: "Peak" }, lake: { color: "#1967d2", glyph: "💧", label: "Lake" }, falls: { color: "#1967d2", glyph: "〰", label: "Waterfall" },
   lava: { color: "#e8590c", glyph: "🌋", label: "Lava / magma" }, research: { color: "#00897b", glyph: "⚗", label: "Research" }, temple: { color: "#8d6e63", glyph: "⛩", label: "Temple" },
   spire: { color: "#6d4c41", glyph: "◆", label: "Spire" }, airport: { color: "#3367d6", glyph: "✈", label: "Airport" }, outpost: { color: "#8d6e63", glyph: "⛫", label: "Outpost" },
+  terminal: { color: "#3367d6", glyph: "✈", label: "Transit terminal" }, port: { color: "#3367d6", glyph: "⛴", label: "Seaport" }, station: { color: "#3367d6", glyph: "🚝", label: "Rail station" },
+  hazard: { color: "#d93025", glyph: "⚠", label: "Hazard" }, arena: { color: "#d0287f", glyph: "🏁", label: "Arena / track" }, viewpoint: { color: "#188038", glyph: "👁", label: "Viewpoint" },
+  wreck: { color: "#5f6368", glyph: "✦", label: "Wreck" },
 };
 /** filter groups for the map's chips */
 export const POI_GROUPS: { id: string; label: string; cats: PoiCat[] }[] = [
   { id: "shopping", label: "Shopping", cats: ["store", "mall"] },
   { id: "schools", label: "Schools", cats: ["school", "university"] },
   { id: "fun", label: "Entertainment", cats: ["entertainment", "casino", "nightclub"] },
-  { id: "transit", label: "Transit", cats: ["transit", "dock", "airport", "garage"] },
+  { id: "transit", label: "Transit", cats: ["transit", "dock", "airport", "garage", "terminal", "port", "station"] },
   { id: "civic", label: "Civic", cats: ["civic", "park", "landmark", "research"] },
-  { id: "nature", label: "Nature", cats: ["peak", "lake", "falls", "lava", "cave", "spire"] },
-  { id: "places", label: "Places", cats: ["village", "camp", "ruins", "temple", "outpost"] },
+  { id: "nature", label: "Nature", cats: ["peak", "lake", "falls", "lava", "cave", "spire", "viewpoint"] },
+  { id: "places", label: "Places", cats: ["village", "camp", "ruins", "temple", "outpost", "wreck", "arena"] },
+  { id: "hazards", label: "Hazards", cats: ["hazard"] },
 ];
 
 const SITE_POI: Partial<Record<SiteKind, PoiCat>> = {
@@ -167,6 +195,131 @@ function peaks(m: CartoMap, n: number): CartoPoi[] {
   return kept.map((p, i) => ({ id: `${m.id}-peak-${i}`, name: `Peak · ${Math.round(p.h - WATER_LEVEL)} m`, cat: "peak" as const, x: p.x, z: p.z, rank: i === 0 ? 1 : 2 }));
 }
 
+/** the site set pieces SiteMarkers.tsx builds (rotated by its group's yaw), as footprints */
+function siteFootprints(s: Site): CartoBuilding[] {
+  const th = (s.x * 0.013) % (Math.PI * 2), c = Math.cos(th), sn = Math.sin(th);
+  const at = (lx: number, lz: number, hx: number, hz: number, use: BuildingUse, h: number, name?: string): CartoBuilding => ({ x: s.x + lx * c + lz * sn, z: s.z - lx * sn + lz * c, hx, hz, yaw: th, use, h, ...(name ? { name } : {}) });
+  switch (s.kind) {
+    case "village": return Array.from({ length: 6 }, (_, i) => { const a = (i / 6) * Math.PI * 2, d = 11.5; return { ...at(Math.cos(a) * d, Math.sin(a) * d, 2.5, 2.5, "house", 0.2), yaw: th - a }; });
+    case "camp": return Array.from({ length: 5 }, (_, i) => { const a = (i / 5) * Math.PI * 2; return at(Math.cos(a) * 8, Math.sin(a) * 8, 1.6, 1.6, "house", 0.08); });
+    case "temple": return [at(0, 0, 7, 7, "civic", 0.4, s.name)];
+    case "forge": return [at(0, 0, 6, 5, "industrial", 0.3, s.name)];
+    case "outpost": return [at(0, 0, 6, 6, "industrial", 0.25, s.name), at(10, -10, 1.6, 1.6, "industrial", 0.35)];
+    case "lounge": return [at(0, 0, 9, 6, "entertainment", 0.3, s.name)];
+    default: return [];
+  }
+}
+
+/** everything else the world builds that a street map should show: the wild regions' set pieces and towns, the reclaimed city,
+ * the crash, the Wastelands' ruins, power line, stunt park, arena and vault, Frostspire's camps, Solara's ribcage, the
+ * Smoldering Trench's wrecks, hazard zones, transit terminals and the Thalassia elevator, the Nexus skyrail and hub ring, Neon
+ * City's spire, deck, skybridges and maglev lines, the Verdant trail, Riverdale's hall and boardwalk, the Rust Run, the bridges
+ * where roads cross rivers, and the names of the rivers and streams. Each from the module its renderer reads. */
+function addWorldDetail(m: CartoMap, bOut: CartoBuilding[], roads: CartoRoad[], pav: CartoPavement[], rings: CartoFeatures["rings"], pois: CartoPoi[], areas: CartoArea[]) {
+  const R2 = (id: string) => REGIONS.find((r) => r.id === id)!;
+  // atlas set pieces
+  for (const s of SITES) if (inMap(m, s.x, s.z) && s.id !== "vf-ruins") {
+    bOut.push(...siteFootprints(s));
+    if (s.kind === "research") for (const [lx, lz, r] of [[0, 0, 7], [11, 3, 5], [-10, -4, 5]] as const) { const th = (s.x * 0.013) % (Math.PI * 2); rings.push({ x: s.x + lx * Math.cos(th) + lz * Math.sin(th), z: s.z - lx * Math.sin(th) + lz * Math.cos(th), r, kind: "dome" }); }
+    if (s.kind === "camp") rings.push({ x: s.x, z: s.z, r: 14, kind: "fence" });
+    if (s.kind === "crater") rings.push({ x: s.x, z: s.z, r: 21, kind: "hazard" });
+  }
+  // the jungle-reclaimed city on the Ancient Ruins
+  const rc = reclaimedCity();
+  if (rc && inMap(m, rc.cx, rc.cz)) {
+    for (const t of rc.towers) bOut.push({ x: t.x, z: t.z, hx: t.w / 2, hz: t.d / 2, yaw: t.yaw, use: "office", h: Math.min(1, t.floors / 12) });
+    areas.push({ name: "Reclaimed City", x: rc.cx, z: rc.cz - 30, kind: "district", rank: 1 });
+  }
+  // the Verdant Forest: the trail from the clearing to the crash, the crashed ship
+  if (TRAIL.length > 1 && TRAIL.some((p) => inMap(m, p.x, p.z))) roads.push({ cls: "trail", pts: TRAIL.map((p) => [p.x, p.z]), width: TRAIL_HALF_WIDTH * 2, name: "Forest trail" });
+  if (inMap(m, HULL.x, HULL.z)) {
+    bOut.push({ x: HULL.x, z: HULL.z, hx: HULL.length / 2, hz: HULL.radius, yaw: HULL.yaw, use: "industrial", h: 0.12, name: "Crashed ship" });
+    pois.push({ id: "crash-site", name: CRASH_SITE.label, cat: "wreck", x: CRASH_SITE.x, z: CRASH_SITE.z, rank: 1, blurb: "Where you woke up: the wreck of your drop ship." });
+  }
+  // Riverdale: the town hall, the town's own buildings, the boardwalk to the river
+  if (m.id === "riverdale" || inMap(m, RIVERDALE.x, RIVERDALE.z)) {
+    const H = RIVERDALE_HALL;
+    if (!bOut.some((b) => b.name === "Town Hall")) bOut.push({ x: H.x, z: H.z, hx: H.hx, hz: H.hz, yaw: H.yaw, use: "civic", h: 0.4, name: "Town Hall" });
+    for (const tb of townBoxes()) if (tb.sy > 2 && tb.sx * tb.sz > 6) bOut.push({ x: RIVERDALE.x + tb.x, z: RIVERDALE.z + tb.z, hx: tb.sx / 2, hz: tb.sz / 2, yaw: 0, use: "civic", h: Math.min(0.5, tb.sy / 30) });
+    const bw = boardwalk();
+    roads.push({ cls: "boardwalk", pts: [[RIVERDALE.x + bw.dirX * bw.start, RIVERDALE.z + bw.dirZ * bw.start], [RIVERDALE.x + bw.dirX * bw.end, RIVERDALE.z + bw.dirZ * bw.end]], width: BOARDWALK_W, name: "River boardwalk" });
+  }
+  // the Wastelands
+  if (m.id === "wastelands") {
+    for (const r of wasteRuins()) bOut.push({ x: r.x, z: r.z, hx: r.w / 2, hz: r.d / 2, yaw: r.r, use: "industrial", h: Math.min(0.6, r.floors / 8) });
+    const py = pylons(); if (py.length > 1) roads.push({ cls: "powerline", pts: py.map((p) => [p.x, p.z]), width: 1, name: "Power line" });
+    const sp = STUNT_PARK, yaw = -Math.atan2(sp.dirZ, sp.dirX);
+    pav.push({ x: sp.x, z: sp.z, hx: sp.length / 2, hz: sp.width / 2, yaw, kind: "plaza" });
+    pois.push({ id: "stunt-park", name: "Stunt Park", cat: "arena", x: sp.x, z: sp.z, rank: 1 });
+    rings.push({ x: ARENA.x, z: ARENA.z, r: ARENA.radius, kind: "arena", name: "Derby Arena" });
+    pois.push({ id: "derby-arena", name: "Derby Arena", cat: "arena", x: ARENA.x, z: ARENA.z, rank: 1 });
+    rings.push({ x: VAULT_GATE.x, z: VAULT_GATE.z, r: VAULT_GATE.radius, kind: "pad" });
+    pois.push({ id: "vault-gate", name: "Vault Gate · Underground City", cat: "transit", x: VAULT_GATE.x, z: VAULT_GATE.z, rank: 1, blurb: "The way down to the underground city." });
+    pois.push({ id: "hollow-crown", name: "Hollow Crown", cat: "landmark", x: HOLLOW_CROWN.x, z: HOLLOW_CROWN.z, rank: 2 });
+    roads.push({ cls: "race", pts: [[RUST_RUN.start.x, RUST_RUN.start.z], ...RUST_RUN.checkpoints.map((c) => [c.x, c.z] as [number, number])], width: 3, name: "Rust Run rally" });
+  }
+  // Frostspire's camps and the frozen waterfall
+  if (m.id === "frostspire") {
+    frostCamps().forEach((c, i) => pois.push({ id: `frost-camp-${i}`, name: "Nomad camp", cat: "camp", x: c.at.x, z: c.at.z, rank: 2 }));
+    const ff = frozenFall(); if (ff) pois.push({ id: "frozen-fall", name: "Frozen Waterfall", cat: "falls", x: ff.x, z: ff.z, rank: 1 });
+  }
+  // Solara: the great ribcage and the colonnade
+  if (m.id === "solara") {
+    const rb = ribcage(); if (rb) pois.push({ id: "ribcage", name: "The Ribcage", cat: "landmark", x: rb.x, z: rb.z, rank: 1, blurb: "The bones of something enormous, half buried in the sand." });
+    const pl = solaraPillars(); if (pl.length) { const cx = pl.reduce((a, p) => a + p.x, 0) / pl.length, cz = pl.reduce((a, p) => a + p.z, 0) / pl.length; pois.push({ id: "colonnade", name: "Sun Colonnade", cat: "ruins", x: cx, z: cz, rank: 2 }); }
+  }
+  // Ember Peaks: the wreck field by the trench
+  if (m.id === "ember") { const wf = wreckField(); if (wf.length) { const cx = wf.reduce((a, w) => a + w.x, 0) / wf.length, cz = wf.reduce((a, w) => a + w.z, 0) / wf.length; pois.push({ id: "wreck-field", name: "Wreck Field", cat: "wreck", x: cx, z: cz, rank: 2 }); for (const w of wf) bOut.push({ x: w.x, z: w.z, hx: 2.3, hz: 1, yaw: w.yaw, use: "garage", h: 0.05 }); } }
+  // hazard zones (circles round their landmarks)
+  for (const hz of HAZARD_ZONES) {
+    const l = LANDMARKS.find((x) => x.id === hz.landmarkId); if (!l || !inMap(m, l.x, l.z)) continue;
+    rings.push({ x: l.x, z: l.z, r: hz.radius, kind: "hazard", name: hz.name });
+    pois.push({ id: hz.id, name: hz.name, cat: "hazard", x: l.x, z: l.z + hz.radius * 0.4, rank: 1, blurb: hz.hint });
+  }
+  // transit: every airport kiosk and seaport, the Thalassia elevator
+  for (const t of TERMINALS) if (inMap(m, t.x, t.z)) pois.push({ id: t.id, name: t.name, cat: t.kind === "SEAPORT" ? "port" : "terminal", x: t.x, z: t.z, rank: 1 });
+  const el = thalassiaElevator();
+  if (inMap(m, el.pier.x, el.pier.z) || inMap(m, el.platform.x, el.platform.z)) {
+    roads.push({ cls: "boardwalk", pts: [[el.pier.x, el.pier.z], [el.platform.x, el.platform.z]], width: 4, name: "Thalassia pier" });
+    rings.push({ x: el.platform.x, z: el.platform.z, r: ELEVATOR_PLATFORM_R, kind: "pad" });
+    pois.push({ id: "thalassia-elevator", name: "Thalassia Elevator", cat: "transit", x: el.platform.x, z: el.platform.z, rank: 0, blurb: "Down to the sunken city." });
+  }
+  // Nexus City: the skyrail guideways and the hub's ring road, the skyline lookout
+  if (m.id === "nexus") {
+    for (const l of railLines()) roads.push({ cls: "rail", pts: [[l.ax, l.az], [l.bx, l.bz]], width: SKYRAIL.width, name: "Nexus Skyrail" });
+    const N = R2("nexus"), ring: [number, number][] = Array.from({ length: 49 }, (_, i) => { const a = (i / 48) * Math.PI * 2; return [N.x + Math.cos(a) * NEXUS_HUB_ROAD_R, N.z + Math.sin(a) * NEXUS_HUB_ROAD_R]; });
+    roads.push({ cls: "street", pts: ring, width: 4.4, name: "Hub Circle" });
+  }
+  const lk = skylineLookout();
+  if (lk && inMap(m, lk.x, lk.z)) { pav.push({ x: lk.x, z: lk.z, hx: LEDGE.length / 2, hz: LEDGE.width / 2, yaw: -Math.atan2(lk.dirZ, lk.dirX), kind: "plaza" }); pois.push({ id: "skyline-lookout", name: "Skyline Lookout", cat: "viewpoint", x: lk.x, z: lk.z, rank: 1 }); }
+  // Neon City: the spire, the checkpoint, the elevated deck and its skybridges, the maglev lines and stations, the grid walkways
+  if (m.id === "neon-city") {
+    const c = NEON_SITE;
+    bOut.push({ x: c.x + SPIRE.x, z: c.z + SPIRE.z, hx: SPIRE.base, hz: SPIRE.base, yaw: 0, use: "office", h: 1, name: "Aegis Spire" });
+    pav.push({ x: c.x + CHECKPOINT.x, z: c.z + CHECKPOINT.z, hx: CHECKPOINT.width / 2, hz: 2, yaw: 0, kind: "plaza" });
+    const hx = DECK.halfX, hz = DECK.halfZ;
+    roads.push({ cls: "skybridge", pts: [[c.x - hx, c.z - hz], [c.x + hx, c.z - hz], [c.x + hx, c.z + hz], [c.x - hx, c.z + hz], [c.x - hx, c.z - hz]], width: DECK.width, name: "Sky Deck" });
+    for (const b of SKYBRIDGES) roads.push({ cls: "skybridge", pts: [[c.x - hx, c.z + b.z], [c.x + hx, c.z + b.z]], width: 3.4, name: "Skybridge" });
+    for (const { line, rail } of worldMaglev(c)) {
+      const pts = rail.pts.map((p) => [p.x, p.z] as [number, number]); if (rail.closed && pts.length) pts.push(pts[0]!);
+      roads.push({ cls: "rail", pts, width: 2.4, name: line.name, color: line.color });
+      for (const f of line.stations) { const target = f * rail.total; let k = 0; while (k < rail.len.length - 2 && rail.len[k + 1]! < target) k++; const a = rail.pts[k]!, b = rail.pts[(k + 1) % rail.pts.length]!, seg = (rail.len[k + 1] ?? rail.total) - rail.len[k]!, t = seg > 0 ? (target - rail.len[k]!) / seg : 0;
+        pois.push({ id: `${line.id}-st-${f}`, name: `${line.name} station`, cat: "station", x: a.x + (b.x - a.x) * t, z: a.z + (b.z - a.z) * t, rank: 2 }); }
+    }
+    for (const w of GRID_WALKWAYS) { const x = c.x + w.dx, z = c.z + w.dz; roads.push({ cls: "skybridge", pts: [[x - w.dirX * w.length / 2, z - w.dirZ * w.length / 2], [x + w.dirX * w.length / 2, z + w.dirZ * w.length / 2]], width: w.width, name: "Grid walkway" }); }
+    const dens = undercity(); if (dens.length) pois.push({ id: "undercity", name: "Undercity", cat: "entertainment", x: c.x + dens[0]!.x, z: c.z + dens[0]!.z, rank: 2, blurb: "Dens and terminals under the streets." });
+  }
+  // bridges where the supply roads cross rivers and washes
+  for (const cr of riverCrossings()) if (cr.resolved && inMap(m, cr.x, cr.z)) { const h = cr.length / 2; roads.push({ cls: "bridge", pts: [[cr.x - cr.dirX * h, cr.z - cr.dirZ * h], [cr.x + cr.dirX * h, cr.z + cr.dirZ * h]], width: cr.width }); }
+  // the rivers and streams by name: the widest is a river, the rest streams (dry washes say so)
+  if (m.kind === "region") for (const r of waterNetwork().rivers) {
+    const inside = r.points.filter((p) => inMap(m, p.x, p.z));
+    if (inside.length < 6) continue;
+    const mid = inside[Math.floor(inside.length / 2)]!, w = inside.reduce((a, p) => Math.max(a, p.w), 0);
+    areas.push({ name: r.dry ? "Dry wash" : w > 5 ? "River" : "Stream", x: mid.x, z: mid.z, kind: "river", rank: 2 });
+  }
+}
+
 const cache = new Map<string, CartoFeatures>();
 export function cartoFeatures(m: CartoMap): CartoFeatures {
   const hit = cache.get(m.id);
@@ -211,7 +364,23 @@ export function cartoFeatures(m: CartoMap): CartoFeatures {
     roads.push({ cls: "runway", pts: [[p0.x, p0.z], [p1.x, p1.z]], width: a.runwayWidth, name: "Runway 10/28" });
     pois.push({ id: "nexus-airport", name: "Nexus Airport", cat: "airport", x: a.x, z: a.z, rank: 0 });
   }
+  if (m.id === "storm") {
+    // each island's structures as StormIslands.tsx builds them, and the island itself as a place with its height above the sea
+    const STORM_CAT: Record<string, PoiCat> = { landing: "dock", ruins: "ruins", outpost: "outpost", temple: "temple", nest: "camp", "storm-core": "spire" };
+    for (const site of STORM_ISLAND_SITES) {
+      const w = stormSiteWorld(site), r = islandRadius(site);
+      if (site.kind === "landing") buildingsOut.push({ x: w.x + r * 0.9, z: w.z, hx: 9, hz: 2.5, yaw: 0, use: "transport", h: 0.05, name: "Airship pier" });
+      if (site.kind === "temple") { buildingsOut.push({ x: w.x, z: w.z, hx: 15, hz: 11, yaw: 0, use: "civic", h: 0.5, name: site.name }); }
+      if (site.kind === "ruins") for (const v of [-1, 0, 1]) for (const sd of [-1, 1]) buildingsOut.push({ x: w.x + v * 9, z: w.z + sd * 6, hx: 1.8, hz: 1.8, yaw: 0, use: "civic", h: 0.15 });
+      if (site.kind === "outpost") buildingsOut.push({ x: w.x, z: w.z, hx: 3.5, hz: 3.5, yaw: 0, use: "industrial", h: 0.6, name: "Storm relay" });
+      if (site.kind === "nest") rings.push({ x: w.x, z: w.z, r: 10, kind: "ring" });
+      if (site.kind === "storm-core") rings.push({ x: w.x, z: w.z, r: 11, kind: "dome" });
+      pois.push({ id: `storm-${site.id}`, name: `${site.name} · ${Math.round(w.y)} m up`, cat: STORM_CAT[site.kind] ?? "landmark", x: w.x, z: w.z + (site.kind === "landing" ? 0 : r * 0.2), rank: site.kind === "landing" || site.kind === "storm-core" ? 0 : 1, blurb: site.description });
+    }
+    areas.push({ name: "Tempest Ocean", x: m.x - m.reach * 0.55, z: m.z + m.reach * 0.6, kind: "sea", rank: 1 });
+  }
   if (m.id === "swamps") for (const run of boardwalks()) roads.push({ cls: "boardwalk", pts: run.map((p) => [p.x, p.z]), width: 2.2 });
+  addWorldDetail(m, buildingsOut, roads, pavements, rings, pois, areas);
   // points of interest: the atlas sites, landmarks, garages, nature
   for (const s of SITES) {
     if (!inMap(m, s.x, s.z)) continue;
@@ -233,8 +402,15 @@ export function cartoFeatures(m: CartoMap): CartoFeatures {
   if (m.regionId === "ember") { const e = REGIONS.find((r) => r.id === "ember")!; pois.push({ id: "ember-crater", name: "Magma Pool", cat: "lava", x: e.x, z: e.z + CRATER_R * 1.3, rank: 0, blurb: "The crater's open lake of magma." }); areas.push({ name: "Lava Flows", x: e.x + CRATER_R * 3, z: e.z - CRATER_R * 2.5, kind: "lava", rank: 2 }); }
   if (m.kind === "region") for (const pk of peaks(m, m.regionId === "frostspire" ? 4 : 2)) { const near = pois.find((p) => (p.cat === "spire" || p.cat === "peak" || p.cat === "lava") && Math.hypot(p.x - pk.x, p.z - pk.z) < m.reach * 0.2); if (near) near.name = `${near.name} · ${pk.name.split(" · ")[1]}`; else pois.push(pk); }
   // big names
-  areas.push({ name: m.name, x: m.x, z: m.z - m.reach * (m.kind === "city" ? 0.72 : 0.82), kind: m.kind === "city" ? "city" : m.regionId === "frostspire" ? "mountain" : m.regionId === "solara" || m.regionId === "wastelands" ? "desert" : m.regionId === "swamps" ? "marsh" : m.regionId === "ember" ? "lava" : "forest", rank: 0 });
-  const feats: CartoFeatures = { buildings: buildingsOut.filter((b) => inMap(m, b.x, b.z)), roads, pavements: pavements.filter((p) => inMap(m, p.x, p.z, 20)), rings, pois, areas };
+  areas.push({ name: m.name, x: m.x, z: m.z - m.reach * (m.kind === "city" ? 0.72 : 0.82), kind: m.kind === "city" ? "city" : m.regionId === "storm-islands" ? "sea" : m.regionId === "frostspire" ? "mountain" : m.regionId === "solara" || m.regionId === "wastelands" ? "desert" : m.regionId === "swamps" ? "marsh" : m.regionId === "ember" ? "lava" : "forest", rank: 0 });
+  // one pin per place: the same id twice, or the same place under the same name from two sources, keeps the first
+  const seen = new Set<string>(), kept: CartoPoi[] = [];
+  for (const p of pois) {
+    const base = p.name.split(" · ")[0]!;
+    if (seen.has(p.id) || kept.some((k) => k.name.split(" · ")[0] === base && Math.hypot(k.x - p.x, k.z - p.z) < 30)) continue;
+    seen.add(p.id); kept.push(p);
+  }
+  const feats: CartoFeatures = { buildings: buildingsOut.filter((b) => inMap(m, b.x, b.z)), roads, pavements: pavements.filter((p) => inMap(m, p.x, p.z, 20)), rings, pois: kept, areas };
   cache.set(m.id, feats);
   return feats;
 }

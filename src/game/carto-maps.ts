@@ -15,9 +15,14 @@ import { badlands } from "./badlands";
 import { mesas, oasis } from "./solara-dressing";
 import { THALASSIA_CENTER } from "./thalassia-site";
 import { airportPoint, AIRPORT } from "./nexus-airport";
+import { STORM_ISLAND_SITES, STORM_ISLANDS_CENTER, stormSiteWorld } from "./storm-islands";
+import { islandRadius } from "./storm-quests";
+import { HILLS } from "./nexus-hills";
+import { lavaFissures } from "./set-pieces";
+import { frozenFall } from "./frost-dressing";
 
 export type CartoBounds = { x0: number; z0: number; span: number };
-export type CartoMapId = "nexus" | "neon-city" | "riverdale" | "thalassia" | "veridan" | "frostspire" | "ember" | "wastelands" | "solara" | "swamps";
+export type CartoMapId = "nexus" | "neon-city" | "riverdale" | "thalassia" | "veridan" | "frostspire" | "ember" | "wastelands" | "solara" | "swamps" | "storm";
 export type CartoMap = { id: CartoMapId; name: string; sub: string; kind: "city" | "region"; x: number; z: number; reach: number; regionId: string };
 
 const R = (id: string) => REGIONS.find((r) => r.id === id)!;
@@ -39,6 +44,8 @@ export const CARTO_MAPS: readonly CartoMap[] = [
     const r = R(id);
     return { id, name: r.name, sub: REGION_SUB[id] ?? "", kind: "region", x: r.x, z: r.z, reach: Math.round(r.radius * 1.15), regionId: id };
   }),
+  // the floating chain over the storm sea north-east of Nexus City (storm-islands.ts): its six islands span ~530 m
+  { id: "storm", name: "Storm Islands", sub: "Floating islands · storm sea", kind: "region", x: STORM_ISLANDS_CENTER.x + 45, z: STORM_ISLANDS_CENTER.z + 150, reach: 330, regionId: "storm-islands" },
 ];
 export const cartoMap = (id: string) => CARTO_MAPS.find((m) => m.id === id);
 export const cartoBounds = (m: CartoMap): CartoBounds => ({ x0: m.x - m.reach, z0: m.z - m.reach, span: m.reach * 2 });
@@ -53,7 +60,7 @@ export function cartoMapAt(x: number, z: number): CartoMap | null {
 
 export type Cover =
   | "deep" | "sea" | "shallow" | "lake" | "river" | "beach" | "meadow" | "grass" | "forest" | "denseForest" | "scrub" | "dirt"
-  | "desert" | "dunes" | "rock" | "sandstone" | "basalt" | "cliff" | "snow" | "ice" | "ash" | "lava" | "magma" | "marsh" | "urban" | "paved" | "town";
+  | "desert" | "dunes" | "rock" | "sandstone" | "basalt" | "cliff" | "snow" | "ice" | "ash" | "lava" | "magma" | "marsh" | "urban" | "paved" | "town" | "wash";
 
 /** The palette: a light, legible street-map style. Water is a clean light blue, land a warm off-white tinted by what grows
  * on it, cities pale grey blocks for the white streets to sit on; the hot ground of Ember Peaks is the one loud colour. */
@@ -62,12 +69,12 @@ export const COVER_COLOR: Record<Cover, readonly [number, number, number]> = {
   beach: [246, 236, 200], meadow: [214, 236, 196], grass: [200, 230, 180], forest: [170, 214, 156], denseForest: [146, 198, 132],
   scrub: [222, 216, 176], dirt: [232, 206, 160], desert: [246, 226, 184], dunes: [240, 214, 162], rock: [214, 206, 194], sandstone: [226, 176, 128], basalt: [96, 88, 86], cliff: [190, 180, 168],
   snow: [252, 253, 255], ice: [222, 240, 250], ash: [128, 116, 110], lava: [255, 104, 32], magma: [255, 178, 40], marsh: [182, 206, 172],
-  urban: [236, 234, 230], paved: [226, 222, 216], town: [240, 236, 226],
+  urban: [236, 234, 230], paved: [226, 222, 216], town: [240, 236, 226], wash: [226, 204, 168],
 };
 export const COVER_LABEL: Record<Cover, string> = {
   deep: "Deep water", sea: "Sea", shallow: "Shallows", lake: "Lake", river: "River", beach: "Beach", meadow: "Meadow", grass: "Grassland",
   forest: "Forest", denseForest: "Old-growth forest", scrub: "Scrub", dirt: "Dirt", desert: "Desert", dunes: "Dunes", rock: "Rock", sandstone: "Sandstone", basalt: "Basalt", cliff: "Cliffs",
-  snow: "Snow", ice: "Glacier ice", ash: "Ash plain", lava: "Lava field", magma: "Magma pool", marsh: "Marsh", urban: "City", paved: "Paved", town: "Town",
+  snow: "Snow", ice: "Glacier ice", ash: "Ash plain", lava: "Lava field", magma: "Magma pool", marsh: "Marsh", urban: "City", paved: "Paved", town: "Town", wash: "Dry wash",
 };
 
 const clamp01 = (x: number) => (x < 0 ? 0 : x > 1 ? 1 : x);
@@ -112,6 +119,16 @@ export function cartoStamps(): Stamp[] {
   // the airport platform (a concrete deck over the shore)
   const a = AIRPORT, hl = a.length / 2, hw = a.width / 2;
   out.push({ cover: "paved", quad: [airportPoint(-hl, -hw), airportPoint(hl, -hw), airportPoint(hl, hw), airportPoint(-hl, hw)].map((p) => [p.x, p.z]) });
+  // the Smoldering Trench's lava fissures (set-pieces.ts)
+  for (const f of lavaFissures()) { const hx = Math.sin(f.yaw) * f.length / 2, hz = Math.cos(f.yaw) * f.length / 2; out.push({ cover: "lava", seg: [f.x - hx, f.z - hz, f.x + hx, f.z + hz], w: Math.max(1.2, f.width) }); }
+  // Frostspire's frozen waterfall: a column of glacier ice down the face
+  const ff = frozenFall();
+  if (ff) { const hx = Math.sin(ff.yaw) * 8, hz = Math.cos(ff.yaw) * 8; out.push({ cover: "ice", seg: [ff.x - hx, ff.z - hz, ff.x + hx, ff.z + hz], w: 2.6 }); }
+  // the Storm Islands float over the sea: a cliff rim round a grassy top (StormIslands.tsx: a grass cap on a rock underside)
+  for (const site of STORM_ISLAND_SITES) {
+    const w = stormSiteWorld(site), r = islandRadius(site);
+    out.push({ cover: "cliff", x: w.x, z: w.z, r }, { cover: site.kind === "storm-core" ? "rock" : "meadow", x: w.x, z: w.z, r: r * 0.84 });
+  }
   return (stampsCache = out);
 }
 
@@ -130,7 +147,7 @@ export function coverAt(x: number, z: number, h: number, slope: number, stamp: C
   const lakes = waterNetwork().lakes;
   for (const l of lakes) if (Math.hypot(x - l.x, z - l.z) < l.r * 1.4 && h < l.level - 0.05) return biomeAt(x, z)?.id === "frostspire" ? "ice" : "lake";
   const rv = riverAt(x, z);
-  if (rv && rv.dist < rv.w * 0.95) return "river";
+  if (rv && rv.dist < rv.w * 0.95) return rv.dry ? "wash" : "river";
   if (h < WATER_LEVEL) { const d = WATER_LEVEL - h; return d < 2.2 ? "shallow" : d < 10 ? "sea" : "deep"; }
   const h0 = WATER_LEVEL + (h - WATER_LEVEL) / HEIGHT_K;
   // built ground
@@ -159,21 +176,28 @@ export function coverAt(x: number, z: number, h: number, slope: number, stamp: C
     case "veridan":
       if (slope > 0.9) return "rock";
       return n > 0.6 ? "denseForest" : n > 0.33 ? "forest" : "meadow";
-    default:
+    default: {
       if (h0 > 44) return "snow";
       if (h0 > 30 || slope > 0.85) return "rock";
+      // the wooded hills ringing Nexus City (nexus-hills.ts HILLS: groves between 135 and 520 m from the hub)
+      const dn = Math.hypot(x - NEXUS.x, z - NEXUS.z);
+      if (dn > HILLS.inner && dn < HILLS.outer && h0 > WATER_LEVEL + HILLS.minAbove) return n > 0.5 ? "forest" : n > 0.36 ? "grass" : "meadow";
       return n > 0.62 ? "forest" : n > 0.4 ? "grass" : "meadow";
+    }
   }
 }
 
 /* ---------------- the raster job ---------------- */
 
-export type CartoJob = { step: (budgetMs: number) => boolean; progress: () => number; pixels: Uint8ClampedArray; size: number; bounds: CartoBounds };
+/** `data` carries what the satellite view is recoloured from (satelliteFromData): R the cover (COVERS index), G the hill shade
+ * (6 bits), B the water depth (m × 6) */
+export type CartoJob = { step: (budgetMs: number) => boolean; progress: () => number; pixels: Uint8ClampedArray; data: Uint8ClampedArray; size: number; bounds: CartoBounds };
 
 /** Paint a square of the world. Phase 1 samples the height grid (the cost), phase 2 colours it: cover colour, a texture per
  * cover (canopy speckle, dune ripples, lava veins), north-west hill shading, faint contours every 10 m, and a crisp shoreline. */
 export function createCartoJob(size: number, bounds: CartoBounds): CartoJob {
   const pixels = new Uint8ClampedArray(size * size * 4);
+  const data = new Uint8ClampedArray(size * size * 4);
   const G = size + 2, hs = new Float32Array(G * G);
   const mpp = bounds.span / size;
   const wx = (i: number) => bounds.x0 + (i - 0.5) * mpp, wz = (j: number) => bounds.z0 + (j - 0.5) * mpp;
@@ -219,6 +243,7 @@ export function createCartoJob(size: number, bounds: CartoBounds): CartoJob {
         const cover = coverAt(x, z, h, slope, si ? covers[si - 1]! : null);
         coverIdx[j * size + i] = covers.indexOf(cover);
         const water = cover === "deep" || cover === "sea" || cover === "shallow" || cover === "lake" || cover === "river" || cover === "ice";
+        const washBed = cover === "wash";
         let [r, g, b] = COVER_COLOR[cover];
         // texture per cover
         if (cover === "forest" || cover === "denseForest") { const c = vnoise(x * 0.55, z * 0.55), k = (c - 0.5) * (cover === "denseForest" ? 26 : 20); r += k; g += k * 1.1; b += k * 0.8; }
@@ -227,6 +252,7 @@ export function createCartoJob(size: number, bounds: CartoBounds): CartoJob {
         else if (cover === "magma") { const d = vnoise(x * 0.4, z * 0.4); g += (d - 0.5) * 50; }
         else if (cover === "ash") { const c = vnoise(x * 0.3, z * 0.3); r += (c - 0.5) * 18; g += (c - 0.5) * 16; b += (c - 0.5) * 14; }
         else if (cover === "marsh") { if (vnoise(x * 0.22, z * 0.22) > 0.62) { r = 160; g = 196; b = 196; } }
+        else if (washBed) { const c = vnoise(x * 0.9, z * 0.9) - 0.5; r += c * 14; g += c * 12; b += c * 8; }
         else if (cover === "scrub" || cover === "dirt") { if (hash(Math.floor(x * 0.7), Math.floor(z * 0.7)) > 0.93) { r -= 40; g -= 30; b -= 40; } }
         else if (cover === "cliff" || cover === "rock" || cover === "sandstone" || cover === "basalt") { const st = vnoise(x * 0.35, z * 0.35) - 0.5; r += st * 16; g += st * 15; b += st * 14; }
         else if (water && cover !== "ice") {
@@ -249,6 +275,12 @@ export function createCartoJob(size: number, bounds: CartoBounds): CartoJob {
         }
         const p = (j * size + i) * 4;
         pixels[p] = r; pixels[p + 1] = g; pixels[p + 2] = b; pixels[p + 3] = 255;
+        {
+          // the satellite view's inputs: a stronger hill shade on all ground, the water's depth
+          const nl = Math.hypot(dx, 1, dz), dot = (-dx * -0.55 + 0.7 + -dz * -0.45) / nl;
+          const ss = Math.min(1.3, Math.max(0.4, 1 + (dot / 0.7 - 1) * 0.9));
+          data[p] = coverIdx[j * size + i]!; data[p + 1] = Math.round(((ss - 0.4) / 0.9) * 63) * 4; data[p + 2] = water ? Math.min(255, Math.max(0, WATER_LEVEL - h) * 6) : 0; data[p + 3] = 255;
+        }
       }
       if (++crow >= size) { phase = 2; break; }
       if (now() - t0 > budgetMs) return false;
@@ -265,7 +297,55 @@ export function createCartoJob(size: number, bounds: CartoBounds): CartoJob {
     }
     return true;
   };
-  return { step, progress: () => (phase === 0 ? (row / G) * 0.75 : phase === 1 ? 0.75 + (crow / size) * 0.25 : 1), pixels, size, bounds };
+  return { step, progress: () => (phase === 0 ? (row / G) * 0.75 : phase === 1 ? 0.75 + (crow / size) * 0.25 : 1), pixels, data, size, bounds };
+}
+
+/** paint to completion with the satellite data too (the bake) */
+export function paintCartoAll(size: number, bounds: CartoBounds): { pixels: Uint8ClampedArray; data: Uint8ClampedArray } {
+  const job = createCartoJob(size, bounds);
+  while (!job.step(Infinity)) { /* to completion */ }
+  return { pixels: job.pixels, data: job.data };
+}
+
+/* ---------------- the satellite view ---------------- */
+
+/** natural colours seen from orbit: deep blue water, dark canopy, tan desert, grey city, bright snow (Map / Satellite toggle) */
+export const SAT_COLOR: Record<Cover, readonly [number, number, number]> = {
+  deep: [12, 34, 62], sea: [18, 48, 82], shallow: [40, 94, 110], lake: [24, 58, 78], river: [38, 74, 88],
+  beach: [198, 184, 148], meadow: [98, 118, 64], grass: [86, 110, 54], forest: [44, 70, 36], denseForest: [28, 52, 27],
+  scrub: [130, 122, 84], dirt: [148, 122, 88], desert: [204, 178, 130], dunes: [212, 180, 124], rock: [124, 116, 104], sandstone: [176, 118, 76], basalt: [50, 46, 46], cliff: [106, 98, 90],
+  snow: [236, 240, 246], ice: [194, 220, 234], ash: [84, 76, 72], lava: [255, 92, 22], magma: [255, 172, 42], marsh: [72, 90, 58],
+  urban: [96, 100, 106], paved: [122, 124, 128], town: [120, 114, 104], wash: [170, 150, 118],
+};
+/** recolour a map's data (createCartoJob `data`) into a satellite image; noise is keyed to world metres so it never swims */
+export function satelliteFromData(data: Uint8ClampedArray, size: number, bounds: CartoBounds): Uint8ClampedArray {
+  const covers = Object.keys(COVER_COLOR) as Cover[];
+  const out = new Uint8ClampedArray(size * size * 4), mpp = bounds.span / size;
+  for (let j = 0; j < size; j++) for (let i = 0; i < size; i++) {
+    const p = (j * size + i) * 4, cover = covers[data[p]!] ?? "sea", shade = 0.4 + (data[p + 1]! / 252) * 0.9, depth = data[p + 2]! / 6;
+    const x = bounds.x0 + (i + 0.5) * mpp, z = bounds.z0 + (j + 0.5) * mpp;
+    let [r, g, b] = SAT_COLOR[cover];
+    const grain = hash(Math.floor(x * 1.7), Math.floor(z * 1.7)) - 0.5;
+    const water = cover === "deep" || cover === "sea" || cover === "shallow" || cover === "lake" || cover === "river";
+    if (water) {
+      const k = smooth(0, 30, depth); r -= k * 10; g -= k * 18; b -= k * 14;
+      const wave = vnoise(x * 0.08, z * 0.08) - 0.5; r += wave * 6; g += wave * 8; b += wave * 10;
+    } else {
+      if (cover === "forest" || cover === "denseForest" || cover === "marsh") {
+        const crown = vnoise(x * 0.8, z * 0.8), k = (crown - 0.5) * 46 + grain * 14; r += k * 0.7; g += k; b += k * 0.5;
+        if (crown < 0.28) { r *= 0.7; g *= 0.72; b *= 0.7; } // gaps between crowns
+      } else if (cover === "meadow" || cover === "grass" || cover === "scrub") {
+        const patch = vnoise(x * 0.06, z * 0.06) - 0.5; r += patch * 24 + grain * 10; g += patch * 26 + grain * 10; b += patch * 10 + grain * 6;
+      } else if (cover === "desert" || cover === "dunes" || cover === "sandstone" || cover === "wash") {
+        const rip = Math.sin((x * 0.5 + z * 0.3) + vnoise(x * 0.03, z * 0.03) * 8); r += rip * 8 + grain * 12; g += rip * 6 + grain * 10; b += rip * 4 + grain * 8;
+      } else if (cover === "lava") {
+        const v = 1 - Math.abs(vnoise(x * 0.18, z * 0.18) * 2 - 1), hot = smooth(0.8, 0.97, v); r = 40 + (255 - 40) * hot; g = 26 + (190 - 26) * hot; b = 22 + (60 - 22) * hot;
+      } else { r += grain * 16; g += grain * 15; b += grain * 14; }
+      if (cover !== "lava" && cover !== "magma") { r *= shade; g *= shade; b *= shade; }
+    }
+    out[p] = r; out[p + 1] = g; out[p + 2] = b; out[p + 3] = 255;
+  }
+  return out;
 }
 
 /** paint to completion (tests and the bake) */
@@ -276,7 +356,7 @@ export function paintCarto(size: number, bounds: CartoBounds): Uint8ClampedArray
 }
 
 /** bump when the look changes so stale baked images are not used */
-export const CARTO_VERSION = 1;
+export const CARTO_VERSION = 2;
 export function cartoFingerprint(): string {
   const px = paintCarto(10, { x0: NEXUS.x - 300, z0: NEXUS.z - 300, span: 600 });
   let h = 2166136261;

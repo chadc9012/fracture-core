@@ -1,33 +1,55 @@
 import { useEffect, useMemo, useRef, useState, type PointerEvent as RPointerEvent } from "react";
-import { ArrowLeft, Layers, LocateFixed, MapPin, Minus, Plus, X } from "lucide-react";
-import { CARTO_MAPS, COVER_COLOR, COVER_LABEL, cartoBounds, cartoMap, type CartoMapId, type Cover } from "@/game/carto-maps";
+import { ArrowLeft, Layers, LocateFixed, MapPin, Minus, Navigation, Plus, X } from "lucide-react";
+import { CARTO_MAPS, COVER_COLOR, COVER_LABEL, SAT_COLOR, cartoBounds, cartoMap, type CartoMap, type CartoMapId, type Cover } from "@/game/carto-maps";
 import { POI_GROUPS, POI_STYLE, USE_STYLE, cartoFeatures, type BuildingUse, type CartoBuilding, type CartoPoi, type PoiCat, type RoadClass } from "@/game/carto-features";
 import { cartoScaleBar, clampView, placeCartoLabels, viewWindow, zoomAt, type CartoView, type LabelIn } from "@/game/carto-view";
 import { getPin, setPin } from "@/game/map-pin";
-import { useCartoMap } from "./useCartoMap";
+import { useCartoMap, type CartoStyle } from "./useCartoMap";
 
 /** A street map of one city or region in the look of a web street map: the land-cover image (forest, desert, snow, lava, marsh,
  * city ground) with white streets, buildings coloured by use, points of interest with icons and names that never overlap.
  * Drag to pan, pinch or wheel to zoom; chips pick the map and filter the places. Owner, Nov 1 ("same quality level as Google Maps"). */
-const ROAD: Record<RoadClass, { fill: string; casing: string; min: number; dash?: string }> = {
+const ROAD: Record<RoadClass, { fill: string; casing: string; min: number; dash?: string; fillDash?: string }> = {
   highway: { fill: "#fcd462", casing: "#e3a93a", min: 4 }, main: { fill: "#ffffff", casing: "#c9c9c9", min: 3 }, street: { fill: "#ffffff", casing: "#d6d6d6", min: 2 },
   track: { fill: "#c8ad85", casing: "#c8ad85", min: 1.6, dash: "5 4" }, runway: { fill: "#8d9299", casing: "#6f747b", min: 5 }, taxiway: { fill: "#a7acb2", casing: "#8d9299", min: 2 },
   bridge: { fill: "#ffffff", casing: "#8f969d", min: 4 }, boardwalk: { fill: "#c79a63", casing: "#a07444", min: 2 },
+  rail: { fill: "#ffffff", casing: "#7b8188", min: 3, fillDash: "8 6" }, trail: { fill: "#a07444", casing: "#a07444", min: 1.4, dash: "3 3" },
+  powerline: { fill: "#8a8f96", casing: "#8a8f96", min: 1, dash: "1 7" }, race: { fill: "#d0287f", casing: "#d0287f", min: 1.6, dash: "7 5" },
+  skybridge: { fill: "#e9e4f7", casing: "#9a8fc0", min: 2.5 },
 };
 const AREA_STYLE: Record<string, { color: string; italic?: boolean; upper?: boolean; weight?: number; size: number }> = {
   city: { color: "#202124", weight: 700, size: 17 }, district: { color: "#5f6368", upper: true, weight: 600, size: 11 }, mountain: { color: "#6d4c41", italic: true, weight: 600, size: 15 },
   valley: { color: "#6d4c41", italic: true, size: 12 }, lake: { color: "#1967d2", italic: true, size: 12 }, sea: { color: "#1967d2", italic: true, size: 13 }, desert: { color: "#8a5a19", italic: true, weight: 600, size: 14 },
   forest: { color: "#2e7d32", italic: true, weight: 600, size: 13 }, lava: { color: "#c2410c", italic: true, weight: 600, size: 13 }, snow: { color: "#546e7a", italic: true, size: 12 }, marsh: { color: "#33691e", italic: true, weight: 600, size: 13 },
+  river: { color: "#1967d2", italic: true, size: 11 }, hazard: { color: "#d93025", italic: true, weight: 600, size: 11 },
 };
-const LEGEND_COVERS: Cover[] = ["sea", "beach", "meadow", "forest", "denseForest", "desert", "dunes", "dirt", "sandstone", "rock", "cliff", "snow", "ice", "ash", "basalt", "lava", "magma", "marsh", "urban"];
+const LEGEND_COVERS: Cover[] = ["sea", "river", "lake", "wash", "beach", "meadow", "forest", "denseForest", "desert", "dunes", "dirt", "sandstone", "rock", "cliff", "snow", "ice", "ash", "basalt", "lava", "magma", "marsh", "urban"];
+/** rooftops seen from orbit: greys and tar, a tint of the use */
+const SAT_ROOF: Record<BuildingUse, readonly [string, string]> = {
+  apartment: ["#9b948a", "#5c564e"], house: ["#8a5a48", "#4e3328"], store: ["#a7b0b8", "#5d656c"], mall: ["#b9c2ca", "#6a737b"], school: ["#a58e6a", "#5d4f39"],
+  entertainment: ["#8f6e86", "#4e3a49"], office: ["#7f868e", "#454b51"], civic: ["#b3aa98", "#6a6252"], industrial: ["#80796f", "#4a453e"], transport: ["#8e979f", "#525960"],
+  garage: ["#6e7176", "#3e4044"], dome: ["#a8d6e2", "#5fa3b6"],
+};
 const LEGEND_USES: BuildingUse[] = ["apartment", "house", "store", "mall", "school", "entertainment", "office", "civic", "industrial", "transport"];
 
-export function CartoMapView({ initial, px, pz, onClose }: { initial?: string | null | undefined; px: number; pz: number; onClose: () => void }) {
+/** places you can fast travel to from the map: open ground, never water, lava, a hazard or a peak */
+const TRAVEL_CATS = new Set<PoiCat>(["terminal", "port", "airport", "transit", "village", "camp", "outpost", "park", "landmark", "viewpoint", "ruins", "temple", "research", "store", "mall", "school", "university", "entertainment", "casino", "nightclub", "civic", "garage", "dock", "arena", "wreck", "station"]);
+
+export function CartoMapView({ initial, px, pz, onClose, onTravel, travelOk }: {
+  initial?: string | null | undefined; px: number; pz: number; onClose: () => void;
+  /** fast travel to a place (the planet map passes this; the in-world atlas does not) */
+  onTravel?: ((poi: CartoPoi, map: CartoMap) => void) | undefined;
+  /** may you fast travel into this map (you have made landfall there)? a reason when not */
+  travelOk?: ((map: CartoMap) => string | null) | undefined;
+}) {
   const [mapId, setMapId] = useState<CartoMapId>(() => (cartoMap(initial ?? "")?.id ?? "nexus"));
   const m = cartoMap(mapId)!;
   const b = useMemo(() => cartoBounds(m), [m]);
   const feats = useMemo(() => cartoFeatures(m), [m]);
-  const art = useCartoMap(mapId);
+  const [style, setStyle] = useState<CartoStyle>("map");
+  const mapArt = useCartoMap(mapId), satArt = useCartoMap(mapId, style);
+  const sat = style === "satellite";
+  const art = sat && satArt.url ? satArt : mapArt;
   const box = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState({ w: 360, h: 640 });
   const [view, setView] = useState<CartoView>({ cx: m.x, cz: m.z, zoom: 1 });
@@ -112,22 +134,29 @@ export function CartoMapView({ initial, px, pz, onClose }: { initial?: string | 
     </div>
     <div ref={box} className="relative min-h-0 flex-1 touch-none select-none overflow-hidden" onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onUp} onWheel={onWheel}
       onClick={() => { if (moved.current < 6) setPicked(null); }}>
-      <svg width={size.w} height={size.h} className="absolute inset-0" style={{ background: "#9ccbf0" }}>
+      <svg width={size.w} height={size.h} className="absolute inset-0" style={{ background: sat ? "#12304f" : "#9ccbf0" }}>
         {art.url && <image href={art.url} x={ix0} y={iz0} width={span} height={span} preserveAspectRatio="none" style={{ imageRendering: ppm * (b.span / 1536) > 2.5 ? "pixelated" : "auto" }} />}
         {/* streets and paved ground */}
-        <g>{feats.pavements.map((p, i) => <polygon key={i} points={rect(p.x, p.z, p.hx, p.hz, p.yaw)} fill={p.kind === "apron" ? "#d9dce0" : p.kind === "plaza" ? "#f4efe4" : "#ffffff"} stroke={p.kind === "street" ? "none" : "#c9cdd2"} strokeWidth={1} />)}</g>
+        <g opacity={sat ? 0.92 : 1}>{feats.pavements.map((p, i) => <polygon key={i} points={rect(p.x, p.z, p.hx, p.hz, p.yaw)} fill={sat ? (p.kind === "plaza" ? "#8d8a84" : p.kind === "apron" ? "#6a6e73" : "#3e4247") : p.kind === "apron" ? "#d9dce0" : p.kind === "plaza" ? "#f4efe4" : "#ffffff"} stroke={p.kind === "street" || sat ? "none" : "#c9cdd2"} strokeWidth={1} />)}</g>
         {/* rings (Thalassia) */}
-        {feats.rings.map((r, i) => { const [sx, sy] = S(r.x, r.z); return <circle key={i} cx={sx} cy={sy} r={r.r * ppm} fill={r.kind === "dome" ? "#c9ecf5" : r.kind === "dock" ? "#e2e6ea" : "none"} fillOpacity={r.kind === "dome" ? 0.85 : 1} stroke={r.kind === "ring" ? "#ffffff" : "#5fb4cc"} strokeWidth={r.kind === "ring" ? Math.max(3, 6 * ppm) : 1.5} />; })}
+        {feats.rings.map((r, i) => { const [sx, sy] = S(r.x, r.z);
+          if (r.kind === "hazard") return <circle key={i} cx={sx} cy={sy} r={r.r * ppm} fill="#d93025" fillOpacity={0.1} stroke="#d93025" strokeOpacity={0.7} strokeWidth={1.5} strokeDasharray="6 4" />;
+          if (r.kind === "arena") return <circle key={i} cx={sx} cy={sy} r={r.r * ppm} fill="#e8d6b8" stroke="#a07444" strokeWidth={2} />;
+          if (r.kind === "fence") return <circle key={i} cx={sx} cy={sy} r={r.r * ppm} fill="none" stroke="#8d6e63" strokeWidth={Math.max(1, 0.5 * ppm)} strokeDasharray="2 2" />;
+          if (r.kind === "pad") return <circle key={i} cx={sx} cy={sy} r={Math.max(3, r.r * ppm)} fill="#e2e6ea" stroke="#8f969d" strokeWidth={1.5} />;
+          return <circle key={i} cx={sx} cy={sy} r={r.r * ppm} fill={r.kind === "dome" ? "#c9ecf5" : r.kind === "dock" ? "#e2e6ea" : "none"} fillOpacity={r.kind === "dome" ? 0.85 : 1} stroke={r.kind === "ring" ? "#ffffff" : "#5fb4cc"} strokeWidth={r.kind === "ring" ? Math.max(3, 6 * ppm) : 1.5} />; })}
         {/* roads: casing then fill, widths in metres with a minimum on screen */}
-        {(["casing", "fill"] as const).map((layer) => <g key={layer} fill="none" strokeLinecap="round" strokeLinejoin="round">{feats.roads.map((r, i) => {
+        {(["casing", "fill"] as const).map((layer) => <g key={layer} fill="none" strokeLinecap="round" strokeLinejoin="round" opacity={sat ? 0.8 : 1}>{feats.roads.map((r, i) => {
+          if (sat && layer === "casing" && !ROAD[r.cls].dash && !r.color) return null;
           const st = ROAD[r.cls], w = Math.max(st.min, r.width * ppm);
           const d = r.pts.map(([x, z], k) => { const [sx, sy] = S(x, z); return `${k ? "L" : "M"}${sx.toFixed(1)} ${sy.toFixed(1)}`; }).join("");
-          return layer === "casing" ? <path key={i} d={d} stroke={st.casing} strokeWidth={w + (st.dash ? 0 : 2)} strokeDasharray={st.dash} /> : !st.dash ? <path key={i} d={d} stroke={st.fill} strokeWidth={w} /> : null;
+          const fill = sat ? (r.cls === "highway" ? "#f2c94c" : r.cls === "boardwalk" ? "#b48a5a" : r.cls === "runway" ? "#55595e" : st.fillDash ? "#ffffff" : "#d9d4c8") : st.fill;
+          return layer === "casing" ? <path key={i} d={d} stroke={r.color ?? st.casing} strokeWidth={w + (st.dash ? 0 : 2)} strokeDasharray={st.dash} /> : !st.dash ? <path key={i} d={d} stroke={fill} strokeWidth={st.fillDash ? Math.max(1, w * 0.45) : sat ? Math.max(1.2, w * 0.7) : w} strokeDasharray={st.fillDash} /> : null;
         })}</g>)}
         {feats.roads.filter((r) => r.cls === "runway").map((r, i) => { const [a, c] = r.pts; const [x0, y0] = S(a![0], a![1]), [x1, y1] = S(c![0], c![1]); return <line key={i} x1={x0} y1={y0} x2={x1} y2={y1} stroke="#ffffff" strokeWidth={Math.max(1, 0.6 * ppm)} strokeDasharray={`${Math.max(4, 6 * ppm)} ${Math.max(4, 6 * ppm)}`} />; })}
         {/* buildings: a soft side shadow for tall ones, then the roof in its use's colour */}
         {ppm > 0.35 && <g>{feats.buildings.map((bd, i) => bd.h > 0.25 && ppm > 1 ? <polygon key={`s${i}`} points={poly(bd, bd.h * 2.2, bd.h * 2.2)} fill="#000" fillOpacity={0.1} /> : null)}
-          {feats.buildings.map((bd, i) => { const st = USE_STYLE[bd.use]; const on = picked === bd; return <polygon key={i} points={poly(bd)} fill={st.fill} stroke={on ? "#1a73e8" : st.stroke} strokeWidth={on ? 2.5 : 1} onClick={(e) => { e.stopPropagation(); if (moved.current < 6) setPicked(bd); }} />; })}</g>}
+          {feats.buildings.map((bd, i) => { const st = USE_STYLE[bd.use]; const on = picked === bd; const roof = sat ? SAT_ROOF[bd.use] : null; return <polygon key={i} points={poly(bd)} fill={roof ? roof[0] : st.fill} stroke={on ? "#1a73e8" : roof ? roof[1] : st.stroke} strokeWidth={on ? 2.5 : 1} onClick={(e) => { e.stopPropagation(); if (moved.current < 6) setPicked(bd); }} />; })}</g>}
         {/* the pin and you */}
         {pin && Math.abs(pin.x - m.x) < m.reach && Math.abs(pin.z - m.z) < m.reach && (() => { const [sx, sy] = S(pin.x, pin.z); return <g transform={`translate(${sx} ${sy})`}><path d="M0 0 C-7 -10 -10 -14 -10 -20 A10 10 0 1 1 10 -20 C10 -14 7 -10 0 0Z" fill="#ea4335" stroke="#a50e0e" /><circle cy={-20} r={3.6} fill="#a50e0e" /></g>; })()}
         {/* points of interest */}
@@ -139,7 +168,7 @@ export function CartoMapView({ initial, px, pz, onClose }: { initial?: string | 
           const area = areaKind.get(l.id), st = area ? AREA_STYLE[area] : null;
           const poi = l.id.startsWith("p:") ? feats.pois.find((p) => `p:${p.id}` === l.id) : null;
           const fill = st ? st.color : poi ? POI_STYLE[poi.cat].color : "#3c4043";
-          return <text key={l.id} x={l.sx} y={l.sy} textAnchor={l.anchor} fontSize={l.size} fontWeight={st?.weight ?? 500} fontStyle={st?.italic ? "italic" : undefined} letterSpacing={st?.upper ? "0.12em" : undefined} fill={fill} stroke="#ffffff" strokeWidth={3} strokeLinejoin="round" paintOrder="stroke" pointerEvents="none">{l.text}</text>;
+          return <text key={l.id} x={l.sx} y={l.sy} textAnchor={l.anchor} fontSize={l.size} fontWeight={st?.weight ?? 500} fontStyle={st?.italic ? "italic" : undefined} letterSpacing={st?.upper ? "0.12em" : undefined} fill={sat ? "#ffffff" : fill} stroke={sat ? "#1b1f24" : "#ffffff"} strokeWidth={3} strokeLinejoin="round" paintOrder="stroke" pointerEvents="none">{l.text}</text>;
         })}
         {here && (() => { const [sx, sy] = S(px, pz); return <g transform={`translate(${sx} ${sy})`} aria-label="You are here"><circle r={22} fill="#4285f4" fillOpacity={0.16} /><circle r={8} fill="#4285f4" stroke="#ffffff" strokeWidth={3} /></g>; })()}
       </svg>
@@ -150,6 +179,12 @@ export function CartoMapView({ initial, px, pz, onClose }: { initial?: string | 
         <button type="button" className="p-2.5 hover:bg-black/5" onClick={(e) => { e.stopPropagation(); zoomBy(1 / 1.6); }} aria-label="Zoom out"><Minus className="h-5 w-5" /></button>
       </div>
       {here && <button type="button" className="absolute bottom-10 right-3 rounded-full bg-white p-3 shadow-md hover:bg-[#f1f3f4]" onClick={(e) => { e.stopPropagation(); setView((v) => clampView(b, { ...v, cx: px, cz: pz, zoom: Math.max(v.zoom, 3) })); }} aria-label="Show where I am"><LocateFixed className="h-5 w-5 text-[#1a73e8]" /></button>}
+      <button type="button" onPointerDown={(e) => e.stopPropagation()} onClick={(e) => { e.stopPropagation(); setStyle((v) => (v === "map" ? "satellite" : "map")); }} aria-pressed={sat} aria-label={sat ? "Show the map" : "Show satellite"}
+        className="absolute bottom-10 left-3 flex h-16 w-16 flex-col items-center justify-end overflow-hidden rounded-lg border-2 border-white text-[11px] font-medium text-white shadow-md"
+        style={{ background: sat ? "linear-gradient(135deg,#eef1e6,#cfe3c4 50%,#9ccbf0)" : "linear-gradient(135deg,#3a5a2c,#6b6a4a 50%,#16395c)" }}>
+        <span className="w-full bg-black/45 py-0.5 text-center">{sat ? "Map" : "Satellite"}</span>
+      </button>
+      {sat && !satArt.full && <div className="pointer-events-none absolute bottom-28 left-3 rounded bg-black/60 px-2 py-0.5 text-[10px] text-white">Loading satellite…</div>}
       <div className="pointer-events-none absolute bottom-3 left-3 rounded bg-white/85 px-1.5 py-0.5 text-[10px] text-[#3c4043]"><div className="border-x border-b border-[#3c4043]" style={{ width: bar.px, height: 5 }} />{bar.label}</div>
       {/* filter chips */}
       <div className="absolute left-0 right-0 top-2 flex gap-1.5 overflow-x-auto px-2" onPointerDown={(e) => e.stopPropagation()}>
@@ -158,7 +193,7 @@ export function CartoMapView({ initial, px, pz, onClose }: { initial?: string | 
       </div>
       {legend && <div className="absolute right-2 top-12 max-h-[60%] w-56 overflow-y-auto rounded-lg bg-white p-3 text-xs shadow-lg" onPointerDown={(e) => e.stopPropagation()}>
         <p className="mb-1 font-medium">Ground</p>
-        <ul className="grid grid-cols-2 gap-x-2 gap-y-1">{LEGEND_COVERS.map((c) => <li key={c} className="flex items-center gap-1.5"><span className="inline-block h-3 w-3 rounded-sm border border-black/10" style={{ background: `rgb(${COVER_COLOR[c].join(",")})` }} />{COVER_LABEL[c]}</li>)}</ul>
+        <ul className="grid grid-cols-2 gap-x-2 gap-y-1">{LEGEND_COVERS.map((c) => <li key={c} className="flex items-center gap-1.5"><span className="inline-block h-3 w-3 rounded-sm border border-black/10" style={{ background: `rgb(${(sat ? SAT_COLOR : COVER_COLOR)[c].join(",")})` }} />{COVER_LABEL[c]}</li>)}</ul>
         <p className="mb-1 mt-2 font-medium">Buildings</p>
         <ul className="grid grid-cols-2 gap-x-2 gap-y-1">{LEGEND_USES.map((u) => <li key={u} className="flex items-center gap-1.5"><span className="inline-block h-3 w-3 rounded-sm" style={{ background: USE_STYLE[u].fill, border: `1px solid ${USE_STYLE[u].stroke}` }} />{USE_STYLE[u].label}</li>)}</ul>
         <p className="mb-1 mt-2 font-medium">Roads</p>
@@ -177,6 +212,7 @@ export function CartoMapView({ initial, px, pz, onClose }: { initial?: string | 
         <div className="mt-3 flex gap-2">
           <button type="button" className="flex items-center gap-1.5 rounded-full bg-[#1a73e8] px-4 py-2 text-sm font-medium text-white" onClick={() => { pinWaypoint(picked); setPicked(null); }}><MapPin className="h-4 w-4" />Set waypoint</button>
           <button type="button" className="rounded-full border border-[#dadce0] px-4 py-2 text-sm text-[#1a73e8]" onClick={() => setView((v) => clampView(b, { ...v, cx: picked.x, cz: picked.z, zoom: Math.max(v.zoom, 4) }))}>Zoom here</button>
+          {onTravel && "cat" in picked && TRAVEL_CATS.has(picked.cat) && (() => { const why = travelOk?.(m) ?? null; return <button type="button" disabled={!!why} title={why ?? undefined} className="flex items-center gap-1.5 rounded-full border border-[#dadce0] px-4 py-2 text-sm text-[#188038] disabled:text-[#9aa0a6]" onClick={() => { if (!why) onTravel(picked, m); }}><Navigation className="h-4 w-4" />{why ?? "Fast travel"}</button>; })()}
         </div>
       </div>}
     </div>

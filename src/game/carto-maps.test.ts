@@ -1,8 +1,9 @@
 import { describe, expect, test } from "bun:test";
-import { CARTO_MAPS, cartoBounds, cartoMapAt, coverAt, paintCarto, type Cover } from "./carto-maps";
+import { CARTO_MAPS, COVER_COLOR, cartoBounds, cartoMap, cartoMapAt, coverAt, paintCarto, paintCartoAll, satelliteFromData, type Cover } from "./carto-maps";
 import { allCartoFeatures, cartoFeatures, POI_STYLE, USE_STYLE } from "./carto-features";
 import { cartoScaleBar, clampView, placeCartoLabels, viewWindow, zoomAt } from "./carto-view";
-import { heightAt, slopeAt } from "./terrain";
+import { WATER_LEVEL, heightAt, slopeAt, waterNetwork } from "./terrain";
+import { STORM_ISLAND_SITES, stormSiteWorld } from "./storm-islands";
 import { REGIONS } from "./world";
 
 const R = (id: string) => REGIONS.find((r) => r.id === id)!;
@@ -88,5 +89,57 @@ describe("street maps: the view", () => {
   });
   test("the scale bar is a round distance", () => {
     expect([1, 2, 5, 10, 20, 25, 50, 100, 200, 250, 500, 1000, 2000]).toContain(cartoScaleBar(1.3).m);
+  });
+});
+
+describe("maps: everything the world builds", () => {
+  test("the Storm Islands have a map: every floating island, its structures and its height", () => {
+    const m = cartoMap("storm")!;
+    expect(m).toBeTruthy();
+    const f = cartoFeatures(m);
+    for (const s of STORM_ISLAND_SITES) {
+      const w = stormSiteWorld(s);
+      expect(Math.abs(w.x - m.x) < m.reach && Math.abs(w.z - m.z) < m.reach).toBe(true);
+      expect(f.pois.some((p) => p.id === `storm-${s.id}` && p.name.includes("m up"))).toBe(true);
+    }
+  });
+  test("the wild regions show their set pieces, hazards, transit and rivers", () => {
+    const w = cartoFeatures(cartoMap("wastelands")!);
+    for (const id of ["stunt-park", "derby-arena", "vault-gate"]) expect(w.pois.some((p) => p.id === id)).toBe(true);
+    expect(w.roads.some((r) => r.cls === "race")).toBe(true);
+    expect(w.buildings.length).toBeGreaterThan(20);
+    const v = cartoFeatures(cartoMap("veridan")!);
+    expect(v.roads.some((r) => r.cls === "trail")).toBe(true);
+    expect(v.pois.some((p) => p.id === "crash-site")).toBe(true);
+    expect(v.pois.some((p) => p.cat === "terminal")).toBe(true);
+    expect(v.areas.some((a) => a.kind === "river")).toBe(true);
+    const allHazards = allCartoFeatures().flatMap((x) => x.pois.filter((p) => p.cat === "hazard"));
+    expect(allHazards.length).toBeGreaterThanOrEqual(5);
+  });
+  test("Neon City draws its maglev lines and stations; Nexus its skyrail", () => {
+    const n = cartoFeatures(cartoMap("neon-city")!);
+    expect(n.roads.filter((r) => r.cls === "rail" && r.color).length).toBe(4);
+    expect(n.pois.some((p) => p.cat === "station")).toBe(true);
+    expect(cartoFeatures(cartoMap("nexus")!).roads.some((r) => r.cls === "rail")).toBe(true);
+  });
+  test("no place is pinned twice", () => {
+    for (const { map, pois } of allCartoFeatures()) expect(`${map.id}:${new Set(pois.map((p) => p.id)).size}`).toBe(`${map.id}:${pois.length}`);
+  });
+  test("dry washes are not painted as running water", () => {
+    const wash = waterNetwork().rivers.find((r) => r.dry && r.points.length > 4);
+    if (!wash) return;
+    const p = wash.points[Math.floor(wash.points.length / 2)]!;
+    expect(coverAt(p.x, p.z, WATER_LEVEL + 5, 0, null)).not.toBe("river");
+  });
+  test("the satellite view recolours the map's data: water dark blue, forest dark green", () => {
+    const m = cartoMap("veridan")!, b = cartoBounds(m);
+    const { data } = paintCartoAll(24, b);
+    const sat = satelliteFromData(data, 24, b);
+    const covers = Object.keys(COVER_COLOR);
+    for (let k = 0; k < 24 * 24; k++) {
+      const c = covers[data[k * 4]!]!, r = sat[k * 4]!, g = sat[k * 4 + 1]!, bl = sat[k * 4 + 2]!;
+      if (c === "deep" || c === "sea") expect(bl > r && bl > 40 && r < 80).toBe(true);
+      if (c === "denseForest") expect(g > r && g > bl && g < 120).toBe(true);
+    }
   });
 });

@@ -49,9 +49,11 @@ type Props = {
   /** planet.ts: the continent world you were last in, for the planet map's "your location" */
   currentWorld?: import("@/game/planet").WorldId | null;
   currentRegion?: string | null;
+  /** where the operator stands (world metres), for the street maps' you-are-here */
+  playerPos?: { x: number; z: number } | undefined;
 };
 
-export function Director({ progression, onProgression, onDeploy, onCrucible, onResume, onSystem, operatorName, playerClass, notice, currentWorld = null, currentRegion = null }: Props) {
+export function Director({ progression, onProgression, onDeploy, onCrucible, onResume, onSystem, operatorName, playerClass, notice, currentWorld = null, currentRegion = null, playerPos }: Props) {
   const [tab, setTab] = useState<DirectorTab>("map");
   // Q / E on the keyboard, L1 / R1 on a pad cycle the tabs (director-nav.ts)
   useEffect(() => {
@@ -98,7 +100,7 @@ export function Director({ progression, onProgression, onDeploy, onCrucible, onR
       {notice && <div role="status" className="fixed left-1/2 top-16 z-[61] -translate-x-1/2 border border-destructive/60 bg-background/95 px-4 py-2 font-mono text-xs">{notice}</div>}
       {tab === "map" && <StarMap embedded progression={progression} onBack={() => setTab("map")} onDeploy={onDeploy} onProgression={onProgression}
         chrome={{ tabs: TABS.map(({ id, label }) => ({ id, label })), current: tab, onTab: (id) => setTab(id as DirectorTab), operator: operatorName, level: progression.level, onResume, onSystem }} />}
-      {tab === "planet" && <Panel label="Planet"><PlanetMap progression={progression} onDeploy={onDeploy} currentWorld={currentWorld} currentRegion={currentRegion} /></Panel>}
+      {tab === "planet" && <Panel label="Planet"><PlanetMap progression={progression} onDeploy={onDeploy} currentWorld={currentWorld} currentRegion={currentRegion} playerPos={playerPos} /></Panel>}
       {tab === "crucible" && <CrucibleView progression={progression} playerClass={playerClass} onLaunch={onCrucible} />}
       {tab === "raid" && <RaidView progression={progression} onDeploy={onDeploy} />}
       {tab === "arsenal" && <ArsenalLoadouts embedded progression={progression} onProgression={onProgression} onBack={() => setTab("map")} />}
