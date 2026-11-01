@@ -74,6 +74,28 @@ function sculpt(geo: THREE.BufferGeometry, morphs: FaceMorphs, head: THREE.Vecto
   geo.computeBoundingSphere();
 }
 
+/** Helmet off on a body that has its own head: every texel above halfway between the Neck and Head bones (bind space) is cut,
+ * so the face head's neck meets the collar. Chains onto any program patch the body already carries (the colourway). */
+function cutAboveNeck(body: THREE.SkinnedMesh, headIndex: number) {
+  const neck = body.skeleton.bones.findIndex((x) => /Neck$/.test(x.name));
+  const headY = restPosition(body, headIndex).y, neckY = neck >= 0 ? restPosition(body, neck).y : headY - 0.1;
+  const cut = (headY + neckY) / 2;
+  for (const mat of Array.isArray(body.material) ? body.material : [body.material]) {
+    const m = mat as THREE.MeshStandardMaterial;
+    if (m.userData["wfCut"] === cut) continue;
+    const prior = m.onBeforeCompile, priorKey = m.customProgramCacheKey?.bind(m);
+    m.onBeforeCompile = (shader, renderer) => {
+      prior?.(shader, renderer);
+      shader.uniforms["wfCut"] = { value: cut };
+      shader.vertexShader = shader.vertexShader.replace("#include <common>", "#include <common>\nvarying float wfBindY;").replace("#include <begin_vertex>", "#include <begin_vertex>\nwfBindY = position.y;");
+      shader.fragmentShader = shader.fragmentShader.replace("#include <common>", "#include <common>\nuniform float wfCut; varying float wfBindY;").replace("#include <map_fragment>", "#include <map_fragment>\nif (wfBindY > wfCut) discard;");
+    };
+    m.customProgramCacheKey = () => `${priorKey ? priorKey() : ""}|cut:${cut}`;
+    m.userData["wfCut"] = cut;
+    m.needsUpdate = true;
+  }
+}
+
 /** The head texture's own skin colour (its mean over skin-like texels), as a hex, so a bare scalp matches an untinted face;
  * null when the image can't be read (no DOM, a GPU-compressed texture). Cached per texture. */
 const skinSamples = new WeakMap<THREE.Texture, string | null>();
@@ -125,6 +147,7 @@ export function attachHead(object: THREE.Object3D, headScene: THREE.Object3D, lo
   if (bodyHead < 0) return [];
   const byName = new Map(b.skeleton.bones.map((x, i) => [x.name, i]));
   const made: THREE.Material[] = [];
+  if (look.cutBody) cutAboveNeck(b, bodyHead);
   const headRest = restPosition(b, bodyHead);
   // head space is scaled by the HEAD's own rig (the head keeps the size it was cut at; the body's rig may differ)
   const firstSrc = sources.find((src) => src.skeleton.bones.some((x) => isHeadBone(x.name)));

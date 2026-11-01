@@ -79,9 +79,11 @@ export type FaceLook = { headUrl: string; skinLum: number; skin: string; plating
   /** hair and markings (operator-styling.ts); robots keep the authored look with none */
   style: StyleLook;
   /** the face editor's sculpt (face-morphs.ts); robots have none */
-  morphs: FaceMorphs };
+  morphs: FaceMorphs;
+  /** the body has its own helmet and head (a veteran or elite tier body): cut it away above the neck before the face goes on */
+  cutBody: boolean };
 /** the hair, hair colour and markings saved on a character (operator-styling.ts ids) */
-export type StyleChoice = { hair?: unknown; hairColor?: unknown; marks?: unknown; faceMorphs?: unknown; beard?: unknown; accessory?: unknown; headgear?: unknown };
+export type StyleChoice = { hair?: unknown; hairColor?: unknown; marks?: unknown; faceMorphs?: unknown; beard?: unknown; accessory?: unknown; headgear?: unknown; cutBody?: boolean };
 export function faceLook(classId: ClassId, body: BodyType, choice: { face?: unknown; skin?: unknown; eyes?: unknown } & StyleChoice): FaceLook {
   const f = faceDef(body, faceFor(classId, body, choice.face));
   const robot = body === "robot";
@@ -92,5 +94,6 @@ export function faceLook(classId: ClassId, body: BodyType, choice: { face?: unkn
     optics: robot ? swatchHex("optics", choice.eyes) : "",
     style: robot ? styleLook({}) : styleLook(choice),
     morphs: robot ? {} : morphsOr(choice.faceMorphs),
+    cutBody: choice.cutBody === true,
   };
 }

@@ -670,7 +670,7 @@ function SceneImpl({
   onWaste?: (event: WasteEmit) => void;
   /** Fracture Gate descents (descent-runtime.ts): tier chests and run results; GameCanvas resolves them into the save */
   onDescent?: (event: DescentEmit) => void;
-  gear?: Pick<PlayerProgression, "inventory" | "equippedGear" | "dungeonClears" | "completedMissions" | "story" | "earnedRewards" | "missionRuns"> & Partial<Pick<PlayerProgression, "level" | "living" | "challenge" | "nemeses" | "fleet" | "blade" | "transmog" | "cosmetics" | "vehicleConditions" | "nexLedger" | "housing" | "fractureShards" | "character">>;
+  gear?: Pick<PlayerProgression, "inventory" | "equippedGear" | "dungeonClears" | "completedMissions" | "story" | "earnedRewards" | "missionRuns"> & Partial<Pick<PlayerProgression, "level" | "living" | "challenge" | "nemeses" | "fleet" | "blade" | "transmog" | "cosmetics" | "helmetOff" | "vehicleConditions" | "nexLedger" | "housing" | "fractureShards" | "character">>;
   /** nemesis.ts: a nemesis the player picked on the map; it ambushes right after arrival */
   summonNemesis?: string | null;
   mission?: MissionRun | null;
