@@ -20,7 +20,7 @@ import { ENDINGS, campaignProgress } from "@/game/campaign";
 import { BLADES, FOUNDRIES, equipBlade, ownedBlades, type BladeId } from "@/game/foundries";
 import { ACCESSORIES, BEARDS, HAIR_COLORS, HEADGEAR, MARKINGS, MAX_MARKINGS, accessoryOr, beardOr, hairColorOr, hairOr, hairStylesFor, headgearOr, markingDef, markingsOr, toggleMarking, type MarkingKind } from "@/game/operator-styling";
 import { RESTYLE_PRICE, restyleCharacter, restyleQuote, type RestylePatch } from "@/game/restyle";
-import { FACE_PRESETS, MORPHS, morphsEqual, morphsOr } from "@/game/face-morphs";
+import { MORPHS, morphsOr } from "@/game/face-morphs";
 import { formatNex, nexBalance } from "@/game/nex";
 
 export type CharacterTab = "CHARACTER" | "APPEARANCE" | "COLLECTIONS" | "TRIUMPHS" | "CAMPAIGN";
@@ -228,10 +228,7 @@ function RestylePanel({ character, draft, setDraft, quote, balance, note, onComm
   return <div className="space-y-4 border-b border-white/15 pb-5">
     <div className="flex items-baseline justify-between"><p className="wf-op-kicker">Restyle</p><span className="text-xs text-white/50">Hair {formatNex(RESTYLE_PRICE.hair)} · Markings {formatNex(RESTYLE_PRICE.marks)} · Face {formatNex(RESTYLE_PRICE.face)} · You have {formatNex(balance)}</span></div>
     <div>
-      <div className="flex items-baseline justify-between"><span className="font-semibold uppercase tracking-[0.16em]">Face</span><span className="text-xs text-white/50">{FACE_PRESETS.find((x) => morphsEqual(x.morphs, morphs))?.label ?? "Custom sculpt"}</span></div>
-      <div role="radiogroup" aria-label="Face preset" className="mt-2 grid grid-cols-4 gap-1">
-        {FACE_PRESETS.map((x) => { const on = morphsEqual(x.morphs, morphs); return <button key={x.id} type="button" role="radio" aria-checked={on} title={x.blurb} onClick={() => setMorphs(x.morphs)} className={tile(on)}>{x.label}</button>; })}
-      </div>
+      <div className="flex items-baseline justify-between"><span className="font-semibold uppercase tracking-[0.16em]">Face</span><span className="text-xs text-white/50">Sculpt</span></div>
       <div className="mt-2 space-y-1">
         {MORPHS.map((m) => { const v = morphs[m.id] ?? 0; return <label key={m.id} className="grid grid-cols-[7rem_1fr] items-center gap-2 text-[10px] uppercase tracking-[0.12em] text-white/80">
           <span className="flex justify-between"><span>{m.label}</span><span className="text-white/40">{v > 0 ? "+" : ""}{Math.round(v * 100)}</span></span>

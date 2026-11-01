@@ -5,6 +5,7 @@ import { DEFAULT_BODY_TYPE, bodyTypeOr, type BodyType } from "../operators";
 import { faceFor, swatchOr, toneKind } from "../operator-faces";
 import { accessoryOr, beardOr, hairColorOr, hairOr, headgearOr, markingsOr } from "../operator-styling";
 import { morphsEqual, morphsOr, type FaceMorphs } from "../face-morphs";
+import { facesFor } from "../face-catalog";
 import { loadoutAttributes, type Attributes } from "../armor-attributes";
 import { SET_SLOTS, type SetSlot } from "../armor-sets";
 import type { PlayerProgression } from "../progression";
@@ -37,11 +38,14 @@ export function forgeInitial(saved: Partial<PlayerCharacter> | null | undefined)
   const a = saved?.appearance;
   const callsign = typeof a?.callsign === "string" && a.callsign.trim() ? a.callsign.trim().slice(0, 16) : base.callsign;
   const bodyType = saved?.bodyType === undefined ? DEFAULT_BODY_TYPE : bodyTypeOr(saved.bodyType);
+  const face = faceFor(classId, bodyType, saved?.face);
+  // a character made before the named faces starts on the named face built on its head (face-catalog.ts)
+  const faceName = typeof saved?.faceName === "string" ? saved.faceName : facesFor(bodyType).find((x) => x.head === face)?.id ?? "";
   return {
-    classId, subclassId: sub, bodyType, face: faceFor(classId, bodyType, saved?.face),
+    classId, subclassId: sub, bodyType, face,
     skin: swatchOr(toneKind(bodyType), saved?.skin), eyes: swatchOr("optics", saved?.eyes),
     hair: hairOr(saved?.hair), hairColor: hairColorOr(saved?.hairColor), marks: markingsOr(saved?.marks), faceMorphs: morphsOr(saved?.faceMorphs),
-    beard: beardOr(saved?.beard), accessory: accessoryOr(saved?.accessory), headgear: headgearOr(saved?.headgear), faceName: typeof saved?.faceName === "string" ? saved.faceName : "",
+    beard: beardOr(saved?.beard), accessory: accessoryOr(saved?.accessory), headgear: headgearOr(saved?.headgear), faceName,
     appearance: { ...base, armor: hex(a?.armor, base.armor), cloth: hex(a?.cloth, base.cloth), visor: hex(a?.visor, base.visor), trim: hex(a?.trim, base.trim), callsign },
   };
 }

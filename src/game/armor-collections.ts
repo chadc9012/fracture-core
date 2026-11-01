@@ -5,16 +5,22 @@ import type { ArmorEffects, ArmorSet } from "./armor-sets";
  * freely with any other gear and 2/4-piece synergies stay optional. Each collection names where it drops
  * (identifiable sources) and whether vendors may ever sell it (raid/dungeon/exotic gear never).
  */
-export type ArmorFamily = "military" | "ninja" | "sentinel" | "street" | "exotic";
+export type ArmorFamily = "military" | "ninja" | "sentinel" | "street" | "exotic" | "premium" | "legend";
+/** The board's armor variants & styles (owner, Nov 1): a silhouette and fit, shown on the card; the numbers stay in the bonuses. */
+export type ArmorStyle = "light" | "medium" | "heavy" | "stealth" | "cyber" | "tech" | "ranger" | "tribal" | "royal" | "elemental" | "reality";
+export const STYLE_LABEL: Record<ArmorStyle, string> = { light: "Light (speed)", medium: "Medium (balanced)", heavy: "Heavy (defense)", stealth: "Stealth (infiltration)", cyber: "Cyber", tech: "Tech", ranger: "Ranger", tribal: "Tribal", royal: "Royal", elemental: "Elemental", reality: "Reality (Fracture energy)" };
 export type LootActivity = "public-event" | "patrol" | "story" | "elite" | "dungeon" | "raid" | "secret" | "race" | "parkour" | "black-market";
 export type VendorTier = 1 | 2 | 3 | 4 | 5;
-export type Collection = ArmorSet & { family: ArmorFamily; sources: LootActivity[]; vendorTier: VendorTier | null };
+export type Collection = ArmorSet & { family: ArmorFamily; sources: LootActivity[]; vendorTier: VendorTier | null; style: ArmorStyle };
 
 export const FAMILY_LABEL: Record<ArmorFamily, string> = {
   military: "Military & Tactical", ninja: "Ninja & Assassin", sentinel: "Resonance Guard", street: "Urban Street & Racing", exotic: "Exotic & Reality-Corrupted",
+  premium: "Premium Class Sets", legend: "Legend Sets",
 };
+/** the default style of a family's collections; a spec may name its own */
+const FAMILY_STYLE: Record<ArmorFamily, ArmorStyle> = { military: "medium", ninja: "stealth", sentinel: "tech", street: "light", exotic: "reality", premium: "heavy", legend: "elemental" };
 
-type Spec = [id: string, name: string, color: string, tagline: string, element: ArmorSet["element"], two: [string, Partial<ArmorEffects>], four: [string, Partial<ArmorEffects>], sources: LootActivity[], tier: VendorTier | null];
+type Spec = [id: string, name: string, color: string, tagline: string, element: ArmorSet["element"], two: [string, Partial<ArmorEffects>], four: [string, Partial<ArmorEffects>], sources: LootActivity[], tier: VendorTier | null, style?: ArmorStyle];
 
 const describe = (e: Partial<ArmorEffects>) => Object.entries(e).map(([k, v]) => {
   const n = v ?? 0;
@@ -63,11 +69,30 @@ const FAMILIES: Record<ArmorFamily, { slots: [string, string, string, string, st
     ["abyssal-warden", "Abyssal Warden", "#1a5a7a", "Pressure-resistant deep-sea armor.", "CRYO", ["Pressure Seal", { resist: 0.08 }], ["Abyss Hunter", { resist: 0.06, regen: 1 }], ["dungeon", "secret"], null],
     ["chrono-revenant", "Chrono Revenant", "#b0ff6a", "Time-distorted armor with trails.", "ARC", ["Borrowed Time", { abilityRecharge: 0.1 }], ["Rewind", { abilityRecharge: 0.1, regen: 1 }], ["raid", "secret"], null],
   ] },
+  // the owner's "Expanded Equipment" board (Nov 1): the class sets with full visuals, and the named sets beside them. Ashen
+  // Covenant and Warden are not repeated here: the Ashen Choir raid set and the Verdant Warden regional set already are them.
+  premium: { slots: ["Helm", "Gauntlets", "Cuirass", "Greaves", "Mantle"], specs: [
+    ["titan-bulwark", "Titan Bulwark", "#c9a24a", "Gold-edged steel plate: heavy, defensive, immovable.", "KINETIC", ["Bulwark Plating", { resist: 0.09 }], ["Immovable", { resist: 0.1, regen: 0.8 }], ["elite", "dungeon"], 4, "heavy"],
+    ["hunter-vanguard", "Hunter Vanguard", "#3a4a5c", "Dark hooded kit built for mobility and precision.", "ARC", ["Quickstep", { moveSpeed: 0.07 }], ["Marksman's Edge", { weaponDamage: 0.09, slideBoost: 0.1 }], ["elite", "parkour"], 4, "light"],
+    ["warlock-arcanist", "Warlock Arcanist", "#7a3aff", "Violet-lit robes and plates for magic and control.", "ARC", ["Attunement", { abilityRecharge: 0.1 }], ["Dominion", { abilityRecharge: 0.1, weaponDamage: 0.05 }], ["elite", "story"], 4, "tech"],
+    ["goliath-wrathguard", "Goliath Wrathguard", "#b0222e", "Red and black war plate: power, hybrid, relentless.", "THERMAL", ["Wrath", { weaponDamage: 0.08 }], ["Juggernaut", { weaponDamage: 0.08, resist: 0.07 }], ["elite", "public-event"], 4, "heavy"],
+    ["frostveil-knight", "Frostveil Knight", "#9fd8ff", "Ice-crystal plate from the Winter collection.", "CRYO", ["Rime Ward", { resist: 0.08 }], ["Winter's Reign", { resist: 0.07, abilityRecharge: 0.06 }], ["public-event"], null, "royal"],
+  ] },
+  legend: { slots: ["Crown", "Grasps", "Carapace", "Striders", "Sigil"], specs: [
+    ["dragonite", "Dragonite", "#d13a2a", "Scale plate forged from Vyrak's shed Dragonite.", "THERMAL", ["Dragon Scale", { resist: 0.08 }], ["Dragonfire", { weaponDamage: 0.12 }], ["secret", "elite"], null, "tribal"],
+    ["voidwalker", "Voidwalker", "#3b1a66", "Armor that phases a step out of the world.", "ARC", ["Phase", { moveSpeed: 0.06 }], ["Void Step", { abilityRecharge: 0.08, moveSpeed: 0.04 }], ["dungeon", "secret"], null, "stealth"],
+    ["sungazer", "Sungazer", "#ffd25a", "Gold plate that drinks the Solara sun.", "THERMAL", ["Solar Grace", { weaponDamage: 0.07 }], ["Zenith", { weaponDamage: 0.08, abilityRecharge: 0.05 }], ["public-event", "story"], 4, "royal"],
+    ["oceanic", "Oceanic", "#2aa8c8", "Thalassian pressure plate, teal and bright.", "CRYO", ["Tidal Ward", { resist: 0.07 }], ["Deep Current", { regen: 1.2, resist: 0.05 }], ["dungeon"], null, "medium"],
+    ["reaver", "Reaver", "#6b6f78", "Wasteland hunter's kit, stitched from kills.", "KINETIC", ["Scavenger", { regen: 0.8 }], ["Reaver's Due", { weaponDamage: 0.07, regen: 0.6 }], ["patrol", "black-market"], 3, "ranger"],
+    ["celestial", "Celestial", "#e8e6ff", "White-gold plate lit from within.", "ARC", ["Starlit", { abilityRecharge: 0.08 }], ["Ascendant", { abilityRecharge: 0.1, resist: 0.05 }], ["raid"], null, "royal"],
+    ["shadowborne", "Shadowborne", "#15161c", "Night-black plate with a violet seam.", "ARC", ["Shadowstep", { moveSpeed: 0.06, slideBoost: 0.08 }], ["Nightborn", { weaponDamage: 0.08, moveSpeed: 0.04 }], ["secret", "dungeon"], null, "stealth"],
+    ["neon-tactical", "Neon Tactical", "#2fd3ff", "Neon City grid-synced tactical plate.", "ARC", ["Grid Sync", { abilityRecharge: 0.06, moveSpeed: 0.03 }], ["Overclock", { weaponDamage: 0.06, abilityRecharge: 0.06 }], ["elite", "race", "black-market"], 3, "cyber"],
+  ] },
 };
 
 export const COLLECTIONS: readonly Collection[] = (Object.entries(FAMILIES) as [ArmorFamily, (typeof FAMILIES)[ArmorFamily]][]).flatMap(([family, { slots, specs }]) =>
-  specs.map(([id, name, color, tagline, element, two, four, sources, tier]) => ({
-    id, name, regionId: "", element, color, tagline, family, sources, vendorTier: tier,
+  specs.map(([id, name, color, tagline, element, two, four, sources, tier, style]) => ({
+    id, name, regionId: "", element, color, tagline, family, sources, vendorTier: tier, style: style ?? FAMILY_STYLE[family],
     pieces: { helmet: `${name} ${slots[0]}`, gauntlets: `${name} ${slots[1]}`, chest: `${name} ${slots[2]}`, legs: `${name} ${slots[3]}`, classItem: `${name} ${slots[4]}` },
     two: { name: two[0], description: describe(two[1]), effects: two[1] },
     four: { name: four[0], description: describe(four[1]), effects: four[1] },
