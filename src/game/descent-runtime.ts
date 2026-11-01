@@ -5,6 +5,7 @@
  * calls `descentDeath` from its death flow. GameCanvas applies `emits` to the save. */
 import { alert, freeSlots, spawnEventSquad, type Machine, type WorldSim } from "./sim";
 import { INITIAL_POISE } from "./boss-poise";
+import { strikeRegionOf } from "./strike-sites";
 import { PUZZLE_NAME, freshPuzzle, onSummit, setLiveTrial, stepPuzzle, type PuzzleState } from "./descent-trials";
 import {
   DESCENT_TOP, RANKS, areaOf, dayOf, depthBelow, dungeonById, gateAt, gateRadius, inDescentSpace, inShaft, setActiveDescent, tierAt,
@@ -67,7 +68,7 @@ function spawnWave(sim: WorldSim, run: DescentRun, px: number, pz: number) {
   const wave = plan.waves[run.wave];
   if (!wave) return 0;
   const d = dungeonById(run.dungeonId);
-  const region = d?.regionId ?? "nexus";
+  const region = d?.regionId ?? strikeRegionOf(run.dungeonId) ?? "nexus";
   const tag = tagOf(tier.index);
   // spawn around the middle of the room, well clear of the drop shaft (26 m out) and of where you landed
   const cx = run.layout.origin.x, cz = run.layout.origin.z;
@@ -96,7 +97,7 @@ function spawnBoss(sim: WorldSim, run: DescentRun, px: number, pz: number): stri
   const tag = `rift:boss:${tier.index}`;
   freeSlots(sim, 1, px, pz);
   const cx = run.layout.origin.x, cz = run.layout.origin.z + (run.layout.origin.z - tier.landing.z) * 0.5;
-  if (!spawnEventSquad(sim, tag, cx, cz, 1, 1, d?.regionId ?? "nexus", 1)) return null;
+  if (!spawnEventSquad(sim, tag, cx, cz, 1, 1, d?.regionId ?? strikeRegionOf(run.dungeonId) ?? "nexus", 1)) return null;
   const m = tagged(sim, tag)[0]!;
   const hp = 28 * (sim.challenge?.enemyHp ?? 1) * (1 + 0.35 * RANKS[run.rank].tiers / 3) * (1 + Math.min(1, run.layout.tiers.length / 24)) * (tier.kind === "NESTED" ? 1.6 : 1);
   Object.assign(m, { boss: true, elite: true, hp, maxHp: hp, scale: tier.kind === "NESTED" ? 2.8 : 2.4, phase: 0, poiseState: INITIAL_POISE, cool: 2,

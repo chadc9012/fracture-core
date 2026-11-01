@@ -22,6 +22,10 @@ import { RAID_STAGE_IDS, clearedStages, featuredStage, lockedOut } from "@/game/
 import { weeklyRaidChallenge } from "@/game/difficulty-ladder";
 import { RAID_TIERS } from "@/game/difficulty-ladder";
 import { setRaidLaunchTier } from "@/game/raid-launch";
+import { STRIKE_MODE_NAME, STRIKE_SITES, strikeRegionOf, strikeRunId } from "@/game/strike-sites";
+import { strikeTierUnlocked, weeklyStrike } from "@/game/strikes";
+import { STRIKE_TIERS, tierById } from "@/game/difficulty-ladder";
+import { REGIONS } from "@/game/world";
 
 /** Destiny-style director: the world map is home, with the Killbox (PvP; "crucible" in code and saves), Raid and the gear/save screens as tabs along the
  * top. Destinations deploy through the map's own transit; Killbox matches start an activity and drop you in the arena. */
@@ -191,6 +195,7 @@ function CrucibleView({ progression, playerClass, onLaunch }: { progression: Pla
  * cannot walk up to one. Launching uses the same transit as deploying; the arena lies far outside the world (raid-instances.ts). */
 function RaidView({ progression, onDeploy }: { progression: PlayerProgression; onDeploy: (target: DeployTarget) => void }) {
   const [tierId, setTierId] = useState("normal");
+  const [opsTier, setOpsTier] = useState("standard");
   const roles = Object.entries(FRACTURE_RAID.roles) as [RivalClass, string][];
   return (
     <Panel label="Raid">
@@ -200,6 +205,26 @@ function RaidView({ progression, onDeploy }: { progression: PlayerProgression; o
           <h1 className="mt-1 font-mono text-3xl uppercase tracking-[0.25em]">Raids</h1>
         </div>
       </header>
+      <section className="mt-6 border border-foreground/15 bg-background/60 p-5" aria-label={STRIKE_MODE_NAME}>
+        <p className="ui-kicker text-primary">{STRIKE_MODE_NAME} · three floors you fight through yourself</p>
+        <h2 className="mt-1 font-mono text-2xl uppercase tracking-[0.2em]">{STRIKE_MODE_NAME}</h2>
+        <p className="mt-2 text-sm text-muted-foreground">An approach fight, a trial floor (parkour or a puzzle) and a boss, ten to twenty minutes. Harder tiers unlock one after another and pay more. This week's Ordeal pays extra from Hero up.</p>
+        <div className="mt-3 grid gap-2 sm:grid-cols-4">{STRIKE_TIERS.map((t) => {
+          const open = strikeTierUnlocked(progression, t.id);
+          return <Button key={t.id} size="sm" variant={t.id === opsTier ? "default" : "outline"} disabled={!open} onClick={() => setOpsTier(t.id)} className="h-auto flex-col items-start gap-0.5 rounded-none p-2 text-left whitespace-normal"><span className="font-mono text-[10px] uppercase">{!open && <LockKeyhole className="mr-1 inline size-3" />}{t.name}</span><span className="text-[9px] opacity-80">{open ? tierById("strike", t.id).blurb : `Clear ${STRIKE_TIERS[t.rank - 1]!.name} first`}</span></Button>;
+        })}</div>
+        <div className="mt-4 grid gap-3 md:grid-cols-2">{STRIKE_SITES.map((site) => {
+          const region = REGIONS.find((r) => r.id === strikeRegionOf(site.id)), ordeal = weeklyStrike(Date.now()).id === site.id;
+          const go = () => { if (!region) return; onDeploy({ id: `dungeon:${strikeRunId(site.id, strikeTierUnlocked(progression, opsTier) ? opsTier : "standard")}`, name: site.name, sub: `${STRIKE_MODE_NAME} · ${site.place}`, color: site.theme.glow, x: region.x + 24, z: region.z + 24 }); };
+          return <div key={site.id} className="flex flex-col border border-foreground/15 p-4">
+            <p className="ui-kicker">{site.place}{ordeal ? " · this week's Ordeal" : ""}</p>
+            <h3 className="mt-1 font-mono text-lg uppercase tracking-[0.15em]">{site.name}</h3>
+            <p className="mt-2 text-xs text-muted-foreground">{site.look}</p>
+            <p className="mt-2 text-xs">Boss · <b>{site.boss}</b>: {site.bossMechanic}</p>
+            <Button className="mt-3 font-mono uppercase tracking-widest" onClick={go}><Swords /> Launch</Button>
+          </div>;
+        })}</div>
+      </section>
       {RAID_INSTANCES.map((raid) => {
         const def = DUNGEONS.find((d) => d.id === raid.id);
         const go = () => { const a = raidArrival(raid); setRaidLaunchTier(hollowStarTierUnlocked(progression, tierId) ? tierId : "normal"); onDeploy({ id: `raid:${raid.id}`, name: raid.name, sub: `Raid · ${raid.entrance}`, color: "#a970ff", x: a.x, z: a.z }); };

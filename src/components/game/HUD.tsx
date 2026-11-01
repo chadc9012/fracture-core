@@ -16,7 +16,7 @@ import { useVoiceLine } from "./useVoiceLine";
 import { getCombatLevel } from "@/game/audio";
 import { contextualAbilities, hudMode, hudVisibility, superJustReady, superMeter, type SuperMeter } from "@/game/operator-presentation";
 
-export function HUD({ hud, tutorialActive = false, onMenu, onAtlas, level }: { hud: HudState; /** saved level + XP into the level; the bar only ever reads progression, never invents numbers */ level?: { level: number; xp: number }; tutorialActive?: boolean; onMenu: () => void; onStrategy: () => void; onGarage: () => void; onAnalyze: () => void; onInventory: () => void; onAtlas: () => void; onOperations: (view: "DUNGEONS" | "ARSENAL" | "ABILITIES") => void }) {
+export function HUD({ hud, tutorialActive = false, civilian = false, onMenu, onAtlas, level }: { hud: HudState; /** the prologue (story-start.ts): an ordinary resident, so no hull, ammo, weapons, crosshair or stratagems */ civilian?: boolean; /** saved level + XP into the level; the bar only ever reads progression, never invents numbers */ level?: { level: number; xp: number }; tutorialActive?: boolean; onMenu: () => void; onStrategy: () => void; onGarage: () => void; onAnalyze: () => void; onInventory: () => void; onAtlas: () => void; onOperations: (view: "DUNGEONS" | "ARSENAL" | "ABILITIES") => void }) {
   const vis = hudVisibility(hudMode(Boolean(hud.bossHud), getCombatLevel()));
   const ammo = hud.ammo?.[hud.weaponSlot - 1];
   const melee = ammo?.magSize === 0;
@@ -42,26 +42,26 @@ export function HUD({ hud, tutorialActive = false, onMenu, onAtlas, level }: { h
     {hud.diving && <div className="water-overlay pointer-events-none absolute inset-0 z-10" aria-hidden />}
     <DiveHud hud={hud} />
     <VehicleHud hud={hud} />
-    {!tutorialActive && <StratagemPanel hud={hud.stratagem} />}
+    {!tutorialActive && !civilian && <StratagemPanel hud={hud.stratagem} />}
     <EmergencyQuestBanner eq={hud.emergencyQuest} />
     <BossHealthBar boss={hud.bossHud} />
-    <Crosshair hud={hud} />
+    {!civilian && <Crosshair hud={hud} />}
     <div className="hud-health absolute bottom-4 left-4 w-[min(24rem,calc(100%-8rem))]">
       {level && (() => { const need = xpRequiredForLevel(level.level); return (
         <div className="mb-1.5 px-1" aria-label={`Level ${level.level}, ${level.xp} of ${need} XP`}>
           <div className="flex items-center justify-between text-[9px] uppercase tracking-[0.18em] text-foreground/80"><span>Level {level.level}</span><span>{Math.floor(level.xp)} / {need} XP</span></div>
           <div className="mt-0.5 h-1 w-full bg-foreground/15"><div className="h-full bg-primary" style={{ width: `${Math.min(100, Math.max(0, (level.xp / need) * 100))}%` }} /></div>
         </div>); })()}
-      <div className={`hud-status px-3 py-2 ${hud.hp <= 40 ? "hud-glow-destructive" : ""}`}>
+      {!civilian && <div className={`hud-status px-3 py-2 ${hud.hp <= 40 ? "hud-glow-destructive" : ""}`}>
         <div className="flex items-center justify-between"><span className="hud-label">{hud.callsign} // Hull Integrity</span><span className={`text-xs font-bold ${hud.hp > 40 ? "text-primary" : "text-destructive"}`}>{hud.hp}%</span></div>
         <div className="mt-1 h-2.5 overflow-hidden border border-foreground/20 bg-background/60">
           <div className={`relative h-full hud-ticks ${hud.hp > 40 ? "bg-primary" : "bg-destructive"}`} style={{ width: `${hud.hp}%`, transition: "width 200ms linear" }} />
         </div>
         <div className="mt-1.5 flex items-center gap-3 text-[8px] uppercase tracking-[0.18em] text-muted-foreground"><span>{operatorByClass(hud.playerClass).name}</span><span>{hud.subclassName}</span>{hud.playerClass === "TITAN" && <span className="text-primary">Shield {hud.shield}%</span>}</div>
         <OperatorReadout hud={hud} />
-      </div>
+      </div>}
     </div>
-    {ammo && (
+    {ammo && !civilian && (
       <div className={`hud-ammo hud-status absolute bottom-4 right-4 w-36 px-3 py-2 text-right ${hud.overheated ? "hud-glow-destructive" : ""}`}>
         <p className="hud-label truncate">{ammo.name}{ammo.element ? <span className="ml-1 text-primary">· {ammo.element.toLowerCase()}</span> : null}</p>
         <p className={`text-3xl font-semibold leading-none ${lowAmmo ? "text-warning" : "text-foreground"}`}>{melee ? "∞" : ammo.mag}<span className="text-xs text-muted-foreground">{melee ? "" : ` / ${ammo.reserve}`}</span></p>
@@ -69,7 +69,7 @@ export function HUD({ hud, tutorialActive = false, onMenu, onAtlas, level }: { h
         <p className="mt-1 hud-label text-[8px]">{hud.reloading > 0 ? "Reloading" : hud.overheated ? "Venting" : `Weapon Heat ${hud.weaponHeat}%`}</p>
       </div>
     )}
-    <WeaponSelector hud={hud} />
+    {!civilian && <WeaponSelector hud={hud} />}
   </div>;
 }
 

@@ -8,6 +8,7 @@ import { CLASSES, DEFAULT_SUBCLASS, SUBCLASSES, operatorByClass, type Appearance
 import { BODY_PROFILES, BODY_TYPES, FACES, OPERATOR_START_BODY, type BodyType } from "@/game/operators";
 import { DEFAULT_FACE, ROBOT_OPTICS, ROBOT_PLATING, SKIN_TONES, faceDef, faceFor, swatchOr, toneKind, type Swatch } from "@/game/operator-faces";
 import { HAIR_COLORS, HAIR_STYLES, MARKINGS, MAX_MARKINGS, hairDef, markingDef, toggleMarking, type MarkingKind } from "@/game/operator-styling";
+import { FACE_PRESETS, MORPHS, morphsEqual, morphsOr, type FaceMorphs } from "@/game/face-morphs";
 import { createDeployGuard, deployCharacter, newDeploymentId, type PlayerCharacter } from "@/game/deployment/deployCharacter";
 import { armorLook } from "@/game/armor-look";
 import { defaultAppearance, forgeDirty, forgeInitial } from "@/game/deployment/forgeState";
@@ -34,14 +35,15 @@ const APPEARANCE_FOR = defaultAppearance;
 
 /** Destiny-style appearance menu (owner's reference screens): a list of steps on the left, the operator close up in the
  * middle, the options for the step as a grid of portraits or colour swatches on the right. Armour is not edited here. */
-type Tab = "body" | "face" | "tone" | "optics" | "hair" | "haircolor" | "marks" | "callsign" | "finish";
+type Tab = "body" | "face" | "sculpt" | "tone" | "optics" | "hair" | "haircolor" | "marks" | "callsign" | "finish";
 const tabsFor = (body: BodyType): { key: Tab; label: string }[] => [
   { key: "body", label: "Body" }, { key: "face", label: "Face" },
+  ...(body === "robot" ? [] : [{ key: "sculpt" as const, label: "Sculpt" }]),
   { key: "tone", label: body === "robot" ? "Plating" : "Skin tone" },
   ...(body === "robot" ? [{ key: "optics" as const, label: "Optics" }] : [{ key: "hair" as const, label: "Hair" }, { key: "haircolor" as const, label: "Hair colour" }, { key: "marks" as const, label: "Markings" }]),
   { key: "callsign", label: "Callsign" }, { key: "finish", label: "Finish" },
 ];
-const FOCUS: Record<Tab, ForgeFocus> = { body: "body", face: "face", tone: "face", optics: "face", hair: "face", haircolor: "face", marks: "face", callsign: "body", finish: "body" };
+const FOCUS: Record<Tab, ForgeFocus> = { body: "body", face: "face", sculpt: "face", tone: "face", optics: "face", hair: "face", haircolor: "face", marks: "face", callsign: "body", finish: "body" };
 
 const GUIDE: Record<Stage, string> = {
   CLASS: "Select your operative: GOLIATH, NYX or CIPHER.",
@@ -65,6 +67,7 @@ export function StartMenu({ onDeploy, onSaveCharacter, weaponOrder, onSettings, 
   const [hair, setHair] = useState<string>(start.hair);
   const [hairColor, setHairColor] = useState<string>(start.hairColor);
   const [marks, setMarks] = useState<string[]>(start.marks);
+  const [faceMorphs, setFaceMorphs] = useState<FaceMorphs>(start.faceMorphs);
   // a face belongs to a body type: switching body keeps the face only when it exists there, else the class's face for that body;
   // the colour swatch list changes between skin tones and robot plating
   const setBodyType = (type: BodyType) => { setBodyTypeRaw(type); setFace((current) => faceFor(classId, type, current)); setSkin((current) => swatchOr(toneKind(type), current)); };
@@ -90,7 +93,7 @@ export function StartMenu({ onDeploy, onSaveCharacter, weaponOrder, onSettings, 
   const confirmIdentity = async () => {
     const deploymentId = newDeploymentId();
     const character: PlayerCharacter = {
-      deploymentId, operatorId: operator.id, classId, subclassId, bodyType, face, skin, eyes, hair, hairColor, marks, displayName: appearance.callsign,
+      deploymentId, operatorId: operator.id, classId, subclassId, bodyType, face, skin, eyes, hair, hairColor, marks, faceMorphs, displayName: appearance.callsign,
       appearance: { armor: appearance.armor, cloth: appearance.cloth, visor: appearance.visor, trim: appearance.trim, callsign: appearance.callsign },
       loadout: { weaponOrder: weaponOrder ?? [] },
     };
@@ -126,7 +129,7 @@ export function StartMenu({ onDeploy, onSaveCharacter, weaponOrder, onSettings, 
   };
 
   // Esc / Backspace / controller B-Circle: previous step, or out to the main menu from the first step (never mid-save)
-  const dirty = forgeDirty(start, { classId, subclassId, appearance, bodyType, face, skin, eyes, hair, hairColor, marks });
+  const dirty = forgeDirty(start, { classId, subclassId, appearance, bodyType, face, skin, eyes, hair, hairColor, marks, faceMorphs });
   const leave = () => { if (dirty) setConfirmLeave(true); else onExit?.(); };
   useMenuInput(stage !== "ASSEMBLING" && !deploying && !paused && !confirmLeave, (intent, source) => {
     if (intent === "back") { if (stageIndex > 0) back(); else leave(); return; }
@@ -147,6 +150,7 @@ export function StartMenu({ onDeploy, onSaveCharacter, weaponOrder, onSettings, 
       else if (tab === "face") cycle(FACES[bodyType].map((f) => f.id), FACES[bodyType].findIndex((f) => f.id === face), setFace);
       else if (tab === "tone") { const l = bodyType === "robot" ? ROBOT_PLATING : SKIN_TONES; cycle(l.map((x) => x.id), l.findIndex((x) => x.id === skin), setSkin); }
       else if (tab === "optics") cycle(ROBOT_OPTICS.map((x) => x.id), ROBOT_OPTICS.findIndex((x) => x.id === eyes), setEyes);
+      else if (tab === "sculpt") { const i = FACE_PRESETS.findIndex((x) => morphsEqual(x.morphs, faceMorphs)); const x = FACE_PRESETS[moveFocus(Math.max(0, i), dir, FACE_PRESETS.map(() => true))]; if (x) setFaceMorphs(x.morphs); }
       else if (tab === "hair") cycle(HAIR_STYLES.map((x) => x.id), HAIR_STYLES.findIndex((x) => x.id === hair), setHair);
       else if (tab === "haircolor") cycle(HAIR_COLORS.map((x) => x.id), HAIR_COLORS.findIndex((x) => x.id === hairColor), setHairColor);
       else if (tab === "marks") { const i = MARKINGS.findIndex((m) => m.id === marks[marks.length - 1]); const m = MARKINGS[moveFocus(Math.max(0, i), dir, MARKINGS.map(() => true))]; if (m) setMarks((cur) => toggleMarking(cur, m.id)); }
@@ -173,7 +177,7 @@ export function StartMenu({ onDeploy, onSaveCharacter, weaponOrder, onSettings, 
   });
 
   return <div className="fixed inset-0 z-50 overflow-hidden bg-background">
-    <div className="absolute inset-0" role="img" aria-label={`${operator.name} ${bodyType} preview`}><IdentityForge gear={worn} look={look} classId={classId} appearance={appearance} bodyType={bodyType} face={{ face, skin, eyes, hair, hairColor, marks }} focus={focus} mode={stage} onSelectClass={selectClass} /></div>
+    <div className="absolute inset-0" role="img" aria-label={`${operator.name} ${bodyType} preview`}><IdentityForge gear={worn} look={look} classId={classId} appearance={appearance} bodyType={bodyType} face={{ face, skin, eyes, hair, hairColor, marks, faceMorphs }} focus={focus} mode={stage} onSelectClass={selectClass} /></div>
     <div className="pointer-events-none absolute inset-0 forge-veil" />
 
     <header className="pointer-events-none absolute inset-x-0 top-0 z-10 flex items-start justify-between p-4 sm:p-7">
@@ -237,7 +241,7 @@ export function StartMenu({ onDeploy, onSaveCharacter, weaponOrder, onSettings, 
       operatorName={operator.name} className={operator.className} subclassName={subclasses.find((item) => item.id === subclassId)?.name ?? ""} bio={operator.bio}
       classId={classId} tabs={tabs} tab={tab} setTab={setTab} bodyType={bodyType} setBodyType={setBodyType} face={face} setFace={setFace}
       skin={skin} setSkin={setSkin} eyes={eyes} setEyes={setEyes} hair={hair} setHair={setHair} hairColor={hairColor} setHairColor={setHairColor}
-      marks={marks} toggleMark={(id) => setMarks((cur) => toggleMarking(cur, id))} callsign={appearance.callsign}
+      marks={marks} toggleMark={(id) => setMarks((cur) => toggleMarking(cur, id))} faceMorphs={faceMorphs} setFaceMorphs={setFaceMorphs} callsign={appearance.callsign}
       setCallsign={(v) => setAppearance((current) => ({ ...current, callsign: v.toUpperCase() }))} error={deployError} />}
 
     {confirmLeave && <ConfirmDialog pad={null} title="Discard changes?" body="You changed your operator but haven't saved. Leaving now discards those edits; your saved character is untouched." confirmLabel="Discard & leave" cancelLabel="Keep editing" onCancel={() => setConfirmLeave(false)} onConfirm={() => { setConfirmLeave(false); onExit?.(); }} />}
@@ -258,6 +262,7 @@ function AppearanceMenu(p: {
   bodyType: BodyType; setBodyType: (b: BodyType) => void; face: string; setFace: (f: string) => void;
   skin: string; setSkin: (s: string) => void; eyes: string; setEyes: (s: string) => void;
   hair: string; setHair: (s: string) => void; hairColor: string; setHairColor: (s: string) => void; marks: readonly string[]; toggleMark: (id: string) => void;
+  faceMorphs: FaceMorphs; setFaceMorphs: (m: FaceMorphs) => void;
   callsign: string; setCallsign: (v: string) => void; error: string;
 }) {
   const at = p.tabs.findIndex((t) => t.key === p.tab);
@@ -275,7 +280,7 @@ function AppearanceMenu(p: {
   const selectedName = p.tab === "body" ? BODY_PROFILES[p.bodyType].label : p.tab === "face" ? chosenFace.label
     : p.tab === "tone" ? tones.find((t) => t.id === p.skin)?.label : p.tab === "optics" ? ROBOT_OPTICS.find((t) => t.id === p.eyes)?.label
     : p.tab === "hair" ? chosenHair.label : p.tab === "haircolor" ? HAIR_COLORS.find((c) => c.id === p.hairColor)?.label
-    : p.tab === "marks" ? `${p.marks.length} / ${MAX_MARKINGS}` : null;
+    : p.tab === "marks" ? `${p.marks.length} / ${MAX_MARKINGS}` : p.tab === "sculpt" ? (FACE_PRESETS.find((x) => morphsEqual(x.morphs, p.faceMorphs))?.label ?? "Custom") : null;
   const selectedBlurb = p.tab === "body" ? BODY_PROFILES[p.bodyType].blurb : p.tab === "face" ? chosenFace.blurb : p.tab === "hair" ? chosenHair.blurb
     : p.tab === "marks" ? (p.marks.length ? p.marks.map((id) => markingDef(id)?.label).filter(Boolean).join(" · ") : "Pick up to four. Tap a marking again to remove it.") : null;
   const KIND_LABEL: Record<MarkingKind, string> = { scar: "Scars & burns", tattoo: "Tattoos", stretch: "Stretch marks", resonance: "Resonance traces" };
@@ -322,6 +327,20 @@ function AppearanceMenu(p: {
           </button>)}
         </div>}
         {p.tab === "haircolor" && swatches(HAIR_COLORS, p.hairColor, p.setHairColor, "Hair colour")}
+        {p.tab === "sculpt" && <div className="space-y-3">
+          <div role="radiogroup" aria-label="Face preset" className="grid grid-cols-4 gap-2">
+            {FACE_PRESETS.map((x) => { const on = morphsEqual(x.morphs, p.faceMorphs); return <button key={x.id} type="button" role="radio" aria-checked={on} title={x.blurb} onClick={() => p.setFaceMorphs(x.morphs)} className={`${tile(on)} bg-black/40 px-1 py-2 text-center font-mono text-[10px] uppercase tracking-[0.12em] text-white`}>{x.label}</button>; })}
+          </div>
+          <div className="space-y-1.5">
+            {MORPHS.map((m) => { const v = p.faceMorphs[m.id] ?? 0; return <label key={m.id} className="grid grid-cols-[6.5rem_1fr] items-center gap-2 font-mono text-[10px] uppercase tracking-[0.14em] text-white/80">
+              <span className="flex justify-between"><span>{m.label}</span><span className="text-white/40">{v > 0 ? "+" : ""}{Math.round(v * 100)}</span></span>
+              <span className="flex items-center gap-1 text-[8px] text-white/40"><span className="w-10 text-right">{m.low}</span>
+                <input type="range" min={-100} max={100} step={5} value={Math.round(v * 100)} aria-label={m.label} onChange={(e) => p.setFaceMorphs(morphsOr({ ...p.faceMorphs, [m.id]: Number(e.target.value) / 100 }))} className="wf-slider min-w-0 flex-1" />
+                <span className="w-10">{m.high}</span></span>
+            </label>; })}
+          </div>
+          <button type="button" className="font-mono text-[10px] uppercase tracking-[0.2em] text-white/60 underline-offset-4 hover:underline" onClick={() => p.setFaceMorphs({})}>Reset to the head as cut</button>
+        </div>}
         {p.tab === "marks" && (["scar", "tattoo", "stretch", "resonance"] as MarkingKind[]).map((kind) => <div key={kind} className="mb-3">
           <p className="mb-1.5 font-mono text-[9px] uppercase tracking-[0.24em] text-white/45">{KIND_LABEL[kind]}</p>
           <div role="group" aria-label={KIND_LABEL[kind]} className="grid grid-cols-3 gap-2">
@@ -338,7 +357,7 @@ function AppearanceMenu(p: {
         </label>}
         {p.tab === "finish" && <dl className="grid grid-cols-[6rem_1fr] gap-y-2 font-mono text-[11px] uppercase tracking-[0.14em]">
           <dt className="text-white/50">Body</dt><dd className="text-white">{BODY_PROFILES[p.bodyType].label}</dd>
-          <dt className="text-white/50">Face</dt><dd className="text-white">{chosenFace.label}</dd>
+          <dt className="text-white/50">Face</dt><dd className="text-white">{chosenFace.label}{!robot && Object.keys(p.faceMorphs).length ? ` · ${FACE_PRESETS.find((x) => morphsEqual(x.morphs, p.faceMorphs))?.label ?? "custom sculpt"}` : ""}</dd>
           <dt className="text-white/50">{robot ? "Plating" : "Skin tone"}</dt><dd className="text-white">{tones.find((t) => t.id === p.skin)?.label}</dd>
           {robot && <><dt className="text-white/50">Optics</dt><dd className="text-white">{ROBOT_OPTICS.find((t) => t.id === p.eyes)?.label}</dd></>}
           {!robot && <><dt className="text-white/50">Hair</dt><dd className="text-white">{chosenHair.label}{chosenHair.kind !== "authored" && chosenHair.kind !== "none" ? ` · ${HAIR_COLORS.find((c) => c.id === p.hairColor)?.label}` : ""}</dd>

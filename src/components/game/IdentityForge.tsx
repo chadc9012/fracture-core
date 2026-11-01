@@ -11,7 +11,7 @@ import { OperatorModel, type WornGear } from "./OperatorModel";
 import { DEFAULT_ARSENAL } from "@/game/progression";
 
 /** the forge's look choices for the preview: face, skin/plating, optics, hair and markings (operator-faces.ts / operator-styling.ts ids) */
-export type ForgeFace = { face?: string; skin?: string; eyes?: string; hair?: string; hairColor?: string; marks?: readonly string[] };
+export type ForgeFace = { face?: string; skin?: string; eyes?: string; hair?: string; hairColor?: string; marks?: readonly string[]; faceMorphs?: Readonly<Partial<Record<string, number>>> };
 
 const CLASS_LABEL: Record<ClassId, string> = { TITAN: "GOLIATH", HUNTER: "NYX", WARLOCK: "CIPHER" };
 const CLASS_X: Record<ClassId, number> = { TITAN: -4.6, HUNTER: 0, WARLOCK: 4.6 };

@@ -12,6 +12,7 @@ import { REGIONS } from "./world";
 import { slopeAt, walkHeight, WATER_LEVEL } from "./terrain";
 import type { SolidBox } from "./environment-collision";
 import { TRIAL_COUNTS, buildTrial, platformGround, type TierTrial } from "./descent-trials";
+import { STRIKE_SITES, strikeSiteById } from "./strike-sites";
 
 export type RiftRank = "F" | "E" | "D" | "C" | "B" | "A" | "S";
 export const RANK_ORDER: readonly RiftRank[] = ["F", "E", "D", "C", "B", "A", "S"];
@@ -126,7 +127,7 @@ export const SIGNATURE_DUNGEONS: readonly SignatureDungeon[] = [
     depth: 3000, floors: [16, 24], areas: ["Surface Gate", "The Sunken City", "Abyssal Trenches", "The Ocean Throne"] },
 ];
 
-export const dungeonById = (id: string): SignatureDungeon | null => SIGNATURE_DUNGEONS.find((d) => d.id === id) ?? null;
+export const dungeonById = (id: string): SignatureDungeon | null => SIGNATURE_DUNGEONS.find((d) => d.id === id) ?? STRIKE_SITES.find((d) => d.id === id) ?? null;
 
 /* ---------------- daily gates ---------------- */
 
@@ -281,8 +282,9 @@ export function descentShape(dungeonId: string, rank: RiftRank, seed = ""): { de
 export const shownDepth = (dungeonId: string, shown: RiftRank) => dungeonById(dungeonId)?.depth ?? RANKS[shown].depth;
 
 export function buildDescent(dungeonId: string, rank: RiftRank, origin: { x: number; z: number } = DESCENT_ORIGIN, seed = ""): DescentLayout {
-  const shape = descentShape(dungeonId, rank, seed);
-  const kinds = tierKinds(rank, shape.tiers, true);
+  const strike = strikeSiteById(dungeonId); // a playable strike: exactly three floors (approach, trial, boss), 60 m apart
+  const shape = strike ? { depth: 120, tiers: 3 } : descentShape(dungeonId, rank, seed);
+  const kinds: TierKind[] = strike ? [...strike.kinds] : tierKinds(rank, shape.tiers, true);
   const step = shape.depth / (shape.tiers - 1);
   const tiers: Tier[] = kinds.map((kind, index) => {
     const side = index % 2 === 0 ? 1 : -1;

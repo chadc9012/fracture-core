@@ -14,9 +14,14 @@ import { AttributeBars, CompareCards, GearTile, ItemCard } from "./GearUi";
 import { classById, operatorByClass, subclassById, type AppearanceDefinition, type ClassId, type SubclassId } from "@/game/loadout";
 import type { GearItem, GearSlot } from "@/game/inventory";
 import type { PlayerProgression } from "@/game/progression";
+import type { PlayerCharacter } from "@/game/deployment/deployCharacter";
 import { xpRequiredForLevel } from "@/game/xp";
 import { ENDINGS, campaignProgress } from "@/game/campaign";
 import { BLADES, FOUNDRIES, equipBlade, ownedBlades, type BladeId } from "@/game/foundries";
+import { HAIR_COLORS, HAIR_STYLES, MARKINGS, MAX_MARKINGS, hairColorOr, hairOr, markingDef, markingsOr, toggleMarking, type MarkingKind } from "@/game/operator-styling";
+import { RESTYLE_PRICE, restyleCharacter, restyleQuote, type RestylePatch } from "@/game/restyle";
+import { FACE_PRESETS, MORPHS, morphsEqual, morphsOr } from "@/game/face-morphs";
+import { formatNex, nexBalance } from "@/game/nex";
 
 export type CharacterTab = "CHARACTER" | "APPEARANCE" | "COLLECTIONS" | "TRIUMPHS" | "CAMPAIGN";
 
@@ -175,10 +180,22 @@ function AppearanceTab({ progression, classId, appearance, onProgression, onAppe
   };
   const preset = appearanceById(operatorByClass(classId).appearanceId);
   const custom = colorwayFor(classId, appearance) !== null;
-  if (!progression.character) return <p className="text-white/60">Confirm your operator in the Identity Forge first; appearance is saved on the confirmed character.</p>;
+  // restyle.ts: the pending cut, colour and markings show on the preview before they're paid for
+  const [draft, setDraft] = useState<RestylePatch>({});
+  const [restyleNote, setRestyleNote] = useState("");
+  const character = progression.character;
+  if (!character) return <p className="text-white/60">Confirm your operator in the Identity Forge first; appearance is saved on the confirmed character.</p>;
+  const quote = restyleQuote(character, draft);
+  const previewed = quote.price > 0 ? { ...progression, character: { ...character, ...quote.next } } : progression;
+  const commitRestyle = () => {
+    const r = restyleCharacter(progression, draft, Date.now());
+    if ("error" in r) { setRestyleNote(r.error); return; }
+    onProgression(r.progression); setDraft({}); setRestyleNote(r.message);
+  };
   return <div className="mx-auto grid max-w-7xl gap-6 md:grid-cols-[minmax(0,1fr)_minmax(22rem,0.8fr)]">
-    <section className="wf-op-stage" aria-label="Operator preview"><CharacterPreview appearance={appearance} classId={classId} progression={progression} /></section>
+    <section className="wf-op-stage" aria-label="Operator preview"><CharacterPreview appearance={appearance} classId={classId} progression={previewed} /></section>
     <section className="wf-op-panel space-y-5 p-4" aria-label="Appearance">
+      {character.bodyType !== "robot" && <RestylePanel character={character} draft={draft} setDraft={(d) => { setDraft(d); setRestyleNote(""); }} quote={quote} balance={nexBalance(progression.nexLedger)} note={restyleNote} onCommit={commitRestyle} />}
       <div className="flex items-center justify-between"><p className="wf-op-kicker">Appearance</p>
         <button type="button" className="wf-op-btn !py-1 !text-xs" disabled={!custom} onClick={() => apply({ armor: preset.armor, visor: preset.visor, cloth: preset.cloth, trim: preset.trim })}>Signature look</button></div>
       {CHANNELS.map(({ key, label, note }) => <div key={key}>
@@ -195,6 +212,62 @@ function AppearanceTab({ progression, classId, appearance, onProgression, onAppe
       </label>
       <p className="text-xs text-white/50">Colours change appearance only, never stats. Swap armor pieces in the Character tab; Defense, Mobility and Intellect update as you equip.</p>
     </section>
+  </div>;
+}
+
+/** The barber's chair: hair, hair colour and markings after creation, paid in Nex (restyle.ts). The grid mirrors the forge's
+ * Hair / Hair colour / Markings steps; the preview beside it already wears the pending look. */
+const KIND_LABEL: Record<MarkingKind, string> = { scar: "Scars & burns", tattoo: "Tattoos", stretch: "Stretch marks", resonance: "Resonance traces" };
+function RestylePanel({ character, draft, setDraft, quote, balance, note, onCommit }: { character: Pick<PlayerCharacter, "hair" | "hairColor" | "marks" | "faceMorphs">; draft: RestylePatch; setDraft: (d: RestylePatch) => void; quote: ReturnType<typeof restyleQuote>; balance: number; note: string; onCommit: () => void }) {
+  const hair = hairOr(draft.hair ?? character.hair), hairColor = hairColorOr(draft.hairColor ?? character.hairColor), marks = markingsOr(draft.marks ?? character.marks);
+  const morphs = morphsOr(draft.faceMorphs ?? character.faceMorphs);
+  const setMorphs = (m: typeof morphs) => setDraft({ ...draft, faceMorphs: m });
+  const built = hair !== "authored" && hair !== "bald";
+  const tile = (on: boolean) => `border px-2 py-2 text-[10px] uppercase tracking-[0.12em] ${on ? "border-white bg-white/10 text-white ring-1 ring-[#92e9f5]" : "border-white/20 text-white/70 hover:border-white/60"}`;
+  return <div className="space-y-4 border-b border-white/15 pb-5">
+    <div className="flex items-baseline justify-between"><p className="wf-op-kicker">Restyle</p><span className="text-xs text-white/50">Hair {formatNex(RESTYLE_PRICE.hair)} · Markings {formatNex(RESTYLE_PRICE.marks)} · Face {formatNex(RESTYLE_PRICE.face)} · You have {formatNex(balance)}</span></div>
+    <div>
+      <div className="flex items-baseline justify-between"><span className="font-semibold uppercase tracking-[0.16em]">Face</span><span className="text-xs text-white/50">{FACE_PRESETS.find((x) => morphsEqual(x.morphs, morphs))?.label ?? "Custom sculpt"}</span></div>
+      <div role="radiogroup" aria-label="Face preset" className="mt-2 grid grid-cols-4 gap-1">
+        {FACE_PRESETS.map((x) => { const on = morphsEqual(x.morphs, morphs); return <button key={x.id} type="button" role="radio" aria-checked={on} title={x.blurb} onClick={() => setMorphs(x.morphs)} className={tile(on)}>{x.label}</button>; })}
+      </div>
+      <div className="mt-2 space-y-1">
+        {MORPHS.map((m) => { const v = morphs[m.id] ?? 0; return <label key={m.id} className="grid grid-cols-[7rem_1fr] items-center gap-2 text-[10px] uppercase tracking-[0.12em] text-white/80">
+          <span className="flex justify-between"><span>{m.label}</span><span className="text-white/40">{v > 0 ? "+" : ""}{Math.round(v * 100)}</span></span>
+          <span className="flex items-center gap-1 text-[9px] text-white/40"><span className="w-9 text-right">{m.low}</span>
+            <input type="range" min={-100} max={100} step={5} value={Math.round(v * 100)} aria-label={m.label} onChange={(e) => setMorphs(morphsOr({ ...morphs, [m.id]: Number(e.target.value) / 100 }))} className="wf-slider min-w-0 flex-1" />
+            <span className="w-9">{m.high}</span></span>
+        </label>; })}
+      </div>
+    </div>
+    <div>
+      <span className="font-semibold uppercase tracking-[0.16em]">Hair</span>
+      <div role="radiogroup" aria-label="Hairstyle" className="mt-2 grid grid-cols-3 gap-1 sm:grid-cols-4">
+        {HAIR_STYLES.map((h) => <button key={h.id} type="button" role="radio" aria-checked={hair === h.id} title={h.blurb} onClick={() => setDraft({ ...draft, hair: h.id })} className={tile(hair === h.id)}>{h.label}</button>)}
+      </div>
+    </div>
+    {built && <div>
+      <span className="font-semibold uppercase tracking-[0.16em]">Hair colour</span>
+      <div role="radiogroup" aria-label="Hair colour" className="mt-2 grid grid-cols-[repeat(14,minmax(0,1fr))] gap-1">
+        {HAIR_COLORS.map((c) => <button key={c.id} type="button" role="radio" aria-checked={hairColor === c.id} aria-label={c.label} title={c.label} onClick={() => setDraft({ ...draft, hairColor: c.id })}
+          className={`aspect-square border ${hairColor === c.id ? "border-white ring-2 ring-[#92e9f5]" : "border-white/20 hover:border-white/70"}`} style={{ background: c.hex || "linear-gradient(135deg, #120f0e 0 50%, #d9cfb8 50% 100%)" }} />)}
+      </div>
+    </div>}
+    <div>
+      <div className="flex items-baseline justify-between"><span className="font-semibold uppercase tracking-[0.16em]">Markings</span><span className="text-xs text-white/50">{marks.length} / {MAX_MARKINGS}{marks.length ? " · " + marks.map((id) => markingDef(id)?.label).filter(Boolean).join(", ") : ""}</span></div>
+      {(["scar", "tattoo", "stretch", "resonance"] as MarkingKind[]).map((kind) => <div key={kind} className="mt-2">
+        <p className="text-[10px] uppercase tracking-[0.2em] text-white/45">{KIND_LABEL[kind]}</p>
+        <div role="group" aria-label={KIND_LABEL[kind]} className="mt-1 grid grid-cols-3 gap-1 sm:grid-cols-4">
+          {MARKINGS.filter((m) => m.kind === kind).map((m) => { const on = marks.includes(m.id); const full = !on && marks.length >= MAX_MARKINGS; return <button key={m.id} type="button" role="checkbox" aria-checked={on} title={m.blurb} disabled={full} onClick={() => setDraft({ ...draft, marks: toggleMarking(marks, m.id) })} className={`${tile(on)} ${full ? "opacity-40" : ""}`}>{m.label}</button>; })}
+        </div>
+      </div>)}
+    </div>
+    <div className="flex flex-wrap items-center gap-2">
+      <button type="button" className="wf-op-btn" disabled={quote.price <= 0 || balance < quote.price} onClick={onCommit}>{quote.price > 0 ? `Pay ${formatNex(quote.price)} & restyle` : "Restyle"}</button>
+      {quote.price > 0 && <button type="button" className="wf-op-btn !py-1 !text-xs" onClick={() => setDraft({})}>Undo</button>}
+      {note && <span className="text-xs text-white/70">{note}</span>}
+      {quote.price > 0 && balance < quote.price && !note && <span className="text-xs text-[#f5b092]">Not enough Nex.</span>}
+    </div>
   </div>;
 }
 
