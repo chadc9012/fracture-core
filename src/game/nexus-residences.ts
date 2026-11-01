@@ -181,6 +181,21 @@ const APARTMENT: Box[] = [
   on(7.6, 3.6, 0.7, 0.92, 4.2, "#2c2c30"), S(7.6, 0.95, 3.6, 0.72, 0.05, 4.2, "#d8d3ca"), on(7.55, 1.2, 0.8, 2.0, 0.8, "#c9ccd1"), L(7.6, 0.97, 4.2, 0.5, 0.02, 0.5, "#ff8a4a"),
   on(3.8, 2.5, 2.8, 0.94, 1.1, "#2c2c30"), S(3.8, 0.96, 2.5, 2.9, 0.05, 1.2, "#e3ddd2"), ...[2.9, 3.8, 4.7].map((x) => on(x, 3.4, 0.4, 0.7, 0.4, DARK)),
   L(3.8, 3.0, 2.5, 2.4, 0.04, 0.04, WARM), ...plant(7.4, 5.4, 1.0),
+  // Visual overhaul: material layering and recognizable furniture profiles.
+  // Thin non-interactive trim avoids changing original collision walls.
+  S(-5.6, 0.70, -3.4, 1.88, 0.045, 1.78, "#e8e1d8"), // bedding top
+  S(-5.6, 0.74, -4.15, 1.84, 0.04, 0.52, "#777a84"), // folded blanket
+  ...[-6.17, -5.03].map((x) => S(x, 0.78, -2.75, 0.56, 0.09, 0.36, "#f5f0e7")), // pillows
+  ...[-4.9, -1.95].map((z) => S(-7.46, 0.57, z, 0.48, 0.025, 0.48, "#9a795e")), // bedside tops
+  S(7.6, 1.88, 3.6, 0.055, 0.06, 3.4, "#858e98"), // metal kitchen shelf edge
+  ...[2.4, 3.4, 4.4].map((z) => S(7.14, 0.86, z, 0.04, 0.34, 0.025, "#a7a4a1")), // cabinet pulls
+  S(3.8, 1.02, 2.5, 2.76, 0.025, 1.05, "#c6c1b8"), // island worktop overlay
+  ...[2.9, 3.8, 4.7].map((x) => S(x, 0.78, 3.4, 0.33, 0.045, 0.33, "#54515a")), // stool seats
+  S(6.9, 0.78, -5.3, 1.85, 0.04, 0.72, "#8b7465"), // desk surface
+  ...[6.6, 7.35].map((x) => S(x, 1.41, -5.59, 0.73, 0.035, 0.055, "#343943")), // monitor frames
+  // Ground-level soft accent rug, with a second inset layer for visual depth.
+  S(1.0, 0.016, -2.4, 3.4, 0.02, 2.4, "#57555a"),
+  S(1.0, 0.028, -2.4, 3.15, 0.012, 2.16, "#827d79"),
   // bedroom: a bed with its headboard on the west wall, nightstands with lamps, a wardrobe, the shield banner
   on(-5.6, -3.4, 2.2, 0.55, 2.1, "#4a4450"), S(-5.6, 0.62, -3.4, 2.0, 0.14, 1.9, "#d9d4cc"), on(-7.85, -3.4, 0.14, 1.3, 2.4, "#2b2630"),
   ...[-4.85, -1.95].map((z) => on(-7.5, z, 0.5, 0.55, 0.5, WOOD)), ...[-4.85, -1.95].map((z) => L(-7.5, 0.75, z, 0.18, 0.25, 0.18, WARM)),

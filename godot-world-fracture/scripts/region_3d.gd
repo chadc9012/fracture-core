@@ -15,6 +15,13 @@ enum Mode { CITY, STREET }
 
 const EYE := 1.7
 const TREE_CAP := 9000
+# Adjustable city-detail switches for testing on slower hardware.
+const CITY_ROOF_ACCESSORIES := true
+const CITY_ROAD_MARKINGS := true
+const CITY_FACADE_FINS := true
+const CITY_MAX_FACADE_FIN_BUILDINGS := 120
+const CITY_MAX_ROOF_DETAIL_BUILDINGS := 300
+const CITY_MAX_ROAD_PAINT_SEGMENTS := 18000
 const WALL := {
 	"apartment": "#a49c90", "house": "#9a7462", "store": "#b9bfc4", "mall": "#c9d0d6", "school": "#b09a78", "entertainment": "#8a6d86",
 	"office": "#7d8a96", "civic": "#bdb4a2", "industrial": "#857d72", "transport": "#97a0a8", "garage": "#74777c", "dome": "#a8d6e2",
@@ -154,7 +161,15 @@ func show_region(id: String, at: Variant = null, start_mode: Mode = Mode.CITY) -
 	_build_ground()
 	_build_water()
 	_build_buildings()
+	_build_tower_rooftops_pass_17()
+	_build_entrances_pass_18()
+	if CITY_ROOF_ACCESSORIES:
+		_build_architecture_batch_19_43()
+	if CITY_FACADE_FINS:
+		_build_facade_fins_batch_19_43()
 	_build_roads()
+	if CITY_ROAD_MARKINGS:
+		_build_road_markings_batch_19_43()
 	_build_rings()
 	_build_trees()
 	_build_floating()
@@ -437,17 +452,45 @@ func _build_buildings() -> void:
 			wall = wall.darkened(0.35)
 		var seed := fposmod(float(k) * 0.6180339, 1.0)
 		k += 1
-		for f in 4:
-			var a: Vector2 = corners[f]
-			var b2: Vector2 = corners[(f + 1) % 4]
-			var L := a.distance_to(b2)
-			var quad := [Vector3(a.x, base, a.y), Vector3(b2.x, base, b2.y), Vector3(b2.x, top, b2.y), Vector3(a.x, top, a.y)]
-			var uvq := [Vector2(0, 0), Vector2(L, 0), Vector2(L, top - base), Vector2(0, top - base)]
-			var mid := (a + b2) / 2.0 - p
-			var out := Vector3(mid.x, 0, mid.y).normalized()
-			for t in [[0, 1, 2], [0, 2, 3]]:
-				_tri(st, [quad[t[0]], quad[t[1]], quad[t[2]]], [uvq[t[0]], uvq[t[1]], uvq[t[2]]], out, Color(wall, 0.0), seed)
-		var roof := [Vector3(corners[0].x, top, corners[0].y), Vector3(corners[1].x, top, corners[1].y), Vector3(corners[2].x, top, corners[2].y), Vector3(corners[3].x, top, corners[3].y)]
+		# Pass 16: preserve footprint and height but introduce upper-floor setbacks.
+		# Short buildings retain their original one-piece shape.
+		var tiers: int = 1
+		if hgt >= 75.0 and minf(hx, hz) >= 4.0:
+			tiers = 3 if hgt >= 115.0 else 2
+		var levels: Array[float] = [base]
+		for tier_i in range(1, tiers + 1):
+			levels.append(lerpf(base, top, float(tier_i) / float(tiers)))
+		var last_corners: Array[Vector2] = corners
+		for tier_i in range(tiers):
+			var scale_factor := 1.0 - float(tier_i) * 0.115
+			var tier_corners: Array[Vector2] = []
+			for corner in corners:
+				tier_corners.append(p + (corner - p) * scale_factor)
+			for f in 4:
+				var a: Vector2 = tier_corners[f]
+				var b2: Vector2 = tier_corners[(f + 1) % 4]
+				var L := a.distance_to(b2)
+				var lo := levels[tier_i]
+				var hi := levels[tier_i + 1]
+				var quad := [Vector3(a.x, lo, a.y), Vector3(b2.x, lo, b2.y), Vector3(b2.x, hi, b2.y), Vector3(a.x, hi, a.y)]
+				var uvq := [Vector2(0, lo - base), Vector2(L, lo - base), Vector2(L, hi - base), Vector2(0, hi - base)]
+				var mid := (a + b2) / 2.0 - p
+				var out := Vector3(mid.x, 0, mid.y).normalized()
+				for t in [[0, 1, 2], [0, 2, 3]]:
+					_tri(st, [quad[t[0]], quad[t[1]], quad[t[2]]], [uvq[t[0]], uvq[t[1]], uvq[t[2]]], out, Color(wall, 0.0), seed)
+			# Close the visible ledge between successive tiers.
+			if tier_i > 0:
+				for f in 4:
+					var prev_a: Vector2 = last_corners[f]
+					var prev_b: Vector2 = last_corners[(f + 1) % 4]
+					var curr_a: Vector2 = tier_corners[f]
+					var curr_b: Vector2 = tier_corners[(f + 1) % 4]
+					var ledge_y := levels[tier_i]
+					var ledge := [Vector3(prev_a.x, ledge_y, prev_a.y), Vector3(prev_b.x, ledge_y, prev_b.y), Vector3(curr_b.x, ledge_y, curr_b.y), Vector3(curr_a.x, ledge_y, curr_a.y)]
+					for t in [[0, 1, 2], [0, 2, 3]]:
+						_tri(st, [ledge[t[0]], ledge[t[1]], ledge[t[2]]], [Vector2.ZERO, Vector2.ZERO, Vector2.ZERO], Vector3.UP, Color(wall.darkened(0.16), 1.0), seed)
+			last_corners = tier_corners
+		var roof := [Vector3(last_corners[0].x, top, last_corners[0].y), Vector3(last_corners[1].x, top, last_corners[1].y), Vector3(last_corners[2].x, top, last_corners[2].y), Vector3(last_corners[3].x, top, last_corners[3].y)]
 		for t in [[0, 1, 2], [0, 2, 3]]:
 			_tri(st, [roof[t[0]], roof[t[1]], roof[t[2]]], [Vector2.ZERO, Vector2.ZERO, Vector2.ZERO], Vector3.UP, Color(wall.darkened(0.1), 1.0), seed)
 	var mi := MeshInstance3D.new()
@@ -1118,3 +1161,390 @@ func _on_jump(i: int) -> void:
 		_dist = clampf(_span * 0.12, 50.0, 300.0)
 	_apply_cam()
 	_jump.select(0)
+
+
+# Pass 17: batched rooftop mechanical penthouses and perimeter parapets.
+# Original building data, placement, footprint and gameplay remain unchanged.
+# Uses one additional mesh for the entire region, rather than one node per roof.
+func _build_tower_rooftops_pass_17() -> void:
+	if m.buildings.is_empty():
+		return
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var count := 0
+	for bd in m.buildings:
+		var hgt := _bh(bd)
+		if hgt < 75.0:
+			continue
+		var hx: float = bd[2]
+		var hz: float = bd[3]
+		if minf(hx, hz) < 4.0:
+			continue
+		var p := _loc(bd[0], bd[1])
+		var yaw: float = bd[4]
+		var c := cos(yaw)
+		var si := sin(yaw)
+		var corners: Array[Vector2] = []
+		for v in [Vector2(-1, -1), Vector2(1, -1), Vector2(1, 1), Vector2(-1, 1)]:
+			var lx: float = v.x * hx
+			var lz: float = v.y * hz
+			corners.append(Vector2(p.x + lx * c + lz * si, p.y - lx * si + lz * c))
+		var base := INF
+		for q in corners:
+			base = minf(base, _h(q.x, q.y))
+		base -= 0.6
+		var top := maxf(base + 3.0, _h(p.x, p.y) + hgt)
+		var tiers := 3 if hgt >= 115.0 else 2
+		var shrink := 1.0 - float(tiers - 1) * 0.115
+		var roof_hx := hx * shrink
+		var roof_hz := hz * shrink
+		var seed := fposmod(float(count) * 0.6180339, 1.0)
+		var tone := Color(0.24, 0.27, 0.29)
+		# The raised central equipment house has four walls and a roof.
+		var pent_hx := roof_hx * 0.30
+		var pent_hz := roof_hz * 0.35
+		var pent_h := clampf(hgt * 0.045, 2.0, 6.0)
+		_roof_box_pass_17(st, p, c, si, Vector2.ZERO,
+			pent_hx, pent_hz, top, top + pent_h, tone, seed)
+		# Two small mechanical blocks; no extra nodes or draw calls.
+		for j in range(2):
+			var off := Vector2(roof_hx * (0.62 if j == 0 else -0.62), 0.0)
+			_roof_box_pass_17(st, p, c, si, off,
+				roof_hx * 0.13, roof_hz * 0.18, top, top + 1.6,
+				tone.darkened(0.15), seed)
+		# Perimeter parapets: short thin boxes along the roof edge.
+		var parapet := minf(0.3, minf(roof_hx, roof_hz) * 0.08)
+		for side in [-1.0, 1.0]:
+			_roof_box_pass_17(st, p, c, si, Vector2(side * (roof_hx - parapet), 0),
+				parapet, roof_hz, top, top + 0.9, tone.lightened(0.12), seed)
+			_roof_box_pass_17(st, p, c, si, Vector2(0, side * (roof_hz - parapet)),
+				roof_hx, parapet, top, top + 0.9, tone.lightened(0.12), seed)
+		count += 1
+	if count == 0:
+		return
+	var mi := MeshInstance3D.new()
+	mi.name = "Pass17_BatchedTowerRooftops"
+	mi.mesh = st.commit()
+	var mat := StandardMaterial3D.new()
+	mat.vertex_color_use_as_albedo = true
+	mat.roughness = 0.82
+	mat.metallic = 0.15
+	mi.material_override = mat
+	_world.add_child(mi)
+
+func _roof_box_pass_17(st: SurfaceTool, origin: Vector2, c: float, si: float,
+		offset: Vector2, hx: float, hz: float, lo: float, hi: float,
+		tint: Color, seed: float) -> void:
+	var corners: Array[Vector2] = []
+	for v in [Vector2(-1, -1), Vector2(1, -1), Vector2(1, 1), Vector2(-1, 1)]:
+		var lx := offset.x + v.x * hx
+		var lz := offset.y + v.y * hz
+		corners.append(Vector2(origin.x + lx * c + lz * si,
+			origin.y - lx * si + lz * c))
+	for f in range(4):
+		var a := corners[f]
+		var b := corners[(f + 1) % 4]
+		var quad := [Vector3(a.x, lo, a.y), Vector3(b.x, lo, b.y),
+			Vector3(b.x, hi, b.y), Vector3(a.x, hi, a.y)]
+		var mid := (a + b) * 0.5 - origin
+		var normal := Vector3(mid.x, 0, mid.y).normalized()
+		for t in [[0, 1, 2], [0, 2, 3]]:
+			_tri(st, [quad[t[0]], quad[t[1]], quad[t[2]]],
+				[Vector2.ZERO, Vector2.ZERO, Vector2.ZERO], normal,
+				Color(tint, 1.0), seed)
+	var roof := [Vector3(corners[0].x, hi, corners[0].y),
+		Vector3(corners[1].x, hi, corners[1].y),
+		Vector3(corners[2].x, hi, corners[2].y),
+		Vector3(corners[3].x, hi, corners[3].y)]
+	for t in [[0, 1, 2], [0, 2, 3]]:
+		_tri(st, [roof[t[0]], roof[t[1]], roof[t[2]]],
+			[Vector2.ZERO, Vector2.ZERO, Vector2.ZERO], Vector3.UP,
+			Color(tint, 1.0), seed)
+
+# Pass 18: batched ground-floor entrances for urban buildings.
+# Non-interactive facade accents only; original building collision and data are unchanged.
+func _build_entrances_pass_18() -> void:
+	if m.buildings.is_empty():
+		return
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var count := 0
+	for bd in m.buildings:
+		var hgt := _bh(bd)
+		if hgt < 16.0:
+			continue
+		var hx: float = bd[2]
+		var hz: float = bd[3]
+		if minf(hx, hz) < 3.5:
+			continue
+		var p := _loc(bd[0], bd[1])
+		var yaw: float = bd[4]
+		var c := cos(yaw)
+		var si := sin(yaw)
+		var corners: Array[Vector2] = []
+		for v in [Vector2(-1, -1), Vector2(1, -1), Vector2(1, 1), Vector2(-1, 1)]:
+			var lx: float = v.x * hx
+			var lz: float = v.y * hz
+			corners.append(Vector2(p.x + lx * c + lz * si, p.y - lx * si + lz * c))
+		var base := INF
+		for q in corners:
+			base = minf(base, _h(q.x, q.y))
+		base -= 0.6
+		# Negative local Z frontage; details sit close to the existing wall.
+		var front := -hz - 0.12
+		var entrance_width := minf(2.0, hx * 0.32)
+		var accent := Color(0.11, 0.16, 0.20)
+		var trim := Color(0.33, 0.35, 0.37)
+		var glass := Color(0.08, 0.15, 0.20)
+		var seed := fposmod(float(count) * 0.75487766, 1.0)
+		# Door, double side jambs, lintel and overhanging entry canopy.
+		_roof_box_pass_17(st, p, c, si, Vector2(0, front), entrance_width, 0.07,
+			base + 0.15, base + 3.25, glass, seed)
+		for side in [-1.0, 1.0]:
+			_roof_box_pass_17(st, p, c, si,
+				Vector2(side * (entrance_width + 0.14), front - 0.03), 0.12, 0.13,
+				base + 0.1, base + 3.65, trim, seed)
+		_roof_box_pass_17(st, p, c, si, Vector2(0, front - 0.02),
+			entrance_width + 0.25, 0.14, base + 3.3, base + 3.65, trim, seed)
+		_roof_box_pass_17(st, p, c, si, Vector2(0, front - 0.68),
+			entrance_width + 0.75, 0.73, base + 3.65, base + 3.86, accent, seed)
+		# Repeated pilasters at storefront frontage, restrained for performance.
+		for side in [-1.0, 1.0]:
+			var offset_x := side * minf(hx * 0.75, entrance_width + 2.4)
+			_roof_box_pass_17(st, p, c, si, Vector2(offset_x, front + 0.04),
+				0.16, 0.16, base + 0.1, base + 4.1, trim, seed)
+		count += 1
+	if count == 0:
+		return
+	var mesh := st.commit()
+	if mesh == null:
+		return
+	var node := MeshInstance3D.new()
+	node.name = "Pass18_BatchedGroundFloorEntrances"
+	node.mesh = mesh
+	var material := StandardMaterial3D.new()
+	material.vertex_color_use_as_albedo = true
+	material.roughness = 0.58
+	material.metallic = 0.18
+	node.material_override = material
+	_world.add_child(node)
+
+# Batch 19–43: first integrated production slice.
+# Roof accessories are batched into a single draw surface, keeping original
+# footprint data and procedural buildings intact.
+func _build_architecture_batch_19_43() -> void:
+	if m.buildings.is_empty():
+		return
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var count := 0
+	for bd in m.buildings:
+		var hgt := _bh(bd)
+		var hx: float = bd[2]
+		var hz: float = bd[3]
+		if hgt < 75.0 or minf(hx, hz) < 6.0:
+			continue
+		var p := _loc(bd[0], bd[1])
+		var yaw: float = bd[4]
+		var c := cos(yaw)
+		var si := sin(yaw)
+		var corners: Array[Vector2] = []
+		for v in [Vector2(-1, -1), Vector2(1, -1), Vector2(1, 1), Vector2(-1, 1)]:
+			var lx: float = v.x * hx
+			var lz: float = v.y * hz
+			corners.append(Vector2(p.x + lx * c + lz * si, p.y - lx * si + lz * c))
+		var base := INF
+		for q in corners:
+			base = minf(base, _h(q.x, q.y))
+		base -= 0.6
+		var roof_y := maxf(base + 3.0, _h(p.x, p.y) + hgt)
+		var tiers := 3 if hgt >= 115.0 else 2
+		var shrink := 1.0 - float(tiers - 1) * 0.115
+		var roof_hx := hx * shrink
+		var roof_hz := hz * shrink
+		# Two banks of dark solar panels, elevated on shallow steel bases.
+		var solar := Color(0.045, 0.075, 0.115)
+		var steel := Color(0.23, 0.26, 0.29)
+		for side in [-1.0, 1.0]:
+			var off := Vector2(0, side * roof_hz * 0.66)
+			_roof_box_pass_17(st, p, c, si, off,
+				roof_hx * 0.36, roof_hz * 0.12,
+				roof_y + 0.10, roof_y + 0.18, steel, 0.0)
+			_roof_box_pass_17(st, p, c, si, off,
+				roof_hx * 0.34, roof_hz * 0.11,
+				roof_y + 0.19, roof_y + 0.27, solar, 0.0)
+		# Rooftop vent caps with small stepped necks.
+		for side in [-1.0, 1.0]:
+			var off := Vector2(side * roof_hx * 0.67, roof_hz * 0.34)
+			_roof_box_pass_17(st, p, c, si, off,
+				roof_hx * 0.09, roof_hz * 0.10,
+				roof_y, roof_y + 1.0, steel, 0.0)
+			_roof_box_pass_17(st, p, c, si, off,
+				roof_hx * 0.13, roof_hz * 0.14,
+				roof_y + 1.0, roof_y + 1.17, steel.lightened(0.15), 0.0)
+		count += 1
+		if count >= CITY_MAX_ROOF_DETAIL_BUILDINGS:
+			break
+	if count == 0:
+		return
+	var mi := MeshInstance3D.new()
+	mi.name = "Batch19_43_RooftopAccessories"
+	mi.mesh = st.commit()
+	var mat := StandardMaterial3D.new()
+	mat.vertex_color_use_as_albedo = true
+	mat.roughness = 0.65
+	mat.metallic = 0.42
+	mi.material_override = mat
+	_world.add_child(mi)
+
+# Batch 19–43, update 2: lane marking geometry follows the existing road data.
+# Main streets and highways only. Excludes elevated structures and footpaths.
+func _build_road_markings_batch_19_43() -> void:
+	if m.roads.is_empty():
+		return
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var dash_count := 0
+	var edge_count := 0
+	for r in m.roads:
+		var cls: String = r.cls
+		if cls != "main" and cls != "highway":
+			continue
+		var pts: Array = r.pts
+		if pts.size() < 2:
+			continue
+		var width := maxf(1.2, float(r.w))
+		if width < 5.0:
+			continue
+		var line: Array[Vector2] = []
+		for i in pts.size() - 1:
+			var a := _loc(pts[i][0], pts[i][1])
+			var b := _loc(pts[i + 1][0], pts[i + 1][1])
+			var steps := maxi(1, int(ceilf(a.distance_to(b) / 3.0)))
+			for k in steps:
+				line.append(a.lerp(b, float(k) / steps))
+		line.append(_loc(pts[-1][0], pts[-1][1]))
+		if dash_count + edge_count >= CITY_MAX_ROAD_PAINT_SEGMENTS:
+			break
+		var travelled := 0.0
+		for i in line.size() - 1:
+			var a := line[i]
+			var b := line[i + 1]
+			var length := a.distance_to(b)
+			if length < 0.01:
+				continue
+			var tangent := (b - a) / length
+			var normal := Vector2(-tangent.y, tangent.x)
+			# Dash every 9 m: 4 m paint and 5 m clear. Geometry is split
+			# at segment boundaries, so it follows curved roads naturally.
+			var cursor := 0.0
+			while cursor < length:
+				var phase := fposmod(travelled + cursor, 9.0)
+				var remaining := 4.0 - phase if phase < 4.0 else 9.0 - phase
+				var take := minf(length - cursor, remaining)
+				if phase < 4.0 and take > 0.04:
+					var p0 := a + tangent * cursor
+					var p1 := a + tangent * (cursor + take)
+					_road_paint_quad_pass_19_43(st, p0, p1, normal, 0.10, 0.22,
+						Color(0.85, 0.75, 0.49))
+					dash_count += 1
+				cursor += maxf(take, 0.01)
+			# Subtle outer edge lines avoid full-bright arcade-like streets.
+			for side in [-1.0, 1.0]:
+				var lateral := normal * (side * (width * 0.5 - 0.42))
+				_road_paint_quad_pass_19_43(st, a + lateral, b + lateral,
+					normal, 0.055, 0.22, Color(0.65, 0.67, 0.66))
+				edge_count += 1
+			travelled += length
+			if dash_count + edge_count >= CITY_MAX_ROAD_PAINT_SEGMENTS:
+				break
+	if dash_count == 0 and edge_count == 0:
+		return
+	var mi := MeshInstance3D.new()
+	mi.name = "Batch19_43_RoadMarkings"
+	mi.mesh = st.commit()
+	var mat := StandardMaterial3D.new()
+	mat.vertex_color_use_as_albedo = true
+	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+	mat.roughness = 0.95
+	mi.material_override = mat
+	_world.add_child(mi)
+
+func _road_paint_quad_pass_19_43(st: SurfaceTool, a: Vector2, b: Vector2,
+		normal: Vector2, half_width: float, lift: float, paint: Color) -> void:
+	var n := normal * half_width
+	var p := [a - n, a + n, b + n, b - n]
+	var v: Array[Vector3] = []
+	for point in p:
+		v.append(Vector3(point.x, _h(point.x, point.y) + lift, point.y))
+	for tri in [[0, 1, 2], [0, 2, 3]]:
+		for idx in tri:
+			st.set_color(paint)
+			st.add_vertex(v[idx])
+
+# Batch 19–43, Update 5: physically modeled facade fins for high-rise towers.
+# Geometry is batched and uses the same existing building transforms and tier profile.
+func _build_facade_fins_batch_19_43() -> void:
+	if m.buildings.is_empty():
+		return
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var count := 0
+	for bd in m.buildings:
+		var hgt := _bh(bd)
+		var hx: float = bd[2]
+		var hz: float = bd[3]
+		if hgt < 75.0 or minf(hx, hz) < 6.0:
+			continue
+		var p := _loc(bd[0], bd[1])
+		var yaw: float = bd[4]
+		var c := cos(yaw)
+		var si := sin(yaw)
+		var corners: Array[Vector2] = []
+		for v in [Vector2(-1, -1), Vector2(1, -1), Vector2(1, 1), Vector2(-1, 1)]:
+			var lx: float = v.x * hx
+			var lz: float = v.y * hz
+			corners.append(Vector2(p.x + lx * c + lz * si, p.y - lx * si + lz * c))
+		var base := INF
+		for q in corners:
+			base = minf(base, _h(q.x, q.y))
+		base -= 0.6
+		var top := maxf(base + 3.0, _h(p.x, p.y) + hgt)
+		var tiers := 3 if hgt >= 115.0 else 2
+		var color := Color(0.21, 0.25, 0.29) if count % 3 != 0 else Color(0.49, 0.51, 0.52)
+		# Recessed curtain wall effect: a few full-height exterior metal fins,
+		# aligned to the stepped tiers, not per-window mesh objects.
+		for tier in range(tiers):
+			var scale := 1.0 - float(tier) * 0.11
+			var lo := lerpf(base, top, float(tier) / float(tiers)) + 0.45
+			var hi := lerpf(base, top, float(tier + 1) / float(tiers)) - 0.45
+			if hi <= lo:
+				continue
+			var tx := hx * scale
+			var tz := hz * scale
+			for side in [-1.0, 1.0]:
+				for j in range(5):
+					var along := (float(j) / 4.0 * 2.0 - 1.0) * tx * 0.85
+					_roof_box_pass_17(st, p, c, si,
+						Vector2(along, side * (tz + 0.09)),
+						0.085, 0.13, lo, hi, color, 0.0)
+				for j in range(5):
+					var along := (float(j) / 4.0 * 2.0 - 1.0) * tz * 0.85
+					_roof_box_pass_17(st, p, c, si,
+						Vector2(side * (tx + 0.09), along),
+						0.13, 0.085, lo, hi, color, 0.0)
+		count += 1
+		if count >= CITY_MAX_FACADE_FIN_BUILDINGS:
+			break
+	if count == 0:
+		return
+	var mi := MeshInstance3D.new()
+	mi.name = "Batch19_43_ArchitecturalFacadeFins"
+	mi.mesh = st.commit()
+	var mat := StandardMaterial3D.new()
+	mat.vertex_color_use_as_albedo = true
+	mat.metallic = 0.62
+	mat.roughness = 0.38
+	mi.material_override = mat
+	_world.add_child(mi)
