@@ -699,3 +699,6 @@ html.wf-touch.wf-simple-touch {
   .mission-tracker { top: 3.5rem !important; left: 8px !important; right: auto !important; max-width: 15rem !important; opacity: 0.85; }
   .mission-tracker p { font-size: 9px; line-height: 1.25; }
 }
+
+/* face editor sliders (StartMenu Sculpt step, Appearance restyle) */
+.wf-slider { accent-color: #92e9f5; height: 1.1rem; }

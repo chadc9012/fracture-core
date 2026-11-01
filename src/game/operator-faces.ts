@@ -13,6 +13,7 @@
 import type { ClassId } from "./loadout";
 import { FACES, faceOr, type BodyType, type FaceDef } from "./operators";
 import { styleLook, type StyleLook } from "./operator-styling";
+import { morphsOr, type FaceMorphs } from "./face-morphs";
 
 export type Swatch = { id: string; label: string; hex: string };
 
@@ -76,9 +77,11 @@ export const rookieBodyUrl = (classId: ClassId, body: BodyType): string => `/mod
 /** what OperatorModel needs to draw a chosen look on a rookie body */
 export type FaceLook = { headUrl: string; skinLum: number; skin: string; plating: string; optics: string;
   /** hair and markings (operator-styling.ts); robots keep the authored look with none */
-  style: StyleLook };
+  style: StyleLook;
+  /** the face editor's sculpt (face-morphs.ts); robots have none */
+  morphs: FaceMorphs };
 /** the hair, hair colour and markings saved on a character (operator-styling.ts ids) */
-export type StyleChoice = { hair?: unknown; hairColor?: unknown; marks?: unknown };
+export type StyleChoice = { hair?: unknown; hairColor?: unknown; marks?: unknown; faceMorphs?: unknown };
 export function faceLook(classId: ClassId, body: BodyType, choice: { face?: unknown; skin?: unknown; eyes?: unknown } & StyleChoice): FaceLook {
   const f = faceDef(body, faceFor(classId, body, choice.face));
   const robot = body === "robot";
@@ -88,5 +91,6 @@ export function faceLook(classId: ClassId, body: BodyType, choice: { face?: unkn
     plating: robot ? swatchHex("plating", choice.skin) : "",
     optics: robot ? swatchHex("optics", choice.eyes) : "",
     style: robot ? styleLook({}) : styleLook(choice),
+    morphs: robot ? {} : morphsOr(choice.faceMorphs),
   };
 }

@@ -9,6 +9,7 @@ import { cinematicImported } from "@/game/cinematic-materials";
 import type { FaceLook } from "@/game/operator-faces";
 import { skinProgram, type HairMode } from "@/game/operator-skin-shader";
 import { bindHairToBone, fitSkull, hairGeometry, scalpGeometry, strandTexture, type Skull } from "@/game/hair-geometry";
+import { MORPHS, morphDisplacement, morphPositions, type FaceMorphs } from "@/game/face-morphs";
 
 const isHeadBone = (name: string) => /Head$/.test(name) && !/HeadTop/.test(name);
 const isHeadTop = (name: string) => /HeadTop_End$/.test(name);
@@ -53,6 +54,20 @@ function patchSkin(material: THREE.Material, look: FaceLook, head: THREE.Vector3
   };
   material.customProgramCacheKey = () => program.key;
   material.needsUpdate = true;
+}
+
+/** The face editor's sculpt (face-morphs.ts) applied to the head geometry in head space (`head` = the Head bone's rest position,
+ * `unit` = the rig's units per metre); normals are rebuilt so the new shape shades right. */
+function sculpt(geo: THREE.BufferGeometry, morphs: FaceMorphs, head: THREE.Vector3, unit: number) {
+  if (MORPHS.every((m) => !(morphs[m.id] ?? 0))) return;
+  const pos = geo.getAttribute("position") as THREE.BufferAttribute;
+  for (let i = 0; i < pos.count; i++) {
+    const [dx, dy, dz] = morphDisplacement(morphs, (pos.getX(i) - head.x) / unit, (pos.getY(i) - head.y) / unit, (pos.getZ(i) - head.z) / unit);
+    if (dx || dy || dz) pos.setXYZ(i, pos.getX(i) + dx * unit, pos.getY(i) + dy * unit, pos.getZ(i) + dz * unit);
+  }
+  pos.needsUpdate = true;
+  geo.computeVertexNormals();
+  geo.computeBoundingSphere();
 }
 
 /** The head texture's own skin colour (its mean over skin-like texels), as a hex, so a bare scalp matches an untinted face;
@@ -118,6 +133,7 @@ export function attachHead(object: THREE.Object3D, headScene: THREE.Object3D, lo
     const origin = restPosition(firstSrc, srcHeadIdx);
     const xyz = new Float32Array(pos.count * 3);
     for (let i = 0; i < pos.count; i++) { xyz[i * 3] = (pos.getX(i) - origin.x) / unit; xyz[i * 3 + 1] = (pos.getY(i) - origin.y) / unit; xyz[i * 3 + 2] = (pos.getZ(i) - origin.z) / unit; }
+    morphPositions(xyz, look.morphs); // the sculpted head is what the hair sits on
     skull = fitSkull(xyz);
   }
   for (const src of sources) {
@@ -126,6 +142,7 @@ export function attachHead(object: THREE.Object3D, headScene: THREE.Object3D, lo
     const geo = src.geometry.clone();
     const d = restPosition(b, bodyHead).sub(restPosition(src, srcHead));
     geo.translate(d.x, d.y, d.z);
+    sculpt(geo, look.morphs, headRest, unit);
     // the head's joints, by name, on the body's skeleton (a bone the body lacks goes to its Head)
     const remap = src.skeleton.bones.map((x) => byName.get(x.name) ?? bodyHead);
     const si = geo.getAttribute("skinIndex") as THREE.BufferAttribute;

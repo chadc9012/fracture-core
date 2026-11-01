@@ -22,6 +22,8 @@ export type PlayerCharacter = {
   hairColor?: string;
   /** skin markings worn (operator-styling.ts MARKINGS ids, at most MAX_MARKINGS) */
   marks?: readonly string[];
+  /** the face editor's sculpt (face-morphs.ts, -1…1 per morph); absent = the head as cut */
+  faceMorphs?: Readonly<Partial<Record<string, number>>>;
   displayName: string;
   appearance: Pick<AppearanceDefinition, "armor" | "cloth" | "visor" | "trim" | "callsign">;
   loadout: { weaponOrder: readonly string[] };
