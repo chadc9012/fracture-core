@@ -16,6 +16,7 @@ import type { GearItem, GearSlot } from "@/game/inventory";
 import type { PlayerProgression } from "@/game/progression";
 import type { PlayerCharacter } from "@/game/deployment/deployCharacter";
 import { xpRequiredForLevel } from "@/game/xp";
+import { ATTRIBUTES, attrLevel, attrXp } from "@/game/attributes";
 import { ENDINGS, campaignProgress } from "@/game/campaign";
 import { BLADES, FOUNDRIES, equipBlade, ownedBlades, type BladeId } from "@/game/foundries";
 import { ACCESSORIES, BEARDS, HAIR_COLORS, HEADGEAR, MARKINGS, MAX_MARKINGS, accessoryOr, beardOr, hairColorOr, hairOr, hairStylesFor, headgearOr, markingDef, markingsOr, toggleMarking, type MarkingKind } from "@/game/operator-styling";
@@ -88,6 +89,7 @@ export function CharacterScreen({ progression, onProgression, classId, subclassI
             <p className="wf-op-kicker hidden text-right md:block">Armor</p>
             <div className="flex flex-row flex-wrap gap-3 md:flex-col md:items-end">{sheet.armor.map(({ slot, item }) => <GearTile key={slot} size="lg" slot={slot} item={item} equipped={!!item} onHover={setHover} onClick={() => setPicking(slot)} />)}</div>
             <div className="mt-2"><AttributeBars attributes={sheet.attributes} align="right" /></div>
+            <TrainingCard progression={progression} />
           </section>
         </div>}
 
@@ -326,3 +328,18 @@ function BladePicker({ progression, onProgression }: { progression: PlayerProgre
   </div>;
 }
 
+
+/** the body you train (attributes.ts): Strength, Agility, Stamina and Discipline, each with its level and progress to the next */
+function TrainingCard({ progression }: { progression: PlayerProgression }) {
+  return <div className="mt-1 w-full max-w-xs self-end border border-white/15 bg-black/30 p-3" aria-label="Training">
+    <p className="wf-op-kicker">Training</p>
+    <ul className="mt-1.5 space-y-2">{ATTRIBUTES.map((a) => {
+      const l = attrLevel(attrXp(progression, a.id)), pct = l.need ? Math.round((l.into / l.need) * 100) : 100;
+      return <li key={a.id} title={a.blurb}>
+        <div className="flex items-baseline justify-between text-sm"><span className="font-semibold uppercase tracking-[0.12em] text-white/85">{a.label}</span><span className="font-mono text-[#7fe0ff]">Lv {l.level}</span></div>
+        <div className="mt-0.5 h-1.5 w-full bg-white/10" role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100} aria-label={`${a.label} progress`}><div className="h-full bg-[#7fe0ff]" style={{ width: `${pct}%` }} /></div>
+        <p className="mt-0.5 text-[10px] text-white/45">{a.blurb}{l.need ? ` · ${l.into}/${l.need} xp` : " · max"}</p>
+      </li>;
+    })}</ul>
+  </div>;
+}
