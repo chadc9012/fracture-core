@@ -59,8 +59,8 @@ export function frameFor(slotGun: WeaponId, itemName: string | undefined): Frame
   const cls = itemClass(itemName);
   if (slotGun === "AUTO") {
     if (cls === "smg") return "SMG";
-    if (cls === "sniper" || cls === "crossbow") return "SNIPER";
-    if (cls === "fusion" || cls === "special") return "FUSION";
+    if (cls === "sniper" || cls === "crossbow" || cls === "bow") return "SNIPER";
+    if (cls === "fusion" || cls === "special" || cls === "staff" || cls === "relic") return "FUSION";
     if (cls === "shotgun") return "SHOTGUN";
     return "AUTO";
   }

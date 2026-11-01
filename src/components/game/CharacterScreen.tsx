@@ -18,9 +18,9 @@ import type { PlayerCharacter } from "@/game/deployment/deployCharacter";
 import { xpRequiredForLevel } from "@/game/xp";
 import { ENDINGS, campaignProgress } from "@/game/campaign";
 import { BLADES, FOUNDRIES, equipBlade, ownedBlades, type BladeId } from "@/game/foundries";
-import { HAIR_COLORS, HAIR_STYLES, MARKINGS, MAX_MARKINGS, hairColorOr, hairOr, markingDef, markingsOr, toggleMarking, type MarkingKind } from "@/game/operator-styling";
+import { ACCESSORIES, BEARDS, HAIR_COLORS, HEADGEAR, MARKINGS, MAX_MARKINGS, accessoryOr, beardOr, hairColorOr, hairOr, hairStylesFor, headgearOr, markingDef, markingsOr, toggleMarking, type MarkingKind } from "@/game/operator-styling";
 import { RESTYLE_PRICE, restyleCharacter, restyleQuote, type RestylePatch } from "@/game/restyle";
-import { FACE_PRESETS, MORPHS, morphsEqual, morphsOr } from "@/game/face-morphs";
+import { MORPHS, morphsOr } from "@/game/face-morphs";
 import { formatNex, nexBalance } from "@/game/nex";
 
 export type CharacterTab = "CHARACTER" | "APPEARANCE" | "COLLECTIONS" | "TRIUMPHS" | "CAMPAIGN";
@@ -186,7 +186,7 @@ function AppearanceTab({ progression, classId, appearance, onProgression, onAppe
   const character = progression.character;
   if (!character) return <p className="text-white/60">Confirm your operator in the Identity Forge first; appearance is saved on the confirmed character.</p>;
   const quote = restyleQuote(character, draft);
-  const previewed = quote.price > 0 ? { ...progression, character: { ...character, ...quote.next } } : progression;
+  const previewed = quote.price > 0 || quote.wearChanged ? { ...progression, character: { ...character, ...quote.next } } : progression;
   const commitRestyle = () => {
     const r = restyleCharacter(progression, draft, Date.now());
     if ("error" in r) { setRestyleNote(r.error); return; }
@@ -217,20 +217,18 @@ function AppearanceTab({ progression, classId, appearance, onProgression, onAppe
 
 /** The barber's chair: hair, hair colour and markings after creation, paid in Nex (restyle.ts). The grid mirrors the forge's
  * Hair / Hair colour / Markings steps; the preview beside it already wears the pending look. */
-const KIND_LABEL: Record<MarkingKind, string> = { scar: "Scars & burns", tattoo: "Tattoos", stretch: "Stretch marks", resonance: "Resonance traces" };
-function RestylePanel({ character, draft, setDraft, quote, balance, note, onCommit }: { character: Pick<PlayerCharacter, "hair" | "hairColor" | "marks" | "faceMorphs">; draft: RestylePatch; setDraft: (d: RestylePatch) => void; quote: ReturnType<typeof restyleQuote>; balance: number; note: string; onCommit: () => void }) {
+const KIND_LABEL: Record<MarkingKind, string> = { scar: "Scars & burns", tattoo: "Tattoos", paint: "Face paint", freckle: "Freckles", stretch: "Stretch marks", resonance: "Resonance traces" };
+function RestylePanel({ character, draft, setDraft, quote, balance, note, onCommit }: { character: Pick<PlayerCharacter, "hair" | "hairColor" | "marks" | "faceMorphs" | "beard" | "accessory" | "headgear" | "bodyType">; draft: RestylePatch; setDraft: (d: RestylePatch) => void; quote: ReturnType<typeof restyleQuote>; balance: number; note: string; onCommit: () => void }) {
   const hair = hairOr(draft.hair ?? character.hair), hairColor = hairColorOr(draft.hairColor ?? character.hairColor), marks = markingsOr(draft.marks ?? character.marks);
   const morphs = morphsOr(draft.faceMorphs ?? character.faceMorphs);
+  const beard = beardOr(draft.beard ?? character.beard), accessory = accessoryOr(draft.accessory ?? character.accessory), headgear = headgearOr(draft.headgear ?? character.headgear);
   const setMorphs = (m: typeof morphs) => setDraft({ ...draft, faceMorphs: m });
   const built = hair !== "authored" && hair !== "bald";
   const tile = (on: boolean) => `border px-2 py-2 text-[10px] uppercase tracking-[0.12em] ${on ? "border-white bg-white/10 text-white ring-1 ring-[#92e9f5]" : "border-white/20 text-white/70 hover:border-white/60"}`;
   return <div className="space-y-4 border-b border-white/15 pb-5">
     <div className="flex items-baseline justify-between"><p className="wf-op-kicker">Restyle</p><span className="text-xs text-white/50">Hair {formatNex(RESTYLE_PRICE.hair)} · Markings {formatNex(RESTYLE_PRICE.marks)} · Face {formatNex(RESTYLE_PRICE.face)} · You have {formatNex(balance)}</span></div>
     <div>
-      <div className="flex items-baseline justify-between"><span className="font-semibold uppercase tracking-[0.16em]">Face</span><span className="text-xs text-white/50">{FACE_PRESETS.find((x) => morphsEqual(x.morphs, morphs))?.label ?? "Custom sculpt"}</span></div>
-      <div role="radiogroup" aria-label="Face preset" className="mt-2 grid grid-cols-4 gap-1">
-        {FACE_PRESETS.map((x) => { const on = morphsEqual(x.morphs, morphs); return <button key={x.id} type="button" role="radio" aria-checked={on} title={x.blurb} onClick={() => setMorphs(x.morphs)} className={tile(on)}>{x.label}</button>; })}
-      </div>
+      <div className="flex items-baseline justify-between"><span className="font-semibold uppercase tracking-[0.16em]">Face</span><span className="text-xs text-white/50">Sculpt</span></div>
       <div className="mt-2 space-y-1">
         {MORPHS.map((m) => { const v = morphs[m.id] ?? 0; return <label key={m.id} className="grid grid-cols-[7rem_1fr] items-center gap-2 text-[10px] uppercase tracking-[0.12em] text-white/80">
           <span className="flex justify-between"><span>{m.label}</span><span className="text-white/40">{v > 0 ? "+" : ""}{Math.round(v * 100)}</span></span>
@@ -243,7 +241,22 @@ function RestylePanel({ character, draft, setDraft, quote, balance, note, onComm
     <div>
       <span className="font-semibold uppercase tracking-[0.16em]">Hair</span>
       <div role="radiogroup" aria-label="Hairstyle" className="mt-2 grid grid-cols-3 gap-1 sm:grid-cols-4">
-        {HAIR_STYLES.map((h) => <button key={h.id} type="button" role="radio" aria-checked={hair === h.id} title={h.blurb} onClick={() => setDraft({ ...draft, hair: h.id })} className={tile(hair === h.id)}>{h.label}</button>)}
+        {hairStylesFor(character.bodyType).map((h) => <button key={h.id} type="button" role="radio" aria-checked={hair === h.id} title={h.blurb} onClick={() => setDraft({ ...draft, hair: h.id })} className={tile(hair === h.id)}>{h.label}</button>)}
+      </div>
+    </div>
+    <div>
+      <span className="font-semibold uppercase tracking-[0.16em]">Facial hair</span>
+      <div role="radiogroup" aria-label="Facial hair" className="mt-2 grid grid-cols-4 gap-1">
+        {BEARDS.map((b) => <button key={b.id} type="button" role="radio" aria-checked={beard === b.id} title={b.blurb} onClick={() => setDraft({ ...draft, beard: b.id })} className={tile(beard === b.id)}>{b.label}</button>)}
+      </div>
+    </div>
+    <div>
+      <div className="flex items-baseline justify-between"><span className="font-semibold uppercase tracking-[0.16em]">Wearing</span><span className="text-xs text-white/50">Free to swap</span></div>
+      <div role="radiogroup" aria-label="Accessory" className="mt-2 grid grid-cols-5 gap-1">
+        {ACCESSORIES.map((a) => <button key={a.id} type="button" role="radio" aria-checked={accessory === a.id} title={a.blurb} onClick={() => setDraft({ ...draft, accessory: a.id })} className={tile(accessory === a.id)}>{a.label}</button>)}
+      </div>
+      <div role="radiogroup" aria-label="Headgear" className="mt-1 grid grid-cols-3 gap-1 sm:grid-cols-6">
+        {HEADGEAR.map((a) => <button key={a.id} type="button" role="radio" aria-checked={headgear === a.id} title={a.blurb} onClick={() => setDraft({ ...draft, headgear: a.id })} className={tile(headgear === a.id)}>{a.label}</button>)}
       </div>
     </div>
     {built && <div>
@@ -255,7 +268,7 @@ function RestylePanel({ character, draft, setDraft, quote, balance, note, onComm
     </div>}
     <div>
       <div className="flex items-baseline justify-between"><span className="font-semibold uppercase tracking-[0.16em]">Markings</span><span className="text-xs text-white/50">{marks.length} / {MAX_MARKINGS}{marks.length ? " · " + marks.map((id) => markingDef(id)?.label).filter(Boolean).join(", ") : ""}</span></div>
-      {(["scar", "tattoo", "stretch", "resonance"] as MarkingKind[]).map((kind) => <div key={kind} className="mt-2">
+      {(["scar", "tattoo", "paint", "freckle", "stretch", "resonance"] as MarkingKind[]).map((kind) => <div key={kind} className="mt-2">
         <p className="text-[10px] uppercase tracking-[0.2em] text-white/45">{KIND_LABEL[kind]}</p>
         <div role="group" aria-label={KIND_LABEL[kind]} className="mt-1 grid grid-cols-3 gap-1 sm:grid-cols-4">
           {MARKINGS.filter((m) => m.kind === kind).map((m) => { const on = marks.includes(m.id); const full = !on && marks.length >= MAX_MARKINGS; return <button key={m.id} type="button" role="checkbox" aria-checked={on} title={m.blurb} disabled={full} onClick={() => setDraft({ ...draft, marks: toggleMarking(marks, m.id) })} className={`${tile(on)} ${full ? "opacity-40" : ""}`}>{m.label}</button>; })}
@@ -263,8 +276,8 @@ function RestylePanel({ character, draft, setDraft, quote, balance, note, onComm
       </div>)}
     </div>
     <div className="flex flex-wrap items-center gap-2">
-      <button type="button" className="wf-op-btn" disabled={quote.price <= 0 || balance < quote.price} onClick={onCommit}>{quote.price > 0 ? `Pay ${formatNex(quote.price)} & restyle` : "Restyle"}</button>
-      {quote.price > 0 && <button type="button" className="wf-op-btn !py-1 !text-xs" onClick={() => setDraft({})}>Undo</button>}
+      <button type="button" className="wf-op-btn" disabled={(quote.price <= 0 && !quote.wearChanged) || balance < quote.price} onClick={onCommit}>{quote.price > 0 ? `Pay ${formatNex(quote.price)} & restyle` : quote.wearChanged ? "Wear it" : "Restyle"}</button>
+      {(quote.price > 0 || quote.wearChanged) && <button type="button" className="wf-op-btn !py-1 !text-xs" onClick={() => setDraft({})}>Undo</button>}
       {note && <span className="text-xs text-white/70">{note}</span>}
       {quote.price > 0 && balance < quote.price && !note && <span className="text-xs text-[#f5b092]">Not enough Nex.</span>}
     </div>

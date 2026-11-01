@@ -27,6 +27,8 @@ const FAMILY_MOTIFS: Record<string, Record<SetSlot, Motif>> = {
   sentinel: { helmet: "crest", gauntlets: "spikes", chest: "core", legs: "greaves", classItem: "banner" },
   street: { helmet: "slit", gauntlets: "bands", chest: "plates", legs: "fins", classItem: "mantle" },
   exotic: { helmet: "horns", gauntlets: "spikes", chest: "core", legs: "greaves", classItem: "mantle" },
+  premium: { helmet: "crest", gauntlets: "bands", chest: "plates", legs: "greaves", classItem: "mantle" },
+  legend: { helmet: "horns", gauntlets: "spikes", chest: "core", legs: "fins", classItem: "banner" },
 };
 export const SET_MOTIFS: Readonly<Record<string, Record<SetSlot, Motif>>> = {
   ...Object.fromEntries(COLLECTIONS.map((c) => [c.id, FAMILY_MOTIFS[c.family]!])),

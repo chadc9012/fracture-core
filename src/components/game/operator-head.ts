@@ -10,6 +10,7 @@ import type { FaceLook } from "@/game/operator-faces";
 import { skinProgram, type HairMode } from "@/game/operator-skin-shader";
 import { bindHairToBone, fitSkull, hairGeometry, scalpGeometry, strandTexture, type Skull } from "@/game/hair-geometry";
 import { MORPHS, morphDisplacement, morphPositions, type FaceMorphs } from "@/game/face-morphs";
+import { accessoryPieces, headgearPieces, type GearPiece } from "@/game/gear-geometry";
 
 const isHeadBone = (name: string) => /Head$/.test(name) && !/HeadTop/.test(name);
 const isHeadTop = (name: string) => /HeadTop_End$/.test(name);
@@ -32,8 +33,8 @@ function restPosition(mesh: THREE.SkinnedMesh, index: number): THREE.Vector3 {
 function patchSkin(material: THREE.Material, look: FaceLook, head: THREE.Vector3, unit: number) {
   if (!(material instanceof THREE.MeshStandardMaterial)) return;
   const hairMode: HairMode = look.style.hair.kind === "authored" ? 0 : look.style.hair.kind === "none" ? 1 : 2;
-  if (!look.skin && hairMode === 0 && look.style.marks.length === 0) return; // nothing to change: keep the authored head as is
-  const program = skinProgram({ skinHex: look.skin, skinLum: look.skinLum, hairMode, hairHex: look.style.hairHex, marks: look.style.marks });
+  if (!look.skin && hairMode === 0 && look.style.marks.length === 0 && look.style.beard === "clean") return; // nothing to change: keep the authored head as is
+  const program = skinProgram({ skinHex: look.skin, skinLum: look.skinLum, hairMode, hairHex: look.style.hairHex, marks: look.style.marks, beard: look.style.beard });
   const tone = look.skin ? new THREE.Color(look.skin) : new THREE.Color(0, 0, 0); // THREE.Color stores linear values (colour management on)
   const hair = new THREE.Color(look.style.hairHex || "#120f0e");
   // a bald scalp with the skin left "as modelled": a warm tone at the head's own skin brightness
@@ -46,6 +47,9 @@ function patchSkin(material: THREE.Material, look: FaceLook, head: THREE.Vector3
     shader.uniforms["wfHair"] = { value: new THREE.Vector3(hair.r, hair.g, hair.b) };
     shader.uniforms["wfHairMode"] = { value: hairMode };
     shader.uniforms["wfBald"] = { value: new THREE.Vector3(bald.r, bald.g, bald.b) };
+    // facial hair takes the hair colour; with the hair "as modelled" it is near-black
+    const beardTone = new THREE.Color(look.style.hairHex || "#1a1411");
+    shader.uniforms["wfBeardTone"] = { value: new THREE.Vector3(beardTone.r, beardTone.g, beardTone.b) };
     shader.vertexShader = shader.vertexShader.replace("#include <common>", `#include <common>\n${program.vertexDecl}`)
       .replace("#include <begin_vertex>", `#include <begin_vertex>\n${program.vertexAssign}`);
     shader.fragmentShader = shader.fragmentShader.replace("#include <common>", `#include <common>\n${program.fragmentDecl}`)
@@ -185,9 +189,23 @@ export function attachHead(object: THREE.Object3D, headScene: THREE.Object3D, lo
     bindHairToBone(hairGeo, bodyHead, unit, headRest);
     const tex = strandTexture();
     const hairMat = new THREE.MeshStandardMaterial({ color: look.style.hairHex || "#120f0e", roughness: 0.72, metalness: 0, vertexColors: true, map: tex,
-      ...(look.style.hair.kind === "buzz" ? { transparent: true, opacity: 0.7 } : {}) });
+      ...(look.style.hair.id === "buzz" ? { transparent: true, opacity: 0.7 } : {}) });
     made.push(hairMat);
     skinMesh(hairGeo, hairMat, "FaceHair");
+  }
+  // accessories and headgear (gear-geometry.ts): each piece with its own material, over the hair
+  if (firstSrc) {
+    const fitted = skull ?? fitSkull([]);
+    const hairLift = look.style.hair.kind === "built" ? Math.max(0.012, ...(look.style.hair.parts ?? []).map((p) => (p.kind === "cap" ? p.thick : p.kind === "afro" ? p.lift + 0.02 : 0.012))) : look.style.hair.kind === "none" ? 0.002 : 0.012;
+    const pieces: GearPiece[] = [...accessoryPieces(look.style.accessory, fitted), ...headgearPieces(look.style.headgear, fitted, hairLift)];
+    for (const piece of pieces) {
+      const m = piece.material;
+      const mat = new THREE.MeshStandardMaterial({ color: m.color, roughness: m.roughness ?? 0.6, metalness: m.metalness ?? 0, side: THREE.DoubleSide,
+        ...(m.opacity !== undefined ? { transparent: true, opacity: m.opacity } : {}),
+        ...(m.emissive ? { emissive: m.emissive, emissiveIntensity: m.emissiveIntensity ?? 1 } : {}) });
+      made.push(mat);
+      skinMesh(bindHairToBone(piece.geometry, bodyHead, unit, headRest), mat, piece.name);
+    }
   }
   return made;
 }

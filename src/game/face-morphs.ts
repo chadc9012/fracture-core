@@ -133,16 +133,5 @@ export function morphPositions(xyz: Float32Array, morphs: FaceMorphs): void {
   }
 }
 
-/** Preset faces: a base head plus a sculpt, so each authored head yields several faces to pick from in the forge. */
-export type FacePreset = { id: string; label: string; blurb: string; morphs: FaceMorphs };
-export const FACE_PRESETS: readonly FacePreset[] = [
-  { id: "base", label: "As cut", blurb: "The head as it was modelled.", morphs: {} },
-  { id: "hawk", label: "Hawk", blurb: "Narrow, sharp cheekbones, a strong nose.", morphs: { width: -0.6, cheeks: 0.8, nose: 0.5, chin: 0.3 } },
-  { id: "bull", label: "Bull", blurb: "Wide, square-jawed, heavy brow.", morphs: { width: 0.7, jaw: 0.9, brow: 0.7, noseWidth: 0.4 } },
-  { id: "soft", label: "Soft", blurb: "Rounded, gentle features.", morphs: { cheeks: -0.6, jaw: -0.5, lips: 0.5, chin: -0.3 } },
-  { id: "gaunt", label: "Gaunt", blurb: "Hollow cheeks, long chin.", morphs: { width: -0.4, cheeks: 0.5, chin: 0.8, lips: -0.4 } },
-  { id: "broad", label: "Broad", blurb: "Wide-set eyes, broad nose, full lips.", morphs: { eyes: 0.7, noseWidth: 0.8, lips: 0.6, width: 0.3 } },
-  { id: "noble", label: "Noble", blurb: "Tall forehead, fine jaw, straight nose.", morphs: { forehead: 0.8, jaw: -0.4, nose: 0.3, eyes: -0.2 } },
-  { id: "brawler", label: "Brawler", blurb: "Heavy brow, flattened nose, thick jaw.", morphs: { brow: 1, nose: -0.4, noseWidth: 0.6, jaw: 0.6 } },
-];
-export const facePreset = (id: unknown): FacePreset => FACE_PRESETS.find((p) => p.id === id) ?? FACE_PRESETS[0]!;
+/** A sculpt of all zeros: the head as cut (the forge's "reset"). */
+export const NO_SCULPT: FaceMorphs = {};

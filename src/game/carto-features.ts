@@ -45,11 +45,12 @@ import { GRID_WALKWAYS } from "./neon-districts";
 import { ELEVATOR_PLATFORM_R, TERMINALS, thalassiaElevator } from "./travel";
 import { riverCrossings } from "./terrain";
 import { NEXUS_HUB_ROAD_R } from "./building-models";
+import { newLand } from "./new-lands";
 import { islandRadius } from "./storm-quests";
 
 export type BuildingUse = "apartment" | "house" | "store" | "mall" | "school" | "entertainment" | "office" | "civic" | "industrial" | "transport" | "garage" | "dome";
-export type CartoBuilding = { x: number; z: number; hx: number; hz: number; yaw: number; use: BuildingUse; /** 0..1 how tall, for the roof shading */ h: number; name?: string };
-export type RoadClass = "highway" | "main" | "street" | "track" | "runway" | "taxiway" | "bridge" | "boardwalk" | "rail" | "trail" | "powerline" | "race" | "skybridge";
+export type CartoBuilding = { x: number; z: number; hx: number; hz: number; yaw: number; use: BuildingUse; /** 0..1 how tall, for the roof shading */ h: number; name?: string; /** its real height in metres when known (the 3D views) */ m?: number };
+export type RoadClass = "highway" | "main" | "street" | "track" | "runway" | "taxiway" | "bridge" | "boardwalk" | "rail" | "trail" | "powerline" | "race" | "skybridge" | "ferry";
 export type CartoRoad = { cls: RoadClass; pts: [number, number][]; /** full width in metres */ width: number; name?: string; /** a line colour of its own (the maglev lines) */ color?: string };
 /** a paved area drawn under the roads (street segments, junctions, the square, the apron) */
 export type CartoPavement = { x: number; z: number; hx: number; hz: number; yaw: number; kind: "street" | "plaza" | "apron" };
@@ -138,11 +139,11 @@ function nexusBuildings(): CartoBuilding[] {
     const base: BuildingUse = d === "shipyard" ? "industrial" : d === "market" ? "store" : d === "arcology" ? "apartment" : "office";
     out.push({ x: b.x, z: b.z, hx: b.w / 2, hz: b.d / 2, yaw: b.yaw, use: useFromSites("nexus", b.x, b.z, base), h: Math.min(1, (b.top - b.base) / 120) });
   }
-  for (const t of nexusHubTowers(NEXUS)) { const m = BUILDING_MODELS[t.model]; out.push({ x: t.x, z: t.z, hx: m.w / 2, hz: m.d / 2, yaw: t.rot, use: "civic", h: Math.min(1, m.height / 60) }); }
+  for (const t of nexusHubTowers(NEXUS)) { const m = BUILDING_MODELS[t.model]; out.push({ x: t.x, z: t.z, hx: m.w / 2, hz: m.d / 2, yaw: t.rot, use: "civic", h: Math.min(1, m.height / 60), m: m.height }); }
   // the airport: terminal, control tower, hangar
   const A = AIRPORT_BUILDINGS, yaw = -Math.atan2(AIRPORT.dirZ, AIRPORT.dirX);
-  for (const [k, b] of [["Terminal", A.terminal], ["Hangar", A.hangar]] as const) { const p = airportPoint(b.along, b.across); out.push({ x: p.x, z: p.z, hx: b.length / 2, hz: b.depth / 2, yaw, use: "transport", h: b.height / 60, name: `Nexus Airport ${k}` }); }
-  { const p = airportPoint(A.tower.along, A.tower.across); out.push({ x: p.x, z: p.z, hx: A.tower.radius, hz: A.tower.radius, yaw, use: "transport", h: 0.45 }); }
+  for (const [k, b] of [["Terminal", A.terminal], ["Hangar", A.hangar]] as const) { const p = airportPoint(b.along, b.across); out.push({ x: p.x, z: p.z, hx: b.length / 2, hz: b.depth / 2, yaw, use: "transport", h: b.height / 60, m: b.height, name: `Nexus Airport ${k}` }); }
+  { const p = airportPoint(A.tower.along, A.tower.across); out.push({ x: p.x, z: p.z, hx: A.tower.radius, hz: A.tower.radius, yaw, use: "transport", h: 0.45, m: 26 }); }
   nameBuildings(out, "nexus");
   return out;
 }
@@ -159,7 +160,7 @@ function neonBuildings(): CartoBuilding[] {
     if (b) { b.use = "entertainment"; b.name = l.venue.name; }
   }
   // the casino resort on its own plot
-  out.push({ x: NEON_SITE.x + CASINO_PLOT.x, z: NEON_SITE.z + CASINO_PLOT.z, hx: CASINO_PLOT.r * 0.62, hz: CASINO_PLOT.r * 0.5, yaw: 0, use: "entertainment", h: 1, name: "Skyline Casino Resort" });
+  out.push({ x: NEON_SITE.x + CASINO_PLOT.x, z: NEON_SITE.z + CASINO_PLOT.z, hx: CASINO_PLOT.r * 0.62, hz: CASINO_PLOT.r * 0.5, yaw: 0, use: "entertainment", h: 1, m: 70, name: "Skyline Casino Resort" });
   nameBuildings(out, "neon");
   return out;
 }
@@ -170,8 +171,8 @@ function residenceBuildings(m: CartoMap): CartoBuilding[] {
     if (!inMap(m, r.x, r.z)) continue;
     const f = footprint(r);
     const flats = r.style === "apartment" || r.style === "condo" || r.style === "loft";
-    out.push({ x: r.x, z: r.z, hx: f.hx, hz: f.hz, yaw: 0, use: flats ? "apartment" : "house", h: flats ? 0.4 : 0.2 });
-    if (r.garage) { const g = garageRect(r.garage); out.push({ x: g.x, z: g.z, hx: g.hx, hz: g.hz, yaw: 0, use: "garage", h: 0.1 }); }
+    out.push({ x: r.x, z: r.z, hx: f.hx, hz: f.hz, yaw: 0, use: flats ? "apartment" : "house", h: flats ? 0.4 : 0.2, m: flats ? 14 : 7 });
+    if (r.garage) { const g = garageRect(r.garage); out.push({ x: g.x, z: g.z, hx: g.hx, hz: g.hz, yaw: 0, use: "garage", h: 0.1, m: 3 }); }
   }
   return out;
 }
@@ -198,7 +199,7 @@ function peaks(m: CartoMap, n: number): CartoPoi[] {
 /** the site set pieces SiteMarkers.tsx builds (rotated by its group's yaw), as footprints */
 function siteFootprints(s: Site): CartoBuilding[] {
   const th = (s.x * 0.013) % (Math.PI * 2), c = Math.cos(th), sn = Math.sin(th);
-  const at = (lx: number, lz: number, hx: number, hz: number, use: BuildingUse, h: number, name?: string): CartoBuilding => ({ x: s.x + lx * c + lz * sn, z: s.z - lx * sn + lz * c, hx, hz, yaw: th, use, h, ...(name ? { name } : {}) });
+  const at = (lx: number, lz: number, hx: number, hz: number, use: BuildingUse, h: number, name?: string): CartoBuilding => ({ x: s.x + lx * c + lz * sn, z: s.z - lx * sn + lz * c, hx, hz, yaw: th, use, h, m: Math.max(2.5, h * 30), ...(name ? { name } : {}) });
   switch (s.kind) {
     case "village": return Array.from({ length: 6 }, (_, i) => { const a = (i / 6) * Math.PI * 2, d = 11.5; return { ...at(Math.cos(a) * d, Math.sin(a) * d, 2.5, 2.5, "house", 0.2), yaw: th - a }; });
     case "camp": return Array.from({ length: 5 }, (_, i) => { const a = (i / 5) * Math.PI * 2; return at(Math.cos(a) * 8, Math.sin(a) * 8, 1.6, 1.6, "house", 0.08); });
@@ -227,26 +228,26 @@ function addWorldDetail(m: CartoMap, bOut: CartoBuilding[], roads: CartoRoad[], 
   // the jungle-reclaimed city on the Ancient Ruins
   const rc = reclaimedCity();
   if (rc && inMap(m, rc.cx, rc.cz)) {
-    for (const t of rc.towers) bOut.push({ x: t.x, z: t.z, hx: t.w / 2, hz: t.d / 2, yaw: t.yaw, use: "office", h: Math.min(1, t.floors / 12) });
+    for (const t of rc.towers) bOut.push({ x: t.x, z: t.z, hx: t.w / 2, hz: t.d / 2, yaw: t.yaw, use: "office", h: Math.min(1, t.floors / 12), m: t.floors * 3.4 + 2 });
     areas.push({ name: "Reclaimed City", x: rc.cx, z: rc.cz - 30, kind: "district", rank: 1 });
   }
   // the Verdant Forest: the trail from the clearing to the crash, the crashed ship
   if (TRAIL.length > 1 && TRAIL.some((p) => inMap(m, p.x, p.z))) roads.push({ cls: "trail", pts: TRAIL.map((p) => [p.x, p.z]), width: TRAIL_HALF_WIDTH * 2, name: "Forest trail" });
   if (inMap(m, HULL.x, HULL.z)) {
-    bOut.push({ x: HULL.x, z: HULL.z, hx: HULL.length / 2, hz: HULL.radius, yaw: HULL.yaw, use: "industrial", h: 0.12, name: "Crashed ship" });
+    bOut.push({ x: HULL.x, z: HULL.z, hx: HULL.length / 2, hz: HULL.radius, yaw: HULL.yaw, use: "industrial", h: 0.12, m: 3.8, name: "Crashed ship" });
     pois.push({ id: "crash-site", name: CRASH_SITE.label, cat: "wreck", x: CRASH_SITE.x, z: CRASH_SITE.z, rank: 1, blurb: "Where you woke up: the wreck of your drop ship." });
   }
   // Riverdale: the town hall, the town's own buildings, the boardwalk to the river
   if (m.id === "riverdale" || inMap(m, RIVERDALE.x, RIVERDALE.z)) {
     const H = RIVERDALE_HALL;
-    if (!bOut.some((b) => b.name === "Town Hall")) bOut.push({ x: H.x, z: H.z, hx: H.hx, hz: H.hz, yaw: H.yaw, use: "civic", h: 0.4, name: "Town Hall" });
-    for (const tb of townBoxes()) if (tb.sy > 2 && tb.sx * tb.sz > 6) bOut.push({ x: RIVERDALE.x + tb.x, z: RIVERDALE.z + tb.z, hx: tb.sx / 2, hz: tb.sz / 2, yaw: 0, use: "civic", h: Math.min(0.5, tb.sy / 30) });
+    if (!bOut.some((b) => b.name === "Town Hall")) bOut.push({ x: H.x, z: H.z, hx: H.hx, hz: H.hz, yaw: H.yaw, use: "civic", h: 0.4, m: H.height, name: "Town Hall" });
+    for (const tb of townBoxes()) if (tb.sy > 2 && tb.sx * tb.sz > 6) bOut.push({ x: RIVERDALE.x + tb.x, z: RIVERDALE.z + tb.z, hx: tb.sx / 2, hz: tb.sz / 2, yaw: 0, use: "civic", h: Math.min(0.5, tb.sy / 30), m: tb.sy });
     const bw = boardwalk();
     roads.push({ cls: "boardwalk", pts: [[RIVERDALE.x + bw.dirX * bw.start, RIVERDALE.z + bw.dirZ * bw.start], [RIVERDALE.x + bw.dirX * bw.end, RIVERDALE.z + bw.dirZ * bw.end]], width: BOARDWALK_W, name: "River boardwalk" });
   }
   // the Wastelands
   if (m.id === "wastelands") {
-    for (const r of wasteRuins()) bOut.push({ x: r.x, z: r.z, hx: r.w / 2, hz: r.d / 2, yaw: r.r, use: "industrial", h: Math.min(0.6, r.floors / 8) });
+    for (const r of wasteRuins()) bOut.push({ x: r.x, z: r.z, hx: r.w / 2, hz: r.d / 2, yaw: r.r, use: "industrial", h: Math.min(0.6, r.floors / 8), m: r.floors * 3.2 });
     const py = pylons(); if (py.length > 1) roads.push({ cls: "powerline", pts: py.map((p) => [p.x, p.z]), width: 1, name: "Power line" });
     const sp = STUNT_PARK, yaw = -Math.atan2(sp.dirZ, sp.dirX);
     pav.push({ x: sp.x, z: sp.z, hx: sp.length / 2, hz: sp.width / 2, yaw, kind: "plaza" });
@@ -269,7 +270,7 @@ function addWorldDetail(m: CartoMap, bOut: CartoBuilding[], roads: CartoRoad[], 
     const pl = solaraPillars(); if (pl.length) { const cx = pl.reduce((a, p) => a + p.x, 0) / pl.length, cz = pl.reduce((a, p) => a + p.z, 0) / pl.length; pois.push({ id: "colonnade", name: "Sun Colonnade", cat: "ruins", x: cx, z: cz, rank: 2 }); }
   }
   // Ember Peaks: the wreck field by the trench
-  if (m.id === "ember") { const wf = wreckField(); if (wf.length) { const cx = wf.reduce((a, w) => a + w.x, 0) / wf.length, cz = wf.reduce((a, w) => a + w.z, 0) / wf.length; pois.push({ id: "wreck-field", name: "Wreck Field", cat: "wreck", x: cx, z: cz, rank: 2 }); for (const w of wf) bOut.push({ x: w.x, z: w.z, hx: 2.3, hz: 1, yaw: w.yaw, use: "garage", h: 0.05 }); } }
+  if (m.id === "ember") { const wf = wreckField(); if (wf.length) { const cx = wf.reduce((a, w) => a + w.x, 0) / wf.length, cz = wf.reduce((a, w) => a + w.z, 0) / wf.length; pois.push({ id: "wreck-field", name: "Wreck Field", cat: "wreck", x: cx, z: cz, rank: 2 }); for (const w of wf) bOut.push({ x: w.x, z: w.z, hx: 2.3, hz: 1, yaw: w.yaw, use: "garage", h: 0.05, m: 1.6 }); } }
   // hazard zones (circles round their landmarks)
   for (const hz of HAZARD_ZONES) {
     const l = LANDMARKS.find((x) => x.id === hz.landmarkId); if (!l || !inMap(m, l.x, l.z)) continue;
@@ -295,7 +296,7 @@ function addWorldDetail(m: CartoMap, bOut: CartoBuilding[], roads: CartoRoad[], 
   // Neon City: the spire, the checkpoint, the elevated deck and its skybridges, the maglev lines and stations, the grid walkways
   if (m.id === "neon-city") {
     const c = NEON_SITE;
-    bOut.push({ x: c.x + SPIRE.x, z: c.z + SPIRE.z, hx: SPIRE.base, hz: SPIRE.base, yaw: 0, use: "office", h: 1, name: "Aegis Spire" });
+    bOut.push({ x: c.x + SPIRE.x, z: c.z + SPIRE.z, hx: SPIRE.base, hz: SPIRE.base, yaw: 0, use: "office", h: 1, m: SPIRE.height, name: "Aegis Spire" });
     pav.push({ x: c.x + CHECKPOINT.x, z: c.z + CHECKPOINT.z, hx: CHECKPOINT.width / 2, hz: 2, yaw: 0, kind: "plaza" });
     const hx = DECK.halfX, hz = DECK.halfZ;
     roads.push({ cls: "skybridge", pts: [[c.x - hx, c.z - hz], [c.x + hx, c.z - hz], [c.x + hx, c.z + hz], [c.x - hx, c.z + hz], [c.x - hx, c.z - hz]], width: DECK.width, name: "Sky Deck" });
@@ -324,6 +325,8 @@ const cache = new Map<string, CartoFeatures>();
 export function cartoFeatures(m: CartoMap): CartoFeatures {
   const hit = cache.get(m.id);
   if (hit) return hit;
+  const land = newLand(m.id);
+  if (land) { const f = land.features(); cache.set(m.id, f); return f; }
   const buildingsOut: CartoBuilding[] = [], roads: CartoRoad[] = [], pavements: CartoPavement[] = [], rings: CartoFeatures["rings"] = [], pois: CartoPoi[] = [], areas: CartoArea[] = [];
   // buildings
   if (m.id === "nexus") { buildingsOut.push(...nexusBuildings(), ...residenceBuildings(m)); pavements.push(...streetPavements("nexus")); }
@@ -333,7 +336,7 @@ export function cartoFeatures(m: CartoMap): CartoFeatures {
     const len = RIVERDALE.r * 2 - 4;
     for (const k of [-13, 13]) { pavements.push({ x: RIVERDALE.x + k, z: RIVERDALE.z, hx: 3, hz: len / 2, yaw: 0, kind: "street" }, { x: RIVERDALE.x, z: RIVERDALE.z + k, hx: len / 2, hz: 3, yaw: 0, kind: "street" }); }
     pavements.push({ x: RIVERDALE.x, z: RIVERDALE.z, hx: RIVERDALE.square, hz: RIVERDALE.square, yaw: 0, kind: "plaza" });
-    buildingsOut.push({ x: RIVERDALE.x, z: RIVERDALE.z, hx: 2.8, hz: 2.8, yaw: 0, use: "civic", h: 0.4, name: "Clock Tower" });
+    buildingsOut.push({ x: RIVERDALE.x, z: RIVERDALE.z, hx: 2.8, hz: 2.8, yaw: 0, use: "civic", h: 0.4, m: 11, name: "Clock Tower" });
     pois.push({ id: "riverdale-square", name: "Town Square", cat: "park", x: RIVERDALE.x, z: RIVERDALE.z, rank: 1 });
   }
   if (m.id === "thalassia") {
@@ -342,7 +345,7 @@ export function cartoFeatures(m: CartoMap): CartoFeatures {
   }
   // shops everywhere get a storefront
   for (const s of REGIONAL_SHOPS) if (inMap(m, s.x, s.z)) {
-    if (!buildingsOut.some((b) => Math.abs(s.x - b.x) < b.hx && Math.abs(s.z - b.z) < b.hz)) buildingsOut.push({ x: s.x, z: s.z, hx: 2.6, hz: 2.6, yaw: 0, use: "store", h: 0.12 });
+    if (!buildingsOut.some((b) => Math.abs(s.x - b.x) < b.hx && Math.abs(s.z - b.z) < b.hz)) buildingsOut.push({ x: s.x, z: s.z, hx: 2.6, hz: 2.6, yaw: 0, use: "store", h: 0.12, m: 5 });
     pois.push({ id: s.id, name: s.name, cat: "store", x: s.x, z: s.z, rank: 2, blurb: s.blurb });
   }
   // roads: the supply roads, the bridges, the runway, the boardwalks
@@ -369,10 +372,10 @@ export function cartoFeatures(m: CartoMap): CartoFeatures {
     const STORM_CAT: Record<string, PoiCat> = { landing: "dock", ruins: "ruins", outpost: "outpost", temple: "temple", nest: "camp", "storm-core": "spire" };
     for (const site of STORM_ISLAND_SITES) {
       const w = stormSiteWorld(site), r = islandRadius(site);
-      if (site.kind === "landing") buildingsOut.push({ x: w.x + r * 0.9, z: w.z, hx: 9, hz: 2.5, yaw: 0, use: "transport", h: 0.05, name: "Airship pier" });
-      if (site.kind === "temple") { buildingsOut.push({ x: w.x, z: w.z, hx: 15, hz: 11, yaw: 0, use: "civic", h: 0.5, name: site.name }); }
-      if (site.kind === "ruins") for (const v of [-1, 0, 1]) for (const sd of [-1, 1]) buildingsOut.push({ x: w.x + v * 9, z: w.z + sd * 6, hx: 1.8, hz: 1.8, yaw: 0, use: "civic", h: 0.15 });
-      if (site.kind === "outpost") buildingsOut.push({ x: w.x, z: w.z, hx: 3.5, hz: 3.5, yaw: 0, use: "industrial", h: 0.6, name: "Storm relay" });
+      if (site.kind === "landing") buildingsOut.push({ x: w.x + r * 0.9, z: w.z, hx: 9, hz: 2.5, yaw: 0, use: "transport", h: 0.05, m: 1, name: "Airship pier" });
+      if (site.kind === "temple") { buildingsOut.push({ x: w.x, z: w.z, hx: 15, hz: 11, yaw: 0, use: "civic", h: 0.5, m: 16, name: site.name }); }
+      if (site.kind === "ruins") for (const v of [-1, 0, 1]) for (const sd of [-1, 1]) buildingsOut.push({ x: w.x + v * 9, z: w.z + sd * 6, hx: 1.8, hz: 1.8, yaw: 0, use: "civic", h: 0.15, m: 5 });
+      if (site.kind === "outpost") buildingsOut.push({ x: w.x, z: w.z, hx: 3.5, hz: 3.5, yaw: 0, use: "industrial", h: 0.6, m: 28, name: "Storm relay" });
       if (site.kind === "nest") rings.push({ x: w.x, z: w.z, r: 10, kind: "ring" });
       if (site.kind === "storm-core") rings.push({ x: w.x, z: w.z, r: 11, kind: "dome" });
       pois.push({ id: `storm-${site.id}`, name: `${site.name} · ${Math.round(w.y)} m up`, cat: STORM_CAT[site.kind] ?? "landmark", x: w.x, z: w.z + (site.kind === "landing" ? 0 : r * 0.2), rank: site.kind === "landing" || site.kind === "storm-core" ? 0 : 1, blurb: site.description });

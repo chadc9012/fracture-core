@@ -3,8 +3,9 @@
 import { DEFAULT_SUBCLASS, SUBCLASSES, appearanceById, operatorByClass, type AppearanceDefinition, type ClassId, type SubclassId } from "../loadout";
 import { DEFAULT_BODY_TYPE, bodyTypeOr, type BodyType } from "../operators";
 import { faceFor, swatchOr, toneKind } from "../operator-faces";
-import { hairColorOr, hairOr, markingsOr } from "../operator-styling";
+import { accessoryOr, beardOr, hairColorOr, hairOr, headgearOr, markingsOr } from "../operator-styling";
 import { morphsEqual, morphsOr, type FaceMorphs } from "../face-morphs";
+import { facesFor } from "../face-catalog";
 import { loadoutAttributes, type Attributes } from "../armor-attributes";
 import { SET_SLOTS, type SetSlot } from "../armor-sets";
 import type { PlayerProgression } from "../progression";
@@ -15,7 +16,9 @@ export type ForgeState = { classId: ClassId; subclassId: SubclassId; appearance:
   /** skin tone (humans) or plating (robots), operator-faces.ts swatch id */ skin: string;
   /** a robot's optics colour */ eyes: string;
   /** hairstyle, hair colour and markings (operator-styling.ts ids) */ hair: string; hairColor: string; marks: string[];
-  /** the face editor's sculpt (face-morphs.ts) */ faceMorphs: FaceMorphs };
+  /** the face editor's sculpt (face-morphs.ts) */ faceMorphs: FaceMorphs;
+  /** facial hair, accessory and headgear (operator-styling.ts ids), and the named face started from (face-catalog.ts id, "" for none) */
+  beard: string; accessory: string; headgear: string; faceName: string };
 
 /** A new Operator's look: their rookie armor (rookie-armor.ts, Standard variant) with their callsign pre-filled. */
 export function defaultAppearance(classId: ClassId): AppearanceDefinition {
@@ -35,10 +38,14 @@ export function forgeInitial(saved: Partial<PlayerCharacter> | null | undefined)
   const a = saved?.appearance;
   const callsign = typeof a?.callsign === "string" && a.callsign.trim() ? a.callsign.trim().slice(0, 16) : base.callsign;
   const bodyType = saved?.bodyType === undefined ? DEFAULT_BODY_TYPE : bodyTypeOr(saved.bodyType);
+  const face = faceFor(classId, bodyType, saved?.face);
+  // a character made before the named faces starts on the named face built on its head (face-catalog.ts)
+  const faceName = typeof saved?.faceName === "string" ? saved.faceName : facesFor(bodyType).find((x) => x.head === face)?.id ?? "";
   return {
-    classId, subclassId: sub, bodyType, face: faceFor(classId, bodyType, saved?.face),
+    classId, subclassId: sub, bodyType, face,
     skin: swatchOr(toneKind(bodyType), saved?.skin), eyes: swatchOr("optics", saved?.eyes),
     hair: hairOr(saved?.hair), hairColor: hairColorOr(saved?.hairColor), marks: markingsOr(saved?.marks), faceMorphs: morphsOr(saved?.faceMorphs),
+    beard: beardOr(saved?.beard), accessory: accessoryOr(saved?.accessory), headgear: headgearOr(saved?.headgear), faceName,
     appearance: { ...base, armor: hex(a?.armor, base.armor), cloth: hex(a?.cloth, base.cloth), visor: hex(a?.visor, base.visor), trim: hex(a?.trim, base.trim), callsign },
   };
 }
@@ -47,6 +54,7 @@ export function forgeInitial(saved: Partial<PlayerCharacter> | null | undefined)
 export function forgeDirty(a: ForgeState, b: ForgeState): boolean {
   return a.classId !== b.classId || a.subclassId !== b.subclassId || a.bodyType !== b.bodyType || a.face !== b.face || a.skin !== b.skin || a.eyes !== b.eyes
     || a.hair !== b.hair || a.hairColor !== b.hairColor || a.marks.join() !== b.marks.join() || !morphsEqual(a.faceMorphs, b.faceMorphs)
+    || a.beard !== b.beard || a.accessory !== b.accessory || a.headgear !== b.headgear
     || a.appearance.armor !== b.appearance.armor || a.appearance.cloth !== b.appearance.cloth
     || a.appearance.visor !== b.appearance.visor || a.appearance.trim !== b.appearance.trim || a.appearance.callsign !== b.appearance.callsign;
 }

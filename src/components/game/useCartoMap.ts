@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { cartoBounds, cartoFingerprint, cartoMap, createCartoJob, satelliteFromData, type CartoBounds } from "@/game/carto-maps";
+import { cartoBounds, cartoFingerprint, cartoMap, cartoSource, createCartoJob, satelliteFromData, type CartoBounds } from "@/game/carto-maps";
 
 /** The land-cover image of one street map, in the map look or the satellite look: the baked one when it was painted from this
  * exact world (scripts/bake-carto-maps.ts), else painted here a few milliseconds per frame (a quick coarse pass first) and cached
@@ -63,7 +63,8 @@ function paint(id: string, style: CartoStyle) {
     if (style === "satellite" && done) { satellite(key, done, bounds); return; }
     // a fast coarse pass, then the sharp one
     const sizes = [160, 768];
-    let k = 0, job = createCartoJob(sizes[0]!, bounds);
+    const src = cartoSource(m);
+    let k = 0, job = createCartoJob(sizes[0]!, bounds, src);
     const out = (j: typeof job) => (style === "map" ? toUrl(j.pixels, j.size) : toUrl(satelliteFromData(j.data, j.size, bounds), j.size, "image/jpeg"));
     const tick = () => {
       try {
@@ -71,7 +72,7 @@ function paint(id: string, style: CartoStyle) {
           const url = out(job);
           if (k === sizes.length - 1) { paintedData.set(id, { data: job.data, size: job.size }); running.delete(key); emit(key, { url, full: true, progress: 1 }); return; }
           emit(key, { url, full: false, progress: 0.1 });
-          job = createCartoJob(sizes[++k]!, bounds);
+          job = createCartoJob(sizes[++k]!, bounds, src);
         } else if (k > 0) emit(key, { url: states.get(key)?.url ?? null, full: false, progress: 0.1 + job.progress() * 0.9 });
         window.requestAnimationFrame(tick);
       } catch (error) { running.delete(key); console.error("[carto] map image failed", error); }

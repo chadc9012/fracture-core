@@ -22,6 +22,12 @@ export type PlayerCharacter = {
   hairColor?: string;
   /** skin markings worn (operator-styling.ts MARKINGS ids, at most MAX_MARKINGS) */
   marks?: readonly string[];
+  /** facial hair (operator-styling.ts BEARDS id), a face/head accessory and headgear (ACCESSORIES / HEADGEAR ids) */
+  beard?: string;
+  accessory?: string;
+  headgear?: string;
+  /** the named face this look started from (face-catalog.ts id), for the forge and roster labels */
+  faceName?: string;
   /** the face editor's sculpt (face-morphs.ts, -1…1 per morph); absent = the head as cut */
   faceMorphs?: Readonly<Partial<Record<string, number>>>;
   displayName: string;
