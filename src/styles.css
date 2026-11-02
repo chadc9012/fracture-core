@@ -708,6 +708,8 @@ html.wf-clean-hud {
   .consumable-hud, .dash-hud, .wf-rail-right, .quest-hud, .wf-tracked, .wf-env-line, .wf-nova-quote, .living-tracker,
   [aria-label="Operator readout"] { display: none !important; }
   .hud-alerts > :nth-child(n+2) { display: none !important; }
+  /* NOVA's subtitle sat on top of the "[Y] Trade" style prompts at the bottom centre: lift it clear of them */
+  .voice-subtitle { bottom: 8.5rem !important; }
 }
 
 /* face editor sliders (StartMenu Sculpt step, Appearance restyle) */

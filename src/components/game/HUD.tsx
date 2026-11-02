@@ -16,7 +16,7 @@ import { useVoiceLine } from "./useVoiceLine";
 import { getCombatLevel } from "@/game/audio";
 import { contextualAbilities, hudMode, hudVisibility, superJustReady, superMeter, type SuperMeter } from "@/game/operator-presentation";
 
-export function HUD({ hud, tutorialActive = false, civilian = false, onMenu, onAtlas, level }: { hud: HudState; /** the prologue (story-start.ts): an ordinary resident, so no hull, ammo, weapons, crosshair or stratagems */ civilian?: boolean; /** saved level + XP into the level; the bar only ever reads progression, never invents numbers */ level?: { level: number; xp: number }; tutorialActive?: boolean; onMenu: () => void; onStrategy: () => void; onGarage: () => void; onAnalyze: () => void; onInventory: () => void; onAtlas: () => void; onOperations: (view: "DUNGEONS" | "ARSENAL" | "ABILITIES") => void }) {
+export function HUD({ hud, tutorialActive = false, civilian = false, clean = false, onMenu, onAtlas, level }: { hud: HudState; /** Clean HUD (settings.cleanHud): the compass shows the mission, your waypoint and bosses, plus the two nearest other markers */ clean?: boolean; /** the prologue (story-start.ts): an ordinary resident, so no hull, ammo, weapons, crosshair or stratagems */ civilian?: boolean; /** saved level + XP into the level; the bar only ever reads progression, never invents numbers */ level?: { level: number; xp: number }; tutorialActive?: boolean; onMenu: () => void; onStrategy: () => void; onGarage: () => void; onAnalyze: () => void; onInventory: () => void; onAtlas: () => void; onOperations: (view: "DUNGEONS" | "ARSENAL" | "ABILITIES") => void }) {
   const vis = hudVisibility(hudMode(Boolean(hud.bossHud), getCombatLevel()));
   const ammo = hud.ammo?.[hud.weaponSlot - 1];
   const melee = ammo?.magSize === 0;
@@ -32,7 +32,7 @@ export function HUD({ hud, tutorialActive = false, civilian = false, onMenu, onA
         {hud.zoneTier !== "STABLE" && <p className="text-destructive">{hud.zoneTier}</p>}
       </div>
     )}
-    {!tutorialActive && <><Compass markers={hud.markers ?? []} yaw={hud.yaw ?? 0} threats={hud.threats ?? []} />{vis.missionTracker && <TrackedObjectives markers={hud.markers ?? []} />}</>}
+    {!tutorialActive && <><Compass markers={clean ? cleanMarkers(hud.markers ?? []) : hud.markers ?? []} yaw={hud.yaw ?? 0} threats={hud.threats ?? []} />{vis.missionTracker && <TrackedObjectives markers={hud.markers ?? []} />}</>}
     <div className="hud-alerts absolute left-1/2 top-4 w-[min(26rem,calc(100%-7rem))] -translate-x-1/2 space-y-1 text-center text-[10px]">{hud.alerts.slice(0, 2).map((alert, index) => <p key={`${alert}-${index}`} className="hud-panel border-x border-primary/40 bg-background/45 px-3 py-1 text-foreground/90" style={{ opacity: 1 - index * 0.28 }}>{alert}</p>)}</div>
     {!tutorialActive && (hud.environment || hud.hazardWarning) && <div className="pointer-events-none absolute left-1/2 top-24 -translate-x-1/2 text-center font-mono text-[10px] uppercase tracking-[0.18em]">
       {hud.environment && <p className="wf-env-line text-muted-foreground">{hud.environment}</p>}
@@ -181,4 +181,12 @@ function OperatorReadout({ hud }: { hud: HudState }) {
       {chips.length > 0 && <div className="mt-1 flex gap-2 text-[8px] uppercase tracking-wider">{chips.map((a) => <span key={a.slot} data-ability-state={a.state} className={a.state === "ACTIVE" ? "text-foreground" : "text-muted-foreground"}>{a.key} {a.name} · {a.state === "ACTIVE" ? "active" : `${a.cooldown.toFixed(1)}s`}</span>)}</div>}
     </div>
   );
+}
+
+/** Clean HUD compass (owner Nov 1): what you are doing (mission, your waypoint, bosses) always; of everything else (vendors,
+ * resources, ruins, landmarks, travel) only the two nearest, so a plaza full of shops is not a row of nine icons. */
+function cleanMarkers<M extends { kind: string; dist: number }>(markers: readonly M[]): M[] {
+  const keep = (m: M) => m.kind === "MISSION" || m.kind === "WAYPOINT" || m.kind === "BOSS";
+  const rest = markers.filter((m) => !keep(m)).sort((a, b) => a.dist - b.dist).slice(0, 2);
+  return markers.filter((m) => keep(m) || rest.includes(m));
 }
