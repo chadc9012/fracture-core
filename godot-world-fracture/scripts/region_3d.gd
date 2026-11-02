@@ -152,7 +152,13 @@ func show_region(id: String, at: Variant = null, start_mode: Mode = Mode.CITY) -
 	_oz = b.z0 + _span / 2.0
 	_water = float(m.get("water", -2.5))
 	_load_heights()
+	if id == "thalassia":
+		_flatten_city_dome()
 	_style = _style_for(id)
+	if _style.under:
+		# under the sea (Thalassia): no surface over the city, so "water level" sits below the seabed and everything that
+		# clamps to it (street view, docks, labels) stands on the floor instead of 30-odd metres up at the surface
+		_water = float(m.get("heights", {}).get("lo", _water)) - 6.0
 	for c in _vp.get_children():
 		c.queue_free()
 	_world = Node3D.new()
@@ -173,6 +179,8 @@ func show_region(id: String, at: Variant = null, start_mode: Mode = Mode.CITY) -
 	_build_rings()
 	_build_trees()
 	_build_floating()
+	if id == "thalassia":
+		preload("res://scripts/thalassia_city.gd").new().build(_world, m, _loc, _h)
 	_build_lamps()
 	_build_labels()
 	_cam = Camera3D.new()
@@ -214,6 +222,26 @@ func _load_heights() -> void:
 	for k in _hn * _hn:
 		var q := (bytes[k * 3] << 8) | bytes[k * 3 + 1]
 		_heights[k] = lo + (hi - lo) * q / 65535.0
+
+## Thalassia's city stands on one level deck: lift the bumpy seabed under its big dome to the dome's highest point, so the
+## ground, buildings, labels and Street View all stand on the deck the city is built on (thalassia_city.gd)
+func _flatten_city_dome() -> void:
+	for r in m.get("rings", []):
+		if r[3] != "dome" or float(r[2]) < 40.0:
+			continue
+		var c := _loc(r[0], r[1])
+		var rad := float(r[2]) + 2.0
+		var top := -INF
+		var cells: Array[int] = []
+		for j in _hn:
+			for i in _hn:
+				var lx := (float(i) / (_hn - 1) - 0.5) * _span
+				var lz := (float(j) / (_hn - 1) - 0.5) * _span
+				if Vector2(lx, lz).distance_to(c) <= rad:
+					cells.append(j * _hn + i)
+					top = maxf(top, _heights[j * _hn + i])
+		for k in cells:
+			_heights[k] = top + 0.6
 
 ## ground height at a local point (metres from the region's centre), bilinear on the grid
 func _h(lx: float, lz: float) -> float:
@@ -262,7 +290,8 @@ func _style_for(id: String) -> Dictionary:
 		"shattered-reefs":
 			s.merge({"top": "#2b78c8", "hor": "#cfe6f0", "fog": "#b6d6e4", "fog_d": 0.0007, "sun": 1.4, "sun_col": "#fff6e4", "sun_el": 55.0, "amb": 0.65, "sat": 0.95}, true)
 		"thalassia":
-			s.merge({"fog": "#06465e", "fog_d": 0.011, "sun": 0.55, "sun_col": "#a8e6ff", "sun_el": 70.0, "amb": 0.8, "planet": false, "under": true, "night": 0.6}, true)
+			# the city inside the dome carries its own lights: a dimmer, bluer deep so they read (it was blown out to white)
+			s.merge({"fog": "#06465e", "fog_d": 0.009, "sun": 0.45, "sun_col": "#a8e6ff", "sun_el": 70.0, "amb": 0.35, "planet": false, "under": true, "night": 0.6, "exp": 0.8}, true)
 	return s
 
 func _build_env() -> void:
@@ -668,13 +697,15 @@ func _build_rings() -> void:
 				s.height = rad
 				s.is_hemisphere = true
 				mi.mesh = s
-				mat.albedo_color = Color(0.55, 0.85, 0.95, 0.3)
+				# Thalassia's dome has a city inside it now: keep the glass faint so the city shows through
+				var city_inside := map_id == "thalassia" and rad > 40.0
+				mat.albedo_color = Color(0.55, 0.85, 0.95, 0.1 if city_inside else 0.3)
 				mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 				mat.metallic = 0.4
 				mat.roughness = 0.05
 				mat.emission_enabled = true
 				mat.emission = Color(0.3, 0.7, 1.0)
-				mat.emission_energy_multiplier = 0.3 + _style.night
+				mat.emission_energy_multiplier = 0.12 if city_inside else 0.3 + _style.night
 			"hazard":
 				var c := CylinderMesh.new()
 				c.top_radius = rad
