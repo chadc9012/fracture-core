@@ -87,8 +87,8 @@ AWFGpsNavigator::AWFGpsNavigator()
 AWFGpsNavigator* AWFGpsNavigator::Find(const UWorld* World)
 {
 	if (!World) return nullptr;
-	for (TActorIterator<AWFGpsNavigator> It(const_cast<UWorld*>(World)); It; ++It) return *It;
-	return nullptr;
+	TActorIterator<AWFGpsNavigator> It(const_cast<UWorld*>(World)); // the first one; there is only ever one
+	return It ? *It : nullptr;
 }
 
 bool AWFGpsNavigator::Build(double InGroundZ)
