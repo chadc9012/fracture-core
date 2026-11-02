@@ -6,11 +6,13 @@ const PlanetView := preload("res://scripts/planet_view.gd")
 const RegionMap := preload("res://scripts/region_map.gd")
 const Region3D := preload("res://scripts/region_3d.gd")
 const GarageView := preload("res://scripts/garage/garage_view.gd")
+const DriveView := preload("res://scripts/driving/drive_view.gd")
 
 var planet_view: Control
 var region_map: Control
 var region_3d: Control
 var garage: Control
+var driving: Control
 
 func _ready() -> void:
 	var bg := ColorRect.new()
@@ -28,6 +30,12 @@ func _ready() -> void:
 	gb.custom_minimum_size = Vector2(130, 52)
 	gb.pressed.connect(_open_garage)
 	add_child(gb)
+	var drive_button := Data.button("DRIVE", true)
+	drive_button.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
+	drive_button.position = Vector2(-290, -70)
+	drive_button.custom_minimum_size = Vector2(130, 52)
+	drive_button.pressed.connect(_open_drive)
+	add_child(drive_button)
 	get_tree().set_auto_accept_quit(false)
 	get_tree().set_quit_on_go_back(false)
 	# a capture hook for checking the look off-device: --shot <png> [map:<id>] [sat]
@@ -65,6 +73,21 @@ func _close_3d() -> void:
 	if region_map:
 		region_map.visible = true
 
+func _open_drive() -> void:
+	if driving or garage:
+		return
+	driving = DriveView.new()
+	driving.set_anchors_preset(Control.PRESET_FULL_RECT)
+	driving.closed.connect(_close_drive)
+	add_child(driving)
+	planet_view.set_process(false)
+
+func _close_drive() -> void:
+	if driving:
+		driving.queue_free()
+		driving = null
+	planet_view.set_process(true)
+
 func _open_garage() -> void:
 	if garage:
 		return
@@ -89,7 +112,11 @@ func _close_map() -> void:
 
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_WM_GO_BACK_REQUEST or what == NOTIFICATION_WM_CLOSE_REQUEST:
-		if garage:
+		if driving and driving.garage_overlay != null:
+			driving._close_city_garage()
+		elif driving:
+			_close_drive()
+		elif garage:
 			_close_garage()
 		elif region_3d:
 			_close_3d()
@@ -115,6 +142,22 @@ func _shoot(path: String, opts: Array) -> void:
 			if g.size() > 3:
 				garage.state.rep = { "nexus-customs": 3, "neon-performance": 3, "ironworks": 3, "fracture-dynamics": 3 }
 				garage.pick(Array(g[3].split(",")))
+		# drive[:vehicle index[:throttle]]  e.g. drive:0:1 drives the first car flat out
+		if String(o).begins_with("drive"):
+			var d := String(o).split(":")
+			_open_drive()
+			await get_tree().process_frame
+			if d.size() > 1:
+				driving._select_index(int(d[1]))
+			if d.size() > 2:
+				driving._touch_changed(float(d[2]), float(d[3]) if d.size() > 3 else 0.0, 0.0)
+			# drive:i:0:0:garage parks at Nexus Customs and opens it over the street
+			if d.size() > 4 and d[4] == "garage":
+				driving.vehicle.position = Vector3(-32, 0, -66)
+				driving.vehicle.rotation.y = 0.0
+				for k in 20:
+					await get_tree().process_frame
+				driving._open_city_garage()
 		if String(o) == "sat" and region_map:
 			region_map.set_satellite(true)
 		if String(o).begins_with("zoom:") and region_map:

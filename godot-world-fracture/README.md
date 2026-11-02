@@ -18,10 +18,20 @@ rates, gated by your standing there, and checked out all or nothing; repairs, cr
 `user://garage.json`. It merges the design of the owner's Unity garage packages into one system (catalog, order, state, kit,
 view). Rules are tested headless: `godot --headless --path godot-world-fracture --script res://tests/garage_test.gd`.
 
+**Driving** (`scripts/driving/`, the DRIVE button on the globe): the garage's six cars in a Nexus City practice district,
+with keyboard, gamepad and on-screen controls, a chase camera, a boulevard and cross avenue (lane lines, zebra crossings,
+kerbs, sidewalks, street lights, buildings), a four-checkpoint lap with best lap per car (`user://drive_records.json`), and
+total distance per car (`user://drive_session.json`). What you fitted in the garage changes how the car drives, and damage
+slows it. Park on the cyan Nexus Customs platform to open the garage over the street; the car comes back out with the new
+build. Built from the owner's driving packages (stages 284-308 and 334-358); stages 309-333 never arrived, so their files
+(road, boundaries, course, lap progress, lap records, session store) were written here to match. Tests:
+`--script res://tests/driving/<test>.gd`. This is a practice district, not the full Nexus City map, and has no traffic AI or
+collisions with the buildings.
+
 ```sh
 bun scripts/export-godot-data.ts          # from the repo root: writes godot-world-fracture/generated/ (gitignored)
 godot --path godot-world-fracture         # run it
-# a screenshot without a window (xvfb): --shot <png> [garage[:shop[:car[:item,kit-racing,...]]]] [select:<continent>] [map:<id>] [sat] [zoom:<factor>] [3d] [street:<place id>] [frames:<n>]
+# a screenshot without a window (xvfb): --shot <png> [garage[:shop[:car[:item,kit-racing,...]]]] [drive[:car[:throttle[:steer[:garage]]]]] [select:<continent>] [map:<id>] [sat] [zoom:<factor>] [3d] [street:<place id>] [frames:<n>]
 xvfb-run godot --path godot-world-fracture --rendering-driver opengl3 --resolution 540x1170 -- --shot out.png map:nexus
 ```
 
