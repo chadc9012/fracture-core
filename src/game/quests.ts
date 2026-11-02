@@ -18,12 +18,15 @@
  *   - per-objective progress     -> progression.questObjectiveProgress
  * That also means it rides the existing cloud-save union/max merge for free (see cloud-save.ts).
  *
- * Two of this chain's worlds — Neon City and Thalassia — don't have their own physical region
- * yet (world.ts's REGIONS only has the older single "nexus" hub); until they do, their quests
- * are keyed to the real systems already built for them this session (the Neon heat/chase meter
- * in heat.ts, the Nexus stealth/hack meter in stealth.ts, and the underwater diving state in
- * underwater.ts) rather than a place on the map — which also happens to match the lore's own
- * framing of that progression as "descending through reality layers," not walking to a new zone.
+ * Neon City and Thalassia are physical places now (world.ts NEON_SITE, thalassia-site.ts), but their quests stay keyed to
+ * the systems they were written against (the Neon heat/chase meter in heat.ts, the Nexus stealth/hack meter in stealth.ts,
+ * the underwater diving state in underwater.ts) rather than ENTER_WORLD: changing an objective's type or order would misread
+ * saves already part-way through them. The lore frames that progression as "descending through reality layers" anyway.
+ *
+ * The story opens in Apartment 12-04 (story-start.ts: the morning, the evacuation, the Breach in the street, recorded as
+ * "mission-01"). This chain starts after it, so its first lines pick up from that night, not from a forest awakening; the
+ * Verdant Forest calibration stays only for saves already part-way through it. Ids, worlds, objectives and rewards are
+ * unchanged so every save keeps its place.
  */
 
 import type { MaterialId } from "./inventory";
@@ -77,13 +80,13 @@ export const FIRST_QUEST_ID = "fd-01";
 export const QUESTS: Record<string, Quest> = {
   "fd-01": {
     id: "fd-01", title: "Awakening", world: "veridan",
-    line: "You wake in a fractured forest with no memory of arriving — only a signal, pulling.",
+    line: "The night the sky broke, you walked out of 12-04 with powers you never asked for — and a signal, pulling.",
     objectives: [{ type: "MISSION_COMPLETE", label: "Complete the Awakening sequence", key: "awakening", amount: 1 }],
     rewardShards: 150, rewardMaterials: { dataShards: 2 }, unlocksWorld: null, nextQuestId: "fd-02", corruption: 0.5,
   },
   "fd-02": {
     id: "fd-02", title: "First Resonance", world: "veridan",
-    line: "The forest's wildlife is fractured too — corrupted, aggressive, and drawn to you specifically.",
+    line: "Past the city limits the Verdant Forest is fractured too — its wildlife corrupted, aggressive, and drawn to you specifically.",
     objectives: [{ type: "KILLS", label: "Clear the forest patrols", key: "veridan", amount: 5 }],
     rewardShards: 150, rewardMaterials: { sporeFiber: 3 }, unlocksWorld: null, nextQuestId: "fd-03", corruption: 0.5,
   },

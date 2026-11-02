@@ -9,7 +9,7 @@ export type CampaignMission = { n: number; title: string; region: string; playab
 export type CampaignAct = { id: string; title: string; goal: string; missions: CampaignMission[] };
 
 export const CAMPAIGN: readonly CampaignAct[] = [
-  { id: "prologue", title: "Prologue: The Day Reality Died", goal: "The Fracture begins", missions: [{ n: 0, title: "First Resonance", region: "Verdant Forest", playable: "mission-01", note: "The playable opening" }] },
+  { id: "prologue", title: "Prologue: The Day Reality Died", goal: "The Fracture begins", missions: [{ n: 0, title: "The Fracture", region: "Nexus City Residences", playable: "mission-01", note: "Apartment 12-04: the morning, the evacuation and the Breach in the street" }] },
   { id: "act-1", title: "Act I: Awakening", goal: "Discover your Resonance and NOVA", missions: [
     { n: 1, title: "Awakening", region: "Nexus City", playable: "awakening" },
     { n: 2, title: "Broken Signal", region: "Nexus City", playable: "broken-signal" },

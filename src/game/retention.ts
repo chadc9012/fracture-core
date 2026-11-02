@@ -5,7 +5,7 @@ export type ChronicleEntry = { id: string; title: string; region: string; summar
 /** Every campaign chapter, permanently. Nothing here is ever removed. */
 export const CHRONICLE: ChronicleEntry[] = [
   { id: "mission-01", title: "The Fracture", region: "Nexus City", summary: "An ordinary morning in Apartment 12-04, then the sky broke. Your powers woke in the street outside, and NOVA found you." },
-  { id: "awakening", title: "Awakening", region: "Nexus City", summary: "The Nexus core stirred. You reached the city and learned the fracture remembers every battle." },
+  { id: "awakening", title: "Awakening", region: "Nexus City", summary: "The Nexus core stirred. NOVA led you under the city you grew up in, and you learned the fracture remembers every battle." },
   { id: "broken-signal", title: "Broken Signal", region: "Nexus City", summary: "A dead relay whispered coordinates. You restored the signal and found who silenced it." },
   { id: "drowned-relay", title: "The Drowned Relay", region: "Shrouded Swamps", summary: "The trace sank into the swamp. You purged a drowned Vanguard relay and put down the war-frame the swamp had grown into." },
   { id: "blackout-protocol", title: "Blackout Protocol", region: "Nexus City", summary: "The grid went dark on purpose. You held the substations until the city could breathe." },
