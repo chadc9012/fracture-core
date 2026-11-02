@@ -9,7 +9,7 @@ import type { FleetModelId } from "@/game/fleet-models";
 import { BUILDING_MODELS, NEXUS_HUB_PROMENADE, NEXUS_HUB_ROAD_R, nexusHubTowers, type BuildingModelId } from "@/game/building-models";
 import { InstancedGlb, type GlbInstance } from "./InstancedGlb";
 import { NexusPalms } from "./CityPalms";
-import { NexusStreetDetail } from "./NexusStreetDetail";
+import { NexusStreetDetail, NexusStreetScans } from "./NexusStreetDetail";
 import { MergeStatic } from "./MergeStatic";
 import { WorldPiece } from "./WorldPiece";
 import { InstancedFleet, type FleetInstance } from "./InstancedFleet";
@@ -20,7 +20,6 @@ import { addObstacle } from "@/game/obstacles";
 import { Model, QuietModel, useModel } from "./Vehicle";
 import { NexusDistricts } from "./NexusDistricts";
 import { NexusSigns } from "./NexusSigns";
-import { streetTexture } from "./city-surface";
 import { ResidentialHomes } from "./ResidentialHomes";
 import { NexusDiner } from "./NexusDiner";
 import { carIsOut } from "@/game/traffic-density";
@@ -148,14 +147,15 @@ function CityBuildings() {
 function PlazaPaving() {
   const mat = useMemo(() => {
     const tiles = (NEXUS.radius * 0.86 * 2) / 3;
-    const rep = (t: THREE.Texture | null) => { if (!t) return null; const c = t.clone(); c.repeat.set(tiles, tiles); c.needsUpdate = true; return c; };
+    // own loads (not the shared streetTexture cache): this disc needs its own repeat
+    const L = typeof document !== "undefined" ? new THREE.TextureLoader() : null;
+    const tex = (n: string, color: boolean) => { if (!L) return null; const t = L.load(`/textures/ph/hex-paving_${n}.jpg`); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(tiles, tiles); t.anisotropy = 8; t.colorSpace = color ? THREE.SRGBColorSpace : THREE.NoColorSpace; return t; };
     return new THREE.MeshStandardMaterial({
-      color: "#8d97a4", roughness: 0.9, metalness: 0.05,
-      map: rep(streetTexture("/textures/ph/hex-paving_diff.jpg", true)), normalMap: rep(streetTexture("/textures/ph/hex-paving_nor.jpg", false)),
-      roughnessMap: rep(streetTexture("/textures/ph/hex-paving_rough.jpg", false)), normalScale: new THREE.Vector2(1.2, 1.2),
+      color: "#7a8490", roughness: 0.9, metalness: 0.05,
+      map: tex("diff", true), normalMap: tex("nor", false), roughnessMap: tex("rough", false), normalScale: new THREE.Vector2(1.2, 1.2),
     });
   }, []);
-  useLayoutEffect(() => () => mat.dispose(), [mat]);
+  useLayoutEffect(() => () => { mat.map?.dispose(); mat.normalMap?.dispose(); mat.roughnessMap?.dispose(); mat.dispose(); }, [mat]);
   return <primitive object={mat} attach="material" />;
 }
 
@@ -326,6 +326,7 @@ export function NexusCity({ sim }: { sim: WorldSim }) {
       <WorldPiece name="nexus diner"><NexusDiner /></WorldPiece>
       <NexusSigns />
       <MergeStatic name="nexus-street-detail"><NexusStreetDetail /></MergeStatic>
+      <NexusStreetScans />
       <WorldPiece name="nexus palms"><NexusPalms /></WorldPiece>
       <ResidentialHomes city="nexus" />
       <Pedestrians />

@@ -58,19 +58,7 @@ export function NexusStreetDetail() {
   const fabric = useMemo(() => new THREE.MeshStandardMaterial({ color: "#9c3d43", roughness: 0.88, side: THREE.DoubleSide }), []);
   const warmLight = useMemo(() => new THREE.MeshStandardMaterial({ color: "#fff0c8", emissive: "#ffc77d", emissiveIntensity: 1.4 }), []);
   const paving = useMemo(() => new THREE.MeshStandardMaterial({ color: "#59616a", roughness: 0.43, metalness: 0.06 }), []);
-  // planter foliage: two scanned leafy plants per planter (the old icosahedron blobs read as green balls), each turned differently
-  const leaves = useMemo<GlbInstance[]>(() => sites.flatMap((p) => [-0.45, 0.45].map((o, k) => {
-    const c = Math.cos(-p.a), s = Math.sin(-p.a);
-    return { x: p.x + o * c, y: p.y + 0.7, z: p.z - o * s, yaw: p.i * 1.7 + k * 2.4, scale: 1.25 + ((p.i + k) % 3) * 0.08 };
-  })), [sites]);
-  // two bistro sets per terrace either side of the parasol
-  const cafeSets = useMemo<GlbInstance[]>(() => cafeSites.flatMap((p) => [-0.85, 0.85].map((o, k) => {
-    const c = Math.cos(-p.a), s = Math.sin(-p.a);
-    return { x: p.x + o * c, y: p.y + 0.04, z: p.z - o * s, yaw: -p.a + (k ? Math.PI / 2 : -Math.PI / 2) + 0.2 };
-  })), [cafeSites]);
   return <group name="nexus-street-detail">
-    <InstancedGlb url={LEAVES} items={leaves} sway={0.05} />
-    <InstancedGlb url={CAFE_SET} items={cafeSets} />
     {cafeSites.map((p) => <group key={`cafe-${p.i}`} position={[p.x, p.y, p.z]} rotation-y={-p.a}>
       {/* Terrace surface, parasol and two seats; purely decorative. */}
       <mesh material={paving} position={[0, 0.02, 0]} receiveShadow><boxGeometry args={[3.4, 0.04, 2.7]} /></mesh>
@@ -106,5 +94,27 @@ export function NexusStreetDetail() {
         <mesh material={glass} position={[0.91, 5.62, 0]}><boxGeometry args={[0.46, 0.075, 0.27]} /></mesh>
       </group>}
     </group>)}
+  </group>;
+}
+
+const plantersAt = () => Array.from({ length: 24 }, (_, i) => {
+  const a = (i / 24) * Math.PI * 2, r = NEXUS_HUB_PROMENADE[0] - 1.3, x = center.x + Math.cos(a) * r, z = center.z + Math.sin(a) * r;
+  return { x, y: walkHeight(x, z), z, a, i };
+});
+const terracesAt = () => Array.from({ length: 8 }, (_, i) => {
+  const a = ((i + 0.35) / 8) * Math.PI * 2, r = NEXUS_HUB_PROMENADE[0] + 7.2, x = center.x + Math.cos(a) * r, z = center.z + Math.sin(a) * r;
+  return { x, y: walkHeight(x, z), z, a, i };
+});
+/** local x offset `o` in a site's frame (the site groups turn by -a) */
+const along = (p: { x: number; z: number; a: number }, o: number) => ({ x: p.x + o * Math.cos(-p.a), z: p.z - o * Math.sin(-p.a) });
+
+/** The scanned props of the hub street (instanced GLBs, so drawn outside NexusStreetDetail's MergeStatic, which bakes only plain
+ * meshes and would drop models still loading): two leafy plants per planter, two bistro sets per cafe terrace. */
+export function NexusStreetScans() {
+  const leaves = useMemo<GlbInstance[]>(() => plantersAt().flatMap((p) => [-0.45, 0.45].map((o, k) => ({ ...along(p, o), y: p.y + 0.7, yaw: p.i * 1.7 + k * 2.4, scale: 1.25 + ((p.i + k) % 3) * 0.08 }))), []);
+  const cafeSets = useMemo<GlbInstance[]>(() => terracesAt().flatMap((p) => [-0.85, 0.85].map((o, k) => ({ ...along(p, o), y: p.y + 0.04, yaw: -p.a + (k ? Math.PI / 2 : -Math.PI / 2) + 0.2 }))), []);
+  return <group name="nexus-street-scans">
+    <InstancedGlb url={LEAVES} items={leaves} sway={0.05} />
+    <InstancedGlb url={CAFE_SET} items={cafeSets} />
   </group>;
 }
