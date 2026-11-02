@@ -43,6 +43,7 @@ import { undiscoveredNear, discoverLandmarks, isLandmarkKnown } from "@/game/lan
 import { ruinById, discoverNearby, canEvolve, evolveWeapon, isWeapon, ABILITY_RULES, EVOLVE_POWER_BONUS, EVOLVE_MIN_LEVEL, EVOLVE_CATALYSTS, EVOLVE_ELEMENT_AMOUNT } from "@/game/weapon-evolution";
 import { HUD } from "./HUD";
 import { SPAWN, Scene, type HudState } from "./Scene";
+import { loadSpot, resumeSpot, saveSpot } from "@/game/resume-spot";
 import { OPENING_FLOOR, OPENING_SKIPPED, WAKE_AT, finishOpening, openingPhase, skipOpening, startsInResidences, streetOutside } from "@/game/story-start";
 import { BREACH_OBJECTIVE, advanceBreach, breachHint, breachPowers, startBreach, type BreachEvent, type BreachRun, type BreachState, type Powers } from "@/game/breach";
 import { EVAC_DONE } from "@/game/residence-life";
@@ -1134,8 +1135,22 @@ export function GameCanvas() {
   const onBreachEvent = (e: BreachEvent) => setBreach((r) => (r ? advanceBreach(r, e, breachHints) : r));
   // Continue / hub: restore exactly what the save describes, no onboarding replay
   const continueIntoWorld = () => enterWorld(sessionFromProgression(progressionRef.current), { newCharacter: false, intro: false });
-  /** the title screen's Continue: a save that never got out of the residences starts again in the apartment */
-  const resumeFromTitle = () => { continueIntoWorld(); resumeOpening(progressionRef.current); };
+  /** the title screen's Continue: a save that never got out of the residences starts again in the apartment; any other save
+   * comes back where you last stood outdoors, else outside the Residences in Nexus City (resume-spot.ts: the world remounts at
+   * the Verdant Forest spawn otherwise) */
+  const resumeFromTitle = () => {
+    const p = progressionRef.current;
+    if (!openingPhase(p)) {
+      const st = streetOutside(), at = resumeSpot(p, loadSpot(p), st);
+      if (at) setTravelTo({ x: at.x, z: at.z, nonce: Date.now() });
+    }
+    continueIntoWorld(); resumeOpening(p);
+  };
+  // remember where you stand outdoors on foot (not in a room, under the sea, a dungeon or the opening), every ~8 m
+  useEffect(() => {
+    if (phase !== "world" || opening || breach || hud.insideInterior || hud.diving || hud.world === "thalassia" || (!hud.px && !hud.pz)) return;
+    saveSpot(progressionRef.current, { x: hud.px, z: hud.pz });
+  }, [phase, opening, breach, hud.insideInterior, hud.diving, hud.world, Math.round(hud.px / 8), Math.round(hud.pz / 8)]); // eslint-disable-line react-hooks/exhaustive-deps
   /** a save still in the opening picks it up again: the residences from the apartment, the Breach on the street */
   const resumeOpening = (p: PlayerProgression) => { const ph = openingPhase(p); if (ph === "residences") beginOpening(); else if (ph === "breach") beginBreach(true); };
   const continueRef = useRef(continueIntoWorld);
@@ -1711,7 +1726,7 @@ export function GameCanvas() {
         );
       }}</GraphicsGuard>
       </WorldErrorBoundary></Profiler>
-       <PerfOverlay />
+       <PerfOverlay pinned={settings.showFps ?? false} />
       {!opening && <ForestAssetStatus />}
        {savedFlash > 0 && <p className="pointer-events-none fixed right-4 top-4 z-30 font-mono text-[10px] uppercase tracking-[0.25em] text-primary" role="status">◌ Auto-saved</p>}
        <HudRails />
