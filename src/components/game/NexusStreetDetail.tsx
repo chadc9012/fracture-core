@@ -29,7 +29,8 @@ export function NexusStreetDetail() {
     const r = NEXUS_HUB_ROAD_R + (i % 3 === 0 ? 1.3 : -1.15);
     const x = center.x + Math.cos(a) * r;
     const z = center.z + Math.sin(a) * r;
-    return { x, z, y: walkHeight(x, z) + 0.045, a, i };
+    // above the plaza paving disc (walkHeight + 0.06, CityBuildings): at +0.045 these sat under it and never showed
+    return { x, z, y: walkHeight(x, z) + 0.078, a, i };
   }), []);
   const wetAsphalt = useMemo(() => new THREE.MeshPhysicalMaterial({
     color: "#526579", metalness: 0.28, roughness: 0.22,
