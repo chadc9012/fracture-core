@@ -17,6 +17,9 @@ export type Obstacle = {
   broken: boolean;
 };
 
+/** roughly how tall each kind stands (m): a body flying higher than this passes over it */
+export const OBSTACLE_HEIGHT: Record<ObstacleKind, number> = { tree: 14, rock: 4, wreck: 4, cactus: 5, tower: 60 };
+
 const CELL = 24;
 const grid = new Map<string, Obstacle[]>();
 const all: Obstacle[] = [];
@@ -95,9 +98,12 @@ export function collideBody(
   radius: number,
   speed: number,
   mass = 1,
+  /** how high the body's underside is above the ground: aircraft and jumps clear what they're above */
+  aboveGround = 0,
 ): Impact {
   let result: Impact = { hit: false, damage: 0, broke: false };
   for (const o of queryObstacles(body.x, body.z)) {
+    if (aboveGround > OBSTACLE_HEIGHT[o.kind]) continue;
     const dx = body.x - o.x;
     const dz = body.z - o.z;
     const dist = Math.hypot(dx, dz);

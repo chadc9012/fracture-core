@@ -1497,7 +1497,8 @@ export function collidePlayer(sim: WorldSim, body: PlayerBody) {
   if (collideWalls(body, body.inVehicle ? 2.2 : 0.45, body.y) && body.inVehicle) body.vSpeed *= 0.4;
 
   // --- world props (trees, rocks, wrecks, towers) ---
-  const impact = collideBody(body, radius, speed, mass);
+  // flying or airborne bodies pass over trees and rocks below them (body.y is the feet / chassis underside)
+  const impact = collideBody(body, radius, speed, mass, body.y === undefined ? 0 : Math.max(0, body.y - heightAt(body.x, body.z)));
   if (impact.hit && Math.abs(speed) > 6) {
     body.vSpeed *= impact.broke ? 0.55 : -0.18;
     if (impact.damage > 2 && sim.impactCool <= 0) {

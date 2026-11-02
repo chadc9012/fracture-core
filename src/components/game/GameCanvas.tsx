@@ -1,3 +1,4 @@
+import { EMPTY_FLEET } from "@/game/fleet";
 import "./text-font";
 import { ASTRAVORE_SCENARIO_ID, applyAstravoreKill, hasStarbreaker, hollowStarNews } from "@/game/hollow-star-raid";
 import { FOUND_KEY as STORM_FOUND, stormPrompt, stormStep } from "@/game/storm-quests";
@@ -884,6 +885,16 @@ export function GameCanvas() {
       const p = progressionRef.current;
       const live = Object.entries(missionsNow.current).filter(([, r]) => r).map(([id, r]) => { const run = r as { state: string; target?: { x: number; z: number } | null; hack?: number; hold?: number }; return { id, state: run.state, target: run.target ?? null, hack: run.hack ?? null, hold: run.hold ?? null }; });
       return { live, completed: p.completedMissions, quest: p.activeQuestId, level: p.level, xp: p.xp, nex: p.nexLedger, shards: p.fractureShards, gear: p.inventory.length, materials: p.materials };
+    };
+    // drive any chassis, optionally as a fleet build (fleet-models.ts BUILD_MODEL): __vehicle("goliath-tank"), __vehicle("scrap-interceptor", "neon-drift")
+    const wv = window as unknown as { __vehicle?: (id: string, build?: string | null) => string };
+    wv.__vehicle = (id, build = null) => {
+      setVehicleId(id as VehicleId);
+      setProgression((c) => {
+        const fleet = c.fleet ?? EMPTY_FLEET;
+        return { ...c, selectedVehicle: id as VehicleId, fleet: { ...fleet, active: build, owned: build && !fleet.owned.includes(build) ? [...fleet.owned, build] : fleet.owned }, ownedVehicles: c.ownedVehicles.includes(id as VehicleId) ? c.ownedVehicles : [...c.ownedVehicles, id as VehicleId] };
+      });
+      return id;
     };
     const we = window as unknown as { __missionEvent?: (id: string, event: unknown) => string };
     we.__missionEvent = (id, event) => { const r = devRecorders.current[id]; if (!r) return "unknown mission"; r(event as never); return "ok"; };

@@ -10,6 +10,9 @@ import { AUDIO_FILES } from "./audio-files";
 import { BLAST_FLAVOR, SHOTS, blastAtDistance, shotKey, variation, type BlastFlavor, type ShotProfile } from "./audio-design";
 import { BROADCAST_START, RADIO_STATIONS, hasRecordings, nextOnAir, onAir, type StationId } from "./radio-stations";
 import { engineVoice } from "./vehicle-audio";
+import { engineFrame, soundForModel, type EngineSound } from "./vehicle-sound";
+import { BASE_MODEL } from "./fleet-models";
+import type { VehicleId } from "./vehicles";
 import { AUDIO_SAFETY, envelopeAttack, unitVolume } from "./audio-safety";
 import { AMBIENT_MIX, WEATHER_BEDS, crossfadeLoop } from "./ambient-mix";
 
@@ -290,13 +293,15 @@ function startAmbientSample(regionId: string) {
   gain.gain.setTargetAtTime(AMBIENT_MIX.sampleGain * (AMBIENT_MIX.regionTrim[regionId] ?? 1), c.ac.currentTime, 1.2);
   ambientSample = { source, gain, lfo }; return true;
 }
-export function playVehicleEngineStart(vehicleId = "scrap-interceptor", speedRatio = 1) {
+export function playVehicleEngineStart(vehicleId = "scrap-interceptor", speedRatio = 1, model?: string) {
   const c = ctx; if (!c) return; const o = out(c);
   const v = engineVoice(vehicleId, speedRatio);
-  // Keep the starter recording as a texture, with the model-specific ignition on top.
-  if (vehicleId === "scrap-interceptor") playSample("engine", {}, 0.22, speedRatio);
-  tone(c, o, { f0: v.base * 0.55, f1: v.base * 1.7, dur: v.ignition, type: v.type, gain: 0.16 });
-  burst(c, o, { dur: v.ignition * 0.7, freq: v.cutoff * 0.7, type: "lowpass", gain: 0.12, at: 0.08 });
+  const s = soundForModel(model ?? BASE_MODEL[vehicleId as VehicleId] ?? "armored-muscle");
+  // combustion engines crank over (the starter recording as a texture); electric, hover and turbine bodies spool up instead
+  const cranks = ["v8", "sport", "diesel", "buggy", "tracks", "outboard", "ship"].includes(s.family);
+  if (cranks && (s.family === "v8" || s.family === "sport")) playSample("engine", {}, 0.22, speedRatio);
+  tone(c, o, { f0: s.base * (cranks ? 0.55 : 0.3), f1: s.base * (cranks ? 1.7 : 1.2), dur: v.ignition, type: s.wave, gain: cranks ? 0.16 : 0.1 });
+  burst(c, o, { dur: v.ignition * 0.7, freq: s.noise.f1 * 0.7, type: "lowpass", gain: cranks ? 0.12 : 0.08, at: 0.08 });
 }
 
 /** Player weapon: crack + saturated blast + thump + reverb tail (+ bolt/pump/zap) from audio-design.ts SHOTS, humanised per shot.
@@ -603,36 +608,59 @@ export function stopWaterAudio() {
   for (const kind of ["stream", "fall"] as const) { const v = waterVoices[kind]; if (v) { stopWaterVoice(c, v); waterVoices[kind] = null; } }
 }
 
-/** Continuous vehicle engine: per-vehicle voice, rpm follows speed + throttle, brake squeal on hard decel. */
-type Engine = { id: string; osc: OscillatorNode; sub: OscillatorNode; filter: BiquadFilterNode; gain: GainNode; brake: GainNode; brakeSrc: AudioBufferSourceNode };
+/** Continuous vehicle engine, voiced by the body the player sees (vehicle-sound.ts): a tone that climbs with speed, a pulse that
+ * chops it (engine firing, rotor blades, track links), a noise bed (exhaust, turbine roar, rotor wash, water), and a brake
+ * squeal on hard decel. */
+type Engine = { key: string; sound: EngineSound; osc: OscillatorNode; sub: OscillatorNode; filter: BiquadFilterNode; am: GainNode; lfo: OscillatorNode; lfoDepth: GainNode; tone: GainNode; noiseSrc: AudioBufferSourceNode; noiseFilter: BiquadFilterNode; noise: GainNode; gain: GainNode; brake: GainNode; brakeSrc: AudioBufferSourceNode; last: ReturnType<typeof engineFrame> | null };
 let engine: Engine | null = null;
 /** the engine sat louder than explosions (-20 dBFS while driving) and its filter opened to a full sawtooth buzz at top speed */
 const ENGINE_LEVEL = 0.35;
-const ENGINE_MAX_CUTOFF = 1600;
-export function updateEngine(active: boolean, vehicleId: string, speed01: number, throttle: number, braking: boolean, speedRatio = 1) {
+const ENGINE_MAX_CUTOFF = 3200;
+export function updateEngine(active: boolean, vehicleId: string, speed01: number, throttle: number, braking: boolean, speedRatio = 1, model?: string) {
   const c = ctx; if (!c) return;
-  if (!active) { if (engine) { engine.gain.gain.setTargetAtTime(0, c.ac.currentTime, 0.15); const e = engine; setTimeout(() => { e.osc.stop(); e.sub.stop(); e.brakeSrc.stop(); }, 800); engine = null; } return; }
-  if (!engine || engine.id !== vehicleId) {
+  if (!active) { if (engine) { engine.gain.gain.setTargetAtTime(0, c.ac.currentTime, 0.15); const e = engine; setTimeout(() => { for (const n of [e.osc, e.sub, e.lfo, e.noiseSrc, e.brakeSrc]) n.stop(); }, 800); engine = null; } return; }
+  const body = model ?? BASE_MODEL[vehicleId as VehicleId] ?? "armored-muscle";
+  if (!engine || engine.key !== body) {
     updateEngine(false, vehicleId, 0, 0, false);
-    const v = engineVoice(vehicleId, speedRatio);
-    const osc = c.ac.createOscillator(); osc.type = v.type; const sub = c.ac.createOscillator(); sub.type = "sine";
-    const filter = c.ac.createBiquadFilter(); filter.type = "lowpass"; filter.frequency.value = v.cutoff; filter.Q.value = 0.7;
+    const sound = soundForModel(body);
+    const osc = c.ac.createOscillator(); osc.type = sound.wave;
+    const sub = c.ac.createOscillator(); sub.type = "sine";
+    const filter = c.ac.createBiquadFilter(); filter.type = "lowpass"; filter.frequency.value = sound.cutoff; filter.Q.value = 0.7;
+    // the pulse: the tone runs through a gain whose level a low oscillator swings between 1 - depth and 1
+    const am = c.ac.createGain(); am.gain.value = 1 - sound.pulseDepth / 2;
+    const lfo = c.ac.createOscillator(); lfo.type = sound.family === "rotor" || sound.family === "tracks" ? "triangle" : "sine";
+    const lfoDepth = c.ac.createGain(); lfoDepth.gain.value = sound.pulseDepth / 2; lfo.connect(lfoDepth).connect(am.gain);
+    const tone = c.ac.createGain(); tone.gain.value = 0;
+    const noiseSrc = c.ac.createBufferSource(); noiseSrc.buffer = c.noise; noiseSrc.loop = true;
+    const noiseFilter = c.ac.createBiquadFilter(); noiseFilter.type = sound.noise.type; noiseFilter.frequency.value = sound.noise.f0; noiseFilter.Q.value = sound.noise.q;
+    const noise = c.ac.createGain(); noise.gain.value = 0;
     const gain = c.ac.createGain(); gain.gain.value = 0;
     const brake = c.ac.createGain(); brake.gain.value = 0; const bf = c.ac.createBiquadFilter(); bf.type = "bandpass"; bf.frequency.value = 2600; bf.Q.value = 8;
     const bfTop = c.ac.createBiquadFilter(); bfTop.type = "lowpass"; bfTop.frequency.value = 4000; bfTop.Q.value = 0.5;
     const brakeSrc = c.ac.createBufferSource(); brakeSrc.buffer = c.noise; brakeSrc.loop = true;
-    const smooth = c.ac.createBiquadFilter(); smooth.type = "lowpass"; smooth.frequency.value = ENGINE_MAX_CUTOFF * 1.4; smooth.Q.value = 0.5;
-    osc.connect(filter); sub.connect(filter); filter.connect(smooth).connect(gain).connect(c.sfx); brakeSrc.connect(bf).connect(bfTop).connect(brake).connect(c.sfx);
-    osc.start(); sub.start(); brakeSrc.start();
-    engine = { id: vehicleId, osc, sub, filter, gain, brake, brakeSrc };
+    osc.connect(filter); sub.connect(filter); filter.connect(am).connect(tone).connect(gain);
+    noiseSrc.connect(noiseFilter).connect(noise).connect(gain);
+    gain.connect(c.sfx);
+    // wheeled ground vehicles squeal when braking hard; aircraft and boats don't
+    if (["v8", "sport", "diesel", "buggy", "electric"].includes(sound.family)) brakeSrc.connect(bf).connect(bfTop).connect(brake).connect(c.sfx);
+    osc.start(); sub.start(); lfo.start(); noiseSrc.start(c.ac.currentTime, Math.random() * 2); brakeSrc.start();
+    engine = { key: body, sound, osc, sub, filter, am, lfo, lfoDepth, tone, noiseSrc, noiseFilter, noise, gain, brake, brakeSrc, last: null };
   }
-  const v = engineVoice(vehicleId, speedRatio), t = c.ac.currentTime;
-  const rpm = v.base * (1 + speed01 * 2.4 + throttle * 0.5);
-  engine.osc.frequency.setTargetAtTime(rpm, t, 0.08);
-  engine.sub.frequency.setTargetAtTime(rpm / 2, t, 0.08);
-  engine.filter.frequency.setTargetAtTime(Math.min(ENGINE_MAX_CUTOFF, v.cutoff * (1 + throttle * 0.8 + speed01 * 0.6)), t, 0.1);
-  engine.gain.gain.setTargetAtTime((0.06 + throttle * 0.08 + speed01 * 0.05) * ENGINE_LEVEL, t, 0.1);
+  const f = engineFrame(engine.sound, speed01, throttle, speedRatio), t = c.ac.currentTime;
+  engine.osc.frequency.setTargetAtTime(f.tone, t, 0.08);
+  engine.sub.frequency.setTargetAtTime(f.tone / 2, t, 0.08);
+  engine.filter.frequency.setTargetAtTime(Math.min(ENGINE_MAX_CUTOFF, f.cutoff), t, 0.1);
+  engine.lfo.frequency.setTargetAtTime(Math.max(0.1, f.pulseHz), t, 0.1);
+  engine.noiseFilter.frequency.setTargetAtTime(f.noiseF, t, 0.15);
+  engine.tone.gain.setTargetAtTime(f.toneGain, t, 0.1);
+  engine.noise.gain.setTargetAtTime(f.noiseGain, t, 0.15);
+  engine.gain.gain.setTargetAtTime((0.1 + throttle * 0.06 + speed01 * 0.04) * ENGINE_LEVEL * engine.sound.level, t, 0.1);
   engine.brake.gain.setTargetAtTime(braking && speed01 > 0.15 ? 0.03 * speed01 : 0, t, 0.05);
+  engine.last = f;
+}
+/** dev/test readout: which engine is running and its current layers (null when on foot) */
+export function engineState(): { body: string; family: string; frame: ReturnType<typeof engineFrame> | null } | null {
+  return engine ? { body: engine.key, family: engine.sound.family, frame: engine.last } : null;
 }
 
 /** Music: ambient pad always; tension pulse and combat drums fade in with intensity (0–1). */

@@ -1441,7 +1441,7 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
       else {
       s.inVehicle = !s.inVehicle && !conditionEffects(condition.current).disabled;
       if (s.inVehicle) { vh.current.airborne = false; vh.current.slip = 0; if (handling.mode === "WATER" && heightAt(s.x, s.z) > WATER_LEVEL - 0.3) { s.inVehicle = false; alert(sim, "Boats launch from the water's edge"); } }
-      if (s.inVehicle) { sfx.playVehicleEngineStart(vehicleId, selectedVehicle.speed / vehicleById(vehicleId).speed); reportVehicleEnter(); }
+      if (s.inVehicle) { sfx.playVehicleEngineStart(vehicleId, selectedVehicle.speed / vehicleById(vehicleId).speed, playerCarModel.model.id); reportVehicleEnter(); }
       // Neon City parkour: hopping out mid-drive keeps a fraction of the car's speed as foot-chase momentum.
       if (wasInVehicle) velocity.set(Math.sin(s.yaw), 0, Math.cos(s.yaw)).multiplyScalar(exitVehicleMomentum(s.vSpeed));
       else velocity.set(0, 0, 0);
@@ -2788,7 +2788,7 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
         if (beeps.size > 8) for (const id of [...beeps.keys()]) if (!sim.grenades.some((g) => g.id === id)) beeps.delete(id);
         for (const sh of gs.droneShots) { if (sh.id <= droneShotHeard.current) continue; droneShotHeard.current = sh.id; sfx.playGadget("DRONE_SHOT", sfx.where(s.x, s.z, s.yaw, sh.x, sh.z)); }
       }
-      sfx.updateEngine(s.inVehicle, vehicleId, Math.min(1, Math.abs(s.vSpeed) / 45), fwd || rev ? 1 : 0, rev && s.vSpeed > 2, selectedVehicle.speed / vehicleById(vehicleId).speed);
+      sfx.updateEngine(s.inVehicle, vehicleId, Math.min(1, Math.abs(s.vSpeed) / 45), fwd || rev ? 1 : 0, rev && s.vSpeed > 2, selectedVehicle.speed / vehicleById(vehicleId).speed, playerCarModel.model.id);
     }
 
     /* ---------------- Mission 01 · Broken Signal world triggers ---------------- */
@@ -3122,7 +3122,7 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
       submerged = heightAt(s.x, s.z) < WATER_LEVEL - 0.2;
     }
     // "Drive out" from a home garage (residence-deeds.ts): into the driver's seat at the bay, nose to the door
-    { const out = takeDriveOut(); if (out && vehicleUnlocked) { s.x = out.x; s.z = out.z; s.y = out.y + 1.6; s.yaw = out.yaw; s.vy = 0; s.vSpeed = 0; s.insideInterior = null; interior = null; velocity.set(0, 0, 0); s.inVehicle = !conditionEffects(condition.current).disabled; vh.current.airborne = false; vh.current.slip = 0; if (s.inVehicle) sfx.playVehicleEngineStart(vehicleId, 1); } }
+    { const out = takeDriveOut(); if (out && vehicleUnlocked) { s.x = out.x; s.z = out.z; s.y = out.y + 1.6; s.yaw = out.yaw; s.vy = 0; s.vSpeed = 0; s.insideInterior = null; interior = null; velocity.set(0, 0, 0); s.inVehicle = !conditionEffects(condition.current).disabled; vh.current.airborne = false; vh.current.slip = 0; if (s.inVehicle) sfx.playVehicleEngineStart(vehicleId, 1, playerCarModel.model.id); } }
     if (sim.lastDeath !== deathSeen.current) {
       deathSeen.current = sim.lastDeath;
       s.ammo = restockAll(s.ammo); // ammo.ts: you come back armed
