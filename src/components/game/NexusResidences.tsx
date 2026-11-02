@@ -21,7 +21,7 @@ export function NexusResidences() {
     const out = FLOORS.flatMap((f) => mergeByMat(floorBoxes(f.id)
       // Replace only the original living-room sofa/table render meshes. Their
       // collider boxes remain in floorWalls() so gameplay is unaffected.
-      .filter((b) => f.id !== "nexus-res-1204" || !(isReplacedLivingRoomFurniture(b) || isReplacedBedroomBed(b) || isReplacedKitchenIsland(b)))
+      .filter((b) => f.id !== "nexus-res-1204" || !(isReplacedLivingRoomFurniture(b) || isReplacedBedroomBed(b) || isReplacedKitchenIsland(b) || isReplacedByScan(b)))
       .map((b) => ({ b, at: { x: f.origin.x, z: f.origin.z, floor: INTERIOR_ALTITUDE, rot: 0 } })), `residences-tower:${f.id}`));
     // the tower's glass is see-through (the city outside, the shower, the balustrades), unlike a house's window panes
     for (const m of out) if (m.name.endsWith(":glass")) { const g = m.material as THREE.MeshStandardMaterial; g.transparent = true; g.opacity = 0.22; g.depthWrite = false; m.castShadow = false; m.renderOrder = 2; }
@@ -55,6 +55,13 @@ function isReplacedLivingRoomFurniture(b: { x: number; y: number; z: number; sx:
     || (near(b.x, 4.85) && near(b.z, -2.7) && near(b.sx, 0.22))
     || (near(b.x, 3.4) && (near(b.z, -0.85) || near(b.z, -0.42)) && near(b.sx, 2.0))
     || (near(b.x, 2.0) && near(b.z, -2.6) && (near(b.sx, 1.6) || near(b.sx, 0.5)));
+}
+
+/** Render-only: the bar stools at the island and the potted plant by the window, drawn by scanned models (ScannedApartmentProps). */
+function isReplacedByScan(b: { x: number; y: number; z: number; sx: number }): boolean {
+  const near = (a: number, v: number) => Math.abs(a - v) < 0.015;
+  return ((near(b.x, 2.9) || near(b.x, 3.8) || near(b.x, 4.7)) && near(b.z, 3.4) && (near(b.sx, 0.4) || near(b.sx, 0.33)))
+    || (near(b.x, 7.4) && near(b.z, 5.4));
 }
 
 /** Render-only replacement for the kitchen island cabinet and stone top. */
@@ -126,8 +133,42 @@ function PremiumApartmentFurniture() {
       <FurnitureSlot url="/assets/world-fracture/furniture/nexus-coffee-table.glb" position={[2, 0, -2.6]} footprint={[1.68, 0.48, 0.93]} />
       <FurnitureSlot url="/assets/world-fracture/furniture/nexus-upholstered-bed.glb" position={[-5.6, 0, -3.4]} rotation={[0, -Math.PI / 2, 0]} footprint={[2.16, 1.77, 2.31]} />
       <FurnitureSlot url="/assets/world-fracture/furniture/nexus-kitchen-island.glb" position={[3.8, 0, 2.5]} footprint={[2.9, 1.5, 1.2]} />
+      <ScannedApartmentProps />
     </group>
   );
+}
+
+/** Scanned CC0 props (Poly Haven, public/models/props-ph): the lived-in layer of 12-04. Visual only, except the armchair, which
+ * gets its own small collider so you can't walk through it. */
+const PH = (n: string) => `/models/props-ph/${n}.glb`;
+const SCANNED: { n: string; at: [number, number, number]; turn?: number; scale?: number }[] = [
+  { n: "bar-stool", at: [2.9, 0, 3.4], turn: Math.PI }, { n: "bar-stool", at: [3.8, 0, 3.4], turn: Math.PI + 0.12 }, { n: "bar-stool", at: [4.7, 0, 3.4], turn: Math.PI - 0.1 },
+  { n: "plant-tall", at: [7.4, 0, 5.4], scale: 1.25 },
+  { n: "plant-tall", at: [-7.45, 0, -1.1], turn: 1.3 },
+  { n: "armchair", at: [0.35, 0, -2.6], turn: Math.PI / 2 },
+  { n: "side-table", at: [0.35, 0, -1.45] },
+  { n: "plant-small", at: [0.35, 0.76, -1.45], turn: 0.6 },
+  { n: "pillows", at: [4.62, 0.48, -3.55], turn: -Math.PI / 2 + 0.15 },
+  { n: "pillows", at: [4.62, 0.48, -1.85], turn: -Math.PI / 2 - 0.2, scale: 0.9 },
+  { n: "vase", at: [2.25, 0.48, -2.45] },
+  { n: "plant-small", at: [7.65, 0.78, -5.35], turn: 2.1 },
+  { n: "photo-frame", at: [6.25, 0.78, -5.45], turn: 0.4 },
+  { n: "plant-small", at: [3.0, 1.04, 2.45], turn: 1.1 },
+];
+function ScannedApartmentProps() {
+  useEffect(() => {
+    const f = FLOORS.find((floor) => floor.id === "nexus-res-1204");
+    if (!f) return;
+    const x = f.origin.x + 0.35, z = f.origin.z - 2.6;
+    setWalls("residences-1204-armchair", [{ ax: x, az: z - 0.3, bx: x, bz: z + 0.3, half: 0.42, base: INTERIOR_ALTITUDE, top: INTERIOR_ALTITUDE + 1 }]);
+    return () => clearWalls("residences-1204-armchair");
+  }, []);
+  return <group name="apartment-1204-scanned-props">
+    {SCANNED.map((p, i) => <ScannedProp key={i} url={PH(p.n)} position={p.at} rotation={[0, p.turn ?? 0, 0]} scale={p.scale ?? 1} />)}
+  </group>;
+}
+function ScannedProp({ url, position, rotation, scale }: FurnitureModelProps & { scale: number }) {
+  return <FurnitureAssetBoundary fallback={null}><Suspense fallback={null}><group scale={scale} position={position}><LoadedFurnitureModel url={url} position={[0, 0, 0]} rotation={rotation} /></group></Suspense></FurnitureAssetBoundary>;
 }
 
 /** Lightweight finish layer: architectural trim, a framed wall panel, and warm

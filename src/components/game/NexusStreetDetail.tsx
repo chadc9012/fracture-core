@@ -3,6 +3,10 @@ import * as THREE from "three";
 import { REGIONS } from "@/game/world";
 import { walkHeight } from "@/game/terrain";
 import { NEXUS_HUB_PROMENADE, NEXUS_HUB_ROAD_R } from "@/game/building-models";
+import { InstancedGlb, type GlbInstance } from "./InstancedGlb";
+
+/** scanned CC0 props from Poly Haven (scripts: see public/models/props-ph/README.md) */
+const LEAVES = "/models/props-ph/leaves.glb", CAFE_SET = "/models/props-ph/cafe-set.glb";
 
 const center = REGIONS.find((r) => r.id === "nexus")!;
 
@@ -19,7 +23,6 @@ export function NexusStreetDetail() {
   }), []);
   const planter = useMemo(() => new THREE.MeshStandardMaterial({ color: "#777d84", roughness: 0.68, metalness: 0.12 }), []);
   const soil = useMemo(() => new THREE.MeshStandardMaterial({ color: "#292d2a", roughness: 1 }), []);
-  const leaves = useMemo(() => new THREE.MeshStandardMaterial({ color: "#2f6249", roughness: 0.86, side: THREE.DoubleSide }), []);
   const trim = useMemo(() => new THREE.MeshStandardMaterial({ color: "#bcc6ce", roughness: 0.32, metalness: 0.72 }), []);
   const glass = useMemo(() => new THREE.MeshStandardMaterial({ color: "#e9f4ff", emissive: "#ffe3b3", emissiveIntensity: 0.55, roughness: 0.22 }), []);
   // Lightweight, terrain-following wet asphalt highlights. These are thin
@@ -52,22 +55,26 @@ export function NexusStreetDetail() {
     return { x, z, y: walkHeight(x, z), a, i };
   }), []);
   const darkMetal = useMemo(() => new THREE.MeshStandardMaterial({ color: "#252b32", metalness: 0.7, roughness: 0.32 }), []);
-  const cafeWood = useMemo(() => new THREE.MeshStandardMaterial({ color: "#8a6650", roughness: 0.65 }), []);
   const fabric = useMemo(() => new THREE.MeshStandardMaterial({ color: "#9c3d43", roughness: 0.88, side: THREE.DoubleSide }), []);
   const warmLight = useMemo(() => new THREE.MeshStandardMaterial({ color: "#fff0c8", emissive: "#ffc77d", emissiveIntensity: 1.4 }), []);
   const paving = useMemo(() => new THREE.MeshStandardMaterial({ color: "#59616a", roughness: 0.43, metalness: 0.06 }), []);
+  // planter foliage: two scanned leafy plants per planter (the old icosahedron blobs read as green balls), each turned differently
+  const leaves = useMemo<GlbInstance[]>(() => sites.flatMap((p) => [-0.45, 0.45].map((o, k) => {
+    const c = Math.cos(-p.a), s = Math.sin(-p.a);
+    return { x: p.x + o * c, y: p.y + 0.7, z: p.z - o * s, yaw: p.i * 1.7 + k * 2.4, scale: 1.25 + ((p.i + k) % 3) * 0.08 };
+  })), [sites]);
+  // two bistro sets per terrace either side of the parasol
+  const cafeSets = useMemo<GlbInstance[]>(() => cafeSites.flatMap((p) => [-0.85, 0.85].map((o, k) => {
+    const c = Math.cos(-p.a), s = Math.sin(-p.a);
+    return { x: p.x + o * c, y: p.y + 0.04, z: p.z - o * s, yaw: -p.a + (k ? Math.PI / 2 : -Math.PI / 2) + 0.2 };
+  })), [cafeSites]);
   return <group name="nexus-street-detail">
+    <InstancedGlb url={LEAVES} items={leaves} sway={0.05} />
+    <InstancedGlb url={CAFE_SET} items={cafeSets} />
     {cafeSites.map((p) => <group key={`cafe-${p.i}`} position={[p.x, p.y, p.z]} rotation-y={-p.a}>
       {/* Terrace surface, parasol and two seats; purely decorative. */}
       <mesh material={paving} position={[0, 0.02, 0]} receiveShadow><boxGeometry args={[3.4, 0.04, 2.7]} /></mesh>
-      <mesh material={darkMetal} position={[0, 0.65, 0]} castShadow><cylinderGeometry args={[0.06, 0.07, 1.3, 8]} /></mesh>
-      <mesh material={cafeWood} position={[0, 1.28, 0]} castShadow><cylinderGeometry args={[0.7, 0.7, 0.09, 16]} /></mesh>
-      {[-1.15, 1.15].map((x) => <group key={x} position={[x, 0, 0]}>
-        <mesh material={darkMetal} position={[0, 0.48, 0]} castShadow><cylinderGeometry args={[0.055, 0.07, 0.96, 8]} /></mesh>
-        <mesh material={cafeWood} position={[0, 0.94, 0]} castShadow><boxGeometry args={[0.74, 0.09, 0.68]} /></mesh>
-        <mesh material={cafeWood} position={[x < 0 ? -0.3 : 0.3, 1.42, 0]} castShadow><boxGeometry args={[0.09, 0.98, 0.68]} /></mesh>
-      </group>)}
-      <mesh material={darkMetal} position={[0, 2.3, 0]} castShadow><cylinderGeometry args={[0.045, 0.045, 2.05, 8]} /></mesh>
+      <mesh material={darkMetal} position={[0, 1.6, 0]} castShadow><cylinderGeometry args={[0.045, 0.055, 3.2, 8]} /></mesh>
       <mesh material={fabric} position={[0, 3.25, 0]} castShadow><coneGeometry args={[1.75, 0.56, 10]} /></mesh>
       <mesh material={warmLight} position={[0, 2.95, 0]}><sphereGeometry args={[0.1, 8, 6]} /></mesh>
       {/* Waste bin, bollard and illuminated strip give scale to the sidewalk. */}
@@ -93,10 +100,6 @@ export function NexusStreetDetail() {
       {/* Low planters are visually rich without changing collision geometry. */}
       <mesh position={[0, 0.36, 0]} material={planter} receiveShadow castShadow><boxGeometry args={[1.9, 0.72, 0.8]} /></mesh>
       <mesh position={[0, 0.735, 0]} material={soil}><boxGeometry args={[1.7, 0.035, 0.62]} /></mesh>
-      {[-0.52, 0, 0.52].map((offset) => <group key={offset} position={[offset, 0.76, 0]}>
-        <mesh material={leaves} castShadow rotation={[0.16, offset, 0.3]}><icosahedronGeometry args={[0.37, 1]} /></mesh>
-        <mesh material={leaves} castShadow position={[0, 0.18, 0.04]}><icosahedronGeometry args={[0.31, 1]} /></mesh>
-      </group>)}
       {p.i % 2 === 0 && <group position={[2.4, 0, 0]}>
         <mesh material={trim} castShadow position={[0, 2.9, 0]}><cylinderGeometry args={[0.065, 0.09, 5.8, 10]} /></mesh>
         <mesh material={trim} castShadow position={[0.45, 5.7, 0]} rotation-z={-0.16}><boxGeometry args={[1, 0.1, 0.13]} /></mesh>
