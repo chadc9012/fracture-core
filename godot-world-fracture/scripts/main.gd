@@ -177,6 +177,8 @@ func _notification(what: int) -> void:
 	if what == NOTIFICATION_WM_GO_BACK_REQUEST or what == NOTIFICATION_WM_CLOSE_REQUEST:
 		if creator and not creator.onboarding:
 			_close_creator()
+		elif street and street.sports_overlay:
+			street.close_sports()
 		elif street and street.casino_overlay:
 			street.close_casino()
 		elif street and street.mall_overlay:
@@ -243,6 +245,13 @@ func _shoot(path: String, opts: Array) -> void:
 			var cv := String(o).split(":")
 			if cv.size() > 1:
 				street.casino_overlay.show_view(int(cv[1]))
+		# sports[:view]  the sports district: 0-2 Pulse Arena, 3-4 Sunset Courts, 5-7 Iron Pulse gym
+		if String(o).begins_with("sports"):
+			_open_street()
+			street.open_sports()
+			var sv := String(o).split(":")
+			if sv.size() > 1:
+				street.sports_overlay.show_view(int(sv[1]))
 		# mall[:view]  the Galleria mall interior
 		if String(o).begins_with("mall"):
 			_open_street()

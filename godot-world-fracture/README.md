@@ -50,7 +50,12 @@ boards with café seating. ENTER SKYLINE CASINO rides into the tower at the head
 craps, the round Gilded bar, the cashier cage, coffered chandeliers), the Level 60 penthouse (glass walls over the night
 city, a grand piano, a kitchen and wine wall, a bedroom, the private crafting studio, a lit armory wall and the
 equipment vault, a terrace with an infinity pool) and the Skydeck rooftop concert (truss stage, LED wall, speaker stacks,
-sweeping beams, a band and a crowd dancing to the beat).
+sweeping beams, a band and a crowd dancing to the beat). SPORTS DISTRICT (`scripts/city/sports_district.gd`) holds
+Pulse Arena, home of the Nexus Voltage (a maple court with full markings, glass backboards, a 22-row bowl of cheering
+fans, ribbon boards and a centre-hung scoreboard, a game in progress), the floodlit Sunset Courts by the water (two
+painted street courts, chain-link, a mural wall, bleachers, palms, pickup games) and Iron Pulse Fitness (squat racks,
+benches and barbells, a dumbbell rack, kettlebells, a cable crossover, treadmills and bikes, heavy bags and a boxing
+ring, mirrors and screens).
 
 **Operator creator** (`scripts/character/`): the first launch opens it (afterwards it's the OPERATOR button). A lit
 turntable of the operator — drag to turn — beside tabs for the body (male, female or robot on the Titan, Hunter or
@@ -65,7 +70,7 @@ web game's (ported to `face_morphs.gd` and a generated skin shader). The catalog
 bun scripts/export-godot-data.ts          # from the repo root: writes godot-world-fracture/generated/ (gitignored)
 bun scripts/export-godot-character.ts     # from the repo root: rewrites godot-world-fracture/data/character.json
 godot --path godot-world-fracture         # run it
-# a screenshot without a window (xvfb): --shot <png> [garage[:shop[:car[:item,kit-racing,...]]]] [drive[:car[:throttle[:steer[:garage]]]]] [slice[night][coast][:x,y,z:tx,ty,tz]] [mall[:view]] [casino[:view 0-8]] [char[:body[:face[:TAB[:key=value,...]]]]] [select:<continent>] [map:<id>] [sat] [zoom:<factor>] [3d] [street:<place id>] [frames:<n>]
+# a screenshot without a window (xvfb): --shot <png> [garage[:shop[:car[:item,kit-racing,...]]]] [drive[:car[:throttle[:steer[:garage]]]]] [slice[night][coast][:x,y,z:tx,ty,tz]] [mall[:view]] [casino[:view 0-8]] [sports[:view 0-7]] [char[:body[:face[:TAB[:key=value,...]]]]] [select:<continent>] [map:<id>] [sat] [zoom:<factor>] [3d] [street:<place id>] [frames:<n>]
 xvfb-run godot --path godot-world-fracture --rendering-driver opengl3 --resolution 540x1170 -- --shot out.png map:nexus
 ```
 
