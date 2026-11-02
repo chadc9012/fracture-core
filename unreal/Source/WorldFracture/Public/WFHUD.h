@@ -31,6 +31,10 @@ private:
 	UFUNCTION() void HandleQuestCompleted(const FString& QuestId);
 
 	void Line(const FString& Text, float X, float Y, const FLinearColor& Color, float Scale = 1.f);
+	/** the GPS (AWFGpsNavigator): a heading-up minimap with the next turn above it, and the full city map (M) */
+	void DrawGpsMinimap(float W, float H, const class AWFGpsNavigator& Gps);
+	void DrawGpsMap(float W, float H, class AWFGpsNavigator& Gps);
+	TWeakObjectPtr<class AWFGpsNavigator> GpsCache;
 	bool WantsTouchControls() const;
 	/** the touch button's action on whatever is possessed: the Operator on foot, the vehicle while driving */
 	class UInputAction* TouchActionFor(FName Id) const;

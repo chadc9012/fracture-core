@@ -25,6 +25,8 @@
 #include "WFActivitySubsystem.h"
 #include "Core/WFJsCompat.h"
 #include "WFShopSubsystem.h"
+#include "WFGps.h"
+#include "Core/WFGpsCore.h"
 
 namespace
 {
@@ -84,6 +86,14 @@ void AWFHUD::DrawHUD()
 	Super::DrawHUD();
 	if (!Canvas) return;
 	const float W = Canvas->ClipX, H = Canvas->ClipY;
+
+	// GPS: the city map replaces the HUD while it is open (the game is paused); otherwise the minimap sits under the rest
+	if (!GpsCache.IsValid()) GpsCache = AWFGpsNavigator::Find(GetWorld());
+	if (AWFGpsNavigator* Gps = GpsCache.Get(); Gps && Gps->IsBuilt())
+	{
+		if (Gps->IsMapOpen()) { DrawGpsMap(W, H, *Gps); return; }
+		DrawGpsMinimap(W, H, *Gps);
+	}
 
 	// boss panel: name, health, encounter phase, and the attack being wound up (encounter-sim.ts windupHud)
 	if (const AWFGameMode* Mode = GetWorld()->GetAuthGameMode<AWFGameMode>())
@@ -559,4 +569,239 @@ void AWFHUD::EndPlay(const EEndPlayReason::Type Reason)
 {
 	for (const FName& Id : HeldIds()) ReleaseTouch(Id); // never leave fire or sprint held
 	Super::EndPlay(Reason);
+}
+
+// ---------------------------------------------------------------- GPS
+
+namespace
+{
+	const FLinearColor GpsRoad(0.42f, 0.44f, 0.5f), GpsRing(0.2f, 0.62f, 0.85f), GpsPlaza(0.55f, 0.47f, 0.22f);
+	const FLinearColor GpsRoute(0.1f, 1.f, 0.65f), GpsRoutePlaza(1.f, 0.78f, 0.2f), GpsBuilding(0.3f, 0.3f, 0.42f), GpsPin(1.f, 0.3f, 0.35f);
+
+	/** Liang-Barsky: clips the segment to the box; false if none of it is inside */
+	bool ClipToBox(double L, double T, double R, double B, FVector2D& P0, FVector2D& P1)
+	{
+		const double Dx = P1.X - P0.X, Dy = P1.Y - P0.Y;
+		const double P[4] = {-Dx, Dx, -Dy, Dy};
+		const double Q[4] = {P0.X - L, R - P0.X, P0.Y - T, B - P0.Y};
+		double T0 = 0, T1 = 1;
+		for (int32 I = 0; I < 4; ++I)
+		{
+			if (P[I] == 0) { if (Q[I] < 0) return false; continue; }
+			const double U = Q[I] / P[I];
+			if (P[I] < 0) T0 = FMath::Max(T0, U);
+			else T1 = FMath::Min(T1, U);
+			if (T0 > T1) return false;
+		}
+		const FVector2D A = P0;
+		P0 = A + FVector2D(Dx, Dy) * T0;
+		P1 = A + FVector2D(Dx, Dy) * T1;
+		return true;
+	}
+
+	float GpsF(double V) { return static_cast<float>(V); }
+
+	/** a footprint's four corners (web rotation.y: local x -> (cos, -sin), local z -> (sin, cos)) */
+	void Corners(const wf::gps::FRect& R, FVector2D Out[4])
+	{
+		const double C = FMath::Cos(R.Rot), S = FMath::Sin(R.Rot);
+		const double L[4][2] = {{-R.HalfX, -R.HalfZ}, {R.HalfX, -R.HalfZ}, {R.HalfX, R.HalfZ}, {-R.HalfX, R.HalfZ}};
+		for (int32 I = 0; I < 4; ++I) Out[I] = FVector2D(R.X + L[I][0] * C + L[I][1] * S, R.Z - L[I][0] * S + L[I][1] * C);
+	}
+
+	FString ManeuverLabel(const wf::gps::FManeuver& M) { return UTF8_TO_TCHAR(M.Text().c_str()); }
+}
+
+void AWFHUD::DrawGpsMinimap(float W, float H, const AWFGpsNavigator& Gps)
+{
+	double Px = 0, Pz = 0, Yaw = 0;
+	if (!Gps.GetPlayer(Px, Pz, Yaw)) return;
+	const float Size = 240.f, Scale = 1.5f; // 160 m across
+	const float L = W - 30.f - Size, T = H - 150.f - Size, R = L + Size, B = T + Size;
+	const FVector2D C(L + Size / 2, T + Size / 2);
+	const double Th = FMath::DegreesToRadians(Yaw);
+	const FVector2D Fwd(FMath::Cos(Th), FMath::Sin(Th)), Right(-FMath::Sin(Th), FMath::Cos(Th));
+	// heading-up: the camera's forward is up, its right is right (screen y grows downward like world z)
+	auto ToScreen = [&](double X, double Z) {
+		const FVector2D D(X - Px, Z - Pz);
+		return C + FVector2D(FVector2D::DotProduct(D, Right), -FVector2D::DotProduct(D, Fwd)) * Scale;
+	};
+	auto Seg = [&](FVector2D A, FVector2D Bp, const FLinearColor& Color, float Thick) {
+		if (ClipToBox(L, T, R, B, A, Bp)) DrawLine(GpsF(A.X), GpsF(A.Y), GpsF(Bp.X), GpsF(Bp.Y), Color, Thick);
+	};
+
+	DrawRect(FLinearColor(0.02f, 0.03f, 0.05f, 0.8f), L, T, Size, Size);
+	const double Reach = static_cast<double>(Size / Scale); // only what can be on the map
+	for (const wf::gps::FRect& Foot : Gps.GetFootprints())
+	{
+		if (FMath::Abs(Foot.X - Px) > Reach || FMath::Abs(Foot.Z - Pz) > Reach) continue;
+		FVector2D Q[4];
+		Corners(Foot, Q);
+		for (int32 I = 0; I < 4; ++I) Seg(ToScreen(Q[I].X, Q[I].Y), ToScreen(Q[(I + 1) % 4].X, Q[(I + 1) % 4].Y), GpsBuilding, 1.f);
+	}
+	const auto& Nodes = Gps.GetGraph().Nodes();
+	for (const wf::gps::FEdge& E : Gps.GetGraph().Edges())
+	{
+		const wf::gps::FNode& A = Nodes[static_cast<size_t>(E.A)];
+		const wf::gps::FNode& Bn = Nodes[static_cast<size_t>(E.B)];
+		const bool bPlaza = E.Kind == wf::gps::EEdgeKind::Plaza;
+		const bool bRing = E.Kind == wf::gps::EEdgeKind::Ring;
+		Seg(ToScreen(A.X, A.Z), ToScreen(Bn.X, Bn.Z), bPlaza ? GpsPlaza : bRing ? GpsRing : GpsRoad, bPlaza ? 2.f : bRing ? 5.f : 7.f);
+	}
+	const wf::gps::FRoute& Route = Gps.GetRoute();
+	if (Gps.HasPin() && Route.bValid)
+		for (size_t I = 0; I + 1 < Route.Points.size(); ++I)
+			Seg(ToScreen(Route.Points[I].X, Route.Points[I].Z), ToScreen(Route.Points[I + 1].X, Route.Points[I + 1].Z),
+				Route.Kinds[I] == wf::gps::EEdgeKind::Plaza ? GpsRoutePlaza : GpsRoute, 4.f);
+	if (Gps.HasPin())
+	{
+		// the pin, held to the edge when it is off the map
+		FVector2D P = ToScreen(Gps.GetPin().X, Gps.GetPin().Z);
+		const FVector2D D = P - C;
+		const float Edge = Size / 2 - 8;
+		const float Over = FMath::Max(FMath::Abs(D.X), FMath::Abs(D.Y)) / Edge;
+		if (Over > 1) P = C + D / Over;
+		DrawRect(GpsPin, GpsF(P.X) - 5, GpsF(P.Y) - 5, 10, 10);
+	}
+	// north marker on the rim, the player arrow in the middle, the frame
+	{
+		const FVector2D Dn(FVector2D::DotProduct(FVector2D(0, -1), Right), -FVector2D::DotProduct(FVector2D(0, -1), Fwd));
+		const FVector2D Np = C + Dn.GetSafeNormal() * (Size / 2 - 12);
+		Line(TEXT("N"), GpsF(Np.X) - 5, GpsF(Np.Y) - 9, Gold, 0.9f);
+	}
+	const float Cx = GpsF(C.X), Cy = GpsF(C.Y);
+	DrawLine(Cx, Cy - 10, Cx - 7, Cy + 8, FLinearColor::White, 3.f);
+	DrawLine(Cx, Cy - 10, Cx + 7, Cy + 8, FLinearColor::White, 3.f);
+	DrawLine(Cx - 7, Cy + 8, Cx, Cy + 3, FLinearColor::White, 3.f);
+	DrawLine(Cx + 7, Cy + 8, Cx, Cy + 3, FLinearColor::White, 3.f);
+	DrawLine(L, T, R, T, Cyan, 1.5f);
+	DrawLine(R, T, R, B, Cyan, 1.5f);
+	DrawLine(R, B, L, B, Cyan, 1.5f);
+	DrawLine(L, B, L, T, Cyan, 1.5f);
+	Line(TEXT("[M] CITY MAP"), L, B + 4, Soft, 0.75f);
+
+	// the next instruction above the map
+	if (!Gps.HasPin() || !Route.bValid) return;
+	const wf::gps::FGuidance& G = Gps.GetGuidance();
+	const FString Remaining = UTF8_TO_TCHAR(wf::gps::FormatDistance(G.Remaining).c_str());
+	if (G.Next)
+	{
+		const bool bArriving = G.Next->Type == wf::gps::EManeuver::Arrive;
+		const FString Step = bArriving ? FString(TEXT("ARRIVE")) : ManeuverLabel(*G.Next).ToUpper();
+		Line(FString::Printf(TEXT("%s   %s"), *Step, UTF8_TO_TCHAR(wf::gps::FormatDistance(G.ToNext).c_str())), L, T - 58, GpsRoute, 1.1f);
+	}
+	Line(FString::Printf(TEXT("%s  -  %s  -  %d min"), *Gps.GetPin().Label, *Remaining, wf::gps::EtaMinutes(G.Remaining, Gps.GetSpeed())), L, T - 30, Soft, 0.8f);
+	if (G.OffRoute > wf::gps::OffRouteDistance) Line(TEXT("Recalculating..."), L, T - 80, Warn, 0.85f);
+}
+
+void AWFHUD::DrawGpsMap(float W, float H, AWFGpsNavigator& Gps)
+{
+	DrawRect(FLinearColor(0.01f, 0.015f, 0.03f, 0.92f), 0, 0, W, H);
+	const auto& Nodes = Gps.GetGraph().Nodes();
+	// fit the street network (plus a margin) into the area right of the list
+	double MinX = TNumericLimits<double>::Max(), MinZ = MinX, MaxX = -MinX, MaxZ = -MinX;
+	for (const wf::gps::FNode& N : Nodes) { MinX = FMath::Min(MinX, N.X); MaxX = FMath::Max(MaxX, N.X); MinZ = FMath::Min(MinZ, N.Z); MaxZ = FMath::Max(MaxZ, N.Z); }
+	MinX -= 20; MinZ -= 20; MaxX += 20; MaxZ += 20;
+	const float AreaL = 420.f, AreaT = 70.f, AreaW = FMath::Max(100.f, W - AreaL - 40.f), AreaH = FMath::Max(100.f, H - AreaT - 60.f);
+	const double Scale = FMath::Min(static_cast<double>(AreaW) / (MaxX - MinX), static_cast<double>(AreaH) / (MaxZ - MinZ));
+	FWFGpsMapView View;
+	View.bValid = true;
+	View.Scale = Scale;
+	View.Width = GpsF((MaxX - MinX) * Scale);
+	View.Height = GpsF((MaxZ - MinZ) * Scale);
+	View.Left = AreaL + (AreaW - View.Width) / 2;
+	View.Top = AreaT + (AreaH - View.Height) / 2;
+	View.MinX = MinX;
+	View.MinZ = MinZ;
+	Gps.SetMapView(View);
+	auto ToScreen = [&](double X, double Z) { return FVector2D(View.Left + (X - MinX) * Scale, View.Top + (Z - MinZ) * Scale); };
+	auto Seg = [&](const FVector2D& A, const FVector2D& B, const FLinearColor& Color, float Thick) { DrawLine(GpsF(A.X), GpsF(A.Y), GpsF(B.X), GpsF(B.Y), Color, Thick); };
+
+	DrawRect(FLinearColor(0.03f, 0.045f, 0.07f, 1.f), View.Left, View.Top, View.Width, View.Height);
+	for (const wf::gps::FRect& Foot : Gps.GetFootprints())
+	{
+		FVector2D Q[4];
+		Corners(Foot, Q);
+		for (int32 I = 0; I < 4; ++I) Seg(ToScreen(Q[I].X, Q[I].Y), ToScreen(Q[(I + 1) % 4].X, Q[(I + 1) % 4].Y), GpsBuilding, 1.f);
+	}
+	const float RoadPx = FMath::Max(3.f, GpsF(7.0 * Scale)), RingPx = FMath::Max(3.f, GpsF(4.4 * Scale)); // street 7 m, ring road 4.4 m
+	for (const wf::gps::FEdge& E : Gps.GetGraph().Edges())
+	{
+		const wf::gps::FNode& A = Nodes[static_cast<size_t>(E.A)];
+		const wf::gps::FNode& B = Nodes[static_cast<size_t>(E.B)];
+		const bool bPlaza = E.Kind == wf::gps::EEdgeKind::Plaza;
+		const bool bRing = E.Kind == wf::gps::EEdgeKind::Ring;
+		Seg(ToScreen(A.X, A.Z), ToScreen(B.X, B.Z), bPlaza ? GpsPlaza : bRing ? GpsRing : GpsRoad, bPlaza ? 2.f : bRing ? RingPx : RoadPx);
+	}
+	const wf::gps::FRoute& Route = Gps.GetRoute();
+	if (Gps.HasPin() && Route.bValid)
+		for (size_t I = 0; I + 1 < Route.Points.size(); ++I)
+			Seg(ToScreen(Route.Points[I].X, Route.Points[I].Z), ToScreen(Route.Points[I + 1].X, Route.Points[I + 1].Z),
+				Route.Kinds[I] == wf::gps::EEdgeKind::Plaza ? GpsRoutePlaza : GpsRoute, 4.f);
+
+	// destinations: numbered dots, the selected one named on the map
+	const TArray<FWFGpsDestination>& Dests = Gps.GetDestinations();
+	for (int32 I = 0; I < Dests.Num(); ++I)
+	{
+		const FVector2D P = ToScreen(Dests[I].X, Dests[I].Z);
+		const bool bSel = I == Gps.GetSelected();
+		const FLinearColor Col = Dests[I].Kind == TEXT("SHOP") ? Gold : Dests[I].Kind == TEXT("DISTRICT") ? GpsRing : Cyan;
+		DrawRect(bSel ? FLinearColor::White : Col, GpsF(P.X) - (bSel ? 5.f : 3.f), GpsF(P.Y) - (bSel ? 5.f : 3.f), bSel ? 10.f : 6.f, bSel ? 10.f : 6.f);
+		if (bSel) Line(Dests[I].Label, GpsF(P.X) + 10, GpsF(P.Y) - 10, FLinearColor::White, 0.9f);
+	}
+	if (Gps.HasPin())
+	{
+		const FVector2D P = ToScreen(Gps.GetPin().X, Gps.GetPin().Z);
+		DrawRect(GpsPin, GpsF(P.X) - 6, GpsF(P.Y) - 6, 12, 12);
+	}
+	double Px = 0, Pz = 0, Yaw = 0;
+	if (Gps.GetPlayer(Px, Pz, Yaw))
+	{
+		const FVector2D P = ToScreen(Px, Pz);
+		const double Th = FMath::DegreesToRadians(Yaw);
+		const FVector2D Dir(FMath::Cos(Th), FMath::Sin(Th)), Rt(-FMath::Sin(Th), FMath::Cos(Th));
+		const FVector2D Tip = P + Dir * 12, BackL = P - Dir * 8 - Rt * 7, BackR = P - Dir * 8 + Rt * 7;
+		Seg(Tip, BackL, FLinearColor::White, 3.f);
+		Seg(Tip, BackR, FLinearColor::White, 3.f);
+		Seg(BackL, P - Dir * 3, FLinearColor::White, 3.f);
+		Seg(BackR, P - Dir * 3, FLinearColor::White, 3.f);
+	}
+
+	// the list
+	float Y = 40.f;
+	Line(TEXT("NEXUS CITY  /  GPS"), 40, Y, Cyan, 1.3f);
+	Y += 44;
+	for (int32 I = 0; I < Dests.Num(); ++I)
+	{
+		const bool bSel = I == Gps.GetSelected();
+		if (bSel) DrawRect(FLinearColor(0.1f, 0.3f, 0.38f, 0.8f), 34, Y - 2, 360, 24);
+		const FString Tag = Dests[I].Kind == TEXT("SHOP") ? TEXT("shop") : Dests[I].Kind == TEXT("DISTRICT") ? TEXT("streets") : TEXT("place");
+		Line(FString::Printf(TEXT("%2d  %s"), I + 1, *Dests[I].Label), 40, Y, bSel ? FLinearColor::White : Soft, 0.9f);
+		Line(Tag, 330, Y + 2, FLinearColor(0.55f, 0.6f, 0.65f), 0.75f);
+		Y += 26;
+	}
+	Y += 16;
+	if (Gps.HasPin() && Route.bValid)
+	{
+		Line(FString::Printf(TEXT("ROUTE: %s"), *Gps.GetPin().Label), 40, Y, GpsRoute, 0.95f);
+		Y += 24;
+		Line(FString::Printf(TEXT("%s  -  about %d min"), UTF8_TO_TCHAR(wf::gps::FormatDistance(Route.Length).c_str()), wf::gps::EtaMinutes(Route.Length, Gps.GetSpeed())), 40, Y, Soft, 0.85f);
+		Y += 24;
+		for (const wf::gps::FManeuver& M : Route.Maneuvers)
+		{
+			if (M.Type == wf::gps::EManeuver::Depart) continue;
+			if (Y > H - 120) break;
+			Line(FString::Printf(TEXT("%6s   %s"), UTF8_TO_TCHAR(wf::gps::FormatDistance(M.AtDistance).c_str()), *ManeuverLabel(M)), 40, Y, Soft, 0.8f);
+			Y += 20;
+		}
+	}
+	Line(TEXT("Up / Down choose   Enter route   Click map: custom waypoint   Backspace clear   M close"), 40, H - 40, FLinearColor(0.6f, 0.65f, 0.7f), 0.8f);
+	float Lx = AreaL;
+	for (const TPair<const TCHAR*, FLinearColor>& Key : {TPair<const TCHAR*, FLinearColor>(TEXT("streets"), GpsRoad), TPair<const TCHAR*, FLinearColor>(TEXT("ring road"), GpsRing),
+			 TPair<const TCHAR*, FLinearColor>(TEXT("plaza crossing"), GpsPlaza), TPair<const TCHAR*, FLinearColor>(TEXT("route"), GpsRoute), TPair<const TCHAR*, FLinearColor>(TEXT("waypoint"), GpsPin)})
+	{
+		DrawRect(Key.Value, Lx, AreaT - 23, 18, 6);
+		Line(Key.Key, Lx + 24, AreaT - 30, Soft, 0.8f);
+		Lx += 150;
+	}
 }

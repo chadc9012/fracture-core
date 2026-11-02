@@ -26,6 +26,12 @@ foreach(TEST_SOURCE ${TEST_SOURCES})
 	get_filename_component(TEST_NAME ${TEST_SOURCE} NAME_WE)
 	add_executable(${TEST_NAME} ${TEST_SOURCE})
 	target_link_libraries(${TEST_NAME} PRIVATE wfcore)
+	# self-checking tests (marked WF_NO_GOLDEN) take the Nexus City layout instead of a golden file
+	file(READ ${TEST_SOURCE} TEST_HEAD LIMIT 64)
+	if(TEST_HEAD MATCHES "WF_NO_GOLDEN")
+		add_test(NAME ${TEST_NAME} COMMAND ${TEST_NAME} ${CMAKE_CURRENT_SOURCE_DIR}/../../../DataTables/NexusCity.json)
+		continue()
+	endif()
 	string(REGEX REPLACE "CoreTest$" "" GOLDEN_STEM ${TEST_NAME})
 	string(TOLOWER ${GOLDEN_STEM} GOLDEN_STEM)
 	# goldens are generated, not committed (they run to ~60 MB): record them with `node unreal/tools/gen-goldens.mjs` from the repo root
