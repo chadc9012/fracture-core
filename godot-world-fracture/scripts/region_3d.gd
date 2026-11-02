@@ -186,6 +186,15 @@ func show_region(id: String, at: Variant = null, start_mode: Mode = Mode.CITY) -
 	var city := id == "nexus" or id == "neon-city"
 	_dist = clampf(_span * (0.2 if at != null else (0.8 if city else 0.42)), 60.0, 900.0)
 	_pitch = 46.0 if city else 38.0
+	# islands in the sky (Storm Islands): look across at their height, not down at the sea under them
+	var floats: Array = m.get("floating", [])
+	if at == null and not floats.is_empty():
+		var tops := 0.0
+		for f in floats:
+			tops += float(f.top)
+		_target.y = tops / floats.size() - 30.0
+		_dist = clampf(_span * 0.85, 60.0, 900.0)
+		_pitch = 14.0
 	_eye = Vector3(_target.x, _h(_target.x, _target.z) + EYE, _target.z)
 	_fill_jump()
 	set_mode(start_mode)
@@ -240,10 +249,14 @@ func _style_for(id: String) -> Dictionary:
 			s.merge({"top": "#4c5b55", "hor": "#93a08a", "fog": "#6f7c66", "fog_d": 0.0042, "sun": 0.7, "sun_col": "#e8f0d0", "sun_el": 26.0, "amb": 0.6}, true)
 		"veridan", "riverdale":
 			s.merge({"top": "#6a879e", "hor": "#c6cdc8", "fog": "#a3ada7", "fog_d": 0.0019, "sun": 0.95, "sun_col": "#fff0d8", "sun_el": 34.0, "amb": 0.6}, true)
-		"solara", "wastelands":
+		"wastelands":
 			s.merge({"top": "#5f97c8", "hor": "#e6d0a6", "fog": "#d4c09c", "fog_d": 0.0012, "sun": 1.5, "sun_col": "#fff0d0", "sun_el": 52.0, "amb": 0.6}, true)
+		"solara":
+			# its pale dune sand blew out to white under the Wastelands' noon sun: a lower, warmer sun and less exposure
+			# keep the dunes' shading and the sand's colour
+			s.merge({"top": "#4f8cc4", "hor": "#e9c99a", "fog": "#d8b98e", "fog_d": 0.0012, "sun": 1.05, "sun_col": "#ffe2b8", "sun_el": 30.0, "amb": 0.45, "exp": 0.68, "sat": 0.95}, true)
 		"storm":
-			s.merge({"top": "#2c3646", "hor": "#6d7a89", "fog": "#58636f", "fog_d": 0.0012, "sun": 0.7, "sun_col": "#dfe8ff", "sun_el": 30.0, "amb": 0.6}, true)
+			s.merge({"top": "#2c3646", "hor": "#6d7a89", "fog": "#58636f", "fog_d": 0.0035, "sun": 0.85, "sun_col": "#dfe8ff", "sun_el": 30.0, "amb": 0.6}, true)
 		"crystal-badlands":
 			s.merge({"top": "#241c4a", "hor": "#d39a7c", "fog": "#6a5676", "fog_d": 0.0014, "sun": 1.0, "sun_col": "#ffc6a0", "sun_el": 22.0, "amb": 0.85, "night": 0.3}, true)
 		"shattered-reefs":
@@ -276,7 +289,7 @@ func _build_env() -> void:
 		_env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
 		_env.ambient_light_color = Color(_style.hor).lightened(0.25)
 	_env.tonemap_mode = Environment.TONE_MAPPER_ACES
-	_env.tonemap_exposure = 0.85 if _style.night < 0.5 else 1.15
+	_env.tonemap_exposure = float(_style.get("exp", 0.85 if _style.night < 0.5 else 1.15))
 	_env.fog_enabled = true
 	_env.fog_light_color = Color(_style.fog)
 	_env.fog_density = _style.fog_d * 0.4
@@ -394,7 +407,9 @@ func _build_ground() -> void:
 	# a skirt of land / sea floor beyond the map so the horizon never shows an edge
 	var skirt := MeshInstance3D.new()
 	var pm := PlaneMesh.new()
-	pm.size = Vector2(_span * 8.0, _span * 8.0)
+	# open sea (the Storm Islands are seen from low down) runs much further so its edge sinks into the haze
+	var sea := 40.0 if not m.get("floating", []).is_empty() else 8.0
+	pm.size = Vector2(_span * sea, _span * sea)
 	skirt.mesh = pm
 	skirt.position = Vector3(0, _water - 18.0, 0)
 	var sk := StandardMaterial3D.new()
@@ -405,7 +420,9 @@ func _build_ground() -> void:
 func _build_water() -> void:
 	var mi := MeshInstance3D.new()
 	var pm := PlaneMesh.new()
-	pm.size = Vector2(_span * 8.0, _span * 8.0)
+	# open sea (the Storm Islands are seen from low down) runs much further so its edge sinks into the haze
+	var sea := 40.0 if not m.get("floating", []).is_empty() else 8.0
+	pm.size = Vector2(_span * sea, _span * sea)
 	pm.subdivide_width = 4
 	pm.subdivide_depth = 4
 	mi.mesh = pm
@@ -839,37 +856,101 @@ void fragment() {
 	mat.set_shader_parameter("cold", 1.0 if cold else 0.0)
 	return mat
 
-## the Storm Islands: rock undersides and grassy tops in the sky
+## the Storm Islands: torn-off chunks of land in the sky. Each has a jagged rock underside that tapers to a broken point,
+## a slightly domed grass top with pines and boulders, and hangs over a sea that runs out to the haze.
 func _build_floating() -> void:
-	for f in m.get("floating", []):
+	var floats: Array = m.get("floating", [])
+	if floats.is_empty():
+		return
+	var rock := StandardMaterial3D.new()
+	rock.albedo_color = Color("#5a5560")
+	rock.roughness = 0.97
+	var grass := StandardMaterial3D.new()
+	grass.albedo_color = Color("#5d7a43")
+	grass.roughness = 0.9
+	# both sides drawn: the hand-built rings and dome are seen from below and above
+	rock.cull_mode = BaseMaterial3D.CULL_DISABLED
+	grass.cull_mode = BaseMaterial3D.CULL_DISABLED
+	var trees: Array[Transform3D] = []
+	var boulders: Array[Transform3D] = []
+	for fi in floats.size():
+		var f: Dictionary = floats[fi]
 		var p := _loc(f.x, f.z)
 		var r: float = f.r
 		var top: float = f.top
+		var rng := RandomNumberGenerator.new()
+		rng.seed = fi * 7919 + 17
+		# the underside: rings from the rim down to a tip, every vertex pushed in or out so the rock reads as broken
+		const SEG := 22
+		const RINGS := 9
+		var depth := r * (1.5 + rng.randf() * 0.5)
+		var tip := Vector2((rng.randf() - 0.5) * r * 0.4, (rng.randf() - 0.5) * r * 0.4)
+		var ring_pts: Array = []
+		for k in RINGS + 1:
+			var t := float(k) / RINGS
+			var row: Array[Vector3] = []
+			var rad := r * pow(1.0 - t, 0.75)
+			for sgi in SEG:
+				var ang := sgi * TAU / SEG
+				var jag := 1.0 + (rng.randf() - 0.5) * (0.12 if k == 0 else 0.38)
+				var c := tip * t
+				row.append(Vector3(p.x + c.x + cos(ang) * rad * jag, top - 1.0 - depth * t + (rng.randf() - 0.5) * r * 0.08 * t, p.y + c.y + sin(ang) * rad * jag))
+			ring_pts.append(row)
+		var st := SurfaceTool.new()
+		st.begin(Mesh.PRIMITIVE_TRIANGLES)
+		for k in RINGS:
+			for sgi in SEG:
+				var a0: Vector3 = ring_pts[k][sgi]
+				var a1: Vector3 = ring_pts[k][(sgi + 1) % SEG]
+				var b0: Vector3 = ring_pts[k + 1][sgi]
+				var b1: Vector3 = ring_pts[k + 1][(sgi + 1) % SEG]
+				for v in [a0, b0, a1, a1, b0, b1]:
+					st.add_vertex(v)
+		st.generate_normals()
 		var under := MeshInstance3D.new()
-		var cm := CylinderMesh.new()
-		cm.top_radius = r
-		cm.bottom_radius = r * 0.12
-		cm.height = r * 1.5
-		cm.radial_segments = 14
-		under.mesh = cm
-		under.position = Vector3(p.x, top - 1.5 - r * 0.75, p.y)
-		var rm := StandardMaterial3D.new()
-		rm.albedo_color = Color("#4f525e")
-		rm.roughness = 0.95
-		under.material_override = rm
+		under.mesh = st.commit()
+		under.material_override = rock
 		_world.add_child(under)
+		# the top: a low dome over the rim ring, grassed
+		var ct := SurfaceTool.new()
+		ct.begin(Mesh.PRIMITIVE_TRIANGLES)
+		var centre := Vector3(p.x, top + r * 0.06, p.y)
+		var rim: Array[Vector3] = ring_pts[0]
+		for sgi in SEG:
+			var v0: Vector3 = rim[sgi] + Vector3(0, 1.0, 0)
+			var v1: Vector3 = rim[(sgi + 1) % SEG] + Vector3(0, 1.0, 0)
+			for v in [centre, v1, v0]:
+				ct.add_vertex(v)
+		ct.generate_normals()
 		var cap := MeshInstance3D.new()
-		var cc := CylinderMesh.new()
-		cc.top_radius = r * 0.98
-		cc.bottom_radius = r
-		cc.height = 3.0
-		cc.radial_segments = 24
-		cap.mesh = cc
-		cap.position = Vector3(p.x, top - 1.5, p.y)
-		var gm := StandardMaterial3D.new()
-		gm.albedo_color = Color("#56703f")
-		cap.material_override = gm
+		cap.mesh = ct.commit()
+		cap.material_override = grass
 		_world.add_child(cap)
+		# pines and boulders on top (fewer near the rim)
+		var n_trees := int(r * 0.45)
+		for ti in n_trees:
+			var ang := rng.randf() * TAU
+			var d := sqrt(rng.randf()) * r * 0.75
+			var lx := p.x + cos(ang) * d
+			var lz := p.y + sin(ang) * d
+			var ly := top + r * 0.06 * (1.0 - d / r) - 0.3
+			var sc := 0.8 + rng.randf() * 0.7
+			trees.append(Transform3D(Basis(Vector3.UP, rng.randf() * TAU).scaled(Vector3(sc, sc * (0.9 + rng.randf() * 0.4), sc)), Vector3(lx, ly, lz)))
+		for bi in 3 + int(r / 12.0):
+			var ang2 := rng.randf() * TAU
+			var d2 := (0.4 + rng.randf() * 0.5) * r
+			var bs := 1.2 + rng.randf() * 2.4
+			boulders.append(Transform3D(Basis.from_euler(Vector3(rng.randf(), rng.randf() * TAU, rng.randf())).scaled(Vector3(bs, bs * 0.7, bs)),
+				Vector3(p.x + cos(ang2) * d2, top + r * 0.06 * (1.0 - d2 / r) + bs * 0.2, p.y + sin(ang2) * d2)))
+	if not trees.is_empty():
+		_multimesh(_tree_mesh(false), trees, _tree_material(false))
+	if not boulders.is_empty():
+		var sm := SphereMesh.new()
+		sm.radius = 1.0
+		sm.height = 2.0
+		sm.radial_segments = 7
+		sm.rings = 4
+		_multimesh(sm, boulders, rock)
 
 ## street lights along the roads at night (the wet-neon city frames): a glowing head every 24 m on both kerbs
 func _build_lamps() -> void:
