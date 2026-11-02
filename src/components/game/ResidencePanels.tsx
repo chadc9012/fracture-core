@@ -39,8 +39,9 @@ export function ResidencePanels({ inside, spotId, liftCall, residentId, progress
   // through the lobby doors while it is on ends it
   useEffect(() => {
     const was = prevInside.current; prevInside.current = inside;
-    if (floor && startEvac(progRef.current, Date.now())) { toast("REALITY FRACTURE · Evacuate the building · elevators offline, take the emergency stairs"); say({ speaker: "Building alarm", text: "Reality collision detected. Evacuate immediately by the emergency stairs." }); }
-    if (!inside && was && residenceFloor(was) && getEvac().phase === "alarm") {
+    if (floor && startEvac(progRef.current, Date.now(), floor.id)) { toast("REALITY FRACTURE · Evacuate the building · elevators offline, take the emergency stairs"); say({ speaker: "Building alarm", text: "Reality collision detected. Evacuate immediately by the emergency stairs." }); }
+    // only walking out of the lobby's street doors ends it (a skip or a travel from an upper floor does not count as escaping)
+    if (!inside && was === LOBBY && getEvac().phase === "alarm") {
       const r = finishEvac(progRef.current);
       if (r) {
         setProgression((cur) => pay({ ...cur, earnedRewards: [...new Set([...cur.earnedRewards, ...r.progression.earnedRewards])] }, "res:evac", r.xp, r.nex));
