@@ -7,6 +7,7 @@ const RegionMap := preload("res://scripts/region_map.gd")
 const Region3D := preload("res://scripts/region_3d.gd")
 const GarageView := preload("res://scripts/garage/garage_view.gd")
 const DriveView := preload("res://scripts/driving/drive_view.gd")
+const StreetSlice := preload("res://scripts/city/street_slice.gd")
 
 var planet_view: Control
 var region_map: Control
@@ -36,6 +37,12 @@ func _ready() -> void:
 	drive_button.custom_minimum_size = Vector2(130, 52)
 	drive_button.pressed.connect(_open_drive)
 	add_child(drive_button)
+	var street_button := Data.button("NEXUS STREET", true)
+	street_button.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
+	street_button.position = Vector2(-450, -70)
+	street_button.custom_minimum_size = Vector2(150, 52)
+	street_button.pressed.connect(_open_street)
+	add_child(street_button)
 	get_tree().set_auto_accept_quit(false)
 	get_tree().set_quit_on_go_back(false)
 	# a capture hook for checking the look off-device: --shot <png> [map:<id>] [sat]
@@ -82,6 +89,21 @@ func _open_drive() -> void:
 	add_child(driving)
 	planet_view.set_process(false)
 
+var street: Control
+func _open_street() -> void:
+	if street or driving or garage:
+		return
+	street = StreetSlice.new()
+	street.closed.connect(_close_street)
+	add_child(street)
+	planet_view.set_process(false)
+
+func _close_street() -> void:
+	if street:
+		street.queue_free()
+		street = null
+	planet_view.set_process(true)
+
 func _close_drive() -> void:
 	if driving:
 		driving.queue_free()
@@ -112,7 +134,9 @@ func _close_map() -> void:
 
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_WM_GO_BACK_REQUEST or what == NOTIFICATION_WM_CLOSE_REQUEST:
-		if driving and driving.garage_overlay != null:
+		if street:
+			_close_street()
+		elif driving and driving.garage_overlay != null:
 			driving._close_city_garage()
 		elif driving:
 			_close_drive()
@@ -158,6 +182,14 @@ func _shoot(path: String, opts: Array) -> void:
 				for k in 20:
 					await get_tree().process_frame
 				driving._open_city_garage()
+		# slice[:x,y,z:tx,ty,tz]  the Nexus street slice, optionally from another camera
+		if String(o).begins_with("slice"):
+			_open_street()
+			var sl := street
+			var q := String(o).split(":")
+			if q.size() > 2:
+				var f := q[1].split(","); var t := q[2].split(",")
+				sl.look_from(Vector3(float(f[0]), float(f[1]), float(f[2])), Vector3(float(t[0]), float(t[1]), float(t[2])))
 		if String(o) == "sat" and region_map:
 			region_map.set_satellite(true)
 		if String(o).begins_with("zoom:") and region_map:
