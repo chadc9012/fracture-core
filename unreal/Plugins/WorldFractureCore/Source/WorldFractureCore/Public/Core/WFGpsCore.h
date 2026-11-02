@@ -99,6 +99,8 @@ namespace wf::gps
 		double X = 0, Z = 0;
 		int RingExit = 0;      // for EnterRing: which exit to take (1 = first); 0 when the route leaves the ring between exits
 		std::string Text() const;
+		/** a few words for the HUD banner over the minimap ("Ring road: 2nd exit") */
+		std::string ShortText() const;
 	};
 
 	struct FRoute

@@ -680,18 +680,25 @@ void AWFHUD::DrawGpsMinimap(float W, float H, const AWFGpsNavigator& Gps)
 	DrawLine(L, B, L, T, Cyan, 1.5f);
 	Line(TEXT("[M] CITY MAP"), L, B + 4, Soft, 0.75f);
 
-	// the next instruction above the map
+	// the next instruction above the map, right-aligned to its edge and shrunk to fit if it is long
 	if (!Gps.HasPin() || !Route.bValid) return;
 	const wf::gps::FGuidance& G = Gps.GetGuidance();
-	const FString Remaining = UTF8_TO_TCHAR(wf::gps::FormatDistance(G.Remaining).c_str());
+	auto RightLine = [&](const FString& Text, float Y, const FLinearColor& Color, float Scale0) {
+		float Tw = 0, Th0 = 0;
+		GetTextSize(Text, Tw, Th0, GEngine->GetMediumFont(), Scale0);
+		const float MaxW = Size + 120.f; // may reach left of the map, never off the screen's right edge
+		const float S = Tw > MaxW ? Scale0 * MaxW / Tw : Scale0;
+		GetTextSize(Text, Tw, Th0, GEngine->GetMediumFont(), S);
+		Line(Text, R - Tw, Y, Color, S);
+	};
 	if (G.Next)
 	{
-		const bool bArriving = G.Next->Type == wf::gps::EManeuver::Arrive;
-		const FString Step = bArriving ? FString(TEXT("ARRIVE")) : ManeuverLabel(*G.Next).ToUpper();
-		Line(FString::Printf(TEXT("%s   %s"), *Step, UTF8_TO_TCHAR(wf::gps::FormatDistance(G.ToNext).c_str())), L, T - 58, GpsRoute, 1.1f);
+		const FString Step = UTF8_TO_TCHAR(G.Next->ShortText().c_str());
+		RightLine(FString::Printf(TEXT("%s   %s"), *Step.ToUpper(), UTF8_TO_TCHAR(wf::gps::FormatDistance(G.ToNext).c_str())), T - 58, GpsRoute, 1.1f);
 	}
-	Line(FString::Printf(TEXT("%s  -  %s  -  %d min"), *Gps.GetPin().Label, *Remaining, wf::gps::EtaMinutes(G.Remaining, Gps.GetSpeed())), L, T - 30, Soft, 0.8f);
-	if (G.OffRoute > wf::gps::OffRouteDistance) Line(TEXT("Recalculating..."), L, T - 80, Warn, 0.85f);
+	RightLine(FString::Printf(TEXT("%s  -  %s  -  %d min"), *Gps.GetPin().Label, UTF8_TO_TCHAR(wf::gps::FormatDistance(G.Remaining).c_str()),
+		wf::gps::EtaMinutes(G.Remaining, Gps.GetSpeed())), T - 30, Soft, 0.8f);
+	if (G.OffRoute > wf::gps::OffRouteDistance) RightLine(TEXT("Recalculating..."), T - 82, Warn, 0.85f);
 }
 
 void AWFHUD::DrawGpsMap(float W, float H, AWFGpsNavigator& Gps)

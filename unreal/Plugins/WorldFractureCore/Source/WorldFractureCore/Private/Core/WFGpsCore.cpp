@@ -88,6 +88,24 @@ namespace wf::gps
 		return "";
 	}
 
+	std::string FManeuver::ShortText() const
+	{
+		switch (Type)
+		{
+		case EManeuver::Depart: return "To the route";
+		case EManeuver::Left: return "Left";
+		case EManeuver::Right: return "Right";
+		case EManeuver::SharpLeft: return "Sharp left";
+		case EManeuver::SharpRight: return "Sharp right";
+		case EManeuver::UTurn: return "U-turn";
+		case EManeuver::EnterRing: return RingExit > 0 ? std::string("Ring road: ") + Ordinal(RingExit) + " exit" : std::string("Join ring road");
+		case EManeuver::ExitRing: return "Leave ring road";
+		case EManeuver::CrossPlaza: return "Cross plaza";
+		case EManeuver::Arrive: return "Arrive";
+		}
+		return "";
+	}
+
 	// ---------------------------------------------------------------- graph
 
 	int FRoadGraph::AddNode(double X, double Z, double MergeDistance)

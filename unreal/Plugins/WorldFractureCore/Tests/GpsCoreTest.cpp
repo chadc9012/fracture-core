@@ -218,6 +218,13 @@ int main(int Argc, char** Argv)
 		Check(M.Text() == "At the ring road, take the 2nd exit", "ring instruction text");
 		M.RingExit = 0;
 		Check(M.Text() == "Join the ring road", "ring instruction without an exit");
+		M.RingExit = 5;
+		Check(M.ShortText() == "Ring road: 5th exit", "short ring text for the HUD banner");
+		for (int T = 0; T <= static_cast<int>(EManeuver::Arrive); ++T)
+		{
+			FManeuver Each{static_cast<EManeuver>(T), 0, 0, 0, 2};
+			Check(!Each.ShortText().empty() && Each.ShortText().size() <= 20, std::string("short text fits the banner: ") + ManeuverName(Each.Type));
+		}
 	}
 
 	// ---- the real Nexus City ----
