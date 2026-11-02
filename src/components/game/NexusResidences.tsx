@@ -1,5 +1,6 @@
-import { Component, Suspense, useEffect, useMemo, type ReactNode } from "react";
+import { Component, Suspense, useEffect, useMemo, useRef, type ReactNode } from "react";
 import { useGLTF } from "@react-three/drei";
+import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import { RoundedBoxGeometry } from "three/examples/jsm/geometries/RoundedBoxGeometry.js";
@@ -20,7 +21,7 @@ export function NexusResidences() {
     const out = FLOORS.flatMap((f) => mergeByMat(floorBoxes(f.id)
       // Replace only the original living-room sofa/table render meshes. Their
       // collider boxes remain in floorWalls() so gameplay is unaffected.
-      .filter((b) => f.id !== "nexus-res-1204" || !isReplacedLivingRoomFurniture(b) && !isReplacedBedroomBed(b) && !isReplacedKitchenIsland(b))
+      .filter((b) => f.id !== "nexus-res-1204" || !(isReplacedLivingRoomFurniture(b) || isReplacedBedroomBed(b) || isReplacedKitchenIsland(b)))
       .map((b) => ({ b, at: { x: f.origin.x, z: f.origin.z, floor: INTERIOR_ALTITUDE, rot: 0 } })), `residences-tower:${f.id}`));
     // the tower's glass is see-through (the city outside, the shower, the balustrades), unlike a house's window panes
     for (const m of out) if (m.name.endsWith(":glass")) { const g = m.material as THREE.MeshStandardMaterial; g.transparent = true; g.opacity = 0.22; g.depthWrite = false; m.castShadow = false; m.renderOrder = 2; }
@@ -37,7 +38,7 @@ export function NexusResidences() {
       {FLOORS.filter((f) => f.skyline).map((f) => <Skyline key={f.id} floor={f} />)}
       {/* Apartment 12-04: non-colliding finish details, separate from the original
           furniture and collision graph so the opening mission remains unchanged. */}
-      <ApartmentFinishDetails />
+      <OnlyNearApartment><ApartmentFinishDetails /></OnlyNearApartment>
 
       <Sign text="NEXUS CITY RESIDENCES" sub="Welcome home" at={[FLOORS[0]!.origin.x + 2, INTERIOR_ALTITUDE + 1.85, FLOORS[0]!.origin.z - 6.56]} w={4.4} />
       <Sign text="1204" sub="Your apartment" at={[FLOORS[1]!.origin.x + 0, INTERIOR_ALTITUDE + 2.9, FLOORS[1]!.origin.z + 5.83]} w={1.4} turn={Math.PI} />
@@ -163,6 +164,8 @@ function ApartmentFinishDetails() {
         <boxGeometry args={[0.025, 1.47, 2.64]} />
         <meshStandardMaterial color="#393c43" roughness={0.62} metalness={0.14} />
       </mesh>
+      {/* Zone-specific finish overlays and daylight cues; all visual-only. */}
+      <ApartmentFloorAndDaylight />
       {/* Living-room feature wall: alternating timber slats, shallow and non-interactive. */}
       <TimberFeatureWall />
       {/* Fabric weave on the existing inset lounge rug; decorative only. */}
@@ -171,6 +174,10 @@ function ApartmentFinishDetails() {
       <KitchenStoneSurfaces />
       {/* Authored GLB furniture: original collision boxes remain in floorWalls(). */}
       <PremiumApartmentFurniture />
+      {/* Low-cost practical fixtures improve depth without changing navigation. */}
+      <ApartmentPracticalLighting />
+      {/* Window treatments frame the existing transparent north facade. */}
+      <ApartmentWindowTreatments />
       {/* Wardrobe and bedside fixtures stay; authored bed supplies its own headboard. */}
       <ApartmentBedroomDetails />
       {/* Kitchen splash zone with tile joints modeled as thin strips. */}
@@ -216,6 +223,163 @@ function ApartmentFinishDetails() {
           <meshStandardMaterial color="#ffdfb3" emissive="#ffc88c" emissiveIntensity={0.65} toneMapped />
         </mesh>
       ))}
+    </group>
+  );
+}
+
+/** Initialize instance transforms once, not from a React callback ref on every render.
+ * This avoids repeated GPU buffer uploads as gameplay state changes. */
+function TimberPlankInstances({ color, palette }: { color: string; palette: number }) {
+  const meshRef = useRef<THREE.InstancedMesh>(null);
+  useEffect(() => {
+    const mesh = meshRef.current;
+    if (!mesh) return;
+    const matrix = new THREE.Matrix4();
+    let count = 0;
+    for (let i = palette; i < 19; i += 3) {
+      matrix.makeTranslation(-0.05, 0.019, -5.15 + i * 0.54);
+      mesh.setMatrixAt(count++, matrix);
+    }
+    mesh.count = count;
+    mesh.instanceMatrix.needsUpdate = true;
+    mesh.computeBoundingSphere();
+  }, [palette]);
+  return (
+    <instancedMesh ref={meshRef} args={[undefined, undefined, 7]} receiveShadow>
+      <boxGeometry args={[11.8, 0.012, 0.532]} />
+      <meshStandardMaterial color={color} roughness={0.83} metalness={0} />
+    </instancedMesh>
+  );
+}
+
+/** Subtle flooring zones and window-daylight cues. Thin surface overlays stay
+ * above the structural floor without altering the existing physics geometry.
+ * Emissive light bands avoid new real-time shadow-map costs. */
+function ApartmentFloorAndDaylight() {
+  return (
+    <group name="apartment-1204-floor-and-daylight">
+      {/* Timber ends at the kitchen threshold (x=5.85), avoiding overlapping
+          coplanar flooring and flicker at the tile boundary. */}
+      {/* Three shared material groups reduce draw calls compared with 19 separate
+          plank materials; plank transforms remain unchanged. */}
+      {["#867363", "#907c6b", "#8b7665"].map((color, palette) => (
+        <TimberPlankInstances key={`lounge-planks-${palette}`} color={color} palette={palette} />
+      ))}
+      {/* A cooler, hard-wearing kitchen floor zone with understated grout. */}
+      {Array.from({ length: 5 }, (_, i) => (
+        <mesh key={`kitchen-tile-${i}`} position={[6.8, 0.029, 1.2 + i * 0.91]} receiveShadow>
+          <boxGeometry args={[1.85, 0.012, 0.89]} />
+          <meshStandardMaterial color={i % 2 ? "#a29d93" : "#aaa59b"} roughness={0.74} metalness={0.02} />
+        </mesh>
+      ))}
+      {/* Narrow threshold transition, no added collision or trip hazard. */}
+      <mesh position={[5.84, 0.037, 3.02]} receiveShadow>
+        <boxGeometry args={[0.035, 0.015, 4.45]} />
+        <meshStandardMaterial color="#66605a" metalness={0.4} roughness={0.48} />
+      </mesh>
+      {/* Window-side bounced daylight: restrained fill, no additional shadows. */}
+      <pointLight position={[0, 2.65, -4.95]} color="#dbe8ff" intensity={0.36} distance={8} decay={2} castShadow={false} />
+      {/* Soft reflected window strips, rather than a harsh opaque glass overlay. */}
+      {[-4.4, 0, 4.4].map((x) => (
+        <mesh key={`daylight-reflection-${x}`} position={[x, 2.3, -5.765]}>
+          <boxGeometry args={[0.035, 1.8, 0.009]} />
+          <meshStandardMaterial color="#dce8f2" emissive="#adcbe0" emissiveIntensity={0.18} transparent opacity={0.24} depthWrite={false} />
+        </mesh>
+      ))}
+    </group>
+  );
+}
+
+/** Apartment 12-04 practical-light pass. All meshes are visual-only and
+ * local to the residence origin; no additional colliders or mission triggers. */
+function ApartmentPracticalLighting() {
+  return (
+    <group name="apartment-1204-practical-lighting">
+      {/* Floor lamp in the lounge: a weighted metal base, slender stem and
+          fabric shade. Keep the bulb recessed so it does not clip the shade. */}
+      <group position={[6.65, 0, -4.85]} name="lounge-floor-lamp">
+        <mesh position={[0, 0.045, 0]} castShadow receiveShadow>
+          <cylinderGeometry args={[0.23, 0.27, 0.09, 24]} />
+          <meshStandardMaterial color="#30353b" metalness={0.75} roughness={0.34} />
+        </mesh>
+        <mesh position={[0, 0.92, 0]} castShadow>
+          <cylinderGeometry args={[0.021, 0.021, 1.8, 12]} />
+          <meshStandardMaterial color="#73716b" metalness={0.8} roughness={0.3} />
+        </mesh>
+        <mesh position={[0, 1.83, 0]} castShadow receiveShadow>
+          <cylinderGeometry args={[0.23, 0.35, 0.44, 32, 1, true]} />
+          <meshStandardMaterial color="#d8cbb8" side={THREE.DoubleSide} roughness={0.92} />
+        </mesh>
+        <mesh position={[0, 1.71, 0]}>
+          <sphereGeometry args={[0.095, 12, 10]} />
+          <meshStandardMaterial color="#ffe6bf" emissive="#ffd19a" emissiveIntensity={0.8} />
+        </mesh>
+        <pointLight position={[0, 1.68, 0]} intensity={0.38} distance={4.5} decay={2} color="#ffd8a6" castShadow={false} />
+      </group>
+      {/* Warm recessed kitchen task lighting. Emissive strips have no shadow
+          map and the sole area light is approximated by a restrained point. */}
+      <group name="kitchen-under-cabinet-light">
+        <mesh position={[7.62, 2.03, 3.55]}>
+          <boxGeometry args={[0.055, 0.025, 2.8]} />
+          <meshStandardMaterial color="#fff0d9" emissive="#ffce91" emissiveIntensity={0.65} roughness={0.8} />
+        </mesh>
+        <pointLight position={[7.2, 1.78, 3.55]} intensity={0.25} distance={3.3} decay={2} color="#ffe0ba" castShadow={false} />
+      </group>
+      {/* Small entry switches and sockets provide believable architectural scale. */}
+      {[
+        [-7.72, 1.13, 4.4],
+        [7.72, 1.13, -0.4],
+      ].map(([x, y, z], i) => (
+        <group key={`switch-${i}`} position={[x!, y!, z!]}>
+          <mesh>
+            <boxGeometry args={[0.035, 0.13, 0.09]} />
+            <meshStandardMaterial color="#ddd7cc" roughness={0.58} />
+          </mesh>
+          <mesh position={[x! < 0 ? 0.02 : -0.02, 0, 0]}>
+            <boxGeometry args={[0.008, 0.055, 0.03]} />
+            <meshStandardMaterial color="#a9a49b" roughness={0.68} />
+          </mesh>
+        </group>
+      ))}
+    </group>
+  );
+}
+
+/** North-facing panoramic window treatment. Kept entirely inside the room,
+ * inset from the original facade and its colliders. Narrow curtain stacks
+ * preserve the skyline view and the player's line of sight. */
+function ApartmentWindowTreatments() {
+  return (
+    <group name="apartment-1204-window-treatments">
+      {/* Ceiling track and shallow sill sit against the original north glazing. */}
+      <mesh position={[0, 3.42, -5.82]} receiveShadow>
+        <boxGeometry args={[15.0, 0.045, 0.09]} />
+        <meshStandardMaterial color="#777b7e" metalness={0.65} roughness={0.36} />
+      </mesh>
+      <mesh position={[0, 0.20, -5.79]} receiveShadow>
+        <boxGeometry args={[15.0, 0.055, 0.20]} />
+        <meshStandardMaterial color="#a49b90" roughness={0.65} metalness={0.06} />
+      </mesh>
+      {/* Gathered fabric stacks rather than opaque curtains across the view. */}
+      {[-7.28, 7.28].map((x) => (
+        <group key={`curtain-${x}`} position={[x, 0, -5.68]}>
+          {Array.from({ length: 5 }, (_, i) => (
+            <mesh key={i} position={[(i - 2) * 0.12, 1.83, 0]} receiveShadow>
+              <boxGeometry args={[0.095, 3.05, 0.095]} />
+              <meshStandardMaterial color={i % 2 ? "#c7bdb1" : "#d5cabe"} roughness={0.98} metalness={0} />
+            </mesh>
+          ))}
+          <mesh position={[0, 1.05, 0.075]}>
+            <boxGeometry args={[0.58, 0.045, 0.07]} />
+            <meshStandardMaterial color="#a99d8e" roughness={0.88} />
+          </mesh>
+        </group>
+      ))}
+      {/* Slim interior transom trim, visual-only, does not replace glazing. */}
+      <mesh position={[0, 2.87, -5.78]}>
+        <boxGeometry args={[14.7, 0.035, 0.05]} />
+        <meshStandardMaterial color="#5a5d60" metalness={0.45} roughness={0.42} />
+      </mesh>
     </group>
   );
 }
@@ -635,4 +799,18 @@ function Sign({ text, sub, at, w, turn = 0 }: { text: string; sub: string; at: [
   }, [text, sub]);
   useEffect(() => () => tex.dispose(), [tex]);
   return <mesh position={at} rotation-y={turn}><planeGeometry args={[w, w / 4]} /><meshBasicMaterial map={tex} transparent toneMapped={false} /></mesh>;
+}
+
+/** The apartment's finish layer (its models, décor and four practical lights) is drawn only while the camera is in or at
+ * Apartment 12-04: every visible light costs every lit surface in the world on a phone, and nobody sees 12-04 from the street. */
+function OnlyNearApartment({ children }: { children: ReactNode }) {
+  const ref = useRef<THREE.Group>(null);
+  const f = FLOORS.find((floor) => floor.id === "nexus-res-1204");
+  useFrame(({ camera }) => {
+    if (!ref.current || !f) return;
+    const c = camera.position;
+    const inside = c.y > INTERIOR_ALTITUDE - 20 && Math.abs(c.x - f.origin.x) < f.hx + 12 && Math.abs(c.z - f.origin.z) < f.hz + 12;
+    if (ref.current.visible !== inside) ref.current.visible = inside;
+  });
+  return <group ref={ref} visible={false}>{children}</group>;
 }
