@@ -1237,8 +1237,8 @@ func _roof_box_pass_17(st: SurfaceTool, origin: Vector2, c: float, si: float,
 		tint: Color, seed: float) -> void:
 	var corners: Array[Vector2] = []
 	for v in [Vector2(-1, -1), Vector2(1, -1), Vector2(1, 1), Vector2(-1, 1)]:
-		var lx := offset.x + v.x * hx
-		var lz := offset.y + v.y * hz
+		var lx: float = offset.x + v.x * hx
+		var lz: float = offset.y + v.y * hz
 		corners.append(Vector2(origin.x + lx * c + lz * si,
 			origin.y - lx * si + lz * c))
 	for f in range(4):
@@ -1310,7 +1310,7 @@ func _build_entrances_pass_18() -> void:
 			entrance_width + 0.75, 0.73, base + 3.65, base + 3.86, accent, seed)
 		# Repeated pilasters at storefront frontage, restrained for performance.
 		for side in [-1.0, 1.0]:
-			var offset_x := side * minf(hx * 0.75, entrance_width + 2.4)
+			var offset_x: float = side * minf(hx * 0.75, entrance_width + 2.4)
 			_roof_box_pass_17(st, p, c, si, Vector2(offset_x, front + 0.04),
 				0.16, 0.16, base + 0.1, base + 4.1, trim, seed)
 		count += 1
@@ -1451,7 +1451,7 @@ func _build_road_markings_batch_19_43() -> void:
 				cursor += maxf(take, 0.01)
 			# Subtle outer edge lines avoid full-bright arcade-like streets.
 			for side in [-1.0, 1.0]:
-				var lateral := normal * (side * (width * 0.5 - 0.42))
+				var lateral: Vector2 = normal * (side * (width * 0.5 - 0.42))
 				_road_paint_quad_pass_19_43(st, a + lateral, b + lateral,
 					normal, 0.055, 0.22, Color(0.65, 0.67, 0.66))
 				edge_count += 1

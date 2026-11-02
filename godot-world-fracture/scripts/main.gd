@@ -5,10 +5,12 @@ extends Control
 const PlanetView := preload("res://scripts/planet_view.gd")
 const RegionMap := preload("res://scripts/region_map.gd")
 const Region3D := preload("res://scripts/region_3d.gd")
+const GarageView := preload("res://scripts/garage/garage_view.gd")
 
 var planet_view: Control
 var region_map: Control
 var region_3d: Control
+var garage: Control
 
 func _ready() -> void:
 	var bg := ColorRect.new()
@@ -19,6 +21,13 @@ func _ready() -> void:
 	planet_view.set_anchors_preset(Control.PRESET_FULL_RECT)
 	planet_view.open_map.connect(_open_map)
 	add_child(planet_view)
+	# the garage (scripts/garage): a button over the globe
+	var gb := Data.button("GARAGE", true)
+	gb.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
+	gb.position = Vector2(-150, -70)
+	gb.custom_minimum_size = Vector2(130, 52)
+	gb.pressed.connect(_open_garage)
+	add_child(gb)
 	get_tree().set_auto_accept_quit(false)
 	get_tree().set_quit_on_go_back(false)
 	# a capture hook for checking the look off-device: --shot <png> [map:<id>] [sat]
@@ -56,6 +65,21 @@ func _close_3d() -> void:
 	if region_map:
 		region_map.visible = true
 
+func _open_garage() -> void:
+	if garage:
+		return
+	garage = GarageView.new()
+	garage.set_anchors_preset(Control.PRESET_FULL_RECT)
+	garage.closed.connect(_close_garage)
+	add_child(garage)
+	planet_view.set_process(false)
+
+func _close_garage() -> void:
+	if garage:
+		garage.queue_free()
+		garage = null
+	planet_view.set_process(true)
+
 func _close_map() -> void:
 	if region_map:
 		region_map.queue_free()
@@ -65,7 +89,9 @@ func _close_map() -> void:
 
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_WM_GO_BACK_REQUEST or what == NOTIFICATION_WM_CLOSE_REQUEST:
-		if region_3d:
+		if garage:
+			_close_garage()
+		elif region_3d:
 			_close_3d()
 		elif region_map:
 			_close_map()
@@ -78,6 +104,17 @@ func _shoot(path: String, opts: Array) -> void:
 			planet_view.select(String(o).substr(7))
 		if String(o).begins_with("map:"):
 			_open_map(String(o).substr(4))
+		# garage[:shop[:car[:item,item...]]]  e.g. garage:neon-performance:street-racer:paint-red,spoiler-gt,glow-cyan
+		if String(o).begins_with("garage"):
+			var g := String(o).split(":")
+			_open_garage()
+			if g.size() > 1 and g[1] != "":
+				garage._enter_shop(g[1])
+			if g.size() > 2 and g[2] != "":
+				garage.show_car(g[2])
+			if g.size() > 3:
+				garage.state.rep = { "nexus-customs": 3, "neon-performance": 3, "ironworks": 3, "fracture-dynamics": 3 }
+				garage.pick(Array(g[3].split(",")))
 		if String(o) == "sat" and region_map:
 			region_map.set_satellite(true)
 		if String(o).begins_with("zoom:") and region_map:
