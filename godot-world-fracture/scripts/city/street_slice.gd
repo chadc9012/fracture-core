@@ -5,6 +5,7 @@ extends Control
 ## Forward+ gets SDFGI bounce light, screen-space reflections, SSAO/SSIL and volumetric fog; the mobile renderer
 ## quietly drops what it can't do and keeps the rest.
 signal closed
+signal toggle_night
 
 const ROAD_W := 16.0          # kerb to kerb
 const WALK_W := 7.0           # each sidewalk
@@ -12,6 +13,13 @@ const LENGTH := 260.0         # street length (z)
 const MODELS := "res://models/city/"
 const FLEET := "res://models/fleet/"
 
+## night: the Las Vegas / New York version — lit towers, neon blade signs and billboards, lamps on, wet street mirroring it all
+var night := false
+## original in-world brands (no real names or logos): what fills the blank shopfronts and signs
+const BRANDS := ["LUMA CAFE", "NEXA BANK", "BYTEBURGER", "VOLTA MOBILE", "IRONCLAD ARMS", "FADE & CO", "HAVEN HOME",
+	"PULSE GYM", "KAIJU RAMEN", "ORBIT TICKETS", "VELVET SALON", "AXIOM ARMOR", "SOLACE SPA", "GRIDLINE TAXI", "NOVA THREADS",
+	"CROWN CASINO", "MERIDIAN HOTEL", "QUANTA ELECTRONICS"]
+const NEON := [Color(1.0, 0.18, 0.62), Color(0.15, 0.85, 1.0), Color(0.62, 0.3, 1.0), Color(1.0, 0.62, 0.15), Color(0.25, 1.0, 0.55)]
 var cam: Camera3D
 var world: Node3D
 var _rng := RandomNumberGenerator.new()
@@ -42,6 +50,8 @@ func _ready() -> void:
 	_skyline()
 	_props()
 	_cars()
+	if night:
+		_neon()
 	cam = Camera3D.new()
 	cam.fov = 58.0
 	cam.near = 0.05
@@ -54,6 +64,11 @@ func _ready() -> void:
 	back.position = Vector2(16, 16)
 	back.pressed.connect(func(): closed.emit())
 	add_child(back)
+	var tod := Button.new()
+	tod.text = "DAY" if night else "NIGHT"
+	tod.position = Vector2(110, 16)
+	tod.pressed.connect(func(): toggle_night.emit())
+	add_child(tod)
 
 func look_from(from: Vector3, at: Vector3) -> void:
 	cam.position = from
@@ -121,6 +136,26 @@ func _environment() -> void:
 	var we := WorldEnvironment.new()
 	we.environment = env
 	world.add_child(we)
+	if night:
+		sun.light_color = Color(0.55, 0.62, 0.9)
+		sun.light_energy = 0.22
+		sun.rotation_degrees = Vector3(-38.0, 120.0, 0.0)
+		sun.light_volumetric_fog_energy = 0.3
+		sky_mat.sky_top_color = Color(0.02, 0.025, 0.06)
+		sky_mat.sky_horizon_color = Color(0.22, 0.12, 0.28)
+		sky_mat.ground_horizon_color = Color(0.12, 0.08, 0.14)
+		sky_mat.ground_bottom_color = Color(0.02, 0.02, 0.03)
+		sky_mat.sun_angle_max = 2.0
+		env.ambient_light_energy = 0.5
+		env.tonemap_exposure = 1.4
+		env.glow_intensity = 1.1
+		env.glow_bloom = 0.16
+		env.glow_hdr_threshold = 0.85
+		env.fog_light_color = Color(0.3, 0.22, 0.42)
+		env.fog_density = 0.0022
+		env.fog_sun_scatter = 0.05
+		env.volumetric_fog_density = 0.012
+		env.volumetric_fog_albedo = Color(0.7, 0.7, 0.9)
 
 # --------------------------------------------------------------------------------------------- materials
 static func _noise_tex(freq: float, octaves: int, size := 1024, normal := false, seamless := true) -> NoiseTexture2D:
@@ -300,6 +335,7 @@ uniform vec3 frame : source_color = vec3(0.16, 0.17, 0.19);
 uniform float floor_h = 3.3;
 uniform float bay_w = 1.5;
 uniform float lit = 0.25;
+uniform float glow = 0.35;
 varying vec3 wpos;
 varying vec3 wnrm;
 void vertex() { wpos = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz; wnrm = normalize((MODEL_MATRIX * vec4(NORMAL, 0.0)).xyz); }
@@ -314,7 +350,7 @@ void fragment() {
 	ALBEDO = mix(g, frame, clamp(mullion, 0.0, 1.0));
 	METALLIC = mix(0.85, 0.3, clamp(mullion, 0.0, 1.0));
 	ROUGHNESS = mix(0.06, 0.5, clamp(mullion, 0.0, 1.0));
-	EMISSION = vec3(1.0, 0.82, 0.6) * on * 0.35;
+	EMISSION = vec3(1.0, 0.82, 0.6) * on * glow;
 }
 """
 	for k in 26:
@@ -322,7 +358,8 @@ void fragment() {
 		m.shader = sh
 		var tint := _rng.randf()
 		m.set_shader_parameter("glass", Color(0.25 + 0.1 * tint, 0.36 + 0.08 * tint, 0.48 + 0.08 * tint))
-		m.set_shader_parameter("lit", _rng.randf_range(0.02, 0.1))
+		m.set_shader_parameter("lit", _rng.randf_range(0.16, 0.3) if night else _rng.randf_range(0.02, 0.1))
+		m.set_shader_parameter("glow", 0.9 if night else 0.35)
 		var w := _rng.randf_range(18.0, 34.0)
 		var h := _rng.randf_range(60.0, 190.0)
 		var side := -1.0 if k % 2 == 0 else 1.0
@@ -333,7 +370,8 @@ void fragment() {
 	var lm := ShaderMaterial.new()
 	lm.shader = sh
 	lm.set_shader_parameter("glass", Color(0.36, 0.48, 0.62))
-	lm.set_shader_parameter("lit", 0.08)
+	lm.set_shader_parameter("lit", 0.3 if night else 0.08)
+	lm.set_shader_parameter("glow", 1.6 if night else 0.35)
 	_box(Vector3(30, 260, 30), Vector3(-6, 130, -LENGTH * 0.5 - 70.0), lm)
 	_box(Vector3(18, 60, 18), Vector3(-6, 290, -LENGTH * 0.5 - 70.0), lm)
 
@@ -352,6 +390,13 @@ func _props() -> void:
 					_palm_fallback(Vector3(edge, 0.18, z))
 			elif ResourceLoader.exists(MODELS + "street-lamp.glb"):
 				prop("street-lamp.glb", 6.5, Vector3(edge, 0.18, z), 90.0 * side + 180.0)
+				if night:
+					var lamp := OmniLight3D.new()
+					lamp.light_color = Color(1.0, 0.82, 0.62)
+					lamp.light_energy = 2.6
+					lamp.omni_range = 15.0
+					lamp.position = Vector3(edge - side * 1.2, 6.0, z)
+					world.add_child(lamp)
 			else:
 				_lamp_fallback(Vector3(edge, 0.18, z), side)
 			if i % 3 == 1:
@@ -389,3 +434,82 @@ func _cars() -> void:
 			world.add_child(car)
 		z += _rng.randf_range(9.0, 16.0)
 		i += 1
+
+# --------------------------------------------------------------------------------------------- night: neon and billboards
+func _neon_mat(c: Color, strength := 4.0) -> StandardMaterial3D:
+	var m := StandardMaterial3D.new()
+	m.albedo_color = c * 0.3
+	m.emission_enabled = true
+	m.emission = c
+	m.emission_energy_multiplier = strength
+	return m
+
+func _sign(text: String, c: Color, pos: Vector3, yaw_deg: float, vertical: bool) -> void:
+	var holder := Node3D.new()
+	holder.position = pos
+	holder.rotation_degrees.y = yaw_deg
+	world.add_child(holder)
+	var w := 0.9 if vertical else maxf(3.0, text.length() * 0.55)
+	var h := maxf(2.6, text.length() * 0.5) if vertical else 1.1
+	_box(Vector3(w + 0.2, h + 0.2, 0.25), Vector3.ZERO, flat(Color(0.05, 0.05, 0.06), 0.4, 0.6), holder)
+	_box(Vector3(w + 0.26, 0.06, 0.06), Vector3(0, h * 0.5 + 0.13, 0.14), _neon_mat(c, 6.0), holder)
+	_box(Vector3(w + 0.26, 0.06, 0.06), Vector3(0, -h * 0.5 - 0.13, 0.14), _neon_mat(c, 6.0), holder)
+	var label := Label3D.new()
+	label.text = "\n".join(text.split("")) if vertical else text
+	label.font_size = 64
+	label.pixel_size = 0.0075 if vertical else 0.009
+	label.outline_size = 0
+	label.modulate = c * 3.0
+	label.position = Vector3(0, 0, 0.14)
+	label.shaded = false
+	holder.add_child(label)
+	var glow := OmniLight3D.new()
+	glow.light_color = c
+	glow.light_energy = 1.4
+	glow.omni_range = 7.0
+	glow.position = Vector3(0, 0, 1.2)
+	holder.add_child(glow)
+
+## blade signs on every block, a shop sign over each awning, and video billboards high on the towers
+func _neon() -> void:
+	var half := ROAD_W * 0.5 + WALK_W
+	var k := 0
+	for side: float in [-1.0, 1.0]:
+		var z := -LENGTH * 0.5 + 14.0
+		while z < LENGTH * 0.5 - 10.0:
+			var c: Color = NEON[k % NEON.size()]
+			var brand: String = BRANDS[k % BRANDS.size()]
+			# a vertical blade sign sticking out from the facade, readable down the street
+			_sign(brand, c, Vector3(side * (half - 0.9), 9.0 + (k % 3) * 1.5, z + 6.0), 90.0 if side < 0 else -90.0, true)
+			# the shop's own sign above the awning, facing the street
+			_sign(BRANDS[(k + 7) % BRANDS.size()], NEON[(k + 2) % NEON.size()], Vector3(side * (half - 0.05), 6.1, z - 2.0), 90.0 if side < 0 else -90.0, false)
+			z += 22.0
+			k += 1
+	# video billboards on the towers: big emissive panels in gradients
+	var sh := Shader.new()
+	sh.code = """
+shader_type spatial;
+render_mode unshaded;
+uniform vec3 a : source_color = vec3(1.0, 0.2, 0.6);
+uniform vec3 b : source_color = vec3(0.2, 0.8, 1.0);
+void fragment() {
+	float t = UV.x * 0.7 + UV.y * 0.3;
+	float scan = 0.85 + 0.15 * sin(UV.y * 240.0);
+	float frame = step(0.03, UV.x) * step(UV.x, 0.97) * step(0.04, UV.y) * step(UV.y, 0.96);
+	ALBEDO = mix(a, b, t) * scan * (0.15 + 0.85 * frame) * 2.2;
+}
+"""
+	for i in 6:
+		var m := ShaderMaterial.new()
+		m.shader = sh
+		m.set_shader_parameter("a", NEON[i % NEON.size()])
+		m.set_shader_parameter("b", NEON[(i + 2) % NEON.size()])
+		var side := -1.0 if i % 2 == 0 else 1.0
+		var q := QuadMesh.new()
+		q.size = Vector2(_rng.randf_range(14.0, 22.0), _rng.randf_range(8.0, 12.0))
+		var mi := MeshInstance3D.new()
+		mi.mesh = q
+		mi.material_override = m
+		mi.position = Vector3(side * (half + 0.3), _rng.randf_range(24.0, 34.0), -40.0 - i * 26.0)
+		mi.rotation_degrees.y = 90.0 if side < 0 else -90.0
+		world.add_child(mi)

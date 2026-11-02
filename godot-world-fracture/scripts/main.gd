@@ -90,10 +90,15 @@ func _open_drive() -> void:
 	planet_view.set_process(false)
 
 var street: Control
-func _open_street() -> void:
+func _open_street(night := false) -> void:
 	if street or driving or garage:
 		return
 	street = StreetSlice.new()
+	street.night = night
+	street.toggle_night.connect(func():
+		var was: bool = street.night
+		_close_street()
+		_open_street(not was))
 	street.closed.connect(_close_street)
 	add_child(street)
 	planet_view.set_process(false)
@@ -184,7 +189,7 @@ func _shoot(path: String, opts: Array) -> void:
 				driving._open_city_garage()
 		# slice[:x,y,z:tx,ty,tz]  the Nexus street slice, optionally from another camera
 		if String(o).begins_with("slice"):
-			_open_street()
+			_open_street(String(o).contains("night"))
 			var sl := street
 			var q := String(o).split(":")
 			if q.size() > 2:
