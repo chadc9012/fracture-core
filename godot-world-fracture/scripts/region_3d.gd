@@ -139,12 +139,138 @@ func _pad(keys: Array, four: bool) -> Control:
 
 # ---------------- building the region ----------------
 
+const RUIN_RADIUS := 45.0
+var _ruins: Array = []
+
+## Buildings at a ruins site (Verdant's Ancient Ruins, the Swamps' Drowned Ruins, ...) come through the export as ordinary
+## offices and houses; drawn as such they read as a business park in the woods. Take them out of the city passes (windows,
+## rooftops, fins, entrances) and keep them for _build_ruins.
+func _split_ruins() -> void:
+	_ruins = []
+	var sites: Array[Vector2] = []
+	for p in m.get("pois", []):
+		if String(p.get("cat", "")) == "ruins":
+			sites.append(Vector2(p.x, p.z))
+	if sites.is_empty():
+		return
+	var keep: Array = []
+	for bd in m.get("buildings", []):
+		var at := Vector2(bd[0], bd[1])
+		var ruin := false
+		for c in sites:
+			if at.distance_to(c) <= RUIN_RADIUS:
+				ruin = true
+				break
+		if ruin:
+			_ruins.append(bd)
+		else:
+			keep.append(bd)
+	if _ruins.is_empty():
+		return
+	m = m.duplicate()
+	m.buildings = keep
+
+## each ruin: its footprint's walls broken into jagged stretches of moss-stained stone, no roof, toppled columns and rubble
+func _build_ruins() -> void:
+	if _ruins.is_empty():
+		return
+	var rng := RandomNumberGenerator.new()
+	rng.seed = hash(map_id)
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var stone := Color("#9a9483")
+	var moss := Color("#5d7a42")
+	var rubble: Array[Transform3D] = []
+	var columns: Array[Transform3D] = []
+	var quad := func(a: Vector3, b: Vector3, c: Vector3, d: Vector3, ca: Color, cb: Color) -> void:
+		var n := (b - a).cross(d - a).normalized()
+		for tri in [[a, b, c, ca, ca, cb], [a, c, d, ca, cb, cb]]:
+			st.set_normal(n)
+			st.set_color(tri[3])
+			st.add_vertex(tri[0])
+			st.set_color(tri[4])
+			st.add_vertex(tri[1])
+			st.set_color(tri[5])
+			st.add_vertex(tri[2])
+	for bd in _ruins:
+		var p := _loc(bd[0], bd[1])
+		var hx: float = minf(float(bd[2]), 9.0)
+		var hz: float = minf(float(bd[3]), 9.0)
+		var yaw: float = bd[4]
+		var full := clampf(_bh(bd) * 0.3, 3.0, 8.0) # what's left standing: a storey or two at most
+		var c := cos(yaw)
+		var sn := sin(yaw)
+		var corners: Array[Vector2] = []
+		for uv in [Vector2(-1, -1), Vector2(1, -1), Vector2(1, 1), Vector2(-1, 1)]:
+			corners.append(Vector2(p.x + uv.x * hx * c + uv.y * hz * sn, p.y - uv.x * hx * sn + uv.y * hz * c))
+		const THICK := 0.7
+		for f in 4:
+			var a: Vector2 = corners[f]
+			var b: Vector2 = corners[(f + 1) % 4]
+			var along := a.distance_to(b)
+			var dir := (b - a) / along
+			var inward := Vector2(-dir.y, dir.x)
+			var pieces := maxi(2, int(along / 2.2))
+			for i in pieces:
+				if rng.randf() < 0.22:
+					continue # a gap where the wall has fallen
+				var u0 := a + dir * (along * i / pieces)
+				var u1 := a + dir * (along * (i + 1) / pieces)
+				var g0 := _h(u0.x, u0.y) - 0.4
+				var g1 := _h(u1.x, u1.y) - 0.4
+				# each stretch keeps a flat top at its own height: stepped like masonry that lost its upper courses
+				var left := full * rng.randf_range(0.2, 1.0)
+				var h0 := maxf(g0, g1) + left
+				var h1 := h0
+				var i0 := u0 + inward * THICK
+				var i1 := u1 + inward * THICK
+				var top_col := stone.lerp(moss, rng.randf_range(0.15, 0.4))
+				quad.call(Vector3(u0.x, g0, u0.y), Vector3(u1.x, g1, u1.y), Vector3(u1.x, h1, u1.y), Vector3(u0.x, h0, u0.y), stone.darkened(0.15), top_col)
+				quad.call(Vector3(i1.x, g1, i1.y), Vector3(i0.x, g0, i0.y), Vector3(i0.x, h0, i0.y), Vector3(i1.x, h1, i1.y), stone.darkened(0.25), top_col)
+				quad.call(Vector3(u0.x, h0, u0.y), Vector3(u1.x, h1, u1.y), Vector3(i1.x, h1, i1.y), Vector3(i0.x, h0, i0.y), moss, moss)
+		# fallen stone round the walls, and a column or two lying in the grass
+		for r in 10:
+			var q := p + Vector2(rng.randf_range(-1.4, 1.4) * hx, rng.randf_range(-1.4, 1.4) * hz)
+			var sz := rng.randf_range(0.4, 1.3)
+			rubble.append(Transform3D(Basis.from_euler(Vector3(rng.randf(), rng.randf() * TAU, rng.randf())).scaled(Vector3(sz * 1.3, sz * 0.8, sz)), Vector3(q.x, _h(q.x, q.y) + sz * 0.2, q.y)))
+		for col in 2:
+			var q2 := p + Vector2(rng.randf_range(-1.6, 1.6) * hx, rng.randf_range(-1.6, 1.6) * hz)
+			var standing := rng.randf() < 0.4
+			var ch := rng.randf_range(3.0, 6.0)
+			var basis := Basis(Vector3.UP, rng.randf() * TAU) if standing else Basis.from_euler(Vector3(PI / 2.0, rng.randf() * TAU, 0))
+			var y := _h(q2.x, q2.y) + (ch / 2.0 if standing else 0.45)
+			columns.append(Transform3D(basis.scaled(Vector3(1, ch, 1)), Vector3(q2.x, y, q2.y)))
+	var mi := MeshInstance3D.new()
+	mi.mesh = st.commit()
+	var mat := StandardMaterial3D.new()
+	mat.vertex_color_use_as_albedo = true
+	mat.roughness = 0.97
+	mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+	mi.material_override = mat
+	_world.add_child(mi)
+	var stone_mat := StandardMaterial3D.new()
+	stone_mat.albedo_color = stone.darkened(0.25) # loose stone sits in the wall's shadow and the grass
+	stone_mat.roughness = 0.95
+	var rm := SphereMesh.new()
+	rm.radius = 1.0
+	rm.height = 2.0
+	rm.radial_segments = 6
+	rm.rings = 3
+	_multimesh(rm, rubble, stone_mat)
+	var cm := CylinderMesh.new()
+	cm.top_radius = 0.42
+	cm.bottom_radius = 0.48
+	cm.height = 1.0
+	cm.radial_segments = 10
+	_multimesh(cm, columns, stone_mat)
+
 ## open a region in 3D, looking at `at` (world metres; the map's centre when null)
 func show_region(id: String, at: Variant = null, start_mode: Mode = Mode.CITY) -> void:
 	map_id = id
 	m = Data.map(id)
 	if m.is_empty():
 		return
+	_split_ruins()
 	_title.text = "%s · 3D" % m.name
 	var b: Dictionary = m.bounds
 	_span = b.span
@@ -179,6 +305,7 @@ func show_region(id: String, at: Variant = null, start_mode: Mode = Mode.CITY) -
 	_build_rings()
 	_build_trees()
 	_build_floating()
+	_build_ruins()
 	if id == "thalassia":
 		preload("res://scripts/thalassia_city.gd").new().build(_world, m, _loc, _h)
 	_build_lamps()
