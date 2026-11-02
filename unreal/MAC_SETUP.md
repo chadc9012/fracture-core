@@ -3,7 +3,11 @@
 Epic's cloud (container) images only build for Linux, so the Unreal APK is built on the owner's Mac. One-time setup,
 about 150 GB of disk and a few hours of downloads:
 
-1. **Xcode**: install from the App Store, open it once to accept the licence, then in Terminal: `xcode-select --install`.
+1. **Xcode** (Unreal 5.8 needs the macOS SDK 15.2 or newer, i.e. Xcode 16-26; the command line tools alone fail with
+   "Platform Mac is not a valid platform to build. SDK validation failed"). On an **Intel Mac** the App Store's Xcode 27 is
+   Apple-silicon only and does not even show up: download the newest **Xcode 26.x** .xip from
+   developer.apple.com/download/all (free Apple ID sign-in), unpack it into /Applications, open it once to accept the
+   licence, then `sudo xcode-select -s /Applications/Xcode.app`.
 2. **Epic Games Launcher**: https://store.epicgames.com/download, sign in with the Epic account linked to GitHub.
    Unreal Engine tab > Library > + > **5.8** > Install. Under Options, tick **Android** under Target Platforms.
 3. **Android Studio**: https://developer.android.com/studio. Open it once and finish the setup wizard (standard install).
