@@ -801,6 +801,9 @@ function SceneImpl({
   const breachFoes = useRef<{ state: string; foes: Machine[] }>({ state: "", foes: [] });
   /** the Breach: the power NOVA just pointed at was used (fire in SURGE, an ability in ANCHOR), so its hint can fade */
   const breachUsed = useRef(false);
+  /** the outdoor world's group: hidden while the player is inside a pocket room (see the JSX) */
+  const outdoorWorld = useRef<THREE.Group>(null);
+  useFrame(() => { const g = outdoorWorld.current; if (!g) return; const show = !state.current.insideInterior; if (g.visible !== show) g.visible = show; });
   useEffect(() => {
     if (typeof window === "undefined" || new URLSearchParams(window.location.search).get("dev") !== "1") return;
     const w = window as unknown as { __warp?: (to: string | { x: number; z: number; y?: number; keepInterior?: boolean }) => string };
@@ -3729,6 +3732,9 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
       </group>
       <RegionLighting playerRef={player} tier={settings.renderTier} />
 
+      {/* the outdoor world: hidden while you are in a pocket room (they hang at INTERIOR_ALTITUDE, so none of this is ever
+          seen from inside, but it was all still drawn: ~1.8M triangles at ~28 fps in Apartment 12-04, play-test Nov 2) */}
+      <group ref={outdoorWorld} name="outdoor-world">
       <group name="terrain+trees"><Terrain renderTier={settings.renderTier} /></group>
       <Roads />
       <WorldPiece name="road-dressing"><RoadDressing /></WorldPiece>
@@ -3773,6 +3779,7 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
         <NearOnly key={l.id} playerRef={player} x={l.x} z={l.z} radius={260 * NEAR_SCALE[settings.renderTier]} name={`set:${l.id}`}>{l.id === "convoy-sprint" ? <WreckField /> : <LavaTrench />}</NearOnly>
       ))}
       <NearOnly playerRef={player} x={THALASSIA_CENTER.x} z={THALASSIA_CENTER.z} radius={260 * NEAR_SCALE[settings.renderTier]} name="city:thalassia"><Thalassia /><ThalassiaSectors descent={descent ?? null} everRestored={!!gear?.completedMissions?.includes("descent-protocol")} /></NearOnly>
+      </group>
       <SupplyLanes sim={sim} />
       <ZoneBeacons sim={sim} />
       <Convoys sim={sim} />

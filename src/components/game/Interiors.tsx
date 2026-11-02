@@ -10,6 +10,7 @@ import { castAt, NEXUS_DINER } from "@/game/venue-life";
 import { callPad, residenceFloor, stairsPad, type ResidenceFloorId } from "@/game/nexus-residences";
 import { getEvac, residentPlace, residentsOn, subscribeEvac } from "@/game/residence-life";
 import { NexusResidences } from "./NexusResidences";
+import { CameraNear } from "./CameraNear";
 
 const ROOM_HALF = 5;
 const WALL_HEIGHT = 4;
@@ -57,14 +58,17 @@ export function Interiors() {
       {INTERIORS.filter((i) => i.layout === "nexus-residences").map((interior) => {
         const f = residenceFloor(interior.id)!;
         return (
-          <group key={interior.id} position={[interior.origin.x, INTERIOR_ALTITUDE, interior.origin.z]}>
+          <CameraNear key={interior.id} x={interior.origin.x} y={INTERIOR_ALTITUDE} z={interior.origin.z} radius={90} name={`room:${interior.id}`}>
+          <group position={[interior.origin.x, INTERIOR_ALTITUDE, interior.origin.z]}>
             <ResidenceFloorExtras id={interior.id} />
             {!interior.noExit && <mesh rotation-x={-Math.PI / 2} position={[interior.exitOffset.x, 0.02, interior.exitOffset.z]}><ringGeometry args={[1.2, 1.6, 24]} /><meshBasicMaterial color="#7dffca" transparent opacity={0.6} /></mesh>}
           </group>
+          </CameraNear>
         );
       })}
       {INTERIORS.filter((i) => i.kind !== "HOME" && !i.layout).map((interior) => (
-        <group key={interior.id} position={[interior.origin.x, INTERIOR_ALTITUDE, interior.origin.z]}>
+        <CameraNear key={interior.id} x={interior.origin.x} y={INTERIOR_ALTITUDE} z={interior.origin.z} radius={70} name={`room:${interior.id}`}>
+        <group position={[interior.origin.x, INTERIOR_ALTITUDE, interior.origin.z]}>
           {/* floor */}
           <mesh rotation-x={-Math.PI / 2} receiveShadow position={[0, 0, 0]}>
             <planeGeometry args={[ROOM_HALF * 2, ROOM_HALF * 2]} />
@@ -140,6 +144,7 @@ export function Interiors() {
             <meshBasicMaterial color="#7dffca" transparent opacity={0.6} />
           </mesh>
         </group>
+        </CameraNear>
       ))}
     </group>
   );
