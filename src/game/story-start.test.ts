@@ -59,7 +59,6 @@ describe("story start: a new character wakes in Apartment 1204", () => {
   it("the street point is outside the Residences' doors, not on them", () => {
     const st = streetOutside();
     expect(doorAt(st.x, st.z)).toBeNull();
-    expect(doorAt(streetOutside(0).x, streetOutside(0).z)?.id).toBe("nexus-apartment");
   });
   it("you wake somewhere you can walk from", () => {
     expect(reachable(OPENING_FLOOR)(WAKE_AT.x, WAKE_AT.z, 0.3)).toBe(true);

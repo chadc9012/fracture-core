@@ -8,8 +8,7 @@
 import type { PlayerProgression } from "./progression";
 import { EVAC_DONE } from "./residence-life";
 import { BREACH_DONE } from "./breach";
-import { REGIONS } from "./world";
-import { interiorById } from "./interiors";
+import { exitPosition, interiorById } from "./interiors";
 
 export const OPENING_SKIPPED = "opening:skipped";
 export const OPENING_FLOOR = "nexus-res-1204";
@@ -30,12 +29,12 @@ export function openingPhase(p: Save): "residences" | "breach" | null {
 export const startsInResidences = (p: Save): boolean => openingPhase(p) === "residences";
 export const skipOpening = <P extends Pick<PlayerProgression, "earnedRewards">>(p: P): P => (openingOver(p) ? p : { ...p, earnedRewards: [...p.earnedRewards, OPENING_SKIPPED] });
 
-/** out on the street in front of the Residences' doors, `out` metres from them, away from the tower (not on the door, which
- * would walk you straight back in) */
-export function streetOutside(out = 6): { x: number; z: number; yaw: number } {
-  const lobby = interiorById("nexus-apartment")!, hub = REGIONS.find((r) => r.id === "nexus")!;
-  const dx = lobby.doorPos.x - hub.x, dz = lobby.doorPos.z - hub.z, d = Math.hypot(dx, dz) || 1;
-  return { x: lobby.doorPos.x + (dx / d) * out, z: lobby.doorPos.z + (dz / d) * out, yaw: Math.atan2(dx, dz) };
+/** out on the street in front of the Residences' doors: exactly where walking out of the lobby puts you (interiors.ts
+ * exitPosition), so it is clear of the door and of the tower (play-test: a point 6 m out along the hub radius was inside the
+ * tower's footprint and the collision pushed you straight back through the door into the lobby) */
+export function streetOutside(): { x: number; z: number; yaw: number } {
+  const lobby = interiorById("nexus-apartment")!, at = exitPosition(lobby.doorPos, lobby.doorPos);
+  return { x: at.x, z: at.z, yaw: 0 };
 }
 /** the opening is finished (the Breach won, or skipped): it counts as Mission 01 and the onboarding, so the forest
  * calibration never starts. `reward` is the mission payout (progression's rewardMission) applied once. */
