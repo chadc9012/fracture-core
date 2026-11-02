@@ -25,6 +25,8 @@ const STYLE_NAMES := { "nexus": "NEXUS CITY", "neon": "NEON CITY", "coast": "MIA
 const CITY_GARAGE := { "nexus": "nexus-customs", "neon": "neon-performance", "coast": "sunset-kustoms" }
 const Catalog = preload("res://scripts/garage/catalog.gd")
 const GarageView = preload("res://scripts/garage/garage_view.gd")
+const Mall = preload("res://scripts/city/mall_interior.gd")
+var mall_overlay: Control
 var garage_overlay: Control
 const GARAGE_Z := 8.0
 ## original in-world brands (no real names or logos): what fills the blank shopfronts and signs
@@ -98,6 +100,11 @@ func _ready() -> void:
 	enter.position = Vector2(330, 16)
 	enter.pressed.connect(open_garage)
 	add_child(enter)
+	var mall := Button.new()
+	mall.text = "ENTER GALLERIA MALL"
+	mall.position = Vector2(560, 16)
+	mall.pressed.connect(open_mall)
+	add_child(mall)
 	if style != "nexus":
 		tod.visible = style != "neon"   # Neon City is always night
 
@@ -649,3 +656,15 @@ func close_garage() -> void:
 	if garage_overlay:
 		garage_overlay.queue_free()
 		garage_overlay = null
+
+func open_mall() -> void:
+	if mall_overlay or garage_overlay:
+		return
+	mall_overlay = Mall.new()
+	mall_overlay.closed.connect(close_mall)
+	add_child(mall_overlay)
+
+func close_mall() -> void:
+	if mall_overlay:
+		mall_overlay.queue_free()
+		mall_overlay = null

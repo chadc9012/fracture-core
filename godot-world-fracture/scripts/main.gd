@@ -146,7 +146,9 @@ func _close_map() -> void:
 
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_WM_GO_BACK_REQUEST or what == NOTIFICATION_WM_CLOSE_REQUEST:
-		if street and street.garage_overlay:
+		if street and street.mall_overlay:
+			street.close_mall()
+		elif street and street.garage_overlay:
 			street.close_garage()
 		elif street:
 			_close_street()
@@ -201,6 +203,13 @@ func _shoot(path: String, opts: Array) -> void:
 			_open_street(String(o).contains("night"), "coast" if String(o).contains("coast") else ("neon" if String(o).contains("neon") else "nexus"))
 			if String(o).contains("garage"):
 				street.open_garage()
+		# mall[:view]  the Galleria mall interior
+		if String(o).begins_with("mall"):
+			_open_street()
+			street.open_mall()
+			var mv := String(o).split(":")
+			if mv.size() > 1:
+				street.mall_overlay.show_view(int(mv[1]))
 			var sl := street
 			var q := String(o).split(":")
 			if q.size() > 2:
