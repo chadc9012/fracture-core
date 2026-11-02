@@ -64,6 +64,12 @@ public:
 	AWFTerrain* GetTerrain() const { return Terrain.Get(); }
 	/** GoNexus: walks you into Nexus City now (the hub's spawn pad, at night), whatever region the save is in. */
 	UFUNCTION(Exec) void GoNexus();
+	/** GPS console: list Nexus City's destinations, route to one (its number or part of its name), clear the waypoint */
+	UFUNCTION(Exec) void GpsList();
+	UFUNCTION(Exec) void GpsTo(const FString& Target);
+	UFUNCTION(Exec) void GpsClear();
+	/** the city's GPS (AWFGpsNavigator), spawned with Nexus City; null outside it */
+	class AWFGpsNavigator* GetGps() const { return Gps.Get(); }
 
 	/** Summons a Unique Scenario boss ~30 m in front of the player (console: SpawnScenarioBoss dark-knight). */
 	UFUNCTION(Exec) void SpawnScenarioBoss(const FString& ScenarioId);
@@ -467,6 +473,8 @@ private:
 	int32 NextScenario = 0;
 
 	TWeakObjectPtr<AWFNexusCity> NexusCity;
+	TWeakObjectPtr<class AWFGpsNavigator> Gps;
+	void SpawnGps();
 	TWeakObjectPtr<AWFTerrain> Terrain;
 	TWeakObjectPtr<AWFWorldBuildings> WorldBuildings;
 	FString RegionId;

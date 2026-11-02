@@ -25,6 +25,7 @@
 #include "WFEnemy.h"
 #include "WFHUD.h"
 #include "WFNexusCity.h"
+#include "WFGps.h"
 #include "WFAtmosphere.h"
 #include "WFTerrain.h"
 #include "WFWorldBuildings.h"
@@ -181,6 +182,43 @@ void AWFGameMode::SpawnTerrain()
 	else if (Ground) Ground->Destroy();
 }
 
+void AWFGameMode::SpawnGps()
+{
+	if (Gps.IsValid() || !NexusCity.IsValid() || !GetWorld()) return;
+	FActorSpawnParameters Params;
+	Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+	AWFGpsNavigator* Nav = GetWorld()->SpawnActor<AWFGpsNavigator>(AWFGpsNavigator::StaticClass(), FTransform::Identity, Params);
+	if (!Nav) return;
+	// the city's street level: its hub ground when it stands on the terrain, else Z = 0 (the dashes trace down from here)
+	const double GroundZ = NexusCity->bOnTerrain ? NexusCity->GetDatum() * 100.0 : 0.0;
+	if (!Nav->Build(GroundZ)) { Nav->Destroy(); return; }
+	Gps = Nav;
+}
+
+void AWFGameMode::GpsList()
+{
+	if (!Gps.IsValid()) { Toast(TEXT("GPS: Nexus City is not built"), FLinearColor(1.f, 0.55f, 0.3f)); return; }
+	const TArray<FWFGpsDestination>& D = Gps->GetDestinations();
+	for (int32 I = 0; I < D.Num(); ++I) UE_LOG(LogTemp, Display, TEXT("GPS %2d  %-10s %s  (%.0f, %.0f)"), I + 1, *D[I].Kind, *D[I].Label, D[I].X, D[I].Z);
+	Toast(FString::Printf(TEXT("GPS: %d destinations listed in the log (GpsTo <number|name>)"), D.Num()), FLinearColor(0.1f, 1.f, 0.65f));
+}
+
+void AWFGameMode::GpsTo(const FString& Target)
+{
+	if (!Gps.IsValid()) { Toast(TEXT("GPS: Nexus City is not built"), FLinearColor(1.f, 0.55f, 0.3f)); return; }
+	const TArray<FWFGpsDestination>& D = Gps->GetDestinations();
+	int32 Index = Target.IsNumeric() ? FCString::Atoi(*Target) - 1 : INDEX_NONE;
+	if (!D.IsValidIndex(Index))
+		Index = D.IndexOfByPredicate([&](const FWFGpsDestination& X) { return X.Label.Contains(Target); });
+	if (!D.IsValidIndex(Index)) { Toast(FString::Printf(TEXT("GPS: no destination \"%s\""), *Target), FLinearColor(1.f, 0.55f, 0.3f)); return; }
+	Gps->RouteToDestination(Index);
+}
+
+void AWFGameMode::GpsClear()
+{
+	if (Gps.IsValid()) Gps->ClearPin();
+}
+
 void AWFGameMode::SpawnNexusCity()
 {
 	if (NexusCity.IsValid() || !GetWorld()) return;
@@ -191,6 +229,7 @@ void AWFGameMode::SpawnNexusCity()
 	City->FinishSpawning(FTransform::Identity);
 	if (!City->IsBuilt()) { City->Destroy(); return; }
 	NexusCity = City;
+	SpawnGps();
 	// level the land under the city to its hub ground, blending back to the hills past its edge
 	if (Terrain.IsValid())
 	{
