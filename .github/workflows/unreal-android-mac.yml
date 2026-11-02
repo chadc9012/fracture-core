@@ -1,0 +1,84 @@
+# Builds the Unreal Engine version of World Fracture for Android on the owner's Mac and publishes the APK as the
+# "unreal-android-latest" GitHub release, installable straight from the phone.
+#
+# Epic's container images only package for Linux (probed Nov 1: dev-slim-5.8 and dev-5.8 list Linux as the only installed
+# platform), so the cloud workflow cannot make an APK. The launcher build of Unreal on a Mac can. The Mac is registered as a
+# self-hosted runner with the labels `self-hosted, macOS, unreal`; setup in unreal/MAC_SETUP.md:
+#   - Xcode (App Store) and its command line tools
+#   - Unreal Engine 5.8 from the Epic Games Launcher (set UE_ROOT if it isn't in /Users/Shared/Epic Games/UE_5.8)
+#   - Android Studio, then Engine/Extras/Android/SetupAndroid.command (installs the SDK/NDK versions the engine wants)
+#   - Python 3.11 and GitHub CLI (gh) are installed by the workflow when missing
+# Started by hand (Actions > "Unreal Android APK (Mac)" > Run workflow): with the Mac off, a job would sit queued.
+name: Unreal Android APK (Mac)
+
+on:
+  workflow_dispatch:
+    inputs:
+      config:
+        description: "Build configuration"
+        type: choice
+        options: [Development, Shipping]
+        default: Development
+
+permissions:
+  contents: write
+
+concurrency:
+  group: unreal-android-mac
+  cancel-in-progress: false
+
+jobs:
+  apk:
+    runs-on: [self-hosted, macOS, unreal]
+    timeout-minutes: 480
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check the Mac has what the build needs
+        run: |
+          UE="${UE_ROOT:-/Users/Shared/Epic Games/UE_5.8}"
+          ok=1
+          [ -x "$UE/Engine/Build/BatchFiles/RunUAT.sh" ] || { echo "::error::Unreal Engine 5.8 not found at $UE (install it from the Epic Games Launcher, or set UE_ROOT)"; ok=0; }
+          xcode-select -p >/dev/null 2>&1 || { echo "::error::Xcode command line tools are missing (run: xcode-select --install)"; ok=0; }
+          SDK="${ANDROID_HOME:-$HOME/Library/Android/sdk}"
+          [ -d "$SDK/ndk" ] || { echo "::error::No Android NDK in $SDK (open Android Studio once, then run $UE/Engine/Extras/Android/SetupAndroid.command)"; ok=0; }
+          [ $ok = 1 ] || exit 1
+          echo "UE=$UE" >> "$GITHUB_ENV"
+          echo "ANDROID_HOME=$SDK" >> "$GITHUB_ENV"
+          echo "NDKROOT=$(ls -d "$SDK"/ndk/* | sort -V | tail -1)" >> "$GITHUB_ENV"
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Join the web build's models (one mesh per model)
+        run: |
+          python -m pip install --quiet bpy
+          python unreal/tools/join_models.py build/joined/buildings public/models/buildings/*.glb
+          python unreal/tools/join_models.py build/joined/fleet public/models/fleet/*.glb
+
+      - name: Build, cook and package for Android
+        run: |
+          set -euo pipefail
+          PROJECT="$PWD/unreal/WorldFracture.uproject"
+          # the editor (with the game module) makes the materials and imports the models, then the packaging cooks them in
+          "$UE/Engine/Build/BatchFiles/Mac/Build.sh" WorldFractureEditor Mac Development -project="$PROJECT"
+          WF_JOINED_MODELS="$PWD/build/joined" "$UE/Engine/Binaries/Mac/UnrealEditor.app/Contents/MacOS/UnrealEditor" "$PROJECT" \
+            -run=pythonscript -script="$PWD/unreal/tools/setup_assets.py" -unattended -nullrhi -nosplash
+          "$UE/Engine/Build/BatchFiles/RunUAT.sh" BuildCookRun -project="$PROJECT" -platform=Android -cookflavor=ASTC \
+            -clientconfig=${{ inputs.config }} -build -cook -stage -package -pak -archive \
+            -archivedirectory="$PWD/build/android" -utf8output -nop4 -unattended
+
+      - name: Publish the APK
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          command -v gh >/dev/null || brew install gh
+          APK=$(find build/android -name '*.apk' -exec ls -s {} + | sort -nr | head -1 | awk '{print $2}')
+          [ -n "$APK" ] || { echo "::error::no APK was produced"; exit 1; }
+          cp "$APK" WorldFractureUE.apk
+          gh release view unreal-android-latest >/dev/null 2>&1 || gh release create unreal-android-latest --prerelease \
+            --title "World Fracture (Unreal) - Android" \
+            --notes "Unreal Engine build for Android, from the latest main. Open this page on the phone, tap WorldFractureUE.apk, allow installs from the browser."
+          gh release upload unreal-android-latest WorldFractureUE.apk --clobber
+          echo "Published $(du -h WorldFractureUE.apk | cut -f1) APK"
