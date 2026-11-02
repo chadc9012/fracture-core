@@ -26,7 +26,10 @@ const CITY_GARAGE := { "nexus": "nexus-customs", "neon": "neon-performance", "co
 const Catalog = preload("res://scripts/garage/catalog.gd")
 const GarageView = preload("res://scripts/garage/garage_view.gd")
 const Mall = preload("res://scripts/city/mall_interior.gd")
+const Casino = preload("res://scripts/city/casino_interior.gd")
 var mall_overlay: Control
+var casino_overlay: Control
+var _vp: SubViewport
 var garage_overlay: Control
 const GARAGE_Z := 8.0
 ## original in-world brands (no real names or logos): what fills the blank shopfronts and signs
@@ -58,6 +61,7 @@ func _ready() -> void:
 	vp.screen_space_aa = Viewport.SCREEN_SPACE_AA_FXAA
 	vp.render_target_update_mode = SubViewport.UPDATE_ALWAYS
 	svc.add_child(vp)
+	_vp = vp
 	world = Node3D.new()
 	vp.add_child(world)
 	_environment()
@@ -105,6 +109,12 @@ func _ready() -> void:
 	mall.position = Vector2(560, 16)
 	mall.pressed.connect(open_mall)
 	add_child(mall)
+	var casino := Button.new()
+	casino.text = "ENTER SKYLINE CASINO"
+	casino.add_theme_color_override("font_color", Color(0.95, 0.72, 0.32))
+	casino.position = Vector2(760, 16)
+	casino.pressed.connect(open_casino)
+	add_child(casino)
 	if style != "nexus":
 		tod.visible = style != "neon"   # Neon City is always night
 
@@ -663,8 +673,24 @@ func open_mall() -> void:
 	mall_overlay = Mall.new()
 	mall_overlay.closed.connect(close_mall)
 	add_child(mall_overlay)
+	_vp.render_target_update_mode = SubViewport.UPDATE_DISABLED
 
 func close_mall() -> void:
 	if mall_overlay:
 		mall_overlay.queue_free()
 		mall_overlay = null
+		_vp.render_target_update_mode = SubViewport.UPDATE_ALWAYS
+
+func open_casino() -> void:
+	if casino_overlay or mall_overlay or garage_overlay:
+		return
+	casino_overlay = Casino.new()
+	casino_overlay.closed.connect(close_casino)
+	add_child(casino_overlay)
+	_vp.render_target_update_mode = SubViewport.UPDATE_DISABLED   # the street isn't seen while inside
+
+func close_casino() -> void:
+	if casino_overlay:
+		casino_overlay.queue_free()
+		casino_overlay = null
+		_vp.render_target_update_mode = SubViewport.UPDATE_ALWAYS

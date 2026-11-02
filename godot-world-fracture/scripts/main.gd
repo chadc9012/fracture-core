@@ -177,6 +177,8 @@ func _notification(what: int) -> void:
 	if what == NOTIFICATION_WM_GO_BACK_REQUEST or what == NOTIFICATION_WM_CLOSE_REQUEST:
 		if creator and not creator.onboarding:
 			_close_creator()
+		elif street and street.casino_overlay:
+			street.close_casino()
 		elif street and street.mall_overlay:
 			street.close_mall()
 		elif street and street.garage_overlay:
@@ -234,6 +236,13 @@ func _shoot(path: String, opts: Array) -> void:
 			_open_street(String(o).contains("night"), "coast" if String(o).contains("coast") else ("neon" if String(o).contains("neon") else "nexus"))
 			if String(o).contains("garage"):
 				street.open_garage()
+		# casino[:view]  the Skyline Casino: 0-3 the floor, 4-6 the penthouse, 7-8 the skydeck concert
+		if String(o).begins_with("casino"):
+			_open_street()
+			street.open_casino()
+			var cv := String(o).split(":")
+			if cv.size() > 1:
+				street.casino_overlay.show_view(int(cv[1]))
 		# mall[:view]  the Galleria mall interior
 		if String(o).begins_with("mall"):
 			_open_street()
