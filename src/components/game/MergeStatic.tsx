@@ -19,8 +19,8 @@ export function MergeStatic({ name, children }: { name: string; children: ReactN
       if (!mesh.isMesh || Array.isArray(mesh.material)) return;
       const src = mesh.geometry.index ? mesh.geometry.toNonIndexed() : mesh.geometry.clone();
       for (const key of Object.keys(src.attributes)) if (key !== "position" && key !== "normal" && key !== "uv") src.deleteAttribute(key);
-      if (!src.attributes.normal) src.computeVertexNormals();
-      if (!src.attributes.uv) src.setAttribute("uv", new THREE.Float32BufferAttribute(new Float32Array(src.attributes.position!.count * 2), 2));
+      if (!src.attributes["normal"]) src.computeVertexNormals();
+      if (!src.attributes["uv"]) src.setAttribute("uv", new THREE.Float32BufferAttribute(new Float32Array(src.attributes["position"]!.count * 2), 2));
       src.applyMatrix4(m.multiplyMatrices(toRoot, mesh.matrixWorld));
       const g = groups.get(mesh.material) ?? { geos: [], cast: false, receive: false };
       g.geos.push(src); g.cast ||= mesh.castShadow; g.receive ||= mesh.receiveShadow;

@@ -32,6 +32,7 @@
 import type { MaterialId } from "./inventory";
 import type { PlayerProgression } from "./progression";
 import type { LockdownTier } from "./stealth";
+import { backfillCampaignExotics } from "./weapon-loot";
 
 export type QuestObjectiveType = "ENTER_WORLD" | "KILLS" | "SURVIVE" | "MISSION_COMPLETE" | "DUNGEON_CLEARED" | "BOSS_DEFEATED" | "HEAT_LEVEL" | "LOCKDOWN_TIER" | "HACK_COMPLETE";
 
@@ -290,6 +291,8 @@ function completeQuest(progression: PlayerProgression, quest: Quest): PlayerProg
     currentWorld: quest.world,
   };
   if (quest.unlocksWorld) next = unlockWorld(next, quest.unlocksWorld);
+  // the chapter's catalogue weapon (weapon-loot.ts QUEST_WEAPON), once
+  next = { ...next, inventory: backfillCampaignExotics({ inventory: next.inventory, completedMissions: [quest.id] }).inventory };
   return next;
 }
 

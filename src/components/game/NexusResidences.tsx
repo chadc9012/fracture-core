@@ -104,7 +104,7 @@ function LoadedFurnitureModel({ url, position, rotation }: FurnitureModelProps) 
 }
 function FurnitureSlot({ url, position, rotation, footprint }: FurnitureModelProps & { footprint: [number, number, number] }) {
   const fallback = (
-    <mesh position={[position[0], position[1] + footprint[1] / 2, position[2]]} rotation={rotation}>
+    <mesh position={[position[0], position[1] + footprint[1] / 2, position[2]]} {...(rotation ? { rotation } : {})}>
       <boxGeometry args={footprint} />
       <meshStandardMaterial color="#706c68" roughness={0.85} />
     </mesh>

@@ -56,11 +56,25 @@ export const CAMPAIGN_EXOTIC: Record<string, string> = {
   "stitched-neon-core": "Worldbreaker", "solar-array": "Light of Solara", "core-node": "Silent Horizon", "frozen-beacon": "Thunder Lord",
   "failure-core": "Solara Blade", "convoy-breaker": "Dominator", "descent-protocol": "Gravity Lance", "system-core": "World Ender",
 };
+/** The rest of the catalogue's quest and mission weapons (the 135-weapon catalogue added 22 more): each Fracture Descent chapter
+ * pays one on its first completion, and the Storm Islands chain and side missions pay the four "mission" weapons. One weapon,
+ * one source; campaign-exotics.test.ts checks every catalogue quest/mission weapon is earned exactly once. */
+export const QUEST_WEAPON: Record<string, string> = {
+  "fd-01": "Fracture Edge", "fd-02": "Echo Lance", "fd-03": "Reality-Shift Carbine", "fd-04": "Whisper of Solara",
+  "fd-05": "Tidebreaker", "fd-06": "Aether Rifle", "fd-07": "Starfall Edge", "fd-08": "Solara Spear", "fd-09": "Fracture Core Shard",
+  "fd-10": "Worldsplitter", "fd-11": "Dawnbreaker Katana", "fd-12": "Sunder of Pyrrath", "fd-13": "Sunpillar", "fd-14": "Bow of the Fractured Sun",
+  "fd-15": "Core Crusher", "fd-16": "Tidebreaker Maul", "fd-17": "Staff of the Deepmind", "fd-18": "Vyrak's Fang",
+  "side-storm-01": "Skyline Longbow", "side-storm-02": "Resonance Staff", "side-storm-03": "Phase Katana", "side-storm-side-01": "Sunforged Blade",
+};
+const questPower = (id: string) => { const m = /^fd-(\d+)$/.exec(id); return m ? 150 + 10 * Number(m[1]) : 230; };
 export function campaignExotic(missionId: string): GearItem | null {
   const name = CAMPAIGN_EXOTIC[missionId];
   const w = name ? WEAPON_CATALOG.find((c) => c.name === name) : undefined;
-  if (!w) return null;
-  return { ...build("mission", w, `exotic:${w.id}`, `Exotic · ${w.source}`, missionWeaponPower(missionId) + 20), rarity: "EXOTIC" };
+  if (w) return { ...build("mission", w, `exotic:${w.id}`, `Exotic · ${w.source}`, missionWeaponPower(missionId) + 20), rarity: "EXOTIC" };
+  const qn = QUEST_WEAPON[missionId];
+  const q = qn ? WEAPON_CATALOG.find((c) => c.name === qn) : undefined;
+  if (!q) return null;
+  return build("mission", q, `quest-weapon:${q.id}`, `${q.source} · ${missionId.startsWith("fd-") ? "The Fracture Descent" : "Storm Islands"}`, questPower(missionId));
 }
 /** grant every cleared campaign mission's exotic that the inventory is missing */
 export function backfillCampaignExotics<P extends { inventory: GearItem[]; completedMissions: string[] }>(p: P): P {
