@@ -8,6 +8,8 @@ const Region3D := preload("res://scripts/region_3d.gd")
 const GarageView := preload("res://scripts/garage/garage_view.gd")
 const DriveView := preload("res://scripts/driving/drive_view.gd")
 const StreetSlice := preload("res://scripts/city/street_slice.gd")
+const CharacterCreator := preload("res://scripts/character/character_creator.gd")
+const CharacterStore := preload("res://scripts/character/character_store.gd")
 
 var planet_view: Control
 var region_map: Control
@@ -43,8 +45,17 @@ func _ready() -> void:
 	street_button.custom_minimum_size = Vector2(150, 52)
 	street_button.pressed.connect(_open_street)
 	add_child(street_button)
+	var op_button := Data.button("OPERATOR", true)
+	op_button.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
+	op_button.position = Vector2(-590, -70)
+	op_button.custom_minimum_size = Vector2(130, 52)
+	op_button.pressed.connect(_open_creator)
+	add_child(op_button)
 	get_tree().set_auto_accept_quit(false)
 	get_tree().set_quit_on_go_back(false)
+	# onboarding: the first launch starts in the operator creator
+	if not CharacterStore.exists() and OS.get_cmdline_user_args().find("--shot") < 0:
+		_open_creator.call_deferred(true)
 	# a capture hook for checking the look off-device: --shot <png> [map:<id>] [sat]
 	var args := OS.get_cmdline_user_args()
 	var i := args.find("--shot")
@@ -116,6 +127,24 @@ func _close_street() -> void:
 		street = null
 	planet_view.set_process(true)
 
+var creator: Control
+func _open_creator(first := false) -> void:
+	if creator:
+		return
+	creator = CharacterCreator.new()
+	creator.onboarding = first
+	creator.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	creator.closed.connect(_close_creator)
+	creator.confirmed.connect(func(_l: Dictionary) -> void: _close_creator())
+	add_child(creator)
+	planet_view.set_process(false)
+
+func _close_creator() -> void:
+	if creator:
+		creator.queue_free()
+		creator = null
+	planet_view.set_process(true)
+
 func _close_drive() -> void:
 	if driving:
 		driving.queue_free()
@@ -146,7 +175,9 @@ func _close_map() -> void:
 
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_WM_GO_BACK_REQUEST or what == NOTIFICATION_WM_CLOSE_REQUEST:
-		if street and street.mall_overlay:
+		if creator and not creator.onboarding:
+			_close_creator()
+		elif street and street.mall_overlay:
 			street.close_mall()
 		elif street and street.garage_overlay:
 			street.close_garage()
@@ -215,6 +246,24 @@ func _shoot(path: String, opts: Array) -> void:
 			if q.size() > 2:
 				var f := q[1].split(","); var t := q[2].split(",")
 				sl.look_from(Vector3(float(f[0]), float(f[1]), float(f[2])), Vector3(float(t[0]), float(t[1]), float(t[2])))
+		# char[:body[:face[:tab[:key=value,...]]]]  the operator creator, e.g. char:female:f-cyber:HAIR or char:male:m-rebel:FACE:hair=afro,beard=full
+		if String(o).begins_with("char"):
+			var c := String(o).split(":")
+			var lk := CharacterStore.default_look()
+			if c.size() > 1 and c[1] != "":
+				lk = CharacterStore.clean({"frame": "goliath" if c[1] != "female" else "nyx", "body": c[1], "face": c[2] if c.size() > 2 else ""}, true)
+			if c.size() > 4:
+				for kv in c[4].split(","):
+					var pair := kv.split("=")
+					if pair.size() == 2:
+						lk[pair[0]] = Array(pair[1].split("+")) if pair[0] == "marks" else pair[1]
+				lk = CharacterStore.clean(lk)
+			creator = CharacterCreator.new()
+			creator.look = lk
+			if c.size() > 3 and c[3] != "":
+				creator.tab = c[3].replace("_", " ")
+			creator.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+			add_child(creator)
 		if String(o) == "sat" and region_map:
 			region_map.set_satellite(true)
 		if String(o).begins_with("zoom:") and region_map:

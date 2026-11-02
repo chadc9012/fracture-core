@@ -47,10 +47,20 @@ in-world brands with their own displays (Nova Threads clothing, Haven Home furni
 barbers, Velvet Salon, Ironclad Arms & Armor, Pulse Gym, Volta Mobile), and a food court of six counters under lit menu
 boards with café seating.
 
+**Operator creator** (`scripts/character/`): the first launch opens it (afterwards it's the OPERATOR button). A lit
+turntable of the operator — drag to turn — beside tabs for the body (male, female or robot on the Titan, Hunter or
+Warlock frame), the 40 named faces from the web game, the ten sculpt sliders, skin tone (plating and optics for robots),
+48 hairstyles built around the chosen head and 22 colours, eight beards, 26 scars, tattoos, paint and Resonance marks (up
+to four), and glasses, shades, a cyber eyepiece, an earpiece and headgear. CONFIRM saves to `user://character.json`.
+The cut heads are skinned onto the body's own skeleton, so they follow its idle; the sculpt, markings and beard are the
+web game's (ported to `face_morphs.gd` and a generated skin shader). The catalogue comes from the web game:
+`bun scripts/export-godot-character.ts` rewrites `data/character.json`.
+
 ```sh
 bun scripts/export-godot-data.ts          # from the repo root: writes godot-world-fracture/generated/ (gitignored)
+bun scripts/export-godot-character.ts     # from the repo root: rewrites godot-world-fracture/data/character.json
 godot --path godot-world-fracture         # run it
-# a screenshot without a window (xvfb): --shot <png> [garage[:shop[:car[:item,kit-racing,...]]]] [drive[:car[:throttle[:steer[:garage]]]]] [slice[night][coast][:x,y,z:tx,ty,tz]] [mall[:view]] [select:<continent>] [map:<id>] [sat] [zoom:<factor>] [3d] [street:<place id>] [frames:<n>]
+# a screenshot without a window (xvfb): --shot <png> [garage[:shop[:car[:item,kit-racing,...]]]] [drive[:car[:throttle[:steer[:garage]]]]] [slice[night][coast][:x,y,z:tx,ty,tz]] [mall[:view]] [char[:body[:face[:TAB[:key=value,...]]]]] [select:<continent>] [map:<id>] [sat] [zoom:<factor>] [3d] [street:<place id>] [frames:<n>]
 xvfb-run godot --path godot-world-fracture --rendering-driver opengl3 --resolution 540x1170 -- --shot out.png map:nexus
 ```
 
