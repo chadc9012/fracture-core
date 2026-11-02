@@ -26,6 +26,9 @@ import { getPin, pinMarker, reached, setPin } from "@/game/map-pin";
 import { ARENA_POINT, ARENA_RADIUS, clearRivals, newCrucible, resetField, rivalSquad, stepField, stepRivals, type CrucibleState, type RivalClass } from "@/game/crucible";
 import { PVP_MODES, fieldSize, newPvp, respawns, stepPvp, stormDamage, type PvpState } from "@/game/pvp";
 import { PvpField } from "./PvpField";
+import { KillboxArena as KillboxArenaView } from "./KillboxArena";
+import { arenaById, belowKillPlane, confine, fractureVisibility, inArenaSpace, spawnPoint, toWorld, type KillboxArena } from "@/game/killbox-arenas";
+import { installArena } from "@/game/killbox-arena-install";
 import { AREAS, pointWorld } from "@/game/activities";
 import { CoverWall } from "./PropModels";
 import { getPerfTier, heavyShadows, NEAR_SCALE, setPerfTier } from "@/game/perf-budget";
@@ -783,7 +786,9 @@ function SceneImpl({
   const relaySpawned = useRef("");
   const crucible = useRef<CrucibleState | null>(null);
   // Killbox modes (pvp.ts): the match state, the counters it diffs, the round it last staffed, and the rival field
-  const pvp = useRef<{ st: PvpState; kills: number; team: number; deaths: number; round: number; field: CrucibleState; center: { x: number; z: number }; squadWas: boolean } | null>(null);
+  const pvp = useRef<{ st: PvpState; kills: number; team: number; deaths: number; round: number; field: CrucibleState; center: { x: number; z: number }; squadWas: boolean; /** the built map it plays on (killbox-arenas.ts), if any, and where you were before you dropped in */ arena?: KillboxArena; from?: { x: number; z: number } } | null>(null);
+  /** a Killbox arena match: the open world is hidden while you are up in the arena, and its fracture event dims sight (1 = clear) */
+  const arenaShown = useRef(false), arenaVis = useRef(1);
   const [pvpView, setPvpView] = useState<PvpState | null>(null);
   // World Boss raids (world-boss.ts): the raid last announced, woken and reported, and a 1 s check clock
   const worldBoss = useRef({ announced: "", woke: "", paid: "", clock: 0 });
@@ -803,7 +808,7 @@ function SceneImpl({
   const breachUsed = useRef(false);
   /** the outdoor world's group: hidden while the player is inside a pocket room (see the JSX) */
   const outdoorWorld = useRef<THREE.Group>(null);
-  useFrame(() => { const g = outdoorWorld.current; if (!g) return; const show = !state.current.insideInterior; if (g.visible !== show) g.visible = show; });
+  useFrame(() => { const g = outdoorWorld.current; if (!g) return; const show = !state.current.insideInterior && !arenaShown.current; if (g.visible !== show) g.visible = show; });
   useEffect(() => {
     if (typeof window === "undefined" || new URLSearchParams(window.location.search).get("dev") !== "1") return;
     const w = window as unknown as { __warp?: (to: string | { x: number; z: number; y?: number; keepInterior?: boolean }) => string };
@@ -1612,7 +1617,7 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
     }
     weatherName.current = interior ? "Indoor" : weatherLabel(wx!, here?.id);
     const visibility = interior ? 1 : wx!.visibility;
-    sim.envVisibility = visibility;
+    sim.envVisibility = visibility * arenaVis.current;
     {
       const hzT = performance.now() / 1000, hzSheltered = s.inVehicle || !!s.insideInterior;
       const zone = zoneAt(s.x, s.z, hzT, hzSheltered); // localized zones (hazard-zones.ts) stack on the regional hazard
@@ -1757,7 +1762,7 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
     // Interiors are flat pocket rooms far outside the terrain's authored bounds, so slope/height/water sampling there would just be noise — treat them as dry, flat, and out of the water entirely.
     const slope = interior || riftInside ? 0 : slopeAt(s.x, s.z);
     const ground = interior ? INTERIOR_ALTITUDE : Math.max(walkHeight(s.x, s.z), stormGroundAt(s.x, s.z, s.y - 1.6), liveDescentGroundAt(s.x, s.z, s.y - 1.6));
-    let submerged = interior || riftInside ? false : heightAt(s.x, s.z) < WATER_LEVEL - 0.2; // re-read after a teleport below, or the first frame snaps a diver to the surface
+    let submerged = interior || riftInside || inArenaSpace(s.x, s.y, s.z) ? false : heightAt(s.x, s.z) < WATER_LEVEL - 0.2; // re-read after a teleport below, or the first frame snaps a diver to the surface
     if (submerged && !s.wasSubmerged) sfx.playSplash(Math.min(1, (s.inVehicle ? Math.abs(s.vSpeed) : velocity.length()) / 20));
     s.wasSubmerged = submerged;
     if (!submerged) s.diving = false;
@@ -2587,8 +2592,10 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
         const mode = PVP_MODES[stage.mode];
         if (!pvp.current || pvp.current.st.mode !== stage.mode) {
           clearRivals(sim);
-          const center = mode.kind === "royale" ? { x: AREAS[activity!.def.area]!.x, z: AREAS[activity!.def.area]!.z } : pointWorld(activity!.def.area, ARENA_POINT);
-          pvp.current = { st: newPvp(stage.mode, (Date.now() & 0xffff) + 1), kills: sim.rivalKills, team: sim.teamRivalKills ?? 0, deaths: sim.deaths, round: 1, field: { mode: "skirmish", respawn: [], spent: [] }, center, squadWas: sim.squad.enabled };
+          const arena = arenaById(activity!.run.arena);
+          if (arena) installArena(arena);
+          const center = arena ? toWorld(arena, 0, 0) : mode.kind === "royale" ? { x: AREAS[activity!.def.area]!.x, z: AREAS[activity!.def.area]!.z } : pointWorld(activity!.def.area, ARENA_POINT);
+          pvp.current = { st: newPvp(stage.mode, (Date.now() & 0xffff) + 1, arena?.zones), kills: sim.rivalKills, team: sim.teamRivalKills ?? 0, deaths: sim.deaths, round: 1, field: { mode: "skirmish", respawn: [], spent: [] }, center, squadWas: sim.squad.enabled, ...(arena ? { arena } : {}), ...(arena && !inArenaSpace(s.x, s.y, s.z) ? { from: { x: s.x, z: s.z } } : {}) };
           // team modes field your fireteam: VEX and HOLT (squad.ts) fight beside you for the match
           if (mode.kind !== "ffa" && mode.kind !== "royale") sim.squad.enabled = true;
           setPvpView(pvp.current.st);
@@ -2601,9 +2608,38 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
         if (st.round !== p.round) { resetField(sim, p.field); p.round = st.round; }
         // the royale field follows you (fresh squads find you as the circle closes); the arena modes spawn round the arena edge
         const fieldAt = mode.kind === "royale" ? { x: s.x, z: s.z } : p.center;
-        stepField(sim, p.field, fieldAt, rivalSquad(fieldSize(st), st.round), mode.kind === "royale" ? 42 : ARENA_RADIUS * 0.8, respawns(st), dt);
+        const ar = p.arena;
+        // a built arena: rivals enter at their side's spawns (free-for-all: whichever spawn is farthest from you and the others)
+        const arenaSpawn = ar ? (slot: number) => {
+          const local = (x: number, z: number) => ({ x: x - ar.site.x, z: z - ar.site.z });
+          const pt = mode.kind === "ffa" ? spawnPoint(ar, "any", [local(s.x, s.z), ...sim.machines.filter((m) => m.alive && m.rival).map((m) => local(m.x, m.z))]) : spawnPoint(ar, "them", [], slot);
+          return toWorld(ar, pt.x, pt.z);
+        } : undefined;
+        stepField(sim, p.field, fieldAt, rivalSquad(fieldSize(st), st.round), mode.kind === "royale" ? 42 : ARENA_RADIUS * 0.8, respawns(st), dt, Math.random, arenaSpawn);
+        if (ar) {
+          // rivals and squadmates do not collide with walls, so keep them on the rooftops; anything else that wandered under goes away
+          for (const m of sim.machines) {
+            if (!m.alive || Math.abs(m.x - ar.site.x) > 140 || Math.abs(m.z - ar.site.z) > 140) continue;
+            if (!m.rival) { m.alive = false; continue; }
+            const c = confine(ar, m.x - ar.site.x, m.z - ar.site.z);
+            if (c.moved) { m.x = ar.site.x + c.x; m.z = ar.site.z + c.z; m.y = walkHeight(m.x, m.z) + 2.2 * m.scale; }
+          }
+          for (const mate of sim.squad.mates) { const c = confine(ar, mate.x - ar.site.x, mate.z - ar.site.z); if (c.moved) { mate.x = ar.site.x + c.x; mate.z = ar.site.z + c.z; } }
+          // Rooftop Run is infantry-only, and the street is a long way down
+          if (s.inVehicle && inArenaSpace(s.x, s.y, s.z)) { s.inVehicle = false; alert(sim, `${ar.name} is infantry-only`); }
+          if (Math.abs(s.x - ar.site.x) < 90 && Math.abs(s.z - ar.site.z) < 90 && belowKillPlane(ar, s.y - 1.6) && sim.hp > 0) hurtPlayer(sim, 9999, "Fell into the street");
+          arenaVis.current = fractureVisibility(ar, st.clock);
+        }
+        arenaShown.current = !!ar && inArenaSpace(s.x, s.y, s.z);
         if (mode.kind === "royale") { const burn = stormDamage(st, Math.hypot(s.x - p.center.x, s.z - p.center.z)); if (burn > 0) hurtPlayer(sim, burn * dt, "The closing fracture"); }
-      } else if (pvp.current) { clearRivals(sim); sim.squad.enabled = pvp.current.squadWas; pvp.current = null; setPvpView(null); }
+      } else if (pvp.current) {
+        // the match is over: off the rooftops and back to where you came in (the transit home is the activity's job; this is the safety net)
+        const ar = pvp.current.arena, from = pvp.current.from;
+        clearRivals(sim); sim.squad.enabled = pvp.current.squadWas; pvp.current = null; setPvpView(null);
+        arenaVis.current = 1;
+        if (ar && inArenaSpace(s.x, s.y, s.z)) { const back = from ?? pointWorld("wastelands", ARENA_POINT); s.x = back.x; s.z = back.z; s.y = walkHeight(s.x, s.z) + 1.6; s.vy = 0; velocity.set(0, 0, 0); alert(sim, "Out of the Killbox"); }
+        arenaShown.current = false;
+      }
     }
     if (!s.inVehicle && !tutorial) {
       const now = performance.now();
@@ -3104,7 +3140,7 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
       if (w.keepInterior && interior) { s.x = w.x; s.z = w.z; s.vy = 0; velocity.set(0, 0, 0); } else {
       s.x = w.x; s.z = w.z; s.y = w.y ?? walkHeight(s.x, s.z) + 1.6; s.vy = 0; s.vSpeed = 0; s.inVehicle = false; s.insideInterior = null; interior = null; velocity.set(0, 0, 0);
       if (w.y !== undefined) { s.diving = true; s.grounded = false; s.oxygen = OXYGEN_MAX; s.hull = 0; }
-      submerged = heightAt(s.x, s.z) < WATER_LEVEL - 0.2;
+      submerged = heightAt(s.x, s.z) < WATER_LEVEL - 0.2 && !inArenaSpace(s.x, s.y, s.z);
       }
     }
     if (travelTo && travelTo.nonce !== travelSeen.current) {
@@ -3122,7 +3158,7 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
       }
       // submersible arrival (Thalassia): the sub breaches the dock seal and you exit at depth, diving, full rebreather
       if (travelTo.y !== undefined) { s.y = travelTo.y; s.diving = true; s.grounded = false; s.oxygen = OXYGEN_MAX; s.hull = 0; s.breachAt = performance.now() / 1000; s.sector = sectorAt(s.x, s.y, s.z); }
-      submerged = heightAt(s.x, s.z) < WATER_LEVEL - 0.2;
+      submerged = heightAt(s.x, s.z) < WATER_LEVEL - 0.2 && !inArenaSpace(s.x, s.y, s.z);
     }
     // "Drive out" from a home garage (residence-deeds.ts): into the driver's seat at the bay, nose to the door
     { const out = takeDriveOut(); if (out && vehicleUnlocked) { s.x = out.x; s.z = out.z; s.y = out.y + 1.6; s.yaw = out.yaw; s.vy = 0; s.vSpeed = 0; s.insideInterior = null; interior = null; velocity.set(0, 0, 0); s.inVehicle = !conditionEffects(condition.current).disabled; vh.current.airborne = false; vh.current.slip = 0; if (s.inVehicle) sfx.playVehicleEngineStart(vehicleId, 1, playerCarModel.model.id); } }
@@ -3139,8 +3175,15 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
         submerged = false;
       } else {
         const arena = (crucible.current || (pvp.current && PVP_MODES[pvp.current.st.mode].kind !== "royale")) && activity ? pointWorld(activity.def.area, ARENA_POINT) : null;
+        // a built Killbox arena: back at your side's spawn farthest from the rivals (free-for-all: any spawn)
+        const built = pvp.current?.arena;
+        const builtSpot = built ? (() => {
+          const ffa = PVP_MODES[pvp.current!.st.mode].kind === "ffa";
+          const p = spawnPoint(built, ffa ? "any" : "us", sim.machines.filter((m) => m.alive && m.rival).map((m) => ({ x: m.x - built.site.x, z: m.z - built.site.z })));
+          return { ...toWorld(built, p.x, p.z), label: `the ${built.name} spawn` };
+        })() : null;
         // in a Crucible match you come back at the arena edge, opposite where you fell, not at a distant checkpoint
-        const spot = arena ? { x: arena.x - Math.sign(s.x - arena.x || 1) * ARENA_RADIUS * 0.7, z: arena.z, label: "the arena edge" } : chooseRespawn({ x: s.x, z: s.z }, checkpoint.current, hostiles);
+        const spot = builtSpot ?? (arena ? { x: arena.x - Math.sign(s.x - arena.x || 1) * ARENA_RADIUS * 0.7, z: arena.z, label: "the arena edge" } : chooseRespawn({ x: s.x, z: s.z }, checkpoint.current, hostiles));
         // Thalassia descent checkpoint: dying in the city during the mission returns you to the dock berth
         const inCity = Math.hypot(s.x - dockSite().x, s.z - dockSite().z) < CITY_RADIUS + 60;
         // live playtest: before this, a death at the dock (pre-airlock) respawned the diver ~1 km away in the Verdant Forest. The berth is
@@ -3166,7 +3209,7 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
         s.interiorReturnPos = null;
         interior = null;
         velocity.set(0, 0, 0);
-        submerged = heightAt(s.x, s.z) < WATER_LEVEL - 0.2;
+        submerged = heightAt(s.x, s.z) < WATER_LEVEL - 0.2 && !inArenaSpace(s.x, s.y, s.z);
       }
       sfx.playDeath();
     }
@@ -3752,7 +3795,7 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
       <Storefronts />
       <NearOnly playerRef={player} x={NEXUS_REGION.x} z={NEXUS_REGION.z} radius={330 * NEAR_SCALE[settings.renderTier]} name="city:nexus"><NexusCity sim={sim} /><NexusSkyRail />{gear && <ResidenceGarages city="nexus" progression={{ nexLedger: gear.nexLedger ?? {}, housing: gear.housing, fleet: gear.fleet }} />}</NearOnly>
       {/* street level (kerbs, crossings, furniture, signals; src/game/city-streets.ts): only near enough to read */}
-      {pvpView && pvp.current && <PvpField state={pvpView} center={pvp.current.center} />}
+      {pvpView && pvp.current && !pvp.current.arena && <PvpField state={pvpView} center={pvp.current.center} />}
       <NearOnly playerRef={player} x={NEON_CITY_CENTER.x} z={NEON_CITY_CENTER.z - 80} radius={420} name="civic-security"><WorldPiece name="civic security"><CivicSecurity player={player} security={security} feed={securityFeed} jurisdiction={securityWhere} /></WorldPiece></NearOnly>
       {/* the bridges are landmarks seen from the hills and the far shores, so they stay up well past the city mount */}
       <NearOnly playerRef={player} x={NEXUS_REGION.x} z={NEXUS_REGION.z} radius={900} name="bridges:nexus"><WorldPiece name="nexus bridges"><NexusBridge /></WorldPiece></NearOnly>
@@ -3780,6 +3823,8 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
       ))}
       <NearOnly playerRef={player} x={THALASSIA_CENTER.x} z={THALASSIA_CENTER.z} radius={260 * NEAR_SCALE[settings.renderTier]} name="city:thalassia"><Thalassia /><ThalassiaSectors descent={descent ?? null} everRestored={!!gear?.completedMissions?.includes("descent-protocol")} /></NearOnly>
       </group>
+      {/* Killbox arena maps hang in their own airspace, outside the outdoor world (which is hidden while you are up there) */}
+      {pvpView && pvp.current?.arena && <><KillboxArenaView arena={pvp.current.arena} state={pvpView} /><PvpField state={pvpView} center={pvp.current.center} /></>}
       <SupplyLanes sim={sim} />
       <ZoneBeacons sim={sim} />
       <Convoys sim={sim} />

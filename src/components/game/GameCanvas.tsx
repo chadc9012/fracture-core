@@ -196,6 +196,9 @@ import { ForestAssetStatus } from "./ForestAssetStatus";
 import { VoiceSubtitle } from "./VoiceSubtitle";
 import { Director } from "./Director";
 import { ARENA_POINT, ARENA_RADIUS, CRUCIBLE_LOCKED } from "@/game/crucible";
+import { arenaById, spawnPoint, toWorld } from "@/game/killbox-arenas";
+import { installArena } from "@/game/killbox-arena-install";
+import { PVP_MODES } from "@/game/pvp";
 import { configureVoice, speakVoice, stopVoice } from "@/game/voice-director";
 import { recapDue, recapLine } from "@/game/retention";
 import { localSavedAt } from "@/game/cloud-save";
@@ -1285,6 +1288,15 @@ export function GameCanvas() {
     if ("error" in res) { setMenuNotice(res.error); return; }
     progressionRef.current = res.progression;
     setProgression(res.progression); setActivity({ def, run: res.run });
+    // a built arena map (killbox-arenas.ts): install it so the drop lands on its roofs, then drop in at your side's spawn
+    const arena = arenaById(res.run.arena);
+    if (arena) {
+      installArena(arena);
+      const stage = def.stages.find((o) => o.kind === "pvp"), ffa = stage?.kind === "pvp" && PVP_MODES[stage.mode].kind === "ffa";
+      const p = spawnPoint(arena, ffa ? "any" : "us", [], 1), w = toWorld(arena, p.x, p.z);
+      startTransit({ id: `crucible:${id}`, name: def.name, sub: `${arena.region} · ${arena.name}`, color: "#ff4a2a", x: w.x, z: w.z });
+      return;
+    }
     const at = pointWorld(def.area, ARENA_POINT);
     startTransit({ id: `crucible:${id}`, name: def.name, sub: "Wastelands · Grid-Iron arena", color: "#ff4a2a", x: at.x + ARENA_RADIUS * 0.7, z: at.z });
   };

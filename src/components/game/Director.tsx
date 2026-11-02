@@ -6,6 +6,7 @@ import type { PlayerProgression } from "@/game/progression";
 import { activityById, activityState } from "@/game/activities";
 import { CRUCIBLE_LOCKED, CRUCIBLE_MODES, RIVAL_LABEL, rivalLineup, type CrucibleModeId, type RivalClass } from "@/game/crucible";
 import { PVP_MODES } from "@/game/pvp";
+import { ROOFTOP_RUN, arenaForMode } from "@/game/killbox-arenas";
 import { FRACTURE_RAID, PVP_RANKS } from "@/game/system-foundations";
 import { StarMap, type DeployTarget } from "./StarMap";
 import { ArsenalLoadouts } from "./ArsenalLoadouts";
@@ -132,13 +133,13 @@ function CrucibleView({ progression, playerClass, onLaunch }: { progression: Pla
     <Panel label="Killbox">
       <header className="flex flex-wrap items-end justify-between gap-3 border-b border-foreground/15 pb-4">
         <div>
-          <p className="ui-kicker text-primary">Wastelands · Grid-Iron arena</p>
+          <p className="ui-kicker text-primary">Arenas · {ROOFTOP_RUN.name} · Grid-Iron</p>
           <h1 className="mt-1 font-mono text-3xl uppercase tracking-[0.25em]">Killbox</h1>
         </div>
         <div className="text-right font-mono"><p className="ui-kicker">Rank</p><p className="text-lg text-primary">{rank}</p></div>
       </header>
       {!progression.tutorialComplete && <p className="mt-4 border-l-2 border-primary pl-3 text-sm">{CRUCIBLE_LOCKED}.</p>}
-      <p className="mt-4 max-w-3xl text-sm text-muted-foreground">Fight rival operators in the Wastelands arena. Online matchmaking isn't live yet, so every rival slot is filled by an AI GOLIATH, NYX or CIPHER; the same scoring will carry over when real players can join.</p>
+      <p className="mt-4 max-w-3xl text-sm text-muted-foreground">Fight rival operators on the Killbox arenas. Playlists drop you onto {ROOFTOP_RUN.name}, Neon City rooftops over a street you do not want to fall into; Duel and Skirmish stay on the Grid-Iron Highway in the Wastelands. Online matchmaking isn't live yet, so every rival slot is filled by an AI GOLIATH, NYX or CIPHER; the same scoring will carry over when real players can join.</p>
       <div className="mt-6 grid gap-4 md:grid-cols-2">
         {modes.map(({ mode, id }) => {
           const m = CRUCIBLE_MODES[mode];
@@ -177,6 +178,7 @@ function CrucibleView({ progression, playerClass, onLaunch }: { progression: Pla
                 <span className="ui-kicker">{m.tagline}</span>
                 <h3 className="mt-2 font-mono text-xl uppercase tracking-wide">{m.name}</h3>
                 <p className="mt-2 text-xs text-muted-foreground">{m.brief}</p>
+                {(() => { const a = arenaForMode(m.id); return <p className="mt-2 font-mono text-[10px] uppercase text-primary/90">{a ? `Map · ${a.name} · ${a.fracture.name}` : m.kind === "royale" ? "Map · the open world" : "Map · Grid-Iron"}</p>; })()}
                 <p className="mt-3 font-mono text-[10px] uppercase text-foreground/80">{def.rewards.nex} NEX · {def.rewards.xp} XP</p>
               </div>
               <Button size="sm" className="mt-4 w-full font-mono uppercase tracking-widest" disabled={!st.available || !progression.tutorialComplete} onClick={() => onLaunch(m.activity)}>
