@@ -33,7 +33,7 @@ namespace wf::gps
 	inline constexpr double StraightTolerance = 30;
 
 	enum class EEdgeKind : uint8_t { Road, Ring, Plaza };
-	const char* EdgeKindName(EEdgeKind Kind);
+	WORLDFRACTURECORE_API const char* EdgeKindName(EEdgeKind Kind);
 
 	struct FPoint { double X = 0, Z = 0; };
 	/** a footprint the GPS will not cut through: centre, half extents, and its turn about the vertical (radians, the web
@@ -90,9 +90,9 @@ namespace wf::gps
 	WORLDFRACTURECORE_API bool SegmentHitsAny(const FPoint& A, const FPoint& B, const std::vector<FRect>& Obstacles, double Margin = 0.5);
 
 	enum class EManeuver : uint8_t { Depart, Left, Right, SharpLeft, SharpRight, UTurn, EnterRing, ExitRing, CrossPlaza, Arrive };
-	const char* ManeuverName(EManeuver M);
+	WORLDFRACTURECORE_API const char* ManeuverName(EManeuver M);
 
-	struct FManeuver
+	struct WORLDFRACTURECORE_API FManeuver
 	{
 		EManeuver Type = EManeuver::Depart;
 		double AtDistance = 0; // metres along the route
