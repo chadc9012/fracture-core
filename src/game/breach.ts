@@ -109,3 +109,21 @@ export function breachWave(state: BreachState): { count: number; elite: number }
   if (state === "ANCHOR") return { count: 2, elite: 1 };
   return null;
 }
+
+type Box = { x: number; y: number; z: number; w: number; h: number; d: number };
+/** where a Breach wave comes out of the smoke: in front of the player (`yaw`), on open ground with a clear line between you,
+ * so the echoes can reach you and you can see them (play-test: a fixed point up the street put them behind a planter and a
+ * tower wall). Tries the facing first, then swings left and right, then nearer and farther; falls back to straight ahead. */
+type Seg = { ax: number; az: number; bx: number; bz: number; half: number; base: number; top: number };
+export function openSpawnPoint(px: number, pz: number, feet: number, yaw: number, boxes: readonly Box[], clearance = 1.2, walls: readonly Seg[] = []): { x: number; z: number } {
+  const relevant = boxes.filter((b) => feet + 0.3 < b.y + b.h / 2 && feet + 1.8 > b.y - b.h / 2 && Math.abs(b.x - px) < 40 + b.w / 2 && Math.abs(b.z - pz) < 40 + b.d / 2);
+  const segs = walls.filter((w) => feet + 0.3 < w.top && feet + 1.8 > w.base);
+  const segDist = (w: Seg, x: number, z: number) => { const dx = w.bx - w.ax, dz = w.bz - w.az, l2 = dx * dx + dz * dz || 1, t = Math.max(0, Math.min(1, ((x - w.ax) * dx + (z - w.az) * dz) / l2)); return Math.hypot(x - (w.ax + dx * t), z - (w.az + dz * t)) - w.half; };
+  const blocked = (x: number, z: number) => relevant.some((b) => Math.abs(x - b.x) < b.w / 2 + clearance && Math.abs(z - b.z) < b.d / 2 + clearance) || segs.some((w) => segDist(w, x, z) < clearance);
+  const clear = (x: number, z: number) => { const n = Math.ceil(Math.hypot(x - px, z - pz) / 0.5); for (let i = 2; i <= n; i++) { const t = i / n; if (blocked(px + (x - px) * t, pz + (z - pz) * t)) return false; } return true; };
+  for (const dist of [12, 9, 15, 6]) for (const turn of [0, 0.5, -0.5, 1, -1, 1.6, -1.6, Math.PI]) {
+    const a = yaw + turn, x = px + Math.sin(a) * dist, z = pz + Math.cos(a) * dist;
+    if (clear(x, z)) return { x, z };
+  }
+  return { x: px + Math.sin(yaw) * 10, z: pz + Math.cos(yaw) * 10 };
+}

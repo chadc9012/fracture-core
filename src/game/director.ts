@@ -100,11 +100,11 @@ function define(kind: MissionKind, regionId: string, intensity: Mission["intensi
     case "FIRST_RESONANCE":
       return {
         ...base,
-        name: "Mission 01 — First Resonance",
+        name: "Mission 01 — The Fracture",
         reward: 500,
         objectives: [
           { type: "SURVIVE", label: "Stabilize after insertion (s)", amount: 20, progress: 0, done: false },
-          { type: "KILL", label: "Clear the forest patrol", amount: 2, progress: 0, done: false },
+          { type: "KILL", label: "Drive back the first hostiles", amount: 2, progress: 0, done: false },
         ],
       };
     case "EMERGENCY_DEFENSE":

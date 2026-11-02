@@ -58,8 +58,8 @@ import { waterMix } from "@/game/water-audio";
 let lastWaterAudioAt = 0;
 import { flavorFor } from "@/game/audio-design";
 import { spawnBreachFoes, type Machine } from "@/game/sim";
-import { BREACH_HP_FLOOR, breachWave, slotAwake, type BreachEvent, type BreachRun, type Powers } from "@/game/breach";
-import { streetOutside } from "@/game/story-start";
+import { wallsNear } from "@/game/walls";
+import { BREACH_HP_FLOOR, breachWave, openSpawnPoint, slotAwake, type BreachEvent, type BreachRun, type Powers } from "@/game/breach";
 import { alert, applyLightning, chipPlayer, collidePlayer, createSim, defeatMachine, logImpact, markGoreHit, fireOrdnance, applyMachineDamageMods, FACTIONS, fireBullet, fireLauncher, hurtPlayer, throwBeacon, instabilityTier, spawnMissionDrones, spawnEventSquad, spawnStormGuardians, stepSim, summonBoss, summonScenarioBoss, type Faction, type InstabilityTier, type WorldSim, type ZoneState } from "@/game/sim";
 import type { MissionEvent, MissionRun } from "@/game/missions/broken-signal";
 import type { MissionEvent as BlackoutEvent, MissionRun as BlackoutRun } from "@/game/missions/blackout-protocol";
@@ -3016,8 +3016,10 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
     if (breachLive) {
       const b = breach!, emit = onBreachEvent!, now = Date.now(), bf = breachFoes.current, wave = breachWave(b.state);
       if (wave && bf.state !== b.state) {
-        // they come out of the smoke up the street, away from the Residences' doors
-        const st = streetOutside(6), at = { x: st.x + Math.sin(st.yaw) * 13, z: st.z + Math.cos(st.yaw) * 13 };
+        // they come out of the smoke in front of you, on open ground with a clear line between you (not behind a wall)
+        const near: { ax: number; az: number; bx: number; bz: number; half: number; base: number; top: number }[] = [];
+        for (const [dx, dz] of [[0, 0], [12, 0], [-12, 0], [0, 12], [0, -12]] as const) for (const w of wallsNear(s.x + dx!, s.z + dz!)) if (!near.includes(w)) near.push(w);
+        const at = openSpawnPoint(s.x, s.z, s.y - 1.6, s.yaw, [...registeredModelSolids(), ...structureSolids(structure.nodes.values())], 1.2, near);
         // each awakening: time slows for a breath as the next layer of power comes online
         if (b.state !== "DAZED") { hitStopUntil.current = performance.now() + 500; s.punch += 0.6; sfx.playAbility("DASH"); }
         bf.foes = [...bf.foes.filter((m) => m.alive), ...spawnBreachFoes(sim, at.x, at.z, wave.count, wave.elite, b.state === "DAZED" ? 1.5 : 5)];
@@ -3025,7 +3027,9 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
       }
       const live = bf.foes.filter((m) => m.alive);
       if (b.state === "DAZED" && (sim.hp < 100 || live.some((m) => Math.hypot(m.x - s.x, m.z - s.z) < 7))) emit({ type: "THREAT", now });
-      if ((b.state === "SURGE" || b.state === "ANCHOR") && bf.state === b.state && live.length === 0) emit({ type: b.state === "SURGE" ? "WAVE_CLEAR" : "ANCHOR_DOWN", now });
+      if (b.state === "SURGE" && bf.state === b.state && live.length === 0) emit({ type: "WAVE_CLEAR", now });
+      // the anchor was holding the tear open: when it falls, the echoes it pulled through collapse with it
+      if (b.state === "ANCHOR" && bf.state === b.state && !live.some((m) => m.elite)) { for (const m of live) { m.alive = false; delete m.lastPlayerDamage; } emit({ type: "ANCHOR_DOWN", now }); }
       if (b.state === "SURGE" && (mouse.current.fire || held.has("Space") || padState.current.fire)) breachUsed.current = true;
       if (b.hint && breachUsed.current) { breachUsed.current = false; emit({ type: "USED", now }); }
       // a first encounter teaches, it doesn't kill

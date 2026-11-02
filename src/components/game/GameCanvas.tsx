@@ -668,10 +668,12 @@ export function GameCanvas() {
   useEffect(() => setProgression((p) => withMissionRun(p, "awakening", awakening)), [awakening]);
   const awakeningDone = progression.completedMissions.includes("awakening");
   useEffect(() => {
-    if (phase !== "world" || tutorial || opening || breach || awakening || awakeningDone) return;
+    // after the prologue the Garage assistant asks for a first vehicle; the Awakening waits for that choice, so the player gets
+    // a breath between the street fight and the next mission instead of a second fight 2.5 s later (play-test)
+    if (phase !== "world" || tutorial || opening || breach || awakening || awakeningDone || (progression.tutorialComplete && !vehicleUnlocked)) return;
     const timer = window.setTimeout(() => setAwakening(advanceAwakening(AWAKENING, { type: "START" })), 2500);
     return () => window.clearTimeout(timer);
-  }, [phase, tutorial, opening, breach, awakening, awakeningDone]);
+  }, [phase, tutorial, opening, breach, awakening, awakeningDone, progression.tutorialComplete, vehicleUnlocked]);
   useEffect(() => {
     if (awakening?.state === "LOOT") return; // loot granted on ACK
     if (awakening?.state !== "COMPLETE" || awakeningDone) return;
@@ -1700,7 +1702,7 @@ export function GameCanvas() {
        {savedFlash > 0 && <p className="pointer-events-none fixed right-4 top-4 z-30 font-mono text-[10px] uppercase tracking-[0.25em] text-primary" role="status">◌ Auto-saved</p>}
        <HudRails />
        <VoiceSubtitle hidden={atlasOpen} />
-       {!cineId && <Profiler id="hud" onRender={onProf}><HUD civilian={powers === 0} hud={prologue ? { ...hud, markers: [], alerts: [] } : hud} level={{ level: progression.level, xp: progression.xp }} tutorialActive={Boolean(tutorial && tutorial.step !== "VICTORY")} onMenu={() => { setInventoryOpen(false); setAtlasOpen(false); setOperationsView(null); setMenuOpen(true); }} onStrategy={() => setStrategyOpen(true)} onGarage={() => setGarageOpen(true)} onAnalyze={() => setAnalysisOpen(true)} onOperations={(view) => { setInventoryOpen(false); setAtlasOpen(false); setOperationsView(view); }} onInventory={() => { setAtlasOpen(false); setOperationsView(null); setCharacterOpen(true); }} onAtlas={() => { setInventoryOpen(false); setOperationsView(null); setAtlasOpen(true); }} /></Profiler>}
+       {!cineId && <Profiler id="hud" onRender={onProf}><HUD civilian={powers === 0} hud={prologue ? { ...hud, markers: [], alerts: [], environment: "" } : hud} level={{ level: progression.level, xp: progression.xp }} tutorialActive={Boolean(tutorial && tutorial.step !== "VICTORY")} onMenu={() => { setInventoryOpen(false); setAtlasOpen(false); setOperationsView(null); setMenuOpen(true); }} onStrategy={() => setStrategyOpen(true)} onGarage={() => setGarageOpen(true)} onAnalyze={() => setAnalysisOpen(true)} onOperations={(view) => { setInventoryOpen(false); setAtlasOpen(false); setOperationsView(view); }} onInventory={() => { setAtlasOpen(false); setOperationsView(null); setCharacterOpen(true); }} onAtlas={() => { setInventoryOpen(false); setOperationsView(null); setAtlasOpen(true); }} /></Profiler>}
        {!tutorial && !hud.insideInterior && <Profiler id="minimap" onRender={onProf}><Minimap hud={hud} known={(id) => isLandmarkKnown(progression, id)} /></Profiler>}
        {!tutorial && !prologue && <Profiler id="quest" onRender={onProf}><QuestTracker progression={progression} /></Profiler>}
        {storyGraph && <StoryDialogue key={storyGraph.id} graph={storyGraph} story={progression.story} onStory={applyStory} onDone={finishStoryGraph} />}
@@ -1833,7 +1835,7 @@ export function GameCanvas() {
          </div>
        )}
        <DescentTracker descent={hud.descent ?? undefined} />
-       <LivingTracker living={hud.living} px={hud.px} pz={hud.pz} toast={livingToast} patrol={progression.patrol} waste={hud.waste ?? null} />
+       {!prologue && <LivingTracker living={hud.living} px={hud.px} pz={hud.pz} toast={livingToast} patrol={progression.patrol} waste={hud.waste ?? null} />}
        {npcOpen && <LivingNpcPanel npcId={npcOpen} progression={progression} eventTitle={hud.living?.event && hud.living.event.phase !== "WON" && hud.living.event.phase !== "FAILED" ? hud.living.event.title : null} onProgression={setProgression} onClose={() => setNpcOpen(null)} />}
        {hud.shopNearId && !shopOpen && (
          <div className="pointer-events-none absolute bottom-24 left-1/2 -translate-x-1/2">

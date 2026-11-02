@@ -55,10 +55,10 @@ export function withTutorialRun(p: PlayerProgression, tutorial: TutorialState | 
 export function firstMissionHud(p: Pick<PlayerProgression, "completedMissions">) {
   if (p.completedMissions.includes("mission-01")) return [];
   return [{
-    id: "mission-01", name: "Mission 01 — First Resonance", kind: "FIRST_RESONANCE" as const, regionId: "veridan", intensity: "LOW" as const, state: "ACTIVE" as const,
+    id: "mission-01", name: "Mission 01 — The Fracture", kind: "FIRST_RESONANCE" as const, regionId: "veridan", intensity: "LOW" as const, state: "ACTIVE" as const,
     objectives: [
       { type: "SURVIVE" as const, label: "Stabilize after insertion (s)", amount: 20, progress: 0, done: false },
-      { type: "KILL" as const, label: "Clear the forest patrol", amount: 2, progress: 0, done: false },
+      { type: "KILL" as const, label: "Drive back the first hostiles", amount: 2, progress: 0, done: false },
     ],
     reward: 500, age: 0, stage: 0,
   }];

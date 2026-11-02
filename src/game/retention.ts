@@ -4,7 +4,7 @@ import type { PlayerProgression } from "./progression";
 export type ChronicleEntry = { id: string; title: string; region: string; summary: string };
 /** Every campaign chapter, permanently. Nothing here is ever removed. */
 export const CHRONICLE: ChronicleEntry[] = [
-  { id: "mission-01", title: "First Resonance", region: "Verdant Forest", summary: "You woke inside the fracture. NOVA calibrated your Resonance and you broke the forest patrol." },
+  { id: "mission-01", title: "The Fracture", region: "Nexus City", summary: "An ordinary morning in Apartment 12-04, then the sky broke. Your powers woke in the street outside, and NOVA found you." },
   { id: "awakening", title: "Awakening", region: "Nexus City", summary: "The Nexus core stirred. You reached the city and learned the fracture remembers every battle." },
   { id: "broken-signal", title: "Broken Signal", region: "Nexus City", summary: "A dead relay whispered coordinates. You restored the signal and found who silenced it." },
   { id: "drowned-relay", title: "The Drowned Relay", region: "Shrouded Swamps", summary: "The trace sank into the swamp. You purged a drowned Vanguard relay and put down the war-frame the swamp had grown into." },

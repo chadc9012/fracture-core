@@ -1,6 +1,6 @@
 // @ts-ignore bun:test has no types in this project's tsconfig
 import { describe, expect, it } from "bun:test";
-import { CLEAR_MS, DAZED_MS, NUDGE_MS, advanceBreach, breachHint, breachPowers, breachWave, slotAwake, startBreach } from "./breach";
+import { openSpawnPoint, CLEAR_MS, DAZED_MS, NUDGE_MS, advanceBreach, breachHint, breachPowers, breachWave, slotAwake, startBreach } from "./breach";
 
 const keys = { fire: "Space", primary: "Q", dash: "Alt" };
 const hints = (s: Parameters<typeof breachHint>[0]) => breachHint(s, keys);
@@ -58,5 +58,14 @@ describe("the Breach: powers wake under pressure during the escape", () => {
     expect(breachWave("SURGE")).toEqual({ count: 2, elite: 0 });
     expect(breachWave("ANCHOR")).toEqual({ count: 2, elite: 1 });
     expect(breachWave("CLEAR")).toBeNull();
+  });
+  it("waves come out in front of you on open ground with a clear line, never behind a wall", () => {
+    expect(openSpawnPoint(0, 0, 0, 0, [])).toEqual({ x: 0, z: 12 });
+    // a wall straight ahead: they come out to one side instead, and the line to them is clear
+    const wall = { x: 0, y: 1.5, z: 6, w: 8, h: 3, d: 0.5 };
+    const p = openSpawnPoint(0, 0, 0, 0, [wall]);
+    expect(Math.abs(p.x)).toBeGreaterThan(4);
+    // a wall well above head height doesn't count
+    expect(openSpawnPoint(0, 0, 0, 0, [{ ...wall, y: 20 }])).toEqual({ x: 0, z: 12 });
   });
 });
