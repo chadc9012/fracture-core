@@ -10,8 +10,8 @@ the **3D City** orbit view and **Street View** at eye height, built from the exp
 heights), roads, rings and places, each region lit after the owner's target frames (gritty day in the wilds with the
 cracked planet overhead, the cities at night with lit windows and wet streets, Ember under ash, Thalassia under the sea).
 
-**Garages** (`scripts/garage/`, the GARAGE button on the globe): four shops (Nexus Customs, Neon Performance, Ironworks
-Garage, Fracture Dynamics), six cars from the web game's fleet on a turntable, and paint and finish, body kits (front and rear
+**Garages** (`scripts/garage/`, the GARAGE button on the globe): five shops (Nexus Customs, Neon Performance, Ironworks
+Garage, Sunset Kustoms, Fracture Dynamics), six cars from the web game's fleet on a turntable, and paint and finish, body kits (front and rear
 bumpers, skirts, fenders, wings, hoods, exhausts, bull bars, roof racks, Street / Racing / Widebody presets), wheels and tyres,
 performance, armour, lights and Fracture mods, drawn on the car before you buy. One order per visit is priced at the shop's
 rates, gated by your standing there, and checked out all or nothing; repairs, credits and every car's build save to
@@ -38,7 +38,10 @@ button turns it into the Las Vegas / New York version: lit towers, neon blade si
 brands, video billboards, street lamps on, and the wet street mirroring all of it. The MIAMI COAST button swaps the
 block for the coastal city: pastel Art Deco hotels and Caribbean villas with terracotta roofs, pink terrazzo, palms on
 every post, no glass skyline. The Nexus block mixes apartment, red-brick New York walk-up and glass office blocks with a
-casino podium; all were made in Meshy for this.
+casino podium; all were made in Meshy for this. A third style, NEON CITY, is Hollywood and Long Beach after dark:
+palms under twice the neon. Each city has its own drive-in car garage on the street (Nexus Customs, Neon Performance,
+and Sunset Kustoms, a new beach-cruise shop on the coast) with the shop's sign in its colour and a lit workshop behind
+the open door; ENTER opens the full garage for that shop.
 
 ```sh
 bun scripts/export-godot-data.ts          # from the repo root: writes godot-world-fracture/generated/ (gitignored)

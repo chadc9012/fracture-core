@@ -18,12 +18,13 @@ const VEHICLES := [
 	{ "id": "aether-hoverbike", "name": "Aether Hoverbike", "cls": "bike", "model": "res://models/fleet/aether-hoverbike.glb", "paint": "#5b2be0", "stats": { "speed": 74, "accel": 82, "handling": 76, "armor": 8 } },
 ]
 
-## the four shops and what each specialises in (owner's planned garage types). `slots`: what it fits; `mult`: its price level;
+## the shops and what each specialises in (owner's planned garage types). `slots`: what it fits; `mult`: its price level;
 ## `rep`: reputation needed to deal with it at all; `accent`: its neon.
 const SHOPS := [
 	{ "id": "nexus-customs", "name": "Nexus Customs", "city": "Nexus City", "blurb": "Everyday repairs, body kits, paint and wheels.", "slots": ["front", "rear", "skirts", "fenders", "spoiler", "hood", "exhaust", "wheels", "paint", "finish", "tint"], "mult": 1.0, "rep": 0, "accent": "#3fd0ff", "repairs": true },
 	{ "id": "neon-performance", "name": "Neon Performance", "city": "Neon City", "blurb": "Racing upgrades, exotic body kits and lighting.", "slots": ["front", "rear", "skirts", "fenders", "spoiler", "exhaust", "wheels", "engine", "turbo", "gearbox", "brakes", "suspension", "tyres", "underglow", "paint", "finish"], "mult": 1.15, "rep": 1, "accent": "#ff3fb4", "repairs": true },
 	{ "id": "ironworks", "name": "Ironworks Garage", "city": "The Wastelands", "blurb": "Off-road gear, armour and reinforced parts.", "slots": ["bullbar", "roof", "armor", "glass", "suspension", "tyres", "wheels", "paint", "finish"], "mult": 0.95, "rep": 1, "accent": "#ff9a2e", "repairs": true },
+	{ "id": "sunset-kustoms", "name": "Sunset Kustoms", "city": "Coastline", "blurb": "Candy paint, chrome wheels and low stance.", "slots": ["front", "rear", "skirts", "spoiler", "wheels", "suspension", "underglow", "tint", "paint", "finish"], "mult": 1.05, "rep": 0, "accent": "#ffb347", "repairs": true },
 	{ "id": "fracture-dynamics", "name": "Fracture Dynamics", "city": "Aegis Spire", "blurb": "Advanced futuristic modifications.", "slots": ["fracture", "shield", "engine", "underglow", "finish"], "mult": 1.35, "rep": 2, "accent": "#9f6bff", "repairs": false },
 ]
 

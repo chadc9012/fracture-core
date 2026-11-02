@@ -100,7 +100,7 @@ func _open_street(night := false, style := "nexus") -> void:
 		var n: bool = street.night
 		var st: String = street.style
 		_close_street()
-		_open_street(n, "coast" if st == "nexus" else "nexus"))
+		_open_street(n, StreetSlice.STYLES[(StreetSlice.STYLES.find(st) + 1) % StreetSlice.STYLES.size()]))
 	street.toggle_night.connect(func():
 		var was: bool = street.night
 		var st2: String = street.style
@@ -146,7 +146,9 @@ func _close_map() -> void:
 
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_WM_GO_BACK_REQUEST or what == NOTIFICATION_WM_CLOSE_REQUEST:
-		if street:
+		if street and street.garage_overlay:
+			street.close_garage()
+		elif street:
 			_close_street()
 		elif driving and driving.garage_overlay != null:
 			driving._close_city_garage()
@@ -196,7 +198,9 @@ func _shoot(path: String, opts: Array) -> void:
 				driving._open_city_garage()
 		# slice[:x,y,z:tx,ty,tz]  the Nexus street slice, optionally from another camera
 		if String(o).begins_with("slice"):
-			_open_street(String(o).contains("night"), "coast" if String(o).contains("coast") else "nexus")
+			_open_street(String(o).contains("night"), "coast" if String(o).contains("coast") else ("neon" if String(o).contains("neon") else "nexus"))
+			if String(o).contains("garage"):
+				street.open_garage()
 			var sl := street
 			var q := String(o).split(":")
 			if q.size() > 2:

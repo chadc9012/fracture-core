@@ -16,8 +16,17 @@ const FLEET := "res://models/fleet/"
 
 ## night: the Las Vegas / New York version — lit towers, neon blade signs and billboards, lamps on, wet street mirroring it all
 var night := false
-## "nexus": New York density and Las Vegas glitz; "coast": Miami Art Deco and Caribbean resort, pastel and palm-lined
+## "nexus": New York density and Las Vegas glitz; "neon": Neon City, Hollywood and Long Beach after dark, palms under
+## neon; "coast": Miami Art Deco and Caribbean resort, pastel and palm-lined
 var style := "nexus"
+const STYLES := ["nexus", "neon", "coast"]
+const STYLE_NAMES := { "nexus": "NEXUS CITY", "neon": "NEON CITY", "coast": "MIAMI COAST" }
+## each city's car garage (catalog.gd shop ids)
+const CITY_GARAGE := { "nexus": "nexus-customs", "neon": "neon-performance", "coast": "sunset-kustoms" }
+const Catalog = preload("res://scripts/garage/catalog.gd")
+const GarageView = preload("res://scripts/garage/garage_view.gd")
+var garage_overlay: Control
+const GARAGE_Z := 8.0
 ## original in-world brands (no real names or logos): what fills the blank shopfronts and signs
 const BRANDS := ["LUMA CAFE", "NEXA BANK", "BYTEBURGER", "VOLTA MOBILE", "IRONCLAD ARMS", "FADE & CO", "HAVEN HOME",
 	"PULSE GYM", "KAIJU RAMEN", "ORBIT TICKETS", "VELVET SALON", "AXIOM ARMOR", "SOLACE SPA", "GRIDLINE TAXI", "NOVA THREADS",
@@ -30,6 +39,8 @@ var _cache := {}
 
 func _ready() -> void:
 	_rng.seed = 2207
+	if style == "neon":
+		night = true
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	var bg := ColorRect.new()
 	bg.color = Color(0.05, 0.06, 0.08)
@@ -53,8 +64,11 @@ func _ready() -> void:
 	_skyline()
 	_props()
 	_cars()
+	_garage_front()
 	if night:
 		_neon()
+		if style == "neon":
+			_neon()   # Neon City: twice the signage
 	cam = Camera3D.new()
 	cam.fov = 58.0
 	cam.near = 0.05
@@ -73,10 +87,19 @@ func _ready() -> void:
 	tod.pressed.connect(func(): toggle_night.emit())
 	add_child(tod)
 	var sty := Button.new()
-	sty.text = "MIAMI COAST" if style == "nexus" else "NEXUS CITY"
+	sty.text = STYLE_NAMES[STYLES[(STYLES.find(style) + 1) % STYLES.size()]]
 	sty.position = Vector2(190, 16)
 	sty.pressed.connect(func(): toggle_style.emit())
 	add_child(sty)
+	var shop := Catalog.shop(CITY_GARAGE[style])
+	var enter := Button.new()
+	enter.text = "ENTER " + String(shop.name).to_upper()
+	enter.add_theme_color_override("font_color", Color(String(shop.accent)))
+	enter.position = Vector2(330, 16)
+	enter.pressed.connect(open_garage)
+	add_child(enter)
+	if style != "nexus":
+		tod.visible = style != "neon"   # Neon City is always night
 
 func look_from(from: Vector3, at: Vector3) -> void:
 	cam.position = from
@@ -327,12 +350,18 @@ static func _aabb(n: Node) -> AABB:
 func _buildings() -> void:
 	var half := ROAD_W * 0.5 + WALK_W
 	# which blocks line the street, and how tall each kind stands (m)
-	var kinds: Array = [["apartment.glb", 22.0], ["brick.glb", 21.0], ["office.glb", 34.0], ["apartment.glb", 25.0], ["brick.glb", 19.0]] if style == "nexus" \
-		else [["deco.glb", 15.0], ["villa.glb", 12.0], ["deco.glb", 17.0], ["villa.glb", 11.0]]
+	var kinds: Array = [["apartment.glb", 22.0], ["brick.glb", 21.0], ["office.glb", 34.0], ["apartment.glb", 25.0], ["brick.glb", 19.0]]
+	if style == "coast":
+		kinds = [["deco.glb", 15.0], ["villa.glb", 12.0], ["deco.glb", 17.0], ["villa.glb", 11.0]]
+	elif style == "neon":
+		kinds = [["deco.glb", 16.0], ["brick.glb", 18.0], ["apartment.glb", 20.0], ["deco.glb", 14.0], ["office.glb", 28.0]]
 	var k := 0
 	for side: float in [-1.0, 1.0]:
 		var z := -LENGTH * 0.5 + 6.0
 		while z < LENGTH * 0.5 - 10.0:
+			if side > 0 and absf(z + 9.0 - GARAGE_Z) < 12.0:
+				z += 22.0     # the city garage takes this lot
+				continue
 			var pick: Array = kinds[(k * 7 + int(side + 1.0)) % kinds.size()]
 			# the casino podium once on the far side of the Nexus street, at the head of the block
 			if style == "nexus" and side < 0 and k == 2:
@@ -412,7 +441,7 @@ func _props() -> void:
 		var i := 0
 		while z < LENGTH * 0.5 - 6.0:
 			var edge := side * (half + 1.3)
-			if i % 2 == 0 or style == "coast":
+			if i % 2 == 0 or style != "nexus":
 				if ResourceLoader.exists(MODELS + "palm.glb"):
 					prop("palm.glb", _rng.randf_range(8.5, 11.0), Vector3(edge, 0.18, z), _rng.randf() * 360.0)
 				else:
@@ -506,6 +535,10 @@ func _neon() -> void:
 	for side: float in [-1.0, 1.0]:
 		var z := -LENGTH * 0.5 + 14.0
 		while z < LENGTH * 0.5 - 10.0:
+			if side > 0 and absf(z - GARAGE_Z) < 16.0:
+				z += 22.0     # the garage carries its own sign
+				k += 1
+				continue
 			var c: Color = NEON[k % NEON.size()]
 			var brand: String = BRANDS[k % BRANDS.size()]
 			# a vertical blade sign sticking out from the facade, readable down the street
@@ -542,3 +575,77 @@ void fragment() {
 		mi.position = Vector3(side * (half + 0.3), _rng.randf_range(24.0, 34.0), -40.0 - i * 26.0)
 		mi.rotation_degrees.y = 90.0 if side < 0 else -90.0
 		world.add_child(mi)
+
+# --------------------------------------------------------------------------------------------- the city garage
+## a drive-in garage on the near side: a wide roll-up door open onto a lit workshop, the shop's sign in its accent
+## colour, a car on the apron. ENTER opens the real garage (garage_view.gd) for this city's shop.
+func _garage_front() -> void:
+	var shop := Catalog.shop(CITY_GARAGE[style])
+	var accent := Color(String(shop.accent))
+	var x0 := ROAD_W * 0.5 + WALK_W
+	var g := Node3D.new()
+	g.position = Vector3(x0, 0, GARAGE_Z)
+	world.add_child(g)
+	var wall := flat(Color(0.16, 0.17, 0.19), 0.6, 0.3)
+	var trim := flat(Color(0.08, 0.08, 0.09), 0.4, 0.7)
+	# the shell: 22 m wide, 9 m tall, 16 m deep, open at the street
+	_box(Vector3(16.0, 0.4, 22.0), Vector3(8.0, 9.0, 0), wall, g)
+	_box(Vector3(0.4, 9.0, 22.0), Vector3(16.0, 4.5, 0), wall, g)
+	for zz: float in [-11.0, 11.0]:
+		_box(Vector3(16.0, 9.0, 0.4), Vector3(8.0, 4.5, zz), wall, g)
+	# the street face around the door, with a header band carrying the sign
+	_box(Vector3(0.5, 9.0, 3.0), Vector3(0.25, 4.5, -9.5), trim, g)
+	_box(Vector3(0.5, 9.0, 3.0), Vector3(0.25, 4.5, 9.5), trim, g)
+	_box(Vector3(0.6, 2.4, 22.0), Vector3(0.3, 7.8, 0), trim, g)
+	_box(Vector3(0.1, 0.12, 16.0), Vector3(-0.05, 6.55, 0), _neon_mat(accent, 5.0), g)
+	var sign := Label3D.new()
+	sign.text = String(shop.name).to_upper()
+	sign.font_size = 120
+	sign.pixel_size = 0.012
+	sign.modulate = accent * (3.0 if night else 1.6)
+	sign.shaded = false
+	sign.position = Vector3(-0.05, 7.8, 0)
+	sign.rotation_degrees.y = -90.0
+	g.add_child(sign)
+	# the workshop inside: epoxy floor, a ramp lift, tool walls and strip lights
+	_box(Vector3(15.6, 0.05, 21.4), Vector3(8.0, 0.2, 0), flat(Color(0.22, 0.23, 0.25), 0.25, 0.2), g)
+	for zz: float in [-6.0, 0.0, 6.0]:
+		_box(Vector3(12.0, 0.08, 0.3), Vector3(8.0, 8.7, zz), _neon_mat(Color(0.9, 0.95, 1.0), 3.5), g)
+	_box(Vector3(5.0, 0.3, 2.4), Vector3(9.0, 1.3, -4.0), flat(Color(0.75, 0.2, 0.15), 0.5, 0.6), g)
+	for zz: float in [-5.0, -3.0]:
+		_box(Vector3(0.3, 1.3, 0.3), Vector3(9.0, 0.65, zz), flat(Color(0.3, 0.3, 0.32), 0.4, 0.8), g)
+	_box(Vector3(0.3, 3.0, 10.0), Vector3(15.6, 2.5, 3.0), flat(Color(0.12, 0.13, 0.14), 0.7), g)
+	_box(Vector3(0.1, 0.1, 10.0), Vector3(15.4, 4.1, 3.0), _neon_mat(accent, 2.5), g)
+	var inside := OmniLight3D.new()
+	inside.light_color = Color(0.92, 0.95, 1.0)
+	inside.light_energy = 2.2
+	inside.omni_range = 16.0
+	inside.position = Vector3(8.0, 7.0, 0)
+	g.add_child(inside)
+	var glow := OmniLight3D.new()
+	glow.light_color = accent
+	glow.light_energy = 1.5
+	glow.omni_range = 10.0
+	glow.position = Vector3(-2.0, 7.0, 0)
+	g.add_child(glow)
+	# a car up on the ramp and one waiting on the apron
+	for spec in [["tuner.glb", Vector3(x0 + 9.0, 1.45, GARAGE_Z - 4.0), 90.0], ["muscle-car-lod.glb", Vector3(x0 - 2.5, 0.18, GARAGE_Z + 4.0), 30.0]]:
+		if ResourceLoader.exists(FLEET + String(spec[0])):
+			var car := (load(FLEET + String(spec[0])) as PackedScene).instantiate() as Node3D
+			car.position = spec[1]
+			car.rotation_degrees.y = float(spec[2])
+			world.add_child(car)
+
+func open_garage() -> void:
+	if garage_overlay:
+		return
+	garage_overlay = GarageView.new()
+	garage_overlay.shop_id = CITY_GARAGE[style]
+	garage_overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	garage_overlay.closed.connect(close_garage)
+	add_child(garage_overlay)
+
+func close_garage() -> void:
+	if garage_overlay:
+		garage_overlay.queue_free()
+		garage_overlay = null
