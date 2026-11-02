@@ -50,7 +50,7 @@ export function FractureStorm({ envRef }: { envRef: React.RefObject<SkyEnv> }) {
   const light = useRef<THREE.PointLight>(null);
   // drifting debris field: one instanced mesh, violet rim glow so the chunks read against the night sky
   const debris = useMemo(() => stormDebris(), []);
-  const rockGeo = useMemo(() => organicRock(1, 77, 1, 0.38).scale(1, 0.6, 1.3), []); // jagged slabs rather than round pebbles
+  const rockGeo = useMemo(() => organicRock(1, 77, 1, 0.38, 3).scale(1, 0.6, 1.3), []); // jagged slabs rather than round pebbles
   const rockMat = useMemo(() => new THREE.MeshStandardMaterial({ color: "#8a8478", roughness: 0.92, emissive: "#3c3452", emissiveIntensity: 0.3, fog: false, flatShading: true }) /* lit rock with a cool far-away tint (they read as flat navy blobs before) */, []);
   const rocks = useRef<THREE.InstancedMesh>(null);
   const tmp = useMemo(() => new THREE.Object3D(), []);

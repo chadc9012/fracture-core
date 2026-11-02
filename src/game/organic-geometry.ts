@@ -69,8 +69,10 @@ function fbm3(x: number, y: number, z: number, seed: number, oct: number): numbe
  * (the flat faces real broken rock has), lightly terraced into strata, with a flattened base it sits on — smooth
  * shaded, so it reads as stone rather than a faceted low-poly gem. Triangle count scales with size (pebbles stay
  * cheap). `detail` adds subdivision; `amplitude` is how far the surface wanders (default about a quarter radius). */
-export function organicRock(radius: number, seed: number, detail = 1, amplitude = radius * 0.24): THREE.BufferGeometry {
-  const sub = (radius < 0.8 ? 4 : radius < 1.5 ? 7 : 10) + Math.max(0, detail - 1) * 2;
+export function organicRock(radius: number, seed: number, detail = 1, amplitude = radius * 0.24, subdivisions?: number): THREE.BufferGeometry {
+  // `subdivisions` overrides the size-based mesh density: far-away rocks (sky debris, the Storm Islands seen from the coast)
+  // need a few hundred triangles, not the ~1.3k-2.4k of a rock you walk past (play-test Nov 2: 220k triangles of sky debris)
+  const sub = subdivisions ?? (radius < 0.8 ? 4 : radius < 1.5 ? 7 : 10) + Math.max(0, detail - 1) * 2;
   let geo: THREE.BufferGeometry = new THREE.IcosahedronGeometry(radius, sub);
   geo.deleteAttribute("normal"); geo.deleteAttribute("uv");
   geo = mergeVertices(geo);

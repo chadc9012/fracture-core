@@ -6,6 +6,7 @@ import { STORM_ISLAND_SITES, stormSiteWorld, type StormIslandSite } from "@/game
 import { organicDeform, organicRock } from "@/game/organic-geometry";
 import { mulberry32 } from "@/game/rng";
 import { stormStrike } from "@/game/fracture-storm";
+import { CameraNear } from "./CameraNear";
 
 /**
  * Storm Islands (storm-islands.ts, the uploaded world pass rebuilt): six floating islands over the north-east ocean —
@@ -36,7 +37,7 @@ function Island({ site, index }: { site: StormIslandSite; index: number }) {
   const geo = useMemo(() => ({
     under: underside(radius, radius * 1.6, index + 3),
     cap: new THREE.CylinderGeometry(radius * 0.98, radius, 3, 24),
-    boulders: Array.from({ length: 7 }, (_, k) => organicRock(2 + (k % 3) * 1.6, index * 11 + k, 1)),
+    boulders: Array.from({ length: 7 }, (_, k) => organicRock(2 + (k % 3) * 1.6, index * 11 + k, 1, undefined, 4)),
   }), [radius, index]);
   const r = mulberry32(index * 97 + 5);
   const drift = useMemo(() => Array.from({ length: 7 }, () => ({ a: r() * Math.PI * 2, d: radius * (0.8 + r() * 0.6), y: -radius * (0.3 + r() * 0.9) })), [radius]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -45,6 +46,8 @@ function Island({ site, index }: { site: StormIslandSite; index: number }) {
     <group ref={group} position={[w.x, w.y, w.z]} name={`storm-island:${site.id}`}>
       <mesh geometry={geo.under} material={rockMat} position={[0, -radius * 0.8, 0]} castShadow />
       <mesh geometry={geo.cap} material={grass} position={[0, 1.4, 0]} receiveShadow castShadow />
+      {/* boulders and the landmark only within ~600 m of the camera: from the far coast the rock mass and cap carry it */}
+      <CameraNear x={w.x} y={w.y} z={w.z} radius={600} name="storm-island-detail">
       {drift.map((b, k) => <mesh key={k} geometry={geo.boulders[k]!} material={darkRock} position={[Math.cos(b.a) * b.d, b.y, Math.sin(b.a) * b.d]} />)}
       {site.kind === "landing" && <group position={[0, 3, 0]}>
         <mesh material={metal} castShadow><boxGeometry args={[34, 1.4, 13]} /></mesh>
@@ -68,6 +71,7 @@ function Island({ site, index }: { site: StormIslandSite; index: number }) {
         <mesh castShadow material={darkRock}><torusGeometry args={[10, 2.6, 8, 20]} /></mesh>
         {[0, 1, 2].map((k) => <mesh key={k} position={[Math.cos(k * 2.1) * 3, 1.5, Math.sin(k * 2.1) * 3]} material={stone}><sphereGeometry args={[1.4, 10, 8]} /></mesh>)}
       </group>}
+      </CameraNear>
       {site.kind === "storm-core" && <StormCore />}
     </group>
   );

@@ -13,7 +13,7 @@ import { brokenTower, craggyCone, islandCap, organicRock } from "@/game/organic-
 export function BrokenHorizon({ playerRef }: { playerRef: React.RefObject<THREE.Object3D | null> }) {
   const islands = useMemo(() => brokenHorizon(), []);
   // craggy rock undersides, eroded tops, broken-crowned towers and real rock debris (organic-geometry.ts)
-  const geo = useMemo(() => ({ rock: craggyCone(17), cap: islandCap(19), tower: brokenTower(23), debris: organicRock(1, 29, 1, 0.3) }), []);
+  const geo = useMemo(() => ({ rock: craggyCone(17), cap: islandCap(19), tower: brokenTower(23), debris: organicRock(1, 29, 1, 0.3, 2) }), []);
   const root = useRef<THREE.Group>(null);
   const rock = useRef<THREE.InstancedMesh>(null), cap = useRef<THREE.InstancedMesh>(null);
   const towers = useRef<THREE.InstancedMesh>(null), lit = useRef<THREE.InstancedMesh>(null), debris = useRef<THREE.InstancedMesh>(null);
