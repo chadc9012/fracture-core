@@ -6,15 +6,17 @@
  * calibration keep the forest. Pure apart from the small storage helpers. */
 import { profileKey } from "./save-profile";
 import { WORLD_RADIUS } from "./world";
+import { overArena } from "./killbox-arenas";
 
 export type Spot = { x: number; z: number };
 type Save = { tutorialComplete: boolean; tutorialRun: unknown; completedMissions: readonly string[]; character?: { deploymentId?: string } | null };
 
 const KEY = "wf.resume-spot.v1";
-/** a sane outdoor position: finite and inside the walkable world (the Fracture Gate descents and pocket rooms sit outside it) */
+/** a sane outdoor position: finite and inside the walkable world (the Fracture Gate descents and pocket rooms sit outside it), and
+ * not under a Killbox arena (killbox-arenas.ts: they hang over open sea; quitting mid-match must not resume you in the sky) */
 export const validSpot = (s: unknown): s is Spot => {
   const o = s as Spot | null;
-  return !!o && Number.isFinite(o.x) && Number.isFinite(o.z) && Math.hypot(o.x, o.z) < WORLD_RADIUS;
+  return !!o && Number.isFinite(o.x) && Number.isFinite(o.z) && Math.hypot(o.x, o.z) < WORLD_RADIUS && !overArena(o.x, o.z);
 };
 /** a save still part-way through the original Verdant Forest calibration resumes there (its steps are anchored to the forest) */
 export const inForestCalibration = (p: Save) => !p.tutorialComplete && !!p.tutorialRun && !p.completedMissions.includes("mission-01");

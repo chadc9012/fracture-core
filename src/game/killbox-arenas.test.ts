@@ -5,6 +5,7 @@ import { ARENAS, ROOFTOP_RUN as A, arenaDecks, arenaForMode, arenaSolids, arenaW
 import { PVP_MODES, ZONE_RADIUS } from "./pvp";
 import { activityById, currentTarget, startActivity } from "./activities";
 import { DEFAULT_PROGRESSION } from "./progression";
+import { validSpot } from "./resume-spot";
 
 const deckAtLocal = (dx: number, dz: number) => { const w = toWorld(A, dx, dz); return districtDeckAt(w.x, w.z) - A.base; };
 
@@ -127,5 +128,13 @@ describe("launching a Killbox playlist", () => {
     expect(t).toMatchObject({ x: A.site.x + A.objective[0], z: A.site.z + A.objective[1] });
     expect(go(PVP_MODES.royale.activity).arena).toBeUndefined();
     expect(go("crucible-duel").arena).toBeUndefined();
+  });
+});
+
+describe("leaving the arena", () => {
+  it("a save made mid-match never resumes up in the arena's airspace", () => {
+    expect(validSpot({ x: A.site.x, z: A.site.z })).toBe(false);
+    expect(validSpot({ x: A.site.x + 30, z: A.site.z - 20 })).toBe(false);
+    expect(validSpot({ x: 0, z: 0 })).toBe(true);
   });
 });

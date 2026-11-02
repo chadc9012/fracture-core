@@ -263,6 +263,7 @@ export function fractureLine(a: KillboxArena, t: number): string {
 /** is (x, y, z) in an arena's airspace — over its footprint and above its street level? The sea under the arenas must not make
  * the game think you are swimming on a rooftop (Scene's `submerged` test reads the terrain below). */
 export function inArenaSpace(x: number, y: number, z: number): boolean {
-  for (const a of Object.values(ARENAS)) if (y > a.base - 2 && Math.abs(x - a.site.x) < 90 && Math.abs(z - a.site.z) < 90) return true;
-  return false;
+  return y > ARENA_ALTITUDE - 2 && overArena(x, z);
 }
+/** is (x, z) under an arena's footprint? Nothing outdoors lives there (open sea), so it is never a place to resume a save */
+export const overArena = (x: number, z: number) => Object.values(ARENAS).some((a) => Math.abs(x - a.site.x) < 90 && Math.abs(z - a.site.z) < 90);
