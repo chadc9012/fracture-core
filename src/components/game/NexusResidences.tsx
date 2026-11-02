@@ -268,29 +268,16 @@ function ApartmentFinishDetails() {
   );
 }
 
-/** Initialize instance transforms once, not from a React callback ref on every render.
- * This avoids repeated GPU buffer uploads as gameplay state changes. */
-function TimberPlankInstances({ color, palette }: { color: string; palette: number }) {
-  const meshRef = useRef<THREE.InstancedMesh>(null);
-  useEffect(() => {
-    const mesh = meshRef.current;
-    if (!mesh) return;
-    const matrix = new THREE.Matrix4();
-    let count = 0;
-    for (let i = palette; i < 19; i += 3) {
-      matrix.makeTranslation(-0.05, 0.019, -5.15 + i * 0.54);
-      mesh.setMatrixAt(count++, matrix);
-    }
-    mesh.count = count;
-    mesh.instanceMatrix.needsUpdate = true;
-    mesh.computeBoundingSphere();
-  }, [palette]);
-  return (
-    <instancedMesh ref={meshRef} args={[undefined, undefined, 7]} receiveShadow>
-      <boxGeometry args={[11.8, 0.012, 0.532]} />
-      <meshStandardMaterial color={color} roughness={0.83} metalness={0} />
-    </instancedMesh>
-  );
+function WoodFloor() {
+  const mat = useMemo(() => {
+    if (typeof document === "undefined") return null;
+    const L = new THREE.TextureLoader();
+    const tex = (n: string, color: boolean) => { const t = L.load(`/textures/ph/wood-floor_${n}.jpg`); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(11.8 / 2, 10.26 / 2); t.anisotropy = 8; t.colorSpace = color ? THREE.SRGBColorSpace : THREE.NoColorSpace; return t; };
+    return new THREE.MeshStandardMaterial({ map: tex("diff", true), normalMap: tex("nor", false), roughnessMap: tex("rough", false), color: "#d9cfc4", roughness: 0.85, metalness: 0 });
+  }, []);
+  useEffect(() => () => { if (!mat) return; mat.map?.dispose(); mat.normalMap?.dispose(); mat.roughnessMap?.dispose(); mat.dispose(); }, [mat]);
+  if (!mat) return null;
+  return <mesh position={[-0.05, 0.026, -0.29]} rotation-x={-Math.PI / 2} material={mat} receiveShadow><planeGeometry args={[11.8, 10.26]} /></mesh>;
 }
 
 /** Subtle flooring zones and window-daylight cues. Thin surface overlays stay
@@ -301,11 +288,8 @@ function ApartmentFloorAndDaylight() {
     <group name="apartment-1204-floor-and-daylight">
       {/* Timber ends at the kitchen threshold (x=5.85), avoiding overlapping
           coplanar flooring and flicker at the tile boundary. */}
-      {/* Three shared material groups reduce draw calls compared with 19 separate
-          plank materials; plank transforms remain unchanged. */}
-      {["#867363", "#907c6b", "#8b7665"].map((color, palette) => (
-        <TimberPlankInstances key={`lounge-planks-${palette}`} color={color} palette={palette} />
-      ))}
+      {/* scanned laminate (Poly Haven laminate_floor_02, CC0) over the old plank strips' footprint: one draw call */}
+      <WoodFloor />
       {/* A cooler, hard-wearing kitchen floor zone with understated grout. */}
       {Array.from({ length: 5 }, (_, i) => (
         <mesh key={`kitchen-tile-${i}`} position={[6.8, 0.029, 1.2 + i * 0.91]} receiveShadow>

@@ -16,3 +16,6 @@ downloaded on the owner's Mac, then made phone-ready with gltf-transform: one va
 | pillows.glb | throw_pillows_01 |
 | vase.glb | ceramic_vase_01 |
 | photo-frame.glb | standing_picture_frame_01 |
+
+Textures in public/textures/ph (Poly Haven, CC0): wood-floor_* = laminate_floor_02 (Apartment 12-04 lounge),
+hex-paving_* = hexagonal_concrete_paving (Nexus plaza). Colour 1024 px, normal and roughness 512 px.

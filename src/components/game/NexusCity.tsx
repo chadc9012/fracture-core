@@ -20,6 +20,7 @@ import { addObstacle } from "@/game/obstacles";
 import { Model, QuietModel, useModel } from "./Vehicle";
 import { NexusDistricts } from "./NexusDistricts";
 import { NexusSigns } from "./NexusSigns";
+import { streetTexture } from "./city-surface";
 import { ResidentialHomes } from "./ResidentialHomes";
 import { NexusDiner } from "./NexusDiner";
 import { carIsOut } from "@/game/traffic-density";
@@ -131,7 +132,7 @@ function CityBuildings() {
       <mesh rotation-x={-Math.PI / 2} position={[NEXUS.x, walkHeight(NEXUS.x, NEXUS.z) + 0.06, NEXUS.z]} receiveShadow>
         <circleGeometry args={[NEXUS.radius * 0.86, 64]} />
         {/* rain-slick paving: the neon and the storm smear across it at night (trailer look) */}
-        <meshStandardMaterial color="#2a313d" roughness={0.43} metalness={0.16} />
+        <PlazaPaving />
       </mesh>
       {/* stability field dome */}
       <mesh position={[NEXUS.x, walkHeight(NEXUS.x, NEXUS.z), NEXUS.z]}>
@@ -140,6 +141,22 @@ function CityBuildings() {
       </mesh>
     </group>
   );
+}
+
+/** the plaza slab: scanned hex concrete paving (Poly Haven, CC0, public/textures/ph), cooled toward the city's slate grey and kept a
+ * little glossy so the neon still smears across it at night. One tile repeat every 3 m; the disc's own UVs span its diameter. */
+function PlazaPaving() {
+  const mat = useMemo(() => {
+    const tiles = (NEXUS.radius * 0.86 * 2) / 3;
+    const rep = (t: THREE.Texture | null) => { if (!t) return null; const c = t.clone(); c.repeat.set(tiles, tiles); c.needsUpdate = true; return c; };
+    return new THREE.MeshStandardMaterial({
+      color: "#8d97a4", roughness: 0.9, metalness: 0.05,
+      map: rep(streetTexture("/textures/ph/hex-paving_diff.jpg", true)), normalMap: rep(streetTexture("/textures/ph/hex-paving_nor.jpg", false)),
+      roughnessMap: rep(streetTexture("/textures/ph/hex-paving_rough.jpg", false)), normalScale: new THREE.Vector2(1.2, 1.2),
+    });
+  }, []);
+  useLayoutEffect(() => () => mat.dispose(), [mat]);
+  return <primitive object={mat} attach="material" />;
 }
 
 /* ---------------- pedestrians (real low-poly NPC models, not primitives) ---------------- */
