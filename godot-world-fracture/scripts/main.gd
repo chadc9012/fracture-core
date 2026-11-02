@@ -90,15 +90,22 @@ func _open_drive() -> void:
 	planet_view.set_process(false)
 
 var street: Control
-func _open_street(night := false) -> void:
+func _open_street(night := false, style := "nexus") -> void:
 	if street or driving or garage:
 		return
 	street = StreetSlice.new()
 	street.night = night
+	street.style = style
+	street.toggle_style.connect(func():
+		var n: bool = street.night
+		var st: String = street.style
+		_close_street()
+		_open_street(n, "coast" if st == "nexus" else "nexus"))
 	street.toggle_night.connect(func():
 		var was: bool = street.night
+		var st2: String = street.style
 		_close_street()
-		_open_street(not was))
+		_open_street(not was, st2))
 	street.closed.connect(_close_street)
 	add_child(street)
 	planet_view.set_process(false)
@@ -189,7 +196,7 @@ func _shoot(path: String, opts: Array) -> void:
 				driving._open_city_garage()
 		# slice[:x,y,z:tx,ty,tz]  the Nexus street slice, optionally from another camera
 		if String(o).begins_with("slice"):
-			_open_street(String(o).contains("night"))
+			_open_street(String(o).contains("night"), "coast" if String(o).contains("coast") else "nexus")
 			var sl := street
 			var q := String(o).split(":")
 			if q.size() > 2:

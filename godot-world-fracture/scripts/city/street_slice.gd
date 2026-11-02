@@ -6,6 +6,7 @@ extends Control
 ## quietly drops what it can't do and keeps the rest.
 signal closed
 signal toggle_night
+signal toggle_style
 
 const ROAD_W := 16.0          # kerb to kerb
 const WALK_W := 7.0           # each sidewalk
@@ -15,6 +16,8 @@ const FLEET := "res://models/fleet/"
 
 ## night: the Las Vegas / New York version — lit towers, neon blade signs and billboards, lamps on, wet street mirroring it all
 var night := false
+## "nexus": New York density and Las Vegas glitz; "coast": Miami Art Deco and Caribbean resort, pastel and palm-lined
+var style := "nexus"
 ## original in-world brands (no real names or logos): what fills the blank shopfronts and signs
 const BRANDS := ["LUMA CAFE", "NEXA BANK", "BYTEBURGER", "VOLTA MOBILE", "IRONCLAD ARMS", "FADE & CO", "HAVEN HOME",
 	"PULSE GYM", "KAIJU RAMEN", "ORBIT TICKETS", "VELVET SALON", "AXIOM ARMOR", "SOLACE SPA", "GRIDLINE TAXI", "NOVA THREADS",
@@ -69,6 +72,11 @@ func _ready() -> void:
 	tod.position = Vector2(110, 16)
 	tod.pressed.connect(func(): toggle_night.emit())
 	add_child(tod)
+	var sty := Button.new()
+	sty.text = "MIAMI COAST" if style == "nexus" else "NEXUS CITY"
+	sty.position = Vector2(190, 16)
+	sty.pressed.connect(func(): toggle_style.emit())
+	add_child(sty)
 
 func look_from(from: Vector3, at: Vector3) -> void:
 	cam.position = from
@@ -210,6 +218,8 @@ static func paving() -> ShaderMaterial:
 	sh.code = """
 shader_type spatial;
 uniform sampler2D grain : hint_default_white, repeat_enable;
+uniform vec3 lo_col = vec3(0.60, 0.55, 0.49);
+uniform vec3 hi_col = vec3(0.70, 0.65, 0.57);
 varying vec3 wpos;
 void vertex() { wpos = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz; }
 void fragment() {
@@ -219,7 +229,7 @@ void fragment() {
 	vec2 id = floor(p);
 	float tint = fract(sin(dot(id, vec2(12.9898, 78.233))) * 43758.5453);
 	float g = texture(grain, wpos.xz * 0.6).r;
-	vec3 stone = mix(vec3(0.60, 0.55, 0.49), vec3(0.70, 0.65, 0.57), tint) * (0.88 + 0.2 * g);
+	vec3 stone = mix(lo_col, hi_col, tint) * (0.88 + 0.2 * g);
 	ALBEDO = mix(stone * 0.62, stone, joint);
 	ROUGHNESS = mix(0.35, 0.78 + 0.08 * tint, joint);
 }
@@ -255,6 +265,10 @@ func _street() -> void:
 	var half := ROAD_W * 0.5
 	_box(Vector3(ROAD_W, 0.1, LENGTH), Vector3(0, -0.05, 0), asphalt())
 	var pave := paving()
+	if style == "coast":
+		# pink and sand terrazzo for the Art Deco strip
+		pave.set_shader_parameter("lo_col", Vector3(0.78, 0.62, 0.58))
+		pave.set_shader_parameter("hi_col", Vector3(0.86, 0.78, 0.66))
 	var kerb := flat(Color(0.62, 0.61, 0.58), 0.6)
 	for side: float in [-1.0, 1.0]:
 		_box(Vector3(WALK_W, 0.18, LENGTH), Vector3(side * (half + WALK_W * 0.5), 0.09, 0), pave)
@@ -290,6 +304,7 @@ func prop(file: String, height: float, pos: Vector3, yaw_deg := 0.0) -> Node3D:
 	node.position = Vector3(-(aabb.position.x + aabb.size.x * 0.5) * s, -aabb.position.y * s, -(aabb.position.z + aabb.size.z * 0.5) * s)
 	holder.position = pos
 	holder.rotation_degrees.y = yaw_deg
+	holder.set_meta("size", aabb.size * s)
 	world.add_child(holder)
 	return holder
 
@@ -311,19 +326,31 @@ static func _aabb(n: Node) -> AABB:
 # --------------------------------------------------------------------------------------------- buildings
 func _buildings() -> void:
 	var half := ROAD_W * 0.5 + WALK_W
+	# which blocks line the street, and how tall each kind stands (m)
+	var kinds: Array = [["apartment.glb", 22.0], ["brick.glb", 21.0], ["office.glb", 34.0], ["apartment.glb", 25.0], ["brick.glb", 19.0]] if style == "nexus" \
+		else [["deco.glb", 15.0], ["villa.glb", 12.0], ["deco.glb", 17.0], ["villa.glb", 11.0]]
+	var k := 0
 	for side: float in [-1.0, 1.0]:
-		var z := -LENGTH * 0.5 + 14.0
-		var i := 0
+		var z := -LENGTH * 0.5 + 6.0
 		while z < LENGTH * 0.5 - 10.0:
-			var h := 20.0 + _rng.randf_range(-2.0, 6.0)
-			# the apartment block's facade faces +z in the model; turn it to face the street
-			var b := prop("apartment.glb", h, Vector3(side * (half + h * 0.48), 0.0, z), -90.0 * side)
+			var pick: Array = kinds[(k * 7 + int(side + 1.0)) % kinds.size()]
+			# the casino podium once on the far side of the Nexus street, at the head of the block
+			if style == "nexus" and side < 0 and k == 2:
+				pick = ["casino.glb", 14.0]
+			var h: float = float(pick[1]) * _rng.randf_range(0.92, 1.1)
+			# Meshy models face +z; turning by -90 * side faces them across the street
+			var b := prop(String(pick[0]), h, Vector3(side * half, 0.0, z), -90.0 * side)
+			var width := 18.0
 			if b:
-				b.scale.x *= 1.0 + 0.08 * (i % 3)
-			# street-level shops: a shopfront podium on the ground floor of every block
-			prop("shopfront.glb", 5.2, Vector3(side * (half + 4.0), 0.18, z), -90.0 * side)   # sunk into the block, the awning out over the walk
-			z += h * 0.98
-			i += 1
+				var size: Vector3 = b.get_meta("size")
+				width = size.x
+				b.position.x = side * (half + size.z * 0.5)     # the facade sits on the back of the sidewalk
+				b.position.z = z + width * 0.5
+				if style == "nexus" and String(pick[0]) == "apartment.glb":
+					# street-level shops on the apartment blocks
+					prop("shopfront.glb", 5.2, Vector3(side * (half + 4.0), 0.18, b.position.z), -90.0 * side)
+			z += width + _rng.randf_range(0.0, 1.5)
+			k += 1
 
 ## glass towers rising behind the street wall: the skyline in the concept frames
 func _skyline() -> void:
@@ -353,6 +380,8 @@ void fragment() {
 	EMISSION = vec3(1.0, 0.82, 0.6) * on * glow;
 }
 """
+	if style == "coast":
+		return     # the resort strip has no glass skyline: open sky over the palms
 	for k in 26:
 		var m := ShaderMaterial.new()
 		m.shader = sh
@@ -383,7 +412,7 @@ func _props() -> void:
 		var i := 0
 		while z < LENGTH * 0.5 - 6.0:
 			var edge := side * (half + 1.3)
-			if i % 2 == 0:
+			if i % 2 == 0 or style == "coast":
 				if ResourceLoader.exists(MODELS + "palm.glb"):
 					prop("palm.glb", _rng.randf_range(8.5, 11.0), Vector3(edge, 0.18, z), _rng.randf() * 360.0)
 				else:
