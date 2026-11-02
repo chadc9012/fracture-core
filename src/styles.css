@@ -700,5 +700,15 @@ html.wf-touch.wf-simple-touch {
   .mission-tracker p { font-size: 9px; line-height: 1.25; }
 }
 
+/* Clean HUD (Settings > Interface > Clean HUD, on by default; owner Nov 1 "start with HUD", the target frame: compass, one
+   objective, vitals, ammo, minimap, nothing else). The side rails, quest/tracked-objective lists, the Living World panel, quick-use
+   stims, the dash meter, the weather line and NOVA's duplicate quote are hidden (all still in the game; the compass keeps the
+   markers), and only the newest alert shows. The current mission's own card and the running activity stay. */
+html.wf-clean-hud {
+  .consumable-hud, .dash-hud, .wf-rail-right, .quest-hud, .wf-tracked, .wf-env-line, .wf-nova-quote, .living-tracker,
+  [aria-label="Operator readout"] { display: none !important; }
+  .hud-alerts > :nth-child(n+2) { display: none !important; }
+}
+
 /* face editor sliders (StartMenu Sculpt step, Appearance restyle) */
 .wf-slider { accent-color: #92e9f5; height: 1.1rem; }

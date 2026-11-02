@@ -160,7 +160,7 @@ function Pedestrian({ ped }: { ped: Ped }) {
   useFrame((_, raw) => {
     const dt = Math.min(raw, 0.05);
     angle.current += (ped.speed / ped.r) * dt;
-    gait.current += dt * 6.2 * (0.6 + Math.abs(ped.speed) * 0.15);
+    gait.current += dt * (4.0 + Math.abs(ped.speed) * 1.8);
     const x = NEXUS.x + Math.cos(angle.current) * ped.r;
     const z = NEXUS.z + Math.sin(angle.current) * ped.r;
     const g = group.current;
@@ -171,7 +171,8 @@ function Pedestrian({ ped }: { ped: Ped }) {
     // small procedural bob + sway stands in for a walk cycle since the glb has no rig baked in
     if (body.current) {
       body.current.position.y = Math.abs(Math.sin(gait.current)) * 0.05;
-      body.current.rotation.z = Math.sin(gait.current) * 0.035;
+      body.current.rotation.z = Math.sin(gait.current) * 0.025;
+      body.current.rotation.x = Math.sin(gait.current * 0.5) * 0.018;
     }
   });
 
@@ -186,14 +187,24 @@ function Pedestrian({ ped }: { ped: Ped }) {
 
 function Pedestrians() {
   const peds = useMemo<Ped[]>(() => {
-    return Array.from({ length: 14 }, (_, i) => ({
-      a: (i / 14) * Math.PI * 2,
-      r: NEXUS_HUB_PROMENADE[0] + (i % 3) * ((NEXUS_HUB_PROMENADE[1] - NEXUS_HUB_PROMENADE[0]) / 2),
-      speed: (i % 2 ? 1 : -1) * (1.6 + (i % 3) * 0.5),
-      key: NPC_KEYS[i % NPC_KEYS.length]!,
-      height: 0.96 + (i % 3) * 0.04,
-      phase: Math.random() * 6,
-    }));
+    // deterministic crowd (owner's crowd pass): mixed walking speeds and heights, no Math.random remount pops.
+    // Two lanes, one per direction, both on the promenade itself (12.8-13.8): the pack's four lanes reached 14.3 (the ring road's
+    // inner lane) and 12.3 (through the planters), and opposite-direction lanes 0.23 m apart walked through each other.
+    const count = 20; // the pack had 28: each walker is a cloned GLB with its own frame callback, so phones pay per walker
+    const fract = (n: number) => n - Math.floor(n);
+    const hash = (n: number) => fract(Math.sin(n * 127.1 + 19.19) * 43758.5453);
+    const inner = NEXUS_HUB_PROMENADE[0] + 0.2, outer = NEXUS_HUB_PROMENADE[1] - 0.2;
+    return Array.from({ length: count }, (_, i) => {
+      const lane = i % 2;
+      return {
+        a: (i / count) * Math.PI * 2 + (hash(i + 7) - 0.5) * 0.22,
+        r: lane ? outer : inner,
+        speed: (lane % 2 ? 1 : -1) * (0.8 + hash(i + 13) * 0.75),
+        key: NPC_KEYS[i % NPC_KEYS.length]!,
+        height: 0.94 + hash(i + 21) * 0.14,
+        phase: hash(i + 31) * Math.PI * 2,
+      };
+    });
   }, []);
   return (
     <group>

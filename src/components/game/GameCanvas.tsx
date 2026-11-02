@@ -399,10 +399,11 @@ export function GameCanvas() {
   useEffect(() => {
     document.documentElement.classList.toggle("reduce-game-motion", settings.reducedMotion ?? false);
     document.documentElement.classList.toggle("high-contrast-hud", settings.highContrastHud ?? false);
+    document.documentElement.classList.toggle("wf-clean-hud", settings.cleanHud ?? true);
     return () => {
-      document.documentElement.classList.remove("reduce-game-motion", "high-contrast-hud");
+      document.documentElement.classList.remove("reduce-game-motion", "high-contrast-hud", "wf-clean-hud");
     };
-  }, [settings.reducedMotion, settings.highContrastHud]);
+  }, [settings.reducedMotion, settings.highContrastHud, settings.cleanHud]);
   useEffect(() => { if (menuOpen) stopVoice(); }, [menuOpen]);
   const [vehicleId, setVehicleId] = useCountedState<VehicleId>("vehicleId", "scrap-interceptor");
   const [garageOpen, setGarageOpen] = useCountedState("garageOpen", false);
@@ -983,6 +984,8 @@ export function GameCanvas() {
   }, [hud.px, hud.pz, hud.dayT, showLivingToast]);
   const visitCounts = useRef(new Map<string, number>());
   const [activeDialogue, setActiveDialogue] = useCountedState<DialogueLine[] | null>("activeDialogue", null);
+  // a greeting from inside a building closes when you walk out (play-test: Mara's lobby line followed the player into the street)
+  useEffect(() => { if (!hud.insideInterior) setActiveDialogue(null); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [hud.insideInterior]);
   useEffect(() => {
     // the prologue's residents talk through ResidencePanels; the lobby's generic greeting ("Still chasing Awakening?") doesn't fit yet
     if (!hud.insideInterior || opening) return;
