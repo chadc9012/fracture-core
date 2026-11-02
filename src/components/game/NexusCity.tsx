@@ -1,6 +1,6 @@
 import { DistrictLight } from "./DistrictLight";
 import { useFrame } from "@react-three/fiber";
-import { Suspense, useMemo, useRef } from "react";
+import { Suspense, useLayoutEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
 
 
@@ -148,7 +148,15 @@ const NPC_KEYS: ModelKey[] = ["npc_a", "npc_b", "npc_c"];
 
 type Ped = { a: number; r: number; speed: number; key: ModelKey; height: number; phase: number };
 
-function Pedestrian({ ped }: { ped: Ped }) {
+/** owner's crowd-grounding pack: a soft contact shadow under each walker, all in ONE instanced mesh (the pack gave every walker its
+ * own transparent disc, and put it 0.012-0.018 above walkHeight, i.e. under the plaza paving drawn at walkHeight + 0.06 in
+ * CityBuildings, where it never showed). Fixed 0.3 m radius in world units; an unloaded walker's slot stays at zero scale. */
+const PAVING_LIFT = 0.06; // CityBuildings' rain-slick plaza circle
+const pedShadowGeo = new THREE.CircleGeometry(0.3, 12).rotateX(-Math.PI / 2);
+const pedShadowMat = new THREE.MeshBasicMaterial({ color: "#090e16", transparent: true, opacity: 0.2, depthWrite: false });
+const pedShadowM = new THREE.Matrix4();
+
+function Pedestrian({ ped, index, shadows }: { ped: Ped; index: number; shadows: { current: THREE.InstancedMesh | null } }) {
   const group = useRef<THREE.Group>(null!);
   const body = useRef<THREE.Group>(null!);
   const model = useModel(ped.key);
@@ -165,12 +173,15 @@ function Pedestrian({ ped }: { ped: Ped }) {
     const z = NEXUS.z + Math.sin(angle.current) * ped.r;
     const g = group.current;
     if (!g) return;
-    g.position.set(x, walkHeight(x, z), z);
+    const y = walkHeight(x, z);
+    g.position.set(x, y, z);
+    const s = shadows.current;
+    if (s) { pedShadowM.makeTranslation(x, y + PAVING_LIFT + 0.012, z); s.setMatrixAt(index, pedShadowM); s.instanceMatrix.needsUpdate = true; }
     // face the direction of travel; +90deg because the model's forward axis is +Z
     g.rotation.y = Math.atan2(-Math.sin(angle.current), Math.cos(angle.current)) + Math.PI / 2 + (ped.speed < 0 ? Math.PI : 0);
     // small procedural bob + sway stands in for a walk cycle since the glb has no rig baked in
     if (body.current) {
-      body.current.position.y = Math.abs(Math.sin(gait.current)) * 0.05;
+      body.current.position.y = Math.abs(Math.sin(gait.current)) * 0.026; // grounding pack: half the bob, feet stay nearer the paving
       body.current.rotation.z = Math.sin(gait.current) * 0.025;
       body.current.rotation.x = Math.sin(gait.current * 0.5) * 0.018;
     }
@@ -206,10 +217,19 @@ function Pedestrians() {
       };
     });
   }, []);
+  const shadows = useRef<THREE.InstancedMesh>(null);
+  useLayoutEffect(() => {
+    const s = shadows.current;
+    if (!s) return;
+    pedShadowM.makeScale(0, 0, 0);
+    for (let i = 0; i < peds.length; i++) s.setMatrixAt(i, pedShadowM);
+    s.instanceMatrix.needsUpdate = true;
+  }, [peds]);
   return (
     <group>
+      <instancedMesh ref={shadows} args={[pedShadowGeo, pedShadowMat, peds.length]} frustumCulled={false} renderOrder={1} />
       {peds.map((p, i) => (
-        <QuietModel key={i} url={MODELS[p.key]} fallback={null}><Suspense fallback={null}><Pedestrian ped={p} /></Suspense></QuietModel>
+        <QuietModel key={i} url={MODELS[p.key]} fallback={null}><Suspense fallback={null}><Pedestrian ped={p} index={i} shadows={shadows} /></Suspense></QuietModel>
       ))}
     </group>
   );
