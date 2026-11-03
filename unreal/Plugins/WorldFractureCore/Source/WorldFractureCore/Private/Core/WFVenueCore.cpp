@@ -6,6 +6,7 @@
 #include "Core/WFVehicleCore.h"
 
 #include <algorithm>
+#include <charconv>
 #include <cstdlib>
 #include <cmath>
 #include <cstdint>
