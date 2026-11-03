@@ -1,0 +1,44 @@
+# World Fracture task board (owner's Dec 4 plan)
+
+Owner's instruction, Nov 2 2026: the roadmap session is the **lead session** — every Claude session working on this repo checks
+this board before starting anything, claims its task here (one line, pushed to main) and does not start a task another session
+holds. Lead session: `https://claude.ai/code/session_015nUG7fd8rEqjsn12yh1Fh7`. If you cannot reach it, claim here, push, and
+carry on; the lead merges the board.
+
+The full roadmap is the owner's doc "World Fracture roadmap" (claude.ai artifact, Nov 2). Target: a playable Godot vertical
+slice on the owner's phone by **Dec 4 2026**. Scope that is **out** until then: Killbox and raids in Godot, melee slot
+(option 2), clothing meshes, planes/ships/planet travel, the four new continents, Overgeared crafting, gore toggle, and any
+web-build (`src/`) feature work beyond verification and fixes.
+
+## How to claim
+Append a row under *Claimed*, with your session link and the date, then push. Move it to *Done* with the commit when it lands.
+Rows are the lock; `git fetch` before you claim.
+
+## Phases (in order; each gates the next)
+1. **Close out the web build** — melee as Fracture Blade skins/stats (option 1), server-side mission-run guard, phone verification.
+2. **Godot on-foot player and combat** — third-person operator in the street slices, rifle/sniper/fusion frames, 5 enemy types, HUD.
+3. **Godot progression and saves** — inventory, wardrobe/transmog, Nex per operator, Supabase cloud save + Google sign-in.
+4. **Godot story** — Apartment 12-04 opening, Fracture Descent fd-01…fd-04, cutscenes.
+5. **Godot cities and vehicles** — district streaming, traffic AI and building collisions, wishlist stores, one racing venue.
+
+## Claimed
+| Task | Session | Since |
+| --- | --- | --- |
+| Phase 1: melee items as Fracture Blade skins/stats (web build) | lead (session_015nUG7fd8rEqjsn12yh1Fh7) | 2026-11-02 |
+
+## Open (unclaimed, take in order within a phase)
+- Phase 1: server-side mission-run guard (`mission_runs` table + Supabase function; `player_saves` revision check stays).
+- Phase 2: Godot third-person operator controller (walk, run, jump, grapple) in `street_slice.gd`, using the creator's rig.
+- Phase 2: Godot weapons — port `weapon-catalog.ts` frames AUTO / SNIPER / FUSION; hitscan + projectile; ammo and reload.
+- Phase 2: Godot enemies — 5 types from the web AI (`src/game/sim.ts`), spawns in the Nexus block.
+- Phase 2: Godot HUD — hull, ammo, crosshair, compass, objective (the phone's simple HUD first).
+- Phase 3: Godot inventory + wardrobe + transmog reading the web catalogues via `export-godot-data.ts`.
+- Phase 3: Godot Supabase cloud save with Google sign-in (same `player_saves` table and `com.chadc9012.worldfracture://auth/callback`).
+- Phase 4: Apartment 12-04 opening in Godot.
+- Phase 4: fd-01…fd-04 missions in Godot on the quest engine contract.
+- Phase 5: traffic AI + building collisions in the driving district; district streaming (Active / Simulated / Frozen).
+- Phase 5: shoppable clothing and furnishings stores in the mall; first racing venue with stands and pit lane.
+
+## Done
+| Task | Commit |
+| --- | --- |
