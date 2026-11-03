@@ -267,9 +267,10 @@ func _build_slope_rock() -> void:
 			var gz := _h(lx, lz + 2.0) - _h(lx, lz - 2.0)
 			var slope := sqrt(gx * gx + gz * gz) / 4.0 # rise over run
 			var high := (y - lo) / maxf(1.0, hi - lo)
-			if slope < 0.55 or rng.randf() > 0.35 + high * 0.4:
+			# outcrops, not a coat: the snow (or ash, or sand) stays the slope's colour and the rock breaks it up
+			if slope < 0.8 or rng.randf() > 0.06 + high * 0.1:
 				continue
-			var s := rng.randf_range(1.5, 4.5) * (1.0 + slope * 0.6)
+			var s := rng.randf_range(1.2, 3.0) * (1.0 + slope * 0.3)
 			rocks.append(Transform3D(Basis.from_euler(Vector3(rng.randf_range(-0.4, 0.4), rng.randf() * TAU, rng.randf_range(-0.4, 0.4))).scaled(Vector3(s * 1.4, s * 0.8, s)), Vector3(lx, y - s * 0.25, lz)))
 	if rocks.is_empty():
 		return
@@ -279,7 +280,7 @@ func _build_slope_rock() -> void:
 	mesh.radial_segments = 6
 	mesh.rings = 3
 	var mat := StandardMaterial3D.new()
-	mat.albedo_color = {"frostspire": Color("#4c4f57"), "ember": Color("#2a2420"), "crystal-badlands": Color("#6b4e5e"), "wastelands": Color("#7a5a3e")}.get(map_id, Color("#555555"))
+	mat.albedo_color = {"frostspire": Color("#6d737d"), "ember": Color("#2a2420"), "crystal-badlands": Color("#6b4e5e"), "wastelands": Color("#7a5a3e")}.get(map_id, Color("#555555"))
 	mat.roughness = 0.95
 	_multimesh(mesh, rocks, mat, 700.0, false)
 
