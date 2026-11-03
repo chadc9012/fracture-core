@@ -12,8 +12,9 @@ import { ArenaWeather } from "./ArenaWeather";
 import { InstancedGlb, facadeTexture, type GlbInstance } from "./InstancedGlb";
 import { floorStrip, hazardTexture, jerseyBarrier, shippingContainer, slab, towerShell } from "./arena-parts";
 
-/** Fracture Floor (killbox-arenas.ts FRACTURE_FLOOR), after the owner's PvP maps board (Nov 2): a rain-wet plaza on top of a Nexus
- * tower at night. Dark wet concrete with standing water and yellow hazard stripes along every lip, cargo containers and crates for
+/** The plaza arenas (killbox-arenas.ts FRACTURE_FLOOR, KILLBOX_PRIME), after the owner's PvP maps board (Nov 2): a rain-wet roof on
+ * top of a tower at night. `STYLES` holds what differs per map (the building under it, the hologram, masts, skyline, water).
+ * Fracture Floor: Dark wet concrete with standing water and yellow hazard stripes along every lip, cargo containers and crates for
  * cover, glass data walls with the diamond emblem that rise from slots in the floor and sink back (the Grid Rewrite), floodlight
  * masts on the corners, a holographic globe and ring turning over the centre objective, and lit towers all round.
  * Drawn from the same data its decks and walls come from. World space: arena space maps to it with the arena's site and base. */
@@ -33,49 +34,103 @@ function glassTexture(): THREE.CanvasTexture | null {
   const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4; return t;
 }
 
-/** the towers round the plaza: the authored Neon towers (dx, dz, model, height above the plaza's street), lobbies in */
-const SKYLINE: readonly [number, number, BuildingModelId, number][] = [
-  [-75, 52, "neon-tower-b", 190], [-30, 82, "neon-tower-a", 230], [28, 86, "neon-tower-c", 175], [76, 50, "neon-tower-a", 210],
-  [92, -6, "neon-tower-c", 165], [74, -54, "neon-tower-b", 220], [26, -86, "neon-tower-a", 185], [-28, -84, "neon-tower-c", 240],
-  [-78, -50, "neon-tower-a", 200], [-94, 4, "neon-tower-b", 180], [-130, 110, "neon-tower-c", 260], [135, -115, "neon-tower-b", 270],
-];
-/** floodlight masts on the floor's corners (dx, dz): each throws its light toward the centre */
-const MASTS: readonly [number, number][] = [[-29, 23], [29, 23], [29, -23], [-29, -23]];
+type PlazaStyle = {
+  /** the building under the roofs: one tower with a concrete crown the roofs stand on, or a tower wing under each roof */
+  shell: "crown" | "per-roof";
+  /** over the objective: a wireframe globe in two rings, or rings of light on the floor round a hologram column */
+  holo: "globe" | "rings";
+  /** floodlight masts (dx, dz), each throws its light toward the centre; the towers round it (dx, dz, model, height); standing water */
+  masts: readonly [number, number][]; skyline: readonly [number, number, BuildingModelId, number][]; puddles: readonly [number, number, number, number][];
+  /** walkways drawn as solid wedges or as flights of steps with handrails */
+  stairs: "wedge" | "steps";
+};
+const STYLES: Record<"nexus-grid" | "prime-roof", PlazaStyle> = {
+  "nexus-grid": {
+    shell: "crown", holo: "globe", stairs: "wedge",
+    masts: [[-29, 23], [29, 23], [29, -23], [-29, -23]],
+    skyline: [
+      [-75, 52, "neon-tower-b", 190], [-30, 82, "neon-tower-a", 230], [28, 86, "neon-tower-c", 175], [76, 50, "neon-tower-a", 210],
+      [92, -6, "neon-tower-c", 165], [74, -54, "neon-tower-b", 220], [26, -86, "neon-tower-a", 185], [-28, -84, "neon-tower-c", 240],
+      [-78, -50, "neon-tower-a", 200], [-94, 4, "neon-tower-b", 180], [-130, 110, "neon-tower-c", 260], [135, -115, "neon-tower-b", 270],
+    ],
+    puddles: [[-14, -4, 3.2, 1.6], [14, 4, 3.2, 1.6], [3, -12, 2, 2.8], [-3, 12, 2, 2.8], [-24, -14, 2.4, 1.2], [24, 14, 2.4, 1.2], [0, 30, 3, 1], [0, -30, 3, 1]],
+  },
+  "prime-roof": {
+    shell: "per-roof", holo: "rings", stairs: "steps",
+    masts: [[-31, 31], [31, 31], [31, -31], [-31, -31]],
+    skyline: [
+      [-90, 60, "neon-tower-a", 170], [-40, 96, "neon-tower-c", 210], [30, 100, "neon-tower-b", 160], [92, 64, "neon-tower-a", 200],
+      [108, -4, "neon-tower-b", 150], [88, -66, "neon-tower-c", 215], [36, -100, "neon-tower-a", 165], [-34, -98, "neon-tower-b", 225],
+      [-94, -62, "neon-tower-c", 185], [-110, 6, "neon-tower-a", 160], [-150, 130, "neon-tower-b", 250], [150, -130, "neon-tower-c", 255],
+    ],
+    puddles: [[-10, -4, 3, 1.4], [10, 4, 3, 1.4], [16, -20, 2.4, 1.6], [-16, 20, 2.4, 1.6], [-38, -20, 2, 1], [38, 20, 2, 1], [24, -6, 1.6, 2.2], [-24, 6, 1.6, 2.2]],
+  },
+};
 const DROP = 125; // the plaza tower's street lies this far below the arena base
 const CONTAINER_PAINT = ["#8a4426", "#2d5c66", "#7a6a2c", "#3b3f6a", "#6c2f2a"];
 
-export function FractureFloorView({ arena: a, state }: { arena: Arena; state: PvpState }) {
+export function PlazaArenaView({ arena: a, state }: { arena: Arena; state: PvpState }) {
   const { x: sx, z: sz } = a.site, B = a.base;
+  const st = STYLES[a.look === "prime-roof" ? "prime-roof" : "nexus-grid"], MASTS = st.masts;
   const phone = useMemo(() => isTouchDevice(), []);
 
   const geo = useMemo(() => {
     const W = (dx: number, dz: number) => ({ x: sx + dx, z: sz + dz });
     const minX = Math.min(...a.roofs.map((r) => r.x0)), maxX = Math.max(...a.roofs.map((r) => r.x1)), minZ = Math.min(...a.roofs.map((r) => r.z0)), maxZ = Math.max(...a.roofs.map((r) => r.z1));
     const p = W(minX, minZ), q = W(maxX, maxZ), cx = (p.x + q.x) / 2, cz = (p.z + q.z) / 2, w = q.x - p.x, d = q.z - p.z;
-    // the tower the plaza sits on: lit facade from the street far below up to the plaza's concrete crown
-    const shell = towerShell(p.x, q.x, p.z, q.z, B - DROP, B + 14);
+    // the building: one tower up to a concrete crown the roofs stand on (Fracture Floor), or a wing under each roof (Killbox Prime),
+    // with a ledge at every floor and piers up the corners
+    const blocks = st.shell === "crown" ? [{ p, q, top: B + 14 }] : a.roofs.map((r) => ({ p: W(r.x0, r.z0), q: W(r.x1, r.z1), top: B + r.top - 0.4 }));
+    const shell = mergeGeometries(blocks.map((b) => towerShell(b.p.x, b.q.x, b.p.z, b.q.z, B - DROP, b.top)))!;
     const trim: THREE.BufferGeometry[] = [];
-    for (let y = B - DROP + 3.6; y < B + 13; y += 3.6) trim.push(slab(cx, y, p.z - 0.12, w + 0.3, 0.22, 0.26), slab(cx, y, q.z + 0.12, w + 0.3, 0.22, 0.26), slab(p.x - 0.12, y, cz, 0.26, 0.22, d + 0.3), slab(q.x + 0.12, y, cz, 0.26, 0.22, d + 0.3));
-    for (const [x, z] of [[p.x, p.z], [q.x, p.z], [p.x, q.z], [q.x, q.z]] as const) trim.push(slab(x, B + (14 - DROP) / 2, z, 1.2, DROP + 14, 1.2));
-    // the crown: each roof a concrete body from B+14 up to its surface (the uplinks' bodies make the 2.5 m faces)
-    for (const r of a.roofs) { const c = W((r.x0 + r.x1) / 2, (r.z0 + r.z1) / 2), h = r.top - 14; trim.push(slab(c.x, B + 14 + h / 2 - 0.02, c.z, r.x1 - r.x0, h, r.z1 - r.z0)); }
+    for (const b of blocks) {
+      const bx = (b.p.x + b.q.x) / 2, bz = (b.p.z + b.q.z) / 2, bw = b.q.x - b.p.x, bd = b.q.z - b.p.z;
+      for (let y = B - DROP + 3.6; y < b.top - 1; y += 3.6) trim.push(slab(bx, y, b.p.z - 0.12, bw + 0.3, 0.22, 0.26), slab(bx, y, b.q.z + 0.12, bw + 0.3, 0.22, 0.26), slab(b.p.x - 0.12, y, bz, 0.26, 0.22, bd + 0.3), slab(b.q.x + 0.12, y, bz, 0.26, 0.22, bd + 0.3));
+      for (const [x, z] of [[b.p.x, b.p.z], [b.q.x, b.p.z], [b.p.x, b.q.z], [b.q.x, b.q.z]] as const) trim.push(slab(x, (B - DROP + b.top) / 2, z, 1.2, b.top - (B - DROP), 1.2));
+    }
+    // the crown: each roof a concrete body up to its surface (Fracture Floor's uplinks make the 2.5 m faces); a roof slab per wing
+    for (const r of a.roofs) { const c = W((r.x0 + r.x1) / 2, (r.z0 + r.z1) / 2), from = st.shell === "crown" ? 14 : r.top - 0.4, h = r.top - from; trim.push(slab(c.x, B + from + h / 2 - 0.02, c.z, r.x1 - r.x0, h, r.z1 - r.z0)); }
     const crown = mergeGeometries(trim)!;
     // the walking surface, panelled so the concrete reads in metres
     const tops = mergeGeometries([
       ...a.roofs.map((r) => { const c = W((r.x0 + r.x1) / 2, (r.z0 + r.z1) / 2); return new THREE.PlaneGeometry(r.x1 - r.x0, r.z1 - r.z0).rotateX(-Math.PI / 2).translate(c.x, B + r.top + 0.01, c.z); }),
-      ...a.walks.map((k) => { const c = W(k.x, k.z), rise = k.topB - k.top; return new THREE.PlaneGeometry(k.width, Math.hypot(k.length, rise)).rotateX(-Math.PI / 2).rotateX(-Math.atan2(rise, k.length)).translate(c.x, B + (k.top + k.topB) / 2 + 0.03, c.z); }),
+      // ramps get a panelled top; stepped flights draw their own treads
+      ...(st.stairs === "wedge" ? a.walks : []).map((k) => { const c = W(k.x, k.z), rise = k.topB - k.top; return new THREE.PlaneGeometry(k.width, Math.hypot(k.length, rise)).rotateX(-Math.PI / 2).rotateX(-Math.atan2(rise, k.length)).translate(c.x, B + (k.top + k.topB) / 2 + 0.03, c.z); }),
     ])!;
-    // each ramp a solid wedge (profile x along the ramp, extruded across it)
+    // each ramp a solid wedge (profile x along the ramp, extruded across it), turned onto the walkway's axis
+    const plain = (g: THREE.BufferGeometry) => { const n = g.index ? g.toNonIndexed() : g; for (const k of Object.keys(n.attributes)) if (k !== "position" && k !== "normal") n.deleteAttribute(k); return n; };
     const wedges = mergeGeometries(a.walks.map((k) => {
       const c = W(k.x, k.z), lo = Math.min(k.top, k.topB), rise = Math.abs(k.topB - k.top), shape = new THREE.Shape();
       shape.moveTo(-k.length / 2, 0); shape.lineTo(k.length / 2, 0); if (k.topB > k.top) shape.lineTo(k.length / 2, rise); else shape.lineTo(-k.length / 2, rise); shape.closePath();
-      return new THREE.ExtrudeGeometry(shape, { depth: k.width, bevelEnabled: false }).translate(0, 0, -k.width / 2).rotateY(-Math.PI / 2).translate(c.x, B + lo, c.z).toNonIndexed();
+      const g = new THREE.ExtrudeGeometry(shape, { depth: k.width, bevelEnabled: false }).translate(0, 0, -k.width / 2);
+      return plain((k.along === "z" ? g.rotateY(-Math.PI / 2) : g).translate(c.x, B + lo, c.z));
     }))!;
+    // flights of steps (Killbox Prime): 0.25 m risers following the walkway's slope, and a handrail on each side
+    const steps: THREE.BufferGeometry[] = [], rails: THREE.BufferGeometry[] = [];
+    if (st.stairs === "steps") for (const k of a.walks) {
+      const c = W(k.x, k.z), rise = k.topB - k.top, n = Math.max(2, Math.round(Math.abs(rise) / 0.25)), run = k.length / n, ax = k.along === "x";
+      for (let i = 0; i < n; i++) {
+        const s = -k.length / 2 + (i + 0.5) * run, h = k.top + rise * ((i + 1) / n), lo = Math.min(k.top, k.topB);
+        steps.push(plain(slab(c.x + (ax ? s : 0), B + lo + (h - lo) / 2, c.z + (ax ? 0 : s), ax ? run + 0.01 : k.width, Math.max(0.05, h - lo), ax ? k.width : run + 0.01)));
+      }
+      for (const side of [-1, 1]) {
+        const ox = ax ? 0 : side * (k.width / 2 - 0.08), oz = ax ? side * (k.width / 2 - 0.08) : 0, len = Math.hypot(k.length, rise), tilt = Math.atan2(rise, k.length);
+        const tube = new THREE.BoxGeometry(ax ? len : 0.06, 0.06, ax ? 0.06 : len);
+        if (ax) tube.rotateZ(tilt); else tube.rotateX(-tilt);
+        rails.push(plain(tube.translate(c.x + ox, B + (k.top + k.topB) / 2 + 1, c.z + oz)));
+        for (let i = 0; i <= 4; i++) { const s = -k.length / 2 + (i / 4) * k.length, h = k.top + rise * (i / 4); rails.push(plain(slab(c.x + ox + (ax ? s : 0), B + h + 0.5, c.z + oz + (ax ? 0 : s), 0.06, 1, 0.06))); }
+      }
+    }
+    const flights = steps.length ? mergeGeometries(steps)! : new THREE.BufferGeometry(), handrails = rails.length ? mergeGeometries(rails)! : new THREE.BufferGeometry();
     // hazard stripes: along every uplink lip and down both sides of each ramp
-    const stripes = mergeGeometries([
-      ...a.ledges.map((l) => { const s = Math.sign(l.az), y = B + 20 + 0.02; return floorStrip(sx + l.ax, sz + l.az - s * 0.45, sx + l.bx, sz + l.bz - s * 0.45, 0.6, y); }),
-      ...a.ledges.map((l) => { const s = Math.sign(l.az), y = B + l.top + 0.02; return floorStrip(sx + l.ax, sz + l.az + s * 0.3, sx + l.bx, sz + l.bz + s * 0.3, 0.4, y); }),
-    ])!;
+    // each ledge: the high side is the one with the higher surface just beyond the line; a stripe on the lip and one at its foot
+    const stripes = mergeGeometries(a.ledges.flatMap((l) => {
+      const len = Math.hypot(l.bx - l.ax, l.bz - l.az), nx = -(l.bz - l.az) / len, nz = (l.bx - l.ax) / len, mx = (l.ax + l.bx) / 2, mz = (l.az + l.bz) / 2;
+      const s = (surfaceAt(a, mx + nx, mz + nz) > surfaceAt(a, mx - nx, mz - nz) ? 1 : -1), hi = surfaceAt(a, mx + nx * s, mz + nz * s), lo = surfaceAt(a, mx - nx * s, mz - nz * s);
+      const off = (o: number) => [sx + l.ax + nx * o, sz + l.az + nz * o, sx + l.bx + nx * o, sz + l.bz + nz * o] as const;
+      const [a1, b1, c1, d1] = off(s * 0.3), [a2, b2, c2, d2] = off(-s * 0.45);
+      return [floorStrip(a1, b1, c1, d1, 0.4, B + hi + 0.02), floorStrip(a2, b2, c2, d2, 0.6, B + lo + 0.02)];
+    }))!;
     // parapets: a low concrete wall with a cyan light line along its top
     const parapets = arenaParapets(a);
     const along = (w: (typeof parapets)[number], wide: number, h: number, y: number) => { const len = Math.hypot(w.bx - w.ax, w.bz - w.az), yaw = Math.atan2(w.bx - w.ax, w.bz - w.az); return new THREE.BoxGeometry(wide, h, len).rotateY(yaw).translate((w.ax + w.bx) / 2, y, (w.az + w.bz) / 2); };
@@ -83,16 +138,16 @@ export function FractureFloorView({ arena: a, state }: { arena: Arena; state: Pv
     const lights = mergeGeometries([
       ...parapets.map((w) => along(w, 0.38, 0.06, w.top - 0.03)),
       // under-lip light line round the crown, so the platform edge reads from across the plaza
-      ...[[p.x, p.z, q.x, p.z], [p.x, q.z, q.x, q.z], [p.x, p.z, p.x, q.z], [q.x, p.z, q.x, q.z]].map(([ax, az, bx, bz]) => { const len = Math.hypot(bx! - ax!, bz! - az!), yaw = Math.atan2(bx! - ax!, bz! - az!); return new THREE.BoxGeometry(0.12, 0.12, len).rotateY(yaw).translate((ax! + bx!) / 2, B + 14.4, (az! + bz!) / 2); }),
+      ...(st.shell === "crown" ? [[p.x, p.z, q.x, p.z], [p.x, q.z, q.x, q.z], [p.x, p.z, p.x, q.z], [q.x, p.z, q.x, q.z]] : []).map(([ax, az, bx, bz]) => { const len = Math.hypot(bx! - ax!, bz! - az!), yaw = Math.atan2(bx! - ax!, bz! - az!); return new THREE.BoxGeometry(0.12, 0.12, len).rotateY(yaw).translate((ax! + bx!) / 2, B + 14.4, (az! + bz!) / 2); }),
     ])!;
     // standing water
     const puddle = (dx: number, dz: number, rx: number, rz: number) => { const c = W(dx, dz), y = B + surfaceAt(a, dx, dz) + 0.02; return new THREE.CircleGeometry(1, 22).rotateX(-Math.PI / 2).scale(rx, 1, rz).translate(c.x, y, c.z); };
-    const puddles = mergeGeometries([[-14, -4, 3.2, 1.6], [14, 4, 3.2, 1.6], [3, -12, 2, 2.8], [-3, 12, 2, 2.8], [-24, -14, 2.4, 1.2], [24, 14, 2.4, 1.2], [0, 30, 3, 1], [0, -30, 3, 1]].map(([dx, dz, rx, rz]) => puddle(dx!, dz!, rx!, rz!)))!;
+    const puddles = mergeGeometries(st.puddles.map(([dx, dz, rx, rz]) => puddle(dx, dz, rx, rz)))!;
     // floodlight masts: a steel pole, a cross-arm and two lamp heads tilted at the centre
     const pole: THREE.BufferGeometry[] = [], head: THREE.BufferGeometry[] = [], face: THREE.BufferGeometry[] = [];
     for (const [dx, dz] of MASTS) {
-      const c = W(dx, dz), yaw = Math.atan2(-dx, -dz), top = B + 20 + 11;
-      pole.push(new THREE.CylinderGeometry(0.14, 0.2, 11, 10).translate(c.x, B + 20 + 5.5, c.z), new THREE.BoxGeometry(2.6, 0.14, 0.14).rotateY(yaw).translate(c.x, top, c.z), new THREE.BoxGeometry(0.6, 0.3, 0.6).translate(c.x, B + 20.15, c.z));
+      const c = W(dx, dz), yaw = Math.atan2(-dx, -dz), foot = B + surfaceAt(a, dx, dz), top = foot + 11;
+      pole.push(new THREE.CylinderGeometry(0.14, 0.2, 11, 10).translate(c.x, foot + 5.5, c.z), new THREE.BoxGeometry(2.6, 0.14, 0.14).rotateY(yaw).translate(c.x, top, c.z), new THREE.BoxGeometry(0.6, 0.3, 0.6).translate(c.x, foot + 0.15, c.z));
       for (const s of [-0.9, 0.9]) {
         const hx = c.x + Math.cos(yaw) * s, hz = c.z - Math.sin(yaw) * s;
         head.push(new THREE.BoxGeometry(0.8, 0.55, 0.3).rotateX(0.5).rotateY(yaw).translate(hx, top + 0.3, hz));
@@ -101,7 +156,9 @@ export function FractureFloorView({ arena: a, state }: { arena: Arena; state: Pv
     }
     const street = new THREE.PlaneGeometry(1400, 1400).rotateX(-Math.PI / 2).translate(sx, B - DROP, sz);
     return {
-      shell, crown, tops, wedges, stripes, walls, lights, puddles, street,
+      shell, crown, tops, wedges, flights, handrails, stripes, walls, lights, puddles, street,
+      zoneRings: mergeGeometries([new THREE.RingGeometry(6.6, 6.9, 72), new THREE.RingGeometry(4.6, 4.75, 64), new THREE.RingGeometry(2.4, 2.5, 48)].map((g) => g.rotateX(-Math.PI / 2)))!,
+      column: new THREE.CylinderGeometry(1.6, 1.6, 6, 32, 1, true),
       poles: mergeGeometries(pole)!, heads: mergeGeometries(head)!, faces: mergeGeometries(face)!,
       container: shippingContainer(), crate: equipmentCase(), barrier: jerseyBarrier(), box: new THREE.BoxGeometry(1, 1, 1), plane: new THREE.PlaneGeometry(1, 1),
       ring: new THREE.TorusGeometry(5.2, 0.14, 8, 72), ring2: new THREE.TorusGeometry(3.4, 0.06, 6, 64), globe: new THREE.IcosahedronGeometry(2, 2), base: new THREE.CylinderGeometry(3, 3.3, 0.18, 40),
@@ -133,6 +190,8 @@ export function FractureFloorView({ arena: a, state }: { arena: Arena; state: Pv
       holo: new THREE.MeshStandardMaterial({ color: "#000", emissive: "#38e8ff", emissiveIntensity: 2.2, transparent: true, opacity: 0.85, wireframe: true, toneMapped: false }),
       ring: new THREE.MeshStandardMaterial({ color: "#000", emissive: "#38e8ff", emissiveIntensity: 2.8, toneMapped: false }),
       pad: new THREE.MeshStandardMaterial({ color: "#0d2a33", emissive: "#38e8ff", emissiveIntensity: 0.9, roughness: 0.3, metalness: 0.5 }),
+      zone: new THREE.MeshBasicMaterial({ color: "#38e8ff", transparent: true, opacity: 0.9, side: THREE.DoubleSide, toneMapped: false, polygonOffset: true, polygonOffsetFactor: -4 }),
+      column: new THREE.MeshBasicMaterial({ color: "#38e8ff", transparent: true, opacity: 0.16, side: THREE.DoubleSide, depthWrite: false, toneMapped: false }),
     };
   }, []);
   useEffect(() => () => {
@@ -146,9 +205,9 @@ export function FractureFloorView({ arena: a, state }: { arena: Arena; state: Pv
   const walls = useMemo(() => a.shifters.map((k) => ({ k, y: B + (Number.isFinite(surfaceAt(a, k.x, k.z)) ? surfaceAt(a, k.x, k.z) : 0), x: sx + k.x, z: sz + k.z, yaw: k.w >= k.d ? 0 : Math.PI / 2, span: Math.max(k.w, k.d), thick: Math.min(k.w, k.d) })), [a, sx, sz, B]);
   const skyline = useMemo(() => {
     const by = new Map<BuildingModelId, GlbInstance[]>();
-    for (const [dx, dz, id, h] of SKYLINE) { const m = BUILDING_MODELS[id]; by.set(id, [...(by.get(id) ?? []), { x: sx + dx, y: B - DROP, z: sz + dz, yaw: Math.atan2(-dx, -dz), scale: h / m.height }]); }
+    for (const [dx, dz, id, h] of st.skyline) { const m = BUILDING_MODELS[id]; by.set(id, [...(by.get(id) ?? []), { x: sx + dx, y: B - DROP, z: sz + dz, yaw: Math.atan2(-dx, -dz), scale: h / m.height }]); }
     return [...by.entries()];
-  }, [sx, sz, B]);
+  }, [sx, sz, B, st]);
 
   const panes = useRef<(THREE.Group | null)[]>([]);
   const ring = useRef<THREE.Mesh>(null), ring2 = useRef<THREE.Mesh>(null), globe = useRef<THREE.Mesh>(null);
@@ -168,20 +227,21 @@ export function FractureFloorView({ arena: a, state }: { arena: Arena; state: Pv
     if (ring2.current) { ring2.current.rotation.x = Math.PI / 2 - Math.sin(now * 0.5) * 0.4; ring2.current.rotation.z = -now * 0.8; }
     if (globe.current) { globe.current.rotation.y = now * 0.35; }
     const col = ev.active ? warm : cool;
-    mats.ring.emissive.copy(col); mats.holo.emissive.copy(col); mats.pad.emissive.copy(col);
+    mats.ring.emissive.copy(col); mats.holo.emissive.copy(col); mats.pad.emissive.copy(col); mats.zone.color.copy(col); mats.column.color.copy(col);
+    mats.column.opacity = 0.12 + 0.06 * Math.sin(now * 2.2);
   });
 
   const y0 = B + 20;
   return (
-    <group name="killbox-arena:fracture-floor">
-      <hemisphereLight args={["#9fc8ff", "#1c2236", 1.0]} />
-      {!phone && MASTS.map(([dx, dz], i) => <pointLight key={i} position={[sx + dx * 0.9, B + 30, sz + dz * 0.9]} color="#e8f2ff" intensity={900} distance={55} decay={2} />)}
+    <group name={`killbox-arena:${a.id}`}>
+      <hemisphereLight args={st.holo === "rings" ? ["#c8d4ff", "#2a2436", 1.4] : ["#9fc8ff", "#1c2236", 1.0]} />
+      {!phone && MASTS.map(([dx, dz], i) => <pointLight key={i} position={[sx + dx * 0.9, B + 30, sz + dz * 0.9]} color={st.holo === "rings" ? "#ffe6c4" : "#e8f2ff"} intensity={st.holo === "rings" ? 1400 : 900} distance={st.holo === "rings" ? 70 : 55} decay={2} />)}
       {!phone && <pointLight position={[sx + a.objective[0], B + 25, sz + a.objective[1]]} color="#38e8ff" intensity={240} distance={24} decay={2} />}
       <mesh geometry={geo.street} material={mats.street} />
       <mesh geometry={geo.shell} material={mats.shell} />
       <mesh geometry={geo.crown} material={mats.crown} castShadow receiveShadow />
       <mesh geometry={geo.tops} material={mats.top} receiveShadow />
-      <mesh geometry={geo.wedges} material={mats.crown} castShadow receiveShadow />
+      {st.stairs === "wedge" ? <mesh geometry={geo.wedges} material={mats.crown} castShadow receiveShadow /> : <><mesh geometry={geo.flights} material={mats.crown} castShadow receiveShadow /><mesh geometry={geo.handrails} material={mats.steel} castShadow /></>}
       <mesh geometry={geo.stripes} material={mats.stripe} />
       <mesh geometry={geo.walls} material={mats.wall} castShadow receiveShadow />
       <mesh geometry={geo.lights} material={mats.light} />
@@ -219,11 +279,20 @@ export function FractureFloorView({ arena: a, state }: { arena: Arena; state: Pv
       ))}
       {/* the hologram over the objective: a lit pad on the floor, a wireframe globe and two turning rings */}
       <mesh geometry={geo.base} material={mats.pad} position={[sx + a.objective[0], y0 + 0.09, sz + a.objective[1]]} receiveShadow />
-      <group position={[sx + a.objective[0], B + 27, sz + a.objective[1]]}>
-        <mesh ref={globe} geometry={geo.globe} material={mats.holo} />
-        <mesh ref={ring} geometry={geo.ring} material={mats.ring} />
-        <mesh ref={ring2} geometry={geo.ring2} material={mats.ring} />
-      </group>
+      {st.holo === "globe" ? (
+        <group position={[sx + a.objective[0], B + 27, sz + a.objective[1]]}>
+          <mesh ref={globe} geometry={geo.globe} material={mats.holo} />
+          <mesh ref={ring} geometry={geo.ring} material={mats.ring} />
+          <mesh ref={ring2} geometry={geo.ring2} material={mats.ring} />
+        </group>
+      ) : (
+        <group position={[sx + a.objective[0], y0, sz + a.objective[1]]}>
+          {/* the capture zone: rings of light on the floor, a faint column of light and a small ring turning over it */}
+          <mesh geometry={geo.zoneRings} material={mats.zone} position-y={0.2} />
+          <mesh geometry={geo.column} material={mats.column} position-y={3.2} />
+          <mesh ref={ring} geometry={geo.ring2} material={mats.ring} position-y={4.5} />
+        </group>
+      )}
       {skyline.map(([id, items]) => <InstancedGlb key={id} url={BUILDING_MODELS[id].url} items={items} shadows={false} nightGlow={[0.6, 1.8]} windowScale={1.4} />)}
       <ArenaWeather kind="rain" center={{ x: sx, y: B + 12, z: sz }} count={phone ? 500 : 1800} size={110} />
     </group>

@@ -23,7 +23,7 @@ import type { SolidBox } from "./environment-collision";
 import type { PvpModeId } from "./pvp";
 import type { Wall } from "./walls";
 
-export type ArenaId = "kaiju-complex" | "fracture-floor";
+export type ArenaId = "kaiju-complex" | "fracture-floor" | "killbox-prime";
 /** an axis-aligned roof: x0..x1 by z0..z1 in arena space (m), its surface `top` m above the arena base */
 export type ArenaRoof = { id: string; name: string; x0: number; x1: number; z0: number; z1: number; top: number };
 /** a straight walkway along z (bridges cross the street) or x (stairs between roofs): from `top` at the low-coordinate end to `topB` */
@@ -42,7 +42,7 @@ export type KillboxArena = {
   /** where it hangs in the world (x, z) and the height of its street level */
   site: { x: number; z: number }; base: number;
   /** how KillboxArena.tsx dresses it */
-  look: "neon-rooftops" | "nexus-grid";
+  look: "neon-rooftops" | "nexus-grid" | "prime-roof";
   roofs: readonly ArenaRoof[]; walks: readonly ArenaWalk[]; cover: readonly ArenaCover[]; ledges: readonly ArenaWall[];
   shifters: readonly ArenaShifter[];
   /** team spawns (arena space): "us" is the player's side; free-for-all uses both */
@@ -177,7 +177,62 @@ export const FRACTURE_FLOOR: KillboxArena = {
   modes: ["lockdown", "ascendancy", "dominion", "clash", "freefall"],
 };
 
-export const ARENAS: Readonly<Record<ArenaId, KillboxArena>> = { "kaiju-complex": KAIJU_COMPLEX, "fracture-floor": FRACTURE_FLOOR };
+/* ---------------- Killbox Prime ---------------- */
+
+// one big 64 m roof, and a balcony 4 m down along half of each side (west to the south, east to the north), each reached by two
+// flights of stairs: a flank route that drops you out of the main fight and brings you back up behind it
+const KP_ROOFS: ArenaRoof[] = [
+  { id: "roof", name: "Prime Deck", x0: -32, x1: 32, z0: -32, z1: 32, top: 20 },
+  { id: "west-balcony", name: "West Balcony", x0: -44, x1: -32, z0: -32, z1: 8, top: 16 },
+  { id: "east-balcony", name: "East Balcony", x0: 32, x1: 44, z0: -8, z1: 32, top: 16 },
+];
+const KP_WALKS: ArenaWalk[] = [
+  { id: "west-stairs-s", x: -36, z: -26, along: "x", length: 8, width: 4, top: 16, topB: 20, rails: false },
+  { id: "west-stairs-n", x: -36, z: 4, along: "x", length: 8, width: 4, top: 16, topB: 20, rails: false },
+  { id: "east-stairs-n", x: 36, z: 26, along: "x", length: 8, width: 4, top: 20, topB: 16, rails: false },
+  { id: "east-stairs-s", x: 36, z: -4, along: "x", length: 8, width: 4, top: 20, topB: 16, rails: false },
+];
+// the 4 m face between the deck and each balcony: walled from the balcony, open where the stairs come up
+const KP_LEDGES: ArenaWall[] = [
+  ...[[-32, -28], [-24, 2], [6, 8]].map(([a, b]) => ({ ax: -32, az: a!, bx: -32, bz: b!, base: 15.5, top: 20 })),
+  ...[[-8, -6], [-2, 24], [28, 32]].map(([a, b]) => ({ ax: 32, az: a!, bx: 32, bz: b!, base: 15.5, top: 20 })),
+];
+const KP_COVER: ArenaCover[] = pointPair<ArenaCover>([
+  { id: "container-a", kind: "container", x: -14, z: 18, w: 6, d: 2.4, h: 2.6 },
+  { id: "container-b", kind: "container", x: 20, z: 14, w: 2.4, d: 6, h: 2.6 },
+  { id: "container-c", kind: "container", x: -26, z: 8, w: 2.4, d: 5, h: 2.6 },
+  { id: "crates-a", kind: "crate", x: 6, z: 20, w: 2.2, d: 2.2, h: 1.3 },
+  { id: "crates-b", kind: "crate", x: -6, z: 12, w: 2, d: 3, h: 1.3 },
+  { id: "barrier-a", kind: "barrier", x: 13, z: 4, w: 3, d: 1.2, h: 1.2 },
+  { id: "spawn-wall", kind: "barrier", x: 0, z: 25, w: 6, d: 1.2, h: 1.2 },
+  { id: "console", kind: "console", x: 26, z: 30, w: 1.6, d: 1.6, h: 1.6 },
+  { id: "balcony-crates", kind: "crate", x: -38, z: -10, w: 2, d: 2, h: 1.3 },
+]);
+const KP_SHIFTERS: ArenaShifter[] = pointPair<ArenaShifter>([
+  // glass walls standing out on the deck…
+  { id: "glass-w", x: -14, z: 7, w: 5, d: 1, h: 3, phase: "up" },
+  { id: "glass-n", x: 8, z: 12, w: 1, d: 4, h: 3, phase: "up" },
+  // …and the containment ring round the capture zone, open at the corners, that the lock raises
+  { id: "ring-n", x: 0, z: 8.5, w: 9, d: 1, h: 3, phase: "down" },
+  { id: "ring-w", x: -8.5, z: 0, w: 1, d: 9, h: 3, phase: "down" },
+]);
+
+export const KILLBOX_PRIME: KillboxArena = {
+  id: "killbox-prime", name: "Killbox Prime", region: "Neon City · Prime Tower", size: "medium",
+  blurb: "One big roof at the top of a Neon tower: containers and glass walls round a holographic capture zone, and two lower balconies to flank by. When the containment locks, glass walls box in the centre.",
+  site: { x: -700, z: 1000 }, base: ARENA_ALTITUDE, look: "prime-roof",
+  roofs: KP_ROOFS, walks: KP_WALKS, cover: KP_COVER, ledges: KP_LEDGES, shifters: KP_SHIFTERS,
+  spawns: {
+    us: [[-18, 29], [0, 30], [18, 29], [-26, 24], [26, 24], [-8, 28]],
+    them: [[18, -29], [0, -30], [-18, -29], [26, -24], [-26, -24], [8, -28]],
+  },
+  zones: [{ id: "A", dx: -20, dz: 0 }, { id: "B", dx: 0, dz: 0 }, { id: "C", dx: 20, dz: 0 }], objective: [0, 0],
+  killPlane: 10,
+  fracture: { name: "Containment Lock", brief: "The capture zone locks down: a ring of glass walls rises round the centre and the walls out on the deck sink. Get in through the corners, or hold the gaps.", first: 90, every: 140, length: 25, warn: 10, visibility: 1 },
+  modes: ["clash", "dominion", "freefall", "lockdown", "ascendancy"],
+};
+
+export const ARENAS: Readonly<Record<ArenaId, KillboxArena>> = { "kaiju-complex": KAIJU_COMPLEX, "fracture-floor": FRACTURE_FLOOR, "killbox-prime": KILLBOX_PRIME };
 export const arenaById = (id: string | undefined): KillboxArena | undefined => (id && id in ARENAS ? ARENAS[id as ArenaId] : undefined);
 /** every arena a mode plays on, in rotation order; empty = it plays in the open world (Fracture Royale, the old duels) */
 export const arenasForMode = (mode: PvpModeId): KillboxArena[] => Object.values(ARENAS).filter((a) => a.modes.includes(mode));

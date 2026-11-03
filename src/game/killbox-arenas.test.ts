@@ -1,7 +1,7 @@
 import { describe, expect, it } from "bun:test";
 import { clearDecks, districtDeckAt, registerDeck } from "./district-decks";
 import { clearWalls, collideWalls, setWalls } from "./walls";
-import { ARENAS, FRACTURE_FLOOR as D, KAIJU_COMPLEX as A, SHIFT_SECONDS, arenaForRun, arenaParapets, arenasForMode, shifterBlockers, shifterLift, solidShifters, arenaDecks, arenaForMode, arenaSolids, arenaWalls, belowKillPlane, confine, fractureAt, fractureLine, fractureVisibility, spawnPoint, surfaceAt, toWorld } from "./killbox-arenas";
+import { ARENAS, FRACTURE_FLOOR as D, KAIJU_COMPLEX as A, KILLBOX_PRIME as P, overArena, SHIFT_SECONDS, arenaForRun, arenaParapets, arenasForMode, shifterBlockers, shifterLift, solidShifters, arenaDecks, arenaForMode, arenaSolids, arenaWalls, belowKillPlane, confine, fractureAt, fractureLine, fractureVisibility, spawnPoint, surfaceAt, toWorld } from "./killbox-arenas";
 import { PVP_MODES, ZONE_RADIUS } from "./pvp";
 import { activityById, currentTarget, startActivity } from "./activities";
 import { DEFAULT_PROGRESSION } from "./progression";
@@ -211,10 +211,10 @@ describe("Fracture Floor", () => {
 });
 
 describe("map rotation", () => {
-  it("each arena playlist rotates Kaiju Complex → Fracture Floor match to match", () => {
+  it("each arena playlist rotates Kaiju Complex → Fracture Floor → Killbox Prime match to match", () => {
     for (const m of ["clash", "dominion", "freefall", "lockdown", "ascendancy"] as const) {
-      expect(arenasForMode(m).map((a) => a.id)).toEqual(["kaiju-complex", "fracture-floor"]);
-      expect([0, 1, 2, 3].map((n) => arenaForRun(m, n)?.id)).toEqual(["kaiju-complex", "fracture-floor", "kaiju-complex", "fracture-floor"]);
+      expect(arenasForMode(m).map((a) => a.id)).toEqual(["kaiju-complex", "fracture-floor", "killbox-prime"]);
+      expect([0, 1, 2, 3].map((n) => arenaForRun(m, n)?.id)).toEqual(["kaiju-complex", "fracture-floor", "killbox-prime", "kaiju-complex"]);
     }
     expect(arenaForRun("royale", 0)).toBeUndefined();
   });
@@ -223,6 +223,75 @@ describe("map rotation", () => {
     let p = structuredClone(DEFAULT_PROGRESSION);
     const ids: (string | undefined)[] = [];
     for (let i = 0; i < 3; i++) { const s = startActivity(p, PVP_MODES.lockdown.activity, Date.UTC(2026, 10, 2, 12, i)); if ("error" in s) throw new Error(s.error); p = s.progression; ids.push(s.run.arena); }
-    expect(ids).toEqual(["kaiju-complex", "fracture-floor", "kaiju-complex"]);
+    expect(ids).toEqual(["kaiju-complex", "fracture-floor", "killbox-prime"]);
+  });
+});
+
+/** rules every arena must keep, whatever its layout */
+for (const X of Object.values(ARENAS)) describe(`every arena: ${X.name}`, () => {
+  const blockers = (t: number) => [...X.cover, ...solidShifters(X, t)];
+  const blocked = (x: number, z: number, t: number, pad = 0.5) => blockers(t).some((k) => Math.abs(x - k.x) < k.w / 2 + pad && Math.abs(z - k.z) < k.d / 2 + pad);
+  const times = [10, X.fracture.first + 8];
+
+  it("is point-symmetric (surfaces, cover, shifters)", () => {
+    for (let x = -50; x <= 50; x += 1.5) for (let z = -40; z <= 40; z += 1.5) expect(surfaceAt(X, x, z)).toBe(surfaceAt(X, -x, -z));
+    for (const list of [X.cover, X.shifters] as const) {
+      const keys = new Set(list.map((k) => `${k.x},${k.z},${k.w},${k.d},${k.h},${"phase" in k ? k.phase : ""}`));
+      for (const k of list) expect(keys.has(`${-k.x},${-k.z},${k.w},${k.d},${k.h},${"phase" in k ? k.phase : ""}`)).toBe(true);
+    }
+  });
+  it("spawns, zones and the objective stand on a surface and clear of cover in both event states; spawns split by side", () => {
+    for (const t of times) {
+      for (const [x, z] of [...X.spawns.us, ...X.spawns.them]) { expect(Number.isFinite(surfaceAt(X, x, z))).toBe(true); expect(blocked(x, z, t)).toBe(false); }
+      for (const z of X.zones) { expect(Number.isFinite(surfaceAt(X, z.dx, z.dz))).toBe(true); expect(blocked(z.dx, z.dz, t, 1)).toBe(false); }
+      expect(blocked(X.objective[0], X.objective[1], t, 1)).toBe(false);
+    }
+    expect(X.spawns.us.every(([, z]) => z > 8)).toBe(true); expect(X.spawns.them.every(([, z]) => z < -8)).toBe(true);
+  });
+  it("no prop overlaps another, sits on a stair or ramp (flat bridges may carry cover), or hangs off a surface", () => {
+    const all = [...X.cover, ...X.shifters];
+    for (let i = 0; i < all.length; i++) for (let j = i + 1; j < all.length; j++) { const p = all[i]!, q = all[j]!; expect(Math.abs(p.x - q.x) < (p.w + q.w) / 2 && Math.abs(p.z - q.z) < (p.d + q.d) / 2).toBe(false); }
+    for (const k of all) {
+      for (const w of X.walks.filter((q) => q.top !== q.topB)) { const hx = w.along === "x" ? w.length / 2 : w.width / 2, hz = w.along === "z" ? w.length / 2 : w.width / 2; expect(Math.abs(k.x - w.x) < k.w / 2 + hx && Math.abs(k.z - w.z) < k.d / 2 + hz).toBe(false); }
+      for (const [cx, cz] of [[k.x - k.w / 2, k.z - k.d / 2], [k.x + k.w / 2, k.z + k.d / 2], [k.x - k.w / 2, k.z + k.d / 2], [k.x + k.w / 2, k.z - k.d / 2]] as const) expect(Number.isFinite(surfaceAt(X, cx, cz))).toBe(true);
+    }
+  });
+  it("every walkway climbs smoothly (no step over 0.5 m along it), and its ends meet the surfaces it joins", () => {
+    clearDecks(); for (const d of arenaDecks(X)) registerDeck(d);
+    const at = (dx: number, dz: number) => { const w = toWorld(X, dx, dz); return districtDeckAt(w.x, w.z) - X.base; };
+    for (const w of X.walks) {
+      const ax = w.along === "x" ? w.x - w.length / 2 - 1.5 : w.x, az = w.along === "z" ? w.z - w.length / 2 - 1.5 : w.z, n = (w.length + 3) / 0.25;
+      let prev = at(ax, az);
+      for (let i = 1; i <= n; i++) { const x = w.along === "x" ? ax + i * 0.25 : ax, z = w.along === "z" ? az + i * 0.25 : az, h = at(x, z); expect(Number.isFinite(h)).toBe(true); expect(Math.abs(h - prev)).toBeLessThan(0.55); prev = h; }
+    }
+    clearDecks();
+  });
+  it("its airspace overlaps no other arena's, and the kill plane sits below every surface", () => {
+    for (const o of Object.values(ARENAS)) if (o !== X) expect(Math.abs(o.site.x - X.site.x) > 180 || Math.abs(o.site.z - X.site.z) > 180).toBe(true);
+    expect(Math.min(...X.roofs.map((r) => r.top)) - X.killPlane).toBeGreaterThan(4);
+    expect(overArena(X.site.x, X.site.z)).toBe(true);
+  });
+});
+
+describe("Killbox Prime", () => {
+  it("the balconies are walled from below except at the stairs, and open to drop onto from the deck", () => {
+    clearWalls(); setWalls("kp", arenaWalls(P));
+    const hit = (dx: number, dz: number, feet: number) => { const w = toWorld(P, dx, dz); return collideWalls({ x: w.x, z: w.z }, 0.45, P.base + feet); };
+    expect(hit(-32.2, -10, 16)).toBe(true); // the deck face, from the west balcony
+    expect(hit(-32.2, -26, 17)).toBe(false); // the stair mouth
+    expect(hit(-31.8, -10, 20)).toBe(false); // from the deck you can drop down
+    expect(hit(-31.8, 20, 20)).toBe(true); // no balcony here: the deck's parapet
+    expect(hit(-43.8, -10, 16)).toBe(true); // the balcony's own parapet
+    clearWalls();
+  });
+  it("the Containment Lock raises the ring round the capture zone and sinks the deck walls", () => {
+    const ring = P.shifters.filter((s) => s.id.startsWith("ring")), deck = P.shifters.filter((s) => s.id.startsWith("glass"));
+    expect(ring).toHaveLength(4); expect(deck).toHaveLength(4);
+    const t = P.fracture.first + 8;
+    expect(ring.every((s) => shifterLift(P, s, 10) === 0 && shifterLift(P, s, t) === 1)).toBe(true);
+    expect(deck.every((s) => shifterLift(P, s, 10) === 1 && shifterLift(P, s, t) === 0)).toBe(true);
+    // the ring stands outside the capture zone and leaves its four corners open
+    for (const s of ring) expect(Math.hypot(s.x, s.z) - Math.min(s.w, s.d) / 2).toBeGreaterThan(ZONE_RADIUS);
+    for (const [x, z] of [[7, 7], [-7, 7], [7, -7], [-7, -7]] as const) expect(ring.some((s) => Math.abs(x - s.x) < s.w / 2 && Math.abs(z - s.z) < s.d / 2)).toBe(false);
   });
 });
