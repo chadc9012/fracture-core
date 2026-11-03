@@ -185,15 +185,17 @@ func eye() -> Vector3:
 
 ## the camera pulled in toward the pivot until it sits outside every obstacle (a facade, a parked car, a planter)
 func _clear_camera(pivot: Vector3, want: Vector3) -> Vector3:
-	var t := 1.0
-	while t > 0.15:
-		var p := pivot.lerp(want, t)
-		var hit := false
-		for box in obstacles:
-			if box.grow(0.25).has_point(p):
-				hit = true
-				break
-		if not hit:
-			return p
-		t -= 0.05
-	return pivot.lerp(want, 0.15)
+	# the first box the line from the pivot to the camera crosses: the camera stops just short of it
+	var best := 1.0
+	var dir := want - pivot
+	var len := dir.length()
+	if len < 0.01:
+		return want
+	for box in obstacles:
+		var g := box.grow(0.25)
+		if g.has_point(pivot):
+			continue
+		var hit: Variant = g.intersects_segment(pivot, want)
+		if hit != null:
+			best = minf(best, maxf(0.15, (pivot.distance_to(hit) - 0.3) / len))
+	return pivot.lerp(want, best)
