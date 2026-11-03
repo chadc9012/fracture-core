@@ -34,6 +34,8 @@ const Gunplay = preload("res://scripts/combat/gunplay.gd")
 const Enemies = preload("res://scripts/combat/enemies.gd")
 const Gear = preload("res://scripts/gear/gear_store.gd")
 const StreetCar = preload("res://scripts/driving/street_car.gd")
+const Traffic = preload("res://scripts/driving/traffic.gd")
+var traffic: Node3D
 const DriveProfile = preload("res://scripts/driving/drive_profile.gd")
 const GarageState = preload("res://scripts/garage/garage_state.gd")
 ## the parked cars you can take (phase 5): each fleet file's vehicle id for the garage build it drives with
@@ -192,6 +194,10 @@ func _spawn_player() -> void:
 	# the gear (gear_store.gd): the worn weapons become the gun list; kills roll drops into the bag
 	gear = Gear.load_save()
 	_fit_gear()
+	# traffic (traffic.gd): eight civilian cars on the block's two lanes, sharing the obstacle list
+	traffic = Traffic.new()
+	world.add_child(traffic)
+	traffic.setup(world, operator.obstacles, operator.bounds, operator.ground_at, LENGTH, 8, 5)
 	gunplay.killed.connect(func(t: Variant) -> void:
 		var e: Variant = t.get_meta("enemy") if t.has_meta("enemy") else null
 		var source := "enemy"
@@ -282,6 +288,10 @@ func _process(dt: float) -> void:
 			if _respawn_timer <= 0.0:
 				operator.position = _spawn
 				operator.velocity = Vector3.ZERO
+	if traffic:
+		traffic.watch_point = operator.position
+		traffic.watch_box = driving_car.box() if driving_car else AABB()
+		traffic.step(minf(dt, 0.05))
 	if driving_car:
 		_drive(minf(dt, 0.05))
 		return
@@ -924,11 +934,8 @@ func enter_car(c: Node3D) -> void:
 	car.bounds = operator.bounds
 	car.ground_at = operator.ground_at
 	var own := int(c.get_meta("box_index", -1))
-	var others: Array[AABB] = []
-	for i in operator.obstacles.size():
-		if i != own:
-			others.append(operator.obstacles[i])
-	car.obstacles = others
+	car.obstacles = operator.obstacles
+	car.skip = own
 	# the driven car is no obstacle to the camera or the troopers while it moves; its box comes back where it parks
 	if own >= 0:
 		operator.obstacles[own] = AABB(c.position + Vector3(0, -50, 0), Vector3(0.01, 0.01, 0.01))

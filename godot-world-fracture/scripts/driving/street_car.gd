@@ -15,6 +15,8 @@ var profile: Dictionary
 var speed := 0.0
 var bounds := Rect2(-1000, -1000, 2000, 2000)
 var obstacles: Array[AABB] = []
+## the index of this car's own box in `obstacles` (shared with the scene), never collided with
+var skip := -1
 var ground_at: Callable = func(_x: float, _z: float) -> float: return 0.0
 var hits := 0
 
@@ -56,7 +58,10 @@ func _resolve(p: Vector3) -> Vector3:
 			if cx != c.x or cz != c.z:
 				out += Vector3(cx - c.x, 0, cz - c.z)
 				c = Vector3(cx, c.y, cz)
-			for box in obstacles:
+			for bi in obstacles.size():
+				if bi == skip:
+					continue
+				var box: AABB = obstacles[bi]
 				if box.end.y < 0.3 or box.position.y > 1.5:
 					continue
 				var qx := clampf(c.x, box.position.x, box.end.x)

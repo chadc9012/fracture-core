@@ -118,6 +118,12 @@ its own box moves with it so the operator and the troopers walk around it where 
 car; the troopers shoot at it. Test: `--script res://tests/driving/street_car_test.gd`. Shot: `slicewalk:drive` takes the
 nearest car and pulls out; the log prints the car's speed, hits and place.
 
+**Traffic** (`scripts/driving/traffic.gd`): eight civilian fleet cars run the block's two lanes (right-hand traffic) on the
+same car rules — holding the lane, keeping a gap to the car ahead, stopping for the operator on foot or in a car, and
+pooling back to the far end when they leave the block. Their boxes move in the scene's obstacle list, so the operator,
+the troopers and your car all keep out of them (and crash into them if you cross the line). Test:
+`--script res://tests/driving/traffic_test.gd`.
+
 ```sh
 bun scripts/export-godot-data.ts          # from the repo root: writes godot-world-fracture/generated/ (gitignored)
 bun scripts/export-godot-character.ts     # from the repo root: rewrites godot-world-fracture/data/character.json
