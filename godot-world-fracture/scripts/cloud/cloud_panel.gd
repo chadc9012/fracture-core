@@ -30,7 +30,7 @@ func _ready() -> void:
 	title.add_theme_font_size_override("font_size", 26)
 	box.add_child(title)
 	var blurb := Label.new()
-	blurb.text = "One account carries your operator, gear and progress between this phone and the web game.\nSign in with Google in your browser, or with your email: we send a one-time code."
+	blurb.text = "One account carries your operator, gear and progress between this phone and the web game.\nSign in with Google, or with your email: we send a link — open it on this phone and you're in."
 	blurb.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	blurb.custom_minimum_size = Vector2(480, 0)
 	blurb.modulate = Color(0.8, 0.85, 0.9)
@@ -40,16 +40,16 @@ func _ready() -> void:
 	_email.custom_minimum_size = Vector2(0, 48)
 	box.add_child(_email)
 	_send = Button.new()
-	_send.text = "SEND CODE"
+	_send.text = "SEND SIGN-IN LINK"
 	_send.custom_minimum_size = Vector2(0, 48)
 	_send.pressed.connect(_on_send)
 	box.add_child(_send)
 	_code = LineEdit.new()
-	_code.placeholder_text = "6-digit code from the email"
+	_code.placeholder_text = "…or the code, if the email shows one"
 	_code.custom_minimum_size = Vector2(0, 48)
 	box.add_child(_code)
 	_verify = Button.new()
-	_verify.text = "SIGN IN"
+	_verify.text = "SIGN IN WITH THE CODE"
 	_verify.custom_minimum_size = Vector2(0, 48)
 	_verify.pressed.connect(_on_verify)
 	box.add_child(_verify)
@@ -97,7 +97,7 @@ func _refresh() -> void:
 
 func _on_send() -> void:
 	_send.disabled = true
-	await cloud.send_code(_email.text)
+	await cloud.send_link(_email.text)
 	_send.disabled = false
 
 func _on_verify() -> void:

@@ -102,8 +102,8 @@ worn weapons (a looted Static Bow fires as the sniper frame, its power scales th
 roll drops from the catalogue's loot and boss pools (18% / 40% elite) into the bag. Saved to `user://inventory.json`.
 Test: `--script res://tests/gear/gear_store_test.gd`. Shot: `slicewalk:inventory`.
 
-**Cloud save** (`scripts/cloud/`, phase 3): the CLOUD button on the globe signs you in by email one-time code against the
-web game's Supabase project (the project's email template must print `{{ .Token }}` for the code to arrive) or with Google — the PKCE flow through the
+**Cloud save** (`scripts/cloud/`, phase 3): the CLOUD button on the globe signs you in by an emailed magic link (opened on
+the phone it lands back in the app through the same local callback; a code in the email also works) or with Google — the PKCE flow through the
 phone's own browser, landing on `http://localhost:4321/callback`, which the app catches on a local port (the project's
 redirect allowlist must carry that URL; no deep link or custom Android build needed) — keeps the
 session in `user://session.json`, and syncs the operator (`character.json`), profile (XP, level, Nex), inventory and

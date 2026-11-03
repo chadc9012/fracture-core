@@ -35,7 +35,7 @@ func _init() -> void:
 	print("the tab is answered: ", r3)
 	ok = ok and r3
 	await create_timer(3.0).timeout
-	var r4: bool = c._server == null and lines.any(func(t: String) -> bool: return t.begins_with("Google sign-in failed") or t.begins_with("Signed in with Google"))
+	var r4: bool = c._server == null and lines.any(func(t: String) -> bool: return t.begins_with("Sign-in failed") or t.begins_with("Signed in as"))
 	print("the code is exchanged and the port closed: ", r4, " ", lines)
 	ok = ok and r4
 	print("Google callback test: ", ok)

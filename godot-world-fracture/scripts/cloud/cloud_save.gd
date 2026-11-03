@@ -84,6 +84,30 @@ func verify_code(email: String, code: String) -> bool:
 # --------------------------------------------------------------------------------------------- Google (PKCE via localhost)
 ## opens the browser on Google through Supabase; the callback is caught in _process. Returns false if the port is taken.
 func sign_in_google() -> bool:
+	if not _start_listener(180.0):
+		return false
+	var url := "%s/auth/v1/authorize?provider=google&redirect_to=%s&code_challenge=%s&code_challenge_method=s256&prompt=select_account" % [URL, CALLBACK.uri_encode(), _challenge()]
+	status_changed.emit("Finish signing in with Google in the browser, then come back")
+	last_auth_url = url
+	if not headless:
+		OS.shell_open(url)
+	return true
+
+## the magic link by email, on the same PKCE callback: tap the link on this phone and it lands back in the app
+## (no email template change needed; a code in the email still works through verify_code)
+func send_link(email: String) -> bool:
+	if not _start_listener(600.0):
+		return false
+	var r := await _call("/auth/v1/otp?redirect_to=%s" % CALLBACK.uri_encode(), HTTPClient.METHOD_POST, { "email": email.strip_edges(), "create_user": true, "code_challenge": _challenge(), "code_challenge_method": "s256" })
+	if r.code >= 200 and r.code < 300:
+		status_changed.emit("Link sent to %s · open it on this phone (or type the code if the email shows one)" % email)
+		return true
+	_stop_oauth()
+	status_changed.emit("Couldn't send the link: " + _err(r))
+	return false
+
+## opens the local port the browser comes back to, with a fresh PKCE verifier
+func _start_listener(timeout: float) -> bool:
 	_stop_oauth()
 	_server = TCPServer.new()
 	if _server.listen(LOCAL_PORT, "127.0.0.1") != OK:
@@ -94,14 +118,12 @@ func sign_in_google() -> bool:
 	for i in 48:
 		bytes.append(randi() % 256)
 	_verifier = _b64url(bytes)
-	var challenge := _b64url(_sha256(_verifier))
-	var url := "%s/auth/v1/authorize?provider=google&redirect_to=%s&code_challenge=%s&code_challenge_method=s256&prompt=select_account" % [URL, CALLBACK.uri_encode(), challenge]
-	_oauth_t = 180.0
-	status_changed.emit("Finish signing in with Google in the browser, then come back")
-	last_auth_url = url
-	if not headless:
-		OS.shell_open(url)
+	_oauth_t = timeout
 	return true
+
+func _challenge() -> String:
+	return _b64url(_sha256(_verifier))
+
 var last_auth_url := ""
 ## tests: no browser
 var headless := false
@@ -127,7 +149,7 @@ func _process(dt: float) -> void:
 	_oauth_t -= dt
 	if _oauth_t <= 0.0:
 		_stop_oauth()
-		status_changed.emit("Google sign-in timed out")
+		status_changed.emit("Sign-in timed out")
 		return
 	if not _server.is_connection_available():
 		return
@@ -167,11 +189,11 @@ func _process(dt: float) -> void:
 	var r := await _call("/auth/v1/token?grant_type=pkce", HTTPClient.METHOD_POST, { "auth_code": code, "code_verifier": _verifier })
 	if r.code >= 200 and r.code < 300 and r.body is Dictionary and r.body.has("access_token"):
 		_take_session(r.body)
-		status_changed.emit("Signed in with Google as " + str(session.get("email", "")))
+		status_changed.emit("Signed in as " + str(session.get("email", "")))
 		var line := await sync()
 		status_changed.emit(line)
 	else:
-		status_changed.emit("Google sign-in failed: " + _err(r))
+		status_changed.emit("Sign-in failed: " + _err(r))
 
 func sign_out() -> void:
 	session = {}
