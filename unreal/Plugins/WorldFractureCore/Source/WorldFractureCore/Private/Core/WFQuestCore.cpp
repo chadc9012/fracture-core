@@ -2,7 +2,7 @@
 #include "Core/WFQuestCore.h"
 
 #include <algorithm>
-#include <charconv>
+#include <cstdlib>
 #include <limits>
 #include <string>
 
@@ -23,8 +23,10 @@ namespace wf::quest
 			const size_t End = Text.find_last_not_of(" \t\n\r");
 			const std::string Trimmed = Text.substr(Begin, End - Begin + 1);
 			double Value = 0;
-			const auto Result = std::from_chars(Trimmed.data(), Trimmed.data() + Trimmed.size(), Value);
-			if (Result.ec != std::errc() || Result.ptr != Trimmed.data() + Trimmed.size()) return std::numeric_limits<double>::quiet_NaN();
+			// strtod, not std::from_chars: Apple's libc++ marks the floating-point from_chars unavailable below macOS 26
+			char* End_ = nullptr;
+			Value = std::strtod(Trimmed.c_str(), &End_);
+			if (End_ != Trimmed.c_str() + Trimmed.size()) return std::numeric_limits<double>::quiet_NaN();
 			return Value;
 		}
 

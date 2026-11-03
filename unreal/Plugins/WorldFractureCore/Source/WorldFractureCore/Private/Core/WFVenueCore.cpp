@@ -6,7 +6,7 @@
 #include "Core/WFVehicleCore.h"
 
 #include <algorithm>
-#include <charconv>
+#include <cstdlib>
 #include <cmath>
 #include <cstdint>
 
@@ -123,8 +123,10 @@ namespace wf::venue
 		{
 			if (S.empty()) return 0;
 			double V = 0;
-			const auto R = std::from_chars(S.data(), S.data() + S.size(), V);
-			if (R.ec != std::errc() || R.ptr != S.data() + S.size() || std::isnan(V)) return 0;
+			// strtod, not std::from_chars: Apple's libc++ marks the floating-point from_chars unavailable below macOS 26
+			char* End = nullptr;
+			V = std::strtod(S.c_str(), &End);
+			if (End != S.c_str() + S.size() || std::isnan(V)) return 0;
 			return V;
 		}
 		/** venue-life.ts pay: a one-time Nex ledger claim, mission-scaled XP and materials */
