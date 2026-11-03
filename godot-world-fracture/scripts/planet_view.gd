@@ -121,7 +121,7 @@ func _build_globe(area: Control) -> void:
 	svc.gui_input.connect(_globe_input)
 	area.add_child(svc)
 	_vp = SubViewport.new()
-	_vp.msaa_3d = Viewport.MSAA_4X
+	Data.tune_viewport(_vp)
 	_vp.own_world_3d = true
 	svc.add_child(_vp)
 	var env := WorldEnvironment.new()

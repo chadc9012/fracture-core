@@ -56,6 +56,8 @@ func _ready() -> void:
 	viewport.size = Vector2i(1024, 720)
 	viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS
 	viewport.own_world_3d = true
+	if Data.phone():
+		viewport.scaling_3d_scale = 0.8 # the phone's 3D resolution, as Data.tune_viewport (no MSAA here to begin with)
 	viewport_container.add_child(viewport)
 	world = Node3D.new()
 	viewport.add_child(world)

@@ -94,6 +94,8 @@ func _ready() -> void:
 	col.add_child(svc)
 	_vp = SubViewport.new()
 	_vp.msaa_3d = Viewport.MSAA_2X
+	if Data.phone():
+		Data.tune_viewport(_vp) # 2x MSAA as here, plus the phone's 80 % 3D resolution
 	_vp.own_world_3d = true
 	svc.add_child(_vp)
 	# the controls over the view

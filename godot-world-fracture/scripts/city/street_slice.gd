@@ -59,8 +59,9 @@ func _ready() -> void:
 	add_child(svc)
 	var vp := SubViewport.new()
 	vp.own_world_3d = true
-	vp.msaa_3d = Viewport.MSAA_4X
-	vp.screen_space_aa = Viewport.SCREEN_SPACE_AA_FXAA
+	Data.tune_viewport(vp)
+	if not Data.phone():
+		vp.screen_space_aa = Viewport.SCREEN_SPACE_AA_FXAA
 	vp.render_target_update_mode = SubViewport.UPDATE_ALWAYS
 	svc.add_child(vp)
 	_vp = vp
@@ -77,6 +78,7 @@ func _ready() -> void:
 		_neon()
 		if style == "neon":
 			_neon()   # Neon City: twice the signage
+	_instance_repeats()
 	cam = Camera3D.new()
 	cam.fov = 58.0
 	cam.near = 0.05
@@ -158,17 +160,17 @@ func _environment() -> void:
 	env.reflected_light_source = Environment.REFLECTION_SOURCE_SKY
 	env.tonemap_mode = Environment.TONE_MAPPER_AGX
 	env.tonemap_exposure = 1.05
-	env.ssr_enabled = true
+	env.ssr_enabled = Data.forward_plus()
 	env.ssr_max_steps = 96
 	env.ssr_fade_in = 0.1
 	env.ssr_fade_out = 2.5
-	env.ssao_enabled = true
+	env.ssao_enabled = Data.forward_plus()
 	env.ssao_radius = 1.4
 	env.ssao_intensity = 1.6
-	env.ssil_enabled = true
+	env.ssil_enabled = Data.forward_plus()
 	var lite := OS.get_environment("SLICE_LITE")   # "gi" drops SDFGI, "fog" drops volumetric fog, "all" both
 	# SDFGI stalls the software Vulkan used for testing; opt in with SLICE_GI=1 on a real GPU
-	env.sdfgi_enabled = OS.get_environment("SLICE_GI") == "1" and lite != "gi" and lite != "all"
+	env.sdfgi_enabled = Data.forward_plus() and OS.get_environment("SLICE_GI") == "1" and lite != "gi" and lite != "all"
 	env.sdfgi_use_occlusion = true
 	env.sdfgi_cascades = 4
 	env.sdfgi_min_cell_size = 0.25
@@ -181,7 +183,7 @@ func _environment() -> void:
 	env.fog_density = 0.0016
 	env.fog_sun_scatter = 0.35
 	env.fog_aerial_perspective = 0.55
-	env.volumetric_fog_enabled = lite != "fog" and lite != "all"
+	env.volumetric_fog_enabled = Data.forward_plus() and lite != "fog" and lite != "all"
 	env.volumetric_fog_density = 0.006
 	env.volumetric_fog_albedo = Color(0.95, 0.85, 0.75)
 	env.volumetric_fog_anisotropy = 0.55
@@ -354,7 +356,48 @@ func prop(file: String, height: float, pos: Vector3, yaw_deg := 0.0) -> Node3D:
 	holder.rotation_degrees.y = yaw_deg
 	holder.set_meta("size", aabb.size * s)
 	world.add_child(holder)
+	if not _placed.has(path):
+		_placed[path] = []
+	_placed[path].append(holder)
 	return holder
+
+## every placed copy of each model, for _instance_repeats
+var _placed := {}
+
+## A model used four or more times (the building blocks, lamps, palms, planters) is drawn as one MultiMesh per mesh piece
+## instead of one draw per piece per copy: the street was ~600 draw calls, too many for a phone. The holders stay (they
+## carry each copy's size and place); only their mesh nodes are replaced.
+func _instance_repeats() -> void:
+	for path in _placed:
+		var copies: Array = _placed[path]
+		if copies.size() < 4:
+			continue
+		var first: Node3D = copies[0]
+		var pieces := first.find_children("*", "MeshInstance3D", true, false)
+		for piece_i in pieces.size():
+			var mi0 := pieces[piece_i] as MeshInstance3D
+			if mi0.mesh == null:
+				continue
+			var xf: Array[Transform3D] = []
+			for h in copies:
+				var hp: Array = (h as Node3D).find_children("*", "MeshInstance3D", true, false)
+				if piece_i < hp.size():
+					xf.append((hp[piece_i] as MeshInstance3D).global_transform)
+			var mm := MultiMesh.new()
+			mm.transform_format = MultiMesh.TRANSFORM_3D
+			mm.mesh = mi0.mesh
+			mm.instance_count = xf.size()
+			for i in xf.size():
+				mm.set_instance_transform(i, xf[i])
+			var mmi := MultiMeshInstance3D.new()
+			mmi.multimesh = mm
+			if mi0.material_override:
+				mmi.material_override = mi0.material_override
+			mmi.cast_shadow = mi0.cast_shadow
+			world.add_child(mmi)
+		for h in copies:
+			for c in (h as Node3D).find_children("*", "MeshInstance3D", true, false):
+				c.queue_free()
 
 static func _aabb(n: Node) -> AABB:
 	var out := AABB()
@@ -515,6 +558,19 @@ func _cars() -> void:
 			car.position = Vector3(side * (half - 1.4), 0.0, z + _rng.randf_range(-2.0, 2.0))
 			car.rotation_degrees.y = 0.0 if side > 0 else 180.0
 			world.add_child(car)
+			# a fleet car is ~40 draws (21 material pieces, 5 per wheel): past 110 m it is a few pixels, so it fades out,
+			# and the wheels leave their shadow to the body's
+			for g in car.find_children("*", "GeometryInstance3D", true, false):
+				var gi := g as GeometryInstance3D
+				gi.visibility_range_end = 110.0
+				gi.visibility_range_end_margin = 15.0
+				gi.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_SELF
+				var up: Node = gi
+				while up != car:
+					if String(up.name).begins_with("Steer") or String(up.name).containsn("wheel"):
+						gi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+						break
+					up = up.get_parent()
 		z += _rng.randf_range(9.0, 16.0)
 		i += 1
 

@@ -238,6 +238,10 @@ func _shoot(path: String, opts: Array) -> void:
 			_open_street(String(o).contains("night"), "coast" if String(o).contains("coast") else ("neon" if String(o).contains("neon") else "nexus"))
 			if String(o).contains("garage"):
 				street.open_garage()
+			var cam_q := String(o).split(":")
+			if cam_q.size() > 2:
+				var cf := cam_q[1].split(","); var ct := cam_q[2].split(",")
+				street.look_from(Vector3(float(cf[0]), float(cf[1]), float(cf[2])), Vector3(float(ct[0]), float(ct[1]), float(ct[2])))
 		# casino[:view]  the Skyline Casino: 0-3 the floor, 4-6 the penthouse, 7-8 the skydeck concert
 		if String(o).begins_with("casino"):
 			_open_street()
@@ -259,11 +263,6 @@ func _shoot(path: String, opts: Array) -> void:
 			var mv := String(o).split(":")
 			if mv.size() > 1:
 				street.mall_overlay.show_view(int(mv[1]))
-			var sl := street
-			var q := String(o).split(":")
-			if q.size() > 2:
-				var f := q[1].split(","); var t := q[2].split(",")
-				sl.look_from(Vector3(float(f[0]), float(f[1]), float(f[2])), Vector3(float(t[0]), float(t[1]), float(t[2])))
 		# char[:body[:face[:tab[:key=value,...]]]]  the operator creator, e.g. char:female:f-cyber:HAIR or char:male:m-rebel:FACE:hair=afro,beard=full
 		if String(o).begins_with("char"):
 			var c := String(o).split(":")
@@ -328,6 +327,7 @@ func _write_perf(file: String, opts: Array, times: Array[float]) -> void:
 		"frame_ms_median": tail[tail.size() / 2] if not tail.is_empty() else 0.0,
 	}
 	out["heaviest"] = _heaviest_geometry()
+	out["most_drawn"] = _most_drawn()
 	var f := FileAccess.open(file, FileAccess.WRITE)
 	if f:
 		f.store_string(JSON.stringify(out))
@@ -357,6 +357,24 @@ func _heaviest_geometry() -> Array:
 			"range": gi.visibility_range_end})
 	rows.sort_custom(func(a, b): return a.tris > b.tris)
 	return rows.slice(0, 12)
+
+## separate (non-instanced) mesh nodes grouped by their parent's name and mesh class: what costs draw calls one by one
+func _most_drawn() -> Array:
+	var groups := {}
+	var stack: Array[Node] = [get_tree().root]
+	while not stack.is_empty():
+		var n: Node = stack.pop_back()
+		for c in n.get_children():
+			stack.append(c)
+		if n is MeshInstance3D and (n as MeshInstance3D).mesh and (n as Node3D).is_visible_in_tree():
+			var mesh := (n as MeshInstance3D).mesh
+			var key := "%s/%s x%d surf" % [n.get_parent().name.left(24), mesh.get_class() if mesh.resource_path == "" else mesh.resource_path.get_file(), mesh.get_surface_count()]
+			groups[key] = groups.get(key, 0) + mesh.get_surface_count()
+	var rows: Array = []
+	for k in groups:
+		rows.append({"what": k, "draws": groups[k]})
+	rows.sort_custom(func(a, b): return a.draws > b.draws)
+	return rows.slice(0, 15)
 
 func _mesh_tris(mesh: Mesh) -> int:
 	var t := 0

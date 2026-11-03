@@ -51,7 +51,7 @@ func _ready() -> void:
 	add_child(svc)
 	var vp := SubViewport.new()
 	vp.own_world_3d = true
-	vp.msaa_3d = Viewport.MSAA_4X
+	Data.tune_viewport(vp)
 	vp.render_target_update_mode = SubViewport.UPDATE_ALWAYS
 	svc.add_child(vp)
 	world = Node3D.new()
@@ -184,9 +184,9 @@ func _environment() -> void:
 	env.ambient_light_energy = 0.45
 	env.tonemap_mode = Environment.TONE_MAPPER_AGX
 	env.tonemap_exposure = 0.8
-	env.ssr_enabled = true
-	env.ssao_enabled = true
-	env.ssil_enabled = true
+	env.ssr_enabled = Data.forward_plus()
+	env.ssao_enabled = Data.forward_plus()
+	env.ssil_enabled = Data.forward_plus()
 	env.glow_enabled = true
 	env.glow_intensity = 0.6
 	env.glow_hdr_threshold = 1.2
