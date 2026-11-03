@@ -54,6 +54,7 @@ func build(root: Node3D, m: Dictionary, loc: Callable, h: Callable) -> void:
 		if String(a.name) == "Residential District":
 			_residential(_loc.call(a.x, a.z))
 	_seabed(dome, dome_r)
+	_flush()
 
 # ---------------------------------------------------------------- helpers
 
@@ -79,15 +80,26 @@ func _y(p: Vector2) -> float:
 		return _deck_y
 	return _h.call(p.x, p.y)
 
-func _put(mesh: Mesh, pos: Vector3, mat: Material, rot := Vector3.ZERO, scl := Vector3.ONE) -> MeshInstance3D:
-	var mi := MeshInstance3D.new()
-	mi.mesh = mesh
-	mi.material_override = mat
-	mi.position = pos
-	mi.rotation = rot
-	mi.scale = scl
-	_root.add_child(mi)
-	return mi
+## every piece is queued by material and merged into one mesh per material at the end (_flush): drawn one by one, the
+## city's ~400 pieces were ~400 draw calls, ten times a whole wilderness region
+var _batches := {}
+func _put(mesh: Mesh, pos: Vector3, mat: Material, rot := Vector3.ZERO, scl := Vector3.ONE) -> void:
+	if not _batches.has(mat):
+		_batches[mat] = []
+	_batches[mat].append([mesh, Transform3D(Basis.from_euler(rot) * Basis.from_scale(scl), pos)]) # as a Node3D: rotate, then local scale
+
+func _flush() -> void:
+	for mat in _batches:
+		var st := SurfaceTool.new()
+		for piece in _batches[mat]:
+			st.append_from(piece[0], 0, piece[1])
+		var mi := MeshInstance3D.new()
+		mi.mesh = st.commit()
+		mi.material_override = mat
+		if (mat as BaseMaterial3D) and (mat as BaseMaterial3D).transparency != BaseMaterial3D.TRANSPARENCY_DISABLED:
+			mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF # glass and light do not cast
+		_root.add_child(mi)
+	_batches.clear()
 
 func _cyl(top: float, bottom: float, hgt: float, seg := 16) -> CylinderMesh:
 	var c := CylinderMesh.new()

@@ -137,6 +137,150 @@ func _pad(keys: Array, four: bool) -> Control:
 		g.add_child(b)
 	return g
 
+# ---------------- civic roofs and mountain rock ----------------
+
+## Low civic buildings (Riverdale's Town Hall, clock towers) were flat-topped boxes under the office window grid and read as
+## office blocks. Give them a stone cornice and a pitched slate roof along their long side; a clock tower gets a spire and
+## a clock face on each side.
+func _build_civic_roofs() -> void:
+	var roofs := SurfaceTool.new()
+	roofs.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var any := false
+	var slate := Color("#4a4f57")
+	var stone := Color("#d8cfbb")
+	var clocks: Array[Transform3D] = []
+	for bd in m.buildings:
+		if String(bd[5]) != "civic" or _bh(bd) > 25.0:
+			continue
+		var p := _loc(bd[0], bd[1])
+		var hx: float = bd[2]
+		var hz: float = bd[3]
+		var yaw: float = bd[4]
+		var top := _h(p.x, p.y) + _bh(bd)
+		var c := cos(yaw)
+		var sn := sin(yaw)
+		var w := func(lx: float, lz: float, y: float) -> Vector3:
+			return Vector3(p.x + lx * c + lz * sn, y, p.y - lx * sn + lz * c)
+		var name := String(bd[7]) if bd.size() > 7 else ""
+		var tower := name.containsn("clock") or (hx < 3.5 and hz < 3.5 and _bh(bd) > 9.0)
+		var o := 0.35 # the cornice's overhang
+		var add := func(a: Vector3, b: Vector3, cc: Vector3, col: Color) -> void:
+			var n := (b - a).cross(cc - a).normalized()
+			if n.y < -0.01:
+				n = -n
+			for v in [a, b, cc]:
+				roofs.set_normal(n)
+				roofs.set_color(col)
+				roofs.add_vertex(v)
+		# cornice slab
+		var k0 = [w.call(-hx - o, -hz - o, top), w.call(hx + o, -hz - o, top), w.call(hx + o, hz + o, top), w.call(-hx - o, hz + o, top)]
+		var k1 = [w.call(-hx - o, -hz - o, top + 0.5), w.call(hx + o, -hz - o, top + 0.5), w.call(hx + o, hz + o, top + 0.5), w.call(-hx - o, hz + o, top + 0.5)]
+		for f in 4:
+			add.call(k0[f], k0[(f + 1) % 4], k1[(f + 1) % 4], stone)
+			add.call(k0[f], k1[(f + 1) % 4], k1[f], stone)
+		var base := top + 0.5
+		if tower:
+			var apex: Vector3 = w.call(0, 0, base + maxf(hx, hz) * 2.6)
+			for f in 4:
+				add.call(k1[f], k1[(f + 1) % 4], apex, slate)
+			for f in 4:
+				var ang := yaw + f * PI / 2.0
+				var out := Vector3(sin(ang), 0, cos(ang))
+				clocks.append(Transform3D(Basis.looking_at(out, Vector3.UP).scaled(Vector3(hx * 0.7, hx * 0.7, 0.08)),
+					Vector3(p.x, top - 1.6, p.y) + out * (maxf(hx, hz) + 0.06)))
+		else:
+			# a gable roof along the long side
+			var along_x := hx >= hz
+			var rise := minf(hx, hz) * 0.55
+			var r0: Vector3
+			var r1: Vector3
+			if along_x:
+				r0 = w.call(-hx - o, 0, base + rise)
+				r1 = w.call(hx + o, 0, base + rise)
+				add.call(k1[0], k1[1], r1, slate)
+				add.call(k1[0], r1, r0, slate)
+				add.call(k1[2], k1[3], r0, slate)
+				add.call(k1[2], r0, r1, slate)
+				add.call(k1[1], k1[2], r1, stone) # gable ends
+				add.call(k1[3], k1[0], r0, stone)
+			else:
+				r0 = w.call(0, -hz - o, base + rise)
+				r1 = w.call(0, hz + o, base + rise)
+				add.call(k1[1], k1[2], r1, slate)
+				add.call(k1[1], r1, r0, slate)
+				add.call(k1[3], k1[0], r0, slate)
+				add.call(k1[3], r0, r1, slate)
+				add.call(k1[0], k1[1], r0, stone)
+				add.call(k1[2], k1[3], r1, stone)
+		any = true
+	if not any:
+		return
+	var mi := MeshInstance3D.new()
+	mi.mesh = roofs.commit()
+	var mat := StandardMaterial3D.new()
+	mat.vertex_color_use_as_albedo = true
+	mat.roughness = 0.8
+	mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+	mi.material_override = mat
+	_world.add_child(mi)
+	if not clocks.is_empty():
+		var face := CylinderMesh.new()
+		face.top_radius = 1.0
+		face.bottom_radius = 1.0
+		face.height = 1.0
+		face.radial_segments = 20
+		var fm := StandardMaterial3D.new()
+		fm.albedo_color = Color("#f2ead0")
+		fm.emission_enabled = true
+		fm.emission = Color("#fff3c4")
+		fm.emission_energy_multiplier = 0.4 + _style.night
+		# cylinders stand on Y; lay each face flat against its wall
+		var lay := Basis(Vector3.RIGHT, PI / 2.0)
+		var xf: Array[Transform3D] = []
+		for t in clocks:
+			xf.append(Transform3D(t.basis * lay, t.origin))
+		_multimesh(face, xf, fm, 600.0, false)
+
+## Snow and lava mountains read as one smooth cone: scatter rock outcrops where the ground is steep and high
+func _build_slope_rock() -> void:
+	if map_id not in ["frostspire", "ember", "crystal-badlands", "wastelands"]:
+		return
+	var rng := RandomNumberGenerator.new()
+	rng.seed = hash(map_id) + 7
+	var rocks: Array[Transform3D] = []
+	var step := _span / 160.0
+	var lo := INF
+	var hi := -INF
+	for v in _heights:
+		lo = minf(lo, v)
+		hi = maxf(hi, v)
+	for j in 160:
+		for i in 160:
+			var lx := -_span / 2.0 + (i + rng.randf()) * step
+			var lz := -_span / 2.0 + (j + rng.randf()) * step
+			var y := _h(lx, lz)
+			if y < _water + 1.0:
+				continue
+			var gx := _h(lx + 2.0, lz) - _h(lx - 2.0, lz)
+			var gz := _h(lx, lz + 2.0) - _h(lx, lz - 2.0)
+			var slope := sqrt(gx * gx + gz * gz) / 4.0 # rise over run
+			var high := (y - lo) / maxf(1.0, hi - lo)
+			if slope < 0.55 or rng.randf() > 0.35 + high * 0.4:
+				continue
+			var s := rng.randf_range(1.5, 4.5) * (1.0 + slope * 0.6)
+			rocks.append(Transform3D(Basis.from_euler(Vector3(rng.randf_range(-0.4, 0.4), rng.randf() * TAU, rng.randf_range(-0.4, 0.4))).scaled(Vector3(s * 1.4, s * 0.8, s)), Vector3(lx, y - s * 0.25, lz)))
+	if rocks.is_empty():
+		return
+	var mesh := SphereMesh.new()
+	mesh.radius = 1.0
+	mesh.height = 2.0
+	mesh.radial_segments = 6
+	mesh.rings = 3
+	var mat := StandardMaterial3D.new()
+	mat.albedo_color = {"frostspire": Color("#4c4f57"), "ember": Color("#2a2420"), "crystal-badlands": Color("#6b4e5e"), "wastelands": Color("#7a5a3e")}.get(map_id, Color("#555555"))
+	mat.roughness = 0.95
+	_multimesh(mesh, rocks, mat, 700.0, false)
+
 # ---------------- building the region ----------------
 
 const RUIN_RADIUS := 45.0
@@ -294,6 +438,7 @@ func show_region(id: String, at: Variant = null, start_mode: Mode = Mode.CITY) -
 	_build_water()
 	_build_buildings()
 	_build_tower_rooftops_pass_17()
+	_build_civic_roofs()
 	_build_entrances_pass_18()
 	if CITY_ROOF_ACCESSORIES:
 		_build_architecture_batch_19_43()
@@ -304,6 +449,7 @@ func show_region(id: String, at: Variant = null, start_mode: Mode = Mode.CITY) -
 		_build_road_markings_batch_19_43()
 	_build_rings()
 	_build_trees()
+	_build_slope_rock()
 	_build_floating()
 	_build_ruins()
 	if id == "thalassia":
@@ -395,7 +541,8 @@ func _style_for(id: String) -> Dictionary:
 		"neon-city":
 			s.merge({"top": "#07061a", "hor": "#3b1356", "fog": "#2a1240", "fog_d": 0.0026, "sun": 0.12, "sun_col": "#8fa6ff", "sun_el": 30.0, "amb": 0.35, "night": 1.0, "neon": 1.0, "wet": 1.0, "sat": 1.15}, true)
 		"nexus":
-			s.merge({"top": "#0a1424", "hor": "#2d3f5c", "fog": "#1f2b3e", "fog_d": 0.0018, "sun": 0.15, "sun_col": "#9fb6ff", "sun_el": 32.0, "amb": 0.4, "night": 1.0, "neon": 0.35, "wet": 0.9, "sat": 1.0}, true)
+			# still night, but moonlit enough to read the island, parks and streets (it was near-black outside the towers)
+			s.merge({"top": "#0d1a30", "hor": "#3a5278", "fog": "#24324a", "fog_d": 0.0016, "sun": 0.28, "sun_col": "#a9bfff", "sun_el": 34.0, "amb": 0.6, "night": 1.0, "neon": 0.55, "wet": 0.9, "sat": 1.0}, true)
 		"ember":
 			s.merge({"top": "#2c140e", "hor": "#c05628", "fog": "#6a2e1e", "fog_d": 0.0022, "sun": 0.85, "sun_col": "#ffb27a", "sun_el": 18.0, "amb": 0.5}, true)
 		"frostspire":
@@ -465,6 +612,7 @@ func _build_env() -> void:
 	sun.rotation_degrees = Vector3(-float(_style.sun_el), -35.0, 0)
 	sun.shadow_enabled = true
 	sun.directional_shadow_max_distance = 320.0
+	sun.directional_shadow_mode = DirectionalLight3D.SHADOW_PARALLEL_2_SPLITS # four cascades drew every caster four times
 	_world.add_child(sun)
 	if _style.planet:
 		_build_planet_in_sky()
@@ -559,6 +707,9 @@ func _build_ground() -> void:
 	var mi := MeshInstance3D.new()
 	mi.mesh = mesh
 	mi.material_override = mat
+	# the ground is lit by its own slope; drawing its 131k triangles into every shadow cascade too cost more than the rest
+	# of the region together. It still receives the shadows of trees and buildings.
+	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	_world.add_child(mi)
 	# a skirt of land / sea floor beyond the map so the horizon never shows an edge
 	var skirt := MeshInstance3D.new()
@@ -961,18 +1112,32 @@ func _clearings() -> PackedByteArray:
 		mark.call(_loc(p.x, p.z), 16.0)
 	return g
 
-func _multimesh(mesh: Mesh, xf: Array[Transform3D], mat: Material) -> void:
-	var mm := MultiMesh.new()
-	mm.transform_format = MultiMesh.TRANSFORM_3D
-	mm.mesh = mesh
-	mm.instance_count = xf.size()
-	for i in xf.size():
-		mm.set_instance_transform(i, xf[i])
-	var mmi := MultiMeshInstance3D.new()
-	mmi.multimesh = mm
-	mmi.material_override = mat
-	mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
-	_world.add_child(mmi)
+## Instanced props, split into ground tiles so each tile is culled on its own (off screen, out of the shadow cascades, past
+## its draw distance). One multimesh over a whole region was drawn whole every pass: 9000 trees in every shadow cascade.
+const TILE_M := 110.0
+func _multimesh(mesh: Mesh, xf: Array[Transform3D], mat: Material, draw_m := 900.0, shadow := true) -> void:
+	var tiles := {}
+	for t in xf:
+		var key := Vector2i(floori(t.origin.x / TILE_M), floori(t.origin.z / TILE_M))
+		if not tiles.has(key):
+			tiles[key] = [] as Array[Transform3D]
+		tiles[key].append(t)
+	for key in tiles:
+		var list: Array[Transform3D] = tiles[key]
+		var mm := MultiMesh.new()
+		mm.transform_format = MultiMesh.TRANSFORM_3D
+		mm.mesh = mesh
+		mm.instance_count = list.size()
+		for i in list.size():
+			mm.set_instance_transform(i, list[i])
+		var mmi := MultiMeshInstance3D.new()
+		mmi.multimesh = mm
+		mmi.material_override = mat
+		mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON if shadow else GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		mmi.visibility_range_end = draw_m
+		mmi.visibility_range_end_margin = draw_m * 0.1
+		mmi.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_SELF
+		_world.add_child(mmi)
 
 ## a conifer: a trunk and three stacked crowns (the Road to Vostok forest look: dark, dense, uneven)
 func _tree_mesh(cold: bool) -> Mesh:
@@ -983,7 +1148,9 @@ func _tree_mesh(cold: bool) -> Mesh:
 	trunk.bottom_radius = 0.3
 	trunk.height = 3.0
 	trunk.radial_segments = 6
-	trunk.rings = 1
+	trunk.rings = 0
+	trunk.cap_top = false # inside the crown
+	trunk.cap_bottom = false # in the ground
 	st.append_from(trunk, 0, Transform3D(Basis(), Vector3(0, 1.5, 0)))
 	for k in 3:
 		var c := CylinderMesh.new()
@@ -991,7 +1158,9 @@ func _tree_mesh(cold: bool) -> Mesh:
 		c.bottom_radius = 2.4 - k * 0.55
 		c.height = 4.2 - k * 0.6
 		c.radial_segments = 7
-		c.rings = 1
+		c.rings = 0
+		c.cap_top = false
+		c.cap_bottom = false # the crown's underside: seen only from below the branches
 		st.append_from(c, 0, Transform3D(Basis(), Vector3(0, 3.2 + k * 2.3, 0)))
 	return st.commit()
 

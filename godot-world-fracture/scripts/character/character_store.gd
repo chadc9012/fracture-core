@@ -41,8 +41,10 @@ static func clean(raw: Variant, preset := false) -> Dictionary:
 	if body not in ["male", "female", "robot"]:
 		body = "male"
 	var look := {"frame": frame, "body": body, "name": str(r.get("name", "")).strip_edges().left(18)}
-	if preset and r.get("face", "") is String and not Catalog.face(body, r.face).is_empty():
-		look = apply_face(look, r.face)
+	# a look with no "face" (switching body, an old save) reads "" here; r.face would crash on the missing key
+	var face_id: String = r.get("face", "") if r.get("face", "") is String else ""
+	if preset and face_id != "" and not Catalog.face(body, face_id).is_empty():
+		look = apply_face(look, face_id)
 		for k: String in r:
 			if k not in ["frame", "body", "face"]:
 				look[k] = r[k]
