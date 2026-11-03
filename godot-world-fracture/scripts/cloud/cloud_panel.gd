@@ -12,6 +12,7 @@ var _send: Button
 var _verify: Button
 var _sync: Button
 var _out: Button
+var _google: Button
 
 func _ready() -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -29,7 +30,7 @@ func _ready() -> void:
 	title.add_theme_font_size_override("font_size", 26)
 	box.add_child(title)
 	var blurb := Label.new()
-	blurb.text = "One account carries your operator, gear and progress between this phone and the web game.\nSign in with your email: we send a one-time code."
+	blurb.text = "One account carries your operator, gear and progress between this phone and the web game.\nSign in with Google in your browser, or with your email: we send a one-time code."
 	blurb.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	blurb.custom_minimum_size = Vector2(480, 0)
 	blurb.modulate = Color(0.8, 0.85, 0.9)
@@ -52,6 +53,13 @@ func _ready() -> void:
 	_verify.custom_minimum_size = Vector2(0, 48)
 	_verify.pressed.connect(_on_verify)
 	box.add_child(_verify)
+	var google := Button.new()
+	google.text = "SIGN IN WITH GOOGLE"
+	google.custom_minimum_size = Vector2(0, 48)
+	google.add_theme_color_override("font_color", Color(1.0, 0.85, 0.5))
+	google.pressed.connect(func(): cloud.sign_in_google())
+	box.add_child(google)
+	_google = google
 	_sync = Button.new()
 	_sync.text = "SYNC NOW"
 	_sync.custom_minimum_size = Vector2(0, 48)
@@ -81,6 +89,7 @@ func _refresh() -> void:
 	_send.visible = not in_
 	_code.visible = not in_
 	_verify.visible = not in_
+	_google.visible = not in_
 	_sync.visible = in_
 	_out.visible = in_
 	if _line.text == "":

@@ -2,7 +2,11 @@ extends Node
 ## Cloud save for the Godot build (the Dec 4 plan, phase 3): the same Supabase project and `player_saves` row the web game
 ## uses, so one account carries the phone and the desk. Sign-in is by email one-time code (Supabase GoTrue `/auth/v1/otp`
 ## then `/auth/v1/verify`; the project's email template must print `{{ .Token }}`), the session lives in user://session.json
-## and refreshes itself. A sync pulls the row, merges our namespace (`data.godot`, cloud_merge.gd rules) with the local files,
+## and refreshes itself. Google sign-in is the PKCE flow through the phone's own browser: the app listens on localhost (a
+## TCPServer, port LOCAL_PORT), opens Supabase's authorize URL with that callback, the browser lands on
+## http://localhost:<port>/callback?code=… (Chrome on Android reaches the device's own localhost), and the code is exchanged
+## for a session — no deep link, no custom Android build. The project's redirect allowlist must carry the callback URL.
+## A sync pulls the row, merges our namespace (`data.godot`, cloud_merge.gd rules) with the local files,
 ## writes the winners back to user:// and pushes the merged namespace with the row's revision bumped — the web game's own
 ## optimistic write sees a new revision and merges in turn (src/game/cloud-save.ts, mergeGodot). Google sign-in waits for an
 ## Android deep link (a custom Gradle build), noted on TASKBOARD.md.
@@ -14,6 +18,11 @@ const SESSION := "user://session.json"
 const FILES := { "profile": "user://profile.json", "character": "user://character.json", "inventory": "user://inventory.json", "mission01": "user://mission01.json", "quests": "user://quests.json" }
 
 signal status_changed(text: String)
+const LOCAL_PORT := 4321
+const CALLBACK := "http://localhost:%d/callback" % LOCAL_PORT
+var _server: TCPServer
+var _verifier := ""
+var _oauth_t := 0.0
 
 var session := {}          # access_token, refresh_token, expires_at (unix), user_id, email
 var last_sync := ""
@@ -71,6 +80,98 @@ func verify_code(email: String, code: String) -> bool:
 		return true
 	status_changed.emit("Code refused: " + _err(r))
 	return false
+
+# --------------------------------------------------------------------------------------------- Google (PKCE via localhost)
+## opens the browser on Google through Supabase; the callback is caught in _process. Returns false if the port is taken.
+func sign_in_google() -> bool:
+	_stop_oauth()
+	_server = TCPServer.new()
+	if _server.listen(LOCAL_PORT, "127.0.0.1") != OK:
+		_server = null
+		status_changed.emit("Couldn't open the sign-in port %d" % LOCAL_PORT)
+		return false
+	var bytes := PackedByteArray()
+	for i in 48:
+		bytes.append(randi() % 256)
+	_verifier = _b64url(bytes)
+	var challenge := _b64url(_sha256(_verifier))
+	var url := "%s/auth/v1/authorize?provider=google&redirect_to=%s&code_challenge=%s&code_challenge_method=s256&prompt=select_account" % [URL, CALLBACK.uri_encode(), challenge]
+	_oauth_t = 180.0
+	status_changed.emit("Finish signing in with Google in the browser, then come back")
+	last_auth_url = url
+	if not headless:
+		OS.shell_open(url)
+	return true
+var last_auth_url := ""
+## tests: no browser
+var headless := false
+
+static func _sha256(text: String) -> PackedByteArray:
+	var ctx := HashingContext.new()
+	ctx.start(HashingContext.HASH_SHA256)
+	ctx.update(text.to_utf8_buffer())
+	return ctx.finish()
+
+static func _b64url(bytes: PackedByteArray) -> String:
+	return Marshalls.raw_to_base64(bytes).replace("+", "-").replace("/", "_").replace("=", "")
+
+func _stop_oauth() -> void:
+	if _server:
+		_server.stop()
+		_server = null
+	_oauth_t = 0.0
+
+func _process(dt: float) -> void:
+	if not _server:
+		return
+	_oauth_t -= dt
+	if _oauth_t <= 0.0:
+		_stop_oauth()
+		status_changed.emit("Google sign-in timed out")
+		return
+	if not _server.is_connection_available():
+		return
+	var peer := _server.take_connection()
+	var req := ""
+	var waited := 0
+	while waited < 50 and not req.contains("\r\n\r\n") and not req.contains("\n\n"):
+		if peer.get_available_bytes() > 0:
+			req += peer.get_string(peer.get_available_bytes())
+		else:
+			OS.delay_msec(20)
+			waited += 1
+	var code := ""
+	var err := ""
+	var first := req.get_slice("\n", 0)
+	if first.begins_with("GET "):
+		var path := first.get_slice(" ", 1)
+		var q := path.get_slice("?", 1) if path.contains("?") else ""
+		for kv in q.split("&"):
+			var pair := kv.split("=")
+			if pair.size() == 2:
+				if pair[0] == "code":
+					code = pair[1].uri_decode()
+				elif pair[0] == "error_description" or pair[0] == "error":
+					err = pair[1].uri_decode()
+	var body := "<html><body style=\"background:#0b1420;color:#e8f0ff;font-family:sans-serif;text-align:center;padding-top:30vh\"><h2>%s</h2><p>You can close this tab and go back to World Fracture.</p></body></html>" % ("Signed in" if code != "" else "Sign-in failed")
+	peer.put_data(("HTTP/1.1 200 OK\r\nContent-Type: text/html; charset=utf-8\r\nContent-Length: %d\r\nConnection: close\r\n\r\n" % body.to_utf8_buffer().size()).to_utf8_buffer())
+	peer.put_data(body.to_utf8_buffer())
+	await get_tree().create_timer(0.2).timeout
+	peer.disconnect_from_host()
+	if code == "":
+		if err != "":
+			_stop_oauth()
+			status_changed.emit("Google refused: " + err)
+		return   # a stray request (a favicon): keep listening
+	_stop_oauth()
+	var r := await _call("/auth/v1/token?grant_type=pkce", HTTPClient.METHOD_POST, { "auth_code": code, "code_verifier": _verifier })
+	if r.code >= 200 and r.code < 300 and r.body is Dictionary and r.body.has("access_token"):
+		_take_session(r.body)
+		status_changed.emit("Signed in with Google as " + str(session.get("email", "")))
+		var line := await sync()
+		status_changed.emit(line)
+	else:
+		status_changed.emit("Google sign-in failed: " + _err(r))
 
 func sign_out() -> void:
 	session = {}

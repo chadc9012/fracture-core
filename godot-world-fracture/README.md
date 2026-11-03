@@ -103,12 +103,14 @@ roll drops from the catalogue's loot and boss pools (18% / 40% elite) into the b
 Test: `--script res://tests/gear/gear_store_test.gd`. Shot: `slicewalk:inventory`.
 
 **Cloud save** (`scripts/cloud/`, phase 3): the CLOUD button on the globe signs you in by email one-time code against the
-web game's Supabase project (the project's email template must print `{{ .Token }}` for the code to arrive), keeps the
+web game's Supabase project (the project's email template must print `{{ .Token }}` for the code to arrive) or with Google — the PKCE flow through the
+phone's own browser, landing on `http://localhost:4321/callback`, which the app catches on a local port (the project's
+redirect allowlist must carry that URL; no deep link or custom Android build needed) — keeps the
 session in `user://session.json`, and syncs the operator (`character.json`), profile (XP, level, Nex), inventory and
 Mission 01 progress into the same `player_saves` row the web game uses, under `data.godot`. A sync runs on launch and
 whenever a view closes; each file keeps the later copy, the profile never loses XP and the bags join (`cloud_merge.gd`,
 tested headless: `--script res://tests/cloud/cloud_merge_test.gd`); the web game keeps the newer copy on its own merges
-(`mergeGodot`). Google sign-in waits for an Android deep link (TASKBOARD.md). Shot: `cloud` opens the panel.
+(`mergeGodot`). Test: `--script res://tests/cloud/google_callback_test.gd`. Shot: `cloud` opens the panel.
 
 **On foot ↔ driving** (`scripts/driving/street_car.gd`, phase 5): walk up to any parked car on the street and ENTER (the
 prompt button on the phone, E on the desk) — it drives with the garage's build for that car (drive_profile.gd), stick or
