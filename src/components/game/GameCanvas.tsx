@@ -1143,11 +1143,15 @@ export function GameCanvas() {
    * the Verdant Forest spawn otherwise) */
   const resumeFromTitle = () => {
     const p = progressionRef.current;
-    if (!openingPhase(p)) {
-      const st = streetOutside(), at = resumeSpot(p, loadSpot(p), st);
-      if (at) setTravelTo({ x: at.x, z: at.z, nonce: Date.now() });
-    }
+    travelHome(p);
     continueIntoWorld(); resumeOpening(p);
+  };
+  /** where a save comes back into the world (resume-spot.ts): its last outdoor spot, else outside the Residences; a save in the
+   * opening (the residences / the Breach place you themselves) or the old forest calibration keeps its own start */
+  const travelHome = (p: PlayerProgression) => {
+    if (openingPhase(p)) return;
+    const at = resumeSpot(p, loadSpot(p), streetOutside());
+    if (at) setTravelTo({ x: at.x, z: at.z, nonce: Date.now() });
   };
   // remember where you stand outdoors on foot (not in a room, under the sea, a dungeon or the opening), every ~8 m
   useEffect(() => {
@@ -1589,6 +1593,7 @@ export function GameCanvas() {
           setTutorial(tutorialForEntry(save));
           setHud((h) => ({ ...h, ...hudIdentity(session), missions: firstMissionHud(save) }));
           setPhase("world");
+          travelHome(save);
           // a save that never got out of the Residences picks the prologue up again in Apartment 1204 (story-start.ts)
           resumeOpening(save);
         }
