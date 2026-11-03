@@ -23,13 +23,13 @@ import type { SolidBox } from "./environment-collision";
 import type { PvpModeId } from "./pvp";
 import type { Wall } from "./walls";
 
-export type ArenaId = "kaiju-complex" | "fracture-floor" | "killbox-prime";
+export type ArenaId = "kaiju-complex" | "fracture-floor" | "killbox-prime" | "skydock";
 /** an axis-aligned roof: x0..x1 by z0..z1 in arena space (m), its surface `top` m above the arena base */
 export type ArenaRoof = { id: string; name: string; x0: number; x1: number; z0: number; z1: number; top: number };
 /** a straight walkway along z (bridges cross the street) or x (stairs between roofs): from `top` at the low-coordinate end to `topB` */
 export type ArenaWalk = { id: string; x: number; z: number; along: "x" | "z"; length: number; width: number; top: number; topB: number; rails: boolean };
 /** a solid prop standing on a roof (HVAC unit, water tank, sign base): blocks movement and line of sight; you can mantle onto it */
-export type ArenaCover = { id: string; kind: "hvac" | "tank" | "vent" | "crate" | "sign" | "container" | "console" | "barrier"; x: number; z: number; w: number; d: number; h: number };
+export type ArenaCover = { id: string; kind: "hvac" | "tank" | "vent" | "crate" | "sign" | "container" | "console" | "barrier" | "dropship"; x: number; z: number; w: number; d: number; h: number };
 /** a cover wall that rises and sinks with the fracture event: "up" stands until the event sinks it, "down" lies flush until the
  * event raises it. Solid (movement and sight) while more than half raised. */
 export type ArenaShifter = { id: string; x: number; z: number; w: number; d: number; h: number; phase: "up" | "down" };
@@ -42,7 +42,7 @@ export type KillboxArena = {
   /** where it hangs in the world (x, z) and the height of its street level */
   site: { x: number; z: number }; base: number;
   /** how KillboxArena.tsx dresses it */
-  look: "neon-rooftops" | "nexus-grid" | "prime-roof";
+  look: "neon-rooftops" | "nexus-grid" | "prime-roof" | "skydock";
   roofs: readonly ArenaRoof[]; walks: readonly ArenaWalk[]; cover: readonly ArenaCover[]; ledges: readonly ArenaWall[];
   shifters: readonly ArenaShifter[];
   /** team spawns (arena space): "us" is the player's side; free-for-all uses both */
@@ -232,7 +232,62 @@ export const KILLBOX_PRIME: KillboxArena = {
   modes: ["clash", "dominion", "freefall", "lockdown", "ascendancy"],
 };
 
-export const ARENAS: Readonly<Record<ArenaId, KillboxArena>> = { "kaiju-complex": KAIJU_COMPLEX, "fracture-floor": FRACTURE_FLOOR, "killbox-prime": KILLBOX_PRIME };
+/* ---------------- Skydock ---------------- */
+
+// an aerial docking platform above the clouds at dusk: a central hangar deck with the landing pad (the capture zone), a raised
+// docking platform for each team across an open drop, joined to the deck by two ramps each, and a high gantry down each side —
+// the flank, 4 m over the deck, reached from both docks and by a steep stair from the deck's middle
+const SD_ROOFS: ArenaRoof[] = [
+  { id: "deck", name: "Hangar Deck", x0: -26, x1: 26, z0: -14, z1: 14, top: 20 },
+  { id: "north-dock", name: "North Dock", x0: -20, x1: 20, z0: 22, z1: 34, top: 22 },
+  { id: "south-dock", name: "South Dock", x0: -20, x1: 20, z0: -34, z1: -22, top: 22 },
+  { id: "east-gantry", name: "East Gantry", x0: 30.5, x1: 33.5, z0: -32, z1: 32, top: 24 },
+  { id: "west-gantry", name: "West Gantry", x0: -33.5, x1: -30.5, z0: -32, z1: 32, top: 24 },
+];
+const SD_WALKS: ArenaWalk[] = [
+  // deck to docks over the drop
+  { id: "ramp-ne", x: 12, z: 18, along: "z", length: 8, width: 4, top: 20, topB: 22, rails: true },
+  { id: "ramp-nw", x: -12, z: 18, along: "z", length: 8, width: 4, top: 20, topB: 22, rails: true },
+  { id: "ramp-sw", x: -12, z: -18, along: "z", length: 8, width: 4, top: 22, topB: 20, rails: true },
+  { id: "ramp-se", x: 12, z: -18, along: "z", length: 8, width: 4, top: 22, topB: 20, rails: true },
+  // docks up to the gantries
+  { id: "gantry-ne", x: 25.5, z: 30, along: "x", length: 12, width: 3, top: 22, topB: 24, rails: true },
+  { id: "gantry-nw", x: -25.5, z: 30, along: "x", length: 12, width: 3, top: 24, topB: 22, rails: true },
+  { id: "gantry-se", x: 25.5, z: -30, along: "x", length: 12, width: 3, top: 22, topB: 24, rails: true },
+  { id: "gantry-sw", x: -25.5, z: -30, along: "x", length: 12, width: 3, top: 24, topB: 22, rails: true },
+  // the steep stairs from the deck's middle up to each gantry
+  { id: "stair-e", x: 28, z: 0, along: "x", length: 6, width: 3, top: 20, topB: 24, rails: true },
+  { id: "stair-w", x: -28, z: 0, along: "x", length: 6, width: 3, top: 24, topB: 20, rails: true },
+];
+const SD_COVER: ArenaCover[] = pointPair<ArenaCover>([
+  // a parked dropship on each side of the pad: the big cover in the middle of the fight
+  { id: "dropship", kind: "dropship", x: -15, z: 6, w: 10, d: 3.4, h: 3.2 },
+  { id: "container", kind: "container", x: 8, z: 9, w: 2.4, d: 5, h: 2.6 },
+  { id: "deck-crates", kind: "crate", x: -22, z: -6, w: 2, d: 2.2, h: 1.3 },
+  { id: "pad-barrier", kind: "barrier", x: 0, z: 7.5, w: 5, d: 1.2, h: 1.2 },
+  // on the docks: a low wall at the lip and a crate stack
+  { id: "dock-wall", kind: "barrier", x: 0, z: 25, w: 6, d: 1.2, h: 1.2 },
+  { id: "dock-crates", kind: "crate", x: -14, z: 30, w: 2.2, d: 2.2, h: 1.3 },
+  // half-cover out on the gantries
+  { id: "gantry-crate", kind: "crate", x: 32, z: 12, w: 1.4, d: 2, h: 1.2 },
+]);
+
+export const SKYDOCK: KillboxArena = {
+  id: "skydock", name: "Skydock", region: "Aerial Docking Arena · over the cloud sea", size: "medium",
+  blurb: "A docking platform above the clouds at dusk. Fight round the landing pad between two parked dropships, cross the drop on the ramps, or take the high gantries down each side.",
+  site: { x: -400, z: 1100 }, base: ARENA_ALTITUDE, look: "skydock",
+  roofs: SD_ROOFS, walks: SD_WALKS, cover: SD_COVER, ledges: [], shifters: [],
+  spawns: {
+    us: [[-10, 31], [0, 31], [10, 31], [-16, 26], [16, 26], [0, 28]],
+    them: [[10, -31], [0, -31], [-10, -31], [16, -26], [-16, -26], [0, -28]],
+  },
+  zones: [{ id: "A", dx: -32, dz: 0 }, { id: "B", dx: 0, dz: 0 }, { id: "C", dx: 32, dz: 0 }], objective: [0, 0],
+  killPlane: 12,
+  fracture: { name: "Cloud Bank", brief: "A bank of cloud rolls up over the dock. Sight drops to a few metres: listen for footsteps and fight close.", first: 80, every: 140, length: 25, warn: 10, visibility: 0.35 },
+  modes: ["clash", "dominion", "freefall", "lockdown", "ascendancy"],
+};
+
+export const ARENAS: Readonly<Record<ArenaId, KillboxArena>> = { "kaiju-complex": KAIJU_COMPLEX, "fracture-floor": FRACTURE_FLOOR, "killbox-prime": KILLBOX_PRIME, skydock: SKYDOCK };
 export const arenaById = (id: string | undefined): KillboxArena | undefined => (id && id in ARENAS ? ARENAS[id as ArenaId] : undefined);
 /** every arena a mode plays on, in rotation order; empty = it plays in the open world (Fracture Royale, the old duels) */
 export const arenasForMode = (mode: PvpModeId): KillboxArena[] => Object.values(ARENAS).filter((a) => a.modes.includes(mode));
@@ -358,9 +413,11 @@ export function arenaParapets(a: KillboxArena): Wall[] {
 /** every solid wall in world space: the parapets, the crossings' rails, the ledges between roof heights, and a box round every prop */
 export function arenaWalls(a: KillboxArena): Wall[] {
   const out: Wall[] = arenaParapets(a), W = wallMaker(a, out);
-  for (const w of a.walks) if (w.rails && w.along === "z") {
+  for (const w of a.walks) if (w.rails) {
+    // a rail down each long side, stopping short of the ends so nothing blocks you stepping on or off
     const q = walkRect(w), lo = Math.min(w.top, w.topB) - 0.5, hi = Math.max(w.top, w.topB) + PARAPET;
-    W(q.x0, q.z0, q.x0, q.z1, lo, hi, 0.1); W(q.x1, q.z0, q.x1, q.z1, lo, hi, 0.1);
+    if (w.along === "z") { W(q.x0, q.z0 + 0.6, q.x0, q.z1 - 0.6, lo, hi, 0.1); W(q.x1, q.z0 + 0.6, q.x1, q.z1 - 0.6, lo, hi, 0.1); }
+    else { W(q.x0 + 0.6, q.z0, q.x1 - 0.6, q.z0, lo, hi, 0.1); W(q.x0 + 0.6, q.z1, q.x1 - 0.6, q.z1, lo, hi, 0.1); }
   }
   for (const l of a.ledges) W(l.ax, l.az, l.bx, l.bz, l.base, l.top, 0.2);
   for (const k of a.cover) {

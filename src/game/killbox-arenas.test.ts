@@ -1,7 +1,7 @@
 import { describe, expect, it } from "bun:test";
 import { clearDecks, districtDeckAt, registerDeck } from "./district-decks";
 import { clearWalls, collideWalls, setWalls } from "./walls";
-import { ARENAS, FRACTURE_FLOOR as D, KAIJU_COMPLEX as A, KILLBOX_PRIME as P, overArena, SHIFT_SECONDS, arenaForRun, arenaParapets, arenasForMode, shifterBlockers, shifterLift, solidShifters, arenaDecks, arenaForMode, arenaSolids, arenaWalls, belowKillPlane, confine, fractureAt, fractureLine, fractureVisibility, spawnPoint, surfaceAt, toWorld } from "./killbox-arenas";
+import { ARENAS, FRACTURE_FLOOR as D, KAIJU_COMPLEX as A, KILLBOX_PRIME as P, SKYDOCK as S, overArena, SHIFT_SECONDS, arenaForRun, arenaParapets, arenasForMode, shifterBlockers, shifterLift, solidShifters, arenaDecks, arenaForMode, arenaSolids, arenaWalls, belowKillPlane, confine, fractureAt, fractureLine, fractureVisibility, spawnPoint, surfaceAt, toWorld } from "./killbox-arenas";
 import { PVP_MODES, ZONE_RADIUS } from "./pvp";
 import { activityById, currentTarget, startActivity } from "./activities";
 import { DEFAULT_PROGRESSION } from "./progression";
@@ -211,10 +211,10 @@ describe("Fracture Floor", () => {
 });
 
 describe("map rotation", () => {
-  it("each arena playlist rotates Kaiju Complex → Fracture Floor → Killbox Prime match to match", () => {
+  it("each arena playlist rotates Kaiju Complex → Fracture Floor → Killbox Prime → Skydock match to match", () => {
     for (const m of ["clash", "dominion", "freefall", "lockdown", "ascendancy"] as const) {
-      expect(arenasForMode(m).map((a) => a.id)).toEqual(["kaiju-complex", "fracture-floor", "killbox-prime"]);
-      expect([0, 1, 2, 3].map((n) => arenaForRun(m, n)?.id)).toEqual(["kaiju-complex", "fracture-floor", "killbox-prime", "kaiju-complex"]);
+      expect(arenasForMode(m).map((a) => a.id)).toEqual(["kaiju-complex", "fracture-floor", "killbox-prime", "skydock"]);
+      expect([0, 1, 2, 3, 4].map((n) => arenaForRun(m, n)?.id)).toEqual(["kaiju-complex", "fracture-floor", "killbox-prime", "skydock", "kaiju-complex"]);
     }
     expect(arenaForRun("royale", 0)).toBeUndefined();
   });
@@ -293,5 +293,24 @@ describe("Killbox Prime", () => {
     // the ring stands outside the capture zone and leaves its four corners open
     for (const s of ring) expect(Math.hypot(s.x, s.z) - Math.min(s.w, s.d) / 2).toBeGreaterThan(ZONE_RADIUS);
     for (const [x, z] of [[7, 7], [-7, 7], [7, -7], [-7, -7]] as const) expect(ring.some((s) => Math.abs(x - s.x) < s.w / 2 && Math.abs(z - s.z) < s.d / 2)).toBe(false);
+  });
+});
+
+describe("Skydock", () => {
+  it("the ramps and gantry walkways are railed over the drop, and open at their ends", () => {
+    clearWalls(); setWalls("sd", arenaWalls(S));
+    const hit = (dx: number, dz: number, feet: number) => { const w = toWorld(S, dx, dz); return collideWalls({ x: w.x, z: w.z }, 0.45, S.base + feet); };
+    expect(hit(14.1, 18, 21)).toBe(true); // the east rail of the north-east ramp
+    expect(hit(12, 14.2, 20)).toBe(false); // stepping onto it from the deck
+    expect(hit(25.5, 31.6, 23)).toBe(true); // the gantry walkway's outer rail
+    expect(hit(33.6, 0, 24)).toBe(true); // the gantry's outer parapet
+    expect(hit(30.6, 0, 24)).toBe(false); // the stair from the deck arrives here
+    clearWalls();
+  });
+  it("the gantries sit above the deck and both docks, and every team spawn is on its dock", () => {
+    expect(surfaceAt(S, 32, 0)).toBe(24); expect(surfaceAt(S, 0, 0)).toBe(20); expect(surfaceAt(S, 0, 28)).toBe(22);
+    for (const [x, z] of S.spawns.us) expect(surfaceAt(S, x, z)).toBe(22);
+    // the docks and the deck are joined only over the ramps: the middle of the drop is open
+    expect(surfaceAt(S, 0, 18)).toBe(-Infinity);
   });
 });
