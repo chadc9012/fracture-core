@@ -6,6 +6,39 @@ extends CharacterBody3D
 signal died(echo: Node3D)
 
 const Figure := preload("res://scripts/city/casino_interior.gd")
+const MODEL := "res://models/city/echo.glb"
+var _body: Node3D
+var _holder: Node3D
+var _ov: ShaderMaterial
+
+## the glitch as an additive layer over a textured model: rim light, scan bands, the hit flash
+func _overlay() -> ShaderMaterial:
+	if _ov:
+		return _ov
+	var sh := Shader.new()
+	sh.code = """
+shader_type spatial;
+render_mode unshaded, blend_add, depth_draw_never;
+uniform vec3 edge : source_color = vec3(0.45, 0.25, 1.0);
+uniform float flash = 0.0;
+float h(float x) { return fract(sin(x * 91.7) * 43758.5453); }
+varying vec3 lp;
+void vertex() {
+	lp = VERTEX;
+	float band = floor(VERTEX.y * 14.0 + floor(TIME * 9.0));
+	VERTEX.x += step(0.94, h(band + floor(TIME * 13.0))) * (h(band * 3.1) - 0.5) * 0.12;
+}
+void fragment() {
+	float fres = pow(1.0 - abs(dot(NORMAL, VIEW)), 2.5);
+	float scan = step(0.92, fract(lp.y * 18.0 - TIME * 2.0));
+	ALBEDO = edge * (fres * 1.6 + scan * 0.5) + vec3(1.0) * flash * 1.5;
+}
+"""
+	_ov = ShaderMaterial.new()
+	_ov.shader = sh
+	if elite:
+		_ov.set_shader_parameter("edge", Color(1.0, 0.35, 0.45))
+	return _ov
 
 var elite := false
 var hp := 60.0
@@ -67,8 +100,6 @@ func _ready() -> void:
 	shape.shape = cap
 	shape.position.y = 0.9 * s
 	add_child(shape)
-	var mi := MeshInstance3D.new()
-	mi.mesh = Figure.figure(0 if not elite else 1)
 	var sh := Shader.new()
 	sh.code = GLITCH
 	_mat = ShaderMaterial.new()
@@ -76,10 +107,31 @@ func _ready() -> void:
 	if elite:
 		_mat.set_shader_parameter("core", Color(1.0, 0.2, 0.45))
 		_mat.set_shader_parameter("edge", Color(1.0, 0.7, 0.3))
-	mi.material_override = _mat
-	mi.scale = Vector3.ONE * s
-	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	add_child(mi)
+	if ResourceLoader.exists(MODEL):
+		# the Meshy echo: its own obsidian-and-crystal surface, with the glitch laid over it
+		_body = (load(MODEL) as PackedScene).instantiate()
+		var holder := Node3D.new()
+		holder.add_child(_body)
+		var aabb := AABB()
+		var first := true
+		for c in _body.find_children("*", "MeshInstance3D", true, false):
+			var m3 := c as MeshInstance3D
+			aabb = m3.get_aabb() if first else aabb.merge(m3.get_aabb())
+			first = false
+			m3.material_overlay = _overlay()
+			m3.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		var k := 1.85 * s / maxf(aabb.size.y, 0.01)
+		_body.scale = Vector3.ONE * k
+		_body.position = Vector3(-(aabb.position.x + aabb.size.x * 0.5) * k, -aabb.position.y * k, -(aabb.position.z + aabb.size.z * 0.5) * k)
+		add_child(holder)
+		_holder = holder
+	else:
+		var mi := MeshInstance3D.new()
+		mi.mesh = Figure.figure(0 if not elite else 1)
+		mi.material_override = _mat
+		mi.scale = Vector3.ONE * s
+		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		add_child(mi)
 	var glow := OmniLight3D.new()
 	glow.light_color = Color(0.6, 0.3, 1.0) if not elite else Color(1.0, 0.3, 0.4)
 	glow.light_energy = 1.2 if not elite else 2.5
@@ -114,6 +166,11 @@ func _physics_process(delta: float) -> void:
 	_mat.set_shader_parameter("rise", _rise * 1.2)
 	_flash = maxf(0.0, _flash - delta * 6.0)
 	_mat.set_shader_parameter("flash", _flash)
+	if _holder:
+		# it forms out of the street, slightly sinking and swaying as it walks
+		_holder.scale = Vector3(1.0, maxf(0.02, _rise), 1.0)
+		_holder.position.y = sin(Time.get_ticks_msec() * 0.004 + hash(self) % 7) * 0.03
+		_overlay().set_shader_parameter("flash", _flash)
 	if _shards:
 		_shards.rotation.y += delta * 1.4
 	if _rise < 1.0 or not target:

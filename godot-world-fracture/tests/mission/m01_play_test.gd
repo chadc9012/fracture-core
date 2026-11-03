@@ -12,7 +12,7 @@ func ok(c: bool, w: String) -> void:
 func use_tag(tag: String) -> void:
 	for it: Dictionary in m._interacts:
 		if it.tag == tag and it.room == m.room:
-			m.player.global_position = it.at + Vector3(0, 0.05, 0)
+			m.op.global_position = it.at + Vector3(0, 0.05, 0)
 			await get_tree().process_frame
 			await get_tree().physics_frame
 			m._find_focus()
@@ -48,7 +48,7 @@ func _ready() -> void:
 	# start over at the alarm from the corridor to check the stairs and Mara
 	await get_tree().create_timer(1.0).timeout
 	m._cine_t = -1.0
-	m.player.frozen = false
+	m.op.frozen = false
 	m.story.phase = "ALARM"
 	m._go_room("hall", m.HALL, 0.0, false)
 	await get_tree().process_frame
@@ -70,16 +70,16 @@ func _ready() -> void:
 	var t1: float = m._now
 	while m.story.phase == "DAZED" and m._now - t1 < 30.0:
 		await get_tree().process_frame
-	ok(m.story.phase == "SURGE" and m.player.powers == 1, "the surge: armed")
+	ok(m.story.phase == "SURGE" and m.op.powers == 1, "the surge: armed")
 	for k in 10:
 		await get_tree().process_frame
 	ok(m._echoes.size() >= 3, "the wave is on the street")
 	# shoot each echo through the player's fire path until the wave is down
 	var shots := [0]
-	m.player.fired.connect(func(f: Vector3, t: Vector3, h: Object) -> void:
+	m.op.fired.connect(func(f: Vector3, t: Vector3, h: Object) -> void:
 		shots[0] += 1
 		if shots[0] < 3:
-			print("shot from ", f, " to ", t, " hit ", h, " ", (h as Node).name if h is Node else "", " player ", m.player.global_position, " echo0 ", (m._echoes[0] as Node3D).global_position if m._echoes.size() else Vector3.ZERO))
+			print("shot from ", f, " to ", t, " hit ", h, " ", (h as Node).name if h is Node else "", " op ", m.op.global_position, " echo0 ", (m._echoes[0] as Node3D).global_position if m._echoes.size() else Vector3.ZERO))
 	var guard := 0
 	while m.story.phase in ["SURGE", "ANCHOR"] and guard < 4000:
 		guard += 1
@@ -91,16 +91,16 @@ func _ready() -> void:
 		if e._rise < 1.0:
 			await get_tree().process_frame
 			continue
-		var pp: Vector3 = m.player.global_position
-		var cam_p: Vector3 = m.player.cam.global_position
+		var pp: Vector3 = m.op.global_position
+		var cam_p: Vector3 = m.op.cam.global_position
 		var aim: Vector3 = (e.global_position + Vector3(0, 1.1, 0) - cam_p).normalized()
-		m.player.yaw_pivot.rotation.y = atan2(-aim.x, -aim.z)
-		m.player.pitch = asin(clampf(aim.y, -1, 1))
-		m.player.fire_held = true
-		if m.player.powers >= 2 and m.player.blast_cd <= 0.0 and e.global_position.distance_to(pp) < 8.0:
-			m.player.blast()
+		m.op.yaw_pivot.rotation.y = atan2(-aim.x, -aim.z)
+		m.op.pitch = asin(clampf(aim.y, -1, 1))
+		m.op.fire_held = true
+		if m.op.powers >= 2 and m.op.blast_cd <= 0.0 and e.global_position.distance_to(pp) < 8.0:
+			m.op.blast()
 		await get_tree().physics_frame
-	m.player.fire_held = false
+	m.op.fire_held = false
 	ok(m.story.phase == "CLEAR", "the anchor is down (%d frames)" % guard)
 	var t2: float = m._now
 	while m.story.phase != "DONE" and m._now - t2 < 30.0:

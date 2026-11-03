@@ -30,7 +30,6 @@ Rows are the lock; `git fetch` before you claim.
 ## Open (unclaimed, take in order within a phase)
 - Phase 2/4 merge: Mission 01 (scripts/mission/, landed Nov 3 by session_01… without a claim) carries its own player.gd and rifle; move it onto scripts/player + scripts/combat so one operator, one gun and one HUD serve the street and the mission.
 - Phase 3: Godot Supabase cloud save with Google sign-in (same `player_saves` table and `com.chadc9012.worldfracture://auth/callback`).
-- Phase 4: Apartment 12-04 opening in Godot.
 - Phase 4: fd-01…fd-04 missions in Godot on the quest engine contract.
 - Phase 5: traffic AI + building collisions in the driving district; district streaming (Active / Simulated / Frozen).
 - Phase 5: shoppable clothing and furnishings stores in the mall; first racing venue with stands and pit lane.
@@ -41,6 +40,7 @@ Rows are the lock; `git fetch` before you claim.
 ## Done
 | Task | Commit |
 | --- | --- |
+| Phase 4: Apartment 12-04 opening in Godot — Mission 01 "The Fracture" end to end (owner asked directly, Nov 2: "build the first mission of the game first inside of the block"); session_01PQQWemhLWEFEw4j69oN1tq. **For the lead:** it carries its own on-foot player, rifle/blast/dash, echo enemies and HUD inside `scripts/mission/` (physics bodies, not the data-box rules of `scripts/player/`), so it should move onto `operator_player.gd` and the Phase 2 weapons/enemies/HUD when those land | 9d9079a, this push |
 | Phase 2: Godot enemies (scout, elite, executor, marksman, drone; patrol / alert / engage; they shoot back; hull, down, respawn) + HUD (hull bar, ammo, crosshair) | see git log "Godot: enemies" (Nov 3) |
 | Phase 4: Mission 01 "The Fracture" in Godot (apartment, morning, Fracture, Breach fight) | 9d9079a (another session) |
 | Phase 2: Godot weapons (Auto / Sniper / Fusion frames, hitscan, ammo, reload, fire/reload/swap, HUD, practice dummies) | see git log "Godot: shooting" (Nov 3) |

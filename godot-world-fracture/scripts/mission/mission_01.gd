@@ -29,7 +29,7 @@ const PURPLE := Color(0.62, 0.32, 1.0)
 const GOLD := Color(0.95, 0.75, 0.4)
 
 var story := Story.new()
-var player: CharacterBody3D
+var op: CharacterBody3D
 var street_root: Node3D
 var int_root: Node3D
 var street_env: Environment
@@ -134,11 +134,11 @@ func _ready() -> void:
 	we = WorldEnvironment.new()
 	_vp3.add_child(we)
 	# the player
-	player = Player.new()
-	_vp3.add_child(player)
-	player.fired.connect(_on_fired)
-	player.blasted.connect(_on_blast)
-	player.hurt.connect(_on_hurt)
+	op = Player.new()
+	_vp3.add_child(op)
+	op.fired.connect(_on_fired)
+	op.blasted.connect(_on_blast)
+	op.hurt.connect(_on_hurt)
 	_cine_cam = Camera3D.new()
 	_cine_cam.fov = 55.0
 	_cine_cam.far = 2500.0
@@ -148,7 +148,7 @@ func _ready() -> void:
 	if story.phase == "DONE":
 		_go_street(RES_DOOR + Vector3(3, 0, 0), -PI / 2, false)
 		_set_fracture(true)
-		player.set_powers(3)
+		op.set_powers(3)
 	elif story.phase == "ALARM":
 		_go_room("hall", HALL + Vector3(0, 0, 4), PI, false)
 		_alarm_on()
@@ -261,6 +261,15 @@ func _text(t: String, pos: Vector3, yaw: float, c: Color, size := 64, px := 0.00
 	l.rotation.y = yaw
 	world.add_child(l)
 	return l
+
+## a Meshy hero model (models/city/<file>) scaled to `height`, with a collision box round it; false when it isn't there
+func _hero(file: String, height: float, pos: Vector3, yaw_deg: float, solid := true) -> Node3D:
+	var h := prop(file, height, pos, yaw_deg)
+	if h and solid:
+		var sz: Vector3 = h.get_meta("size")
+		var rotated := Basis(Vector3.UP, deg_to_rad(yaw_deg)) * sz
+		_block(Vector3(absf(rotated.x), sz.y, absf(rotated.z)) * Vector3(0.9, 1.0, 0.9), pos + Vector3(0, sz.y * 0.5, 0))
+	return h
 
 var _stone: StandardMaterial3D
 ## polished white stone for counters and tables (the tile sets read as tiles on furniture)
@@ -375,6 +384,11 @@ func _street_collision() -> void:
 		_alarm_lights.append(lr)
 		_alarm_lights.append(lb)
 		_text("NEXUS PD · EVACUATION ZONE", Vector3(0, 1.6, zz + (0.15 if zz < 0 else -0.15)), 0.0 if zz < 0 else PI, Color(1.0, 0.9, 0.3), 64, 0.01)
+	# police cruisers at the barricades, wrecks where the fires will be
+	_hero("police-car.glb", 1.5, Vector3(-7.0, 0, BOUNDS.position.y + 5.0), 65.0)
+	_hero("police-car.glb", 1.5, Vector3(6.5, 0, BOUNDS.end.y - 5.0), -115.0)
+	for at3: Vector3 in [Vector3(7, 0, -24), Vector3(-8, 0, 6), Vector3(8, 0, 22)]:
+		_hero("wreck.glb", 1.4, at3 + Vector3(0, 0, 0.5), randf_range(-40.0, 40.0))
 	# the parked cars
 	for c0 in street_root.get_children():
 		if c0 is Node3D and String(c0.scene_file_path).contains("fleet"):
@@ -451,12 +465,11 @@ func _apartment() -> void:
 	_lamp(c + Vector3(4.0, 2.8, 0.5), Color(1.0, 0.86, 0.7), 1.3, 9.0, true)
 	# bedroom (west): bed, nightstands, wardrobe
 	var frame := Materials.pbr("wood_floor", Color(0.45, 0.3, 0.2), 1.0, 0.7)
-	_solid(Vector3(2.2, 0.45, 2.3), c + Vector3(-6.4, 0.23, -2.6), frame)
-	_box(Vector3(2.1, 0.25, 2.2), c + Vector3(-6.4, 0.58, -2.6), Materials.surface("velour_velvet", Color(0.9, 0.9, 0.92), 0.6))
-	_box(Vector3(2.1, 0.12, 1.3), c + Vector3(-6.4, 0.75, -2.1), Materials.surface("velour_velvet", Color(0.35, 0.2, 0.5), 0.6))
-	for dx: float in [-0.5, 0.5]:
-		_box(Vector3(0.75, 0.18, 0.4), c + Vector3(-6.4 + dx, 0.82, -3.45), Materials.surface("fabric_pattern_07", Color(0.95, 0.95, 0.95), 0.4))
-	_solid(Vector3(2.4, 1.1, 0.12), c + Vector3(-6.4, 0.55, -3.8), Materials.surface("leather_red_02", Color(0.22, 0.16, 0.12), 0.5))
+	if not _hero("bed.glb", 1.15, c + Vector3(-6.4, 0, -2.6), 0.0):
+		_solid(Vector3(2.2, 0.45, 2.3), c + Vector3(-6.4, 0.23, -2.6), frame)
+		_box(Vector3(2.1, 0.25, 2.2), c + Vector3(-6.4, 0.58, -2.6), Materials.surface("velour_velvet", Color(0.9, 0.9, 0.92), 0.6))
+		_box(Vector3(2.1, 0.12, 1.3), c + Vector3(-6.4, 0.75, -2.1), Materials.surface("velour_velvet", Color(0.35, 0.2, 0.5), 0.6))
+		_solid(Vector3(2.4, 1.1, 0.12), c + Vector3(-6.4, 0.55, -3.8), Materials.surface("leather_red_02", Color(0.22, 0.16, 0.12), 0.5))
 	for dx2: float in [-1.6, 1.6]:
 		_solid(Vector3(0.6, 0.55, 0.5), c + Vector3(-6.4 + dx2, 0.28, -3.4), frame)
 		_ball(0.12, c + Vector3(-6.4 + dx2, 0.75, -3.4), flat(Color(1.0, 0.85, 0.6), 0.3, 0.0, 4.0))
@@ -465,12 +478,12 @@ func _apartment() -> void:
 	_interact("apt", c + Vector3(-6.3, 0, 3.9), 1.6, "Get dressed", func() -> void: _morning("dress"), func() -> bool: return _todo("dress"), "dress")
 	# living room: rug, L sofa, coffee table with the phone, TV wall
 	_box(Vector3(5.0, 0.02, 3.6), c + Vector3(2.0, 0.01, -0.6), Materials.surface("velour_velvet", Color(0.4, 0.36, 0.33), 0.6))
-	var sofa := Materials.surface("fabric_pattern_07", Color(0.32, 0.33, 0.36), 0.5)
-	_solid(Vector3(4.0, 0.45, 1.0), c + Vector3(2.0, 0.23, 1.4), sofa)
-	_box(Vector3(4.0, 0.7, 0.3), c + Vector3(2.0, 0.6, 1.85), sofa)
-	_solid(Vector3(1.0, 0.45, 2.2), c + Vector3(-0.4, 0.23, 0.2), sofa)
-	for k in 3:
-		_box(Vector3(0.55, 0.4, 0.15), c + Vector3(1.0 + k * 1.1, 0.68, 1.65), Materials.surface("velour_velvet", [PURPLE.darkened(0.3), Color(0.9, 0.85, 0.75), PURPLE.darkened(0.3)][k], 0.5))
+	if not _hero("sofa.glb", 0.9, c + Vector3(2.0, 0, 1.2), 180.0):
+		var sofa := Materials.surface("fabric_pattern_07", Color(0.32, 0.33, 0.36), 0.5)
+		_solid(Vector3(4.0, 0.45, 1.0), c + Vector3(2.0, 0.23, 1.4), sofa)
+		_box(Vector3(4.0, 0.7, 0.3), c + Vector3(2.0, 0.6, 1.85), sofa)
+		_solid(Vector3(1.0, 0.45, 2.2), c + Vector3(-0.4, 0.23, 0.2), sofa)
+	_hero("armchair.glb", 0.95, c + Vector3(-0.4, 0, -2.6), 60.0)
 	_solid(Vector3(1.6, 0.4, 0.9), c + Vector3(2.0, 0.2, -0.4), _stone_top())
 	_box(Vector3(0.09, 0.01, 0.17), c + Vector3(2.4, 0.41, -0.3), flat(Color(0.4, 0.75, 1.0), 0.2, 0.0, 3.0))
 	_interact("apt", c + Vector3(2.4, 0, -0.3), 1.6, "Check your messages", func() -> void: _morning("phone"), func() -> bool: return _todo("phone"), "phone")
@@ -485,10 +498,12 @@ func _apartment() -> void:
 	_solid(Vector3(5.0, 0.95, 0.7), c + Vector3(4.6, 0.48, 5.1), cab)
 	_box(Vector3(5.0, 0.05, 0.72), c + Vector3(4.6, 0.98, 5.1), _stone_top())
 	_solid(Vector3(0.9, 2.1, 0.75), c + Vector3(7.4, 1.05, 5.0), flat(Color(0.75, 0.77, 0.8), 0.25, 0.9))
-	_solid(Vector3(3.0, 0.95, 1.1), c + Vector3(4.2, 0.48, 3.0), _stone_top())
+	if not _hero("kitchen-island.glb", 1.05, c + Vector3(4.2, 0, 3.0), 180.0):
+		_solid(Vector3(3.0, 0.95, 1.1), c + Vector3(4.2, 0.48, 3.0), _stone_top())
+		for k in 3:
+			_cyl(0.2, 0.06, c + Vector3(3.2 + k * 1.0, 0.75, 2.2), flat(GOLD, 0.25, 0.9))
+			_cyl(0.025, 0.74, c + Vector3(3.2 + k * 1.0, 0.37, 2.2), flat(GOLD, 0.25, 0.9))
 	for k in 3:
-		_cyl(0.2, 0.06, c + Vector3(3.2 + k * 1.0, 0.75, 2.2), flat(GOLD, 0.25, 0.9))
-		_cyl(0.025, 0.74, c + Vector3(3.2 + k * 1.0, 0.37, 2.2), flat(GOLD, 0.25, 0.9))
 		_ball(0.15, c + Vector3(3.2 + k * 1.0, 2.5, 3.0), flat(Color(1.0, 0.85, 0.6), 0.3, 0.0, 5.0))
 	_box(Vector3(0.3, 0.12, 0.2), c + Vector3(3.6, 1.02, 3.0), flat(Color(0.95, 0.95, 0.95), 0.4))
 	_interact("apt", c + Vector3(4.2, 0, 2.2), 1.6, "Make breakfast", func() -> void: _morning("breakfast"), func() -> bool: return _todo("breakfast"), "breakfast")
@@ -581,7 +596,7 @@ func _lounge() -> void:
 		var d := _solid(Vector3(randf_range(0.6, 1.4), randf_range(0.2, 0.5), randf_range(0.6, 1.4)), c + Vector3(6.0 + randf_range(-1, 1), 0.2, -4.0 + randf_range(-1, 1)), Materials.pbr("brushed_concrete", Color(0.6, 0.6, 0.62), 1.0))
 		d.rotation = Vector3(randf() * 0.4, randf() * PI, randf() * 0.4)
 	# Mara, trapped by the seats; the stairs on down
-	_npc("mara_trapped", "f-athletic", "female", "nyx", c + Vector3(-4.6, 0, 0.6), PI * 0.2)
+	_person("mara_trapped", "woman.glb", c + Vector3(-4.6, 0, 0.6), PI * 0.2, func() -> void: _npc("mara_trapped", "f-athletic", "female", "nyx", c + Vector3(-4.6, 0, 0.6), PI * 0.2))
 	_interact("lounge", c + Vector3(-4.6, 0, 0.6), 2.0, "Free Mara", func() -> void:
 		_say(story.rescue())
 		_update_hud()
@@ -617,17 +632,21 @@ func _lobby() -> void:
 	_text("RESIDENCES", c + Vector3(0, 3.6, -8.78), 0.0, PURPLE, 80, 0.009)
 	_box(Vector3(8.0, 0.06, 0.12), c + Vector3(0, 0.6, -8.8), flat(PURPLE, 0.3, 0.0, 5.0))
 	# reception desk with a purple glowing front, Ellis behind it
-	_solid(Vector3(5.0, 1.1, 1.0), c + Vector3(0, 0.55, -6.0), _stone_top())
-	_box(Vector3(5.02, 0.06, 0.02), c + Vector3(0, 0.3, -5.49), flat(PURPLE, 0.3, 0.0, 5.0))
-	_npc("ellis", "m-distinguished", "male", "cipher", c + Vector3(0, 0, -7.0), 0.0)
+	if not _hero("reception.glb", 1.15, c + Vector3(0, 0, -6.0), 0.0):
+		_solid(Vector3(5.0, 1.1, 1.0), c + Vector3(0, 0.55, -6.0), _stone_top())
+		_box(Vector3(5.02, 0.06, 0.02), c + Vector3(0, 0.3, -5.49), flat(PURPLE, 0.3, 0.0, 5.0))
+	_person("ellis", "concierge.glb", c + Vector3(0, 0, -7.3), 0.0, func() -> void: _npc("ellis", "m-distinguished", "male", "cipher", c + Vector3(0, 0, -7.3), 0.0))
 	_interact("lobby", c + Vector3(0, 0, -5.0), 1.6, "Talk to Ellis", func() -> void: _say([["ELLIS", ["Welcome home. Lifts are behind you, the directory lists every floor.", "Something came for 12-04 this morning. It's in your box.", "The court on 3 is free most mornings."][randi() % 3]]]), func() -> bool: return story.phase == "MORNING")
 	# the lounge (south-west) where Mara sits in the morning
-	var sofa := Materials.surface("fabric_pattern_07", Color(0.55, 0.53, 0.56), 0.5)
-	_solid(Vector3(3.6, 0.45, 1.0), c + Vector3(-7.0, 0.23, 6.8), sofa)
-	_box(Vector3(3.6, 0.7, 0.3), c + Vector3(-7.0, 0.6, 7.25), sofa)
-	_solid(Vector3(1.0, 0.45, 2.6), c + Vector3(-9.6, 0.23, 5.0), sofa)
+	if not _hero("sofa.glb", 0.9, c + Vector3(-7.2, 0, 6.8), 180.0):
+		var sofa := Materials.surface("fabric_pattern_07", Color(0.55, 0.53, 0.56), 0.5)
+		_solid(Vector3(3.6, 0.45, 1.0), c + Vector3(-7.0, 0.23, 6.8), sofa)
+		_box(Vector3(3.6, 0.7, 0.3), c + Vector3(-7.0, 0.6, 7.25), sofa)
+		_solid(Vector3(1.0, 0.45, 2.6), c + Vector3(-9.6, 0.23, 5.0), sofa)
+	_hero("armchair.glb", 0.95, c + Vector3(-3.6, 0, 4.2), -120.0)
+	_hero("armchair.glb", 0.95, c + Vector3(-10.4, 0, 3.4), 120.0)
 	_solid(Vector3(1.8, 0.4, 1.0), c + Vector3(-6.6, 0.2, 4.8), _stone_top())
-	_npc("mara", "f-athletic", "female", "nyx", c + Vector3(-5.0, 0, 5.2), PI * 0.8)
+	_person("mara", "woman.glb", c + Vector3(-5.0, 0, 5.2), PI * 0.8, func() -> void: _npc("mara", "f-athletic", "female", "nyx", c + Vector3(-5.0, 0, 5.2), PI * 0.8))
 	_interact("lobby", c + Vector3(-5.0, 0, 5.2), 2.0, "Say hi to Mara", func() -> void: _morning("neighbour"), func() -> bool: return _todo("neighbour"), "neighbour")
 	# the mail room alcove (west wall): a grid of lockers
 	_solid(Vector3(0.6, 3.0, 6.0), c + Vector3(-12.6, 1.5, -2.0), flat(Color(0.2, 0.2, 0.22), 0.4, 0.6))
@@ -660,7 +679,10 @@ func _lobby() -> void:
 	# background residents
 	var r := RandomNumberGenerator.new()
 	r.seed = 4
-	for k in 3:
+	if ResourceLoader.exists(MODELS + "man.glb"):
+		_person("res1", "man.glb", c + Vector3(-1.5, 0, 2.5), 2.4, Callable())
+		_person("res2", "woman.glb", c + Vector3(3.5, 0, 4.0), -2.2, Callable())
+	for k in (0 if ResourceLoader.exists(MODELS + "man.glb") else 3):
 		var mi := MeshInstance3D.new()
 		mi.mesh = Casino.figure(0, k % 2 == 0)
 		mi.set_surface_override_material(0, flat([Color(0.1, 0.1, 0.12), Color(0.6, 0.5, 0.4), Color(0.2, 0.25, 0.4)][k], 0.6))
@@ -669,6 +691,26 @@ func _lobby() -> void:
 		mi.position = c + Vector3(-2.0 + k * 3.5, 0, 2.0 + k)
 		mi.rotation.y = r.randf() * TAU
 		world.add_child(mi)
+
+## a Meshy person (models/city/<file>, rigged with an idle when Meshy animated it), or the fallback
+func _person(id: String, file: String, at: Vector3, yaw: float, fallback: Callable) -> void:
+	var h := prop(file, 1.78 if file != "concierge.glb" else 1.82, at, rad_to_deg(yaw))
+	if not h:
+		if fallback.is_valid():
+			fallback.call()
+		return
+	_npcs[id] = h
+	for ap in h.find_children("*", "AnimationPlayer", true, false):
+		var a := ap as AnimationPlayer
+		var list := a.get_animation_list()
+		if list.size():
+			var nm: String = list[0]
+			for n2 in list:
+				if String(n2).to_lower().contains("idle"):
+					nm = n2
+			a.get_animation(nm).loop_mode = Animation.LOOP_LINEAR
+			a.play(nm)
+			a.seek(randf() * 1.5, true)
 
 func _npc(id: String, face: String, body: String, frame: String, at: Vector3, yaw: float) -> void:
 	var rig := Rig.new()
@@ -702,9 +744,9 @@ func _go_room(rm: String, at: Vector3, yaw: float, fade := true) -> void:
 		await _fade_out()
 	room = rm
 	_set_world(false)
-	player.global_position = at + Vector3(0, 0.05, 0)
-	player.velocity = Vector3.ZERO
-	player.snap_camera(yaw)
+	op.global_position = at + Vector3(0, 0.05, 0)
+	op.velocity = Vector3.ZERO
+	op.snap_camera(yaw)
 	_location_text()
 	if fade:
 		await _fade_in()
@@ -714,9 +756,9 @@ func _go_street(at: Vector3, yaw: float, fade := true) -> void:
 		await _fade_out()
 	room = "street"
 	_set_world(true)
-	player.global_position = at + Vector3(0, 0.1, 0)
-	player.velocity = Vector3.ZERO
-	player.snap_camera(yaw)
+	op.global_position = at + Vector3(0, 0.1, 0)
+	op.velocity = Vector3.ZERO
+	op.snap_camera(yaw)
 	_location_text()
 	if fade:
 		await _fade_in()
@@ -728,7 +770,7 @@ func _set_world(street: bool) -> void:
 		we.environment = fracture_env if fracture_env and story.phase != "MORNING" and story.phase != "ALARM" else street_env
 	else:
 		we.environment = int_env
-	player.cam.current = true
+	op.cam.current = true
 
 func _location_text() -> void:
 	if _location:
@@ -775,9 +817,9 @@ func _exit_to_street() -> void:
 	room = "street"
 	_set_world(true)
 	we.environment = street_env
-	player.global_position = RES_DOOR + Vector3(2.5, 0.1, 0)
-	player.snap_camera(-PI / 2)
-	player.frozen = true
+	op.global_position = RES_DOOR + Vector3(2.5, 0.1, 0)
+	op.snap_camera(-PI / 2)
+	op.frozen = true
 	_location_text()
 	_cine_t = 0.0
 	_cine_cam.current = true
@@ -1026,13 +1068,13 @@ func _spawn_wave() -> void:
 	var w := story.wave()
 	var count: int = w[0]
 	var elites: int = w[1]
-	var yaw: float = player.yaw_pivot.rotation.y
+	var yaw: float = op.yaw_pivot.rotation.y
 	for k in count + elites:
 		var e := Echo.new()
-		e.setup(k >= count, player)
+		e.setup(k >= count, op)
 		var a := yaw + (k - (count + elites - 1) * 0.5) * 0.45
 		var dist := 12.0 + (3.0 if k >= count else 0.0)
-		var at := player.global_position + Vector3(-sin(a), 0, -cos(a)) * dist
+		var at := op.global_position + Vector3(-sin(a), 0, -cos(a)) * dist
 		at.x = clampf(at.x, BOUNDS.position.x + 1.5, BOUNDS.end.x - 1.5)
 		at.z = clampf(at.z, BOUNDS.position.y + 2.0, BOUNDS.end.y - 2.0)
 		e.position = at
@@ -1060,11 +1102,11 @@ func _story_event(ev: String) -> void:
 		_on_phase()
 
 func _on_phase() -> void:
-	player.set_powers(story.powers())
-	player.hp_floor = Story.HP_FLOOR if story.phase in ["DAZED", "SURGE", "ANCHOR"] else 0.0
+	op.set_powers(story.powers())
+	op.hp_floor = Story.HP_FLOOR if story.phase in ["DAZED", "SURGE", "ANCHOR"] else 0.0
 	if story.phase in ["DAZED", "SURGE", "ANCHOR"]:
 		if story.phase == "SURGE":
-			_burst(player.global_position + Vector3(0, 1.0, 0), Color(0.3, 0.85, 1.0), 24)
+			_burst(op.global_position + Vector3(0, 1.0, 0), Color(0.3, 0.85, 1.0), 24)
 		if story.phase != "DAZED" or _echoes.is_empty():
 			_spawn_wave.call_deferred()
 	if story.phase == "DONE":
@@ -1193,7 +1235,7 @@ func _process(delta: float) -> void:
 		_cinematic(delta)
 	elif story.phase in ["DAZED", "SURGE", "ANCHOR", "CLEAR"]:
 		_story_event("tick")
-		if story.phase == "DAZED" and _echoes.size() > 0 and (_echoes[0] as Node3D).global_position.distance_to(player.global_position) < 2.2:
+		if story.phase == "DAZED" and _echoes.size() > 0 and (_echoes[0] as Node3D).global_position.distance_to(op.global_position) < 2.2:
 			_story_event("threat")
 	_read_input()
 	_find_focus()
@@ -1216,9 +1258,9 @@ func _cinematic(delta: float) -> void:
 	if t > 8.6:
 		_cine_t = -1.0
 		_title_card.modulate.a = 0.0
-		player.frozen = false
-		player.cam.current = true
-		player.snap_camera(PI)
+		op.frozen = false
+		op.cam.current = true
+		op.snap_camera(PI)
 		_story_event("cine_done")
 
 func _flash_white() -> void:
@@ -1234,7 +1276,7 @@ func _find_focus() -> void:
 	for it: Dictionary in _interacts:
 		if it.room != room:
 			continue
-		var d := Vector2(player.global_position.x - it.at.x, player.global_position.z - it.at.z).length()
+		var d := Vector2(op.global_position.x - it.at.x, op.global_position.z - it.at.z).length()
 		if d < it.r and d < best and (it.cond as Callable).call():
 			best = d
 			_focus = it
@@ -1267,8 +1309,8 @@ func _next_line() -> void:
 # --------------------------------------------------------------------------------------------- input
 func _read_input() -> void:
 	if _complete.visible:
-		player.move = Vector2.ZERO
-		player.fire_held = false
+		op.move = Vector2.ZERO
+		op.fire_held = false
 		return
 	var mv := Vector2.ZERO
 	if _keys.get(KEY_W, false) or _keys.get(KEY_UP, false): mv.y += 1
@@ -1277,8 +1319,8 @@ func _read_input() -> void:
 	if _keys.get(KEY_D, false) or _keys.get(KEY_RIGHT, false): mv.x += 1
 	if _joy_id >= 0:
 		mv = _joy_vec
-	player.move = mv.limit_length(1.0)
-	player.run = _keys.get(KEY_SHIFT, false) or _joy_vec.length() > 0.85
+	op.move = mv.limit_length(1.0)
+	op.run = _keys.get(KEY_SHIFT, false) or _joy_vec.length() > 0.85
 
 func _input(e: InputEvent) -> void:
 	if e is InputEventKey:
@@ -1287,10 +1329,10 @@ func _input(e: InputEvent) -> void:
 		if k.pressed and not k.echo:
 			match k.keycode:
 				KEY_E: _use()
-				KEY_R: player.reload()
-				KEY_Q: player.blast()
-				KEY_SPACE: player.dash()
-				KEY_F: player.melee()
+				KEY_R: op.reload()
+				KEY_Q: op.blast()
+				KEY_SPACE: op.dash()
+				KEY_F: op.melee()
 				KEY_ESCAPE: _release_mouse()
 	elif e is InputEventMouseButton:
 		var mb := e as InputEventMouseButton
@@ -1301,11 +1343,11 @@ func _input(e: InputEvent) -> void:
 				Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 				_mouse_captured = true
 				return
-			player.fire_held = mb.pressed and _mouse_captured
+			op.fire_held = mb.pressed and _mouse_captured
 		elif mb.button_index == MOUSE_BUTTON_RIGHT and mb.pressed:
-			player.blast()
+			op.blast()
 	elif e is InputEventMouseMotion and _mouse_captured:
-		player.look_delta += (e as InputEventMouseMotion).relative
+		op.look_delta += (e as InputEventMouseMotion).relative
 	elif e is InputEventScreenTouch:
 		var st := e as InputEventScreenTouch
 		var w := get_viewport_rect().size.x
@@ -1331,7 +1373,7 @@ func _input(e: InputEvent) -> void:
 			var d := (sd.position - _joy_origin) / 90.0
 			_joy_vec = Vector2(d.x, -d.y).limit_length(1.0)
 		elif sd.index == _look_id:
-			player.look_delta += (sd.position - _look_last) * 1.4
+			op.look_delta += (sd.position - _look_last) * 1.4
 			_look_last = sd.position
 
 func _over_ui(p: Vector2) -> bool:
@@ -1343,7 +1385,7 @@ func _over_ui(p: Vector2) -> bool:
 func _release_mouse() -> void:
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 	_mouse_captured = false
-	player.fire_held = false
+	op.fire_held = false
 
 # --------------------------------------------------------------------------------------------- HUD
 func _hud_label(t: String, size: int, c: Color, parent: Control) -> Label:
@@ -1521,12 +1563,12 @@ func _build_hud() -> void:
 			match p[0]:
 				"FIRE":
 					_fire_btn = b
-					b.button_down.connect(func() -> void: player.fire_held = true)
-					b.button_up.connect(func() -> void: player.fire_held = false)
-				"BLAST": b.pressed.connect(func() -> void: player.blast())
-				"DASH": b.pressed.connect(func() -> void: player.dash())
-				"MELEE": b.pressed.connect(func() -> void: player.melee())
-				"RELOAD": b.pressed.connect(func() -> void: player.reload())
+					b.button_down.connect(func() -> void: op.fire_held = true)
+					b.button_up.connect(func() -> void: op.fire_held = false)
+				"BLAST": b.pressed.connect(func() -> void: op.blast())
+				"DASH": b.pressed.connect(func() -> void: op.dash())
+				"MELEE": b.pressed.connect(func() -> void: op.melee())
+				"RELOAD": b.pressed.connect(func() -> void: op.reload())
 	_location_text()
 
 func _update_hud() -> void:
@@ -1558,26 +1600,26 @@ func _rebuild_tracker() -> void:
 
 func _update_hud_rest() -> void:
 	# compass
-	var deg := fposmod(-rad_to_deg(player.yaw_pivot.rotation.y), 360.0)
+	var deg := fposmod(-rad_to_deg(op.yaw_pivot.rotation.y), 360.0)
 	var names := ["N", "NE", "E", "SE", "S", "SW", "W", "NW"]
 	var near: String = names[int(round(deg / 45.0)) % 8]
 	_compass.text = "%s      %s      %s\n%d°" % [names[(int(round(deg / 45.0)) + 7) % 8], near, names[(int(round(deg / 45.0)) + 1) % 8], int(deg)]
 	_xp.text = "LV %d     XP %d / %d" % [profile.level, profile.xp, int(profile.level) * 1000]
 	# weapon
-	var armed: bool = player.powers >= 1
+	var armed: bool = op.powers >= 1
 	_ammo.visible = armed
 	_cross.visible = armed and room == "street"
 	_cross.queue_redraw()
-	_ammo.text = ("RELOADING" if player.reloading() else "%d | %d" % [player.ammo, player.reserve])
+	_ammo.text = ("RELOADING" if op.reloading() else "%d | %d" % [op.ammo, op.reserve])
 	var ab := []
-	if player.powers >= 2:
-		ab.append("Q  RESONANCE BLAST " + ("READY" if player.blast_cd <= 0.0 else "%.0fs" % player.blast_cd))
-		ab.append("SPACE  DASH " + ("READY" if player.dash_cd <= 0.0 else "…"))
+	if op.powers >= 2:
+		ab.append("Q  RESONANCE BLAST " + ("READY" if op.blast_cd <= 0.0 else "%.0fs" % op.blast_cd))
+		ab.append("SPACE  DASH " + ("READY" if op.dash_cd <= 0.0 else "…"))
 	if armed and not touch:
 		ab.append("LMB fire · F melee · R reload")
 	_abil.text = "   ".join(ab)
-	_hp_bar.value = player.hp
-	_hp_bar.visible = story.phase in ["DAZED", "SURGE", "ANCHOR", "CLEAR"] or player.hp < 100.0
+	_hp_bar.value = op.hp
+	_hp_bar.visible = story.phase in ["DAZED", "SURGE", "ANCHOR", "CLEAR"] or op.hp < 100.0
 	# prompt
 	var use: Control = hud.get_node_or_null("USE")
 	if not _focus.is_empty():
@@ -1626,13 +1668,13 @@ func _objective_point() -> Variant:
 
 func _marker_update() -> void:
 	var p: Variant = _objective_point()
-	var c: Camera3D = player.cam if _cine_t < 0.0 else _cine_cam
+	var c: Camera3D = op.cam if _cine_t < 0.0 else _cine_cam
 	if p == null or not c or c.is_position_behind((p as Vector3) + Vector3(0, 1.4, 0)) or _cine_t >= 0.0:
 		_marker.visible = false
 		return
 	var at: Vector3 = (p as Vector3) + Vector3(0, 1.6, 0)
 	var sp := c.unproject_position(at) * (get_viewport_rect().size / Vector2(_vp3.size))
-	var d := player.global_position.distance_to(p as Vector3)
+	var d := op.global_position.distance_to(p as Vector3)
 	_marker.visible = true
 	_marker.text = "◆\n%dm" % int(d)
 	_marker.position = sp - Vector2(14, 20)
@@ -1645,8 +1687,8 @@ func _draw_minimap() -> void:
 	_mini.draw_arc(c, r, 0, TAU, 48, Color(0.6, 0.8, 1.0, 0.35), 2.0)
 	if room == "street":
 		var scale := r / 40.0
-		var yaw: float = player.yaw_pivot.rotation.y
-		var pp: Vector3 = player.global_position
+		var yaw: float = op.yaw_pivot.rotation.y
+		var pp: Vector3 = op.global_position
 		var to_map := func(w: Vector3) -> Vector2:
 			var v := Vector2(w.x - pp.x, w.z - pp.z).rotated(yaw)
 			return c + v * scale
@@ -1712,4 +1754,4 @@ func shot(moment: String) -> void:
 				story.event("tick", _now + 20.0)
 			_on_phase()
 			if moment != "done":
-				player.fire_held = moment != "dazed"
+				op.fire_held = moment != "dazed"
