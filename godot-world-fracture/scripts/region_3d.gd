@@ -11,7 +11,7 @@ extends Control
 
 signal closed
 
-enum Mode { CITY, STREET }
+enum Mode { CITY, STREET, PLAY }
 
 const EYE := 1.7
 const TREE_CAP := 9000
@@ -45,6 +45,8 @@ var _world: Node3D
 var _cam: Camera3D
 var _env: Environment
 var _title: Label
+var _head: Control
+var _zoom_buttons: Control
 var _mode_btn: Button
 var _jump: OptionButton
 var _pad_city: Control
@@ -76,6 +78,7 @@ func _ready() -> void:
 	var hb := HBoxContainer.new()
 	hb.add_theme_constant_override("separation", 10)
 	head.add_child(hb)
+	_head = head
 	var back := Data.button("← MAP")
 	back.pressed.connect(func(): closed.emit())
 	hb.add_child(back)
@@ -110,6 +113,7 @@ func _ready() -> void:
 		b.pressed.connect(func(): _zoom(z[1]))
 		zb.add_child(b)
 	svc.add_child(zb)
+	_zoom_buttons = zb
 	_jump = OptionButton.new()
 	_jump.position = Vector2(10, 10)
 	_jump.add_theme_font_size_override("font_size", 14)
@@ -989,11 +993,53 @@ func _floating_top(x: float, z: float) -> float:
 func set_mode(md: Mode) -> void:
 	mode = md
 	_mode_btn.text = "3D CITY" if mode == Mode.STREET else "STREET VIEW"
+	_mode_btn.visible = mode != Mode.PLAY
+	# a mission draws its own HUD over the view
+	if _head:
+		_head.visible = mode != Mode.PLAY
+	if _zoom_buttons:
+		_zoom_buttons.visible = mode != Mode.PLAY
+	if _jump:
+		_jump.visible = mode != Mode.PLAY
 	_pad_city.visible = mode == Mode.CITY
 	_pad_street.visible = mode == Mode.STREET
-	if mode == Mode.STREET:
+	if mode == Mode.STREET or mode == Mode.PLAY:
 		_stand_near(Vector2(_target.x, _target.z))
+	if mode == Mode.PLAY:
+		return   # a mission (scripts/mission/descent.gd) owns the camera and the input
 	_apply_cam()
+
+# ---------------- play (the Fracture Descent missions walk the regions with the on-foot operator) ----------------
+func world() -> Node3D:
+	return _world
+func camera() -> Camera3D:
+	return _cam
+func span() -> float:
+	return _span
+## where Street View would stand: open ground near the place the region opened at
+func stand_point() -> Vector3:
+	return Vector3(_eye.x, _ground(_eye.x, _eye.z), _eye.z)
+## walkable height at a local point (operator_player.gd ground_at)
+func ground(lx: float, lz: float) -> float:
+	return _ground(lx, lz)
+## the buildings as world boxes (local space, metres from the region centre), for the on-foot movers to slide around
+func building_boxes() -> Array[AABB]:
+	var out: Array[AABB] = []
+	for bd in m.buildings:
+		var p := _loc(bd[0], bd[1])
+		var hx := float(bd[2])
+		var hz := float(bd[3])
+		var yaw := float(bd[4])
+		var c := cos(yaw)
+		var sn := sin(yaw)
+		var ex := absf(hx * c) + absf(hz * sn)
+		var ez := absf(hx * sn) + absf(hz * c)
+		var y := _h(p.x, p.y)
+		out.append(AABB(Vector3(p.x - ex, y - 2.0, p.y - ez), Vector3(ex * 2.0, _bh(bd) + 4.0, ez * 2.0)))
+	return out
+## a local point from a map (world) one
+func local_point(x: float, z: float) -> Vector2:
+	return _loc(x, z)
 
 ## stand a few metres off a place (it is often a building) on open ground, facing it
 func _stand_near(at: Vector2) -> void:
@@ -1041,7 +1087,7 @@ func _apply_cam() -> void:
 		_cam.fov = 70.0
 
 func _process(dt: float) -> void:
-	if _cam == null:
+	if _cam == null or mode == Mode.PLAY:
 		return
 	_declutter_t -= dt
 	if _declutter_t <= 0.0:
@@ -1081,6 +1127,8 @@ func _turn(rel: Vector2) -> void:
 	_apply_cam()
 
 func _input_3d(ev: InputEvent) -> void:
+	if mode == Mode.PLAY:
+		return
 	if ev is InputEventMouseButton and ev.device != InputEvent.DEVICE_ID_EMULATION:
 		if ev.pressed and ev.button_index == MOUSE_BUTTON_WHEEL_UP:
 			_zoom(0.88)

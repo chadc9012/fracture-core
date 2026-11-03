@@ -28,7 +28,6 @@ Rows are the lock; `git fetch` before you claim.
 
 ## Open (unclaimed, take in order within a phase)
 - Phase 3 follow-up: Google sign-in in the Godot Android app — needs a deep link (`com.chadc9012.worldfracture://auth/callback`) via a custom Gradle build (android/build) with an intent-filter, then the PKCE flow in cloud_save.gd. Email code sign-in covers the Dec 4 gate meanwhile.
-- Phase 4: fd-02…fd-04 in Godot after Mission 01, on the quest engine contract (best taken by the session that built Mission 01, on scripts/mission/).
 - Phase 5 follow-up: draw the owned Haven Home furniture in Apartment 12-04 (preset slots per piece).
 - Phase 5: district streaming (Active / Simulated / Frozen) once the block becomes more than one street.
 
@@ -39,6 +38,7 @@ Rows are the lock; `git fetch` before you claim.
 ## Done
 | Task | Commit |
 | --- | --- |
+| Phase 4: fd-02 First Resonance, fd-03 Broken Signal, fd-04 Into the Shrouded Swamps in the Verdant Forest (region PLAY mode, shared operator/guns/troopers/gear, quests.json) | see git log "Godot: the Fracture Descent" (Nov 3) |
 | Phase 2/4 merge (gear side): the worn weapon's frame, numbers and authored model, the outfit tint and a first-clear boss drop in Mission 01 | see git log "Mission 01 takes the worn gear" (Nov 3) |
 | Phase 5: mall shops — Nova Threads (outfits, worn tint) and Haven Home (furnishings) with Nex purchases | see git log "Godot: mall shops" (Nov 3) |
 | Phase 5: Nexus Speedway, the first racing venue (track data, stands, pit lane, lights, 3 rivals, 3 laps, positions, best lap, prize Nex) | see git log "Godot: Nexus Speedway" (Nov 3) |

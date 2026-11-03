@@ -139,12 +139,19 @@ their event — and the worn outfit tints the operator's plate and undersuit (`o
 Haven Home sells furnishings for Apartment 12-04 (sofas, tables, lamps, rugs, art, a bed; `gear_store.gd` FURNITURE),
 delivered to the apartment's owned list. Test: `--script res://tests/gear/shop_test.gd`. Shot: `slicewalk:shop[:haven]`.
 
+**The Fracture Descent, fd-02 to fd-04** (`scripts/mission/descent.gd`, the FRACTURE DESCENT button on the globe): the
+web game's quest chain after Mission 01, played on foot in the Verdant Forest region (region_3d.gd's new PLAY mode: the
+exported terrain, buildings and trees with the shared operator, guns, troopers and gear). From the Fracture Crash Site:
+fd-02 *First Resonance* clears five patrols that come out of the trees; fd-03 *Broken Signal* traces the signal through
+three relay beacons to its guarded source; fd-04 *Into the Shrouded Swamps* walks to where the treeline ends. Rewards
+pay the profile's XP and Nex; progress is `user://quests.json` (synced to the cloud). Shot: `descent[:fight]`.
+
 ```sh
 bun scripts/export-godot-data.ts          # from the repo root: writes godot-world-fracture/generated/ (gitignored)
 bun scripts/export-godot-character.ts     # from the repo root: rewrites godot-world-fracture/data/character.json
 bun scripts/export-godot-gear.ts          # from the repo root: rewrites godot-world-fracture/data/gear.json
 godot --path godot-world-fracture         # run it
-# a screenshot without a window (xvfb): --shot <png> [garage[:shop[:car[:item,kit-racing,...]]]] [drive[:car[:throttle[:steer[:garage]]]]] [slice[night][coast|neon][walk[:run|:jump|:fight|:drive|:inventory|:shop[:haven]|:fire[:sniper|:fusion][:aim]]][:x,y,z:tx,ty,tz]] [mall[:view]] [casino[:view 0-8]] [sports[:view 0-7]] [race[:go]] [cloud] [char[:body[:face[:TAB[:key=value,...]]]]] [select:<continent>] [map:<id>] [sat] [zoom:<factor>] [3d] [street:<place id>] [frames:<n>]
+# a screenshot without a window (xvfb): --shot <png> [garage[:shop[:car[:item,kit-racing,...]]]] [drive[:car[:throttle[:steer[:garage]]]]] [slice[night][coast|neon][walk[:run|:jump|:fight|:drive|:inventory|:shop[:haven]|:fire[:sniper|:fusion][:aim]]][:x,y,z:tx,ty,tz]] [mall[:view]] [casino[:view 0-8]] [sports[:view 0-7]] [descent[:fight]] [race[:go]] [cloud] [char[:body[:face[:TAB[:key=value,...]]]]] [select:<continent>] [map:<id>] [sat] [zoom:<factor>] [3d] [street:<place id>] [frames:<n>]
 xvfb-run godot --path godot-world-fracture --rendering-driver opengl3 --resolution 540x1170 -- --shot out.png map:nexus
 ```
 

@@ -105,6 +105,7 @@ func set_loadout(list: Array) -> void:
 	for i in guns.size():
 		if guns[i].frame == was:
 			current = i
+			break
 	_show_current()
 
 func next_weapon() -> void:

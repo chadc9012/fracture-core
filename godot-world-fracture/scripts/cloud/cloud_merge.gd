@@ -5,7 +5,7 @@ extends RefCounted
 ## same rule when it merges (src/game/cloud-save.ts mergeGodot) — with two exceptions that never lose progress: the profile
 ## keeps the higher XP / level / Nex, and the inventory keeps the union of both bags (the newer copy's worn slots and transmog).
 
-const FILES := ["profile", "character", "inventory", "mission01"]
+const FILES := ["profile", "character", "inventory", "mission01", "quests"]
 
 static func newer(a: Dictionary, b: Dictionary) -> Dictionary:
 	if a.is_empty():

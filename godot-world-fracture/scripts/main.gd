@@ -13,6 +13,8 @@ const CharacterStore := preload("res://scripts/character/character_store.gd")
 const CloudSave := preload("res://scripts/cloud/cloud_save.gd")
 const CloudPanel := preload("res://scripts/cloud/cloud_panel.gd")
 const RaceView := preload("res://scripts/racing/race_view.gd")
+const Descent := preload("res://scripts/mission/descent.gd")
+var descent: Control
 var race_view: Control
 var cloud: Node
 var cloud_panel: Control
@@ -74,6 +76,13 @@ func _ready() -> void:
 	cloud_button.custom_minimum_size = Vector2(110, 52)
 	cloud_button.pressed.connect(_open_cloud)
 	add_child(cloud_button)
+	var fd := Data.button("▶ FRACTURE DESCENT · fd-02…04", true)
+	fd.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
+	fd.position = Vector2(-450, -198)
+	fd.custom_minimum_size = Vector2(430, 56)
+	fd.add_theme_font_size_override("font_size", 18)
+	fd.pressed.connect(_open_descent)
+	add_child(fd)
 	var race_button := Data.button("RACE", true)
 	race_button.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
 	race_button.position = Vector2(140, -70)
@@ -166,6 +175,21 @@ func _close_street() -> void:
 	if street:
 		street.queue_free()
 		street = null
+	planet_view.set_process(true)
+	_sync_later()
+
+func _open_descent() -> void:
+	if descent:
+		return
+	descent = Descent.new()
+	descent.closed.connect(_close_descent)
+	add_child(descent)
+	planet_view.set_process(false)
+
+func _close_descent() -> void:
+	if descent:
+		descent.queue_free()
+		descent = null
 	planet_view.set_process(true)
 	_sync_later()
 
@@ -416,6 +440,14 @@ func _shoot(path: String, opts: Array) -> void:
 		# char[:body[:face[:tab[:key=value,...]]]]  the operator creator, e.g. char:female:f-cyber:HAIR or char:male:m-rebel:FACE:hair=afro,beard=full
 		if String(o) == "cloud":
 			_open_cloud()
+		# descent[:fight]  the Fracture Descent in the Verdant Forest; :fight sprints and fires
+		if String(o).begins_with("descent"):
+			_open_descent()
+			if String(o).contains("fight"):
+				descent.controls.scripted = true
+				descent.controls.move = Vector2(0.0, 1.0)
+				descent.controls.sprint = true
+				descent.controls.fire = true
 		# race[:go]  Nexus Speedway from the grid; :go skips the lights and holds the throttle
 		if String(o).begins_with("race"):
 			_open_race()
@@ -460,6 +492,8 @@ func _shoot(path: String, opts: Array) -> void:
 		await get_tree().process_frame
 	if street and street.gunplay:
 		print("gunplay: shots ", street.gunplay.shots_fired, " hits ", street.gunplay.hits_landed, " kills ", street.gunplay.kills, " mag ", street.gunplay.gun().ammo_text())
+	if descent and descent.enemies:
+		print("descent: ", descent.progress, " objective '", descent._objective.text.replace("\n", " / "), "' at ", descent.operator.position.round(), " enemies ", descent.enemies.enemies.size(), " hull ", descent.enemies.hull)
 	if race_view and race_view.race:
 		var rv := race_view
 		print("race: t ", rv.race.time, " player ", rv.player.node.position, " speed ", rv.player.speed, " laps ", rv.race.player().laps, " place ", rv.race.position_of(rv.race.player()), " rivals ", rv.rivals.map(func(r: Dictionary) -> String: return "%s@%.2f" % [r.entry.name, r.entry.frac]))
