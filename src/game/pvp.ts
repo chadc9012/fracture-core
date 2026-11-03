@@ -59,10 +59,12 @@ export type PvpState = {
   seed: number;
 };
 
-const ZONES = (): Zone[] => [{ id: "A", dx: -22, dz: 0, owner: null, cap: 0 }, { id: "B", dx: 0, dz: 0, owner: null, cap: 0 }, { id: "C", dx: 22, dz: 0, owner: null, cap: 0 }];
-export function newPvp(mode: PvpModeId, seed = 1): PvpState {
+export type ZoneSpot = { id: Zone["id"]; dx: number; dz: number };
+/** the open-world arena's zones (Grid-Iron); a built arena (killbox-arenas.ts) passes its own */
+const OPEN_ZONES: readonly ZoneSpot[] = [{ id: "A", dx: -22, dz: 0 }, { id: "B", dx: 0, dz: 0 }, { id: "C", dx: 22, dz: 0 }];
+export function newPvp(mode: PvpModeId, seed = 1, zones: readonly ZoneSpot[] = OPEN_ZONES): PvpState {
   const m = PVP_MODES[mode];
-  return { mode, clock: 0, us: 0, them: 0, board: Array.from({ length: m.kind === "ffa" ? m.players : 0 }, () => 0), zones: m.kind === "zones" ? ZONES() : [], round: 1, roundClock: 0, usRounds: 0, themRounds: 0, attacking: true, plant: 0, zoneHold: 0, roundRivalsLeft: m.kind === "rounds" ? m.onField : 0, roundOver: 0, alive: m.players, phase: 0, radius: m.kind === "royale" ? ROYALE.startRadius : 0, nextWave: 0, result: null, reason: "", seed };
+  return { mode, clock: 0, us: 0, them: 0, board: Array.from({ length: m.kind === "ffa" ? m.players : 0 }, () => 0), zones: m.kind === "zones" ? zones.map((z) => ({ ...z, owner: null, cap: 0 })) : [], round: 1, roundClock: 0, usRounds: 0, themRounds: 0, attacking: true, plant: 0, zoneHold: 0, roundRivalsLeft: m.kind === "rounds" ? m.onField : 0, roundOver: 0, alive: m.players, phase: 0, radius: m.kind === "royale" ? ROYALE.startRadius : 0, nextWave: 0, result: null, reason: "", seed };
 }
 
 /** deterministic 0..1 from the state's seed (advances it) */

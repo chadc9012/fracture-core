@@ -46,7 +46,7 @@ func _ready() -> void:
 	svc.gui_input.connect(_stage_input)
 	add_child(svc)
 	var vp := SubViewport.new()
-	vp.msaa_3d = Viewport.MSAA_4X
+	Data.tune_viewport(vp)
 	vp.render_target_update_mode = SubViewport.UPDATE_ALWAYS
 	svc.add_child(vp)
 	_stage(vp)

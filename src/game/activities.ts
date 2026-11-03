@@ -14,6 +14,7 @@ import type { MaterialId } from "./inventory";
 import type { PlayerProgression } from "./progression";
 import { ARENA_POINT, CRUCIBLE_MODES, type CrucibleModeId } from "./crucible";
 import { PVP_MODES, pvpLine, type PvpModeId, type PvpState } from "./pvp";
+import { arenaById, arenaForRun, fractureLine } from "./killbox-arenas";
 
 export type ActivityKind = "side" | "bounty" | "race" | "parkour" | "event" | "contract" | "crucible";
 export type Objective =
@@ -193,6 +194,7 @@ export type Run = {
   /** racing.ts state while a race stage is active */ race?: unknown;
   /** race difficulty chosen at start (standard | advanced | legendary) */ difficulty?: string;
   /** Crucible: sim.rivalKills when the match started, and the rivals' score so far */ rivalBase?: number; theirScore?: number; /** Killbox mode HUD line (pvp.ts pvpLine) */ pvpLine?: string;
+  /** the Killbox arena map this match plays on (killbox-arenas.ts); absent = the open-world arena */ arena?: string;
 };
 export function startActivity(p: PlayerProgression, id: string, now = Date.now(), difficulty?: string): { progression: PlayerProgression; run: Run } | { error: string } {
   const def = activityById(id); if (!def) return { error: "Unknown activity" };
@@ -203,6 +205,9 @@ export function startActivity(p: PlayerProgression, id: string, now = Date.now()
   // the attempt is spent the moment the activity starts and is never refunded
   const next = { ...p, missionRuns: { ...p.missionRuns, [recKey(id)]: { ...(rec ?? {}), day: periodKey(def, now), count: today + 1, last: (rec as { last?: number } | undefined)?.last ?? 0 } } } as PlayerProgression;
   const run = newRun(def, now); if (difficulty) run.difficulty = difficulty;
+  const pvpStage = def.stages.find((o) => o.kind === "pvp");
+  // playlists rotate through their maps: the n-th match of the period plays the n-th map in the list
+  if (pvpStage?.kind === "pvp") { const a = arenaForRun(pvpStage.mode, today); if (a) run.arena = a.id; }
   return { progression: next, run };
 }
 export const newRun = (def: ActivityDef, now: number): Run => ({ id: def.id, startedAt: now, stage: 0, stageStartedAt: now, status: "active", progress: 0, need: def.stages[0] ? needOf(def.stages[0]) : 0, cp: 0, visited: [], carrying: false, hold: 0, killsBase: -1, elitesBase: -1, bossesBase: -1, hpMin: 100, deaths0: -1, diedDuring: false, wasHurt: false });
@@ -222,6 +227,7 @@ export function currentTarget(def: ActivityDef, run: Run): { x: number; z: numbe
   if (o.kind === "hold") return { ...pointWorld(def.area, o.at), label: o.label };
   if (o.kind === "deliver") return { ...pointWorld(def.area, run.carrying ? o.to : o.from), label: o.label };
   if (o.kind === "race") return hooks.raceTarget?.(def, run) ?? null;
+  if (o.kind === "pvp") { const a = arenaById(run.arena); if (a) return { x: a.site.x + a.objective[0], z: a.site.z + a.objective[1], label: o.label }; }
   if (o.kind === "crucible" || o.kind === "pvp") return { ...pointWorld(def.area, ARENA_POINT), label: o.label };
   return null;
 }
@@ -273,7 +279,8 @@ export function stepRun(def: ActivityDef, run: Run, t: Tick): Run {
     }
     case "pvp": {
       if (!t.pvp) break;
-      run.progress = t.pvp.us; run.theirScore = t.pvp.them; run.pvpLine = pvpLine(t.pvp);
+      run.progress = t.pvp.us; run.theirScore = t.pvp.them;
+      { const a = arenaById(run.arena), ev = a ? fractureLine(a, t.pvp.clock) : ""; run.pvpLine = pvpLine(t.pvp) + (ev ? ` · ${ev}` : ""); }
       if (t.pvp.result === "win") advance(def, run, t.now);
       else if (t.pvp.result === "loss") { run.status = "failed"; run.failReason = t.pvp.reason || "Match lost"; }
       break;

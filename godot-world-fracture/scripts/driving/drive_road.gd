@@ -2,6 +2,7 @@ extends Node3D
 ## The practice district's streets: a long boulevard (north-south, z) crossed by one avenue (east-west, x) at the origin,
 ## asphalt with kerbs, white edge lines, dashed lane lines and a zebra crossing on each side of the intersection.
 ## Sizes match the city dressing: the sidewalks sit at x = +-46 (7 m wide), so the carriageway is 85 m kerb to kerb.
+const MeshMerge = preload("res://scripts/mesh_merge.gd")
 const HALF_WIDTH := 42.5
 const HALF_LENGTH := 122.0
 const AVENUE_HALF := 8.0
@@ -57,3 +58,5 @@ func _ready() -> void:
 			_box(Vector3(1.4, 0.012, 4.0), Vector3(x, 0.047, half * (AVENUE_HALF + 3.0)), paint)
 			x += 2.8
 		_box(Vector3(HALF_WIDTH * 2.0 - 2.0, 0.012, 0.5), Vector3(0, 0.047, half * (AVENUE_HALF + 5.6)), paint)
+	# a few hundred dashes and stripes become one draw per paint colour
+	MeshMerge.merge_children(self, false)
