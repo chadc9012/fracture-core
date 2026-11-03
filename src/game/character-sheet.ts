@@ -1,7 +1,7 @@
 /** The Character screen's view model (reference: Destiny 2's character/collections/triumphs screens, interfaceingame.com; see
  * docs/ui-references.md). Pure: everything the screen shows is derived here from the save, so the numbers match combat and the
  * screen can be tested without React. Equipping goes through `equipItem`, which refuses anything that is not a legal swap. */
-import { FOUNDRIES, foundryOf, taxonomyOf } from "./foundries";
+import { FOUNDRIES, catalogBlade, foundryOf, taxonomyOf } from "./foundries";
 import { loadoutAttributes, pieceAttributes } from "./armor-attributes";
 import { ARMOR_SETS, SET_SLOTS, setById, type SetSlot } from "./armor-sets";
 import { MATERIALS, type GearItem, type GearSlot } from "./inventory";
@@ -11,9 +11,9 @@ import { QUESTS } from "./quests";
 import { VEHICLES } from "./vehicles";
 import { killLine, weaponProfile } from "./weapon-card";
 
-export const WEAPON_SLOTS = ["primary", "secondary", "heavy"] as const satisfies readonly GearSlot[];
+export const WEAPON_SLOTS = ["primary", "secondary", "heavy", "melee"] as const satisfies readonly GearSlot[];
 export const ARMOR_SLOTS: readonly SetSlot[] = ["helmet", "gauntlets", "chest", "legs", "classItem"];
-export const SLOT_NAME: Record<GearSlot, string> = { primary: "Kinetic", secondary: "Energy", heavy: "Power", helmet: "Helmet", gauntlets: "Gauntlets", chest: "Chest Armor", legs: "Leg Armor", classItem: "Class Item", vehicle: "Vehicle" };
+export const SLOT_NAME: Record<GearSlot, string> = { primary: "Kinetic", secondary: "Energy", heavy: "Power", melee: "Melee", helmet: "Helmet", gauntlets: "Gauntlets", chest: "Chest Armor", legs: "Leg Armor", classItem: "Class Item", vehicle: "Vehicle" };
 
 export type Tier = "EXOTIC" | "LEGENDARY" | "RARE" | "COMMON";
 export const TIER_COLOR: Record<Tier, string> = { EXOTIC: "#cdae33", LEGENDARY: "#522f65", RARE: "#5076a3", COMMON: "#366f42" };
@@ -66,6 +66,8 @@ export function itemTooltip(item: GearItem): Tooltip {
   const perks = [
     // the class and its job first, then what it takes to drop a trooper and an elite with it (weapon-card.ts)
     ...(profile ? [`${profile.className} · ${profile.roleLabel}`, killLine(profile)] : []),
+    // foundries.ts: a melee item swings the Fracture Blade with its class's numbers
+    ...(() => { const b = item.slot === "melee" ? catalogBlade(item) : null; return b ? [`${b.perk}: ${b.text}`, `Swing ×${b.damage.toFixed(2)} damage · ${(b.speed ?? 1).toFixed(2)}× speed`] : []; })(),
     ...(item.element && item.element !== "KINETIC" ? [`${item.element[0]}${item.element.slice(1).toLowerCase()} element`] : []),
     ...(item.perk === "NULL_DISRUPTION" ? ["Null Disruption"] : []),
     ...(item.perk === "ASHEN_REFRAIN" ? ["Ashen Refrain: each kill adds a verse (+6% damage, 5 max); the next kill at full verses bursts in ash"] : []),

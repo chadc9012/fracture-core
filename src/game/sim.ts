@@ -548,7 +548,7 @@ export const HEAT_PER_SHOT_VEHICLE = 11;
  * generated "AI drop" per kill, plus guaranteed EXOTIC raid drops on bosses, none of which ever reached the inventory. */
 function feedEntry(gear: Pick<GearItem, "name" | "power" | "rarity" | "slot">): LootItem {
   const rarity: LootItem["rarity"] = gear.rarity ?? (gear.power >= 300 ? "LEGENDARY" : gear.power >= 250 ? "EPIC" : gear.power >= 180 ? "RARE" : "COMMON");
-  return { name: gear.name, slot: gear.slot === "primary" || gear.slot === "secondary" || gear.slot === "heavy" ? "WEAPON" : gear.slot === "classItem" ? "CORE" : "ARMOR", rarity, power: gear.power, mods: [], life: 1 };
+  return { name: gear.name, slot: gear.slot === "primary" || gear.slot === "secondary" || gear.slot === "heavy" || gear.slot === "melee" ? "WEAPON" : gear.slot === "classItem" ? "CORE" : "ARMOR", rarity, power: gear.power, mods: [], life: 1 };
 }
 function feedLoot(sim: WorldSim, item: LootItem) {
   sim.loot.unshift(item);

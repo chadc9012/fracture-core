@@ -11,7 +11,7 @@ import { VYRAK_REMATCH, markCompleted } from "./activities";
 import { upgradeGate } from "./upgrade-gates";
 
 export type MaterialId = "scrapMetal" | "reinforcedAlloy" | "microCircuits" | "thermalShards" | "cryoCrystal" | "sporeFiber" | "bioCatalyst" | "vehicleParts" | "anomalyCarbon" | "dataShards" | "magmaCore" | "zeroCore" | "abyssCore" | "aegisCore" | "forgeCatalyst" | "tuningCore" | "anomalyCore" | "fuel" | "fuelKingCore" | "fractureCore" | "glacierFang" | "nullPlate" | "hollowHalo" | "roninEdge" | "tideCrown" | "crownHeart" | "runeDust" | "dataChip" | "energyToken" | "relicFragment" | "ruinStone" | "gearParts" | "armorStim" | "healStim" | "dragonite";
-export type GearSlot = "primary" | "secondary" | "heavy" | "helmet" | "chest" | "gauntlets" | "classItem" | "legs" | "vehicle";
+export type GearSlot = "primary" | "secondary" | "heavy" | "melee" | "helmet" | "chest" | "gauntlets" | "classItem" | "legs" | "vehicle";
 export type GearItem = { /** foundries.ts: explicit foundry (otherwise derived from the name) */ foundry?: import("./foundries").FoundryId; id: string; name: string; slot: GearSlot; power: number; level: number; element: "KINETIC" | "THERMAL" | "CRYO" | "ARC" | "BIO"; favorite?: boolean; source: string; /** armor-sets.ts: which set this piece belongs to */ setId?: string; /** scenario-exclusive rarity tier (absent = ordinary gear) */ rarity?: "LEGENDARY" | "EXOTIC"; /** unique weapon perk (null-disruption.ts) */ perk?: "NULL_DISRUPTION" | "MAW_COLLAPSE" | "ASHEN_REFRAIN"; /** weapon-evolution.ts: set once at a ruin */ evolution?: Evolution; /** godforge.ts: a Godforged relic's tier, socketed runes and mastery */ godforge?: Godforged; /** armor-shaders.ts: applied shader id (appearance only, never stats) */ shader?: string };
 
 export const MATERIALS: Record<MaterialId, { name: string; source: string }> = {
@@ -69,7 +69,7 @@ export function gearCost(item: GearItem): { material: MaterialId; amount: number
   if (item.element === "THERMAL") return { material: "thermalShards", amount: item.level * 2 };
   if (item.element === "CRYO") return { material: "cryoCrystal", amount: item.level * 2 };
   if (item.element === "BIO") return { material: "sporeFiber", amount: item.level * 2 };
-  return { material: item.slot === "primary" || item.slot === "secondary" || item.slot === "heavy" ? "scrapMetal" : "reinforcedAlloy", amount: item.level * 2 };
+  return { material: item.slot === "primary" || item.slot === "secondary" || item.slot === "heavy" || item.slot === "melee" ? "scrapMetal" : "reinforcedAlloy", amount: item.level * 2 };
 }
 export function upgradeGear(progress: PlayerProgression, id: string): PlayerProgression {
   const item = progress.inventory.find((entry) => entry.id === id);

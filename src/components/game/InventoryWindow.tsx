@@ -12,7 +12,7 @@ import { CharacterPreview } from "./CharacterScreen";
 /** Inventory manager in the shared operator-menu look (owner's Destiny / WF inventory references): the operator in the
  * middle wearing the equipped gear with weapons left and armor right, the armory grid by category, and the selected item
  * compared against what is worn with Equip / Favorite / Dismantle. Every number comes from the save. */
-const WEAPONS: GearSlot[] = ["primary", "secondary", "heavy"];
+const WEAPONS: GearSlot[] = ["primary", "secondary", "heavy", "melee"];
 const ARMOR: GearSlot[] = ["helmet", "gauntlets", "chest", "legs", "classItem"];
 type Tab = "ARMORY" | "VAULT" | "MATERIALS" | "CRAFTING";
 type Filter = "ALL" | "WEAPONS" | "ARMOR" | "VEHICLES";

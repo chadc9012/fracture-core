@@ -6,7 +6,7 @@ import { inVault } from "./stash";
 import type { PlayerProgression } from "./progression";
 import { WEAPONS, WEAPON_ORDER, type WeaponId } from "./weapons";
 
-export const WEAPON_SLOTS: readonly GearSlot[] = ["primary", "secondary", "heavy"];
+export const WEAPON_SLOTS: readonly GearSlot[] = ["primary", "secondary", "heavy", "melee"];
 const isWeapon = (g: GearItem) => (WEAPON_SLOTS as readonly string[]).includes(g.slot);
 const bySlotThenPower = (a: GearItem, b: GearItem) => WEAPON_SLOTS.indexOf(a.slot) - WEAPON_SLOTS.indexOf(b.slot) || b.power - a.power || a.name.localeCompare(b.name);
 

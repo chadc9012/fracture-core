@@ -77,7 +77,7 @@ const DAMAGE_TO_GEAR_ELEMENT: Record<WeaponManifestItem["element"], GearItem["el
 export function listingToGearItem(listing: VendorListing, vendorName: string): GearItem {
   const instanceId = `${listing.item.id}-${Date.now().toString(36)}${Math.floor(Math.random() * 36).toString(36)}`;
   if (listing.kind === "weapon") {
-    const slot: GearSlot = listing.item.archetype === "HEAVY" ? "heavy" : listing.item.archetype === "SIDEARM" ? "secondary" : "primary";
+    const slot: GearSlot = listing.item.archetype === "HEAVY" ? "heavy" : listing.item.archetype === "SIDEARM" ? "secondary" : listing.item.archetype === "BLADE" ? "melee" : "primary";
     return { id: instanceId, name: listing.item.name, slot, power: listing.power, level: 1, element: DAMAGE_TO_GEAR_ELEMENT[listing.item.element], source: `Purchased · ${vendorName}` };
   }
   return { id: instanceId, name: listing.item.name, slot: ARMOR_SLOT_TO_GEAR[listing.item.slot], power: listing.power, level: 1, element: "KINETIC", source: `Purchased · ${vendorName}` };

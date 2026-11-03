@@ -226,7 +226,7 @@ export function buyOffer(p: PlayerProgression, shop: RegionalShop, offer: ShopOf
 export function serviceFee(shop: RegionalShop, item: GearItem) { return Math.max(2, Math.round(item.level * 4 * shop.priceMult)); }
 const ARMOR_SLOTS = new Set<GearItem["slot"]>(["helmet", "chest", "gauntlets", "legs", "classItem"]);
 export function serviceTargets(shop: RegionalShop, p: PlayerProgression): GearItem[] {
-  if (shop.kind === "gunsmith") return p.inventory.filter((i) => i.slot === "primary" || i.slot === "secondary" || i.slot === "heavy");
+  if (shop.kind === "gunsmith") return p.inventory.filter((i) => i.slot === "primary" || i.slot === "secondary" || i.slot === "heavy" || i.slot === "melee");
   if (shop.kind === "mods") return p.inventory.filter((i) => i.slot !== "vehicle");
   if (shop.kind === "armorsmith") return p.inventory.filter((i) => ARMOR_SLOTS.has(i.slot));
   if (shop.kind === "vehicles") return p.inventory.filter((i) => i.slot === "vehicle");

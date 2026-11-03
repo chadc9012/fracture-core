@@ -6,7 +6,7 @@ import type { PlayerProgression } from "./progression";
 
 export type Grade = "S" | "A" | "B" | "C" | "D";
 export const GRADE_FLOOR: readonly [Grade, number][] = [["S", 160], ["A", 125], ["B", 100], ["C", 80], ["D", 0]];
-const isWeapon = (i: Pick<GearItem, "slot">) => ["primary", "secondary", "heavy"].includes(i.slot);
+const isWeapon = (i: Pick<GearItem, "slot">) => ["primary", "secondary", "heavy", "melee"].includes(i.slot);
 /** score = power, +8 for a set piece, +10 for a special perk, +5 for scenario-exclusive rarity */
 export function gearScore(item: GearItem): number { return item.power + (item.setId ? 8 : 0) + (item.perk ? 10 : 0) + (item.rarity ? 5 : 0); }
 export function gradeOf(score: number): Grade { return GRADE_FLOOR.find(([, floor]) => score >= floor)![0]; }

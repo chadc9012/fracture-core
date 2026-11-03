@@ -280,7 +280,7 @@ import { VehicleDamageFx } from "./VehicleDamageFx";
 import { VehicleBodyDamage } from "./VehicleBodyDamage";
 import { hashSeed } from "@/game/vehicle-damage-render";
 import { driveTelemetry } from "@/game/vehicle-audio";
-import { FOUNDRY_RULES, activeBlade, foundryOf, inShockwave, swingStats } from "@/game/foundries";
+import { FOUNDRY_RULES, activeBlade, foundryOf, inShockwave, meleeClassOf, swingStats } from "@/game/foundries";
 import { LIVING_NPCS, PLEDGE_KEY, livingMarkers, npcNear, npcWorld } from "@/game/living-npcs";
 import { SECRETS, secretPoint, type SecretContext } from "@/game/secrets";
 import { LivingCity } from "./LivingCity";
@@ -1920,8 +1920,11 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
     padPrev.current = padNow;
     keyPrev.current = new Set(held);
     const wpn: ArmedWeapon = s.inVehicle ? VEHICLE_SIDEARM : arsenal[s.weapon];
-    s.heldFrame = arsenal[s.weapon].frame;
-    const equippedWeapon = gear?.inventory.find((item) => item.id === gear.equippedGear[s.inVehicle ? "vehicle" : s.weapon === "HEAVY" || WEAPONS[s.weapon].kind === "launcher" ? "heavy" : s.weapon === "PULSE" ? "secondary" : "primary"]);
+    // a worn melee item (foundries.ts) names its class after the sword so ViewWeapon can size the blade
+    const wornMelee = s.weapon === "SWORD" ? gear?.inventory.find((item) => item.id === gear.equippedGear.melee) : undefined;
+    const wornClass = wornMelee ? meleeClassOf(wornMelee) : null;
+    s.heldFrame = wornClass ? `SWORD:${wornClass}` : arsenal[s.weapon].frame;
+    const equippedWeapon = gear?.inventory.find((item) => item.id === gear.equippedGear[s.inVehicle ? "vehicle" : s.weapon === "HEAVY" || WEAPONS[s.weapon].kind === "launcher" ? "heavy" : s.weapon === "PULSE" ? "secondary" : s.weapon === "SWORD" ? "melee" : "primary"]);
     const gearPower = equippedWeapon ? weaponDamageMultiplier(equippedWeapon.power) : 1;
     // foundries.ts: the equipped weapon's foundry is a real rule (Häkke/Black Armory in sim.ts, Omolon/SUROS/Tex here)
     const foundry = s.inVehicle ? null : foundryOf(equippedWeapon);
@@ -2023,7 +2026,9 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
     };
     if (wpn.kind === "sword") {
       if (trigger && s.fireCool <= 0) {
-        s.fireCool = wpn.fireRate;
+        // foundries.ts: the worn melee item (catalogue swords, daggers, hammers…) or a monoblade replaces the plain swing
+        const blade = activeBlade({ earnedRewards: gear?.earnedRewards ?? [], blade: gear?.blade, melee: gear?.inventory.find((item) => item.id === gear.equippedGear.melee) ?? null });
+        s.fireCool = wpn.fireRate / (blade?.speed ?? 1);
         s.combo = (s.combo % 3) + 1;
         s.comboTime = 0.9;
         s.swing = 0.3;
@@ -2031,8 +2036,6 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
         s.meleeTime = Math.max(s.meleeTime, 0.6);
         bossActionLog.current = logAction(bossActionLog.current, "MELEE", performance.now() / 1000);
         s.punch += wpn.punch * (s.combo === 3 ? 1.6 : 1);
-        // foundries.ts monoblades: damage, reach, a finisher shockwave and a deflect window replace the plain swing
-        const blade = activeBlade({ earnedRewards: gear?.earnedRewards ?? [], blade: gear?.blade });
         const swing = swingStats(blade, s.combo, { damage: wpn.damage, reach: s.combo === 3 ? 8 : 6 }, false);
         const reach = swing.reach;
         if (swing.deflect > 0) sim.deflectUntil = performance.now() / 1000 + swing.deflect;

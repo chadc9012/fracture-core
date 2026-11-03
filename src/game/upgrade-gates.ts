@@ -6,7 +6,7 @@
 import type { GearItem, MaterialId } from "./inventory";
 
 export type UpgradeGate = { material: Extract<MaterialId, "forgeCatalyst" | "tuningCore">; amount: number; fromLevel: number; earnedBy: string };
-const WEAPON_SLOTS = ["primary", "secondary", "heavy"];
+const WEAPON_SLOTS = ["primary", "secondary", "heavy", "melee"];
 export const WEAPON_GATE: UpgradeGate = { material: "forgeCatalyst", amount: 1, fromLevel: 3, earnedBy: "First clear of a main mission or a dungeon" };
 export const ARMOR_GATE: UpgradeGate = { material: "tuningCore", amount: 1, fromLevel: 4, earnedBy: "Side contracts, or buy at a mod shop" };
 

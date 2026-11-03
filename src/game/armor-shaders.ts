@@ -7,7 +7,7 @@ import type { GearItem, GearSlot, MaterialId } from "./inventory";
 import type { PlayerProgression } from "./progression";
 
 export type ArmorShader = { id: string; name: string; rarity: "common" | "rare" | "legendary" | "exotic"; base: string; accent: string; emissive: string; metalness: number; roughness: number; tintsEmissive: boolean; slots: GearSlot[]; price?: { material: MaterialId; amount: number }; source: string };
-const ALL: GearSlot[] = ["primary", "secondary", "heavy", "helmet", "chest", "gauntlets", "legs", "classItem"];
+const ALL: GearSlot[] = ["primary", "secondary", "heavy", "melee", "helmet", "chest", "gauntlets", "legs", "classItem"];
 
 export const ARMOR_SHADERS: readonly ArmorShader[] = [
   { id: "neon-rain", name: "Neon Rain", rarity: "rare", base: "#18232e", accent: "#00dfff", emissive: "#00aaff", metalness: 0.7, roughness: 0.35, tintsEmissive: true, slots: ALL, price: { material: "microCircuits", amount: 40 }, source: "Neon City black market" },

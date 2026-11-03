@@ -18,7 +18,7 @@ import { safeStorageRead, safeStorageWrite } from "./safe-state";
 import { grantXP } from "./xp";
 import { repeatRewardFactor, sideRewardFactor } from "./retention";
 import { FIRST_CLEAR_SPECIAL, isSideContract } from "./upgrade-gates";
-import { backfillCampaignExotics, grantCompletionWeapon } from "./weapon-loot";
+import { backfillCampaignExotics, grantCompletionWeapon, migrateMeleeSlots } from "./weapon-loot";
 import { grantSetPiece } from "./armor-sets";
 import { collectionReward } from "./armor-collections";
 import type { WeaponId } from "./weapons";
@@ -268,7 +268,7 @@ export function normalizeProgression(raw: unknown): PlayerProgression {
       ...normalizePockets(parsed),
     };
     // older saves recorded activity bounties untagged: they belong to the operator being played (activity-payouts.ts)
-    return { ...base, nexLedger: tagLegacyPayouts(base.nexLedger, base.pocketClass) };
+    return migrateMeleeSlots({ ...base, nexLedger: tagLegacyPayouts(base.nexLedger, base.pocketClass) });
   } catch {
     return DEFAULT_PROGRESSION;
   }

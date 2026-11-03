@@ -12,8 +12,15 @@
  *
  * Monoblades replace how the melee weapon (SWORD) swings. Owned blades live in earnedRewards (`blade:<id>`), the equipped
  * one in `progression.blade`. They are earned in the Wastelands: Vectal from the first vault defense, Sun-Cutter from the
- * Rust Run gold medal, the Aegis broadsword from the Mash-Pit gold medal. */
+ * Rust Run gold medal, the Aegis broadsword from the Mash-Pit gold medal.
+ *
+ * Catalogue melee (owner, Nov 2 2026, "option 1"): the swords, greatswords, katanas, daggers, axes, warhammers and polearms of
+ * weapon-catalog.ts (and the manifest's BLADE weapons) equip in the `melee` gear slot and become the Fracture Blade's look
+ * and numbers — `catalogBlade` turns the equipped item into a Blade from its class (`MELEE_CLASS`) and rarity, so a dagger
+ * swings fast and short, a greatsword slow, long and hard, a warhammer cracks armour and ends its combo with a shockwave.
+ * The equipped melee item wins over a monoblade; with nothing in the slot the monoblade (or the plain blade) swings. */
 import type { GearItem } from "./inventory";
+import { WEAPON_CATALOG, type CatalogClass } from "./weapon-catalog.ts";
 
 export type FoundryId = "OMOLON" | "HAKKE" | "SUROS" | "TEX_MECHANICA" | "BLACK_ARMORY";
 export const FOUNDRIES: Record<FoundryId, { id: FoundryId; name: string; philosophy: string; perk: string; text: string; color: string }> = {
@@ -25,7 +32,7 @@ export const FOUNDRIES: Record<FoundryId, { id: FoundryId; name: string; philoso
 };
 export const FOUNDRY_RULES = { omolonHeat: 0.75, hakkeArmored: 1.2, surosRecoil: 0.7, texHip: 1.25, naniteDamage: 1.5, naniteRange: 10 } as const;
 
-const WEAPON_SLOTS = new Set<GearItem["slot"]>(["primary", "secondary", "heavy"]);
+const WEAPON_SLOTS = new Set<GearItem["slot"]>(["primary", "secondary", "heavy", "melee"]);
 const KEYWORDS: readonly [RegExp, FoundryId][] = [
   [/void|singularity|horizon|anomal|genesis|eternity|antiphon|hourglass/i, "BLACK_ARMORY"],
   [/pulse|arc|cryo|plasma|phase|caster|bio-lum/i, "OMOLON"],
@@ -58,15 +65,19 @@ export function taxonomyOf(item: Pick<GearItem, "name" | "slot" | "element">): T
 /* ------------------------------------------------------------ monoblades ------------------------------------------------------------ */
 export type BladeId = "vectal" | "aegis-broadsword" | "sun-cutter";
 export type Blade = {
-  id: BladeId; name: string; foundry: FoundryId; rarity: "LEGENDARY" | "EXOTIC"; perk: string; text: string; source: string;
+  id: string; name: string; foundry: FoundryId; rarity: "LEGENDARY" | "EXOTIC" | "RARE" | "COMMON"; perk: string; text: string; source: string;
   /** multiplies the swing's damage (and vs elites/bosses on top) */
   damage: number; armored: number; reach: number;
   /** combo finisher: a ground line in front of you */
   shockwave: { length: number; width: number; damage: number } | null;
   /** seconds after each swing during which incoming damage is halved */
   deflect: number;
+  /** swings per second relative to the plain blade (daggers fast, greatswords slow); absent = 1 */
+  speed?: number;
+  /** the melee class the look follows (catalogue items); monoblades are swords */
+  cls?: MeleeClass;
 };
-export const BLADES: Record<BladeId, Blade> = {
+export const BLADES: Record<BladeId, Blade & { id: BladeId }> = {
   vectal: { id: "vectal", name: "Vectal Monoblade Mk-IV", foundry: "HAKKE", rarity: "LEGENDARY", perk: "Monomolecular Edge", text: "+40% damage to elites and bosses", source: "Hold the Sub-Terra vault gates once", damage: 1.1, armored: 1.4, reach: 0, shockwave: null, deflect: 0 },
   "aegis-broadsword": { id: "aegis-broadsword", name: "Aegis Resonance Broadsword", foundry: "BLACK_ARMORY", rarity: "EXOTIC", perk: "Fracture Shockwave", text: "The third swing sends a violet shockwave 12 m along the ground", source: "Gold medal in the Mash-Pit", damage: 1.25, armored: 1, reach: 1, shockwave: { length: 12, width: 2.5, damage: 4 }, deflect: 0 },
   "sun-cutter": { id: "sun-cutter", name: "Sun-Cutter Curved Sabra", foundry: "SUROS", rarity: "EXOTIC", perk: "Thermal Reflection", text: "+2 m reach; for 0.6 s after each swing, incoming damage is halved", source: "Gold medal on the Rust Run", damage: 1, armored: 1, reach: 2, shockwave: null, deflect: 0.6 },
@@ -74,8 +85,48 @@ export const BLADES: Record<BladeId, Blade> = {
 export const bladeKey = (id: BladeId) => `blade:${id}`;
 export const ownsBlade = (p: { earnedRewards: readonly string[] }, id: BladeId) => p.earnedRewards.includes(bladeKey(id));
 export const ownedBlades = (p: { earnedRewards: readonly string[] }) => (Object.keys(BLADES) as BladeId[]).filter((id) => ownsBlade(p, id));
-/** the equipped blade, only if still owned */
-export const activeBlade = (p: { earnedRewards: readonly string[]; blade?: string | null | undefined }): Blade | null => (p.blade && p.blade in BLADES && ownsBlade(p, p.blade as BladeId) ? BLADES[p.blade as BladeId] : null);
+/** the equipped blade: the `melee` slot item if one is worn, else the monoblade (only if still owned) */
+export const activeBlade = (p: { earnedRewards: readonly string[]; blade?: string | null | undefined; melee?: Pick<GearItem, "id" | "name" | "slot" | "power" | "rarity" | "element"> | null | undefined }): Blade | null => {
+  const worn = p.melee ? catalogBlade(p.melee) : null;
+  if (worn) return worn;
+  return p.blade && p.blade in BLADES && ownsBlade(p, p.blade as BladeId) ? BLADES[p.blade as BladeId] : null;
+};
+
+/* ------------------------------------------------------------ catalogue melee ------------------------------------------------------------ */
+export type MeleeClass = Extract<CatalogClass, "melee" | "sword" | "greatsword" | "katana" | "dagger" | "axe" | "warhammer" | "polearm">;
+export const MELEE_CLASSES: readonly MeleeClass[] = ["melee", "sword", "greatsword", "katana", "dagger", "axe", "warhammer", "polearm"];
+/** how each melee class swings, relative to the plain Fracture Blade (reach in metres, shockwave is the combo finisher) */
+export const MELEE_CLASS: Record<MeleeClass, { damage: number; armored: number; reach: number; speed: number; deflect: number; shockwave: Blade["shockwave"]; text: string }> = {
+  melee: { damage: 1, armored: 1, reach: 0, speed: 1, deflect: 0, shockwave: null, text: "A balanced blade" },
+  sword: { damage: 1.05, armored: 1, reach: 0.5, speed: 1, deflect: 0.2, shockwave: null, text: "+0.5 m reach; incoming damage halved for 0.2 s after a swing" },
+  greatsword: { damage: 1.6, armored: 1.15, reach: 1.5, speed: 0.6, deflect: 0, shockwave: { length: 6, width: 2, damage: 14 }, text: "Slow, +60% damage, +1.5 m reach; the finisher sends a 6 m shockwave" },
+  katana: { damage: 1.1, armored: 1, reach: 0.5, speed: 1.25, deflect: 0.5, shockwave: null, text: "Fast; incoming damage halved for 0.5 s after a swing" },
+  dagger: { damage: 0.75, armored: 0.9, reach: -1.5, speed: 1.8, deflect: 0, shockwave: null, text: "Very fast, −1.5 m reach, −25% damage a swing" },
+  axe: { damage: 1.3, armored: 1.25, reach: 0, speed: 0.85, deflect: 0, shockwave: null, text: "+30% damage, +25% more against elites and bosses" },
+  warhammer: { damage: 1.4, armored: 1.5, reach: 0.5, speed: 0.65, deflect: 0, shockwave: { length: 8, width: 3, damage: 22 }, text: "Slow, cracks armour (+50% vs elites and bosses); the finisher sends an 8 m shockwave" },
+  polearm: { damage: 1.1, armored: 1.05, reach: 3, speed: 0.8, deflect: 0.3, shockwave: null, text: "+3 m reach; incoming damage halved for 0.3 s after a swing" },
+};
+/** the manifest's BLADE weapons (equipment.ts) have no catalogue class: name keywords decide */
+const CLASS_BY_NAME: readonly [RegExp, MeleeClass][] = [[/maul|hammer/i, "warhammer"], [/katana/i, "katana"], [/dagger|dirk|shiv|stiletto|fang/i, "dagger"], [/axe|hatchet|cleaver/i, "axe"], [/spear|halberd|glaive|pike|lance/i, "polearm"], [/claymore|greatsword/i, "greatsword"], [/sword|sabre|saber|blade|edge/i, "sword"]];
+export function meleeClassOf(item: Pick<GearItem, "id" | "name" | "slot">): MeleeClass | null {
+  if (item.slot !== "melee") return null;
+  // gear ids carry a source prefix and a unique suffix, so the catalogue is matched by name (as weapon-classes.ts does)
+  const cls = WEAPON_CATALOG.find((w) => w.name === item.name)?.cls;
+  if (cls && (MELEE_CLASSES as readonly string[]).includes(cls)) return cls as MeleeClass;
+  for (const [re, c] of CLASS_BY_NAME) if (re.test(item.name)) return c;
+  return "melee";
+}
+/** power scales the damage a little (a 300-power blade hits ~15% harder than a 100-power one); rarity adds a touch on top */
+const RARITY_BONUS: Record<NonNullable<GearItem["rarity"]>, number> = { LEGENDARY: 0.08, EXOTIC: 0.15 };
+/** the Blade a worn melee item swings as */
+export function catalogBlade(item: Pick<GearItem, "id" | "name" | "slot" | "power" | "rarity" | "element">): Blade | null {
+  const cls = meleeClassOf(item);
+  if (!cls) return null;
+  const c = MELEE_CLASS[cls];
+  const scale = 1 + Math.max(0, Math.min(0.3, (item.power - 100) / 1300)) + (item.rarity ? RARITY_BONUS[item.rarity] : 0);
+  return { id: item.id, name: item.name, foundry: foundryOf(item) ?? "HAKKE", rarity: item.rarity ?? "COMMON", perk: cls === "melee" ? "Fracture Edge" : `${cls[0]!.toUpperCase()}${cls.slice(1)} discipline`, text: c.text, source: "Worn in the melee slot",
+    damage: c.damage * scale, armored: c.armored, reach: c.reach, speed: c.speed, deflect: c.deflect, shockwave: c.shockwave, cls };
+}
 
 /** grant a blade once (and equip it if nothing is equipped) */
 export function grantBlade<P extends { earnedRewards: string[]; blade: string | null }>(p: P, id: BladeId): { progression: P; granted: boolean } {

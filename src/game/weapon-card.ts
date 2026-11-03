@@ -33,6 +33,7 @@ export function frameOfItem(item: Pick<GearItem, "slot" | "name">): FrameId | nu
   if (item.slot === "primary") return frameFor("AUTO", item.name);
   if (item.slot === "secondary") return frameFor("PULSE", item.name);
   if (item.slot === "heavy") return frameFor("HEAVY", item.name);
+  if (item.slot === "melee") return "SWORD"; // foundries.ts catalogBlade scales the swing; the card shows the blade's class
   return null;
 }
 

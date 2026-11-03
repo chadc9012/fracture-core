@@ -18,7 +18,7 @@ import type { PlayerCharacter } from "@/game/deployment/deployCharacter";
 import { xpRequiredForLevel } from "@/game/xp";
 import { ATTRIBUTES, attrLevel, attrXp } from "@/game/attributes";
 import { ENDINGS, campaignProgress } from "@/game/campaign";
-import { BLADES, FOUNDRIES, equipBlade, ownedBlades, type BladeId } from "@/game/foundries";
+import { BLADES, FOUNDRIES, activeBlade, equipBlade, ownedBlades, type BladeId } from "@/game/foundries";
 import { ACCESSORIES, BEARDS, HAIR_COLORS, HEADGEAR, MARKINGS, MAX_MARKINGS, accessoryOr, beardOr, hairColorOr, hairOr, hairStylesFor, headgearOr, markingDef, markingsOr, toggleMarking, type MarkingKind } from "@/game/operator-styling";
 import { RESTYLE_PRICE, restyleCharacter, restyleQuote, type RestylePatch } from "@/game/restyle";
 import { MORPHS, morphsOr } from "@/game/face-morphs";
@@ -382,12 +382,16 @@ function Refit() {
 /** foundries.ts monoblades: the blade your melee swing uses (earned in the Wastelands). */
 function BladePicker({ progression, onProgression }: { progression: PlayerProgression; onProgression: (p: PlayerProgression) => void }) {
   const owned = ownedBlades(progression);
-  const current = progression.blade && owned.includes(progression.blade as BladeId) ? BLADES[progression.blade as BladeId] : null;
+  const monoblade = progression.blade && owned.includes(progression.blade as BladeId) ? BLADES[progression.blade as BladeId] : null;
+  // a melee item worn in the inventory's Melee slot (catalogue swords, daggers, hammers…) takes over from the monoblade
+  const wornMelee = progression.inventory.find((item) => item.id === progression.equippedGear.melee) ?? null;
+  const current = activeBlade({ earnedRewards: progression.earnedRewards, blade: progression.blade, melee: wornMelee });
   const all = Object.values(BLADES);
   return <div className="w-44 border border-white/15 bg-black/30 p-2" aria-label="Monoblade">
-    <p className="font-mono text-[9px] uppercase tracking-[0.2em] text-white/60">Melee · monoblade</p>
+    <p className="font-mono text-[9px] uppercase tracking-[0.2em] text-white/60">Melee · {wornMelee ? "worn blade" : "monoblade"}</p>
     <p className="mt-1 text-xs font-semibold" style={{ color: current ? FOUNDRIES[current.foundry].color : undefined }}>{current ? current.name : "Fracture Blade (standard)"}</p>
     {current && <p className="text-[10px] text-white/60">{current.perk}: {current.text}</p>}
+    {wornMelee && monoblade && <p className="mt-1 text-[10px] text-white/45">Unequip it in Inventory → Melee to swing {monoblade.name}.</p>}
     <div className="mt-1 flex flex-col gap-1">
       {all.map((b) => { const has = owned.includes(b.id); return <button key={b.id} type="button" disabled={!has} title={has ? b.text : `Earn it: ${b.source}`} onClick={() => onProgression(equipBlade(progression, progression.blade === b.id ? null : b.id))}
         className={`border px-1.5 py-1 text-left text-[10px] ${progression.blade === b.id ? "border-white/80" : "border-white/15"} ${has ? "hover:border-white/60" : "opacity-45"}`}>{has ? b.name : `Locked · ${b.source}`}</button>; })}

@@ -116,6 +116,8 @@ function Rifle({ m, rig, url }: { m: Mats; rig: Rig; url?: string }) {
  * The procedural model stands in while the file loads or if it can't be fetched. */
 /** blade (-z) tipped up and forward ~35 deg from the fist. The old -1.1 rad pointed it down and out of view, leaving only the pommel on screen. */
 const SWORD_HOLD: [number, number, number] = [0.6, 0, 0];
+/** how big the held blade draws per melee class (foundries.ts MeleeClass): daggers short, greatswords and polearms long */
+const MELEE_SCALE: Record<string, number> = { dagger: 0.6, sword: 1, katana: 1.1, axe: 0.9, warhammer: 0.95, greatsword: 1.3, polearm: 1.55, melee: 1 };
 type AuthoredSpec = { url: string; prefix: string; mag?: [number, number, number]; edge?: boolean; wrap?: [number, number, number] };
 const AUTHORED: Record<Exclude<HandlingClass, "rifle">, AuthoredSpec> = {
   pistol: { url: "/models/weapons/pistol.glb", prefix: "Pistol", mag: [0, -0.01, 0.005] },
@@ -372,6 +374,8 @@ export function ViewWeapon({ pose, colors, frame }: { pose: { current: ViewPose 
     root.current.position.set(p.pos[0], p.pos[1], p.pos[2]);
     root.current.rotation.set(p.rot[0], p.rot[1], p.rot[2]);
     for (const k of Object.keys(groups.current) as HandlingClass[]) { const g = groups.current[k]; if (g) g.visible = k === cls; }
+    // foundries.ts catalogue melee: Scene reports "SWORD:<class>" while a melee item is worn; the blade model scales to the class
+    if (cls === "sword" && groups.current.sword) { const k = MELEE_SCALE[(frame?.current ?? "").split(":")[1] ?? ""] ?? 1; groups.current.sword.scale.setScalar(k); }
     const variant = cls === "rifle" ? rifleVariantOf(frame?.current) : null;
     if (variant && !variants.includes(variant)) setVariants((v) => (v.includes(variant) ? v : [...v, variant]));
     // the class model replaces the rifle once it has loaded (its group has children); until then the rifle stands in

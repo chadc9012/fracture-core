@@ -1,4 +1,4 @@
-import { CarFront, Crosshair, Heart, Shield, Shirt, Hand, Footprints, HardHat, Sparkles, Bomb, Target } from "lucide-react";
+import { CarFront, Crosshair, Heart, Shield, Shirt, Hand, Footprints, HardHat, Sparkles, Bomb, Target, Sword } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { SLOT_NAME, itemTooltip, tierOf, type Tier } from "@/game/character-sheet";
 import { evaluateGear } from "@/game/gear-evaluation";
@@ -10,7 +10,7 @@ import type { PlayerProgression } from "@/game/progression";
  * comes from character-sheet.ts / gear-evaluation.ts, the same paths combat uses. */
 
 export const SLOT_ICON: Record<GearSlot, LucideIcon> = {
-  primary: Crosshair, secondary: Target, heavy: Bomb, helmet: HardHat, chest: Shirt, gauntlets: Hand, legs: Footprints, classItem: Sparkles, vehicle: CarFront,
+  primary: Crosshair, secondary: Target, heavy: Bomb, melee: Sword, helmet: HardHat, chest: Shirt, gauntlets: Hand, legs: Footprints, classItem: Sparkles, vehicle: CarFront,
 };
 /** tile fills by rarity (Destiny: exotic gold, legendary purple, rare blue, common green) */
 export const TIER_FILL: Record<Tier, { from: string; to: string; edge: string; text: string }> = {
@@ -59,7 +59,7 @@ export function ItemCard({ item, worn, equippedLabel, className = "", children }
       <div className="flex items-baseline gap-2 px-4 pt-3">
         <span className="text-5xl font-bold leading-none tracking-tight">{t.power}</span>
         {w && <span className={`text-lg font-bold ${t.power > w.power ? "text-[#7be08a]" : t.power < w.power ? "text-[#ff6b6b]" : "text-white/50"}`}>{t.power > w.power ? "▲" : t.power < w.power ? "▼" : "="} {SIGN(t.power - w.power)}</span>}
-        <span className="ml-1 text-sm font-semibold uppercase tracking-[0.18em] text-white/70">{(["primary", "secondary", "heavy"] as GearSlot[]).includes(item.slot) ? "Attack" : "Defense"}</span>
+        <span className="ml-1 text-sm font-semibold uppercase tracking-[0.18em] text-white/70">{(["primary", "secondary", "heavy", "melee"] as GearSlot[]).includes(item.slot) ? "Attack" : "Defense"}</span>
         <span className="ml-auto text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: ELEMENT_COLOR[item.element] }}>{item.element}</span>
       </div>
       <p className="px-4 pt-1 text-sm italic text-white/60">Source: {t.source}{item.level > 1 ? ` · level ${item.level}` : ""}</p>

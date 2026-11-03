@@ -4,8 +4,8 @@
  * Power sits on the shop ladder (regional-shops.ts: T1 90 · T2 140 · T3 190 · T4 260 · T5 340): a regular drop matches a T2 buy, an elite a
  * T3, a boss or dungeon a T4, and story missions climb from 140 to 330 through the campaign, so loot is always worth picking up over
  * the 135-power starting rifle. (The old 80 / 95 / 110 bands were all below the starting gear.) Pure; Math.random only at the call site. */
-import { WEAPON_MANIFEST, type WeaponManifestItem } from "./equipment";
-import { catalogFrom, WEAPON_CATALOG } from "./weapon-catalog";
+import { WEAPON_MANIFEST, type WeaponManifestItem } from "./equipment.ts";
+import { catalogFrom, WEAPON_CATALOG } from "./weapon-catalog.ts";
 import type { GearItem, GearSlot, MaterialId } from "./inventory";
 
 export type LootSource = "enemy-regular" | "enemy-elite" | "enemy-boss" | "dungeon" | "mission";
@@ -18,7 +18,7 @@ export function missionWeaponPower(missionId: string): number {
   return i < 0 ? 190 : 140 + 17 * i;
 }
 const ELEMENT: Record<WeaponManifestItem["element"], GearItem["element"]> = { KINETIC: "KINETIC", PLASMA: "ARC", CRYO: "CRYO", ARC: "ARC", THERMAL: "THERMAL", VOID: "BIO" };
-const SLOT_OF = (w: WeaponManifestItem): GearSlot => (w.archetype === "HEAVY" ? "heavy" : w.archetype === "SIDEARM" ? "secondary" : "primary");
+const SLOT_OF = (w: WeaponManifestItem): GearSlot => (w.archetype === "HEAVY" ? "heavy" : w.archetype === "SIDEARM" ? "secondary" : w.archetype === "BLADE" ? "melee" : "primary");
 /** only ordinary tiers can drop: T4+/S weapons stay behind forges, raids and signature rewards */
 const DROPPABLE: WeaponManifestItem[] = WEAPON_MANIFEST.filter((w) => w.tier === "T1" || w.tier === "T2" || w.tier === "T3");
 /** the named catalogue (weapon-catalog.ts): its rare "loot" weapons drop from any enemy, its epic "boss" weapons from bosses */
@@ -91,4 +91,19 @@ export function grantDungeonFirstClear<P extends { inventory: GearItem[]; materi
   if ((p.dungeonClears[dungeonId] ?? 0) > 0) return p;
   const withWeapon = grantCompletionWeapon(p, "dungeon", dungeonId);
   return { ...withWeapon, materials: { ...withWeapon.materials, forgeCatalyst: (withWeapon.materials.forgeCatalyst ?? 0) + 1 } };
+}
+
+/** Saves from before the `melee` slot (Nov 2 2026) hold catalogue swords, daggers and hammers (and the manifest's BLADE weapons) as
+ * primary-slot guns. They move to the melee slot by name; one that was equipped as the primary gives way to the
+ * strongest rifle in the bag. Idempotent. */
+const BLADE_NAMES: ReadonlySet<string> = new Set([...WEAPON_MANIFEST, ...WEAPON_CATALOG].filter((w) => w.archetype === "BLADE").map((w) => w.name));
+export function migrateMeleeSlots<P extends { inventory: GearItem[]; equippedGear: Partial<Record<GearSlot, string>> }>(p: P): P {
+  if (!p.inventory.some((g) => g.slot === "primary" && BLADE_NAMES.has(g.name))) return p;
+  const inventory = p.inventory.map((g) => (g.slot === "primary" && BLADE_NAMES.has(g.name) ? { ...g, slot: "melee" as GearSlot } : g));
+  const equippedGear = { ...p.equippedGear };
+  if (equippedGear.primary && inventory.find((g) => g.id === equippedGear.primary)?.slot === "melee") {
+    const best = inventory.filter((g) => g.slot === "primary").sort((a, b) => b.power - a.power)[0];
+    if (best) equippedGear.primary = best.id; else delete equippedGear.primary;
+  }
+  return { ...p, inventory, equippedGear };
 }
