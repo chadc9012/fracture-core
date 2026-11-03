@@ -93,11 +93,21 @@ operator has 100 hull (bar, red wash, regen after 4 s); at 0 you are DOWN for 5 
 troopers stand again after 8 s. Test: `--script res://tests/combat/enemies_test.gd`. Shot: `slicewalk:fight` sprints down
 the street into them and prints hull, deaths, kills and every trooper's state.
 
+**Inventory and wardrobe** (`scripts/gear/`, phase 3): the web game's gear rules over its catalogues (`data/gear.json`, from
+`bun scripts/export-godot-gear.ts`: the starter loadout, the 135 named weapons with the frame each fires as, the 51 armour
+sets, outfits and cosmetics). The INVENTORY button on the street opens the screen: worn slots (Kinetic / Energy / Power /
+Melee, Helmet / Chest / Gauntlets / Legs / Class Item), the bag per slot, tap to wear, operator power at the top, and for
+armour slots a transmog row choosing which set's look the slot wears. What you wear is what you fire: the gun list is the
+worn weapons (a looted Static Bow fires as the sniper frame, its power scales the damage); worn armour adds hull. Kills
+roll drops from the catalogue's loot and boss pools (18% / 40% elite) into the bag. Saved to `user://inventory.json`.
+Test: `--script res://tests/gear/gear_store_test.gd`. Shot: `slicewalk:inventory`.
+
 ```sh
 bun scripts/export-godot-data.ts          # from the repo root: writes godot-world-fracture/generated/ (gitignored)
 bun scripts/export-godot-character.ts     # from the repo root: rewrites godot-world-fracture/data/character.json
+bun scripts/export-godot-gear.ts          # from the repo root: rewrites godot-world-fracture/data/gear.json
 godot --path godot-world-fracture         # run it
-# a screenshot without a window (xvfb): --shot <png> [garage[:shop[:car[:item,kit-racing,...]]]] [drive[:car[:throttle[:steer[:garage]]]]] [slice[night][coast|neon][walk[:run|:jump|:fight|:fire[:sniper|:fusion][:aim]]][:x,y,z:tx,ty,tz]] [mall[:view]] [casino[:view 0-8]] [sports[:view 0-7]] [char[:body[:face[:TAB[:key=value,...]]]]] [select:<continent>] [map:<id>] [sat] [zoom:<factor>] [3d] [street:<place id>] [frames:<n>]
+# a screenshot without a window (xvfb): --shot <png> [garage[:shop[:car[:item,kit-racing,...]]]] [drive[:car[:throttle[:steer[:garage]]]]] [slice[night][coast|neon][walk[:run|:jump|:fight|:inventory|:fire[:sniper|:fusion][:aim]]][:x,y,z:tx,ty,tz]] [mall[:view]] [casino[:view 0-8]] [sports[:view 0-7]] [char[:body[:face[:TAB[:key=value,...]]]]] [select:<continent>] [map:<id>] [sat] [zoom:<factor>] [3d] [street:<place id>] [frames:<n>]
 xvfb-run godot --path godot-world-fracture --rendering-driver opengl3 --resolution 540x1170 -- --shot out.png map:nexus
 ```
 

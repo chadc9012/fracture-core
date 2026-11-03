@@ -281,6 +281,8 @@ func _shoot(path: String, opts: Array) -> void:
 				street.controls.scripted = true
 				street.controls.move = Vector2(0.0, 1.0)
 				street.controls.sprint = true
+			if String(o).contains("walk:inventory"):
+				street.open_inventory()
 			if String(o).contains("walk:fire"):
 				street.controls.scripted = true
 				street.controls.move = Vector2.ZERO

@@ -32,6 +32,10 @@ const OperatorPlayer = preload("res://scripts/player/operator_player.gd")
 const TouchControls = preload("res://scripts/player/touch_controls.gd")
 const Gunplay = preload("res://scripts/combat/gunplay.gd")
 const Enemies = preload("res://scripts/combat/enemies.gd")
+const Gear = preload("res://scripts/gear/gear_store.gd")
+const InventoryView = preload("res://scripts/gear/inventory_view.gd")
+var gear: Dictionary = {}
+var inventory_overlay: Control
 var gunplay: Node3D
 var enemies: Node3D
 var _spawn := Vector3.ZERO
@@ -177,6 +181,45 @@ func _spawn_player() -> void:
 	enemies.spawn("marksman", Vector3(-(half + 4.0), 0.18, -95.0), [Vector3(-(half + 4.0), 0.18, -95.0), Vector3(-(half + 4.0), 0.18, -85.0)])
 	enemies.spawn("drone", Vector3(0.0, 4.0, -25.0), [Vector3(0.0, 4.0, -25.0), Vector3(0.0, 4.0, -60.0)])
 	enemies.operator_down.connect(func(): _respawn_timer = 5.0)
+	# the gear (gear_store.gd): the worn weapons become the gun list; kills roll drops into the bag
+	gear = Gear.load_save()
+	_fit_gear()
+	gunplay.killed.connect(func(t: Variant) -> void:
+		var e: Variant = t.get_meta("enemy") if t.has_meta("enemy") else null
+		var source := "enemy"
+		if e != null and e.type == "elite":
+			source = "elite"
+		var it := Gear.roll_drop(gear, source, randf(), Gear.operator_power(gear), randi())
+		if not it.is_empty():
+			Gear.save(gear)
+			controls.toast("Picked up %s · %d" % [it.name, int(it.power)]))
+	var inv := Button.new()
+	inv.text = "INVENTORY"
+	inv.position = Vector2(16, 60)
+	inv.pressed.connect(open_inventory)
+	add_child(inv)
+
+func _fit_gear() -> void:
+	gunplay.set_loadout(Gear.loadout(gear))
+	if enemies:
+		enemies.hull_max = Enemies.HULL_MAX + Gear.hull_bonus(gear)
+		enemies.hull = minf(enemies.hull, enemies.hull_max)
+
+func open_inventory() -> void:
+	if inventory_overlay:
+		return
+	inventory_overlay = InventoryView.new()
+	inventory_overlay.gear = gear
+	inventory_overlay.closed.connect(close_inventory)
+	inventory_overlay.changed.connect(func(): Gear.save(gear); _fit_gear())
+	add_child(inventory_overlay)
+	controls.visible = false
+
+func close_inventory() -> void:
+	if inventory_overlay:
+		inventory_overlay.queue_free()
+		inventory_overlay = null
+	controls.visible = true
 
 ## world boxes the operator slides around: the props and buildings (`size` meta from prop()), the parked cars, and the
 ## facade line where no building stands (the block's ends); the garage lot stays open
@@ -220,11 +263,11 @@ var _respawn_timer := 0.0
 func _process(dt: float) -> void:
 	if not operator or not controls:
 		return
-	if mall_overlay or casino_overlay or sports_overlay or garage_overlay:
+	if mall_overlay or casino_overlay or sports_overlay or garage_overlay or inventory_overlay:
 		return
 	if enemies:
 		enemies.step(minf(dt, 0.05))
-		controls.show_hull(enemies.hull / Enemies.HULL_MAX, enemies.hurt, enemies.down)
+		controls.show_hull(enemies.hull / enemies.hull_max, enemies.hurt, enemies.down)
 		if _respawn_timer > 0.0:
 			_respawn_timer -= dt
 			if _respawn_timer <= 0.0:
@@ -236,7 +279,7 @@ func _process(dt: float) -> void:
 			gunplay.next_weapon()
 		gunplay.step(minf(dt, 0.05), cam, controls.fire, controls.take_reload(), Vector2(operator.velocity.x, operator.velocity.z).length())
 		var g = gunplay.gun()
-		controls.weapon_name.text = String(g.def().name)
+		controls.weapon_name.text = g.display_name()
 		controls.ammo.text = ("RELOADING" if g.reloading > 0.0 else g.ammo_text())
 
 # --------------------------------------------------------------------------------------------- light, sky, haze

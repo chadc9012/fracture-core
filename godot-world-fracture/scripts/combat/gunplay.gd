@@ -88,7 +88,24 @@ func _mount() -> void:
 
 func _show_current() -> void:
 	for f in _models:
-		(_models[f] as Node3D).visible = f == Weapons.ORDER[current]
+		(_models[f] as Node3D).visible = f == gun().frame
+
+## the worn weapons from the gear (gear_store.gd loadout): one gun per worn slot, its item's name and power multiplier
+func set_loadout(list: Array) -> void:
+	if list.is_empty():
+		return
+	var was := gun().frame if not guns.is_empty() else ""
+	guns.clear()
+	for w in list:
+		var g := Weapons.Gun.new(String(w.frame))
+		g.label = String(w.name)
+		g.mult = float(w.mult)
+		guns.append(g)
+	current = 0
+	for i in guns.size():
+		if guns[i].frame == was:
+			current = i
+	_show_current()
 
 func next_weapon() -> void:
 	current = (current + 1) % guns.size()
@@ -180,7 +197,7 @@ func _fire_one(cam: Camera3D, moving_speed: float) -> void:
 	spark(end, hit_t != null)
 	if hit_t:
 		var head := end.y > hit_t.box.position.y + hit_t.box.size.y * 0.82
-		var dmg := Weapons.damage(gun().frame, dist, head)
+		var dmg := Weapons.damage(gun().frame, dist, head) * gun().mult
 		hit_t.hp -= dmg
 		hits_landed += 1
 		hit.emit(hit_t, dmg, head)

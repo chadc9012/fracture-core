@@ -55,6 +55,8 @@ var _rng := RandomNumberGenerator.new()
 ## the operator's hull, damage this frame for the HUD flash, and the down state
 var hull := 100.0
 const HULL_MAX := 100.0
+## the hull the operator can have, armour included (street_slice _fit_gear)
+var hull_max := HULL_MAX
 var hurt := 0.0
 var down := 0.0
 var since_hit := 10.0
@@ -166,9 +168,9 @@ func step(dt: float) -> void:
 	if down > 0.0:
 		down -= dt
 		if down <= 0.0:
-			hull = HULL_MAX
+			hull = hull_max
 	elif since_hit > 4.0:
-		hull = minf(HULL_MAX, hull + 12.0 * dt)
+		hull = minf(hull_max, hull + 12.0 * dt)
 	for e in enemies:
 		_step_enemy(e, dt)
 		e.target.box = _box(e)

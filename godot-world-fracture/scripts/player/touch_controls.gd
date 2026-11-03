@@ -131,6 +131,20 @@ func show_hull(frac: float, hurt: float, down_left: float) -> void:
 	hurt_flash.color.a = 0.35 * clampf(hurt, 0.0, 1.0) + (0.45 if down_left > 0.0 else 0.0)
 	status.text = ("DOWN · %d" % ceili(down_left)) if down_left > 0.0 else ""
 
+var _toast: Label
+var _toast_t := 0.0
+## a line at the top of the screen for a few seconds (a pickup, a message)
+func toast(text: String) -> void:
+	if not _toast:
+		_toast = Label.new()
+		_toast.set_anchors_preset(Control.PRESET_CENTER_TOP)
+		_toast.position = Vector2(-150, 110)
+		_toast.add_theme_font_size_override("font_size", 18)
+		_toast.modulate = Color(0.95, 0.85, 0.5)
+		add_child(_toast)
+	_toast.text = text
+	_toast_t = 3.0
+
 func take_reload() -> bool:
 	var r := _reload
 	_reload = false
@@ -171,6 +185,10 @@ func take_look() -> Vector2:
 	return d
 
 func _process(_dt: float) -> void:
+	if _toast and _toast_t > 0.0:
+		_toast_t -= _dt
+		if _toast_t <= 0.0:
+			_toast.text = ""
 	if scripted:
 		return
 	if touch_ui:
