@@ -24,6 +24,7 @@ Rows are the lock; `git fetch` before you claim.
 ## Claimed
 | Task | Session | Since |
 | --- | --- | --- |
+| Post-Dec 4 (owner: everything in order, full permission): Killbox in Godot — export the arena data (killbox-arenas.ts) to Godot, build Kaiju Complex from it, Clash (6v6 TDM) with trooper bots on two teams, the Killbox screen on the globe | lead (session_015nUG7fd8rEqjsn12yh1Fh7) | 2026-11-03 |
 | Killbox bots: full bot teams on the arenas, allies and rivals (web build; the owner asked for this directly in session, Nov 2 21:14 — outside the Dec 4 scope by the owner's own call) | session_01HeBvGGZzSqLVyhhF3TcmJd | 2026-11-02 |
 
 ## Open (unclaimed, take in order within a phase)
