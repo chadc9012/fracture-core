@@ -124,6 +124,9 @@ export type PlayerProgression = {
   novaUnlocks: string[];
   /** per-mission clears today (repeat taper) */
   missionRuns: Record<string, { day: string; count: number; /** real-time ms of the last completion (activities.ts cooldowns) */ last?: number }>;
+  /** the Godot build's own saves (godot-world-fracture/scripts/cloud/cloud_save.gd): per-file snapshots with an `updated` ISO time each,
+   * carried through the same player_saves row; the web game never reads them, it only keeps the newer copy on a merge */
+  godot?: Record<string, { updated: string } & Record<string, unknown>> | undefined;
   lastMissionReward: MissionReward | null;
   arsenal: Record<ClassId, ClassArsenal>;
   /** operator-pockets.ts: level, xp, materials, fractureShards and the Nex balance above belong to this operator;

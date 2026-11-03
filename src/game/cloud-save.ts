@@ -60,6 +60,7 @@ function mergeInner(local: PlayerProgression, cloud: PlayerProgression, localIsN
     ...newer,
     operators: mergePockets(newer, localIsNewer ? cloud : local),
     nexLedger: { ...cloud.nexLedger, ...local.nexLedger },
+    godot: mergeGodot(local.godot, cloud.godot),
     vehicleConditions: newer.vehicleConditions,
     completedMissions: union(local.completedMissions, cloud.completedMissions),
     unlockedAbilities: migrateAbilityIds(union(local.unlockedAbilities, cloud.unlockedAbilities)),
@@ -190,4 +191,16 @@ export async function loadRestorePoint(id: string): Promise<PlayerProgression> {
   const { data, error } = await supabase.from("player_save_snapshots").select("data").eq("id", id).single();
   if (error) throw error;
   return normalizeProgression(data.data);
+}
+
+/** the Godot build's per-file snapshots: each file keeps whichever copy was updated later (the Godot side applies the same rule) */
+export function mergeGodot(a: PlayerProgression["godot"], b: PlayerProgression["godot"]): PlayerProgression["godot"] {
+  if (!a) return b;
+  if (!b) return a;
+  const out: NonNullable<PlayerProgression["godot"]> = { ...b };
+  for (const [k, v] of Object.entries(a)) {
+    const other = b[k];
+    if (!other || (v.updated ?? "") >= (other.updated ?? "")) out[k] = v;
+  }
+  return out;
 }

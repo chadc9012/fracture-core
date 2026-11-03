@@ -10,6 +10,11 @@ const DriveView := preload("res://scripts/driving/drive_view.gd")
 const StreetSlice := preload("res://scripts/city/street_slice.gd")
 const CharacterCreator := preload("res://scripts/character/character_creator.gd")
 const CharacterStore := preload("res://scripts/character/character_store.gd")
+const CloudSave := preload("res://scripts/cloud/cloud_save.gd")
+const CloudPanel := preload("res://scripts/cloud/cloud_panel.gd")
+var cloud: Node
+var cloud_panel: Control
+var cloud_line: Label
 const Mission01 := preload("res://scripts/mission/mission_01.gd")
 
 var planet_view: Control
@@ -58,6 +63,25 @@ func _ready() -> void:
 	op_button.position = Vector2(-590, -70)
 	op_button.custom_minimum_size = Vector2(130, 52)
 	op_button.pressed.connect(_open_creator)
+	# cloud save (scripts/cloud): sign-in and sync from the globe; a sync runs on launch and whenever a view closes
+	cloud = CloudSave.new()
+	add_child(cloud)
+	var cloud_button := Data.button("CLOUD", true)
+	cloud_button.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
+	cloud_button.position = Vector2(20, -70)
+	cloud_button.custom_minimum_size = Vector2(110, 52)
+	cloud_button.pressed.connect(_open_cloud)
+	add_child(cloud_button)
+	cloud_line = Label.new()
+	cloud_line.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
+	cloud_line.position = Vector2(20, -96)
+	cloud_line.add_theme_font_size_override("font_size", 13)
+	cloud_line.modulate = Color(0.7, 0.85, 0.95)
+	cloud_line.text = cloud.status()
+	add_child(cloud_line)
+	cloud.status_changed.connect(func(t: String): cloud_line.text = t)
+	if cloud.signed_in() and OS.get_cmdline_user_args().find("--shot") < 0:
+		_sync_later.call_deferred()
 	add_child(op_button)
 	get_tree().set_auto_accept_quit(false)
 	get_tree().set_quit_on_go_back(false)
@@ -135,6 +159,27 @@ func _close_street() -> void:
 		street.queue_free()
 		street = null
 	planet_view.set_process(true)
+	_sync_later()
+
+func _open_cloud() -> void:
+	if cloud_panel:
+		return
+	cloud_panel = CloudPanel.new()
+	cloud_panel.cloud = cloud
+	cloud_panel.closed.connect(_close_cloud)
+	add_child(cloud_panel)
+	planet_view.set_process(false)
+
+func _close_cloud() -> void:
+	if cloud_panel:
+		cloud_panel.queue_free()
+		cloud_panel = null
+	planet_view.set_process(true)
+
+## a background sync when signed in (the files may have changed while a view was open)
+func _sync_later() -> void:
+	if cloud and cloud.signed_in() and not cloud.busy:
+		cloud.sync()
 
 var creator: Control
 func _open_creator(first := false) -> void:
@@ -169,12 +214,14 @@ func _close_mission() -> void:
 		mission = null
 	planet_view.visible = true
 	planet_view.set_process(true)
+	_sync_later()
 
 func _close_creator() -> void:
 	if creator:
 		creator.queue_free()
 		creator = null
 	planet_view.set_process(true)
+	_sync_later()
 
 func _close_drive() -> void:
 	if driving:
@@ -330,6 +377,8 @@ func _shoot(path: String, opts: Array) -> void:
 				await get_tree().process_frame
 				mission.shot(mm[1])
 		# char[:body[:face[:tab[:key=value,...]]]]  the operator creator, e.g. char:female:f-cyber:HAIR or char:male:m-rebel:FACE:hair=afro,beard=full
+		if String(o) == "cloud":
+			_open_cloud()
 		if String(o).begins_with("char"):
 			var c := String(o).split(":")
 			var lk := CharacterStore.default_look()

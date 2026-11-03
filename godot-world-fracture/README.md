@@ -102,6 +102,14 @@ worn weapons (a looted Static Bow fires as the sniper frame, its power scales th
 roll drops from the catalogue's loot and boss pools (18% / 40% elite) into the bag. Saved to `user://inventory.json`.
 Test: `--script res://tests/gear/gear_store_test.gd`. Shot: `slicewalk:inventory`.
 
+**Cloud save** (`scripts/cloud/`, phase 3): the CLOUD button on the globe signs you in by email one-time code against the
+web game's Supabase project (the project's email template must print `{{ .Token }}` for the code to arrive), keeps the
+session in `user://session.json`, and syncs the operator (`character.json`), profile (XP, level, Nex), inventory and
+Mission 01 progress into the same `player_saves` row the web game uses, under `data.godot`. A sync runs on launch and
+whenever a view closes; each file keeps the later copy, the profile never loses XP and the bags join (`cloud_merge.gd`,
+tested headless: `--script res://tests/cloud/cloud_merge_test.gd`); the web game keeps the newer copy on its own merges
+(`mergeGodot`). Google sign-in waits for an Android deep link (TASKBOARD.md). Shot: `cloud` opens the panel.
+
 ```sh
 bun scripts/export-godot-data.ts          # from the repo root: writes godot-world-fracture/generated/ (gitignored)
 bun scripts/export-godot-character.ts     # from the repo root: rewrites godot-world-fracture/data/character.json
