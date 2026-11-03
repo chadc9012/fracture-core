@@ -549,15 +549,17 @@ export function Terrain({ renderTier = "HIGH" }: { renderTier?: RenderTier } = {
         </>
       )}
 
+      {/* drei <Instances> re-computes every instance's matrix every frame unless told otherwise (~5.7 ms of a phone-speed frame,
+          play-test Nov 2); these never move (the sway is in the shaders), so frames={2}: they update after each re-render only */}
       {/* forest: trunk + two staggered canopy layers, hue-jittered per instance so the
           treeline reads as a forest instead of one stamped-out cone repeated 120 times */}
-      <Instances limit={Math.max(1, liveTrees.length)} castShadow receiveShadow geometry={trunkGeo}>
+      <Instances frames={2} limit={Math.max(1, liveTrees.length)} castShadow receiveShadow geometry={trunkGeo}>
         <meshStandardMaterial onBeforeCompile={swayTrunk} color="#ffffff" roughness={0.95} map={barkDetail.map} normalMap={barkDetail.normalMap} normalScale={new THREE.Vector2(0.6, 0.6)} />
         {procTrees.map((t, i) => (
           <Instance key={i} position={[t.x, t.y + 2 * t.s, t.z]} scale={[1, t.s, 1]} color={jitter("#4a3524", i, 0.02, 0.1)} />
         ))}
       </Instances>
-      <Instances limit={liveTrees.length} castShadow={fineShadows} receiveShadow geometry={canopyLow}>
+      <Instances frames={2} limit={liveTrees.length} castShadow={fineShadows} receiveShadow geometry={canopyLow}>
         <meshStandardMaterial onBeforeCompile={swayCanopyLow} color="#ffffff" roughness={0.9} map={leafDetail.map} normalMap={leafDetail.normalMap} normalScale={new THREE.Vector2(0.4, 0.4)} />
         {procTrees.map((t, i) => (
           <Instance
@@ -569,7 +571,7 @@ export function Terrain({ renderTier = "HIGH" }: { renderTier?: RenderTier } = {
           />
         ))}
       </Instances>
-      <Instances limit={liveTrees.length} castShadow={fineShadows} receiveShadow geometry={canopyHigh}>
+      <Instances frames={2} limit={liveTrees.length} castShadow={fineShadows} receiveShadow geometry={canopyHigh}>
         <meshStandardMaterial onBeforeCompile={swayCanopyHigh} color="#ffffff" roughness={0.9} map={leafDetail.map} normalMap={leafDetail.normalMap} normalScale={new THREE.Vector2(0.4, 0.4)} />
         {procTrees.map((t, i) => (
           <Instance
@@ -582,7 +584,7 @@ export function Terrain({ renderTier = "HIGH" }: { renderTier?: RenderTier } = {
         ))}
       </Instances>
       {/* undergrowth: saplings (tall) and brush (low, wide) clustered around the parent trees */}
-      <Instances limit={Math.max(1, procUndergrowth.length)} castShadow={false} receiveShadow geometry={canopyHigh}>
+      <Instances frames={2} limit={Math.max(1, procUndergrowth.length)} castShadow={false} receiveShadow geometry={canopyHigh}>
         <meshStandardMaterial onBeforeCompile={swayCanopyHigh} color="#ffffff" roughness={0.9} map={leafDetail.map} normalMap={leafDetail.normalMap} normalScale={new THREE.Vector2(0.4, 0.4)} />
         {procUndergrowth.map(({ u, i }) => {
           const sapling = i % 3 !== 0;
@@ -591,7 +593,7 @@ export function Terrain({ renderTier = "HIGH" }: { renderTier?: RenderTier } = {
         })}
       </Instances>
       {/* wildflower clumps: stems + star heads (organic-geometry.ts flowerClump), muted wild colours */}
-      <Instances limit={Math.max(1, flowers.length)} geometry={flowerGeo}>
+      <Instances frames={2} limit={Math.max(1, flowers.length)} geometry={flowerGeo}>
         <meshStandardMaterial vertexColors roughness={0.85} side={THREE.DoubleSide} onBeforeCompile={petalTint} />
         {flowers.map((f, i) => {
           const palette = ["#c9587e", "#d8b84a", "#e8e4da", "#9a72b8", "#c8743e"];
@@ -600,7 +602,7 @@ export function Terrain({ renderTier = "HIGH" }: { renderTier?: RenderTier } = {
       </Instances>
 
       {/* frostspire boulders on the high slopes — mixed silhouettes + per-instance grey jitter */}
-      <Instances limit={Math.max(1, liveBoulders.length)} castShadow receiveShadow geometry={boulderA}>
+      <Instances frames={2} limit={Math.max(1, liveBoulders.length)} castShadow receiveShadow geometry={boulderA}>
         <meshStandardMaterial color="#ffffff" roughness={0.7} map={rockDetail.map} normalMap={rockDetail.normalMap} normalScale={new THREE.Vector2(0.5, 0.5)} />
         {liveBoulders.map((b, i) =>
           i % 2 === 0 ? (
@@ -614,7 +616,7 @@ export function Terrain({ renderTier = "HIGH" }: { renderTier?: RenderTier } = {
           ) : null,
         )}
       </Instances>
-      <Instances limit={Math.max(1, liveBoulders.length)} castShadow receiveShadow geometry={boulderB}>
+      <Instances frames={2} limit={Math.max(1, liveBoulders.length)} castShadow receiveShadow geometry={boulderB}>
         <meshStandardMaterial color="#ffffff" roughness={0.75} map={rockDetail.map} normalMap={rockDetail.normalMap} normalScale={new THREE.Vector2(0.5, 0.5)} />
         {liveBoulders.map((b, i) =>
           i % 2 === 1 ? (
@@ -637,7 +639,7 @@ export function Terrain({ renderTier = "HIGH" }: { renderTier?: RenderTier } = {
         </mesh>
         <DistrictLight range={170 * Math.max(1, craterScale / 2)} position={[0, craterY + 6, 0]} color="#ff6a1f" intensity={220} distance={120 * Math.max(1, craterScale / 2)} decay={2} />
       </group>
-      <Instances limit={liveEmber.length} castShadow receiveShadow geometry={emberRockGeo}>
+      <Instances frames={2} limit={liveEmber.length} castShadow receiveShadow geometry={emberRockGeo}>
         <meshStandardMaterial color="#ffffff" emissive="#7a1a06" emissiveIntensity={0.025} roughness={0.95} map={rockDetail.map} normalMap={rockDetail.normalMap} normalScale={new THREE.Vector2(0.4, 0.4)} />
         {liveEmber.map((r, i) => (
           <Instance
@@ -651,7 +653,7 @@ export function Terrain({ renderTier = "HIGH" }: { renderTier?: RenderTier } = {
       </Instances>
 
       {/* rocks across the war belt and desert — split silhouettes + jittered grey/tan tones */}
-      <Instances limit={liveRocks.length} castShadow receiveShadow geometry={rockA}>
+      <Instances frames={2} limit={liveRocks.length} castShadow receiveShadow geometry={rockA}>
         <meshStandardMaterial color="#ffffff" roughness={0.95} map={rockDetail.map} normalMap={rockDetail.normalMap} normalScale={new THREE.Vector2(0.5, 0.5)} />
         {liveRocks.map((r, i) =>
           i % 2 === 0 ? (
@@ -665,7 +667,7 @@ export function Terrain({ renderTier = "HIGH" }: { renderTier?: RenderTier } = {
           ) : null,
         )}
       </Instances>
-      <Instances limit={liveRocks.length} castShadow receiveShadow geometry={rockB}>
+      <Instances frames={2} limit={liveRocks.length} castShadow receiveShadow geometry={rockB}>
         <meshStandardMaterial color="#ffffff" roughness={1} map={rockDetail.map} normalMap={rockDetail.normalMap} normalScale={new THREE.Vector2(0.5, 0.5)} />
         {liveRocks.map((r, i) =>
           i % 2 === 1 ? (
@@ -683,7 +685,7 @@ export function Terrain({ renderTier = "HIGH" }: { renderTier?: RenderTier } = {
       <WorldPiece name="wasteland wrecks"><InstancedFleet items={wreckCars} shadows={false} /></WorldPiece>
 
       {/* desert cacti */}
-      <Instances limit={Math.max(1, liveCacti.length)} castShadow receiveShadow geometry={cactusGeo}>
+      <Instances frames={2} limit={Math.max(1, liveCacti.length)} castShadow receiveShadow geometry={cactusGeo}>
         {/* no leaf albedo map: leaf texture x green instance colour rendered the saguaros near-black; the ribs carry the form */}
         <meshStandardMaterial color="#ffffff" roughness={0.85} normalMap={leafDetail.normalMap} normalScale={new THREE.Vector2(0.35, 0.35)} />
         {liveCacti.map((c, i) => (
@@ -693,7 +695,7 @@ export function Terrain({ renderTier = "HIGH" }: { renderTier?: RenderTier } = {
 
       {/* swamp dead trees */}
       {/* weathered grey snags (wild-geometry deadSnag), not black cones */}
-      <Instances limit={Math.max(1, liveSwamp.length)} castShadow receiveShadow geometry={deadTrunkGeo}>
+      <Instances frames={2} limit={Math.max(1, liveSwamp.length)} castShadow receiveShadow geometry={deadTrunkGeo}>
         <meshStandardMaterial onBeforeCompile={swayDeadTrunk} color="#6a6152" roughness={1} map={barkDetail.map} normalMap={barkDetail.normalMap} normalScale={new THREE.Vector2(0.6, 0.6)} />
         {liveSwamp.map((t, i) => (
           <Instance key={i} position={[t.x, t.y + 4 * t.s - 0.2, t.z]} scale={[0.8 + t.s * 0.2, t.s, 0.8 + t.s * 0.2]} rotation={[0, t.r * 1.7, (t.r - 3) * 0.03]} />
@@ -701,7 +703,7 @@ export function Terrain({ renderTier = "HIGH" }: { renderTier?: RenderTier } = {
       </Instances>
 
       {/* forest grass now lives in VerdantForest (GrassCards); swamp reeds stay here: thin stalks that bend hardest at the tip */}
-      <Instances limit={Math.max(1, reeds.length)} receiveShadow geometry={reedGeo}>
+      <Instances frames={2} limit={Math.max(1, reeds.length)} receiveShadow geometry={reedGeo}>
         <meshStandardMaterial onBeforeCompile={swayReed} color="#ffffff" roughness={1} side={THREE.DoubleSide} />
         {reeds.map((g, i) => <Instance key={i} position={[g.x, Math.max(g.y, WATER_LEVEL + 0.1), g.z]} scale={[1, 0.6 + g.s * 0.8, 1]} rotation-y={g.r} color={jitter("#5e7a4a", i + 120, 0.04, 0.14)} />)}
       </Instances>

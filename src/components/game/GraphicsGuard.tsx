@@ -13,6 +13,10 @@ export function GraphicsGuard({ children }: { children: (caps: GraphicsSupport, 
   useEffect(() => setCaps(detectGraphicsSupport()), []);
 
   const onCreated = useCallback((state: RootState) => {
+    // three checks every shader for errors right after compiling it, which makes the browser finish each compile before the
+    // next frame can go on (play-test Nov 2: ~5 s of a phone-speed world load waiting on shader logs, 130+ programs). Off
+    // outside ?dev=1, so compiles overlap (KHR_parallel_shader_compile where the GPU has it); dev runs keep the error reports.
+    if (typeof window !== "undefined" && new URLSearchParams(window.location.search).get("dev") !== "1") state.gl.debug.checkShaderErrors = false;
     const canvas = state.gl.domElement;
     canvas.addEventListener("webglcontextlost", (event) => { event.preventDefault(); setLost(true); });
     canvas.addEventListener("webglcontextrestored", () => setLost(false));

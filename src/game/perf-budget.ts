@@ -81,3 +81,18 @@ let version = 0;
 export const getPerfTier = () => tier;
 export const perfTierVersion = () => version;
 export function setPerfTier(next: RenderTier) { if (next !== tier) { tier = next; version++; } }
+
+/** How often (every Nth frame) a skinned body's animation is stepped (play-test Nov 2: civilians' animation mixers were ~10 ms
+ * of a phone-speed frame, every body stepped every frame, even behind the camera). On screen and near: every frame; on screen
+ * past `near` metres: every 2nd; off screen: every 6th. The skipped time is carried into the next step, so clips keep pace. */
+export function animStride(dist: number, inView: boolean, near = 14): number {
+  if (!inView) return 6;
+  return dist > near ? 2 : 1;
+}
+/** on screen, roughly: within a cone around the camera's forward direction (cosine of the half-angle; generous, so bodies at
+ * the screen edge never stutter). `fx,fy,fz` is the unit forward vector, `dx,dy,dz` camera-to-body. */
+export function inViewCone(fx: number, fy: number, fz: number, dx: number, dy: number, dz: number, cosHalf = 0.3): boolean {
+  const d = Math.hypot(dx, dy, dz);
+  if (d < 3) return true;
+  return (fx * dx + fy * dy + fz * dz) / d > cosHalf;
+}

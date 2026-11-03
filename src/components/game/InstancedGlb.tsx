@@ -134,20 +134,28 @@ function Batch({ url, items, place, shadows, nightGlow, sway, windowScale }: { u
   const parts = useMemo(() => (sway ? swayParts(flat, sway) : flat), [flat, sway]);
   useEffect(() => () => { if (parts !== flat) parts.forEach((p, i) => { if (p.material !== flat[i]!.material) p.material.dispose(); }); }, [parts, flat]);
   const refs = useRef<(THREE.InstancedMesh | null)[]>([]);
+  const mats = useRef<THREE.Matrix4[]>([]);
   const write = (initial: boolean) => {
+    // place each item once, then copy its matrix into every part's batch: `place` (traffic) samples the ground, and it used to
+    // run once per part per car per frame (a car model is many parts: ~4.5 ms a frame on a phone-speed CPU, play-test Nov 2)
+    const m = mats.current;
+    for (let i = 0; i < items.length; i++) {
+      const it = items[i]!;
+      tmp.position.set(it.x, it.y, it.z); tmp.rotation.set(0, it.yaw, 0); tmp.scale.setScalar(it.scale ?? 1);
+      if (place) place(i, tmp);
+      tmp.updateMatrix(); (m[i] ??= new THREE.Matrix4()).copy(tmp.matrix);
+    }
     for (let k = 0; k < parts.length; k++) {
       const im = refs.current[k];
       if (!im) continue;
       for (let i = 0; i < items.length; i++) {
-        const it = items[i]!;
-        tmp.position.set(it.x, it.y, it.z); tmp.rotation.set(0, it.yaw, 0); tmp.scale.setScalar(it.scale ?? 1);
-        if (place) place(i, tmp);
-        tmp.updateMatrix(); im.setMatrixAt(i, tmp.matrix);
-        if (initial && parts[k]!.paint) im.setColorAt(i, col.set(it.paint ?? "#8d96a1"));
+        im.setMatrixAt(i, m[i]!);
+        if (initial && parts[k]!.paint) im.setColorAt(i, col.set(items[i]!.paint ?? "#8d96a1"));
       }
       im.instanceMatrix.needsUpdate = true;
       if (initial && im.instanceColor) im.instanceColor.needsUpdate = true;
-      im.computeBoundingSphere();
+      // moving batches are never frustum-culled (frustumCulled={!place}), so their bounds need not be redone every frame
+      if (initial || !place) im.computeBoundingSphere();
     }
   };
   useLayoutEffect(() => { write(true); }); // eslint-disable-line react-hooks/exhaustive-deps

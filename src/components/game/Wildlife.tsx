@@ -343,6 +343,7 @@ function CritterView({ c, camera }: { c: Critter; camera: React.RefObject<THREE.
   const lastHeading = useRef(c.heading);
   const fallAlt = useRef(0);
   const bank = useRef(0);
+  const groundCache = useRef({ x: NaN, z: NaN, h: NaN, y: 0, pitch: NaN });
   const loco = SPECIES_PROFILE[c.species].locomotion;
   useFrame((_, dt) => {
     const g = group.current;
@@ -352,7 +353,11 @@ function CritterView({ c, camera }: { c: Critter; camera: React.RefObject<THREE.
     const visible = (c.down === undefined || c.down < CRITTER_DOWN_TIME) && (!cam || Math.hypot(c.x - cam.x, c.z - cam.z) < range);
     g.visible = visible;
     if (!visible) return;
-    let y = heightAt(c.x, c.z);
+    // ground height and slope pitch only when the animal moved or turned (grazing and resting animals don't; three terrain
+    // samples per animal per frame were ~4 ms of a phone-speed frame with the herds, play-test Nov 2)
+    const gc = groundCache.current, moved = Math.abs(c.x - gc.x) > 0.02 || Math.abs(c.z - gc.z) > 0.02 || c.heading !== gc.h;
+    if (moved) { gc.x = c.x; gc.z = c.z; gc.h = c.heading; gc.y = heightAt(c.x, c.z); gc.pitch = NaN; }
+    let y = gc.y;
     let pitch = 0, roll = 0;
     if (loco === "fish") {
       const surface = lakeSurfaceAt(c.x, c.z);
@@ -368,7 +373,8 @@ function CritterView({ c, camera }: { c: Critter; camera: React.RefObject<THREE.
       // follow the slope: sample the ground ahead and behind along the heading
       const len = c.species === "DEER" ? 0.75 : 0.3;
       const fx = Math.sin(c.heading) * len, fz = Math.cos(c.heading) * len;
-      pitch = Math.atan2(heightAt(c.x - fx, c.z - fz) - heightAt(c.x + fx, c.z + fz), len * 2);
+      if (Number.isNaN(gc.pitch)) gc.pitch = Math.atan2(heightAt(c.x - fx, c.z - fz) - heightAt(c.x + fx, c.z + fz), len * 2);
+      pitch = gc.pitch;
     }
     lastHeading.current = c.heading;
     if (c.down !== undefined) {

@@ -100,7 +100,13 @@ export type BeachSpot = { region: string; x: number; z: number; edgeX: number; e
  * bearings until the terrain first dips under the water, stepping back to the dry edge, and keeping it only if the ground
  * behind rises gently (most of the world's water is edged by banks, which get no beachgoers). Works on whatever makes the
  * shore: the painted coastline at world scale 4, the landform's own seas and lakes otherwise. Deterministic. */
+/** pure and fixed for the world, so worked out once: beaches and the beachgoer roster both ask for it on every world mount
+ * (~2.4 s of terrain sampling on a phone-speed CPU, play-test Nov 2). Callers get a copy. */
+let beachCache: BeachSpot[] | null = null;
 export function beachSpots(): BeachSpot[] {
+  return (beachCache ??= computeBeachSpots()).map((b) => ({ ...b }));
+}
+function computeBeachSpots(): BeachSpot[] {
   const out: BeachSpot[] = [];
   for (const id of BEACH_REGIONS) {
     const r = REGIONS.find((v) => v.id === id);

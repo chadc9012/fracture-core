@@ -14,7 +14,7 @@ export function weatheredConcreteTexture(): THREE.CanvasTexture | null {
   if (typeof document === "undefined") return null;
   const size = 256;
   const c = document.createElement("canvas"); c.width = c.height = size;
-  const g = c.getContext("2d"); if (!g) return null;
+  const g = c.getContext("2d", { willReadFrequently: true }); if (!g) return null; // CPU-backed: the grain pass reads its pixels back
   let seed = 4242; const rnd = () => { seed = (seed * 1664525 + 1013904223) >>> 0; return seed / 4294967296; };
   // base: mid grey with soft mottling
   g.fillStyle = "#808080"; g.fillRect(0, 0, size, size);
@@ -61,7 +61,7 @@ export function weatheredPlasterTexture(): THREE.CanvasTexture | null {
   if (typeof document === "undefined") return null;
   const size = 256;
   const c = document.createElement("canvas"); c.width = c.height = size;
-  const g = c.getContext("2d"); if (!g) return null;
+  const g = c.getContext("2d", { willReadFrequently: true }); if (!g) return null; // CPU-backed: the grain pass reads its pixels back
   let seed = 7717; const rnd = () => { seed = (seed * 1664525 + 1013904223) >>> 0; return seed / 4294967296; };
   g.fillStyle = "#808080"; g.fillRect(0, 0, size, size);
   for (let i = 0; i < 700; i++) { // soft patchy paint
@@ -143,7 +143,7 @@ export function claddingTexture(kind: Cladding): THREE.CanvasTexture | null {
   if (typeof document === "undefined") return null;
   const size = 256;
   const c = document.createElement("canvas"); c.width = c.height = size;
-  const g = c.getContext("2d"); if (!g) return null;
+  const g = c.getContext("2d", { willReadFrequently: true }); if (!g) return null; // CPU-backed: the grain pass reads its pixels back
   let seed = { brick: 911, siding: 4243, shingle: 6151, stone: 3331 }[kind];
   const rnd = () => { seed = (seed * 1664525 + 1013904223) >>> 0; return seed / 4294967296; };
   const grey = (v: number, a = 1) => `rgba(${v},${v},${v},${a})`;

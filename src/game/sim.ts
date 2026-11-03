@@ -1,3 +1,4 @@
+import { cachedTerrainAt, perceptionGround } from "./ground-cache";
 import { stormGroundAt } from "./storm-quests";
 import { liveDescentGroundAt } from "./fracture-gates";
 import { emptyChainState, registerChainHit, resolveChainDamage, type ChainState, type ChainReaction } from "./legendary-chain";
@@ -1191,7 +1192,7 @@ function stepEnemyGrenades(sim: WorldSim, dt: number, px: number, pz: number, pl
     sim.grenades.splice(sim.grenades.indexOf(gr), 1);
     const chest = { x: px, y: playerEye - 0.4, z: pz };
     const dist = Math.hypot(chest.x - gr.x, chest.y - gr.y, chest.z - gr.z);
-    const covered = sightLine({ x: gr.x, y: gr.y + 0.4, z: gr.z }, chest, { ground: walkHeight, obstaclesNear: queryObstacles, solids: registeredModelSolids() }).blocked;
+    const covered = sightLine({ x: gr.x, y: gr.y + 0.4, z: gr.z }, chest, { ground: perceptionGround, obstaclesNear: queryObstacles, solids: registeredModelSolids() }).blocked;
     const dmg = grenadeDamage(dist, covered);
     if (dmg > 0) hurtPlayer(sim, dmg / sim.mods.hullDurability, "grenade");
     sim.combatHeat += 3;
@@ -1254,7 +1255,7 @@ function stepGadgets(sim: WorldSim, dt: number, px: number, pz: number, playerEy
   st.droneShots.length = 0;
   if (st.drones.length) {
     st.drones = st.drones.filter((d) => d.until > now);
-    const world = { ground: walkHeight, obstaclesNear: queryObstacles, solids: registeredModelSolids() };
+    const world = { ground: perceptionGround, obstaclesNear: queryObstacles, solids: registeredModelSolids() };
     for (const d of st.drones) {
       stepDrone(d, { x: px, y: playerEye, z: pz }, dt);
       if (d.cool > 0) continue;
@@ -1812,7 +1813,7 @@ export function stepSim(sim: WorldSim, input: SimInput) {
     const nowLos = performance.now() / 1000;
     if (d < 160 && (!m.los || nowLos - m.los.t > LOS_REFRESH)) {
       const feet = m.swimY !== undefined ? m.y - 2.2 * m.scale : Math.max(walkHeight(m.x, m.z), m.y - 2.2 * m.scale);
-      const line = sightLine({ x: m.x, y: feet + 1.55 * enemyBodyScaleOf(m.scale), z: m.z }, { x: px, y: playerEye - 0.35, z: pz }, { ground: walkHeight, obstaclesNear: queryObstacles, solids: registeredModelSolids() });
+      const line = sightLine({ x: m.x, y: feet + 1.55 * enemyBodyScaleOf(m.scale), z: m.z }, { x: px, y: playerEye - 0.35, z: pz }, { ground: perceptionGround, obstaclesNear: queryObstacles, solids: registeredModelSolids() });
       m.los = { t: nowLos, clear: !line.blocked, at: line.blocked ? line.at : undefined };
     }
     m.hiddenFor = m.los && !m.los.clear && d < 160 ? (m.hiddenFor ?? 0) + dt : 0;
@@ -1828,7 +1829,7 @@ export function stepSim(sim: WorldSim, input: SimInput) {
       if (canEvade && !(m.evade && nowE < m.evade.until) && nowE >= (m.evadeCool ?? 0)) {
         for (const r of sim.rounds) {
           if (!r.alive) continue;
-          const th = roundThreat(r, m.x, m.z, walkHeight, 1.5 * m.scale);
+          const th = roundThreat(r, m.x, m.z, perceptionGround, 1.5 * m.scale);
           if (!th) continue;
           // one reaction roll per threat (a miss waits out the cooldown, so it isn't re-rolled every frame)
           if (!reactsInTime(th.t, m.elite, Math.random())) { m.evadeCool = nowE + DIVE.cooldown; break; }
@@ -1856,15 +1857,15 @@ export function stepSim(sim: WorldSim, input: SimInput) {
     }
     if (aiState === "ALERT" && ai.coverTime <= 0 && shouldTakeCover(m.hp / Math.max(1, m.maxHp ?? (m.elite ? 6 : 3)), ai.coverTime, m.boss) && d < 45 && damaged) {
       // real cover first (enemy-cover.ts): behind a rock, wreck, wall or building the player cannot see through
-      const near = coverCandidates(queryObstacles(m.x, m.z), registeredModelSolids(), walkHeight);
-      const real = near.length ? findCover(m.x, m.z, { x: px, y: playerEye, z: pz }, near, { ground: walkHeight, obstaclesNear: queryObstacles, solids: registeredModelSolids() }) : null;
+      const near = coverCandidates(queryObstacles(m.x, m.z), registeredModelSolids(), perceptionGround);
+      const real = near.length ? findCover(m.x, m.z, { x: px, y: playerEye, z: pz }, near, { ground: perceptionGround, obstaclesNear: queryObstacles, solids: registeredModelSolids() }) : null;
       if (real) { ai.coverX = real.x; ai.coverZ = real.z; ai.peekX = real.peekX; ai.peekZ = real.peekZ; ai.hideLeft = HIDE_SECONDS; ai.coverTime = COVER_HOLD; m.aim = 0; }
       else { const c = pickCover(m.x, m.z, px, pz, i % 2 ? 1 : -1); ai.coverX = c.x; ai.coverZ = c.z; delete ai.peekX; delete ai.peekZ; ai.coverTime = 3.5; }
     }
     ai.coverTime -= dt;
     // the player walked round the cover: it no longer hides anything, break off and fight
     if (ai.peekX !== undefined && ai.coverTime > 0 && (ai.hideLeft ?? 0) > 0 && (m.aim ?? 0) <= 0 && Math.hypot(ai.coverX - m.x, ai.coverZ - m.z) < 0.6
-      && !sightLine({ x: px, y: playerEye, z: pz }, { x: m.x, y: walkHeight(m.x, m.z) + COVER_CHEST, z: m.z }, { ground: walkHeight, obstaclesNear: queryObstacles, solids: registeredModelSolids() }).blocked) ai.coverTime = 0;
+      && !sightLine({ x: px, y: playerEye, z: pz }, { x: m.x, y: walkHeight(m.x, m.z) + COVER_CHEST, z: m.z }, { ground: perceptionGround, obstaclesNear: queryObstacles, solids: registeredModelSolids() }).blocked) ai.coverTime = 0;
 
     // a melee swing in progress (enemy-melee.ts): it lands at the end of its wind-up, and only hurts if the player is still in reach
     if (m.swing) {
@@ -1957,7 +1958,7 @@ export function stepSim(sim: WorldSim, input: SimInput) {
       if (!m.flank && !scripted && !m.boss && role !== "LEADER" && (m.hiddenFor ?? 0) >= FLANK_AFTER && ai.peekX === undefined) {
         const running = sim.machines.filter((o) => o.alive && o.flank && o.flank.until > nowT).length;
         if (running < MAX_FLANKERS) {
-          const spot = findFlankSpot(m.x, m.z, { x: px, y: playerEye, z: pz }, i % 2 ? 1 : -1, { ground: walkHeight, obstaclesNear: queryObstacles, solids: registeredModelSolids() });
+          const spot = findFlankSpot(m.x, m.z, { x: px, y: playerEye, z: pz }, i % 2 ? 1 : -1, { ground: perceptionGround, obstaclesNear: queryObstacles, solids: registeredModelSolids() });
           if (spot) m.flank = { ...spot, until: nowT + FLANK_GIVE_UP };
         }
       }
@@ -2187,7 +2188,7 @@ export function stepSim(sim: WorldSim, input: SimInput) {
       tr.rot = Math.atan2(abstract.x - tr.x, abstract.z - tr.z) || tr.rot;
       tr.x = abstract.x;
       tr.z = abstract.z;
-      tr.y = walkHeight(abstract.x, abstract.z) + 1.6;
+      tr.y = perceptionGround(abstract.x, abstract.z) + 1.6;
       continue;
     }
 
@@ -2248,7 +2249,7 @@ export function stepSim(sim: WorldSim, input: SimInput) {
     const now = laneLanePoint(lane, tr.t, side);
     tr.x = now.x;
     tr.z = now.z;
-    tr.y = walkHeight(now.x, now.z) + 1.6;
+    tr.y = perceptionGround(now.x, now.z) + 1.6;
     if (Math.hypot(now.x - prev.x, now.z - prev.z) > 0.0001) {
       tr.rot = Math.atan2(now.x - prev.x, now.z - prev.z);
     }
@@ -2312,24 +2313,26 @@ export function stepSim(sim: WorldSim, input: SimInput) {
   }
 
   // ---------- launcher rounds ----------
+  // rounds and bullets meet the ground through the cached terrain (ground-cache.ts, within ~2 cm): an exact terrain sample per
+  // projectile per frame added up in a firefight on a phone-speed CPU (play-test Nov 2)
   for (const r of sim.rounds) {
     if (!r.alive) continue;
     const tm = r.target >= 0 ? sim.machines[r.target] : undefined;
     const ry0 = r.y;
-    let burst = stepRound(r, dt, tm && tm.alive ? { x: tm.x, y: tm.y + 1, z: tm.z } : null, heightAt);
+    let burst = stepRound(r, dt, tm && tm.alive ? { x: tm.x, y: tm.y + 1, z: tm.z } : null, cachedTerrainAt);
     // a rocket, missile or shell that dives into the sea bursts on the surface (torpedoes are made for the water)
-    if (!burst && r.alive && r.def.domain !== "WATER" && ry0 >= WATER_LEVEL && r.y < WATER_LEVEL && heightAt(r.x, r.z) < WATER_LEVEL - 0.3) {
+    if (!burst && r.alive && r.def.domain !== "WATER" && ry0 >= WATER_LEVEL && r.y < WATER_LEVEL && cachedTerrainAt(r.x, r.z) < WATER_LEVEL - 0.3) {
       r.y = WATER_LEVEL;
       burst = { x: r.x, y: WATER_LEVEL, z: r.z, radius: r.def.splashRadius, damage: r.def.damage, reason: "GROUND" };
       logImpact(sim, { x: r.x, y: WATER_LEVEL, z: r.z, vx: r.dx * r.def.speed, vz: r.dz * r.def.speed }, "water");
     }
     if (!burst && r.alive && collideBody(r, 0.5, 70, 0.3).hit) burst = { x: r.x, y: r.y, z: r.z, radius: r.def.splashRadius, damage: r.def.damage, reason: "PROXIMITY" };
-    if (!burst && r.alive && r.y - heightAt(r.x, r.z) < 8) {
+    if (!burst && r.alive && r.y - cachedTerrainAt(r.x, r.z) < 8) {
       for (const m of sim.machines) {
         if (m.alive && Math.hypot(m.x - r.x, m.z - r.z) < 2.6 * m.scale) { burst = { x: r.x, y: r.y, z: r.z, radius: r.def.splashRadius, damage: r.def.damage, reason: "PROXIMITY" }; break; }
       }
     }
-    if (!burst && r.alive && r.y - heightAt(r.x, r.z) < 8) {
+    if (!burst && r.alive && r.y - cachedTerrainAt(r.x, r.z) < 8) {
       for (const tr of sim.trucks) {
         if (tr.alive && Math.hypot(tr.x - r.x, tr.z - r.z) < 3.6) { burst = { x: r.x, y: r.y, z: r.z, radius: r.def.splashRadius, damage: r.def.damage, reason: "PROXIMITY" }; break; }
       }
@@ -2348,7 +2351,7 @@ export function stepSim(sim: WorldSim, input: SimInput) {
     // a diver started below the surface and keep going: underwater-combat.ts slows them instead)
     {
       const y0 = b.y - b.vy * dt;
-      if (y0 >= WATER_LEVEL && b.y < WATER_LEVEL && heightAt(b.x, b.z) < WATER_LEVEL - 0.3 && !bodyOnPath(sim, b, dt)) {
+      if (y0 >= WATER_LEVEL && b.y < WATER_LEVEL && cachedTerrainAt(b.x, b.z) < WATER_LEVEL - 0.3 && !bodyOnPath(sim, b, dt)) {
         const k = (y0 - WATER_LEVEL) / Math.max(1e-6, y0 - b.y); // fraction of the step before the surface
         b.x -= b.vx * dt * (1 - k); b.z -= b.vz * dt * (1 - k); b.y = WATER_LEVEL;
         b.alive = false;
@@ -2357,7 +2360,7 @@ export function stepSim(sim: WorldSim, input: SimInput) {
       }
     }
     // a round that met a body on its way down this step hits the body, not the dirt at its feet (resolved below)
-    if (b.y < heightAt(b.x, b.z) + 0.35 && !bodyOnPath(sim, b, dt)) {
+    if (b.y < cachedTerrainAt(b.x, b.z) + 0.35 && !bodyOnPath(sim, b, dt)) {
       b.alive = false;
       logImpact(sim, b, "ground");
       continue;

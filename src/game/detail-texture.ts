@@ -110,7 +110,8 @@ function brightDetail(src: THREE.CanvasTexture): THREE.CanvasTexture {
   if (!bright) {
     const img = src.image as HTMLCanvasElement;
     const c = document.createElement("canvas"); c.width = img.width; c.height = img.height;
-    const g = c.getContext("2d")!; g.drawImage(img, 0, 0);
+    // willReadFrequently: a CPU-backed canvas, so the pixel read below is not a GPU readback stalling the world load
+    const g = c.getContext("2d", { willReadFrequently: true })!; g.drawImage(img, 0, 0);
     const d = g.getImageData(0, 0, c.width, c.height);
     for (let i = 0; i < d.data.length; i += 4) { const v = Math.round(Math.min(255, 228 + (d.data[i]! - 128) * 0.42)); d.data[i] = d.data[i + 1] = d.data[i + 2] = v; }
     g.putImageData(d, 0, 0);

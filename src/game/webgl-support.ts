@@ -42,7 +42,14 @@ export function patchShaderPrecision() {
 }
 if (typeof window !== "undefined") patchShaderPrecision();
 
+/** the probe result for this session: GraphicsGuard remounts with the world on every Resume and each probe created and threw
+ * away a whole WebGL context (slow on phones, and the browser limits live contexts) */
+let probed: GraphicsSupport | null = null;
 export function detectGraphicsSupport(): GraphicsSupport {
+  if (probed?.ok) return probed;
+  return (probed = probeGraphicsSupport());
+}
+function probeGraphicsSupport(): GraphicsSupport {
   patchShaderPrecision();
   const safari = isSafari();
   if (typeof document === "undefined") return { ok: true, webgl2: true, safari, maxTextureSize: 4096, reason: null };

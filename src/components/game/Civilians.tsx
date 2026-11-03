@@ -1,5 +1,5 @@
 import { useFrame } from "@react-three/fiber";
-import { NPC_DRAW_RADIUS, getPerfTier } from "@/game/perf-budget";
+import { NPC_DRAW_RADIUS, animStride, getPerfTier, inViewCone } from "@/game/perf-budget";
 import { ARM_RELAX, IDLE_RELAX, armBones, relaxArm } from "@/game/rest-pose";
 import { useGLTF } from "@react-three/drei";
 import { Component, Suspense, useMemo, useRef, type ReactNode } from "react";
@@ -121,6 +121,7 @@ export class Quiet extends Component<{ children: ReactNode; fallback: ReactNode 
   override render() { return this.state.failed ? this.props.fallback : this.props.children; }
 }
 
+const AT = new THREE.Vector3(), FWD = new THREE.Vector3();
 /** Authored civilian body (civilian-models.ts) with idle / walk / wave clips crossfaded from the AI state. */
 export function CivilianModel({ role, live, url }: { role: CivilianRole; live: React.RefObject<Civilian>; /** another authored body (a sheet merchant, merchant-models.ts) */ url?: string | null | undefined }) {
   const { scene, animations } = useGLTF(url ?? civilianModelUrl(role));
@@ -143,9 +144,17 @@ export function CivilianModel({ role, live, url }: { role: CivilianRole; live: R
     return { obj, k, offset: [-c.x * k, -box.min.y * k, -c.z * k] as [number, number, number], mixer, actions, relaxArms };
   }, [scene, animations, url]);
   const weights = useRef<Record<CivilianClip, number>>({ idle: 1, walk: 0, wave: 0 });
-  useFrame((_, dt) => {
+  // animation level of detail (perf-budget.ts animStride): step the mixer every frame only on screen and near, with the
+  // skipped time carried over; a random phase so bodies don't all step on the same frame
+  const pace = useRef({ frame: Math.floor(Math.random() * 6), owed: 0 });
+  useFrame(({ camera }, dt) => {
     built.obj.visible = !live.current?.far;
     if (live.current?.hidden || live.current?.far) return;
+    const pc = pace.current; pc.frame++; pc.owed += Math.min(dt, 0.1);
+    built.obj.getWorldPosition(AT); camera.getWorldDirection(FWD);
+    const dx = AT.x - camera.position.x, dy = AT.y + 1 - camera.position.y, dz = AT.z - camera.position.z;
+    if (pc.frame % animStride(Math.hypot(dx, dz), inViewCone(FWD.x, FWD.y, FWD.z, dx, dy, dz)) !== 0) return;
+    dt = pc.owed; pc.owed = 0;
     const want = civilianClip(live.current?.state ?? "IDLE");
     const k = 1 - Math.exp(-dt * 6);
     for (const name of ["idle", "walk", "wave"] as const) {
@@ -155,7 +164,7 @@ export function CivilianModel({ role, live, url }: { role: CivilianRole; live: R
       if (built.actions[name]) built.actions[name]!.weight = w[name];
       else if (a) a.weight = Math.max(a.weight, w[name]);
     }
-    built.mixer.update(Math.min(dt, 0.1));
+    built.mixer.update(Math.min(dt, 0.6));
     const relaxBy = built.actions.idle ? IDLE_RELAX * weights.current.idle : ARM_RELAX;
     for (const { arm, elbow } of built.relaxArms) relaxArm(arm, elbow, built.obj, relaxBy);
   });
@@ -180,13 +189,17 @@ export function CivilianBody({ role, live, robot }: { role: CivilianRole; live: 
 function CivilianView({ civilian, sharedRef }: { civilian: Civilian; sharedRef: React.RefObject<Civilian[]> }) {
   const group = useRef<THREE.Group>(null!);
   const live = useRef(civilian);
+  const ground = useRef({ x: NaN, z: NaN, y: 0 });
   useFrame(() => {
     const current = sharedRef.current?.find((c) => c.id === civilian.id) ?? civilian;
     live.current = current;
     if (!group.current) return;
     group.current.visible = !current.hidden;
     if (current.hidden) return;
-    group.current.position.set(current.x, heightAt(current.x, current.z), current.z);
+    // the ground height only when the body has moved (a terrain sample per civilian per frame added up, play-test Nov 2)
+    const g = ground.current;
+    if (Math.abs(current.x - g.x) > 0.05 || Math.abs(current.z - g.z) > 0.05) { g.x = current.x; g.z = current.z; g.y = heightAt(current.x, current.z); }
+    group.current.position.set(current.x, g.y, current.z);
     group.current.quaternion.setFromAxisAngle(UP, current.heading);
     const bob = current.state === "WANDER" ? Math.abs(Math.sin(current.phase)) * 0.04 : 0;
     group.current.position.y += bob;

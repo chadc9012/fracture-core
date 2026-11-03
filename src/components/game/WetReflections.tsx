@@ -38,7 +38,7 @@ function streakTexture(): THREE.CanvasTexture | null {
 /** Light streaks on the wet city streets at night (wet-reflections.ts): one additive instanced batch, re-aimed at the camera a few
  * times a second, only for lights near the camera. */
 export function WetReflections({ rainRef }: { rainRef?: React.RefObject<number> }) {
-  const glints = useMemo(() => cityGlints().map((g) => ({ ...g, y: walkHeight(g.x, g.z) })), []);
+  const glints = useMemo(() => cityGlints().map((g) => ({ ...g, y: walkHeight(g.x, g.z), sx: NaN, sz: NaN, sy: 0 })), []);
   const colors = useMemo(() => glints.map((g) => new THREE.Color(g.color)), [glints]);
   const ref = useRef<THREE.InstancedMesh>(null);
   const mat = useMemo(() => new THREE.MeshBasicMaterial({ map: streakTexture(), transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false, polygonOffset: true, polygonOffsetFactor: -6, polygonOffsetUnits: -6, fog: true }), []);
@@ -61,7 +61,10 @@ export function WetReflections({ rainRef }: { rainRef?: React.RefObject<number> 
     for (let i = 0; i < glints.length && n < WET.max; i++) {
       const g = glints[i]!, s = streak(cx, cz, g);
       if (!s) continue;
-      o.position.set(s.cx, walkHeight(s.cx, s.cz) + 0.09, s.cz);
+      // the ground under the streak only when its centre has moved a metre (a terrain sample per lit lamp, redone four times a
+      // second, was ~25 ms of a phone-speed night frame in Nexus, play-test Nov 2)
+      if (!(Math.abs(s.cx - g.sx) < 1 && Math.abs(s.cz - g.sz) < 1)) { g.sx = s.cx; g.sz = s.cz; g.sy = walkHeight(s.cx, s.cz); }
+      o.position.set(s.cx, g.sy + 0.09, s.cz);
       o.rotation.set(0, s.yaw, 0);
       o.scale.set(g.w, 1, s.len);
       o.updateMatrix(); m.setMatrixAt(n, o.matrix); m.setColorAt(n, colors[i]!);
