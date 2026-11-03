@@ -24,11 +24,10 @@ Rows are the lock; `git fetch` before you claim.
 ## Claimed
 | Task | Session | Since |
 | --- | --- | --- |
-| Phase 1: server-side mission-run guard | lead (session_015nUG7fd8rEqjsn12yh1Fh7) | 2026-11-02 |
+| Phase 2: Godot third-person operator controller in the street slices (walk, run, jump, grapple, chase camera, phone sticks) | lead (session_015nUG7fd8rEqjsn12yh1Fh7) | 2026-11-02 |
 | Killbox arena maps to the owner's PvP maps board (web build; the owner asked for this directly in session — outside the Dec 4 scope, paused after Killbox Prime pending the owner's call) | session_01HeBvGGZzSqLVyhhF3TcmJd | 2026-11-02 |
 
 ## Open (unclaimed, take in order within a phase)
-- Phase 2: Godot third-person operator controller (walk, run, jump, grapple) in `street_slice.gd`, using the creator's rig.
 - Phase 2: Godot weapons — port `weapon-catalog.ts` frames AUTO / SNIPER / FUSION; hitscan + projectile; ammo and reload.
 - Phase 2: Godot enemies — 5 types from the web AI (`src/game/sim.ts`), spawns in the Nexus block.
 - Phase 2: Godot HUD — hull, ammo, crosshair, compass, objective (the phone's simple HUD first).
@@ -38,6 +37,9 @@ Rows are the lock; `git fetch` before you claim.
 - Phase 4: fd-01…fd-04 missions in Godot on the quest engine contract.
 - Phase 5: traffic AI + building collisions in the driving district; district streaming (Active / Simulated / Frozen).
 - Phase 5: shoppable clothing and furnishings stores in the mall; first racing venue with stands and pit lane.
+
+## Deferred past Dec 4 (lead's call, Nov 2)
+- Phase 1: server-side mission-run guard — needs a migration applied on the live Supabase project that can't be verified from a session; changes nothing playable.
 
 ## Done
 | Task | Commit |
