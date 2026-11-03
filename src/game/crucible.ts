@@ -70,7 +70,8 @@ export function clearRivals(sim: WorldSim): number {
 
 /** Killbox modes (pvp.ts): keep `lineup` on the field around `center` (spawn ring `ring` m). With `respawn` off, each slot takes
  * the field once until `resetField` (a new round). Same rival machines and tags as stepRivals. */
-export function stepField(sim: WorldSim, st: CrucibleState, center: { x: number; z: number }, lineup: readonly RivalClass[], ring: number, respawn: boolean, dt: number, rng = Math.random): void {
+export function stepField(sim: WorldSim, st: CrucibleState, center: { x: number; z: number }, lineup: readonly RivalClass[], ring: number, respawn: boolean, dt: number, rng = Math.random,
+  /** a built arena's spawn for this slot (world x, z); without it rivals enter on the ring round `center` */ spawnAt?: (slot: number) => { x: number; z: number }): void {
   st.spent ??= [];
   // slots past the lineup leave the field (a royale lobby thinning out)
   for (const m of sim.machines) if (m.alive && m.rival && m.living?.startsWith("crucible:") && Number(m.living.slice(9)) >= lineup.length) { m.alive = false; delete m.rival; delete m.living; }
@@ -82,9 +83,9 @@ export function stepField(sim: WorldSim, st: CrucibleState, center: { x: number;
     if ((st.respawn[slot] ?? 0) > 0) return;
     const m = sim.machines.find((e) => !e.alive);
     if (!m) return;
-    const a = rng() * Math.PI * 2;
+    const a = rng() * Math.PI * 2, at = spawnAt ? spawnAt(slot) : { x: center.x + Math.cos(a) * ring, z: center.z + Math.sin(a) * ring };
     Object.assign(m, {
-      alive: true, x: center.x + Math.cos(a) * ring, z: center.z + Math.sin(a) * ring, hp: RIVAL_HP, rot: 0, scale: 1, zone: "wastelands",
+      alive: true, x: at.x, z: at.z, hp: RIVAL_HP, rot: 0, scale: 1, zone: "wastelands",
       cool: 1.2 + rng(), elite: false, profile: `Rival ${RIVAL_LABEL[cls]}`, kind: "VANGUARD" as const, drop: "scrapMetal", boss: false, kx: 0, kz: 0, mission: false,
       vulnUntil: 0, vulnMult: 1, encounter: undefined, decoy: undefined, living: tag, scenarioId: undefined, eq: undefined, swimY: undefined,
       nemesis: undefined, nemesisWeak: undefined, nemesisDamage: undefined, rival: cls,

@@ -12,4 +12,7 @@ export const perfStats = {
   triangles: 0,
   geometries: 0,
   textures: 0,
+  /** the canvas resolution (pixels per CSS pixel) and the quality tier in use */
+  dpr: 1,
+  tier: "",
 };
