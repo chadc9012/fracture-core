@@ -81,13 +81,17 @@ jobs:
         run: |
           mkdir -p build/linux && chmod -R a+rwX "$PWD"
           # the engine refuses to run as root; the image's own user (ue4) builds, with the repo, SDK and JDK mounted in
-          docker run --rm -u ue4 \
+          # a bigger /dev/shm for the build accelerator; the default 64 MB container shm made clang crash in a loop under it
+          docker run --rm -u ue4 --shm-size=4g \
             -v "$PWD":/project -e WF_JOINED_MODELS=/project/build/joined \
             "${{ inputs.engine_image }}" bash -lc '
               set -euo pipefail
               ENGINE=/home/ue4/UnrealEngine # where the Epic dev images keep the engine (no apostrophes inside this single-quoted script)
               cd /project
-              "$ENGINE/Engine/Build/BatchFiles/Linux/Build.sh" WorldFractureEditor Linux Development -project=/project/unreal/WorldFracture.uproject
+              # build without the Unreal Build Accelerator: under it clang crashed with SIGSEGV over and over in this container
+              mkdir -p "$HOME/.config/Unreal Engine/UnrealBuildTool"
+              printf "%s\n" "<?xml version=\"1.0\" encoding=\"utf-8\"?>" "<Configuration xmlns=\"https://www.unrealengine.com/BuildConfiguration\">" "<BuildConfiguration><bAllowUBAExecutor>false</bAllowUBAExecutor><bAllowUBALocalExecutor>false</bAllowUBALocalExecutor></BuildConfiguration>" "</Configuration>" > "$HOME/.config/Unreal Engine/UnrealBuildTool/BuildConfiguration.xml"
+              "$ENGINE/Engine/Build/BatchFiles/Linux/Build.sh" WorldFractureEditor Linux Development -project=/project/unreal/WorldFracture.uproject -NoUBA
               "$ENGINE/Engine/Binaries/Linux/UnrealEditor-Cmd" /project/unreal/WorldFracture.uproject -run=pythonscript -script=/project/unreal/tools/setup_assets.py -unattended -nullrhi -nosplash
               "$ENGINE/Engine/Build/BatchFiles/RunUAT.sh" BuildCookRun -project=/project/unreal/WorldFracture.uproject \
                 -platform=Linux -clientconfig=${{ inputs.config }} \
